@@ -1,1 +1,0 @@
-EQUAL_NULL( <expr1> , <expr2> )
