@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema>
+    <column comment="" default="" key="false" label="PTS" length="15"
+        nullable="false" originalDbColumnName="PTS" originalLength="0"
+        pattern="&quot;yyyyMMdd-HHmmss&quot;" precision="0"
+        talendType="id_Date" type="BPCHAR"/>
+    <column comment="" default="" key="false" label="CIK" length="-1"
+        nullable="true" originalDbColumnName="CIK" originalLength="-1"
+        pattern="" precision="-1" talendType="id_Integer" type=""/>
+    <column comment="" default="" key="false" label="CoName" length="-1"
+        nullable="true" originalDbColumnName="CoName"
+        originalLength="-1" pattern="" precision="-1"
+        talendType="id_String" type=""/>
+    <column comment="" default="" key="false" label="RecType" length="3"
+        nullable="false" originalDbColumnName="RecType"
+        originalLength="0" pattern="" precision="0"
+        talendType="id_String" type="BPCHAR"/>
+    <column comment="" default="" key="false" label="Year" length="4"
+        nullable="false" originalDbColumnName="Year" originalLength="0"
+        pattern="" precision="0" talendType="id_Integer" type="BPCHAR"/>
+    <column comment="" default="" key="false" label="Quarter" length="1"
+        nullable="false" originalDbColumnName="Quarter"
+        originalLength="0" pattern="" precision="0"
+        talendType="id_Integer" type="BPCHAR"/>
+    <column comment="" default="" key="false" label="QtrStartDate"
+        length="8" nullable="false" originalDbColumnName="QtrStartDate"
+        originalLength="0" pattern="&quot;yyyyMMdd&quot;" precision="0"
+        talendType="id_Date" type="BPCHAR"/>
+    <column comment="" default="" key="false" label="PostingDate"
+        length="8" nullable="false" originalDbColumnName="PostingDate"
+        originalLength="0" pattern="&quot;yyyyMMdd&quot;" precision="0"
+        talendType="id_Date" type="BPCHAR"/>
+    <column comment="" default="" key="false" label="Revenue"
+        length="17" nullable="false" originalDbColumnName="Revenue"
+        originalLength="0" pattern="" precision="0"
+        talendType="id_BigDecimal" type="BPCHAR"/>
+    <column comment="" default="" key="false" label="Earnings"
+        length="17" nullable="false" originalDbColumnName="Earnings"
+        originalLength="0" pattern="" precision="0"
+        talendType="id_BigDecimal" type="BPCHAR"/>
+    <column comment="" default="" key="false" label="EPS" length="12"
+        nullable="false" originalDbColumnName="EPS" originalLength="0"
+        pattern="" precision="0" talendType="id_BigDecimal" type="BPCHAR"/>
+    <column comment="" default="" key="false" label="DilutedEPS"
+        length="12" nullable="false" originalDbColumnName="DilutedEPS"
+        originalLength="0" pattern="" precision="0"
+        talendType="id_BigDecimal" type="BPCHAR"/>
+    <column comment="" default="" key="false" label="Margin" length="12"
+        nullable="false" originalDbColumnName="Margin"
+        originalLength="0" pattern="" precision="0"
+        talendType="id_BigDecimal" type="BPCHAR"/>
+    <column comment="" default="" key="false" label="Inventory"
+        length="17" nullable="false" originalDbColumnName="Inventory"
+        originalLength="0" pattern="" precision="0"
+        talendType="id_BigDecimal" type="BPCHAR"/>
+    <column comment="" default="" key="false" label="Assets" length="17"
+        nullable="false" originalDbColumnName="Assets"
+        originalLength="0" pattern="" precision="0"
+        talendType="id_BigDecimal" type="BPCHAR"/>
+    <column comment="" default="" key="false" label="Liabilities"
+        length="17" nullable="false" originalDbColumnName="Liabilities"
+        originalLength="0" pattern="" precision="0"
+        talendType="id_BigDecimal" type="BPCHAR"/>
+    <column comment="" default="" key="false" label="ShOut" length="13"
+        nullable="false" originalDbColumnName="ShOut" originalLength="0"
+        pattern="" precision="0" talendType="id_BigDecimal" type="BPCHAR"/>
+    <column comment="" default="" key="false" label="DilutedShOut"
+        length="13" nullable="false" originalDbColumnName="DilutedShOut"
+        originalLength="0" pattern="" precision="0"
+        talendType="id_BigDecimal" type="BPCHAR"/>
+    <column comment=""
+        default="nextval('dimcompany_sk_companyid_seq'::regclass)"
+        key="true" label="sk_companyid" length="10" nullable="false"
+        originalDbColumnName="sk_companyid" originalLength="0"
+        pattern="" precision="0" talendType="id_Integer" type="SERIAL"/>
+    <column comment="" default="" key="false" label="effectivedate"
+        length="13" nullable="false"
+        originalDbColumnName="effectivedate" originalLength="0"
+        pattern="&quot;dd-MM-yyyy&quot;" precision="0"
+        talendType="id_Date" type="DATE"/>
+    <column comment="" default="" key="false" label="enddate"
+        length="13" nullable="false" originalDbColumnName="enddate"
+        originalLength="0" pattern="&quot;dd-MM-yyyy&quot;"
+        precision="0" talendType="id_Date" type="DATE"/>
+</schema>

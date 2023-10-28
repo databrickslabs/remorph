@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema>
+    <column comment="" default="" key="false" label="dataset"
+        length="20" nullable="false" originalDbColumnName="dataset"
+        originalLength="0" pattern="" precision="0"
+        talendType="id_String" type="BPCHAR"/>
+    <column comment="" default="" key="false" label="batchid" length="5"
+        nullable="true" originalDbColumnName="batchid"
+        originalLength="0" pattern="" precision="0"
+        talendType="id_Integer" type="NUMERIC"/>
+    <column comment="" default="" key="false" label="date" length="13"
+        nullable="true" originalDbColumnName="date" originalLength="0"
+        pattern="&quot;dd-MM-yyyy&quot;" precision="0"
+        talendType="id_String" type="DATE"/>
+    <column comment="" default="" key="false" label="attribute"
+        length="50" nullable="false" originalDbColumnName="attribute"
+        originalLength="0" pattern="" precision="0"
+        talendType="id_String" type="BPCHAR"/>
+    <column comment="" default="" key="false" label="value" length="15"
+        nullable="true" originalDbColumnName="value" originalLength="0"
+        pattern="" precision="0" talendType="id_Long" type="NUMERIC"/>
+    <column comment="" default="" key="false" label="dvalue" length="15"
+        nullable="true" originalDbColumnName="dvalue" originalLength="0"
+        pattern="" precision="5" talendType="id_Long" type="NUMERIC"/>
+</schema>

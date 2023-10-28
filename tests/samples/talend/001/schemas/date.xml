@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema>
+    <column comment="" default="" key="true" label="sk_dateid"
+        length="10" nullable="false" originalDbColumnName="sk_dateid"
+        originalLength="0" pattern="" precision="0"
+        talendType="id_Integer" type="INT4"/>
+    <column comment="" default="" key="false" label="datevalue"
+        length="13" nullable="false" originalDbColumnName="datevalue"
+        originalLength="0" pattern="&quot;yyyy-MM-dd&quot;"
+        precision="0" talendType="id_Date" type="DATE"/>
+    <column comment="" default="" key="false" label="datedesc"
+        length="20" nullable="false" originalDbColumnName="datedesc"
+        originalLength="0" pattern="" precision="0"
+        talendType="id_String" type="BPCHAR"/>
+    <column comment="" default="" key="false" label="calendaryearid"
+        length="4" nullable="false"
+        originalDbColumnName="calendaryearid" originalLength="0"
+        pattern="" precision="0" talendType="id_BigDecimal" type="NUMERIC"/>
+    <column comment="" default="" key="false" label="calendaryeardesc"
+        length="20" nullable="false"
+        originalDbColumnName="calendaryeardesc" originalLength="0"
+        pattern="" precision="0" talendType="id_String" type="BPCHAR"/>
+    <column comment="" default="" key="false" label="calendarqtrid"
+        length="5" nullable="false" originalDbColumnName="calendarqtrid"
+        originalLength="0" pattern="" precision="0"
+        talendType="id_BigDecimal" type="NUMERIC"/>
+    <column comment="" default="" key="false" label="calendarqtrdesc"
+        length="20" nullable="false"
+        originalDbColumnName="calendarqtrdesc" originalLength="0"
+        pattern="" precision="0" talendType="id_String" type="BPCHAR"/>
+    <column comment="" default="" key="false" label="calendarmonthid"
+        length="6" nullable="false"
+        originalDbColumnName="calendarmonthid" originalLength="0"
+        pattern="" precision="0" talendType="id_BigDecimal" type="NUMERIC"/>
+    <column comment="" default="" key="false" label="calendarmonthdesc"
+        length="20" nullable="false"
+        originalDbColumnName="calendarmonthdesc" originalLength="0"
+        pattern="" precision="0" talendType="id_String" type="BPCHAR"/>
+    <column comment="" default="" key="false" label="calendarweekid"
+        length="6" nullable="false"
+        originalDbColumnName="calendarweekid" originalLength="0"
+        pattern="" precision="0" talendType="id_BigDecimal" type="NUMERIC"/>
+    <column comment="" default="" key="false" label="calendarweekdesc"
+        length="20" nullable="false"
+        originalDbColumnName="calendarweekdesc" originalLength="0"
+        pattern="" precision="0" talendType="id_String" type="BPCHAR"/>
+    <column comment="" default="" key="false" label="dayofweeknumeric"
+        length="1" nullable="false"
+        originalDbColumnName="dayofweeknumeric" originalLength="0"
+        pattern="" precision="0" talendType="id_BigDecimal" type="NUMERIC"/>
+    <column comment="" default="" key="false" label="dayofweekdesc"
+        length="10" nullable="false"
+        originalDbColumnName="dayofweekdesc" originalLength="0"
+        pattern="" precision="0" talendType="id_String" type="BPCHAR"/>
+    <column comment="" default="" key="false" label="fiscalyearid"
+        length="4" nullable="false" originalDbColumnName="fiscalyearid"
+        originalLength="0" pattern="" precision="0"
+        talendType="id_BigDecimal" type="NUMERIC"/>
+    <column comment="" default="" key="false" label="fiscalyeardesc"
+        length="20" nullable="false"
+        originalDbColumnName="fiscalyeardesc" originalLength="0"
+        pattern="" precision="0" talendType="id_String" type="BPCHAR"/>
+    <column comment="" default="" key="false" label="fiscalqtrid"
+        length="5" nullable="false" originalDbColumnName="fiscalqtrid"
+        originalLength="0" pattern="" precision="0"
+        talendType="id_BigDecimal" type="NUMERIC"/>
+    <column comment="" default="" key="false" label="fiscalqtrdesc"
+        length="20" nullable="false"
+        originalDbColumnName="fiscalqtrdesc" originalLength="0"
+        pattern="" precision="0" talendType="id_String" type="BPCHAR"/>
+    <column comment="" default="" key="false" label="holidayflag"
+        length="1" nullable="true" originalDbColumnName="holidayflag"
+        originalLength="0" pattern="" precision="0"
+        talendType="id_Boolean" type="BOOL"/>
+</schema>

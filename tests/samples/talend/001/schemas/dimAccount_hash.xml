@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema>
+    <column comment="" default="" key="true" label="sk_accountid"
+        length="10" nullable="false" originalDbColumnName="sk_accountid"
+        originalLength="0" pattern="" precision="0"
+        talendType="id_Integer" type="INT4"/>
+    <column comment="" default="" key="false" label="accountid"
+        length="10" nullable="false" originalDbColumnName="accountid"
+        originalLength="0" pattern="" precision="0"
+        talendType="id_Integer" type="INT4"/>
+    <column comment="" default="" key="false" label="sk_brokerid"
+        length="10" nullable="false" originalDbColumnName="sk_brokerid"
+        originalLength="0" pattern="" precision="0"
+        talendType="id_Integer" type="INT4"/>
+    <column comment="" default="" key="false" label="sk_customerid"
+        length="10" nullable="false"
+        originalDbColumnName="sk_customerid" originalLength="0"
+        pattern="" precision="0" talendType="id_Integer" type="INT4"/>
+    <column comment="" default="" key="false" label="status" length="10"
+        nullable="false" originalDbColumnName="status"
+        originalLength="0" pattern="" precision="0"
+        talendType="id_String" type="BPCHAR"/>
+    <column comment="" default="" key="false" label="accountdesc"
+        length="50" nullable="true" originalDbColumnName="accountdesc"
+        originalLength="0" pattern="" precision="0"
+        talendType="id_String" type="VARCHAR"/>
+    <column comment="" default="" key="false" label="taxstatus"
+        length="10" nullable="false" originalDbColumnName="taxstatus"
+        originalLength="0" pattern="" precision="0"
+        talendType="id_Integer" type="INT4"/>
+    <column comment="" default="" key="false" label="iscurrent"
+        length="1" nullable="false" originalDbColumnName="iscurrent"
+        originalLength="0" pattern="" precision="0"
+        talendType="id_Boolean" type="BOOL"/>
+    <column comment="" default="" key="false" label="batchid"
+        length="10" nullable="false" originalDbColumnName="batchid"
+        originalLength="0" pattern="" precision="0"
+        talendType="id_Integer" type="INT4"/>
+    <column comment="" default="" key="false" label="effectivedate"
+        length="13" nullable="false"
+        originalDbColumnName="effectivedate" originalLength="0"
+        pattern="&quot;dd-MM-yyyy&quot;" precision="0"
+        talendType="id_Date" type="DATE"/>
+    <column comment="" default="" key="false" label="enddate"
+        length="13" nullable="false" originalDbColumnName="enddate"
+        originalLength="0" pattern="&quot;dd-MM-yyyy&quot;"
+        precision="0" talendType="id_Date" type="DATE"/>
+</schema>

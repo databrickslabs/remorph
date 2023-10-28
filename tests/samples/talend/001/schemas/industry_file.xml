@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema>
+    <column comment="" default="" key="false" label="in_id" length="2"
+        nullable="false" originalDbColumnName="in_id" originalLength="0"
+        pattern="" precision="0" talendType="id_String" type="BPCHAR"/>
+    <column comment="" default="" key="false" label="in_name"
+        length="50" nullable="false" originalDbColumnName="in_name"
+        originalLength="0" pattern="" precision="0"
+        talendType="id_String" type="BPCHAR"/>
+    <column comment="" default="" key="false" label="in_sc_id"
+        length="4" nullable="false" originalDbColumnName="in_sc_id"
+        originalLength="0" pattern="" precision="0"
+        talendType="id_String" type="BPCHAR"/>
+</schema>

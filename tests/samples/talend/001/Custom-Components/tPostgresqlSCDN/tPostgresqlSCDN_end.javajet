@@ -1,0 +1,66 @@
+<%@ jet 
+imports="
+    org.talend.core.model.process.INode 
+    org.talend.core.model.process.ElementParameterParser
+    org.talend.core.model.metadata.IMetadataTable 
+    org.talend.core.model.process.IConnection
+    org.talend.designer.codegen.config.CodeGeneratorArgument
+    org.talend.core.model.metadata.types.JavaTypesManager
+    org.talend.core.model.metadata.types.JavaType
+    org.talend.core.model.process.IConnectionCategory
+    org.talend.core.model.metadata.MetadataTalendType
+    org.talend.core.model.metadata.MappingTypeRetriever    
+    java.util.ArrayList
+    java.util.Map
+    java.util.HashMap
+" 
+skeleton="slowly_change_dimension.skeleton"
+%>
+
+<%
+CodeGeneratorArgument codeGenArgument = (CodeGeneratorArgument) argument;
+INode node = (INode) codeGenArgument.getArgument();
+String cid = node.getUniqueName();
+List<IMetadataColumn> inputSchema = getInputSchema(node);
+List<IMetadataColumn> outputSchema = getOutputSchema(node);
+if(inputSchema != null && inputSchema.size() > 0 && outputSchema != null && outputSchema.size() > 0) {
+    boolean useExistingConnection = ("true").equals(ElementParameterParser.getValue(node, "__USE_EXISTING_CONNECTION__"));
+    boolean isEnableSaveMemMode = ("true").equals(ElementParameterParser.getValue(node, "__USE_SAVE_MEM_MODE__"));
+    if(isEnableSaveMemMode) {
+        %>
+        searchingStmt_<%=cid%>.close();
+        <%
+    }
+    SCDConfiger scdConfiger = getSCDConfiger(node);
+    %>
+    insertionStatement_<%=cid%>.close();
+    <%
+    if(scdConfiger.isEnableType1()) {
+        %>
+        updateForType1_<%=cid%>.close();
+        <%
+    }
+    if(scdConfiger.isEnableType2()) {
+        %>
+        updateForType2_<%=cid%>.close();
+        <%
+    }
+    if(scdConfiger.isEnableType3()) {
+        %>
+        updateForType3_<%=cid%>.close();
+        <%
+    }
+    if (!useExistingConnection) {
+        %>
+        if(connection_<%=cid%> != null && !connection_<%=cid%>.isClosed()) {
+            connection_<%=cid%>.close();
+        }
+        <%
+    }
+    %>
+    globalMap.put("<%=cid %>_NB_LINE_UPDATED", nb_line_update_<%=cid%>);
+    globalMap.put("<%=cid %>_NB_LINE_INSERTED", nb_line_inserted_<%=cid%>);
+    globalMap.put("<%=cid %>_NB_LINE_REJECTED",nb_line_rejected_<%=cid%>);
+    <%
+}
+%>

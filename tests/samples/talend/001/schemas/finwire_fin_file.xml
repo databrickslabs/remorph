@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema>
+    <column comment="" default="" key="false" label="PTS" length="15"
+        nullable="false" originalDbColumnName="PTS" originalLength="0"
+        pattern="&quot;yyyyMMdd-HHmmss&quot;" precision="0"
+        talendType="id_Date" type="BPCHAR"/>
+    <column comment="" default="" key="false" label="RecType" length="3"
+        nullable="false" originalDbColumnName="RecType"
+        originalLength="0" pattern="" precision="0"
+        talendType="id_String" type="BPCHAR"/>
+    <column comment="" default="" key="false" label="Year" length="4"
+        nullable="false" originalDbColumnName="Year" originalLength="0"
+        pattern="" precision="0" talendType="id_Integer" type="BPCHAR"/>
+    <column comment="" default="" key="false" label="Quarter" length="1"
+        nullable="false" originalDbColumnName="Quarter"
+        originalLength="0" pattern="" precision="0"
+        talendType="id_Integer" type="BPCHAR"/>
+    <column comment="" default="" key="false" label="QtrStartDate"
+        length="8" nullable="false" originalDbColumnName="QtrStartDate"
+        originalLength="0" pattern="&quot;yyyyMMdd&quot;" precision="0"
+        talendType="id_Date" type="BPCHAR"/>
+    <column comment="" default="" key="false" label="PostingDate"
+        length="8" nullable="false" originalDbColumnName="PostingDate"
+        originalLength="0" pattern="&quot;yyyyMMdd&quot;" precision="0"
+        talendType="id_Date" type="BPCHAR"/>
+    <column comment="" default="" key="false" label="Revenue"
+        length="17" nullable="false" originalDbColumnName="Revenue"
+        originalLength="0" pattern="" precision="0"
+        talendType="id_BigDecimal" type="BPCHAR"/>
+    <column comment="" default="" key="false" label="Earnings"
+        length="17" nullable="false" originalDbColumnName="Earnings"
+        originalLength="0" pattern="" precision="0"
+        talendType="id_BigDecimal" type="BPCHAR"/>
+    <column comment="" default="" key="false" label="EPS" length="12"
+        nullable="false" originalDbColumnName="EPS" originalLength="0"
+        pattern="" precision="0" talendType="id_BigDecimal" type="BPCHAR"/>
+    <column comment="" default="" key="false" label="DilutedEPS"
+        length="12" nullable="false" originalDbColumnName="DilutedEPS"
+        originalLength="0" pattern="" precision="0"
+        talendType="id_BigDecimal" type="BPCHAR"/>
+    <column comment="" default="" key="false" label="Margin" length="12"
+        nullable="false" originalDbColumnName="Margin"
+        originalLength="0" pattern="" precision="0"
+        talendType="id_BigDecimal" type="BPCHAR"/>
+    <column comment="" default="" key="false" label="Inventory"
+        length="17" nullable="false" originalDbColumnName="Inventory"
+        originalLength="0" pattern="" precision="0"
+        talendType="id_BigDecimal" type="BPCHAR"/>
+    <column comment="" default="" key="false" label="Assets" length="17"
+        nullable="false" originalDbColumnName="Assets"
+        originalLength="0" pattern="" precision="0"
+        talendType="id_BigDecimal" type="BPCHAR"/>
+    <column comment="" default="" key="false" label="Liabilities"
+        length="17" nullable="false" originalDbColumnName="Liabilities"
+        originalLength="0" pattern="" precision="0"
+        talendType="id_BigDecimal" type="BPCHAR"/>
+    <column comment="" default="" key="false" label="ShOut" length="13"
+        nullable="false" originalDbColumnName="ShOut" originalLength="0"
+        pattern="" precision="0" talendType="id_BigDecimal" type="BPCHAR"/>
+    <column comment="" default="" key="false" label="DilutedShOut"
+        length="13" nullable="false" originalDbColumnName="DilutedShOut"
+        originalLength="0" pattern="" precision="0"
+        talendType="id_BigDecimal" type="BPCHAR"/>
+    <column comment="" default="" key="false" label="CoNameOrCIK"
+        length="60" nullable="false" originalDbColumnName="CoNameOrCIK"
+        originalLength="0" pattern="" precision="0"
+        talendType="id_String" type="BPCHAR"/>
+</schema>

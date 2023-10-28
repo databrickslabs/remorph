@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema>
+<column comment="" default="" key="false" label="DM_DATE"         length="10" nullable="false" originalDbColumnName="DM_DATE"         originalLength="0" pattern="" precision="0"         talendType="id_String" type="BPCHAR"/>
+<column comment="" default="" key="false" label="DM_S_SYMB"         length="15" nullable="false" originalDbColumnName="DM_S_SYMB"         originalLength="0" pattern="" precision="0"         talendType="id_String" type="BPCHAR"/>
+<column comment="" default="" key="false" label="DM_CLOSE"         length="8" nullable="false" originalDbColumnName="DM_CLOSE"         originalLength="0" pattern="" precision="0"         talendType="id_String" type="BPCHAR"/>
+<column comment="" default="" key="false" label="DM_HIGH"         length="8" nullable="false" originalDbColumnName="DM_HIGH"         originalLength="0" pattern="" precision="0"         talendType="id_String" type="BPCHAR"/>
+<column comment="" default="" key="false" label="DM_LOW"         length="8" nullable="false" originalDbColumnName="DM_LOW"         originalLength="0" pattern="" precision="0"         talendType="id_String" type="BPCHAR"/>
+<column comment="" default="" key="false" label="DM_VOL"         length="12" nullable="false" originalDbColumnName="DM_VOL"         originalLength="0" pattern="" precision="0"         talendType="id_String" type="BPCHAR"/>
+</schema>

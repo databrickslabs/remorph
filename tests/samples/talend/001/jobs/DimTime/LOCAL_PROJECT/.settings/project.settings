@@ -1,0 +1,450 @@
+{
+  "technicalStatus" : [ {
+    "label" : "development",
+    "code" : "DEV"
+  }, {
+    "label" : "testing",
+    "code" : "TEST"
+  }, {
+    "label" : "production",
+    "code" : "PROD"
+  } ],
+  "documentationStatus" : [ {
+    "label" : "unchecked",
+    "code" : "UCK"
+  }, {
+    "label" : "checked",
+    "code" : "CHK"
+  }, {
+    "label" : "validated",
+    "code" : "VAL"
+  } ],
+  "statAndLogsSettings" : {
+    "parameters" : {
+      "elementParameter" : [ {
+        "show" : true,
+        "field" : "CHECK",
+        "name" : "UPDATE_COMPONENTS",
+        "value" : "false",
+        "contextMode" : false
+      }, {
+        "show" : true,
+        "field" : "CHECK",
+        "name" : "STATS_DEFAULT_PROJECTSETTING",
+        "value" : "true",
+        "contextMode" : false
+      }, {
+        "show" : true,
+        "field" : "CHECK",
+        "name" : "ON_STATCATCHER_FLAG",
+        "value" : "false",
+        "contextMode" : false
+      }, {
+        "show" : true,
+        "field" : "CHECK",
+        "name" : "ON_LOGCATCHER_FLAG",
+        "value" : "false",
+        "contextMode" : false
+      }, {
+        "show" : true,
+        "field" : "CHECK",
+        "name" : "ON_METERCATCHER_FLAG",
+        "value" : "false",
+        "contextMode" : false
+      }, {
+        "show" : true,
+        "field" : "CHECK",
+        "name" : "ON_CONSOLE_FLAG",
+        "value" : "false",
+        "contextMode" : false
+      }, {
+        "show" : true,
+        "field" : "CHECK",
+        "name" : "ON_FILES_FLAG",
+        "value" : "false",
+        "contextMode" : false
+      }, {
+        "show" : true,
+        "field" : "DIRECTORY",
+        "name" : "FILE_PATH",
+        "value" : "\"D:/Carlos/carrera/Programas/TOS_DI-20181026_1147-V7.1.1/workspace/.metadata\"",
+        "contextMode" : false
+      }, {
+        "show" : true,
+        "field" : "TEXT",
+        "name" : "FILENAME_STATS",
+        "value" : "\"stats_file.txt\"",
+        "contextMode" : false
+      }, {
+        "show" : true,
+        "field" : "TEXT",
+        "name" : "FILENAME_LOGS",
+        "value" : "\"logs_file.txt\"",
+        "contextMode" : false
+      }, {
+        "show" : true,
+        "field" : "TEXT",
+        "name" : "FILENAME_METTER",
+        "value" : "\"meter_file.txt\"",
+        "contextMode" : false
+      }, {
+        "show" : true,
+        "field" : "ENCODING_TYPE",
+        "name" : "ENCODING",
+        "value" : "ISO-8859-15",
+        "contextMode" : false
+      }, {
+        "show" : true,
+        "field" : "CHECK",
+        "name" : "ON_DATABASE_FLAG",
+        "value" : "false",
+        "contextMode" : false
+      }, {
+        "show" : true,
+        "field" : "PROPERTY_TYPE",
+        "name" : "PROPERTY_TYPE",
+        "value" : "",
+        "contextMode" : false
+      }, {
+        "show" : true,
+        "field" : "CLOSED_LIST",
+        "name" : "DB_TYPE",
+        "value" : "tJDBCOutput",
+        "contextMode" : false
+      }, {
+        "show" : true,
+        "field" : "CLOSED_LIST",
+        "name" : "DB_VERSION",
+        "value" : "ORACLE_12",
+        "contextMode" : false
+      }, {
+        "show" : true,
+        "field" : "TEXT",
+        "name" : "URL",
+        "value" : "\"\"",
+        "contextMode" : false
+      }, {
+        "show" : true,
+        "field" : "TABLE",
+        "name" : "DRIVER_JAR",
+        "contextMode" : false
+      }, {
+        "show" : true,
+        "field" : "TEXT",
+        "name" : "DRIVER_CLASS",
+        "value" : "\"\"",
+        "contextMode" : false
+      }, {
+        "show" : true,
+        "field" : "TEXT",
+        "name" : "HOST",
+        "value" : "\"\"",
+        "contextMode" : false
+      }, {
+        "show" : true,
+        "field" : "TEXT",
+        "name" : "PORT",
+        "value" : "\"\"",
+        "contextMode" : false
+      }, {
+        "show" : true,
+        "field" : "TEXT",
+        "name" : "DBNAME",
+        "value" : "\"\"",
+        "contextMode" : false
+      }, {
+        "show" : true,
+        "field" : "TEXT",
+        "name" : "LOCAL_SERVICE_NAME",
+        "value" : "\"\"",
+        "contextMode" : false
+      }, {
+        "show" : true,
+        "field" : "TEXT",
+        "name" : "PROPERTIES",
+        "value" : "\"\"",
+        "contextMode" : false
+      }, {
+        "show" : true,
+        "field" : "TEXT",
+        "name" : "SCHEMA_DB",
+        "value" : "\"\"",
+        "contextMode" : false
+      }, {
+        "show" : true,
+        "field" : "TEXT",
+        "name" : "USER",
+        "value" : "\"\"",
+        "contextMode" : false
+      }, {
+        "show" : true,
+        "field" : "PASSWORD",
+        "name" : "PASS",
+        "value" : "0RMsyjmybrE=",
+        "contextMode" : false
+      }, {
+        "show" : true,
+        "field" : "FILE",
+        "name" : "DBFILE",
+        "value" : "\"\"",
+        "contextMode" : false
+      }, {
+        "show" : true,
+        "field" : "DBTABLE",
+        "name" : "TABLE_STATS",
+        "value" : "\"\"",
+        "contextMode" : false
+      }, {
+        "show" : true,
+        "field" : "DBTABLE",
+        "name" : "TABLE_LOGS",
+        "value" : "\"\"",
+        "contextMode" : false
+      }, {
+        "show" : true,
+        "field" : "DBTABLE",
+        "name" : "TABLE_METER",
+        "value" : "\"\"",
+        "contextMode" : false
+      }, {
+        "show" : true,
+        "field" : "CHECK",
+        "name" : "CATCH_RUNTIME_ERRORS",
+        "value" : "true",
+        "contextMode" : false
+      }, {
+        "show" : true,
+        "field" : "CHECK",
+        "name" : "CATCH_USER_ERRORS",
+        "value" : "true",
+        "contextMode" : false
+      }, {
+        "show" : true,
+        "field" : "CHECK",
+        "name" : "CATCH_USER_WARNING",
+        "value" : "true",
+        "contextMode" : false
+      }, {
+        "show" : true,
+        "field" : "CHECK",
+        "name" : "CATCH_REALTIME_STATS",
+        "value" : "false",
+        "contextMode" : false
+      }, {
+        "show" : true,
+        "field" : "TECHNICAL",
+        "name" : "ENCODING:ENCODING_TYPE",
+        "value" : "ISO-8859-15",
+        "contextMode" : false
+      }, {
+        "show" : true,
+        "field" : "TECHNICAL",
+        "name" : "PROPERTY_TYPE:PROPERTY_TYPE",
+        "value" : "BUILT_IN",
+        "contextMode" : false
+      }, {
+        "show" : true,
+        "field" : "TECHNICAL",
+        "name" : "PROPERTY_TYPE:REPOSITORY_PROPERTY_TYPE",
+        "value" : "",
+        "contextMode" : false
+      } ]
+    }
+  },
+  "implicitContextSettings" : {
+    "parameters" : {
+      "elementParameter" : [ {
+        "show" : true,
+        "field" : "CHECK",
+        "name" : "UPDATE_COMPONENTS",
+        "value" : "false",
+        "contextMode" : false
+      }, {
+        "show" : true,
+        "field" : "CHECK",
+        "name" : "IMPLICIT_TCONTEXTLOAD",
+        "value" : "false",
+        "contextMode" : false
+      }, {
+        "show" : true,
+        "field" : "CHECK",
+        "name" : "IMPLICT_DEFAULT_PROJECTSETTING",
+        "value" : "true",
+        "contextMode" : false
+      }, {
+        "show" : true,
+        "field" : "RADIO",
+        "name" : "FROM_FILE_FLAG_IMPLICIT_CONTEXT",
+        "value" : "false",
+        "contextMode" : false
+      }, {
+        "show" : true,
+        "field" : "RADIO",
+        "name" : "FROM_DATABASE_FLAG_IMPLICIT_CONTEXT",
+        "value" : "false",
+        "contextMode" : false
+      }, {
+        "show" : true,
+        "field" : "FILE",
+        "name" : "IMPLICIT_TCONTEXTLOAD_FILE",
+        "value" : "\"\"",
+        "contextMode" : false
+      }, {
+        "show" : true,
+        "field" : "TEXT",
+        "name" : "FIELDSEPARATOR",
+        "value" : "\"\"",
+        "contextMode" : false
+      }, {
+        "show" : true,
+        "field" : "PROPERTY_TYPE",
+        "name" : "PROPERTY_TYPE_IMPLICIT_CONTEXT",
+        "value" : "",
+        "contextMode" : false
+      }, {
+        "show" : true,
+        "field" : "CLOSED_LIST",
+        "name" : "DB_TYPE_IMPLICIT_CONTEXT",
+        "value" : "",
+        "contextMode" : false
+      }, {
+        "show" : true,
+        "field" : "CLOSED_LIST",
+        "name" : "DB_VERSION_IMPLICIT_CONTEXT",
+        "value" : "",
+        "contextMode" : false
+      }, {
+        "show" : true,
+        "field" : "TEXT",
+        "name" : "URL_IMPLICIT_CONTEXT",
+        "value" : "\"\"",
+        "contextMode" : false
+      }, {
+        "show" : true,
+        "field" : "TABLE",
+        "name" : "DRIVER_JAR_IMPLICIT_CONTEXT",
+        "contextMode" : false
+      }, {
+        "show" : true,
+        "field" : "TEXT",
+        "name" : "DRIVER_CLASS_IMPLICIT_CONTEXT",
+        "value" : "\"\"",
+        "contextMode" : false
+      }, {
+        "show" : true,
+        "field" : "TEXT",
+        "name" : "HOST_IMPLICIT_CONTEXT",
+        "value" : "\"\"",
+        "contextMode" : false
+      }, {
+        "show" : true,
+        "field" : "TEXT",
+        "name" : "PORT_IMPLICIT_CONTEXT",
+        "value" : "\"\"",
+        "contextMode" : false
+      }, {
+        "show" : true,
+        "field" : "TEXT",
+        "name" : "DBNAME_IMPLICIT_CONTEXT",
+        "value" : "\"\"",
+        "contextMode" : false
+      }, {
+        "show" : true,
+        "field" : "TEXT",
+        "name" : "LOCAL_SERVICE_NAME_IMPLICIT_CONTEXT",
+        "value" : "\"\"",
+        "contextMode" : false
+      }, {
+        "show" : true,
+        "field" : "TEXT",
+        "name" : "PROPERTIES_IMPLICIT_CONTEXT",
+        "value" : "\"\"",
+        "contextMode" : false
+      }, {
+        "show" : true,
+        "field" : "TEXT",
+        "name" : "SCHEMA_DB_IMPLICIT_CONTEXT",
+        "value" : "\"\"",
+        "contextMode" : false
+      }, {
+        "show" : true,
+        "field" : "TEXT",
+        "name" : "USER_IMPLICIT_CONTEXT",
+        "value" : "\"\"",
+        "contextMode" : false
+      }, {
+        "show" : true,
+        "field" : "PASSWORD",
+        "name" : "PASS_IMPLICIT_CONTEXT",
+        "value" : "0RMsyjmybrE=",
+        "contextMode" : false
+      }, {
+        "show" : true,
+        "field" : "FILE",
+        "name" : "DBFILE_IMPLICIT_CONTEXT",
+        "value" : "\"\"",
+        "contextMode" : false
+      }, {
+        "show" : true,
+        "field" : "DBTABLE",
+        "name" : "DBTABLE_IMPLICIT_CONTEXT",
+        "value" : "\"\"",
+        "contextMode" : false
+      }, {
+        "show" : true,
+        "field" : "TEXT",
+        "name" : "QUERY_CONDITION_IMPLICIT_CONTEXT",
+        "value" : "\"\"",
+        "contextMode" : false
+      }, {
+        "show" : true,
+        "field" : "CLOSED_LIST",
+        "name" : "LOAD_NEW_VARIABLE",
+        "value" : "",
+        "contextMode" : false
+      }, {
+        "show" : true,
+        "field" : "CLOSED_LIST",
+        "name" : "NOT_LOAD_OLD_VARIABLE",
+        "value" : "",
+        "contextMode" : false
+      }, {
+        "show" : true,
+        "field" : "CHECK",
+        "name" : "PRINT_OPERATIONS",
+        "value" : "false",
+        "contextMode" : false
+      }, {
+        "show" : true,
+        "field" : "CHECK",
+        "name" : "DISABLE_ERROR",
+        "value" : "false",
+        "contextMode" : false
+      }, {
+        "show" : true,
+        "field" : "CHECK",
+        "name" : "DISABLE_WARNINGS",
+        "value" : "false",
+        "contextMode" : false
+      }, {
+        "show" : true,
+        "field" : "CHECK",
+        "name" : "DISABLE_INFO",
+        "value" : "false",
+        "contextMode" : false
+      }, {
+        "show" : true,
+        "field" : "TECHNICAL",
+        "name" : "PROPERTY_TYPE_IMPLICIT_CONTEXT:PROPERTY_TYPE",
+        "value" : "BUILT_IN",
+        "contextMode" : false
+      }, {
+        "show" : true,
+        "field" : "TECHNICAL",
+        "name" : "PROPERTY_TYPE_IMPLICIT_CONTEXT:REPOSITORY_PROPERTY_TYPE",
+        "value" : "",
+        "contextMode" : false
+      } ]
+    }
+  }
+}

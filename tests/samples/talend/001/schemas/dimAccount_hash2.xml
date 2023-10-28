@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema>
+    <column comment=""
+        default="nextval('dimcustomer_sk_customerid_seq'::regclass)"
+        key="true" label="sk_customerid" length="10" nullable="false"
+        originalDbColumnName="sk_customerid" originalLength="0"
+        pattern="" precision="0" talendType="id_Integer" type="SERIAL"/>
+    <column comment=""
+        default="nextval('dimcustomer_sk_customerid_seq'::regclass)"
+        key="true" label="sk_customerid_previous" length="10"
+        nullable="true" originalDbColumnName="sk_customerid_previous"
+        originalLength="0" pattern="" precision="0"
+        talendType="id_Integer" type="SERIAL"/>
+    <column comment="" default="" key="false" label="ActionType"
+        length="10" nullable="true" originalDbColumnName="ActionType"
+        originalLength="0" pattern="&quot;dd-MM-yyyy&quot;"
+        precision="0" talendType="id_String"/>
+    <column comment="" default="" key="false" label="ActionTS"
+        length="-1" nullable="true" originalDbColumnName="ActionTS"
+        originalLength="0" pattern="&quot;yyyy-MM-dd'T'HH:mm:ss&quot;"
+        precision="0" talendType="id_Date"/>
+    <column comment="" default="" key="false" label="C_ID" length="1"
+        nullable="true" originalDbColumnName="C_ID" originalLength="0"
+        pattern="&quot;dd-MM-yyyy&quot;" precision="0" talendType="id_Integer"/>
+    <column comment="" default="" key="false" label="CA_ID" length="1"
+        nullable="true" originalDbColumnName="CA_ID" originalLength="0"
+        pattern="&quot;dd-MM-yyyy&quot;" precision="0" talendType="id_Integer"/>
+    <column comment="" default="" key="false" label="CA_TAX_ST"
+        length="1" nullable="true" originalDbColumnName="CA_TAX_ST"
+        originalLength="0" pattern="&quot;dd-MM-yyyy&quot;"
+        precision="0" talendType="id_Integer"/>
+    <column comment="" default="" key="false" label="CA_B_ID" length="5"
+        nullable="true" originalDbColumnName="CA_B_ID"
+        originalLength="0" pattern="&quot;dd-MM-yyyy&quot;"
+        precision="0" talendType="id_Integer"/>
+    <column comment="" default="" key="false" label="CA_NAME"
+        length="47" nullable="true" originalDbColumnName="CA_NAME"
+        originalLength="0" pattern="&quot;dd-MM-yyyy&quot;"
+        precision="0" talendType="id_String"/>
+    <column comment="" default="" key="false" label="iscurrent"
+        length="1" nullable="false" originalDbColumnName="iscurrent"
+        originalLength="0" pattern="" precision="0"
+        talendType="id_Boolean" type="BOOL"/>
+</schema>

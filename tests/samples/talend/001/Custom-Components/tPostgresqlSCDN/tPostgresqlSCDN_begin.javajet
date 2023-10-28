@@ -1,0 +1,293 @@
+<%@ jet 
+imports="
+    org.talend.core.model.process.INode
+    org.talend.core.model.process.ElementParameterParser
+    org.talend.core.model.metadata.IMetadataTable
+    org.talend.designer.codegen.config.CodeGeneratorArgument
+    org.talend.core.model.process.IConnection
+    org.talend.core.model.process.IConnectionCategory
+    org.talend.core.model.metadata.types.JavaTypesManager
+    org.talend.core.model.metadata.types.JavaType
+    org.talend.core.model.metadata.MetadataTalendType
+    org.talend.core.model.metadata.MappingTypeRetriever    
+    java.util.ArrayList
+    java.util.Map
+    java.util.HashMap
+"
+skeleton="slowly_change_dimension.skeleton"
+%>
+
+<%
+CodeGeneratorArgument codeGenArgument = (CodeGeneratorArgument) argument;
+INode node = (INode) codeGenArgument.getArgument();
+String cid = node.getUniqueName();
+List<IMetadataColumn> inputSchema = getInputSchema(node);
+List<IMetadataColumn> outputSchema = getOutputSchema(node);
+
+String incomingConnName = null;
+List<? extends IConnection> incomingConnections = node.getIncomingConnections();
+if(incomingConnections != null && incomingConnections.size() > 0) {
+    for(IConnection incomingConnection : incomingConnections) {
+        if(incomingConnection.getLineStyle().hasConnectionCategory(IConnectionCategory.DATA)) {
+            incomingConnName = incomingConnection.getName();
+        }
+    }
+}
+
+if(inputSchema != null && inputSchema.size() > 0 && outputSchema != null && outputSchema.size() > 0) {
+    String dbhost = ElementParameterParser.getValue(node, "__HOST__");
+    String dbport = ElementParameterParser.getValue(node, "__PORT__");
+    String dbname = ElementParameterParser.getValue(node, "__DBNAME__");
+    String dbuser = ElementParameterParser.getValue(node, "__USER__");
+
+    String dbtable = ElementParameterParser.getValue(node, "__TABLE__");
+    boolean debug = ("true").equals(ElementParameterParser.getValue(node, "__DEBUG__"));
+    boolean useExistingConnection = ("true").equals(ElementParameterParser.getValue(node,"__USE_EXISTING_CONNECTION__"));
+    boolean isEnableSaveMemMode = ("true").equals(ElementParameterParser.getValue(node, "__USE_SAVE_MEM_MODE__"));
+    boolean isSourceKeyIncNull = ("true").equals(ElementParameterParser.getValue(node, "__SOURCE_KEY_INC_NULL__"));
+    String dbType = POSTGRESQL;
+    SCDConfiger scdConfiger = getSCDConfiger(node);
+    SCDManager scdManager = getSCDManager(cid, dbType);
+    %>
+    <%
+    if(!isEnableSaveMemMode) {    
+        %>
+        <%=genSourceKeyClass(scdConfiger, cid)%>
+        <%
+    }
+    %>
+    <%=genDimensionAttributeClass(scdConfiger, cid)%>
+    int nb_line_update_<%=cid%> = 0;
+    int nb_line_inserted_<%=cid%> = 0;
+    int nb_line_rejected_<%=cid%> = 0;
+    <%
+    if(useExistingConnection) {
+        String connection = ElementParameterParser.getValue(node, "__CONNECTION__");
+        String connectionName = "conn_" + connection;
+        %>
+        String dbSchema_<%=cid%> = (String)globalMap.get("schema_" + "<%=connection%>");        
+        java.sql.Connection connection_<%=cid%> = (java.sql.Connection) globalMap.get("<%=connectionName%>");
+        <%        
+    } else {
+        %>
+        String dbSchema_<%=cid%> = <%=ElementParameterParser.getValue(node, "__SCHEMA_DB__")%>;
+        java.lang.Class.forName("org.postgresql.Driver");
+        String connectionString_<%=cid%> = "jdbc:postgresql://" + <%=dbhost%> + ":" + <%=dbport%> + "/" + <%=dbname%>;
+	        
+		<%
+		String passwordFieldName = "__PASS__";
+		%>
+		
+		<%@ include file="@{org.talend.designer.components.localprovider}/components/templates/password.javajet"%>
+	   	
+        java.sql.Connection connection_<%=cid%> = java.sql.DriverManager.getConnection(connectionString_<%=cid%>, <%=dbuser%>, decryptedPassword_<%=cid%>);
+        <%        
+    }
+    %>
+    String tableName_<%=cid%> = null;
+    if(dbSchema_<%=cid%> == null || dbSchema_<%=cid%>.trim().length() == 0) {
+        tableName_<%=cid%> = <%=dbtable%>;
+    } else {
+        tableName_<%=cid%> = dbSchema_<%=cid%> + "\".\"" + <%=dbtable%>;
+    }
+    java.sql.Timestamp timestamp_<%=cid%> = null;
+    String tmpValue_<%=cid%> = null;    
+    <%
+    if(isEnableSaveMemMode) {
+        %>
+        String searching_<%=cid%> = "<%=scdManager.createSearchingSQL(scdConfiger,isSourceKeyIncNull)%>";
+        java.sql.PreparedStatement searchingStmt_<%=cid%> = connection_<%=cid%>.prepareStatement(searching_<%=cid%>);
+        java.sql.ResultSet searchingResult_<%=cid%> = null;
+        <%
+    } else {
+        List<Column> searchColumns = getSearchColumnList(scdConfiger);
+        List<Column> sourceKeys = scdConfiger.getSourceKeys();
+        %>
+        String search_<%=cid%> = "<%=scdManager.createSelectionSQL(scdConfiger)%>";
+        java.sql.Statement statement_<%=cid%> = connection_<%=cid%>.createStatement();
+        java.sql.ResultSet resultSet_<%=cid%> = statement_<%=cid%>.executeQuery(search_<%=cid %>);
+        java.util.Map<SCDSK_<%=cid%>, SCDStruct_<%=cid%>> cache_<%=cid%> = new java.util.HashMap<SCDSK_<%=cid%>, SCDStruct_<%=cid%>>();
+        while(resultSet_<%=cid%>.next()) {
+            SCDSK_<%=cid%> sk_<%=cid%> = new SCDSK_<%=cid%>();
+            SCDStruct_<%=cid%> row_<%=cid%> = new SCDStruct_<%=cid%>();
+            <%
+            int index = 1;
+            for(Column searchColumn : searchColumns) {
+                boolean isSourceKey = false;
+                for(Column sourceKey : sourceKeys) {
+                    if(searchColumn.getColumnName().equals(sourceKey.getColumnName())) {
+                        isSourceKey = true;
+                        break;
+                    }
+                }
+                String generatedType = searchColumn.getJavaType();
+                String struct = (isSourceKey ? "sk_" : "row_") + cid;
+                if(("byte[]").equals(generatedType)) {
+                    generatedType = "Bytes";
+                } else if(("java.util.Date").equals(generatedType)) {
+                    generatedType = "Timestamp";
+                } else if(("Integer").equals(generatedType)) {
+                    generatedType = "Int";
+                } else {
+                    generatedType = generatedType.substring(0, 1).toUpperCase() + generatedType.substring(1);
+                }
+                if(("Char").equals(generatedType) || ("Character").equals(generatedType)) {
+                    %>
+                    tmpValue_<%=cid%> = resultSet_<%=cid%>.getString(<%=index%>);
+                    if (tmpValue_<%=cid%> != null && tmpValue_<%=cid%>.length() > 0) {
+                        <%=struct%>.<%=searchColumn.getColumnName()%> = tmpValue_<%=cid%>.charAt(0);
+                    } else {
+                        <%
+                        if(("Character").equals(generatedType)) {
+                            %>
+                            if(tmpValue_<%=cid%> == null) {
+                                <%=struct%>.<%=searchColumn.getColumnName()%> = null;
+                            } else {
+                                <%=struct%>.<%=searchColumn.getColumnName()%> = '\0';
+                            }
+                            <%
+                        } else {
+                            %>
+                            if(("").equals(tmpValue_<%=cid%>)) {
+                                <%=struct%>.<%=searchColumn.getColumnName()%> = '\0';
+                            } else {
+                                throw new RuntimeException("Value is empty for column : '<%=searchColumn.getColumnName()%>' in '<%=incomingConnName%>' connection, value is invalid or this column should be nullable or have a default value.");
+                            }
+                            <%
+                        }
+                        %>
+                    }
+                    <%
+                } else if(("Timestamp").equals(generatedType)) {
+                    %>
+                    timestamp_<%=cid%> = resultSet_<%=cid%>.getTimestamp(<%=index%>);
+                    if(timestamp_<%=cid%> != null) {
+                        <%=struct%>.<%=searchColumn.getColumnName()%> = new java.util.Date(timestamp_<%=cid%>.getTime());
+                    } else {
+                        <%=struct%>.<%=searchColumn.getColumnName()%> = null;
+                    }
+                    <%
+                } else {
+                    %>
+                    if(resultSet_<%=cid %>.getObject(<%=index%>) != null) {
+                        <%=struct%>.<%=searchColumn.getColumnName()%> = resultSet_<%=cid %>.get<%=generatedType%>(<%=index%>);
+                    }
+                    <%
+                }
+                index++;
+            }
+            %>
+            cache_<%=cid%>.put(sk_<%=cid%>, row_<%=cid%>);
+        }
+        resultSet_<%=cid%>.close();
+        statement_<%=cid%>.close();
+        <%
+        if(debug) {
+            %>
+            System.out.println("[<%=cid%>] comparison cache loaded");
+            <%
+        }        
+    }
+    if(("TABLE_MAX").equals(scdConfiger.getSurrogateKeyValueType())) {
+        %>
+        <%=scdConfiger.getSurrogateKeyFieldType()%> nextSurrogateKey_<%=cid%> = 1;
+        <%
+        if(!isEnableSaveMemMode) {
+            %>
+            if(cache_<%=cid%>.size() > 0) {
+            <%
+        }
+        %>
+        String tmpQuery_<%=cid%> = "SELECT MAX(\"<%=scdConfiger.getSurrogateKeyField()%>\") FROM \"" + tableName_<%=cid%> + "\"";
+        java.sql.Statement tmpStmt_<%=cid%> = connection_<%=cid%>.createStatement();
+        java.sql.ResultSet tmpRS_<%=cid%> = tmpStmt_<%=cid%>.executeQuery(tmpQuery_<%=cid%>);
+        <%
+        String tmpType = null;        
+        if(("Integer").equals(scdConfiger.getSurrogateKeyFieldType())) {
+            tmpType = "Int";
+        } else {
+            tmpType = scdConfiger.getSurrogateKeyFieldType().substring(0, 1).toUpperCase() + scdConfiger.getSurrogateKeyFieldType().substring(1);
+        }
+        %>
+        if(tmpRS_<%=cid%>.next() && tmpRS_<%=cid%>.getObject(1) != null) {
+            nextSurrogateKey_<%=cid%> = tmpRS_<%=cid%>.get<%=tmpType%>(1) + 1;
+        }
+        tmpRS_<%=cid%>.close();
+        tmpStmt_<%=cid%>.close();
+        <%
+        if(!isEnableSaveMemMode) {
+            %>
+            }            
+            <%
+        }
+    }
+    %>
+    String insertionSQL_<%=cid%> = "<%=scdManager.createInsertionSQL(scdConfiger)%>";
+    java.sql.PreparedStatement insertionStatement_<%=cid%> = connection_<%=cid%>.prepareStatement(insertionSQL_<%=cid%>);
+    <%
+    if(scdConfiger.isEnableType2()) {
+        int paramIndex = 0;
+        List<Column> insertionColumnList = getInsertionColumnList(scdConfiger);
+        if(scdConfiger.isEnableType3()) {
+            paramIndex = insertionColumnList.size() - scdConfiger.getDimensionType3Configer().getDimensionAttributes().size() - 1;
+        } else {
+            paramIndex = insertionColumnList.size() - 1;
+        }       
+        if(("JOB_START_TIME").equals(scdConfiger.getDimensionType2Configer().getStartDateValueType())) {
+            %>
+            insertionStatement_<%=cid%>.setTimestamp(<%=paramIndex%>, new java.sql.Timestamp(start_Hash.get("<%=cid%>")));
+            <%
+        }
+        if(("NULL_VALUE").equals(scdConfiger.getDimensionType2Configer().getEndDateValueType())) {
+            %>
+            insertionStatement_<%=cid%>.setNull(<%=paramIndex + 1%>, java.sql.Types.DATE);
+            <%
+        } else {
+        	String endDateTimeString = ElementParameterParser.getValue(node, "__L2_ENDDATE_TIME_DETAILS__");
+            %>
+            String endDateTimeDetail_<%=cid%> = <%=endDateTimeString.length()>0?endDateTimeString:"\"\""%>;
+            String datePattern_<%=cid%> = "yyyy-MM-dd";
+            if(endDateTimeDetail_<%=cid%>.length()>0){
+            	endDateTimeDetail_<%=cid%> = " "+endDateTimeDetail_<%=cid%>;
+            	datePattern_<%=cid%> = "yyyy-MM-dd HH:mm:ss";
+            }
+            insertionStatement_<%=cid%>.setTimestamp(<%=paramIndex + 1%>, new java.sql.Timestamp(new java.text.SimpleDateFormat(datePattern_<%=cid%>).parse(<%=scdConfiger.getDimensionType2Configer().getEndDateValue()%> + "-01-01"+endDateTimeDetail_<%=cid%>).getTime()));
+            <%
+        }
+    }
+    if(scdConfiger.isEnableType1()) {
+        %>
+        String updateSQLForType1_<%=cid%> = "<%=scdManager.createUpdateSQLForType1(scdConfiger,isSourceKeyIncNull)%>";
+        java.sql.PreparedStatement updateForType1_<%=cid%> = connection_<%=cid%>.prepareStatement(updateSQLForType1_<%=cid%>);        
+        <%
+    }
+    if(scdConfiger.isEnableType2()) {
+        %>
+        String updateSQLForType2_<%=cid%> = "<%=scdManager.createUpdateSQLForType2(scdConfiger,isSourceKeyIncNull)%>";
+        java.sql.PreparedStatement updateForType2_<%=cid%> = connection_<%=cid%>.prepareStatement(updateSQLForType2_<%=cid%>);
+        <%
+        if(("JOB_START_TIME").equals(scdConfiger.getDimensionType2Configer().getStartDateValueType())) {
+            %>
+            updateForType2_<%=cid%>.setTimestamp(1, new java.sql.Timestamp(start_Hash.get("<%=cid%>")));
+            <%
+        }
+    }
+    if(scdConfiger.isEnableType3()) {
+        %>
+        String updateSQLForType3_<%=cid%> = "<%=scdManager.createUpdateSQLForType3(scdConfiger,isSourceKeyIncNull)%>";
+        java.sql.PreparedStatement updateForType3_<%=cid%> = connection_<%=cid%>.prepareStatement(updateSQLForType3_<%=cid%>);
+        <%
+    }
+    %>
+    
+    <%
+    if(!isEnableSaveMemMode) {
+        %>
+        SCDSK_<%=cid%> lookUpKey_<%=cid%> = null;        
+        <%
+    }
+    %>
+    SCDStruct_<%=cid%> lookUpValue_<%=cid%> = null;
+    <%
+}
+%>
