@@ -1,1 +1,0 @@
-DATE_PART( <date_or_time_part> , <date_or_time_expr> )
