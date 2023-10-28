@@ -1,1 +1,0 @@
-BITXOR( <expr1> , <expr2> )
