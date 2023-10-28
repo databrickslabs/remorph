@@ -1,0 +1,1 @@
+EXPLAIN_JSON( <explain_output_in_json_format> )

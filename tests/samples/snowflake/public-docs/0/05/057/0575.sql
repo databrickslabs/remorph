@@ -1,0 +1,6 @@
+CREATE OR REPLACE MASKING POLICY allow_analyst AS (val string)
+RETURNS string ->
+CASE
+  WHEN IS_ROLE_IN_SESSION('ANALYST') THEN val
+  ELSE '*******'
+END;

@@ -1,0 +1,1 @@
+ALTER MATERIALIZED VIEW mv1 SET COMMENT = 'Sample view';

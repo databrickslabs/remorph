@@ -1,0 +1,1 @@
+DESC MATERIALIZED VIEW emp_view;

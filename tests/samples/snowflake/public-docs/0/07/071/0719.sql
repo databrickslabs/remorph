@@ -1,0 +1,1 @@
+TRY_TO_DOUBLE( <string_expr> )

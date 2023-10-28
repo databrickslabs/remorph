@@ -1,0 +1,1 @@
+select position(X'EF', X'ABCDEF');

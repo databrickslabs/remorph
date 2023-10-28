@@ -1,0 +1,1 @@
+SYSTEM$SNOWPIPE_STREAMING_UPDATE_CHANNEL_OFFSET_TOKEN('<dbName>.<schemaName>.<tableName>', '<channelName>', '<new_offset_token>')

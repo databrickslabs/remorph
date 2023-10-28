@@ -1,0 +1,1 @@
+set lid = last_query_id();

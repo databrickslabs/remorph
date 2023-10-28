@@ -1,0 +1,1 @@
+ASINH( <real_expr> )

@@ -1,0 +1,1 @@
+BITAND_AGG( <expr1> )

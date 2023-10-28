@@ -1,0 +1,1 @@
+FAILURE: Invalid character code -1 in the CHR input

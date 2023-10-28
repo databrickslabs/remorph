@@ -1,0 +1,1 @@
+STDDEV( [ DISTINCT ] <expression_1> )

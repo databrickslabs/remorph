@@ -1,0 +1,1 @@
+SET MY_FUNCTION_NAME = 'speed_of_light';

@@ -1,0 +1,5 @@
+CREATE EXTERNAL TABLE exttable1
+  LOCATION=@mystage/logs/
+  AUTO_REFRESH = true
+  FILE_FORMAT = (TYPE = PARQUET)
+  ;

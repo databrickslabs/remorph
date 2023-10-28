@@ -1,0 +1,1 @@
+FETCH my_cursor_name INTO my_variable_name ;

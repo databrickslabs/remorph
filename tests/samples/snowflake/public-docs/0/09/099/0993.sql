@@ -1,0 +1,1 @@
+ST_YMIN( <geography_or_geometry_expression> )

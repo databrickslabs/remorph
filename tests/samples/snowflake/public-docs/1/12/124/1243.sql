@@ -1,0 +1,1 @@
+'SOMETHING%' LIKE '%\\%%' ESCAPE '\\';

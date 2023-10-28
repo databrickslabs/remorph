@@ -1,0 +1,1 @@
+SYSTEM$GET_AWS_SNS_IAM_POLICY( '<sns_topic_arn>' )

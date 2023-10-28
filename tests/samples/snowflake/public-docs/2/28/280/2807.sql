@@ -1,0 +1,1 @@
+CALL simple_for(3);

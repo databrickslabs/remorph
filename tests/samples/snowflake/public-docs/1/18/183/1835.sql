@@ -1,0 +1,1 @@
+SYSTEM$GET_TAG_ON_CURRENT_COLUMN( '<tag_name>' )

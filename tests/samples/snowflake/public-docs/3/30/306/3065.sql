@@ -1,0 +1,1 @@
+Successfully added resource to resource group

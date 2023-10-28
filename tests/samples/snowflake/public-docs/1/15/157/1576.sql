@@ -1,0 +1,1 @@
+Insufficient privileges to operate on view '<view_name>'

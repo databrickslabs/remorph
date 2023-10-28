@@ -1,0 +1,1 @@
+PERCENTILE_CONT( <percentile> ) WITHIN GROUP (ORDER BY <order_by_expr>)

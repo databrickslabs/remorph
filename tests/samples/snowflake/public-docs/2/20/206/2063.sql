@@ -1,0 +1,1 @@
+INSERT INTO ta (i) VALUES (12);

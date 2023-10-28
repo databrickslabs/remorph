@@ -1,0 +1,1 @@
+ST_MAKEPOLYGON( <geography_or_geometry_expression> )

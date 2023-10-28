@@ -1,0 +1,1 @@
+IS_OBJECT( <variant_expr> )

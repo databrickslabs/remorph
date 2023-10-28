@@ -1,0 +1,1 @@
+ST_GEOMFROMWKB( <input> [, <allowInvalid> ] )

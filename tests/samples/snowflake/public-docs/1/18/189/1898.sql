@@ -1,0 +1,3 @@
+SYSTEM$DATABASE_REFRESH_PROGRESS( '<secondary_db_name>' )
+
+SYSTEM$DATABASE_REFRESH_PROGRESS_BY_JOB( '<query_id>' )

@@ -1,0 +1,1 @@
+TO_BOOLEAN( <text_or_numeric_expr> )

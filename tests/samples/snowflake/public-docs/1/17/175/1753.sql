@@ -1,0 +1,1 @@
+REGEXP_SUBSTR_ALL( <subject> , <pattern> [ , <position> [ , <occurrence> [ , <regex_parameters> [ , <group_num> ] ] ] ] )

@@ -1,0 +1,1 @@
+SPLIT(<string>, <separator>)

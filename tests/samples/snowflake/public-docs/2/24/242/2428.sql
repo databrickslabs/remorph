@@ -1,0 +1,1 @@
+SELECT IS_INTEGER(integer1), IS_INTEGER(decimal1), IS_INTEGER(double1) FROM multiple_types;

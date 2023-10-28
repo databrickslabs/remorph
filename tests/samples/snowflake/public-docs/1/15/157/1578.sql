@@ -1,0 +1,1 @@
+SPLIT_TO_TABLE(<string>, <delimiter>)

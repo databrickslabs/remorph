@@ -1,0 +1,1 @@
+ARRAY_APPEND( <array> , <new_element> )

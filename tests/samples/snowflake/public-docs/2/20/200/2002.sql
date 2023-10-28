@@ -1,0 +1,1 @@
+SYSTEM$ABORT_SESSION( <session_id> )

@@ -1,0 +1,1 @@
+ST_GEOGFROMWKT( <input> [, <allowInvalid> ] )

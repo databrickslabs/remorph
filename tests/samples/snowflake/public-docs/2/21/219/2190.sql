@@ -1,0 +1,1 @@
+select * from test_boolean_agg;

@@ -1,0 +1,1 @@
+TRY_CAST( <source_string_expr> AS <target_data_type> )

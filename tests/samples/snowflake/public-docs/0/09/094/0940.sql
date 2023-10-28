@@ -1,0 +1,1 @@
+ST_NPOINTS( <geography_or_geometry_expression> )

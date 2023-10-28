@@ -1,0 +1,1 @@
+CREATE SNOWFLAKE.CORE.BUDGET my_budget();

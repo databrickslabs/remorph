@@ -1,0 +1,1 @@
+DIV0( <dividend> , <divisor> )

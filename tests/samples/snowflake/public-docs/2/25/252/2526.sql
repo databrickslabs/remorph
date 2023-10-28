@@ -1,0 +1,1 @@
+SELECT AS_BINARY(binary1) AS "Binary" FROM multiple_types;

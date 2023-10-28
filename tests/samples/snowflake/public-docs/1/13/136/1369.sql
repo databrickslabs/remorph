@@ -1,0 +1,1 @@
+CONCAT_WS( <separator> , <expression1> [ , <expressionN> ... ] )

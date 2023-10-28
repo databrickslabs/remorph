@@ -1,0 +1,1 @@
+SELECT encrypt('Secret!', 'SamplePassphrase');

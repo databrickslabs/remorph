@@ -1,0 +1,1 @@
+ST_DIFFERENCE( <geography_expression_1> , <geography_expression_2> )

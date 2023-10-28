@@ -1,0 +1,3 @@
+SELECT * FROM TABLE(?);
+
+SELECT * FROM TABLE(:binding);

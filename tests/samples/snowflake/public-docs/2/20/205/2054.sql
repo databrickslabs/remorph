@@ -1,0 +1,1 @@
+APPROX_TOP_K( <expr> [ , <k> [ , <counters> ] ] ) OVER ( [ PARTITION BY <expr4> ] )

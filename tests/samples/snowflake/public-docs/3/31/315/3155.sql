@@ -1,0 +1,1 @@
+ALTER TABLE <name> RENAME COLUMN <col_name> to <new_col_name>

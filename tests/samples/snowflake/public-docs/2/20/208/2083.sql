@@ -1,0 +1,1 @@
+HLL_IMPORT(obj)

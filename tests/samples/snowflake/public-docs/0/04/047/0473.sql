@@ -1,0 +1,1 @@
+REGR_VALX( <y> , <x> )

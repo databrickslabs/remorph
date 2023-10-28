@@ -1,0 +1,1 @@
+SELECT COUNT_IF(i_col IS NOT NULL AND j_col IS NOT NULL) FROM basic_example;

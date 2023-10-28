@@ -1,0 +1,1 @@
+SELECT INSERT('abc', 2, 1, '') as STR;

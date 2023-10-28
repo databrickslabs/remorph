@@ -1,0 +1,1 @@
+Shared view consumer simulation requires that the executing role owns the view.

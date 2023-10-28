@@ -1,0 +1,1 @@
+SYSTEM$STREAM_BACKLOG('<stream_name>')

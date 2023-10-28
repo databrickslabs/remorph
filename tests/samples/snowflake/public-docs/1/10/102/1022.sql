@@ -1,0 +1,1 @@
+ST_ENDPOINT( <geography_or_geometry_expression> )

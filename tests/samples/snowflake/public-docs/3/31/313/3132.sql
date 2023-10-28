@@ -1,0 +1,3 @@
+-- Allowed
+ON SUBSTRING(*)
+ON EQUALITY(*), SUBSTRING(*), GEO(*)

@@ -1,0 +1,1 @@
+SELECT STRTOK('user@snowflake.com', '@.', 3);

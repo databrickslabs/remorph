@@ -1,0 +1,1 @@
+TO_GEOGRAPHY( <input> [, <allowInvalid> ] )

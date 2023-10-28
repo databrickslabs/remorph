@@ -1,0 +1,1 @@
+OBJECT_AGG(<key>, <value>)

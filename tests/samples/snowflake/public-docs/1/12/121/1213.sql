@@ -1,0 +1,1 @@
+DECOMPRESS_BINARY(<input>, <method>)

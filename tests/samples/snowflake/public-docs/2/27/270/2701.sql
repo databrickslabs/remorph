@@ -1,0 +1,1 @@
+SELECT ARRAY_EXCEPT(['A', NULL, NULL], ['B', NULL]);

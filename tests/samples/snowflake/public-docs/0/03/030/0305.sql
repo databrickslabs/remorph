@@ -1,0 +1,1 @@
+GRANT DATABASE ROLE snowflake.alert_viewer TO ROLE alert_role;

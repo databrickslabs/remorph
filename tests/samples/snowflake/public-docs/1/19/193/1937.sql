@@ -1,0 +1,1 @@
+SYSTEM$WAIT( amount [ , time_unit ] )

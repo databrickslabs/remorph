@@ -1,0 +1,7 @@
+SHOW TABLES LIKE 't2%';
+
+
+DROP TABLE t2;
+
+
+SHOW TABLES LIKE 't2%';

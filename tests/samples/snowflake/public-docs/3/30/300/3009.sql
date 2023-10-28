@@ -1,0 +1,1 @@
+CALL snowflake.local.account_root_budget!SET_SPENDING_LIMIT(500);

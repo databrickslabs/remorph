@@ -1,0 +1,1 @@
+DESC[RIBE] SEQUENCE <name>

@@ -1,0 +1,1 @@
+SELECT CHECK_XML('<name> Valid </name>');

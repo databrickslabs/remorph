@@ -1,0 +1,1 @@
+CREATE ANOMALY_DETECTION mydatabase.myschema.my_anomaly_detector(...);

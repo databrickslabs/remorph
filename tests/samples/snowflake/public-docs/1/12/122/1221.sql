@@ -1,0 +1,1 @@
+SELECT COMPRESS('Snowflake', 'SNAPPY');

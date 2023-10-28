@@ -1,0 +1,1 @@
+100107 (22000): Not an array: 'Input argument to ARRAY_FLATTEN is not an array of arrays'

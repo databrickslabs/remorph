@@ -1,0 +1,1 @@
+<search_method>(<target> [, ...])

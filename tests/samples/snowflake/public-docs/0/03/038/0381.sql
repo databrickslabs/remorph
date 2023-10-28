@@ -1,0 +1,1 @@
+SELECT d, MONTHNAME(d) FROM dates;

@@ -1,0 +1,1 @@
+ST_LENGTH( <geography_or_geometry_expression> )

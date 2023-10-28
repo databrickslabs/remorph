@@ -1,0 +1,1 @@
+SELECT * FROM testtable TABLESAMPLE (100);

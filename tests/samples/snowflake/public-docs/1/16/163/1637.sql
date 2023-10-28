@@ -1,0 +1,1 @@
+ACOS( <real_expr> )

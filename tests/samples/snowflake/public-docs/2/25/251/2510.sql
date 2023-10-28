@@ -1,0 +1,1 @@
+SELECT AS_DECIMAL(decimal1, 6, 3) AS "Decimal" FROM multiple_types;

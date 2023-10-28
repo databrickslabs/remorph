@@ -1,0 +1,1 @@
+AS_DATE( <variant_expr> )

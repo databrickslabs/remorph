@@ -1,0 +1,1 @@
+SELECT seq_01.nextval;

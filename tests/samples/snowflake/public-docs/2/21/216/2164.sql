@@ -1,0 +1,1 @@
+ARRAY_UNION_AGG( <column> )

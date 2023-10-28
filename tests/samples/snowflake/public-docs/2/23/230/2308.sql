@@ -1,0 +1,1 @@
+MODE( <expr1> ) OVER ( [ PARTITION BY <expr2> ] )

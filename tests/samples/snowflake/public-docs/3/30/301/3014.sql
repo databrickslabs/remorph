@@ -1,0 +1,1 @@
+CALL snowflake.local.account_root_budget!SET_NOTIFICATION_MUTE_FLAG(FALSE);

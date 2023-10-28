@@ -1,0 +1,9 @@
+WITH cte AS (
+  SELECT ..., 1 as level ...
+
+  UNION ALL
+
+  SELECT ..., cte.level + 1 as level
+   FROM cte ...
+   WHERE ... level < 10
+) ...

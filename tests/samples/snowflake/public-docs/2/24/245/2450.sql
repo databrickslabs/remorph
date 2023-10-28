@@ -1,0 +1,1 @@
+SELECT TO_OBJECT(vo) from t1;

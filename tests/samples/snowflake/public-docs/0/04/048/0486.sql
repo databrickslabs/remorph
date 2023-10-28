@@ -1,0 +1,1 @@
+SELECT LEAST(1, 3, 0, 4);

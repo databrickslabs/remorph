@@ -1,0 +1,1 @@
+select xmlget(xmlget(my_xml_column, 'my_tag'), 'my_inner_tag') ...;

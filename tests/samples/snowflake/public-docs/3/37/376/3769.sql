@@ -1,0 +1,1 @@
+SELECT table_name, last_altered FROM mydatabase.information_schema.external_tables;

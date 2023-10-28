@@ -1,0 +1,1 @@
+SELECT SYSTEM$TASK_DEPENDENTS_ENABLE('mydb.myschema."myTask"');

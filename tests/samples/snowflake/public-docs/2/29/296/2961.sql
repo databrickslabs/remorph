@@ -1,0 +1,1 @@
+DROP <object_type> [ IF EXISTS ] <identifier>  [ CASCADE | RESTRICT ]

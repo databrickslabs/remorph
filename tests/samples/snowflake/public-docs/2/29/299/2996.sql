@@ -1,0 +1,1 @@
+SELECT COUNT(i), COUNT(DISTINCT i) FROM sequence_demo;

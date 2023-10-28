@@ -1,0 +1,1 @@
+<value> [ NOT ] IN ( <value_1> [ , <value_2> ...  ] )

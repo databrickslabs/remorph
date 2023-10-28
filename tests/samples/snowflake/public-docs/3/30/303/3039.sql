@@ -1,0 +1,1 @@
+CREATE SCHEMA mytestschema_clone CLONE testschema;

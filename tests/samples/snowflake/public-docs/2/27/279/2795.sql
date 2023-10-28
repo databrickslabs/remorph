@@ -1,0 +1,1 @@
+LET <cursor_name> CURSOR FOR <query> ;

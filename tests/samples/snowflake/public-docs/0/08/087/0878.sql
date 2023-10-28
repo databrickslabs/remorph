@@ -1,0 +1,1 @@
+ST_UNION( <geography_expression_1> , <geography_expression_2> )

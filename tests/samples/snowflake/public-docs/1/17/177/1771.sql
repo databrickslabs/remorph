@@ -1,0 +1,1 @@
+SYSTEM$EXPLAIN_PLAN_JSON( { <sql_statement_expression> | <sql_query_id_expression> } )

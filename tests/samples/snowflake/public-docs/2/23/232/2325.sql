@@ -1,0 +1,1 @@
+SELECT MEDIAN (v) FROM aggr;

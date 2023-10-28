@@ -1,0 +1,1 @@
+https://<account_identifier>/api/files/<db_name>/<schema_name>/<stage_name>/<relative_path>

@@ -1,0 +1,1 @@
+H3_CELL_TO_CHILDREN_STRING( <cell_id> , <target_resolution> )

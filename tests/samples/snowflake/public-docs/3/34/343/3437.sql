@@ -1,0 +1,1 @@
+ALTER APPLICATION my_app UNSET REFERENCES('table_to_read');

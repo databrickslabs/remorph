@@ -1,0 +1,1 @@
+SELECT * EXCLUDE department_id FROM employee_table;

@@ -1,0 +1,1 @@
+ATANH( <real_expr> )

@@ -1,0 +1,1 @@
+INSERT( <base_expr>, <pos>, <len>, <insert_expr> )

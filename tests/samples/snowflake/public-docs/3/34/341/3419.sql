@@ -1,0 +1,1 @@
+002322 (42846): SQL compilation error: Incompatible collations: 'fr' and 'utf8'

@@ -1,0 +1,1 @@
+GET_ABSOLUTE_PATH( @<stage_name> , '<relative_file_path>' )

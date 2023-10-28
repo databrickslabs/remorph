@@ -1,0 +1,1 @@
+COMMENT [IF EXISTS] ON CONSTRAINT <constraint_name> IS '<comment_string>'

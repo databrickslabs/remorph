@@ -1,0 +1,1 @@
+ARRAY_TO_STRING( <array> , <separator_string> )

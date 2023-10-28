@@ -1,0 +1,4 @@
+SET (MIN, MAX)=(40, 70);
+
+
+SHOW VARIABLES;

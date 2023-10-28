@@ -1,0 +1,1 @@
+SYSTEM$SET_SPAN_ATTRIBUTES('<object>');

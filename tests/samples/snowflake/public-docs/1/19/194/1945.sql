@@ -1,0 +1,1 @@
+SYSTEM$REVOKE_PRIVATELINK( '<aws_id>' , '<federated_token>' )

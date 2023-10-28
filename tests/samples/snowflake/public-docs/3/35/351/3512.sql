@@ -1,0 +1,1 @@
+SHOW PARAMETERS LIKE 'search_path';

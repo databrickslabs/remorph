@@ -1,0 +1,1 @@
+select strtok('a.b', NULL, 1);

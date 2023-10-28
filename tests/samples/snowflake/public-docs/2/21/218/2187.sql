@@ -1,0 +1,1 @@
+BOOLAND_AGG( <expr> )

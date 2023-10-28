@@ -1,0 +1,1 @@
+REPLACE( <subject> , <pattern> [ , <replacement> ] )

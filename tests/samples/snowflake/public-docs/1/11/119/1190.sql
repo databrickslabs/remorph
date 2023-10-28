@@ -1,0 +1,1 @@
+SELECT v, b, HEX_DECODE_STRING(TO_VARCHAR(b)) FROM binary_table;

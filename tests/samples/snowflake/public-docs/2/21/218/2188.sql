@@ -1,0 +1,1 @@
+BOOLAND_AGG( <expr> )  OVER ( [ PARTITION BY <partition_expr> ] )

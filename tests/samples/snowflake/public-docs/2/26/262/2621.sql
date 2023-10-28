@@ -1,0 +1,1 @@
+select array_slice(array_construct(0,1,2,3,4,5,6), -5, -3);

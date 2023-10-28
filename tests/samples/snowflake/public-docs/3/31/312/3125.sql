@@ -1,0 +1,1 @@
+SHOW EVENT TABLES LIKE 'mylogs%' IN tpch.public;

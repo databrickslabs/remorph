@@ -1,0 +1,1 @@
+create function <function_name>( <argument_name> <data_type> )

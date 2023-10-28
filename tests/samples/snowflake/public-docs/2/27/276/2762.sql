@@ -1,0 +1,1 @@
+SELECT CHECK_XML('<name> Invalid </WRONG_CLOSING_TAG>');

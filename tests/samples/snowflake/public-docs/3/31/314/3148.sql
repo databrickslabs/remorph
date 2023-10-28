@@ -1,0 +1,1 @@
+SHOW EXTERNAL TABLES LIKE 'line%' IN tpch.public;

@@ -1,0 +1,1 @@
+COVAR_SAMP( y , x )

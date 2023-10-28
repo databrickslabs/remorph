@@ -1,0 +1,1 @@
+ST_ENVELOPE( <geography_or_geometry_expression> )

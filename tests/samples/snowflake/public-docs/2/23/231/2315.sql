@@ -1,0 +1,1 @@
+INSERT INTO aggr (k, v) VALUES (3, null);

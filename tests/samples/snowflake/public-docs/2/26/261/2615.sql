@@ -1,0 +1,1 @@
+select array_slice(NULL, 2, 3);

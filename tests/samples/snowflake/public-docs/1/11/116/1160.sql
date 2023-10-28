@@ -1,0 +1,1 @@
+MD5_NUMBER_LOWER64(<msg>)

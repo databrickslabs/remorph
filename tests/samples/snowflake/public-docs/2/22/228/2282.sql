@@ -1,0 +1,1 @@
+STDDEV_SAMP( [ DISTINCT ] <expr1> )

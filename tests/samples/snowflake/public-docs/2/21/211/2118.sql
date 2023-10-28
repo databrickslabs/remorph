@@ -1,0 +1,1 @@
+KURTOSIS( <expr> ) OVER ( [ PARTITION BY <expr2> ] )

@@ -1,0 +1,1 @@
+ST_POINTN( <geography_or_geometry_expression> , <index> )

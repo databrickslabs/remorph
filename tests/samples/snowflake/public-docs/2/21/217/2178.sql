@@ -1,0 +1,1 @@
+BOOLXOR_AGG( <expr> )

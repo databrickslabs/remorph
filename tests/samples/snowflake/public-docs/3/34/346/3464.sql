@@ -1,0 +1,1 @@
+orderItem ::= { <column_alias> | <expr> } [ ASC | DESC ] [ NULLS { FIRST | LAST } ]

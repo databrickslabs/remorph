@@ -1,0 +1,1 @@
+MEASURES <expr1> [AS] <alias1> [ ... , <exprN> [AS] <aliasN> ]

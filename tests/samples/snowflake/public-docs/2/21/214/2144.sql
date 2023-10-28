@@ -1,0 +1,1 @@
+REGR_COUNT(y, x) OVER ( [ PARTITION BY <expr3> ] )

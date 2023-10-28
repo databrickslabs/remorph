@@ -1,0 +1,1 @@
+STRTOK(<string> [,<delimiter>] [,<partNr>])

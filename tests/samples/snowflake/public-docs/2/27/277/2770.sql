@@ -1,0 +1,1 @@
+RAISE <exception_name> ;

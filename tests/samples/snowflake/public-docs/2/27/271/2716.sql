@@ -1,0 +1,1 @@
+SELECT ARRAY_CONSTRUCT(null, 'hello', 3::double, 4, 5);

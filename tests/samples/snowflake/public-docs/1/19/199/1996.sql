@@ -1,0 +1,2 @@
+-- Azure
+SYSTEM$AUTHORIZE_STAGE_PRIVATELINK_ACCESS( '<privateEndpointResourceID>' )

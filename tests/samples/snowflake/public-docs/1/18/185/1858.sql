@@ -1,0 +1,1 @@
+SYSTEM$GET_PRIVATELINK( '<aws_id>' , '<federated_token>' )

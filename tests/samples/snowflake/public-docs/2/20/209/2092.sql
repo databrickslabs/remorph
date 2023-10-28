@@ -1,0 +1,1 @@
+SELECT hll_estimate(c1) FROM combined_resultstate;

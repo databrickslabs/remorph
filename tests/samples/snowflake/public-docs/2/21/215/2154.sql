@@ -1,0 +1,1 @@
+BOOLOR_AGG( <expr> )
