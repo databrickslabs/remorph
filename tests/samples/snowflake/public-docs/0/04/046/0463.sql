@@ -1,1 +1,0 @@
-BITAND( <expr1> , <expr2> )
