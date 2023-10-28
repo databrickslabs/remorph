@@ -1,1 +1,0 @@
-TIME_FROM_PARTS( <hour>, <minute>, <second> [, <nanoseconds>] )
