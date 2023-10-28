@@ -1,1 +1,0 @@
-COALESCE( <expr1> , <expr2> [ , ... , <exprN> ] )
