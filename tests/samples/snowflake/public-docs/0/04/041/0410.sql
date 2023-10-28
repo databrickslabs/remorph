@@ -1,1 +1,0 @@
-TIMESTAMP_TZ_FROM_PARTS( <year>, <month>, <day>, <hour>, <minute>, <second> [, <nanosecond>] [, <time_zone>] )
