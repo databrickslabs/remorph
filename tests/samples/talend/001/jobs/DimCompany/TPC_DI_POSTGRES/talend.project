@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xmi:XMI xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:TalendProperties="http://www.talend.org/properties">
+  <TalendProperties:Project xmi:id="_yCbPMPQUEei3_9syYrRXFQ" label="tpc-di-postgres" description="" language="java" technicalLabel="TPC_DI_POSTGRES" local="true" author="_yDqlUPQUEei3_9syYrRXFQ" productVersion="Talend Open Studio for Data Integration-7.1.1.20181026_1147" itemsRelationVersion="1.3" bigData="false">
+    <componentsSettings xmi:id="_qktOYPWeEeiQfai9yau25g" name="DI|tAccessBulkExec" family="Databases/DB Specifics/Access"/>
+    <componentsSettings xmi:id="_qk40kPWeEeiQfai9yau25g" name="DI|tArrayIn" family="Technical"/>
+    <componentsSettings xmi:id="_qk6CsPWeEeiQfai9yau25g" name="DI|tAccessOutputBulkExec" family="Databases/DB Specifics/Access"/>
+    <componentsSettings xmi:id="_qk6pwPWeEeiQfai9yau25g" name="DI|tHashInput" family="Technical"/>
+    <componentsSettings xmi:id="_qk6pwfWeEeiQfai9yau25g" name="DI|tHashOutput" family="Technical"/>
+    <componentsSettings xmi:id="_qk6pwvWeEeiQfai9yau25g" name="DI|tSAPBWInput" family="Business/SAP"/>
+    <componentsSettings xmi:id="_qk6pw_WeEeiQfai9yau25g" name="DI|tArray" family="Technical"/>
+    <migrationTask xmi:id="_yF0hcPQUEei3_9syYrRXFQ" id="org.talend.repository.model.migration.CheckProductVersionMigrationTask" breaks="7.1.0" version="7.1.1"/>
+  </TalendProperties:Project>
+  <TalendProperties:User xmi:id="_yDqlUPQUEei3_9syYrRXFQ" login="user@talend.com" password="D41D8CD98F00B204E9800998ECF8427E"/>
+</xmi:XMI>

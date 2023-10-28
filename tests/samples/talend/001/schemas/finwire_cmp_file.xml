@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema>
+    <column comment="" default="" key="false" label="PTS" length="15"
+        nullable="false" originalDbColumnName="PTS" originalLength="0"
+        pattern="&quot;yyyyMMdd-HHmmss&quot;" precision="0"
+        talendType="id_Date" type="BPCHAR"/>
+    <column comment="" default="" key="false" label="RecType" length="3"
+        nullable="false" originalDbColumnName="RecType"
+        originalLength="0" pattern="" precision="0"
+        talendType="id_String" type="BPCHAR"/>
+    <column comment="" default="" key="false" label="CompanyName"
+        length="60" nullable="false" originalDbColumnName="CompanyName"
+        originalLength="0" pattern="" precision="0"
+        talendType="id_String" type="BPCHAR"/>
+    <column comment="" default="" key="false" label="CIK" length="11"
+        nullable="false" originalDbColumnName="CIK" originalLength="0"
+        pattern="" precision="0" talendType="id_Integer" type="BPCHAR"/>
+    <column comment="" default="" key="false" label="Status" length="10"
+        nullable="false" originalDbColumnName="Status"
+        originalLength="0" pattern="" precision="0"
+        talendType="id_String" type="BPCHAR"/>
+    <column comment="" default="" key="false" label="IndustryID"
+        length="2" nullable="false" originalDbColumnName="IndustryID"
+        originalLength="0" pattern="" precision="0"
+        talendType="id_String" type="BPCHAR"/>
+    <column comment="" default="" key="false" label="SPrating"
+        length="4" nullable="false" originalDbColumnName="SPrating"
+        originalLength="0" pattern="" precision="0"
+        talendType="id_String" type="BPCHAR"/>
+    <column comment="" default="" key="false" label="FoundingDate"
+        length="8" nullable="true" originalDbColumnName="FoundingDate"
+        originalLength="0" pattern="&quot;yyyyMMdd&quot;" precision="0"
+        talendType="id_Date" type="BPCHAR"/>
+    <column comment="" default="" key="false" label="AddrLine1"
+        length="80" nullable="false" originalDbColumnName="AddrLine1"
+        originalLength="0" pattern="" precision="0"
+        talendType="id_String" type="BPCHAR"/>
+    <column comment="" default="" key="false" label="AddrLine2"
+        length="80" nullable="true" originalDbColumnName="AddrLine2"
+        originalLength="0" pattern="" precision="0"
+        talendType="id_String" type="BPCHAR"/>
+    <column comment="" default="" key="false" label="PostalCode"
+        length="12" nullable="false" originalDbColumnName="PostalCode"
+        originalLength="0" pattern="" precision="0"
+        talendType="id_String" type="BPCHAR"/>
+    <column comment="" default="" key="false" label="City" length="25"
+        nullable="false" originalDbColumnName="City" originalLength="0"
+        pattern="" precision="0" talendType="id_String" type="BPCHAR"/>
+    <column comment="" default="" key="false" label="StateProvince"
+        length="20" nullable="false"
+        originalDbColumnName="StateProvince" originalLength="0"
+        pattern="" precision="0" talendType="id_String" type="BPCHAR"/>
+    <column comment="" default="" key="false" label="Country"
+        length="24" nullable="true" originalDbColumnName="Country"
+        originalLength="0" pattern="" precision="0"
+        talendType="id_String" type="BPCHAR"/>
+    <column comment="" default="" key="false" label="CEOname"
+        length="46" nullable="false" originalDbColumnName="CEOname"
+        originalLength="0" pattern="" precision="0"
+        talendType="id_String" type="BPCHAR"/>
+    <column comment="" default="" key="false" label="Description"
+        length="150" nullable="false" originalDbColumnName="Description"
+        originalLength="0" pattern="" precision="0"
+        talendType="id_String" type="BPCHAR"/>
+</schema>

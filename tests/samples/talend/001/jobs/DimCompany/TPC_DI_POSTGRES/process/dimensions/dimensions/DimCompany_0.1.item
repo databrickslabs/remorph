@@ -1,0 +1,1839 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<talendfile:ProcessType xmi:version="2.0" xmlns:xmi="http://www.omg.org/XMI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:TalendMapper="http://www.talend.org/mapper" xmlns:talendfile="platform:/resource/org.talend.model/model/TalendFile.xsd" defaultContext="Default" jobType="Standard">
+  <context confirmationNeeded="false" name="Default">
+    <contextParameter comment="" name="staging_dir" prompt="staging_dir?" promptNeeded="false" repositoryContextId="_c0_EQPQYEei3_9syYrRXFQ" type="id_String" value="/mnt/1717A37A1971CE02/WorkSpaces/BDMA/dwh/bdma-datawarehouse/tpc-di-pdi-postgres/di-data/5g/Batch1"/>
+  </context>
+  <parameters>
+    <elementParameter field="TEXT" name="SCREEN_OFFSET_X" value="0" show="false"/>
+    <elementParameter field="TEXT" name="SCREEN_OFFSET_Y" value="0" show="false"/>
+    <elementParameter field="TEXT" name="REPOSITORY_CONNECTION_ID" value="" show="false"/>
+    <elementParameter field="TEXT" name="OOZIE_PROPERTY_TYPENAME" value="" show="false"/>
+    <elementParameter field="TEXT" name="OOZIE_HADOOP_DISTRIBUTION" value="" show="false"/>
+    <elementParameter field="TEXT" name="OOZIE_HADOOP_VERSION" value="" show="false"/>
+    <elementParameter field="TEXT" name="OOZIE_ENABLE_KERBEROS" value="" show="false"/>
+    <elementParameter field="TEXT" name="OOZIE_NAME_NODE_PRINCIPAL" value="" show="false"/>
+    <elementParameter field="TEXT" name="OOZIE_USERNAME" value="" show="false"/>
+    <elementParameter field="TEXT" name="OOZIE_GROUP" value="" show="false"/>
+    <elementParameter field="TEXT" name="OOZIE_USE_KEYTAB" value="" show="false"/>
+    <elementParameter field="TEXT" name="OOZIE_KT_PRINCIPAL" value="" show="false"/>
+    <elementParameter field="TEXT" name="OOZIE_KEY_TAB" value="" show="false"/>
+    <elementParameter field="TEXT" name="OOZIE_ENABLE_OO_KERBEROS" value="" show="false"/>
+    <elementParameter field="TEXT" name="OOZIE_NAME_NODE_END_POINT" value="" show="false"/>
+    <elementParameter field="TEXT" name="OOZIE_JOB_TRACKER_ENDPOINT" value="" show="false"/>
+    <elementParameter field="TEXT" name="OOZIE_END_POINT" value="" show="false"/>
+    <elementParameter field="CHECK" name="IMPLICITCONTEXT_USE_PROJECT_SETTINGS" value="true" show="false"/>
+    <elementParameter field="CHECK" name="STATANDLOG_USE_PROJECT_SETTINGS" value="true" show="false"/>
+    <elementParameter field="CHECK" name="MULTI_THREAD_EXECATION" value="false"/>
+    <elementParameter field="CHECK" name="IMPLICIT_TCONTEXTLOAD" value="false"/>
+    <elementParameter field="RADIO" name="FROM_FILE_FLAG_IMPLICIT_CONTEXT" value="false" show="false"/>
+    <elementParameter field="RADIO" name="FROM_DATABASE_FLAG_IMPLICIT_CONTEXT" value="false" show="false"/>
+    <elementParameter field="FILE" name="IMPLICIT_TCONTEXTLOAD_FILE" value="&quot;&quot;" show="false"/>
+    <elementParameter field="TEXT" name="FIELDSEPARATOR" value="&quot;&quot;" show="false"/>
+    <elementParameter field="CLOSED_LIST" name="DB_TYPE_IMPLICIT_CONTEXT" value="" show="false"/>
+    <elementParameter field="CLOSED_LIST" name="DB_VERSION_IMPLICIT_CONTEXT" value="" show="false"/>
+    <elementParameter field="TEXT" name="URL_IMPLICIT_CONTEXT" value="&quot;&quot;" show="false"/>
+    <elementParameter field="TABLE" name="DRIVER_JAR_IMPLICIT_CONTEXT" show="false"/>
+    <elementParameter field="TEXT" name="DRIVER_CLASS_IMPLICIT_CONTEXT" value="&quot;&quot;" show="false"/>
+    <elementParameter field="TEXT" name="HOST_IMPLICIT_CONTEXT" value="&quot;&quot;" show="false"/>
+    <elementParameter field="TEXT" name="PORT_IMPLICIT_CONTEXT" value="&quot;&quot;" show="false"/>
+    <elementParameter field="TEXT" name="DBNAME_IMPLICIT_CONTEXT" value="&quot;&quot;" show="false"/>
+    <elementParameter field="TEXT" name="LOCAL_SERVICE_NAME_IMPLICIT_CONTEXT" value="&quot;&quot;" show="false"/>
+    <elementParameter field="TEXT" name="PROPERTIES_IMPLICIT_CONTEXT" value="&quot;&quot;" show="false"/>
+    <elementParameter field="TEXT" name="SCHEMA_DB_IMPLICIT_CONTEXT" value="&quot;&quot;" show="false"/>
+    <elementParameter field="TEXT" name="USER_IMPLICIT_CONTEXT" value="&quot;&quot;" show="false"/>
+    <elementParameter field="PASSWORD" name="PASS_IMPLICIT_CONTEXT" value="0RMsyjmybrE=" show="false"/>
+    <elementParameter field="FILE" name="DBFILE_IMPLICIT_CONTEXT" value="&quot;&quot;" show="false"/>
+    <elementParameter field="DBTABLE" name="DBTABLE_IMPLICIT_CONTEXT" value="&quot;&quot;" show="false"/>
+    <elementParameter field="TEXT" name="QUERY_CONDITION_IMPLICIT_CONTEXT" value="&quot;&quot;" show="false"/>
+    <elementParameter field="CLOSED_LIST" name="LOAD_NEW_VARIABLE" value="Warning" show="false"/>
+    <elementParameter field="CLOSED_LIST" name="NOT_LOAD_OLD_VARIABLE" value="Warning" show="false"/>
+    <elementParameter field="CHECK" name="PRINT_OPERATIONS" value="false" show="false"/>
+    <elementParameter field="CHECK" name="DISABLE_ERROR" value="false" show="false"/>
+    <elementParameter field="CHECK" name="DISABLE_WARNINGS" value="false" show="false"/>
+    <elementParameter field="CHECK" name="DISABLE_INFO" value="false" show="false"/>
+    <elementParameter field="CHECK" name="ON_STATCATCHER_FLAG" value="false"/>
+    <elementParameter field="CHECK" name="ON_LOGCATCHER_FLAG" value="false"/>
+    <elementParameter field="CHECK" name="ON_METERCATCHER_FLAG" value="false"/>
+    <elementParameter field="CHECK" name="ON_CONSOLE_FLAG" value="false" show="false"/>
+    <elementParameter field="CHECK" name="ON_FILES_FLAG" value="false" show="false"/>
+    <elementParameter field="DIRECTORY" name="FILE_PATH" value="&quot;/mnt/1717A37A1971CE02/WorkSpaces/BDMA/dwh/.metadata&quot;" show="false"/>
+    <elementParameter field="TEXT" name="FILENAME_STATS" value="&quot;stats_file.txt&quot;" show="false"/>
+    <elementParameter field="TEXT" name="FILENAME_LOGS" value="&quot;logs_file.txt&quot;" show="false"/>
+    <elementParameter field="TEXT" name="FILENAME_METTER" value="&quot;meter_file.txt&quot;" show="false"/>
+    <elementParameter field="ENCODING_TYPE" name="ENCODING" value="ISO-8859-15" show="false"/>
+    <elementParameter field="TECHNICAL" name="ENCODING:ENCODING_TYPE" value="ISO-8859-15" show="false"/>
+    <elementParameter field="CHECK" name="ON_DATABASE_FLAG" value="false" show="false"/>
+    <elementParameter field="CLOSED_LIST" name="DB_TYPE" value="tJDBCOutput" show="false"/>
+    <elementParameter field="CLOSED_LIST" name="DB_VERSION" value="ORACLE_12" show="false"/>
+    <elementParameter field="TEXT" name="URL" value="&quot;&quot;" show="false"/>
+    <elementParameter field="TABLE" name="DRIVER_JAR" show="false"/>
+    <elementParameter field="TEXT" name="DRIVER_CLASS" value="&quot;&quot;" show="false"/>
+    <elementParameter field="TEXT" name="HOST" value="&quot;&quot;" show="false"/>
+    <elementParameter field="TEXT" name="PORT" value="&quot;&quot;" show="false"/>
+    <elementParameter field="TEXT" name="DATASOURCE" value="&quot;&quot;" show="false"/>
+    <elementParameter field="TEXT" name="DBNAME" value="&quot;&quot;" show="false"/>
+    <elementParameter field="TEXT" name="LOCAL_SERVICE_NAME" value="&quot;&quot;" show="false"/>
+    <elementParameter field="TEXT" name="PROPERTIES" value="&quot;&quot;" show="false"/>
+    <elementParameter field="TEXT" name="SCHEMA_DB" value="&quot;&quot;" show="false"/>
+    <elementParameter field="TEXT" name="USER" value="&quot;&quot;" show="false"/>
+    <elementParameter field="PASSWORD" name="PASS" value="0RMsyjmybrE=" show="false"/>
+    <elementParameter field="FILE" name="DBFILE" value="&quot;&quot;" show="false"/>
+    <elementParameter field="DBTABLE" name="TABLE_STATS" value="&quot;&quot;" show="false"/>
+    <elementParameter field="DBTABLE" name="TABLE_LOGS" value="&quot;&quot;" show="false"/>
+    <elementParameter field="DBTABLE" name="TABLE_METER" value="&quot;&quot;" show="false"/>
+    <elementParameter field="CHECK" name="CATCH_RUNTIME_ERRORS" value="true" show="false"/>
+    <elementParameter field="CHECK" name="CATCH_USER_ERRORS" value="true" show="false"/>
+    <elementParameter field="CHECK" name="CATCH_USER_WARNING" value="true" show="false"/>
+    <elementParameter field="CHECK" name="CATCH_REALTIME_STATS" value="false" show="false"/>
+    <elementParameter field="TEXT" name="HEADERFOOTER_HEADERID" value="" show="false"/>
+    <elementParameter field="CHECK" name="HEADER_ENABLED" value="false" show="false"/>
+    <elementParameter field="TEXT" name="HEADER_LIBRARY" value="" show="false"/>
+    <elementParameter field="TEXT" name="HEADER_CODE" value="" show="false"/>
+    <elementParameter field="TEXT" name="HEADER_IMPORT" value="" show="false"/>
+    <elementParameter field="TEXT" name="HEADERFOOTER_FOOTERID" value="" show="false"/>
+    <elementParameter field="CHECK" name="FOOTER_ENABLED" value="false" show="false"/>
+    <elementParameter field="TEXT" name="FOOTER_LIBRARY" value="" show="false"/>
+    <elementParameter field="TEXT" name="FOOTER_CODE" value="" show="false"/>
+    <elementParameter field="TEXT" name="FOOTER_IMPORT" value="" show="false"/>
+    <routinesParameter id="_zwkzEPQUEei3_9syYrRXFQ" name="DataOperation"/>
+    <routinesParameter id="_zxGXgPQUEei3_9syYrRXFQ" name="Mathematical"/>
+    <routinesParameter id="_zxJa0PQUEei3_9syYrRXFQ" name="Numeric"/>
+    <routinesParameter id="_zxMeIPQUEei3_9syYrRXFQ" name="Relational"/>
+    <routinesParameter id="_zxPhcPQUEei3_9syYrRXFQ" name="StringHandling"/>
+    <routinesParameter id="_zxSkwPQUEei3_9syYrRXFQ" name="TalendDataGenerator"/>
+    <routinesParameter id="_zxVoEPQUEei3_9syYrRXFQ" name="TalendDate"/>
+    <routinesParameter id="_zxbusPQUEei3_9syYrRXFQ" name="TalendStringUtil"/>
+    <routinesParameter id="_zxYrYPQUEei3_9syYrRXFQ" name="TalendString"/>
+  </parameters>
+  <node componentName="tFileList" componentVersion="0.102" offsetLabelX="0" offsetLabelY="0" posX="64" posY="32">
+    <elementParameter field="TEXT" name="UNIQUE_NAME" value="tFileList_1" show="false"/>
+    <elementParameter field="DIRECTORY" name="DIRECTORY" value="context.staging_dir"/>
+    <elementParameter field="CLOSED_LIST" name="LIST_MODE" value="FILES"/>
+    <elementParameter field="CHECK" name="INCLUDSUBDIR" value="false"/>
+    <elementParameter field="CLOSED_LIST" name="CASE_SENSITIVE" value="YES"/>
+    <elementParameter field="CHECK" name="ERROR" value="false"/>
+    <elementParameter field="CHECK" name="GLOBEXPRESSIONS" value="false"/>
+    <elementParameter field="TABLE" name="FILES">
+      <elementValue elementRef="FILEMASK" value="&quot;FINWIRE\\d{4}Q\\d{1}&quot;"/>
+    </elementParameter>
+    <elementParameter field="RADIO" name="ORDER_BY_NOTHING" value="false"/>
+    <elementParameter field="RADIO" name="ORDER_BY_FILENAME" value="true"/>
+    <elementParameter field="RADIO" name="ORDER_BY_FILESIZE" value="false"/>
+    <elementParameter field="RADIO" name="ORDER_BY_MODIFIEDDATE" value="false"/>
+    <elementParameter field="RADIO" name="ORDER_ACTION_ASC" value="true"/>
+    <elementParameter field="RADIO" name="ORDER_ACTION_DESC" value="false"/>
+    <elementParameter field="CHECK" name="IFEXCLUDE" value="false"/>
+    <elementParameter field="TEXT" name="EXCLUDEFILEMASK" value="&quot;*.txt&quot;" show="false"/>
+    <elementParameter field="CHECK" name="FORMAT_FILEPATH_TO_SLASH" value="false"/>
+    <elementParameter field="TEXT" name="CONNECTION_FORMAT" value="row"/>
+  </node>
+  <node componentName="tFileInputFullRow" componentVersion="0.102" offsetLabelX="0" offsetLabelY="0" posX="192" posY="32">
+    <elementParameter field="TEXT" name="UNIQUE_NAME" value="tFileInputFullRow_1" show="false"/>
+    <elementParameter field="FILE" name="FILENAME" value="((String)globalMap.get(&quot;tFileList_1_CURRENT_FILEPATH&quot;))"/>
+    <elementParameter field="TEXT" name="ROWSEPARATOR" value="&quot;\n&quot;"/>
+    <elementParameter field="TEXT" name="HEADER" value=""/>
+    <elementParameter field="TEXT" name="FOOTER" value=""/>
+    <elementParameter field="TEXT" name="LIMIT" value=""/>
+    <elementParameter field="CHECK" name="REMOVE_EMPTY_ROW" value="true"/>
+    <elementParameter field="ENCODING_TYPE" name="ENCODING" value="&quot;ISO-8859-15&quot;"/>
+    <elementParameter field="TECHNICAL" name="ENCODING:ENCODING_TYPE" value="ISO-8859-15"/>
+    <elementParameter field="CHECK" name="RANDOM" value="false"/>
+    <elementParameter field="TEXT" name="NB_RANDOM" value="10" show="false"/>
+    <elementParameter field="TEXT" name="CONNECTION_FORMAT" value="row"/>
+    <metadata connector="FLOW" name="tFileInputFullRow_1">
+      <column key="false" length="255" name="line" nullable="true" precision="0" sourceType="" type="id_String" originalLength="-1" usefulColumn="true"/>
+    </metadata>
+  </node>
+  <node componentName="tFilterRow" componentVersion="0.102" offsetLabelX="0" offsetLabelY="0" posX="352" posY="32">
+    <elementParameter field="TEXT" name="UNIQUE_NAME" value="tFilterRow_1" show="false"/>
+    <elementParameter field="CLOSED_LIST" name="LOGICAL_OP" value="&amp;&amp;"/>
+    <elementParameter field="TABLE" name="CONDITIONS"/>
+    <elementParameter field="CHECK" name="USE_ADVANCED" value="true"/>
+    <elementParameter field="MEMO_JAVA" name="ADVANCED_COND" value="// code sample : use input_row to define the condition.&#xA;// input_row.columnName1.equals(&quot;foo&quot;) ||!(input_row.columnName2.equals(&quot;bar&quot;))&#xA;// replace the following expression by your own filter condition &#xA;input_row.line.substring(15,18).equals(&quot;CMP&quot;)&#xA;&#x9;&#x9;&#x9;"/>
+    <elementParameter field="TEXT" name="CONNECTION_FORMAT" value="row"/>
+    <metadata connector="FLOW" name="tFilterRow_1">
+      <column key="false" length="255" name="line" nullable="true" precision="0" sourceType="" type="id_String" originalLength="-1" usefulColumn="true"/>
+    </metadata>
+    <metadata connector="FILTER" name="FILTER">
+      <column key="false" length="255" name="line" nullable="true" precision="0" sourceType="" type="id_String" originalLength="-1" usefulColumn="true"/>
+    </metadata>
+    <metadata connector="REJECT" name="REJECT">
+      <column key="false" length="255" name="line" nullable="true" precision="0" sourceType="" type="id_String" originalLength="-1" usefulColumn="true"/>
+      <column defaultValue="" key="false" length="255" name="errorMessage" nullable="true" precision="0" sourceType="" type="id_String" originalLength="-1" usefulColumn="true"/>
+    </metadata>
+  </node>
+  <node componentName="tExtractPositionalFields" componentVersion="0.102" offsetLabelX="0" offsetLabelY="0" posX="480" posY="32">
+    <elementParameter field="TEXT" name="UNIQUE_NAME" value="tExtractPositionalFields_1" show="false"/>
+    <elementParameter field="PREV_COLUMN_LIST" name="FIELD" value="line"/>
+    <elementParameter field="CHECK" name="IGNORE_SOURCE_NULL" value="true"/>
+    <elementParameter field="CHECK" name="ADVANCED_OPTION" value="false"/>
+    <elementParameter field="TEXT" name="PATTERN" value="&quot;15,3,60,10,4,2,4,8,80,80,12,25,20,24,46,*&quot;"/>
+    <elementParameter field="TABLE" name="FORMATS" show="false">
+      <elementValue elementRef="COLUMN" value="CIK"/>
+      <elementValue elementRef="SIZE" value="10"/>
+      <elementValue elementRef="PADDING_CHAR" value="'0'"/>
+      <elementValue elementRef="ALIGN" value="-1"/>
+    </elementParameter>
+    <elementParameter field="CHECK" name="DIE_ON_ERROR" value="false"/>
+    <elementParameter field="CHECK" name="ADVANCED_SEPARATOR" value="false"/>
+    <elementParameter field="TEXT" name="THOUSANDS_SEPARATOR" value="&quot;,&quot;" show="false"/>
+    <elementParameter field="TEXT" name="DECIMAL_SEPARATOR" value="&quot;.&quot;" show="false"/>
+    <elementParameter field="CHECK" name="TRIM" value="true"/>
+    <elementParameter field="CHECK" name="CHECK_FIELDS_NUM" value="false"/>
+    <elementParameter field="TEXT" name="CONNECTION_FORMAT" value="row"/>
+    <metadata connector="FLOW" name="tExtractPositionalFields_1">
+      <column comment="" key="false" length="15" name="PTS" nullable="false" pattern="&quot;yyyyMMdd-HHmmss&quot;" precision="0" sourceType="BPCHAR" type="id_Date" usefulColumn="true"/>
+      <column comment="" key="false" length="3" name="RecType" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="60" name="CompanyName" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="11" name="CIK" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_Integer" usefulColumn="true"/>
+      <column comment="" key="false" length="10" name="Status" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="2" name="IndustryID" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="4" name="SPrating" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="8" name="FoundingDate" nullable="true" pattern="&quot;yyyyMMdd&quot;" precision="0" sourceType="BPCHAR" type="id_Date" usefulColumn="true"/>
+      <column comment="" key="false" length="80" name="AddrLine1" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="80" name="AddrLine2" nullable="true" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="12" name="PostalCode" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="25" name="City" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="20" name="StateProvince" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="24" name="Country" nullable="true" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="46" name="CEOname" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="150" name="Description" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+    </metadata>
+    <metadata connector="REJECT" name="REJECT">
+      <column comment="" key="false" length="15" name="PTS" nullable="false" pattern="&quot;yyyyMMdd-HHmmss&quot;" precision="0" sourceType="BPCHAR" type="id_Date" usefulColumn="true"/>
+      <column comment="" key="false" length="3" name="RecType" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="60" name="CompanyName" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="11" name="CIK" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_Integer" usefulColumn="true"/>
+      <column comment="" key="false" length="10" name="Status" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="2" name="IndustryID" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="4" name="SPrating" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="8" name="FoundingDate" nullable="true" pattern="&quot;yyyyMMdd&quot;" precision="0" sourceType="BPCHAR" type="id_Date" usefulColumn="true"/>
+      <column comment="" key="false" length="80" name="AddrLine1" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="80" name="AddrLine2" nullable="true" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="12" name="PostalCode" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="25" name="City" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="20" name="StateProvince" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="24" name="Country" nullable="true" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="46" name="CEOname" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="150" name="Description" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column defaultValue="" key="false" length="255" name="errorCode" nullable="true" precision="0" sourceType="" type="id_String" originalLength="-1" usefulColumn="true"/>
+      <column defaultValue="" key="false" length="255" name="errorMessage" nullable="true" precision="0" sourceType="" type="id_String" originalLength="-1" usefulColumn="true"/>
+    </metadata>
+  </node>
+  <node componentName="tFilterRow" componentVersion="0.102" offsetLabelX="0" offsetLabelY="0" posX="576" posY="32">
+    <elementParameter field="TEXT" name="UNIQUE_NAME" value="tFilterRow_2" show="false"/>
+    <elementParameter field="CLOSED_LIST" name="LOGICAL_OP" value="&amp;&amp;"/>
+    <elementParameter field="TABLE" name="CONDITIONS"/>
+    <elementParameter field="CHECK" name="USE_ADVANCED" value="true"/>
+    <elementParameter field="MEMO_JAVA" name="ADVANCED_COND" value="// code sample : use input_row to define the condition.&#xA;// input_row.columnName1.equals(&quot;foo&quot;) ||!(input_row.columnName2.equals(&quot;bar&quot;))&#xA;// replace the following expression by your own filter condition &#xA;&quot;AAAAAABBBBBBCCCCCCDAA+A+BBB+BB+B+CCC+AA-A-BBB-BB-B-CCC-&quot;.contains(input_row.SPrating)&#xA;&#x9;&#x9;&#x9;"/>
+    <elementParameter field="TEXT" name="CONNECTION_FORMAT" value="row"/>
+    <metadata connector="FLOW" name="tFilterRow_2">
+      <column comment="" key="false" length="15" name="PTS" nullable="false" pattern="&quot;yyyyMMdd-HHmmss&quot;" precision="0" sourceType="BPCHAR" type="id_Date" usefulColumn="true"/>
+      <column comment="" key="false" length="3" name="RecType" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="60" name="CompanyName" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="11" name="CIK" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_Integer" usefulColumn="true"/>
+      <column comment="" key="false" length="10" name="Status" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="2" name="IndustryID" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="4" name="SPrating" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="8" name="FoundingDate" nullable="true" pattern="&quot;yyyyMMdd&quot;" precision="0" sourceType="BPCHAR" type="id_Date" usefulColumn="true"/>
+      <column comment="" key="false" length="80" name="AddrLine1" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="80" name="AddrLine2" nullable="true" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="12" name="PostalCode" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="25" name="City" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="20" name="StateProvince" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="24" name="Country" nullable="true" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="46" name="CEOname" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="150" name="Description" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+    </metadata>
+    <metadata connector="FILTER" name="FILTER">
+      <column comment="" key="false" length="15" name="PTS" nullable="false" pattern="&quot;yyyyMMdd-HHmmss&quot;" precision="0" sourceType="BPCHAR" type="id_Date" usefulColumn="true"/>
+      <column comment="" key="false" length="3" name="RecType" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="60" name="CompanyName" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="11" name="CIK" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_Integer" usefulColumn="true"/>
+      <column comment="" key="false" length="10" name="Status" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="2" name="IndustryID" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="4" name="SPrating" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="8" name="FoundingDate" nullable="true" pattern="&quot;yyyyMMdd&quot;" precision="0" sourceType="BPCHAR" type="id_Date" usefulColumn="true"/>
+      <column comment="" key="false" length="80" name="AddrLine1" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="80" name="AddrLine2" nullable="true" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="12" name="PostalCode" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="25" name="City" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="20" name="StateProvince" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="24" name="Country" nullable="true" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="46" name="CEOname" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="150" name="Description" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+    </metadata>
+    <metadata connector="REJECT" name="REJECT">
+      <column comment="" key="false" length="15" name="PTS" nullable="false" pattern="&quot;yyyyMMdd-HHmmss&quot;" precision="0" sourceType="BPCHAR" type="id_Date" usefulColumn="true"/>
+      <column comment="" key="false" length="3" name="RecType" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="60" name="CompanyName" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="11" name="CIK" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_Integer" usefulColumn="true"/>
+      <column comment="" key="false" length="10" name="Status" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="2" name="IndustryID" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="4" name="SPrating" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="8" name="FoundingDate" nullable="true" pattern="&quot;yyyyMMdd&quot;" precision="0" sourceType="BPCHAR" type="id_Date" usefulColumn="true"/>
+      <column comment="" key="false" length="80" name="AddrLine1" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="80" name="AddrLine2" nullable="true" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="12" name="PostalCode" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="25" name="City" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="20" name="StateProvince" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="24" name="Country" nullable="true" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="46" name="CEOname" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="150" name="Description" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column key="false" length="255" name="errorMessage" nullable="true" precision="0" sourceType="" type="id_String" originalLength="-1" usefulColumn="true"/>
+    </metadata>
+  </node>
+  <node componentName="tMap" componentVersion="2.1" offsetLabelX="0" offsetLabelY="0" posX="800" posY="32">
+    <elementParameter field="TEXT" name="UNIQUE_NAME" value="tMap_1" show="false"/>
+    <elementParameter field="EXTERNAL" name="MAP" value=""/>
+    <elementParameter field="CLOSED_LIST" name="LINK_STYLE" value="AUTO"/>
+    <elementParameter field="DIRECTORY" name="TEMPORARY_DATA_DIRECTORY" value=""/>
+    <elementParameter field="IMAGE" name="PREVIEW" value="_lnj1sPQvEeiR3YfwSsPQ2Q-tMap_1-PREVIEW.bmp"/>
+    <elementParameter field="CHECK" name="DIE_ON_ERROR" value="true" show="false"/>
+    <elementParameter field="CHECK" name="LKUP_PARALLELIZE" value="false" show="false"/>
+    <elementParameter field="TEXT" name="LEVENSHTEIN" value="0" show="false"/>
+    <elementParameter field="TEXT" name="JACCARD" value="0" show="false"/>
+    <elementParameter field="CHECK" name="ENABLE_AUTO_CONVERT_TYPE" value="false" show="false"/>
+    <elementParameter field="TEXT" name="ROWS_BUFFER_SIZE" value="2000000"/>
+    <elementParameter field="CHECK" name="CHANGE_HASH_AND_EQUALS_FOR_BIGDECIMAL" value="true"/>
+    <elementParameter field="TEXT" name="CONNECTION_FORMAT" value="row"/>
+    <metadata connector="FLOW" label="out1" name="out1">
+      <column comment="" key="false" length="15" name="PTS" nullable="false" pattern="&quot;yyyyMMdd-HHmmss&quot;" precision="0" sourceType="BPCHAR" type="id_Date" usefulColumn="true"/>
+      <column comment="" key="false" length="3" name="RecType" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="60" name="CompanyName" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="11" name="CIK" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_Integer" usefulColumn="true"/>
+      <column comment="" key="false" length="2" name="IndustryID" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="4" name="SPrating" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="8" name="FoundingDate" nullable="true" pattern="&quot;yyyyMMdd&quot;" precision="0" sourceType="BPCHAR" type="id_Date" usefulColumn="true"/>
+      <column comment="" key="false" length="80" name="AddrLine1" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="80" name="AddrLine2" nullable="true" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="12" name="PostalCode" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="25" name="City" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="20" name="StateProvince" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="24" name="Country" nullable="true" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="46" name="CEOname" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="150" name="Description" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="-1" name="statusDesc" nullable="false" pattern="" precision="-1" sourceType="" type="id_String" originalLength="-1" usefulColumn="true"/>
+    </metadata>
+    <nodeData xsi:type="TalendMapper:MapperData">
+      <uiProperties/>
+      <varTables sizeState="INTERMEDIATE" name="Var" minimized="true"/>
+      <outputTables sizeState="INTERMEDIATE" name="out1">
+        <mapperTableEntries name="PTS" expression="row3.PTS   " type="id_Date"/>
+        <mapperTableEntries name="RecType" expression="row3.RecType   " type="id_String"/>
+        <mapperTableEntries name="CompanyName" expression="row3.CompanyName   " type="id_String"/>
+        <mapperTableEntries name="CIK" expression="row3.CIK   " type="id_Integer"/>
+        <mapperTableEntries name="IndustryID" expression="row3.IndustryID   " type="id_String"/>
+        <mapperTableEntries name="SPrating" expression="row3.SPrating   " type="id_String"/>
+        <mapperTableEntries name="FoundingDate" expression="row3.FoundingDate   " type="id_Date" nullable="true"/>
+        <mapperTableEntries name="AddrLine1" expression="row3.AddrLine1   " type="id_String"/>
+        <mapperTableEntries name="AddrLine2" expression="row3.AddrLine2   " type="id_String" nullable="true"/>
+        <mapperTableEntries name="PostalCode" expression="row3.PostalCode   " type="id_String"/>
+        <mapperTableEntries name="City" expression="row3.City   " type="id_String"/>
+        <mapperTableEntries name="StateProvince" expression="row3.StateProvince   " type="id_String"/>
+        <mapperTableEntries name="Country" expression="row3.Country   " type="id_String" nullable="true"/>
+        <mapperTableEntries name="CEOname" expression="row3.CEOname   " type="id_String"/>
+        <mapperTableEntries name="Description" expression="row3.Description   " type="id_String"/>
+        <mapperTableEntries name="statusDesc" expression="row4.statusDesc   " type="id_String"/>
+      </outputTables>
+      <inputTables sizeState="INTERMEDIATE" name="row6" matchingMode="UNIQUE_MATCH" lookupMode="LOAD_ONCE">
+        <mapperTableEntries name="PTS" type="id_Date"/>
+        <mapperTableEntries name="RecType" type="id_String"/>
+        <mapperTableEntries name="CompanyName" type="id_String"/>
+        <mapperTableEntries name="CIK" type="id_Integer"/>
+        <mapperTableEntries name="Status" type="id_String"/>
+        <mapperTableEntries name="IndustryID" type="id_String"/>
+        <mapperTableEntries name="SPrating" type="id_String"/>
+        <mapperTableEntries name="FoundingDate" type="id_Date" nullable="true"/>
+        <mapperTableEntries name="AddrLine1" type="id_String"/>
+        <mapperTableEntries name="AddrLine2" type="id_String" nullable="true"/>
+        <mapperTableEntries name="PostalCode" type="id_String"/>
+        <mapperTableEntries name="City" type="id_String"/>
+        <mapperTableEntries name="StateProvince" type="id_String"/>
+        <mapperTableEntries name="Country" type="id_String" nullable="true"/>
+        <mapperTableEntries name="CEOname" type="id_String"/>
+        <mapperTableEntries name="Description" type="id_String"/>
+      </inputTables>
+      <inputTables sizeState="INTERMEDIATE" name="row4" activateCondensedTool="true" matchingMode="UNIQUE_MATCH" lookupMode="LOAD_ONCE">
+        <mapperTableEntries name="statusCode" expression="row3.Status " type="id_String" operator="="/>
+        <mapperTableEntries name="statusDesc" type="id_String"/>
+      </inputTables>
+    </nodeData>
+  </node>
+  <node componentName="tFileInputDelimited" componentVersion="0.102" offsetLabelX="0" offsetLabelY="0" posX="800" posY="128">
+    <elementParameter field="TEXT" name="UNIQUE_NAME" value="tFileInputDelimited_1" show="false"/>
+    <elementParameter field="LABEL" name="FILENAMETEXT" value="&quot;When the input source is a stream or a zip file,footer and random shouldn't be bigger than 0.&quot;"/>
+    <elementParameter field="FILE" name="FILENAME" value="context.staging_dir + &quot;/StatusType.txt&quot;"/>
+    <elementParameter field="CHECK" name="CSV_OPTION" value="false"/>
+    <elementParameter field="TEXT" name="ROWSEPARATOR" value="&quot;\n&quot;"/>
+    <elementParameter field="OPENED_LIST" name="CSVROWSEPARATOR" value="&quot;\n&quot;" show="false"/>
+    <elementParameter field="TEXT" name="FIELDSEPARATOR" value="&quot;|&quot;"/>
+    <elementParameter field="TEXT" name="ESCAPE_CHAR" value="&quot;&quot;&quot;" show="false"/>
+    <elementParameter field="TEXT" name="TEXT_ENCLOSURE" value="&quot;&quot;&quot;" show="false"/>
+    <elementParameter field="TEXT" name="HEADER" value="0"/>
+    <elementParameter field="TEXT" name="FOOTER" value="0"/>
+    <elementParameter field="TEXT" name="LIMIT" value=""/>
+    <elementParameter field="CHECK" name="REMOVE_EMPTY_ROW" value="true"/>
+    <elementParameter field="CHECK" name="UNCOMPRESS" value="false"/>
+    <elementParameter field="CHECK" name="DIE_ON_ERROR" value="false"/>
+    <elementParameter field="DIRECTORY" name="TEMP_DIR" value="&quot;/mnt/1717A37A1971CE02/WorkSpaces/BDMA/dwh&quot;" show="false"/>
+    <elementParameter field="CHECK" name="ADVANCED_SEPARATOR" value="false"/>
+    <elementParameter field="TEXT" name="THOUSANDS_SEPARATOR" value="&quot;,&quot;" show="false"/>
+    <elementParameter field="TEXT" name="DECIMAL_SEPARATOR" value="&quot;.&quot;" show="false"/>
+    <elementParameter field="CHECK" name="RANDOM" value="false"/>
+    <elementParameter field="TEXT" name="NB_RANDOM" value="10" show="false"/>
+    <elementParameter field="CHECK" name="TRIMALL" value="false"/>
+    <elementParameter field="TABLE" name="TRIMSELECT">
+      <elementValue elementRef="SCHEMA_COLUMN" value="statusCode"/>
+      <elementValue elementRef="TRIM" value="false"/>
+      <elementValue elementRef="SCHEMA_COLUMN" value="statusDesc"/>
+      <elementValue elementRef="TRIM" value="false"/>
+    </elementParameter>
+    <elementParameter field="CHECK" name="CHECK_FIELDS_NUM" value="false"/>
+    <elementParameter field="CHECK" name="CHECK_DATE" value="false"/>
+    <elementParameter field="ENCODING_TYPE" name="ENCODING" value="&quot;ISO-8859-15&quot;"/>
+    <elementParameter field="TECHNICAL" name="ENCODING:ENCODING_TYPE" value="ISO-8859-15"/>
+    <elementParameter field="CHECK" name="SPLITRECORD" value="false"/>
+    <elementParameter field="CHECK" name="ENABLE_DECODE" value="false"/>
+    <elementParameter field="TABLE" name="DECODE_COLS" show="false">
+      <elementValue elementRef="SCHEMA_COLUMN" value="statusCode"/>
+      <elementValue elementRef="DECODE" value="false"/>
+      <elementValue elementRef="SCHEMA_COLUMN" value="statusDesc"/>
+      <elementValue elementRef="DECODE" value="false"/>
+    </elementParameter>
+    <elementParameter field="TEXT" name="DESTINATION" value="" show="false"/>
+    <elementParameter field="TEXT" name="SCHEMA_OPT_NUM" value="100" show="false"/>
+    <elementParameter field="TEXT" name="CONNECTION_FORMAT" value="row"/>
+    <metadata connector="FLOW" name="tFileInputDelimited_1">
+      <column comment="" key="true" length="-1" name="statusCode" nullable="false" pattern="" precision="-1" sourceType="" type="id_String" originalLength="-1" usefulColumn="true"/>
+      <column comment="" key="false" length="-1" name="statusDesc" nullable="false" pattern="" precision="-1" sourceType="" type="id_String" originalLength="-1" usefulColumn="true"/>
+    </metadata>
+    <metadata connector="REJECT" name="REJECT">
+      <column comment="" key="true" length="-1" name="statusCode" nullable="false" pattern="" precision="-1" sourceType="" type="id_String" originalLength="-1" usefulColumn="true"/>
+      <column comment="" key="false" length="-1" name="statusDesc" nullable="false" pattern="" precision="-1" sourceType="" type="id_String" originalLength="-1" usefulColumn="true"/>
+      <column defaultValue="" key="false" length="255" name="errorCode" nullable="true" precision="0" sourceType="" type="id_String" originalLength="-1" usefulColumn="true"/>
+      <column defaultValue="" key="false" length="255" name="errorMessage" nullable="true" precision="0" sourceType="" type="id_String" originalLength="-1" usefulColumn="true"/>
+    </metadata>
+  </node>
+  <node componentName="tMap" componentVersion="2.1" offsetLabelX="0" offsetLabelY="0" posX="928" posY="32">
+    <elementParameter field="TEXT" name="UNIQUE_NAME" value="tMap_2" show="false"/>
+    <elementParameter field="EXTERNAL" name="MAP" value=""/>
+    <elementParameter field="CLOSED_LIST" name="LINK_STYLE" value="AUTO"/>
+    <elementParameter field="DIRECTORY" name="TEMPORARY_DATA_DIRECTORY" value=""/>
+    <elementParameter field="IMAGE" name="PREVIEW" value="_lnj1sPQvEeiR3YfwSsPQ2Q-tMap_2-PREVIEW.bmp"/>
+    <elementParameter field="CHECK" name="DIE_ON_ERROR" value="true" show="false"/>
+    <elementParameter field="CHECK" name="LKUP_PARALLELIZE" value="false" show="false"/>
+    <elementParameter field="TEXT" name="LEVENSHTEIN" value="0" show="false"/>
+    <elementParameter field="TEXT" name="JACCARD" value="0" show="false"/>
+    <elementParameter field="CHECK" name="ENABLE_AUTO_CONVERT_TYPE" value="false" show="false"/>
+    <elementParameter field="TEXT" name="ROWS_BUFFER_SIZE" value="2000000"/>
+    <elementParameter field="CHECK" name="CHANGE_HASH_AND_EQUALS_FOR_BIGDECIMAL" value="true"/>
+    <elementParameter field="TEXT" name="CONNECTION_FORMAT" value="row"/>
+    <metadata connector="FLOW" label="out2" name="out2">
+      <column comment="" key="false" length="15" name="PTS" nullable="false" pattern="&quot;yyyyMMdd-HHmmss&quot;" precision="0" sourceType="BPCHAR" type="id_Date" usefulColumn="true"/>
+      <column comment="" key="false" length="3" name="RecType" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="60" name="name" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="11" name="companyid" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_Integer" usefulColumn="true"/>
+      <column comment="" key="false" length="2" name="IndustryID" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="4" name="SPrating" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="8" name="FoundingDate" nullable="true" pattern="&quot;yyyyMMdd&quot;" precision="0" sourceType="BPCHAR" type="id_Date" usefulColumn="true"/>
+      <column comment="" key="false" length="80" name="AddressLine1" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="80" name="AddressLine2" nullable="true" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="12" name="PostalCode" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="25" name="City" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="20" name="StateProv" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="24" name="Country" nullable="true" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="46" name="CEO" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="150" name="Description" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="-1" name="status" nullable="false" pattern="" precision="-1" sourceType="" type="id_String" originalLength="-1" usefulColumn="true"/>
+      <column comment="" defaultValue="" key="false" length="-1" name="islowgrade" nullable="false" pattern="" precision="-1" sourceType="" type="id_Boolean" originalLength="-1" usefulColumn="true"/>
+      <column comment="" defaultValue="" key="false" length="-1" name="batchid" nullable="false" pattern="" precision="-1" sourceType="" type="id_Integer" originalLength="-1" usefulColumn="true"/>
+      <column comment="" defaultValue="" key="false" length="-1" name="Iscurrent" nullable="false" pattern="" precision="-1" sourceType="" type="id_Boolean" originalLength="-1" usefulColumn="true"/>
+      <column comment="" key="false" length="-1" name="effectivedate" nullable="false" pattern="" precision="-1" sourceType="" type="id_Date" originalLength="-1" usefulColumn="true"/>
+      <column comment="" key="false" length="-1" name="enddate" nullable="false" pattern="" precision="-1" sourceType="" type="id_Date" originalLength="-1" usefulColumn="true"/>
+      <column comment="" key="false" length="-1" name="Industry" nullable="false" pattern="" precision="-1" sourceType="" type="id_String" originalLength="-1" usefulColumn="true"/>
+    </metadata>
+    <nodeData xsi:type="TalendMapper:MapperData">
+      <uiProperties/>
+      <varTables sizeState="INTERMEDIATE" name="Var">
+        <mapperTableEntries name="islowgrade" expression="!(out1.SPrating.startsWith(&quot;A&quot;) || out1.SPrating.startsWith(&quot;BBB&quot;)) " type="id_Boolean"/>
+        <mapperTableEntries name="batchid" expression="1 " type="id_Integer"/>
+        <mapperTableEntries name="Iscurrent" expression="true " type="id_Boolean"/>
+        <mapperTableEntries name="effectivedate" expression="out1.PTS " type="id_Date"/>
+        <mapperTableEntries name="enddate" expression="TalendDate.parseDate(&quot;yyyy-MM-dd HH:mm:ss&quot;,&quot;9999-12-31 23:59:59&quot;) " type="id_Date"/>
+      </varTables>
+      <outputTables sizeState="INTERMEDIATE" name="out2">
+        <mapperTableEntries name="PTS" expression="out1.PTS " type="id_Date"/>
+        <mapperTableEntries name="RecType" expression="out1.RecType " type="id_String"/>
+        <mapperTableEntries name="name" expression="out1.CompanyName " type="id_String"/>
+        <mapperTableEntries name="companyid" expression="out1.CIK " type="id_Integer"/>
+        <mapperTableEntries name="IndustryID" expression="out1.IndustryID " type="id_String"/>
+        <mapperTableEntries name="SPrating" expression="out1.SPrating " type="id_String"/>
+        <mapperTableEntries name="FoundingDate" expression="out1.FoundingDate " type="id_Date" nullable="true"/>
+        <mapperTableEntries name="AddressLine1" expression="out1.AddrLine1 " type="id_String"/>
+        <mapperTableEntries name="AddressLine2" expression="out1.AddrLine2 " type="id_String" nullable="true"/>
+        <mapperTableEntries name="PostalCode" expression="out1.PostalCode " type="id_String"/>
+        <mapperTableEntries name="City" expression="out1.City " type="id_String"/>
+        <mapperTableEntries name="StateProv" expression="out1.StateProvince " type="id_String"/>
+        <mapperTableEntries name="Country" expression="out1.Country " type="id_String" nullable="true"/>
+        <mapperTableEntries name="CEO" expression="out1.CEOname " type="id_String"/>
+        <mapperTableEntries name="Description" expression="out1.Description " type="id_String"/>
+        <mapperTableEntries name="status" expression="out1.statusDesc " type="id_String"/>
+        <mapperTableEntries name="islowgrade" expression="Var.islowgrade " type="id_Boolean"/>
+        <mapperTableEntries name="batchid" expression="Var.batchid " type="id_Integer"/>
+        <mapperTableEntries name="Iscurrent" expression="Var.Iscurrent " type="id_Boolean"/>
+        <mapperTableEntries name="effectivedate" expression="Var.effectivedate " type="id_Date"/>
+        <mapperTableEntries name="enddate" expression="Var.enddate " type="id_Date"/>
+        <mapperTableEntries name="Industry" expression="row5.Industry " type="id_String"/>
+      </outputTables>
+      <inputTables sizeState="INTERMEDIATE" name="out1" matchingMode="UNIQUE_MATCH" lookupMode="LOAD_ONCE">
+        <mapperTableEntries name="PTS" type="id_Date"/>
+        <mapperTableEntries name="RecType" type="id_String"/>
+        <mapperTableEntries name="CompanyName" type="id_String"/>
+        <mapperTableEntries name="CIK" type="id_Integer"/>
+        <mapperTableEntries name="IndustryID" type="id_String"/>
+        <mapperTableEntries name="SPrating" type="id_String"/>
+        <mapperTableEntries name="FoundingDate" type="id_Date" nullable="true"/>
+        <mapperTableEntries name="AddrLine1" type="id_String"/>
+        <mapperTableEntries name="AddrLine2" type="id_String" nullable="true"/>
+        <mapperTableEntries name="PostalCode" type="id_String"/>
+        <mapperTableEntries name="City" type="id_String"/>
+        <mapperTableEntries name="StateProvince" type="id_String"/>
+        <mapperTableEntries name="Country" type="id_String" nullable="true"/>
+        <mapperTableEntries name="CEOname" type="id_String"/>
+        <mapperTableEntries name="Description" type="id_String"/>
+        <mapperTableEntries name="statusDesc" type="id_String"/>
+      </inputTables>
+      <inputTables sizeState="INTERMEDIATE" name="row5" matchingMode="UNIQUE_MATCH" lookupMode="LOAD_ONCE">
+        <mapperTableEntries name="IndustryID" expression="out1.IndustryID " type="id_String" operator="="/>
+        <mapperTableEntries name="Industry" type="id_String"/>
+      </inputTables>
+    </nodeData>
+  </node>
+  <node componentName="tFileInputDelimited" componentVersion="0.102" offsetLabelX="0" offsetLabelY="0" posX="928" posY="128">
+    <elementParameter field="TEXT" name="UNIQUE_NAME" value="tFileInputDelimited_2" show="false"/>
+    <elementParameter field="LABEL" name="FILENAMETEXT" value="&quot;When the input source is a stream or a zip file,footer and random shouldn't be bigger than 0.&quot;"/>
+    <elementParameter field="FILE" name="FILENAME" value="context.staging_dir + &quot;/Industry.txt&quot;"/>
+    <elementParameter field="CHECK" name="CSV_OPTION" value="false"/>
+    <elementParameter field="TEXT" name="ROWSEPARATOR" value="&quot;\n&quot;"/>
+    <elementParameter field="OPENED_LIST" name="CSVROWSEPARATOR" value="&quot;\n&quot;" show="false"/>
+    <elementParameter field="TEXT" name="FIELDSEPARATOR" value="&quot;|&quot;"/>
+    <elementParameter field="TEXT" name="ESCAPE_CHAR" value="&quot;&quot;&quot;" show="false"/>
+    <elementParameter field="TEXT" name="TEXT_ENCLOSURE" value="&quot;&quot;&quot;" show="false"/>
+    <elementParameter field="TEXT" name="HEADER" value="0"/>
+    <elementParameter field="TEXT" name="FOOTER" value="0"/>
+    <elementParameter field="TEXT" name="LIMIT" value=""/>
+    <elementParameter field="CHECK" name="REMOVE_EMPTY_ROW" value="true"/>
+    <elementParameter field="CHECK" name="UNCOMPRESS" value="false"/>
+    <elementParameter field="CHECK" name="DIE_ON_ERROR" value="false"/>
+    <elementParameter field="DIRECTORY" name="TEMP_DIR" value="&quot;/mnt/1717A37A1971CE02/WorkSpaces/BDMA/dwh&quot;" show="false"/>
+    <elementParameter field="CHECK" name="ADVANCED_SEPARATOR" value="false"/>
+    <elementParameter field="TEXT" name="THOUSANDS_SEPARATOR" value="&quot;,&quot;" show="false"/>
+    <elementParameter field="TEXT" name="DECIMAL_SEPARATOR" value="&quot;.&quot;" show="false"/>
+    <elementParameter field="CHECK" name="RANDOM" value="false"/>
+    <elementParameter field="TEXT" name="NB_RANDOM" value="10" show="false"/>
+    <elementParameter field="CHECK" name="TRIMALL" value="false"/>
+    <elementParameter field="TABLE" name="TRIMSELECT">
+      <elementValue elementRef="SCHEMA_COLUMN" value="IndustryID"/>
+      <elementValue elementRef="TRIM" value="false"/>
+      <elementValue elementRef="SCHEMA_COLUMN" value="Industry"/>
+      <elementValue elementRef="TRIM" value="false"/>
+    </elementParameter>
+    <elementParameter field="CHECK" name="CHECK_FIELDS_NUM" value="false"/>
+    <elementParameter field="CHECK" name="CHECK_DATE" value="false"/>
+    <elementParameter field="ENCODING_TYPE" name="ENCODING" value="&quot;ISO-8859-15&quot;"/>
+    <elementParameter field="TECHNICAL" name="ENCODING:ENCODING_TYPE" value="ISO-8859-15"/>
+    <elementParameter field="CHECK" name="SPLITRECORD" value="false"/>
+    <elementParameter field="CHECK" name="ENABLE_DECODE" value="false"/>
+    <elementParameter field="TABLE" name="DECODE_COLS" show="false">
+      <elementValue elementRef="SCHEMA_COLUMN" value="IndustryID"/>
+      <elementValue elementRef="DECODE" value="false"/>
+      <elementValue elementRef="SCHEMA_COLUMN" value="Industry"/>
+      <elementValue elementRef="DECODE" value="false"/>
+    </elementParameter>
+    <elementParameter field="TEXT" name="DESTINATION" value="" show="false"/>
+    <elementParameter field="TEXT" name="SCHEMA_OPT_NUM" value="100" show="false"/>
+    <elementParameter field="TEXT" name="CONNECTION_FORMAT" value="row"/>
+    <metadata connector="FLOW" name="tFileInputDelimited_2">
+      <column comment="" key="true" length="-1" name="IndustryID" nullable="false" pattern="" precision="-1" sourceType="" type="id_String" originalLength="-1" usefulColumn="true"/>
+      <column comment="" key="false" length="-1" name="Industry" nullable="false" pattern="" precision="-1" sourceType="" type="id_String" originalLength="-1" usefulColumn="true"/>
+    </metadata>
+    <metadata connector="REJECT" name="REJECT">
+      <column comment="" key="true" length="-1" name="IndustryID" nullable="false" pattern="" precision="-1" sourceType="" type="id_String" originalLength="-1" usefulColumn="true"/>
+      <column comment="" key="false" length="-1" name="Industry" nullable="false" pattern="" precision="-1" sourceType="" type="id_String" originalLength="-1" usefulColumn="true"/>
+      <column defaultValue="" key="false" length="255" name="errorCode" nullable="true" precision="0" sourceType="" type="id_String" originalLength="-1" usefulColumn="true"/>
+      <column defaultValue="" key="false" length="255" name="errorMessage" nullable="true" precision="0" sourceType="" type="id_String" originalLength="-1" usefulColumn="true"/>
+    </metadata>
+  </node>
+  <node componentName="tMap" componentVersion="2.1" offsetLabelX="0" offsetLabelY="0" posX="1056" posY="32">
+    <elementParameter field="TEXT" name="UNIQUE_NAME" value="tMap_3" show="false"/>
+    <elementParameter field="EXTERNAL" name="MAP" value=""/>
+    <elementParameter field="CLOSED_LIST" name="LINK_STYLE" value="AUTO"/>
+    <elementParameter field="DIRECTORY" name="TEMPORARY_DATA_DIRECTORY" value=""/>
+    <elementParameter field="IMAGE" name="PREVIEW" value="_lnj1sPQvEeiR3YfwSsPQ2Q-tMap_3-PREVIEW.bmp"/>
+    <elementParameter field="CHECK" name="DIE_ON_ERROR" value="true" show="false"/>
+    <elementParameter field="CHECK" name="LKUP_PARALLELIZE" value="false" show="false"/>
+    <elementParameter field="TEXT" name="LEVENSHTEIN" value="0" show="false"/>
+    <elementParameter field="TEXT" name="JACCARD" value="0" show="false"/>
+    <elementParameter field="CHECK" name="ENABLE_AUTO_CONVERT_TYPE" value="false" show="false"/>
+    <elementParameter field="TEXT" name="ROWS_BUFFER_SIZE" value="2000000"/>
+    <elementParameter field="CHECK" name="CHANGE_HASH_AND_EQUALS_FOR_BIGDECIMAL" value="true"/>
+    <elementParameter field="TEXT" name="CONNECTION_FORMAT" value="row"/>
+    <metadata connector="FLOW" label="dimcompany" name="output_table1">
+      <column comment="" defaultValue="nextval('dimcompany_sk_companyid_seq'::regclass)" key="true" length="10" name="sk_companyid" nullable="false" pattern="" precision="0" sourceType="SERIAL" type="id_Integer" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="10" name="companyid" nullable="false" pattern="" precision="0" sourceType="INT4" type="id_Integer" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="10" name="status" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="60" name="name" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="50" name="industry" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="4" name="sprating" nullable="true" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="1" name="islowgrade" nullable="true" pattern="" precision="0" sourceType="BOOL" type="id_Boolean" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="100" name="ceo" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="80" name="addressline1" nullable="true" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="80" name="addressline2" nullable="true" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="12" name="postalcode" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="25" name="city" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="20" name="stateprov" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="24" name="country" nullable="true" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="150" name="description" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="13" name="foundingdate" nullable="true" pattern="&quot;dd-MM-yyyy&quot;" precision="0" sourceType="DATE" type="id_Date" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="1" name="iscurrent" nullable="false" pattern="" precision="0" sourceType="BOOL" type="id_Boolean" originalLength="-1" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="5" name="batchid" nullable="false" pattern="" precision="0" sourceType="NUMERIC" type="id_Integer" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="13" name="effectivedate" nullable="false" pattern="&quot;dd-MM-yyyy&quot;" precision="0" sourceType="DATE" type="id_Date" originalLength="-1" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="13" name="enddate" nullable="false" pattern="&quot;dd-MM-yyyy&quot;" precision="0" sourceType="DATE" type="id_Date" originalLength="-1" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+    </metadata>
+    <nodeData xsi:type="TalendMapper:MapperData">
+      <uiProperties/>
+      <varTables sizeState="INTERMEDIATE" name="Var" minimized="true"/>
+      <outputTables sizeState="INTERMEDIATE" name="output_table1">
+        <mapperTableEntries name="sk_companyid" expression="Numeric.sequence(&quot;sk_companyid&quot;,1,1) " type="id_Integer"/>
+        <mapperTableEntries name="companyid" expression="out2.companyid" type="id_Integer"/>
+        <mapperTableEntries name="status" expression="out2.status" type="id_String"/>
+        <mapperTableEntries name="name" expression="out2.name" type="id_String"/>
+        <mapperTableEntries name="industry" expression="out2.Industry" type="id_String"/>
+        <mapperTableEntries name="sprating" expression="out2.SPrating" type="id_String" nullable="true"/>
+        <mapperTableEntries name="islowgrade" expression="out2.islowgrade" type="id_Boolean" nullable="true"/>
+        <mapperTableEntries name="ceo" expression="out2.CEO" type="id_String"/>
+        <mapperTableEntries name="addressline1" expression="out2.AddressLine1" type="id_String" nullable="true"/>
+        <mapperTableEntries name="addressline2" expression="out2.AddressLine2" type="id_String" nullable="true"/>
+        <mapperTableEntries name="postalcode" expression="out2.PostalCode" type="id_String"/>
+        <mapperTableEntries name="city" expression="out2.City" type="id_String"/>
+        <mapperTableEntries name="stateprov" expression="out2.StateProv" type="id_String"/>
+        <mapperTableEntries name="country" expression="out2.Country" type="id_String" nullable="true"/>
+        <mapperTableEntries name="description" expression="out2.Description" type="id_String"/>
+        <mapperTableEntries name="foundingdate" expression="out2.FoundingDate" type="id_Date" nullable="true"/>
+        <mapperTableEntries name="iscurrent" expression="out2.Iscurrent" type="id_Boolean"/>
+        <mapperTableEntries name="batchid" expression="out2.batchid" type="id_Integer"/>
+        <mapperTableEntries name="effectivedate" expression="out2.effectivedate" type="id_Date"/>
+        <mapperTableEntries name="enddate" expression="out2.enddate" type="id_Date"/>
+      </outputTables>
+      <inputTables sizeState="INTERMEDIATE" name="out2" matchingMode="UNIQUE_MATCH" lookupMode="LOAD_ONCE">
+        <mapperTableEntries name="PTS" type="id_Date"/>
+        <mapperTableEntries name="RecType" type="id_String"/>
+        <mapperTableEntries name="name" type="id_String"/>
+        <mapperTableEntries name="companyid" type="id_Integer"/>
+        <mapperTableEntries name="IndustryID" type="id_String"/>
+        <mapperTableEntries name="SPrating" type="id_String"/>
+        <mapperTableEntries name="FoundingDate" type="id_Date" nullable="true"/>
+        <mapperTableEntries name="AddressLine1" type="id_String"/>
+        <mapperTableEntries name="AddressLine2" type="id_String" nullable="true"/>
+        <mapperTableEntries name="PostalCode" type="id_String"/>
+        <mapperTableEntries name="City" type="id_String"/>
+        <mapperTableEntries name="StateProv" type="id_String"/>
+        <mapperTableEntries name="Country" type="id_String" nullable="true"/>
+        <mapperTableEntries name="CEO" type="id_String"/>
+        <mapperTableEntries name="Description" type="id_String"/>
+        <mapperTableEntries name="status" type="id_String"/>
+        <mapperTableEntries name="islowgrade" type="id_Boolean"/>
+        <mapperTableEntries name="batchid" type="id_Integer"/>
+        <mapperTableEntries name="Iscurrent" type="id_Boolean"/>
+        <mapperTableEntries name="effectivedate" type="id_Date"/>
+        <mapperTableEntries name="enddate" type="id_Date"/>
+        <mapperTableEntries name="Industry" type="id_String"/>
+      </inputTables>
+    </nodeData>
+  </node>
+  <node componentName="tPostgresqlSCD" componentVersion="0.102" offsetLabelX="0" offsetLabelY="0" posX="1184" posY="32">
+    <elementParameter field="TEXT" name="UNIQUE_NAME" value="tDBSCD_2" show="false"/>
+    <elementParameter field="TECHNICAL" name="PROPERTY:PROPERTY_TYPE" value="REPOSITORY"/>
+    <elementParameter field="TECHNICAL" name="PROPERTY:REPOSITORY_PROPERTY_TYPE" value="_wbYhcPQrEeiR3YfwSsPQ2Q" show="false"/>
+    <elementParameter field="CHECK" name="USE_EXISTING_CONNECTION" value="false"/>
+    <elementParameter field="COMPONENT_LIST" name="CONNECTION" value="" show="false"/>
+    <elementParameter field="CLOSED_LIST" name="DB_VERSION" value="V9_X"/>
+    <elementParameter field="TEXT" name="HOST" value="&quot;localhost&quot;"/>
+    <elementParameter field="TEXT" name="PORT" value="&quot;5432&quot;"/>
+    <elementParameter field="TEXT" name="DBNAME" value="&quot;tpcdi&quot;"/>
+    <elementParameter field="TEXT" name="SCHEMA_DB" value="&quot;public&quot;"/>
+    <elementParameter field="TEXT" name="TYPE" value="POSTGRESQL" show="false"/>
+    <elementParameter field="TEXT" name="USER" value="&quot;postgres&quot;"/>
+    <elementParameter field="PASSWORD" name="PASS" value="NrE2x5vAkVTo4I4wi1Afkw=="/>
+    <elementParameter field="DBTABLE" name="TABLE" value="&quot;dimcompany&quot;"/>
+    <elementParameter field="EXTERNAL" name="MAP" value=""/>
+    <elementParameter field="COLUMN_LIST" name="SURROGATE_KEY" value="sk_companyid" show="false"/>
+    <elementParameter field="CLOSED_LIST" name="SK_CREATION" value="INPUT_FIELD" show="false"/>
+    <elementParameter field="TEXT" name="SK_DB_SEQUENCE" value="" show="false"/>
+    <elementParameter field="PREV_COLUMN_LIST" name="SK_INPUT_FIELD" value="sk_companyid" show="false"/>
+    <elementParameter field="TEXT" name="SK_ROUTINE" value="Numeric.sequence(&quot;seq&quot;, 1, 1)" show="false"/>
+    <elementParameter field="TABLE" name="SOURCE_KEYS" show="false">
+      <elementValue elementRef="NAME" value="companyid"/>
+    </elementParameter>
+    <elementParameter field="CHECK" name="USE_SAVE_MEM_MODE" value="false"/>
+    <elementParameter field="CHECK" name="SOURCE_KEY_INC_NULL" value="false"/>
+    <elementParameter field="CHECK" name="USE_L0" value="false" show="false"/>
+    <elementParameter field="TABLE" name="L0_FIELDS" show="false"/>
+    <elementParameter field="CHECK" name="USE_L1" value="false" show="false"/>
+    <elementParameter field="TABLE" name="L1_FIELDS" show="false"/>
+    <elementParameter field="CHECK" name="ONLY_UPDATE_ACTIVE" value="false" show="false"/>
+    <elementParameter field="CHECK" name="USE_L2" value="true" show="false"/>
+    <elementParameter field="TABLE" name="L2_FIELDS" show="false">
+      <elementValue elementRef="NAME" value="addressline1"/>
+      <elementValue elementRef="NAME" value="addressline2"/>
+      <elementValue elementRef="NAME" value="batchid"/>
+      <elementValue elementRef="NAME" value="ceo"/>
+      <elementValue elementRef="NAME" value="city"/>
+      <elementValue elementRef="NAME" value="country"/>
+      <elementValue elementRef="NAME" value="description"/>
+      <elementValue elementRef="NAME" value="foundingdate"/>
+      <elementValue elementRef="NAME" value="industry"/>
+      <elementValue elementRef="NAME" value="islowgrade"/>
+      <elementValue elementRef="NAME" value="name"/>
+      <elementValue elementRef="NAME" value="postalcode"/>
+      <elementValue elementRef="NAME" value="sprating"/>
+      <elementValue elementRef="NAME" value="stateprov"/>
+      <elementValue elementRef="NAME" value="status"/>
+    </elementParameter>
+    <elementParameter field="COLUMN_LIST" name="L2_STARTDATE_FIELD" value="effectivedate" show="false"/>
+    <elementParameter field="CLOSED_LIST" name="L2_STARTDATE_VALUE" value="INPUT_FIELD" show="false"/>
+    <elementParameter field="PREV_COLUMN_LIST" name="L2_STARTDATE_INPUT_FIELD" value="effectivedate" show="false"/>
+    <elementParameter field="COLUMN_LIST" name="L2_ENDDATE_FIELD" value="enddate" show="false"/>
+    <elementParameter field="CLOSED_LIST" name="L2_ENDDATE_VALUE" value="FIXED_VALUE" show="false"/>
+    <elementParameter field="TEXT" name="L2_ENDDATE_FIXED_VALUE" value="9999" show="false"/>
+    <elementParameter field="CHECK" name="USE_L2_ACTIVE" value="true" show="false"/>
+    <elementParameter field="COLUMN_LIST" name="L2_ACTIVE_FIELD" value="iscurrent" show="false"/>
+    <elementParameter field="CHECK" name="USE_L2_VERSION" value="false" show="false"/>
+    <elementParameter field="COLUMN_LIST" name="L2_VERSION_FIELD" value="" show="false"/>
+    <elementParameter field="LABEL" name="NOTE" value="(Version must be an Integer)" show="false"/>
+    <elementParameter field="CHECK" name="USE_L3" value="false" show="false"/>
+    <elementParameter field="TABLE" name="L3_FIELDS" show="false"/>
+    <elementParameter field="CHECK" name="DIE_ON_ERROR" value="false"/>
+    <elementParameter field="TEXT" name="L2_ENDDATE_TIME_DETAILS" value="&quot;12:00:00&quot;"/>
+    <elementParameter field="LABEL" name="NOICE" value="(Time pattern: 'HH:mm:ss')"/>
+    <elementParameter field="CHECK" name="DEBUG" value="false"/>
+    <elementParameter field="TEXT" name="CONNECTION_FORMAT" value="row"/>
+    <metadata connector="FLOW" label="dimcompany" name="tDBSCD_2">
+      <column comment="" key="false" length="10" name="companyid" nullable="false" pattern="" precision="0" sourceType="INT4" type="id_Integer" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="10" name="status" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="60" name="name" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="50" name="industry" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="4" name="sprating" nullable="true" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="1" name="islowgrade" nullable="true" pattern="" precision="0" sourceType="BOOL" type="id_Boolean" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="100" name="ceo" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="80" name="addressline1" nullable="true" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="80" name="addressline2" nullable="true" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="12" name="postalcode" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="25" name="city" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="20" name="stateprov" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="24" name="country" nullable="true" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="150" name="description" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="13" name="foundingdate" nullable="true" pattern="&quot;dd-MM-yyyy&quot;" precision="0" sourceType="DATE" type="id_Date" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="5" name="batchid" nullable="false" pattern="" precision="0" sourceType="NUMERIC" type="id_Integer" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="Column generated by scd editor." defaultValue="nextval('dimcompany_sk_companyid_seq'::regclass)" key="false" length="10" name="sk_companyid" nullable="false" pattern="" precision="0" sourceType="SERIAL" type="id_Integer" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="Column generated by scd editor." key="false" length="13" name="effectivedate" nullable="false" pattern="&quot;dd-MM-yyyy&quot;" precision="0" sourceType="DATE" type="id_Date" originalLength="-1" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="Column generated by scd editor." defaultValue="" key="false" length="-1" name="effectivedate" nullable="false" pattern="" precision="-1" sourceType="" type="id_Date" originalLength="-1" usefulColumn="true"/>
+      <column comment="Column generated by scd editor." defaultValue="" key="false" length="-1" name="enddate" nullable="true" pattern="" precision="-1" sourceType="" type="id_Date" originalLength="-1" usefulColumn="true"/>
+      <column comment="Column generated by scd editor." defaultValue="" key="false" length="-1" name="iscurrent" nullable="false" pattern="" precision="-1" sourceType="" type="id_Boolean" originalLength="-1" usefulColumn="true"/>
+    </metadata>
+    <metadata connector="REJECT" label="dimcompany" name="REJECT">
+      <column comment="" key="false" length="10" name="companyid" nullable="false" pattern="" precision="0" sourceType="INT4" type="id_Integer" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="10" name="status" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="60" name="name" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="50" name="industry" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="4" name="sprating" nullable="true" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="1" name="islowgrade" nullable="true" pattern="" precision="0" sourceType="BOOL" type="id_Boolean" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="100" name="ceo" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="80" name="addressline1" nullable="true" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="80" name="addressline2" nullable="true" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="12" name="postalcode" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="25" name="city" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="20" name="stateprov" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="24" name="country" nullable="true" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="150" name="description" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="13" name="foundingdate" nullable="true" pattern="&quot;dd-MM-yyyy&quot;" precision="0" sourceType="DATE" type="id_Date" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="5" name="batchid" nullable="false" pattern="" precision="0" sourceType="NUMERIC" type="id_Integer" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column defaultValue="" key="false" length="255" name="errorCode" nullable="true" precision="0" sourceType="" type="id_String" originalLength="-1" usefulColumn="true"/>
+      <column defaultValue="" key="false" length="255" name="errorMessage" nullable="true" precision="0" sourceType="" type="id_String" originalLength="-1" usefulColumn="true"/>
+    </metadata>
+  </node>
+  <node componentName="tReplicate" componentVersion="0.101" offsetLabelX="0" offsetLabelY="0" posX="608" posY="224">
+    <elementParameter field="TEXT" name="UNIQUE_NAME" value="tReplicate_1" show="false"/>
+    <elementParameter field="TEXT" name="CONNECTION_FORMAT" value="row"/>
+    <metadata connector="FLOW" name="tReplicate_1">
+      <column comment="" key="false" length="15" name="PTS" nullable="false" pattern="&quot;yyyyMMdd-HHmmss&quot;" precision="0" sourceType="BPCHAR" type="id_Date" usefulColumn="true"/>
+      <column comment="" key="false" length="3" name="RecType" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="60" name="CompanyName" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="11" name="CIK" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_Integer" usefulColumn="true"/>
+      <column comment="" key="false" length="10" name="Status" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="2" name="IndustryID" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="4" name="SPrating" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="8" name="FoundingDate" nullable="true" pattern="&quot;yyyyMMdd&quot;" precision="0" sourceType="BPCHAR" type="id_Date" usefulColumn="true"/>
+      <column comment="" key="false" length="80" name="AddrLine1" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="80" name="AddrLine2" nullable="true" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="12" name="PostalCode" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="25" name="City" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="20" name="StateProvince" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="24" name="Country" nullable="true" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="46" name="CEOname" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="150" name="Description" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column key="false" length="255" name="errorMessage" nullable="true" precision="0" sourceType="" type="id_String" originalLength="-1" usefulColumn="true"/>
+    </metadata>
+  </node>
+  <node componentName="tMap" componentVersion="2.1" offsetLabelX="0" offsetLabelY="0" posX="800" posY="256">
+    <elementParameter field="TEXT" name="UNIQUE_NAME" value="tMap_4" show="false"/>
+    <elementParameter field="EXTERNAL" name="MAP" value=""/>
+    <elementParameter field="CLOSED_LIST" name="LINK_STYLE" value="AUTO"/>
+    <elementParameter field="DIRECTORY" name="TEMPORARY_DATA_DIRECTORY" value=""/>
+    <elementParameter field="IMAGE" name="PREVIEW" value="_lnj1sPQvEeiR3YfwSsPQ2Q-tMap_4-PREVIEW.bmp"/>
+    <elementParameter field="CHECK" name="DIE_ON_ERROR" value="true" show="false"/>
+    <elementParameter field="CHECK" name="LKUP_PARALLELIZE" value="false" show="false"/>
+    <elementParameter field="TEXT" name="LEVENSHTEIN" value="0" show="false"/>
+    <elementParameter field="TEXT" name="JACCARD" value="0" show="false"/>
+    <elementParameter field="CHECK" name="ENABLE_AUTO_CONVERT_TYPE" value="false" show="false"/>
+    <elementParameter field="TEXT" name="ROWS_BUFFER_SIZE" value="2000000"/>
+    <elementParameter field="CHECK" name="CHANGE_HASH_AND_EQUALS_FOR_BIGDECIMAL" value="true"/>
+    <elementParameter field="TEXT" name="CONNECTION_FORMAT" value="row"/>
+    <metadata connector="FLOW" label="out1" name="copyOfout1">
+      <column comment="" key="false" length="15" name="PTS" nullable="false" pattern="&quot;yyyyMMdd-HHmmss&quot;" precision="0" sourceType="BPCHAR" type="id_Date" usefulColumn="true"/>
+      <column comment="" key="false" length="3" name="RecType" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="60" name="CompanyName" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="11" name="CIK" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_Integer" usefulColumn="true"/>
+      <column comment="" key="false" length="2" name="IndustryID" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="4" name="SPrating" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="8" name="FoundingDate" nullable="true" pattern="&quot;yyyyMMdd&quot;" precision="0" sourceType="BPCHAR" type="id_Date" usefulColumn="true"/>
+      <column comment="" key="false" length="80" name="AddrLine1" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="80" name="AddrLine2" nullable="true" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="12" name="PostalCode" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="25" name="City" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="20" name="StateProvince" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="24" name="Country" nullable="true" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="46" name="CEOname" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="150" name="Description" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="-1" name="statusDesc" nullable="false" pattern="" precision="-1" sourceType="" type="id_String" originalLength="-1" usefulColumn="true"/>
+    </metadata>
+    <nodeData xsi:type="TalendMapper:MapperData">
+      <uiProperties/>
+      <varTables sizeState="INTERMEDIATE" name="Var" minimized="true"/>
+      <outputTables sizeState="INTERMEDIATE" name="copyOfout1">
+        <mapperTableEntries name="PTS" expression="row3.PTS   " type="id_Date"/>
+        <mapperTableEntries name="RecType" expression="row3.RecType   " type="id_String"/>
+        <mapperTableEntries name="CompanyName" expression="row3.CompanyName   " type="id_String"/>
+        <mapperTableEntries name="CIK" expression="row3.CIK   " type="id_Integer"/>
+        <mapperTableEntries name="IndustryID" expression="row3.IndustryID   " type="id_String"/>
+        <mapperTableEntries name="SPrating" expression="row3.SPrating   " type="id_String"/>
+        <mapperTableEntries name="FoundingDate" expression="row3.FoundingDate   " type="id_Date" nullable="true"/>
+        <mapperTableEntries name="AddrLine1" expression="row3.AddrLine1   " type="id_String"/>
+        <mapperTableEntries name="AddrLine2" expression="row3.AddrLine2   " type="id_String" nullable="true"/>
+        <mapperTableEntries name="PostalCode" expression="row3.PostalCode   " type="id_String"/>
+        <mapperTableEntries name="City" expression="row3.City   " type="id_String"/>
+        <mapperTableEntries name="StateProvince" expression="row3.StateProvince   " type="id_String"/>
+        <mapperTableEntries name="Country" expression="row3.Country   " type="id_String" nullable="true"/>
+        <mapperTableEntries name="CEOname" expression="row3.CEOname   " type="id_String"/>
+        <mapperTableEntries name="Description" expression="row3.Description   " type="id_String"/>
+        <mapperTableEntries name="statusDesc" expression="row7.statusDesc   " type="id_String"/>
+      </outputTables>
+      <inputTables sizeState="INTERMEDIATE" name="row10" matchingMode="UNIQUE_MATCH" lookupMode="LOAD_ONCE">
+        <mapperTableEntries name="PTS" type="id_Date"/>
+        <mapperTableEntries name="RecType" type="id_String"/>
+        <mapperTableEntries name="CompanyName" type="id_String"/>
+        <mapperTableEntries name="CIK" type="id_Integer"/>
+        <mapperTableEntries name="Status" type="id_String"/>
+        <mapperTableEntries name="IndustryID" type="id_String"/>
+        <mapperTableEntries name="SPrating" type="id_String"/>
+        <mapperTableEntries name="FoundingDate" type="id_Date" nullable="true"/>
+        <mapperTableEntries name="AddrLine1" type="id_String"/>
+        <mapperTableEntries name="AddrLine2" type="id_String" nullable="true"/>
+        <mapperTableEntries name="PostalCode" type="id_String"/>
+        <mapperTableEntries name="City" type="id_String"/>
+        <mapperTableEntries name="StateProvince" type="id_String"/>
+        <mapperTableEntries name="Country" type="id_String" nullable="true"/>
+        <mapperTableEntries name="CEOname" type="id_String"/>
+        <mapperTableEntries name="Description" type="id_String"/>
+        <mapperTableEntries name="errorMessage" type="id_String" nullable="true"/>
+      </inputTables>
+      <inputTables sizeState="INTERMEDIATE" name="row7" activateCondensedTool="true" matchingMode="UNIQUE_MATCH" lookupMode="LOAD_ONCE">
+        <mapperTableEntries name="statusCode" expression="row3.Status " type="id_String" operator="="/>
+        <mapperTableEntries name="statusDesc" type="id_String"/>
+      </inputTables>
+    </nodeData>
+  </node>
+  <node componentName="tMap" componentVersion="2.1" offsetLabelX="0" offsetLabelY="0" posX="928" posY="256">
+    <elementParameter field="TEXT" name="UNIQUE_NAME" value="tMap_5" show="false"/>
+    <elementParameter field="EXTERNAL" name="MAP" value=""/>
+    <elementParameter field="CLOSED_LIST" name="LINK_STYLE" value="AUTO"/>
+    <elementParameter field="DIRECTORY" name="TEMPORARY_DATA_DIRECTORY" value=""/>
+    <elementParameter field="IMAGE" name="PREVIEW" value="_lnj1sPQvEeiR3YfwSsPQ2Q-tMap_5-PREVIEW.bmp"/>
+    <elementParameter field="CHECK" name="DIE_ON_ERROR" value="true" show="false"/>
+    <elementParameter field="CHECK" name="LKUP_PARALLELIZE" value="false" show="false"/>
+    <elementParameter field="TEXT" name="LEVENSHTEIN" value="0" show="false"/>
+    <elementParameter field="TEXT" name="JACCARD" value="0" show="false"/>
+    <elementParameter field="CHECK" name="ENABLE_AUTO_CONVERT_TYPE" value="false" show="false"/>
+    <elementParameter field="TEXT" name="ROWS_BUFFER_SIZE" value="2000000"/>
+    <elementParameter field="CHECK" name="CHANGE_HASH_AND_EQUALS_FOR_BIGDECIMAL" value="true"/>
+    <elementParameter field="TEXT" name="CONNECTION_FORMAT" value="row"/>
+    <metadata connector="FLOW" label="out2" name="copyOfout2">
+      <column comment="" key="false" length="15" name="PTS" nullable="false" pattern="&quot;yyyyMMdd-HHmmss&quot;" precision="0" sourceType="BPCHAR" type="id_Date" usefulColumn="true"/>
+      <column comment="" key="false" length="3" name="RecType" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="60" name="name" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="11" name="companyid" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_Integer" usefulColumn="true"/>
+      <column comment="" key="false" length="2" name="IndustryID" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="4" name="SPrating" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="8" name="FoundingDate" nullable="true" pattern="&quot;yyyyMMdd&quot;" precision="0" sourceType="BPCHAR" type="id_Date" usefulColumn="true"/>
+      <column comment="" key="false" length="80" name="AddressLine1" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="80" name="AddressLine2" nullable="true" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="12" name="PostalCode" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="25" name="City" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="20" name="StateProv" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="24" name="Country" nullable="true" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="46" name="CEO" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="150" name="Description" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="-1" name="status" nullable="false" pattern="" precision="-1" sourceType="" type="id_String" originalLength="-1" usefulColumn="true"/>
+      <column comment="" defaultValue="" key="false" length="-1" name="islowgrade" nullable="true" pattern="" precision="-1" sourceType="" type="id_Boolean" originalLength="-1" usefulColumn="true"/>
+      <column comment="" defaultValue="" key="false" length="-1" name="batchid" nullable="false" pattern="" precision="-1" sourceType="" type="id_Integer" originalLength="-1" usefulColumn="true"/>
+      <column comment="" defaultValue="" key="false" length="-1" name="Iscurrent" nullable="false" pattern="" precision="-1" sourceType="" type="id_Boolean" originalLength="-1" usefulColumn="true"/>
+      <column comment="" key="false" length="-1" name="effectivedate" nullable="false" pattern="" precision="-1" sourceType="" type="id_Date" originalLength="-1" usefulColumn="true"/>
+      <column comment="" key="false" length="-1" name="enddate" nullable="false" pattern="" precision="-1" sourceType="" type="id_Date" originalLength="-1" usefulColumn="true"/>
+      <column comment="" key="false" length="-1" name="Industry" nullable="false" pattern="" precision="-1" sourceType="" type="id_String" originalLength="-1" usefulColumn="true"/>
+    </metadata>
+    <nodeData xsi:type="TalendMapper:MapperData">
+      <uiProperties shellMaximized="true"/>
+      <varTables sizeState="INTERMEDIATE" name="Var">
+        <mapperTableEntries name="islowgrade" expression="null" type="id_Boolean" nullable="true"/>
+        <mapperTableEntries name="batchid" expression="1 " type="id_Integer"/>
+        <mapperTableEntries name="Iscurrent" expression="true" type="id_Boolean"/>
+        <mapperTableEntries name="effectivedate" expression="copyOfout1.PTS " type="id_Date"/>
+        <mapperTableEntries name="enddate" expression="TalendDate.parseDate(&quot;yyyy-MM-dd HH:mm:ss&quot;,&quot;9999-12-31 23:59:59&quot;) " type="id_Date"/>
+      </varTables>
+      <outputTables sizeState="INTERMEDIATE" name="copyOfout2">
+        <mapperTableEntries name="PTS" expression="copyOfout1.PTS " type="id_Date"/>
+        <mapperTableEntries name="RecType" expression="copyOfout1.RecType " type="id_String"/>
+        <mapperTableEntries name="name" expression="copyOfout1.CompanyName " type="id_String"/>
+        <mapperTableEntries name="companyid" expression="copyOfout1.CIK " type="id_Integer"/>
+        <mapperTableEntries name="IndustryID" expression="copyOfout1.IndustryID " type="id_String"/>
+        <mapperTableEntries name="SPrating" expression="null" type="id_String"/>
+        <mapperTableEntries name="FoundingDate" expression="copyOfout1.FoundingDate " type="id_Date" nullable="true"/>
+        <mapperTableEntries name="AddressLine1" expression="copyOfout1.AddrLine1 " type="id_String"/>
+        <mapperTableEntries name="AddressLine2" expression="copyOfout1.AddrLine2 " type="id_String" nullable="true"/>
+        <mapperTableEntries name="PostalCode" expression="copyOfout1.PostalCode " type="id_String"/>
+        <mapperTableEntries name="City" expression="copyOfout1.City " type="id_String"/>
+        <mapperTableEntries name="StateProv" expression="copyOfout1.StateProvince " type="id_String"/>
+        <mapperTableEntries name="Country" expression="copyOfout1.Country " type="id_String" nullable="true"/>
+        <mapperTableEntries name="CEO" expression="copyOfout1.CEOname " type="id_String"/>
+        <mapperTableEntries name="Description" expression="copyOfout1.Description " type="id_String"/>
+        <mapperTableEntries name="status" expression="copyOfout1.statusDesc " type="id_String"/>
+        <mapperTableEntries name="islowgrade" expression="Var.islowgrade " type="id_Boolean" nullable="true"/>
+        <mapperTableEntries name="batchid" expression="Var.batchid " type="id_Integer"/>
+        <mapperTableEntries name="Iscurrent" expression="Var.Iscurrent " type="id_Boolean"/>
+        <mapperTableEntries name="effectivedate" expression="Var.effectivedate " type="id_Date"/>
+        <mapperTableEntries name="enddate" expression="Var.enddate " type="id_Date"/>
+        <mapperTableEntries name="Industry" expression="row8.Industry " type="id_String"/>
+      </outputTables>
+      <inputTables sizeState="INTERMEDIATE" name="copyOfout1" matchingMode="UNIQUE_MATCH" lookupMode="LOAD_ONCE">
+        <mapperTableEntries name="PTS" type="id_Date"/>
+        <mapperTableEntries name="RecType" type="id_String"/>
+        <mapperTableEntries name="CompanyName" type="id_String"/>
+        <mapperTableEntries name="CIK" type="id_Integer"/>
+        <mapperTableEntries name="IndustryID" type="id_String"/>
+        <mapperTableEntries name="SPrating" type="id_String"/>
+        <mapperTableEntries name="FoundingDate" type="id_Date" nullable="true"/>
+        <mapperTableEntries name="AddrLine1" type="id_String"/>
+        <mapperTableEntries name="AddrLine2" type="id_String" nullable="true"/>
+        <mapperTableEntries name="PostalCode" type="id_String"/>
+        <mapperTableEntries name="City" type="id_String"/>
+        <mapperTableEntries name="StateProvince" type="id_String"/>
+        <mapperTableEntries name="Country" type="id_String" nullable="true"/>
+        <mapperTableEntries name="CEOname" type="id_String"/>
+        <mapperTableEntries name="Description" type="id_String"/>
+        <mapperTableEntries name="statusDesc" type="id_String"/>
+      </inputTables>
+      <inputTables sizeState="INTERMEDIATE" name="row8" matchingMode="UNIQUE_MATCH" lookupMode="LOAD_ONCE">
+        <mapperTableEntries name="IndustryID" expression="copyOfout1.IndustryID " type="id_String" operator="="/>
+        <mapperTableEntries name="Industry" type="id_String"/>
+      </inputTables>
+    </nodeData>
+  </node>
+  <node componentName="tFileInputDelimited" componentVersion="0.102" offsetLabelX="0" offsetLabelY="0" posX="800" posY="352">
+    <elementParameter field="TEXT" name="UNIQUE_NAME" value="tFileInputDelimited_3" show="false"/>
+    <elementParameter field="LABEL" name="FILENAMETEXT" value="&quot;When the input source is a stream or a zip file,footer and random shouldn't be bigger than 0.&quot;"/>
+    <elementParameter field="FILE" name="FILENAME" value="context.staging_dir + &quot;/StatusType.txt&quot;"/>
+    <elementParameter field="CHECK" name="CSV_OPTION" value="false"/>
+    <elementParameter field="TEXT" name="ROWSEPARATOR" value="&quot;\n&quot;"/>
+    <elementParameter field="OPENED_LIST" name="CSVROWSEPARATOR" value="&quot;\n&quot;" show="false"/>
+    <elementParameter field="TEXT" name="FIELDSEPARATOR" value="&quot;|&quot;"/>
+    <elementParameter field="TEXT" name="ESCAPE_CHAR" value="&quot;&quot;&quot;" show="false"/>
+    <elementParameter field="TEXT" name="TEXT_ENCLOSURE" value="&quot;&quot;&quot;" show="false"/>
+    <elementParameter field="TEXT" name="HEADER" value="0"/>
+    <elementParameter field="TEXT" name="FOOTER" value="0"/>
+    <elementParameter field="TEXT" name="LIMIT" value=""/>
+    <elementParameter field="CHECK" name="REMOVE_EMPTY_ROW" value="true"/>
+    <elementParameter field="CHECK" name="UNCOMPRESS" value="false"/>
+    <elementParameter field="CHECK" name="DIE_ON_ERROR" value="false"/>
+    <elementParameter field="DIRECTORY" name="TEMP_DIR" value="&quot;/mnt/1717A37A1971CE02/WorkSpaces/BDMA/dwh&quot;" show="false"/>
+    <elementParameter field="CHECK" name="ADVANCED_SEPARATOR" value="false"/>
+    <elementParameter field="TEXT" name="THOUSANDS_SEPARATOR" value="&quot;,&quot;" show="false"/>
+    <elementParameter field="TEXT" name="DECIMAL_SEPARATOR" value="&quot;.&quot;" show="false"/>
+    <elementParameter field="CHECK" name="RANDOM" value="false"/>
+    <elementParameter field="TEXT" name="NB_RANDOM" value="10" show="false"/>
+    <elementParameter field="CHECK" name="TRIMALL" value="false"/>
+    <elementParameter field="TABLE" name="TRIMSELECT">
+      <elementValue elementRef="SCHEMA_COLUMN" value="statusCode"/>
+      <elementValue elementRef="TRIM" value="false"/>
+      <elementValue elementRef="SCHEMA_COLUMN" value="statusDesc"/>
+      <elementValue elementRef="TRIM" value="false"/>
+    </elementParameter>
+    <elementParameter field="CHECK" name="CHECK_FIELDS_NUM" value="false"/>
+    <elementParameter field="CHECK" name="CHECK_DATE" value="false"/>
+    <elementParameter field="ENCODING_TYPE" name="ENCODING" value="&quot;ISO-8859-15&quot;"/>
+    <elementParameter field="TECHNICAL" name="ENCODING:ENCODING_TYPE" value="ISO-8859-15"/>
+    <elementParameter field="CHECK" name="SPLITRECORD" value="false"/>
+    <elementParameter field="CHECK" name="ENABLE_DECODE" value="false"/>
+    <elementParameter field="TABLE" name="DECODE_COLS" show="false">
+      <elementValue elementRef="SCHEMA_COLUMN" value="statusCode"/>
+      <elementValue elementRef="DECODE" value="false"/>
+      <elementValue elementRef="SCHEMA_COLUMN" value="statusDesc"/>
+      <elementValue elementRef="DECODE" value="false"/>
+    </elementParameter>
+    <elementParameter field="TEXT" name="DESTINATION" value="" show="false"/>
+    <elementParameter field="TEXT" name="SCHEMA_OPT_NUM" value="100" show="false"/>
+    <elementParameter field="TEXT" name="CONNECTION_FORMAT" value="row"/>
+    <metadata connector="FLOW" name="tFileInputDelimited_3">
+      <column comment="" key="true" length="-1" name="statusCode" nullable="false" pattern="" precision="-1" sourceType="" type="id_String" originalLength="-1" usefulColumn="true"/>
+      <column comment="" key="false" length="-1" name="statusDesc" nullable="false" pattern="" precision="-1" sourceType="" type="id_String" originalLength="-1" usefulColumn="true"/>
+    </metadata>
+    <metadata connector="REJECT" name="REJECT">
+      <column comment="" key="true" length="-1" name="statusCode" nullable="false" pattern="" precision="-1" sourceType="" type="id_String" originalLength="-1" usefulColumn="true"/>
+      <column comment="" key="false" length="-1" name="statusDesc" nullable="false" pattern="" precision="-1" sourceType="" type="id_String" originalLength="-1" usefulColumn="true"/>
+      <column defaultValue="" key="false" length="255" name="errorCode" nullable="true" precision="0" sourceType="" type="id_String" originalLength="-1" usefulColumn="true"/>
+      <column defaultValue="" key="false" length="255" name="errorMessage" nullable="true" precision="0" sourceType="" type="id_String" originalLength="-1" usefulColumn="true"/>
+    </metadata>
+  </node>
+  <node componentName="tFileInputDelimited" componentVersion="0.102" offsetLabelX="0" offsetLabelY="0" posX="928" posY="352">
+    <elementParameter field="TEXT" name="UNIQUE_NAME" value="tFileInputDelimited_4" show="false"/>
+    <elementParameter field="LABEL" name="FILENAMETEXT" value="&quot;When the input source is a stream or a zip file,footer and random shouldn't be bigger than 0.&quot;"/>
+    <elementParameter field="FILE" name="FILENAME" value="context.staging_dir + &quot;/Industry.txt&quot;"/>
+    <elementParameter field="CHECK" name="CSV_OPTION" value="false"/>
+    <elementParameter field="TEXT" name="ROWSEPARATOR" value="&quot;\n&quot;"/>
+    <elementParameter field="OPENED_LIST" name="CSVROWSEPARATOR" value="&quot;\n&quot;" show="false"/>
+    <elementParameter field="TEXT" name="FIELDSEPARATOR" value="&quot;|&quot;"/>
+    <elementParameter field="TEXT" name="ESCAPE_CHAR" value="&quot;&quot;&quot;" show="false"/>
+    <elementParameter field="TEXT" name="TEXT_ENCLOSURE" value="&quot;&quot;&quot;" show="false"/>
+    <elementParameter field="TEXT" name="HEADER" value="0"/>
+    <elementParameter field="TEXT" name="FOOTER" value="0"/>
+    <elementParameter field="TEXT" name="LIMIT" value=""/>
+    <elementParameter field="CHECK" name="REMOVE_EMPTY_ROW" value="true"/>
+    <elementParameter field="CHECK" name="UNCOMPRESS" value="false"/>
+    <elementParameter field="CHECK" name="DIE_ON_ERROR" value="false"/>
+    <elementParameter field="DIRECTORY" name="TEMP_DIR" value="&quot;/mnt/1717A37A1971CE02/WorkSpaces/BDMA/dwh&quot;" show="false"/>
+    <elementParameter field="CHECK" name="ADVANCED_SEPARATOR" value="false"/>
+    <elementParameter field="TEXT" name="THOUSANDS_SEPARATOR" value="&quot;,&quot;" show="false"/>
+    <elementParameter field="TEXT" name="DECIMAL_SEPARATOR" value="&quot;.&quot;" show="false"/>
+    <elementParameter field="CHECK" name="RANDOM" value="false"/>
+    <elementParameter field="TEXT" name="NB_RANDOM" value="10" show="false"/>
+    <elementParameter field="CHECK" name="TRIMALL" value="false"/>
+    <elementParameter field="TABLE" name="TRIMSELECT">
+      <elementValue elementRef="SCHEMA_COLUMN" value="IndustryID"/>
+      <elementValue elementRef="TRIM" value="false"/>
+      <elementValue elementRef="SCHEMA_COLUMN" value="Industry"/>
+      <elementValue elementRef="TRIM" value="false"/>
+    </elementParameter>
+    <elementParameter field="CHECK" name="CHECK_FIELDS_NUM" value="false"/>
+    <elementParameter field="CHECK" name="CHECK_DATE" value="false"/>
+    <elementParameter field="ENCODING_TYPE" name="ENCODING" value="&quot;ISO-8859-15&quot;"/>
+    <elementParameter field="TECHNICAL" name="ENCODING:ENCODING_TYPE" value="ISO-8859-15"/>
+    <elementParameter field="CHECK" name="SPLITRECORD" value="false"/>
+    <elementParameter field="CHECK" name="ENABLE_DECODE" value="false"/>
+    <elementParameter field="TABLE" name="DECODE_COLS" show="false">
+      <elementValue elementRef="SCHEMA_COLUMN" value="IndustryID"/>
+      <elementValue elementRef="DECODE" value="false"/>
+      <elementValue elementRef="SCHEMA_COLUMN" value="Industry"/>
+      <elementValue elementRef="DECODE" value="false"/>
+    </elementParameter>
+    <elementParameter field="TEXT" name="DESTINATION" value="" show="false"/>
+    <elementParameter field="TEXT" name="SCHEMA_OPT_NUM" value="100" show="false"/>
+    <elementParameter field="TEXT" name="CONNECTION_FORMAT" value="row"/>
+    <metadata connector="FLOW" name="tFileInputDelimited_4">
+      <column comment="" key="true" length="-1" name="IndustryID" nullable="false" pattern="" precision="-1" sourceType="" type="id_String" originalLength="-1" usefulColumn="true"/>
+      <column comment="" key="false" length="-1" name="Industry" nullable="false" pattern="" precision="-1" sourceType="" type="id_String" originalLength="-1" usefulColumn="true"/>
+    </metadata>
+    <metadata connector="REJECT" name="REJECT">
+      <column comment="" key="true" length="-1" name="IndustryID" nullable="false" pattern="" precision="-1" sourceType="" type="id_String" originalLength="-1" usefulColumn="true"/>
+      <column comment="" key="false" length="-1" name="Industry" nullable="false" pattern="" precision="-1" sourceType="" type="id_String" originalLength="-1" usefulColumn="true"/>
+      <column defaultValue="" key="false" length="255" name="errorCode" nullable="true" precision="0" sourceType="" type="id_String" originalLength="-1" usefulColumn="true"/>
+      <column defaultValue="" key="false" length="255" name="errorMessage" nullable="true" precision="0" sourceType="" type="id_String" originalLength="-1" usefulColumn="true"/>
+    </metadata>
+  </node>
+  <node componentName="tMap" componentVersion="2.1" offsetLabelX="0" offsetLabelY="0" posX="1056" posY="256">
+    <elementParameter field="TEXT" name="UNIQUE_NAME" value="tMap_6" show="false"/>
+    <elementParameter field="EXTERNAL" name="MAP" value=""/>
+    <elementParameter field="CLOSED_LIST" name="LINK_STYLE" value="AUTO"/>
+    <elementParameter field="DIRECTORY" name="TEMPORARY_DATA_DIRECTORY" value=""/>
+    <elementParameter field="IMAGE" name="PREVIEW" value="_lnj1sPQvEeiR3YfwSsPQ2Q-tMap_6-PREVIEW.bmp"/>
+    <elementParameter field="CHECK" name="DIE_ON_ERROR" value="true" show="false"/>
+    <elementParameter field="CHECK" name="LKUP_PARALLELIZE" value="false" show="false"/>
+    <elementParameter field="TEXT" name="LEVENSHTEIN" value="0" show="false"/>
+    <elementParameter field="TEXT" name="JACCARD" value="0" show="false"/>
+    <elementParameter field="CHECK" name="ENABLE_AUTO_CONVERT_TYPE" value="false" show="false"/>
+    <elementParameter field="TEXT" name="ROWS_BUFFER_SIZE" value="2000000"/>
+    <elementParameter field="CHECK" name="CHANGE_HASH_AND_EQUALS_FOR_BIGDECIMAL" value="true"/>
+    <elementParameter field="TEXT" name="CONNECTION_FORMAT" value="row"/>
+    <metadata connector="FLOW" label="dimcompany" name="copyOfoutput_table1">
+      <column comment="" defaultValue="nextval('dimcompany_sk_companyid_seq'::regclass)" key="true" length="10" name="sk_companyid" nullable="false" pattern="" precision="0" sourceType="SERIAL" type="id_Integer" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="10" name="companyid" nullable="false" pattern="" precision="0" sourceType="INT4" type="id_Integer" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="10" name="status" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="60" name="name" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="50" name="industry" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="4" name="sprating" nullable="true" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="1" name="islowgrade" nullable="true" pattern="" precision="0" sourceType="BOOL" type="id_Boolean" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="100" name="ceo" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="80" name="addressline1" nullable="true" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="80" name="addressline2" nullable="true" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="12" name="postalcode" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="25" name="city" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="20" name="stateprov" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="24" name="country" nullable="true" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="150" name="description" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="13" name="foundingdate" nullable="true" pattern="&quot;dd-MM-yyyy&quot;" precision="0" sourceType="DATE" type="id_Date" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="1" name="iscurrent" nullable="false" pattern="" precision="0" sourceType="BOOL" type="id_Boolean" originalLength="-1" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="5" name="batchid" nullable="false" pattern="" precision="0" sourceType="NUMERIC" type="id_Integer" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="13" name="effectivedate" nullable="false" pattern="&quot;dd-MM-yyyy&quot;" precision="0" sourceType="DATE" type="id_Date" originalLength="-1" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="13" name="enddate" nullable="false" pattern="&quot;dd-MM-yyyy&quot;" precision="0" sourceType="DATE" type="id_Date" originalLength="-1" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+    </metadata>
+    <nodeData xsi:type="TalendMapper:MapperData">
+      <uiProperties shellMaximized="true"/>
+      <varTables sizeState="INTERMEDIATE" name="Var" minimized="true"/>
+      <outputTables sizeState="INTERMEDIATE" name="copyOfoutput_table1">
+        <mapperTableEntries name="sk_companyid" expression="Numeric.sequence(&quot;sk_companyid&quot;,1,1) " type="id_Integer"/>
+        <mapperTableEntries name="companyid" expression="copyOfout2.companyid" type="id_Integer"/>
+        <mapperTableEntries name="status" expression="copyOfout2.status" type="id_String"/>
+        <mapperTableEntries name="name" expression="copyOfout2.name" type="id_String"/>
+        <mapperTableEntries name="industry" expression="copyOfout2.Industry" type="id_String"/>
+        <mapperTableEntries name="sprating" expression="copyOfout2.SPrating" type="id_String" nullable="true"/>
+        <mapperTableEntries name="islowgrade" expression="copyOfout2.islowgrade" type="id_Boolean" nullable="true"/>
+        <mapperTableEntries name="ceo" expression="copyOfout2.CEO" type="id_String"/>
+        <mapperTableEntries name="addressline1" expression="copyOfout2.AddressLine1" type="id_String" nullable="true"/>
+        <mapperTableEntries name="addressline2" expression="copyOfout2.AddressLine2" type="id_String" nullable="true"/>
+        <mapperTableEntries name="postalcode" expression="copyOfout2.PostalCode" type="id_String"/>
+        <mapperTableEntries name="city" expression="copyOfout2.City" type="id_String"/>
+        <mapperTableEntries name="stateprov" expression="copyOfout2.StateProv" type="id_String"/>
+        <mapperTableEntries name="country" expression="copyOfout2.Country" type="id_String" nullable="true"/>
+        <mapperTableEntries name="description" expression="copyOfout2.Description" type="id_String"/>
+        <mapperTableEntries name="foundingdate" expression="copyOfout2.FoundingDate" type="id_Date" nullable="true"/>
+        <mapperTableEntries name="iscurrent" expression="copyOfout2.Iscurrent" type="id_Boolean"/>
+        <mapperTableEntries name="batchid" expression="copyOfout2.batchid" type="id_Integer"/>
+        <mapperTableEntries name="effectivedate" expression="copyOfout2.effectivedate" type="id_Date"/>
+        <mapperTableEntries name="enddate" expression="copyOfout2.enddate" type="id_Date"/>
+      </outputTables>
+      <inputTables sizeState="INTERMEDIATE" name="copyOfout2" matchingMode="UNIQUE_MATCH" lookupMode="LOAD_ONCE">
+        <mapperTableEntries name="PTS" type="id_Date"/>
+        <mapperTableEntries name="RecType" type="id_String"/>
+        <mapperTableEntries name="name" type="id_String"/>
+        <mapperTableEntries name="companyid" type="id_Integer"/>
+        <mapperTableEntries name="IndustryID" type="id_String"/>
+        <mapperTableEntries name="SPrating" type="id_String"/>
+        <mapperTableEntries name="FoundingDate" type="id_Date" nullable="true"/>
+        <mapperTableEntries name="AddressLine1" type="id_String"/>
+        <mapperTableEntries name="AddressLine2" type="id_String" nullable="true"/>
+        <mapperTableEntries name="PostalCode" type="id_String"/>
+        <mapperTableEntries name="City" type="id_String"/>
+        <mapperTableEntries name="StateProv" type="id_String"/>
+        <mapperTableEntries name="Country" type="id_String" nullable="true"/>
+        <mapperTableEntries name="CEO" type="id_String"/>
+        <mapperTableEntries name="Description" type="id_String"/>
+        <mapperTableEntries name="status" type="id_String"/>
+        <mapperTableEntries name="islowgrade" type="id_Boolean" nullable="true"/>
+        <mapperTableEntries name="batchid" type="id_Integer"/>
+        <mapperTableEntries name="Iscurrent" type="id_Boolean"/>
+        <mapperTableEntries name="effectivedate" type="id_Date"/>
+        <mapperTableEntries name="enddate" type="id_Date"/>
+        <mapperTableEntries name="Industry" type="id_String"/>
+      </inputTables>
+    </nodeData>
+  </node>
+  <node componentName="tPostgresqlSCD" componentVersion="0.102" offsetLabelX="0" offsetLabelY="0" posX="1184" posY="256">
+    <elementParameter field="TEXT" name="UNIQUE_NAME" value="tDBSCD_1" show="false"/>
+    <elementParameter field="TECHNICAL" name="PROPERTY:PROPERTY_TYPE" value="REPOSITORY"/>
+    <elementParameter field="TECHNICAL" name="PROPERTY:REPOSITORY_PROPERTY_TYPE" value="_wbYhcPQrEeiR3YfwSsPQ2Q" show="false"/>
+    <elementParameter field="CHECK" name="USE_EXISTING_CONNECTION" value="false"/>
+    <elementParameter field="COMPONENT_LIST" name="CONNECTION" value="" show="false"/>
+    <elementParameter field="CLOSED_LIST" name="DB_VERSION" value="V9_X"/>
+    <elementParameter field="TEXT" name="HOST" value="&quot;localhost&quot;"/>
+    <elementParameter field="TEXT" name="PORT" value="&quot;5432&quot;"/>
+    <elementParameter field="TEXT" name="DBNAME" value="&quot;tpcdi&quot;"/>
+    <elementParameter field="TEXT" name="SCHEMA_DB" value="&quot;public&quot;"/>
+    <elementParameter field="TEXT" name="TYPE" value="POSTGRESQL" show="false"/>
+    <elementParameter field="TEXT" name="USER" value="&quot;postgres&quot;"/>
+    <elementParameter field="PASSWORD" name="PASS" value="NrE2x5vAkVTo4I4wi1Afkw=="/>
+    <elementParameter field="DBTABLE" name="TABLE" value="&quot;dimcompany&quot;"/>
+    <elementParameter field="EXTERNAL" name="MAP" value=""/>
+    <elementParameter field="COLUMN_LIST" name="SURROGATE_KEY" value="sk_companyid" show="false"/>
+    <elementParameter field="CLOSED_LIST" name="SK_CREATION" value="INPUT_FIELD" show="false"/>
+    <elementParameter field="TEXT" name="SK_DB_SEQUENCE" value="" show="false"/>
+    <elementParameter field="PREV_COLUMN_LIST" name="SK_INPUT_FIELD" value="sk_companyid" show="false"/>
+    <elementParameter field="TEXT" name="SK_ROUTINE" value="Numeric.sequence(&quot;seq&quot;, 1, 1)" show="false"/>
+    <elementParameter field="TABLE" name="SOURCE_KEYS" show="false">
+      <elementValue elementRef="NAME" value="companyid"/>
+    </elementParameter>
+    <elementParameter field="CHECK" name="USE_SAVE_MEM_MODE" value="false"/>
+    <elementParameter field="CHECK" name="SOURCE_KEY_INC_NULL" value="false"/>
+    <elementParameter field="CHECK" name="USE_L0" value="false" show="false"/>
+    <elementParameter field="TABLE" name="L0_FIELDS" show="false"/>
+    <elementParameter field="CHECK" name="USE_L1" value="false" show="false"/>
+    <elementParameter field="TABLE" name="L1_FIELDS" show="false"/>
+    <elementParameter field="CHECK" name="ONLY_UPDATE_ACTIVE" value="false" show="false"/>
+    <elementParameter field="CHECK" name="USE_L2" value="true" show="false"/>
+    <elementParameter field="TABLE" name="L2_FIELDS" show="false">
+      <elementValue elementRef="NAME" value="addressline1"/>
+      <elementValue elementRef="NAME" value="addressline2"/>
+      <elementValue elementRef="NAME" value="batchid"/>
+      <elementValue elementRef="NAME" value="ceo"/>
+      <elementValue elementRef="NAME" value="city"/>
+      <elementValue elementRef="NAME" value="country"/>
+      <elementValue elementRef="NAME" value="description"/>
+      <elementValue elementRef="NAME" value="foundingdate"/>
+      <elementValue elementRef="NAME" value="industry"/>
+      <elementValue elementRef="NAME" value="islowgrade"/>
+      <elementValue elementRef="NAME" value="name"/>
+      <elementValue elementRef="NAME" value="postalcode"/>
+      <elementValue elementRef="NAME" value="sprating"/>
+      <elementValue elementRef="NAME" value="stateprov"/>
+      <elementValue elementRef="NAME" value="status"/>
+    </elementParameter>
+    <elementParameter field="COLUMN_LIST" name="L2_STARTDATE_FIELD" value="effectivedate" show="false"/>
+    <elementParameter field="CLOSED_LIST" name="L2_STARTDATE_VALUE" value="INPUT_FIELD" show="false"/>
+    <elementParameter field="PREV_COLUMN_LIST" name="L2_STARTDATE_INPUT_FIELD" value="effectivedate" show="false"/>
+    <elementParameter field="COLUMN_LIST" name="L2_ENDDATE_FIELD" value="enddate" show="false"/>
+    <elementParameter field="CLOSED_LIST" name="L2_ENDDATE_VALUE" value="FIXED_VALUE" show="false"/>
+    <elementParameter field="TEXT" name="L2_ENDDATE_FIXED_VALUE" value="9999" show="false"/>
+    <elementParameter field="CHECK" name="USE_L2_ACTIVE" value="true" show="false"/>
+    <elementParameter field="COLUMN_LIST" name="L2_ACTIVE_FIELD" value="iscurrent" show="false"/>
+    <elementParameter field="CHECK" name="USE_L2_VERSION" value="false" show="false"/>
+    <elementParameter field="COLUMN_LIST" name="L2_VERSION_FIELD" value="" show="false"/>
+    <elementParameter field="LABEL" name="NOTE" value="(Version must be an Integer)" show="false"/>
+    <elementParameter field="CHECK" name="USE_L3" value="false" show="false"/>
+    <elementParameter field="TABLE" name="L3_FIELDS" show="false"/>
+    <elementParameter field="CHECK" name="DIE_ON_ERROR" value="false"/>
+    <elementParameter field="TEXT" name="L2_ENDDATE_TIME_DETAILS" value="&quot;12:00:00&quot;"/>
+    <elementParameter field="LABEL" name="NOICE" value="(Time pattern: 'HH:mm:ss')"/>
+    <elementParameter field="CHECK" name="DEBUG" value="false"/>
+    <elementParameter field="TEXT" name="CONNECTION_FORMAT" value="row"/>
+    <metadata connector="FLOW" label="dimcompany" name="tDBSCD_1">
+      <column comment="" key="false" length="10" name="companyid" nullable="false" pattern="" precision="0" sourceType="INT4" type="id_Integer" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="10" name="status" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="60" name="name" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="50" name="industry" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="4" name="sprating" nullable="true" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="1" name="islowgrade" nullable="true" pattern="" precision="0" sourceType="BOOL" type="id_Boolean" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="100" name="ceo" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="80" name="addressline1" nullable="true" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="80" name="addressline2" nullable="true" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="12" name="postalcode" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="25" name="city" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="20" name="stateprov" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="24" name="country" nullable="true" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="150" name="description" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="13" name="foundingdate" nullable="true" pattern="&quot;dd-MM-yyyy&quot;" precision="0" sourceType="DATE" type="id_Date" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="5" name="batchid" nullable="false" pattern="" precision="0" sourceType="NUMERIC" type="id_Integer" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="Column generated by scd editor." defaultValue="nextval('dimcompany_sk_companyid_seq'::regclass)" key="false" length="10" name="sk_companyid" nullable="false" pattern="" precision="0" sourceType="SERIAL" type="id_Integer" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="Column generated by scd editor." key="false" length="13" name="effectivedate" nullable="false" pattern="&quot;dd-MM-yyyy&quot;" precision="0" sourceType="DATE" type="id_Date" originalLength="-1" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="Column generated by scd editor." defaultValue="" key="false" length="-1" name="effectivedate" nullable="false" pattern="" precision="-1" sourceType="" type="id_Date" originalLength="-1" usefulColumn="true"/>
+      <column comment="Column generated by scd editor." defaultValue="" key="false" length="-1" name="enddate" nullable="true" pattern="" precision="-1" sourceType="" type="id_Date" originalLength="-1" usefulColumn="true"/>
+      <column comment="Column generated by scd editor." defaultValue="" key="false" length="-1" name="iscurrent" nullable="false" pattern="" precision="-1" sourceType="" type="id_Boolean" originalLength="-1" usefulColumn="true"/>
+    </metadata>
+    <metadata connector="REJECT" label="dimcompany" name="REJECT">
+      <column comment="" key="false" length="10" name="companyid" nullable="false" pattern="" precision="0" sourceType="INT4" type="id_Integer" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="10" name="status" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="60" name="name" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="50" name="industry" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="4" name="sprating" nullable="true" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="1" name="islowgrade" nullable="true" pattern="" precision="0" sourceType="BOOL" type="id_Boolean" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="100" name="ceo" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="80" name="addressline1" nullable="true" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="80" name="addressline2" nullable="true" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="12" name="postalcode" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="25" name="city" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="20" name="stateprov" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="24" name="country" nullable="true" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="150" name="description" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="13" name="foundingdate" nullable="true" pattern="&quot;dd-MM-yyyy&quot;" precision="0" sourceType="DATE" type="id_Date" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="5" name="batchid" nullable="false" pattern="" precision="0" sourceType="NUMERIC" type="id_Integer" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column defaultValue="" key="false" length="255" name="errorCode" nullable="true" precision="0" sourceType="" type="id_String" originalLength="-1" usefulColumn="true"/>
+      <column defaultValue="" key="false" length="255" name="errorMessage" nullable="true" precision="0" sourceType="" type="id_String" originalLength="-1" usefulColumn="true"/>
+    </metadata>
+  </node>
+  <node componentName="tMap" componentVersion="2.1" offsetLabelX="0" offsetLabelY="0" posX="800" posY="480">
+    <elementParameter field="TEXT" name="UNIQUE_NAME" value="tMap_7" show="false"/>
+    <elementParameter field="EXTERNAL" name="MAP" value=""/>
+    <elementParameter field="CLOSED_LIST" name="LINK_STYLE" value="AUTO"/>
+    <elementParameter field="DIRECTORY" name="TEMPORARY_DATA_DIRECTORY" value=""/>
+    <elementParameter field="IMAGE" name="PREVIEW" value="_lnj1sPQvEeiR3YfwSsPQ2Q-tMap_7-PREVIEW.bmp"/>
+    <elementParameter field="CHECK" name="DIE_ON_ERROR" value="true" show="false"/>
+    <elementParameter field="CHECK" name="LKUP_PARALLELIZE" value="false" show="false"/>
+    <elementParameter field="TEXT" name="LEVENSHTEIN" value="0" show="false"/>
+    <elementParameter field="TEXT" name="JACCARD" value="0" show="false"/>
+    <elementParameter field="CHECK" name="ENABLE_AUTO_CONVERT_TYPE" value="false" show="false"/>
+    <elementParameter field="TEXT" name="ROWS_BUFFER_SIZE" value="2000000"/>
+    <elementParameter field="CHECK" name="CHANGE_HASH_AND_EQUALS_FOR_BIGDECIMAL" value="true"/>
+    <elementParameter field="TEXT" name="CONNECTION_FORMAT" value="row"/>
+    <metadata connector="FLOW" label="dimessages" name="out_dimessages">
+      <column comment="" key="false" length="29" name="messagedateandtime" nullable="false" pattern="&quot;dd-MM-yyyy&quot;" precision="6" sourceType="TIMESTAMP" type="id_Date" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="5" name="batchid" nullable="false" pattern="" precision="0" sourceType="NUMERIC" type="id_Integer" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="30" name="messagesource" nullable="true" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="50" name="messagetext" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="12" name="messagetype" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="100" name="messagedata" nullable="true" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+    </metadata>
+    <nodeData xsi:type="TalendMapper:MapperData">
+      <uiProperties shellMaximized="true"/>
+      <varTables sizeState="INTERMEDIATE" name="Var" minimized="true"/>
+      <outputTables sizeState="INTERMEDIATE" name="out_dimessages">
+        <mapperTableEntries name="messagedateandtime" expression="new Date()" type="id_Date"/>
+        <mapperTableEntries name="batchid" expression="1" type="id_Integer"/>
+        <mapperTableEntries name="messagesource" expression="&quot;DimCompany&quot;" type="id_String" nullable="true"/>
+        <mapperTableEntries name="messagetext" expression="&quot;Invalid SPRating&quot;" type="id_String"/>
+        <mapperTableEntries name="messagetype" expression="&quot;Alert&quot;" type="id_String"/>
+        <mapperTableEntries name="messagedata" expression="&quot;CO_ID = &quot; + row11.CIK + &quot;, CO_SP_RATE = &quot;+ row11.SPrating" type="id_String" nullable="true"/>
+      </outputTables>
+      <inputTables sizeState="INTERMEDIATE" name="row11" matchingMode="UNIQUE_MATCH" lookupMode="LOAD_ONCE">
+        <mapperTableEntries name="PTS" type="id_Date"/>
+        <mapperTableEntries name="RecType" type="id_String"/>
+        <mapperTableEntries name="CompanyName" type="id_String"/>
+        <mapperTableEntries name="CIK" type="id_Integer"/>
+        <mapperTableEntries name="Status" type="id_String"/>
+        <mapperTableEntries name="IndustryID" type="id_String"/>
+        <mapperTableEntries name="SPrating" type="id_String"/>
+        <mapperTableEntries name="FoundingDate" type="id_Date" nullable="true"/>
+        <mapperTableEntries name="AddrLine1" type="id_String"/>
+        <mapperTableEntries name="AddrLine2" type="id_String" nullable="true"/>
+        <mapperTableEntries name="PostalCode" type="id_String"/>
+        <mapperTableEntries name="City" type="id_String"/>
+        <mapperTableEntries name="StateProvince" type="id_String"/>
+        <mapperTableEntries name="Country" type="id_String" nullable="true"/>
+        <mapperTableEntries name="CEOname" type="id_String"/>
+        <mapperTableEntries name="Description" type="id_String"/>
+        <mapperTableEntries name="errorMessage" type="id_String" nullable="true"/>
+      </inputTables>
+    </nodeData>
+  </node>
+  <node componentName="tPostgresqlOutput" componentVersion="0.102" offsetLabelX="0" offsetLabelY="0" posX="992" posY="480">
+    <elementParameter field="TEXT" name="UNIQUE_NAME" value="tDBOutput_1" show="false"/>
+    <elementParameter field="TECHNICAL" name="PROPERTY:PROPERTY_TYPE" value="REPOSITORY"/>
+    <elementParameter field="TECHNICAL" name="PROPERTY:REPOSITORY_PROPERTY_TYPE" value="_wbYhcPQrEeiR3YfwSsPQ2Q" show="false"/>
+    <elementParameter field="CHECK" name="USE_EXISTING_CONNECTION" value="false"/>
+    <elementParameter field="COMPONENT_LIST" name="CONNECTION" value="" show="false"/>
+    <elementParameter field="CLOSED_LIST" name="DB_VERSION" value="V9_X"/>
+    <elementParameter field="TEXT" name="HOST" value="&quot;localhost&quot;"/>
+    <elementParameter field="TEXT" name="PORT" value="&quot;5432&quot;"/>
+    <elementParameter field="TEXT" name="DBNAME" value="&quot;tpcdi&quot;"/>
+    <elementParameter field="TEXT" name="TYPE" value="POSTGRESQL" show="false"/>
+    <elementParameter field="TEXT" name="SCHEMA_DB" value="&quot;public&quot;"/>
+    <elementParameter field="TEXT" name="USER" value="&quot;postgres&quot;"/>
+    <elementParameter field="PASSWORD" name="PASS" value="NrE2x5vAkVTo4I4wi1Afkw=="/>
+    <elementParameter field="DBTABLE" name="TABLE" value="&quot;dimessages&quot;"/>
+    <elementParameter field="CLOSED_LIST" name="TABLE_ACTION" value="NONE"/>
+    <elementParameter field="CLOSED_LIST" name="DATA_ACTION" value="INSERT"/>
+    <elementParameter field="CHECK" name="USE_SPATIAL_OPTIONS" value="false" show="false"/>
+    <elementParameter field="CHECK" name="SPATIAL_INDEX" value="false" show="false"/>
+    <elementParameter field="CHECK" name="GEOMETRY_COLUMNS" value="false" show="false"/>
+    <elementParameter field="LABEL" name="NOTE" value="This option only applies when deploying and running in the Talend Runtime"/>
+    <elementParameter field="CHECK" name="SPECIFY_DATASOURCE_ALIAS" value="false"/>
+    <elementParameter field="TEXT" name="DATASOURCE_ALIAS" value="&quot;&quot;" show="false"/>
+    <elementParameter field="CHECK" name="DIE_ON_ERROR" value="false"/>
+    <elementParameter field="MAPPING_TYPE" name="MAPPING" value="postgres_id" show="false"/>
+    <elementParameter field="CHECK" name="SAVE_POINT" value="false" show="false"/>
+    <elementParameter field="ENCODING_TYPE" name="ENCODING" value="&quot;ISO-8859-15&quot;" show="false"/>
+    <elementParameter field="TECHNICAL" name="ENCODING:ENCODING_TYPE" value="ISO-8859-15"/>
+    <elementParameter field="TEXT" name="COMMIT_EVERY" value="10000"/>
+    <elementParameter field="TABLE" name="ADD_COLS"/>
+    <elementParameter field="CHECK" name="USE_FIELD_OPTIONS" value="false"/>
+    <elementParameter field="TABLE" name="FIELD_OPTIONS" show="false">
+      <elementValue elementRef="SCHEMA_COLUMN" value="messagedateandtime"/>
+      <elementValue elementRef="UPDATE_KEY" value="false"/>
+      <elementValue elementRef="DELETE_KEY" value="false"/>
+      <elementValue elementRef="UPDATABLE" value="true"/>
+      <elementValue elementRef="INSERTABLE" value="true"/>
+      <elementValue elementRef="SCHEMA_COLUMN" value="batchid"/>
+      <elementValue elementRef="UPDATE_KEY" value="false"/>
+      <elementValue elementRef="DELETE_KEY" value="false"/>
+      <elementValue elementRef="UPDATABLE" value="true"/>
+      <elementValue elementRef="INSERTABLE" value="true"/>
+      <elementValue elementRef="SCHEMA_COLUMN" value="messagesource"/>
+      <elementValue elementRef="UPDATE_KEY" value="false"/>
+      <elementValue elementRef="DELETE_KEY" value="false"/>
+      <elementValue elementRef="UPDATABLE" value="true"/>
+      <elementValue elementRef="INSERTABLE" value="true"/>
+      <elementValue elementRef="SCHEMA_COLUMN" value="messagetext"/>
+      <elementValue elementRef="UPDATE_KEY" value="false"/>
+      <elementValue elementRef="DELETE_KEY" value="false"/>
+      <elementValue elementRef="UPDATABLE" value="true"/>
+      <elementValue elementRef="INSERTABLE" value="true"/>
+      <elementValue elementRef="SCHEMA_COLUMN" value="messagetype"/>
+      <elementValue elementRef="UPDATE_KEY" value="false"/>
+      <elementValue elementRef="DELETE_KEY" value="false"/>
+      <elementValue elementRef="UPDATABLE" value="true"/>
+      <elementValue elementRef="INSERTABLE" value="true"/>
+      <elementValue elementRef="SCHEMA_COLUMN" value="messagedata"/>
+      <elementValue elementRef="UPDATE_KEY" value="false"/>
+      <elementValue elementRef="DELETE_KEY" value="false"/>
+      <elementValue elementRef="UPDATABLE" value="true"/>
+      <elementValue elementRef="INSERTABLE" value="true"/>
+    </elementParameter>
+    <elementParameter field="CHECK" name="ENABLE_DEBUG_MODE" value="false"/>
+    <elementParameter field="CHECK" name="SUPPORT_NULL_WHERE" value="false"/>
+    <elementParameter field="CHECK" name="USE_BATCH_SIZE" value="true"/>
+    <elementParameter field="TEXT" name="BATCH_SIZE" value="10000"/>
+    <elementParameter field="TEXT" name="LABEL" value="__TABLE__"/>
+    <elementParameter field="TEXT" name="CONNECTION_FORMAT" value="row"/>
+    <metadata connector="FLOW" label="dimessages" name="tDBOutput_1">
+      <column comment="" key="false" length="29" name="messagedateandtime" nullable="false" pattern="&quot;dd-MM-yyyy&quot;" precision="6" sourceType="TIMESTAMP" type="id_Date" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="5" name="batchid" nullable="false" pattern="" precision="0" sourceType="INT4" type="id_Integer" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="30" name="messagesource" nullable="true" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="50" name="messagetext" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="12" name="messagetype" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="100" name="messagedata" nullable="true" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+    </metadata>
+    <metadata connector="REJECT" label="dimessages" name="REJECT">
+      <column comment="" key="false" length="29" name="messagedateandtime" nullable="false" pattern="&quot;dd-MM-yyyy&quot;" precision="6" sourceType="TIMESTAMP" type="id_Date" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="5" name="batchid" nullable="false" pattern="" precision="0" sourceType="INT4" type="id_Integer" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="30" name="messagesource" nullable="true" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="50" name="messagetext" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="12" name="messagetype" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column comment="" key="false" length="100" name="messagedata" nullable="true" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true">
+        <additionalField key="Comment" value=""/>
+      </column>
+      <column defaultValue="" key="false" length="255" name="errorCode" nullable="true" precision="0" sourceType="VARCHAR" type="id_String" originalLength="-1" usefulColumn="true"/>
+      <column defaultValue="" key="false" length="255" name="errorMessage" nullable="true" precision="0" sourceType="VARCHAR" type="id_String" originalLength="-1" usefulColumn="true"/>
+    </metadata>
+  </node>
+  <node componentName="tLogRow" componentVersion="0.101" offsetLabelX="0" offsetLabelY="0" posX="288" posY="320">
+    <elementParameter field="TEXT" name="UNIQUE_NAME" value="tLogRow_1" show="false"/>
+    <elementParameter field="RADIO" name="BASIC_MODE" value="true"/>
+    <elementParameter field="RADIO" name="TABLE_PRINT" value="false"/>
+    <elementParameter field="RADIO" name="VERTICAL" value="false"/>
+    <elementParameter field="RADIO" name="PRINT_UNIQUE" value="true" show="false"/>
+    <elementParameter field="RADIO" name="PRINT_LABEL" value="false" show="false"/>
+    <elementParameter field="RADIO" name="PRINT_UNIQUE_LABEL" value="false" show="false"/>
+    <elementParameter field="TEXT" name="FIELDSEPARATOR" value="&quot;|&quot;"/>
+    <elementParameter field="CHECK" name="PRINT_HEADER" value="false"/>
+    <elementParameter field="CHECK" name="PRINT_UNIQUE_NAME" value="false"/>
+    <elementParameter field="CHECK" name="PRINT_COLNAMES" value="false"/>
+    <elementParameter field="CHECK" name="USE_FIXED_LENGTH" value="false"/>
+    <elementParameter field="TABLE" name="LENGTHS" show="false">
+      <elementValue elementRef="SCHEMA_COLUMN" value="PTS"/>
+      <elementValue elementRef="LENGTH" value="10"/>
+      <elementValue elementRef="SCHEMA_COLUMN" value="RecType"/>
+      <elementValue elementRef="LENGTH" value="10"/>
+      <elementValue elementRef="SCHEMA_COLUMN" value="CompanyName"/>
+      <elementValue elementRef="LENGTH" value="10"/>
+      <elementValue elementRef="SCHEMA_COLUMN" value="CIK"/>
+      <elementValue elementRef="LENGTH" value="10"/>
+      <elementValue elementRef="SCHEMA_COLUMN" value="Status"/>
+      <elementValue elementRef="LENGTH" value="10"/>
+      <elementValue elementRef="SCHEMA_COLUMN" value="IndustryID"/>
+      <elementValue elementRef="LENGTH" value="10"/>
+      <elementValue elementRef="SCHEMA_COLUMN" value="SPrating"/>
+      <elementValue elementRef="LENGTH" value="10"/>
+      <elementValue elementRef="SCHEMA_COLUMN" value="FoundingDate"/>
+      <elementValue elementRef="LENGTH" value="10"/>
+      <elementValue elementRef="SCHEMA_COLUMN" value="AddrLine1"/>
+      <elementValue elementRef="LENGTH" value="10"/>
+      <elementValue elementRef="SCHEMA_COLUMN" value="AddrLine2"/>
+      <elementValue elementRef="LENGTH" value="10"/>
+      <elementValue elementRef="SCHEMA_COLUMN" value="PostalCode"/>
+      <elementValue elementRef="LENGTH" value="10"/>
+      <elementValue elementRef="SCHEMA_COLUMN" value="City"/>
+      <elementValue elementRef="LENGTH" value="10"/>
+      <elementValue elementRef="SCHEMA_COLUMN" value="StateProvince"/>
+      <elementValue elementRef="LENGTH" value="10"/>
+      <elementValue elementRef="SCHEMA_COLUMN" value="Country"/>
+      <elementValue elementRef="LENGTH" value="10"/>
+      <elementValue elementRef="SCHEMA_COLUMN" value="CEOname"/>
+      <elementValue elementRef="LENGTH" value="10"/>
+      <elementValue elementRef="SCHEMA_COLUMN" value="Description"/>
+      <elementValue elementRef="LENGTH" value="10"/>
+      <elementValue elementRef="SCHEMA_COLUMN" value="errorMessage"/>
+      <elementValue elementRef="LENGTH" value="10"/>
+    </elementParameter>
+    <elementParameter field="CHECK" name="PRINT_CONTENT_WITH_LOG4J" value="true"/>
+    <elementParameter field="TEXT" name="SCHEMA_OPT_NUM" value="100" show="false"/>
+    <elementParameter field="TEXT" name="CONNECTION_FORMAT" value="row"/>
+    <metadata connector="FLOW" name="tLogRow_1">
+      <column comment="" key="false" length="15" name="PTS" nullable="false" pattern="&quot;yyyyMMdd-HHmmss&quot;" precision="0" sourceType="BPCHAR" type="id_Date" usefulColumn="true"/>
+      <column comment="" key="false" length="3" name="RecType" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="60" name="CompanyName" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="11" name="CIK" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_Integer" usefulColumn="true"/>
+      <column comment="" key="false" length="10" name="Status" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="2" name="IndustryID" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="4" name="SPrating" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="8" name="FoundingDate" nullable="true" pattern="&quot;yyyyMMdd&quot;" precision="0" sourceType="BPCHAR" type="id_Date" usefulColumn="true"/>
+      <column comment="" key="false" length="80" name="AddrLine1" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="80" name="AddrLine2" nullable="true" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="12" name="PostalCode" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="25" name="City" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="20" name="StateProvince" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="24" name="Country" nullable="true" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="46" name="CEOname" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column comment="" key="false" length="150" name="Description" nullable="false" pattern="" precision="0" sourceType="BPCHAR" type="id_String" usefulColumn="true"/>
+      <column defaultValue="" key="false" length="255" name="errorMessage" nullable="true" precision="0" sourceType="" type="id_String" originalLength="-1" usefulColumn="true"/>
+    </metadata>
+  </node>
+  <connection connectorName="ITERATE" label="Iterate" lineStyle="7" metaname="tFileList_1" offsetLabelX="0" offsetLabelY="0" source="tFileList_1" target="tFileInputFullRow_1">
+    <elementParameter field="CHECK" name="ENABLE_PARALLEL" value="false"/>
+    <elementParameter field="TEXT" name="NUMBER_PARALLEL" value="2" show="false"/>
+    <elementParameter field="TEXT" name="UNIQUE_NAME" value="iterate1" show="false"/>
+  </connection>
+  <connection connectorName="FLOW" label="row1" lineStyle="0" metaname="tFileInputFullRow_1" offsetLabelX="0" offsetLabelY="0" source="tFileInputFullRow_1" target="tFilterRow_1">
+    <elementParameter field="CHECK" name="MONITOR_CONNECTION" value="false"/>
+    <elementParameter field="TEXT" name="UNIQUE_NAME" value="row1" show="false"/>
+  </connection>
+  <connection connectorName="FILTER" label="row2" lineStyle="0" metaname="FILTER" offsetLabelX="0" offsetLabelY="0" source="tFilterRow_1" target="tExtractPositionalFields_1">
+    <elementParameter field="CHECK" name="MONITOR_CONNECTION" value="false"/>
+    <elementParameter field="TEXT" name="UNIQUE_NAME" value="row2" show="false"/>
+  </connection>
+  <connection connectorName="FLOW" label="row3" lineStyle="0" metaname="tExtractPositionalFields_1" offsetLabelX="0" offsetLabelY="0" source="tExtractPositionalFields_1" target="tFilterRow_2">
+    <elementParameter field="CHECK" name="MONITOR_CONNECTION" value="false"/>
+    <elementParameter field="TEXT" name="UNIQUE_NAME" value="row3" show="false"/>
+  </connection>
+  <connection connectorName="FILTER" label="row6" lineStyle="0" metaname="FILTER" offsetLabelX="0" offsetLabelY="0" outputId="1" source="tFilterRow_2" target="tMap_1">
+    <elementParameter field="CHECK" name="MONITOR_CONNECTION" value="false"/>
+    <elementParameter field="TEXT" name="UNIQUE_NAME" value="row6" show="false"/>
+  </connection>
+  <connection connectorName="REJECT" label="row9" lineStyle="0" metaname="REJECT" offsetLabelX="0" offsetLabelY="0" outputId="2" source="tFilterRow_2" target="tReplicate_1">
+    <elementParameter field="CHECK" name="MONITOR_CONNECTION" value="false"/>
+    <elementParameter field="TEXT" name="UNIQUE_NAME" value="row9" show="false"/>
+  </connection>
+  <connection connectorName="FLOW" label="out1" lineStyle="0" metaname="out1" offsetLabelX="0" offsetLabelY="0" source="tMap_1" target="tMap_2">
+    <elementParameter field="CHECK" name="MONITOR_CONNECTION" value="false"/>
+    <elementParameter field="TEXT" name="UNIQUE_NAME" value="out1" show="false"/>
+  </connection>
+  <connection connectorName="FLOW" label="row4" lineStyle="8" metaname="tFileInputDelimited_1" offsetLabelX="0" offsetLabelY="0" source="tFileInputDelimited_1" target="tMap_1">
+    <elementParameter field="CHECK" name="MONITOR_CONNECTION" value="false"/>
+    <elementParameter field="TEXT" name="UNIQUE_NAME" value="row4" show="false"/>
+  </connection>
+  <connection connectorName="FLOW" label="out2" lineStyle="0" metaname="out2" offsetLabelX="0" offsetLabelY="0" source="tMap_2" target="tMap_3">
+    <elementParameter field="CHECK" name="MONITOR_CONNECTION" value="false"/>
+    <elementParameter field="TEXT" name="UNIQUE_NAME" value="out2" show="false"/>
+  </connection>
+  <connection connectorName="FLOW" label="row5" lineStyle="8" metaname="tFileInputDelimited_2" offsetLabelX="0" offsetLabelY="0" source="tFileInputDelimited_2" target="tMap_2">
+    <elementParameter field="TABLE" name="TRACES_CONNECTION_FILTER" show="false">
+      <elementValue elementRef="TRACE_COLUMN" value="Industry"/>
+      <elementValue elementRef="TRACE_COLUMN_CHECKED" value="true"/>
+      <elementValue elementRef="TRACE_COLUMN_CONDITION" value=""/>
+      <elementValue elementRef="TRACE_COLUMN" value="IndustryID"/>
+      <elementValue elementRef="TRACE_COLUMN_CHECKED" value="true"/>
+      <elementValue elementRef="TRACE_COLUMN_CONDITION" value=""/>
+    </elementParameter>
+    <elementParameter field="CHECK" name="MONITOR_CONNECTION" value="false"/>
+    <elementParameter field="TEXT" name="UNIQUE_NAME" value="row5" show="false"/>
+  </connection>
+  <connection connectorName="FLOW" label="output_table1" lineStyle="0" metaname="output_table1" offsetLabelX="0" offsetLabelY="0" source="tMap_3" target="tDBSCD_2">
+    <elementParameter field="CHECK" name="MONITOR_CONNECTION" value="false"/>
+    <elementParameter field="TEXT" name="UNIQUE_NAME" value="output_table1" show="false"/>
+  </connection>
+  <connection connectorName="FLOW" label="row10" lineStyle="0" metaname="tReplicate_1" offsetLabelX="0" offsetLabelY="0" outputId="1" source="tReplicate_1" target="tMap_4">
+    <elementParameter field="CHECK" name="MONITOR_CONNECTION" value="false"/>
+    <elementParameter field="TEXT" name="UNIQUE_NAME" value="row10" show="false"/>
+  </connection>
+  <connection connectorName="FLOW" label="row11" lineStyle="0" metaname="tReplicate_1" offsetLabelX="0" offsetLabelY="0" outputId="2" source="tReplicate_1" target="tMap_7">
+    <elementParameter field="CHECK" name="MONITOR_CONNECTION" value="false"/>
+    <elementParameter field="TEXT" name="UNIQUE_NAME" value="row11" show="false"/>
+  </connection>
+  <connection connectorName="FLOW" label="copyOfout1" lineStyle="0" metaname="copyOfout1" offsetLabelX="0" offsetLabelY="0" source="tMap_4" target="tMap_5">
+    <elementParameter field="CHECK" name="MONITOR_CONNECTION" value="false"/>
+    <elementParameter field="TEXT" name="UNIQUE_NAME" value="copyOfout1" show="false"/>
+  </connection>
+  <connection connectorName="FLOW" label="copyOfout2" lineStyle="0" metaname="copyOfout2" offsetLabelX="0" offsetLabelY="0" source="tMap_5" target="tMap_6">
+    <elementParameter field="CHECK" name="MONITOR_CONNECTION" value="false"/>
+    <elementParameter field="TEXT" name="UNIQUE_NAME" value="copyOfout2" show="false"/>
+  </connection>
+  <connection connectorName="FLOW" label="row7" lineStyle="8" metaname="tFileInputDelimited_3" offsetLabelX="0" offsetLabelY="0" source="tFileInputDelimited_3" target="tMap_4">
+    <elementParameter field="CHECK" name="MONITOR_CONNECTION" value="false"/>
+    <elementParameter field="TEXT" name="UNIQUE_NAME" value="row7" show="false"/>
+  </connection>
+  <connection connectorName="FLOW" label="row8" lineStyle="8" metaname="tFileInputDelimited_4" offsetLabelX="0" offsetLabelY="0" source="tFileInputDelimited_4" target="tMap_5">
+    <elementParameter field="TABLE" name="TRACES_CONNECTION_FILTER" show="false">
+      <elementValue elementRef="TRACE_COLUMN" value="Industry"/>
+      <elementValue elementRef="TRACE_COLUMN_CHECKED" value="true"/>
+      <elementValue elementRef="TRACE_COLUMN_CONDITION" value=""/>
+      <elementValue elementRef="TRACE_COLUMN" value="IndustryID"/>
+      <elementValue elementRef="TRACE_COLUMN_CHECKED" value="true"/>
+      <elementValue elementRef="TRACE_COLUMN_CONDITION" value=""/>
+    </elementParameter>
+    <elementParameter field="CHECK" name="MONITOR_CONNECTION" value="false"/>
+    <elementParameter field="TEXT" name="UNIQUE_NAME" value="row8" show="false"/>
+  </connection>
+  <connection connectorName="FLOW" label="copyOfoutput_table1" lineStyle="0" metaname="copyOfoutput_table1" offsetLabelX="0" offsetLabelY="0" source="tMap_6" target="tDBSCD_1">
+    <elementParameter field="CHECK" name="MONITOR_CONNECTION" value="false"/>
+    <elementParameter field="TEXT" name="UNIQUE_NAME" value="copyOfoutput_table1" show="false"/>
+  </connection>
+  <connection connectorName="FLOW" label="out_dimessages" lineStyle="0" metaname="out_dimessages" offsetLabelX="0" offsetLabelY="0" source="tMap_7" target="tDBOutput_1">
+    <elementParameter field="CHECK" name="MONITOR_CONNECTION" value="false"/>
+    <elementParameter field="TEXT" name="UNIQUE_NAME" value="out_dimessages" show="false"/>
+  </connection>
+  <subjob>
+    <elementParameter field="TEXT" name="UNIQUE_NAME" value="tFileList_1" show="false"/>
+    <elementParameter field="COLOR" name="SUBJOB_TITLE_COLOR" value="92;131;150" show="false"/>
+    <elementParameter field="COLOR" name="SUBJOB_COLOR" value="207;226;236"/>
+  </subjob>
+  <subjob>
+    <elementParameter field="TEXT" name="UNIQUE_NAME" value="tLogRow_1" show="false"/>
+    <elementParameter field="COLOR" name="SUBJOB_TITLE_COLOR" value="92;131;150" show="false"/>
+    <elementParameter field="COLOR" name="SUBJOB_COLOR" value="207;226;236"/>
+  </subjob>
+</talendfile:ProcessType>

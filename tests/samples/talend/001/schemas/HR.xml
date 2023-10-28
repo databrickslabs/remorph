@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema>
+    <column comment="" default="" key="false" label="EmployeeID"         length="10" nullable="false" originalDbColumnName="EmployeeID"         originalLength="0" pattern="" precision="0"         talendType="id_String" type="BPCHAR"/>
+<column comment="" default="" key="false" label="ManagerID"         length="10" nullable="false" originalDbColumnName="ManagerID"         originalLength="0" pattern="" precision="0"         talendType="id_String" type="BPCHAR"/>
+<column comment="" default="" key="false" label="EmployeeFirstName"         length="30" nullable="false" originalDbColumnName="EmployeeFirstName"         originalLength="0" pattern="" precision="0"         talendType="id_String" type="BPCHAR"/>
+<column comment="" default="" key="false" label="EmployeeLastName"         length="30" nullable="false" originalDbColumnName="EmployeeLastName"         originalLength="0" pattern="" precision="0"         talendType="id_String" type="BPCHAR"/>
+<column comment="" default="" key="false" label="EmployeeMI"         length="1" nullable="false" originalDbColumnName="EmployeeMI"         originalLength="0" pattern="" precision="0"         talendType="id_String" type="BPCHAR"/>
+<column comment="" default="" key="false" label="EmployeeJobCode"         length="3" nullable="false" originalDbColumnName="EmployeeJobCode"         originalLength="0" pattern="" precision="0"         talendType="id_String" type="BPCHAR"/>
+<column comment="" default="" key="false" label="EmployeeBranch"         length="30" nullable="false" originalDbColumnName="EmployeeBranch"         originalLength="0" pattern="" precision="0"         talendType="id_String" type="BPCHAR"/>
+<column comment="" default="" key="false" label="EmployeeOffice"         length="10" nullable="false" originalDbColumnName="EmployeeOffice"         originalLength="0" pattern="" precision="0"         talendType="id_String" type="BPCHAR"/>
+<column comment="" default="" key="false" label="EmployeePhone"         length="14" nullable="false" originalDbColumnName="EmployeePhone"         originalLength="0" pattern="" precision="0"         talendType="id_String" type="BPCHAR"/>
+
+</schema>

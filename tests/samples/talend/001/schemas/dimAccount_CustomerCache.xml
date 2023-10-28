@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema>
+    <column comment=""
+        default="nextval('dimcustomer_sk_customerid_seq'::regclass)"
+        key="true" label="sk_customerid" length="10" nullable="false"
+        originalDbColumnName="sk_customerid" originalLength="0"
+        pattern="" precision="0" talendType="id_Integer" type="SERIAL"/>
+    <column comment="" default="" key="false" label="customerid"
+        length="10" nullable="true" originalDbColumnName="customerid"
+        originalLength="0" pattern="" precision="0"
+        talendType="id_Integer" type="INT4"/>
+    <column comment="" default="" key="false" label="taxid" length="20"
+        nullable="false" originalDbColumnName="taxid" originalLength="0"
+        pattern="" precision="0" talendType="id_String" type="BPCHAR"/>
+    <column comment="" default="" key="false" label="status" length="10"
+        nullable="false" originalDbColumnName="status"
+        originalLength="0" pattern="" precision="0"
+        talendType="id_String" type="BPCHAR"/>
+    <column comment="" default="" key="false" label="lastname"
+        length="30" nullable="false" originalDbColumnName="lastname"
+        originalLength="0" pattern="" precision="0"
+        talendType="id_String" type="BPCHAR"/>
+    <column comment="" default="" key="false" label="firstname"
+        length="30" nullable="false" originalDbColumnName="firstname"
+        originalLength="0" pattern="" precision="0"
+        talendType="id_String" type="BPCHAR"/>
+    <column comment="" default="" key="false" label="middleinitial"
+        length="1" nullable="true" originalDbColumnName="middleinitial"
+        originalLength="0" pattern="" precision="0"
+        talendType="id_String" type="BPCHAR"/>
+    <column comment="" default="" key="false" label="gender" length="1"
+        nullable="true" originalDbColumnName="gender" originalLength="0"
+        pattern="" precision="0" talendType="id_String" type="BPCHAR"/>
+    <column comment="" default="" key="false" label="tier" length="10"
+        nullable="true" originalDbColumnName="tier" originalLength="0"
+        pattern="" precision="0" talendType="id_Integer" type="INT4"/>
+    <column comment="" default="" key="false" label="dob" length="13"
+        nullable="false" originalDbColumnName="dob" originalLength="0"
+        pattern="&quot;dd-MM-yyyy&quot;" precision="0"
+        talendType="id_Date" type="DATE"/>
+    <column comment="" default="" key="false" label="addressline1"
+        length="80" nullable="false" originalDbColumnName="addressline1"
+        originalLength="0" pattern="" precision="0"
+        talendType="id_String" type="VARCHAR"/>
+    <column comment="" default="" key="false" label="addressline2"
+        length="80" nullable="true" originalDbColumnName="addressline2"
+        originalLength="0" pattern="" precision="0"
+        talendType="id_String" type="VARCHAR"/>
+    <column comment="" default="" key="false" label="postalcode"
+        length="12" nullable="false" originalDbColumnName="postalcode"
+        originalLength="0" pattern="" precision="0"
+        talendType="id_String" type="BPCHAR"/>
+    <column comment="" default="" key="false" label="city" length="25"
+        nullable="false" originalDbColumnName="city" originalLength="0"
+        pattern="" precision="0" talendType="id_String" type="BPCHAR"/>
+    <column comment="" default="" key="false" label="stateprov"
+        length="20" nullable="false" originalDbColumnName="stateprov"
+        originalLength="0" pattern="" precision="0"
+        talendType="id_String" type="BPCHAR"/>
+    <column comment="" default="" key="false" label="country"
+        length="24" nullable="true" originalDbColumnName="country"
+        originalLength="0" pattern="" precision="0"
+        talendType="id_String" type="BPCHAR"/>
+    <column comment="" default="" key="false" label="phone1" length="30"
+        nullable="true" originalDbColumnName="phone1" originalLength="0"
+        pattern="" precision="0" talendType="id_String" type="BPCHAR"/>
+    <column comment="" default="" key="false" label="phone2" length="30"
+        nullable="true" originalDbColumnName="phone2" originalLength="0"
+        pattern="" precision="0" talendType="id_String" type="BPCHAR"/>
+    <column comment="" default="" key="false" label="phone3" length="30"
+        nullable="true" originalDbColumnName="phone3" originalLength="0"
+        pattern="" precision="0" talendType="id_String" type="BPCHAR"/>
+    <column comment="" default="" key="false" label="email1" length="50"
+        nullable="true" originalDbColumnName="email1" originalLength="0"
+        pattern="" precision="0" talendType="id_String" type="BPCHAR"/>
+    <column comment="" default="" key="false" label="email2" length="50"
+        nullable="true" originalDbColumnName="email2" originalLength="0"
+        pattern="" precision="0" talendType="id_String" type="BPCHAR"/>
+    <column comment="" default="" key="false"
+        label="nationaltaxratedesc" length="50" nullable="true"
+        originalDbColumnName="nationaltaxratedesc" originalLength="0"
+        pattern="" precision="0" talendType="id_String" type="VARCHAR"/>
+    <column comment="" default="" key="false" label="nationaltaxrate"
+        length="6" nullable="true"
+        originalDbColumnName="nationaltaxrate" originalLength="0"
+        pattern="" precision="5" talendType="id_BigDecimal" type="NUMERIC"/>
+    <column comment="" default="" key="false" label="localtaxratedesc"
+        length="50" nullable="true"
+        originalDbColumnName="localtaxratedesc" originalLength="0"
+        pattern="" precision="0" talendType="id_String" type="VARCHAR"/>
+    <column comment="" default="" key="false" label="localtaxrate"
+        length="6" nullable="true" originalDbColumnName="localtaxrate"
+        originalLength="0" pattern="" precision="5"
+        talendType="id_BigDecimal" type="NUMERIC"/>
+    <column comment="" default="" key="false" label="agencyid"
+        length="30" nullable="true" originalDbColumnName="agencyid"
+        originalLength="0" pattern="" precision="0"
+        talendType="id_String" type="BPCHAR"/>
+    <column comment="" default="" key="false" label="creditrating"
+        length="10" nullable="true" originalDbColumnName="creditrating"
+        originalLength="0" pattern="" precision="0"
+        talendType="id_Integer" type="INT4"/>
+    <column comment="" default="" key="false" label="networth"
+        length="10" nullable="true" originalDbColumnName="networth"
+        originalLength="0" pattern="" precision="0"
+        talendType="id_BigDecimal" type="NUMERIC"/>
+    <column comment="" default="" key="false" label="marketingnameplate"
+        length="100" nullable="true"
+        originalDbColumnName="marketingnameplate" originalLength="0"
+        pattern="" precision="0" talendType="id_String" type="VARCHAR"/>
+    <column comment="" default="" key="false" label="iscurrent"
+        length="1" nullable="false" originalDbColumnName="iscurrent"
+        originalLength="0" pattern="" precision="0"
+        talendType="id_Boolean" type="BOOL"/>
+    <column comment="" default="" key="false" label="batchid"
+        length="10" nullable="false" originalDbColumnName="batchid"
+        originalLength="0" pattern="" precision="0"
+        talendType="id_Integer" type="INT4"/>
+    <column comment="" default="" key="false" label="effectivedate"
+        length="13" nullable="false"
+        originalDbColumnName="effectivedate" originalLength="0"
+        pattern="&quot;dd-MM-yyyy&quot;" precision="0"
+        talendType="id_Date" type="DATE"/>
+    <column comment="" default="" key="false" label="enddate"
+        length="13" nullable="false" originalDbColumnName="enddate"
+        originalLength="0" pattern="&quot;dd-MM-yyyy&quot;"
+        precision="0" talendType="id_Date" type="DATE"/>
+</schema>

@@ -1,0 +1,172 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<schema>
+    <column comment="" default="" key="false" label="ActionType"
+        length="10" nullable="false" originalDbColumnName="ActionType"
+        originalLength="0" pattern="&quot;dd-MM-yyyy&quot;"
+        precision="0" talendType="id_String"/>
+    <column comment="" default="" key="false" label="ActionTS"
+        length="-1" nullable="true" originalDbColumnName="ActionTS"
+        originalLength="0" pattern="&quot;yyyy-MM-dd'T'HH:mm:ss&quot;"
+        precision="0" talendType="id_Date"/>
+    <column comment="" default="" key="false" label="Customer"
+        length="430" nullable="true" originalDbColumnName="Customer"
+        originalLength="0" pattern="&quot;dd-MM-yyyy&quot;"
+        precision="0" talendType="id_String"/>
+    <column comment="" default="" key="false" label="C_ID" length="1"
+        nullable="true" originalDbColumnName="C_ID" originalLength="0"
+        pattern="&quot;dd-MM-yyyy&quot;" precision="0" talendType="id_Integer"/>
+    <column comment="" default="" key="false" label="C_TAX_ID"
+        length="-1" nullable="true" originalDbColumnName="C_TAX_ID"
+        originalLength="0" pattern="&quot;dd-MM-yyyy&quot;"
+        precision="0" talendType="id_String"/>
+    <column comment="" default="" key="false" label="C_GNDR" length="-1"
+        nullable="true" originalDbColumnName="C_GNDR" originalLength="0"
+        pattern="&quot;dd-MM-yyyy&quot;" precision="0" talendType="id_String"/>
+    <column comment="" default="" key="false" label="C_TIER" length="-1"
+        nullable="true" originalDbColumnName="C_TIER" originalLength="0"
+        pattern="&quot;dd-MM-yyyy&quot;" precision="0" talendType="id_Integer"/>
+    <column comment="" default="" key="false" label="C_DOB" length="-1"
+        nullable="true" originalDbColumnName="C_DOB" originalLength="0"
+        pattern="&quot;yyyy-MM-dd&quot;" precision="0" talendType="id_Date"/>
+    <column comment="" default="" key="false" label="Name" length="35"
+        nullable="true" originalDbColumnName="Name" originalLength="0"
+        pattern="&quot;dd-MM-yyyy&quot;" precision="0" talendType="id_String"/>
+    <column comment="" default="" key="false" label="C_L_NAME"
+        length="-1" nullable="true" originalDbColumnName="C_L_NAME"
+        originalLength="0" pattern="&quot;dd-MM-yyyy&quot;"
+        precision="0" talendType="id_String"/>
+    <column comment="" default="" key="false" label="C_F_NAME"
+        length="-1" nullable="true" originalDbColumnName="C_F_NAME"
+        originalLength="0" pattern="&quot;dd-MM-yyyy&quot;"
+        precision="0" talendType="id_String"/>
+    <column comment="" default="" key="false" label="C_M_NAME"
+        length="-1" nullable="true" originalDbColumnName="C_M_NAME"
+        originalLength="0" pattern="&quot;dd-MM-yyyy&quot;"
+        precision="0" talendType="id_String"/>
+    <column comment="" default="" key="false" label="Address"
+        length="103" nullable="true" originalDbColumnName="Address"
+        originalLength="0" pattern="&quot;dd-MM-yyyy&quot;"
+        precision="0" talendType="id_String"/>
+    <column comment="" default="" key="false" label="C_ADLINE1"
+        length="24" nullable="true" originalDbColumnName="C_ADLINE1"
+        originalLength="0" pattern="&quot;dd-MM-yyyy&quot;"
+        precision="0" talendType="id_String"/>
+    <column comment="" default="" key="false" label="C_ADLINE2"
+        length="0" nullable="true" originalDbColumnName="C_ADLINE2"
+        originalLength="0" pattern="&quot;dd-MM-yyyy&quot;"
+        precision="0" talendType="id_String"/>
+    <column comment="" default="" key="false" label="C_ZIPCODE"
+        length="7" nullable="true" originalDbColumnName="C_ZIPCODE"
+        originalLength="0" pattern="&quot;dd-MM-yyyy&quot;"
+        precision="0" talendType="id_String"/>
+    <column comment="" default="" key="false" label="C_CITY" length="16"
+        nullable="true" originalDbColumnName="C_CITY" originalLength="0"
+        pattern="&quot;dd-MM-yyyy&quot;" precision="0" talendType="id_String"/>
+    <column comment="" default="" key="false" label="C_STATE_PROV"
+        length="12" nullable="true" originalDbColumnName="C_STATE_PROV"
+        originalLength="0" pattern="&quot;dd-MM-yyyy&quot;"
+        precision="0" talendType="id_String"/>
+    <column comment="" default="" key="false" label="C_CTRY" length="24"
+        nullable="true" originalDbColumnName="C_CTRY" originalLength="0"
+        pattern="&quot;dd-MM-yyyy&quot;" precision="0" talendType="id_String"/>
+    <column comment="" default="" key="false" label="ContactInfo"
+        length="197" nullable="true" originalDbColumnName="ContactInfo"
+        originalLength="0" pattern="&quot;dd-MM-yyyy&quot;"
+        precision="0" talendType="id_String"/>
+    <column comment="" default="" key="false" label="C_PRIM_EMAIL"
+        length="-1" nullable="true" originalDbColumnName="C_PRIM_EMAIL"
+        originalLength="0" pattern="&quot;dd-MM-yyyy&quot;"
+        precision="0" talendType="id_String"/>
+    <column comment="" default="" key="false" label="C_ALT_EMAIL"
+        length="-1" nullable="true" originalDbColumnName="C_ALT_EMAIL"
+        originalLength="0" pattern="&quot;dd-MM-yyyy&quot;"
+        precision="0" talendType="id_String"/>
+    <column comment="" default="" key="false" label="C_PHONE_1"
+        length="45" nullable="true" originalDbColumnName="C_PHONE_1"
+        originalLength="0" pattern="&quot;dd-MM-yyyy&quot;"
+        precision="0" talendType="id_String"/>
+    <column comment="" default="" key="false" label="C_CTRY_CODE"
+        length="1" nullable="true" originalDbColumnName="C_CTRY_CODE"
+        originalLength="0" pattern="&quot;dd-MM-yyyy&quot;"
+        precision="0" talendType="id_String"/>
+    <column comment="" default="" key="false" label="C_AREA_CODE"
+        length="3" nullable="true" originalDbColumnName="C_AREA_CODE"
+        originalLength="0" pattern="&quot;dd-MM-yyyy&quot;"
+        precision="0" talendType="id_String"/>
+    <column comment="" default="" key="false" label="C_LOCAL" length="8"
+        nullable="true" originalDbColumnName="C_LOCAL"
+        originalLength="0" pattern="&quot;dd-MM-yyyy&quot;"
+        precision="0" talendType="id_String"/>
+    <column comment="" default="" key="false" label="C_EXT" length="5"
+        nullable="true" originalDbColumnName="C_EXT" originalLength="0"
+        pattern="&quot;dd-MM-yyyy&quot;" precision="0" talendType="id_String"/>
+    <column comment="" default="" key="false" label="C_PHONE_2"
+        length="42" nullable="true" originalDbColumnName="C_PHONE_2"
+        originalLength="0" pattern="&quot;dd-MM-yyyy&quot;"
+        precision="0" talendType="id_String"/>
+    <column comment="" default="" key="false" label="C_CTRY_CODE1"
+        length="0" nullable="true" originalDbColumnName="C_CTRY_CODE1"
+        originalLength="0" pattern="&quot;dd-MM-yyyy&quot;"
+        precision="0" talendType="id_String"/>
+    <column comment="" default="" key="false" label="C_AREA_CODE1"
+        length="3" nullable="true" originalDbColumnName="C_AREA_CODE1"
+        originalLength="0" pattern="&quot;dd-MM-yyyy&quot;"
+        precision="0" talendType="id_String"/>
+    <column comment="" default="" key="false" label="C_LOCAL1"
+        length="8" nullable="true" originalDbColumnName="C_LOCAL1"
+        originalLength="0" pattern="&quot;dd-MM-yyyy&quot;"
+        precision="0" talendType="id_String"/>
+    <column comment="" default="" key="false" label="C_EXT1" length="5"
+        nullable="true" originalDbColumnName="C_EXT1" originalLength="0"
+        pattern="&quot;dd-MM-yyyy&quot;" precision="0" talendType="id_String"/>
+    <column comment="" default="" key="false" label="C_PHONE_3"
+        length="40" nullable="true" originalDbColumnName="C_PHONE_3"
+        originalLength="0" pattern="&quot;dd-MM-yyyy&quot;"
+        precision="0" talendType="id_String"/>
+    <column comment="" default="" key="false" label="C_CTRY_CODE2"
+        length="0" nullable="true" originalDbColumnName="C_CTRY_CODE2"
+        originalLength="0" pattern="&quot;dd-MM-yyyy&quot;"
+        precision="0" talendType="id_String"/>
+    <column comment="" default="" key="false" label="C_AREA_CODE2"
+        length="3" nullable="true" originalDbColumnName="C_AREA_CODE2"
+        originalLength="0" pattern="&quot;dd-MM-yyyy&quot;"
+        precision="0" talendType="id_String"/>
+    <column comment="" default="" key="false" label="C_LOCAL2"
+        length="8" nullable="true" originalDbColumnName="C_LOCAL2"
+        originalLength="0" pattern="&quot;dd-MM-yyyy&quot;"
+        precision="0" talendType="id_String"/>
+    <column comment="" default="" key="false" label="C_EXT2" length="0"
+        nullable="true" originalDbColumnName="C_EXT2" originalLength="0"
+        pattern="&quot;dd-MM-yyyy&quot;" precision="0" talendType="id_String"/>
+    <column comment="" default="" key="false" label="TaxInfo"
+        length="20" nullable="true" originalDbColumnName="TaxInfo"
+        originalLength="0" pattern="&quot;dd-MM-yyyy&quot;"
+        precision="0" talendType="id_String"/>
+    <column comment="" default="" key="false" label="C_LCL_TX_ID"
+        length="3" nullable="true" originalDbColumnName="C_LCL_TX_ID"
+        originalLength="0" pattern="&quot;dd-MM-yyyy&quot;"
+        precision="0" talendType="id_String"/>
+    <column comment="" default="" key="false" label="C_NAT_TX_ID"
+        length="3" nullable="true" originalDbColumnName="C_NAT_TX_ID"
+        originalLength="0" pattern="&quot;dd-MM-yyyy&quot;"
+        precision="0" talendType="id_String"/>
+    <column comment="" default="" key="false" label="Account"
+        length="65" nullable="true" originalDbColumnName="Account"
+        originalLength="0" pattern="&quot;dd-MM-yyyy&quot;"
+        precision="0" talendType="id_String"/>
+    <column comment="" default="" key="false" label="CA_ID" length="1"
+        nullable="true" originalDbColumnName="CA_ID" originalLength="0"
+        pattern="&quot;dd-MM-yyyy&quot;" precision="0" talendType="id_Integer"/>
+    <column comment="" default="" key="false" label="CA_TAX_ST"
+        length="1" nullable="true" originalDbColumnName="CA_TAX_ST"
+        originalLength="0" pattern="&quot;dd-MM-yyyy&quot;"
+        precision="0" talendType="id_Integer"/>
+    <column comment="" default="" key="false" label="CA_B_ID" length="5"
+        nullable="true" originalDbColumnName="CA_B_ID"
+        originalLength="0" pattern="&quot;dd-MM-yyyy&quot;"
+        precision="0" talendType="id_Integer"/>
+    <column comment="" default="" key="false" label="CA_NAME"
+        length="47" nullable="true" originalDbColumnName="CA_NAME"
+        originalLength="0" pattern="&quot;dd-MM-yyyy&quot;"
+        precision="0" talendType="id_String"/>
+</schema>

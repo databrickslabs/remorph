@@ -1,0 +1,5 @@
+For installation of component, please refer to the following link:
+https://help.talend.com/reader/q9sIDoqWg3R5cxZE38OKrQ/72A7tcaCNHQtjM9KZU33Uw
+
+
+Just point to this custom directory.
