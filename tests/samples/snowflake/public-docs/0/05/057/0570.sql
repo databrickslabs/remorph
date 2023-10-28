@@ -1,1 +1,0 @@
-IS_ROLE_IN_SESSION( <column_name> )
