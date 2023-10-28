@@ -1,0 +1,1 @@
+execute using policy_context(current_role => 'PUBLIC') as select * from empl_info;

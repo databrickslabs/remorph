@@ -1,0 +1,1 @@
+COVAR_POP( y , x ) OVER ( [ PARTITION BY <expr1> ] )

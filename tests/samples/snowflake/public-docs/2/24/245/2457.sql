@@ -1,0 +1,1 @@
+IS_ARRAY( <variant_expr> )

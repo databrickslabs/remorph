@@ -1,0 +1,1 @@
+COS( <real_expr> )

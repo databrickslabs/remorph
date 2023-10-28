@@ -1,0 +1,1 @@
+ST_DISTANCE( <geography_or_geometry_expression_1> , <geography_or_geometry_expression_2> )

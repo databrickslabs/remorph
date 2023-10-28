@@ -1,0 +1,1 @@
+BITSHIFTRIGHT( <expr1> , <n> )

@@ -1,0 +1,1 @@
+ROUND( <input_expr> [ , <scale_expr> [ , <rounding_mode> ] ] )

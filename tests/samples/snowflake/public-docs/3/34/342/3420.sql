@@ -1,0 +1,1 @@
+SELECT ... WHERE COLLATE(French_column, 'de') = Polish_column;

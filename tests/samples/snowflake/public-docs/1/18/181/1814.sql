@@ -1,0 +1,1 @@
+select system$show_oauth_client_secrets('MYINT');

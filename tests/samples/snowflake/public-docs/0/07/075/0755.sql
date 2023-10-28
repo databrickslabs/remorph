@@ -1,0 +1,1 @@
+RANDSTR( <length> , <gen> )

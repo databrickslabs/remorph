@@ -1,0 +1,1 @@
+H3_COVERAGE( <geography_expression> , <target_resolution> )

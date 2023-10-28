@@ -1,0 +1,1 @@
+ALTER SESSION SET SEARCH_PATH = '$current, $public, snowflake.ml';

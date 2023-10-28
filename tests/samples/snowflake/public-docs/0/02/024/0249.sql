@@ -1,0 +1,8 @@
+-- Query the GENERATE_COLUMN_DESCRIPTION function.
+SELECT GENERATE_COLUMN_DESCRIPTION(ARRAY_AGG(OBJECT_CONSTRUCT(*)), 'view') AS COLUMNS
+  FROM TABLE (
+    INFER_SCHEMA(
+      LOCATION=>'@mystage',
+      FILE_FORMAT=>'my_parquet_format'
+    )
+  );

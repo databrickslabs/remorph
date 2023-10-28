@@ -1,0 +1,1 @@
+AVG( [ DISTINCT ] <expr1> )

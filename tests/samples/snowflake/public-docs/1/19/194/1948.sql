@@ -1,0 +1,1 @@
+az account get-access-token --subscription <SubscriptionID>

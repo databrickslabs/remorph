@@ -1,0 +1,1 @@
+ARRAY_INTERSECTION( <array1> , <array2> )

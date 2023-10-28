@@ -1,0 +1,1 @@
+SYSTEM$SHOW_OAUTH_CLIENT_SECRETS( '<integration_name>' )

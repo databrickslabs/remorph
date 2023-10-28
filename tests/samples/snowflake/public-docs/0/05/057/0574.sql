@@ -1,0 +1,3 @@
+SELECT *
+FROM myb.s1.t1
+WHERE IS_ROLE_IN_SESSION(t1.role_name);

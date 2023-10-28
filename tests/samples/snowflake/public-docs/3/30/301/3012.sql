@@ -1,0 +1,1 @@
+The notification mute flag has been updated to <true | false>.

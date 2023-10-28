@@ -1,0 +1,1 @@
+SYSTEM$BEHAVIOR_CHANGE_BUNDLE_STATUS( '<bundle_name>' )

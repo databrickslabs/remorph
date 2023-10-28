@@ -1,0 +1,1 @@
+<resultset_name> := ( <query> ) ;

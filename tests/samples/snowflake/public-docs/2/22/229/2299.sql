@@ -1,0 +1,1 @@
+RATIO_TO_REPORT( <expr1> ) [ OVER ( [ PARTITION BY <expr2> ] [ ORDER BY <expr3> ] ) ]

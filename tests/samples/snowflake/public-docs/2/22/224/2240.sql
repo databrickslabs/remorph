@@ -1,0 +1,1 @@
+VARIANCE_POP( [ DISTINCT ] <expr1> )

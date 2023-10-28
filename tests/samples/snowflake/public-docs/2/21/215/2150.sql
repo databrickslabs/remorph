@@ -1,0 +1,1 @@
+REGR_AVGX(y, x)

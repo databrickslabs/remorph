@@ -1,0 +1,2 @@
+LENGTH( <expression> )
+LEN( <expression> )

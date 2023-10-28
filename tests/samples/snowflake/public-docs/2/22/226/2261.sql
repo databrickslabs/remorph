@@ -1,0 +1,1 @@
+VARIANCE( [ DISTINCT ] <expr1> )

@@ -1,0 +1,1 @@
+ST_DIMENSION( <geography_or_geometry_expression> )

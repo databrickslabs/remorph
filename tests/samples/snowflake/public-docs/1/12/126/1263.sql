@@ -1,0 +1,1 @@
+SELECT ENDSWITH(COLLATE('ñn', 'sp'), COLLATE('n', 'sp'));

@@ -1,0 +1,1 @@
+SYSTEM$CLUSTERING_RATIO( '<table_name>' , '( <col1> [ , <col2> ... ] )' [ , '<predicate>' ] )

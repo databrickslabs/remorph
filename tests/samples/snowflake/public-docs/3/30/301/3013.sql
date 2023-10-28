@@ -1,0 +1,1 @@
+CALL budget_db.budget_schema.my_budget!SET_NOTIFICATION_MUTE_FLAG(TRUE);

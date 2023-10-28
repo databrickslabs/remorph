@@ -1,0 +1,1 @@
+symbol1{1,limit} not_symbol1{,limit} symbol2

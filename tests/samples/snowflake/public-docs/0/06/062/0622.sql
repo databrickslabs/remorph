@@ -1,0 +1,1 @@
+GETVARIABLE( '<name>' )

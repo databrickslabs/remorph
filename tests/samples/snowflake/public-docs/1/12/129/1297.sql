@@ -1,0 +1,1 @@
+TRIM( <expr> [, <characters> ] )

@@ -1,0 +1,1 @@
+SELECT GET(v, ARRAY_SIZE(v)-1) FROM colors;

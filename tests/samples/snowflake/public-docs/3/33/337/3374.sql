@@ -1,0 +1,1 @@
+call cleanup('do not fail');

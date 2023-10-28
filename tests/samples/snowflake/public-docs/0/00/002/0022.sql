@@ -1,0 +1,1 @@
+SELECT * ILIKE '%id%' FROM employee_table;

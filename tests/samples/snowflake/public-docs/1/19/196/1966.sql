@@ -1,0 +1,1 @@
+SYSTEM$LINK_ACCOUNT_OBJECTS_BY_NAME('<group_name>')

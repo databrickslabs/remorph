@@ -1,0 +1,1 @@
+SELECT v:attr[0].name FROM vartab;

@@ -1,0 +1,1 @@
+SELECT $1 AS output_col FROM table(RESULT_SCAN(LAST_QUERY_ID()));

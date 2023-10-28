@@ -1,0 +1,1 @@
+ST_GEOGPOINTFROMGEOHASH( <geohash> )

@@ -1,0 +1,1 @@
+SELECT approx_top_k_estimate(c1, 4) FROM combined_resultstate;

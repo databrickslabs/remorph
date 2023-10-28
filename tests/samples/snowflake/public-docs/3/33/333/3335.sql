@@ -1,0 +1,1 @@
+TABLE( { <string_literal> | <session_variable> | <bind_variable> } )

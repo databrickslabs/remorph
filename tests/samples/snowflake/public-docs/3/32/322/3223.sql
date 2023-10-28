@@ -1,0 +1,1 @@
+UNDROP TABLE t2;

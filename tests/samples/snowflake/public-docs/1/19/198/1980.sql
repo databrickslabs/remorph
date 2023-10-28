@@ -1,0 +1,1 @@
+SYSTEM$CANCEL_QUERY( <query_id> )

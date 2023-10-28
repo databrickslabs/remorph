@@ -1,0 +1,1 @@
+select iff(NULL, 'true', 'false');

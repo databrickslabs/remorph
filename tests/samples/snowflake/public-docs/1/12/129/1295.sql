@@ -1,0 +1,1 @@
+SELECT TRANSLATE('peña','ñ','n');

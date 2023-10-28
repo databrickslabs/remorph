@@ -1,0 +1,1 @@
+SELECT CONCAT_WS(',', 'one');

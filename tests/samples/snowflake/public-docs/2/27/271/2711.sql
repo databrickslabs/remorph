@@ -1,0 +1,1 @@
+SELECT ARRAY_CONTAINS('hello'::variant, array_construct('hola', 'bonjour'));

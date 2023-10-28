@@ -1,0 +1,1 @@
+gcloud kms keys add-iam-policy-binding <key-name> --project <project-id> --location <location> --keyring <key-ring> --member serviceAccount:<service-account-email> --role roles/cloudkms.cryptoKeyEncrypterDecrypter

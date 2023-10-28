@@ -1,0 +1,6 @@
+SELECT ...
+FROM ...
+   PIVOT ( <aggregate_function> ( <pivot_column> )
+            FOR <value_column> IN ( <pivot_value_1> [ , <pivot_value_2> ... ] ) )
+
+[ ... ]

@@ -1,0 +1,1 @@
+select array_slice(array_column, 6, 8) from table_1;

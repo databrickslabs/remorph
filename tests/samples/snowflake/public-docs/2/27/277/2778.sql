@@ -1,0 +1,1 @@
+CALL null_as_statement();

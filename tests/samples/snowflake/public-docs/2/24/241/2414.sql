@@ -1,0 +1,1 @@
+select * from vardttm where is_time(v);

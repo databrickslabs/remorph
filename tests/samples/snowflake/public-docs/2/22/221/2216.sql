@@ -1,0 +1,1 @@
+select bitand_agg(k), bitand_agg(d), bitand_agg(s1) from bitwise_example;

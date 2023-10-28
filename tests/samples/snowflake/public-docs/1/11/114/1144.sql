@@ -1,0 +1,1 @@
+SHA2_BINARY(<msg> [, <digest_size>])

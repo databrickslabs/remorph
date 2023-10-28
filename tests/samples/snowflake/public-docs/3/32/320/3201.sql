@@ -1,0 +1,1 @@
+DESC DYNAMIC TABLE product;

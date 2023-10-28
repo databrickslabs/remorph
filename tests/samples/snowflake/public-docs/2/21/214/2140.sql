@@ -1,0 +1,1 @@
+REGR_SLOPE(y, x) OVER ( [ PARTITION BY <expr3> ] )

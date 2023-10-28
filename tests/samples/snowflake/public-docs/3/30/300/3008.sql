@@ -1,0 +1,1 @@
+The spending limit has been updated to <n> credits.

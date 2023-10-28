@@ -1,0 +1,1 @@
+TRY_TO_BINARY( <string_expr> [, '<format>'] )

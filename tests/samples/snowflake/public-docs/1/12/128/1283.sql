@@ -1,0 +1,1 @@
+INITCAP( <expr> [ , <delimiters> ] )

@@ -1,0 +1,1 @@
+PARTITION BY column_1, column_2

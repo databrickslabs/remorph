@@ -1,0 +1,1 @@
+'string with a newline\\ncharacter'

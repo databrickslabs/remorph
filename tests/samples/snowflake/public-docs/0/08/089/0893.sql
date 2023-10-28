@@ -1,0 +1,1 @@
+ST_SETSRID( <geometry_expression> , <srid> )

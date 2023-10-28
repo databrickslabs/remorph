@@ -1,0 +1,1 @@
+SELECT SUM(x + y) FROM t;

@@ -1,0 +1,1 @@
+profit NUMBER(38, 2) := 0;

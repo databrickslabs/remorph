@@ -1,0 +1,1 @@
+select bitand_agg(s2) from bitwise_example;

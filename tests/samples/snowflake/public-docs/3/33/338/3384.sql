@@ -1,0 +1,1 @@
+SET var_artist_name = 'Jackson Browne';

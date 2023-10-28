@@ -1,0 +1,1 @@
+create function my_function(my_argument integer)

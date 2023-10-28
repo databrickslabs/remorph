@@ -1,0 +1,1 @@
+HEX_DECODE_BINARY(<input>)

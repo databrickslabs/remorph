@@ -1,0 +1,3 @@
+SELECT ...
+FROM objectReference [ JOIN objectReference [ ... ] ]
+[ ... ]

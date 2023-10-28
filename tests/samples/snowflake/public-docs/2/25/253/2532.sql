@@ -1,0 +1,1 @@
+SELECT GET(a, 0) FROM vartab;

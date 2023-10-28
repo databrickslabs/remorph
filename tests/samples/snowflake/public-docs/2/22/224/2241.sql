@@ -1,0 +1,4 @@
+VARIANCE_POP( [ DISTINCT ] <expr1> ) OVER (
+                                          [ PARTITION BY <expr2> ]
+                                          [ ORDER BY <expr3> [ ASC | DESC ] [ <window_frame> ] ]
+                                          )

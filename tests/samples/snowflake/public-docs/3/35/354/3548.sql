@@ -1,0 +1,3 @@
+BEGIN
+  LET res RESULTSET := (SELECT COUNT(*) AS COUNT FROM IDENTIFIER(:table_name));
+  ...

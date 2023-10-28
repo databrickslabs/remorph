@@ -1,0 +1,1 @@
+GETBIT( <integer_expr>, <bit_position> )

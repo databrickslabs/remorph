@@ -1,0 +1,1 @@
+REGEXP_COUNT( <subject> , <pattern> [ , <position> , <parameters> ] )

@@ -1,0 +1,1 @@
+ST_BUFFER( <geometry_expression> , <distance> )

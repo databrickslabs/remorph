@@ -1,0 +1,1 @@
+ARRAY_POSITION( <variant_expr> , <array> )

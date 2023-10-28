@@ -1,0 +1,1 @@
+ST_ASEWKT( <geography_or_geometry_expression> )

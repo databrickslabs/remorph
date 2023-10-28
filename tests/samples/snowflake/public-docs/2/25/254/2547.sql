@@ -1,0 +1,1 @@
+SELECT GET_PATH(v, 'attr[0].name') FROM vartab;

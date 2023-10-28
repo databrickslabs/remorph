@@ -1,0 +1,1 @@
+H3_CELL_TO_BOUNDARY( <cell_id> )

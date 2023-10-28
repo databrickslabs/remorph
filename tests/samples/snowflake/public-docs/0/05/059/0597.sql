@@ -1,0 +1,1 @@
+INVOKER_SHARE()

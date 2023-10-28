@@ -1,0 +1,1 @@
+DROP DYNAMIC TABLE <name>

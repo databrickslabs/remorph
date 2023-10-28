@@ -1,0 +1,1 @@
+GREATEST( <expr1> [ , <expr2> ... ] )

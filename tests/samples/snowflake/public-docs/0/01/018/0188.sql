@@ -1,0 +1,1 @@
+insert into wildcards (w, w2) values (NULL, 'When I am cold, I am bold.');

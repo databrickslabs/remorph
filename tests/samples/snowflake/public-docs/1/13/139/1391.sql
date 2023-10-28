@@ -1,0 +1,1 @@
+BIT_LENGTH(<string_or_binary>)

@@ -1,0 +1,1 @@
+ARRAY_FLATTEN( <array> )

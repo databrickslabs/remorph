@@ -1,0 +1,1 @@
+<budget_name>!SET_NOTIFICATION_MUTE_FLAG( { TRUE | FALSE } );

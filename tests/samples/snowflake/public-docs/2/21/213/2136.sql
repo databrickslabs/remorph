@@ -1,0 +1,1 @@
+REGR_SXY(y, x) OVER ( [ PARTITION BY <expr3> ] )

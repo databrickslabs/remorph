@@ -1,0 +1,1 @@
+SELECT ARRAY_FLATTEN([[1, 2, 3], [NULL], [5, 6]]);

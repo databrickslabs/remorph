@@ -1,0 +1,1 @@
+ST_Y( <geography_or_geometry_expression> )

@@ -1,0 +1,1 @@
+H3_GRID_DISTANCE( <cell_id_1> , <cell_id_2> )

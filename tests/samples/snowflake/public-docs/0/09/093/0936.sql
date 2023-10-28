@@ -1,0 +1,1 @@
+ST_PERIMETER( <geography_or_geometry_expression> )

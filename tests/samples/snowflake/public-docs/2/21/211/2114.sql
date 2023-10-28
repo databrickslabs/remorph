@@ -1,0 +1,3 @@
+APPROX_COUNT_DISTINCT( [ DISTINCT ] <expr1>  [ , ... ] )
+
+APPROX_COUNT_DISTINCT(*)

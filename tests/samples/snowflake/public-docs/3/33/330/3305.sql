@@ -1,0 +1,1 @@
+alter table t1 add row access policy rap_t1 on (empl_id);

@@ -1,0 +1,1 @@
+ALTER EXTERNAL TABLE exttable_json REFRESH;

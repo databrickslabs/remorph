@@ -1,0 +1,1 @@
+SELECT encrypt(to_binary(hex_encode('Secret!')), 'SamplePassphrase', to_binary(hex_encode('Authenticated Data')));

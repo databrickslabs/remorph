@@ -1,0 +1,7 @@
+CREATE [ OR REPLACE ] SNOWFLAKE.ML.FORECAST [ IF NOT EXISTS ] <model_name>(
+    INPUT_DATA => <input_data>,
+    [SERIES_COLNAME => '<series_colname>',]
+    TIMESTAMP_COLNAME => '<timestamp_colname>',
+    TARGET_COLNAME => '<target_colname>')
+  [ [ WITH ] TAG ( <tag_name> = '<tag_value>' [ , <tag_name> = '<tag_value>' , ... ] ) ]
+  [ COMMENT = '<string_literal>' ]

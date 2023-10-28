@@ -1,0 +1,1 @@
+WHERE last_load_time > 'Sun, 01 Apr 2016 16:00:00 -0800'

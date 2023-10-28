@@ -1,0 +1,1 @@
+SELECT * FROM employee_table;

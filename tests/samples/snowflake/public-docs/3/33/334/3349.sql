@@ -1,0 +1,11 @@
+CREATE PROCEDURE p1() ...
+$$
+    INSERT INTO parent_table ...;
+    INSERT INTO child_table ...;
+$$;
+
+
+ALTER SESSION SET AUTOCOMMIT = FALSE;
+BEGIN TRANSACTION;
+CALL p1;
+COMMIT WORK;

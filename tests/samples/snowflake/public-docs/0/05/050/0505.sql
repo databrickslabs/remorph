@@ -1,0 +1,3 @@
+SELECT
+    f(a, b),
+    x IN (y, z) ...

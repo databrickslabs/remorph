@@ -1,0 +1,1 @@
+TANH( <real_expr> )

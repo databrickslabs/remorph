@@ -1,0 +1,1 @@
+select get_ddl('view', 'books_view');

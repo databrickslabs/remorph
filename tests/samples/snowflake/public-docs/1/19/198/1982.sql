@@ -1,0 +1,1 @@
+SYSTEM$CONVERT_PIPES_SQS_TO_SNS( '<bucket_name>, '<sns_topic_arn>' )

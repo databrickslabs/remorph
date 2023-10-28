@@ -1,0 +1,1 @@
+DESC[RIBE] <object_type> <object_name>

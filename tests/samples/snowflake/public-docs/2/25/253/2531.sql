@@ -1,0 +1,1 @@
+SELECT a, o, v FROM vartab;

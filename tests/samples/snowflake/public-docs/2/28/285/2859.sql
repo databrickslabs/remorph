@@ -1,0 +1,10 @@
+EXECUTE IMMEDIATE $$
+BEGIN
+    BEGIN TRANSACTION;
+    TRUNCATE TABLE child;
+    TRUNCATE TABLE parent;
+    COMMIT;
+    RETURN '';
+END;
+$$
+;

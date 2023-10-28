@@ -1,0 +1,1 @@
+https://my_account.snowflakecomputing.com/api/files/MY_DB/PUBLIC/IMAGES_STAGE/us/yosemite/half_dome.jpg

@@ -1,0 +1,1 @@
+CREATE TABLE employees (id INT);

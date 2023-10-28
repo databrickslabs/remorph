@@ -1,0 +1,1 @@
+SELECT SYSTEM$TYPEOF('a');

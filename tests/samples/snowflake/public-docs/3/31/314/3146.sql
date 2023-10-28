@@ -1,0 +1,1 @@
+DESC EXTERNAL TABLE emp;

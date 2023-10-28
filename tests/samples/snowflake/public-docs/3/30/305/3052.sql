@@ -1,0 +1,1 @@
+CALL snowflake.local.account_root_budget!GET_NOTIFICATION_INTEGRATION_NAME();

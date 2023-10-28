@@ -1,0 +1,1 @@
+create table stock_price_history (company TEXT, price_date DATE, price INT);

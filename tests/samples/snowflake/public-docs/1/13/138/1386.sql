@@ -1,0 +1,1 @@
+SELECT CONCAT('George Washington ', 'Carver');

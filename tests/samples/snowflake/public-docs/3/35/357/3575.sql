@@ -1,0 +1,1 @@
+SELECT 'Sample', 'Sample'::VARIANT, 'Sample'::VARIANT::VARCHAR;

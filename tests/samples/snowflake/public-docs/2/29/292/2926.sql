@@ -1,0 +1,4 @@
+SELECT v FROM t1    -- VARCHAR
+UNION
+SELECT i FROM t2    -- INTEGER
+;

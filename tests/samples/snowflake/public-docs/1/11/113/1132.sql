@@ -1,0 +1,1 @@
+https://<account_identifier>/api/files/<query_id>/<encoded_file_path>

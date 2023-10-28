@@ -1,0 +1,1 @@
+call cleanup('fail');

@@ -1,0 +1,1 @@
+SELECT DIV0NULL(1, 0);

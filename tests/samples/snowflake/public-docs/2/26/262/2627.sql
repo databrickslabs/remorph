@@ -1,0 +1,1 @@
+SELECT ARRAY_SLICE(ARRAY_CONSTRUCT('foo','snow','flake','bar'), 1, 3);

@@ -1,0 +1,1 @@
+LEFT( <string_expr> , <length_expr> )

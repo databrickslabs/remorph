@@ -1,0 +1,1 @@
+SELECT STRTOK('a.b.c', '.', 1);

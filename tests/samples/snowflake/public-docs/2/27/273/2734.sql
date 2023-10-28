@@ -1,0 +1,1 @@
+ARRAY_CAT( <array1> , <array2> )

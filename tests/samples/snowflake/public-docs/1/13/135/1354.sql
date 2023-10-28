@@ -1,0 +1,1 @@
+SELECT PARSE_URL('example.int/hello.php?user=12#nofragment', 0);

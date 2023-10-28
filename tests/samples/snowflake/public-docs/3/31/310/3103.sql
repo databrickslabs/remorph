@@ -1,0 +1,1 @@
+ALTER VIEW view1 SET SECURE;

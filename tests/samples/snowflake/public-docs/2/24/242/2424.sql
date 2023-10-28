@@ -1,0 +1,1 @@
+IS_NULL_VALUE( <variant_expr> )

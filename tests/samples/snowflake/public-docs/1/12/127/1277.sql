@@ -1,0 +1,1 @@
+select charindex('an', 'banana', 3);

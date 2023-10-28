@@ -1,0 +1,1 @@
+SELECT ADD_MONTHS('2016-05-15'::timestamp_ntz, 2) AS RESULT;

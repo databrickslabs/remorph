@@ -1,0 +1,1 @@
+ALTER TABLE exttable1 RENAME COLUMN a1 TO b1;

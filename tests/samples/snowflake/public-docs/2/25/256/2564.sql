@@ -1,0 +1,1 @@
+OBJECT_INSERT( <object> , <key> , <value> [ , <updateFlag> ] )

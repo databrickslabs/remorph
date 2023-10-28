@@ -1,0 +1,1 @@
+SELECT ARRAY_SORT([1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1e0::REAL]) AS array_of_different_numeric_types;

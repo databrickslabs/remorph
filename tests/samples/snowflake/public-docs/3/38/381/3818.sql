@@ -1,0 +1,6 @@
+SELECT ...
+FROM ...
+   CHANGES ( INFORMATION => { DEFAULT | APPEND_ONLY } )
+   AT ( { TIMESTAMP => <timestamp> | OFFSET => <time_difference> | STATEMENT => <id> | STREAM => '<name>' } ) | BEFORE ( STATEMENT => <id> )
+   [ END( { TIMESTAMP => <timestamp> | OFFSET => <time_difference> | STATEMENT => <id> } ) ]
+[ ... ]
