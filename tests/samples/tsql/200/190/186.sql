@@ -1,3 +1,0 @@
-SELECT * FROM Person.Address
-WHERE City = 'SEATTLE' AND PostalCode = 98104
-OPTION (QUERYTRACEON 4199);

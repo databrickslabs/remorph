@@ -1,0 +1,1 @@
+This folder holds publicly available Snowflake queries. Authors and sources are referenced respectively.
