@@ -1,1 +1,0 @@
-ALL_USER_NAMES()
