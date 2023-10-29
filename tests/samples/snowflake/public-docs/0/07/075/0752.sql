@@ -1,1 +1,0 @@
-NORMAL( <mean> , <stddev> , <gen> )
