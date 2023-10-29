@@ -1,1 +1,0 @@
-RANDOM([seed])

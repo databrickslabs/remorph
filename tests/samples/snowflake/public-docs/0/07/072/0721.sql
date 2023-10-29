@@ -1,1 +1,0 @@
-TO_DOUBLE( <expr> [, '<format>' ] )

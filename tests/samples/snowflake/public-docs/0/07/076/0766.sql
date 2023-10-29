@@ -1,1 +1,0 @@
-as_binary(get(encrypted_value, '<field_name>'))

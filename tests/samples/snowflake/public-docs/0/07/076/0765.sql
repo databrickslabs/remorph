@@ -1,1 +1,0 @@
-<algorithm>-<mode> [ /pad: <padding> ]

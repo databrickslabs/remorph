@@ -1,1 +1,0 @@
-GETVARIABLE( '<name>' )

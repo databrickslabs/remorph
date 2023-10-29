@@ -1,1 +1,0 @@
-RANDSTR( <length> , <gen> )

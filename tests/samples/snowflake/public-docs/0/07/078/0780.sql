@@ -1,1 +1,0 @@
-H3_STRING_TO_INT( <cell_id> )

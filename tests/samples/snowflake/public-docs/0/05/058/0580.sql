@@ -1,1 +1,0 @@
-IS_GRANTED_TO_INVOKER_ROLE( '<string_literal>' )
