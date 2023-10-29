@@ -1,0 +1,17 @@
+-- see https://learn.microsoft.com/en-us/sql/t-sql/functions/current-timestamp-transact-sql?view=sql-server-ver16
+
+SELECT CONVERT (TIME, SYSDATETIME())  
+    ,CONVERT (TIME, SYSDATETIMEOFFSET())  
+    ,CONVERT (TIME, SYSUTCDATETIME())  
+    ,CONVERT (TIME, CURRENT_TIMESTAMP)  
+    ,CONVERT (TIME, GETDATE())  
+    ,CONVERT (TIME, GETUTCDATE());  
+  
+/* Returned  
+SYSDATETIME()      13:18:45.3490361  
+SYSDATETIMEOFFSET()13:18:45.3490361  
+SYSUTCDATETIME()   20:18:45.3490361  
+CURRENT_TIMESTAMP  13:18:45.3470000  
+GETDATE()          13:18:45.3470000  
+GETUTCDATE()       20:18:45.3470000  
+*/

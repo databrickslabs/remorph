@@ -1,0 +1,16 @@
+-- see https://learn.microsoft.com/en-us/sql/t-sql/functions/getutcdate-transact-sql?view=sql-server-ver16
+
+SELECT 'SYSDATETIME()      ', SYSDATETIME();  
+SELECT 'SYSDATETIMEOFFSET()', SYSDATETIMEOFFSET();  
+SELECT 'SYSUTCDATETIME()   ', SYSUTCDATETIME();  
+SELECT 'CURRENT_TIMESTAMP  ', CURRENT_TIMESTAMP;  
+SELECT 'GETDATE()          ', GETDATE();  
+SELECT 'GETUTCDATE()       ', GETUTCDATE();  
+/* Returned:  
+SYSDATETIME()            2007-05-03 18:34:11.9351421  
+SYSDATETIMEOFFSET()      2007-05-03 18:34:11.9351421 -07:00  
+SYSUTCDATETIME()         2007-05-04 01:34:11.9351421  
+CURRENT_TIMESTAMP        2007-05-03 18:34:11.933  
+GETDATE()                2007-05-03 18:34:11.933  
+GETUTCDATE()             2007-05-04 01:34:11.933  
+*/
