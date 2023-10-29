@@ -1,1 +1,0 @@
-REGR_INTERCEPT(y, x)

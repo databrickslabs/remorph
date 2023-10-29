@@ -1,2 +1,0 @@
-CREATE TABLE demo1 (i INTEGER);
-INSERT INTO demo1 (i) VALUES (1), (2);

@@ -1,1 +1,0 @@
-create or replace table aggr(k int, v decimal(10,2));

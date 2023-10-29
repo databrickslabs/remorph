@@ -1,1 +1,0 @@
-DESC[RIBE] VIEW <name>

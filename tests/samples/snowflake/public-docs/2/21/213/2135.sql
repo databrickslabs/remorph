@@ -1,1 +1,0 @@
-REGR_SXY(y, x)

@@ -1,1 +1,0 @@
-ASIN( <real_expr> )

@@ -1,1 +1,0 @@
-<subject> LIKE ANY (<pattern1> [, <pattern2> ... ] ) [ ESCAPE <escape_char> ]

@@ -1,1 +1,0 @@
-CONDITIONAL_CHANGE_EVENT( <expr1> ) OVER ( [ PARTITION BY <expr2> ] ORDER BY <expr3> )

@@ -1,1 +1,0 @@
-KURTOSIS( <expr> )

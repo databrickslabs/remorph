@@ -1,1 +1,0 @@
-RESULT_SCAN ( { '<query_id>'  | LAST_QUERY_ID() } )

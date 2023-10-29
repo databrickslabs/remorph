@@ -1,1 +1,0 @@
-AS_TIME( <variant_expr> )

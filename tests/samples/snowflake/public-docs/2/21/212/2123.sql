@@ -1,1 +1,0 @@
-REGR_SYY(y, x) ( [ PARTITION BY <expr3> ] )

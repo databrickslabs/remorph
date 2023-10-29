@@ -1,1 +1,0 @@
-SELECT INSERT('abc', 4, 0, 'Z') as STR;

@@ -1,1 +1,0 @@
-SELECT MOD(3, 2) AS mod1, MOD(4.5, 1.2) AS mod2;

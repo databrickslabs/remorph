@@ -1,1 +1,0 @@
-TAG_REFERENCES_ALL_COLUMNS( '<object_name>' , '<object_domain>' )

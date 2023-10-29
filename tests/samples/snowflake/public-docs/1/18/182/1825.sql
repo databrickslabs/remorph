@@ -1,1 +1,0 @@
-SYSTEM$PIPE_STATUS( '<pipe_name>' )

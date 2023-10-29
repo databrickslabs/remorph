@@ -1,1 +1,0 @@
-SHA1_BINARY(<msg>)

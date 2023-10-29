@@ -1,3 +1,0 @@
-SELECT * FROM table1
-UNION ALL
-SELECT * FROM table2;

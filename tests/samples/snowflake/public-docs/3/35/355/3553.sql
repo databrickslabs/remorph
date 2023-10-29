@@ -1,3 +1,0 @@
-SELECT ...
-    FROM my_table
-    WHERE my_integer_column < my_float_column;

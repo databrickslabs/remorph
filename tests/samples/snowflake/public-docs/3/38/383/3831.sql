@@ -1,6 +1,0 @@
-SELECT
-    [ TOP <n> ]
-    ...
-FROM ...
-[ ORDER BY ... ]
-[ ... ]

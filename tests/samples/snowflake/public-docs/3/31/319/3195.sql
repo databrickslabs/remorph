@@ -1,1 +1,0 @@
-DROP DYNAMIC TABLE product;

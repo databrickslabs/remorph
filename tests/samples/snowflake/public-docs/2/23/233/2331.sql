@@ -1,1 +1,0 @@
-SELECT k, COVAR_POP(v, v2) FROM aggr GROUP BY k;

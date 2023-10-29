@@ -1,1 +1,0 @@
-RIGHT( <expr> , <length_expr> )

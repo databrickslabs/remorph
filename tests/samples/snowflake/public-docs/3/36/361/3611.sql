@@ -1,1 +1,0 @@
-SELECT ST_TRANSFORM(geometry_expression, 32633);

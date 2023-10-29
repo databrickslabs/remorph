@@ -1,1 +1,0 @@
-UPDATE binary_test SET b = TO_BINARY(HEX_ENCODE(v), 'HEX');

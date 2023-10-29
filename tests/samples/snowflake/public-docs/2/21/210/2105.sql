@@ -1,3 +1,0 @@
-HLL_ACCUMULATE( [ DISTINCT ] <expr> )
-
-HLL_ACCUMULATE(*)

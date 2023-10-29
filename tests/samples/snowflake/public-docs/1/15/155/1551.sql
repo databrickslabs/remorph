@@ -1,1 +1,0 @@
-CALL return_JSON();

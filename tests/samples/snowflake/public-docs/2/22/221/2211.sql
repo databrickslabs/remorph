@@ -1,1 +1,0 @@
-select bitor_agg(s2) from bitwise_example;

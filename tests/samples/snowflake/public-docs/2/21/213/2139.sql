@@ -1,1 +1,0 @@
-REGR_SLOPE(y, x)

@@ -1,1 +1,0 @@
-REPLICATION_GROUP_REFRESH_HISTORY( '<secondary_group_name>' )

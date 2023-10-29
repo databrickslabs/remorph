@@ -1,1 +1,0 @@
-REGEXP_REPLACE( <subject> , <pattern> [ , <replacement> , <position> , <occurrence> , <parameters> ] )

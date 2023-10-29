@@ -1,1 +1,0 @@
-SELECT CONCAT_WS(',', 'one', 'two', 'three');

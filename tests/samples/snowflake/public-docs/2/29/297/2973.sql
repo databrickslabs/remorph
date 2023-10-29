@@ -1,1 +1,0 @@
-DROP SEQUENCE IF EXISTS invoice_sequence_number;

@@ -1,2 +1,0 @@
-LENGTH( <expression> )
-LEN( <expression> )

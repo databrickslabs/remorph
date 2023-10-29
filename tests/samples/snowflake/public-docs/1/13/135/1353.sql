@@ -1,1 +1,0 @@
-SELECT PARSE_URL('mailto:abc@xyz.com');

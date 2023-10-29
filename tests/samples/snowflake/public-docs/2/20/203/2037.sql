@@ -1,1 +1,0 @@
-APPROX_TOP_K_COMBINE( <state> [ , <counters> ] )

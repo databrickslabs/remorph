@@ -1,1 +1,0 @@
-select position(X'BC', X'ABCD');

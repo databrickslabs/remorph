@@ -1,1 +1,0 @@
-SYSTEM$GENERATE_SAML_CSR( <name> , <DN> )

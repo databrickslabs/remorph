@@ -1,1 +1,0 @@
-<key1 type="VARCHAR">value1</key1>

@@ -1,1 +1,0 @@
-VAR_SAMP( [DISTINCT] <expr1> )

@@ -1,1 +1,0 @@
-ARRAY_FLATTEN( <array> )

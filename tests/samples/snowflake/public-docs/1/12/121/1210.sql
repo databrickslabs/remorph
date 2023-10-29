@@ -1,1 +1,0 @@
-DECOMPRESS_STRING(<input>, <method>)

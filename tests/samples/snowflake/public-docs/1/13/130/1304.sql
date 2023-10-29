@@ -1,1 +1,0 @@
-STRTOK(<string> [,<delimiter>] [,<partNr>])

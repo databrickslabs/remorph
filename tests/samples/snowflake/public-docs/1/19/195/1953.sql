@@ -1,1 +1,0 @@
-SYSTEM$TASK_DEPENDENTS_ENABLE( '<root_task_name>' )

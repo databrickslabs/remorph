@@ -1,1 +1,0 @@
-H3_CELL_TO_PARENT( <cell_id> , <target_resolution> )

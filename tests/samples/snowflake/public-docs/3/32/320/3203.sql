@@ -1,2 +1,0 @@
-ALTER DYNAMIC TABLE product SET
-  TARGET_LAG = '1 hour';

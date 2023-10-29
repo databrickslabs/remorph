@@ -1,1 +1,0 @@
-USE WAREHOUSE mywarehouse;

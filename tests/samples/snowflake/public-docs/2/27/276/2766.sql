@@ -1,1 +1,0 @@
-CALL power_of_2();

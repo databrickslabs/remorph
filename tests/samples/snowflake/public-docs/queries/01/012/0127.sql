@@ -1,0 +1,11 @@
+-- see https://docs.snowflake.com/en/sql-reference/functions/current_timestamp
+
+ALTER SESSION SET TIMESTAMP_OUTPUT_FORMAT = 'YYYY-MM-DD HH24:MI:SS.FF';
+
+SELECT CURRENT_TIMESTAMP(2);
+
+
+SELECT CURRENT_TIMESTAMP(4);
+
+
+SELECT CURRENT_TIMESTAMP;

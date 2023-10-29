@@ -1,0 +1,5 @@
+-- see https://learn.microsoft.com/en-us/sql/t-sql/spatial-geometry/stpolyfromwkb-geometry-data-type?view=sql-server-ver16
+
+DECLARE @g geometry;   
+SET @g = geometry::STPolyFromWKB(0x0103000000010000000400000000000000000014400000000000001440000000000000244000000000000014400000000000002440000000000000244000000000000014400000000000001440, 0);  
+SELECT @g.STAsText();

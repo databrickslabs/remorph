@@ -1,1 +1,0 @@
-SELECT t, f, n FROM logical WHERE t AND NOT f;

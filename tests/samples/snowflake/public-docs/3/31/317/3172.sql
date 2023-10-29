@@ -1,1 +1,0 @@
-mycol varchar as (value:"b"."c"::varchar)

@@ -1,1 +1,0 @@
-SELECT random(4711), random(4711) FROM table(generator(rowCount => 3));

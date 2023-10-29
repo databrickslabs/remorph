@@ -1,3 +1,0 @@
-SELECT seq4(), uniform(1, 10, RANDOM(12)) 
-  FROM TABLE(GENERATOR(ROWCOUNT => 10)) v 
-  ORDER BY 1;

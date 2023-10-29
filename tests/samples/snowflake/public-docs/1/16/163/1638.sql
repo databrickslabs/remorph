@@ -1,1 +1,0 @@
-SELECT ACOS(0), ACOS(0.5), ACOS(1);

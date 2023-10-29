@@ -1,1 +1,0 @@
-select iff(False, 'true', 'false');

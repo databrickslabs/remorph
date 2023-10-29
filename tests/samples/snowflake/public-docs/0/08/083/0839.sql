@@ -1,1 +1,0 @@
-H3_GRID_PATH( <cell_id_1> , <cell_id_2> )

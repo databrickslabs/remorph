@@ -1,1 +1,0 @@
-MINHASH_COMBINE( [ DISTINCT ] <state> )

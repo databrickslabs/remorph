@@ -1,1 +1,0 @@
-select * from table(get_query_operator_stats($lqid));

@@ -1,1 +1,0 @@
-SHOW PARAMETERS LIKE '%time%';

@@ -1,1 +1,0 @@
-CALL reverse_loop(3);

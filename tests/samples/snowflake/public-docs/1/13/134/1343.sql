@@ -1,1 +1,0 @@
-REPEAT(<input>, <n>)

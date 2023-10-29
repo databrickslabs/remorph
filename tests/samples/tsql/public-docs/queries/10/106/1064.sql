@@ -1,0 +1,8 @@
+-- see https://learn.microsoft.com/en-us/sql/t-sql/statements/create-index-transact-sql?view=sql-server-ver16
+
+CREATE NONCLUSTERED INDEX IX_WorkOrder_ProductID
+  ON Production.WorkOrder(ProductID)
+    WITH (FILLFACTOR = 80,
+      PAD_INDEX = ON,
+      DROP_EXISTING = ON);
+GO

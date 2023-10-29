@@ -1,1 +1,0 @@
-ALTER TABLE t1 CLUSTER BY (date, id);

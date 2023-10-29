@@ -1,1 +1,0 @@
-LPAD(<base>, <length_expr> [, <pad>])

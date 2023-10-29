@@ -1,1 +1,0 @@
-SELECT a, b, c, NVL2(a, b, c) FROM i2;

@@ -1,1 +1,0 @@
-HLL_ESTIMATE( <state> )

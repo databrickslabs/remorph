@@ -1,1 +1,0 @@
-PERCENTILE_DISC( <percentile> ) WITHIN GROUP (ORDER BY <order_by_expr> )

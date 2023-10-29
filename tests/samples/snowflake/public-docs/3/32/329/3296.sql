@@ -1,1 +1,0 @@
-ALTER TABLE exttable1 DROP COLUMN b1;

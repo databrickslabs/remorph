@@ -1,2 +1,0 @@
-ALTER TABLE t1
-  ADD ROW ACCESS POLICY rap_t1 ON (empl_id);

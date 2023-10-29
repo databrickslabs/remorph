@@ -1,1 +1,0 @@
-select timestamp_from_parts(2013, 4, 5, 12, 0, -3600);

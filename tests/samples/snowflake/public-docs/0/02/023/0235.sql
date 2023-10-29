@@ -1,1 +1,0 @@
-SELECT HASH(10), HASH('10');

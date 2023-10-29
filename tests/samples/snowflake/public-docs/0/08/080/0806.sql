@@ -1,1 +1,0 @@
-H3_POLYGON_TO_CELLS( <geography_polygon> , <target_resolution> )

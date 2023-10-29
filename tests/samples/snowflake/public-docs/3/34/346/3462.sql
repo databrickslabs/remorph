@@ -1,1 +1,0 @@
-symbol1+ any_symbol* symbol2

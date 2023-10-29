@@ -1,3 +1,0 @@
-SELECT ARRAY_REMOVE_AT(
-  [2, 5, 7],
-  0);

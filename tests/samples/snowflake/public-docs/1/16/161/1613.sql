@@ -1,1 +1,0 @@
-COT( <real_expr> )

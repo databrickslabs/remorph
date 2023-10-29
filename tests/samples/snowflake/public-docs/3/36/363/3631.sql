@@ -1,1 +1,0 @@
-ST_GEOGFROMWKB( <input> [, <allowInvalid> ] )

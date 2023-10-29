@@ -1,1 +1,0 @@
-AS_BINARY( <variant_expr> )

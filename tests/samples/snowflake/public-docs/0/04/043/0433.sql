@@ -1,1 +1,0 @@
-select time_from_parts(12, 34, 56, 987654321);

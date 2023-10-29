@@ -1,1 +1,0 @@
-SELECT GETVARIABLE('var_artist_name');

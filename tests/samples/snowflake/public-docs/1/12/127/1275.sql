@@ -1,1 +1,0 @@
-CHARINDEX( <expr1>, <expr2> [ , <start_pos> ] )

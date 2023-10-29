@@ -1,1 +1,0 @@
-TAN( <real_expr> )

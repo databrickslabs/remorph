@@ -1,1 +1,0 @@
-SOUNDEX_P123( <varchar_expr> )

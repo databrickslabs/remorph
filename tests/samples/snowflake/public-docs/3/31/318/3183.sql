@@ -1,1 +1,0 @@
-SELECT timestamp, col2 FROM et1 WHERE date_part = to_date('08/05/2018');

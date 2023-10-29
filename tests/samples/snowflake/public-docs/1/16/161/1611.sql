@@ -1,1 +1,0 @@
-DEGREES( <real_expr> )

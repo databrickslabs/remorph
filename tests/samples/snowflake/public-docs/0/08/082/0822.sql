@@ -1,1 +1,0 @@
-H3_LATLNG_TO_CELL_STRING( <latitude> , <longitude> , <target_resolution> )

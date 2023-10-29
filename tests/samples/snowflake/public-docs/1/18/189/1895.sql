@@ -1,1 +1,0 @@
-SELECT SYSTEM$EXTERNAL_TABLE_PIPE_STATUS('mydb.myschema."extTable"');

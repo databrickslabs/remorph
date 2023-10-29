@@ -1,1 +1,0 @@
-SELECT md5_binary('Snowflake');

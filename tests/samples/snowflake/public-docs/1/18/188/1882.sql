@@ -1,2 +1,0 @@
-SELECT SYSTEM$ESTIMATE_SEARCH_OPTIMIZATION_COSTS('table_without_search_opt')
-  AS estimate_for_table_without_search_optimization;

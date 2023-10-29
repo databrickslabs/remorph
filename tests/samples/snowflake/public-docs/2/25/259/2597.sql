@@ -1,1 +1,0 @@
-ARRAY_SORT( <array> [ , <sort_ascending> [ , <nulls_first> ] ] )

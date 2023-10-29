@@ -1,1 +1,0 @@
-SYSTEM$EXTERNAL_TABLE_PIPE_STATUS( '<external_table_name>' )

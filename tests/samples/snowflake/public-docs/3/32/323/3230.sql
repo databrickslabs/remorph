@@ -1,1 +1,0 @@
-<function_name>( <argument_name> <data_type> [ , <argument_name> data_type ] ... )

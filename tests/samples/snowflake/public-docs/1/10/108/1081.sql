@@ -1,1 +1,0 @@
-select try_to_geometry('INVALID INPUT');

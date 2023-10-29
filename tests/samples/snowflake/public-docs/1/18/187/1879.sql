@@ -1,1 +1,0 @@
-SYSTEM$ESTIMATE_SEARCH_OPTIMIZATION_COSTS('<table_name>' [ , '<search_method_with_target>' ])

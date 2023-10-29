@@ -1,1 +1,0 @@
-TO_GEOMETRY( <input> [, <allowInvalid> ] )

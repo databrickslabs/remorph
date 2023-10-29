@@ -1,1 +1,0 @@
-CREATE TABLE orders_clone CLONE orders;

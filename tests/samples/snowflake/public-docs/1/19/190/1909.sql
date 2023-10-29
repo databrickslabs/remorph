@@ -1,1 +1,0 @@
-SELECT SYSTEM$CLUSTERING_RATIO('t2', '(col1, col3)');

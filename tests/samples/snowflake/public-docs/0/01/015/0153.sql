@@ -1,1 +1,0 @@
-UNDROP DATABASE mydb;

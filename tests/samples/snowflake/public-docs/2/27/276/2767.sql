@@ -1,1 +1,0 @@
-OPEN <cursor_name> [ USING (bind_variable_1 [, bind_variable_2 ...] ) ] ;

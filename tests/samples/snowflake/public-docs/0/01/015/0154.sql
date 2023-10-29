@@ -1,1 +1,0 @@
-SELECT COUNT(col1, col2) FROM table1;

@@ -1,1 +1,0 @@
-COLLATE( <expression> , '[<collation_specification>]' )

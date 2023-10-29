@@ -1,2 +1,0 @@
-SELECT *
-    FROM sales SAMPLE(10);

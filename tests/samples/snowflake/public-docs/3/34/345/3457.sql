@@ -1,1 +1,0 @@
-DEFINE <symbol1> AS <expr1> [ , <symbol2> AS <expr2> ]

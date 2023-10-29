@@ -1,1 +1,0 @@
-ALTER TABLE <name> ADD COLUMN ( <col_name> <col_type> AS <expr> ) [, ...]

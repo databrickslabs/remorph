@@ -1,1 +1,0 @@
-ALTER SEQUENCE myseq RENAME TO newseq;

@@ -1,1 +1,0 @@
-select strtok('user@snowflake.com.', '@.', 4);

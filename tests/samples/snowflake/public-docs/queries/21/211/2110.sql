@@ -1,0 +1,8 @@
+-- see https://docs.snowflake.com/en/sql-reference/functions/search_optimization_history
+
+select *
+  from table(information_schema.search_optimization_history(
+    date_range_start=>dateadd(D, -7, current_date),
+    date_range_end=>current_date,
+    table_name=>'mydb.myschema.my_table')
+    );

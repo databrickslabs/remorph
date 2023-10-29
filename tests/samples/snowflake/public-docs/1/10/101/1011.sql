@@ -1,1 +1,0 @@
-ST_XMIN( <geography_or_geometry_expression> )

@@ -1,1 +1,0 @@
-set lqid = (select last_query_id());

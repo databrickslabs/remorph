@@ -1,1 +1,0 @@
-TAG_REFERENCES( '<object_name>' , '<object_domain>' )

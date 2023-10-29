@@ -1,0 +1,6 @@
+-- see https://docs.snowflake.com/en/sql-reference/functions/array_agg
+
+SELECT ARRAY_AGG(DISTINCT O_ORDERSTATUS) WITHIN GROUP (ORDER BY O_ORDERSTATUS ASC)
+  FROM orders 
+  WHERE O_TOTALPRICE > 450000
+  ORDER BY O_ORDERSTATUS ASC;

@@ -1,1 +1,0 @@
-SELECT IS_OBJECT(object1), IS_OBJECT(array1), IS_OBJECT(boolean1) FROM multiple_types;

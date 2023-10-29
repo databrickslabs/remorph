@@ -1,1 +1,0 @@
-select system$get_tag_allowed_values('governance.tags.cost_center');

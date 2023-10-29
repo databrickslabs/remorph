@@ -1,1 +1,0 @@
-SELECT * FROM table1, LATERAL FLATTEN(...);

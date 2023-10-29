@@ -1,1 +1,0 @@
-<SnowflakeData type="OBJECT"> </SnowflakeData>

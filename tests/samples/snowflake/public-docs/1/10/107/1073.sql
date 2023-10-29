@@ -1,1 +1,0 @@
-select TRY_TO_GEOGRAPHY('Not a valid input for this data type.');

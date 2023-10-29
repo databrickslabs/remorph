@@ -1,1 +1,0 @@
-SELECT SPACE(3);

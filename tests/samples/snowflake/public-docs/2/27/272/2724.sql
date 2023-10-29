@@ -1,1 +1,0 @@
-SQL compilation error: [ORDERS.O_ORDERSTATUS] is not a valid order by expression

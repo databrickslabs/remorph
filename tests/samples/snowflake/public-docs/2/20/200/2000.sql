@@ -1,1 +1,0 @@
-SYSTEM$ABORT_TRANSACTION(<transaction_id>)

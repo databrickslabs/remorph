@@ -1,1 +1,0 @@
-SELECT SYSTEM$CLUSTERING_INFORMATION('test2', '(col1, col3)');

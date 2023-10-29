@@ -1,1 +1,0 @@
-ON object_ref2.id_number = object_ref1.id_number

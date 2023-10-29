@@ -1,1 +1,0 @@
-select my_array_column[2] from my_table;

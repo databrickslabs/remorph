@@ -1,1 +1,0 @@
-SELECT MIN(d), MAX(d) FROM minmax_example;

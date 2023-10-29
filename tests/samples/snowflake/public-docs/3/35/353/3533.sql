@@ -1,1 +1,0 @@
-ALTER TABLE <table_name> RENAME CONSTRAINT <old_name> TO <new_name>;

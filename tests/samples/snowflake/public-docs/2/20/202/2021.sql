@@ -1,1 +1,0 @@
-SELECT approx_percentile_estimate(c1, 0.5) FROM combined_resultstate;

@@ -1,1 +1,0 @@
-ARRAYS_OVERLAP( <array1> , <array2> )

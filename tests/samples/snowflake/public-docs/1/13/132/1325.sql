@@ -1,1 +1,0 @@
-SOUNDEX( <varchar_expr> )

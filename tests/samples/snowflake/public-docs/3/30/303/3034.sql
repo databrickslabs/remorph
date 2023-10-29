@@ -1,2 +1,0 @@
-CALL budget_db.budget_schema.my_budget!REMOVE_RESOURCE(
-  SELECT SYSTEM$REFERENCE('TABLE', 't1', 'SESSION', 'APPLYBUDGET')

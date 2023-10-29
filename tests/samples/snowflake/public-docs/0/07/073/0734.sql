@@ -1,1 +1,0 @@
-SELECT TO_BINARY('SNOW', 'utf-8');

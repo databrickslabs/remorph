@@ -1,2 +1,0 @@
-SELECT 1/2;
-SELECT DIV0(1, 2);

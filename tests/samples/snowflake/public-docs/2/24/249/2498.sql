@@ -1,1 +1,0 @@
-AS_OBJECT( <variant_expr> )

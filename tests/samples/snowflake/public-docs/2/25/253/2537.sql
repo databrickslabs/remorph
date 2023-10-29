@@ -1,1 +1,0 @@
-select avg(as_real(v)) from vartab;

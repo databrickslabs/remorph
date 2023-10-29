@@ -1,1 +1,0 @@
-SELECT TO_DOUBLE(variant1) FROM double_demo;

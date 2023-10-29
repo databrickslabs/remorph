@@ -1,1 +1,0 @@
-STRTOK_TO_ARRAY(<string> [,<delimiter>])

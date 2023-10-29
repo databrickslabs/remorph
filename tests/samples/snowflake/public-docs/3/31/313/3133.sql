@@ -1,5 +1,0 @@
--- Not allowed
-ON EQUALITY(*, c1)
-ON EQUALITY(c1, *)
-ON EQUALITY(v1:path, *)
-ON EQUALITY(c1), EQUALITY(*)

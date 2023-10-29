@@ -1,1 +1,0 @@
-<budget_name>!REMOVE_RESOURCE( { '<object_reference>' | <reference_statement> } )

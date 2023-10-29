@@ -1,1 +1,0 @@
-ARRAY_EXCEPT( <source_array> , <array_of_elements_to_exclude> )
