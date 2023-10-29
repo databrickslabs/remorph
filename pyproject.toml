@@ -13,7 +13,7 @@ keywords = []
 authors = [
 ]
 classifiers = [
-  "Development Status :: 5 - Alpha",
+  "Development Status :: 4 - Beta",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: Implementation :: CPython",
@@ -26,9 +26,14 @@ Issues = "https://github.com/databrickslabs/remorph/issues"
 Source = "https://github.com/databrickslabs/remorph"
 
 [tool.hatch.version]
-path = "src/remorph/__about__.py"
+path = "src/databricks/labs/remorph/__about__.py"
 
 [tool.hatch.envs.default]
+python="3.10"
+
+# store virtual env as the child of this folder. Helps VSCode to run better
+path = ".venv"
+
 dependencies = [
   "coverage[toml]>=6.5",
   "pytest",
@@ -133,7 +138,7 @@ source_pkgs = ["remorph", "tests"]
 branch = true
 parallel = true
 omit = [
-  "src/remorph/__about__.py",
+  "src/databricks/labs/remorph/__about__.py",
 ]
 
 [tool.coverage.paths]
