@@ -5,7 +5,7 @@ clean:
 	hatch env remove unit
 
 dev:
-	pip install hatch
+	pip3 install hatch
 	hatch env create
 	hatch run pip install -e '.[test]'
 	hatch run which python
