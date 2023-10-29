@@ -1,1 +1,0 @@
-BITOR( <expr1> , <expr2> )

@@ -1,1 +1,0 @@
-<expr> IS [ NOT ] NULL

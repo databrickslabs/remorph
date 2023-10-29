@@ -1,1 +1,0 @@
-<value> [ NOT ] IN ( <subquery> )

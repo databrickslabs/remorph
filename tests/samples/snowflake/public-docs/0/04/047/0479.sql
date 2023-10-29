@@ -1,1 +1,0 @@
-NULLIFZERO( <expr> )
