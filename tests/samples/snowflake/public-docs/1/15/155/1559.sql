@@ -1,1 +1,0 @@
-CREATE TABLE dependents (id INT, employee_id INT);

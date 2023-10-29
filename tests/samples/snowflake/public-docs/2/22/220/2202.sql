@@ -1,1 +1,0 @@
-select bitxor_agg(k), bitxor_agg(d), bitxor_agg(s1) from bitwise_example;

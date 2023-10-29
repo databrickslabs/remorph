@@ -1,1 +1,0 @@
-CLEANUP_DATABASE_ROLE_GRANTS( '<database_role_name>' , '<share_name>' )

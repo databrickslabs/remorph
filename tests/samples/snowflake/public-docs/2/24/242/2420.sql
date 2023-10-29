@@ -1,1 +1,0 @@
-select * from vardttm where is_timestamp_tz(v);

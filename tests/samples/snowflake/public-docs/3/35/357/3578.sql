@@ -1,3 +1,0 @@
-{}
-
-{ 'Alberta': 'Edmonton' , 'Manitoba': 'Winnipeg' }

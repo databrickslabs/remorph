@@ -1,1 +1,0 @@
-ST_DWITHIN( <geography_expression_1> , <geography_expression_2> , <distance_in_meters> )

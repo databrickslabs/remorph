@@ -1,1 +1,0 @@
-TRY_BASE64_DECODE_BINARY(<input> [, <alphabet>])

@@ -1,1 +1,0 @@
-CREATE EXTERNAL TABLE emp ( ... );

@@ -1,1 +1,0 @@
-SELECT SPLIT_PART('aaa--bbb-BBB--ccc', '--', 2);

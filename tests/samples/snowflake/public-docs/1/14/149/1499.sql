@@ -1,1 +1,0 @@
-DATABASE_REFRESH_HISTORY( '<secondary_db_name>' )

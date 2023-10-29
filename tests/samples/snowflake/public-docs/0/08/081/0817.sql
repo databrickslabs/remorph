@@ -1,1 +1,0 @@
-H3_POINT_TO_CELL( <geography_point> , <target_resolution> )

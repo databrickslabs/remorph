@@ -1,1 +1,0 @@
-STRTOK_SPLIT_TO_TABLE(<string> [,<delimiter_list>])

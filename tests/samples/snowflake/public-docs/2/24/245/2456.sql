@@ -1,1 +1,0 @@
-SELECT STRTOK_TO_ARRAY('user@snowflake.com', '.@');

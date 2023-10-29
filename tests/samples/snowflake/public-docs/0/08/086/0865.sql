@@ -1,1 +1,0 @@
-H3_CELL_TO_POINT( <cell_id> )

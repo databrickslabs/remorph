@@ -1,1 +1,0 @@
-SELECT SPLIT_PART('|a|b|c|', '|', 1), SPLIT_PART('|a|b|c|', '|', 2);

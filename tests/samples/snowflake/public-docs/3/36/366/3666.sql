@@ -1,7 +1,0 @@
-"MyIdentifier"
-"my.identifier"
-"my identifier"
-"My 'Identifier'"
-"3rd_identifier"
-"$Identifier"
-"идентификатор"

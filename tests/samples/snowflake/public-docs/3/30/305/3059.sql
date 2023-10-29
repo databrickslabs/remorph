@@ -1,1 +1,0 @@
-<budget_name>!GET_CONFIG()

@@ -1,1 +1,0 @@
-BUILD_STAGE_FILE_URL( @<stage_name> , '<relative_file_path>' )

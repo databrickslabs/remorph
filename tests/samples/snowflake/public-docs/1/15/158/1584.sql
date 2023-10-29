@@ -1,1 +1,0 @@
-SELECT * FROM TABLE(VALIDATE(t1, JOB_ID => '_last'));

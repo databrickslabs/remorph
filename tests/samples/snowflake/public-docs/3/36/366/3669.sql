@@ -1,4 +1,0 @@
-"TABLENAME"
-"tablename"
-"tableName"
-"TableName"

@@ -1,1 +1,0 @@
-IDENTIFIER( { string_literal | session_variable | bind_variable | snowflake_scripting_variable } )

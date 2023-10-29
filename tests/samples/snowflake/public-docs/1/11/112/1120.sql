@@ -1,1 +1,0 @@
-ST_GEOGFROMGEOHASH( <geohash> [, <precision> ] )

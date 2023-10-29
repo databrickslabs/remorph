@@ -1,1 +1,0 @@
-'string with a \' character'

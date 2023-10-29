@@ -1,1 +1,0 @@
-REVERSE(<subject>)

@@ -1,1 +1,0 @@
-SELECT * FROM leased_bicycles ORDER BY bicycle_ID;

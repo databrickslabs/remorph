@@ -1,1 +1,0 @@
-SELECT SYSTEM$PIPE_FORCE_RESUME('mydb.myschema.mypipe');

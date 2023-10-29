@@ -1,1 +1,0 @@
-ST_MAKEPOLYGONORIENTED( <geography_expression> )

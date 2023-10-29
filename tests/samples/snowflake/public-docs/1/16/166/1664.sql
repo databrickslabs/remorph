@@ -1,3 +1,0 @@
-SELECT DISTINCT n, TRUNCATE(n) 
-  FROM test_1
-  ORDER BY n;

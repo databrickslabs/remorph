@@ -1,1 +1,0 @@
-SELECT APPROX_PERCENTILE(c1, 0.1) FROM testtable;

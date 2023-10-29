@@ -1,1 +1,0 @@
-DESC SEQUENCE my_sequence;

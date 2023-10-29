@@ -1,1 +1,0 @@
-CALL snowflake.local.account_root_budget!GET_MEASUREMENT_TABLE();

@@ -1,1 +1,0 @@
-SIN( <real_expr> )

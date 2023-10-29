@@ -1,1 +1,0 @@
-SELECT ARRAY_REMOVE([5, 5], 5);

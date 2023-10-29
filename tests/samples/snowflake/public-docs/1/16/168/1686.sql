@@ -1,1 +1,0 @@
-CEIL( <input_expr> [, <scale_expr> ] )

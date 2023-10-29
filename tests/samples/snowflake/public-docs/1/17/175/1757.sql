@@ -1,1 +1,0 @@
-select regexp_substr_all('a1_a2a3_a4A5a6', 'a[[:digit:]]', 1, 1, 'i') as matches;

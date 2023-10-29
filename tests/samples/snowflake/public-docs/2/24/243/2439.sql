@@ -1,1 +1,0 @@
-IS_BOOLEAN( <variant_expr> )

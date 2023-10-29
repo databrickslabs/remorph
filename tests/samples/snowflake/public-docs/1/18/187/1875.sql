@@ -1,1 +1,0 @@
-https://login.microsoftonline.com/tenantId/oauth2/authorize?client_id=myClientId&response_type=code

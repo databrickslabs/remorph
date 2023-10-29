@@ -1,1 +1,0 @@
-SELECT i FROM sequence_demo ORDER BY i LIMIT 10;

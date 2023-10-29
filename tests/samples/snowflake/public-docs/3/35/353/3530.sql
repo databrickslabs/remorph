@@ -1,1 +1,0 @@
-ALTER TABLE <table_name> DROP { CONSTRAINT <name> | PRIMARY KEY | { UNIQUE | FOREIGN KEY } (<column>, [ ... ] ) } [ CASCADE | RESTRICT ]

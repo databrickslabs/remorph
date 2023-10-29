@@ -1,1 +1,0 @@
-LET <cursor_name> CURSOR FOR <resultset_name> ;

@@ -1,1 +1,0 @@
-select charindex('an', 'banana', 1);

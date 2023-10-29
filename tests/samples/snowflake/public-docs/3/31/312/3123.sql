@@ -1,1 +1,0 @@
-DESC EVENT TABLE my_logged_events;

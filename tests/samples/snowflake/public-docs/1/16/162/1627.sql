@@ -1,1 +1,0 @@
-ASINH( <real_expr> )

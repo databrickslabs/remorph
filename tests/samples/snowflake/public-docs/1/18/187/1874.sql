@@ -1,1 +1,0 @@
-SELECT SYSTEM$GET_CMK_AKV_CONSENT_URL('my-account' , 'b3ddabe4-e5ed-4e71-8827-0cefb99af240');

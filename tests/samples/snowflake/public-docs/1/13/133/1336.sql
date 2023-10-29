@@ -1,1 +1,0 @@
-RPAD(<base>, <length_expr> [, <pad>])

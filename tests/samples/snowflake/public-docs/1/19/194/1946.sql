@@ -1,1 +1,0 @@
-SYSTEM$REVOKE_PRIVATELINK( '<private-endpoint-resource-id>' , '<federated_token>' )

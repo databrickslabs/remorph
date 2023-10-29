@@ -1,1 +1,0 @@
--20002 (P0001): Uncaught exception of type 'MY_EXCEPTION' on line 7 at position 8 : Raised MY_EXCEPTION.

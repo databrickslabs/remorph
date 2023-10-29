@@ -1,1 +1,0 @@
-SELECT ARRAY_POSITION('hello'::variant, array_construct('hello', 'hi'));

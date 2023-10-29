@@ -1,1 +1,0 @@
-INSERT INTO sequence_test_table (i) VALUES (seq_01.nextval);

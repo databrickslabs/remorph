@@ -1,1 +1,0 @@
-SELECT GET_DDL('procedure', 'stproc_1(float)');

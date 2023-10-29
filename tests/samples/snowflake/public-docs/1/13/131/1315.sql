@@ -1,1 +1,0 @@
-SPLIT_PART(<string>, <delimiter>, <partNumber>)

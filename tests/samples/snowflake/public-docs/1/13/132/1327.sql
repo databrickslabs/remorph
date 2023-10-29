@@ -1,1 +1,0 @@
-SELECT SOUNDEX('Marks'), SOUNDEX('Marx');

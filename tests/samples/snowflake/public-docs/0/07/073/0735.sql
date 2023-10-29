@@ -1,1 +1,0 @@
-SELECT TO_VARCHAR(TO_BINARY('SNOW', 'utf-8'), 'HEX');

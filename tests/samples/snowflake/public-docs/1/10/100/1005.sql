@@ -1,1 +1,0 @@
-ST_SRID( <geography_or_geometry_expression> )

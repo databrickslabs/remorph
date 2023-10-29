@@ -1,1 +1,0 @@
-CALL case_demo_01('second choice');

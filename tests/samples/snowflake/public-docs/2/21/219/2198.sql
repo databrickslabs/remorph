@@ -1,1 +1,0 @@
-BITXOR_AGG( [ DISTINCT ] <expr1> )

@@ -1,1 +1,0 @@
-CLOSE my_cursor_name;

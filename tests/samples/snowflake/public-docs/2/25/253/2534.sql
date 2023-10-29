@@ -1,1 +1,0 @@
-SELECT GET(v, 'temperature') FROM vartab;

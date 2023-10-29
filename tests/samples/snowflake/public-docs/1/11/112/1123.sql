@@ -1,1 +1,0 @@
-GET_PRESIGNED_URL( @<stage_name> , '<relative_file_path>' , [ <expiration_time> ] )

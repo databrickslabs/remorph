@@ -1,1 +1,0 @@
-ABS( <num_expr> )

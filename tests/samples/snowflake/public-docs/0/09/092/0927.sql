@@ -1,1 +1,0 @@
-ST_CENTROID( <geography_or_geometry_expression> )

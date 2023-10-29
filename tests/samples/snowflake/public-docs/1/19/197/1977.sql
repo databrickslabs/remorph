@@ -1,1 +1,0 @@
-SYSTEM$ENABLE_BEHAVIOR_CHANGE_BUNDLE( '<bundle_name>' )

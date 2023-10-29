@@ -1,1 +1,0 @@
-select position('an', 'banana', 3);

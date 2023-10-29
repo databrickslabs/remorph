@@ -1,1 +1,0 @@
-ARRAY_REMOVE_AT( <array> , <position> )

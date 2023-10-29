@@ -1,1 +1,0 @@
-SYSTEM$MIGRATE_SAML_IDP_REGISTRATION( '<integration_name>', '<issuer>' )

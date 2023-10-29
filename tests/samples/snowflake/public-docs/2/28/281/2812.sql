@@ -1,1 +1,0 @@
-FETCH <cursor_name> INTO <variable> [, <variable> ... ] ;

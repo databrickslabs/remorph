@@ -1,1 +1,0 @@
-SHOW OBJECTS LIKE 'line%' IN mydb.public;

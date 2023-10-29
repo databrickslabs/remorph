@@ -1,1 +1,0 @@
-The email integration is updated.

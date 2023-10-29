@@ -1,1 +1,0 @@
-IS_INTEGER( <variant_expr> )

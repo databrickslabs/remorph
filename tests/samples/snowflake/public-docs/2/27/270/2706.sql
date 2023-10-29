@@ -1,1 +1,0 @@
-SELECT ARRAY_DISTINCT(['A', 'A', 'B', NULL, NULL]);

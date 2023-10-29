@@ -1,1 +1,0 @@
-ACOSH( <real_expr> )

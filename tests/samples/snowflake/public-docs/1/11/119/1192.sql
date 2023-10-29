@@ -1,1 +1,0 @@
-HEX_ENCODE(<input> [, <case>])

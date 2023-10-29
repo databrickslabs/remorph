@@ -1,1 +1,0 @@
-H3_COVERAGE_STRINGS( <geography_expression> , <target_resolution> )

@@ -1,1 +1,0 @@
-ALTER TABLE exttable1 ADD COLUMN a1 VARCHAR AS (value:a1::VARCHAR);

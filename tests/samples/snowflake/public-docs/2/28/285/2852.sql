@@ -1,1 +1,0 @@
-CALL case_demo_2('none of the above');

@@ -1,1 +1,0 @@
-PERCENT_RANK() OVER ( [ PARTITION BY <expr1> ] ORDER BY <expr2> [ { ASC | DESC } ] [ <cumulativeRangeFrame> ] )

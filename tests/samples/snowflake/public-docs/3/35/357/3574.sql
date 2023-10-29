@@ -1,1 +1,0 @@
-SELECT my_variant_column * 3.14 FROM ...;

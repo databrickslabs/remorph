@@ -1,1 +1,0 @@
-ALTER ACCOUNT SET SEARCH_PATH = '$current, $public, SNOWFLAKE.ML';

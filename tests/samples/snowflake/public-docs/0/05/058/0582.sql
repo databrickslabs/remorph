@@ -1,6 +1,0 @@
-CREATE OR REPLACE MASKING POLICY mask_string AS
-(val string) RETURNS string ->
-CASE
-  WHEN IS_GRANTED_TO_INVOKER_ROLE('ANALYST') then val
-  ELSE '*******'
-END;

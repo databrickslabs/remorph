@@ -1,1 +1,0 @@
-SELECT a, b, NULLIF(a,b) FROM i;

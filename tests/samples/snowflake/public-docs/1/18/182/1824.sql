@@ -1,1 +1,0 @@
-SYSTEM$REFERENCE('<select_statement>', [ , <use_session_scope> ] )

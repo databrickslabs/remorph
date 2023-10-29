@@ -1,1 +1,0 @@
-TRANSLATE( <subject>, <sourceAlphabet>, <targetAlphabet> )

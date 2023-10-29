@@ -1,1 +1,0 @@
-SINH( <real_expr> )

@@ -1,1 +1,0 @@
-c1 CURSOR FOR SELECT id, price FROM invoices;

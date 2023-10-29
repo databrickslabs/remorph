@@ -1,3 +1,0 @@
-SELECT ARRAYS_OVERLAP(ARRAY_CONSTRUCT(1, 2, NULL),
-                      ARRAY_CONSTRUCT(3, NULL, 5))
- AS Overlap;

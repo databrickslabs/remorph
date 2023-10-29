@@ -1,1 +1,0 @@
-SELECT AS_DATE(date1) AS "Date" FROM multiple_types;

@@ -1,1 +1,0 @@
-STDDEV_POP( [ DISTINCT ] expression_1)

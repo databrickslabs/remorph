@@ -1,1 +1,0 @@
-select * from data_table;

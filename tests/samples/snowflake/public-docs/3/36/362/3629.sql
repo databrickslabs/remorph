@@ -1,1 +1,0 @@
-SELECT TO_GEOMETRY(ST_ASGEOJSON(geography_expression), 4326);

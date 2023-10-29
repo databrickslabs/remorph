@@ -1,1 +1,0 @@
-SELECT PARSE_URL('https://www.snowflake.com/');

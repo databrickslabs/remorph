@@ -1,1 +1,0 @@
-AS_INTEGER( <variant_expr> )

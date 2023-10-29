@@ -1,1 +1,0 @@
-ENDSWITH( <expr1> , <expr2> )

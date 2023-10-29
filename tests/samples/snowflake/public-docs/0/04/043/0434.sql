@@ -1,1 +1,0 @@
-select time_from_parts(0, 100, 0), time_from_parts(12, 0, 12345);

@@ -1,1 +1,0 @@
-ARRAY_SLICE( <array> , <from> , <to> )

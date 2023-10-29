@@ -1,2 +1,0 @@
-SELECT x, TO_VARCHAR(x), TO_XML(x)
-    FROM xml2;

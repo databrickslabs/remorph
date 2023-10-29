@@ -1,1 +1,0 @@
-SELECT TRANSLATE('❄a❄bX❄dYZ❄','XYZ❄','cef');

@@ -1,1 +1,0 @@
-SELECT IS_BOOLEAN(boolean1), IS_BOOLEAN(array1) FROM multiple_types;

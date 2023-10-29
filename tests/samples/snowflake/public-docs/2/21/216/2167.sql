@@ -1,1 +1,0 @@
-REGR_AVGY(y, x) OVER ( [ PARTITION BY <expr3> ] )

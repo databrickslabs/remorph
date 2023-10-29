@@ -1,1 +1,0 @@
-H3_GRID_DISK( <cell_id> , <k_value> )

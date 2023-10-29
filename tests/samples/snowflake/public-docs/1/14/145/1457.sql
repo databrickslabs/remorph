@@ -1,1 +1,0 @@
-function_signature => 'mydb.public.myfunction(integer, varchar)'

@@ -1,1 +1,0 @@
-SELECT * FROM sf_employees;

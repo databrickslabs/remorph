@@ -1,1 +1,0 @@
-{ BREAK | EXIT } [ <label> ] ;

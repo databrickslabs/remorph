@@ -1,1 +1,0 @@
-SYSTEM$GET_TAG( '<tag_name>' , '<obj_name>' , '<obj_domain>' )

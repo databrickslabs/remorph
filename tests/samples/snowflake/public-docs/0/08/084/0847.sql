@@ -1,1 +1,0 @@
-SELECT H3_GRID_DISTANCE('891f1d48b93ffff', '891f1d4888fffff');

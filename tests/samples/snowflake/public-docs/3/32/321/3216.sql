@@ -1,1 +1,0 @@
-SHOW TABLES LIKE 'line%' IN tpch.public;

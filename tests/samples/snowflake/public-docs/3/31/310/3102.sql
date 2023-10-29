@@ -1,1 +1,0 @@
-ALTER VIEW view1 RENAME TO view2;

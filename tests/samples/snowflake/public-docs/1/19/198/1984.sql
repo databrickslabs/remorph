@@ -1,1 +1,0 @@
-SYSTEM$CANCEL_ALL_QUERIES( <session_id> )

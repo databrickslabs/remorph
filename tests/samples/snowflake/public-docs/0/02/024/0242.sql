@@ -1,1 +1,0 @@
-select get_ddl('schema', 'books_schema', true);

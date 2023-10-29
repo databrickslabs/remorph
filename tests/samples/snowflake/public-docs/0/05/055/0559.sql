@@ -1,1 +1,0 @@
-SELECT 'true' WHERE 'the' BETWEEN 'that' AND 'then';

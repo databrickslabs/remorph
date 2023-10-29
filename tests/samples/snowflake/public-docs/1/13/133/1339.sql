@@ -1,1 +1,0 @@
-SELECT REVERSE('Hello, world!');

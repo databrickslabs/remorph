@@ -1,1 +1,0 @@
-DESC EXTERNAL TABLE exttable1;

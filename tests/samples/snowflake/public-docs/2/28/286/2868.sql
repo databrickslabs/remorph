@@ -1,1 +1,0 @@
-DELETE FROM leased_bicycles WHERE bicycle_ID = 105;

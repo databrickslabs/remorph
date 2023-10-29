@@ -1,1 +1,0 @@
-IS_DECIMAL( <variant_expr> )

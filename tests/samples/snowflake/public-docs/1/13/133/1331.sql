@@ -1,1 +1,0 @@
-RTRIMMED_LENGTH( <string_expr> )

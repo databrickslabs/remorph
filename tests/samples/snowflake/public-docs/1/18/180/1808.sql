@@ -1,1 +1,0 @@
-SYSTEM$STREAM_HAS_DATA('<stream_name>')

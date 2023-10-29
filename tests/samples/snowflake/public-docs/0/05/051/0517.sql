@@ -1,1 +1,0 @@
-SELECT a, b, IFNULL(a,b), IFNULL(b,a) FROM i;

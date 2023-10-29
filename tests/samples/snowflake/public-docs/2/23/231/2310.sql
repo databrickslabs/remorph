@@ -1,1 +1,0 @@
-select mode(v) from aggr;

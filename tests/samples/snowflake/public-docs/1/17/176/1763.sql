@@ -1,1 +1,0 @@
-<subject> REGEXP <pattern>

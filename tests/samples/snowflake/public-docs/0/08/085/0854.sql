@@ -1,1 +1,0 @@
-H3_GET_RESOLUTION( <cell_id> )

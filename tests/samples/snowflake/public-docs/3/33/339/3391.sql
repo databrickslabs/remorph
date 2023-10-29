@@ -1,1 +1,0 @@
-select to_varchar(-123.45, '999.99MI') as EXAMPLE;

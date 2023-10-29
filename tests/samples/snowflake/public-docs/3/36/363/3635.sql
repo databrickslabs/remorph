@@ -1,1 +1,0 @@
-ST_GEOMFROMWKT( <input> [, <allowInvalid> ] )

@@ -1,1 +1,0 @@
-ALTER EXTERNAL TABLE exttable1 REMOVE FILES ('path1/sales4.json.gz', 'path1/sales5.json.gz');

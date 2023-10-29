@@ -1,1 +1,0 @@
-select name, hire_date from employees where hire_date > current_date - INTERVAL '2 y, 3 month';

@@ -1,1 +1,0 @@
-REGR_COUNT(y, x)

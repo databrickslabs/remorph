@@ -1,1 +1,0 @@
-select strtok('a.b', '', 1);

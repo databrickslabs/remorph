@@ -1,1 +1,0 @@
-ST_ISVALID( <geography_or_geometry_expression> )

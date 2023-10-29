@@ -1,1 +1,0 @@
-UPDATE mydb.s1.t1 SET col_1 = col_1 + 1;

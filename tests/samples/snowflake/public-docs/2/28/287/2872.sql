@@ -1,1 +1,0 @@
-INSERT INTO returned_bicycles (bicycle_ID) VALUES (103);

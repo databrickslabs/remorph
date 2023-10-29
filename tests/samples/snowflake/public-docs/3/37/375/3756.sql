@@ -1,1 +1,0 @@
-insert into A(col1) select f(col2) from B;

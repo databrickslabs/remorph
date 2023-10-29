@@ -1,1 +1,0 @@
-ANY_VALUE( [ DISTINCT ] <expr1> )

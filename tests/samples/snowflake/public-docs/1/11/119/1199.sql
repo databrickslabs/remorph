@@ -1,1 +1,0 @@
-BASE64_ENCODE( <input> [ , <max_line_length> ] [ , <alphabet> ] )

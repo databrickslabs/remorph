@@ -1,1 +1,0 @@
-JSON_EXTRACT_PATH_TEXT( <column_identifier> , '<path_name>' )

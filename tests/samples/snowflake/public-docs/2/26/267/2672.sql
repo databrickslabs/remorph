@@ -1,1 +1,0 @@
-ARRAY_INSERT( <array> , <pos> , <new_element> )

@@ -1,1 +1,0 @@
-select strtok('', '', 1);

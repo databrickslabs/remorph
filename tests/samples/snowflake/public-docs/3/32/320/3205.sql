@@ -1,1 +1,0 @@
-DESC[RIBE] TABLE <name> [ TYPE =  { COLUMNS | STAGE } ]

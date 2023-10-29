@@ -1,1 +1,0 @@
-predicatedColumnReference ::= <symbol>.<column>

@@ -1,1 +1,0 @@
-SELECT COUNT_IF(TRUE) FROM basic_example;

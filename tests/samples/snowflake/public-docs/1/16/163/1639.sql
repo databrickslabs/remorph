@@ -1,1 +1,0 @@
-FACTORIAL( <integer_expr> )

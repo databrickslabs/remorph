@@ -1,1 +1,0 @@
-SELECT TRY_TO_TIME('12:30:00'), TRY_TO_TIME('Invalid');

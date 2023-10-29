@@ -1,1 +1,0 @@
-REPLACE( <subject> , <pattern> [ , <replacement> ] )

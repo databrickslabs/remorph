@@ -1,1 +1,0 @@
-<resultset_name> RESULTSET [ { DEFAULT | := } ( <query> ) ] ;

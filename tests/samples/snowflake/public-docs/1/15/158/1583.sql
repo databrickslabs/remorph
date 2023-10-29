@@ -1,1 +1,0 @@
-VALIDATE( [<namespace>.]<table_name> , JOB_ID => { '<query_id>' | '_last' } )

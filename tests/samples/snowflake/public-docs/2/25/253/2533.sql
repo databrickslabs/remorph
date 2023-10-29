@@ -1,1 +1,0 @@
-SELECT GET(o, 'Ukraine') FROM vartab;

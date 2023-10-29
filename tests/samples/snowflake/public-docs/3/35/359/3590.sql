@@ -1,1 +1,0 @@
-select array_slice(my_array_column, 5, 10) from my_table;

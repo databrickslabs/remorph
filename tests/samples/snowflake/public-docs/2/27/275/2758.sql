@@ -1,1 +1,0 @@
-SELECT variant1, variant2, variant1 = variant2 FROM jdemo2;

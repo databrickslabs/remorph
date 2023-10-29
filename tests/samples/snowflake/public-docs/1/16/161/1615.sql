@@ -1,1 +1,0 @@
-COSH( <real_expr> )
