@@ -1,1 +1,0 @@
-100039 (22003): Numeric value '345.123' is out of range
