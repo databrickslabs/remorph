@@ -39,7 +39,6 @@ python="3.10"
 path = ".venv"
 
 dependencies = [
-  "click>=8.1.7",
   "coverage[toml]>=6.5",
   "pytest",
 ]
@@ -156,7 +155,3 @@ exclude_lines = [
   "if __name__ == .__main__.:",
   "if TYPE_CHECKING:",
 ]
-
-[project.scripts]
-transpile = "databricks.labs.remorph.transpiler.cli:entry_point"
-reconcile = "databricks.labs.remorph.reconcile.cli:entry_point"
