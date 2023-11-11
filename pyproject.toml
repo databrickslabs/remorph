@@ -18,7 +18,10 @@ classifiers = [
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: Implementation :: CPython",
 ]
-dependencies = []
+
+dependencies = [
+  "antlr4-python3-runtime==4.13.1"
+]
 
 [project.urls]
 Documentation = "https://github.com/databrickslabs/remorph"

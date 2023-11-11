@@ -1,5 +1,6 @@
 {
     "recommendations": [
-        "mike-lischke.vscode-antlr4"
+        "mike-lischke.vscode-antlr4",
+        "ms-python.vscode-pylance"
     ]
 }

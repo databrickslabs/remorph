@@ -1,7 +1,5 @@
 all: clean lint fmt test
 
-antlr:
-	wget https://www.antlr.org/download/antlr-4.13.1-complete.jar -o .venv/antlr.jar
 
 clean:
 	rm -fr htmlcov .mypy_cache .pytest_cache .ruff_cache .coverage coverage.xml
@@ -29,3 +27,52 @@ integration:
 coverage:
 	hatch run unit:test-cov-report && open htmlcov/index.html
 
+.venv/antlr.jar:
+	curl https://www.antlr.org/download/antlr-4.13.1-complete.jar -o .venv/antlr.jar
+
+ANTLR = java -jar .venv/antlr.jar \
+		-Dlanguage=Python3 \
+		-Xexact-output-dir \
+		-no-listener \
+		-visitor
+
+PARSERS = src/databricks/labs/remorph/parsers
+
+src/databricks/labs/remorph/parsers/g4/ANTLRv4Lexer.py: src/databricks/labs/remorph/parsers/g4/ANTLRv4Lexer.g4
+	$(ANTLR) \
+		-o src/databricks/labs/remorph/parsers/g4 \
+		src/databricks/labs/remorph/parsers/g4/ANTLRv4Lexer.g4
+	rm src/databricks/labs/remorph/parsers/g4/*.interp
+
+src/databricks/labs/remorph/parsers/g4/ANTLRv4Parser.py: src/databricks/labs/remorph/parsers/g4/ANTLRv4Parser.g4
+	$(ANTLR) \
+		-o src/databricks/labs/remorph/parsers/g4 \
+		src/databricks/labs/remorph/parsers/g4/ANTLRv4Parser.g4
+	rm src/databricks/labs/remorph/parsers/g4/*.interp
+
+src/databricks/labs/remorph/parsers/g4: \
+	src/databricks/labs/remorph/parsers/g4/ANTLRv4Lexer.py \
+	src/databricks/labs/remorph/parsers/g4/ANTLRv4Parser.py
+
+$(PARSERS)/tsql/generated: .venv/antlr.jar
+	@mkdir $@
+	@touch $@/__init__.py
+
+$(PARSERS)/tsql/generated/TSqlLexer.py: $(PARSERS)/tsql/TSqlLexer.g4 $(PARSERS)/tsql/generated
+	@$(ANTLR) -o $(dir $@) $<
+	@rm $(basename $@).interp
+
+$(PARSERS)/tsql/generated/TSqlParser.py: $(PARSERS)/tsql/TSqlParser.g4 $(PARSERS)/tsql/generated
+	@$(ANTLR) -o $(dir $@) $<
+	@rm $(basename $@).interp
+
+tsql: \
+	$(PARSERS)/tsql/generated/TSqlLexer.py \
+	$(PARSERS)/tsql/generated/TSqlParser.py
+	echo "Generated T-SQL parsers"
+
+clean-tsql:
+	rm -fr $(PARSERS)/tsql/generated
+
+parsers: tsql
+	echo done

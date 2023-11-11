@@ -40,6 +40,7 @@
 parser grammar ANTLRv4Parser;
 
 
+
 options { tokenVocab = ANTLRv4Lexer; }
 // The main entry point for parsing a v4 grammar.
 grammarSpec
@@ -354,6 +355,7 @@ ruleref
 characterRange
    : STRING_LITERAL RANGE STRING_LITERAL
    ;
+
 
 terminal
    : TOKEN_REF elementOptions?
