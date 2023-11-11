@@ -74,5 +74,18 @@ tsql: \
 clean-tsql:
 	rm -fr $(PARSERS)/tsql/generated
 
+# Protobuf parser
+
+$(PARSERS)/proto/generated/Protobuf3Parser.py: $(wildcard $(PARSERS)/proto/*.g4)
+	@$(ANTLR) -o $(dir $@) $<
+	@rm $(PARSERS)/proto/generated/*.interp
+
+proto: $(PARSERS)/proto/generated/Protobuf3Parser.py
+	touch $(PARSERS)/proto/generated/__init__.py
+
+clean-proto:
+	rm -fr $(PARSERS)/proto/generated
+
+
 parsers: tsql
 	echo done
