@@ -1,4 +1,4 @@
-# Generated from antlr4/g4/ANTLRv4Lexer.g4 by ANTLR 4.13.1
+# Generated from /Users/serge.smertin/git/labs/remorph/src/databricks/labs/remorph/parsers/g4/ANTLRv4Lexer.g4 by ANTLR 4.13.1
 from antlr4 import *
 from io import StringIO
 import sys
@@ -441,17 +441,17 @@ class ANTLRv4Lexer(LexerAdaptor):
 
     def BEGIN_ARGUMENT_action(self, localctx:RuleContext , actionIndex:int):
         if actionIndex == 0:
-             self.handleBeginArgument() 
+             self.handleBeginArgument(); 
      
 
     def END_ARGUMENT_action(self, localctx:RuleContext , actionIndex:int):
         if actionIndex == 1:
-             self.handleEndArgument() 
+             self.handleEndArgument(); 
      
 
     def END_ACTION_action(self, localctx:RuleContext , actionIndex:int):
         if actionIndex == 2:
-             self.handleEndAction() 
+             self.handleEndAction(); 
      
 
 

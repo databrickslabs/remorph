@@ -1,5 +1,6 @@
 all: clean lint fmt test
 
+# See https://www.gnu.org/software/make/manual/make.html
 
 clean:
 	rm -fr htmlcov .mypy_cache .pytest_cache .ruff_cache .coverage coverage.xml
@@ -38,25 +39,26 @@ ANTLR = java -jar .venv/antlr.jar \
 
 PARSERS = src/databricks/labs/remorph/parsers
 
-src/databricks/labs/remorph/parsers/g4/ANTLRv4Lexer.py: src/databricks/labs/remorph/parsers/g4/ANTLRv4Lexer.g4
-	$(ANTLR) \
-		-o src/databricks/labs/remorph/parsers/g4 \
-		src/databricks/labs/remorph/parsers/g4/ANTLRv4Lexer.g4
-	rm src/databricks/labs/remorph/parsers/g4/*.interp
+$(PARSERS)/g4/generated/LexBasic.py: $(PARSERS)/g4/LexBasic.g4
+	@$(ANTLR) -o $(dir $@) $<
+	@rm $(basename $@).interp
 
-src/databricks/labs/remorph/parsers/g4/ANTLRv4Parser.py: src/databricks/labs/remorph/parsers/g4/ANTLRv4Parser.g4
-	$(ANTLR) \
-		-o src/databricks/labs/remorph/parsers/g4 \
-		src/databricks/labs/remorph/parsers/g4/ANTLRv4Parser.g4
-	rm src/databricks/labs/remorph/parsers/g4/*.interp
+$(PARSERS)/g4/generated/ANTLRv4Lexer.py: $(PARSERS)/g4/ANTLRv4Lexer.g4 $(PARSERS)/g4/generated/LexBasic.py
+	@$(ANTLR) -o $(dir $@) $<
+	@rm $(basename $@).interp
+	@echo "from ..adaptor import LexerAdaptor" >> $(PARSERS)/g4/generated/LexerAdaptor.py
 
-src/databricks/labs/remorph/parsers/g4: \
-	src/databricks/labs/remorph/parsers/g4/ANTLRv4Lexer.py \
-	src/databricks/labs/remorph/parsers/g4/ANTLRv4Parser.py
+$(PARSERS)/g4/generated/ANTLRv4Parser.py: $(PARSERS)/g4/ANTLRv4Parser.g4
+	@$(ANTLR) -o $(dir $@) $<
+	@rm $(basename $@).interp
 
-$(PARSERS)/tsql/generated: .venv/antlr.jar
-	@mkdir $@
-	@touch $@/__init__.py
+g4: \
+	$(PARSERS)/g4/generated/LexBasic.py \
+	$(PARSERS)/g4/generated/ANTLRv4Lexer.py \
+	$(PARSERS)/g4/generated/ANTLRv4Parser.py
+
+clean-g4:
+	rm -fr $(PARSERS)/g4/generated
 
 $(PARSERS)/tsql/generated/TSqlLexer.py: $(PARSERS)/tsql/TSqlLexer.g4 $(PARSERS)/tsql/generated
 	@$(ANTLR) -o $(dir $@) $<
@@ -86,6 +88,13 @@ proto: $(PARSERS)/proto/generated/Protobuf3Parser.py
 clean-proto:
 	rm -fr $(PARSERS)/proto/generated
 
+IR = src/databricks/labs/remorph/intermediate
+
+$(IR)/proto/spark/connect:
+	sh src/databricks/labs/remorph/intermediate/download.sh
+
+intermediate: proto $(IR)/proto/spark/connect
+	echo done
 
 parsers: tsql
 	echo done

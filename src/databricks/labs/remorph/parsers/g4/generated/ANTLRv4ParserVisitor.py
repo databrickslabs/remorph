@@ -1,4 +1,4 @@
-# Generated from antlr4/g4/ANTLRv4Parser.g4 by ANTLR 4.13.1
+# Generated from src/databricks/labs/remorph/parsers/g4/ANTLRv4Parser.g4 by ANTLR 4.13.1
 from antlr4 import *
 
 if "." in __name__:
@@ -17,7 +17,6 @@ class ANTLRv4ParserVisitor(ParseTreeVisitor):
 
     # Visit a parse tree produced by ANTLRv4Parser#grammarDecl.
     def visitGrammarDecl(self, ctx: ANTLRv4Parser.GrammarDeclContext):
-        ctx.identifier()
         return self.visitChildren(ctx)
 
     # Visit a parse tree produced by ANTLRv4Parser#grammarType.
