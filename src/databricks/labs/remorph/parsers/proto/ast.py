@@ -33,7 +33,7 @@ class OptionName:
 @node
 class Field:
     field_label: any = None
-    type: any = None
+    type_: any = None
     field_name: any = None
     field_number: any = None
     field_options: any = None
@@ -61,7 +61,7 @@ class Oneof:
 
 @node
 class OneofField:
-    type: any = None
+    type_: any = None
     field_name: any = None
     field_number: any = None
     field_options: any = None
@@ -69,7 +69,7 @@ class OneofField:
 @node
 class MapField:
     key_type: any = None
-    type: any = None
+    type_: any = None
     map_name: any = None
     field_number: any = None
     field_options: any = None
@@ -86,8 +86,8 @@ class Reserved:
 
 @node
 class Ranges:
-    range: any = None
-    range: any = None
+    range_: any = None
+    range_: any = None
 
 @node
 class Range:

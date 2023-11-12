@@ -56,11 +56,11 @@ class Protobuf3AST(Protobuf3Visitor):
 
     def visitField(self, ctx: proto.FieldContext):
         field_label = self._(ctx.fieldLabel())
-        type = self._(ctx.type_())
+        type_ = self._(ctx.type_())
         field_name = self._(ctx.fieldName())
         field_number = self._(ctx.fieldNumber())
         field_options = self._(ctx.fieldOptions())
-        return Field(field_label, type, field_name, field_number, field_options)
+        return Field(field_label, type_, field_name, field_number, field_options)
 
     def visitFieldOptions(self, ctx: proto.FieldOptionsContext):
         field_option = self._(ctx.fieldOption())
@@ -84,19 +84,19 @@ class Protobuf3AST(Protobuf3Visitor):
         return Oneof(oneof_name, empty_statement, oneof_field, option_statement)
 
     def visitOneofField(self, ctx: proto.OneofFieldContext):
-        type = self._(ctx.type_())
+        type_ = self._(ctx.type_())
         field_name = self._(ctx.fieldName())
         field_number = self._(ctx.fieldNumber())
         field_options = self._(ctx.fieldOptions())
-        return OneofField(type, field_name, field_number, field_options)
+        return OneofField(type_, field_name, field_number, field_options)
 
     def visitMapField(self, ctx: proto.MapFieldContext):
         key_type = self._(ctx.keyType())
-        type = self._(ctx.type_())
+        type_ = self._(ctx.type_())
         map_name = self._(ctx.mapName())
         field_number = self._(ctx.fieldNumber())
         field_options = self._(ctx.fieldOptions())
-        return MapField(key_type, type, map_name, field_number, field_options)
+        return MapField(key_type, type_, map_name, field_number, field_options)
 
     def visitType_(self, ctx: proto.Type_Context):
         enum_type = self._(ctx.enumType())
@@ -109,9 +109,9 @@ class Protobuf3AST(Protobuf3Visitor):
         return Reserved(reserved_field_names, ranges)
 
     def visitRanges(self, ctx: proto.RangesContext):
-        range = self._(ctx.range_())
-        range = self._(ctx.range_())
-        return Ranges(range, range)
+        range_ = self._(ctx.range_())
+        range_ = self._(ctx.range_())
+        return Ranges(range_, range_)
 
     def visitRange_(self, ctx: proto.Range_Context):
         int_lit = self._(ctx.intLit())

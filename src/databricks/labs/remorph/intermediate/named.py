@@ -29,6 +29,11 @@ class Named:
     def is_name_reserved(self) -> bool:
         return self.camel_name() in reserved_words
 
+    def _unreserve(self, name: str) -> str:
+        if name in reserved_words:
+            return f'{name}_'
+        return name
+
     def is_name_plural(self) -> bool:
         if not self._name:
             return False
@@ -59,12 +64,14 @@ class Named:
         if self._name == "_":
             return "_"
         cc = self.pascal_name()
-        return cc[0].lower() + cc[1:]
+        camel_name = cc[0].lower() + cc[1:]
+        return self._unreserve(camel_name)
 
     def snake_name(self) -> str:
         if self._name == "_":
             return "_"
-        return '_'.join(self._split_ascii())
+        snake_name = '_'.join(self._split_ascii())
+        return self._unreserve(snake_name)
 
     def constant_name(self) -> str:
         return self.snake_name().upper()
