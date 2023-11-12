@@ -11,6 +11,17 @@ class Protobuf3AST(Protobuf3Visitor):
         if not ctx:
             return None
         return self.visit(ctx)
+    
+    def repeated(self, ctx: antlr4.ParserRuleContext, ctx_type: type) -> list[any]:
+        if not ctx:
+            return []
+        out = []
+        for rc in ctx.getTypedRuleContexts(ctx_type):
+            mapped = self._(rc)
+            if not mapped:
+                continue
+            out.append(mapped)
+        return out
 
     def visitTerminal(self, ctx: TerminalNodeImpl):
         return ctx.getText()
@@ -23,10 +34,6 @@ class Protobuf3AST(Protobuf3Visitor):
         package_statement = self._(ctx.packageStatement())
         import_statement = self._(ctx.importStatement())
         return Proto(syntax, empty_statement, top_level_def, option_statement, package_statement, import_statement)
-
-    def visitSyntax(self, ctx: proto.SyntaxContext):
-        
-        return Syntax()
 
     def visitImportStatement(self, ctx: proto.ImportStatementContext):
         str_lit = self._(ctx.strLit())
@@ -46,10 +53,6 @@ class Protobuf3AST(Protobuf3Visitor):
         full_ident = self._(ctx.fullIdent())
         full_ident = self._(ctx.fullIdent())
         return OptionName(full_ident, full_ident, full_ident)
-
-    def visitFieldLabel(self, ctx: proto.FieldLabelContext):
-        
-        return FieldLabel()
 
     def visitField(self, ctx: proto.FieldContext):
         field_label = self._(ctx.fieldLabel())
@@ -94,10 +97,6 @@ class Protobuf3AST(Protobuf3Visitor):
         field_number = self._(ctx.fieldNumber())
         field_options = self._(ctx.fieldOptions())
         return MapField(key_type, type, map_name, field_number, field_options)
-
-    def visitKeyType(self, ctx: proto.KeyTypeContext):
-        
-        return KeyType()
 
     def visitType_(self, ctx: proto.Type_Context):
         enum_type = self._(ctx.enumType())
@@ -222,10 +221,6 @@ class Protobuf3AST(Protobuf3Visitor):
         constant = self._(ctx.constant())
         return BlockLit(ident, constant)
 
-    def visitEmptyStatement_(self, ctx: proto.EmptyStatement_Context):
-        
-        return EmptyStatement()
-
     def visitIdent(self, ctx: proto.IdentContext):
         keywords = self._(ctx.keywords())
         return Ident(keywords)
@@ -272,23 +267,3 @@ class Protobuf3AST(Protobuf3Visitor):
         enum_name = self._(ctx.enumName())
         ident = self._(ctx.ident())
         return EnumType(enum_name, ident)
-
-    def visitIntLit(self, ctx: proto.IntLitContext):
-        
-        return IntLit()
-
-    def visitStrLit(self, ctx: proto.StrLitContext):
-        
-        return StrLit()
-
-    def visitBoolLit(self, ctx: proto.BoolLitContext):
-        
-        return BoolLit()
-
-    def visitFloatLit(self, ctx: proto.FloatLitContext):
-        
-        return FloatLit()
-
-    def visitKeywords(self, ctx: proto.KeywordsContext):
-        
-        return Keywords()

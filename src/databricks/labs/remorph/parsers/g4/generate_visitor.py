@@ -27,7 +27,7 @@ class {spec.decl.name}AST({spec.decl.name}Visitor):
             return None
         return self.visit(ctx)
     
-    def repeated(self, ctx: antlr4.ParserRuleContext, ctx_type: Type[antlr4.ParserRuleContext]) -> list[any]:
+    def repeated(self, ctx: antlr4.ParserRuleContext, ctx_type: type) -> list[any]:
         if not ctx:
             return []
         out = []
@@ -61,6 +61,10 @@ class {spec.decl.name}AST({spec.decl.name}Visitor):
             visitor_fields.append(f'{field.snake_name()} = self._(ctx.{field.name}())')
             ast_fields.append(f'{field.snake_name()}: any = None')
             field_names.append(field.snake_name())
+
+        if not field_names:
+            return
+
         visitor_code = "\n        ".join(visitor_fields)
         ast_code = "\n    ".join(ast_fields)
         self._visitor_code += f'''

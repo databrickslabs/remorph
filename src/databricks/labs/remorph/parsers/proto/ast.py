@@ -12,10 +12,6 @@ class Proto:
     import_statement: any = None
 
 @node
-class Syntax:
-    
-
-@node
 class ImportStatement:
     str_lit: any = None
 
@@ -33,10 +29,6 @@ class OptionName:
     full_ident: any = None
     full_ident: any = None
     full_ident: any = None
-
-@node
-class FieldLabel:
-    
 
 @node
 class Field:
@@ -81,10 +73,6 @@ class MapField:
     map_name: any = None
     field_number: any = None
     field_options: any = None
-
-@node
-class KeyType:
-    
 
 @node
 class Type:
@@ -210,10 +198,6 @@ class BlockLit:
     constant: any = None
 
 @node
-class EmptyStatement:
-    
-
-@node
 class Ident:
     keywords: any = None
 
@@ -259,23 +243,3 @@ class MessageType:
 class EnumType:
     enum_name: any = None
     ident: any = None
-
-@node
-class IntLit:
-    
-
-@node
-class StrLit:
-    
-
-@node
-class BoolLit:
-    
-
-@node
-class FloatLit:
-    
-
-@node
-class Keywords:
-    
