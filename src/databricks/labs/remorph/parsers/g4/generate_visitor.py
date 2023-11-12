@@ -28,6 +28,11 @@ class Field:
     def pascal_name(self) -> str:
         return Named(self.in_context).pascal_name()
 
+    def type_ref(self) -> str:
+        if self.is_terminal:
+            return 'str'
+        return f"'{self.pascal_name()}'"
+
     def title(self):
         return self.in_context[0].upper() + self.in_context[1:]
 
@@ -39,6 +44,7 @@ class Node(Named):
     def __init__(self, name: str):
         super().__init__(name)
         self._fields: list[Field] = []
+        self._counts = collections.defaultdict(int)
         self._enum = []
 
     def title(self):
@@ -61,6 +67,10 @@ class Node(Named):
             if in_context == existing.in_context and idx == existing.ctx_index:
                 return
         self._fields.append(field)
+        self._counts[field.in_context] += 1
+
+    def needs_index(self, field: Field) -> bool:
+        return self._counts[field.in_context] > 1
 
     def add_enum(self, name: str):
         self._enum.append(Named(name))
@@ -81,7 +91,7 @@ class VisitorCodeGenerator:
         self.spec = spec
         self._package = package
         self._nodes = []
-        self._lexer_rules = {}
+        self._lexer_atoms = {}
         self._ast_code = f'''
 from databricks.labs.remorph.parsers.ast import node
 
@@ -98,6 +108,8 @@ class {spec.decl.name}AST({spec.decl.name}Visitor):
     def _(self, ctx: antlr4.ParserRuleContext):
         if not ctx:
             return None
+        if type(ctx) == list: # TODO: looks like a hack, but it's still better
+            return [self.visit(_) for _ in ctx]
         return self.visit(ctx)
     
     def repeated(self, ctx: antlr4.ParserRuleContext, ctx_type: type) -> list[any]:
@@ -122,7 +134,13 @@ class {spec.decl.name}AST({spec.decl.name}Visitor):
         for r in self.spec.rules:
             if not r.lexer:
                 continue
-            self._lexer_rules[r.lexer.token_ref] = len(r.lexer.lexer_block)
+            alternatives = r.lexer.lexer_block
+            if len(alternatives) > 1:
+                continue
+            lexer_alternative = alternatives[0]
+            if len(lexer_alternative.elements) > 1:
+                continue
+            self._lexer_atoms[r.lexer.token_ref] = len(alternatives)
         for r in self.spec.rules:
             if not r.parser:
                 continue
@@ -146,8 +164,11 @@ class {spec.decl.name}AST({spec.decl.name}Visitor):
                 visitor_fields.append(f'{field.snake_name()} = self._(ctx.{field.in_context}()) is not None')
                 ast_fields.append(f'{field.snake_name()}: bool = False')
             else:
-                visitor_fields.append(f'{field.snake_name()} = self._(ctx.{field.in_context}())')
-                ast_fields.append(f"{field.snake_name()}: '{field.pascal_name()}' = None")
+                index = ''
+                if node.needs_index(field):
+                    index = field.ctx_index
+                visitor_fields.append(f'{field.snake_name()} = self._(ctx.{field.in_context}({index}))')
+                ast_fields.append(f"{field.snake_name()}: {field.type_ref()} = None")
             field_names.append(field.snake_name())
 
         visitor_code = "\n        ".join(visitor_fields)
@@ -181,15 +202,15 @@ class {node.pascal_name()}:
             for element in self._unfold_elements(alternative):
                 match element:
                     case Element(atom=Atom(rule_ref=RuleRef(ref=rule_ref))):
-                        if rule_ref in self._lexer_rules:
-                            continue
                         idx, in_context, field_name = renamer(rule_ref)
                         node.add_field(idx, in_context, field_name,
                                        zero_or_one=element.zero_or_one,
                                        zero_or_more=element.zero_or_more,
                                        one_or_more=element.one_or_more,
                                        is_non_greedy=element.is_non_greedy)
-                    case Element(atom=Atom(terminal=flag), zero_or_one=True):
+                    case Element(atom=Atom(terminal=flag)):
+                        if flag in self._lexer_atoms:
+                            continue
                         idx, in_context, field_name = renamer(flag)
                         # TODO: remove those non-flags with one alternative
                         node.add_field(idx, in_context, field_name,
@@ -198,9 +219,6 @@ class {node.pascal_name()}:
                                        one_or_more=element.one_or_more,
                                        is_non_greedy=element.is_non_greedy,
                                        terminal=True)
-                    case Element(atom=Atom(terminal=name)):
-                        idx, in_context, field_name = renamer(name)
-                        node.add_enum(name)
         return node
 
     def _duplicate_field_renamer(self, alternative: Alternative) -> Callable[[str], tuple[int, str, str]]:
@@ -208,8 +226,8 @@ class {node.pascal_name()}:
         for element in self._unfold_elements(alternative):
             match element:
                 case Element(atom=Atom(rule_ref=RuleRef(ref=rule_ref))):
-                    if rule_ref in self._lexer_rules:
-                        continue
+                    # if rule_ref in self._lexer_rules:
+                    #     continue
                     child_counter[rule_ref] += 1
                 case Element(atom=Atom(terminal=flag), zero_or_one=True):
                     child_counter[flag] += 1

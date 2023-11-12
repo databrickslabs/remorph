@@ -10,11 +10,10 @@ class Proto:
     option_statement: list['OptionStatement'] = None
     top_level_def: list['TopLevelDef'] = None
     empty_statement: list['EmptyStatement'] = None
+    eof: str = None
 
 @node
 class ImportStatement:
-    weak: bool = False
-    public: bool = False
     str_lit: 'StrLit' = None
 
 @node
@@ -29,7 +28,6 @@ class OptionStatement:
 @node
 class OptionName:
     full_ident: 'FullIdent' = None
-    dot: bool = False
     right_full_ident: 'FullIdent' = None
 
 @node
@@ -38,9 +36,7 @@ class Field:
     type_: 'Type' = None
     field_name: 'FieldName' = None
     field_number: 'FieldNumber' = None
-    lb: bool = False
     field_options: 'FieldOptions' = None
-    rb: bool = False
 
 @node
 class FieldOptions:
@@ -68,9 +64,7 @@ class OneofField:
     type_: 'Type' = None
     field_name: 'FieldName' = None
     field_number: 'FieldNumber' = None
-    lb: bool = False
     field_options: 'FieldOptions' = None
-    rb: bool = False
 
 @node
 class MapField:
@@ -78,9 +72,7 @@ class MapField:
     type_: 'Type' = None
     map_name: 'MapName' = None
     field_number: 'FieldNumber' = None
-    lb: bool = False
     field_options: 'FieldOptions' = None
-    rb: bool = False
 
 @node
 class Type:
@@ -100,7 +92,6 @@ class Ranges:
 @node
 class Range:
     int_lit: 'IntLit' = None
-    to: bool = False
 
 @node
 class ReservedFieldNames:
@@ -132,7 +123,6 @@ class EnumElement:
 @node
 class EnumField:
     ident: 'Ident' = None
-    minus: bool = False
     int_lit: 'IntLit' = None
     enum_value_options: list['EnumValueOptions'] = None
 
@@ -187,16 +177,12 @@ class ServiceElement:
 @node
 class Rpc:
     rpc_name: 'RpcName' = None
-    right_stream: bool = False
-    third_message_type: 'MessageType' = None
-    sixth_stream: bool = False
-    seventh_message_type: 'MessageType' = None
+    left_message_type: 'MessageType' = None
+    right_message_type: 'MessageType' = None
 
 @node
 class Constant:
     full_ident: 'FullIdent' = None
-    minus: bool = False
-    plus: bool = False
     int_lit: 'IntLit' = None
     float_lit: 'FloatLit' = None
     str_lit: 'StrLit' = None
@@ -210,6 +196,7 @@ class BlockLit:
 
 @node
 class Ident:
+    identifier: str = None
     keywords: 'Keywords' = None
 
 @node
@@ -247,12 +234,30 @@ class RpcName:
 
 @node
 class MessageType:
-    left_dot: bool = False
     ident: list['Ident'] = None
     message_name: 'MessageName' = None
 
 @node
 class EnumType:
-    left_dot: bool = False
     ident: list['Ident'] = None
     enum_name: 'EnumName' = None
+
+@node
+class IntLit:
+    int_lit: str = None
+
+@node
+class StrLit:
+    str_lit: str = None
+
+@node
+class BoolLit:
+    bool_lit: str = None
+
+@node
+class FloatLit:
+    float_lit: str = None
+
+@node
+class Keywords:
+    bool_lit: str = None
