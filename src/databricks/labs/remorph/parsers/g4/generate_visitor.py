@@ -147,7 +147,7 @@ class {spec.decl.name}AST({spec.decl.name}Visitor):
                 ast_fields.append(f'{field.snake_name()}: bool = False')
             else:
                 visitor_fields.append(f'{field.snake_name()} = self._(ctx.{field.in_context}())')
-                ast_fields.append(f'{field.snake_name()}: any = None')
+                ast_fields.append(f"{field.snake_name()}: '{field.pascal_name()}' = None")
             field_names.append(field.snake_name())
 
         visitor_code = "\n        ".join(visitor_fields)
