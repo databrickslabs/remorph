@@ -204,6 +204,15 @@ class Field(Named):
         self.is_repeated = is_repeated
         self.is_flag = is_flag
 
+    def __repr__(self):
+        return f"Field('{self.name}', is_repeated={self.is_repeated}, is_flag={self.is_flag})"
+
+    def title(self):
+        return self.name[0].upper() + self.name[1:]
+
+    def context_name(self):
+        return f'{self.title()}Context'
+
 
 @node
 class ParserRuleSpec:
@@ -214,6 +223,12 @@ class ParserRuleSpec:
     returns: any = None
     locals: any = None
     prequel: list[RulePrequel] = None
+
+    def title(self):
+        return self.name[0].upper() + self.name[1:]
+
+    def context_name(self):
+        return f'{self.title()}Context'
 
     def fields(self) -> list[Field]:
         names = []

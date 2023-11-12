@@ -52,14 +52,17 @@ class {spec.decl.name}AST({spec.decl.name}Visitor):
             self.parser_rule(r.parser)
 
     def parser_rule(self, rule: ParserRuleSpec):
-        title = rule.name[0].upper() + rule.name[1:]
         node_name = Named(rule.name).pascal_name()
         visitor_fields = []
         ast_fields = []
         field_names = []
         for field in rule.fields():
-            visitor_fields.append(f'{field.snake_name()} = self._(ctx.{field.name}())')
-            ast_fields.append(f'{field.snake_name()}: any = None')
+            if field.is_repeated:
+                visitor_fields.append(f'{field.snake_name()} = self.repeated(ctx, {self._package}.{field.context_name()})')
+                ast_fields.append(f"{field.snake_name()}: list['{field.pascal_name()}'] = None")
+            else:
+                visitor_fields.append(f'{field.snake_name()} = self._(ctx.{field.name}())')
+                ast_fields.append(f'{field.snake_name()}: any = None')
             field_names.append(field.snake_name())
 
         if not field_names:
@@ -68,7 +71,7 @@ class {spec.decl.name}AST({spec.decl.name}Visitor):
         visitor_code = "\n        ".join(visitor_fields)
         ast_code = "\n    ".join(ast_fields)
         self._visitor_code += f'''
-    def visit{title}(self, ctx: {self._package}.{title}Context):
+    def visit{rule.title()}(self, ctx: {self._package}.{rule.context_name()}):
         {visitor_code}
         return {node_name}({", ".join(field_names)})
 '''

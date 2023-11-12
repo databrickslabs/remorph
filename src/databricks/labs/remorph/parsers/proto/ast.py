@@ -113,7 +113,7 @@ class EnumDef:
 
 @node
 class EnumBody:
-    enum_element: any = None
+    enum_element: list['EnumElement'] = None
 
 @node
 class EnumElement:
@@ -144,7 +144,7 @@ class MessageDef:
 
 @node
 class MessageBody:
-    message_element: any = None
+    message_element: list['MessageElement'] = None
 
 @node
 class MessageElement:
@@ -167,7 +167,7 @@ class ExtendDef:
 @node
 class ServiceDef:
     service_name: any = None
-    service_element: any = None
+    service_element: list['ServiceElement'] = None
 
 @node
 class ServiceElement:

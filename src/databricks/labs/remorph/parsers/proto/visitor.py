@@ -136,7 +136,7 @@ class Protobuf3AST(Protobuf3Visitor):
         return EnumDef(enum_name, enum_body)
 
     def visitEnumBody(self, ctx: proto.EnumBodyContext):
-        enum_element = self._(ctx.enumElement())
+        enum_element = self.repeated(ctx, proto.EnumElementContext)
         return EnumBody(enum_element)
 
     def visitEnumElement(self, ctx: proto.EnumElementContext):
@@ -167,7 +167,7 @@ class Protobuf3AST(Protobuf3Visitor):
         return MessageDef(message_name, message_body)
 
     def visitMessageBody(self, ctx: proto.MessageBodyContext):
-        message_element = self._(ctx.messageElement())
+        message_element = self.repeated(ctx, proto.MessageElementContext)
         return MessageBody(message_element)
 
     def visitMessageElement(self, ctx: proto.MessageElementContext):
@@ -190,7 +190,7 @@ class Protobuf3AST(Protobuf3Visitor):
 
     def visitServiceDef(self, ctx: proto.ServiceDefContext):
         service_name = self._(ctx.serviceName())
-        service_element = self._(ctx.serviceElement())
+        service_element = self.repeated(ctx, proto.ServiceElementContext)
         return ServiceDef(service_name, service_element)
 
     def visitServiceElement(self, ctx: proto.ServiceElementContext):
