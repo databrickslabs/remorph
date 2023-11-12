@@ -12,7 +12,7 @@ reserved_words = [
 
 class Named:
     def __init__(self, name: str):
-        self._name = name
+        self.name = name
         self._singular_transforms = [
             self._regex_transform("(s|ss|sh|ch|x|z)es$", "\\1"),
             self._regex_transform("([bcdfghjklmnpqrstvwxz])ies$", "\\1y"),
@@ -21,10 +21,6 @@ class Named:
         self._singular_exceptions = {"dbfs": "dbfs",
                                      "warehouses": "warehouse",
                                      "databricks": "databricks"}
-
-    @property
-    def name(self) -> str:
-        return self._name
 
     def is_name_reserved(self) -> bool:
         return self.camel_name() in reserved_words
@@ -35,21 +31,21 @@ class Named:
         return name
 
     def is_name_plural(self) -> bool:
-        if not self._name:
+        if not self.name:
             return False
-        return self._name[-1] == 's'
+        return self.name[-1] == 's'
 
     def singular(self) -> 'Named':
         if not self.is_name_plural():
             return self
 
-        exception = self._singular_exceptions.get(self._name.lower())
+        exception = self._singular_exceptions.get(self.name.lower())
         if exception:
             return Named(exception)
 
         for transform in self._singular_transforms:
-            after = transform(self._name)
-            if after != self._name:
+            after = transform(self.name)
+            if after != self.name:
                 return Named(after)
 
         return self
@@ -61,14 +57,14 @@ class Named:
         return ' '.join(self._split_ascii()).title()
 
     def camel_name(self) -> str:
-        if self._name == "_":
+        if self.name == "_":
             return "_"
         cc = self.pascal_name()
         camel_name = cc[0].lower() + cc[1:]
         return self._unreserve(camel_name)
 
     def snake_name(self) -> str:
-        if self._name == "_":
+        if self.name == "_":
             return "_"
         snake_name = '_'.join(self._split_ascii())
         return self._unreserve(snake_name)
@@ -109,7 +105,7 @@ class Named:
 
     def _split_ascii(self):
         current = []
-        name = self._name
+        name = self.name
         name_len = len(name)
         is_prev_upper = is_current_upper = is_next_lower = is_next_upper = is_not_last_char = False
 

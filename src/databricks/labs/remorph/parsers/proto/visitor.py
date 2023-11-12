@@ -28,16 +28,18 @@ class Protobuf3AST(Protobuf3Visitor):
 
     def visitProto(self, ctx: proto.ProtoContext):
         syntax = self._(ctx.syntax())
-        empty_statement = self._(ctx.emptyStatement_())
-        top_level_def = self._(ctx.topLevelDef())
-        option_statement = self._(ctx.optionStatement())
-        package_statement = self._(ctx.packageStatement())
-        import_statement = self._(ctx.importStatement())
-        return Proto(syntax, empty_statement, top_level_def, option_statement, package_statement, import_statement)
+        import_statement = self.repeated(ctx, proto.ImportStatementContext)
+        package_statement = self.repeated(ctx, proto.PackageStatementContext)
+        option_statement = self.repeated(ctx, proto.OptionStatementContext)
+        top_level_def = self.repeated(ctx, proto.TopLevelDefContext)
+        empty_statement = self.repeated(ctx, proto.EmptyStatement_Context)
+        return Proto(syntax, import_statement, package_statement, option_statement, top_level_def, empty_statement)
 
     def visitImportStatement(self, ctx: proto.ImportStatementContext):
+        weak = self._(ctx.WEAK()) is not None
+        public = self._(ctx.PUBLIC()) is not None
         str_lit = self._(ctx.strLit())
-        return ImportStatement(str_lit)
+        return ImportStatement(weak, public, str_lit)
 
     def visitPackageStatement(self, ctx: proto.PackageStatementContext):
         full_ident = self._(ctx.fullIdent())
@@ -50,22 +52,24 @@ class Protobuf3AST(Protobuf3Visitor):
 
     def visitOptionName(self, ctx: proto.OptionNameContext):
         full_ident = self._(ctx.fullIdent())
-        full_ident = self._(ctx.fullIdent())
-        full_ident = self._(ctx.fullIdent())
-        return OptionName(full_ident, full_ident, full_ident)
+        dot = self._(ctx.DOT()) is not None
+        right_full_ident = self._(ctx.fullIdent())
+        return OptionName(full_ident, dot, right_full_ident)
 
     def visitField(self, ctx: proto.FieldContext):
-        field_label = self._(ctx.fieldLabel())
+        field_label = self.repeated(ctx, proto.FieldLabelContext)
         type_ = self._(ctx.type_())
         field_name = self._(ctx.fieldName())
         field_number = self._(ctx.fieldNumber())
+        lb = self._(ctx.LB()) is not None
         field_options = self._(ctx.fieldOptions())
-        return Field(field_label, type_, field_name, field_number, field_options)
+        rb = self._(ctx.RB()) is not None
+        return Field(field_label, type_, field_name, field_number, lb, field_options, rb)
 
     def visitFieldOptions(self, ctx: proto.FieldOptionsContext):
-        field_option = self._(ctx.fieldOption())
-        field_option = self._(ctx.fieldOption())
-        return FieldOptions(field_option, field_option)
+        left_field_option = self._(ctx.fieldOption())
+        right_field_option = self.repeated(ctx, proto.FieldOptionContext)
+        return FieldOptions(left_field_option, right_field_option)
 
     def visitFieldOption(self, ctx: proto.FieldOptionContext):
         option_name = self._(ctx.optionName())
@@ -78,57 +82,61 @@ class Protobuf3AST(Protobuf3Visitor):
 
     def visitOneof(self, ctx: proto.OneofContext):
         oneof_name = self._(ctx.oneofName())
-        empty_statement = self._(ctx.emptyStatement_())
-        oneof_field = self._(ctx.oneofField())
-        option_statement = self._(ctx.optionStatement())
-        return Oneof(oneof_name, empty_statement, oneof_field, option_statement)
+        option_statement = self.repeated(ctx, proto.OptionStatementContext)
+        oneof_field = self.repeated(ctx, proto.OneofFieldContext)
+        empty_statement = self.repeated(ctx, proto.EmptyStatement_Context)
+        return Oneof(oneof_name, option_statement, oneof_field, empty_statement)
 
     def visitOneofField(self, ctx: proto.OneofFieldContext):
         type_ = self._(ctx.type_())
         field_name = self._(ctx.fieldName())
         field_number = self._(ctx.fieldNumber())
+        lb = self._(ctx.LB()) is not None
         field_options = self._(ctx.fieldOptions())
-        return OneofField(type_, field_name, field_number, field_options)
+        rb = self._(ctx.RB()) is not None
+        return OneofField(type_, field_name, field_number, lb, field_options, rb)
 
     def visitMapField(self, ctx: proto.MapFieldContext):
         key_type = self._(ctx.keyType())
         type_ = self._(ctx.type_())
         map_name = self._(ctx.mapName())
         field_number = self._(ctx.fieldNumber())
+        lb = self._(ctx.LB()) is not None
         field_options = self._(ctx.fieldOptions())
-        return MapField(key_type, type_, map_name, field_number, field_options)
+        rb = self._(ctx.RB()) is not None
+        return MapField(key_type, type_, map_name, field_number, lb, field_options, rb)
 
     def visitType_(self, ctx: proto.Type_Context):
-        enum_type = self._(ctx.enumType())
         message_type = self._(ctx.messageType())
-        return Type(enum_type, message_type)
+        enum_type = self._(ctx.enumType())
+        return Type(message_type, enum_type)
 
     def visitReserved(self, ctx: proto.ReservedContext):
-        reserved_field_names = self._(ctx.reservedFieldNames())
         ranges = self._(ctx.ranges())
-        return Reserved(reserved_field_names, ranges)
+        reserved_field_names = self._(ctx.reservedFieldNames())
+        return Reserved(ranges, reserved_field_names)
 
     def visitRanges(self, ctx: proto.RangesContext):
-        range_ = self._(ctx.range_())
-        range_ = self._(ctx.range_())
-        return Ranges(range_, range_)
+        left_range = self._(ctx.range_())
+        right_range = self.repeated(ctx, proto.Range_Context)
+        return Ranges(left_range, right_range)
 
     def visitRange_(self, ctx: proto.Range_Context):
         int_lit = self._(ctx.intLit())
-        int_lit = self._(ctx.intLit())
-        return Range(int_lit, int_lit)
+        to = self._(ctx.TO()) is not None
+        return Range(int_lit, to)
 
     def visitReservedFieldNames(self, ctx: proto.ReservedFieldNamesContext):
-        str_lit = self._(ctx.strLit())
-        str_lit = self._(ctx.strLit())
-        return ReservedFieldNames(str_lit, str_lit)
+        left_str_lit = self._(ctx.strLit())
+        right_str_lit = self.repeated(ctx, proto.StrLitContext)
+        return ReservedFieldNames(left_str_lit, right_str_lit)
 
     def visitTopLevelDef(self, ctx: proto.TopLevelDefContext):
-        service_def = self._(ctx.serviceDef())
-        extend_def = self._(ctx.extendDef())
-        enum_def = self._(ctx.enumDef())
         message_def = self._(ctx.messageDef())
-        return TopLevelDef(service_def, extend_def, enum_def, message_def)
+        enum_def = self._(ctx.enumDef())
+        extend_def = self._(ctx.extendDef())
+        service_def = self._(ctx.serviceDef())
+        return TopLevelDef(message_def, enum_def, extend_def, service_def)
 
     def visitEnumDef(self, ctx: proto.EnumDefContext):
         enum_name = self._(ctx.enumName())
@@ -140,21 +148,22 @@ class Protobuf3AST(Protobuf3Visitor):
         return EnumBody(enum_element)
 
     def visitEnumElement(self, ctx: proto.EnumElementContext):
-        empty_statement = self._(ctx.emptyStatement_())
-        enum_field = self._(ctx.enumField())
         option_statement = self._(ctx.optionStatement())
-        return EnumElement(empty_statement, enum_field, option_statement)
+        enum_field = self._(ctx.enumField())
+        empty_statement = self._(ctx.emptyStatement_())
+        return EnumElement(option_statement, enum_field, empty_statement)
 
     def visitEnumField(self, ctx: proto.EnumFieldContext):
         ident = self._(ctx.ident())
+        minus = self._(ctx.MINUS()) is not None
         int_lit = self._(ctx.intLit())
-        enum_value_options = self._(ctx.enumValueOptions())
-        return EnumField(ident, int_lit, enum_value_options)
+        enum_value_options = self.repeated(ctx, proto.EnumValueOptionsContext)
+        return EnumField(ident, minus, int_lit, enum_value_options)
 
     def visitEnumValueOptions(self, ctx: proto.EnumValueOptionsContext):
-        enum_value_option = self._(ctx.enumValueOption())
-        enum_value_option = self._(ctx.enumValueOption())
-        return EnumValueOptions(enum_value_option, enum_value_option)
+        left_enum_value_option = self._(ctx.enumValueOption())
+        right_enum_value_option = self.repeated(ctx, proto.EnumValueOptionContext)
+        return EnumValueOptions(left_enum_value_option, right_enum_value_option)
 
     def visitEnumValueOption(self, ctx: proto.EnumValueOptionContext):
         option_name = self._(ctx.optionName())
@@ -171,22 +180,22 @@ class Protobuf3AST(Protobuf3Visitor):
         return MessageBody(message_element)
 
     def visitMessageElement(self, ctx: proto.MessageElementContext):
-        empty_statement = self._(ctx.emptyStatement_())
-        reserved = self._(ctx.reserved())
-        map_field = self._(ctx.mapField())
-        oneof = self._(ctx.oneof())
-        option_statement = self._(ctx.optionStatement())
-        extend_def = self._(ctx.extendDef())
-        message_def = self._(ctx.messageDef())
-        enum_def = self._(ctx.enumDef())
         field = self._(ctx.field())
-        return MessageElement(empty_statement, reserved, map_field, oneof, option_statement, extend_def, message_def, enum_def, field)
+        enum_def = self._(ctx.enumDef())
+        message_def = self._(ctx.messageDef())
+        extend_def = self._(ctx.extendDef())
+        option_statement = self._(ctx.optionStatement())
+        oneof = self._(ctx.oneof())
+        map_field = self._(ctx.mapField())
+        reserved = self._(ctx.reserved())
+        empty_statement = self._(ctx.emptyStatement_())
+        return MessageElement(field, enum_def, message_def, extend_def, option_statement, oneof, map_field, reserved, empty_statement)
 
     def visitExtendDef(self, ctx: proto.ExtendDefContext):
         message_type = self._(ctx.messageType())
-        empty_statement = self._(ctx.emptyStatement_())
-        field = self._(ctx.field())
-        return ExtendDef(message_type, empty_statement, field)
+        field = self.repeated(ctx, proto.FieldContext)
+        empty_statement = self.repeated(ctx, proto.EmptyStatement_Context)
+        return ExtendDef(message_type, field, empty_statement)
 
     def visitServiceDef(self, ctx: proto.ServiceDefContext):
         service_name = self._(ctx.serviceName())
@@ -194,31 +203,33 @@ class Protobuf3AST(Protobuf3Visitor):
         return ServiceDef(service_name, service_element)
 
     def visitServiceElement(self, ctx: proto.ServiceElementContext):
-        empty_statement = self._(ctx.emptyStatement_())
-        rpc = self._(ctx.rpc())
         option_statement = self._(ctx.optionStatement())
-        return ServiceElement(empty_statement, rpc, option_statement)
+        rpc = self._(ctx.rpc())
+        empty_statement = self._(ctx.emptyStatement_())
+        return ServiceElement(option_statement, rpc, empty_statement)
 
     def visitRpc(self, ctx: proto.RpcContext):
         rpc_name = self._(ctx.rpcName())
-        message_type = self._(ctx.messageType())
-        message_type = self._(ctx.messageType())
-        empty_statement = self._(ctx.emptyStatement_())
-        option_statement = self._(ctx.optionStatement())
-        return Rpc(rpc_name, message_type, message_type, empty_statement, option_statement)
+        right_stream = self._(ctx.STREAM()) is not None
+        third_message_type = self._(ctx.messageType())
+        sixth_stream = self._(ctx.STREAM()) is not None
+        seventh_message_type = self._(ctx.messageType())
+        return Rpc(rpc_name, right_stream, third_message_type, sixth_stream, seventh_message_type)
 
     def visitConstant(self, ctx: proto.ConstantContext):
-        block_lit = self._(ctx.blockLit())
-        bool_lit = self._(ctx.boolLit())
-        str_lit = self._(ctx.strLit())
-        float_lit = self._(ctx.floatLit())
-        int_lit = self._(ctx.intLit())
         full_ident = self._(ctx.fullIdent())
-        return Constant(block_lit, bool_lit, str_lit, float_lit, int_lit, full_ident)
+        minus = self._(ctx.MINUS()) is not None
+        plus = self._(ctx.PLUS()) is not None
+        int_lit = self._(ctx.intLit())
+        float_lit = self._(ctx.floatLit())
+        str_lit = self._(ctx.strLit())
+        bool_lit = self._(ctx.boolLit())
+        block_lit = self._(ctx.blockLit())
+        return Constant(full_ident, minus, plus, int_lit, float_lit, str_lit, bool_lit, block_lit)
 
     def visitBlockLit(self, ctx: proto.BlockLitContext):
-        ident = self._(ctx.ident())
-        constant = self._(ctx.constant())
+        ident = self.repeated(ctx, proto.IdentContext)
+        constant = self.repeated(ctx, proto.ConstantContext)
         return BlockLit(ident, constant)
 
     def visitIdent(self, ctx: proto.IdentContext):
@@ -226,9 +237,9 @@ class Protobuf3AST(Protobuf3Visitor):
         return Ident(keywords)
 
     def visitFullIdent(self, ctx: proto.FullIdentContext):
-        ident = self._(ctx.ident())
-        ident = self._(ctx.ident())
-        return FullIdent(ident, ident)
+        left_ident = self._(ctx.ident())
+        right_ident = self.repeated(ctx, proto.IdentContext)
+        return FullIdent(left_ident, right_ident)
 
     def visitMessageName(self, ctx: proto.MessageNameContext):
         ident = self._(ctx.ident())
@@ -259,11 +270,13 @@ class Protobuf3AST(Protobuf3Visitor):
         return RpcName(ident)
 
     def visitMessageType(self, ctx: proto.MessageTypeContext):
+        left_dot = self._(ctx.DOT()) is not None
+        ident = self.repeated(ctx, proto.IdentContext)
         message_name = self._(ctx.messageName())
-        ident = self._(ctx.ident())
-        return MessageType(message_name, ident)
+        return MessageType(left_dot, ident, message_name)
 
     def visitEnumType(self, ctx: proto.EnumTypeContext):
+        left_dot = self._(ctx.DOT()) is not None
+        ident = self.repeated(ctx, proto.IdentContext)
         enum_name = self._(ctx.enumName())
-        ident = self._(ctx.ident())
-        return EnumType(enum_name, ident)
+        return EnumType(left_dot, ident, enum_name)

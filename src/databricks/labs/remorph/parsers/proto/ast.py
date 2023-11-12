@@ -5,14 +5,16 @@ from databricks.labs.remorph.parsers.ast import node
 @node
 class Proto:
     syntax: any = None
-    empty_statement: any = None
-    top_level_def: any = None
-    option_statement: any = None
-    package_statement: any = None
-    import_statement: any = None
+    import_statement: list['ImportStatement'] = None
+    package_statement: list['PackageStatement'] = None
+    option_statement: list['OptionStatement'] = None
+    top_level_def: list['TopLevelDef'] = None
+    empty_statement: list['EmptyStatement'] = None
 
 @node
 class ImportStatement:
+    weak: bool = False
+    public: bool = False
     str_lit: any = None
 
 @node
@@ -27,21 +29,23 @@ class OptionStatement:
 @node
 class OptionName:
     full_ident: any = None
-    full_ident: any = None
-    full_ident: any = None
+    dot: bool = False
+    right_full_ident: any = None
 
 @node
 class Field:
-    field_label: any = None
+    field_label: list['FieldLabel'] = None
     type_: any = None
     field_name: any = None
     field_number: any = None
+    lb: bool = False
     field_options: any = None
+    rb: bool = False
 
 @node
 class FieldOptions:
-    field_option: any = None
-    field_option: any = None
+    left_field_option: any = None
+    right_field_option: list['FieldOption'] = None
 
 @node
 class FieldOption:
@@ -55,16 +59,18 @@ class FieldNumber:
 @node
 class Oneof:
     oneof_name: any = None
-    empty_statement: any = None
-    oneof_field: any = None
-    option_statement: any = None
+    option_statement: list['OptionStatement'] = None
+    oneof_field: list['OneofField'] = None
+    empty_statement: list['EmptyStatement'] = None
 
 @node
 class OneofField:
     type_: any = None
     field_name: any = None
     field_number: any = None
+    lb: bool = False
     field_options: any = None
+    rb: bool = False
 
 @node
 class MapField:
@@ -72,39 +78,41 @@ class MapField:
     type_: any = None
     map_name: any = None
     field_number: any = None
+    lb: bool = False
     field_options: any = None
+    rb: bool = False
 
 @node
 class Type:
-    enum_type: any = None
     message_type: any = None
+    enum_type: any = None
 
 @node
 class Reserved:
-    reserved_field_names: any = None
     ranges: any = None
+    reserved_field_names: any = None
 
 @node
 class Ranges:
-    range_: any = None
-    range_: any = None
+    left_range: any = None
+    right_range: list['Range'] = None
 
 @node
 class Range:
     int_lit: any = None
-    int_lit: any = None
+    to: bool = False
 
 @node
 class ReservedFieldNames:
-    str_lit: any = None
-    str_lit: any = None
+    left_str_lit: any = None
+    right_str_lit: list['StrLit'] = None
 
 @node
 class TopLevelDef:
-    service_def: any = None
-    extend_def: any = None
-    enum_def: any = None
     message_def: any = None
+    enum_def: any = None
+    extend_def: any = None
+    service_def: any = None
 
 @node
 class EnumDef:
@@ -117,20 +125,21 @@ class EnumBody:
 
 @node
 class EnumElement:
-    empty_statement: any = None
-    enum_field: any = None
     option_statement: any = None
+    enum_field: any = None
+    empty_statement: any = None
 
 @node
 class EnumField:
     ident: any = None
+    minus: bool = False
     int_lit: any = None
-    enum_value_options: any = None
+    enum_value_options: list['EnumValueOptions'] = None
 
 @node
 class EnumValueOptions:
-    enum_value_option: any = None
-    enum_value_option: any = None
+    left_enum_value_option: any = None
+    right_enum_value_option: list['EnumValueOption'] = None
 
 @node
 class EnumValueOption:
@@ -148,21 +157,21 @@ class MessageBody:
 
 @node
 class MessageElement:
-    empty_statement: any = None
-    reserved: any = None
-    map_field: any = None
-    oneof: any = None
-    option_statement: any = None
-    extend_def: any = None
-    message_def: any = None
-    enum_def: any = None
     field: any = None
+    enum_def: any = None
+    message_def: any = None
+    extend_def: any = None
+    option_statement: any = None
+    oneof: any = None
+    map_field: any = None
+    reserved: any = None
+    empty_statement: any = None
 
 @node
 class ExtendDef:
     message_type: any = None
-    empty_statement: any = None
-    field: any = None
+    field: list['Field'] = None
+    empty_statement: list['EmptyStatement'] = None
 
 @node
 class ServiceDef:
@@ -171,31 +180,33 @@ class ServiceDef:
 
 @node
 class ServiceElement:
-    empty_statement: any = None
-    rpc: any = None
     option_statement: any = None
+    rpc: any = None
+    empty_statement: any = None
 
 @node
 class Rpc:
     rpc_name: any = None
-    message_type: any = None
-    message_type: any = None
-    empty_statement: any = None
-    option_statement: any = None
+    right_stream: bool = False
+    third_message_type: any = None
+    sixth_stream: bool = False
+    seventh_message_type: any = None
 
 @node
 class Constant:
-    block_lit: any = None
-    bool_lit: any = None
-    str_lit: any = None
-    float_lit: any = None
-    int_lit: any = None
     full_ident: any = None
+    minus: bool = False
+    plus: bool = False
+    int_lit: any = None
+    float_lit: any = None
+    str_lit: any = None
+    bool_lit: any = None
+    block_lit: any = None
 
 @node
 class BlockLit:
-    ident: any = None
-    constant: any = None
+    ident: list['Ident'] = None
+    constant: list['Constant'] = None
 
 @node
 class Ident:
@@ -203,8 +214,8 @@ class Ident:
 
 @node
 class FullIdent:
-    ident: any = None
-    ident: any = None
+    left_ident: any = None
+    right_ident: list['Ident'] = None
 
 @node
 class MessageName:
@@ -236,10 +247,12 @@ class RpcName:
 
 @node
 class MessageType:
+    left_dot: bool = False
+    ident: list['Ident'] = None
     message_name: any = None
-    ident: any = None
 
 @node
 class EnumType:
+    left_dot: bool = False
+    ident: list['Ident'] = None
     enum_name: any = None
-    ident: any = None

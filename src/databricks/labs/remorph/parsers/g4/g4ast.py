@@ -1,6 +1,6 @@
 import dataclasses
 import functools
-from dataclasses import dataclass
+from dataclasses import replace
 from typing import Iterator
 
 from databricks.labs.remorph.intermediate.named import Named
@@ -198,22 +198,6 @@ class RulePrequel:
     rule_action: RuleAction = None
 
 
-class Field(Named):
-    def __init__(self, name, *, is_repeated: bool = False, is_flag: bool = False):
-        super().__init__(name)
-        self.is_repeated = is_repeated
-        self.is_flag = is_flag
-
-    def __repr__(self):
-        return f"Field('{self.name}', is_repeated={self.is_repeated}, is_flag={self.is_flag})"
-
-    def title(self):
-        return self.name[0].upper() + self.name[1:]
-
-    def context_name(self):
-        return f'{self.title()}Context'
-
-
 @node
 class ParserRuleSpec:
     name: str
@@ -223,56 +207,6 @@ class ParserRuleSpec:
     returns: any = None
     locals: any = None
     prequel: list[RulePrequel] = None
-
-    def title(self):
-        return self.name[0].upper() + self.name[1:]
-
-    def context_name(self):
-        return f'{self.title()}Context'
-
-    def fields(self) -> list[Field]:
-        names = []
-        alternatives = []
-        for labeled_alternative in self.labeled_alternatives:
-            alt = labeled_alternative.alternative, False
-            alternatives.append(alt)
-        while alternatives:
-            current_alt, is_repeated_alt = alternatives.pop()
-            for element in current_alt.elements:
-                match element:
-                    case Element(atom=Atom(rule_ref=RuleRef(ref=rule_ref)), zero_or_more=is_repeated):
-                        if not is_repeated:
-                            is_repeated = is_repeated_alt
-                        names.append(Field(rule_ref, is_repeated=is_repeated))
-                    case Element(ebnf=EBNF(block=Block(alternatives=block_alternatives)), zero_or_more=is_repeated):
-                        for block_alternative in block_alternatives:
-                            alt = block_alternative, is_repeated
-                            alternatives.append(alt)
-                    case Element(atom=Atom(terminal=_)):
-                        # TODO: but what about enums?...
-                        continue
-                    case _:
-                        continue
-        for flag in self._flags():
-            names.append(Field(flag, is_flag=True))
-        return names
-
-    def _flags(self) -> list[str]:
-        names = []
-        alternatives = []
-        for labeled_alternative in self.labeled_alternatives:
-            alternatives.append(labeled_alternative.alternative)
-        while alternatives:
-            current_alt = alternatives.pop()
-            for element in current_alt.elements:
-                match element:
-                    case Element(atom=Atom(terminal=flag), zero_or_one=True):
-                        names.append(flag)
-                    case Element(ebnf=EBNF(block=block_alternatives), zero_or_one=True):
-                        alternatives.extend(block_alternatives)
-                    case _:
-                        continue
-        return names
 
 
 @node
@@ -325,3 +259,5 @@ class GrammarSpec:
     rules: list[RuleSpec]
     prequel: list[PrequelConstruct] = None
     mode: ModeSpec = None
+
+del node
