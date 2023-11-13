@@ -71,11 +71,10 @@ style = [
   "black --check --diff {args:.}",
 ]
 fmt = [
-  "yapf --verbose -pri {args:src tests} --exclude src/databricks/labs/remorph/parsers/tsql/generated",
   "autoflake -ri {args:src tests}",
   "isort {args:src tests}",
+  "yapf --verbose -pri {args:src tests} --exclude src/databricks/labs/remorph/parsers/tsql/generated",
   "ruff --fix {args:src tests}",
-  "style",
 ]
 all = [
   "style",

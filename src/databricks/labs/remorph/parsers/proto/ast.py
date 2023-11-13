@@ -8,7 +8,6 @@ class Proto:
     package_statement: list["PackageStatement"] = None
     option_statement: list["OptionStatement"] = None
     top_level_def: list["TopLevelDef"] = None
-    empty_statement: list["EmptyStatement"] = None
     eof: str = None
 
 
@@ -79,7 +78,6 @@ class Oneof:
     oneof_name: "Ident" = None
     option_statement: list["OptionStatement"] = None
     oneof_field: list["OneofField"] = None
-    empty_statement: list["EmptyStatement"] = None
 
 
 @node
@@ -189,7 +187,6 @@ class EnumBody:
 class EnumElement:
     option_statement: "OptionStatement" = None
     enum_field: "EnumField" = None
-    empty_statement: "EmptyStatement" = None
 
 
 @node
@@ -233,14 +230,12 @@ class MessageElement:
     oneof: "Oneof" = None
     map_field: "MapField" = None
     reserved: "Reserved" = None
-    empty_statement: "EmptyStatement" = None
 
 
 @node
 class ExtendDef:
     message_type: "MessageType" = None
     field: list["Field"] = None
-    empty_statement: list["EmptyStatement"] = None
 
 
 @node
@@ -253,7 +248,6 @@ class ServiceDef:
 class ServiceElement:
     option_statement: "OptionStatement" = None
     rpc: "Rpc" = None
-    empty_statement: "EmptyStatement" = None
 
 
 @node
@@ -267,7 +261,6 @@ class Rpc:
     rc: bool = False
     semi: bool = False
     option_statement: list["OptionStatement"] = None
-    empty_statement: list["EmptyStatement"] = None
 
 
 @node

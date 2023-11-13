@@ -65,9 +65,6 @@ class Field:
     def snake_name(self) -> str:
         return Named(self.field_name).snake_name()
 
-    def pascal_name(self) -> str:
-        return Named(self.in_context).pascal_name()
-
     def title(self):
         return self.in_context[0].upper() + self.in_context[1:]
 
@@ -159,10 +156,12 @@ class VisitorCodeGenerator:
         ast_fields = []
         field_names = []
         for field in node.fields():
+            if not self._is_type_defined(field):
+                continue
             if field.is_repeated:
                 visitor_fields.append(
                     f"{field.snake_name()} = self.repeated(ctx, {self._package}.{field.context_name()})")
-                ast_fields.append(f"{field.snake_name()}: list['{field.pascal_name()}'] = None")
+                ast_fields.append(f"{field.snake_name()}: list[{self._type_name(field)}] = None")
             elif field.is_flag:
                 visitor_fields.append(f"{field.snake_name()} = self._(ctx.{field.in_context}()) is not None")
                 ast_fields.append(f"{field.snake_name()}: bool = False")
@@ -171,7 +170,7 @@ class VisitorCodeGenerator:
                 if node.needs_index(field):
                     index = field.ctx_index
                 visitor_fields.append(f"{field.snake_name()} = self._(ctx.{field.in_context}({index}))")
-                ast_fields.append(f"{field.snake_name()}: {self._type_ref(field)} = None")
+                ast_fields.append(f"{field.snake_name()}: {self._type_name(field)} = None")
             field_names.append(field.snake_name())
 
         visitor_code = "\n        ".join(visitor_fields)
@@ -181,7 +180,7 @@ class VisitorCodeGenerator:
         {visitor_code}
         return {node.pascal_name()}({", ".join(field_names)})
 """
-        self._ast_code += f"@node\nclass {node.pascal_name()}:\n    {ast_code}\n\n"
+        self._ast_code += f"@node\nclass {node.pascal_name()}:\n    {ast_code}\n\n\n"
 
     def _detect_alias_rules(self):
         for r in self.spec.rules:
@@ -213,14 +212,24 @@ class VisitorCodeGenerator:
             self._lexer_atoms.append(r.lexer.token_ref)
         self._lexer_atoms = sorted(self._lexer_atoms)
 
-    def _type_ref(self, field: Field) -> str:
+    def _type_name(self, field: Field) -> str:
         if field.is_terminal:
             return "str"
-        alias = self._alias_rules.get(field.in_context, None)
-        if alias is not None:
-            pascal_name = Named(alias).pascal_name()
-            return f"'{pascal_name}'"
-        return f"'{field.pascal_name()}'"
+        pascal_name = Named(self._type_ref(field)).pascal_name()
+        return f'"{pascal_name}"'
+
+    def _type_ref(self, field: Field) -> str:
+        in_context = field.in_context
+        return self._alias_rules.get(in_context, in_context)
+
+    def _is_type_defined(self, field: Field) -> bool:
+        if field.is_terminal:
+            return True
+        ref = self._type_ref(field)
+        for node in self._nodes:
+            if node.name == ref:
+                return True
+        return False
 
     def _has_alternative_labels(self, rule: ParserRuleSpec) -> bool:
         # TODO: has more than one visitor
