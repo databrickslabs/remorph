@@ -33,8 +33,8 @@ class OptionName:
 class Field:
     field_label: list['FieldLabel'] = None
     type_: 'Type' = None
-    field_name: 'FieldName' = None
-    field_number: 'FieldNumber' = None
+    field_name: 'Ident' = None
+    field_number: 'IntLit' = None
     field_options: 'FieldOptions' = None
 
 @node
@@ -48,12 +48,8 @@ class FieldOption:
     constant: 'Constant' = None
 
 @node
-class FieldNumber:
-    int_lit: 'IntLit' = None
-
-@node
 class Oneof:
-    oneof_name: 'OneofName' = None
+    oneof_name: 'Ident' = None
     option_statement: list['OptionStatement'] = None
     oneof_field: list['OneofField'] = None
     empty_statement: list['EmptyStatement'] = None
@@ -61,16 +57,16 @@ class Oneof:
 @node
 class OneofField:
     type_: 'Type' = None
-    field_name: 'FieldName' = None
-    field_number: 'FieldNumber' = None
+    field_name: 'Ident' = None
+    field_number: 'IntLit' = None
     field_options: 'FieldOptions' = None
 
 @node
 class MapField:
     key_type: 'KeyType' = None
     type_: 'Type' = None
-    map_name: 'MapName' = None
-    field_number: 'FieldNumber' = None
+    map_name: 'Ident' = None
+    field_number: 'IntLit' = None
     field_options: 'FieldOptions' = None
 
 @node
@@ -106,7 +102,7 @@ class TopLevelDef:
 
 @node
 class EnumDef:
-    enum_name: 'EnumName' = None
+    enum_name: 'Ident' = None
     enum_body: 'EnumBody' = None
 
 @node
@@ -137,7 +133,7 @@ class EnumValueOption:
 
 @node
 class MessageDef:
-    message_name: 'MessageName' = None
+    message_name: 'Ident' = None
     message_body: 'MessageBody' = None
 
 @node
@@ -164,7 +160,7 @@ class ExtendDef:
 
 @node
 class ServiceDef:
-    service_name: 'ServiceName' = None
+    service_name: 'Ident' = None
     service_element: list['ServiceElement'] = None
 
 @node
@@ -175,7 +171,7 @@ class ServiceElement:
 
 @node
 class Rpc:
-    rpc_name: 'RpcName' = None
+    rpc_name: 'Ident' = None
     left: 'MessageType' = None
     right: 'MessageType' = None
 
@@ -204,42 +200,14 @@ class FullIdent:
     right: list['Ident'] = None
 
 @node
-class MessageName:
-    ident: 'Ident' = None
-
-@node
-class EnumName:
-    ident: 'Ident' = None
-
-@node
-class FieldName:
-    ident: 'Ident' = None
-
-@node
-class OneofName:
-    ident: 'Ident' = None
-
-@node
-class MapName:
-    ident: 'Ident' = None
-
-@node
-class ServiceName:
-    ident: 'Ident' = None
-
-@node
-class RpcName:
-    ident: 'Ident' = None
-
-@node
 class MessageType:
     ident: list['Ident'] = None
-    message_name: 'MessageName' = None
+    message_name: 'Ident' = None
 
 @node
 class EnumType:
     ident: list['Ident'] = None
-    enum_name: 'EnumName' = None
+    enum_name: 'Ident' = None
 
 @node
 class IntLit:

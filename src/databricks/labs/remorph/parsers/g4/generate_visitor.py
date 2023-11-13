@@ -29,11 +29,6 @@ class Field:
     def pascal_name(self) -> str:
         return Named(self.in_context).pascal_name()
 
-    def type_ref(self) -> str:
-        if self.is_terminal:
-            return 'str'
-        return f"'{self.pascal_name()}'"
-
     def title(self):
         return self.in_context[0].upper() + self.in_context[1:]
 
@@ -93,6 +88,7 @@ class VisitorCodeGenerator:
         self._package = package
         self._nodes = []
         self._lexer_atoms = {}
+        self._alias_rules = {}
         self._ast_code = f'''from databricks.labs.remorph.parsers.base import node
 
 '''
@@ -131,6 +127,36 @@ class {spec.decl.name}AST({spec.decl.name}Visitor):
         return f'{self.spec.decl.name}Parser'
 
     def process_rules(self):
+        self._lexer_rules()
+        self._detect_alias_rules()
+        for r in self.spec.rules:
+            if not r.parser:
+                continue
+            node = self._rule_to_node(r.parser)
+            if not node:
+                continue
+            self._nodes.append(node)
+        for node in self._nodes:
+            self.generate_node(node)
+
+    def _detect_alias_rules(self):
+        for r in self.spec.rules:
+            rule = r.parser
+            if not rule:
+                continue
+            alternatives = rule.labeled_alternatives
+            if len(alternatives) > 1:
+                continue
+            elements = alternatives[0].alternative.elements
+            if len(elements) > 1:
+                continue
+            match elements[0]:
+                case Element(atom=Atom(rule_ref=RuleRef(ref=rule_ref))):
+                    if not rule_ref:
+                        continue
+                    self._alias_rules[rule.name] = rule_ref
+
+    def _lexer_rules(self):
         for r in self.spec.rules:
             if not r.lexer:
                 continue
@@ -141,15 +167,15 @@ class {spec.decl.name}AST({spec.decl.name}Visitor):
             if len(lexer_alternative.elements) > 1:
                 continue
             self._lexer_atoms[r.lexer.token_ref] = len(alternatives)
-        for r in self.spec.rules:
-            if not r.parser:
-                continue
-            node = self._rule_to_node(r.parser)
-            if not node:
-                continue
-            self._nodes.append(node)
-        for node in self._nodes:
-            self.generate_node(node)
+
+    def _type_ref(self, field: Field) -> str:
+        if field.is_terminal:
+            return 'str'
+        alias = self._alias_rules.get(field.in_context, None)
+        if alias is not None:
+            pascal_name = Named(alias).pascal_name()
+            return f"'{pascal_name}'"
+        return f"'{field.pascal_name()}'"
 
     def generate_node(self, node: Node):
         visitor_fields = []
@@ -168,7 +194,7 @@ class {spec.decl.name}AST({spec.decl.name}Visitor):
                 if node.needs_index(field):
                     index = field.ctx_index
                 visitor_fields.append(f'{field.snake_name()} = self._(ctx.{field.in_context}({index}))')
-                ast_fields.append(f"{field.snake_name()}: {field.type_ref()} = None")
+                ast_fields.append(f"{field.snake_name()}: {self._type_ref(field)} = None")
             field_names.append(field.snake_name())
 
         visitor_code = "\n        ".join(visitor_fields)
@@ -191,7 +217,9 @@ class {node.pascal_name()}:
                 return True
         return False
 
-    def _rule_to_node(self, rule: ParserRuleSpec) -> Node:
+    def _rule_to_node(self, rule: ParserRuleSpec) -> Node | None:
+        if rule.name in self._alias_rules:
+            return None
         return self._unfold_direct_fields(rule)
 
     def _unfold_direct_fields(self, rule: ParserRuleSpec) -> Node:
@@ -212,7 +240,6 @@ class {node.pascal_name()}:
                         if flag in self._lexer_atoms:
                             continue
                         idx, in_context, field_name = renamer(flag)
-                        # TODO: remove those non-flags with one alternative
                         node.add_field(idx, in_context, field_name,
                                        zero_or_one=element.zero_or_one,
                                        zero_or_more=element.zero_or_more,
@@ -226,15 +253,13 @@ class {node.pascal_name()}:
         for element in self._unfold_elements(alternative):
             match element:
                 case Element(atom=Atom(rule_ref=RuleRef(ref=rule_ref))):
-                    # if rule_ref in self._lexer_rules:
-                    #     continue
                     child_counter[rule_ref] += 1
                 case Element(atom=Atom(terminal=flag), zero_or_one=True):
                     child_counter[flag] += 1
                 case Element(atom=Atom(terminal=name)):
                     child_counter[name] += 1
 
-        renames = ['left', 'right', 'third', 'fourth', 'fifth', 'sixth', 'seventh', 'eighth', 'ninth']
+        renames = ['left', 'right', 'third', 'fourth', 'fifth']
         current_counter = collections.defaultdict(int)
 
         def renamer(name: str) -> tuple[int, str, str]:

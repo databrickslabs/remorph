@@ -74,10 +74,6 @@ class Protobuf3AST(Protobuf3Visitor):
         constant = self._(ctx.constant())
         return FieldOption(option_name, constant)
 
-    def visitFieldNumber(self, ctx: proto.FieldNumberContext):
-        int_lit = self._(ctx.intLit())
-        return FieldNumber(int_lit)
-
     def visitOneof(self, ctx: proto.OneofContext):
         oneof_name = self._(ctx.oneofName())
         option_statement = self.repeated(ctx, proto.OptionStatementContext)
@@ -229,34 +225,6 @@ class Protobuf3AST(Protobuf3Visitor):
         left = self._(ctx.ident(0))
         right = self.repeated(ctx, proto.IdentContext)
         return FullIdent(left, right)
-
-    def visitMessageName(self, ctx: proto.MessageNameContext):
-        ident = self._(ctx.ident())
-        return MessageName(ident)
-
-    def visitEnumName(self, ctx: proto.EnumNameContext):
-        ident = self._(ctx.ident())
-        return EnumName(ident)
-
-    def visitFieldName(self, ctx: proto.FieldNameContext):
-        ident = self._(ctx.ident())
-        return FieldName(ident)
-
-    def visitOneofName(self, ctx: proto.OneofNameContext):
-        ident = self._(ctx.ident())
-        return OneofName(ident)
-
-    def visitMapName(self, ctx: proto.MapNameContext):
-        ident = self._(ctx.ident())
-        return MapName(ident)
-
-    def visitServiceName(self, ctx: proto.ServiceNameContext):
-        ident = self._(ctx.ident())
-        return ServiceName(ident)
-
-    def visitRpcName(self, ctx: proto.RpcNameContext):
-        ident = self._(ctx.ident())
-        return RpcName(ident)
 
     def visitMessageType(self, ctx: proto.MessageTypeContext):
         ident = self.repeated(ctx, proto.IdentContext)
