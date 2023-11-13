@@ -19,12 +19,12 @@ from databricks.labs.remorph.parsers.g4.g4ast import (
 _VISITOR_PREAMBLE = """import antlr4
 from antlr4.tree.Tree import TerminalNodeImpl
 
-from databricks.labs.remorph.parsers.{package}.generated.{spec_decl_name}Parser import {spec_decl_name}Parser as {package}
-from databricks.labs.remorph.parsers.{package}.generated.{spec_decl_name}Visitor import {spec_decl_name}Visitor
+from databricks.labs.remorph.parsers.{package}.generated.{name}Parser import {name}Parser as {package}
+from databricks.labs.remorph.parsers.{package}.generated.{name}Visitor import {name}Visitor
 from databricks.labs.remorph.parsers.{package}.ast import *
 
 
-class {spec_decl_name}AST({spec_decl_name}Visitor):
+class {name}AST({name}Visitor):
     def _(self, ctx: antlr4.ParserRuleContext):
         if not ctx:
             return None
@@ -136,7 +136,7 @@ class VisitorCodeGenerator:
         self._lexer_atoms = []
         self._alias_rules = {}
         self._ast_code = "from databricks.labs.remorph.parsers.base import node\n\n\n"
-        self._visitor_code = _VISITOR_PREAMBLE.format(package=package, spec_decl_name=spec.decl.name)
+        self._visitor_code = _VISITOR_PREAMBLE.format(package=package, name=spec.decl.name)
 
     def process_rules(self):
         self._lexer_rules()
