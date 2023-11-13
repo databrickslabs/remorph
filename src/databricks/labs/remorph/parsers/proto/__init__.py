@@ -6,13 +6,10 @@ from .generated.Protobuf3Parser import Protobuf3Parser
 from .generated.Protobuf3Visitor import Protobuf3Visitor
 from .visitor import Protobuf3AST
 
-__all__ = ['parse_file', 'Protobuf3Visitor']
+__all__ = ['parse_proto', 'Protobuf3Visitor']
+
+from ..base import init_parse
 
 
-def parse_file(path: pathlib.Path):
-    fs = antlr4.FileStream(path.as_posix(), 'utf8')
-    lexer = Protobuf3Lexer(fs)
-    stream = antlr4.CommonTokenStream(lexer)
-    parser = Protobuf3Parser(stream)
-    proto = parser.proto()
-    return proto.accept(Protobuf3AST())
+def parse_proto(path: pathlib.Path):
+    return init_parse(path, Protobuf3Lexer, Protobuf3Parser, Protobuf3AST, 'proto')

@@ -1,9 +1,10 @@
 import collections
 import pathlib
-from dataclasses import dataclass
-from typing import Callable
+from dataclasses import dataclass, replace
+from typing import Callable, Iterator
 
-from databricks.labs.remorph.parsers.g4 import parse_file
+from databricks.labs.remorph.intermediate.named import Named
+from databricks.labs.remorph.parsers.g4 import parse_g4
 from databricks.labs.remorph.parsers.g4.g4ast import *
 from databricks.labs.remorph.parsers.g4.visitor import AntlrAST
 
@@ -92,8 +93,7 @@ class VisitorCodeGenerator:
         self._package = package
         self._nodes = []
         self._lexer_atoms = {}
-        self._ast_code = f'''
-from databricks.labs.remorph.parsers.ast import node
+        self._ast_code = f'''from databricks.labs.remorph.parsers.base import node
 
 '''
         self._visitor_code = f'''import antlr4
@@ -281,8 +281,7 @@ class {node.pascal_name()}:
 if __name__ == '__main__':
     __dir__ = pathlib.Path(__file__).parent
     grammar_file = __dir__.parent / 'proto/Protobuf3.g4'
-    parsed_grammar = parse_file(grammar_file)
-    grammar_spec = parsed_grammar.accept(AntlrAST())
+    grammar_spec = parse_g4(grammar_file)
     visitor_gen = VisitorCodeGenerator(grammar_spec, 'proto')
 
     visitor_gen.process_rules()

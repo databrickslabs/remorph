@@ -1,6 +1,6 @@
 import pathlib
 
-from databricks.labs.remorph.parsers.proto import parse_file, Protobuf3Visitor, Protobuf3Parser
+from databricks.labs.remorph.parsers.proto import parse_proto, Protobuf3Visitor, Protobuf3Parser
 
 
 class AstBuilder(Protobuf3Visitor):
@@ -29,7 +29,7 @@ def main():
     __dir__ = pathlib.Path(__file__).parent
     ast_builder = AstBuilder()
     for proto in (__dir__ / 'proto/spark/connect').glob('*.proto'):
-        res = parse_file(proto)
+        res = parse_proto(proto)
         res.accept(ast_builder)
     print(1)
 

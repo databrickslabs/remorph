@@ -1,5 +1,4 @@
-
-from databricks.labs.remorph.parsers.ast import node
+from databricks.labs.remorph.parsers.base import node
 
 
 @node

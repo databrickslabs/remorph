@@ -1,10 +1,4 @@
-import dataclasses
-import functools
-from dataclasses import replace
-from typing import Iterator
-
-from databricks.labs.remorph.intermediate.named import Named
-from databricks.labs.remorph.parsers.ast import node
+from databricks.labs.remorph.parsers.base import node
 
 
 @node
