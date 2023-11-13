@@ -329,7 +329,7 @@ class Protobuf3AST(Protobuf3Visitor):
 
     def visitFullIdent(self, ctx: proto.FullIdentContext):
         left = self._(ctx.ident(0))
-        right = self.repeated(ctx, proto.IdentContext)
+        right = self.repeated(ctx, proto.IdentContext) # FIXME: ignore first field
         return FullIdent(left, right)
 
     def visitMessageType(self, ctx: proto.MessageTypeContext):
