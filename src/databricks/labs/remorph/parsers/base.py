@@ -18,9 +18,7 @@ def node(cls):
         values = []
         for field in fields:
             v = getattr(self, field.name)
-            if v is None:
-                continue
-            if field.type == bool and not v:
+            if not v:
                 continue
             values.append(f'{field.name}={v}')
         return f'{cls.__name__}({", ".join(values)})'

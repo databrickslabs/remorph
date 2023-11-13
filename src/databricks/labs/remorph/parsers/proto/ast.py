@@ -12,7 +12,14 @@ class Proto:
     eof: str = None
 
 @node
+class Syntax:
+    proto3_lit_single: bool = False
+    proto3_lit_dobule: bool = False
+
+@node
 class ImportStatement:
+    weak: bool = False
+    public: bool = False
     str_lit: 'StrLit' = None
 
 @node
@@ -27,7 +34,15 @@ class OptionStatement:
 @node
 class OptionName:
     full_ident: 'FullIdent' = None
+    lp: bool = False
+    rp: bool = False
+    dot: bool = False
     right: 'FullIdent' = None
+
+@node
+class FieldLabel:
+    optional: bool = False
+    repeated: bool = False
 
 @node
 class Field:
@@ -35,7 +50,9 @@ class Field:
     type_: 'Type' = None
     field_name: 'Ident' = None
     field_number: 'IntLit' = None
+    lb: bool = False
     field_options: 'FieldOptions' = None
+    rb: bool = False
 
 @node
 class FieldOptions:
@@ -59,7 +76,9 @@ class OneofField:
     type_: 'Type' = None
     field_name: 'Ident' = None
     field_number: 'IntLit' = None
+    lb: bool = False
     field_options: 'FieldOptions' = None
+    rb: bool = False
 
 @node
 class MapField:
@@ -67,10 +86,42 @@ class MapField:
     type_: 'Type' = None
     map_name: 'Ident' = None
     field_number: 'IntLit' = None
+    lb: bool = False
     field_options: 'FieldOptions' = None
+    rb: bool = False
+
+@node
+class KeyType:
+    int32: bool = False
+    int64: bool = False
+    uint32: bool = False
+    uint64: bool = False
+    sint32: bool = False
+    sint64: bool = False
+    fixed32: bool = False
+    fixed64: bool = False
+    sfixed32: bool = False
+    sfixed64: bool = False
+    bool_: bool = False
+    string: bool = False
 
 @node
 class Type:
+    double: bool = False
+    float: bool = False
+    int32: bool = False
+    int64: bool = False
+    uint32: bool = False
+    uint64: bool = False
+    sint32: bool = False
+    sint64: bool = False
+    fixed32: bool = False
+    fixed64: bool = False
+    sfixed32: bool = False
+    sfixed64: bool = False
+    bool_: bool = False
+    string: bool = False
+    bytes: bool = False
     message_type: 'MessageType' = None
     enum_type: 'EnumType' = None
 
@@ -87,6 +138,7 @@ class Ranges:
 @node
 class Range:
     int_lit: 'IntLit' = None
+    to: bool = False
 
 @node
 class ReservedFieldNames:
@@ -118,6 +170,7 @@ class EnumElement:
 @node
 class EnumField:
     ident: 'Ident' = None
+    minus: bool = False
     int_lit: 'IntLit' = None
     enum_value_options: list['EnumValueOptions'] = None
 
@@ -172,12 +225,19 @@ class ServiceElement:
 @node
 class Rpc:
     rpc_name: 'Ident' = None
-    left: 'MessageType' = None
+    left: bool = False
     right: 'MessageType' = None
+    third: bool = False
+    fourth: 'MessageType' = None
+    lc: bool = False
+    rc: bool = False
+    semi: bool = False
 
 @node
 class Constant:
     full_ident: 'FullIdent' = None
+    minus: bool = False
+    plus: bool = False
     int_lit: 'IntLit' = None
     float_lit: 'FloatLit' = None
     str_lit: 'StrLit' = None
@@ -201,11 +261,13 @@ class FullIdent:
 
 @node
 class MessageType:
+    left: bool = False
     ident: list['Ident'] = None
     message_name: 'Ident' = None
 
 @node
 class EnumType:
+    left: bool = False
     ident: list['Ident'] = None
     enum_name: 'Ident' = None
 
@@ -216,6 +278,8 @@ class IntLit:
 @node
 class StrLit:
     str_lit: str = None
+    proto3_lit_single: bool = False
+    proto3_lit_dobule: bool = False
 
 @node
 class BoolLit:
@@ -227,4 +291,40 @@ class FloatLit:
 
 @node
 class Keywords:
+    syntax: bool = False
+    import_: bool = False
+    weak: bool = False
+    public: bool = False
+    package_: bool = False
+    option: bool = False
+    optional: bool = False
+    repeated: bool = False
+    oneof: bool = False
+    map_: bool = False
+    int32: bool = False
+    int64: bool = False
+    uint32: bool = False
+    uint64: bool = False
+    sint32: bool = False
+    sint64: bool = False
+    fixed32: bool = False
+    fixed64: bool = False
+    sfixed32: bool = False
+    sfixed64: bool = False
+    bool_: bool = False
+    string: bool = False
+    double: bool = False
+    float: bool = False
+    bytes: bool = False
+    reserved: bool = False
+    to: bool = False
+    max: bool = False
+    enum: bool = False
+    message: bool = False
+    service: bool = False
+    extend: bool = False
+    rpc: bool = False
+    stream: bool = False
+    returns: bool = False
     bool_lit: str = None
+

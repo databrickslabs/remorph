@@ -6,7 +6,38 @@ from typing import Callable, Iterator
 from databricks.labs.remorph.intermediate.named import Named
 from databricks.labs.remorph.parsers.g4 import parse_g4
 from databricks.labs.remorph.parsers.g4.g4ast import *
-from databricks.labs.remorph.parsers.g4.visitor import AntlrAST
+
+
+_VISITOR_PREAMBLE = '''import antlr4
+from antlr4.tree.Tree import TerminalNodeImpl
+
+from databricks.labs.remorph.parsers.{package}.generated.{spec_decl_name}Parser import {spec_decl_name}Parser as {package}
+from databricks.labs.remorph.parsers.{package}.generated.{spec_decl_name}Visitor import {spec_decl_name}Visitor
+from databricks.labs.remorph.parsers.{package}.ast import *
+
+
+class {spec_decl_name}AST({spec_decl_name}Visitor):
+    def _(self, ctx: antlr4.ParserRuleContext):
+        if not ctx:
+            return None
+        if type(ctx) == list: # TODO: looks like a hack, but it's still better
+            return [self.visit(_) for _ in ctx]
+        return self.visit(ctx)
+    
+    def repeated(self, ctx: antlr4.ParserRuleContext, ctx_type: type) -> list[any]:
+        if not ctx:
+            return []
+        out = []
+        for rc in ctx.getTypedRuleContexts(ctx_type):
+            mapped = self._(rc)
+            if not mapped:
+                continue
+            out.append(mapped)
+        return out
+
+    def visitTerminal(self, ctx: TerminalNodeImpl):
+        return ctx.getText()
+'''
 
 
 @dataclass
@@ -87,44 +118,10 @@ class VisitorCodeGenerator:
         self.spec = spec
         self._package = package
         self._nodes = []
-        self._lexer_atoms = {}
+        self._lexer_atoms = []
         self._alias_rules = {}
-        self._ast_code = f'''from databricks.labs.remorph.parsers.base import node
-
-'''
-        self._visitor_code = f'''import antlr4
-from antlr4.tree.Tree import TerminalNodeImpl
-
-from databricks.labs.remorph.parsers.{package}.generated.{spec.decl.name}Parser import {spec.decl.name}Parser as {package}
-from databricks.labs.remorph.parsers.{package}.generated.{spec.decl.name}Visitor import {spec.decl.name}Visitor
-from databricks.labs.remorph.parsers.{package}.ast import *
-
-
-class {spec.decl.name}AST({spec.decl.name}Visitor):
-    def _(self, ctx: antlr4.ParserRuleContext):
-        if not ctx:
-            return None
-        if type(ctx) == list: # TODO: looks like a hack, but it's still better
-            return [self.visit(_) for _ in ctx]
-        return self.visit(ctx)
-    
-    def repeated(self, ctx: antlr4.ParserRuleContext, ctx_type: type) -> list[any]:
-        if not ctx:
-            return []
-        out = []
-        for rc in ctx.getTypedRuleContexts(ctx_type):
-            mapped = self._(rc)
-            if not mapped:
-                continue
-            out.append(mapped)
-        return out
-
-    def visitTerminal(self, ctx: TerminalNodeImpl):
-        return ctx.getText()
-'''
-
-    def parser_name(self):
-        return f'{self.spec.decl.name}Parser'
+        self._ast_code = "from databricks.labs.remorph.parsers.base import node\n\n\n"
+        self._visitor_code = _VISITOR_PREAMBLE.format(package=package, spec_decl_name=spec.decl.name)
 
     def process_rules(self):
         self._lexer_rules()
@@ -137,7 +134,36 @@ class {spec.decl.name}AST({spec.decl.name}Visitor):
                 continue
             self._nodes.append(node)
         for node in self._nodes:
-            self.generate_node(node)
+            self._generate_node(node)
+
+    def _generate_node(self, node: Node):
+        visitor_fields = []
+        ast_fields = []
+        field_names = []
+        for field in node.fields():
+            if field.is_repeated:
+                visitor_fields.append(
+                    f'{field.snake_name()} = self.repeated(ctx, {self._package}.{field.context_name()})')
+                ast_fields.append(f"{field.snake_name()}: list['{field.pascal_name()}'] = None")
+            elif field.is_flag:
+                visitor_fields.append(f'{field.snake_name()} = self._(ctx.{field.in_context}()) is not None')
+                ast_fields.append(f'{field.snake_name()}: bool = False')
+            else:
+                index = ''
+                if node.needs_index(field):
+                    index = field.ctx_index
+                visitor_fields.append(f'{field.snake_name()} = self._(ctx.{field.in_context}({index}))')
+                ast_fields.append(f"{field.snake_name()}: {self._type_ref(field)} = None")
+            field_names.append(field.snake_name())
+
+        visitor_code = "\n        ".join(visitor_fields)
+        ast_code = "\n    ".join(ast_fields)
+        self._visitor_code += f'''
+    def visit{node.title()}(self, ctx: {self._package}.{node.context_name()}):
+        {visitor_code}
+        return {node.pascal_name()}({", ".join(field_names)})
+'''
+        self._ast_code += f"@node\nclass {node.pascal_name()}:\n    {ast_code}\n\n"
 
     def _detect_alias_rules(self):
         for r in self.spec.rules:
@@ -166,7 +192,8 @@ class {spec.decl.name}AST({spec.decl.name}Visitor):
             lexer_alternative = alternatives[0]
             if len(lexer_alternative.elements) > 1:
                 continue
-            self._lexer_atoms[r.lexer.token_ref] = len(alternatives)
+            self._lexer_atoms.append(r.lexer.token_ref)
+        self._lexer_atoms = sorted(self._lexer_atoms)
 
     def _type_ref(self, field: Field) -> str:
         if field.is_terminal:
@@ -176,39 +203,6 @@ class {spec.decl.name}AST({spec.decl.name}Visitor):
             pascal_name = Named(alias).pascal_name()
             return f"'{pascal_name}'"
         return f"'{field.pascal_name()}'"
-
-    def generate_node(self, node: Node):
-        visitor_fields = []
-        ast_fields = []
-        field_names = []
-        for field in node.fields():
-            if field.is_repeated:
-                visitor_fields.append(
-                    f'{field.snake_name()} = self.repeated(ctx, {self._package}.{field.context_name()})')
-                ast_fields.append(f"{field.snake_name()}: list['{field.pascal_name()}'] = None")
-            elif field.is_flag:
-                visitor_fields.append(f'{field.snake_name()} = self._(ctx.{field.in_context}()) is not None')
-                ast_fields.append(f'{field.snake_name()}: bool = False')
-            else:
-                index = ''
-                if node.needs_index(field):
-                    index = field.ctx_index
-                visitor_fields.append(f'{field.snake_name()} = self._(ctx.{field.in_context}({index}))')
-                ast_fields.append(f"{field.snake_name()}: {self._type_ref(field)} = None")
-            field_names.append(field.snake_name())
-
-        visitor_code = "\n        ".join(visitor_fields)
-        ast_code = "\n    ".join(ast_fields)
-        self._visitor_code += f'''
-    def visit{node.title()}(self, ctx: {self._package}.{node.context_name()}):
-        {visitor_code}
-        return {node.pascal_name()}({", ".join(field_names)})
-'''
-        self._ast_code += f'''
-@node
-class {node.pascal_name()}:
-    {ast_code}
-'''
 
     def _has_alternative_labels(self, rule: ParserRuleSpec) -> bool:
         # TODO: has more than one visitor
@@ -224,29 +218,40 @@ class {node.pascal_name()}:
 
     def _unfold_direct_fields(self, rule: ParserRuleSpec) -> Node:
         node = Node(rule.name)
+        has_alternatives = len(rule.labeled_alternatives) > 1
         for labeled_alternative in rule.labeled_alternatives:
             alternative = labeled_alternative.alternative
             renamer = self._duplicate_field_renamer(alternative)
-            for element in self._unfold_elements(alternative):
+            for element in self._unfold_elements(alternative, zero_or_one=has_alternatives):
                 match element:
                     case Element(atom=Atom(rule_ref=RuleRef(ref=rule_ref))):
-                        idx, in_context, field_name = renamer(rule_ref)
-                        node.add_field(idx, in_context, field_name,
-                                       zero_or_one=element.zero_or_one,
-                                       zero_or_more=element.zero_or_more,
-                                       one_or_more=element.one_or_more,
-                                       is_non_greedy=element.is_non_greedy)
+                        self._add_field_to_node(node, rule_ref, renamer, element)
                     case Element(atom=Atom(terminal=flag)):
-                        if flag in self._lexer_atoms:
-                            continue
-                        idx, in_context, field_name = renamer(flag)
-                        node.add_field(idx, in_context, field_name,
-                                       zero_or_one=element.zero_or_one,
-                                       zero_or_more=element.zero_or_more,
-                                       one_or_more=element.one_or_more,
-                                       is_non_greedy=element.is_non_greedy,
-                                       terminal=True)
+                        self._add_field_to_node(node, flag, renamer, element, terminal=True)
         return node
+
+    def _add_field_to_node(self,
+                           node: Node,
+                           rule_name: str,
+                           renamer: Callable[[str], tuple[int, str, str]],
+                           element: Element,
+                           terminal: bool = False):
+        if rule_name in self._lexer_atoms:
+            if not element.zero_or_one:
+                return
+            if element.zero_or_more:
+                return
+            if element.one_or_more:
+                return
+        if terminal and rule_name not in self._lexer_atoms:
+            element = replace(element, zero_or_one=False)
+        idx, in_context, field_name = renamer(rule_name)
+        node.add_field(idx, in_context, field_name,
+                       zero_or_one=element.zero_or_one,
+                       zero_or_more=element.zero_or_more,
+                       one_or_more=element.one_or_more,
+                       is_non_greedy=element.is_non_greedy,
+                       terminal=terminal)
 
     def _duplicate_field_renamer(self, alternative: Alternative) -> Callable[[str], tuple[int, str, str]]:
         child_counter = collections.defaultdict(int)
@@ -275,7 +280,7 @@ class {node.pascal_name()}:
         return renamer
 
     @classmethod
-    def _unfold_elements(cls, alternative: Alternative) -> Iterator[Element]:
+    def _unfold_elements(cls, alternative: Alternative, zero_or_one: bool = False) -> Iterator[Element]:
         element_queue = []
         element_queue.extend(alternative.elements)
         default_ebnf = EBNF(Block([]))
@@ -288,13 +293,14 @@ class {node.pascal_name()}:
                         ebnf = default_ebnf
                     for nested_alternative in alternatives:
                         for alt_element in nested_alternative.elements:
+                            # element is part of the alternative, so it's always zero or one
                             yield replace(alt_element,
-                                          zero_or_one=ebnf.zero_or_one,
+                                          zero_or_one=True,
                                           zero_or_more=ebnf.zero_or_more,
                                           one_or_more=ebnf.one_or_more,
                                           is_non_greedy=ebnf.is_non_greedy)
                 case _:
-                    yield element
+                    yield replace(element, zero_or_one=zero_or_one)
 
     def visitor_code(self):
         return self._visitor_code
