@@ -242,8 +242,8 @@ class {node.pascal_name()}:
                 return 0, name, name
             current_index = current_counter[rule_ref]
             if current_index == len(renames):
-                raise ValueError('...')
-            field_name = f'{renames[current_index]}_{name}'
+                raise ValueError('cannot rename field')
+            field_name = renames[current_index]
             current_counter[rule_ref] += 1
             return current_index, name, field_name
 

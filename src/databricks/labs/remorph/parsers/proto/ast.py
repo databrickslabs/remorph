@@ -28,7 +28,7 @@ class OptionStatement:
 @node
 class OptionName:
     full_ident: 'FullIdent' = None
-    right_full_ident: 'FullIdent' = None
+    right: 'FullIdent' = None
 
 @node
 class Field:
@@ -40,8 +40,8 @@ class Field:
 
 @node
 class FieldOptions:
-    left_field_option: 'FieldOption' = None
-    right_field_option: list['FieldOption'] = None
+    left: 'FieldOption' = None
+    right: list['FieldOption'] = None
 
 @node
 class FieldOption:
@@ -86,8 +86,8 @@ class Reserved:
 
 @node
 class Ranges:
-    left_range: 'Range' = None
-    right_range: list['Range'] = None
+    left: 'Range' = None
+    right: list['Range'] = None
 
 @node
 class Range:
@@ -95,8 +95,8 @@ class Range:
 
 @node
 class ReservedFieldNames:
-    left_str_lit: 'StrLit' = None
-    right_str_lit: list['StrLit'] = None
+    left: 'StrLit' = None
+    right: list['StrLit'] = None
 
 @node
 class TopLevelDef:
@@ -128,8 +128,8 @@ class EnumField:
 
 @node
 class EnumValueOptions:
-    left_enum_value_option: 'EnumValueOption' = None
-    right_enum_value_option: list['EnumValueOption'] = None
+    left: 'EnumValueOption' = None
+    right: list['EnumValueOption'] = None
 
 @node
 class EnumValueOption:
@@ -177,8 +177,8 @@ class ServiceElement:
 @node
 class Rpc:
     rpc_name: 'RpcName' = None
-    left_message_type: 'MessageType' = None
-    right_message_type: 'MessageType' = None
+    left: 'MessageType' = None
+    right: 'MessageType' = None
 
 @node
 class Constant:
@@ -201,8 +201,8 @@ class Ident:
 
 @node
 class FullIdent:
-    left_ident: 'Ident' = None
-    right_ident: list['Ident'] = None
+    left: 'Ident' = None
+    right: list['Ident'] = None
 
 @node
 class MessageName:

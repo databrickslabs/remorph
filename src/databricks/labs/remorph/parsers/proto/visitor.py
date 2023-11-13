@@ -53,8 +53,8 @@ class Protobuf3AST(Protobuf3Visitor):
 
     def visitOptionName(self, ctx: proto.OptionNameContext):
         full_ident = self._(ctx.fullIdent(0))
-        right_full_ident = self._(ctx.fullIdent(1))
-        return OptionName(full_ident, right_full_ident)
+        right = self._(ctx.fullIdent(1))
+        return OptionName(full_ident, right)
 
     def visitField(self, ctx: proto.FieldContext):
         field_label = self.repeated(ctx, proto.FieldLabelContext)
@@ -65,9 +65,9 @@ class Protobuf3AST(Protobuf3Visitor):
         return Field(field_label, type_, field_name, field_number, field_options)
 
     def visitFieldOptions(self, ctx: proto.FieldOptionsContext):
-        left_field_option = self._(ctx.fieldOption(0))
-        right_field_option = self.repeated(ctx, proto.FieldOptionContext)
-        return FieldOptions(left_field_option, right_field_option)
+        left = self._(ctx.fieldOption(0))
+        right = self.repeated(ctx, proto.FieldOptionContext)
+        return FieldOptions(left, right)
 
     def visitFieldOption(self, ctx: proto.FieldOptionContext):
         option_name = self._(ctx.optionName())
@@ -111,18 +111,18 @@ class Protobuf3AST(Protobuf3Visitor):
         return Reserved(ranges, reserved_field_names)
 
     def visitRanges(self, ctx: proto.RangesContext):
-        left_range = self._(ctx.range_(0))
-        right_range = self.repeated(ctx, proto.Range_Context)
-        return Ranges(left_range, right_range)
+        left = self._(ctx.range_(0))
+        right = self.repeated(ctx, proto.Range_Context)
+        return Ranges(left, right)
 
     def visitRange_(self, ctx: proto.Range_Context):
         int_lit = self._(ctx.intLit())
         return Range(int_lit)
 
     def visitReservedFieldNames(self, ctx: proto.ReservedFieldNamesContext):
-        left_str_lit = self._(ctx.strLit(0))
-        right_str_lit = self.repeated(ctx, proto.StrLitContext)
-        return ReservedFieldNames(left_str_lit, right_str_lit)
+        left = self._(ctx.strLit(0))
+        right = self.repeated(ctx, proto.StrLitContext)
+        return ReservedFieldNames(left, right)
 
     def visitTopLevelDef(self, ctx: proto.TopLevelDefContext):
         message_def = self._(ctx.messageDef())
@@ -153,9 +153,9 @@ class Protobuf3AST(Protobuf3Visitor):
         return EnumField(ident, int_lit, enum_value_options)
 
     def visitEnumValueOptions(self, ctx: proto.EnumValueOptionsContext):
-        left_enum_value_option = self._(ctx.enumValueOption(0))
-        right_enum_value_option = self.repeated(ctx, proto.EnumValueOptionContext)
-        return EnumValueOptions(left_enum_value_option, right_enum_value_option)
+        left = self._(ctx.enumValueOption(0))
+        right = self.repeated(ctx, proto.EnumValueOptionContext)
+        return EnumValueOptions(left, right)
 
     def visitEnumValueOption(self, ctx: proto.EnumValueOptionContext):
         option_name = self._(ctx.optionName())
@@ -202,9 +202,9 @@ class Protobuf3AST(Protobuf3Visitor):
 
     def visitRpc(self, ctx: proto.RpcContext):
         rpc_name = self._(ctx.rpcName())
-        left_message_type = self._(ctx.messageType(0))
-        right_message_type = self._(ctx.messageType(1))
-        return Rpc(rpc_name, left_message_type, right_message_type)
+        left = self._(ctx.messageType(0))
+        right = self._(ctx.messageType(1))
+        return Rpc(rpc_name, left, right)
 
     def visitConstant(self, ctx: proto.ConstantContext):
         full_ident = self._(ctx.fullIdent())
@@ -226,9 +226,9 @@ class Protobuf3AST(Protobuf3Visitor):
         return Ident(identifier, keywords)
 
     def visitFullIdent(self, ctx: proto.FullIdentContext):
-        left_ident = self._(ctx.ident(0))
-        right_ident = self.repeated(ctx, proto.IdentContext)
-        return FullIdent(left_ident, right_ident)
+        left = self._(ctx.ident(0))
+        right = self.repeated(ctx, proto.IdentContext)
+        return FullIdent(left, right)
 
     def visitMessageName(self, ctx: proto.MessageNameContext):
         ident = self._(ctx.ident())
