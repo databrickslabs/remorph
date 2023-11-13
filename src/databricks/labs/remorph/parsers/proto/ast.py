@@ -137,8 +137,10 @@ class Ranges:
 
 @node
 class Range:
-    int_lit: 'IntLit' = None
+    left: 'IntLit' = None
     to: bool = False
+    right: 'IntLit' = None
+    max: bool = False
 
 @node
 class ReservedFieldNames:
@@ -232,6 +234,8 @@ class Rpc:
     lc: bool = False
     rc: bool = False
     semi: bool = False
+    option_statement: list['OptionStatement'] = None
+    empty_statement: list['EmptyStatement'] = None
 
 @node
 class Constant:

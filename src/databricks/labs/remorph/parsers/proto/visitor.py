@@ -163,9 +163,11 @@ class Protobuf3AST(Protobuf3Visitor):
         return Ranges(left, right)
 
     def visitRange_(self, ctx: proto.Range_Context):
-        int_lit = self._(ctx.intLit())
+        left = self._(ctx.intLit(0))
         to = self._(ctx.TO()) is not None
-        return Range(int_lit, to)
+        right = self._(ctx.intLit(1))
+        max = self._(ctx.MAX()) is not None
+        return Range(left, to, right, max)
 
     def visitReservedFieldNames(self, ctx: proto.ReservedFieldNamesContext):
         left = self._(ctx.strLit(0))
@@ -258,7 +260,9 @@ class Protobuf3AST(Protobuf3Visitor):
         lc = self._(ctx.LC()) is not None
         rc = self._(ctx.RC()) is not None
         semi = self._(ctx.SEMI()) is not None
-        return Rpc(rpc_name, left, right, third, fourth, lc, rc, semi)
+        option_statement = self.repeated(ctx, proto.OptionStatementContext)
+        empty_statement = self.repeated(ctx, proto.EmptyStatement_Context)
+        return Rpc(rpc_name, left, right, third, fourth, lc, rc, semi, option_statement, empty_statement)
 
     def visitConstant(self, ctx: proto.ConstantContext):
         full_ident = self._(ctx.fullIdent())

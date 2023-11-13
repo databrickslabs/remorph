@@ -293,6 +293,9 @@ class VisitorCodeGenerator:
                         ebnf = default_ebnf
                     for nested_alternative in alternatives:
                         for alt_element in nested_alternative.elements:
+                            if alt_element.ebnf is not None:
+                                element_queue.append(alt_element)
+                                continue
                             # element is part of the alternative, so it's always zero or one
                             yield replace(alt_element,
                                           zero_or_one=True,
