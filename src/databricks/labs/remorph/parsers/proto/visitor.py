@@ -1,19 +1,65 @@
 import antlr4
 from antlr4.tree.Tree import TerminalNodeImpl
 
+from databricks.labs.remorph.parsers.proto.ast import (
+    BlockLit,
+    BoolLit,
+    Constant,
+    EnumBody,
+    EnumDef,
+    EnumElement,
+    EnumField,
+    EnumType,
+    EnumValueOption,
+    EnumValueOptions,
+    ExtendDef,
+    Field,
+    FieldLabel,
+    FieldOption,
+    FieldOptions,
+    FloatLit,
+    FullIdent,
+    Ident,
+    ImportStatement,
+    IntLit,
+    KeyType,
+    Keywords,
+    MapField,
+    MessageBody,
+    MessageDef,
+    MessageElement,
+    MessageType,
+    Oneof,
+    OneofField,
+    OptionName,
+    OptionStatement,
+    PackageStatement,
+    Proto,
+    Range,
+    Ranges,
+    Reserved,
+    ReservedFieldNames,
+    Rpc,
+    ServiceDef,
+    ServiceElement,
+    StrLit,
+    Syntax,
+    TopLevelDef,
+    Type,
+)
 from databricks.labs.remorph.parsers.proto.generated.Protobuf3Parser import Protobuf3Parser as proto
 from databricks.labs.remorph.parsers.proto.generated.Protobuf3Visitor import Protobuf3Visitor
-from databricks.labs.remorph.parsers.proto.ast import *
 
 
 class Protobuf3AST(Protobuf3Visitor):
+
     def _(self, ctx: antlr4.ParserRuleContext):
         if not ctx:
             return None
         if type(ctx) == list: # TODO: looks like a hack, but it's still better
             return [self.visit(_) for _ in ctx]
         return self.visit(ctx)
-    
+
     def repeated(self, ctx: antlr4.ParserRuleContext, ctx_type: type) -> list[any]:
         if not ctx:
             return []
@@ -36,7 +82,8 @@ class Protobuf3AST(Protobuf3Visitor):
         top_level_def = self.repeated(ctx, proto.TopLevelDefContext)
         empty_statement = self.repeated(ctx, proto.EmptyStatement_Context)
         eof = self._(ctx.EOF())
-        return Proto(syntax, import_statement, package_statement, option_statement, top_level_def, empty_statement, eof)
+        return Proto(syntax, import_statement, package_statement, option_statement, top_level_def,
+                     empty_statement, eof)
 
     def visitSyntax(self, ctx: proto.SyntaxContext):
         proto3_lit_single = self._(ctx.PROTO3_LIT_SINGLE()) is not None
@@ -130,7 +177,8 @@ class Protobuf3AST(Protobuf3Visitor):
         sfixed64 = self._(ctx.SFIXED64()) is not None
         bool_ = self._(ctx.BOOL()) is not None
         string = self._(ctx.STRING()) is not None
-        return KeyType(int32, int64, uint32, uint64, sint32, sint64, fixed32, fixed64, sfixed32, sfixed64, bool_, string)
+        return KeyType(int32, int64, uint32, uint64, sint32, sint64, fixed32, fixed64, sfixed32, sfixed64,
+                       bool_, string)
 
     def visitType_(self, ctx: proto.Type_Context):
         double = self._(ctx.DOUBLE()) is not None
@@ -150,7 +198,8 @@ class Protobuf3AST(Protobuf3Visitor):
         bytes = self._(ctx.BYTES()) is not None
         message_type = self._(ctx.messageType())
         enum_type = self._(ctx.enumType())
-        return Type(double, float, int32, int64, uint32, uint64, sint32, sint64, fixed32, fixed64, sfixed32, sfixed64, bool_, string, bytes, message_type, enum_type)
+        return Type(double, float, int32, int64, uint32, uint64, sint32, sint64, fixed32, fixed64, sfixed32,
+                    sfixed64, bool_, string, bytes, message_type, enum_type)
 
     def visitReserved(self, ctx: proto.ReservedContext):
         ranges = self._(ctx.ranges())
@@ -232,7 +281,8 @@ class Protobuf3AST(Protobuf3Visitor):
         map_field = self._(ctx.mapField())
         reserved = self._(ctx.reserved())
         empty_statement = self._(ctx.emptyStatement_())
-        return MessageElement(field, enum_def, message_def, extend_def, option_statement, oneof, map_field, reserved, empty_statement)
+        return MessageElement(field, enum_def, message_def, extend_def, option_statement, oneof, map_field,
+                              reserved, empty_statement)
 
     def visitExtendDef(self, ctx: proto.ExtendDefContext):
         message_type = self._(ctx.messageType())
@@ -357,4 +407,7 @@ class Protobuf3AST(Protobuf3Visitor):
         stream = self._(ctx.STREAM()) is not None
         returns = self._(ctx.RETURNS()) is not None
         bool_lit = self._(ctx.BOOL_LIT())
-        return Keywords(syntax, import_, weak, public, package_, option, optional, repeated, oneof, map_, int32, int64, uint32, uint64, sint32, sint64, fixed32, fixed64, sfixed32, sfixed64, bool_, string, double, float, bytes, reserved, to, max, enum, message, service, extend, rpc, stream, returns, bool_lit)
+        return Keywords(syntax, import_, weak, public, package_, option, optional, repeated, oneof, map_,
+                        int32, int64, uint32, uint64, sint32, sint64, fixed32, fixed64, sfixed32, sfixed64,
+                        bool_, string, double, float, bytes, reserved, to, max, enum, message, service,
+                        extend, rpc, stream, returns, bool_lit)

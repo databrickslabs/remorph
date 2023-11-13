@@ -56,10 +56,14 @@ cov = [
 [tool.hatch.envs.lint]
 detached = true
 dependencies = [
-  "black>=23.1.0",
   "mypy>=1.0.0",
   "ruff>=0.0.243",
+  "black",
+  "autoflake",
+  "isort",
+  "yapf"
 ]
+
 [tool.hatch.envs.lint.scripts]
 typing = "mypy --install-types --non-interactive {args:src/databricks tests}"
 style = [
@@ -67,19 +71,16 @@ style = [
   "black --check --diff {args:.}",
 ]
 fmt = [
-  "black {args:.}",
-  "ruff --fix {args:.}",
+  "yapf --verbose -pri {args:src tests} --exclude src/databricks/labs/remorph/parsers/tsql/generated",
+  "autoflake -ri {args:src tests}",
+  "isort {args:src tests}",
+  "ruff --fix {args:src tests}",
   "style",
 ]
 all = [
   "style",
   "typing",
 ]
-
-[tool.black]
-target-version = ["py310"]
-line-length = 120
-skip-string-normalization = true
 
 [tool.ruff]
 target-version = "py310"
@@ -135,6 +136,13 @@ ban-relative-imports = "all"
 [tool.ruff.per-file-ignores]
 # Tests can use magic values, assertions, and relative imports
 "tests/**/*" = ["PLR2004", "S101", "TID252"]
+# ANTLR generates non-pythonic function names
+"src/databricks/labs/remorph/parsers/**/*" = [
+  "N802", "PLR1714", "PLR2004", "PLC0205", "N801", "RUF013", "N803",
+  "ARG002", "N999", "F403", "TID252", "F405", "C408", "E711", "RUF012",
+  "PLR0133", "N815", "A002", "YTT203", "A001", "N806", "PLR0133", "E721",
+  "N813", "A003", "N802"
+]
 
 [tool.coverage.run]
 source_pkgs = ["remorph", "tests"]
@@ -154,3 +162,68 @@ exclude_lines = [
   "if __name__ == .__main__.:",
   "if TYPE_CHECKING:",
 ]
+
+[tool.autoflake]
+expand-star-imports = true
+remove-all-unused-imports = true
+ignore-init-module-imports = true
+remove-duplicate-keys = true
+remove-unused-variables = true
+
+[tool.yapf]
+based_on_style = "pep8"
+
+COLUMN_LIMIT = 110
+INDENT_WIDTH = 4
+CONTINUATION_INDENT_WIDTH = 4
+ALIGN_CLOSING_BRACKET_WITH_VISUAL_INDENT = true
+ALLOW_SPLIT_BEFORE_DEFAULT_OR_NAMED_ASSIGNS = false
+COALESCE_BRACKETS = true
+DEDENT_CLOSING_BRACKETS = false
+INDENT_CLOSING_BRACKETS = false
+JOIN_MULTIPLE_LINES = true
+SPACES_BEFORE_COMMENT = 1
+ALLOW_MULTILINE_LAMBDAS = true
+DISABLE_ENDING_COMMA_HEURISTIC = true
+
+BLANK_LINE_BEFORE_NESTED_CLASS_OR_DEF = true
+BLANK_LINES_AROUND_TOP_LEVEL_DEFINITION = 2
+BLANK_LINES_BETWEEN_TOP_LEVEL_IMPORTS_AND_VARIABLES = 1
+EACH_DICT_ENTRY_ON_SEPARATE_LINE = true
+FORCE_MULTILINE_DICT = false
+INDENT_DICTIONARY_VALUE = false
+INDENT_BLANK_LINES = false
+
+SPACE_BETWEEN_ENDING_COMMA_AND_CLOSING_BRACKET = true
+SPACE_INSIDE_BRACKETS = false
+SPACES_AROUND_POWER_OPERATOR = false
+SPACES_AROUND_DEFAULT_OR_NAMED_ASSIGN = false
+SPACES_AROUND_DICT_DELIMITERS = false
+SPACES_AROUND_LIST_DELIMITERS = false
+SPACES_AROUND_SUBSCRIPT_COLON = false
+SPACES_AROUND_TUPLE_DELIMITERS = false
+
+SPLIT_ARGUMENTS_WHEN_COMMA_TERMINATED = false
+SPLIT_ALL_COMMA_SEPARATED_VALUES = false
+SPLIT_ALL_TOP_LEVEL_COMMA_SEPARATED_VALUES = false
+SPLIT_BEFORE_ARITHMETIC_OPERATOR = false
+SPLIT_BEFORE_BITWISE_OPERATOR = true
+SPLIT_BEFORE_CLOSING_BRACKET = true
+SPLIT_BEFORE_DICT_SET_GENERATOR = true
+SPLIT_BEFORE_DOT = false
+SPLIT_BEFORE_EXPRESSION_AFTER_OPENING_PAREN = false
+SPLIT_BEFORE_FIRST_ARGUMENT = false
+SPLIT_BEFORE_LOGICAL_OPERATOR = true
+SPLIT_BEFORE_NAMED_ASSIGNS = true
+SPLIT_COMPLEX_COMPREHENSION = false
+
+SPLIT_PENALTY_AFTER_OPENING_BRACKET = 300
+SPLIT_PENALTY_AFTER_UNARY_OPERATOR = 10000
+SPLIT_PENALTY_ARITHMETIC_OPERATOR = 300
+SPLIT_PENALTY_BEFORE_IF_EXPR = 0
+SPLIT_PENALTY_BITWISE_OPERATOR = 300
+SPLIT_PENALTY_COMPREHENSION = 80
+SPLIT_PENALTY_EXCESS_CHARACTER = 7000
+SPLIT_PENALTY_FOR_ADDED_LINE_SPLIT = 30
+SPLIT_PENALTY_IMPORT_NAMES = 0
+SPLIT_PENALTY_LOGICAL_OPERATOR = 300

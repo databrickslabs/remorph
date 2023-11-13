@@ -6,11 +6,10 @@ if "." in __name__:
 else:
     from ANTLRv4Parser import ANTLRv4Parser
 
-
 # This class defines a complete generic visitor for a parse tree produced by ANTLRv4Parser.
 
-class ANTLRv4ParserVisitor(ParseTreeVisitor):
 
+class ANTLRv4ParserVisitor(ParseTreeVisitor):
     # Visit a parse tree produced by ANTLRv4Parser#grammarSpec.
     def visitGrammarSpec(self, ctx: ANTLRv4Parser.GrammarSpecContext):
         return self.visitChildren(ctx)

@@ -13,12 +13,8 @@ class SnowflakeSpider(scrapy.Spider):
         from lxml import html
         for example_text in response.css(".highlight pre").getall():
             stripped = html.fromstring(example_text).text_content().strip()
-            yield {
-                'url': str(response.url),
-                'example': stripped
-            }
-        for link in response.css('a::attr(href)').getall():
-            if not link.startswith('/en/sql-reference'):
+            yield {"url": str(response.url), "example": stripped}
+        for link in response.css("a::attr(href)").getall():
+            if not link.startswith("/en/sql-reference"):
                 continue
             yield response.follow(link, callback=self.parse)
-

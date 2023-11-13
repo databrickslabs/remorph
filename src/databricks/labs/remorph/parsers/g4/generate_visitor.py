@@ -1,14 +1,22 @@
 import collections
 import pathlib
+from collections.abc import Callable, Iterator
 from dataclasses import dataclass, replace
-from typing import Callable, Iterator
 
 from databricks.labs.remorph.intermediate.named import Named
 from databricks.labs.remorph.parsers.g4 import parse_g4
-from databricks.labs.remorph.parsers.g4.g4ast import *
+from databricks.labs.remorph.parsers.g4.g4ast import (
+    EBNF,
+    Alternative,
+    Atom,
+    Block,
+    Element,
+    GrammarSpec,
+    ParserRuleSpec,
+    RuleRef,
+)
 
-
-_VISITOR_PREAMBLE = '''import antlr4
+_VISITOR_PREAMBLE = """import antlr4
 from antlr4.tree.Tree import TerminalNodeImpl
 
 from databricks.labs.remorph.parsers.{package}.generated.{spec_decl_name}Parser import {spec_decl_name}Parser as {package}
@@ -23,7 +31,7 @@ class {spec_decl_name}AST({spec_decl_name}Visitor):
         if type(ctx) == list: # TODO: looks like a hack, but it's still better
             return [self.visit(_) for _ in ctx]
         return self.visit(ctx)
-    
+
     def repeated(self, ctx: antlr4.ParserRuleContext, ctx_type: type) -> list[any]:
         if not ctx:
             return []
@@ -37,7 +45,7 @@ class {spec_decl_name}AST({spec_decl_name}Visitor):
 
     def visitTerminal(self, ctx: TerminalNodeImpl):
         return ctx.getText()
-'''
+"""
 
 
 @dataclass
@@ -45,9 +53,9 @@ class Field:
     field_name: str
     in_context: str
     ctx_index: int
-    is_optional: bool = False  # ?
-    is_repeated: bool = False  # *
-    is_non_greedy: bool = False  # ??
+    is_optional: bool = False # ?
+    is_repeated: bool = False # *
+    is_non_greedy: bool = False # ??
     is_terminal: bool = False
 
     @property
@@ -64,10 +72,11 @@ class Field:
         return self.in_context[0].upper() + self.in_context[1:]
 
     def context_name(self):
-        return f'{self.title()}Context'
+        return f"{self.title()}Context"
 
 
 class Node(Named):
+
     def __init__(self, name: str):
         super().__init__(name)
         self._fields: list[Field] = []
@@ -78,14 +87,22 @@ class Node(Named):
         return self.name[0].upper() + self.name[1:]
 
     def context_name(self):
-        return f'{self.title()}Context'
+        return f"{self.title()}Context"
 
-    def add_field(self, idx: int, in_context: str, field_name: str, zero_or_one: bool = False,
+    def add_field(self,
+                  idx: int,
+                  in_context: str,
+                  field_name: str,
+                  *,
+                  zero_or_one: bool = False,
                   zero_or_more: bool = False,
                   one_or_more: bool = False,
-                  is_non_greedy: bool = False, terminal: bool = False):
+                  is_non_greedy: bool = False,
+                  terminal: bool = False):
         is_repeated = zero_or_more or one_or_more
-        field = Field(field_name, in_context, idx,
+        field = Field(field_name,
+                      in_context,
+                      idx,
                       is_optional=zero_or_one,
                       is_repeated=is_repeated,
                       is_non_greedy=is_non_greedy,
@@ -114,6 +131,7 @@ class Node(Named):
 
 
 class VisitorCodeGenerator:
+
     def __init__(self, spec: GrammarSpec, package: str):
         self.spec = spec
         self._package = package
@@ -143,26 +161,26 @@ class VisitorCodeGenerator:
         for field in node.fields():
             if field.is_repeated:
                 visitor_fields.append(
-                    f'{field.snake_name()} = self.repeated(ctx, {self._package}.{field.context_name()})')
+                    f"{field.snake_name()} = self.repeated(ctx, {self._package}.{field.context_name()})")
                 ast_fields.append(f"{field.snake_name()}: list['{field.pascal_name()}'] = None")
             elif field.is_flag:
-                visitor_fields.append(f'{field.snake_name()} = self._(ctx.{field.in_context}()) is not None')
-                ast_fields.append(f'{field.snake_name()}: bool = False')
+                visitor_fields.append(f"{field.snake_name()} = self._(ctx.{field.in_context}()) is not None")
+                ast_fields.append(f"{field.snake_name()}: bool = False")
             else:
-                index = ''
+                index = ""
                 if node.needs_index(field):
                     index = field.ctx_index
-                visitor_fields.append(f'{field.snake_name()} = self._(ctx.{field.in_context}({index}))')
+                visitor_fields.append(f"{field.snake_name()} = self._(ctx.{field.in_context}({index}))")
                 ast_fields.append(f"{field.snake_name()}: {self._type_ref(field)} = None")
             field_names.append(field.snake_name())
 
         visitor_code = "\n        ".join(visitor_fields)
         ast_code = "\n    ".join(ast_fields)
-        self._visitor_code += f'''
+        self._visitor_code += f"""
     def visit{node.title()}(self, ctx: {self._package}.{node.context_name()}):
         {visitor_code}
         return {node.pascal_name()}({", ".join(field_names)})
-'''
+"""
         self._ast_code += f"@node\nclass {node.pascal_name()}:\n    {ast_code}\n\n"
 
     def _detect_alias_rules(self):
@@ -197,7 +215,7 @@ class VisitorCodeGenerator:
 
     def _type_ref(self, field: Field) -> str:
         if field.is_terminal:
-            return 'str'
+            return "str"
         alias = self._alias_rules.get(field.in_context, None)
         if alias is not None:
             pascal_name = Named(alias).pascal_name()
@@ -246,7 +264,9 @@ class VisitorCodeGenerator:
         if terminal and rule_name not in self._lexer_atoms:
             element = replace(element, zero_or_one=False)
         idx, in_context, field_name = renamer(rule_name)
-        node.add_field(idx, in_context, field_name,
+        node.add_field(idx,
+                       in_context,
+                       field_name,
                        zero_or_one=element.zero_or_one,
                        zero_or_more=element.zero_or_more,
                        one_or_more=element.one_or_more,
@@ -264,7 +284,7 @@ class VisitorCodeGenerator:
                 case Element(atom=Atom(terminal=name)):
                     child_counter[name] += 1
 
-        renames = ['left', 'right', 'third', 'fourth', 'fifth']
+        renames = ["left", "right", "third", "fourth", "fifth"]
         current_counter = collections.defaultdict(int)
 
         def renamer(name: str) -> tuple[int, str, str]:
@@ -272,7 +292,7 @@ class VisitorCodeGenerator:
                 return 0, name, name
             current_index = current_counter[rule_ref]
             if current_index == len(renames):
-                raise ValueError('cannot rename field')
+                raise ValueError("cannot rename field")
             field_name = renames[current_index]
             current_counter[rule_ref] += 1
             return current_index, name, field_name
@@ -301,7 +321,8 @@ class VisitorCodeGenerator:
                                           zero_or_one=True,
                                           zero_or_more=ebnf.zero_or_more,
                                           one_or_more=ebnf.one_or_more,
-                                          is_non_greedy=ebnf.is_non_greedy)
+                                          is_non_greedy=ebnf.is_non_greedy,
+                                          )
                 case _:
                     yield replace(element, zero_or_one=zero_or_one)
 
@@ -312,18 +333,18 @@ class VisitorCodeGenerator:
         return self._ast_code
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     __dir__ = pathlib.Path(__file__).parent
-    grammar_file = __dir__.parent / 'proto/Protobuf3.g4'
+    grammar_file = __dir__.parent / "proto/Protobuf3.g4"
     grammar_spec = parse_g4(grammar_file)
-    visitor_gen = VisitorCodeGenerator(grammar_spec, 'proto')
+    visitor_gen = VisitorCodeGenerator(grammar_spec, "proto")
 
     visitor_gen.process_rules()
 
-    with (grammar_file.parent / 'visitor.py').open('w') as f:
+    with (grammar_file.parent / "visitor.py").open("w") as f:
         f.write(visitor_gen.visitor_code())
 
-    with (grammar_file.parent / 'ast.py').open('w') as f:
+    with (grammar_file.parent / "ast.py").open("w") as f:
         f.write(visitor_gen.ast_code())
 
-    print('done')
+    print("done")

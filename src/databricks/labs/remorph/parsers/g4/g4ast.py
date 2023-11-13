@@ -90,16 +90,16 @@ class LabeledElement:
     assign: bool = False
     plus_assign: bool = False
     atom: Atom = None
-    block: 'Block' = None
+    block: "Block" = None
 
 
 @node
 class EBNF:
-    block: 'Block'
-    zero_or_one: bool = False    # ?
-    zero_or_more: bool = False   # *
-    one_or_more: bool = False    # +
-    is_non_greedy: bool = False  # ??
+    block: "Block"
+    zero_or_one: bool = False # ?
+    zero_or_more: bool = False # *
+    one_or_more: bool = False # +
+    is_non_greedy: bool = False # ??
 
 
 @node
@@ -109,10 +109,10 @@ class Element:
     ebnf: EBNF = None
     action_block: ActionBlock = None
     action_question: bool = False
-    zero_or_one: bool = False    # ?
-    zero_or_more: bool = False   # *
-    one_or_more: bool = False    # +
-    is_non_greedy: bool = False  # ??
+    zero_or_one: bool = False # ?
+    zero_or_more: bool = False # *
+    one_or_more: bool = False # +
+    is_non_greedy: bool = False # ??
 
 
 @node
@@ -148,7 +148,7 @@ class LexerCommand:
 
 @node
 class LexerAlternative:
-    elements: list['LexerElement']
+    elements: list["LexerElement"]
     commands: list[LexerCommand] = None
 
 
@@ -158,10 +158,10 @@ class LexerElement:
     lexer_block: list[LexerAlternative] = None
     action_block: ActionBlock = None
     action_question: bool = False
-    zero_or_one: bool = False    # ?
-    zero_or_more: bool = False   # *
-    one_or_more: bool = False    # +
-    is_non_greedy: bool = False  # ??
+    zero_or_one: bool = False # ?
+    zero_or_more: bool = False # *
+    one_or_more: bool = False # +
+    is_non_greedy: bool = False # ??
 
 
 @node
@@ -253,5 +253,6 @@ class GrammarSpec:
     rules: list[RuleSpec]
     prequel: list[PrequelConstruct] = None
     mode: ModeSpec = None
+
 
 del node

@@ -1,14 +1,46 @@
-from typing import Type
-
 import antlr4
 from antlr4.tree.Tree import TerminalNodeImpl
 
-from databricks.labs.remorph.parsers.g4.generated.ANTLRv4ParserVisitor import ANTLRv4ParserVisitor
+from databricks.labs.remorph.parsers.g4.g4ast import (
+    EBNF,
+    Alternative,
+    Atom,
+    Block,
+    DelegateGrammar,
+    Element,
+    ElementOption,
+    GrammarDecl,
+    GrammarSpec,
+    GrammarType,
+    LabeledAlt,
+    LabeledElement,
+    LexerAlternative,
+    LexerAtom,
+    LexerCommand,
+    LexerCommandExpr,
+    LexerCommandName,
+    LexerElement,
+    LexerRuleSpec,
+    ModeSpec,
+    Names,
+    NotSet,
+    Option,
+    OptionValue,
+    ParserRuleSpec,
+    PrequelConstruct,
+    RuleAction,
+    RuleModifier,
+    RulePrequel,
+    RuleRef,
+    RuleSpec,
+    SetElement,
+)
 from databricks.labs.remorph.parsers.g4.generated.ANTLRv4Parser import ANTLRv4Parser as g4
-from databricks.labs.remorph.parsers.g4.g4ast import *
+from databricks.labs.remorph.parsers.g4.generated.ANTLRv4ParserVisitor import ANTLRv4ParserVisitor
 
 
 class AntlrAST(ANTLRv4ParserVisitor):
+
     def visitGrammarSpec(self, ctx: g4.GrammarSpecContext):
         grammar_decl = self._(ctx.grammarDecl())
         prequel_construct = self._(ctx.prequelConstruct())
@@ -48,7 +80,7 @@ class AntlrAST(ANTLRv4ParserVisitor):
         string_literal = self._(ctx.STRING_LITERAL())
         action_block = self._(ctx.actionBlock())
         number = self._(ctx.INT())
-        return OptionValue(names, string_literal, action_block, int(number) if number is not None else None)
+        return OptionValue(names, string_literal, action_block, int(number) if number is not None else None, )
 
     def visitDelegateGrammars(self, ctx: g4.DelegateGrammarsContext):
         return self.repeated(ctx, g4.DelegateGrammarContext)
@@ -102,7 +134,9 @@ class AntlrAST(ANTLRv4ParserVisitor):
         locals_spec = self._(ctx.localsSpec())
         rule_prequel = self.repeated(ctx, g4.RulePrequelContext)
         rule_block = self._(ctx.ruleBlock())
-        return ParserRuleSpec(rule_ref, rule_block, rule_modifiers, arg_action_block, rule_returns, locals_spec, rule_prequel)
+        return ParserRuleSpec(rule_ref, rule_block, rule_modifiers, arg_action_block, rule_returns,
+                              locals_spec, rule_prequel,
+                              )
 
     def visitRulePrequel(self, ctx: g4.RulePrequelContext):
         options_spec = self._(ctx.optionsSpec())
@@ -169,16 +203,17 @@ class AntlrAST(ANTLRv4ParserVisitor):
         action_block = self._(ctx.actionBlock())
         question = self._(ctx.QUESTION())
 
-        zero_or_one, zero_or_more, one_or_more, is_non_greedy = False, False, False, False
+        zero_or_one, zero_or_more, one_or_more, is_non_greedy = (False, False, False, False, )
         ebnf_suffix = ctx.ebnfSuffix()
         if ebnf_suffix is not None:
-            zero_or_one = self._(ebnf_suffix.PLUS()) is not None         # ?
-            zero_or_more = self._(ebnf_suffix.STAR()) is not None        # *
-            one_or_more = self._(ebnf_suffix.QUESTION(0)) is not None    # +
-            is_non_greedy = self._(ebnf_suffix.QUESTION(1)) is not None  # ??
+            zero_or_one = self._(ebnf_suffix.PLUS()) is not None # ?
+            zero_or_more = self._(ebnf_suffix.STAR()) is not None # *
+            one_or_more = self._(ebnf_suffix.QUESTION(0)) is not None # +
+            is_non_greedy = self._(ebnf_suffix.QUESTION(1)) is not None # ??
 
-        return LexerElement(lexer_atom, lexer_block, action_block, question is not None,
-                            zero_or_one, zero_or_more, one_or_more, is_non_greedy)
+        return LexerElement(lexer_atom, lexer_block, action_block, question is not None, zero_or_one,
+                            zero_or_more, one_or_more, is_non_greedy,
+                            )
 
     def visitLexerBlock(self, ctx: g4.LexerBlockContext):
         return self._(ctx.lexerAltList())
@@ -217,16 +252,17 @@ class AntlrAST(ANTLRv4ParserVisitor):
         action_block = self._(ctx.actionBlock())
         question = self._(ctx.QUESTION())
 
-        zero_or_one, zero_or_more, one_or_more, is_non_greedy = False, False, False, False
+        zero_or_one, zero_or_more, one_or_more, is_non_greedy = (False, False, False, False, )
         ebnf_suffix = ctx.ebnfSuffix()
         if ebnf_suffix is not None:
-            zero_or_one = self._(ebnf_suffix.PLUS()) is not None         # ?
-            zero_or_more = self._(ebnf_suffix.STAR()) is not None        # *
-            one_or_more = self._(ebnf_suffix.QUESTION(0)) is not None    # +
-            is_non_greedy = self._(ebnf_suffix.QUESTION(1)) is not None  # ??
+            zero_or_one = self._(ebnf_suffix.PLUS()) is not None # ?
+            zero_or_more = self._(ebnf_suffix.STAR()) is not None # *
+            one_or_more = self._(ebnf_suffix.QUESTION(0)) is not None # +
+            is_non_greedy = self._(ebnf_suffix.QUESTION(1)) is not None # ??
 
-        return Element(labeled_element, atom, ebnf, action_block, question is not None,
-                       zero_or_one, zero_or_more, one_or_more, is_non_greedy)
+        return Element(labeled_element, atom, ebnf, action_block, question is not None, zero_or_one,
+                       zero_or_more, one_or_more, is_non_greedy,
+                       )
 
     def visitLabeledElement(self, ctx: g4.LabeledElementContext):
         name = self._(ctx.identifier())
@@ -234,23 +270,23 @@ class AntlrAST(ANTLRv4ParserVisitor):
         plus_assign = self._(ctx.PLUS_ASSIGN())
         atom = self._(ctx.atom())
         block = self._(ctx.block())
-        return LabeledElement(
-            name=name,
-            assign=assign is not None,
-            plus_assign=plus_assign is not None,
-            atom=atom,
-            block=block)
+        return LabeledElement(name=name,
+                              assign=assign is not None,
+                              plus_assign=plus_assign is not None,
+                              atom=atom,
+                              block=block,
+                              )
 
     def visitEbnf(self, ctx: g4.EbnfContext):
         block = self._(ctx.block())
 
-        zero_or_one, zero_or_more, one_or_more, is_non_greedy = False, False, False, False
+        zero_or_one, zero_or_more, one_or_more, is_non_greedy = (False, False, False, False, )
         ebnf_suffix = self._(ctx.blockSuffix())
         if ebnf_suffix is not None:
-            zero_or_one = ebnf_suffix == '?'
-            zero_or_more = ebnf_suffix == '*'
-            one_or_more = ebnf_suffix == '+'
-            is_non_greedy = ebnf_suffix == '??'
+            zero_or_one = ebnf_suffix == "?"
+            zero_or_more = ebnf_suffix == "*"
+            one_or_more = ebnf_suffix == "+"
+            is_non_greedy = ebnf_suffix == "??"
 
         return EBNF(block, zero_or_one, zero_or_more, one_or_more, is_non_greedy)
 
@@ -316,7 +352,7 @@ class AntlrAST(ANTLRv4ParserVisitor):
             return None
         return self.visit(ctx)
 
-    def repeated(self, ctx: antlr4.ParserRuleContext, ctx_type: Type[antlr4.ParserRuleContext]) -> list[any]:
+    def repeated(self, ctx: antlr4.ParserRuleContext, ctx_type: type[antlr4.ParserRuleContext]) -> list[any]:
         if not ctx:
             return []
         out = []

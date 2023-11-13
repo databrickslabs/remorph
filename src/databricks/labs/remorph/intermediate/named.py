@@ -3,14 +3,14 @@ import re
 # Code ported from https://github.com/databricks/databricks-sdk-go/blob/main/openapi/code/named.go
 
 reserved_words = [
-    "break", "default", "func", "interface", "select", "case", "defer", "go",
-    "map", "struct", "chan", "else", "goto", "switch", "const", "fallthrough",
-    "if", "range", "type", "continue", "for", "import", "return", "var",
-    "append", "bool", "byte", "iota", "len", "make", "new", "package",
+    "break", "default", "func", "interface", "select", "case", "defer", "go", "map", "struct", "chan", "else",
+    "goto", "switch", "const", "fallthrough", "if", "range", "type", "continue", "for", "import", "return",
+    "var", "append", "bool", "byte", "iota", "len", "make", "new", "package",
 ]
 
 
 class Named:
+
     def __init__(self, name: str):
         self.name = name
         self._singular_transforms = [
@@ -18,24 +18,22 @@ class Named:
             self._regex_transform("([bcdfghjklmnpqrstvwxz])ies$", "\\1y"),
             self._regex_transform("([a-z])s$", "\\1"),
         ]
-        self._singular_exceptions = {"dbfs": "dbfs",
-                                     "warehouses": "warehouse",
-                                     "databricks": "databricks"}
+        self._singular_exceptions = {"dbfs": "dbfs", "warehouses": "warehouse", "databricks": "databricks", }
 
     def is_name_reserved(self) -> bool:
         return self.camel_name() in reserved_words
 
     def _unreserve(self, name: str) -> str:
         if name in reserved_words:
-            return f'{name}_'
+            return f"{name}_"
         return name
 
     def is_name_plural(self) -> bool:
         if not self.name:
             return False
-        return self.name[-1] == 's'
+        return self.name[-1] == "s"
 
-    def singular(self) -> 'Named':
+    def singular(self) -> "Named":
         if not self.is_name_plural():
             return self
 
@@ -51,10 +49,10 @@ class Named:
         return self
 
     def pascal_name(self) -> str:
-        return ''.join(word.capitalize() for word in self._split_ascii())
+        return "".join(word.capitalize() for word in self._split_ascii())
 
     def title_name(self) -> str:
-        return ' '.join(self._split_ascii()).title()
+        return " ".join(self._split_ascii()).title()
 
     def camel_name(self) -> str:
         if self.name == "_":
@@ -66,17 +64,17 @@ class Named:
     def snake_name(self) -> str:
         if self.name == "_":
             return "_"
-        snake_name = '_'.join(self._split_ascii())
+        snake_name = "_".join(self._split_ascii())
         return self._unreserve(snake_name)
 
     def constant_name(self) -> str:
         return self.snake_name().upper()
 
     def kebab_name(self) -> str:
-        return '-'.join(self._split_ascii())
+        return "-".join(self._split_ascii())
 
     def abbr_name(self) -> str:
-        return ''.join(word[0] for word in self._split_ascii())
+        return "".join(word[0] for word in self._split_ascii())
 
     @staticmethod
     def _regex_transform(pattern, replace):
@@ -107,11 +105,11 @@ class Named:
         current = []
         name = self.name
         name_len = len(name)
-        is_prev_upper = is_current_upper = is_next_lower = is_next_upper = is_not_last_char = False
+        is_prev_upper = (is_current_upper) = is_next_lower = is_next_upper = is_not_last_char = False
 
         for i in range(name_len):
             r = name[i]
-            if r == '$':
+            if r == "$":
                 continue
 
             is_current_upper = self._check_cond_at_nearest_letters(name, str.isupper, i)
@@ -124,7 +122,7 @@ class Named:
 
             split, before, after = False, False, True
 
-            if is_prev_upper and is_current_upper and is_next_lower and is_not_last_char:
+            if (is_prev_upper and is_current_upper and is_next_lower and is_not_last_char):
                 split, before, after = True, False, True
 
             if not is_current_upper and is_next_upper:
@@ -137,7 +135,7 @@ class Named:
                 current.append(r)
 
             if split and current:
-                yield ''.join(current)
+                yield "".join(current)
                 current = []
 
             if after:
@@ -146,4 +144,4 @@ class Named:
             is_prev_upper = is_current_upper
 
         if current:
-            yield ''.join(current)
+            yield "".join(current)

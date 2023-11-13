@@ -7,6 +7,6 @@ __root__ = __folder__.parent.parent.parent.parent
 
 
 def test_proto_ast():
-    base_proto = __root__ / 'src/databricks/labs/remorph/intermediate/proto/spark/connect/base.proto'
+    base_proto = __root__ / "src/databricks/labs/remorph/intermediate/proto/spark/connect/base.proto"
     proto = parse_proto(base_proto)
     assert proto is not None

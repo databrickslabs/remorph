@@ -46,7 +46,7 @@ $(PARSERS)/g4/generated/LexBasic.py: $(PARSERS)/g4/LexBasic.g4
 $(PARSERS)/g4/generated/ANTLRv4Lexer.py: $(PARSERS)/g4/ANTLRv4Lexer.g4 $(PARSERS)/g4/generated/LexBasic.py
 	@$(ANTLR) -o $(dir $@) $<
 	@rm $(basename $@).interp
-	@echo "from ..adaptor import LexerAdaptor" >> $(PARSERS)/g4/generated/LexerAdaptor.py
+	@echo "..adaptor import LexerAdaptor\n__all__ = ['LexerAdaptor']" >> $(PARSERS)/g4/generated/LexerAdaptor.py
 
 $(PARSERS)/g4/generated/ANTLRv4Parser.py: $(PARSERS)/g4/ANTLRv4Parser.g4
 	@$(ANTLR) -o $(dir $@) $<

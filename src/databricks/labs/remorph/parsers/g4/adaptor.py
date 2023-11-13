@@ -25,22 +25,21 @@
  (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """
-from antlr4 import *
+from antlr4 import Lexer, Token
 
 
 class LexerAdaptor(Lexer):
-
     """
-      Track whether we are inside of a rule and whether it is lexical parser. _currentRuleType==Token.INVALID_TYPE
-      means that we are outside of a rule. At the first sign of a rule name reference and _currentRuleType==invalid, we
-      can assume that we are starting a parser rule. Similarly, seeing a token reference when not already in rule means
-      starting a token rule. The terminating ';' of a rule, flips this back to invalid type.
+    Track whether we are inside of a rule and whether it is lexical parser. _currentRuleType==Token.INVALID_TYPE
+    means that we are outside of a rule. At the first sign of a rule name reference and _currentRuleType==invalid, we
+    can assume that we are starting a parser rule. Similarly, seeing a token reference when not already in rule means
+    starting a token rule. The terminating ';' of a rule, flips this back to invalid type.
 
-      This is not perfect logic but works. For example, "grammar T;" means that we start and stop a lexical rule for
-      the "T;". Dangerous but works.
+    This is not perfect logic but works. For example, "grammar T;" means that we start and stop a lexical rule for
+    the "T;". Dangerous but works.
 
-      The whole point of this state information is to distinguish between [..arg actions..] and [charsets]. Char sets
-      can only occur in lexical rules and arg actions cannot occur.
+    The whole point of this state information is to distinguish between [..arg actions..] and [charsets]. Char sets
+    can only occur in lexical rules and arg actions cannot occur.
     """
 
     PREQUEL_CONSTRUCT = -10
@@ -73,22 +72,24 @@ class LexerAdaptor(Lexer):
     def handleEndAction(self):
         oldMode = self._mode
         newMode = self.popMode()
-        isActionWithinAction = len(self._modeStack) > 0 and newMode == self.TargetLanguageAction and oldMode == newMode
+        isActionWithinAction = (len(self._modeStack) > 0 and newMode == self.TargetLanguageAction
+                                and oldMode == newMode)
         if isActionWithinAction:
             self._type = self.ACTION_CONTENT
 
     def emit(self):
-        if (self._type == self.OPTIONS or self._type == self.TOKENS or self._type == self.CHANNELS) and self._currentRuleType == Token.INVALID_TYPE:
+        if (self._type == self.OPTIONS or self._type == self.TOKENS
+                or self._type == self.CHANNELS) and self._currentRuleType == Token.INVALID_TYPE:
             self._currentRuleType = self.PREQUEL_CONSTRUCT
         elif self._type == self.OPTIONS and self._currentRuleType == self.TOKEN_REF:
             self._currentRuleType = self.OPTIONS_CONSTRUCT
-        elif self._type == self.RBRACE and self._currentRuleType == self.PREQUEL_CONSTRUCT:
+        elif (self._type == self.RBRACE and self._currentRuleType == self.PREQUEL_CONSTRUCT):
             self._currentRuleType = Token.INVALID_TYPE
-        elif self._type == self.RBRACE and self._currentRuleType == self.OPTIONS_CONSTRUCT:
+        elif (self._type == self.RBRACE and self._currentRuleType == self.OPTIONS_CONSTRUCT):
             self._currentRuleType = self.TOKEN_REF
         elif self._type == self.AT and self._currentRuleType == Token.INVALID_TYPE:
             self._currentRuleType = self.AT
-        elif self._type == self.SEMI and self._currentRuleType == self.OPTIONS_CONSTRUCT:
+        elif (self._type == self.SEMI and self._currentRuleType == self.OPTIONS_CONSTRUCT):
             self._currentRuleType = self._currentRuleType
         elif self._type == self.END_ACTION and self._currentRuleType == self.AT:
             self._currentRuleType = Token.INVALID_TYPE
@@ -99,15 +100,15 @@ class LexerAdaptor(Lexer):
             else:
                 self._type = self.RULE_REF
 
-            if self._currentRuleType == Token.INVALID_TYPE:  # if outside of rule def
-                self._currentRuleType = self._type  # set to inside lexer or parser rule
+            if self._currentRuleType == Token.INVALID_TYPE: # if outside of rule def
+                self._currentRuleType = self._type # set to inside lexer or parser rule
 
-        elif self._type == self.SEMI:  # exit rule def
+        elif self._type == self.SEMI: # exit rule def
             self._currentRuleType = Token.INVALID_TYPE
         return Lexer.emit(self)
 
     def inLexerRule(self):
         return self._currentRuleType == self.TOKEN_REF
 
-    def inParserRule(self):  # not used, but added for clarity
+    def inParserRule(self): # not used, but added for clarity
         return self._currentRuleType == self.RULE_REF
