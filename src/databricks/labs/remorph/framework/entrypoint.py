@@ -27,7 +27,7 @@ def get_logger(file_name: str):
 
 def run_main(main):
     install_logger()
-    main()
+    main(*sys.argv[1:])
 
 
 def find_project_root() -> Path:

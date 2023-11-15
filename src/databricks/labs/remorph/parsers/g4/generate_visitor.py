@@ -1,10 +1,13 @@
 import collections
+import keyword
 import pathlib
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass, replace
+from string import punctuation
 
 from databricks.labs.remorph.framework.entrypoint import get_logger, run_main
 from databricks.labs.remorph.intermediate.named import Named
+from databricks.labs.remorph.parsers.base import TreeNode, TransformStack
 from databricks.labs.remorph.parsers.g4 import parse_g4
 from databricks.labs.remorph.parsers.g4.g4ast import (
     EBNF,
@@ -14,18 +17,19 @@ from databricks.labs.remorph.parsers.g4.g4ast import (
     Element,
     GrammarSpec,
     ParserRuleSpec,
-    RuleRef,
+    RuleRef, PrequelConstruct, Option, OptionValue, LexerAlternative, LexerElement, LexerAtom, LabeledAlt, RuleSpec,
+    LexerRuleSpec, LabeledElement,
 )
 
 _VISITOR_PREAMBLE = """import antlr4
 from antlr4.tree.Tree import TerminalNodeImpl
 
 from databricks.labs.remorph.parsers.{package}.generated.{name}Parser import {name}Parser as {package}
-from databricks.labs.remorph.parsers.{package}.generated.{name}Visitor import {name}Visitor
+from databricks.labs.remorph.parsers.{package}.generated.{name}ParserVisitor import {name}ParserVisitor
 from databricks.labs.remorph.parsers.{package}.ast import *
 
 
-class {name}AST({name}Visitor):
+class {name}AST({name}ParserVisitor):
     def _(self, ctx: antlr4.ParserRuleContext):
         if not ctx:
             return None
@@ -48,6 +52,15 @@ class {name}AST({name}Visitor):
         return ctx.getText()
 """
 
+_AST_PREAMBLE = """import functools
+
+from dataclasses import dataclass
+from databricks.labs.remorph.parsers.base import TreeNode
+
+dataclass = functools.partial(dataclass, slots=True, match_args=True, repr=False, frozen=True)
+
+"""
+
 logger = get_logger(__file__)
 
 
@@ -66,7 +79,10 @@ class Field:
         return self.is_optional and self.is_terminal
 
     def snake_name(self) -> str:
-        return Named(self.field_name).snake_name()
+        field_name = Named(self.field_name).snake_name()
+        if keyword.iskeyword(field_name):
+            field_name = f'{field_name}_'
+        return field_name
 
     def title(self):
         return self.in_context[0].upper() + self.in_context[1:]
@@ -85,9 +101,6 @@ class Node(Named):
 
     def title(self):
         return self.name[0].upper() + self.name[1:]
-
-    def context_name(self):
-        return f"{self.title()}Context"
 
     def add_field(self,
                   idx: int,
@@ -132,18 +145,25 @@ class Node(Named):
 
 class VisitorCodeGenerator:
 
-    def __init__(self, spec: GrammarSpec, package: str):
-        self.spec = spec
-        self._package = package
+    def __init__(self, grammar_file: pathlib.Path):
+        self.spec: GrammarSpec = parse_g4(grammar_file)
+        self._path = grammar_file
+        self._package = grammar_file.parent.name
         self._nodes = []
         self._lexer_atoms = []
         self._alias_rules = {}
-        self._ast_code = "from databricks.labs.remorph.parsers.base import node\n\n\n"
-        self._visitor_code = _VISITOR_PREAMBLE.format(package=package, name=spec.decl.name)
+        self._ast_code = _AST_PREAMBLE
+        name = self.spec.decl.name.rstrip('Parser')
+        self._visitor_code = _VISITOR_PREAMBLE.format(package=self._package, name=name)
+        self._punctuation = set(punctuation) | {f"'{_}'" for _ in punctuation}
+        self._implicit_lexer_atoms = []
+        self._complex_lexers = []
+        self._virtual_visitors = {}
 
     def process_rules(self):
         self._lexer_rules()
         self._detect_alias_rules()
+        self._extract_rules_from_labeled_blocks()
         for r in self.spec.rules:
             if not r.parser:
                 continue
@@ -178,12 +198,14 @@ class VisitorCodeGenerator:
 
         visitor_code = "\n        ".join(visitor_fields)
         ast_code = "\n    ".join(ast_fields)
+        context_name = self._virtual_visitors.get(node.name, node.name)
+        context_name = context_name[0].upper() + context_name[1:]
         self._visitor_code += f"""
-    def visit{node.title()}(self, ctx: {self._package}.{node.context_name()}):
+    def visit{node.title()}(self, ctx: {self._package}.{context_name}Context):
         {visitor_code}
         return {node.pascal_name()}({", ".join(field_names)})
 """
-        self._ast_code += f"@node\nclass {node.pascal_name()}:\n    {ast_code}\n\n\n"
+        self._ast_code += f"@dataclass\nclass {node.pascal_name()}(TreeNode):\n    {ast_code}\n\n\n"
 
     def _detect_alias_rules(self):
         for r in self.spec.rules:
@@ -203,17 +225,72 @@ class VisitorCodeGenerator:
                     self._alias_rules[rule.name] = rule_ref
 
     def _lexer_rules(self):
-        for r in self.spec.rules:
-            if not r.lexer:
+        self._try_load_token_vocab()
+        for rule_spec in self.spec.rules:
+            self._match_complex_lexer(rule_spec)
+        self._detect_implicit_token_alias_parser_rules()
+        for rule_spec in self.spec.rules:
+            if not rule_spec.lexer:
                 continue
-            alternatives = r.lexer.lexer_block
+            alternatives = rule_spec.lexer.lexer_block
             if len(alternatives) > 1:
                 continue
             lexer_alternative = alternatives[0]
             if len(lexer_alternative.elements) > 1:
                 continue
-            self._lexer_atoms.append(r.lexer.token_ref)
+            self._lexer_atoms.append(rule_spec.lexer.token_ref)
         self._lexer_atoms = sorted(self._lexer_atoms)
+
+    def _match_complex_lexer(self, rule_spec: RuleSpec):
+        match rule_spec:
+            case RuleSpec(_, LexerRuleSpec(token_ref, _, alternatives, _)):
+                for lexer_alternative in alternatives:
+                    self._match_multielement_lexer_alternative(token_ref, lexer_alternative)
+
+    def _match_multielement_lexer_alternative(self, token_ref: str, lexer_alternative: LexerAlternative):
+        match lexer_alternative:
+            case LexerAlternative(elements):
+                if len(elements) == 1:
+                    return
+                self._complex_lexers.append(token_ref)
+
+    def _detect_implicit_token_alias_parser_rules(self):
+        for r in self.spec.rules:
+            match r:
+                case RuleSpec(ParserRuleSpec(name, [LabeledAlt(Alternative([Element(atom=Atom(terminal=term))]))])):
+                    if not term:
+                        # I don't understand why python is so bad at case matching still...
+                        continue
+                    if term in self._complex_lexers:
+                        continue
+                    # rules like:
+                    #
+                    # file_directory_path_separator
+                    # : '\\'
+                    # ;
+                    is_quoted = "'" in term
+                    if not is_quoted:
+                        continue
+                    self._implicit_lexer_atoms.append(name)
+
+    def _try_load_token_vocab(self):
+        options = self._prequel_options()
+        if 'tokenVocab' in options:
+            lexer_grammar = parse_g4(self._path.parent / f'{options["tokenVocab"]}.g4')
+            for prequel in lexer_grammar.prequel:
+                self.spec.prequel.append(prequel)
+            for r in lexer_grammar.rules:
+                if not r.lexer:
+                    continue
+                self.spec.rules.append(r)
+
+    def _prequel_options(self):
+        options = {}
+        for prequel in self.spec.prequel:
+            match prequel:
+                case PrequelConstruct(options=[Option(a, OptionValue(b))]):
+                    options[a] = '.'.join(b)
+        return options
 
     def _type_name(self, field: Field) -> str:
         if field.is_terminal:
@@ -244,7 +321,56 @@ class VisitorCodeGenerator:
     def _rule_to_node(self, rule: ParserRuleSpec) -> Node | None:
         if rule.name in self._alias_rules:
             return None
+        if rule.name in self._implicit_lexer_atoms:
+            return None
         return self._unfold_direct_fields(rule)
+
+    def _extract_rules_from_labeled_blocks(self):
+        """ Replaces labeled blocks with "virtual types". Translates from:
+
+        > execute_clause
+        >     : EXECUTE AS clause=(CALLER | SELF | OWNER | STRING)
+        >     ;
+
+        into what we have simpler means of generation:
+
+        < execute_clause:
+        <     | EXECUTE AS clause=execute_clause_clause
+        <     ;
+        < execute_clause_clause:
+        <     | CALLER
+        <     | SELF
+        <     | OWNER
+        <     | STRING
+        <     ;
+        """
+        new_rules = []
+
+        def transform_up(node: TreeNode, stack: TransformStack) -> TreeNode:
+            match node:
+                case Element(labeled_element=LabeledElement(name=label, block=Block(alts, o, a)),
+                             zero_or_one=zero_or_one,
+                             zero_or_more=zero_or_more,
+                             one_or_more=one_or_more,
+                             is_non_greedy=is_non_greedy):
+                    ebnf = EBNF(Block(alts, o, a),
+                                zero_or_one=zero_or_one,
+                                zero_or_more=zero_or_more,
+                                one_or_more=one_or_more,
+                                is_non_greedy=is_non_greedy)
+                    parser_rule = stack.skip_levels(ParserRuleSpec)
+                    virtual_name = f'{parser_rule.name}_{label}'
+                    self._virtual_visitors[virtual_name] = parser_rule.name
+                    new_rules.append(RuleSpec(ParserRuleSpec(
+                        name=virtual_name,
+                        labeled_alternatives=[LabeledAlt(Alternative([Element(ebnf=ebnf)]))]
+                    )))
+                    return node.replace(atom=Atom(rule_ref=RuleRef(virtual_name)), labeled_element=None)
+                case _:
+                    return node
+
+        self.spec = self.spec.transform_up_with_path(transform_up)
+        self.spec.rules.extend(new_rules)
 
     def _unfold_direct_fields(self, rule: ParserRuleSpec) -> Node:
         node = Node(rule.name)
@@ -253,29 +379,35 @@ class VisitorCodeGenerator:
             alternative = labeled_alternative.alternative
             renamer = self._duplicate_field_renamer(alternative)
             for element in self._unfold_elements(alternative, zero_or_one=has_alternatives):
-                match element:
-                    case Element(atom=Atom(rule_ref=RuleRef(ref=rule_ref))):
-                        self._add_field_to_node(node, rule_ref, renamer, element)
-                    case Element(atom=Atom(terminal=flag)):
-                        self._add_field_to_node(node, flag, renamer, element, terminal=True)
+                self._match_element(node, element, renamer)
         return node
+
+    def _match_element(self, node: Node, element: Element, renamer: Callable, label: str = None):
+        match element:
+            case Element(labeled_element=LabeledElement(name=name, atom=atom)):
+                elem = element.replace(atom=atom, labeled_element=None)
+                return self._match_element(node, elem, renamer, label=name)
+            case Element(atom=Atom(rule_ref=RuleRef(ref=rule_ref))):
+                self._add_field_to_node(node, rule_ref, renamer, element, label=label)
+            case Element(atom=Atom(terminal=flag)):
+                self._add_field_to_node(node, flag, renamer, element, terminal=True, label=label)
+            case _:
+                raise ValueError(f'unmatched: {element}')
 
     def _add_field_to_node(self,
                            node: Node,
                            rule_name: str,
                            renamer: Callable[[str], tuple[int, str, str]],
                            element: Element,
-                           terminal: bool = False):
-        if rule_name in self._lexer_atoms:
-            if not element.zero_or_one:
-                return
-            if element.zero_or_more:
-                return
-            if element.one_or_more:
-                return
+                           terminal: bool = False,
+                           label: str = None):
+        if self._skip_lexer_refs(element, rule_name):
+            return
         if terminal and rule_name not in self._lexer_atoms:
             element = replace(element, zero_or_one=False)
         idx, in_context, field_name = renamer(rule_name)
+        if label is not None:
+            field_name = label
         node.add_field(idx,
                        in_context,
                        field_name,
@@ -284,6 +416,24 @@ class VisitorCodeGenerator:
                        one_or_more=element.one_or_more,
                        is_non_greedy=element.is_non_greedy,
                        terminal=terminal)
+
+    def _skip_lexer_refs(self, element: Element, ref: str):
+        if ref in self._punctuation:
+            # sloppy (or overly complex) grammar,
+            # punctuation is added implicitly.
+            return True
+        if "'" in ref:
+            return True
+        if ref in self._implicit_lexer_atoms:
+            return True
+        if ref in self._lexer_atoms:
+            if not element.zero_or_one:
+                return True
+            if element.zero_or_more:
+                return True
+            if element.one_or_more:
+                return True
+        return False
 
     def _duplicate_field_renamer(self, alternative: Alternative) -> Callable[[str], tuple[int, str, str]]:
         child_counter = collections.defaultdict(int)
@@ -302,11 +452,12 @@ class VisitorCodeGenerator:
         def renamer(name: str) -> tuple[int, str, str]:
             if child_counter[name] < 2:
                 return 0, name, name
-            current_index = current_counter[rule_ref]
-            if current_index == len(renames):
-                raise ValueError("cannot rename field")
-            field_name = renames[current_index]
-            current_counter[rule_ref] += 1
+            current_index = current_counter[name]
+            if current_index >= len(renames):
+                field_name = f'f{current_index:2}'
+            else:
+                field_name = renames[current_index]
+            current_counter[name] += 1
             return current_index, name, field_name
 
         return renamer
@@ -344,15 +495,16 @@ class VisitorCodeGenerator:
     def ast_code(self):
         return self._ast_code
 
+    def __repr__(self):
+        return f'VisitorCodeGenerator<{self.spec.decl.name} ({len(self.spec.rules)} rules)>'
 
-def main():
-    __folder__ = pathlib.Path(__file__).parent
-    grammar_file = __folder__.parent / "proto/Protobuf3.g4"
+
+def main(grammar_path: str):
+    grammar_file = pathlib.Path(grammar_path)
     visitor_target = grammar_file.parent / "visitor.py"
     ast_target = grammar_file.parent / "ast.py"
 
-    grammar_spec = parse_g4(grammar_file)
-    visitor_gen = VisitorCodeGenerator(grammar_spec, "proto")
+    visitor_gen = VisitorCodeGenerator(grammar_file)
     visitor_gen.process_rules()
 
     with visitor_target.open("w") as f:

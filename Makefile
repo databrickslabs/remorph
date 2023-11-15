@@ -5,6 +5,7 @@ all: clean lint fmt test
 clean:
 	rm -fr htmlcov .mypy_cache .pytest_cache .ruff_cache .coverage coverage.xml
 	hatch env remove unit
+	hatch env remove default
 
 dev:
 	curl https://www.antlr.org/download/antlr-4.13.1-complete.jar -o .venv/antlr.jar
@@ -52,7 +53,7 @@ $(PARSERS)/g4/generated/ANTLRv4Parser.py: $(PARSERS)/g4/ANTLRv4Parser.g4
 	@$(ANTLR) -o $(dir $@) $<
 	@rm $(basename $@).interp
 
-g4: \
+$(PARSERS)/g4/generate_visitor.py: \
 	$(PARSERS)/g4/generated/LexBasic.py \
 	$(PARSERS)/g4/generated/ANTLRv4Lexer.py \
 	$(PARSERS)/g4/generated/ANTLRv4Parser.py
@@ -60,18 +61,22 @@ g4: \
 clean-g4:
 	rm -fr $(PARSERS)/g4/generated
 
-$(PARSERS)/tsql/generated/TSqlLexer.py: $(PARSERS)/tsql/TSqlLexer.g4 $(PARSERS)/tsql/generated
+$(PARSERS)/tsql/generated/TSqlLexer.py: $(PARSERS)/tsql/TSqlLexer.g4
 	@$(ANTLR) -o $(dir $@) $<
 	@rm $(basename $@).interp
 
-$(PARSERS)/tsql/generated/TSqlParser.py: $(PARSERS)/tsql/TSqlParser.g4 $(PARSERS)/tsql/generated
+$(PARSERS)/tsql/generated/TSqlParser.py: $(PARSERS)/tsql/TSqlParser.g4
 	@$(ANTLR) -o $(dir $@) $<
 	@rm $(basename $@).interp
 
-tsql: \
+$(PARSERS)/tsql/ast.py: \
 	$(PARSERS)/tsql/generated/TSqlLexer.py \
-	$(PARSERS)/tsql/generated/TSqlParser.py
-	echo "Generated T-SQL parsers"
+	$(PARSERS)/tsql/generated/TSqlParser.py \
+	$(PARSERS)/g4/generate_visitor.py
+	hatch run python $(PARSERS)/g4/generate_visitor.py $(PARSERS)/tsql/TSqlParser.g4
+	hatch run lint:fmt $(PARSERS)/tsql/ast.py $(PARSERS)/tsql/visitor.py
+
+tsql: $(PARSERS)/tsql/ast.py
 
 clean-tsql:
 	rm -fr $(PARSERS)/tsql/generated

@@ -1,18 +1,106 @@
 import dataclasses
 import functools
 import os
+import typing
 from pathlib import Path
+from typing import Callable
 
 from antlr4 import CommonTokenStream, FileStream, InputStream
 from antlr4.error.ErrorListener import ErrorListener
 from antlr4.Recognizer import Recognizer
 from antlr4.Token import CommonToken
 
-__all__ = ["node", "init_parse"]
+__all__ = ["node", 'TreeNode', "init_parse"]
+
+T = typing.TypeVar('T')
+
+
+class TransformStack(tuple['TreeNode']):
+
+    def nest(self, node: 'TreeNode') -> 'TransformStack':
+        return TransformStack(self + (node,))
+
+    def skip_levels(self, klass: type[T]) -> T:
+        remaining = self
+        while remaining:
+            if not isinstance(remaining[-1], klass):
+                remaining = remaining[:-1]
+                continue
+            return remaining[-1]
+        raise ValueError(f'no {klass.__name__} found')
+
+
+class TreeNode:
+
+    def replace(self, /, **kwargs):
+        return dataclasses.replace(self, **kwargs)
+
+    def transform_up_with_path(self, rule: Callable[[T, TransformStack], T], path: TransformStack = None) -> T:
+        """Returns a copy of this node where `rule` has been recursively applied first to all of its
+        children and then itself (post-order)."""
+        if not path:
+            path = TransformStack()
+        dupe = []
+        for field_name in self.__slots__:
+            current_value = getattr(self, field_name)
+            if not current_value:
+                dupe.append(current_value)
+                continue
+            if isinstance(current_value, list):
+                new_list = []
+                for item in current_value:
+                    if isinstance(item, TreeNode):
+                        item = item.transform_up_with_path(rule, path.nest(self))
+                    if item is not None:
+                        new_list.append(item)
+                dupe.append(new_list)
+                continue
+            if isinstance(current_value, dict):
+                new_dict = {}
+                for key, value in current_value.items():
+                    if isinstance(value, TreeNode):
+                        value = value.transform_up_with_path(rule, path.nest(self))
+                    if value is not None:
+                        new_dict[key] = value
+                dupe.append(new_dict)
+                continue
+            if isinstance(current_value, TreeNode):
+                current_value = current_value.transform_up_with_path(rule, path.nest(self))
+            dupe.append(current_value)
+        out = self.__class__(*dupe)
+        return rule(out, path)
+
+    def __hash__(self):
+        h = 31
+        for field_name in self.__slots__:
+            current_value = getattr(self, field_name)
+            if not current_value:
+                h *= hash(current_value)
+                continue
+            if isinstance(current_value, list):
+                for item in current_value:
+                    h *= hash(item)
+                continue
+            if isinstance(current_value, dict):
+                for key, value in sorted(current_value.items()):
+                    h *= hash(key)
+                    h *= hash(value)
+                continue
+            h *= hash(current_value)
+        return h
+
+    def __repr__(self):
+        values = []
+        for field_name in self.__slots__:
+            current_value = getattr(self, field_name)
+            if not current_value:
+                continue
+            values.append(f"{field_name}={current_value}")
+        return f'{self.__class__.__name__}({", ".join(values)})'
 
 
 def node(cls):
-    cls = functools.partial(dataclasses.dataclass, slots=True, match_args=True, frozen=True, repr=False)(cls)
+    cls = functools.partial(dataclasses.dataclass, slots=True, match_args=True, repr=False)(cls)
     fields = dataclasses.fields(cls)
 
     def __repr__(self):

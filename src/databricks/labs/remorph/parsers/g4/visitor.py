@@ -350,6 +350,8 @@ class AntlrAST(ANTLRv4ParserVisitor):
     def _(self, ctx: antlr4.ParserRuleContext):
         if not ctx:
             return None
+        if type(ctx) == list:  # TODO: looks like a hack, but it's still better
+            return [self.visit(_) for _ in ctx]
         return self.visit(ctx)
 
     def repeated(self, ctx: antlr4.ParserRuleContext, ctx_type: type[antlr4.ParserRuleContext]) -> list[any]:

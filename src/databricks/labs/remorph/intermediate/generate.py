@@ -8,7 +8,6 @@ from dataclasses import dataclass, replace
 from typing import Iterator
 
 from databricks.labs.remorph.framework.entrypoint import get_logger, run_main, relative_paths
-from databricks.labs.remorph.framework.logger import install_logger
 from databricks.labs.remorph.parsers.proto import parse_proto
 from databricks.labs.remorph.parsers.proto.ast import (
     BoolLit,
