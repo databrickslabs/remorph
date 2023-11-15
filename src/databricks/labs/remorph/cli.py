@@ -14,7 +14,6 @@ def raise_validation_exception(msg):
 
 
 def transpile(source, input_sql, output_folder, skip_validation, validation_mode, catalog_nm, schema_nm):
-    """Error: Invalid value for '--source': 'snowflakes' is not one of 'snowflake', 'tsql'."""
     if source.lower() not in ("snowflake", "tsql"):
         raise_validation_exception(
             f"Error: Invalid value for '--source': '{source}' is not one of 'snowflake', 'tsql'. "
@@ -32,7 +31,7 @@ def transpile(source, input_sql, output_folder, skip_validation, validation_mode
             f"Error: Invalid value for '--validation_mode': '{validation_mode}' is not one of 'true', 'false'. "
         )
 
-    morph(
+    status = morph(
         source.lower(),
         input_sql,
         output_folder,
@@ -41,6 +40,8 @@ def transpile(source, input_sql, output_folder, skip_validation, validation_mode
         catalog_nm,
         schema_nm,
     )
+
+    print(json.dumps(status[0], indent=4))  # noqa: T201
 
 
 def reconcile(recon_conf, conn_profile, source, report):

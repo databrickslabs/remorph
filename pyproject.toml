@@ -22,7 +22,10 @@ classifiers = [
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: Implementation :: CPython",
 ]
-dependencies = []
+dependencies = [
+  "sqlglot>=19.4.0",
+  "databricks-connect==13.3.3"
+]
 
 [project.urls]
 Documentation = "https://github.com/databrickslabs/remorph"
@@ -121,6 +124,8 @@ ignore = [
   "S105", "S106", "S107",
   # Ignore complexity
   "C901", "PLR0911", "PLR0912", "PLR0913", "PLR0915",
+  # Magic Value
+  "PLR2004"
 ]
 unfixable = [
   # Don't touch unused imports
