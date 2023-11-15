@@ -75,6 +75,10 @@ fmt = [
   "ruff --fix {args:.}",
   "style",
 ]
+verify = [
+  "black --check .",
+  "ruff .",
+]
 all = [
   "style",
   "typing",
