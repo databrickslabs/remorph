@@ -1,7 +1,14 @@
+import collections
+import dataclasses
 import enum
-import pathlib
-from dataclasses import dataclass
+import logging
+import os
+from pathlib import Path
+from dataclasses import dataclass, replace
+from typing import Iterator
 
+from databricks.labs.remorph.framework.entrypoint import get_logger, run_main, relative_paths
+from databricks.labs.remorph.framework.logger import install_logger
 from databricks.labs.remorph.parsers.proto import parse_proto
 from databricks.labs.remorph.parsers.proto.ast import (
     BoolLit,
@@ -24,8 +31,48 @@ from databricks.labs.remorph.parsers.proto.ast import (
     Proto,
     StrLit,
     TopLevelDef,
-    Type,
+    Type, ServiceDef, MessageType,
 )
+
+logger = get_logger(__file__)
+
+
+@dataclass
+class Scope:
+    path: list[str]
+    children: dict[str, 'Scope']
+    parent: 'Scope' = None
+    nodes: list['Node'] = dataclasses.field(default_factory=list)
+    renames: dict[str, str] = dataclasses.field(default_factory=dict)
+
+    def nest(self, name: str) -> 'Scope':
+        return Scope(self.path + [name], {}, self, nodes=[])
+
+    def prefix(self):
+        if not self.path:
+            return ''
+        return f"{'.'.join(self.path)}."
+
+    def resolve(self, type_ref: str) -> str:
+        current = self
+        while current is not None:
+            ref = type_ref.lstrip(current.prefix())
+            if ref in current.renames:
+                return current.renames[ref]
+            if ref in current.children:
+                return ref
+            current = current.parent
+            continue
+        raise KeyError(f'cannot resolve {type_ref}')
+
+    def __repr__(self):
+        nodes = ','.join(_.name for _ in self.nodes)
+        if nodes:
+            nodes = f' nodes={nodes}'
+        prefix = self.prefix()
+        if prefix:
+            prefix = f' {prefix.rstrip(".")}'
+        return f'<Scope{prefix}{nodes}>'
 
 
 @dataclass
@@ -36,37 +83,158 @@ class NodeField:
     repeated: bool = False
     is_map: bool = False
 
+    def decl(self, scope: Scope) -> str:
+        return f'{self.name}: {self.annotation(scope)}{self.default()}'
+
+    def default(self):
+        if not self.optional:
+            return ''
+        if self.type_ref.name() == 'bool':
+            return ' = False'
+        return ' = None'
+
+    def annotation(self, scope: Scope) -> str:
+        ref = self.in_container(scope)
+        if self.is_builtin_ref():
+            return ref
+        return f'"{ref}"'
+
+    def is_builtin_ref(self):
+        return self.is_builtin(self.type_ref)
+
+    @staticmethod
+    def is_builtin(ref):
+        return ref in (bool.__name__, bytes.__name__, float.__name__, int.__name__, str.__name__)
+
+    def in_container(self, scope: Scope):
+        type_ref = self.type_ref
+        if not self.is_builtin_ref():
+            type_ref = scope.resolve(type_ref)
+        if self.repeated:
+            return f'list[{type_ref}]'
+        if self.is_map:
+            return f'dict[str,{type_ref}]'
+        return type_ref
+
 
 @dataclass
 class Node:
     name: str
+    scope: Scope
     fields: list[NodeField]
     parent_ref: str = None
 
+    def full_name(self) -> str:
+        return f'{self.scope.prefix()}{self.name}'
 
-class IntermediateRepresentationGenerator:
+    def decl(self):
+        lines = "\n    ".join(_.decl(self.scope) for _ in self.fields)
+        if not lines:
+            lines = 'pass'
+        return f"{self.prelude()}\n    {lines}\n\n"
 
-    def __init__(self, proto: Proto) -> None:
-        self.proto = proto
-        self.nodes = []
-        self.enums = []
+    def prelude(self):
+        return f"@node\nclass {self.name}{self.extends()}:"
 
-    def run(self):
+    def extends(self):
+        if self.parent_ref is None:
+            return ''
+        return f'({self.parent_ref})'
+
+
+
+class Transformer:
+
+    def __init__(self, src: Path) -> None:
+        self.path = src
+        self.proto = parse_proto(self.path)
+        self.nodes: list[Node] = []
+        self.enums: list[enum.Enum] = []
+        self.one_of = collections.defaultdict(set)
+        self.as_field = collections.defaultdict(set)
+        self.scope = Scope([], {}, nodes=[])
+        self.imported = {}
+        self.direct_extends = {}
+
+    def source_name(self):
+        return f'spark/connect/{self.path.name}'
+
+    def derived_name(self):
+        return self.path.name.rstrip('.proto')
+
+    def parse(self):
         for tld in self.proto.top_level_def:
-            self._top_level_def(tld)
+            self._top_level_def(tld, self.scope)
+        self._deconflict_node_names()
 
-    def _top_level_def(self, tld: TopLevelDef):
+    def _deconflict_node_names(self):
+        potential_dupes = collections.defaultdict(set)
+        for node in self.nodes:
+            short_name = node.name
+            full_name = node.full_name()
+            potential_dupes[short_name].add(full_name)
+        replace_refs = {}
+        for base, full_names in potential_dupes.items():
+            if len(full_names) == 1:
+                continue
+            for full_name in full_names:
+                replace_refs[full_name] = full_name.replace('.', '')
+        if not replace_refs:
+            return
+        for node in self.nodes:
+            if node.full_name() not in replace_refs:
+                continue
+            full_name = node.full_name()
+            node.name = replace_refs[full_name]
+            logger.debug(f'replaced {full_name} with {node.name}')
+
+    def link(self, sources: 'Sources'):
+        exported = {}
+        for source in sources.values():
+            if source.source_name() == self.source_name():
+                continue
+            for symbol in source.exported:
+                exported[symbol] = source
+        for node in self.nodes:
+            for field in node.fields:
+                if field.type_ref not in exported:
+                    continue
+                # here we're a bit naive and assume that there's no conflict
+                # between .proto files
+                self.imported[field.type_ref] = exported[field.type_ref]
+
+    def generate(self, dst):
+        proto_name = self.path.name.rstrip('.proto')
+        py_file = dst / f'{proto_name}.py'
+        with py_file.open('w') as f:
+            f.write(f"from databricks.labs.remorph.parsers.base import node\n")
+            for ref, source in self.imported.items():
+                f.write(f"from .{source.derived_name()} import {ref.name()}\n")
+            f.write(f"\n\n")
+            for node in self.nodes:
+                f.write(node.decl())
+                f.write(f"\n")
+        relative_src, relative_dst = relative_paths(self.path, py_file)
+        logger.info(f'generated {relative_dst} from {relative_src}')
+
+    def _top_level_def(self, tld: TopLevelDef, scope: Scope):
         match tld:
-            case TopLevelDef(service_def=_):
+            case TopLevelDef(service_def=ServiceDef(_, _)):
                 return
             case TopLevelDef(message_def=message_def):
-                self.nodes.append(self._message_def(message_def))
+                for node in self._message_def(message_def, scope):
+                    self.nodes.append(node)
             case TopLevelDef(enum_def=enum_def):
-                self._enum_def(enum_def)
+                self._enum_def(enum_def, scope)
 
-    def _message_def(self, message_def: MessageDef, parent_ref: str = None) -> Node:
+    def _message_def(self, message_def: MessageDef, scope: Scope) -> Iterator[Node]:
         fields = []
-        node_name = self._ident(message_def.message_name)
+        child_nodes = []
+        node_ref = self._ident(message_def.message_name)
+        child_scope = scope.nest(node_ref)
+
+        oneof_types = set()
+
         for element in message_def.message_body.message_element: # TODO: collapse message_element to body
             match element:
                 case MessageElement(field=Field(label, field_type, field_name)):
@@ -84,9 +252,10 @@ class IntermediateRepresentationGenerator:
                                 type_ref = self._type(field_type)
                                 if not type_ref:
                                     continue
+                                oneof_types.add(type_ref)
+                                self._capture_hierarchy(scope, node_ref, type_ref)
                                 fields.append(NodeField(name, type_ref, optional=True))
-                case MessageElement(
-                    map_field=MapField(type_=value_t, map_name=field_name, field_options=opts)):
+                case MessageElement(map_field=MapField(type_=value_t, map_name=field_name, field_options=opts)):
                     options = self._field_options(opts)
                     if "deprecated" in options:
                         continue
@@ -97,8 +266,8 @@ class IntermediateRepresentationGenerator:
                     fields.append(NodeField(name, value_type_ref, is_map=True))
                 case MessageElement(message_def=MessageDef(nested_name, nested_body)):
                     nested_message_def = MessageDef(nested_name, nested_body)
-                    child_node = self._message_def(nested_message_def, node_name)
-                    self.nodes.append(child_node)
+                    for child_node in self._message_def(nested_message_def, child_scope):
+                        child_nodes.append(child_node)
                 case MessageElement(enum_def=EnumDef(left, right)):
                     name = self._ident(left)
                     values = []
@@ -110,9 +279,32 @@ class IntermediateRepresentationGenerator:
                     continue
                 case _:
                     continue
-        return Node(node_name, fields, parent_ref)
 
-    def _enum_def(self, enum_def: EnumDef):
+        node = Node(node_ref, scope, fields)
+        scope.nodes.append(node)
+        yield node
+
+        if child_nodes:
+            scope.children[node_ref] = child_scope
+
+        for node in child_nodes:
+            child_scope.nodes.append(node)
+            if node.name in oneof_types:
+                node.parent_ref = node_ref
+                self.direct_extends[node.name] = node_ref
+            yield node
+
+    def _capture_hierarchy(self, scope: Scope, node_ref: str, type_ref: str):
+        if NodeField.is_builtin(type_ref):
+            return
+        if node_ref == 'Persist' or type_ref == 'Persist':
+            logger.debug('...')
+        node_ref = f'{scope.prefix()}{node_ref}'
+        self.one_of[type_ref].add(node_ref)
+        self.one_of[node_ref].add(type_ref)
+        self.as_field[node_ref].add(type_ref)
+
+    def _enum_def(self, enum_def: EnumDef, scope: Scope):
         pass
 
     def _ident(self, ident: Ident) -> str:
@@ -138,11 +330,17 @@ class IntermediateRepresentationGenerator:
         if t.string:
             return str.__name__
         if t.message_type:
-            prefix = ""
-            if t.message_type.ident:
-                # TODO: skip if it's google
-                prefix = ".".join([self._ident(_) for _ in t.message_type.ident]) + "."
-            return prefix + self._ident(t.message_type.message_name)
+            return self._message_type(t.message_type)
+
+    def _message_type(self, message_type: MessageType) -> str | None:
+        match message_type:
+            case MessageType(False, [], ident):
+                return self._ident(ident)
+            case MessageType(True, prefix, ident):
+                prefix = [self._ident(_) for _ in prefix]
+                if prefix[0] == 'google':
+                    return None
+                return '.'.join(prefix + [self._ident(ident)])
 
     def _label(self, labels: list["FieldLabel"]) -> tuple[bool, bool]:
         optional, repeated = False, False
@@ -190,14 +388,17 @@ class IntermediateRepresentationGenerator:
                 return int(v) * mult
             case Constant(float_lit=FloatLit(v)):
                 return float(v) * mult
-            case Constant(str_lit=StrLit(v)):
-                return v.strip("'\"")
+            case Constant(str_lit=StrLit(v, s, d)):
+                return self._str_lit(StrLit(v, s, d))
             case Constant(bool_lit=BoolLit(v)):
                 return v == "true"
             case Constant(block_lit=block_lit):
                 raise ValueError(f"what is block lit? {block_lit}")
             case _:
                 raise ValueError(f"unknown: {constant}")
+
+    def _str_lit(self, str_lit: StrLit) -> str:
+        return str_lit.str_lit.strip("'\"")
 
     def _full_ident(self, full_ident: FullIdent):
         left = [full_ident.left]
@@ -206,16 +407,68 @@ class IntermediateRepresentationGenerator:
         arr = [self._ident(_) for _ in left + right]
         return ".".join(arr)
 
+    def __repr__(self):
+        return f'<Transformer {self.source_name()}, {len(self.nodes)} types>'
+
+
+class Sources(dict[str, Transformer]):
+
+    def __init__(self, root: Path):
+        super().__init__()
+        self.root = root
+
+    def __setitem__(self, key: str, value: Transformer):
+        key = Path(key).relative_to(self.root).as_posix()
+        value.parse()
+        super().__setitem__(key, value)
+
+    def link(self):
+        one_of = collections.defaultdict(set)
+        as_field = collections.defaultdict(set)
+        for _, value in sorted(self.items()):
+            for k,values in value.one_of.items():
+                for v in values:
+                    one_of[k].add(v)
+            for k,values in value.as_field.items():
+                for v in values:
+                    as_field[k].add(v)
+        extends = collections.defaultdict(set)
+        for key, values in one_of.items():
+            key_as_field = as_field.get(key, None)
+            # if key_as_field is None:
+            #     continue
+            for v in values:
+                v_as_field = as_field.get(v, {})
+
+                other_values = one_of[v]
+                if key in other_values and key in v_as_field:
+                    logger.debug(f'{key}({v}) key_as_field={key_as_field}, v_as_field={v_as_field}')
+                    extends[key].add(v)
+        ext2 = sorted(extends.items())
+        logger.debug('...')
+
+        for path, value in sorted(self.items()):
+            logger.debug(f'loading {path}')
+            value.link(self)
+
+    def generate(self, dst: Path):
+        for path, value in sorted(self.items()):
+            logger.debug(f'cross-compiling {path}')
+            value.generate(dst)
+
 
 def main():
-    __folder__ = pathlib.Path(__file__).parent
+    __folder__ = Path(__file__).parent
+    dst = __folder__ / 'spark_connect'
 
-    for path in (__folder__ / "proto/spark/connect").glob("*.proto"):
-        proto = parse_proto(path)
-
-        ir_gen = IntermediateRepresentationGenerator(proto)
-        ir_gen.run()
+    sources = Sources(__folder__ / 'proto')
+    for path in sources.root.glob('**/*.proto'):
+        # if path.name != 'expressions.proto':
+        #     continue
+        sources[path.as_posix()] = Transformer(path)
+    sources.link()
+    sources.generate(dst)
 
 
 if __name__ == "__main__":
-    main()
+    run_main(main)

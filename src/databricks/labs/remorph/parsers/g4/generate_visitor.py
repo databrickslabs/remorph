@@ -3,6 +3,7 @@ import pathlib
 from collections.abc import Callable, Iterator
 from dataclasses import dataclass, replace
 
+from databricks.labs.remorph.framework.entrypoint import get_logger, run_main
 from databricks.labs.remorph.intermediate.named import Named
 from databricks.labs.remorph.parsers.g4 import parse_g4
 from databricks.labs.remorph.parsers.g4.g4ast import (
@@ -46,6 +47,8 @@ class {name}AST({name}Visitor):
     def visitTerminal(self, ctx: TerminalNodeImpl):
         return ctx.getText()
 """
+
+logger = get_logger(__file__)
 
 
 @dataclass
@@ -342,18 +345,24 @@ class VisitorCodeGenerator:
         return self._ast_code
 
 
-if __name__ == "__main__":
-    __dir__ = pathlib.Path(__file__).parent
-    grammar_file = __dir__.parent / "proto/Protobuf3.g4"
+def main():
+    __folder__ = pathlib.Path(__file__).parent
+    grammar_file = __folder__.parent / "proto/Protobuf3.g4"
+    visitor_target = grammar_file.parent / "visitor.py"
+    ast_target = grammar_file.parent / "ast.py"
+
     grammar_spec = parse_g4(grammar_file)
     visitor_gen = VisitorCodeGenerator(grammar_spec, "proto")
-
     visitor_gen.process_rules()
 
-    with (grammar_file.parent / "visitor.py").open("w") as f:
+    with visitor_target.open("w") as f:
         f.write(visitor_gen.visitor_code())
 
-    with (grammar_file.parent / "ast.py").open("w") as f:
+    with ast_target.open("w") as f:
         f.write(visitor_gen.ast_code())
 
-    print("done")
+    logger.info(f'generated {visitor_target} and {ast_target} from {grammar_file}')
+
+
+if __name__ == "__main__":
+    run_main(main)
