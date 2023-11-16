@@ -41,7 +41,7 @@ def transpile(source, input_sql, output_folder, skip_validation, validation_mode
         schema_nm,
     )
 
-    print(json.dumps(status[0], indent=4))  # noqa: T201
+    print(json.dumps(status))  # noqa: T201
 
 
 def reconcile(recon_conf, conn_profile, source, report):

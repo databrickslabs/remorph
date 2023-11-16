@@ -1,11 +1,12 @@
 import os
+import sys
 
 from sqlglot import transpile
 
-from databricks.labs.remorph.dialects.databricks import Databricks
-from databricks.labs.remorph.dialects.snowflake import Snow
 from databricks.labs.remorph.helpers.execution_time import timeit
 from databricks.labs.remorph.helpers.validate import Validate
+from databricks.labs.remorph.snow.databricks import Databricks
+from databricks.labs.remorph.snow.snowflake import Snow
 
 
 def validate_query(sql: str, connection_mode: str, catalog_nm, schema_nm):
@@ -40,7 +41,6 @@ def convert(dialect, sql, file_nm, error_list):
     try:
         transpiled_sql = transpile(sql, read=dialect, write=Databricks, pretty=True, error_level=None)
     except Exception as e:
-        # print(file_nm)
         transpiled_sql = ""
         error_list.append((file_nm, e))
 
@@ -73,11 +73,13 @@ def morph(
     validate_error_list = []
     status = []
 
-    print("**********************************")  # noqa: T201
+    print("**********************************", file=sys.stderr)  # noqa: T201
     counter = 0
     for root, _, files in os.walk(input_sql):
         base_root = root.replace(input_sql, "")
-        print("Processing for sqls under this folder: ", input_sql.rstrip("/") + "/" + base_root)  # noqa: T201
+        folder = input_sql.rstrip("/") + "/" + base_root
+        msg = f"Processing for sqls under this folder: {folder}"
+        print(msg, file=sys.stderr)  # noqa: T201
         file_list.extend(files)
         for file in files:
             if output_folder in (None, "None"):
@@ -133,9 +135,8 @@ def morph(
     if skip_validation:
         pass
     else:
-        print("No of Sql Failed while Validating: ", len(validate_error_list))  # noqa: T201
+        print("No of Sql Failed while Validating: ", len(validate_error_list), file=sys.stderr)  # noqa: T201
 
-    # [TODO]: Render them in a XL or HTML Table Report
     error_list = parse_error_list + validate_error_list
     if error_list_count > 0:
         error_list_file = os.getcwd() + f"/err_{os.getpid()}.lst"
@@ -151,7 +152,6 @@ def morph(
             "total_files_processed": len(file_list),
             "total_queries_processed": counter,
             "no_of_sql_failed_while_parsing": len(parse_error_list),
-            # [TODO] Split Validation and Parse Errors into different objects
             "no_of_sql_failed_while_validating": len(validate_error_list),
             "error_list_file": error_list_file,
         }

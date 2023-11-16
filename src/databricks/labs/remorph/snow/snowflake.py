@@ -5,11 +5,12 @@ from typing import ClassVar
 
 from sqlglot import exp
 from sqlglot.dialects.snowflake import Snowflake
+from sqlglot.errors import ParseError
 from sqlglot.helper import seq_get
 from sqlglot.tokens import Token, TokenType
 from sqlglot.trie import new_trie
 
-from databricks.labs.remorph.dialects import expression as lexp
+from databricks.labs.remorph.snow import expression as lexp
 
 
 def _parse_dateadd(args: list) -> exp.DateAdd:
@@ -22,7 +23,7 @@ def _parse_trytonumber(args: list) -> lexp.TryToNumber:
                              * `format` is required
                              * `precision` and `scale` both are required [if specifed]
                           """
-        raise ValueError(msg)
+        raise ParseError(msg)
 
     if len(args) == 4:
         return lexp.TryToNumber(
@@ -130,7 +131,7 @@ class Snow(Snowflake):
                 end = end if end < self.size else self.size - 1
                 context = self.sql[start:end]
                 msg = f"Error tokenizing '{context}'"
-                raise ValueError(msg) from e
+                raise ParseError(msg) from e
             return self.tokens
 
     class Parser(snowflake.Parser):

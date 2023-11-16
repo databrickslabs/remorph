@@ -1,4 +1,5 @@
 import inspect
+import sys
 import time
 from functools import wraps
 
@@ -12,7 +13,7 @@ def timeit(func):
         total_time = end_time - start_time
         name = inspect.getmodule(func).__name__.split(".")[3].capitalize()
         # Ignore T201
-        print(f"{name} Took {total_time:.4f} seconds")  # noqa: T201
+        print(f"{name} Took {total_time:.4f} seconds", file=sys.stderr)  # noqa: T201
         return result
 
     return timeit_wrapper

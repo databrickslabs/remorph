@@ -5,9 +5,10 @@ from sqlglot import expressions as exp
 from sqlglot.dialects import hive
 from sqlglot.dialects.databricks import Databricks
 from sqlglot.dialects.dialect import rename_func
+from sqlglot.errors import UnsupportedError
 from sqlglot.helper import apply_index_offset, csv
 
-from databricks.labs.remorph.dialects import expression as lexp
+from databricks.labs.remorph.snow import expression as lexp
 
 VALID_DATABRICKS_TYPES = {
     "BIGINT",
@@ -128,7 +129,7 @@ def _columndef_sql(self, expression: exp.ColumnDef) -> str:
     kind_str = re.search("^([A-Za-z]+)", kind).group(1)
     if kind_str not in VALID_DATABRICKS_TYPES:
         msg = f"{kind_str} is not a known Databricks type"
-        raise ValueError(msg)
+        raise UnsupportedError(msg)
 
     if not constraints:
         return f"{column} {kind}"
