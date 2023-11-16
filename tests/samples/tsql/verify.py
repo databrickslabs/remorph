@@ -8,7 +8,9 @@ from databricks.labs.remorph.framework.parallel import Threads
 from databricks.labs.remorph.parsers.tsql import parse_tsql, parse_tsql_dummy
 
 logger = get_logger(__file__)
-logging.getLogger('databricks').setLevel('DEBUG')
+databricks_logger = logging.getLogger('databricks')
+databricks_logger.setLevel('DEBUG')
+databricks_logger.addHandler(logging.FileHandler('verify.log'))
 
 
 def main():
@@ -16,7 +18,7 @@ def main():
     __folder__ = Path(__file__).parent
     for sample in sorted(__folder__.glob('**/*.sql')):
         tasks.append(functools.partial(parse_tsql_dummy, sample))
-    res, errors = Threads.gather('Parsing Transact-SQL samples', tasks)
+    res, errors = Threads.gather('Parsing Transact-SQL samples', tasks, process_pool=True)
     logger.warning(f'success: {len(res)}, errors={len(errors)}')
 
 

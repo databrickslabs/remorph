@@ -1,11 +1,10 @@
 import concurrent
 import datetime as dt
-import functools
 import logging
 import os
 import threading
 from collections.abc import Callable
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import Executor, ThreadPoolExecutor, ProcessPoolExecutor
 from typing import Generic, TypeVar
 
 MIN_THREADS = 8
@@ -15,7 +14,8 @@ logger = logging.getLogger(__name__)
 
 
 class Threads(Generic[Result]):
-    def __init__(self, name, tasks: list[Callable[..., Result]], num_threads: int):
+    def __init__(self, name, tasks: list[Callable[..., Result]], num_threads: int, process_pool: bool,
+                 log_error_stack: bool):
         self._name = name
         self._tasks = tasks
         self._task_fail_error_pct = 50
@@ -25,22 +25,29 @@ class Threads(Generic[Result]):
         self._completed_cnt = 0
         self._large_log_every = 3000
         self._default_log_every = 100
+        self._executor_class = ThreadPoolExecutor if not process_pool else ProcessPoolExecutor
+        self._log_error_stack = log_error_stack
 
     @classmethod
-    def gather(
-        cls, name: str, tasks: list[Callable[..., Result]], num_threads: int | None = None
+    def gather(cls,
+               name: str,
+               tasks: list[Callable[..., Result]],
+               *,
+               num_threads: int | None = None,
+               process_pool: bool = False,
+               log_error_stack: bool = False
     ) -> (list[Result], list[Exception]):
         if num_threads is None:
             num_threads = os.cpu_count() * 2
             if num_threads < MIN_THREADS:
                 num_threads = MIN_THREADS
-        return cls(name, tasks, num_threads=num_threads)._run()
+        return cls(name, tasks, num_threads, process_pool, log_error_stack)._run()
 
     def _run(self) -> (list[Result], list[Exception]):
         given_cnt = len(self._tasks)
         if given_cnt == 0:
             return [], []
-        logger.debug(f"Starting {given_cnt} tasks in {self._num_threads} threads")
+        logger.debug(f"Starting {given_cnt} tasks in {self._executor_class.__name__}({self._num_threads})")
 
         collected = []
         errors = []
@@ -73,23 +80,23 @@ class Threads(Generic[Result]):
             logger.info(f"Finished '{self._name}' tasks: {stats}")
 
     def _execute(self):
-        with ThreadPoolExecutor(self._num_threads) as pool:
+        with self._executor_class(self._num_threads) as pool:
             futures = []
             for task in self._tasks:
                 if task is None:
                     continue
-                future = pool.submit(self._wrap_result(task, self._name))
+                future = pool.submit(ResultingTask(task, self._name, self._log_error_stack))
                 future.add_done_callback(self._progress_report)
                 futures.append(future)
             return concurrent.futures.as_completed(futures)
 
     def _progress_report(self, _):
         total_cnt = len(self._tasks)
-        log_every = 5
-        # if total_cnt > self._large_log_every:
-        #     log_every = 500
-        # elif total_cnt <= self._default_log_every:
-        #     log_every = 10
+        log_every = 100
+        if total_cnt > self._large_log_every:
+            log_every = 500
+        elif total_cnt <= self._default_log_every:
+            log_every = 10
         with self._lock:
             self._completed_cnt += 1
             since = dt.datetime.now() - self._started
@@ -98,16 +105,23 @@ class Threads(Generic[Result]):
                 msg = f"{self._name} {self._completed_cnt}/{total_cnt}, rps: {rps:.3f}/sec"
                 logger.info(msg)
 
-    @staticmethod
-    def _wrap_result(func, name):
-        """This method emulates GoLang's error return style"""
 
-        @functools.wraps(func)
-        def inner(*args, **kwargs):
-            try:
-                return func(*args, **kwargs), None
-            except Exception as err:
-                logger.error(f"{name} task failed: {err!s}", exc_info=err)
-                return None, err
+class ResultingTask(Generic[Result]):
+    """This method emulates GoLang's error return style"""
+    __slots__ = ['fn', 'name', 'log_error_stack']
 
-        return inner
+    def __init__(self, fn: Callable[..., Result], name: str, log_error_stack: bool = False):
+        self.fn = fn
+        self.name = name
+        self.log_error_stack = log_error_stack
+
+    def __call__(self, *args, **kwargs) -> tuple[Result|None,Exception|None]:
+        try:
+            return self.fn(*args, **kwargs), None
+        except Exception as err:
+            # TODO: this should be a NiceFormatter change, not the logger change
+            if self.log_error_stack:
+                logger.error(f"{self.name} task failed: {err!s}", exc_info=err)
+            else:
+                logger.error(f"{self.name} task failed: {err!s}")
+            return None, err

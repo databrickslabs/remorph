@@ -5,3 +5,4 @@ __pycache__
 .antlr
 .idea/
 .pytest_cache/
+*.log
