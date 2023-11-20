@@ -3,6 +3,7 @@ import logging
 import os
 import sys
 
+from databricks.labs.remorph.config import MorphConfig
 from databricks.labs.remorph.reconcile.execute import recon
 from databricks.labs.remorph.transpiler.execute import morph
 
@@ -28,18 +29,21 @@ def transpile(source, input_sql, output_folder, skip_validation, validation_mode
         )
     if validation_mode.upper() not in ("LOCAL_REMOTE", "DATABRICKS"):
         raise_validation_exception(
-            f"Error: Invalid value for '--validation_mode': '{validation_mode}' is not one of 'true', 'false'. "
+            f"Error: Invalid value for '--validation_mode': '{validation_mode}' "
+            f"is not one of 'LOCAL_REMOTE', 'DATABRICKS'. "
         )
 
-    status = morph(
-        source.lower(),
-        input_sql,
-        output_folder,
-        skip_validation.lower(),
-        validation_mode.upper(),
-        catalog_nm,
-        schema_nm,
+    config = MorphConfig(
+        source=source.lower(),
+        input_sql=input_sql,
+        output_folder=output_folder,
+        skip_validation=skip_validation.lower(),
+        validation_mode=validation_mode.upper(),
+        catalog_nm=catalog_nm,
+        schema_nm=schema_nm,
     )
+
+    status = morph(config)
 
     print(json.dumps(status))  # noqa: T201
 

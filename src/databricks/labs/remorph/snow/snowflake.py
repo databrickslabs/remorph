@@ -10,14 +10,14 @@ from sqlglot.helper import seq_get
 from sqlglot.tokens import Token, TokenType
 from sqlglot.trie import new_trie
 
-from databricks.labs.remorph.snow import expression as lexp
+from databricks.labs.remorph.snow import local_expression
 
 
 def _parse_dateadd(args: list) -> exp.DateAdd:
     return exp.DateAdd(this=seq_get(args, 2), expression=seq_get(args, 1), unit=seq_get(args, 0))
 
 
-def _parse_trytonumber(args: list) -> lexp.TryToNumber:
+def _parse_trytonumber(args: list) -> local_expression.TryToNumber:
     if len(args) == 1 or len(args) == 3:
         msg = f"""Error Parsing args `{args}`:
                              * `format` is required
@@ -26,11 +26,11 @@ def _parse_trytonumber(args: list) -> lexp.TryToNumber:
         raise ParseError(msg)
 
     if len(args) == 4:
-        return lexp.TryToNumber(
+        return local_expression.TryToNumber(
             this=seq_get(args, 0), expression=seq_get(args, 1), precision=seq_get(args, 2), scale=seq_get(args, 3)
         )
 
-    return lexp.TryToNumber(this=seq_get(args, 0), expression=seq_get(args, 1))
+    return local_expression.TryToNumber(this=seq_get(args, 0), expression=seq_get(args, 1))
 
 
 class Snow(Snowflake):
@@ -137,12 +137,12 @@ class Snow(Snowflake):
     class Parser(snowflake.Parser):
         FUNCTIONS: ClassVar[dict] = {
             **Snowflake.Parser.FUNCTIONS,
-            "STRTOK_TO_ARRAY": lexp.Split.from_arg_list,
-            "DATE_FROM_PARTS": lexp.MakeDate.from_arg_list,
-            "CONVERT_TIMEZONE": lexp.ConvertTimeZone.from_arg_list,
-            "TRY_TO_DATE": lexp.TryToDate.from_arg_list,
-            "STRTOK": lexp.SplitPart.from_arg_list,
-            "SPLIT_PART": lexp.SplitPart.from_arg_list,
+            "STRTOK_TO_ARRAY": local_expression.Split.from_arg_list,
+            "DATE_FROM_PARTS": local_expression.MakeDate.from_arg_list,
+            "CONVERT_TIMEZONE": local_expression.ConvertTimeZone.from_arg_list,
+            "TRY_TO_DATE": local_expression.TryToDate.from_arg_list,
+            "STRTOK": local_expression.SplitPart.from_arg_list,
+            "SPLIT_PART": local_expression.SplitPart.from_arg_list,
             "TIMESTAMPADD": _parse_dateadd,
             "TRY_TO_DECIMAL": _parse_trytonumber,
             "TRY_TO_NUMBER": _parse_trytonumber,
@@ -186,7 +186,7 @@ class Snow(Snowflake):
                 return exp.DataType.build("DECIMAL(38,0)")
             return this
 
-        def _parse_parameter(self) -> lexp.Parameter:
+        def _parse_parameter(self) -> local_expression.Parameter:
             wrapped = self._match(TokenType.L_BRACE)
             this = self._parse_var() or self._parse_identifier() or self._parse_primary()
             self._match(TokenType.R_BRACE)
@@ -194,7 +194,7 @@ class Snow(Snowflake):
             if not self._match(TokenType.SPACE) or self._match(TokenType.DOT):
                 suffix = self._parse_var() or self._parse_identifier() or self._parse_primary()
 
-            return self.expression(lexp.Parameter, this=this, wrapped=wrapped, suffix=suffix)
+            return self.expression(local_expression.Parameter, this=this, wrapped=wrapped, suffix=suffix)
 
         def _get_table_alias(self):
             """
@@ -237,12 +237,12 @@ class Snow(Snowflake):
 
             if not isinstance(this, exp.Bracket) and this.name.upper() == "VALUE":
                 if this.table != table_alias:
-                    return self.expression(lexp.Bracket, this=this.table, expressions=[path])
-                return self.expression(lexp.Bracket, this=this, expressions=[path])
+                    return self.expression(local_expression.Bracket, this=this.table, expressions=[path])
+                return self.expression(local_expression.Bracket, this=this, expressions=[path])
             elif (isinstance(path, exp.Literal) and path.alias_or_name.upper() == "VALUE") or (
-                isinstance(this, lexp.Bracket)
+                isinstance(this, local_expression.Bracket)
                 and (this.name.upper() == "VALUE" or this.this.table.upper() == table_alias.upper())
             ):
-                return self.expression(lexp.Bracket, this=this, expressions=[path])
+                return self.expression(local_expression.Bracket, this=this, expressions=[path])
             else:
                 return self.expression(exp.Bracket, this=this, expressions=[path])

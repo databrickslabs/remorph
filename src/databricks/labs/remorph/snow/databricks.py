@@ -8,7 +8,7 @@ from sqlglot.dialects.dialect import rename_func
 from sqlglot.errors import UnsupportedError
 from sqlglot.helper import apply_index_offset, csv
 
-from databricks.labs.remorph.snow import expression as lexp
+from databricks.labs.remorph.snow import local_expression
 
 VALID_DATABRICKS_TYPES = {
     "BIGINT",
@@ -31,7 +31,7 @@ VALID_DATABRICKS_TYPES = {
 }
 
 
-def _parm_sfx(self, expression: lexp.Parameter) -> str:
+def _parm_sfx(self, expression: local_expression.Parameter) -> str:
     this = self.sql(expression, "this")
     this = f"{{{this}}}" if expression.args.get("wrapped") else f"{this}"
     suffix = self.sql(expression, "suffix")
@@ -39,7 +39,7 @@ def _parm_sfx(self, expression: lexp.Parameter) -> str:
     return f"{PARAMETER_TOKEN}{this}{suffix}"
 
 
-def _lateral_bracket_sql(self, expression: lexp.Bracket) -> str:
+def _lateral_bracket_sql(self, expression: local_expression.Bracket) -> str:
     """Overwrites `sqlglot/generator.py` `bracket_sql()` function
     to convert <TABLE_ALIAS>`[COL_NAME]` to <TABLE_ALIAS>`.COL_NAME`.
     Example: c[val] ==> c.val
@@ -147,7 +147,7 @@ def _datatype_map(self, expression) -> str:
     return self.datatype_sql(expression)
 
 
-def try_to_date(self, expression: lexp.TryToDate):
+def try_to_date(self, expression: local_expression.TryToDate):
     func = "TRY_TO_TIMESTAMP"
     time_format = self.sql(expression, "format")
     if not time_format:
@@ -157,7 +157,7 @@ def try_to_date(self, expression: lexp.TryToDate):
     return exp.Date(this=ts_result)
 
 
-def try_to_number(self, expression: lexp.TryToNumber):
+def try_to_number(self, expression: local_expression.TryToNumber):
     func = "TRY_TO_NUMBER"
     precision = self.sql(expression, "precision")
     scale = self.sql(expression, "scale")
@@ -200,11 +200,11 @@ class Databricks(Databricks):
             exp.CurrentTimestamp: _curr_ts(),
             exp.CurrentTime: _curr_time(),
             exp.Lateral: _lateral_view,
-            lexp.Parameter: _parm_sfx,
-            lexp.Bracket: _lateral_bracket_sql,
-            lexp.MakeDate: rename_func("MAKE_DATE"),
-            lexp.TryToDate: try_to_date,
-            lexp.TryToNumber: try_to_number,
+            local_expression.Parameter: _parm_sfx,
+            local_expression.Bracket: _lateral_bracket_sql,
+            local_expression.MakeDate: rename_func("MAKE_DATE"),
+            local_expression.TryToDate: try_to_date,
+            local_expression.TryToNumber: try_to_number,
         }
 
         def join_sql(self, expression: exp.Join) -> str:
@@ -253,9 +253,9 @@ class Databricks(Databricks):
                 expression.this.this if isinstance(expression.this, exp.Order) else expression.this,
             )
 
-        def split_sql(self, expression: lexp.Split) -> str:
+        def split_sql(self, expression: local_expression.Split) -> str:
             """
-            :param expression: lexp.Split expression to be parsed
+            :param expression: local_expression.Split expression to be parsed
             :return: Converted expression (SPLIT) compatible with Databricks
             """
             # To handle default delimiter
@@ -295,7 +295,7 @@ class Databricks(Databricks):
             else:
                 return self.prepend_ctes(expression, f"DELETE{tables}{expression_sql}")
 
-        def converttimezone_sql(self, expression: lexp.ConvertTimeZone):
+        def converttimezone_sql(self, expression: local_expression.ConvertTimeZone):
             func = "CONVERT_TIMEZONE"
             expr = expression.args["tgtTZ"]
             if len(expression.args) == 3 and expression.args.get("this"):
@@ -309,9 +309,9 @@ class Databricks(Databricks):
 
             return result
 
-        def splitpart_sql(self, expression: lexp.SplitPart) -> str:
+        def splitpart_sql(self, expression: local_expression.SplitPart) -> str:
             """
-            :param expression: lexp.Split expression to be parsed
+            :param expression: local_expression.Split expression to be parsed
             :return: Converted expression (SPLIT) compatible with Databricks
             """
             # To handle default delimiter
