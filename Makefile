@@ -8,11 +8,11 @@ clean:
 	hatch env remove default
 
 dev:
-	curl https://www.antlr.org/download/antlr-4.13.1-complete.jar -o .venv/antlr.jar
 	pip3 install hatch
 	hatch env create
 	hatch run pip install -e '.[test]'
 	hatch run which python
+	curl https://www.antlr.org/download/antlr-4.13.1-complete.jar -o .venv/antlr.jar
 
 lint:
 	hatch run lint:verify
