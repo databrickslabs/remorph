@@ -1,5 +1,6 @@
 from pyspark.sql.utils import AnalysisException, ParseException
 
+from databricks.labs.remorph.config import MorphConfig
 from databricks.labs.remorph.helpers.spark_connect import SparkConnectBuilder
 
 
@@ -25,6 +26,34 @@ class Validate:
         self.connection_mode = connection_mode
         spark_builder = SparkConnectBuilder(app_name="Validate", connection_mode=connection_mode)
         self.spark = spark_builder.build()
+
+    def validate_format_result(self, config: MorphConfig, input_sql: str):
+        """
+        Validates the SQL query and formats the result.
+
+        This function validates the SQL query based on the provided configuration. If the query is valid,
+        it appends a semicolon to the end of the query. If the query is not valid, it formats the error message.
+
+        :param config: The configuration for the validation.
+        :param output: The SQL query to be validated.
+        :return: A tuple containing the result of the validation and the exception message (if any).
+        """
+        catalog_nm = config.catalog_nm
+        schema_nm = config.schema_nm
+        (flag, exception) = self.query(input_sql, catalog_nm, schema_nm)
+        if flag:
+            result = input_sql + "\n;\n"
+            exception = None
+        else:
+            query = ""
+            if "[UNRESOLVED_ROUTINE]" in exception:
+                query = input_sql
+            result = (
+                "-------------- Exception Start-------------------\n"
+                "/* \n" + exception + "\n */ \n" + query + "\n ---------------Exception End --------------------\n"
+            )
+
+        return result, exception
 
     # [TODO] Implement Debugger Logger
     def query(self, query: str, catalog_nm=None, schema_nm=None):
@@ -60,7 +89,7 @@ class Validate:
 
             # When variables is mentioned Explain fails we need way to replace them before explain is executed.
             spark.sql(query.replace("${", "`{").replace("}", "}`").replace("``", "`")).explain(True)
-            return True, "Success"
+            return True, None
         except ParseException as pe:
             # print("Syntax Exception : NOT IGNORED. Flag as syntax error :" + str(pe))
             return False, str(pe)

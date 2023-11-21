@@ -3,50 +3,9 @@ import sys
 
 from databricks.labs.remorph.config import MorphConfig, MorphStatus
 from databricks.labs.remorph.helpers.execution_time import timeit
-from databricks.labs.remorph.helpers.utils import is_sql_file, remove_bom
+from databricks.labs.remorph.helpers.utils import is_sql_file, make_dir, remove_bom
 from databricks.labs.remorph.helpers.validate import Validate
 from databricks.labs.remorph.snow.sql_transpiler import SQLTranspiler
-
-
-def validate_query(sql: str, connection_mode: str, catalog_nm, schema_nm):
-    """
-    Validates the SQL query based on the connection mode, catalog name, and schema name.
-
-    :param sql: The SQL query to be validated.
-    :param connection_mode: The mode of the connection.
-    :param catalog_nm: The name of the catalog.
-    :param schema_nm: The name of the schema.
-    :return: Boolean indicating whether the query is valid or not.
-    """
-    validate = Validate(connection_mode=connection_mode)
-    return validate.query(sql, catalog_nm, schema_nm)
-
-
-def format_validation_result(config, output):
-    validation_mode = config.validation_mode
-    catalog_nm = config.catalog_nm
-    schema_nm = config.schema_nm
-    (flag, exception) = validate_query(output, validation_mode, catalog_nm, schema_nm)
-    if flag:
-        result = output + "\n;\n"
-        exception = None
-    else:
-        query = ""
-        if "[UNRESOLVED_ROUTINE]" in exception:
-            query = f"/* \n {output} \n */ \n"
-        result = (
-            "-------------- Exception Start-------------------\n"
-            + f"/* \n {exception} \n */ \n"
-            + query
-            + "\n ---------------Exception End --------------------\n"
-        )
-
-    return result, exception
-
-
-def make_dir(path):
-    if not os.path.exists(path):
-        os.makedirs(path, exist_ok=True)
 
 
 def process_file(config: MorphConfig, input_file, output_file):
@@ -82,7 +41,8 @@ def process_file(config: MorphConfig, input_file, output_file):
                     w.write(output)
                     w.write("\n;\n")
                 else:
-                    output_string, exception = format_validation_result(config, output)
+                    validate = Validate(connection_mode=config.validation_mode)
+                    output_string, exception = validate.validate_format_result(config, output)
                     w.write(output_string)
                     if exception is not None:
                         validate_error_list.append((input_file, exception))
@@ -156,6 +116,7 @@ def morph(config: MorphConfig):
     input_sql = config.input_sql
     skip_validation = config.skip_validation
     status = []
+    result = MorphStatus([], 0, 0, 0, [])
 
     print("**********************************", file=sys.stderr)  # noqa: T201
 
@@ -197,7 +158,7 @@ def morph(config: MorphConfig):
         with open(error_log_file, "a") as e:
             e.writelines(f"{err}\n" for err in result.error_log_list)
     else:
-        error_log_file = None
+        error_log_file = "None"
 
     status.append(
         {

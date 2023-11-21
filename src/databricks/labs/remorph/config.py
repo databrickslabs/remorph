@@ -18,4 +18,4 @@ class MorphStatus:
     no_of_queries: int
     parse_error_count: int
     validate_error_count: int
-    error_log_list: list[str]
+    error_log_list: list[tuple[str, str | None]] | None

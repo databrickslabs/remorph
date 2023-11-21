@@ -33,3 +33,13 @@ def is_sql_file(file):
     """
     _, file_extension = os.path.splitext(file)
     return file_extension.lower() in [".sql", ".ddl"]
+
+
+def make_dir(path):
+    """
+    Creates a directory at the specified path if it does not already exist.
+
+    :param path: The path where the directory should be created.
+    """
+    if not os.path.exists(path):
+        os.makedirs(path, exist_ok=True)
