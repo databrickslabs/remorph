@@ -2,7 +2,7 @@ import os
 import tempfile
 import unittest
 
-from databricks.labs.remorph.helpers.utils import is_sql_file, make_dir, remove_bom
+from databricks.labs.remorph.helpers.file_utils import is_sql_file, make_dir, remove_bom
 
 
 class TestUtilsMethods(unittest.TestCase):
@@ -37,7 +37,3 @@ class TestUtilsMethods(unittest.TestCase):
 
         # Check if the directory now exists
         self.assertTrue(os.path.exists(new_dir_path))
-
-
-if __name__ == "__main__":
-    unittest.main()

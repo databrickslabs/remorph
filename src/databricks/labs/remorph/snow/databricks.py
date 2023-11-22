@@ -1,4 +1,5 @@
 import re
+import sys
 from typing import ClassVar
 
 from sqlglot import expressions as exp
@@ -75,8 +76,7 @@ def _join_sup(self, expression):
         _lateral_view(self, expression.next())
 
 
-@staticmethod
-def _lateral_view(self, expression: exp.Lateral) -> str:  # noqa: ARG001
+def _lateral_view(self, expression: exp.Lateral) -> str:
     str_lateral_view = "LATERAL VIEW"
     str_outer = "OUTER"
     str_explode = "EXPLODE("
@@ -84,25 +84,38 @@ def _lateral_view(self, expression: exp.Lateral) -> str:  # noqa: ARG001
     str_alias = ")"
 
     for expr, _, _ in expression.walk(bfs=True, prune=lambda *_: False):
-        if isinstance(expr, exp.Explode) and str(expr.key).upper() == "EXPLODE":
-            for node, _, _ in expr.walk(bfs=True, prune=lambda *_: False):
-                if isinstance(node, exp.Kwarg):
-                    if isinstance(node.this, exp.Var) and str(node.this).upper() == "INPUT":
-                        node_expr = f"{node.expression}"
-                        # Added if block to handle Dynamic variables `${}`
-                        if "@" in node_expr:
-                            node_expr = node_expr.replace("@", "$")
-                        str_pfx = str_pfx + node_expr
-                    if isinstance(node.this, exp.Var) and str(node.this).upper() == "PATH":
-                        str_pfx = str_pfx + f".{node.expression}".replace("'", "").replace('"', "`")
-                    if isinstance(node.this, exp.Var) and str(node.this).upper() == "OUTER":
-                        str_pfx = str_pfx.replace(str_lateral_view, f"{str_lateral_view} {str_outer}")
-                    # [TODO]: Implement for options: RECURSIVE and MODE
+        match expr:
+            case exp.Explode():
+                if expr.key.upper() != "EXPLODE":
+                    continue
+                for node, _, _ in expr.walk(bfs=True, prune=lambda *_: False):
+                    if not isinstance(node, exp.Kwarg):
+                        continue
+                    if not isinstance(node.this, exp.Var):
+                        continue
 
-        if isinstance(expr, exp.TableAlias):
-            str_alias = str_alias + f" AS {expr.name}"
+                    node_name = str(node.this).upper()
+                    match node_name:
+                        case "INPUT":
+                            # Added if block to handle Dynamic variables `${}`
+                            node_expr = f"{node.expression}".replace("@", "$")
+                            if "PARSE_JSON" in node_expr:
+                                node_expr = node_expr.replace("PARSE_JSON", "FROM_JSON")
+                                msg = (
+                                    f"\n***Warning***: you need to explicitly specify "
+                                    f"`SCHEMA` for column(s) in `{node_expr}`"
+                                )
+                                print(msg, file=sys.stderr)  # noqa: T201
+                            str_pfx = str_pfx + node_expr
+                        case "PATH":
+                            str_pfx = str_pfx + f".{node.expression}".replace("'", "").replace('"', "`")
+                        case "OUTER":
+                            str_pfx = str_pfx.replace(str_lateral_view, f"{str_lateral_view} {str_outer}")
+                            # [TODO]: Implement for options: RECURSIVE and MODE
+            case exp.TableAlias():
+                str_alias = str_alias + f" AS {expr.name}"
 
-    return str_pfx + str_alias
+    return self.sql(str_pfx + str_alias)
 
 
 def _columndef_sql(self, expression: exp.ColumnDef) -> str:
@@ -211,17 +224,15 @@ class Databricks(Databricks):
             """Overwrites `join_sql()` in `sqlglot/generator.py`
             Added logic to handle Lateral View
             """
-            op_sql = " ".join(
-                op
-                for op in (
-                    expression.method,
-                    "GLOBAL" if expression.args.get("global") else None,
-                    expression.side,
-                    expression.kind,
-                    expression.hint if self.JOIN_HINTS else None,
-                )
-                if op
-            )
+            op_list = [
+                expression.method,
+                "GLOBAL" if expression.args.get("global") else None,
+                expression.side,
+                expression.kind,
+                expression.hint if self.JOIN_HINTS else None,
+            ]
+
+            op_sql = " ".join(op for op in op_list if op)
             on_sql = self.sql(expression, "on")
             using = expression.args.get("using")
 
@@ -258,11 +269,11 @@ class Databricks(Databricks):
             :param expression: local_expression.Split expression to be parsed
             :return: Converted expression (SPLIT) compatible with Databricks
             """
+            delimiter = " "
             # To handle default delimiter
             if expression.expression:
                 delimiter = expression.expression.name
-            else:
-                delimiter = " "
+
             # Parsing logic to handle String and Table columns
             if expression.name and isinstance(expression.name, str):
                 expr_name = f"'{expression.name}'"
@@ -314,22 +325,19 @@ class Databricks(Databricks):
             :param expression: local_expression.Split expression to be parsed
             :return: Converted expression (SPLIT) compatible with Databricks
             """
+            delimiter = " "
             # To handle default delimiter
             if expression.expression:
                 delimiter = expression.expression.name
-            else:
-                delimiter = " "
 
             # Handle String and Table columns
+            expr_name = expression.args["this"]
             if expression.name and isinstance(expression.name, str):
                 expr_name = f"'{expression.name}'"
-            else:
-                expr_name = expression.args["this"]
 
             # Handle Partition Number
+            part_num = 1
             if len(expression.args) == 3 and expression.args.get("partNum"):
                 part_num = expression.args["partNum"]
-            else:
-                part_num = 1
 
             return f"SPLIT_PART({expr_name}, '{delimiter}', {part_num})"

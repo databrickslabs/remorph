@@ -1,10 +1,15 @@
 import codecs
-import os
+from pathlib import Path
 
 
 # Optionally check to see if a string begins with a Byte Order Mark
 # such a character will cause the transpiler to fail
-def remove_bom(input_string):
+def remove_bom(input_string: str) -> str:
+    """
+    Removes the Byte Order Mark (BOM) from the given string if it exists.
+    :param input_string: String to remove BOM from
+    :return: String without BOM
+    """
     # Check and remove UTF-8 BOM
     if input_string.startswith(codecs.BOM_UTF8.decode("utf-8")):
         return input_string[len(codecs.BOM_UTF8.decode("utf-8")) :]
@@ -24,22 +29,34 @@ def remove_bom(input_string):
     return input_string
 
 
-def is_sql_file(file):
+def is_sql_file(file: str | Path) -> bool:
     """
     Checks if the given file is a SQL file.
 
     :param file: The name of the file to check.
     :return: True if the file is a SQL file (i.e., its extension is either .sql or .ddl), False otherwise.
     """
-    _, file_extension = os.path.splitext(file)
+    file_extension = Path(file).suffix
     return file_extension.lower() in [".sql", ".ddl"]
 
 
-def make_dir(path):
+def make_dir(path: str | Path) -> None:
     """
     Creates a directory at the specified path if it does not already exist.
 
     :param path: The path where the directory should be created.
     """
-    if not os.path.exists(path):
-        os.makedirs(path, exist_ok=True)
+    Path(path).mkdir(parents=True, exist_ok=True)
+
+
+def dir_walk(root: Path):
+    """
+    Walks the directory tree rooted at the given path, yielding a tuple containing the root directory, a list of
+    :param root: Path
+    :return: tuple of  root, subdirectory , files
+    """
+    sub_dirs = [d for d in root.iterdir() if d.is_dir()]
+    files = [f for f in root.iterdir() if f.is_file()]
+    yield root, sub_dirs, files
+    for s in sub_dirs:
+        yield from dir_walk(s)

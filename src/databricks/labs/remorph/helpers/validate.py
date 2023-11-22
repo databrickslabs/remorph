@@ -1,7 +1,9 @@
+from io import StringIO
+
 from pyspark.sql.utils import AnalysisException, ParseException
 
+from databricks.connect import DatabricksSession
 from databricks.labs.remorph.config import MorphConfig
-from databricks.labs.remorph.helpers.spark_connect import SparkConnectBuilder
 
 
 class Validate:
@@ -9,23 +11,15 @@ class Validate:
     The Validate class is used to validate SQL queries using a Spark session.
 
     Attributes:
-    - config (dict): Additional configuration options for Spark.
-    - connection_mode (str): The mode of the Spark session (local or remote).
     - spark (SparkSession): The Spark session used to execute and validate SQL queries.
     """
 
-    def __init__(self, connection_mode, config=None):
+    def __init__(self):
         """
-        Initialize the Validate class.
+        Initialize the Validate class with Sparksession.
+        """
 
-        Parameters:
-        - connection_mode (str): The mode of the Spark session (local or remote).
-        - config (dict): Additional configuration options for Spark.
-        """
-        self.config = config
-        self.connection_mode = connection_mode
-        spark_builder = SparkConnectBuilder(app_name="Validate", connection_mode=connection_mode)
-        self.spark = spark_builder.build()
+        self.spark = DatabricksSession.builder.getOrCreate()
 
     def validate_format_result(self, config: MorphConfig, input_sql: str):
         """
@@ -34,13 +28,16 @@ class Validate:
         This function validates the SQL query based on the provided configuration. If the query is valid,
         it appends a semicolon to the end of the query. If the query is not valid, it formats the error message.
 
-        :param config: The configuration for the validation.
-        :param output: The SQL query to be validated.
-        :return: A tuple containing the result of the validation and the exception message (if any).
+        Parameters:
+        - config (MorphConfig): The configuration for the validation.
+        - input_sql (str): The SQL query to be validated.
+
+        Returns:
+        - tuple: A tuple containing the result of the validation and the exception message (if any).
         """
-        catalog_nm = config.catalog_nm
-        schema_nm = config.schema_nm
-        (flag, exception) = self.query(input_sql, catalog_nm, schema_nm)
+        catalog_name = config.catalog_name
+        schema_name = config.schema_name
+        (flag, exception) = self.query(input_sql, catalog_name, schema_name)
         if flag:
             result = input_sql + "\n;\n"
             exception = None
@@ -48,15 +45,20 @@ class Validate:
             query = ""
             if "[UNRESOLVED_ROUTINE]" in exception:
                 query = input_sql
-            result = (
-                "-------------- Exception Start-------------------\n"
-                "/* \n" + exception + "\n */ \n" + query + "\n ---------------Exception End --------------------\n"
-            )
+            buffer = StringIO()
+            buffer.write("-------------- Exception Start-------------------\n")
+            buffer.write("/* \n")
+            buffer.write(exception)
+            buffer.write("\n */ \n")
+            buffer.write(query)
+            buffer.write("\n ---------------Exception End --------------------\n")
+
+            result = buffer.getvalue()
 
         return result, exception
 
     # [TODO] Implement Debugger Logger
-    def query(self, query: str, catalog_nm=None, schema_nm=None):
+    def query(self, query: str, catalog_name=None, schema_name=None):
         """
         Validate a given SQL query using the Spark session.
 
@@ -74,18 +76,14 @@ class Validate:
         try:
             # [TODO]: Explain needs to redirected to different console
             # [TODO]: Hacky way to replace variables representation
-            if self.connection_mode.upper() == "DATABRICKS":
-                if catalog_nm in (None, "transpiler_test") and schema_nm in (None, "convertor_test"):
-                    spark.sql("create catalog if not exists transpiler_test")
-                    spark.sql("use catalog transpiler_test")
-                    spark.sql("create schema if not exists convertor_test")
-                    spark.sql("use convertor_test")
-                else:
-                    spark.sql(f"use catalog {catalog_nm}")
-                    spark.sql(f"use {schema_nm}")
+            if catalog_name in (None, "transpiler_test") and schema_name in (None, "convertor_test"):
+                spark.sql("create catalog if not exists transpiler_test")
+                spark.sql("use catalog transpiler_test")
+                spark.sql("create schema if not exists convertor_test")
+                spark.sql("use convertor_test")
             else:
-                # Running in Local Mode
-                pass
+                spark.sql(f"use catalog {catalog_name}")
+                spark.sql(f"use {schema_name}")
 
             # When variables is mentioned Explain fails we need way to replace them before explain is executed.
             spark.sql(query.replace("${", "`{").replace("}", "}`").replace("``", "`")).explain(True)
