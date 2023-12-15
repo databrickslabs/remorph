@@ -1,6 +1,10 @@
 ---
 name: remorph
 description: Code Transpiler and Data Reconcilation tool for Accelerating Data onboarding to Databricks from EDW, CDW and other ETL sources.
+install:
+  min_runtime_version: 13.3
+  require_running_cluster: false
+  require_databricks_connect: true
 entrypoint: src/databricks/labs/remorph/cli.py
 min_python: 3.10
 commands:
@@ -17,16 +21,16 @@ commands:
       - name: skip-validation
         default: true
         description: Validate Transpiled Code, default True validation skipped, False validate
-      - name: validation-mode
-        default: LOCAL_REMOTE
-        description: Specifies the Validation Mode either Spark Local or Databricks using Databricks Connect
-      - name: catalog-nm
+      - name: catalog-name
         default: transpiler_test
         description: Catalog Name Applicable only when Validation Mode is DATABRICKS
-      - name: schema-nm
+      - name: schema-name
         default: convertor_test
         description: Schema Name Applicable only when Validation Mode is DATABRICKS
-
+    table_template: |-
+      total_files_processed\ttotal_queries_processed\tno_of_sql_failed_while_parsing\tno_of_sql_failed_while_validating\terror_log_file
+      {{range .}}{{.total_files_processed}}\t{{.total_queries_processed}}\t{{.no_of_sql_failed_while_parsing}}\t{{.no_of_sql_failed_while_validating}}\t{{.error_log_file}}
+      {{end}}
   - name: reconcile
     description: Reconcile is an utility to streamline the reconciliation process between source data and target data residing on Databricks.
     flags:

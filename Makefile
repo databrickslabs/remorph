@@ -17,7 +17,7 @@ fmt:
 	hatch run lint:fmt
 
 test:
-	hatch run unit:test
+	hatch run test
 
 integration:
 	hatch run integration:test
