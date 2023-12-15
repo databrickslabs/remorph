@@ -3,18 +3,18 @@ import logging
 import os
 import sys
 
+from databricks.labs.remorph.config import MorphConfig
 from databricks.labs.remorph.reconcile.execute import recon
 from databricks.labs.remorph.transpiler.execute import morph
 
 logger = logging.getLogger("databricks.labs.remorph")
 
 
-def raise_validation_exception(msg):
+def raise_validation_exception(msg: str) -> Exception:
     raise Exception(msg)
 
 
-def transpile(source, input_sql, output_folder, skip_validation, validation_mode, catalog_nm, schema_nm):
-    """Error: Invalid value for '--source': 'snowflakes' is not one of 'snowflake', 'tsql'."""
+def transpile(source, input_sql, output_folder, skip_validation, catalog_name, schema_name):
     if source.lower() not in ("snowflake", "tsql"):
         raise_validation_exception(
             f"Error: Invalid value for '--source': '{source}' is not one of 'snowflake', 'tsql'. "
@@ -27,20 +27,19 @@ def transpile(source, input_sql, output_folder, skip_validation, validation_mode
         raise_validation_exception(
             f"Error: Invalid value for '--skip_validation': '{skip_validation}' is not one of 'true', 'false'. "
         )
-    if validation_mode.upper() not in ("LOCAL_REMOTE", "DATABRICKS"):
-        raise_validation_exception(
-            f"Error: Invalid value for '--validation_mode': '{validation_mode}' is not one of 'true', 'false'. "
-        )
 
-    morph(
-        source.lower(),
-        input_sql,
-        output_folder,
-        skip_validation.lower(),
-        validation_mode.upper(),
-        catalog_nm,
-        schema_nm,
+    config = MorphConfig(
+        source=source.lower(),
+        input_sql=input_sql,
+        output_folder=output_folder,
+        skip_validation=skip_validation.lower() == "true",  # convert to bool
+        catalog_name=catalog_name,
+        schema_name=schema_name,
     )
+
+    status = morph(config)
+
+    print(json.dumps(status))  # noqa: T201
 
 
 def reconcile(recon_conf, conn_profile, source, report):

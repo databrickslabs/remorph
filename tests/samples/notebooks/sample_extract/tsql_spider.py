@@ -4,8 +4,8 @@ from scrapy.spiders import SitemapSpider
 class TsqlSpider(SitemapSpider):
     name = "tsql"
 
-    sitemap_urls = ["https://learn.microsoft.com/_sitemaps/sql_en-us_1.xml"]
-    sitemap_rules = [("/en-us/sql/t-sql", "parse")]
+    sitemap_urls = ["https://learn.microsoft.com/_sitemaps/sql_en-us_1.xml"]  # noqa RUF012
+    sitemap_rules = [("/en-us/sql/t-sql", "parse")]  # noqa RUF012
 
     def parse(self, response):
         from lxml import html
