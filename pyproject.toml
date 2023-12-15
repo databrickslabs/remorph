@@ -9,7 +9,7 @@ include = ["src"]
 [project]
 name = "databricks-labs-remorph"
 dynamic = ["version"]
-description = ''
+description = 'Code Transpiler and Data Reconcilation tool for Accelerating Data onboarding to Databricks from EDW, CDW and other ETL sources.'
 readme = "README.md"
 requires-python = ">=3.10"
 license = "MIT"
@@ -22,7 +22,9 @@ classifiers = [
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: Implementation :: CPython",
 ]
-dependencies = []
+dependencies = [
+  "sqlglot>=19.9.0"
+]
 
 [project.urls]
 Documentation = "https://github.com/databrickslabs/remorph"
@@ -41,6 +43,7 @@ path = ".venv"
 dependencies = [
   "coverage[toml]>=6.5",
   "pytest",
+  "databricks-connect",
 ]
 [tool.hatch.envs.default.scripts]
 test = "pytest {args:tests}"
@@ -71,6 +74,10 @@ fmt = [
   "black {args:.}",
   "ruff --fix {args:.}",
   "style",
+]
+verify = [
+  "black --check .",
+  "ruff .",
 ]
 all = [
   "style",
@@ -121,6 +128,8 @@ ignore = [
   "S105", "S106", "S107",
   # Ignore complexity
   "C901", "PLR0911", "PLR0912", "PLR0913", "PLR0915",
+  # Magic Value
+  "PLR2004"
 ]
 unfixable = [
   # Don't touch unused imports

@@ -35,7 +35,7 @@ jobs:
         run: pip install hatch==$HATCH_VERSION
 
       - name: Run unit tests
-        run: hatch run unit:test
+        run: hatch run test
 
   fmt:
     runs-on: ubuntu-latest
