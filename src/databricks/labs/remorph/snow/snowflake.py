@@ -78,7 +78,7 @@ def _parse_monthname(args: list) -> local_expression.DateFormat:
     return local_expression.DateFormat(this=seq_get(args, 0), expression=seq_get(args, 1))
 
 
-def _parse_object_construct(args: list) -> t.Union[exp.StarMap, exp.Struct]:
+def _parse_object_construct(args: list) -> exp.StarMap | exp.Struct:
     expression = parser.parse_var_map(args)
 
     if isinstance(expression, exp.StarMap):
@@ -89,18 +89,17 @@ def _parse_object_construct(args: list) -> t.Union[exp.StarMap, exp.Struct]:
     )
 
 
-def _parse_to_boolean(args: list, error: bool = False) -> local_expression.ToBoolean:
+def _parse_to_boolean(*args: list, error: bool) -> local_expression.ToBoolean:
     this_arg = seq_get(args, 0)
     return local_expression.ToBoolean(this=this_arg, raise_error=exp.Literal.number(1 if error else 0))
 
 
 def _parse_tonumber(args: list) -> local_expression.ToNumber:
     if len(args) > 4:
-        raise ParseError(
-            f""" Error Parsing args args:
+        error_msg = f"""Error Parsing args args:
                           * Number of args cannot be more than `4`, given `{len(args)}`
                           """
-        )
+        raise ParseError(error_msg)
 
     if len(args) == 1:
         return local_expression.ToNumber(this=seq_get(args, 0))
@@ -237,7 +236,7 @@ class Snow(Snowflake):
             "DATEDIFF": parse_date_delta(exp.DateDiff, unit_mapping=DATE_DELTA_INTERVAL),
             "TIMEDIFF": parse_date_delta(exp.DateDiff, unit_mapping=DATE_DELTA_INTERVAL),
             "TIMESTAMPDIFF": parse_date_delta(exp.DateDiff, unit_mapping=DATE_DELTA_INTERVAL),
-            "TO_BOOLEAN": lambda args: _parse_to_boolean(args, True),
+            "TO_BOOLEAN": lambda args: _parse_to_boolean(args, error=True),
             "TO_DECIMAL": _parse_tonumber,
             "TO_DOUBLE": local_expression.ToDouble.from_arg_list,
             "TO_NUMBER": _parse_tonumber,
@@ -247,7 +246,7 @@ class Snow(Snowflake):
             "TIMESTAMP_FROM_PARTS": local_expression.TimestampFromParts.from_arg_list,
             "TO_VARIANT": local_expression.ToVariant.from_arg_list,
             "TRY_BASE64_DECODE_STRING": exp.FromBase64.from_arg_list,
-            "TRY_TO_BOOLEAN": lambda args: _parse_to_boolean(args),
+            "TRY_TO_BOOLEAN": lambda args: _parse_to_boolean(args, error=False),
             "UUID_STRING": local_expression.UUID.from_arg_list,
         }
 

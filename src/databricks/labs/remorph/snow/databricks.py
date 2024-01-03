@@ -198,9 +198,10 @@ def _parse_json(self, expr: exp.ParseJSON):
     expr_this = self.sql(expr, "this")
     column = expr_this.replace("'", "").upper()
     conv_expr = self.func("FROM_JSON", expr_this, f"{{{column}_SCHEMA}}")
-    print(
+    warning_msg = (
         f"\n***Warning***: you need to explicitly specify `SCHEMA` for `{column}` column in expression: `{conv_expr}`"
     )
+    print(warning_msg)  # noqa: T201
     return conv_expr
 
 
@@ -219,12 +220,11 @@ def _to_number(self, expression: local_expression.TryToNumber):
     if expression.expression:
         func_expr = self.func(func, expression.this, expression.expression)
     else:
-        raise UnsupportedError(
-            f"""Error Parsing expression {expression}:
+        exception_msg = f"""Error Parsing expression {expression}:
                          * `format`: is required in Databricks [mandatory]
                          * `precision` and `scale`: are considered as (38, 0) if not specified.
                       """
-        )
+        raise UnsupportedError(exception_msg)
 
     return f"CAST({func_expr} AS DECIMAL({precision}, {scale}))"
 
@@ -234,7 +234,7 @@ def _uuid(self: Databricks.Generator, expression: local_expression.UUID) -> str:
     name = self.sql(expression, "name")
 
     if namespace and name:
-        print("UUID version 5 is not supported currently. Needs manual intervention.")
+        print("UUID version 5 is not supported currently. Needs manual intervention.")  # noqa : T201
         return f"UUID({namespace}, {name})"
     else:
         return "UUID()"
@@ -404,7 +404,9 @@ class Databricks(Databricks):
 
             return f"SPLIT_PART({expr_name}, '{delimiter}', {part_num})"
 
-        def tablesample_sql(self, expression: exp.TableSample, seed_prefix: str = "SEED", sep: str = " AS ") -> str:
+        def tablesample_sql(
+            self, expression: exp.TableSample, seed_prefix: str = "REPEATABLE", sep: str = " AS "
+        ) -> str:
             mod_exp = expression.copy()
             mod_exp.args["kind"] = "TABLESAMPLE"
-            return super().tablesample_sql(mod_exp, seed_prefix="REPEATABLE", sep=sep)
+            return super().tablesample_sql(mod_exp, seed_prefix=seed_prefix, sep=sep)
