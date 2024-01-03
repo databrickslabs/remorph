@@ -1,6 +1,6 @@
 from typing import ClassVar
 
-from sqlglot.expressions import Condition, Expression, Func
+from sqlglot.expressions import AggFunc, Condition, Expression, Func
 
 
 class Parameter(Expression):
@@ -46,15 +46,15 @@ class TryToNumber(Func):
 
 
 class DateFormat(Func):
-    arg_types = {"this": True, "expression": False}
+    arg_types: ClassVar[dict] = {"this": True, "expression": False}
 
 
 class ObjectKeys(Func):
-    arg_types = {"this": True}
+    arg_types: ClassVar[dict] = {"this": True}
 
 
 class ToBoolean(Func):
-    arg_types = {"this": True, "raise_error": False}
+    arg_types: ClassVar[dict] = {"this": True, "raise_error": False}
 
 
 class ToDouble(Func):
@@ -66,12 +66,12 @@ class ToObject(Func):
 
 
 class ToNumber(Func):
-    arg_types = {"this": True, "expression": False, "precision": False, "scale": False}
-    _sql_names = ["TO_DECIMAL", "TO_NUMBER", "TO_NUMERIC"]
+    arg_types: ClassVar[dict] = {"this": True, "expression": False, "precision": False, "scale": False}
+    _sql_names: ClassVar[list] = ["TO_DECIMAL", "TO_NUMBER", "TO_NUMERIC"]
 
 
 class TimestampFromParts(Func):
-    arg_types = {
+    arg_types: ClassVar[dict] = {
         "this": True,
         "expression": True,
         "day": True,
@@ -88,4 +88,32 @@ class ToVariant(Func):
 
 
 class UUID(Func):
-    arg_types = {"this": False, "name": False}
+    arg_types: ClassVar[dict] = {"this": False, "name": False}
+
+
+
+
+
+class IsInteger(Func):
+    pass
+
+
+class JsonExtractPathText(Func):
+    arg_types: ClassVar[dict] = {"this": True, "path_name": True}
+
+
+class BitOr(AggFunc):
+    pass
+
+
+class ArrayConstructCompact(Func):
+    arg_types: ClassVar[dict] = {"expressions": False}
+    is_var_len_args = True
+
+
+class ArrayIntersection(Func):
+    arg_types: ClassVar[dict] = {"this": True, "expression": True}
+
+
+class ArraySlice(Func):
+    arg_types: ClassVar[dict] = {"this": True, "from": True, "to": True}

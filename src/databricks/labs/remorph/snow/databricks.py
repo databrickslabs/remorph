@@ -45,8 +45,11 @@ def _lateral_bracket_sql(self, expression: local_expression.Bracket) -> str:
     to convert <TABLE_ALIAS>`[COL_NAME]` to <TABLE_ALIAS>`.COL_NAME`.
     Example: c[val] ==> c.val
     """
-    expressions = apply_index_offset(expression.this, expression.expressions, self.INDEX_OFFSET)
-    expressions_sql = ", ".join(self.sql(e.alias_or_name.strip("'")) for e in expressions)
+    expressions = apply_index_offset(expression.this, expression.expressions, self.dialect.INDEX_OFFSET)
+    expressions = [self.sql(e.alias_or_name.strip("'")) for e in expressions]
+    # If expression contains space in between encode it in backticks(``):
+    # e.g. ref."ID Number" -> ref.`ID Number`.
+    expressions_sql = ", ".join(f"`{e}`" if " " in e else e for e in expressions)
     return f"{self.sql(expression, 'this')}.{expressions_sql}"
 
 
@@ -188,6 +191,64 @@ def try_to_number(self, expression: local_expression.TryToNumber):
     return f"CAST({func_expr} AS DECIMAL({precision}, {scale}))"
 
 
+def _list_agg(self, expr: exp.GroupConcat):
+    """
+    [TODO]
+        Handle:
+                1. DISTINCT keyword
+                2. WITHIN GROUP (ORDER BY )
+                3. OVER ( [ PARTITION BY <expr2> ] )
+                4. Collation within Order by
+        These are supported in Snowflake: [LISTAGG](https://docs.snowflake.com/en/sql-reference/functions/listagg)
+    """
+    collect_list_expr = self.func("COLLECT_LIST", expr.this)
+    return self.func("ARRAY_JOIN", collect_list_expr, expr.args.get("separator"))
+
+
+def _is_integer(self: Databricks.Generator, expression: local_expression.IsInteger) -> str:
+    this = self.sql(expression, "this")
+    transformed = f"""
+    CASE
+       WHEN {this} IS NULL THEN NULL
+       WHEN {this} RLIKE '^-?[0-9]+$' AND TRY_CAST({this} AS INT) IS NOT NULL THEN TRUE
+       ELSE FALSE
+       END
+    """
+    return transformed
+
+
+def _parse_json_extract_path_text(self: Databricks.Generator, expression: local_expression.JsonExtractPathText) -> str:
+    this = self.sql(expression, "this")
+    path_name = expression.args["path_name"]
+    if path_name.is_string:
+        path = f"{self.dialect.QUOTE_START}$.{expression.text('path_name')}{self.dialect.QUOTE_END}"
+    else:
+        path = f"CONCAT('$.', {self.sql(expression, 'path_name')})"
+    return f"GET_JSON_OBJECT({this}, {path})"
+
+
+def _array_construct_compact(self: Databricks.Generator, expression: local_expression.ArrayConstructCompact) -> str:
+    exclude = "ARRAY(NULL)"
+    array_expr = f"ARRAY({self.expressions(expression, flat=True)})"
+    return f"ARRAY_EXCEPT({array_expr}, {exclude})"
+
+
+def _array_slice(self: Databricks.Generator, expression: local_expression.ArraySlice) -> str:
+    from_expr = self.sql(expression, "from")
+    # In Databricks: array indices start at 1 in function `slice(array, start, length)`
+    from_expr = 1 if from_expr == "0" else from_expr
+
+    to_expr = self.sql(expression, "to")
+    # Convert string expression to number and check if it is negative number
+    if int(to_expr) < 0:
+        err_message = "In Databricks: function `slice` length must be greater than or equal to 0"
+        raise UnsupportedError(err_message)
+
+    func = "SLICE"
+    func_expr = self.func(func, expression.this, exp.Literal.number(from_expr), expression.args["to"])
+    return func_expr
+
+
 def _parse_json(self, expr: exp.ParseJSON):
     """
     Converts `PARSE_JSON` function to `FROM_JSON` function.
@@ -198,9 +259,10 @@ def _parse_json(self, expr: exp.ParseJSON):
     expr_this = self.sql(expr, "this")
     column = expr_this.replace("'", "").upper()
     conv_expr = self.func("FROM_JSON", expr_this, f"{{{column}_SCHEMA}}")
-    print(
+    warning_msg = (
         f"\n***Warning***: you need to explicitly specify `SCHEMA` for `{column}` column in expression: `{conv_expr}`"
     )
+    print(warning_msg)  # noqa: T201
     return conv_expr
 
 
@@ -219,12 +281,11 @@ def _to_number(self, expression: local_expression.TryToNumber):
     if expression.expression:
         func_expr = self.func(func, expression.this, expression.expression)
     else:
-        raise UnsupportedError(
-            f"""Error Parsing expression {expression}:
+        exception_msg = f"""Error Parsing expression {expression}:
                          * `format`: is required in Databricks [mandatory]
                          * `precision` and `scale`: are considered as (38, 0) if not specified.
                       """
-        )
+        raise UnsupportedError(exception_msg)
 
     return f"CAST({func_expr} AS DECIMAL({precision}, {scale}))"
 
@@ -234,7 +295,7 @@ def _uuid(self: Databricks.Generator, expression: local_expression.UUID) -> str:
     name = self.sql(expression, "name")
 
     if namespace and name:
-        print("UUID version 5 is not supported currently. Needs manual intervention.")
+        print("UUID version 5 is not supported currently. Needs manual intervention.")  # noqa : T201
         return f"UUID({namespace}, {name})"
     else:
         return "UUID()"
@@ -245,6 +306,7 @@ class Databricks(Databricks):
     databricks = Databricks()
 
     class Generator(databricks.Generator):
+        COLLATE_IS_FUNC = True
         # [TODO]: Variant needs to be transformed better, for now parsing to string was deemed as the choice.
         TYPE_MAPPING: ClassVar[dict] = {
             **Databricks.Generator.TYPE_MAPPING,
@@ -265,6 +327,8 @@ class Databricks(Databricks):
             exp.CurrentTimestamp: _curr_ts(),
             exp.CurrentTime: _curr_time(),
             exp.Lateral: _lateral_view,
+            exp.GroupConcat: _list_agg,
+            exp.FromBase64: rename_func("UNBASE64"),
             local_expression.Parameter: _parm_sfx,
             local_expression.Bracket: _lateral_bracket_sql,
             local_expression.MakeDate: rename_func("MAKE_DATE"),
@@ -277,9 +341,14 @@ class Databricks(Databricks):
             local_expression.ToVariant: rename_func("TO_JSON"),
             local_expression.ToObject: rename_func("TO_JSON"),
             exp.ToBase64: rename_func("BASE64"),
-            exp.FromBase64: rename_func("UNBASE64"),
             local_expression.ToNumber: _to_number,
             local_expression.UUID: _uuid,
+            local_expression.IsInteger: _is_integer,
+            local_expression.JsonExtractPathText: _parse_json_extract_path_text,
+            local_expression.BitOr: rename_func("BIT_OR"),
+            local_expression.ArrayConstructCompact: _array_construct_compact,
+            local_expression.ArrayIntersection: rename_func("ARRAY_INTERSECT"),
+            local_expression.ArraySlice: _array_slice,
         }
 
         def join_sql(self, expression: exp.Join) -> str:
@@ -321,6 +390,12 @@ class Databricks(Databricks):
 
         def arrayagg_sql(self, expression: exp.ArrayAgg) -> str:
             # ARRAY_AGG function is available in Spark built-in functions
+            """[TODO]
+            Have to handle:
+                    1. WITHIN GROUP (ORDER BY )
+                    2. OVER ( [ PARTITION BY <expr2> ] )
+            These are supported in Snowflake: [array_agg](https://docs.snowflake.com/en/sql-reference/functions/array_agg)
+            """
             return self.func(
                 "ARRAY_AGG",
                 expression.this.this if isinstance(expression.this, exp.Order) else expression.this,
@@ -404,7 +479,63 @@ class Databricks(Databricks):
 
             return f"SPLIT_PART({expr_name}, '{delimiter}', {part_num})"
 
-        def tablesample_sql(self, expression: exp.TableSample, seed_prefix: str = "SEED", sep: str = " AS ") -> str:
+        def tablesample_sql(
+            self, expression: exp.TableSample, seed_prefix: str = "REPEATABLE", sep: str = " AS "
+        ) -> str:
             mod_exp = expression.copy()
             mod_exp.args["kind"] = "TABLESAMPLE"
-            return super().tablesample_sql(mod_exp, seed_prefix="REPEATABLE", sep=sep)
+            return super().tablesample_sql(mod_exp, seed_prefix=seed_prefix, sep=sep)
+
+
+        def transaction_sql(self, expression: exp.Transaction) -> str:  # noqa: ARG002
+            """
+            Skip begin command
+            :param expression:
+            :return: Empty string for unsupported operation
+            """
+            return ""
+
+        def rollback_sql(self, expression: exp.Rollback) -> str:  # noqa: ARG002
+            """
+            Skip rollback command
+            :param expression:
+            :return: Empty string for unsupported operation
+            """
+            return ""
+
+        def commit_sql(self, expression: exp.Rollback) -> str:  # noqa: ARG002
+            """
+            Skip commit command
+            :param expression:
+            :return: Empty string for unsupported operation
+            """
+            return ""
+
+        def command_sql(self, expression: exp.Command) -> str:
+            """
+            Skip any session, stream, task related commands
+            :param expression:
+            :return: Empty string for unsupported operations or objects
+            """
+            filtered_commands = [
+                "CREATE",
+                "ALTER",
+                "DESCRIBE",
+                "DROP",
+                "SHOW",
+                "EXECUTE",
+            ]
+            ignored_objects = [
+                "STREAM",
+                "TASK",
+                "STREAMS",
+                "TASKS",
+                "SESSION",
+            ]
+
+            command = self.sql(expression, "this").upper()
+            expr = expression.text("expression").strip()
+            obj = re.split(r"\s+", expr, maxsplit=2)[0].upper() if expr else ""
+            if command in filtered_commands and obj in ignored_objects:
+                return ""
+            return f"{command} {expr}"

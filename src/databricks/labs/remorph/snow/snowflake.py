@@ -55,6 +55,43 @@ def _parse_dateadd(args: list) -> exp.DateAdd:
     return exp.DateAdd(this=seq_get(args, 2), expression=seq_get(args, 1), unit=seq_get(args, 0))
 
 
+def _div0null_to_if(args: list) -> exp.If:
+    cond = exp.Or(
+        this=exp.EQ(this=seq_get(args, 1), expression=exp.Literal.number(0)),
+        expression=exp.Is(this=seq_get(args, 1), expression=exp.NULL),
+    )
+    true = exp.Literal.number(0)
+    false = exp.Div(this=seq_get(args, 0), expression=seq_get(args, 1))
+    return exp.If(this=cond, true=true, false=false)
+
+
+def _parse_json_extract_path_text(args: list) -> local_expression.JsonExtractPathText:
+    if len(args) != 2:
+        err_message = f"Error Parsing args `{args}`. Number of args must be 2, given {len(args)}"
+        raise ParseError(err_message)
+    return local_expression.JsonExtractPathText(this=seq_get(args, 0), path_name=seq_get(args, 1))
+
+
+def _parse_array_contains(args: list) -> exp.ArrayContains:
+    if len(args) != 2:
+        err_message = f"Error Parsing args `{args}`. Number of args must be 2, given {len(args)}"
+        raise ParseError(err_message)
+    return exp.ArrayContains(this=seq_get(args, 1), expression=seq_get(args, 0))
+
+
+def _parse_dayname(args: list) -> local_expression.DateFormat:
+    """
+        * E, EE, EEE, returns short day name (Mon)
+        * EEEE, returns full day name (Monday)
+    :param args: node expression
+    :return: DateFormat with `E` format
+    """
+    if len(args) == 1:
+        return local_expression.DateFormat(this=seq_get(args, 0), expression=exp.Literal.string("E"))
+
+    return local_expression.DateFormat(this=seq_get(args, 0), expression=seq_get(args, 1))
+
+
 def _parse_trytonumber(args: list) -> local_expression.TryToNumber:
     if len(args) == 1 or len(args) == 3:
         msg = f"""Error Parsing args `{args}`:
@@ -78,7 +115,7 @@ def _parse_monthname(args: list) -> local_expression.DateFormat:
     return local_expression.DateFormat(this=seq_get(args, 0), expression=seq_get(args, 1))
 
 
-def _parse_object_construct(args: list) -> t.Union[exp.StarMap, exp.Struct]:
+def _parse_object_construct(args: list) -> exp.StarMap | exp.Struct:
     expression = parser.parse_var_map(args)
 
     if isinstance(expression, exp.StarMap):
@@ -89,18 +126,17 @@ def _parse_object_construct(args: list) -> t.Union[exp.StarMap, exp.Struct]:
     )
 
 
-def _parse_to_boolean(args: list, error: bool = False) -> local_expression.ToBoolean:
+def _parse_to_boolean(*args: list, error: bool) -> local_expression.ToBoolean:
     this_arg = seq_get(args, 0)
     return local_expression.ToBoolean(this=this_arg, raise_error=exp.Literal.number(1 if error else 0))
 
 
 def _parse_tonumber(args: list) -> local_expression.ToNumber:
     if len(args) > 4:
-        raise ParseError(
-            f""" Error Parsing args args:
+        error_msg = f"""Error Parsing args args:
                           * Number of args cannot be more than `4`, given `{len(args)}`
                           """
-        )
+        raise ParseError(error_msg)
 
     if len(args) == 1:
         return local_expression.ToNumber(this=seq_get(args, 0))
@@ -228,16 +264,28 @@ class Snow(Snowflake):
             "TRY_TO_DECIMAL": _parse_trytonumber,
             "TRY_TO_NUMBER": _parse_trytonumber,
             "TRY_TO_NUMERIC": _parse_trytonumber,
+            "DATEADD": parse_date_delta(exp.DateAdd, unit_mapping=DATE_DELTA_INTERVAL),
+            "DATEDIFF": parse_date_delta(exp.DateDiff, unit_mapping=DATE_DELTA_INTERVAL),
+            "IS_INTEGER": local_expression.IsInteger.from_arg_list,
+            "DIV0NULL": _div0null_to_if,
+            "JSON_EXTRACT_PATH_TEXT": _parse_json_extract_path_text,
+            "BITOR_AGG": local_expression.BitOr.from_arg_list,
+            "ARRAY_CONTAINS": _parse_array_contains,
+            "DAYNAME": _parse_dayname,
+            "BASE64_ENCODE": exp.ToBase64.from_arg_list,
+            "BASE64_DECODE_STRING": exp.FromBase64.from_arg_list,
+            "TRY_BASE64_DECODE_STRING": exp.FromBase64.from_arg_list,
+            "ARRAY_CONSTRUCT_COMPACT": local_expression.ArrayConstructCompact.from_arg_list,
+            "ARRAY_INTERSECTION": local_expression.ArrayIntersection.from_arg_list,
+            "ARRAY_SLICE": local_expression.ArraySlice.from_arg_list,
             "MONTHNAME": _parse_monthname,
             "MONTH_NAME": _parse_monthname,
             "OBJECT_CONSTRUCT": _parse_object_construct,
             "OBJECT_KEYS": local_expression.ObjectKeys.from_arg_list,
             "TRY_PARSE_JSON": exp.ParseJSON.from_arg_list,
-            "DATEADD": parse_date_delta(exp.DateAdd, unit_mapping=DATE_DELTA_INTERVAL),
-            "DATEDIFF": parse_date_delta(exp.DateDiff, unit_mapping=DATE_DELTA_INTERVAL),
             "TIMEDIFF": parse_date_delta(exp.DateDiff, unit_mapping=DATE_DELTA_INTERVAL),
             "TIMESTAMPDIFF": parse_date_delta(exp.DateDiff, unit_mapping=DATE_DELTA_INTERVAL),
-            "TO_BOOLEAN": lambda args: _parse_to_boolean(args, True),
+            "TO_BOOLEAN": lambda args: _parse_to_boolean(args, error=True),
             "TO_DECIMAL": _parse_tonumber,
             "TO_DOUBLE": local_expression.ToDouble.from_arg_list,
             "TO_NUMBER": _parse_tonumber,
@@ -246,8 +294,7 @@ class Snow(Snowflake):
             "TO_TIME": parse_to_timestamp,
             "TIMESTAMP_FROM_PARTS": local_expression.TimestampFromParts.from_arg_list,
             "TO_VARIANT": local_expression.ToVariant.from_arg_list,
-            "TRY_BASE64_DECODE_STRING": exp.FromBase64.from_arg_list,
-            "TRY_TO_BOOLEAN": lambda args: _parse_to_boolean(args),
+            "TRY_TO_BOOLEAN": lambda args: _parse_to_boolean(args, error=False),
             "UUID_STRING": local_expression.UUID.from_arg_list,
         }
 
