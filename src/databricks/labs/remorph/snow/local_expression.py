@@ -43,3 +43,41 @@ class SplitPart(Func):
 class TryToNumber(Func):
     arg_types: ClassVar[dict] = {"this": True, "expression": True, "precision": False, "scale": False}
     _sql_names: ClassVar[dict] = ["TRY_TO_DECIMAL", "TRY_TO_NUMBER", "TRY_TO_NUMERIC"]
+
+
+class DateFormat(Func):
+    arg_types = {"this": True, "expression": False}
+
+
+class ObjectKeys(Func):
+    arg_types = {"this": True}
+
+
+class ToBoolean(Func):
+    arg_types = {"this": True, "raise_error": False}
+
+
+class ToDouble(Func):
+    pass
+
+
+class ToObject(Func):
+    pass
+
+
+class ToNumber(Func):
+    arg_types = {"this": True, "expression": False, "precision": False, "scale": False}
+    _sql_names = ["TO_DECIMAL", "TO_NUMBER", "TO_NUMERIC"]
+
+
+class TimestampFromParts(Func):
+    arg_types = {"this": True, "expression": True, "day": True, "hour": True, "min": True, "sec": True,
+                 "nanosec": False, "Zone": False}
+
+
+class ToVariant(Func):
+    pass
+
+
+class UUID(Func):
+    arg_types = {"this": False, "name": False}
