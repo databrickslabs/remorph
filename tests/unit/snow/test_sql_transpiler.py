@@ -13,7 +13,7 @@ class TestSQLTranspiler(unittest.TestCase):
     def test_transpile_exception(self):
         error_list = [ParseError("", "")]
         transpiler = SQLTranspiler("SNOWFLAKE", "SELECT TRY_TO_NUMBER(COLUMN) FROM table", "file.sql", error_list)
-        msg = """Error Parsing args `[(COLUMN this: \n  (IDENTIFIER this: COLUMN, quoted: False))]`:
+        msg = """Error Parsing args `[Column(\n  this=Identifier(this=COLUMN, quoted=False))]`:
                              * `format` is required
                              * `precision` and `scale` both are required [if specifed]
                           """
