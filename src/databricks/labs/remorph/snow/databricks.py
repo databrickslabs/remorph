@@ -190,16 +190,17 @@ def try_to_number(self, expression: local_expression.TryToNumber):
 
 def _parse_json(self, expr: exp.ParseJSON):
     """
-        Converts `PARSE_JSON` function to `FROM_JSON` function.
-        Schema is a mandatory argument for Databricks `FROM_JSON` function
-        [FROM_JSON](https://docs.databricks.com/en/sql/language-manual/functions/from_json.html)
-        Need to explicitly specify the Schema {<COL_NAME>_SCHEMA} in the current execution environment
+    Converts `PARSE_JSON` function to `FROM_JSON` function.
+    Schema is a mandatory argument for Databricks `FROM_JSON` function
+    [FROM_JSON](https://docs.databricks.com/en/sql/language-manual/functions/from_json.html)
+    Need to explicitly specify the Schema {<COL_NAME>_SCHEMA} in the current execution environment
     """
     expr_this = self.sql(expr, "this")
     column = expr_this.replace("'", "").upper()
     conv_expr = self.func("FROM_JSON", expr_this, f"{{{column}_SCHEMA}}")
     print(
-        f"\n***Warning***: you need to explicitly specify `SCHEMA` for `{column}` column in expression: `{conv_expr}`")
+        f"\n***Warning***: you need to explicitly specify `SCHEMA` for `{column}` column in expression: `{conv_expr}`"
+    )
     return conv_expr
 
 
@@ -218,10 +219,12 @@ def _to_number(self, expression: local_expression.TryToNumber):
     if expression.expression:
         func_expr = self.func(func, expression.this, expression.expression)
     else:
-        raise UnsupportedError(f"""Error Parsing expression `{expression}`:
-                         * `format`: is required in Databricks [mandatory] 
+        raise UnsupportedError(
+            f"""Error Parsing expression {expression}:
+                         * `format`: is required in Databricks [mandatory]
                          * `precision` and `scale`: are considered as (38, 0) if not specified.
-                      """)
+                      """
+        )
 
     return f"CAST({func_expr} AS DECIMAL({precision}, {scale}))"
 

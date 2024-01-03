@@ -71,8 +71,16 @@ class ToNumber(Func):
 
 
 class TimestampFromParts(Func):
-    arg_types = {"this": True, "expression": True, "day": True, "hour": True, "min": True, "sec": True,
-                 "nanosec": False, "Zone": False}
+    arg_types = {
+        "this": True,
+        "expression": True,
+        "day": True,
+        "hour": True,
+        "min": True,
+        "sec": True,
+        "nanosec": False,
+        "Zone": False,
+    }
 
 
 class ToVariant(Func):
