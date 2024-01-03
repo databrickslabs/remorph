@@ -3,11 +3,11 @@ import sys
 from pathlib import Path
 
 from databricks.labs.remorph.config import MorphConfig
-from databricks.labs.remorph.snow import dialect_utils
 from databricks.labs.remorph.helpers.execution_time import timeit
 from databricks.labs.remorph.helpers.file_utils import dir_walk, is_sql_file, make_dir, remove_bom
 from databricks.labs.remorph.helpers.morph_status import MorphStatus, ValidationError
 from databricks.labs.remorph.helpers.validate import Validate
+from databricks.labs.remorph.snow import dialect_utils
 from databricks.labs.remorph.snow.sql_transpiler import SQLTranspiler
 
 
