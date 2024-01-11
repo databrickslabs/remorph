@@ -242,6 +242,7 @@ def _uuid(self: Databricks.Generator, expression: local_expression.UUID) -> str:
     else:
         return "UUID()"
 
+
 def _list_agg(self, expr: exp.GroupConcat):
     """
     [TODO]
