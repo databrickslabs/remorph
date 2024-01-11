@@ -39,7 +39,7 @@ def transpile(source, input_sql, output_folder, skip_validation, catalog_name, s
 
     status = morph(config)
 
-    print(json.dumps(status))  # noqa: T201
+    print(json.dumps(status))
 
 
 def reconcile(recon_conf, conn_profile, source, report):
