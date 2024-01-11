@@ -4,6 +4,7 @@ import typing as t
 from typing import ClassVar
 
 from sqlglot import exp
+from sqlglot.dialects.dialect import parse_date_delta
 from sqlglot.dialects.snowflake import Snowflake
 from sqlglot.errors import ParseError
 from sqlglot.helper import seq_get
@@ -12,9 +13,82 @@ from sqlglot.trie import new_trie
 
 from databricks.labs.remorph.snow import local_expression
 
+""" SF Supported Date and Time Parts:
+    https://docs.snowflake.com/en/sql-reference/functions-date-time#label-supported-date-time-parts
+    Covers DATEADD, DATEDIFF, DATE_TRUNC, LAST_DAY
+"""
+DATE_DELTA_INTERVAL = {
+    "years": "year",
+    "year": "year",
+    "yrs": "year",
+    "yr": "year",
+    "yyyy": "year",
+    "yyy": "year",
+    "yy": "year",
+    "y": "year",
+    "quarters": "quarter",
+    "quarter": "quarter",
+    "qtrs": "quarter",
+    "qtr": "quarter",
+    "q": "quarter",
+    "months": "month",
+    "month": "month",
+    "mons": "month",
+    "mon": "month",
+    "mm": "month",
+    "weekofyear": "week",
+    "week": "week",
+    "woy": "week",
+    "wy": "week",
+    "wk": "week",
+    "w": "week",
+    "dayofmonth": "day",
+    "days": "day",
+    "day": "day",
+    "dd": "day",
+    "d": "day",
+}
+
 
 def _parse_dateadd(args: list) -> exp.DateAdd:
     return exp.DateAdd(this=seq_get(args, 2), expression=seq_get(args, 1), unit=seq_get(args, 0))
+
+
+def _div0null_to_if(args: list) -> exp.If:
+    cond = exp.Or(
+        this=exp.EQ(this=seq_get(args, 1), expression=exp.Literal.number(0)),
+        expression=exp.Is(this=seq_get(args, 1), expression=exp.NULL),
+    )
+    true = exp.Literal.number(0)
+    false = exp.Div(this=seq_get(args, 0), expression=seq_get(args, 1))
+    return exp.If(this=cond, true=true, false=false)
+
+
+def _parse_json_extract_path_text(args: list) -> local_expression.JsonExtractPathText:
+    if len(args) != 2:
+        err_message = f"Error Parsing args `{args}`. Number of args must be 2, given {len(args)}"
+        raise ParseError(err_message)
+    return local_expression.JsonExtractPathText(this=seq_get(args, 0), path_name=seq_get(args, 1))
+
+
+def _parse_array_contains(args: list) -> exp.ArrayContains:
+    if len(args) != 2:
+        err_message = f"Error Parsing args `{args}`. Number of args must be 2, given {len(args)}"
+        raise ParseError(err_message)
+    return exp.ArrayContains(this=seq_get(args, 1), expression=seq_get(args, 0))
+
+
+def _parse_dayname(args: list) -> local_expression.DateFormat:
+    """
+        * E, EE, EEE, returns short day name (Mon)
+        * EEEE, returns full day name (Monday)
+    :param args: node expression
+    :return: DateFormat with `E` format
+    """
+    if len(args) == 1:
+        return local_expression.DateFormat(this=seq_get(args, 0), expression=exp.Literal.string("E"))
+
+    return local_expression.DateFormat(this=seq_get(args, 0), expression=seq_get(args, 1))
 
 
 def _parse_trytonumber(args: list) -> local_expression.TryToNumber:
@@ -147,6 +221,20 @@ class Snow(Snowflake):
             "TRY_TO_DECIMAL": _parse_trytonumber,
             "TRY_TO_NUMBER": _parse_trytonumber,
             "TRY_TO_NUMERIC": _parse_trytonumber,
+            "DATEADD": parse_date_delta(exp.DateAdd, unit_mapping=DATE_DELTA_INTERVAL),
+            "DATEDIFF": parse_date_delta(exp.DateDiff, unit_mapping=DATE_DELTA_INTERVAL),
+            "IS_INTEGER": local_expression.IsInteger.from_arg_list,
+            "DIV0NULL": _div0null_to_if,
+            "JSON_EXTRACT_PATH_TEXT": _parse_json_extract_path_text,
+            "BITOR_AGG": local_expression.BitOr.from_arg_list,
+            "ARRAY_CONTAINS": _parse_array_contains,
+            "DAYNAME": _parse_dayname,
+            "BASE64_ENCODE": exp.ToBase64.from_arg_list,
+            "BASE64_DECODE_STRING": exp.FromBase64.from_arg_list,
+            "TRY_BASE64_DECODE_STRING": exp.FromBase64.from_arg_list,
+            "ARRAY_CONSTRUCT_COMPACT": local_expression.ArrayConstructCompact.from_arg_list,
+            "ARRAY_INTERSECTION": local_expression.ArrayIntersection.from_arg_list,
+            "ARRAY_SLICE": local_expression.ArraySlice.from_arg_list,
         }
 
         FUNCTION_PARSERS: ClassVar[dict] = {

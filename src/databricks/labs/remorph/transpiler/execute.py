@@ -7,6 +7,7 @@ from databricks.labs.remorph.helpers.execution_time import timeit
 from databricks.labs.remorph.helpers.file_utils import dir_walk, is_sql_file, make_dir, remove_bom
 from databricks.labs.remorph.helpers.morph_status import MorphStatus, ValidationError
 from databricks.labs.remorph.helpers.validate import Validate
+from databricks.labs.remorph.snow import dialect_utils
 from databricks.labs.remorph.snow.sql_transpiler import SQLTranspiler
 
 
@@ -24,24 +25,14 @@ def process_file(config: MorphConfig, input_file: str | Path, output_file: str |
     with input_file.open() as f:
         sql = remove_bom(f.read())
 
+    dialect_utils.check_for_unsupported_lca(source, sql, str(input_file), parse_error_list)
     transpiler = SQLTranspiler(source, sql, str(input_file), parse_error_list)
     transpiled_sql = transpiler.transpile()
 
     with output_file.open("w") as w:
         for output in transpiled_sql:
-            # [TODO] : Naive way to skip any alter session or begin or commit This is bad design.
-            output_lower = output.lower() if output else ""
-            if (
-                output_lower not in ("", None)
-                and "alter session set query_tag" not in output_lower
-                and "begin" not in output_lower
-                and "commit" not in output_lower
-                and "stream" not in output_lower
-                and "task" not in output_lower
-                and "procedure" not in output_lower
-            ):
+            if output:
                 no_of_sqls = no_of_sqls + 1
-
                 if skip_validation:
                     w.write(output)
                     w.write("\n;\n")
@@ -52,7 +43,11 @@ def process_file(config: MorphConfig, input_file: str | Path, output_file: str |
                     if exception is not None:
                         validate_error_list.append(ValidationError(str(input_file), exception))
             else:
-                pass
+                warning_message = (
+                    f"Skipped a query from file {input_file!s}. "
+                    f"Check for unsupported operations related to STREAM, TASK, SESSION etc."
+                )
+                print(warning_message)  # noqa: T201
 
     return no_of_sqls, parse_error_list, validate_error_list
 
