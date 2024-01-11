@@ -1,11 +1,6 @@
 import unittest
 
-from sqlglot import (
-    ErrorLevel,
-    UnsupportedError,
-    parse_one,
-    transpile,
-)
+from sqlglot import ErrorLevel, UnsupportedError, parse_one, transpile
 
 from databricks.labs.remorph.snow.databricks import Databricks
 from databricks.labs.remorph.snow.snowflake import Snow

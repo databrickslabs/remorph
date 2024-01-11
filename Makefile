@@ -11,10 +11,10 @@ dev:
 	hatch run which python
 
 lint:
-	hatch run lint:verify
+	hatch run verify
 
 fmt:
-	hatch run lint:fmt
+	hatch run fmt
 
 test:
 	hatch run test
@@ -23,5 +23,5 @@ integration:
 	hatch run integration:test
 
 coverage:
-	hatch run unit:test-cov-report && open htmlcov/index.html
+	hatch run coverage && open htmlcov/index.html
 

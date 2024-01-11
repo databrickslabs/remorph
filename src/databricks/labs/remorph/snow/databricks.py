@@ -108,7 +108,7 @@ def _lateral_view(self, expression: exp.Lateral) -> str:
                                     f"\n***Warning***: you need to explicitly specify "
                                     f"`SCHEMA` for column(s) in `{node_expr}`"
                                 )
-                                print(msg, file=sys.stderr)  # noqa: T201
+                                print(msg, file=sys.stderr)
                             str_pfx = str_pfx + node_expr
                         case "PATH":
                             str_pfx = str_pfx + f".{node.expression}".replace("'", "").replace('"', "`")
