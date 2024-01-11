@@ -239,7 +239,8 @@ def _uuid(self: Databricks.Generator, expression: local_expression.UUID) -> str:
     else:
         return "UUID()"
 
-
+      
+      
 class Databricks(Databricks):
     # Instantiate Databricks Dialect
     databricks = Databricks()

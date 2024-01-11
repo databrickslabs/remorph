@@ -14,6 +14,7 @@ from sqlglot.trie import new_trie
 
 from databricks.labs.remorph.snow import local_expression
 
+
 """ SF Supported Date and Time Parts:
     https://docs.snowflake.com/en/sql-reference/functions-date-time#label-supported-date-time-parts
     Covers DATEADD, DATEDIFF, DATE_TRUNC, LAST_DAY
@@ -113,6 +114,7 @@ def _parse_tonumber(args: list) -> local_expression.ToNumber:
     return local_expression.ToNumber(this=seq_get(args, 0), expression=seq_get(args, 1))
 
 
+  
 class Snow(Snowflake):
     # Instantiate Snowflake Dialect
     snowflake = Snowflake()
