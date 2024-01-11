@@ -1,6 +1,6 @@
 from typing import ClassVar
 
-from sqlglot.expressions import Condition, Expression, Func
+from sqlglot.expressions import AggFunc, Condition, Expression, Func
 
 
 class Parameter(Expression):
@@ -43,3 +43,32 @@ class SplitPart(Func):
 class TryToNumber(Func):
     arg_types: ClassVar[dict] = {"this": True, "expression": True, "precision": False, "scale": False}
     _sql_names: ClassVar[dict] = ["TRY_TO_DECIMAL", "TRY_TO_NUMBER", "TRY_TO_NUMERIC"]
+
+
+class DateFormat(Func):
+    arg_types: ClassVar[dict] = {"this": True, "expression": False}
+
+
+class IsInteger(Func):
+    pass
+
+
+class JsonExtractPathText(Func):
+    arg_types: ClassVar[dict] = {"this": True, "path_name": True}
+
+
+class BitOr(AggFunc):
+    pass
+
+
+class ArrayConstructCompact(Func):
+    arg_types: ClassVar[dict] = {"expressions": False}
+    is_var_len_args = True
+
+
+class ArrayIntersection(Func):
+    arg_types: ClassVar[dict] = {"this": True, "expression": True}
+
+
+class ArraySlice(Func):
+    arg_types: ClassVar[dict] = {"this": True, "from": True, "to": True}
