@@ -1,6 +1,6 @@
 from typing import ClassVar
 
-from sqlglot.expressions import Condition, Expression, Func
+from sqlglot.expressions import AggFunc, Condition, Expression, Func
 
 
 class Parameter(Expression):
@@ -89,3 +89,28 @@ class ToVariant(Func):
 
 class UUID(Func):
     arg_types: ClassVar[dict] = {"this": False, "name": False}
+      
+     
+class IsInteger(Func):
+    pass
+
+
+class JsonExtractPathText(Func):
+    arg_types: ClassVar[dict] = {"this": True, "path_name": True}
+
+
+class BitOr(AggFunc):
+    pass
+
+
+class ArrayConstructCompact(Func):
+    arg_types: ClassVar[dict] = {"expressions": False}
+    is_var_len_args = True
+
+
+class ArrayIntersection(Func):
+    arg_types: ClassVar[dict] = {"this": True, "expression": True}
+
+
+class ArraySlice(Func):
+    arg_types: ClassVar[dict] = {"this": True, "from": True, "to": True}

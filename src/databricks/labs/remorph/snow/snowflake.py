@@ -55,6 +55,43 @@ def _parse_dateadd(args: list) -> exp.DateAdd:
     return exp.DateAdd(this=seq_get(args, 2), expression=seq_get(args, 1), unit=seq_get(args, 0))
 
 
+def _div0null_to_if(args: list) -> exp.If:
+    cond = exp.Or(
+        this=exp.EQ(this=seq_get(args, 1), expression=exp.Literal.number(0)),
+        expression=exp.Is(this=seq_get(args, 1), expression=exp.NULL),
+    )
+    true = exp.Literal.number(0)
+    false = exp.Div(this=seq_get(args, 0), expression=seq_get(args, 1))
+    return exp.If(this=cond, true=true, false=false)
+
+
+def _parse_json_extract_path_text(args: list) -> local_expression.JsonExtractPathText:
+    if len(args) != 2:
+        err_message = f"Error Parsing args `{args}`. Number of args must be 2, given {len(args)}"
+        raise ParseError(err_message)
+    return local_expression.JsonExtractPathText(this=seq_get(args, 0), path_name=seq_get(args, 1))
+
+
+def _parse_array_contains(args: list) -> exp.ArrayContains:
+    if len(args) != 2:
+        err_message = f"Error Parsing args `{args}`. Number of args must be 2, given {len(args)}"
+        raise ParseError(err_message)
+    return exp.ArrayContains(this=seq_get(args, 1), expression=seq_get(args, 0))
+
+
+def _parse_dayname(args: list) -> local_expression.DateFormat:
+    """
+        * E, EE, EEE, returns short day name (Mon)
+        * EEEE, returns full day name (Monday)
+    :param args: node expression
+    :return: DateFormat with `E` format
+    """
+    if len(args) == 1:
+        return local_expression.DateFormat(this=seq_get(args, 0), expression=exp.Literal.string("E"))
+
+    return local_expression.DateFormat(this=seq_get(args, 0), expression=seq_get(args, 1))
+
+
 def _parse_trytonumber(args: list) -> local_expression.TryToNumber:
     if len(args) == 1 or len(args) == 3:
         msg = f"""Error Parsing args `{args}`:
@@ -248,6 +285,20 @@ class Snow(Snowflake):
             "TRY_BASE64_DECODE_STRING": exp.FromBase64.from_arg_list,
             "TRY_TO_BOOLEAN": lambda args: _parse_to_boolean(args, error=False),
             "UUID_STRING": local_expression.UUID.from_arg_list,
+            "DATEADD": parse_date_delta(exp.DateAdd, unit_mapping=DATE_DELTA_INTERVAL),
+            "DATEDIFF": parse_date_delta(exp.DateDiff, unit_mapping=DATE_DELTA_INTERVAL),
+            "IS_INTEGER": local_expression.IsInteger.from_arg_list,
+            "DIV0NULL": _div0null_to_if,
+            "JSON_EXTRACT_PATH_TEXT": _parse_json_extract_path_text,
+            "BITOR_AGG": local_expression.BitOr.from_arg_list,
+            "ARRAY_CONTAINS": _parse_array_contains,
+            "DAYNAME": _parse_dayname,
+            "BASE64_ENCODE": exp.ToBase64.from_arg_list,
+            "BASE64_DECODE_STRING": exp.FromBase64.from_arg_list,
+            "TRY_BASE64_DECODE_STRING": exp.FromBase64.from_arg_list,
+            "ARRAY_CONSTRUCT_COMPACT": local_expression.ArrayConstructCompact.from_arg_list,
+            "ARRAY_INTERSECTION": local_expression.ArrayIntersection.from_arg_list,
+            "ARRAY_SLICE": local_expression.ArraySlice.from_arg_list,
         }
 
         FUNCTION_PARSERS: ClassVar[dict] = {
