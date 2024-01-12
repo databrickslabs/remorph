@@ -685,7 +685,7 @@ class TestDatabricks(Validator):
         )
         # Test case to validate `date_trunc` conversion of column
         self.validate_all_transpiled(
-            "SELECT DATE_TRUNC('MM', col1) AS date_trunc_col1 FROM tabl",
+            "SELECT DATE_TRUNC('MONTH', col1) AS date_trunc_col1 FROM tabl",
             write={
                 "databricks": "SELECT date_trunc('MM', col1) AS date_trunc_col1 FROM tabl;",
             },
@@ -863,7 +863,7 @@ class TestDatabricks(Validator):
     def test_date_part(self):
         # Test case to validate `date_part` conversion of column
         self.validate_all_transpiled(
-            "SELECT EXTRACT(seconds FROM col1) AS date_part_col1 FROM tabl",
+            "SELECT EXTRACT(second FROM col1) AS date_part_col1 FROM tabl",
             write={
                 "databricks": "SELECT date_part('seconds', col1) AS date_part_col1 FROM tabl;",
             },
