@@ -91,9 +91,6 @@ class UUID(Func):
     arg_types: ClassVar[dict] = {"this": False, "name": False}
 
 
-
-
-
 class IsInteger(Func):
     pass
 

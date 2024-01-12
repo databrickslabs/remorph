@@ -301,6 +301,7 @@ def _uuid(self: Databricks.Generator, expression: local_expression.UUID) -> str:
         return "UUID()"
 
 
+
 class Databricks(Databricks):
     # Instantiate Databricks Dialect
     databricks = Databricks()
@@ -485,7 +486,6 @@ class Databricks(Databricks):
             mod_exp = expression.copy()
             mod_exp.args["kind"] = "TABLESAMPLE"
             return super().tablesample_sql(mod_exp, seed_prefix=seed_prefix, sep=sep)
-
 
         def transaction_sql(self, expression: exp.Transaction) -> str:  # noqa: ARG002
             """
