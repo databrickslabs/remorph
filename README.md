@@ -6,7 +6,6 @@
 
 1. [Introduction](#introduction)
    - [Transpile](#transpile)
-   - [Reconcile](#reconcile)
 2. [Environment Setup](#environmentsetup)
 3. [How to use Transpile](#howtouse)
 4. [Project Support](#projectsupport)
@@ -20,14 +19,6 @@ Transpile stands out as a comprehensive and versatile SQL transpiler, boasting a
 
 #### Design Flow:
 ![transplie_flow](docs/transplie-flow.png)
-
-
-## <span style="color: #007ACC;" id="reconcile"> Reconcile </span>
-Data Recon Harness is an advanced Python project designed to streamline the reconciliation process between source data and target data residing on Databricks. Currently, the platform exclusively offers support for Snowflake and Oracle as the primary data source. This innovative tool empowers users to efficiently identify discrepancies and variations in data when comparing the source with the Databricks target.
-
-Data Recon Harness not only detects data mismatches but also delivers comprehensive reports on schema comparisons. This feature-rich application ensures a thorough and professional approach to data reconciliation, making it an indispensable asset for data engineers and analysts.
-
-The Data Recon Harness project is compatible with both `macOS` and `Windows` operating systems, ensuring broad accessibility for users.
 
 ----
 
