@@ -479,13 +479,6 @@ class Databricks(Databricks):
 
             return f"SPLIT_PART({expr_name}, '{delimiter}', {part_num})"
 
-        def tablesample_sql(
-            self, expression: exp.TableSample, seed_prefix: str = "REPEATABLE", sep: str = " AS "
-        ) -> str:
-            mod_exp = expression.copy()
-            mod_exp.args["kind"] = "TABLESAMPLE"
-            return super().tablesample_sql(mod_exp, seed_prefix=seed_prefix, sep=sep)
-
         def transaction_sql(self, expression: exp.Transaction) -> str:  # noqa: ARG002
             """
             Skip begin command
