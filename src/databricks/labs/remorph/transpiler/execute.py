@@ -65,10 +65,9 @@ def process_directory(config: MorphConfig, root: str | Path, base_root: str, fil
             if output_folder in (None, "None"):
                 output_folder_base = root / "transpiled"
             else:
-                output_folder_base = Path(output_folder.rstrip("/")) / base_root
+                output_folder_base = f'{output_folder.rstrip("/")}/{base_root}'
 
-            output_file_name = output_folder_base / Path(file).name
-
+            output_file_name = Path(output_folder_base) / Path(file).name
             make_dir(output_folder_base)
 
             input_file = root / file
