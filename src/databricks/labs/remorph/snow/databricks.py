@@ -479,7 +479,6 @@ class Databricks(Databricks):
 
             return f"SPLIT_PART({expr_name}, '{delimiter}', {part_num})"
 
-
         def transaction_sql(self, expression: exp.Transaction) -> str:  # noqa: ARG002
             """
             Skip begin command
