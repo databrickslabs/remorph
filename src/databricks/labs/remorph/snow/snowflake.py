@@ -3,9 +3,10 @@ import re
 import typing as t
 from typing import ClassVar
 
-from sqlglot import exp
+from sqlglot import exp, parser
 from sqlglot.dialects.dialect import parse_date_delta
 from sqlglot.dialects.snowflake import Snowflake
+from sqlglot.dialects.snowflake import _parse_to_timestamp as parse_to_timestamp
 from sqlglot.errors import ParseError
 from sqlglot.helper import seq_get
 from sqlglot.tokens import Token, TokenType
@@ -105,6 +106,48 @@ def _parse_trytonumber(args: list) -> local_expression.TryToNumber:
         )
 
     return local_expression.TryToNumber(this=seq_get(args, 0), expression=seq_get(args, 1))
+
+
+def _parse_monthname(args: list) -> local_expression.DateFormat:
+    if len(args) == 1:
+        return local_expression.DateFormat(this=seq_get(args, 0), expression=exp.Literal.string("MMM"))
+
+    return local_expression.DateFormat(this=seq_get(args, 0), expression=seq_get(args, 1))
+
+
+def _parse_object_construct(args: list) -> exp.StarMap | exp.Struct:
+    expression = parser.parse_var_map(args)
+
+    if isinstance(expression, exp.StarMap):
+        return exp.Struct(expressions=[expression.this])
+
+    return exp.Struct(
+        expressions=[t.cast(exp.Condition, k).eq(v) for k, v in zip(expression.keys, expression.values, strict=False)]
+    )
+
+
+def _parse_to_boolean(*args: list, error: bool) -> local_expression.ToBoolean:
+    this_arg = seq_get(args, 0)
+    return local_expression.ToBoolean(this=this_arg, raise_error=exp.Literal.number(1 if error else 0))
+
+
+def _parse_tonumber(args: list) -> local_expression.ToNumber:
+    if len(args) > 4:
+        error_msg = f"""Error Parsing args args:
+                          * Number of args cannot be more than `4`, given `{len(args)}`
+                          """
+        raise ParseError(error_msg)
+
+    if len(args) == 1:
+        return local_expression.ToNumber(this=seq_get(args, 0))
+    elif len(args) == 3:
+        return local_expression.ToNumber(this=seq_get(args, 0), precision=seq_get(args, 1), scale=seq_get(args, 2))
+    elif len(args) == 4:
+        return local_expression.ToNumber(
+            this=seq_get(args, 0), expression=seq_get(args, 1), precision=seq_get(args, 2), scale=seq_get(args, 3)
+        )
+
+    return local_expression.ToNumber(this=seq_get(args, 0), expression=seq_get(args, 1))
 
 
 class Snow(Snowflake):
@@ -235,6 +278,24 @@ class Snow(Snowflake):
             "ARRAY_CONSTRUCT_COMPACT": local_expression.ArrayConstructCompact.from_arg_list,
             "ARRAY_INTERSECTION": local_expression.ArrayIntersection.from_arg_list,
             "ARRAY_SLICE": local_expression.ArraySlice.from_arg_list,
+            "MONTHNAME": _parse_monthname,
+            "MONTH_NAME": _parse_monthname,
+            "OBJECT_CONSTRUCT": _parse_object_construct,
+            "OBJECT_KEYS": local_expression.ObjectKeys.from_arg_list,
+            "TRY_PARSE_JSON": exp.ParseJSON.from_arg_list,
+            "TIMEDIFF": parse_date_delta(exp.DateDiff, unit_mapping=DATE_DELTA_INTERVAL),
+            "TIMESTAMPDIFF": parse_date_delta(exp.DateDiff, unit_mapping=DATE_DELTA_INTERVAL),
+            "TO_BOOLEAN": lambda args: _parse_to_boolean(args, error=True),
+            "TO_DECIMAL": _parse_tonumber,
+            "TO_DOUBLE": local_expression.ToDouble.from_arg_list,
+            "TO_NUMBER": _parse_tonumber,
+            "TO_NUMERIC": _parse_tonumber,
+            "TO_OBJECT": local_expression.ToObject.from_arg_list,
+            "TO_TIME": parse_to_timestamp,
+            "TIMESTAMP_FROM_PARTS": local_expression.TimestampFromParts.from_arg_list,
+            "TO_VARIANT": local_expression.ToVariant.from_arg_list,
+            "TRY_TO_BOOLEAN": lambda args: _parse_to_boolean(args, error=False),
+            "UUID_STRING": local_expression.UUID.from_arg_list,
         }
 
         FUNCTION_PARSERS: ClassVar[dict] = {
