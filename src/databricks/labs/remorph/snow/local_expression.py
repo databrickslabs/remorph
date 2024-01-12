@@ -72,3 +72,45 @@ class ArrayIntersection(Func):
 
 class ArraySlice(Func):
     arg_types: ClassVar[dict] = {"this": True, "from": True, "to": True}
+
+
+class ObjectKeys(Func):
+    arg_types: ClassVar[dict] = {"this": True}
+
+
+class ToBoolean(Func):
+    arg_types: ClassVar[dict] = {"this": True, "raise_error": False}
+
+
+class ToDouble(Func):
+    pass
+
+
+class ToObject(Func):
+    pass
+
+
+class ToNumber(Func):
+    arg_types: ClassVar[dict] = {"this": True, "expression": False, "precision": False, "scale": False}
+    _sql_names: ClassVar[list] = ["TO_DECIMAL", "TO_NUMBER", "TO_NUMERIC"]
+
+
+class TimestampFromParts(Func):
+    arg_types: ClassVar[dict] = {
+        "this": True,
+        "expression": True,
+        "day": True,
+        "hour": True,
+        "min": True,
+        "sec": True,
+        "nanosec": False,
+        "Zone": False,
+    }
+
+
+class ToVariant(Func):
+    pass
+
+
+class UUID(Func):
+    arg_types: ClassVar[dict] = {"this": False, "name": False}
