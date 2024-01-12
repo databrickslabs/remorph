@@ -23,7 +23,7 @@ classifiers = [
   "Programming Language :: Python :: Implementation :: CPython",
 ]
 dependencies = [
-  "sqlglot>=19.9.0"
+  "sqlglot>=20.8.0"
 ]
 
 [project.urls]
