@@ -249,6 +249,58 @@ def _array_slice(self: Databricks.Generator, expression: local_expression.ArrayS
     return func_expr
 
 
+def _parse_json(self, expr: exp.ParseJSON):
+    """
+    Converts `PARSE_JSON` function to `FROM_JSON` function.
+    Schema is a mandatory argument for Databricks `FROM_JSON` function
+    [FROM_JSON](https://docs.databricks.com/en/sql/language-manual/functions/from_json.html)
+    Need to explicitly specify the Schema {<COL_NAME>_SCHEMA} in the current execution environment
+    """
+    expr_this = self.sql(expr, "this")
+    column = expr_this.replace("'", "").upper()
+    conv_expr = self.func("FROM_JSON", expr_this, f"{{{column}_SCHEMA}}")
+    warning_msg = (
+        f"\n***Warning***: you need to explicitly specify `SCHEMA` for `{column}` column in expression: `{conv_expr}`"
+    )
+    print(warning_msg)  # noqa: T201
+    return conv_expr
+
+
+def _to_number(self, expression: local_expression.TryToNumber):
+    func = "TO_NUMBER"
+    precision = self.sql(expression, "precision")
+    scale = self.sql(expression, "scale")
+
+    if not precision:
+        precision = 38
+
+    if not scale:
+        scale = 0
+
+    func_expr = self.func(func, expression.this)
+    if expression.expression:
+        func_expr = self.func(func, expression.this, expression.expression)
+    else:
+        exception_msg = f"""Error Parsing expression {expression}:
+                         * `format`: is required in Databricks [mandatory]
+                         * `precision` and `scale`: are considered as (38, 0) if not specified.
+                      """
+        raise UnsupportedError(exception_msg)
+
+    return f"CAST({func_expr} AS DECIMAL({precision}, {scale}))"
+
+
+def _uuid(self: Databricks.Generator, expression: local_expression.UUID) -> str:
+    namespace = self.sql(expression, "this")
+    name = self.sql(expression, "name")
+
+    if namespace and name:
+        print("UUID version 5 is not supported currently. Needs manual intervention.")  # noqa : T201
+        return f"UUID({namespace}, {name})"
+    else:
+        return "UUID()"
+
+
 class Databricks(Databricks):
     # Instantiate Databricks Dialect
     databricks = Databricks()
@@ -288,6 +340,15 @@ class Databricks(Databricks):
             local_expression.ArrayConstructCompact: _array_construct_compact,
             local_expression.ArrayIntersection: rename_func("ARRAY_INTERSECT"),
             local_expression.ArraySlice: _array_slice,
+            local_expression.ObjectKeys: rename_func("JSON_OBJECT_KEYS"),
+            exp.ParseJSON: _parse_json,
+            local_expression.TimestampFromParts: rename_func("MAKE_TIMESTAMP"),
+            local_expression.ToDouble: rename_func("DOUBLE"),
+            local_expression.ToVariant: rename_func("TO_JSON"),
+            local_expression.ToObject: rename_func("TO_JSON"),
+            exp.ToBase64: rename_func("BASE64"),
+            local_expression.ToNumber: _to_number,
+            local_expression.UUID: _uuid,
         }
 
         def join_sql(self, expression: exp.Join) -> str:
@@ -398,8 +459,8 @@ class Databricks(Databricks):
 
         def splitpart_sql(self, expression: local_expression.SplitPart) -> str:
             """
-            :param expression: local_expression.Split expression to be parsed
-            :return: Converted expression (SPLIT) compatible with Databricks
+            :param expression: local_expression.SplitPart expression to be parsed
+            :return: Converted expression (SPLIT_PART) compatible with Databricks
             """
             delimiter = " "
             # To handle default delimiter
