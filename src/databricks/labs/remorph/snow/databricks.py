@@ -262,7 +262,7 @@ def _parse_json(self, expr: exp.ParseJSON):
     warning_msg = (
         f"\n***Warning***: you need to explicitly specify `SCHEMA` for `{column}` column in expression: `{conv_expr}`"
     )
-    print(warning_msg)  # noqa: T201
+    print(warning_msg)
     return conv_expr
 
 
@@ -295,7 +295,7 @@ def _uuid(self: Databricks.Generator, expression: local_expression.UUID) -> str:
     name = self.sql(expression, "name")
 
     if namespace and name:
-        print("UUID version 5 is not supported currently. Needs manual intervention.")  # noqa : T201
+        print("UUID version 5 is not supported currently. Needs manual intervention.")  # : T201
         return f"UUID({namespace}, {name})"
     else:
         return "UUID()"
