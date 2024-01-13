@@ -108,7 +108,7 @@ def _lateral_view(self, expression: exp.Lateral) -> str:
                                     f"\n***Warning***: you need to explicitly specify "
                                     f"`SCHEMA` for column(s) in `{node_expr}`"
                                 )
-                                print(msg, file=sys.stderr)  # noqa: T201
+                                print(msg, file=sys.stderr)
                             str_pfx = str_pfx + node_expr
                         case "PATH":
                             str_pfx = str_pfx + f".{node.expression}".replace("'", "").replace('"', "`")
@@ -262,7 +262,7 @@ def _parse_json(self, expr: exp.ParseJSON):
     warning_msg = (
         f"\n***Warning***: you need to explicitly specify `SCHEMA` for `{column}` column in expression: `{conv_expr}`"
     )
-    print(warning_msg)  # noqa: T201
+    print(warning_msg)
     return conv_expr
 
 
@@ -295,7 +295,7 @@ def _uuid(self: Databricks.Generator, expression: local_expression.UUID) -> str:
     name = self.sql(expression, "name")
 
     if namespace and name:
-        print("UUID version 5 is not supported currently. Needs manual intervention.")  # noqa : T201
+        print("UUID version 5 is not supported currently. Needs manual intervention.")  # : T201
         return f"UUID({namespace}, {name})"
     else:
         return "UUID()"
