@@ -4,7 +4,12 @@ from pathlib import Path
 
 from databricks.labs.remorph.config import MorphConfig
 from databricks.labs.remorph.helpers.execution_time import timeit
-from databricks.labs.remorph.helpers.file_utils import dir_walk, is_sql_file, make_dir, remove_bom
+from databricks.labs.remorph.helpers.file_utils import (
+    dir_walk,
+    is_sql_file,
+    make_dir,
+    remove_bom,
+)
 from databricks.labs.remorph.helpers.morph_status import MorphStatus, ValidationError
 from databricks.labs.remorph.helpers.validate import Validate
 from databricks.labs.remorph.snow import dialect_utils
@@ -47,7 +52,7 @@ def process_file(config: MorphConfig, input_file: str | Path, output_file: str |
                     f"Skipped a query from file {input_file!s}. "
                     f"Check for unsupported operations related to STREAM, TASK, SESSION etc."
                 )
-                print(warning_message)  # noqa: T201
+                print(warning_message)
 
     return no_of_sqls, parse_error_list, validate_error_list
 
@@ -94,7 +99,7 @@ def process_recursive_dirs(config: MorphConfig):
         base_root = str(root).replace(str(input_sql), "")
         folder = str(input_sql.resolve().joinpath(base_root))
         msg = f"Processing for sqls under this folder: {folder}"
-        print(msg, file=sys.stderr)  # noqa: T201
+        print(msg, file=sys.stderr)
         file_list.extend(files)
         no_of_sqls, parse_error, validation_error = process_directory(config, root, base_root, files)
         counter = counter + no_of_sqls
@@ -118,12 +123,12 @@ def morph(config: MorphConfig):
     status = []
     result = MorphStatus([], 0, 0, 0, [])
 
-    print("**********************************", file=sys.stderr)  # noqa: T201
+    print("**********************************", file=sys.stderr)
 
     if input_sql.is_file():
         if is_sql_file(input_sql):
             msg = f"Processing for sqls under this file: {input_sql}"
-            print(msg, file=sys.stderr)  # noqa: T201
+            print(msg, file=sys.stderr)
             if config.output_folder in (None, "None"):
                 output_folder = input_sql.parent / "transpiled"
             else:
@@ -136,12 +141,12 @@ def morph(config: MorphConfig):
             result = MorphStatus([str(input_sql)], no_of_sqls, len(parse_error), len(validation_error), error_log)
         else:
             msg = f"{input_sql} is not a SQL file."
-            print(msg, file=sys.stderr)  # noqa: T201
+            print(msg, file=sys.stderr)
     elif input_sql.is_dir():
         result = process_recursive_dirs(config)
     else:
         msg = f"{input_sql} does not exist."
-        print(msg, file=sys.stderr)  # noqa: T201
+        print(msg, file=sys.stderr)
         raise FileNotFoundError(msg)
 
     parse_error_count = result.parse_error_count
@@ -152,7 +157,7 @@ def morph(config: MorphConfig):
     if skip_validation:
         pass
     else:
-        print("No of Sql Failed while Validating: ", validate_error_count, file=sys.stderr)  # noqa: T201
+        print("No of Sql Failed while Validating: ", validate_error_count, file=sys.stderr)
 
     if error_list_count > 0:
         error_log_file = Path.cwd() / f"err_{os.getpid()}.lst"
@@ -170,5 +175,5 @@ def morph(config: MorphConfig):
             "error_log_file": str(error_log_file),
         }
     )
-    print(status, file=sys.stderr)  # noqa: T201
+    print(status, file=sys.stderr)
     return status
