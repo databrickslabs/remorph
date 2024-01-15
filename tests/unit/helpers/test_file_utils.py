@@ -1,13 +1,17 @@
+import codecs
 import os
 import tempfile
-import codecs
 from pathlib import Path
 
-from databricks.labs.remorph.helpers.file_utils import dir_walk, is_sql_file, make_dir, remove_bom
+from databricks.labs.remorph.helpers.file_utils import (
+    dir_walk,
+    is_sql_file,
+    make_dir,
+    remove_bom,
+)
 
 
 def test_remove_bom():
-
     test_string = "test_string"
 
     # Test no BOM
