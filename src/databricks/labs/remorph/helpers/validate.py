@@ -1,8 +1,8 @@
 from io import StringIO
 
+from databricks.connect import DatabricksSession
 from pyspark.sql.utils import AnalysisException, ParseException
 
-from databricks.connect import DatabricksSession
 from databricks.labs.remorph.config import MorphConfig
 
 
