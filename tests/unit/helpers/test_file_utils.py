@@ -50,10 +50,10 @@ def test_remove_bom():
 
 
 def test_is_sql_file():
-    assert is_sql_file("test.sql") == True
-    assert is_sql_file("test.ddl") == True
-    assert is_sql_file("test.txt") == False
-    assert is_sql_file("test") == False
+    assert is_sql_file("test.sql") is True
+    assert is_sql_file("test.ddl") is True
+    assert is_sql_file("test.txt") is False
+    assert is_sql_file("test") is False
 
 
 def test_make_dir():
@@ -61,13 +61,13 @@ def test_make_dir():
     new_dir_path = os.path.join(temp_dir.name, "new_dir")
 
     # Ensure the directory does not exist
-    assert os.path.exists(new_dir_path) == False
+    assert os.path.exists(new_dir_path) is False
 
     # Call the function to create the directory
     make_dir(new_dir_path)
 
     # Check if the directory now exists
-    assert os.path.exists(new_dir_path) == True
+    assert os.path.exists(new_dir_path) is True
 
 
 def safe_remove_file(file_path: Path):
@@ -96,7 +96,7 @@ def test_dir_walk():
     except Exception as e:
         safe_remove_file(path / "test_file.txt")
         safe_remove_dir(path)
-        raise Exception(e)
+        raise Exception("Error in Test 1 - correct structure for single file") from e
 
     """Test 2 - correct structure for nested directories and files"""
     try:
@@ -122,7 +122,7 @@ def test_dir_walk():
         safe_remove_file(path / "nested_dir" / "nested_file.txt")
         safe_remove_dir(path / "nested_dir")
         safe_remove_dir(path)
-        raise Exception(e)
+        raise Exception("Error in Test 2 - correct structure for nested directories and files") from e
 
     """Test 3 - empty directory"""
     try:
@@ -136,4 +136,4 @@ def test_dir_walk():
         safe_remove_dir(path)
     except Exception as e:
         safe_remove_dir(path)
-        raise Exception(e)
+        raise Exception("Error in Test 3 - empty directory") from e
