@@ -55,6 +55,22 @@ def _parse_dateadd(args: list) -> exp.DateAdd:
     return exp.DateAdd(this=seq_get(args, 2), expression=seq_get(args, 1), unit=seq_get(args, 0))
 
 
+def _parse_split_part(args: list) -> local_expression.SplitPart:
+    if len(args) != 3:
+        err_msg = f"Error Parsing args `{args}`. Number of args must be 3, given {len(args)}"
+        raise ParseError(err_msg)
+    part_num = seq_get(args, 2)
+    if isinstance(part_num, exp.Literal):
+        # In Snowflake if the partNumber is 0, it is treated as 1.
+        # Please refer to https://docs.snowflake.com/en/sql-reference/functions/split_part
+        if part_num.is_int and int(part_num.name) == 0:
+            part_num = exp.Literal.number(1)
+    else:
+        cond = exp.EQ(this=part_num, expression=exp.Literal.number(0))
+        part_num = exp.If(this=cond, true=exp.Literal.number(1), false=part_num)
+    return local_expression.SplitPart(this=seq_get(args, 0), expression=seq_get(args, 1), partNum=part_num)
+
+
 def _div0null_to_if(args: list) -> exp.If:
     cond = exp.Or(
         this=exp.EQ(this=seq_get(args, 1), expression=exp.Literal.number(0)),
@@ -126,7 +142,7 @@ def _parse_object_construct(args: list) -> exp.StarMap | exp.Struct:
     )
 
 
-def _parse_to_boolean(*args: list, error: bool) -> local_expression.ToBoolean:
+def _parse_to_boolean(args: list, *, error=False) -> local_expression.ToBoolean:
     this_arg = seq_get(args, 0)
     return local_expression.ToBoolean(this=this_arg, raise_error=exp.Literal.number(1 if error else 0))
 
@@ -258,8 +274,8 @@ class Snow(Snowflake):
             "DATE_FROM_PARTS": local_expression.MakeDate.from_arg_list,
             "CONVERT_TIMEZONE": local_expression.ConvertTimeZone.from_arg_list,
             "TRY_TO_DATE": local_expression.TryToDate.from_arg_list,
-            "STRTOK": local_expression.SplitPart.from_arg_list,
-            "SPLIT_PART": local_expression.SplitPart.from_arg_list,
+            "STRTOK": local_expression.StrTok.from_arg_list,
+            "SPLIT_PART": _parse_split_part,
             "TIMESTAMPADD": _parse_dateadd,
             "TRY_TO_DECIMAL": _parse_trytonumber,
             "TRY_TO_NUMBER": _parse_trytonumber,
@@ -285,6 +301,7 @@ class Snow(Snowflake):
             "TRY_PARSE_JSON": exp.ParseJSON.from_arg_list,
             "TIMEDIFF": parse_date_delta(exp.DateDiff, unit_mapping=DATE_DELTA_INTERVAL),
             "TIMESTAMPDIFF": parse_date_delta(exp.DateDiff, unit_mapping=DATE_DELTA_INTERVAL),
+            "TIMEADD": _parse_dateadd,
             "TO_BOOLEAN": lambda args: _parse_to_boolean(args, error=True),
             "TO_DECIMAL": _parse_tonumber,
             "TO_DOUBLE": local_expression.ToDouble.from_arg_list,
@@ -296,6 +313,7 @@ class Snow(Snowflake):
             "TO_VARIANT": local_expression.ToVariant.from_arg_list,
             "TRY_TO_BOOLEAN": lambda args: _parse_to_boolean(args, error=False),
             "UUID_STRING": local_expression.UUID.from_arg_list,
+            "SYSDATE": exp.CurrentTimestamp.from_arg_list,
         }
 
         FUNCTION_PARSERS: ClassVar[dict] = {
