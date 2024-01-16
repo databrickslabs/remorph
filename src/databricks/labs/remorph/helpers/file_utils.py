@@ -10,23 +10,27 @@ def remove_bom(input_string: str) -> str:
     :param input_string: String to remove BOM from
     :return: String without BOM
     """
-    # Check and remove UTF-8 BOM
-    if input_string.startswith(codecs.BOM_UTF8.decode("utf-8")):
-        return input_string[len(codecs.BOM_UTF8.decode("utf-8")) :]
+    output_string = input_string
 
     # Check and remove UTF-16 (LE and BE) BOM
-    elif input_string.startswith(codecs.BOM_UTF16_LE.decode("utf-16")):
-        return input_string[len(codecs.BOM_UTF16_LE.decode("utf-16")) :]
-    elif input_string.startswith(codecs.BOM_UTF16_BE.decode("utf-16")):
-        return input_string[len(codecs.BOM_UTF16_BE.decode("utf-16")) :]
-
+    if input_string.startswith(codecs.BOM_UTF16_BE.decode("utf-16-be")):
+        output_string = input_string[len(codecs.BOM_UTF16_BE.decode("utf-16-be")) :]
+    elif input_string.startswith(codecs.BOM_UTF16_LE.decode("utf-16-le")):
+        output_string = input_string[len(codecs.BOM_UTF16_LE.decode("utf-16-le")) :]
+    elif input_string.startswith(codecs.BOM_UTF16.decode("utf-16")):
+        output_string = input_string[len(codecs.BOM_UTF16.decode("utf-16")) :]
     # Check and remove UTF-32 (LE and BE) BOM
-    elif input_string.startswith(codecs.BOM_UTF32_LE.decode("utf-32")):
-        return input_string[len(codecs.BOM_UTF32_LE.decode("utf-32")) :]
-    elif input_string.startswith(codecs.BOM_UTF32_BE.decode("utf-32")):
-        return input_string[len(codecs.BOM_UTF32_BE.decode("utf-32")) :]
+    elif input_string.startswith(codecs.BOM_UTF32_BE.decode("utf-32-be")):
+        output_string = input_string[len(codecs.BOM_UTF32_BE.decode("utf-32-be")) :]
+    elif input_string.startswith(codecs.BOM_UTF32_LE.decode("utf-32-le")):
+        output_string = input_string[len(codecs.BOM_UTF32_LE.decode("utf-32-le")) :]
+    elif input_string.startswith(codecs.BOM_UTF32.decode("utf-32")):
+        output_string = input_string[len(codecs.BOM_UTF32.decode("utf-32")) :]
+    # Check and remove UTF-8 BOM
+    elif input_string.startswith(codecs.BOM_UTF8.decode("utf-8")):
+        output_string = input_string[len(codecs.BOM_UTF8.decode("utf-8")) :]
 
-    return input_string
+    return output_string
 
 
 def is_sql_file(file: str | Path) -> bool:
