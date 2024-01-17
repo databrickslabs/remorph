@@ -373,24 +373,44 @@ class Snow(Snowflake):
               FROM
                  dwh.vw_replacement_customer  d  => returns `d`
             """
+            # Create a deep copy of Parser to avoid any modifications to original one
             self_copy = copy.deepcopy(self)
             found_from = True if self_copy._match(TokenType.FROM, advance=False) else False
             run = True
             indx = 0
             table_alias = None
-            while run or found_from:
-                self_copy._advance()
-                indx += 1
-                found_from = True if self_copy._match(TokenType.FROM, advance=False) else False
-                if indx == len(self_copy._tokens):
-                    run = False
-                if found_from:
-                    self_copy._advance(2)
-                    table_alias = self_copy._curr.text
-                    if table_alias == ".":
-                        self_copy._advance(2)
-                        table_alias = self_copy._curr.text
-                    break
+
+            try:
+                # iterate through all the tokens if tokens are available
+                while self_copy._index < len(self_copy._tokens) and (run or found_from):
+                    self_copy._advance()
+                    indx += 1
+                    found_from = True if self_copy._match(TokenType.FROM, advance=False) else False
+                    # stop iterating when all the tokens are parsed
+                    if indx == len(self_copy._tokens):
+                        run = False
+                    # get the table alias when FROM token is found
+                    if found_from:
+                        """
+                        advance to two tokens after FROM, if there are available.
+                        Handles (SELECT .... FROM persons p => returns `p`)
+                        """
+                        if self_copy._index + 2 < len(self_copy._tokens):
+                            self_copy._advance(2)
+                            table_alias = self_copy._curr.text
+                            """
+                          * if the table is of format :: `<DB>.<TABLE>` <TABLE_ALIAS>, advance to two more tokens
+                            - Handles (`SELECT .... FROM dwh.vw_replacement_customer  d`  => returns d)
+                          * if the table is of format :: `<DB>.<SCHEMA>.<TABLE>` <TABLE_ALIAS>, advance to 2 more tokens
+                            - Handles (`SELECT .... FROM prod.public.tax_transact tt`  => returns tt)
+                            """
+                            while table_alias == "." and self_copy._index + 2 < len(self_copy._tokens):
+                                self_copy._advance(2)
+                                table_alias = self_copy._curr.text
+                            break
+            except Exception as ex:
+                print(ex)
+
             return table_alias
 
         def _json_column_op(self, this, path):
@@ -401,15 +421,31 @@ class Snow(Snowflake):
             :return: the expression based on the alias.
             """
             table_alias = self._get_table_alias()
+            is_name_value = this.name.upper() == "VALUE"
+            is_path_value = path.alias_or_name.upper() == "VALUE"
 
-            if not isinstance(this, exp.Bracket) and this.name.upper() == "VALUE":
-                if this.table != table_alias:
+            if isinstance(this, exp.Column) and this.table:
+                col_table_alias = this.table.upper()
+            elif isinstance(this, local_expression.Bracket) and isinstance(this.this, exp.Column) and this.this.table:
+                col_table_alias = this.this.table.upper()
+            else:
+                col_table_alias = this.name.upper()
+
+            is_table_alias = col_table_alias == table_alias.upper() if table_alias else False
+
+            if not isinstance(this, exp.Bracket) and is_name_value:
+                # If the column is referring to `lateral alias`, remove `.value` reference (not needed in Databricks)
+                if table_alias and this.table != table_alias:
                     return self.expression(local_expression.Bracket, this=this.table, expressions=[path])
+                """
+                    if it is referring to `table_alias`, we need to keep `.value`. See below example:
+                    - SELECT f.first, p.c.value.first, p.value FROM persons_struct AS p
+                        LATERAL VIEW EXPLODE($p.$c.contact) AS f
+                """
                 return self.expression(local_expression.Bracket, this=this, expressions=[path])
-            elif (isinstance(path, exp.Literal) and path.alias_or_name.upper() == "VALUE") or (
-                isinstance(this, local_expression.Bracket)
-                and (this.name.upper() == "VALUE" or this.this.table.upper() == table_alias.upper())
-            ):
+            elif isinstance(this, local_expression.Bracket) and (is_name_value or is_table_alias):
+                return self.expression(local_expression.Bracket, this=this, expressions=[path])
+            elif isinstance(path, exp.Literal) and (path or is_path_value):
                 return self.expression(local_expression.Bracket, this=this, expressions=[path])
             else:
                 return self.expression(exp.Bracket, this=this, expressions=[path])

@@ -83,6 +83,147 @@ class TestDatabricks(Validator):
             },
         )
 
+    def test_struct(self):
+        # Test case to validate JSON to STRUCT conversion
+        self.validate_all_transpiled(
+            """SELECT STRUCT(1 AS a, 2 AS b), ARRAY(STRUCT(11 AS C, 22 AS d), 3)""",
+            write={
+                "databricks": """SELECT {'a': 1, 'b': 2}, [{'c': 11, 'd': 22}, 3];""",
+            },
+        )
+
+    def test_lateral_struct(self):
+        self.validate_all_transpiled(
+            """SELECT p.value.id AS `ID` FROM persons_struct AS p""",
+            write={
+                "databricks": """SELECT p.value:id as "ID" FROM persons_struct p;""",
+            },
+        )
+        self.validate_all_transpiled(
+            """SELECT f.name AS `Contact`,
+                          f.first,
+                          CAST(p.value.id AS DOUBLE) AS `id_parsed`,
+                          p.c.value.first,
+                          p.value
+                   FROM persons_struct AS p\n LATERAL VIEW EXPLODE($p.$c.contact) AS f""",
+            write={
+                "databricks": """SELECT f.value:name AS "Contact",
+                                        f.value:first,
+                                        p.value:id::FLOAT AS "id_parsed",
+                                        p.c:value:first,
+                                        p.value
+                                 FROM persons_struct p, lateral flatten(input => ${p}.${c}, path => 'contact') f;""",
+            },
+        )
+        self.validate_all_transpiled(
+            """SELECT CAST(d.value.display_position AS DECIMAL(38, 0)) AS item_card_impression_display_position,
+                          CAST(i.impression_attributes AS STRING) AS item_card_impression_impression_attributes,
+                          CAST(CURRENT_TIMESTAMP() AS TIMESTAMP) AS dwh_created_date_time_utc,
+                          CAST(i.propensity AS DOUBLE) AS propensity, candidates
+                   FROM dwh.vw_replacement_customer AS d\n LATERAL VIEW OUTER EXPLODE(d.item_card_impressions) AS i
+                   WHERE event_date_pt = '{start_date}' AND event_name IN ('store.replacements_view')""",
+            write={
+                "databricks": """SELECT d.value:display_position::NUMBER as item_card_impression_display_position,
+                                   i.value:impression_attributes::VARCHAR as item_card_impression_impression_attributes,
+                                   cast(current_timestamp() as timestamp_ntz(9)) as dwh_created_date_time_utc,
+                                   i.value:propensity::FLOAT as propensity,
+                                   candidates
+                                 FROM dwh.vw_replacement_customer  d,
+                                 LATERAL FLATTEN (INPUT => d.item_card_impressions, OUTER => TRUE) i
+                                 WHERE event_date_pt = '{start_date}' and event_name in ('store.replacements_view')""",
+            },
+        )
+        self.validate_all_transpiled(
+            """SELECT tt.id AS tax_transaction_id,
+                          CAST(tt.response_body.isMpfState AS BOOLEAN) AS is_mpf_state,
+                          REGEXP_REPLACE(tt.request_body.deliveryLocation.city, '""', '') AS delivery_city,
+                          REGEXP_REPLACE(tt.request_body.store.storeAddress.zipCode, '""', '') AS store_zipcode
+                   FROM tax_table AS tt""",
+            write={
+                "databricks": """SELECT
+                                   tt.id AS tax_transaction_id,
+                                   cast(tt.response_body:"isMpfState" AS BOOLEAN) AS is_mpf_state,
+                                   REGEXP_REPLACE(tt.request_body:"deliveryLocation":"city", '""', '') AS delivery_city,
+                                   REGEXP_REPLACE(tt.request_body:"store":"storeAddress":"zipCode", '""', '') AS
+                                   store_zipcode
+                                   FROM tax_table  tt
+                              """,
+            },
+        )
+        self.validate_all_transpiled(
+            """SELECT varchar1, CAST(float1 AS STRING), CAST(variant1.`Loan Number` AS STRING) FROM tmp""",
+            write={
+                "databricks": """ select varchar1,
+                                        float1::varchar,
+                                        variant1:"Loan Number"::varchar from tmp;
+                              """,
+            },
+        )
+        self.validate_all_transpiled(
+            """SELECT ARRAY_EXCEPT(ARRAY(STRUCT(1 AS a, 2 AS b), 1), ARRAY(STRUCT(1 AS a, 2 AS b), 3))""",
+            write={
+                "databricks": """SELECT ARRAY_EXCEPT([{'a': 1, 'b': 2}, 1], [{'a': 1, 'b': 2}, 3]);""",
+            },
+        )
+        self.validate_all_transpiled(
+            """SELECT v, v.food, TO_JSON(v) FROM jdemo1""",
+            write={
+                "databricks": """SELECT v, v:food, TO_JSON(v) FROM jdemo1;""",
+            },
+        )
+        self.validate_all_transpiled(
+            """SELECT STRIP_NULL_VALUE(src.c) FROM mytable""",
+            write={
+                "databricks": """SELECT STRIP_NULL_VALUE(src:c) FROM mytable;""",
+            },
+        )
+        self.validate_all_transpiled(
+            """SELECT CAST(los.objectDomain AS STRING) AS object_type,
+                          CAST(los.objectName AS STRING) AS object_name,
+                          CAST(cols.columnName AS STRING) AS column_name,
+                          COUNT(DISTINCT lah.query_token) AS n_queries,
+                          COUNT(DISTINCT lah.consumer_account_locator) AS n_distinct_consumer_accounts
+                   FROM SNOWFLAKE.DATA_SHARING_USAGE.LISTING_ACCESS_HISTORY AS lah
+                   LATERAL VIEW EXPLODE(lah.listing_objects_accessed) AS los
+                   LATERAL VIEW EXPLODE(los.value.columns) AS cols
+                   WHERE TRUE AND CAST(los.value.objectDomain AS STRING) IN ('Table', 'View') AND
+                        query_date BETWEEN '2022-03-01' AND '2022-04-30' AND
+                        CAST(los.value.objectName AS STRING) = 'DATABASE_NAME.SCHEMA_NAME.TABLE_NAME' AND
+                        lah.consumer_account_locator = 'CONSUMER_ACCOUNT_LOCATOR' GROUP BY 1, 2, 3""",
+            write={
+                "databricks": """select
+                                      los.value:"objectDomain"::string as object_type,
+                                      los.value:"objectName"::string as object_name,
+                                      cols.value:"columnName"::string as column_name,
+                                      count(distinct lah.query_token) as n_queries,
+                                      count(distinct lah.consumer_account_locator) as n_distinct_consumer_accounts
+                                 from SNOWFLAKE.DATA_SHARING_USAGE.LISTING_ACCESS_HISTORY as lah
+                                 join lateral flatten(input=>lah.listing_objects_accessed) as los
+                                 join lateral flatten(input=>los.value, path=>'columns') as cols
+                                 where true
+                                      and los.value:"objectDomain"::string in ('Table', 'View')
+                                      and query_date between '2022-03-01' and '2022-04-30'
+                                      and los.value:"objectName"::string = 'DATABASE_NAME.SCHEMA_NAME.TABLE_NAME'
+                                      and lah.consumer_account_locator = 'CONSUMER_ACCOUNT_LOCATOR'
+                                    group by 1,2,3;
+                                """,
+            },
+        )
+        self.validate_all_transpiled(
+            """SELECT tt.id, FROM_JSON(tt.details, {TT.DETAILS_SCHEMA}) FROM prod.public.table AS tt
+                 LATERAL VIEW EXPLODE(FROM_JSON(FROM_JSON(tt.resp)['items'])) AS lit
+                 LATERAL VIEW EXPLODE(FROM_JSON(lit.value['details'])) AS ltd""",
+            write={
+                "databricks": """
+                SELECT
+                tt.id
+                , PARSE_JSON(tt.details)
+                FROM prod.public.table tt
+                ,  LATERAL FLATTEN (input=> PARSE_JSON(PARSE_JSON(tt.resp):items)) AS lit
+                ,  LATERAL FLATTEN (input=> parse_json(lit.value:"details")) AS ltd;""",
+            },
+        )
+
     def test_datediff(self):
         self.validate_all(
             "SELECT DATEDIFF(year, 'start', 'end')",
@@ -329,6 +470,12 @@ class TestDatabricks(Validator):
                 "databricks": """select date_from_parts(2023, 10, 3), date_from_parts(2020, 4, 4);""",
             },
         )
+        self.validate_all_transpiled(
+            """SELECT MAKE_DATE(2023, 10, 3), MAKE_DATE(2020, 4, 4)""",
+            write={
+                "databricks": """select datefromparts(2023, 10, 3), datefromparts(2020, 4, 4);""",
+            },
+        )
 
     def test_delete_from_keyword(self):
         self.validate_all(
@@ -423,6 +570,22 @@ class TestDatabricks(Validator):
             DATE(TRY_TO_TIMESTAMP(d.col1, 'yyyy-MM-dd')) FROM dummy AS d""",
             write={
                 "databricks": """SELECT TRY_TO_DATE('2012.20.12', 'yyyy.dd.MM'), TRY_TO_DATE(d.col1) FROM dummy d""",
+            },
+        )
+
+    def test_try_to_timestamp(self):
+        # Test case to validate `TRY_TO_TIMESTAMP` parsing
+        self.validate_all_transpiled(
+            """SELECT TRY_TO_TIMESTAMP('2016-12-31 00:12:00')""",
+            write={
+                "databricks": """SELECT TRY_TO_TIMESTAMP('2016-12-31 00:12:00')""",
+            },
+        )
+        # Test case to validate `TRY_TO_TIMESTAMP` String, column parsing with custom format
+        self.validate_all_transpiled(
+            """SELECT TRY_TO_TIMESTAMP('2018-05-15', 'yyyy-MM-dd')""",
+            write={
+                "databricks": """SELECT TRY_TO_TIMESTAMP('2018-05-15', 'yyyy-MM-dd')""",
             },
         )
 
@@ -611,6 +774,13 @@ class TestDatabricks(Validator):
                 "databricks": """SELECT MONTHNAME(TO_DATE('2015-05-01')) AS MONTH;""",
             },
         )
+        # Test case to validate `monthname` parsing of date column
+        self.validate_all_transpiled(
+            """SELECT DATE_FORMAT(TO_DATE('2020-01-01'), 'MMM') AS MONTH""",
+            write={
+                "databricks": """SELECT MONTH_NAME(TO_DATE('2020-01-01')) AS MONTH;""",
+            },
+        )
         # Test case to validate `monthname` parsing of string column with hours and minutes
         self.validate_all_transpiled(
             """SELECT DATE_FORMAT('2015-04-03 10:00', 'MMM') AS MONTH""",
@@ -767,7 +937,7 @@ class TestDatabricks(Validator):
             },
         )
 
-    def test_arraycat(self):
+    def test_array_cat(self):
         # Test case to validate `array_cat` conversion
         self.validate_all_transpiled(
             """SELECT CONCAT(col1, col2) FROM tbl""",
@@ -783,7 +953,7 @@ class TestDatabricks(Validator):
             },
         )
 
-    def test_arraytostring(self):
+    def test_array_to_string(self):
         # Test case to validate `ARRAY_TO_STRING` conversion
         self.validate_all_transpiled(
             """SELECT ARRAY_JOIN(ary_column1, '') AS no_separation FROM tbl""",
@@ -2665,7 +2835,7 @@ class TestDatabricks(Validator):
             },
         )
 
-    def test_array_compact_construct(self):
+    def test_array_construct_compact(self):
         self.validate_all_transpiled(
             "SELECT ARRAY(NULL, 'hello', CAST(3 AS DOUBLE), 4, 5)",
             write={
