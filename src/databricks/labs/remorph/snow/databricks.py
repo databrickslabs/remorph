@@ -74,11 +74,6 @@ def _curr_time():
     return "date_format(current_timestamp(), 'HH:mm:ss')"
 
 
-def _join_sup(self, expression):
-    if isinstance(expression.args["this"], exp.Lateral):
-        _lateral_view(self, expression.next())
-
-
 def _lateral_view(self, expression: exp.Lateral) -> str:
     str_lateral_view = "LATERAL VIEW"
     str_outer = "OUTER"
@@ -156,10 +151,8 @@ def _columndef_sql(self, expression: exp.ColumnDef) -> str:
 def _datatype_map(self, expression) -> str:
     if expression.this in [exp.DataType.Type.VARCHAR, exp.DataType.Type.NVARCHAR, exp.DataType.Type.CHAR]:
         return "STRING"
-    if expression.this in [exp.DataType.Type.TIMESTAMP]:
+    if expression.this in [exp.DataType.Type.TIMESTAMP, exp.DataType.Type.TIMESTAMPLTZ]:
         return "TIMESTAMP"
-    if expression.this in [exp.DataType.Type.TIMESTAMPLTZ]:
-        return "TIMESTAMP_LTZ"
     return self.datatype_sql(expression)
 
 

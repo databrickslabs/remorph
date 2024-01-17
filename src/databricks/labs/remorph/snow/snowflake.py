@@ -112,7 +112,7 @@ def _parse_trytonumber(args: list) -> local_expression.TryToNumber:
     if len(args) == 1 or len(args) == 3:
         msg = f"""Error Parsing args `{args}`:
                              * `format` is required
-                             * `precision` and `scale` both are required [if specifed]
+                             * `precision` and `scale` both are required [if specified]
                           """
         raise ParseError(msg)
 

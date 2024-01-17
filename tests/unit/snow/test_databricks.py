@@ -959,6 +959,13 @@ class TestDatabricks(Validator):
         )
 
         self.validate_all_transpiled(
+            "ALTER TABLE tab1 ADD COLUMN c2 DECIMAL(38, 0)",
+            write={
+                "databricks": "ALTER TABLE tab1 ADD COLUMN c2 NUMBER",
+            },
+        )
+
+        self.validate_all_transpiled(
             "",
             write={
                 "databricks": """
@@ -1359,6 +1366,22 @@ class TestDatabricks(Validator):
             write={
                 "databricks": "SELECT customer.id , ANY_VALUE(customer.name) , SUM(orders.value) FROM customer JOIN "
                 "orders ON customer.id = orders.customer_id GROUP BY customer.id;",
+            },
+        )
+
+    def test_join(self):
+        # Test case to validate `any_value` conversion of column
+        self.validate_all_transpiled(
+            "SELECT t1.c1, t2.c2 FROM t1 JOIN t2 USING (c3)",
+            write={
+                "databricks": "SELECT t1.c1, t2.c2 FROM t1 JOIN t2 USING (c3)",
+            },
+        )
+
+        self.validate_all_transpiled(
+            "SELECT * FROM table1, table2 WHERE table1.column_name = table2.column_name",
+            write={
+                "databricks": "SELECT * FROM table1, table2 WHERE table1.column_name = table2.column_name",
             },
         )
 
@@ -2512,6 +2535,15 @@ class TestDatabricks(Validator):
                 TO_NUMBER(sm.col2, '$99.00', 15, 5) AS col2 FROM sales_reports sm""",
             },
         )
+
+        with self.assertRaises(UnsupportedError):
+            # Test case to validate `TO_DECIMAL` parsing without format
+            self.validate_all_transpiled(
+                """SELECT CAST(TO_NUMBER('$345', '$999.00') AS DECIMAL(38, 0)) AS col1""",
+                write={
+                    "databricks": """SELECT TO_DECIMAL('$345') AS col1""",
+                },
+            )
 
     def test_to_time(self):
         # Test case to validate `TRY_TO_DATE` parsing with default format
