@@ -2767,17 +2767,16 @@ class TestDatabricks(Validator):
                 },
             )
 
-    @pytest.mark.skip(reason="Type mapping needs to be handled")
     def test_create_ddl(self):
         self.validate_all_transpiled(
             """
-                create table employee (employee_id int,
+                create table employee (employee_id decimal(38, 0),
                     first_name string not null,
                     last_name string not null,
                     birth_date date,
                     hire_date date,
                     salary decimal(10, 2),
-                    department_id int)
+                    department_id decimal(38, 0))
             """,
             write={
                 "databricks": """
