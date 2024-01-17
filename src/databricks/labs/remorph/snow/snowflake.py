@@ -102,10 +102,10 @@ def _parse_dayname(args: list) -> local_expression.DateFormat:
     :param args: node expression
     :return: DateFormat with `E` format
     """
-    if len(args) == 1:
-        return local_expression.DateFormat(this=seq_get(args, 0), expression=exp.Literal.string("E"))
-
-    return local_expression.DateFormat(this=seq_get(args, 0), expression=seq_get(args, 1))
+    if len(args) != 1:
+        err_message = f"Error Parsing args `{args}`. Number of args must be 1, given {len(args)}"
+        raise ParseError(err_message)
+    return local_expression.DateFormat(this=seq_get(args, 0), expression=exp.Literal.string("E"))
 
 
 def _parse_trytonumber(args: list) -> local_expression.TryToNumber:
@@ -125,10 +125,10 @@ def _parse_trytonumber(args: list) -> local_expression.TryToNumber:
 
 
 def _parse_monthname(args: list) -> local_expression.DateFormat:
-    if len(args) == 1:
-        return local_expression.DateFormat(this=seq_get(args, 0), expression=exp.Literal.string("MMM"))
-
-    return local_expression.DateFormat(this=seq_get(args, 0), expression=seq_get(args, 1))
+    if len(args) != 1:
+        err_message = f"Error Parsing args `{args}`. Number of args must be 1, given {len(args)}"
+        raise ParseError(err_message)
+    return local_expression.DateFormat(this=seq_get(args, 0), expression=exp.Literal.string("MMM"))
 
 
 def _parse_object_construct(args: list) -> exp.StarMap | exp.Struct:
