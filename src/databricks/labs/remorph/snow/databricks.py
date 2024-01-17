@@ -116,37 +116,6 @@ def _lateral_view(self, expression: exp.Lateral) -> str:
     return self.sql(str_pfx + str_alias)
 
 
-def _columndef_sql(self, expression: exp.ColumnDef) -> str:
-    # Modified it to Ignore the properties set in source.
-    # [TODO] Add more transformation rules to define them as constraints https://docs.databricks.com/tables/constraints.html
-    # [TODO] Add more transformation rules to define them as table properties https://docs.databricks.com/sql/language-manual/sql-ref-syntax-ddl-tblproperties.html
-
-    expression = expression.copy()
-
-    # Remove all but the comment constraints in order to simplify the schema.
-    if expression.args.get("constraints"):
-        filtered_constraints = []
-        for constraint in expression.args["constraints"]:
-            if isinstance(constraint, exp.CommentColumnConstraint):
-                filtered_constraints.append(constraint)
-        expression.set("constraints", filtered_constraints)
-
-    column = self.sql(expression, "this")
-    kind = self.sql(expression, "kind")
-    constraints = self.expressions(expression, key="constraints", sep=" ", flat=True)
-
-    # As a sanity check, make sure the type is a valid Databricks type.  We use a regex here
-    # because there are some types like DECIMAL that take numbers in parentheses, like DECIMAL(19, 4).
-    kind_str = re.search("^([A-Za-z]+)", kind).group(1)
-    if kind_str not in VALID_DATABRICKS_TYPES:
-        msg = f"{kind_str} is not a known Databricks type"
-        raise UnsupportedError(msg)
-
-    if not constraints:
-        return f"{column} {kind}"
-    return f"{column} {kind} {constraints}"
-
-
 # [TODO] Add more datatype coverage https://docs.databricks.com/sql/language-manual/sql-ref-datatypes.html
 def _datatype_map(self, expression) -> str:
     if expression.this in [exp.DataType.Type.VARCHAR, exp.DataType.Type.NVARCHAR, exp.DataType.Type.CHAR]:
@@ -331,6 +300,7 @@ class Databricks(Databricks):
             **Databricks.Generator.TYPE_MAPPING,
             exp.DataType.Type.TINYINT: "TINYINT",
             exp.DataType.Type.SMALLINT: "SMALLINT",
+            exp.DataType.Type.INT: "INT",
             exp.DataType.Type.BIGINT: "BIGINT",
             exp.DataType.Type.DATETIME: "TIMESTAMP",
             exp.DataType.Type.VARCHAR: "STRING",

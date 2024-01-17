@@ -1,3 +1,4 @@
+import pytest
 from sqlglot import ParseError, UnsupportedError
 
 from tests.unit.snow.test_dialect import Validator
@@ -2732,3 +2733,28 @@ class TestDatabricks(Validator):
                     "databricks": "SELECT array_slice(array_construct(90,91,92,93,94,95,96), -4, -1);",
                 },
             )
+
+    @pytest.mark.skip(reason="Type mapping needs to be handled")
+    def test_create_ddl(self):
+        self.validate_all_transpiled(
+            """
+                create table employee (employee_id int,
+                    first_name string not null,
+                    last_name string not null,
+                    birth_date date,
+                    hire_date date,
+                    salary decimal(10, 2),
+                    department_id int)
+            """,
+            write={
+                "databricks": """
+                    CREATE TABLE employee (employee_id INT,
+                        first_name VARCHAR(50) NOT NULL,
+                        last_name VARCHAR(50) NOT NULL,
+                        birth_date DATE,
+                        hire_date DATE,
+                        salary DECIMAL(10, 2),
+                        department_id INT)
+                """,
+            },
+        )
