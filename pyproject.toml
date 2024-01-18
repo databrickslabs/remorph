@@ -23,7 +23,8 @@ classifiers = [
   "Programming Language :: Python :: Implementation :: CPython",
 ]
 dependencies = [
-  "sqlglot==20.8.0"
+  "sqlglot==20.8.0",
+  "databricks-labs-blueprint"
 ]
 
 [project.urls]
