@@ -1,6 +1,6 @@
+import re
 import shutil
 from pathlib import Path
-import re
 from unittest.mock import create_autospec, patch
 
 import pytest
@@ -145,24 +145,24 @@ def test_with_dir_skip_validation(initial_setup):
         assert stat["total_files_processed"] == 6, "total_files_processed does not match expected value"
         assert stat["total_queries_processed"] == 4, "total_queries_processed does not match expected value"
         assert (
-                stat["no_of_sql_failed_while_parsing"] == 3
+            stat["no_of_sql_failed_while_parsing"] == 3
         ), "no_of_sql_failed_while_parsing does not match expected value"
         assert (
-                stat["no_of_sql_failed_while_validating"] == 0
+            stat["no_of_sql_failed_while_validating"] == 0
         ), "no_of_sql_failed_while_validating does not match expected value"
         assert stat["error_log_file"], "error_log_file is None or empty"
         assert Path(stat["error_log_file"]).name.startswith("err_") and Path(stat["error_log_file"]).name.endswith(
             ".lst"
         ), "error_log_file does not match expected pattern 'err_*.lst'"
 
-    expected_file_name = f'{input_dir}/query3.sql'
-    expected_exception = f'Unsupported operation found in file {input_dir}/query3.sql.'
+    expected_file_name = f"{input_dir}/query3.sql"
+    expected_exception = f"Unsupported operation found in file {input_dir}/query3.sql."
     pattern = r"ValidationError\(file_name='(?P<file_name>[^']+)', exception='(?P<exception>[^']+)'\)"
 
     with open(Path(status[0]["error_log_file"])) as file:
         for line in file:
             # Skip empty lines
-            if line.strip() == '':
+            if line.strip() == "":
                 continue
 
             match = re.match(pattern, line)
@@ -171,8 +171,8 @@ def test_with_dir_skip_validation(initial_setup):
                 # Extract information using group names from the pattern
                 error_info = match.groupdict()
                 # Perform assertions
-                assert error_info['file_name'] == expected_file_name, "File name does not match the expected value"
-                assert expected_exception in error_info['exception'], "Exception does not match the expected value"
+                assert error_info["file_name"] == expected_file_name, "File name does not match the expected value"
+                assert expected_exception in error_info["exception"], "Exception does not match the expected value"
             else:
                 print("No match found.")
     # cleanup
@@ -199,24 +199,24 @@ def test_with_dir_with_output_folder_skip_validation(initial_setup):
         assert stat["total_files_processed"] == 6, "total_files_processed does not match expected value"
         assert stat["total_queries_processed"] == 4, "total_queries_processed does not match expected value"
         assert (
-                stat["no_of_sql_failed_while_parsing"] == 3
+            stat["no_of_sql_failed_while_parsing"] == 3
         ), "no_of_sql_failed_while_parsing does not match expected value"
         assert (
-                stat["no_of_sql_failed_while_validating"] == 0
+            stat["no_of_sql_failed_while_validating"] == 0
         ), "no_of_sql_failed_while_validating does not match expected value"
         assert stat["error_log_file"], "error_log_file is None or empty"
         assert Path(stat["error_log_file"]).name.startswith("err_") and Path(stat["error_log_file"]).name.endswith(
             ".lst"
         ), "error_log_file does not match expected pattern 'err_*.lst'"
 
-    expected_file_name = f'{input_dir}/query3.sql'
-    expected_exception = f'Unsupported operation found in file {input_dir}/query3.sql.'
+    expected_file_name = f"{input_dir}/query3.sql"
+    expected_exception = f"Unsupported operation found in file {input_dir}/query3.sql."
     pattern = r"ValidationError\(file_name='(?P<file_name>[^']+)', exception='(?P<exception>[^']+)'\)"
 
     with open(Path(status[0]["error_log_file"])) as file:
         for line in file:
             # Skip empty lines
-            if line.strip() == '':
+            if line.strip() == "":
                 continue
 
             match = re.match(pattern, line)
@@ -225,8 +225,8 @@ def test_with_dir_with_output_folder_skip_validation(initial_setup):
                 # Extract information using group names from the pattern
                 error_info = match.groupdict()
                 # Perform assertions
-                assert error_info['file_name'] == expected_file_name, "File name does not match the expected value"
-                assert expected_exception in error_info['exception'], "Exception does not match the expected value"
+                assert error_info["file_name"] == expected_file_name, "File name does not match the expected value"
+                assert expected_exception in error_info["exception"], "Exception does not match the expected value"
             else:
                 print("No match found.")
 
@@ -257,10 +257,10 @@ def test_with_file(initial_setup):
         assert stat["total_files_processed"] == 1, "total_files_processed does not match expected value"
         assert stat["total_queries_processed"] == 1, "total_queries_processed does not match expected value"
         assert (
-                stat["no_of_sql_failed_while_parsing"] == 0
+            stat["no_of_sql_failed_while_parsing"] == 0
         ), "no_of_sql_failed_while_parsing does not match expected value"
         assert (
-                stat["no_of_sql_failed_while_validating"] == 1
+            stat["no_of_sql_failed_while_validating"] == 1
         ), "no_of_sql_failed_while_validating does not match expected value"
         assert Path(stat["error_log_file"]).name.startswith("err_") and Path(stat["error_log_file"]).name.endswith(
             ".lst"
@@ -297,10 +297,10 @@ def test_with_file_with_output_folder_skip_validation(initial_setup):
         assert stat["total_files_processed"] == 1, "total_files_processed does not match expected value"
         assert stat["total_queries_processed"] == 1, "total_queries_processed does not match expected value"
         assert (
-                stat["no_of_sql_failed_while_parsing"] == 0
+            stat["no_of_sql_failed_while_parsing"] == 0
         ), "no_of_sql_failed_while_parsing does not match expected value"
         assert (
-                stat["no_of_sql_failed_while_validating"] == 0
+            stat["no_of_sql_failed_while_validating"] == 0
         ), "no_of_sql_failed_while_validating does not match expected value"
         assert stat["error_log_file"] == "None", "error_log_file does not match expected value"
     # cleanup
@@ -326,10 +326,10 @@ def test_with_not_a_sql_file_skip_validation(initial_setup):
         assert stat["total_files_processed"] == 0, "total_files_processed does not match expected value"
         assert stat["total_queries_processed"] == 0, "total_queries_processed does not match expected value"
         assert (
-                stat["no_of_sql_failed_while_parsing"] == 0
+            stat["no_of_sql_failed_while_parsing"] == 0
         ), "no_of_sql_failed_while_parsing does not match expected value"
         assert (
-                stat["no_of_sql_failed_while_validating"] == 0
+            stat["no_of_sql_failed_while_validating"] == 0
         ), "no_of_sql_failed_while_validating does not match expected value"
         assert stat["error_log_file"] == "None", "error_log_file does not match expected value"
     # cleanup
