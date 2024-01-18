@@ -802,6 +802,15 @@ class TestDatabricks(Validator):
                 "databricks": """SELECT MONTHNAME('2015-03-04') AS MON;""",
             },
         )
+
+        with self.assertRaises(ParseError):
+            self.validate_all_transpiled(
+                """SELECT DATE_FORMAT('2015-04-03 10:00', 'MMM') AS MONTH""",
+                write={
+                    "databricks": """SELECT DAYNAME('2015-04-03 10:00', 'MMM') AS MONTH;""",
+                },
+            )
+
         # Test case to validate `date_format` parsing of string column with custom format
         self.validate_all_transpiled(
             """SELECT DATE_FORMAT('2015.03.04', 'yyyy.dd.MM') AS MON""",
@@ -1226,6 +1235,14 @@ class TestDatabricks(Validator):
                 "databricks": "SELECT JSON_EXTRACT_PATH_TEXT('{}', path_col) FROM demo1;",
             },
         )
+
+        with self.assertRaises(ParseError):
+            self.validate_all_transpiled(
+                "SELECT GET_JSON_OBJECT('{}', CONCAT('$.', path_col)) FROM demo1",
+                write={
+                    "databricks": "SELECT JSON_EXTRACT_PATH_TEXT('{}') FROM demo1;",
+                },
+            )
 
     def test_uuid_string(self):
         self.validate_all_transpiled(
@@ -2652,6 +2669,14 @@ class TestDatabricks(Validator):
             },
         )
 
+        with self.assertRaises(ParseError):
+            self.validate_all_transpiled(
+                """SELECT DATE_FORMAT('2015-04-03 10:00', 'E') AS MONTH""",
+                write={
+                    "databricks": """SELECT DAYNAME('2015-04-03 10:00', 'EEE') AS MONTH;""",
+                },
+            )
+
     def test_to_number(self):
         # Test case to validate `TO_DECIMAL` parsing with format
         self.validate_all_transpiled(
@@ -2713,6 +2738,14 @@ class TestDatabricks(Validator):
                 """SELECT CAST(TO_NUMBER('$345', '$999.00') AS DECIMAL(38, 0)) AS col1""",
                 write={
                     "databricks": """SELECT TO_DECIMAL('$345') AS col1""",
+                },
+            )
+
+        with self.assertRaises(ParseError):
+            self.validate_all_transpiled(
+                """SELECT CAST(TO_NUMBER('$345', '$999.99') AS DECIMAL(5, 2)) AS num_with_scale""",
+                write={
+                    "databricks": """SELECT TO_NUMERIC('$345', '$999.99', 5, 2, 1) AS num_with_scale""",
                 },
             )
 
@@ -2904,17 +2937,16 @@ class TestDatabricks(Validator):
                 },
             )
 
-    @pytest.mark.skip(reason="Type mapping needs to be handled")
     def test_create_ddl(self):
         self.validate_all_transpiled(
             """
-                create table employee (employee_id int,
+                create table employee (employee_id decimal(38, 0),
                     first_name string not null,
                     last_name string not null,
                     birth_date date,
                     hire_date date,
                     salary decimal(10, 2),
-                    department_id int)
+                    department_id decimal(38, 0))
             """,
             write={
                 "databricks": """
