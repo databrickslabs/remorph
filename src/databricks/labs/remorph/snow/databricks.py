@@ -450,7 +450,7 @@ class Databricks(Databricks):
 
         def strtok_sql(self, expression: local_expression.StrTok) -> str:
             """
-            :param expression: lexp.StrTok expression to be parsed
+            :param expression: local_expression.StrTok expression to be parsed
             :return: Converted expression (SPLIT_PART) compatible with Databricks
             """
             # To handle default delimiter
