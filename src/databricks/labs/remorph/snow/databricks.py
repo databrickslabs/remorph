@@ -475,7 +475,7 @@ class Databricks(Databricks):
 
         def splitpart_sql(self, expression: local_expression.SplitPart) -> str:
             """
-            :param expression: lexp.SplitPart expression to be parsed
+            :param expression: local_expression.SplitPart expression to be parsed
             :return: Converted expression (SPLIT_PART) compatible with Databricks
             """
             expr_name = self.sql(expression.this)
