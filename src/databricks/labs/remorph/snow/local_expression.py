@@ -40,6 +40,10 @@ class SplitPart(Func):
     arg_types: ClassVar[dict] = {"this": True, "expression": False, "partNum": False}
 
 
+class StrTok(Func):
+    arg_types: ClassVar[dict] = {"this": True, "expression": False, "partNum": False}
+
+
 class TryToNumber(Func):
     arg_types: ClassVar[dict] = {"this": True, "expression": True, "precision": False, "scale": False}
     _sql_names: ClassVar[dict] = ["TRY_TO_DECIMAL", "TRY_TO_NUMBER", "TRY_TO_NUMERIC"]
