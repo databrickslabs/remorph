@@ -1,4 +1,3 @@
-import json
 from unittest.mock import patch
 
 import pytest
@@ -150,40 +149,3 @@ class TestCLI:
         with patch("os.path.exists", return_value=True), patch("databricks.labs.remorph.cli.recon") as mock_recon:
             cli.reconcile(recon_conf, conn_profile, source, report)
             mock_recon.assert_called_once_with(recon_conf, conn_profile, source, report)
-
-    def test_main_with_invalid_command(self):
-        config = {
-            "command": "invalid_command",
-            "flags": {"log_level": "INFO"},
-        }
-        with pytest.raises(KeyError, match="cannot find command"):
-            cli.main(json.dumps(config))
-
-    def test_main_with_valid_command(self):
-        config = {
-            "command": "transpile",
-            "flags": {
-                "log_level": "INFO",
-                "source": "snowflake",
-                "input_sql": "/path/to/sql/file.sql",
-                "output_folder": "/path/to/output",
-                "skip_validation": "true",
-                "catalog_name": "my_catalog",
-                "schema_name": "my_schema",
-            },
-        }
-
-        with patch("os.path.exists", return_value=True), patch(
-            "databricks.labs.remorph.cli.morph", return_value={}
-        ) as mock_morph:
-            cli.main(json.dumps(config))
-            mock_morph.assert_called_once_with(
-                MorphConfig(
-                    source="snowflake",
-                    input_sql="/path/to/sql/file.sql",
-                    output_folder="/path/to/output",
-                    skip_validation=True,
-                    catalog_name="my_catalog",
-                    schema_name="my_schema",
-                )
-            )

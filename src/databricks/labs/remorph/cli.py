@@ -1,20 +1,24 @@
 import json
-import logging
 import os
-import sys
+
+from databricks.labs.blueprint.cli import App
+from databricks.labs.blueprint.entrypoint import get_logger
 
 from databricks.labs.remorph.config import MorphConfig
 from databricks.labs.remorph.reconcile.execute import recon
 from databricks.labs.remorph.transpiler.execute import morph
 
-logger = logging.getLogger("databricks.labs.remorph")
+remorph = App(__file__)
+logger = get_logger(__file__)
 
 
 def raise_validation_exception(msg: str) -> Exception:
     raise Exception(msg)
 
 
+@remorph.command
 def transpile(source, input_sql, output_folder, skip_validation, catalog_name, schema_name):
+    """transpiles source dialect to databricks dialect"""
     if source.lower() not in ("snowflake", "tsql"):
         raise_validation_exception(
             f"Error: Invalid value for '--source': '{source}' is not one of 'snowflake', 'tsql'. "
@@ -42,7 +46,9 @@ def transpile(source, input_sql, output_folder, skip_validation, catalog_name, s
     print(json.dumps(status))
 
 
+@remorph.command()
 def reconcile(recon_conf, conn_profile, source, report):
+    """reconciles source to databricks datasets"""
     if not os.path.exists(recon_conf) or recon_conf in (None, ""):
         raise_validation_exception(f"Error: Invalid value for '--recon_conf': Path '{recon_conf}' does not exist.")
     if not os.path.exists(conn_profile) or conn_profile in (None, ""):
@@ -57,27 +63,5 @@ def reconcile(recon_conf, conn_profile, source, report):
     recon(recon_conf, conn_profile, source, report)
 
 
-MAPPING = {
-    "transpile": transpile,
-    "reconcile": reconcile,
-}
-
-
-def main(raw):
-    payload = json.loads(raw)
-    command = payload["command"]
-    if command not in MAPPING:
-        msg = f"cannot find command: {command}"
-        raise KeyError(msg)
-    flags = payload["flags"]
-    log_level = flags.pop("log_level")
-    if log_level != "disabled":
-        databricks_logger = logging.getLogger("databricks")
-        databricks_logger.setLevel(log_level.upper())
-
-    kwargs = {k.replace("-", "_"): v for k, v in flags.items()}
-    MAPPING[command](**kwargs)
-
-
 if __name__ == "__main__":
-    main(*sys.argv[1:])
+    remorph()
