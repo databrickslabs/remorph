@@ -15,7 +15,7 @@ class TestSQLTranspiler(unittest.TestCase):
         transpiler = SQLTranspiler("SNOWFLAKE", "SELECT TRY_TO_NUMBER(COLUMN) FROM table", "file.sql", error_list)
         msg = """Error Parsing args `[Column(\n  this=Identifier(this=COLUMN, quoted=False))]`:
                              * `format` is required
-                             * `precision` and `scale` both are required [if specifed]
+                             * `precision` and `scale` both are required [if specified]
                           """
         result = transpiler.transpile()
         self.assertEqual(result, "")

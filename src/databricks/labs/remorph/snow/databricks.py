@@ -74,11 +74,6 @@ def _curr_time():
     return "date_format(current_timestamp(), 'HH:mm:ss')"
 
 
-def _join_sup(self, expression):
-    if isinstance(expression.args["this"], exp.Lateral):
-        _lateral_view(self, expression.next())
-
-
 def _lateral_view(self, expression: exp.Lateral) -> str:
     str_lateral_view = "LATERAL VIEW"
     str_outer = "OUTER"
@@ -121,45 +116,12 @@ def _lateral_view(self, expression: exp.Lateral) -> str:
     return self.sql(str_pfx + str_alias)
 
 
-def _columndef_sql(self, expression: exp.ColumnDef) -> str:
-    # Modified it to Ignore the properties set in source.
-    # [TODO] Add more transformation rules to define them as constraints https://docs.databricks.com/tables/constraints.html
-    # [TODO] Add more transformation rules to define them as table properties https://docs.databricks.com/sql/language-manual/sql-ref-syntax-ddl-tblproperties.html
-
-    expression = expression.copy()
-
-    # Remove all but the comment constraints in order to simplify the schema.
-    if expression.args.get("constraints"):
-        filtered_constraints = []
-        for constraint in expression.args["constraints"]:
-            if isinstance(constraint, exp.CommentColumnConstraint):
-                filtered_constraints.append(constraint)
-        expression.set("constraints", filtered_constraints)
-
-    column = self.sql(expression, "this")
-    kind = self.sql(expression, "kind")
-    constraints = self.expressions(expression, key="constraints", sep=" ", flat=True)
-
-    # As a sanity check, make sure the type is a valid Databricks type.  We use a regex here
-    # because there are some types like DECIMAL that take numbers in parentheses, like DECIMAL(19, 4).
-    kind_str = re.search("^([A-Za-z]+)", kind).group(1)
-    if kind_str not in VALID_DATABRICKS_TYPES:
-        msg = f"{kind_str} is not a known Databricks type"
-        raise UnsupportedError(msg)
-
-    if not constraints:
-        return f"{column} {kind}"
-    return f"{column} {kind} {constraints}"
-
-
 # [TODO] Add more datatype coverage https://docs.databricks.com/sql/language-manual/sql-ref-datatypes.html
 def _datatype_map(self, expression) -> str:
     if expression.this in [exp.DataType.Type.VARCHAR, exp.DataType.Type.NVARCHAR, exp.DataType.Type.CHAR]:
         return "STRING"
-    if expression.this in [exp.DataType.Type.TIMESTAMP]:
+    if expression.this in [exp.DataType.Type.TIMESTAMP, exp.DataType.Type.TIMESTAMPLTZ]:
         return "TIMESTAMP"
-    if expression.this in [exp.DataType.Type.TIMESTAMPLTZ]:
-        return "TIMESTAMP_LTZ"
     return self.datatype_sql(expression)
 
 
@@ -203,6 +165,32 @@ def _list_agg(self, expr: exp.GroupConcat):
     """
     collect_list_expr = self.func("COLLECT_LIST", expr.this)
     return self.func("ARRAY_JOIN", collect_list_expr, expr.args.get("separator"))
+
+
+def _to_boolean(self: Databricks.Generator, expression: local_expression.ToBoolean) -> str:
+    this = self.sql(expression, "this")
+    raise_error = self.sql(expression, "raise_error")
+    raise_error_str = "RAISE_ERROR('Invalid parameter type for TO_BOOLEAN')" if bool(int(raise_error)) else "NULL"
+    transformed = f"""
+    CASE
+       WHEN {this} IS NULL THEN NULL
+       WHEN TYPEOF({this}) = 'boolean' THEN BOOLEAN({this})
+       WHEN TYPEOF({this}) = 'string' THEN
+           CASE
+               WHEN LOWER({this}) IN ('true', 't', 'yes', 'y', 'on', '1') THEN TRUE
+               WHEN LOWER({this}) IN ('false', 'f', 'no', 'n', 'off', '0') THEN FALSE
+               ELSE RAISE_ERROR('Boolean value of x is not recognized by TO_BOOLEAN')
+               END
+       WHEN ISNOTNULL(TRY_CAST({this} AS DOUBLE)) THEN
+           CASE
+               WHEN ISNAN(CAST({this} AS DOUBLE)) OR CAST({this} AS DOUBLE) = DOUBLE('infinity') THEN
+                    RAISE_ERROR('Invalid parameter type for TO_BOOLEAN')
+               ELSE CAST({this} AS DOUBLE) != 0.0
+               END
+       ELSE {raise_error_str}
+       END
+    """
+    return transformed
 
 
 def _is_integer(self: Databricks.Generator, expression: local_expression.IsInteger) -> str:
@@ -312,6 +300,7 @@ class Databricks(Databricks):
             **Databricks.Generator.TYPE_MAPPING,
             exp.DataType.Type.TINYINT: "TINYINT",
             exp.DataType.Type.SMALLINT: "SMALLINT",
+            exp.DataType.Type.INT: "INT",
             exp.DataType.Type.BIGINT: "BIGINT",
             exp.DataType.Type.DATETIME: "TIMESTAMP",
             exp.DataType.Type.VARCHAR: "STRING",
@@ -330,6 +319,7 @@ class Databricks(Databricks):
             exp.GroupConcat: _list_agg,
             exp.FromBase64: rename_func("UNBASE64"),
             local_expression.Parameter: _parm_sfx,
+            local_expression.ToBoolean: _to_boolean,
             local_expression.Bracket: _lateral_bracket_sql,
             local_expression.MakeDate: rename_func("MAKE_DATE"),
             local_expression.TryToDate: try_to_date,
@@ -344,6 +334,7 @@ class Databricks(Databricks):
             exp.ParseJSON: _parse_json,
             local_expression.TimestampFromParts: rename_func("MAKE_TIMESTAMP"),
             local_expression.ToDouble: rename_func("DOUBLE"),
+            exp.Rand: rename_func("RANDOM"),
             local_expression.ToVariant: rename_func("TO_JSON"),
             local_expression.ToObject: rename_func("TO_JSON"),
             exp.ToBase64: rename_func("BASE64"),
@@ -457,27 +448,40 @@ class Databricks(Databricks):
 
             return result
 
+        def strtok_sql(self, expression: local_expression.StrTok) -> str:
+            """
+            :param expression: local_expression.StrTok expression to be parsed
+            :return: Converted expression (SPLIT_PART) compatible with Databricks
+            """
+            # To handle default delimiter
+            if expression.expression:
+                delimiter = expression.expression.name
+            else:
+                delimiter = " "
+
+            # Handle String and Table columns
+            if expression.name and isinstance(expression.name, str):
+                expr_name = f"'{expression.name}'"
+            else:
+                expr_name = expression.args["this"]
+
+            # Handle Partition Number
+            if len(expression.args) == 3 and expression.args.get("partNum"):
+                part_num = expression.args["partNum"]
+            else:
+                part_num = 1
+
+            return f"SPLIT_PART({expr_name}, '{delimiter}', {part_num})"
+
         def splitpart_sql(self, expression: local_expression.SplitPart) -> str:
             """
             :param expression: local_expression.SplitPart expression to be parsed
             :return: Converted expression (SPLIT_PART) compatible with Databricks
             """
-            delimiter = " "
-            # To handle default delimiter
-            if expression.expression:
-                delimiter = expression.expression.name
-
-            # Handle String and Table columns
-            expr_name = expression.args["this"]
-            if expression.name and isinstance(expression.name, str):
-                expr_name = f"'{expression.name}'"
-
-            # Handle Partition Number
-            part_num = 1
-            if len(expression.args) == 3 and expression.args.get("partNum"):
-                part_num = expression.args["partNum"]
-
-            return f"SPLIT_PART({expr_name}, '{delimiter}', {part_num})"
+            expr_name = self.sql(expression.this)
+            delimiter = self.sql(expression.expression)
+            part_num = self.sql(expression.args["partNum"])
+            return f"SPLIT_PART({expr_name}, {delimiter}, {part_num})"
 
         def transaction_sql(self, expression: exp.Transaction) -> str:  # noqa: ARG002
             """

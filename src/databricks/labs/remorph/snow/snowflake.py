@@ -55,6 +55,22 @@ def _parse_dateadd(args: list) -> exp.DateAdd:
     return exp.DateAdd(this=seq_get(args, 2), expression=seq_get(args, 1), unit=seq_get(args, 0))
 
 
+def _parse_split_part(args: list) -> local_expression.SplitPart:
+    if len(args) != 3:
+        err_msg = f"Error Parsing args `{args}`. Number of args must be 3, given {len(args)}"
+        raise ParseError(err_msg)
+    part_num = seq_get(args, 2)
+    if isinstance(part_num, exp.Literal):
+        # In Snowflake if the partNumber is 0, it is treated as 1.
+        # Please refer to https://docs.snowflake.com/en/sql-reference/functions/split_part
+        if part_num.is_int and int(part_num.name) == 0:
+            part_num = exp.Literal.number(1)
+    else:
+        cond = exp.EQ(this=part_num, expression=exp.Literal.number(0))
+        part_num = exp.If(this=cond, true=exp.Literal.number(1), false=part_num)
+    return local_expression.SplitPart(this=seq_get(args, 0), expression=seq_get(args, 1), partNum=part_num)
+
+
 def _div0null_to_if(args: list) -> exp.If:
     cond = exp.Or(
         this=exp.EQ(this=seq_get(args, 1), expression=exp.Literal.number(0)),
@@ -86,17 +102,17 @@ def _parse_dayname(args: list) -> local_expression.DateFormat:
     :param args: node expression
     :return: DateFormat with `E` format
     """
-    if len(args) == 1:
-        return local_expression.DateFormat(this=seq_get(args, 0), expression=exp.Literal.string("E"))
-
-    return local_expression.DateFormat(this=seq_get(args, 0), expression=seq_get(args, 1))
+    if len(args) != 1:
+        err_message = f"Error Parsing args `{args}`. Number of args must be 1, given {len(args)}"
+        raise ParseError(err_message)
+    return local_expression.DateFormat(this=seq_get(args, 0), expression=exp.Literal.string("E"))
 
 
 def _parse_trytonumber(args: list) -> local_expression.TryToNumber:
     if len(args) == 1 or len(args) == 3:
         msg = f"""Error Parsing args `{args}`:
                              * `format` is required
-                             * `precision` and `scale` both are required [if specifed]
+                             * `precision` and `scale` both are required [if specified]
                           """
         raise ParseError(msg)
 
@@ -109,10 +125,10 @@ def _parse_trytonumber(args: list) -> local_expression.TryToNumber:
 
 
 def _parse_monthname(args: list) -> local_expression.DateFormat:
-    if len(args) == 1:
-        return local_expression.DateFormat(this=seq_get(args, 0), expression=exp.Literal.string("MMM"))
-
-    return local_expression.DateFormat(this=seq_get(args, 0), expression=seq_get(args, 1))
+    if len(args) != 1:
+        err_message = f"Error Parsing args `{args}`. Number of args must be 1, given {len(args)}"
+        raise ParseError(err_message)
+    return local_expression.DateFormat(this=seq_get(args, 0), expression=exp.Literal.string("MMM"))
 
 
 def _parse_object_construct(args: list) -> exp.StarMap | exp.Struct:
@@ -126,7 +142,7 @@ def _parse_object_construct(args: list) -> exp.StarMap | exp.Struct:
     )
 
 
-def _parse_to_boolean(*args: list, error: bool) -> local_expression.ToBoolean:
+def _parse_to_boolean(args: list, *, error=False) -> local_expression.ToBoolean:
     this_arg = seq_get(args, 0)
     return local_expression.ToBoolean(this=this_arg, raise_error=exp.Literal.number(1 if error else 0))
 
@@ -258,8 +274,8 @@ class Snow(Snowflake):
             "DATE_FROM_PARTS": local_expression.MakeDate.from_arg_list,
             "CONVERT_TIMEZONE": local_expression.ConvertTimeZone.from_arg_list,
             "TRY_TO_DATE": local_expression.TryToDate.from_arg_list,
-            "STRTOK": local_expression.SplitPart.from_arg_list,
-            "SPLIT_PART": local_expression.SplitPart.from_arg_list,
+            "STRTOK": local_expression.StrTok.from_arg_list,
+            "SPLIT_PART": _parse_split_part,
             "TIMESTAMPADD": _parse_dateadd,
             "TRY_TO_DECIMAL": _parse_trytonumber,
             "TRY_TO_NUMBER": _parse_trytonumber,
@@ -285,6 +301,7 @@ class Snow(Snowflake):
             "TRY_PARSE_JSON": exp.ParseJSON.from_arg_list,
             "TIMEDIFF": parse_date_delta(exp.DateDiff, unit_mapping=DATE_DELTA_INTERVAL),
             "TIMESTAMPDIFF": parse_date_delta(exp.DateDiff, unit_mapping=DATE_DELTA_INTERVAL),
+            "TIMEADD": _parse_dateadd,
             "TO_BOOLEAN": lambda args: _parse_to_boolean(args, error=True),
             "TO_DECIMAL": _parse_tonumber,
             "TO_DOUBLE": local_expression.ToDouble.from_arg_list,
@@ -296,6 +313,7 @@ class Snow(Snowflake):
             "TO_VARIANT": local_expression.ToVariant.from_arg_list,
             "TRY_TO_BOOLEAN": lambda args: _parse_to_boolean(args, error=False),
             "UUID_STRING": local_expression.UUID.from_arg_list,
+            "SYSDATE": exp.CurrentTimestamp.from_arg_list,
         }
 
         FUNCTION_PARSERS: ClassVar[dict] = {
@@ -355,24 +373,44 @@ class Snow(Snowflake):
               FROM
                  dwh.vw_replacement_customer  d  => returns `d`
             """
+            # Create a deep copy of Parser to avoid any modifications to original one
             self_copy = copy.deepcopy(self)
             found_from = True if self_copy._match(TokenType.FROM, advance=False) else False
             run = True
             indx = 0
             table_alias = None
-            while run or found_from:
-                self_copy._advance()
-                indx += 1
-                found_from = True if self_copy._match(TokenType.FROM, advance=False) else False
-                if indx == len(self_copy._tokens):
-                    run = False
-                if found_from:
-                    self_copy._advance(2)
-                    table_alias = self_copy._curr.text
-                    if table_alias == ".":
-                        self_copy._advance(2)
-                        table_alias = self_copy._curr.text
-                    break
+
+            try:
+                # iterate through all the tokens if tokens are available
+                while self_copy._index < len(self_copy._tokens) and (run or found_from):
+                    self_copy._advance()
+                    indx += 1
+                    found_from = True if self_copy._match(TokenType.FROM, advance=False) else False
+                    # stop iterating when all the tokens are parsed
+                    if indx == len(self_copy._tokens):
+                        run = False
+                    # get the table alias when FROM token is found
+                    if found_from:
+                        """
+                        advance to two tokens after FROM, if there are available.
+                        Handles (SELECT .... FROM persons p => returns `p`)
+                        """
+                        if self_copy._index + 2 < len(self_copy._tokens):
+                            self_copy._advance(2)
+                            table_alias = self_copy._curr.text
+                            """
+                          * if the table is of format :: `<DB>.<TABLE>` <TABLE_ALIAS>, advance to two more tokens
+                            - Handles (`SELECT .... FROM dwh.vw_replacement_customer  d`  => returns d)
+                          * if the table is of format :: `<DB>.<SCHEMA>.<TABLE>` <TABLE_ALIAS>, advance to 2 more tokens
+                            - Handles (`SELECT .... FROM prod.public.tax_transact tt`  => returns tt)
+                            """
+                            while table_alias == "." and self_copy._index + 2 < len(self_copy._tokens):
+                                self_copy._advance(2)
+                                table_alias = self_copy._curr.text
+                            break
+            except Exception as ex:
+                print(ex)
+
             return table_alias
 
         def _json_column_op(self, this, path):
@@ -383,15 +421,31 @@ class Snow(Snowflake):
             :return: the expression based on the alias.
             """
             table_alias = self._get_table_alias()
+            is_name_value = this.name.upper() == "VALUE"
+            is_path_value = path.alias_or_name.upper() == "VALUE"
 
-            if not isinstance(this, exp.Bracket) and this.name.upper() == "VALUE":
-                if this.table != table_alias:
+            if isinstance(this, exp.Column) and this.table:
+                col_table_alias = this.table.upper()
+            elif isinstance(this, local_expression.Bracket) and isinstance(this.this, exp.Column) and this.this.table:
+                col_table_alias = this.this.table.upper()
+            else:
+                col_table_alias = this.name.upper()
+
+            is_table_alias = col_table_alias == table_alias.upper() if table_alias else False
+
+            if not isinstance(this, exp.Bracket) and is_name_value:
+                # If the column is referring to `lateral alias`, remove `.value` reference (not needed in Databricks)
+                if table_alias and this.table != table_alias:
                     return self.expression(local_expression.Bracket, this=this.table, expressions=[path])
+                """
+                    if it is referring to `table_alias`, we need to keep `.value`. See below example:
+                    - SELECT f.first, p.c.value.first, p.value FROM persons_struct AS p
+                        LATERAL VIEW EXPLODE($p.$c.contact) AS f
+                """
                 return self.expression(local_expression.Bracket, this=this, expressions=[path])
-            elif (isinstance(path, exp.Literal) and path.alias_or_name.upper() == "VALUE") or (
-                isinstance(this, local_expression.Bracket)
-                and (this.name.upper() == "VALUE" or this.this.table.upper() == table_alias.upper())
-            ):
+            elif isinstance(this, local_expression.Bracket) and (is_name_value or is_table_alias):
+                return self.expression(local_expression.Bracket, this=this, expressions=[path])
+            elif isinstance(path, exp.Literal) and (path or is_path_value):
                 return self.expression(local_expression.Bracket, this=this, expressions=[path])
             else:
                 return self.expression(exp.Bracket, this=this, expressions=[path])
