@@ -1,4 +1,3 @@
-import pytest
 from sqlglot import ParseError, UnsupportedError
 
 from tests.unit.snow.test_dialect import Validator
