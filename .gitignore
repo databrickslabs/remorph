@@ -3,4 +3,5 @@
 *.pyc
 __pycache__
 dist
+.idea
 /htmlcov/
