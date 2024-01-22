@@ -2,6 +2,7 @@ import re
 import shutil
 from pathlib import Path
 from unittest.mock import create_autospec, patch
+from databricks.sdk.core import Config
 
 import pytest
 
@@ -130,6 +131,7 @@ def test_with_dir_skip_validation(initial_setup):
     config = MorphConfig(
         input_sql=str(input_dir),
         output_folder="None",
+        sdk_config=None,
         source="snowflake",
         skip_validation=True,
     )
@@ -185,6 +187,7 @@ def test_with_dir_with_output_folder_skip_validation(initial_setup):
     config = MorphConfig(
         input_sql=str(input_dir),
         output_folder=str(input_dir / "output_transpiled"),
+        sdk_config=None,
         source="snowflake",
         skip_validation=True,
     )
@@ -240,6 +243,7 @@ def test_with_file(initial_setup):
     config = MorphConfig(
         input_sql=str(input_dir / "query1.sql"),
         output_folder="None",
+        sdk_config=Config(product="remorph"),
         source="snowflake",
         skip_validation=False,
     )
@@ -283,6 +287,7 @@ def test_with_file_with_output_folder_skip_validation(initial_setup):
     config = MorphConfig(
         input_sql=str(input_dir / "query1.sql"),
         output_folder=str(input_dir / "output_transpiled"),
+        sdk_config=None,
         source="snowflake",
         skip_validation=True,
     )
@@ -312,6 +317,7 @@ def test_with_not_a_sql_file_skip_validation(initial_setup):
     config = MorphConfig(
         input_sql=str(input_dir / "file.txt"),
         output_folder="None",
+        sdk_config=None,
         source="snowflake",
         skip_validation=True,
     )
@@ -341,6 +347,7 @@ def test_with_not_existing_file_skip_validation(initial_setup):
     config = MorphConfig(
         input_sql=str(input_dir / "file_not_exist.txt"),
         output_folder="None",
+        sdk_config=None,
         source="snowflake",
         skip_validation=True,
     )

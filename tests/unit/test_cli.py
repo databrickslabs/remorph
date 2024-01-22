@@ -1,15 +1,24 @@
-from unittest.mock import patch
+from unittest.mock import create_autospec, patch
 
 import pytest
+from databricks.sdk import WorkspaceClient
+from databricks.sdk.service import iam
+from databricks.sdk.core import Config
 
 from databricks.labs.remorph import cli
 from databricks.labs.remorph.config import MorphConfig
 
 
 class TestCLI:
+    def setup(self):
+        w = create_autospec(WorkspaceClient)
+        w.current_user.me = lambda: iam.User(user_name="remorph", groups=[iam.ComplexValue(display="admins")])
+        self.w = w
+
     def test_transpile_with_invalid_dialect(self):
         with pytest.raises(Exception, match="Error: Invalid value for '--source'"):
             cli.transpile(
+                self.w,
                 "invalid_dialect",
                 "/path/to/sql/file.sql",
                 "/path/to/output",
@@ -23,6 +32,7 @@ class TestCLI:
             Exception, match="Error: Invalid value for '--skip_validation'"
         ):
             cli.transpile(
+                self.w,
                 "snowflake",
                 "/path/to/sql/file.sql",
                 "/path/to/output",
@@ -36,6 +46,7 @@ class TestCLI:
             Exception, match="Error: Invalid value for '--input_sql'"
         ):
             cli.transpile(
+                self.w,
                 "snowflake",
                 "/path/to/invalid/sql/file.sql",
                 "/path/to/output",
@@ -55,9 +66,10 @@ class TestCLI:
         with patch("os.path.exists", return_value=True), patch(
             "databricks.labs.remorph.cli.morph", return_value={}
         ) as mock_morph:
-            cli.transpile(source, input_sql, output_folder, skip_validation, catalog_name, schema_name)
+            cli.transpile(self.w, source, input_sql, output_folder, skip_validation, catalog_name, schema_name)
             mock_morph.assert_called_once_with(
                 MorphConfig(
+                    sdk_config=Config(product="remorph"),
                     source=source,
                     input_sql=input_sql,
                     output_folder=output_folder,
@@ -71,16 +83,17 @@ class TestCLI:
         source = "snowflake"
         input_sql = "/path/to/sql/file2.sql"
         output_folder = ""
-        skip_validation = "false"
+        skip_validation = "true"
         catalog_name = "my_catalog"
         schema_name = "my_schema"
 
         with patch("os.path.exists", return_value=True), patch(
             "databricks.labs.remorph.cli.morph", return_value={}
         ) as mock_morph:
-            cli.transpile(source, input_sql, output_folder, skip_validation, catalog_name, schema_name)
+            cli.transpile(self.w, source, input_sql, output_folder, skip_validation, catalog_name, schema_name)
             mock_morph.assert_called_once_with(
                 MorphConfig(
+                    sdk_config=Config(product="remorph"),
                     source=source,
                     input_sql=input_sql,
                     output_folder=None,
@@ -98,6 +111,7 @@ class TestCLI:
             source = "snowflake"
             report = "data"
             cli.reconcile(
+                self.w,
                 str(invalid_recon_conf_path.absolute()),
                 str(valid_conn_profile_path.absolute()),
                 source,
@@ -112,6 +126,7 @@ class TestCLI:
             source = "snowflake"
             report = "data"
             cli.reconcile(
+                self.w,
                 str(valid_recon_conf_path.absolute()),
                 str(invalid_conn_profile_path.absolute()),
                 source,
@@ -127,7 +142,7 @@ class TestCLI:
         with patch("os.path.exists", return_value=True), pytest.raises(
             Exception, match="Error: Invalid value for '--source'"
         ):
-            cli.reconcile(recon_conf, conn_profile, source, report)
+            cli.reconcile(self.w, recon_conf, conn_profile, source, report)
 
     def test_recon_with_invalid_report(self):
         recon_conf = "/path/to/recon/conf"
@@ -138,7 +153,7 @@ class TestCLI:
         with patch("os.path.exists", return_value=True), pytest.raises(
             Exception, match="Error: Invalid value for '--report'"
         ):
-            cli.reconcile(recon_conf, conn_profile, source, report)
+            cli.reconcile(self.w, recon_conf, conn_profile, source, report)
 
     def test_recon_with_valid_input(self):
         recon_conf = "/path/to/recon/conf"
@@ -147,5 +162,5 @@ class TestCLI:
         report = "data"
 
         with patch("os.path.exists", return_value=True), patch("databricks.labs.remorph.cli.recon") as mock_recon:
-            cli.reconcile(recon_conf, conn_profile, source, report)
+            cli.reconcile(self.w, recon_conf, conn_profile, source, report)
             mock_recon.assert_called_once_with(recon_conf, conn_profile, source, report)

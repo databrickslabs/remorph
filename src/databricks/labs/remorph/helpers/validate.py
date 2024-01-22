@@ -2,6 +2,7 @@ from io import StringIO
 
 from databricks.connect import DatabricksSession
 from pyspark.sql.utils import AnalysisException, ParseException
+from databricks.sdk.core import Config
 
 from databricks.labs.remorph.config import MorphConfig
 
@@ -14,12 +15,12 @@ class Validate:
     - spark (SparkSession): The Spark session used to execute and validate SQL queries.
     """
 
-    def __init__(self):
+    def __init__(self, sdk_config: Config):
         """
         Initialize the Validate class with Sparksession.
         """
 
-        self.spark = DatabricksSession.builder.getOrCreate()
+        self.spark = DatabricksSession.builder.sdkConfig(sdk_config).getOrCreate()
 
     def validate_format_result(self, config: MorphConfig, input_sql: str):
         """
