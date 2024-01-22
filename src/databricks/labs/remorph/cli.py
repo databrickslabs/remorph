@@ -5,6 +5,7 @@ from databricks.labs.blueprint.cli import App
 from databricks.labs.blueprint.entrypoint import get_logger
 from databricks.sdk import WorkspaceClient
 
+from databricks.labs.remorph import __about__
 from databricks.labs.remorph.config import MorphConfig
 from databricks.labs.remorph.reconcile.execute import recon
 from databricks.labs.remorph.transpiler.execute import morph
@@ -17,9 +18,8 @@ def raise_validation_exception(msg: str) -> Exception:
     raise Exception(msg)
 
 
-@remorph.command
+@remorph.command(is_unauthenticated=True)
 def transpile(
-    w: WorkspaceClient,
     source: str,
     input_sql: str,
     output_folder: str,
@@ -28,7 +28,6 @@ def transpile(
     schema_name: str,
 ):
     """transpiles source dialect to databricks dialect"""
-    logger.info(f"user: {w.current_user.me()}")
 
     if source.lower() not in ("snowflake", "tsql"):
         raise_validation_exception(
@@ -57,10 +56,9 @@ def transpile(
     print(json.dumps(status))
 
 
-@remorph.command()
-def reconcile(w: WorkspaceClient, recon_conf: str, conn_profile: str, source: str, report: str):
+@remorph.command(is_unauthenticated=True)
+def reconcile(recon_conf: str, conn_profile: str, source: str, report: str):
     """reconciles source to databricks datasets"""
-    logger.info(f"user: {w.current_user.me()}")
 
     if not os.path.exists(recon_conf) or recon_conf in (None, ""):
         raise_validation_exception(f"Error: Invalid value for '--recon_conf': Path '{recon_conf}' does not exist.")
@@ -77,4 +75,8 @@ def reconcile(w: WorkspaceClient, recon_conf: str, conn_profile: str, source: st
 
 
 if __name__ == "__main__":
+    version = __about__.__version__
+    ws = WorkspaceClient(product="remorph", product_version=version)
+    ws.current_user.me()
+    logger.info(f"user: {ws.current_user.me()}")
     remorph()
