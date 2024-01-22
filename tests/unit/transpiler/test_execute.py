@@ -2,9 +2,9 @@ import re
 import shutil
 from pathlib import Path
 from unittest.mock import create_autospec, patch
-from databricks.sdk.core import Config
 
 import pytest
+from databricks.sdk.core import Config
 
 from databricks.labs.remorph.config import MorphConfig
 from databricks.labs.remorph.helpers.file_utils import make_dir

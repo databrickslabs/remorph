@@ -3,7 +3,6 @@ from unittest.mock import create_autospec, patch
 import pytest
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.service import iam
-from databricks.sdk.core import Config
 
 from databricks.labs.remorph import cli
 from databricks.labs.remorph.config import MorphConfig
@@ -62,6 +61,7 @@ class TestCLI:
         skip_validation = "true"
         catalog_name = "my_catalog"
         schema_name = "my_schema"
+        sdk_config = self.w.config
 
         with patch("os.path.exists", return_value=True), patch(
             "databricks.labs.remorph.cli.morph", return_value={}
@@ -69,7 +69,7 @@ class TestCLI:
             cli.transpile(self.w, source, input_sql, output_folder, skip_validation, catalog_name, schema_name)
             mock_morph.assert_called_once_with(
                 MorphConfig(
-                    sdk_config=Config(product="remorph"),
+                    sdk_config=sdk_config,
                     source=source,
                     input_sql=input_sql,
                     output_folder=output_folder,
@@ -83,9 +83,10 @@ class TestCLI:
         source = "snowflake"
         input_sql = "/path/to/sql/file2.sql"
         output_folder = ""
-        skip_validation = "true"
+        skip_validation = "false"
         catalog_name = "my_catalog"
         schema_name = "my_schema"
+        sdk_config = self.w.config
 
         with patch("os.path.exists", return_value=True), patch(
             "databricks.labs.remorph.cli.morph", return_value={}
@@ -93,7 +94,7 @@ class TestCLI:
             cli.transpile(self.w, source, input_sql, output_folder, skip_validation, catalog_name, schema_name)
             mock_morph.assert_called_once_with(
                 MorphConfig(
-                    sdk_config=Config(product="remorph"),
+                    sdk_config=sdk_config,
                     source=source,
                     input_sql=input_sql,
                     output_folder=None,

@@ -104,7 +104,7 @@ class TestValidate:
         assert exception is None
 
     @patch("databricks.labs.remorph.helpers.validate.DatabricksSession")
-    def test_validate_format_result_with_invalid_query(self, spark_session,mock_config, morph_config):
+    def test_validate_format_result_with_invalid_query(self, spark_session, mock_config, morph_config):
         validator = Validate(mock_config)
         validator.spark = spark_session
         validator.query = Mock()
