@@ -3,7 +3,9 @@ import os
 
 from databricks.labs.blueprint.cli import App
 from databricks.labs.blueprint.entrypoint import get_logger
+from databricks.sdk import WorkspaceClient
 
+from databricks.labs.remorph import __about__
 from databricks.labs.remorph.config import MorphConfig
 from databricks.labs.remorph.reconcile.execute import recon
 from databricks.labs.remorph.transpiler.execute import morph
@@ -64,4 +66,7 @@ def reconcile(recon_conf, conn_profile, source, report):
 
 
 if __name__ == "__main__":
+    version = __about__.__version__
+    ws = WorkspaceClient(product="remorph", product_version=version)
+    ws.current_user.me()
     remorph()
