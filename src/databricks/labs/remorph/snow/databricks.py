@@ -1,7 +1,7 @@
 import re
-import sys
 from typing import ClassVar
 
+from databricks.labs.blueprint.entrypoint import get_logger
 from sqlglot import expressions as exp
 from sqlglot.dialects import hive
 from sqlglot.dialects.databricks import Databricks
@@ -10,6 +10,8 @@ from sqlglot.errors import UnsupportedError
 from sqlglot.helper import apply_index_offset, csv
 
 from databricks.labs.remorph.snow import local_expression
+
+logger = get_logger(__file__)
 
 VALID_DATABRICKS_TYPES = {
     "BIGINT",
@@ -100,10 +102,10 @@ def _lateral_view(self, expression: exp.Lateral) -> str:
                             if "PARSE_JSON" in node_expr:
                                 node_expr = node_expr.replace("PARSE_JSON", "FROM_JSON")
                                 msg = (
-                                    f"\n***Warning***: you need to explicitly specify "
+                                    f"***Warning***: you need to explicitly specify "
                                     f"`SCHEMA` for column(s) in `{node_expr}`"
                                 )
-                                print(msg, file=sys.stderr)
+                                logger.warning(msg)
                             str_pfx = str_pfx + node_expr
                         case "PATH":
                             str_pfx = str_pfx + f".{node.expression}".replace("'", "").replace('"', "`")
@@ -169,6 +171,7 @@ def _list_agg(self, expr: exp.GroupConcat):
 
 def _to_boolean(self: Databricks.Generator, expression: local_expression.ToBoolean) -> str:
     this = self.sql(expression, "this")
+    logger.debug(f"Converting {this} to Boolean")
     raise_error = self.sql(expression, "raise_error")
     raise_error_str = "RAISE_ERROR('Invalid parameter type for TO_BOOLEAN')" if bool(int(raise_error)) else "NULL"
     transformed = f"""
@@ -248,9 +251,9 @@ def _parse_json(self, expr: exp.ParseJSON):
     column = expr_this.replace("'", "").upper()
     conv_expr = self.func("FROM_JSON", expr_this, f"{{{column}_SCHEMA}}")
     warning_msg = (
-        f"\n***Warning***: you need to explicitly specify `SCHEMA` for `{column}` column in expression: `{conv_expr}`"
+        f"***Warning***: you need to explicitly specify `SCHEMA` for `{column}` column in expression: `{conv_expr}`"
     )
-    print(warning_msg)
+    logger.warning(warning_msg)
     return conv_expr
 
 
@@ -283,7 +286,7 @@ def _uuid(self: Databricks.Generator, expression: local_expression.UUID) -> str:
     name = self.sql(expression, "name")
 
     if namespace and name:
-        print("UUID version 5 is not supported currently. Needs manual intervention.")  # : T201
+        logger.warning("UUID version 5 is not supported currently. Needs manual intervention.")
         return f"UUID({namespace}, {name})"
     else:
         return "UUID()"
