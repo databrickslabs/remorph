@@ -247,7 +247,7 @@ def test_with_file(initial_setup):
         source="snowflake",
         skip_validation=False,
     )
-    mock_validate = create_autospec(Validate)
+    mock_validate = create_autospec(Validate(config.sdk_config))
     mock_validate.validate_format_result.return_value = (""" Mock validated query """, "Mock validation error")
 
     with patch("databricks.labs.remorph.transpiler.execute.Validate", return_value=mock_validate):
