@@ -4,6 +4,7 @@ from pathlib import Path
 from unittest.mock import create_autospec, patch
 
 import pytest
+from databricks.connect import DatabricksSession
 from databricks.sdk.core import Config
 
 from databricks.labs.remorph.config import MorphConfig
@@ -240,14 +241,17 @@ def test_with_dir_with_output_folder_skip_validation(initial_setup):
 
 def test_with_file(initial_setup):
     input_dir = initial_setup
+    sdk_config = create_autospec(Config)
+    spark = create_autospec(DatabricksSession)
     config = MorphConfig(
         input_sql=str(input_dir / "query1.sql"),
         output_folder="None",
-        sdk_config=Config(product="remorph"),
+        sdk_config=sdk_config,
         source="snowflake",
         skip_validation=False,
     )
-    mock_validate = create_autospec(Validate(config.sdk_config))
+    mock_validate = create_autospec(Validate)
+    mock_validate.spark = spark
     mock_validate.validate_format_result.return_value = (""" Mock validated query """, "Mock validation error")
 
     with patch("databricks.labs.remorph.transpiler.execute.Validate", return_value=mock_validate):
