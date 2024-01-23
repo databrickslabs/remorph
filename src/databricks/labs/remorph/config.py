@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from databricks.labs.blueprint.entrypoint import get_logger
 from databricks.sdk.core import Config
 
-logger = get_logger("remorph")
+logger = get_logger(__file__)
 
 
 @dataclass
