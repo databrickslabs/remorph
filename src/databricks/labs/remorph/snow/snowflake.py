@@ -3,6 +3,7 @@ import re
 import typing as t
 from typing import ClassVar
 
+from databricks.labs.blueprint.entrypoint import get_logger
 from sqlglot import exp, parser
 from sqlglot.dialects.dialect import parse_date_delta
 from sqlglot.dialects.snowflake import Snowflake
@@ -13,6 +14,8 @@ from sqlglot.tokens import Token, TokenType
 from sqlglot.trie import new_trie
 
 from databricks.labs.remorph.snow import local_expression
+
+logger = get_logger(__file__)
 
 """ SF Supported Date and Time Parts:
     https://docs.snowflake.com/en/sql-reference/functions-date-time#label-supported-date-time-parts
@@ -182,7 +185,7 @@ class Snow(Snowflake):
         }
 
         KEYWORDS: ClassVar[dict] = {**Snowflake.Tokenizer.KEYWORDS}
-        ## DEC is not a reserved keyword in Snowflake it can be used as table alias
+        # DEC is not a reserved keyword in Snowflake it can be used as table alias
         KEYWORDS.pop("DEC")
 
         @classmethod
@@ -192,15 +195,15 @@ class Snow(Snowflake):
         @classmethod
         def merge_trie(cls, parent_trie, new_trie):
             merged_trie = {}
-            # print(f"The Parent Trie is {parent_trie}")
-            # print(f"The Input Trie is {new_trie}")
+            logger.debug(f"The Parent Trie is {parent_trie}")
+            logger.debug(f"The Input Trie is {new_trie}")
             for key in set(parent_trie.keys()) | set(new_trie.keys()):  # Get all unique keys from both tries
                 if key in parent_trie and key in new_trie:  # If the key is in both tries, merge the subtries
                     if isinstance(parent_trie[key], dict) and isinstance(new_trie[key], dict):
-                        # #print(f"New trie inside the key is {new_trie}")
-                        # #print(f"Parent trie inside the key is {parent_trie}")
+                        logger.debug(f"New trie inside the key is {new_trie}")
+                        logger.debug(f"Parent trie inside the key is {parent_trie}")
                         merged_trie[key] = cls.merge_trie(parent_trie[key], new_trie[key])
-                        # #print(f"Merged Trie is {merged_trie}")
+                        logger.debug(f"Merged Trie is {merged_trie}")
                     elif isinstance(parent_trie[key], dict):
                         merged_trie[key] = parent_trie[key]
                     else:
@@ -241,19 +244,18 @@ class Snow(Snowflake):
             """Returns a list of tokens corresponding to the SQL string `sql`."""
             self.reset()
             self.sql = sql
-            ## Update Keywords
+            # Update Keywords
             ref_dict = self.match_strings_token_dict(sql, self.CUSTOM_TOKEN_MAP)
             self.update_keywords(ref_dict)
-            ## Update Keyword Trie
+            # Update Keyword Trie
             custom_trie = new_trie(self.match_strings_list(sql, self.CUSTOM_TOKEN_MAP))
-            # print("**"*40)
-            # print(f"The New Trie after adding the REF, VAR and IF ELSE
-            # blocks basesd on {self.CUSTOM_TOKEN_MAP}, is \n\n {custom_trie}")
-            # print("**"*40)
+            logger.debug(
+                f"The New Trie after adding the REF, VAR and IF ELSE blocks "
+                f"based on {self.CUSTOM_TOKEN_MAP}, is \n\n {custom_trie}"
+            )
             self.update_keyword_trie(custom_trie)
-            # print(f"Updated New Trie is {self.KEYWORD_TRIE}")
-            # print("**"*40)
-            ## Parent Code
+            logger.debug(f"Updated New Trie is {self.KEYWORD_TRIE}")
+            # Parent Code
             self.size = len(sql)
             try:
                 self._scan()
@@ -408,8 +410,8 @@ class Snow(Snowflake):
                                 self_copy._advance(2)
                                 table_alias = self_copy._curr.text
                             break
-            except Exception as ex:
-                print(ex)
+            except Exception:
+                logger.exception("Error while getting table alias.")
 
             return table_alias
 

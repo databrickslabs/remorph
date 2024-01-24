@@ -1,9 +1,12 @@
 from io import StringIO
 
 from databricks.connect import DatabricksSession
+from databricks.labs.blueprint.entrypoint import get_logger
 from pyspark.sql.utils import AnalysisException, ParseException
 
 from databricks.labs.remorph.config import MorphConfig
+
+logger = get_logger(__file__)
 
 
 class Validate:
@@ -37,6 +40,7 @@ class Validate:
         """
         catalog_name = config.catalog_name
         schema_name = config.schema_name
+        logger.debug(f"Validation query with catalog {catalog_name} and schema {schema_name}")
         (flag, exception) = self.query(input_sql, catalog_name, schema_name)
         if flag:
             result = input_sql + "\n;\n"
@@ -89,24 +93,24 @@ class Validate:
             spark.sql(query.replace("${", "`{").replace("}", "}`").replace("``", "`")).explain(True)
             return True, None
         except ParseException as pe:
-            # print("Syntax Exception : NOT IGNORED. Flag as syntax error :" + str(pe))
+            logger.debug("Syntax Exception : NOT IGNORED. Flag as syntax error :" + str(pe))
             return False, str(pe)
         except AnalysisException as aex:
             if "[TABLE_OR_VIEW_NOT_FOUND]" in str(aex):
-                # print("Analysis Exception : IGNORED: " + str(aex))
+                logger.debug("Analysis Exception : IGNORED: " + str(aex))
                 return True, str(aex)
             if "[TABLE_OR_VIEW_ALREADY_EXISTS]" in str(aex):
-                # print("Analysis Exception : IGNORED: " + str(aex))
+                logger.debug("Analysis Exception : IGNORED: " + str(aex))
                 return True, str(aex)
             elif "[UNRESOLVED_ROUTINE]" in str(aex):
-                # print("Analysis Exception : NOT IGNORED: Flag as Function Missing error" + str(aex))
+                logger.debug("Analysis Exception : NOT IGNORED: Flag as Function Missing error" + str(aex))
                 return False, str(aex)
             elif "Hive support is required to CREATE Hive TABLE (AS SELECT).;" in str(aex):
-                # print("Analysis Exception : IGNORED: " + str(aex))
+                logger.debug("Analysis Exception : IGNORED: " + str(aex))
                 return True, str(aex)
             else:
-                # print("Unknown Exception: " + str(aex))
+                logger.debug("Unknown Exception: " + str(aex))
                 return False, str(aex)
         except Exception as e:
-            # print("Other Exception : NOT IGNORED. Flagged :" + str(e))
+            logger.debug("Other Exception : NOT IGNORED. Flagged :" + str(e))
             return False, str(e)
