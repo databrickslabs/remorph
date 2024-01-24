@@ -43,7 +43,7 @@ def transpile(source, input_sql, output_folder, skip_validation, catalog_name, s
 
     status = morph(config)
 
-    logger.info(json.dumps(status))
+    print(json.dumps(status))
 
 
 @remorph.command()
