@@ -1,11 +1,8 @@
 from io import StringIO
 
 from databricks.connect import DatabricksSession
-
-from databricks.sdk.core import Config
-
 from databricks.labs.blueprint.entrypoint import get_logger
-
+from databricks.sdk.core import Config
 from pyspark.sql.utils import AnalysisException, ParseException
 
 from databricks.labs.remorph.config import MorphConfig
