@@ -4,6 +4,8 @@ from pathlib import Path
 from unittest.mock import create_autospec, patch
 
 import pytest
+from databricks.connect import DatabricksSession
+from databricks.sdk.core import Config
 
 from databricks.labs.remorph.config import MorphConfig
 from databricks.labs.remorph.helpers.file_utils import make_dir
@@ -130,6 +132,7 @@ def test_with_dir_skip_validation(initial_setup):
     config = MorphConfig(
         input_sql=str(input_dir),
         output_folder="None",
+        sdk_config=None,
         source="snowflake",
         skip_validation=True,
     )
@@ -185,6 +188,7 @@ def test_with_dir_with_output_folder_skip_validation(initial_setup):
     config = MorphConfig(
         input_sql=str(input_dir),
         output_folder=str(input_dir / "output_transpiled"),
+        sdk_config=None,
         source="snowflake",
         skip_validation=True,
     )
@@ -237,13 +241,17 @@ def test_with_dir_with_output_folder_skip_validation(initial_setup):
 
 def test_with_file(initial_setup):
     input_dir = initial_setup
+    sdk_config = create_autospec(Config)
+    spark = create_autospec(DatabricksSession)
     config = MorphConfig(
         input_sql=str(input_dir / "query1.sql"),
         output_folder="None",
+        sdk_config=sdk_config,
         source="snowflake",
         skip_validation=False,
     )
     mock_validate = create_autospec(Validate)
+    mock_validate.spark = spark
     mock_validate.validate_format_result.return_value = (""" Mock validated query """, "Mock validation error")
 
     with patch("databricks.labs.remorph.transpiler.execute.Validate", return_value=mock_validate):
@@ -283,6 +291,7 @@ def test_with_file_with_output_folder_skip_validation(initial_setup):
     config = MorphConfig(
         input_sql=str(input_dir / "query1.sql"),
         output_folder=str(input_dir / "output_transpiled"),
+        sdk_config=None,
         source="snowflake",
         skip_validation=True,
     )
@@ -312,6 +321,7 @@ def test_with_not_a_sql_file_skip_validation(initial_setup):
     config = MorphConfig(
         input_sql=str(input_dir / "file.txt"),
         output_folder="None",
+        sdk_config=None,
         source="snowflake",
         skip_validation=True,
     )
@@ -341,6 +351,7 @@ def test_with_not_existing_file_skip_validation(initial_setup):
     config = MorphConfig(
         input_sql=str(input_dir / "file_not_exist.txt"),
         output_folder="None",
+        sdk_config=None,
         source="snowflake",
         skip_validation=True,
     )

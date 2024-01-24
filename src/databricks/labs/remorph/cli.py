@@ -3,6 +3,7 @@ import os
 
 from databricks.labs.blueprint.cli import App
 from databricks.labs.blueprint.entrypoint import get_logger
+from databricks.sdk import WorkspaceClient
 
 from databricks.labs.remorph.config import MorphConfig
 from databricks.labs.remorph.reconcile.execute import recon
@@ -17,8 +18,18 @@ def raise_validation_exception(msg: str) -> Exception:
 
 
 @remorph.command
-def transpile(source, input_sql, output_folder, skip_validation, catalog_name, schema_name):
+def transpile(
+    w: WorkspaceClient,
+    source: str,
+    input_sql: str,
+    output_folder: str,
+    skip_validation: str,
+    catalog_name: str,
+    schema_name: str,
+):
     """transpiles source dialect to databricks dialect"""
+    logger.info(f"user: {w.current_user.me()}")
+
     if source.lower() not in ("snowflake", "tsql"):
         raise_validation_exception(
             f"Error: Invalid value for '--source': '{source}' is not one of 'snowflake', 'tsql'. "
@@ -39,6 +50,7 @@ def transpile(source, input_sql, output_folder, skip_validation, catalog_name, s
         skip_validation=skip_validation.lower() == "true",  # convert to bool
         catalog_name=catalog_name,
         schema_name=schema_name,
+        sdk_config=w.config,
     )
 
     status = morph(config)
@@ -46,9 +58,10 @@ def transpile(source, input_sql, output_folder, skip_validation, catalog_name, s
     print(json.dumps(status))
 
 
-@remorph.command()
-def reconcile(recon_conf, conn_profile, source, report):
+@remorph.command
+def reconcile(w: WorkspaceClient, recon_conf: str, conn_profile: str, source: str, report: str):
     """reconciles source to databricks datasets"""
+    logger.info(f"user: {w.current_user.me()}")
     if not os.path.exists(recon_conf) or recon_conf in (None, ""):
         raise_validation_exception(f"Error: Invalid value for '--recon_conf': Path '{recon_conf}' does not exist.")
     if not os.path.exists(conn_profile) or conn_profile in (None, ""):

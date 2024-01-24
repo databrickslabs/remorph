@@ -46,7 +46,7 @@ def process_file(config: MorphConfig, input_file: str | Path, output_file: str |
                     w.write(output)
                     w.write("\n;\n")
                 else:
-                    validate = Validate()
+                    validate = Validate(config.sdk_config)
                     output_string, exception = validate.validate_format_result(config, output)
                     w.write(output_string)
                     if exception is not None:
