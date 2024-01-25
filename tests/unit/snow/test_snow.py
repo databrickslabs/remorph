@@ -1,69 +1,71 @@
-from tests.unit.snow.test_dialect import Validator
+"""
+    Test Cases to validate source Snowflake dialect
+"""
 
 
-class TestSnowflake(Validator):
+def test_parse_parameter(dialect_context):
+    validate_source_transpile, validate_target_transpile = dialect_context
     """
-    Test Class to validate Snowflake dialect
+    Function to assert conversion from source: `snowflake(read)` to target: `Databricks(sql)`
+    """
+    sql = """
+             SELECT DISTINCT
+                ABC,
+                CAST('${SCHEMA_NM}_MV' AS STRING),
+                sys_dt,
+                ins_ts,
+                upd_ts
+             FROM ${SCHEMA_NM}_MV.${TBL_NM}
+             WHERE
+                NOT xyz IS NULL AND src_ent = '${SCHEMA_NM}_MV.COL'
+          """
+
+    validate_source_transpile(
+        databricks_sql=sql,
+        source={
+            "snowflake": """
+                                SELECT  DISTINCT
+                                    ABC,
+                                    CAST('${SCHEMA_NM}_MV' AS VARCHAR(261)),
+                                    sys_dt,
+                                    ins_ts,
+                                    upd_ts
+                                FROM ${SCHEMA_NM}_MV.${TBL_NM} WHERE xyz IS NOT NULL  AND
+                                    src_ent = '${SCHEMA_NM}_MV.COL';
+                            """,
+        },
+        pretty=True,
+    )
+
+
+def test_decimal_keyword(dialect_context):
+    validate_source_transpile, validate_target_transpile = dialect_context
+    """
+    Function to test dec as alias name
     """
 
-    dialect = "snowflake"
+    sql = """
+             SELECT
+                dec.id,
+                dec.key,
+                xy.value
+             FROM table AS dec
+             JOIN table2 AS xy
+             ON dec.id = xy.id
+          """
 
-    def test_parse_parameter(self):
-        """
-        Function to assert conversion from source: `snowflake(read)` to target: `Databricks(sql)`
-        """
-        sql = """SELECT DISTINCT
-  ABC,
-  CAST('${SCHEMA_NM}_MV' AS STRING),
-  sys_dt,
-  ins_ts,
-  upd_ts
-FROM ${SCHEMA_NM}_MV.${TBL_NM}
-WHERE
-  NOT xyz IS NULL AND src_ent = '${SCHEMA_NM}_MV.COL'"""
-
-        self.validate_all_transpiled(
-            sql,
-            read={
-                "snowflake": """
-                                    SELECT  DISTINCT
-                                        ABC,
-                                        CAST('${SCHEMA_NM}_MV' AS VARCHAR(261)),
-                                        sys_dt,
-                                        ins_ts,
-                                        upd_ts
-                                    FROM ${SCHEMA_NM}_MV.${TBL_NM} WHERE xyz IS NOT NULL  AND
-                                        src_ent = '${SCHEMA_NM}_MV.COL';
-                                """,
-            },
-            pretty=True,
-        )
-
-    def test_decimal_keyword(self):
-        """
-        Function to test dec as alias name
-        """
-
-        sql = """SELECT
-  dec.id,
-  dec.key,
-  xy.value
-FROM table AS dec
-JOIN table2 AS xy
-  ON dec.id = xy.id"""
-
-        self.validate_all_transpiled(
-            sql,
-            read={
-                "snowflake": """
-                               SELECT
+    validate_source_transpile(
+        databricks_sql=sql,
+        source={
+            "snowflake": """
+                           SELECT
                                dec.id,
                                dec.key,
                                xy.value
-                               FROM table dec
-                               JOIN table2 xy
-                               ON dec.id = xy.id
-                            """,
-            },
-            pretty=True,
-        )
+                           FROM table dec
+                           JOIN table2 xy
+                           ON dec.id = xy.id
+                         """,
+        },
+        pretty=True,
+    )
