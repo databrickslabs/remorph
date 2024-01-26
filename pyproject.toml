@@ -1,23 +1,13 @@
-[build-system]
-requires = ["hatchling"]
-build-backend = "hatchling.build"
-
-[tool.hatch.build]
-sources = ["src"]
-include = ["src"]
-
 [project]
 name = "databricks-labs-remorph"
-dynamic = ["version"]
-description = 'Code Transpiler and Data Reconcilation tool for Accelerating Data onboarding to Databricks from EDW, CDW and other ETL sources.'
+description = 'SQL code converter and data reconcilation tool for accelerating data onboarding to Databricks from EDW, CDW and other ETL sources.'
+license-files = { paths = ["LICENSE", "NOTICE"] }
+keywords = ["Databricks"]
 readme = "README.md"
 requires-python = ">=3.10"
-license = "MIT"
-keywords = []
-authors = [
-]
+dynamic = ["version"]
 classifiers = [
-  "Development Status :: 4 - Beta",
+  "Development Status :: 3 - Alpha",
   "Programming Language :: Python :: 3.10",
   "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: Implementation :: CPython",
@@ -25,13 +15,21 @@ classifiers = [
 dependencies = [
   "databricks-sdk~=0.18.0",
   "sqlglot==20.10.0",
-  "databricks-labs-blueprint"
+  "databricks-labs-blueprint~=0.1.0"
 ]
 
 [project.urls]
 Documentation = "https://github.com/databrickslabs/remorph"
 Issues = "https://github.com/databrickslabs/remorph/issues"
 Source = "https://github.com/databrickslabs/remorph"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build]
+sources = ["src"]
+include = ["src"]
 
 [tool.hatch.version]
 path = "src/databricks/labs/remorph/__about__.py"
@@ -51,16 +49,17 @@ dependencies = [
   "isort>=2.5.0",
   "databricks-connect",
 ]
+
 [tool.hatch.envs.default.scripts]
 test        = "pytest --cov src --cov-report=xml tests/unit"
 coverage    = "pytest --cov src tests/unit --cov-report=html"
 integration = "pytest --cov src tests/integration --durations 20"
 fmt         = ["isort .",
-  "black .",
-  "ruff  . --fix"]
+               "black .",
+               "ruff  . --fix"]
 verify      = ["black --check .",
-  "isort . --check-only",
-  "ruff ."]
+               "isort . --check-only",
+               "ruff ."]
 
 [tool.isort]
 skip_glob = ["notebooks/*.py"]
