@@ -1,10 +1,48 @@
+from unittest.mock import create_autospec
+
 import pytest
+from databricks.connect import DatabricksSession
+from databricks.sdk import WorkspaceClient
+from databricks.sdk.core import Config
+from databricks.sdk.service import iam
 from sqlglot import ErrorLevel, UnsupportedError
 from sqlglot import parse_one as sqlglot_parse_one
 from sqlglot import transpile
 
+from databricks.labs.remorph.config import MorphConfig
 from databricks.labs.remorph.snow.databricks import Databricks
 from databricks.labs.remorph.snow.snowflake import Snow
+
+
+@pytest.fixture(scope="session")
+def mock_spark_session():
+    spark = create_autospec(DatabricksSession)
+    yield spark
+
+
+@pytest.fixture(scope="session")
+def mock_databricks_config():
+    yield create_autospec(Config)
+
+
+@pytest.fixture(scope="session")
+def mock_workspace_client():
+    client = create_autospec(WorkspaceClient)
+    client.current_user.me = lambda: iam.User(user_name="remorph", groups=[iam.ComplexValue(display="admins")])
+    yield client
+
+
+@pytest.fixture(scope="session")
+def morph_config(mock_databricks_config):
+    yield MorphConfig(
+        sdk_config=mock_databricks_config,
+        source="snowflake",
+        input_sql="input_sql",
+        output_folder="output_folder",
+        skip_validation=False,
+        catalog_name="catalog",
+        schema_name="schema",
+    )
 
 
 def _normalize_string(s: str) -> str:

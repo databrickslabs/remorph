@@ -1,4 +1,6 @@
-# ![REMORPH by Dataricks Labs](docs/remorph-logo.png)
+Databricks Labs Remorph
+---
+![Databricks Labs Remorph](docs/remorph-logo.svg)
 
 -----
 
