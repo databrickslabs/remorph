@@ -20,8 +20,9 @@ def test_transpile_with_invalid_dialect(mock_workspace_client):
 
 
 def test_transpile_with_invalid_skip_validation(mock_workspace_client):
-    with patch("os.path.exists", return_value=True), pytest.raises(
-        Exception, match="Error: Invalid value for '--skip_validation'"
+    with (
+        patch("os.path.exists", return_value=True),
+        pytest.raises(Exception, match="Error: Invalid value for '--skip_validation'"),
     ):
         cli.transpile(
             mock_workspace_client,
@@ -35,8 +36,9 @@ def test_transpile_with_invalid_skip_validation(mock_workspace_client):
 
 
 def test_invalid_input_sql(mock_workspace_client):
-    with patch("os.path.exists", return_value=False), pytest.raises(
-        Exception, match="Error: Invalid value for '--input_sql'"
+    with (
+        patch("os.path.exists", return_value=False),
+        pytest.raises(Exception, match="Error: Invalid value for '--input_sql'"),
     ):
         cli.transpile(
             mock_workspace_client,
@@ -58,9 +60,10 @@ def test_transpile_with_valid_input(mock_workspace_client):
     schema_name = "my_schema"
     sdk_config = mock_workspace_client.config
 
-    with patch("os.path.exists", return_value=True), patch(
-        "databricks.labs.remorph.cli.morph", return_value={}
-    ) as mock_morph:
+    with (
+        patch("os.path.exists", return_value=True),
+        patch("databricks.labs.remorph.cli.morph", return_value={}) as mock_morph,
+    ):
         cli.transpile(
             mock_workspace_client,
             source,
@@ -92,9 +95,10 @@ def test_transpile_empty_output_folder(mock_workspace_client):
     schema_name = "my_schema"
     sdk_config = mock_workspace_client.config
 
-    with patch("os.path.exists", return_value=True), patch(
-        "databricks.labs.remorph.cli.morph", return_value={}
-    ) as mock_morph:
+    with (
+        patch("os.path.exists", return_value=True),
+        patch("databricks.labs.remorph.cli.morph", return_value={}) as mock_morph,
+    ):
         cli.transpile(
             mock_workspace_client,
             source,
@@ -155,8 +159,9 @@ def test_recon_with_invalid_source(mock_workspace_client):
     source = "invalid_source"
     report = "data"
 
-    with patch("os.path.exists", return_value=True), pytest.raises(
-        Exception, match="Error: Invalid value for '--source'"
+    with (
+        patch("os.path.exists", return_value=True),
+        pytest.raises(Exception, match="Error: Invalid value for '--source'"),
     ):
         cli.reconcile(mock_workspace_client, recon_conf, conn_profile, source, report)
 
@@ -167,8 +172,9 @@ def test_recon_with_invalid_report(mock_workspace_client):
     source = "snowflake"
     report = "invalid_report"
 
-    with patch("os.path.exists", return_value=True), pytest.raises(
-        Exception, match="Error: Invalid value for '--report'"
+    with (
+        patch("os.path.exists", return_value=True),
+        pytest.raises(Exception, match="Error: Invalid value for '--report'"),
     ):
         cli.reconcile(mock_workspace_client, recon_conf, conn_profile, source, report)
 
