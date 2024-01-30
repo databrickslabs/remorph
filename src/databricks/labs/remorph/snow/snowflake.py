@@ -316,6 +316,8 @@ class Snow(Snowflake):
             "TRY_TO_BOOLEAN": lambda args: _parse_to_boolean(args, error=False),
             "UUID_STRING": local_expression.UUID.from_arg_list,
             "SYSDATE": exp.CurrentTimestamp.from_arg_list,
+            "TRUNC": lambda args: local_expression.DateTrunc(unit=seq_get(args, 1), this=seq_get(args, 0)),
+            "APPROX_PERCENTILE": exp.ApproxQuantile.from_arg_list,
         }
 
         FUNCTION_PARSERS: ClassVar[dict] = {

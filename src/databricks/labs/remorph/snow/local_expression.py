@@ -118,3 +118,7 @@ class ToVariant(Func):
 
 class UUID(Func):
     arg_types: ClassVar[dict] = {"this": False, "name": False}
+
+
+class DateTrunc(Func):
+    arg_types: ClassVar[dict] = {"unit": False, "this": True, "zone": False}
