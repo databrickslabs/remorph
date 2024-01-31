@@ -1,5 +1,11 @@
 # Version changelog
 
+## 0.1.1
+
+* Added test_approx_percentile and test_trunc  Testcases ([#98](https://github.com/databrickslabs/remorph/pull/98)).
+* Updated contributing/developer guide ([#97](https://github.com/databrickslabs/remorph/pull/97)).
+
+
 ## 0.1.0
 
 * Added baseline for Databricks CLI frontend ([#60](https://github.com/databrickslabs/remorph/pull/60)).
