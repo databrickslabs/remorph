@@ -1507,7 +1507,6 @@ def test_replace(dialect_context):
     # It may be transpiled to DATE_TRUNK function in Databricks.
 
 
-@pytest.mark.skip(reason="Not implemented yet")
 def test_trunc(dialect_context):
     validate_source_transpile, validate_target_transpile = dialect_context
     # Test case to validate `trunc` conversion of column
@@ -1517,7 +1516,7 @@ def test_trunc(dialect_context):
             "snowflake": "SELECT trunc(col1, 'YEAR') AS trunc_col1 FROM tabl;",
         },
     )
-    with pytest.raises(ParseError):
+    with pytest.raises(UnsupportedError):
         # Test case to validate `trunc` conversion error:
         # UNIT is a mandatory argument: `trunc(expr, unit)`
         validate_source_transpile(
@@ -2374,7 +2373,6 @@ def test_log(dialect_context):
     )
 
 
-@pytest.mark.skip(reason="Not implemented yet")
 def test_approx_percentile(dialect_context):
     validate_source_transpile, validate_target_transpile = dialect_context
     # Test case to validate `approx_percentile` conversion of column

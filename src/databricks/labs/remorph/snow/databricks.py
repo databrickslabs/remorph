@@ -292,6 +292,13 @@ def _uuid(self: Databricks.Generator, expression: local_expression.UUID) -> str:
         return "UUID()"
 
 
+def _parse_date_trunc(self: Databricks.Generator, expression: local_expression.DateTrunc) -> str:
+    if not expression.args.get("unit"):
+        error_message = f"Required keyword: 'unit' missing for {exp.DateTrunc}"
+        raise UnsupportedError(error_message)
+    return self.func("TRUNC", expression.this, expression.args.get("unit"))
+
+
 class Databricks(Databricks):
     # Instantiate Databricks Dialect
     databricks = Databricks()
@@ -343,6 +350,8 @@ class Databricks(Databricks):
             exp.ToBase64: rename_func("BASE64"),
             local_expression.ToNumber: _to_number,
             local_expression.UUID: _uuid,
+            local_expression.DateTrunc: _parse_date_trunc,
+            exp.ApproxQuantile: rename_func("APPROX_PERCENTILE"),
         }
 
         def join_sql(self, expression: exp.Join) -> str:
