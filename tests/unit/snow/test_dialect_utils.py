@@ -12,8 +12,8 @@ def test_snow_query_with_no_unsupported_lca_usage():
     """
     filename = "test_file1.sql"
 
-    error_list = check_for_unsupported_lca(dialect, sql, filename)
-    assert not error_list
+    error = check_for_unsupported_lca(dialect, sql, filename)
+    assert not error
 
 
 def test_snow_query_with_lca_in_where():
@@ -28,8 +28,8 @@ def test_snow_query_with_lca_in_where():
     """
     filename = "test_file2.sql"
 
-    error_list = check_for_unsupported_lca(dialect, sql, filename)
-    assert error_list
+    error = check_for_unsupported_lca(dialect, sql, filename)
+    assert error
 
 
 def test_snow_query_with_lca_in_window():
@@ -44,8 +44,8 @@ def test_snow_query_with_lca_in_window():
     """
     filename = "test_file3.sql"
 
-    error_list = check_for_unsupported_lca(dialect, sql, filename)
-    assert error_list
+    error = check_for_unsupported_lca(dialect, sql, filename)
+    assert error
 
 
 def test_snow_query_with_error():
@@ -59,5 +59,5 @@ def test_snow_query_with_error():
     """
     filename = "test_file4.sql"
 
-    error_list = check_for_unsupported_lca(dialect, sql, filename)
-    assert error_list
+    error = check_for_unsupported_lca(dialect, sql, filename)
+    assert error
