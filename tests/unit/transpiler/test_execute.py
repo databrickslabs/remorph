@@ -148,7 +148,7 @@ def test_with_dir_skip_validation(initial_setup):
         assert stat["total_files_processed"] == 6, "total_files_processed does not match expected value"
         assert stat["total_queries_processed"] == 4, "total_queries_processed does not match expected value"
         assert (
-            stat["no_of_sql_failed_while_parsing"] == 3
+            stat["no_of_sql_failed_while_parsing"] == 1
         ), "no_of_sql_failed_while_parsing does not match expected value"
         assert (
             stat["no_of_sql_failed_while_validating"] == 0
@@ -203,7 +203,7 @@ def test_with_dir_with_output_folder_skip_validation(initial_setup):
         assert stat["total_files_processed"] == 6, "total_files_processed does not match expected value"
         assert stat["total_queries_processed"] == 4, "total_queries_processed does not match expected value"
         assert (
-            stat["no_of_sql_failed_while_parsing"] == 3
+            stat["no_of_sql_failed_while_parsing"] == 1
         ), "no_of_sql_failed_while_parsing does not match expected value"
         assert (
             stat["no_of_sql_failed_while_validating"] == 0
