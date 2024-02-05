@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 
+from databricks.labs.blueprint.entrypoint import get_logger
 from pyspark.sql import DataFrame, SparkSession
 
 from databricks.labs.remorph.reconcile.constants import Constants
@@ -9,7 +10,8 @@ from databricks.labs.remorph.reconcile.recon_config import (
     Tables,
     TransformRuleMapping,
 )
-from typing import List
+
+logger = get_logger(__file__)
 
 
 class SourceAdapter(ABC):
@@ -32,7 +34,7 @@ class SourceAdapter(ABC):
         return self.source_type.lower()
 
     @classmethod
-    def generate_hash_column(cls, column_expr: List[str], layer: str) -> str:
+    def generate_hash_column(cls, column_expr: list[str], layer: str) -> str:
         concat_columns = " || ".join(column_expr)
         hash_algo = Constants.hash_algorithm_mapping.get(cls.get_source_type).get(layer)
         return hash_algo.format(concat_columns)
@@ -42,22 +44,28 @@ class SourceAdapter(ABC):
         pass
 
     @abstractmethod
-    def extract_schema(self, database_conf: DatabaseConfig, table_conf: Tables) -> List[Schema]:
+    def extract_schema(self, database_conf: DatabaseConfig, table_conf: Tables) -> list[Schema]:
         pass
 
     @abstractmethod
-    def extract_databricks_schema(self, table_conf: Tables, table_name: str) -> List[Schema]:
+    def extract_databricks_schema(self, table_conf: Tables, table_name: str) -> list[Schema]:
         try:
             table_name = table_conf.target_name
-            databricks_table_schema_df = self.spark.sql(f"describe table {table_name}").where(
-                "col_name not like '#%'").distinct()
-            databricks_schema = [Schema(field.col_name.lower(), field.data_type.lower()) for field in
-                                 databricks_table_schema_df.collect()]
+            databricks_table_schema_df = (
+                self.spark.sql(f"describe table {table_name}").where("col_name not like '#%'").distinct()
+            )
+            databricks_schema = [
+                Schema(field.col_name.lower(), field.data_type.lower())
+                for field in databricks_table_schema_df.collect()
+            ]
             return databricks_schema
         except Exception as e:
-            message = (f"Exception in getting the schema for databricks table in "
-                       f"get_databricks_schema() {table_name} --> {e}")
-            raise Exception(message)
+            message = (
+                f"Exception in getting the schema for databricks table in "
+                f"get_databricks_schema() {table_name} --> {e}"
+            )
+            logger.error(message)
+            raise Exception(message) from e
 
     @abstractmethod
     def get_column_list_with_transformation(

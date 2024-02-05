@@ -10,6 +10,9 @@ from databricks.labs.remorph.reconcile.recon_config import (
 
 
 class DatabricksAdapter(SourceAdapter):
+    def extract_databricks_schema(self, table_conf: Tables, table_name: str) -> list[Schema]:
+        pass
+
     def get_column_list_with_transformation(
         self, table_conf: Tables, columns: list[str], layer: str
     ) -> list[TransformRuleMapping]:
