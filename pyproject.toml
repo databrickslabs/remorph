@@ -124,6 +124,7 @@ ignore = [
   # Ignore Exception must not use a string literal, assign to variable first
   "EM101",
   "PLR2004",
+  "UP007", # Allow use of Optional
 ]
 extend-exclude = [
   "notebooks/*.py"
@@ -139,7 +140,7 @@ ban-relative-imports = "all"
 
 "tests/**/*" = [
   "PLR2004", "S101", "TID252", # tests can use magic values, assertions, and relative imports
-  "ARG001" # tests may not use the provided fixtures
+  "ARG001", # tests may not use the provided fixtures
 ]
 
 [tool.coverage.run]
