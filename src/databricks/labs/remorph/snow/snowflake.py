@@ -77,7 +77,7 @@ def _parse_split_part(args: list) -> local_expression.SplitPart:
 def _div0null_to_if(args: list) -> exp.If:
     cond = exp.Or(
         this=exp.EQ(this=seq_get(args, 1), expression=exp.Literal.number(0)),
-        expression=exp.Is(this=seq_get(args, 1), expression=exp.NULL),
+        expression=exp.Is(this=seq_get(args, 1), expression=exp.Null()),
     )
     true = exp.Literal.number(0)
     false = exp.Div(this=seq_get(args, 0), expression=seq_get(args, 1))
