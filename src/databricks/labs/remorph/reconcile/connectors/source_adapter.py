@@ -9,6 +9,7 @@ from databricks.labs.remorph.reconcile.recon_config import (
     Tables,
     TransformRuleMapping,
 )
+from typing import List
 
 
 class SourceAdapter(ABC):
@@ -31,7 +32,7 @@ class SourceAdapter(ABC):
         return self.source_type.lower()
 
     @classmethod
-    def generate_hash_column(cls, column_expr: list[str], layer: str) -> str:
+    def generate_hash_column(cls, column_expr: List[str], layer: str) -> str:
         concat_columns = " || ".join(column_expr)
         hash_algo = Constants.hash_algorithm_mapping.get(cls.get_source_type).get(layer)
         return hash_algo.format(concat_columns)
@@ -41,8 +42,22 @@ class SourceAdapter(ABC):
         pass
 
     @abstractmethod
-    def extract_schema(self, database_conf: DatabaseConfig, table_conf: Tables) -> list[Schema]:
+    def extract_schema(self, database_conf: DatabaseConfig, table_conf: Tables) -> List[Schema]:
         pass
+
+    @abstractmethod
+    def extract_databricks_schema(self, table_conf: Tables, table_name: str) -> List[Schema]:
+        try:
+            table_name = table_conf.target_name
+            databricks_table_schema_df = self.spark.sql(f"describe table {table_name}").where(
+                "col_name not like '#%'").distinct()
+            databricks_schema = [Schema(field.col_name.lower(), field.data_type.lower()) for field in
+                                 databricks_table_schema_df.collect()]
+            return databricks_schema
+        except Exception as e:
+            message = (f"Exception in getting the schema for databricks table in "
+                       f"get_databricks_schema() {table_name} --> {e}")
+            raise Exception(message)
 
     @abstractmethod
     def get_column_list_with_transformation(
