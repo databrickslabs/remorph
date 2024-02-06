@@ -13,20 +13,19 @@ from databricks.sdk import WorkspaceClient
 from databricks.sdk.errors import NotFound
 
 from databricks.labs.remorph.__about__ import __version__
-from databricks.labs.remorph.cli import raise_validation_exception
 from databricks.labs.remorph.config import MorphConfig
 
 DEBUG_NOTEBOOK = """# Databricks notebook source
 # MAGIC %md
 # MAGIC # Debug companion for Remorph installation (see [README]({readme_link}))
 # MAGIC
-# MAGIC Production runs are supposed to be triggered through the following jobs: {job_links}
+# MAGIC Production runs are supposed to be triggered through the following jobs:
 # MAGIC
 # MAGIC **This notebook is overwritten with each Remorph update/(re)install.**
 
 # COMMAND ----------
 
-# MAGIC %pip install /Workspace{remote_wheel}
+# MAGIC %pip install /Workspace/remote_wheel
 dbutils.library.restartPython()
 
 # COMMAND ----------
@@ -60,6 +59,7 @@ class WorkspaceInstaller:
         self._ws = ws
         self._installation = installation
         self._prompts = prompts
+        self._catalog_setup = CatalogSetup(ws)
 
     def run(self):
         logger.info(f"Installing Remorph v{PRODUCT_INFO.version()}")
@@ -83,16 +83,6 @@ class WorkspaceInstaller:
         source_prompt = self._prompts.choice("Select a source", ["snowflake", "tsql"])
         source = source_prompt.lower()
 
-        input_sql = self._prompts.question("Enter input_sql path")
-
-        if not os.path.exists(input_sql) or input_sql in (None, ""):
-            raise_validation_exception(f"Error: Invalid value for '--input_sql': Path '{input_sql}' does not exist.")
-
-        output_folder = self._prompts.question("Enter output_folder path", default="")
-
-        if output_folder == "":
-            output_folder = None
-
         skip_validation_str = self._prompts.choice_from_dict(
             "Do you want to Skip Validation", {"Yes": "true", "No": "false"}
         )
@@ -100,12 +90,36 @@ class WorkspaceInstaller:
 
         catalog_name = self._prompts.question("Enter catalog_name")
 
+        if not self._catalog_setup.get(catalog_name):
+            allow_catalog_creation = self._prompts.question(
+                f"""Catalog {catalog_name} not found.\
+                                                                Do you want to create a new one?"""
+            )
+            if allow_catalog_creation:
+                self._catalog_setup.create(catalog_name)
+            else:
+                msg = "Catalog is needed to setup Remorph"
+                raise SystemExit(msg)
+
+        schema_name = self._prompts.question("Enter schema_name")
+
+        if not self._catalog_setup.get_schema(f"{catalog_name}.{schema_name}"):
+            allow_schema_creation = self._prompts.question(
+                f"""Schema {schema_name} not found in Catalog {catalog_name}\
+                                                                Do you want to create a new one?"""
+            )
+            if allow_schema_creation:
+                self._catalog_setup.create_schema(schema_name, catalog_name)
+            else:
+                msg = "Schema is needed to setup Remorph"
+                raise SystemExit(msg)
+
         schema_name = self._prompts.question("Enter schema_name")
 
         config = MorphConfig(
             source=source,
-            input_sql=input_sql,
-            output_folder=output_folder,
+            input_sql=None,
+            output_folder=None,
             skip_validation=skip_validation,
             catalog_name=catalog_name,
             schema_name=schema_name,
@@ -167,15 +181,9 @@ class WorkspaceInstallation:
         prefix = os.path.basename(self._installation.install_folder()).removeprefix(".")
         return f"[{prefix.upper()}] {name}"
 
-    def _create_debug(self, remote_wheel: str):
+    def _create_debug(self):
         readme_link = self._installation.workspace_link("README")
-        job_links = ", ".join(
-            f"[{self._name(step_name)}]({self._ws.config.host}#job/{job_id})"
-            for step_name, job_id in self._state.jobs.items()
-        )
-        content = DEBUG_NOTEBOOK.format(
-            remote_wheel=remote_wheel, readme_link=readme_link, job_links=job_links, config_file=self._config_file
-        ).encode("utf8")
+        content = DEBUG_NOTEBOOK.format(readme_link=readme_link, config_file=self._config_file).encode("utf8")
         self._installation.upload("DEBUG.py", content)
 
     def uninstall(self):
@@ -192,6 +200,43 @@ class WorkspaceInstallation:
             return
         self._installation.remove()
         logger.info("UnInstalling Remorph complete")
+
+
+class CatalogSetup:
+    def __init__(self, ws: WorkspaceClient):
+        self._ws = ws
+
+    def create(self, name: str):
+        logger.debug(f"Creating Catalog {name}")
+        catalog_info = self._ws.catalogs.create(name, comment="Created as part of Remorph setup")
+        logger.info(f"Catalog {name} created")
+        return catalog_info
+
+    def get(self, name: str):
+        try:
+            logger.debug(f"Searching for Catalog {name}")
+            catalog_info = self._ws.catalogs.get(name)
+            logger.info(f"Catalog {name} found")
+            return catalog_info.name
+        except NotFound as err:
+            logger.error(f"Cannot find Catalog: {err}")
+            return None
+
+    def create_schema(self, name: str, catalog_name: str):
+        logger.debug(f"Creating Schema {name} in Catalog {catalog_name}")
+        schema_info = self._ws.schemas.create(name, catalog_name, comment="Created as part of Remorph setup")
+        logger.info(f"Created Schema {name} in Catalog {catalog_name}")
+        return schema_info
+
+    def get_schema(self, name: str):
+        try:
+            logger.debug(f"Searching for Schema {name}")
+            schema_info = self._ws.schemas.get(name)
+            logger.info(f"Schema {name} found")
+            return schema_info.name
+        except NotFound as err:
+            logger.error(f"Cannot find Schema: {err}")
+            return None
 
 
 if __name__ == "__main__":

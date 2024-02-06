@@ -12,7 +12,7 @@ class MorphConfig:
     __version__ = 2
 
     source: str
-    input_sql: str
+    input_sql: str | None
     output_folder: str | None
     sdk_config: Config | None
     skip_validation: bool = False
