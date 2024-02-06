@@ -4,6 +4,7 @@ import webbrowser
 from datetime import timedelta
 from pathlib import Path
 
+from databricks.labs.blueprint.entrypoint import get_logger
 from databricks.labs.blueprint.installation import Installation
 from databricks.labs.blueprint.installer import InstallState
 from databricks.labs.blueprint.tui import Prompts
@@ -11,6 +12,7 @@ from databricks.labs.blueprint.wheels import ProductInfo
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.errors import NotFound
 
+from databricks.labs.remorph.__about__ import __version__
 from databricks.labs.remorph.cli import raise_validation_exception
 from databricks.labs.remorph.config import MorphConfig
 
@@ -190,3 +192,13 @@ class WorkspaceInstallation:
             return
         self._installation.remove()
         logger.info("UnInstalling Remorph complete")
+
+
+if __name__ == "__main__":
+    logger = get_logger(__file__)
+    logger.setLevel("INFO")
+
+    workspace_client = WorkspaceClient(product="remorph", product_version=__version__)
+    current = Installation(workspace_client, PRODUCT_INFO.product_name())
+    installer = WorkspaceInstaller(Prompts(), current, workspace_client)
+    installer.run()
