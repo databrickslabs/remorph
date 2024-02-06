@@ -118,4 +118,4 @@ def test_snow_query_with_error():
     filename = "test_file4.sql"
 
     error = check_for_unsupported_lca(dialect, sql, filename)
-    assert error
+    assert not error

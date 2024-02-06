@@ -1,11 +1,14 @@
+from databricks.labs.blueprint.entrypoint import get_logger
 from sqlglot import ErrorLevel, exp, parse
 from sqlglot.expressions import Expression, Select
 
-from databricks.labs.remorph.helpers.morph_status import ParseError, ValidationError
+from databricks.labs.remorph.helpers.morph_status import ValidationError
 from databricks.labs.remorph.snow.snowflake import Snow
 
+logger = get_logger(__file__)
 
-def find_windows_in_select(select: Select):
+
+def find_windows_in_select(select: Select) -> list[exp.Window]:
     window_expressions = []
     for expr in select.expressions:
         window_expr = expr.find(exp.Window)
@@ -18,7 +21,7 @@ def check_for_unsupported_lca(
     dialect: str,
     sql: str,
     filename: str,
-) -> ValidationError | ParseError | None:
+) -> ValidationError | None:
     """
     Check for presence of unsupported lateral column aliases in window expressions and where clauses
     :return: An error if found
@@ -29,39 +32,55 @@ def check_for_unsupported_lca(
     try:
         parsed_expr = parse(sql, read=dialect, error_level=ErrorLevel.RAISE)
     except Exception as e:
-        return ParseError(filename, f"Error while preprocessing {filename}: {e}")
+        logger.warning(f"Error while preprocessing {filename}: {e}")
+        return None
 
-    erroneous_aliases = set()
+    aliases_in_where = set()
+    aliases_in_window = set()
+
     for expr in parsed_expr:
         if expr:
             for select in expr.find_all(exp.Select, bfs=False):
-                erroneous_aliases.update(_find_invalid_lca_in_select(select))
-    if erroneous_aliases:
-        err_message = (
-            f"Unsupported operation found in file {filename}. "
-            f"Lateral column aliases `{', '.join(erroneous_aliases)}` found in "
-            f"window expression or where clause. Needs manual review of transpiled query."
-        )
-        return ValidationError(filename, err_message)
-    else:
+                alias_names = {alias.output_name for alias in select.expressions if isinstance(alias, exp.Alias)}
+                aliases_in_where.update(_find_invalid_lca_in_where(select, alias_names))
+                aliases_in_window.update(_find_invalid_lca_in_window(select, alias_names))
+
+    if not (aliases_in_where or aliases_in_window):
         return None
 
+    err_messages = [f"Unsupported operation found in file {filename}. Needs manual review of transpiled query."]
+    if aliases_in_where:
+        err_messages.append(f"Lateral column aliases `{', '.join(aliases_in_where)}` found in where clause.")
 
-def _find_invalid_lca_in_select(
+    if aliases_in_window:
+        err_messages.append(f"Lateral column aliases `{', '.join(aliases_in_window)}` found in window expressions.")
+
+    return ValidationError(filename, " ".join(err_messages))
+
+
+def _find_invalid_lca_in_where(
     select_expr: Select,
+    aliases: set[str],
 ) -> set[str]:
-    erroneous_aliases = set()
-    aliases = {alias.output_name for alias in select_expr.expressions if isinstance(alias, exp.Alias)}
+    aliases_in_where = set()
     where_ast: Expression = select_expr.args.get("where")
     if where_ast:
         for column in where_ast.find_all(exp.Column):
             if column.name in aliases:
-                erroneous_aliases.add(column.name)
+                aliases_in_where.add(column.name)
 
+    return aliases_in_where
+
+
+def _find_invalid_lca_in_window(
+    select_expr: Select,
+    aliases: set[str],
+) -> set[str]:
+    aliases_in_window = set()
     windows = find_windows_in_select(select_expr)
     for window in windows:
         for column in window.find_all(exp.Column):
             if column.name in aliases:
-                erroneous_aliases.add(column.name)
+                aliases_in_window.add(column.name)
 
-    return erroneous_aliases
+    return aliases_in_window
