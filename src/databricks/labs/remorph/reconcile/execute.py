@@ -20,4 +20,5 @@ def recon(recon_conf, conn_profile, source, report):
     table_recon = TableRecon.from_dict(data)
 
     logger.info(table_recon)
+    # TODO: Implement the rest of the function
     pass

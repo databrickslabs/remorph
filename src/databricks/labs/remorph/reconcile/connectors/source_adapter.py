@@ -93,6 +93,7 @@ class SourceAdapter(ABC):
     def extract_databricks_schema(self, table_conf: Tables, table_name: str) -> list[Schema]:
         try:
             table_name = table_conf.target_name
+            # [TODO] - We should eventually switch to Unity Catalog
             databricks_table_schema_df = (
                 self.spark.sql(f"describe table {table_name}").where("col_name not like '#%'").distinct()
             )
