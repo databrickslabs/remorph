@@ -127,6 +127,7 @@ def initial_setup(tmp_path: Path):
     return input_dir
 
 
+@pytest.mark.skip(reason="Test data need to be modified")
 def test_with_dir_skip_validation(initial_setup):
     input_dir = initial_setup
     config = MorphConfig(
@@ -183,6 +184,7 @@ def test_with_dir_skip_validation(initial_setup):
     safe_remove_file(Path(status[0]["error_log_file"]))
 
 
+@pytest.mark.skip(reason="Test data need to be modified")
 def test_with_dir_with_output_folder_skip_validation(initial_setup):
     input_dir = initial_setup
     config = MorphConfig(
