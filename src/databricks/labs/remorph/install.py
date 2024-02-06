@@ -80,7 +80,7 @@ class WorkspaceInstaller:
             logger.debug(f"Cannot find previous installation: {err}")
         logger.info("Please answer a couple of questions to configure Remorph")
 
-        source_prompt = self._prompts.choice("Select a source", ["snowflake", "tsql"])
+        source_prompt = self._prompts.choice("Select the source", ["snowflake", "tsql"])
         source = source_prompt.lower()
 
         skip_validation_str = self._prompts.choice_from_dict(
@@ -93,7 +93,7 @@ class WorkspaceInstaller:
         if not self._catalog_setup.get(catalog_name):
             allow_catalog_creation = self._prompts.question(
                 f"""Catalog {catalog_name} not found.\
-                                                                Do you want to create a new one?"""
+                    \nDo you want to create a new one?"""
             )
             if allow_catalog_creation:
                 self._catalog_setup.create(catalog_name)
@@ -106,15 +106,13 @@ class WorkspaceInstaller:
         if not self._catalog_setup.get_schema(f"{catalog_name}.{schema_name}"):
             allow_schema_creation = self._prompts.question(
                 f"""Schema {schema_name} not found in Catalog {catalog_name}\
-                                                                Do you want to create a new one?"""
+                    \nDo you want to create a new one?"""
             )
             if allow_schema_creation:
                 self._catalog_setup.create_schema(schema_name, catalog_name)
             else:
                 msg = "Schema is needed to setup Remorph"
                 raise SystemExit(msg)
-
-        schema_name = self._prompts.question("Enter schema_name")
 
         config = MorphConfig(
             source=source,
