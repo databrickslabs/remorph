@@ -9,40 +9,42 @@ def check_for_unsupported_lca(
     dialect: str,
     sql: str,
     filename: str,
-) -> list[ValidationError | ParseError]:
+) -> ValidationError | ParseError | None:
     """
     Check for presence of unsupported lateral column aliases in window expressions and where clauses
     :return: A list of errors if found
     """
-    error_list = []
-
     if dialect.upper() == "SNOWFLAKE":
         dialect = Snow
+
     try:
-        for expr in parse(sql, read=dialect, error_level=ErrorLevel.RAISE):
-            if expr:
-                for select in expr.find_all(exp.Select):
-                    error_list.extend(_check_lca_usage_in_select(select, filename))
+        parsed_expr = parse(sql, read=dialect, error_level=ErrorLevel.RAISE)
     except Exception as e:
-        error_list.append(ParseError(filename, f"Error while preprocessing {filename}: {e}"))
+        return ParseError(filename, f"Error while preprocessing {filename}: {e}")
 
-    return error_list
+    erroneous_aliases = set()
+    for expr in parsed_expr:
+        if expr:
+            for select in expr.find_all(exp.Select):
+                erroneous_aliases.update(_find_invalid_lca_in_select(select))
+    if erroneous_aliases:
+        err_message = (
+            f"Unsupported operation found in file {filename}. "
+            f"Lateral column aliases `{', '.join(erroneous_aliases)}` found in "
+            f"window expression or where clause. Needs manual review."
+        )
+        return ValidationError(filename, err_message)
+    else:
+        return None
 
 
-def _check_lca_usage_in_select(
+def _find_invalid_lca_in_select(
     select: Expression,
-    filename: str,
-) -> list[ValidationError]:
-    error_list = []
+) -> list[str]:
+    erroneous_alias_list = []
     alias_names = {alias.output_name for alias in select.find_all(exp.Alias)}
     for child in select.find_all(exp.Window, exp.Where):
         for column in child.find_all(exp.Column):
             if column.name in alias_names:
-                err_message = (
-                    f"Unsupported operation found in file {filename}. "
-                    f"Lateral column alias `{column.name}` found in window expression or where clause. "
-                    "Needs manual review."
-                )
-                error_list.append(ValidationError(filename, err_message))
-
-    return error_list
+                erroneous_alias_list.append(column.name)
+    return erroneous_alias_list
