@@ -8,6 +8,9 @@ logger = get_logger(__file__)
 
 @dataclass
 class MorphConfig:
+    __file__ = "config.yml"
+    __version__ = 2
+
     source: str
     input_sql: str
     output_folder: str | None
