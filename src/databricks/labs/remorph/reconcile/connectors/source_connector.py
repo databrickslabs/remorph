@@ -14,7 +14,7 @@ from databricks.labs.remorph.reconcile.constants import SourceType
 
 class SourceAdapterFactory:
     @staticmethod
-    def create_adapter(source_type: str, spark: SparkSession, connection_params: dict[str, str]) -> SourceAdapter:
+    def create(source_type: str, spark: SparkSession, connection_params: dict[str, str]) -> SourceAdapter:
 
         match source_type.lower():
             case SourceType.NETEZZA.value:
