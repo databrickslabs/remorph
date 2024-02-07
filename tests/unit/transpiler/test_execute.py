@@ -109,7 +109,7 @@ def initial_setup(tmp_path: Path):
             ,sat_sales sat_sales2
       from wswscs
           ,date_dim
-      where date_dim.d_week_seq = wswscs.d_week_seq and
+      where date_dim.d_week_seq = wswscs.d_week_seq2 and
             d_year = 2001+1) z
      where d_week_seq1=d_week_seq2-53
      order by d_week_seq1;
@@ -139,7 +139,6 @@ def test_with_dir_skip_validation(initial_setup):
 
     # call morph
     status = morph(config)
-
     # assert the status
     assert status is not None, "Status returned by morph function is None"
     assert isinstance(status, list), "Status returned by morph function is not a list"
@@ -148,10 +147,10 @@ def test_with_dir_skip_validation(initial_setup):
         assert stat["total_files_processed"] == 6, "total_files_processed does not match expected value"
         assert stat["total_queries_processed"] == 4, "total_queries_processed does not match expected value"
         assert (
-            stat["no_of_sql_failed_while_parsing"] == 1
+            stat["no_of_sql_failed_while_parsing"] == 0
         ), "no_of_sql_failed_while_parsing does not match expected value"
         assert (
-            stat["no_of_sql_failed_while_validating"] == 0
+            stat["no_of_sql_failed_while_validating"] == 1
         ), "no_of_sql_failed_while_validating does not match expected value"
         assert stat["error_log_file"], "error_log_file is None or empty"
         assert Path(stat["error_log_file"]).name.startswith("err_") and Path(stat["error_log_file"]).name.endswith(
@@ -194,7 +193,6 @@ def test_with_dir_with_output_folder_skip_validation(initial_setup):
     )
 
     status = morph(config)
-
     # assert the status
     assert status is not None, "Status returned by morph function is None"
     assert isinstance(status, list), "Status returned by morph function is not a list"
@@ -203,10 +201,10 @@ def test_with_dir_with_output_folder_skip_validation(initial_setup):
         assert stat["total_files_processed"] == 6, "total_files_processed does not match expected value"
         assert stat["total_queries_processed"] == 4, "total_queries_processed does not match expected value"
         assert (
-            stat["no_of_sql_failed_while_parsing"] == 1
+            stat["no_of_sql_failed_while_parsing"] == 0
         ), "no_of_sql_failed_while_parsing does not match expected value"
         assert (
-            stat["no_of_sql_failed_while_validating"] == 0
+            stat["no_of_sql_failed_while_validating"] == 1
         ), "no_of_sql_failed_while_validating does not match expected value"
         assert stat["error_log_file"], "error_log_file is None or empty"
         assert Path(stat["error_log_file"]).name.startswith("err_") and Path(stat["error_log_file"]).name.endswith(
