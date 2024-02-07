@@ -1,5 +1,15 @@
 # Version changelog
 
+## 0.1.2
+
+* Fixed duplicate LCA warnings ([#108](https://github.com/databrickslabs/remorph/pull/108)).
+* Fixed invalid flagging of LCA usage ([#117](https://github.com/databrickslabs/remorph/pull/117)).
+
+Dependency updates:
+
+ * Bump sqlglot from 20.10.0 to 20.11.0 ([#95](https://github.com/databrickslabs/remorph/pull/95)).
+ * Bump sqlglot from 20.11.0 to 21.0.0 ([#122](https://github.com/databrickslabs/remorph/pull/122)).
+
 ## 0.1.1
 
 * Added test_approx_percentile and test_trunc  Testcases ([#98](https://github.com/databrickslabs/remorph/pull/98)).
