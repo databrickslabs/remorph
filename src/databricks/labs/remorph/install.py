@@ -15,37 +15,6 @@ from databricks.sdk.errors import NotFound
 from databricks.labs.remorph.__about__ import __version__
 from databricks.labs.remorph.config import MorphConfig
 
-DEBUG_NOTEBOOK = """# Databricks notebook source
-# MAGIC %md
-# MAGIC # Debug companion for Remorph installation (see [README]({readme_link}))
-# MAGIC
-# MAGIC Production runs are supposed to be triggered through the following jobs:
-# MAGIC
-# MAGIC **This notebook is overwritten with each Remorph update/(re)install.**
-
-# COMMAND ----------
-
-# MAGIC %pip install /Workspace/remote_wheel
-dbutils.library.restartPython()
-
-# COMMAND ----------
-
-import logging
-from pathlib import Path
-from databricks.labs.blueprint.logger import install_logger
-from databricks.labs.remorph.__about__ import __version__
-from databricks.labs.remorph.config import WorkspaceConfig
-from databricks.sdk import WorkspaceClient
-
-install_logger()
-logging.getLogger("databricks").setLevel("DEBUG")
-
-cfg = WorkspaceConfig.from_file(Path("/Workspace{config_file}"))
-ws = WorkspaceClient()
-
-print(__version__)
-"""
-
 logger = logging.getLogger(__name__)
 
 PRODUCT_INFO = ProductInfo(__file__)
@@ -116,12 +85,10 @@ class WorkspaceInstaller:
 
         config = MorphConfig(
             source=source,
-            input_sql=None,
-            output_folder=None,
             skip_validation=skip_validation,
             catalog_name=catalog_name,
             schema_name=schema_name,
-            sdk_config=self._ws.config,
+            sdk_config=None,
         )
 
         ws_file_url = self._installation.save(config)
@@ -165,7 +132,8 @@ class WorkspaceInstallation:
 
     def run(self):
         logger.info(f"Installing Remorph v{PRODUCT_INFO.version()}")
-        self._create_debug()
+        self._installation.save(self._config)
+        self._state.save()
         logger.info("Installation completed successfully! Please refer to the  for the next steps.")
 
     def config_file_link(self):
@@ -178,11 +146,6 @@ class WorkspaceInstallation:
     def _name(self, name: str) -> str:
         prefix = os.path.basename(self._installation.install_folder()).removeprefix(".")
         return f"[{prefix.upper()}] {name}"
-
-    def _create_debug(self):
-        readme_link = self._installation.workspace_link("README")
-        content = DEBUG_NOTEBOOK.format(readme_link=readme_link, config_file=self._config_file).encode("utf8")
-        self._installation.upload("DEBUG.py", content)
 
     def uninstall(self):
         if self._prompts and not self._prompts.confirm(
