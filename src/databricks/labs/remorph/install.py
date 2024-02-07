@@ -99,12 +99,12 @@ class WorkspaceInstaller:
 
 class WorkspaceInstallation:
     def __init__(
-        self,
-        config: MorphConfig,
-        installation: Installation,
-        ws: WorkspaceClient,
-        prompts: Prompts,
-        verify_timeout: timedelta,
+            self,
+            config: MorphConfig,
+            installation: Installation,
+            ws: WorkspaceClient,
+            prompts: Prompts,
+            verify_timeout: timedelta,
     ):
         self._config = config
         self._installation = installation
@@ -149,7 +149,7 @@ class WorkspaceInstallation:
 
     def uninstall(self):
         if self._prompts and not self._prompts.confirm(
-            "Do you want to uninstall remorph from the workspace too, this would remove remorph project folder"
+                "Do you want to uninstall remorph from the workspace too, this would remove remorph project folder"
         ):
             return
         # TODO: this is incorrect, fetch the remote version (that appeared only in Feb 2024)
