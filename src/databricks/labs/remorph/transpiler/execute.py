@@ -35,7 +35,7 @@ def process_file(config: MorphConfig, input_file: str | Path, output_file: str |
 
     lca_error = dialect_utils.check_for_unsupported_lca(source, sql, str(input_file))
     if lca_error:
-        parse_error_list.append(lca_error)
+        validate_error_list.append(lca_error)
     transpiler = SQLTranspiler(source, sql, str(input_file), parse_error_list)
     transpiled_sql = transpiler.transpile()
 
