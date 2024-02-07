@@ -68,10 +68,6 @@ def _format_create_sql(self, expression: exp.Create) -> str:
     return hive._create_sql(self, expression)
 
 
-def _curr_ts():
-    return "CURRENT_TIMESTAMP()"
-
-
 def _curr_time():
     return "date_format(current_timestamp(), 'HH:mm:ss')"
 
@@ -323,7 +319,6 @@ class Databricks(Databricks):
             # exp.Select: transforms.preprocess([_unqualify_unnest]),
             exp.Create: _format_create_sql,
             exp.DataType: _datatype_map,
-            exp.CurrentTimestamp: _curr_ts(),
             exp.CurrentTime: _curr_time(),
             exp.Lateral: _lateral_view,
             exp.GroupConcat: _list_agg,
@@ -547,3 +542,6 @@ class Databricks(Databricks):
             if command in filtered_commands and obj in ignored_objects:
                 return ""
             return f"{command} {expr}"
+
+        def currenttimestamp_sql(self, _: exp.CurrentTimestamp) -> str:
+            return self.func("CURRENT_TIMESTAMP")
