@@ -133,7 +133,6 @@ class WorkspaceInstallation:
     def run(self):
         logger.info(f"Installing Remorph v{PRODUCT_INFO.version()}")
         self._installation.save(self._config)
-        self._state.save()
         logger.info("Installation completed successfully! Please refer to the  for the next steps.")
 
     def config_file_link(self):
