@@ -318,6 +318,7 @@ class Snow(Snowflake):
             "SYSDATE": exp.CurrentTimestamp.from_arg_list,
             "TRUNC": lambda args: local_expression.DateTrunc(unit=seq_get(args, 1), this=seq_get(args, 0)),
             "APPROX_PERCENTILE": exp.ApproxQuantile.from_arg_list,
+            "NTH_VALUE": local_expression.NthValue.from_arg_list,
         }
 
         FUNCTION_PARSERS: ClassVar[dict] = {
