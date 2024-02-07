@@ -24,6 +24,7 @@ def transpile(
     input_sql: str,
     output_folder: str,
     skip_validation: str,
+    #serverless: str, 
     catalog_name: str,
     schema_name: str,
 ):
@@ -48,6 +49,7 @@ def transpile(
         input_sql=input_sql,
         output_folder=output_folder,
         skip_validation=skip_validation.lower() == "true",  # convert to bool
+        serverless=serverless.lower() == "true", 
         catalog_name=catalog_name,
         schema_name=schema_name,
         sdk_config=w.config,

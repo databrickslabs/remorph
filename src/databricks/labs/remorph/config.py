@@ -13,12 +13,13 @@ class MorphConfig:
     output_folder: str | None
     sdk_config: Config | None
     skip_validation: bool = False
+    serverless: bool = False 
     catalog_name: str = "transpiler_test"
     schema_name: str = "convertor_test"
 
     def __post_init__(self):
         # skip validation is false
         if not self.skip_validation:
-            if self.sdk_config is None:
+            if not self.serverless and self.sdk_config is None:
                 logger.error("sdk config is required when skip_validation is false")
                 raise ValueError("sdk config is required when skip_validation is false")

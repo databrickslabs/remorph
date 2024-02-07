@@ -22,6 +22,7 @@ logger = get_logger(__file__)
 def process_file(config: MorphConfig, input_file: str | Path, output_file: str | Path):
     source = config.source
     skip_validation = config.skip_validation
+    serverless = config.serverless 
 
     parse_error_list = []
     validate_error_list = []
@@ -47,11 +48,14 @@ def process_file(config: MorphConfig, input_file: str | Path, output_file: str |
                     w.write(output)
                     w.write("\n;\n")
                 else:
-                    validate = Validate(config.sdk_config)
-                    output_string, exception = validate.validate_format_result(config, output)
-                    w.write(output_string)
-                    if exception is not None:
-                        validate_error_list.append(ValidationError(str(input_file), exception))
+                    if serverless: 
+                        pass 
+                    else : 
+                        validate = Validate(config.sdk_config)
+                        output_string, exception = validate.validate_format_result(config, output)
+                        w.write(output_string)
+                        if exception is not None:
+                            validate_error_list.append(ValidationError(str(input_file), exception))
             else:
                 warning_message = (
                     f"Skipped a query from file {input_file!s}. "

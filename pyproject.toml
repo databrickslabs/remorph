@@ -48,6 +48,7 @@ dependencies = [
   "ruff>=0.0.243",
   "isort>=2.5.0",
   "databricks-connect",
+  "databricks-sql-connector>=3.0.3" 
 ]
 
 [tool.hatch.envs.default.scripts]
