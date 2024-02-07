@@ -1,7 +1,7 @@
 from databricks.labs.remorph.snow.dialect_utils import check_for_unsupported_lca
 
 
-def test_snow_query_with_no_unsupported_lca_usage():
+def test_query_with_no_unsupported_lca_usage():
     dialect = "SNOWFLAKE"
     sql = """
         SELECT
@@ -16,7 +16,7 @@ def test_snow_query_with_no_unsupported_lca_usage():
     assert not error
 
 
-def test_snow_query_with_valid_alias_usage():
+def test_query_with_valid_alias_usage():
     dialect = "SNOWFLAKE"
     sql = """
         WITH web_v1 as (
@@ -74,7 +74,7 @@ def test_snow_query_with_valid_alias_usage():
     assert not error
 
 
-def test_snow_query_with_lca_in_where():
+def test_query_with_lca_in_where():
     dialect = "SNOWFLAKE"
     sql = """
         SELECT
@@ -90,7 +90,7 @@ def test_snow_query_with_lca_in_where():
     assert error
 
 
-def test_snow_query_with_lca_in_window():
+def test_query_with_lca_in_window():
     dialect = "SNOWFLAKE"
     sql = """
         SELECT
@@ -106,7 +106,7 @@ def test_snow_query_with_lca_in_window():
     assert error
 
 
-def test_snow_query_with_error():
+def test_query_with_error():
     dialect = "SNOWFLAKE"
     sql = """
         SELECT

@@ -193,7 +193,6 @@ def test_with_dir_with_output_folder_skip_validation(initial_setup):
     )
 
     status = morph(config)
-    print(status)
     # assert the status
     assert status is not None, "Status returned by morph function is None"
     assert isinstance(status, list), "Status returned by morph function is not a list"
