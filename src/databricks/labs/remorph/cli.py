@@ -24,7 +24,7 @@ def transpile(
     input_sql: str,
     output_folder: str,
     skip_validation: str,
-    #serverless: str, 
+    serverless: str, 
     catalog_name: str,
     schema_name: str,
 ):

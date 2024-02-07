@@ -21,6 +21,9 @@ commands:
       - name: skip-validation
         default: true
         description: Validate Transpiled Code, default True validation skipped, False validate
+      - name: serverless 
+        default: false 
+        description: Use a Serverless SQL Warehouse for validation
       - name: catalog-name
         default: transpiler_test
         description: Catalog Name Applicable only when Validation Mode is DATABRICKS
