@@ -71,6 +71,7 @@ def process_directory(config: MorphConfig, root: str | Path, base_root: str, fil
     root = Path(root)
 
     for file in files:
+        logger.debug(f"Processing file :{file}")
         if is_sql_file(file):
             if output_folder in (None, "None"):
                 output_folder_base = root / "transpiled"
@@ -80,9 +81,7 @@ def process_directory(config: MorphConfig, root: str | Path, base_root: str, fil
             output_file_name = Path(output_folder_base) / Path(file).name
             make_dir(output_folder_base)
 
-            input_file = root / file
-
-            no_of_sqls, parse_error, validation_error = process_file(config, input_file, output_file_name)
+            no_of_sqls, parse_error, validation_error = process_file(config, file, output_file_name)
             counter = counter + no_of_sqls
             parse_error_list.extend(parse_error)
             validate_error_list.extend(validation_error)
