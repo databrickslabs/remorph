@@ -47,15 +47,17 @@ def transpile(
         )
 
     # check to see if the warehouse exists 
-    # TODO get the warehouse ID from an environment variable 
     if serverless: 
-        warehouse_id = '005627dec4483582'
+        try: 
+            warehouse_id = os.envrion['DATABRICKS_WAREHOUSE_ID']
+        except KeyError as e: 
+            logger.error("Unable to find Warehouse ID. Please set the environment variable DATABRICKS_WAREHOUSE_ID.")
 
         try: 
             w.warehouses.get(id=warehouse_id)
         except ResourceDoesNotExist as e: 
             # TODO create a small SQL warehouse for testing
-            logger.debug(f"Warehouse with id: {warehouse_id} does not exist")
+            logger.warn(f"Warehouse with id: {warehouse_id} does not exist")
             warehouse_id=None 
 
     else: 
