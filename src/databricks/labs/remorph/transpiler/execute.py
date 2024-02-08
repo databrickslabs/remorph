@@ -131,6 +131,8 @@ def morph(config: MorphConfig):
     status = []
     result = MorphStatus([], 0, 0, 0, [])
 
+    ## TODO we might want to put the catalog and schema check here 
+
     if input_sql.is_file():
         if is_sql_file(input_sql):
             msg = f"Processing for sqls under this file: {input_sql}"
