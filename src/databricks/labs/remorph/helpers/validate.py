@@ -1,6 +1,5 @@
 from io import StringIO
 
-from databricks.connect import DatabricksSession
 from databricks.labs.blueprint.entrypoint import get_logger
 from databricks.sdk import WorkspaceClient
 from pyspark.sql.utils import AnalysisException, ParseException
@@ -14,6 +13,11 @@ import re
 from typing import Optional
 
 logger = get_logger(__file__)
+
+try: 
+    from databricks.connect import DatabricksSession
+except ModuleNotFoundError as e: 
+    logger.info("Databricks Connect is not installed. Install the version that matches your Databricks cluster runtime version e.g., databricks-connect==14.3.0 for DBR 14.3 LTS")
 
 
 class Validate:
