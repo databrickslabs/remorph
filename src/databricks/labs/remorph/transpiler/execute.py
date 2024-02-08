@@ -41,19 +41,19 @@ def process_file(config: MorphConfig, input_file: str | Path, output_file: str |
     transpiler = SQLTranspiler(source, sql, str(input_file), parse_error_list)
     transpiled_sql = transpiler.transpile()
 
-    with output_file.open("w") as w:
+    with output_file.open("w") as fp:
         for output in transpiled_sql:
             if output:
                 no_of_sqls = no_of_sqls + 1
                 if skip_validation:
-                    w.write(output)
-                    w.write("\n;\n")
+                    fp.write(output)
+                    fp.write("\n;\n")
 
                 
                 else:
-                    validate = Validate(w)
+                    validate = Validate(config.sdk_client, warehouse_id=config.serverless_warehouse_id)
                     output_string, exception = validate.validate_format_result(config, output)
-                    w.write(output_string)
+                    fp.write(output_string)
                     if exception is not None:
                         validate_error_list.append(ValidationError(str(input_file), exception))
             else:

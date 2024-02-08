@@ -32,9 +32,11 @@ class Validate:
         self.w = w 
 
         ## TODO we don't need this if we are using serverless 
-        if warehouse_id is not None: 
+        if warehouse_id is None: 
+            logger.debug("Using Databricks Connect")
             self.spark = DatabricksSession.builder.sdkConfig(w.config).getOrCreate()
         else: 
+            logger.debug(f"Set serverless warehouse: {warehouse_id}")
             self.warehouse_id = warehouse_id 
     
     def _create_test_catalog(self, catalog_name=None, schema_name=None): 
@@ -82,6 +84,9 @@ class Validate:
         schema_name = config.schema_name
 
         is_serverless = config.serverless_warehouse_id is not None 
+
+        ## TODO we might want to move this to a higher level so it's not called within the for loop 
+        self._create_test_catalog(catalog_name=catalog_name, schema_name=schema_name)
         
         logger.debug(f"Validation query with catalog {catalog_name} and schema {schema_name}")
         if is_serverless: 
@@ -164,18 +169,15 @@ class Validate:
     def serverless_query(self, query: str, catalog_name=None, schema_name=None): 
         w = self.w 
 
-        _create_test_catalog(catalog_name=catalog_name, schema_name=schema_name)
-
         ## TODO check if this is safe from SQL injection     
         explain_query = f"EXPLAIN {query}"
 
-        logger.debug("running sql query")
         try: 
-            query_result = w.statement_execution.execute_statement(explain_query, catalog=catalog_name, schema=schema_name)
+            query_result = w.statement_execution.execute_statement(explain_query, catalog=catalog_name, schema=schema_name, warehouse_id=self.warehouse_id)
             error = query_result.status.error
 
             if error is not None: 
-                error_type = _get_error_type(error=error)
+                error_type = self._get_error_type(error=error)
                 error_message = error.message 
 
                 if "Hive support is required to CREATE Hive TABLE (AS SELECT).;" in error_message: 
@@ -197,7 +199,10 @@ class Validate:
                         return False, error_message 
                     case _: 
                         logger.debug(f"Unknown Exception {error_message}")
-                        return False, error_message 
+                        return False, error_message
+            else: 
+                logger.info("No error message")
+                return True, "No error message"
         except Exception as e: 
             logger.debug(f"Other Exception : NOT IGNORED. Flagged : {str(e)}")
                                     

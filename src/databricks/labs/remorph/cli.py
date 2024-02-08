@@ -69,7 +69,7 @@ def transpile(
         serverless_warehouse_id=warehouse_id,  
         catalog_name=catalog_name,
         schema_name=schema_name,
-        sdk_config=w.config,
+        sdk_client=w,
     )
 
     status = morph(config)
