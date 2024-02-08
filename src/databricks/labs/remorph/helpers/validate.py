@@ -2,10 +2,16 @@ from io import StringIO
 
 from databricks.connect import DatabricksSession
 from databricks.labs.blueprint.entrypoint import get_logger
-from databricks.sdk.core import Config
+from databricks.sdk import WorkspaceClient
 from pyspark.sql.utils import AnalysisException, ParseException
 
+from databricks.sdk.service.sql import ServiceError
+
 from databricks.labs.remorph.config import MorphConfig
+
+import re 
+
+from typing import Optional
 
 logger = get_logger(__file__)
 
@@ -18,12 +24,45 @@ class Validate:
     - spark (SparkSession): The Spark session used to execute and validate SQL queries.
     """
 
-    def __init__(self, sdk_config: Config):
+    def __init__(self, w: WorkspaceClient, warehouse_id: Optional[str] = None):
         """
         Initialize the Validate class with Sparksession.
         """
 
-        self.spark = DatabricksSession.builder.sdkConfig(sdk_config).getOrCreate()
+        self.w = w 
+
+        ## TODO we don't need this if we are using serverless 
+        if warehouse_id is not None: 
+            self.spark = DatabricksSession.builder.sdkConfig(w.config).getOrCreate()
+        else: 
+            self.warehouse_id = warehouse_id 
+    
+    def _create_test_catalog(self, catalog_name=None, schema_name=None): 
+        w = self.w 
+        if catalog_name in (None, 'transpiler_test') and schema_name in (None, 'convertor_test'): 
+            logger.debug("Creating catalog and schema for Remorph")
+            try: 
+                w.catalogs.create(name='transpiler_test', comment='Catalog created by Remorph for query validation')
+
+            ## TODO there has to be a smarter way to test if a Catalog exists
+            ## my thought is if we `list` the catalogs that is a big operation for
+            ## large worksapces 
+            except: 
+                logger.info("Catalog already exists")
+            try: 
+                w.schema.create(name='convertor_test', catalog_name='transpiler_teste', comment='Schema created by Remorph for query validation')
+            except: 
+                logger.info("Schema already exists") 
+    
+    def _get_error_type(self, error: ServiceError) -> str: 
+        error_pattern = r'\[(.*?)\]'
+        match = re.search(error_pattern, error.message)
+
+        if match: 
+            return match.group(1)
+        else: 
+            return None 
+
 
     def validate_format_result(self, config: MorphConfig, input_sql: str):
         """
@@ -41,8 +80,14 @@ class Validate:
         """
         catalog_name = config.catalog_name
         schema_name = config.schema_name
+
+        is_serverless = config.serverless_warehouse_id is not None 
+        
         logger.debug(f"Validation query with catalog {catalog_name} and schema {schema_name}")
-        (flag, exception) = self.query(input_sql, catalog_name, schema_name)
+        if is_serverless: 
+            (flag, exception) = self.serverless_query(input_sql, catalog_name, schema_name)
+        else: 
+            (flag, exception) = self.query(input_sql, catalog_name, schema_name)
         if flag:
             result = input_sql + "\n;\n"
             exception = None
@@ -115,3 +160,44 @@ class Validate:
         except Exception as e:
             logger.debug("Other Exception : NOT IGNORED. Flagged :" + str(e))
             return False, str(e)
+        
+    def serverless_query(self, query: str, catalog_name=None, schema_name=None): 
+        w = self.w 
+
+        _create_test_catalog(catalog_name=catalog_name, schema_name=schema_name)
+
+        ## TODO check if this is safe from SQL injection     
+        explain_query = f"EXPLAIN {query}"
+
+        logger.debug("running sql query")
+        try: 
+            query_result = w.statement_execution.execute_statement(explain_query, catalog=catalog_name, schema=schema_name)
+            error = query_result.status.error
+
+            if error is not None: 
+                error_type = _get_error_type(error=error)
+                error_message = error.message 
+
+                if "Hive support is required to CREATE Hive TABLE (AS SELECT).;" in error_message: 
+                    logger.debug(f"Analysis Exception : IGNORED: {error_message}")
+                    return True, error_message 
+
+                match error_type: 
+                    case 'PARSE_SYNTAX_ERROR': 
+                        logger.debug(f"Syntax Exception : NOT IGNORED. Flag as syntax error : {error_message}")
+                        return False, error_message
+                    case "TABLE_OR_VIEW_NOT_FOUND": 
+                        logger.debug(f"Analysis Exception : IGNORED: {error_message}")
+                        return True, error_message
+                    case "TABLE_OR_VIEW_ALREADY_EXISTS": 
+                        logger.debug(f"Analysis Exception : IGNORED: {error_message}")
+                        return True, error_message 
+                    case 'UNRESOLVED_ROUTINE': 
+                        logger.debug(f"Analysis Exception : NOT IGNORED: Flag as Function Missing error {error_message}")
+                        return False, error_message 
+                    case _: 
+                        logger.debug(f"Unknown Exception {error_message}")
+                        return False, error_message 
+        except Exception as e: 
+            logger.debug(f"Other Exception : NOT IGNORED. Flagged : {str(e)}")
+                                    

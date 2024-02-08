@@ -5,6 +5,8 @@ from databricks.labs.blueprint.cli import App
 from databricks.labs.blueprint.entrypoint import get_logger
 from databricks.sdk import WorkspaceClient
 
+from databricks.sdk.errors import ResourceDoesNotExist
+
 from databricks.labs.remorph.config import MorphConfig
 from databricks.labs.remorph.reconcile.execute import recon
 from databricks.labs.remorph.transpiler.execute import morph
@@ -44,12 +46,27 @@ def transpile(
             f"Error: Invalid value for '--skip_validation': '{skip_validation}' is not one of 'true', 'false'. "
         )
 
+    # check to see if the warehouse exists 
+    # TODO get the warehouse ID from an environment variable 
+    if serverless: 
+        warehouse_id = '005627dec4483582'
+
+        try: 
+            w.warehouses.get(id=warehouse_id)
+        except ResourceDoesNotExist as e: 
+            # TODO create a small SQL warehouse for testing
+            logger.debug(f"Warehouse with id: {warehouse_id} does not exist")
+            warehouse_id=None 
+
+    else: 
+        warehouse_id = None 
+
     config = MorphConfig(
         source=source.lower(),
         input_sql=input_sql,
         output_folder=output_folder,
         skip_validation=skip_validation.lower() == "true",  # convert to bool
-        serverless=serverless.lower() == "true", 
+        serverless_warehouse_id=warehouse_id,  
         catalog_name=catalog_name,
         schema_name=schema_name,
         sdk_config=w.config,
