@@ -1,7 +1,9 @@
 import os
-import sqlglot
 from collections import defaultdict
-import dsplot
+
+from sqlglot import exp, parse
+import networkx as nx
+import matplotlib.pyplot as plt
 
 
 class Node:
@@ -13,66 +15,63 @@ class Node:
         self.children.append(node)
 
 
-class Tree:
-    def __init__(self, root):
-        self.root = Node(root)
+class DAG:
+    def __init__(self):
+        self.nodes = {}
 
-    def add_node(self, parent_name, node_name):
-        parent_node = self.find_node(self.root, parent_name)
-        if parent_node is not None:
-            parent_node.add_child(Node(node_name))
+    def add_node(self, node_name):
+        if node_name not in self.nodes:
+            self.nodes[node_name] = Node(node_name)
 
-    def find_node(self, node, name):
-        if node.name == name:
-            return node
-        for child in node.children:
-            found_node = self.find_node(child, name)
-            if found_node is not None:
-                return found_node
-        return None
+    def add_edge(self, parent_name, child_name):
+        if parent_name not in self.nodes:
+            self.add_node(parent_name)
+        if child_name not in self.nodes:
+            self.add_node(child_name)
+        self.nodes[parent_name].add_child(self.nodes[child_name])
 
 
 class RootTableIdentifier:
     def __init__(self, folder_path):
         self.folder_path = folder_path
         self.root_tables = defaultdict(int)
-        self.tree = None
+        self.dag = DAG()
+
+    def generate_lineage(self):
+        for filename in os.listdir(self.folder_path):
+            if filename.endswith(".sql"):
+                with open(os.path.join(self.folder_path, filename)) as file:
+                    sql_content = file.read()
+                    self._parse_sql_content(sql_content, filename)
 
     def identify_root_tables(self):
-        for filename in os.listdir(self.folder_path):
-            if filename.endswith('.sql'):
-                with open(os.path.join(self.folder_path, filename), 'r') as file:
-                    sql_content = file.read()
-                    self._parse_sql_content(sql_content)
+        self.generate_lineage()
+        #[TODO] implement the logic to identify the root tables at each level
 
-        root_tables = [table for table, count in self.root_tables.items() if count == 1]
-        if root_tables:
-            self.tree = Tree(root_tables[0])
-            for table in root_tables[1:]:
-                self.tree.add_node(root_tables[0], table)
+    @staticmethod
+    def _find_root_tables(expression) -> str:
+        for table in expression.find_all(exp.Table, bfs=False):
+            return table.name
 
-    def _find_root_tables(self, expression):
-        for token in expression.from_:
-            if isinstance(token, sqlglot.expressions.Table):
-                self.root_tables[token.args['this']] += 1
+    def _parse_sql_content(self, sql_content, file_name):
+        parsed_expression = parse(sql_content)
+        for expr in parsed_expression:
+            child = file_name
+            for create in expr.find_all(exp.Create, exp.Insert, bfs=False):
+                child = self._find_root_tables(create)
+                self.dag.add_node(child)
 
-    def _parse_sql_content(self, sql_content):
-        parsed_expression = sqlglot.parse_one(sql_content)
-        for select in parsed_expression.find_all(sqlglot.expressions.Select, bfs=False):
-            self._find_root_tables(select)
-
-        for expression in parsed_expression:
-            if isinstance(expression, sqlglot.expressions.Select):
-                for token in expression.columns:
-                    if isinstance(token, sqlglot.expressions.Identifier):
-                        self.root_tables[token.args['this']] += 1
+            for select in expr.find_all(exp.Select, exp.Join, exp.With, bfs=False):
+                self.dag.add_edge(self._find_root_tables(select), child)
 
     def visualize(self):
-        if self.tree is not None:
-            self._dsplot_tree(self.tree.root)
+        G = nx.DiGraph()  # noqa N806
 
-    def _dsplot_tree(self, node, parent_name=None):
-        if parent_name is not None:
-            dsplot.arrow(parent_name, node.name)
-        for child in node.children:
-            self._dsplot_tree(child, node.name)
+        for node in self.dag.nodes.values():
+            G.add_node(node.name)
+            for c in node.children:
+                G.add_edge(node.name, c.name)
+
+        nx.draw(G, with_labels=True)
+        plt.show()
+
