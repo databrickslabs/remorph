@@ -817,7 +817,7 @@ def test_collate(dialect_context):
         "SELECT v, COLLATION(v), COLLATE(v, 'sp-upper'), COLLATION(COLLATE(v, 'sp-upper')) FROM collation1",
         source={
             "snowflake": "SELECT v, COLLATION(v), COLLATE(v, 'sp-upper'), COLLATION(COLLATE(v, 'sp-upper')) "
-            "FROM collation1;",
+                         "FROM collation1;",
         },
     )
 
@@ -1133,7 +1133,7 @@ def test_object_construct(dialect_context):
         "SELECT STRUCT(FROM_JSON('NULL', {NULL_SCHEMA}) AS Key_One, NULL AS Key_Two, 'null' AS Key_Three) AS obj",
         source={
             "snowflake": "SELECT OBJECT_CONSTRUCT('Key_One', PARSE_JSON('NULL'), 'Key_Two', "
-            "NULL, 'Key_Three', 'null') as obj;",
+                         "NULL, 'Key_Three', 'null') as obj;",
         },
     )
 
@@ -1326,7 +1326,7 @@ def test_row_number(dialect_context):
         "SELECT symbol, exchange, shares, ROW_NUMBER() OVER (PARTITION BY exchange) AS row_number FROM trades",
         source={
             "snowflake": "SELECT symbol, exchange, shares, ROW_NUMBER() OVER (PARTITION BY exchange) AS "
-            "row_number FROM trades;",
+                         "row_number FROM trades;",
         },
     )
 
@@ -1430,7 +1430,7 @@ def test_any_value(dialect_context):
         "= orders.customer_id GROUP BY customer.id",
         source={
             "snowflake": "SELECT customer.id , ANY_VALUE(customer.name) , SUM(orders.value) FROM customer JOIN "
-            "orders ON customer.id = orders.customer_id GROUP BY customer.id;",
+                         "orders ON customer.id = orders.customer_id GROUP BY customer.id;",
         },
     )
 
@@ -2977,7 +2977,7 @@ def test_base64_decode(dialect_context):
         "SELECT UNBASE64(BASE64('HELLO')), UNBASE64(BASE64('HELLO'))",
         source={
             "snowflake": "SELECT BASE64_DECODE_STRING(BASE64_ENCODE('HELLO')), "
-            "TRY_BASE64_DECODE_STRING(BASE64_ENCODE('HELLO'));",
+                         "TRY_BASE64_DECODE_STRING(BASE64_ENCODE('HELLO'));",
         },
     )
 
@@ -3083,5 +3083,22 @@ def test_create_ddl(dialect_context):
                         salary DECIMAL(10, 2),
                         department_id INT)
                 """,
+        },
+    )
+
+
+def test_delete_from_keyword(dialect_context):
+    validate_source_transpile, validate_target_transpile = dialect_context
+    validate_source_transpile(
+        "DELETE FROM employee WHERE employee_id = 1",
+        source={
+            "snowflake": "DELETE FROM employee WHERE employee_id = 1",
+        },
+    )
+
+    validate_source_transpile(
+        "MERGE INTO  TABLE1 using table2 on table1.id = table2.id when matched then delete;",
+        source={
+            "snowflake": "DELETE FROM Table1 USING table2 WHERE table1.id = table2.id;",
         },
     )
