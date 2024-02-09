@@ -30,37 +30,26 @@ class Validate:
     - spark (SparkSession): The Spark session used to execute and validate SQL queries.
     """
 
-    def __init__(self, w: WorkspaceClient, warehouse_id: Optional[str] = None):
+    def __init__(self, config: MorphConfig):
         """
         Initialize the Validate class with Sparksession.
         """
 
-        self.w = w 
+        self.client = config.sdk_client 
+        self.warehouse_id = config.serverless_warehouse_id 
+
+        self.catalog_name = config.catalog_name
+        self.schema_name = config.schema_name
+
 
         ## TODO we don't need this if we are using serverless 
-        if warehouse_id is None: 
+        if self.warehouse_id is None: 
             logger.debug("Using Databricks Connect")
-            self.spark = DatabricksSession.builder.sdkConfig(w.config).getOrCreate()
+            # Here we are using the MorphConfig to access the WorkSpace client, and get the SDK config 
+            self.spark = DatabricksSession.builder.sdkConfig(self.client.config).getOrCreate()
         else: 
-            logger.debug(f"Set serverless warehouse: {warehouse_id}")
-            self.warehouse_id = warehouse_id 
-    
-    def _create_test_catalog(self, catalog_name=None, schema_name=None): 
-        w = self.w 
-        if catalog_name in (None, 'transpiler_test') and schema_name in (None, 'convertor_test'): 
-            logger.debug("Creating catalog and schema for Remorph")
-            try: 
-                w.catalogs.create(name='transpiler_test', comment='Catalog created by Remorph for query validation')
-
-            ## TODO there has to be a smarter way to test if a Catalog exists
-            ## my thought is if we `list` the catalogs that is a big operation for
-            ## large worksapces 
-            except: 
-                logger.info("Catalog already exists")
-            try: 
-                w.schema.create(name='convertor_test', catalog_name='transpiler_teste', comment='Schema created by Remorph for query validation')
-            except: 
-                logger.info("Schema already exists") 
+            logger.debug(f"Set serverless warehouse: {self.warehouse_id}")
+            self.warehouse_id = self.warehouse_id 
     
     def _get_error_type(self, error: ServiceError) -> str: 
         error_pattern = r'\[(.*?)\]'
@@ -72,7 +61,7 @@ class Validate:
             return None 
 
 
-    def validate_format_result(self, config: MorphConfig, input_sql: str):
+    def validate_format_result(self, input_sql: str):
         """
         Validates the SQL query and formats the result.
 
@@ -86,19 +75,16 @@ class Validate:
         Returns:
         - tuple: A tuple containing the result of the validation and the exception message (if any).
         """
-        catalog_name = config.catalog_name
-        schema_name = config.schema_name
+        catalog_name = self.catalog_name
+        schema_name = self.schema_name
 
-        is_serverless = config.serverless_warehouse_id is not None 
-
-        ## TODO we might want to move this to a higher level so it's not called within the for loop 
-        self._create_test_catalog(catalog_name=catalog_name, schema_name=schema_name)
+        is_serverless = self.warehouse_id is not None 
         
         logger.debug(f"Validation query with catalog {catalog_name} and schema {schema_name}")
         if is_serverless: 
-            (flag, exception) = self.serverless_query(input_sql, catalog_name, schema_name)
+            (flag, exception) = self.serverless_query(input_sql)
         else: 
-            (flag, exception) = self.query(input_sql, catalog_name, schema_name)
+            (flag, exception) = self.query(input_sql)
         if flag:
             result = input_sql + "\n;\n"
             exception = None
@@ -119,7 +105,7 @@ class Validate:
         return result, exception
 
     # [TODO] Implement Debugger Logger
-    def query(self, query: str, catalog_name=None, schema_name=None):
+    def query(self, query: str):
         """
         Validate a given SQL query using the Spark session.
 
@@ -134,17 +120,12 @@ class Validate:
         """
         spark = self.spark
 
+        catalog_name = self.catalog_name 
+        schema_name = self.schema_name
+
         try:
             # [TODO]: Explain needs to redirected to different console
             # [TODO]: Hacky way to replace variables representation
-            if catalog_name in (None, "transpiler_test") and schema_name in (None, "convertor_test"):
-                spark.sql("create catalog if not exists transpiler_test")
-                spark.sql("use catalog transpiler_test")
-                spark.sql("create schema if not exists convertor_test")
-                spark.sql("use convertor_test")
-            else:
-                spark.sql(f"use catalog {catalog_name}")
-                spark.sql(f"use {schema_name}")
 
             # When variables is mentioned Explain fails we need way to replace them before explain is executed.
             spark.sql(query.replace("${", "`{").replace("}", "}`").replace("``", "`")).explain(True)
@@ -172,14 +153,17 @@ class Validate:
             logger.debug("Other Exception : NOT IGNORED. Flagged :" + str(e))
             return False, str(e)
         
-    def serverless_query(self, query: str, catalog_name=None, schema_name=None): 
-        w = self.w 
+    def serverless_query(self, query: str): 
+        client = self.client 
+
+        catalog_name = self.catalog_name
+        schema_name = self.schema_name
 
         ## TODO check if this is safe from SQL injection     
         explain_query = f"EXPLAIN {query}"
 
         try: 
-            query_result = w.statement_execution.execute_statement(explain_query, catalog=catalog_name, schema=schema_name, warehouse_id=self.warehouse_id)
+            query_result = client.statement_execution.execute_statement(explain_query, catalog=catalog_name, schema=schema_name, warehouse_id=self.warehouse_id)
             error = query_result.status.error
 
             if error is not None: 

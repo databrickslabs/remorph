@@ -11,6 +11,7 @@ from databricks.labs.remorph.helpers.file_utils import (
     make_dir,
     remove_bom,
 )
+from databricks.labs.remorph.helpers.unity_catalog import create_test_catalog_and_schema
 from databricks.labs.remorph.helpers.morph_status import MorphStatus, ValidationError
 from databricks.labs.remorph.helpers.validate import Validate
 from databricks.labs.remorph.snow import dialect_utils
@@ -51,8 +52,8 @@ def process_file(config: MorphConfig, input_file: str | Path, output_file: str |
 
                 
                 else:
-                    validate = Validate(config.sdk_client, warehouse_id=config.serverless_warehouse_id)
-                    output_string, exception = validate.validate_format_result(config, output)
+                    validate = Validate(config)
+                    output_string, exception = validate.validate_format_result(output)
                     fp.write(output_string)
                     if exception is not None:
                         validate_error_list.append(ValidationError(str(input_file), exception))
@@ -131,7 +132,12 @@ def morph(config: MorphConfig):
     status = []
     result = MorphStatus([], 0, 0, 0, [])
 
-    ## TODO we might want to put the catalog and schema check here 
+    catalog_name = config.catalog_name
+    schema_name = config.schema_name
+
+    if catalog_name in (None, "transpiler_test") and schema_name in (None, "convertor_test"): 
+        create_test_catalog_and_schema(client=config.sdk_client, catalog_name=catalog_name, schema_name=schema_name)
+
 
     if input_sql.is_file():
         if is_sql_file(input_sql):
