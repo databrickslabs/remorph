@@ -34,6 +34,10 @@ VALID_DATABRICKS_TYPES = {
 }
 
 
+def timestamptrunc_sql(self, expression: exp.TimestampTrunc) -> str:
+    return self.func("DATE_TRUNC", exp.Literal.string(expression.text("unit").upper()), self.sql(expression.this))
+
+
 def _parm_sfx(self, expression: local_expression.Parameter) -> str:
     this = self.sql(expression, "this")
     this = f"{{{this}}}" if expression.args.get("wrapped") else f"{this}"
@@ -316,7 +320,6 @@ class Databricks(Databricks):
 
         TRANSFORMS: ClassVar[dict] = {
             **Databricks.Generator.TRANSFORMS,
-            # exp.Select: transforms.preprocess([_unqualify_unnest]),
             exp.Create: _format_create_sql,
             exp.DataType: _datatype_map,
             exp.CurrentTime: _curr_time(),
@@ -347,6 +350,7 @@ class Databricks(Databricks):
             local_expression.UUID: _uuid,
             local_expression.DateTrunc: _parse_date_trunc,
             exp.ApproxQuantile: rename_func("APPROX_PERCENTILE"),
+            exp.TimestampTrunc: timestamptrunc_sql,
         }
 
         def join_sql(self, expression: exp.Join) -> str:
@@ -439,7 +443,7 @@ class Databricks(Databricks):
             if using:
                 return self.prepend_ctes(expression, f"MERGE INTO {tables}{expression_sql} WHEN MATCHED THEN DELETE;")
             else:
-                return self.prepend_ctes(expression, f"DELETE{tables}{expression_sql}")
+                return self.prepend_ctes(expression, f"DELETE{tables}{expression_sql};")
 
         def converttimezone_sql(self, expression: local_expression.ConvertTimeZone):
             func = "CONVERT_TIMEZONE"
