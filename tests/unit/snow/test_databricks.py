@@ -3085,3 +3085,20 @@ def test_create_ddl(dialect_context):
                 """,
         },
     )
+
+
+def test_delete_from_keyword(dialect_context):
+    validate_source_transpile, validate_target_transpile = dialect_context
+    validate_source_transpile(
+        "DELETE FROM employee WHERE employee_id = 1",
+        source={
+            "snowflake": "DELETE FROM employee WHERE employee_id = 1",
+        },
+    )
+
+    validate_source_transpile(
+        "MERGE INTO  TABLE1 using table2 on table1.id = table2.id when matched then delete;",
+        source={
+            "snowflake": "DELETE FROM Table1 USING table2 WHERE table1.id = table2.id;",
+        },
+    )
