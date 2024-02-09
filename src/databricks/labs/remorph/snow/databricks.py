@@ -437,7 +437,7 @@ class Databricks(Databricks):
                 expression_sql = f"{returning}{this}{where}{limit}"
 
             if using:
-                return self.prepend_ctes(expression, f"MERGE{tables}{expression_sql} WHEN MATCHED THEN DELETE;")
+                return self.prepend_ctes(expression, f"MERGE INTO {tables}{expression_sql} WHEN MATCHED THEN DELETE;")
             else:
                 return self.prepend_ctes(expression, f"DELETE{tables}{expression_sql}")
 
