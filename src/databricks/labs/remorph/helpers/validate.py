@@ -1,13 +1,14 @@
 from io import StringIO
 
 from databricks.connect import DatabricksSession
-from databricks.labs.blueprint.entrypoint import get_logger
 from databricks.sdk.core import Config
 from pyspark.sql.utils import AnalysisException, ParseException
 
 from databricks.labs.remorph.config import MorphConfig
 
-logger = get_logger(__file__)
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class Validate:
