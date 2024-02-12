@@ -1,10 +1,10 @@
+import logging
+
 from sqlglot import ErrorLevel, exp, parse
 from sqlglot.expressions import Expression, Select
 
 from databricks.labs.remorph.helpers.morph_status import ValidationError
 from databricks.labs.remorph.snow.snowflake import Snow
-
-import logging
 
 logger = logging.getLogger(__name__)
 

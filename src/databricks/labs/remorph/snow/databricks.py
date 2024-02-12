@@ -1,6 +1,6 @@
+import logging
 import re
 from typing import ClassVar
-
 
 from sqlglot import expressions as exp
 from sqlglot.dialects import hive
@@ -10,8 +10,6 @@ from sqlglot.errors import UnsupportedError
 from sqlglot.helper import apply_index_offset, csv
 
 from databricks.labs.remorph.snow import local_expression
-
-import logging
 
 logger = logging.getLogger(__name__)
 

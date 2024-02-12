@@ -1,4 +1,5 @@
 import copy
+import logging
 import re
 import typing as t
 from typing import ClassVar
@@ -13,8 +14,6 @@ from sqlglot.tokens import Token, TokenType
 from sqlglot.trie import new_trie
 
 from databricks.labs.remorph.snow import local_expression
-
-import logging
 
 logger = logging.getLogger(__name__)
 

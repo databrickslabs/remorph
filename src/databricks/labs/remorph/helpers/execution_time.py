@@ -1,8 +1,7 @@
 import inspect
+import logging
 import time
 from functools import wraps
-
-import logging
 
 logger = logging.getLogger(__name__)
 

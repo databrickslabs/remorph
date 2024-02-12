@@ -1,3 +1,4 @@
+import logging
 import os
 from pathlib import Path
 
@@ -13,8 +14,6 @@ from databricks.labs.remorph.helpers.morph_status import MorphStatus, Validation
 from databricks.labs.remorph.helpers.validate import Validate
 from databricks.labs.remorph.snow import dialect_utils
 from databricks.labs.remorph.snow.sql_transpiler import SQLTranspiler
-
-import logging
 
 logger = logging.getLogger(__name__)
 
