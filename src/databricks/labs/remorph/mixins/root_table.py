@@ -1,9 +1,9 @@
 import os
 from collections import defaultdict
 
-from sqlglot import exp, parse
-import networkx as nx
 import matplotlib.pyplot as plt
+import networkx as nx
+from sqlglot import exp, parse
 
 
 class Node:
@@ -46,7 +46,7 @@ class RootTableIdentifier:
 
     def identify_root_tables(self):
         self.generate_lineage()
-        #[TODO] implement the logic to identify the root tables at each level
+        # [TODO] implement the logic to identify the root tables at each level
 
     @staticmethod
     def _find_root_tables(expression) -> str:
@@ -74,4 +74,3 @@ class RootTableIdentifier:
 
         nx.draw(G, with_labels=True)
         plt.show()
-
