@@ -1,10 +1,9 @@
 import inspect
+import logging
 import time
 from functools import wraps
 
-from databricks.labs.blueprint.entrypoint import get_logger
-
-logger = get_logger(__file__)
+logger = logging.getLogger(__name__)
 
 
 def timeit(func):
