@@ -31,8 +31,8 @@ class TransformRuleMapping:
 class JdbcReaderOptions:
     number_partitions: int
     partition_column: str
-    lower_bound: int
-    upper_bound: int
+    lower_bound: str
+    upper_bound: str
     fetch_size: int = 100
 
     @classmethod
@@ -41,7 +41,7 @@ class JdbcReaderOptions:
         return cls(
             number_partitions=d.get("number_partitions"),
             partition_column=d.get("partition_column"),
-            lower_bound=d.get("lower_bound", 0),
+            lower_bound=d.get("lower_bound"),
             upper_bound=d.get("upper_bound"),
             fetch_size=d.get("fetch_size", 100),
         )

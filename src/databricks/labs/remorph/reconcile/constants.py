@@ -76,3 +76,9 @@ class Constants:
             "target": HashAlgorithm.DATABRICKS_SHA_256.value,
         },
     }
+
+    jdbc_session_init = {
+        "oracle": """BEGIN dbms_session.set_nls('nls_date_format', '''YYYY-MM-DD''');
+                             dbms_session.set_nls('nls_timestamp_format', '''YYYY-MM-DD HH24:MI:SS''');
+                       END;"""
+    }
