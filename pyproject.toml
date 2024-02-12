@@ -124,6 +124,7 @@ ignore = [
   # Ignore Exception must not use a string literal, assign to variable first
   "EM101",
   "PLR2004",
+  "UP038", # Use `X | Y` in `isinstance` call instead of `(X, Y)`
 ]
 extend-exclude = [
   "notebooks/*.py"

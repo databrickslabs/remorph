@@ -272,6 +272,7 @@ class Snow(Snowflake):
     class Parser(snowflake.Parser):
         FUNCTIONS: ClassVar[dict] = {
             **Snowflake.Parser.FUNCTIONS,
+            "ARRAY_AGG": exp.ArrayAgg.from_arg_list,
             "STRTOK_TO_ARRAY": local_expression.Split.from_arg_list,
             "DATE_FROM_PARTS": local_expression.MakeDate.from_arg_list,
             "CONVERT_TIMEZONE": local_expression.ConvertTimeZone.from_arg_list,
@@ -323,6 +324,7 @@ class Snow(Snowflake):
 
         FUNCTION_PARSERS: ClassVar[dict] = {
             **Snowflake.Parser.FUNCTION_PARSERS,
+            "LISTAGG": lambda self: self._parse_list_agg(),
         }
 
         PLACEHOLDER_PARSERS: ClassVar[dict] = {
@@ -344,6 +346,18 @@ class Snow(Snowflake):
         }
 
         ALTER_PARSERS: ClassVar[dict] = {**Snowflake.Parser.ALTER_PARSERS}
+
+        def _parse_list_agg(self) -> exp.GroupConcat:
+            if self._match(TokenType.DISTINCT):
+                args: list[exp.Expression | None] = [
+                    self.expression(exp.Distinct, expressions=[self._parse_conjunction()])
+                ]
+                if self._match(TokenType.COMMA):
+                    args.extend(self._parse_csv(self._parse_conjunction))
+            else:
+                args = self._parse_csv(self._parse_conjunction)
+
+            return self.expression(exp.GroupConcat, this=args[0], separator=seq_get(args, 1))
 
         def _parse_types(
             self, *, check_func: bool = False, schema: bool = False, allow_identifiers: bool = True
