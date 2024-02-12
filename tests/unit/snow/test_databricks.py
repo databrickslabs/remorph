@@ -841,7 +841,7 @@ def test_arrayagg(dialect_context):
 
     validate_source_transpile(
         """
-        WITH cte AS (SELECT id, tag, SUM(tag.count) AS item_count FROM another_table) SELECT id, 
+        WITH cte AS (SELECT id, tag, SUM(tag.count) AS item_count FROM another_table) SELECT id,
         TRANSFORM(ARRAY_SORT(ARRAY_AGG(NAMED_STRUCT('value', tag, 'sort_by', item_count)), (left, right) -> CASE
                         WHEN left.sort_by < right.sort_by THEN 1
                         WHEN left.sort_by > right.sort_by THEN -1
@@ -852,7 +852,7 @@ def test_arrayagg(dialect_context):
             "snowflake": """
             WITH cte AS (
               SELECT
-                id, 
+                id,
                 tag,
                 SUM(tag:count) AS item_count
               FROM another_table
