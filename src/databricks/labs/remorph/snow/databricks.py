@@ -1,7 +1,7 @@
+import logging
 import re
 from typing import ClassVar
 
-from databricks.labs.blueprint.entrypoint import get_logger
 from sqlglot import expressions as exp
 from sqlglot.dialects import hive
 from sqlglot.dialects.databricks import Databricks
@@ -11,7 +11,7 @@ from sqlglot.helper import apply_index_offset, csv
 
 from databricks.labs.remorph.snow import local_expression
 
-logger = get_logger(__file__)
+logger = logging.getLogger(__name__)
 
 VALID_DATABRICKS_TYPES = {
     "BIGINT",
@@ -32,6 +32,10 @@ VALID_DATABRICKS_TYPES = {
     "MAP",
     "STRUCT",
 }
+
+
+def timestamptrunc_sql(self, expression: exp.TimestampTrunc) -> str:
+    return self.func("DATE_TRUNC", exp.Literal.string(expression.text("unit").upper()), self.sql(expression.this))
 
 
 def _parm_sfx(self, expression: local_expression.Parameter) -> str:
@@ -66,10 +70,6 @@ def _format_create_sql(self, expression: exp.Create) -> str:
             del expression.args[arg_to_delete]
 
     return hive._create_sql(self, expression)
-
-
-def _curr_ts():
-    return "CURRENT_TIMESTAMP()"
 
 
 def _curr_time():
@@ -320,10 +320,8 @@ class Databricks(Databricks):
 
         TRANSFORMS: ClassVar[dict] = {
             **Databricks.Generator.TRANSFORMS,
-            # exp.Select: transforms.preprocess([_unqualify_unnest]),
             exp.Create: _format_create_sql,
             exp.DataType: _datatype_map,
-            exp.CurrentTimestamp: _curr_ts(),
             exp.CurrentTime: _curr_time(),
             exp.Lateral: _lateral_view,
             exp.GroupConcat: _list_agg,
@@ -352,6 +350,7 @@ class Databricks(Databricks):
             local_expression.UUID: _uuid,
             local_expression.DateTrunc: _parse_date_trunc,
             exp.ApproxQuantile: rename_func("APPROX_PERCENTILE"),
+            exp.TimestampTrunc: timestamptrunc_sql,
         }
 
         def join_sql(self, expression: exp.Join) -> str:
@@ -442,9 +441,9 @@ class Databricks(Databricks):
                 expression_sql = f"{returning}{this}{where}{limit}"
 
             if using:
-                return self.prepend_ctes(expression, f"MERGE{tables}{expression_sql} WHEN MATCHED THEN DELETE;")
+                return self.prepend_ctes(expression, f"MERGE INTO {tables}{expression_sql} WHEN MATCHED THEN DELETE;")
             else:
-                return self.prepend_ctes(expression, f"DELETE{tables}{expression_sql}")
+                return self.prepend_ctes(expression, f"DELETE{tables}{expression_sql};")
 
         def converttimezone_sql(self, expression: local_expression.ConvertTimeZone):
             func = "CONVERT_TIMEZONE"
@@ -547,3 +546,6 @@ class Databricks(Databricks):
             if command in filtered_commands and obj in ignored_objects:
                 return ""
             return f"{command} {expr}"
+
+        def currenttimestamp_sql(self, _: exp.CurrentTimestamp) -> str:
+            return self.func("CURRENT_TIMESTAMP")

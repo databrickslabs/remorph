@@ -1,7 +1,6 @@
+import logging
 import os
 from pathlib import Path
-
-from databricks.labs.blueprint.entrypoint import get_logger
 
 from databricks.labs.remorph.config import MorphConfig
 from databricks.labs.remorph.helpers.execution_time import timeit
@@ -16,7 +15,7 @@ from databricks.labs.remorph.helpers.validate import Validate
 from databricks.labs.remorph.snow import dialect_utils
 from databricks.labs.remorph.snow.sql_transpiler import SQLTranspiler
 
-logger = get_logger(__file__)
+logger = logging.getLogger(__name__)
 
 
 def process_file(config: MorphConfig, input_file: str | Path, output_file: str | Path):
@@ -71,6 +70,7 @@ def process_directory(config: MorphConfig, root: str | Path, base_root: str, fil
     root = Path(root)
 
     for file in files:
+        logger.debug(f"Processing file :{file}")
         if is_sql_file(file):
             if output_folder in (None, "None"):
                 output_folder_base = root / "transpiled"
@@ -80,9 +80,7 @@ def process_directory(config: MorphConfig, root: str | Path, base_root: str, fil
             output_file_name = Path(output_folder_base) / Path(file).name
             make_dir(output_folder_base)
 
-            input_file = root / file
-
-            no_of_sqls, parse_error, validation_error = process_file(config, input_file, output_file_name)
+            no_of_sqls, parse_error, validation_error = process_file(config, file, output_file_name)
             counter = counter + no_of_sqls
             parse_error_list.extend(parse_error)
             validate_error_list.extend(validation_error)

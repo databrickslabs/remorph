@@ -3,6 +3,10 @@ from typing import ClassVar
 from sqlglot.expressions import AggFunc, Condition, Expression, Func
 
 
+class NthValue(AggFunc):
+    arg_types: ClassVar[dict] = {"this": True, "offset": False}
+
+
 class Parameter(Expression):
     arg_types: ClassVar[dict] = {"this": True, "wrapped": False, "suffix": False}
 

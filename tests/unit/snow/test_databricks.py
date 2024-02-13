@@ -1224,6 +1224,21 @@ def test_date_trunc(dialect_context):
             "snowflake": "SELECT date_trunc('YEAR', '2015-03-05T09:32:05.359');",
         },
     )
+    # Test Date Trunc with TRY_TO_DATE patch 119
+    validate_source_transpile(
+        "DELETE FROM table1 WHERE cre_at >= DATE_TRUNC('MONTH', DATE(TRY_TO_TIMESTAMP('2022-01-15', 'yyyy-MM-dd')));",
+        source={
+            "snowflake": "DELETE FROM table1 WHERE cre_at >= DATE_TRUNC('month', TRY_TO_DATE('2022-01-15'));",
+        },
+    )
+
+    validate_source_transpile(
+        "SELECT DATE_TRUNC('MONTH', DATE(TRY_TO_TIMESTAMP(COLUMN1, 'yyyy-MM-dd'))) FROM table",
+        source={
+            "snowflake": "select DATE_TRUNC('month', TRY_TO_DATE(COLUMN1)) from table;",
+        },
+    )
+
     # Test case to validate `date_trunc` conversion of column
     validate_source_transpile(
         "SELECT DATE_TRUNC('MONTH', col1) AS date_trunc_col1 FROM tabl",
@@ -3083,5 +3098,22 @@ def test_create_ddl(dialect_context):
                         salary DECIMAL(10, 2),
                         department_id INT)
                 """,
+        },
+    )
+
+
+def test_delete_from_keyword(dialect_context):
+    validate_source_transpile, validate_target_transpile = dialect_context
+    validate_source_transpile(
+        "DELETE FROM employee WHERE employee_id = 1;",
+        source={
+            "snowflake": "DELETE FROM employee WHERE employee_id = 1",
+        },
+    )
+
+    validate_source_transpile(
+        "MERGE INTO  TABLE1 using table2 on table1.id = table2.id when matched then delete;",
+        source={
+            "snowflake": "DELETE FROM Table1 USING table2 WHERE table1.id = table2.id;",
         },
     )
