@@ -303,6 +303,9 @@ def _get_within_group_params(
     order_col = order_expr.expressions[0].this
     desc = order_expr.expressions[0].args.get("desc")
     is_order_asc = not desc or exp.false() == desc
+    # In Snow, if both DISTINCT and WITHIN GROUP are specified, both must refer to the same column.
+    # Ref: https://docs.snowflake.com/en/sql-reference/functions/array_agg#usage-notes
+    # TODO: Check the same restriction applies for other source dialects to be added in the future
     if has_distinct and agg_col != order_col:
         raise ParseError("If both DISTINCT and WITHIN GROUP are specified, both must refer to the same column.")
     return WithinGroupParams(
