@@ -122,29 +122,10 @@ class WorkspaceInstallation:
         timeout = timedelta(minutes=2)
         return WorkspaceInstallation(config, installation, ws, prompts, timeout)
 
-    @property
-    def config(self):
-        return self._config
-
-    @property
-    def folder(self):
-        return self._installation.install_folder()
-
     def run(self):
         logger.info(f"Installing Remorph v{PRODUCT_INFO.version()}")
         self._installation.save(self._config)
         logger.info("Installation completed successfully! Please refer to the  for the next steps.")
-
-    def config_file_link(self):
-        return self._installation.workspace_link("config.yml")
-
-    @property
-    def _config_file(self):
-        return f"{self._installation.install_folder()}/config.yml"
-
-    def _name(self, name: str) -> str:
-        prefix = os.path.basename(self._installation.install_folder()).removeprefix(".")
-        return f"[{prefix.upper()}] {name}"
 
     def uninstall(self):
         if self._prompts and not self._prompts.confirm(
