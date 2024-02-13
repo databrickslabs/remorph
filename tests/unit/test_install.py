@@ -21,8 +21,9 @@ def ws():
 
 @pytest.fixture
 def mock_installation():
-    return MockInstallation({"state.json": {"version": 1, "source": "snowflake", "skip_validation": True,
-                                            "catalog_name": "remorph_test"}})
+    return MockInstallation(
+        {"state.json": {"version": 1, "source": "snowflake", "skip_validation": True, "catalog_name": "remorph_test"}}
+    )
 
 
 def test_save_config(ws, mock_installation):
