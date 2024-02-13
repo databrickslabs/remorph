@@ -1,7 +1,7 @@
+import logging
 import re
 from typing import ClassVar
 
-from databricks.labs.blueprint.entrypoint import get_logger
 from sqlglot import expressions as exp
 from sqlglot.dialects import hive
 from sqlglot.dialects.databricks import Databricks
@@ -11,7 +11,7 @@ from sqlglot.helper import apply_index_offset, csv
 
 from databricks.labs.remorph.snow import local_expression
 
-logger = get_logger(__file__)
+logger = logging.getLogger(__name__)
 
 VALID_DATABRICKS_TYPES = {
     "BIGINT",

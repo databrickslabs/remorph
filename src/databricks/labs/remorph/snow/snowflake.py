@@ -1,9 +1,9 @@
 import copy
+import logging
 import re
 import typing as t
 from typing import ClassVar
 
-from databricks.labs.blueprint.entrypoint import get_logger
 from sqlglot import exp, parser
 from sqlglot.dialects.dialect import parse_date_delta
 from sqlglot.dialects.snowflake import Snowflake
@@ -15,7 +15,7 @@ from sqlglot.trie import new_trie
 
 from databricks.labs.remorph.snow import local_expression
 
-logger = get_logger(__file__)
+logger = logging.getLogger(__name__)
 
 """ SF Supported Date and Time Parts:
     https://docs.snowflake.com/en/sql-reference/functions-date-time#label-supported-date-time-parts

@@ -1,8 +1,8 @@
-from databricks.labs.blueprint.entrypoint import get_logger
+import logging
 
 from databricks.labs.remorph.helpers.execution_time import timeit
 
-logger = get_logger(__file__)
+logger = logging.getLogger(__name__)
 
 
 @timeit
