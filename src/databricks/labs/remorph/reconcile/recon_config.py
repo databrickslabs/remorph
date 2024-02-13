@@ -5,6 +5,7 @@ from typing import Optional
 
 from databricks.sdk.service._internal import _from_dict, _repeated_dict
 
+
 # [TODO]: Move _internal to blueprint
 
 
@@ -176,3 +177,25 @@ class DatabaseConfig:
 class Schema:
     column_name: str
     data_type: str
+
+
+# TODO need to resolve join cols
+@dataclass
+class QueryColumnConfig:
+    select_cols: list[str]
+    join_cols: list[str]
+    jdbc_partition_col: list[str] = None
+
+    def transform(self, func, *args, **kwargs) -> QueryColumnConfig:
+        result = func(self, *args, **kwargs)
+        return result
+
+
+@dataclass
+class QueryColumnWithTransformation:
+    cols_transformed: dict
+    hash_col: str = None
+
+    def transform(self, func, *args, **kwargs) -> QueryColumnWithTransformation:
+        result = func(self, *args, **kwargs)
+        return result
