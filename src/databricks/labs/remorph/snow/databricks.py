@@ -1,5 +1,4 @@
 import re
-from dataclasses import dataclass
 from typing import ClassVar
 
 from databricks.labs.blueprint.entrypoint import get_logger
@@ -33,13 +32,6 @@ VALID_DATABRICKS_TYPES = {
     "MAP",
     "STRUCT",
 }
-
-
-@dataclass
-class WithinGroupParams:
-    agg_col: exp.Column
-    order_col: exp.Column
-    is_order_asc: bool
 
 
 def timestamptrunc_sql(self, expression: exp.TimestampTrunc) -> str:
@@ -296,7 +288,7 @@ def _parse_date_trunc(self: Databricks.Generator, expression: local_expression.D
 def _get_within_group_params(
     expr: exp.ArrayAgg | exp.GroupConcat,
     within_group: exp.WithinGroup,
-) -> WithinGroupParams:
+) -> local_expression.WithinGroupParams:
     has_distinct = isinstance(expr.this, exp.Distinct)
     agg_col = expr.this.expressions[0] if has_distinct else expr.this
     order_expr = within_group.expression
@@ -308,7 +300,7 @@ def _get_within_group_params(
     # TODO: Check the same restriction applies for other source dialects to be added in the future
     if has_distinct and agg_col != order_col:
         raise ParseError("If both DISTINCT and WITHIN GROUP are specified, both must refer to the same column.")
-    return WithinGroupParams(
+    return local_expression.WithinGroupParams(
         agg_col=agg_col,
         order_col=order_col,
         is_order_asc=is_order_asc,
