@@ -13,7 +13,7 @@ classifiers = [
   "Programming Language :: Python :: Implementation :: CPython",
 ]
 dependencies = [
-  "databricks-sdk~=0.18.0",
+  "databricks-sdk>=0.18,<0.20",
   "sqlglot==21.0.0",
   "databricks-labs-blueprint~=0.1.0",
   "networkx~=3.2.1",
@@ -126,6 +126,7 @@ ignore = [
   # Ignore Exception must not use a string literal, assign to variable first
   "EM101",
   "PLR2004",
+  "UP038", # Use `X | Y` in `isinstance` call instead of `(X, Y)`
 ]
 extend-exclude = [
   "notebooks/*.py"

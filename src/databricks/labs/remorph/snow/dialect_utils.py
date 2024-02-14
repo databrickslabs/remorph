@@ -1,11 +1,12 @@
-from databricks.labs.blueprint.entrypoint import get_logger
+import logging
+
 from sqlglot import ErrorLevel, exp, parse
 from sqlglot.expressions import Expression, Select
 
 from databricks.labs.remorph.helpers.morph_status import ValidationError
 from databricks.labs.remorph.snow.snowflake import Snow
 
-logger = get_logger(__file__)
+logger = logging.getLogger(__name__)
 
 
 def find_windows_in_select(select: Select) -> list[exp.Window]:

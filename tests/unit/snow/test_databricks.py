@@ -734,27 +734,147 @@ CASE
 
 def test_arrayagg(dialect_context):
     validate_source_transpile, validate_target_transpile = dialect_context
-    # Test case to validate `array_agg` conversion
+
     validate_source_transpile(
-        """SELECT ARRAY_AGG(O_ORDERKEY) FROM orders""",
+        """SELECT ARRAY_AGG(col1) FROM test_table""",
         source={
-            "snowflake": """select array_agg(O_ORDERKEY) FROM orders;""",
+            "snowflake": """select array_agg(col1) FROM test_table;""",
         },
     )
-    # Test case to validate `arrayagg` conversion
+
     validate_source_transpile(
-        """SELECT ARRAY_AGG(O_CLERK) FROM orders""",
+        """
+            SELECT
+              SORT_ARRAY(ARRAY_AGG(DISTINCT col2))
+            FROM test_table
+            WHERE
+              col3 > 10000""",
         source={
-            "snowflake": """select arrayagg(O_CLERK) FROM orders;""",
+            "snowflake": """
+            SELECT ARRAY_AGG(DISTINCT col2) WITHIN GROUP (ORDER BY col2 ASC)
+            FROM test_table
+            WHERE col3 > 10000;""",
         },
     )
-    # Test case to validate `array_agg` tables columns conversion
+
     validate_source_transpile(
-        """SELECT ARRAY_AGG(O_ORDERSTATUS), ARRAY_AGG(O_COL) FROM orders""",
+        """
+            SELECT
+              SORT_ARRAY(ARRAY_AGG(col2))
+            FROM test_table
+            WHERE
+              col3 > 10000""",
         source={
-            "snowflake": """select ARRAY_AGG(O_ORDERSTATUS), ARRAYAGG(O_COL) FROM orders;""",
+            "snowflake": """
+            SELECT ARRAY_AGG(col2) WITHIN GROUP (ORDER BY col2 ASC)
+            FROM test_table
+            WHERE col3 > 10000;""",
         },
     )
+
+    validate_source_transpile(
+        """
+            SELECT
+              col2,
+              TRANSFORM(ARRAY_SORT(ARRAY_AGG(NAMED_STRUCT('value', col4, 'sort_by', col3)),
+                  (left, right) -> CASE
+                                          WHEN left.sort_by < right.sort_by THEN 1
+                                          WHEN left.sort_by > right.sort_by THEN -1
+                                          ELSE 0
+                                      END), s -> s.value)
+            FROM test_table
+            WHERE
+              col3 > 450000
+            GROUP BY
+              col2
+            ORDER BY
+              col2 DESC NULLS FIRST""",
+        source={
+            "snowflake": """
+              SELECT
+                col2,
+                ARRAYAGG(col4) WITHIN GROUP (ORDER BY col3 DESC)
+              FROM test_table
+              WHERE col3 > 450000
+              GROUP BY col2
+              ORDER BY col2 DESC;""",
+        },
+    )
+
+    validate_source_transpile(
+        """
+            SELECT
+              col2,
+              TRANSFORM(ARRAY_SORT(ARRAY_AGG(NAMED_STRUCT('value', col4, 'sort_by', col3)),
+                  (left, right) -> CASE
+                                          WHEN left.sort_by < right.sort_by THEN -1
+                                          WHEN left.sort_by > right.sort_by THEN 1
+                                          ELSE 0
+                                      END), s -> s.value)
+            FROM test_table
+            WHERE
+              col3 > 450000
+            GROUP BY
+              col2
+            ORDER BY
+              col2 DESC NULLS FIRST""",
+        source={
+            "snowflake": """
+              SELECT
+                col2,
+                ARRAYAGG(col4) WITHIN GROUP (ORDER BY col3)
+              FROM test_table
+              WHERE col3 > 450000
+              GROUP BY col2
+              ORDER BY col2 DESC;""",
+        },
+    )
+
+    validate_source_transpile(
+        """SELECT
+              SORT_ARRAY(ARRAY_AGG(col2), FALSE)
+            FROM test_table""",
+        source={
+            "snowflake": """SELECT ARRAY_AGG(col2) WITHIN GROUP (ORDER BY col2 DESC) FROM test_table;""",
+        },
+    )
+
+    validate_source_transpile(
+        """
+        WITH cte AS (SELECT id, tag, SUM(tag.count) AS item_count FROM another_table) SELECT id,
+        TRANSFORM(ARRAY_SORT(ARRAY_AGG(NAMED_STRUCT('value', tag, 'sort_by', item_count)), (left, right) -> CASE
+                        WHEN left.sort_by < right.sort_by THEN 1
+                        WHEN left.sort_by > right.sort_by THEN -1
+                        ELSE 0
+                    END), s -> s.value) AS agg_tags FROM cte GROUP BY 1
+        """,
+        source={
+            "snowflake": """
+            WITH cte AS (
+              SELECT
+                id,
+                tag,
+                SUM(tag:count) AS item_count
+              FROM another_table
+            )
+            SELECT
+            id
+            , ARRAY_AGG(tag) WITHIN GROUP(ORDER BY item_count DESC) AS agg_tags
+            FROM cte
+            GROUP BY 1;
+            """,
+        },
+    )
+
+    with (pytest.raises(ParseError, match="both must refer to the same column"),):
+        validate_source_transpile(
+            """SELECT
+                  SORT_ARRAY(ARRAY_AGG(DISTINCT col2), FALSE)
+                FROM test_table""",
+            source={
+                "snowflake": """SELECT ARRAY_AGG(DISTINCT col2) WITHIN GROUP (ORDER BY col3 DESC) FROM test_table;""",
+            },
+        )
 
 
 def test_array_cat(dialect_context):
@@ -788,18 +908,68 @@ def test_array_to_string(dialect_context):
 
 def test_listagg(dialect_context):
     validate_source_transpile, validate_target_transpile = dialect_context
-    # Test case to validate `listagg` conversion
+
     validate_source_transpile(
-        """SELECT ARRAY_JOIN(COLLECT_LIST(O_ORDERKEY), ' ') FROM orders WHERE O_TOTALPRICE > 450000""",
+        """
+        SELECT
+          ARRAY_JOIN(ARRAY_AGG(col1), ' ')
+        FROM test_table
+        WHERE
+          col2 > 10000
+        """,
         source={
-            "snowflake": "SELECT listagg(O_ORDERKEY, ' ') FROM orders WHERE O_TOTALPRICE > 450000;",
+            "snowflake": "SELECT LISTAGG(col1, ' ') FROM test_table WHERE col2 > 10000;",
         },
     )
-    # Test case to validate `listagg` conversion
+
     validate_source_transpile(
-        """SELECT ARRAY_JOIN(COLLECT_LIST(O_ORDERSTATUS), '|') FROM orders WHERE O_TOTALPRICE > 450000""",
+        """
+        SELECT
+          ARRAY_JOIN(ARRAY_AGG(col1), '')
+        FROM test_table
+        """,
         source={
-            "snowflake": "SELECT listagg(O_ORDERSTATUS, '|') FROM orders WHERE O_TOTALPRICE > 450000;",
+            "snowflake": "SELECT LISTAGG(col1) FROM test_table;",
+        },
+    )
+
+    validate_source_transpile(
+        """
+        SELECT
+          ARRAY_JOIN(ARRAY_AGG(DISTINCT col3), '|')
+        FROM test_table
+        WHERE
+          col2 > 10000
+        """,
+        source={
+            "snowflake": """SELECT LISTAGG(DISTINCT col3, '|')
+            FROM test_table WHERE col2 > 10000;""",
+        },
+    )
+
+    validate_source_transpile(
+        """
+        SELECT
+          col3,
+          ARRAY_JOIN(TRANSFORM(ARRAY_SORT(ARRAY_AGG(NAMED_STRUCT('value', col4, 'sort_by', col2)),
+                (left, right) -> CASE
+                                        WHEN left.sort_by < right.sort_by THEN 1
+                                        WHEN left.sort_by > right.sort_by THEN -1
+                                        ELSE 0
+                                    END), s -> s.value), ', ')
+        FROM test_table
+        WHERE
+          col2 > 10000
+        GROUP BY
+          col3
+        """,
+        source={
+            "snowflake": """
+            SELECT col3, listagg(col4, ', ') WITHIN GROUP (ORDER BY col2 DESC)
+            FROM
+            test_table
+            WHERE col2 > 10000 GROUP BY col3;
+            """,
         },
     )
 

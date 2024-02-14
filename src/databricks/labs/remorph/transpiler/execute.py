@@ -1,7 +1,6 @@
+import logging
 import os
 from pathlib import Path
-
-from databricks.labs.blueprint.entrypoint import get_logger
 
 from databricks.labs.remorph.config import MorphConfig
 from databricks.labs.remorph.helpers.execution_time import timeit
@@ -16,7 +15,7 @@ from databricks.labs.remorph.helpers.validate import Validate
 from databricks.labs.remorph.snow import dialect_utils
 from databricks.labs.remorph.snow.sql_transpiler import SQLTranspiler
 
-logger = get_logger(__file__)
+logger = logging.getLogger(__name__)
 
 
 def process_file(config: MorphConfig, input_file: str | Path, output_file: str | Path):
