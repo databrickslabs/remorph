@@ -6,7 +6,7 @@ from sqlglot import expressions as exp
 from sqlglot.dialects import hive
 from sqlglot.dialects.databricks import Databricks
 from sqlglot.dialects.dialect import rename_func
-from sqlglot.errors import UnsupportedError
+from sqlglot.errors import ParseError, UnsupportedError
 from sqlglot.helper import apply_index_offset, csv
 
 from databricks.labs.remorph.snow import local_expression
@@ -155,20 +155,6 @@ def try_to_number(self, expression: local_expression.TryToNumber):
     return f"CAST({func_expr} AS DECIMAL({precision}, {scale}))"
 
 
-def _list_agg(self, expr: exp.GroupConcat):
-    """
-    [TODO]
-        Handle:
-                1. DISTINCT keyword
-                2. WITHIN GROUP (ORDER BY )
-                3. OVER ( [ PARTITION BY <expr2> ] )
-                4. Collation within Order by
-        These are supported in Snowflake: [LISTAGG](https://docs.snowflake.com/en/sql-reference/functions/listagg)
-    """
-    collect_list_expr = self.func("COLLECT_LIST", expr.this)
-    return self.func("ARRAY_JOIN", collect_list_expr, expr.args.get("separator"))
-
-
 def _to_boolean(self: Databricks.Generator, expression: local_expression.ToBoolean) -> str:
     this = self.sql(expression, "this")
     logger.debug(f"Converting {this} to Boolean")
@@ -299,6 +285,41 @@ def _parse_date_trunc(self: Databricks.Generator, expression: local_expression.D
     return self.func("TRUNC", expression.this, expression.args.get("unit"))
 
 
+def _get_within_group_params(
+    expr: exp.ArrayAgg | exp.GroupConcat,
+    within_group: exp.WithinGroup,
+) -> local_expression.WithinGroupParams:
+    has_distinct = isinstance(expr.this, exp.Distinct)
+    agg_col = expr.this.expressions[0] if has_distinct else expr.this
+    order_expr = within_group.expression
+    order_col = order_expr.expressions[0].this
+    desc = order_expr.expressions[0].args.get("desc")
+    is_order_asc = not desc or exp.false() == desc
+    # In Snow, if both DISTINCT and WITHIN GROUP are specified, both must refer to the same column.
+    # Ref: https://docs.snowflake.com/en/sql-reference/functions/array_agg#usage-notes
+    # TODO: Check the same restriction applies for other source dialects to be added in the future
+    if has_distinct and agg_col != order_col:
+        raise ParseError("If both DISTINCT and WITHIN GROUP are specified, both must refer to the same column.")
+    return local_expression.WithinGroupParams(
+        agg_col=agg_col,
+        order_col=order_col,
+        is_order_asc=is_order_asc,
+    )
+
+
+def _create_named_struct_for_cmp(agg_col, order_col) -> exp.Expression:
+    named_struct_func = exp.Anonymous(
+        this="named_struct",
+        expressions=[
+            exp.Literal(this="value", is_string=True),
+            agg_col,
+            exp.Literal(this="sort_by", is_string=True),
+            order_col,
+        ],
+    )
+    return named_struct_func
+
+
 class Databricks(Databricks):
     # Instantiate Databricks Dialect
     databricks = Databricks()
@@ -324,7 +345,6 @@ class Databricks(Databricks):
             exp.DataType: _datatype_map,
             exp.CurrentTime: _curr_time(),
             exp.Lateral: _lateral_view,
-            exp.GroupConcat: _list_agg,
             exp.FromBase64: rename_func("UNBASE64"),
             local_expression.Parameter: _parm_sfx,
             local_expression.ToBoolean: _to_boolean,
@@ -390,18 +410,46 @@ class Databricks(Databricks):
             op_sql = f"{op_sql} JOIN" if op_sql else "JOIN"
             return f"{self.seg(op_sql)} {this_sql}{on_sql}"
 
-        def arrayagg_sql(self, expression: exp.ArrayAgg) -> str:
-            # ARRAY_AGG function is available in Spark built-in functions
-            """[TODO]
-            Have to handle:
-                    1. WITHIN GROUP (ORDER BY )
-                    2. OVER ( [ PARTITION BY <expr2> ] )
-            These are supported in Snowflake: [array_agg](https://docs.snowflake.com/en/sql-reference/functions/array_agg)
-            """
-            return self.func(
-                "ARRAY_AGG",
-                expression.this.this if isinstance(expression.this, exp.Order) else expression.this,
+        def arrayagg_sql(self, expr: exp.ArrayAgg) -> str:
+            sql = self.func("ARRAY_AGG", expr.this)
+            within_group = expr.parent if isinstance(expr.parent, exp.WithinGroup) else None
+            if not within_group:
+                return sql
+
+            wg_params = _get_within_group_params(expr, within_group)
+            if wg_params.agg_col == wg_params.order_col:
+                return f"SORT_ARRAY({sql}{'' if wg_params.is_order_asc else ', FALSE'})"
+
+            named_struct_func = _create_named_struct_for_cmp(wg_params.agg_col, wg_params.order_col)
+            array_sort = self.func(
+                "ARRAY_SORT",
+                self.func("ARRAY_AGG", named_struct_func),
+                f"""(left, right) -> CASE
+                        WHEN left.sort_by < right.sort_by THEN {'-1' if wg_params.is_order_asc else '1'}
+                        WHEN left.sort_by > right.sort_by THEN {'1' if wg_params.is_order_asc else '-1'}
+                        ELSE 0
+                    END""",
             )
+            return self.func("TRANSFORM", array_sort, "s -> s.value")
+
+        def groupconcat_sql(self, expr: exp.GroupConcat) -> str:
+            arr_agg = exp.ArrayAgg(this=expr.this)
+            within_group = expr.parent.copy() if isinstance(expr.parent, exp.WithinGroup) else None
+            if within_group:
+                arr_agg.parent = within_group
+
+            return self.func(
+                "ARRAY_JOIN",
+                arr_agg,
+                expr.args.get("separator") or exp.Literal(this="", is_string=True),
+            )
+
+        def withingroup_sql(self, expression: exp.WithinGroup) -> str:
+            agg_expr = expression.this
+            if isinstance(agg_expr, (exp.ArrayAgg, exp.GroupConcat)):
+                return self.sql(agg_expr)
+            else:
+                return super().withingroup_sql(expression)
 
         def split_sql(self, expression: local_expression.Split) -> str:
             """

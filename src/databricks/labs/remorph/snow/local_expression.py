@@ -1,5 +1,7 @@
+from dataclasses import dataclass
 from typing import ClassVar
 
+from sqlglot import expressions as exp
 from sqlglot.expressions import AggFunc, Condition, Expression, Func
 
 
@@ -126,3 +128,10 @@ class UUID(Func):
 
 class DateTrunc(Func):
     arg_types: ClassVar[dict] = {"unit": False, "this": True, "zone": False}
+
+
+@dataclass
+class WithinGroupParams:
+    agg_col: exp.Column
+    order_col: exp.Column
+    is_order_asc: bool
