@@ -75,7 +75,7 @@ class WorkspaceInstaller:
         if not self._catalog_setup.get_schema(f"{catalog_name}.{schema_name}"):
             allow_schema_creation = self._prompts.question(
                 f"""Schema {schema_name} not found in Catalog {catalog_name}\
-                    \nDo you want to create a new one?"""
+                    \nDo you want to create a new Schema?"""
             )
             if allow_schema_creation:
                 self._catalog_setup.create_schema(schema_name, catalog_name)
@@ -115,6 +115,7 @@ class WorkspaceInstallation:
         self._this_file = Path(__file__)
 
     @classmethod
+    # pragma: no cover
     def current(cls, ws: WorkspaceClient):
         installation = Installation.current(ws, PRODUCT_INFO.product_name())
         config = installation.load(MorphConfig)

@@ -33,17 +33,10 @@ def test_uninstall(ws):
     timeout = timedelta(seconds=1)
 
     installer = WorkspaceInstallation(config, installation, ws, prompts, timeout)
-
     installer.uninstall()
 
 
-def test_uninstall_no_workspace(ws):
-    def not_found(_):
-        msg = "uninstall"
-        raise NotFound(msg)
-
-    ws.workspace.get_status = not_found
-
+def test_uninstall_no_remorph_dir(ws):
     prompts = MockPrompts(
         {
             r"Do you want to uninstall remorph.*": "yes",
@@ -55,6 +48,7 @@ def test_uninstall_no_workspace(ws):
 
     installer = WorkspaceInstallation(config, installation, ws, prompts, timeout)
 
+    installer._installation.files.side_effect = NotFound()
     installer.uninstall()
 
 
