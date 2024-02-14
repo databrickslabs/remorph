@@ -69,7 +69,7 @@ def _format_create_sql(self, expression: exp.Create) -> str:
         if expression.args.get(arg_to_delete):
             del expression.args[arg_to_delete]
 
-    return hive._create_sql(self, expression)
+    return self.create_sql(expression)
 
 
 def _curr_time():
