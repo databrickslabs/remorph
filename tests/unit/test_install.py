@@ -32,7 +32,7 @@ def test_install(ws, mock_installation):
     prompts = MockPrompts(
         {
             r"Select the source": "0",
-            r"Do you want to Skip Validation": "1",
+            r"Do you want to Skip Validation": "yes",
             r"Enter catalog_name": "remorph_test",
             r"Enter schema_name": "remorph_schema",
             r".*": "",
@@ -61,7 +61,7 @@ def test_save_config(ws, mock_installation):
     prompts = MockPrompts(
         {
             r"Select the source": "0",
-            r"Do you want to Skip Validation": "1",
+            r"Do you want to Skip Validation": "yes",
             r"Enter catalog_name": "remorph_catalog",
             r"Enter schema_name": "remorph_schema",
             r".*": "",
@@ -86,7 +86,7 @@ def test_create_catalog_schema(ws, mock_installation):
     prompts = MockPrompts(
         {
             r"Select the source": "0",
-            r"Do you want to Skip Validation": "1",
+            r"Do you want to Skip Validation": "yes",
             r"Enter catalog_name": "test",
             r".*Do you want to create a new one?": True,
             r"Enter schema_name": "schema",
@@ -104,7 +104,7 @@ def test_create_catalog_no(ws, mock_installation):
     prompts = MockPrompts(
         {
             r"Select the source": "0",
-            r"Do you want to Skip Validation": "1",
+            r"Do you want to Skip Validation": "yes",
             r"Enter catalog_name": "test",
             r".*Do you want to create a new one?": False,
             r".*": "",
@@ -120,7 +120,7 @@ def test_create_schema_no(ws, mock_installation):
     prompts = MockPrompts(
         {
             r"Select the source": "0",
-            r"Do you want to Skip Validation": "1",
+            r"Do you want to Skip Validation": "yes",
             r"Enter catalog_name": "test",
             r".*Do you want to create a new one?": True,
             r"Enter schema_name": "schema",

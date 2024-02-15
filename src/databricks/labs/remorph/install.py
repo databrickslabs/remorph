@@ -11,6 +11,7 @@ from databricks.labs.blueprint.tui import Prompts
 from databricks.labs.blueprint.wheels import ProductInfo
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.errors import NotFound
+from databricks.sdk.retries import retried
 
 from databricks.labs.remorph.__about__ import __version__
 from databricks.labs.remorph.config import MorphConfig
@@ -52,36 +53,21 @@ class WorkspaceInstaller:
         source_prompt = self._prompts.choice("Select the source", ["snowflake", "tsql"])
         source = source_prompt.lower()
 
-        skip_validation_str = self._prompts.choice_from_dict(
-            "Do you want to Skip Validation", {"Yes": "true", "No": "false"}
-        )
-        skip_validation = skip_validation_str == "true"  # convert to bool
+        skip_validation = self._prompts.confirm("Do you want to Skip Validation")
 
         catalog_name = self._prompts.question("Enter catalog_name")
 
-        if not self._catalog_setup.get(catalog_name):
-            allow_catalog_creation = self._prompts.question(
-                f"""Catalog {catalog_name} not found.\
-                    \nDo you want to create a new one?"""
-            )
-            if allow_catalog_creation:
-                self._catalog_setup.create(catalog_name)
-            else:
-                msg = "Catalog is needed to setup Remorph"
-                raise SystemExit(msg)
+        try:
+            self._catalog_setup.get(catalog_name)
+        except NotFound:
+            self.setup_catalog(catalog_name)
 
         schema_name = self._prompts.question("Enter schema_name")
 
-        if not self._catalog_setup.get_schema(f"{catalog_name}.{schema_name}"):
-            allow_schema_creation = self._prompts.question(
-                f"""Schema {schema_name} not found in Catalog {catalog_name}\
-                    \nDo you want to create a new Schema?"""
-            )
-            if allow_schema_creation:
-                self._catalog_setup.create_schema(schema_name, catalog_name)
-            else:
-                msg = "Schema is needed to setup Remorph"
-                raise SystemExit(msg)
+        try:
+            self._catalog_setup.get_schema(f"{catalog_name}.{schema_name}")
+        except NotFound:
+            self.setup_schema(catalog_name, schema_name)
 
         config = MorphConfig(
             source=source,
@@ -95,6 +81,32 @@ class WorkspaceInstaller:
         if self._prompts.confirm("Open config file in the browser and continue installing?"):
             webbrowser.open(ws_file_url)
         return config
+
+    @retried(on=[NotFound], timeout=timedelta(minutes=5))
+    def setup_catalog(self, catalog_name: str):
+        allow_catalog_creation = self._prompts.question(
+            f"""Catalog {catalog_name} not found.\
+                    \nDo you want to create a new one?"""
+        )
+        if not allow_catalog_creation:
+            msg = "Catalog is needed to setup Remorph"
+            raise SystemExit(msg)
+        else:
+            logger.info(f" Creating new Catalog {catalog_name}")
+            self._catalog_setup.create(catalog_name)
+
+    @retried(on=[NotFound], timeout=timedelta(minutes=5))
+    def setup_schema(self, catalog_name: str, schema_name: str):
+        allow_schema_creation = self._prompts.question(
+            f"""Schema {schema_name} not found in Catalog {catalog_name}\
+                    \nDo you want to create a new Schema?"""
+        )
+        if not allow_schema_creation:
+            msg = "Schema is needed to setup Remorph"
+            raise SystemExit(msg)
+        else:
+            logger.info(f" Creating new Schema {catalog_name}.{schema_name}")
+            self._catalog_setup.create_schema(schema_name, catalog_name)
 
 
 class WorkspaceInstallation:
@@ -162,7 +174,7 @@ class CatalogSetup:
             return catalog_info.name
         except NotFound as err:
             logger.error(f"Cannot find Catalog: {err}")
-            return None
+            raise err
 
     def create_schema(self, name: str, catalog_name: str):
         logger.debug(f"Creating Schema {name} in Catalog {catalog_name}")
@@ -178,7 +190,7 @@ class CatalogSetup:
             return schema_info.name
         except NotFound as err:
             logger.error(f"Cannot find Schema: {err}")
-            return None
+            raise err
 
 
 if __name__ == "__main__":
