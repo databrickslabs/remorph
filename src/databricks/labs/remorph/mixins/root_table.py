@@ -55,14 +55,7 @@ class RootTableIdentifier:
                     sql_content = file.read()
                     self._parse_sql_content(sql_content, filename)
 
-    def identify_parent_tables(self, node_name):
-        node = self.dag.nodes.get(node_name)
-        if node is None:
-            return None
-        return [parent.name for parent in node.parents]
-
     def identify_root_tables(self, level):
-        self.generate_lineage()
         all_nodes = set(self.dag.nodes.values())
         child_nodes = {node for n in self.dag.nodes.values() for node in n.children}
         root_nodes = all_nodes - child_nodes
