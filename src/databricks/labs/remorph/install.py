@@ -127,7 +127,6 @@ class WorkspaceInstallation:
         self._this_file = Path(__file__)
 
     @classmethod
-    # pragma: no cover
     def current(cls, ws: WorkspaceClient):
         installation = Installation.current(ws, PRODUCT_INFO.product_name())
         config = installation.load(MorphConfig)
