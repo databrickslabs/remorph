@@ -16,8 +16,7 @@ dependencies = [
   "databricks-sdk>=0.18,<0.20",
   "sqlglot==21.0.0",
   "databricks-labs-blueprint~=0.1.0",
-  "networkx~=3.2.1",
-  "matplotlib~=3.4.3",
+  "graphviz"
 ]
 
 [project.urls]

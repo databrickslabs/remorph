@@ -1,8 +1,7 @@
 import os
 from collections import defaultdict
 
-import matplotlib.pyplot as plt
-import networkx as nx
+from graphviz import Digraph
 from sqlglot import exp, parse
 
 
@@ -101,13 +100,12 @@ class RootTableIdentifier:
     def __repr__(self):
         return str({node_name: str(node) for node_name, node in self.dag.nodes.items()})
 
-    def visualize(self):
-        G = nx.DiGraph()  # noqa N806
+    def visualize(self, filename="dag", output_format="png"):
+        dot = Digraph()
 
         for node in self.dag.nodes.values():
-            G.add_node(node.name)
-            for c in node.children:
-                G.add_edge(node.name, c.name)
+            dot.node(node.name)
+            for child in node.children:
+                dot.edge(node.name, child.name)
 
-        nx.draw(G, with_labels=True)
-        plt.show()
+        dot.render(filename, format=output_format, cleanup=True)
