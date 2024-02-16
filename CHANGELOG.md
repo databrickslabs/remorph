@@ -1,5 +1,17 @@
 # Version changelog
 
+## 0.1.3
+
+* Added support for WITHIN GROUP for ARRAY_AGG and LISTAGG functions ([#133](https://github.com/databrickslabs/remorph/pull/133)).
+* Fixed Merge "INTO" for delete from syntax ([#129](https://github.com/databrickslabs/remorph/pull/129)).
+* Fixed `DATE TRUNC` parse errors ([#131](https://github.com/databrickslabs/remorph/pull/131)).
+* Patched Logger function call during wheel file ([#135](https://github.com/databrickslabs/remorph/pull/135)).
+* Patched extra call to root path ([#126](https://github.com/databrickslabs/remorph/pull/126)).
+
+Dependency updates:
+
+ * Updated databricks-sdk requirement from ~=0.18.0 to >=0.18,<0.20 ([#134](https://github.com/databrickslabs/remorph/pull/134)).
+
 ## 0.1.2
 
 * Fixed duplicate LCA warnings ([#108](https://github.com/databrickslabs/remorph/pull/108)).
