@@ -2,8 +2,8 @@ import os
 from collections import defaultdict
 
 from graphviz import Digraph
-from sqlglot import exp, parse
-from databricks.labs.remorph.snow.snowflake import Snow
+from sqlglot import exp
+
 from databricks.labs.remorph.snow.sql_transpiler import SQLTranspiler
 
 

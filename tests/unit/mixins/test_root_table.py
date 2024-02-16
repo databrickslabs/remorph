@@ -16,8 +16,8 @@ def dag():
 
 
 @pytest.fixture
-def root_table_identifier():
-    return RootTableIdentifier("test_folder")
+def root_table_identifier(tmp_path):
+    return RootTableIdentifier("snowflake", tmp_path)
 
 
 def test_add_child(node):
@@ -65,6 +65,7 @@ def test_generate_lineage(root_table_identifier, tmpdir):
         inner join table3 on table2.id = table3.id
         where table2.id in (select id from table4)"""
     )
+    root_table_identifier.source = "snowflake"
     root_table_identifier.folder_path = str(tmpdir)
     root_table_identifier.generate_lineage()
     roots = {"table2", "table3", "table4"}

@@ -1,4 +1,4 @@
-from sqlglot import transpile, parse, exp
+from sqlglot import exp, parse, transpile
 
 from databricks.labs.remorph.helpers.morph_status import ParseError
 from databricks.labs.remorph.snow.databricks import Databricks
