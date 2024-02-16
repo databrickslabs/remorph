@@ -52,10 +52,13 @@ def test_identify_root_tables(root_table_identifier):
     assert "parent_node" in root_tables
 
 
-def test_visualize(root_table_identifier):
+def test_visualize(root_table_identifier, tmpdir):
+    vizfile = tmpdir.join("test_dag")
     root_table_identifier.dag.add_edge("parent_node", "child_node")
-    root_table_identifier.visualize("test_dag")
-    assert os.path.exists("test_dag.png")
+    root_table_identifier.visualize(filename=vizfile, output_format="png")
+    file = vizfile + ".png"
+    print(file)
+    assert os.path.exists(file)
 
 
 def test_generate_lineage(root_table_identifier, tmpdir):
