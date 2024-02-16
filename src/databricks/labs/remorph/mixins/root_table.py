@@ -3,6 +3,8 @@ from collections import defaultdict
 
 from graphviz import Digraph
 from sqlglot import exp, parse
+from databricks.labs.remorph.snow.snowflake import Snow
+from databricks.labs.remorph.snow.sql_transpiler import SQLTranspiler
 
 
 class Node:
@@ -42,15 +44,17 @@ class DAG:
 
 
 class RootTableIdentifier:
-    def __init__(self, folder_path):
-        self.folder_path = folder_path
+    def __init__(self, source, input_path):
+        self.source = source
+        self.input_path = input_path
         self.root_tables = defaultdict(int)
         self.dag = DAG()
 
     def generate_lineage(self):
-        for filename in os.listdir(self.folder_path):
+        # [TODO] Add support for recursive folder structure
+        for filename in os.listdir(self.input_path):
             if filename.endswith(".sql"):
-                with open(os.path.join(self.folder_path, filename)) as file:
+                with open(os.path.join(self.input_path, filename)) as file:
                     sql_content = file.read()
                     self._parse_sql_content(sql_content, filename)
 
@@ -87,7 +91,10 @@ class RootTableIdentifier:
             return table.name
 
     def _parse_sql_content(self, sql_content, file_name):
-        parsed_expression = parse(sql_content)
+        parse_error_list = []
+        parser = SQLTranspiler(self.source, sql_content, file_name, parse_error_list)
+
+        parsed_expression = parser.parse()
         for expr in parsed_expression:
             child = file_name
             for create in expr.find_all(exp.Create, exp.Insert, bfs=False):
@@ -104,8 +111,12 @@ class RootTableIdentifier:
         dot = Digraph()
 
         for node in self.dag.nodes.values():
+            if node.name is None:
+                continue
             dot.node(node.name)
             for child in node.children:
+                if child.name is None:
+                    continue
                 dot.edge(node.name, child.name)
 
         dot.render(filename, format=output_format, cleanup=True)
