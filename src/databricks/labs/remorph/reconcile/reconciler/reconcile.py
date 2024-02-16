@@ -1,19 +1,18 @@
-from databricks.labs.remorph.reconcile.query_builder.source_query_builder import SourceQueryBuilderFactory
+from databricks.labs.remorph.reconcile.query_builder.query_adapter import QueryBuilderAdapterFactory
+from databricks.labs.remorph.reconcile.query_builder.query_builder import QueryBuilder
 
 
 def reconcile(source_type, table_conf, schema):
-    source_query_builder = SourceQueryBuilderFactory.create(source_type=source_type, table_conf=table_conf,
-                                                            schema=schema)
+    src_query_builder = QueryBuilderAdapterFactory.generate_query(source_type, "source" , table_conf, schema)
 
-    column_config = (source_query_builder
-                     .get_select_columns()
-                     .transform(source_query_builder.get_join_columns)
-                     .transform(source_query_builder.get_jdbc_partition_column)
-                     )
+    src_sql_query = get_sql_query(src_query_builder)
 
-    column_transformation_config = (source_query_builder.add_default_transformation_to_cols(column_config)
-                                    .transform(source_query_builder.generate_hash_column)
-                                    .transform(source_query_builder.generate_hash_algorithm)
-                                    )
 
-    return column_config, column_transformation_config
+def get_sql_query(query_builder: QueryBuilder):
+    return (query_builder
+            .get_cols_to_be_hashed()
+            .transform(query_builder.get_columns_to_be_selected)
+            .transform(query_builder.add_custom_transformation)
+            .transform(query_builder.add_default_transformation)
+            .transform(query_builder.generate_hash_column)
+            .transform(query_builder.build_sql_query))

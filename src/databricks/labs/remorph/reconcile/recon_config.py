@@ -117,6 +117,8 @@ class Tables:
     target_name: str
     jdbc_reader_options: Optional[JdbcReaderOptions]
     join_columns: list[JoinColumns]
+    select_columns: Optional[list[str]]
+    drop_columns: Optional[list[str]]
     column_mapping: Optional[list[ColumnMapping]]
     transformations: Optional[list[Transformation]]
     thresholds: Optional[list[Thresholds]]
@@ -130,6 +132,8 @@ class Tables:
             target_name=d.get("target_name"),
             jdbc_reader_options=_from_dict(d, "jdbc_reader_options", JdbcReaderOptions),
             join_columns=_repeated_dict(d, "join_columns", JoinColumns),
+            select_columns=_repeated_dict(d, "select_columns", SelectColumns),
+            drop_columns=_repeated_dict(d, "select_columns", DropColumns),
             column_mapping=_repeated_dict(d, "column_mapping", ColumnMapping),
             transformations=_repeated_dict(d, "transformations", Transformation),
             thresholds=_repeated_dict(d, "thresholds", Thresholds),
@@ -143,6 +147,16 @@ class Tables:
                     return {getattr(v, key): v for v in value}
             else:
                 pass
+
+
+@dataclass
+class SelectColumns:
+    column_name: str
+
+
+@dataclass
+class DropColumns:
+    column_name: str
 
 
 @dataclass
@@ -179,23 +193,13 @@ class Schema:
     data_type: str
 
 
-# TODO need to resolve join cols
 @dataclass
-class QueryColumnConfig:
-    select_cols: list[str]
-    join_cols: list[str]
-    jdbc_partition_col: list[str] = None
+class QueryConfig:
+    hash_columns: list[str]
+    select_columns: list[str]
+    hash_col_transformation: list[TransformRuleMapping]
+    hash_expr: Optional[str]
 
-    def transform(self, func, *args, **kwargs) -> QueryColumnConfig:
-        result = func(self, *args, **kwargs)
-        return result
-
-
-@dataclass
-class QueryColumnWithTransformation:
-    cols_transformed: dict
-    hash_col: str = None
-
-    def transform(self, func, *args, **kwargs) -> QueryColumnWithTransformation:
+    def transform(self, func, *args, **kwargs) -> QueryConfig:
         result = func(self, *args, **kwargs)
         return result

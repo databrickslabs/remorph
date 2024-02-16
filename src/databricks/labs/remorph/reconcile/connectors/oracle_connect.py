@@ -36,7 +36,7 @@ class OracleAdapter(SourceAdapter):
             WHERE lower(TABLE_NAME) = '{final_table_name.lower()}' and lower(owner) = '{owner.lower()}'
             """
             df = (
-                self.__get_oracle_reader(query)
+                self._get_oracle_reader(query)
                 .load()
                 .withColumn("CHAR_LENGTH", expr("cast(CHAR_LENGTH as int)"))
                 .withColumn("DATA_PRECISION", expr("cast(DATA_PRECISION as int)"))
@@ -66,10 +66,10 @@ class OracleAdapter(SourceAdapter):
     def extract_data(self, table_conf: Tables, query: str) -> DataFrame:
         try:
             if table_conf.jdbc_reader_options is None:
-                df = self.__get_oracle_reader(query).load()
+                df = self._get_oracle_reader(query).load()
             else:
                 df = (
-                    self.__get_oracle_reader(query)
+                    self._get_oracle_reader(query)
                     .option("numPartitions", table_conf.jdbc_reader_options.number_partitions)
                     .option("oracle.jdbc.mapDateToTimestamp", "False")
                     .option("partitionColumn", table_conf.jdbc_reader_options.partition_column)
@@ -83,7 +83,7 @@ class OracleAdapter(SourceAdapter):
                 f"An error occurred while executing Oracle SQL query {query} in OracleAdapter.extract_data(): {e!s}"
             )
 
-    def __get_oracle_reader(self, query: str):
+    def _get_oracle_reader(self, query: str):
         return (
             self.spark.read.format("jdbc")
             .option("url", self.get_jdbc_url)

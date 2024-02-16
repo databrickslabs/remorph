@@ -1,56 +1,48 @@
-from databricks.labs.remorph.reconcile.constants import ColumnTransformationType, Constants
-from databricks.labs.remorph.reconcile.query_builder.source_query_build_adapter import (
-    SourceQueryBuildAdapter,
-)
-from databricks.labs.remorph.reconcile.recon_config import QueryColumnConfig, QueryColumnWithTransformation, Tables, \
-    Schema
+from databricks.labs.remorph.reconcile.constants import ColumnTransformationType, Constants, SourceType
+from databricks.labs.remorph.reconcile.query_builder.query_builder import QueryBuilder
+from databricks.labs.remorph.reconcile.recon_config import Tables, Schema, QueryConfig, TransformRuleMapping
+from databricks.labs.remorph.reconcile.utils import filter_list
 
 
-class OracleQueryBuildAdapter(SourceQueryBuildAdapter):
+class OracleQueryBuilder(QueryBuilder):
 
-    def __init__(self, source_type: str, table_conf: Tables, schema: list[Schema]):
-        super().__init__(source_type, table_conf, schema)
+    def __init__(self, layer: str, table_conf: Tables, schema: list[Schema]):
+        super().__init__(layer, table_conf, schema)
 
-    def get_select_columns(self) -> QueryColumnConfig:
-        sel_cols = [sch.column_name for sch in self.schema]
-        return QueryColumnConfig(select_cols=sel_cols, join_cols=[])
+    def get_cols_to_be_hashed(self):
+        return super().get_cols_to_be_hashed()
 
-    # @abstractmethod
-    # def remove_drop_cols_from_sel_cols(self) -> QueryColumnConfig:
-    #     pass
+    def get_columns_to_be_selected(self, query_config):
+        return super().get_columns_to_be_selected(query_config)
 
-    def get_join_columns(self, col_config) -> QueryColumnConfig:
-        setattr(col_config, 'join_cols', [self.table_conf.join_columns])
-        return col_config
+    def add_custom_transformation(self, query_config: QueryConfig):
+        return super().add_custom_transformation(query_config)
 
-    def get_jdbc_partition_column(self, col_config) -> QueryColumnConfig:
-        setattr(col_config, 'jdbc_partition_col', [self.table_conf.jdbc_reader_options.partition_column])
-        return col_config
+    def add_default_transformation(self,
+                                   query_config: QueryConfig) -> QueryConfig:
+        default_rule: list[TransformRuleMapping] = []
 
-    def add_default_transformation_to_cols(self, col_config: QueryColumnConfig) -> QueryColumnWithTransformation:
-        cols_to_be_transformed = col_config.select_cols
-        transformed_cols = {}
-        for column in cols_to_be_transformed:
-            transformed_cols[column] = ColumnTransformationType.ORACLE_DEFAULT.value.format(column)
-        return QueryColumnWithTransformation(transformed_cols)
+        cols_with_custom_transformation = [transformRule.column_name for transformRule in
+                                           query_config.hash_col_transformation]
+        cols_to_apply_default_transformation = filter_list(input_list=query_config.hash_columns,
+                                                           remove_list=cols_with_custom_transformation)
 
-    def generate_hash_column(self,
-                             transformation_config: QueryColumnWithTransformation) -> QueryColumnWithTransformation:
-        try:
-            concat_string = " || ".join(transformation_config.cols_transformed.values())
-            setattr(transformation_config, 'hash_col', concat_string)
-            return transformation_config
-        except Exception as e:
-            message = f"An error occurred in method generate_hash_column: {str(e)}"
-            print(message)
-            raise Exception(message)
+        for column in cols_to_apply_default_transformation:
+            transformation_mapping = TransformRuleMapping(column, None, None)
+            transformation_mapping.transformation = ColumnTransformationType.ORACLE_DEFAULT.value.format(column)
 
-    def generate_hash_algorithm(self,
-                                transformation_config: QueryColumnWithTransformation) -> QueryColumnWithTransformation:
-        hash_column = (Constants.hash_algorithm_mapping.get(self.source_type).get("source")).format(
-            transformation_config.hash_col)
-        setattr(transformation_config, 'hash_col', hash_column)
-        return transformation_config
+            default_rule.append(transformation_mapping)
 
-    def generate_sql_query(self) -> str:
-        print(123)
+        query_config.hash_col_transformation += default_rule
+
+        return query_config
+
+    def generate_hash_column(self, query_config: QueryConfig) -> QueryConfig:
+        column_expr = [rule.transformation for rule in query_config.hash_col_transformation]
+        concat_columns = " || ".join(column_expr)
+        hash_algo = Constants.hash_algorithm_mapping.get(SourceType.ORACLE.value).get(self.layer)
+        query_config.hash_expr = hash_algo.format(concat_columns)
+        return query_config
+
+    def build_sql_query(self, query_config: QueryConfig) -> str:
+        return super().build_sql_query(query_config)
