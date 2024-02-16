@@ -84,29 +84,29 @@ class WorkspaceInstaller:
 
     @retried(on=[NotFound], timeout=timedelta(minutes=5))
     def setup_catalog(self, catalog_name: str):
-        allow_catalog_creation = self._prompts.question(
+        allow_catalog_creation = self._prompts.confirm(
             f"""Catalog {catalog_name} not found.\
                     \nDo you want to create a new one?"""
         )
         if not allow_catalog_creation:
             msg = "Catalog is needed to setup Remorph"
             raise SystemExit(msg)
-        else:
-            logger.info(f" Creating new Catalog {catalog_name}")
-            self._catalog_setup.create(catalog_name)
+
+        logger.info(f" Creating new Catalog {catalog_name}")
+        self._catalog_setup.create(catalog_name)
 
     @retried(on=[NotFound], timeout=timedelta(minutes=5))
     def setup_schema(self, catalog_name: str, schema_name: str):
-        allow_schema_creation = self._prompts.question(
+        allow_schema_creation = self._prompts.confirm(
             f"""Schema {schema_name} not found in Catalog {catalog_name}\
                     \nDo you want to create a new Schema?"""
         )
         if not allow_schema_creation:
             msg = "Schema is needed to setup Remorph"
             raise SystemExit(msg)
-        else:
-            logger.info(f" Creating new Schema {catalog_name}.{schema_name}")
-            self._catalog_setup.create_schema(schema_name, catalog_name)
+
+        logger.info(f" Creating new Schema {catalog_name}.{schema_name}")
+        self._catalog_setup.create_schema(schema_name, catalog_name)
 
 
 class WorkspaceInstallation:

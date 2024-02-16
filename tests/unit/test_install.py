@@ -89,9 +89,9 @@ def test_create_catalog_schema(ws, mock_installation):
             r"Select the source": "0",
             r"Do you want to Skip Validation": "yes",
             r"Enter catalog_name": "test",
-            r".*Do you want to create a new one?": True,
+            r".*Do you want to create a new one?": "yes",
             r"Enter schema_name": "schema",
-            r".*Do you want to create a new Schema?": True,
+            r".*Do you want to create a new Schema?": "yes",
             r".*": "",
         }
     )
@@ -107,7 +107,7 @@ def test_create_catalog_no(ws, mock_installation):
             r"Select the source": "0",
             r"Do you want to Skip Validation": "yes",
             r"Enter catalog_name": "test",
-            r".*Do you want to create a new one?": False,
+            r".*Do you want to create a new one?": "yes",
             r".*": "",
         }
     )
@@ -123,9 +123,9 @@ def test_create_schema_no(ws, mock_installation):
             r"Select the source": "0",
             r"Do you want to Skip Validation": "yes",
             r"Enter catalog_name": "test",
-            r".*Do you want to create a new one?": True,
+            r".*Do you want to create a new one?": "yes",
             r"Enter schema_name": "schema",
-            r".*Do you want to create a new Schema?": False,
+            r".*Do you want to create a new Schema?": "yes",
             r".*": "",
         }
     )

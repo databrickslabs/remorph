@@ -150,7 +150,7 @@ parallel = true
 
 [tool.coverage.report]
 omit = ["src/databricks/labs/remorph/reconcile/*", "src/databricks/labs/remorph/helpers/execution_time.py",
-        "__about__.py", "src/databricks/labs/remorph/uninstall.py"]
+        "__about__.py"]
 exclude_lines = [
   "no cov",
   "if __name__ == .__main__.:",
