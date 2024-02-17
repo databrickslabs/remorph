@@ -1,3 +1,6 @@
+import logging
+
+import pyspark
 from pyspark.sql import DataFrame
 from pyspark.sql.functions import expr
 
@@ -13,15 +16,11 @@ from databricks.labs.remorph.reconcile.recon_config import (
     Tables,
     TransformRuleMapping,
 )
+from pyspark.errors import PySparkException
 
 
 class OracleAdapter(SourceAdapter):
     def extract_databricks_schema(self, table_conf: Tables, table_name: str) -> list[Schema]:
-        pass
-
-    def get_column_list_with_transformation(
-            self, table_conf: Tables, columns: list[str], layer: str
-    ) -> list[TransformRuleMapping]:
         pass
 
     def extract_schema(self, database_conf: DatabaseConfig, table_conf: Tables) -> list[Schema]:
@@ -55,10 +54,9 @@ class OracleAdapter(SourceAdapter):
                                           from oracle_schema_vw"""
             )
 
-            schema = [Schema(field.column_name.lower(), field.data_type.lower()) for field in processed_df.collect()]
-            return schema
-        except Exception as e:
-            raise Exception(
+            return [Schema(field.column_name.lower(), field.data_type.lower()) for field in processed_df.collect()]
+        except PySparkException as e:
+            raise PySparkException(
                 f"An error occurred while extracting schema for Oracle table {table_conf.source_name} in "
                 f"OracleAdapter.extract_schema(): {e!s}"
             )
@@ -66,9 +64,9 @@ class OracleAdapter(SourceAdapter):
     def extract_data(self, table_conf: Tables, query: str) -> DataFrame:
         try:
             if table_conf.jdbc_reader_options is None:
-                df = self._get_oracle_reader(query).load()
+                return self._get_oracle_reader(query).load()
             else:
-                df = (
+                return (
                     self._get_oracle_reader(query)
                     .option("numPartitions", table_conf.jdbc_reader_options.number_partitions)
                     .option("oracle.jdbc.mapDateToTimestamp", "False")
@@ -77,9 +75,8 @@ class OracleAdapter(SourceAdapter):
                     .option("upperBound", table_conf.jdbc_reader_options.upper_bound)
                     .load()
                 )
-            return df
-        except Exception as e:
-            raise Exception(
+        except PySparkException as e:
+            raise PySparkException(
                 f"An error occurred while executing Oracle SQL query {query} in OracleAdapter.extract_data(): {e!s}"
             )
 
@@ -88,6 +85,6 @@ class OracleAdapter(SourceAdapter):
             self.spark.read.format("jdbc")
             .option("url", self.get_jdbc_url)
             .option("driver", SourceDriver.ORACLE.value)
-            .option("dbtable", f"""({query}) tmp""")
+            .option("dbtable", f"({query}) tmp")
             .option("sessionInitStatement", Constants.jdbc_session_init.get(SourceType.ORACLE.value))
         )

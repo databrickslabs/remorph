@@ -95,9 +95,9 @@ def test_build_sql_query(oracle_query_builder):
         TransformRuleMapping(column_name='id', transformation="coalesce(trim(id),'')", alias_name=None),
         TransformRuleMapping(column_name='name', transformation="coalesce(trim(name),'')", alias_name=None),
         TransformRuleMapping(column_name='sal', transformation="coalesce(trim(sal),'')", alias_name=None)],
-                                    hash_expr="""lower(RAWTOHEX(STANDARD_HASH(coalesce(trim(id),'') || coalesce(trim(name),'') || coalesce(trim(sal),''), 'SHA256')))""")
+                                    hash_expr="lower(RAWTOHEX(STANDARD_HASH(coalesce(trim(id),'') || coalesce(trim(name),'') || coalesce(trim(sal),''), 'SHA256')))")
 
     actual = oracle_query_builder.build_sql_query(test_query_config)
-    expected = """select lower(RAWTOHEX(STANDARD_HASH(coalesce(trim(id),'') || coalesce(trim(name),'') || coalesce(trim(sal),''), 'SHA256'))) as hash_value__recon , id from test_emp"""
+    expected = "select lower(RAWTOHEX(STANDARD_HASH(coalesce(trim(id),'') || coalesce(trim(name),'') || coalesce(trim(sal),''), 'SHA256'))) as hash_value__recon , id from test_emp"
 
     assert actual == expected
