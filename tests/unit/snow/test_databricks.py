@@ -138,8 +138,8 @@ def test_lateral_struct(dialect_context):
     )
     validate_source_transpile(
         databricks_sql="""SELECT tt.id, FROM_JSON(tt.details, {TT.DETAILS_SCHEMA}) FROM prod.public.table AS tt
-             LATERAL VIEW EXPLODE(FROM_JSON(FROM_JSON(tt.resp)['items'])) AS lit
-             LATERAL VIEW EXPLODE(FROM_JSON(lit.value['details'])) AS ltd""",
+             LATERAL VIEW EXPLODE(FROM_JSON(FROM_JSON(tt.resp)[items])) AS lit
+             LATERAL VIEW EXPLODE(FROM_JSON(lit.value["details"])) AS ltd""",
         source={
             "snowflake": """
                 SELECT

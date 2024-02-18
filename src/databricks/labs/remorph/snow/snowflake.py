@@ -416,7 +416,8 @@ class Snow(Snowflake):
                         """
                         if self_copy._index + 2 < len(self_copy._tokens):
                             self_copy._advance(2)
-                            table_alias = self_copy._curr.text
+                            if self_copy._curr.text != ")":
+                                table_alias = self_copy._curr.text
                             """
                           * if the table is of format :: `<DB>.<TABLE>` <TABLE_ALIAS>, advance to two more tokens
                             - Handles (`SELECT .... FROM dwh.vw_replacement_customer  d`  => returns d)
@@ -464,7 +465,7 @@ class Snow(Snowflake):
                 return self.expression(local_expression.Bracket, this=this, expressions=[path])
             elif isinstance(this, local_expression.Bracket) and (is_name_value or is_table_alias):
                 return self.expression(local_expression.Bracket, this=this, expressions=[path])
-            elif isinstance(path, exp.Literal) and (path or is_path_value):
+            elif (isinstance(path, exp.Column | exp.Literal)) and (path or is_path_value):
                 return self.expression(local_expression.Bracket, this=this, expressions=[path])
             else:
                 return self.expression(exp.Bracket, this=this, expressions=[path])
