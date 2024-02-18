@@ -596,6 +596,14 @@ def test_monthname(dialect_context):
             "snowflake": """SELECT MONTHNAME('2015-03-04') AS MON;""",
         },
     )
+    with pytest.raises(ParseError):
+        # Snowflake expects only 1 argument for MonthName function
+        validate_source_transpile(
+            """SELECT DATE_FORMAT('2015-04-03 10:00', 'MMM') AS MONTH""",
+            source={
+                "snowflake": """SELECT MONTHNAME('2015-04-03 10:00', 'MMM') AS MONTH;""",
+            },
+        )
 
     with pytest.raises(ParseError):
         validate_source_transpile(
@@ -3009,6 +3017,15 @@ def test_to_number(dialect_context):
                 TO_NUMBER(sm.col2, '$99.00', 15, 5) AS col2 FROM sales_reports sm""",
         },
     )
+    with pytest.raises(UnsupportedError):
+        # Test case to validate `TO_NUMBER` parsing with precision and scale from table columns.
+        # Format is a mandatory argument in Databricks
+        validate_source_transpile(
+            """SELECT CAST(TO_NUMBER(sm.col1) AS DECIMAL(15, 5)) AS col1 FROM sales_reports AS sm""",
+            source={
+                "snowflake": """SELECT TO_NUMERIC(sm.col1, 15, 5) AS col1 FROM sales_reports sm""",
+            },
+        )
 
     with pytest.raises(UnsupportedError):
         # Test case to validate `TO_DECIMAL` parsing without format
