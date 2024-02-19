@@ -51,7 +51,7 @@ class StrTok(Func):
 
 
 class TryToNumber(Func):
-    arg_types: ClassVar[dict] = {"this": True, "expression": True, "precision": False, "scale": False}
+    arg_types: ClassVar[dict] = {"this": True, "expression": False, "precision": False, "scale": False}
     _sql_names: ClassVar[dict] = ["TRY_TO_DECIMAL", "TRY_TO_NUMBER", "TRY_TO_NUMERIC"]
 
 

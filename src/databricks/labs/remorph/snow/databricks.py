@@ -151,6 +151,8 @@ def try_to_number(self, expression: local_expression.TryToNumber):
     func_expr = self.func(func, expression.this)
     if expression.expression:
         func_expr = self.func(func, expression.this, expression.expression)
+    else:
+        func_expr = expression.this
 
     return f"CAST({func_expr} AS DECIMAL({precision}, {scale}))"
 

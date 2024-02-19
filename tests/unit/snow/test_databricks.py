@@ -550,6 +550,19 @@ def test_try_to_number(dialect_context):
                 TRY_TO_NUMBER(sm.col2, '$99.00', 15, 5) AS col2 FROM sales_reports sm""",
         },
     )
+    # Test case to validate `TRY_TO_DECIMAL` parsing without format
+    validate_source_transpile(
+        """SELECT CAST('$345' AS DECIMAL(38, 0)) AS str_col,
+                  CAST(99.56854634 AS DECIMAL(38, 0)) AS num_col,
+                  CAST(-4.35 AS DECIMAL(38, 0)) AS num_col1,
+                  CAST(col1 AS DECIMAL(38, 0)) AS col1""",
+        source={
+            "snowflake": """SELECT TRY_TO_DECIMAL('$345') AS str_col,
+                                   TRY_TO_DECIMAL(99.56854634) AS num_col,
+                                   TRY_TO_DECIMAL(-4.35) AS num_col1,
+                                   TRY_TO_DECIMAL(col1) AS col1""",
+        },
+    )
 
 
 def test_monthname(dialect_context):
