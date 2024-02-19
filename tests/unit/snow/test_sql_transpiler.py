@@ -10,7 +10,9 @@ def test_transpile_snowflake():
 
 def test_transpile_exception():
     error_list = [ParseError("", "")]
-    transpiler = SQLTranspiler("SNOWFLAKE", "SELECT TRY_TO_NUMBER(COLUMN) FROM table", "file.sql", error_list)
+    transpiler = SQLTranspiler(
+        "SNOWFLAKE", "SELECT TRY_TO_NUMBER(COLUMN, $99.99, 27) FROM table", "file.sql", error_list
+    )
     result = transpiler.transpile()
     assert result == ""
     assert error_list[1].file_name == "file.sql"
