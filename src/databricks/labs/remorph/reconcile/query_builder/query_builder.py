@@ -63,7 +63,7 @@ class QueryBuilder(ABC):
 
         if transformation_dict is not None:
             for column in query_config.hash_columns:
-                transformation_mapping = TransformRuleMapping(column, None, None)
+                transformation_mapping = TransformRuleMapping(column, None)
                 if column in transformation_dict.keys():
                     match self.layer:
                         case "source":

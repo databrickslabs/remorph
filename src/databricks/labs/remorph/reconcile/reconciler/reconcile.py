@@ -3,9 +3,11 @@ from databricks.labs.remorph.reconcile.query_builder.query_builder import QueryB
 
 
 def reconcile(source_type, table_conf, schema):
-    src_query_builder = QueryBuilderAdapterFactory.generate_query(source_type, "source" , table_conf, schema)
-
+    src_query_builder = QueryBuilderAdapterFactory.generate_src_query(source_type, table_conf, schema)
     src_sql_query = get_sql_query(src_query_builder)
+
+    tgt_query_builder = QueryBuilderAdapterFactory.generate_tgt_query(table_conf, schema)
+    tgt_sql_query = get_sql_query(tgt_query_builder)
 
 
 def get_sql_query(query_builder: QueryBuilder):

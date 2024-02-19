@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import dataclasses
 from dataclasses import dataclass
 from typing import Optional
 
@@ -13,19 +14,6 @@ from databricks.sdk.service._internal import _from_dict, _repeated_dict
 class TransformRuleMapping:
     column_name: str
     transformation: Optional[str]
-    alias_name: Optional[str]
-
-    def get_column_expression_without_alias(self) -> str:
-        if self.transformation:
-            return f"{self.transformation}"
-        else:
-            return f"{self.column_name}"
-
-    def get_column_expression_with_alias(self) -> str:
-        if self.alias_name:
-            return f"{self.get_column_expression_without_alias} as {self.alias_name}"
-        else:
-            return f"{self.get_column_expression_without_alias} as {self.column_name}"
 
 
 @dataclass
@@ -68,6 +56,10 @@ class ColumnMapping:
     def from_dict(cls, d: dict[str, any]) -> ColumnMapping:
         """Deserializes the ColumnMapping from a dictionary."""
         return cls(source_name=d.get("source_name"), target_name=d.get("target_name"))
+
+    def get_column_alias(self, original_name: str):
+        if original_name == self.source_name:
+            return self.target_name
 
 
 @dataclass
@@ -151,12 +143,12 @@ class Tables:
 
 @dataclass
 class SelectColumns:
-    column_name: str
+    name: str
 
 
 @dataclass
 class DropColumns:
-    column_name: str
+    name: str
 
 
 @dataclass
