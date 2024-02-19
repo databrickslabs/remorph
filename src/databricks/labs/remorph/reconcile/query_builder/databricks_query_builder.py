@@ -36,7 +36,7 @@ class DatabricksQueryBuilder(QueryBuilder):
 
         for column in cols_to_apply_default_transformation:
             transformation_mapping = TransformRuleMapping(column, None)
-            transformation_mapping.transformation = ColumnTransformationType.ORACLE_DEFAULT.value.format(column)
+            transformation_mapping.transformation = ColumnTransformationType.DATABRICKS_DEFAULT.value.format(column)
 
             default_rule.append(transformation_mapping)
 
