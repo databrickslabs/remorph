@@ -13,7 +13,7 @@ classifiers = [
   "Programming Language :: Python :: Implementation :: CPython",
 ]
 dependencies = [
-  "databricks-sdk>=0.18,<0.20",
+  "databricks-sdk>=0.18,<0.21",
   "sqlglot==21.0.0",
   "databricks-labs-blueprint~=0.1.0"
 ]
