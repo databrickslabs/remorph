@@ -1,7 +1,7 @@
-from dataclasses import dataclass
-
-from databricks.sdk.core import Config
 import logging
+from dataclasses import dataclass
+from databricks.sdk.core import Config
+
 
 logger = logging.getLogger(__name__)
 
