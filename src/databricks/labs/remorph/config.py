@@ -1,9 +1,9 @@
 from dataclasses import dataclass
 
-from databricks.labs.blueprint.entrypoint import get_logger
 from databricks.sdk.core import Config
+import logging
 
-logger = get_logger(__file__)
+logger = logging.getLogger(__name__)
 
 
 @dataclass
