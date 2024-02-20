@@ -1,5 +1,3 @@
-import os
-
 import pytest
 
 from databricks.labs.remorph.mixins.root_table import DAG, Node, RootTableIdentifier
@@ -50,16 +48,6 @@ def test_identify_root_tables(root_table_identifier):
     root_table_identifier.dag.add_edge("parent_node", "child_node")
     root_tables = root_table_identifier.identify_root_tables(0)
     assert "parent_node" in root_tables
-
-
-@pytest.mark.skip(reason="Graphviz need to be mocked")
-def test_visualize(root_table_identifier, tmpdir):
-    vizfile = tmpdir.join("test_dag")
-    root_table_identifier.dag.add_edge("parent_node", "child_node")
-    root_table_identifier.visualize(filename=vizfile, output_format="png")
-    file = vizfile + ".png"
-    print(file)
-    assert os.path.exists(file)
 
 
 def test_generate_lineage(root_table_identifier, tmpdir):

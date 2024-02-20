@@ -64,3 +64,15 @@ def dir_walk(root: Path):
     yield root, sub_dirs, files
     for s in sub_dirs:
         yield from dir_walk(s)
+
+
+def get_sql_file(input_path):
+    for _, _, files in dir_walk(Path(input_path)):
+        for filename in files:
+            if is_sql_file(filename):
+                yield filename
+
+
+def read_file(filename):
+    with open(filename) as file:
+        return file.read()

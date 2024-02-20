@@ -1,10 +1,17 @@
-import os
+import logging
 from collections import defaultdict
 
 from graphviz import Digraph
 from sqlglot import exp
 
+from databricks.labs.remorph.helpers.file_utils import (
+    get_sql_file,
+    is_sql_file,
+    read_file,
+)
 from databricks.labs.remorph.snow.sql_transpiler import SQLTranspiler
+
+logger = logging.getLogger(__name__)
 
 
 class Node:
@@ -51,12 +58,20 @@ class RootTableIdentifier:
         self.dag = DAG()
 
     def generate_lineage(self):
-        # [TODO] Add support for recursive folder structure
-        for filename in os.listdir(self.input_path):
-            if filename.endswith(".sql"):
-                with open(os.path.join(self.input_path, filename)) as file:
-                    sql_content = file.read()
-                    self._parse_sql_content(sql_content, filename)
+        # when input is sql file then parse the file
+        if is_sql_file(self.input_path):
+            filename = self.input_path
+            sql_content = read_file(filename)
+            self._parse_sql_content(sql_content, filename)
+            return  # return after processing the file
+
+        # when the input is a directory
+        for filename in get_sql_file(self.input_path):
+            print("***************")
+            print(filename)
+            logger.debug(f"Processing file: {filename}")
+            sql_content = read_file(filename)
+            self._parse_sql_content(sql_content, filename)
 
     def identify_root_tables(self, level):
         all_nodes = set(self.dag.nodes.values())
@@ -96,24 +111,27 @@ class RootTableIdentifier:
 
         parsed_expression = parser.parse()
         for expr in parsed_expression:
-            child = file_name
-            for create in expr.find_all(exp.Create, exp.Insert, bfs=False):
-                child = self._find_root_tables(create)
-                self.dag.add_node(child)
+            child = str(file_name)
+            if expr is not None:
+                for create in expr.find_all(exp.Create, exp.Insert, exp.Merge, bfs=False):
+                    child = self._find_root_tables(create)
+                    self.dag.add_node(child)
 
-            for select in expr.find_all(exp.Select, exp.Join, exp.With, bfs=False):
-                self.dag.add_edge(self._find_root_tables(select), child)
+                for select in expr.find_all(exp.Select, exp.Join, exp.With, bfs=False):
+                    self.dag.add_edge(self._find_root_tables(select), child)
 
     def __repr__(self):
         return str({node_name: str(node) for node_name, node in self.dag.nodes.items()})
 
     def visualize(self, filename="dag", output_format="png"):
-        dot = Digraph()
+        dot = Digraph(graph_attr={"rankdir": "TB"})
 
         for node in self.dag.nodes.values():
             if node.name is None:
                 continue
-            dot.node(node.name)
+            dot.node(
+                node.name, _attributes={"style": "filled", "color": "black", "fillcolor": "blue", "fontcolor": "white"}
+            )
             for child in node.children:
                 if child.name is None:
                     continue
