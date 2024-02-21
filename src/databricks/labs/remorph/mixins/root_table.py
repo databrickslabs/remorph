@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 class Node:
     def __init__(self, name):
-        self.name = name
+        self.name = name.upper()
         self.children = []
         self.parents = []
 
@@ -36,10 +36,13 @@ class DAG:
         self.nodes = {}
 
     def add_node(self, node_name):
+        node_name = node_name.upper()  # convert to upper case
         if node_name not in self.nodes:
             self.nodes[node_name] = Node(node_name)
 
     def add_edge(self, parent_name, child_name):
+        parent_name = parent_name.upper()  # convert to upper case
+        child_name = child_name.upper()  # convert to upper case
         if parent_name not in self.nodes:
             self.add_node(parent_name)
         if child_name not in self.nodes:
