@@ -126,14 +126,6 @@ class WorkspaceInstallation:
         self._state = InstallState.from_installation(installation)
         self._this_file = Path(__file__)
 
-    @classmethod
-    def current(cls, ws: WorkspaceClient):
-        installation = Installation.current(ws, PRODUCT_INFO.product_name())
-        config = installation.load(MorphConfig)
-        prompts = Prompts()
-        timeout = timedelta(minutes=2)
-        return WorkspaceInstallation(config, installation, ws, prompts, timeout)
-
     def run(self):
         logger.info(f"Installing Remorph v{PRODUCT_INFO.version()}")
         self._installation.save(self._config)

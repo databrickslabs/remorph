@@ -1,23 +1,22 @@
 import webbrowser
-from unittest.mock import MagicMock, create_autospec
+from datetime import timedelta
+from unittest.mock import create_autospec
 
 import pytest
 from databricks.labs.blueprint.installation import Installation, MockInstallation
-from databricks.labs.blueprint.tui import MockPrompts
+from databricks.labs.blueprint.tui import MockPrompts, Prompts
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.errors import NotFound
 
-from databricks.labs.remorph.__about__ import __version__
+from databricks.labs.remorph.config import MorphConfig
 from databricks.labs.remorph.install import WorkspaceInstallation, WorkspaceInstaller
 
 
 @pytest.fixture
 def ws():
     ws = create_autospec(WorkspaceClient)
-
-    ws.product = "remorph"
-    ws.product_version = __version__
-
+    ws.catalogs.get.side_effect = NotFound("test")
+    ws.schemas.get.side_effect = NotFound("test.schema")
     return ws
 
 
@@ -34,11 +33,17 @@ def test_install(ws, mock_installation):
             r"Select the source": "0",
             r"Do you want to Skip Validation": "yes",
             r"Enter catalog_name": "remorph_test",
+            r".*Do you want to create a new one?": "yes",
             r"Enter schema_name": "remorph_schema",
+            r".*Do you want to create a new Schema?": "yes",
             r".*": "",
         }
     )
     install = WorkspaceInstaller(prompts, mock_installation, ws)
+
+    # Assert that the `install` is an instance of WorkspaceInstaller
+    assert isinstance(install, WorkspaceInstaller)
+
     install.run()
 
 
@@ -62,7 +67,9 @@ def test_save_config(ws, mock_installation):
             r"Select the source": "0",
             r"Do you want to Skip Validation": "yes",
             r"Enter catalog_name": "remorph_catalog",
+            r".*Do you want to create a new one?": "yes",
             r"Enter schema_name": "remorph_schema",
+            r".*Do you want to create a new Schema?": "yes",
             r"Open config file in the browser.*": "yes",
             r".*": "",
         }
@@ -96,9 +103,20 @@ def test_create_catalog_schema(ws, mock_installation):
         }
     )
     install = WorkspaceInstaller(prompts, mock_installation, ws)
-    install._catalog_setup._ws.catalogs.get.side_effect = NotFound("test")
-    install._catalog_setup._ws.schemas.get.side_effect = NotFound("schema")
-    install.configure()
+
+    # Assert that the `install` is an instance of WorkspaceInstaller
+    assert isinstance(install, WorkspaceInstaller)
+
+    config = install.configure()
+
+    # Assert that the `config` is an instance of MorphConfig
+    assert isinstance(config, MorphConfig)
+
+    # Assert  the `config` variables
+    assert config.source == "snowflake"
+    assert config.skip_validation is True
+    assert config.catalog_name == "test"
+    assert config.schema_name == "schema"
 
 
 def test_create_catalog_no(ws, mock_installation):
@@ -107,12 +125,11 @@ def test_create_catalog_no(ws, mock_installation):
             r"Select the source": "0",
             r"Do you want to Skip Validation": "yes",
             r"Enter catalog_name": "test",
-            r".*Do you want to create a new one?": "yes",
+            r".*Do you want to create a new one?": "no",
             r".*": "",
         }
     )
     install = WorkspaceInstaller(prompts, mock_installation, ws)
-    install._catalog_setup._ws.catalogs.get.side_effect = NotFound("test")
     with pytest.raises(SystemExit):
         install.configure()
 
@@ -125,31 +142,24 @@ def test_create_schema_no(ws, mock_installation):
             r"Enter catalog_name": "test",
             r".*Do you want to create a new one?": "yes",
             r"Enter schema_name": "schema",
-            r".*Do you want to create a new Schema?": "yes",
+            r".*Do you want to create a new Schema?": "no",
             r".*": "",
         }
     )
     install = WorkspaceInstaller(prompts, mock_installation, ws)
-    install._catalog_setup._ws.schemas.get.side_effect = NotFound("test.schema")
     with pytest.raises(SystemExit):
         install.configure()
 
 
 def test_workspace_installation(ws, mock_installation, monkeypatch):
-    # Create a mock for the current method of the Installation
-    mock_current = MagicMock(return_value=mock_installation)
-
-    # Set the return value of the current method of the Installation mock
-    mock_installation.current = mock_current
-
     # Create a mock for the Installation
     mock_install = create_autospec(Installation)
 
-    # Use monkeypatch to replace the Installation class with our mock in the context of this test
-    monkeypatch.setattr("databricks.labs.remorph.install.Installation", mock_install)
+    # Create a mock for the config
+    config = create_autospec(MorphConfig)
 
     # Call the current function
-    result = WorkspaceInstallation.current(ws)
+    result = WorkspaceInstallation(config, mock_install, ws, Prompts(), timedelta(minutes=2))
 
     # Assert that the result is an instance of WorkspaceInstallation
     assert isinstance(result, WorkspaceInstallation)
