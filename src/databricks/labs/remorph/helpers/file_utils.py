@@ -14,21 +14,21 @@ def remove_bom(input_string: str) -> str:
 
     # Check and remove UTF-16 (LE and BE) BOM
     if input_string.startswith(codecs.BOM_UTF16_BE.decode("utf-16-be")):
-        output_string = input_string[len(codecs.BOM_UTF16_BE.decode("utf-16-be")):]
+        output_string = input_string[len(codecs.BOM_UTF16_BE.decode("utf-16-be")) :]
     elif input_string.startswith(codecs.BOM_UTF16_LE.decode("utf-16-le")):
-        output_string = input_string[len(codecs.BOM_UTF16_LE.decode("utf-16-le")):]
+        output_string = input_string[len(codecs.BOM_UTF16_LE.decode("utf-16-le")) :]
     elif input_string.startswith(codecs.BOM_UTF16.decode("utf-16")):
-        output_string = input_string[len(codecs.BOM_UTF16.decode("utf-16")):]
+        output_string = input_string[len(codecs.BOM_UTF16.decode("utf-16")) :]
     # Check and remove UTF-32 (LE and BE) BOM
     elif input_string.startswith(codecs.BOM_UTF32_BE.decode("utf-32-be")):
-        output_string = input_string[len(codecs.BOM_UTF32_BE.decode("utf-32-be")):]
+        output_string = input_string[len(codecs.BOM_UTF32_BE.decode("utf-32-be")) :]
     elif input_string.startswith(codecs.BOM_UTF32_LE.decode("utf-32-le")):
-        output_string = input_string[len(codecs.BOM_UTF32_LE.decode("utf-32-le")):]
+        output_string = input_string[len(codecs.BOM_UTF32_LE.decode("utf-32-le")) :]
     elif input_string.startswith(codecs.BOM_UTF32.decode("utf-32")):
-        output_string = input_string[len(codecs.BOM_UTF32.decode("utf-32")):]
+        output_string = input_string[len(codecs.BOM_UTF32.decode("utf-32")) :]
     # Check and remove UTF-8 BOM
     elif input_string.startswith(codecs.BOM_UTF8.decode("utf-8")):
-        output_string = input_string[len(codecs.BOM_UTF8.decode("utf-8")):]
+        output_string = input_string[len(codecs.BOM_UTF8.decode("utf-8")) :]
 
     return output_string
 
