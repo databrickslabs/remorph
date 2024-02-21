@@ -61,6 +61,13 @@ verify      = ["black --check .",
                "isort . --check-only",
                "ruff ."]
 
+[tool.hatch.envs.sqlglot]
+detached = true
+python="3.10"
+dependencies = [
+  "sqlglot",
+]
+
 [tool.isort]
 skip_glob = ["notebooks/*.py"]
 profile = "black"
