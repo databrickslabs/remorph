@@ -6,42 +6,20 @@ from databricks.labs.remorph.reconcile.utils import filter_list
 
 class OracleQueryBuilder(QueryBuilder):
 
-    def __init__(self, layer: str, table_conf: Tables, schema: list[Schema]):
-        super().__init__(layer, table_conf, schema)
-
-    def get_cols_to_be_hashed(self):
-        return super().get_cols_to_be_hashed()
-
-    def get_columns_to_be_selected(self, query_config):
-        return super().get_columns_to_be_selected(query_config)
-
-    def add_custom_transformation(self, query_config: QueryConfig):
-        return super().add_custom_transformation(query_config)
+    def __init__(self, source_type: str, layer: str, table_conf: Tables, schema: list[Schema]):
+        super().__init__(source_type, layer, table_conf, schema)
 
     def add_default_transformation(self,
                                    query_config: QueryConfig) -> QueryConfig:
-        default_rule: list[TransformRuleMapping] = []
+        cols_to_apply_default_transformation = [transformRule.column_name for transformRule in
+                                                query_config.table_transform if transformRule.transformation is None]
 
-        cols_with_custom_transformation = [transformRule.column_name for transformRule in
-                                           query_config.hash_col_transformation]
-        cols_to_apply_default_transformation = filter_list(input_list=query_config.hash_columns,
-                                                           remove_list=cols_with_custom_transformation)
+        transform_list = query_config.list_to_dict(TransformRuleMapping, "column_name")
 
         for column in cols_to_apply_default_transformation:
-            transformation_mapping = TransformRuleMapping(column, None)
-            transformation_mapping.transformation = ColumnTransformationType.ORACLE_DEFAULT.value.format(column)
+            transformation_rule = transform_list.get(column)
+            transformation_rule.transformation = ColumnTransformationType.ORACLE_DEFAULT.value.format(column)
 
-            default_rule.append(transformation_mapping)
-
-        query_config.hash_col_transformation += default_rule
-
-        return query_config
-
-    def generate_hash_column(self, query_config: QueryConfig) -> QueryConfig:
-        column_expr = [rule.transformation for rule in query_config.hash_col_transformation]
-        concat_columns = " || ".join(column_expr)
-        hash_algo = Constants.hash_algorithm_mapping.get(SourceType.ORACLE.value).get(self.layer)
-        query_config.hash_expr = hash_algo.format(concat_columns)
         return query_config
 
     def build_sql_query(self, query_config: QueryConfig) -> str:
