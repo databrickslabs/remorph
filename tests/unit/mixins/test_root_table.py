@@ -60,9 +60,9 @@ def test_generate_lineage(root_table_identifier, tmpdir):
     root_table_identifier.source = "snowflake"
     root_table_identifier.folder_path = str(tmpdir)
     root_table_identifier.generate_lineage()
-    roots = {"table2", "table3", "table4"}
+    roots = {"TABLE2", "TABLE3", "TABLE4"}
 
-    assert len(root_table_identifier.dag.nodes["table4"].parents) == 0
-    assert len(root_table_identifier.dag.nodes["table3"].parents) == 0
-    assert len(root_table_identifier.dag.nodes["table1"].parents) == 3
-    assert {parent.name for parent in root_table_identifier.dag.nodes["table1"].parents} == roots
+    assert len(root_table_identifier.dag.nodes["TABLE4"].parents) == 0
+    assert len(root_table_identifier.dag.nodes["TABLE3"].parents) == 0
+    assert len(root_table_identifier.dag.nodes["TABLE1"].parents) == 3
+    assert {parent.name for parent in root_table_identifier.dag.nodes["TABLE1"].parents} == roots
