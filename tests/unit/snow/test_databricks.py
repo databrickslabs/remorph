@@ -150,6 +150,12 @@ def test_lateral_struct(dialect_context):
                 ,  LATERAL FLATTEN (input=> parse_json(lit.value:"details")) AS ltd;""",
         },
     )
+    validate_source_transpile(
+        "SELECT level_1_key.level_2_key['1'] FROM demo1",
+        source={
+            "snowflake": "SELECT level_1_key:level_2_key:'1' FROM demo1;",
+        },
+    )
 
 
 def test_datediff(dialect_context):
