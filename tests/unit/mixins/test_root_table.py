@@ -34,7 +34,7 @@ def test_get_degree(node):
 
 def test_add_node(dag):
     dag.add_node("Parent")
-    assert "parent" in dag.nodes
+    assert "PARENT" in dag.nodes
 
 
 def test_add_edge(dag):
