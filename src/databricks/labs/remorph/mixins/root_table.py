@@ -103,7 +103,7 @@ class RootTableIdentifier:
     @staticmethod
     def _find_root_tables(expression) -> str:
         for table in expression.find_all(exp.Table, bfs=False):
-            return table.name
+            return str(table.name).upper()
 
     def _parse_sql_content(self, sql_content, file_name):
         parse_error_list = []

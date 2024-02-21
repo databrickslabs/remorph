@@ -14,21 +14,21 @@ def remove_bom(input_string: str) -> str:
 
     # Check and remove UTF-16 (LE and BE) BOM
     if input_string.startswith(codecs.BOM_UTF16_BE.decode("utf-16-be")):
-        output_string = input_string[len(codecs.BOM_UTF16_BE.decode("utf-16-be")) :]
+        output_string = input_string[len(codecs.BOM_UTF16_BE.decode("utf-16-be")):]
     elif input_string.startswith(codecs.BOM_UTF16_LE.decode("utf-16-le")):
-        output_string = input_string[len(codecs.BOM_UTF16_LE.decode("utf-16-le")) :]
+        output_string = input_string[len(codecs.BOM_UTF16_LE.decode("utf-16-le")):]
     elif input_string.startswith(codecs.BOM_UTF16.decode("utf-16")):
-        output_string = input_string[len(codecs.BOM_UTF16.decode("utf-16")) :]
+        output_string = input_string[len(codecs.BOM_UTF16.decode("utf-16")):]
     # Check and remove UTF-32 (LE and BE) BOM
     elif input_string.startswith(codecs.BOM_UTF32_BE.decode("utf-32-be")):
-        output_string = input_string[len(codecs.BOM_UTF32_BE.decode("utf-32-be")) :]
+        output_string = input_string[len(codecs.BOM_UTF32_BE.decode("utf-32-be")):]
     elif input_string.startswith(codecs.BOM_UTF32_LE.decode("utf-32-le")):
-        output_string = input_string[len(codecs.BOM_UTF32_LE.decode("utf-32-le")) :]
+        output_string = input_string[len(codecs.BOM_UTF32_LE.decode("utf-32-le")):]
     elif input_string.startswith(codecs.BOM_UTF32.decode("utf-32")):
-        output_string = input_string[len(codecs.BOM_UTF32.decode("utf-32")) :]
+        output_string = input_string[len(codecs.BOM_UTF32.decode("utf-32")):]
     # Check and remove UTF-8 BOM
     elif input_string.startswith(codecs.BOM_UTF8.decode("utf-8")):
-        output_string = input_string[len(codecs.BOM_UTF8.decode("utf-8")) :]
+        output_string = input_string[len(codecs.BOM_UTF8.decode("utf-8")):]
 
     return output_string
 
@@ -66,13 +66,23 @@ def dir_walk(root: Path):
         yield from dir_walk(s)
 
 
-def get_sql_file(input_path):
+def get_sql_file(input_path: str | Path) -> list:
+    """
+    Generator that yields the names of all SQL files in the given directory tree.
+    :param input_path: Path
+    :return: List of SQL files
+    """
     for _, _, files in dir_walk(Path(input_path)):
         for filename in files:
             if is_sql_file(filename):
                 yield filename
 
 
-def read_file(filename):
-    with open(filename) as file:
+def read_file(filename: str | Path) -> str:
+    """
+    Reads the contents of the given file and returns it as a string.
+    :param filename: Input File Path
+    :return: File Contents as String
+    """
+    with Path(filename).open() as file:
         return file.read()
