@@ -131,21 +131,6 @@ class WorkspaceInstallation:
         self._installation.save(self._config)
         logger.info("Installation completed successfully! Please refer to the  for the next steps.")
 
-    def uninstall(self):
-        if self._prompts and not self._prompts.confirm(
-            "Do you want to uninstall remorph from the workspace too, this would remove remorph project folder"
-        ):
-            return
-        # TODO: this is incorrect, fetch the remote version (that appeared only in Feb 2024)
-        logger.info(f"Deleting Remorph v{PRODUCT_INFO.version()} from {self._ws.config.host}")
-        try:
-            self._installation.files()
-        except NotFound:
-            logger.error(f"Check if {self._installation.install_folder()} is present")
-            return
-        self._installation.remove()
-        logger.info("UnInstalling Remorph complete")
-
 
 class CatalogSetup:
     def __init__(self, ws: WorkspaceClient):
