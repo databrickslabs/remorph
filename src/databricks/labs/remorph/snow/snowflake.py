@@ -4,12 +4,13 @@ import re
 import typing as t
 from typing import ClassVar
 
-from sqlglot import exp, parser
-from sqlglot.dialects.dialect import parse_date_delta
+from sqlglot import exp
+from sqlglot.dialects.dialect import build_date_delta as parse_date_delta
 from sqlglot.dialects.snowflake import Snowflake
-from sqlglot.dialects.snowflake import _parse_to_timestamp as parse_to_timestamp
+from sqlglot.dialects.snowflake import _build_to_timestamp as parse_to_timestamp
 from sqlglot.errors import ParseError
 from sqlglot.helper import seq_get
+from sqlglot.parser import build_var_map as parse_var_map
 from sqlglot.tokens import Token, TokenType
 from sqlglot.trie import new_trie
 
@@ -141,7 +142,7 @@ def _parse_monthname(args: list) -> local_expression.DateFormat:
 
 
 def _parse_object_construct(args: list) -> exp.StarMap | exp.Struct:
-    expression = parser.parse_var_map(args)
+    expression = parse_var_map(args)
 
     if isinstance(expression, exp.StarMap):
         return exp.Struct(expressions=[expression.this])
@@ -422,7 +423,8 @@ class Snow(Snowflake):
                         """
                         if self_copy._index + 2 < len(self_copy._tokens):
                             self_copy._advance(2)
-                            table_alias = self_copy._curr.text
+                            if self_copy._curr.text != ")":
+                                table_alias = self_copy._curr.text
                             """
                           * if the table is of format :: `<DB>.<TABLE>` <TABLE_ALIAS>, advance to two more tokens
                             - Handles (`SELECT .... FROM dwh.vw_replacement_customer  d`  => returns d)
@@ -470,7 +472,7 @@ class Snow(Snowflake):
                 return self.expression(local_expression.Bracket, this=this, expressions=[path])
             elif isinstance(this, local_expression.Bracket) and (is_name_value or is_table_alias):
                 return self.expression(local_expression.Bracket, this=this, expressions=[path])
-            elif isinstance(path, exp.Literal) and (path or is_path_value):
+            elif (isinstance(path, exp.Column)) and (path or is_path_value):
                 return self.expression(local_expression.Bracket, this=this, expressions=[path])
             else:
                 return self.expression(exp.Bracket, this=this, expressions=[path])
