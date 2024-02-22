@@ -191,8 +191,8 @@ def test_get_schema(ws):
 
 
 def test_config(ws):
-    with pytest.raises(TypeError):
+    with pytest.raises(ValueError):
         config = MorphConfig(
-            source="snowflake", skip_validation=True, catalog_name="test_catalog", schema_name="test_schema"
+            source="snowflake", skip_validation=False, catalog_name="test_catalog", schema_name="test_schema", sdk_config=None
         )
         assert isinstance(config, MorphConfig)
