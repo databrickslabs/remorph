@@ -22,7 +22,7 @@ def oracle_query_builder():
                         filters=None)
     schema = [Schema("id", "integer"), Schema("name", "string"), Schema("sal", "double")]
 
-    query_builder = QueryBuilderAdapterFactory.generate_src_query(SourceType.ORACLE.value, table_conf, schema)
+    query_builder = QueryBuilderAdapterFactory.generate_query(SourceType.ORACLE.value, table_conf, schema)
 
     return query_builder
 

@@ -3,7 +3,8 @@ from io import StringIO
 
 from databricks.labs.blueprint.entrypoint import get_logger
 from databricks.labs.remorph.reconcile.constants import Constants
-from databricks.labs.remorph.reconcile.recon_config import Tables, Schema, QueryConfig, TransformRuleMapping
+from databricks.labs.remorph.reconcile.query_builder.query_configurator import QueryConfig
+from databricks.labs.remorph.reconcile.recon_config import Tables, Schema, TransformRuleMapping
 
 logger = get_logger(__file__)
 

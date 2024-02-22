@@ -1,6 +1,7 @@
 from databricks.labs.remorph.reconcile.constants import ColumnTransformationType, Constants, SourceType
 from databricks.labs.remorph.reconcile.query_builder.query_builder import QueryBuilder
-from databricks.labs.remorph.reconcile.recon_config import Tables, Schema, QueryConfig, TransformRuleMapping
+from databricks.labs.remorph.reconcile.query_builder.query_configurator import QueryConfig
+from databricks.labs.remorph.reconcile.recon_config import Tables, Schema, TransformRuleMapping
 from databricks.labs.remorph.reconcile.utils import filter_list
 
 

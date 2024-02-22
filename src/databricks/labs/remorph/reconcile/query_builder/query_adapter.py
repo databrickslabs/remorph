@@ -6,7 +6,7 @@ from databricks.labs.remorph.reconcile.recon_config import Tables, Schema
 class QueryBuilderAdapterFactory:
 
     @staticmethod
-    def generate_src_query(source_type: str, table_conf: Tables, schema: list[Schema]):
+    def generate_query(source_type: str, table_conf: Tables, schema: list[Schema]):
         layer = "source"
         match source_type.lower():
             case SourceType.ORACLE.value:
