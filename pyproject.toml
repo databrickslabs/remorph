@@ -61,7 +61,7 @@ verify      = ["black --check .",
                "isort . --check-only",
                "ruff ."]
 
-[tool.hatch.envs.sqlglot]
+[tool.hatch.envs.sqlglot-latest]
 detached = true
 python="3.10"
 dependencies = [
