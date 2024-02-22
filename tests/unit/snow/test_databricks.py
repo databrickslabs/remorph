@@ -138,8 +138,8 @@ def test_lateral_struct(dialect_context):
     )
     validate_source_transpile(
         databricks_sql="""SELECT tt.id, FROM_JSON(tt.details, {TT.DETAILS_SCHEMA}) FROM prod.public.table AS tt
-             LATERAL VIEW EXPLODE(FROM_JSON(FROM_JSON(tt.resp)['items'])) AS lit
-             LATERAL VIEW EXPLODE(FROM_JSON(lit.value['details'])) AS ltd""",
+             LATERAL VIEW EXPLODE(FROM_JSON(FROM_JSON(tt.resp)[items])) AS lit
+             LATERAL VIEW EXPLODE(FROM_JSON(lit.value["details"])) AS ltd""",
         source={
             "snowflake": """
                 SELECT
@@ -148,6 +148,12 @@ def test_lateral_struct(dialect_context):
                 FROM prod.public.table tt
                 ,  LATERAL FLATTEN (input=> PARSE_JSON(PARSE_JSON(tt.resp):items)) AS lit
                 ,  LATERAL FLATTEN (input=> parse_json(lit.value:"details")) AS ltd;""",
+        },
+    )
+    validate_source_transpile(
+        "SELECT level_1_key.level_2_key['1'] FROM demo1",
+        source={
+            "snowflake": "SELECT level_1_key:level_2_key:'1' FROM demo1;",
         },
     )
 
@@ -609,6 +615,14 @@ def test_monthname(dialect_context):
             "snowflake": """SELECT MONTHNAME('2015-03-04') AS MON;""",
         },
     )
+    with pytest.raises(ParseError):
+        # Snowflake expects only 1 argument for MonthName function
+        validate_source_transpile(
+            """SELECT DATE_FORMAT('2015-04-03 10:00', 'MMM') AS MONTH""",
+            source={
+                "snowflake": """SELECT MONTHNAME('2015-04-03 10:00', 'MMM') AS MONTH;""",
+            },
+        )
 
     with pytest.raises(ParseError):
         validate_source_transpile(
@@ -3022,6 +3036,15 @@ def test_to_number(dialect_context):
                 TO_NUMBER(sm.col2, '$99.00', 15, 5) AS col2 FROM sales_reports sm""",
         },
     )
+    with pytest.raises(UnsupportedError):
+        # Test case to validate `TO_NUMBER` parsing with precision and scale from table columns.
+        # Format is a mandatory argument in Databricks
+        validate_source_transpile(
+            """SELECT CAST(TO_NUMBER(sm.col1) AS DECIMAL(15, 5)) AS col1 FROM sales_reports AS sm""",
+            source={
+                "snowflake": """SELECT TO_NUMERIC(sm.col1, 15, 5) AS col1 FROM sales_reports sm""",
+            },
+        )
 
     with pytest.raises(UnsupportedError):
         # Test case to validate `TO_DECIMAL` parsing without format

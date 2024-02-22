@@ -17,3 +17,19 @@ def test_transpile_exception():
     assert result == ""
     assert error_list[1].file_name == "file.sql"
     assert "Error Parsing args" in error_list[1].exception.args[0]
+
+
+def test_tokenizer_exception():
+    error_list = [ParseError("", "")]
+    transpiler = SQLTranspiler("SNOWFLAKE", "1SELECT ~v\ud83d' ", "file.sql", error_list)
+    result = transpiler.transpile()
+    assert result == ""
+    assert error_list[1].file_name == "file.sql"
+    assert "Error tokenizing" in error_list[1].exception.args[0]
+
+
+def test_procedure_conversion():
+    procedure_sql = "CREATE OR REPLACE PROCEDURE my_procedure() AS BEGIN SELECT * FROM my_table; END;"
+    transpiler = SQLTranspiler("SNOWFLAKE", procedure_sql, "file.sql", [])
+    result = transpiler.transpile()[0]
+    assert result == "CREATE PROCEDURE my_procedure(\n  \n) AS BEGIN\nSELECT\n  *\nFROM my_table"
