@@ -188,3 +188,11 @@ def test_get_schema(ws):
     catalog_setup = CatalogSetup(mock_ws)
 
     assert catalog_setup.get_schema("test.schema") == "test.schema"
+
+
+def test_config(ws):
+    with pytest.raises(TypeError):
+        config = MorphConfig(
+            source="snowflake", skip_validation=True, catalog_name="test_catalog", schema_name="test_schema"
+        )
+        assert isinstance(config, MorphConfig)
