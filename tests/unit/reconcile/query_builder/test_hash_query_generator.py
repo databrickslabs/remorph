@@ -1,8 +1,9 @@
 import pytest
 
-from databricks.labs.remorph.reconcile.recon_config import JdbcReaderOptions, Tables, JoinColumns, ColumnMapping, \
+from databricks.labs.remorph.reconcile.constants import SourceType
+from databricks.labs.remorph.reconcile.query_builder.generator import HashQueryGenerator
+from databricks.labs.remorph.reconcile.recon_config import Tables, JdbcReaderOptions, JoinColumns, ColumnMapping, \
     Transformation, Schema
-from databricks.labs.remorph.reconcile.reconcile import reconcile
 
 
 @pytest.fixture
@@ -25,8 +26,9 @@ def app_config():
     return table_conf, schema
 
 
-def test_reconcile(app_config):
-    actual_query = reconcile("ORACLE", app_config[0], app_config[1])
+def test_hash_query_generator(app_config):
+    actual_query = HashQueryGenerator(source_type=SourceType.ORACLE.value, table_conf=app_config[0],
+                                      schema=app_config[1], layer="source").generate_hash_query()
     expected_query = "select lower(RAWTOHEX(STANDARD_HASH(coalesce(trim(s_suppkey),'') || trim(s_name) || trim(s_address) || coalesce(trim(s_nationkey),'') || coalesce(trim(s_phone),'') || trim(to_char(s_acctbal, '9999999999.99')) || trim(s_comment), 'SHA256'))) as hash_value__recon , s_suppkey from supplier"
 
     assert actual_query == expected_query

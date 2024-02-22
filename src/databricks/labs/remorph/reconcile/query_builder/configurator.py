@@ -77,7 +77,6 @@ class QueryConfig:
     @classmethod
     def generate_hash_algorithm(cls, source_type: str,
                                 list_expr: list[str]) -> str:
-        print(list_expr)
         hash_expr = " || ".join(list_expr)
         hash_column = (Constants.hash_algorithm_mapping.get(source_type.lower()).get("source")).format(
             hash_expr)

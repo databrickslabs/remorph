@@ -1,7 +1,7 @@
 import pytest
 
 from databricks.labs.remorph.reconcile.constants import SourceType
-from databricks.labs.remorph.reconcile.query_builder.query_adapter import QueryBuilderAdapterFactory
+from databricks.labs.remorph.reconcile.query_builder.adapter import QueryBuilderAdapterFactory
 from databricks.labs.remorph.reconcile.recon_config import Tables, JdbcReaderOptions, JoinColumns, Schema, QueryConfig, \
     TransformRuleMapping
 from tests.unit.reconcile.query_builder.conftest import assert_query_config_dataclass
@@ -22,7 +22,7 @@ def oracle_query_builder():
                         filters=None)
     schema = [Schema("id", "integer"), Schema("name", "string"), Schema("sal", "double")]
 
-    query_builder = QueryBuilderAdapterFactory.generate_query(SourceType.ORACLE.value, table_conf, schema)
+    query_builder = QueryBuilderAdapterFactory.create(SourceType.ORACLE.value, table_conf, schema)
 
     return query_builder
 
