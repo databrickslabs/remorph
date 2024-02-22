@@ -7,9 +7,14 @@ from databricks.labs.blueprint.installation import Installation, MockInstallatio
 from databricks.labs.blueprint.tui import MockPrompts, Prompts
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.errors import NotFound
+from databricks.sdk.service.catalog import CatalogInfo
 
 from databricks.labs.remorph.config import MorphConfig
-from databricks.labs.remorph.install import WorkspaceInstallation, WorkspaceInstaller
+from databricks.labs.remorph.install import (
+    CatalogSetup,
+    WorkspaceInstallation,
+    WorkspaceInstaller,
+)
 
 
 @pytest.fixture
@@ -163,3 +168,23 @@ def test_workspace_installation(ws, mock_installation, monkeypatch):
 
     # Assert that the result is an instance of WorkspaceInstallation
     assert isinstance(result, WorkspaceInstallation)
+
+
+def test_get_catalog():
+    mock_ws = create_autospec(WorkspaceClient)
+    mock_ws.catalogs.get.return_value = CatalogInfo.from_dict({"name": "test_catalog"})
+
+    # Create a mock for the Catalog Setup
+    catalog_setup = CatalogSetup(mock_ws)
+
+    assert catalog_setup.get("test_catalog") == "test_catalog"
+
+
+def test_get_schema(ws):
+    mock_ws = create_autospec(WorkspaceClient)
+    mock_ws.schemas.get.return_value = CatalogInfo.from_dict({"name": "test.schema"})
+
+    # Create a mock for the Catalog Setup
+    catalog_setup = CatalogSetup(mock_ws)
+
+    assert catalog_setup.get_schema("test.schema") == "test.schema"
