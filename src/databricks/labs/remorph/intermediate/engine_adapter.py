@@ -20,7 +20,6 @@ class EngineAdapter:
             raise ValueError(msg)
 
     def parse_sql_content(self, dag: DAG, sql_content: str, file_name: str | Path, engine: str):
-        print(f"Engine: {engine}")
         parser = self.select_engine(engine)
         for root_table, child in parser.parse_sql_content(sql_content, file_name):
             dag.add_node(child)
