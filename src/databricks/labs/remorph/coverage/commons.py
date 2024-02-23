@@ -3,6 +3,7 @@ import json
 import logging
 import os
 import subprocess
+import time
 from collections.abc import Generator
 from datetime import datetime
 from pathlib import Path
@@ -106,7 +107,8 @@ def _get_report_file_path(
 ) -> Path:
     source_dialect_name = source_dialect.__name__
     target_dialect_name = target_dialect.__name__
-    return result_dir / f"{project}_{source_dialect_name}_{target_dialect_name}.json".lower()
+    current_time_ns = time.time_ns()
+    return result_dir / f"{project}_{source_dialect_name}_{target_dialect_name}_{current_time_ns}.json".lower()
 
 
 def _prepare_report_entry(
