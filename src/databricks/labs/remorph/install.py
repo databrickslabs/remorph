@@ -129,7 +129,7 @@ class WorkspaceInstallation:
     def run(self):
         logger.info(f"Installing Remorph v{PRODUCT_INFO.version()}")
         self._installation.save(self._config)
-        logger.info("Installation completed successfully! Please refer to the  for the next steps.")
+        logger.info("Installation completed successfully! Please refer to the documentation for the next steps.")
 
 
 class CatalogSetup:
