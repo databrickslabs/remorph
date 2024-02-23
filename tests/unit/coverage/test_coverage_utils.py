@@ -7,7 +7,7 @@ from unittest.mock import patch
 import pytest
 import pytz
 
-from databricks.labs.remorph.coverage.coverage_utils import (
+from databricks.labs.remorph.coverage.commons import (
     ReportEntry,
     collect_transpilation_stats,
     get_current_commit_hash,
@@ -74,7 +74,7 @@ def test_get_current_commit_hash():
         assert get_current_commit_hash() is None
 
 
-@mock.patch("databricks.labs.remorph.coverage.coverage_utils.datetime")
+@mock.patch("databricks.labs.remorph.coverage.commons.datetime")
 def test_get_current_time_utc(mock_datetime):
     fixed_timestamp = datetime(2022, 1, 1, 0, 0, 0, tzinfo=pytz.UTC)
     mock_datetime.utcnow = mock.Mock(return_value=fixed_timestamp)
@@ -141,11 +141,11 @@ def test_stats_collection_with_parse_error(io_dir_pair):
 
     with (
         patch(
-            "databricks.labs.remorph.coverage.coverage_utils.parse_sql",
+            "databricks.labs.remorph.coverage.commons.parse_sql",
             side_effect=Exception("Some parse error"),
         ),
         patch(
-            "databricks.labs.remorph.coverage.coverage_utils.get_current_time_utc",
+            "databricks.labs.remorph.coverage.commons.get_current_time_utc",
             return_value=fixed_timestamp,
         ),
     ):
@@ -182,11 +182,11 @@ def test_stats_collection_with_transpile_error(io_dir_pair):
 
     with (
         patch(
-            "databricks.labs.remorph.coverage.coverage_utils.generate_sql",
+            "databricks.labs.remorph.coverage.commons.generate_sql",
             side_effect=Exception("Some transpilation error"),
         ),
         patch(
-            "databricks.labs.remorph.coverage.coverage_utils.get_current_time_utc",
+            "databricks.labs.remorph.coverage.commons.get_current_time_utc",
             return_value=fixed_timestamp,
         ),
     ):
@@ -225,7 +225,7 @@ def test_stats_collection_no_error(io_dir_pair):
 
     with (
         patch(
-            "databricks.labs.remorph.coverage.coverage_utils.get_current_time_utc",
+            "databricks.labs.remorph.coverage.commons.get_current_time_utc",
             return_value=fixed_timestamp,
         ),
     ):

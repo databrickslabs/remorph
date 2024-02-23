@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 class ReportEntry:
     project: str
     commit_hash: str | None
-    version: str | None
+    version: str
     timestamp: str
     source_dialect: str
     target_dialect: str
@@ -157,7 +157,7 @@ def collect_transpilation_stats(
     _ensure_valid_io_paths(input_dir, result_dir)
     report_file_path = _get_report_file_path(project, source_dialect, target_dialect, result_dir)
 
-    with open(report_file_path, "w", encoding="utf8") as report_file:
+    with report_file_path.open("w", encoding="utf8") as report_file:
         for input_file in get_supported_sql_files(input_dir):
             sql = input_file.read_text(encoding="utf-8-sig")
             file_path = str(input_file.absolute().relative_to(input_dir.parent.absolute()))

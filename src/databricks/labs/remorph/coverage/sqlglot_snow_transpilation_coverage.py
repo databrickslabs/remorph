@@ -1,17 +1,17 @@
 from pathlib import Path
 
-import coverage_utils
+import commons
 import sqlglot
 from sqlglot.dialects.databricks import Databricks
 from sqlglot.dialects.snowflake import Snowflake
 
 if __name__ == "__main__":
-    input_dir = coverage_utils.get_env_var("INPUT_DIR", required=True)
-    output_dir = coverage_utils.get_env_var("OUTPUT_DIR", required=True)
+    input_dir = commons.get_env_var("INPUT_DIR", required=True)
+    output_dir = commons.get_env_var("OUTPUT_DIR", required=True)
     sqlglot_version = sqlglot.__version__
     sqlglot_commit_hash = ""
 
-    coverage_utils.collect_transpilation_stats(
+    commons.collect_transpilation_stats(
         "SQLGlot",
         sqlglot_commit_hash,
         sqlglot_version,
