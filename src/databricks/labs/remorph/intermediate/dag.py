@@ -13,9 +13,6 @@ class Node:
         self.children.append(node)
         node.parents.append(self)
 
-    def get_degree(self):
-        return len(self.parents)
-
     def __repr__(self):
         return f"Node({self.name}, {self.children})"
 
