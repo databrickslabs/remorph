@@ -44,15 +44,11 @@ class DAG:
         table_name = table_name.lower()  # convert to lower() case
         if table_name in self.nodes:
             return [parent.name for parent in self.nodes[table_name].parents]
-        else:
-            return []
 
     def identify_immediate_children(self, table_name: str):
         table_name = table_name.lower()  # convert to lower() case
         if table_name in self.nodes:
             return [child.name for child in self.nodes[table_name].children]
-        else:
-            return []
 
     def identify_root_tables(self, level: int):
         all_nodes = set(self.nodes.values())
