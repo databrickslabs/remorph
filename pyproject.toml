@@ -15,7 +15,7 @@ classifiers = [
 dependencies = [
   "databricks-sdk>=0.18,<0.21",
   "sqlglot==21.2.0",
-  "databricks-labs-blueprint~=0.1.0"
+  "databricks-labs-blueprint~=0.2.3"
 ]
 
 [project.urls]
@@ -148,7 +148,8 @@ branch = true
 parallel = true
 
 [tool.coverage.report]
-omit = ["src/databricks/labs/remorph/reconcile/*", "src/databricks/labs/remorph/helpers/execution_time.py", "__about__.py"]
+omit = ["src/databricks/labs/remorph/reconcile/*", "src/databricks/labs/remorph/helpers/execution_time.py",
+        "__about__.py"]
 exclude_lines = [
   "no cov",
   "if __name__ == .__main__.:",
