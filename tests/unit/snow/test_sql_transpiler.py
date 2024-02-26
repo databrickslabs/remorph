@@ -7,6 +7,7 @@ def test_transpile_snowflake():
     result = transpiler.transpile()[0]
     assert result == "SELECT\n  CURRENT_TIMESTAMP()"
 
+
 def test_transpile_exception():
     error_list = [ParserError("", "")]
     transpiler = SQLTranspiler(
