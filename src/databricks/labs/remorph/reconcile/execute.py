@@ -11,4 +11,3 @@ def recon(recon_conf, conn_profile, source, report):
     logger.info(conn_profile)
     logger.info(source)
     logger.info(report)
-    pass

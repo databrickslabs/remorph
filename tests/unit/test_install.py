@@ -19,10 +19,10 @@ from databricks.labs.remorph.install import (
 
 @pytest.fixture
 def ws():
-    ws = create_autospec(WorkspaceClient)
-    ws.catalogs.get.side_effect = NotFound("test")
-    ws.schemas.get.side_effect = NotFound("test.schema")
-    return ws
+    w = create_autospec(WorkspaceClient)
+    w.catalogs.get.side_effect = NotFound("test")
+    w.schemas.get.side_effect = NotFound("test.schema")
+    return w
 
 
 @pytest.fixture
