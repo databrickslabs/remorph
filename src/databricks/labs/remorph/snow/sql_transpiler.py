@@ -1,6 +1,7 @@
 from sqlglot import transpile
+from sqlglot.errors import ParseError, TokenError, UnsupportedError
 
-from databricks.labs.remorph.helpers.morph_status import ParseError
+from databricks.labs.remorph.helpers.morph_status import ParserError
 from databricks.labs.remorph.snow.databricks import Databricks
 from databricks.labs.remorph.snow.snowflake import Snow
 
@@ -20,9 +21,10 @@ class SQLTranspiler:
 
         try:
             transpiled_sql = transpile(self.sql, read=dialect, write=Databricks, pretty=True, error_level=None)
-        except Exception as e:
+        except (ParseError, TokenError, UnsupportedError) as e:
             transpiled_sql = ""
-
-            self.error_list.append(ParseError(self.file_nm, e))
+            self.error_list.append(ParserError(self.file_nm, e))
+        except Exception as er:
+            print(er)
 
         return transpiled_sql

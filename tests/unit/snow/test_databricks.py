@@ -2,6 +2,7 @@
 Test Cases to validate target Databricks dialect
 """
 
+# pylint: disable=too-many-lines
 import pytest
 from sqlglot import ParseError, UnsupportedError
 

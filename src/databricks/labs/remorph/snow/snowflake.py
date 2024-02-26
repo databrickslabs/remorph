@@ -164,14 +164,15 @@ def _parse_tonumber(args: list) -> local_expression.ToNumber:
                           """
         raise ParseError(error_msg)
 
-    if len(args) == 1:
-        return local_expression.ToNumber(this=seq_get(args, 0))
-    elif len(args) == 3:
-        return local_expression.ToNumber(this=seq_get(args, 0), precision=seq_get(args, 1), scale=seq_get(args, 2))
-    elif len(args) == 4:
-        return local_expression.ToNumber(
-            this=seq_get(args, 0), expression=seq_get(args, 1), precision=seq_get(args, 2), scale=seq_get(args, 3)
-        )
+    match len(args):
+        case 1:
+            return local_expression.ToNumber(this=seq_get(args, 0))
+        case 3:
+            return local_expression.ToNumber(this=seq_get(args, 0), precision=seq_get(args, 1), scale=seq_get(args, 2))
+        case 4:
+            return local_expression.ToNumber(
+                this=seq_get(args, 0), expression=seq_get(args, 1), precision=seq_get(args, 2), scale=seq_get(args, 3)
+            )
 
     return local_expression.ToNumber(this=seq_get(args, 0), expression=seq_get(args, 1))
 
@@ -200,36 +201,36 @@ class Snow(Snowflake):
             cls.KEYWORDS = new_key_word_dict | cls.KEYWORDS
 
         @classmethod
-        def merge_trie(cls, parent_trie, new_trie):
+        def merge_trie(cls, parent_trie, curr_trie):
             merged_trie = {}
             logger.debug(f"The Parent Trie is {parent_trie}")
-            logger.debug(f"The Input Trie is {new_trie}")
-            for key in set(parent_trie.keys()) | set(new_trie.keys()):  # Get all unique keys from both tries
-                if key in parent_trie and key in new_trie:  # If the key is in both tries, merge the subtries
-                    if isinstance(parent_trie[key], dict) and isinstance(new_trie[key], dict):
-                        logger.debug(f"New trie inside the key is {new_trie}")
+            logger.debug(f"The Input Trie is {curr_trie}")
+            for key in set(parent_trie.keys()) | set(curr_trie.keys()):  # Get all unique keys from both tries
+                if key in parent_trie and key in curr_trie:  # If the key is in both tries, merge the subtries
+                    if isinstance(parent_trie[key], dict) and isinstance(curr_trie[key], dict):
+                        logger.debug(f"New trie inside the key is {curr_trie}")
                         logger.debug(f"Parent trie inside the key is {parent_trie}")
-                        merged_trie[key] = cls.merge_trie(parent_trie[key], new_trie[key])
+                        merged_trie[key] = cls.merge_trie(parent_trie[key], curr_trie[key])
                         logger.debug(f"Merged Trie is {merged_trie}")
                     elif isinstance(parent_trie[key], dict):
                         merged_trie[key] = parent_trie[key]
                     else:
-                        merged_trie[key] = new_trie[key]
+                        merged_trie[key] = curr_trie[key]
                 elif key in parent_trie:  # If the key is only in trie1, add it to the merged trie
                     merged_trie[key] = parent_trie[key]
                 else:  # If the key is only in trie2, add it to the merged trie
-                    merged_trie[key] = new_trie[key]
+                    merged_trie[key] = curr_trie[key]
             return merged_trie
 
         @classmethod
         def update_keyword_trie(
             cls,
-            new_trie,
+            curr_trie,
             parent_trie=None,
         ):
             if parent_trie is None:
                 parent_trie = cls._KEYWORD_TRIE
-            cls.KEYWORD_TRIE = cls.merge_trie(parent_trie, new_trie)
+            cls.KEYWORD_TRIE = cls.merge_trie(parent_trie, curr_trie)
 
         def match_strings_token_dict(self, string, pattern_dict):
             result_dict = {}
@@ -401,7 +402,7 @@ class Snow(Snowflake):
             """
             # Create a deep copy of Parser to avoid any modifications to original one
             self_copy = copy.deepcopy(self)
-            found_from = True if self_copy._match(TokenType.FROM, advance=False) else False
+            found_from = bool(self_copy._match(TokenType.FROM, advance=False))
             run = True
             indx = 0
             table_alias = None
@@ -425,12 +426,13 @@ class Snow(Snowflake):
                             self_copy._advance(2)
                             if self_copy._curr.text != ")":
                                 table_alias = self_copy._curr.text
-                            """
-                          * if the table is of format :: `<DB>.<TABLE>` <TABLE_ALIAS>, advance to two more tokens
-                            - Handles (`SELECT .... FROM dwh.vw_replacement_customer  d`  => returns d)
-                          * if the table is of format :: `<DB>.<SCHEMA>.<TABLE>` <TABLE_ALIAS>, advance to 2 more tokens
-                            - Handles (`SELECT .... FROM prod.public.tax_transact tt`  => returns tt)
-                            """
+
+                            # * if the table is of format :: `<DB>.<TABLE>` <TABLE_ALIAS>, advance to two more tokens
+                            # - Handles (`SELECT .... FROM dwh.vw_replacement_customer  d`  => returns d)
+                            # * if the table is of format :: `<DB>.<SCHEMA>.<TABLE>`
+                            # <TABLE_ALIAS>, advance to 2 more tokens
+                            # - Handles (`SELECT .... FROM prod.public.tax_transact tt`  => returns tt)
+
                             while table_alias == "." and self_copy._index + 2 < len(self_copy._tokens):
                                 self_copy._advance(2)
                                 table_alias = self_copy._curr.text

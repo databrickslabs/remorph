@@ -1,4 +1,4 @@
-from databricks.labs.remorph.helpers.morph_status import ParseError
+from databricks.labs.remorph.helpers.morph_status import ParserError
 from databricks.labs.remorph.snow.sql_transpiler import SQLTranspiler
 
 
@@ -7,9 +7,8 @@ def test_transpile_snowflake():
     result = transpiler.transpile()[0]
     assert result == "SELECT\n  CURRENT_TIMESTAMP()"
 
-
 def test_transpile_exception():
-    error_list = [ParseError("", "")]
+    error_list = [ParserError("", "")]
     transpiler = SQLTranspiler(
         "SNOWFLAKE", "SELECT TRY_TO_NUMBER(COLUMN, $99.99, 27) FROM table", "file.sql", error_list
     )
@@ -20,7 +19,7 @@ def test_transpile_exception():
 
 
 def test_tokenizer_exception():
-    error_list = [ParseError("", "")]
+    error_list = [ParserError("", "")]
     transpiler = SQLTranspiler("SNOWFLAKE", "1SELECT ~v\ud83d' ", "file.sql", error_list)
     result = transpiler.transpile()
     assert result == ""
