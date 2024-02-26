@@ -5,6 +5,9 @@ install:
   min_runtime_version: 13.3
   require_running_cluster: false
   require_databricks_connect: true
+  script: src/databricks/labs/remorph/install.py
+uninstall:
+  script: src/databricks/labs/remorph/uninstall.py
 entrypoint: src/databricks/labs/remorph/cli.py
 min_python: 3.10
 commands:
