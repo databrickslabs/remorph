@@ -24,7 +24,5 @@ class SQLTranspiler:
         except (ParseError, TokenError, UnsupportedError) as e:
             transpiled_sql = ""
             self.error_list.append(ParserError(self.file_nm, e))
-        except Exception as er:
-            print(er)
 
         return transpiled_sql

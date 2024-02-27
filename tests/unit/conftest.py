@@ -45,9 +45,9 @@ def morph_config(mock_databricks_config):
     )
 
 
-def _normalize_string(s: str) -> str:
+def _normalize_string(value: str) -> str:
     # Remove indentations and convert to lowercase
-    lines = [line.strip() for line in s.splitlines()]
+    lines = [line.strip() for line in value.splitlines()]
     return " ".join(lines).lower().strip()
 
 
