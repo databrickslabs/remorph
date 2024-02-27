@@ -4,7 +4,7 @@ from databricks.labs.remorph.reconcile.connectors.adapter import SourceAdapter
 from databricks.labs.remorph.reconcile.recon_config import (
     DatabaseConfig,
     Schema,
-    Tables
+    Tables,
 )
 
 

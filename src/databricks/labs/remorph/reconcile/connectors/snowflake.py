@@ -14,7 +14,7 @@ class SnowflakeAdapter(SourceAdapter):
         pass
 
     def get_column_list_with_transformation(
-            self, table_conf: Tables, columns: list[str], layer: str
+        self, table_conf: Tables, columns: list[str], layer: str
     ) -> list[TransformRuleMapping]:
         pass
 

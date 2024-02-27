@@ -1,7 +1,11 @@
 from databricks.labs.remorph.reconcile.constants import ColumnTransformationType
 from databricks.labs.remorph.reconcile.query_builder.builder import QueryBuilder
 from databricks.labs.remorph.reconcile.query_builder.configurator import QueryConfig
-from databricks.labs.remorph.reconcile.recon_config import Tables, Schema, TransformRuleMapping
+from databricks.labs.remorph.reconcile.recon_config import (
+    Schema,
+    Tables,
+    TransformRuleMapping,
+)
 
 
 class OracleQueryBuilder(QueryBuilder):
@@ -9,10 +13,13 @@ class OracleQueryBuilder(QueryBuilder):
     def __init__(self, source_type: str, layer: str, table_conf: Tables, schema: list[Schema]):
         super().__init__(source_type, layer, table_conf, schema)
 
-    def add_default_transformation(self,
-                                   query_config: QueryConfig) -> QueryConfig:
-        cols_to_apply_default_transformation = [transformRule.column_name for transformRule in
-                                                query_config.table_transform if transformRule.transformation is None]
+    # TODO need to add default transformation for different data types
+    def add_default_transformation(self, query_config: QueryConfig) -> QueryConfig:
+        cols_to_apply_default_transformation = [
+            transformRule.column_name
+            for transformRule in query_config.table_transform
+            if transformRule.transformation is None
+        ]
 
         transform_list = query_config.list_to_dict(TransformRuleMapping, "column_name")
 

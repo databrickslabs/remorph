@@ -2,10 +2,15 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from databricks.labs.remorph.reconcile.constants import Constants, SourceType
-from databricks.labs.remorph.reconcile.recon_config import TransformRuleMapping, Tables, Schema, Transformation, \
-    ColumnMapping
 from databricks.labs.remorph.helpers.list_utils import filter_list
+from databricks.labs.remorph.reconcile.constants import Constants, SourceType
+from databricks.labs.remorph.reconcile.recon_config import (
+    ColumnMapping,
+    Schema,
+    Tables,
+    Transformation,
+    TransformRuleMapping,
+)
 
 
 @dataclass
@@ -24,7 +29,7 @@ class QueryConfig:
         if table_conf.select_columns:
             sel_cols = filter_list(input_list=table_conf.select_columns, remove_list=threshold_cols)
             join_cols = [join.source_name for join in table_conf.join_columns]
-            cols_to_be_compared += (sel_cols + join_cols)
+            cols_to_be_compared += sel_cols + join_cols
         # complete schema is considered here
         else:
             sel_cols = [schema.column_name for schema in schema]
@@ -75,16 +80,13 @@ class QueryConfig:
         return cls(table_transform)
 
     @classmethod
-    def generate_hash_algorithm(cls, source_type: str,
-                                list_expr: list[str]) -> str:
-        if source_type == SourceType.DATABRICKS.value or source_type == SourceType.SNOWFLAKE.value:
+    def generate_hash_algorithm(cls, source_type: str, list_expr: list[str]) -> str:
+        if source_type in {SourceType.DATABRICKS.value, SourceType.SNOWFLAKE.value}:
             hash_expr = "concat(" + ", ".join(list_expr) + ")"
-            return (Constants.hash_algorithm_mapping.get(source_type.lower()).get("source")).format(
-                hash_expr)
+            return (Constants.hash_algorithm_mapping.get(source_type.lower()).get("source")).format(hash_expr)
         else:
             hash_expr = " || ".join(list_expr)
-            return (Constants.hash_algorithm_mapping.get(source_type.lower()).get("source")).format(
-                hash_expr)
+            return (Constants.hash_algorithm_mapping.get(source_type.lower()).get("source")).format(hash_expr)
 
     def list_to_dict(self, cls: any, key: str) -> dict[str, any]:
         for _, value in self.__dict__.items():

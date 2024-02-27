@@ -1,12 +1,10 @@
 from pyspark.sql import SparkSession
 
-from databricks.labs.remorph.reconcile.connectors.databricks import (
-    DatabricksAdapter
-)
+from databricks.labs.remorph.reconcile.connectors.adapter import SourceAdapter
+from databricks.labs.remorph.reconcile.connectors.databricks import DatabricksAdapter
 from databricks.labs.remorph.reconcile.connectors.netezza import NetezzaAdapter
 from databricks.labs.remorph.reconcile.connectors.oracle import OracleAdapter
 from databricks.labs.remorph.reconcile.connectors.snowflake import SnowflakeAdapter
-from databricks.labs.remorph.reconcile.connectors.adapter import SourceAdapter
 from databricks.labs.remorph.reconcile.constants import SourceType
 
 

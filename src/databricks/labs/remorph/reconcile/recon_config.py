@@ -1,10 +1,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional
 
 from databricks.sdk.service._internal import _from_dict, _repeated_dict
-
 
 # [TODO]: Move _internal to blueprint
 
@@ -12,8 +10,8 @@ from databricks.sdk.service._internal import _from_dict, _repeated_dict
 @dataclass
 class TransformRuleMapping:
     column_name: str
-    transformation: Optional[str]
-    alias_name: Optional[str]
+    transformation: str | None
+    alias_name: str | None
 
     def get_column_expression_without_alias(self) -> str:
         if self.transformation:
@@ -51,7 +49,7 @@ class JdbcReaderOptions:
 @dataclass
 class JoinColumns:
     source_name: str
-    target_name: Optional[str]
+    target_name: str | None
 
     @classmethod
     def from_dict(cls, d: dict[str, any]) -> JoinColumns:
@@ -115,14 +113,14 @@ class Filters:
 class Tables:
     source_name: str
     target_name: str
-    jdbc_reader_options: Optional[JdbcReaderOptions]
+    jdbc_reader_options: JdbcReaderOptions | None
     join_columns: list[JoinColumns]
-    select_columns: Optional[list[str]]
-    drop_columns: Optional[list[str]]
-    column_mapping: Optional[list[ColumnMapping]]
-    transformations: Optional[list[Transformation]]
-    thresholds: Optional[list[Thresholds]]
-    filters: Optional[Filters]
+    select_columns: list[str] | None
+    drop_columns: list[str] | None
+    column_mapping: list[ColumnMapping] | None
+    transformations: list[Transformation] | None
+    thresholds: list[Thresholds] | None
+    filters: Filters | None
 
     @classmethod
     def from_dict(cls, d: dict[str, any]) -> Tables:
@@ -151,7 +149,7 @@ class Tables:
 
 @dataclass
 class TableRecon:
-    source_catalog: Optional[str]
+    source_catalog: str | None
     source_schema: str
     target_catalog: str
     target_schema: str
@@ -171,7 +169,7 @@ class TableRecon:
 
 @dataclass
 class DatabaseConfig:
-    source_catalog: Optional[str]
+    source_catalog: str | None
     source_schema: str
     target_catalog: str
     target_schema: str

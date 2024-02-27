@@ -6,7 +6,7 @@ from pyspark.sql import DataFrame, SparkSession
 from databricks.labs.remorph.reconcile.recon_config import (
     DatabaseConfig,
     Schema,
-    Tables
+    Tables,
 )
 
 logger = get_logger(__file__)

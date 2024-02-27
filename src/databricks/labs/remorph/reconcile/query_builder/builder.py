@@ -2,9 +2,14 @@ from abc import ABC, abstractmethod
 from io import StringIO
 
 from databricks.labs.blueprint.entrypoint import get_logger
+
 from databricks.labs.remorph.reconcile.constants import Constants
 from databricks.labs.remorph.reconcile.query_builder.configurator import QueryConfig
-from databricks.labs.remorph.reconcile.recon_config import Tables, Schema, TransformRuleMapping
+from databricks.labs.remorph.reconcile.recon_config import (
+    Schema,
+    Tables,
+    TransformRuleMapping,
+)
 
 logger = get_logger(__file__)
 
@@ -18,8 +23,7 @@ class QueryBuilder(ABC):
         self.schema = schema
 
     @abstractmethod
-    def add_default_transformation(self,
-                                   query_config: QueryConfig) -> QueryConfig:
+    def add_default_transformation(self, query_config: QueryConfig) -> QueryConfig:
         pass
 
     @abstractmethod
@@ -30,10 +34,12 @@ class QueryBuilder(ABC):
             cols_to_be_hashed = query_config.get_comparison_columns(self.table_conf, self.schema)
             key_columns = query_config.get_key_columns(self.table_conf)
 
+            # TODO need to handle column alias and add custom transformation to join column too
             hash_expr_list = []
             for col in cols_to_be_hashed:
                 transformation_expr = TransformRuleMapping.get_column_expression_without_alias(
-                    transformation_dict.get(col))
+                    transformation_dict.get(col)
+                )
                 hash_expr_list.append(transformation_expr)
 
             hash_expr = query_config.generate_hash_algorithm(self.source_type, hash_expr_list)
@@ -42,7 +48,7 @@ class QueryBuilder(ABC):
             sql_query.write(hash_expr)
             sql_query.write(f" as {Constants.hash_column_name}")
 
-            join_expr = ",".join([col_name for col_name in key_columns])
+            join_expr = ",".join(col_name for col_name in key_columns)
             if join_expr:
                 sql_query.write(" , ")
                 sql_query.write(join_expr)
@@ -55,6 +61,7 @@ class QueryBuilder(ABC):
             elif self.layer == "target":
                 sql_query.write(self.table_conf.target_name)
 
+            # TODO validate the filter
             # where/filter clause
             if self.table_conf.filters:
                 if self.layer == "source" and self.table_conf.filters.source:
