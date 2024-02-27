@@ -13,9 +13,6 @@ class Node:
         self.children.append(node)
         node.parents.append(self)
 
-    def __repr__(self):
-        return f"Node({self.name}, {self.children})"
-
 
 class DAG:
     def __init__(self):
@@ -64,6 +61,3 @@ class DAG:
                             queue.append((self.nodes[child_name], node_level + 1))
 
         return root_tables_at_level
-
-    def __repr__(self):
-        return str({node_name: str(node) for node_name, node in self.nodes.items()})
