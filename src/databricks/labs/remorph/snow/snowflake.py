@@ -6,8 +6,8 @@ from typing import ClassVar
 
 from sqlglot import exp
 from sqlglot.dialects.dialect import build_date_delta as parse_date_delta
-from sqlglot.dialects.snowflake import Snowflake
 from sqlglot.dialects.snowflake import _build_to_timestamp as parse_to_timestamp
+from sqlglot.dialects.snowflake import Snowflake
 from sqlglot.errors import ParseError
 from sqlglot.helper import seq_get
 from sqlglot.parser import build_var_map as parse_var_map

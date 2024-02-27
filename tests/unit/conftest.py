@@ -1,5 +1,3 @@
-# pylint: disable=wrong-import-order
-
 from unittest.mock import create_autospec
 
 import pytest
@@ -7,9 +5,9 @@ from databricks.connect import DatabricksSession
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.core import Config
 from databricks.sdk.service import iam
-from sqlglot import ErrorLevel, UnsupportedError
+from sqlglot import ErrorLevel
 from sqlglot import parse_one as sqlglot_parse_one
-from sqlglot import transpile
+from sqlglot import transpile, UnsupportedError
 
 from databricks.labs.remorph.config import MorphConfig
 from databricks.labs.remorph.snow.databricks import Databricks
