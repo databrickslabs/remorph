@@ -15,6 +15,8 @@ from databricks.labs.remorph.helpers.validate import Validate
 from databricks.labs.remorph.snow import dialect_utils
 from databricks.labs.remorph.snow.sql_transpiler import SQLTranspiler
 
+# pylint: disable=unspecified-encoding
+
 logger = logging.getLogger(__name__)
 
 

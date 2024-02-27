@@ -82,32 +82,7 @@ skip-string-normalization = true
 cache-dir = ".venv/ruff-cache"
 target-version = "py310"
 line-length = 120
-lint.select = [
-  "A",
-  "ARG",
-  "B",
-  "C",
-  "E",
-  "EM",
-  "F",
-  "FBT",
-  "I",
-  "ICN",
-  "ISC",
-  "N",
-  "PLC",
-  "PLE",
-  "PLR",
-  "PLW",
-  "Q",
-  "RUF",
-  "S",
-  "T",
-  "TID",
-  "UP",
-  "W",
-  "YTT",
-]
+
 lint.ignore = [
   # Allow non-abstract empty methods in abstract base classes
   "B027",

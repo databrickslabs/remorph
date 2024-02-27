@@ -17,7 +17,7 @@ from sqlglot.trie import new_trie
 from databricks.labs.remorph.snow import local_expression
 
 logger = logging.getLogger(__name__)
-
+# pylint: disable=protected-access
 """ SF Supported Date and Time Parts:
     https://docs.snowflake.com/en/sql-reference/functions-date-time#label-supported-date-time-parts
     Covers DATEADD, DATEDIFF, DATE_TRUNC, LAST_DAY
@@ -368,8 +368,8 @@ class Snow(Snowflake):
             return self.expression(exp.GroupConcat, this=args[0], separator=seq_get(args, 1))
 
         def _parse_types(
-            self, *, check_func: bool = False, schema: bool = False, allow_identifiers: bool = True
-        ) -> t.Optional[exp.Expression]:  # noqa: UP007
+            self, check_func: bool = False, schema: bool = False, allow_identifiers: bool = True
+        ) -> exp.Expression | None:
             this = super()._parse_types(check_func=check_func, schema=schema, allow_identifiers=allow_identifiers)
             # https://docs.snowflake.com/en/sql-reference/data-types-numeric Numeric datatype alias
             if (
@@ -412,16 +412,15 @@ class Snow(Snowflake):
                 while self_copy._index < len(self_copy._tokens) and (run or found_from):
                     self_copy._advance()
                     indx += 1
-                    found_from = True if self_copy._match(TokenType.FROM, advance=False) else False
+                    found_from = bool(self_copy._match(TokenType.FROM, advance=False))
                     # stop iterating when all the tokens are parsed
                     if indx == len(self_copy._tokens):
                         run = False
                     # get the table alias when FROM token is found
                     if found_from:
-                        """
-                        advance to two tokens after FROM, if there are available.
-                        Handles (SELECT .... FROM persons p => returns `p`)
-                        """
+                        # advance to two tokens after FROM, if there are available.
+                        # Handles (SELECT .... FROM persons p => returns `p`)
+
                         if self_copy._index + 2 < len(self_copy._tokens):
                             self_copy._advance(2)
                             if self_copy._curr.text != ")":
@@ -466,15 +465,15 @@ class Snow(Snowflake):
                 # If the column is referring to `lateral alias`, remove `.value` reference (not needed in Databricks)
                 if table_alias and this.table != table_alias:
                     return self.expression(local_expression.Bracket, this=this.table, expressions=[path])
-                """
-                    if it is referring to `table_alias`, we need to keep `.value`. See below example:
-                    - SELECT f.first, p.c.value.first, p.value FROM persons_struct AS p
-                        LATERAL VIEW EXPLODE($p.$c.contact) AS f
-                """
+
+                    # if it is referring to `table_alias`, we need to keep `.value`. See below example:
+                    # - SELECT f.first, p.c.value.first, p.value FROM persons_struct AS p
+                    #    LATERAL VIEW EXPLODE($p.$c.contact) AS f
+
                 return self.expression(local_expression.Bracket, this=this, expressions=[path])
-            elif isinstance(this, local_expression.Bracket) and (is_name_value or is_table_alias):
+            if isinstance(this, local_expression.Bracket) and (is_name_value or is_table_alias):
                 return self.expression(local_expression.Bracket, this=this, expressions=[path])
-            elif (isinstance(path, exp.Column)) and (path or is_path_value):
+            if (isinstance(path, exp.Column)) and (path or is_path_value):
                 return self.expression(local_expression.Bracket, this=this, expressions=[path])
-            else:
-                return self.expression(exp.Bracket, this=this, expressions=[path])
+
+            return self.expression(exp.Bracket, this=this, expressions=[path])
