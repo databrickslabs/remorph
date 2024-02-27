@@ -2171,9 +2171,9 @@ def test_add_months(dialect_context):
     validate_source_transpile, validate_target_transpile = dialect_context
     # Test case to validate `add_months` conversion of column
     validate_source_transpile(
-        "SELECT ADD_MONTHS(col1) AS add_months_col1 FROM tabl",
+        "SELECT ADD_MONTHS(col1, 1) AS add_months_col1 FROM tabl",
         source={
-            "snowflake": "SELECT add_months(col1) AS add_months_col1 FROM tabl;",
+            "snowflake": "SELECT add_months(col1,1) AS add_months_col1 FROM tabl;",
         },
     )
 
