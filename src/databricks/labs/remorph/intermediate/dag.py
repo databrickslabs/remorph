@@ -5,13 +5,18 @@ logger = logging.getLogger(__name__)
 
 class Node:
     def __init__(self, name: str):
-        self.name = name
+        self.name = name.lower()
         self.children = []
         self.parents = []
 
+    def add_parent(self, node: str):
+        self.parents.append(node)
+
     def add_child(self, node: str):
         self.children.append(node)
-        node.parents.append(self)
+
+    def __repr__(self):
+        return f"Node({self.name}, {self.children})"
 
 
 class DAG:
@@ -19,20 +24,21 @@ class DAG:
         self.nodes = {}
 
     def add_node(self, node_name: str):
-        if node_name not in self.nodes and node_name is not None:
-            self.nodes[node_name] = Node(node_name.lower())
+        if node_name not in self.nodes and node_name not in {None, "none"}:
+            self.nodes[node_name.lower()] = Node(node_name.lower())
 
     def add_edge(self, parent_name: str, child_name: str):
         parent_name = parent_name.lower() if parent_name is not None else None
         child_name = child_name.lower() if child_name is not None else None
         logger.debug(f"Adding edge: {parent_name} -> {child_name}")
-        if parent_name not in self.nodes and parent_name != "none":
+        if parent_name not in self.nodes:
             self.add_node(parent_name)
-        if child_name not in self.nodes and child_name != "none":
+        if child_name not in self.nodes:
             self.add_node(child_name)
 
         if child_name is not None:
             self.nodes[parent_name].add_child(self.nodes[child_name])
+            self.nodes[child_name].add_parent(self.nodes[parent_name])
 
     def identify_immediate_parents(self, table_name: str):
         table_name = table_name.lower()  # convert to lower() case
@@ -61,3 +67,6 @@ class DAG:
                             queue.append((self.nodes[child_name], node_level + 1))
 
         return root_tables_at_level
+
+    def __repr__(self):
+        return str({node_name: str(node) for node_name, node in self.nodes.items()})
