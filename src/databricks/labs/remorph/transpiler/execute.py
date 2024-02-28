@@ -35,8 +35,8 @@ def process_file(config: MorphConfig, input_file: str | Path, output_file: str |
     lca_error = dialect_utils.check_for_unsupported_lca(source, sql, str(input_file))
     if lca_error:
         validate_error_list.append(lca_error)
-    transpiler = SQLTranspiler(source, sql, str(input_file), parse_error_list)
-    transpiled_sql = transpiler.transpile()
+    transpiler = SQLTranspiler(source, parse_error_list)  # [TODO] move the object creation outside the loop
+    transpiled_sql = transpiler.transpile(sql, str(input_file))
 
     with output_file.open("w") as w:
         for output in transpiled_sql:
