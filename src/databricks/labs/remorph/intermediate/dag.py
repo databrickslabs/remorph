@@ -56,23 +56,31 @@ class DAG:
 
         return [child.name for child in self.nodes[table_name].children]
 
+    def _is_root_node(self, node_name: str) -> bool:
+        return len(self.identify_immediate_parents(node_name)) == 0
+
+    def walk_bfs(self, node: str, level: int) -> set:
+        tables_at_level = set()
+        queue = [(node, 0)]  # The queue for the BFS. Each element is a tuple (node, level).
+        while queue:
+            current_node, node_level = queue.pop(0)
+
+            if node_level == level:
+                tables_at_level.add(current_node.name)
+            elif node_level > level:
+                break
+
+            for child_name in self.identify_immediate_children(current_node.name):
+                queue.append((self.nodes[child_name], node_level + 1))
+        return tables_at_level
+
     def identify_root_tables(self, level: int):
         all_nodes = set(self.nodes.values())
         root_tables_at_level = set()
 
         for node in all_nodes:
-            if len(self.identify_immediate_parents(node.name)) == 0:  # This is a root node
-                queue = [(node, 0)]  # The queue for the BFS. Each element is a tuple (node, level).
-                while queue:
-                    current_node, node_level = queue.pop(0)
-
-                    if node_level == level:
-                        root_tables_at_level.add(current_node.name)
-                    elif node_level > level:
-                        break
-
-                    for child_name in self.identify_immediate_children(current_node.name):
-                        queue.append((self.nodes[child_name], node_level + 1))
+            if self._is_root_node(node.name):
+                root_tables_at_level.update(self.walk_bfs(node, level))
 
         return root_tables_at_level
 
