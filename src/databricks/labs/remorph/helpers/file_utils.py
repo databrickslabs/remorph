@@ -64,3 +64,25 @@ def dir_walk(root: Path):
     yield root, sub_dirs, files
     for s in sub_dirs:
         yield from dir_walk(s)
+
+
+def get_sql_file(input_path: str | Path) -> list:
+    """
+    Generator that yields the names of all SQL files in the given directory tree.
+    :param input_path: Path
+    :return: List of SQL files
+    """
+    for _, _, files in dir_walk(Path(input_path)):
+        for filename in files:
+            if is_sql_file(filename):
+                yield filename
+
+
+def read_file(filename: str | Path) -> str:
+    """
+    Reads the contents of the given file and returns it as a string.
+    :param filename: Input File Path
+    :return: File Contents as String
+    """
+    with Path(filename).open() as file:
+        return file.read()
