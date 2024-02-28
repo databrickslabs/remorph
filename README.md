@@ -2,6 +2,8 @@ Databricks Labs Remorph
 ---
 ![Databricks Labs Remorph](docs/remorph-logo.svg)
 
+[![lines of code](https://tokei.rs/b1/github/databrickslabs/remorph)]([https://codecov.io/github/databrickslabs/remorph](https://github.com/databrickslabs/remorph))
+
 -----
 
 # Table of Contents

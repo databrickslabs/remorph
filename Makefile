@@ -24,3 +24,6 @@ integration:
 coverage:
 	hatch run coverage && open htmlcov/index.html
 
+dialect_coverage_report:
+	hatch run python src/databricks/labs/remorph/coverage/remorph_snow_transpilation_coverage.py
+	hatch -e sqlglot-latest run python src/databricks/labs/remorph/coverage/sqlglot_snow_transpilation_coverage.py

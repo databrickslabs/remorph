@@ -15,7 +15,7 @@ classifiers = [
 dependencies = [
   "databricks-sdk>=0.18,<0.21",
   "sqlglot==21.2.1",
-  "databricks-labs-blueprint~=0.2.3"
+  "databricks-labs-blueprint[yaml]~=0.2.3"
 ]
 
 [project.urls]
@@ -64,6 +64,13 @@ verify      = ["black --check .",
                "isort . --check-only",
                "ruff .",
                "pylint --output-format=colorized -j 0 src tests"]
+
+[tool.hatch.envs.sqlglot-latest]
+detached = true
+python="3.10"
+dependencies = [
+  "sqlglot",
+]
 
 [tool.isort]
 skip_glob = ["notebooks/*.py"]
@@ -736,3 +743,7 @@ ignored-argument-names = "_.*|^ignored_|^unused_"
 # List of qualified module names which can have objects that can redefine
 # builtins.
 redefining-builtins-modules = ["six.moves", "past.builtins", "future.builtins", "builtins", "io"]
+=======
+  "^\\s*import .*",
+  "^\\s*from .+ import .*",
+]

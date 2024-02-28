@@ -3,12 +3,26 @@ import os
 import tempfile
 from pathlib import Path
 
+import pytest
+
 from databricks.labs.remorph.helpers.file_utils import (
     dir_walk,
+    get_sql_file,
     is_sql_file,
     make_dir,
+    read_file,
     remove_bom,
 )
+
+
+@pytest.fixture(scope="module")
+def setup_module(tmp_path_factory):
+    test_dir = tmp_path_factory.mktemp("test_dir")
+    sql_file = test_dir / "test.sql"
+    sql_file.write_text("SELECT * FROM test;")
+    non_sql_file = test_dir / "test.txt"
+    non_sql_file.write_text("This is a test.")
+    return test_dir, sql_file, non_sql_file
 
 
 def test_remove_bom():
@@ -124,3 +138,4 @@ def test_dir_walk_empty_dir():
     assert len(result[0][1]) == 0
     assert len(result[0][2]) == 0
     safe_remove_dir(path)
+
