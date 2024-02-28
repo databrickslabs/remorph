@@ -61,6 +61,13 @@ verify      = ["black --check .",
                "isort . --check-only",
                "ruff ."]
 
+[tool.hatch.envs.sqlglot-latest]
+detached = true
+python="3.10"
+dependencies = [
+  "sqlglot",
+]
+
 [tool.isort]
 skip_glob = ["notebooks/*.py"]
 profile = "black"
@@ -154,4 +161,6 @@ exclude_lines = [
   "no cov",
   "if __name__ == .__main__.:",
   "if TYPE_CHECKING:",
+  "^\\s*import .*",
+  "^\\s*from .+ import .*",
 ]
