@@ -42,13 +42,19 @@ class DAG:
 
     def identify_immediate_parents(self, table_name: str):
         table_name = table_name.lower()  # convert to lower() case
-        if table_name in self.nodes:
-            return [parent.name for parent in self.nodes[table_name].parents]
+        if table_name not in self.nodes:
+            logger.debug(f"Table with the name {table_name} not found in the DAG")
+            return []
+
+        return [parent.name for parent in self.nodes[table_name].parents]
 
     def identify_immediate_children(self, table_name: str):
         table_name = table_name.lower()  # convert to lower() case
-        if table_name in self.nodes:
-            return [child.name for child in self.nodes[table_name].children]
+        if table_name not in self.nodes:
+            logger.debug(f"Table with the name {table_name} not found in the DAG")
+            return []
+
+        return [child.name for child in self.nodes[table_name].children]
 
     def identify_root_tables(self, level: int):
         all_nodes = set(self.nodes.values())
@@ -62,9 +68,11 @@ class DAG:
 
                     if node_level == level:
                         root_tables_at_level.add(current_node.name)
-                    elif node_level < level:
-                        for child_name in self.identify_immediate_children(current_node.name):
-                            queue.append((self.nodes[child_name], node_level + 1))
+                    elif node_level > level:
+                        break
+
+                    for child_name in self.identify_immediate_children(current_node.name):
+                        queue.append((self.nodes[child_name], node_level + 1))
 
         return root_tables_at_level
 

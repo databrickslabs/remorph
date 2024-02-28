@@ -26,6 +26,7 @@ def test_generate_lineage(tmpdir):
     assert dag.identify_immediate_parents("table1") == roots
     assert dag.identify_root_tables(0) == {"table3", "table4"}
     assert dag.identify_root_tables(2) == {"table1"}
+    assert dag.identify_immediate_parents("none") == []
 
 
 def test_generate_lineage_sql_file(setup_file):
@@ -38,6 +39,7 @@ def test_generate_lineage_sql_file(setup_file):
     assert dag.identify_immediate_parents("table1") == roots
     assert dag.identify_root_tables(0) == {"table3", "table4"}
     assert dag.identify_root_tables(2) == {"table1"}
+    assert dag.identify_immediate_children("none") == []
 
 
 def test_non_sqlglot_engine_raises_error(tmpdir):
