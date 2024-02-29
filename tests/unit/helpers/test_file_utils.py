@@ -3,12 +3,26 @@ import os
 import tempfile
 from pathlib import Path
 
+import pytest
+
 from databricks.labs.remorph.helpers.file_utils import (
     dir_walk,
+    get_sql_file,
     is_sql_file,
     make_dir,
+    read_file,
     remove_bom,
 )
+
+
+@pytest.fixture(scope="module")
+def setup_module(tmp_path_factory):
+    test_dir = tmp_path_factory.mktemp("test_dir")
+    sql_file = test_dir / "test.sql"
+    sql_file.write_text("SELECT * FROM test;")
+    non_sql_file = test_dir / "test.txt"
+    non_sql_file.write_text("This is a test.")
+    return test_dir, sql_file, non_sql_file
 
 
 def test_remove_bom():
@@ -81,6 +95,7 @@ def safe_remove_dir(dir_path: Path):
 
 
 def test_dir_walk():
+    # [TODO] - Refactor the tests using setup module
     """Test 1 - correct structure for single file"""
     try:
         path = Path("test_dir")
@@ -137,3 +152,16 @@ def test_dir_walk():
     except Exception as e:
         safe_remove_dir(path)
         raise Exception("Error in Test 3 - empty directory") from e
+
+
+def test_get_sql_file(setup_module):
+    test_dir, sql_file, _ = setup_module
+    sql_files = list(get_sql_file(test_dir))
+    assert len(sql_files) == 1
+    assert sql_files[0] == sql_file
+
+
+def test_read_file(setup_module):
+    _, sql_file, _ = setup_module
+    content = read_file(sql_file)
+    assert content == "SELECT * FROM test;"
