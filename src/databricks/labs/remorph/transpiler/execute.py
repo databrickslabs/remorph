@@ -174,4 +174,5 @@ def morph(config: MorphConfig):
             "error_log_file": str(error_log_file),
         }
     )
+    logger.debug(status)
     return status
