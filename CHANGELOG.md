@@ -1,5 +1,19 @@
 # Version changelog
 
+## 0.1.4
+
+* Added conversion logic for Try_to_Decimal without format ([#142](https://github.com/databrickslabs/remorph/pull/142)).
+* Identify Root Table for folder containing SQLs ([#124](https://github.com/databrickslabs/remorph/pull/124)).
+* Install Script ([#106](https://github.com/databrickslabs/remorph/pull/106)).
+* Integration Test Suite ([#145](https://github.com/databrickslabs/remorph/pull/145)).
+
+Dependency updates:
+
+ * Updated databricks-sdk requirement from <0.20,>=0.18 to >=0.18,<0.21 ([#143](https://github.com/databrickslabs/remorph/pull/143)).
+ * Bump sqlglot from 21.0.0 to 21.1.2 ([#137](https://github.com/databrickslabs/remorph/pull/137)).
+ * Bump sqlglot from 21.1.2 to 21.2.0 ([#147](https://github.com/databrickslabs/remorph/pull/147)).
+ * Bump sqlglot from 21.2.0 to 21.2.1 ([#148](https://github.com/databrickslabs/remorph/pull/148)).
+
 ## 0.1.3
 
 * Added support for WITHIN GROUP for ARRAY_AGG and LISTAGG functions ([#133](https://github.com/databrickslabs/remorph/pull/133)).
