@@ -57,7 +57,7 @@ def process_file(config: MorphConfig, input_file: str | Path, output_file: str |
                     f"Check for unsupported operations related to STREAM, TASK, SESSION etc."
                 )
                 logger.warning(warning_message)
-
+    logger.debug("processing started for file %s", input_file)
     return no_of_sqls, parse_error_list, validate_error_list
 
 
@@ -174,5 +174,10 @@ def morph(config: MorphConfig):
             "error_log_file": str(error_log_file),
         }
     )
+    logger.debug("total_files_processed %d", len(result.file_list))
+    logger.debug("total_queries_processed %d", result.no_of_queries)
+    logger.debug("no_of_sql_failed_while_parsing %d", parse_error_count)
+    logger.debug("no_of_sql_failed_while_validating %d", validate_error_count)
+    logger.debug("error_log_file %s", str(error_log_file))
     logger.debug(status)
     return status
