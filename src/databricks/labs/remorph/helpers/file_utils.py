@@ -85,5 +85,6 @@ def read_file(filename: str | Path) -> str:
     :param filename: Input File Path
     :return: File Contents as String
     """
+    # pylint: disable=unspecified-encoding
     with Path(filename).open() as file:
         return file.read()

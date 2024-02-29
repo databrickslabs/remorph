@@ -1,3 +1,4 @@
+# pylint: disable=all
 import json
 import os
 from datetime import datetime
@@ -8,12 +9,12 @@ import pytest
 import pytz
 
 from databricks.labs.remorph.coverage.commons import (
-    ReportEntry,
     collect_transpilation_stats,
     get_current_commit_hash,
     get_current_time_utc,
     get_env_var,
     get_supported_sql_files,
+    ReportEntry,
     write_json_line,
 )
 from databricks.labs.remorph.snow.databricks import Databricks

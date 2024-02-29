@@ -7,10 +7,8 @@ import pytest
 
 from databricks.labs.remorph.helpers.file_utils import (
     dir_walk,
-    get_sql_file,
     is_sql_file,
     make_dir,
-    read_file,
     remove_bom,
 )
 
@@ -138,4 +136,3 @@ def test_dir_walk_empty_dir():
     assert len(result[0][1]) == 0
     assert len(result[0][2]) == 0
     safe_remove_dir(path)
-

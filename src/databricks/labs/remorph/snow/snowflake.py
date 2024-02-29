@@ -6,10 +6,10 @@ from typing import ClassVar
 
 from sqlglot import exp
 from sqlglot.dialects.dialect import build_date_delta as parse_date_delta
-from sqlglot.dialects.snowflake import _build_to_timestamp as parse_to_timestamp
-from sqlglot.dialects.snowflake import Snowflake
+from sqlglot.dialects.snowflake import build_formatted_time, Snowflake
 from sqlglot.errors import ParseError
-from sqlglot.helper import seq_get
+from sqlglot.helper import is_int, seq_get
+from sqlglot.optimizer.simplify import simplify_literals
 from sqlglot.parser import build_var_map as parse_var_map
 from sqlglot.tokens import Token, TokenType
 from sqlglot.trie import new_trie
@@ -55,7 +55,34 @@ DATE_DELTA_INTERVAL = {
 }
 
 
-def _parse_dateadd(args: list) -> exp.DateAdd:
+def _parse_to_timestamp(args: list) -> exp.StrToTime | exp.UnixToTime | exp.TimeStrToTime:
+    if len(args) == 2:
+        first_arg, second_arg = args
+        if second_arg.is_string:
+            # case: <string_expr> [ , <format> ]
+            return build_formatted_time(exp.StrToTime, "snowflake")(args)
+        return exp.UnixToTime(this=first_arg, scale=second_arg)
+
+    # The first argument might be an expression like 40 * 365 * 86400, so we try to
+    # reduce it using `simplify_literals` first and then check if it's a Literal.
+    first_arg = seq_get(args, 0)
+    if not isinstance(simplify_literals(first_arg, root=True), exp.Literal):
+        # case: <variant_expr> or other expressions such as columns
+        return exp.TimeStrToTime.from_arg_list(args)
+
+    if first_arg.is_string:
+        if is_int(first_arg.this):
+            # case: <integer>
+            return exp.UnixToTime.from_arg_list(args)
+
+        # case: <date_expr>
+        return build_formatted_time(exp.StrToTime, "snowflake", default=True)(args)
+
+    # case: <numeric_expr>
+    return exp.UnixToTime.from_arg_list(args)
+
+
+def _parse_date_add(args: list) -> exp.DateAdd:
     return exp.DateAdd(this=seq_get(args, 2), expression=seq_get(args, 1), unit=seq_get(args, 0))
 
 
@@ -287,7 +314,7 @@ class Snow(Snowflake):
             "TRY_TO_DATE": local_expression.TryToDate.from_arg_list,
             "STRTOK": local_expression.StrTok.from_arg_list,
             "SPLIT_PART": _parse_split_part,
-            "TIMESTAMPADD": _parse_dateadd,
+            "TIMESTAMPADD": _parse_date_add,
             "TRY_TO_DECIMAL": _parse_trytonumber,
             "TRY_TO_NUMBER": _parse_trytonumber,
             "TRY_TO_NUMERIC": _parse_trytonumber,
@@ -312,14 +339,14 @@ class Snow(Snowflake):
             "TRY_PARSE_JSON": exp.ParseJSON.from_arg_list,
             "TIMEDIFF": parse_date_delta(exp.DateDiff, unit_mapping=DATE_DELTA_INTERVAL),
             "TIMESTAMPDIFF": parse_date_delta(exp.DateDiff, unit_mapping=DATE_DELTA_INTERVAL),
-            "TIMEADD": _parse_dateadd,
+            "TIMEADD": _parse_date_add,
             "TO_BOOLEAN": lambda args: _parse_to_boolean(args, error=True),
             "TO_DECIMAL": _parse_tonumber,
             "TO_DOUBLE": local_expression.ToDouble.from_arg_list,
             "TO_NUMBER": _parse_tonumber,
             "TO_NUMERIC": _parse_tonumber,
             "TO_OBJECT": local_expression.ToObject.from_arg_list,
-            "TO_TIME": parse_to_timestamp,
+            "TO_TIME": _parse_to_timestamp,
             "TIMESTAMP_FROM_PARTS": local_expression.TimestampFromParts.from_arg_list,
             "TO_VARIANT": local_expression.ToVariant.from_arg_list,
             "TRY_TO_BOOLEAN": lambda args: _parse_to_boolean(args, error=False),
