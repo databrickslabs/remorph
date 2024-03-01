@@ -148,7 +148,9 @@ def _parse_object_construct(args: list) -> exp.StarMap | exp.Struct:
         return exp.Struct(expressions=[expression.this])
 
     return exp.Struct(
-        expressions=[t.cast(exp.Condition, k).eq(v) for k, v in zip(expression.keys, expression.values, strict=False)]
+        expressions=[
+            exp.PropertyEQ(this=k.this, expression=v) for k, v in zip(expression.keys, expression.values, strict=False)
+        ]
     )
 
 
