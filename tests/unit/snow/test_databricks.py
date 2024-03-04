@@ -3323,3 +3323,36 @@ def test_delete_from_keyword(dialect_context):
             "snowflake": "DELETE FROM Table1 USING table2 WHERE table1.id = table2.id;",
         },
     )
+
+
+def test_update_dml(dialect_context):
+    validate_source_transpile, validate_target_transpile = dialect_context
+    validate_source_transpile(
+        "UPDATE t1 SET column1 = t1.column1 + t2.column1, t1.column3 = 'success' from t2 WHERE t1.key = t2.t1_key "
+        "and t1.column1 < 10",
+        source={
+            "snowflake": """UPDATE t1
+                            SET column1 = t1.column1 + t2.column1, t1.column3 = 'success'
+                            FROM t2
+                            WHERE t1.key = t2.t1_key and t1.column1 < 10;""",
+        },
+    )
+
+    validate_source_transpile(
+        "UPDATE target SET v = b.v FROM (SELECT k, MIN(v) AS v FROM src GROUP BY k) AS b WHERE target.k = b.k",
+        source={
+            "snowflake": """UPDATE target
+                            SET v = b.v
+                            FROM (SELECT k, MIN(v) v FROM src GROUP BY k) b
+                            WHERE target.k = b.k;""",
+        },
+    )
+    validate_source_transpile(
+        "UPDATE orders AS t1 SET order_status = 'returned' WHERE EXISTS(SELECT oid FROM returned_orders "
+        "WHERE t1.oid = oid)",
+        source={
+            "snowflake": """UPDATE orders t1
+                            SET order_status = 'returned'
+                            WHERE EXISTS (SELECT oid FROM returned_orders WHERE t1.oid = oid);""",
+        },
+    )
