@@ -3325,11 +3325,12 @@ def test_delete_from_keyword(dialect_context):
     )
 
 
-def test_update_dml(dialect_context):
+def test_update_from_dml(dialect_context):
     validate_source_transpile, validate_target_transpile = dialect_context
     validate_source_transpile(
-        "UPDATE t1 SET column1 = t1.column1 + t2.column1, t1.column3 = 'success' from t2 WHERE t1.key = t2.t1_key "
-        "and t1.column1 < 10",
+        "MERGE INTO t1 USING t2 ON t1.key = t2.t1_key and t1.column1 < 10 WHEN MATCHED THEN UPDATE "
+        "SET column1 = t1.column1 + t2.column1, "
+        "t1.column3 = 'success'",
         source={
             "snowflake": """UPDATE t1
                             SET column1 = t1.column1 + t2.column1, t1.column3 = 'success'
@@ -3339,7 +3340,8 @@ def test_update_dml(dialect_context):
     )
 
     validate_source_transpile(
-        "UPDATE target SET v = b.v FROM (SELECT k, MIN(v) AS v FROM src GROUP BY k) AS b WHERE target.k = b.k",
+        "MERGE INTO target USING (SELECT k, MIN(v) AS v FROM src GROUP BY k) AS b ON target.k = b.k WHEN MATCHED THEN "
+        "UPDATE SET v = b.v  ",
         source={
             "snowflake": """UPDATE target
                             SET v = b.v
