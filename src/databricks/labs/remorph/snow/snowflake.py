@@ -441,12 +441,10 @@ class Snow(Snowflake):
                 # get the table alias when FROM token is found
                 if self_copy._match(TokenType.FROM, advance=False):
                     self_copy._advance()  # advance to next token
-                    try:
-                        self_copy._parse_table_parts()  # parse the table parts
-                        table_alias = self_copy._parse_table_alias()  # get to table alias
-                        return str(table_alias)
-                    except ParseError as per:
-                        logger.exception(f"Error while getting table alias. {per}")
+                    self_copy._parse_table_parts()  # parse the table parts
+                    table_alias = self_copy._parse_table_alias()  # get to table alias
+                    return str(table_alias)
+
             return table_alias
 
         def _json_column_op(self, this, path):
