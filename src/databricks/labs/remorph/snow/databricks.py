@@ -613,10 +613,7 @@ class Databricks(Databricks):
                 from_sql = from_sql.replace("FROM", "USING", 1)
                 where_sql = where_sql.replace("WHERE", "ON")
 
-            if self.RETURNING_END:
-                expression_sql = f"{from_sql}{where_sql}{returning}"
-            else:
-                expression_sql = f"{returning}{from_sql}{where_sql}"
+            expression_sql = f"{from_sql}{where_sql}{returning}"
 
             if from_sql:
                 sql = f"MERGE INTO {this}{expression_sql} WHEN MATCHED THEN UPDATE SET {set_sql}{order}{limit}"
