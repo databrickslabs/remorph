@@ -14,7 +14,7 @@ classifiers = [
 ]
 dependencies = [
   "databricks-sdk>=0.18,<0.21",
-  "sqlglot==22.2.0",
+  "sqlglot==22.2.1",
   "databricks-labs-blueprint[yaml]>=0.2.3,<0.4.0"
 ]
 
