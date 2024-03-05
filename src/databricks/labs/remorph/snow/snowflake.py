@@ -1,12 +1,11 @@
 import copy
 import logging
 import re
-import typing as t
 from typing import ClassVar
 
 from sqlglot import exp
 from sqlglot.dialects.dialect import build_date_delta as parse_date_delta
-from sqlglot.dialects.snowflake import build_formatted_time, Snowflake
+from sqlglot.dialects.snowflake import Snowflake, build_formatted_time
 from sqlglot.errors import ParseError
 from sqlglot.helper import is_int, seq_get
 from sqlglot.optimizer.simplify import simplify_literals
@@ -90,15 +89,18 @@ def _parse_split_part(args: list) -> local_expression.SplitPart:
     if len(args) != 3:
         err_msg = f"Error Parsing args `{args}`. Number of args must be 3, given {len(args)}"
         raise ParseError(err_msg)
-    part_num = seq_get(args, 2)
-    if isinstance(part_num, exp.Literal):
+    part_num_literal = seq_get(args, 2)
+    part_num_if = None
+    if isinstance(part_num_literal, exp.Literal):
         # In Snowflake if the partNumber is 0, it is treated as 1.
         # Please refer to https://docs.snowflake.com/en/sql-reference/functions/split_part
-        if part_num.is_int and int(part_num.name) == 0:
-            part_num = exp.Literal.number(1)
+        if part_num_literal.is_int and int(part_num_literal.name) == 0:
+            part_num_literal = exp.Literal.number(1)
     else:
-        cond = exp.EQ(this=part_num, expression=exp.Literal.number(0))
-        part_num = exp.If(this=cond, true=exp.Literal.number(1), false=part_num)
+        cond = exp.EQ(this=part_num_literal, expression=exp.Literal.number(0))
+        part_num_if = exp.If(this=cond, true=exp.Literal.number(1), false=part_num_literal)
+
+    part_num = part_num_if if part_num_if is not None else part_num_literal
     return local_expression.SplitPart(this=seq_get(args, 0), expression=seq_get(args, 1), partNum=part_num)
 
 
@@ -419,7 +421,7 @@ class Snow(Snowflake):
 
             return self.expression(local_expression.Parameter, this=this, wrapped=wrapped, suffix=suffix)
 
-        def _get_table_alias(self):
+        def _get_table_alias(self) -> str | None:
             """
             :returns the `table alias` by looping through all the tokens until it finds the `From` token.
             Example:
@@ -431,43 +433,20 @@ class Snow(Snowflake):
             """
             # Create a deep copy of Parser to avoid any modifications to original one
             self_copy = copy.deepcopy(self)
-            found_from = bool(self_copy._match(TokenType.FROM, advance=False))
-            run = True
-            indx = 0
             table_alias = None
 
-            try:
-                # iterate through all the tokens if tokens are available
-                while self_copy._index < len(self_copy._tokens) and (run or found_from):
-                    self_copy._advance()
-                    indx += 1
-                    found_from = bool(self_copy._match(TokenType.FROM, advance=False))
-                    # stop iterating when all the tokens are parsed
-                    if indx == len(self_copy._tokens):
-                        run = False
-                    # get the table alias when FROM token is found
-                    if found_from:
-                        # advance to two tokens after FROM, if there are available.
-                        # Handles (SELECT .... FROM persons p => returns `p`)
-
-                        if self_copy._index + 2 < len(self_copy._tokens):
-                            self_copy._advance(2)
-                            if self_copy._curr.text != ")":
-                                table_alias = self_copy._curr.text
-
-                            # * if the table is of format :: `<DB>.<TABLE>` <TABLE_ALIAS>, advance to two more tokens
-                            # - Handles (`SELECT .... FROM dwh.vw_replacement_customer  d`  => returns d)
-                            # * if the table is of format :: `<DB>.<SCHEMA>.<TABLE>`
-                            # <TABLE_ALIAS>, advance to 2 more tokens
-                            # - Handles (`SELECT .... FROM prod.public.tax_transact tt`  => returns tt)
-
-                            while table_alias == "." and self_copy._index + 2 < len(self_copy._tokens):
-                                self_copy._advance(2)
-                                table_alias = self_copy._curr.text
-                            break
-            except Exception:
-                logger.exception("Error while getting table alias.")
-
+            # iterate through all the tokens if tokens are available
+            while self_copy._index < len(self_copy._tokens):
+                self_copy._advance()
+                # get the table alias when FROM token is found
+                if self_copy._match(TokenType.FROM, advance=False):
+                    self_copy._advance()  # advance to next token
+                    try:
+                        self_copy._parse_table_parts()  # parse the table parts
+                        table_alias = self_copy._parse_table_alias()  # get to table alias
+                        return str(table_alias)
+                    except ParseError as per:
+                        logger.exception(f"Error while getting table alias. {per}")
             return table_alias
 
         def _json_column_op(self, this, path):
@@ -487,8 +466,7 @@ class Snow(Snowflake):
                 col_table_alias = this.this.table.upper()
             else:
                 col_table_alias = this.name.upper()
-
-            is_table_alias = col_table_alias == table_alias.upper() if table_alias else False
+            is_table_alias = col_table_alias == table_alias.upper() if table_alias is not None else False
 
             if not isinstance(this, exp.Bracket) and is_name_value:
                 # If the column is referring to `lateral alias`, remove `.value` reference (not needed in Databricks)
