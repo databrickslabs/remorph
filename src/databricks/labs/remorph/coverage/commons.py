@@ -1,3 +1,4 @@
+# pylint: disable=all
 import dataclasses
 import json
 import logging

@@ -14,7 +14,7 @@ logger = get_logger(__file__)
 
 
 def raise_validation_exception(msg: str) -> Exception:
-    raise Exception(msg)
+    raise ValueError(msg)
 
 
 @remorph.command
@@ -30,15 +30,15 @@ def transpile(
     """transpiles source dialect to databricks dialect"""
     logger.info(f"user: {w.current_user.me()}")
 
-    if source.lower() not in ("snowflake", "tsql"):
+    if source.lower() not in {"snowflake", "tsql"}:
         raise_validation_exception(
             f"Error: Invalid value for '--source': '{source}' is not one of 'snowflake', 'tsql'. "
         )
-    if not os.path.exists(input_sql) or input_sql in (None, ""):
+    if not os.path.exists(input_sql) or input_sql in {None, ""}:
         raise_validation_exception(f"Error: Invalid value for '--input_sql': Path '{input_sql}' does not exist.")
     if output_folder == "":
         output_folder = None
-    if skip_validation.lower() not in ("true", "false"):
+    if skip_validation.lower() not in {"true", "false"}:
         raise_validation_exception(
             f"Error: Invalid value for '--skip_validation': '{skip_validation}' is not one of 'true', 'false'. "
         )
@@ -62,13 +62,13 @@ def transpile(
 def reconcile(w: WorkspaceClient, recon_conf: str, conn_profile: str, source: str, report: str):
     """reconciles source to databricks datasets"""
     logger.info(f"user: {w.current_user.me()}")
-    if not os.path.exists(recon_conf) or recon_conf in (None, ""):
+    if not os.path.exists(recon_conf) or recon_conf in {None, ""}:
         raise_validation_exception(f"Error: Invalid value for '--recon_conf': Path '{recon_conf}' does not exist.")
-    if not os.path.exists(conn_profile) or conn_profile in (None, ""):
+    if not os.path.exists(conn_profile) or conn_profile in {None, ""}:
         raise_validation_exception(f"Error: Invalid value for '--conn_profile': Path '{conn_profile}' does not exist.")
     if source.lower() not in "snowflake":
         raise_validation_exception(f"Error: Invalid value for '--source': '{source}' is not one of 'snowflake'. ")
-    if report.lower() not in ("data", "schema", "all"):
+    if report.lower() not in {"data", "schema", "all"}:
         raise_validation_exception(
             f"Error: Invalid value for '--report': '{report}' is not one of 'data', 'schema', 'all' "
         )

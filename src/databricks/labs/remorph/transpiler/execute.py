@@ -15,6 +15,8 @@ from databricks.labs.remorph.helpers.validate import Validate
 from databricks.labs.remorph.snow import dialect_utils
 from databricks.labs.remorph.snow.sql_transpiler import SQLTranspiler
 
+# pylint: disable=unspecified-encoding
+
 logger = logging.getLogger(__name__)
 
 
@@ -29,7 +31,7 @@ def process_file(config: MorphConfig, input_file: str | Path, output_file: str |
     input_file = Path(input_file)
     output_file = Path(output_file)
 
-    with input_file.open() as f:
+    with input_file.open("r") as f:
         sql = remove_bom(f.read())
 
     lca_error = dialect_utils.check_for_unsupported_lca(source, sql, str(input_file))
@@ -72,7 +74,7 @@ def process_directory(config: MorphConfig, root: str | Path, base_root: str, fil
     for file in files:
         logger.debug(f"Processing file :{file}")
         if is_sql_file(file):
-            if output_folder in (None, "None"):
+            if output_folder in {None, "None"}:
                 output_folder_base = root / "transpiled"
             else:
                 output_folder_base = f'{output_folder.rstrip("/")}/{base_root}'
@@ -130,7 +132,7 @@ def morph(config: MorphConfig):
         if is_sql_file(input_sql):
             msg = f"Processing for sqls under this file: {input_sql}"
             logger.info(msg)
-            if config.output_folder in (None, "None"):
+            if config.output_folder in {None, "None"}:
                 output_folder = input_sql.parent / "transpiled"
             else:
                 output_folder = Path(config.output_folder.rstrip("/"))
