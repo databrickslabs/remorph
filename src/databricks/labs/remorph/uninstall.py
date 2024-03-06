@@ -20,13 +20,13 @@ class WorkspaceUnInstallation:
         self,
         config: MorphConfig,
         installation: Installation,
-        ws: WorkspaceClient,
+        w: WorkspaceClient,
         prompts: Prompts,
         verify_timeout: timedelta,
     ):
         self._config = config
         self._installation = installation
-        self._ws = ws
+        self._ws = w
         self._prompts = prompts
         self._verify_timeout = verify_timeout
 
@@ -50,7 +50,7 @@ if __name__ == "__main__":
     logger.setLevel("INFO")
     ws = WorkspaceClient(product="remorph", product_version=__version__)
     current = Installation(ws, PRODUCT_INFO.product_name())
-    config = current.load(MorphConfig)
+    morph_config = current.load(MorphConfig)
 
-    uninstaller = WorkspaceUnInstallation(config, current, ws, Prompts(), timedelta(minutes=2))
+    uninstaller = WorkspaceUnInstallation(morph_config, current, ws, Prompts(), timedelta(minutes=2))
     uninstaller.uninstall()

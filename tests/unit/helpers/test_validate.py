@@ -9,6 +9,8 @@ from databricks.labs.remorph.helpers.validate import Validate
 def test_valid_query(mock_spark_session, mock_databricks_config):
     validator = Validate(mock_databricks_config)
     validator.spark = mock_spark_session
+    validator.spark.use_schema = "mock schema"
+
     query = "SELECT * FROM a_table"
     result, exception = validator.query(query)
     mock_spark_session.sql.assert_called()
@@ -20,6 +22,7 @@ def test_valid_query(mock_spark_session, mock_databricks_config):
 def test_valid_query_with_explicit_catalog(mock_spark_session, mock_databricks_config):
     validator = Validate(mock_databricks_config)
     validator.spark = mock_spark_session
+    validator.spark.use_schema = "mock schema"
     query = "SELECT * FROM a_table"
     result, exception = validator.query(query, catalog_name="c_name", schema_name="s_name")
     mock_spark_session.sql.assert_called()
@@ -31,6 +34,7 @@ def test_valid_query_with_explicit_catalog(mock_spark_session, mock_databricks_c
 def test_query_with_syntax_error(mock_spark_session, mock_databricks_config):
     validator = Validate(mock_databricks_config)
     validator.spark = mock_spark_session
+    validator.spark.use_schema = "mock schema"
     validator.spark.sql = MagicMock(side_effect=ParseException("[Syntax error]"))
     query = "SELECT * a_table"
     result, exception = validator.query(query)
@@ -52,6 +56,7 @@ def test_query_with_analysis_error(mock_spark_session, mock_databricks_config):
     for err, status in error_types:
         validator = Validate(mock_databricks_config)
         validator.spark = mock_spark_session
+        validator.spark.use_schema = "mock schema"
         validator.spark.sql = MagicMock(side_effect=AnalysisException(err))
         query = "SELECT * FROM a_table"
         result, exception = validator.query(query)
@@ -61,21 +66,10 @@ def test_query_with_analysis_error(mock_spark_session, mock_databricks_config):
 
 
 @patch("databricks.labs.remorph.helpers.validate.DatabricksSession")
-def test_query_with_error(mock_spark_session, mock_databricks_config):
-    validator = Validate(mock_databricks_config)
-    validator.spark = mock_spark_session
-    validator.spark.sql = MagicMock(side_effect=Exception("[Some error]"))
-    query = "SELECT * FROM a_table"
-    result, exception = validator.query(query)
-    mock_spark_session.sql.assert_called()
-    assert result is False
-    assert "[Some error]" in exception
-
-
-@patch("databricks.labs.remorph.helpers.validate.DatabricksSession")
 def test_validate_format_result_with_valid_query(mock_spark_session, mock_databricks_config, morph_config):
     validator = Validate(mock_databricks_config)
     validator.spark = mock_spark_session
+    validator.spark.use_schema = "mock schema"
     query = "SELECT current_timestamp()"
     result, exception = validator.validate_format_result(morph_config, query)
     mock_spark_session.sql.assert_called()
@@ -87,6 +81,7 @@ def test_validate_format_result_with_valid_query(mock_spark_session, mock_databr
 def test_validate_format_result_with_invalid_query(mock_spark_session, mock_databricks_config, morph_config):
     validator = Validate(mock_databricks_config)
     validator.spark = mock_spark_session
+    validator.spark.use_schema = "mock schema"
     validator.query = Mock()
     validator.query.return_value = (False, "[UNRESOLVED_ROUTINE]")
     input_query = "SELECT fn() FROM tab"

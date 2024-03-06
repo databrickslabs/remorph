@@ -1,3 +1,4 @@
+# pylint: disable=wrong-import-order,ungrouped-imports, useless-suppression)
 import logging
 from io import StringIO
 
@@ -24,6 +25,14 @@ class Validate:
         """
 
         self.spark = DatabricksSession.builder.sdkConfig(sdk_config).getOrCreate()
+
+    def use_schema(self, catalog_name, schema_name):
+        try:
+            self.spark.sql(f"use catalog {catalog_name}")
+            self.spark.sql(f"use {schema_name}")
+        except AnalysisException as aex:
+            logger.error(f"Catalog or Schema not found: {aex}")
+            raise aex
 
     def validate_format_result(self, config: MorphConfig, input_sql: str):
         """
@@ -81,37 +90,27 @@ class Validate:
         try:
             # [TODO]: Explain needs to redirected to different console
             # [TODO]: Hacky way to replace variables representation
-            if catalog_name in (None, "transpiler_test") and schema_name in (None, "convertor_test"):
-                spark.sql("create catalog if not exists transpiler_test")
-                spark.sql("use catalog transpiler_test")
-                spark.sql("create schema if not exists convertor_test")
-                spark.sql("use convertor_test")
-            else:
-                spark.sql(f"use catalog {catalog_name}")
-                spark.sql(f"use {schema_name}")
-
+            self.use_schema(catalog_name, schema_name)
             # When variables is mentioned Explain fails we need way to replace them before explain is executed.
             spark.sql(query.replace("${", "`{").replace("}", "}`").replace("``", "`")).explain(True)
             return True, None
-        except ParseException as pe:
-            logger.debug("Syntax Exception : NOT IGNORED. Flag as syntax error :" + str(pe))
-            return False, str(pe)
+        except ParseException as pre:
+            logger.debug(f"Syntax Exception : NOT IGNORED. Flag as syntax error: {str(pre)}")
+            return False, str(pre)
         except AnalysisException as aex:
             if "[TABLE_OR_VIEW_NOT_FOUND]" in str(aex):
-                logger.debug("Analysis Exception : IGNORED: " + str(aex))
+                logger.debug(f"Analysis Exception : IGNORED: {str(aex)}")
                 return True, str(aex)
             if "[TABLE_OR_VIEW_ALREADY_EXISTS]" in str(aex):
-                logger.debug("Analysis Exception : IGNORED: " + str(aex))
+                logger.debug(f"Analysis Exception : IGNORED: {str(aex)}")
                 return True, str(aex)
-            elif "[UNRESOLVED_ROUTINE]" in str(aex):
-                logger.debug("Analysis Exception : NOT IGNORED: Flag as Function Missing error" + str(aex))
+            if "[UNRESOLVED_ROUTINE]" in str(aex):
+                logger.debug(f"Analysis Exception : NOT IGNORED: Flag as Function Missing error {str(aex)}")
                 return False, str(aex)
-            elif "Hive support is required to CREATE Hive TABLE (AS SELECT).;" in str(aex):
-                logger.debug("Analysis Exception : IGNORED: " + str(aex))
+
+            if "Hive support is required to CREATE Hive TABLE (AS SELECT).;" in str(aex):
+                logger.debug(f"Analysis Exception : IGNORED: {str(aex)}")
                 return True, str(aex)
-            else:
-                logger.debug("Unknown Exception: " + str(aex))
-                return False, str(aex)
-        except Exception as e:
-            logger.debug("Other Exception : NOT IGNORED. Flagged :" + str(e))
-            return False, str(e)
+
+            logger.debug(f"Unknown Exception: {str(aex)}")
+            return False, str(aex)
