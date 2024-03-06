@@ -1,12 +1,13 @@
 from sqlglot import ErrorLevel, exp, parse, transpile
+from sqlglot.errors import ParseError, TokenError, UnsupportedError
 
-from databricks.labs.remorph.helpers.morph_status import ParseError
+from databricks.labs.remorph.helpers.morph_status import ParserError
 from databricks.labs.remorph.snow.databricks import Databricks
 from databricks.labs.remorph.snow.snowflake import Snow
 
 
 class SQLTranspiler:
-    def __init__(self, source: str, error_list: list[ParseError]):
+    def __init__(self, source: str, error_list: list[ParserError]):
         self.source = source
         self.error_list = error_list
         if self.source.upper() == "SNOWFLAKE":
@@ -18,10 +19,10 @@ class SQLTranspiler:
 
         try:
             transpiled_sql = transpile(sql, read=self.dialect, write=Databricks, pretty=True, error_level=None)
-        except Exception as e:
+        except (ParseError, TokenError, UnsupportedError) as e:
             transpiled_sql = ""
 
-            self.error_list.append(ParseError(file_name, e))
+            self.error_list.append(ParserError(file_name, e))
 
         return transpiled_sql
 
@@ -29,9 +30,9 @@ class SQLTranspiler:
 
         try:
             expression = parse(sql, read=self.dialect, error_level=ErrorLevel.IMMEDIATE)
-        except Exception as e:
+        except (ParseError, TokenError, UnsupportedError) as e:
             expression = []
-            self.error_list.append(ParseError(file_name, e))
+            self.error_list.append(ParserError(file_name, e))
 
         return expression
 

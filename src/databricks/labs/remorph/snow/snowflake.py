@@ -1,15 +1,14 @@
 import copy
 import logging
 import re
-import typing as t
 from typing import ClassVar
 
 from sqlglot import exp
 from sqlglot.dialects.dialect import build_date_delta as parse_date_delta
-from sqlglot.dialects.snowflake import Snowflake
-from sqlglot.dialects.snowflake import _build_to_timestamp as parse_to_timestamp
+from sqlglot.dialects.snowflake import Snowflake, build_formatted_time
 from sqlglot.errors import ParseError
-from sqlglot.helper import seq_get
+from sqlglot.helper import is_int, seq_get
+from sqlglot.optimizer.simplify import simplify_literals
 from sqlglot.parser import build_var_map as parse_var_map
 from sqlglot.tokens import Token, TokenType
 from sqlglot.trie import new_trie
@@ -17,7 +16,7 @@ from sqlglot.trie import new_trie
 from databricks.labs.remorph.snow import local_expression
 
 logger = logging.getLogger(__name__)
-
+# pylint: disable=protected-access
 """ SF Supported Date and Time Parts:
     https://docs.snowflake.com/en/sql-reference/functions-date-time#label-supported-date-time-parts
     Covers DATEADD, DATEDIFF, DATE_TRUNC, LAST_DAY
@@ -55,7 +54,34 @@ DATE_DELTA_INTERVAL = {
 }
 
 
-def _parse_dateadd(args: list) -> exp.DateAdd:
+def _parse_to_timestamp(args: list) -> exp.StrToTime | exp.UnixToTime | exp.TimeStrToTime:
+    if len(args) == 2:
+        first_arg, second_arg = args
+        if second_arg.is_string:
+            # case: <string_expr> [ , <format> ]
+            return build_formatted_time(exp.StrToTime, "snowflake")(args)
+        return exp.UnixToTime(this=first_arg, scale=second_arg)
+
+    # The first argument might be an expression like 40 * 365 * 86400, so we try to
+    # reduce it using `simplify_literals` first and then check if it's a Literal.
+    first_arg = seq_get(args, 0)
+    if not isinstance(simplify_literals(first_arg, root=True), exp.Literal):
+        # case: <variant_expr> or other expressions such as columns
+        return exp.TimeStrToTime.from_arg_list(args)
+
+    if first_arg.is_string:
+        if is_int(first_arg.this):
+            # case: <integer>
+            return exp.UnixToTime.from_arg_list(args)
+
+        # case: <date_expr>
+        return build_formatted_time(exp.StrToTime, "snowflake", default=True)(args)
+
+    # case: <numeric_expr>
+    return exp.UnixToTime.from_arg_list(args)
+
+
+def _parse_date_add(args: list) -> exp.DateAdd:
     return exp.DateAdd(this=seq_get(args, 2), expression=seq_get(args, 1), unit=seq_get(args, 0))
 
 
@@ -63,15 +89,18 @@ def _parse_split_part(args: list) -> local_expression.SplitPart:
     if len(args) != 3:
         err_msg = f"Error Parsing args `{args}`. Number of args must be 3, given {len(args)}"
         raise ParseError(err_msg)
-    part_num = seq_get(args, 2)
-    if isinstance(part_num, exp.Literal):
+    part_num_literal = seq_get(args, 2)
+    part_num_if = None
+    if isinstance(part_num_literal, exp.Literal):
         # In Snowflake if the partNumber is 0, it is treated as 1.
         # Please refer to https://docs.snowflake.com/en/sql-reference/functions/split_part
-        if part_num.is_int and int(part_num.name) == 0:
-            part_num = exp.Literal.number(1)
+        if part_num_literal.is_int and int(part_num_literal.name) == 0:
+            part_num_literal = exp.Literal.number(1)
     else:
-        cond = exp.EQ(this=part_num, expression=exp.Literal.number(0))
-        part_num = exp.If(this=cond, true=exp.Literal.number(1), false=part_num)
+        cond = exp.EQ(this=part_num_literal, expression=exp.Literal.number(0))
+        part_num_if = exp.If(this=cond, true=exp.Literal.number(1), false=part_num_literal)
+
+    part_num = part_num_if if part_num_if is not None else part_num_literal
     return local_expression.SplitPart(this=seq_get(args, 0), expression=seq_get(args, 1), partNum=part_num)
 
 
@@ -166,14 +195,15 @@ def _parse_tonumber(args: list) -> local_expression.ToNumber:
                           """
         raise ParseError(error_msg)
 
-    if len(args) == 1:
-        return local_expression.ToNumber(this=seq_get(args, 0))
-    elif len(args) == 3:
-        return local_expression.ToNumber(this=seq_get(args, 0), precision=seq_get(args, 1), scale=seq_get(args, 2))
-    elif len(args) == 4:
-        return local_expression.ToNumber(
-            this=seq_get(args, 0), expression=seq_get(args, 1), precision=seq_get(args, 2), scale=seq_get(args, 3)
-        )
+    match len(args):
+        case 1:
+            return local_expression.ToNumber(this=seq_get(args, 0))
+        case 3:
+            return local_expression.ToNumber(this=seq_get(args, 0), precision=seq_get(args, 1), scale=seq_get(args, 2))
+        case 4:
+            return local_expression.ToNumber(
+                this=seq_get(args, 0), expression=seq_get(args, 1), precision=seq_get(args, 2), scale=seq_get(args, 3)
+            )
 
     return local_expression.ToNumber(this=seq_get(args, 0), expression=seq_get(args, 1))
 
@@ -202,36 +232,36 @@ class Snow(Snowflake):
             cls.KEYWORDS = new_key_word_dict | cls.KEYWORDS
 
         @classmethod
-        def merge_trie(cls, parent_trie, new_trie):
+        def merge_trie(cls, parent_trie, curr_trie):
             merged_trie = {}
             logger.debug(f"The Parent Trie is {parent_trie}")
-            logger.debug(f"The Input Trie is {new_trie}")
-            for key in set(parent_trie.keys()) | set(new_trie.keys()):  # Get all unique keys from both tries
-                if key in parent_trie and key in new_trie:  # If the key is in both tries, merge the subtries
-                    if isinstance(parent_trie[key], dict) and isinstance(new_trie[key], dict):
-                        logger.debug(f"New trie inside the key is {new_trie}")
+            logger.debug(f"The Input Trie is {curr_trie}")
+            for key in set(parent_trie.keys()) | set(curr_trie.keys()):  # Get all unique keys from both tries
+                if key in parent_trie and key in curr_trie:  # If the key is in both tries, merge the subtries
+                    if isinstance(parent_trie[key], dict) and isinstance(curr_trie[key], dict):
+                        logger.debug(f"New trie inside the key is {curr_trie}")
                         logger.debug(f"Parent trie inside the key is {parent_trie}")
-                        merged_trie[key] = cls.merge_trie(parent_trie[key], new_trie[key])
+                        merged_trie[key] = cls.merge_trie(parent_trie[key], curr_trie[key])
                         logger.debug(f"Merged Trie is {merged_trie}")
                     elif isinstance(parent_trie[key], dict):
                         merged_trie[key] = parent_trie[key]
                     else:
-                        merged_trie[key] = new_trie[key]
+                        merged_trie[key] = curr_trie[key]
                 elif key in parent_trie:  # If the key is only in trie1, add it to the merged trie
                     merged_trie[key] = parent_trie[key]
                 else:  # If the key is only in trie2, add it to the merged trie
-                    merged_trie[key] = new_trie[key]
+                    merged_trie[key] = curr_trie[key]
             return merged_trie
 
         @classmethod
         def update_keyword_trie(
             cls,
-            new_trie,
+            curr_trie,
             parent_trie=None,
         ):
             if parent_trie is None:
                 parent_trie = cls._KEYWORD_TRIE
-            cls.KEYWORD_TRIE = cls.merge_trie(parent_trie, new_trie)
+            cls.KEYWORD_TRIE = cls.merge_trie(parent_trie, curr_trie)
 
         def match_strings_token_dict(self, string, pattern_dict):
             result_dict = {}
@@ -288,7 +318,7 @@ class Snow(Snowflake):
             "TRY_TO_DATE": local_expression.TryToDate.from_arg_list,
             "STRTOK": local_expression.StrTok.from_arg_list,
             "SPLIT_PART": _parse_split_part,
-            "TIMESTAMPADD": _parse_dateadd,
+            "TIMESTAMPADD": _parse_date_add,
             "TRY_TO_DECIMAL": _parse_trytonumber,
             "TRY_TO_NUMBER": _parse_trytonumber,
             "TRY_TO_NUMERIC": _parse_trytonumber,
@@ -313,14 +343,14 @@ class Snow(Snowflake):
             "TRY_PARSE_JSON": exp.ParseJSON.from_arg_list,
             "TIMEDIFF": parse_date_delta(exp.DateDiff, unit_mapping=DATE_DELTA_INTERVAL),
             "TIMESTAMPDIFF": parse_date_delta(exp.DateDiff, unit_mapping=DATE_DELTA_INTERVAL),
-            "TIMEADD": _parse_dateadd,
+            "TIMEADD": _parse_date_add,
             "TO_BOOLEAN": lambda args: _parse_to_boolean(args, error=True),
             "TO_DECIMAL": _parse_tonumber,
             "TO_DOUBLE": local_expression.ToDouble.from_arg_list,
             "TO_NUMBER": _parse_tonumber,
             "TO_NUMERIC": _parse_tonumber,
             "TO_OBJECT": local_expression.ToObject.from_arg_list,
-            "TO_TIME": parse_to_timestamp,
+            "TO_TIME": _parse_to_timestamp,
             "TIMESTAMP_FROM_PARTS": local_expression.TimestampFromParts.from_arg_list,
             "TO_VARIANT": local_expression.ToVariant.from_arg_list,
             "TRY_TO_BOOLEAN": lambda args: _parse_to_boolean(args, error=False),
@@ -369,8 +399,8 @@ class Snow(Snowflake):
             return self.expression(exp.GroupConcat, this=args[0], separator=seq_get(args, 1))
 
         def _parse_types(
-            self, *, check_func: bool = False, schema: bool = False, allow_identifiers: bool = True
-        ) -> t.Optional[exp.Expression]:  # noqa: UP007
+            self, check_func: bool = False, schema: bool = False, allow_identifiers: bool = True
+        ) -> exp.Expression | None:
             this = super()._parse_types(check_func=check_func, schema=schema, allow_identifiers=allow_identifiers)
             # https://docs.snowflake.com/en/sql-reference/data-types-numeric Numeric datatype alias
             if (
@@ -391,7 +421,7 @@ class Snow(Snowflake):
 
             return self.expression(local_expression.Parameter, this=this, wrapped=wrapped, suffix=suffix)
 
-        def _get_table_alias(self):
+        def _get_table_alias(self) -> str | None:
             """
             :returns the `table alias` by looping through all the tokens until it finds the `From` token.
             Example:
@@ -403,42 +433,17 @@ class Snow(Snowflake):
             """
             # Create a deep copy of Parser to avoid any modifications to original one
             self_copy = copy.deepcopy(self)
-            found_from = True if self_copy._match(TokenType.FROM, advance=False) else False
-            run = True
-            indx = 0
             table_alias = None
 
-            try:
-                # iterate through all the tokens if tokens are available
-                while self_copy._index < len(self_copy._tokens) and (run or found_from):
-                    self_copy._advance()
-                    indx += 1
-                    found_from = True if self_copy._match(TokenType.FROM, advance=False) else False
-                    # stop iterating when all the tokens are parsed
-                    if indx == len(self_copy._tokens):
-                        run = False
-                    # get the table alias when FROM token is found
-                    if found_from:
-                        """
-                        advance to two tokens after FROM, if there are available.
-                        Handles (SELECT .... FROM persons p => returns `p`)
-                        """
-                        if self_copy._index + 2 < len(self_copy._tokens):
-                            self_copy._advance(2)
-                            if self_copy._curr.text != ")":
-                                table_alias = self_copy._curr.text
-                            """
-                          * if the table is of format :: `<DB>.<TABLE>` <TABLE_ALIAS>, advance to two more tokens
-                            - Handles (`SELECT .... FROM dwh.vw_replacement_customer  d`  => returns d)
-                          * if the table is of format :: `<DB>.<SCHEMA>.<TABLE>` <TABLE_ALIAS>, advance to 2 more tokens
-                            - Handles (`SELECT .... FROM prod.public.tax_transact tt`  => returns tt)
-                            """
-                            while table_alias == "." and self_copy._index + 2 < len(self_copy._tokens):
-                                self_copy._advance(2)
-                                table_alias = self_copy._curr.text
-                            break
-            except Exception:
-                logger.exception("Error while getting table alias.")
+            # iterate through all the tokens if tokens are available
+            while self_copy._index < len(self_copy._tokens):
+                self_copy._advance()
+                # get the table alias when FROM token is found
+                if self_copy._match(TokenType.FROM, advance=False):
+                    self_copy._advance()  # advance to next token
+                    self_copy._parse_table_parts()  # parse the table parts
+                    table_alias = self_copy._parse_table_alias()  # get to table alias
+                    return str(table_alias)
 
             return table_alias
 
@@ -459,22 +464,21 @@ class Snow(Snowflake):
                 col_table_alias = this.this.table.upper()
             else:
                 col_table_alias = this.name.upper()
-
-            is_table_alias = col_table_alias == table_alias.upper() if table_alias else False
+            is_table_alias = col_table_alias == table_alias.upper() if table_alias is not None else False
 
             if not isinstance(this, exp.Bracket) and is_name_value:
                 # If the column is referring to `lateral alias`, remove `.value` reference (not needed in Databricks)
                 if table_alias and this.table != table_alias:
                     return self.expression(local_expression.Bracket, this=this.table, expressions=[path])
-                """
-                    if it is referring to `table_alias`, we need to keep `.value`. See below example:
-                    - SELECT f.first, p.c.value.first, p.value FROM persons_struct AS p
-                        LATERAL VIEW EXPLODE($p.$c.contact) AS f
-                """
+
+                    # if it is referring to `table_alias`, we need to keep `.value`. See below example:
+                    # - SELECT f.first, p.c.value.first, p.value FROM persons_struct AS p
+                    #    LATERAL VIEW EXPLODE($p.$c.contact) AS f
+
                 return self.expression(local_expression.Bracket, this=this, expressions=[path])
-            elif isinstance(this, local_expression.Bracket) and (is_name_value or is_table_alias):
+            if isinstance(this, local_expression.Bracket) and (is_name_value or is_table_alias):
                 return self.expression(local_expression.Bracket, this=this, expressions=[path])
-            elif (isinstance(path, exp.Column)) and (path or is_path_value):
+            if (isinstance(path, exp.Column)) and (path or is_path_value):
                 return self.expression(local_expression.Bracket, this=this, expressions=[path])
-            else:
-                return self.expression(exp.Bracket, this=this, expressions=[path])
+
+            return self.expression(exp.Bracket, this=this, expressions=[path])

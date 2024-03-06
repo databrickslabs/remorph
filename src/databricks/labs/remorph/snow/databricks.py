@@ -42,7 +42,7 @@ def _parm_sfx(self, expression: local_expression.Parameter) -> str:
     this = self.sql(expression, "this")
     this = f"{{{this}}}" if expression.args.get("wrapped") else f"{this}"
     suffix = self.sql(expression, "suffix")
-    PARAMETER_TOKEN = "$"  # noqa: N806
+    PARAMETER_TOKEN = "$"  # noqa: N806 pylint: disable=invalid-name
     return f"{PARAMETER_TOKEN}{this}{suffix}"
 
 
@@ -276,8 +276,8 @@ def _uuid(self: Databricks.Generator, expression: local_expression.UUID) -> str:
     if namespace and name:
         logger.warning("UUID version 5 is not supported currently. Needs manual intervention.")
         return f"UUID({namespace}, {name})"
-    else:
-        return "UUID()"
+
+    return "UUID()"
 
 
 def _parse_date_trunc(self: Databricks.Generator, expression: local_expression.DateTrunc) -> str:
@@ -322,7 +322,8 @@ def _create_named_struct_for_cmp(agg_col, order_col) -> exp.Expression:
     return named_struct_func
 
 
-class Databricks(Databricks):
+# pylint: disable=function-redefined
+class Databricks(Databricks):  #
     # Instantiate Databricks Dialect
     databricks = Databricks()
 
@@ -450,8 +451,8 @@ class Databricks(Databricks):
             agg_expr = expression.this
             if isinstance(agg_expr, (exp.ArrayAgg, exp.GroupConcat)):
                 return self.sql(agg_expr)
-            else:
-                return super().withingroup_sql(expression)
+
+            return super().withingroup_sql(expression)
 
         def split_sql(self, expression: local_expression.Split) -> str:
             """
@@ -492,8 +493,8 @@ class Databricks(Databricks):
 
             if using:
                 return self.prepend_ctes(expression, f"MERGE INTO {tables}{expression_sql} WHEN MATCHED THEN DELETE;")
-            else:
-                return self.prepend_ctes(expression, f"DELETE{tables}{expression_sql};")
+
+            return self.prepend_ctes(expression, f"DELETE{tables}{expression_sql};")
 
         def converttimezone_sql(self, expression: local_expression.ConvertTimeZone):
             func = "CONVERT_TIMEZONE"
@@ -544,7 +545,7 @@ class Databricks(Databricks):
             part_num = self.sql(expression.args["partNum"])
             return f"SPLIT_PART({expr_name}, {delimiter}, {part_num})"
 
-        def transaction_sql(self, expression: exp.Transaction) -> str:  # noqa: ARG002
+        def transaction_sql(self, expression: exp.Transaction) -> str:  # noqa: ARG002 pylint: disable=unused-argument
             """
             Skip begin command
             :param expression:
@@ -552,7 +553,7 @@ class Databricks(Databricks):
             """
             return ""
 
-        def rollback_sql(self, expression: exp.Rollback) -> str:  # noqa: ARG002
+        def rollback_sql(self, expression: exp.Rollback) -> str:  # noqa: ARG002 pylint: disable=unused-argument
             """
             Skip rollback command
             :param expression:
@@ -560,7 +561,7 @@ class Databricks(Databricks):
             """
             return ""
 
-        def commit_sql(self, expression: exp.Rollback) -> str:  # noqa: ARG002
+        def commit_sql(self, expression: exp.Rollback) -> str:  # noqa: ARG002 pylint: disable=unused-argument
             """
             Skip commit command
             :param expression:

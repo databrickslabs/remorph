@@ -4,10 +4,10 @@
 
 
 def test_parse_parameter(dialect_context):
-    validate_source_transpile, validate_target_transpile = dialect_context
     """
     Function to assert conversion from source: `snowflake(read)` to target: `Databricks(sql)`
     """
+    validate_source_transpile, _ = dialect_context
     sql = """
              SELECT DISTINCT
                 ABC,
@@ -39,10 +39,10 @@ def test_parse_parameter(dialect_context):
 
 
 def test_decimal_keyword(dialect_context):
-    validate_source_transpile, validate_target_transpile = dialect_context
     """
     Function to test dec as alias name
     """
+    validate_source_transpile, _ = dialect_context
 
     sql = """
              SELECT

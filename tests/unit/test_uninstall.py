@@ -13,8 +13,7 @@ from databricks.labs.remorph.uninstall import WorkspaceUnInstallation
 
 @pytest.fixture
 def ws():
-    ws = create_autospec(WorkspaceClient)
-    return ws
+    return create_autospec(WorkspaceClient)
 
 
 def test_uninstall(ws):

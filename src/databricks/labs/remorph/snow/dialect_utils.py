@@ -1,6 +1,7 @@
 import logging
 
 from sqlglot import ErrorLevel, exp, parse
+from sqlglot.errors import ParseError, TokenError, UnsupportedError
 from sqlglot.expressions import Expression, Select
 
 from databricks.labs.remorph.helpers.morph_status import ValidationError
@@ -32,7 +33,7 @@ def check_for_unsupported_lca(
 
     try:
         parsed_expr = parse(sql, read=dialect, error_level=ErrorLevel.RAISE)
-    except Exception as e:
+    except (ParseError, TokenError, UnsupportedError) as e:
         logger.warning(f"Error while preprocessing {filename}: {e}")
         return None
 

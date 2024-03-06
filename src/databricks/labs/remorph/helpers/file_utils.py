@@ -41,7 +41,7 @@ def is_sql_file(file: str | Path) -> bool:
     :return: True if the file is a SQL file (i.e., its extension is either .sql or .ddl), False otherwise.
     """
     file_extension = Path(file).suffix
-    return file_extension.lower() in [".sql", ".ddl"]
+    return file_extension.lower() in {".sql", ".ddl"}
 
 
 def make_dir(path: str | Path) -> None:
@@ -62,8 +62,9 @@ def dir_walk(root: Path):
     sub_dirs = [d for d in root.iterdir() if d.is_dir()]
     files = [f for f in root.iterdir() if f.is_file()]
     yield root, sub_dirs, files
-    for s in sub_dirs:
-        yield from dir_walk(s)
+
+    for each_dir in sub_dirs:
+        yield from dir_walk(each_dir)
 
 
 def get_sql_file(input_path: str | Path) -> list:
@@ -84,5 +85,6 @@ def read_file(filename: str | Path) -> str:
     :param filename: Input File Path
     :return: File Contents as String
     """
+    # pylint: disable=unspecified-encoding
     with Path(filename).open() as file:
         return file.read()
