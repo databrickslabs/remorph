@@ -126,7 +126,7 @@ def test_query_with_same_alias_and_column_name():
     sql = """
     select ca_zip
      from (
-      SELECT substr(ca_zip,1,5) ca_zip
+      SELECT substr(ca_zip,1,5) ca_zip, trim(name) as name
       FROM customer_address
       WHERE substr(ca_zip,1,5) IN ('89436', '30868'));
     """

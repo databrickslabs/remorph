@@ -64,7 +64,11 @@ def _find_aliases_in_select(select_expr: Select) -> dict[str, bool]:
     aliases = {}  # Alias name and if it is same as a column name used in the alias expression
     for expr in select_expr.expressions:
         if isinstance(expr, exp.Alias):
-            aliases[expr.output_name] = any(column.name == expr.output_name for column in expr.find_all(exp.Column))
+            aliases[expr.output_name] = False
+            for column in expr.find_all(exp.Column):
+                if column.name == expr.output_name:
+                    aliases[expr.output_name] = True
+                    break
     return aliases
 
 
