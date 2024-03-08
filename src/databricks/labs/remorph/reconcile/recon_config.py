@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from databricks.sdk.service._internal import _from_dict, _repeated_dict
 
 # [TODO]: Move _internal to blueprint
+# pylint: disable=invalid-name
 
 
 @dataclass
@@ -16,14 +17,14 @@ class TransformRuleMapping:
     def get_column_expression_without_alias(self) -> str:
         if self.transformation:
             return f"{self.transformation}"
-        else:
-            return f"{self.column_name}"
+
+        return f"{self.column_name}"
 
     def get_column_expression_with_alias(self) -> str:
         if self.alias_name:
             return f"{self.get_column_expression_without_alias} as {self.alias_name}"
-        else:
-            return f"{self.get_column_expression_without_alias} as {self.column_name}"
+
+        return f"{self.get_column_expression_without_alias} as {self.column_name}"
 
 
 @dataclass
@@ -143,8 +144,6 @@ class Tables:
             if isinstance(value, list):
                 if all(isinstance(x, cls) for x in value):
                     return {getattr(v, key): v for v in value}
-            else:
-                pass
 
 
 @dataclass
