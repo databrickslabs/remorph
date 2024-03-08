@@ -19,10 +19,10 @@ from databricks.labs.remorph.install import (
 
 @pytest.fixture
 def ws():
-    ws = create_autospec(WorkspaceClient)
-    ws.catalogs.get.side_effect = NotFound("test")
-    ws.schemas.get.side_effect = NotFound("test.schema")
-    return ws
+    w = create_autospec(WorkspaceClient)
+    w.catalogs.get.side_effect = NotFound("test")
+    w.schemas.get.side_effect = NotFound("test.schema")
+    return w
 
 
 @pytest.fixture
@@ -191,12 +191,11 @@ def test_get_schema(ws):
 
 
 def test_config(ws):
-    with pytest.raises(ValueError):
-        config = MorphConfig(
-            source="snowflake",
-            skip_validation=False,
-            catalog_name="test_catalog",
-            schema_name="test_schema",
-            sdk_config=None,
-        )
-        assert isinstance(config, MorphConfig)
+    config = MorphConfig(
+        source="snowflake",
+        skip_validation=False,
+        catalog_name="test_catalog",
+        schema_name="test_schema",
+        sdk_config=None,
+    )
+    assert isinstance(config, MorphConfig)

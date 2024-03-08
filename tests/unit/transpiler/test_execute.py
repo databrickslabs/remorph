@@ -12,6 +12,8 @@ from databricks.labs.remorph.helpers.file_utils import make_dir
 from databricks.labs.remorph.helpers.validate import Validate
 from databricks.labs.remorph.transpiler.execute import morph
 
+# pylint: disable=unspecified-encoding
+
 
 def safe_remove_dir(dir_path: Path):
     if dir_path.exists():
