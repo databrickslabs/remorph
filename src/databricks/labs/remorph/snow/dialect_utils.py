@@ -94,7 +94,7 @@ def _find_invalid_lca_in_window(
     windows = _find_windows_in_select(select_expr)
     for window in windows:
         for column in window.find_all(exp.Column):
-            if column.name in aliases:
+            if column.name in aliases and not aliases[column.name]:
                 aliases_in_window.add(column.name)
 
     return aliases_in_window
