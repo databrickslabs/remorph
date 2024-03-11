@@ -2980,29 +2980,29 @@ def test_to_number(dialect_context):
     validate_source_transpile, _ = dialect_context
     # Test case to validate `TO_DECIMAL` parsing with format
     validate_source_transpile(
-        """SELECT CAST(TO_NUMBER('$345', '$999.00') AS DECIMAL(38, 0)) AS col1""",
+        """SELECT TO_NUMBER('$345', '$999.00') AS col1""",
         source={
             "snowflake": """SELECT TO_DECIMAL('$345', '$999.00') AS col1""",
         },
     )
     # Test case to validate `TO_NUMERIC` parsing with format
     validate_source_transpile(
-        """SELECT CAST(TO_NUMBER('$345', '$999.99') AS DECIMAL(38, 0)) AS num""",
+        """SELECT TO_NUMBER('$345', '$999.99') AS num""",
         source={
             "snowflake": """SELECT TO_NUMERIC('$345', '$999.99') AS num""",
         },
     )
     # Test case to validate `TO_NUMBER` parsing with format
     validate_source_transpile(
-        """SELECT CAST(TO_NUMBER('$345', '$999.99') AS DECIMAL(38, 0)) AS num""",
+        """SELECT TO_NUMBER('$345', '$999.99') AS num""",
         source={
             "snowflake": """SELECT TO_NUMBER('$345', '$999.99') AS num""",
         },
     )
     # Test case to validate `TO_DECIMAL`, `TO_NUMERIC` parsing with format from table columns
     validate_source_transpile(
-        """SELECT CAST(TO_NUMBER(col1, '$999.099') AS DECIMAL(38, 0)),
-        CAST(TO_NUMBER(tbl.col2, '$999,099.99') AS DECIMAL(38, 0)) FROM dummy AS tbl""",
+        """SELECT TO_NUMBER(col1, '$999.099'),
+        TO_NUMBER(tbl.col2, '$999,099.99') FROM dummy AS tbl""",
         source={
             "snowflake": """SELECT TO_DECIMAL(col1, '$999.099'),
                 TO_NUMERIC(tbl.col2, '$999,099.99') FROM dummy tbl""",
@@ -3031,15 +3031,14 @@ def test_to_number(dialect_context):
                 TO_NUMBER(sm.col2, '$99.00', 15, 5) AS col2 FROM sales_reports sm""",
         },
     )
-    with pytest.raises(UnsupportedError):
-        # Test case to validate `TO_NUMBER` parsing with precision and scale from table columns.
-        # Format is a mandatory argument in Databricks
-        validate_source_transpile(
-            """SELECT CAST(TO_NUMBER(sm.col1) AS DECIMAL(15, 5)) AS col1 FROM sales_reports AS sm""",
-            source={
-                "snowflake": """SELECT TO_NUMERIC(sm.col1, 15, 5) AS col1 FROM sales_reports sm""",
-            },
-        )
+
+    # Test case to validate `TO_NUMBER` parsing with precision and scale from table columns.
+    validate_source_transpile(
+        """SELECT CAST(col1 AS DECIMAL(15, 5)) AS col1 FROM sales_reports""",
+        source={
+            "snowflake": """SELECT TO_NUMERIC(col1, 15, 5) AS col1 FROM sales_reports""",
+        },
+    )
 
     with pytest.raises(UnsupportedError):
         # Test case to validate `TO_DECIMAL` parsing without format

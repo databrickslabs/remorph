@@ -245,27 +245,27 @@ def _parse_json(self, expr: exp.ParseJSON):
     return conv_expr
 
 
-def _to_number(self, expression: local_expression.TryToNumber):
+def _to_number(self, expression: local_expression.ToNumber):
     func = "TO_NUMBER"
     precision = self.sql(expression, "precision")
     scale = self.sql(expression, "scale")
 
-    if not precision:
-        precision = 38
-
-    if not scale:
-        scale = 0
-
-    func_expr = self.func(func, expression.this)
+    func_expr = expression.this
+    # if format is provided, else it will be vanilla cast to decimal
     if expression.expression:
         func_expr = self.func(func, expression.this, expression.expression)
-    else:
+        if precision:
+            return f"CAST({func_expr} AS DECIMAL({precision}, {scale}))"
+        return func_expr
+    elif not expression.expression and not precision:
         exception_msg = f"""Error Parsing expression {expression}:
                          * `format`: is required in Databricks [mandatory]
                          * `precision` and `scale`: are considered as (38, 0) if not specified.
                       """
         raise UnsupportedError(exception_msg)
 
+    precision = 38 if not precision else precision
+    scale = 0 if not scale else scale
     return f"CAST({func_expr} AS DECIMAL({precision}, {scale}))"
 
 
