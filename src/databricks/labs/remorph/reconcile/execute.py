@@ -1,9 +1,12 @@
 import json
 import logging
+from io import StringIO
 
 from databricks.labs.remorph.helpers.execution_time import timeit
 from databricks.labs.remorph.reconcile.connectors.data_source import DataSource
-from databricks.labs.remorph.reconcile.recon_config import TableRecon, Tables
+from databricks.labs.remorph.reconcile.constants import ColumnTransformationType, SourceType, Constants
+from databricks.labs.remorph.reconcile.recon_config import TableRecon, Tables, Schema, Transformation, \
+    TransformRuleMapping, ColumnMapping
 
 logger = logging.getLogger(__name__)
 
@@ -51,3 +54,96 @@ class Reconciliation:
         # implement missing in target
         # implement threshold comparison
         return False  # implement data comparison logic
+
+
+def build_query(table_conf: Tables, schema: list[Schema], layer: str, source: str) -> str:
+    try:
+        sql_query = StringIO()
+        # Extract distinct column names
+        join_columns = {col.source_name for col in table_conf.join_columns}
+        schema_info = {getattr(v, "column_name"): v for v in schema}
+
+        if table_conf.select_columns is None:
+            select_columns = {sch.column_name for sch in schema}
+        else:
+            select_columns = {col for col in table_conf.select_columns}
+
+        partition_column = {table_conf.jdbc_reader_options.partition_column}
+        # Combine all column names
+        all_columns = join_columns | select_columns | partition_column
+
+        # Remove threshold and drop columns
+        threshold_columns = {thresh.column_name for thresh in table_conf.thresholds or []}
+        drop_columns = set(table_conf.drop_columns or [])
+        final_columns = all_columns - threshold_columns - drop_columns
+
+        col_transformation = generate_transformation_rule_mapping(final_columns, schema_info, table_conf, source, layer)
+
+        final_expr = [TransformRuleMapping.get_column_expression_without_alias(trans) for trans in
+                      col_transformation]
+
+        hash_expr = generate_hash_algorithm(source, final_expr)
+
+        # TODO  need to add the join and jdbc reader partition column in select
+        key_columns = join_columns | partition_column
+
+        sql_query.write("select ")
+        sql_query.write(hash_expr)
+        sql_query.write(f" as {Constants.hash_column_name}")
+
+        final_query = sql_query.getvalue()
+        sql_query.close()
+
+        return final_query
+    # TODO handle specific exception remove general exception
+    except Exception as e:
+        message = f"An error occurred in method generate_full_query: {e!s}"
+        logger.error(message)
+        raise Exception(message) from e
+
+
+def generate_transformation_rule_mapping(final_columns, schema, table_conf, source, layer):
+    transformations_dict = table_conf.list_to_dict(Transformation, "column_name")
+    column_mapping_dict = table_conf.list_to_dict(ColumnMapping, "target_name")
+
+    transformation_rule_mapping = []
+    for column in final_columns:
+        if column in transformations_dict.keys():
+            transformation = getattr(transformations_dict.get(column), layer)
+        else:
+            column_data_type = schema.get(column).data_type
+            transformation = _get_default_transformation(source, column_data_type).format(column)
+
+        if column in column_mapping_dict.keys():
+            column_alias = column_mapping_dict.get(column)
+        else:
+            column_alias = column
+
+        transformation_rule_mapping.append(TransformRuleMapping(column, transformation, column_alias))
+
+    return transformation_rule_mapping
+
+
+def _get_default_transformation(source, data_type):
+    match source:
+        case "oracle":
+            return oracle_datatype_mapper.get(data_type,
+                                              ColumnTransformationType.ORACLE_DEFAULT.value)
+        case "snowflake":
+            return None
+        case _:
+            raise "source type not supported"
+
+
+def generate_hash_algorithm(source: str, list_expr: list[str]) -> str:
+    if source in {SourceType.DATABRICKS.value, SourceType.SNOWFLAKE.value}:
+        hash_expr = "concat(" + ", ".join(list_expr) + ")"
+    else:
+        hash_expr = " || ".join(list_expr)
+
+    return (Constants.hash_algorithm_mapping.get(source.lower()).get("source")).format(hash_expr)
+
+
+oracle_datatype_mapper = {
+    "date": "coalesce(trim(to_char({},'YYYY-MM-DD')),'')",
+}
