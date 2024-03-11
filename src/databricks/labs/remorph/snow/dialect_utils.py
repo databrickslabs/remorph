@@ -10,15 +10,6 @@ from databricks.labs.remorph.snow.snowflake import Snow
 logger = logging.getLogger(__name__)
 
 
-def find_windows_in_select(select: Select) -> list[exp.Window]:
-    window_expressions = []
-    for expr in select.expressions:
-        window_expr = expr.find(exp.Window)
-        if window_expr:
-            window_expressions.append(window_expr)
-    return window_expressions
-
-
 def check_for_unsupported_lca(
     dialect: str,
     sql: str,
@@ -43,7 +34,7 @@ def check_for_unsupported_lca(
     for expr in parsed_expr:
         if expr:
             for select in expr.find_all(exp.Select, bfs=False):
-                alias_names = {alias.output_name for alias in select.expressions if isinstance(alias, exp.Alias)}
+                alias_names = _find_aliases_in_select(select)
                 aliases_in_where.update(_find_invalid_lca_in_where(select, alias_names))
                 aliases_in_window.update(_find_invalid_lca_in_window(select, alias_names))
 
@@ -60,15 +51,36 @@ def check_for_unsupported_lca(
     return ValidationError(filename, " ".join(err_messages))
 
 
+def _find_windows_in_select(select: Select) -> list[exp.Window]:
+    window_expressions = []
+    for expr in select.expressions:
+        window_expr = expr.find(exp.Window)
+        if window_expr:
+            window_expressions.append(window_expr)
+    return window_expressions
+
+
+def _find_aliases_in_select(select_expr: Select) -> dict[str, bool]:
+    aliases = {}  # Alias name and if it is same as a column name used in the alias expression
+    for expr in select_expr.expressions:
+        if isinstance(expr, exp.Alias):
+            aliases[expr.output_name] = False
+            for column in expr.find_all(exp.Column):
+                if column.name == expr.output_name:
+                    aliases[expr.output_name] = True
+                    break
+    return aliases
+
+
 def _find_invalid_lca_in_where(
     select_expr: Select,
-    aliases: set[str],
+    aliases: dict[str, bool],
 ) -> set[str]:
     aliases_in_where = set()
     where_ast: Expression = select_expr.args.get("where")
     if where_ast:
         for column in where_ast.find_all(exp.Column):
-            if column.name in aliases:
+            if column.name in aliases and not aliases[column.name]:
                 aliases_in_where.add(column.name)
 
     return aliases_in_where
@@ -76,13 +88,13 @@ def _find_invalid_lca_in_where(
 
 def _find_invalid_lca_in_window(
     select_expr: Select,
-    aliases: set[str],
+    aliases: dict[str, bool],
 ) -> set[str]:
     aliases_in_window = set()
-    windows = find_windows_in_select(select_expr)
+    windows = _find_windows_in_select(select_expr)
     for window in windows:
         for column in window.find_all(exp.Column):
-            if column.name in aliases:
+            if column.name in aliases and not aliases[column.name]:
                 aliases_in_window.add(column.name)
 
     return aliases_in_window
