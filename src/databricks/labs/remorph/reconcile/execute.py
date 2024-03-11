@@ -68,7 +68,11 @@ def build_query(table_conf: Tables, schema: list[Schema], layer: str, source: st
         else:
             select_columns = {col for col in table_conf.select_columns}
 
-        partition_column = {table_conf.jdbc_reader_options.partition_column}
+        if table_conf.jdbc_reader_options:
+            partition_column = {table_conf.jdbc_reader_options.partition_column}
+        else:
+            partition_column = set()
+
         # Combine all column names
         all_columns = join_columns | select_columns | partition_column
 
