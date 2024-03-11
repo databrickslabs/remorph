@@ -257,7 +257,7 @@ def _to_number(self, expression: local_expression.ToNumber):
         if precision:
             return f"CAST({func_expr} AS DECIMAL({precision}, {scale}))"
         return func_expr
-    elif not expression.expression and not precision:
+    if not expression.expression and not precision:
         exception_msg = f"""Error Parsing expression {expression}:
                          * `format`: is required in Databricks [mandatory]
                          * `precision` and `scale`: are considered as (38, 0) if not specified.
