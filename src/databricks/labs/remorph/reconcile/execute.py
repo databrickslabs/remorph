@@ -67,26 +67,30 @@ class Reconciliation:
 
 
 def build_query(table_conf: Tables, schema: list[Schema], layer: str, source: str) -> str:
-    schema_info = {getattr(v, "column_name"): v for v in schema}
+    schema_info = {v.column_name: v for v in schema}
 
-    hash_columns, key_columns = _get_column_list(table_conf, schema, layer)
-    col_transformation = generate_transformation_rule_mapping(hash_columns, schema_info, table_conf, source, layer)
+    columns, key_columns = _get_column_list(table_conf, schema, layer)
+    col_transformation = generate_transformation_rule_mapping(columns, schema_info, table_conf, source, layer)
 
     hash_columns_expr = [
-        TransformRuleMapping.get_column_expression_without_alias(trans) for trans in col_transformation
+        TransformRuleMapping.get_column_expression_without_alias(transformation) for transformation in
+        col_transformation  # make this a function call
     ]
 
     hash_expr = generate_hash_algorithm(source, hash_columns_expr)
 
     key_column_expr = [
-        TransformRuleMapping.get_column_expression_with_alias(trans)
-        for trans in col_transformation
-        if trans.column_name in key_columns
+        TransformRuleMapping.get_column_expression_with_alias(transformation)
+        for transformation in col_transformation
+        if transformation.column_name in key_columns
     ]
 
-    table_name = table_conf.source_name if layer == "source" else table_conf.target_name
-
-    query_filter = getattr(table_conf.filters, layer) if table_conf.filters else " 1 = 1"
+    if layer == "source":
+        table_name = table_conf.source_name
+        query_filter = table_conf.filters.source if table_conf.filters else " 1 = 1"
+    else:
+        table_name = table_conf.target_name
+        query_filter = table_conf.filters.target if table_conf.filters else " 1 = 1"
 
     # construct select query
     select_query = _construct_hash_query(table_name, query_filter, hash_expr, key_column_expr)
@@ -94,8 +98,12 @@ def build_query(table_conf: Tables, schema: list[Schema], layer: str, source: st
     return select_query
 
 
+def get_layer_transform(transform_dict: dict[str, Transformation], column: str, layer: str):
+    return transform_dict.get(column).source if layer == "source" else transform_dict.get(column).target
+
+
 def generate_transformation_rule_mapping(
-    columns: set[str], schema: dict, table_conf: Tables, source: str, layer: str
+        columns: set[str], schema: dict, table_conf: Tables, source: str, layer: str
 ) -> list[TransformRuleMapping]:
     transformations_dict = table_conf.list_to_dict(Transformation, "column_name")
     column_mapping_dict = table_conf.list_to_dict(ColumnMapping, "target_name")
@@ -103,7 +111,7 @@ def generate_transformation_rule_mapping(
     transformation_rule_mapping = []
     for column in columns:
         if column in transformations_dict.keys():
-            transformation = getattr(transformations_dict.get(column), layer)
+            transformation = get_layer_transform(transformations_dict, column, layer)  # made this a function call
         else:
             column_data_type = schema.get(column).data_type
             transformation = _get_default_transformation(source, column_data_type).format(column)
@@ -125,7 +133,8 @@ def _get_column_list(table_conf: Tables, schema: list[Schema], layer: str):
         join_columns = {col.target_name for col in table_conf.join_columns}
 
     if table_conf.select_columns is None:
-        select_columns = {sch.column_name for sch in schema}
+        select_columns = {sch.column_name for sch in schema}  # how are you handling if there
+        # are column in transformation but not in select list
     else:
         select_columns = set(table_conf.select_columns)
 
@@ -140,14 +149,14 @@ def _get_column_list(table_conf: Tables, schema: list[Schema], layer: str):
     # Remove threshold and drop columns
     threshold_columns = {thresh.column_name for thresh in table_conf.thresholds or []}
     drop_columns = set(table_conf.drop_columns or [])
-    hash_columns = all_columns - threshold_columns - drop_columns
+    columns = all_columns - threshold_columns - drop_columns
     key_columns = join_columns | partition_column
 
-    return hash_columns, key_columns
+    return columns, key_columns
 
 
-def _get_default_transformation(source: str, data_type: str) -> str:
-    match source:
+def _get_default_transformation(data_source: str, data_type: str) -> str:
+    match data_source:
         case "oracle":
             return oracle_datatype_mapper.get(data_type, ColumnTransformationType.ORACLE_DEFAULT.value)
         case "snowflake":
@@ -155,15 +164,15 @@ def _get_default_transformation(source: str, data_type: str) -> str:
         case "databricks":
             return databricks_datatype_mapper.get(data_type, ColumnTransformationType.DATABRICKS_DEFAULT.value)
         case _:
-            msg = f"Unsupported source type --> {source}"
+            msg = f"Unsupported source type --> {data_source}"
             raise ValueError(msg)
 
 
-def generate_hash_algorithm(source: str, list_expr: list[str]) -> str:
+def generate_hash_algorithm(source: str, column_expr: list[str]) -> str:
     if source in {SourceType.DATABRICKS.value, SourceType.SNOWFLAKE.value}:
-        hash_expr = "concat(" + ", ".join(list_expr) + ")"
+        hash_expr = "concat(" + ", ".join(column_expr) + ")"
     else:
-        hash_expr = " || ".join(list_expr)
+        hash_expr = " || ".join(column_expr)
 
     return (Constants.hash_algorithm_mapping.get(source.lower()).get("source")).format(hash_expr)
 
@@ -180,6 +189,8 @@ def _construct_hash_query(table_name: str, query_filter: str, hash_expr: str, ke
     sql_query.close()
     return select_query
 
+
+# this should be in datasource file
 
 oracle_datatype_mapper = {
     "date": "coalesce(trim(to_char({},'YYYY-MM-DD')),'')",
