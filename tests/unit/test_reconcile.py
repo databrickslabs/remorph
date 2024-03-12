@@ -4,6 +4,7 @@ from databricks.labs.remorph.reconcile.execute import (
 )
 from databricks.labs.remorph.reconcile.recon_config import (
     ColumnMapping,
+    Filters,
     JdbcReaderOptions,
     JoinColumns,
     Schema,
@@ -34,7 +35,7 @@ def test_build_query_src():
             ),
         ],
         thresholds=[],
-        filters=None,
+        filters=Filters(source="a=a", target="b=b"),
     )
     schema = [
         Schema("s_suppkey", "number"),

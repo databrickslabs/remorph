@@ -28,7 +28,7 @@ def recon(recon_conf, conn_profile, source, report):
     logger.info(source)
     logger.info(report)
 
-    with open(recon_conf, 'r') as f:
+    with open(recon_conf, 'r', encoding="utf-8") as f:
         data = json.load(f)
 
     # Convert the JSON data to the TableRecon dataclass
@@ -67,67 +67,31 @@ class Reconciliation:
 
 
 def build_query(table_conf: Tables, schema: list[Schema], layer: str, source: str) -> str:
-    try:
-        sql_query = StringIO()
-        schema_info = {getattr(v, "column_name"): v for v in schema}
+    schema_info = {getattr(v, "column_name"): v for v in schema}
 
-        hash_columns, key_columns = _get_column_list(table_conf, schema, layer)
+    hash_columns, key_columns = _get_column_list(table_conf, schema, layer)
+    col_transformation = generate_transformation_rule_mapping(hash_columns, schema_info, table_conf, source, layer)
 
-        col_transformation = generate_transformation_rule_mapping(hash_columns, schema_info, table_conf, source, layer)
+    hash_columns_expr = [
+        TransformRuleMapping.get_column_expression_without_alias(trans) for trans in col_transformation
+    ]
 
-        hash_columns_expr = [
-            TransformRuleMapping.get_column_expression_without_alias(trans) for trans in col_transformation
-        ]
+    hash_expr = generate_hash_algorithm(source, hash_columns_expr)
 
-        hash_expr = generate_hash_algorithm(source, hash_columns_expr)
+    key_column_expr = [
+        TransformRuleMapping.get_column_expression_with_alias(trans)
+        for trans in col_transformation
+        if trans.column_name in key_columns
+    ]
 
-        key_column_expr = [
-            TransformRuleMapping.get_column_expression_with_alias(trans)
-            for trans in col_transformation
-            if trans.column_name in key_columns
-        ]
+    table_name = table_conf.source_name if layer == "source" else table_conf.target_name
 
-        # construct select query
-        sql_query.write("select ")
+    query_filter = getattr(table_conf.filters, layer) if table_conf.filters else " 1 = 1"
 
-        # add hash column
-        sql_query.write(hash_expr)
-        sql_query.write(f" as {Constants.hash_column_name}")
-        sql_query.write(" , ")
+    # construct select query
+    select_query = _construct_hash_query(table_name, query_filter, hash_expr, key_column_expr)
 
-        # add join column
-        sql_query.write(",".join(key_column_expr))
-        sql_query.write(" from ")
-
-        # add table name
-        if layer == "source":
-            table_name = table_conf.source_name
-        else:
-            table_name = table_conf.target_name
-
-        sql_query.write(table_name)
-
-        # where/filter clause
-        if table_conf.filters:
-            if layer == "source" and table_conf.filters.source:
-                query_filter = table_conf.filters.source
-            elif layer == "target" and table_conf.filters.target:
-                query_filter = table_conf.filters.target
-            else:
-                query_filter = " 1 = 1 "
-
-            sql_query.write(" where ")
-            sql_query.write(query_filter)
-
-        final_query = sql_query.getvalue()
-        sql_query.close()
-
-        return final_query
-    # TODO handle specific exception remove general exception
-    except Exception as e:
-        message = f"An error occurred in method generate_full_query: {e!s}"
-        logger.error(message)
-        raise Exception(message) from e
+    return select_query
 
 
 def generate_transformation_rule_mapping(columns, schema, table_conf, source, layer):
@@ -189,7 +153,8 @@ def _get_default_transformation(source, data_type):
         case "databricks":
             return databricks_datatype_mapper.get(data_type, ColumnTransformationType.DATABRICKS_DEFAULT.value)
         case _:
-            raise "source type not supported"
+            msg = f"Unsupported source type --> {source}"
+            raise ValueError(msg)
 
 
 def generate_hash_algorithm(source: str, list_expr: list[str]) -> str:
@@ -199,6 +164,19 @@ def generate_hash_algorithm(source: str, list_expr: list[str]) -> str:
         hash_expr = " || ".join(list_expr)
 
     return (Constants.hash_algorithm_mapping.get(source.lower()).get("source")).format(hash_expr)
+
+
+def _construct_hash_query(table_name, query_filter, hash_expr, key_column_expr):
+    sql_query = StringIO()
+    sql_query.write(f"select {hash_expr} as {Constants.hash_column_name}, ")
+
+    # add join column
+    sql_query.write(",".join(key_column_expr))
+    sql_query.write(f" from {table_name} where {query_filter}")
+
+    select_query = sql_query.getvalue()
+    sql_query.close()
+    return select_query
 
 
 oracle_datatype_mapper = {
