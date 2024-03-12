@@ -130,7 +130,7 @@ def test_generate_transformation_rule_mapping():
         Schema("s_creation_date", "date"),
     ]
 
-    final_columns = [
+    final_columns = {
         "s_suppkey",
         "s_name",
         "s_address",
@@ -139,6 +139,6 @@ def test_generate_transformation_rule_mapping():
         "s_acctbal",
         "s_comment",
         "s_creation_date",
-    ]
+    }
     schema_info = {getattr(v, "column_name"): v for v in schema}
     generate_transformation_rule_mapping(final_columns, schema_info, table_conf, "oracle", "source")

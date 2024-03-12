@@ -94,7 +94,9 @@ def build_query(table_conf: Tables, schema: list[Schema], layer: str, source: st
     return select_query
 
 
-def generate_transformation_rule_mapping(columns, schema, table_conf, source, layer):
+def generate_transformation_rule_mapping(
+    columns: set[str], schema: dict, table_conf: Tables, source: str, layer: str
+) -> list[TransformRuleMapping]:
     transformations_dict = table_conf.list_to_dict(Transformation, "column_name")
     column_mapping_dict = table_conf.list_to_dict(ColumnMapping, "target_name")
 
@@ -116,7 +118,7 @@ def generate_transformation_rule_mapping(columns, schema, table_conf, source, la
     return transformation_rule_mapping
 
 
-def _get_column_list(table_conf, schema, layer):
+def _get_column_list(table_conf: Tables, schema: list[Schema], layer: str):
     if layer == "source":
         join_columns = {col.source_name for col in table_conf.join_columns}
     else:
@@ -144,7 +146,7 @@ def _get_column_list(table_conf, schema, layer):
     return hash_columns, key_columns
 
 
-def _get_default_transformation(source, data_type):
+def _get_default_transformation(source: str, data_type: str) -> str:
     match source:
         case "oracle":
             return oracle_datatype_mapper.get(data_type, ColumnTransformationType.ORACLE_DEFAULT.value)
@@ -166,7 +168,7 @@ def generate_hash_algorithm(source: str, list_expr: list[str]) -> str:
     return (Constants.hash_algorithm_mapping.get(source.lower()).get("source")).format(hash_expr)
 
 
-def _construct_hash_query(table_name, query_filter, hash_expr, key_column_expr):
+def _construct_hash_query(table_name: str, query_filter: str, hash_expr: str, key_column_expr: list[str]) -> str:
     sql_query = StringIO()
     sql_query.write(f"select {hash_expr} as {Constants.hash_column_name}, ")
 
