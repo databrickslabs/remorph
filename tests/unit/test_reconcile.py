@@ -1,6 +1,15 @@
-from databricks.labs.remorph.reconcile.execute import build_query, generate_transformation_rule_mapping
-from databricks.labs.remorph.reconcile.recon_config import Tables, JdbcReaderOptions, JoinColumns, ColumnMapping, \
-    Transformation, Schema
+from databricks.labs.remorph.reconcile.execute import (
+    build_query,
+    generate_transformation_rule_mapping,
+)
+from databricks.labs.remorph.reconcile.recon_config import (
+    ColumnMapping,
+    JdbcReaderOptions,
+    JoinColumns,
+    Schema,
+    Tables,
+    Transformation,
+)
 
 
 def test_build_query_src():
@@ -35,7 +44,7 @@ def test_build_query_src():
         Schema("s_phone", "varchar"),
         Schema("s_acctbal", "number"),
         Schema("s_comment", "varchar"),
-        Schema("s_creation_date", "date")
+        Schema("s_creation_date", "date"),
     ]
 
     actual = build_query(table_conf=table_conf, schema=schema, layer="source", source="oracle")
@@ -47,7 +56,11 @@ def test_build_query_tgt():
         source_name="supplier",
         target_name="supplier",
         jdbc_reader_options=JdbcReaderOptions(
-            number_partitions=10, partition_column="s_suppkey_alias", lower_bound="0", upper_bound="10000000", fetch_size=100
+            number_partitions=10,
+            partition_column="s_suppkey_alias",
+            lower_bound="0",
+            upper_bound="10000000",
+            fetch_size=100,
         ),
         join_columns=[JoinColumns(source_name="s_suppkey", target_name="s_suppkey_alias")],
         select_columns=None,
@@ -74,7 +87,7 @@ def test_build_query_tgt():
         Schema("s_phone", "varchar"),
         Schema("s_acctbal", "number"),
         Schema("s_comment", "varchar"),
-        Schema("s_creation_date", "date")
+        Schema("s_creation_date", "date"),
     ]
 
     actual = build_query(table_conf=table_conf, schema=schema, layer="target", source="databricks")
@@ -113,16 +126,18 @@ def test_generate_transformation_rule_mapping():
         Schema("s_phone", "varchar"),
         Schema("s_acctbal", "number"),
         Schema("s_comment", "varchar"),
-        Schema("s_creation_date", "date")
+        Schema("s_creation_date", "date"),
     ]
 
-    final_columns = ["s_suppkey",
-                     "s_name",
-                     "s_address",
-                     "s_nationkey",
-                     "s_phone",
-                     "s_acctbal",
-                     "s_comment",
-                     "s_creation_date"]
+    final_columns = [
+        "s_suppkey",
+        "s_name",
+        "s_address",
+        "s_nationkey",
+        "s_phone",
+        "s_acctbal",
+        "s_comment",
+        "s_creation_date",
+    ]
     schema_info = {getattr(v, "column_name"): v for v in schema}
     generate_transformation_rule_mapping(final_columns, schema_info, table_conf, "oracle", "source")

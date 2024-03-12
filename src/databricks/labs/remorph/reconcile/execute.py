@@ -4,9 +4,19 @@ from io import StringIO
 
 from databricks.labs.remorph.helpers.execution_time import timeit
 from databricks.labs.remorph.reconcile.connectors.data_source import DataSource
-from databricks.labs.remorph.reconcile.constants import ColumnTransformationType, SourceType, Constants
-from databricks.labs.remorph.reconcile.recon_config import TableRecon, Tables, Schema, Transformation, \
-    TransformRuleMapping, ColumnMapping
+from databricks.labs.remorph.reconcile.constants import (
+    ColumnTransformationType,
+    Constants,
+    SourceType,
+)
+from databricks.labs.remorph.reconcile.recon_config import (
+    ColumnMapping,
+    Schema,
+    TableRecon,
+    Tables,
+    Transformation,
+    TransformRuleMapping,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -61,17 +71,21 @@ def build_query(table_conf: Tables, schema: list[Schema], layer: str, source: st
         sql_query = StringIO()
         schema_info = {getattr(v, "column_name"): v for v in schema}
 
-        final_columns, key_columns = _get_column_list(table_conf, schema, layer)
+        hash_columns, key_columns = _get_column_list(table_conf, schema, layer)
 
-        col_transformation = generate_transformation_rule_mapping(final_columns, schema_info, table_conf, source, layer)
+        col_transformation = generate_transformation_rule_mapping(hash_columns, schema_info, table_conf, source, layer)
 
-        final_expr = [TransformRuleMapping.get_column_expression_without_alias(trans) for trans in
-                      col_transformation]
+        hash_columns_expr = [
+            TransformRuleMapping.get_column_expression_without_alias(trans) for trans in col_transformation
+        ]
 
-        hash_expr = generate_hash_algorithm(source, final_expr)
+        hash_expr = generate_hash_algorithm(source, hash_columns_expr)
 
-        key_column_expr = [TransformRuleMapping.get_column_expression_with_alias(trans) for trans in col_transformation
-                           if trans.column_name in key_columns]
+        key_column_expr = [
+            TransformRuleMapping.get_column_expression_with_alias(trans)
+            for trans in col_transformation
+            if trans.column_name in key_columns
+        ]
 
         # construct select query
         sql_query.write("select ")
@@ -147,7 +161,7 @@ def _get_column_list(table_conf, schema, layer):
     if table_conf.select_columns is None:
         select_columns = {sch.column_name for sch in schema}
     else:
-        select_columns = {col for col in table_conf.select_columns}
+        select_columns = set(table_conf.select_columns)
 
     if table_conf.jdbc_reader_options:
         partition_column = {table_conf.jdbc_reader_options.partition_column}
@@ -160,19 +174,18 @@ def _get_column_list(table_conf, schema, layer):
     # Remove threshold and drop columns
     threshold_columns = {thresh.column_name for thresh in table_conf.thresholds or []}
     drop_columns = set(table_conf.drop_columns or [])
-    final_columns = all_columns - threshold_columns - drop_columns
+    hash_columns = all_columns - threshold_columns - drop_columns
     key_columns = join_columns | partition_column
 
-    return final_columns, key_columns
+    return hash_columns, key_columns
 
 
 def _get_default_transformation(source, data_type):
     match source:
         case "oracle":
-            return oracle_datatype_mapper.get(data_type,
-                                              ColumnTransformationType.ORACLE_DEFAULT.value)
+            return oracle_datatype_mapper.get(data_type, ColumnTransformationType.ORACLE_DEFAULT.value)
         case "snowflake":
-            return snowflake_datatype_mapper.get(data_type,ColumnTransformationType.SNOWFLAKE_DEFAULT.value)
+            return snowflake_datatype_mapper.get(data_type, ColumnTransformationType.SNOWFLAKE_DEFAULT.value)
         case "databricks":
             return databricks_datatype_mapper.get(data_type, ColumnTransformationType.DATABRICKS_DEFAULT.value)
         case _:
