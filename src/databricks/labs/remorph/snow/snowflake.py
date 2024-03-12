@@ -197,12 +197,15 @@ def _parse_tonumber(args: list) -> local_expression.ToNumber:
 
     match len(args):
         case 1:
-            logger.warning("Precision and Scale are not specified, assuming defaults `precision`[38] and `scale`[0]")
-            logger.warning("No Format is specified, it will be inferred as simpled cast as decimal")
+            msg = (
+                "Precision and Scale are not specified, assuming defaults `precision`[38] and `scale`[0]. "
+                "If Format is not specified, it will be inferred as simple cast as decimal"
+            )
+            logger.warning(msg)
             return local_expression.ToNumber(this=seq_get(args, 0))
         case 3:
-            logger.warning("Precision and Scale are not specified, assuming defaults `precision`[38] and `scale`[0]")
-            logger.warning("No Format is specified, it will be inferred as simpled cast as decimal")
+            msg = "If Format is not specified, it will be inferred as simple cast as decimal"
+            logger.warning(msg)
             return local_expression.ToNumber(this=seq_get(args, 0), precision=seq_get(args, 1), scale=seq_get(args, 2))
         case 4:
             return local_expression.ToNumber(

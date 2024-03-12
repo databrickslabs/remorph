@@ -33,6 +33,9 @@ VALID_DATABRICKS_TYPES = {
     "STRUCT",
 }
 
+PRECISION_CONST = 38
+SCALE_CONST = 0
+
 
 def timestamptrunc_sql(self, expression: exp.TimestampTrunc) -> str:
     return self.func("DATE_TRUNC", exp.Literal.string(expression.text("unit").upper()), self.sql(expression.this))
@@ -264,8 +267,8 @@ def _to_number(self, expression: local_expression.ToNumber):
                       """
         raise UnsupportedError(exception_msg)
 
-    precision = 38 if not precision else precision
-    scale = 0 if not scale else scale
+    precision = PRECISION_CONST if not precision else precision
+    scale = SCALE_CONST if not scale else scale
     return f"CAST({func_expr} AS DECIMAL({precision}, {scale}))"
 
 
