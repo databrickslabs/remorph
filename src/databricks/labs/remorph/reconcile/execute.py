@@ -61,7 +61,7 @@ def build_query(table_conf: Tables, schema: list[Schema], layer: str, source: st
         sql_query = StringIO()
         schema_info = {getattr(v, "column_name"): v for v in schema}
 
-        final_columns, key_columns = _get_column_list(table_conf, schema)
+        final_columns, key_columns = _get_column_list(table_conf, schema, layer)
 
         col_transformation = generate_transformation_rule_mapping(final_columns, schema_info, table_conf, source, layer)
 
@@ -129,7 +129,7 @@ def generate_transformation_rule_mapping(columns, schema, table_conf, source, la
             transformation = _get_default_transformation(source, column_data_type).format(column)
 
         if column in column_mapping_dict.keys():
-            column_alias = column_mapping_dict.get(column)
+            column_alias = column_mapping_dict.get(column).source_name
         else:
             column_alias = column
 
@@ -138,8 +138,11 @@ def generate_transformation_rule_mapping(columns, schema, table_conf, source, la
     return transformation_rule_mapping
 
 
-def _get_column_list(table_conf, schema):
-    join_columns = {col.source_name for col in table_conf.join_columns}
+def _get_column_list(table_conf, schema, layer):
+    if layer == "source":
+        join_columns = {col.source_name for col in table_conf.join_columns}
+    else:
+        join_columns = {col.target_name for col in table_conf.join_columns}
 
     if table_conf.select_columns is None:
         select_columns = {sch.column_name for sch in schema}
@@ -169,7 +172,9 @@ def _get_default_transformation(source, data_type):
             return oracle_datatype_mapper.get(data_type,
                                               ColumnTransformationType.ORACLE_DEFAULT.value)
         case "snowflake":
-            return None
+            return snowflake_datatype_mapper.get(data_type,ColumnTransformationType.SNOWFLAKE_DEFAULT.value)
+        case "databricks":
+            return databricks_datatype_mapper.get(data_type, ColumnTransformationType.DATABRICKS_DEFAULT.value)
         case _:
             raise "source type not supported"
 
@@ -186,3 +191,5 @@ def generate_hash_algorithm(source: str, list_expr: list[str]) -> str:
 oracle_datatype_mapper = {
     "date": "coalesce(trim(to_char({},'YYYY-MM-DD')),'')",
 }
+snowflake_datatype_mapper = {}
+databricks_datatype_mapper = {}
