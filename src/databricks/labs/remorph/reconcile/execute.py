@@ -4,6 +4,9 @@ from io import StringIO
 
 from databricks.labs.remorph.helpers.execution_time import timeit
 from databricks.labs.remorph.reconcile.connectors.data_source import DataSource
+from databricks.labs.remorph.reconcile.connectors.databricks import DatabricksDataSource
+from databricks.labs.remorph.reconcile.connectors.oracle import OracleDataSource
+from databricks.labs.remorph.reconcile.connectors.snowflake import SnowflakeDataSource
 from databricks.labs.remorph.reconcile.constants import (
     ColumnTransformationType,
     Constants,
@@ -70,20 +73,15 @@ def build_query(table_conf: Tables, schema: list[Schema], layer: str, source: st
     schema_info = {v.column_name: v for v in schema}
 
     columns, key_columns = _get_column_list(table_conf, schema, layer)
-    col_transformation = generate_transformation_rule_mapping(columns, schema_info, table_conf, source, layer)
+    col_transformations = generate_transformation_rule_mapping(columns, schema_info, table_conf, source, layer)
 
-    hash_columns_expr = [
-        TransformRuleMapping.get_column_expression_without_alias(transformation) for transformation in
-        col_transformation  # make this a function call
-    ]
-
+    hash_columns_expr = get_column_expr(TransformRuleMapping.get_column_expression_without_alias, col_transformations)
     hash_expr = generate_hash_algorithm(source, hash_columns_expr)
 
-    key_column_expr = [
-        TransformRuleMapping.get_column_expression_with_alias(transformation)
-        for transformation in col_transformation
-        if transformation.column_name in key_columns
-    ]
+    key_column_transformation = filter(
+        lambda transformation: transformation.column_name in key_columns, col_transformations
+    )
+    key_column_expr = get_column_expr(TransformRuleMapping.get_column_expression_with_alias, key_column_transformation)
 
     if layer == "source":
         table_name = table_conf.source_name
@@ -98,12 +96,16 @@ def build_query(table_conf: Tables, schema: list[Schema], layer: str, source: st
     return select_query
 
 
-def get_layer_transform(transform_dict: dict[str, Transformation], column: str, layer: str):
+def get_column_expr(func, column_transformations: list[TransformRuleMapping]):
+    return [func(transformation) for transformation in column_transformations]
+
+
+def get_layer_transform(transform_dict: dict[str, Transformation], column: str, layer: str) -> str:
     return transform_dict.get(column).source if layer == "source" else transform_dict.get(column).target
 
 
 def generate_transformation_rule_mapping(
-        columns: set[str], schema: dict, table_conf: Tables, source: str, layer: str
+    columns: set[str], schema: dict, table_conf: Tables, source: str, layer: str
 ) -> list[TransformRuleMapping]:
     transformations_dict = table_conf.list_to_dict(Transformation, "column_name")
     column_mapping_dict = table_conf.list_to_dict(ColumnMapping, "target_name")
@@ -111,7 +113,7 @@ def generate_transformation_rule_mapping(
     transformation_rule_mapping = []
     for column in columns:
         if column in transformations_dict.keys():
-            transformation = get_layer_transform(transformations_dict, column, layer)  # made this a function call
+            transformation = get_layer_transform(transformations_dict, column, layer)
         else:
             column_data_type = schema.get(column).data_type
             transformation = _get_default_transformation(source, column_data_type).format(column)
@@ -158,11 +160,15 @@ def _get_column_list(table_conf: Tables, schema: list[Schema], layer: str):
 def _get_default_transformation(data_source: str, data_type: str) -> str:
     match data_source:
         case "oracle":
-            return oracle_datatype_mapper.get(data_type, ColumnTransformationType.ORACLE_DEFAULT.value)
+            return OracleDataSource.oracle_datatype_mapper.get(data_type, ColumnTransformationType.ORACLE_DEFAULT.value)
         case "snowflake":
-            return snowflake_datatype_mapper.get(data_type, ColumnTransformationType.SNOWFLAKE_DEFAULT.value)
+            return SnowflakeDataSource.snowflake_datatype_mapper.get(
+                data_type, ColumnTransformationType.SNOWFLAKE_DEFAULT.value
+            )
         case "databricks":
-            return databricks_datatype_mapper.get(data_type, ColumnTransformationType.DATABRICKS_DEFAULT.value)
+            return DatabricksDataSource.databricks_datatype_mapper.get(
+                data_type, ColumnTransformationType.DATABRICKS_DEFAULT.value
+            )
         case _:
             msg = f"Unsupported source type --> {data_source}"
             raise ValueError(msg)
@@ -188,12 +194,3 @@ def _construct_hash_query(table_name: str, query_filter: str, hash_expr: str, ke
     select_query = sql_query.getvalue()
     sql_query.close()
     return select_query
-
-
-# this should be in datasource file
-
-oracle_datatype_mapper = {
-    "date": "coalesce(trim(to_char({},'YYYY-MM-DD')),'')",
-}
-snowflake_datatype_mapper = {}
-databricks_datatype_mapper = {}

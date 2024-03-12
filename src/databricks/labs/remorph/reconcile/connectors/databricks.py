@@ -11,3 +11,5 @@ class DatabricksDataSource(DataSource):
     def get_schema(self, table_name: str, schema_name: str, catalog_name: str) -> dict[str, str]:
         # Implement Databricks-specific logic here
         return NotImplemented
+
+    databricks_datatype_mapper = {}
