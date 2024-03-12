@@ -22,9 +22,9 @@ class TransformRuleMapping:
 
     def get_column_expression_with_alias(self) -> str:
         if self.alias_name:
-            return f"{self.get_column_expression_without_alias} as {self.alias_name}"
+            return f"{self.get_column_expression_without_alias()} as {self.alias_name}"
 
-        return f"{self.get_column_expression_without_alias} as {self.column_name}"
+        return f"{self.get_column_expression_without_alias()} as {self.column_name}"
 
 
 @dataclass

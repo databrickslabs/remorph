@@ -91,9 +91,35 @@ def build_query(table_conf: Tables, schema: list[Schema], layer: str, source: st
         # TODO  need to add the join and jdbc reader partition column in select
         key_columns = join_columns | partition_column
 
+        key_column_expr = [TransformRuleMapping.get_column_expression_with_alias(trans) for trans in col_transformation
+                           if trans.column_name in key_columns]
+
         sql_query.write("select ")
         sql_query.write(hash_expr)
         sql_query.write(f" as {Constants.hash_column_name}")
+        sql_query.write(" , ")
+        sql_query.write(",".join(key_column_expr))
+        sql_query.write(" from ")
+
+        # table name
+        if layer == "source":
+            table_name = table_conf.source_name
+        else:
+            table_name = table_conf.target_name
+
+            # where/filter clause
+        if table_conf.filters:
+            if layer == "source" and table_conf.filters.source:
+                query_filter = table_conf.filters.source
+            elif layer == "target" and table_conf.filters.target:
+                query_filter = table_conf.filters.target
+            else:
+                query_filter = " 1 = 1 "
+
+            sql_query.write(" where ")
+            sql_query.write(query_filter)
+
+        sql_query.write(table_name)
 
         final_query = sql_query.getvalue()
         sql_query.close()
