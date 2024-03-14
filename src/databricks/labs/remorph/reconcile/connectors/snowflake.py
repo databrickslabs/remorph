@@ -1,25 +1,16 @@
 from pyspark.sql import DataFrame
 
-from databricks.labs.remorph.reconcile.connectors.adapter import SourceAdapter
-from databricks.labs.remorph.reconcile.recon_config import (
-    DatabaseConfig,
-    Schema,
-    Tables,
-    TransformRuleMapping,
-)
+from databricks.labs.remorph.reconcile.connectors.data_source import DataSource
+from databricks.labs.remorph.reconcile.recon_config import Schema, Tables
 
 
-class SnowflakeAdapter(SourceAdapter):
-    def extract_databricks_schema(self, table_conf: Tables, table_name: str) -> list[Schema]:
-        pass
+class SnowflakeDataSource(DataSource):
+    def read_data(self, schema_name: str, catalog_name: str, table_or_query: str, table_conf: Tables) -> DataFrame:
+        # Implement Snowflake-specific logic here
+        return NotImplemented
 
-    def get_column_list_with_transformation(
-        self, table_conf: Tables, columns: list[str], layer: str
-    ) -> list[TransformRuleMapping]:
-        pass
+    def get_schema(self, table_name: str, schema_name: str, catalog_name: str) -> list[Schema]:
+        # Implement Snowflake-specific logic here
+        return NotImplemented
 
-    def extract_schema(self, database_conf: DatabaseConfig, table_conf: Tables) -> list[Schema]:
-        pass
-
-    def extract_data(self, table_conf: Tables, query: str) -> DataFrame:
-        pass
+    snowflake_datatype_mapper = {}

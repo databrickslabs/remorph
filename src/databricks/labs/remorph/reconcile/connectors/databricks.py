@@ -1,20 +1,16 @@
 from pyspark.sql import DataFrame
 
-from databricks.labs.remorph.reconcile.connectors.adapter import SourceAdapter
-from databricks.labs.remorph.reconcile.recon_config import (
-    DatabaseConfig,
-    Schema,
-    Tables,
-)
+from databricks.labs.remorph.reconcile.connectors.data_source import DataSource
+from databricks.labs.remorph.reconcile.recon_config import Schema, Tables
 
 
-class DatabricksAdapter(SourceAdapter):
+class DatabricksDataSource(DataSource):
+    def read_data(self, schema_name: str, catalog_name: str, table_or_query: str, table_conf: Tables) -> DataFrame:
+        # Implement Databricks-specific logic here
+        return NotImplemented
 
-    def extract_databricks_schema(self, table_conf: Tables, table_name: str) -> list[Schema]:
-        pass
+    def get_schema(self, table_name: str, schema_name: str, catalog_name: str) -> list[Schema]:
+        # Implement Databricks-specific logic here
+        return NotImplemented
 
-    def extract_schema(self, database_conf: DatabaseConfig, table_conf: Tables) -> list[Schema]:
-        pass
-
-    def extract_data(self, table_conf: Tables, query: str) -> DataFrame:
-        pass
+    databricks_datatype_mapper = {}
