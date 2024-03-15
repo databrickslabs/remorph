@@ -14,14 +14,13 @@ class OracleDataSource(DataSource):
         try:
             if table_conf.jdbc_reader_options is None:
                 return self.reader(table_or_query).options(**self._get_timestamp_options()).load()
-            else:
-                return (
-                    self.reader(table_or_query)
-                    .options(
-                        **self._get_jdbc_reader_options(table_conf.jdbc_reader_options) | self._get_timestamp_options()
-                    )
-                    .load()
+            return (
+                self.reader(table_or_query)
+                .options(
+                    **self._get_jdbc_reader_options(table_conf.jdbc_reader_options) | self._get_timestamp_options()
                 )
+                .load()
+            )
         except PySparkException as e:
             error_msg = f"An error occurred while fetching Oracle Data using the following {table_or_query} in OracleDataSource : {e!s}"
             raise PySparkException(error_msg) from e
@@ -32,7 +31,10 @@ class OracleDataSource(DataSource):
             schema_df = self.reader(schema_query).load()
             return [Schema(field.column_name.lower(), field.data_type.lower()) for field in schema_df.collect()]
         except PySparkException as e:
-            error_msg = f"An error occurred while fetching Oracle Schema using the following {table_name} in OracleDataSource: {e!s}"
+            error_msg = (
+                f"An error occurred while fetching Oracle Schema using the following {table_name} in "
+                f"OracleDataSource: {e!s}"
+            )
             raise PySparkException(error_msg) from e
 
     oracle_datatype_mapper = {

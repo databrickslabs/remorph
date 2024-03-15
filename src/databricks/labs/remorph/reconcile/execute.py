@@ -1,5 +1,7 @@
-import json
 import logging
+from pathlib import Path
+
+from databricks.labs.blueprint.installation import Installation
 
 from databricks.labs.remorph.reconcile.connectors.data_source import DataSource
 from databricks.labs.remorph.reconcile.recon_config import TableRecon, Tables
@@ -12,16 +14,12 @@ def recon(recon_conf, conn_profile, source, report):
     logger.info(source)
     logger.info(report)
 
-    with open(recon_conf, 'r', encoding="utf-8") as f:
-        data = json.load(f)
+    table_recon = get_config(Path(recon_conf))
 
-        # Convert the JSON data to the TableRecon dataclass
-        table_recon = TableRecon.from_dict(data)
-
-        for tables_conf in table_recon.tables:
-            reconcile = Reconciliation(source, report)
-            reconcile.compare_schemas(tables_conf, "schema", "catalog")
-            reconcile.compare_data(tables_conf, "schema", "catalog")
+    for tables_conf in table_recon.tables:
+        reconcile = Reconciliation(source, report)
+        reconcile.compare_schemas(tables_conf, "schema", "catalog")
+        reconcile.compare_data(tables_conf, "schema", "catalog")
 
 
 class Reconciliation:
@@ -48,3 +46,8 @@ class Reconciliation:
         # implement missing in target
         # implement threshold comparison
         return False  # implement data comparison logic
+
+
+def get_config(file: Path):
+    # Convert the JSON data to the TableRecon dataclass
+    return Installation.load_local(type_ref=TableRecon, file=file)

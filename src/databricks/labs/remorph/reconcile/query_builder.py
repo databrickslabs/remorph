@@ -105,22 +105,18 @@ class QueryBuilder:
 
     @staticmethod
     def _get_default_transformation(data_source: str, data_type: str) -> str:
-        match data_source:
-            case "oracle":
-                return OracleDataSource.oracle_datatype_mapper.get(
-                    data_type, ColumnTransformationType.ORACLE_DEFAULT.value
-                )
-            case "snowflake":
-                return SnowflakeDataSource.snowflake_datatype_mapper.get(
-                    data_type, ColumnTransformationType.SNOWFLAKE_DEFAULT.value
-                )
-            case "databricks":
-                return DatabricksDataSource.databricks_datatype_mapper.get(
-                    data_type, ColumnTransformationType.DATABRICKS_DEFAULT.value
-                )
-            case _:
-                msg = f"Unsupported source type --> {data_source}"
-                raise ValueError(msg)
+        if data_source == "oracle":
+            return OracleDataSource.oracle_datatype_mapper.get(data_type, ColumnTransformationType.ORACLE_DEFAULT.value)
+        if data_source == "snowflake":
+            return SnowflakeDataSource.snowflake_datatype_mapper.get(
+                data_type, ColumnTransformationType.SNOWFLAKE_DEFAULT.value
+            )
+        if data_source == "databricks":
+            return DatabricksDataSource.databricks_datatype_mapper.get(
+                data_type, ColumnTransformationType.DATABRICKS_DEFAULT.value
+            )
+        msg = f"Unsupported source type --> {data_source}"
+        raise ValueError(msg)
 
     @staticmethod
     def _get_layer_transform(transform_dict: dict[str, Transformation], column: str, layer: str) -> str:

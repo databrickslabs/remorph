@@ -10,7 +10,8 @@
       "jdbc_reader_options": {
         "number_partitions": 10,
         "partition_column": "s_suppkey",
-        "upper_bound": 10000000
+        "upper_bound": "10000000",
+        "lower_bound": "10"
       },
       "join_columns": [
         {
