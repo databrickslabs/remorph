@@ -8,21 +8,29 @@ from databricks.labs.remorph.reconcile.recon_config import Schema, Tables
 
 class OracleDataSource(DataSource):
 
+    @property
+    def get_jdbc_url(self) -> str:
+        return (
+            f"jdbc:{self.source}:thin:{self._get_secrets('user')}"
+            f"/{self._get_secrets('password')}@//{self._get_secrets('host')}"
+            f":{self._get_secrets('port')}/{self._get_secrets('database')}"
+        )
+
     # TODO need to check schema_name,catalog_name is needed
     # TODO rename the table_or_query
-    def read_data(self, schema_name: str, catalog_name: str, table_or_query: str, table_conf: Tables) -> DataFrame:
+    def read_data(self, schema_name: str, catalog_name: str, query: str, table_conf: Tables) -> DataFrame:
         try:
             if table_conf.jdbc_reader_options is None:
-                return self.reader(table_or_query).options(**self._get_timestamp_options()).load()
+                return self.reader(query).options(**self._get_timestamp_options()).load()
             return (
-                self.reader(table_or_query)
+                self.reader(query)
                 .options(
                     **self._get_jdbc_reader_options(table_conf.jdbc_reader_options) | self._get_timestamp_options()
                 )
                 .load()
             )
         except PySparkException as e:
-            error_msg = f"An error occurred while fetching Oracle Data using the following {table_or_query} in OracleDataSource : {e!s}"
+            error_msg = f"An error occurred while fetching Oracle Data using the following {query} in OracleDataSource : {e!s}"
             raise PySparkException(error_msg) from e
 
     def get_schema(self, table_name: str, schema_name: str, catalog_name: str) -> list[Schema]:

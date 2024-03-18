@@ -5,7 +5,7 @@ from databricks.labs.remorph.reconcile.recon_config import Schema, Tables
 
 
 class SnowflakeDataSource(DataSource):
-    def read_data(self, schema_name: str, catalog_name: str, table_or_query: str, table_conf: Tables) -> DataFrame:
+    def read_data(self, schema_name: str, catalog_name: str, query: str, table_conf: Tables) -> DataFrame:
         # Implement Snowflake-specific logic here
         return NotImplemented
 

@@ -2,6 +2,7 @@ import logging
 from pathlib import Path
 
 from databricks.labs.blueprint.installation import Installation
+from databricks.sdk import WorkspaceClient
 
 from databricks.labs.remorph.reconcile.connectors.data_source import DataSource
 from databricks.labs.remorph.reconcile.recon_config import TableRecon, Tables
@@ -35,8 +36,8 @@ class Reconciliation:
     def compare_data(self, table_conf: Tables, schema_name: str, catalog_name: str) -> bool:
         source_query = ""  # implement query builder
         target_query = ""  # implement query builder
-        source_data = self.source.read_data(table_conf.source_name, schema_name, catalog_name, source_query)
-        target_data = self.target.read_data(table_conf.target_name, schema_name, catalog_name, target_query)
+        source_data = self.source.read_data(schema_name, catalog_name, source_query, table_conf)
+        target_data = self.target.read_data(schema_name, catalog_name, target_query, table_conf)
         print(source_data.printSchema())
         print(target_data.printSchema())
 
