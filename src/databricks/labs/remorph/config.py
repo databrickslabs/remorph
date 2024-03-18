@@ -16,6 +16,5 @@ class MorphConfig:
     input_sql: str | None = None
     output_folder: str | None = None
     skip_validation: bool = False
-    warehouse_id: str | None = None
     catalog_name: str = "transpiler_test"
     schema_name: str = "convertor_test"

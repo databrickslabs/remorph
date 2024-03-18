@@ -103,7 +103,7 @@ class Validate:
 
     def _get_sql_backend(self, config: MorphConfig) -> SqlBackend:
         sdk_config = self._ws.config
-        warehouse_id = config.warehouse_id or (isinstance(sdk_config.warehouse_id, str) and sdk_config.warehouse_id)
+        warehouse_id = isinstance(sdk_config.warehouse_id, str) and sdk_config.warehouse_id
         catalog_name = config.catalog_name
         schema_name = config.schema_name
         if warehouse_id:
