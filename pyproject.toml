@@ -50,6 +50,7 @@ dependencies = [
   "ruff>=0.0.243",
   "isort>=2.5.0",
   "databricks-connect",
+  "snowflake-connector-python>=3.1.0"
 ]
 
 [tool.hatch.envs.default.scripts]

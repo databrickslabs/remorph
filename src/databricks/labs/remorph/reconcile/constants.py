@@ -27,6 +27,7 @@ class Layer(AutoName):
 
 class SourceDriver(Enum):
     ORACLE = "oracle.jdbc.driver.OracleDriver"
+    SNOWFLAKE = "net.snowflake.client.jdbc.SnowflakeDriver"
 
 
 class ColumnTransformationType(Enum):
