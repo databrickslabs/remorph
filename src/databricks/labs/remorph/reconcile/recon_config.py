@@ -86,7 +86,7 @@ class Tables:
                 if all(isinstance(x, cls) for x in value):
                     return {getattr(v, key): v for v in value}
             else:
-                return {}
+                pass
 
 
 @dataclass
