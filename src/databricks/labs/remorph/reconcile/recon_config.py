@@ -76,7 +76,7 @@ class Tables:
     thresholds: list[Thresholds] | None = None
     filters: Filters | None = None
 
-    T = TypeVar('T')
+    T = TypeVar("T")  # pylint: disable=invalid-name
 
     def list_to_dict(self, cls: type[T], key: str) -> T:
         for _, value in self.__dict__.items():

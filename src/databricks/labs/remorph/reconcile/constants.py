@@ -9,6 +9,7 @@ class AutoName(Enum):
     """
 
     @staticmethod
+    # pylint: disable-next=bad-dunder-name
     def _generate_next_value_(name, start, count, last_values):  # noqa ARG004
         return name.lower()
 
