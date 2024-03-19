@@ -576,7 +576,7 @@ def test_monthname(dialect_context):
     validate_source_transpile, _ = dialect_context
     # Test case to validate `monthname` parsing of timestamp column
     validate_source_transpile(
-        """SELECT DATE_FORMAT(TO_TIMESTAMP('2015-04-03 10:00:00', 'yyyy-MM-dd HH:mm:ss'), 'MMM') AS MONTH""",
+        """SELECT DATE_FORMAT(cast('2015-04-03 10:00:00' as timestamp), 'MMM') AS MONTH""",
         source={
             "snowflake": """SELECT MONTHNAME(TO_TIMESTAMP('2015-04-03 10:00:00')) AS MONTH;""",
         },
@@ -2183,7 +2183,7 @@ def test_to_timestamp(dialect_context):
     validate_source_transpile, _ = dialect_context
     # Test case to validate `to_timestamp` conversion of column
     validate_source_transpile(
-        "SELECT CAST(col1 AS TIMESTAMP) AS to_timestamp_col1 FROM tabl",
+        "SELECT to_timestamp(col1) AS to_timestamp_col1 FROM tabl",
         source={
             "snowflake": "SELECT to_timestamp(col1) AS to_timestamp_col1 FROM tabl;",
         },
@@ -2947,7 +2947,7 @@ def test_dayname(dialect_context):
     validate_source_transpile, _ = dialect_context
     # Test case to validate `dayname` parsing of timestamp column
     validate_source_transpile(
-        """SELECT DATE_FORMAT(TO_TIMESTAMP('2015-04-03 10:00:00', 'yyyy-MM-dd HH:mm:ss'), 'E') AS MONTH""",
+        """SELECT DATE_FORMAT(cast('2015-04-03 10:00:00' as timestamp), 'E') AS MONTH""",
         source={
             "snowflake": """SELECT DAYNAME(TO_TIMESTAMP('2015-04-03 10:00:00')) AS MONTH;""",
         },
