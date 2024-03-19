@@ -5,7 +5,7 @@ from databricks.labs.remorph.reconcile.recon_config import Schema, Tables
 
 
 class DatabricksDataSource(DataSource):
-    def read_data(self, schema_name: str, catalog_name: str, table_or_query: str, table_conf: Tables) -> DataFrame:
+    def read_data(self, schema_name: str, catalog_name: str, query: str, table_conf: Tables) -> DataFrame:
         # Implement Databricks-specific logic here
         return NotImplemented
 

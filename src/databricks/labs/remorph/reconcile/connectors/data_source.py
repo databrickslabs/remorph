@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 
+from databricks.sdk import WorkspaceClient
 from pyspark.sql import DataFrame, SparkSession
 
 from databricks.labs.remorph.reconcile.recon_config import (
@@ -12,22 +13,14 @@ from databricks.labs.remorph.reconcile.recon_config import (
 class DataSource(ABC):
 
     # TODO need to remove connection_params
-    def __init__(self, source: str, spark: SparkSession, connection_params: dict[str, str]):
+    def __init__(self, source: str, spark: SparkSession, ws: WorkspaceClient, scope: str):
         self.source = source
         self.spark = spark
-        self.connection_params = connection_params
-
-    # TODO change the secret retrieval to secrets
-    @property
-    def get_jdbc_url(self) -> str:
-        return (
-            f"jdbc:{self.source}:thin:{self.connection_params['user']}"
-            f"/{self.connection_params['password']}@//{self.connection_params['host']}"
-            f":{self.connection_params['port']}/{self.connection_params['database']}"
-        )
+        self.ws = ws
+        self.scope = scope
 
     @abstractmethod
-    def read_data(self, schema_name: str, catalog_name: str, table_or_query: str, table_conf: Tables) -> DataFrame:
+    def read_data(self, schema_name: str, catalog_name: str, query: str, table_conf: Tables) -> DataFrame:
         return NotImplemented
 
     @abstractmethod
@@ -49,4 +42,9 @@ class DataSource(ABC):
             "partitionColumn": jdbc_reader_options.partition_column,
             "lowerBound": jdbc_reader_options.lower_bound,
             "upperBound": jdbc_reader_options.upper_bound,
+            "fetchsize": jdbc_reader_options.fetch_size,
         }
+
+    def _get_secrets(self, key_name):
+        key = self.source + '_' + key_name
+        return self.ws.secrets.get_secret(self.scope, key)
