@@ -3,8 +3,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TypeVar
 
-# [TODO]: Move _internal to blueprint
-
 
 @dataclass
 class TransformRuleMapping:

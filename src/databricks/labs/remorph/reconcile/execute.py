@@ -33,19 +33,7 @@ class Reconciliation:
         return source_schema == target_schema
 
     def compare_data(self, table_conf: Tables, schema_name: str, catalog_name: str) -> bool:
-        source_query = ""  # implement query builder
-        target_query = ""  # implement query builder
-        source_data = self.source.read_data(schema_name, catalog_name, source_query, table_conf)
-        target_data = self.target.read_data(schema_name, catalog_name, target_query, table_conf)
-        print(source_data.printSchema())
-        print(target_data.printSchema())
-
-        # implement hash comparison
-        # implement mismatch data
-        # implement missing in source
-        # implement missing in target
-        # implement threshold comparison
-        return False  # implement data comparison logic
+        raise NotImplementedError
 
 
 def get_config(file: Path):
