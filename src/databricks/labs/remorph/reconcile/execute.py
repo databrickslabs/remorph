@@ -28,9 +28,7 @@ class Reconciliation:
         self.target = target
 
     def compare_schemas(self, table_conf: Tables, schema_name: str, catalog_name: str) -> bool:
-        source_schema = self.source.get_schema(table_conf.source_name, schema_name, catalog_name)
-        target_schema = self.target.get_schema(table_conf.target_name, schema_name, catalog_name)
-        return source_schema == target_schema
+        raise NotImplementedError
 
     def compare_data(self, table_conf: Tables, schema_name: str, catalog_name: str) -> bool:
         raise NotImplementedError
