@@ -1,3 +1,4 @@
+from pyspark.errors import PySparkException
 from pyspark.sql import DataFrame
 
 from databricks.labs.remorph.reconcile.connectors.data_source import DataSource
@@ -54,3 +55,5 @@ class SnowflakeDataSource(DataSource):
         when lower(data_type) = 'text' then concat('varchar', '(', CHARACTER_MAXIMUM_LENGTH, ')')  else data_type end as data_type from 
         {catalog_name}.INFORMATION_SCHEMA.COLUMNS where lower(table_name)='{table_name}' and lower(table_schema) = '{schema_name}' order by ordinal_position
         """
+
+    snowflake_datatype_mapper = {}
