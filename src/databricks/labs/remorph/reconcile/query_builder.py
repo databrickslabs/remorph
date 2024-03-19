@@ -36,9 +36,7 @@ class QueryBuilder:
         )
         hash_expr = self._generate_hash_algorithm(self.source, hash_columns_expr)
 
-        key_column_transformation = filter(
-            lambda transformation: transformation.column_name in key_columns, col_transformations
-        )
+        key_column_transformation = self._generate_transformation_rule_mapping(key_columns, schema_info)
         key_column_expr = self._get_column_expr(
             TransformRuleMapping.get_column_expression_with_alias, key_column_transformation
         )
@@ -76,7 +74,7 @@ class QueryBuilder:
             partition_column = set()
 
         # Combine all column names
-        all_columns = join_columns | select_columns | partition_column
+        all_columns = join_columns | select_columns
 
         # Remove threshold and drop columns
         threshold_columns = {thresh.column_name for thresh in self.table_conf.thresholds or []}
