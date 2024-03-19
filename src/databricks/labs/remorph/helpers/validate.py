@@ -107,8 +107,7 @@ class Validate:
         catalog_name = config.catalog_name
         schema_name = config.schema_name
         if warehouse_id:
-            # TODO pass catalog and schema name
-            sql_backend = StatementExecutionBackend(self._ws, warehouse_id)
+            sql_backend = StatementExecutionBackend(self._ws, warehouse_id, catalog=catalog_name, schema=schema_name)
         else:
             sql_backend = DatabricksConnectBackend(self._ws)
             try:
