@@ -16,7 +16,6 @@ class SQLTranspiler:
             self.dialect = self.source.lower()
 
     def transpile(self, sql: str, file_name: str) -> str:
-
         try:
             transpiled_sql = transpile(sql, read=self.dialect, write=Databricks, pretty=True, error_level=None)
         except (ParseError, TokenError, UnsupportedError) as e:
@@ -27,7 +26,6 @@ class SQLTranspiler:
         return transpiled_sql
 
     def parse(self, sql: str, file_name: str) -> exp:
-
         try:
             expression = parse(sql, read=self.dialect, error_level=ErrorLevel.IMMEDIATE)
         except (ParseError, TokenError, UnsupportedError) as e:
