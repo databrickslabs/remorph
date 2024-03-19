@@ -69,7 +69,7 @@ class Filters:
 class Tables:
     source_name: str
     target_name: str
-    join_columns: list[JoinColumns]
+    join_columns: list[JoinColumns] | None = None
     jdbc_reader_options: JdbcReaderOptions | None = None
     select_columns: list[str] | None = None
     drop_columns: list[str] | None = None

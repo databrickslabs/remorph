@@ -17,7 +17,6 @@ class OracleDataSource(DataSource):
         )
 
     # TODO need to check schema_name,catalog_name is needed
-    # TODO rename the table_or_query
     def read_data(self, schema_name: str, catalog_name: str, query: str, table_conf: Tables) -> DataFrame:
         try:
             if table_conf.jdbc_reader_options is None:
@@ -30,7 +29,9 @@ class OracleDataSource(DataSource):
                 .load()
             )
         except PySparkException as e:
-            error_msg = f"An error occurred while fetching Oracle Data using the following {query} in OracleDataSource : {e!s}"
+            error_msg = (
+                f"An error occurred while fetching Oracle Data using the following {query} in OracleDataSource : {e!s}"
+            )
             raise PySparkException(error_msg) from e
 
     def get_schema(self, table_name: str, schema_name: str, catalog_name: str) -> list[Schema]:

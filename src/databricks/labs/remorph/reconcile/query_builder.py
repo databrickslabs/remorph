@@ -55,8 +55,12 @@ class QueryBuilder:
 
         return select_query
 
-    def _get_column_list(self):
-        if self.layer == "source":
+    def _get_column_list(self) -> tuple[list[str], list[str]]:
+        column_mapping = self.table_conf.list_to_dict(ColumnMapping, "source_name")
+
+        if self.table_conf.join_columns is None:
+            join_columns = set()
+        elif self.layer == "source":
             join_columns = {col.source_name for col in self.table_conf.join_columns}
         else:
             join_columns = {col.target_name for col in self.table_conf.join_columns}
@@ -64,7 +68,7 @@ class QueryBuilder:
         if self.table_conf.select_columns is None:
             select_columns = {sch.column_name for sch in self.schema}
         else:
-            select_columns = self._get_select_columns(self.layer, self.table_conf)
+            select_columns = self._get_mapped_columns(self.layer, column_mapping, self.table_conf.select_columns)
 
         if self.table_conf.jdbc_reader_options and self.layer == "source":
             partition_column = {self.table_conf.jdbc_reader_options.partition_column}
@@ -76,7 +80,11 @@ class QueryBuilder:
 
         # Remove threshold and drop columns
         threshold_columns = {thresh.column_name for thresh in self.table_conf.thresholds or []}
-        drop_columns = set(self.table_conf.drop_columns or [])
+        if self.table_conf.drop_columns is None:
+            drop_columns = set()
+        else:
+            drop_columns = self._get_mapped_columns(self.layer, column_mapping, self.table_conf.drop_columns)
+
         columns = sorted(all_columns - threshold_columns - drop_columns)
         key_columns = sorted(join_columns | partition_column)
 
@@ -88,8 +96,15 @@ class QueryBuilder:
 
         transformation_rule_mapping = []
         for column in columns:
-            if transformations_dict and column in transformations_dict.keys():
-                transformation = self._get_layer_transform(transformations_dict, column, self.layer)
+            if column_mapping_dict and self.layer == "target":
+                transform_column = (
+                    column_mapping_dict.get(column).source_name if column_mapping_dict.get(column) else column
+                )
+            else:
+                transform_column = column
+
+            if transformations_dict and transform_column in transformations_dict.keys():
+                transformation = self._get_layer_transform(transformations_dict, transform_column, self.layer)
             else:
                 column_data_type = schema.get(column).data_type
                 transformation = self._get_default_transformation(self.source, column_data_type).format(column)
@@ -138,10 +153,11 @@ class QueryBuilder:
     @staticmethod
     def _construct_hash_query(table_name: str, query_filter: str, hash_expr: str, key_column_expr: list[str]) -> str:
         sql_query = StringIO()
-        sql_query.write(f"select {hash_expr} as {Constants.hash_column_name}, ")
+        sql_query.write(f"select {hash_expr} as {Constants.hash_column_name}")
 
         # add join column
-        sql_query.write(",".join(key_column_expr))
+        if key_column_expr:
+            sql_query.write(", " + ",".join(key_column_expr))
         sql_query.write(f" from {table_name} where {query_filter}")
 
         select_query = sql_query.getvalue()
@@ -149,11 +165,10 @@ class QueryBuilder:
         return select_query
 
     @staticmethod
-    def _get_select_columns(layer, table_conf):
-        column_mapping = table_conf.list_to_dict(ColumnMapping, "source_name")
+    def _get_mapped_columns(layer: str, column_mapping: dict, columns: list[str]) -> set[str]:
         if layer == "source":
-            return set(table_conf.select_columns)
+            return set(columns)
         select_columns = set()
-        for column in table_conf.select_columns:
+        for column in columns:
             select_columns.add(column_mapping.get(column).target_name if column_mapping.get(column) else column)
         return select_columns

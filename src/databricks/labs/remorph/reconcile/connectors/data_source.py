@@ -42,6 +42,7 @@ class DataSource(ABC):
             "partitionColumn": jdbc_reader_options.partition_column,
             "lowerBound": jdbc_reader_options.lower_bound,
             "upperBound": jdbc_reader_options.upper_bound,
+            "fetchsize": jdbc_reader_options.fetch_size,
         }
 
     def _get_secrets(self, key_name):
