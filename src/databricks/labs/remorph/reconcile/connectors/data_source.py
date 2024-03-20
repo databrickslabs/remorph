@@ -1,9 +1,9 @@
 from abc import ABC, abstractmethod
 
-from databricks.sdk import WorkspaceClient
+from databricks.sdk import WorkspaceClient  # pylint: disable-next=wrong-import-order
 from pyspark.sql import DataFrame, SparkSession
 
-from databricks.labs.remorph.reconcile.recon_config import (
+from databricks.labs.remorph.reconcile.recon_config import (  # pylint: disable=ungrouped-imports
     JdbcReaderOptions,
     Schema,
     Tables,

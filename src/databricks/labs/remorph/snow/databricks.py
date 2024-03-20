@@ -33,6 +33,9 @@ VALID_DATABRICKS_TYPES = {
     "STRUCT",
 }
 
+PRECISION_CONST = 38
+SCALE_CONST = 0
+
 
 def timestamptrunc_sql(self, expression: exp.TimestampTrunc) -> str:
     return self.func("DATE_TRUNC", exp.Literal.string(expression.text("unit").upper()), self.sql(expression.this))
@@ -245,27 +248,27 @@ def _parse_json(self, expr: exp.ParseJSON):
     return conv_expr
 
 
-def _to_number(self, expression: local_expression.TryToNumber):
+def _to_number(self, expression: local_expression.ToNumber):
     func = "TO_NUMBER"
     precision = self.sql(expression, "precision")
     scale = self.sql(expression, "scale")
 
-    if not precision:
-        precision = 38
-
-    if not scale:
-        scale = 0
-
-    func_expr = self.func(func, expression.this)
+    func_expr = expression.this
+    # if format is provided, else it will be vanilla cast to decimal
     if expression.expression:
         func_expr = self.func(func, expression.this, expression.expression)
-    else:
+        if precision:
+            return f"CAST({func_expr} AS DECIMAL({precision}, {scale}))"
+        return func_expr
+    if not expression.expression and not precision:
         exception_msg = f"""Error Parsing expression {expression}:
                          * `format`: is required in Databricks [mandatory]
                          * `precision` and `scale`: are considered as (38, 0) if not specified.
                       """
         raise UnsupportedError(exception_msg)
 
+    precision = PRECISION_CONST if not precision else precision
+    scale = SCALE_CONST if not scale else scale
     return f"CAST({func_expr} AS DECIMAL({precision}, {scale}))"
 
 

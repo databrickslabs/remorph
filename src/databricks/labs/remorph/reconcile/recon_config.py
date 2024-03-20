@@ -3,8 +3,6 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TypeVar
 
-# [TODO]: Move _internal to blueprint
-
 
 @dataclass
 class TransformRuleMapping:
@@ -78,7 +76,7 @@ class Tables:
     thresholds: list[Thresholds] | None = None
     filters: Filters | None = None
 
-    T = TypeVar('T')
+    T = TypeVar("T")  # pylint: disable=invalid-name
 
     def list_to_dict(self, cls: type[T], key: str) -> T:
         for _, value in self.__dict__.items():
