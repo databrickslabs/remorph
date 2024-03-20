@@ -1,6 +1,6 @@
+from pyspark.errors import PySparkException
 from pyspark.sql import DataFrame
 from pyspark.sql.functions import col
-from pyspark.errors import PySparkException
 
 from databricks.labs.remorph.reconcile.connectors.data_source import DataSource
 from databricks.labs.remorph.reconcile.recon_config import Schema, Tables
@@ -18,11 +18,11 @@ class DatabricksDataSource(DataSource):
 
     def get_schema(self, table_name: str, schema_name: str, catalog_name: str) -> list[Schema]:
         try:
-            full_table_name = f"{catalog_name}.{schema_name}.{table_name}" if catalog_name else f"{schema_name}.{table_name}"
-            schema_df = self.spark.sql(f"describe table {full_table_name}").where(
-                "col_name not like '#%'").distinct()
-            return [Schema(field.col_name.lower(), field.data_type.lower()) for field in
-                    schema_df.collect()]
+            full_table_name = (
+                f"{catalog_name}.{schema_name}.{table_name}" if catalog_name else f"{schema_name}.{table_name}"
+            )
+            schema_df = self.spark.sql(f"describe table {full_table_name}").where("col_name not like '#%'").distinct()
+            return [Schema(field.col_name.lower(), field.data_type.lower()) for field in schema_df.collect()]
         except PySparkException as e:
             error_msg = (
                 f"An error occurred while fetching Databricks Schema using the following {catalog_name}.{schema_name}.{table_name} in "
