@@ -10,23 +10,25 @@ class SnowflakeDataSource(DataSource):
 
     @property
     def get_jdbc_url(self) -> str:
-        url = f"jdbc:{self.source}://{self.connection_params['account']}.snowflakecomputing.com/?user={self.connection_params['sfUser']}&password={self.connection_params['sfPassword']}&db={self.connection_params['sfDatabase']}&schema={self.connection_params['sfSchema']}&warehouse={self.connection_params['sfWarehouse']}"
-        if 'sfRole' in self.connection_params:
-            url = url + f"&role={self.connection_params['sfRole']}"
-        return url
+        return (
+            f"jdbc:{self.source}://{self._get_secrets('account')}.snowflakecomputing.com"
+            f"/?user={self._get_secrets('sfUser')}&password={self._get_secrets('sfPassword')}"
+            f"&db={self._get_secrets('sfDatabase')}&schema={self._get_secrets('sfSchema')}"
+            f"&warehouse={self._get_secrets('sfWarehouse')}&role={self._get_secrets('sfRole')}"
+        )
 
-    def read_data(self, schema_name: str, catalog_name: str, table_or_query: str, table_conf: Tables) -> DataFrame:
+    def read_data(self, schema_name: str, catalog_name: str, query: str, table_conf: Tables) -> DataFrame:
         try:
             if table_conf.jdbc_reader_options is None:
-                return self.reader(table_or_query)
+                return self.reader(query)
 
             return (
-                self._get_jdbc_reader(table_or_query, self.get_jdbc_url, SourceDriver.SNOWFLAKE.value)
+                self._get_jdbc_reader(query, self.get_jdbc_url, SourceDriver.SNOWFLAKE.value)
                 .options(**self._get_jdbc_reader_options(table_conf.jdbc_reader_options))
                 .load()
             )
         except PySparkException as e:
-            error_msg = f"An error occurred while fetching Snowflake Data using the following {table_or_query} in SnowflakeDataSource : {e!s}"
+            error_msg = f"An error occurred while fetching Snowflake Data using the following {query} in SnowflakeDataSource : {e!s}"
             raise PySparkException(error_msg) from e
 
     def get_schema(self, table_name: str, schema_name: str, catalog_name: str) -> list[Schema]:
@@ -45,7 +47,13 @@ class SnowflakeDataSource(DataSource):
         return (
             self.spark.read.format("snowflake")
             .option("dbtable", f"({query}) as tmp")
-            .options(**self.connection_params)
+            .option("sfUrl", self._get_secrets('sfUrl'))
+            .option("sfUser", self._get_secrets('sfUser'))
+            .option("sfPassword", self._get_secrets('sfPassword'))
+            .option("sfDatabase", self._get_secrets('sfDatabase'))
+            .option("sfSchema", self._get_secrets('sfSchema'))
+            .option("sfWarehouse", self._get_secrets('sfWarehouse'))
+            .option("sfRole", self._get_secrets('sfRole'))
             .load()
         )
 
