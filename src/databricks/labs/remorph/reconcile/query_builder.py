@@ -31,14 +31,14 @@ class QueryBuilder:
         columns, key_columns = self._get_column_list()
         col_transformations = self._generate_transformation_rule_mapping(columns, schema_info)
 
-        hash_columns_expr = self._get_column_expr(
-            TransformRuleMapping.get_column_expression_without_alias, col_transformations
+        hash_columns_expr = sorted(
+            self._get_column_expr(TransformRuleMapping.get_column_expression_without_alias, col_transformations)
         )
         hash_expr = self._generate_hash_algorithm(self.source, hash_columns_expr)
 
         key_column_transformation = self._generate_transformation_rule_mapping(key_columns, schema_info)
-        key_column_expr = self._get_column_expr(
-            TransformRuleMapping.get_column_expression_with_alias, key_column_transformation
+        key_column_expr = sorted(
+            self._get_column_expr(TransformRuleMapping.get_column_expression_with_alias, key_column_transformation)
         )
 
         if self.layer == "source":
@@ -93,41 +93,22 @@ class QueryBuilder:
         transformations_dict = self.table_conf.list_to_dict(Transformation, "column_name")
         column_mapping_dict = self.table_conf.list_to_dict(ColumnMapping, "source_name")
 
-        transformation_rule_mapping = []
-        for column in columns:
+        if transformations_dict:
+            columns_with_transformation = [column for column in columns if column in transformations_dict.keys()]
+            custom_transformation = self._get_custom_transformation(
+                columns_with_transformation, transformations_dict, column_mapping_dict
+            )
+        else:
+            custom_transformation = []
 
-            if transformations_dict and column in transformations_dict.keys():
-                transformation = self._get_layer_transform(transformations_dict, column, self.layer)
-            else:
-                column_origin = column if self.layer == "source" else self._get_column_map(column, column_mapping_dict)
-                column_data_type = schema.get(column_origin).data_type
-                transformation = self._get_default_transformation(self.source, column_data_type).format(column_origin)
+        columns_without_transformation = [column for column in columns if column not in transformations_dict.keys()]
+        default_transformation = self._get_default_transformation(
+            columns_without_transformation, column_mapping_dict, schema
+        )
 
-            if column_mapping_dict and column in column_mapping_dict.keys() and self.layer == "target":
-                column_alias = column_mapping_dict.get(column).source_name
-                column_origin = column_mapping_dict.get(column).target_name
-            else:
-                column_alias = column
-                column_origin = column
-
-            transformation_rule_mapping.append(TransformRuleMapping(column_origin, transformation, column_alias))
+        transformation_rule_mapping = custom_transformation + default_transformation
 
         return transformation_rule_mapping
-
-    @staticmethod
-    def _get_default_transformation(data_source: str, data_type: str) -> str:
-        if data_source == "oracle":
-            return OracleDataSource.oracle_datatype_mapper.get(data_type, ColumnTransformationType.ORACLE_DEFAULT.value)
-        if data_source == "snowflake":
-            return SnowflakeDataSource.snowflake_datatype_mapper.get(
-                data_type, ColumnTransformationType.SNOWFLAKE_DEFAULT.value
-            )
-        if data_source == "databricks":
-            return DatabricksDataSource.databricks_datatype_mapper.get(
-                data_type, ColumnTransformationType.DATABRICKS_DEFAULT.value
-            )
-        msg = f"Unsupported source type --> {data_source}"
-        raise ValueError(msg)
 
     @staticmethod
     def _get_layer_transform(transform_dict: dict[str, Transformation], column: str, layer: str) -> str:
@@ -171,6 +152,61 @@ class QueryBuilder:
     def _get_column_map(column, column_mapping) -> str:
         return column_mapping.get(column).target_name if column_mapping.get(column) else column
 
+    def _get_custom_transformation(self, columns, transformation_dict, column_mapping):
+        transformation_rule_mapping = []
+        for column in columns:
+            if column in transformation_dict.keys():
+                transformation = self._get_layer_transform(transformation_dict, column, self.layer)
+            else:
+                transformation = None
+
+            column_origin, column_alias = self._get_column_alias(self.layer, column, column_mapping)
+
+            transformation_rule_mapping.append(TransformRuleMapping(column_origin, transformation, column_alias))
+
+        return transformation_rule_mapping
+
+    def _get_default_transformation(self, columns, column_mapping, schema):
+        transformation_rule_mapping = []
+        for column in columns:
+            column_origin = column if self.layer == "source" else self._get_column_map(column, column_mapping)
+            column_data_type = schema.get(column_origin).data_type
+            transformation = self._get_default_transformation_mapping(self.source, column_data_type).format(
+                column_origin
+            )
+
+            column_origin, column_alias = self._get_column_alias(self.layer, column, column_mapping)
+
+            transformation_rule_mapping.append(TransformRuleMapping(column_origin, transformation, column_alias))
+
+        return transformation_rule_mapping
+
+    @staticmethod
+    def _get_default_transformation_mapping(data_source: str, data_type: str) -> str:
+        if data_source == "oracle":
+            return OracleDataSource.oracle_datatype_mapper.get(data_type, ColumnTransformationType.ORACLE_DEFAULT.value)
+        if data_source == "snowflake":
+            return SnowflakeDataSource.snowflake_datatype_mapper.get(
+                data_type, ColumnTransformationType.SNOWFLAKE_DEFAULT.value
+            )
+        if data_source == "databricks":
+            return DatabricksDataSource.databricks_datatype_mapper.get(
+                data_type, ColumnTransformationType.DATABRICKS_DEFAULT.value
+            )
+        msg = f"Unsupported source type --> {data_source}"
+        raise ValueError(msg)
+
+    @staticmethod
+    def _get_column_alias(layer, column, column_mapping):
+        if column_mapping and column in column_mapping.keys() and layer == "target":
+            column_alias = column_mapping.get(column).source_name
+            column_origin = column_mapping.get(column).target_name
+        else:
+            column_alias = column
+            column_origin = column
+
+        return column_origin, column_alias
+
     def build_threshold_query(self) -> str:
         column_mapping = self.table_conf.list_to_dict(ColumnMapping, "source_name")
         transformations_dict = self.table_conf.list_to_dict(Transformation, "column_name")
@@ -189,8 +225,9 @@ class QueryBuilder:
             all_columns if self.layer == "source" else self._get_mapped_columns(column_mapping, all_columns)
         )
 
-        transformation_rule_mapping = self._get_custom_transformation(query_columns, transformations_dict,
-                                                                      column_mapping)
+        transformation_rule_mapping = self._get_custom_transformation(
+            query_columns, transformations_dict, column_mapping
+        )
         threshold_columns_expr = self._get_column_expr(
             TransformRuleMapping.get_column_expression_with_alias, transformation_rule_mapping
         )
@@ -207,25 +244,6 @@ class QueryBuilder:
 
         return select_query
 
-    def _get_custom_transformation(self, columns, transformation, column_mapping):
-        transformation_rule_mapping = []
-        for column in columns:
-            if transformation and column in transformation.keys():
-                transformation = self._get_layer_transform(transformation, column, self.layer)
-            else:
-                transformation = None
-
-            if column_mapping and column in column_mapping.keys() and self.layer == "target":
-                column_alias = column_mapping.get(column).source_name
-                column_src = column_mapping.get(column).target_name
-            else:
-                column_alias = column
-                column_src = column
-
-            transformation_rule_mapping.append(TransformRuleMapping(column_src, transformation, column_alias))
-
-        return transformation_rule_mapping
-
     @staticmethod
     def _construct_threshold_query(table_name, query_filter, threshold_columns_expr):
         sql_query = StringIO()
@@ -237,4 +255,3 @@ class QueryBuilder:
         select_query = sql_query.getvalue()
         sql_query.close()
         return select_query
-

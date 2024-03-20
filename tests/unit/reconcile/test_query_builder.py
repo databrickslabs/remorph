@@ -218,11 +218,11 @@ def test_hash_query_builder_with_transformations_with_drop_and_default_select():
 
     actual_src_query = QueryBuilder(table_conf, src_schema, "source", "oracle").build_hash_query()
     expected_src_query = (
-        'select lower(RAWTOHEX(STANDARD_HASH(trim(to_char(s_acctbal_t, '
-        "'9999999999.99')) || trim(s_address) || trim(s_name) || "
-        "coalesce(trim(s_nationkey),'') || trim(s_phone) || "
-        "coalesce(trim(s_suppkey),''), 'SHA256'))) as hash_value__recon, "
-        "coalesce(trim(s_suppkey),'') as s_suppkey from supplier where  1 = 1 "
+        "select lower(RAWTOHEX(STANDARD_HASH(coalesce(trim(s_nationkey),'') || "
+        "coalesce(trim(s_suppkey),'') || trim(s_address) || trim(s_name) || "
+        "trim(s_phone) || trim(to_char(s_acctbal_t, '9999999999.99')), 'SHA256'))) as "
+        "hash_value__recon, coalesce(trim(s_suppkey),'') as s_suppkey from supplier "
+        "where  1 = 1 "
     )
     assert actual_src_query == expected_src_query
 
@@ -238,11 +238,10 @@ def test_hash_query_builder_with_transformations_with_drop_and_default_select():
 
     actual_tgt_query = QueryBuilder(table_conf, tgt_schema, "target", "databricks").build_hash_query()
     expected_tgt_query = (
-        'select sha2(concat(cast(s_acctbal_t as decimal(38,2)), trim(s_address_t), '
-        "trim(s_name), coalesce(trim(s_nationkey_t),''), "
-        "trim(s_phone_t), coalesce(trim(s_suppkey_t),'')),256) as "
-        "hash_value__recon, coalesce(trim(s_suppkey_t),'') as s_suppkey from supplier "
-        'where  1 = 1 '
+        "select sha2(concat(cast(s_acctbal_t as decimal(38,2)), "
+        "coalesce(trim(s_nationkey_t),''), coalesce(trim(s_suppkey_t),''), "
+        'trim(s_address_t), trim(s_name), trim(s_phone_t)),256) as hash_value__recon, '
+        "coalesce(trim(s_suppkey_t),'') as s_suppkey from supplier where  1 = 1 "
     )
 
     assert actual_tgt_query == expected_tgt_query
@@ -342,12 +341,12 @@ def test_hash_query_builder_with_threshold():
 
     actual_src_query = QueryBuilder(table_conf, src_schema, "source", "oracle").build_hash_query()
     expected_src_query = (
-        'select lower(RAWTOHEX(STANDARD_HASH(trim(s_address) || '
-        "coalesce(trim(s_comment),'') || trim(s_name) || "
-        "coalesce(trim(s_nationkey),'') || trim(s_phone) || "
-        "coalesce(trim(s_suppkey),''), 'SHA256'))) as hash_value__recon, "
-        "coalesce(trim(s_nationkey),'') as s_nationkey,coalesce(trim(s_suppkey),'') "
-        'as s_suppkey from supplier where  1 = 1 '
+        "select lower(RAWTOHEX(STANDARD_HASH(coalesce(trim(s_comment),'') || "
+        "coalesce(trim(s_nationkey),'') || coalesce(trim(s_suppkey),'') || "
+        "trim(s_address) || trim(s_name) || trim(s_phone), 'SHA256'))) as "
+        "hash_value__recon, coalesce(trim(s_nationkey),'') as "
+        "s_nationkey,coalesce(trim(s_suppkey),'') as s_suppkey from supplier where  1 "
+        '= 1 '
     )
     assert actual_src_query == expected_src_query
 
@@ -363,9 +362,9 @@ def test_hash_query_builder_with_threshold():
 
     actual_tgt_query = QueryBuilder(table_conf, tgt_schema, "target", "databricks").build_hash_query()
     expected_tgt_query = (
-        "select sha2(concat(trim(s_address_t), coalesce(trim(s_comment),''), "
-        "trim(s_name), coalesce(trim(s_nationkey),''), trim(s_phone), "
-        "coalesce(trim(s_suppkey_t),'')),256) as hash_value__recon, "
+        "select sha2(concat(coalesce(trim(s_comment),''), "
+        "coalesce(trim(s_nationkey),''), coalesce(trim(s_suppkey_t),''), "
+        'trim(s_address_t), trim(s_name), trim(s_phone)),256) as hash_value__recon, '
         "coalesce(trim(s_suppkey_t),'') as s_suppkey from supplier where  1 = 1 "
     )
 
