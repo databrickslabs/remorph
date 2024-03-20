@@ -350,7 +350,7 @@ class Databricks(Databricks):  #
             exp.Create: _format_create_sql,
             exp.DataType: _datatype_map,
             exp.CurrentTime: _curr_time(),
-            exp.Lateral: _lateral_view,
+            #exp.Lateral: _lateral_view,
             exp.FromBase64: rename_func("UNBASE64"),
             local_expression.Parameter: _parm_sfx,
             local_expression.ToBoolean: _to_boolean,
@@ -377,6 +377,7 @@ class Databricks(Databricks):  #
             local_expression.DateTrunc: _parse_date_trunc,
             exp.ApproxQuantile: rename_func("APPROX_PERCENTILE"),
             exp.TimestampTrunc: timestamptrunc_sql,
+            exp.Mod: rename_func("MOD"),
         }
 
         def join_sql(self, expression: exp.Join) -> str:

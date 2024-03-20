@@ -583,14 +583,14 @@ def test_monthname(dialect_context):
     )
     # Test case to validate `monthname` parsing of date column
     validate_source_transpile(
-        """SELECT DATE_FORMAT(TO_DATE('2015-05-01'), 'MMM') AS MONTH""",
+        """SELECT DATE_FORMAT(cast('2015-05-01' as date), 'MMM') AS MONTH""",
         source={
             "snowflake": """SELECT MONTHNAME(TO_DATE('2015-05-01')) AS MONTH;""",
         },
     )
     # Test case to validate `monthname` parsing of date column
     validate_source_transpile(
-        """SELECT DATE_FORMAT(TO_DATE('2020-01-01'), 'MMM') AS MONTH""",
+        """SELECT DATE_FORMAT(cast('2020-01-01' as date), 'MMM') AS MONTH""",
         source={
             "snowflake": """SELECT MONTH_NAME(TO_DATE('2020-01-01')) AS MONTH;""",
         },
@@ -2296,9 +2296,9 @@ def test_mod(dialect_context):
     validate_source_transpile, _ = dialect_context
     # Test case to validate `mod` conversion of column
     validate_source_transpile(
-        "SELECT MOD(col1) AS mod_col1 FROM tabl",
+        "SELECT MOD(col1, col2) AS mod_col1 FROM tabl",
         source={
-            "snowflake": "SELECT mod(col1) AS mod_col1 FROM tabl;",
+            "snowflake": "SELECT mod(col1, col2) AS mod_col1 FROM tabl;",
         },
     )
 
@@ -2954,7 +2954,7 @@ def test_dayname(dialect_context):
     )
     # Test case to validate `dayname` parsing of date column
     validate_source_transpile(
-        """SELECT DATE_FORMAT(TO_DATE('2015-05-01'), 'E') AS MONTH""",
+        """SELECT DATE_FORMAT(cast('2015-05-01' as date), 'E') AS MONTH""",
         source={
             "snowflake": """SELECT DAYNAME(TO_DATE('2015-05-01')) AS MONTH;""",
         },
