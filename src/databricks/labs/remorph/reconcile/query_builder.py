@@ -54,19 +54,20 @@ class QueryBuilder:
         return select_query
 
     def _get_column_list(self) -> tuple[list[str], list[str]]:
-        column_mapping = self.table_conf.list_to_dict(ColumnMapping, "source_name")
+        tgt_column_mapping = self.table_conf.list_to_dict(ColumnMapping, "target_name")
 
         if self.table_conf.join_columns is None:
             join_columns = set()
-        elif self.layer == "source":
-            join_columns = {col.source_name for col in self.table_conf.join_columns}
         else:
-            join_columns = {col.target_name for col in self.table_conf.join_columns}
+            join_columns = set(self.table_conf.join_columns)
 
         if self.table_conf.select_columns is None:
-            select_columns = {sch.column_name for sch in self.schema}
+            columns = {sch.column_name for sch in self.schema}
+            select_columns = (
+                columns if self.layer == "source" else self._get_mapped_columns(tgt_column_mapping, columns)
+            )
         else:
-            select_columns = self._get_mapped_columns(self.layer, column_mapping, self.table_conf.select_columns)
+            select_columns = set(self.table_conf.select_columns)
 
         if self.table_conf.jdbc_reader_options and self.layer == "source":
             partition_column = {self.table_conf.jdbc_reader_options.partition_column}
@@ -81,7 +82,7 @@ class QueryBuilder:
         if self.table_conf.drop_columns is None:
             drop_columns = set()
         else:
-            drop_columns = self._get_mapped_columns(self.layer, column_mapping, self.table_conf.drop_columns)
+            drop_columns = set(self.table_conf.drop_columns)
 
         columns = sorted(all_columns - threshold_columns - drop_columns)
         key_columns = sorted(join_columns | partition_column)
@@ -90,29 +91,26 @@ class QueryBuilder:
 
     def _generate_transformation_rule_mapping(self, columns: list[str], schema: dict) -> list[TransformRuleMapping]:
         transformations_dict = self.table_conf.list_to_dict(Transformation, "column_name")
-        column_mapping_dict = self.table_conf.list_to_dict(ColumnMapping, "target_name")
+        column_mapping_dict = self.table_conf.list_to_dict(ColumnMapping, "source_name")
 
         transformation_rule_mapping = []
         for column in columns:
-            if column_mapping_dict and self.layer == "target":
-                transform_column = (
-                    column_mapping_dict.get(column).source_name if column_mapping_dict.get(column) else column
-                )
-            else:
-                transform_column = column
 
-            if transformations_dict and transform_column in transformations_dict.keys():
-                transformation = self._get_layer_transform(transformations_dict, transform_column, self.layer)
+            if transformations_dict and column in transformations_dict.keys():
+                transformation = self._get_layer_transform(transformations_dict, column, self.layer)
             else:
-                column_data_type = schema.get(column).data_type
-                transformation = self._get_default_transformation(self.source, column_data_type).format(column)
+                column_origin = column if self.layer == "source" else self._get_column_map(column, column_mapping_dict)
+                column_data_type = schema.get(column_origin).data_type
+                transformation = self._get_default_transformation(self.source, column_data_type).format(column_origin)
 
-            if column_mapping_dict and column in column_mapping_dict.keys():
+            if column_mapping_dict and column in column_mapping_dict.keys() and self.layer == "target":
                 column_alias = column_mapping_dict.get(column).source_name
+                column_origin = column_mapping_dict.get(column).target_name
             else:
                 column_alias = column
+                column_origin = column
 
-            transformation_rule_mapping.append(TransformRuleMapping(column, transformation, column_alias))
+            transformation_rule_mapping.append(TransformRuleMapping(column_origin, transformation, column_alias))
 
         return transformation_rule_mapping
 
@@ -163,10 +161,80 @@ class QueryBuilder:
         return select_query
 
     @staticmethod
-    def _get_mapped_columns(layer: str, column_mapping: dict, columns: list[str]) -> set[str]:
-        if layer == "source":
-            return set(columns)
+    def _get_mapped_columns(column_mapping: dict, columns: set[str]) -> set[str]:
         select_columns = set()
         for column in columns:
-            select_columns.add(column_mapping.get(column).target_name if column_mapping.get(column) else column)
+            select_columns.add(column_mapping.get(column).source_name if column_mapping.get(column) else column)
         return select_columns
+
+    @staticmethod
+    def _get_column_map(column, column_mapping) -> str:
+        return column_mapping.get(column).target_name if column_mapping.get(column) else column
+
+    def build_threshold_query(self) -> str:
+        column_mapping = self.table_conf.list_to_dict(ColumnMapping, "source_name")
+        transformations_dict = self.table_conf.list_to_dict(Transformation, "column_name")
+
+        threshold_columns = set(threshold.column_name for threshold in self.table_conf.thresholds)
+        join_columns = set(self.table_conf.join_columns)
+
+        if self.table_conf.jdbc_reader_options and self.layer == "source":
+            partition_column = {self.table_conf.jdbc_reader_options.partition_column}
+        else:
+            partition_column = set()
+
+        all_columns = set(threshold_columns | join_columns | partition_column)
+
+        query_columns = sorted(
+            all_columns if self.layer == "source" else self._get_mapped_columns(column_mapping, all_columns)
+        )
+
+        transformation_rule_mapping = self._get_custom_transformation(query_columns, transformations_dict,
+                                                                      column_mapping)
+        threshold_columns_expr = self._get_column_expr(
+            TransformRuleMapping.get_column_expression_with_alias, transformation_rule_mapping
+        )
+
+        if self.layer == "source":
+            table_name = self.table_conf.source_name
+            query_filter = self.table_conf.filters.source if self.table_conf.filters else " 1 = 1 "
+        else:
+            table_name = self.table_conf.target_name
+            query_filter = self.table_conf.filters.target if self.table_conf.filters else " 1 = 1 "
+
+        # construct threshold select query
+        select_query = self._construct_threshold_query(table_name, query_filter, threshold_columns_expr)
+
+        return select_query
+
+    def _get_custom_transformation(self, columns, transformation, column_mapping):
+        transformation_rule_mapping = []
+        for column in columns:
+            if transformation and column in transformation.keys():
+                transformation = self._get_layer_transform(transformation, column, self.layer)
+            else:
+                transformation = None
+
+            if column_mapping and column in column_mapping.keys() and self.layer == "target":
+                column_alias = column_mapping.get(column).source_name
+                column_src = column_mapping.get(column).target_name
+            else:
+                column_alias = column
+                column_src = column
+
+            transformation_rule_mapping.append(TransformRuleMapping(column_src, transformation, column_alias))
+
+        return transformation_rule_mapping
+
+    @staticmethod
+    def _construct_threshold_query(table_name, query_filter, threshold_columns_expr):
+        sql_query = StringIO()
+        column_expr = ",".join(threshold_columns_expr)
+        sql_query.write(f"select {column_expr} ")
+
+        sql_query.write(f" from {table_name} where {query_filter}")
+
+        select_query = sql_query.getvalue()
+        sql_query.close()
+        return select_query
+

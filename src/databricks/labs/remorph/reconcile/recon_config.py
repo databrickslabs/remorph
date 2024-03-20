@@ -31,12 +31,6 @@ class JdbcReaderOptions:
 
 
 @dataclass
-class JoinColumns:
-    source_name: str
-    target_name: str | None = None
-
-
-@dataclass
 class ColumnMapping:
     source_name: str
     target_name: str
@@ -67,7 +61,7 @@ class Filters:
 class Tables:
     source_name: str
     target_name: str
-    join_columns: list[JoinColumns] | None = None
+    join_columns: list[str] | None = None
     jdbc_reader_options: JdbcReaderOptions | None = None
     select_columns: list[str] | None = None
     drop_columns: list[str] | None = None

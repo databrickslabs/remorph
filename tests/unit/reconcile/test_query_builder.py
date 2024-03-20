@@ -2,7 +2,6 @@ from databricks.labs.remorph.reconcile.query_builder import QueryBuilder
 from databricks.labs.remorph.reconcile.recon_config import (
     ColumnMapping,
     JdbcReaderOptions,
-    JoinColumns,
     Schema,
     Tables,
     Thresholds,
@@ -10,7 +9,7 @@ from databricks.labs.remorph.reconcile.recon_config import (
 )
 
 
-def test_query_builder_without_join_column():
+def test_hash_query_builder_without_join_column():
     table_conf = Tables(
         source_name="supplier",
         target_name="supplier",
@@ -66,12 +65,12 @@ def test_query_builder_without_join_column():
     assert actual_tgt_query == expected_tgt_query
 
 
-def test_query_builder_with_defaults():
+def test_hash_query_builder_with_defaults():
     table_conf = Tables(
         source_name="supplier",
         target_name="supplier",
         jdbc_reader_options=None,
-        join_columns=[JoinColumns(source_name="s_suppkey", target_name="s_suppkey")],
+        join_columns=["s_suppkey"],
         select_columns=None,
         drop_columns=None,
         column_mapping=None,
@@ -122,12 +121,12 @@ def test_query_builder_with_defaults():
     assert actual_tgt_query == expected_tgt_query
 
 
-def test_query_builder_with_select():
+def test_hash_query_builder_with_select():
     table_conf = Tables(
         source_name="supplier",
         target_name="supplier",
         jdbc_reader_options=None,
-        join_columns=[JoinColumns(source_name="s_suppkey", target_name="s_suppkey_t")],
+        join_columns=["s_suppkey"],
         select_columns=["s_suppkey", "s_name", "s_address"],
         drop_columns=None,
         column_mapping=[
@@ -178,12 +177,12 @@ def test_query_builder_with_select():
     assert actual_tgt_query == expected_tgt_query
 
 
-def test_query_builder_with_transformations_with_drop_and_default_select():
+def test_hash_query_builder_with_transformations_with_drop_and_default_select():
     table_conf = Tables(
         source_name="supplier",
         target_name="supplier",
         jdbc_reader_options=None,
-        join_columns=[JoinColumns(source_name="s_suppkey", target_name="s_suppkey_t")],
+        join_columns=["s_suppkey"],
         select_columns=None,
         drop_columns=["s_comment"],
         column_mapping=[
@@ -249,14 +248,14 @@ def test_query_builder_with_transformations_with_drop_and_default_select():
     assert actual_tgt_query == expected_tgt_query
 
 
-def test_query_builder_with_jdbc_reader_options():
+def test_hash_query_builder_with_jdbc_reader_options():
     table_conf = Tables(
         source_name="supplier",
         target_name="supplier",
         jdbc_reader_options=JdbcReaderOptions(
             number_partitions=100, partition_column="s_nationkey", lower_bound="0", upper_bound="100"
         ),
-        join_columns=[JoinColumns(source_name="s_suppkey", target_name="s_suppkey_t")],
+        join_columns=["s_suppkey"],
         select_columns=["s_suppkey", "s_name", "s_address"],
         drop_columns=None,
         column_mapping=[
@@ -309,14 +308,14 @@ def test_query_builder_with_jdbc_reader_options():
     assert actual_tgt_query == expected_tgt_query
 
 
-def test_query_builder_with_threshold():
+def test_hash_query_builder_with_threshold():
     table_conf = Tables(
         source_name="supplier",
         target_name="supplier",
         jdbc_reader_options=JdbcReaderOptions(
             number_partitions=100, partition_column="s_nationkey", lower_bound="0", upper_bound="100"
         ),
-        join_columns=[JoinColumns(source_name="s_suppkey", target_name="s_suppkey_t")],
+        join_columns=["s_suppkey"],
         select_columns=None,
         drop_columns=None,
         column_mapping=[
@@ -370,4 +369,46 @@ def test_query_builder_with_threshold():
         "coalesce(trim(s_suppkey_t),'') as s_suppkey from supplier where  1 = 1 "
     )
 
+    assert actual_tgt_query == expected_tgt_query
+
+
+def test_threshold_query_builder_with_defaults():
+    table_conf = Tables(
+        source_name="supplier",
+        target_name="supplier",
+        jdbc_reader_options=None,
+        join_columns=["s_suppkey"],
+        select_columns=None,
+        drop_columns=None,
+        column_mapping=None,
+        transformations=None,
+        thresholds=[Thresholds(column_name="s_acctbal", lower_bound="0", upper_bound="100", type="int")],
+        filters=None,
+    )
+    src_schema = [
+        Schema("s_suppkey", "number"),
+        Schema("s_name", "varchar"),
+        Schema("s_address", "varchar"),
+        Schema("s_nationkey", "number"),
+        Schema("s_phone", "varchar"),
+        Schema("s_acctbal", "number"),
+        Schema("s_comment", "varchar"),
+    ]
+
+    actual_src_query = QueryBuilder(table_conf, src_schema, "source", "oracle").build_threshold_query()
+    expected_src_query = 'select s_acctbal as s_acctbal,s_suppkey as s_suppkey  from supplier where  1 = 1 '
+    assert actual_src_query == expected_src_query
+
+    tgt_schema = [
+        Schema("s_suppkey", "number"),
+        Schema("s_name", "varchar"),
+        Schema("s_address", "varchar"),
+        Schema("s_nationkey", "number"),
+        Schema("s_phone", "varchar"),
+        Schema("s_acctbal", "number"),
+        Schema("s_comment", "varchar"),
+    ]
+
+    actual_tgt_query = QueryBuilder(table_conf, tgt_schema, "target", "databricks").build_threshold_query()
+    expected_tgt_query = 'select s_acctbal as s_acctbal,s_suppkey as s_suppkey  from supplier where  1 = 1 '
     assert actual_tgt_query == expected_tgt_query
