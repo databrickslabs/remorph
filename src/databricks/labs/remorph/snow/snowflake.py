@@ -449,7 +449,7 @@ class Snow(Snowflake):
                 if self_copy._match(TokenType.FROM, advance=False):
                     self_copy._advance()  # advance to next token
                     if self_copy._match(TokenType.L_PAREN, advance=False):
-                        break;
+                        break
                     self_copy._parse_table_parts()  # parse the table parts
                     table_alias = self_copy._parse_table_alias()  # get to table alias
                     return str(table_alias)
