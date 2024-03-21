@@ -180,9 +180,7 @@ class QueryBuilder:
         for column in columns:
             column_origin = column if self.layer == "source" else self._get_column_map(column, column_mapping)
             column_data_type = schema.get(column_origin).data_type
-            transformation = self._get_default_transformation_expr(self.source, column_data_type).format(
-                column_origin
-            )
+            transformation = self._get_default_transformation_expr(self.source, column_data_type).format(column_origin)
 
             column_origin, column_alias = self._get_column_alias(self.layer, column, column_mapping)
 

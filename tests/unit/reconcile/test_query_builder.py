@@ -443,8 +443,10 @@ def test_threshold_query_builder_with_transformations_and_jdbc():
                 target="cast(s_acctbal_t as decimal(38,2))",
             ),
         ],
-        thresholds=[Thresholds(column_name="s_acctbal", lower_bound="0", upper_bound="100", type="int"),
-                    Thresholds(column_name="s_suppdate", lower_bound="-86400", upper_bound="86400", type="timestamp")],
+        thresholds=[
+            Thresholds(column_name="s_acctbal", lower_bound="0", upper_bound="100", type="int"),
+            Thresholds(column_name="s_suppdate", lower_bound="-86400", upper_bound="86400", type="timestamp"),
+        ],
         filters=None,
     )
     src_schema = [
@@ -455,13 +457,15 @@ def test_threshold_query_builder_with_transformations_and_jdbc():
         Schema("s_phone", "varchar"),
         Schema("s_acctbal", "number"),
         Schema("s_comment", "varchar"),
-        Schema("s_suppdate", "timestamp")
+        Schema("s_suppdate", "timestamp"),
     ]
 
     actual_src_query = QueryBuilder(table_conf, src_schema, "source", "oracle").build_threshold_query()
-    expected_src_query = ("select trim(to_char(s_acctbal, '9999999999.99')) as s_acctbal,s_nationkey "
-                          "as s_nationkey,s_suppdate as s_suppdate,trim(s_suppkey) as s_suppkey  from "
-                          "supplier where  1 = 1 ")
+    expected_src_query = (
+        "select trim(to_char(s_acctbal, '9999999999.99')) as s_acctbal,s_nationkey "
+        "as s_nationkey,s_suppdate as s_suppdate,trim(s_suppkey) as s_suppkey  from "
+        "supplier where  1 = 1 "
+    )
     assert actual_src_query == expected_src_query
 
     tgt_schema = [
@@ -472,11 +476,13 @@ def test_threshold_query_builder_with_transformations_and_jdbc():
         Schema("s_phone_t", "varchar"),
         Schema("s_acctbal_t", "number"),
         Schema("s_comment_t", "varchar"),
-        Schema("s_suppdate_t", "timestamp")
+        Schema("s_suppdate_t", "timestamp"),
     ]
 
     actual_tgt_query = QueryBuilder(table_conf, tgt_schema, "target", "databricks").build_threshold_query()
-    expected_tgt_query = ("select cast(s_acctbal_t as decimal(38,2)) as s_acctbal,s_suppdate_t as "
-                          "s_suppdate,trim(s_suppkey_t) as s_suppkey  from supplier where  1 = 1 ")
+    expected_tgt_query = (
+        "select cast(s_acctbal_t as decimal(38,2)) as s_acctbal,s_suppdate_t as "
+        "s_suppdate,trim(s_suppkey_t) as s_suppkey  from supplier where  1 = 1 "
+    )
 
     assert actual_tgt_query == expected_tgt_query
