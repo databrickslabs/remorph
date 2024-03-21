@@ -894,7 +894,7 @@ def test_arrayagg(dialect_context):
         },
     )
 
-    with (pytest.raises(ParseError, match="both must refer to the same column"),):
+    with (pytest.raises(ParseError, match="both must refer to the same column"), ):
         validate_source_transpile(
             """SELECT
                   SORT_ARRAY(ARRAY_AGG(DISTINCT col2), FALSE)
@@ -1015,7 +1015,7 @@ def test_collate(dialect_context):
         "SELECT v, COLLATION(v), COLLATE(v, 'sp-upper'), COLLATION(COLLATE(v, 'sp-upper')) FROM collation1",
         source={
             "snowflake": "SELECT v, COLLATION(v), COLLATE(v, 'sp-upper'), COLLATION(COLLATE(v, 'sp-upper')) "
-            "FROM collation1;",
+                         "FROM collation1;",
         },
     )
 
@@ -1331,7 +1331,7 @@ def test_object_construct(dialect_context):
         "SELECT STRUCT(FROM_JSON('NULL', {NULL_SCHEMA}) AS Key_One, NULL AS Key_Two, 'null' AS Key_Three) AS obj",
         source={
             "snowflake": "SELECT OBJECT_CONSTRUCT('Key_One', PARSE_JSON('NULL'), 'Key_Two', "
-            "NULL, 'Key_Three', 'null') as obj;",
+                         "NULL, 'Key_Three', 'null') as obj;",
         },
     )
 
@@ -1539,7 +1539,7 @@ def test_row_number(dialect_context):
         "SELECT symbol, exchange, shares, ROW_NUMBER() OVER (PARTITION BY exchange) AS row_number FROM trades",
         source={
             "snowflake": "SELECT symbol, exchange, shares, ROW_NUMBER() OVER (PARTITION BY exchange) AS "
-            "row_number FROM trades;",
+                         "row_number FROM trades;",
         },
     )
 
@@ -1643,7 +1643,7 @@ def test_any_value(dialect_context):
         "= orders.customer_id GROUP BY customer.id",
         source={
             "snowflake": "SELECT customer.id , ANY_VALUE(customer.name) , SUM(orders.value) FROM customer JOIN "
-            "orders ON customer.id = orders.customer_id GROUP BY customer.id;",
+                         "orders ON customer.id = orders.customer_id GROUP BY customer.id;",
         },
     )
 
@@ -3192,7 +3192,7 @@ def test_base64_decode(dialect_context):
         "SELECT UNBASE64(BASE64('HELLO')), UNBASE64(BASE64('HELLO'))",
         source={
             "snowflake": "SELECT BASE64_DECODE_STRING(BASE64_ENCODE('HELLO')), "
-            "TRY_BASE64_DECODE_STRING(BASE64_ENCODE('HELLO'));",
+                         "TRY_BASE64_DECODE_STRING(BASE64_ENCODE('HELLO'));",
         },
     )
 
@@ -3315,5 +3315,22 @@ def test_delete_from_keyword(dialect_context):
         "MERGE INTO  TABLE1 using table2 on table1.id = table2.id when matched then delete;",
         source={
             "snowflake": "DELETE FROM Table1 USING table2 WHERE table1.id = table2.id;",
+        },
+    )
+
+
+def test_nested_query_with_json(dialect_context):
+    validate_source_transpile, _ = dialect_context
+    validate_source_transpile(
+        """SELECT a.col1, a.col2, b.col3, b.col4 FROM (SELECT col1, col2 FROM table1) AS a, 
+        (SELECT CAST(value.price AS DOUBLE) AS col3, col4 
+        FROM (SELECT * FROM table2) AS k) AS b WHERE a.col1 = b.col4""",
+        source={
+            "snowflake": """SELECT A.COL1, A.COL2, B.COL3, B.COL4 FROM 
+                            (SELECT COL1, COL2 FROM TABLE1) A, 
+                            (SELECT VALUE:PRICE::FLOAT AS COL3, COL4 FROM 
+                            (SELECT * FROM TABLE2 ) AS K
+                            ) B 
+                            WHERE A.COL1 = B.COL4;""",
         },
     )
