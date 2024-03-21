@@ -56,7 +56,7 @@ class Filters:
 
 
 @dataclass
-class Tables:
+class Table:
     source_name: str
     target_name: str
     join_columns: list[str] | None = None
@@ -83,7 +83,7 @@ class TableRecon:
     source_schema: str
     target_catalog: str
     target_schema: str
-    tables: list[Tables]
+    tables: list[Table]
     source_catalog: str | None = None
 
 

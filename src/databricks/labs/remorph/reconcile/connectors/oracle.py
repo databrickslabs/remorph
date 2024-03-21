@@ -3,7 +3,7 @@ from pyspark.sql import DataFrame, DataFrameReader
 
 from databricks.labs.remorph.reconcile.connectors.data_source import DataSource
 from databricks.labs.remorph.reconcile.constants import SourceDriver
-from databricks.labs.remorph.reconcile.recon_config import Schema, Tables
+from databricks.labs.remorph.reconcile.recon_config import JdbcReaderOptions, Schema
 
 
 class OracleDataSource(DataSource):
@@ -16,16 +16,16 @@ class OracleDataSource(DataSource):
             f":{self._get_secrets('port')}/{self._get_secrets('database')}"
         )
 
-    # TODO need to check schema_name,catalog_name is needed
-    def read_data(self, schema_name: str, catalog_name: str, query: str, table_conf: Tables) -> DataFrame:
+    def read_data(
+        self, catalog_name: str, schema_name: str, query: str, jdbc_reader_options: JdbcReaderOptions
+    ) -> DataFrame:
         try:
-            if table_conf.jdbc_reader_options is None:
-                return self.reader(query).options(**self._get_timestamp_options()).load()
+            table_query = self._get_table_or_query(catalog_name, schema_name, query)
+            if jdbc_reader_options is None:
+                return self.reader(table_query).options(**self._get_timestamp_options()).load()
             return (
-                self.reader(query)
-                .options(
-                    **self._get_jdbc_reader_options(table_conf.jdbc_reader_options) | self._get_timestamp_options()
-                )
+                self.reader(table_query)
+                .options(**self._get_jdbc_reader_options(jdbc_reader_options) | self._get_timestamp_options())
                 .load()
             )
         except PySparkException as e:
@@ -34,7 +34,12 @@ class OracleDataSource(DataSource):
             )
             raise PySparkException(error_msg) from e
 
-    def get_schema(self, table_name: str, schema_name: str, catalog_name: str) -> list[Schema]:
+    def get_schema(
+        self,
+        catalog_name: str,
+        schema_name: str,
+        table_name: str,
+    ) -> list[Schema]:
         try:
             schema_query = self._get_schema_query(table_name, schema_name)
             schema_df = self.reader(schema_query).load()

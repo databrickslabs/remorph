@@ -6,14 +6,14 @@ from databricks.labs.remorph.reconcile.recon_config import (
     Filters,
     JdbcReaderOptions,
     Schema,
-    Tables,
+    Table,
     Thresholds,
     Transformation,
 )
 
 
 def test_hash_query_builder_without_join_column():
-    table_conf = Tables(
+    table_conf = Table(
         source_name="supplier",
         target_name="supplier",
         jdbc_reader_options=None,
@@ -41,7 +41,7 @@ def test_hash_query_builder_without_join_column():
         "coalesce(trim(s_address),'') || coalesce(trim(s_comment),'') || "
         "coalesce(trim(s_name),'') || coalesce(trim(s_nationkey),'') || "
         "coalesce(trim(s_phone),'') || coalesce(trim(s_suppkey),''), 'SHA256'))) as "
-        "hash_value__recon from supplier "
+        "hash_value__recon from {schema_name}.supplier "
         "where  1 = 1 "
     )
     assert actual_src_query == expected_src_query
@@ -62,14 +62,14 @@ def test_hash_query_builder_without_join_column():
         "coalesce(trim(s_address),''), coalesce(trim(s_comment),''), "
         "coalesce(trim(s_name),''), coalesce(trim(s_nationkey),''), "
         "coalesce(trim(s_phone),''), coalesce(trim(s_suppkey),'')),256) as "
-        "hash_value__recon from supplier "
+        "hash_value__recon from {catalog_name}.{schema_name}.supplier "
         "where  1 = 1 "
     )
     assert actual_tgt_query == expected_tgt_query
 
 
 def test_hash_query_builder_with_defaults():
-    table_conf = Tables(
+    table_conf = Table(
         source_name="supplier",
         target_name="supplier",
         jdbc_reader_options=None,
@@ -97,7 +97,7 @@ def test_hash_query_builder_with_defaults():
         "coalesce(trim(s_address),'') || coalesce(trim(s_comment),'') || "
         "coalesce(trim(s_name),'') || coalesce(trim(s_nationkey),'') || "
         "coalesce(trim(s_phone),'') || coalesce(trim(s_suppkey),''), 'SHA256'))) as "
-        "hash_value__recon, coalesce(trim(s_suppkey),'') as s_suppkey from supplier "
+        "hash_value__recon, coalesce(trim(s_suppkey),'') as s_suppkey from {schema_name}.supplier "
         "where  1 = 1 "
     )
     assert actual_src_query == expected_src_query
@@ -118,14 +118,14 @@ def test_hash_query_builder_with_defaults():
         "coalesce(trim(s_address),''), coalesce(trim(s_comment),''), "
         "coalesce(trim(s_name),''), coalesce(trim(s_nationkey),''), "
         "coalesce(trim(s_phone),''), coalesce(trim(s_suppkey),'')),256) as "
-        "hash_value__recon, coalesce(trim(s_suppkey),'') as s_suppkey from supplier "
+        "hash_value__recon, coalesce(trim(s_suppkey),'') as s_suppkey from {catalog_name}.{schema_name}.supplier "
         "where  1 = 1 "
     )
     assert actual_tgt_query == expected_tgt_query
 
 
 def test_hash_query_builder_with_select():
-    table_conf = Tables(
+    table_conf = Table(
         source_name="supplier",
         target_name="supplier",
         jdbc_reader_options=None,
@@ -154,7 +154,7 @@ def test_hash_query_builder_with_select():
     expected_src_query = (
         "select lower(RAWTOHEX(STANDARD_HASH(coalesce(trim(s_address),'') || "
         "coalesce(trim(s_name),'') || coalesce(trim(s_suppkey),''), 'SHA256'))) as "
-        "hash_value__recon, coalesce(trim(s_suppkey),'') as s_suppkey from supplier "
+        "hash_value__recon, coalesce(trim(s_suppkey),'') as s_suppkey from {schema_name}.supplier "
         "where  1 = 1 "
     )
     assert actual_src_query == expected_src_query
@@ -173,7 +173,7 @@ def test_hash_query_builder_with_select():
     expected_tgt_query = (
         "select sha2(concat(coalesce(trim(s_address_t),''), "
         "coalesce(trim(s_name),''), coalesce(trim(s_suppkey_t),'')),256) as "
-        "hash_value__recon, coalesce(trim(s_suppkey_t),'') as s_suppkey from supplier "
+        "hash_value__recon, coalesce(trim(s_suppkey_t),'') as s_suppkey from {catalog_name}.{schema_name}.supplier "
         "where  1 = 1 "
     )
 
@@ -181,7 +181,7 @@ def test_hash_query_builder_with_select():
 
 
 def test_hash_query_builder_with_transformations_with_drop_and_default_select():
-    table_conf = Tables(
+    table_conf = Table(
         source_name="supplier",
         target_name="supplier",
         jdbc_reader_options=None,
@@ -224,7 +224,7 @@ def test_hash_query_builder_with_transformations_with_drop_and_default_select():
         "select lower(RAWTOHEX(STANDARD_HASH(coalesce(trim(s_nationkey),'') || "
         "coalesce(trim(s_suppkey),'') || trim(s_address) || trim(s_name) || "
         "trim(s_phone) || trim(to_char(s_acctbal_t, '9999999999.99')), 'SHA256'))) as "
-        "hash_value__recon, coalesce(trim(s_suppkey),'') as s_suppkey from supplier "
+        "hash_value__recon, coalesce(trim(s_suppkey),'') as s_suppkey from {schema_name}.supplier "
         "where  1 = 1 "
     )
     assert actual_src_query == expected_src_query
@@ -244,14 +244,14 @@ def test_hash_query_builder_with_transformations_with_drop_and_default_select():
         "select sha2(concat(cast(s_acctbal_t as decimal(38,2)), "
         "coalesce(trim(s_nationkey_t),''), coalesce(trim(s_suppkey_t),''), "
         'trim(s_address_t), trim(s_name), trim(s_phone_t)),256) as hash_value__recon, '
-        "coalesce(trim(s_suppkey_t),'') as s_suppkey from supplier where  1 = 1 "
+        "coalesce(trim(s_suppkey_t),'') as s_suppkey from {catalog_name}.{schema_name}.supplier where  1 = 1 "
     )
 
     assert actual_tgt_query == expected_tgt_query
 
 
 def test_hash_query_builder_with_jdbc_reader_options():
-    table_conf = Tables(
+    table_conf = Table(
         source_name="supplier",
         target_name="supplier",
         jdbc_reader_options=JdbcReaderOptions(
@@ -283,7 +283,7 @@ def test_hash_query_builder_with_jdbc_reader_options():
         "select lower(RAWTOHEX(STANDARD_HASH(coalesce(trim(s_address),'') || "
         "coalesce(trim(s_name),'') || coalesce(trim(s_suppkey),''), 'SHA256'))) as "
         "hash_value__recon, coalesce(trim(s_nationkey),'') as s_nationkey,coalesce(trim(s_suppkey),'') as s_suppkey "
-        "from supplier "
+        "from {schema_name}.supplier "
         "where  1 = 1 "
     )
 
@@ -303,7 +303,7 @@ def test_hash_query_builder_with_jdbc_reader_options():
     expected_tgt_query = (
         "select sha2(concat(coalesce(trim(s_address_t),''), "
         "coalesce(trim(s_name),''), coalesce(trim(s_suppkey_t),'')),256) as "
-        "hash_value__recon, coalesce(trim(s_suppkey_t),'') as s_suppkey from supplier "
+        "hash_value__recon, coalesce(trim(s_suppkey_t),'') as s_suppkey from {catalog_name}.{schema_name}.supplier "
         "where  1 = 1 "
     )
 
@@ -311,7 +311,7 @@ def test_hash_query_builder_with_jdbc_reader_options():
 
 
 def test_hash_query_builder_with_threshold():
-    table_conf = Tables(
+    table_conf = Table(
         source_name="supplier",
         target_name="supplier",
         jdbc_reader_options=JdbcReaderOptions(
@@ -348,7 +348,7 @@ def test_hash_query_builder_with_threshold():
         "coalesce(trim(s_nationkey),'') || coalesce(trim(s_suppkey),'') || "
         "trim(s_address) || trim(s_name) || trim(s_phone), 'SHA256'))) as "
         "hash_value__recon, coalesce(trim(s_nationkey),'') as "
-        "s_nationkey,coalesce(trim(s_suppkey),'') as s_suppkey from supplier where  1 "
+        "s_nationkey,coalesce(trim(s_suppkey),'') as s_suppkey from {schema_name}.supplier where  1 "
         '= 1 '
     )
     assert actual_src_query == expected_src_query
@@ -368,14 +368,14 @@ def test_hash_query_builder_with_threshold():
         "select sha2(concat(coalesce(trim(s_comment),''), "
         "coalesce(trim(s_nationkey),''), coalesce(trim(s_suppkey_t),''), "
         'trim(s_address_t), trim(s_name), trim(s_phone)),256) as hash_value__recon, '
-        "coalesce(trim(s_suppkey_t),'') as s_suppkey from supplier where  1 = 1 "
+        "coalesce(trim(s_suppkey_t),'') as s_suppkey from {catalog_name}.{schema_name}.supplier where  1 = 1 "
     )
 
     assert actual_tgt_query == expected_tgt_query
 
 
 def test_hash_query_builder_with_filters():
-    table_conf = Tables(
+    table_conf = Table(
         source_name="supplier",
         target_name="supplier",
         jdbc_reader_options=None,
@@ -404,7 +404,7 @@ def test_hash_query_builder_with_filters():
     expected_src_query = (
         "select sha2(concat(coalesce(trim(s_address),''), coalesce(trim(s_name),''), "
         "coalesce(trim(s_suppkey),'')),256) as hash_value__recon, "
-        "coalesce(trim(s_suppkey),'') as s_suppkey from supplier where s_name='t' and "
+        "coalesce(trim(s_suppkey),'') as s_suppkey from {catalog_name}.{schema_name}.supplier where s_name='t' and "
         "s_address='a'"
     )
     assert actual_src_query == expected_src_query
@@ -423,7 +423,7 @@ def test_hash_query_builder_with_filters():
     expected_tgt_query = (
         "select sha2(concat(coalesce(trim(s_address_t),''), "
         "coalesce(trim(s_name),''), coalesce(trim(s_suppkey_t),'')),256) as "
-        "hash_value__recon, coalesce(trim(s_suppkey_t),'') as s_suppkey from supplier "
+        "hash_value__recon, coalesce(trim(s_suppkey_t),'') as s_suppkey from {catalog_name}.{schema_name}.supplier "
         "where s_name='t' and s_address_t='a'"
     )
 
@@ -431,7 +431,7 @@ def test_hash_query_builder_with_filters():
 
 
 def test_hash_query_builder_with_unsupported_source():
-    table_conf = Tables(
+    table_conf = Table(
         source_name="supplier",
         target_name="supplier",
         jdbc_reader_options=None,
@@ -462,7 +462,7 @@ def test_hash_query_builder_with_unsupported_source():
 
 
 def test_threshold_query_builder_with_defaults():
-    table_conf = Tables(
+    table_conf = Table(
         source_name="supplier",
         target_name="supplier",
         jdbc_reader_options=None,
@@ -485,7 +485,9 @@ def test_threshold_query_builder_with_defaults():
     ]
 
     actual_src_query = QueryBuilder(table_conf, src_schema, "source", "oracle").build_threshold_query()
-    expected_src_query = 'select s_acctbal as s_acctbal,s_suppkey as s_suppkey  from supplier where  1 = 1 '
+    expected_src_query = (
+        'select s_acctbal as s_acctbal,s_suppkey as s_suppkey  from {schema_name}.supplier where  1 = 1 '
+    )
     assert actual_src_query == expected_src_query
 
     tgt_schema = [
@@ -499,12 +501,14 @@ def test_threshold_query_builder_with_defaults():
     ]
 
     actual_tgt_query = QueryBuilder(table_conf, tgt_schema, "target", "databricks").build_threshold_query()
-    expected_tgt_query = 'select s_acctbal as s_acctbal,s_suppkey as s_suppkey  from supplier where  1 = 1 '
+    expected_tgt_query = (
+        'select s_acctbal as s_acctbal,s_suppkey as s_suppkey  from {catalog_name}.{schema_name}.supplier where  1 = 1 '
+    )
     assert actual_tgt_query == expected_tgt_query
 
 
 def test_threshold_query_builder_with_transformations_and_jdbc():
-    table_conf = Tables(
+    table_conf = Table(
         source_name="supplier",
         target_name="supplier",
         jdbc_reader_options=JdbcReaderOptions(
@@ -554,7 +558,7 @@ def test_threshold_query_builder_with_transformations_and_jdbc():
     expected_src_query = (
         "select trim(to_char(s_acctbal, '9999999999.99')) as s_acctbal,s_nationkey "
         "as s_nationkey,s_suppdate as s_suppdate,trim(s_suppkey) as s_suppkey  from "
-        "supplier where  1 = 1 "
+        "{schema_name}.supplier where  1 = 1 "
     )
     assert actual_src_query == expected_src_query
 
@@ -572,7 +576,7 @@ def test_threshold_query_builder_with_transformations_and_jdbc():
     actual_tgt_query = QueryBuilder(table_conf, tgt_schema, "target", "databricks").build_threshold_query()
     expected_tgt_query = (
         "select cast(s_acctbal_t as decimal(38,2)) as s_acctbal,s_suppdate_t as "
-        "s_suppdate,trim(s_suppkey_t) as s_suppkey  from supplier where  1 = 1 "
+        "s_suppdate,trim(s_suppkey_t) as s_suppkey  from {catalog_name}.{schema_name}.supplier where  1 = 1 "
     )
 
     assert actual_tgt_query == expected_tgt_query

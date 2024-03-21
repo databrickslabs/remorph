@@ -1,3 +1,4 @@
+import re
 from abc import ABC, abstractmethod
 
 from databricks.sdk import WorkspaceClient  # pylint: disable-next=wrong-import-order
@@ -6,7 +7,6 @@ from pyspark.sql import DataFrame, SparkSession
 from databricks.labs.remorph.reconcile.recon_config import (  # pylint: disable=ungrouped-imports
     JdbcReaderOptions,
     Schema,
-    Tables,
 )
 
 
@@ -20,11 +20,18 @@ class DataSource(ABC):
         self.scope = scope
 
     @abstractmethod
-    def read_data(self, schema_name: str, catalog_name: str, query: str, table_conf: Tables) -> DataFrame:
+    def read_data(
+        self, catalog_name: str, schema_name: str, query: str, jdbc_reader_options: JdbcReaderOptions
+    ) -> DataFrame:
         return NotImplemented
 
     @abstractmethod
-    def get_schema(self, table_name: str, schema_name: str, catalog_name: str) -> list[Schema]:
+    def get_schema(
+        self,
+        catalog_name: str,
+        schema_name: str,
+        table_name: str,
+    ) -> list[Schema]:
         return NotImplemented
 
     def _get_jdbc_reader(self, query, jdbc_url, driver):
@@ -48,3 +55,15 @@ class DataSource(ABC):
     def _get_secrets(self, key_name):
         key = self.source + '_' + key_name
         return self.ws.secrets.get_secret(self.scope, key)
+
+    @staticmethod
+    def _get_table_or_query(
+        catalog_name: str,
+        schema_name: str,
+        query: str,
+    ):
+        if re.search('select', query, re.IGNORECASE):
+            return query.format(catalog_name=catalog_name, schema_name=schema_name)
+        if catalog_name:
+            return catalog_name + "." + schema_name + "." + query
+        return schema_name + "." + query

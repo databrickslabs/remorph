@@ -11,7 +11,7 @@ from databricks.labs.remorph.reconcile.constants import (
 from databricks.labs.remorph.reconcile.recon_config import (
     ColumnMapping,
     Schema,
-    Tables,
+    Table,
     Transformation,
     TransformRuleMapping,
 )
@@ -19,7 +19,7 @@ from databricks.labs.remorph.reconcile.recon_config import (
 
 class QueryBuilder:
 
-    def __init__(self, table_conf: Tables, schema: list[Schema], layer: str, source: str):
+    def __init__(self, table_conf: Table, schema: list[Schema], layer: str, source: str):
         self.table_conf = table_conf
         self.schema = schema
         self.layer = layer
@@ -45,10 +45,10 @@ class QueryBuilder:
 
         # get table_name and query filter
         if self.layer == "source":
-            table_name = self.table_conf.source_name
+            table_name = self._get_table_name(self.source, self.table_conf.source_name)
             query_filter = self.table_conf.filters.source if self.table_conf.filters else " 1 = 1 "
         else:
-            table_name = self.table_conf.target_name
+            table_name = self._get_table_name(self.source, self.table_conf.target_name)
             query_filter = self.table_conf.filters.target if self.table_conf.filters else " 1 = 1 "
 
         # construct select hash query
@@ -190,13 +190,13 @@ class QueryBuilder:
 
     @staticmethod
     def _get_default_transformation_expr(data_source: str, data_type: str) -> str:
-        if data_source == "oracle":
+        if data_source == SourceType.ORACLE.value:
             return OracleDataSource.oracle_datatype_mapper.get(data_type, ColumnTransformationType.ORACLE_DEFAULT.value)
-        if data_source == "snowflake":
+        if data_source == SourceType.SNOWFLAKE.value:
             return SnowflakeDataSource.snowflake_datatype_mapper.get(
                 data_type, ColumnTransformationType.SNOWFLAKE_DEFAULT.value
             )
-        if data_source == "databricks":
+        if data_source == SourceType.DATABRICKS.value:
             return DatabricksDataSource.databricks_datatype_mapper.get(
                 data_type, ColumnTransformationType.DATABRICKS_DEFAULT.value
             )
@@ -241,10 +241,10 @@ class QueryBuilder:
         )
 
         if self.layer == "source":
-            table_name = self.table_conf.source_name
+            table_name = self._get_table_name(self.source, self.table_conf.source_name)
             query_filter = self.table_conf.filters.source if self.table_conf.filters else " 1 = 1 "
         else:
-            table_name = self.table_conf.target_name
+            table_name = self._get_table_name(self.source, self.table_conf.target_name)
             query_filter = self.table_conf.filters.target if self.table_conf.filters else " 1 = 1 "
 
         # construct threshold select query
@@ -265,3 +265,13 @@ class QueryBuilder:
         select_query = sql_query.getvalue()
         sql_query.close()
         return select_query
+
+    @staticmethod
+    def _get_table_name(source, table_name):
+        if source == SourceType.ORACLE.value:
+            return "{{schema_name}}.{table_name}".format(  # pylint: disable=consider-using-f-string
+                table_name=table_name
+            )
+        return "{{catalog_name}}.{{schema_name}}.{table_name}".format(  # pylint: disable=consider-using-f-string
+            table_name=table_name
+        )
