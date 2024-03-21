@@ -29,18 +29,21 @@ class QueryBuilder:
         schema_info = {v.column_name: v for v in self.schema}
 
         columns, key_columns = self._get_column_list()
-        col_transformations = self._generate_transformation_rule_mapping(columns, schema_info)
 
+        # get transformation for columns considered for hashing
+        col_transformations = self._generate_transformation_rule_mapping(columns, schema_info)
         hash_columns_expr = sorted(
             self._get_column_expr(TransformRuleMapping.get_column_expression_without_alias, col_transformations)
         )
         hash_expr = self._generate_hash_algorithm(self.source, hash_columns_expr)
 
+        # get transformation for columns considered for joining and partition key
         key_column_transformation = self._generate_transformation_rule_mapping(key_columns, schema_info)
         key_column_expr = sorted(
             self._get_column_expr(TransformRuleMapping.get_column_expression_with_alias, key_column_transformation)
         )
 
+        # get table_name and query filter
         if self.layer == "source":
             table_name = self.table_conf.source_name
             query_filter = self.table_conf.filters.source if self.table_conf.filters else " 1 = 1 "
@@ -48,7 +51,7 @@ class QueryBuilder:
             table_name = self.table_conf.target_name
             query_filter = self.table_conf.filters.target if self.table_conf.filters else " 1 = 1 "
 
-        # construct select query
+        # construct select hash query
         select_query = self._construct_hash_query(table_name, query_filter, hash_expr, key_column_expr)
 
         return select_query
@@ -56,11 +59,13 @@ class QueryBuilder:
     def _get_column_list(self) -> tuple[list[str], list[str]]:
         tgt_column_mapping = self.table_conf.list_to_dict(ColumnMapping, "target_name")
 
+        # get join columns
         if self.table_conf.join_columns is None:
             join_columns = set()
         else:
             join_columns = set(self.table_conf.join_columns)
 
+        # get select columns
         if self.table_conf.select_columns is None:
             columns = {sch.column_name for sch in self.schema}
             select_columns = (
@@ -69,15 +74,16 @@ class QueryBuilder:
         else:
             select_columns = set(self.table_conf.select_columns)
 
+        # get partition key for jdbc reader options
         if self.table_conf.jdbc_reader_options and self.layer == "source":
             partition_column = {self.table_conf.jdbc_reader_options.partition_column}
         else:
             partition_column = set()
 
-        # Combine all column names
+        # combine all column names for hashing
         all_columns = join_columns | select_columns
 
-        # Remove threshold and drop columns
+        # remove threshold and drop columns
         threshold_columns = {thresh.column_name for thresh in self.table_conf.thresholds or []}
         if self.table_conf.drop_columns is None:
             drop_columns = set()
@@ -93,6 +99,7 @@ class QueryBuilder:
         transformations_dict = self.table_conf.list_to_dict(Transformation, "column_name")
         column_mapping_dict = self.table_conf.list_to_dict(ColumnMapping, "source_name")
 
+        # compute custom transformation
         if transformations_dict:
             columns_with_transformation = [column for column in columns if column in transformations_dict.keys()]
             custom_transformation = self._get_custom_transformation(
@@ -101,6 +108,7 @@ class QueryBuilder:
         else:
             custom_transformation = []
 
+        # compute default transformation
         columns_without_transformation = [column for column in columns if column not in transformations_dict.keys()]
         default_transformation = self._get_default_transformation(
             columns_without_transformation, column_mapping_dict, schema
@@ -130,6 +138,7 @@ class QueryBuilder:
     @staticmethod
     def _construct_hash_query(table_name: str, query_filter: str, hash_expr: str, key_column_expr: list[str]) -> str:
         sql_query = StringIO()
+        # construct hash expr
         sql_query.write(f"select {hash_expr} as {Constants.hash_column_name}")
 
         # add join column
@@ -171,7 +180,7 @@ class QueryBuilder:
         for column in columns:
             column_origin = column if self.layer == "source" else self._get_column_map(column, column_mapping)
             column_data_type = schema.get(column_origin).data_type
-            transformation = self._get_default_transformation_mapping(self.source, column_data_type).format(
+            transformation = self._get_default_transformation_expr(self.source, column_data_type).format(
                 column_origin
             )
 
@@ -182,7 +191,7 @@ class QueryBuilder:
         return transformation_rule_mapping
 
     @staticmethod
-    def _get_default_transformation_mapping(data_source: str, data_type: str) -> str:
+    def _get_default_transformation_expr(data_source: str, data_type: str) -> str:
         if data_source == "oracle":
             return OracleDataSource.oracle_datatype_mapper.get(data_type, ColumnTransformationType.ORACLE_DEFAULT.value)
         if data_source == "snowflake":
@@ -225,6 +234,7 @@ class QueryBuilder:
             all_columns if self.layer == "source" else self._get_mapped_columns(column_mapping, all_columns)
         )
 
+        # get custom transformation
         transformation_rule_mapping = self._get_custom_transformation(
             query_columns, transformations_dict, column_mapping
         )
@@ -247,9 +257,11 @@ class QueryBuilder:
     @staticmethod
     def _construct_threshold_query(table_name, query_filter, threshold_columns_expr):
         sql_query = StringIO()
+        # construct threshold expr
         column_expr = ",".join(threshold_columns_expr)
         sql_query.write(f"select {column_expr} ")
 
+        # add query filter
         sql_query.write(f" from {table_name} where {query_filter}")
 
         select_query = sql_query.getvalue()
