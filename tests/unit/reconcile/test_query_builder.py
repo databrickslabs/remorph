@@ -3,11 +3,12 @@ import pytest
 from databricks.labs.remorph.reconcile.query_builder import QueryBuilder
 from databricks.labs.remorph.reconcile.recon_config import (
     ColumnMapping,
+    Filters,
     JdbcReaderOptions,
     Schema,
     Tables,
     Thresholds,
-    Transformation, Filters,
+    Transformation,
 )
 
 
@@ -457,7 +458,7 @@ def test_hash_query_builder_with_unsupported_source():
     with pytest.raises(Exception) as exc_info:
         query_builder.build_hash_query()
 
-    assert (str(exc_info.value) == "Unsupported source type --> abc")
+    assert str(exc_info.value) == "Unsupported source type --> abc"
 
 
 def test_threshold_query_builder_with_defaults():
