@@ -5,6 +5,8 @@ from databricks.sdk.core import Config
 
 logger = logging.getLogger(__name__)
 
+x = 1  # pylint: disable=invalid-name
+
 
 @dataclass
 class MorphConfig:
