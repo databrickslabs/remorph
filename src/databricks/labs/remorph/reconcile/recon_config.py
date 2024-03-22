@@ -55,6 +55,9 @@ class Filters:
     target: str = None
 
 
+T = TypeVar("T")
+
+
 @dataclass
 class Table:
     source_name: str
@@ -67,8 +70,6 @@ class Table:
     transformations: list[Transformation] | None = None
     thresholds: list[Thresholds] | None = None
     filters: Filters | None = None
-
-    T = TypeVar("T")  # pylint: disable=invalid-name
 
     def list_to_dict(self, cls: type[T], key: str) -> T:
         for _, value in self.__dict__.items():
