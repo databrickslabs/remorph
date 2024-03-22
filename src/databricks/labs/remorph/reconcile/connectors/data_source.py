@@ -20,7 +20,7 @@ class DataSource(ABC):
         self.scope = scope
 
     @abstractmethod
-    def read_data(self, catalog: str, schema: str, query: str, jdbc_reader_options: JdbcReaderOptions) -> DataFrame:
+    def read_data(self, catalog: str, schema: str, query: str, options: JdbcReaderOptions) -> DataFrame:
         return NotImplemented
 
     @abstractmethod
@@ -41,13 +41,13 @@ class DataSource(ABC):
         )
 
     @staticmethod
-    def _get_jdbc_reader_options(jdbc_reader_options: JdbcReaderOptions):
+    def _get_jdbc_reader_options(options: JdbcReaderOptions):
         return {
-            "numPartitions": jdbc_reader_options.number_partitions,
-            "partitionColumn": jdbc_reader_options.partition_column,
-            "lowerBound": jdbc_reader_options.lower_bound,
-            "upperBound": jdbc_reader_options.upper_bound,
-            "fetchsize": jdbc_reader_options.fetch_size,
+            "numPartitions": options.number_partitions,
+            "partitionColumn": options.partition_column,
+            "lowerBound": options.lower_bound,
+            "upperBound": options.upper_bound,
+            "fetchsize": options.fetch_size,
         }
 
     def _get_secrets(self, key):

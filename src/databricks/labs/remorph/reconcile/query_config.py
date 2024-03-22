@@ -8,15 +8,15 @@ from databricks.labs.remorph.reconcile.recon_config import (
 
 
 class QueryConfig:
-    def __init__(self, table_conf: Table, schema: list[Schema], layer: str, db_type: str):
+    def __init__(self, table_conf: Table, schema: list[Schema], layer: str, source: str):
         self.table_conf = table_conf
         self.schema = schema
         self.layer = layer
-        self.db_type = db_type
+        self.source = source
         self.schema_dict = {v.column_name: v for v in schema}
-        self.tgt_column_mapping = table_conf.list_to_dict(ColumnMapping, "target_name")
-        self.src_column_mapping = table_conf.list_to_dict(ColumnMapping, "source_name")
-        self.transformations_dict = table_conf.list_to_dict(Transformation, "column_name")
+        self.tgt_col_mapping = table_conf.list_to_dict(ColumnMapping, "target_name")
+        self.src_col_mapping = table_conf.list_to_dict(ColumnMapping, "source_name")
+        self.transform_dict = table_conf.list_to_dict(Transformation, "column_name")
 
     def get_threshold_columns(self):
         return {thresh.column_name for thresh in self.table_conf.thresholds or []}
@@ -28,8 +28,8 @@ class QueryConfig:
 
     def get_select_columns(self):
         if self.table_conf.select_columns is None:
-            columns = {sch.column_name for sch in self.schema}
-            return columns if self.layer == "source" else self.get_mapped_columns(self.tgt_column_mapping, columns)
+            cols = {sch.column_name for sch in self.schema}
+            return cols if self.layer == "source" else self.get_mapped_columns(self.tgt_col_mapping, cols)
         return set(self.table_conf.select_columns)
 
     def get_partition_column(self):
@@ -44,7 +44,7 @@ class QueryConfig:
 
     def get_table_name(self):
         table_name = self.table_conf.source_name if self.layer == "source" else self.table_conf.target_name
-        if self.db_type == SourceType.ORACLE.value:
+        if self.source == SourceType.ORACLE.value:
             return "{{schema_name}}.{table_name}".format(  # pylint: disable=consider-using-f-string
                 table_name=table_name
             )
@@ -60,10 +60,8 @@ class QueryConfig:
         return self.table_conf.filters.target
 
     @staticmethod
-    def get_mapped_columns(column_mapping: dict, columns: set[str]) -> set[str]:
+    def get_mapped_columns(col_mapping: dict, cols: set[str]) -> set[str]:
         select_columns = set()
-        for column in columns:
-            select_columns.add(
-                column_mapping.get(column, ColumnMapping(source_name=column, target_name='')).source_name
-            )
+        for col in cols:
+            select_columns.add(col_mapping.get(col, ColumnMapping(source_name=col, target_name='')).source_name)
         return select_columns

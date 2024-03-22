@@ -10,13 +10,13 @@ class TransformRuleMapping:
     transformation: str
     alias_name: str
 
-    def get_column_expression_without_alias(self) -> str:
+    def get_column_expr_without_alias(self) -> str:
         if self.transformation:
             return f"{self.transformation}"
         return f"{self.column_name}"
 
-    def get_column_expression_with_alias(self) -> str:
-        return f"{self.get_column_expression_without_alias()} as {self.alias_name}"
+    def get_column_expr_with_alias(self) -> str:
+        return f"{self.get_column_expr_without_alias()} as {self.alias_name}"
 
 
 @dataclass
