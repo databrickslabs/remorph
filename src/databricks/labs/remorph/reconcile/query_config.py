@@ -7,7 +7,7 @@ from databricks.labs.remorph.reconcile.recon_config import (
 )
 
 
-class QueryConfig:  # pylint: disable=too-many-instance-attributes)
+class QueryConfig:
     def __init__(self, table_conf: Table, schema: list[Schema], layer: str, db_type: str):
         self.table_conf = table_conf
         self.schema = schema
@@ -17,13 +17,9 @@ class QueryConfig:  # pylint: disable=too-many-instance-attributes)
         self.tgt_column_mapping = table_conf.list_to_dict(ColumnMapping, "target_name")
         self.src_column_mapping = table_conf.list_to_dict(ColumnMapping, "source_name")
         self.transformations_dict = table_conf.list_to_dict(Transformation, "column_name")
-        self.select_columns = self.get_select_columns()
-        self.drop_columns = self.get_drop_columns()
-        self.join_columns = self.get_join_columns()
-        self.partition_column = self.get_partition_column()
-        self.threshold_columns = {thresh.column_name for thresh in table_conf.thresholds or []}
-        self.table_name = self._get_table_name()
-        self.query_filter = self._get_filter()
+
+    def get_threshold_columns(self):
+        return {thresh.column_name for thresh in self.table_conf.thresholds or []}
 
     def get_join_columns(self):
         if self.table_conf.join_columns is None:
@@ -46,7 +42,7 @@ class QueryConfig:  # pylint: disable=too-many-instance-attributes)
             return set()
         return set(self.table_conf.drop_columns)
 
-    def _get_table_name(self):
+    def get_table_name(self):
         table_name = self.table_conf.source_name if self.layer == "source" else self.table_conf.target_name
         if self.db_type == SourceType.ORACLE.value:
             return "{{schema_name}}.{table_name}".format(  # pylint: disable=consider-using-f-string
@@ -56,7 +52,7 @@ class QueryConfig:  # pylint: disable=too-many-instance-attributes)
             table_name=table_name
         )
 
-    def _get_filter(self):
+    def get_filter(self):
         if self.table_conf.filters is None:
             return " 1 = 1 "
         if self.layer == "source":
@@ -67,5 +63,7 @@ class QueryConfig:  # pylint: disable=too-many-instance-attributes)
     def get_mapped_columns(column_mapping: dict, columns: set[str]) -> set[str]:
         select_columns = set()
         for column in columns:
-            select_columns.add(column_mapping.get(column).source_name if column_mapping.get(column) else column)
+            select_columns.add(
+                column_mapping.get(column, ColumnMapping(source_name=column, target_name='')).source_name
+            )
         return select_columns

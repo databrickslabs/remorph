@@ -20,17 +20,15 @@ class DataSource(ABC):
         self.scope = scope
 
     @abstractmethod
-    def read_data(
-        self, catalog_name: str, schema_name: str, query: str, jdbc_reader_options: JdbcReaderOptions
-    ) -> DataFrame:
+    def read_data(self, catalog: str, schema: str, query: str, jdbc_reader_options: JdbcReaderOptions) -> DataFrame:
         return NotImplemented
 
     @abstractmethod
     def get_schema(
         self,
-        catalog_name: str,
-        schema_name: str,
-        table_name: str,
+        catalog: str,
+        schema: str,
+        table: str,
     ) -> list[Schema]:
         return NotImplemented
 
@@ -52,18 +50,17 @@ class DataSource(ABC):
             "fetchsize": jdbc_reader_options.fetch_size,
         }
 
-    def _get_secrets(self, key_name):
-        key = self.source + '_' + key_name
-        return self.ws.secrets.get_secret(self.scope, key)
+    def _get_secrets(self, key):
+        return self.ws.secrets.get_secret(self.scope, self.source + '_' + key)
 
     @staticmethod
     def _get_table_or_query(
-        catalog_name: str,
-        schema_name: str,
+        catalog: str,
+        schema: str,
         query: str,
     ):
         if re.search('select', query, re.IGNORECASE):
-            return query.format(catalog_name=catalog_name, schema_name=schema_name)
-        if catalog_name:
-            return catalog_name + "." + schema_name + "." + query
-        return schema_name + "." + query
+            return query.format(catalog_name=catalog, schema_name=schema)
+        if catalog:
+            return catalog + "." + schema + "." + query
+        return schema + "." + query

@@ -5,17 +5,15 @@ from databricks.labs.remorph.reconcile.recon_config import JdbcReaderOptions, Sc
 
 
 class DatabricksDataSource(DataSource):
-    def read_data(
-        self, catalog_name: str, schema_name: str, query: str, jdbc_reader_options: JdbcReaderOptions
-    ) -> DataFrame:
+    def read_data(self, catalog: str, schema: str, query: str, jdbc_reader_options: JdbcReaderOptions) -> DataFrame:
         # Implement Databricks-specific logic here
         return NotImplemented
 
     def get_schema(
         self,
-        catalog_name: str,
-        schema_name: str,
-        table_name: str,
+        catalog: str,
+        schema: str,
+        table: str,
     ) -> list[Schema]:
         # Implement Databricks-specific logic here
         return NotImplemented

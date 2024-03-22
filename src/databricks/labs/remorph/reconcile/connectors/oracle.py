@@ -16,11 +16,9 @@ class OracleDataSource(DataSource):
             f":{self._get_secrets('port')}/{self._get_secrets('database')}"
         )
 
-    def read_data(
-        self, catalog_name: str, schema_name: str, query: str, jdbc_reader_options: JdbcReaderOptions
-    ) -> DataFrame:
+    def read_data(self, catalog: str, schema: str, query: str, jdbc_reader_options: JdbcReaderOptions) -> DataFrame:
         try:
-            table_query = self._get_table_or_query(catalog_name, schema_name, query)
+            table_query = self._get_table_or_query(catalog, schema, query)
             if jdbc_reader_options is None:
                 return self.reader(table_query).options(**self._get_timestamp_options()).load()
             return (
@@ -36,17 +34,17 @@ class OracleDataSource(DataSource):
 
     def get_schema(
         self,
-        catalog_name: str,
-        schema_name: str,
-        table_name: str,
+        catalog: str,
+        schema: str,
+        table: str,
     ) -> list[Schema]:
         try:
-            schema_query = self._get_schema_query(table_name, schema_name)
+            schema_query = self._get_schema_query(table, schema)
             schema_df = self.reader(schema_query).load()
             return [Schema(field.column_name.lower(), field.data_type.lower()) for field in schema_df.collect()]
         except PySparkException as e:
             error_msg = (
-                f"An error occurred while fetching Oracle Schema using the following {table_name} in "
+                f"An error occurred while fetching Oracle Schema using the following {table} in "
                 f"OracleDataSource: {e!s}"
             )
             raise PySparkException(error_msg) from e

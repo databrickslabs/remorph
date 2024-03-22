@@ -508,7 +508,7 @@ def test_threshold_query_builder_with_defaults():
     qc = QueryConfig(table_conf, src_schema, "source", "oracle")
     actual_src_query = ThresholdQueryBuilder(qc).build_query()
     expected_src_query = (
-        'select s_acctbal as s_acctbal,s_suppkey as s_suppkey  from {schema_name}.supplier where  1 = 1 '
+        'select s_acctbal as s_acctbal,s_suppkey as s_suppkey from {schema_name}.supplier where  1 = 1 '
     )
     assert actual_src_query == expected_src_query
 
@@ -525,7 +525,7 @@ def test_threshold_query_builder_with_defaults():
     qc = QueryConfig(table_conf, tgt_schema, "target", "databricks")
     actual_tgt_query = ThresholdQueryBuilder(qc).build_query()
     expected_tgt_query = (
-        'select s_acctbal as s_acctbal,s_suppkey as s_suppkey  from {catalog_name}.{schema_name}.supplier where  1 = 1 '
+        'select s_acctbal as s_acctbal,s_suppkey as s_suppkey from {catalog_name}.{schema_name}.supplier where  1 = 1 '
     )
     assert actual_tgt_query == expected_tgt_query
 
@@ -581,7 +581,7 @@ def test_threshold_query_builder_with_transformations_and_jdbc():
     actual_src_query = ThresholdQueryBuilder(qc).build_query()
     expected_src_query = (
         "select trim(to_char(s_acctbal, '9999999999.99')) as s_acctbal,s_nationkey "
-        "as s_nationkey,s_suppdate as s_suppdate,trim(s_suppkey) as s_suppkey  from "
+        "as s_nationkey,s_suppdate as s_suppdate,trim(s_suppkey) as s_suppkey from "
         "{schema_name}.supplier where  1 = 1 "
     )
     assert actual_src_query == expected_src_query
@@ -601,7 +601,7 @@ def test_threshold_query_builder_with_transformations_and_jdbc():
     actual_tgt_query = ThresholdQueryBuilder(qc).build_query()
     expected_tgt_query = (
         "select cast(s_acctbal_t as decimal(38,2)) as s_acctbal,s_suppdate_t as "
-        "s_suppdate,trim(s_suppkey_t) as s_suppkey  from {catalog_name}.{schema_name}.supplier where  1 = 1 "
+        "s_suppdate,trim(s_suppkey_t) as s_suppkey from {catalog_name}.{schema_name}.supplier where  1 = 1 "
     )
 
     assert actual_tgt_query == expected_tgt_query

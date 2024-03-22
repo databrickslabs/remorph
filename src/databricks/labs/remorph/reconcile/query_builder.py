@@ -11,6 +11,7 @@ from databricks.labs.remorph.reconcile.constants import (
 )
 from databricks.labs.remorph.reconcile.query_config import QueryConfig
 from databricks.labs.remorph.reconcile.recon_config import (
+    ColumnMapping,
     Transformation,
     TransformRuleMapping,
 )
@@ -106,7 +107,7 @@ class QueryBuilder(ABC):
 
     @staticmethod
     def _get_column_map(column, column_mapping) -> str:
-        return column_mapping.get(column).target_name if column_mapping.get(column) else column
+        return column_mapping.get(column, ColumnMapping(source_name='', target_name=column)).target_name
 
     @staticmethod
     def _get_column_alias(layer, column, column_mapping):
@@ -124,9 +125,11 @@ class HashQueryBuilder(QueryBuilder):
 
     def build_query(self):
         columns = sorted(
-            (self.qc.join_columns | self.qc.select_columns) - self.qc.threshold_columns - self.qc.drop_columns
+            (self.qc.get_join_columns() | self.qc.get_select_columns())
+            - self.qc.get_threshold_columns()
+            - self.qc.get_drop_columns()
         )
-        key_columns = sorted(self.qc.join_columns | self.qc.partition_column)
+        key_columns = sorted(self.qc.get_join_columns() | self.qc.get_partition_column())
 
         # get transformation for columns considered for hashing
         col_transformations = self._generate_transformation_rule_mapping(columns)
@@ -142,7 +145,9 @@ class HashQueryBuilder(QueryBuilder):
         )
 
         # construct select hash query
-        select_query = self._construct_hash_query(self.qc.table_name, self.qc.query_filter, hash_expr, key_column_expr)
+        select_query = self._construct_hash_query(
+            self.qc.get_table_name(), self.qc.get_filter(), hash_expr, key_column_expr
+        )
 
         return select_query
 
@@ -174,7 +179,7 @@ class HashQueryBuilder(QueryBuilder):
 class ThresholdQueryBuilder(QueryBuilder):
 
     def build_query(self):
-        all_columns = set(self.qc.threshold_columns | self.qc.join_columns | self.qc.partition_column)
+        all_columns = set(self.qc.get_threshold_columns() | self.qc.get_join_columns() | self.qc.get_partition_column())
 
         query_columns = sorted(
             all_columns
@@ -189,20 +194,13 @@ class ThresholdQueryBuilder(QueryBuilder):
             TransformRuleMapping.get_column_expression_with_alias, transformation_rule_mapping
         )
 
-        select_query = self._construct_threshold_query(self.qc.table_name, self.qc.query_filter, threshold_columns_expr)
+        select_query = self._construct_threshold_query(
+            self.qc.get_table_name(), self.qc.get_filter(), threshold_columns_expr
+        )
 
         return select_query
 
     @staticmethod
     def _construct_threshold_query(table_name, query_filter, threshold_columns_expr):
-        sql_query = StringIO()
-        # construct threshold expr
         column_expr = ",".join(threshold_columns_expr)
-        sql_query.write(f"select {column_expr} ")
-
-        # add query filter
-        sql_query.write(f" from {table_name} where {query_filter}")
-
-        select_query = sql_query.getvalue()
-        sql_query.close()
-        return select_query
+        return f"select {column_expr} from {table_name} where {query_filter}"
