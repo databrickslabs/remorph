@@ -59,8 +59,17 @@ jobs:
       - name: Verify linting
         run: hatch run verify
 
-  no-disable-lint:
+  no-lint-disabled:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+
+      - name: Verify no lint disabled in the new code
+        run: |
+          NEW_CODE=$(git diff main..HEAD | grep -e '^+')
+          CHEAT=$(echo $NEW_CODE | grep '# pylint: disable')
+          if $CHEAT; then
+            echo "Do not cheat the linter:\n${CHEAT}"
+            exit 1
+          fi
