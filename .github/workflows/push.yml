@@ -67,7 +67,8 @@ jobs:
 
       - name: Verify no lint disabled in the new code
         run: |
-          NEW_CODE=$(git diff main..HEAD | grep -e '^+')
+          GIT_COMMIT=$(git log -1 --format='%H')
+          NEW_CODE=$(git diff main..${GIT_COMMIT} | grep -e '^+')
           CHEAT=$(echo $NEW_CODE | grep '# pylint: disable')
           if $CHEAT; then
             echo "Do not cheat the linter:\n${CHEAT}"
