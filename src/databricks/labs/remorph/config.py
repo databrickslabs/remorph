@@ -5,7 +5,6 @@ from databricks.sdk.core import Config
 
 logger = logging.getLogger(__name__)
 
-# pylint: disable=too-few-public-methods
 
 @dataclass
 class MorphConfig:
