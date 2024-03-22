@@ -1,3 +1,5 @@
+import re
+
 from pyspark.errors import PySparkException
 from pyspark.sql import DataFrame
 
@@ -59,9 +61,11 @@ class SnowflakeDataSource(DataSource):
 
     @staticmethod
     def _get_schema_query(table_name: str, schema_name: str, catalog_name: str):
-        return f""" select column_name, case when numeric_precision is not null and numeric_scale is not null then concat(data_type, '(', numeric_precision, ',' , numeric_scale, ')') 
-        when lower(data_type) = 'text' then concat('varchar', '(', CHARACTER_MAXIMUM_LENGTH, ')')  else data_type end as data_type from 
-        {catalog_name}.INFORMATION_SCHEMA.COLUMNS where lower(table_name)='{table_name}' and lower(table_schema) = '{schema_name}' order by ordinal_position
-        """.strip()
+        query = f"""select column_name, case when numeric_precision is not null and numeric_scale is not null then 
+        concat(data_type, '(', numeric_precision, ',' , numeric_scale, ')') when lower(data_type) = 'text' then 
+        concat('varchar', '(', CHARACTER_MAXIMUM_LENGTH, ')')  else data_type end as data_type from 
+        {catalog_name}.INFORMATION_SCHEMA.COLUMNS where lower(table_name)='{table_name}' 
+        and lower(table_schema) = '{schema_name}' order by ordinal_position"""
+        return re.sub(r'\s+', ' ', query)
 
     snowflake_datatype_mapper = {}
