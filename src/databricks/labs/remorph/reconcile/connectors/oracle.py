@@ -21,23 +21,15 @@ class OracleDataSource(DataSource):
             table_query = self._get_table_or_query(catalog, schema, query)
             if options is None:
                 return self.reader(table_query).options(**self._get_timestamp_options()).load()
-            return (
-                self.reader(table_query)
-                .options(**self._get_jdbc_reader_options(options) | self._get_timestamp_options())
-                .load()
-            )
+            options = self._get_jdbc_reader_options(options) | self._get_timestamp_options()
+            return self.reader(table_query).options(**options).load()
         except PySparkException as e:
             error_msg = (
                 f"An error occurred while fetching Oracle Data using the following {query} in OracleDataSource : {e!s}"
             )
             raise PySparkException(error_msg) from e
 
-    def get_schema(
-        self,
-        catalog: str,
-        schema: str,
-        table: str,
-    ) -> list[Schema]:
+    def get_schema(self, catalog: str, schema: str, table: str) -> list[Schema]:
         try:
             schema_query = self._get_schema_query(table, schema)
             schema_df = self.reader(schema_query).load()

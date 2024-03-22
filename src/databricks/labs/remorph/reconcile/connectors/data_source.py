@@ -24,12 +24,7 @@ class DataSource(ABC):
         return NotImplemented
 
     @abstractmethod
-    def get_schema(
-        self,
-        catalog: str,
-        schema: str,
-        table: str,
-    ) -> list[Schema]:
+    def get_schema(self, catalog: str, schema: str, table: str) -> list[Schema]:
         return NotImplemented
 
     def _get_jdbc_reader(self, query, jdbc_url, driver):
@@ -54,11 +49,7 @@ class DataSource(ABC):
         return self.ws.secrets.get_secret(self.scope, self.source + '_' + key)
 
     @staticmethod
-    def _get_table_or_query(
-        catalog: str,
-        schema: str,
-        query: str,
-    ):
+    def _get_table_or_query(catalog: str, schema: str, query: str) -> str:
         if re.search('select', query, re.IGNORECASE):
             return query.format(catalog_name=catalog, schema_name=schema)
         if catalog:

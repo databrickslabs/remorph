@@ -17,13 +17,11 @@ from databricks.labs.remorph.reconcile.recon_config import (
     TransformRuleMapping,
 )
 
-# pylint: disable=invalid-name
-
 
 class QueryBuilder(ABC):
 
-    def __init__(self, qc: QueryConfig):
-        self.qc = qc
+    def __init__(self, qrc: QueryConfig):
+        self.qrc = qrc
 
     @abstractmethod
     def build_query(self):
@@ -31,15 +29,15 @@ class QueryBuilder(ABC):
 
     def _get_custom_transformation(
         self, cols: list[str], transform_dict: dict[str, Transformation], col_mapping: dict[str, ColumnMapping]
-    ):
+    ) -> list[TransformRuleMapping]:
         transform_rule_mapping = []
         for col in cols:
             if col in transform_dict.keys():
-                transform = self._get_layer_transform(transform_dict, col, self.qc.layer)
+                transform = self._get_layer_transform(transform_dict, col, self.qrc.get_layer())
             else:
                 transform = None
 
-            col_origin, col_alias = self._get_column_alias(self.qc.layer, col, col_mapping)
+            col_origin, col_alias = self._get_column_alias(self.qrc.get_layer(), col, col_mapping)
 
             transform_rule_mapping.append(TransformRuleMapping(col_origin, transform, col_alias))
 
@@ -47,14 +45,14 @@ class QueryBuilder(ABC):
 
     def _get_default_transformation(
         self, cols: list[str], col_mapping: dict[str, ColumnMapping], schema: dict[str, Schema]
-    ):
+    ) -> list[TransformRuleMapping]:
         transform_rule_mapping = []
         for col in cols:
-            col_origin = col if self.qc.layer == "source" else self._get_column_map(col, col_mapping)
+            col_origin = col if self.qrc.get_layer() == "source" else self._get_column_map(col, col_mapping)
             col_data_type = schema.get(col_origin).data_type
-            transform = self._get_default_transformation_expr(self.qc.source, col_data_type).format(col_origin)
+            transform = self._get_default_transformation_expr(self.qrc.get_source(), col_data_type).format(col_origin)
 
-            col_origin, col_alias = self._get_column_alias(self.qc.layer, col, col_mapping)
+            col_origin, col_alias = self._get_column_alias(self.qrc.get_layer(), col, col_mapping)
 
             transform_rule_mapping.append(TransformRuleMapping(col_origin, transform, col_alias))
 
@@ -78,18 +76,18 @@ class QueryBuilder(ABC):
     def _generate_transform_rule_mapping(self, cols: list[str]) -> list[TransformRuleMapping]:
 
         # compute custom transformation
-        if self.qc.transform_dict:
-            cols_with_transform = [col for col in cols if col in self.qc.transform_dict.keys()]
+        if self.qrc.get_transform_dict():
+            cols_with_transform = [col for col in cols if col in self.qrc.get_transform_dict().keys()]
             custom_transform = self._get_custom_transformation(
-                cols_with_transform, self.qc.transform_dict, self.qc.src_col_mapping
+                cols_with_transform, self.qrc.get_transform_dict(), self.qrc.get_src_col_mapping()
             )
         else:
             custom_transform = []
 
         # compute default transformation
-        cols_without_transform = [col for col in cols if col not in self.qc.transform_dict.keys()]
+        cols_without_transform = [col for col in cols if col not in self.qrc.get_transform_dict().keys()]
         default_transform = self._get_default_transformation(
-            cols_without_transform, self.qc.src_col_mapping, self.qc.schema_dict
+            cols_without_transform, self.qrc.get_src_col_mapping(), self.qrc.get_schema_dict()
         )
 
         transform_rule_mapping = custom_transform + default_transform
@@ -109,7 +107,7 @@ class QueryBuilder(ABC):
         return col_mapping.get(col, ColumnMapping(source_name='', target_name=col)).target_name
 
     @staticmethod
-    def _get_column_alias(layer: str, col: str, col_mapping: dict[str, ColumnMapping]):
+    def _get_column_alias(layer: str, col: str, col_mapping: dict[str, ColumnMapping]) -> tuple[str, str]:
         if col_mapping and col in col_mapping.keys() and layer == "target":
             col_alias = col_mapping.get(col).source_name
             col_origin = col_mapping.get(col).target_name
@@ -122,20 +120,20 @@ class QueryBuilder(ABC):
 
 class HashQueryBuilder(QueryBuilder):
 
-    def build_query(self):
+    def build_query(self) -> str:
         hash_cols = sorted(
-            (self.qc.get_join_columns() | self.qc.get_select_columns())
-            - self.qc.get_threshold_columns()
-            - self.qc.get_drop_columns()
+            (self.qrc.get_join_columns() | self.qrc.get_select_columns())
+            - self.qrc.get_threshold_columns()
+            - self.qrc.get_drop_columns()
         )
-        key_cols = sorted(self.qc.get_join_columns() | self.qc.get_partition_column())
+        key_cols = sorted(self.qrc.get_join_columns() | self.qrc.get_partition_column())
 
         # get transformation for columns considered for hashing
         col_transform = self._generate_transform_rule_mapping(hash_cols)
         hash_cols_expr = sorted(
             self._get_column_expr(TransformRuleMapping.get_column_expr_without_alias, col_transform)
         )
-        hash_expr = self._generate_hash_algorithm(self.qc.source, hash_cols_expr)
+        hash_expr = self._generate_hash_algorithm(self.qrc.get_source(), hash_cols_expr)
 
         # get transformation for columns considered for joining and partition key
         key_col_transform = self._generate_transform_rule_mapping(key_cols)
@@ -143,7 +141,7 @@ class HashQueryBuilder(QueryBuilder):
 
         # construct select hash query
         select_query = self._construct_hash_query(
-            self.qc.get_table_name(), self.qc.get_filter(), hash_expr, key_col_expr
+            self.qrc.get_table_name(), self.qrc.get_filter(), hash_expr, key_col_expr
         )
 
         return select_query
@@ -175,25 +173,27 @@ class HashQueryBuilder(QueryBuilder):
 
 class ThresholdQueryBuilder(QueryBuilder):
 
-    def build_query(self):
-        all_columns = set(self.qc.get_threshold_columns() | self.qc.get_join_columns() | self.qc.get_partition_column())
+    def build_query(self) -> str:
+        all_columns = set(
+            self.qrc.get_threshold_columns() | self.qrc.get_join_columns() | self.qrc.get_partition_column()
+        )
 
         query_columns = sorted(
             all_columns
-            if self.qc.layer == "source"
-            else self.qc.get_mapped_columns(self.qc.src_col_mapping, all_columns)
+            if self.qrc.get_layer() == "source"
+            else self.qrc.get_mapped_columns(self.qrc.get_src_col_mapping(), all_columns)
         )
 
         transform_rule_mapping = self._get_custom_transformation(
-            query_columns, self.qc.transform_dict, self.qc.src_col_mapping
+            query_columns, self.qrc.get_transform_dict(), self.qrc.get_src_col_mapping()
         )
         col_expr = self._get_column_expr(TransformRuleMapping.get_column_expr_with_alias, transform_rule_mapping)
 
-        select_query = self._construct_threshold_query(self.qc.get_table_name(), self.qc.get_filter(), col_expr)
+        select_query = self._construct_threshold_query(self.qrc.get_table_name(), self.qrc.get_filter(), col_expr)
 
         return select_query
 
     @staticmethod
-    def _construct_threshold_query(table, query_filter, col_expr):
+    def _construct_threshold_query(table, query_filter, col_expr) -> str:
         expr = ",".join(col_expr)
         return f"select {expr} from {table} where {query_filter}"

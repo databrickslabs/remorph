@@ -9,12 +9,7 @@ class SnowflakeDataSource(DataSource):
         # Implement Snowflake-specific logic here
         return NotImplemented
 
-    def get_schema(
-        self,
-        catalog: str,
-        schema: str,
-        table: str,
-    ) -> list[Schema]:
+    def get_schema(self, catalog: str, schema: str, table: str) -> list[Schema]:
         # Implement Snowflake-specific logic here
         return NotImplemented
 
