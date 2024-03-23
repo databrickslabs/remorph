@@ -11,8 +11,7 @@ from databricks.labs.remorph.reconcile.recon_config import (  # pylint: disable=
 
 
 class SecretsProvider:
-    @staticmethod
-    def get_secret(ws: WorkspaceClient, scope: str, key: str):
+    def get_secret(self, ws: WorkspaceClient, scope: str, key: str):
         return ws.secrets.get_secret(scope, key)
 
 

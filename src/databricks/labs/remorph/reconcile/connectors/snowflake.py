@@ -35,7 +35,7 @@ class SnowflakeDataSource(DataSource):
 
     def get_schema(self, table_name: str, schema_name: str, catalog_name: str) -> list[Schema]:
         try:
-            schema_query = self._get_schema_query(table_name, schema_name, catalog_name)
+            schema_query = self.get_schema_query(table_name, schema_name, catalog_name)
             schema_df = self.reader(schema_query).load()
             return [Schema(field.column_name.lower(), field.data_type.lower()) for field in schema_df.collect()]
         except PySparkException as e:
@@ -46,21 +46,19 @@ class SnowflakeDataSource(DataSource):
             raise PySparkException(error_msg) from e
 
     def reader(self, query: str) -> DataFrame:
-        return (
-            self.spark.read.format("snowflake")
-            .option("dbtable", f"({query}) as tmp")
-            .option("sfUrl", self._get_secrets('sfUrl'))
-            .option("sfUser", self._get_secrets('sfUser'))
-            .option("sfPassword", self._get_secrets('sfPassword'))
-            .option("sfDatabase", self._get_secrets('sfDatabase'))
-            .option("sfSchema", self._get_secrets('sfSchema'))
-            .option("sfWarehouse", self._get_secrets('sfWarehouse'))
-            .option("sfRole", self._get_secrets('sfRole'))
-            .load()
-        )
+        options = {
+            "sfUrl": self._get_secrets('sfUrl'),
+            "sfUser": self._get_secrets('sfUser'),
+            "sfPassword": self._get_secrets('sfPassword'),
+            "sfDatabase": self._get_secrets('sfDatabase'),
+            "sfSchema": self._get_secrets('sfSchema'),
+            "sfWarehouse": self._get_secrets('sfWarehouse'),
+            "sfRole": self._get_secrets('sfRole'),
+        }
+        return self.spark.read.format("snowflake").option("dbtable", f"({query}) as tmp").options(**options).load()
 
     @staticmethod
-    def _get_schema_query(table_name: str, schema_name: str, catalog_name: str):
+    def get_schema_query(table_name: str, schema_name: str, catalog_name: str):
         query = f"""select column_name, case when numeric_precision is not null and numeric_scale is not null then 
         concat(data_type, '(', numeric_precision, ',' , numeric_scale, ')') when lower(data_type) = 'text' then 
         concat('varchar', '(', CHARACTER_MAXIMUM_LENGTH, ')')  else data_type end as data_type from 

@@ -12,8 +12,7 @@ from databricks.labs.remorph.reconcile.recon_config import JdbcReaderOptions, Ta
 
 
 class MockSecretsProvider(SecretsProvider):
-    @staticmethod
-    def get_secret(ws, scope, key):
+    def get_secret(self, ws, scope, key):
         return {
             'snowflake_account': 'my_account',
             'snowflake_sfUser': 'my_user',
@@ -48,10 +47,7 @@ def snowflake_data_source():
     scope = "scope"
 
     # Create a mock instance of SnowflakeDataSource
-    SnowflakeDataSource_ = SnowflakeDataSource(source, spark, ws, scope, MockSecretsProvider())
-
-    # Return the mock instance
-    return SnowflakeDataSource_
+    return SnowflakeDataSource(source, spark, ws, scope, MockSecretsProvider())
 
 
 def test_get_jdbc_url(snowflake_data_source):
@@ -110,22 +106,20 @@ def test_read_data_with_out_options(snowflake_data_source):
     # Call the read_data method with the Tables configuration
     snowflake_data_source.read_data("schema", "catalog", "select 1 from dual", table_conf)
 
-    # spark
+    # spark assertions
     spark = snowflake_data_source.spark
     spark.read.format.assert_called_with("snowflake")
     spark.read.format().option.assert_called_with("dbtable", "(select 1 from dual) as tmp")
-    spark.read.format().option().option.assert_called_with("sfUrl", "my_url")
-    spark.read.format().option().option().option.assert_called_with("sfUser", "my_user")
-    spark.read.format().option().option().option().option.assert_called_with("sfPassword", "my_password")
-    spark.read.format().option().option().option().option().option.assert_called_with("sfDatabase", "my_database")
-    spark.read.format().option().option().option().option().option().option.assert_called_with("sfSchema", "my_schema")
-    spark.read.format().option().option().option().option().option().option().option.assert_called_with(
-        "sfWarehouse", "my_warehouse"
+    spark.read.format().option().options.assert_called_with(
+        sfUrl="my_url",
+        sfUser="my_user",
+        sfPassword="my_password",
+        sfDatabase="my_database",
+        sfSchema="my_schema",
+        sfWarehouse="my_warehouse",
+        sfRole="my_role",
     )
-    spark.read.format().option().option().option().option().option().option().option().option.assert_called_with(
-        "sfRole", "my_role"
-    )
-    spark.read.format().option().option().option().option().option().option().option().option().load.assert_called_once()
+    spark.read.format().option().options().load.assert_called_once()
 
 
 def test_read_data_with_options(snowflake_data_source):
@@ -160,7 +154,7 @@ def test_read_data_with_options(snowflake_data_source):
 
     # Call the read_data method with the Tables configuration
     snowflake_data_source.read_data("schema", "catalog", "select 1 from dual", table_conf)
-    # spark
+    # spark assertions
     spark = snowflake_data_source.spark
     spark.read.format.assert_called_with("jdbc")
     spark.read.format().option.assert_called_with(
@@ -186,7 +180,7 @@ def test_get_schema(snowflake_data_source):
     """
 
     snowflake_data_source.get_schema("supplier", "schema", "catalog")
-    # spark
+    # spark assertions
     spark = snowflake_data_source.spark
     spark.read.format.assert_called_with("snowflake")
     spark.read.format().option.assert_called_with(
@@ -200,18 +194,16 @@ def test_get_schema(snowflake_data_source):
         catalog.INFORMATION_SCHEMA.COLUMNS where lower(table_name)='supplier' and lower(table_schema) = 'schema' order by ordinal_position) as tmp""",
         ),
     )
-    spark.read.format().option().option.assert_called_with("sfUrl", "my_url")
-    spark.read.format().option().option().option.assert_called_with("sfUser", "my_user")
-    spark.read.format().option().option().option().option.assert_called_with("sfPassword", "my_password")
-    spark.read.format().option().option().option().option().option.assert_called_with("sfDatabase", "my_database")
-    spark.read.format().option().option().option().option().option().option.assert_called_with("sfSchema", "my_schema")
-    spark.read.format().option().option().option().option().option().option().option.assert_called_with(
-        "sfWarehouse", "my_warehouse"
+    spark.read.format().option().options.assert_called_with(
+        sfUrl="my_url",
+        sfUser="my_user",
+        sfPassword="my_password",
+        sfDatabase="my_database",
+        sfSchema="my_schema",
+        sfWarehouse="my_warehouse",
+        sfRole="my_role",
     )
-    spark.read.format().option().option().option().option().option().option().option().option.assert_called_with(
-        "sfRole", "my_role"
-    )
-    spark.read.format().option().option().option().option().option().option().option().option().load.assert_called_once()
+    spark.read.format().option().options().load.assert_called_once()
 
 
 def test_get_schema_query(snowflake_data_source):
@@ -227,7 +219,7 @@ def test_get_schema_query(snowflake_data_source):
         AssertionError: If the returned SQL query does not match the expected format.
     """
 
-    schema = snowflake_data_source._get_schema_query("supplier", "schema", "catalog")
+    schema = snowflake_data_source.get_schema_query("supplier", "schema", "catalog")
     assert schema == re.sub(
         r'\s+',
         ' ',
