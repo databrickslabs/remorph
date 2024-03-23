@@ -15,8 +15,13 @@ lint:
 fmt:
 	hatch run fmt
 
-test:
+test: test-python test-scala
+
+test-python:
 	hatch run test
+
+test-scala:
+	mvn test -f parent/pom.xml
 
 integration:
 	hatch run integration
