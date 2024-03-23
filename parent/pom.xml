@@ -23,7 +23,7 @@
     </license>
   </licenses>
   <modules>
-    <module>core</module>
+    <module>../core</module>
   </modules>
   <scm>
     <connection>scm:git:https://github.com/databrickslabs/remorph.git</connection>
@@ -64,8 +64,8 @@
                     <failOnWarning>false</failOnWarning>
                     <sourceDirectory>${project.basedir}/src/main/scala</sourceDirectory>
                     <testSourceDirectory>${project.basedir}/src/test/scala</testSourceDirectory>
-                    <configLocation>${project.basedir}/scalastyle-config.xml</configLocation>
-                    <outputFile>${project.basedir}/target/scalastyle-output.xml</outputFile>
+                    <configLocation>${project.basedir}/../scalastyle-config.xml</configLocation>
+                    <outputFile>../target/scalastyle-output.xml</outputFile>
                     <outputEncoding>UTF-8</outputEncoding>
                 </configuration>
                 <executions>

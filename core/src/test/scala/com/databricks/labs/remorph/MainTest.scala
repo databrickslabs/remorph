@@ -1,5 +1,11 @@
 package com.databricks.labs.remorph
 
-class MainTest extends org.scalatest.FunSuite {
+import org.scalatest.funsuite.AnyFunSuite
+
+
+class MainTest extends AnyFunSuite {
+  test("...") {
+    println(1)
+  }
 
 }

@@ -6,6 +6,7 @@
     <groupId>com.databricks.labs</groupId>
     <artifactId>remorph-parent</artifactId>
     <version>0.2.0</version>
+    <relativePath>../parent</relativePath>
   </parent>
   <artifactId>remorph-core</artifactId>
   <properties>
