@@ -55,9 +55,6 @@ class Filters:
     target: str = None
 
 
-T = TypeVar("T")
-
-
 @dataclass
 class Table:
     source_name: str
@@ -71,7 +68,9 @@ class Table:
     thresholds: list[Thresholds] | None = None
     filters: Filters | None = None
 
-    def list_to_dict(self, cls: type[T], key: str) -> T:
+    Typ = TypeVar("Typ")
+
+    def list_to_dict(self, cls: type[Typ], key: str) -> Typ:
         for _, value in self.__dict__.items():
             if isinstance(value, list):
                 if all(isinstance(x, cls) for x in value):
