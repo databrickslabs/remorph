@@ -132,7 +132,7 @@ branch = true
 parallel = true
 
 [tool.coverage.report]
-omit = ["src/databricks/labs/remorph/reconcile/*",
+omit = [
   "src/databricks/labs/remorph/coverage/*",
   "src/databricks/labs/remorph/helpers/execution_time.py",
   "__about__.py"]
