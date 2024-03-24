@@ -7,7 +7,6 @@ from pyspark.sql import DataFrame, SparkSession
 from databricks.labs.remorph.reconcile.recon_config import (  # pylint: disable=ungrouped-imports
     JdbcReaderOptions,
     Schema,
-    Tables,
 )
 
 

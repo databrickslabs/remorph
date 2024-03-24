@@ -8,7 +8,7 @@ from pyspark.errors import PySparkException
 from databricks.labs.remorph.reconcile.connectors.data_source import SecretsProvider
 from databricks.labs.remorph.reconcile.connectors.snowflake import SnowflakeDataSource
 from databricks.labs.remorph.reconcile.constants import SourceDriver
-from databricks.labs.remorph.reconcile.recon_config import JdbcReaderOptions, Tables
+from databricks.labs.remorph.reconcile.recon_config import JdbcReaderOptions, Table
 
 
 class MockSecretsProvider(SecretsProvider):
@@ -90,7 +90,7 @@ def test_read_data_with_out_options(snowflake_data_source):
     """
 
     # Create a Tables configuration object with no JDBC reader options
-    table_conf = Tables(
+    table_conf = Table(
         source_name="supplier",
         target_name="supplier",
         jdbc_reader_options=None,
@@ -104,7 +104,7 @@ def test_read_data_with_out_options(snowflake_data_source):
     )
 
     # Call the read_data method with the Tables configuration
-    snowflake_data_source.read_data("schema", "catalog", "select 1 from dual", table_conf)
+    snowflake_data_source.read_data("catalog", "schema", "select 1 from dual", table_conf.jdbc_reader_options)
 
     # spark assertions
     spark = snowflake_data_source.spark
@@ -137,7 +137,7 @@ def test_read_data_with_options(snowflake_data_source):
     """
 
     # Create a Tables configuration object with JDBC reader options
-    table_conf = Tables(
+    table_conf = Table(
         source_name="supplier",
         target_name="supplier",
         jdbc_reader_options=JdbcReaderOptions(
@@ -153,7 +153,7 @@ def test_read_data_with_options(snowflake_data_source):
     )
 
     # Call the read_data method with the Tables configuration
-    snowflake_data_source.read_data("schema", "catalog", "select 1 from dual", table_conf)
+    snowflake_data_source.read_data("catalog", "schema", "select 1 from dual", table_conf.jdbc_reader_options)
     # spark assertions
     spark = snowflake_data_source.spark
     spark.read.format.assert_called_with("jdbc")
@@ -179,7 +179,7 @@ def test_get_schema(snowflake_data_source):
         snowflake_data_source (fixture): A pytest fixture that returns a mock instance of the SnowflakeDataSource class.
     """
 
-    snowflake_data_source.get_schema("supplier", "schema", "catalog")
+    snowflake_data_source.get_schema("catalog", "schema", "supplier")
     # spark assertions
     spark = snowflake_data_source.spark
     spark.read.format.assert_called_with("snowflake")
@@ -219,7 +219,7 @@ def test_get_schema_query(snowflake_data_source):
         AssertionError: If the returned SQL query does not match the expected format.
     """
 
-    schema = snowflake_data_source.get_schema_query("supplier", "schema", "catalog")
+    schema = snowflake_data_source.get_schema_query("catalog", "schema", "supplier")
     assert schema == re.sub(
         r'\s+',
         ' ',
@@ -245,7 +245,7 @@ def test_read_data_exception_handling(snowflake_data_source):
     """
 
     # Create a Tables configuration object
-    table_conf = Tables(
+    table_conf = Table(
         source_name="supplier",
         target_name="supplier",
         jdbc_reader_options=None,
@@ -263,7 +263,7 @@ def test_read_data_exception_handling(snowflake_data_source):
 
     # Call the read_data method with the Tables configuration and assert that a PySparkException is raised
     with pytest.raises(PySparkException):
-        snowflake_data_source.read_data("schema", "catalog", "select 1 from dual", table_conf)
+        snowflake_data_source.read_data("catalog", "schema", "select 1 from dual", table_conf.jdbc_reader_options)
 
 
 def test_get_schema_exception_handling(snowflake_data_source):
