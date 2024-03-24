@@ -10,15 +10,13 @@ class TransformRuleMapping:
     transformation: str
     alias_name: str
 
-    def get_column_expression_without_alias(self) -> str:
+    def get_column_expr_without_alias(self) -> str:
         if self.transformation:
             return f"{self.transformation}"
         return f"{self.column_name}"
 
-    def get_column_expression_with_alias(self) -> str:
-        if self.alias_name:
-            return f"{self.get_column_expression_without_alias()} as {self.alias_name}"
-        return f"{self.get_column_expression_without_alias()} as {self.column_name}"
+    def get_column_expr_with_alias(self) -> str:
+        return f"{self.get_column_expr_without_alias()} as {self.alias_name}"
 
 
 @dataclass
@@ -28,12 +26,6 @@ class JdbcReaderOptions:
     lower_bound: str
     upper_bound: str
     fetch_size: int = 100
-
-
-@dataclass
-class JoinColumns:
-    source_name: str
-    target_name: str | None = None
 
 
 @dataclass
@@ -64,10 +56,10 @@ class Filters:
 
 
 @dataclass
-class Tables:
+class Table:
     source_name: str
     target_name: str
-    join_columns: list[JoinColumns] | None = None
+    join_columns: list[str] | None = None
     jdbc_reader_options: JdbcReaderOptions | None = None
     select_columns: list[str] | None = None
     drop_columns: list[str] | None = None
@@ -76,9 +68,9 @@ class Tables:
     thresholds: list[Thresholds] | None = None
     filters: Filters | None = None
 
-    T = TypeVar("T")  # pylint: disable=invalid-name
+    Typ = TypeVar("Typ")
 
-    def list_to_dict(self, cls: type[T], key: str) -> T:
+    def list_to_dict(self, cls: type[Typ], key: str) -> Typ:
         for _, value in self.__dict__.items():
             if isinstance(value, list):
                 if all(isinstance(x, cls) for x in value):
@@ -91,7 +83,7 @@ class TableRecon:
     source_schema: str
     target_catalog: str
     target_schema: str
-    tables: list[Tables]
+    tables: list[Table]
     source_catalog: str | None = None
 
 
