@@ -82,7 +82,8 @@ def test_transpile_with_valid_input(mock_workspace_client):
                 skip_validation=True,
                 catalog_name=catalog_name,
                 schema_name=schema_name,
-            )
+            ),
+            mock_workspace_client,
         )
 
 
@@ -117,7 +118,8 @@ def test_transpile_empty_output_folder(mock_workspace_client):
                 skip_validation=False,
                 catalog_name=catalog_name,
                 schema_name=schema_name,
-            )
+            ),
+            mock_workspace_client,
         )
 
 

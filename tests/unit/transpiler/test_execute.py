@@ -129,7 +129,7 @@ def initial_setup(tmp_path: Path):
     return input_dir
 
 
-def test_with_dir_skip_validation(initial_setup):
+def test_with_dir_skip_validation(initial_setup, mock_workspace_client):
     input_dir = initial_setup
     config = MorphConfig(
         input_sql=str(input_dir),
@@ -140,7 +140,7 @@ def test_with_dir_skip_validation(initial_setup):
     )
 
     # call morph
-    status = morph(config)
+    status = morph(config, mock_workspace_client)
     # assert the status
     assert status is not None, "Status returned by morph function is None"
     assert isinstance(status, list), "Status returned by morph function is not a list"
@@ -184,7 +184,7 @@ def test_with_dir_skip_validation(initial_setup):
     safe_remove_file(Path(status[0]["error_log_file"]))
 
 
-def test_with_dir_with_output_folder_skip_validation(initial_setup):
+def test_with_dir_with_output_folder_skip_validation(initial_setup, mock_workspace_client):
     input_dir = initial_setup
     config = MorphConfig(
         input_sql=str(input_dir),
@@ -194,7 +194,7 @@ def test_with_dir_with_output_folder_skip_validation(initial_setup):
         skip_validation=True,
     )
 
-    status = morph(config)
+    status = morph(config, mock_workspace_client)
     # assert the status
     assert status is not None, "Status returned by morph function is None"
     assert isinstance(status, list), "Status returned by morph function is not a list"
@@ -239,7 +239,7 @@ def test_with_dir_with_output_folder_skip_validation(initial_setup):
     safe_remove_file(Path(status[0]["error_log_file"]))
 
 
-def test_with_file(initial_setup):
+def test_with_file(initial_setup, mock_workspace_client):
     input_dir = initial_setup
     sdk_config = create_autospec(Config)
     spark = create_autospec(DatabricksSession)
@@ -255,7 +255,7 @@ def test_with_file(initial_setup):
     mock_validate.validate_format_result.return_value = (""" Mock validated query """, "Mock validation error")
 
     with patch("databricks.labs.remorph.transpiler.execute.Validate", return_value=mock_validate):
-        status = morph(config)
+        status = morph(config, mock_workspace_client)
 
     # assert the status
     assert status is not None, "Status returned by morph function is None"
@@ -286,7 +286,7 @@ ValidationError(file_name='{input_dir}/query1.sql', exception='Mock validation e
     safe_remove_file(Path(status[0]["error_log_file"]))
 
 
-def test_with_file_with_output_folder_skip_validation(initial_setup):
+def test_with_file_with_output_folder_skip_validation(initial_setup, mock_workspace_client):
     input_dir = initial_setup
     config = MorphConfig(
         input_sql=str(input_dir / "query1.sql"),
@@ -296,7 +296,7 @@ def test_with_file_with_output_folder_skip_validation(initial_setup):
         skip_validation=True,
     )
 
-    status = morph(config)
+    status = morph(config, mock_workspace_client)
 
     # assert the status
     assert status is not None, "Status returned by morph function is None"
@@ -316,7 +316,7 @@ def test_with_file_with_output_folder_skip_validation(initial_setup):
     safe_remove_dir(input_dir)
 
 
-def test_with_not_a_sql_file_skip_validation(initial_setup):
+def test_with_not_a_sql_file_skip_validation(initial_setup, mock_workspace_client):
     input_dir = initial_setup
     config = MorphConfig(
         input_sql=str(input_dir / "file.txt"),
@@ -326,7 +326,7 @@ def test_with_not_a_sql_file_skip_validation(initial_setup):
         skip_validation=True,
     )
 
-    status = morph(config)
+    status = morph(config, mock_workspace_client)
 
     # assert the status
     assert status is not None, "Status returned by morph function is None"
@@ -346,7 +346,7 @@ def test_with_not_a_sql_file_skip_validation(initial_setup):
     safe_remove_dir(input_dir)
 
 
-def test_with_not_existing_file_skip_validation(initial_setup):
+def test_with_not_existing_file_skip_validation(initial_setup, mock_workspace_client):
     input_dir = initial_setup
     config = MorphConfig(
         input_sql=str(input_dir / "file_not_exist.txt"),
@@ -356,7 +356,7 @@ def test_with_not_existing_file_skip_validation(initial_setup):
         skip_validation=True,
     )
     with pytest.raises(FileNotFoundError):
-        morph(config)
+        morph(config, mock_workspace_client)
 
     # cleanup
     safe_remove_dir(input_dir)

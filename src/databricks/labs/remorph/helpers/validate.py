@@ -42,6 +42,7 @@ class Validate:
         """
         logger.debug(f"Validation query with catalog {config.catalog_name} and schema {config.schema_name}")
         sql_backend = self._get_sql_backend(config)
+        logger.info(f"SQL Backend used for validation: {type(sql_backend).__name__}")
         (flag, exception) = self.query(sql_backend, input_sql)
         if flag:
             result = input_sql + "\n;\n"

@@ -53,7 +53,7 @@ def transpile(
         sdk_config=w.config,
     )
 
-    status = morph(config)
+    status = morph(config, w)
 
     print(json.dumps(status))
 
