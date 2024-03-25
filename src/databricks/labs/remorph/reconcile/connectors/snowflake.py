@@ -13,10 +13,10 @@ class SnowflakeDataSource(DataSource):
     @property
     def get_jdbc_url(self) -> str:
         return (
-            f"jdbc:{self.source}://{self.get_secrets('account')}.snowflakecomputing.com"
-            f"/?user={self.get_secrets('sfUser')}&password={self.get_secrets('sfPassword')}"
-            f"&db={self.get_secrets('sfDatabase')}&schema={self.get_secrets('sfSchema')}"
-            f"&warehouse={self.get_secrets('sfWarehouse')}&role={self.get_secrets('sfRole')}"
+            f"jdbc:{self.source}://{self._get_secrets('account')}.snowflakecomputing.com"
+            f"/?user={self._get_secrets('sfUser')}&password={self._get_secrets('sfPassword')}"
+            f"&db={self._get_secrets('sfDatabase')}&schema={self._get_secrets('sfSchema')}"
+            f"&warehouse={self._get_secrets('sfWarehouse')}&role={self._get_secrets('sfRole')}"
         )
 
     def read_data(self, catalog: str, schema: str, query: str, options: JdbcReaderOptions) -> DataFrame:
@@ -54,13 +54,13 @@ class SnowflakeDataSource(DataSource):
 
     def reader(self, query: str) -> DataFrame:
         options = {
-            "sfUrl": self.get_secrets('sfUrl'),
-            "sfUser": self.get_secrets('sfUser'),
-            "sfPassword": self.get_secrets('sfPassword'),
-            "sfDatabase": self.get_secrets('sfDatabase'),
-            "sfSchema": self.get_secrets('sfSchema'),
-            "sfWarehouse": self.get_secrets('sfWarehouse'),
-            "sfRole": self.get_secrets('sfRole'),
+            "sfUrl": self._get_secrets('sfUrl'),
+            "sfUser": self._get_secrets('sfUser'),
+            "sfPassword": self._get_secrets('sfPassword'),
+            "sfDatabase": self._get_secrets('sfDatabase'),
+            "sfSchema": self._get_secrets('sfSchema'),
+            "sfWarehouse": self._get_secrets('sfWarehouse'),
+            "sfRole": self._get_secrets('sfRole'),
         }
         return self.spark.read.format("snowflake").option("dbtable", f"({query}) as tmp").options(**options).load()
 

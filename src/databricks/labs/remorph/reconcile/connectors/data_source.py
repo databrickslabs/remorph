@@ -51,7 +51,7 @@ class DataSource(ABC):
             "fetchsize": options.fetch_size,
         }
 
-    def get_secrets(self, key_name: str):
+    def _get_secrets(self, key_name: str):
         key = self.source + '_' + key_name
         return self.ws.secrets.get_secret(self.scope, key)
 
