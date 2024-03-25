@@ -576,7 +576,7 @@ def test_monthname(dialect_context):
     validate_source_transpile, _ = dialect_context
     # Test case to validate `monthname` parsing of timestamp column
     validate_source_transpile(
-        """SELECT DATE_FORMAT(TO_TIMESTAMP('2015-04-03 10:00:00', 'yyyy-MM-dd HH:mm:ss'), 'MMM') AS MONTH""",
+        """SELECT DATE_FORMAT(cast('2015-04-03 10:00:00' as timestamp), 'MMM') AS MONTH""",
         source={
             "snowflake": """SELECT MONTHNAME(TO_TIMESTAMP('2015-04-03 10:00:00')) AS MONTH;""",
         },
@@ -2183,7 +2183,7 @@ def test_to_timestamp(dialect_context):
     validate_source_transpile, _ = dialect_context
     # Test case to validate `to_timestamp` conversion of column
     validate_source_transpile(
-        "SELECT CAST(col1 AS TIMESTAMP) AS to_timestamp_col1 FROM tabl",
+        "SELECT to_timestamp(col1) AS to_timestamp_col1 FROM tabl",
         source={
             "snowflake": "SELECT to_timestamp(col1) AS to_timestamp_col1 FROM tabl;",
         },
@@ -2947,7 +2947,7 @@ def test_dayname(dialect_context):
     validate_source_transpile, _ = dialect_context
     # Test case to validate `dayname` parsing of timestamp column
     validate_source_transpile(
-        """SELECT DATE_FORMAT(TO_TIMESTAMP('2015-04-03 10:00:00', 'yyyy-MM-dd HH:mm:ss'), 'E') AS MONTH""",
+        """SELECT DATE_FORMAT(cast('2015-04-03 10:00:00' as timestamp), 'E') AS MONTH""",
         source={
             "snowflake": """SELECT DAYNAME(TO_TIMESTAMP('2015-04-03 10:00:00')) AS MONTH;""",
         },
@@ -3315,5 +3315,22 @@ def test_delete_from_keyword(dialect_context):
         "MERGE INTO  TABLE1 using table2 on table1.id = table2.id when matched then delete;",
         source={
             "snowflake": "DELETE FROM Table1 USING table2 WHERE table1.id = table2.id;",
+        },
+    )
+
+
+def test_nested_query_with_json(dialect_context):
+    validate_source_transpile, _ = dialect_context
+    validate_source_transpile(
+        """SELECT a.col1, a.col2, b.col3, b.col4 FROM (SELECT col1, col2 FROM table1) AS a, 
+        (SELECT CAST(value.price AS DOUBLE) AS col3, col4 
+        FROM (SELECT * FROM table2) AS k) AS b WHERE a.col1 = b.col4""",
+        source={
+            "snowflake": """SELECT A.COL1, A.COL2, B.COL3, B.COL4 FROM 
+                            (SELECT COL1, COL2 FROM TABLE1) A, 
+                            (SELECT VALUE:PRICE::FLOAT AS COL3, COL4 FROM 
+                            (SELECT * FROM TABLE2 ) AS K
+                            ) B 
+                            WHERE A.COL1 = B.COL4;""",
         },
     )
