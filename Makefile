@@ -12,11 +12,21 @@ dev:
 lint:
 	hatch run verify
 
-fmt:
+fmt: fmt-python fmt-scala
+
+fmt-python:
 	hatch run fmt
 
-test:
+fmt-scala:
+	mvn -f parent/pom.xml scalafmt:format
+
+test: test-python test-scala
+
+test-python:
 	hatch run test
+
+test-scala:
+	mvn test -f parent/pom.xml
 
 integration:
 	hatch run integration
