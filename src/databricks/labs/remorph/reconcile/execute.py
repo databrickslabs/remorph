@@ -4,7 +4,7 @@ from pathlib import Path
 from databricks.labs.blueprint.installation import Installation
 
 from databricks.labs.remorph.reconcile.connectors.data_source import DataSource
-from databricks.labs.remorph.reconcile.recon_config import TableRecon, Tables
+from databricks.labs.remorph.reconcile.recon_config import Table, TableRecon
 
 logger = logging.getLogger(__name__)
 
@@ -27,10 +27,10 @@ class Reconciliation:
         self.source = source
         self.target = target
 
-    def compare_schemas(self, table_conf: Tables, schema_name: str, catalog_name: str) -> bool:
+    def compare_schemas(self, table_conf: Table, schema_name: str, catalog_name: str) -> bool:
         raise NotImplementedError
 
-    def compare_data(self, table_conf: Tables, schema_name: str, catalog_name: str) -> bool:
+    def compare_data(self, table_conf: Table, schema_name: str, catalog_name: str) -> bool:
         raise NotImplementedError
 
 
