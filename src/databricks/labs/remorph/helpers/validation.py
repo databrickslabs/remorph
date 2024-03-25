@@ -15,16 +15,32 @@ from databricks.labs.remorph.config import MorphConfig
 logger = logging.getLogger(__name__)
 
 
-class Validate:
+def get_sql_backend(ws: WorkspaceClient, config: MorphConfig) -> SqlBackend:
+    sdk_config = ws.config
+    warehouse_id = isinstance(sdk_config.warehouse_id, str) and sdk_config.warehouse_id
+    catalog_name = config.catalog_name
+    schema_name = config.schema_name
+    if warehouse_id:
+        sql_backend = StatementExecutionBackend(ws, warehouse_id, catalog=catalog_name, schema=schema_name)
+    else:
+        sql_backend = DatabricksConnectBackend(ws)
+        try:
+            sql_backend.execute(f"use catalog {catalog_name}")
+            sql_backend.execute(f"use {schema_name}")
+        except DatabricksError as dbe:
+            logger.error(f"Catalog or Schema could not be selected: {dbe}")
+            raise dbe
+    logger.info(f"SQL Backend used for validation: {type(sql_backend).__name__}")
+    return sql_backend
+
+
+class Validator:
     """
-    The Validate class is used to validate SQL queries.
+    The Validator class is used to validate SQL queries.
     """
 
-    def __init__(self, ws: WorkspaceClient):
-        """
-        Initialize the Validate class with WorkspaceClient.
-        """
-        self._ws = ws
+    def __init__(self, sql_backend: SqlBackend):
+        self._sql_backend = sql_backend
 
     def validate_format_result(self, config: MorphConfig, input_sql: str):
         """
@@ -41,9 +57,7 @@ class Validate:
         - tuple: A tuple containing the result of the validation and the exception message (if any).
         """
         logger.debug(f"Validation query with catalog {config.catalog_name} and schema {config.schema_name}")
-        sql_backend = self._get_sql_backend(config)
-        logger.info(f"SQL Backend used for validation: {type(sql_backend).__name__}")
-        (flag, exception) = self.query(sql_backend, input_sql)
+        (flag, exception) = self.query(self._sql_backend, input_sql)
         if flag:
             result = input_sql + "\n;\n"
             exception = None
@@ -63,9 +77,9 @@ class Validate:
 
         return result, exception
 
-    def query(self, sql_backend: SqlBackend, query: str):
+    def query(self, sql_backend: SqlBackend, query: str) -> tuple[bool, str | None]:
         """
-        Validate a given SQL query using the Spark session.
+        Validate a given SQL query using the provided SQL backend
 
         Parameters:
         - query (str): The SQL query to be validated.
@@ -78,43 +92,28 @@ class Validate:
         # When variables is mentioned Explain fails we need way to replace them before explain is executed.
         explain_query = f'EXPLAIN {query.replace("${", "`{").replace("}", "}`").replace("``", "`")}'
         try:
-            sql_backend.execute(explain_query)
+            rows = list(sql_backend.fetch(explain_query))
+            if not rows:
+                return False, "No results returned from explain query."
+
+            if "Error occurred during query planning" in rows[0].as_dict().get("plan", ""):
+                error_details = rows[1].as_dict().get("plan", "Unknown error.") if len(rows) > 1 else "Unknown error."
+                raise DatabricksError(error_details)
             return True, None
         except DatabricksError as dbe:
             err_msg = str(dbe)
             if "[PARSE_SYNTAX_ERROR]" in err_msg:
                 logger.debug(f"Syntax Exception : NOT IGNORED. Flag as syntax error: {err_msg}")
                 return False, err_msg
-            if "[TABLE_OR_VIEW_NOT_FOUND]" in err_msg:
-                logger.debug(f"Analysis Exception : IGNORED: {err_msg}")
-                return True, err_msg
-            if "[TABLE_OR_VIEW_ALREADY_EXISTS]" in err_msg:
-                logger.debug(f"Analysis Exception : IGNORED: {err_msg}")
-                return True, err_msg
             if "[UNRESOLVED_ROUTINE]" in err_msg:
                 logger.debug(f"Analysis Exception : NOT IGNORED: Flag as Function Missing error {err_msg}")
                 return False, err_msg
-
+            if "[TABLE_OR_VIEW_NOT_FOUND]" in err_msg or "[TABLE_OR_VIEW_ALREADY_EXISTS]" in err_msg:
+                logger.debug(f"Analysis Exception : IGNORED: {err_msg}")
+                return True, err_msg
             if "Hive support is required to CREATE Hive TABLE (AS SELECT).;" in err_msg:
                 logger.debug(f"Analysis Exception : IGNORED: {err_msg}")
                 return True, err_msg
 
             logger.debug(f"Unknown Exception: {err_msg}")
             return False, err_msg
-
-    def _get_sql_backend(self, config: MorphConfig) -> SqlBackend:
-        sdk_config = self._ws.config
-        warehouse_id = isinstance(sdk_config.warehouse_id, str) and sdk_config.warehouse_id
-        catalog_name = config.catalog_name
-        schema_name = config.schema_name
-        if warehouse_id:
-            sql_backend = StatementExecutionBackend(self._ws, warehouse_id, catalog=catalog_name, schema=schema_name)
-        else:
-            sql_backend = DatabricksConnectBackend(self._ws)
-            try:
-                sql_backend.execute(f"use catalog {catalog_name}")
-                sql_backend.execute(f"use {schema_name}")
-            except DatabricksError as dbe:
-                logger.error(f"Catalog or Schema could not be selected: {dbe}")
-                raise dbe
-        return sql_backend
