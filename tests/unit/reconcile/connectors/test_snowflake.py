@@ -167,6 +167,7 @@ def test_get_schema():
 
     # create object for SnowflakeDataSource
     ds = SnowflakeDataSource(source, spark, ws, scope)
+    # call test method
     ds.get_schema("catalog", "schema", "supplier")
     # spark assertions
     spark.read.format.assert_called_with("snowflake")
