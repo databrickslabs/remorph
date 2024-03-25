@@ -1,6 +1,10 @@
 import pytest
 
-from databricks.labs.remorph.reconcile.query_builder import QueryBuilder
+from databricks.labs.remorph.reconcile.query_builder import (
+    HashQueryBuilder,
+    ThresholdQueryBuilder,
+)
+from databricks.labs.remorph.reconcile.query_config import QueryConfig
 from databricks.labs.remorph.reconcile.recon_config import (
     ColumnMapping,
     Filters,
@@ -35,7 +39,8 @@ def test_hash_query_builder_without_join_column():
         Schema("s_comment", "varchar"),
     ]
 
-    actual_src_query = QueryBuilder(table_conf, src_schema, "source", "oracle").build_hash_query()
+    src_qrc = QueryConfig(table_conf, src_schema, "source", "oracle")
+    actual_src_query = HashQueryBuilder(src_qrc).build_query()
     expected_src_query = (
         "select lower(RAWTOHEX(STANDARD_HASH(coalesce(trim(s_acctbal),'') || "
         "coalesce(trim(s_address),'') || coalesce(trim(s_comment),'') || "
@@ -56,7 +61,8 @@ def test_hash_query_builder_without_join_column():
         Schema("s_comment", "varchar"),
     ]
 
-    actual_tgt_query = QueryBuilder(table_conf, tgt_schema, "target", "databricks").build_hash_query()
+    tgt_qrc = QueryConfig(table_conf, tgt_schema, "target", "databricks")
+    actual_tgt_query = HashQueryBuilder(tgt_qrc).build_query()
     expected_tgt_query = (
         "select sha2(concat(coalesce(trim(s_acctbal),''), "
         "coalesce(trim(s_address),''), coalesce(trim(s_comment),''), "
@@ -91,7 +97,8 @@ def test_hash_query_builder_with_defaults():
         Schema("s_comment", "varchar"),
     ]
 
-    actual_src_query = QueryBuilder(table_conf, src_schema, "source", "oracle").build_hash_query()
+    src_qrc = QueryConfig(table_conf, src_schema, "source", "oracle")
+    actual_src_query = HashQueryBuilder(src_qrc).build_query()
     expected_src_query = (
         "select lower(RAWTOHEX(STANDARD_HASH(coalesce(trim(s_acctbal),'') || "
         "coalesce(trim(s_address),'') || coalesce(trim(s_comment),'') || "
@@ -112,7 +119,8 @@ def test_hash_query_builder_with_defaults():
         Schema("s_comment", "varchar"),
     ]
 
-    actual_tgt_query = QueryBuilder(table_conf, tgt_schema, "target", "databricks").build_hash_query()
+    tgt_qrc = QueryConfig(table_conf, tgt_schema, "target", "databricks")
+    actual_tgt_query = HashQueryBuilder(tgt_qrc).build_query()
     expected_tgt_query = (
         "select sha2(concat(coalesce(trim(s_acctbal),''), "
         "coalesce(trim(s_address),''), coalesce(trim(s_comment),''), "
@@ -150,7 +158,8 @@ def test_hash_query_builder_with_select():
         Schema("s_comment", "varchar"),
     ]
 
-    actual_src_query = QueryBuilder(table_conf, src_schema, "source", "oracle").build_hash_query()
+    src_qrc = QueryConfig(table_conf, src_schema, "source", "oracle")
+    actual_src_query = HashQueryBuilder(src_qrc).build_query()
     expected_src_query = (
         "select lower(RAWTOHEX(STANDARD_HASH(coalesce(trim(s_address),'') || "
         "coalesce(trim(s_name),'') || coalesce(trim(s_suppkey),''), 'SHA256'))) as "
@@ -169,7 +178,8 @@ def test_hash_query_builder_with_select():
         Schema("s_comment_t", "varchar"),
     ]
 
-    actual_tgt_query = QueryBuilder(table_conf, tgt_schema, "target", "databricks").build_hash_query()
+    tgt_qrc = QueryConfig(table_conf, tgt_schema, "target", "databricks")
+    actual_tgt_query = HashQueryBuilder(tgt_qrc).build_query()
     expected_tgt_query = (
         "select sha2(concat(coalesce(trim(s_address_t),''), "
         "coalesce(trim(s_name),''), coalesce(trim(s_suppkey_t),'')),256) as "
@@ -219,7 +229,8 @@ def test_hash_query_builder_with_transformations_with_drop_and_default_select():
         Schema("s_comment", "varchar"),
     ]
 
-    actual_src_query = QueryBuilder(table_conf, src_schema, "source", "oracle").build_hash_query()
+    src_qrc = QueryConfig(table_conf, src_schema, "source", "oracle")
+    actual_src_query = HashQueryBuilder(src_qrc).build_query()
     expected_src_query = (
         "select lower(RAWTOHEX(STANDARD_HASH(coalesce(trim(s_nationkey),'') || "
         "coalesce(trim(s_suppkey),'') || trim(s_address) || trim(s_name) || "
@@ -239,7 +250,8 @@ def test_hash_query_builder_with_transformations_with_drop_and_default_select():
         Schema("s_comment_t", "varchar"),
     ]
 
-    actual_tgt_query = QueryBuilder(table_conf, tgt_schema, "target", "databricks").build_hash_query()
+    tgt_qrc = QueryConfig(table_conf, tgt_schema, "target", "databricks")
+    actual_tgt_query = HashQueryBuilder(tgt_qrc).build_query()
     expected_tgt_query = (
         "select sha2(concat(cast(s_acctbal_t as decimal(38,2)), "
         "coalesce(trim(s_nationkey_t),''), coalesce(trim(s_suppkey_t),''), "
@@ -278,7 +290,8 @@ def test_hash_query_builder_with_jdbc_reader_options():
         Schema("s_comment", "varchar"),
     ]
 
-    actual_src_query = QueryBuilder(table_conf, src_schema, "source", "oracle").build_hash_query()
+    src_qrc = QueryConfig(table_conf, src_schema, "source", "oracle")
+    actual_src_query = HashQueryBuilder(src_qrc).build_query()
     expected_src_query = (
         "select lower(RAWTOHEX(STANDARD_HASH(coalesce(trim(s_address),'') || "
         "coalesce(trim(s_name),'') || coalesce(trim(s_suppkey),''), 'SHA256'))) as "
@@ -299,7 +312,8 @@ def test_hash_query_builder_with_jdbc_reader_options():
         Schema("s_comment_t", "varchar"),
     ]
 
-    actual_tgt_query = QueryBuilder(table_conf, tgt_schema, "target", "databricks").build_hash_query()
+    tgt_qrc = QueryConfig(table_conf, tgt_schema, "target", "databricks")
+    actual_tgt_query = HashQueryBuilder(tgt_qrc).build_query()
     expected_tgt_query = (
         "select sha2(concat(coalesce(trim(s_address_t),''), "
         "coalesce(trim(s_name),''), coalesce(trim(s_suppkey_t),'')),256) as "
@@ -342,7 +356,8 @@ def test_hash_query_builder_with_threshold():
         Schema("s_comment", "varchar"),
     ]
 
-    actual_src_query = QueryBuilder(table_conf, src_schema, "source", "oracle").build_hash_query()
+    src_qrc = QueryConfig(table_conf, src_schema, "source", "oracle")
+    actual_src_query = HashQueryBuilder(src_qrc).build_query()
     expected_src_query = (
         "select lower(RAWTOHEX(STANDARD_HASH(coalesce(trim(s_comment),'') || "
         "coalesce(trim(s_nationkey),'') || coalesce(trim(s_suppkey),'') || "
@@ -363,7 +378,8 @@ def test_hash_query_builder_with_threshold():
         Schema("s_comment", "varchar"),
     ]
 
-    actual_tgt_query = QueryBuilder(table_conf, tgt_schema, "target", "databricks").build_hash_query()
+    tgt_qrc = QueryConfig(table_conf, tgt_schema, "target", "databricks")
+    actual_tgt_query = HashQueryBuilder(tgt_qrc).build_query()
     expected_tgt_query = (
         "select sha2(concat(coalesce(trim(s_comment),''), "
         "coalesce(trim(s_nationkey),''), coalesce(trim(s_suppkey_t),''), "
@@ -400,7 +416,8 @@ def test_hash_query_builder_with_filters():
         Schema("s_comment", "varchar"),
     ]
 
-    actual_src_query = QueryBuilder(table_conf, src_schema, "source", "snowflake").build_hash_query()
+    src_qrc = QueryConfig(table_conf, src_schema, "source", "snowflake")
+    actual_src_query = HashQueryBuilder(src_qrc).build_query()
     expected_src_query = (
         "select sha2(concat(coalesce(trim(s_address),''), coalesce(trim(s_name),''), "
         "coalesce(trim(s_suppkey),'')),256) as hash_value__recon, "
@@ -419,7 +436,8 @@ def test_hash_query_builder_with_filters():
         Schema("s_comment_t", "varchar"),
     ]
 
-    actual_tgt_query = QueryBuilder(table_conf, tgt_schema, "target", "databricks").build_hash_query()
+    tgt_qrc = QueryConfig(table_conf, tgt_schema, "target", "databricks")
+    actual_tgt_query = HashQueryBuilder(tgt_qrc).build_query()
     expected_tgt_query = (
         "select sha2(concat(coalesce(trim(s_address_t),''), "
         "coalesce(trim(s_name),''), coalesce(trim(s_suppkey_t),'')),256) as "
@@ -453,10 +471,11 @@ def test_hash_query_builder_with_unsupported_source():
         Schema("s_comment", "varchar"),
     ]
 
-    query_builder = QueryBuilder(table_conf, src_schema, "source", "abc")
+    src_qrc = QueryConfig(table_conf, src_schema, "source", "abc")
+    query_builder = HashQueryBuilder(src_qrc)
 
     with pytest.raises(Exception) as exc_info:
-        query_builder.build_hash_query()
+        query_builder.build_query()
 
     assert str(exc_info.value) == "Unsupported source type --> abc"
 
@@ -484,9 +503,10 @@ def test_threshold_query_builder_with_defaults():
         Schema("s_comment", "varchar"),
     ]
 
-    actual_src_query = QueryBuilder(table_conf, src_schema, "source", "oracle").build_threshold_query()
+    src_qrc = QueryConfig(table_conf, src_schema, "source", "oracle")
+    actual_src_query = ThresholdQueryBuilder(src_qrc).build_query()
     expected_src_query = (
-        'select s_acctbal as s_acctbal,s_suppkey as s_suppkey  from {schema_name}.supplier where  1 = 1 '
+        'select s_acctbal as s_acctbal,s_suppkey as s_suppkey from {schema_name}.supplier where  1 = 1 '
     )
     assert actual_src_query == expected_src_query
 
@@ -500,9 +520,10 @@ def test_threshold_query_builder_with_defaults():
         Schema("s_comment", "varchar"),
     ]
 
-    actual_tgt_query = QueryBuilder(table_conf, tgt_schema, "target", "databricks").build_threshold_query()
+    tgt_qrc = QueryConfig(table_conf, tgt_schema, "target", "databricks")
+    actual_tgt_query = ThresholdQueryBuilder(tgt_qrc).build_query()
     expected_tgt_query = (
-        'select s_acctbal as s_acctbal,s_suppkey as s_suppkey  from {catalog_name}.{schema_name}.supplier where  1 = 1 '
+        'select s_acctbal as s_acctbal,s_suppkey as s_suppkey from {catalog_name}.{schema_name}.supplier where  1 = 1 '
     )
     assert actual_tgt_query == expected_tgt_query
 
@@ -554,10 +575,11 @@ def test_threshold_query_builder_with_transformations_and_jdbc():
         Schema("s_suppdate", "timestamp"),
     ]
 
-    actual_src_query = QueryBuilder(table_conf, src_schema, "source", "oracle").build_threshold_query()
+    src_qrc = QueryConfig(table_conf, src_schema, "source", "oracle")
+    actual_src_query = ThresholdQueryBuilder(src_qrc).build_query()
     expected_src_query = (
         "select trim(to_char(s_acctbal, '9999999999.99')) as s_acctbal,s_nationkey "
-        "as s_nationkey,s_suppdate as s_suppdate,trim(s_suppkey) as s_suppkey  from "
+        "as s_nationkey,s_suppdate as s_suppdate,trim(s_suppkey) as s_suppkey from "
         "{schema_name}.supplier where  1 = 1 "
     )
     assert actual_src_query == expected_src_query
@@ -573,10 +595,11 @@ def test_threshold_query_builder_with_transformations_and_jdbc():
         Schema("s_suppdate_t", "timestamp"),
     ]
 
-    actual_tgt_query = QueryBuilder(table_conf, tgt_schema, "target", "databricks").build_threshold_query()
+    tgt_qrc = QueryConfig(table_conf, tgt_schema, "target", "databricks")
+    actual_tgt_query = ThresholdQueryBuilder(tgt_qrc).build_query()
     expected_tgt_query = (
         "select cast(s_acctbal_t as decimal(38,2)) as s_acctbal,s_suppdate_t as "
-        "s_suppdate,trim(s_suppkey_t) as s_suppkey  from {catalog_name}.{schema_name}.supplier where  1 = 1 "
+        "s_suppdate,trim(s_suppkey_t) as s_suppkey from {catalog_name}.{schema_name}.supplier where  1 = 1 "
     )
 
     assert actual_tgt_query == expected_tgt_query

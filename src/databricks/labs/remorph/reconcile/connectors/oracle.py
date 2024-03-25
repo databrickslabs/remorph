@@ -16,37 +16,27 @@ class OracleDataSource(DataSource):
             f":{self._get_secrets('port')}/{self._get_secrets('database')}"
         )
 
-    def read_data(
-        self, catalog_name: str, schema_name: str, query: str, jdbc_reader_options: JdbcReaderOptions
-    ) -> DataFrame:
+    def read_data(self, catalog: str, schema: str, query: str, options: JdbcReaderOptions) -> DataFrame:
         try:
-            table_query = self._get_table_or_query(catalog_name, schema_name, query)
-            if jdbc_reader_options is None:
+            table_query = self._get_table_or_query(catalog, schema, query)
+            if options is None:
                 return self.reader(table_query).options(**self._get_timestamp_options()).load()
-            return (
-                self.reader(table_query)
-                .options(**self._get_jdbc_reader_options(jdbc_reader_options) | self._get_timestamp_options())
-                .load()
-            )
+            options = self._get_jdbc_reader_options(options) | self._get_timestamp_options()
+            return self.reader(table_query).options(**options).load()
         except PySparkException as e:
             error_msg = (
                 f"An error occurred while fetching Oracle Data using the following {query} in OracleDataSource : {e!s}"
             )
             raise PySparkException(error_msg) from e
 
-    def get_schema(
-        self,
-        catalog_name: str,
-        schema_name: str,
-        table_name: str,
-    ) -> list[Schema]:
+    def get_schema(self, catalog: str, schema: str, table: str) -> list[Schema]:
         try:
-            schema_query = self._get_schema_query(table_name, schema_name)
+            schema_query = self._get_schema_query(table, schema)
             schema_df = self.reader(schema_query).load()
             return [Schema(field.column_name.lower(), field.data_type.lower()) for field in schema_df.collect()]
         except PySparkException as e:
             error_msg = (
-                f"An error occurred while fetching Oracle Schema using the following {table_name} in "
+                f"An error occurred while fetching Oracle Schema using the following {table} in "
                 f"OracleDataSource: {e!s}"
             )
             raise PySparkException(error_msg) from e
@@ -68,7 +58,7 @@ class OracleDataSource(DataSource):
         return self._get_jdbc_reader(query, self.get_jdbc_url, SourceDriver.ORACLE.value)
 
     @staticmethod
-    def _get_schema_query(table_name: str, owner: str) -> str:
+    def _get_schema_query(table: str, owner: str) -> str:
         return f"""select column_name, case when (data_precision is not null
                                               and data_scale <> 0)
                                               then data_type || '(' || data_precision || ',' || data_scale || ')'
@@ -80,4 +70,4 @@ class OracleDataSource(DataSource):
                                               else data_type || '(' || CHAR_LENGTH || ')'
                                               end data_type
                                               FROM ALL_TAB_COLUMNS
-                            WHERE lower(TABLE_NAME) = '{table_name}' and lower(owner) = '{owner}' """
+                            WHERE lower(TABLE_NAME) = '{table}' and lower(owner) = '{owner}' """

@@ -5,18 +5,11 @@ from databricks.labs.remorph.reconcile.recon_config import JdbcReaderOptions, Sc
 
 
 class SnowflakeDataSource(DataSource):
-    def read_data(
-        self, catalog_name: str, schema_name: str, query: str, jdbc_reader_options: JdbcReaderOptions
-    ) -> DataFrame:
+    def read_data(self, catalog: str, schema: str, query: str, options: JdbcReaderOptions) -> DataFrame:
         # Implement Snowflake-specific logic here
         return NotImplemented
 
-    def get_schema(
-        self,
-        catalog_name: str,
-        schema_name: str,
-        table_name: str,
-    ) -> list[Schema]:
+    def get_schema(self, catalog: str, schema: str, table: str) -> list[Schema]:
         # Implement Snowflake-specific logic here
         return NotImplemented
 

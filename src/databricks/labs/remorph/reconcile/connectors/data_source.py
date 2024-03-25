@@ -20,18 +20,11 @@ class DataSource(ABC):
         self.scope = scope
 
     @abstractmethod
-    def read_data(
-        self, catalog_name: str, schema_name: str, query: str, jdbc_reader_options: JdbcReaderOptions
-    ) -> DataFrame:
+    def read_data(self, catalog: str, schema: str, query: str, options: JdbcReaderOptions) -> DataFrame:
         return NotImplemented
 
     @abstractmethod
-    def get_schema(
-        self,
-        catalog_name: str,
-        schema_name: str,
-        table_name: str,
-    ) -> list[Schema]:
+    def get_schema(self, catalog: str, schema: str, table: str) -> list[Schema]:
         return NotImplemented
 
     def _get_jdbc_reader(self, query, jdbc_url, driver):
@@ -43,27 +36,22 @@ class DataSource(ABC):
         )
 
     @staticmethod
-    def _get_jdbc_reader_options(jdbc_reader_options: JdbcReaderOptions):
+    def _get_jdbc_reader_options(options: JdbcReaderOptions):
         return {
-            "numPartitions": jdbc_reader_options.number_partitions,
-            "partitionColumn": jdbc_reader_options.partition_column,
-            "lowerBound": jdbc_reader_options.lower_bound,
-            "upperBound": jdbc_reader_options.upper_bound,
-            "fetchsize": jdbc_reader_options.fetch_size,
+            "numPartitions": options.number_partitions,
+            "partitionColumn": options.partition_column,
+            "lowerBound": options.lower_bound,
+            "upperBound": options.upper_bound,
+            "fetchsize": options.fetch_size,
         }
 
-    def _get_secrets(self, key_name):
-        key = self.source + '_' + key_name
-        return self.ws.secrets.get_secret(self.scope, key)
+    def _get_secrets(self, key):
+        return self.ws.secrets.get_secret(self.scope, self.source + '_' + key)
 
     @staticmethod
-    def _get_table_or_query(
-        catalog_name: str,
-        schema_name: str,
-        query: str,
-    ):
+    def _get_table_or_query(catalog: str, schema: str, query: str) -> str:
         if re.search('select', query, re.IGNORECASE):
-            return query.format(catalog_name=catalog_name, schema_name=schema_name)
-        if catalog_name:
-            return catalog_name + "." + schema_name + "." + query
-        return schema_name + "." + query
+            return query.format(catalog_name=catalog, schema_name=schema)
+        if catalog:
+            return catalog + "." + schema + "." + query
+        return schema + "." + query
