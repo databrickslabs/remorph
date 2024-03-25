@@ -1,3 +1,4 @@
+from abc import ABC, abstractmethod
 from io import StringIO
 
 from databricks.labs.remorph.reconcile.connectors.databricks import DatabricksDataSource
@@ -8,165 +9,185 @@ from databricks.labs.remorph.reconcile.constants import (
     Constants,
     SourceType,
 )
+from databricks.labs.remorph.reconcile.query_config import QueryConfig
 from databricks.labs.remorph.reconcile.recon_config import (
     ColumnMapping,
     Schema,
-    Tables,
     Transformation,
     TransformRuleMapping,
 )
 
 
-class QueryBuilder:
+class QueryBuilder(ABC):
 
-    def __init__(self, table_conf: Tables, schema: list[Schema], layer: str, source: str):
-        self.table_conf = table_conf
-        self.schema = schema
-        self.layer = layer
-        self.source = source
+    def __init__(self, qrc: QueryConfig):
+        self.qrc = qrc
 
-    def build_hash_query(self) -> str:
-        schema_info = {v.column_name: v for v in self.schema}
+    @abstractmethod
+    def build_query(self):
+        raise NotImplementedError
 
-        columns, key_columns = self._get_column_list()
-        col_transformations = self._generate_transformation_rule_mapping(columns, schema_info)
-
-        hash_columns_expr = self._get_column_expr(
-            TransformRuleMapping.get_column_expression_without_alias, col_transformations
-        )
-        hash_expr = self._generate_hash_algorithm(self.source, hash_columns_expr)
-
-        key_column_transformation = self._generate_transformation_rule_mapping(key_columns, schema_info)
-        key_column_expr = self._get_column_expr(
-            TransformRuleMapping.get_column_expression_with_alias, key_column_transformation
-        )
-
-        if self.layer == "source":
-            table_name = self.table_conf.source_name
-            query_filter = self.table_conf.filters.source if self.table_conf.filters else " 1 = 1 "
-        else:
-            table_name = self.table_conf.target_name
-            query_filter = self.table_conf.filters.target if self.table_conf.filters else " 1 = 1 "
-
-        # construct select query
-        select_query = self._construct_hash_query(table_name, query_filter, hash_expr, key_column_expr)
-
-        return select_query
-
-    def _get_column_list(self) -> tuple[list[str], list[str]]:
-        column_mapping = self.table_conf.list_to_dict(ColumnMapping, "source_name")
-
-        if self.table_conf.join_columns is None:
-            join_columns = set()
-        elif self.layer == "source":
-            join_columns = {col.source_name for col in self.table_conf.join_columns}
-        else:
-            join_columns = {col.target_name for col in self.table_conf.join_columns}
-
-        if self.table_conf.select_columns is None:
-            select_columns = {sch.column_name for sch in self.schema}
-        else:
-            select_columns = self._get_mapped_columns(self.layer, column_mapping, self.table_conf.select_columns)
-
-        if self.table_conf.jdbc_reader_options and self.layer == "source":
-            partition_column = {self.table_conf.jdbc_reader_options.partition_column}
-        else:
-            partition_column = set()
-
-        # Combine all column names
-        all_columns = join_columns | select_columns
-
-        # Remove threshold and drop columns
-        threshold_columns = {thresh.column_name for thresh in self.table_conf.thresholds or []}
-        if self.table_conf.drop_columns is None:
-            drop_columns = set()
-        else:
-            drop_columns = self._get_mapped_columns(self.layer, column_mapping, self.table_conf.drop_columns)
-
-        columns = sorted(all_columns - threshold_columns - drop_columns)
-        key_columns = sorted(join_columns | partition_column)
-
-        return columns, key_columns
-
-    def _generate_transformation_rule_mapping(self, columns: list[str], schema: dict) -> list[TransformRuleMapping]:
-        transformations_dict = self.table_conf.list_to_dict(Transformation, "column_name")
-        column_mapping_dict = self.table_conf.list_to_dict(ColumnMapping, "target_name")
-
-        transformation_rule_mapping = []
-        for column in columns:
-            if column_mapping_dict and self.layer == "target":
-                transform_column = (
-                    column_mapping_dict.get(column).source_name if column_mapping_dict.get(column) else column
-                )
+    def _get_custom_transformation(
+        self, cols: list[str], transform_dict: dict[str, Transformation], col_mapping: dict[str, ColumnMapping]
+    ) -> list[TransformRuleMapping]:
+        transform_rule_mapping = []
+        for col in cols:
+            if col in transform_dict.keys():
+                transform = self._get_layer_transform(transform_dict, col, self.qrc.layer)
             else:
-                transform_column = column
+                transform = None
 
-            if transformations_dict and transform_column in transformations_dict.keys():
-                transformation = self._get_layer_transform(transformations_dict, transform_column, self.layer)
-            else:
-                column_data_type = schema.get(column).data_type
-                transformation = self._get_default_transformation(self.source, column_data_type).format(column)
+            col_origin, col_alias = self._get_column_alias(self.qrc.layer, col, col_mapping)
 
-            if column_mapping_dict and column in column_mapping_dict.keys():
-                column_alias = column_mapping_dict.get(column).source_name
-            else:
-                column_alias = column
+            transform_rule_mapping.append(TransformRuleMapping(col_origin, transform, col_alias))
 
-            transformation_rule_mapping.append(TransformRuleMapping(column, transformation, column_alias))
+        return transform_rule_mapping
 
-        return transformation_rule_mapping
+    def _get_default_transformation(
+        self, cols: list[str], col_mapping: dict[str, ColumnMapping], schema: dict[str, Schema]
+    ) -> list[TransformRuleMapping]:
+        transform_rule_mapping = []
+        for col in cols:
+            col_origin = col if self.qrc.layer == "source" else self._get_column_map(col, col_mapping)
+            col_data_type = schema.get(col_origin).data_type
+            transform = self._get_default_transformation_expr(self.qrc.source, col_data_type).format(col_origin)
+
+            col_origin, col_alias = self._get_column_alias(self.qrc.layer, col, col_mapping)
+
+            transform_rule_mapping.append(TransformRuleMapping(col_origin, transform, col_alias))
+
+        return transform_rule_mapping
 
     @staticmethod
-    def _get_default_transformation(data_source: str, data_type: str) -> str:
-        if data_source == "oracle":
+    def _get_default_transformation_expr(data_source: str, data_type: str) -> str:
+        if data_source == SourceType.ORACLE.value:
             return OracleDataSource.oracle_datatype_mapper.get(data_type, ColumnTransformationType.ORACLE_DEFAULT.value)
-        if data_source == "snowflake":
+        if data_source == SourceType.SNOWFLAKE.value:
             return SnowflakeDataSource.snowflake_datatype_mapper.get(
                 data_type, ColumnTransformationType.SNOWFLAKE_DEFAULT.value
             )
-        if data_source == "databricks":
+        if data_source == SourceType.DATABRICKS.value:
             return DatabricksDataSource.databricks_datatype_mapper.get(
                 data_type, ColumnTransformationType.DATABRICKS_DEFAULT.value
             )
         msg = f"Unsupported source type --> {data_source}"
         raise ValueError(msg)
 
-    @staticmethod
-    def _get_layer_transform(transform_dict: dict[str, Transformation], column: str, layer: str) -> str:
-        return transform_dict.get(column).source if layer == "source" else transform_dict.get(column).target
+    def _generate_transform_rule_mapping(self, cols: list[str]) -> list[TransformRuleMapping]:
 
-    @staticmethod
-    def _get_column_expr(func, column_transformations: list[TransformRuleMapping]):
-        return [func(transformation) for transformation in column_transformations]
-
-    @staticmethod
-    def _generate_hash_algorithm(source: str, column_expr: list[str]) -> str:
-        if source in {SourceType.DATABRICKS.value, SourceType.SNOWFLAKE.value}:
-            hash_expr = "concat(" + ", ".join(column_expr) + ")"
+        # compute custom transformation
+        if self.qrc.transform_dict:
+            cols_with_transform = [col for col in cols if col in self.qrc.transform_dict.keys()]
+            custom_transform = self._get_custom_transformation(
+                cols_with_transform, self.qrc.transform_dict, self.qrc.src_col_mapping
+            )
         else:
-            hash_expr = " || ".join(column_expr)
+            custom_transform = []
 
-        return (Constants.hash_algorithm_mapping.get(source.lower()).get("source")).format(hash_expr)
+        # compute default transformation
+        cols_without_transform = [col for col in cols if col not in self.qrc.transform_dict.keys()]
+        default_transform = self._get_default_transformation(
+            cols_without_transform, self.qrc.src_col_mapping, self.qrc.schema_dict
+        )
+
+        transform_rule_mapping = custom_transform + default_transform
+
+        return transform_rule_mapping
 
     @staticmethod
-    def _construct_hash_query(table_name: str, query_filter: str, hash_expr: str, key_column_expr: list[str]) -> str:
+    def _get_layer_transform(transform_dict: dict[str, Transformation], col: str, layer: str) -> str:
+        return transform_dict.get(col).source if layer == "source" else transform_dict.get(col).target
+
+    @staticmethod
+    def _get_column_expr(func, col_transform: list[TransformRuleMapping]):
+        return [func(transform) for transform in col_transform]
+
+    @staticmethod
+    def _get_column_map(col, col_mapping: dict[str, ColumnMapping]) -> str:
+        return col_mapping.get(col, ColumnMapping(source_name='', target_name=col)).target_name
+
+    @staticmethod
+    def _get_column_alias(layer: str, col: str, col_mapping: dict[str, ColumnMapping]) -> tuple[str, str]:
+        if col_mapping and col in col_mapping.keys() and layer == "target":
+            col_alias = col_mapping.get(col).source_name
+            col_origin = col_mapping.get(col).target_name
+        else:
+            col_alias = col
+            col_origin = col
+
+        return col_origin, col_alias
+
+
+class HashQueryBuilder(QueryBuilder):
+
+    def build_query(self) -> str:
+        hash_cols = sorted(
+            (self.qrc.join_columns | self.qrc.select_columns) - self.qrc.threshold_columns - self.qrc.drop_columns
+        )
+        key_cols = sorted(self.qrc.join_columns | self.qrc.partition_column)
+
+        # get transformation for columns considered for hashing
+        col_transform = self._generate_transform_rule_mapping(hash_cols)
+        hash_cols_expr = sorted(
+            self._get_column_expr(TransformRuleMapping.get_column_expr_without_alias, col_transform)
+        )
+        hash_expr = self._generate_hash_algorithm(self.qrc.source, hash_cols_expr)
+
+        # get transformation for columns considered for joining and partition key
+        key_col_transform = self._generate_transform_rule_mapping(key_cols)
+        key_col_expr = sorted(self._get_column_expr(TransformRuleMapping.get_column_expr_with_alias, key_col_transform))
+
+        # construct select hash query
+        select_query = self._construct_hash_query(self.qrc.table_name, self.qrc.filter, hash_expr, key_col_expr)
+
+        return select_query
+
+    @staticmethod
+    def _generate_hash_algorithm(source: str, col_expr: list[str]) -> str:
+        if source in {SourceType.DATABRICKS.value, SourceType.SNOWFLAKE.value}:
+            hash_expr = "concat(" + ", ".join(col_expr) + ")"
+        else:
+            hash_expr = " || ".join(col_expr)
+
+        return (Constants.hash_algorithm_mapping.get(source).get("source")).format(hash_expr)
+
+    @staticmethod
+    def _construct_hash_query(table: str, query_filter: str, hash_expr: str, key_col_expr: list[str]) -> str:
         sql_query = StringIO()
+        # construct hash expr
         sql_query.write(f"select {hash_expr} as {Constants.hash_column_name}")
 
         # add join column
-        if key_column_expr:
-            sql_query.write(", " + ",".join(key_column_expr))
-        sql_query.write(f" from {table_name} where {query_filter}")
+        if key_col_expr:
+            sql_query.write(", " + ",".join(key_col_expr))
+        sql_query.write(f" from {table} where {query_filter}")
 
         select_query = sql_query.getvalue()
         sql_query.close()
         return select_query
 
+
+class ThresholdQueryBuilder(QueryBuilder):
+
+    def build_query(self) -> str:
+        all_columns = set(self.qrc.threshold_columns | self.qrc.join_columns | self.qrc.partition_column)
+
+        query_columns = sorted(
+            all_columns
+            if self.qrc.layer == "source"
+            else self.qrc.get_mapped_columns(self.qrc.src_col_mapping, all_columns)
+        )
+
+        transform_rule_mapping = self._get_custom_transformation(
+            query_columns, self.qrc.transform_dict, self.qrc.src_col_mapping
+        )
+        col_expr = self._get_column_expr(TransformRuleMapping.get_column_expr_with_alias, transform_rule_mapping)
+
+        select_query = self._construct_threshold_query(self.qrc.table_name, self.qrc.filter, col_expr)
+
+        return select_query
+
     @staticmethod
-    def _get_mapped_columns(layer: str, column_mapping: dict, columns: list[str]) -> set[str]:
-        if layer == "source":
-            return set(columns)
-        select_columns = set()
-        for column in columns:
-            select_columns.add(column_mapping.get(column).target_name if column_mapping.get(column) else column)
-        return select_columns
+    def _construct_threshold_query(table, query_filter, col_expr) -> str:
+        expr = ",".join(col_expr)
+        return f"select {expr} from {table} where {query_filter}"
