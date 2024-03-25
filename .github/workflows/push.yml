@@ -72,7 +72,7 @@ jobs:
           NEW_CODE=$(git diff origin/main..$(git branch --show-current) | grep -e '^+')
           CHEAT=$(echo "${NEW_CODE}" | grep '# pylint: disable')
           CHEAT_COUNT=$(echo "${CHEAT}" | wc -c)
-          if [ "${CHEAT_COUNT}" -ge 1 ]; then
+          if [ "${CHEAT_COUNT}" -gt 1 ]; then
             echo "Do not cheat the linter: ${CHEAT}"
             exit 1
           fi
