@@ -11,9 +11,9 @@ class OracleDataSource(DataSource):
     @property
     def get_jdbc_url(self) -> str:
         return (
-            f"jdbc:{self.source}:thin:{self._get_secrets('user')}"
-            f"/{self._get_secrets('password')}@//{self._get_secrets('host')}"
-            f":{self._get_secrets('port')}/{self._get_secrets('database')}"
+            f"jdbc:{self.source}:thin:{self.get_secrets('user')}"
+            f"/{self.get_secrets('password')}@//{self.get_secrets('host')}"
+            f":{self.get_secrets('port')}/{self.get_secrets('database')}"
         )
 
     def read_data(self, catalog: str, schema: str, query: str, options: JdbcReaderOptions) -> DataFrame:

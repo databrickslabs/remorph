@@ -10,11 +10,6 @@ from databricks.labs.remorph.reconcile.recon_config import (  # pylint: disable=
 )
 
 
-class SecretsProvider:
-    def get_secret(self, ws: WorkspaceClient, scope: str, key: str):
-        return ws.secrets.get_secret(scope, key)
-
-
 class DataSource(ABC):
 
     # TODO need to remove connection_params
@@ -24,13 +19,11 @@ class DataSource(ABC):
         spark: SparkSession,
         ws: WorkspaceClient,
         scope: str,
-        secrets_provider: SecretsProvider = SecretsProvider,
     ):
         self.source = source
         self.spark = spark
         self.ws = ws
         self.scope = scope
-        self.secrets_provider = secrets_provider
 
     @abstractmethod
     def read_data(self, catalog: str, schema: str, query: str, options: JdbcReaderOptions) -> DataFrame:
@@ -58,9 +51,9 @@ class DataSource(ABC):
             "fetchsize": options.fetch_size,
         }
 
-    def _get_secrets(self, key_name: str):
+    def get_secrets(self, key_name: str):
         key = self.source + '_' + key_name
-        return self.secrets_provider.get_secret(self.ws, self.scope, key)
+        return self.ws.secrets.get_secret(self.scope, key)
 
     @staticmethod
     def _get_table_or_query(catalog: str, schema: str, query: str) -> str:
