@@ -138,9 +138,9 @@ def test_lateral_struct(dialect_context):
         },
     )
     validate_source_transpile(
-        databricks_sql="""SELECT tt.id, FROM_JSON(tt.details, {TT.DETAILS_SCHEMA}) FROM prod.public.table AS tt
-             LATERAL VIEW EXPLODE(FROM_JSON(FROM_JSON(tt.resp)[items])) AS lit
-             LATERAL VIEW EXPLODE(FROM_JSON(lit.value["details"])) AS ltd""",
+        databricks_sql="""SELECT tt.id, FROM_JSON(tt.details, {TT.DETAILS_SCHEMA}) FROM prod.public.table AS tt 
+        LATERAL VIEW EXPLODE(FROM_JSON(FROM_JSON(tt.resp, {TT.RESP_SCHEMA}).items, {JSON_COLUMN_SCHEMA})) AS lit
+        LATERAL VIEW EXPLODE(FROM_JSON(lit.value.details, {JSON_COLUMN_SCHEMA})) AS ltd""",
         source={
             "snowflake": """
                 SELECT
@@ -151,6 +151,7 @@ def test_lateral_struct(dialect_context):
                 ,  LATERAL FLATTEN (input=> parse_json(lit.value:"details")) AS ltd;""",
         },
     )
+
     validate_source_transpile(
         "SELECT level_1_key.level_2_key['1'] FROM demo1",
         source={
@@ -1328,7 +1329,7 @@ def test_object_construct(dialect_context):
         },
     )
     validate_source_transpile(
-        "SELECT STRUCT(FROM_JSON('NULL', {NULL_SCHEMA}) AS Key_One, NULL AS Key_Two, 'null' AS Key_Three) AS obj",
+        "SELECT STRUCT(FROM_JSON('NULL', {json_column_schema}) AS Key_One, NULL AS Key_Two, 'null' AS Key_Three) AS obj",
         source={
             "snowflake": "SELECT OBJECT_CONSTRUCT('Key_One', PARSE_JSON('NULL'), 'Key_Two', "
             "NULL, 'Key_Three', 'null') as obj;",
