@@ -49,7 +49,7 @@ dependencies = [
   "black>=23.1.0",
   "ruff>=0.0.243",
   "isort>=2.5.0",
-  "databricks-connect",
+  "databricks-connect"
 ]
 
 [tool.hatch.envs.default.scripts]
@@ -132,8 +132,7 @@ branch = true
 parallel = true
 
 [tool.coverage.report]
-omit = [
-  "src/databricks/labs/remorph/coverage/*",
+omit = ["src/databricks/labs/remorph/coverage/*",
   "src/databricks/labs/remorph/helpers/execution_time.py",
   "__about__.py"]
 exclude_lines = [
