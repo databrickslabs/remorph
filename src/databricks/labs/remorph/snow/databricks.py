@@ -100,7 +100,7 @@ def _lateral_view(self, expression: exp.Lateral) -> str:
                 str_pfx = str_pfx.replace("{", "").replace("}", "")
 
         for expr in explode_expr.expressions:
-            node = str(expr.this).upper()
+            node = str(expr.this).upper() # pylint: disable=unsubscriptable-object
             if node == "PATH":
                 str_pfx = str_pfx + "." + self.sql(expr, 'expression').replace("'", "")
             if node == "OUTER":
