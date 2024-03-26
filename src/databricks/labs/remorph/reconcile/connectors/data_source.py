@@ -60,5 +60,5 @@ class DataSource(ABC):
         if re.search('select', query, re.IGNORECASE):
             return query.format(catalog_name=catalog, schema_name=schema)
         if catalog:
-            return catalog + "." + schema + "." + query
-        return schema + "." + query
+            return f"select * from {catalog}.{schema}.{query}"
+        return f"select * from {schema}.{query}"
