@@ -4,9 +4,9 @@
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>com.databricks.labs</groupId>
-    <artifactId>remorph-parent</artifactId>
+    <artifactId>remorph</artifactId>
     <version>0.2.0</version>
-    <relativePath>../parent</relativePath>
+    <relativePath>..</relativePath>
   </parent>
   <artifactId>remorph-core</artifactId>
   <properties>
