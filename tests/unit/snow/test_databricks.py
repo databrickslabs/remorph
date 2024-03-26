@@ -138,9 +138,9 @@ def test_lateral_struct(dialect_context):
         },
     )
     validate_source_transpile(
-        databricks_sql="""SELECT tt.id, FROM_JSON(tt.details, {TT.DETAILS_SCHEMA}) FROM prod.public.table AS tt
-             LATERAL VIEW EXPLODE(FROM_JSON(FROM_JSON(tt.resp)[items])) AS lit
-             LATERAL VIEW EXPLODE(FROM_JSON(lit.value["details"])) AS ltd""",
+        databricks_sql="""SELECT tt.id, FROM_JSON(tt.details, {TT.DETAILS_SCHEMA}) FROM prod.public.table AS tt 
+        LATERAL VIEW EXPLODE(FROM_JSON(FROM_JSON(tt.resp, {TT.RESP_SCHEMA}).items, {JSON_COLUMN_SCHEMA})) AS lit
+        LATERAL VIEW EXPLODE(FROM_JSON(lit.value.details, {JSON_COLUMN_SCHEMA})) AS ltd""",
         source={
             "snowflake": """
                 SELECT
@@ -151,6 +151,7 @@ def test_lateral_struct(dialect_context):
                 ,  LATERAL FLATTEN (input=> parse_json(lit.value:"details")) AS ltd;""",
         },
     )
+
     validate_source_transpile(
         "SELECT level_1_key.level_2_key['1'] FROM demo1",
         source={
@@ -583,14 +584,14 @@ def test_monthname(dialect_context):
     )
     # Test case to validate `monthname` parsing of date column
     validate_source_transpile(
-        """SELECT DATE_FORMAT(TO_DATE('2015-05-01'), 'MMM') AS MONTH""",
+        """SELECT DATE_FORMAT(cast('2015-05-01' as date), 'MMM') AS MONTH""",
         source={
             "snowflake": """SELECT MONTHNAME(TO_DATE('2015-05-01')) AS MONTH;""",
         },
     )
     # Test case to validate `monthname` parsing of date column
     validate_source_transpile(
-        """SELECT DATE_FORMAT(TO_DATE('2020-01-01'), 'MMM') AS MONTH""",
+        """SELECT DATE_FORMAT(cast('2020-01-01' as date), 'MMM') AS MONTH""",
         source={
             "snowflake": """SELECT MONTH_NAME(TO_DATE('2020-01-01')) AS MONTH;""",
         },
@@ -1328,7 +1329,7 @@ def test_object_construct(dialect_context):
         },
     )
     validate_source_transpile(
-        "SELECT STRUCT(FROM_JSON('NULL', {NULL_SCHEMA}) AS Key_One, NULL AS Key_Two, 'null' AS Key_Three) AS obj",
+        "SELECT STRUCT(FROM_JSON('NULL', {json_column_schema}) AS Key_One, NULL AS Key_Two, 'null' AS Key_Three) AS obj",
         source={
             "snowflake": "SELECT OBJECT_CONSTRUCT('Key_One', PARSE_JSON('NULL'), 'Key_Two', "
             "NULL, 'Key_Three', 'null') as obj;",
@@ -2296,9 +2297,9 @@ def test_mod(dialect_context):
     validate_source_transpile, _ = dialect_context
     # Test case to validate `mod` conversion of column
     validate_source_transpile(
-        "SELECT MOD(col1) AS mod_col1 FROM tabl",
+        "SELECT MOD(col1, col2) AS mod_col1 FROM tabl",
         source={
-            "snowflake": "SELECT mod(col1) AS mod_col1 FROM tabl;",
+            "snowflake": "SELECT mod(col1, col2) AS mod_col1 FROM tabl;",
         },
     )
 
@@ -2954,7 +2955,7 @@ def test_dayname(dialect_context):
     )
     # Test case to validate `dayname` parsing of date column
     validate_source_transpile(
-        """SELECT DATE_FORMAT(TO_DATE('2015-05-01'), 'E') AS MONTH""",
+        """SELECT DATE_FORMAT(cast('2015-05-01' as date), 'E') AS MONTH""",
         source={
             "snowflake": """SELECT DAYNAME(TO_DATE('2015-05-01')) AS MONTH;""",
         },
@@ -3315,5 +3316,22 @@ def test_delete_from_keyword(dialect_context):
         "MERGE INTO  TABLE1 using table2 on table1.id = table2.id when matched then delete;",
         source={
             "snowflake": "DELETE FROM Table1 USING table2 WHERE table1.id = table2.id;",
+        },
+    )
+
+
+def test_nested_query_with_json(dialect_context):
+    validate_source_transpile, _ = dialect_context
+    validate_source_transpile(
+        """SELECT a.col1, a.col2, b.col3, b.col4 FROM (SELECT col1, col2 FROM table1) AS a, 
+        (SELECT CAST(value.price AS DOUBLE) AS col3, col4 
+        FROM (SELECT * FROM table2) AS k) AS b WHERE a.col1 = b.col4""",
+        source={
+            "snowflake": """SELECT A.COL1, A.COL2, B.COL3, B.COL4 FROM 
+                            (SELECT COL1, COL2 FROM TABLE1) A, 
+                            (SELECT VALUE:PRICE::FLOAT AS COL3, COL4 FROM 
+                            (SELECT * FROM TABLE2 ) AS K
+                            ) B 
+                            WHERE A.COL1 = B.COL4;""",
         },
     )
