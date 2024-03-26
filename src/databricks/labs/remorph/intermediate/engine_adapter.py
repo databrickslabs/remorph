@@ -23,3 +23,8 @@ class EngineAdapter:
         for root_table, child in parser.parse_sql_content(sql_content, file_name):
             dag.add_node(child)
             dag.add_edge(root_table, child)
+
+    def table_column_mapping(self, sql: str, file_name: str | Path, engine: str) -> dict:
+        parser = self.select_engine(engine)
+        table_column_mapping = parser.find_column_table_mapping(sql, file_name)
+        return table_column_mapping
