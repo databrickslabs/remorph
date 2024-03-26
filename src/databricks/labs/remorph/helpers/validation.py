@@ -56,28 +56,28 @@ class Validator:
         Returns:
         - tuple: A tuple containing the result of the validation and the exception message (if any).
         """
-        logger.debug(f"Validation query with catalog {config.catalog_name} and schema {config.schema_name}")
-        (flag, exception) = self.query(self._sql_backend, input_sql)
-        if flag:
+        logger.debug(f"Validating query with catalog {config.catalog_name} and schema {config.schema_name}")
+        (is_valid, exception_msg) = self._query(self._sql_backend, input_sql)
+        if is_valid:
             result = input_sql + "\n;\n"
-            exception = None
+            exception_msg = None
         else:
             query = ""
-            if "[UNRESOLVED_ROUTINE]" in exception:
+            if "[UNRESOLVED_ROUTINE]" in exception_msg:
                 query = input_sql
             buffer = StringIO()
             buffer.write("-------------- Exception Start-------------------\n")
             buffer.write("/* \n")
-            buffer.write(exception)
+            buffer.write(exception_msg)
             buffer.write("\n */ \n")
             buffer.write(query)
             buffer.write("\n ---------------Exception End --------------------\n")
 
             result = buffer.getvalue()
 
-        return result, exception
+        return result, exception_msg
 
-    def query(self, sql_backend: SqlBackend, query: str) -> tuple[bool, str | None]:
+    def _query(self, sql_backend: SqlBackend, query: str) -> tuple[bool, str | None]:
         """
         Validate a given SQL query using the provided SQL backend
 

@@ -8,7 +8,7 @@ from databricks.sdk.errors.base import DatabricksError
 from databricks.labs.remorph.helpers.validation import Validator, get_sql_backend
 
 
-def test_valid_query():
+def test_valid_query(morph_config):
     query = "SELECT * FROM a_table"
     sql_backend = MockBackend(
         rows={
@@ -16,12 +16,12 @@ def test_valid_query():
         }
     )
     validator = Validator(sql_backend)
-    result, exception = validator.query(sql_backend, query)
-    assert result is True
+    result, exception = validator.validate_format_result(morph_config, query)
+    assert query in result
     assert exception is None
 
 
-def test_query_with_syntax_error():
+def test_query_with_syntax_error(morph_config):
     query = "SELECT * a_table"
     sql_backend = MockBackend(
         fails_on_first={
@@ -29,12 +29,12 @@ def test_query_with_syntax_error():
         }
     )
     validator = Validator(sql_backend)
-    result, exception = validator.query(sql_backend, query)
-    assert result is False
+    result, exception = validator.validate_format_result(morph_config, query)
+    assert "Exception Start" in result
     assert "Syntax error" in exception
 
 
-def test_query_with_analysis_error():
+def test_query_with_analysis_error(morph_config):
     error_types = [
         ("[TABLE_OR_VIEW_NOT_FOUND]", True),
         ("[TABLE_OR_VIEW_ALREADY_EXISTS]", True),
@@ -43,7 +43,7 @@ def test_query_with_analysis_error():
         ("Some other analysis error", False),
     ]
 
-    for err, status in error_types:
+    for err, should_succeed in error_types:
         query = "SELECT * FROM a_table"
         sql_backend = MockBackend(
             fails_on_first={
@@ -51,9 +51,12 @@ def test_query_with_analysis_error():
             }
         )
         validator = Validator(sql_backend)
-        result, exception = validator.query(sql_backend, query)
-        assert result is status
-        assert err in exception
+        result, exception = validator.validate_format_result(morph_config, query)
+        if should_succeed:
+            assert query in result
+            assert exception is None
+        else:
+            assert err in exception
 
 
 def test_validate_format_result_with_valid_query(morph_config):
