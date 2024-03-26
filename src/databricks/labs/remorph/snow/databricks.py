@@ -86,37 +86,28 @@ def _lateral_view(self, expression: exp.Lateral) -> str:
     str_pfx = f"{str_lateral_view} {str_explode}"
     str_alias = ")"
 
-    for expr, _, _ in expression.walk(bfs=True, prune=lambda *_: False):
-        match expr:
-            case exp.Explode():
-                if expr.key.upper() != "EXPLODE":
-                    continue
-                for node, _, _ in expr.walk(bfs=True, prune=lambda *_: False):
-                    if not isinstance(node, exp.Kwarg):
-                        continue
-                    if not isinstance(node.this, exp.Var):
-                        continue
+    this = expression.args['this']
+    alias = expression.args['alias']
+    # [TODO]: Implement for options: RECURSIVE and MODE
+    # view = expression.args['view']
+    # outer = expression.args['outer']
+    # cross_apply = expression.args['cross_apply']
+    if isinstance(this, exp.Explode):
+        explode_expr = this
+        if isinstance(explode_expr.this, exp.Kwarg):
+            str_pfx = str_pfx + self.sql(explode_expr.this, 'expression')
+            if not isinstance(explode_expr.this.expression, exp.ParseJSON):
+                str_pfx = str_pfx.replace("{", "").replace("}", "")
 
-                    node_name = str(node.this).upper()
-                    match node_name:
-                        case "INPUT":
-                            # Added if block to handle Dynamic variables `${}`
-                            node_expr = f"{node.expression}".replace("@", "$")
-                            if "PARSE_JSON" in node_expr:
-                                node_expr = node_expr.replace("PARSE_JSON", "FROM_JSON")
-                                msg = (
-                                    f"***Warning***: you need to explicitly specify "
-                                    f"`SCHEMA` for column(s) in `{node_expr}`"
-                                )
-                                logger.warning(msg)
-                            str_pfx = str_pfx + node_expr
-                        case "PATH":
-                            str_pfx = str_pfx + f".{node.expression}".replace("'", "").replace('"', "`")
-                        case "OUTER":
-                            str_pfx = str_pfx.replace(str_lateral_view, f"{str_lateral_view} {str_outer}")
-                            # [TODO]: Implement for options: RECURSIVE and MODE
-            case exp.TableAlias():
-                str_alias = str_alias + f" AS {expr.name}"
+        for expr in explode_expr.expressions:
+            node = str(expr.this).upper()
+            if node == "PATH":
+                str_pfx = str_pfx + "." + self.sql(expr, 'expression').replace("'", "")
+            if node == "OUTER":
+                str_pfx = str_pfx.replace(str_lateral_view, f"{str_lateral_view} {str_outer}")
+
+        if isinstance(alias, exp.TableAlias):
+            str_alias = str_alias + f" AS {alias.name}"
 
     return self.sql(str_pfx + str_alias)
 
@@ -239,7 +230,8 @@ def _parse_json(self, expr: exp.ParseJSON):
     Need to explicitly specify the Schema {<COL_NAME>_SCHEMA} in the current execution environment
     """
     expr_this = self.sql(expr, "this")
-    column = expr_this.replace("'", "").upper()
+    # use column name as prefix or use JSON_COLUMN_SCHEMA when the expression is nested
+    column = expr_this.replace("'", "").upper() if isinstance(expr.this, exp.Column) else "JSON_COLUMN"
     conv_expr = self.func("FROM_JSON", expr_this, f"{{{column}_SCHEMA}}")
     warning_msg = (
         f"***Warning***: you need to explicitly specify `SCHEMA` for `{column}` column in expression: `{conv_expr}`"
@@ -377,6 +369,7 @@ class Databricks(Databricks):  #
             local_expression.DateTrunc: _parse_date_trunc,
             exp.ApproxQuantile: rename_func("APPROX_PERCENTILE"),
             exp.TimestampTrunc: timestamptrunc_sql,
+            exp.Mod: rename_func("MOD"),
         }
 
         def join_sql(self, expression: exp.Join) -> str:
