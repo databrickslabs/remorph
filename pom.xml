@@ -1,20 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-     xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.databricks.labs</groupId>
-  <artifactId>remorph-parent</artifactId>
+  <artifactId>remorph</artifactId>
   <version>0.2.0</version>
   <packaging>pom</packaging>
   <name>Databricks Labs Remorph</name>
   <description>Remorph stands as a comprehensive toolkit meticulously crafted to
-      facilitate seamless migrations to Databricks. This suite of tools is dedicated
-      to simplifying and optimizing the entire migration process, offering two distinctive
-      functionalities – Transpile and Reconcile. Whether you are navigating code translation
-      or resolving potential conflicts, Remorph ensures a smooth journey for any migration
-      project. With Remorph as your trusted ally, the migration experience becomes not only
-      efficient but also well-managed, setting the stage for a successful transition to
-      the Databricks platform</description>
+    facilitate seamless migrations to Databricks. This suite of tools is dedicated
+    to simplifying and optimizing the entire migration process, offering two distinctive
+    functionalities – Transpile and Reconcile. Whether you are navigating code translation
+    or resolving potential conflicts, Remorph ensures a smooth journey for any migration
+    project. With Remorph as your trusted ally, the migration experience becomes not only
+    efficient but also well-managed, setting the stage for a successful transition to
+    the Databricks platform</description>
   <url>https://github.com/databrickslabs/remorph</url>
   <licenses>
     <license>
@@ -23,7 +23,8 @@
     </license>
   </licenses>
   <modules>
-    <module>../core</module>
+    <module>core</module>
+    <module>py</module>
   </modules>
   <scm>
     <connection>scm:git:https://github.com/databrickslabs/remorph.git</connection>
@@ -51,30 +52,6 @@
   </properties>
   <build>
     <plugins>
-      <plugin>
-        <groupId>org.scalastyle</groupId>
-        <artifactId>scalastyle-maven-plugin</artifactId>
-        <version>1.0.0</version>
-        <configuration>
-          <verbose>false</verbose>
-          <failOnViolation>true</failOnViolation>
-          <includeTestSourceDirectory>true</includeTestSourceDirectory>
-          <failOnWarning>false</failOnWarning>
-          <sourceDirectory>${project.basedir}/src/main/scala</sourceDirectory>
-          <testSourceDirectory>${project.basedir}/src/test/scala</testSourceDirectory>
-          <configLocation>${project.basedir}/../scalastyle-config.xml</configLocation>
-          <outputFile>../target/scalastyle-output.xml</outputFile>
-          <outputEncoding>UTF-8</outputEncoding>
-        </configuration>
-        <executions>
-          <execution>
-            <goals>
-              <goal>check</goal>
-            </goals>
-            <phase>test</phase>
-          </execution>
-        </executions>
-      </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-assembly-plugin</artifactId>
@@ -134,6 +111,30 @@
           </execution>
         </executions>
       </plugin>
+<!--      <plugin>-->
+<!--        <groupId>org.scalastyle</groupId>-->
+<!--        <artifactId>scalastyle-maven-plugin</artifactId>-->
+<!--        <version>1.0.0</version>-->
+<!--        <configuration>-->
+<!--          <verbose>false</verbose>-->
+<!--          <failOnViolation>true</failOnViolation>-->
+<!--          <includeTestSourceDirectory>true</includeTestSourceDirectory>-->
+<!--          <failOnWarning>false</failOnWarning>-->
+<!--          <sourceDirectory>${project.basedir}/src/main/scala</sourceDirectory>-->
+<!--          <testSourceDirectory>${project.basedir}/src/test/scala</testSourceDirectory>-->
+<!--          <configLocation>${project.basedir}/scalastyle-config.xml</configLocation>-->
+<!--          <outputFile>../target/scalastyle-output.xml</outputFile>-->
+<!--          <outputEncoding>UTF-8</outputEncoding>-->
+<!--        </configuration>-->
+<!--        <executions>-->
+<!--          <execution>-->
+<!--            <goals>-->
+<!--              <goal>check</goal>-->
+<!--            </goals>-->
+<!--            <phase>test</phase>-->
+<!--          </execution>-->
+<!--        </executions>-->
+<!--      </plugin>-->
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>build-helper-maven-plugin</artifactId>
@@ -222,22 +223,22 @@
           </pom>
         </configuration>
       </plugin>
-      <plugin>
-        <groupId>org.antipathy</groupId>
-        <artifactId>mvn-scalafmt_2.12</artifactId>
-        <version>1.1.1640084764.9f463a9</version>
-        <configuration>
-          <configLocation>${project.basedir}/../.scalafmt.conf</configLocation>
-        </configuration>
-        <executions>
-          <execution>
-            <phase>validate</phase>
-            <goals>
-              <goal>format</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
+<!--      <plugin>-->
+<!--        <groupId>org.antipathy</groupId>-->
+<!--        <artifactId>mvn-scalafmt_2.12</artifactId>-->
+<!--        <version>1.1.1640084764.9f463a9</version>-->
+<!--        <configuration>-->
+<!--          <configLocation>${project.}/.scalafmt.conf</configLocation>-->
+<!--        </configuration>-->
+<!--        <executions>-->
+<!--          <execution>-->
+<!--            <phase>validate</phase>-->
+<!--            <goals>-->
+<!--              <goal>format</goal>-->
+<!--            </goals>-->
+<!--          </execution>-->
+<!--        </executions>-->
+<!--      </plugin>-->
     </plugins>
   </build>
   <profiles>
