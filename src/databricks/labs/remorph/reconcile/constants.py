@@ -27,6 +27,7 @@ class Layer(AutoName):
 
 
 class SourceDriver(Enum):
+    SNOWFLAKE = "net.snowflake.client.jdbc.SnowflakeDriver"
     ORACLE = "oracle.jdbc.driver.OracleDriver"
 
 

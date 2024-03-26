@@ -13,7 +13,13 @@ from databricks.labs.remorph.reconcile.recon_config import (  # pylint: disable=
 class DataSource(ABC):
 
     # TODO need to remove connection_params
-    def __init__(self, source: str, spark: SparkSession, ws: WorkspaceClient, scope: str):
+    def __init__(
+        self,
+        source: str,
+        spark: SparkSession,
+        ws: WorkspaceClient,
+        scope: str,
+    ):
         self.source = source
         self.spark = spark
         self.ws = ws
@@ -45,8 +51,9 @@ class DataSource(ABC):
             "fetchsize": options.fetch_size,
         }
 
-    def _get_secrets(self, key):
-        return self.ws.secrets.get_secret(self.scope, self.source + '_' + key)
+    def _get_secrets(self, key_name: str):
+        key = self.source + '_' + key_name
+        return self.ws.secrets.get_secret(self.scope, key)
 
     @staticmethod
     def _get_table_or_query(catalog: str, schema: str, query: str) -> str:
