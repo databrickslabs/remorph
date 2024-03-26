@@ -20,7 +20,7 @@ class Validator:
     def __init__(self, sql_backend: SqlBackend):
         self._sql_backend = sql_backend
 
-    def validate_format_result(self, config: MorphConfig, input_sql: str):
+    def validate_format_result(self, config: MorphConfig, input_sql: str) -> tuple[str, str | None]:
         """
         Validates the SQL query and formats the result.
 
