@@ -13,18 +13,18 @@ def initial_setup():
     spark = pyspark_sql_session.SparkSession.builder.getOrCreate()
 
     # Define the source, workspace, and scope
-    source = "snowflake"
+    engine = "databricks"
     ws = create_autospec(WorkspaceClient)
     scope = "scope"
-    return source, spark, ws, scope
+    return engine, spark, ws, scope
 
 
 def test_get_schema_query():
     # initial setup
-    source, spark, ws, scope = initial_setup()
-    dd = DatabricksDataSource(source, spark, ws, scope)
+    engine, spark, ws, scope = initial_setup()
+    dd = DatabricksDataSource(engine, spark, ws, scope)
 
-    # Snowflake source
+    # catalog as catalog
     schema_query = dd.get_schema_query("catalog", "schema", "supplier")
     assert re.sub(r'\s+', ' ', schema_query) == re.sub(
         r'\s+',
@@ -35,18 +35,17 @@ def test_get_schema_query():
                     col_name""",
     )
 
-    # Databricks source
-    dd = DatabricksDataSource("databricks", spark, ws, scope)
+    # hive_metastore as catalog
     schema_query = dd.get_schema_query("hive_metastore", "schema", "supplier")
     assert re.sub(r'\s+', ' ', schema_query) == re.sub(r'\s+', ' ', """describe table schema.supplier""")
 
 
 def test_get_schema():
     # initial setup
-    source, spark, ws, scope = initial_setup()
+    engine, spark, ws, scope = initial_setup()
 
-    # Snowflake source
-    dd = DatabricksDataSource(source, spark, ws, scope)
+    # catalog as catalog
+    dd = DatabricksDataSource(engine, spark, ws, scope)
     dd.get_schema("catalog", "schema", "supplier")
     spark.sql.assert_called_with(
         re.sub(
@@ -60,8 +59,7 @@ def test_get_schema():
     )
     spark.sql().where.assert_called_with("col_name not like '#%'")
 
-    # Databricks source
-    dd = DatabricksDataSource("databricks", spark, ws, scope)
+    # hive_metastore as catalog
     dd.get_schema("hive_metastore", "schema", "supplier")
     spark.sql.assert_called_with(re.sub(r'\s+', ' ', """describe table schema.supplier"""))
     spark.sql().where.assert_called_with("col_name not like '#%'")
@@ -69,10 +67,10 @@ def test_get_schema():
 
 def test_read_data():
     # initial setup
-    source, spark, ws, scope = initial_setup()
+    engine, spark, ws, scope = initial_setup()
 
     # create object for DatabricksDataSource
-    dd = DatabricksDataSource(source, spark, ws, scope)
+    dd = DatabricksDataSource(engine, spark, ws, scope)
 
     # Test with query
     dd.read_data("catalog", "schema", "select id as id, ename as name from confidential.data.employee", None)
@@ -85,10 +83,10 @@ def test_read_data():
 
 def test_read_data_exception_handling():
     # initial setup
-    source, spark, ws, scope = initial_setup()
+    engine, spark, ws, scope = initial_setup()
 
     # create object for DatabricksDataSource
-    dd = DatabricksDataSource(source, spark, ws, scope)
+    dd = DatabricksDataSource(engine, spark, ws, scope)
 
     spark.sql.side_effect = PySparkException("Test Exception")
 
@@ -103,10 +101,10 @@ def test_read_data_exception_handling():
 
 def test_get_schema_exception_handling():
     # initial setup
-    source, spark, ws, scope = initial_setup()
+    engine, spark, ws, scope = initial_setup()
 
     # create object for DatabricksDataSource
-    dd = DatabricksDataSource(source, spark, ws, scope)
+    dd = DatabricksDataSource(engine, spark, ws, scope)
     spark.sql().where.side_effect = PySparkException("Test Exception")
     with pytest.raises(PySparkException, match=".*Test Exception.*"):
         dd.get_schema("catalog", "schema", "supplier")

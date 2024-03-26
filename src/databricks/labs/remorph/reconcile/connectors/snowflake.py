@@ -5,7 +5,7 @@ from pyspark.sql import DataFrame
 from pyspark.sql.functions import col
 
 from databricks.labs.remorph.reconcile.connectors.data_source import DataSource
-from databricks.labs.remorph.reconcile.constants import SourceDriver
+from databricks.labs.remorph.reconcile.constants import SourceDriver, SourceType
 from databricks.labs.remorph.reconcile.recon_config import JdbcReaderOptions, Schema
 
 
@@ -14,7 +14,7 @@ class SnowflakeDataSource(DataSource):
     @property
     def get_jdbc_url(self) -> str:
         return (
-            f"jdbc:{self.source}://{self._get_secrets('account')}.snowflakecomputing.com"
+            f"jdbc:{SourceType.SNOWFLAKE.value}://{self._get_secrets('account')}.snowflakecomputing.com"
             f"/?user={self._get_secrets('sfUser')}&password={self._get_secrets('sfPassword')}"
             f"&db={self._get_secrets('sfDatabase')}&schema={self._get_secrets('sfSchema')}"
             f"&warehouse={self._get_secrets('sfWarehouse')}&role={self._get_secrets('sfRole')}"

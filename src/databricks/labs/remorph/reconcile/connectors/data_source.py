@@ -15,12 +15,12 @@ class DataSource(ABC):
     # TODO need to remove connection_params
     def __init__(
         self,
-        source: str,
+        engine: str,
         spark: SparkSession,
         ws: WorkspaceClient,
         scope: str,
     ):
-        self.source = source
+        self.engine = engine
         self.spark = spark
         self.ws = ws
         self.scope = scope
@@ -52,7 +52,7 @@ class DataSource(ABC):
         }
 
     def _get_secrets(self, key_name: str):
-        key = self.source + '_' + key_name
+        key = self.engine + '_' + key_name
         return self.ws.secrets.get_secret(self.scope, key)
 
     @staticmethod
