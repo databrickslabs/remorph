@@ -5,7 +5,7 @@ from pathlib import Path
 from databricks.sdk import WorkspaceClient
 
 from databricks.labs.remorph.config import MorphConfig
-from databricks.labs.remorph.helpers import validation
+from databricks.labs.remorph.helpers import db_sql
 from databricks.labs.remorph.helpers.execution_time import timeit
 from databricks.labs.remorph.helpers.file_utils import (
     dir_walk,
@@ -128,7 +128,7 @@ def morph(workspace_client: WorkspaceClient, config: MorphConfig):
     skip_validation = config.skip_validation
     status = []
     result = MorphStatus([], 0, 0, 0, [])
-    validator = Validator(validation.get_sql_backend(workspace_client, config))
+    validator = Validator(db_sql.get_sql_backend(workspace_client, config))
     if input_sql.is_file():
         if is_sql_file(input_sql):
             msg = f"Processing for sqls under this file: {input_sql}"
