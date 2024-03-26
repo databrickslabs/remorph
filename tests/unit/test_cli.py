@@ -74,6 +74,7 @@ def test_transpile_with_valid_input(mock_workspace_client):
             schema_name,
         )
         mock_morph.assert_called_once_with(
+            mock_workspace_client,
             MorphConfig(
                 sdk_config=sdk_config,
                 source=source,
@@ -83,7 +84,6 @@ def test_transpile_with_valid_input(mock_workspace_client):
                 catalog_name=catalog_name,
                 schema_name=schema_name,
             ),
-            mock_workspace_client,
         )
 
 
@@ -110,6 +110,7 @@ def test_transpile_empty_output_folder(mock_workspace_client):
             schema_name,
         )
         mock_morph.assert_called_once_with(
+            mock_workspace_client,
             MorphConfig(
                 sdk_config=sdk_config,
                 source=source,
@@ -119,7 +120,6 @@ def test_transpile_empty_output_folder(mock_workspace_client):
                 catalog_name=catalog_name,
                 schema_name=schema_name,
             ),
-            mock_workspace_client,
         )
 
 

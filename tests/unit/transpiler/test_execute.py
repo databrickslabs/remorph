@@ -141,7 +141,7 @@ def test_with_dir_skip_validation(initial_setup, mock_workspace_client):
     )
 
     # call morph
-    with patch('databricks.labs.remorph.helpers.validation.get_sql_backend', return_value=MockBackend()):
+    with patch('databricks.labs.remorph.helpers.db_sql.get_sql_backend', return_value=MockBackend()):
         status = morph(mock_workspace_client, config)
     # assert the status
     assert status is not None, "Status returned by morph function is None"
@@ -195,7 +195,7 @@ def test_with_dir_with_output_folder_skip_validation(initial_setup, mock_workspa
         source="snowflake",
         skip_validation=True,
     )
-    with patch('databricks.labs.remorph.helpers.validation.get_sql_backend', return_value=MockBackend()):
+    with patch('databricks.labs.remorph.helpers.db_sql.get_sql_backend', return_value=MockBackend()):
         status = morph(mock_workspace_client, config)
     # assert the status
     assert status is not None, "Status returned by morph function is None"
@@ -257,7 +257,7 @@ def test_with_file(initial_setup, mock_workspace_client):
     mock_validate.validate_format_result.return_value = (""" Mock validated query """, "Mock validation error")
 
     with patch(
-        'databricks.labs.remorph.helpers.validation.get_sql_backend',
+        'databricks.labs.remorph.helpers.db_sql.get_sql_backend',
         return_value=MockBackend(),
     ), patch("databricks.labs.remorph.transpiler.execute.Validator", return_value=mock_validate):
         status = morph(mock_workspace_client, config)
@@ -302,7 +302,7 @@ def test_with_file_with_output_folder_skip_validation(initial_setup, mock_worksp
     )
 
     with patch(
-        'databricks.labs.remorph.helpers.validation.get_sql_backend',
+        'databricks.labs.remorph.helpers.db_sql.get_sql_backend',
         return_value=MockBackend(),
     ):
         status = morph(mock_workspace_client, config)
@@ -336,7 +336,7 @@ def test_with_not_a_sql_file_skip_validation(initial_setup, mock_workspace_clien
     )
 
     with patch(
-        'databricks.labs.remorph.helpers.validation.get_sql_backend',
+        'databricks.labs.remorph.helpers.db_sql.get_sql_backend',
         return_value=MockBackend(),
     ):
         status = morph(mock_workspace_client, config)
@@ -370,7 +370,7 @@ def test_with_not_existing_file_skip_validation(initial_setup, mock_workspace_cl
     )
     with pytest.raises(FileNotFoundError):
         with patch(
-            'databricks.labs.remorph.helpers.validation.get_sql_backend',
+            'databricks.labs.remorph.helpers.db_sql.get_sql_backend',
             return_value=MockBackend(),
         ):
             morph(mock_workspace_client, config)
