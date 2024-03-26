@@ -83,7 +83,6 @@ body:
       description: What version of our software are you running?
       options:
         - latest via Databricks CLI
-        - via install.sh
         - v0.1.5
         - v0.1.4
         - other
