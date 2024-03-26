@@ -5,7 +5,6 @@ from pyspark.sql import DataFrame
 from pyspark.sql.functions import col
 
 from databricks.labs.remorph.reconcile.connectors.data_source import DataSource
-from databricks.labs.remorph.reconcile.constants import SourceType
 from databricks.labs.remorph.reconcile.recon_config import JdbcReaderOptions, Schema
 
 
@@ -34,10 +33,12 @@ class DatabricksDataSource(DataSource):
             )
             raise PySparkException(error_msg) from e
 
-    def get_schema_query(self, catalog: str, schema: str, table: str):
-        if self.source == SourceType.DATABRICKS.value:
-            full_table_name = f"{catalog}.{schema}.{table}" if catalog else f"{schema}.{table}"
-            return f"describe table {full_table_name}"
+    @staticmethod
+    def get_schema_query(catalog: str, schema: str, table: str):
+        # TODO: Ensure that the target_catalog in the configuration is not set to "hive_metastore". The source_catalog
+        #  can only be set to "hive_metastore" if the source type is "databricks".
+        if catalog == "hive_metastore":
+            return f"describe table {schema}.{table}"
 
         query = f"""select lower(column_name) as col_name, full_data_type as data_type from 
                     {catalog}.information_schema.columns where lower(table_catalog)='{catalog}' 

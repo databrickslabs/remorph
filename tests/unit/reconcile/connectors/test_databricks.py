@@ -37,7 +37,7 @@ def test_get_schema_query():
 
     # Databricks source
     dd = DatabricksDataSource("databricks", spark, ws, scope)
-    schema_query = dd.get_schema_query(None, "schema", "supplier")
+    schema_query = dd.get_schema_query("hive_metastore", "schema", "supplier")
     assert re.sub(r'\s+', ' ', schema_query) == re.sub(r'\s+', ' ', """describe table schema.supplier""")
 
 
@@ -62,8 +62,8 @@ def test_get_schema():
 
     # Databricks source
     dd = DatabricksDataSource("databricks", spark, ws, scope)
-    dd.get_schema("catalog", "schema", "supplier")
-    spark.sql.assert_called_with(re.sub(r'\s+', ' ', """describe table catalog.schema.supplier"""))
+    dd.get_schema("hive_metastore", "schema", "supplier")
+    spark.sql.assert_called_with(re.sub(r'\s+', ' ', """describe table schema.supplier"""))
     spark.sql().where.assert_called_with("col_name not like '#%'")
 
 

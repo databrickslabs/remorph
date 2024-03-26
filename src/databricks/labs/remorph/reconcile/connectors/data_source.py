@@ -59,6 +59,6 @@ class DataSource(ABC):
     def _get_table_or_query(catalog: str, schema: str, query: str) -> str:
         if re.search('select', query, re.IGNORECASE):
             return query.format(catalog_name=catalog, schema_name=schema)
-        if catalog:
+        if catalog and catalog != "hive_metastore":
             return f"select * from {catalog}.{schema}.{query}"
         return f"select * from {schema}.{query}"
