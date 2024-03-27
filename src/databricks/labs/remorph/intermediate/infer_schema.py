@@ -27,7 +27,7 @@ class InferSchema:
     def for_cli(cls, ws: WorkspaceClient, source: str, input_path: str | Path):
         return cls(ws, source, input_path)
 
-    def apply(self, engine: str = "sqlglot") -> dict:
+    def generate_schema(self, engine: str = "sqlglot") -> dict:
         table_column_mapping = {}
 
         if is_sql_file(self.input_path):
@@ -42,15 +42,14 @@ class InferSchema:
             logger.debug(f"Generating Schema from file: {filename}")
             sql_content = read_file(filename)
             table_column_mapping.update(self.get_engine.table_column_mapping(sql_content, filename, engine))
-
         return self._generate_create_table_statements(table_column_mapping)
 
     @staticmethod
     def _generate_create_table_statements(table_column_mapping: dict) -> dict:
         create_table_statements = {}
 
-        for table, columns in table_column_mapping.items():
-            columns_with_types = [f"{column} string" for column in columns]
+        for table, columns in sorted(table_column_mapping.items()):
+            columns_with_types = [f"{column} string" for column in sorted(columns)]
             columns_string = ", ".join(columns_with_types)
             create_table_statement = f"CREATE TABLE {table} ({columns_string});"
             create_table_statements[table] = create_table_statement
