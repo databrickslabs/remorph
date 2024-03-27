@@ -256,10 +256,13 @@ def test_with_file(initial_setup, mock_workspace_client):
     mock_validate.spark = spark
     mock_validate.validate_format_result.return_value = (""" Mock validated query """, "Mock validation error")
 
-    with patch(
-        'databricks.labs.remorph.helpers.db_sql.get_sql_backend',
-        return_value=MockBackend(),
-    ), patch("databricks.labs.remorph.transpiler.execute.Validator", return_value=mock_validate):
+    with (
+        patch(
+            'databricks.labs.remorph.helpers.db_sql.get_sql_backend',
+            return_value=MockBackend(),
+        ),
+        patch("databricks.labs.remorph.transpiler.execute.Validator", return_value=mock_validate),
+    ):
         status = morph(mock_workspace_client, config)
 
     # assert the status
