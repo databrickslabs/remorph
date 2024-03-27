@@ -2,7 +2,7 @@ from pyspark.errors import PySparkException
 from pyspark.sql import DataFrame, DataFrameReader
 
 from databricks.labs.remorph.reconcile.connectors.data_source import DataSource
-from databricks.labs.remorph.reconcile.constants import SourceDriver
+from databricks.labs.remorph.reconcile.constants import SourceDriver, SourceType
 from databricks.labs.remorph.reconcile.recon_config import JdbcReaderOptions, Schema
 
 
@@ -11,7 +11,7 @@ class OracleDataSource(DataSource):
     @property
     def get_jdbc_url(self) -> str:
         return (
-            f"jdbc:{self.source}:thin:{self._get_secrets('user')}"
+            f"jdbc:{SourceType.ORACLE.value}:thin:{self._get_secrets('user')}"
             f"/{self._get_secrets('password')}@//{self._get_secrets('host')}"
             f":{self._get_secrets('port')}/{self._get_secrets('database')}"
         )
