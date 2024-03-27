@@ -15,12 +15,12 @@ class DataSource(ABC):
     # TODO need to remove connection_params
     def __init__(
         self,
-        source: str,
+        engine: str,
         spark: SparkSession,
         ws: WorkspaceClient,
         scope: str,
     ):
-        self.source = source
+        self.engine = engine
         self.spark = spark
         self.ws = ws
         self.scope = scope
@@ -52,13 +52,13 @@ class DataSource(ABC):
         }
 
     def _get_secrets(self, key_name: str):
-        key = self.source + '_' + key_name
+        key = self.engine + '_' + key_name
         return self.ws.secrets.get_secret(self.scope, key)
 
     @staticmethod
     def _get_table_or_query(catalog: str, schema: str, query: str) -> str:
         if re.search('select', query, re.IGNORECASE):
             return query.format(catalog_name=catalog, schema_name=schema)
-        if catalog:
-            return catalog + "." + schema + "." + query
-        return schema + "." + query
+        if catalog and catalog != "hive_metastore":
+            return f"select * from {catalog}.{schema}.{query}"
+        return f"select * from {schema}.{query}"
