@@ -1,33 +1,27 @@
 from sqlglot import ErrorLevel, exp, parse, transpile
+from sqlglot.dialects.dialect import Dialect
 from sqlglot.errors import ParseError, TokenError, UnsupportedError
 
 from databricks.labs.remorph.helpers.morph_status import ParserError
-from databricks.labs.remorph.snow.databricks import Databricks
-from databricks.labs.remorph.snow.snowflake import Snow
 
 
 class SQLTranspiler:
-    def __init__(self, source: str, error_list: list[ParserError]):
-        self.source = source
+    def __init__(self, read_dialect: Dialect, error_list: list[ParserError]):
+        self.read_dialect = read_dialect
         self.error_list = error_list
-        if self.source.upper() == "SNOWFLAKE":
-            self.dialect = Snow
-        else:
-            self.dialect = self.source.lower()
 
-    def transpile(self, sql: str, file_name: str) -> str:
+    def transpile(self, write_dialect: Dialect, sql: str, file_name: str) -> str:
         try:
-            transpiled_sql = transpile(sql, read=self.dialect, write=Databricks, pretty=True, error_level=None)
+            transpiled_sql = transpile(sql, read=self.read_dialect, write=write_dialect, pretty=True, error_level=None)
         except (ParseError, TokenError, UnsupportedError) as e:
             transpiled_sql = ""
-
             self.error_list.append(ParserError(file_name, e))
 
         return transpiled_sql
 
     def parse(self, sql: str, file_name: str) -> exp:
         try:
-            expression = parse(sql, read=self.dialect, error_level=ErrorLevel.IMMEDIATE)
+            expression = parse(sql, read=self.read_dialect, error_level=ErrorLevel.IMMEDIATE)
         except (ParseError, TokenError, UnsupportedError) as e:
             expression = []
             self.error_list.append(ParserError(file_name, e))

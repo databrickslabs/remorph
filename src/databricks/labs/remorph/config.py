@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 @dataclass
 class MorphConfig:
     __file__ = "config.yml"
-    __version__ = 1
+    __version__ = 2
 
     source: str
     sdk_config: Config | None
@@ -18,3 +18,4 @@ class MorphConfig:
     skip_validation: bool = False
     catalog_name: str = "transpiler_test"
     schema_name: str = "convertor_test"
+    mode: str = "current"
