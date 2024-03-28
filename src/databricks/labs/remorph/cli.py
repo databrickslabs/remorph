@@ -26,9 +26,11 @@ def transpile(
     skip_validation: str,
     catalog_name: str,
     schema_name: str,
+    mode: str,
 ):
     """transpiles source dialect to databricks dialect"""
     logger.info(f"user: {w.current_user.me()}")
+    # TODO: Use Installation Load to load from config
 
     if source.lower() not in {"snowflake", "tsql"}:
         raise_validation_exception(
@@ -42,6 +44,8 @@ def transpile(
         raise_validation_exception(
             f"Error: Invalid value for '--skip_validation': '{skip_validation}' is not one of 'true', 'false'. "
         )
+    if mode.lower() not in {"current", "preview"}:
+        raise_validation_exception(f"Error: Invalid value for '--mode': '{mode}' is not one of 'current', 'preview'. ")
 
     config = MorphConfig(
         source=source.lower(),
@@ -51,6 +55,7 @@ def transpile(
         catalog_name=catalog_name,
         schema_name=schema_name,
         sdk_config=w.config,
+        mode=mode,
     )
 
     status = morph(config)
