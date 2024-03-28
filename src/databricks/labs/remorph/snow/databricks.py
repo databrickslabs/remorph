@@ -596,3 +596,28 @@ class Databricks(Databricks):  #
 
         def currenttimestamp_sql(self, _: exp.CurrentTimestamp) -> str:
             return self.func("CURRENT_TIMESTAMP")
+
+        def update_sql(self, expression: exp.Update) -> str:
+            this = self.sql(expression, "this")
+            set_sql = self.expressions(expression, flat=True)
+            from_sql = self.sql(expression, "from")
+            where_sql = self.sql(expression, "where")
+            returning = self.sql(expression, "returning")
+            order = self.sql(expression, "order")
+            limit = self.sql(expression, "limit")
+
+            if from_sql:
+                from_sql = from_sql.replace("FROM", "USING", 1)
+                where_sql = where_sql.replace("WHERE", "ON")
+
+            if self.RETURNING_END:
+                expression_sql = f"{from_sql}{where_sql}{returning}"
+            else:
+                expression_sql = f"{returning}{from_sql}{where_sql}"
+
+            if from_sql:
+                sql = f"MERGE INTO {this}{expression_sql} WHEN MATCHED THEN UPDATE SET {set_sql}{order}{limit}"
+            else:
+                sql = f"UPDATE {this} SET {set_sql}{expression_sql}{order}{limit}"
+
+            return self.prepend_ctes(expression, sql)
