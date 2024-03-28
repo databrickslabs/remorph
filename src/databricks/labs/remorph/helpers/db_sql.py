@@ -1,4 +1,3 @@
-# pylint: disable=wrong-import-order,ungrouped-imports, useless-suppression)
 import logging
 
 from databricks.labs.lsql.backends import (
