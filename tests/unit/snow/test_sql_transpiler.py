@@ -80,3 +80,11 @@ def test_parse_sql_content(transpiler):
     result = list(transpiler.parse_sql_content("SELECT * FROM table_name", "test.sql"))
     assert result[0][0] == "table_name"
     assert result[0][1] == "test.sql"
+
+
+def test_find_column_table_mapping(transpiler):
+    sql = "SELECT column1 FROM table1"
+    file_name = "test.sql"
+    expected_output = {'table1': ['column1']}
+    result = transpiler.find_column_table_mapping(sql, file_name)
+    assert result == expected_output
