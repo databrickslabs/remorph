@@ -2,7 +2,10 @@ import logging
 import os
 from pathlib import Path
 
+from databricks.sdk import WorkspaceClient
+
 from databricks.labs.remorph.config import MorphConfig
+from databricks.labs.remorph.helpers import db_sql
 from databricks.labs.remorph.helpers.execution_time import timeit
 from databricks.labs.remorph.helpers.file_utils import (
     dir_walk,
@@ -11,7 +14,7 @@ from databricks.labs.remorph.helpers.file_utils import (
     remove_bom,
 )
 from databricks.labs.remorph.helpers.morph_status import MorphStatus, ValidationError
-from databricks.labs.remorph.helpers.validate import Validate
+from databricks.labs.remorph.helpers.validation import Validator
 from databricks.labs.remorph.snow import dialect_utils
 from databricks.labs.remorph.snow.sql_transpiler import SQLTranspiler
 
@@ -20,10 +23,8 @@ from databricks.labs.remorph.snow.sql_transpiler import SQLTranspiler
 logger = logging.getLogger(__name__)
 
 
-def process_file(config: MorphConfig, input_file: str | Path, output_file: str | Path):
+def process_file(config: MorphConfig, validator: Validator, input_file: str | Path, output_file: str | Path):
     source = config.source
-    skip_validation = config.skip_validation
-
     parse_error_list = []
     validate_error_list = []
     no_of_sqls = 0
@@ -44,12 +45,11 @@ def process_file(config: MorphConfig, input_file: str | Path, output_file: str |
         for output in transpiled_sql:
             if output:
                 no_of_sqls = no_of_sqls + 1
-                if skip_validation:
+                if config.skip_validation:
                     w.write(output)
                     w.write("\n;\n")
                 else:
-                    validate = Validate(config.sdk_config)
-                    output_string, exception = validate.validate_format_result(config, output)
+                    output_string, exception = validator.validate_format_result(config, output)
                     w.write(output_string)
                     if exception is not None:
                         validate_error_list.append(ValidationError(str(input_file), exception))
@@ -63,7 +63,7 @@ def process_file(config: MorphConfig, input_file: str | Path, output_file: str |
     return no_of_sqls, parse_error_list, validate_error_list
 
 
-def process_directory(config: MorphConfig, root: str | Path, base_root: str, files: list[str]):
+def process_directory(config: MorphConfig, validator: Validator, root: str | Path, base_root: str, files: list[str]):
     output_folder = config.output_folder
     parse_error_list = []
     validate_error_list = []
@@ -82,7 +82,7 @@ def process_directory(config: MorphConfig, root: str | Path, base_root: str, fil
             output_file_name = Path(output_folder_base) / Path(file).name
             make_dir(output_folder_base)
 
-            no_of_sqls, parse_error, validation_error = process_file(config, file, output_file_name)
+            no_of_sqls, parse_error, validation_error = process_file(config, validator, file, output_file_name)
             counter = counter + no_of_sqls
             parse_error_list.extend(parse_error)
             validate_error_list.extend(validation_error)
@@ -93,7 +93,7 @@ def process_directory(config: MorphConfig, root: str | Path, base_root: str, fil
     return counter, parse_error_list, validate_error_list
 
 
-def process_recursive_dirs(config: MorphConfig):
+def process_recursive_dirs(config: MorphConfig, validator: Validator):
     input_sql = Path(config.input_sql)
     parse_error_list = []
     validate_error_list = []
@@ -106,7 +106,7 @@ def process_recursive_dirs(config: MorphConfig):
         msg = f"Processing for sqls under this folder: {folder}"
         logger.info(msg)
         file_list.extend(files)
-        no_of_sqls, parse_error, validation_error = process_directory(config, root, base_root, files)
+        no_of_sqls, parse_error, validation_error = process_directory(config, validator, root, base_root, files)
         counter = counter + no_of_sqls
         parse_error_list.extend(parse_error)
         validate_error_list.extend(validation_error)
@@ -117,17 +117,18 @@ def process_recursive_dirs(config: MorphConfig):
 
 
 @timeit
-def morph(config: MorphConfig):
+def morph(workspace_client: WorkspaceClient, config: MorphConfig):
     """
     Transpiles the SQL queries from one dialect to another.
 
     :param config: The configuration for the morph operation.
+    :param workspace_client: The WorkspaceClient object.
     """
     input_sql = Path(config.input_sql)
     skip_validation = config.skip_validation
     status = []
     result = MorphStatus([], 0, 0, 0, [])
-
+    validator = Validator(db_sql.get_sql_backend(workspace_client, config))
     if input_sql.is_file():
         if is_sql_file(input_sql):
             msg = f"Processing for sqls under this file: {input_sql}"
@@ -139,14 +140,14 @@ def morph(config: MorphConfig):
 
             make_dir(output_folder)
             output_file = output_folder / input_sql.name
-            no_of_sqls, parse_error, validation_error = process_file(config, input_sql, output_file)
+            no_of_sqls, parse_error, validation_error = process_file(config, validator, input_sql, output_file)
             error_log = parse_error + validation_error
             result = MorphStatus([str(input_sql)], no_of_sqls, len(parse_error), len(validation_error), error_log)
         else:
             msg = f"{input_sql} is not a SQL file."
             logger.warning(msg)
     elif input_sql.is_dir():
-        result = process_recursive_dirs(config)
+        result = process_recursive_dirs(config, validator)
     else:
         msg = f"{input_sql} does not exist."
         logger.error(msg)

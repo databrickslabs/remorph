@@ -7,7 +7,6 @@ from databricks.labs.remorph.reconcile.recon_config import JdbcReaderOptions, Sc
 
 
 class OracleDataSource(DataSource):
-
     @property
     def get_jdbc_url(self) -> str:
         return (

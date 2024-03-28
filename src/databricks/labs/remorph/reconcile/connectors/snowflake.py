@@ -10,7 +10,6 @@ from databricks.labs.remorph.reconcile.recon_config import JdbcReaderOptions, Sc
 
 
 class SnowflakeDataSource(DataSource):
-
     @property
     def get_jdbc_url(self) -> str:
         return (
@@ -22,7 +21,6 @@ class SnowflakeDataSource(DataSource):
 
     def read_data(self, catalog: str, schema: str, query: str, options: JdbcReaderOptions) -> DataFrame:
         try:
-
             table_query = self._get_table_or_query(catalog, schema, query)
 
             if options is None:

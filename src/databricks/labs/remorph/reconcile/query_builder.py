@@ -19,7 +19,6 @@ from databricks.labs.remorph.reconcile.recon_config import (
 
 
 class QueryBuilder(ABC):
-
     def __init__(self, qrc: QueryConfig):
         self.qrc = qrc
 
@@ -74,7 +73,6 @@ class QueryBuilder(ABC):
         raise ValueError(msg)
 
     def _generate_transform_rule_mapping(self, cols: list[str]) -> list[TransformRuleMapping]:
-
         # compute custom transformation
         if self.qrc.transform_dict:
             cols_with_transform = [col for col in cols if col in self.qrc.transform_dict.keys()]
@@ -119,7 +117,6 @@ class QueryBuilder(ABC):
 
 
 class HashQueryBuilder(QueryBuilder):
-
     def build_query(self) -> str:
         hash_cols = sorted(
             (self.qrc.join_columns | self.qrc.select_columns) - self.qrc.threshold_columns - self.qrc.drop_columns
@@ -168,7 +165,6 @@ class HashQueryBuilder(QueryBuilder):
 
 
 class ThresholdQueryBuilder(QueryBuilder):
-
     def build_query(self) -> str:
         all_columns = set(self.qrc.threshold_columns | self.qrc.join_columns | self.qrc.partition_column)
 

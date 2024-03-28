@@ -26,7 +26,7 @@ def mock_databricks_config():
     yield create_autospec(Config)
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture()
 def mock_workspace_client():
     client = create_autospec(WorkspaceClient)
     client.current_user.me = lambda: iam.User(user_name="remorph", groups=[iam.ComplexValue(display="admins")])

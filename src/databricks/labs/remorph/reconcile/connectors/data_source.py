@@ -11,7 +11,6 @@ from databricks.labs.remorph.reconcile.recon_config import (  # pylint: disable=
 
 
 class DataSource(ABC):
-
     # TODO need to remove connection_params
     def __init__(
         self,
