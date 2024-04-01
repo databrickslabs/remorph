@@ -58,7 +58,7 @@ def transpile(
         mode=mode,
     )
 
-    status = morph(config)
+    status = morph(w, config)
 
     print(json.dumps(status))
 
