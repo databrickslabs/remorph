@@ -16,6 +16,7 @@ def test_transpile_with_invalid_dialect(mock_workspace_client):
             "true",
             "my_catalog",
             "my_schema",
+            "current",
         )
 
 
@@ -32,6 +33,7 @@ def test_transpile_with_invalid_skip_validation(mock_workspace_client):
             "invalid_value",
             "my_catalog",
             "my_schema",
+            "current",
         )
 
 
@@ -48,6 +50,7 @@ def test_invalid_input_sql(mock_workspace_client):
             "true",
             "my_catalog",
             "my_schema",
+            "current",
         )
 
 
@@ -58,6 +61,7 @@ def test_transpile_with_valid_input(mock_workspace_client):
     skip_validation = "true"
     catalog_name = "my_catalog"
     schema_name = "my_schema"
+    mode = "current"
     sdk_config = mock_workspace_client.config
 
     with (
@@ -65,13 +69,7 @@ def test_transpile_with_valid_input(mock_workspace_client):
         patch("databricks.labs.remorph.cli.morph", return_value={}) as mock_morph,
     ):
         cli.transpile(
-            mock_workspace_client,
-            source,
-            input_sql,
-            output_folder,
-            skip_validation,
-            catalog_name,
-            schema_name,
+            mock_workspace_client, source, input_sql, output_folder, skip_validation, catalog_name, schema_name, mode
         )
         mock_morph.assert_called_once_with(
             mock_workspace_client,
@@ -83,6 +81,7 @@ def test_transpile_with_valid_input(mock_workspace_client):
                 skip_validation=True,
                 catalog_name=catalog_name,
                 schema_name=schema_name,
+                mode=mode,
             ),
         )
 
@@ -94,6 +93,7 @@ def test_transpile_empty_output_folder(mock_workspace_client):
     skip_validation = "false"
     catalog_name = "my_catalog"
     schema_name = "my_schema"
+    mode = "current"
     sdk_config = mock_workspace_client.config
 
     with (
@@ -101,13 +101,7 @@ def test_transpile_empty_output_folder(mock_workspace_client):
         patch("databricks.labs.remorph.cli.morph", return_value={}) as mock_morph,
     ):
         cli.transpile(
-            mock_workspace_client,
-            source,
-            input_sql,
-            output_folder,
-            skip_validation,
-            catalog_name,
-            schema_name,
+            mock_workspace_client, source, input_sql, output_folder, skip_validation, catalog_name, schema_name, mode
         )
         mock_morph.assert_called_once_with(
             mock_workspace_client,
@@ -119,6 +113,7 @@ def test_transpile_empty_output_folder(mock_workspace_client):
                 skip_validation=False,
                 catalog_name=catalog_name,
                 schema_name=schema_name,
+                mode=mode,
             ),
         )
 

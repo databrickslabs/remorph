@@ -17,14 +17,20 @@ from databricks.labs.remorph.helpers.morph_status import MorphStatus, Validation
 from databricks.labs.remorph.helpers.validation import Validator
 from databricks.labs.remorph.snow import dialect_utils
 from databricks.labs.remorph.snow.sql_transpiler import SQLTranspiler
-from databricks.labs.remorph.transpiler.dialects_config import get_dialect
+from databricks.labs.remorph.transpiler.dialects_config import DialectConfig
 
 # pylint: disable=unspecified-encoding
 
 logger = logging.getLogger(__name__)
 
 
-def process_file(config: MorphConfig, validator: Validator, input_file: str | Path, output_file: str | Path):
+def process_file(
+    config: MorphConfig,
+    validator: Validator,
+    transpiler: SQLTranspiler,
+    input_file: str | Path,
+    output_file: str | Path,
+):
     source = config.source
     parse_error_list = []
     validate_error_list = []
@@ -40,9 +46,8 @@ def process_file(config: MorphConfig, validator: Validator, input_file: str | Pa
     if lca_error:
         validate_error_list.append(lca_error)
 
-    read_dialect = get_dialect(source)
-    transpiler = SQLTranspiler(read_dialect, parse_error_list)  # [TODO] move the object creation outside the loop
-    write_dialect = get_dialect("databricks") if config.mode == "current" else get_dialect("databricks_preview")
+    write_dialect = DialectConfig().get_write_dialect(config)
+
     transpiled_sql = transpiler.transpile(write_dialect, sql, str(input_file))
 
     with output_file.open("w") as w:
@@ -67,7 +72,14 @@ def process_file(config: MorphConfig, validator: Validator, input_file: str | Pa
     return no_of_sqls, parse_error_list, validate_error_list
 
 
-def process_directory(config: MorphConfig, validator: Validator, root: str | Path, base_root: str, files: list[str]):
+def process_directory(
+    config: MorphConfig,
+    validator: Validator,
+    transpiler: SQLTranspiler,
+    root: str | Path,
+    base_root: str,
+    files: list[str],
+):
     output_folder = config.output_folder
     parse_error_list = []
     validate_error_list = []
@@ -86,7 +98,9 @@ def process_directory(config: MorphConfig, validator: Validator, root: str | Pat
             output_file_name = Path(output_folder_base) / Path(file).name
             make_dir(output_folder_base)
 
-            no_of_sqls, parse_error, validation_error = process_file(config, validator, file, output_file_name)
+            no_of_sqls, parse_error, validation_error = process_file(
+                config, validator, transpiler, file, output_file_name
+            )
             counter = counter + no_of_sqls
             parse_error_list.extend(parse_error)
             validate_error_list.extend(validation_error)
@@ -97,7 +111,7 @@ def process_directory(config: MorphConfig, validator: Validator, root: str | Pat
     return counter, parse_error_list, validate_error_list
 
 
-def process_recursive_dirs(config: MorphConfig, validator: Validator):
+def process_recursive_dirs(config: MorphConfig, validator: Validator, transpiler: SQLTranspiler):
     input_sql = Path(config.input_sql)
     parse_error_list = []
     validate_error_list = []
@@ -110,7 +124,9 @@ def process_recursive_dirs(config: MorphConfig, validator: Validator):
         msg = f"Processing for sqls under this folder: {folder}"
         logger.info(msg)
         file_list.extend(files)
-        no_of_sqls, parse_error, validation_error = process_directory(config, validator, root, base_root, files)
+        no_of_sqls, parse_error, validation_error = process_directory(
+            config, validator, transpiler, root, base_root, files
+        )
         counter = counter + no_of_sqls
         parse_error_list.extend(parse_error)
         validate_error_list.extend(validation_error)
@@ -133,6 +149,10 @@ def morph(workspace_client: WorkspaceClient, config: MorphConfig):
     status = []
     result = MorphStatus([], 0, 0, 0, [])
     validator = Validator(db_sql.get_sql_backend(workspace_client, config))
+    read_dialect = DialectConfig().get_read_dialect(config)
+    parse_error_list = []
+    transpiler = SQLTranspiler(read_dialect, parse_error_list)
+
     if input_sql.is_file():
         if is_sql_file(input_sql):
             msg = f"Processing for sqls under this file: {input_sql}"
@@ -144,14 +164,16 @@ def morph(workspace_client: WorkspaceClient, config: MorphConfig):
 
             make_dir(output_folder)
             output_file = output_folder / input_sql.name
-            no_of_sqls, parse_error, validation_error = process_file(config, validator, input_sql, output_file)
+            no_of_sqls, parse_error, validation_error = process_file(
+                config, validator, transpiler, input_sql, output_file
+            )
             error_log = parse_error + validation_error
             result = MorphStatus([str(input_sql)], no_of_sqls, len(parse_error), len(validation_error), error_log)
         else:
             msg = f"{input_sql} is not a SQL file."
             logger.warning(msg)
     elif input_sql.is_dir():
-        result = process_recursive_dirs(config, validator)
+        result = process_recursive_dirs(config, validator, transpiler)
     else:
         msg = f"{input_sql} does not exist."
         logger.error(msg)
