@@ -5,17 +5,29 @@ Test Cases to validate target Databricks dialect
 # pylint: disable=too-many-lines
 import pytest
 from sqlglot import ParseError, UnsupportedError
+from tests.resources.functional.snowflake.helpers.load_tests import source_and_databricks_sql
 
 
-def test_struct(dialect_context):
+@pytest.mark.parametrize("databricks_sql, source", source_and_databricks_sql("test_struct.sql"))
+def test_struct(dialect_context, databricks_sql, source):
     validate_source_transpile, _ = dialect_context
-    # Test case to validate JSON to STRUCT conversion
-    validate_source_transpile(
-        databricks_sql="""SELECT STRUCT(1 AS a, 2 AS b), ARRAY(STRUCT(11 AS C, 22 AS d), 3)""",
-        source={
-            "snowflake": """SELECT {'a': 1, 'b': 2}, [{'c': 11, 'd': 22}, 3];""",
-        },
-    )
+    validate_source_transpile(databricks_sql=databricks_sql, source={"snowflake": source})
+
+
+@pytest.mark.parametrize("databricks_sql, source",
+                         source_and_databricks_sql(
+                             "test_date_from_parts_1.sql",
+                             "test_date_from_parts_2.sql",
+                             "test_date_from_parts_3.sql"))
+def test_date_from_parts(dialect_context, databricks_sql, source):
+    validate_source_transpile, _ = dialect_context
+    validate_source_transpile(databricks_sql=databricks_sql, source={"snowflake": source})
+
+
+@pytest.mark.parametrize("databricks_sql, source", source_and_databricks_sql("test_tovarchar.sql"))
+def test_tovarchar(dialect_context, databricks_sql, source):
+    validate_source_transpile, _ = dialect_context
+    validate_source_transpile(databricks_sql=databricks_sql, source={"snowflake": source})
 
 
 def test_lateral_struct(dialect_context):
@@ -263,28 +275,6 @@ def test_strtok_to_array(dialect_context):
     )
 
 
-def test_date_from_parts(dialect_context):
-    validate_source_transpile, _ = dialect_context
-    validate_source_transpile(
-        """SELECT MAKE_DATE(1992, 6, 1)""",
-        source={
-            "snowflake": """select date_from_parts(1992, 6, 1);""",
-        },
-    )
-    validate_source_transpile(
-        """SELECT MAKE_DATE(2023, 10, 3), MAKE_DATE(2020, 4, 4)""",
-        source={
-            "snowflake": """select date_from_parts(2023, 10, 3), date_from_parts(2020, 4, 4);""",
-        },
-    )
-    validate_source_transpile(
-        """SELECT MAKE_DATE(2023, 10, 3), MAKE_DATE(2020, 4, 4)""",
-        source={
-            "snowflake": """select datefromparts(2023, 10, 3), datefromparts(2020, 4, 4);""",
-        },
-    )
-
-
 def test_convert_timezone(dialect_context):
     validate_source_transpile, _ = dialect_context
     # Test case to validate `convert_timezone` parsing with Src TZ, tgt TZ and String Timestamp
@@ -412,18 +402,6 @@ def test_tochar(dialect_context):
         source={
             "snowflake": """select to_char(column1, '">"$99.0"<"') as D2_1,
                 to_char(column1, '">"B9,999.0"<"') as D4_1 FROM table;""",
-        },
-    )
-
-
-def test_tovarchar(dialect_context):
-    validate_source_transpile, _ = dialect_context
-    # Test case to validate TO_VARCHAR conversion
-    validate_source_transpile(
-        """SELECT TO_CHAR(-12454.8, '99,999.9S'), '>' || TO_CHAR(col1, '00000.00') || '<' FROM dummy""",
-        source={
-            "snowflake": """select to_varchar(-12454.8, '99,999.9S'),
-                '>' || to_char(col1, '00000.00') || '<' FROM dummy;""",
         },
     )
 
@@ -895,7 +873,7 @@ def test_arrayagg(dialect_context):
         },
     )
 
-    with (pytest.raises(ParseError, match="both must refer to the same column"),):
+    with (pytest.raises(ParseError, match="both must refer to the same column"), ):
         validate_source_transpile(
             """SELECT
                   SORT_ARRAY(ARRAY_AGG(DISTINCT col2), FALSE)
@@ -1016,7 +994,7 @@ def test_collate(dialect_context):
         "SELECT v, COLLATION(v), COLLATE(v, 'sp-upper'), COLLATION(COLLATE(v, 'sp-upper')) FROM collation1",
         source={
             "snowflake": "SELECT v, COLLATION(v), COLLATE(v, 'sp-upper'), COLLATION(COLLATE(v, 'sp-upper')) "
-            "FROM collation1;",
+                         "FROM collation1;",
         },
     )
 
@@ -1332,7 +1310,7 @@ def test_object_construct(dialect_context):
         "SELECT STRUCT(FROM_JSON('NULL', {json_column_schema}) AS Key_One, NULL AS Key_Two, 'null' AS Key_Three) AS obj",
         source={
             "snowflake": "SELECT OBJECT_CONSTRUCT('Key_One', PARSE_JSON('NULL'), 'Key_Two', "
-            "NULL, 'Key_Three', 'null') as obj;",
+                         "NULL, 'Key_Three', 'null') as obj;",
         },
     )
 
@@ -1540,7 +1518,7 @@ def test_row_number(dialect_context):
         "SELECT symbol, exchange, shares, ROW_NUMBER() OVER (PARTITION BY exchange) AS row_number FROM trades",
         source={
             "snowflake": "SELECT symbol, exchange, shares, ROW_NUMBER() OVER (PARTITION BY exchange) AS "
-            "row_number FROM trades;",
+                         "row_number FROM trades;",
         },
     )
 
@@ -1644,7 +1622,7 @@ def test_any_value(dialect_context):
         "= orders.customer_id GROUP BY customer.id",
         source={
             "snowflake": "SELECT customer.id , ANY_VALUE(customer.name) , SUM(orders.value) FROM customer JOIN "
-            "orders ON customer.id = orders.customer_id GROUP BY customer.id;",
+                         "orders ON customer.id = orders.customer_id GROUP BY customer.id;",
         },
     )
 
@@ -3193,7 +3171,7 @@ def test_base64_decode(dialect_context):
         "SELECT UNBASE64(BASE64('HELLO')), UNBASE64(BASE64('HELLO'))",
         source={
             "snowflake": "SELECT BASE64_DECODE_STRING(BASE64_ENCODE('HELLO')), "
-            "TRY_BASE64_DECODE_STRING(BASE64_ENCODE('HELLO'));",
+                         "TRY_BASE64_DECODE_STRING(BASE64_ENCODE('HELLO'));",
         },
     )
 
