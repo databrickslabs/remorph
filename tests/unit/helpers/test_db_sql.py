@@ -39,6 +39,23 @@ def test_get_sql_backend_without_warehouse_id(
     assert isinstance(sql_backend, databricks_connect_backend.return_value.__class__)
 
 
+@pytest.mark.usefixtures("mock_workspace_client", "morph_config", "monkeypatch")
+@patch('databricks.labs.remorph.helpers.db_sql.RuntimeBackend')
+def test_get_sql_backend_without_warehouse_id_in_notebook(
+    runtime_backend,
+    mock_workspace_client,
+    morph_config,
+    monkeypatch,
+):
+    monkeypatch.setenv("DATABRICKS_RUNTIME_VERSION", "14.3")
+    mock_runtime_backend_instance = runtime_backend.return_value
+    sql_backend = get_sql_backend(mock_workspace_client, morph_config)
+    runtime_backend.assert_called_once()
+    mock_runtime_backend_instance.execute.assert_any_call(f"use catalog {morph_config.catalog_name}")
+    mock_runtime_backend_instance.execute.assert_any_call(f"use {morph_config.schema_name}")
+    assert isinstance(sql_backend, runtime_backend.return_value.__class__)
+
+
 @pytest.mark.usefixtures("mock_workspace_client", "morph_config")
 @patch('databricks.labs.remorph.helpers.db_sql.DatabricksConnectBackend')
 def test_get_sql_backend_with_error(
