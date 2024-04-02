@@ -17,8 +17,8 @@ class Databricks(databricks.Databricks):
             exp.DataType.Type.VARIANT: "VARIANT",
         }
 
-        del databricks.Databricks.Generator.TRANSFORMS[exp.ParseJSON]
-
         TRANSFORMS: ClassVar[dict] = {
             **databricks.Databricks.Generator.TRANSFORMS,
         }
+
+        TRANSFORMS.pop(exp.ParseJSON, None)

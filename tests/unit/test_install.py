@@ -91,7 +91,7 @@ def test_save_config(ws, mock_installation):
             "skip_validation": True,
             "catalog_name": "remorph_catalog",
             "schema_name": "remorph_schema",
-            "mode": "current"
+            "mode": "current",
         },
     )
 

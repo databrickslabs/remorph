@@ -80,8 +80,9 @@ def validate_source_transpile(databricks_sql, *, source=None, pretty=False):
     """
     for source_dialect, source_sql in (source or {}).items():
         actual_sql = _normalize_string(
-            transpile(source_sql, read=get_dialect(source_dialect),
-                      write=Databricks, pretty=pretty, error_level=None)[0]
+            transpile(source_sql, read=get_dialect(source_dialect), write=Databricks, pretty=pretty, error_level=None)[
+                0
+            ]
         )
 
         expected_sql = _normalize_string(databricks_sql)
