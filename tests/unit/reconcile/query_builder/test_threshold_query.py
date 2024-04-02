@@ -1,14 +1,14 @@
-from databricks.labs.remorph.reconcile.query_builder.threshold import (
+from databricks.labs.remorph.reconcile.query_builder.threshold_query import (
     ThresholdQueryBuilder,
 )
 from databricks.labs.remorph.reconcile.recon_config import (
     ColumnMapping,
     JdbcReaderOptions,
-    Schema,
     Table,
     Thresholds,
     Transformation,
 )
+from tests.unit.reconcile.query_builder.schemas import alias_schema, schema
 
 
 def test_threshold_query_builder_with_defaults():
@@ -24,33 +24,14 @@ def test_threshold_query_builder_with_defaults():
         thresholds=[Thresholds(column_name="s_acctbal", lower_bound="0", upper_bound="100", type="int")],
         filters=None,
     )
-    source_schema = [
-        Schema("s_suppkey", "number"),
-        Schema("s_name", "varchar"),
-        Schema("s_address", "varchar"),
-        Schema("s_nationkey", "number"),
-        Schema("s_phone", "varchar"),
-        Schema("s_acctbal", "number"),
-        Schema("s_comment", "varchar"),
-    ]
 
-    actual_src_query = ThresholdQueryBuilder(table_conf, source_schema, "source", "oracle").build_query()
+    actual_src_query = ThresholdQueryBuilder(table_conf, schema, "source", "oracle").build_query()
     expected_src_query = (
         'select s_acctbal as s_acctbal,s_suppkey as s_suppkey from {schema_name}.supplier where  1 = 1 '
     )
     assert actual_src_query == expected_src_query
 
-    target_schema = [
-        Schema("s_suppkey", "number"),
-        Schema("s_name", "varchar"),
-        Schema("s_address", "varchar"),
-        Schema("s_nationkey", "number"),
-        Schema("s_phone", "varchar"),
-        Schema("s_acctbal", "number"),
-        Schema("s_comment", "varchar"),
-    ]
-
-    actual_tgt_query = ThresholdQueryBuilder(table_conf, target_schema, "target", "databricks").build_query()
+    actual_tgt_query = ThresholdQueryBuilder(table_conf, schema, "target", "databricks").build_query()
     expected_tgt_query = (
         'select s_acctbal as s_acctbal,s_suppkey as s_suppkey from {catalog_name}.{schema_name}.supplier where  1 = 1 '
     )
@@ -93,18 +74,8 @@ def test_threshold_query_builder_with_transformations_and_jdbc():
         ],
         filters=None,
     )
-    source_schema = [
-        Schema("s_suppkey", "number"),
-        Schema("s_name", "varchar"),
-        Schema("s_address", "varchar"),
-        Schema("s_nationkey", "number"),
-        Schema("s_phone", "varchar"),
-        Schema("s_acctbal", "number"),
-        Schema("s_comment", "varchar"),
-        Schema("s_suppdate", "timestamp"),
-    ]
 
-    actual_src_query = ThresholdQueryBuilder(table_conf, source_schema, "source", "oracle").build_query()
+    actual_src_query = ThresholdQueryBuilder(table_conf, schema, "source", "oracle").build_query()
     expected_src_query = (
         "select trim(to_char(s_acctbal, '9999999999.99')) as s_acctbal,s_nationkey "
         "as s_nationkey,s_suppdate as s_suppdate,trim(s_suppkey) as s_suppkey from "
@@ -112,18 +83,7 @@ def test_threshold_query_builder_with_transformations_and_jdbc():
     )
     assert actual_src_query == expected_src_query
 
-    target_schema = [
-        Schema("s_suppkey_t", "number"),
-        Schema("s_name", "varchar"),
-        Schema("s_address_t", "varchar"),
-        Schema("s_nationkey_t", "number"),
-        Schema("s_phone_t", "varchar"),
-        Schema("s_acctbal_t", "number"),
-        Schema("s_comment_t", "varchar"),
-        Schema("s_suppdate_t", "timestamp"),
-    ]
-
-    actual_tgt_query = ThresholdQueryBuilder(table_conf, target_schema, "target", "databricks").build_query()
+    actual_tgt_query = ThresholdQueryBuilder(table_conf, alias_schema, "target", "databricks").build_query()
     expected_tgt_query = (
         "select cast(s_acctbal_t as decimal(38,2)) as s_acctbal,s_suppdate_t as "
         "s_suppdate,trim(s_suppkey_t) as s_suppkey from {catalog_name}.{schema_name}.supplier where  1 = 1 "
