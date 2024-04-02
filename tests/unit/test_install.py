@@ -86,11 +86,12 @@ def test_save_config(ws, mock_installation):
     mock_installation.assert_file_written(
         "config.yml",
         {
-            "version": 1,
+            "version": 2,
             "source": "snowflake",
             "skip_validation": True,
             "catalog_name": "remorph_catalog",
             "schema_name": "remorph_schema",
+            "mode": "current"
         },
     )
 

@@ -16,7 +16,7 @@ from databricks.labs.remorph.helpers.file_utils import (
 from databricks.labs.remorph.helpers.morph_status import MorphStatus, ValidationError
 from databricks.labs.remorph.helpers.validation import Validator
 from databricks.labs.remorph.snow import dialect_utils
-from databricks.labs.remorph.snow.sql_transpiler import SQLTranspiler
+from databricks.labs.remorph.snow.sql_transpiler import SqlglotEngine
 from databricks.labs.remorph.transpiler.dialects_config import DialectConfig
 
 # pylint: disable=unspecified-encoding
@@ -27,12 +27,12 @@ logger = logging.getLogger(__name__)
 def process_file(
     config: MorphConfig,
     validator: Validator,
-    transpiler: SQLTranspiler,
+    transpiler: SqlglotEngine,
     input_file: str | Path,
     output_file: str | Path,
 ):
+    logger.info(f"started processing for the file ${input_file}")
     source = config.source
-    parse_error_list = []
     validate_error_list = []
     no_of_sqls = 0
 
@@ -48,7 +48,7 @@ def process_file(
 
     write_dialect = DialectConfig().get_write_dialect(config)
 
-    transpiled_sql = transpiler.transpile(write_dialect, sql, str(input_file))
+    transpiled_sql, parse_error_list = transpiler.transpile(write_dialect, sql, str(input_file), [])
 
     with output_file.open("w") as w:
         for output in transpiled_sql:
@@ -75,7 +75,7 @@ def process_file(
 def process_directory(
     config: MorphConfig,
     validator: Validator,
-    transpiler: SQLTranspiler,
+    transpiler: SqlglotEngine,
     root: str | Path,
     base_root: str,
     files: list[str],
@@ -111,7 +111,7 @@ def process_directory(
     return counter, parse_error_list, validate_error_list
 
 
-def process_recursive_dirs(config: MorphConfig, validator: Validator, transpiler: SQLTranspiler):
+def process_recursive_dirs(config: MorphConfig, validator: Validator, transpiler: SqlglotEngine):
     input_sql = Path(config.input_sql)
     parse_error_list = []
     validate_error_list = []
@@ -150,8 +150,7 @@ def morph(workspace_client: WorkspaceClient, config: MorphConfig):
     result = MorphStatus([], 0, 0, 0, [])
     validator = Validator(db_sql.get_sql_backend(workspace_client, config))
     read_dialect = DialectConfig().get_read_dialect(config)
-    parse_error_list = []
-    transpiler = SQLTranspiler(read_dialect, parse_error_list)
+    transpiler = SqlglotEngine(read_dialect)
 
     if input_sql.is_file():
         if is_sql_file(input_sql):

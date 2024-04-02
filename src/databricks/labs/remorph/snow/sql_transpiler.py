@@ -5,34 +5,34 @@ from sqlglot.errors import ParseError, TokenError, UnsupportedError
 from databricks.labs.remorph.helpers.morph_status import ParserError
 
 
-class SQLTranspiler:
-    def __init__(self, read_dialect: Dialect, error_list: list[ParserError]):
+class SqlglotEngine:
+    def __init__(self, read_dialect: Dialect):
         self.read_dialect = read_dialect
-        self.error_list = error_list
 
-    def transpile(self, write_dialect: Dialect, sql: str, file_name: str) -> str:
+    def transpile(
+        self, write_dialect: Dialect, sql: str, file_name: str, error_list: list[ParserError]
+    ) -> (str, list[ParserError]):
         try:
             transpiled_sql = transpile(sql, read=self.read_dialect, write=write_dialect, pretty=True, error_level=None)
         except (ParseError, TokenError, UnsupportedError) as e:
             transpiled_sql = ""
-            self.error_list.append(ParserError(file_name, e))
+            error_list.append(ParserError(file_name, e))
 
-        return transpiled_sql
+        return transpiled_sql, error_list
 
-    def parse(self, sql: str, file_name: str) -> exp:
+    def parse(self, sql: str, file_name: str) -> (exp, ParserError | None):
+        error = None
         try:
             expression = parse(sql, read=self.read_dialect, error_level=ErrorLevel.IMMEDIATE)
         except (ParseError, TokenError, UnsupportedError) as e:
             expression = []
-            self.error_list.append(ParserError(file_name, e))
+            error = ParserError(file_name, e)
 
-        return expression
+        return expression, error
 
     def parse_sql_content(self, sql, file_name):
-        parse_error_list = []
-        self.error_list = parse_error_list
 
-        parsed_expression = self.parse(sql, file_name)
+        parsed_expression, _ = self.parse(sql, file_name)
         for expr in parsed_expression:
             child = str(file_name)
             if expr is not None:
