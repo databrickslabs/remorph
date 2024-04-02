@@ -1,7 +1,9 @@
 import logging
+import os
 
 from databricks.labs.lsql.backends import (
     DatabricksConnectBackend,
+    RuntimeBackend,
     SqlBackend,
     StatementExecutionBackend,
 )
@@ -21,7 +23,7 @@ def get_sql_backend(ws: WorkspaceClient, config: MorphConfig) -> SqlBackend:
     if warehouse_id:
         sql_backend = StatementExecutionBackend(ws, warehouse_id, catalog=catalog_name, schema=schema_name)
     else:
-        sql_backend = DatabricksConnectBackend(ws)
+        sql_backend = RuntimeBackend() if "DATABRICKS_RUNTIME_VERSION" in os.environ else DatabricksConnectBackend(ws)
         try:
             sql_backend.execute(f"use catalog {catalog_name}")
             sql_backend.execute(f"use {schema_name}")
