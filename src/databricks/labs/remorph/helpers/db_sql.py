@@ -8,6 +8,7 @@ from databricks.labs.lsql.backends import (
     StatementExecutionBackend,
 )
 from databricks.sdk import WorkspaceClient
+from databricks.sdk.core import Config
 from databricks.sdk.errors.base import DatabricksError
 
 from databricks.labs.remorph.config import MorphConfig
@@ -16,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 
 def get_sql_backend(ws: WorkspaceClient, config: MorphConfig) -> SqlBackend:
-    sdk_config = config.sdk_config
+    sdk_config = Config(**config.sdk_config) if config.sdk_config else None
     warehouse_id = sdk_config.warehouse_id if sdk_config else None
     catalog_name = config.catalog_name
     schema_name = config.schema_name

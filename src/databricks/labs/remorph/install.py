@@ -11,7 +11,6 @@ from databricks.labs.blueprint.installer import InstallState
 from databricks.labs.blueprint.tui import Prompts
 from databricks.labs.blueprint.wheels import ProductInfo
 from databricks.sdk import WorkspaceClient
-from databricks.sdk.core import Config
 from databricks.sdk.errors import NotFound
 from databricks.sdk.retries import retried
 from databricks.sdk.service.sql import (
@@ -69,7 +68,7 @@ class WorkspaceInstaller:
         skip_validation = self._prompts.confirm("Do you want to Skip Validation")
 
         if not skip_validation:
-            ws_config = Config(**self._configure_runtime())
+            ws_config = self._configure_runtime()
             catalog_name = self._prompts.question("Enter catalog_name")
             try:
                 self._catalog_setup.get(catalog_name)
@@ -156,12 +155,12 @@ class WorkspaceInstaller:
 
 class WorkspaceInstallation:
     def __init__(
-            self,
-            config: MorphConfig,
-            installation: Installation,
-            ws: WorkspaceClient,
-            prompts: Prompts,
-            verify_timeout: timedelta,
+        self,
+        config: MorphConfig,
+        installation: Installation,
+        ws: WorkspaceClient,
+        prompts: Prompts,
+        verify_timeout: timedelta,
     ):
         self._config = config
         self._installation = installation

@@ -8,7 +8,6 @@ from databricks.labs.blueprint.tui import MockPrompts, Prompts
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.errors import NotFound
 from databricks.sdk.service.catalog import CatalogInfo
-from databricks.sdk.service.sql import EndpointInfo, EndpointInfoWarehouseType, State
 
 from databricks.labs.remorph.config import MorphConfig
 from databricks.labs.remorph.install import (
@@ -93,7 +92,7 @@ def test_save_config(ws, mock_installation):
 
 
 def test_create_catalog_schema(ws, mock_installation):
-    #r".*PRO or SERVERLESS SQL warehouse.*": "0",
+    # r".*PRO or SERVERLESS SQL warehouse.*": "0",
     prompts = MockPrompts(
         {
             r"Select the source": "0",
@@ -107,9 +106,6 @@ def test_create_catalog_schema(ws, mock_installation):
             r".*": "",
         }
     )
-    ws.warehouses.list = lambda **_: [
-        EndpointInfo(name="abc", id="abc", warehouse_type=EndpointInfoWarehouseType.PRO, state=State.RUNNING)
-    ]
 
     install = WorkspaceInstaller(prompts, mock_installation, ws)
 
