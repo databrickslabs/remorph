@@ -22,6 +22,7 @@ def ws():
     w = create_autospec(WorkspaceClient)
     w.catalogs.get.side_effect = NotFound("test")
     w.schemas.get.side_effect = NotFound("test.schema")
+    w.config.return_value = {"warehouse_id", "test_warehouse"}
     return w
 
 
@@ -91,10 +92,13 @@ def test_save_config(ws, mock_installation):
 
 
 def test_create_catalog_schema(ws, mock_installation):
+    #r".*PRO or SERVERLESS SQL warehouse.*": "0",
     prompts = MockPrompts(
         {
             r"Select the source": "0",
             r"Do you want to Skip Validation": "No",
+            r"Do you want to use SQL Warehouse for validation?": "No",
+            r"Enter a valid cluster_id to proceed": "test_cluster",
             r"Enter catalog_name": "test",
             r".*Do you want to create a new one?": "yes",
             r"Enter schema_name": "schema",

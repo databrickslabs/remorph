@@ -69,7 +69,7 @@ class WorkspaceInstaller:
         skip_validation = self._prompts.confirm("Do you want to Skip Validation")
 
         if not skip_validation:
-            ws_config = self._configure_runtime()
+            ws_config = Config(**self._configure_runtime())
             catalog_name = self._prompts.question("Enter catalog_name")
             try:
                 self._catalog_setup.get(catalog_name)
@@ -96,13 +96,13 @@ class WorkspaceInstaller:
             webbrowser.open(ws_file_url)
         return config
 
-    def _configure_runtime(self) -> Config:
+    def _configure_runtime(self) -> dict[str, str]:
         if self._prompts.confirm("Do you want to use SQL Warehouse for validation?"):
             warehouse_id = self._configure_warehouse()
-            return Config(warehouse_id=warehouse_id)
+            return {"warehouse_id": warehouse_id}
 
         cluster_id = self._prompts.question("Enter a valid cluster_id to proceed")
-        return Config(cluster=cluster_id)
+        return {"cluster": cluster_id}
 
     def _configure_warehouse(self):
         def warehouse_type(_):
@@ -156,12 +156,12 @@ class WorkspaceInstaller:
 
 class WorkspaceInstallation:
     def __init__(
-        self,
-        config: MorphConfig,
-        installation: Installation,
-        ws: WorkspaceClient,
-        prompts: Prompts,
-        verify_timeout: timedelta,
+            self,
+            config: MorphConfig,
+            installation: Installation,
+            ws: WorkspaceClient,
+            prompts: Prompts,
+            verify_timeout: timedelta,
     ):
         self._config = config
         self._installation = installation
