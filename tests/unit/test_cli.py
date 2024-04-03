@@ -5,7 +5,6 @@ import pytest
 import yaml
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.errors import NotFound
-from databricks.sdk.service import iam
 
 from databricks.labs.remorph import cli
 from databricks.labs.remorph.config import MorphConfig
@@ -20,10 +19,7 @@ def mock_workspace_client_cli():
                 'catalog_name': 'transpiler',
                 'schema_name': 'remorph',
                 'source': 'snowflake',
-                'sdk_config': {
-                    'cluster_id': 'test_cluster'
-                }
-
+                'sdk_config': {'cluster_id': 'test_cluster'},
             }
         )
     }
