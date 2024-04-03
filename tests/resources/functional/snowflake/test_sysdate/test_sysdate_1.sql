@@ -1,0 +1,6 @@
+
+-- source:
+SELECT SYSDATE(), CURRENT_TIMESTAMP();
+
+-- databricks_sql:
+SELECT CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP();

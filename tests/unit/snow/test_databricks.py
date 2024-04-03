@@ -1,3 +1,4 @@
+import logging
 import os
 from pathlib import Path
 
@@ -13,18 +14,21 @@ def get_functional_test_files_from_directory(input_dir: Path | str) -> list[Func
         if dirpath.endswith("__pycache__"):
             continue
         for file in filenames:
+            if file == '.DS_Store':
+                continue
             if file.endswith('.sql'):
                 abs_path = Path(dirpath) / file
                 with open(abs_path, 'r', encoding="utf-8") as file_content:
                     content = file_content.read()
+            if content:
+                parts = content.split('-- source:')
+                for part in parts[1:]:
+                    source, databricks_sql = part.split('-- databricks_sql:')
+                    source = source.strip().rstrip(';')
+                    databricks_sql = databricks_sql.strip().rstrip(';').replace('\\', '')
+                    test_name = file.replace('.sql', '')
+                    suite.append(FunctionalTestFile(databricks_sql, source, test_name))
 
-            parts = content.split('-- source:')
-            for part in parts[1:]:
-                source, databricks_sql = part.split('-- databricks_sql:')
-                source = source.strip().rstrip(';')
-                databricks_sql = databricks_sql.strip().rstrip(';').replace('\\', '')
-                test_name = file.replace('.sql', '')
-                suite.append(FunctionalTestFile(databricks_sql, source, test_name))
 
     return suite
 
