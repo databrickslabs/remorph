@@ -1,11 +1,16 @@
+# pylint: disable=(wrong-import-order,ungrouped-imports,useless-suppression)
 import json
 import os
 
 from databricks.labs.blueprint.cli import App
 from databricks.labs.blueprint.entrypoint import get_logger
 from databricks.sdk import WorkspaceClient
+from pyspark.sql import SparkSession
 
 from databricks.labs.remorph.config import MorphConfig
+from databricks.labs.remorph.helpers.recon_config_utils import ReconConfigPrompts
+from databricks.labs.remorph.reconcile.connectors.snowflake import SnowflakeDataSource
+from databricks.labs.remorph.reconcile.constants import SourceType
 from databricks.labs.remorph.reconcile.execute import recon
 from databricks.labs.remorph.transpiler.execute import morph
 
@@ -74,6 +79,48 @@ def reconcile(w: WorkspaceClient, recon_conf: str, conn_profile: str, source: st
         )
 
     recon(recon_conf, conn_profile, source, report)
+
+
+@remorph.command
+def generate_recon_config(w: WorkspaceClient):
+    """generates config file for reconciliation"""
+    logger.info("Generating config file for reconcile")
+    recon_conf = ReconConfigPrompts()
+
+    recon_source_choices = [
+        SourceType.SNOWFLAKE.value,
+        SourceType.ORACLE.value,
+        SourceType.DATABRICKS.value,
+        SourceType.NETEZZA.value,
+    ]
+    # Prompt for source
+    source = recon_conf.prompts.choice("Select the source", recon_source_choices)
+
+    # Check for Secrets Scope
+    if not recon_conf.prompts.confirm(f"Have you setup the secrets for the `{source}` connection?"):
+        raise_validation_exception(
+            f"Error: Secrets are needed for `{source}` reconciliation."
+            f"\nUse `remorph setup-recon-secrets` to setup Scope and Secrets."
+        )
+
+    # Prompt for catalog and schema
+    catalog, schema = recon_conf.prompt_catalog_schema(source)
+    # Prompt for secret scope details
+    # todo: setup connection details another cli to do scope, key setup
+    secret_scope = recon_conf.prompts.question(f"Enter `{source}` Secret Scope name")
+    w.secrets.list_secrets(secret_scope)
+    # TODO: validate scope exists else quit
+    spark = SparkSession.builder.getOrCreate()
+    sf_datasource = SnowflakeDataSource("Snowflake", spark, w, secret_scope)
+    # schema = sf_datasource.get_schema_query(catalog, schema, "supplier")
+    print(catalog, schema, source)
+
+
+@remorph.command
+def validate_recon_config(w: WorkspaceClient):
+    """validates reconciliation config file"""
+    logger.info("Validating reconcile config file")
+    print(w.catalogs.list())
 
 
 if __name__ == "__main__":
