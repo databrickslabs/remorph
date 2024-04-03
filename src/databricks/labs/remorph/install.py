@@ -175,7 +175,7 @@ class WorkspaceInstallation:
         self._this_file = Path(__file__)
 
     def run(self):
-        logger.info(f"Installing Remorph v{PRODUCT_INFO.version()}")
+        logger.info(f"Saving Remorph v{PRODUCT_INFO.version()} config on Databricks Workspace")
         self._installation.save(self._config)
         logger.info("Installation completed successfully! Please refer to the documentation for the next steps.")
 

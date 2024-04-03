@@ -6,12 +6,9 @@ from databricks.labs.blueprint.cli import App
 from databricks.labs.blueprint.entrypoint import get_logger
 from databricks.labs.blueprint.installation import Installation
 from databricks.sdk import WorkspaceClient
-from pyspark.sql import SparkSession
 
 from databricks.labs.remorph.config import MorphConfig
-from databricks.labs.remorph.helpers.recon_config_utils import ReconConfigPrompts
-from databricks.labs.remorph.reconcile.connectors.snowflake import SnowflakeDataSource
-from databricks.labs.remorph.reconcile.constants import SourceType
+from databricks.labs.remorph.helpers.recon_config_utils import ReconConfigPrompts, recon_source_choices
 from databricks.labs.remorph.reconcile.execute import recon
 from databricks.labs.remorph.transpiler.execute import morph
 
@@ -25,13 +22,13 @@ def raise_validation_exception(msg: str) -> Exception:
 
 @remorph.command
 def transpile(
-    w: WorkspaceClient,
-    source: str,
-    input_sql: str,
-    output_folder: str,
-    skip_validation: str,
-    catalog_name: str,
-    schema_name: str,
+        w: WorkspaceClient,
+        source: str,
+        input_sql: str,
+        output_folder: str,
+        skip_validation: str,
+        catalog_name: str,
+        schema_name: str,
 ):
     """transpiles source dialect to databricks dialect"""
     logger.info(f"user: {w.current_user.me()}")
@@ -91,14 +88,8 @@ def reconcile(w: WorkspaceClient, recon_conf: str, conn_profile: str, source: st
 def generate_recon_config(w: WorkspaceClient):
     """generates config file for reconciliation"""
     logger.info("Generating config file for reconcile")
-    recon_conf = ReconConfigPrompts()
+    recon_conf = ReconConfigPrompts(w)
 
-    recon_source_choices = [
-        SourceType.SNOWFLAKE.value,
-        SourceType.ORACLE.value,
-        SourceType.DATABRICKS.value,
-        SourceType.NETEZZA.value,
-    ]
     # Prompt for source
     source = recon_conf.prompts.choice("Select the source", recon_source_choices)
 
@@ -108,18 +99,7 @@ def generate_recon_config(w: WorkspaceClient):
             f"Error: Secrets are needed for `{source}` reconciliation."
             f"\nUse `remorph setup-recon-secrets` to setup Scope and Secrets."
         )
-
-    # Prompt for catalog and schema
-    catalog, schema = recon_conf.prompt_catalog_schema(source)
-    # Prompt for secret scope details
-    # todo: setup connection details another cli to do scope, key setup
-    secret_scope = recon_conf.prompts.question(f"Enter `{source}` Secret Scope name")
-    w.secrets.list_secrets(secret_scope)
-    # TODO: validate scope exists else quit
-    spark = SparkSession.builder.getOrCreate()
-    sf_datasource = SnowflakeDataSource("Snowflake", spark, w, secret_scope)
-    # schema = sf_datasource.get_schema_query(catalog, schema, "supplier")
-    print(catalog, schema, source)
+    recon_conf.prompt_config_details(source)
 
 
 @remorph.command
@@ -127,6 +107,18 @@ def validate_recon_config(w: WorkspaceClient):
     """validates reconciliation config file"""
     logger.info("Validating reconcile config file")
     print(w.catalogs.list())
+
+
+@remorph.command
+def setup_recon_secrets(w: WorkspaceClient):
+    """Setup reconciliation connection profile details as Secrets in Databricks Workspace"""
+    recon_conf = ReconConfigPrompts(w)
+
+    # Prompt for source
+    source = recon_conf.prompts.choice("Select the source", recon_source_choices)
+
+    logger.info(f"Setting up Scope, Secrets for `{source}` reconciliation")
+    recon_conf.prompt_connection_details(source)
 
 
 if __name__ == "__main__":
