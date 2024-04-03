@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 
 def get_sql_backend(ws: WorkspaceClient, config: MorphConfig) -> SqlBackend:
-    sdk_config = ws.config
+    sdk_config = config.sdk_config
     warehouse_id = isinstance(sdk_config.warehouse_id, str) and sdk_config.warehouse_id
     catalog_name = config.catalog_name
     schema_name = config.schema_name
