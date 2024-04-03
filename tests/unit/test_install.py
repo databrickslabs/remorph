@@ -90,9 +90,38 @@ def test_save_config(ws, mock_installation):
         },
     )
 
+def test_create_sql_warehouse(ws, mock_installation):
+    prompts = MockPrompts(
+        {
+            r"Select the source": "0",
+            r"Do you want to Skip Validation": "No",
+            r"Do you want to use SQL Warehouse for validation?": "yes",
+            r"Select PRO or SERVERLESS SQL warehouse to run validation on" : "0",
+            r"Enter catalog_name": "test",
+            r".*Do you want to create a new one?": "yes",
+            r"Enter schema_name": "schema",
+            r".*Do you want to create a new Schema?": "yes",
+            r".*": "",
+        }
+    )
+
+    install = WorkspaceInstaller(prompts, mock_installation, ws)
+
+    # Assert that the `install` is an instance of WorkspaceInstaller
+    assert isinstance(install, WorkspaceInstaller)
+
+    config = install.configure()
+
+    # Assert that the `config` is an instance of MorphConfig
+    assert isinstance(config, MorphConfig)
+
+    # Assert  the `config` variables
+    assert config.source == "snowflake"
+    assert config.skip_validation is False
+    assert config.catalog_name == "test"
+    assert config.schema_name == "schema"
 
 def test_create_catalog_schema(ws, mock_installation):
-    # r".*PRO or SERVERLESS SQL warehouse.*": "0",
     prompts = MockPrompts(
         {
             r"Select the source": "0",
