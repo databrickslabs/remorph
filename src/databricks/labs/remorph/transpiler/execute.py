@@ -128,7 +128,9 @@ def morph(workspace_client: WorkspaceClient, config: MorphConfig):
     skip_validation = config.skip_validation
     status = []
     result = MorphStatus([], 0, 0, 0, [])
-    validator = Validator(db_sql.get_sql_backend(workspace_client, config))
+    validator = None
+    if not config.skip_validation:
+        validator = Validator(db_sql.get_sql_backend(workspace_client, config))
     if input_sql.is_file():
         if is_sql_file(input_sql):
             msg = f"Processing for sqls under this file: {input_sql}"
