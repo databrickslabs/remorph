@@ -5,11 +5,12 @@ from unittest.mock import create_autospec, patch
 
 import pytest
 from databricks.connect import DatabricksSession
+from databricks.labs.lsql.backends import MockBackend
 from databricks.sdk.core import Config
 
 from databricks.labs.remorph.config import MorphConfig
 from databricks.labs.remorph.helpers.file_utils import make_dir
-from databricks.labs.remorph.helpers.validate import Validate
+from databricks.labs.remorph.helpers.validation import Validator
 from databricks.labs.remorph.transpiler.execute import morph
 
 # pylint: disable=unspecified-encoding
@@ -129,7 +130,7 @@ def initial_setup(tmp_path: Path):
     return input_dir
 
 
-def test_with_dir_skip_validation(initial_setup):
+def test_with_dir_skip_validation(initial_setup, mock_workspace_client):
     input_dir = initial_setup
     config = MorphConfig(
         input_sql=str(input_dir),
@@ -140,7 +141,8 @@ def test_with_dir_skip_validation(initial_setup):
     )
 
     # call morph
-    status = morph(config)
+    with patch('databricks.labs.remorph.helpers.db_sql.get_sql_backend', return_value=MockBackend()):
+        status = morph(mock_workspace_client, config)
     # assert the status
     assert status is not None, "Status returned by morph function is None"
     assert isinstance(status, list), "Status returned by morph function is not a list"
@@ -184,7 +186,7 @@ def test_with_dir_skip_validation(initial_setup):
     safe_remove_file(Path(status[0]["error_log_file"]))
 
 
-def test_with_dir_with_output_folder_skip_validation(initial_setup):
+def test_with_dir_with_output_folder_skip_validation(initial_setup, mock_workspace_client):
     input_dir = initial_setup
     config = MorphConfig(
         input_sql=str(input_dir),
@@ -193,8 +195,8 @@ def test_with_dir_with_output_folder_skip_validation(initial_setup):
         source="snowflake",
         skip_validation=True,
     )
-
-    status = morph(config)
+    with patch('databricks.labs.remorph.helpers.db_sql.get_sql_backend', return_value=MockBackend()):
+        status = morph(mock_workspace_client, config)
     # assert the status
     assert status is not None, "Status returned by morph function is None"
     assert isinstance(status, list), "Status returned by morph function is not a list"
@@ -239,7 +241,7 @@ def test_with_dir_with_output_folder_skip_validation(initial_setup):
     safe_remove_file(Path(status[0]["error_log_file"]))
 
 
-def test_with_file(initial_setup):
+def test_with_file(initial_setup, mock_workspace_client):
     input_dir = initial_setup
     sdk_config = create_autospec(Config)
     spark = create_autospec(DatabricksSession)
@@ -250,12 +252,18 @@ def test_with_file(initial_setup):
         source="snowflake",
         skip_validation=False,
     )
-    mock_validate = create_autospec(Validate)
+    mock_validate = create_autospec(Validator)
     mock_validate.spark = spark
     mock_validate.validate_format_result.return_value = (""" Mock validated query """, "Mock validation error")
 
-    with patch("databricks.labs.remorph.transpiler.execute.Validate", return_value=mock_validate):
-        status = morph(config)
+    with (
+        patch(
+            'databricks.labs.remorph.helpers.db_sql.get_sql_backend',
+            return_value=MockBackend(),
+        ),
+        patch("databricks.labs.remorph.transpiler.execute.Validator", return_value=mock_validate),
+    ):
+        status = morph(mock_workspace_client, config)
 
     # assert the status
     assert status is not None, "Status returned by morph function is None"
@@ -286,7 +294,7 @@ ValidationError(file_name='{input_dir}/query1.sql', exception='Mock validation e
     safe_remove_file(Path(status[0]["error_log_file"]))
 
 
-def test_with_file_with_output_folder_skip_validation(initial_setup):
+def test_with_file_with_output_folder_skip_validation(initial_setup, mock_workspace_client):
     input_dir = initial_setup
     config = MorphConfig(
         input_sql=str(input_dir / "query1.sql"),
@@ -296,7 +304,11 @@ def test_with_file_with_output_folder_skip_validation(initial_setup):
         skip_validation=True,
     )
 
-    status = morph(config)
+    with patch(
+        'databricks.labs.remorph.helpers.db_sql.get_sql_backend',
+        return_value=MockBackend(),
+    ):
+        status = morph(mock_workspace_client, config)
 
     # assert the status
     assert status is not None, "Status returned by morph function is None"
@@ -316,7 +328,7 @@ def test_with_file_with_output_folder_skip_validation(initial_setup):
     safe_remove_dir(input_dir)
 
 
-def test_with_not_a_sql_file_skip_validation(initial_setup):
+def test_with_not_a_sql_file_skip_validation(initial_setup, mock_workspace_client):
     input_dir = initial_setup
     config = MorphConfig(
         input_sql=str(input_dir / "file.txt"),
@@ -326,7 +338,11 @@ def test_with_not_a_sql_file_skip_validation(initial_setup):
         skip_validation=True,
     )
 
-    status = morph(config)
+    with patch(
+        'databricks.labs.remorph.helpers.db_sql.get_sql_backend',
+        return_value=MockBackend(),
+    ):
+        status = morph(mock_workspace_client, config)
 
     # assert the status
     assert status is not None, "Status returned by morph function is None"
@@ -346,7 +362,7 @@ def test_with_not_a_sql_file_skip_validation(initial_setup):
     safe_remove_dir(input_dir)
 
 
-def test_with_not_existing_file_skip_validation(initial_setup):
+def test_with_not_existing_file_skip_validation(initial_setup, mock_workspace_client):
     input_dir = initial_setup
     config = MorphConfig(
         input_sql=str(input_dir / "file_not_exist.txt"),
@@ -356,7 +372,11 @@ def test_with_not_existing_file_skip_validation(initial_setup):
         skip_validation=True,
     )
     with pytest.raises(FileNotFoundError):
-        morph(config)
+        with patch(
+            'databricks.labs.remorph.helpers.db_sql.get_sql_backend',
+            return_value=MockBackend(),
+        ):
+            morph(mock_workspace_client, config)
 
     # cleanup
     safe_remove_dir(input_dir)
