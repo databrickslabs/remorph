@@ -13,7 +13,7 @@ def test_get_sql_backend_with_warehouse_id(
     mock_workspace_client,
     morph_config,
 ):
-    mock_workspace_client.config.warehouse_id = "test_warehouse_id"
+    morph_config.sdk_config.warehouse_id = "test_warehouse_id"
     sql_backend = get_sql_backend(mock_workspace_client, morph_config)
     stmt_execution_backend.assert_called_once_with(
         mock_workspace_client,
@@ -32,6 +32,7 @@ def test_get_sql_backend_without_warehouse_id(
     morph_config,
 ):
     mock_dbc_backend_instance = databricks_connect_backend.return_value
+    morph_config.sdk_config.warehouse_id = None
     sql_backend = get_sql_backend(mock_workspace_client, morph_config)
     databricks_connect_backend.assert_called_once_with(mock_workspace_client)
     mock_dbc_backend_instance.execute.assert_any_call(f"use catalog {morph_config.catalog_name}")
@@ -49,6 +50,7 @@ def test_get_sql_backend_without_warehouse_id_in_notebook(
 ):
     monkeypatch.setenv("DATABRICKS_RUNTIME_VERSION", "14.3")
     mock_runtime_backend_instance = runtime_backend.return_value
+    morph_config.sdk_config.warehouse_id = None
     sql_backend = get_sql_backend(mock_workspace_client, morph_config)
     runtime_backend.assert_called_once()
     mock_runtime_backend_instance.execute.assert_any_call(f"use catalog {morph_config.catalog_name}")

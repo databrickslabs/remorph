@@ -71,11 +71,6 @@ def test_save_config(ws, mock_installation):
         {
             r"Select the source": "0",
             r"Do you want to Skip Validation": "yes",
-            r"Enter catalog_name": "remorph_catalog",
-            r".*Do you want to create a new one?": "yes",
-            r"Enter schema_name": "remorph_schema",
-            r".*Do you want to create a new Schema?": "yes",
-            r"Open config file in the browser.*": "yes",
             r".*": "",
         }
     )
@@ -89,8 +84,8 @@ def test_save_config(ws, mock_installation):
             "version": 1,
             "source": "snowflake",
             "skip_validation": True,
-            "catalog_name": "remorph_catalog",
-            "schema_name": "remorph_schema",
+            "catalog_name": "transpiler_test",
+            "schema_name": "convertor_test",
         },
     )
 
@@ -99,7 +94,7 @@ def test_create_catalog_schema(ws, mock_installation):
     prompts = MockPrompts(
         {
             r"Select the source": "0",
-            r"Do you want to Skip Validation": "yes",
+            r"Do you want to Skip Validation": "No",
             r"Enter catalog_name": "test",
             r".*Do you want to create a new one?": "yes",
             r"Enter schema_name": "schema",
@@ -119,7 +114,7 @@ def test_create_catalog_schema(ws, mock_installation):
 
     # Assert  the `config` variables
     assert config.source == "snowflake"
-    assert config.skip_validation is True
+    assert config.skip_validation is False
     assert config.catalog_name == "test"
     assert config.schema_name == "schema"
 
@@ -128,7 +123,7 @@ def test_create_catalog_no(ws, mock_installation):
     prompts = MockPrompts(
         {
             r"Select the source": "0",
-            r"Do you want to Skip Validation": "yes",
+            r"Do you want to Skip Validation": "No",
             r"Enter catalog_name": "test",
             r".*Do you want to create a new one?": "no",
             r".*": "",
@@ -143,7 +138,7 @@ def test_create_schema_no(ws, mock_installation):
     prompts = MockPrompts(
         {
             r"Select the source": "0",
-            r"Do you want to Skip Validation": "yes",
+            r"Do you want to Skip Validation": "No",
             r"Enter catalog_name": "test",
             r".*Do you want to create a new one?": "yes",
             r"Enter schema_name": "schema",
