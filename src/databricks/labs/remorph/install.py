@@ -11,6 +11,7 @@ from databricks.labs.blueprint.installer import InstallState
 from databricks.labs.blueprint.tui import Prompts
 from databricks.labs.blueprint.wheels import ProductInfo
 from databricks.sdk import WorkspaceClient
+from databricks.sdk.core import Config
 from databricks.sdk.errors import NotFound
 from databricks.sdk.retries import retried
 from databricks.sdk.service.sql import (
@@ -18,7 +19,6 @@ from databricks.sdk.service.sql import (
     EndpointInfoWarehouseType,
     SpotInstancePolicy,
 )
-from databricks.sdk.core import Config
 
 from databricks.labs.remorph.__about__ import __version__
 from databricks.labs.remorph.config import MorphConfig
@@ -58,7 +58,7 @@ class WorkspaceInstaller:
             logger.debug(f"Cannot find previous installation: {err}")
         logger.info("Please answer a couple of questions to configure Remorph")
 
-        #default params
+        # default params
         catalog_name = "transpiler_test"
         schema_name = "convertor_test"
         ws_config = None
@@ -88,7 +88,7 @@ class WorkspaceInstaller:
             skip_validation=skip_validation,
             catalog_name=catalog_name,
             schema_name=schema_name,
-            sdk_config= ws_config
+            sdk_config=ws_config,
         )
 
         ws_file_url = self._installation.save(config)
@@ -103,6 +103,7 @@ class WorkspaceInstaller:
 
         cluster_id = self._prompts.question("Enter a valid cluster_id to proceed")
         return Config(cluster=cluster_id)
+
     def _configure_warehouse(self):
         def warehouse_type(_):
             return _.warehouse_type.value if not _.enable_serverless_compute else "SERVERLESS"
@@ -151,8 +152,6 @@ class WorkspaceInstaller:
 
         logger.info(f" Creating new Schema {catalog_name}.{schema_name}")
         self._catalog_setup.create_schema(schema_name, catalog_name)
-
-
 
 
 class WorkspaceInstallation:
