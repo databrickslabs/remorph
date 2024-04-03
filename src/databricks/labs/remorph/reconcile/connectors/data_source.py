@@ -8,7 +8,7 @@ from databricks.labs.remorph.reconcile.recon_config import (  # pylint: disable=
     JdbcReaderOptions,
     Schema,
 )
-
+from typing import Union, List, Optional
 
 class DataSource(ABC):
     # TODO need to remove connection_params
@@ -30,6 +30,11 @@ class DataSource(ABC):
 
     @abstractmethod
     def get_schema(self, catalog: str, schema: str, table: str) -> list[Schema]:
+        return NotImplemented
+
+    @abstractmethod
+    def list_tables(self, catalog: str, schema: str, include_list: Optional[List[str]] = None,
+                    exclude_list: Optional[List[str]] = None) -> DataFrame:
         return NotImplemented
 
     def _get_jdbc_reader(self, query, jdbc_url, driver):

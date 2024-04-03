@@ -4,6 +4,7 @@ from pyspark.errors import PySparkException
 from pyspark.sql import DataFrame
 from pyspark.sql.functions import col
 
+from typing import Optional, List
 from databricks.labs.remorph.reconcile.connectors.data_source import DataSource
 from databricks.labs.remorph.reconcile.constants import SourceDriver, SourceType
 from databricks.labs.remorph.reconcile.recon_config import JdbcReaderOptions, Schema
@@ -72,5 +73,19 @@ class SnowflakeDataSource(DataSource):
         {catalog}.INFORMATION_SCHEMA.COLUMNS where lower(table_name)='{table}' 
         and lower(table_schema) = '{schema}' order by ordinal_position"""
         return re.sub(r'\s+', ' ', query)
+
+    def list_tables(self, catalog: str, schema: str, include_list: Optional[List[str]] = None,
+                    exclude_list: Optional[List[str]] = None) -> DataFrame:
+        try:
+            tables_query = """SELECT FROM {catalog_name}.INFORMATION_SCHEMA.TABLES\n 
+                              \WHERE TABLE_SCHEMA = '{schema_name}'"""
+            schema_df = self.reader(tables_query).load()
+            return schema_df
+        except PySparkException as e:
+            error_msg = (
+                f"An error occurred while fetching Snowflake Schema using the following  in "
+                f"SnowflakeDataSource: {e!s}"
+            )
+            raise PySparkException(error_msg) from e
 
     snowflake_datatype_mapper = {}
