@@ -77,6 +77,34 @@ class Table:
                     return {getattr(v, key): v for v in value}
         return {}
 
+    @property
+    def get_threshold_columns(self) -> set[str]:
+        return {thresh.column_name for thresh in self.thresholds or []}
+
+    @property
+    def get_join_columns(self) -> set[str]:
+        if self.join_columns is None:
+            return set()
+        return set(self.join_columns)
+
+    @property
+    def get_drop_columns(self) -> set[str]:
+        if self.drop_columns is None:
+            return set()
+        return set(self.drop_columns)
+
+    def get_partition_column(self, layer) -> set[str]:
+        if self.jdbc_reader_options and layer == "source":
+            return {self.jdbc_reader_options.partition_column}
+        return set()
+
+    def get_filter(self, layer) -> str:
+        if self.filters is None:
+            return " 1 = 1 "
+        if layer == "source":
+            return self.filters.source
+        return self.filters.target
+
 
 @dataclass
 class TableRecon:
