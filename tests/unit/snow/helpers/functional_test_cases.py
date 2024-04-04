@@ -14,7 +14,9 @@ class FunctionalTestFile:
 class FunctionalTestFileWithExpectedException:
     """A single test case with the required options and expected exceptions"""
 
-    def __init__(self, databricks_sql: str, source: str, test_name: str, expected_exception: sqlglot.errors):
+    def __init__(
+        self, databricks_sql: str, source: str, test_name: str, expected_exception: sqlglot.errors.SqlglotError
+    ):
         self.databricks_sql = databricks_sql
         self.source = source
         self.test_name = test_name
