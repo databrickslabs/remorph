@@ -1,6 +1,6 @@
 
--- source:
+-- snowflake sql:
 SELECT regr_slope(v, v2) AS regr_slope_col1 FROM tabl;
 
--- databricks_sql:
+-- databricks sql:
 SELECT REGR_SLOPE(v, v2) AS regr_slope_col1 FROM tabl;

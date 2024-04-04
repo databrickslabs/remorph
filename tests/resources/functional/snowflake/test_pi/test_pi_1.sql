@@ -1,6 +1,6 @@
 
--- source:
+-- snowflake sql:
 SELECT PI() AS pi_col1 FROM tabl;
 
--- databricks_sql:
+-- databricks sql:
 SELECT PI() AS pi_col1 FROM tabl;

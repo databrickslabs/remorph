@@ -1,6 +1,6 @@
 
--- source:
+-- snowflake sql:
 ROLLBACK;
 
--- databricks_sql:
+-- databricks sql:
 ;

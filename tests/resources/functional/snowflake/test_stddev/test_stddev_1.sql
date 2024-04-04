@@ -1,6 +1,6 @@
 
--- source:
+-- snowflake sql:
 SELECT stddev(col1) AS stddev_col1 FROM tabl;
 
--- databricks_sql:
+-- databricks sql:
 SELECT STDDEV(col1) AS stddev_col1 FROM tabl;

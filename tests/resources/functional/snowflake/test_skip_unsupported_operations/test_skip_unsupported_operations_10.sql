@@ -1,6 +1,6 @@
 
--- source:
+-- snowflake sql:
 EXECUTE TASK mytask;
 
--- databricks_sql:
+-- databricks sql:
 ;

@@ -1,5 +1,5 @@
--- source:
+-- snowflake sql:
 DELETE FROM employee WHERE employee_id = 1;
 
--- databricks_sql:
+-- databricks sql:
 DELETE FROM employee WHERE employee_id = 1;

@@ -1,6 +1,6 @@
 
--- source:
+-- snowflake sql:
 SELECT datediff('days', 'start', 'end');
 
--- databricks_sql:
+-- databricks sql:
 SELECT DATEDIFF(day, 'start', 'end');

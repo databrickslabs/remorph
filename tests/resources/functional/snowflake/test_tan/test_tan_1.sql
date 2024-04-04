@@ -1,6 +1,6 @@
 
--- source:
+-- snowflake sql:
 SELECT tan(col1) AS tan_col1 FROM tabl;
 
--- databricks_sql:
+-- databricks sql:
 SELECT TAN(col1) AS tan_col1 FROM tabl;

@@ -1,5 +1,5 @@
 
--- source:
+-- snowflake sql:
 
                 CREATE TASK t1
                   SCHEDULE = '60 MINUTE'
@@ -9,5 +9,5 @@
                 INSERT INTO mytable(ts) VALUES(CURRENT_TIMESTAMP);
                 ;
 
--- databricks_sql:
+-- databricks sql:
 ;

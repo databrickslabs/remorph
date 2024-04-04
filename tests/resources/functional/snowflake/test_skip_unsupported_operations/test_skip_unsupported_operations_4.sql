@@ -1,6 +1,6 @@
 
--- source:
+-- snowflake sql:
 COMMIT;
 
--- databricks_sql:
+-- databricks sql:
 ;

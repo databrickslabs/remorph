@@ -1,6 +1,6 @@
 
--- source:
+-- snowflake sql:
 select bitor_agg(k) from bitwise_example;
 
--- databricks_sql:
+-- databricks sql:
 SELECT BIT_OR(k) FROM bitwise_example;

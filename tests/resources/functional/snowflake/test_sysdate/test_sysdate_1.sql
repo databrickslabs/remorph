@@ -1,6 +1,6 @@
 
--- source:
+-- snowflake sql:
 SELECT SYSDATE(), CURRENT_TIMESTAMP();
 
--- databricks_sql:
+-- databricks sql:
 SELECT CURRENT_TIMESTAMP(), CURRENT_TIMESTAMP();

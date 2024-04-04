@@ -1,6 +1,6 @@
 
--- source:
+-- snowflake sql:
 SELECT array_remove(array, element) AS array_remove_col1 FROM tabl;
 
--- databricks_sql:
+-- databricks sql:
 SELECT ARRAY_REMOVE(array, element) AS array_remove_col1 FROM tabl;

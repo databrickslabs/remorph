@@ -1,6 +1,6 @@
 
--- source:
+-- snowflake sql:
 SELECT rtrim(col1) AS rtrim_col1 FROM tabl;
 
--- databricks_sql:
+-- databricks sql:
 SELECT RTRIM(col1) AS rtrim_col1 FROM tabl;

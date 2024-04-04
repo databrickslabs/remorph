@@ -1,6 +1,6 @@
 
--- source:
+-- snowflake sql:
 SELECT flatten(col1) AS flatten_col1 FROM tabl;
 
--- databricks_sql:
+-- databricks sql:
 SELECT EXPLODE(col1) AS flatten_col1 FROM tabl;

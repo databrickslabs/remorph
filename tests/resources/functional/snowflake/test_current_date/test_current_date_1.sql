@@ -1,6 +1,6 @@
 
--- source:
+-- snowflake sql:
 SELECT current_date() FROM tabl;
 
--- databricks_sql:
+-- databricks sql:
 SELECT CURRENT_DATE FROM tabl;

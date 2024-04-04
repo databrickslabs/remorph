@@ -1,6 +1,6 @@
 
--- source:
+-- snowflake sql:
 SELECT array_append(array, elem) AS array_append_col1 FROM tabl;
 
--- databricks_sql:
+-- databricks sql:
 SELECT ARRAY_APPEND(array, elem) AS array_append_col1 FROM tabl;

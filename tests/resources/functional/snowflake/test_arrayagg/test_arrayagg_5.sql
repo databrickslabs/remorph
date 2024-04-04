@@ -1,5 +1,5 @@
 
--- source:
+-- snowflake sql:
 
               SELECT
                 col2,
@@ -9,7 +9,7 @@
               GROUP BY col2
               ORDER BY col2 DESC;
 
--- databricks_sql:
+-- databricks sql:
 
             SELECT
               col2,

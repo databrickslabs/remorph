@@ -1,6 +1,6 @@
 
--- source:
+-- snowflake sql:
 SELECT SPLIT_PART('lit_string', ',');
 
--- databricks_sql:
+-- databricks sql:
 SELECT SPLIT_PART('lit_string', ',', 5);

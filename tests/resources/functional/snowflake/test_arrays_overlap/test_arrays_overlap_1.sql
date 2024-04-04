@@ -1,6 +1,6 @@
 
--- source:
+-- snowflake sql:
 SELECT ARRAYS_OVERLAP(ARRAY_CONSTRUCT(1, 2, NULL), ARRAY_CONSTRUCT(3, NULL, 5));
 
--- databricks_sql:
+-- databricks sql:
 SELECT ARRAYS_OVERLAP(ARRAY(1, 2, NULL), ARRAY(3, NULL, 5));

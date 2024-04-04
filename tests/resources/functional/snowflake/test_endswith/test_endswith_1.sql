@@ -1,6 +1,6 @@
 
--- source:
+-- snowflake sql:
 SELECT endswith('SparkSQL', 'SQL');
 
--- databricks_sql:
+-- databricks sql:
 SELECT ENDSWITH('SparkSQL', 'SQL');

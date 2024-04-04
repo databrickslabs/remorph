@@ -1,6 +1,6 @@
 
--- source:
+-- snowflake sql:
 SELECT * FROM table1, table2 WHERE table1.column_name = table2.column_name;
 
--- databricks_sql:
+-- databricks sql:
 SELECT * FROM table1, table2 WHERE table1.column_name = table2.column_name;

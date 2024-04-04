@@ -1,6 +1,6 @@
 
--- source:
+-- snowflake sql:
 SELECT TO_NUMBER('$345', '$999.99') AS num;
 
--- databricks_sql:
+-- databricks sql:
 SELECT TO_NUMBER('$345', '$999.99') AS num;

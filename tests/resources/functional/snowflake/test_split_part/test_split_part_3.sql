@@ -1,6 +1,6 @@
 
--- source:
+-- snowflake sql:
 SELECT SPLIT_PART(col1, ',', 5);
 
--- databricks_sql:
+-- databricks sql:
 SELECT SPLIT_PART(col1, ',', 5);

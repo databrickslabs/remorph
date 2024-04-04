@@ -1,6 +1,6 @@
 
--- source:
+-- snowflake sql:
 SELECT ENDSWITH(COLLATE('ñn', 'sp'), COLLATE('n', 'sp'));
 
--- databricks_sql:
+-- databricks sql:
 SELECT ENDSWITH(COLLATE('ñn', 'sp'), COLLATE('n', 'sp'));

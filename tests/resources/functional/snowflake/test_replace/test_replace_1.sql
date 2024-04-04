@@ -1,6 +1,6 @@
 
--- source:
+-- snowflake sql:
 SELECT replace('ABC_abc', 'abc', 'DEF');
 
--- databricks_sql:
+-- databricks sql:
 SELECT REPLACE('ABC_abc', 'abc', 'DEF');

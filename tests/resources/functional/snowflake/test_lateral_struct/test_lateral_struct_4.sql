@@ -1,5 +1,5 @@
 
--- source:
+-- snowflake sql:
 SELECT
                                    tt.id AS tax_transaction_id,
                                    cast(tt.response_body:"isMpfState" AS BOOLEAN) AS is_mpf_state,
@@ -9,7 +9,7 @@ SELECT
                                    FROM tax_table  tt
                               ;
 
--- databricks_sql:
+-- databricks sql:
 SELECT tt.id AS tax_transaction_id,
                       CAST(tt.response_body.isMpfState AS BOOLEAN) AS is_mpf_state,
                       REGEXP_REPLACE(tt.request_body.deliveryLocation.city, '""', '') AS delivery_city,

@@ -1,5 +1,5 @@
 
--- source:
+-- snowflake sql:
 select
                                       los.value:"objectDomain"::string as object_type,
                                       los.value:"objectName"::string as object_name,
@@ -17,7 +17,7 @@ select
                                     group by 1,2,3;
                                 ;
 
--- databricks_sql:
+-- databricks sql:
 SELECT CAST(los.objectDomain AS STRING) AS object_type,
                       CAST(los.objectName AS STRING) AS object_name,
                       CAST(cols.columnName AS STRING) AS column_name,

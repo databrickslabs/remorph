@@ -1,6 +1,6 @@
 
--- source:
+-- snowflake sql:
 SELECT sum(col1) AS sum_col1 FROM tabl;
 
--- databricks_sql:
+-- databricks sql:
 SELECT SUM(col1) AS sum_col1 FROM tabl;

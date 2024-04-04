@@ -1,6 +1,6 @@
 
--- source:
+-- snowflake sql:
 select array_cat(col1, col2) FROM tbl;
 
--- databricks_sql:
+-- databricks sql:
 SELECT CONCAT(col1, col2) FROM tbl;

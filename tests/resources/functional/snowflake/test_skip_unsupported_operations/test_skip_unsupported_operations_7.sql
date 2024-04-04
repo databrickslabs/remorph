@@ -1,6 +1,6 @@
 
--- source:
+-- snowflake sql:
 SHOW STREAMS LIKE 'line%' IN tpch.public;
 
--- databricks_sql:
+-- databricks sql:
 ;

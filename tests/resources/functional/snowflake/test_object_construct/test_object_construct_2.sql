@@ -1,6 +1,6 @@
 
--- source:
+-- snowflake sql:
 SELECT OBJECT_CONSTRUCT(*) AS oc FROM demo_table_1 ;
 
--- databricks_sql:
+-- databricks sql:
 SELECT STRUCT(*) AS oc FROM demo_table_1;

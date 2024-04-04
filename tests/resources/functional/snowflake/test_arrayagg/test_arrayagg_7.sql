@@ -1,5 +1,5 @@
 
--- source:
+-- snowflake sql:
 
             WITH cte AS (
               SELECT
@@ -15,7 +15,7 @@
             GROUP BY 1;
             ;
 
--- databricks_sql:
+-- databricks sql:
 
         WITH cte AS (SELECT id, tag, SUM(tag.count) AS item_count FROM another_table) SELECT id,
         TRANSFORM(ARRAY_SORT(ARRAY_AGG(NAMED_STRUCT('value', tag, 'sort_by', item_count)), (left, right) -> CASE

@@ -1,8 +1,8 @@
 
--- source:
+-- snowflake sql:
 select TRY_TO_BOOLEAN(1);
 
--- databricks_sql:
+-- databricks sql:
 SELECT
 CASE
    WHEN 1 IS NULL THEN NULL

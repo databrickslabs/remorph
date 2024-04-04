@@ -1,8 +1,8 @@
 
--- source:
+-- snowflake sql:
 select IS_INTEGER(col);
 
--- databricks_sql:
+-- databricks sql:
 SELECT
 CASE
    WHEN col IS NULL THEN NULL

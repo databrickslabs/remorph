@@ -1,8 +1,8 @@
 
--- source:
+-- snowflake sql:
 SELECT LISTAGG(col1) FROM test_table;
 
--- databricks_sql:
+-- databricks sql:
 
         SELECT
           ARRAY_JOIN(ARRAY_AGG(col1), '')

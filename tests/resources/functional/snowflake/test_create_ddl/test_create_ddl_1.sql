@@ -1,5 +1,5 @@
 
--- source:
+-- snowflake sql:
 
                     CREATE TABLE employee (employee_id INT,
                         first_name VARCHAR(50) NOT NULL,
@@ -10,7 +10,7 @@
                         department_id INT)
                 ;
 
--- databricks_sql:
+-- databricks sql:
 
             create table employee (employee_id decimal(38, 0),
                 first_name string not null,

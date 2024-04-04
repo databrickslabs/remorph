@@ -1,6 +1,6 @@
 
--- source:
+-- snowflake sql:
 SELECT datediff('qtrs', 'start', 'end');
 
--- databricks_sql:
+-- databricks sql:
 SELECT DATEDIFF(quarter, 'start', 'end');

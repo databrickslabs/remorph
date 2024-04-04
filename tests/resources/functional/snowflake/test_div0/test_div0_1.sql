@@ -1,6 +1,6 @@
 
--- source:
+-- snowflake sql:
 SELECT DIV0(a, b);
 
--- databricks_sql:
+-- databricks sql:
 SELECT IF(b = 0, 0, a / b);

@@ -1,6 +1,6 @@
 
--- source:
+-- snowflake sql:
 SELECT hash(col1) AS hash_col1 FROM tabl;
 
--- databricks_sql:
+-- databricks sql:
 SELECT HASH(col1) AS hash_col1 FROM tabl;

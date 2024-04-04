@@ -1,6 +1,6 @@
 
--- source:
+-- snowflake sql:
 SELECT position('exc', col1) AS position_col1 FROM tabl;
 
--- databricks_sql:
+-- databricks sql:
 SELECT LOCATE('exc', col1) AS position_col1 FROM tabl;

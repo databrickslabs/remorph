@@ -1,6 +1,6 @@
 
--- source:
+-- snowflake sql:
 SELECT ifnull(col1) AS ifnull_col1 FROM tabl;
 
--- databricks_sql:
+-- databricks sql:
 SELECT COALESCE(col1) AS ifnull_col1 FROM tabl;

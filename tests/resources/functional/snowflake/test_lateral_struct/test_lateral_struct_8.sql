@@ -1,6 +1,6 @@
 
--- source:
+-- snowflake sql:
 SELECT STRIP_NULL_VALUE(src:c) FROM mytable;
 
--- databricks_sql:
+-- databricks sql:
 SELECT STRIP_NULL_VALUE(src.c) FROM mytable;

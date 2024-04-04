@@ -1,6 +1,6 @@
 
--- source:
+-- snowflake sql:
 SELECT UUID_STRING();
 
--- databricks_sql:
+-- databricks sql:
 SELECT UUID();

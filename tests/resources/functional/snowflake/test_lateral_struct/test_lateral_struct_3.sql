@@ -1,5 +1,5 @@
 
--- source:
+-- snowflake sql:
 SELECT d.value:display_position::NUMBER as item_card_impression_display_position,
                                    i.value:impression_attributes::VARCHAR as item_card_impression_impression_attributes,
                                    cast(current_timestamp() as timestamp_ntz(9)) as dwh_created_date_time_utc,
@@ -9,7 +9,7 @@ SELECT d.value:display_position::NUMBER as item_card_impression_display_position
                                  LATERAL FLATTEN (INPUT => d.item_card_impressions, OUTER => TRUE) i
                                  WHERE event_date_pt = '{start_date}' and event_name in ('store.replacements_view');
 
--- databricks_sql:
+-- databricks sql:
 SELECT
                       CAST(d.value.display_position AS DECIMAL(38, 0)) AS item_card_impression_display_position,
                       CAST(i.impression_attributes AS STRING) AS item_card_impression_impression_attributes,

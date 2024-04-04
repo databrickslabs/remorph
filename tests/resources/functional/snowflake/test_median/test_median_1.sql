@@ -1,6 +1,6 @@
 
--- source:
+-- snowflake sql:
 SELECT median(col1) AS median_col1 FROM tabl;
 
--- databricks_sql:
+-- databricks sql:
 SELECT MEDIAN(col1) AS median_col1 FROM tabl;

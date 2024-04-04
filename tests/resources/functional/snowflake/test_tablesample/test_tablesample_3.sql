@@ -1,5 +1,5 @@
 
--- source:
+-- snowflake sql:
 
     select *
        from (
@@ -9,5 +9,5 @@
             ) sample (1);
                 ;
 
--- databricks_sql:
+-- databricks sql:
 SELECT * FROM (SELECT * FROM t1 JOIN t2 ON t1.a = t2.c) TABLESAMPLE (1 PERCENT);

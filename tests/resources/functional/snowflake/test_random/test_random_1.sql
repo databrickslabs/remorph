@@ -1,6 +1,6 @@
 
--- source:
+-- snowflake sql:
 SELECT random(), random(col1) FROM tabl;
 
--- databricks_sql:
+-- databricks sql:
 SELECT RANDOM(), RANDOM(col1) FROM tabl;

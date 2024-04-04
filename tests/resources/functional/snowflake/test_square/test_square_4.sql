@@ -1,6 +1,6 @@
 
--- source:
+-- snowflake sql:
 select SQUARE(null);
 
--- databricks_sql:
+-- databricks sql:
 SELECT POWER(NULL, 2);

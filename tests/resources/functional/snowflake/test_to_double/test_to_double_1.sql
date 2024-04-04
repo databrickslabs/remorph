@@ -1,6 +1,6 @@
 
--- source:
+-- snowflake sql:
 SELECT TO_DOUBLE('HELLO');
 
--- databricks_sql:
+-- databricks sql:
 SELECT DOUBLE('HELLO');

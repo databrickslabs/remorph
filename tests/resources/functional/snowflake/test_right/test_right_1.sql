@@ -1,6 +1,6 @@
 
--- source:
+-- snowflake sql:
 SELECT right(col1, 5) AS right_col1 FROM tabl;
 
--- databricks_sql:
+-- databricks sql:
 SELECT RIGHT(col1, 5) AS right_col1 FROM tabl;

@@ -1,6 +1,6 @@
 
--- source:
+-- snowflake sql:
 SELECT SPLIT_PART(col1, 'delim', len('abc'));
 
--- databricks_sql:
+-- databricks sql:
 SELECT SPLIT_PART(col1, 'delim', IF(LENGTH('abc') = 0, 1, LENGTH('abc')));

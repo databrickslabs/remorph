@@ -1,5 +1,5 @@
 
--- source:
+-- snowflake sql:
 
             SELECT col3, listagg(col4, ', ') WITHIN GROUP (ORDER BY col2 DESC)
             FROM
@@ -7,7 +7,7 @@
             WHERE col2 > 10000 GROUP BY col3;
             ;
 
--- databricks_sql:
+-- databricks sql:
 
         SELECT
           col3,

@@ -1,6 +1,6 @@
 
--- source:
+-- snowflake sql:
 BEGIN;
 
--- databricks_sql:
+-- databricks sql:
 ;

@@ -1,6 +1,6 @@
 
--- source:
+-- snowflake sql:
 CREATE STREAM mystream ON TABLE mytable;
 
--- databricks_sql:
+-- databricks sql:
 ;

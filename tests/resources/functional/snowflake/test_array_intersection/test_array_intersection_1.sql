@@ -1,6 +1,6 @@
 
--- source:
+-- snowflake sql:
 SELECT ARRAY_INTERSECTION(col1, col2);
 
--- databricks_sql:
+-- databricks sql:
 SELECT ARRAY_INTERSECT(col1, col2);

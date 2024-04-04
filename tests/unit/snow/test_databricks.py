@@ -21,9 +21,9 @@ def parse_sql_files(input_dir: Path, is_expected_exception=False):
                 with open(abs_path, 'r', encoding="utf-8") as file_content:
                     content = file_content.read()
             if content:
-                parts = content.split('-- source:')
+                parts = content.split('-- snowflake sql:')
                 for part in parts[1:]:
-                    source, databricks_sql = part.split('-- databricks_sql:')
+                    source, databricks_sql = part.split('-- databricks sql:')
                     source = source.strip().rstrip(';')
                     databricks_sql = databricks_sql.strip().rstrip(';').replace('\\', '')
                     test_name = file.replace('.sql', '')

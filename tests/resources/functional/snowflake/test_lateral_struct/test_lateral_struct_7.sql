@@ -1,6 +1,6 @@
 
--- source:
+-- snowflake sql:
 SELECT v, v:food, TO_JSON(v) FROM jdemo1;
 
--- databricks_sql:
+-- databricks sql:
 SELECT v, v.food, TO_JSON(v) FROM jdemo1;

@@ -1,6 +1,6 @@
 
--- source:
+-- snowflake sql:
 SELECT lpad('hi', 5, 'ab');
 
--- databricks_sql:
+-- databricks sql:
 SELECT LPAD('hi', 5, 'ab');

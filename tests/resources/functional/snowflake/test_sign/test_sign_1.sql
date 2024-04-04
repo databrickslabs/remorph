@@ -1,6 +1,6 @@
 
--- source:
+-- snowflake sql:
 SELECT sign(col1) AS sign_col1 FROM tabl;
 
--- databricks_sql:
+-- databricks sql:
 SELECT SIGN(col1) AS sign_col1 FROM tabl;

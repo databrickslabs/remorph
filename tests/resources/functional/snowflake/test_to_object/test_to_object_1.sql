@@ -1,6 +1,6 @@
 
--- source:
+-- snowflake sql:
 SELECT to_object(k) FROM tabl;
 
--- databricks_sql:
+-- databricks sql:
 SELECT TO_JSON(k) FROM tabl;

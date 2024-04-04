@@ -1,6 +1,6 @@
 
--- source:
+-- snowflake sql:
 SELECT CONCAT_WS(',', 'one', 'two', 'three');
 
--- databricks_sql:
+-- databricks sql:
 SELECT CONCAT_WS(',', 'one', 'two', 'three');

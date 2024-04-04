@@ -1,6 +1,6 @@
 
--- source:
+-- snowflake sql:
 select STRTOK_TO_ARRAY('my text is divided');
 
--- databricks_sql:
+-- databricks sql:
 SELECT SPLIT('my text is divided','[ ]');
