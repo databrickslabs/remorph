@@ -24,7 +24,7 @@ def get_sql_backend(ws: WorkspaceClient, config: MorphConfig) -> SqlBackend:
     if warehouse_id:
         sql_backend = StatementExecutionBackend(ws, warehouse_id, catalog=catalog_name, schema=schema_name)
     else:
-        # assigning cluster id explicitly to the config as user can provide it in the config
+        # assigning cluster id explicitly to the config as user can provide them during installation
         ws.config.cluster_id = cluster_id if cluster_id else ws.config.cluster_id
         sql_backend = RuntimeBackend() if "DATABRICKS_RUNTIME_VERSION" in os.environ else DatabricksConnectBackend(ws)
         try:
