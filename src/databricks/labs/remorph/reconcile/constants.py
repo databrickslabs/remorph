@@ -67,6 +67,33 @@ class ThresholdMatchType(AutoName):
     TIMESTAMP = "timestamp"
 
 
+class ThresholdSQLTemplate(AutoName):
+    SELECT_INTEGER_ABSOLUTE = """source.{column} as {column}_source, databricks.{column} 
+                                as {column}_databricks, case when (coalesce(source.{column},0) - coalesce(databricks.{column},0)) == 
+                                0 then "Match"
+                                when (coalesce(source.{column},0) - coalesce(databricks.{column},0)) between {lower_bound} 
+                                and {upper_bound} then "Warning" else "Failed" end as {column}_match """
+    SELECT_INTEGER_PERCENTILE = """source.{column} as {column}_source, databricks.{column} 
+                                as {column}_databricks, case when (coalesce(source.{column},0) - coalesce(databricks.{column},0)) == 
+                                0 then "Match"
+                                when (((coalesce(source.{column},0) - coalesce(databricks.{column},0))/if(databricks.{column} = 0 or databricks.{column} is null , 1, databricks.{column})) * 100) 
+                                between {lower_bound} and 
+                                {upper_bound} 
+                                then "Warning" else "Failed" end as {column}_match """
+    SELECT_TIMESTAMP = """source.{column} as {column}_source, databricks.{column} 
+                                as {column}_databricks, case when (coalesce(unix_timestamp(source.{column}),0) - 
+                                coalesce(unix_timestamp(databricks.{column}),0)) == 0 then "Match"
+                                when (coalesce(unix_timestamp(source.{column}),0) - coalesce(unix_timestamp(databricks.{column}),0)) 
+                                between {lower_bound} and 
+                                {upper_bound} 
+                                then "Warning" else "Failed" end as {column}_match """
+
+    WHERE_INTEGER = """(coalesce(source.{column},0) - coalesce(databricks.{column},0)) <> 0"""
+    WHERE_TIMESTAMP = (
+        """ (coalesce(unix_timestamp(source.{column}),0) - coalesce(unix_timestamp(databricks.{column}),0)) <> 0"""
+    )
+
+
 class Constants:
     hash_column_name = "hash_value__recon"
     hash_algorithm_mapping = {  # noqa RUF012
@@ -82,4 +109,19 @@ class Constants:
             "source": HashAlgorithm.DATABRICKS_SHA_256.value,
             "target": HashAlgorithm.DATABRICKS_SHA_256.value,
         },
+    }
+    # Define a dictionary to map ThresholdMatchType and ThresholdMode to their corresponding functions
+    threshold_functions = {
+        (
+            ThresholdMatchType.INTEGER.value,
+            ThresholdMode.ABSOLUTE.value,
+        ): ThresholdSQLTemplate.SELECT_INTEGER_ABSOLUTE.value,
+        (
+            ThresholdMatchType.INTEGER.value,
+            ThresholdMode.PERCENTILE.value,
+        ): ThresholdSQLTemplate.SELECT_INTEGER_PERCENTILE.value,
+        (
+            ThresholdMatchType.TIMESTAMP.value,
+            ThresholdMode.ABSOLUTE.value,
+        ): ThresholdSQLTemplate.SELECT_TIMESTAMP.value,
     }

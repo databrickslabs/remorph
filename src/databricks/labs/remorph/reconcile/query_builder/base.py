@@ -111,6 +111,16 @@ class QueryBuilder(ABC):
 
         return col_origin, col_alias
 
+    @staticmethod
+    def _get_join_condition(columns: set[str]):
+        condition_strings = []
+        for column in columns:
+            condition_strings.append(f"source.{column} <=> databricks.{column} ")
+        return " and ".join(condition_strings)
+
+    def _get_threshold_info(self, column: str):
+        return next((threshold for threshold in self.table_conf.thresholds if threshold.column_name == column), None)
+
     def _generate_transform_rule_mapping(self, cols: list[str]) -> list[TransformRuleMapping]:
 
         # compute custom transformation
