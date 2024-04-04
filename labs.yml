@@ -47,4 +47,8 @@ commands:
         default: all
         description: Report type
   - name: setup-recon-secrets
-    description: Utility to setup Secrets on Databricks.
+    description: Utility to setup Secrets on Databricks Workspace.
+  - name: generate_recon_config
+    description: Utility to generate Recon Config file.
+  - name: validate_recon_config
+    description: Utility to validate Recon Config file.
