@@ -128,7 +128,10 @@ def morph(workspace_client: WorkspaceClient, config: MorphConfig):
     skip_validation = config.skip_validation
     status = []
     result = MorphStatus([], 0, 0, 0, [])
-    validator = Validator(db_sql.get_sql_backend(workspace_client, config))
+    validator = None
+    if not config.skip_validation:
+        validator = Validator(db_sql.get_sql_backend(workspace_client, config))
+
     if input_sql.is_file():
         if is_sql_file(input_sql):
             msg = f"Processing for sqls under this file: {input_sql}"
@@ -157,16 +160,14 @@ def morph(workspace_client: WorkspaceClient, config: MorphConfig):
     validate_error_count = result.validate_error_count
 
     error_list_count = parse_error_count + validate_error_count
-
     if not skip_validation:
         logger.info(f"No of Sql Failed while Validating: {validate_error_count}")
 
+    error_log_file = "None"
     if error_list_count > 0:
         error_log_file = Path.cwd() / f"err_{os.getpid()}.lst"
         with error_log_file.open("a") as e:
             e.writelines(f"{err}\n" for err in result.error_log_list)
-    else:
-        error_log_file = "None"
 
     status.append(
         {
