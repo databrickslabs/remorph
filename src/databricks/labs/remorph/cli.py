@@ -3,6 +3,7 @@ import os
 
 from databricks.labs.blueprint.cli import App
 from databricks.labs.blueprint.entrypoint import get_logger
+from databricks.labs.blueprint.installation import Installation
 from databricks.sdk import WorkspaceClient
 
 from databricks.labs.remorph.config import MorphConfig
@@ -29,6 +30,10 @@ def transpile(
 ):
     """transpiles source dialect to databricks dialect"""
     logger.info(f"user: {w.current_user.me()}")
+    installation = Installation.current(w, 'remorph')
+    default_config = installation.load(MorphConfig)
+
+    # TODO refactor cli based on the default config
 
     if source.lower() not in {"snowflake", "tsql"}:
         raise_validation_exception(
@@ -37,12 +42,13 @@ def transpile(
     if not os.path.exists(input_sql) or input_sql in {None, ""}:
         raise_validation_exception(f"Error: Invalid value for '--input_sql': Path '{input_sql}' does not exist.")
     if output_folder == "":
-        output_folder = None
+        output_folder = default_config.output_folder if default_config.output_folder else None
     if skip_validation.lower() not in {"true", "false"}:
         raise_validation_exception(
             f"Error: Invalid value for '--skip_validation': '{skip_validation}' is not one of 'true', 'false'. "
         )
 
+    sdk_config = default_config.sdk_config if default_config.sdk_config else None
     config = MorphConfig(
         source=source.lower(),
         input_sql=input_sql,
@@ -50,7 +56,7 @@ def transpile(
         skip_validation=skip_validation.lower() == "true",  # convert to bool
         catalog_name=catalog_name,
         schema_name=schema_name,
-        sdk_config=w.config,
+        sdk_config=sdk_config,
     )
 
     status = morph(w, config)
