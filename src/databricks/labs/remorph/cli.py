@@ -7,7 +7,10 @@ from databricks.labs.blueprint.entrypoint import get_logger
 from databricks.sdk import WorkspaceClient
 
 from databricks.labs.remorph.config import MorphConfig
-from databricks.labs.remorph.helpers.recon_config_utils import ReconConfigPrompts, recon_source_choices
+from databricks.labs.remorph.helpers.recon_config_utils import (
+    ReconConfigPrompts,
+    recon_source_choices,
+)
 from databricks.labs.remorph.reconcile.execute import recon
 from databricks.labs.remorph.transpiler.execute import morph
 
@@ -21,13 +24,13 @@ def raise_validation_exception(msg: str) -> Exception:
 
 @remorph.command
 def transpile(
-        w: WorkspaceClient,
-        source: str,
-        input_sql: str,
-        output_folder: str,
-        skip_validation: str,
-        catalog_name: str,
-        schema_name: str,
+    w: WorkspaceClient,
+    source: str,
+    input_sql: str,
+    output_folder: str,
+    skip_validation: str,
+    catalog_name: str,
+    schema_name: str,
 ):
     """transpiles source dialect to databricks dialect"""
     logger.info(f"user: {w.current_user.me()}")
@@ -93,7 +96,9 @@ def generate_recon_config(w: WorkspaceClient):
             f"Error: Secrets are needed for `{source}` reconciliation."
             f"\nUse `remorph setup-recon-secrets` to setup Scope and Secrets."
         )
-    recon_conf.prompt_config_details(source)
+    recon_config = recon_conf.prompt_config_details(source)
+    print(json.dumps(recon_config.__dict__))
+    # recon_conf.save_config_details(recon_config)
 
 
 @remorph.command

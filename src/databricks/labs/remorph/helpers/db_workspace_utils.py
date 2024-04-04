@@ -1,7 +1,6 @@
-from databricks.sdk import WorkspaceClient
-
-from databricks.labs.blueprint.tui import Prompts
 from databricks.labs.blueprint.entrypoint import get_logger
+from databricks.labs.blueprint.tui import Prompts
+from databricks.sdk import WorkspaceClient
 from databricks.sdk.errors.platform import ResourceDoesNotExist
 
 logger = get_logger(__file__)
@@ -13,7 +12,8 @@ class DBWorkspaceClient:
         self._prompts = prompts
 
     def scope_exists(self, scope_name: str) -> bool:
-        scope_exists = scope_name in map(lambda scope: scope.name, self._ws.secrets.list_scopes())
+        scope_exists = scope_name in [scope.name for scope in self._ws.secrets.list_scopes()]
+
         if not scope_exists:
             logger.error(f"Cannot find Secret Scope: `{scope_name}`")
             return False
@@ -45,7 +45,7 @@ class DBWorkspaceClient:
             self._ws.secrets.get_secret(scope_name, secret_key)
             logger.info(f"Found Secret key `{secret_key}` in Scope `{scope_name}`")
             return True
-        except ResourceDoesNotExist as ex:
+        except ResourceDoesNotExist:
             logger.debug(f"Secret key `{secret_key}` not found in Scope `{scope_name}`")
             return False
 
