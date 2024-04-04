@@ -6,7 +6,6 @@ from databricks.sdk.errors.base import DatabricksError
 from databricks.labs.remorph.helpers.db_sql import get_sql_backend
 
 
-@pytest.mark.skip(reason="Not implemented")
 @pytest.mark.usefixtures("mock_workspace_client", "morph_config")
 @patch('databricks.labs.remorph.helpers.db_sql.StatementExecutionBackend')
 def test_get_sql_backend_with_warehouse_id(
@@ -25,7 +24,6 @@ def test_get_sql_backend_with_warehouse_id(
     assert isinstance(sql_backend, stmt_execution_backend.return_value.__class__)
 
 
-@pytest.mark.skip(reason="Not implemented")
 @pytest.mark.usefixtures("mock_workspace_client", "morph_config")
 @patch('databricks.labs.remorph.helpers.db_sql.DatabricksConnectBackend')
 def test_get_sql_backend_without_warehouse_id(
@@ -42,7 +40,6 @@ def test_get_sql_backend_without_warehouse_id(
     assert isinstance(sql_backend, databricks_connect_backend.return_value.__class__)
 
 
-@pytest.mark.skip(reason="Not implemented")
 @pytest.mark.usefixtures("mock_workspace_client", "morph_config", "monkeypatch")
 @patch('databricks.labs.remorph.helpers.db_sql.RuntimeBackend')
 def test_get_sql_backend_without_warehouse_id_in_notebook(
@@ -61,7 +58,6 @@ def test_get_sql_backend_without_warehouse_id_in_notebook(
     assert isinstance(sql_backend, runtime_backend.return_value.__class__)
 
 
-@pytest.mark.skip(reason="Not implemented")
 @pytest.mark.usefixtures("mock_workspace_client", "morph_config")
 @patch('databricks.labs.remorph.helpers.db_sql.DatabricksConnectBackend')
 def test_get_sql_backend_with_error(

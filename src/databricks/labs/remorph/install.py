@@ -99,7 +99,11 @@ class WorkspaceInstaller:
         if self._prompts.confirm("Do you want to use SQL Warehouse for validation?"):
             warehouse_id = self._configure_warehouse()
             return {"warehouse_id": warehouse_id}
-        # TODO: pick this up from environment variable or databricks config
+
+        if self._ws.config.cluster_id:
+            logger.info(f"Using cluster {self._ws.config.cluster_id} for validation")
+            return {"cluster": self._ws.config.cluster_id}
+
         cluster_id = self._prompts.question("Enter a valid cluster_id to proceed")
         return {"cluster": cluster_id}
 
