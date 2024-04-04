@@ -1,8 +1,6 @@
 import logging
 from dataclasses import dataclass
 
-from databricks.sdk.core import Config
-
 logger = logging.getLogger(__name__)
 
 
@@ -12,7 +10,7 @@ class MorphConfig:
     __version__ = 1
 
     source: str
-    sdk_config: Config | None
+    sdk_config: dict[str, str] | None
     input_sql: str | None = None
     output_folder: str | None = None
     skip_validation: bool = False
