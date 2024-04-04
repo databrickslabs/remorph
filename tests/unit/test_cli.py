@@ -82,14 +82,14 @@ def test_invalid_input_sql(mock_workspace_client_cli):
         )
 
 
-def test_transpile_with_valid_input(mock_workspace_client_cli, morph_config):
+def test_transpile_with_valid_input(mock_workspace_client_cli):
     source = "snowflake"
     input_sql = "/path/to/sql/file.sql"
     output_folder = "/path/to/output"
     skip_validation = "true"
     catalog_name = "my_catalog"
     schema_name = "my_schema"
-    sdk_config = morph_config.sdk_config
+    sdk_config = {'cluster_id': 'test_cluster'}
 
     with (
         patch("os.path.exists", return_value=True),
@@ -118,14 +118,14 @@ def test_transpile_with_valid_input(mock_workspace_client_cli, morph_config):
         )
 
 
-def test_transpile_empty_output_folder(mock_workspace_client_cli, morph_config):
+def test_transpile_empty_output_folder(mock_workspace_client_cli):
     source = "snowflake"
     input_sql = "/path/to/sql/file2.sql"
     output_folder = ""
     skip_validation = "false"
     catalog_name = "my_catalog"
     schema_name = "my_schema"
-    sdk_config = morph_config.sdk_config
+    sdk_config = {'cluster_id': 'test_cluster'}
 
     with (
         patch("os.path.exists", return_value=True),

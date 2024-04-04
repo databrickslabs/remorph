@@ -48,6 +48,7 @@ def transpile(
             f"Error: Invalid value for '--skip_validation': '{skip_validation}' is not one of 'true', 'false'. "
         )
 
+    sdk_config = default_config.sdk_config if default_config.sdk_config else None
     config = MorphConfig(
         source=source.lower(),
         input_sql=input_sql,
@@ -55,7 +56,7 @@ def transpile(
         skip_validation=skip_validation.lower() == "true",  # convert to bool
         catalog_name=catalog_name,
         schema_name=schema_name,
-        sdk_config=default_config.sdk_config,
+        sdk_config=sdk_config,
     )
 
     status = morph(w, config)

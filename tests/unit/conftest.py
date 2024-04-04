@@ -33,7 +33,7 @@ def mock_workspace_client():
     yield client
 
 
-@pytest.fixture(scope="session")
+@pytest.fixture()
 def morph_config():
     yield MorphConfig(
         sdk_config={"cluster_id": "test_cluster"},
