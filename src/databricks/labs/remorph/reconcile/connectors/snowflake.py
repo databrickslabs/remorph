@@ -12,6 +12,9 @@ from databricks.labs.remorph.reconcile.recon_config import (
     Table,
     TableRecon,
 )
+from databricks.labs.blueprint.entrypoint import get_logger
+
+logger = get_logger(__file__)
 
 
 class SnowflakeDataSource(DataSource):
@@ -79,11 +82,11 @@ class SnowflakeDataSource(DataSource):
         return re.sub(r'\s+', ' ', query)
 
     def list_tables(
-        self,
-        catalog: str,
-        schema: str,
-        include_list: list[str] | None,
-        exclude_list: list[str] | None,
+            self,
+            catalog: str,
+            schema: str,
+            include_list: list[str] | None,
+            exclude_list: list[str] | None,
     ) -> TableRecon:
 
         filter_list = include_list
@@ -97,9 +100,12 @@ class SnowflakeDataSource(DataSource):
         where_cond = f"AND TABLE_NAME {in_clause} ({subset_tables})" if filter_list else ""
 
         try:
+            logger.info(f"Fetching Snowflake Table list for `{catalog}.{schema}`")
             tables_query = f"""SELECT TABLE_NAME, CLUSTERING_KEY, ROW_COUNT\n 
                                FROM {catalog.upper()}.INFORMATION_SCHEMA.TABLES\n 
                                WHERE TABLE_SCHEMA = '{schema.upper()}' {where_cond}"""
+
+            logger.info(f" Executing query: {tables_query}")
             tables_df = self.reader(tables_query).load()
 
             tables_list = [
