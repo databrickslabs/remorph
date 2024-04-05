@@ -3,11 +3,10 @@ from databricks.labs.remorph.reconcile.recon_config import (
     Transformation,
     TransformRuleMapping,
 )
-from tests.unit.reconcile.query_builder.test_conf import TestConf
 
 
-def test_table_without_join_column():
-    table_conf = TestConf().get_table_conf_default
+def test_table_without_join_column(table_conf_mock):
+    table_conf = table_conf_mock()
 
     assert table_conf.list_to_dict(Transformation, "column_name") == {}
     assert table_conf.list_to_dict(ColumnMapping, "source_name") == {}
@@ -20,8 +19,8 @@ def test_table_without_join_column():
     assert table_conf.get_threshold_columns == set()
 
 
-def test_table_with_all_options():
-    table_conf = TestConf().get_table_conf_all_options
+def test_table_with_all_options(table_conf_with_opts):
+    table_conf = table_conf_with_opts
 
     assert table_conf.list_to_dict(Transformation, "column_name") == {
         "s_address": Transformation(column_name="s_address", source="trim(s_address)", target="trim(s_address_t)"),
@@ -42,13 +41,15 @@ def test_table_with_all_options():
 
 
 def test_get_column_expr_without_alias():
-    tfrm = TransformRuleMapping(column_name="s_address", transformation="trim(s_address)", alias_name="s_address_t")
-    assert tfrm.get_column_expr_without_alias() == "trim(s_address)"
+    transform = TransformRuleMapping(
+        column_name="s_address", transformation="trim(s_address)", alias_name="s_address_t"
+    )
+    assert transform.get_column_expr_without_alias() == "trim(s_address)"
 
-    tfrm = TransformRuleMapping(column_name="s_address", transformation=None, alias_name="s_address")
-    assert tfrm.get_column_expr_without_alias() == "s_address"
+    transform = TransformRuleMapping(column_name="s_address", transformation="s_address", alias_name="s_address")
+    assert transform.get_column_expr_without_alias() == "s_address"
 
 
 def test_get_column_expr_with_alias():
-    tfrm = TransformRuleMapping(column_name="s_phone", transformation="trim(s_phone)", alias_name="s_phone_t")
-    assert tfrm.get_column_expr_with_alias() == "trim(s_phone) as s_phone_t"
+    transform = TransformRuleMapping(column_name="s_phone", transformation="trim(s_phone)", alias_name="s_phone_t")
+    assert transform.get_column_expr_with_alias() == "trim(s_phone) as s_phone_t"

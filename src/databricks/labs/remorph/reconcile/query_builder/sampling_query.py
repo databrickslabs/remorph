@@ -1,5 +1,3 @@
-from io import StringIO
-
 from pyspark.sql import DataFrame
 
 from databricks.labs.remorph.reconcile.constants import SourceType
@@ -21,19 +19,16 @@ class SamplingQueryBuilder(QueryBuilder):
         )
 
         col_transform = self._generate_transform_rule_mapping(cols)
-        cols_expr = sorted(
-            self._get_column_expr(TransformRuleMapping.get_column_expr_with_alias, col_transform)
-        )
+        cols_expr = sorted(self._get_column_expr(TransformRuleMapping.get_column_expr_with_alias, col_transform))
 
         query_filter = self.table_conf.get_filter(self.layer)
-        select_query = self._construct_query(
-            self.table_name, query_filter, cols_expr, with_clause, key_cols
-        )
+        select_query = self._construct_query(self.table_name, query_filter, cols_expr, with_clause, key_cols)
         return select_query
 
     @staticmethod
-    def _construct_query(table: str, query_filter: str, col_expr: list[str], with_clause: str,
-                         key_cols: list[str]) -> str:
+    def _construct_query(
+        table: str, query_filter: str, col_expr: list[str], with_clause: str, key_cols: list[str]
+    ) -> str:
 
         with_cte = f"{with_clause} src as ( select " + ",".join(col_expr) + f" from {table} where {query_filter} )"
 
@@ -49,8 +44,11 @@ class SamplingQueryBuilder(QueryBuilder):
         select_clause = []
         for row in df.take(50):
             row_select = "select " + ", ".join(
-                [f"'{value}' as {column}" if value is not None else f"null as {column}" for column, value
-                 in zip(df.columns, row)])
+                [
+                    f"'{value}' as {column}" if value is not None else f"null as {column}"
+                    for column, value in zip(df.columns, row)
+                ]
+            )
             # Remove the trailing comma and add 'union'
             if source == SourceType.ORACLE.value:
                 row_select += " from dual"
