@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TypeVar
 
+from pyspark.sql import DataFrame
+
 
 @dataclass
 class TransformRuleMapping:
@@ -51,8 +53,8 @@ class Thresholds:
 
 @dataclass
 class Filters:
-    source: str = None
-    target: str = None
+    source: str = '1=1'
+    target: str = '1=1'
 
 
 @dataclass
@@ -127,3 +129,10 @@ class DatabaseConfig:
 class Schema:
     column_name: str
     data_type: str
+
+
+@dataclass
+class ReconcileOutput:
+    missing_in_src: DataFrame
+    missing_in_tgt: DataFrame
+    mismatch: DataFrame | None = None
