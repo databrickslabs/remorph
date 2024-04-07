@@ -75,6 +75,7 @@ class SnowflakeDataSource(DataSource):
             "sfWarehouse": self._get_secrets('sfWarehouse'),
             "sfRole": self._get_secrets('sfRole'),
         }
+        logger.debug(f"Reading data from Snowflake using the options {options.keys()} ")
         return self.spark.read.format("snowflake").option("dbtable", f"({query})").options(**options).load()
 
     @staticmethod
@@ -111,7 +112,7 @@ class SnowflakeDataSource(DataSource):
                                WHERE TABLE_SCHEMA = '{schema.upper()}' {where_cond}"""
 
             logger.info(f" Executing query: {tables_query}")
-            tables_df = self.reader(tables_query).load()
+            tables_df = self.reader(tables_query)
 
             tables_list = [
                 Table(source_name=field.TABLE_NAME.lower(), target_name=field.TABLE_NAME.lower())
