@@ -52,6 +52,11 @@ def _normalize_string(value: str) -> str:
     return " ".join(lines).lower().strip()
 
 
+@pytest.fixture
+def normalize_string():
+    return _normalize_string
+
+
 def get_dialect(input_dialect=None):
     match input_dialect:
         case "databricks":

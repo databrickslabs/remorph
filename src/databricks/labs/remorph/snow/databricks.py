@@ -9,7 +9,7 @@ from sqlglot.dialects.dialect import rename_func
 from sqlglot.errors import ParseError, UnsupportedError
 from sqlglot.helper import apply_index_offset, csv
 
-from databricks.labs.remorph.snow import local_expression
+from databricks.labs.remorph.snow import dialect_utils, local_expression
 
 logger = logging.getLogger(__name__)
 
@@ -621,3 +621,9 @@ class Databricks(Databricks):  #
                 sql = f"UPDATE {this} SET {set_sql}{expression_sql}{order}{limit}"
 
             return self.prepend_ctes(expression, sql)
+
+    def generate(self, expression: exp.Expression, copy: bool = True, **opts) -> str:
+        if not expression.parent:  # Top level expression
+            fixed_ast = dialect_utils.fix_unsupported_lca(expression.copy() if copy else expression)
+            return super().generate(fixed_ast, copy=False, **opts)
+        return super().generate(expression, copy=copy, **opts)

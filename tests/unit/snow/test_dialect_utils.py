@@ -1,3 +1,6 @@
+from sqlglot import parse_one
+
+from databricks.labs.remorph.snow.databricks import Databricks
 from databricks.labs.remorph.snow.dialect_utils import check_for_unsupported_lca
 
 
@@ -137,3 +140,61 @@ def test_query_with_same_alias_and_column_name():
 
     error = check_for_unsupported_lca(dialect, sql, filename)
     assert not error
+
+
+def test_fix_lca_with_valid_lca_usage(normalize_string):
+    input_sql = """
+        SELECT
+            t.col1,
+            t.col2,
+            t.col3 AS ca
+        FROM table1 t
+    """
+    expected_sql = """
+        SELECT
+            t.col1,
+            t.col2,
+            t.col3 AS ca
+        FROM table1 AS t
+    """
+    ast = parse_one(input_sql)
+    generated_sql = ast.sql(Databricks, pretty=False)
+    assert normalize_string(expected_sql) == normalize_string(generated_sql)
+
+
+def test_fix_lca_with_lca_in_where(normalize_string):
+    input_sql = """
+        SELECT column_a as customer_id
+        FROM my_table
+        WHERE customer_id = '123'
+    """
+    expected_sql = """
+        SELECT column_a as customer_id
+        FROM my_table
+        WHERE column_a = '123'
+    """
+    ast = parse_one(input_sql)
+    generated_sql = ast.sql(Databricks, pretty=False)
+    assert normalize_string(expected_sql) == normalize_string(generated_sql)
+
+
+def test_fix_lca_with_lca_in_window(normalize_string):
+    input_sql = """
+        SELECT
+            t.col1,
+            t.col2,
+            t.col3 AS ca,
+            ROW_NUMBER() OVER (PARTITION by ca ORDER BY t.col2 DESC) AS rn
+        FROM table1 t
+    """
+    expected_sql = """
+        SELECT
+            t.col1,
+            t.col2,
+            t.col3 AS ca,
+            ROW_NUMBER() OVER (PARTITION by t.col3 ORDER BY t.col2 DESC) AS rn
+        FROM table1 AS t
+    """
+    ast = parse_one(input_sql)
+    generated_sql = ast.sql(Databricks, pretty=False)
+    assert normalize_string(expected_sql) == normalize_string(generated_sql)
