@@ -74,9 +74,10 @@ class DBWorkspaceClient:
                     self.delete_secret(scope_name, secret_key)
                     logger.debug(f"Deleted Secret: *{secret_key}* in Scope: `{scope_name}`")
                     self.store_secret(scope_name, secret_key, value)
+                    logger.info(f"Overwritten Secret: *{secret_key}* in Scope: `{scope_name}`")
             else:
                 self.store_secret(scope_name, secret_key, value)
-            logger.info(f"Stored Secret: *{secret_key}* in Scope: `{scope_name}`")
+                logger.info(f"Stored Secret: *{secret_key}* in Scope: `{scope_name}`")
 
     @property
     def ws(self):

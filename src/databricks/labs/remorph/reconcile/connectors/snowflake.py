@@ -20,17 +20,20 @@ logger = get_logger(__file__)
 class SnowflakeDataSource(DataSource):
     @property
     def get_jdbc_url(self) -> str:
-        return (
+        jdbc_url = (
             f"jdbc:{SourceType.SNOWFLAKE.value}://{self._get_secrets('account')}.snowflakecomputing.com"
             f"/?user={self._get_secrets('sfUser')}&password={self._get_secrets('sfPassword')}"
             f"&db={self._get_secrets('sfDatabase')}&schema={self._get_secrets('sfSchema')}"
             f"&warehouse={self._get_secrets('sfWarehouse')}&role={self._get_secrets('sfRole')}"
         )
+        logger.debug(f"JDBC URL: {jdbc_url}")
+        return jdbc_url
 
     def read_data(self, catalog: str, schema: str, query: str, options: JdbcReaderOptions) -> DataFrame:
         try:
             table_query = self._get_table_or_query(catalog, schema, query)
 
+            logger.debug(f"Fetching Snowflake Data using the following {query} in SnowflakeDataSource")
             if options is None:
                 df = self.reader(table_query)
             else:
@@ -51,6 +54,7 @@ class SnowflakeDataSource(DataSource):
     def get_schema(self, catalog: str, schema: str, table: str) -> list[Schema]:
         try:
             schema_query = self.get_schema_query(catalog, schema, table)
+            logger.info(f"Fetching Snowflake Schema using the following {table} in SnowflakeDataSource")
             schema_df = self.reader(schema_query).load()
             return [Schema(field.column_name.lower(), field.data_type.lower()) for field in schema_df.collect()]
         except PySparkException as e:

@@ -137,7 +137,7 @@ class ReconConfigPrompts:
             filter_types = ["include", "exclude"]
             filter_type = self.prompts.choice("Select the filter type", filter_types)
             subset_tables = self.prompts.question(f"Enter the tables(separated by comma) to `{filter_type}`")
-            subset_tables = [f"'{table.strip()}'" for table in subset_tables.split(",")]
+            subset_tables = [f"'{table.strip().upper()}'" for table in subset_tables.split(",")]
 
             include_list = subset_tables if filter_type == "include" else None
             exclude_list = subset_tables if filter_type == "exclude" else None
