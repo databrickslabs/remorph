@@ -1,9 +1,11 @@
 import re
 
+from databricks.labs.blueprint.entrypoint import get_logger
 from pyspark.errors import PySparkException
 from pyspark.sql import DataFrame
 from pyspark.sql.functions import col
 
+# pylint: disable=ungrouped-imports
 from databricks.labs.remorph.reconcile.connectors.data_source import DataSource
 from databricks.labs.remorph.reconcile.constants import SourceDriver, SourceType
 from databricks.labs.remorph.reconcile.recon_config import (
@@ -12,7 +14,6 @@ from databricks.labs.remorph.reconcile.recon_config import (
     Table,
     TableRecon,
 )
-from databricks.labs.blueprint.entrypoint import get_logger
 
 logger = get_logger(__file__)
 
@@ -74,7 +75,7 @@ class SnowflakeDataSource(DataSource):
             "sfWarehouse": self._get_secrets('sfWarehouse'),
             "sfRole": self._get_secrets('sfRole'),
         }
-        return self.spark.read.format("snowflake").option("dbtable", f"({query}) as tmp").options(**options).load()
+        return self.spark.read.format("snowflake").option("dbtable", f"({query})").options(**options).load()
 
     @staticmethod
     def get_schema_query(catalog: str, schema: str, table: str):
@@ -86,11 +87,11 @@ class SnowflakeDataSource(DataSource):
         return re.sub(r'\s+', ' ', query)
 
     def list_tables(
-            self,
-            catalog: str,
-            schema: str,
-            include_list: list[str] | None,
-            exclude_list: list[str] | None,
+        self,
+        catalog: str,
+        schema: str,
+        include_list: list[str] | None,
+        exclude_list: list[str] | None,
     ) -> TableRecon:
 
         filter_list = include_list
