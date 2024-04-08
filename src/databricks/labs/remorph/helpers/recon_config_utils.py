@@ -162,9 +162,9 @@ class ReconConfigPrompts:
         return recon_config
 
     def save_config_details(self, recon_config_json):
-        recon_conf_abspath = os.path.abspath(f"./recon_conf_{self._source}.sql")
+        recon_conf_abspath = os.path.abspath(f"./recon_conf_{self._source}.json")
         logger.info(f"Saving the config details for `{self._source}` in `{recon_conf_abspath}` file")
-        with open(f"./recon_conf_{self._source}.sql", "w") as f:
+        with open(f"./recon_conf_{self._source}.json", "w") as f:
             exit_code = f.write(recon_config_json)
             logger.debug(f"File write exit_code {exit_code}")
         logger.debug(f"Config details are saved in {recon_conf_abspath} file")
