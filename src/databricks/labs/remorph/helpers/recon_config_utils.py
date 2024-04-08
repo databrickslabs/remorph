@@ -162,19 +162,20 @@ class ReconConfigPrompts:
         return recon_config
 
     def save_config_details(self, recon_config_json):
-        logger.info(f"Saving the config details for `{self._source}` in `recon_conf_{self._source}.sql` file")
-        with open(f"../recon_conf_{self._source}.sql", "w") as f:
+        recon_conf_abspath = os.path.abspath(f"./recon_conf_{self._source}.sql")
+        logger.info(f"Saving the config details for `{self._source}` in `{recon_conf_abspath}` file")
+        with open(f"./recon_conf_{self._source}.sql", "w") as f:
             exit_code = f.write(recon_config_json)
             logger.debug(f"File write exit_code {exit_code}")
-        recon_conf_abspath = os.path.abspath(f"../recon_conf_{self._source}.sql")
         logger.debug(f"Config details are saved in {recon_conf_abspath} file")
 
     def prompt_and_save_config_details(self):
         recon_config = self.prompt_config_details()
         recon_config_json = json.dumps(recon_config, default=vars, indent=2, sort_keys=True)
-        print(recon_config_json.replace("null", "None"))
+        recon_config_json_formatted = recon_config_json.replace("null", "None")
+        logger.info(recon_config_json_formatted)
 
-        self.save_config_details(recon_config_json)
+        self.save_config_details(recon_config_json_formatted)
 
     def confirm_secret_scope(self):
         if not self._prompts.confirm(f"Did you setup the secrets for the `{self._source}` connection?"):
