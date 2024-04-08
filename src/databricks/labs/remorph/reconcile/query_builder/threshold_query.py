@@ -1,11 +1,6 @@
 import logging
 
-from databricks.labs.remorph.reconcile.constants import (
-    Constants,
-    ThresholdMatchType,
-    ThresholdMode,
-    ThresholdSQLTemplate,
-)
+from databricks.labs.remorph.reconcile.constants import ThresholdMode
 from databricks.labs.remorph.reconcile.query_builder.base import QueryBuilder
 from databricks.labs.remorph.reconcile.recon_config import Table, TransformRuleMapping
 
@@ -74,18 +69,14 @@ class ThresholdQueryBuilder(QueryBuilder):
             )
             # Use the dictionary to get the corresponding function
             select_clause.append(
-                Constants.threshold_functions.get((threshold.type, mode), "").format(
+                self._get_threshold_select_function(threshold.type, mode).format(
                     column=column,
                     lower_bound=threshold.lower_bound.replace("%", ""),
                     upper_bound=threshold.upper_bound.replace("%", ""),
                 )
             )
             # where clause generation
-            where_clause.append(
-                ThresholdSQLTemplate.WHERE_INTEGER.value.format(column=column)
-                if threshold.type == ThresholdMatchType.INTEGER.value
-                else ThresholdSQLTemplate.WHERE_TIMESTAMP.value.format(column=column)
-            )
+            where_clause.append(self._get_threshold_filter_function(threshold.type).format(column=column))
         return select_clause, where_clause
 
     @staticmethod

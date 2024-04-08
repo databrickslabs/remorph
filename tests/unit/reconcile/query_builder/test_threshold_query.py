@@ -16,7 +16,7 @@ def test_threshold_query_builder_with_defaults():
     table_conf = TestConf().get_table_conf_default
     schema = TestConf().get_schema
     table_conf.join_columns = ["s_suppkey"]
-    table_conf.thresholds = [Thresholds(column_name="s_acctbal", lower_bound="0", upper_bound="100", type="integer")]
+    table_conf.thresholds = [Thresholds(column_name="s_acctbal", lower_bound="0", upper_bound="100", type="int")]
 
     actual_src_query = ThresholdQueryBuilder(table_conf, schema, "source", "oracle").build_query()
     expected_src_query = (
@@ -55,7 +55,7 @@ def test_threshold_query_builder_with_transformations_and_jdbc():
         ),
     ]
     table_conf.thresholds = [
-        Thresholds(column_name="s_acctbal", lower_bound="0", upper_bound="100", type="integer"),
+        Thresholds(column_name="s_acctbal", lower_bound="0", upper_bound="100", type="int"),
         Thresholds(column_name="s_suppdate", lower_bound="-86400", upper_bound="86400", type="timestamp"),
     ]
 
@@ -107,7 +107,7 @@ def test_threshold_comparison_query_with_dual_threshold():
     # table conf
     table_conf = TestConf().get_table_conf_all_options
     table_conf.thresholds = [
-        Thresholds(column_name="s_acctbal", lower_bound="5%", upper_bound="-5%", type="integer"),
+        Thresholds(column_name="s_acctbal", lower_bound="5%", upper_bound="-5%", type="float"),
         Thresholds(column_name="s_suppdate", lower_bound="-86400", upper_bound="86400", type="timestamp"),
     ]
 

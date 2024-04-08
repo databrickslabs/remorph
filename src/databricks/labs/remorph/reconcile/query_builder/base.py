@@ -1,3 +1,4 @@
+import logging
 from abc import ABC
 
 from databricks.labs.remorph.reconcile.connectors.databricks import DatabricksDataSource
@@ -5,7 +6,10 @@ from databricks.labs.remorph.reconcile.connectors.oracle import OracleDataSource
 from databricks.labs.remorph.reconcile.connectors.snowflake import SnowflakeDataSource
 from databricks.labs.remorph.reconcile.constants import (
     ColumnTransformationType,
+    Constants,
     SourceType,
+    ThresholdMode,
+    ThresholdSQLTemplate,
 )
 from databricks.labs.remorph.reconcile.recon_config import (
     ColumnMapping,
@@ -14,6 +18,8 @@ from databricks.labs.remorph.reconcile.recon_config import (
     Transformation,
     TransformRuleMapping,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class QueryBuilder(ABC):
@@ -172,3 +178,48 @@ class QueryBuilder(ABC):
             transform_rule_mapping.append(TransformRuleMapping(col_origin, transform, col_alias))
 
         return transform_rule_mapping
+
+    @staticmethod
+    def _get_threshold_select_function(match_type, mode):
+        try:
+            switch = {
+                (match_type, mode): ThresholdSQLTemplate.SELECT_NUMBER_ABSOLUTE.value
+                for match_type in Constants.NUMBER_TYPES
+                if mode == ThresholdMode.ABSOLUTE.value
+            }
+            switch.update(
+                {
+                    (match_type, mode): ThresholdSQLTemplate.SELECT_NUMBER_PERCENTILE.value
+                    for match_type in Constants.NUMBER_TYPES
+                    if mode == ThresholdMode.PERCENTILE.value
+                }
+            )
+            switch.update(
+                {
+                    (match_type, mode): ThresholdSQLTemplate.SELECT_DATETIME.value
+                    for match_type in Constants.DATETIME_TYPES
+                    if mode == ThresholdMode.ABSOLUTE.value
+                }
+            )
+
+            return switch[(match_type, mode)]
+        except KeyError as exc:
+            error_message = f"Invalid threshold match type or mode in get_threshold_select_function: {match_type} or mode: {mode} error -> {exc!s}"
+            logger.error(error_message)
+            raise ValueError(error_message) from exc
+
+    @staticmethod
+    def _get_threshold_filter_function(match_type):
+        try:
+            switch = {match_type: ThresholdSQLTemplate.FILTER_NUMBER.value for match_type in Constants.NUMBER_TYPES}
+            switch.update(
+                {match_type: ThresholdSQLTemplate.FILTER_DATETIME.value for match_type in Constants.DATETIME_TYPES}
+            )
+
+            return switch[match_type]
+        except KeyError as exc:
+            error_message = (
+                f"Invalid threshold match type in get_threshold_filter_function: {match_type} error -> {exc!s}"
+            )
+            logger.error(error_message)
+            raise ValueError(error_message) from exc
