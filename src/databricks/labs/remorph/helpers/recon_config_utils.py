@@ -3,10 +3,6 @@ import os
 from databricks.connect import DatabricksSession
 from databricks.labs.blueprint.entrypoint import get_logger
 from databricks.labs.blueprint.tui import Prompts
-
-from databricks.labs.remorph.reconcile.connectors.snowflake import SnowflakeDataSource
-from databricks.labs.remorph.reconcile.constants import SourceType
-
 from databricks.sdk import WorkspaceClient
 
 from databricks.labs.remorph.helpers.db_workspace_utils import DBWorkspaceClient
