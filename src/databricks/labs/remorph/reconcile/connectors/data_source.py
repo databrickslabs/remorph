@@ -16,11 +16,11 @@ logger = get_logger(__file__)
 class DataSource(ABC):
     # TODO need to remove connection_params
     def __init__(
-            self,
-            engine: str,
-            spark: SparkSession,
-            ws: WorkspaceClient,
-            scope: str,
+        self,
+        engine: str,
+        spark: SparkSession,
+        ws: WorkspaceClient,
+        scope: str,
     ):
         self.engine = engine
         self.spark = spark
