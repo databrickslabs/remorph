@@ -97,7 +97,7 @@ jobs:
           restore-keys: ${{ runner.os }}-m2
 
       - name: Run Tests with Maven
-        run: mvn -B scoverage:report --file parent/pom.xml --fail-at-end
+        run: mvn -B scoverage:report --file pom.xml --fail-at-end
 
       - name: Publish test coverage
         uses: codecov/codecov-action@v1
