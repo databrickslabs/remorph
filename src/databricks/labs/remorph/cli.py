@@ -1,6 +1,7 @@
 # pylint: disable=(wrong-import-order,ungrouped-imports,useless-suppression)
 import json
 import os
+from pathlib import Path
 
 from databricks.labs.blueprint.cli import App
 from databricks.labs.blueprint.entrypoint import get_logger
@@ -8,11 +9,9 @@ from databricks.labs.blueprint.installation import Installation
 from databricks.sdk import WorkspaceClient
 
 from databricks.labs.remorph.config import MorphConfig
-from databricks.labs.remorph.helpers.recon_config_utils import (
-    ReconConfigPrompts,
-    recon_source_choices,
-)
+from databricks.labs.remorph.helpers.recon_config_utils import ReconConfigPrompts
 from databricks.labs.remorph.reconcile.execute import recon
+from databricks.labs.remorph.reconcile.recon_config import TableRecon
 from databricks.labs.remorph.transpiler.execute import morph
 
 remorph = App(__file__)
@@ -25,13 +24,13 @@ def raise_validation_exception(msg: str) -> Exception:
 
 @remorph.command
 def transpile(
-    w: WorkspaceClient,
-    source: str,
-    input_sql: str,
-    output_folder: str,
-    skip_validation: str,
-    catalog_name: str,
-    schema_name: str,
+        w: WorkspaceClient,
+        source: str,
+        input_sql: str,
+        output_folder: str,
+        skip_validation: str,
+        catalog_name: str,
+        schema_name: str,
 ):
     """transpiles source dialect to databricks dialect"""
     logger.info(f"user: {w.current_user.me()}")
@@ -94,24 +93,25 @@ def generate_recon_config(w: WorkspaceClient):
     recon_conf = ReconConfigPrompts(w)
 
     # Prompt for source
-    source = recon_conf.prompts.choice("Select the source", recon_source_choices)
+    recon_conf.prompt_source()
 
     # Check for Secrets Scope
-    if not recon_conf.prompts.confirm(f"Have you setup the secrets for the `{source}` connection?"):
-        raise_validation_exception(
-            f"Error: Secrets are needed for `{source}` reconciliation."
-            f"\nUse `remorph setup-recon-secrets` to setup Scope and Secrets."
-        )
-    recon_config = recon_conf.prompt_config_details(source)
-    print(json.dumps(recon_config.__dict__))
-    # recon_conf.save_config_details(recon_config)
+    recon_conf.confirm_secret_scope()
+
+    # Prompt for connection details and save the config
+    recon_conf.prompt_and_save_config_details()
 
 
 @remorph.command
-def validate_recon_config(w: WorkspaceClient):
+def validate_recon_config(file: str):
     """validates reconciliation config file"""
-    logger.info("Validating reconcile config file")
-    print(w.catalogs.list())
+    logger.debug("Validating reconcile config file")
+    # Convert the JSON data to the TableRecon dataclass
+    try:
+        Installation.load_local(type_ref=TableRecon, file=Path(file))
+    except Exception as e:
+        raise_validation_exception(f"Error: Invalid reconciliation config file `{file}`: {e}")
+    logger.info(f"`{file}` config file is valid")
 
 
 @remorph.command
@@ -120,10 +120,10 @@ def setup_recon_secrets(w: WorkspaceClient):
     recon_conf = ReconConfigPrompts(w)
 
     # Prompt for source
-    source = recon_conf.prompts.choice("Select the source", recon_source_choices)
+    source = recon_conf.prompt_source()
 
     logger.info(f"Setting up Scope, Secrets for `{source}` reconciliation")
-    recon_conf.prompt_connection_details(source)
+    recon_conf.prompt_connection_details()
 
 
 if __name__ == "__main__":
