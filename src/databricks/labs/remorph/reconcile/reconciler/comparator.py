@@ -11,8 +11,12 @@ class Comparator:
         df = source.alias('s').join(target.alias("t"), join, how='full')
 
         mismatch = self._get_mismatch_data(df) if report == 'all' else None
-        missing_in_src = df.filter(col("s.hash_value__recon").isNull()).select(*join)
-        missing_in_tgt = df.filter(col("t.hash_value__recon").isNull()).select(*join)
+        missing_in_src = (df.filter(col("s.hash_value__recon").isNull())
+                          .select((join_cols if report == "all" else "t.*"))
+                          .drop("hash_value__recon"))
+        missing_in_tgt = (df.filter(col("t.hash_value__recon").isNull()).drop("hash_value__recon")
+                          .select((join_cols if report == "all" else "s.*"))
+                          .drop("hash_value__recon"))
         return ReconcileOutput(missing_in_src=missing_in_src, missing_in_tgt=missing_in_tgt, mismatch=mismatch)
 
     @staticmethod
