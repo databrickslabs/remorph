@@ -60,14 +60,10 @@ def test_compare_data_for_report_hash(mock_spark_session):
     )
 
     missing_in_src = mock_spark_session.createDataFrame(
-        [Row(s_suppkey=2, s_nationkey=22),
-         Row(s_suppkey=4, s_nationkey=44),
-         Row(s_suppkey=5, s_nationkey=56)]
+        [Row(s_suppkey=2, s_nationkey=22), Row(s_suppkey=4, s_nationkey=44), Row(s_suppkey=5, s_nationkey=56)]
     )
     missing_in_tgt = mock_spark_session.createDataFrame(
-        [Row(s_suppkey=2, s_nationkey=22),
-         Row(s_suppkey=3, s_nationkey=33),
-         Row(s_suppkey=5, s_nationkey=55)]
+        [Row(s_suppkey=2, s_nationkey=22), Row(s_suppkey=3, s_nationkey=33), Row(s_suppkey=5, s_nationkey=55)]
     )
 
     actual = Comparator().compare_data(
