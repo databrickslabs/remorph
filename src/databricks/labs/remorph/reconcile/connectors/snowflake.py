@@ -1,6 +1,5 @@
 import re
 
-from databricks.labs.blueprint.entrypoint import get_logger
 from pyspark.errors import PySparkException
 from pyspark.sql import DataFrame
 from pyspark.sql.functions import col
@@ -14,9 +13,8 @@ from databricks.labs.remorph.reconcile.recon_config import (
     Table,
     TableRecon,
 )
-from databricks.labs.blueprint.entrypoint import get_logger
 
-logger = get_logger(__file__)
+from databricks.labs.blueprint.entrypoint import get_logger
 
 logger = get_logger(__file__)
 
@@ -91,11 +89,11 @@ class SnowflakeDataSource(DataSource):
         return re.sub(r'\s+', ' ', query)
 
     def list_tables(
-            self,
-            catalog: str,
-            schema: str,
-            include_list: list[str] | None,
-            exclude_list: list[str] | None,
+        self,
+        catalog: str,
+        schema: str,
+        include_list: list[str] | None,
+        exclude_list: list[str] | None,
     ) -> TableRecon:
 
         filter_list = include_list

@@ -24,13 +24,13 @@ def raise_validation_exception(msg: str) -> Exception:
 
 @remorph.command
 def transpile(
-        w: WorkspaceClient,
-        source: str,
-        input_sql: str,
-        output_folder: str,
-        skip_validation: str,
-        catalog_name: str,
-        schema_name: str,
+    w: WorkspaceClient,
+    source: str,
+    input_sql: str,
+    output_folder: str,
+    skip_validation: str,
+    catalog_name: str,
+    schema_name: str,
 ):
     """transpiles source dialect to databricks dialect"""
     logger.info(f"user: {w.current_user.me()}")
@@ -124,7 +124,7 @@ def setup_recon_secrets(w: WorkspaceClient):
     source = recon_conf.prompt_source()
 
     logger.info(f"Setting up Scope, Secrets for `{source}` reconciliation")
-    recon_conf.prompt_connection_details()
+    recon_conf.prompt_and_save_connection_details()
 
 
 if __name__ == "__main__":

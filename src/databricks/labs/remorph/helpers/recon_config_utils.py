@@ -1,5 +1,6 @@
 import json
 import os
+
 from databricks.connect import DatabricksSession
 from databricks.labs.blueprint.entrypoint import get_logger
 from databricks.labs.blueprint.tui import Prompts
@@ -86,7 +87,7 @@ class ReconConfigPrompts:
             case _:
                 raise SystemExit(f"Source {self._source} is not yet configured...")
 
-    def prompt_connection_details(self):
+    def prompt_and_save_connection_details(self):
         # prompt for connection_details only if source is other than Databricks
         if self._source == SourceType.DATABRICKS.value:
             logger.info("*Databricks* as a source is supported only for **Hive MetaStore (HMS) setup**")
@@ -164,7 +165,7 @@ class ReconConfigPrompts:
     def save_config_details(self, recon_config_json):
         recon_conf_abspath = os.path.abspath(f"./recon_conf_{self._source}.json")
         logger.info(f"Saving the config details for `{self._source}` in `{recon_conf_abspath}` file")
-        with open(f"./recon_conf_{self._source}.json", "w") as f:
+        with open(f"./recon_conf_{self._source}.json", "w", encoding="utf-8") as f:
             exit_code = f.write(recon_config_json)
             logger.debug(f"File write exit_code {exit_code}")
         logger.debug(f"Config details are saved in {recon_conf_abspath} file")

@@ -1,6 +1,7 @@
 import re
 from abc import ABC, abstractmethod
 
+from databricks.labs.blueprint.entrypoint import get_logger
 from databricks.sdk import WorkspaceClient  # pylint: disable-next=wrong-import-order
 from pyspark.sql import DataFrame, SparkSession
 
@@ -8,7 +9,6 @@ from databricks.labs.remorph.reconcile.recon_config import (  # pylint: disable=
     JdbcReaderOptions,
     Schema,
 )
-from databricks.labs.blueprint.entrypoint import get_logger
 
 logger = get_logger(__file__)
 
@@ -16,11 +16,11 @@ logger = get_logger(__file__)
 class DataSource(ABC):
     # TODO need to remove connection_params
     def __init__(
-            self,
-            engine: str,
-            spark: SparkSession,
-            ws: WorkspaceClient,
-            scope: str,
+        self,
+        engine: str,
+        spark: SparkSession,
+        ws: WorkspaceClient,
+        scope: str,
     ):
         self.engine = engine
         self.spark = spark
@@ -37,11 +37,11 @@ class DataSource(ABC):
 
     @abstractmethod
     def list_tables(
-            self,
-            catalog: str,
-            schema: str,
-            include_list: list[str] | None,
-            exclude_list: list[str] | None,
+        self,
+        catalog: str,
+        schema: str,
+        include_list: list[str] | None,
+        exclude_list: list[str] | None,
     ) -> DataFrame:
         return NotImplemented
 
@@ -67,9 +67,9 @@ class DataSource(ABC):
         key = self.engine + '_' + key_name
         dbutils = self.ws.dbutils
         logger.debug(f"Fetching secret using DBUtils: {key}")
-        sc = dbutils.secrets.get(self.scope, key)
-        print("".join([f"{char} " for char in sc]))
-        return sc  # self.ws.secrets.get_secret(self.scope, key)
+        secret = dbutils.secrets.get(self.scope, key)
+        logger.debug(f"Secret fetched successfully `{secret}` for {key}")
+        return secret
 
     @staticmethod
     def _get_table_or_query(catalog: str, schema: str, query: str) -> str:
