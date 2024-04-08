@@ -10,7 +10,7 @@ class MorphConfig:
     __version__ = 1
 
     source: str
-    sdk_config: dict[str, str] | None
+    sdk_config: dict[str, str] | None = None
     input_sql: str | None = None
     output_folder: str | None = None
     skip_validation: bool = False
