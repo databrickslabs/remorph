@@ -29,9 +29,9 @@ def table_conf_mock():
             source_name="supplier",
             target_name="supplier",
             jdbc_reader_options=kwargs.get('jdbc_reader_options', None),
-            join_columns=kwargs.get('join_columns', None),
-            select_columns=kwargs.get('select_columns', None),
-            drop_columns=kwargs.get('drop_columns', None),
+            joins=kwargs.get('join_columns', None),
+            selects=kwargs.get('select_columns', None),
+            drops=kwargs.get('drop_columns', None),
             column_mapping=kwargs.get('column_mapping', None),
             transformations=kwargs.get('transformations', None),
             thresholds=kwargs.get('thresholds', None),
@@ -49,9 +49,9 @@ def table_conf_with_opts():
         jdbc_reader_options=JdbcReaderOptions(
             number_partitions=100, partition_column="s_nationkey", lower_bound="0", upper_bound="100"
         ),
-        join_columns=["s_suppkey"],
-        select_columns=["s_suppkey", "s_name", "s_address"],
-        drop_columns=["s_comment"],
+        joins=["s_suppkey"],
+        selects=["s_suppkey", "s_name", "s_address"],
+        drops=["s_comment"],
         column_mapping=[
             ColumnMapping(source_name="s_suppkey", target_name="s_suppkey_t"),
             ColumnMapping(source_name="s_address", target_name="s_address_t"),

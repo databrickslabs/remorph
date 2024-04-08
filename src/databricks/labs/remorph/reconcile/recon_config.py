@@ -61,10 +61,10 @@ class Filters:
 class Table:
     source_name: str
     target_name: str
-    join_columns: list[str] | None = None
+    joins: list[str] | None = None
     jdbc_reader_options: JdbcReaderOptions | None = None
-    select_columns: list[str] | None = None
-    drop_columns: list[str] | None = None
+    selects: list[str] | None = None
+    drops: list[str] | None = None
     column_mapping: list[ColumnMapping] | None = None
     transformations: list[Transformation] | None = None
     thresholds: list[Thresholds] | None = None
@@ -80,22 +80,22 @@ class Table:
         return {}
 
     @property
-    def get_threshold_columns(self) -> set[str]:
+    def threshold_columns(self) -> set[str]:
         return {thresh.column_name for thresh in self.thresholds or []}
 
     @property
-    def get_join_columns(self) -> set[str]:
-        if self.join_columns is None:
+    def join_columns(self) -> set[str]:
+        if self.joins is None:
             return set()
-        return set(self.join_columns)
+        return set(self.joins)
 
     @property
-    def get_drop_columns(self) -> set[str]:
-        if self.drop_columns is None:
+    def drop_columns(self) -> set[str]:
+        if self.drops is None:
             return set()
-        return set(self.drop_columns)
+        return set(self.drops)
 
-    def get_partition_column(self, layer) -> set[str]:
+    def partition_column(self, layer) -> set[str]:
         if self.jdbc_reader_options and layer == "source":
             return {self.jdbc_reader_options.partition_column}
         return set()
