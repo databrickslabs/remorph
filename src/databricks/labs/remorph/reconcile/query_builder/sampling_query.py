@@ -8,14 +8,14 @@ from databricks.labs.remorph.reconcile.recon_config import TransformRuleMapping
 class SamplingQueryBuilder(QueryBuilder):
 
     def build_query(self, df: DataFrame):
-        key_cols = sorted(self.table_conf.get_join_columns)
+        key_cols = sorted(self.table_conf.join_columns)
         keys_df = df.select(*key_cols)
         with_clause = self._get_with_clause(keys_df, self.source)
 
         cols = sorted(
-            (self.table_conf.get_join_columns | self.select_columns)
-            - self.table_conf.get_threshold_columns
-            - self.table_conf.get_drop_columns
+            (self.table_conf.join_columns | self.select_columns)
+            - self.table_conf.threshold_columns
+            - self.table_conf.drop_columns
         )
 
         col_transform = self._generate_transform_rule_mapping(cols)

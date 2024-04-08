@@ -8,11 +8,11 @@ from databricks.labs.remorph.reconcile.recon_config import TransformRuleMapping
 class HashQueryBuilder(QueryBuilder):
     def build_query(self) -> str:
         hash_cols = sorted(
-            (self.table_conf.get_join_columns | self.select_columns)
-            - self.table_conf.get_threshold_columns
-            - self.table_conf.get_drop_columns
+            (self.table_conf.join_columns | self.select_columns)
+            - self.table_conf.threshold_columns
+            - self.table_conf.drop_columns
         )
-        key_cols = sorted(self.table_conf.get_join_columns | self.table_conf.get_partition_column(self.layer))
+        key_cols = sorted(self.table_conf.join_columns | self.table_conf.partition_column(self.layer))
 
         # get transformation for columns considered for hashing
         col_transform = self._generate_transform_rule_mapping(hash_cols)

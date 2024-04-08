@@ -53,10 +53,10 @@ class QueryBuilder(ABC):
 
     @property
     def select_columns(self) -> set[str]:
-        if self._table_conf.select_columns is None:
+        if self._table_conf.selects is None:
             cols = {sch.column_name for sch in self._schema}
             return cols if self._layer == "source" else self._get_mapped_columns(self.tgt_col_mapping, cols)
-        return set(self._table_conf.select_columns)
+        return set(self._table_conf.selects)
 
     @property
     def table_name(self) -> str:
