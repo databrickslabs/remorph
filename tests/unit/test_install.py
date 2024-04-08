@@ -22,6 +22,7 @@ def ws():
     w = create_autospec(WorkspaceClient)
     w.catalogs.get.side_effect = NotFound("test")
     w.schemas.get.side_effect = NotFound("test.schema")
+    w.config.return_value = {"warehouse_id", "test_warehouse"}
     return w
 
 
@@ -71,11 +72,6 @@ def test_save_config(ws, mock_installation):
         {
             r"Select the source": "0",
             r"Do you want to Skip Validation": "yes",
-            r"Enter catalog_name": "remorph_catalog",
-            r".*Do you want to create a new one?": "yes",
-            r"Enter schema_name": "remorph_schema",
-            r".*Do you want to create a new Schema?": "yes",
-            r"Open config file in the browser.*": "yes",
             r".*": "",
         }
     )
@@ -89,17 +85,19 @@ def test_save_config(ws, mock_installation):
             "version": 1,
             "source": "snowflake",
             "skip_validation": True,
-            "catalog_name": "remorph_catalog",
-            "schema_name": "remorph_schema",
+            "catalog_name": "transpiler_test",
+            "schema_name": "convertor_test",
         },
     )
 
 
-def test_create_catalog_schema(ws, mock_installation):
+def test_create_sql_warehouse(ws, mock_installation):
     prompts = MockPrompts(
         {
             r"Select the source": "0",
-            r"Do you want to Skip Validation": "yes",
+            r"Do you want to Skip Validation": "No",
+            r"Do you want to use SQL Warehouse for validation?": "yes",
+            r"Select PRO or SERVERLESS SQL warehouse to run validation on": "0",
             r"Enter catalog_name": "test",
             r".*Do you want to create a new one?": "yes",
             r"Enter schema_name": "schema",
@@ -107,6 +105,7 @@ def test_create_catalog_schema(ws, mock_installation):
             r".*": "",
         }
     )
+
     install = WorkspaceInstaller(prompts, mock_installation, ws)
 
     # Assert that the `install` is an instance of WorkspaceInstaller
@@ -119,7 +118,39 @@ def test_create_catalog_schema(ws, mock_installation):
 
     # Assert  the `config` variables
     assert config.source == "snowflake"
-    assert config.skip_validation is True
+    assert config.skip_validation is False
+    assert config.catalog_name == "test"
+    assert config.schema_name == "schema"
+
+
+def test_create_catalog_schema(ws, mock_installation):
+    prompts = MockPrompts(
+        {
+            r"Select the source": "0",
+            r"Do you want to Skip Validation": "No",
+            r"Do you want to use SQL Warehouse for validation?": "No",
+            r"Enter a valid cluster_id to proceed": "test_cluster",
+            r"Enter catalog_name": "test",
+            r".*Do you want to create a new one?": "yes",
+            r"Enter schema_name": "schema",
+            r".*Do you want to create a new Schema?": "yes",
+            r".*": "",
+        }
+    )
+
+    install = WorkspaceInstaller(prompts, mock_installation, ws)
+
+    # Assert that the `install` is an instance of WorkspaceInstaller
+    assert isinstance(install, WorkspaceInstaller)
+
+    config = install.configure()
+
+    # Assert that the `config` is an instance of MorphConfig
+    assert isinstance(config, MorphConfig)
+
+    # Assert  the `config` variables
+    assert config.source == "snowflake"
+    assert config.skip_validation is False
     assert config.catalog_name == "test"
     assert config.schema_name == "schema"
 
@@ -128,7 +159,7 @@ def test_create_catalog_no(ws, mock_installation):
     prompts = MockPrompts(
         {
             r"Select the source": "0",
-            r"Do you want to Skip Validation": "yes",
+            r"Do you want to Skip Validation": "No",
             r"Enter catalog_name": "test",
             r".*Do you want to create a new one?": "no",
             r".*": "",
@@ -143,7 +174,7 @@ def test_create_schema_no(ws, mock_installation):
     prompts = MockPrompts(
         {
             r"Select the source": "0",
-            r"Do you want to Skip Validation": "yes",
+            r"Do you want to Skip Validation": "No",
             r"Enter catalog_name": "test",
             r".*Do you want to create a new one?": "yes",
             r"Enter schema_name": "schema",

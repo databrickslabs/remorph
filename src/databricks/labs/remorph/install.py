@@ -1,5 +1,6 @@
 import logging
 import os
+import time
 import webbrowser
 from datetime import timedelta
 from pathlib import Path
@@ -12,6 +13,11 @@ from databricks.labs.blueprint.wheels import ProductInfo
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.errors import NotFound
 from databricks.sdk.retries import retried
+from databricks.sdk.service.sql import (
+    CreateWarehouseRequestWarehouseType,
+    EndpointInfoWarehouseType,
+    SpotInstancePolicy,
+)
 
 from databricks.labs.remorph.__about__ import __version__
 from databricks.labs.remorph.config import MorphConfig
@@ -19,6 +25,7 @@ from databricks.labs.remorph.config import MorphConfig
 logger = logging.getLogger(__name__)
 
 PRODUCT_INFO = ProductInfo(__file__)
+WAREHOUSE_PREFIX = "Remorph Transpiler Validation"
 
 
 class WorkspaceInstaller:
@@ -50,37 +57,78 @@ class WorkspaceInstaller:
             logger.debug(f"Cannot find previous installation: {err}")
         logger.info("Please answer a couple of questions to configure Remorph")
 
+        # default params
+        catalog_name = "transpiler_test"
+        schema_name = "convertor_test"
+        ws_config = None
+
         source_prompt = self._prompts.choice("Select the source", ["snowflake", "tsql"])
         source = source_prompt.lower()
 
         skip_validation = self._prompts.confirm("Do you want to Skip Validation")
 
-        catalog_name = self._prompts.question("Enter catalog_name")
+        if not skip_validation:
+            ws_config = self._configure_runtime()
+            catalog_name = self._prompts.question("Enter catalog_name")
+            try:
+                self._catalog_setup.get(catalog_name)
+            except NotFound:
+                self.setup_catalog(catalog_name)
 
-        try:
-            self._catalog_setup.get(catalog_name)
-        except NotFound:
-            self.setup_catalog(catalog_name)
+            schema_name = self._prompts.question("Enter schema_name")
 
-        schema_name = self._prompts.question("Enter schema_name")
-
-        try:
-            self._catalog_setup.get_schema(f"{catalog_name}.{schema_name}")
-        except NotFound:
-            self.setup_schema(catalog_name, schema_name)
+            try:
+                self._catalog_setup.get_schema(f"{catalog_name}.{schema_name}")
+            except NotFound:
+                self.setup_schema(catalog_name, schema_name)
 
         config = MorphConfig(
             source=source,
             skip_validation=skip_validation,
             catalog_name=catalog_name,
             schema_name=schema_name,
-            sdk_config=None,
+            sdk_config=ws_config,
         )
 
         ws_file_url = self._installation.save(config)
         if self._prompts.confirm("Open config file in the browser and continue installing?"):
             webbrowser.open(ws_file_url)
         return config
+
+    def _configure_runtime(self) -> dict[str, str]:
+        if self._prompts.confirm("Do you want to use SQL Warehouse for validation?"):
+            warehouse_id = self._configure_warehouse()
+            return {"warehouse_id": warehouse_id}
+
+        if self._ws.config.cluster_id:
+            logger.info(f"Using cluster {self._ws.config.cluster_id} for validation")
+            return {"cluster": self._ws.config.cluster_id}
+
+        cluster_id = self._prompts.question("Enter a valid cluster_id to proceed")
+        return {"cluster": cluster_id}
+
+    def _configure_warehouse(self):
+        def warehouse_type(_):
+            return _.warehouse_type.value if not _.enable_serverless_compute else "SERVERLESS"
+
+        pro_warehouses = {"[Create new PRO SQL warehouse]": "create_new"} | {
+            f"{_.name} ({_.id}, {warehouse_type(_)}, {_.state.value})": _.id
+            for _ in self._ws.warehouses.list()
+            if _.warehouse_type == EndpointInfoWarehouseType.PRO
+        }
+        warehouse_id = self._prompts.choice_from_dict(
+            "Select PRO or SERVERLESS SQL warehouse to run validation on", pro_warehouses
+        )
+        if warehouse_id == "create_new":
+            new_warehouse = self._ws.warehouses.create(
+                name=f"{WAREHOUSE_PREFIX} {time.time_ns()}",
+                spot_instance_policy=SpotInstancePolicy.COST_OPTIMIZED,
+                warehouse_type=CreateWarehouseRequestWarehouseType.PRO,
+                cluster_size="Small",
+                max_num_clusters=1,
+            )
+            warehouse_id = new_warehouse.id
+        return warehouse_id
 
     @retried(on=[NotFound], timeout=timedelta(minutes=5))
     def setup_catalog(self, catalog_name: str):
