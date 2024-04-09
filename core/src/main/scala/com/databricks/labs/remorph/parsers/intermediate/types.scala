@@ -2,7 +2,7 @@ package com.databricks.labs.remorph.parsers.intermediate
 
 abstract class DataType
 case class NullType() extends DataType
-case class Boolean() extends DataType
+case class BooleanType() extends DataType
 case class BinaryType() extends DataType
 
 // Numeric types
