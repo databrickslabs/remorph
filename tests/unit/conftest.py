@@ -33,10 +33,10 @@ def mock_workspace_client():
     yield client
 
 
-@pytest.fixture(scope="session")
-def morph_config(mock_databricks_config):
+@pytest.fixture()
+def morph_config():
     yield MorphConfig(
-        sdk_config=mock_databricks_config,
+        sdk_config={"cluster_id": "test_cluster"},
         source="snowflake",
         input_sql="input_sql",
         output_folder="output_folder",
