@@ -63,7 +63,6 @@ case class Trigger(
     available_now: Boolean = false,
     once: Boolean = false,
     continuous_checkpoint_interval: Option[String])
-    extends Command {}
 
 case class SinkDestination(path: Option[String], table_name: Option[String])
 
