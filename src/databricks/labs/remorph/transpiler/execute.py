@@ -15,9 +15,9 @@ from databricks.labs.remorph.helpers.file_utils import (
 )
 from databricks.labs.remorph.helpers.morph_status import MorphStatus, ValidationError
 from databricks.labs.remorph.helpers.validation import Validator
+from databricks.labs.remorph.snow import lca_utils
 from databricks.labs.remorph.snow.sql_transpiler import SqlglotEngine
 from databricks.labs.remorph.transpiler.dialects_config import DialectConfig
-from databricks.labs.remorph.snow import lca_utils
 
 # pylint: disable=unspecified-encoding
 
