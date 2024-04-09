@@ -3,7 +3,6 @@ from databricks.labs.remorph.reconcile.recon_config import TransformRuleMapping
 
 
 class ThresholdQueryBuilder(QueryBuilder):
-
     def build_query(self) -> str:
         all_columns = set(
             self.table_conf.get_threshold_columns
