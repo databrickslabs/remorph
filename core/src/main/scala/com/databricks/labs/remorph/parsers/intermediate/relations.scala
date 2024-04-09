@@ -12,8 +12,14 @@ abstract class Read(is_streaming: Boolean) extends RelationCommon {}
 case class NamedTable(unparsed_identifier: String, options: Map[String, String], is_streaming: Boolean)
     extends Read(is_streaming) {}
 
-case class DataSource(format: String, schema: String, options: Map[String, String], paths: Seq[String],
-                      predicates: Seq[String], is_streaming: Boolean) extends Read(is_streaming) {}
+case class DataSource(
+    format: String,
+    schema: String,
+    options: Map[String, String],
+    paths: Seq[String],
+    predicates: Seq[String],
+    is_streaming: Boolean)
+    extends Read(is_streaming) {}
 
 case class Project(input: Relation, expressions: Seq[Expression]) extends RelationCommon {}
 
@@ -31,9 +37,14 @@ case object CrossJoin extends JoinType
 
 case class JoinDataType(is_left_struct: Boolean, is_right_struct: Boolean)
 
-case class Join(left: Relation, right: Relation, join_condition: Option[Expression],
-                join_type: JoinType, using_columns: Seq[String], join_data_type: JoinDataType
-               ) extends RelationCommon {}
+case class Join(
+    left: Relation,
+    right: Relation,
+    join_condition: Option[Expression],
+    join_type: JoinType,
+    using_columns: Seq[String],
+    join_data_type: JoinDataType)
+    extends RelationCommon {}
 
 abstract class SetOpType
 case object UnspecifiedSetOp extends SetOpType
@@ -41,9 +52,14 @@ case object IntersectSetOp extends SetOpType
 case object UnionSetOp extends SetOpType
 case object ExceptSetOp extends SetOpType
 
-case class SetOperation(left_input: Relation, right_input: Relation, set_op_type: SetOpType,
-                        is_all: Boolean, by_name: Boolean, allow_missing_columns: Boolean
-                       ) extends RelationCommon {}
+case class SetOperation(
+    left_input: Relation,
+    right_input: Relation,
+    set_op_type: SetOpType,
+    is_all: Boolean,
+    by_name: Boolean,
+    allow_missing_columns: Boolean)
+    extends RelationCommon {}
 
 case class Limit(input: Relation, limit: Int) extends RelationCommon {}
 
@@ -60,15 +76,23 @@ case object PivotGroup extends GroupType
 
 case class Pivot(col: Expression, values: Seq[Literal])
 
-case class Aggregate(input: Relation, group_type: GroupType, grouping_expressions: Seq[Expression],
-                     pivot: Option[Pivot]) extends RelationCommon {}
+case class Aggregate(
+    input: Relation,
+    group_type: GroupType,
+    grouping_expressions: Seq[Expression],
+    pivot: Option[Pivot])
+    extends RelationCommon {}
 
 case class Sort(input: Relation, order: Seq[SortOrder], is_global: Boolean) extends RelationCommon {}
 
 case class Drop(input: Relation, columns: Seq[Expression], column_names: Seq[String]) extends RelationCommon {}
 
-case class Deduplicate(input: Relation, column_names: Seq[String], all_columns_as_keys: Boolean,
-                       within_watermark: Boolean) extends RelationCommon {}
+case class Deduplicate(
+    input: Relation,
+    column_names: Seq[String],
+    all_columns_as_keys: Boolean,
+    within_watermark: Boolean)
+    extends RelationCommon {}
 
 case class LocalRelation(input: Relation, data: Array[Byte], schema: String) extends RelationCommon {}
 
@@ -76,8 +100,14 @@ case class CachedLocalRelation(hash: String) extends RelationCommon {}
 
 case class CachedRemoteRelation(relation_id: String) extends RelationCommon {}
 
-case class Sample(input: Relation, lower_bound: Double, upper_bound: Double, with_replacement: Boolean, seed: Long,
-                  deterministic_order: Boolean) extends RelationCommon {}
+case class Sample(
+    input: Relation,
+    lower_bound: Double,
+    upper_bound: Double,
+    with_replacement: Boolean,
+    seed: Long,
+    deterministic_order: Boolean)
+    extends RelationCommon {}
 
 case class Range(start: Long, end: Long, step: Long, num_partitions: Int) extends RelationCommon {}
 
@@ -99,15 +129,15 @@ case class StatCov(input: Relation, col1: String, col2: String) extends Relation
 
 case class StatCorr(input: Relation, col1: String, col2: String, method: String) extends RelationCommon {}
 
-case class StatApproxQuantile(input: Relation, cols: Seq[String], probabilities: Seq[Double],
-                              relative_error: Double) extends RelationCommon {}
+case class StatApproxQuantile(input: Relation, cols: Seq[String], probabilities: Seq[Double], relative_error: Double)
+    extends RelationCommon {}
 
 case class StatFreqItems(input: Relation, cols: Seq[String], support: Double) extends RelationCommon {}
 
 case class Fraction(stratum: Literal, fraction: Double)
 
-case class StatSampleBy(input: Relation, col: Expression, fractions: Seq[Fraction],
-                        seed: Long) extends RelationCommon {}
+case class StatSampleBy(input: Relation, col: Expression, fractions: Seq[Fraction], seed: Long)
+    extends RelationCommon {}
 
 case class NAFill(input: Relation, cols: Seq[String], values: Seq[Literal]) extends RelationCommon {}
 
@@ -129,40 +159,84 @@ case class Hint(input: Relation, name: String, parameters: Seq[Expression]) exte
 
 case class Values(values: Seq[Expression])
 
-case class Unpivot(input: Relation, ids: Seq[Expression], values: Option[Values], variable_column_name: String,
-                   value_column_name: String) extends RelationCommon {}
+case class Unpivot(
+    input: Relation,
+    ids: Seq[Expression],
+    values: Option[Values],
+    variable_column_name: String,
+    value_column_name: String)
+    extends RelationCommon {}
 
 case class ToSchema(input: Relation, schema: DataType) extends RelationCommon {}
 
-case class RepartitionByExpression(input: Relation, partition_exprs: Seq[Expression],
-                                   num_partitions: Int) extends RelationCommon {}
+case class RepartitionByExpression(input: Relation, partition_exprs: Seq[Expression], num_partitions: Int)
+    extends RelationCommon {}
 
-case class MapPartitions(input: Relation, func: CommonInlineUserDefinedTableFunction,
-                         is_barrier: Boolean) extends RelationCommon {}
+case class MapPartitions(input: Relation, func: CommonInlineUserDefinedTableFunction, is_barrier: Boolean)
+    extends RelationCommon {}
 
-case class GroupMap(input: Relation, grouping_expressions: Seq[Expression],
-                    func: CommonInlineUserDefinedFunction,
-                    sorting_expressions: Seq[Expression],
-                    initial_input: Relation,
-                    initial_grouping_expressions: Seq[Expression],
-                    is_map_groups_with_state: Boolean,
-                    output_mode: String,
-                    timeout_conf: String) extends RelationCommon {}
+case class GroupMap(
+    input: Relation,
+    grouping_expressions: Seq[Expression],
+    func: CommonInlineUserDefinedFunction,
+    sorting_expressions: Seq[Expression],
+    initial_input: Relation,
+    initial_grouping_expressions: Seq[Expression],
+    is_map_groups_with_state: Boolean,
+    output_mode: String,
+    timeout_conf: String)
+    extends RelationCommon {}
 
-case class CoGroupMap(input: Relation, input_grouping_expressions: Seq[Expression], other: Relation,
-                      other_grouping_expressions: Seq[Expression],
-                      func: CommonInlineUserDefinedFunction,
-                      input_sorting_expressions: Seq[Expression],
-                      other_sorting_expressions: Seq[Expression]) extends RelationCommon {}
+case class CoGroupMap(
+    input: Relation,
+    input_grouping_expressions: Seq[Expression],
+    other: Relation,
+    other_grouping_expressions: Seq[Expression],
+    func: CommonInlineUserDefinedFunction,
+    input_sorting_expressions: Seq[Expression],
+    other_sorting_expressions: Seq[Expression])
+    extends RelationCommon {}
 
-// TODO: continue later
+case class ApplyInPandasWithState(
+    input: Relation,
+    grouping_expressions: Seq[Expression],
+    func: CommonInlineUserDefinedFunction,
+    output_schema: String,
+    state_schema: String,
+    output_mode: String,
+    timeout_conf: String)
+    extends RelationCommon {}
 
-case class ApplyInPandasWithState(input: Relation) extends RelationCommon {}
+case class PythonUDTF(return_type: DataType, eval_type: Int, command: Array[Byte], python_ver: String)
 
-case class CollectMetrics(input: Relation) extends RelationCommon {}
-case class Parse(input: Relation) extends RelationCommon {}
-case class CommonInlineUserDefinedTableFunction(input: Relation) extends RelationCommon {}
-case class AsOfJoin(input: Relation) extends RelationCommon {}
-// Catalog API (experimental / unstable)
-case class Catalog(input: Relation) extends RelationCommon {}
-case class Unknown(input: Relation) extends RelationCommon {}
+case class CommonInlineUserDefinedTableFunction(
+    function_name: String,
+    deterministic: Boolean,
+    arguments: Seq[Expression],
+    python_udtf: Option[PythonUDTF])
+    extends RelationCommon {}
+
+case class CollectMetrics(input: Relation, name: String, metrics: Seq[Expression]) extends RelationCommon {}
+
+abstract class ParseFormat
+case object UnspecifiedFormat extends ParseFormat
+case object JsonFormat extends ParseFormat
+case object CsvFormat extends ParseFormat
+
+case class Parse(input: Relation, format: ParseFormat, schema: Option[DataType], options: Map[String, String])
+    extends RelationCommon {}
+
+case class AsOfJoin(
+    left: Relation,
+    right: Relation,
+    left_as_of: Expression,
+    right_as_of: Expression,
+    join_expr: Option[Expression],
+    using_columns: Seq[String],
+    join_type: String,
+    tolerance: Option[Expression],
+    allow_exact_matches: Boolean,
+    direction: String)
+    extends RelationCommon {}
+
+case class Unknown() extends RelationCommon {}
