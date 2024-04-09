@@ -41,7 +41,7 @@ def process_file(
     with input_file.open("r") as f:
         sql = remove_bom(f.read())
 
-    lca_error = lca_utils.check_for_unsupported_lca(source, sql, str(input_file))
+    lca_error = lca_utils.check_for_unsupported_lca(config.source, sql, str(input_file))
 
     if lca_error:
         validate_error_list.append(lca_error)
