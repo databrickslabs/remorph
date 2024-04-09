@@ -6,9 +6,9 @@ class ThresholdQueryBuilder(QueryBuilder):
 
     def build_query(self) -> str:
         all_columns = set(
-            self.table_conf.threshold_columns
-            | self.table_conf.join_columns
-            | self.table_conf.partition_column(self.layer)
+            self.table_conf.get_threshold_columns
+            | self.table_conf.get_join_columns
+            | self.table_conf.get_partition_column(self.layer)
         )
 
         query_columns = sorted(
