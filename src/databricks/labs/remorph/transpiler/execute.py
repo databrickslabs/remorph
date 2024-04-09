@@ -15,7 +15,7 @@ from databricks.labs.remorph.helpers.file_utils import (
 )
 from databricks.labs.remorph.helpers.morph_status import MorphStatus, ValidationError
 from databricks.labs.remorph.helpers.validation import Validator
-from databricks.labs.remorph.snow import dialect_utils
+from databricks.labs.remorph.snow import lca_utils
 from databricks.labs.remorph.snow.sql_transpiler import SQLTranspiler
 
 # pylint: disable=unspecified-encoding
@@ -35,7 +35,7 @@ def process_file(config: MorphConfig, validator: Validator, input_file: str | Pa
     with input_file.open("r") as f:
         sql = remove_bom(f.read())
 
-    lca_error = dialect_utils.check_for_unsupported_lca(source, sql, str(input_file))
+    lca_error = lca_utils.check_for_unsupported_lca(source, sql, str(input_file))
     if lca_error:
         validate_error_list.append(lca_error)
     transpiler = SQLTranspiler(source, parse_error_list)  # [TODO] move the object creation outside the loop

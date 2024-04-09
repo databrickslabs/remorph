@@ -53,7 +53,7 @@ def check_for_unsupported_lca(
     return ValidationError(filename, " ".join(err_messages))
 
 
-def fix_unsupported_lca_in_select(expr: exp.Expression) -> exp.Expression:
+def unalias_lca_in_select(expr: exp.Expression) -> exp.Expression:
     if not isinstance(expr, exp.Select):
         return expr
     root_select = build_scope(expr)

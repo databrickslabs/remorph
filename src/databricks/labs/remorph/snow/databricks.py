@@ -9,7 +9,7 @@ from sqlglot.dialects.dialect import rename_func
 from sqlglot.errors import ParseError, UnsupportedError
 from sqlglot.helper import apply_index_offset, csv
 
-from databricks.labs.remorph.snow import dialect_utils, local_expression
+from databricks.labs.remorph.snow import lca_utils, local_expression
 
 logger = logging.getLogger(__name__)
 
@@ -373,7 +373,7 @@ class Databricks(Databricks):  #
         }
 
         def preprocess(self, expression: exp.Expression) -> exp.Expression:
-            fixed_ast = expression.transform(dialect_utils.fix_unsupported_lca_in_select, copy=False)
+            fixed_ast = expression.transform(lca_utils.unalias_lca_in_select, copy=False)
             return super().preprocess(fixed_ast)
 
         def join_sql(self, expression: exp.Join) -> str:

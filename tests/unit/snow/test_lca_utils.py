@@ -1,7 +1,7 @@
 from sqlglot import parse_one
 
 from databricks.labs.remorph.snow.databricks import Databricks
-from databricks.labs.remorph.snow.dialect_utils import check_for_unsupported_lca
+from databricks.labs.remorph.snow.lca_utils import check_for_unsupported_lca
 
 
 def test_query_with_no_unsupported_lca_usage():
@@ -242,6 +242,24 @@ def test_fix_lca_with_lca_in_subquery_and_derived_table(normalize_string):
         SELECT column_a as cid
         FROM (select column_x as column_a, column_y as y from my_table where column_y = '456')
         WHERE column_a in (select cid as customer_id from customer_table where cid = '123')
+    """
+    ast = parse_one(input_sql)
+    generated_sql = ast.sql(Databricks, pretty=False)
+    assert normalize_string(generated_sql) == normalize_string(expected_sql)
+
+
+def test_fix_lca_in_cte(normalize_string):
+    input_sql = """
+        WITH cte AS (SELECT column_a as customer_id
+            FROM my_table
+            WHERE customer_id = '123')
+        SELECT * FROM cte
+    """
+    expected_sql = """
+        WITH cte AS (SELECT column_a as customer_id
+            FROM my_table
+            WHERE column_a = '123')
+        SELECT * FROM cte
     """
     ast = parse_one(input_sql)
     generated_sql = ast.sql(Databricks, pretty=False)
