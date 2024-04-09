@@ -32,7 +32,6 @@ def process_file(
     output_file: str | Path,
 ):
     logger.info(f"started processing for the file ${input_file}")
-    source = config.source
     validate_error_list = []
     no_of_sqls = 0
 
@@ -42,7 +41,7 @@ def process_file(
     with input_file.open("r") as f:
         sql = remove_bom(f.read())
 
-    lca_error = dialect_utils.check_for_unsupported_lca(source, sql, str(input_file))
+    lca_error = dialect_utils.check_for_unsupported_lca(config.source, sql, str(input_file))
     if lca_error:
         validate_error_list.append(lca_error)
 
@@ -88,7 +87,7 @@ def process_directory(
     root = Path(root)
 
     for file in files:
-        logger.debug(f"Processing file :{file}")
+        logger.info(f"Processing file :{file}")
         if is_sql_file(file):
             if output_folder in {None, "None"}:
                 output_folder_base = root / "transpiled"
@@ -145,7 +144,6 @@ def morph(workspace_client: WorkspaceClient, config: MorphConfig):
     :param workspace_client: The WorkspaceClient object.
     """
     input_sql = Path(config.input_sql)
-    skip_validation = config.skip_validation
     status = []
     result = MorphStatus([], 0, 0, 0, [])
 
@@ -181,12 +179,9 @@ def morph(workspace_client: WorkspaceClient, config: MorphConfig):
         logger.error(msg)
         raise FileNotFoundError(msg)
 
-    parse_error_count = result.parse_error_count
-    validate_error_count = result.validate_error_count
-
-    error_list_count = parse_error_count + validate_error_count
-    if not skip_validation:
-        logger.info(f"No of Sql Failed while Validating: {validate_error_count}")
+    error_list_count = result.parse_error_count + result.validate_error_count
+    if not config.skip_validation:
+        logger.info(f"No of Sql Failed while Validating: {result.validate_error_count}")
 
     error_log_file = "None"
     if error_list_count > 0:
@@ -198,8 +193,8 @@ def morph(workspace_client: WorkspaceClient, config: MorphConfig):
         {
             "total_files_processed": len(result.file_list),
             "total_queries_processed": result.no_of_queries,
-            "no_of_sql_failed_while_parsing": parse_error_count,
-            "no_of_sql_failed_while_validating": validate_error_count,
+            "no_of_sql_failed_while_parsing": result.parse_error_count,
+            "no_of_sql_failed_while_validating": result.validate_error_count,
             "error_log_file": str(error_log_file),
         }
     )

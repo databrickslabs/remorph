@@ -57,10 +57,9 @@ def transpile(
         skip_validation=skip_validation.lower() == "true",  # convert to bool
         catalog_name=catalog_name,
         schema_name=schema_name,
-
         mode=mode,
         sdk_config=sdk_config,
-
+    )
 
     status = morph(w, config)
 

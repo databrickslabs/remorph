@@ -15,7 +15,7 @@ def mock_workspace_client_cli():
     state = {
         "/Users/foo/.remorph/config.yml": yaml.dump(
             {
-                'version': 1,
+                'version': 2,
                 'catalog_name': 'transpiler',
                 'schema_name': 'remorph',
                 'source': 'snowflake',
@@ -95,7 +95,6 @@ def test_transpile_with_valid_input(mock_workspace_client_cli):
     mode = "current"
     sdk_config = {'cluster_id': 'test_cluster'}
 
-
     with (
         patch("os.path.exists", return_value=True),
         patch("databricks.labs.remorph.cli.morph", return_value={}) as mock_morph,
@@ -108,7 +107,7 @@ def test_transpile_with_valid_input(mock_workspace_client_cli):
             skip_validation,
             catalog_name,
             schema_name,
-            mode
+            mode,
         )
         mock_morph.assert_called_once_with(
             mock_workspace_client_cli,
