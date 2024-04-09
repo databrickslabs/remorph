@@ -159,7 +159,7 @@ def test_fix_lca_with_valid_lca_usage(normalize_string):
     """
     ast = parse_one(input_sql)
     generated_sql = ast.sql(Databricks, pretty=False)
-    assert normalize_string(expected_sql) == normalize_string(generated_sql)
+    assert normalize_string(generated_sql) == normalize_string(expected_sql)
 
 
 def test_fix_lca_with_lca_in_where(normalize_string):
@@ -175,7 +175,7 @@ def test_fix_lca_with_lca_in_where(normalize_string):
     """
     ast = parse_one(input_sql)
     generated_sql = ast.sql(Databricks, pretty=False)
-    assert normalize_string(expected_sql) == normalize_string(generated_sql)
+    assert normalize_string(generated_sql) == normalize_string(expected_sql)
 
 
 def test_fix_lca_with_lca_in_window(normalize_string):
@@ -197,4 +197,52 @@ def test_fix_lca_with_lca_in_window(normalize_string):
     """
     ast = parse_one(input_sql)
     generated_sql = ast.sql(Databricks, pretty=False)
-    assert normalize_string(expected_sql) == normalize_string(generated_sql)
+    assert normalize_string(generated_sql) == normalize_string(expected_sql)
+
+
+def test_fix_lca_with_lca_in_subquery(normalize_string):
+    input_sql = """
+        SELECT column_a as cid
+        FROM my_table
+        WHERE cid in (select cid as customer_id from customer_table where customer_id = '123')
+    """
+    expected_sql = """
+        SELECT column_a as cid
+        FROM my_table
+        WHERE column_a in (select cid as customer_id from customer_table where cid = '123')
+    """
+    ast = parse_one(input_sql)
+    generated_sql = ast.sql(Databricks, pretty=False)
+    assert normalize_string(generated_sql) == normalize_string(expected_sql)
+
+
+def test_fix_lca_with_lca_in_derived_table(normalize_string):
+    input_sql = """
+        SELECT column_a as cid
+        FROM (select column_x as column_a, column_y as y from my_table where y = '456')
+        WHERE cid = '123'
+    """
+    expected_sql = """
+        SELECT column_a as cid
+        FROM (select column_x as column_a, column_y as y from my_table where column_y = '456')
+        WHERE column_a = '123'
+    """
+    ast = parse_one(input_sql)
+    generated_sql = ast.sql(Databricks, pretty=False)
+    assert normalize_string(generated_sql) == normalize_string(expected_sql)
+
+
+def test_fix_lca_with_lca_in_subquery_and_derived_table(normalize_string):
+    input_sql = """
+        SELECT column_a as cid
+        FROM (select column_x as column_a, column_y as y from my_table where y = '456')
+        WHERE cid in (select cid as customer_id from customer_table where customer_id = '123')
+    """
+    expected_sql = """
+        SELECT column_a as cid
+        FROM (select column_x as column_a, column_y as y from my_table where column_y = '456')
+        WHERE column_a in (select cid as customer_id from customer_table where cid = '123')
+    """
+    ast = parse_one(input_sql)
+    generated_sql = ast.sql(Databricks, pretty=False)
+    assert normalize_string(generated_sql) == normalize_string(expected_sql)

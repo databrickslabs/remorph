@@ -372,6 +372,10 @@ class Databricks(Databricks):  #
             exp.Mod: rename_func("MOD"),
         }
 
+        def preprocess(self, expression: exp.Expression) -> exp.Expression:
+            fixed_ast = expression.transform(dialect_utils.fix_unsupported_lca_in_select, copy=False)
+            return super().preprocess(fixed_ast)
+
         def join_sql(self, expression: exp.Join) -> str:
             """Overwrites `join_sql()` in `sqlglot/generator.py`
             Added logic to handle Lateral View
@@ -621,9 +625,3 @@ class Databricks(Databricks):  #
                 sql = f"UPDATE {this} SET {set_sql}{expression_sql}{order}{limit}"
 
             return self.prepend_ctes(expression, sql)
-
-    def generate(self, expression: exp.Expression, copy: bool = True, **opts) -> str:
-        if not expression.parent:  # Top level expression
-            fixed_ast = dialect_utils.fix_unsupported_lca(expression.copy() if copy else expression)
-            return super().generate(fixed_ast, copy=False, **opts)
-        return super().generate(expression, copy=copy, **opts)

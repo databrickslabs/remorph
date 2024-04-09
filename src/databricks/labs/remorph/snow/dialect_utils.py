@@ -1,21 +1,15 @@
 import logging
-from dataclasses import dataclass
 
 from sqlglot import ErrorLevel, exp, parse
 from sqlglot.errors import ParseError, TokenError, UnsupportedError
 from sqlglot.expressions import Expression, Select
+from sqlglot.optimizer.scope import build_scope
 
 from databricks.labs.remorph.helpers.morph_status import ValidationError
+from databricks.labs.remorph.snow.local_expression import AliasInfo
 from databricks.labs.remorph.snow.snowflake import Snow
 
 logger = logging.getLogger(__name__)
-
-
-@dataclass
-class _AliasInfo:
-    name: str
-    expression: exp.Expression
-    is_same_name_as_column: bool
 
 
 def check_for_unsupported_lca(
@@ -59,22 +53,30 @@ def check_for_unsupported_lca(
     return ValidationError(filename, " ".join(err_messages))
 
 
-def fix_unsupported_lca(expr: exp.Expression) -> exp.Expression:
-    for select in expr.find_all(exp.Select, bfs=False):
-        alias_info = _find_aliases_in_select(select)
-        where_ast: Expression = select.args.get("where")
-        if where_ast:
-            where_ast.transform(
-                _replace_alias_with_original_expression,
-                alias_info,
-                copy=False,
-            )
-        for window in _find_windows_in_select(select):
-            window.transform(
-                _replace_alias_with_original_expression,
-                alias_info,
-                copy=False,
-            )
+def fix_unsupported_lca_in_select(expr: exp.Expression) -> exp.Expression:
+    if not isinstance(expr, exp.Select):
+        return expr
+    root_select = build_scope(expr)
+    # We won't search inside nested selects, they will be visited separately
+    nested_selects = {*root_select.derived_tables, *root_select.subqueries}
+    alias_info = _find_aliases_in_select(expr)
+    where_ast: Expression = expr.args.get("where")
+    if where_ast:
+        for column in where_ast.walk(prune=lambda n: n in nested_selects):
+            if (
+                isinstance(column, exp.Column)
+                and column.name in alias_info
+                and not alias_info[column.name].is_same_name_as_column
+            ):
+                column.replace(alias_info[column.name].expression)
+    for window in _find_windows_in_select(expr):
+        for column in window.walk():
+            if (
+                isinstance(column, exp.Column)
+                and column.name in alias_info
+                and not alias_info[column.name].is_same_name_as_column
+            ):
+                column.replace(alias_info[column.name].expression)
     return expr
 
 
@@ -87,7 +89,7 @@ def _find_windows_in_select(select: Select) -> list[exp.Window]:
     return window_expressions
 
 
-def _find_aliases_in_select(select_expr: Select) -> dict[str, _AliasInfo]:
+def _find_aliases_in_select(select_expr: Select) -> dict[str, AliasInfo]:
     aliases = {}
     for expr in select_expr.expressions:
         if isinstance(expr, exp.Alias):
@@ -97,13 +99,13 @@ def _find_aliases_in_select(select_expr: Select) -> dict[str, _AliasInfo]:
                 if column.name == alias_name:
                     is_same_name_as_column = True
                     break
-            aliases[alias_name] = _AliasInfo(alias_name, expr.unalias(), is_same_name_as_column)
+            aliases[alias_name] = AliasInfo(alias_name, expr.unalias(), is_same_name_as_column)
     return aliases
 
 
 def _find_invalid_lca_in_where(
     select_expr: Select,
-    aliases: dict[str, _AliasInfo],
+    aliases: dict[str, AliasInfo],
 ) -> set[str]:
     aliases_in_where = set()
     where_ast: Expression = select_expr.args.get("where")
@@ -117,7 +119,7 @@ def _find_invalid_lca_in_where(
 
 def _find_invalid_lca_in_window(
     select_expr: Select,
-    aliases: dict[str, _AliasInfo],
+    aliases: dict[str, AliasInfo],
 ) -> set[str]:
     aliases_in_window = set()
     windows = _find_windows_in_select(select_expr)
@@ -127,13 +129,3 @@ def _find_invalid_lca_in_window(
                 aliases_in_window.add(column.name)
 
     return aliases_in_window
-
-
-def _replace_alias_with_original_expression(
-    node: Expression,
-    alias_info: dict[str, _AliasInfo],
-) -> Expression:
-    if isinstance(node, exp.Column) and node.name in alias_info and not alias_info[node.name].is_same_name_as_column:
-        return alias_info[node.name].expression
-
-    return node

@@ -135,3 +135,10 @@ class WithinGroupParams:
     agg_col: exp.Column
     order_col: exp.Column
     is_order_asc: bool
+
+
+@dataclass
+class AliasInfo:
+    name: str
+    expression: exp.Expression
+    is_same_name_as_column: bool
