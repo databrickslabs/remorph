@@ -68,11 +68,11 @@ case class Offset(input: Relation, offset: Int) extends RelationCommon {}
 case class Tail(input: Relation, limit: Int) extends RelationCommon {}
 
 abstract class GroupType
-case object UnspecifiedGroup extends GroupType
-case object GroupByGroup extends GroupType
-case object RollupGroup extends GroupType
-case object CubeGroup extends GroupType
-case object PivotGroup extends GroupType
+case object UnspecifiedGroupType extends GroupType
+case object GroupBy extends GroupType
+case object Rollup extends GroupType
+case object Cube extends GroupType
+case object Pivot extends GroupType
 
 case class Pivot(col: Expression, values: Seq[Literal])
 
