@@ -9,7 +9,7 @@ from sqlglot.dialects.dialect import rename_func
 from sqlglot.errors import ParseError, UnsupportedError
 from sqlglot.helper import apply_index_offset, csv
 
-from databricks.labs.remorph.snow import local_expression
+from databricks.labs.remorph.snow import lca_utils, local_expression
 
 logger = logging.getLogger(__name__)
 
@@ -371,6 +371,10 @@ class Databricks(Databricks):  #
             exp.TimestampTrunc: timestamptrunc_sql,
             exp.Mod: rename_func("MOD"),
         }
+
+        def preprocess(self, expression: exp.Expression) -> exp.Expression:
+            fixed_ast = expression.transform(lca_utils.unalias_lca_in_select, copy=False)
+            return super().preprocess(fixed_ast)
 
         def join_sql(self, expression: exp.Join) -> str:
             """Overwrites `join_sql()` in `sqlglot/generator.py`

@@ -6,7 +6,6 @@ from databricks.labs.remorph.reconcile.recon_config import TransformRuleMapping
 
 
 class HashQueryBuilder(QueryBuilder):
-
     def build_query(self) -> str:
         hash_cols = sorted(
             (self.table_conf.get_join_columns | self.select_columns)
