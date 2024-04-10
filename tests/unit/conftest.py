@@ -15,6 +15,7 @@ from sqlglot import transpile
 from databricks.labs.remorph.config import MorphConfig
 from databricks.labs.remorph.snow.databricks import Databricks
 from databricks.labs.remorph.snow.snowflake import Snow
+from databricks.labs.remorph.transpiler.dialects_config import DialectConfig
 
 from .snow.helpers.functional_test_cases import (
     FunctionalTestFile,
@@ -67,13 +68,8 @@ def normalize_string():
 
 
 def get_dialect(input_dialect=None):
-    match input_dialect:
-        case "databricks":
-            return Databricks
-        case "snowflake":
-            return Snow
-        case _:
-            return input_dialect
+    # pylint: disable=protected-access
+    return DialectConfig()._get_dialect(input_dialect)
 
 
 def parse_one(sql):
@@ -81,7 +77,7 @@ def parse_one(sql):
     return sqlglot_parse_one(sql, read=dialect)
 
 
-def validate_source_transpile(databricks_sql, *, source=None, pretty=False):
+def validate_source_transpile(databricks_sql, *, source=None, pretty=False, experimental=False):
     """
     Validate that:
     1. Everything in `source` transpiles to `databricks_sql`
@@ -90,13 +86,15 @@ def validate_source_transpile(databricks_sql, *, source=None, pretty=False):
         databricks_sql (str): Main SQL expression
         source (dict): Mapping of dialect -> SQL
         pretty (bool): prettify the output
+        experimental (bool): experimental flag False by default
     """
 
     for source_dialect, source_sql in (source or {}).items():
+        write_dialect = get_dialect("experimental") if experimental else get_dialect("databricks")
         actual_sql = _normalize_string(
-            transpile(source_sql, read=get_dialect(source_dialect), write=Databricks, pretty=pretty, error_level=None)[
-                0
-            ]
+            transpile(
+                source_sql, read=get_dialect(source_dialect), write=write_dialect, pretty=pretty, error_level=None
+            )[0]
         ).rstrip(';')
 
         expected_sql = _normalize_string(databricks_sql).rstrip(';')
@@ -151,14 +149,15 @@ def parse_sql_files(input_dir: Path, source: str, target: str, is_expected_excep
         if dirpath.endswith("__pycache__"):
             continue
         for file in filenames:
+            print(file)
             if file.endswith('.sql'):
                 abs_path = Path(dirpath) / file
                 with open(abs_path, 'r', encoding="utf-8") as file_content:
                     content = file_content.read()
             if content:
-                parts = content.split(f'-- ${source.lower()} sql:')
+                parts = content.split('-- snowflake sql:')
                 for part in parts[1:]:
-                    source, databricks_sql = part.split(f'-- ${target.lower()} sql:')
+                    source, databricks_sql = part.split('-- databricks sql:')
                     source = source.strip().rstrip(';')
                     databricks_sql = databricks_sql.strip().rstrip(';').replace('\\', '')
                     test_name = file.replace('.sql', '')
