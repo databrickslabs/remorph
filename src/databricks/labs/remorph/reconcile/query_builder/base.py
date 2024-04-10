@@ -1,12 +1,13 @@
 import logging
 from abc import ABC
 
+from sqlglot import expressions as exp
+
 from databricks.labs.remorph.reconcile.connectors.databricks import DatabricksDataSource
 from databricks.labs.remorph.reconcile.connectors.oracle import OracleDataSource
 from databricks.labs.remorph.reconcile.connectors.snowflake import SnowflakeDataSource
 from databricks.labs.remorph.reconcile.constants import (
     ColumnTransformationType,
-    Constants,
     SourceType,
     ThresholdMode,
     ThresholdSQLTemplate,
@@ -18,7 +19,6 @@ from databricks.labs.remorph.reconcile.recon_config import (
     Transformation,
     TransformRuleMapping,
 )
-from sqlglot import expressions as exp
 
 logger = logging.getLogger(__name__)
 
@@ -184,7 +184,7 @@ class QueryBuilder(ABC):
             threshold_filter = ThresholdSQLTemplate.FILTER_NUMBER.value
             if mode == ThresholdMode.ABSOLUTE.value:
                 threshold_select = ThresholdSQLTemplate.SELECT_NUMBER_ABSOLUTE.value
-            elif mode == ThresholdMode.PERCENTILE.value:
+            else:
                 threshold_select = ThresholdSQLTemplate.SELECT_NUMBER_PERCENTILE.value
         elif any(match_type in numeric_type.value.lower() for numeric_type in exp.DataType.TEMPORAL_TYPES):
             threshold_filter = ThresholdSQLTemplate.FILTER_DATETIME.value
@@ -195,9 +195,7 @@ class QueryBuilder(ABC):
         print(f"threshold_filter: {threshold_filter}")
 
         if not threshold_select or not threshold_filter:
-            error_message = (
-                f"Invalid threshold match type or mode in _generate_threshold_select_expression: {match_type} or mode: {mode}"
-            )
+            error_message = f"Invalid threshold match type or mode in _generate_threshold_select_expression: {match_type} or mode: {mode}"
             logger.error(error_message)
             raise ValueError(error_message)
 

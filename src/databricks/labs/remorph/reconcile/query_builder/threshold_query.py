@@ -1,6 +1,5 @@
 import logging
 
-from databricks.labs.remorph.reconcile.constants import ThresholdMode
 from databricks.labs.remorph.reconcile.query_builder.base import QueryBuilder
 from databricks.labs.remorph.reconcile.recon_config import Table, TransformRuleMapping
 
@@ -63,8 +62,9 @@ class ThresholdQueryBuilder(QueryBuilder):
             # check if the threshold is in percentage or absolute mode
             mode = threshold.get_mode()
             # generate the select and where clause based on the threshold type
-            threshold_select, threshold_filter = self._generate_threshold_select_expression(match_type=threshold.type,
-                                                                                            mode=mode)
+            threshold_select, threshold_filter = self._generate_threshold_select_expression(
+                match_type=threshold.type, mode=mode
+            )
             # Use the dictionary to get the corresponding function
             select_clause.append(
                 threshold_select.format(

@@ -108,5 +108,3 @@ class Constants:
             "target": HashAlgorithm.DATABRICKS_SHA_256.value,
         },
     }
-
-
