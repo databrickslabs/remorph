@@ -43,15 +43,17 @@ class HashQueryBuilder(QueryBuilder):
         return (Constants.hash_algorithm_mapping.get(source).get("source")).format(hash_expr)
 
     @staticmethod
-    def _construct_hash_query(table: str, query_filter: str, hash_expr: str, key_col_expr: list[str]) -> str:
+    def _construct_hash_query(table: str, query_filter: str | None, hash_expr: str, key_col_expr: list[str]) -> str:
         sql_query = StringIO()
         # construct hash expr
         sql_query.write(f"select {hash_expr} as {Constants.hash_column_name}")
 
+        where = f"where {query_filter}" if query_filter else ''
+
         # add join column
         if key_col_expr:
             sql_query.write(", " + ",".join(key_col_expr))
-        sql_query.write(f" from {table} where {query_filter}")
+        sql_query.write(f" from {table} {where}")
 
         select_query = sql_query.getvalue()
         sql_query.close()

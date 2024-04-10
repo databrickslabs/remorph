@@ -50,7 +50,7 @@ def test_build_query_for_oracle_src(mock_spark_session, table_conf_mock, schema)
         "s_comment,coalesce(trim(s_name),'') as s_name,coalesce(trim(s_nationkey),'') "
         "as s_nationkey,coalesce(trim(s_phone),'') as "
         "s_phone,coalesce(trim(s_suppkey),'') as s_suppkey from "
-        '{schema_name}.supplier where  1 = 1  ) select src.* from src join recon on '
+        '{schema_name}.supplier ) select src.* from src join recon on '
         'recon.s_nationkey = src.s_nationkey and recon.s_suppkey = src.s_suppkey'
     )
 
@@ -64,7 +64,7 @@ def test_build_query_for_oracle_src(mock_spark_session, table_conf_mock, schema)
         "s_name,coalesce(trim(s_nationkey_t),'') as "
         "s_nationkey,coalesce(trim(s_phone_t),'') as "
         "s_phone,coalesce(trim(s_suppkey_t),'') as s_suppkey from "
-        '{catalog_name}.{schema_name}.supplier where  1 = 1  ) select src.* '
+        '{catalog_name}.{schema_name}.supplier ) select src.* '
         'from src join recon on recon.s_nationkey = src.s_nationkey and '
         'recon.s_suppkey = src.s_suppkey'
     )
@@ -117,7 +117,7 @@ def test_build_query_for_snowflake_src(mock_spark_session, table_conf_mock, sche
         "s_comment,coalesce(trim(s_name),'') as s_name,coalesce(trim(s_nationkey),'') "
         "as s_nationkey,coalesce(trim(s_phone),'') as "
         "s_phone,coalesce(trim(s_suppkey),'') as s_suppkey from "
-        '{catalog_name}.{schema_name}.supplier where s_nationkey=1 ) select src.* from src '
+        '{catalog_name}.{schema_name}.supplier where s_nationkey=1) select src.* from src '
         'join recon on recon.s_nationkey = src.s_nationkey and recon.s_suppkey = '
         'src.s_suppkey'
     )
@@ -132,7 +132,7 @@ def test_build_query_for_snowflake_src(mock_spark_session, table_conf_mock, sche
         "s_name,coalesce(trim(s_nationkey_t),'') as "
         "s_nationkey,coalesce(trim(s_phone_t),'') as "
         "s_phone,coalesce(trim(s_suppkey_t),'') as s_suppkey from "
-        '{catalog_name}.{schema_name}.supplier where 1=1 ) select src.* '
+        '{catalog_name}.{schema_name}.supplier ) select src.* '
         'from src join recon on recon.s_nationkey = src.s_nationkey and '
         'recon.s_suppkey = src.s_suppkey'
     )

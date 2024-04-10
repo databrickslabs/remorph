@@ -19,14 +19,12 @@ def test_threshold_query_builder_with_defaults(table_conf_mock, schema):
     sch, _ = schema
 
     actual_src_query = ThresholdQueryBuilder(table_conf, sch, "source", "oracle").build_query()
-    expected_src_query = (
-        'select s_acctbal as s_acctbal,s_suppkey as s_suppkey from {schema_name}.supplier where  1 = 1 '
-    )
+    expected_src_query = 'select s_acctbal as s_acctbal,s_suppkey as s_suppkey from {schema_name}.supplier '
     assert actual_src_query == expected_src_query
 
     actual_tgt_query = ThresholdQueryBuilder(table_conf, sch, "target", "databricks").build_query()
     expected_tgt_query = (
-        'select s_acctbal as s_acctbal,s_suppkey as s_suppkey from {catalog_name}.{schema_name}.supplier where  1 = 1 '
+        'select s_acctbal as s_acctbal,s_suppkey as s_suppkey from {catalog_name}.{schema_name}.supplier '
     )
     assert actual_tgt_query == expected_tgt_query
 

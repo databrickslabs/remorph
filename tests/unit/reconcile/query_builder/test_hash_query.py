@@ -14,7 +14,6 @@ def test_hash_query_builder_without_defaults(table_conf_mock, schema):
         "coalesce(trim(s_name),'') || coalesce(trim(s_nationkey),'') || "
         "coalesce(trim(s_phone),'') || coalesce(trim(s_suppkey),''), 'SHA256'))) as "
         "hash_value__recon from {schema_name}.supplier "
-        "where  1 = 1 "
     )
     assert actual_src_query == expected_src_query
 
@@ -25,7 +24,6 @@ def test_hash_query_builder_without_defaults(table_conf_mock, schema):
         "coalesce(trim(s_name),''), coalesce(trim(s_nationkey),''), "
         "coalesce(trim(s_phone),''), coalesce(trim(s_suppkey),'')),256) as "
         "hash_value__recon from {catalog_name}.{schema_name}.supplier "
-        "where  1 = 1 "
     )
     assert actual_tgt_query == expected_tgt_query
 

@@ -30,7 +30,11 @@ class SamplingQueryBuilder(QueryBuilder):
         table: str, query_filter: str, col_expr: list[str], with_clause: str, key_cols: list[str]
     ) -> str:
 
-        with_cte = f"{with_clause} src as ( select " + ",".join(col_expr) + f" from {table} where {query_filter} )"
+        where = f"where {query_filter}" if query_filter else ''
+        with_cte = f"{with_clause} src as ( select " + ",".join(col_expr) + f" from {table} {where})"
+
+        if not key_cols:
+            raise AssertionError("key cols cannot be empty")
 
         join_expr = [f"recon.{col} = src.{col}" for col in key_cols]
         join_condition = " and ".join(join_expr)

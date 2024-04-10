@@ -14,8 +14,8 @@ def test_table_without_join_column(table_conf_mock):
     assert table_conf.get_drop_columns == set()
     assert table_conf.get_partition_column("source") == set()
     assert table_conf.get_partition_column("target") == set()
-    assert table_conf.get_filter("source") == " 1 = 1 "
-    assert table_conf.get_filter("target") == " 1 = 1 "
+    assert table_conf.get_filter("source") is None
+    assert table_conf.get_filter("target") is None
     assert table_conf.get_threshold_columns == set()
 
 

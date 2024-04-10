@@ -53,8 +53,8 @@ class Thresholds:
 
 @dataclass
 class Filters:
-    source: str = '1=1'
-    target: str = '1=1'
+    source: str | None = None
+    target: str | None = None
 
 
 @dataclass
@@ -100,9 +100,9 @@ class Table:
             return {self.jdbc_reader_options.partition_column}
         return set()
 
-    def get_filter(self, layer) -> str:
+    def get_filter(self, layer) -> str | None:
         if self.filters is None:
-            return " 1 = 1 "
+            return None
         if layer == "source":
             return self.filters.source
         return self.filters.target

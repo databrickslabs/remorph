@@ -27,6 +27,9 @@ class ThresholdQueryBuilder(QueryBuilder):
         return select_query
 
     @staticmethod
-    def _construct_threshold_query(table, query_filter, col_expr) -> str:
+    def _construct_threshold_query(table: str, query_filter: str | None, col_expr: list[str]) -> str:
         expr = ",".join(col_expr)
-        return f"select {expr} from {table} where {query_filter}"
+
+        where = f"where {query_filter}" if query_filter else ''
+
+        return f"select {expr} from {table} {where}"

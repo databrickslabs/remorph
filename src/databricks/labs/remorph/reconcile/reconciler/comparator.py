@@ -7,10 +7,10 @@ from databricks.labs.remorph.reconcile.recon_config import ReconcileOutput
 class Comparator:
 
     def compare_data(self, source: DataFrame, target: DataFrame, join_cols: list[str], report: str) -> ReconcileOutput:
-        join = join_cols if report == "all" else "hash_value__recon"
+        join = join_cols if report in ("all", "data") else "hash_value__recon"
         df = source.alias('s').join(target.alias("t"), join, how='full')
 
-        mismatch = self._get_mismatch_data(df) if report == 'all' else None
+        mismatch = self._get_mismatch_data(df) if report in ("all", "data") else None
         missing_in_src = (
             df.filter(col("s.hash_value__recon").isNull())
             .select((join_cols if report == "all" else "t.*"))
