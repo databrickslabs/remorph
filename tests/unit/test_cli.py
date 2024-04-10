@@ -164,6 +164,58 @@ def test_transpile_empty_output_folder(mock_workspace_client_cli):
         )
 
 
+def test_transpile_with_incorrect_input_mode(mock_workspace_client_cli):
+
+    with (
+        patch("os.path.exists", return_value=True),
+        pytest.raises(Exception, match="Error: Invalid value for '--mode':"),
+    ):
+        source = "snowflake"
+        input_sql = "/path/to/sql/file2.sql"
+        output_folder = ""
+        skip_validation = "false"
+        catalog_name = "my_catalog"
+        schema_name = "my_schema"
+        mode = "preview"
+
+        cli.transpile(
+            mock_workspace_client_cli,
+            source,
+            input_sql,
+            output_folder,
+            skip_validation,
+            catalog_name,
+            schema_name,
+            mode,
+        )
+
+
+def test_transpile_with_incorrect_input_source(mock_workspace_client_cli):
+
+    with (
+        patch("os.path.exists", return_value=True),
+        pytest.raises(Exception, match="Error: Invalid value for '--source':"),
+    ):
+        source = "postgres"
+        input_sql = "/path/to/sql/file2.sql"
+        output_folder = ""
+        skip_validation = "false"
+        catalog_name = "my_catalog"
+        schema_name = "my_schema"
+        mode = "preview"
+
+        cli.transpile(
+            mock_workspace_client_cli,
+            source,
+            input_sql,
+            output_folder,
+            skip_validation,
+            catalog_name,
+            schema_name,
+            mode,
+        )
+
+
 def test_recon_with_invalid_recon_conf(mock_workspace_client_cli, tmp_path):
     with pytest.raises(Exception, match="Error: Invalid value for '--recon_conf'"):
         invalid_recon_conf_path = tmp_path / "invalid_recon_conf"

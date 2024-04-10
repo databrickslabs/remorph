@@ -32,7 +32,7 @@ commands:
         description: Schema Name Applicable only when Validation Mode is DATABRICKS
       - name: mode
         default: current
-        description: Run in Preview or Current Mode, Accepted Values [experimental, current], Default current, experimental mode will execute including any Private Preview features
+        description: Run in Current or Experimental Mode, Accepted Values [experimental, current], Default current, experimental mode will execute including any Private Preview features
 
     table_template: |-
       total_files_processed\ttotal_queries_processed\tno_of_sql_failed_while_parsing\tno_of_sql_failed_while_validating\terror_log_file

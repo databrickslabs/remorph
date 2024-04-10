@@ -46,8 +46,10 @@ def transpile(
         raise_validation_exception(
             f"Error: Invalid value for '--skip_validation': '{skip_validation}' is not one of 'true', 'false'. "
         )
-    if mode.lower() not in {"current", "preview"}:
-        raise_validation_exception(f"Error: Invalid value for '--mode': '{mode}' is not one of 'current', 'preview'. ")
+    if mode.lower() not in {"current", "experimental"}:
+        raise_validation_exception(
+            f"Error: Invalid value for '--mode': '{mode}' " f"is not one of 'current', 'experimental'. "
+        )
 
     sdk_config = default_config.sdk_config if default_config.sdk_config else None
     config = MorphConfig(
