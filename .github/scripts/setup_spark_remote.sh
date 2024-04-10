@@ -7,7 +7,7 @@ cd $HOME/spark
 
 hatch shell
 
-version=3.5.1
+version=$(wget -O - https://dlcdn.apache.org/spark/ | grep 'href="spark' | sed 's:</a>:\n:g' | sed -n 's/.*>//p' | tr -d / | sort -r --version-sort | head -1)
 spark=spark-${version}-bin-hadoop3
 spark_connect=spark-connect_2.12
 
