@@ -96,8 +96,12 @@ jobs:
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
           restore-keys: ${{ runner.os }}-m2
 
+      - name: Check source code formatting
+        run: mvn validate
+
       - name: Run Tests with Maven
         run: mvn -B scoverage:report --file pom.xml --fail-at-end
+
 
       - name: Publish test coverage
         uses: codecov/codecov-action@v1

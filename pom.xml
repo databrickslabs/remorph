@@ -223,22 +223,28 @@
           </pom>
         </configuration>
       </plugin>
-<!--      <plugin>-->
-<!--        <groupId>org.antipathy</groupId>-->
-<!--        <artifactId>mvn-scalafmt_2.12</artifactId>-->
-<!--        <version>1.1.1640084764.9f463a9</version>-->
-<!--        <configuration>-->
-<!--          <configLocation>${project.}/.scalafmt.conf</configLocation>-->
-<!--        </configuration>-->
-<!--        <executions>-->
-<!--          <execution>-->
-<!--            <phase>validate</phase>-->
-<!--            <goals>-->
-<!--              <goal>format</goal>-->
-<!--            </goals>-->
-<!--          </execution>-->
-<!--        </executions>-->
-<!--      </plugin>-->
+      <plugin>
+        <groupId>org.antipathy</groupId>
+        <artifactId>mvn-scalafmt_2.12</artifactId>
+        <version>1.1.1640084764.9f463a9</version>
+        <configuration>
+          <configLocation>.scalafmt.conf</configLocation>
+          <sourceDirectories>
+            <param>${project.basedir}/src/main/scala</param>
+          </sourceDirectories>
+          <testSourceDirectories>
+            <param>${project.basedir}/src/test/scala</param>
+          </testSourceDirectories>
+        </configuration>
+        <executions>
+          <execution>
+            <phase>validate</phase>
+            <goals>
+              <goal>format</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
     </plugins>
   </build>
   <profiles>
