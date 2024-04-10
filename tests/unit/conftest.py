@@ -1,4 +1,6 @@
 # pylint: disable=wrong-import-order,ungrouped-imports, useless-suppression)
+import os
+from pathlib import Path
 from unittest.mock import create_autospec
 
 import pytest
@@ -13,6 +15,12 @@ from sqlglot import transpile
 from databricks.labs.remorph.config import MorphConfig
 from databricks.labs.remorph.snow.databricks import Databricks
 from databricks.labs.remorph.snow.snowflake import Snow
+
+from .snow.helpers.functional_test_cases import (
+    FunctionalTestFile,
+    FunctionalTestFileWithExpectedException,
+    expected_exceptions,
+)
 
 
 @pytest.fixture(scope="session")
@@ -135,3 +143,41 @@ def validate_target_transpile(input_sql, *, target=None, pretty=False):
 @pytest.fixture(scope="session")
 def dialect_context():
     yield validate_source_transpile, validate_target_transpile
+
+
+def parse_sql_files(input_dir: Path, source: str, target: str, is_expected_exception):
+    suite = []
+    for dirpath, _, filenames in os.walk(input_dir):
+        if dirpath.endswith("__pycache__"):
+            continue
+        for file in filenames:
+            if file.endswith('.sql'):
+                abs_path = Path(dirpath) / file
+                with open(abs_path, 'r', encoding="utf-8") as file_content:
+                    content = file_content.read()
+            if content:
+                parts = content.split(f'-- ${source.lower()} sql:')
+                for part in parts[1:]:
+                    source, databricks_sql = part.split(f'-- ${target.lower()} sql:')
+                    source = source.strip().rstrip(';')
+                    databricks_sql = databricks_sql.strip().rstrip(';').replace('\\', '')
+                    test_name = file.replace('.sql', '')
+
+                    if is_expected_exception:
+                        suite.append(
+                            FunctionalTestFileWithExpectedException(
+                                databricks_sql, source, test_name, expected_exceptions[test_name]
+                            )
+                        )
+                    else:
+                        suite.append(FunctionalTestFile(databricks_sql, source, test_name))
+
+    return suite
+
+
+def get_functional_test_files_from_directory(
+    input_dir: Path | str, source: str, target: str, is_expected_exception=False
+) -> list[FunctionalTestFile] | list[FunctionalTestFileWithExpectedException]:
+    """Get all functional tests in the input_dir."""
+    suite = parse_sql_files(input_dir, source, target, is_expected_exception)
+    return suite

@@ -33,6 +33,7 @@ def transpile(
     logger.info(f"user: {w.current_user.me()}")
     installation = Installation.current(w, 'remorph')
     default_config = installation.load(MorphConfig)
+    mode = mode if mode else "current"  # not checking for default config as it will always be current
 
     if source.lower() not in {"snowflake", "tsql"}:
         raise_validation_exception(

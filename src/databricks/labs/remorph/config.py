@@ -17,3 +17,4 @@ class MorphConfig:
     catalog_name: str = "transpiler_test"
     schema_name: str = "convertor_test"
     mode: str = "current"
+    # won't need upgrade as it will always be current unless otherwise user specifies
