@@ -1,14 +1,9 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
-import com.databricks.labs.remorph.parsers.{ParserCommon, intermediate => ir}
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser._
+import com.databricks.labs.remorph.parsers.{ParserCommon, intermediate => ir}
 
 class SnowflakeAstBuilder extends SnowflakeParserBaseVisitor[AnyRef] with ParserCommon {
-  override def visitTrue_false(ctx: True_falseContext): ir.Literal = ctx.TRUE() match {
-    case null => ir.Literal(boolean = Some(false))
-    case _ => ir.Literal(boolean = Some(true))
-  }
-
   override def visitLiteral(ctx: LiteralContext): ir.Literal = if (ctx.STRING() != null) {
     ir.Literal(string = Some(ctx.STRING().getText))
   } else if (ctx.DECIMAL != null) {
@@ -19,6 +14,11 @@ class SnowflakeAstBuilder extends SnowflakeParserBaseVisitor[AnyRef] with Parser
     ir.Literal(nullType = Some(ir.NullType()))
   } else {
     ir.Literal(nullType = Some(ir.NullType()))
+  }
+
+  override def visitTrue_false(ctx: True_falseContext): ir.Literal = ctx.TRUE() match {
+    case null => ir.Literal(boolean = Some(false))
+    case _ => ir.Literal(boolean = Some(true))
   }
 
   private def visitDecimal(decimal: String) = BigDecimal(decimal) match {
