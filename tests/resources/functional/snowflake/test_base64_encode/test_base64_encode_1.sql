@@ -1,0 +1,6 @@
+
+-- snowflake sql:
+SELECT BASE64_ENCODE('HELLO'), BASE64_ENCODE('HELLO');
+
+-- databricks sql:
+SELECT BASE64('HELLO'), BASE64('HELLO');
