@@ -82,6 +82,8 @@ class WorkspaceInstaller:
             except NotFound:
                 self.setup_schema(catalog_name, schema_name)
 
+        # schema_name = self._prompts.question("Enter Transpile Mode (current/experimental)")
+
         config = MorphConfig(
             source=source,
             skip_validation=skip_validation,
