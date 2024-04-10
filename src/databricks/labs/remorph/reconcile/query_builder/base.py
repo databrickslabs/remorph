@@ -24,7 +24,6 @@ logger = logging.getLogger(__name__)
 
 
 class QueryBuilder(ABC):
-
     def __init__(self, table_conf: Table, schema: list[Schema], layer: str, source: str):
         self._table_conf = table_conf
         self._schema = schema
@@ -126,7 +125,6 @@ class QueryBuilder(ABC):
         return " and ".join(condition_strings)
 
     def _generate_transform_rule_mapping(self, cols: list[str]) -> list[TransformRuleMapping]:
-
         # compute custom transformation
         if self.transform_dict:
             cols_with_transform = [col for col in cols if col in self.transform_dict.keys()]

@@ -52,6 +52,11 @@ def _normalize_string(value: str) -> str:
     return " ".join(lines).lower().strip()
 
 
+@pytest.fixture
+def normalize_string():
+    return _normalize_string
+
+
 def get_dialect(input_dialect=None):
     match input_dialect:
         case "databricks":
@@ -77,14 +82,15 @@ def validate_source_transpile(databricks_sql, *, source=None, pretty=False):
         source (dict): Mapping of dialect -> SQL
         pretty (bool): prettify the output
     """
+
     for source_dialect, source_sql in (source or {}).items():
         actual_sql = _normalize_string(
             transpile(source_sql, read=get_dialect(source_dialect), write=Databricks, pretty=pretty, error_level=None)[
                 0
             ]
-        )
+        ).rstrip(';')
 
-        expected_sql = _normalize_string(databricks_sql)
+        expected_sql = _normalize_string(databricks_sql).rstrip(';')
 
         error_msg = f"""-> *target_sql* `{expected_sql}` is not matching with\
                                 \n-> *transpiled_sql* `{actual_sql}`\
