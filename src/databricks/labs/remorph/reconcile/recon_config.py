@@ -3,6 +3,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import TypeVar
 
+from databricks.labs.remorph.reconcile.constants import ThresholdMode
+
 
 @dataclass
 class TransformRuleMapping:
@@ -47,6 +49,13 @@ class Thresholds:
     lower_bound: str
     upper_bound: str
     type: str
+
+    def get_mode(self):
+        return (
+            ThresholdMode.PERCENTILE.value
+            if "%" in self.lower_bound or "%" in self.upper_bound
+            else ThresholdMode.ABSOLUTE.value
+        )
 
 
 @dataclass
@@ -104,6 +113,9 @@ class Table:
         if layer == "source":
             return self.filters.source
         return self.filters.target
+
+    def get_threshold_info(self, column: str):
+        return next((threshold for threshold in self.thresholds if threshold.column_name == column), None)
 
 
 @dataclass

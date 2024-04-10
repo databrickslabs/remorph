@@ -65,21 +65,6 @@ class ThresholdMode(AutoName):
     ABSOLUTE = "absolute"
 
 
-class ThresholdMatchType(AutoName):
-    # NUMBER
-    BIGINT = auto()
-    INT = auto()
-    SMALLINT = auto()
-    TINYINT = auto()
-    FLOAT = auto()
-    DOUBLE = auto()
-    DECIMAL = auto()
-    # DATETMME
-    DATE = auto()
-    TIMESTAMP = auto()
-    TIMESTAMP_NTZ = auto()
-
-
 class ThresholdSQLTemplate(AutoName):
     SELECT_NUMBER_ABSOLUTE = """source.{column} as {column}_source, databricks.{column} 
                                 as {column}_databricks, case when (coalesce(source.{column},0) - coalesce(databricks.{column},0)) == 
@@ -124,17 +109,4 @@ class Constants:
         },
     }
 
-    NUMBER_TYPES = [
-        ThresholdMatchType.BIGINT.value,
-        ThresholdMatchType.INT.value,
-        ThresholdMatchType.SMALLINT.value,
-        ThresholdMatchType.TINYINT.value,
-        ThresholdMatchType.FLOAT.value,
-        ThresholdMatchType.DOUBLE.value,
-        ThresholdMatchType.DECIMAL.value,
-    ]
-    DATETIME_TYPES = [
-        ThresholdMatchType.DATE.value,
-        ThresholdMatchType.TIMESTAMP.value,
-        ThresholdMatchType.TIMESTAMP_NTZ.value,
-    ]
+

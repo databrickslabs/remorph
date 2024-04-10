@@ -18,6 +18,7 @@ from databricks.labs.remorph.reconcile.recon_config import (
     Transformation,
     TransformRuleMapping,
 )
+from sqlglot import expressions as exp
 
 logger = logging.getLogger(__name__)
 
@@ -118,14 +119,11 @@ class QueryBuilder(ABC):
         return col_origin, col_alias
 
     @staticmethod
-    def _get_join_condition(columns: set[str]):
+    def _generate_join_condition(columns: set[str]):
         condition_strings = []
         for column in columns:
             condition_strings.append(f"source.{column} <=> databricks.{column} ")
         return " and ".join(condition_strings)
-
-    def _get_threshold_info(self, column: str):
-        return next((threshold for threshold in self.table_conf.thresholds if threshold.column_name == column), None)
 
     def _generate_transform_rule_mapping(self, cols: list[str]) -> list[TransformRuleMapping]:
 
@@ -180,46 +178,29 @@ class QueryBuilder(ABC):
         return transform_rule_mapping
 
     @staticmethod
-    def _get_threshold_select_function(match_type, mode):
-        try:
-            switch = {
-                (match_type, mode): ThresholdSQLTemplate.SELECT_NUMBER_ABSOLUTE.value
-                for match_type in Constants.NUMBER_TYPES
-                if mode == ThresholdMode.ABSOLUTE.value
-            }
-            switch.update(
-                {
-                    (match_type, mode): ThresholdSQLTemplate.SELECT_NUMBER_PERCENTILE.value
-                    for match_type in Constants.NUMBER_TYPES
-                    if mode == ThresholdMode.PERCENTILE.value
-                }
-            )
-            switch.update(
-                {
-                    (match_type, mode): ThresholdSQLTemplate.SELECT_DATETIME.value
-                    for match_type in Constants.DATETIME_TYPES
-                    if mode == ThresholdMode.ABSOLUTE.value
-                }
-            )
+    def _generate_threshold_select_expression(match_type, mode):
+        threshold_select = None
+        threshold_filter = None
 
-            return switch[(match_type, mode)]
-        except KeyError as exc:
-            error_message = f"Invalid threshold match type or mode in get_threshold_select_function: {match_type} or mode: {mode} error -> {exc!s}"
-            logger.error(error_message)
-            raise ValueError(error_message) from exc
+        if any(match_type in numeric_type.value.lower() for numeric_type in exp.DataType.NUMERIC_TYPES):
+            threshold_filter = ThresholdSQLTemplate.FILTER_NUMBER.value
+            if mode == ThresholdMode.ABSOLUTE.value:
+                threshold_select = ThresholdSQLTemplate.SELECT_NUMBER_ABSOLUTE.value
+            elif mode == ThresholdMode.PERCENTILE.value:
+                threshold_select = ThresholdSQLTemplate.SELECT_NUMBER_PERCENTILE.value
+        elif any(match_type in numeric_type.value.lower() for numeric_type in exp.DataType.TEMPORAL_TYPES):
+            threshold_filter = ThresholdSQLTemplate.FILTER_DATETIME.value
+            if mode == ThresholdMode.ABSOLUTE.value:
+                threshold_select = ThresholdSQLTemplate.SELECT_DATETIME.value
 
-    @staticmethod
-    def _get_threshold_filter_function(match_type):
-        try:
-            switch = {match_type: ThresholdSQLTemplate.FILTER_NUMBER.value for match_type in Constants.NUMBER_TYPES}
-            switch.update(
-                {match_type: ThresholdSQLTemplate.FILTER_DATETIME.value for match_type in Constants.DATETIME_TYPES}
-            )
+        print(f"threshold_select: {threshold_select}")
+        print(f"threshold_filter: {threshold_filter}")
 
-            return switch[match_type]
-        except KeyError as exc:
+        if not threshold_select or not threshold_filter:
             error_message = (
-                f"Invalid threshold match type in get_threshold_filter_function: {match_type} error -> {exc!s}"
+                f"Invalid threshold match type or mode in _generate_threshold_select_expression: {match_type} or mode: {mode}"
             )
             logger.error(error_message)
-            raise ValueError(error_message) from exc
+            raise ValueError(error_message)
+
+        return threshold_select, threshold_filter

@@ -45,7 +45,7 @@ class ThresholdQueryBuilder(QueryBuilder):
         # add join columns to select clause
         select_clause.extend([f"source.{column} as {column}" for column in join_columns])
         # generate join condition dynamically
-        join_condition = self._get_join_condition(join_columns)
+        join_condition = self._generate_join_condition(join_columns)
         # construct the final query
         comparison_query = self._construct_comparison_query(
             self.table_conf, select_clause, join_condition, where_clause
@@ -60,23 +60,22 @@ class ThresholdQueryBuilder(QueryBuilder):
         where_clause = []
         for column in threshold_columns:
             # get the user provided threshold details at column level
-            threshold = self._get_threshold_info(column)
+            threshold = self.table_conf.get_threshold_info(column)
             # check if the threshold is in percentage or absolute mode
-            mode = (
-                ThresholdMode.PERCENTILE.value
-                if "%" in threshold.lower_bound or "%" in threshold.upper_bound
-                else ThresholdMode.ABSOLUTE.value
-            )
+            mode = threshold.get_mode()
+            # generate the select and where clause based on the threshold type
+            threshold_select, threshold_filter = self._generate_threshold_select_expression(match_type=threshold.type,
+                                                                                            mode=mode)
             # Use the dictionary to get the corresponding function
             select_clause.append(
-                self._get_threshold_select_function(threshold.type, mode).format(
+                threshold_select.format(
                     column=column,
                     lower_bound=threshold.lower_bound.replace("%", ""),
                     upper_bound=threshold.upper_bound.replace("%", ""),
                 )
             )
             # where clause generation
-            where_clause.append(self._get_threshold_filter_function(threshold.type).format(column=column))
+            where_clause.append(threshold_filter.format(column=column))
         return select_clause, where_clause
 
     @staticmethod
