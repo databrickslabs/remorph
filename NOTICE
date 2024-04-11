@@ -8,6 +8,16 @@ SQL Glot - https://github.com/tobymao/sqlglot
 Copyright 2023 Toby Mao
 License - https://github.com/tobymao/sqlglot/blob/main/LICENSE
 
+T-SQL (Transact-SQL, MSSQL) grammar - https://github.com/antlr/grammars-v4/tree/master/sql/tsql
+Copyright (c) 2017, Mark Adams (madams51703@gmail.com)
+Copyright (c) 2015-2017, Ivan Kochurkin (kvanttt@gmail.com), Positive Technologies.
+Copyright (c) 2016, Scott Ure (scott@redstormsoftware.com).
+Copyright (c) 2016, Rui Zhang (ruizhang.ccs@gmail.com).
+Copyright (c) 2016, Marcus Henriksson (kuseman80@gmail.com).
+
+Snowflake Database grammar - https://github.com/antlr/grammars-v4/tree/master/sql/snowflake
+Copyright (c) 2022, Michał Lorek.
+
 This software contains code from the following open source projects, licensed under the Apache 2.0 license:
 
 DataComPy - https://github.com/capitalone/datacompy
