@@ -1,5 +1,6 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
+import com.databricks.labs.remorph.parsers.intermediate.Literal
 import org.antlr.v4.runtime.{CharStreams, CommonTokenStream}
 import org.scalatest.funsuite.AnyFunSuite
 
@@ -13,8 +14,8 @@ class SnowflakeAstBuilderTest extends AnyFunSuite {
     val astBuilder = new SnowflakeAstBuilder()
     val parseTree = parser.true_false()
 
-    val result = astBuilder.typedVisit(parseTree)
+    val result = astBuilder.typedVisit[Literal](parseTree)
 
-    assert(result == 1)
+    assert(result == Literal(boolean = Some(true)))
   }
 }
