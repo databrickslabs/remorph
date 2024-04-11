@@ -2,7 +2,7 @@ package com.databricks.labs.remorph.parsers.snowflake
 
 import com.databricks.labs.remorph.parsers.intermediate.{Alias, Column, Expression, NamedTable, Project, Relation, TreeNode}
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser._
-import com.databricks.labs.remorph.parsers.{ParserCommon, intermediate => ir}
+import com.databricks.labs.remorph.parsers.{intermediate => ir}
 
 import scala.collection.JavaConverters._
 
@@ -10,7 +10,7 @@ import scala.collection.JavaConverters._
  * @see
  *   org.apache.spark.sql.catalyst.parser.AstBuilder
  */
-class SnowflakeAstBuilder extends SnowflakeParserBaseVisitor[AnyRef] with ParserCommon {
+class SnowflakeAstBuilder extends SnowflakeParserBaseVisitor[TreeNode] {
 
   // TODO investigate why this is needed
   override protected def aggregateResult(aggregate: TreeNode, nextResult: TreeNode): TreeNode = {
