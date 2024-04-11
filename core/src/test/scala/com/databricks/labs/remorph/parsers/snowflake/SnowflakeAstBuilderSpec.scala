@@ -15,7 +15,7 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with Matchers {
     val parser = new SnowflakeParser(tokenStream)
     val tree = parser.snowflake_file()
     // uncomment the following line if you need a peek in the Snowflake AST
-    // println(tree.toStringTree(parser))
+    println(tree.toStringTree(parser))
     tree
   }
 
