@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
-import com.databricks.labs.remorph.parsers.intermediate.{Alias, Column, NamedTable, Project}
+import com.databricks.labs.remorph.parsers.intermediate.{Alias, Column, InnerJoin, Join, JoinDataType, NamedTable, Project}
 import org.antlr.v4.runtime.{CharStreams, CommonTokenStream}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -14,7 +14,7 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with Matchers {
     val parser = new SnowflakeParser(tokenStream)
     val tree = parser.snowflake_file()
     // uncomment the following line if you need a peek in the Snowflake AST
-    // println(tree.toStringTree(parser))
+    println(tree.toStringTree(parser))
     tree
   }
 
@@ -65,6 +65,25 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with Matchers {
       result shouldBe Project(
         NamedTable("table_x", Map.empty, is_streaming = false),
         Seq(Column("a"), Alias(Column("b"), Seq("bb"), None), Column("c")))
+    }
+
+    "translate a query with a JOIN" in {
+
+      val query = "SELECT a FROM table_x JOIN table_y"
+
+      val sfTree = parseString(query)
+
+      val result = new SnowflakeAstBuilder().visit(sfTree)
+
+      result shouldBe Project(
+        Join(
+          NamedTable("table_x", Map.empty, is_streaming = false),
+          NamedTable("table_y", Map.empty, is_streaming = false),
+          join_condition = None,
+          InnerJoin,
+          using_columns = Seq(),
+          JoinDataType(is_left_struct = false, is_right_struct = false)),
+        Seq(Column("a")))
     }
   }
 
