@@ -21,9 +21,14 @@ case class CreateExternalTable(
     schema: Option[DataType],
     options: Map[String, String])
     extends Catalog {}
-case class CreateTable(table_name: String, path: Option[String], source: Option[String],
-                       description: Option[String], schema: Option[DataType],
-                       options: Map[String, String]) extends Catalog {}
+case class CreateTable(
+    table_name: String,
+    path: Option[String],
+    source: Option[String],
+    description: Option[String],
+    schema: Option[DataType],
+    options: Map[String, String])
+    extends Catalog {}
 case class DropTempView(view_name: String) extends Catalog {}
 case class DropGlobalTempView(view_name: String) extends Catalog {}
 case class RecoverPartitions(table_name: String) extends Catalog {}

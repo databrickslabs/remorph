@@ -3,6 +3,10 @@ package com.databricks.labs.remorph.parsers.snowflake
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser._
 import com.databricks.labs.remorph.parsers.{ParserCommon, intermediate => ir}
 
+/**
+ * @see
+ *   org.apache.spark.sql.catalyst.parser.AstBuilder
+ */
 class SnowflakeAstBuilder extends SnowflakeParserBaseVisitor[AnyRef] with ParserCommon {
   override def visitLiteral(ctx: LiteralContext): ir.Literal = if (ctx.STRING() != null) {
     ir.Literal(string = Some(ctx.STRING().getText))
