@@ -10,3 +10,4 @@ target/
 .coverage*
 coverage.*
 *.iws
+/core/gen/
