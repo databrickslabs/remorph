@@ -1,5 +1,6 @@
 # pylint: disable=wrong-import-order,ungrouped-imports, useless-suppression)
 import os
+import re
 from pathlib import Path
 from unittest.mock import create_autospec
 
@@ -149,28 +150,31 @@ def parse_sql_files(input_dir: Path, source: str, target: str, is_expected_excep
         if dirpath.endswith("__pycache__"):
             continue
         for file in filenames:
-            print(file)
-            if file.endswith('.sql'):
-                abs_path = Path(dirpath) / file
-                with open(abs_path, 'r', encoding="utf-8") as file_content:
-                    content = file_content.read()
+            if not file.endswith('.sql'):
+                continue
+            abs_path = Path(dirpath) / file
+            with open(abs_path, 'r', encoding="utf-8") as file_content:
+                content = file_content.read()
             if content:
-                parts = content.split('-- snowflake sql:')
+                parts = content.split(f"-- {source.lower()} sql:")
                 for part in parts[1:]:
-                    source, databricks_sql = part.split('-- databricks sql:')
-                    source = source.strip().rstrip(';')
-                    databricks_sql = databricks_sql.strip().rstrip(';').replace('\\', '')
+                    source_sql = re.split(r'-- \w+ sql:', part)[0].strip().rstrip(";")
+                    target_sql = (
+                        re.split(rf'-- {target} sql:', part)[1]
+                        if len(re.split(rf'-- {target} sql:', part)) > 1
+                        else re.split(r'-- databricks sql:', part)[1]
+                    )
+                    target_sql = re.split(r'-- \w+ sql:', target_sql)[0].strip().rstrip(';').replace('\\', '')
+                    # when multiple sqls are present below target
                     test_name = file.replace('.sql', '')
-
                     if is_expected_exception:
                         suite.append(
                             FunctionalTestFileWithExpectedException(
-                                databricks_sql, source, test_name, expected_exceptions[test_name]
+                                target_sql, source_sql, test_name, expected_exceptions[test_name]
                             )
                         )
                     else:
-                        suite.append(FunctionalTestFile(databricks_sql, source, test_name))
-
+                        suite.append(FunctionalTestFile(target_sql, source_sql, test_name))
     return suite
 
 
