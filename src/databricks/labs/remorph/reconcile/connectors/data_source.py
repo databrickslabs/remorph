@@ -5,9 +5,15 @@ from databricks.labs.blueprint.entrypoint import get_logger
 from databricks.sdk import WorkspaceClient  # pylint: disable-next=wrong-import-order
 from pyspark.sql import DataFrame, SparkSession
 
-from databricks.labs.remorph.reconcile.recon_config import (  # pylint: disable=ungrouped-imports
+# pylint: disable=ungrouped-imports
+from databricks.labs.remorph.reconcile.connectors.databricks import DatabricksDataSource
+from databricks.labs.remorph.reconcile.connectors.oracle import OracleDataSource
+from databricks.labs.remorph.reconcile.connectors.snowflake import SnowflakeDataSource
+from databricks.labs.remorph.reconcile.constants import SourceType
+from databricks.labs.remorph.reconcile.recon_config import (
     JdbcReaderOptions,
     Schema,
+    TableRecon,
 )
 
 logger = get_logger(__file__)
@@ -42,7 +48,7 @@ class DataSource(ABC):
         schema: str,
         include_list: list[str] | None,
         exclude_list: list[str] | None,
-    ) -> DataFrame:
+    ) -> TableRecon:
         return NotImplemented
 
     def _get_jdbc_reader(self, query, jdbc_url, driver):
@@ -67,7 +73,9 @@ class DataSource(ABC):
         key = self.engine + '_' + key_name
         dbutils = self.ws.dbutils
         logger.debug(f"Fetching secret using DBUtils: {key}")
-        secret = dbutils.secrets.get(self.scope, key)
+        # ws_secret = self.ws.secrets.get_secret(self.scope, key).value
+        # TODO: Use workspace secrets and decode it using dbutils
+        secret = dbutils.secrets.get(scope=self.scope, key=key)
         logger.debug(f"Secret fetched successfully `{secret}` for {key}")
         return secret
 
@@ -78,3 +86,22 @@ class DataSource(ABC):
         if catalog and catalog != "hive_metastore":
             return f"select * from {catalog}.{schema}.{query}"
         return f"select * from {schema}.{query}"
+
+
+class DataSourceFactory:
+    @staticmethod
+    def get_data_source(
+        engine: str,
+        spark: SparkSession,
+        ws: WorkspaceClient,
+        scope: str,
+    ) -> DataSource:
+        match engine.lower():
+            case SourceType.SNOWFLAKE.value:
+                return SnowflakeDataSource(engine, spark, ws, scope)
+            case SourceType.ORACLE.value:
+                return OracleDataSource(engine, spark, ws, scope)
+            case SourceType.DATABRICKS.value:
+                return DatabricksDataSource(engine, spark, ws, scope)
+            case _:
+                raise ValueError(f"Unsupported engine: {engine}")

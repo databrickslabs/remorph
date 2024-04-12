@@ -6,21 +6,28 @@ from databricks.sdk.errors.platform import ResourceDoesNotExist
 logger = get_logger(__file__)
 
 
-class DBWorkspaceClient:
+class DatabricksSecretsClient:
     def __init__(self, ws: WorkspaceClient, prompts: Prompts):
         self._ws = ws
         self._prompts = prompts
 
-    def scope_exists(self, scope_name: str) -> bool:
+    def _scope_exists(self, scope_name: str) -> bool:
         scope_exists = scope_name in [scope.name for scope in self._ws.secrets.list_scopes()]
 
         if not scope_exists:
-            logger.error(f"Cannot find Secret Scope: `{scope_name}`")
+            logger.error(
+                f"Error: Cannot find Secret Scope: `{scope_name}` in Databricks Workspace"
+                f"Use `remorph configure-secrets` to setup Scope and Secrets"
+            )
             return False
         return True
 
     def get_or_create_scope(self, scope_name: str):
-        scope_exists = self.scope_exists(scope_name)
+        """
+        Get or Create a new Scope in Databricks Workspace
+        :param scope_name:
+        """
+        scope_exists = self._scope_exists(scope_name)
         if not scope_exists:
             allow_scope_creation = self._prompts.confirm("Do you want to create a new one?")
             if not allow_scope_creation:

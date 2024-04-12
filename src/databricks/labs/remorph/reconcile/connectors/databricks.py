@@ -5,10 +5,15 @@ from pyspark.sql import DataFrame
 from pyspark.sql.functions import col
 
 from databricks.labs.remorph.reconcile.connectors.data_source import DataSource
-from databricks.labs.remorph.reconcile.recon_config import JdbcReaderOptions, Schema
+from databricks.labs.remorph.reconcile.recon_config import (
+    JdbcReaderOptions,
+    Schema,
+    TableRecon,
+)
 
 
 class DatabricksDataSource(DataSource):
+
     def read_data(self, catalog: str, schema: str, query: str, options: JdbcReaderOptions) -> DataFrame:
         try:
             table_query = self._get_table_or_query(catalog, schema, query)
@@ -45,5 +50,10 @@ class DatabricksDataSource(DataSource):
                     and lower(table_schema)='{schema}' and lower(table_name) ='{table}' order by 
                     col_name"""
         return re.sub(r'\s+', ' ', query)
+
+    def list_tables(
+        self, catalog: str, schema: str, include_list: list[str] | None, exclude_list: list[str] | None
+    ) -> TableRecon:
+        pass
 
     databricks_datatype_mapper = {}

@@ -1,10 +1,10 @@
 import re
 
-from pyspark.errors import PySparkException
+from databricks.labs.blueprint.entrypoint import get_logger
+from pyspark.errors import PySparkException  # pylint: disable-next=wrong-import-order
 from pyspark.sql import DataFrame
 from pyspark.sql.functions import col
 
-# pylint: disable=ungrouped-imports
 from databricks.labs.remorph.reconcile.connectors.data_source import DataSource
 from databricks.labs.remorph.reconcile.constants import SourceDriver, SourceType
 from databricks.labs.remorph.reconcile.recon_config import (
@@ -13,8 +13,6 @@ from databricks.labs.remorph.reconcile.recon_config import (
     Table,
     TableRecon,
 )
-
-from databricks.labs.blueprint.entrypoint import get_logger
 
 logger = get_logger(__file__)
 

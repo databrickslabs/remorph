@@ -104,6 +104,7 @@ def validate_recon_config(w: WorkspaceClient, recon_conf: str):
     """validates reconciliation config file"""
     logger.info(f"user: {w.current_user.me()}")
     logger.debug("Validating reconcile config file")
+
     # Convert the JSON data to the TableRecon dataclass
     try:
         Installation.load_local(type_ref=TableRecon, file=Path(recon_conf))

@@ -3,10 +3,15 @@ from pyspark.sql import DataFrame, DataFrameReader
 
 from databricks.labs.remorph.reconcile.connectors.data_source import DataSource
 from databricks.labs.remorph.reconcile.constants import SourceDriver, SourceType
-from databricks.labs.remorph.reconcile.recon_config import JdbcReaderOptions, Schema
+from databricks.labs.remorph.reconcile.recon_config import (
+    JdbcReaderOptions,
+    Schema,
+    TableRecon,
+)
 
 
 class OracleDataSource(DataSource):
+
     @property
     def get_jdbc_url(self) -> str:
         return (
@@ -70,3 +75,8 @@ class OracleDataSource(DataSource):
                                               end data_type
                                               FROM ALL_TAB_COLUMNS
                             WHERE lower(TABLE_NAME) = '{table}' and lower(owner) = '{owner}' """
+
+    def list_tables(
+        self, catalog: str, schema: str, include_list: list[str] | None, exclude_list: list[str] | None
+    ) -> TableRecon:
+        pass
