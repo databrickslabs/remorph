@@ -123,5 +123,29 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with Matchers {
       }
     }
 
+    "translate a query with a WHERE clause involving composite predicates" in {
+      example(
+        query = "SELECT a, b FROM c WHERE a = b AND b = a",
+        expectedAst = Project(
+          Filter(
+            NamedTable("c", Map.empty, is_streaming = false),
+            And(Equals(Column("a"), Column("b")), Equals(Column("b"), Column("a")))),
+          Seq(Column("a"), Column("b"))))
+
+      example(
+        query = "SELECT a, b FROM c WHERE a = b OR b = a",
+        expectedAst = Project(
+          Filter(
+            NamedTable("c", Map.empty, is_streaming = false),
+            Or(Equals(Column("a"), Column("b")), Equals(Column("b"), Column("a")))),
+          Seq(Column("a"), Column("b"))))
+
+      example(
+        query = "SELECT a, b FROM c WHERE NOT a = b",
+        expectedAst = Project(
+          Filter(NamedTable("c", Map.empty, is_streaming = false), Not(Equals(Column("a"), Column("b")))),
+          Seq(Column("a"), Column("b"))))
+    }
+
   }
 }

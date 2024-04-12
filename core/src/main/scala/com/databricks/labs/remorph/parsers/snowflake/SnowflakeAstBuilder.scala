@@ -154,12 +154,31 @@ class SnowflakePredicateBuilder extends SnowflakeParserBaseVisitor[ir.Predicate]
       }
     }
 
-    if (ctx.comparison_operator() != null) {
+    if (ctx.AND() != null) {
+      val left = ctx.expr(0).accept(this)
+      val right = ctx.expr(1).accept(this)
+      ir.And(left, right)
+    } else if (ctx.OR() != null) {
+      val left = ctx.expr(0).accept(this)
+      val right = ctx.expr(1).accept(this)
+      ir.Or(left, right)
+    } else if (ctx.comparison_operator() != null) {
       val left = ctx.expr(0).accept(new SnowflakeExpressionBuilder)
       val right = ctx.expr(1).accept(new SnowflakeExpressionBuilder)
       buildComparison(left, right, ctx.comparison_operator())
     } else {
+      // TODO: better error management
       null
+    }
+  }
+
+  override def visitSearch_condition(ctx: Search_conditionContext): Predicate = {
+    val pred = ctx.predicate().accept(this)
+    // TODO: investigate why NOT() is a list here
+    if (ctx.NOT().size() > 0) {
+      ir.Not(pred)
+    } else {
+      pred
     }
   }
 
