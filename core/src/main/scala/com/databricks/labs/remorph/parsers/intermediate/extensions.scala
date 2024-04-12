@@ -19,3 +19,5 @@ case class GreaterThan(left: Expression, right: Expression) extends Binary(left,
 case class LesserThan(left: Expression, right: Expression) extends Binary(left, right) with Predicate {}
 case class GreaterThanOrEqual(left: Expression, right: Expression) extends Binary(left, right) with Predicate {}
 case class LesserThanOrEqual(left: Expression, right: Expression) extends Binary(left, right) with Predicate {}
+
+case class Count(expression: Expression) extends Expression {}
