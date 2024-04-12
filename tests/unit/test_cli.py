@@ -226,13 +226,13 @@ def test_recon_with_valid_input(mock_workspace_client_cli):
 def test_generate_recon_config_no_secrets(mock_workspace_client):
     error_msg = (
         "Error: Secrets are needed for `snowflake` reconciliation.\n"
-        "Use `remorph setup-recon-secrets` to setup Scope and Secrets."
+        "Use `remorph configure-secrets` to setup Scope and Secrets."
     )
     with pytest.raises(Exception, match=error_msg):
         cli.generate_recon_config(mock_workspace_client)
 
 
-# def test_setup_recon_secrets(mock_workspace_client):
+# def configure_secrets(mock_workspace_client):
 #     """
 #     1. if src databricks exit
 #     2. if src snowflake/ any, scope not found, don't create scope. catch Exception
@@ -240,7 +240,7 @@ def test_generate_recon_config_no_secrets(mock_workspace_client):
 #     4. if src snowflake/ any, scope found, secret not exists, store secret
 #     """
 #
-#     # cli.setup_recon_secrets(mock_workspace_client)
+#     # cli.configure_secrets(mock_workspace_client)
 #     pass
 #
 #

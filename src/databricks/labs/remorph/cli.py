@@ -95,9 +95,6 @@ def generate_recon_config(w: WorkspaceClient):
     # Prompt for source
     recon_conf.prompt_source()
 
-    # Check for Secrets Scope
-    recon_conf.confirm_secret_scope()
-
     # Prompt for connection details and save the config
     recon_conf.prompt_and_save_config_details()
 
@@ -116,7 +113,7 @@ def validate_recon_config(w: WorkspaceClient, recon_conf: str):
 
 
 @remorph.command
-def setup_recon_secrets(w: WorkspaceClient):
+def configure_secrets(w: WorkspaceClient):
     """Setup reconciliation connection profile details as Secrets in Databricks Workspace"""
     recon_conf = ReconConfigPrompts(w)
 

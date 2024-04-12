@@ -66,6 +66,8 @@ class DBWorkspaceClient:
         engine = conn_details[0]
         secrets = conn_details[1]
 
+        logger.debug(f"Storing `{engine}` Connection Secrets in Scope: `{scope_name}`")
+
         for key, value in secrets.items():
             secret_key = engine + '_' + key
             if self.secret_key_exists(scope_name, secret_key):

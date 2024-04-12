@@ -22,14 +22,12 @@ logger = get_logger(__file__)
 class SnowflakeDataSource(DataSource):
     @property
     def get_jdbc_url(self) -> str:
-        jdbc_url = (
+        return (
             f"jdbc:{SourceType.SNOWFLAKE.value}://{self._get_secrets('account')}.snowflakecomputing.com"
             f"/?user={self._get_secrets('sfUser')}&password={self._get_secrets('sfPassword')}"
             f"&db={self._get_secrets('sfDatabase')}&schema={self._get_secrets('sfSchema')}"
             f"&warehouse={self._get_secrets('sfWarehouse')}&role={self._get_secrets('sfRole')}"
         )
-        logger.debug(f"JDBC URL: {jdbc_url}")
-        return jdbc_url
 
     def read_data(self, catalog: str, schema: str, query: str, options: JdbcReaderOptions) -> DataFrame:
         try:
@@ -40,6 +38,7 @@ class SnowflakeDataSource(DataSource):
                 df = self.reader(table_query)
             else:
                 options = self._get_jdbc_reader_options(options)
+                logger.debug(f"JDBC URL: {self.get_jdbc_url}")
                 df = (
                     self._get_jdbc_reader(table_query, self.get_jdbc_url, SourceDriver.SNOWFLAKE.value)
                     .options(**options)
@@ -107,7 +106,7 @@ class SnowflakeDataSource(DataSource):
         where_cond = f"AND TABLE_NAME {in_clause} ({subset_tables})" if filter_list else ""
 
         try:
-            logger.info(f"Fetching Snowflake Table list for `{catalog}.{schema}`")
+            logger.debug(f"Fetching Snowflake Table list for `{catalog}.{schema}`")
             tables_query = f"""SELECT TABLE_NAME, CLUSTERING_KEY, ROW_COUNT\n 
                                FROM {catalog.upper()}.INFORMATION_SCHEMA.TABLES\n 
                                WHERE TABLE_SCHEMA = '{schema.upper()}' {where_cond}"""

@@ -32,7 +32,7 @@ class ReconConfigPrompts:
         self._source = source
         return source
 
-    def prompt_snowflake_connection_details(self) -> tuple[str, dict[str, str]]:
+    def _prompt_snowflake_connection_details(self) -> tuple[str, dict[str, str]]:
         logger.info(
             f"Please answer a couple of questions to configure `{SourceType.SNOWFLAKE.value}` Connection profile"
         )
@@ -46,20 +46,19 @@ class ReconConfigPrompts:
         sf_warehouse = self._prompts.question("Enter Snowflake Warehouse")
         sf_role = self._prompts.question("Enter Role", default=" ")
 
-        sf_conn_details = [
-            ("sfUrl", sf_url),
-            ("account", account),
-            ("sfUser", sf_user),
-            ("sfPassword", sf_password),
-            ("sfDatabase", sf_db),
-            ("sfSchema", sf_schema),
-            ("sfWarehouse", sf_warehouse),
-            ("sfRole", sf_role),
-        ]
-        sf_conn_dict = (SourceType.SNOWFLAKE.value, dict(sf_conn_details))
+        sf_conn_details = {"sfUrl": sf_url,
+                           "account": account,
+                           "sfUser": sf_user,
+                           "sfPassword": sf_password,
+                           "sfDatabase": sf_db,
+                           "sfSchema": sf_schema,
+                           "sfWarehouse": sf_warehouse,
+                           "sfRole": sf_role}
+
+        sf_conn_dict = (SourceType.SNOWFLAKE.value, sf_conn_details)
         return sf_conn_dict
 
-    def prompt_oracle_connection_details(self) -> tuple[str, dict[str, str]]:
+    def _prompt_oracle_connection_details(self) -> tuple[str, dict[str, str]]:
         logger.info(f"Please answer a couple of questions to configure `{SourceType.ORACLE.value}` Connection profile")
         user = self._prompts.question("Enter User")
         password = self._prompts.question("Enter Password")
@@ -67,23 +66,22 @@ class ReconConfigPrompts:
         port = self._prompts.question("Enter port")
         database = self._prompts.question("Enter database/SID")
 
-        oracle_conn_details = [
-            ("user", user),
-            ("password", password),
-            ("host", host),
-            ("port", port),
-            ("database", database),
-        ]
-        oracle_conn_dict = (SourceType.ORACLE.value, dict(oracle_conn_details))
+        oracle_conn_details = {"user": user,
+                               "password": password,
+                               "host": host,
+                               "port": port,
+                               "database": database}
+
+        oracle_conn_dict = (SourceType.ORACLE.value, oracle_conn_details)
         return oracle_conn_dict
 
-    def connection_details(self):
+    def _connection_details(self):
         logger.debug(f"Prompting for `{self._source}` connection details")
         match self._source:
             case SourceType.SNOWFLAKE.value:
-                return self.prompt_snowflake_connection_details()
+                return self._prompt_snowflake_connection_details()
             case SourceType.ORACLE.value:
-                return self.prompt_oracle_connection_details()
+                return self._prompt_oracle_connection_details()
             case _:
                 raise SystemExit(f"Source {self._source} is not yet configured...")
 
@@ -96,11 +94,11 @@ class ReconConfigPrompts:
         scope_name = self._prompts.question("Enter Scope name")
         self._db_ws.get_or_create_scope(scope_name)
 
-        connection_details = self.connection_details()
+        connection_details = self._connection_details()
         logger.debug(f"Storing `{self._source}` connection details as Secrets in Databricks Workspace...")
         self._db_ws.store_connection_secrets(scope_name, connection_details)
 
-    def prompt_catalog_schema(self) -> dict[str, str]:
+    def _prompt_catalog_schema(self) -> dict[str, str]:
         """Prompt for `catalog_name` only if source is snowflake"""
         prompt_for_catalog = self._source in {SourceType.SNOWFLAKE.value}
 
@@ -123,18 +121,25 @@ class ReconConfigPrompts:
             "tgt_schema": tgt_schema_name,
         }
 
-    def prompt_config_details(self) -> TableRecon:
+    def _confirm_secret_scope(self):
+        if not self._prompts.confirm(f"Did you setup the secrets for the `{self._source}` connection?"):
+            raise ValueError(
+                f"Error: Secrets are needed for `{self._source}` reconciliation."
+                f"\nUse `remorph configure-secrets` to setup Scope and Secrets."
+            )
+
+    def _prompt_config_details(self) -> TableRecon:
         # Prompt for secret scope
         secret_scope = self._prompts.question("Enter Secret Scope name")
         if not self._db_ws.scope_exists(secret_scope):
             msg = (
                 "Error: Secret Scope not found in Databricks Workspace."
-                "\nUse `remorph setup-recon-secrets` to setup Scope and Secrets"
+                "\nUse `remorph configure-secrets` to setup Scope and Secrets"
             )
             raise SystemExit(msg)
 
         # Prompt for catalog and schema
-        catalog_schema_dict = self.prompt_catalog_schema()
+        catalog_schema_dict = self._prompt_catalog_schema()
         spark = DatabricksSession.builder.getOrCreate()
 
         only_subset = self._prompts.confirm("Do you want to include/exclude a set of tables?")
@@ -153,34 +158,34 @@ class ReconConfigPrompts:
 
         # crawler, source adapter
         sf_datasource = SnowflakeDataSource(self._source, spark, self._db_ws.ws, secret_scope)
+        logger.debug(f"Listing tables for `{self._source}` using DataSource")
         recon_config = sf_datasource.list_tables(
             catalog_schema_dict.get("src_catalog"), catalog_schema_dict.get("src_schema"), include_list, exclude_list
         )
 
         recon_config.target_catalog = catalog_schema_dict.get("tgt_catalog")
         recon_config.target_schema = catalog_schema_dict.get("tgt_schema")
+        logger.info(f"Recon Config details are fetched successfully...{recon_config}")
 
         return recon_config
 
-    def save_config_details(self, recon_config_json):
+    def _save_config_details(self, recon_config_json):
         recon_conf_abspath = os.path.abspath(f"./recon_conf_{self._source}.json")
-        logger.info(f"Saving the config details for `{self._source}` in `{recon_conf_abspath}` file")
+        logger.debug(f"Saving the config details for `{self._source}` in `{recon_conf_abspath}` file")
         with open(f"./recon_conf_{self._source}.json", "w", encoding="utf-8") as f:
             exit_code = f.write(recon_config_json)
-            logger.debug(f"File write exit_code {exit_code}")
-        logger.debug(f"Config details are saved in {recon_conf_abspath} file")
+            logger.debug(f"File written, exit_code {exit_code}")
+        logger.info(f"Config details are saved at path: `{recon_conf_abspath}`")
+
 
     def prompt_and_save_config_details(self):
-        recon_config = self.prompt_config_details()
+        # Check for Secrets Scope
+        self._confirm_secret_scope()
+        recon_config = self._prompt_config_details()
         recon_config_json = json.dumps(recon_config, default=vars, indent=2, sort_keys=True)
         recon_config_json_formatted = recon_config_json.replace("null", "None")
-        logger.info(recon_config_json_formatted)
+        logger.debug(f"recon_config_json : {recon_config_json_formatted}")
 
-        self.save_config_details(recon_config_json_formatted)
+        self._save_config_details(recon_config_json_formatted)
 
-    def confirm_secret_scope(self):
-        if not self._prompts.confirm(f"Did you setup the secrets for the `{self._source}` connection?"):
-            raise ValueError(
-                f"Error: Secrets are needed for `{self._source}` reconciliation."
-                f"\nUse `remorph setup-recon-secrets` to setup Scope and Secrets."
-            )
+
