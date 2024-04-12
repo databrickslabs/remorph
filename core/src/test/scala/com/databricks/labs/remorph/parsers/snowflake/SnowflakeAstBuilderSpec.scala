@@ -15,7 +15,7 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with Matchers {
     val parser = new SnowflakeParser(tokenStream)
     val tree = parser.snowflake_file()
     // uncomment the following line if you need a peek in the Snowflake AST
-    // println(tree.toStringTree(parser))
+    println(tree.toStringTree(parser))
     tree
   }
 
@@ -147,5 +147,13 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with Matchers {
           Seq(Column("a"), Column("b"))))
     }
 
+    "translate a query with a GROUP BY clause" in {
+      example(
+        query = "SELECT a, COUNT(b) FROM c GROUP BY a",
+        expectedAst = Project(
+          Filter(NamedTable("c", Map.empty, is_streaming = false), Not(Equals(Column("a"), Column("b")))),
+          Seq(Column("a"), Column("b")))
+      )
+    }
   }
 }
