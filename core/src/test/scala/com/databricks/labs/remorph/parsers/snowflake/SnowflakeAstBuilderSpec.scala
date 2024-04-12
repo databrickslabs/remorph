@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
-import com.databricks.labs.remorph.parsers.intermediate.{Alias, Column, InnerJoin, Join, JoinDataType, NamedTable, Project, TreeNode}
+import com.databricks.labs.remorph.parsers.intermediate.{Alias, Column, FullOuterJoin, InnerJoin, Join, JoinDataType, LeftOuterJoin, NamedTable, Project, RightOuterJoin, TreeNode}
 import org.antlr.v4.runtime.{CharStreams, CommonTokenStream}
 import org.scalatest.Assertion
 import org.scalatest.matchers.should.Matchers
@@ -15,7 +15,7 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with Matchers {
     val parser = new SnowflakeParser(tokenStream)
     val tree = parser.snowflake_file()
     // uncomment the following line if you need a peek in the Snowflake AST
-    println(tree.toStringTree(parser))
+    // println(tree.toStringTree(parser))
     tree
   }
 
@@ -59,20 +59,38 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with Matchers {
           Seq(Column("a"), Alias(Column("b"), Seq("bb"), None), Column("c"))))
     }
 
+    val simpleJoinAst =
+      Join(
+        NamedTable("table_x", Map.empty, is_streaming = false),
+        NamedTable("table_y", Map.empty, is_streaming = false),
+        join_condition = None,
+        InnerJoin,
+        using_columns = Seq(),
+        JoinDataType(is_left_struct = false, is_right_struct = false))
+
     "translate a query with a JOIN" in {
-
-      example(
-        query = "SELECT a FROM table_x JOIN table_y",
-        expectedAst = Project(
-          Join(
-            NamedTable("table_x", Map.empty, is_streaming = false),
-            NamedTable("table_y", Map.empty, is_streaming = false),
-            join_condition = None,
-            InnerJoin,
-            using_columns = Seq(),
-            JoinDataType(is_left_struct = false, is_right_struct = false)),
-          Seq(Column("a"))))
+      example(query = "SELECT a FROM table_x JOIN table_y", expectedAst = Project(simpleJoinAst, Seq(Column("a"))))
     }
-  }
 
+    "translate a query with a LEFT OUTER JOIN" in {
+      example(
+        query = "SELECT a FROM table_x LEFT OUTER JOIN table_y",
+        expectedAst = Project(simpleJoinAst.copy(join_type = LeftOuterJoin), Seq(Column("a"))))
+    }
+
+    "translate a query with a RIGHT OUTER JOIN" in {
+      example(
+        query = "SELECT a FROM table_x RIGHT OUTER JOIN table_y",
+        expectedAst = Project(simpleJoinAst.copy(join_type = RightOuterJoin), Seq(Column("a"))))
+    }
+
+    "translate a query with a FULL JOIN" in {
+      example(
+        query = "SELECT a FROM table_x FULL JOIN table_y",
+        expectedAst = Project(simpleJoinAst.copy(join_type = FullOuterJoin), Seq(Column("a"))))
+    }
+
+
+
+  }
 }

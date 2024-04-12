@@ -62,8 +62,30 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.Relation] {
   }
 
   override def visitTable_source_item_joined(ctx: Table_source_item_joinedContext): ir.Relation = {
+
+    def translateJoinType(joinType: SnowflakeParser.Join_typeContext): ir.JoinType = {
+      if (joinType == null || joinType.outer_join() == null) {
+        ir.InnerJoin
+      } else if (joinType.outer_join().LEFT() != null) {
+        ir.LeftOuterJoin
+      } else if (joinType.outer_join().RIGHT() != null) {
+        ir.RightOuterJoin
+      } else if (joinType.outer_join().FULL() != null) {
+        ir.FullOuterJoin
+      } else {
+        ir.UnspecifiedJoin
+      }
+    }
+
     def buildJoin(left: ir.Relation, right: SnowflakeParser.Join_clauseContext): ir.Join = {
-      ir.Join(left, right.object_ref().accept(this), None, ir.InnerJoin, Seq(), ir.JoinDataType(false, false))
+
+      ir.Join(
+        left,
+        right.object_ref().accept(this),
+        None,
+        translateJoinType(right.join_type()),
+        Seq(),
+        ir.JoinDataType(is_left_struct = false, is_right_struct = false))
     }
     val left = ctx.object_ref().accept(this)
     ctx.join_clause().asScala.foldLeft(left)(buildJoin)
