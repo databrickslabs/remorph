@@ -72,10 +72,24 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with Matchers {
       example(query = "SELECT a FROM table_x JOIN table_y", expectedAst = Project(simpleJoinAst, Seq(Column("a"))))
     }
 
+    // TODO: fix the grammar (LEFT gets parsed as an alias rather than a join_type)
+    "translate a query with a LEFT JOIN" ignore {
+      example(
+        query = "SELECT a FROM table_x LEFT JOIN table_y",
+        expectedAst = Project(simpleJoinAst.copy(join_type = LeftOuterJoin), Seq(Column("a"))))
+    }
+
     "translate a query with a LEFT OUTER JOIN" in {
       example(
         query = "SELECT a FROM table_x LEFT OUTER JOIN table_y",
         expectedAst = Project(simpleJoinAst.copy(join_type = LeftOuterJoin), Seq(Column("a"))))
+    }
+
+    // TODO: fix the grammar (RIGHT gets parsed as an alias rather than a join_type)
+    "translate a query with a RIGHT JOIN" ignore {
+      example(
+        query = "SELECT a FROM table_x RIGHT JOIN table_y",
+        expectedAst = Project(simpleJoinAst.copy(join_type = RightOuterJoin), Seq(Column("a"))))
     }
 
     "translate a query with a RIGHT OUTER JOIN" in {
