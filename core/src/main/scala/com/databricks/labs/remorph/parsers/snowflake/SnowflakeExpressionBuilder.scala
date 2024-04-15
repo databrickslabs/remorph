@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
-import com.databricks.labs.remorph.parsers.{intermediate => ir}
+import com.databricks.labs.remorph.parsers.{NotYetImplemented, intermediate => ir}
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser._
 
 class SnowflakeExpressionBuilder extends SnowflakeParserBaseVisitor[ir.Expression] {
@@ -19,7 +19,7 @@ class SnowflakeExpressionBuilder extends SnowflakeParserBaseVisitor[ir.Expressio
     } else if (ctx.expression_elem() != null) {
       ctx.expression_elem().accept(this)
     } else {
-      null
+      throw NotYetImplemented("Only column_elem and expression_elem are implemented thus far")
     }
   }
   override def visitColumn_name(ctx: Column_nameContext): ir.Expression = {
@@ -37,7 +37,7 @@ class SnowflakeExpressionBuilder extends SnowflakeParserBaseVisitor[ir.Expressio
     if (functionName.COUNT() != null) {
       ir.Count(param)
     } else {
-      null
+      throw NotYetImplemented("Only [COUNT] aggregate functions are implemented thus far")
     }
   }
 

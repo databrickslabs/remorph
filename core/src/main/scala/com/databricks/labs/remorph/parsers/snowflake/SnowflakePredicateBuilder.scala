@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
-import com.databricks.labs.remorph.parsers.{intermediate => ir}
+import com.databricks.labs.remorph.parsers.{NotYetImplemented, UnexpectedParserOutput, intermediate => ir}
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser._
 
 class SnowflakePredicateBuilder extends SnowflakeParserBaseVisitor[ir.Predicate] {
@@ -20,8 +20,7 @@ class SnowflakePredicateBuilder extends SnowflakeParserBaseVisitor[ir.Predicate]
       } else if (op.LE() != null) {
         ir.LesserThanOrEqual(left, right)
       } else {
-        // TODO: better error management
-        null
+        throw UnexpectedParserOutput("Comparison operator is expected to be one of [=, !=, <>, >, <, >=, <=]")
       }
     }
 
@@ -38,8 +37,7 @@ class SnowflakePredicateBuilder extends SnowflakeParserBaseVisitor[ir.Predicate]
       val right = ctx.expr(1).accept(new SnowflakeExpressionBuilder)
       buildComparison(left, right, ctx.comparison_operator())
     } else {
-      // TODO: better error management
-      null
+      throw NotYetImplemented("Only predicate combinators among [AND, OR] are accepted thus far")
     }
   }
 

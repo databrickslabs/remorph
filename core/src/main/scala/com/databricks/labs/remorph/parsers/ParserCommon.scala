@@ -16,4 +16,5 @@ trait ParserCommon extends ParseTreeVisitor[AnyRef] {
   }
 
   protected def expression(ctx: ParserRuleContext): ir.Expression = typedVisit(ctx)
+
 }
