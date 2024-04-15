@@ -46,3 +46,13 @@ commands:
       - name: report
         default: all
         description: Report type
+
+  - name: generate_lineage
+    description: Generate lineage is a utility that will help us generate a lineage of the SQL files
+    flags:
+      - name: source
+        description: Input SQL Dialect Type Accepted Values [snowflake, tsql]
+      - name: input-sql
+        description: Input SQL Folder or File
+      - name: output-folder
+        description: Directory to store
