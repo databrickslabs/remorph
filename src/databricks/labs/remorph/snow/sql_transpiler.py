@@ -1,4 +1,3 @@
-
 from sqlglot import ErrorLevel, Expression, exp, parse, transpile
 from sqlglot.dialects.dialect import Dialect
 from sqlglot.errors import ParseError, TokenError, UnsupportedError
