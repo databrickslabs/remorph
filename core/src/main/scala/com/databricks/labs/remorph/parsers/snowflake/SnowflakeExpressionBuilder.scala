@@ -1,5 +1,6 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
+import com.databricks.labs.remorph.parsers.intermediate.Expression
 import com.databricks.labs.remorph.parsers.{NotYetImplemented, intermediate => ir}
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser._
 
@@ -43,6 +44,11 @@ class SnowflakeExpressionBuilder extends SnowflakeParserBaseVisitor[ir.Expressio
 
   override def visitPrimitive_expression(ctx: Primitive_expressionContext): ir.Expression = {
     val columnName = ctx.id_(0).getText
+    ir.Column(columnName)
+  }
+
+  override def visitOrder_item(ctx: Order_itemContext): Expression = {
+    val columnName = ctx.id_().getText
     ir.Column(columnName)
   }
 }
