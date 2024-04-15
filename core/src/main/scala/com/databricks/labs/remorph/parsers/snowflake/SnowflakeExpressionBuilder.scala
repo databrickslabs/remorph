@@ -45,4 +45,9 @@ class SnowflakeExpressionBuilder extends SnowflakeParserBaseVisitor[ir.Expressio
     val columnName = ctx.id_(0).getText
     ir.Column(columnName)
   }
+
+  override def visitOrder_item(ctx: Order_itemContext): ir.Expression = {
+    val columnName = ctx.id_().getText
+    ir.Column(columnName)
+  }
 }
