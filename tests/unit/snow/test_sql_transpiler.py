@@ -26,7 +26,7 @@ def test_transpile_exception(transpiler, write_dialect):
     result, error_list = transpiler.transpile(
         write_dialect, "SELECT TRY_TO_NUMBER(COLUMN, $99.99, 27) FROM table", "file.sql", []
     )
-    assert result == ""
+    assert result[0] == ""
     assert error_list[0].file_name == "file.sql"
     assert "Error Parsing args" in error_list[0].exception.args[0]
 
@@ -55,7 +55,7 @@ def test_parse_query(transpiler):
 
 def test_parse_invalid_query(transpiler):
     result, error_list = transpiler.parse("invalid sql query", "file.sql")
-    assert result == []
+    assert result is None
     assert error_list.file_name == "file.sql"
     assert "Invalid expression / Unexpected token." in error_list.exception.args[0]
 
@@ -63,7 +63,7 @@ def test_parse_invalid_query(transpiler):
 def test_tokenizer_exception(transpiler, write_dialect):
     result, error_list = transpiler.transpile(write_dialect, "1SELECT ~v\ud83d' ", "file.sql", [])
 
-    assert result == ""
+    assert result == [""]
     assert error_list[0].file_name == "file.sql"
     assert "Error tokenizing" in error_list[0].exception.args[0]
 

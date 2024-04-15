@@ -1,4 +1,5 @@
-from sqlglot import ErrorLevel, exp, parse, transpile
+
+from sqlglot import ErrorLevel, Expression, exp, parse, transpile
 from sqlglot.dialects.dialect import Dialect
 from sqlglot.errors import ParseError, TokenError, UnsupportedError
 
@@ -11,21 +12,21 @@ class SqlglotEngine:
 
     def transpile(
         self, write_dialect: Dialect, sql: str, file_name: str, error_list: list[ParserError]
-    ) -> (str, list[ParserError]):
+    ) -> (list[str], list[ParserError]):
         try:
             transpiled_sql = transpile(sql, read=self.read_dialect, write=write_dialect, pretty=True, error_level=None)
         except (ParseError, TokenError, UnsupportedError) as e:
-            transpiled_sql = ""
+            transpiled_sql = [""]
             error_list.append(ParserError(file_name, e))
 
         return transpiled_sql, error_list
 
-    def parse(self, sql: str, file_name: str) -> (exp, ParserError | None):
+    def parse(self, sql: str, file_name: str) -> (list[Expression] | None, ParserError | None):
+        expression = None
         error = None
         try:
             expression = parse(sql, read=self.read_dialect, error_level=ErrorLevel.IMMEDIATE)
         except (ParseError, TokenError, UnsupportedError) as e:
-            expression = []
             error = ParserError(file_name, e)
 
         return expression, error
@@ -33,14 +34,15 @@ class SqlglotEngine:
     def parse_sql_content(self, sql, file_name):
 
         parsed_expression, _ = self.parse(sql, file_name)
-        for expr in parsed_expression:
-            child = str(file_name)
-            if expr is not None:
-                for create in expr.find_all(exp.Create, exp.Insert, exp.Merge, bfs=False):
-                    child = self._find_root_tables(create)
+        if parsed_expression is not None:
+            for expr in parsed_expression:
+                child = str(file_name)
+                if expr is not None:
+                    for create in expr.find_all(exp.Create, exp.Insert, exp.Merge, bfs=False):
+                        child = self._find_root_tables(create)
 
-                for select in expr.find_all(exp.Select, exp.Join, exp.With, bfs=False):
-                    yield self._find_root_tables(select), child
+                    for select in expr.find_all(exp.Select, exp.Join, exp.With, bfs=False):
+                        yield self._find_root_tables(select), child
 
     @staticmethod
     def _find_root_tables(expression) -> str:
