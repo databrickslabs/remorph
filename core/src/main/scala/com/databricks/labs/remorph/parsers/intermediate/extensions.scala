@@ -9,9 +9,9 @@ abstract class Binary(left: Expression, right: Expression) extends Expression {}
 
 trait Predicate extends Expression with AstExtension
 
-case class And(left: Predicate, right: Predicate) extends Binary(left, right) with Predicate {}
-case class Or(left: Predicate, right: Predicate) extends Binary(left, right) with Predicate {}
-case class Not(pred: Predicate) extends Unary(pred) with Predicate {}
+case class And(left: Expression, right: Expression) extends Binary(left, right) with Predicate {}
+case class Or(left: Expression, right: Expression) extends Binary(left, right) with Predicate {}
+case class Not(pred: Expression) extends Unary(pred) with Predicate {}
 
 case class Equals(left: Expression, right: Expression) extends Binary(left, right) with Predicate {}
 case class NotEquals(left: Expression, right: Expression) extends Binary(left, right) with Predicate {}
