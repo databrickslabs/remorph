@@ -1,7 +1,15 @@
 import logging
 
+from sqlglot import expressions as exp
+from sqlglot import select
+
+from databricks.labs.remorph.reconcile.constants import ThresholdMode
 from databricks.labs.remorph.reconcile.query_builder.base import QueryBuilder
-from databricks.labs.remorph.reconcile.recon_config import Table, TransformRuleMapping
+from databricks.labs.remorph.reconcile.query_builder.expression_generator import (
+    ExpressionGenerator as eg,
+)
+from databricks.labs.remorph.reconcile.recon_config import TransformRuleMapping
+from databricks.labs.remorph.snow.databricks import Databricks
 
 logger = logging.getLogger(__name__)
 
@@ -36,58 +44,69 @@ class ThresholdQueryBuilder(QueryBuilder):
 
     # Comparison query
     def build_comparison_query(self) -> str:
-        threshold_columns = sorted(set(self.table_conf.get_threshold_columns))
-        join_columns = sorted(set(self.table_conf.get_join_columns))
-        # generate select clause and where clause
-        select_clause, where_clause = self._generate_select_where_clause(threshold_columns)
-        # add join columns to select clause
-        select_clause.extend([f"source.{column} as {column}" for column in join_columns])
-        # generate join condition dynamically
-        join_condition = self._generate_join_condition(join_columns)
-        # construct the final query
-        comparison_query = self._construct_comparison_query(
-            self.table_conf, select_clause, join_condition, where_clause
-        )
+        select_clause, where = self._generate_select_caluse()
+        from_clause, join_clause = self._generate_from_and_join_clause()
+        return select(*select_clause).from_(from_clause).join(join_clause).where(where).sql(dialect=Databricks)
 
-        logger.info(f"Comparison Query: {comparison_query}")
-        print(f"Comparison Query: {comparison_query}")
-        return comparison_query
+    def _generate_select_caluse(self):
+        thresholds = self.table_conf.thresholds
 
-    def _generate_select_where_clause(self, threshold_columns: set[str]) -> (list[str], list[str]):
+        def build_alias(column, table_name):
+            return eg().build_alias(this=column, alias=f"{column}_{table_name}", table_name=table_name)
+
+        def build_absolute_case(base, threshold, column):
+            return eg().build_alias(eg.build_absolute_case(base=base, threshold=threshold), alias=f"{column}_match")
+
         select_clause = []
         where_clause = []
-        for column in threshold_columns:
-            # get the user provided threshold details at column level
-            threshold = self.table_conf.get_threshold_info(column)
-            # check if the threshold is in percentage or absolute mode
-            mode = threshold.get_mode()
-            # generate the select and where clause based on the threshold type
-            threshold_select, threshold_filter = self._generate_threshold_select_expression(
-                match_type=threshold.type, mode=mode
-            )
-            # Use the dictionary to get the corresponding function
-            select_clause.append(
-                threshold_select.format(
-                    column=column,
-                    lower_bound=threshold.lower_bound.replace("%", ""),
-                    upper_bound=threshold.upper_bound.replace("%", ""),
+
+        for threshold in thresholds:
+            column = threshold.column_name
+            source_col = build_alias(column, "source")
+            databricks_col = build_alias(column, "databricks")
+
+            base = (
+                eg()
+                .build_sub(
+                    left_column_name=column,
+                    left_table_name="source",
+                    right_column_name=column,
+                    right_table_name="databricks",
                 )
+                .transform(eg.paran)
+                .transform(eg.coalesce)
             )
-            # where clause generation
-            where_clause.append(threshold_filter.format(column=column))
-        return select_clause, where_clause
 
-    @staticmethod
-    def _construct_comparison_query(
-        table_conf: Table, select_clause: list[str], join_condition: str, where_clause: list[str]
-    ) -> str:
-        select_text = ", ".join(select_clause)
-        where_text = " or ".join(where_clause)
-        source_view = f"{table_conf.source_name}_df_threshold_vw"
-        target_view = f"{table_conf.target_name}_df_threshold_vw"
-        select_query = f"""select {select_text}
-        from {source_view} source inner join 
-        {target_view} databricks on {join_condition}
-        where {where_text} """.strip()
+            if threshold.get_type() == ThresholdMode.NUMBER_ABSOLUTE.value:
+                select_clause.append(source_col.transform(eg.coalesce))
+                select_clause.append(databricks_col.transform(eg.coalesce))
+                select_clause.append(build_absolute_case(base, threshold, column))
+                where_clause.append(exp.NEQ(this=base, expression=exp.Literal(this="0", is_string=False)))
+            elif threshold.get_type() == ThresholdMode.NUMBER_PERCENTILE.value:
+                select_clause.append(source_col.transform(eg.coalesce))
+                select_clause.append(databricks_col.transform(eg.coalesce))
+                this = eg.build_percentile_case(base=base, threshold=threshold)
+                select_clause.append(eg().build_alias(this=this, alias=f"{column}_match"))
+                where_clause.append(exp.NEQ(this=base, expression=exp.Literal(this="0", is_string=False)))
+            else:
+                select_clause.append(source_col.transform(eg.anonymous, "unix_timestamp").transform(eg.coalesce))
+                select_clause.append(databricks_col.transform(eg.anonymous, "unix_timestamp").transform(eg.coalesce))
+                base = base.transform(eg.anonymous, "unix_timestamp")
+                select_clause.append(build_absolute_case(base, threshold, column))
+                where_clause.append(exp.NEQ(this=base, expression=exp.Literal(this="0", is_string=False)))
 
-        return select_query
+        for column in sorted(self.table_conf.get_join_columns):
+            select_clause.append(build_alias(column, "source"))
+        where = eg.build_where_clause(where_clause)
+
+        return select_clause, where
+
+    def _generate_from_and_join_clause(self):
+        join_columns = sorted(self.table_conf.get_join_columns)
+        source_view = f"{self.table_conf.source_name}_df_threshold_vw"
+        target_view = f"{self.table_conf.target_name}_df_threshold_vw"
+
+        from_clause = eg.build_from_clause(source_view)
+        join_clause = eg.build_join_clause(target_view, join_columns)
+
+        return from_clause, join_clause

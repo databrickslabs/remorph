@@ -63,6 +63,9 @@ class ReportType(AutoName):
 class ThresholdMode(AutoName):
     PERCENTILE = "percentile"
     ABSOLUTE = "absolute"
+    NUMBER_ABSOLUTE = "number_absolute"
+    NUMBER_PERCENTILE = "number_percentile"
+    DATETIME = "datetime"
 
 
 class ThresholdSQLTemplate(AutoName):

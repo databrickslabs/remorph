@@ -1,9 +1,14 @@
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass
 from typing import TypeVar
 
+from sqlglot import expressions as exp
+
 from databricks.labs.remorph.reconcile.constants import ThresholdMode
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -56,6 +61,19 @@ class Thresholds:
             if "%" in self.lower_bound or "%" in self.upper_bound
             else ThresholdMode.ABSOLUTE.value
         )
+
+    def get_type(self):
+        if any(self.type in numeric_type.value.lower() for numeric_type in exp.DataType.NUMERIC_TYPES):
+            if self.get_mode() == ThresholdMode.ABSOLUTE.value:
+                return ThresholdMode.NUMBER_ABSOLUTE.value
+            return ThresholdMode.NUMBER_PERCENTILE.value
+
+        if any(self.type in numeric_type.value.lower() for numeric_type in exp.DataType.TEMPORAL_TYPES):
+            return ThresholdMode.DATETIME.value
+
+        error_message = f"Threshold type {self.type} not supported in column {self.column_name}"
+        logger.error(error_message)
+        raise ValueError(error_message)
 
 
 @dataclass

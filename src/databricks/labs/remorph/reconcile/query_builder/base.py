@@ -1,16 +1,12 @@
 import logging
 from abc import ABC
 
-from sqlglot import expressions as exp
-
 from databricks.labs.remorph.reconcile.connectors.databricks import DatabricksDataSource
 from databricks.labs.remorph.reconcile.connectors.oracle import OracleDataSource
 from databricks.labs.remorph.reconcile.connectors.snowflake import SnowflakeDataSource
 from databricks.labs.remorph.reconcile.constants import (
     ColumnTransformationType,
     SourceType,
-    ThresholdMode,
-    ThresholdSQLTemplate,
 )
 from databricks.labs.remorph.reconcile.recon_config import (
     ColumnMapping,
@@ -174,29 +170,3 @@ class QueryBuilder(ABC):
             transform_rule_mapping.append(TransformRuleMapping(col_origin, transform, col_alias))
 
         return transform_rule_mapping
-
-    @staticmethod
-    def _generate_threshold_select_expression(match_type, mode):
-        threshold_select = None
-        threshold_filter = None
-
-        if any(match_type in numeric_type.value.lower() for numeric_type in exp.DataType.NUMERIC_TYPES):
-            threshold_filter = ThresholdSQLTemplate.FILTER_NUMBER.value
-            if mode == ThresholdMode.ABSOLUTE.value:
-                threshold_select = ThresholdSQLTemplate.SELECT_NUMBER_ABSOLUTE.value
-            else:
-                threshold_select = ThresholdSQLTemplate.SELECT_NUMBER_PERCENTILE.value
-        elif any(match_type in numeric_type.value.lower() for numeric_type in exp.DataType.TEMPORAL_TYPES):
-            threshold_filter = ThresholdSQLTemplate.FILTER_DATETIME.value
-            if mode == ThresholdMode.ABSOLUTE.value:
-                threshold_select = ThresholdSQLTemplate.SELECT_DATETIME.value
-
-        print(f"threshold_select: {threshold_select}")
-        print(f"threshold_filter: {threshold_filter}")
-
-        if not threshold_select or not threshold_filter:
-            error_message = f"Invalid threshold match type or mode in _generate_threshold_select_expression: {match_type} or mode: {mode}"
-            logger.error(error_message)
-            raise ValueError(error_message)
-
-        return threshold_select, threshold_filter
