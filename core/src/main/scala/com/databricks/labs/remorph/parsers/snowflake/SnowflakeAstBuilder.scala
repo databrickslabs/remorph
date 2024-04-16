@@ -21,7 +21,18 @@ class SnowflakeAstBuilder extends SnowflakeParserBaseVisitor[ir.TreeNode] {
   }
 
   override def visitSelect_statement(ctx: Select_statementContext): ir.TreeNode = {
-    val relation = ctx.select_optional_clauses().accept(new SnowflakeRelationBuilder)
+    val select = ctx.select_optional_clauses().accept(new SnowflakeRelationBuilder)
+    val relation =
+      if (ctx.limit_clause() != null) {
+        val limit = ir.Limit(select, ctx.limit_clause().num(0).getText.toInt)
+        if (ctx.limit_clause().OFFSET() != null) {
+          ir.Offset(limit, ctx.limit_clause().num(1).getText.toInt)
+        } else {
+          limit
+        }
+      } else {
+        select
+      }
     val selectListElements = ctx.select_clause().select_list_no_top().select_list().select_list_elem().asScala
     val expressionVisitor = new SnowflakeExpressionBuilder
     val expressions: Seq[ir.Expression] = selectListElements.map(_.accept(expressionVisitor))
@@ -54,4 +65,3 @@ class SnowflakeAstBuilder extends SnowflakeParserBaseVisitor[ir.TreeNode] {
     case _ => ir.Literal(decimal = Some(ir.Decimal(decimal, None, None)))
   }
 }
-

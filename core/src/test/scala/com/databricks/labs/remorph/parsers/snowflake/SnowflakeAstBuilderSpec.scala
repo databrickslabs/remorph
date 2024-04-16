@@ -195,5 +195,14 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with Matchers {
             is_global = false),
           Seq(Column("a"))))
     }
+
+    "translate queries with LIMIT and OFFSET" in {
+      example(
+        query = "SELECT a FROM b LIMIT 5",
+        expectedAst = Project(Limit(NamedTable("b", Map.empty, is_streaming = false), 5), Seq(Column("a"))))
+      example(
+        query = "SELECT a FROM b LIMIT 5 OFFSET 10",
+        expectedAst = Project(Offset(Limit(NamedTable("b", Map.empty, is_streaming = false), 5), 10), Seq(Column("a"))))
+    }
   }
 }
