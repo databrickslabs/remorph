@@ -1,5 +1,6 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
+import com.databricks.labs.remorph.parsers.intermediate.Relation
 import com.databricks.labs.remorph.parsers.{intermediate => ir}
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser._
 
@@ -9,20 +10,27 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.Relation] {
 
   override def visitSelect_optional_clauses(ctx: Select_optional_clausesContext): ir.Relation = {
     val from = ctx.from_clause().accept(this)
-    val where = if (ctx.where_clause() != null) {
+    buildOrderBy(ctx, buildGroupBy(ctx, buildWhere(ctx, from)))
+  }
+
+  private def buildWhere(ctx: Select_optional_clausesContext, from: Relation): Relation =
+    if (ctx.where_clause() != null) {
       val predicate = ctx.where_clause().search_condition().accept(new SnowflakePredicateBuilder)
       ir.Filter(from, predicate)
     } else {
       from
     }
-    val group = if (ctx.group_by_clause() != null) {
+
+  private def buildGroupBy(ctx: Select_optional_clausesContext, input: Relation): Relation =
+    if (ctx.group_by_clause() != null) {
       val groupingExpressions =
         ctx.group_by_clause().group_by_list().group_by_elem().asScala.map(_.accept(new SnowflakeExpressionBuilder))
-      ir.Aggregate(input = where, group_type = ir.GroupBy, grouping_expressions = groupingExpressions, pivot = None)
-
+      ir.Aggregate(input = input, group_type = ir.GroupBy, grouping_expressions = groupingExpressions, pivot = None)
     } else {
-      where
+      input
     }
+
+  private def buildOrderBy(ctx: Select_optional_clausesContext, input: Relation): Relation =
     if (ctx.order_by_clause() != null) {
       val sortOrders = ctx.order_by_clause().order_item().asScala.map { orderItem =>
         val expression = orderItem.accept(new SnowflakeExpressionBuilder)
@@ -41,11 +49,11 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.Relation] {
         }
       }
 
-      ir.Sort(input = group, order = sortOrders, is_global = false)
+      ir.Sort(input = input, order = sortOrders, is_global = false)
     } else {
-      group
+      input
     }
-  }
+
   override def visitObject_ref(ctx: Object_refContext): ir.Relation = {
     val tableName = ctx.object_name().id_(0).getText
     ir.NamedTable(tableName, Map.empty, is_streaming = false)
