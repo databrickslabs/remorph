@@ -158,6 +158,22 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with Matchers {
             pivot = None),
           Seq(Column("a"), Count(Column("b")))))
     }
+
+    "translate a query with a GROUP BY and ORDER BY clauses" in {
+      example(
+        query = "SELECT a, COUNT(b) FROM c GROUP BY a ORDER BY a",
+        expectedAst = Project(
+          Sort(
+            Aggregate(
+              input = NamedTable("c", Map.empty, is_streaming = false),
+              group_type = GroupBy,
+              grouping_expressions = Seq(Column("a")),
+              pivot = None),
+            Seq(SortOrder(Column("a"), AscendingSortDirection, SortNullsLast)),
+            is_global = false),
+          Seq(Column("a"), Count(Column("b")))))
+    }
+
     "translate a query with ORDER BY" in {
       example(
         query = "SELECT a FROM b ORDER BY a",
