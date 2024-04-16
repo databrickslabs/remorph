@@ -55,6 +55,3 @@ class SnowflakeAstBuilder extends SnowflakeParserBaseVisitor[ir.TreeNode] {
   }
 }
 
-
-
-
