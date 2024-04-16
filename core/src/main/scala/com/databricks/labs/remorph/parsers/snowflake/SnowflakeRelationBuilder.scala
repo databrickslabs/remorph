@@ -1,7 +1,8 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
-import com.databricks.labs.remorph.parsers.{intermediate => ir}
-import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser._
+import com.databricks.labs.remorph.parsers.intermediate.Relation
+import com.databricks.labs.remorph.parsers.{UnexpectedParserOutput, intermediate => ir}
+import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser.{StringContext => _, _}
 
 import scala.collection.JavaConverters._
 
@@ -9,22 +10,36 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.Relation] {
 
   override def visitSelect_optional_clauses(ctx: Select_optional_clausesContext): ir.Relation = {
     val from = ctx.from_clause().accept(this)
-    val where = if (ctx.where_clause() != null) {
-      val predicate = ctx.where_clause().search_condition().accept(new SnowflakePredicateBuilder)
-      ir.Filter(from, predicate)
-    } else {
-      from
-    }
-    val group = if (ctx.group_by_clause() != null) {
-      val groupingExpressions =
-        ctx.group_by_clause().group_by_list().group_by_elem().asScala.map(_.accept(new SnowflakeExpressionBuilder))
-      ir.Aggregate(input = where, group_type = ir.GroupBy, grouping_expressions = groupingExpressions, pivot = None)
+    val where = withWhere(from, ctx.where_clause())
+    val group = withGroup(where, ctx.group_by_clause())
+    // val pivot = withPivot(group, ctx.pi)
+    withSort(group, ctx.order_by_clause())
+  }
 
+  private def withWhere(relation: ir.Relation, ctx: Where_clauseContext): ir.Relation = {
+    if (ctx == null) {
+      relation
     } else {
-      where
+      val predicate = ctx.search_condition().accept(new SnowflakePredicateBuilder)
+      ir.Filter(relation, predicate)
     }
-    if (ctx.order_by_clause() != null) {
-      val sortOrders = ctx.order_by_clause().order_item().asScala.map { orderItem =>
+  }
+
+  private def withGroup(relation: ir.Relation, ctx: Group_by_clauseContext): ir.Relation = {
+    if (ctx == null) {
+      relation
+    } else {
+      val groupingExpressions =
+        ctx.group_by_list().group_by_elem().asScala.map(_.accept(new SnowflakeExpressionBuilder))
+      ir.Aggregate(input = relation, group_type = ir.GroupBy, grouping_expressions = groupingExpressions, pivot = None)
+    }
+  }
+
+  private def withSort(relation: ir.Relation, ctx: Order_by_clauseContext): ir.Relation = {
+    if (ctx == null) {
+      relation
+    } else {
+      val sortOrders = ctx.order_item().asScala.map { orderItem =>
         val expression = orderItem.accept(new SnowflakeExpressionBuilder)
         if (orderItem.DESC() == null) {
           if (orderItem.NULLS() != null && orderItem.FIRST() != null) {
@@ -40,17 +55,50 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.Relation] {
           }
         }
       }
-
-      ir.Sort(input = group, order = sortOrders, is_global = false)
-    } else {
-      group
+      ir.Sort(input = relation, order = sortOrders, is_global = false)
     }
   }
   override def visitObject_ref(ctx: Object_refContext): ir.Relation = {
     val tableName = ctx.object_name().id_(0).getText
-    ir.NamedTable(tableName, Map.empty, is_streaming = false)
+    val table = ir.NamedTable(tableName, Map.empty, is_streaming = false)
+    withPivot(table, ctx.pivot_unpivot())
   }
 
+  private def withPivot(relation: ir.Relation, ctx: Pivot_unpivotContext): ir.Relation = {
+    if (ctx == null) {
+      relation
+    } else {
+      val pivotValues: Seq[ir.Literal] = ctx.literal().asScala.map(_.accept(new SnowflakeExpressionBuilder)).collect {
+        case lit: ir.Literal => lit
+      }
+      val pivotColumn = ir.Column(ctx.id_(2).getText)
+      val aggregateFunction = translateAggregateFunction(ctx.id_(0), ctx.id_(1))
+      ir.Aggregate(
+        input = relation,
+        group_type = ir.Pivot,
+        grouping_expressions = Seq(aggregateFunction),
+        pivot = Some(ir.Pivot(pivotColumn, pivotValues)))
+    }
+  }
+
+  private def translateAggregateFunction(aggFunc: Id_Context, parameter: Id_Context): ir.Expression = {
+    val column = ir.Column(parameter.getText)
+    if (aggFunc.builtin_function() != null) {
+      if (aggFunc.builtin_function().SUM() != null) {
+        ir.Sum(column)
+      } else if (aggFunc.builtin_function().AVG() != null) {
+        ir.Avg(column)
+      } else if (aggFunc.builtin_function().COUNT() != null) {
+        ir.Count(column)
+      } else if (aggFunc.builtin_function().MIN() != null) {
+        ir.Min(column)
+      } else {
+        throw UnexpectedParserOutput(s"${aggFunc.getText} isn't a supported aggregate function")
+      }
+    } else {
+      throw UnexpectedParserOutput(s"${aggFunc.getText} isn't a supported aggregate function")
+    }
+  }
   override def visitTable_source_item_joined(ctx: Table_source_item_joinedContext): ir.Relation = {
 
     def buildJoin(left: ir.Relation, right: Join_clauseContext): ir.Join = {
@@ -80,5 +128,7 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.Relation] {
       ir.UnspecifiedJoin
     }
   }
+
+  override def visitPivot_unpivot(ctx: Pivot_unpivotContext): Relation = super.visitPivot_unpivot(ctx)
 
 }
