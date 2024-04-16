@@ -1,5 +1,7 @@
 import json
 import os
+from json import JSONDecodeError
+from pathlib import Path
 
 from databricks.labs.blueprint.cli import App
 from databricks.labs.blueprint.entrypoint import get_logger
@@ -9,6 +11,7 @@ from databricks.sdk import WorkspaceClient
 from databricks.labs.remorph.config import MorphConfig
 from databricks.labs.remorph.helpers.recon_config_utils import ReconConfigPrompts
 from databricks.labs.remorph.reconcile.execute import recon
+from databricks.labs.remorph.reconcile.recon_config import TableRecon
 from databricks.labs.remorph.transpiler.execute import morph
 
 remorph = App(__file__)
@@ -94,6 +97,20 @@ def generate_recon_config(w: WorkspaceClient):
 
     # Prompt for connection details and save the config
     recon_conf.prompt_and_save_config_details()
+
+
+@remorph.command
+def validate_recon_config(w: WorkspaceClient, recon_conf: str):
+    """validates reconciliation config file"""
+    logger.info(f"user: {w.current_user.me()}")
+    logger.debug("Validating reconcile config file")
+
+    # Converts the JSON data to the TableRecon dataclass
+    try:
+        Installation.load_local(type_ref=TableRecon, file=Path(recon_conf))
+    except JSONDecodeError as e:
+        raise_validation_exception(f"Error: Invalid reconciliation config file `{recon_conf}`: {e}")
+    logger.info(f"`{recon_conf}` config file is valid")
 
 
 if __name__ == "__main__":

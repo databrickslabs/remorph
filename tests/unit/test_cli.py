@@ -1,13 +1,17 @@
 import io
+import json
+from pathlib import Path
 from unittest.mock import create_autospec, patch
 
 import pytest
 import yaml
+from databricks.labs.blueprint.installation import SerdeError
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.errors import NotFound
 
 from databricks.labs.remorph import cli
 from databricks.labs.remorph.config import MorphConfig
+from databricks.labs.remorph.reconcile.recon_config import Table, TableRecon
 
 
 @pytest.fixture
@@ -227,3 +231,55 @@ def test_cli_generate_recon_config(mock_workspace_client):
     with patch("databricks.labs.remorph.cli.ReconConfigPrompts") as mock_recon_config:
         cli.generate_recon_config(mock_workspace_client)
         mock_recon_config.assert_called_once_with(mock_workspace_client)
+
+
+def test_validate_recon_config_with_missing_recon_conf(mock_workspace_client_cli):
+    with pytest.raises(Exception, match="No such file or directory: '/path/to/invalid/recon/conf'"):
+        invalid_recon_conf_path = "/path/to/invalid/recon/conf"
+        cli.validate_recon_config(mock_workspace_client_cli, invalid_recon_conf_path)
+
+
+def test_validate_recon_config_with_invalid_recon_conf(mock_workspace_client_cli):
+    invalid_recon_conf_path = "./recon_conf_test.json"
+    recon_config_json = """{
+                          source_catalog: "catalog",
+                          "source_schema": 'schema',
+                          "tables": [
+                            ],
+                          "target_catalog": "tgt_catalog",
+                          "target_schema": "tgt_schema"
+                          }"""
+    with open(invalid_recon_conf_path, "w", encoding="utf-8") as f:
+        f.write(recon_config_json)
+
+    error_msg = "Error: Invalid reconciliation config file .*"
+
+    with patch(
+        "databricks.labs.blueprint.installation.Installation.load_local",
+        side_effect=json.JSONDecodeError("error", "doc", 0),
+    ):
+        with pytest.raises(ValueError, match=error_msg):
+            cli.validate_recon_config(mock_workspace_client_cli, invalid_recon_conf_path)
+
+
+def test_validate_recon_config_with_valid_input(mock_workspace_client_cli):
+    tables_list = [Table(source_name=field, target_name=field) for field in ("table1", "table2", "table3")]
+
+    table_recon = TableRecon(
+        source_catalog="catalog",
+        source_schema="schema",
+        target_catalog="tgt_catalog",
+        target_schema="tgt_schema",
+        tables=tables_list,
+    )
+    recon_config = json.dumps(table_recon, default=vars, indent=2, sort_keys=True)
+    recon_config_json = recon_config.replace("null", "None")
+
+    recon_conf = "./recon_conf_test.json"
+    with open("./recon_conf_test.json", "w", encoding="utf-8") as f:
+        f.write(recon_config_json)
+
+    with pytest.raises(SerdeError, match="source_schema: not a str: value is missing"):
+        cli.validate_recon_config(mock_workspace_client_cli, recon_conf)
+
+    Path(recon_conf).unlink()

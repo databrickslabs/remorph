@@ -48,3 +48,8 @@ commands:
         description: Report type
   - name: generate-recon-config
     description: Utility to generate Recon config file from Database and Schema
+  - name: validate-recon-config
+    description: Utility to validate Recon Config file.
+    flags:
+        - name: recon_conf
+          description: Path of the data-recon config
