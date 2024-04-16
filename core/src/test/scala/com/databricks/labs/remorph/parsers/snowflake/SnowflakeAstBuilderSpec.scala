@@ -147,5 +147,16 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with Matchers {
           Seq(Column("a"), Column("b"))))
     }
 
+    "translate a query with a GROUP BY clause" in {
+      example(
+        query = "SELECT a, COUNT(b) FROM c GROUP BY a",
+        expectedAst = Project(
+          Aggregate(
+            input = NamedTable("c", Map.empty, is_streaming = false),
+            group_type = GroupBy,
+            grouping_expressions = Seq(Column("a")),
+            pivot = None),
+          Seq(Column("a"), Count(Column("b")))))
+    }
   }
 }
