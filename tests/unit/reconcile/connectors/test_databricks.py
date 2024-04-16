@@ -21,11 +21,9 @@ def initial_setup():
 
 def test_get_schema_query():
     # initial setup
-    engine, spark, ws, scope = initial_setup()
-    dd = DatabricksDataSource(engine, spark, ws, scope)
 
     # catalog as catalog
-    schema_query = dd.get_schema_query("catalog", "schema", "supplier")
+    schema_query = DatabricksDataSource.get_schema_query("catalog", "schema", "supplier")
     assert re.sub(r'\s+', ' ', schema_query) == re.sub(
         r'\s+',
         ' ',
@@ -36,7 +34,7 @@ def test_get_schema_query():
     )
 
     # hive_metastore as catalog
-    schema_query = dd.get_schema_query("hive_metastore", "schema", "supplier")
+    schema_query = DatabricksDataSource.get_schema_query("hive_metastore", "schema", "supplier")
     assert re.sub(r'\s+', ' ', schema_query) == re.sub(r'\s+', ' ', """describe table schema.supplier""")
 
 

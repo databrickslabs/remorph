@@ -221,3 +221,9 @@ def test_recon_with_valid_input(mock_workspace_client_cli):
     with patch("os.path.exists", return_value=True), patch("databricks.labs.remorph.cli.recon") as mock_recon:
         cli.reconcile(mock_workspace_client_cli, recon_conf, conn_profile, source, report)
         mock_recon.assert_called_once_with(recon_conf, conn_profile, source, report)
+
+
+def test_cli_generate_recon_config(mock_workspace_client):
+    with patch("databricks.labs.remorph.cli.ReconConfigPrompts") as mock_recon_config:
+        cli.generate_recon_config(mock_workspace_client)
+        mock_recon_config.assert_called_once_with(mock_workspace_client)

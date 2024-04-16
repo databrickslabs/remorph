@@ -7,6 +7,7 @@ from databricks.labs.blueprint.installation import Installation
 from databricks.sdk import WorkspaceClient
 
 from databricks.labs.remorph.config import MorphConfig
+from databricks.labs.remorph.helpers.recon_config_utils import ReconConfigPrompts
 from databricks.labs.remorph.reconcile.execute import recon
 from databricks.labs.remorph.transpiler.execute import morph
 
@@ -80,6 +81,19 @@ def reconcile(w: WorkspaceClient, recon_conf: str, conn_profile: str, source: st
         )
 
     recon(recon_conf, conn_profile, source, report)
+
+
+@remorph.command
+def generate_recon_config(w: WorkspaceClient):
+    """generates config file for reconciliation"""
+    logger.info("Generating config file for reconcile")
+    recon_conf = ReconConfigPrompts(w)
+
+    # Prompt for source
+    recon_conf.prompt_source()
+
+    # Prompt for connection details and save the config
+    recon_conf.prompt_and_save_config_details()
 
 
 if __name__ == "__main__":
