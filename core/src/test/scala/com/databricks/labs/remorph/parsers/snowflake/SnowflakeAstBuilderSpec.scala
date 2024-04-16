@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
-import com.databricks.labs.remorph.parsers.intermediate.{Alias, Column, FullOuterJoin, InnerJoin, Join, JoinDataType, LeftOuterJoin, NamedTable, Project, RightOuterJoin, TreeNode}
+import com.databricks.labs.remorph.parsers.intermediate._
 import org.antlr.v4.runtime.{CharStreams, CommonTokenStream}
 import org.scalatest.Assertion
 import org.scalatest.matchers.should.Matchers
@@ -104,7 +104,48 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with Matchers {
         expectedAst = Project(simpleJoinAst.copy(join_type = FullOuterJoin), Seq(Column("a"))))
     }
 
+    "translate a query with a simple WHERE clause" in {
+      val expectedOperatorTranslations = List(
+        "=" -> Equals(Column("a"), Column("b")),
+        "!=" -> NotEquals(Column("a"), Column("b")),
+        "<>" -> NotEquals(Column("a"), Column("b")),
+        ">" -> GreaterThan(Column("a"), Column("b")),
+        "<" -> LesserThan(Column("a"), Column("b")),
+        ">=" -> GreaterThanOrEqual(Column("a"), Column("b")),
+        "<=" -> LesserThanOrEqual(Column("a"), Column("b")))
 
+      expectedOperatorTranslations.foreach { case (op, expectedPredicate) =>
+        example(
+          query = s"SELECT a, b FROM c WHERE a $op b",
+          expectedAst = Project(
+            Filter(NamedTable("c", Map.empty, is_streaming = false), expectedPredicate),
+            Seq(Column("a"), Column("b"))))
+      }
+    }
+
+    "translate a query with a WHERE clause involving composite predicates" in {
+      example(
+        query = "SELECT a, b FROM c WHERE a = b AND b = a",
+        expectedAst = Project(
+          Filter(
+            NamedTable("c", Map.empty, is_streaming = false),
+            And(Equals(Column("a"), Column("b")), Equals(Column("b"), Column("a")))),
+          Seq(Column("a"), Column("b"))))
+
+      example(
+        query = "SELECT a, b FROM c WHERE a = b OR b = a",
+        expectedAst = Project(
+          Filter(
+            NamedTable("c", Map.empty, is_streaming = false),
+            Or(Equals(Column("a"), Column("b")), Equals(Column("b"), Column("a")))),
+          Seq(Column("a"), Column("b"))))
+
+      example(
+        query = "SELECT a, b FROM c WHERE NOT a = b",
+        expectedAst = Project(
+          Filter(NamedTable("c", Map.empty, is_streaming = false), Not(Equals(Column("a"), Column("b")))),
+          Seq(Column("a"), Column("b"))))
+    }
 
   }
 }
