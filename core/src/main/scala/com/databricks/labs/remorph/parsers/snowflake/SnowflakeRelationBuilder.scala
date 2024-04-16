@@ -9,11 +9,19 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.Relation] {
 
   override def visitSelect_optional_clauses(ctx: Select_optional_clausesContext): ir.Relation = {
     val from = ctx.from_clause().accept(this)
-    if (ctx.where_clause() != null) {
+    val where = if (ctx.where_clause() != null) {
       val predicate = ctx.where_clause().search_condition().accept(new SnowflakePredicateBuilder)
       ir.Filter(from, predicate)
     } else {
       from
+    }
+    if (ctx.group_by_clause() != null) {
+      val groupingExpressions =
+        ctx.group_by_clause().group_by_list().group_by_elem().asScala.map(_.accept(new SnowflakeExpressionBuilder))
+      ir.Aggregate(input = where, group_type = ir.GroupBy, grouping_expressions = groupingExpressions, pivot = None)
+
+    } else {
+      where
     }
   }
   override def visitObject_ref(ctx: Object_refContext): ir.Relation = {
