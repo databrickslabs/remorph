@@ -1,9 +1,9 @@
 # pylint: disable=wrong-import-order,ungrouped-imports,useless-suppression
 import json
+from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
-from pathlib import Path
 from databricks.connect.session import DatabricksSession
 from databricks.labs.blueprint.tui import MockPrompts
 from pyspark.sql.session import SparkSession
@@ -74,12 +74,12 @@ def test_recon_config_prompt_and_save_config_details(mock_workspace_client):
         }
     )
 
-    # mock DatabricksSecretsClient class _scope_exists method
+    # Patch the scope_exists method to return True
     with patch(
-            "databricks.labs.remorph.helpers.db_workspace_utils.DatabricksSecretsClient._scope_exists",
-            return_value=True,
+        "databricks.labs.remorph.helpers.db_workspace_utils.DatabricksSecretsClient._scope_exists",
+        return_value=True,
     ):
-        # mock DatabricksSession.builder.getOrCreate using MagicMock
+        # Patch the builder method to return a SparkSession
         with patch.object(DatabricksSession, "builder", MagicMock(return_value=SparkSession.builder)):
             recon_conf = ReconConfigPrompts(mock_workspace_client, prompts)
             recon_conf.prompt_source()
@@ -90,7 +90,7 @@ def test_recon_config_prompt_and_save_config_details(mock_workspace_client):
             assert Path("./recon_conf_snowflake.json").exists()
 
             # Check the contents of the config file
-            with open(Path("./recon_conf_snowflake.json"), "r") as file:
+            with open(Path("./recon_conf_snowflake.json"), "r", encoding="utf-8") as file:
                 content = file.read().strip()
                 reconf_config = json.loads(content)
                 assert reconf_config["source_catalog"] == "sf_catalog", "Source catalog name is incorrect"
