@@ -26,7 +26,7 @@ test-python:
 	hatch run test
 
 test-scala:
-	mvn test -f parent/pom.xml
+	mvn test -f pom.xml
 
 integration:
 	hatch run integration
