@@ -21,3 +21,7 @@ case class GreaterThanOrEqual(left: Expression, right: Expression) extends Binar
 case class LesserThanOrEqual(left: Expression, right: Expression) extends Binary(left, right) with Predicate {}
 
 case class Count(expression: Expression) extends Expression {}
+case class Sum(expression: Expression) extends Expression {}
+case class Avg(expression: Expression) extends Expression {}
+case class Max(expression: Expression) extends Expression {}
+case class Min(expression: Expression) extends Expression {}
