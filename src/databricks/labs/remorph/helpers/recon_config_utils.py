@@ -7,7 +7,9 @@ from databricks.labs.blueprint.tui import Prompts
 from databricks.sdk import WorkspaceClient
 
 from databricks.labs.remorph.helpers.db_workspace_utils import DatabricksSecretsClient
-from databricks.labs.remorph.reconcile.connectors.data_source import DataSourceFactory
+from databricks.labs.remorph.reconcile.connectors.data_source_factory import (
+    DataSourceFactory,
+)
 from databricks.labs.remorph.reconcile.constants import SourceType
 from databricks.labs.remorph.reconcile.recon_config import TableRecon
 
@@ -22,10 +24,10 @@ recon_source_choices = [
 
 
 class ReconConfigPrompts:
-    def __init__(self, ws: WorkspaceClient):
+    def __init__(self, ws: WorkspaceClient, prompts: Prompts = Prompts()):
         self._source = None
-        self._prompts = Prompts()
-        self._db_secrets = DatabricksSecretsClient(ws, self._prompts)
+        self._prompts = prompts
+        self._db_secrets = DatabricksSecretsClient(ws, prompts)
 
     def prompt_source(self):
         source = self._prompts.choice("Select the source", recon_source_choices)
@@ -118,13 +120,11 @@ class ReconConfigPrompts:
         Prompt for source, target catalog and schema names
         :return:
         """
-        """Prompt for `catalog_name` only if source is snowflake"""
-        prompt_for_catalog = self._source in {SourceType.SNOWFLAKE.value}
-
-        src_catalog_name = ""
+        src_catalog_name = None
         src_schema_prompt = f"Enter `{self._source}` schema_name"
 
-        if prompt_for_catalog:
+        # Prompt for `catalog_name` only if source is snowflake
+        if self._source in {SourceType.SNOWFLAKE.value}:
             src_catalog_name = self._prompts.question(f"Enter `{self._source}` catalog_name")
             src_schema_prompt = f"Enter `{self._source}` database_name"
 

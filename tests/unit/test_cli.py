@@ -3,11 +3,13 @@ from unittest.mock import create_autospec, patch
 
 import pytest
 import yaml
+from databricks.labs.blueprint.tui import MockPrompts
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.errors import NotFound
 
 from databricks.labs.remorph import cli
 from databricks.labs.remorph.config import MorphConfig
+from databricks.labs.remorph.helpers.recon_config_utils import ReconConfigPrompts
 
 
 @pytest.fixture
@@ -223,32 +225,39 @@ def test_recon_with_valid_input(mock_workspace_client_cli):
         mock_recon.assert_called_once_with(recon_conf, conn_profile, source, report)
 
 
-def test_generate_recon_config_no_secrets(mock_workspace_client):
+def test_generate_recon_config_no_secrets_configured(mock_workspace_client):
     error_msg = (
         "Error: Secrets are needed for `snowflake` reconciliation.\n"
         "Use `remorph configure-secrets` to setup Scope and Secrets."
     )
-    with pytest.raises(Exception, match=error_msg):
-        cli.generate_recon_config(mock_workspace_client)
+    prompts = MockPrompts(
+        {
+            r"Select the source": "3",
+            r".*Did you setup the secrets for the": "no",
+        }
+    )
+
+    recon_conf = ReconConfigPrompts(mock_workspace_client, prompts)
+    recon_conf.prompt_source()
+
+    with pytest.raises(ValueError, match=error_msg):
+        recon_conf.prompt_and_save_config_details()
 
 
-# def configure_secrets(mock_workspace_client):
-#     """
-#     1. if src databricks exit
-#     2. if src snowflake/ any, scope not found, don't create scope. catch Exception
-#     3. if src snowflake/ any, scope found, secret exists, overwrite secret
-#     4. if src snowflake/ any, scope found, secret not exists, store secret
-#     """
-#
-#     # cli.configure_secrets(mock_workspace_client)
-#     pass
-#
-#
-# def test_generate_recon_config(mock_workspace_client):
-#     """
-#     1. prompt for source
-#     2. prompt for secret scope
-#     3. prompt for catalog and schema
-#     """
-#     # cli.generate_recon_config(mock_workspace_client)
-#     pass
+def test_generate_recon_config_create_scope_no(mock_workspace_client):
+    prompts = MockPrompts(
+        {
+            r"Select the source": "3",
+            r".*Did you setup the secrets for the": "yes",
+            r"Enter Secret Scope name": "dummy",
+            r"Do you want to create a new one?": "no",
+        }
+    )
+
+    error_msg = "Scope is needed to store Secrets in Databricks Workspace"
+
+    recon_conf = ReconConfigPrompts(mock_workspace_client, prompts)
+    recon_conf.prompt_source()
+
+    with pytest.raises(SystemExit, match=error_msg):
+        recon_conf.prompt_and_save_config_details()

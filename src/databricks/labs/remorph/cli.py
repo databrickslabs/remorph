@@ -1,6 +1,7 @@
-# pylint: disable=(wrong-import-order,ungrouped-imports,useless-suppression)
+# pylint: disable=wrong-import-order,ungrouped-imports,useless-suppression
 import json
 import os
+from json import JSONDecodeError
 from pathlib import Path
 
 from databricks.labs.blueprint.cli import App
@@ -108,7 +109,7 @@ def validate_recon_config(w: WorkspaceClient, recon_conf: str):
     # Convert the JSON data to the TableRecon dataclass
     try:
         Installation.load_local(type_ref=TableRecon, file=Path(recon_conf))
-    except Exception as e:
+    except JSONDecodeError as e:
         raise_validation_exception(f"Error: Invalid reconciliation config file `{recon_conf}`: {e}")
     logger.info(f"`{recon_conf}` config file is valid")
 

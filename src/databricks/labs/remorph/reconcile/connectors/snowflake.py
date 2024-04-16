@@ -1,7 +1,8 @@
+# pylint: disable=wrong-import-order,ungrouped-imports,useless-suppression
 import re
 
 from databricks.labs.blueprint.entrypoint import get_logger
-from pyspark.errors import PySparkException  # pylint: disable-next=wrong-import-order
+from pyspark.errors import PySparkException
 from pyspark.sql import DataFrame
 from pyspark.sql.functions import col
 
@@ -27,7 +28,7 @@ class SnowflakeDataSource(DataSource):
             f"&warehouse={self._get_secrets('sfWarehouse')}&role={self._get_secrets('sfRole')}"
         )
 
-    def read_data(self, catalog: str, schema: str, query: str, options: JdbcReaderOptions) -> DataFrame:
+    def read_data(self, catalog: str, schema: str, query: str, options: JdbcReaderOptions | None) -> DataFrame:
         try:
             table_query = self._get_table_or_query(catalog, schema, query)
 

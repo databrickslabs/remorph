@@ -20,7 +20,7 @@ class OracleDataSource(DataSource):
             f":{self._get_secrets('port')}/{self._get_secrets('database')}"
         )
 
-    def read_data(self, catalog: str, schema: str, query: str, options: JdbcReaderOptions) -> DataFrame:
+    def read_data(self, catalog: str, schema: str, query: str, options: JdbcReaderOptions | None) -> DataFrame:
         try:
             table_query = self._get_table_or_query(catalog, schema, query)
             if options is None:

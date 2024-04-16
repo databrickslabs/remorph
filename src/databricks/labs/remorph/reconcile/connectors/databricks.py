@@ -14,7 +14,8 @@ from databricks.labs.remorph.reconcile.recon_config import (
 
 class DatabricksDataSource(DataSource):
 
-    def read_data(self, catalog: str, schema: str, query: str, options: JdbcReaderOptions) -> DataFrame:
+    def read_data(self, catalog: str, schema: str, query: str, options: JdbcReaderOptions | None) -> DataFrame:
+        table_query = ""
         try:
             table_query = self._get_table_or_query(catalog, schema, query)
             df = self.spark.sql(table_query)
@@ -27,6 +28,7 @@ class DatabricksDataSource(DataSource):
             raise PySparkException(error_msg) from e
 
     def get_schema(self, catalog: str, schema: str, table: str) -> list[Schema]:
+        schema_query = ""
         try:
             schema_query = self.get_schema_query(catalog, schema, table)
             schema_df = self.spark.sql(schema_query).where("col_name not like '#%'").distinct()
