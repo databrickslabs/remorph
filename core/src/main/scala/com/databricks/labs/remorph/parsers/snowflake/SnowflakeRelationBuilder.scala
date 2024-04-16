@@ -15,13 +15,35 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.Relation] {
     } else {
       from
     }
-    if (ctx.group_by_clause() != null) {
+    val group = if (ctx.group_by_clause() != null) {
       val groupingExpressions =
         ctx.group_by_clause().group_by_list().group_by_elem().asScala.map(_.accept(new SnowflakeExpressionBuilder))
       ir.Aggregate(input = where, group_type = ir.GroupBy, grouping_expressions = groupingExpressions, pivot = None)
 
     } else {
       where
+    }
+    if (ctx.order_by_clause() != null) {
+      val sortOrders = ctx.order_by_clause().order_item().asScala.map { orderItem =>
+        val expression = orderItem.accept(new SnowflakeExpressionBuilder)
+        if (orderItem.DESC() == null) {
+          if (orderItem.NULLS() != null && orderItem.FIRST() != null) {
+            ir.SortOrder(expression, ir.AscendingSortDirection, ir.SortNullsFirst)
+          } else {
+            ir.SortOrder(expression, ir.AscendingSortDirection, ir.SortNullsLast)
+          }
+        } else {
+          if (orderItem.NULLS() != null && orderItem.FIRST() != null) {
+            ir.SortOrder(expression, ir.DescendingSortDirection, ir.SortNullsFirst)
+          } else {
+            ir.SortOrder(expression, ir.DescendingSortDirection, ir.SortNullsLast)
+          }
+        }
+      }
+
+      ir.Sort(input = group, order = sortOrders, is_global = false)
+    } else {
+      group
     }
   }
   override def visitObject_ref(ctx: Object_refContext): ir.Relation = {

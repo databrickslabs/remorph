@@ -158,5 +158,51 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with Matchers {
             pivot = None),
           Seq(Column("a"), Count(Column("b")))))
     }
+    "translate a query with ORDER BY" in {
+      example(
+        query = "SELECT a FROM b ORDER BY a",
+        expectedAst = Project(
+          Sort(
+            input = NamedTable("b", Map.empty, is_streaming = false),
+            order = Seq(SortOrder(Column("a"), AscendingSortDirection, SortNullsLast)),
+            is_global = false),
+          Seq(Column("a"))))
+
+      example(
+        query = "SELECT a FROM b ORDER BY a DESC",
+        expectedAst = Project(
+          Sort(
+            input = NamedTable("b", Map.empty, is_streaming = false),
+            order = Seq(SortOrder(Column("a"), DescendingSortDirection, SortNullsLast)),
+            is_global = false),
+          Seq(Column("a"))))
+
+      example(
+        query = "SELECT a FROM b ORDER BY a NULLS FIRST",
+        expectedAst = Project(
+          Sort(
+            input = NamedTable("b", Map.empty, is_streaming = false),
+            order = Seq(SortOrder(Column("a"), AscendingSortDirection, SortNullsFirst)),
+            is_global = false),
+          Seq(Column("a"))))
+
+      example(
+        query = "SELECT a FROM b ORDER BY a DESC NULLS FIRST",
+        expectedAst = Project(
+          Sort(
+            input = NamedTable("b", Map.empty, is_streaming = false),
+            order = Seq(SortOrder(Column("a"), DescendingSortDirection, SortNullsFirst)),
+            is_global = false),
+          Seq(Column("a"))))
+    }
+
+    "translate queries with LIMIT and OFFSET" in {
+      example(
+        query = "SELECT a FROM b LIMIT 5",
+        expectedAst = Project(Limit(NamedTable("b", Map.empty, is_streaming = false), 5), Seq(Column("a"))))
+      example(
+        query = "SELECT a FROM b LIMIT 5 OFFSET 10",
+        expectedAst = Project(Offset(Limit(NamedTable("b", Map.empty, is_streaming = false), 5), 10), Seq(Column("a"))))
+    }
   }
 }
