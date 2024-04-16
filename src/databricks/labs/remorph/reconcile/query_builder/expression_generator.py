@@ -1,7 +1,5 @@
 from sqlglot import expressions as exp
 
-from databricks.labs.remorph.reconcile.recon_config import Thresholds
-
 
 class ExpressionGenerator:
 
