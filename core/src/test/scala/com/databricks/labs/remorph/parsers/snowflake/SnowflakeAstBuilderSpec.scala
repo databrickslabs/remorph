@@ -220,5 +220,17 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with Matchers {
         query = "SELECT a FROM b LIMIT 5 OFFSET 10",
         expectedAst = Project(Offset(Limit(NamedTable("b", Map.empty, is_streaming = false), 5), 10), Seq(Column("a"))))
     }
+    "translate a query with PIVOT" in {
+      example(
+        query = "SELECT a FROM b PIVOT (SUM(a) FOR c IN ('foo', 'bar'))",
+        expectedAst = Project(
+          Aggregate(
+            input = NamedTable("b", Map.empty, is_streaming = false),
+            group_type = Pivot,
+            grouping_expressions = Seq(Sum(Column("a"))),
+            pivot = Some(Pivot(Column("c"), Seq(Literal(string = Some("foo")), Literal(string = Some("bar")))))),
+          Seq(Column("a"))))
+    }
+
   }
 }

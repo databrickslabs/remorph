@@ -56,9 +56,45 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.Relation] {
 
   override def visitObject_ref(ctx: Object_refContext): ir.Relation = {
     val tableName = ctx.object_name().id_(0).getText
-    ir.NamedTable(tableName, Map.empty, is_streaming = false)
+    val table = ir.NamedTable(tableName, Map.empty, is_streaming = false)
+    withPivot(table, ctx.pivot_unpivot())
   }
 
+  private def withPivot(relation: ir.Relation, ctx: Pivot_unpivotContext): ir.Relation = {
+    if (ctx == null) {
+      relation
+    } else {
+      val pivotValues: Seq[ir.Literal] = ctx.literal().asScala.map(_.accept(new SnowflakeExpressionBuilder)).collect {
+        case lit: ir.Literal => lit
+      }
+      val pivotColumn = ir.Column(ctx.id_(2).getText)
+      val aggregateFunction = translateAggregateFunction(ctx.id_(0), ctx.id_(1))
+      ir.Aggregate(
+        input = relation,
+        group_type = ir.Pivot,
+        grouping_expressions = Seq(aggregateFunction),
+        pivot = Some(ir.Pivot(pivotColumn, pivotValues)))
+    }
+  }
+
+  private def translateAggregateFunction(aggFunc: Id_Context, parameter: Id_Context): ir.Expression = {
+    val column = ir.Column(parameter.getText)
+    if (aggFunc.builtin_function() != null) {
+      if (aggFunc.builtin_function().SUM() != null) {
+        ir.Sum(column)
+      } else if (aggFunc.builtin_function().AVG() != null) {
+        ir.Avg(column)
+      } else if (aggFunc.builtin_function().COUNT() != null) {
+        ir.Count(column)
+      } else if (aggFunc.builtin_function().MIN() != null) {
+        ir.Min(column)
+      } else {
+        null
+      }
+    } else {
+      null
+    }
+  }
   override def visitTable_source_item_joined(ctx: Table_source_item_joinedContext): ir.Relation = {
 
     def buildJoin(left: ir.Relation, right: Join_clauseContext): ir.Join = {
