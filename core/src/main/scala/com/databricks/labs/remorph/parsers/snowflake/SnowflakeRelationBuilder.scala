@@ -24,9 +24,9 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.Relation] {
       where
     }
     if (ctx.order_by_clause() != null) {
-      val sortOrders = ctx.order_by_clause().order_item().asScala.map{ orderItem =>
+      val sortOrders = ctx.order_by_clause().order_item().asScala.map { orderItem =>
         val expression = orderItem.accept(new SnowflakeExpressionBuilder)
-        if (orderItem.DESC() == null ) {
+        if (orderItem.DESC() == null) {
           if (orderItem.NULLS() != null && orderItem.FIRST() != null) {
             ir.SortOrder(expression, ir.AscendingSortDirection, ir.SortNullsFirst)
           } else {
