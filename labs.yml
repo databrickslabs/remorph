@@ -53,3 +53,5 @@ commands:
     flags:
         - name: recon_conf
           description: Path of the data-recon config
+  - name: configure-secrets
+    description: Utility to setup Scope and Secrets on Databricks Workspace

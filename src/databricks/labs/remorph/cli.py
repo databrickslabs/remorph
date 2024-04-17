@@ -113,5 +113,17 @@ def validate_recon_config(w: WorkspaceClient, recon_conf: str):
     logger.info(f"`{recon_conf}` config file is valid")
 
 
+@remorph.command
+def configure_secrets(w: WorkspaceClient):
+    """Setup reconciliation connection profile details as Secrets on Databricks Workspace"""
+    recon_conf = ReconConfigPrompts(w)
+
+    # Prompt for source
+    source = recon_conf.prompt_source()
+
+    logger.info(f"Setting up Scope, Secrets for `{source}` reconciliation")
+    recon_conf.prompt_and_save_connection_details()
+
+
 if __name__ == "__main__":
     remorph()
