@@ -232,5 +232,17 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with Matchers {
           Seq(Column("a"))))
     }
 
+    "translate a query with UNPIVOT" in {
+      example(
+        query = "SELECT a FROM b UNPIVOT (c FOR d IN (e, f))",
+        expectedAst = Project(
+          Unpivot(
+            input = NamedTable("b", Map.empty, is_streaming = false),
+            ids = Seq(Column("e"), Column("f")),
+            values = None,
+            variable_column_name = "c",
+            value_column_name = "d1"),
+          Seq(Column("a"))))
+    }
   }
 }
