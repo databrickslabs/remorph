@@ -57,20 +57,20 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.Relation] {
   override def visitObject_ref(ctx: Object_refContext): ir.Relation = {
     val tableName = ctx.object_name().id_(0).getText
     val table = ir.NamedTable(tableName, Map.empty, is_streaming = false)
-    withPivotOrUnpivot(table, ctx.pivot_unpivot())
+    buildPivotOrUnpivot(ctx.pivot_unpivot(), table)
   }
 
-  private def withPivotOrUnpivot(relation: ir.Relation, ctx: Pivot_unpivotContext): ir.Relation = {
+  private def buildPivotOrUnpivot(ctx: Pivot_unpivotContext, relation: ir.Relation): ir.Relation = {
     if (ctx == null) {
       relation
     } else if (ctx.PIVOT() != null) {
-      withPivot(relation, ctx)
+      buildPivot(ctx, relation)
     } else {
-      withUnpivot(relation, ctx)
+      buildUnpivot(ctx, relation)
     }
   }
 
-  private def withPivot(relation: ir.Relation, ctx: Pivot_unpivotContext): ir.Relation = {
+  private def buildPivot(ctx: Pivot_unpivotContext, relation: ir.Relation): ir.Relation = {
     val pivotValues: Seq[ir.Literal] = ctx.literal().asScala.map(_.accept(new SnowflakeExpressionBuilder)).collect {
       case lit: ir.Literal => lit
     }
@@ -83,7 +83,7 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.Relation] {
       pivot = Some(ir.Pivot(pivotColumn, pivotValues)))
   }
 
-  private def withUnpivot(relation: ir.Relation, ctx: Pivot_unpivotContext): ir.Relation = {
+  private def buildUnpivot(ctx: Pivot_unpivotContext, relation: ir.Relation): ir.Relation = {
     val unpivotColumns = ctx.column_list().column_name().asScala.map(_.accept(new SnowflakeExpressionBuilder))
     val variableColumnName = ctx.id_(0).getText
     val valueColumnName = ctx.column_name().id_(0).getText

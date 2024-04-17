@@ -241,7 +241,7 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with Matchers {
             ids = Seq(Column("e"), Column("f")),
             values = None,
             variable_column_name = "c",
-            value_column_name = "d1"),
+            value_column_name = "d"),
           Seq(Column("a"))))
     }
   }
