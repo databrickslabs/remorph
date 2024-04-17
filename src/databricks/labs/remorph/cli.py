@@ -22,13 +22,13 @@ def raise_validation_exception(msg: str) -> Exception:
 
 @remorph.command
 def transpile(
-        w: WorkspaceClient,
-        source: str,
-        input_sql: str,
-        output_folder: str,
-        skip_validation: str,
-        catalog_name: str,
-        schema_name: str,
+    w: WorkspaceClient,
+    source: str,
+    input_sql: str,
+    output_folder: str,
+    skip_validation: str,
+    catalog_name: str,
+    schema_name: str,
 ):
     """transpiles source dialect to databricks dialect"""
     logger.info(f"user: {w.current_user.me()}")
