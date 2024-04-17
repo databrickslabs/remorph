@@ -1,31 +1,15 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
 import com.databricks.labs.remorph.parsers.intermediate._
-import org.antlr.v4.runtime.{CharStreams, CommonTokenStream}
 import org.scalatest.Assertion
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-class SnowflakeAstBuilderSpec extends AnyWordSpec with Matchers {
+class SnowflakeAstBuilderSpec extends AnyWordSpec with ParserTestCommon with Matchers {
 
-  private def parseString(input: String): SnowflakeParser.Snowflake_fileContext = {
-    val inputString = CharStreams.fromString(input)
-    val lexer = new SnowflakeLexer(inputString)
-    val tokenStream = new CommonTokenStream(lexer)
-    val parser = new SnowflakeParser(tokenStream)
-    val tree = parser.snowflake_file()
-    // uncomment the following line if you need a peek in the Snowflake AST
-    // println(tree.toStringTree(parser))
-    tree
-  }
-
-  private def example(query: String, expectedAst: TreeNode): Assertion = {
-    val sfTree = parseString(query)
-
-    val result = new SnowflakeAstBuilder().visit(sfTree)
-
-    result shouldBe expectedAst
-  }
+  override def astBuilder: SnowflakeParserBaseVisitor[_] = new SnowflakeAstBuilder
+  private def example(query: String, expectedAst: TreeNode): Assertion =
+    example(query, _.snowflake_file(), expectedAst)
 
   "SnowflakeVisitor" should {
     "translate a simple SELECT query" in {
