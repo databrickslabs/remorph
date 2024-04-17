@@ -38,5 +38,5 @@ def lineage_generator(source: str, input_sql: str, output_folder: str):
         logger.warning(f'The output file already exists and will be replaced: {output_filename}')
 
     logger.info(f"Attempting to write the lineage to {output_filename}")
-    write_file(output_folder, lineage_file_content)
+    write_file(output_filename, lineage_file_content)
     logger.info(f"Succeeded to write the lineage to {output_filename}")
