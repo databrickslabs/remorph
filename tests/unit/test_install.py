@@ -87,6 +87,7 @@ def test_save_config(ws, mock_installation):
             "skip_validation": True,
             "catalog_name": "transpiler_test",
             "schema_name": "convertor_test",
+            "mode": "current",
         },
     )
 
