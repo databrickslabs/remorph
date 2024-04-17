@@ -88,3 +88,14 @@ def read_file(filename: str | Path) -> str:
     # pylint: disable=unspecified-encoding
     with Path(filename).open() as file:
         return file.read()
+
+
+def write_file(file_path: str, file_content: str, encoding: str = 'utf-8'):
+    """
+    Writes content to a file using the specified encoding.
+    :param file_path: Output file path
+    :param file_content: File contents as a string
+    :param encoding: Encoding for file contents, defaults to 'utf-8'
+    """
+    with open(file_path, 'w', encoding=encoding) as f:
+        f.write(file_content)

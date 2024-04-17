@@ -7,7 +7,8 @@ from databricks.labs.blueprint.installation import Installation
 from databricks.sdk import WorkspaceClient
 
 from databricks.labs.remorph.config import MorphConfig
-from databricks.labs.remorph.lineage.execute import lineage_generator
+from databricks.labs.remorph.lineage import lineage_generator
+from databricks.labs.remorph.reconcile.constants import SourceType
 from databricks.labs.remorph.reconcile.execute import recon
 from databricks.labs.remorph.transpiler.execute import morph
 
@@ -21,13 +22,13 @@ def raise_validation_exception(msg: str) -> Exception:
 
 @remorph.command
 def transpile(
-    w: WorkspaceClient,
-    source: str,
-    input_sql: str,
-    output_folder: str,
-    skip_validation: str,
-    catalog_name: str,
-    schema_name: str,
+        w: WorkspaceClient,
+        source: str,
+        input_sql: str,
+        output_folder: str,
+        skip_validation: str,
+        catalog_name: str,
+        schema_name: str,
 ):
     """transpiles source dialect to databricks dialect"""
     logger.info(f"user: {w.current_user.me()}")
@@ -86,15 +87,18 @@ def reconcile(w: WorkspaceClient, recon_conf: str, conn_profile: str, source: st
 @remorph.command
 def generate_lineage(w: WorkspaceClient, source: str, input_sql: str, output_folder: str):
     """Generates a lineage of source SQL files or folder"""
-    logger.info(f"user: {w.current_user.me()}")
-    if source.lower() not in {"snowflake", "tsql"}:
+    logger.info(f"User: {w.current_user.me()}")
+    expected_sources = {SourceType.SNOWFLAKE.value}
+    if source.lower() not in expected_sources:
         raise_validation_exception(
-            f"Error: Invalid value for '--source': '{source}' is not one of 'snowflake', 'tsql'. "
+            f"Error: Invalid value for '--source': '{source}' is not one of {expected_sources}. "
         )
     if not os.path.exists(input_sql) or input_sql in {None, ""}:
         raise_validation_exception(f"Error: Invalid value for '--input_sql': Path '{input_sql}' does not exist.")
     if not os.path.exists(output_folder) or output_folder in {None, ""}:
-        raise_validation_exception(f"Error: Invalid value for '--output-folder': Path '{input_sql}' does not exist.")
+        raise_validation_exception(
+            f"Error: Invalid value for '--output-folder': Path '{output_folder}' does not exist."
+        )
 
     lineage_generator(source, input_sql, output_folder)
 
