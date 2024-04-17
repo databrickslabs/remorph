@@ -27,13 +27,13 @@ def transpile(
     skip_validation: str,
     catalog_name: str,
     schema_name: str,
+    mode: str,
 ):
     """transpiles source dialect to databricks dialect"""
     logger.info(f"user: {w.current_user.me()}")
     installation = Installation.current(w, 'remorph')
     default_config = installation.load(MorphConfig)
-
-    # TODO refactor cli based on the default config
+    mode = mode if mode else "current"  # not checking for default config as it will always be current
 
     if source.lower() not in {"snowflake", "tsql"}:
         raise_validation_exception(
@@ -47,6 +47,10 @@ def transpile(
         raise_validation_exception(
             f"Error: Invalid value for '--skip_validation': '{skip_validation}' is not one of 'true', 'false'. "
         )
+    if mode.lower() not in {"current", "experimental"}:
+        raise_validation_exception(
+            f"Error: Invalid value for '--mode': '{mode}' " f"is not one of 'current', 'experimental'. "
+        )
 
     sdk_config = default_config.sdk_config if default_config.sdk_config else None
     config = MorphConfig(
@@ -56,6 +60,7 @@ def transpile(
         skip_validation=skip_validation.lower() == "true",  # convert to bool
         catalog_name=catalog_name,
         schema_name=schema_name,
+        mode=mode,
         sdk_config=sdk_config,
     )
 
