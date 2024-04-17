@@ -42,8 +42,12 @@ class SnowflakeExpressionBuilder extends SnowflakeParserBaseVisitor[ir.Expressio
   }
 
   override def visitPrimitive_expression(ctx: Primitive_expressionContext): ir.Expression = {
-    val columnName = ctx.id_(0).getText
-    ir.Column(columnName)
+    if (ctx.id_(0) != null) {
+      val columnName = ctx.id_(0).getText
+      ir.Column(columnName)
+    } else {
+      super.visitPrimitive_expression(ctx)
+    }
   }
 
   override def visitOrder_item(ctx: Order_itemContext): ir.Expression = {
