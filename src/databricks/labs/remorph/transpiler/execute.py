@@ -17,7 +17,6 @@ from databricks.labs.remorph.helpers.morph_status import MorphStatus, Validation
 from databricks.labs.remorph.helpers.validation import Validator
 from databricks.labs.remorph.snow import lca_utils
 from databricks.labs.remorph.snow.sql_transpiler import SqlglotEngine
-from databricks.labs.remorph.transpiler.dialects_config import DialectConfig
 
 # pylint: disable=unspecified-encoding
 
@@ -46,7 +45,7 @@ def process_file(
     if lca_error:
         validate_error_list.append(lca_error)
 
-    write_dialect = DialectConfig().get_write_dialect(config)
+    write_dialect = config.get_write_dialect()
 
     transpiled_sql, parse_error_list = transpiler.transpile(write_dialect, sql, str(input_file), [])
 
@@ -148,7 +147,7 @@ def morph(workspace_client: WorkspaceClient, config: MorphConfig):
     status = []
     result = MorphStatus([], 0, 0, 0, [])
 
-    read_dialect = DialectConfig().get_read_dialect(config)
+    read_dialect = config.get_read_dialect()
     transpiler = SqlglotEngine(read_dialect)
     validator = None
     if not config.skip_validation:

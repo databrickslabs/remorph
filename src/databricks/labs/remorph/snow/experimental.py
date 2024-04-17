@@ -8,7 +8,7 @@ from databricks.labs.remorph.snow import databricks
 logger = logging.getLogger(__name__)
 
 
-class Databricks(databricks.Databricks):
+class DatabricksExperimental(databricks.Databricks):
     databricks = databricks.Databricks()
 
     class Generator(databricks.Generator):

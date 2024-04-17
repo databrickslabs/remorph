@@ -3,18 +3,17 @@ from sqlglot import expressions
 
 from databricks.labs.remorph.snow import local_expression
 from databricks.labs.remorph.snow.sql_transpiler import SqlglotEngine
-from databricks.labs.remorph.transpiler.dialects_config import DialectConfig
 
 
 @pytest.fixture
 def transpiler(morph_config):
-    read_dialect = DialectConfig().get_read_dialect(morph_config)
+    read_dialect = morph_config.get_read_dialect()
     return SqlglotEngine(read_dialect)
 
 
 @pytest.fixture
 def write_dialect(morph_config):
-    return DialectConfig().get_write_dialect(morph_config)
+    return morph_config.get_write_dialect()
 
 
 def test_transpile_snowflake(transpiler, write_dialect):

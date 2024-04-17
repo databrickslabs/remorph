@@ -82,16 +82,13 @@ class WorkspaceInstaller:
             except NotFound:
                 self.setup_schema(catalog_name, schema_name)
 
-        # We will never enable this prompt as this is like a hidden flag
-        # mode = self._prompts.choice("Select the Transpile Mode", ["current", "experimental"])
-
         config = MorphConfig(
             source=source,
             skip_validation=skip_validation,
             catalog_name=catalog_name,
             schema_name=schema_name,
             sdk_config=ws_config,
-            mode="current",
+            mode="current",  # mode will not have a prompt as this is hidden flag
         )
 
         ws_file_url = self._installation.save(config)

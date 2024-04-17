@@ -82,7 +82,7 @@ def test_save_config(ws, mock_installation):
     mock_installation.assert_file_written(
         "config.yml",
         {
-            "version": 2,
+            "version": 1,
             "source": "snowflake",
             "skip_validation": True,
             "catalog_name": "transpiler_test",

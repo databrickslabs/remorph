@@ -1,5 +1,4 @@
 # pylint: disable=wrong-import-order,ungrouped-imports, useless-suppression)
-import os
 import re
 from pathlib import Path
 from unittest.mock import create_autospec
@@ -13,10 +12,9 @@ from sqlglot import ErrorLevel, UnsupportedError
 from sqlglot import parse_one as sqlglot_parse_one
 from sqlglot import transpile
 
-from databricks.labs.remorph.config import MorphConfig
+from databricks.labs.remorph.config import SQLGLOT_DIALECTS, MorphConfig
 from databricks.labs.remorph.snow.databricks import Databricks
 from databricks.labs.remorph.snow.snowflake import Snow
-from databricks.labs.remorph.transpiler.dialects_config import DialectConfig
 
 from .snow.helpers.functional_test_cases import (
     FunctionalTestFile,
@@ -69,8 +67,7 @@ def normalize_string():
 
 
 def get_dialect(input_dialect=None):
-    # pylint: disable=protected-access
-    return DialectConfig()._get_dialect(input_dialect)
+    return SQLGLOT_DIALECTS.get(input_dialect)
 
 
 def parse_one(sql):
@@ -146,40 +143,34 @@ def dialect_context():
 
 def parse_sql_files(input_dir: Path, source: str, target: str, is_expected_exception):
     suite = []
-    for dirpath, _, filenames in os.walk(input_dir):
-        if dirpath.endswith("__pycache__"):
-            continue
-        for file in filenames:
-            if not file.endswith('.sql'):
-                continue
-            abs_path = Path(dirpath) / file
-            with open(abs_path, 'r', encoding="utf-8") as file_content:
-                content = file_content.read()
-            if content:
-                parts = content.split(f"-- {source.lower()} sql:")
-                for part in parts[1:]:
-                    source_sql = re.split(r'-- \w+ sql:', part)[0].strip().rstrip(";")
-                    target_sql = (
-                        re.split(rf'-- {target} sql:', part)[1]
-                        if len(re.split(rf'-- {target} sql:', part)) > 1
-                        else re.split(r'-- databricks sql:', part)[1]
-                    )
-                    target_sql = re.split(r'-- \w+ sql:', target_sql)[0].strip().rstrip(';').replace('\\', '')
-                    # when multiple sqls are present below target
-                    test_name = file.replace('.sql', '')
-                    if is_expected_exception:
-                        suite.append(
-                            FunctionalTestFileWithExpectedException(
-                                target_sql, source_sql, test_name, expected_exceptions[test_name]
-                            )
+    for filenames in input_dir.rglob("*.sql"):
+        with open(filenames, 'r', encoding="utf-8") as file_content:
+            content = file_content.read()
+        if content:
+            parts = content.split(f"-- {source.lower()} sql:")
+            for part in parts[1:]:
+                source_sql = re.split(r'-- \w+ sql:', part)[0].strip().rstrip(";")
+                target_sql = (
+                    re.split(rf'-- {target} sql:', part)[1]
+                    if len(re.split(rf'-- {target} sql:', part)) > 1
+                    else re.split(r'-- databricks sql:', part)[1]
+                )
+                target_sql = re.split(r'-- \w+ sql:', target_sql)[0].strip().rstrip(';').replace('\\', '')
+                # when multiple sqls are present below target
+                test_name = filenames.name.replace(".sql", "")
+                if is_expected_exception:
+                    suite.append(
+                        FunctionalTestFileWithExpectedException(
+                            target_sql, source_sql, test_name, expected_exceptions[test_name]
                         )
-                    else:
-                        suite.append(FunctionalTestFile(target_sql, source_sql, test_name))
+                    )
+                else:
+                    suite.append(FunctionalTestFile(target_sql, source_sql, test_name))
     return suite
 
 
 def get_functional_test_files_from_directory(
-    input_dir: Path | str, source: str, target: str, is_expected_exception=False
+    input_dir: Path, source: str, target: str, is_expected_exception=False
 ) -> list[FunctionalTestFile] | list[FunctionalTestFileWithExpectedException]:
     """Get all functional tests in the input_dir."""
     suite = parse_sql_files(input_dir, source, target, is_expected_exception)
