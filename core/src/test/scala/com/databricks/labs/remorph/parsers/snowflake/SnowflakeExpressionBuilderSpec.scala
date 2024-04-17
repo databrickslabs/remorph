@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
-import com.databricks.labs.remorph.parsers.intermediate.{Literal, NullType, Decimal}
+import com.databricks.labs.remorph.parsers.intermediate._
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
@@ -21,6 +21,14 @@ class SnowflakeExpressionBuilderSpec extends AnyWordSpec with ParserTestCommon w
       example("0.123456789", _.literal(), Literal(double = Some(0.123456789)))
       example("0.123456789e-1234", _.literal(), Literal(decimal = Some(Decimal("0.123456789e-1234", None, None))))
       example("'foo'", _.literal(), Literal(string = Some("foo")))
+    }
+
+    "translate column names" in {
+      example("x", _.column_name(), Column("x"))
+    }
+
+    "translate aggregation functions" in {
+      example("COUNT(x)", _.aggregate_function(), Count(Column("x")))
     }
   }
 }
