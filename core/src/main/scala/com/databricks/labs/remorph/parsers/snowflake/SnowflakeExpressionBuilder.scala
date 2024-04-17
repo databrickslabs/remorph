@@ -55,16 +55,23 @@ class SnowflakeExpressionBuilder extends SnowflakeParserBaseVisitor[ir.Expressio
     ir.Column(columnName)
   }
 
-  override def visitLiteral(ctx: LiteralContext): ir.Literal = if (ctx.STRING() != null) {
-    ir.Literal(string = Some(removeQuotes(ctx.STRING().getText)))
-  } else if (ctx.DECIMAL != null) {
-    visitDecimal(ctx.DECIMAL.getText)
-  } else if (ctx.true_false() != null) {
-    visitTrue_false(ctx.true_false())
-  } else if (ctx.NULL_() != null) {
-    ir.Literal(nullType = Some(ir.NullType()))
-  } else {
-    ir.Literal(nullType = Some(ir.NullType()))
+  override def visitLiteral(ctx: LiteralContext): ir.Literal = {
+    val sign = Option(ctx.sign()).map(_ => "-").getOrElse("")
+    if (ctx.STRING() != null) {
+      ir.Literal(string = Some(removeQuotes(ctx.STRING().getText)))
+    } else if (ctx.DECIMAL() != null) {
+      visitDecimal(sign + ctx.DECIMAL().getText)
+    } else if (ctx.FLOAT() != null) {
+      visitDecimal(sign + ctx.FLOAT().getText)
+    } else if (ctx.REAL() != null) {
+      visitDecimal(sign + ctx.REAL().getText)
+    } else if (ctx.true_false() != null) {
+      visitTrue_false(ctx.true_false())
+    } else if (ctx.NULL_() != null) {
+      ir.Literal(nullType = Some(ir.NullType()))
+    } else {
+      ir.Literal(nullType = Some(ir.NullType()))
+    }
   }
 
   private def removeQuotes(str: String): String = {
