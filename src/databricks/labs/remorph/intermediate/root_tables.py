@@ -1,6 +1,7 @@
 import logging
 from pathlib import Path
 
+from databricks.labs.remorph.config import SQLGLOT_DIALECTS
 from databricks.labs.remorph.helpers.file_utils import (
     get_sql_file,
     is_sql_file,
@@ -16,7 +17,7 @@ class RootTableIdentifier:
     def __init__(self, source: str, input_path: str | Path):
         self.source = source
         self.input_path = input_path
-        self.engine_adapter = EngineAdapter(source)
+        self.engine_adapter = EngineAdapter(SQLGLOT_DIALECTS.get(source))
 
     def generate_lineage(self, engine="sqlglot") -> DAG:
         dag = DAG()

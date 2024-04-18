@@ -47,6 +47,7 @@ def test_transpile_with_invalid_dialect(mock_workspace_client_cli):
             "true",
             "my_catalog",
             "my_schema",
+            "current",
         )
 
 
@@ -63,6 +64,7 @@ def test_transpile_with_invalid_skip_validation(mock_workspace_client_cli):
             "invalid_value",
             "my_catalog",
             "my_schema",
+            "current",
         )
 
 
@@ -79,6 +81,7 @@ def test_invalid_input_sql(mock_workspace_client_cli):
             "true",
             "my_catalog",
             "my_schema",
+            "current",
         )
 
 
@@ -89,6 +92,7 @@ def test_transpile_with_valid_input(mock_workspace_client_cli):
     skip_validation = "true"
     catalog_name = "my_catalog"
     schema_name = "my_schema"
+    mode = "current"
     sdk_config = {'cluster_id': 'test_cluster'}
 
     with (
@@ -103,6 +107,7 @@ def test_transpile_with_valid_input(mock_workspace_client_cli):
             skip_validation,
             catalog_name,
             schema_name,
+            mode,
         )
         mock_morph.assert_called_once_with(
             mock_workspace_client_cli,
@@ -114,6 +119,7 @@ def test_transpile_with_valid_input(mock_workspace_client_cli):
                 skip_validation=True,
                 catalog_name=catalog_name,
                 schema_name=schema_name,
+                mode=mode,
             ),
         )
 
@@ -125,6 +131,8 @@ def test_transpile_empty_output_folder(mock_workspace_client_cli):
     skip_validation = "false"
     catalog_name = "my_catalog"
     schema_name = "my_schema"
+
+    mode = "current"
     sdk_config = {'cluster_id': 'test_cluster'}
 
     with (
@@ -139,6 +147,7 @@ def test_transpile_empty_output_folder(mock_workspace_client_cli):
             skip_validation,
             catalog_name,
             schema_name,
+            mode,
         )
         mock_morph.assert_called_once_with(
             mock_workspace_client_cli,
@@ -150,7 +159,60 @@ def test_transpile_empty_output_folder(mock_workspace_client_cli):
                 skip_validation=False,
                 catalog_name=catalog_name,
                 schema_name=schema_name,
+                mode=mode,
             ),
+        )
+
+
+def test_transpile_with_incorrect_input_mode(mock_workspace_client_cli):
+
+    with (
+        patch("os.path.exists", return_value=True),
+        pytest.raises(Exception, match="Error: Invalid value for '--mode':"),
+    ):
+        source = "snowflake"
+        input_sql = "/path/to/sql/file2.sql"
+        output_folder = ""
+        skip_validation = "false"
+        catalog_name = "my_catalog"
+        schema_name = "my_schema"
+        mode = "preview"
+
+        cli.transpile(
+            mock_workspace_client_cli,
+            source,
+            input_sql,
+            output_folder,
+            skip_validation,
+            catalog_name,
+            schema_name,
+            mode,
+        )
+
+
+def test_transpile_with_incorrect_input_source(mock_workspace_client_cli):
+
+    with (
+        patch("os.path.exists", return_value=True),
+        pytest.raises(Exception, match="Error: Invalid value for '--source':"),
+    ):
+        source = "postgres"
+        input_sql = "/path/to/sql/file2.sql"
+        output_folder = ""
+        skip_validation = "false"
+        catalog_name = "my_catalog"
+        schema_name = "my_schema"
+        mode = "preview"
+
+        cli.transpile(
+            mock_workspace_client_cli,
+            source,
+            input_sql,
+            output_folder,
+            skip_validation,
+            catalog_name,
+            schema_name,
+            mode,
         )
 
 
