@@ -93,8 +93,8 @@ def reconcile(w: WorkspaceClient, recon_conf: str, conn_profile: str, source: st
 @remorph.command
 def validate_recon_config(w: WorkspaceClient, recon_conf: str):
     """validates reconciliation config file"""
-    logger.info(f"user: {w.current_user.me()}")
-    logger.debug("Validating reconcile config file")
+    logger.debug(f"user: {w.current_user.me()}")
+    logger.info("Validating reconcile config file")
 
     # Converts the JSON data to the TableRecon dataclass
     try:
