@@ -14,7 +14,7 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.Relation] {
 
   private def buildWhere(ctx: Select_optional_clausesContext, from: ir.Relation): ir.Relation =
     if (ctx.where_clause() != null) {
-      val predicate = ctx.where_clause().search_condition().accept(new SnowflakePredicateBuilder)
+      val predicate = ctx.where_clause().search_condition().accept(new SnowflakeExpressionBuilder)
       ir.Filter(from, predicate)
     } else {
       from
@@ -57,7 +57,7 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.Relation] {
 
   def buildHaving(ctx: Having_clauseContext, input: ir.Relation): ir.Relation = {
     if (ctx != null) {
-      val condition = ctx.search_condition().accept(new SnowflakePredicateBuilder)
+      val condition = ctx.search_condition().accept(new SnowflakeExpressionBuilder)
       ir.Filter(input, condition)
     } else {
       input
