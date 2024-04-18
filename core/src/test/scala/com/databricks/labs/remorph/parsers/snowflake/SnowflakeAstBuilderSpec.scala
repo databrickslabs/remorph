@@ -174,6 +174,20 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with Matchers {
           Seq(Column("a"), Count(Column("b")))))
     }
 
+    "translate a query with GROUP BY HAVING clause" in {
+      example(
+        query = "SELECT a, COUNT(b) FROM c GROUP BY a HAVING COUNT(b) > 1",
+        expectedAst = Project(
+          Filter(
+            Aggregate(
+              input = NamedTable("c", Map.empty, is_streaming = false),
+              group_type = GroupBy,
+              grouping_expressions = Seq(Column("a")),
+              pivot = None),
+            GreaterThan(Count(Column("b")), Literal(integer = Some(1)))),
+          Seq(Column("a"), Count(Column("b")))))
+    }
+
     "translate a query with ORDER BY" in {
       example(
         query = "SELECT a FROM b ORDER BY a",
@@ -232,5 +246,17 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with Matchers {
           Seq(Column("a"))))
     }
 
+    "translate a query with UNPIVOT" in {
+      example(
+        query = "SELECT a FROM b UNPIVOT (c FOR d IN (e, f))",
+        expectedAst = Project(
+          Unpivot(
+            input = NamedTable("b", Map.empty, is_streaming = false),
+            ids = Seq(Column("e"), Column("f")),
+            values = None,
+            variable_column_name = "c",
+            value_column_name = "d"),
+          Seq(Column("a"))))
+    }
   }
 }
