@@ -94,24 +94,6 @@ class SnowflakeExpressionBuilder extends SnowflakeParserBaseVisitor[ir.Expressio
 
   override def visitExpr(ctx: ExprContext): ir.Expression = {
 
-    def buildComparison(left: ir.Expression, right: ir.Expression, op: Comparison_operatorContext): ir.Expression = {
-      if (op.EQ() != null) {
-        ir.Equals(left, right)
-      } else if (op.NE() != null || op.LTGT() != null) {
-        ir.NotEquals(left, right)
-      } else if (op.GT() != null) {
-        ir.GreaterThan(left, right)
-      } else if (op.LT() != null) {
-        ir.LesserThan(left, right)
-      } else if (op.GE() != null) {
-        ir.GreaterThanOrEqual(left, right)
-      } else if (op.LE() != null) {
-        ir.LesserThanOrEqual(left, right)
-      } else {
-        visitChildren(ctx)
-      }
-    }
-
     if (ctx.AND() != null) {
       val left = ctx.expr(0).accept(this)
       val right = ctx.expr(1).accept(this)
@@ -123,9 +105,30 @@ class SnowflakeExpressionBuilder extends SnowflakeParserBaseVisitor[ir.Expressio
     } else if (ctx.comparison_operator() != null) {
       val left = ctx.expr(0).accept(this)
       val right = ctx.expr(1).accept(this)
-      buildComparison(left, right, ctx.comparison_operator())
+      buildComparisonExpression(ctx.comparison_operator(), left, right)
     } else {
       visitChildren(ctx)
+    }
+  }
+
+  private def buildComparisonExpression(
+      op: Comparison_operatorContext,
+      left: ir.Expression,
+      right: ir.Expression): ir.Expression = {
+    if (op.EQ() != null) {
+      ir.Equals(left, right)
+    } else if (op.NE() != null || op.LTGT() != null) {
+      ir.NotEquals(left, right)
+    } else if (op.GT() != null) {
+      ir.GreaterThan(left, right)
+    } else if (op.LT() != null) {
+      ir.LesserThan(left, right)
+    } else if (op.GE() != null) {
+      ir.GreaterThanOrEqual(left, right)
+    } else if (op.LE() != null) {
+      ir.LesserThanOrEqual(left, right)
+    } else {
+      visitChildren(op)
     }
   }
 
