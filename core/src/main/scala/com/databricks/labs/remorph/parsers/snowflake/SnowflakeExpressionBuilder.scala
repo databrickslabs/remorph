@@ -42,8 +42,12 @@ class SnowflakeExpressionBuilder extends SnowflakeParserBaseVisitor[ir.Expressio
   }
 
   override def visitPrimitive_expression(ctx: Primitive_expressionContext): ir.Expression = {
-    val columnName = ctx.id_(0).getText
-    ir.Column(columnName)
+    if (ctx.id_(0) != null) {
+      val columnName = ctx.id_(0).getText
+      ir.Column(columnName)
+    } else {
+      super.visitPrimitive_expression(ctx)
+    }
   }
 
   override def visitOrder_item(ctx: Order_itemContext): ir.Expression = {
@@ -51,16 +55,23 @@ class SnowflakeExpressionBuilder extends SnowflakeParserBaseVisitor[ir.Expressio
     ir.Column(columnName)
   }
 
-  override def visitLiteral(ctx: LiteralContext): ir.Literal = if (ctx.STRING() != null) {
-    ir.Literal(string = Some(removeQuotes(ctx.STRING().getText)))
-  } else if (ctx.DECIMAL != null) {
-    visitDecimal(ctx.DECIMAL.getText)
-  } else if (ctx.true_false() != null) {
-    visitTrue_false(ctx.true_false())
-  } else if (ctx.NULL_() != null) {
-    ir.Literal(nullType = Some(ir.NullType()))
-  } else {
-    ir.Literal(nullType = Some(ir.NullType()))
+  override def visitLiteral(ctx: LiteralContext): ir.Literal = {
+    val sign = Option(ctx.sign()).map(_ => "-").getOrElse("")
+    if (ctx.STRING() != null) {
+      ir.Literal(string = Some(removeQuotes(ctx.STRING().getText)))
+    } else if (ctx.DECIMAL() != null) {
+      visitDecimal(sign + ctx.DECIMAL().getText)
+    } else if (ctx.FLOAT() != null) {
+      visitDecimal(sign + ctx.FLOAT().getText)
+    } else if (ctx.REAL() != null) {
+      visitDecimal(sign + ctx.REAL().getText)
+    } else if (ctx.true_false() != null) {
+      visitTrue_false(ctx.true_false())
+    } else if (ctx.NULL_() != null) {
+      ir.Literal(nullType = Some(ir.NullType()))
+    } else {
+      ir.Literal(nullType = Some(ir.NullType()))
+    }
   }
 
   private def removeQuotes(str: String): String = {
@@ -80,4 +91,55 @@ class SnowflakeExpressionBuilder extends SnowflakeParserBaseVisitor[ir.Expressio
     case d if d.isDecimalDouble || d.isExactDouble => ir.Literal(double = Some(d.toDouble))
     case _ => ir.Literal(decimal = Some(ir.Decimal(decimal, None, None)))
   }
+
+  override def visitExpr(ctx: ExprContext): ir.Expression = {
+
+    if (ctx.AND() != null) {
+      val left = ctx.expr(0).accept(this)
+      val right = ctx.expr(1).accept(this)
+      ir.And(left, right)
+    } else if (ctx.OR() != null) {
+      val left = ctx.expr(0).accept(this)
+      val right = ctx.expr(1).accept(this)
+      ir.Or(left, right)
+    } else if (ctx.comparison_operator() != null) {
+      val left = ctx.expr(0).accept(this)
+      val right = ctx.expr(1).accept(this)
+      buildComparisonExpression(ctx.comparison_operator(), left, right)
+    } else {
+      visitChildren(ctx)
+    }
+  }
+
+  private def buildComparisonExpression(
+      op: Comparison_operatorContext,
+      left: ir.Expression,
+      right: ir.Expression): ir.Expression = {
+    if (op.EQ() != null) {
+      ir.Equals(left, right)
+    } else if (op.NE() != null || op.LTGT() != null) {
+      ir.NotEquals(left, right)
+    } else if (op.GT() != null) {
+      ir.GreaterThan(left, right)
+    } else if (op.LT() != null) {
+      ir.LesserThan(left, right)
+    } else if (op.GE() != null) {
+      ir.GreaterThanOrEqual(left, right)
+    } else if (op.LE() != null) {
+      ir.LesserThanOrEqual(left, right)
+    } else {
+      visitChildren(op)
+    }
+  }
+
+  override def visitSearch_condition(ctx: Search_conditionContext): ir.Expression = {
+    val pred = ctx.predicate().accept(this)
+    // TODO: investigate why NOT() is a list here
+    if (ctx.NOT().size() > 0) {
+      ir.Not(pred)
+    } else {
+      pred
+    }
+  }
+
 }
