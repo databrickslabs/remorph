@@ -30,5 +30,68 @@ class SnowflakeExpressionBuilderSpec extends AnyWordSpec with ParserTestCommon w
     "translate aggregation functions" in {
       example("COUNT(x)", _.aggregate_function(), Count(Column("x")))
     }
+
+    "translate a query with a window function" in {
+
+      example(
+        query = "ROW_NUMBER() OVER (ORDER BY a DESC)",
+        rule = _.ranking_windowed_function(),
+        expectedAst = Window(
+          window_function = RowNumber,
+          partition_spec = Seq(),
+          sort_order = Seq(SortOrder(Column("a"), DescendingSortDirection, SortNullsLast)),
+          frame_spec = WindowFrame(
+            frame_type = RowsFrame,
+            lower = FrameBoundary(current_row = false, unbounded = true, value = Noop),
+            upper = FrameBoundary(current_row = true, unbounded = false, value = Noop))))
+
+      example(
+        query = "ROW_NUMBER() OVER (PARTITION BY a)",
+        rule = _.ranking_windowed_function(),
+        expectedAst = Window(
+          window_function = RowNumber,
+          partition_spec = Seq(Column("a")),
+          sort_order = Seq(),
+          frame_spec = WindowFrame(
+            frame_type = RowsFrame,
+            lower = FrameBoundary(current_row = false, unbounded = true, value = Noop),
+            upper = FrameBoundary(current_row = true, unbounded = false, value = Noop))))
+      example(
+        query = "NTILE(42) OVER (PARTITION BY a ORDER BY b, c DESC, d)",
+        rule = _.ranking_windowed_function(),
+        expectedAst = Window(
+          window_function = NTile(Literal(integer = Some(42))),
+          partition_spec = Seq(Column("a")),
+          sort_order = Seq(
+            SortOrder(Column("b"), AscendingSortDirection, SortNullsLast),
+            SortOrder(Column("c"), DescendingSortDirection, SortNullsLast),
+            SortOrder(Column("d"), AscendingSortDirection, SortNullsLast)),
+          frame_spec = WindowFrame(
+            frame_type = RowsFrame,
+            lower = FrameBoundary(current_row = false, unbounded = true, value = Noop),
+            upper = FrameBoundary(current_row = true, unbounded = false, value = Noop))))
+    }
+
+    "missing bits in window function grammar" ignore {
+
+      // line 1:35 mismatched input 'NULLS' expecting {')', ','}
+      example(
+        query = "ROW_NUMBER() OVER (ORDER BY a DESC NULLS FIRST)",
+        rule = _.ranking_windowed_function(),
+        expectedAst = Window(
+          window_function = RowNumber,
+          partition_spec = Seq(),
+          sort_order = Seq(SortOrder(Column("a"), DescendingSortDirection, SortNullsLast)),
+          frame_spec = WindowFrame(
+            frame_type = RowsFrame,
+            lower = FrameBoundary(current_row = false, unbounded = true, value = Noop),
+            upper = FrameBoundary(current_row = true, unbounded = false, value = Noop))))
+
+      // line 1:33 no viable alternative at input 'a ROWS'
+      example(
+        query = "ROW_NUMBER() OVER(PARTITION BY a ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)",
+        rule = _.ranking_windowed_function(),
+        expectedAst = null)
+    }
   }
 }

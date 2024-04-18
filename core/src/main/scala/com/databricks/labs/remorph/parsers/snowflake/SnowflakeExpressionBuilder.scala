@@ -3,6 +3,7 @@ package com.databricks.labs.remorph.parsers.snowflake
 import com.databricks.labs.remorph.parsers.{intermediate => ir}
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser._
 
+import scala.collection.JavaConverters._
 class SnowflakeExpressionBuilder extends SnowflakeParserBaseVisitor[ir.Expression] {
 
   override def visitSelect_list_elem(ctx: SnowflakeParser.Select_list_elemContext): ir.Expression = {
@@ -142,4 +143,56 @@ class SnowflakeExpressionBuilder extends SnowflakeParserBaseVisitor[ir.Expressio
     }
   }
 
+  override def visitRanking_windowed_function(ctx: Ranking_windowed_functionContext): ir.Expression = {
+    val windowFunction = buildWindowFunction(ctx)
+    val partitionSpec = buildPartitionSpec(ctx.over_clause())
+    val sortOrder = buildSortOrder(ctx.over_clause())
+    // dummy implementation because the grammar for this is missing
+    val frameSpec = ir.WindowFrame(
+      frame_type = ir.RowsFrame,
+      lower = ir.FrameBoundary(current_row = false, unbounded = true, value = ir.Noop),
+      upper = ir.FrameBoundary(current_row = true, unbounded = false, value = ir.Noop))
+    ir.Window(
+      window_function = windowFunction,
+      partition_spec = partitionSpec,
+      sort_order = sortOrder,
+      frame_spec = frameSpec)
+  }
+
+  private def buildWindowFunction(ctx: Ranking_windowed_functionContext): ir.Expression = {
+    if (ctx.ROW_NUMBER() != null) {
+      ir.RowNumber
+    } else if (ctx.NTILE() != null) {
+      val parameter = ctx.expr(0).accept(this)
+      ir.NTile(parameter)
+    } else {
+      visitChildren(ctx)
+    }
+  }
+
+  private def buildPartitionSpec(ctx: Over_clauseContext): Seq[ir.Expression] = {
+    Option(ctx.partition_by())
+      .map(_.expr_list().expr().asScala.map(_.accept(this)))
+      .getOrElse(Seq())
+  }
+
+  private def buildSortOrder(ctx: Over_clauseContext): Seq[ir.SortOrder] = {
+    Option(ctx.order_by_expr())
+      .map { orderBy =>
+        val exprList = orderBy.expr_list_sorted()
+        val exprs = exprList.expr().asScala
+        val commas = exprList.COMMA().asScala.map(_.getSymbol.getStopIndex) :+ exprList.getStop.getStopIndex
+        val descs = exprList.asc_desc().asScala.filter(_.DESC() != null).map(_.getStop.getStopIndex)
+        exprs.zip(commas).map { case (expr, upperBound) =>
+          val direction =
+            descs
+              .find(pos => pos > expr.getStop.getStopIndex && pos <= upperBound)
+              .map(_ => ir.DescendingSortDirection)
+              .getOrElse(ir.AscendingSortDirection)
+
+          ir.SortOrder(expr.accept(this), direction, ir.SortNullsLast)
+        }
+      }
+      .getOrElse(Seq())
+  }
 }
