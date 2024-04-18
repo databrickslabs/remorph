@@ -289,12 +289,6 @@ def test_recon_with_valid_input(mock_workspace_client_cli):
         mock_recon.assert_called_once_with(recon_conf, conn_profile, source, report)
 
 
-def test_cli_generate_recon_config(mock_workspace_client):
-    with patch("databricks.labs.remorph.cli.ReconConfigPrompts") as mock_recon_config:
-        cli.generate_recon_config(mock_workspace_client)
-        mock_recon_config.assert_called_once_with(mock_workspace_client)
-
-
 def test_validate_recon_config_with_missing_recon_conf(mock_workspace_client_cli):
     with pytest.raises(Exception, match="No such file or directory: '/path/to/invalid/recon/conf'"):
         invalid_recon_conf_path = "/path/to/invalid/recon/conf"
@@ -322,6 +316,8 @@ def test_validate_recon_config_with_invalid_recon_conf(mock_workspace_client_cli
     ):
         with pytest.raises(ValueError, match=error_msg):
             cli.validate_recon_config(mock_workspace_client_cli, invalid_recon_conf_path)
+
+    Path(invalid_recon_conf_path).unlink()
 
 
 def test_validate_recon_config_with_valid_input(mock_workspace_client_cli):

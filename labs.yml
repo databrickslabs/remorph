@@ -50,8 +50,6 @@ commands:
       - name: report
         default: all
         description: Report type
-  - name: generate-recon-config
-    description: Utility to generate Recon config file from Database and Schema
   - name: validate-recon-config
     description: Utility to validate Recon Config file.
     flags:
