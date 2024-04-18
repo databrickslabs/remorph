@@ -1,8 +1,8 @@
 import json
+import logging
 import os
 
 from databricks.connect import DatabricksSession
-from databricks.labs.blueprint.entrypoint import get_logger
 from databricks.labs.blueprint.tui import Prompts
 from databricks.sdk import WorkspaceClient
 
@@ -13,7 +13,7 @@ from databricks.labs.remorph.reconcile.connectors.data_source_factory import (
 from databricks.labs.remorph.reconcile.constants import SourceType
 from databricks.labs.remorph.reconcile.recon_config import TableRecon
 
-logger = get_logger(__file__)
+logger = logging.getLogger(__name__)
 
 recon_source_choices = [
     SourceType.SNOWFLAKE.value,
@@ -44,6 +44,7 @@ class ReconConfigPrompts:
 
         # Prompt for `catalog_name` only if source is snowflake
         if self._source in {SourceType.SNOWFLAKE.value}:
+            logger.debug(f"Prompting for `catalog_name` `database_name` for `{self._source}`")
             src_catalog_name = self._prompts.question(f"Enter `{self._source}` catalog_name")
             src_schema_prompt = f"Enter `{self._source}` database_name"
 
@@ -89,6 +90,7 @@ class ReconConfigPrompts:
             filter_types = ["include", "exclude"]
             filter_type = self._prompts.choice("Select the filter type", filter_types)
             subset_tables = self._prompts.question(f"Enter the tables(separated by comma) to `{filter_type}`")
+            logger.debug(f"Filter Type: {filter_type}, Tables: {subset_tables}")
             subset_tables = [f"'{table.strip().upper()}'" for table in subset_tables.split(",")]
 
             include_list = subset_tables if filter_type == "include" else None
@@ -107,7 +109,9 @@ class ReconConfigPrompts:
         # Update the target catalog and schema
         recon_config.target_catalog = catalog_schema_dict.get("tgt_catalog")
         recon_config.target_schema = catalog_schema_dict.get("tgt_schema")
-        logger.info(f"Recon Config details are fetched successfully...{recon_config}")
+
+        logger.info("Recon Config details are fetched successfully...")
+        logger.debug(f"Recon Config : {recon_config}")
 
         return recon_config
 

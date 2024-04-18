@@ -1,4 +1,5 @@
-from databricks.labs.blueprint.entrypoint import get_logger
+import logging
+
 from databricks.sdk import WorkspaceClient  # pylint: disable-next=wrong-import-order
 from pyspark.sql import SparkSession
 
@@ -9,7 +10,7 @@ from databricks.labs.remorph.reconcile.connectors.oracle import OracleDataSource
 from databricks.labs.remorph.reconcile.connectors.snowflake import SnowflakeDataSource
 from databricks.labs.remorph.reconcile.constants import SourceType
 
-logger = get_logger(__file__)
+logger = logging.getLogger(__name__)
 
 
 class DataSourceFactory:
@@ -20,6 +21,7 @@ class DataSourceFactory:
         ws: WorkspaceClient,
         scope: str,
     ) -> DataSource:
+        logger.debug(f"Creating DataSource for `{engine.lower()}`")
         match engine.lower():
             case SourceType.SNOWFLAKE.value:
                 return SnowflakeDataSource(engine, spark, ws, scope)

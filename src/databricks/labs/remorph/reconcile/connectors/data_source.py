@@ -1,7 +1,7 @@
+import logging
 import re
 from abc import ABC, abstractmethod
 
-from databricks.labs.blueprint.entrypoint import get_logger
 from databricks.sdk import WorkspaceClient  # pylint: disable-next=wrong-import-order
 from pyspark.sql import DataFrame, SparkSession
 
@@ -12,7 +12,7 @@ from databricks.labs.remorph.reconcile.recon_config import (
     TableRecon,
 )
 
-logger = get_logger(__file__)
+logger = logging.getLogger(__name__)
 
 
 class DataSource(ABC):

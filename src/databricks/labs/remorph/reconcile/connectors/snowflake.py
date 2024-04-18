@@ -1,7 +1,6 @@
-# pylint: disable=wrong-import-order,ungrouped-imports,useless-suppression
+import logging
 import re
 
-from databricks.labs.blueprint.entrypoint import get_logger
 from pyspark.errors import PySparkException
 from pyspark.sql import DataFrame
 from pyspark.sql.functions import col
@@ -15,7 +14,7 @@ from databricks.labs.remorph.reconcile.recon_config import (
     TableRecon,
 )
 
-logger = get_logger(__file__)
+logger = logging.getLogger(__name__)
 
 
 class SnowflakeDataSource(DataSource):
@@ -32,7 +31,7 @@ class SnowflakeDataSource(DataSource):
         try:
             table_query = self._get_table_or_query(catalog, schema, query)
 
-            logger.debug(f"Fetching Snowflake Data using the following {query} in SnowflakeDataSource")
+            logger.info(f"Fetching Snowflake Data using the following {query} in SnowflakeDataSource")
             if options is None:
                 df = self.reader(table_query)
             else:
@@ -119,7 +118,11 @@ class SnowflakeDataSource(DataSource):
             ]
 
             table_recon = TableRecon(
-                source_catalog=catalog, source_schema=schema, target_catalog="", target_schema="", tables=tables_list
+                source_catalog=catalog,
+                source_schema=schema,
+                target_catalog="",
+                target_schema="",
+                tables=tables_list,
             )
 
             return table_recon

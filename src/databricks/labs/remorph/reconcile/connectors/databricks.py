@@ -56,6 +56,7 @@ class DatabricksDataSource(DataSource):
     def list_tables(
         self, catalog: str, schema: str, include_list: list[str] | None, exclude_list: list[str] | None
     ) -> TableRecon:
+        # TODO: Implement list_tables in the DatabricksDataSource
         pass
 
     databricks_datatype_mapper = {}
