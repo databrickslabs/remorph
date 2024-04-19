@@ -20,23 +20,18 @@ class SnowflakeAstBuilder extends SnowflakeParserBaseVisitor[ir.TreeNode] {
     }
   }
 
-  override def visitSelect_statement(ctx: Select_statementContext): ir.TreeNode = {
-    val select = ctx.select_optional_clauses().accept(new SnowflakeRelationBuilder)
-    val relation =
-      if (ctx.limit_clause() != null) {
-        val limit = ir.Limit(select, ctx.limit_clause().num(0).getText.toInt)
-        if (ctx.limit_clause().OFFSET() != null) {
-          ir.Offset(limit, ctx.limit_clause().num(1).getText.toInt)
-        } else {
-          limit
-        }
-      } else {
-        select
-      }
-    val selectListElements = ctx.select_clause().select_list_no_top().select_list().select_list_elem().asScala
-    val expressionVisitor = new SnowflakeExpressionBuilder
-    val expressions: Seq[ir.Expression] = selectListElements.map(_.accept(expressionVisitor))
-    ir.Project(relation, expressions)
+  override def visitQuery_statement(ctx: Query_statementContext): ir.TreeNode = {
+    val select = ctx.select_statement().accept(new SnowflakeRelationBuilder)
+    buildCTE(ctx.with_expression(), select)
+  }
+
+  private def buildCTE(ctx: With_expressionContext, relation: ir.Relation): ir.Relation = {
+    if (ctx == null) {
+      relation
+    } else {
+      val ctes = ctx.common_table_expression().asScala.map(_.accept(new SnowflakeRelationBuilder))
+      ir.WithCTE(ctes, relation)
+    }
   }
 
 }
