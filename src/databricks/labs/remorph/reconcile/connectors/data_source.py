@@ -1,18 +1,13 @@
 import re
 from abc import ABC, abstractmethod
 
-from databricks.labs.blueprint.entrypoint import get_logger
 from databricks.sdk import WorkspaceClient  # pylint: disable-next=wrong-import-order
 from pyspark.sql import DataFrame, SparkSession
 
-# pylint: disable-next=ungrouped-imports
-from databricks.labs.remorph.reconcile.recon_config import (
+from databricks.labs.remorph.reconcile.recon_config import (  # pylint: disable=ungrouped-imports
     JdbcReaderOptions,
     Schema,
-    TableRecon,
 )
-
-logger = get_logger(__file__)
 
 
 class DataSource(ABC):
@@ -30,21 +25,11 @@ class DataSource(ABC):
         self.scope = scope
 
     @abstractmethod
-    def read_data(self, catalog: str, schema: str, query: str, options: JdbcReaderOptions | None) -> DataFrame:
+    def read_data(self, catalog: str, schema: str, query: str, options: JdbcReaderOptions) -> DataFrame:
         return NotImplemented
 
     @abstractmethod
     def get_schema(self, catalog: str, schema: str, table: str) -> list[Schema]:
-        return NotImplemented
-
-    @abstractmethod
-    def list_tables(
-        self,
-        catalog: str,
-        schema: str,
-        include_list: list[str] | None,
-        exclude_list: list[str] | None,
-    ) -> TableRecon:
         return NotImplemented
 
     def _get_jdbc_reader(self, query, jdbc_url, driver):
@@ -67,11 +52,7 @@ class DataSource(ABC):
 
     def _get_secrets(self, key_name: str):
         key = self.engine + '_' + key_name
-        dbutils = self.ws.dbutils
-        logger.debug(f"Fetching secret using DBUtils: {key}")
-        secret = dbutils.secrets.get(scope=self.scope, key=key)
-        logger.debug(f"Secret fetched successfully for {key}")
-        return secret
+        return self.ws.secrets.get_secret(self.scope, key)
 
     @staticmethod
     def _get_table_or_query(catalog: str, schema: str, query: str) -> str:

@@ -5,17 +5,11 @@ from pyspark.sql import DataFrame
 from pyspark.sql.functions import col
 
 from databricks.labs.remorph.reconcile.connectors.data_source import DataSource
-from databricks.labs.remorph.reconcile.recon_config import (
-    JdbcReaderOptions,
-    Schema,
-    TableRecon,
-)
+from databricks.labs.remorph.reconcile.recon_config import JdbcReaderOptions, Schema
 
 
 class DatabricksDataSource(DataSource):
-
-    def read_data(self, catalog: str, schema: str, query: str, options: JdbcReaderOptions | None) -> DataFrame:
-        table_query = ""
+    def read_data(self, catalog: str, schema: str, query: str, options: JdbcReaderOptions) -> DataFrame:
         try:
             table_query = self._get_table_or_query(catalog, schema, query)
             df = self.spark.sql(table_query)
@@ -28,7 +22,6 @@ class DatabricksDataSource(DataSource):
             raise PySparkException(error_msg) from e
 
     def get_schema(self, catalog: str, schema: str, table: str) -> list[Schema]:
-        schema_query = ""
         try:
             schema_query = self.get_schema_query(catalog, schema, table)
             schema_df = self.spark.sql(schema_query).where("col_name not like '#%'").distinct()
@@ -52,10 +45,5 @@ class DatabricksDataSource(DataSource):
                     and lower(table_schema)='{schema}' and lower(table_name) ='{table}' order by 
                     col_name"""
         return re.sub(r'\s+', ' ', query)
-
-    def list_tables(
-        self, catalog: str, schema: str, include_list: list[str] | None, exclude_list: list[str] | None
-    ) -> TableRecon:
-        pass
 
     databricks_datatype_mapper = {}

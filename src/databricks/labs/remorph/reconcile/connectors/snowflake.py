@@ -1,21 +1,12 @@
-# pylint: disable=wrong-import-order,ungrouped-imports,useless-suppression
 import re
 
-from databricks.labs.blueprint.entrypoint import get_logger
 from pyspark.errors import PySparkException
 from pyspark.sql import DataFrame
 from pyspark.sql.functions import col
 
 from databricks.labs.remorph.reconcile.connectors.data_source import DataSource
 from databricks.labs.remorph.reconcile.constants import SourceDriver, SourceType
-from databricks.labs.remorph.reconcile.recon_config import (
-    JdbcReaderOptions,
-    Schema,
-    Table,
-    TableRecon,
-)
-
-logger = get_logger(__file__)
+from databricks.labs.remorph.reconcile.recon_config import JdbcReaderOptions, Schema
 
 
 class SnowflakeDataSource(DataSource):
@@ -28,16 +19,14 @@ class SnowflakeDataSource(DataSource):
             f"&warehouse={self._get_secrets('sfWarehouse')}&role={self._get_secrets('sfRole')}"
         )
 
-    def read_data(self, catalog: str, schema: str, query: str, options: JdbcReaderOptions | None) -> DataFrame:
+    def read_data(self, catalog: str, schema: str, query: str, options: JdbcReaderOptions) -> DataFrame:
         try:
             table_query = self._get_table_or_query(catalog, schema, query)
 
-            logger.debug(f"Fetching Snowflake Data using the following {query} in SnowflakeDataSource")
             if options is None:
                 df = self.reader(table_query)
             else:
                 options = self._get_jdbc_reader_options(options)
-                logger.debug(f"JDBC URL: {self.get_jdbc_url}")
                 df = (
                     self._get_jdbc_reader(table_query, self.get_jdbc_url, SourceDriver.SNOWFLAKE.value)
                     .options(**options)
@@ -54,7 +43,6 @@ class SnowflakeDataSource(DataSource):
     def get_schema(self, catalog: str, schema: str, table: str) -> list[Schema]:
         try:
             schema_query = self.get_schema_query(catalog, schema, table)
-            logger.info(f"Fetching Snowflake Schema using the following {table} in SnowflakeDataSource")
             schema_df = self.reader(schema_query).load()
             return [Schema(field.column_name.lower(), field.data_type.lower()) for field in schema_df.collect()]
         except PySparkException as e:
@@ -74,8 +62,7 @@ class SnowflakeDataSource(DataSource):
             "sfWarehouse": self._get_secrets('sfWarehouse'),
             "sfRole": self._get_secrets('sfRole'),
         }
-        logger.debug(f"Reading data from Snowflake using the options {options.keys()} ")
-        return self.spark.read.format("snowflake").option("dbtable", f"({query})").options(**options).load()
+        return self.spark.read.format("snowflake").option("dbtable", f"({query}) as tmp").options(**options).load()
 
     @staticmethod
     def get_schema_query(catalog: str, schema: str, table: str):
@@ -85,49 +72,5 @@ class SnowflakeDataSource(DataSource):
         {catalog}.INFORMATION_SCHEMA.COLUMNS where lower(table_name)='{table}' 
         and lower(table_schema) = '{schema}' order by ordinal_position"""
         return re.sub(r'\s+', ' ', query)
-
-    def list_tables(
-        self,
-        catalog: str,
-        schema: str,
-        include_list: list[str] | None,
-        exclude_list: list[str] | None,
-    ) -> TableRecon:
-
-        filter_list = include_list
-        in_clause = "IN"
-        if exclude_list:
-            filter_list = exclude_list
-            in_clause = "NOT IN"
-
-        subset_tables = ", ".join(filter_list)
-
-        where_cond = f"AND TABLE_NAME {in_clause} ({subset_tables})" if filter_list else ""
-
-        try:
-            logger.debug(f"Fetching Snowflake Table list for `{catalog}.{schema}`")
-            tables_query = f"""SELECT TABLE_NAME, CLUSTERING_KEY, ROW_COUNT\n 
-                               FROM {catalog.upper()}.INFORMATION_SCHEMA.TABLES\n 
-                               WHERE TABLE_SCHEMA = '{schema.upper()}' {where_cond}"""
-
-            logger.info(f" Executing query: {tables_query}")
-            tables_df = self.reader(tables_query)
-
-            tables_list = [
-                Table(source_name=field.TABLE_NAME.lower(), target_name=field.TABLE_NAME.lower())
-                for field in tables_df.collect()
-            ]
-
-            table_recon = TableRecon(
-                source_catalog=catalog, source_schema=schema, target_catalog="", target_schema="", tables=tables_list
-            )
-
-            return table_recon
-        except PySparkException as e:
-            error_msg = (
-                f"An error occurred while fetching Snowflake Table list for `{catalog}.{schema}`  in "
-                f"SnowflakeDataSource: {e!s}"
-            )
-            raise PySparkException(error_msg) from e
 
     snowflake_datatype_mapper = {}

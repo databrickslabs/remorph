@@ -1,9 +1,10 @@
-from databricks.labs.blueprint.entrypoint import get_logger
+import logging
+
 from databricks.labs.blueprint.tui import Prompts
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.errors.platform import ResourceDoesNotExist
 
-logger = get_logger(__file__)
+logger = logging.getLogger(__name__)
 
 
 class DatabricksSecretsClient:
@@ -16,10 +17,11 @@ class DatabricksSecretsClient:
 
         if not scope_exists:
             logger.error(
-                f"Error: Cannot find Secret Scope: `{scope_name}` in Databricks Workspace"
-                f"Use `remorph configure-secrets` to setup Scope and Secrets"
+                f"Error: Cannot find Secret Scope: `{scope_name}` in Databricks Workspace."
+                f"\nUse `remorph configure-secrets` to setup Scope and Secrets"
             )
             return False
+        logger.debug(f"Found Scope: `{scope_name}` in Databricks Workspace")
         return True
 
     def get_or_create_scope(self, scope_name: str):
@@ -35,14 +37,14 @@ class DatabricksSecretsClient:
                 raise SystemExit(msg)
 
             try:
-                logger.debug(f" Creating a new Scope `{scope_name}`")
+                logger.debug(f" Creating a new Scope: `{scope_name}`")
                 self._ws.secrets.create_scope(scope_name)
             except Exception as ex:
                 logger.error(f"Exception while creating Scope: {ex}")
                 raise ex
 
-            logger.info(f" Created a new Scope `{scope_name}`")
-        logger.info(f" Using Scope `{scope_name}` to store Secrets")
+            logger.info(f" Created a new Scope: `{scope_name}`")
+        logger.info(f" Using Scope: `{scope_name}`...")
 
     def secret_key_exists(self, scope_name: str, secret_key: str) -> bool:
         try:

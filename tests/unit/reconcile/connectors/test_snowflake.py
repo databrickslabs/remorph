@@ -23,10 +23,10 @@ def initial_setup():
 
 def test_get_jdbc_url():
     # initial setup
-    engine, spark, ws, init_scope = initial_setup()
+    engine, spark, ws, scope = initial_setup()
     # Mocking get secret method to return the required values
-    ws.dbutils.secrets.get = MagicMock()
-    ws.dbutils.secrets.get.side_effect = lambda key, scope: {
+    ws.secrets.get_secret = MagicMock()
+    ws.secrets.get_secret.side_effect = lambda scope, secret_name: {
         'snowflake_account': 'my_account',
         'snowflake_sfUser': 'my_user',
         'snowflake_sfPassword': 'my_password',
@@ -35,9 +35,9 @@ def test_get_jdbc_url():
         'snowflake_sfWarehouse': 'my_warehouse',
         'snowflake_sfRole': 'my_role',
         'snowflake_sfUrl': 'my_url',
-    }[key]
+    }[secret_name]
     # create object for SnowflakeDataSource
-    ds = SnowflakeDataSource(engine, spark, ws, init_scope)
+    ds = SnowflakeDataSource(engine, spark, ws, scope)
     url = ds.get_jdbc_url
     # Assert that the URL is generated correctly
     assert url == (
@@ -50,10 +50,10 @@ def test_get_jdbc_url():
 
 def test_read_data_with_out_options():
     # initial setup
-    engine, spark, ws, init_scope = initial_setup()
+    engine, spark, ws, scope = initial_setup()
     # Mocking get secret method to return the required values
-    ws.dbutils.secrets.get = MagicMock()
-    ws.dbutils.secrets.get.side_effect = lambda key, scope: {
+    ws.secrets.get_secret = MagicMock()
+    ws.secrets.get_secret.side_effect = lambda scope, secret_name: {
         'snowflake_account': 'my_account',
         'snowflake_sfUser': 'my_user',
         'snowflake_sfPassword': 'my_password',
@@ -62,10 +62,10 @@ def test_read_data_with_out_options():
         'snowflake_sfWarehouse': 'my_warehouse',
         'snowflake_sfRole': 'my_role',
         'snowflake_sfUrl': 'my_url',
-    }[key]
+    }[secret_name]
 
     # create object for SnowflakeDataSource
-    ds = SnowflakeDataSource(engine, spark, ws, init_scope)
+    ds = SnowflakeDataSource(engine, spark, ws, scope)
     # Create a Tables configuration object with no JDBC reader options
     table_conf = Table(
         source_name="supplier",
@@ -85,7 +85,7 @@ def test_read_data_with_out_options():
 
     # spark assertions
     spark.read.format.assert_called_with("snowflake")
-    spark.read.format().option.assert_called_with("dbtable", "(select 1 from dual)")
+    spark.read.format().option.assert_called_with("dbtable", "(select 1 from dual) as tmp")
     spark.read.format().option().options.assert_called_with(
         sfUrl="my_url",
         sfUser="my_user",
@@ -100,10 +100,10 @@ def test_read_data_with_out_options():
 
 def test_read_data_with_options():
     # initial setup
-    engine, spark, ws, init_scope = initial_setup()
+    engine, spark, ws, scope = initial_setup()
     # Mocking get secret method to return the required values
-    ws.dbutils.secrets.get = MagicMock()
-    ws.dbutils.secrets.get.side_effect = lambda key, scope: {
+    ws.secrets.get_secret = MagicMock()
+    ws.secrets.get_secret.side_effect = lambda scope, secret_name: {
         'snowflake_account': 'my_account',
         'snowflake_sfUser': 'my_user',
         'snowflake_sfPassword': 'my_password',
@@ -112,10 +112,10 @@ def test_read_data_with_options():
         'snowflake_sfWarehouse': 'my_warehouse',
         'snowflake_sfRole': 'my_role',
         'snowflake_sfUrl': 'my_url',
-    }[key]
+    }[secret_name]
 
     # create object for SnowflakeDataSource
-    ds = SnowflakeDataSource(engine, spark, ws, init_scope)
+    ds = SnowflakeDataSource(engine, spark, ws, scope)
     # Create a Tables configuration object with JDBC reader options
     table_conf = Table(
         source_name="supplier",
@@ -139,10 +139,7 @@ def test_read_data_with_options():
     spark.read.format.assert_called_with("jdbc")
     spark.read.format().option.assert_called_with(
         "url",
-        (
-            "jdbc:snowflake://my_account.snowflakecomputing.com/?user=my_user&password=my_password&db=my_database&"
-            "schema=my_schema&warehouse=my_warehouse&role=my_role"
-        ),
+        "jdbc:snowflake://my_account.snowflakecomputing.com/?user=my_user&password=my_password&db=my_database&schema=my_schema&warehouse=my_warehouse&role=my_role",
     )
     spark.read.format().option().option.assert_called_with("driver", SourceDriver.SNOWFLAKE.value)
     spark.read.format().option().option().option.assert_called_with("dbtable", "(select 1 from dual) tmp")
@@ -154,10 +151,10 @@ def test_read_data_with_options():
 
 def test_get_schema():
     # initial setup
-    engine, spark, ws, init_scope = initial_setup()
+    engine, spark, ws, scope = initial_setup()
     # Mocking get secret method to return the required values
-    ws.dbutils.secrets.get = MagicMock()
-    ws.dbutils.secrets.get.side_effect = lambda key, scope: {
+    ws.secrets.get_secret = MagicMock()
+    ws.secrets.get_secret.side_effect = lambda scope, secret_name: {
         'snowflake_account': 'my_account',
         'snowflake_sfUser': 'my_user',
         'snowflake_sfPassword': 'my_password',
@@ -166,10 +163,10 @@ def test_get_schema():
         'snowflake_sfWarehouse': 'my_warehouse',
         'snowflake_sfRole': 'my_role',
         'snowflake_sfUrl': 'my_url',
-    }[key]
+    }[secret_name]
 
     # create object for SnowflakeDataSource
-    ds = SnowflakeDataSource(engine, spark, ws, init_scope)
+    ds = SnowflakeDataSource(engine, spark, ws, scope)
     # call test method
     ds.get_schema("catalog", "schema", "supplier")
     # spark assertions
@@ -182,8 +179,7 @@ def test_get_schema():
             """(select column_name, case when numeric_precision is not null and numeric_scale is not null then
         concat(data_type, '(', numeric_precision, ',' , numeric_scale, ')') when lower(data_type) = 'text' then
         concat('varchar', '(', CHARACTER_MAXIMUM_LENGTH, ')')  else data_type end as data_type from
-        catalog.INFORMATION_SCHEMA.COLUMNS where lower(table_name)='supplier' and lower(table_schema) = 'schema' 
-        order by ordinal_position)""",
+        catalog.INFORMATION_SCHEMA.COLUMNS where lower(table_name)='supplier' and lower(table_schema) = 'schema' order by ordinal_position) as tmp""",
         ),
     )
     spark.read.format().option().options.assert_called_with(
@@ -210,8 +206,7 @@ def test_get_schema_query():
         """select column_name, case when numeric_precision is not null and numeric_scale is not null then
         concat(data_type, '(', numeric_precision, ',' , numeric_scale, ')') when lower(data_type) = 'text' then
         concat('varchar', '(', CHARACTER_MAXIMUM_LENGTH, ')')  else data_type end as data_type from
-        catalog.INFORMATION_SCHEMA.COLUMNS where lower(table_name)='supplier' and lower(table_schema) = 'schema' 
-        order by ordinal_position""",
+        catalog.INFORMATION_SCHEMA.COLUMNS where lower(table_name)='supplier' and lower(table_schema) = 'schema' order by ordinal_position""",
     )
 
 
