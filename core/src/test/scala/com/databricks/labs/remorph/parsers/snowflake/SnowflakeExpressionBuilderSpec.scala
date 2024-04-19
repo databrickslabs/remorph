@@ -30,5 +30,114 @@ class SnowflakeExpressionBuilderSpec extends AnyWordSpec with ParserTestCommon w
     "translate aggregation functions" in {
       example("COUNT(x)", _.aggregate_function(), Count(Column("x")))
     }
+
+    "translate a query with a window function" in {
+
+      example(
+        query = "ROW_NUMBER() OVER (ORDER BY a DESC)",
+        rule = _.ranking_windowed_function(),
+        expectedAst = Window(
+          window_function = RowNumber,
+          partition_spec = Seq(),
+          sort_order = Seq(SortOrder(Column("a"), DescendingSortDirection, SortNullsLast)),
+          frame_spec = WindowFrame(
+            frame_type = RowsFrame,
+            lower = FrameBoundary(current_row = false, unbounded = true, value = Noop),
+            upper = FrameBoundary(current_row = true, unbounded = false, value = Noop))))
+
+      example(
+        query = "ROW_NUMBER() OVER (PARTITION BY a)",
+        rule = _.ranking_windowed_function(),
+        expectedAst = Window(
+          window_function = RowNumber,
+          partition_spec = Seq(Column("a")),
+          sort_order = Seq(),
+          frame_spec = WindowFrame(
+            frame_type = RowsFrame,
+            lower = FrameBoundary(current_row = false, unbounded = true, value = Noop),
+            upper = FrameBoundary(current_row = true, unbounded = false, value = Noop))))
+      example(
+        query = "NTILE(42) OVER (PARTITION BY a ORDER BY b, c DESC, d)",
+        rule = _.ranking_windowed_function(),
+        expectedAst = Window(
+          window_function = NTile(Literal(integer = Some(42))),
+          partition_spec = Seq(Column("a")),
+          sort_order = Seq(
+            SortOrder(Column("b"), AscendingSortDirection, SortNullsLast),
+            SortOrder(Column("c"), DescendingSortDirection, SortNullsLast),
+            SortOrder(Column("d"), AscendingSortDirection, SortNullsLast)),
+          frame_spec = WindowFrame(
+            frame_type = RowsFrame,
+            lower = FrameBoundary(current_row = false, unbounded = true, value = Noop),
+            upper = FrameBoundary(current_row = true, unbounded = false, value = Noop))))
+    }
+
+    // see https://github.com/databrickslabs/remorph/issues/258
+    "missing bits in window function grammar" ignore {
+
+      // line 1:35 mismatched input 'NULLS' expecting {')', ','}
+      example(
+        query = "ROW_NUMBER() OVER (ORDER BY a DESC NULLS FIRST)",
+        rule = _.ranking_windowed_function(),
+        expectedAst = Window(
+          window_function = RowNumber,
+          partition_spec = Seq(),
+          sort_order = Seq(SortOrder(Column("a"), DescendingSortDirection, SortNullsLast)),
+          frame_spec = WindowFrame(
+            frame_type = RowsFrame,
+            lower = FrameBoundary(current_row = false, unbounded = true, value = Noop),
+            upper = FrameBoundary(current_row = true, unbounded = false, value = Noop))))
+
+      // line 1:33 no viable alternative at input 'a ROWS'
+      example(
+        query = "ROW_NUMBER() OVER(PARTITION BY a ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)",
+        rule = _.ranking_windowed_function(),
+        expectedAst = null)
+    }
+  }
+
+  "SnowflakeExpressionBuilder.buildSortOrder" should {
+
+    "translate ORDER BY a" in {
+      val tree = parseString("ORDER BY a", _.order_by_expr())
+      (new SnowflakeExpressionBuilder).buildSortOrder(tree) shouldBe Seq(
+        SortOrder(Column("a"), AscendingSortDirection, SortNullsLast))
+    }
+
+    "translate ORDER BY a ASC" in {
+      val tree = parseString("ORDER BY a ASC", _.order_by_expr())
+      (new SnowflakeExpressionBuilder).buildSortOrder(tree) shouldBe Seq(
+        SortOrder(Column("a"), AscendingSortDirection, SortNullsLast))
+    }
+
+    "translate ORDER BY a DESC" in {
+      val tree = parseString("ORDER BY a DESC", _.order_by_expr())
+      (new SnowflakeExpressionBuilder).buildSortOrder(tree) shouldBe Seq(
+        SortOrder(Column("a"), DescendingSortDirection, SortNullsLast))
+    }
+
+    "translate ORDER BY a, b DESC" in {
+      val tree = parseString("ORDER BY a, b DESC", _.order_by_expr())
+      (new SnowflakeExpressionBuilder).buildSortOrder(tree) shouldBe Seq(
+        SortOrder(Column("a"), AscendingSortDirection, SortNullsLast),
+        SortOrder(Column("b"), DescendingSortDirection, SortNullsLast))
+    }
+
+    "translate ORDER BY a DESC, b" in {
+      val tree = parseString("ORDER BY a DESC, b", _.order_by_expr())
+      (new SnowflakeExpressionBuilder).buildSortOrder(tree) shouldBe Seq(
+        SortOrder(Column("a"), DescendingSortDirection, SortNullsLast),
+        SortOrder(Column("b"), AscendingSortDirection, SortNullsLast))
+    }
+
+    "translate ORDER BY with many expressions" in {
+      val tree = parseString("ORDER BY a DESC, b, c ASC, d DESC, e", _.order_by_expr())
+      (new SnowflakeExpressionBuilder).buildSortOrder(tree) shouldBe Seq(
+        SortOrder(Column("a"), DescendingSortDirection, SortNullsLast),
+        SortOrder(Column("b"), AscendingSortDirection, SortNullsLast),
+        SortOrder(Column("c"), AscendingSortDirection, SortNullsLast),
+        SortOrder(Column("d"), DescendingSortDirection, SortNullsLast),
+        SortOrder(Column("e"), AscendingSortDirection, SortNullsLast))
+    }
   }
 }
