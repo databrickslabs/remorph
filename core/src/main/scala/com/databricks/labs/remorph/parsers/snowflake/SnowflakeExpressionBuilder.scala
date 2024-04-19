@@ -145,9 +145,13 @@ class SnowflakeExpressionBuilder extends SnowflakeParserBaseVisitor[ir.Expressio
 
   override def visitRanking_windowed_function(ctx: Ranking_windowed_functionContext): ir.Expression = {
     val windowFunction = buildWindowFunction(ctx)
-    val partitionSpec = buildPartitionSpec(ctx.over_clause())
-    val sortOrder = buildSortOrder(ctx.over_clause())
+    val overClause = Option(ctx.over_clause())
+    val partitionSpec =
+      overClause.flatMap(o => Option(o.partition_by())).map(buildPartitionSpec).getOrElse(Seq())
+    val sortOrder =
+      overClause.flatMap(o => Option(o.order_by_expr())).map(buildSortOrder).getOrElse(Seq())
     // dummy implementation because the grammar for this is missing
+    // see https://github.com/databrickslabs/remorph/issues/258
     val frameSpec = ir.WindowFrame(
       frame_type = ir.RowsFrame,
       lower = ir.FrameBoundary(current_row = false, unbounded = true, value = ir.Noop),
@@ -170,29 +174,30 @@ class SnowflakeExpressionBuilder extends SnowflakeParserBaseVisitor[ir.Expressio
     }
   }
 
-  private def buildPartitionSpec(ctx: Over_clauseContext): Seq[ir.Expression] = {
-    Option(ctx.partition_by())
-      .map(_.expr_list().expr().asScala.map(_.accept(this)))
-      .getOrElse(Seq())
+  private def buildPartitionSpec(ctx: Partition_byContext): Seq[ir.Expression] = {
+    ctx.expr_list().expr().asScala.map(_.accept(this))
   }
 
-  private def buildSortOrder(ctx: Over_clauseContext): Seq[ir.SortOrder] = {
-    Option(ctx.order_by_expr())
-      .map { orderBy =>
-        val exprList = orderBy.expr_list_sorted()
-        val exprs = exprList.expr().asScala
-        val commas = exprList.COMMA().asScala.map(_.getSymbol.getStopIndex) :+ exprList.getStop.getStopIndex
-        val descs = exprList.asc_desc().asScala.filter(_.DESC() != null).map(_.getStop.getStopIndex)
-        exprs.zip(commas).map { case (expr, upperBound) =>
-          val direction =
-            descs
-              .find(pos => pos > expr.getStop.getStopIndex && pos <= upperBound)
-              .map(_ => ir.DescendingSortDirection)
-              .getOrElse(ir.AscendingSortDirection)
+  private[snowflake] def buildSortOrder(ctx: Order_by_exprContext): Seq[ir.SortOrder] = {
+    val exprList = ctx.expr_list_sorted()
+    val exprs = exprList.expr().asScala
+    val commas = exprList.COMMA().asScala.map(_.getSymbol.getStopIndex) :+ exprList.getStop.getStopIndex
+    val descs = exprList.asc_desc().asScala.filter(_.DESC() != null).map(_.getStop.getStopIndex)
 
-          ir.SortOrder(expr.accept(this), direction, ir.SortNullsLast)
-        }
-      }
-      .getOrElse(Seq())
+    // Lists returned by expr() and asc_desc() above may have different sizes
+    // for example with `ORDER BY a, b DESC, c` (3 expr but only 1 asc_desc).
+    // So we use the position of the asc_desc elements relative to the position of
+    // commas in the ORDER BY expression to determine which expr is affected by each asc_desc
+    exprs.zip(commas).map { case (expr, upperBound) =>
+      val direction =
+        descs
+          .find(pos => pos > expr.getStop.getStopIndex && pos <= upperBound)
+          .map(_ => ir.DescendingSortDirection)
+          .getOrElse(ir.AscendingSortDirection)
+
+      // no specification is available for nulls ordering, so defaulting to nulls last
+      // see https://github.com/databrickslabs/remorph/issues/258
+      ir.SortOrder(expr.accept(this), direction, ir.SortNullsLast)
+    }
   }
 }
