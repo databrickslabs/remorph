@@ -1,5 +1,5 @@
-import io
 import datetime
+import io
 from unittest.mock import create_autospec, patch
 
 import pytest
@@ -243,10 +243,9 @@ def test_recon_with_valid_input(mock_workspace_client_cli):
 
 def test_generate_lineage_valid_input(temp_dirs_for_lineage, mock_workspace_client_cli):
     input_dir, output_dir = temp_dirs_for_lineage
-    cli.generate_lineage(mock_workspace_client_cli,
-                         source="snowflake",
-                         input_sql=str(input_dir),
-                         output_folder=str(output_dir))
+    cli.generate_lineage(
+        mock_workspace_client_cli, source="snowflake", input_sql=str(input_dir), output_folder=str(output_dir)
+    )
 
     date_str = datetime.datetime.now().strftime("%d%m%y")
     output_filename = f"lineage_{date_str}.cot"
@@ -286,6 +285,5 @@ def test_generate_lineage_invalid_input_sql(mock_workspace_client_cli):
             mock_workspace_client_cli,
             source="snowflake",
             input_sql="/path/to/invalid/sql/file.sql",
-            output_folder="/path/to/output"
+            output_folder="/path/to/output",
         )
-
