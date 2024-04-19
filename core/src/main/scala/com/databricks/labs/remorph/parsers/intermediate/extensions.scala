@@ -7,7 +7,7 @@ case class Column(name: String) extends Expression with AstExtension {}
 abstract class Unary(pred: Expression) extends Expression {}
 abstract class Binary(left: Expression, right: Expression) extends Expression {}
 
-trait Predicate extends Expression with AstExtension
+trait Predicate extends AstExtension
 
 case class And(left: Expression, right: Expression) extends Binary(left, right) with Predicate {}
 case class Or(left: Expression, right: Expression) extends Binary(left, right) with Predicate {}
