@@ -57,3 +57,7 @@ class QueryBuilder(ABC):
     @property
     def custom_transformations(self) -> dict[str, str]:
         return self._table_conf.get_transformation_dict(self._layer)
+
+    @property
+    def table_name(self) -> str:
+        return self._table_conf.source_name if self._layer == "source" else self._table_conf.target_name

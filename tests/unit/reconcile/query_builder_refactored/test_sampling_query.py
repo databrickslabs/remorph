@@ -46,3 +46,6 @@ def test_build_query_for_snowflake_src(mock_spark_session, table_conf_mock, sche
 
     src_actual = SamplingQueryBuilder(conf, sch, "source", "snowflake").build_query(df)
     print(src_actual)
+
+    tgt_actual = SamplingQueryBuilder(conf, sch_with_alias, "target", "databricks").build_query(df)
+    print(tgt_actual)

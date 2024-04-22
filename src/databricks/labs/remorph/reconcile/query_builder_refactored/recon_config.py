@@ -55,50 +55,67 @@ class Table:
     filters: Filters | None = None
 
     @property
-    def col_map(self):
+    def to_src_col_map(self):
         if self.column_mapping:
             return {c.source_name: c.target_name for c in self.column_mapping}
         return None
 
-    def get_col_mapping(self, col: list[str] | set[str] | str, layer: str) -> set[str] | str:
+    @property
+    def to_tgt_col_map(self):
+        if self.column_mapping:
+            return {c.target_name: c.source_name for c in self.column_mapping}
+        return None
+
+    def get_src_to_tgt_col_mapping(self, col: list[str] | set[str] | str, layer: str) -> set[str] | str:
         if layer == "source":
             return col
         if isinstance(col, list | set):
             columns = set()
             for c in col:
-                columns.add(self.col_map.get(c, c))
+                columns.add(self.to_src_col_map.get(c, c))
             return columns
         else:
-            return self.col_map.get(col, col)
+            return self.to_src_col_map.get(col, col)
+
+    def get_tgt_to_src_col_mapping(self, col: list[str] | set[str] | str, layer: str) -> set[str] | str:
+        if layer == "source":
+            return col
+        if isinstance(col, list | set):
+            columns = set()
+            for c in col:
+                columns.add(self.to_tgt_col_map.get(c, c))
+            return columns
+        else:
+            return self.to_tgt_col_map.get(col, col)
 
     def get_select_columns(self, schema: list[Schema], layer: str) -> set[str]:
         if self.select_columns is None:
             return {sch.column_name for sch in schema}
-        if self.col_map:
-            return self.get_col_mapping(self.select_columns, layer)
+        if self.to_src_col_map:
+            return self.get_src_to_tgt_col_mapping(self.select_columns, layer)
         return set(self.select_columns)
 
     def get_threshold_columns(self, layer: str) -> set[str]:
         if self.thresholds is None:
             return set()
-        return {self.get_col_mapping(thresh.column_name, layer) for thresh in self.thresholds}
+        return {self.get_src_to_tgt_col_mapping(thresh.column_name, layer) for thresh in self.thresholds}
 
     def get_join_columns(self, layer: str) -> set[str]:
         if self.join_columns is None:
             return set()
-        return {self.get_col_mapping(col, layer) for col in self.join_columns}
+        return {self.get_src_to_tgt_col_mapping(col, layer) for col in self.join_columns}
 
     def get_drop_columns(self, layer: str) -> set[str]:
         if self.drop_columns is None:
             return set()
-        return {self.get_col_mapping(col, layer) for col in self.drop_columns}
+        return {self.get_src_to_tgt_col_mapping(col, layer) for col in self.drop_columns}
 
     def get_transformation_dict(self, layer: str) -> dict[str, str] | None:
         if self.transformations:
             if layer == "source":
                 return {t.column_name: t.source for t in self.transformations}
             else:
-                return {self.get_col_mapping(t.column_name, layer): t.target for t in self.transformations}
+                return {self.get_src_to_tgt_col_mapping(t.column_name, layer): t.target for t in self.transformations}
         return None
 
     def get_partition_column(self, layer: str) -> set[str]:

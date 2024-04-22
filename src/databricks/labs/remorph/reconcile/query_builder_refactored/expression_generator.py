@@ -62,6 +62,14 @@ def build_column(this, table_name="", quoted=False):
     return exp.Column(this=exp.Identifier(this=this, quoted=quoted), table=table_name)
 
 
+def build_literal(this, is_string=True):
+    return exp.Literal(this=this, is_string=is_string)
+
+
+def build_literal_alias(this: exp.ExpOrStr, alias="", quoted=False, is_string=True):
+    return exp.Alias(this=build_literal(this, is_string=is_string), alias=exp.Identifier(this=alias, quoted=quoted))
+
+
 def build_alias(this: exp.ExpOrStr, alias="", table_name="", quoted=False):
     if isinstance(this, str):
         return exp.Alias(this=build_column(this, table_name), alias=exp.Identifier(this=alias, quoted=quoted))
