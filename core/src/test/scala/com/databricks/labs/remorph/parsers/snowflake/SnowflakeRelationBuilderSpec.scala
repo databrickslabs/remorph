@@ -115,5 +115,20 @@ class SnowflakeRelationBuilderSpec extends AnyWordSpec with ParserTestCommon wit
         _.with_expression(),
         CTEDefinition("a", Seq(Column("b"), Column("c")), Project(namedTable("d"), Seq(Column("x"), Column("y")))))
     }
+
+    "translate QUALIFY clauses" in {
+      example(
+        "FROM qt QUALIFY ROW_NUMBER() OVER (PARTITION BY p ORDER BY o) = 1",
+        _.select_optional_clauses(),
+        Filter(
+          input = namedTable("qt"),
+          condition = Equals(
+            Window(
+              window_function = RowNumber,
+              partition_spec = Seq(Column("p")),
+              sort_order = Seq(SortOrder(Column("o"), AscendingSortDirection, SortNullsLast)),
+              frame_spec = DummyWindowFrame),
+            Literal(integer = Some(1)))))
+    }
   }
 }

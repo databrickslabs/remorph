@@ -150,17 +150,12 @@ class SnowflakeExpressionBuilder extends SnowflakeParserBaseVisitor[ir.Expressio
       overClause.flatMap(o => Option(o.partition_by())).map(buildPartitionSpec).getOrElse(Seq())
     val sortOrder =
       overClause.flatMap(o => Option(o.order_by_expr())).map(buildSortOrder).getOrElse(Seq())
-    // dummy implementation because the grammar for this is missing
-    // see https://github.com/databrickslabs/remorph/issues/258
-    val frameSpec = ir.WindowFrame(
-      frame_type = ir.RowsFrame,
-      lower = ir.FrameBoundary(current_row = false, unbounded = true, value = ir.Noop),
-      upper = ir.FrameBoundary(current_row = true, unbounded = false, value = ir.Noop))
+
     ir.Window(
       window_function = windowFunction,
       partition_spec = partitionSpec,
       sort_order = sortOrder,
-      frame_spec = frameSpec)
+      frame_spec = DummyWindowFrame)
   }
 
   private def buildWindowFunction(ctx: Ranking_windowed_functionContext): ir.Expression = {
