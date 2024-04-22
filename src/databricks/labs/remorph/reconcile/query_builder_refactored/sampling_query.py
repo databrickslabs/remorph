@@ -1,12 +1,12 @@
 from pyspark.sql import DataFrame
 from sqlglot import parse_one, select
-from sqlglot.expressions import Column, Select, union
+from sqlglot.expressions import Column, Select, union, Expression
 
+from databricks.labs.remorph.reconcile.constants import SampleConfig
 from databricks.labs.remorph.reconcile.query_builder_refactored.base import QueryBuilder
 from databricks.labs.remorph.reconcile.query_builder_refactored.expression_generator import (
     build_alias,
-    build_literal_alias,
-    default_transformer,
+    build_literal_alias
 )
 
 
@@ -37,45 +37,33 @@ class SamplingQueryBuilder(QueryBuilder):
         ]
 
         sql = select(*col_with_alias).sql()
-        if self.custom_transformations:
-            default_schema = {
-                key: self.schema_dict[key] for key in self.schema_dict.keys() if key not in self.custom_transformations
-            }
-            sql_with_default_transforms = self._apply_default_transformation(sql, default_schema)
-            sql_with_all_transforms = self._apply_custom_transformation(sql_with_default_transforms)
-        else:
-            sql_with_all_transforms = self._apply_default_transformation(sql, self.schema_dict)
-        query_sql = select(*sql_with_all_transforms).from_(":tbl")
+        sql_with_transforms = self._add_transformations(sql)
+        query_sql = select(*sql_with_transforms).from_(":tbl").where(self.filter)
 
         return (
             with_clause.with_(alias="src", as_=query_sql)
             .select("src.*")
             .from_("src")
             .join(expression="recon", join_type="inner", using=key_cols)
+            .sql()
         )
 
-    def _apply_custom_transformation(self, sql):
-        return parse_one(sql).transform(self._custom_transformer, self.custom_transformations)
-
     @staticmethod
-    def _custom_transformer(node, custom_transformations: dict[str, str]):
-        if isinstance(node, Column) and custom_transformations:
-            column_name = node.name
-            if column_name in custom_transformations.keys():
-                return parse_one(custom_transformations.get(column_name))
-        return node
-
-    @staticmethod
-    def _apply_default_transformation(sql: str, schema: dict[str, str]):
-        return parse_one(sql).transform(default_transformer, schema)
-
-    @staticmethod
-    def _get_with_clause(df):
+    def _get_with_clause(df: DataFrame) -> Select:
         union_res = []
-        for row in df.take(50):
+        for row in df.take(SampleConfig.sample_rows):
             row_select = [
                 build_literal_alias(this=value, alias=col, is_string=False) for col, value in zip(df.columns, row)
             ]
             union_res.append(select(*row_select))
         union_statements = union_concat(union_res, union_res[0], 0)
         return Select().with_(alias='recon', as_=union_statements)
+
+    def _add_transformations(self, sql: str) -> Expression:
+        if self.custom_transformations:
+            sql_with_custom_transforms = self._apply_custom_transformation(sql).sql(dialect=self.source)
+            default_schema = {
+                key: self.schema_dict[key] for key in self.schema_dict.keys() if key not in self.custom_transformations
+            }
+            return self._apply_default_transformation(sql_with_custom_transforms, default_schema)
+        return self._apply_default_transformation(sql, self.schema_dict)
