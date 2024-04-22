@@ -1,12 +1,12 @@
 from pyspark.sql import DataFrame
-from sqlglot import parse_one, select
-from sqlglot.expressions import Column, Select, union, Expression
+from sqlglot import select
+from sqlglot.expressions import Alias, Select, union
 
 from databricks.labs.remorph.reconcile.constants import SampleConfig
 from databricks.labs.remorph.reconcile.query_builder_refactored.base import QueryBuilder
 from databricks.labs.remorph.reconcile.query_builder_refactored.expression_generator import (
     build_alias,
-    build_literal_alias
+    build_literal_alias,
 )
 
 
@@ -32,12 +32,11 @@ class SamplingQueryBuilder(QueryBuilder):
 
         cols = sorted((self.join_columns | self.select_columns) - self.threshold_columns - self.drop_columns)
 
-        col_with_alias = [
+        cols_with_alias = [
             build_alias(this=col, alias=self.table_conf.get_tgt_to_src_col_mapping(col, self.layer)) for col in cols
         ]
 
-        sql = select(*col_with_alias).sql()
-        sql_with_transforms = self._add_transformations(sql)
+        sql_with_transforms = self._add_transformations(cols_with_alias)
         query_sql = select(*sql_with_transforms).from_(":tbl").where(self.filter)
 
         return (
@@ -59,11 +58,11 @@ class SamplingQueryBuilder(QueryBuilder):
         union_statements = union_concat(union_res, union_res[0], 0)
         return Select().with_(alias='recon', as_=union_statements)
 
-    def _add_transformations(self, sql: str) -> Expression:
+    def _add_transformations(self, aliases: list[Alias]) -> list[Alias]:
         if self.custom_transformations:
-            sql_with_custom_transforms = self._apply_custom_transformation(sql).sql(dialect=self.source)
+            alias_with_custom_transforms = self._apply_custom_transformation(aliases)
             default_schema = {
                 key: self.schema_dict[key] for key in self.schema_dict.keys() if key not in self.custom_transformations
             }
-            return self._apply_default_transformation(sql_with_custom_transforms, default_schema)
-        return self._apply_default_transformation(sql, self.schema_dict)
+            return self._apply_default_transformation(alias_with_custom_transforms, default_schema)
+        return self._apply_default_transformation(aliases, self.schema_dict)

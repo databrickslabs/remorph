@@ -1,10 +1,12 @@
 from abc import ABC
 
 from sqlglot import parse_one
-from sqlglot.expressions import Column, Expression
+from sqlglot.expressions import Alias, Column, Expression
 
-from databricks.labs.remorph.reconcile.query_builder_refactored.expression_generator import \
-    preprocess, DataType_transform_mapping
+from databricks.labs.remorph.reconcile.query_builder_refactored.expression_generator import (
+    DataType_transform_mapping,
+    preprocess,
+)
 from databricks.labs.remorph.reconcile.query_builder_refactored.recon_config import (
     Schema,
     Table,
@@ -67,8 +69,11 @@ class QueryBuilder(ABC):
     def table_name(self) -> str:
         return self._table_conf.source_name if self._layer == "source" else self._table_conf.target_name
 
-    def _apply_custom_transformation(self, sql: str) -> Expression:
-        return parse_one(sql).transform(self._custom_transformer, self.custom_transformations)
+    def _apply_custom_transformation(self, aliases: list[Alias]) -> list[Alias]:
+        with_transform = []
+        for alias in aliases:
+            with_transform.append(alias.transform(self._custom_transformer, self.custom_transformations))
+        return with_transform
 
     @staticmethod
     def _custom_transformer(node: Expression, custom_transformations: dict[str, str]) -> Expression:
@@ -78,8 +83,11 @@ class QueryBuilder(ABC):
                 return parse_one(custom_transformations.get(column_name))
         return node
 
-    def _apply_default_transformation(self, sql: str, schema: dict[str, str]) -> Expression:
-        return parse_one(sql).transform(self.default_transformer, schema)
+    def _apply_default_transformation(self, aliases: list[Alias], schema: dict[str, str]) -> list[Alias]:
+        with_transform = []
+        for alias in aliases:
+            with_transform.append(alias.transform(self.default_transformer, schema))
+        return with_transform
 
     @staticmethod
     def default_transformer(node: Expression, schema: dict[str, str]) -> Expression:

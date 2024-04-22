@@ -66,27 +66,25 @@ class Table:
             return {c.target_name: c.source_name for c in self.column_mapping}
         return None
 
-    def get_src_to_tgt_col_mapping(self, col: list[str] | set[str] | str, layer: str) -> set[str] | str:
+    def get_src_to_tgt_col_mapping(self, cols: list[str] | set[str] | str, layer: str) -> set[str] | str:
         if layer == "source":
-            return col
-        if isinstance(col, list | set):
+            return cols
+        if isinstance(cols, list | set):
             columns = set()
-            for c in col:
-                columns.add(self.to_src_col_map.get(c, c))
+            for col in cols:
+                columns.add(self.to_src_col_map.get(col, col))
             return columns
-        else:
-            return self.to_src_col_map.get(col, col)
+        return self.to_src_col_map.get(cols, cols)
 
-    def get_tgt_to_src_col_mapping(self, col: list[str] | set[str] | str, layer: str) -> set[str] | str:
+    def get_tgt_to_src_col_mapping(self, cols: list[str] | set[str] | str, layer: str) -> set[str] | str:
         if layer == "source":
-            return col
-        if isinstance(col, list | set):
+            return cols
+        if isinstance(cols, list | set):
             columns = set()
-            for c in col:
-                columns.add(self.to_tgt_col_map.get(c, c))
+            for col in cols:
+                columns.add(self.to_tgt_col_map.get(col, col))
             return columns
-        else:
-            return self.to_tgt_col_map.get(col, col)
+        return self.to_tgt_col_map.get(cols, cols)
 
     def get_select_columns(self, schema: list[Schema], layer: str) -> set[str]:
         if self.select_columns is None:
@@ -114,8 +112,7 @@ class Table:
         if self.transformations:
             if layer == "source":
                 return {t.column_name: t.source for t in self.transformations}
-            else:
-                return {self.get_src_to_tgt_col_mapping(t.column_name, layer): t.target for t in self.transformations}
+            return {self.get_src_to_tgt_col_mapping(t.column_name, layer): t.target for t in self.transformations}
         return None
 
     def get_partition_column(self, layer: str) -> set[str]:

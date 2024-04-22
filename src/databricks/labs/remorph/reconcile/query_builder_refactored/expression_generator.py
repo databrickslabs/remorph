@@ -1,9 +1,20 @@
-import typing as t
+from collections.abc import Callable
 from functools import partial
 
 from sqlglot import expressions as exp
-from sqlglot.expressions import Column, DataType, Expression, Join, From, Alias, Literal, Anonymous, JSONFormat, Trim, \
-    Coalesce
+from sqlglot.expressions import (
+    Alias,
+    Anonymous,
+    Coalesce,
+    Column,
+    DataType,
+    Expression,
+    From,
+    Join,
+    JSONFormat,
+    Literal,
+    Trim,
+)
 
 
 def coalesce(expr: Expression, default="0", is_string=False) -> Coalesce | Expression:
@@ -37,7 +48,7 @@ def trim(expr: Expression) -> Trim | Expression:
     return new_expr
 
 
-def json_format(expr: Expression, options: t.Optional[dict[str, str]] = None) -> JSONFormat | Expression:
+def json_format(expr: Expression, options: dict[str, str] | None = None) -> JSONFormat | Expression:
     level = 0 if isinstance(expr, exp.Column) else 1
     new_expr = expr.copy()
     for node in new_expr.dfs():
@@ -97,12 +108,12 @@ def build_join_clause(table_name: str, table_alias: str, join_columns: list, kin
     return exp.Join(this=exp.Table(this=exp.Identifier(this=table_name), alias=table_alias), kind=kind, on=on_condition)
 
 
-def preprocess(expr: Expression, funcs: t.List[t.Callable[[exp.Expression], exp.Expression]]) -> Expression:
+def preprocess(expr: Expression, funcs: list[Callable[[exp.Expression], exp.Expression]]) -> Expression:
     for func in funcs:
         expr = func(expr)
-    assert isinstance(
-        expr, exp.Expression
-    ), "Func returned an instance of type [%s], " "should have been Expression." % type(expr)
+    assert isinstance(expr, exp.Expression), (
+        f"Func returned an instance of type [{type(expr)}], " "should have been Expression."
+    )
     return expr
 
 
