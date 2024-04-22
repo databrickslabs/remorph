@@ -269,5 +269,30 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with ParserTestCommon with Mat
               cte = Project(namedTable("f"), Seq(Column("xx"), Column("yy"))))),
           Project(namedTable("a"), Seq(Column("b"), Column("c"), Column("d")))))
     }
+
+    "translate a query with WHERE, GROUP BY, HAVING, QUALIFY" in {
+      example(
+        query = """SELECT c2, SUM(c3) OVER (PARTITION BY c2) as r
+                  |  FROM t1
+                  |  WHERE c3 < 4
+                  |  GROUP BY c2, c3
+                  |  HAVING AVG(c1) >= 5
+                  |  QUALIFY MIN(r) > 6""".stripMargin,
+        expectedAst = Project(
+          Filter(
+            Filter(
+              Aggregate(
+                input = Filter(
+                  namedTable("t1"),
+                  LesserThan(Column("c3"), Literal(integer = Some(4)))),
+                group_type = GroupBy,
+                grouping_expressions = Seq(Column("c2"), Column("c3")),
+                pivot = None),
+              GreaterThanOrEqual(Avg(Column("c1")), Literal(integer = Some(5)))),
+            GreaterThan(Min(Column("r")), Literal(integer = Some(6)))),
+          Seq(
+            Column("c2"),
+            Alias(Window(Sum(Column("c3")), Seq(Column("c2")), Seq(), DummyWindowFrame), Seq("r"), None))))
+    }
   }
 }
