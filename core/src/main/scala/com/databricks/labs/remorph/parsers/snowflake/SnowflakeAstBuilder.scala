@@ -27,11 +27,10 @@ class SnowflakeAstBuilder extends SnowflakeParserBaseVisitor[ir.TreeNode] {
 
   private def buildCTE(ctx: With_expressionContext, relation: ir.Relation): ir.Relation = {
     if (ctx == null) {
-      relation
-    } else {
-      val ctes = ctx.common_table_expression().asScala.map(_.accept(new SnowflakeRelationBuilder))
-      ir.WithCTE(ctes, relation)
+      return relation
     }
+    val ctes = ctx.common_table_expression().asScala.map(_.accept(new SnowflakeRelationBuilder))
+    ir.WithCTE(ctes, relation)
   }
 
 }
