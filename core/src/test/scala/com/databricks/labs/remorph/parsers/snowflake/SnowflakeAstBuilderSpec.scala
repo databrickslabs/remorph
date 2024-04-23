@@ -242,5 +242,6 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with ParserTestCommon with Mat
             value_column_name = "d"),
           Seq(Column("a"))))
     }
+
   }
 }
