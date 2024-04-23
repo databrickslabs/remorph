@@ -1,11 +1,12 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
-import com.databricks.labs.remorph.parsers.{IncompleteParser, intermediate => ir}
+import com.databricks.labs.remorph.parsers.{ParserCommon, IncompleteParser, intermediate => ir}
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser._
 
 import scala.collection.JavaConverters._
 class SnowflakeExpressionBuilder
     extends SnowflakeParserBaseVisitor[ir.Expression]
+    with ParserCommon
     with IncompleteParser[ir.Expression] {
 
   type Err = ir.UnresolvedExpression
@@ -210,4 +211,22 @@ class SnowflakeExpressionBuilder
       }
       .getOrElse(param)
 
+
+  override def visitCase_expression(ctx: Case_expressionContext): ir.Expression = {
+    val exprs = ctx.expr().asScala
+    val otherwise = Option(ctx.ELSE()).flatMap(els => exprs.find(occursBefore(els, _)).map(_.accept(this)))
+    ctx match {
+      case c if c.switch_section().size() > 0 =>
+        val expression = exprs.find(occursBefore(_, ctx.switch_section(0))).map(_.accept(this))
+        val branches = c.switch_section().asScala.map { branch =>
+          ir.WhenBranch(branch.expr(0).accept(this), branch.expr(1).accept(this))
+        }
+        ir.Case(expression, branches, otherwise)
+      case c if c.switch_search_condition_section().size() > 0 =>
+        val branches = c.switch_search_condition_section().asScala.map { branch =>
+          ir.WhenBranch(branch.search_condition().accept(this), branch.expr().accept(this))
+        }
+        ir.Case(None, branches, otherwise)
+    }
+  }
 }
