@@ -94,6 +94,11 @@ class SnowflakeExpressionBuilderSpec extends AnyWordSpec with ParserTestCommon w
         rule = _.ranking_windowed_function(),
         expectedAst = null)
     }
+
+    "translate star-expressions" in {
+      example("*", _.column_elem_star(), Star(None))
+      example("t.*", _.column_elem_star(), Star(Some("t")))
+    }
   }
 
   "SnowflakeExpressionBuilder.buildSortOrder" should {
@@ -140,4 +145,5 @@ class SnowflakeExpressionBuilderSpec extends AnyWordSpec with ParserTestCommon w
         SortOrder(Column("e"), AscendingSortDirection, SortNullsLast))
     }
   }
+
 }
