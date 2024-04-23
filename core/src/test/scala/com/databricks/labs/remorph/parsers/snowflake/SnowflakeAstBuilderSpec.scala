@@ -243,5 +243,31 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with ParserTestCommon with Mat
           Seq(Column("a"))))
     }
 
+    "translate queries with WITH clauses" in {
+      example(
+        query = "WITH a (b, c, d) AS (SELECT x, y, z FROM e) SELECT b, c, d FROM a",
+        expectedAst = WithCTE(
+          Seq(
+            CTEDefinition(
+              tableName = "a",
+              columns = Seq(Column("b"), Column("c"), Column("d")),
+              cte = Project(namedTable("e"), Seq(Column("x"), Column("y"), Column("z"))))),
+          Project(namedTable("a"), Seq(Column("b"), Column("c"), Column("d")))))
+
+      example(
+        query =
+          "WITH a (b, c, d) AS (SELECT x, y, z FROM e), aa (bb, cc) AS (SELECT xx, yy FROM f) SELECT b, c, d FROM a",
+        expectedAst = WithCTE(
+          Seq(
+            CTEDefinition(
+              tableName = "a",
+              columns = Seq(Column("b"), Column("c"), Column("d")),
+              cte = Project(namedTable("e"), Seq(Column("x"), Column("y"), Column("z")))),
+            CTEDefinition(
+              tableName = "aa",
+              columns = Seq(Column("bb"), Column("cc")),
+              cte = Project(namedTable("f"), Seq(Column("xx"), Column("yy"))))),
+          Project(namedTable("a"), Seq(Column("b"), Column("c"), Column("d")))))
+    }
   }
 }
