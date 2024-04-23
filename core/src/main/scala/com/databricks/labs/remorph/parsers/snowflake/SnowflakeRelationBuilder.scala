@@ -2,6 +2,7 @@ package com.databricks.labs.remorph.parsers.snowflake
 
 import com.databricks.labs.remorph.parsers.{intermediate => ir}
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser._
+import org.antlr.v4.runtime.ParserRuleContext
 
 import scala.collection.JavaConverters._
 
@@ -28,31 +29,38 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.Relation] {
 
   override def visitSelect_optional_clauses(ctx: Select_optional_clausesContext): ir.Relation = {
     val from = ctx.from_clause().accept(this)
-    buildOrderBy(ctx, buildHaving(ctx.having_clause(), buildGroupBy(ctx, buildWhere(ctx, from))))
+    buildOrderBy(
+      ctx.order_by_clause(),
+      buildQualify(
+        ctx.qualify_clause(),
+        buildHaving(ctx.having_clause(), buildGroupBy(ctx.group_by_clause(), buildWhere(ctx.where_clause(), from)))))
   }
 
-  private def buildWhere(ctx: Select_optional_clausesContext, from: ir.Relation): ir.Relation =
-    if (ctx.where_clause() != null) {
-      val predicate = ctx.where_clause().search_condition().accept(new SnowflakeExpressionBuilder)
-      ir.Filter(from, predicate)
-    } else {
-      from
+  private def buildFilter[A](ctx: A, conditionRule: A => ParserRuleContext, input: ir.Relation): ir.Relation =
+    Option(ctx).fold(input) { c =>
+      ir.Filter(input, conditionRule(c).accept(new SnowflakeExpressionBuilder))
     }
+  private def buildHaving(ctx: Having_clauseContext, input: ir.Relation): ir.Relation =
+    buildFilter[Having_clauseContext](ctx, _.search_condition(), input)
 
-  private def buildGroupBy(ctx: Select_optional_clausesContext, input: ir.Relation): ir.Relation =
-    if (ctx.group_by_clause() != null) {
+  private def buildQualify(ctx: Qualify_clauseContext, input: ir.Relation): ir.Relation =
+    buildFilter[Qualify_clauseContext](ctx, _.expr(), input)
+  private def buildWhere(ctx: Where_clauseContext, from: ir.Relation): ir.Relation =
+    buildFilter[Where_clauseContext](ctx, _.search_condition(), from)
+
+  private def buildGroupBy(ctx: Group_by_clauseContext, input: ir.Relation): ir.Relation = {
+    Option(ctx).fold(input) { c =>
       val groupingExpressions =
-        ctx.group_by_clause().group_by_list().group_by_elem().asScala.map(_.accept(new SnowflakeExpressionBuilder))
+        c.group_by_list().group_by_elem().asScala.map(_.accept(new SnowflakeExpressionBuilder))
       val aggregate =
         ir.Aggregate(input = input, group_type = ir.GroupBy, grouping_expressions = groupingExpressions, pivot = None)
-      buildHaving(ctx.group_by_clause().having_clause(), aggregate)
-    } else {
-      input
+      buildHaving(c.having_clause(), aggregate)
     }
+  }
 
-  private def buildOrderBy(ctx: Select_optional_clausesContext, input: ir.Relation): ir.Relation =
-    if (ctx.order_by_clause() != null) {
-      val sortOrders = ctx.order_by_clause().order_item().asScala.map { orderItem =>
+  private def buildOrderBy(ctx: Order_by_clauseContext, input: ir.Relation): ir.Relation = {
+    Option(ctx).fold(input) { c =>
+      val sortOrders = c.order_item().asScala.map { orderItem =>
         val expression = orderItem.accept(new SnowflakeExpressionBuilder)
         if (orderItem.DESC() == null) {
           if (orderItem.NULLS() != null && orderItem.FIRST() != null) {
@@ -68,20 +76,10 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.Relation] {
           }
         }
       }
-
       ir.Sort(input = input, order = sortOrders, is_global = false)
-    } else {
-      input
-    }
-
-  def buildHaving(ctx: Having_clauseContext, input: ir.Relation): ir.Relation = {
-    if (ctx != null) {
-      val condition = ctx.search_condition().accept(new SnowflakeExpressionBuilder)
-      ir.Filter(input, condition)
-    } else {
-      input
     }
   }
+
   override def visitObject_ref(ctx: Object_refContext): ir.Relation = {
     val tableName = ctx.object_name().id_(0).getText
     val table = ir.NamedTable(tableName, Map.empty, is_streaming = false)
