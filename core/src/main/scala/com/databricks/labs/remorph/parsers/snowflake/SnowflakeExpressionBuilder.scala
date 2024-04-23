@@ -1,5 +1,6 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
+import com.databricks.labs.remorph.parsers.intermediate.Expression
 import com.databricks.labs.remorph.parsers.{intermediate => ir}
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser._
 
@@ -10,9 +11,16 @@ class SnowflakeExpressionBuilder extends SnowflakeParserBaseVisitor[ir.Expressio
     val rawExpression = ctx match {
       case c if c.column_elem() != null => c.column_elem().accept(this)
       case c if c.expression_elem() != null => c.expression_elem().accept(this)
-      case _ => null
+      case c if c.column_elem_star() != null => c.column_elem_star().accept(this)
     }
     buildAlias(ctx.as_alias(), rawExpression)
+  }
+
+  override def visitColumn_elem_star(ctx: Column_elem_starContext): Expression = {
+    ir.Star(Option(ctx.object_name_or_alias()).map {
+      case c if c.object_name() != null => c.object_name().getText
+      case c if c.alias() != null => c.alias().id_().getText
+    })
   }
 
   private def buildAlias(ctx: As_aliasContext, input: ir.Expression): ir.Expression =
@@ -196,4 +204,5 @@ class SnowflakeExpressionBuilder extends SnowflakeParserBaseVisitor[ir.Expressio
         case c if c.COUNT() != null => ir.Count(param)
       }
       .getOrElse(param)
+
 }

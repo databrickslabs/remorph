@@ -282,9 +282,7 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with ParserTestCommon with Mat
           Filter(
             Filter(
               Aggregate(
-                input = Filter(
-                  namedTable("t1"),
-                  LesserThan(Column("c3"), Literal(integer = Some(4)))),
+                input = Filter(namedTable("t1"), LesserThan(Column("c3"), Literal(integer = Some(4)))),
                 group_type = GroupBy,
                 grouping_expressions = Seq(Column("c2"), Column("c3")),
                 pivot = None),
