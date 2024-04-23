@@ -7,6 +7,25 @@ import scala.collection.JavaConverters._
 
 class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.Relation] {
 
+  override def visitSelect_statement(ctx: Select_statementContext): ir.Relation = {
+    val select = ctx.select_optional_clauses().accept(this)
+    val relation =
+      if (ctx.limit_clause() != null) {
+        val limit = ir.Limit(select, ctx.limit_clause().num(0).getText.toInt)
+        if (ctx.limit_clause().OFFSET() != null) {
+          ir.Offset(limit, ctx.limit_clause().num(1).getText.toInt)
+        } else {
+          limit
+        }
+      } else {
+        select
+      }
+    val selectListElements = ctx.select_clause().select_list_no_top().select_list().select_list_elem().asScala
+    val expressionVisitor = new SnowflakeExpressionBuilder
+    val expressions: Seq[ir.Expression] = selectListElements.map(_.accept(expressionVisitor))
+    ir.Project(relation, expressions)
+  }
+
   override def visitSelect_optional_clauses(ctx: Select_optional_clausesContext): ir.Relation = {
     val from = ctx.from_clause().accept(this)
     buildOrderBy(ctx, buildHaving(ctx.having_clause(), buildGroupBy(ctx, buildWhere(ctx, from))))
@@ -152,4 +171,10 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.Relation] {
     }
   }
 
+  override def visitCommon_table_expression(ctx: Common_table_expressionContext): ir.Relation = {
+    val tableName = ctx.id_().getText
+    val columns = ctx.column_list().column_name().asScala.map(_.accept(new SnowflakeExpressionBuilder))
+    val query = ctx.select_statement().accept(this)
+    ir.CTEDefinition(tableName, columns, query)
+  }
 }
