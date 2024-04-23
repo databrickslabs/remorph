@@ -5,8 +5,8 @@ from sqlglot.expressions import Alias, Select, union
 from databricks.labs.remorph.reconcile.constants import SampleConfig
 from databricks.labs.remorph.reconcile.query_builder_refactored.base import QueryBuilder
 from databricks.labs.remorph.reconcile.query_builder_refactored.expression_generator import (
-    build_alias,
-    build_literal_alias,
+    build_column,
+    build_literal,
 )
 
 
@@ -33,7 +33,7 @@ class SamplingQueryBuilder(QueryBuilder):
         cols = sorted((self.join_columns | self.select_columns) - self.threshold_columns - self.drop_columns)
 
         cols_with_alias = [
-            build_alias(this=col, alias=self.table_conf.get_tgt_to_src_col_mapping(col, self.layer)) for col in cols
+            build_column(this=col, alias=self.table_conf.get_tgt_to_src_col_mapping(col, self.layer)) for col in cols
         ]
 
         sql_with_transforms = self._add_transformations(cols_with_alias)
@@ -50,19 +50,17 @@ class SamplingQueryBuilder(QueryBuilder):
     @staticmethod
     def _get_with_clause(df: DataFrame) -> Select:
         union_res = []
-        for row in df.take(SampleConfig.sample_rows):
-            row_select = [
-                build_literal_alias(this=value, alias=col, is_string=False) for col, value in zip(df.columns, row)
-            ]
+        for row in df.take(SampleConfig.SAMPLE_ROWS):
+            row_select = [build_literal(this=value, alias=col, is_string=False) for col, value in zip(df.columns, row)]
             union_res.append(select(*row_select))
         union_statements = union_concat(union_res, union_res[0], 0)
         return Select().with_(alias='recon', as_=union_statements)
 
     def _add_transformations(self, aliases: list[Alias]) -> list[Alias]:
         if self.custom_transformations:
-            alias_with_custom_transforms = self._apply_custom_transformation(aliases)
+            alias_with_custom_transforms = self.apply_custom_transformation(aliases)
             default_schema = {
                 key: self.schema_dict[key] for key in self.schema_dict.keys() if key not in self.custom_transformations
             }
-            return self._apply_default_transformation(alias_with_custom_transforms, default_schema)
-        return self._apply_default_transformation(aliases, self.schema_dict)
+            return self.apply_default_transformation(alias_with_custom_transforms, default_schema)
+        return self.apply_default_transformation(aliases, self.schema_dict)

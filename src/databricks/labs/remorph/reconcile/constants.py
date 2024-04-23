@@ -86,4 +86,4 @@ class Constants:
 
 
 class SampleConfig:
-    sample_rows = 50
+    SAMPLE_ROWS = 50

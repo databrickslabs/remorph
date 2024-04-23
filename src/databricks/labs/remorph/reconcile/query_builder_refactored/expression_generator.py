@@ -70,22 +70,22 @@ def anonymous(node, func: str) -> Anonymous | Expression:
     return node
 
 
-def build_column(this, table_name="", quoted=False) -> Column:
+def build_column(this, table_name="", quoted=False, alias=None) -> Alias | Column:
+    if alias:
+        if isinstance(this, str):
+            return exp.Alias(
+                this=exp.Column(this=this, table_name=table_name), alias=exp.Identifier(this=alias, quoted=quoted)
+            )
+        return exp.Alias(this=this, alias=exp.Identifier(this=alias, quoted=quoted))
     return exp.Column(this=exp.Identifier(this=this, quoted=quoted), table=table_name)
 
 
-def build_literal(this, is_string=True) -> Literal:
+def build_literal(this: exp.ExpOrStr, alias=None, quoted=False, is_string=True) -> Alias | Literal:
+    if alias:
+        return exp.Alias(
+            this=exp.Literal(this=this, is_string=is_string), alias=exp.Identifier(this=alias, quoted=quoted)
+        )
     return exp.Literal(this=this, is_string=is_string)
-
-
-def build_literal_alias(this: exp.ExpOrStr, alias="", quoted=False, is_string=True) -> Alias:
-    return exp.Alias(this=build_literal(this, is_string=is_string), alias=exp.Identifier(this=alias, quoted=quoted))
-
-
-def build_alias(this: exp.ExpOrStr, alias="", table_name="", quoted=False) -> Alias:
-    if isinstance(this, str):
-        return exp.Alias(this=build_column(this, table_name), alias=exp.Identifier(this=alias, quoted=quoted))
-    return exp.Alias(this=this, alias=exp.Identifier(this=alias, quoted=quoted))
 
 
 def build_from_clause(table_name: str, table_alias: str) -> From:
@@ -108,7 +108,7 @@ def build_join_clause(table_name: str, table_alias: str, join_columns: list, kin
     return exp.Join(this=exp.Table(this=exp.Identifier(this=table_name), alias=table_alias), kind=kind, on=on_condition)
 
 
-def preprocess(expr: Expression, funcs: list[Callable[[exp.Expression], exp.Expression]]) -> Expression:
+def transform_expression(expr: Expression, funcs: list[Callable[[exp.Expression], exp.Expression]]) -> Expression:
     for func in funcs:
         expr = func(expr)
     assert isinstance(expr, exp.Expression), (
