@@ -310,7 +310,7 @@ def test_generate_lineage_valid_input(temp_dirs_for_lineage, mock_workspace_clie
     )
 
     date_str = datetime.datetime.now().strftime("%d%m%y")
-    output_filename = f"lineage_{date_str}.cot"
+    output_filename = f"lineage_{date_str}.dot"
     output_file = output_dir.join(output_filename)
     assert output_file.check(file=1)
     expected_output = """

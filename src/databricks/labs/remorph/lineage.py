@@ -2,7 +2,6 @@ import datetime
 import logging
 from pathlib import Path
 
-from databricks.labs.remorph.helpers.file_utils import write_file
 from databricks.labs.remorph.intermediate.dag import DAG
 from databricks.labs.remorph.intermediate.root_tables import RootTableIdentifier
 
@@ -32,11 +31,11 @@ def lineage_generator(source: str, input_sql: str, output_folder: str):
     lineage_file_content = _generate_dot_file_contents(generated_dag)
 
     date_str = datetime.datetime.now().strftime("%d%m%y")
-    output_filename = f"{output_folder}lineage_{date_str}.cot"
 
-    if Path(output_filename).exists():
+    output_filename = Path(f"{output_folder}lineage_{date_str}.dot")
+    if output_filename.exists():
         logger.warning(f'The output file already exists and will be replaced: {output_filename}')
-
     logger.info(f"Attempting to write the lineage to {output_filename}")
-    write_file(output_filename, lineage_file_content)
+    with output_filename.open('w', encoding='utf-8') as f:
+        f.write(lineage_file_content)
     logger.info(f"Succeeded to write the lineage to {output_filename}")
