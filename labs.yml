@@ -30,6 +30,10 @@ commands:
       - name: schema-name
         default: convertor_test
         description: Schema Name Applicable only when Validation Mode is DATABRICKS
+      - name: mode
+        default: current
+        description: Run in Current or Experimental Mode, Accepted Values [experimental, current], Default current, experimental mode will execute including any Private Preview features
+
     table_template: |-
       total_files_processed\ttotal_queries_processed\tno_of_sql_failed_while_parsing\tno_of_sql_failed_while_validating\terror_log_file
       {{range .}}{{.total_files_processed}}\t{{.total_queries_processed}}\t{{.no_of_sql_failed_while_parsing}}\t{{.no_of_sql_failed_while_validating}}\t{{.error_log_file}}

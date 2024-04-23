@@ -1,31 +1,37 @@
 import pytest
 from sqlglot import expressions
 
-from databricks.labs.remorph.helpers.morph_status import ParserError
 from databricks.labs.remorph.snow import local_expression
-from databricks.labs.remorph.snow.sql_transpiler import SQLTranspiler
+from databricks.labs.remorph.snow.sql_transpiler import SqlglotEngine
 
 
 @pytest.fixture
-def transpiler():
-    error_list = [ParserError("", "")]
-    return SQLTranspiler("SNOWFLAKE", error_list)
+def transpiler(morph_config):
+    read_dialect = morph_config.get_read_dialect()
+    return SqlglotEngine(read_dialect)
 
 
-def test_transpile_snowflake(transpiler):
-    result = transpiler.transpile("SELECT CURRENT_TIMESTAMP(0)", "file.sql")[0]
-    assert result == "SELECT\n  CURRENT_TIMESTAMP()"
+@pytest.fixture
+def write_dialect(morph_config):
+    return morph_config.get_write_dialect()
 
 
-def test_transpile_exception(transpiler):
-    result = transpiler.transpile("SELECT TRY_TO_NUMBER(COLUMN, $99.99, 27) FROM table", "file.sql")
-    assert result == ""
-    assert transpiler.error_list[1].file_name == "file.sql"
-    assert "Error Parsing args" in transpiler.error_list[1].exception.args[0]
+def test_transpile_snowflake(transpiler, write_dialect):
+    result, _ = transpiler.transpile(write_dialect, "SELECT CURRENT_TIMESTAMP(0)", "file.sql", [])
+    assert result[0] == "SELECT\n  CURRENT_TIMESTAMP()"
+
+
+def test_transpile_exception(transpiler, write_dialect):
+    result, error_list = transpiler.transpile(
+        write_dialect, "SELECT TRY_TO_NUMBER(COLUMN, $99.99, 27) FROM table", "file.sql", []
+    )
+    assert result[0] == ""
+    assert error_list[0].file_name == "file.sql"
+    assert "Error Parsing args" in error_list[0].exception.args[0]
 
 
 def test_parse_query(transpiler):
-    parsed_query = transpiler.parse("SELECT TRY_TO_NUMBER(COLUMN, $99.99, 27,2) FROM table", "file.sql")
+    parsed_query, _ = transpiler.parse("SELECT TRY_TO_NUMBER(COLUMN, $99.99, 27,2) FROM table", "file.sql")
 
     expected_result = [
         local_expression.TryToNumber(
@@ -46,32 +52,29 @@ def test_parse_query(transpiler):
             assert repr(exp.args["from"]) == repr(expected_from_result)
 
 
-def test_parse_invalid_query():
-    error_list = [ParserError("", "")]
-    tsql = SQLTranspiler("TSQL", error_list)
-    result = tsql.parse("invalid sql query", "file.sql")
-    assert result == []
-    assert error_list[1].file_name == "file.sql"
-    assert "Invalid expression / Unexpected token." in error_list[1].exception.args[0]
+def test_parse_invalid_query(transpiler):
+    result, error_list = transpiler.parse("invalid sql query", "file.sql")
+    assert result is None
+    assert error_list.file_name == "file.sql"
+    assert "Invalid expression / Unexpected token." in error_list.exception.args[0]
 
 
-def test_tokenizer_exception(transpiler):
-    error_list = transpiler.error_list
-    result = transpiler.transpile("1SELECT ~v\ud83d' ", "file.sql")
+def test_tokenizer_exception(transpiler, write_dialect):
+    result, error_list = transpiler.transpile(write_dialect, "1SELECT ~v\ud83d' ", "file.sql", [])
 
-    assert result == ""
-    assert error_list[1].file_name == "file.sql"
-    assert "Error tokenizing" in error_list[1].exception.args[0]
+    assert result == [""]
+    assert error_list[0].file_name == "file.sql"
+    assert "Error tokenizing" in error_list[0].exception.args[0]
 
 
-def test_procedure_conversion(transpiler):
+def test_procedure_conversion(transpiler, write_dialect):
     procedure_sql = "CREATE OR REPLACE PROCEDURE my_procedure() AS BEGIN SELECT * FROM my_table; END;"
-    result = transpiler.transpile(procedure_sql, "file.sql")[0]
-    assert result == "CREATE PROCEDURE my_procedure(\n  \n) AS BEGIN\nSELECT\n  *\nFROM my_table"
+    result, _ = transpiler.transpile(write_dialect, procedure_sql, "file.sql", [])
+    assert result[0] == "CREATE PROCEDURE my_procedure(\n  \n) AS BEGIN\nSELECT\n  *\nFROM my_table"
 
 
 def test_find_root_tables(transpiler):
-    expression = transpiler.parse("SELECT * FROM table_name", "test.sql")
+    expression, _ = transpiler.parse("SELECT * FROM table_name", "test.sql")
     # pylint: disable=protected-access
     assert transpiler._find_root_tables(expression[0]) == "table_name"
 
