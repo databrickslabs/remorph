@@ -68,33 +68,6 @@ class ThresholdMode(AutoName):
     DATETIME = "datetime"
 
 
-class ThresholdSQLTemplate(AutoName):
-    SELECT_NUMBER_ABSOLUTE = """source.{column} as {column}_source, databricks.{column} 
-                                as {column}_databricks, case when (coalesce(source.{column},0) - coalesce(databricks.{column},0)) == 
-                                0 then "Match"
-                                when (coalesce(source.{column},0) - coalesce(databricks.{column},0)) between {lower_bound} 
-                                and {upper_bound} then "Warning" else "Failed" end as {column}_match """
-    SELECT_NUMBER_PERCENTILE = """source.{column} as {column}_source, databricks.{column} 
-                                as {column}_databricks, case when (coalesce(source.{column},0) - coalesce(databricks.{column},0)) == 
-                                0 then "Match"
-                                when (((coalesce(source.{column},0) - coalesce(databricks.{column},0))/if(databricks.{column} = 0 or databricks.{column} is null , 1, databricks.{column})) * 100) 
-                                between {lower_bound} and 
-                                {upper_bound} 
-                                then "Warning" else "Failed" end as {column}_match """
-    SELECT_DATETIME = """source.{column} as {column}_source, databricks.{column} 
-                                as {column}_databricks, case when (coalesce(unix_timestamp(source.{column}),0) - 
-                                coalesce(unix_timestamp(databricks.{column}),0)) == 0 then "Match"
-                                when (coalesce(unix_timestamp(source.{column}),0) - coalesce(unix_timestamp(databricks.{column}),0)) 
-                                between {lower_bound} and 
-                                {upper_bound} 
-                                then "Warning" else "Failed" end as {column}_match """
-
-    FILTER_NUMBER = """(coalesce(source.{column},0) - coalesce(databricks.{column},0)) <> 0"""
-    FILTER_DATETIME = (
-        """ (coalesce(unix_timestamp(source.{column}),0) - coalesce(unix_timestamp(databricks.{column}),0)) <> 0"""
-    )
-
-
 class Constants:
     hash_column_name = "hash_value__recon"
     hash_algorithm_mapping = {  # noqa RUF012

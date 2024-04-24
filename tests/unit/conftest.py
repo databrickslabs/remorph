@@ -97,10 +97,8 @@ def validate_source_transpile(databricks_sql, *, source=None, pretty=False, expe
 
         expected_sql = _normalize_string(databricks_sql).rstrip(';')
 
-        error_msg = f"""-> *target_sql* `{expected_sql}` is not matching with\
-                                \n-> *transpiled_sql* `{actual_sql}`\
-                                \n-> for *source_dialect* `{source_dialect}\
-                             """
+        error_msg = f"""-> *target_sql* `{expected_sql}` is not matching with *transpiled_sql* `{actual_sql}` for 
+        *source_dialect* `{source_dialect}"""
 
         assert expected_sql == actual_sql, error_msg
 
