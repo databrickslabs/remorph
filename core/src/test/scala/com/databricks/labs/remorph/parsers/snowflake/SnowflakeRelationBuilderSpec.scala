@@ -8,8 +8,6 @@ class SnowflakeRelationBuilderSpec extends AnyWordSpec with ParserTestCommon wit
 
   override def astBuilder: SnowflakeParserBaseVisitor[_] = new SnowflakeRelationBuilder
 
-  private def namedTable(name: String): Relation = NamedTable(name, Map.empty, is_streaming = false)
-
   "SnowflakeRelationBuilder" should {
 
     "translate FROM clauses" in {
@@ -109,6 +107,28 @@ class SnowflakeRelationBuilderSpec extends AnyWordSpec with ParserTestCommon wit
           Filter(namedTable("some_table"), Equals(Literal(integer = Some(1)), Literal(integer = Some(1)))),
           Seq(SortOrder(Column("some_column"), AscendingSortDirection, SortNullsFirst)),
           is_global = false))
+    }
+
+    "translate CTE definitions" in {
+      example(
+        "WITH a (b, c) AS (SELECT x, y FROM d)",
+        _.with_expression(),
+        CTEDefinition("a", Seq(Column("b"), Column("c")), Project(namedTable("d"), Seq(Column("x"), Column("y")))))
+    }
+
+    "translate QUALIFY clauses" in {
+      example(
+        "FROM qt QUALIFY ROW_NUMBER() OVER (PARTITION BY p ORDER BY o) = 1",
+        _.select_optional_clauses(),
+        Filter(
+          input = namedTable("qt"),
+          condition = Equals(
+            Window(
+              window_function = RowNumber,
+              partition_spec = Seq(Column("p")),
+              sort_order = Seq(SortOrder(Column("o"), AscendingSortDirection, SortNullsLast)),
+              frame_spec = DummyWindowFrame),
+            Literal(integer = Some(1)))))
     }
   }
 }
