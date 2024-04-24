@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
-import com.databricks.labs.remorph.parsers.intermediate.TreeNode
+import com.databricks.labs.remorph.parsers.intermediate.{NamedTable, Relation, TreeNode}
 import org.antlr.v4.runtime.{CharStreams, CommonTokenStream, RuleContext}
 import org.scalatest.{Assertion, Assertions}
 
@@ -28,5 +28,7 @@ trait ParserTestCommon { self: Assertions =>
 
     assert(result == expectedAst, s"\nFor input string\n$query\nactual result:\n$result\nexpected\n$expectedAst")
   }
+
+  protected def namedTable(name: String): Relation = NamedTable(name, Map.empty, is_streaming = false)
 
 }

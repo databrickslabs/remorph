@@ -29,3 +29,8 @@ case class Min(expression: Expression) extends Expression {}
 case object Noop extends Expression
 case object RowNumber extends Expression {}
 case class NTile(expression: Expression) extends Expression {}
+
+case class WithCTE(ctes: Seq[Relation], query: Relation) extends RelationCommon {}
+case class CTEDefinition(tableName: String, columns: Seq[Expression], cte: Relation) extends RelationCommon {}
+
+case class Star(objectName: Option[String]) extends Expression {}
