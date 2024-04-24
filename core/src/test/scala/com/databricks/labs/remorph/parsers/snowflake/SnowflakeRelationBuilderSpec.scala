@@ -131,4 +131,10 @@ class SnowflakeRelationBuilderSpec extends AnyWordSpec with ParserTestCommon wit
             Literal(integer = Some(1)))))
     }
   }
+
+  "Unparsed input" should {
+    "be reported as UnresolvedRelation" in {
+      example("MATCH_RECOGNIZE()", _.match_recognize(), UnresolvedRelation("MATCH_RECOGNIZE()"))
+    }
+  }
 }

@@ -146,4 +146,9 @@ class SnowflakeExpressionBuilderSpec extends AnyWordSpec with ParserTestCommon w
     }
   }
 
+  "Unparsed input" should {
+    "be reported as UnresolvedExpression" in {
+      example("{'name':'Homer Simpson'}", _.json_literal(), UnresolvedExpression("{'name':'Homer Simpson'}"))
+    }
+  }
 }

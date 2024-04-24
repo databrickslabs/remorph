@@ -1,13 +1,14 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
-import com.databricks.labs.remorph.parsers.{intermediate => ir}
+import com.databricks.labs.remorph.parsers.{IncompleteParser, intermediate => ir}
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser._
 import org.antlr.v4.runtime.ParserRuleContext
 
 import scala.collection.JavaConverters._
 
-class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.Relation] {
+class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.Relation] with IncompleteParser[ir.Relation] {
 
+  protected override def wrapUnresolvedInput(unparsedInput: String): ir.Relation = ir.UnresolvedRelation(unparsedInput)
   override def visitSelect_statement(ctx: Select_statementContext): ir.Relation = {
     val select = ctx.select_optional_clauses().accept(this)
     val relation =
