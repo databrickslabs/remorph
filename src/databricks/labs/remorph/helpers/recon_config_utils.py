@@ -2,8 +2,8 @@ import logging
 
 from databricks.labs.blueprint.tui import Prompts
 from databricks.sdk import WorkspaceClient
+from databricks.sdk.errors.platform import ResourceDoesNotExist
 
-from databricks.labs.remorph.helpers.db_workspace_utils import DatabricksSecretsClient
 from databricks.labs.remorph.reconcile.constants import SourceType
 
 logger = logging.getLogger(__name__)
@@ -20,7 +20,80 @@ class ReconConfigPrompts:
     def __init__(self, ws: WorkspaceClient, prompts: Prompts = Prompts()):
         self._source = None
         self._prompts = prompts
-        self._db_secrets = DatabricksSecretsClient(ws, prompts)
+        self._ws = ws
+
+    def _scope_exists(self, scope_name: str) -> bool:
+        scope_exists = scope_name in [scope.name for scope in self._ws.secrets.list_scopes()]
+
+        if not scope_exists:
+            logger.error(
+                f"Error: Cannot find Secret Scope: `{scope_name}` in Databricks Workspace."
+                f"\nUse `remorph configure-secrets` to setup Scope and Secrets"
+            )
+            return False
+        logger.debug(f"Found Scope: `{scope_name}` in Databricks Workspace")
+        return True
+
+    def _ensure_scope_exists(self, scope_name: str):
+        """
+        Get or Create a new Scope in Databricks Workspace
+        :param scope_name:
+        """
+        scope_exists = self._scope_exists(scope_name)
+        if not scope_exists:
+            allow_scope_creation = self._prompts.confirm("Do you want to create a new one?")
+            if not allow_scope_creation:
+                msg = "Scope is needed to store Secrets in Databricks Workspace"
+                raise SystemExit(msg)
+
+            try:
+                logger.debug(f" Creating a new Scope: `{scope_name}`")
+                self._ws.secrets.create_scope(scope_name)
+            except Exception as ex:
+                logger.error(f"Exception while creating Scope `{scope_name}`: {ex}")
+                raise ex
+
+            logger.info(f" Created a new Scope: `{scope_name}`")
+        logger.info(f" Using Scope: `{scope_name}`...")
+
+    def _secret_key_exists(self, scope_name: str, secret_key: str) -> bool:
+        try:
+            self._ws.secrets.get_secret(scope_name, secret_key)
+            logger.info(f"Found Secret key `{secret_key}` in Scope `{scope_name}`")
+            return True
+        except ResourceDoesNotExist:
+            logger.debug(f"Secret key `{secret_key}` not found in Scope `{scope_name}`")
+            return False
+
+    def _store_secret(self, scope_name: str, secret_key: str, secret_value: str):
+        try:
+            logger.debug(f"Storing Secret: *{secret_key}* in Scope: `{scope_name}`")
+            self._ws.secrets.put_secret(scope=scope_name, key=secret_key, string_value=secret_value)
+        except Exception as ex:
+            logger.error(f"Exception while storing Secret `{secret_key}`: {ex}")
+            raise ex
+
+    def store_connection_secrets(self, scope_name: str, conn_details: tuple[str, dict[str, str]]):
+        engine = conn_details[0]
+        secrets = conn_details[1]
+
+        logger.debug(f"Storing `{engine}` Connection Secrets in Scope: `{scope_name}`")
+
+        for key, value in secrets.items():
+            secret_key = engine + '_' + key
+            logger.debug(f"Processing Secret: *{secret_key}*")
+            debug_op = "Storing"
+            info_op = "Stored"
+            if self._secret_key_exists(scope_name, secret_key):
+                overwrite_secret = self._prompts.confirm(f"Do you want to overwrite `{secret_key}`?")
+                if not overwrite_secret:
+                    continue
+                debug_op = "Overwriting"
+                info_op = "Overwritten"
+
+            logger.debug(f"{debug_op} Secret: *{secret_key}* in Scope: `{scope_name}`")
+            self._store_secret(scope_name, secret_key, value)
+            logger.info(f"{info_op} Secret: *{secret_key}* in Scope: `{scope_name}`")
 
     def prompt_source(self):
         source = self._prompts.choice("Select the source", recon_source_choices)
@@ -101,9 +174,9 @@ class ReconConfigPrompts:
 
         # Prompt for secret scope
         scope_name = self._prompts.question("Enter Secret Scope name")
-        self._db_secrets.get_or_create_scope(scope_name)
+        self._ensure_scope_exists(scope_name)
 
         # Prompt for connection details
         connection_details = self._connection_details()
         logger.debug(f"Storing `{self._source}` connection details as Secrets in Databricks Workspace...")
-        self._db_secrets.store_connection_secrets(scope_name, connection_details)
+        self.store_connection_secrets(scope_name, connection_details)
