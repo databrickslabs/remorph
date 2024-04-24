@@ -1,4 +1,5 @@
 import pytest
+from sqlglot import parse_one
 
 from databricks.labs.remorph.reconcile.query_builder_refactored.recon_config import (
     ColumnMapping,
@@ -60,7 +61,7 @@ def schema():
     sch = [
         Schema("s_suppkey", "number"),
         Schema("s_name", "varchar"),
-        Schema("s_address", "map"),
+        Schema("s_address", "varchar"),
         Schema("s_nationkey", "number"),
         Schema("s_phone", "varchar"),
         Schema("s_acctbal", "number"),
@@ -78,3 +79,8 @@ def schema():
     ]
 
     return sch, sch_with_alias
+
+
+@pytest.fixture
+def expr():
+    return parse_one("SELECT col1 FROM DUAL")

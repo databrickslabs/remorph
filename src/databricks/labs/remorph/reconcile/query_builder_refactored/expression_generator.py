@@ -5,6 +5,7 @@ from sqlglot import expressions as exp
 from sqlglot.expressions import (
     Alias,
     Anonymous,
+    Boolean,
     Coalesce,
     Column,
     DataType,
@@ -17,7 +18,7 @@ from sqlglot.expressions import (
 )
 
 
-def _apply_func_expr(expr, expr_func, **kwargs):
+def _apply_func_expr(expr: Expression, expr_func: Callable, **kwargs) -> Expression:
     level = 0 if isinstance(expr, exp.Column) else 1
     new_expr = expr.copy()
     for node in new_expr.dfs():
@@ -44,27 +45,53 @@ def json_format(expr: Expression, options: dict[str, str] | None = None) -> JSON
     return _apply_func_expr(expr, exp.JSONFormat, options=options)
 
 
-def sort_array(expr: Expression, asc=False):
-    return _apply_func_expr(expr, exp.SortArray, asc=asc)
-
-
-def concat_ws(expr: Expression):
-    return _apply_func_expr(expr, exp.ArrayConcat)
+def sort_array(expr: Expression, asc=True):
+    return _apply_func_expr(expr, exp.SortArray, asc=Boolean(this=asc))
 
 
 def to_char(expr: Expression, to_format=None, nls_param=None):
-    return _apply_func_expr(expr, exp.ToChar, format=to_format, nls_param=nls_param)
+    if to_format:
+        return _apply_func_expr(
+            expr, exp.ToChar, format=exp.Literal(this=to_format, is_string=True), nls_param=nls_param
+        )
+    return _apply_func_expr(expr, exp.ToChar)
 
 
-def array_to_string(expr: Expression, delimiter: str = ",", null_replacement: str | None = None):
-    return _apply_func_expr(expr, exp.ArrayToString, expression=[exp.Literal(this=delimiter)], null=null_replacement)
+def array_to_string(
+    expr: Expression, delimiter: str = ",", is_string=True, null_replacement: str | None = None, is_null_replace=True
+):
+    if null_replacement:
+        return _apply_func_expr(
+            expr,
+            exp.ArrayToString,
+            expression=[exp.Literal(this=delimiter, is_string=is_string)],
+            null=exp.Literal(this=null_replacement, is_string=is_null_replace),
+        )
+    return _apply_func_expr(expr, exp.ArrayToString, expression=[exp.Literal(this=delimiter, is_string=is_string)])
 
 
-def array_sort(expr: Expression):
-    return _apply_func_expr(expr, exp.ArraySort)
+def array_sort(expr: Expression, asc=True):
+    return _apply_func_expr(expr, exp.ArraySort, expression=Boolean(this=asc))
 
 
 def anonymous(expr: Expression, func: str) -> Anonymous | Expression:
+    """
+
+    This function used in cases where the sql functions are not available in sqlGlot expressions
+    Example:
+        >>> from sqlglot import parse_one
+        >>> print(repr(parse_one('select unix_timestamp(col1)')))
+
+    the above code gives you a Select Expression of Anonymous function.
+
+    To achieve the same,we can use the function as below:
+    eg:
+        >>> expr = parse_one("select col1 from dual")
+        >>> transformed_expr=anonymous(expr,"unix_timestamp")
+        >>> print(transformed_expr)
+        'SELECT UNIX_TIMESTAMP(col1) FROM DUAL'
+
+    """
     new_expr = expr.copy()
     for node in new_expr.dfs():
         if isinstance(node, exp.Column):
@@ -121,14 +148,12 @@ def transform_expression(expr: Expression, funcs: list[Callable[[exp.Expression]
 
 DataType_transform_mapping = {
     "default": [partial(coalesce, default='', is_string=True), trim],
-    "snowflake": {
-        DataType.Type.ARRAY.value: [array_to_string, array_sort]
-    },
+    "snowflake": {DataType.Type.ARRAY.value: [array_to_string, array_sort]},
     "oracle": {
         DataType.Type.NCHAR.value: [partial(anonymous, func="nvl(trim(to_char({})),'_null_recon_')")],
         DataType.Type.NVARCHAR.value: [partial(anonymous, func="nvl(trim(to_char({})),'_null_recon_')")],
     },
     "databricks": {
-        DataType.Type.ARRAY.value: [concat_ws, sort_array]
-    }
+        DataType.Type.ARRAY.value: [partial(anonymous, func="concat_ws(',', sort_array({}))")],
+    },
 }

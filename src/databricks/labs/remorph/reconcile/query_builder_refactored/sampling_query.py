@@ -10,14 +10,14 @@ from databricks.labs.remorph.reconcile.query_builder_refactored.expression_gener
 )
 
 
-def union_concat(unions, result, cnt=0):
+def _union_concat(unions, result, cnt=0):
     if len(unions) == 1:
         return result
     if cnt == len(unions) - 2:
         return union(result, unions[cnt + 1])
     cnt = cnt + 1
     res = union(result, unions[cnt])
-    return union_concat(unions, res, cnt)
+    return _union_concat(unions, res, cnt)
 
 
 class SamplingQueryBuilder(QueryBuilder):
@@ -36,7 +36,7 @@ class SamplingQueryBuilder(QueryBuilder):
             build_column(this=col, alias=self.table_conf.get_tgt_to_src_col_mapping(col, self.layer)) for col in cols
         ]
 
-        sql_with_transforms = self._add_transformations(cols_with_alias,self.source)
+        sql_with_transforms = self._add_transformations(cols_with_alias, self.source)
         query_sql = select(*sql_with_transforms).from_(":tbl").where(self.filter)
 
         return (
@@ -44,7 +44,7 @@ class SamplingQueryBuilder(QueryBuilder):
             .select("src.*")
             .from_("src")
             .join(expression="recon", join_type="inner", using=key_cols)
-            .sql()
+            .sql(dialect=self.source)
         )
 
     @staticmethod
@@ -53,7 +53,7 @@ class SamplingQueryBuilder(QueryBuilder):
         for row in df.take(SampleConfig.SAMPLE_ROWS):
             row_select = [build_literal(this=value, alias=col, is_string=False) for col, value in zip(df.columns, row)]
             union_res.append(select(*row_select))
-        union_statements = union_concat(union_res, union_res[0], 0)
+        union_statements = _union_concat(union_res, union_res[0], 0)
         return Select().with_(alias='recon', as_=union_statements)
 
     def _add_transformations(self, aliases: list[Alias], source: str) -> list[Alias]:
@@ -62,5 +62,5 @@ class SamplingQueryBuilder(QueryBuilder):
             default_schema = {
                 key: self.schema_dict[key] for key in self.schema_dict.keys() if key not in self.custom_transformations
             }
-            return self.apply_default_transformation(alias_with_custom_transforms, default_schema,source)
-        return self.apply_default_transformation(aliases, self.schema_dict,source)
+            return self.apply_default_transformation(alias_with_custom_transforms, default_schema, source)
+        return self.apply_default_transformation(aliases, self.schema_dict, source)
