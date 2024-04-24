@@ -1,7 +1,7 @@
 from collections.abc import Callable
 from functools import partial
 
-from sqlglot import expressions as exp, parse_one
+from sqlglot import expressions as exp
 from sqlglot.expressions import (
     Alias,
     Anonymous,
@@ -17,120 +17,51 @@ from sqlglot.expressions import (
 )
 
 
-def coalesce(expr: Expression, default="0", is_string=False) -> Coalesce | Expression:
+def _apply_func_expr(expr, expr_func, **kwargs):
     level = 0 if isinstance(expr, exp.Column) else 1
     new_expr = expr.copy()
     for node in new_expr.dfs():
         if isinstance(node, exp.Column):
             column_name = node.name
             table_name = node.table
-            func = exp.Coalesce(
-                this=exp.Column(this=column_name, table=table_name),
-                expressions=[exp.Literal(this=default, is_string=is_string)],
-            )
+            func = expr_func(this=exp.Column(this=column_name, table=table_name), **kwargs)
             if level == 0:
                 return func
             node.replace(func)
     return new_expr
+
+
+def coalesce(expr: Expression, default="0", is_string=False) -> Coalesce | Expression:
+    expressions = [exp.Literal(this=default, is_string=is_string)]
+    return _apply_func_expr(expr, exp.Coalesce, expressions=expressions)
 
 
 def trim(expr: Expression) -> Trim | Expression:
-    level = 0 if isinstance(expr, exp.Column) else 1
-    new_expr = expr.copy()
-    for node in new_expr.dfs():
-        if isinstance(node, exp.Column):
-            column_name = node.name
-            table_name = node.table
-            func = exp.Trim(this=exp.Column(this=column_name, table=table_name))
-            if level == 0:
-                return func
-            node.replace(func)
-    return new_expr
+    return _apply_func_expr(expr, exp.Trim)
 
 
 def json_format(expr: Expression, options: dict[str, str] | None = None) -> JSONFormat | Expression:
-    level = 0 if isinstance(expr, exp.Column) else 1
-    new_expr = expr.copy()
-    for node in new_expr.dfs():
-        if isinstance(node, exp.Column):
-            column_name = node.name
-            table_name = node.table
-            func = exp.JSONFormat(this=exp.Column(this=column_name, table=table_name), options=options)
-            if level == 0:
-                return func
-            node.replace(func)
-    return new_expr
+    return _apply_func_expr(expr, exp.JSONFormat, options=options)
 
 
 def sort_array(expr: Expression, asc=False):
-    level = 0 if isinstance(expr, exp.Column) else 1
-    new_expr = expr.copy()
-    for node in new_expr.dfs():
-        if isinstance(node, exp.Column):
-            column_name = node.name
-            table_name = node.table
-            func = exp.SortArray(this=exp.Column(this=column_name, table=table_name), asc=asc)
-            if level == 0:
-                return func
-            node.replace(func)
-    return new_expr
+    return _apply_func_expr(expr, exp.SortArray, asc=asc)
 
 
 def concat_ws(expr: Expression):
-    level = 0 if isinstance(expr, exp.Column) else 1
-    new_expr = expr.copy()
-    for node in new_expr.dfs():
-        if isinstance(node, exp.Column):
-            column_name = node.name
-            table_name = node.table
-            func = exp.ArrayConcat(this=exp.Column(this=column_name, table=table_name))
-            if level == 0:
-                return func
-            node.replace(func)
-    return new_expr
+    return _apply_func_expr(expr, exp.ArrayConcat)
 
 
 def to_char(expr: Expression, to_format=None, nls_param=None):
-    level = 0 if isinstance(expr, exp.Column) else 1
-    new_expr = expr.copy()
-    for node in new_expr.dfs():
-        if isinstance(node, exp.Column):
-            column_name = node.name
-            table_name = node.table
-            func = exp.ToChar(this=exp.Column(this=column_name, table=table_name), format=to_format, nlsparam=nls_param)
-            if level == 0:
-                return func
-            node.replace(func)
-    return new_expr
+    return _apply_func_expr(expr, exp.ToChar, format=to_format, nls_param=nls_param)
 
 
 def array_to_string(expr: Expression, delimiter: str = ",", null_replacement: str | None = None):
-    level = 0 if isinstance(expr, exp.Column) else 1
-    new_expr = expr.copy()
-    for node in new_expr.dfs():
-        if isinstance(node, exp.Column):
-            column_name = node.name
-            table_name = node.table
-            func = exp.ArrayToString(this=exp.Column(this=column_name, table=table_name), expression=delimiter,
-                                     null=null_replacement)
-            if level == 0:
-                return func
-            node.replace(func)
-    return new_expr
+    return _apply_func_expr(expr, exp.ArrayToString, expression=[exp.Literal(this=delimiter)], null=null_replacement)
 
 
 def array_sort(expr: Expression):
-    level = 0 if isinstance(expr, exp.Column) else 1
-    new_expr = expr.copy()
-    for node in new_expr.dfs():
-        if isinstance(node, exp.Column):
-            column_name = node.name
-            table_name = node.table
-            func = exp.ArraySort(this=exp.Column(this=column_name, table=table_name))
-            if level == 0:
-                return func
-            node.replace(func)
-    return new_expr
+    return _apply_func_expr(expr, exp.ArraySort)
 
 
 def anonymous(expr: Expression, func: str) -> Anonymous | Expression:
