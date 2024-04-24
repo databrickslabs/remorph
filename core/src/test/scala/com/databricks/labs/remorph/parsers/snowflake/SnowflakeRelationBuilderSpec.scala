@@ -130,5 +130,18 @@ class SnowflakeRelationBuilderSpec extends AnyWordSpec with ParserTestCommon wit
               frame_spec = DummyWindowFrame),
             Literal(integer = Some(1)))))
     }
+
+    "translate SELECT DISTINCT clauses" in {
+      example(
+        "SELECT DISTINCT a FROM t",
+        _.select_statement(),
+        Project(
+          Deduplicate(
+            input = namedTable("t"),
+            column_names = Seq("a"),
+            all_columns_as_keys = false,
+            within_watermark = false),
+          Seq(Column("a"))))
+    }
   }
 }

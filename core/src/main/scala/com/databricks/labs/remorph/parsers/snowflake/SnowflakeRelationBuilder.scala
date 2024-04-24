@@ -10,22 +10,50 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.Relation] {
 
   override def visitSelect_statement(ctx: Select_statementContext): ir.Relation = {
     val select = ctx.select_optional_clauses().accept(this)
-    val relation =
-      if (ctx.limit_clause() != null) {
-        val limit = ir.Limit(select, ctx.limit_clause().num(0).getText.toInt)
-        if (ctx.limit_clause().OFFSET() != null) {
-          ir.Offset(limit, ctx.limit_clause().num(1).getText.toInt)
+    val relation = buildLimitOffset(ctx.limit_clause(), select)
+    val (allOrDistinct, selectListElements) = ctx match {
+      case c if ctx.select_clause() != null =>
+        (
+          c.select_clause().select_list_no_top().all_distinct(),
+          c.select_clause().select_list_no_top().select_list().select_list_elem().asScala)
+      case c if ctx.select_top_clause() != null =>
+        (
+          c.select_top_clause().select_list_top().all_distinct(),
+          c.select_top_clause().select_list_top().select_list().select_list_elem().asScala)
+    }
+    val expressions = selectListElements.map(_.accept(new SnowflakeExpressionBuilder))
+    ir.Project(buildDistinct(allOrDistinct, relation, expressions), expressions)
+
+  }
+
+  private def buildLimitOffset(ctx: Limit_clauseContext, input: ir.Relation): ir.Relation = {
+    Option(ctx).fold(input) { c =>
+      if (c.LIMIT() != null) {
+        val limit = ir.Limit(input, ctx.num(0).getText.toInt)
+        if (c.OFFSET() != null) {
+          ir.Offset(limit, ctx.num(1).getText.toInt)
         } else {
           limit
         }
       } else {
-        select
+        ir.Offset(input, ctx.num(0).getText.toInt)
       }
-    val selectListElements = ctx.select_clause().select_list_no_top().select_list().select_list_elem().asScala
-    val expressionVisitor = new SnowflakeExpressionBuilder
-    val expressions: Seq[ir.Expression] = selectListElements.map(_.accept(expressionVisitor))
-    ir.Project(relation, expressions)
+    }
   }
+
+  private def buildDistinct(
+      ctx: All_distinctContext,
+      input: ir.Relation,
+      projectExpressions: Seq[ir.Expression]): ir.Relation =
+    if (Option(ctx).exists(_.DISTINCT() != null)) {
+      val columnNames = projectExpressions.collect {
+        case ir.Column(c) => Seq(c)
+        case ir.Alias(_, a, _) => a
+      }.flatten
+      ir.Deduplicate(input, columnNames, all_columns_as_keys = columnNames.isEmpty, within_watermark = false)
+    } else {
+      input
+    }
 
   override def visitSelect_optional_clauses(ctx: Select_optional_clausesContext): ir.Relation = {
     val from = ctx.from_clause().accept(this)
