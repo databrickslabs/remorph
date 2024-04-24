@@ -1,7 +1,7 @@
 import pytest
 
+from databricks.labs.remorph.config import Schema
 from databricks.labs.remorph.reconcile.query_builder.hash_query import HashQueryBuilder
-from databricks.labs.remorph.reconcile.recon_config import Schema
 from tests.unit.reconcile.query_builder.test_conf import TestConf
 
 

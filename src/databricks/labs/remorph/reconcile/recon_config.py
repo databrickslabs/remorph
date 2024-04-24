@@ -104,26 +104,3 @@ class Table:
         if layer == "source":
             return self.filters.source
         return self.filters.target
-
-
-@dataclass
-class TableRecon:
-    source_schema: str
-    target_catalog: str
-    target_schema: str
-    tables: list[Table]
-    source_catalog: str | None = None
-
-
-@dataclass
-class DatabaseConfig:
-    source_schema: str
-    target_catalog: str
-    target_schema: str
-    source_catalog: str | None = None
-
-
-@dataclass
-class Schema:
-    column_name: str
-    data_type: str

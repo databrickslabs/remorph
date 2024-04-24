@@ -1,9 +1,10 @@
 from pyspark.errors import PySparkException
 from pyspark.sql import DataFrame, DataFrameReader
 
+from databricks.labs.remorph.config import Schema
 from databricks.labs.remorph.reconcile.connectors.data_source import DataSource
 from databricks.labs.remorph.reconcile.constants import SourceDriver, SourceType
-from databricks.labs.remorph.reconcile.recon_config import JdbcReaderOptions, Schema
+from databricks.labs.remorph.reconcile.recon_config import JdbcReaderOptions
 
 
 class OracleDataSource(DataSource):

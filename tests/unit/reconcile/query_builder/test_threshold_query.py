@@ -1,9 +1,9 @@
+from databricks.labs.remorph.config import Schema
 from databricks.labs.remorph.reconcile.query_builder.threshold_query import (
     ThresholdQueryBuilder,
 )
 from databricks.labs.remorph.reconcile.recon_config import (
     ColumnMapping,
-    Schema,
     Thresholds,
     Transformation,
 )
