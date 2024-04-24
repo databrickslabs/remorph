@@ -1,7 +1,7 @@
 from collections.abc import Callable
 from functools import partial
 
-from sqlglot import expressions as exp
+from sqlglot import expressions as exp, parse_one
 from sqlglot.expressions import (
     Alias,
     Anonymous,
@@ -62,12 +62,83 @@ def json_format(expr: Expression, options: dict[str, str] | None = None) -> JSON
     return new_expr
 
 
-def anonymous(node, func: str) -> Anonymous | Expression:
-    if isinstance(node, exp.Column):
-        column_name = node.name
-        table_name = node.table
-        return exp.Anonymous(this=func, expressions=[exp.Column(this=column_name, table=table_name)])
-    return node
+def sort_array(expr: Expression, asc=False):
+    level = 0 if isinstance(expr, exp.Column) else 1
+    new_expr = expr.copy()
+    for node in new_expr.dfs():
+        if isinstance(node, exp.Column):
+            column_name = node.name
+            table_name = node.table
+            func = exp.SortArray(this=exp.Column(this=column_name, table=table_name), asc=asc)
+            if level == 0:
+                return func
+            node.replace(func)
+    return new_expr
+
+
+def concat_ws(expr: Expression):
+    level = 0 if isinstance(expr, exp.Column) else 1
+    new_expr = expr.copy()
+    for node in new_expr.dfs():
+        if isinstance(node, exp.Column):
+            column_name = node.name
+            table_name = node.table
+            func = exp.ArrayConcat(this=exp.Column(this=column_name, table=table_name))
+            if level == 0:
+                return func
+            node.replace(func)
+    return new_expr
+
+
+def to_char(expr: Expression, to_format=None, nls_param=None):
+    level = 0 if isinstance(expr, exp.Column) else 1
+    new_expr = expr.copy()
+    for node in new_expr.dfs():
+        if isinstance(node, exp.Column):
+            column_name = node.name
+            table_name = node.table
+            func = exp.ToChar(this=exp.Column(this=column_name, table=table_name), format=to_format, nlsparam=nls_param)
+            if level == 0:
+                return func
+            node.replace(func)
+    return new_expr
+
+
+def array_to_string(expr: Expression, delimiter: str = ",", null_replacement: str | None = None):
+    level = 0 if isinstance(expr, exp.Column) else 1
+    new_expr = expr.copy()
+    for node in new_expr.dfs():
+        if isinstance(node, exp.Column):
+            column_name = node.name
+            table_name = node.table
+            func = exp.ArrayToString(this=exp.Column(this=column_name, table=table_name), expression=delimiter,
+                                     null=null_replacement)
+            if level == 0:
+                return func
+            node.replace(func)
+    return new_expr
+
+
+def array_sort(expr: Expression):
+    level = 0 if isinstance(expr, exp.Column) else 1
+    new_expr = expr.copy()
+    for node in new_expr.dfs():
+        if isinstance(node, exp.Column):
+            column_name = node.name
+            table_name = node.table
+            func = exp.ArraySort(this=exp.Column(this=column_name, table=table_name))
+            if level == 0:
+                return func
+            node.replace(func)
+    return new_expr
+
+
+def anonymous(expr: Expression, func: str) -> Anonymous | Expression:
+    new_expr = expr.copy()
+    for node in new_expr.dfs():
+        if isinstance(node, exp.Column):
+            return exp.Column(this=func.format(node.name))
+    return new_expr
 
 
 def build_column(this, table_name="", quoted=False, alias=None) -> Alias | Column:
@@ -118,7 +189,15 @@ def transform_expression(expr: Expression, funcs: list[Callable[[exp.Expression]
 
 
 DataType_transform_mapping = {
-    DataType.Type.VARCHAR.value: [partial(coalesce, default='', is_string=True), trim],
-    DataType.Type.MAP.value: [json_format],
-    "NUMBER": [partial(coalesce, default='', is_string=True), trim],
+    "default": [partial(coalesce, default='', is_string=True), trim],
+    "snowflake": {
+        DataType.Type.ARRAY.value: [array_to_string, array_sort]
+    },
+    "oracle": {
+        DataType.Type.NCHAR.value: [partial(anonymous, func="nvl(trim(to_char({})),'_null_recon_')")],
+        DataType.Type.NVARCHAR.value: [partial(anonymous, func="nvl(trim(to_char({})),'_null_recon_')")],
+    },
+    "databricks": {
+        DataType.Type.ARRAY.value: [concat_ws, sort_array]
+    }
 }

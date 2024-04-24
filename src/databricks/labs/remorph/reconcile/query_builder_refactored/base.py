@@ -83,16 +83,25 @@ class QueryBuilder(ABC):
                 return parse_one(custom_transformations.get(column_name))
         return node
 
-    def apply_default_transformation(self, aliases: list[Alias], schema: dict[str, str]) -> list[Alias]:
+    def apply_default_transformation(self, aliases: list[Alias], schema: dict[str, str], source) -> list[Alias]:
         with_transform = []
         for alias in aliases:
-            with_transform.append(alias.transform(self._default_transformer, schema))
+            with_transform.append(alias.transform(self._default_transformer, schema, source))
         return with_transform
 
     @staticmethod
-    def _default_transformer(node: Expression, schema: dict[str, str]) -> Expression:
+    def _default_transformer(node: Expression, schema: dict[str, str], source) -> Expression:
+        def _get_transform(datatype: str):
+            if DataType_transform_mapping.get(source) is not None:
+                if DataType_transform_mapping.get(source).get(datatype.upper()) is not None:
+                    return DataType_transform_mapping.get(source).get(datatype.upper())
+                if DataType_transform_mapping.get(source).get("default") is not None:
+                    return DataType_transform_mapping.get(source).get("default")
+            return DataType_transform_mapping.get("default")
+
         if isinstance(node, Column):
             column_name = node.name
             if column_name in schema.keys():
-                return transform_expression(node, DataType_transform_mapping.get(schema.get(column_name).upper()))
+                transform = _get_transform(schema.get(column_name))
+                return transform_expression(node, transform)
         return node

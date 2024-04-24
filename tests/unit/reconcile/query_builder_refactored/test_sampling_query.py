@@ -3,7 +3,7 @@ from pyspark.sql.types import IntegerType, StringType, StructField, StructType
 from databricks.labs.remorph.reconcile.query_builder_refactored.recon_config import (
     ColumnMapping,
     Filters,
-    Transformation,
+    Transformation, Schema,
 )
 from databricks.labs.remorph.reconcile.query_builder_refactored.sampling_query import (
     SamplingQueryBuilder,
