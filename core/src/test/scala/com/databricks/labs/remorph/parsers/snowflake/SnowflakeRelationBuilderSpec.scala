@@ -130,6 +130,30 @@ class SnowflakeRelationBuilderSpec extends AnyWordSpec with ParserTestCommon wit
               frame_spec = DummyWindowFrame),
             Literal(integer = Some(1)))))
     }
+
+    "translate SELECT DISTINCT clauses" in {
+      example(
+        "SELECT DISTINCT a FROM t",
+        _.select_statement(),
+        Project(
+          Deduplicate(
+            input = namedTable("t"),
+            column_names = Seq("a"),
+            all_columns_as_keys = false,
+            within_watermark = false),
+          Seq(Column("a"))))
+    }
+
+    "translate SELECT TOP clauses" in {
+      example("SELECT TOP 42 a FROM t", _.select_statement(), Project(Limit(namedTable("t"), 42), Seq(Column("a"))))
+
+      example(
+        "SELECT DISTINCT TOP 42 a FROM t",
+        _.select_statement(),
+        Project(
+          Limit(Deduplicate(namedTable("t"), Seq("a"), all_columns_as_keys = false, within_watermark = false), 42),
+          Seq(Column("a"))))
+    }
   }
 
   "Unparsed input" should {
