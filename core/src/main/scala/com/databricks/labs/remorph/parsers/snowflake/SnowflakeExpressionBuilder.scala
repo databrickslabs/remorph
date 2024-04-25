@@ -9,8 +9,6 @@ class SnowflakeExpressionBuilder
     with ParserCommon
     with IncompleteParser[ir.Expression] {
 
-  type Err = ir.UnresolvedExpression
-
   protected override def wrapUnresolvedInput(unparsedInput: String): ir.UnresolvedExpression =
     ir.UnresolvedExpression(unparsedInput)
   override def visitSelect_list_elem(ctx: Select_list_elemContext): ir.Expression = {
