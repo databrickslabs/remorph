@@ -211,7 +211,6 @@ class SnowflakeExpressionBuilder
       }
       .getOrElse(param)
 
-
   override def visitCase_expression(ctx: Case_expressionContext): ir.Expression = {
     val exprs = ctx.expr().asScala
     val otherwise = Option(ctx.ELSE()).flatMap(els => exprs.find(occursBefore(els, _)).map(_.accept(this)))

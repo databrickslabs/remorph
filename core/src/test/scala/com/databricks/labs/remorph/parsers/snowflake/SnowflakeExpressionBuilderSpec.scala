@@ -157,7 +157,6 @@ class SnowflakeExpressionBuilderSpec extends AnyWordSpec with ParserTestCommon w
           WhenBranch(Equals(Column("col2"), Literal(integer = Some(2))), Literal(string = Some("two")))),
         otherwise = None))
 
-
     example(
       "CASE 'foo' WHEN col1 = 1 THEN 'one' WHEN col2 = 2 THEN 'two' END",
       _.case_expression(),
@@ -177,7 +176,6 @@ class SnowflakeExpressionBuilderSpec extends AnyWordSpec with ParserTestCommon w
           WhenBranch(Equals(Column("col1"), Literal(integer = Some(1))), Literal(string = Some("one"))),
           WhenBranch(Equals(Column("col2"), Literal(integer = Some(2))), Literal(string = Some("two")))),
         otherwise = Some(Literal(string = Some("other")))))
-
 
     example(
       "CASE 'foo' WHEN col1 = 1 THEN 'one' WHEN col2 = 2 THEN 'two' ELSE 'other' END",
