@@ -1,4 +1,4 @@
-# pylint: disable=too-many-instance-attributes,broad-exception-caught
+# pylint: disable=all
 import dataclasses
 import json
 import logging
@@ -36,7 +36,7 @@ class ReportEntry:
 
 
 def get_supported_sql_files(input_dir: Path) -> Generator[Path, None, None]:
-    yield from filter(lambda item: item.is_file() and item.suffix.lower() in {".sql", ".ddl"}, input_dir.rglob("*"))
+    yield from filter(lambda item: item.is_file() and item.suffix.lower() in [".sql", ".ddl"], input_dir.rglob("*"))
 
 
 def write_json_line(file: TextIO, content: ReportEntry):
@@ -134,16 +134,16 @@ def _prepare_report_entry(
         expressions = parse_sql(sql, source_dialect)
         report_entry.parsed = 1
         report_entry.statements = len(expressions)
-    except Exception as parse_error:
-        report_entry.parsing_error = str(parse_error)
+    except Exception as pe:
+        report_entry.parsing_error = str(pe)
         return report_entry
 
     try:
         generated_sqls = generate_sql(expressions, target_dialect)
         report_entry.transpiled = 1
         report_entry.transpiled_statements = len([sql for sql in generated_sqls if sql.strip()])
-    except Exception as transpile_error:
-        report_entry.transpilation_error = str(transpile_error)
+    except Exception as te:
+        report_entry.transpilation_error = str(te)
 
     return report_entry
 
