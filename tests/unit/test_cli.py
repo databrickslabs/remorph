@@ -3,11 +3,11 @@ from unittest.mock import create_autospec, patch
 
 import pytest
 import yaml
-from databricks.sdk import WorkspaceClient
-from databricks.sdk.errors import NotFound
 
 from databricks.labs.remorph import cli
 from databricks.labs.remorph.config import MorphConfig
+from databricks.sdk import WorkspaceClient
+from databricks.sdk.errors import NotFound
 
 
 @pytest.fixture
