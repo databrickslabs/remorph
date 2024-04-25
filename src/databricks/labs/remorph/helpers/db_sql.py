@@ -7,10 +7,9 @@ from databricks.labs.lsql.backends import (
     SqlBackend,
     StatementExecutionBackend,
 )
+from databricks.labs.remorph.config import MorphConfig
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.errors.base import DatabricksError
-
-from databricks.labs.remorph.config import MorphConfig
 
 logger = logging.getLogger(__name__)
 

@@ -22,7 +22,9 @@ class SnowflakeAstBuilder extends SnowflakeParserBaseVisitor[ir.TreeNode] {
 
   override def visitQuery_statement(ctx: Query_statementContext): ir.TreeNode = {
     val select = ctx.select_statement().accept(new SnowflakeRelationBuilder)
-    buildCTE(ctx.with_expression(), select)
+    val withCTE = buildCTE(ctx.with_expression(), select)
+    ctx.set_operators().asScala.foldLeft(withCTE)(buildSetOperator)
+
   }
 
   private def buildCTE(ctx: With_expressionContext, relation: ir.Relation): ir.Relation = {
@@ -31,6 +33,19 @@ class SnowflakeAstBuilder extends SnowflakeParserBaseVisitor[ir.TreeNode] {
     }
     val ctes = ctx.common_table_expression().asScala.map(_.accept(new SnowflakeRelationBuilder))
     ir.WithCTE(ctes, relation)
+  }
+
+  private def buildSetOperator(left: ir.Relation, ctx: Set_operatorsContext): ir.Relation = {
+    val right = ctx.select_statement().accept(new SnowflakeRelationBuilder)
+    val (isAll, setOp) = ctx match {
+      case c if c.UNION() != null =>
+        (c.ALL() != null, ir.UnionSetOp)
+      case c if c.MINUS_() != null || c.EXCEPT() != null =>
+        (false, ir.ExceptSetOp)
+      case c if c.INTERSECT() != null =>
+        (false, ir.IntersectSetOp)
+    }
+    ir.SetOperation(left, right, setOp, is_all = isAll, by_name = false, allow_missing_columns = false)
   }
 
 }

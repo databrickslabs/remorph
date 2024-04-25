@@ -59,11 +59,11 @@ coverage    = "pytest --cov src tests/unit --cov-report=html"
 integration = "pytest --cov src tests/integration --durations 20"
 fmt         = ["isort .",
                "black .",
-               "ruff  . --fix",
+               "ruff  check . --fix",
                "pylint --output-format=colorized -j 0 src tests"]
 verify      = ["black --check .",
                "isort . --check-only",
-               "ruff .",
+               "ruff check .",
                "pylint --output-format=colorized -j 0 src tests"]
 
 [tool.hatch.envs.sqlglot-latest]
@@ -76,6 +76,7 @@ dependencies = [
 [tool.isort]
 skip_glob = ["notebooks/*.py"]
 profile = "black"
+known_first_party = ["databricks"]
 
 [tool.pytest.ini_options]
 addopts = "-s -p no:warnings -vv --cache-clear"

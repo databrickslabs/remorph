@@ -34,3 +34,7 @@ case class WithCTE(ctes: Seq[Relation], query: Relation) extends RelationCommon 
 case class CTEDefinition(tableName: String, columns: Seq[Expression], cte: Relation) extends RelationCommon {}
 
 case class Star(objectName: Option[String]) extends Expression {}
+
+case class WhenBranch(condition: Expression, expression: Expression)
+case class Case(expression: Option[Expression], branches: Seq[WhenBranch], otherwise: Option[Expression])
+    extends Expression {}
