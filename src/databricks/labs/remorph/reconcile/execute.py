@@ -2,8 +2,9 @@ import logging
 from pathlib import Path
 
 from databricks.labs.blueprint.installation import Installation
+from databricks.labs.remorph.config import TableRecon
 from databricks.labs.remorph.reconcile.connectors.data_source import DataSource
-from databricks.labs.remorph.reconcile.recon_config import Table, TableRecon
+from databricks.labs.remorph.reconcile.recon_config import Table
 
 logger = logging.getLogger(__name__)
 
