@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from pyspark.sql import DataFrame
+
 
 @dataclass
 class JdbcReaderOptions:
@@ -130,3 +132,10 @@ class Table:
 class Schema:
     column_name: str
     data_type: str
+
+
+@dataclass
+class ReconcileOutput:
+    missing_in_src: DataFrame
+    missing_in_tgt: DataFrame
+    mismatch: DataFrame | None = None

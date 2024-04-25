@@ -38,10 +38,11 @@ class SamplingQueryBuilder(QueryBuilder):
 
         sql_with_transforms = self._add_transformations(cols_with_alias, self.source)
         query_sql = select(*sql_with_transforms).from_(":tbl").where(self.filter)
+        with_select = sorted(self.table_conf.get_tgt_to_src_col_mapping(cols, self.layer))
 
         return (
             with_clause.with_(alias="src", as_=query_sql)
-            .select("src.*")
+            .select(*with_select)
             .from_("src")
             .join(expression="recon", join_type="inner", using=key_cols)
             .sql(dialect=self.source)
@@ -57,10 +58,10 @@ class SamplingQueryBuilder(QueryBuilder):
         return Select().with_(alias='recon', as_=union_statements)
 
     def _add_transformations(self, aliases: list[Alias], source: str) -> list[Alias]:
-        if self.custom_transformations:
-            alias_with_custom_transforms = self.apply_custom_transformation(aliases)
+        if self.user_transformations:
+            alias_with_custom_transforms = self.apply_user_transformation(aliases)
             default_schema = {
-                key: self.schema_dict[key] for key in self.schema_dict.keys() if key not in self.custom_transformations
+                key: self.schema_dict[key] for key in self.schema_dict.keys() if key not in self.user_transformations
             }
             return self.apply_default_transformation(alias_with_custom_transforms, default_schema, source)
         return self.apply_default_transformation(aliases, self.schema_dict, source)

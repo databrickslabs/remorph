@@ -1,7 +1,6 @@
 import logging
 from dataclasses import dataclass
 
-from pyspark.sql import DataFrame
 from sqlglot.dialects.dialect import Dialect, Dialects
 
 from databricks.labs.remorph.reconcile.query_builder_refactored.recon_config import (
@@ -72,10 +71,3 @@ class DatabaseConfig:
     target_catalog: str
     target_schema: str
     source_catalog: str | None = None
-
-
-@dataclass
-class ReconcileOutput:
-    missing_in_src: DataFrame
-    missing_in_tgt: DataFrame
-    mismatch: DataFrame | None = None

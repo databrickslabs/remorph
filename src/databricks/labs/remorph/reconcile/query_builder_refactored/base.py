@@ -62,25 +62,25 @@ class QueryBuilder(ABC):
         return self._table_conf.get_filter(self._layer)
 
     @property
-    def custom_transformations(self) -> dict[str, str]:
+    def user_transformations(self) -> dict[str, str]:
         return self._table_conf.get_transformation_dict(self._layer)
 
     @property
     def table_name(self) -> str:
         return self._table_conf.source_name if self._layer == "source" else self._table_conf.target_name
 
-    def apply_custom_transformation(self, aliases: list[Alias]) -> list[Alias]:
+    def apply_user_transformation(self, aliases: list[Alias]) -> list[Alias]:
         with_transform = []
         for alias in aliases:
-            with_transform.append(alias.transform(self._custom_transformer, self.custom_transformations))
+            with_transform.append(alias.transform(self._user_transformer, self.user_transformations))
         return with_transform
 
     @staticmethod
-    def _custom_transformer(node: Expression, custom_transformations: dict[str, str]) -> Expression:
-        if isinstance(node, Column) and custom_transformations:
+    def _user_transformer(node: Expression, user_transformations: dict[str, str]) -> Expression:
+        if isinstance(node, Column) and user_transformations:
             column_name = node.name
-            if column_name in custom_transformations.keys():
-                return parse_one(custom_transformations.get(column_name))
+            if column_name in user_transformations.keys():
+                return parse_one(user_transformations.get(column_name))
         return node
 
     def apply_default_transformation(self, aliases: list[Alias], schema: dict[str, str], source) -> list[Alias]:

@@ -1,8 +1,11 @@
+from sqlglot import expressions as exp
 from sqlglot import parse_one
 
 from databricks.labs.remorph.reconcile.query_builder_refactored.expression_generator import (
     array_sort,
     array_to_string,
+    build_column,
+    build_literal,
     coalesce,
     json_format,
     sort_array,
@@ -50,3 +53,28 @@ def test_array_to_string(expr):
 def test_array_sort(expr):
     assert array_sort(expr).sql() == "SELECT ARRAY_SORT(col1, TRUE) FROM DUAL"
     assert array_sort(expr, asc=False).sql() == "SELECT ARRAY_SORT(col1, FALSE) FROM DUAL"
+
+
+def test_build_column():
+    # test build_column without alias and column as str expr
+    assert build_column(this="col1") == exp.Column(this=exp.Identifier(this="col1", quoted=False), table="")
+
+    # test build_column with alias and column as str expr
+    assert build_column(this="col1", alias="col1_aliased") == exp.Alias(
+        this=exp.Column(this="col1", table_name=""), alias=exp.Identifier(this="col1_aliased", quoted=False)
+    )
+
+    # test build_column with alias and column as exp.Column expr
+    assert build_column(
+        this=exp.Column(this=exp.Identifier(this="col1", quoted=False), table=""), alias="col1_aliased"
+    ) == exp.Alias(
+        this=exp.Column(this=exp.Identifier(this="col1", quoted=False), table=""),
+        alias=exp.Identifier(this="col1_aliased", quoted=False),
+    )
+
+
+def test_build_literal():
+    actual = build_literal(this="abc")
+    expected = exp.Literal(this="abc", is_string=True)
+
+    assert actual == expected
