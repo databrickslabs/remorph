@@ -1,31 +1,67 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
-import com.databricks.labs.remorph.parsers.{intermediate => ir}
+import com.databricks.labs.remorph.parsers.{IncompleteParser, intermediate => ir}
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser._
 import org.antlr.v4.runtime.ParserRuleContext
 
 import scala.collection.JavaConverters._
 
-class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.Relation] {
+class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.Relation] with IncompleteParser[ir.Relation] {
 
+  protected override def wrapUnresolvedInput(unparsedInput: String): ir.Relation = ir.UnresolvedRelation(unparsedInput)
   override def visitSelect_statement(ctx: Select_statementContext): ir.Relation = {
     val select = ctx.select_optional_clauses().accept(this)
-    val relation =
-      if (ctx.limit_clause() != null) {
-        val limit = ir.Limit(select, ctx.limit_clause().num(0).getText.toInt)
-        if (ctx.limit_clause().OFFSET() != null) {
-          ir.Offset(limit, ctx.limit_clause().num(1).getText.toInt)
+    val relation = buildLimitOffset(ctx.limit_clause(), select)
+    val (top, allOrDistinct, selectListElements) = ctx match {
+      case c if ctx.select_clause() != null =>
+        (
+          None,
+          c.select_clause().select_list_no_top().all_distinct(),
+          c.select_clause().select_list_no_top().select_list().select_list_elem().asScala)
+      case c if ctx.select_top_clause() != null =>
+        (
+          Option(c.select_top_clause().select_list_top().top_clause()),
+          c.select_top_clause().select_list_top().all_distinct(),
+          c.select_top_clause().select_list_top().select_list().select_list_elem().asScala)
+    }
+    val expressions = selectListElements.map(_.accept(new SnowflakeExpressionBuilder))
+    ir.Project(buildTop(top, buildDistinct(allOrDistinct, relation, expressions)), expressions)
+
+  }
+
+  private def buildLimitOffset(ctx: Limit_clauseContext, input: ir.Relation): ir.Relation = {
+    Option(ctx).fold(input) { c =>
+      if (c.LIMIT() != null) {
+        val limit = ir.Limit(input, ctx.num(0).getText.toInt)
+        if (c.OFFSET() != null) {
+          ir.Offset(limit, ctx.num(1).getText.toInt)
         } else {
           limit
         }
       } else {
-        select
+        ir.Offset(input, ctx.num(0).getText.toInt)
       }
-    val selectListElements = ctx.select_clause().select_list_no_top().select_list().select_list_elem().asScala
-    val expressionVisitor = new SnowflakeExpressionBuilder
-    val expressions: Seq[ir.Expression] = selectListElements.map(_.accept(expressionVisitor))
-    ir.Project(relation, expressions)
+    }
   }
+
+  private def buildDistinct(
+      ctx: All_distinctContext,
+      input: ir.Relation,
+      projectExpressions: Seq[ir.Expression]): ir.Relation =
+    if (Option(ctx).exists(_.DISTINCT() != null)) {
+      val columnNames = projectExpressions.collect {
+        case ir.Column(c) => Seq(c)
+        case ir.Alias(_, a, _) => a
+      }.flatten
+      ir.Deduplicate(input, columnNames, all_columns_as_keys = columnNames.isEmpty, within_watermark = false)
+    } else {
+      input
+    }
+
+  private def buildTop(ctxOpt: Option[Top_clauseContext], input: ir.Relation): ir.Relation =
+    ctxOpt.fold(input) { top =>
+      ir.Limit(input, top.num().getText.toInt)
+    }
 
   override def visitSelect_optional_clauses(ctx: Select_optional_clausesContext): ir.Relation = {
     val from = ctx.from_clause().accept(this)
