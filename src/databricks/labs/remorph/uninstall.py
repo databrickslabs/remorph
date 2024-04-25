@@ -4,11 +4,10 @@ from datetime import timedelta
 from databricks.labs.blueprint.installation import Installation
 from databricks.labs.blueprint.tui import Prompts
 from databricks.labs.blueprint.wheels import ProductInfo
-from databricks.sdk import WorkspaceClient
-from databricks.sdk.errors import NotFound
-
 from databricks.labs.remorph.__about__ import __version__
 from databricks.labs.remorph.config import MorphConfig
+from databricks.sdk import WorkspaceClient
+from databricks.sdk.errors import NotFound
 
 logger = logging.getLogger("databricks.labs.remorph.install")
 
