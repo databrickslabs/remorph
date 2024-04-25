@@ -1,8 +1,8 @@
-from databricks.labs.remorph.config import Schema
 from databricks.labs.remorph.reconcile.recon_config import (
     ColumnMapping,
     Filters,
     JdbcReaderOptions,
+    Schema,
     Table,
     Thresholds,
     Transformation,

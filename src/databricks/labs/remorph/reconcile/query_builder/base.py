@@ -1,6 +1,5 @@
 from abc import ABC
 
-from databricks.labs.remorph.config import Schema
 from databricks.labs.remorph.reconcile.connectors.databricks import DatabricksDataSource
 from databricks.labs.remorph.reconcile.connectors.oracle import OracleDataSource
 from databricks.labs.remorph.reconcile.connectors.snowflake import SnowflakeDataSource
@@ -10,6 +9,7 @@ from databricks.labs.remorph.reconcile.constants import (
 )
 from databricks.labs.remorph.reconcile.recon_config import (
     ColumnMapping,
+    Schema,
     Table,
     Transformation,
     TransformRuleMapping,

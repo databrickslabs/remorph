@@ -72,9 +72,3 @@ class DatabaseConfig:
     target_catalog: str
     target_schema: str
     source_catalog: str | None = None
-
-
-@dataclass
-class Schema:
-    column_name: str
-    data_type: str

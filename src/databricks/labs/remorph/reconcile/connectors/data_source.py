@@ -3,8 +3,7 @@ from abc import ABC, abstractmethod
 
 from pyspark.sql import DataFrame, SparkSession
 
-from databricks.labs.remorph.config import Schema
-from databricks.labs.remorph.reconcile.recon_config import JdbcReaderOptions
+from databricks.labs.remorph.reconcile.recon_config import JdbcReaderOptions, Schema
 from databricks.sdk import WorkspaceClient
 
 

@@ -104,3 +104,9 @@ class Table:
         if layer == "source":
             return self.filters.source
         return self.filters.target
+
+
+@dataclass
+class Schema:
+    column_name: str
+    data_type: str
