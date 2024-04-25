@@ -1,12 +1,17 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
-import com.databricks.labs.remorph.parsers.intermediate.Expression
-import com.databricks.labs.remorph.parsers.{intermediate => ir}
+import com.databricks.labs.remorph.parsers.{IncompleteParser, intermediate => ir}
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser._
 
 import scala.collection.JavaConverters._
-class SnowflakeExpressionBuilder extends SnowflakeParserBaseVisitor[ir.Expression] {
+class SnowflakeExpressionBuilder
+    extends SnowflakeParserBaseVisitor[ir.Expression]
+    with IncompleteParser[ir.Expression] {
 
+  type Err = ir.UnresolvedExpression
+
+  protected override def wrapUnresolvedInput(unparsedInput: String): ir.UnresolvedExpression =
+    ir.UnresolvedExpression(unparsedInput)
   override def visitSelect_list_elem(ctx: Select_list_elemContext): ir.Expression = {
     val rawExpression = ctx match {
       case c if c.column_elem() != null => c.column_elem().accept(this)
@@ -16,7 +21,7 @@ class SnowflakeExpressionBuilder extends SnowflakeParserBaseVisitor[ir.Expressio
     buildAlias(ctx.as_alias(), rawExpression)
   }
 
-  override def visitColumn_elem_star(ctx: Column_elem_starContext): Expression = {
+  override def visitColumn_elem_star(ctx: Column_elem_starContext): ir.Expression = {
     ir.Star(Option(ctx.object_name_or_alias()).map {
       case c if c.object_name() != null => c.object_name().getText
       case c if c.alias() != null => c.alias().id_().getText
