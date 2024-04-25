@@ -1,11 +1,11 @@
 import re
 from abc import ABC, abstractmethod
 
-from databricks.sdk import WorkspaceClient  # pylint: disable-next=wrong-import-order
 from pyspark.sql import DataFrame, SparkSession
 
 from databricks.labs.remorph.config import Schema
 from databricks.labs.remorph.reconcile.recon_config import JdbcReaderOptions
+from databricks.sdk import WorkspaceClient
 
 
 class DataSource(ABC):

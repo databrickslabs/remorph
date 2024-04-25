@@ -4,14 +4,14 @@ from pathlib import Path
 from unittest.mock import create_autospec, patch
 
 import pytest
+
 from databricks.connect import DatabricksSession
 from databricks.labs.lsql.backends import MockBackend
-from databricks.sdk.core import Config
-
 from databricks.labs.remorph.config import MorphConfig
 from databricks.labs.remorph.helpers.file_utils import make_dir
 from databricks.labs.remorph.helpers.validation import Validator
 from databricks.labs.remorph.transpiler.execute import morph
+from databricks.sdk.core import Config
 
 # pylint: disable=unspecified-encoding
 
