@@ -155,16 +155,27 @@ class SnowflakeExpressionBuilderSpec extends AnyWordSpec with ParserTestCommon w
     }
 
     "translate IN expressions" in {
-      example(
-        "col1 IN (SELECT * FROM t)",
-        _.predicate,
-        IsIn(Project(namedTable("t"), Seq(Star(None))), Column("col1"))
-      )
+      example("col1 IN (SELECT * FROM t)", _.predicate, IsIn(Project(namedTable("t"), Seq(Star(None))), Column("col1")))
       example(
         "col1 NOT IN (SELECT * FROM t)",
         _.predicate,
-        Not(IsIn(Project(namedTable("t"), Seq(Star(None))), Column("col1")))
-      )
+        Not(IsIn(Project(namedTable("t"), Seq(Star(None))), Column("col1"))))
+    }
+
+    "translate BETWEEN expressions" in {
+      example(
+        "col1 BETWEEN 3.14 AND 42",
+        _.predicate,
+        And(
+          GreaterThanOrEqual(Column("col1"), Literal(float = Some(3.14f))),
+          LesserThanOrEqual(Column("col1"), Literal(integer = Some(42)))))
+      example(
+        "col1 NOT BETWEEN 3.14 AND 42",
+        _.predicate,
+        Not(
+          And(
+            GreaterThanOrEqual(Column("col1"), Literal(float = Some(3.14f))),
+            LesserThanOrEqual(Column("col1"), Literal(integer = Some(42))))))
     }
   }
 

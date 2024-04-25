@@ -232,6 +232,13 @@ class SnowflakeExpressionBuilder
     case c if c.IN() != null =>
       val isin: ir.Expression = ir.IsIn(c.subquery().accept(new SnowflakeRelationBuilder), c.expr(0).accept(this))
       Option(c.NOT()).fold(isin)(_ => ir.Not(isin))
+    case c if c.BETWEEN() != null =>
+      val expression = c.expr(0).accept(this)
+      val lowerBound = c.expr(1).accept(this)
+      val upperBound = c.expr(2).accept(this)
+      val between: ir.Expression =
+        ir.And(ir.GreaterThanOrEqual(expression, lowerBound), ir.LesserThanOrEqual(expression, upperBound))
+      Option(c.NOT()).fold(between)(_ => ir.Not(between))
     case c => visitChildren(c)
   }
 }
