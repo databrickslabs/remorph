@@ -1,13 +1,13 @@
 from unittest.mock import patch
 
 import pytest
+
 from databricks.labs.blueprint.tui import MockPrompts
+from databricks.labs.remorph.helpers.recon_config_utils import ReconConfigPrompts
 from databricks.sdk.errors.platform import ResourceDoesNotExist
 from databricks.sdk.service.workspace import SecretScope
 
-from databricks.labs.remorph.helpers.recon_config_utils import ReconConfigPrompts
-
-SOURCE_DICT = {"databricks": "0", "netezza": "1", "oracle": "2", "snowflake": "3"}
+SOURCE_DICT = {"databricks": "0", "oracle": "1", "snowflake": "2"}
 SCOPE_NAME = "dummy_scope"
 
 
@@ -64,7 +64,7 @@ def test_configure_secrets_oracle_insert(mock_workspace_client):
 def test_configure_secrets_invalid_source(mock_workspace_client):
     prompts = MockPrompts(
         {
-            r"Select the source": SOURCE_DICT["netezza"],
+            r"Select the source": "3",
             r"Enter Secret Scope name": SCOPE_NAME,
         }
     )
@@ -74,10 +74,8 @@ def test_configure_secrets_invalid_source(mock_workspace_client):
         return_value=True,
     ):
         recon_conf = ReconConfigPrompts(mock_workspace_client, prompts)
-        recon_conf.prompt_source()
-
-        with pytest.raises(ValueError, match="Source netezza is not yet configured..."):
-            recon_conf.prompt_and_save_connection_details()
+        with pytest.raises(ValueError, match="cannot get answer within 10 attempt"):
+            recon_conf.prompt_source()
 
 
 def test_store_connection_secrets_exception(mock_workspace_client):

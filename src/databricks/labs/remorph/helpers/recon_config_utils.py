@@ -1,10 +1,9 @@
 import logging
 
 from databricks.labs.blueprint.tui import Prompts
+from databricks.labs.remorph.reconcile.constants import SourceType
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.errors.platform import ResourceDoesNotExist
-
-from databricks.labs.remorph.reconcile.constants import SourceType
 
 logger = logging.getLogger(__name__)
 
@@ -12,7 +11,6 @@ recon_source_choices = [
     SourceType.SNOWFLAKE.value,
     SourceType.ORACLE.value,
     SourceType.DATABRICKS.value,
-    SourceType.NETEZZA.value,
 ]
 
 
@@ -160,8 +158,6 @@ class ReconConfigPrompts:
                 return self._prompt_snowflake_connection_details()
             case SourceType.ORACLE.value:
                 return self._prompt_oracle_connection_details()
-            case _:
-                raise ValueError(f"Source {self._source} is not yet configured...")
 
     def prompt_and_save_connection_details(self):
         """
