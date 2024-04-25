@@ -56,6 +56,9 @@ class MorphConfig:
 
 @dataclass
 class TableRecon:
+    __file__ = "recon_config.yml"
+    __version__ = 1
+
     source_schema: str
     target_catalog: str
     target_schema: str
