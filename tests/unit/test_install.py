@@ -3,18 +3,18 @@ from datetime import timedelta
 from unittest.mock import create_autospec
 
 import pytest
+
 from databricks.labs.blueprint.installation import Installation, MockInstallation
 from databricks.labs.blueprint.tui import MockPrompts, Prompts
-from databricks.sdk import WorkspaceClient
-from databricks.sdk.errors import NotFound
-from databricks.sdk.service.catalog import CatalogInfo
-
 from databricks.labs.remorph.config import MorphConfig
 from databricks.labs.remorph.install import (
     CatalogSetup,
     WorkspaceInstallation,
     WorkspaceInstaller,
 )
+from databricks.sdk import WorkspaceClient
+from databricks.sdk.errors import NotFound
+from databricks.sdk.service.catalog import CatalogInfo
 
 
 @pytest.fixture
