@@ -144,6 +144,39 @@ class SnowflakeExpressionBuilderSpec extends AnyWordSpec with ParserTestCommon w
         SortOrder(Column("d"), DescendingSortDirection, SortNullsLast),
         SortOrder(Column("e"), AscendingSortDirection, SortNullsLast))
     }
+
+    "translate EXISTS expressions" in {
+      example("EXISTS (SELECT * FROM t)", _.predicate, Exists(Project(namedTable("t"), Seq(Star(None)))))
+    }
+
+    // see https://github.com/databrickslabs/remorph/issues/273
+    "translate NOT EXISTS expressions" ignore {
+      example("NOT EXISTS (SELECT * FROM t)", _.expr(), Not(Exists(Project(namedTable("t"), Seq(Star(None))))))
+    }
+
+    "translate IN expressions" in {
+      example("col1 IN (SELECT * FROM t)", _.predicate, IsIn(Project(namedTable("t"), Seq(Star(None))), Column("col1")))
+      example(
+        "col1 NOT IN (SELECT * FROM t)",
+        _.predicate,
+        Not(IsIn(Project(namedTable("t"), Seq(Star(None))), Column("col1"))))
+    }
+
+    "translate BETWEEN expressions" in {
+      example(
+        "col1 BETWEEN 3.14 AND 42",
+        _.predicate,
+        And(
+          GreaterThanOrEqual(Column("col1"), Literal(float = Some(3.14f))),
+          LesserThanOrEqual(Column("col1"), Literal(integer = Some(42)))))
+      example(
+        "col1 NOT BETWEEN 3.14 AND 42",
+        _.predicate,
+        Not(
+          And(
+            GreaterThanOrEqual(Column("col1"), Literal(float = Some(3.14f))),
+            LesserThanOrEqual(Column("col1"), Literal(integer = Some(42))))))
+    }
   }
 
   "translate CASE expressions" in {
