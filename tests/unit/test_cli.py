@@ -351,8 +351,8 @@ def test_generate_lineage_invalid_input_sql(mock_workspace_client_cli):
             input_sql="/path/to/invalid/sql/file.sql",
             output_folder="/path/to/output",
         )
-        
-        
+
+
 def test_configure_secrets_databricks(mock_workspace_client):
     source_dict = {"databricks": "0", "netezza": "1", "oracle": "2", "snowflake": "3"}
     prompts = MockPrompts(

@@ -5,8 +5,8 @@ from databricks.labs.blueprint.cli import App
 from databricks.labs.blueprint.entrypoint import get_logger
 from databricks.labs.blueprint.installation import Installation
 from databricks.labs.remorph.config import MorphConfig
-from databricks.labs.remorph.lineage import lineage_generator
 from databricks.labs.remorph.helpers.recon_config_utils import ReconConfigPrompts
+from databricks.labs.remorph.lineage import lineage_generator
 from databricks.labs.remorph.reconcile.execute import recon
 from databricks.labs.remorph.transpiler.execute import morph
 from databricks.sdk import WorkspaceClient
@@ -107,7 +107,7 @@ def generate_lineage(w: WorkspaceClient, source: str, input_sql: str, output_fol
     lineage_generator(source, input_sql, output_folder)
 
 
-@remorph.command    
+@remorph.command
 def configure_secrets(w: WorkspaceClient):
     """Setup reconciliation connection profile details as Secrets on Databricks Workspace"""
     recon_conf = ReconConfigPrompts(w)
