@@ -1,7 +1,7 @@
 from sqlglot import expressions as exp
 from sqlglot import parse_one
 
-from databricks.labs.remorph.reconcile.query_builder_refactored.expression_generator import (
+from databricks.labs.remorph.reconcile.query_builder.expression_generator import (
     array_sort,
     array_to_string,
     build_column,

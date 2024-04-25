@@ -3,11 +3,12 @@ from sqlglot import select
 from sqlglot.expressions import Alias, Select, union
 
 from databricks.labs.remorph.reconcile.constants import SampleConfig
-from databricks.labs.remorph.reconcile.query_builder_refactored.base import QueryBuilder
-from databricks.labs.remorph.reconcile.query_builder_refactored.expression_generator import (
+from databricks.labs.remorph.reconcile.query_builder.base import QueryBuilder
+from databricks.labs.remorph.reconcile.query_builder.expression_generator import (
     build_column,
     build_literal,
 )
+from databricks.labs.remorph.reconcile.recon_config import Schema
 
 
 def _union_concat(unions, result, cnt=0):
@@ -59,9 +60,9 @@ class SamplingQueryBuilder(QueryBuilder):
 
     def _add_transformations(self, aliases: list[Alias], source: str) -> list[Alias]:
         if self.user_transformations:
-            alias_with_custom_transforms = self.apply_user_transformation(aliases)
-            default_schema = {
-                key: self.schema_dict[key] for key in self.schema_dict.keys() if key not in self.user_transformations
-            }
-            return self.apply_default_transformation(alias_with_custom_transforms, default_schema, source)
-        return self.apply_default_transformation(aliases, self.schema_dict, source)
+            alias_with_user_transforms = self.apply_user_transformation(aliases)
+            default_transform_schema: list[Schema] = list(
+                filter(lambda sch: sch.column_name not in self.user_transformations.keys(), self.schema)
+            )
+            return self.apply_default_transformation(alias_with_user_transforms, default_transform_schema, source)
+        return self.apply_default_transformation(aliases, self.schema, source)

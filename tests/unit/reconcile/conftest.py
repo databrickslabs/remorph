@@ -1,7 +1,7 @@
 import pytest
 from pyspark.sql import SparkSession
 
-from databricks.labs.remorph.reconcile.query_builder_refactored.recon_config import (
+from databricks.labs.remorph.reconcile.recon_config import (
     ColumnMapping,
     Filters,
     JdbcReaderOptions,
