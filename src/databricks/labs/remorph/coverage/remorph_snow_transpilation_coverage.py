@@ -1,7 +1,6 @@
 from pathlib import Path
 
 from databricks.labs.blueprint.wheels import ProductInfo
-
 from databricks.labs.remorph.coverage import commons
 from databricks.labs.remorph.snow.databricks import Databricks
 from databricks.labs.remorph.snow.snowflake import Snow
