@@ -4,12 +4,11 @@ import os
 from databricks.labs.blueprint.cli import App
 from databricks.labs.blueprint.entrypoint import get_logger
 from databricks.labs.blueprint.installation import Installation
-from databricks.sdk import WorkspaceClient
-
 from databricks.labs.remorph.config import MorphConfig
 from databricks.labs.remorph.lineage import lineage_generator
 from databricks.labs.remorph.reconcile.execute import recon
 from databricks.labs.remorph.transpiler.execute import morph
+from databricks.sdk import WorkspaceClient
 
 remorph = App(__file__)
 logger = get_logger(__file__)
