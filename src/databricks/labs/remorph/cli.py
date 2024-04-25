@@ -5,6 +5,7 @@ from databricks.labs.blueprint.cli import App
 from databricks.labs.blueprint.entrypoint import get_logger
 from databricks.labs.blueprint.installation import Installation
 from databricks.labs.remorph.config import MorphConfig
+from databricks.labs.remorph.helpers.recon_config_utils import ReconConfigPrompts
 from databricks.labs.remorph.reconcile.execute import recon
 from databricks.labs.remorph.transpiler.execute import morph
 from databricks.sdk import WorkspaceClient
@@ -84,6 +85,18 @@ def reconcile(w: WorkspaceClient, recon_conf: str, conn_profile: str, source: st
         )
 
     recon(recon_conf, conn_profile, source, report)
+
+
+@remorph.command
+def configure_secrets(w: WorkspaceClient):
+    """Setup reconciliation connection profile details as Secrets on Databricks Workspace"""
+    recon_conf = ReconConfigPrompts(w)
+
+    # Prompt for source
+    source = recon_conf.prompt_source()
+
+    logger.info(f"Setting up Scope, Secrets for `{source}` reconciliation")
+    recon_conf.prompt_and_save_connection_details()
 
 
 if __name__ == "__main__":
