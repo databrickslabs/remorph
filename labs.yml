@@ -50,3 +50,5 @@ commands:
       - name: report
         default: all
         description: Report type
+  - name: configure-secrets
+    description: Utility to setup Scope and Secrets on Databricks Workspace
