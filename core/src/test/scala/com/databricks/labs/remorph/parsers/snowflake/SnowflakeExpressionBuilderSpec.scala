@@ -144,6 +144,15 @@ class SnowflakeExpressionBuilderSpec extends AnyWordSpec with ParserTestCommon w
         SortOrder(Column("d"), DescendingSortDirection, SortNullsLast),
         SortOrder(Column("e"), AscendingSortDirection, SortNullsLast))
     }
+
+    "translate EXISTS expressions" in {
+      example("EXISTS (SELECT * FROM t)", _.predicate, Exists(Project(namedTable("t"), Seq(Star(None)))))
+    }
+
+    // see https://github.com/databrickslabs/remorph/issues/273
+    "translate NOT EXISTS expressions" ignore {
+      example("NOT EXISTS (SELECT * FROM t)", _.expr(), Not(Exists(Project(namedTable("t"), Seq(Star(None))))))
+    }
   }
 
   "translate CASE expressions" in {

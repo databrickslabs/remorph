@@ -38,3 +38,6 @@ case class Star(objectName: Option[String]) extends Expression {}
 case class WhenBranch(condition: Expression, expression: Expression)
 case class Case(expression: Option[Expression], branches: Seq[WhenBranch], otherwise: Option[Expression])
     extends Expression {}
+
+
+case class Exists(relation: Relation) extends Expression {}
