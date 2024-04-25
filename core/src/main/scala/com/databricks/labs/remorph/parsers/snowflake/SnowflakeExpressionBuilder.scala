@@ -229,6 +229,9 @@ class SnowflakeExpressionBuilder
   override def visitPredicate(ctx: PredicateContext): ir.Expression = ctx match {
     case c if c.EXISTS() != null =>
       ir.Exists(c.subquery().accept(new SnowflakeRelationBuilder))
+    case c if c.IN() != null =>
+      val isin: ir.Expression = ir.IsIn(c.subquery().accept(new SnowflakeRelationBuilder), c.expr(0).accept(this))
+      Option(c.NOT()).fold(isin)(_ => ir.Not(isin))
     case c => visitChildren(c)
   }
 }

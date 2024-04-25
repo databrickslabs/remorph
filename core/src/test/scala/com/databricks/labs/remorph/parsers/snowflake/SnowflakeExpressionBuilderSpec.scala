@@ -153,6 +153,19 @@ class SnowflakeExpressionBuilderSpec extends AnyWordSpec with ParserTestCommon w
     "translate NOT EXISTS expressions" ignore {
       example("NOT EXISTS (SELECT * FROM t)", _.expr(), Not(Exists(Project(namedTable("t"), Seq(Star(None))))))
     }
+
+    "translate IN expressions" in {
+      example(
+        "col1 IN (SELECT * FROM t)",
+        _.predicate,
+        IsIn(Project(namedTable("t"), Seq(Star(None))), Column("col1"))
+      )
+      example(
+        "col1 NOT IN (SELECT * FROM t)",
+        _.predicate,
+        Not(IsIn(Project(namedTable("t"), Seq(Star(None))), Column("col1")))
+      )
+    }
   }
 
   "translate CASE expressions" in {

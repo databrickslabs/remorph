@@ -41,3 +41,5 @@ case class Case(expression: Option[Expression], branches: Seq[WhenBranch], other
 
 
 case class Exists(relation: Relation) extends Expression {}
+
+case class IsIn(relation: Relation, expression: Expression) extends Expression {}
