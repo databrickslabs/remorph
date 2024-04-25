@@ -3,6 +3,7 @@ from dataclasses import dataclass
 
 from sqlglot.dialects.dialect import Dialect, Dialects
 
+from databricks.labs.remorph.reconcile.recon_config import Table
 from databricks.labs.remorph.snow import databricks, experimental, snowflake
 
 logger = logging.getLogger(__name__)
@@ -51,3 +52,23 @@ class MorphConfig:
         if self.mode == "experimental":
             return _get_dialect("experimental")
         return _get_dialect("databricks")
+
+
+@dataclass
+class TableRecon:
+    __file__ = "recon_config.yml"
+    __version__ = 1
+
+    source_schema: str
+    target_catalog: str
+    target_schema: str
+    tables: list[Table]
+    source_catalog: str | None = None
+
+
+@dataclass
+class DatabaseConfig:
+    source_schema: str
+    target_catalog: str
+    target_schema: str
+    source_catalog: str | None = None
