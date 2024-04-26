@@ -259,6 +259,9 @@ class SnowflakeExpressionBuilder
         val expression = c.expr(0).accept(this)
         val pattern = c.expr(1).accept(this)
         ir.RLike(expression, pattern)
+      case c if c.IS() != null =>
+        val isNull: ir.Expression = ir.IsNull(c.expr(0).accept(this))
+        Option(c.null_not_null().NOT()).fold(isNull)(_ => ir.Not(isNull))
       case c => visitChildren(c)
     }
     Option(ctx.NOT()).fold(predicate)(_ => ir.Not(predicate))

@@ -255,6 +255,11 @@ class SnowflakeExpressionBuilderSpec extends AnyWordSpec with ParserTestCommon w
         _.predicate,
         Not(RLike(Column("col1"), Literal(string = Some("[a-z][A-Z]*")))))
     }
+
+    "translate IS [NOT] NULL expressions" in {
+      example("col1 IS NULL", _.predicate, IsNull(Column("col1")))
+      example("col1 IS NOT NULL", _.predicate, Not(IsNull(Column("col1"))))
+    }
   }
 
   "translate CASE expressions" in {
