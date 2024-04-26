@@ -30,6 +30,7 @@ class TSqlExpressionBuilder
   override def visitPrimitive_constant(ctx: Primitive_constantContext): Expression = {
 
     ctx match {
+      case c if c.DOLLAR() != null => wrapUnresolvedInput(ctx.getText)
       case c if c.STRING() != null => c.STRING().accept(this)
       case c if c.INT() != null => c.INT().accept(this)
       case c if c.FLOAT() != null => c.FLOAT() accept (this)
