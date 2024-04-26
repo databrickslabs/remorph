@@ -1,22 +1,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import TypeVar
 
-
-@dataclass
-class TransformRuleMapping:
-    column_name: str
-    transformation: str
-    alias_name: str
-
-    def get_column_expr_without_alias(self) -> str:
-        if self.transformation:
-            return f"{self.transformation}"
-        return f"{self.column_name}"
-
-    def get_column_expr_with_alias(self) -> str:
-        return f"{self.get_column_expr_without_alias()} as {self.alias_name}"
+from pyspark.sql import DataFrame
 
 
 @dataclass
@@ -51,8 +37,8 @@ class Thresholds:
 
 @dataclass
 class Filters:
-    source: str = None
-    target: str = None
+    source: str | None = None
+    target: str | None = None
 
 
 @dataclass
@@ -68,39 +54,75 @@ class Table:
     thresholds: list[Thresholds] | None = None
     filters: Filters | None = None
 
-    Typ = TypeVar("Typ")
-
-    def list_to_dict(self, cls: type[Typ], key: str) -> Typ:
-        for _, value in self.__dict__.items():
-            if isinstance(value, list):
-                if all(isinstance(x, cls) for x in value):
-                    return {getattr(v, key): v for v in value}
-        return {}
+    @property
+    def to_src_col_map(self):
+        if self.column_mapping:
+            return {c.source_name: c.target_name for c in self.column_mapping}
+        return None
 
     @property
-    def get_threshold_columns(self) -> set[str]:
-        return {thresh.column_name for thresh in self.thresholds or []}
+    def to_tgt_col_map(self):
+        if self.column_mapping:
+            return {c.target_name: c.source_name for c in self.column_mapping}
+        return None
 
-    @property
-    def get_join_columns(self) -> set[str]:
+    def get_src_to_tgt_col_mapping(self, cols: list[str] | set[str] | str, layer: str) -> set[str] | str:
+        if layer == "source":
+            return cols
+        if isinstance(cols, list | set):
+            columns = set()
+            for col in cols:
+                columns.add(self.to_src_col_map.get(col, col))
+            return columns
+        return self.to_src_col_map.get(cols, cols)
+
+    def get_tgt_to_src_col_mapping(self, cols: list[str] | set[str] | str, layer: str) -> set[str] | str:
+        if layer == "source":
+            return cols
+        if isinstance(cols, list | set):
+            columns = set()
+            for col in cols:
+                columns.add(self.to_tgt_col_map.get(col, col))
+            return columns
+        return self.to_tgt_col_map.get(cols, cols)
+
+    def get_select_columns(self, schema: list[Schema], layer: str) -> set[str]:
+        if self.select_columns is None:
+            return {sch.column_name for sch in schema}
+        if self.to_src_col_map:
+            return self.get_src_to_tgt_col_mapping(self.select_columns, layer)
+        return set(self.select_columns)
+
+    def get_threshold_columns(self, layer: str) -> set[str]:
+        if self.thresholds is None:
+            return set()
+        return {self.get_src_to_tgt_col_mapping(thresh.column_name, layer) for thresh in self.thresholds}
+
+    def get_join_columns(self, layer: str) -> set[str]:
         if self.join_columns is None:
             return set()
-        return set(self.join_columns)
+        return {self.get_src_to_tgt_col_mapping(col, layer) for col in self.join_columns}
 
-    @property
-    def get_drop_columns(self) -> set[str]:
+    def get_drop_columns(self, layer: str) -> set[str]:
         if self.drop_columns is None:
             return set()
-        return set(self.drop_columns)
+        return {self.get_src_to_tgt_col_mapping(col, layer) for col in self.drop_columns}
 
-    def get_partition_column(self, layer) -> set[str]:
+    def get_transformation_dict(self, layer: str) -> dict[str, str] | None:
+        if self.transformations:
+            if layer == "source":
+                return {t.column_name: t.source for t in self.transformations}
+            return {self.get_src_to_tgt_col_mapping(t.column_name, layer): t.target for t in self.transformations}
+        return None
+
+    def get_partition_column(self, layer: str) -> set[str]:
         if self.jdbc_reader_options and layer == "source":
             return {self.jdbc_reader_options.partition_column}
         return set()
 
-    def get_filter(self, layer) -> str:
+    def get_filter(self, layer: str) -> str | None:
         if self.filters is None:
-            return " 1 = 1 "
+            return None
         if layer == "source":
             return self.filters.source
         return self.filters.target
@@ -110,3 +132,10 @@ class Table:
 class Schema:
     column_name: str
     data_type: str
+
+
+@dataclass
+class ReconcileOutput:
+    missing_in_src: DataFrame
+    missing_in_tgt: DataFrame
+    mismatch: DataFrame | None = None
