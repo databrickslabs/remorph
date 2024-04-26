@@ -10,6 +10,8 @@ from databricks.labs.blueprint.installation import Installation
 from databricks.labs.blueprint.installer import InstallState
 from databricks.labs.blueprint.tui import Prompts
 from databricks.labs.blueprint.wheels import ProductInfo
+from databricks.labs.remorph.__about__ import __version__
+from databricks.labs.remorph.config import SQLGLOT_DIALECTS, MorphConfig
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.errors import NotFound
 from databricks.sdk.retries import retried
@@ -18,9 +20,6 @@ from databricks.sdk.service.sql import (
     EndpointInfoWarehouseType,
     SpotInstancePolicy,
 )
-
-from databricks.labs.remorph.__about__ import __version__
-from databricks.labs.remorph.config import MorphConfig
 
 logger = logging.getLogger(__name__)
 
@@ -62,7 +61,7 @@ class WorkspaceInstaller:
         schema_name = "convertor_test"
         ws_config = None
 
-        source_prompt = self._prompts.choice("Select the source", ["snowflake", "tsql"])
+        source_prompt = self._prompts.choice("Select the source", SQLGLOT_DIALECTS.keys())
         source = source_prompt.lower()
 
         skip_validation = self._prompts.confirm("Do you want to Skip Validation")

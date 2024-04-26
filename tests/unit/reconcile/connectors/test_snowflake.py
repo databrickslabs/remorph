@@ -2,12 +2,12 @@ import re
 from unittest.mock import MagicMock, create_autospec
 
 import pytest
-from databricks.sdk import WorkspaceClient
 from pyspark.errors import PySparkException
 
 from databricks.labs.remorph.reconcile.connectors.snowflake import SnowflakeDataSource
 from databricks.labs.remorph.reconcile.constants import SourceDriver
 from databricks.labs.remorph.reconcile.recon_config import JdbcReaderOptions, Table
+from databricks.sdk import WorkspaceClient
 
 
 def initial_setup():

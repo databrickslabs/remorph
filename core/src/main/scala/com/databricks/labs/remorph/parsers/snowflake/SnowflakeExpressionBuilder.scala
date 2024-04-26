@@ -1,12 +1,16 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
-import com.databricks.labs.remorph.parsers.intermediate.Expression
-import com.databricks.labs.remorph.parsers.{intermediate => ir}
+import com.databricks.labs.remorph.parsers.{ParserCommon, IncompleteParser, intermediate => ir}
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser._
 
 import scala.collection.JavaConverters._
-class SnowflakeExpressionBuilder extends SnowflakeParserBaseVisitor[ir.Expression] {
+class SnowflakeExpressionBuilder
+    extends SnowflakeParserBaseVisitor[ir.Expression]
+    with ParserCommon
+    with IncompleteParser[ir.Expression] {
 
+  protected override def wrapUnresolvedInput(unparsedInput: String): ir.UnresolvedExpression =
+    ir.UnresolvedExpression(unparsedInput)
   override def visitSelect_list_elem(ctx: Select_list_elemContext): ir.Expression = {
     val rawExpression = ctx match {
       case c if c.column_elem() != null => c.column_elem().accept(this)
@@ -16,7 +20,7 @@ class SnowflakeExpressionBuilder extends SnowflakeParserBaseVisitor[ir.Expressio
     buildAlias(ctx.as_alias(), rawExpression)
   }
 
-  override def visitColumn_elem_star(ctx: Column_elem_starContext): Expression = {
+  override def visitColumn_elem_star(ctx: Column_elem_starContext): ir.Expression = {
     ir.Star(Option(ctx.object_name_or_alias()).map {
       case c if c.object_name() != null => c.object_name().getText
       case c if c.alias() != null => c.alias().id_().getText
@@ -205,4 +209,36 @@ class SnowflakeExpressionBuilder extends SnowflakeParserBaseVisitor[ir.Expressio
       }
       .getOrElse(param)
 
+  override def visitCase_expression(ctx: Case_expressionContext): ir.Expression = {
+    val exprs = ctx.expr().asScala
+    val otherwise = Option(ctx.ELSE()).flatMap(els => exprs.find(occursBefore(els, _)).map(_.accept(this)))
+    ctx match {
+      case c if c.switch_section().size() > 0 =>
+        val expression = exprs.find(occursBefore(_, ctx.switch_section(0))).map(_.accept(this))
+        val branches = c.switch_section().asScala.map { branch =>
+          ir.WhenBranch(branch.expr(0).accept(this), branch.expr(1).accept(this))
+        }
+        ir.Case(expression, branches, otherwise)
+      case c if c.switch_search_condition_section().size() > 0 =>
+        val branches = c.switch_search_condition_section().asScala.map { branch =>
+          ir.WhenBranch(branch.search_condition().accept(this), branch.expr().accept(this))
+        }
+        ir.Case(None, branches, otherwise)
+    }
+  }
+  override def visitPredicate(ctx: PredicateContext): ir.Expression = ctx match {
+    case c if c.EXISTS() != null =>
+      ir.Exists(c.subquery().accept(new SnowflakeRelationBuilder))
+    case c if c.IN() != null =>
+      val isin: ir.Expression = ir.IsIn(c.subquery().accept(new SnowflakeRelationBuilder), c.expr(0).accept(this))
+      Option(c.NOT()).fold(isin)(_ => ir.Not(isin))
+    case c if c.BETWEEN() != null =>
+      val expression = c.expr(0).accept(this)
+      val lowerBound = c.expr(1).accept(this)
+      val upperBound = c.expr(2).accept(this)
+      val between: ir.Expression =
+        ir.And(ir.GreaterThanOrEqual(expression, lowerBound), ir.LesserThanOrEqual(expression, upperBound))
+      Option(c.NOT()).fold(between)(_ => ir.Not(between))
+    case c => visitChildren(c)
+  }
 }

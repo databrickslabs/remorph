@@ -2,15 +2,10 @@ import logging
 import re
 from abc import ABC, abstractmethod
 
-from databricks.sdk import WorkspaceClient  # pylint: disable-next=wrong-import-order
 from pyspark.sql import DataFrame, SparkSession
 
-# pylint: disable-next=ungrouped-imports
-from databricks.labs.remorph.reconcile.recon_config import (
-    JdbcReaderOptions,
-    Schema,
-    TableRecon,
-)
+from databricks.labs.remorph.reconcile.recon_config import JdbcReaderOptions, Schema
+from databricks.sdk import WorkspaceClient
 
 logger = logging.getLogger(__name__)
 

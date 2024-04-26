@@ -2,10 +2,10 @@ import re
 from unittest.mock import MagicMock, create_autospec
 
 import pytest
-from databricks.sdk import WorkspaceClient
 from pyspark.errors import PySparkException
 
 from databricks.labs.remorph.reconcile.connectors.databricks import DatabricksDataSource
+from databricks.sdk import WorkspaceClient
 
 
 def initial_setup():

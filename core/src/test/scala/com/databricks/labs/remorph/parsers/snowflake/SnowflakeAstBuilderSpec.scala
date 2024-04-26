@@ -5,9 +5,9 @@ import org.scalatest.Assertion
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-class SnowflakeAstBuilderSpec extends AnyWordSpec with ParserTestCommon with Matchers {
+class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon with Matchers {
 
-  override def astBuilder: SnowflakeParserBaseVisitor[_] = new SnowflakeAstBuilder
+  override protected def astBuilder: SnowflakeParserBaseVisitor[_] = new SnowflakeAstBuilder
   private def example(query: String, expectedAst: TreeNode): Assertion =
     example(query, _.snowflake_file(), expectedAst)
 
@@ -291,6 +291,77 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with ParserTestCommon with Mat
           Seq(
             Column("c2"),
             Alias(Window(Sum(Column("c3")), Seq(Column("c2")), Seq(), DummyWindowFrame), Seq("r"), None))))
+    }
+
+    "translate a query with set operators" in {
+      example(
+        "SELECT a FROM t1 UNION SELECT b FROM t2",
+        SetOperation(
+          Project(namedTable("t1"), Seq(Column("a"))),
+          Project(namedTable("t2"), Seq(Column("b"))),
+          UnionSetOp,
+          is_all = false,
+          by_name = false,
+          allow_missing_columns = false))
+      example(
+        "SELECT a FROM t1 UNION ALL SELECT b FROM t2",
+        SetOperation(
+          Project(namedTable("t1"), Seq(Column("a"))),
+          Project(namedTable("t2"), Seq(Column("b"))),
+          UnionSetOp,
+          is_all = true,
+          by_name = false,
+          allow_missing_columns = false))
+      example(
+        "SELECT a FROM t1 MINUS SELECT b FROM t2",
+        SetOperation(
+          Project(namedTable("t1"), Seq(Column("a"))),
+          Project(namedTable("t2"), Seq(Column("b"))),
+          ExceptSetOp,
+          is_all = false,
+          by_name = false,
+          allow_missing_columns = false))
+      example(
+        "SELECT a FROM t1 EXCEPT SELECT b FROM t2",
+        SetOperation(
+          Project(namedTable("t1"), Seq(Column("a"))),
+          Project(namedTable("t2"), Seq(Column("b"))),
+          ExceptSetOp,
+          is_all = false,
+          by_name = false,
+          allow_missing_columns = false))
+
+      example(
+        "SELECT a FROM t1 INTERSECT SELECT b FROM t2",
+        SetOperation(
+          Project(namedTable("t1"), Seq(Column("a"))),
+          Project(namedTable("t2"), Seq(Column("b"))),
+          IntersectSetOp,
+          is_all = false,
+          by_name = false,
+          allow_missing_columns = false))
+
+      example(
+        "SELECT a FROM t1 INTERSECT SELECT b FROM t2 MINUS SELECT c FROM t3 UNION SELECT d FROM t4",
+        SetOperation(
+          SetOperation(
+            SetOperation(
+              Project(namedTable("t1"), Seq(Column("a"))),
+              Project(namedTable("t2"), Seq(Column("b"))),
+              IntersectSetOp,
+              is_all = false,
+              by_name = false,
+              allow_missing_columns = false),
+            Project(namedTable("t3"), Seq(Column("c"))),
+            ExceptSetOp,
+            is_all = false,
+            by_name = false,
+            allow_missing_columns = false),
+          Project(namedTable("t4"), Seq(Column("d"))),
+          UnionSetOp,
+          is_all = false,
+          by_name = false,
+          allow_missing_columns = false))
     }
   }
 }
