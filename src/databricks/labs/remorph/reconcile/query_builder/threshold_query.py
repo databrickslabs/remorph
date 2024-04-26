@@ -65,7 +65,7 @@ class ThresholdQueryBuilder(QueryBuilder):
                 select_clause.append(databricks_col.transform(coalesce))
                 select_clause.append(_build_absolute_case(base, threshold, column))
                 where_clause.append(exp.NEQ(this=base, expression=exp.Literal(this="0", is_string=False)))
-            elif threshold.get_type() == ThresholdMode.NUMBER_PERCENTILE.value:
+            elif threshold.get_type() == ThresholdMode.NUMBER_PERCENTAGE.value:
                 select_clause.append(source_col.transform(coalesce))
                 select_clause.append(databricks_col.transform(coalesce))
                 this = build_threshold_percentage_case(base=base, threshold=threshold)

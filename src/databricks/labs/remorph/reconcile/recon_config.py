@@ -42,7 +42,7 @@ class Thresholds:
 
     def get_mode(self):
         return (
-            ThresholdMode.PERCENTILE.value
+            ThresholdMode.PERCENTAGE.value
             if "%" in self.lower_bound or "%" in self.upper_bound
             else ThresholdMode.ABSOLUTE.value
         )
@@ -51,7 +51,7 @@ class Thresholds:
         if any(self.type in numeric_type.value.lower() for numeric_type in exp.DataType.NUMERIC_TYPES):
             if self.get_mode() == ThresholdMode.ABSOLUTE.value:
                 return ThresholdMode.NUMBER_ABSOLUTE.value
-            return ThresholdMode.NUMBER_PERCENTILE.value
+            return ThresholdMode.NUMBER_PERCENTAGE.value
 
         if any(self.type in numeric_type.value.lower() for numeric_type in exp.DataType.TEMPORAL_TYPES):
             return ThresholdMode.DATETIME.value

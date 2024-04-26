@@ -58,10 +58,10 @@ class ReportType(AutoName):
 
 
 class ThresholdMode(AutoName):
-    PERCENTILE = "percentage"
+    PERCENTAGE = "percentage"
     ABSOLUTE = "absolute"
     NUMBER_ABSOLUTE = "number_absolute"
-    NUMBER_PERCENTILE = "number_percentage"
+    NUMBER_PERCENTAGE = "number_percentage"
     DATETIME = "datetime"
 
 
