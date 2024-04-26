@@ -23,7 +23,7 @@ else
 fi
 
 ## check spark remote is running,if not start the spark remote
-$HOME/spark/${spark}/sbin/start-connect-server.sh --packages org.apache.spark:${spark_connect}:${version} > $HOME/spark/log.out
+${SERVER_SCRIPT} --packages org.apache.spark:${spark_connect}:${version} > $HOME/spark/log.out
 
 if [ $? -ne 0 ]; then
     count=$(tail ${HOME}/spark/log.out | grep "SparkConnectServer running as process" | wc -l)
