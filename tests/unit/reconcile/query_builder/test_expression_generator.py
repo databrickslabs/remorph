@@ -9,8 +9,6 @@ from databricks.labs.remorph.reconcile.query_builder.expression_generator import
     build_join_clause,
     build_literal,
     build_sub,
-    build_threshold_absolute_case,
-    build_threshold_percentage_case,
     build_where_clause,
     coalesce,
     json_format,
@@ -18,7 +16,6 @@ from databricks.labs.remorph.reconcile.query_builder.expression_generator import
     to_char,
     trim,
 )
-from databricks.labs.remorph.reconcile.recon_config import Thresholds
 
 
 def test_coalesce(expr):
@@ -105,17 +102,28 @@ def test_build_from_clause():
 
 
 def test_build_join_clause():
-    result = build_join_clause("test_table", "test_alias", ["test_column"])
+    # with table alias
+    result = build_join_clause(
+        table_name="test_table",
+        join_columns=["test_column"],
+        source_table_alias="source",
+        target_table_alias="test_alias",
+    )
     assert str(result) == (
-        "INNER JOIN test_table AS test_alias ON source.test_column IS NOT DISTINCT FROM " "test_alias.test_column"
+        "INNER JOIN test_table AS test_alias ON source.test_column IS NOT DISTINCT FROM test_alias.test_column"
     )
     assert isinstance(result, exp.Join)
     assert result.this.this.this == "test_table"
     assert result.this.alias == "test_alias"
 
+    # without table alias
+    result = build_join_clause("test_table", ["test_column"])
+    assert str(result) == ("INNER JOIN test_table ON test_column IS NOT DISTINCT FROM test_column")
+
 
 def test_build_sub():
-    result = build_sub("left_column", "left_table", "right_column", "right_table")
+    # with table name
+    result = build_sub("left_column", "right_column", "left_table", "right_table")
     assert str(result) == "left_table.left_column - right_table.right_column"
     assert isinstance(result, exp.Sub)
     assert result.this.this.this == "left_column"
@@ -123,27 +131,9 @@ def test_build_sub():
     assert result.expression.this.this == "right_column"
     assert result.expression.table == "right_table"
 
-
-def test_build_absolute_case():
-    threshold = Thresholds(column_name="test_column", lower_bound="5%", upper_bound="-5%", type="float")
-    base = exp.Column(this="test_column", table="test_table")
-    result = build_threshold_absolute_case(base, threshold)
-    assert (
-        str(result)
-        == """CASE WHEN test_table.test_column = 0 THEN "Match" WHEN test_table.test_column BETWEEN 5 AND -5 THEN "Warning" ELSE "Failed" END"""
-    )
-    assert isinstance(result, exp.Case)
-
-
-def test_build_percentage_case():
-    threshold = Thresholds(column_name="test_column", lower_bound="5%", upper_bound="-5%", type="float")
-    base = exp.Column(this="test_column", table="test_table")
-    result = build_threshold_percentage_case(base, threshold)
-    assert (
-        str(result)
-        == """CASE WHEN test_table.test_column = 0 THEN "Match" WHEN (test_table.test_column / CASE WHEN databricks.test_column = 0 OR databricks.test_column IS NULL THEN 1 ELSE databricks.test_column END) * 100 BETWEEN 5 AND -5 THEN "Warning" ELSE "Failed" END"""
-    )
-    assert isinstance(result, exp.Case)
+    # without table name
+    result = build_sub("left_column", "right_column")
+    assert str(result) == "left_column - right_column"
 
 
 def test_build_where_clause():

@@ -11,8 +11,6 @@ from databricks.labs.remorph.reconcile.query_builder.expression_generator import
     build_from_clause,
     build_join_clause,
     build_sub,
-    build_threshold_absolute_case,
-    build_threshold_percentage_case,
     build_where_clause,
     coalesce,
 )
@@ -34,23 +32,11 @@ class ThresholdQueryBuilder(QueryBuilder):
 
     def _generate_select_where_clause(self) -> tuple[list[exp.Alias], exp.Or]:
         thresholds = self.table_conf.thresholds
-
-        def _build_alias(this: str, table_name: str):
-            return build_column(this=this, alias=f"{this}_{table_name}", table_name=table_name)
-
-        def _build_absolute_case(base: exp.Expression, threshold: Thresholds, column: str):
-            return build_column(
-                this=build_threshold_absolute_case(base=base, threshold=threshold), alias=f"{column}_match"
-            )
-
         select_clause = []
         where_clause = []
 
         for threshold in thresholds:
             column = threshold.column_name
-            source_col = _build_alias(column, "source")
-            databricks_col = _build_alias(column, "databricks")
-
             base = exp.Paren(
                 this=build_sub(
                     left_column_name=column,
@@ -61,27 +47,81 @@ class ThresholdQueryBuilder(QueryBuilder):
             ).transform(coalesce)
 
             if threshold.get_type() == ThresholdMode.NUMBER_ABSOLUTE.value:
-                select_clause.append(source_col.transform(coalesce))
-                select_clause.append(databricks_col.transform(coalesce))
-                select_clause.append(_build_absolute_case(base, threshold, column))
-                where_clause.append(exp.NEQ(this=base, expression=exp.Literal(this="0", is_string=False)))
+                select_exp, where = self._absolute_number_case(threshold, base)
+                select_clause.extend(select_exp)
+                where_clause.append(where)
             elif threshold.get_type() == ThresholdMode.NUMBER_PERCENTAGE.value:
-                select_clause.append(source_col.transform(coalesce))
-                select_clause.append(databricks_col.transform(coalesce))
-                this = build_threshold_percentage_case(base=base, threshold=threshold)
-                select_clause.append(build_column(this=this, alias=f"{column}_match"))
-                where_clause.append(exp.NEQ(this=base, expression=exp.Literal(this="0", is_string=False)))
+                select_exp, where = self._percentage_number_case(threshold, base)
+                select_clause.extend(select_exp)
+                where_clause.append(where)
             else:
-                select_clause.append(source_col.transform(anonymous, "unix_timestamp({})").transform(coalesce))
-                select_clause.append(databricks_col.transform(anonymous, "unix_timestamp({})").transform(coalesce))
-                exp_anonymous = base.transform(anonymous, "unix_timestamp({})")
-                select_clause.append(_build_absolute_case(exp_anonymous, threshold, column))
-                where_clause.append(exp.NEQ(this=exp_anonymous, expression=exp.Literal(this="0", is_string=False)))
+                select_exp, where = self._datetime_case(threshold, base)
+                select_clause.extend(select_exp)
+                where_clause.append(where)
 
         for column in sorted(self.table_conf.get_join_columns("source")):
-            select_clause.append(_build_alias(column, "source"))
+            select_clause.append(build_column(this=column, alias=f"{column}_source", table_name="source"))
         where = build_where_clause(where_clause)
 
+        return select_clause, where
+
+    def _number_case(self, threshold: Thresholds, base: exp.Expression) -> tuple[list[exp.Alias], exp.Expression]:
+        select_clause = []
+        column = threshold.column_name
+        select_clause.append(
+            build_column(this=column, alias=f"{column}_source", table_name="source").transform(coalesce)
+        )
+        select_clause.append(
+            build_column(this=column, alias=f"{column}_databricks", table_name="databricks").transform(coalesce)
+        )
+        where = exp.NEQ(this=base, expression=exp.Literal(this="0", is_string=False))
+        return select_clause, where
+
+    def _absolute_number_case(
+        self, threshold: Thresholds, base: exp.Expression
+    ) -> tuple[list[exp.Alias], exp.Expression]:
+        column = threshold.column_name
+        select_clause, where = self._number_case(threshold, base)
+        select_clause.append(
+            build_column(
+                this=self._build_threshold_absolute_case(base=base, threshold=threshold), alias=f"{column}_match"
+            )
+        )
+        return select_clause, where
+
+    def _percentage_number_case(
+        self, threshold: Thresholds, base: exp.Expression
+    ) -> tuple[list[exp.Alias], exp.Expression]:
+        column = threshold.column_name
+        select_clause, where = self._number_case(threshold, base)
+        select_clause.append(
+            build_column(
+                this=self._build_threshold_percentage_case(base=base, threshold=threshold), alias=f"{column}_match"
+            )
+        )
+        return select_clause, where
+
+    def _datetime_case(self, threshold: Thresholds, base: exp.Expression) -> tuple[list[exp.Alias], exp.Expression]:
+        select_clause = []
+        column = threshold.column_name
+        select_clause.append(
+            build_column(this=column, alias=f"{column}_source", table_name="source")
+            .transform(anonymous, "unix_timestamp({})")
+            .transform(coalesce)
+        )
+        select_clause.append(
+            build_column(this=column, alias=f"{column}_databricks", table_name="databricks")
+            .transform(anonymous, "unix_timestamp({})")
+            .transform(coalesce)
+        )
+        exp_anonymous = base.transform(anonymous, "unix_timestamp({})")
+        select_clause.append(
+            build_column(
+                this=self._build_threshold_absolute_case(base=exp_anonymous, threshold=threshold),
+                alias=f"{column}_match",
+            )
+        )
+        where = exp.NEQ(this=exp_anonymous, expression=exp.Literal(this="0", is_string=False))
         return select_clause, where
 
     def _generate_from_and_join_clause(self) -> tuple[exp.From, exp.Join]:
@@ -90,6 +130,63 @@ class ThresholdQueryBuilder(QueryBuilder):
         target_view = f"{self.table_conf.target_name}_df_threshold_vw"
 
         from_clause = build_from_clause(source_view, "source")
-        join_clause = build_join_clause(table_name=target_view, table_alias="databricks", join_columns=join_columns)
+        join_clause = build_join_clause(
+            table_name=target_view,
+            source_table_alias="source",
+            target_table_alias="databricks",
+            join_columns=join_columns,
+        )
 
         return from_clause, join_clause
+
+    def _build_threshold_absolute_case(self, base: exp.Expression, threshold: Thresholds) -> exp.Case:
+        eq_if = exp.If(
+            this=exp.EQ(this=base, expression=exp.Literal(this='0', is_string=False)),
+            true=exp.Identifier(this="Match", quoted=True),
+        )
+        between_if = exp.If(
+            this=exp.Between(
+                this=base,
+                low=exp.Literal(this=threshold.lower_bound.replace("%", ""), is_string=False),
+                high=exp.Literal(this=threshold.upper_bound.replace("%", ""), is_string=False),
+            ),
+            true=exp.Identifier(this="Warning", quoted=True),
+        )
+        return exp.Case(ifs=[eq_if, between_if], default=exp.Identifier(this="Failed", quoted=True))
+
+    def _build_threshold_percentage_case(self, base: exp.Expression, threshold: Thresholds) -> exp.Case:
+        eq_if = exp.If(
+            this=exp.EQ(this=base, expression=exp.Literal(this='0', is_string=False)),
+            true=exp.Identifier(this="Match", quoted=True),
+        )
+
+        denominator = exp.If(
+            this=exp.Or(
+                this=exp.EQ(
+                    this=exp.Column(this=threshold.column_name, table="databricks"),
+                    expression=exp.Literal(this='0', is_string=False),
+                ),
+                expression=exp.Is(
+                    this=exp.Column(
+                        this=exp.Identifier(this=threshold.column_name, quoted=False),
+                        table=exp.Identifier(this='databricks'),
+                    ),
+                    expression=exp.Null(),
+                ),
+            ),
+            true=exp.Literal(this="1", is_string=False),
+            false=exp.Column(this=threshold.column_name, table="databricks"),
+        )
+
+        division = exp.Div(this=base, expression=denominator, typed=False, safe=False)
+        percentage = exp.Mul(this=exp.Paren(this=division), expression=exp.Literal(this="100", is_string=False))
+
+        between_if = exp.If(
+            this=exp.Between(
+                this=percentage,
+                low=exp.Literal(this=threshold.lower_bound.replace("%", ""), is_string=False),
+                high=exp.Literal(this=threshold.upper_bound.replace("%", ""), is_string=False),
+            ),
+            true=exp.Identifier(this="Warning", quoted=True),
+        )
+        return exp.Case(ifs=[eq_if, between_if], default=exp.Identifier(this="Failed", quoted=True))

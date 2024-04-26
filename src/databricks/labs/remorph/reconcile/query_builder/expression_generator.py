@@ -3,8 +3,6 @@ from functools import partial
 
 from sqlglot import expressions as exp
 
-from databricks.labs.remorph.reconcile.recon_config import Thresholds
-
 
 def _apply_func_expr(expr: exp.Expression, expr_func: Callable, **kwargs) -> exp.Expression:
     level = 0 if isinstance(expr, exp.Column) else 1
@@ -129,11 +127,18 @@ def build_from_clause(table_name: str, table_alias: str | None = None) -> exp.Fr
     return exp.From(this=exp.Table(this=exp.Identifier(this=table_name), alias=table_alias))
 
 
-def build_join_clause(table_name: str, table_alias: str, join_columns: list, kind: str = "inner") -> exp.Join:
+def build_join_clause(
+    table_name: str,
+    join_columns: list,
+    source_table_alias: str | None = None,
+    target_table_alias: str | None = None,
+    kind: str = "inner",
+) -> exp.Join:
     join_conditions = []
     for column in join_columns:
         join_condition = exp.NullSafeEQ(
-            this=exp.Column(this=column, table="source"), expression=exp.Column(this=column, table=table_alias)
+            this=exp.Column(this=column, table=source_table_alias),
+            expression=exp.Column(this=column, table=target_table_alias),
         )
         join_conditions.append(join_condition)
 
@@ -142,68 +147,21 @@ def build_join_clause(table_name: str, table_alias: str, join_columns: list, kin
     for condition in join_conditions[1:]:
         on_condition = exp.And(this=on_condition, expression=condition)
 
-    return exp.Join(this=exp.Table(this=exp.Identifier(this=table_name), alias=table_alias), kind=kind, on=on_condition)
+    return exp.Join(
+        this=exp.Table(this=exp.Identifier(this=table_name), alias=target_table_alias), kind=kind, on=on_condition
+    )
 
 
-def build_sub(left_column_name, left_table_name="", right_column_name="", right_table_name="") -> exp.Sub:
+def build_sub(
+    left_column_name: str,
+    right_column_name: str,
+    left_table_name: str | None = None,
+    right_table_name: str | None = None,
+) -> exp.Sub:
     return exp.Sub(
         this=build_column(left_column_name, left_table_name),
         expression=build_column(right_column_name, right_table_name),
     )
-
-
-def build_threshold_absolute_case(base: exp.Expression, threshold: Thresholds) -> exp.Case:
-    eq_if = exp.If(
-        this=exp.EQ(this=base, expression=exp.Literal(this='0', is_string=False)),
-        true=exp.Identifier(this="Match", quoted=True),
-    )
-    between_if = exp.If(
-        this=exp.Between(
-            this=base,
-            low=exp.Literal(this=threshold.lower_bound.replace("%", ""), is_string=False),
-            high=exp.Literal(this=threshold.upper_bound.replace("%", ""), is_string=False),
-        ),
-        true=exp.Identifier(this="Warning", quoted=True),
-    )
-    return exp.Case(ifs=[eq_if, between_if], default=exp.Identifier(this="Failed", quoted=True))
-
-
-def build_threshold_percentage_case(base: exp.Expression, threshold: Thresholds) -> exp.Case:
-    eq_if = exp.If(
-        this=exp.EQ(this=base, expression=exp.Literal(this='0', is_string=False)),
-        true=exp.Identifier(this="Match", quoted=True),
-    )
-
-    denominator = exp.If(
-        this=exp.Or(
-            this=exp.EQ(
-                this=exp.Column(this=threshold.column_name, table="databricks"),
-                expression=exp.Literal(this='0', is_string=False),
-            ),
-            expression=exp.Is(
-                this=exp.Column(
-                    this=exp.Identifier(this=threshold.column_name, quoted=False),
-                    table=exp.Identifier(this='databricks'),
-                ),
-                expression=exp.Null(),
-            ),
-        ),
-        true=exp.Literal(this="1", is_string=False),
-        false=exp.Column(this=threshold.column_name, table="databricks"),
-    )
-
-    division = exp.Div(this=base, expression=denominator, typed=False, safe=False)
-    percentage = exp.Mul(this=exp.Paren(this=division), expression=exp.Literal(this="100", is_string=False))
-
-    between_if = exp.If(
-        this=exp.Between(
-            this=percentage,
-            low=exp.Literal(this=threshold.lower_bound.replace("%", ""), is_string=False),
-            high=exp.Literal(this=threshold.upper_bound.replace("%", ""), is_string=False),
-        ),
-        true=exp.Identifier(this="Warning", quoted=True),
-    )
-    return exp.Case(ifs=[eq_if, between_if], default=exp.Identifier(this="Failed", quoted=True))
 
 
 def build_where_clause(where_clause=list[exp.Expression], condition_type: str = "or") -> exp.Or:
