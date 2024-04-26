@@ -370,6 +370,7 @@ class Databricks(Databricks):  #
             exp.ApproxQuantile: rename_func("APPROX_PERCENTILE"),
             exp.TimestampTrunc: timestamptrunc_sql,
             exp.Mod: rename_func("MOD"),
+            exp.NullSafeEQ: lambda self, e: self.binary(e, "<=>"),
         }
 
         def preprocess(self, expression: exp.Expression) -> exp.Expression:
