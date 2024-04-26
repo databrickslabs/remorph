@@ -226,19 +226,41 @@ class SnowflakeExpressionBuilder
         ir.Case(None, branches, otherwise)
     }
   }
-  override def visitPredicate(ctx: PredicateContext): ir.Expression = ctx match {
-    case c if c.EXISTS() != null =>
-      ir.Exists(c.subquery().accept(new SnowflakeRelationBuilder))
-    case c if c.IN() != null =>
-      val isin: ir.Expression = ir.IsIn(c.subquery().accept(new SnowflakeRelationBuilder), c.expr(0).accept(this))
-      Option(c.NOT()).fold(isin)(_ => ir.Not(isin))
-    case c if c.BETWEEN() != null =>
-      val expression = c.expr(0).accept(this)
-      val lowerBound = c.expr(1).accept(this)
-      val upperBound = c.expr(2).accept(this)
-      val between: ir.Expression =
+  override def visitPredicate(ctx: PredicateContext): ir.Expression = {
+
+    val predicate = ctx match {
+      case c if c.EXISTS() != null =>
+        ir.Exists(c.subquery().accept(new SnowflakeRelationBuilder))
+      case c if c.IN() != null =>
+        ir.IsIn(c.subquery().accept(new SnowflakeRelationBuilder), c.expr(0).accept(this))
+      case c if c.BETWEEN() != null =>
+        val expression = c.expr(0).accept(this)
+        val lowerBound = c.expr(1).accept(this)
+        val upperBound = c.expr(2).accept(this)
         ir.And(ir.GreaterThanOrEqual(expression, lowerBound), ir.LesserThanOrEqual(expression, upperBound))
-      Option(c.NOT()).fold(between)(_ => ir.Not(between))
-    case c => visitChildren(c)
+      case c if c.LIKE() != null || c.ILIKE() != null =>
+        val expression = c.expr(0).accept(this)
+        val patterns = if (c.ANY() != null) {
+          c.expr()
+            .asScala
+            .filter(e => occursBefore(c.LR_BRACKET(), e) && occursBefore(e, c.RR_BRACKET()))
+            .map(_.accept(this)) _
+        } else {
+          Seq(c.expr(1).accept(this))
+        }
+        val escape = Option(c.ESCAPE())
+          .flatMap(_ =>
+            c.expr()
+              .asScala
+              .find(occursBefore(c.ESCAPE(), _))
+              .map(_.accept(this)))
+        ir.Like(expression, patterns, escape, c.LIKE() != null)
+      case c if c.RLIKE() != null =>
+        val expression = c.expr(0).accept(this)
+        val pattern = c.expr(1).accept(this)
+        ir.RLike(expression, pattern)
+      case c => visitChildren(c)
+    }
+    Option(ctx.NOT()).fold(predicate)(_ => ir.Not(predicate))
   }
 }
