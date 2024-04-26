@@ -22,14 +22,14 @@ class TSqlAstBuilder extends TSqlParserBaseVisitor[ir.TreeNode] {
 
   override def visitSelect_statement_standalone(ctx: Select_statement_standaloneContext): ir.TreeNode = {
     val rawExpression = ctx.select_statement().query_expression().query_specification()
-    val column_expression = rawExpression
+    val columnExpression = rawExpression
       .select_list()
       .select_list_elem()
       .asScala
       .map(_.accept(new TSqlExpressionBuilder))
-    val from_table = rawExpression.table_sources().accept(new TSqlRelationBuilder)
+    val fromTable = rawExpression.table_sources().accept(new TSqlRelationBuilder)
 
-    ir.Project(from_table, column_expression)
+    ir.Project(fromTable, columnExpression)
 
   }
 
