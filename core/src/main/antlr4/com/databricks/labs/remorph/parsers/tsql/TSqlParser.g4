@@ -264,38 +264,38 @@ cfl_statement
 
 // https://docs.microsoft.com/en-us/sql/t-sql/language-elements/begin-end-transact-sql
 block_statement
-    : BEGIN ';'? sql_clauses* END ';'?
+    : BEGIN SEMI? sql_clauses* END SEMI?
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/language-elements/break-transact-sql
 break_statement
-    : BREAK ';'?
+    : BREAK SEMI?
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/language-elements/continue-transact-sql
 continue_statement
-    : CONTINUE ';'?
+    : CONTINUE SEMI?
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/language-elements/goto-transact-sql
 goto_statement
-    : GOTO id_ ';'?
-    | id_ ':' ';'?
+    : GOTO id_ SEMI?
+    | id_ COLON SEMI?
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/language-elements/return-transact-sql
 return_statement
-    : RETURN expression? ';'?
+    : RETURN expression? SEMI?
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/language-elements/if-else-transact-sql
 if_statement
-    : IF search_condition sql_clauses (ELSE sql_clauses)? ';'?
+    : IF search_condition sql_clauses (ELSE sql_clauses)? SEMI?
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/language-elements/throw-transact-sql
 throw_statement
-    : THROW (throw_error_number ',' throw_message ',' throw_state)? ';'?
+    : THROW (throw_error_number COMMA throw_message COMMA throw_state)? SEMI?
     ;
 
 throw_error_number
@@ -315,36 +315,36 @@ throw_state
 
 // https://docs.microsoft.com/en-us/sql/t-sql/language-elements/try-catch-transact-sql
 try_catch_statement
-    : BEGIN TRY ';'? try_clauses = sql_clauses+ END TRY ';'? BEGIN CATCH ';'? catch_clauses = sql_clauses* END CATCH ';'?
+    : BEGIN TRY SEMI? try_clauses = sql_clauses+ END TRY SEMI? BEGIN CATCH SEMI? catch_clauses = sql_clauses* END CATCH SEMI?
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/language-elements/waitfor-transact-sql
 waitfor_statement
-    : WAITFOR receive_statement? ','? ((DELAY | TIME | TIMEOUT) time)? expression? ';'?
+    : WAITFOR receive_statement? COMMA? ((DELAY | TIME | TIMEOUT) time)? expression? SEMI?
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/language-elements/while-transact-sql
 while_statement
-    : WHILE search_condition (sql_clauses | BREAK ';'? | CONTINUE ';'?)
+    : WHILE search_condition (sql_clauses | BREAK SEMI? | CONTINUE SEMI?)
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/language-elements/print-transact-sql
 print_statement
-    : PRINT (expression | DOUBLE_QUOTE_ID) (',' LOCAL_ID)* ';'?
+    : PRINT (expression | DOUBLE_QUOTE_ID) (COMMA LOCAL_ID)* SEMI?
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/language-elements/raiserror-transact-sql
 raiseerror_statement
-    : RAISERROR '(' msg = (DECIMAL | STRING | LOCAL_ID) ',' severity = constant_LOCAL_ID ',' state = constant_LOCAL_ID (
-        ',' (constant_LOCAL_ID | NULL_)
-    )* ')' (WITH (LOG | SETERROR | NOWAIT))? ';'?
+    : RAISERROR LPAREN msg = (DECIMAL | STRING | LOCAL_ID) COMMA severity = constant_LOCAL_ID COMMA state = constant_LOCAL_ID (
+        COMMA (constant_LOCAL_ID | NULL_)
+    )* RPAREN (WITH (LOG | SETERROR | NOWAIT))? SEMI?
     | RAISERROR DECIMAL formatstring = (STRING | LOCAL_ID | DOUBLE_QUOTE_ID) (
-        ',' argument = (DECIMAL | STRING | LOCAL_ID)
+        COMMA argument = (DECIMAL | STRING | LOCAL_ID)
     )*
     ;
 
 empty_statement
-    : ';'
+    : SEMI
     ;
 
 another_statement
@@ -378,7 +378,7 @@ alter_application_role
 
 // https://learn.microsoft.com/en-us/sql/t-sql/statements/alter-xml-schema-collection-transact-sql?view=sql-server-ver16
 alter_xml_schema_collection
-    : ALTER XML SCHEMA COLLECTION (id_ '.')? id_ ADD STRING
+    : ALTER XML SCHEMA COLLECTION (id_ DOT)? id_ ADD STRING
     ;
 
 create_application_role
@@ -479,24 +479,16 @@ assembly_option
     ;
 
 network_file_share
-    : network_file_start network_computer file_path
+    : BACKSLASH BACKSLASH network_computer file_path
     ;
 
 network_computer
     : computer_name = id_
     ;
 
-network_file_start
-    : DOUBLE_BACK_SLASH
-    ;
-
 file_path
-    : file_directory_path_separator file_path
+    : BACKSLASH file_path
     | id_
-    ;
-
-file_directory_path_separator
-    : '\\'
     ;
 
 local_file
@@ -545,7 +537,7 @@ asymmetric_key_option
     ;
 
 asymmetric_key_option_start
-    : WITH PRIVATE KEY LR_BRACKET
+    : WITH PRIVATE KEY LPAREN
     ;
 
 asymmetric_key_password_change_option
@@ -725,7 +717,7 @@ alter_availability_group_start
     ;
 
 alter_availability_group_options
-    : SET LR_BRACKET (
+    : SET LPAREN (
         (
             AUTOMATED_BACKUP_PREFERENCE EQUAL (PRIMARY | SECONDARY_ONLY | SECONDARY | NONE)
             | FAILURE_CONDITION_LEVEL EQUAL DECIMAL
@@ -737,47 +729,47 @@ alter_availability_group_options
     | ADD DATABASE database_name = id_
     | REMOVE DATABASE database_name = id_
     | ADD REPLICA ON server_instance = STRING (
-        WITH LR_BRACKET (
+        WITH LPAREN (
             (ENDPOINT_URL EQUAL STRING)? (
                 COMMA? AVAILABILITY_MODE EQUAL (SYNCHRONOUS_COMMIT | ASYNCHRONOUS_COMMIT)
             )? (COMMA? FAILOVER_MODE EQUAL (AUTOMATIC | MANUAL))? (
                 COMMA? SEEDING_MODE EQUAL (AUTOMATIC | MANUAL)
             )? (COMMA? BACKUP_PRIORITY EQUAL DECIMAL)? (
-                COMMA? PRIMARY_ROLE LR_BRACKET ALLOW_CONNECTIONS EQUAL (READ_WRITE | ALL) RR_BRACKET
-            )? (COMMA? SECONDARY_ROLE LR_BRACKET ALLOW_CONNECTIONS EQUAL ( READ_ONLY) RR_BRACKET)?
+                COMMA? PRIMARY_ROLE LPAREN ALLOW_CONNECTIONS EQUAL (READ_WRITE | ALL) RR_BRACKET
+            )? (COMMA? SECONDARY_ROLE LPAREN ALLOW_CONNECTIONS EQUAL ( READ_ONLY) RR_BRACKET)?
         )
     ) RR_BRACKET
-    | SECONDARY_ROLE LR_BRACKET (
+    | SECONDARY_ROLE LPAREN (
         ALLOW_CONNECTIONS EQUAL (NO | READ_ONLY | ALL)
-        | READ_ONLY_ROUTING_LIST EQUAL ( LR_BRACKET ( ( STRING)) RR_BRACKET)
+        | READ_ONLY_ROUTING_LIST EQUAL ( LPAREN ( ( STRING)) RR_BRACKET)
     )
-    | PRIMARY_ROLE LR_BRACKET (
+    | PRIMARY_ROLE LPAREN (
         ALLOW_CONNECTIONS EQUAL (NO | READ_ONLY | ALL)
-        | READ_ONLY_ROUTING_LIST EQUAL (LR_BRACKET ( (COMMA? STRING)* | NONE) RR_BRACKET)
+        | READ_ONLY_ROUTING_LIST EQUAL (LPAREN ( (COMMA? STRING)* | NONE) RR_BRACKET)
         | SESSION_TIMEOUT EQUAL session_timeout = DECIMAL
     )
     | MODIFY REPLICA ON server_instance = STRING (
-        WITH LR_BRACKET (
+        WITH LPAREN (
             ENDPOINT_URL EQUAL STRING
             | AVAILABILITY_MODE EQUAL (SYNCHRONOUS_COMMIT | ASYNCHRONOUS_COMMIT)
             | FAILOVER_MODE EQUAL (AUTOMATIC | MANUAL)
             | SEEDING_MODE EQUAL (AUTOMATIC | MANUAL)
             | BACKUP_PRIORITY EQUAL DECIMAL
         )
-        | SECONDARY_ROLE LR_BRACKET (
+        | SECONDARY_ROLE LPAREN (
             ALLOW_CONNECTIONS EQUAL (NO | READ_ONLY | ALL)
-            | READ_ONLY_ROUTING_LIST EQUAL ( LR_BRACKET ( ( STRING)) RR_BRACKET)
+            | READ_ONLY_ROUTING_LIST EQUAL ( LPAREN ( ( STRING)) RR_BRACKET)
         )
-        | PRIMARY_ROLE LR_BRACKET (
+        | PRIMARY_ROLE LPAREN (
             ALLOW_CONNECTIONS EQUAL (NO | READ_ONLY | ALL)
-            | READ_ONLY_ROUTING_LIST EQUAL (LR_BRACKET ( (COMMA? STRING)* | NONE) RR_BRACKET)
+            | READ_ONLY_ROUTING_LIST EQUAL (LPAREN ( (COMMA? STRING)* | NONE) RR_BRACKET)
             | SESSION_TIMEOUT EQUAL session_timeout = DECIMAL
         )
     ) RR_BRACKET
     | REMOVE REPLICA ON STRING
     | JOIN
     | JOIN AVAILABILITY GROUP ON (
-        COMMA? ag_name = STRING WITH LR_BRACKET (
+        COMMA? ag_name = STRING WITH LPAREN (
             LISTENER_URL EQUAL STRING COMMA AVAILABILITY_MODE EQUAL (
                 SYNCHRONOUS_COMMIT
                 | ASYNCHRONOUS_COMMIT
@@ -785,7 +777,7 @@ alter_availability_group_options
         )
     )+
     | MODIFY AVAILABILITY GROUP ON (
-        COMMA? ag_name_modified = STRING WITH LR_BRACKET (
+        COMMA? ag_name_modified = STRING WITH LPAREN (
             LISTENER_URL EQUAL STRING (
                 COMMA? AVAILABILITY_MODE EQUAL (SYNCHRONOUS_COMMIT | ASYNCHRONOUS_COMMIT)
             )? (COMMA? FAILOVER_MODE EQUAL MANUAL)? (
@@ -797,22 +789,22 @@ alter_availability_group_options
     | DENY CREATE ANY DATABASE
     | FAILOVER
     | FORCE_FAILOVER_ALLOW_DATA_LOSS
-    | ADD LISTENER listener_name = STRING LR_BRACKET (
-        WITH DHCP (ON LR_BRACKET ip_v4_failover ip_v4_failover RR_BRACKET)
-        | WITH IP LR_BRACKET (
-            (COMMA? LR_BRACKET ( ip_v4_failover COMMA ip_v4_failover | ip_v6_failover) RR_BRACKET)+ RR_BRACKET (
+    | ADD LISTENER listener_name = STRING LPAREN (
+        WITH DHCP (ON LPAREN ip_v4_failover ip_v4_failover RR_BRACKET)
+        | WITH IP LPAREN (
+            (COMMA? LPAREN ( ip_v4_failover COMMA ip_v4_failover | ip_v6_failover) RR_BRACKET)+ RR_BRACKET (
                 COMMA PORT EQUAL DECIMAL
             )?
         )
     ) RR_BRACKET
     | MODIFY LISTENER (
-        ADD IP LR_BRACKET (ip_v4_failover ip_v4_failover | ip_v6_failover) RR_BRACKET
+        ADD IP LPAREN (ip_v4_failover ip_v4_failover | ip_v6_failover) RR_BRACKET
         | PORT EQUAL DECIMAL
     )
     | RESTART LISTENER STRING
     | REMOVE LISTENER STRING
     | OFFLINE
-    | WITH LR_BRACKET DTC_SUPPORT EQUAL PER_DB RR_BRACKET
+    | WITH LPAREN DTC_SUPPORT EQUAL PER_DB RR_BRACKET
     ;
 
 ip_v4_failover
@@ -826,7 +818,7 @@ ip_v6_failover
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-broker-priority-transact-sql
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/create-broker-priority-transact-sql
 create_or_alter_broker_priority
-    : (CREATE | ALTER) BROKER PRIORITY ConversationPriorityName = id_ FOR CONVERSATION SET LR_BRACKET (
+    : (CREATE | ALTER) BROKER PRIORITY ConversationPriorityName = id_ FOR CONVERSATION SET LPAREN (
         CONTRACT_NAME EQUAL ( ( id_) | ANY) COMMA?
     )? (LOCAL_SERVICE_NAME EQUAL (DOUBLE_FORWARD_SLASH? id_ | ANY) COMMA?)? (
         REMOTE_SERVICE_NAME EQUAL (RemoteServiceName = STRING | ANY) COMMA?
@@ -842,7 +834,7 @@ drop_broker_priority
 alter_certificate
     : ALTER CERTIFICATE certificate_name = id_ (
         REMOVE PRIVATE_KEY
-        | WITH PRIVATE KEY LR_BRACKET (
+        | WITH PRIVATE KEY LPAREN (
             FILE EQUAL STRING COMMA?
             | DECRYPTION BY PASSWORD EQUAL STRING COMMA?
             | ENCRYPTION BY PASSWORD EQUAL STRING COMMA?
@@ -853,7 +845,7 @@ alter_certificate
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-column-encryption-key-transact-sql
 alter_column_encryption_key
-    : ALTER COLUMN ENCRYPTION KEY column_encryption_key = id_ (ADD | DROP) VALUE LR_BRACKET COLUMN_MASTER_KEY EQUAL column_master_key_name = id_ (
+    : ALTER COLUMN ENCRYPTION KEY column_encryption_key = id_ (ADD | DROP) VALUE LPAREN COLUMN_MASTER_KEY EQUAL column_master_key_name = id_ (
         COMMA ALGORITHM EQUAL algorithm_name = STRING COMMA ENCRYPTED_VALUE EQUAL BINARY
     )? RR_BRACKET
     ;
@@ -861,7 +853,7 @@ alter_column_encryption_key
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/create-column-encryption-key-transact-sql
 create_column_encryption_key
     : CREATE COLUMN ENCRYPTION KEY column_encryption_key = id_ WITH VALUES (
-        LR_BRACKET COMMA? COLUMN_MASTER_KEY EQUAL column_master_key_name = id_ COMMA ALGORITHM EQUAL algorithm_name = STRING COMMA ENCRYPTED_VALUE
+        LPAREN COMMA? COLUMN_MASTER_KEY EQUAL column_master_key_name = id_ COMMA ALGORITHM EQUAL algorithm_name = STRING COMMA ENCRYPTED_VALUE
             EQUAL encrypted_value = BINARY RR_BRACKET COMMA?
     )+
     ;
@@ -1133,19 +1125,19 @@ enable_trigger
     ;
 
 lock_table
-    : LOCK TABLE table_name IN (SHARE | EXCLUSIVE) MODE (WAIT seconds = DECIMAL | NOWAIT)? ';'?
+    : LOCK TABLE table_name IN (SHARE | EXCLUSIVE) MODE (WAIT seconds = DECIMAL | NOWAIT)? SEMI?
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/truncate-table-transact-sql
 truncate_table
     : TRUNCATE TABLE table_name (
-        WITH LR_BRACKET PARTITIONS LR_BRACKET (COMMA? (DECIMAL | DECIMAL TO DECIMAL))+ RR_BRACKET RR_BRACKET
+        WITH LPAREN PARTITIONS LPAREN (COMMA? (DECIMAL | DECIMAL TO DECIMAL))+ RR_BRACKET RR_BRACKET
     )?
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/create-column-master-key-transact-sql
 create_column_master_key
-    : CREATE COLUMN MASTER KEY key_name = id_ WITH LR_BRACKET KEY_STORE_PROVIDER_NAME EQUAL key_store_provider_name = STRING COMMA KEY_PATH EQUAL
+    : CREATE COLUMN MASTER KEY key_name = id_ WITH LPAREN KEY_STORE_PROVIDER_NAME EQUAL key_store_provider_name = STRING COMMA KEY_PATH EQUAL
         key_path = STRING RR_BRACKET
     ;
 
@@ -1179,14 +1171,14 @@ create_cryptographic_provider
 create_endpoint
     : CREATE ENDPOINT endpointname = id_ (AUTHORIZATION login = id_)? (
         STATE EQUAL state = (STARTED | STOPPED | DISABLED)
-    )? AS TCP LR_BRACKET endpoint_listener_clause RR_BRACKET (
-        FOR TSQL LR_BRACKET RR_BRACKET
-        | FOR SERVICE_BROKER LR_BRACKET endpoint_authentication_clause (
+    )? AS TCP LPAREN endpoint_listener_clause RR_BRACKET (
+        FOR TSQL LPAREN RR_BRACKET
+        | FOR SERVICE_BROKER LPAREN endpoint_authentication_clause (
             COMMA? endpoint_encryption_alogorithm_clause
         )? (COMMA? MESSAGE_FORWARDING EQUAL (ENABLED | DISABLED))? (
             COMMA? MESSAGE_FORWARD_SIZE EQUAL DECIMAL
         )? RR_BRACKET
-        | FOR DATABASE_MIRRORING LR_BRACKET endpoint_authentication_clause (
+        | FOR DATABASE_MIRRORING LPAREN endpoint_authentication_clause (
             COMMA? endpoint_encryption_alogorithm_clause
         )? COMMA? ROLE EQUAL (WITNESS | PARTNER | ALL) RR_BRACKET
     )
@@ -1205,7 +1197,7 @@ endpoint_authentication_clause
 
 endpoint_listener_clause
     : LISTENER_PORT EQUAL port = DECIMAL (
-        COMMA LISTENER_IP EQUAL (ALL | '(' (ipv4 = IPV4_ADDR | ipv6 = STRING) ')')
+        COMMA LISTENER_IP EQUAL (ALL | LPAREN (ipv4 = IPV4_ADDR | ipv6 = STRING) RPAREN)
     )?
     ;
 
@@ -1227,8 +1219,8 @@ create_or_alter_event_session
         COMMA? ADD EVENT (
             (event_module_guid = id_ DOT)? event_package_name = id_ DOT event_name = id_
         ) (
-            LR_BRACKET (SET ( COMMA? event_customizable_attributue = id_ EQUAL (DECIMAL | STRING))*)? (
-                ACTION LR_BRACKET (
+            LPAREN (SET ( COMMA? event_customizable_attributue = id_ EQUAL (DECIMAL | STRING))*)? (
+                ACTION LPAREN (
                     COMMA? (event_module_guid = id_ DOT)? event_package_name = id_ DOT action_name = id_
                 )+ RR_BRACKET
             )+ (WHERE event_session_predicate_expression)? RR_BRACKET
@@ -1237,12 +1229,12 @@ create_or_alter_event_session
         COMMA? DROP EVENT (event_module_guid = id_ DOT)? event_package_name = id_ DOT event_name = id_
     )* (
         (ADD TARGET (event_module_guid = id_ DOT)? event_package_name = id_ DOT target_name = id_) (
-            LR_BRACKET SET (
-                COMMA? target_parameter_name = id_ EQUAL (LR_BRACKET? DECIMAL RR_BRACKET? | STRING)
+            LPAREN SET (
+                COMMA? target_parameter_name = id_ EQUAL (LPAREN? DECIMAL RR_BRACKET? | STRING)
             )+ RR_BRACKET
         )*
     )* (DROP TARGET (event_module_guid = id_ DOT)? event_package_name = id_ DOT target_name = id_)* (
-        WITH LR_BRACKET (COMMA? MAX_MEMORY EQUAL max_memory = DECIMAL (KB | MB))? (
+        WITH LPAREN (COMMA? MAX_MEMORY EQUAL max_memory = DECIMAL (KB | MB))? (
             COMMA? EVENT_RETENTION_MODE EQUAL (
                 ALLOW_SINGLE_EVENT_LOSS
                 | ALLOW_MULTIPLE_EVENT_LOSS
@@ -1263,14 +1255,14 @@ event_session_predicate_expression
     : (
         COMMA? (AND | OR)? NOT? (
             event_session_predicate_factor
-            | LR_BRACKET event_session_predicate_expression RR_BRACKET
+            | LPAREN event_session_predicate_expression RR_BRACKET
         )
     )+
     ;
 
 event_session_predicate_factor
     : event_session_predicate_leaf
-    | LR_BRACKET event_session_predicate_expression RR_BRACKET
+    | LPAREN event_session_predicate_expression RR_BRACKET
     ;
 
 event_session_predicate_leaf
@@ -1284,14 +1276,14 @@ event_session_predicate_leaf
         ) (
             EQUAL
             | (LESS GREATER)
-            | (EXCLAMATION EQUAL)
+            | (BANG EQUAL)
             | GREATER
             | (GREATER EQUAL)
             | LESS
             | LESS EQUAL
         ) (DECIMAL | STRING)
     )
-    | (event_module_guid = id_ DOT)? event_package_name = id_ DOT predicate_compare_name = id_ LR_BRACKET (
+    | (event_module_guid = id_ DOT)? event_package_name = id_ DOT predicate_compare_name = id_ LPAREN (
         event_field_name = id_
         | ((event_module_guid = id_ DOT)? event_package_name = id_ DOT predicate_source_name = id_) COMMA (
             DECIMAL
@@ -1307,7 +1299,7 @@ alter_external_data_source
         | RESOURCE_MANAGER_LOCATION EQUAL resource_manager_location = STRING COMMA?
         | CREDENTIAL EQUAL credential_name = id_
     )+
-    | ALTER EXTERNAL DATA SOURCE data_source_name = id_ WITH LR_BRACKET TYPE EQUAL BLOB_STORAGE COMMA LOCATION EQUAL location = STRING (
+    | ALTER EXTERNAL DATA SOURCE data_source_name = id_ WITH LPAREN TYPE EQUAL BLOB_STORAGE COMMA LOCATION EQUAL location = STRING (
         COMMA CREDENTIAL EQUAL credential_name = id_
     )? RR_BRACKET
     ;
@@ -1315,7 +1307,7 @@ alter_external_data_source
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-external-library-transact-sql
 alter_external_library
     : ALTER EXTERNAL LIBRARY library_name = id_ (AUTHORIZATION owner_name = id_)? (SET | ADD) (
-        LR_BRACKET CONTENT EQUAL (client_library = STRING | BINARY | NONE) (
+        LPAREN CONTENT EQUAL (client_library = STRING | BINARY | NONE) (
             COMMA PLATFORM EQUAL (WINDOWS | LINUX)? RR_BRACKET
         ) WITH (
             COMMA? LANGUAGE EQUAL (R | PYTHON)
@@ -1327,7 +1319,7 @@ alter_external_library
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/create-external-library-transact-sql
 create_external_library
     : CREATE EXTERNAL LIBRARY library_name = id_ (AUTHORIZATION owner_name = id_)? FROM (
-        COMMA? LR_BRACKET? (CONTENT EQUAL)? (client_library = STRING | BINARY | NONE) (
+        COMMA? LPAREN? (CONTENT EQUAL)? (client_library = STRING | BINARY | NONE) (
             COMMA PLATFORM EQUAL (WINDOWS | LINUX)? RR_BRACKET
         )?
     ) (
@@ -1340,7 +1332,7 @@ create_external_library
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-external-resource-pool-transact-sql
 alter_external_resource_pool
-    : ALTER EXTERNAL RESOURCE POOL (pool_name = id_ | DEFAULT_DOUBLE_QUOTE) WITH LR_BRACKET MAX_CPU_PERCENT EQUAL max_cpu_percent = DECIMAL (
+    : ALTER EXTERNAL RESOURCE POOL (pool_name = id_ | DEFAULT_DOUBLE_QUOTE) WITH LPAREN MAX_CPU_PERCENT EQUAL max_cpu_percent = DECIMAL (
         COMMA? AFFINITY CPU EQUAL (AUTO | (COMMA? DECIMAL TO DECIMAL | COMMA DECIMAL)+)
         | NUMANODE EQUAL (COMMA? DECIMAL TO DECIMAL | COMMA? DECIMAL)+
     ) (COMMA? MAX_MEMORY_PERCENT EQUAL max_memory_percent = DECIMAL)? (
@@ -1350,7 +1342,7 @@ alter_external_resource_pool
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/create-external-resource-pool-transact-sql
 create_external_resource_pool
-    : CREATE EXTERNAL RESOURCE POOL pool_name = id_ WITH LR_BRACKET MAX_CPU_PERCENT EQUAL max_cpu_percent = DECIMAL (
+    : CREATE EXTERNAL RESOURCE POOL pool_name = id_ WITH LPAREN MAX_CPU_PERCENT EQUAL max_cpu_percent = DECIMAL (
         COMMA? AFFINITY CPU EQUAL (AUTO | (COMMA? DECIMAL TO DECIMAL | COMMA DECIMAL)+)
         | NUMANODE EQUAL (COMMA? DECIMAL TO DECIMAL | COMMA? DECIMAL)+
     ) (COMMA? MAX_MEMORY_PERCENT EQUAL max_memory_percent = DECIMAL)? (
@@ -1513,7 +1505,7 @@ alter_message_type
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-partition-function-transact-sql
 alter_partition_function
-    : ALTER PARTITION FUNCTION partition_function_name = id_ LR_BRACKET RR_BRACKET (SPLIT | MERGE) RANGE LR_BRACKET DECIMAL RR_BRACKET
+    : ALTER PARTITION FUNCTION partition_function_name = id_ LPAREN RR_BRACKET (SPLIT | MERGE) RANGE LPAREN DECIMAL RR_BRACKET
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-partition-scheme-transact-sql
@@ -1538,13 +1530,13 @@ create_remote_service_binding
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/create-resource-pool-transact-sql
 create_resource_pool
     : CREATE RESOURCE POOL pool_name = id_ (
-        WITH LR_BRACKET (COMMA? MIN_CPU_PERCENT EQUAL DECIMAL)? (
+        WITH LPAREN (COMMA? MIN_CPU_PERCENT EQUAL DECIMAL)? (
             COMMA? MAX_CPU_PERCENT EQUAL DECIMAL
         )? (COMMA? CAP_CPU_PERCENT EQUAL DECIMAL)? (
             COMMA? AFFINITY SCHEDULER EQUAL (
                 AUTO
-                | LR_BRACKET (COMMA? (DECIMAL | DECIMAL TO DECIMAL))+ RR_BRACKET
-                | NUMANODE EQUAL LR_BRACKET (COMMA? (DECIMAL | DECIMAL TO DECIMAL))+ RR_BRACKET
+                | LPAREN (COMMA? (DECIMAL | DECIMAL TO DECIMAL))+ RR_BRACKET
+                | NUMANODE EQUAL LPAREN (COMMA? (DECIMAL | DECIMAL TO DECIMAL))+ RR_BRACKET
             )
         )? (COMMA? MIN_MEMORY_PERCENT EQUAL DECIMAL)? (COMMA? MAX_MEMORY_PERCENT EQUAL DECIMAL)? (
             COMMA? MIN_IOPS_PER_VOLUME EQUAL DECIMAL
@@ -1556,12 +1548,12 @@ create_resource_pool
 alter_resource_governor
     : ALTER RESOURCE GOVERNOR (
         (DISABLE | RECONFIGURE)
-        | WITH LR_BRACKET CLASSIFIER_FUNCTION EQUAL (
+        | WITH LPAREN CLASSIFIER_FUNCTION EQUAL (
             schema_name = id_ DOT function_name = id_
             | NULL_
         ) RR_BRACKET
         | RESET STATISTICS
-        | WITH LR_BRACKET MAX_OUTSTANDING_IO_PER_VOLUME EQUAL max_outstanding_io_per_volume = DECIMAL RR_BRACKET
+        | WITH LPAREN MAX_OUTSTANDING_IO_PER_VOLUME EQUAL max_outstanding_io_per_volume = DECIMAL RR_BRACKET
     )
     ;
 
@@ -1569,18 +1561,18 @@ alter_resource_governor
 alter_database_audit_specification
     : ALTER DATABASE AUDIT SPECIFICATION audit_specification_name = id_ (
         FOR SERVER AUDIT audit_name = id_
-    )? (audit_action_spec_group (',' audit_action_spec_group)*)? (
-        WITH '(' STATE '=' (ON | OFF) ')'
+    )? (audit_action_spec_group (COMMA audit_action_spec_group)*)? (
+        WITH LPAREN STATE EQUALS (ON | OFF) RPAREN
     )?
     ;
 
 audit_action_spec_group
-    : (ADD | DROP) '(' (audit_action_specification | audit_action_group_name = id_) ')'
+    : (ADD | DROP) LPAREN (audit_action_specification | audit_action_group_name = id_) RPAREN
     ;
 
 audit_action_specification
-    : action_specification (',' action_specification)* ON (audit_class_name '::')? audit_securable BY principal_id (
-        ',' principal_id
+    : action_specification (COMMA action_specification)* ON (audit_class_name COLON COLON)? audit_securable BY principal_id (
+        COMMA principal_id
     )*
     ;
 
@@ -1601,7 +1593,7 @@ audit_class_name
     ;
 
 audit_securable
-    : ((id_ '.')? id_ '.')? id_
+    : ((id_ DOT)? id_ DOT)? id_
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-role-transact-sql
@@ -1616,8 +1608,8 @@ alter_db_role
 create_database_audit_specification
     : CREATE DATABASE AUDIT SPECIFICATION audit_specification_name = id_ (
         FOR SERVER AUDIT audit_name = id_
-    )? (audit_action_spec_group (',' audit_action_spec_group)*)? (
-        WITH '(' STATE '=' (ON | OFF) ')'
+    )? (audit_action_spec_group (COMMA audit_action_spec_group)*)? (
+        WITH LPAREN STATE EQUALS (ON | OFF) RPAREN
     )?
     ;
 
@@ -1679,13 +1671,13 @@ create_search_property_list
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/create-security-policy-transact-sql
 create_security_policy
     : CREATE SECURITY POLICY (schema_name = id_ DOT)? security_policy_name = id_ (
-        COMMA? ADD (FILTER | BLOCK)? PREDICATE tvf_schema_name = id_ DOT security_predicate_function_name = id_ LR_BRACKET (
+        COMMA? ADD (FILTER | BLOCK)? PREDICATE tvf_schema_name = id_ DOT security_predicate_function_name = id_ LPAREN (
             COMMA? column_name_or_arguments = id_
         )+ RR_BRACKET ON table_schema_name = id_ DOT name = id_ (
             COMMA? AFTER (INSERT | UPDATE)
             | COMMA? BEFORE (UPDATE | DELETE)
         )*
-    )+ (WITH LR_BRACKET STATE EQUAL (ON | OFF) (SCHEMABINDING (ON | OFF))? RR_BRACKET)? (
+    )+ (WITH LPAREN STATE EQUAL (ON | OFF) (SCHEMABINDING (ON | OFF))? RR_BRACKET)? (
         NOT FOR REPLICATION
     )?
     ;
@@ -1716,7 +1708,7 @@ alter_server_audit
         (
             TO (
                 FILE (
-                    LR_BRACKET (
+                    LPAREN (
                         COMMA? FILEPATH EQUAL filepath = STRING
                         | COMMA? MAXSIZE EQUAL ( DECIMAL (MB | GB | TB) | UNLIMITED)
                         | COMMA? MAX_ROLLOVER_FILES EQUAL max_rollover_files = (DECIMAL | UNLIMITED)
@@ -1728,7 +1720,7 @@ alter_server_audit
                 | SECURITY_LOG
             )
         )? (
-            WITH LR_BRACKET (
+            WITH LPAREN (
                 COMMA? QUEUE_DELAY EQUAL queue_delay = DECIMAL
                 | COMMA? ON_FAILURE EQUAL (CONTINUE | SHUTDOWN | FAIL_OPERATION)
                 | COMMA? STATE EQUAL (ON | OFF)
@@ -1738,7 +1730,7 @@ alter_server_audit
                 COMMA? (NOT?) event_field_name = id_ (
                     EQUAL
                     | (LESS GREATER)
-                    | (EXCLAMATION EQUAL)
+                    | (BANG EQUAL)
                     | GREATER
                     | (GREATER EQUAL)
                     | LESS
@@ -1747,7 +1739,7 @@ alter_server_audit
                 | COMMA? (AND | OR) NOT? (
                     EQUAL
                     | (LESS GREATER)
-                    | (EXCLAMATION EQUAL)
+                    | (BANG EQUAL)
                     | GREATER
                     | (GREATER EQUAL)
                     | LESS
@@ -1766,7 +1758,7 @@ create_server_audit
         (
             TO (
                 FILE (
-                    LR_BRACKET (
+                    LPAREN (
                         COMMA? FILEPATH EQUAL filepath = STRING
                         | COMMA? MAXSIZE EQUAL ( DECIMAL (MB | GB | TB) | UNLIMITED)
                         | COMMA? MAX_ROLLOVER_FILES EQUAL max_rollover_files = (DECIMAL | UNLIMITED)
@@ -1778,7 +1770,7 @@ create_server_audit
                 | SECURITY_LOG
             )
         )? (
-            WITH LR_BRACKET (
+            WITH LPAREN (
                 COMMA? QUEUE_DELAY EQUAL queue_delay = DECIMAL
                 | COMMA? ON_FAILURE EQUAL (CONTINUE | SHUTDOWN | FAIL_OPERATION)
                 | COMMA? STATE EQUAL (ON | OFF)
@@ -1789,7 +1781,7 @@ create_server_audit
                 COMMA? (NOT?) event_field_name = id_ (
                     EQUAL
                     | (LESS GREATER)
-                    | (EXCLAMATION EQUAL)
+                    | (BANG EQUAL)
                     | GREATER
                     | (GREATER EQUAL)
                     | LESS
@@ -1798,7 +1790,7 @@ create_server_audit
                 | COMMA? (AND | OR) NOT? (
                     EQUAL
                     | (LESS GREATER)
-                    | (EXCLAMATION EQUAL)
+                    | (BANG EQUAL)
                     | GREATER
                     | (GREATER EQUAL)
                     | LESS
@@ -1816,8 +1808,8 @@ create_server_audit
 alter_server_audit_specification
     : ALTER SERVER AUDIT SPECIFICATION audit_specification_name = id_ (
         FOR SERVER AUDIT audit_name = id_
-    )? ((ADD | DROP) LR_BRACKET audit_action_group_name = id_ RR_BRACKET)* (
-        WITH LR_BRACKET STATE EQUAL (ON | OFF) RR_BRACKET
+    )? ((ADD | DROP) LPAREN audit_action_group_name = id_ RR_BRACKET)* (
+        WITH LPAREN STATE EQUAL (ON | OFF) RR_BRACKET
     )?
     ;
 
@@ -1825,8 +1817,8 @@ alter_server_audit_specification
 create_server_audit_specification
     : CREATE SERVER AUDIT SPECIFICATION audit_specification_name = id_ (
         FOR SERVER AUDIT audit_name = id_
-    )? (ADD LR_BRACKET audit_action_group_name = id_ RR_BRACKET)* (
-        WITH LR_BRACKET STATE EQUAL (ON | OFF) RR_BRACKET
+    )? (ADD LPAREN audit_action_group_name = id_ RR_BRACKET)* (
+        WITH LPAREN STATE EQUAL (ON | OFF) RR_BRACKET
     )?
     ;
 
@@ -1856,7 +1848,7 @@ alter_server_configuration
             )
             | HADR CLUSTER CONTEXT EQUAL (STRING | LOCAL)
             | BUFFER POOL EXTENSION (
-                ON LR_BRACKET FILENAME EQUAL STRING COMMA SIZE EQUAL DECIMAL (KB | MB | GB) RR_BRACKET
+                ON LPAREN FILENAME EQUAL STRING COMMA SIZE EQUAL DECIMAL (KB | MB | GB) RR_BRACKET
                 | OFF
             )
             | SET SOFTNUMA (ON | OFF)
@@ -1885,7 +1877,7 @@ alter_server_role_pdw
 alter_service
     : ALTER SERVICE modified_service_name = id_ (
         ON QUEUE (schema_name = id_ DOT)? queue_name = id_
-    )? ('(' opt_arg_clause (COMMA opt_arg_clause)* ')')?
+    )? (LPAREN opt_arg_clause (COMMA opt_arg_clause)* RPAREN)?
     ;
 
 opt_arg_clause
@@ -1896,7 +1888,7 @@ opt_arg_clause
 create_service
     : CREATE SERVICE create_service_name = id_ (AUTHORIZATION owner_name = id_)? ON QUEUE (
         schema_name = id_ DOT
-    )? queue_name = id_ (LR_BRACKET (COMMA? (id_ | DEFAULT))+ RR_BRACKET)?
+    )? queue_name = id_ (LPAREN (COMMA? (id_ | DEFAULT))+ RR_BRACKET)?
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-service-master-key-transact-sql
@@ -2004,7 +1996,7 @@ alter_user_azure_sql
 
 alter_workload_group
     : ALTER WORKLOAD GROUP (workload_group_group_name = id_ | DEFAULT_DOUBLE_QUOTE) (
-        WITH LR_BRACKET (
+        WITH LPAREN (
             IMPORTANCE EQUAL (LOW | MEDIUM | HIGH)
             | COMMA? REQUEST_MAX_MEMORY_GRANT_PERCENT EQUAL request_max_memory_grant = DECIMAL
             | COMMA? REQUEST_MAX_CPU_TIME_SEC EQUAL request_max_cpu_time_sec = DECIMAL
@@ -2018,7 +2010,7 @@ alter_workload_group
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/create-workload-group-transact-sql
 create_workload_group
     : CREATE WORKLOAD GROUP workload_group_group_name = id_ (
-        WITH LR_BRACKET (
+        WITH LPAREN (
             IMPORTANCE EQUAL (LOW | MEDIUM | HIGH)
             | COMMA? REQUEST_MAX_MEMORY_GRANT_PERCENT EQUAL request_max_memory_grant = DECIMAL
             | COMMA? REQUEST_MAX_CPU_TIME_SEC EQUAL request_max_cpu_time_sec = DECIMAL
@@ -2045,17 +2037,17 @@ create_xml_schema_collection
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/create-partition-function-transact-sql?view=sql-server-ver15
 create_partition_function
-    : CREATE PARTITION FUNCTION partition_function_name = id_ '(' input_parameter_type = data_type ')' AS RANGE (
+    : CREATE PARTITION FUNCTION partition_function_name = id_ LPAREN input_parameter_type = data_type RPAREN AS RANGE (
         LEFT
         | RIGHT
-    )? FOR VALUES '(' boundary_values = expression_list_ ')'
+    )? FOR VALUES LPAREN boundary_values = expression_list_ RPAREN
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/create-partition-scheme-transact-sql?view=sql-server-ver15
 create_partition_scheme
-    : CREATE PARTITION SCHEME partition_scheme_name = id_ AS PARTITION partition_function_name = id_ ALL? TO '(' file_group_names += id_ (
-        ',' file_group_names += id_
-    )* ')'
+    : CREATE PARTITION SCHEME partition_scheme_name = id_ AS PARTITION partition_function_name = id_ ALL? TO LPAREN file_group_names += id_ (
+        COMMA file_group_names += id_
+    )* RPAREN
     ;
 
 create_queue
@@ -2067,7 +2059,7 @@ create_queue
 
 queue_settings
     : WITH (STATUS EQUAL on_off COMMA?)? (RETENTION EQUAL on_off COMMA?)? (
-        ACTIVATION LR_BRACKET (
+        ACTIVATION LPAREN (
             (
                 (STATUS EQUAL on_off COMMA?)? (
                     PROCEDURE_NAME EQUAL func_proc_name_database_schema COMMA?
@@ -2077,7 +2069,7 @@ queue_settings
             )
             | DROP
         ) RR_BRACKET COMMA?
-    )? (POISON_MESSAGE_HANDLING LR_BRACKET (STATUS EQUAL on_off) RR_BRACKET)?
+    )? (POISON_MESSAGE_HANDLING LPAREN (STATUS EQUAL on_off) RR_BRACKET)?
     ;
 
 alter_queue
@@ -2085,7 +2077,7 @@ alter_queue
     ;
 
 queue_action
-    : REBUILD (WITH LR_BRACKET queue_rebuild_options RR_BRACKET)?
+    : REBUILD (WITH LPAREN queue_rebuild_options RR_BRACKET)?
     | REORGANIZE (WITH LOB_COMPACTION EQUAL on_off)?
     | MOVE TO (id_ | DEFAULT)
     ;
@@ -2095,7 +2087,7 @@ queue_rebuild_options
     ;
 
 create_contract
-    : CREATE CONTRACT contract_name (AUTHORIZATION owner_name = id_)? LR_BRACKET (
+    : CREATE CONTRACT contract_name (AUTHORIZATION owner_name = id_)? LPAREN (
         (message_type_name = id_ | DEFAULT) SENT BY (INITIATOR | TARGET | ANY) COMMA?
     )+ RR_BRACKET
     ;
@@ -2125,8 +2117,8 @@ message_statement
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/merge-transact-sql
 // note that there's a limit on number of when_matches but it has to be done runtime due to different ordering of statements allowed
 merge_statement
-    : with_expression? MERGE (TOP '(' expression ')' PERCENT?)? INTO? ddl_object with_table_hints? as_table_alias? USING table_sources ON
-        search_condition when_matches+ output_clause? option_clause? ';'
+    : with_expression? MERGE (TOP LPAREN expression RPAREN PERCENT?)? INTO? ddl_object with_table_hints? as_table_alias? USING table_sources ON
+        search_condition when_matches+ output_clause? option_clause? SEMI
     ;
 
 when_matches
@@ -2136,19 +2128,19 @@ when_matches
     ;
 
 merge_matched
-    : UPDATE SET update_elem_merge (',' update_elem_merge)*
+    : UPDATE SET update_elem_merge (COMMA update_elem_merge)*
     | DELETE
     ;
 
 merge_not_matched
-    : INSERT ('(' column_name_list ')')? (table_value_constructor | DEFAULT VALUES)
+    : INSERT (LPAREN column_name_list RPAREN)? (table_value_constructor | DEFAULT VALUES)
     ;
 
 // https://msdn.microsoft.com/en-us/library/ms189835.aspx
 delete_statement
-    : with_expression? DELETE (TOP '(' expression ')' PERCENT? | TOP DECIMAL)? FROM? delete_statement_from with_table_hints? output_clause? (
+    : with_expression? DELETE (TOP LPAREN expression RPAREN PERCENT? | TOP DECIMAL)? FROM? delete_statement_from with_table_hints? output_clause? (
         FROM table_sources
-    )? (WHERE (search_condition | CURRENT OF (GLOBAL? cursor_name | cursor_var = LOCAL_ID)))? for_clause? option_clause? ';'?
+    )? (WHERE (search_condition | CURRENT OF (GLOBAL? cursor_name | cursor_var = LOCAL_ID)))? for_clause? option_clause? SEMI?
     ;
 
 delete_statement_from
@@ -2159,10 +2151,10 @@ delete_statement_from
 
 // https://msdn.microsoft.com/en-us/library/ms174335.aspx
 insert_statement
-    : with_expression? INSERT (TOP '(' expression ')' PERCENT?)? INTO? (
+    : with_expression? INSERT (TOP LPAREN expression RPAREN PERCENT?)? INTO? (
         ddl_object
         | rowset_function_limited
-    ) with_table_hints? ('(' insert_column_name_list ')')? output_clause? insert_statement_value for_clause? option_clause? ';'?
+    ) with_table_hints? (LPAREN insert_column_name_list RPAREN)? output_clause? insert_statement_value for_clause? option_clause? SEMI?
     ;
 
 insert_statement_value
@@ -2173,9 +2165,9 @@ insert_statement_value
     ;
 
 receive_statement
-    : '('? RECEIVE (ALL | DISTINCT | top_clause | '*') (LOCAL_ID '=' expression ','?)* FROM full_table_name (
+    : LPAREN? RECEIVE (ALL | DISTINCT | top_clause | STAR) (LOCAL_ID EQUALS expression COMMA?)* FROM full_table_name (
         INTO table_variable = id_ (WHERE where = search_condition)
-    )? ')'?
+    )? RPAREN?
     ;
 
 // https://msdn.microsoft.com/en-us/library/ms189499.aspx
@@ -2184,7 +2176,7 @@ select_statement_standalone
     ;
 
 select_statement
-    : query_expression select_order_by_clause? for_clause? option_clause? ';'?
+    : query_expression select_order_by_clause? for_clause? option_clause? SEMI?
     ;
 
 time
@@ -2193,18 +2185,18 @@ time
 
 // https://msdn.microsoft.com/en-us/library/ms177523.aspx
 update_statement
-    : with_expression? UPDATE (TOP '(' expression ')' PERCENT?)? (
+    : with_expression? UPDATE (TOP LPAREN expression RPAREN PERCENT?)? (
         ddl_object
         | rowset_function_limited
-    ) with_table_hints? SET update_elem (',' update_elem)* output_clause? (FROM table_sources)? (
+    ) with_table_hints? SET update_elem (COMMA update_elem)* output_clause? (FROM table_sources)? (
         WHERE (search_condition | CURRENT OF (GLOBAL? cursor_name | cursor_var = LOCAL_ID))
-    )? for_clause? option_clause? ';'?
+    )? for_clause? option_clause? SEMI?
     ;
 
 // https://msdn.microsoft.com/en-us/library/ms177564.aspx
 output_clause
-    : OUTPUT output_dml_list_elem (',' output_dml_list_elem)* (
-        INTO (LOCAL_ID | table_name) ('(' column_name_list ')')?
+    : OUTPUT output_dml_list_elem (COMMA output_dml_list_elem)* (
+        INTO (LOCAL_ID | table_name) (LPAREN column_name_list RPAREN)?
     )?
     ;
 
@@ -2216,28 +2208,28 @@ output_dml_list_elem
 
 // https://msdn.microsoft.com/en-ie/library/ms176061.aspx
 create_database
-    : CREATE DATABASE (database = id_) (CONTAINMENT '=' ( NONE | PARTIAL))? (
-        ON PRIMARY? database_file_spec ( ',' database_file_spec)*
-    )? (LOG ON database_file_spec ( ',' database_file_spec)*)? (COLLATE collation_name = id_)? (
-        WITH create_database_option ( ',' create_database_option)*
+    : CREATE DATABASE (database = id_) (CONTAINMENT EQUALS ( NONE | PARTIAL))? (
+        ON PRIMARY? database_file_spec ( COMMA database_file_spec)*
+    )? (LOG ON database_file_spec ( COMMA database_file_spec)*)? (COLLATE collation_name = id_)? (
+        WITH create_database_option ( COMMA create_database_option)*
     )?
     ;
 
 // https://msdn.microsoft.com/en-us/library/ms188783.aspx
 create_index
-    : CREATE UNIQUE? clustered? INDEX id_ ON table_name '(' column_name_list_with_order ')' (
-        INCLUDE '(' column_name_list ')'
-    )? (WHERE where = search_condition)? (create_index_options)? (ON id_)? ';'?
+    : CREATE UNIQUE? clustered? INDEX id_ ON table_name LPAREN column_name_list_with_order RPAREN (
+        INCLUDE LPAREN column_name_list RPAREN
+    )? (WHERE where = search_condition)? (create_index_options)? (ON id_)? SEMI?
     ;
 
 create_index_options
-    : 'WITH' '(' relational_index_option (',' relational_index_option)* ')'
+    : WITH LPAREN relational_index_option (COMMA relational_index_option)* RPAREN
     ;
 
 relational_index_option
     : rebuild_index_option
-    | DROP_EXISTING '=' on_off
-    | OPTIMIZE_FOR_SEQUENTIAL_KEY '=' on_off
+    | DROP_EXISTING EQUALS on_off
+    | OPTIMIZE_FOR_SEQUENTIAL_KEY EQUALS on_off
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-index-transact-sql
@@ -2254,146 +2246,146 @@ alter_index
     ;
 
 resumable_index_options
-    : WITH '(' (resumable_index_option (',' resumable_index_option)*) ')'
+    : WITH LPAREN (resumable_index_option (COMMA resumable_index_option)*) RPAREN
     ;
 
 resumable_index_option
-    : MAXDOP '=' max_degree_of_parallelism = DECIMAL
-    | MAX_DURATION '=' max_duration = DECIMAL MINUTES?
+    : MAXDOP EQUALS max_degree_of_parallelism = DECIMAL
+    | MAX_DURATION EQUALS max_duration = DECIMAL MINUTES?
     | low_priority_lock_wait
     ;
 
 reorganize_partition
-    : REORGANIZE (PARTITION '=' DECIMAL)? reorganize_options?
+    : REORGANIZE (PARTITION EQUALS DECIMAL)? reorganize_options?
     ;
 
 reorganize_options
-    : WITH '(' (reorganize_option (',' reorganize_option)*) ')'
+    : WITH LPAREN (reorganize_option (COMMA reorganize_option)*) RPAREN
     ;
 
 reorganize_option
-    : LOB_COMPACTION '=' on_off
-    | COMPRESS_ALL_ROW_GROUPS '=' on_off
+    : LOB_COMPACTION EQUALS on_off
+    | COMPRESS_ALL_ROW_GROUPS EQUALS on_off
     ;
 
 set_index_options
-    : SET '(' set_index_option (',' set_index_option)* ')'
+    : SET LPAREN set_index_option (COMMA set_index_option)* RPAREN
     ;
 
 set_index_option
-    : ALLOW_ROW_LOCKS '=' on_off
-    | ALLOW_PAGE_LOCKS '=' on_off
-    | OPTIMIZE_FOR_SEQUENTIAL_KEY '=' on_off
-    | IGNORE_DUP_KEY '=' on_off
-    | STATISTICS_NORECOMPUTE '=' on_off
-    | COMPRESSION_DELAY '=' delay = DECIMAL MINUTES?
+    : ALLOW_ROW_LOCKS EQUALS on_off
+    | ALLOW_PAGE_LOCKS EQUALS on_off
+    | OPTIMIZE_FOR_SEQUENTIAL_KEY EQUALS on_off
+    | IGNORE_DUP_KEY EQUALS on_off
+    | STATISTICS_NORECOMPUTE EQUALS on_off
+    | COMPRESSION_DELAY EQUALS delay = DECIMAL MINUTES?
     ;
 
 rebuild_partition
-    : REBUILD (PARTITION '=' ALL)? rebuild_index_options?
-    | REBUILD PARTITION '=' DECIMAL single_partition_rebuild_index_options?
+    : REBUILD (PARTITION EQUALS ALL)? rebuild_index_options?
+    | REBUILD PARTITION EQUALS DECIMAL single_partition_rebuild_index_options?
     ;
 
 rebuild_index_options
-    : WITH '(' rebuild_index_option (',' rebuild_index_option)* ')'
+    : WITH LPAREN rebuild_index_option (COMMA rebuild_index_option)* RPAREN
     ;
 
 rebuild_index_option
-    : PAD_INDEX '=' on_off
-    | FILLFACTOR '=' DECIMAL
-    | SORT_IN_TEMPDB '=' on_off
-    | IGNORE_DUP_KEY '=' on_off
-    | STATISTICS_NORECOMPUTE '=' on_off
-    | STATISTICS_INCREMENTAL '=' on_off
-    | ONLINE '=' (ON ('(' low_priority_lock_wait ')')? | OFF)
-    | RESUMABLE '=' on_off
-    | MAX_DURATION '=' times = DECIMAL MINUTES?
-    | ALLOW_ROW_LOCKS '=' on_off
-    | ALLOW_PAGE_LOCKS '=' on_off
-    | MAXDOP '=' max_degree_of_parallelism = DECIMAL
-    | DATA_COMPRESSION '=' (NONE | ROW | PAGE | COLUMNSTORE | COLUMNSTORE_ARCHIVE) on_partitions?
-    | XML_COMPRESSION '=' on_off on_partitions?
+    : PAD_INDEX EQUALS on_off
+    | FILLFACTOR EQUALS DECIMAL
+    | SORT_IN_TEMPDB EQUALS on_off
+    | IGNORE_DUP_KEY EQUALS on_off
+    | STATISTICS_NORECOMPUTE EQUALS on_off
+    | STATISTICS_INCREMENTAL EQUALS on_off
+    | ONLINE EQUALS (ON (LPAREN low_priority_lock_wait RPAREN)? | OFF)
+    | RESUMABLE EQUALS on_off
+    | MAX_DURATION EQUALS times = DECIMAL MINUTES?
+    | ALLOW_ROW_LOCKS EQUALS on_off
+    | ALLOW_PAGE_LOCKS EQUALS on_off
+    | MAXDOP EQUALS max_degree_of_parallelism = DECIMAL
+    | DATA_COMPRESSION EQUALS (NONE | ROW | PAGE | COLUMNSTORE | COLUMNSTORE_ARCHIVE) on_partitions?
+    | XML_COMPRESSION EQUALS on_off on_partitions?
     ;
 
 single_partition_rebuild_index_options
-    : WITH '(' single_partition_rebuild_index_option (',' single_partition_rebuild_index_option)* ')'
+    : WITH LPAREN single_partition_rebuild_index_option (COMMA single_partition_rebuild_index_option)* RPAREN
     ;
 
 single_partition_rebuild_index_option
-    : SORT_IN_TEMPDB '=' on_off
-    | MAXDOP '=' max_degree_of_parallelism = DECIMAL
-    | RESUMABLE '=' on_off
-    | DATA_COMPRESSION '=' (NONE | ROW | PAGE | COLUMNSTORE | COLUMNSTORE_ARCHIVE) on_partitions?
-    | XML_COMPRESSION '=' on_off on_partitions?
-    | ONLINE '=' (ON ('(' low_priority_lock_wait ')')? | OFF)
+    : SORT_IN_TEMPDB EQUALS on_off
+    | MAXDOP EQUALS max_degree_of_parallelism = DECIMAL
+    | RESUMABLE EQUALS on_off
+    | DATA_COMPRESSION EQUALS (NONE | ROW | PAGE | COLUMNSTORE | COLUMNSTORE_ARCHIVE) on_partitions?
+    | XML_COMPRESSION EQUALS on_off on_partitions?
+    | ONLINE EQUALS (ON (LPAREN low_priority_lock_wait RPAREN)? | OFF)
     ;
 
 on_partitions
-    : ON PARTITIONS '(' partition_number = DECIMAL ('TO' to_partition_number = DECIMAL)? (
-        ',' partition_number = DECIMAL ('TO' to_partition_number = DECIMAL)?
-    )* ')'
+    : ON PARTITIONS LPAREN partition_number = DECIMAL (TO to_partition_number = DECIMAL)? (
+        COMMA partition_number = DECIMAL (TO to_partition_number = DECIMAL)?
+    )* RPAREN
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/create-columnstore-index-transact-sql?view=sql-server-ver15
 create_columnstore_index
     : CREATE CLUSTERED COLUMNSTORE INDEX id_ ON table_name create_columnstore_index_options? (
         ON id_
-    )? ';'?
+    )? SEMI?
     ;
 
 create_columnstore_index_options
-    : 'WITH' '(' columnstore_index_option (',' columnstore_index_option)* ')'
+    : WITH LPAREN columnstore_index_option (COMMA columnstore_index_option)* RPAREN
     ;
 
 columnstore_index_option
-    : DROP_EXISTING '=' on_off
-    | MAXDOP '=' max_degree_of_parallelism = DECIMAL
-    | ONLINE '=' on_off
-    | COMPRESSION_DELAY '=' delay = DECIMAL MINUTES?
-    | DATA_COMPRESSION '=' (COLUMNSTORE | COLUMNSTORE_ARCHIVE) on_partitions?
+    : DROP_EXISTING EQUALS on_off
+    | MAXDOP EQUALS max_degree_of_parallelism = DECIMAL
+    | ONLINE EQUALS on_off
+    | COMPRESSION_DELAY EQUALS delay = DECIMAL MINUTES?
+    | DATA_COMPRESSION EQUALS (COLUMNSTORE | COLUMNSTORE_ARCHIVE) on_partitions?
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/create-columnstore-index-transact-sql?view=sql-server-ver15
 create_nonclustered_columnstore_index
-    : CREATE NONCLUSTERED? COLUMNSTORE INDEX id_ ON table_name '(' column_name_list_with_order ')' (
+    : CREATE NONCLUSTERED? COLUMNSTORE INDEX id_ ON table_name LPAREN column_name_list_with_order RPAREN (
         WHERE search_condition
-    )? create_columnstore_index_options? (ON id_)? ';'?
+    )? create_columnstore_index_options? (ON id_)? SEMI?
     ;
 
 create_xml_index
-    : CREATE PRIMARY? XML INDEX id_ ON table_name '(' id_ ')' (
+    : CREATE PRIMARY? XML INDEX id_ ON table_name LPAREN id_ RPAREN (
         USING XML INDEX id_ (FOR (VALUE | PATH | PROPERTY)?)?
-    )? xml_index_options? ';'?
+    )? xml_index_options? SEMI?
     ;
 
 xml_index_options
-    : 'WITH' '(' xml_index_option (',' xml_index_option)* ')'
+    : WITH LPAREN xml_index_option (COMMA xml_index_option)* RPAREN
     ;
 
 xml_index_option
-    : PAD_INDEX '=' on_off
-    | FILLFACTOR '=' DECIMAL
-    | SORT_IN_TEMPDB '=' on_off
-    | IGNORE_DUP_KEY '=' on_off
-    | DROP_EXISTING '=' on_off
-    | ONLINE '=' (ON ('(' low_priority_lock_wait ')')? | OFF)
-    | ALLOW_ROW_LOCKS '=' on_off
-    | ALLOW_PAGE_LOCKS '=' on_off
-    | MAXDOP '=' max_degree_of_parallelism = DECIMAL
-    | XML_COMPRESSION '=' on_off
+    : PAD_INDEX EQUALS on_off
+    | FILLFACTOR EQUALS DECIMAL
+    | SORT_IN_TEMPDB EQUALS on_off
+    | IGNORE_DUP_KEY EQUALS on_off
+    | DROP_EXISTING EQUALS on_off
+    | ONLINE EQUALS (ON (LPAREN low_priority_lock_wait RPAREN)? | OFF)
+    | ALLOW_ROW_LOCKS EQUALS on_off
+    | ALLOW_PAGE_LOCKS EQUALS on_off
+    | MAXDOP EQUALS max_degree_of_parallelism = DECIMAL
+    | XML_COMPRESSION EQUALS on_off
     ;
 
 // https://msdn.microsoft.com/en-us/library/ms187926(v=sql.120).aspx
 create_or_alter_procedure
     : ((CREATE (OR (ALTER | REPLACE))?) | ALTER) proc = (PROC | PROCEDURE) procName = func_proc_name_schema (
-        ';' DECIMAL
-    )? ('('? procedure_param (',' procedure_param)* ')'?)? (
-        WITH procedure_option (',' procedure_option)*
+        SEMI DECIMAL
+    )? (LPAREN? procedure_param (COMMA procedure_param)* RPAREN?)? (
+        WITH procedure_option (COMMA procedure_option)*
     )? (FOR REPLICATION)? AS (as_external_name | sql_clauses*)
     ;
 
 as_external_name
-    : EXTERNAL NAME assembly_name = id_ '.' class_name = id_ '.' method_name = id_
+    : EXTERNAL NAME assembly_name = id_ DOT class_name = id_ DOT method_name = id_
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/create-trigger-transact-sql
@@ -2404,8 +2396,8 @@ create_or_alter_trigger
 
 create_or_alter_dml_trigger
     : (CREATE (OR (ALTER | REPLACE))? | ALTER) TRIGGER simple_name ON table_name (
-        WITH dml_trigger_option (',' dml_trigger_option)*
-    )? (FOR | AFTER | INSTEAD OF) dml_trigger_operation (',' dml_trigger_operation)* (WITH APPEND)? (
+        WITH dml_trigger_option (COMMA dml_trigger_option)*
+    )? (FOR | AFTER | INSTEAD OF) dml_trigger_operation (COMMA dml_trigger_operation)* (WITH APPEND)? (
         NOT FOR REPLICATION
     )? AS sql_clauses+
     ;
@@ -2421,8 +2413,8 @@ dml_trigger_operation
 
 create_or_alter_ddl_trigger
     : (CREATE (OR (ALTER | REPLACE))? | ALTER) TRIGGER simple_name ON (ALL SERVER | DATABASE) (
-        WITH dml_trigger_option (',' dml_trigger_option)*
-    )? (FOR | AFTER) ddl_trigger_operation (',' ddl_trigger_operation)* AS sql_clauses+
+        WITH dml_trigger_option (COMMA dml_trigger_option)*
+    )? (FOR | AFTER) ddl_trigger_operation (COMMA ddl_trigger_operation)* AS sql_clauses+
     ;
 
 ddl_trigger_operation
@@ -2432,30 +2424,30 @@ ddl_trigger_operation
 // https://msdn.microsoft.com/en-us/library/ms186755.aspx
 create_or_alter_function
     : ((CREATE (OR ALTER)?) | ALTER) FUNCTION funcName = func_proc_name_schema (
-        ('(' procedure_param (',' procedure_param)* ')')
-        | '(' ')'
+        (LPAREN procedure_param (COMMA procedure_param)* RPAREN)
+        | LPAREN RPAREN
     ) //must have (), but can be empty
-    (func_body_returns_select | func_body_returns_table | func_body_returns_scalar) ';'?
+    (func_body_returns_select | func_body_returns_table | func_body_returns_scalar) SEMI?
     ;
 
 func_body_returns_select
-    : RETURNS TABLE (WITH function_option (',' function_option)*)? AS? (
+    : RETURNS TABLE (WITH function_option (COMMA function_option)*)? AS? (
         as_external_name
-        | RETURN ('(' select_statement_standalone ')' | select_statement_standalone)
+        | RETURN (LPAREN select_statement_standalone RPAREN | select_statement_standalone)
     )
     ;
 
 func_body_returns_table
-    : RETURNS LOCAL_ID table_type_definition (WITH function_option (',' function_option)*)? AS? (
+    : RETURNS LOCAL_ID table_type_definition (WITH function_option (COMMA function_option)*)? AS? (
         as_external_name
-        | BEGIN sql_clauses* RETURN ';'? END ';'?
+        | BEGIN sql_clauses* RETURN SEMI? END SEMI?
     )
     ;
 
 func_body_returns_scalar
-    : RETURNS data_type (WITH function_option (',' function_option)*)? AS? (
+    : RETURNS data_type (WITH function_option (COMMA function_option)*)? AS? (
         as_external_name
-        | BEGIN sql_clauses* RETURN ret = expression ';'? END
+        | BEGIN sql_clauses* RETURN ret = expression SEMI? END
     )
     ;
 
@@ -2467,8 +2459,8 @@ procedure_param_default_value
     ;
 
 procedure_param
-    : LOCAL_ID AS? (type_schema = id_ '.')? data_type VARYING? (
-        '=' default_val = procedure_param_default_value
+    : LOCAL_ID AS? (type_schema = id_ DOT)? data_type VARYING? (
+        EQUALS default_val = procedure_param_default_value
     )? (OUT | OUTPUT | READONLY)?
     ;
 
@@ -2488,89 +2480,89 @@ function_option
 
 // https://msdn.microsoft.com/en-us/library/ms188038.aspx
 create_statistics
-    : CREATE STATISTICS id_ ON table_name '(' column_name_list ')' (
-        WITH (FULLSCAN | SAMPLE DECIMAL (PERCENT | ROWS) | STATS_STREAM) (',' NORECOMPUTE)? (
-            ',' INCREMENTAL EQUAL on_off
+    : CREATE STATISTICS id_ ON table_name LPAREN column_name_list RPAREN (
+        WITH (FULLSCAN | SAMPLE DECIMAL (PERCENT | ROWS) | STATS_STREAM) (COMMA NORECOMPUTE)? (
+            COMMA INCREMENTAL EQUAL on_off
         )?
-    )? ';'?
+    )? SEMI?
     ;
 
 update_statistics
-    : UPDATE STATISTICS full_table_name (id_ | '(' id_ ( ',' id_)* ')')? update_statistics_options?
+    : UPDATE STATISTICS full_table_name (id_ | LPAREN id_ ( COMMA id_)* RPAREN)? update_statistics_options?
     ;
 
 update_statistics_options
-    : WITH update_statistics_option (',' update_statistics_option)*
+    : WITH update_statistics_option (COMMA update_statistics_option)*
     ;
 
 update_statistics_option
-    : (FULLSCAN (','? PERSIST_SAMPLE_PERCENT '=' on_off)?)
-    | (SAMPLE number = DECIMAL (PERCENT | ROWS) (','? PERSIST_SAMPLE_PERCENT '=' on_off)?)
+    : (FULLSCAN (COMMA? PERSIST_SAMPLE_PERCENT EQUALS on_off)?)
+    | (SAMPLE number = DECIMAL (PERCENT | ROWS) (COMMA? PERSIST_SAMPLE_PERCENT EQUALS on_off)?)
     | RESAMPLE on_partitions?
-    | STATS_STREAM '=' stats_stream_ = expression
-    | ROWCOUNT '=' DECIMAL
-    | PAGECOUNT '=' DECIMAL
+    | STATS_STREAM EQUALS stats_stream_ = expression
+    | ROWCOUNT EQUALS DECIMAL
+    | PAGECOUNT EQUALS DECIMAL
     | ALL
     | COLUMNS
     | INDEX
     | NORECOMPUTE
-    | INCREMENTAL '=' on_off
-    | MAXDOP '=' max_dregree_of_parallelism = DECIMAL
-    | AUTO_DROP '=' on_off
+    | INCREMENTAL EQUALS on_off
+    | MAXDOP EQUALS max_dregree_of_parallelism = DECIMAL
+    | AUTO_DROP EQUALS on_off
     ;
 
 // https://msdn.microsoft.com/en-us/library/ms174979.aspx
 create_table
-    : CREATE TABLE table_name '(' column_def_table_constraints (','? table_indices)* ','? ')' (
+    : CREATE TABLE table_name LPAREN column_def_table_constraints (COMMA? table_indices)* COMMA? RPAREN (
         LOCK simple_id
-    )? table_options* (ON id_ | DEFAULT | on_partition_or_filegroup)? (TEXTIMAGE_ON id_ | DEFAULT)? ';'?
+    )? table_options* (ON id_ | DEFAULT | on_partition_or_filegroup)? (TEXTIMAGE_ON id_ | DEFAULT)? SEMI?
     ;
 
 table_indices
-    : INDEX id_ UNIQUE? clustered? '(' column_name_list_with_order ')'
+    : INDEX id_ UNIQUE? clustered? LPAREN column_name_list_with_order RPAREN
     | INDEX id_ CLUSTERED COLUMNSTORE
-    | INDEX id_ NONCLUSTERED? COLUMNSTORE '(' column_name_list ')' create_table_index_options? (
+    | INDEX id_ NONCLUSTERED? COLUMNSTORE LPAREN column_name_list RPAREN create_table_index_options? (
         ON id_
     )?
     ;
 
 table_options
-    : WITH ('(' table_option (',' table_option)* ')' | table_option (',' table_option)*)
+    : WITH (LPAREN table_option (COMMA table_option)* RPAREN | table_option (COMMA table_option)*)
     ;
 
 table_option
-    : (simple_id | keyword) '=' (simple_id | keyword | on_off | DECIMAL)
+    : (simple_id | keyword) EQUALS (simple_id | keyword | on_off | DECIMAL)
     | CLUSTERED COLUMNSTORE INDEX
     | HEAP
-    | FILLFACTOR '=' DECIMAL
-    | DISTRIBUTION '=' HASH '(' id_ ')'
-    | CLUSTERED INDEX '(' id_ (ASC | DESC)? (',' id_ (ASC | DESC)?)* ')'
-    | DATA_COMPRESSION '=' (NONE | ROW | PAGE) on_partitions?
-    | XML_COMPRESSION '=' on_off on_partitions?
+    | FILLFACTOR EQUALS DECIMAL
+    | DISTRIBUTION EQUALS HASH LPAREN id_ RPAREN
+    | CLUSTERED INDEX LPAREN id_ (ASC | DESC)? (COMMA id_ (ASC | DESC)?)* RPAREN
+    | DATA_COMPRESSION EQUALS (NONE | ROW | PAGE) on_partitions?
+    | XML_COMPRESSION EQUALS on_off on_partitions?
     ;
 
 create_table_index_options
-    : WITH '(' create_table_index_option (',' create_table_index_option)* ')'
+    : WITH LPAREN create_table_index_option (COMMA create_table_index_option)* RPAREN
     ;
 
 create_table_index_option
-    : PAD_INDEX '=' on_off
-    | FILLFACTOR '=' DECIMAL
-    | IGNORE_DUP_KEY '=' on_off
-    | STATISTICS_NORECOMPUTE '=' on_off
-    | STATISTICS_INCREMENTAL '=' on_off
-    | ALLOW_ROW_LOCKS '=' on_off
-    | ALLOW_PAGE_LOCKS '=' on_off
-    | OPTIMIZE_FOR_SEQUENTIAL_KEY '=' on_off
-    | DATA_COMPRESSION '=' (NONE | ROW | PAGE | COLUMNSTORE | COLUMNSTORE_ARCHIVE) on_partitions?
-    | XML_COMPRESSION '=' on_off on_partitions?
+    : PAD_INDEX EQUALS on_off
+    | FILLFACTOR EQUALS DECIMAL
+    | IGNORE_DUP_KEY EQUALS on_off
+    | STATISTICS_NORECOMPUTE EQUALS on_off
+    | STATISTICS_INCREMENTAL EQUALS on_off
+    | ALLOW_ROW_LOCKS EQUALS on_off
+    | ALLOW_PAGE_LOCKS EQUALS on_off
+    | OPTIMIZE_FOR_SEQUENTIAL_KEY EQUALS on_off
+    | DATA_COMPRESSION EQUALS (NONE | ROW | PAGE | COLUMNSTORE | COLUMNSTORE_ARCHIVE) on_partitions?
+    | XML_COMPRESSION EQUALS on_off on_partitions?
     ;
 
 // https://msdn.microsoft.com/en-us/library/ms187956.aspx
 create_view
-    : (CREATE (OR (ALTER | REPLACE))? | ALTER) VIEW simple_name ('(' column_name_list ')')? (
-        WITH view_attribute (',' view_attribute)*
-    )? AS select_statement_standalone (WITH CHECK OPTION)? ';'?
+    : (CREATE (OR (ALTER | REPLACE))? | ALTER) VIEW simple_name (LPAREN column_name_list RPAREN)? (
+        WITH view_attribute (COMMA view_attribute)*
+    )? AS select_statement_standalone (WITH CHECK OPTION)? SEMI?
     ;
 
 view_attribute
@@ -2582,22 +2574,22 @@ view_attribute
 // https://msdn.microsoft.com/en-us/library/ms190273.aspx
 alter_table
     : ALTER TABLE table_name (
-        SET '(' LOCK_ESCALATION '=' (AUTO | TABLE | DISABLE) ')'
+        SET LPAREN LOCK_ESCALATION EQUALS (AUTO | TABLE | DISABLE) RPAREN
         | ADD column_def_table_constraints
         | ALTER COLUMN (column_definition | column_modifier)
-        | DROP COLUMN id_ (',' id_)*
+        | DROP COLUMN id_ (COMMA id_)*
         | DROP CONSTRAINT constraint = id_
         | WITH (CHECK | NOCHECK) ADD (CONSTRAINT constraint = id_)? (
-            FOREIGN KEY '(' fk = column_name_list ')' REFERENCES table_name (
-                '(' pk = column_name_list ')'
+            FOREIGN KEY LPAREN fk = column_name_list RPAREN REFERENCES table_name (
+                LPAREN pk = column_name_list RPAREN
             )? (on_delete | on_update)*
-            | CHECK '(' search_condition ')'
+            | CHECK LPAREN search_condition RPAREN
         )
         | (NOCHECK | CHECK) CONSTRAINT constraint = id_
         | (ENABLE | DISABLE) TRIGGER id_?
         | REBUILD table_options
         | SWITCH switch_partition
-    ) ';'?
+    ) SEMI?
     ;
 
 switch_partition
@@ -2607,38 +2599,38 @@ switch_partition
     ;
 
 low_priority_lock_wait
-    : WAIT_AT_LOW_PRIORITY '(' MAX_DURATION '=' max_duration = time MINUTES? ',' ABORT_AFTER_WAIT '=' abort_after_wait = (
+    : WAIT_AT_LOW_PRIORITY LPAREN MAX_DURATION EQUALS max_duration = time MINUTES? COMMA ABORT_AFTER_WAIT EQUALS abort_after_wait = (
         NONE
         | SELF
         | BLOCKERS
-    ) ')'
+    ) RPAREN
     ;
 
 // https://msdn.microsoft.com/en-us/library/ms174269.aspx
 alter_database
     : ALTER DATABASE (database = id_ | CURRENT) (
-        MODIFY NAME '=' new_name = id_
+        MODIFY NAME EQUALS new_name = id_
         | COLLATE collation = id_
         | SET database_optionspec (WITH termination)?
         | add_or_modify_files
         | add_or_modify_filegroups
-    ) ';'?
+    ) SEMI?
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-database-transact-sql-file-and-filegroup-options?view=sql-server-ver15
 add_or_modify_files
-    : ADD FILE filespec (',' filespec)* (TO FILEGROUP filegroup_name = id_)?
-    | ADD LOG FILE filespec (',' filespec)*
+    : ADD FILE filespec (COMMA filespec)* (TO FILEGROUP filegroup_name = id_)?
+    | ADD LOG FILE filespec (COMMA filespec)*
     | REMOVE FILE logical_file_name = id_
     | MODIFY FILE filespec
     ;
 
 filespec
-    : '(' NAME '=' name = id_or_string (',' NEWNAME '=' new_name = id_or_string)? (
-        ',' FILENAME '=' file_name = STRING
-    )? (',' SIZE '=' size = file_size)? (',' MAXSIZE '=' (max_size = file_size) | UNLIMITED)? (
-        ',' FILEGROWTH '=' growth_increment = file_size
-    )? (',' OFFLINE)? ')'
+    : LPAREN NAME EQUALS name = id_or_string (COMMA NEWNAME EQUALS new_name = id_or_string)? (
+        COMMA FILENAME EQUALS file_name = STRING
+    )? (COMMA SIZE EQUALS size = file_size)? (COMMA MAXSIZE EQUALS (max_size = file_size) | UNLIMITED)? (
+        COMMA FILEGROWTH EQUALS growth_increment = file_size
+    )? (COMMA OFFLINE)? RPAREN
     ;
 
 add_or_modify_filegroups
@@ -2647,7 +2639,7 @@ add_or_modify_filegroups
     | MODIFY FILEGROUP filegrou_name = id_ (
         filegroup_updatability_option
         | DEFAULT
-        | NAME '=' new_filegroup_name = id_
+        | NAME EQUALS new_filegroup_name = id_
         | AUTOGROW_SINGLE_FILE
         | AUTOGROW_ALL_FILES
     )
@@ -2701,7 +2693,7 @@ auto_option
 change_tracking_option
     : CHANGE_TRACKING EQUAL (
         OFF
-        | ON '(' (change_tracking_option_list (',' change_tracking_option_list)*)* ')'
+        | ON LPAREN (change_tracking_option_list (COMMA change_tracking_option_list)*)* RPAREN
     )
     ;
 
@@ -2723,14 +2715,14 @@ cursor_option
 alter_endpoint
     : ALTER ENDPOINT endpointname = id_ (AUTHORIZATION login = id_)? (
         STATE EQUAL state = (STARTED | STOPPED | DISABLED)
-    )? AS TCP LR_BRACKET endpoint_listener_clause RR_BRACKET (
-        FOR TSQL LR_BRACKET RR_BRACKET
-        | FOR SERVICE_BROKER LR_BRACKET endpoint_authentication_clause (
+    )? AS TCP LPAREN endpoint_listener_clause RR_BRACKET (
+        FOR TSQL LPAREN RR_BRACKET
+        | FOR SERVICE_BROKER LPAREN endpoint_authentication_clause (
             COMMA? endpoint_encryption_alogorithm_clause
         )? (COMMA? MESSAGE_FORWARDING EQUAL (ENABLED | DISABLED))? (
             COMMA? MESSAGE_FORWARD_SIZE EQUAL DECIMAL
         )? RR_BRACKET
-        | FOR DATABASE_MIRRORING LR_BRACKET endpoint_authentication_clause (
+        | FOR DATABASE_MIRRORING LPAREN endpoint_authentication_clause (
             COMMA? endpoint_encryption_alogorithm_clause
         )? COMMA? ROLE EQUAL (WITNESS | PARTNER | ALL) RR_BRACKET
     )
@@ -2852,7 +2844,7 @@ parameterization_option
 recovery_option
     : RECOVERY (FULL | BULK_LOGGED | SIMPLE)
     | TORN_PAGE_DETECTION on_off
-    | ACCELERATED_DATABASE_RECOVERY '=' on_off
+    | ACCELERATED_DATABASE_RECOVERY EQUALS on_off
     | PAGE_VERIFY ( CHECKSUM | TORN_PAGE_DETECTION | NONE)
     ;
 
@@ -2896,9 +2888,9 @@ termination
 // https://msdn.microsoft.com/en-us/library/ms176118.aspx
 drop_index
     : DROP INDEX (IF EXISTS)? (
-        drop_relational_or_xml_or_spatial_index (',' drop_relational_or_xml_or_spatial_index)*
-        | drop_backward_compatible_index (',' drop_backward_compatible_index)*
-    ) ';'?
+        drop_relational_or_xml_or_spatial_index (COMMA drop_relational_or_xml_or_spatial_index)*
+        | drop_backward_compatible_index (COMMA drop_backward_compatible_index)*
+    ) SEMI?
     ;
 
 drop_relational_or_xml_or_spatial_index
@@ -2906,12 +2898,12 @@ drop_relational_or_xml_or_spatial_index
     ;
 
 drop_backward_compatible_index
-    : (owner_name = id_ '.')? table_or_view_name = id_ '.' index_name = id_
+    : (owner_name = id_ DOT)? table_or_view_name = id_ DOT index_name = id_
     ;
 
 // https://msdn.microsoft.com/en-us/library/ms174969.aspx
 drop_procedure
-    : DROP proc = (PROC | PROCEDURE) (IF EXISTS)? func_proc_name_schema (',' func_proc_name_schema)* ';'?
+    : DROP proc = (PROC | PROCEDURE) (IF EXISTS)? func_proc_name_schema (COMMA func_proc_name_schema)* SEMI?
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-trigger-transact-sql
@@ -2921,36 +2913,36 @@ drop_trigger
     ;
 
 drop_dml_trigger
-    : DROP TRIGGER (IF EXISTS)? simple_name (',' simple_name)* ';'?
+    : DROP TRIGGER (IF EXISTS)? simple_name (COMMA simple_name)* SEMI?
     ;
 
 drop_ddl_trigger
-    : DROP TRIGGER (IF EXISTS)? simple_name (',' simple_name)* ON (DATABASE | ALL SERVER) ';'?
+    : DROP TRIGGER (IF EXISTS)? simple_name (COMMA simple_name)* ON (DATABASE | ALL SERVER) SEMI?
     ;
 
 // https://msdn.microsoft.com/en-us/library/ms190290.aspx
 drop_function
-    : DROP FUNCTION (IF EXISTS)? func_proc_name_schema (',' func_proc_name_schema)* ';'?
+    : DROP FUNCTION (IF EXISTS)? func_proc_name_schema (COMMA func_proc_name_schema)* SEMI?
     ;
 
 // https://msdn.microsoft.com/en-us/library/ms175075.aspx
 drop_statistics
-    : DROP STATISTICS (COMMA? (table_name '.')? name = id_)+ ';'
+    : DROP STATISTICS (COMMA? (table_name DOT)? name = id_)+ SEMI
     ;
 
 // https://msdn.microsoft.com/en-us/library/ms173790.aspx
 drop_table
-    : DROP TABLE (IF EXISTS)? table_name (',' table_name)* ';'?
+    : DROP TABLE (IF EXISTS)? table_name (COMMA table_name)* SEMI?
     ;
 
 // https://msdn.microsoft.com/en-us/library/ms173492.aspx
 drop_view
-    : DROP VIEW (IF EXISTS)? simple_name (',' simple_name)* ';'?
+    : DROP VIEW (IF EXISTS)? simple_name (COMMA simple_name)* SEMI?
     ;
 
 create_type
     : CREATE TYPE name = simple_name (FROM data_type null_notnull?)? (
-        AS TABLE LR_BRACKET column_def_table_constraints RR_BRACKET
+        AS TABLE LPAREN column_def_table_constraints RR_BRACKET
     )?
     ;
 
@@ -2965,14 +2957,14 @@ rowset_function_limited
 
 // https://msdn.microsoft.com/en-us/library/ms188427(v=sql.120).aspx
 openquery
-    : OPENQUERY '(' linked_server = id_ ',' query = STRING ')'
+    : OPENQUERY LPAREN linked_server = id_ COMMA query = STRING RPAREN
     ;
 
 // https://msdn.microsoft.com/en-us/library/ms179856.aspx
 opendatasource
-    : OPENDATASOURCE '(' provider = STRING ',' init = STRING ')' '.' (database = id_)? '.' (
+    : OPENDATASOURCE LPAREN provider = STRING COMMA init = STRING RPAREN DOT (database = id_)? DOT (
         scheme = id_
-    )? '.' (table = id_)
+    )? DOT (table = id_)
     ;
 
 // Other statements.
@@ -2980,9 +2972,9 @@ opendatasource
 // https://msdn.microsoft.com/en-us/library/ms188927.aspx
 declare_statement
     : DECLARE LOCAL_ID AS? (data_type | table_type_definition | table_name)
-    | DECLARE loc += declare_local (',' loc += declare_local)*
+    | DECLARE loc += declare_local (COMMA loc += declare_local)*
     | DECLARE LOCAL_ID AS? xml_type_definition
-    | WITH XMLNAMESPACES '(' xml_dec += xml_declaration (',' xml_dec += xml_declaration)* ')'
+    | WITH XMLNAMESPACES LPAREN xml_dec += xml_declaration (COMMA xml_dec += xml_declaration)* RPAREN
     ;
 
 xml_declaration
@@ -2993,15 +2985,15 @@ xml_declaration
 // https://msdn.microsoft.com/en-us/library/ms181441(v=sql.120).aspx
 cursor_statement
     // https://msdn.microsoft.com/en-us/library/ms175035(v=sql.120).aspx
-    : CLOSE GLOBAL? cursor_name ';'?
+    : CLOSE GLOBAL? cursor_name SEMI?
     // https://msdn.microsoft.com/en-us/library/ms188782(v=sql.120).aspx
-    | DEALLOCATE GLOBAL? CURSOR? cursor_name ';'?
+    | DEALLOCATE GLOBAL? CURSOR? cursor_name SEMI?
     // https://msdn.microsoft.com/en-us/library/ms180169(v=sql.120).aspx
     | declare_cursor
     // https://msdn.microsoft.com/en-us/library/ms180152(v=sql.120).aspx
     | fetch_cursor
     // https://msdn.microsoft.com/en-us/library/ms190500(v=sql.120).aspx
-    | OPEN GLOBAL? cursor_name ';'?
+    | OPEN GLOBAL? cursor_name SEMI?
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/backup-transact-sql
@@ -3038,7 +3030,7 @@ backup_database
             | COMMA? STATS (EQUAL stats_percent = DECIMAL)?
             | COMMA? (REWIND | NOREWIND)
             | COMMA? (LOAD | NOUNLOAD)
-            | COMMA? ENCRYPTION LR_BRACKET ALGORITHM EQUAL (
+            | COMMA? ENCRYPTION LPAREN ALGORITHM EQUAL (
                 AES_128
                 | AES_192
                 | AES_256
@@ -3084,7 +3076,7 @@ backup_log
             | COMMA? (LOAD | NOUNLOAD)
             | COMMA? (NORECOVERY | STANDBY EQUAL undo_file_name = STRING)
             | COMMA? NO_TRUNCATE
-            | COMMA? ENCRYPTION LR_BRACKET ALGORITHM EQUAL (
+            | COMMA? ENCRYPTION LPAREN ALGORITHM EQUAL (
                 AES_128
                 | AES_192
                 | AES_256
@@ -3100,7 +3092,7 @@ backup_log
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/backup-certificate-transact-sql
 backup_certificate
     : BACKUP CERTIFICATE certname = id_ TO FILE EQUAL cert_file = STRING (
-        WITH PRIVATE KEY LR_BRACKET (
+        WITH PRIVATE KEY LPAREN (
             COMMA? FILE EQUAL private_key_file = STRING
             | COMMA? ENCRYPTION BY PASSWORD EQUAL encryption_password = STRING
             | COMMA? DECRYPTION BY PASSWORD EQUAL decryption_pasword = STRING
@@ -3139,29 +3131,29 @@ kill_stats_job
 
 // https://msdn.microsoft.com/en-us/library/ms188332.aspx
 execute_statement
-    : EXECUTE execute_body ';'?
+    : EXECUTE execute_body SEMI?
     ;
 
 execute_body_batch
-    : func_proc_name_server_database_schema (execute_statement_arg (',' execute_statement_arg)*)? ';'?
+    : func_proc_name_server_database_schema (execute_statement_arg (COMMA execute_statement_arg)*)? SEMI?
     ;
 
 //https://docs.microsoft.com/it-it/sql/t-sql/language-elements/execute-transact-sql?view=sql-server-ver15
 execute_body
-    : (return_status = LOCAL_ID '=')? (func_proc_name_server_database_schema | execute_var_string) execute_statement_arg?
-    | '(' execute_var_string (',' execute_var_string)* ')' (AS (LOGIN | USER) '=' STRING)? (
+    : (return_status = LOCAL_ID EQUALS)? (func_proc_name_server_database_schema | execute_var_string) execute_statement_arg?
+    | LPAREN execute_var_string (COMMA execute_var_string)* RPAREN (AS (LOGIN | USER) EQUALS STRING)? (
         AT_KEYWORD linkedServer = id_
     )?
-    | AS ( (LOGIN | USER) '=' STRING | CALLER)
+    | AS ( (LOGIN | USER) EQUALS STRING | CALLER)
     ;
 
 execute_statement_arg
-    : execute_statement_arg_unnamed (',' execute_statement_arg)*     //Unnamed params can continue unnamed
-    | execute_statement_arg_named (',' execute_statement_arg_named)* //Named can only be continued by unnamed
+    : execute_statement_arg_unnamed (COMMA execute_statement_arg)*     //Unnamed params can continue unnamed
+    | execute_statement_arg_named (COMMA execute_statement_arg_named)* //Named can only be continued by unnamed
     ;
 
 execute_statement_arg_named
-    : name = LOCAL_ID '=' value = execute_parameter
+    : name = LOCAL_ID EQUALS value = execute_parameter
     ;
 
 execute_statement_arg_unnamed
@@ -3173,22 +3165,22 @@ execute_parameter
     ;
 
 execute_var_string
-    : LOCAL_ID (OUTPUT | OUT)? ('+' LOCAL_ID ('+' execute_var_string)?)?
-    | STRING ('+' LOCAL_ID ('+' execute_var_string)?)?
+    : LOCAL_ID (OUTPUT | OUT)? (PLUS LOCAL_ID (PLUS execute_var_string)?)?
+    | STRING (PLUS LOCAL_ID (PLUS execute_var_string)?)?
     ;
 
 // https://msdn.microsoft.com/en-us/library/ff848791.aspx
 security_statement
     // https://msdn.microsoft.com/en-us/library/ms188354.aspx
-    : execute_clause ';'?
+    : execute_clause SEMI?
     // https://msdn.microsoft.com/en-us/library/ms187965.aspx
-    | GRANT (ALL PRIVILEGES? | grant_permission ('(' column_name_list ')')?) (
-        ON (class_type_for_grant '::')? on_id = table_name
-    )? TO to_principal += principal_id (',' to_principal += principal_id)* (WITH GRANT OPTION)? (
+    | GRANT (ALL PRIVILEGES? | grant_permission (LPAREN column_name_list RPAREN)?) (
+        ON (class_type_for_grant COLON COLON)? on_id = table_name
+    )? TO to_principal += principal_id (COMMA to_principal += principal_id)* (WITH GRANT OPTION)? (
         AS as_principal = principal_id
-    )? ';'?
+    )? SEMI?
     // https://msdn.microsoft.com/en-us/library/ms178632.aspx
-    | REVERT (WITH COOKIE '=' LOCAL_ID)? ';'?
+    | REVERT (WITH COOKIE EQUALS LOCAL_ID)? SEMI?
     | open_key
     | close_key
     | create_key
@@ -3204,23 +3196,23 @@ create_certificate
     : CREATE CERTIFICATE certificate_name = id_ (AUTHORIZATION user_name = id_)? (
         FROM existing_keys
         | generate_new_keys
-    ) (ACTIVE FOR BEGIN DIALOG '=' on_off)?
+    ) (ACTIVE FOR BEGIN DIALOG EQUALS on_off)?
     ;
 
 existing_keys
     : ASSEMBLY assembly_name = id_
-    | EXECUTABLE? FILE EQUAL path_to_file = STRING (WITH PRIVATE KEY '(' private_key_options ')')?
+    | EXECUTABLE? FILE EQUAL path_to_file = STRING (WITH PRIVATE KEY LPAREN private_key_options RPAREN)?
     ;
 
 private_key_options
-    : (FILE | BINARY) '=' path = STRING (
-        ',' (DECRYPTION | ENCRYPTION) BY PASSWORD '=' password = STRING
+    : (FILE | BINARY) EQUALS path = STRING (
+        COMMA (DECRYPTION | ENCRYPTION) BY PASSWORD EQUALS password = STRING
     )?
     ;
 
 generate_new_keys
-    : (ENCRYPTION BY PASSWORD '=' password = STRING)? WITH SUBJECT EQUAL certificate_subject_name = STRING (
-        ',' date_options
+    : (ENCRYPTION BY PASSWORD EQUALS password = STRING)? WITH SUBJECT EQUAL certificate_subject_name = STRING (
+        COMMA date_options
     )*
     ;
 
@@ -3230,7 +3222,7 @@ date_options
 
 open_key
     : OPEN SYMMETRIC KEY key_name = id_ DECRYPTION BY decryption_mechanism
-    | OPEN MASTER KEY DECRYPTION BY PASSWORD '=' password = STRING
+    | OPEN MASTER KEY DECRYPTION BY PASSWORD EQUALS password = STRING
     ;
 
 close_key
@@ -3240,10 +3232,10 @@ close_key
     ;
 
 create_key
-    : CREATE MASTER KEY ENCRYPTION BY PASSWORD '=' password = STRING
+    : CREATE MASTER KEY ENCRYPTION BY PASSWORD EQUALS password = STRING
     | CREATE SYMMETRIC KEY key_name = id_ (AUTHORIZATION user_name = id_)? (
         FROM PROVIDER provider_name = id_
-    )? WITH ((key_options | ENCRYPTION BY encryption_mechanism) ','?)+
+    )? WITH ((key_options | ENCRYPTION BY encryption_mechanism) COMMA?)+
     ;
 
 key_options
@@ -3271,7 +3263,7 @@ encryption_mechanism
     : CERTIFICATE certificate_name = id_
     | ASYMMETRIC KEY asym_key_name = id_
     | SYMMETRIC KEY decrypting_Key_name = id_
-    | PASSWORD '=' STRING
+    | PASSWORD EQUALS STRING
     ;
 
 decryption_mechanism
@@ -3396,9 +3388,9 @@ grant_permission
 // https://msdn.microsoft.com/en-us/library/ms190356.aspx
 // https://msdn.microsoft.com/en-us/library/ms189484.aspx
 set_statement
-    : SET LOCAL_ID ('.' member_name = id_)? '=' expression
+    : SET LOCAL_ID (DOT member_name = id_)? EQUALS expression
     | SET LOCAL_ID assignment_operator expression
-    | SET LOCAL_ID '=' CURSOR declare_set_cursor_common (
+    | SET LOCAL_ID EQUALS CURSOR declare_set_cursor_common (
         FOR (READ ONLY | UPDATE (OF column_name_list)?)
     )?
     // https://msdn.microsoft.com/en-us/library/ms189837.aspx
@@ -3413,7 +3405,7 @@ transaction_statement
     | BEGIN (TRAN | TRANSACTION) ((id_ | LOCAL_ID) (WITH MARK STRING)?)?
     // https://msdn.microsoft.com/en-us/library/ms190295.aspx
     | COMMIT (TRAN | TRANSACTION) (
-        (id_ | LOCAL_ID) (WITH '(' DELAYED_DURABILITY EQUAL (OFF | ON) ')')?
+        (id_ | LOCAL_ID) (WITH LPAREN DELAYED_DURABILITY EQUAL (OFF | ON) RPAREN)?
     )?
     // https://msdn.microsoft.com/en-us/library/ms178628.aspx
     | COMMIT WORK?
@@ -3465,18 +3457,18 @@ dbcc_checkalloc_option
 // https://learn.microsoft.com/en-us/sql/t-sql/database-console-commands/dbcc-checkalloc-transact-sql?view=sql-server-ver16
 dbcc_checkalloc
     : name = CHECKALLOC (
-        '(' (database = id_ | databaseid = STRING | DECIMAL) (
-            ',' NOINDEX
-            | ',' ( REPAIR_ALLOW_DATA_LOSS | REPAIR_FAST | REPAIR_REBUILD)
-        )? ')' (
-            WITH dbcc_option = dbcc_checkalloc_option (',' dbcc_option = dbcc_checkalloc_option)*
+        LPAREN (database = id_ | databaseid = STRING | DECIMAL) (
+            COMMA NOINDEX
+            | COMMA ( REPAIR_ALLOW_DATA_LOSS | REPAIR_FAST | REPAIR_REBUILD)
+        )? RPAREN (
+            WITH dbcc_option = dbcc_checkalloc_option (COMMA dbcc_option = dbcc_checkalloc_option)*
         )?
     )?
     ;
 
 // https://learn.microsoft.com/en-us/sql/t-sql/database-console-commands/dbcc-checkcatalog-transact-sql?view=sql-server-ver16
 dbcc_checkcatalog
-    : name = CHECKCATALOG ('(' ( database = id_ | databasename = STRING | DECIMAL) ')')? (
+    : name = CHECKCATALOG (LPAREN ( database = id_ | databasename = STRING | DECIMAL) RPAREN)? (
         WITH dbcc_option = NO_INFOMSGS
     )?
     ;
@@ -3490,10 +3482,10 @@ dbcc_checkconstraints_option
 // https://learn.microsoft.com/en-us/sql/t-sql/database-console-commands/dbcc-checkconstraints-transact-sql?view=sql-server-ver16
 dbcc_checkconstraints
     : name = CHECKCONSTRAINTS (
-        '(' (table_or_constraint = id_ | table_or_constraint_name = STRING) ')'
+        LPAREN (table_or_constraint = id_ | table_or_constraint_name = STRING) RPAREN
     )? (
         WITH dbcc_option = dbcc_checkconstraints_option (
-            ',' dbcc_option = dbcc_checkconstraints_option
+            COMMA dbcc_option = dbcc_checkconstraints_option
         )*
     )?
     ;
@@ -3506,17 +3498,17 @@ dbcc_checkdb_table_option
     | ESTIMATEONLY
     | PHYSICAL_ONLY
     | DATA_PURITY
-    | MAXDOP '=' max_dregree_of_parallelism = DECIMAL
+    | MAXDOP EQUALS max_dregree_of_parallelism = DECIMAL
     ;
 
 // https://learn.microsoft.com/en-us/sql/t-sql/database-console-commands/dbcc-checkdb-transact-sql?view=sql-server-ver16
 dbcc_checkdb
     : name = CHECKDB (
-        '(' (database = id_ | databasename = STRING | DECIMAL) (
-            ',' (NOINDEX | REPAIR_ALLOW_DATA_LOSS | REPAIR_FAST | REPAIR_REBUILD)
-        )? ')'
+        LPAREN (database = id_ | databasename = STRING | DECIMAL) (
+            COMMA (NOINDEX | REPAIR_ALLOW_DATA_LOSS | REPAIR_FAST | REPAIR_REBUILD)
+        )? RPAREN
     )? (
-        WITH dbcc_option = dbcc_checkdb_table_option (',' dbcc_option = dbcc_checkdb_table_option)*
+        WITH dbcc_option = dbcc_checkdb_table_option (COMMA dbcc_option = dbcc_checkdb_table_option)*
     )?
     ;
 
@@ -3526,44 +3518,44 @@ dbcc_checkfilegroup_option
     | TABLOCK
     | ESTIMATEONLY
     | PHYSICAL_ONLY
-    | MAXDOP '=' max_dregree_of_parallelism = DECIMAL
+    | MAXDOP EQUALS max_dregree_of_parallelism = DECIMAL
     ;
 
 // https://learn.microsoft.com/en-us/sql/t-sql/database-console-commands/dbcc-checkfilegroup-transact-sql?view=sql-server-ver16
 // Additional parameters: https://dbtut.com/index.php/2019/01/01/dbcc-checkfilegroup-command-on-sql-server/
 dbcc_checkfilegroup
     : name = CHECKFILEGROUP (
-        '(' (filegroup_id = DECIMAL | filegroup_name = STRING) (
-            ',' (NOINDEX | REPAIR_ALLOW_DATA_LOSS | REPAIR_FAST | REPAIR_REBUILD)
-        )? ')'
+        LPAREN (filegroup_id = DECIMAL | filegroup_name = STRING) (
+            COMMA (NOINDEX | REPAIR_ALLOW_DATA_LOSS | REPAIR_FAST | REPAIR_REBUILD)
+        )? RPAREN
     )? (
         WITH dbcc_option = dbcc_checkfilegroup_option (
-            ',' dbcc_option = dbcc_checkfilegroup_option
+            COMMA dbcc_option = dbcc_checkfilegroup_option
         )*
     )?
     ;
 
 // https://learn.microsoft.com/en-us/sql/t-sql/database-console-commands/dbcc-checktable-transact-sql?view=sql-server-ver16
 dbcc_checktable
-    : name = CHECKTABLE '(' table_or_view_name = STRING (
-        ',' (
+    : name = CHECKTABLE LPAREN table_or_view_name = STRING (
+        COMMA (
             NOINDEX
             | index_id = expression
             | REPAIR_ALLOW_DATA_LOSS
             | REPAIR_FAST
             | REPAIR_REBUILD
         )
-    )? ')' (
-        WITH dbcc_option = dbcc_checkdb_table_option (',' dbcc_option = dbcc_checkdb_table_option)*
+    )? RPAREN (
+        WITH dbcc_option = dbcc_checkdb_table_option (COMMA dbcc_option = dbcc_checkdb_table_option)*
     )?
     ;
 
 // https://learn.microsoft.com/en-us/sql/t-sql/database-console-commands/dbcc-cleantable-transact-sql?view=sql-server-ver16
 dbcc_cleantable
-    : name = CLEANTABLE '(' (database = id_ | databasename = STRING | DECIMAL) ',' (
+    : name = CLEANTABLE LPAREN (database = id_ | databasename = STRING | DECIMAL) COMMA (
         table_or_view = id_
         | table_or_view_name = STRING
-    ) (',' batch_size = DECIMAL)? ')' (WITH dbcc_option = NO_INFOMSGS)?
+    ) (COMMA batch_size = DECIMAL)? RPAREN (WITH dbcc_option = NO_INFOMSGS)?
     ;
 
 dbcc_clonedatabase_option
@@ -3576,14 +3568,14 @@ dbcc_clonedatabase_option
 
 // https://learn.microsoft.com/en-us/sql/t-sql/database-console-commands/dbcc-clonedatabase-transact-sql?view=sql-server-ver16
 dbcc_clonedatabase
-    : name = CLONEDATABASE '(' source_database = id_ ',' target_database = id_ ')' (
-        WITH dbcc_option = dbcc_clonedatabase_option (',' dbcc_option = dbcc_clonedatabase_option)*
+    : name = CLONEDATABASE LPAREN source_database = id_ COMMA target_database = id_ RPAREN (
+        WITH dbcc_option = dbcc_clonedatabase_option (COMMA dbcc_option = dbcc_clonedatabase_option)*
     )?
     ;
 
 // https://learn.microsoft.com/en-us/sql/t-sql/database-console-commands/dbcc-pdw-showspaceused-transact-sql?view=aps-pdw-2016-au7
 dbcc_pdw_showspaceused
-    : name = PDW_SHOWSPACEUSED ('(' tablename = id_ ')')? (
+    : name = PDW_SHOWSPACEUSED (LPAREN tablename = id_ RPAREN)? (
         WITH dbcc_option = IGNORE_REPLICATED_TABLE_CACHE
     )?
     ;
@@ -3603,33 +3595,33 @@ dbcc_showcontig_option
 
 // https://learn.microsoft.com/en-us/sql/t-sql/database-console-commands/dbcc-showcontig-transact-sql?view=sql-server-ver16
 dbcc_showcontig
-    : name = SHOWCONTIG ('(' table_or_view = expression ( ',' index = expression)? ')')? (
-        WITH dbcc_option = dbcc_showcontig_option (',' dbcc_showcontig_option)*
+    : name = SHOWCONTIG (LPAREN table_or_view = expression ( COMMA index = expression)? RPAREN)? (
+        WITH dbcc_option = dbcc_showcontig_option (COMMA dbcc_showcontig_option)*
     )?
     ;
 
 // https://learn.microsoft.com/en-us/sql/t-sql/database-console-commands/dbcc-shrinklog-azure-sql-data-warehouse?view=aps-pdw-2016-au7
 dbcc_shrinklog
-    : name = SHRINKLOG ('(' SIZE '=' ( (DECIMAL ( MB | GB | TB)) | DEFAULT) ')')? (
+    : name = SHRINKLOG (LPAREN SIZE EQUALS ( (DECIMAL ( MB | GB | TB)) | DEFAULT) RPAREN)? (
         WITH dbcc_option = NO_INFOMSGS
     )?
     ;
 
 // https://learn.microsoft.com/en-us/sql/t-sql/database-console-commands/dbcc-dbreindex-transact-sql?view=sql-server-ver16
 dbcc_dbreindex
-    : name = DBREINDEX '(' table = id_or_string (
-        ',' index_name = id_or_string ( ',' fillfactor = expression)?
-    )? ')' (WITH dbcc_option = NO_INFOMSGS)?
+    : name = DBREINDEX LPAREN table = id_or_string (
+        COMMA index_name = id_or_string ( COMMA fillfactor = expression)?
+    )? RPAREN (WITH dbcc_option = NO_INFOMSGS)?
     ;
 
 // https://learn.microsoft.com/en-us/sql/t-sql/database-console-commands/dbcc-dllname-free-transact-sql?view=sql-server-ver16
 dbcc_dll_free
-    : dllname = id_ '(' name = FREE ')' (WITH dbcc_option = NO_INFOMSGS)?
+    : dllname = id_ LPAREN name = FREE RPAREN (WITH dbcc_option = NO_INFOMSGS)?
     ;
 
 // https://learn.microsoft.com/en-us/sql/t-sql/database-console-commands/dbcc-dropcleanbuffers-transact-sql?view=sql-server-ver16
 dbcc_dropcleanbuffers
-    : name = DROPCLEANBUFFERS ('(' COMPUTE | ALL ')')? (WITH dbcc_option = NO_INFOMSGS)?
+    : name = DROPCLEANBUFFERS (LPAREN COMPUTE | ALL RPAREN)? (WITH dbcc_option = NO_INFOMSGS)?
     ;
 
 dbcc_clause
@@ -3657,28 +3649,28 @@ execute_clause
     ;
 
 declare_local
-    : LOCAL_ID AS? data_type ('=' expression)?
+    : LOCAL_ID AS? data_type (EQUALS expression)?
     ;
 
 table_type_definition
-    : TABLE '(' column_def_table_constraints (','? table_type_indices)* ')'
+    : TABLE LPAREN column_def_table_constraints (COMMA? table_type_indices)* RPAREN
     ;
 
 table_type_indices
-    : (((PRIMARY KEY | INDEX id_) (CLUSTERED | NONCLUSTERED)?) | UNIQUE) '(' column_name_list_with_order ')'
-    | CHECK '(' search_condition ')'
+    : (((PRIMARY KEY | INDEX id_) (CLUSTERED | NONCLUSTERED)?) | UNIQUE) LPAREN column_name_list_with_order RPAREN
+    | CHECK LPAREN search_condition RPAREN
     ;
 
 xml_type_definition
-    : XML '(' (CONTENT | DOCUMENT)? xml_schema_collection ')'
+    : XML LPAREN (CONTENT | DOCUMENT)? xml_schema_collection RPAREN
     ;
 
 xml_schema_collection
-    : ID '.' ID
+    : ID DOT ID
     ;
 
 column_def_table_constraints
-    : column_def_table_constraint (','? column_def_table_constraint)*
+    : column_def_table_constraint (COMMA? column_def_table_constraint)*
     ;
 
 column_def_table_constraint
@@ -3698,17 +3690,17 @@ column_definition_element
     : FILESTREAM
     | COLLATE collation_name = id_
     | SPARSE
-    | MASKED WITH '(' FUNCTION '=' mask_function = STRING ')'
+    | MASKED WITH LPAREN FUNCTION EQUALS mask_function = STRING RPAREN
     | (CONSTRAINT constraint = id_)? DEFAULT constant_expr = expression
-    | IDENTITY ('(' seed = DECIMAL ',' increment = DECIMAL ')')?
+    | IDENTITY (LPAREN seed = DECIMAL COMMA increment = DECIMAL RPAREN)?
     | NOT FOR REPLICATION
     | GENERATED ALWAYS AS (ROW | TRANSACTION_ID | SEQUENCE_NUMBER) (START | END) HIDDEN_KEYWORD?
     // NULL / NOT NULL is a constraint
     | ROWGUIDCOL
-    | ENCRYPTED WITH '(' COLUMN_ENCRYPTION_KEY '=' key_name = STRING ',' ENCRYPTION_TYPE '=' (
+    | ENCRYPTED WITH LPAREN COLUMN_ENCRYPTION_KEY EQUALS key_name = STRING COMMA ENCRYPTION_TYPE EQUALS (
         DETERMINISTIC
         | RANDOMIZED
-    ) ',' ALGORITHM '=' algo = STRING ')'
+    ) COMMA ALGORITHM EQUALS algo = STRING RPAREN
     | column_constraint
     ;
 
@@ -3719,7 +3711,7 @@ column_modifier
         | NOT FOR REPLICATION
         | SPARSE
         | HIDDEN_KEYWORD
-        | MASKED (WITH (FUNCTION EQUAL STRING | LR_BRACKET FUNCTION EQUAL STRING RR_BRACKET))?
+        | MASKED (WITH (FUNCTION EQUAL STRING | LPAREN FUNCTION EQUAL STRING RR_BRACKET))?
     )
     ;
 
@@ -3747,7 +3739,7 @@ column_index
 
 on_partition_or_filegroup
     : ON (
-        (partition_scheme_name = id_ '(' partition_column_name = id_ ')')
+        (partition_scheme_name = id_ LPAREN partition_column_name = id_ RPAREN)
         | filegroup = id_
         | DEFAULT_DOUBLE_QUOTE
     )
@@ -3756,9 +3748,9 @@ on_partition_or_filegroup
 // https://msdn.microsoft.com/en-us/library/ms188066.aspx
 table_constraint
     : (CONSTRAINT constraint = id_)? (
-        ((PRIMARY KEY | UNIQUE) clustered? '(' column_name_list_with_order ')' primary_key_options)
-        | ( FOREIGN KEY '(' fk = column_name_list ')' foreign_key_options)
-        | ( CONNECTION '(' connection_node ( ',' connection_node)* ')')
+        ((PRIMARY KEY | UNIQUE) clustered? LPAREN column_name_list_with_order RPAREN primary_key_options)
+        | ( FOREIGN KEY LPAREN fk = column_name_list RPAREN foreign_key_options)
+        | ( CONNECTION LPAREN connection_node ( COMMA connection_node)* RPAREN)
         | ( DEFAULT constant_expr = expression FOR column = id_ (WITH VALUES)?)
         | check_constraint
     )
@@ -3769,17 +3761,17 @@ connection_node
     ;
 
 primary_key_options
-    : (WITH FILLFACTOR '=' DECIMAL)? alter_table_index_options? on_partition_or_filegroup?
+    : (WITH FILLFACTOR EQUALS DECIMAL)? alter_table_index_options? on_partition_or_filegroup?
     ;
 
 foreign_key_options
-    : REFERENCES table_name '(' pk = column_name_list ')' (on_delete | on_update)* (
+    : REFERENCES table_name LPAREN pk = column_name_list RPAREN (on_delete | on_update)* (
         NOT FOR REPLICATION
     )?
     ;
 
 check_constraint
-    : CHECK (NOT FOR REPLICATION)? '(' search_condition ')'
+    : CHECK (NOT FOR REPLICATION)? LPAREN search_condition RPAREN
     ;
 
 on_delete
@@ -3791,27 +3783,27 @@ on_update
     ;
 
 alter_table_index_options
-    : WITH '(' alter_table_index_option (',' alter_table_index_option)* ')'
+    : WITH LPAREN alter_table_index_option (COMMA alter_table_index_option)* RPAREN
     ;
 
 // https://msdn.microsoft.com/en-us/library/ms186869.aspx
 alter_table_index_option
-    : PAD_INDEX '=' on_off
-    | FILLFACTOR '=' DECIMAL
-    | IGNORE_DUP_KEY '=' on_off
-    | STATISTICS_NORECOMPUTE '=' on_off
-    | ALLOW_ROW_LOCKS '=' on_off
-    | ALLOW_PAGE_LOCKS '=' on_off
-    | OPTIMIZE_FOR_SEQUENTIAL_KEY '=' on_off
-    | SORT_IN_TEMPDB '=' on_off
-    | MAXDOP '=' max_degree_of_parallelism = DECIMAL
-    | DATA_COMPRESSION '=' (NONE | ROW | PAGE | COLUMNSTORE | COLUMNSTORE_ARCHIVE) on_partitions?
-    | XML_COMPRESSION '=' on_off on_partitions?
-    | DISTRIBUTION '=' HASH '(' id_ ')'
-    | CLUSTERED INDEX '(' id_ (ASC | DESC)? (',' id_ (ASC | DESC)?)* ')'
-    | ONLINE '=' (ON ('(' low_priority_lock_wait ')')? | OFF)
-    | RESUMABLE '=' on_off
-    | MAX_DURATION '=' times = DECIMAL MINUTES?
+    : PAD_INDEX EQUALS on_off
+    | FILLFACTOR EQUALS DECIMAL
+    | IGNORE_DUP_KEY EQUALS on_off
+    | STATISTICS_NORECOMPUTE EQUALS on_off
+    | ALLOW_ROW_LOCKS EQUALS on_off
+    | ALLOW_PAGE_LOCKS EQUALS on_off
+    | OPTIMIZE_FOR_SEQUENTIAL_KEY EQUALS on_off
+    | SORT_IN_TEMPDB EQUALS on_off
+    | MAXDOP EQUALS max_degree_of_parallelism = DECIMAL
+    | DATA_COMPRESSION EQUALS (NONE | ROW | PAGE | COLUMNSTORE | COLUMNSTORE_ARCHIVE) on_partitions?
+    | XML_COMPRESSION EQUALS on_off on_partitions?
+    | DISTRIBUTION EQUALS HASH LPAREN id_ RPAREN
+    | CLUSTERED INDEX LPAREN id_ (ASC | DESC)? (COMMA id_ (ASC | DESC)?)* RPAREN
+    | ONLINE EQUALS (ON (LPAREN low_priority_lock_wait RPAREN)? | OFF)
+    | RESUMABLE EQUALS on_off
+    | MAX_DURATION EQUALS times = DECIMAL MINUTES?
     ;
 
 // https://msdn.microsoft.com/en-us/library/ms180169.aspx
@@ -3821,7 +3813,7 @@ declare_cursor
         | (SEMI_SENSITIVE | INSENSITIVE)? SCROLL? CURSOR FOR select_statement_standalone (
             FOR (READ ONLY | UPDATE | (OF column_name_list))
         )?
-    ) ';'?
+    ) SEMI?
     ;
 
 declare_set_cursor_common
@@ -3838,17 +3830,17 @@ declare_set_cursor_common_partial
 
 fetch_cursor
     : FETCH ((NEXT | PRIOR | FIRST | LAST | (ABSOLUTE | RELATIVE) expression)? FROM)? GLOBAL? cursor_name (
-        INTO LOCAL_ID (',' LOCAL_ID)*
-    )? ';'?
+        INTO LOCAL_ID (COMMA LOCAL_ID)*
+    )? SEMI?
     ;
 
 // https://msdn.microsoft.com/en-us/library/ms190356.aspx
 // Runtime check.
 set_special
-    : SET id_ (id_ | constant_LOCAL_ID | on_off) ';'?
-    | SET STATISTICS (IO | TIME | XML | PROFILE) on_off ';'?
-    | SET ROWCOUNT (LOCAL_ID | DECIMAL) ';'?
-    | SET TEXTSIZE DECIMAL ';'?
+    : SET id_ (id_ | constant_LOCAL_ID | on_off) SEMI?
+    | SET STATISTICS (IO | TIME | XML | PROFILE) on_off SEMI?
+    | SET ROWCOUNT (LOCAL_ID | DECIMAL) SEMI?
+    | SET TEXTSIZE DECIMAL SEMI?
     // https://msdn.microsoft.com/en-us/library/ms173763.aspx
     | SET TRANSACTION ISOLATION LEVEL (
         READ UNCOMMITTED
@@ -3857,10 +3849,10 @@ set_special
         | SNAPSHOT
         | SERIALIZABLE
         | DECIMAL
-    ) ';'?
+    ) SEMI?
     // https://msdn.microsoft.com/en-us/library/ms188059.aspx
-    | SET IDENTITY_INSERT table_name on_off ';'?
-    | SET special_list (',' special_list)* on_off
+    | SET IDENTITY_INSERT table_name on_off SEMI?
+    | SET special_list (COMMA special_list)* on_off
     | SET modify_method
     ;
 
@@ -3902,15 +3894,15 @@ constant_LOCAL_ID
 expression
     : primitive_expression
     | function_call
-    | expression '.' (value_call | query_call | exist_call | modify_call)
-    | expression '.' hierarchyid_call
+    | expression DOT (value_call | query_call | exist_call | modify_call)
+    | expression DOT hierarchyid_call
     | expression COLLATE id_
     | case_expression
     | full_column_name
     | bracket_expression
     | unary_operator_expression
-    | expression op = ('*' | '/' | '%') expression
-    | expression op = ('+' | '-' | '&' | '^' | '|' | '||') expression
+    | expression op = (STAR | DIV | MOD) expression
+    | expression op = (PLUS | MINUS | BIT_AND | BIT_XOR | BIT_OR | DOUBLE_BAR) expression
     | expression time_zone
     | over_clause
     | DOLLAR_ACTION
@@ -3938,13 +3930,13 @@ case_expression
     ;
 
 unary_operator_expression
-    : '~' expression
-    | op = ('+' | '-') expression
+    : BIT_NOT expression
+    | op = (PLUS | MINUS) expression
     ;
 
 bracket_expression
-    : '(' expression ')'
-    | '(' subquery ')'
+    : LPAREN expression RPAREN
+    | LPAREN subquery RPAREN
     ;
 
 subquery
@@ -3953,41 +3945,41 @@ subquery
 
 // https://msdn.microsoft.com/en-us/library/ms175972.aspx
 with_expression
-    : WITH ctes += common_table_expression (',' ctes += common_table_expression)*
+    : WITH ctes += common_table_expression (COMMA ctes += common_table_expression)*
     ;
 
 common_table_expression
-    : expression_name = id_ ('(' columns = column_name_list ')')? AS '(' cte_query = select_statement ')'
+    : expression_name = id_ (LPAREN columns = column_name_list RPAREN)? AS LPAREN cte_query = select_statement RPAREN
     ;
 
 update_elem
-    : LOCAL_ID '=' full_column_name ('=' | assignment_operator) expression //Combined variable and column update
-    | (full_column_name | LOCAL_ID) ('=' | assignment_operator) expression
-    | udt_column_name = id_ '.' method_name = id_ '(' expression_list_ ')'
-    //| full_column_name '.' WRITE (expression, )
+    : LOCAL_ID EQUALS full_column_name (EQUALS | assignment_operator) expression //Combined variable and column update
+    | (full_column_name | LOCAL_ID) (EQUALS | assignment_operator) expression
+    | udt_column_name = id_ DOT method_name = id_ LPAREN expression_list_ RPAREN
+    //| full_column_name DOT WRITE (expression, )
     ;
 
 update_elem_merge
-    : (full_column_name | LOCAL_ID) ('=' | assignment_operator) expression
-    | udt_column_name = id_ '.' method_name = id_ '(' expression_list_ ')'
-    //| full_column_name '.' WRITE (expression, )
+    : (full_column_name | LOCAL_ID) (EQUALS | assignment_operator) expression
+    | udt_column_name = id_ DOT method_name = id_ LPAREN expression_list_ RPAREN
+    //| full_column_name DOT WRITE (expression, )
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/queries/search-condition-transact-sql
 search_condition
-    : NOT* (predicate | '(' search_condition ')')
+    : NOT* (predicate | LPAREN search_condition RPAREN)
     | search_condition AND search_condition // AND takes precedence over OR
     | search_condition OR search_condition
     ;
 
 predicate
-    : EXISTS '(' subquery ')'
+    : EXISTS LPAREN subquery RPAREN
     | freetext_predicate
     | expression comparison_operator expression
-    | expression MULT_ASSIGN expression ////SQL-82 syntax for left outer joins; '*='. See https://stackoverflow.com/questions/40665/in-sybase-sql
-    | expression comparison_operator (ALL | SOME | ANY) '(' subquery ')'
+    | expression ME expression ////SQL-82 syntax for left outer joins; PE. See https://stackoverflow.com/questions/40665/in-sybase-sql
+    | expression comparison_operator (ALL | SOME | ANY) LPAREN subquery RPAREN
     | expression NOT* BETWEEN expression AND expression
-    | expression NOT* IN '(' (subquery | expression_list_) ')'
+    | expression NOT* IN LPAREN (subquery | expression_list_) RPAREN
     | expression NOT* LIKE expression (ESCAPE expression)?
     | expression IS null_notnull
     ;
@@ -3996,13 +3988,13 @@ predicate
 
 query_expression
     : query_specification select_order_by_clause? unions += sql_union* //if using top, order by can be on the "top" side of union :/
-    | '(' query_expression ')' (UNION ALL? query_expression)?
+    | LPAREN query_expression RPAREN (UNION ALL? query_expression)?
     ;
 
 sql_union
     : (UNION ALL? | EXCEPT | INTERSECT) (
         spec = query_specification
-        | ('(' op = query_expression ')')
+        | (LPAREN op = query_expression RPAREN)
     )
     ;
 
@@ -4014,10 +4006,10 @@ query_specification
     // https://msdn.microsoft.com/en-us/library/ms177673.aspx
     (
         GROUP BY (
-            (groupByAll = ALL? groupBys += group_by_item (',' groupBys += group_by_item)*)
-            | GROUPING SETS '(' groupSets += grouping_sets_item (
-                ',' groupSets += grouping_sets_item
-            )* ')'
+            (groupByAll = ALL? groupBys += group_by_item (COMMA groupBys += group_by_item)*)
+            | GROUPING SETS LPAREN groupSets += grouping_sets_item (
+                COMMA groupSets += grouping_sets_item
+            )* RPAREN
         )
     )? (HAVING having = search_condition)?
     ;
@@ -4029,17 +4021,17 @@ top_clause
 
 top_percent
     : percent_constant = (REAL | FLOAT | DECIMAL) PERCENT
-    | '(' topper_expression = expression ')' PERCENT
+    | LPAREN topper_expression = expression RPAREN PERCENT
     ;
 
 top_count
     : count_constant = DECIMAL
-    | '(' topcount_expression = expression ')'
+    | LPAREN topcount_expression = expression RPAREN
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/queries/select-over-clause-transact-sql?view=sql-server-ver16
 order_by_clause
-    : ORDER BY order_bys += order_by_expression (',' order_bys += order_by_expression)*
+    : ORDER BY order_bys += order_by_expression (COMMA order_bys += order_by_expression)*
     ;
 
 // https://msdn.microsoft.com/en-us/library/ms188385.aspx
@@ -4054,18 +4046,18 @@ select_order_by_clause
 // https://docs.microsoft.com/en-us/sql/t-sql/queries/select-for-clause-transact-sql
 for_clause
     : FOR BROWSE
-    | FOR XML (RAW ('(' STRING ')')? | AUTO) xml_common_directives* (
-        COMMA (XMLDATA | XMLSCHEMA ('(' STRING ')')?)
+    | FOR XML (RAW (LPAREN STRING RPAREN)? | AUTO) xml_common_directives* (
+        COMMA (XMLDATA | XMLSCHEMA (LPAREN STRING RPAREN)?)
     )? (COMMA ELEMENTS (XSINIL | ABSENT)?)?
     | FOR XML EXPLICIT xml_common_directives* (COMMA XMLDATA)?
-    | FOR XML PATH ('(' STRING ')')? xml_common_directives* (COMMA ELEMENTS (XSINIL | ABSENT)?)?
+    | FOR XML PATH (LPAREN STRING RPAREN)? xml_common_directives* (COMMA ELEMENTS (XSINIL | ABSENT)?)?
     | FOR JSON (AUTO | PATH) (
-        COMMA (ROOT ('(' STRING ')') | INCLUDE_NULL_VALUES | WITHOUT_ARRAY_WRAPPER)
+        COMMA (ROOT (LPAREN STRING RPAREN) | INCLUDE_NULL_VALUES | WITHOUT_ARRAY_WRAPPER)
     )*
     ;
 
 xml_common_directives
-    : ',' (BINARY_KEYWORD BASE64 | TYPE | ROOT ('(' STRING ')')?)
+    : COMMA (BINARY_KEYWORD BASE64 | TYPE | ROOT (LPAREN STRING RPAREN)?)
     ;
 
 order_by_expression
@@ -4074,8 +4066,8 @@ order_by_expression
 
 // https://docs.microsoft.com/en-us/sql/t-sql/queries/select-group-by-transact-sql?view=sql-server-ver15
 grouping_sets_item
-    : '('? groupSetItems += group_by_item (',' groupSetItems += group_by_item)* ')'?
-    | '(' ')'
+    : LPAREN? groupSetItems += group_by_item (COMMA groupSetItems += group_by_item)* RPAREN?
+    | LPAREN RPAREN
     ;
 
 group_by_item
@@ -4088,7 +4080,7 @@ group_by_item
 
 option_clause
     // https://msdn.microsoft.com/en-us/library/ms181714.aspx
-    : OPTION '(' options_ += option (',' options_ += option)* ')'
+    : OPTION LPAREN options_ += option (COMMA options_ += option)* RPAREN
     ;
 
 option
@@ -4103,7 +4095,7 @@ option
     | KEEPFIXED PLAN
     | MAXDOP number_of_processors = DECIMAL
     | MAXRECURSION number_recursion = DECIMAL
-    | OPTIMIZE FOR '(' optimize_for_arg (',' optimize_for_arg)* ')'
+    | OPTIMIZE FOR LPAREN optimize_for_arg (COMMA optimize_for_arg)* RPAREN
     | OPTIMIZE FOR UNKNOWN
     | PARAMETERIZATION (SIMPLE | FORCED)
     | RECOMPILE
@@ -4112,49 +4104,49 @@ option
     ;
 
 optimize_for_arg
-    : LOCAL_ID (UNKNOWN | '=' (constant | NULL_))
+    : LOCAL_ID (UNKNOWN | EQUALS (constant | NULL_))
     ;
 
 // https://msdn.microsoft.com/en-us/library/ms176104.aspx
 select_list
-    : selectElement += select_list_elem (',' selectElement += select_list_elem)*
+    : selectElement += select_list_elem (COMMA selectElement += select_list_elem)*
     ;
 
 udt_method_arguments
-    : '(' argument += execute_var_string (',' argument += execute_var_string)* ')'
+    : LPAREN argument += execute_var_string (COMMA argument += execute_var_string)* RPAREN
     ;
 
 // https://docs.microsoft.com/ru-ru/sql/t-sql/queries/select-clause-transact-sql
 asterisk
-    : (table_name '.')? '*'
-    | (INSERTED | DELETED) '.' '*'
+    : (table_name DOT)? STAR
+    | (INSERTED | DELETED) DOT STAR
     ;
 
 udt_elem
-    : udt_column_name = id_ '.' non_static_attr = id_ udt_method_arguments as_column_alias?
+    : udt_column_name = id_ DOT non_static_attr = id_ udt_method_arguments as_column_alias?
     | udt_column_name = id_ DOUBLE_COLON static_attr = id_ udt_method_arguments? as_column_alias?
     ;
 
 expression_elem
-    : leftAlias = column_alias eq = '=' leftAssignment = expression
+    : leftAlias = column_alias eq = EQUALS leftAssignment = expression
     | expressionAs = expression as_column_alias?
     ;
 
 select_list_elem
     : asterisk
     | udt_elem
-    | LOCAL_ID (assignment_operator | '=') expression
+    | LOCAL_ID (assignment_operator | EQUALS) expression
     | expression_elem
     ;
 
 table_sources
     : non_ansi_join
-    | source += table_source (',' source += table_source)*
+    | source += table_source (COMMA source += table_source)*
     ;
 
 // https://sqlenlight.com/support/help/sa0006/
 non_ansi_join
-    : source += table_source (',' source += table_source)+
+    : source += table_source (COMMA source += table_source)+
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/queries/from-transact-sql
@@ -4170,29 +4162,29 @@ table_source_item
         | sybase_legacy_hints
     )?
     | rowset_function as_table_alias?
-    | '(' derived_table ')' (as_table_alias column_alias_list?)?
+    | LPAREN derived_table RPAREN (as_table_alias column_alias_list?)?
     | change_table as_table_alias?
     | nodes_method (as_table_alias column_alias_list?)?
     | function_call (as_table_alias column_alias_list?)?
     | loc_id = LOCAL_ID as_table_alias?
-    | loc_id_call = LOCAL_ID '.' loc_fcall = function_call (as_table_alias column_alias_list?)?
+    | loc_id_call = LOCAL_ID DOT loc_fcall = function_call (as_table_alias column_alias_list?)?
     | open_xml
     | open_json
     | DOUBLE_COLON oldstyle_fcall = function_call as_table_alias? // Build-in function (old syntax)
-    | '(' table_source ')'
+    | LPAREN table_source RPAREN
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/functions/openxml-transact-sql
 open_xml
-    : OPENXML '(' expression ',' expression (',' expression)? ')' (WITH '(' schema_declaration ')')? as_table_alias?
+    : OPENXML LPAREN expression COMMA expression (COMMA expression)? RPAREN (WITH LPAREN schema_declaration RPAREN)? as_table_alias?
     ;
 
 open_json
-    : OPENJSON '(' expression (',' expression)? ')' (WITH '(' json_declaration ')')? as_table_alias?
+    : OPENJSON LPAREN expression (COMMA expression)? RPAREN (WITH LPAREN json_declaration RPAREN)? as_table_alias?
     ;
 
 json_declaration
-    : json_col += json_column_declaration (',' json_col += json_column_declaration)*
+    : json_col += json_column_declaration (COMMA json_col += json_column_declaration)*
     ;
 
 json_column_declaration
@@ -4200,7 +4192,7 @@ json_column_declaration
     ;
 
 schema_declaration
-    : xml_col += column_declaration (',' xml_col += column_declaration)*
+    : xml_col += column_declaration (COMMA xml_col += column_declaration)*
     ;
 
 column_declaration
@@ -4213,11 +4205,11 @@ change_table
     ;
 
 change_table_changes
-    : CHANGETABLE '(' CHANGES changetable = table_name ',' changesid = (NULL_ | DECIMAL | LOCAL_ID) ')'
+    : CHANGETABLE LPAREN CHANGES changetable = table_name COMMA changesid = (NULL_ | DECIMAL | LOCAL_ID) RPAREN
     ;
 
 change_table_version
-    : CHANGETABLE '(' VERSION versiontable = table_name ',' pk_columns = full_column_name_list ',' pk_values = select_list ')'
+    : CHANGETABLE LPAREN VERSION versiontable = table_name COMMA pk_columns = full_column_name_list COMMA pk_values = select_list RPAREN
     ;
 
 // https://msdn.microsoft.com/en-us/library/ms191472.aspx
@@ -4253,35 +4245,35 @@ unpivot
     ;
 
 pivot_clause
-    : '(' aggregate_windowed_function FOR full_column_name IN column_alias_list ')'
+    : LPAREN aggregate_windowed_function FOR full_column_name IN column_alias_list RPAREN
     ;
 
 unpivot_clause
-    : '(' unpivot_exp = expression FOR full_column_name IN '(' full_column_name_list ')' ')'
+    : LPAREN unpivot_exp = expression FOR full_column_name IN LPAREN full_column_name_list RPAREN RPAREN
     ;
 
 full_column_name_list
-    : column += full_column_name (',' column += full_column_name)*
+    : column += full_column_name (COMMA column += full_column_name)*
     ;
 
 // https://msdn.microsoft.com/en-us/library/ms190312.aspx
 rowset_function
     : (
-        OPENROWSET LR_BRACKET provider_name = STRING COMMA connectionString = STRING COMMA sql = STRING RR_BRACKET
+        OPENROWSET LPAREN provider_name = STRING COMMA connectionString = STRING COMMA sql = STRING RR_BRACKET
     )
-    | (OPENROWSET '(' BULK data_file = STRING ',' (bulk_option (',' bulk_option)* | id_) ')')
+    | (OPENROWSET LPAREN BULK data_file = STRING COMMA (bulk_option (COMMA bulk_option)* | id_) RPAREN)
     ;
 
 // runtime check.
 bulk_option
-    : id_ '=' bulk_option_value = (DECIMAL | STRING)
+    : id_ EQUALS bulk_option_value = (DECIMAL | STRING)
     ;
 
 derived_table
     : subquery
-    | '(' subquery (UNION ALL subquery)* ')'
+    | LPAREN subquery (UNION ALL subquery)* RPAREN
     | table_value_constructor
-    | '(' table_value_constructor ')'
+    | LPAREN table_value_constructor RPAREN
     ;
 
 function_call
@@ -4289,46 +4281,46 @@ function_call
     | aggregate_windowed_function                    # AGGREGATE_WINDOWED_FUNC
     | analytic_windowed_function                     # ANALYTIC_WINDOWED_FUNC
     | built_in_functions                             # BUILT_IN_FUNC
-    | scalar_function_name '(' expression_list_? ')' # SCALAR_FUNCTION
+    | scalar_function_name LPAREN expression_list_? RPAREN # SCALAR_FUNCTION
     | freetext_function                              # FREE_TEXT
     | partition_function                             # PARTITION_FUNC
     | hierarchyid_static_method                      # HIERARCHYID_METHOD
     ;
 
 partition_function
-    : (database = id_ '.')? DOLLAR_PARTITION '.' func_name = id_ '(' expression ')'
+    : (database = id_ DOT)? DOLLAR_PARTITION DOT func_name = id_ LPAREN expression RPAREN
     ;
 
 freetext_function
-    : (CONTAINSTABLE | FREETEXTTABLE) '(' table_name ',' (
+    : (CONTAINSTABLE | FREETEXTTABLE) LPAREN table_name COMMA (
         full_column_name
-        | '(' full_column_name (',' full_column_name)* ')'
-        | '*'
-    ) ',' expression (',' LANGUAGE expression)? (',' expression)? ')'
-    | (SEMANTICSIMILARITYTABLE | SEMANTICKEYPHRASETABLE) '(' table_name ',' (
+        | LPAREN full_column_name (COMMA full_column_name)* RPAREN
+        | STAR
+    ) COMMA expression (COMMA LANGUAGE expression)? (COMMA expression)? RPAREN
+    | (SEMANTICSIMILARITYTABLE | SEMANTICKEYPHRASETABLE) LPAREN table_name COMMA (
         full_column_name
-        | '(' full_column_name (',' full_column_name)* ')'
-        | '*'
-    ) ',' expression ')'
-    | SEMANTICSIMILARITYDETAILSTABLE '(' table_name ',' full_column_name ',' expression ',' full_column_name ',' expression ')'
+        | LPAREN full_column_name (COMMA full_column_name)* RPAREN
+        | STAR
+    ) COMMA expression RPAREN
+    | SEMANTICSIMILARITYDETAILSTABLE LPAREN table_name COMMA full_column_name COMMA expression COMMA full_column_name COMMA expression RPAREN
     ;
 
 freetext_predicate
-    : CONTAINS '(' (
+    : CONTAINS LPAREN (
         full_column_name
-        | '(' full_column_name (',' full_column_name)* ')'
-        | '*'
-        | PROPERTY '(' full_column_name ',' expression ')'
-    ) ',' expression ')'
-    | FREETEXT '(' table_name ',' (
+        | LPAREN full_column_name (COMMA full_column_name)* RPAREN
+        | STAR
+        | PROPERTY LPAREN full_column_name COMMA expression RPAREN
+    ) COMMA expression RPAREN
+    | FREETEXT LPAREN table_name COMMA (
         full_column_name
-        | '(' full_column_name (',' full_column_name)* ')'
-        | '*'
-    ) ',' expression (',' LANGUAGE expression)? ')'
+        | LPAREN full_column_name (COMMA full_column_name)* RPAREN
+        | STAR
+    ) COMMA expression (COMMA LANGUAGE expression)? RPAREN
     ;
 
 json_key_value
-    : json_key_name = expression ':' value_expression = expression
+    : json_key_name = expression COLON value_expression = expression
     ;
 
 json_null_clause
@@ -4338,448 +4330,448 @@ json_null_clause
 built_in_functions
     // Metadata functions
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/app-name-transact-sql?view=sql-server-ver16
-    : APP_NAME '(' ')' # APP_NAME
+    : APP_NAME LPAREN RPAREN # APP_NAME
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/applock-mode-transact-sql?view=sql-server-ver16
-    | APPLOCK_MODE '(' database_principal = expression ',' resource_name = expression ',' lock_owner = expression ')' # APPLOCK_MODE
+    | APPLOCK_MODE LPAREN database_principal = expression COMMA resource_name = expression COMMA lock_owner = expression RPAREN # APPLOCK_MODE
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/applock-test-transact-sql?view=sql-server-ver16
-    | APPLOCK_TEST '(' database_principal = expression ',' resource_name = expression ',' lock_mode = expression ',' lock_owner = expression ')' #
+    | APPLOCK_TEST LPAREN database_principal = expression COMMA resource_name = expression COMMA lock_mode = expression COMMA lock_owner = expression RPAREN #
         APPLOCK_TEST
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/assemblyproperty-transact-sql?view=sql-server-ver16
-    | ASSEMBLYPROPERTY '(' assembly_name = expression ',' property_name = expression ')' # ASSEMBLYPROPERTY
+    | ASSEMBLYPROPERTY LPAREN assembly_name = expression COMMA property_name = expression RPAREN # ASSEMBLYPROPERTY
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/col-length-transact-sql?view=sql-server-ver16
-    | COL_LENGTH '(' table = expression ',' column = expression ')' # COL_LENGTH
+    | COL_LENGTH LPAREN table = expression COMMA column = expression RPAREN # COL_LENGTH
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/col-name-transact-sql?view=sql-server-ver16
-    | COL_NAME '(' table_id = expression ',' column_id = expression ')' # COL_NAME
+    | COL_NAME LPAREN table_id = expression COMMA column_id = expression RPAREN # COL_NAME
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/columnproperty-transact-sql?view=sql-server-ver16
-    | COLUMNPROPERTY '(' id = expression ',' column = expression ',' property = expression ')' # COLUMNPROPERTY
+    | COLUMNPROPERTY LPAREN id = expression COMMA column = expression COMMA property = expression RPAREN # COLUMNPROPERTY
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/databasepropertyex-transact-sql?view=sql-server-ver16
-    | DATABASEPROPERTYEX '(' database = expression ',' property = expression ')' # DATABASEPROPERTYEX
+    | DATABASEPROPERTYEX LPAREN database = expression COMMA property = expression RPAREN # DATABASEPROPERTYEX
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/db-id-transact-sql?view=sql-server-ver16
-    | DB_ID '(' database_name = expression? ')' # DB_ID
+    | DB_ID LPAREN database_name = expression? RPAREN # DB_ID
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/db-name-transact-sql?view=sql-server-ver16
-    | DB_NAME '(' database_id = expression? ')' # DB_NAME
+    | DB_NAME LPAREN database_id = expression? RPAREN # DB_NAME
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/file-id-transact-sql?view=sql-server-ver16
-    | FILE_ID '(' file_name = expression ')' # FILE_ID
+    | FILE_ID LPAREN file_name = expression RPAREN # FILE_ID
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/file-idex-transact-sql?view=sql-server-ver16
-    | FILE_IDEX '(' file_name = expression ')' # FILE_IDEX
+    | FILE_IDEX LPAREN file_name = expression RPAREN # FILE_IDEX
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/file-name-transact-sql?view=sql-server-ver16
-    | FILE_NAME '(' file_id = expression ')' # FILE_NAME
+    | FILE_NAME LPAREN file_id = expression RPAREN # FILE_NAME
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/filegroup-id-transact-sql?view=sql-server-ver16
-    | FILEGROUP_ID '(' filegroup_name = expression ')' # FILEGROUP_ID
+    | FILEGROUP_ID LPAREN filegroup_name = expression RPAREN # FILEGROUP_ID
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/filegroup-name-transact-sql?view=sql-server-ver16
-    | FILEGROUP_NAME '(' filegroup_id = expression ')' # FILEGROUP_NAME
+    | FILEGROUP_NAME LPAREN filegroup_id = expression RPAREN # FILEGROUP_NAME
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/filegroupproperty-transact-sql?view=sql-server-ver16
-    | FILEGROUPPROPERTY '(' filegroup_name = expression ',' property = expression ')' # FILEGROUPPROPERTY
+    | FILEGROUPPROPERTY LPAREN filegroup_name = expression COMMA property = expression RPAREN # FILEGROUPPROPERTY
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/fileproperty-transact-sql?view=sql-server-ver16
-    | FILEPROPERTY '(' file_name = expression ',' property = expression ')' # FILEPROPERTY
+    | FILEPROPERTY LPAREN file_name = expression COMMA property = expression RPAREN # FILEPROPERTY
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/filepropertyex-transact-sql?view=sql-server-ver16
-    | FILEPROPERTYEX '(' name = expression ',' property = expression ')' # FILEPROPERTYEX
+    | FILEPROPERTYEX LPAREN name = expression COMMA property = expression RPAREN # FILEPROPERTYEX
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/fulltextcatalogproperty-transact-sql?view=sql-server-ver16
-    | FULLTEXTCATALOGPROPERTY '(' catalog_name = expression ',' property = expression ')' # FULLTEXTCATALOGPROPERTY
+    | FULLTEXTCATALOGPROPERTY LPAREN catalog_name = expression COMMA property = expression RPAREN # FULLTEXTCATALOGPROPERTY
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/fulltextserviceproperty-transact-sql?view=sql-server-ver16
-    | FULLTEXTSERVICEPROPERTY '(' property = expression ')' # FULLTEXTSERVICEPROPERTY
+    | FULLTEXTSERVICEPROPERTY LPAREN property = expression RPAREN # FULLTEXTSERVICEPROPERTY
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/index-col-transact-sql?view=sql-server-ver16
-    | INDEX_COL '(' table_or_view_name = expression ',' index_id = expression ',' key_id = expression ')' # INDEX_COL
+    | INDEX_COL LPAREN table_or_view_name = expression COMMA index_id = expression COMMA key_id = expression RPAREN # INDEX_COL
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/indexkey-property-transact-sql?view=sql-server-ver16
-    | INDEXKEY_PROPERTY '(' object_id = expression ',' index_id = expression ',' key_id = expression ',' property = expression ')' # INDEXKEY_PROPERTY
+    | INDEXKEY_PROPERTY LPAREN object_id = expression COMMA index_id = expression COMMA key_id = expression COMMA property = expression RPAREN # INDEXKEY_PROPERTY
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/indexproperty-transact-sql?view=sql-server-ver16
-    | INDEXPROPERTY '(' object_id = expression ',' index_or_statistics_name = expression ',' property = expression ')' # INDEXPROPERTY
+    | INDEXPROPERTY LPAREN object_id = expression COMMA index_or_statistics_name = expression COMMA property = expression RPAREN # INDEXPROPERTY
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/next-value-for-transact-sql?view=sql-server-ver16
-    | NEXT VALUE FOR sequence_name = table_name (OVER '(' order_by_clause ')')? # NEXT_VALUE_FOR
+    | NEXT VALUE FOR sequence_name = table_name (OVER LPAREN order_by_clause RPAREN)? # NEXT_VALUE_FOR
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/object-definition-transact-sql?view=sql-server-ver16
-    | OBJECT_DEFINITION '(' object_id = expression ')' # OBJECT_DEFINITION
+    | OBJECT_DEFINITION LPAREN object_id = expression RPAREN # OBJECT_DEFINITION
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/object-id-transact-sql?view=sql-server-ver16
-    | OBJECT_ID '(' object_name = expression (',' object_type = expression)? ')' # OBJECT_ID
+    | OBJECT_ID LPAREN object_name = expression (COMMA object_type = expression)? RPAREN # OBJECT_ID
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/object-name-transact-sql?view=sql-server-ver16
-    | OBJECT_NAME '(' object_id = expression (',' database_id = expression)? ')' # OBJECT_NAME
+    | OBJECT_NAME LPAREN object_id = expression (COMMA database_id = expression)? RPAREN # OBJECT_NAME
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/object-schema-name-transact-sql?view=sql-server-ver16
-    | OBJECT_SCHEMA_NAME '(' object_id = expression (',' database_id = expression)? ')' # OBJECT_SCHEMA_NAME
+    | OBJECT_SCHEMA_NAME LPAREN object_id = expression (COMMA database_id = expression)? RPAREN # OBJECT_SCHEMA_NAME
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/objectproperty-transact-sql?view=sql-server-ver16
-    | OBJECTPROPERTY '(' id = expression ',' property = expression ')' # OBJECTPROPERTY
+    | OBJECTPROPERTY LPAREN id = expression COMMA property = expression RPAREN # OBJECTPROPERTY
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/objectpropertyex-transact-sql?view=sql-server-ver16
-    | OBJECTPROPERTYEX '(' id = expression ',' property = expression ')' # OBJECTPROPERTYEX
+    | OBJECTPROPERTYEX LPAREN id = expression COMMA property = expression RPAREN # OBJECTPROPERTYEX
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/original-db-name-transact-sql?view=sql-server-ver16
-    | ORIGINAL_DB_NAME '(' ')' # ORIGINAL_DB_NAME
+    | ORIGINAL_DB_NAME LPAREN RPAREN # ORIGINAL_DB_NAME
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/parsename-transact-sql?view=sql-server-ver16
-    | PARSENAME '(' object_name = expression ',' object_piece = expression ')' # PARSENAME
+    | PARSENAME LPAREN object_name = expression COMMA object_piece = expression RPAREN # PARSENAME
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/schema-id-transact-sql?view=sql-server-ver16
-    | SCHEMA_ID '(' schema_name = expression? ')' # SCHEMA_ID
+    | SCHEMA_ID LPAREN schema_name = expression? RPAREN # SCHEMA_ID
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/schema-name-transact-sql?view=sql-server-ver16
-    | SCHEMA_NAME '(' schema_id = expression? ')' # SCHEMA_NAME
+    | SCHEMA_NAME LPAREN schema_id = expression? RPAREN # SCHEMA_NAME
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/scope-identity-transact-sql?view=sql-server-ver16
-    | SCOPE_IDENTITY '(' ')' # SCOPE_IDENTITY
+    | SCOPE_IDENTITY LPAREN RPAREN # SCOPE_IDENTITY
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/serverproperty-transact-sql?view=sql-server-ver16
-    | SERVERPROPERTY '(' property = expression ')' # SERVERPROPERTY
+    | SERVERPROPERTY LPAREN property = expression RPAREN # SERVERPROPERTY
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/stats-date-transact-sql?view=sql-server-ver16
-    | STATS_DATE '(' object_id = expression ',' stats_id = expression ')' # STATS_DATE
+    | STATS_DATE LPAREN object_id = expression COMMA stats_id = expression RPAREN # STATS_DATE
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/type-id-transact-sql?view=sql-server-ver16
-    | TYPE_ID '(' type_name = expression ')' # TYPE_ID
+    | TYPE_ID LPAREN type_name = expression RPAREN # TYPE_ID
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/type-name-transact-sql?view=sql-server-ver16
-    | TYPE_NAME '(' type_id = expression ')' # TYPE_NAME
+    | TYPE_NAME LPAREN type_id = expression RPAREN # TYPE_NAME
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/typeproperty-transact-sql?view=sql-server-ver16
-    | TYPEPROPERTY '(' type = expression ',' property = expression ')' # TYPEPROPERTY
+    | TYPEPROPERTY LPAREN type = expression COMMA property = expression RPAREN # TYPEPROPERTY
     // String functions
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/ascii-transact-sql?view=sql-server-ver16
-    | ASCII '(' character_expression = expression ')' # ASCII
+    | ASCII LPAREN character_expression = expression RPAREN # ASCII
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/char-transact-sql?view=sql-server-ver16
-    | CHAR '(' integer_expression = expression ')' # CHAR
+    | CHAR LPAREN integer_expression = expression RPAREN # CHAR
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/charindex-transact-sql?view=sql-server-ver16
-    | CHARINDEX '(' expressionToFind = expression ',' expressionToSearch = expression (
-        ',' start_location = expression
-    )? ')' # CHARINDEX
+    | CHARINDEX LPAREN expressionToFind = expression COMMA expressionToSearch = expression (
+        COMMA start_location = expression
+    )? RPAREN # CHARINDEX
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/concat-transact-sql?view=sql-server-ver16
-    | CONCAT '(' string_value_1 = expression ',' string_value_2 = expression (
-        ',' string_value_n += expression
-    )* ')' # CONCAT
+    | CONCAT LPAREN string_value_1 = expression COMMA string_value_2 = expression (
+        COMMA string_value_n += expression
+    )* RPAREN # CONCAT
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/concat-ws-transact-sql?view=sql-server-ver16
-    | CONCAT_WS '(' separator = expression ',' argument_1 = expression ',' argument_2 = expression (
-        ',' argument_n += expression
-    )* ')' # CONCAT_WS
+    | CONCAT_WS LPAREN separator = expression COMMA argument_1 = expression COMMA argument_2 = expression (
+        COMMA argument_n += expression
+    )* RPAREN # CONCAT_WS
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/difference-transact-sql?view=sql-server-ver16
-    | DIFFERENCE '(' character_expression_1 = expression ',' character_expression_2 = expression ')' # DIFFERENCE
+    | DIFFERENCE LPAREN character_expression_1 = expression COMMA character_expression_2 = expression RPAREN # DIFFERENCE
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/format-transact-sql?view=sql-server-ver16
-    | FORMAT '(' value = expression ',' format = expression (',' culture = expression)? ')' # FORMAT
+    | FORMAT LPAREN value = expression COMMA format = expression (COMMA culture = expression)? RPAREN # FORMAT
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/left-transact-sql?view=sql-server-ver16
-    | LEFT '(' character_expression = expression ',' integer_expression = expression ')' # LEFT
+    | LEFT LPAREN character_expression = expression COMMA integer_expression = expression RPAREN # LEFT
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/len-transact-sql?view=sql-server-ver16
-    | LEN '(' string_expression = expression ')' # LEN
+    | LEN LPAREN string_expression = expression RPAREN # LEN
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/lower-transact-sql?view=sql-server-ver16
-    | LOWER '(' character_expression = expression ')' # LOWER
+    | LOWER LPAREN character_expression = expression RPAREN # LOWER
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/ltrim-transact-sql?view=sql-server-ver16
-    | LTRIM '(' character_expression = expression ')' # LTRIM
+    | LTRIM LPAREN character_expression = expression RPAREN # LTRIM
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/nchar-transact-sql?view=sql-server-ver16
-    | NCHAR '(' integer_expression = expression ')' # NCHAR
+    | NCHAR LPAREN integer_expression = expression RPAREN # NCHAR
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/patindex-transact-sql?view=sql-server-ver16
-    | PATINDEX '(' pattern = expression ',' string_expression = expression ')' # PATINDEX
+    | PATINDEX LPAREN pattern = expression COMMA string_expression = expression RPAREN # PATINDEX
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/quotename-transact-sql?view=sql-server-ver16
-    | QUOTENAME '(' character_string = expression (',' quote_character = expression)? ')' # QUOTENAME
+    | QUOTENAME LPAREN character_string = expression (COMMA quote_character = expression)? RPAREN # QUOTENAME
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/replace-transact-sql?view=sql-server-ver16
-    | REPLACE '(' input = expression ',' replacing = expression ',' with = expression ')' # REPLACE
+    | REPLACE LPAREN input = expression COMMA replacing = expression COMMA with = expression RPAREN # REPLACE
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/replicate-transact-sql?view=sql-server-ver16
-    | REPLICATE '(' string_expression = expression ',' integer_expression = expression ')' # REPLICATE
+    | REPLICATE LPAREN string_expression = expression COMMA integer_expression = expression RPAREN # REPLICATE
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/reverse-transact-sql?view=sql-server-ver16
-    | REVERSE '(' string_expression = expression ')' # REVERSE
+    | REVERSE LPAREN string_expression = expression RPAREN # REVERSE
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/right-transact-sql?view=sql-server-ver16
-    | RIGHT '(' character_expression = expression ',' integer_expression = expression ')' # RIGHT
+    | RIGHT LPAREN character_expression = expression COMMA integer_expression = expression RPAREN # RIGHT
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/rtrim-transact-sql?view=sql-server-ver16
-    | RTRIM '(' character_expression = expression ')' # RTRIM
+    | RTRIM LPAREN character_expression = expression RPAREN # RTRIM
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/soundex-transact-sql?view=sql-server-ver16
-    | SOUNDEX '(' character_expression = expression ')' # SOUNDEX
+    | SOUNDEX LPAREN character_expression = expression RPAREN # SOUNDEX
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/space-transact-sql?view=sql-server-ver16
-    | SPACE_KEYWORD '(' integer_expression = expression ')' # SPACE
+    | SPACE_KEYWORD LPAREN integer_expression = expression RPAREN # SPACE
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/str-transact-sql?view=sql-server-ver16
-    | STR '(' float_expression = expression (
-        ',' length_expression = expression ( ',' decimal = expression)?
-    )? ')' # STR
+    | STR LPAREN float_expression = expression (
+        COMMA length_expression = expression ( COMMA decimal = expression)?
+    )? RPAREN # STR
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/string-agg-transact-sql?view=sql-server-ver16
-    | STRING_AGG '(' expr = expression ',' separator = expression ')' (
-        WITHIN GROUP '(' order_by_clause ')'
+    | STRING_AGG LPAREN expr = expression COMMA separator = expression RPAREN (
+        WITHIN GROUP LPAREN order_by_clause RPAREN
     )? # STRINGAGG
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/string-escape-transact-sql?view=sql-server-ver16
-    | STRING_ESCAPE '(' text_ = expression ',' type_ = expression ')' # STRING_ESCAPE
+    | STRING_ESCAPE LPAREN text_ = expression COMMA type_ = expression RPAREN # STRING_ESCAPE
     // https://msdn.microsoft.com/fr-fr/library/ms188043.aspx
-    | STUFF '(' str = expression ',' from = expression ',' to = expression ',' str_with = expression ')' # STUFF
+    | STUFF LPAREN str = expression COMMA from = expression COMMA to = expression COMMA str_with = expression RPAREN # STUFF
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/substring-transact-sql?view=sql-server-ver16
-    | SUBSTRING '(' string_expression = expression ',' start_ = expression ',' length = expression ')' # SUBSTRING
+    | SUBSTRING LPAREN string_expression = expression COMMA start_ = expression COMMA length = expression RPAREN # SUBSTRING
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/translate-transact-sql?view=sql-server-ver16
-    | TRANSLATE '(' inputString = expression ',' characters = expression ',' translations = expression ')' # TRANSLATE
+    | TRANSLATE LPAREN inputString = expression COMMA characters = expression COMMA translations = expression RPAREN # TRANSLATE
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/trim-transact-sql?view=sql-server-ver16
-    | TRIM '(' (characters = expression FROM)? string_ = expression ')' # TRIM
+    | TRIM LPAREN (characters = expression FROM)? string_ = expression RPAREN # TRIM
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/unicode-transact-sql?view=sql-server-ver16
-    | UNICODE '(' ncharacter_expression = expression ')' # UNICODE
+    | UNICODE LPAREN ncharacter_expression = expression RPAREN # UNICODE
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/upper-transact-sql?view=sql-server-ver16
-    | UPPER '(' character_expression = expression ')' # UPPER
+    | UPPER LPAREN character_expression = expression RPAREN # UPPER
     // System functions
     // https://msdn.microsoft.com/en-us/library/ms173784.aspx
-    | BINARY_CHECKSUM '(' (star = '*' | expression (',' expression)*) ')' # BINARY_CHECKSUM
+    | BINARY_CHECKSUM LPAREN (star = STAR | expression (COMMA expression)*) RPAREN # BINARY_CHECKSUM
     // https://msdn.microsoft.com/en-us/library/ms189788.aspx
-    | CHECKSUM '(' (star = '*' | expression (',' expression)*) ')' # CHECKSUM
+    | CHECKSUM LPAREN (star = STAR | expression (COMMA expression)*) RPAREN # CHECKSUM
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/compress-transact-sql?view=sql-server-ver16
-    | COMPRESS '(' expr = expression ')' # COMPRESS
+    | COMPRESS LPAREN expr = expression RPAREN # COMPRESS
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/connectionproperty-transact-sql?view=sql-server-ver16
-    | CONNECTIONPROPERTY '(' property = STRING ')' # CONNECTIONPROPERTY
+    | CONNECTIONPROPERTY LPAREN property = STRING RPAREN # CONNECTIONPROPERTY
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/context-info-transact-sql?view=sql-server-ver16
-    | CONTEXT_INFO '(' ')' # CONTEXT_INFO
+    | CONTEXT_INFO LPAREN RPAREN # CONTEXT_INFO
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/current-request-id-transact-sql?view=sql-server-ver16
-    | CURRENT_REQUEST_ID '(' ')' # CURRENT_REQUEST_ID
+    | CURRENT_REQUEST_ID LPAREN RPAREN # CURRENT_REQUEST_ID
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/current-transaction-id-transact-sql?view=sql-server-ver16
-    | CURRENT_TRANSACTION_ID '(' ')' # CURRENT_TRANSACTION_ID
+    | CURRENT_TRANSACTION_ID LPAREN RPAREN # CURRENT_TRANSACTION_ID
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/decompress-transact-sql?view=sql-server-ver16
-    | DECOMPRESS '(' expr = expression ')' # DECOMPRESS
+    | DECOMPRESS LPAREN expr = expression RPAREN # DECOMPRESS
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/error-line-transact-sql?view=sql-server-ver16
-    | ERROR_LINE '(' ')' # ERROR_LINE
+    | ERROR_LINE LPAREN RPAREN # ERROR_LINE
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/error-message-transact-sql?view=sql-server-ver16
-    | ERROR_MESSAGE '(' ')' # ERROR_MESSAGE
+    | ERROR_MESSAGE LPAREN RPAREN # ERROR_MESSAGE
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/error-number-transact-sql?view=sql-server-ver16
-    | ERROR_NUMBER '(' ')' # ERROR_NUMBER
+    | ERROR_NUMBER LPAREN RPAREN # ERROR_NUMBER
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/error-procedure-transact-sql?view=sql-server-ver16
-    | ERROR_PROCEDURE '(' ')' # ERROR_PROCEDURE
+    | ERROR_PROCEDURE LPAREN RPAREN # ERROR_PROCEDURE
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/error-severity-transact-sql?view=sql-server-ver16
-    | ERROR_SEVERITY '(' ')' # ERROR_SEVERITY
+    | ERROR_SEVERITY LPAREN RPAREN # ERROR_SEVERITY
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/error-state-transact-sql?view=sql-server-ver16
-    | ERROR_STATE '(' ')' # ERROR_STATE
+    | ERROR_STATE LPAREN RPAREN # ERROR_STATE
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/formatmessage-transact-sql?view=sql-server-ver16
-    | FORMATMESSAGE '(' (msg_number = DECIMAL | msg_string = STRING | msg_variable = LOCAL_ID) ',' expression (
-        ',' expression
-    )* ')' # FORMATMESSAGE
+    | FORMATMESSAGE LPAREN (msg_number = DECIMAL | msg_string = STRING | msg_variable = LOCAL_ID) COMMA expression (
+        COMMA expression
+    )* RPAREN # FORMATMESSAGE
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/get-filestream-transaction-context-transact-sql?view=sql-server-ver16
-    | GET_FILESTREAM_TRANSACTION_CONTEXT '(' ')' # GET_FILESTREAM_TRANSACTION_CONTEXT
+    | GET_FILESTREAM_TRANSACTION_CONTEXT LPAREN RPAREN # GET_FILESTREAM_TRANSACTION_CONTEXT
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/getansinull-transact-sql?view=sql-server-ver16
-    | GETANSINULL '(' (database = STRING)? ')' # GETANSINULL
+    | GETANSINULL LPAREN (database = STRING)? RPAREN # GETANSINULL
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/host-id-transact-sql?view=sql-server-ver16
-    | HOST_ID '(' ')' # HOST_ID
+    | HOST_ID LPAREN RPAREN # HOST_ID
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/host-name-transact-sql?view=sql-server-ver16
-    | HOST_NAME '(' ')' # HOST_NAME
+    | HOST_NAME LPAREN RPAREN # HOST_NAME
     // https://msdn.microsoft.com/en-us/library/ms184325.aspx
-    | ISNULL '(' left = expression ',' right = expression ')' # ISNULL
+    | ISNULL LPAREN left = expression COMMA right = expression RPAREN # ISNULL
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/isnumeric-transact-sql?view=sql-server-ver16
-    | ISNUMERIC '(' expression ')' # ISNUMERIC
+    | ISNUMERIC LPAREN expression RPAREN # ISNUMERIC
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/min-active-rowversion-transact-sql?view=sql-server-ver16
-    | MIN_ACTIVE_ROWVERSION '(' ')' # MIN_ACTIVE_ROWVERSION
+    | MIN_ACTIVE_ROWVERSION LPAREN RPAREN # MIN_ACTIVE_ROWVERSION
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/newid-transact-sql?view=sql-server-ver16
-    | NEWID '(' ')' # NEWID
+    | NEWID LPAREN RPAREN # NEWID
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/newsequentialid-transact-sql?view=sql-server-ver16
-    | NEWSEQUENTIALID '(' ')' # NEWSEQUENTIALID
+    | NEWSEQUENTIALID LPAREN RPAREN # NEWSEQUENTIALID
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/rowcount-big-transact-sql?view=sql-server-ver16
-    | ROWCOUNT_BIG '(' ')' # ROWCOUNT_BIG
+    | ROWCOUNT_BIG LPAREN RPAREN # ROWCOUNT_BIG
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/session-context-transact-sql?view=sql-server-ver16
-    | SESSION_CONTEXT '(' key = STRING ')' # SESSION_CONTEXT
+    | SESSION_CONTEXT LPAREN key = STRING RPAREN # SESSION_CONTEXT
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/xact-state-transact-sql?view=sql-server-ver16
-    | XACT_STATE '(' ')' # XACT_STATE
+    | XACT_STATE LPAREN RPAREN # XACT_STATE
     // https://msdn.microsoft.com/en-us/library/hh231076.aspx
     // https://msdn.microsoft.com/en-us/library/ms187928.aspx
-    | CAST '(' expression AS data_type ')'     # CAST
-    | TRY_CAST '(' expression AS data_type ')' # TRY_CAST
-    | CONVERT '(' convert_data_type = data_type ',' convert_expression = expression (
-        ',' style = expression
-    )? ')' # CONVERT
+    | CAST LPAREN expression AS data_type RPAREN     # CAST
+    | TRY_CAST LPAREN expression AS data_type RPAREN # TRY_CAST
+    | CONVERT LPAREN convert_data_type = data_type COMMA convert_expression = expression (
+        COMMA style = expression
+    )? RPAREN # CONVERT
     // https://msdn.microsoft.com/en-us/library/ms190349.aspx
-    | COALESCE '(' expression_list_ ')' # COALESCE
+    | COALESCE LPAREN expression_list_ RPAREN # COALESCE
     // Cursor functions
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/cursor-rows-transact-sql?view=sql-server-ver16
     | CURSOR_ROWS # CURSOR_ROWS
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/cursor-rows-transact-sql?view=sql-server-ver16
     | FETCH_STATUS # FETCH_STATUS
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/cursor-status-transact-sql?view=sql-server-ver16
-    | CURSOR_STATUS '(' scope = STRING ',' cursor = expression ')' # CURSOR_STATUS
+    | CURSOR_STATUS LPAREN scope = STRING COMMA cursor = expression RPAREN # CURSOR_STATUS
     // Cryptographic functions
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/cert-id-transact-sql?view=sql-server-ver16
-    | CERT_ID '(' cert_name = expression ')' # CERT_ID
+    | CERT_ID LPAREN cert_name = expression RPAREN # CERT_ID
     // Data type functions
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/datalength-transact-sql?view=sql-server-ver16
-    | DATALENGTH '(' expression ')' # DATALENGTH
+    | DATALENGTH LPAREN expression RPAREN # DATALENGTH
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/ident-current-transact-sql?view=sql-server-ver16
-    | IDENT_CURRENT '(' table_or_view = expression ')' # IDENT_CURRENT
+    | IDENT_CURRENT LPAREN table_or_view = expression RPAREN # IDENT_CURRENT
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/ident-incr-transact-sql?view=sql-server-ver16
-    | IDENT_INCR '(' table_or_view = expression ')' # IDENT_INCR
+    | IDENT_INCR LPAREN table_or_view = expression RPAREN # IDENT_INCR
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/ident-seed-transact-sql?view=sql-server-ver16
-    | IDENT_SEED '(' table_or_view = expression ')' # IDENT_SEED
+    | IDENT_SEED LPAREN table_or_view = expression RPAREN # IDENT_SEED
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/ident-seed-transact-sql?view=sql-server-ver16
-    | IDENTITY '(' datatype = data_type (',' seed = DECIMAL ',' increment = DECIMAL)? ')' # IDENTITY
+    | IDENTITY LPAREN datatype = data_type (COMMA seed = DECIMAL COMMA increment = DECIMAL)? RPAREN # IDENTITY
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/ident-seed-transact-sql?view=sql-server-ver16
-    | SQL_VARIANT_PROPERTY '(' expr = expression ',' property = STRING ')' # SQL_VARIANT_PROPERTY
+    | SQL_VARIANT_PROPERTY LPAREN expr = expression COMMA property = STRING RPAREN # SQL_VARIANT_PROPERTY
     // Date functions
     //https://infocenter.sybase.com/help/index.jsp?topic=/com.sybase.infocenter.dc36271.1572/html/blocks/CJADIDHD.htm
-    | CURRENT_DATE '(' ')' # CURRENT_DATE
+    | CURRENT_DATE LPAREN RPAREN # CURRENT_DATE
     // https://msdn.microsoft.com/en-us/library/ms188751.aspx
     | CURRENT_TIMESTAMP # CURRENT_TIMESTAMP
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/current-timezone-transact-sql?view=sql-server-ver16
-    | CURRENT_TIMEZONE '(' ')' # CURRENT_TIMEZONE
+    | CURRENT_TIMEZONE LPAREN RPAREN # CURRENT_TIMEZONE
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/current-timezone-id-transact-sql?view=sql-server-ver16
-    | CURRENT_TIMEZONE_ID '(' ')' # CURRENT_TIMEZONE_ID
+    | CURRENT_TIMEZONE_ID LPAREN RPAREN # CURRENT_TIMEZONE_ID
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/date-bucket-transact-sql?view=sql-server-ver16
-    | DATE_BUCKET '(' datepart = dateparts_9 ',' number = expression ',' date = expression (
-        ',' origin = expression
-    )? ')' # DATE_BUCKET
+    | DATE_BUCKET LPAREN datepart = dateparts_9 COMMA number = expression COMMA date = expression (
+        COMMA origin = expression
+    )? RPAREN # DATE_BUCKET
     // https://msdn.microsoft.com/en-us/library/ms186819.aspx
-    | DATEADD '(' datepart = dateparts_12 ',' number = expression ',' date = expression ')' # DATEADD
+    | DATEADD LPAREN datepart = dateparts_12 COMMA number = expression COMMA date = expression RPAREN # DATEADD
     // https://msdn.microsoft.com/en-us/library/ms189794.aspx
-    | DATEDIFF '(' datepart = dateparts_12 ',' date_first = expression ',' date_second = expression ')' # DATEDIFF
+    | DATEDIFF LPAREN datepart = dateparts_12 COMMA date_first = expression COMMA date_second = expression RPAREN # DATEDIFF
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/datediff-big-transact-sql?view=sql-server-ver16
-    | DATEDIFF_BIG '(' datepart = dateparts_12 ',' startdate = expression ',' enddate = expression ')' # DATEDIFF_BIG
+    | DATEDIFF_BIG LPAREN datepart = dateparts_12 COMMA startdate = expression COMMA enddate = expression RPAREN # DATEDIFF_BIG
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/datefromparts-transact-sql?view=sql-server-ver16
-    | DATEFROMPARTS '(' year = expression ',' month = expression ',' day = expression ')' # DATEFROMPARTS
+    | DATEFROMPARTS LPAREN year = expression COMMA month = expression COMMA day = expression RPAREN # DATEFROMPARTS
     // https://msdn.microsoft.com/en-us/library/ms174395.aspx
-    | DATENAME '(' datepart = dateparts_15 ',' date = expression ')' # DATENAME
+    | DATENAME LPAREN datepart = dateparts_15 COMMA date = expression RPAREN # DATENAME
     // https://msdn.microsoft.com/en-us/library/ms174420.aspx
-    | DATEPART '(' datepart = dateparts_15 ',' date = expression ')' # DATEPART
+    | DATEPART LPAREN datepart = dateparts_15 COMMA date = expression RPAREN # DATEPART
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/datetime2fromparts-transact-sql?view=sql-server-ver16
-    | DATETIME2FROMPARTS '(' year = expression ',' month = expression ',' day = expression ',' hour = expression ',' minute = expression ',' seconds =
-        expression ',' fractions = expression ',' precision = expression ')' # DATETIME2FROMPARTS
+    | DATETIME2FROMPARTS LPAREN year = expression COMMA month = expression COMMA day = expression COMMA hour = expression COMMA minute = expression COMMA seconds =
+        expression COMMA fractions = expression COMMA precision = expression RPAREN # DATETIME2FROMPARTS
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/datetimefromparts-transact-sql?view=sql-server-ver16
-    | DATETIMEFROMPARTS '(' year = expression ',' month = expression ',' day = expression ',' hour = expression ',' minute = expression ',' seconds =
-        expression ',' milliseconds = expression ')' # DATETIMEFROMPARTS
+    | DATETIMEFROMPARTS LPAREN year = expression COMMA month = expression COMMA day = expression COMMA hour = expression COMMA minute = expression COMMA seconds =
+        expression COMMA milliseconds = expression RPAREN # DATETIMEFROMPARTS
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/datetimeoffsetfromparts-transact-sql?view=sql-server-ver16
-    | DATETIMEOFFSETFROMPARTS '(' year = expression ',' month = expression ',' day = expression ',' hour = expression ',' minute = expression ','
-        seconds = expression ',' fractions = expression ',' hour_offset = expression ',' minute_offset = expression ',' precision = DECIMAL ')' #
+    | DATETIMEOFFSETFROMPARTS LPAREN year = expression COMMA month = expression COMMA day = expression COMMA hour = expression COMMA minute = expression COMMA
+        seconds = expression COMMA fractions = expression COMMA hour_offset = expression COMMA minute_offset = expression COMMA precision = DECIMAL RPAREN #
         DATETIMEOFFSETFROMPARTS
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/datetrunc-transact-sql?view=sql-server-ver16
-    | DATETRUNC '(' datepart = dateparts_datetrunc ',' date = expression ')' # DATETRUNC
+    | DATETRUNC LPAREN datepart = dateparts_datetrunc COMMA date = expression RPAREN # DATETRUNC
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/day-transact-sql?view=sql-server-ver16
-    | DAY '(' date = expression ')' # DAY
+    | DAY LPAREN date = expression RPAREN # DAY
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/eomonth-transact-sql?view=sql-server-ver16
-    | EOMONTH '(' start_date = expression (',' month_to_add = expression)? ')' # EOMONTH
+    | EOMONTH LPAREN start_date = expression (COMMA month_to_add = expression)? RPAREN # EOMONTH
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/getdate-transact-sql
-    | GETDATE '(' ')' # GETDATE
+    | GETDATE LPAREN RPAREN # GETDATE
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/getdate-transact-sql
-    | GETUTCDATE '(' ')' # GETUTCDATE
+    | GETUTCDATE LPAREN RPAREN # GETUTCDATE
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/isdate-transact-sql?view=sql-server-ver16
-    | ISDATE '(' expression ')' # ISDATE
+    | ISDATE LPAREN expression RPAREN # ISDATE
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/month-transact-sql?view=sql-server-ver16
-    | MONTH '(' date = expression ')' # MONTH
+    | MONTH LPAREN date = expression RPAREN # MONTH
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/smalldatetimefromparts-transact-sql?view=sql-server-ver16
-    | SMALLDATETIMEFROMPARTS '(' year = expression ',' month = expression ',' day = expression ',' hour = expression ',' minute = expression ')' #
+    | SMALLDATETIMEFROMPARTS LPAREN year = expression COMMA month = expression COMMA day = expression COMMA hour = expression COMMA minute = expression RPAREN #
         SMALLDATETIMEFROMPARTS
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/switchoffset-transact-sql?view=sql-server-ver16
-    | SWITCHOFFSET '(' datetimeoffset_expression = expression ',' timezoneoffset_expression = expression ')' # SWITCHOFFSET
+    | SWITCHOFFSET LPAREN datetimeoffset_expression = expression COMMA timezoneoffset_expression = expression RPAREN # SWITCHOFFSET
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/sysdatetime-transact-sql?view=sql-server-ver16
-    | SYSDATETIME '(' ')' # SYSDATETIME
+    | SYSDATETIME LPAREN RPAREN # SYSDATETIME
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/sysdatetimeoffset-transact-sql?view=sql-server-ver16
-    | SYSDATETIMEOFFSET '(' ')' # SYSDATETIMEOFFSET
+    | SYSDATETIMEOFFSET LPAREN RPAREN # SYSDATETIMEOFFSET
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/sysutcdatetime-transact-sql?view=sql-server-ver16
-    | SYSUTCDATETIME '(' ')' # SYSUTCDATETIME
+    | SYSUTCDATETIME LPAREN RPAREN # SYSUTCDATETIME
     //https://learn.microsoft.com/en-us/sql/t-sql/functions/timefromparts-transact-sql?view=sql-server-ver16
-    | TIMEFROMPARTS '(' hour = expression ',' minute = expression ',' seconds = expression ',' fractions = expression ',' precision = DECIMAL ')' #
+    | TIMEFROMPARTS LPAREN hour = expression COMMA minute = expression COMMA seconds = expression COMMA fractions = expression COMMA precision = DECIMAL RPAREN #
         TIMEFROMPARTS
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/todatetimeoffset-transact-sql?view=sql-server-ver16
-    | TODATETIMEOFFSET '(' datetime_expression = expression ',' timezoneoffset_expression = expression ')' # TODATETIMEOFFSET
+    | TODATETIMEOFFSET LPAREN datetime_expression = expression COMMA timezoneoffset_expression = expression RPAREN # TODATETIMEOFFSET
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/year-transact-sql?view=sql-server-ver16
-    | YEAR '(' date = expression ')' # YEAR
+    | YEAR LPAREN date = expression RPAREN # YEAR
     // https://msdn.microsoft.com/en-us/library/ms189838.aspx
-    | IDENTITY '(' data_type (',' seed = DECIMAL)? (',' increment = DECIMAL)? ')' # IDENTITY
+    | IDENTITY LPAREN data_type (COMMA seed = DECIMAL)? (COMMA increment = DECIMAL)? RPAREN # IDENTITY
     // https://msdn.microsoft.com/en-us/library/bb839514.aspx
-    | MIN_ACTIVE_ROWVERSION '(' ')' # MIN_ACTIVE_ROWVERSION
+    | MIN_ACTIVE_ROWVERSION LPAREN RPAREN # MIN_ACTIVE_ROWVERSION
     // https://msdn.microsoft.com/en-us/library/ms177562.aspx
-    | NULLIF '(' left = expression ',' right = expression ')' # NULLIF
+    | NULLIF LPAREN left = expression COMMA right = expression RPAREN # NULLIF
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/parse-transact-sql
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/try-parse-transact-sql
-    | PARSE '(' str = expression AS data_type (USING culture = expression)? ')' # PARSE
+    | PARSE LPAREN str = expression AS data_type (USING culture = expression)? RPAREN # PARSE
     // https://docs.microsoft.com/en-us/sql/t-sql/xml/xml-data-type-methods
     | xml_data_type_methods # XML_DATA_TYPE_FUNC
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/logical-functions-iif-transact-sql
-    | IIF '(' cond = search_condition ',' left = expression ',' right = expression ')' # IIF
+    | IIF LPAREN cond = search_condition COMMA left = expression COMMA right = expression RPAREN # IIF
     // JSON functions
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/isjson-transact-sql?view=azure-sqldw-latest
-    | ISJSON '(' json_expr = expression (',' json_type_constraint = expression)? ')' # ISJSON
+    | ISJSON LPAREN json_expr = expression (COMMA json_type_constraint = expression)? RPAREN # ISJSON
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/json-object-transact-sql?view=azure-sqldw-latest
-    | JSON_OBJECT '(' (key_value = json_key_value (',' key_value = json_key_value)*)? json_null_clause? ')' # JSON_OBJECT
+    | JSON_OBJECT LPAREN (key_value = json_key_value (COMMA key_value = json_key_value)*)? json_null_clause? RPAREN # JSON_OBJECT
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/json-array-transact-sql?view=azure-sqldw-latest
-    | JSON_ARRAY '(' expression_list_? json_null_clause? ')' # JSON_ARRAY
+    | JSON_ARRAY LPAREN expression_list_? json_null_clause? RPAREN # JSON_ARRAY
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/json-value-transact-sql?view=azure-sqldw-latest
-    | JSON_VALUE '(' expr = expression ',' path = expression ')' # JSON_VALUE
+    | JSON_VALUE LPAREN expr = expression COMMA path = expression RPAREN # JSON_VALUE
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/json-query-transact-sql?view=azure-sqldw-latest
-    | JSON_QUERY '(' expr = expression (',' path = expression)? ')' # JSON_QUERY
+    | JSON_QUERY LPAREN expr = expression (COMMA path = expression)? RPAREN # JSON_QUERY
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/json-modify-transact-sql?view=azure-sqldw-latest
-    | JSON_MODIFY '(' expr = expression ',' path = expression ',' new_value = expression ')' # JSON_MODIFY
+    | JSON_MODIFY LPAREN expr = expression COMMA path = expression COMMA new_value = expression RPAREN # JSON_MODIFY
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/json-path-exists-transact-sql?view=azure-sqldw-latest
-    | JSON_PATH_EXISTS '(' value_expression = expression ',' sql_json_path = expression ')' # JSON_PATH_EXISTS
+    | JSON_PATH_EXISTS LPAREN value_expression = expression COMMA sql_json_path = expression RPAREN # JSON_PATH_EXISTS
     // Math functions
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/abs-transact-sql?view=sql-server-ver16
-    | ABS '(' numeric_expression = expression ')' # ABS
+    | ABS LPAREN numeric_expression = expression RPAREN # ABS
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/acos-transact-sql?view=sql-server-ver16
-    | ACOS '(' float_expression = expression ')' # ACOS
+    | ACOS LPAREN float_expression = expression RPAREN # ACOS
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/asin-transact-sql?view=sql-server-ver16
-    | ASIN '(' float_expression = expression ')' # ASIN
+    | ASIN LPAREN float_expression = expression RPAREN # ASIN
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/atan-transact-sql?view=sql-server-ver16
-    | ATAN '(' float_expression = expression ')' # ATAN
+    | ATAN LPAREN float_expression = expression RPAREN # ATAN
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/atn2-transact-sql?view=sql-server-ver16
-    | ATN2 '(' float_expression = expression ',' float_expression = expression ')' # ATN2
+    | ATN2 LPAREN float_expression = expression COMMA float_expression = expression RPAREN # ATN2
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/ceiling-transact-sql?view=sql-server-ver16
-    | CEILING '(' numeric_expression = expression ')' # CEILING
+    | CEILING LPAREN numeric_expression = expression RPAREN # CEILING
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/cos-transact-sql?view=sql-server-ver16
-    | COS '(' float_expression = expression ')' # COS
+    | COS LPAREN float_expression = expression RPAREN # COS
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/cot-transact-sql?view=sql-server-ver16
-    | COT '(' float_expression = expression ')' # COT
+    | COT LPAREN float_expression = expression RPAREN # COT
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/degrees-transact-sql?view=sql-server-ver16
-    | DEGREES '(' numeric_expression = expression ')' # DEGREES
+    | DEGREES LPAREN numeric_expression = expression RPAREN # DEGREES
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/exp-transact-sql?view=sql-server-ver16
-    | EXP '(' float_expression = expression ')' # EXP
+    | EXP LPAREN float_expression = expression RPAREN # EXP
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/floor-transact-sql?view=sql-server-ver16
-    | FLOOR '(' numeric_expression = expression ')' # FLOOR
+    | FLOOR LPAREN numeric_expression = expression RPAREN # FLOOR
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/log-transact-sql?view=sql-server-ver16
-    | LOG '(' float_expression = expression (',' base = expression)? ')' # LOG
+    | LOG LPAREN float_expression = expression (COMMA base = expression)? RPAREN # LOG
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/log10-transact-sql?view=sql-server-ver16
-    | LOG10 '(' float_expression = expression ')' # LOG10
+    | LOG10 LPAREN float_expression = expression RPAREN # LOG10
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/pi-transact-sql?view=sql-server-ver16
-    | PI '(' ')' # PI
+    | PI LPAREN RPAREN # PI
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/power-transact-sql?view=sql-server-ver16
-    | POWER '(' float_expression = expression ',' y = expression ')' # POWER
+    | POWER LPAREN float_expression = expression COMMA y = expression RPAREN # POWER
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/radians-transact-sql?view=sql-server-ver16
-    | RADIANS '(' numeric_expression = expression ')' # RADIANS
+    | RADIANS LPAREN numeric_expression = expression RPAREN # RADIANS
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/rand-transact-sql?view=sql-server-ver16
-    | RAND '(' (seed = expression)? ')' # RAND
+    | RAND LPAREN (seed = expression)? RPAREN # RAND
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/round-transact-sql?view=sql-server-ver16
-    | ROUND '(' numeric_expression = expression ',' length = expression (',' function = expression)? ')' # ROUND
+    | ROUND LPAREN numeric_expression = expression COMMA length = expression (COMMA function = expression)? RPAREN # ROUND
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/sign-transact-sql?view=sql-server-ver16
-    | SIGN '(' numeric_expression = expression ')' # MATH_SIGN
+    | SIGN LPAREN numeric_expression = expression RPAREN # MATH_SIGN
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/sin-transact-sql?view=sql-server-ver16
-    | SIN '(' float_expression = expression ')' # SIN
+    | SIN LPAREN float_expression = expression RPAREN # SIN
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/sqrt-transact-sql?view=sql-server-ver16
-    | SQRT '(' float_expression = expression ')' # SQRT
+    | SQRT LPAREN float_expression = expression RPAREN # SQRT
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/square-transact-sql?view=sql-server-ver16
-    | SQUARE '(' float_expression = expression ')' # SQUARE
+    | SQUARE LPAREN float_expression = expression RPAREN # SQUARE
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/tan-transact-sql?view=sql-server-ver16
-    | TAN '(' float_expression = expression ')' # TAN
+    | TAN LPAREN float_expression = expression RPAREN # TAN
     // Logical functions
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/logical-functions-greatest-transact-sql?view=azure-sqldw-latest
-    | GREATEST '(' expression_list_ ')' # GREATEST
+    | GREATEST LPAREN expression_list_ RPAREN # GREATEST
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/logical-functions-least-transact-sql?view=azure-sqldw-latest
-    | LEAST '(' expression_list_ ')' # LEAST
+    | LEAST LPAREN expression_list_ RPAREN # LEAST
     // Security functions
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/certencoded-transact-sql?view=sql-server-ver16
-    | CERTENCODED '(' certid = expression ')' # CERTENCODED
+    | CERTENCODED LPAREN certid = expression RPAREN # CERTENCODED
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/certprivatekey-transact-sql?view=sql-server-ver16
-    | CERTPRIVATEKEY '(' certid = expression ',' encryption_password = expression (
-        ',' decryption_pasword = expression
-    )? ')' # CERTPRIVATEKEY
+    | CERTPRIVATEKEY LPAREN certid = expression COMMA encryption_password = expression (
+        COMMA decryption_pasword = expression
+    )? RPAREN # CERTPRIVATEKEY
     // https://msdn.microsoft.com/en-us/library/ms176050.aspx
     | CURRENT_USER # CURRENT_USER
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/database-principal-id-transact-sql?view=sql-server-ver16
-    | DATABASE_PRINCIPAL_ID '(' (principal_name = expression)? ')' # DATABASE_PRINCIPAL_ID
+    | DATABASE_PRINCIPAL_ID LPAREN (principal_name = expression)? RPAREN # DATABASE_PRINCIPAL_ID
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/has-dbaccess-transact-sql?view=sql-server-ver16
-    | HAS_DBACCESS '(' database_name = expression ')' # HAS_DBACCESS
+    | HAS_DBACCESS LPAREN database_name = expression RPAREN # HAS_DBACCESS
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/has-perms-by-name-transact-sql?view=sql-server-ver16
-    | HAS_PERMS_BY_NAME '(' securable = expression ',' securable_class = expression ',' permission = expression (
-        ',' sub_securable = expression (',' sub_securable_class = expression)?
-    )? ')' # HAS_PERMS_BY_NAME
+    | HAS_PERMS_BY_NAME LPAREN securable = expression COMMA securable_class = expression COMMA permission = expression (
+        COMMA sub_securable = expression (COMMA sub_securable_class = expression)?
+    )? RPAREN # HAS_PERMS_BY_NAME
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/is-member-transact-sql?view=sql-server-ver16
-    | IS_MEMBER '(' group_or_role = expression ')' # IS_MEMBER
+    | IS_MEMBER LPAREN group_or_role = expression RPAREN # IS_MEMBER
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/is-rolemember-transact-sql?view=sql-server-ver16
-    | IS_ROLEMEMBER '(' role = expression (',' database_principal = expression)? ')' # IS_ROLEMEMBER
+    | IS_ROLEMEMBER LPAREN role = expression (COMMA database_principal = expression)? RPAREN # IS_ROLEMEMBER
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/is-srvrolemember-transact-sql?view=sql-server-ver16
-    | IS_SRVROLEMEMBER '(' role = expression (',' login = expression)? ')' # IS_SRVROLEMEMBER
+    | IS_SRVROLEMEMBER LPAREN role = expression (COMMA login = expression)? RPAREN # IS_SRVROLEMEMBER
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/loginproperty-transact-sql?view=sql-server-ver16
-    | LOGINPROPERTY '(' login_name = expression ',' property_name = expression ')' # LOGINPROPERTY
+    | LOGINPROPERTY LPAREN login_name = expression COMMA property_name = expression RPAREN # LOGINPROPERTY
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/original-login-transact-sql?view=sql-server-ver16
-    | ORIGINAL_LOGIN '(' ')' # ORIGINAL_LOGIN
+    | ORIGINAL_LOGIN LPAREN RPAREN # ORIGINAL_LOGIN
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/permissions-transact-sql?view=sql-server-ver16
-    | PERMISSIONS '(' (object_id = expression (',' column = expression)?)? ')' # PERMISSIONS
+    | PERMISSIONS LPAREN (object_id = expression (COMMA column = expression)?)? RPAREN # PERMISSIONS
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/pwdencrypt-transact-sql?view=sql-server-ver16
-    | PWDENCRYPT '(' password = expression ')' # PWDENCRYPT
+    | PWDENCRYPT LPAREN password = expression RPAREN # PWDENCRYPT
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/pwdcompare-transact-sql?view=sql-server-ver16
-    | PWDCOMPARE '(' clear_text_password = expression ',' password_hash = expression (
-        ',' version = expression
-    )? ')' # PWDCOMPARE
+    | PWDCOMPARE LPAREN clear_text_password = expression COMMA password_hash = expression (
+        COMMA version = expression
+    )? RPAREN # PWDCOMPARE
     // https://msdn.microsoft.com/en-us/library/ms177587.aspx
     | SESSION_USER # SESSION_USER
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/sessionproperty-transact-sql?view=sql-server-ver16
-    | SESSIONPROPERTY '(' option_name = expression ')' # SESSIONPROPERTY
+    | SESSIONPROPERTY LPAREN option_name = expression RPAREN # SESSIONPROPERTY
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/suser-id-transact-sql?view=sql-server-ver16
-    | SUSER_ID '(' (login = expression)? ')' # SUSER_ID
+    | SUSER_ID LPAREN (login = expression)? RPAREN # SUSER_ID
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/suser-name-transact-sql?view=sql-server-ver16
-    | SUSER_NAME '(' (server_user_sid = expression)? ')' # SUSER_SNAME
+    | SUSER_NAME LPAREN (server_user_sid = expression)? RPAREN # SUSER_SNAME
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/suser-sid-transact-sql?view=sql-server-ver16
-    | SUSER_SID '(' (login = expression (',' param2 = expression)?)? ')' # SUSER_SID
+    | SUSER_SID LPAREN (login = expression (COMMA param2 = expression)?)? RPAREN # SUSER_SID
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/suser-sname-transact-sql?view=sql-server-ver16
-    | SUSER_SNAME '(' (server_user_sid = expression)? ')' # SUSER_SNAME
+    | SUSER_SNAME LPAREN (server_user_sid = expression)? RPAREN # SUSER_SNAME
     // https://msdn.microsoft.com/en-us/library/ms179930.aspx
     | SYSTEM_USER # SYSTEM_USER
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/user-transact-sql?view=sql-server-ver16
     | USER # USER
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/user-id-transact-sql?view=sql-server-ver16
-    | USER_ID '(' (user = expression)? ')' # USER_ID
+    | USER_ID LPAREN (user = expression)? RPAREN # USER_ID
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/user-name-transact-sql?view=sql-server-ver16
-    | USER_NAME '(' (id = expression)? ')' # USER_NAME
+    | USER_NAME LPAREN (id = expression)? RPAREN # USER_NAME
     ;
 
 xml_data_type_methods
@@ -4848,55 +4840,55 @@ value_method
     : (
         loc_id = LOCAL_ID
         | value_id = full_column_name
-        | eventdata = EVENTDATA '(' ')'
+        | eventdata = EVENTDATA LPAREN RPAREN
         | query = query_method
-        | '(' subquery ')'
-    ) '.' call = value_call
+        | LPAREN subquery RPAREN
+    ) DOT call = value_call
     ;
 
 value_call
-    : (VALUE | VALUE_SQUARE_BRACKET) '(' xquery = STRING ',' sqltype = STRING ')'
+    : (VALUE | VALUE_SQUARE_BRACKET) LPAREN xquery = STRING COMMA sqltype = STRING RPAREN
     ;
 
 query_method
-    : (loc_id = LOCAL_ID | value_id = full_column_name | '(' subquery ')') '.' call = query_call
+    : (loc_id = LOCAL_ID | value_id = full_column_name | LPAREN subquery RPAREN) DOT call = query_call
     ;
 
 query_call
-    : (QUERY | QUERY_SQUARE_BRACKET) '(' xquery = STRING ')'
+    : (QUERY | QUERY_SQUARE_BRACKET) LPAREN xquery = STRING RPAREN
     ;
 
 exist_method
-    : (loc_id = LOCAL_ID | value_id = full_column_name | '(' subquery ')') '.' call = exist_call
+    : (loc_id = LOCAL_ID | value_id = full_column_name | LPAREN subquery RPAREN) DOT call = exist_call
     ;
 
 exist_call
-    : (EXIST | EXIST_SQUARE_BRACKET) '(' xquery = STRING ')'
+    : (EXIST | EXIST_SQUARE_BRACKET) LPAREN xquery = STRING RPAREN
     ;
 
 modify_method
-    : (loc_id = LOCAL_ID | value_id = full_column_name | '(' subquery ')') '.' call = modify_call
+    : (loc_id = LOCAL_ID | value_id = full_column_name | LPAREN subquery RPAREN) DOT call = modify_call
     ;
 
 modify_call
-    : (MODIFY | MODIFY_SQUARE_BRACKET) '(' xml_dml = STRING ')'
+    : (MODIFY | MODIFY_SQUARE_BRACKET) LPAREN xml_dml = STRING RPAREN
     ;
 
 hierarchyid_call
-    : GETANCESTOR '(' n = expression ')'
-    | GETDESCENDANT '(' child1 = expression ',' child2 = expression ')'
-    | GETLEVEL '(' ')'
-    | ISDESCENDANTOF '(' parent_ = expression ')'
-    | GETREPARENTEDVALUE '(' oldroot = expression ',' newroot = expression ')'
-    | TOSTRING '(' ')'
+    : GETANCESTOR LPAREN n = expression RPAREN
+    | GETDESCENDANT LPAREN child1 = expression COMMA child2 = expression RPAREN
+    | GETLEVEL LPAREN RPAREN
+    | ISDESCENDANTOF LPAREN parent_ = expression RPAREN
+    | GETREPARENTEDVALUE LPAREN oldroot = expression COMMA newroot = expression RPAREN
+    | TOSTRING LPAREN RPAREN
     ;
 
 hierarchyid_static_method
-    : HIERARCHYID DOUBLE_COLON (GETROOT '(' ')' | PARSE '(' input = expression ')')
+    : HIERARCHYID DOUBLE_COLON (GETROOT LPAREN RPAREN | PARSE LPAREN input = expression RPAREN)
     ;
 
 nodes_method
-    : (loc_id = LOCAL_ID | value_id = full_column_name | '(' subquery ')') '.' NODES '(' xquery = STRING ')'
+    : (loc_id = LOCAL_ID | value_id = full_column_name | LPAREN subquery RPAREN) DOT NODES LPAREN xquery = STRING RPAREN
     ;
 
 switch_section
@@ -4921,11 +4913,11 @@ table_alias
 
 // https://msdn.microsoft.com/en-us/library/ms187373.aspx
 with_table_hints
-    : WITH '(' hint += table_hint (','? hint += table_hint)* ')'
+    : WITH LPAREN hint += table_hint (COMMA? hint += table_hint)* RPAREN
     ;
 
 deprecated_table_hint
-    : '(' table_hint ')'
+    : LPAREN table_hint RPAREN
     ;
 
 // https://infocenter-archive.sybase.com/help/index.jsp?topic=/com.sybase.infocenter.dc00938.1502/html/locking/locking103.htm
@@ -4949,11 +4941,11 @@ sybase_legacy_hint
 table_hint
     : NOEXPAND
     | INDEX (
-        '(' index_value (',' index_value)* ')'
-        | '=' '(' index_value ')'
-        | '=' index_value // examples in the doc include this syntax
+        LPAREN index_value (COMMA index_value)* RPAREN
+        | EQUALS LPAREN index_value RPAREN
+        | EQUALS index_value // examples in the doc include this syntax
     )
-    | FORCESEEK ( '(' index_value '(' column_name_list ')' ')')?
+    | FORCESEEK ( LPAREN index_value LPAREN column_name_list RPAREN RPAREN)?
     | FORCESCAN
     | HOLDLOCK
     | NOLOCK
@@ -4967,7 +4959,7 @@ table_hint
     | ROWLOCK
     | SERIALIZABLE
     | SNAPSHOT
-    | SPATIAL_WINDOW_MAX_CELLS '=' DECIMAL
+    | SPATIAL_WINDOW_MAX_CELLS EQUALS DECIMAL
     | TABLOCK
     | TABLOCKX
     | UPDLOCK
@@ -4984,7 +4976,7 @@ index_value
     ;
 
 column_alias_list
-    : '(' alias += column_alias (',' alias += column_alias)* ')'
+    : LPAREN alias += column_alias (COMMA alias += column_alias)* RPAREN
     ;
 
 column_alias
@@ -4993,36 +4985,36 @@ column_alias
     ;
 
 table_value_constructor
-    : VALUES '(' exps += expression_list_ ')' (',' '(' exps += expression_list_ ')')*
+    : VALUES LPAREN exps += expression_list_ RPAREN (COMMA LPAREN exps += expression_list_ RPAREN)*
     ;
 
 expression_list_
-    : exp += expression (',' exp += expression)*
+    : exp += expression (COMMA exp += expression)*
     ;
 
 // https://msdn.microsoft.com/en-us/library/ms189798.aspx
 ranking_windowed_function
-    : (RANK | DENSE_RANK | ROW_NUMBER) '(' ')' over_clause
-    | NTILE '(' expression ')' over_clause
+    : (RANK | DENSE_RANK | ROW_NUMBER) LPAREN RPAREN over_clause
+    | NTILE LPAREN expression RPAREN over_clause
     ;
 
 // https://msdn.microsoft.com/en-us/library/ms173454.aspx
 aggregate_windowed_function
-    : agg_func = (AVG | MAX | MIN | SUM | STDEV | STDEVP | VAR | VARP) '(' all_distinct_expression ')' over_clause?
-    | cnt = (COUNT | COUNT_BIG) '(' ('*' | all_distinct_expression) ')' over_clause?
-    | CHECKSUM_AGG '(' all_distinct_expression ')'
-    | GROUPING '(' expression ')'
-    | GROUPING_ID '(' expression_list_ ')'
+    : agg_func = (AVG | MAX | MIN | SUM | STDEV | STDEVP | VAR | VARP) LPAREN all_distinct_expression RPAREN over_clause?
+    | cnt = (COUNT | COUNT_BIG) LPAREN (STAR | all_distinct_expression) RPAREN over_clause?
+    | CHECKSUM_AGG LPAREN all_distinct_expression RPAREN
+    | GROUPING LPAREN expression RPAREN
+    | GROUPING_ID LPAREN expression_list_ RPAREN
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/functions/analytic-functions-transact-sql
 analytic_windowed_function
-    : (FIRST_VALUE | LAST_VALUE) '(' expression ')' over_clause
-    | (LAG | LEAD) '(' expression (',' expression (',' expression)?)? ')' over_clause
-    | (CUME_DIST | PERCENT_RANK) '(' ')' OVER '(' (PARTITION BY expression_list_)? order_by_clause ')'
-    | (PERCENTILE_CONT | PERCENTILE_DISC) '(' expression ')' WITHIN GROUP '(' order_by_clause ')' OVER '(' (
+    : (FIRST_VALUE | LAST_VALUE) LPAREN expression RPAREN over_clause
+    | (LAG | LEAD) LPAREN expression (COMMA expression (COMMA expression)?)? RPAREN over_clause
+    | (CUME_DIST | PERCENT_RANK) LPAREN RPAREN OVER LPAREN (PARTITION BY expression_list_)? order_by_clause RPAREN
+    | (PERCENTILE_CONT | PERCENTILE_DISC) LPAREN expression RPAREN WITHIN GROUP LPAREN order_by_clause RPAREN OVER LPAREN (
         PARTITION BY expression_list_
-    )? ')'
+    )? RPAREN
     ;
 
 all_distinct_expression
@@ -5031,7 +5023,7 @@ all_distinct_expression
 
 // https://msdn.microsoft.com/en-us/library/ms189461.aspx
 over_clause
-    : OVER '(' (PARTITION BY expression_list_)? order_by_clause? row_or_range_clause? ')'
+    : OVER LPAREN (PARTITION BY expression_list_)? order_by_clause? row_or_range_clause? RPAREN
     ;
 
 row_or_range_clause
@@ -5060,7 +5052,7 @@ window_frame_following
     ;
 
 create_database_option
-    : FILESTREAM (database_filestream_option (',' database_filestream_option)*)
+    : FILESTREAM (database_filestream_option (COMMA database_filestream_option)*)
     | DEFAULT_LANGUAGE EQUAL ( id_ | STRING)
     | DEFAULT_FULLTEXT_LANGUAGE EQUAL ( id_ | STRING)
     | NESTED_TRIGGERS EQUAL ( OFF | ON)
@@ -5071,7 +5063,7 @@ create_database_option
     ;
 
 database_filestream_option
-    : LR_BRACKET (
+    : LPAREN (
         ( NON_TRANSACTED_ACCESS EQUAL ( OFF | READ_ONLY | FULL))
         | ( DIRECTORY_NAME EQUAL STRING)
     ) RR_BRACKET
@@ -5084,66 +5076,66 @@ database_file_spec
 
 file_group
     : FILEGROUP id_ (CONTAINS FILESTREAM)? (DEFAULT)? (CONTAINS MEMORY_OPTIMIZED_DATA)? file_spec (
-        ',' file_spec
+        COMMA file_spec
     )*
     ;
 
 file_spec
-    : LR_BRACKET NAME EQUAL (id_ | STRING) ','? FILENAME EQUAL file = STRING ','? (
-        SIZE EQUAL file_size ','?
-    )? (MAXSIZE EQUAL (file_size | UNLIMITED) ','?)? (FILEGROWTH EQUAL file_size ','?)? RR_BRACKET
+    : LPAREN NAME EQUAL (id_ | STRING) COMMA? FILENAME EQUAL file = STRING COMMA? (
+        SIZE EQUAL file_size COMMA?
+    )? (MAXSIZE EQUAL (file_size | UNLIMITED) COMMA?)? (FILEGROWTH EQUAL file_size COMMA?)? RR_BRACKET
     ;
 
 // Primitive.
 entity_name
     : (
-        server = id_ '.' database = id_ '.' schema = id_ '.'
-        | database = id_ '.' (schema = id_)? '.'
-        | schema = id_ '.'
+        server = id_ DOT database = id_ DOT schema = id_ DOT
+        | database = id_ DOT (schema = id_)? DOT
+        | schema = id_ DOT
     )? table = id_
     ;
 
 entity_name_for_azure_dw
     : schema = id_
-    | schema = id_ '.' object_name = id_
+    | schema = id_ DOT object_name = id_
     ;
 
 entity_name_for_parallel_dw
     : schema_database = id_
-    | schema = id_ '.' object_name = id_
+    | schema = id_ DOT object_name = id_
     ;
 
 full_table_name
     : (
-        linkedServer = id_ '.' '.' schema = id_ '.'
-        | server = id_ '.' database = id_ '.' schema = id_ '.'
-        | database = id_ '.' schema = id_? '.'
-        | schema = id_ '.'
+        linkedServer = id_ DOT DOT schema = id_ DOT
+        | server = id_ DOT database = id_ DOT schema = id_ DOT
+        | database = id_ DOT schema = id_? DOT
+        | schema = id_ DOT
     )? table = id_
     ;
 
 table_name
-    : (database = id_ '.' schema = id_? '.' | schema = id_ '.')? (
+    : (database = id_ DOT schema = id_? DOT | schema = id_ DOT)? (
         table = id_
         | blocking_hierarchy = BLOCKING_HIERARCHY
     )
     ;
 
 simple_name
-    : (schema = id_ '.')? name = id_
+    : (schema = id_ DOT)? name = id_
     ;
 
 func_proc_name_schema
-    : ((schema = id_) '.')? procedure = id_
+    : ((schema = id_) DOT)? procedure = id_
     ;
 
 func_proc_name_database_schema
-    : database = id_? '.' schema = id_? '.' procedure = id_
+    : database = id_? DOT schema = id_? DOT procedure = id_
     | func_proc_name_schema
     ;
 
 func_proc_name_server_database_schema
-    : server = id_? '.' database = id_? '.' schema = id_? '.' procedure = id_
+    : server = id_? DOT database = id_? DOT schema = id_? DOT procedure = id_
     | func_proc_name_database_schema
     ;
 
@@ -5153,27 +5145,27 @@ ddl_object
     ;
 
 full_column_name
-    : ((DELETED | INSERTED | full_table_name) '.')? (
+    : ((DELETED | INSERTED | full_table_name) DOT)? (
         column_name = id_
-        | ('$' (IDENTITY | ROWGUID))
+        | (DOLLAR (IDENTITY | ROWGUID))
     )
     ;
 
 column_name_list_with_order
-    : id_ (ASC | DESC)? (',' id_ (ASC | DESC)?)*
+    : id_ (ASC | DESC)? (COMMA id_ (ASC | DESC)?)*
     ;
 
 //For some reason, sql server allows any number of prefixes:  Here, h is the column: a.b.c.d.e.f.g.h
 insert_column_name_list
-    : col += insert_column_id (',' col += insert_column_id)*
+    : col += insert_column_id (COMMA col += insert_column_id)*
     ;
 
 insert_column_id
-    : (ignore += id_? '.')* id_
+    : (ignore += id_? DOT)* id_
     ;
 
 column_name_list
-    : col += id_ (',' col += id_)*
+    : col += id_ (COMMA col += id_)*
     ;
 
 cursor_name
@@ -5204,16 +5196,16 @@ scalar_function_name
     ;
 
 begin_conversation_timer
-    : BEGIN CONVERSATION TIMER '(' LOCAL_ID ')' TIMEOUT '=' time ';'?
+    : BEGIN CONVERSATION TIMER LPAREN LOCAL_ID RPAREN TIMEOUT EQUALS time SEMI?
     ;
 
 begin_conversation_dialog
     : BEGIN DIALOG (CONVERSATION)? dialog_handle = LOCAL_ID FROM SERVICE initiator_service_name = service_name TO SERVICE target_service_name =
-        service_name (',' service_broker_guid = STRING)? ON CONTRACT contract_name (
-        WITH ((RELATED_CONVERSATION | RELATED_CONVERSATION_GROUP) '=' LOCAL_ID ','?)? (
-            LIFETIME '=' (DECIMAL | LOCAL_ID) ','?
-        )? (ENCRYPTION '=' on_off)?
-    )? ';'?
+        service_name (COMMA service_broker_guid = STRING)? ON CONTRACT contract_name (
+        WITH ((RELATED_CONVERSATION | RELATED_CONVERSATION_GROUP) EQUALS LOCAL_ID COMMA?)? (
+            LIFETIME EQUALS (DECIMAL | LOCAL_ID) COMMA?
+        )? (ENCRYPTION EQUALS on_off)?
+    )? SEMI?
     ;
 
 contract_name
@@ -5225,9 +5217,9 @@ service_name
     ;
 
 end_conversation
-    : END CONVERSATION conversation_handle = LOCAL_ID ';'? (
+    : END CONVERSATION conversation_handle = LOCAL_ID SEMI? (
         WITH (
-            ERROR '=' faliure_code = (LOCAL_ID | STRING) DESCRIPTION '=' failure_text = (
+            ERROR EQUALS faliure_code = (LOCAL_ID | STRING) DESCRIPTION EQUALS failure_text = (
                 LOCAL_ID
                 | STRING
             )
@@ -5236,32 +5228,32 @@ end_conversation
     ;
 
 waitfor_conversation
-    : WAITFOR? '(' get_conversation ')' (','? TIMEOUT timeout = time)? ';'?
+    : WAITFOR? LPAREN get_conversation RPAREN (COMMA? TIMEOUT timeout = time)? SEMI?
     ;
 
 get_conversation
-    : GET CONVERSATION GROUP conversation_group_id = (STRING | LOCAL_ID) FROM queue = queue_id ';'?
+    : GET CONVERSATION GROUP conversation_group_id = (STRING | LOCAL_ID) FROM queue = queue_id SEMI?
     ;
 
 queue_id
-    : (database_name = id_ '.' schema_name = id_ '.' name = id_)
+    : (database_name = id_ DOT schema_name = id_ DOT name = id_)
     | id_
     ;
 
 send_conversation
     : SEND ON CONVERSATION conversation_handle = (STRING | LOCAL_ID) MESSAGE TYPE message_type_name = expression (
-        '(' message_body_expression = (STRING | LOCAL_ID) ')'
-    )? ';'?
+        LPAREN message_body_expression = (STRING | LOCAL_ID) RPAREN
+    )? SEMI?
     ;
 
 // https://msdn.microsoft.com/en-us/library/ms187752.aspx
 // TODO: implement runtime check or add new tokens.
 
 data_type
-    : scaled = (VARCHAR | NVARCHAR | BINARY_KEYWORD | VARBINARY_KEYWORD | SQUARE_BRACKET_ID) '(' MAX ')'
-    | ext_type = id_ '(' scale = DECIMAL ',' prec = DECIMAL ')'
-    | ext_type = id_ '(' scale = DECIMAL ')'
-    | ext_type = id_ IDENTITY ('(' seed = DECIMAL ',' inc = DECIMAL ')')?
+    : scaled = (VARCHAR | NVARCHAR | BINARY_KEYWORD | VARBINARY_KEYWORD | SQUARE_BRACKET_ID) LPAREN MAX RPAREN
+    | ext_type = id_ LPAREN scale = DECIMAL COMMA prec = DECIMAL RPAREN
+    | ext_type = id_ LPAREN scale = DECIMAL RPAREN
+    | ext_type = id_ IDENTITY (LPAREN seed = DECIMAL COMMA inc = DECIMAL RPAREN)?
     | double_prec = DOUBLE PRECISION?
     | unscaled_type = id_
     ;
@@ -5270,8 +5262,8 @@ data_type
 constant
     : STRING // string, datetime or uniqueidentifier
     | BINARY
-    | '-'? (DECIMAL | REAL | FLOAT)                    // float or decimal
-    | '-'? dollar = '$' ('-' | '+')? (DECIMAL | FLOAT) // money
+    | MINUS? (DECIMAL | REAL | FLOAT)                    // float or decimal
+    | MINUS? dollar = DOLLAR (MINUS | PLUS)? (DECIMAL | FLOAT) // money
     | parameter
     ;
 
@@ -5280,7 +5272,7 @@ primitive_constant
     : STRING // string, datetime or uniqueidentifier
     | BINARY
     | (DECIMAL | REAL | FLOAT)                    // float or decimal
-    | dollar = '$' ('-' | '+')? (DECIMAL | FLOAT) // money
+    | dollar = DOLLAR (MINUS | PLUS)? (DECIMAL | FLOAT) // money
     | parameter
     ;
 
@@ -6280,28 +6272,28 @@ id_or_string
 // https://msdn.microsoft.com/en-us/library/ms188074.aspx
 // Spaces are allowed for comparison operators.
 comparison_operator
-    : '='
-    | '>'
-    | '<'
-    | '<' '='
-    | '>' '='
-    | '<' '>'
-    | '!' '='
-    | '!' '>'
-    | '!' '<'
+    : EQUALS
+    | GT
+    | LT
+    | LT EQUALS
+    | GT EQUALS
+    | LT GT
+    | EQUALS
+    | GT
+    | LT
     ;
 
 assignment_operator
-    : '+='
-    | '-='
-    | '*='
-    | '/='
-    | '%='
-    | '&='
-    | '^='
-    | '|='
+    : PE
+    | ME
+    | SE
+    | DE
+    | MEA
+    | AND_ASSIGN
+    | XOR_ASSIGN
+    | OR_ASSIGN
     ;
 
 file_size
-    : DECIMAL (KB | MB | GB | TB | '%')?
+    : DECIMAL (KB | MB | GB | TB | MOD)?
     ;
