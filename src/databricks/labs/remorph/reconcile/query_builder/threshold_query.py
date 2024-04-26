@@ -47,15 +47,15 @@ class ThresholdQueryBuilder(QueryBuilder):
             ).transform(coalesce)
 
             if threshold.get_type() == ThresholdMode.NUMBER_ABSOLUTE.value:
-                select_exp, where = self._absolute_number_case(threshold, base)
+                select_exp, where = self._build_expression_numeric_absolute(threshold, base)
                 select_clause.extend(select_exp)
                 where_clause.append(where)
             elif threshold.get_type() == ThresholdMode.NUMBER_PERCENTAGE.value:
-                select_exp, where = self._percentage_number_case(threshold, base)
+                select_exp, where = self._build_expression_numeric_percentage(threshold, base)
                 select_clause.extend(select_exp)
                 where_clause.append(where)
             else:
-                select_exp, where = self._datetime_case(threshold, base)
+                select_exp, where = self._build_expression_datetime(threshold, base)
                 select_clause.extend(select_exp)
                 where_clause.append(where)
 
@@ -65,7 +65,9 @@ class ThresholdQueryBuilder(QueryBuilder):
 
         return select_clause, where
 
-    def _build_expression_numeric(self, threshold: Thresholds, base: exp.Expression) -> tuple[list[exp.Alias], exp.Expression]:
+    def _build_expression_alias_components(
+        self, threshold: Thresholds, base: exp.Expression
+    ) -> tuple[list[exp.Alias], exp.Expression]:
         select_clause = []
         column = threshold.column_name
         select_clause.append(
@@ -77,11 +79,11 @@ class ThresholdQueryBuilder(QueryBuilder):
         where = exp.NEQ(this=base, expression=exp.Literal(this="0", is_string=False))
         return select_clause, where
 
-    def _build_expression_absolute(
+    def _build_expression_numeric_absolute(
         self, threshold: Thresholds, base: exp.Expression
     ) -> tuple[list[exp.Alias], exp.Expression]:
         column = threshold.column_name
-        select_clause, where = self._number_case(threshold, base)
+        select_clause, where = self._build_expression_alias_components(threshold, base)
         select_clause.append(
             build_column(
                 this=self._build_threshold_absolute_case(base=base, threshold=threshold), alias=f"{column}_match"
@@ -89,11 +91,11 @@ class ThresholdQueryBuilder(QueryBuilder):
         )
         return select_clause, where
 
-    def _percentage_number_case(
+    def _build_expression_numeric_percentage(
         self, threshold: Thresholds, base: exp.Expression
     ) -> tuple[list[exp.Alias], exp.Expression]:
         column = threshold.column_name
-        select_clause, where = self._number_case(threshold, base)
+        select_clause, where = self._build_expression_alias_components(threshold, base)
         select_clause.append(
             build_column(
                 this=self._build_threshold_percentage_case(base=base, threshold=threshold), alias=f"{column}_match"
@@ -101,19 +103,13 @@ class ThresholdQueryBuilder(QueryBuilder):
         )
         return select_clause, where
 
-    def _build_expression_datetime(self, threshold: Thresholds, base: exp.Expression) -> tuple[list[exp.Alias], exp.Expression]:
+    def _build_expression_datetime(
+        self, threshold: Thresholds, base: exp.Expression
+    ) -> tuple[list[exp.Alias], exp.Expression]:
         select_clause = []
         column = threshold.column_name
-        select_clause.append(
-            build_column(this=column, alias=f"{column}_source", table_name="source")
-            .transform(anonymous, "unix_timestamp({})")
-            .transform(coalesce)
-        )
-        select_clause.append(
-            build_column(this=column, alias=f"{column}_databricks", table_name="databricks")
-            .transform(anonymous, "unix_timestamp({})")
-            .transform(coalesce)
-        )
+        select_clause, _ = self._build_expression_alias_components(threshold, base)
+        select_clause = [expression.transform(anonymous, "unix_timestamp({})") for expression in select_clause]
         exp_anonymous = base.transform(anonymous, "unix_timestamp({})")
         select_clause.append(
             build_column(
