@@ -65,7 +65,7 @@ class ThresholdQueryBuilder(QueryBuilder):
 
         return select_clause, where
 
-    def _number_case(self, threshold: Thresholds, base: exp.Expression) -> tuple[list[exp.Alias], exp.Expression]:
+    def _build_expression_numeric(self, threshold: Thresholds, base: exp.Expression) -> tuple[list[exp.Alias], exp.Expression]:
         select_clause = []
         column = threshold.column_name
         select_clause.append(
@@ -77,7 +77,7 @@ class ThresholdQueryBuilder(QueryBuilder):
         where = exp.NEQ(this=base, expression=exp.Literal(this="0", is_string=False))
         return select_clause, where
 
-    def _absolute_number_case(
+    def _build_expression_absolute(
         self, threshold: Thresholds, base: exp.Expression
     ) -> tuple[list[exp.Alias], exp.Expression]:
         column = threshold.column_name
@@ -101,7 +101,7 @@ class ThresholdQueryBuilder(QueryBuilder):
         )
         return select_clause, where
 
-    def _datetime_case(self, threshold: Thresholds, base: exp.Expression) -> tuple[list[exp.Alias], exp.Expression]:
+    def _build_expression_datetime(self, threshold: Thresholds, base: exp.Expression) -> tuple[list[exp.Alias], exp.Expression]:
         select_clause = []
         column = threshold.column_name
         select_clause.append(
