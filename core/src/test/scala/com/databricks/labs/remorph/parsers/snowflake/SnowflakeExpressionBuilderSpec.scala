@@ -4,9 +4,9 @@ import com.databricks.labs.remorph.parsers.intermediate._
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-class SnowflakeExpressionBuilderSpec extends AnyWordSpec with ParserTestCommon with Matchers {
+class SnowflakeExpressionBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon with Matchers {
 
-  override def astBuilder: SnowflakeParserBaseVisitor[_] = new SnowflakeExpressionBuilder
+  override protected def astBuilder: SnowflakeParserBaseVisitor[_] = new SnowflakeExpressionBuilder
 
   "SnowflakeExpressionBuilder" should {
     "translate literals" in {

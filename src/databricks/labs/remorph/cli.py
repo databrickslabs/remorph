@@ -4,7 +4,7 @@ import os
 from databricks.labs.blueprint.cli import App
 from databricks.labs.blueprint.entrypoint import get_logger
 from databricks.labs.blueprint.installation import Installation
-from databricks.labs.remorph.config import MorphConfig
+from databricks.labs.remorph.config import SQLGLOT_DIALECTS, MorphConfig
 from databricks.labs.remorph.helpers.recon_config_utils import ReconConfigPrompts
 from databricks.labs.remorph.lineage import lineage_generator
 from databricks.labs.remorph.reconcile.execute import recon
@@ -35,8 +35,8 @@ def transpile(
     installation = Installation.current(w, 'remorph')
     default_config = installation.load(MorphConfig)
     mode = mode if mode else "current"  # not checking for default config as it will always be current
-
-    if source.lower() not in {"snowflake", "tsql"}:
+    dialects = SQLGLOT_DIALECTS.keys()
+    if source.lower() not in dialects:
         raise_validation_exception(
             f"Error: Invalid value for '--source': '{source}' is not one of 'snowflake', 'tsql'. "
         )
@@ -92,11 +92,9 @@ def reconcile(w: WorkspaceClient, recon_conf: str, conn_profile: str, source: st
 def generate_lineage(w: WorkspaceClient, source: str, input_sql: str, output_folder: str):
     """Generates a lineage of source SQL files or folder"""
     logger.info(f"User: {w.current_user.me()}")
-    expected_sources = {'snowflake', 'tsql'}
-    if source.lower() not in expected_sources:
-        raise_validation_exception(
-            f"Error: Invalid value for '--source': '{source}' is not one of {expected_sources}. "
-        )
+    dialects = SQLGLOT_DIALECTS.keys()
+    if source.lower() not in dialects:
+        raise_validation_exception(f"Error: Invalid value for '--source': '{source}' is not one of {dialects}. ")
     if not os.path.exists(input_sql) or input_sql in {None, ""}:
         raise_validation_exception(f"Error: Invalid value for '--input_sql': Path '{input_sql}' does not exist.")
     if not os.path.exists(output_folder) or output_folder in {None, ""}:
