@@ -3,6 +3,8 @@ from functools import partial
 
 from sqlglot import expressions as exp
 
+from databricks.labs.remorph.reconcile.recon_config import Thresholds
+
 
 def _apply_func_expr(expr: exp.Expression, expr_func: Callable, **kwargs) -> exp.Expression:
     level = 0 if isinstance(expr, exp.Column) else 1
@@ -77,15 +79,20 @@ def anonymous(expr: exp.Expression, func: str) -> exp.Anonymous | exp.Expression
     To achieve the same,we can use the function as below:
     eg:
         >>> expr = parse_one("select col1 from dual")
-        >>> transformed_expr=anonymous(expr,"unix_timestamp")
+        >>> transformed_expr=anonymous(expr,"unix_timestamp({})")
         >>> print(transformed_expr)
         'SELECT UNIX_TIMESTAMP(col1) FROM DUAL'
 
     """
+    level = 0 if isinstance(expr, exp.Column) else 1
     new_expr = expr.copy()
     for node in new_expr.dfs():
         if isinstance(node, exp.Column):
-            return exp.Column(this=func.format(node.name))
+            name = f"{node.table}.{node.name}" if node.table else node.name
+            anonymous_func = exp.Column(this=func.format(name))
+            if level == 0:
+                return anonymous_func
+            node.replace(anonymous_func)
     return new_expr
 
 
@@ -93,7 +100,7 @@ def build_column(this: exp.ExpOrStr, table_name="", quoted=False, alias=None) ->
     if alias:
         if isinstance(this, str):
             return exp.Alias(
-                this=exp.Column(this=this, table_name=table_name), alias=exp.Identifier(this=alias, quoted=quoted)
+                this=exp.Column(this=this, table=table_name), alias=exp.Identifier(this=alias, quoted=quoted)
             )
         return exp.Alias(this=this, alias=exp.Identifier(this=alias, quoted=quoted))
     return exp.Column(this=exp.Identifier(this=this, quoted=quoted), table=table_name)
@@ -116,6 +123,99 @@ def transform_expression(
         f"Func returned an instance of type [{type(expr)}], " "should have been Expression."
     )
     return expr
+
+
+def build_from_clause(table_name: str, table_alias: str | None = None) -> exp.From:
+    return exp.From(this=exp.Table(this=exp.Identifier(this=table_name), alias=table_alias))
+
+
+def build_join_clause(table_name: str, table_alias: str, join_columns: list, kind: str = "inner") -> exp.Join:
+    join_conditions = []
+    for column in join_columns:
+        join_condition = exp.NullSafeEQ(
+            this=exp.Column(this=column, table="source"), expression=exp.Column(this=column, table=table_alias)
+        )
+        join_conditions.append(join_condition)
+
+    # Combine all join conditions with AND
+    on_condition = join_conditions[0]
+    for condition in join_conditions[1:]:
+        on_condition = exp.And(this=on_condition, expression=condition)
+
+    return exp.Join(this=exp.Table(this=exp.Identifier(this=table_name), alias=table_alias), kind=kind, on=on_condition)
+
+
+def build_sub(left_column_name, left_table_name="", right_column_name="", right_table_name="") -> exp.Sub:
+    return exp.Sub(
+        this=build_column(left_column_name, left_table_name),
+        expression=build_column(right_column_name, right_table_name),
+    )
+
+
+def build_threshold_absolute_case(base: exp.Expression, threshold: Thresholds) -> exp.Case:
+    eq_if = exp.If(
+        this=exp.EQ(this=base, expression=exp.Literal(this='0', is_string=False)),
+        true=exp.Identifier(this="Match", quoted=True),
+    )
+    between_if = exp.If(
+        this=exp.Between(
+            this=base,
+            low=exp.Literal(this=threshold.lower_bound.replace("%", ""), is_string=False),
+            high=exp.Literal(this=threshold.upper_bound.replace("%", ""), is_string=False),
+        ),
+        true=exp.Identifier(this="Warning", quoted=True),
+    )
+    return exp.Case(ifs=[eq_if, between_if], default=exp.Identifier(this="Failed", quoted=True))
+
+
+def build_threshold_percentage_case(base: exp.Expression, threshold: Thresholds) -> exp.Case:
+    eq_if = exp.If(
+        this=exp.EQ(this=base, expression=exp.Literal(this='0', is_string=False)),
+        true=exp.Identifier(this="Match", quoted=True),
+    )
+
+    denominator = exp.If(
+        this=exp.Or(
+            this=exp.EQ(
+                this=exp.Column(this=threshold.column_name, table="databricks"),
+                expression=exp.Literal(this='0', is_string=False),
+            ),
+            expression=exp.Is(
+                this=exp.Column(
+                    this=exp.Identifier(this=threshold.column_name, quoted=False),
+                    table=exp.Identifier(this='databricks'),
+                ),
+                expression=exp.Null(),
+            ),
+        ),
+        true=exp.Literal(this="1", is_string=False),
+        false=exp.Column(this=threshold.column_name, table="databricks"),
+    )
+
+    division = exp.Div(this=base, expression=denominator, typed=False, safe=False)
+    percentage = exp.Mul(this=exp.Paren(this=division), expression=exp.Literal(this="100", is_string=False))
+
+    between_if = exp.If(
+        this=exp.Between(
+            this=percentage,
+            low=exp.Literal(this=threshold.lower_bound.replace("%", ""), is_string=False),
+            high=exp.Literal(this=threshold.upper_bound.replace("%", ""), is_string=False),
+        ),
+        true=exp.Identifier(this="Warning", quoted=True),
+    )
+    return exp.Case(ifs=[eq_if, between_if], default=exp.Identifier(this="Failed", quoted=True))
+
+
+def build_where_clause(where_clause=list[exp.Expression], condition_type: str = "or") -> exp.Or:
+    func = exp.Or if condition_type == "or" else exp.And
+    # Start with a default
+    combined_expression = exp.Paren(this=func(this='1 = 1', expression='1 = 1'))
+
+    # Loop through the expressions and combine them with OR
+    for expression in where_clause:
+        combined_expression = func(this=combined_expression, expression=expression)
+
+    return combined_expression
 
 
 DataType_transform_mapping = {
