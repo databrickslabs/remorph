@@ -299,7 +299,7 @@ throw_statement
     ;
 
 throw_error_number
-    : DECIMAL
+    : INT
     | LOCAL_ID
     ;
 
@@ -309,7 +309,7 @@ throw_message
     ;
 
 throw_state
-    : DECIMAL
+    : INT
     | LOCAL_ID
     ;
 
@@ -335,11 +335,11 @@ print_statement
 
 // https://docs.microsoft.com/en-us/sql/t-sql/language-elements/raiserror-transact-sql
 raiseerror_statement
-    : RAISERROR LPAREN msg = (DECIMAL | STRING | LOCAL_ID) COMMA severity = constant_LOCAL_ID COMMA state = constant_LOCAL_ID (
+    : RAISERROR LPAREN msg = (INT | STRING | LOCAL_ID) COMMA severity = constant_LOCAL_ID COMMA state = constant_LOCAL_ID (
         COMMA (constant_LOCAL_ID | NULL_)
     )* RPAREN (WITH (LOG | SETERROR | NOWAIT))? SEMI?
-    | RAISERROR DECIMAL formatstring = (STRING | LOCAL_ID | DOUBLE_QUOTE_ID) (
-        COMMA argument = (DECIMAL | STRING | LOCAL_ID)
+    | RAISERROR INT formatstring = (STRING | LOCAL_ID | DOUBLE_QUOTE_ID) (
+        COMMA argument = (INT | STRING | LOCAL_ID)
     )*
     ;
 
@@ -370,9 +370,9 @@ another_statement
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-application-role-transact-sql
 alter_application_role
     : ALTER APPLICATION ROLE appliction_role = id_ WITH (
-        COMMA? NAME EQUAL new_application_role_name = id_
-    )? (COMMA? PASSWORD EQUAL application_role_password = STRING)? (
-        COMMA? DEFAULT_SCHEMA EQUAL app_role_default_schema = id_
+        COMMA? NAME EQ new_application_role_name = id_
+    )? (COMMA? PASSWORD EQ application_role_password = STRING)? (
+        COMMA? DEFAULT_SCHEMA EQ app_role_default_schema = id_
     )?
     ;
 
@@ -383,8 +383,8 @@ alter_xml_schema_collection
 
 create_application_role
     : CREATE APPLICATION ROLE appliction_role = id_ WITH (
-        COMMA? PASSWORD EQUAL application_role_password = STRING
-    )? (COMMA? DEFAULT_SCHEMA EQUAL app_role_default_schema = id_)?
+        COMMA? PASSWORD EQ application_role_password = STRING
+    )? (COMMA? DEFAULT_SCHEMA EQ app_role_default_schema = id_)?
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-aggregate-transact-sql
@@ -472,8 +472,8 @@ client_assembly_specifier
     ;
 
 assembly_option
-    : PERMISSION_SET EQUAL (SAFE | EXTERNAL_ACCESS | UNSAFE)
-    | VISIBILITY EQUAL on_off
+    : PERMISSION_SET EQ (SAFE | EXTERNAL_ACCESS | UNSAFE)
+    | VISIBILITY EQ on_off
     | UNCHECKED DATA
     | assembly_option COMMA
     ;
@@ -511,8 +511,8 @@ multiple_local_file_start
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/create-assembly-transact-sql
 create_assembly
     : CREATE ASSEMBLY assembly_name = id_ (AUTHORIZATION owner_name = id_)? FROM (
-        COMMA? (STRING | BINARY)
-    )+ (WITH PERMISSION_SET EQUAL (SAFE | EXTERNAL_ACCESS | UNSAFE))?
+        COMMA? (STRING | HEX)
+    )+ (WITH PERMISSION_SET EQ (SAFE | EXTERNAL_ACCESS | UNSAFE))?
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-assembly-transact-sql
@@ -541,8 +541,8 @@ asymmetric_key_option_start
     ;
 
 asymmetric_key_password_change_option
-    : DECRYPTION BY PASSWORD EQUAL STRING
-    | ENCRYPTION BY PASSWORD EQUAL STRING
+    : DECRYPTION BY PASSWORD EQ STRING
+    | ENCRYPTION BY PASSWORD EQ STRING
     ;
 
 //https://docs.microsoft.com/en-us/sql/t-sql/statements/create-asymmetric-key-transact-sql
@@ -550,18 +550,18 @@ asymmetric_key_password_change_option
 create_asymmetric_key
     : CREATE ASYMMETRIC KEY Asym_Key_Nam = id_ (AUTHORIZATION database_principal_name = id_)? (
         FROM (
-            FILE EQUAL STRING
-            | EXECUTABLE_FILE EQUAL STRING
+            FILE EQ STRING
+            | EXECUTABLE_FILE EQ STRING
             | ASSEMBLY Assembly_Name = id_
             | PROVIDER Provider_Name = id_
         )
     )? (
         WITH (
-            ALGORITHM EQUAL (RSA_4096 | RSA_3072 | RSA_2048 | RSA_1024 | RSA_512)
-            | PROVIDER_KEY_NAME EQUAL provider_key_name = STRING
-            | CREATION_DISPOSITION EQUAL (CREATE_NEW | OPEN_EXISTING)
+            ALGORITHM EQ (RSA_4096 | RSA_3072 | RSA_2048 | RSA_1024 | RSA_512)
+            | PROVIDER_KEY_NAME EQ provider_key_name = STRING
+            | CREATION_DISPOSITION EQ (CREATE_NEW | OPEN_EXISTING)
         )
-    )? (ENCRYPTION BY PASSWORD EQUAL asymmetric_key_password = STRING)?
+    )? (ENCRYPTION BY PASSWORD EQ asymmetric_key_password = STRING)?
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-asymmetric-key-transact-sql
@@ -719,69 +719,69 @@ alter_availability_group_start
 alter_availability_group_options
     : SET LPAREN (
         (
-            AUTOMATED_BACKUP_PREFERENCE EQUAL (PRIMARY | SECONDARY_ONLY | SECONDARY | NONE)
-            | FAILURE_CONDITION_LEVEL EQUAL DECIMAL
-            | HEALTH_CHECK_TIMEOUT EQUAL milliseconds = DECIMAL
-            | DB_FAILOVER EQUAL ( ON | OFF)
-            | REQUIRED_SYNCHRONIZED_SECONDARIES_TO_COMMIT EQUAL DECIMAL
+            AUTOMATED_BACKUP_PREFERENCE EQ (PRIMARY | SECONDARY_ONLY | SECONDARY | NONE)
+            | FAILURE_CONDITION_LEVEL EQ INT
+            | HEALTH_CHECK_TIMEOUT EQ milliseconds = INT
+            | DB_FAILOVER EQ ( ON | OFF)
+            | REQUIRED_SYNCHRONIZED_SECONDARIES_TO_COMMIT EQ INT
         ) RPAREN
     )
     | ADD DATABASE database_name = id_
     | REMOVE DATABASE database_name = id_
     | ADD REPLICA ON server_instance = STRING (
         WITH LPAREN (
-            (ENDPOINT_URL EQUAL STRING)? (
-                COMMA? AVAILABILITY_MODE EQUAL (SYNCHRONOUS_COMMIT | ASYNCHRONOUS_COMMIT)
-            )? (COMMA? FAILOVER_MODE EQUAL (AUTOMATIC | MANUAL))? (
-                COMMA? SEEDING_MODE EQUAL (AUTOMATIC | MANUAL)
-            )? (COMMA? BACKUP_PRIORITY EQUAL DECIMAL)? (
-                COMMA? PRIMARY_ROLE LPAREN ALLOW_CONNECTIONS EQUAL (READ_WRITE | ALL) RPAREN
-            )? (COMMA? SECONDARY_ROLE LPAREN ALLOW_CONNECTIONS EQUAL ( READ_ONLY) RPAREN)?
+            (ENDPOINT_URL EQ STRING)? (
+                COMMA? AVAILABILITY_MODE EQ (SYNCHRONOUS_COMMIT | ASYNCHRONOUS_COMMIT)
+            )? (COMMA? FAILOVER_MODE EQ (AUTOMATIC | MANUAL))? (
+                COMMA? SEEDING_MODE EQ (AUTOMATIC | MANUAL)
+            )? (COMMA? BACKUP_PRIORITY EQ INT)? (
+                COMMA? PRIMARY_ROLE LPAREN ALLOW_CONNECTIONS EQ (READ_WRITE | ALL) RPAREN
+            )? (COMMA? SECONDARY_ROLE LPAREN ALLOW_CONNECTIONS EQ ( READ_ONLY) RPAREN)?
         )
     ) RPAREN
     | SECONDARY_ROLE LPAREN (
-        ALLOW_CONNECTIONS EQUAL (NO | READ_ONLY | ALL)
-        | READ_ONLY_ROUTING_LIST EQUAL ( LPAREN ( ( STRING)) RPAREN)
+        ALLOW_CONNECTIONS EQ (NO | READ_ONLY | ALL)
+        | READ_ONLY_ROUTING_LIST EQ ( LPAREN ( ( STRING)) RPAREN)
     )
     | PRIMARY_ROLE LPAREN (
-        ALLOW_CONNECTIONS EQUAL (NO | READ_ONLY | ALL)
-        | READ_ONLY_ROUTING_LIST EQUAL (LPAREN ( (COMMA? STRING)* | NONE) RPAREN)
-        | SESSION_TIMEOUT EQUAL session_timeout = DECIMAL
+        ALLOW_CONNECTIONS EQ (NO | READ_ONLY | ALL)
+        | READ_ONLY_ROUTING_LIST EQ (LPAREN ( (COMMA? STRING)* | NONE) RPAREN)
+        | SESSION_TIMEOUT EQ session_timeout = INT
     )
     | MODIFY REPLICA ON server_instance = STRING (
         WITH LPAREN (
-            ENDPOINT_URL EQUAL STRING
-            | AVAILABILITY_MODE EQUAL (SYNCHRONOUS_COMMIT | ASYNCHRONOUS_COMMIT)
-            | FAILOVER_MODE EQUAL (AUTOMATIC | MANUAL)
-            | SEEDING_MODE EQUAL (AUTOMATIC | MANUAL)
-            | BACKUP_PRIORITY EQUAL DECIMAL
+            ENDPOINT_URL EQ STRING
+            | AVAILABILITY_MODE EQ (SYNCHRONOUS_COMMIT | ASYNCHRONOUS_COMMIT)
+            | FAILOVER_MODE EQ (AUTOMATIC | MANUAL)
+            | SEEDING_MODE EQ (AUTOMATIC | MANUAL)
+            | BACKUP_PRIORITY EQ INT
         )
         | SECONDARY_ROLE LPAREN (
-            ALLOW_CONNECTIONS EQUAL (NO | READ_ONLY | ALL)
-            | READ_ONLY_ROUTING_LIST EQUAL ( LPAREN ( ( STRING)) RPAREN)
+            ALLOW_CONNECTIONS EQ (NO | READ_ONLY | ALL)
+            | READ_ONLY_ROUTING_LIST EQ ( LPAREN ( ( STRING)) RPAREN)
         )
         | PRIMARY_ROLE LPAREN (
-            ALLOW_CONNECTIONS EQUAL (NO | READ_ONLY | ALL)
-            | READ_ONLY_ROUTING_LIST EQUAL (LPAREN ( (COMMA? STRING)* | NONE) RPAREN)
-            | SESSION_TIMEOUT EQUAL session_timeout = DECIMAL
+            ALLOW_CONNECTIONS EQ (NO | READ_ONLY | ALL)
+            | READ_ONLY_ROUTING_LIST EQ (LPAREN ( (COMMA? STRING)* | NONE) RPAREN)
+            | SESSION_TIMEOUT EQ session_timeout = INT
         )
     ) RPAREN
     | REMOVE REPLICA ON STRING
     | JOIN
     | JOIN AVAILABILITY GROUP ON (
         COMMA? ag_name = STRING WITH LPAREN (
-            LISTENER_URL EQUAL STRING COMMA AVAILABILITY_MODE EQUAL (
+            LISTENER_URL EQ STRING COMMA AVAILABILITY_MODE EQ (
                 SYNCHRONOUS_COMMIT
                 | ASYNCHRONOUS_COMMIT
-            ) COMMA FAILOVER_MODE EQUAL MANUAL COMMA SEEDING_MODE EQUAL (AUTOMATIC | MANUAL) RPAREN
+            ) COMMA FAILOVER_MODE EQ MANUAL COMMA SEEDING_MODE EQ (AUTOMATIC | MANUAL) RPAREN
         )
     )+
     | MODIFY AVAILABILITY GROUP ON (
         COMMA? ag_name_modified = STRING WITH LPAREN (
-            LISTENER_URL EQUAL STRING (
-                COMMA? AVAILABILITY_MODE EQUAL (SYNCHRONOUS_COMMIT | ASYNCHRONOUS_COMMIT)
-            )? (COMMA? FAILOVER_MODE EQUAL MANUAL)? (
-                COMMA? SEEDING_MODE EQUAL (AUTOMATIC | MANUAL)
+            LISTENER_URL EQ STRING (
+                COMMA? AVAILABILITY_MODE EQ (SYNCHRONOUS_COMMIT | ASYNCHRONOUS_COMMIT)
+            )? (COMMA? FAILOVER_MODE EQ MANUAL)? (
+                COMMA? SEEDING_MODE EQ (AUTOMATIC | MANUAL)
             )? RPAREN
         )
     )+
@@ -793,18 +793,18 @@ alter_availability_group_options
         WITH DHCP (ON LPAREN ip_v4_failover ip_v4_failover RPAREN)
         | WITH IP LPAREN (
             (COMMA? LPAREN ( ip_v4_failover COMMA ip_v4_failover | ip_v6_failover) RPAREN)+ RPAREN (
-                COMMA PORT EQUAL DECIMAL
+                COMMA PORT EQ INT
             )?
         )
     ) RPAREN
     | MODIFY LISTENER (
         ADD IP LPAREN (ip_v4_failover ip_v4_failover | ip_v6_failover) RPAREN
-        | PORT EQUAL DECIMAL
+        | PORT EQ INT
     )
     | RESTART LISTENER STRING
     | REMOVE LISTENER STRING
     | OFFLINE
-    | WITH LPAREN DTC_SUPPORT EQUAL PER_DB RPAREN
+    | WITH LPAREN DTC_SUPPORT EQ PER_DB RPAREN
     ;
 
 ip_v4_failover
@@ -819,10 +819,10 @@ ip_v6_failover
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/create-broker-priority-transact-sql
 create_or_alter_broker_priority
     : (CREATE | ALTER) BROKER PRIORITY ConversationPriorityName = id_ FOR CONVERSATION SET LPAREN (
-        CONTRACT_NAME EQUAL ( ( id_) | ANY) COMMA?
-    )? (LOCAL_SERVICE_NAME EQUAL (DOUBLE_FORWARD_SLASH? id_ | ANY) COMMA?)? (
-        REMOTE_SERVICE_NAME EQUAL (RemoteServiceName = STRING | ANY) COMMA?
-    )? (PRIORITY_LEVEL EQUAL ( PriorityValue = DECIMAL | DEFAULT))? RPAREN
+        CONTRACT_NAME EQ ( ( id_) | ANY) COMMA?
+    )? (LOCAL_SERVICE_NAME EQ (DOUBLE_FORWARD_SLASH? id_ | ANY) COMMA?)? (
+        REMOTE_SERVICE_NAME EQ (RemoteServiceName = STRING | ANY) COMMA?
+    )? (PRIORITY_LEVEL EQ ( PriorityValue = INT | DEFAULT))? RPAREN
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-broker-priority-transact-sql
@@ -835,26 +835,26 @@ alter_certificate
     : ALTER CERTIFICATE certificate_name = id_ (
         REMOVE PRIVATE_KEY
         | WITH PRIVATE KEY LPAREN (
-            FILE EQUAL STRING COMMA?
-            | DECRYPTION BY PASSWORD EQUAL STRING COMMA?
-            | ENCRYPTION BY PASSWORD EQUAL STRING COMMA?
+            FILE EQ STRING COMMA?
+            | DECRYPTION BY PASSWORD EQ STRING COMMA?
+            | ENCRYPTION BY PASSWORD EQ STRING COMMA?
         )+ RPAREN
-        | WITH ACTIVE FOR BEGIN_DIALOG EQUAL ( ON | OFF)
+        | WITH ACTIVE FOR BEGIN_DIALOG EQ ( ON | OFF)
     )
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-column-encryption-key-transact-sql
 alter_column_encryption_key
-    : ALTER COLUMN ENCRYPTION KEY column_encryption_key = id_ (ADD | DROP) VALUE LPAREN COLUMN_MASTER_KEY EQUAL column_master_key_name = id_ (
-        COMMA ALGORITHM EQUAL algorithm_name = STRING COMMA ENCRYPTED_VALUE EQUAL BINARY
+    : ALTER COLUMN ENCRYPTION KEY column_encryption_key = id_ (ADD | DROP) VALUE LPAREN COLUMN_MASTER_KEY EQ column_master_key_name = id_ (
+        COMMA ALGORITHM EQ algorithm_name = STRING COMMA ENCRYPTED_VALUE EQ HEX
     )? RPAREN
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/create-column-encryption-key-transact-sql
 create_column_encryption_key
     : CREATE COLUMN ENCRYPTION KEY column_encryption_key = id_ WITH VALUES (
-        LPAREN COMMA? COLUMN_MASTER_KEY EQUAL column_master_key_name = id_ COMMA ALGORITHM EQUAL algorithm_name = STRING COMMA ENCRYPTED_VALUE
-            EQUAL encrypted_value = BINARY RPAREN COMMA?
+        LPAREN COMMA? COLUMN_MASTER_KEY EQ column_master_key_name = id_ COMMA ALGORITHM EQ algorithm_name = STRING COMMA ENCRYPTED_VALUE
+            EQ encrypted_value = HEX RPAREN COMMA?
     )+
     ;
 
@@ -1125,79 +1125,79 @@ enable_trigger
     ;
 
 lock_table
-    : LOCK TABLE table_name IN (SHARE | EXCLUSIVE) MODE (WAIT seconds = DECIMAL | NOWAIT)? SEMI?
+    : LOCK TABLE table_name IN (SHARE | EXCLUSIVE) MODE (WAIT seconds = INT | NOWAIT)? SEMI?
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/truncate-table-transact-sql
 truncate_table
     : TRUNCATE TABLE table_name (
-        WITH LPAREN PARTITIONS LPAREN (COMMA? (DECIMAL | DECIMAL TO DECIMAL))+ RPAREN RPAREN
+        WITH LPAREN PARTITIONS LPAREN (COMMA? (INT | INT TO INT))+ RPAREN RPAREN
     )?
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/create-column-master-key-transact-sql
 create_column_master_key
-    : CREATE COLUMN MASTER KEY key_name = id_ WITH LPAREN KEY_STORE_PROVIDER_NAME EQUAL key_store_provider_name = STRING COMMA KEY_PATH EQUAL
+    : CREATE COLUMN MASTER KEY key_name = id_ WITH LPAREN KEY_STORE_PROVIDER_NAME EQ key_store_provider_name = STRING COMMA KEY_PATH EQ
         key_path = STRING RPAREN
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-credential-transact-sql
 alter_credential
-    : ALTER CREDENTIAL credential_name = id_ WITH IDENTITY EQUAL identity_name = STRING (
-        COMMA SECRET EQUAL secret = STRING
+    : ALTER CREDENTIAL credential_name = id_ WITH IDENTITY EQ identity_name = STRING (
+        COMMA SECRET EQ secret = STRING
     )?
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/create-credential-transact-sql
 create_credential
-    : CREATE CREDENTIAL credential_name = id_ WITH IDENTITY EQUAL identity_name = STRING (
-        COMMA SECRET EQUAL secret = STRING
+    : CREATE CREDENTIAL credential_name = id_ WITH IDENTITY EQ identity_name = STRING (
+        COMMA SECRET EQ secret = STRING
     )? (FOR CRYPTOGRAPHIC PROVIDER cryptographic_provider_name = id_)?
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-cryptographic-provider-transact-sql
 alter_cryptographic_provider
     : ALTER CRYPTOGRAPHIC PROVIDER provider_name = id_ (
-        FROM FILE EQUAL crypto_provider_ddl_file = STRING
+        FROM FILE EQ crypto_provider_ddl_file = STRING
     )? (ENABLE | DISABLE)?
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/create-cryptographic-provider-transact-sql
 create_cryptographic_provider
-    : CREATE CRYPTOGRAPHIC PROVIDER provider_name = id_ FROM FILE EQUAL path_of_DLL = STRING
+    : CREATE CRYPTOGRAPHIC PROVIDER provider_name = id_ FROM FILE EQ path_of_DLL = STRING
     ;
 
 // https://learn.microsoft.com/en-us/sql/t-sql/statements/create-endpoint-transact-sql?view=sql-server-ver16
 create_endpoint
     : CREATE ENDPOINT endpointname = id_ (AUTHORIZATION login = id_)? (
-        STATE EQUAL state = (STARTED | STOPPED | DISABLED)
+        STATE EQ state = (STARTED | STOPPED | DISABLED)
     )? AS TCP LPAREN endpoint_listener_clause RPAREN (
         FOR TSQL LPAREN RPAREN
         | FOR SERVICE_BROKER LPAREN endpoint_authentication_clause (
             COMMA? endpoint_encryption_alogorithm_clause
-        )? (COMMA? MESSAGE_FORWARDING EQUAL (ENABLED | DISABLED))? (
-            COMMA? MESSAGE_FORWARD_SIZE EQUAL DECIMAL
+        )? (COMMA? MESSAGE_FORWARDING EQ (ENABLED | DISABLED))? (
+            COMMA? MESSAGE_FORWARD_SIZE EQ INT
         )? RPAREN
         | FOR DATABASE_MIRRORING LPAREN endpoint_authentication_clause (
             COMMA? endpoint_encryption_alogorithm_clause
-        )? COMMA? ROLE EQUAL (WITNESS | PARTNER | ALL) RPAREN
+        )? COMMA? ROLE EQ (WITNESS | PARTNER | ALL) RPAREN
     )
     ;
 
 endpoint_encryption_alogorithm_clause
-    : ENCRYPTION EQUAL (DISABLED | SUPPORTED | REQUIRED) (ALGORITHM (AES RC4? | RC4 AES?))?
+    : ENCRYPTION EQ (DISABLED | SUPPORTED | REQUIRED) (ALGORITHM (AES RC4? | RC4 AES?))?
     ;
 
 endpoint_authentication_clause
-    : AUTHENTICATION EQUAL (
+    : AUTHENTICATION EQ (
         WINDOWS (NTLM | KERBEROS | NEGOTIATE)? (CERTIFICATE cert_name = id_)?
         | CERTIFICATE cert_name = id_ WINDOWS? (NTLM | KERBEROS | NEGOTIATE)?
     )
     ;
 
 endpoint_listener_clause
-    : LISTENER_PORT EQUAL port = DECIMAL (
-        COMMA LISTENER_IP EQUAL (ALL | LPAREN (ipv4 = IPV4_ADDR | ipv6 = STRING) RPAREN)
+    : LISTENER_PORT EQ port = INT (
+        COMMA LISTENER_IP EQ (ALL | LPAREN (ipv4 = IPV4_ADDR | ipv6 = STRING) RPAREN)
     )?
     ;
 
@@ -1219,7 +1219,7 @@ create_or_alter_event_session
         COMMA? ADD EVENT (
             (event_module_guid = id_ DOT)? event_package_name = id_ DOT event_name = id_
         ) (
-            LPAREN (SET ( COMMA? event_customizable_attributue = id_ EQUAL (DECIMAL | STRING))*)? (
+            LPAREN (SET ( COMMA? event_customizable_attributue = id_ EQ (INT | STRING))*)? (
                 ACTION LPAREN (
                     COMMA? (event_module_guid = id_ DOT)? event_package_name = id_ DOT action_name = id_
                 )+ RPAREN
@@ -1230,25 +1230,25 @@ create_or_alter_event_session
     )* (
         (ADD TARGET (event_module_guid = id_ DOT)? event_package_name = id_ DOT target_name = id_) (
             LPAREN SET (
-                COMMA? target_parameter_name = id_ EQUAL (LPAREN? DECIMAL RPAREN? | STRING)
+                COMMA? target_parameter_name = id_ EQ (LPAREN? INT RPAREN? | STRING)
             )+ RPAREN
         )*
     )* (DROP TARGET (event_module_guid = id_ DOT)? event_package_name = id_ DOT target_name = id_)* (
-        WITH LPAREN (COMMA? MAX_MEMORY EQUAL max_memory = DECIMAL (KB | MB))? (
-            COMMA? EVENT_RETENTION_MODE EQUAL (
+        WITH LPAREN (COMMA? MAX_MEMORY EQ max_memory = INT (KB | MB))? (
+            COMMA? EVENT_RETENTION_MODE EQ (
                 ALLOW_SINGLE_EVENT_LOSS
                 | ALLOW_MULTIPLE_EVENT_LOSS
                 | NO_EVENT_LOSS
             )
         )? (
-            COMMA? MAX_DISPATCH_LATENCY EQUAL (
-                max_dispatch_latency_seconds = DECIMAL SECONDS
+            COMMA? MAX_DISPATCH_LATENCY EQ (
+                max_dispatch_latency_seconds = INT SECONDS
                 | INFINITE
             )
-        )? (COMMA? MAX_EVENT_SIZE EQUAL max_event_size = DECIMAL (KB | MB))? (
-            COMMA? MEMORY_PARTITION_MODE EQUAL (NONE | PER_NODE | PER_CPU)
-        )? (COMMA? TRACK_CAUSALITY EQUAL (ON | OFF))? (COMMA? STARTUP_STATE EQUAL (ON | OFF))? RPAREN
-    )? (STATE EQUAL (START | STOP))?
+        )? (COMMA? MAX_EVENT_SIZE EQ max_event_size = INT (KB | MB))? (
+            COMMA? MEMORY_PARTITION_MODE EQ (NONE | PER_NODE | PER_CPU)
+        )? (COMMA? TRACK_CAUSALITY EQ (ON | OFF))? (COMMA? STARTUP_STATE EQ (ON | OFF))? RPAREN
+    )? (STATE EQ (START | STOP))?
     ;
 
 event_session_predicate_expression
@@ -1274,19 +1274,19 @@ event_session_predicate_leaf
                 (event_module_guid = id_ DOT)? event_package_name = id_ DOT predicate_source_name = id_
             )
         ) (
-            EQUAL
-            | (LESS GREATER)
-            | (BANG EQUAL)
-            | GREATER
-            | (GREATER EQUAL)
-            | LESS
-            | LESS EQUAL
-        ) (DECIMAL | STRING)
+            EQ
+            | (LT GT)
+            | (BANG EQ)
+            | GT
+            | (GT EQ)
+            | LT
+            | LT EQ
+        ) (INT | STRING)
     )
     | (event_module_guid = id_ DOT)? event_package_name = id_ DOT predicate_compare_name = id_ LPAREN (
         event_field_name = id_
         | ((event_module_guid = id_ DOT)? event_package_name = id_ DOT predicate_source_name = id_) COMMA (
-            DECIMAL
+            INT
             | STRING
         )
     ) RPAREN
@@ -1295,23 +1295,23 @@ event_session_predicate_leaf
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-external-data-source-transact-sql
 alter_external_data_source
     : ALTER EXTERNAL DATA SOURCE data_source_name = id_ SET (
-        LOCATION EQUAL location = STRING COMMA?
-        | RESOURCE_MANAGER_LOCATION EQUAL resource_manager_location = STRING COMMA?
-        | CREDENTIAL EQUAL credential_name = id_
+        LOCATION EQ location = STRING COMMA?
+        | RESOURCE_MANAGER_LOCATION EQ resource_manager_location = STRING COMMA?
+        | CREDENTIAL EQ credential_name = id_
     )+
-    | ALTER EXTERNAL DATA SOURCE data_source_name = id_ WITH LPAREN TYPE EQUAL BLOB_STORAGE COMMA LOCATION EQUAL location = STRING (
-        COMMA CREDENTIAL EQUAL credential_name = id_
+    | ALTER EXTERNAL DATA SOURCE data_source_name = id_ WITH LPAREN TYPE EQ BLOB_STORAGE COMMA LOCATION EQ location = STRING (
+        COMMA CREDENTIAL EQ credential_name = id_
     )? RPAREN
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-external-library-transact-sql
 alter_external_library
     : ALTER EXTERNAL LIBRARY library_name = id_ (AUTHORIZATION owner_name = id_)? (SET | ADD) (
-        LPAREN CONTENT EQUAL (client_library = STRING | BINARY | NONE) (
-            COMMA PLATFORM EQUAL (WINDOWS | LINUX)? RPAREN
+        LPAREN CONTENT EQ (client_library = STRING | HEX | NONE) (
+            COMMA PLATFORM EQ (WINDOWS | LINUX)? RPAREN
         ) WITH (
-            COMMA? LANGUAGE EQUAL (R | PYTHON)
-            | DATA_SOURCE EQUAL external_data_source_name = id_
+            COMMA? LANGUAGE EQ (R | PYTHON)
+            | DATA_SOURCE EQ external_data_source_name = id_
         )+ RPAREN
     )
     ;
@@ -1319,41 +1319,41 @@ alter_external_library
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/create-external-library-transact-sql
 create_external_library
     : CREATE EXTERNAL LIBRARY library_name = id_ (AUTHORIZATION owner_name = id_)? FROM (
-        COMMA? LPAREN? (CONTENT EQUAL)? (client_library = STRING | BINARY | NONE) (
-            COMMA PLATFORM EQUAL (WINDOWS | LINUX)? RPAREN
+        COMMA? LPAREN? (CONTENT EQ)? (client_library = STRING | HEX | NONE) (
+            COMMA PLATFORM EQ (WINDOWS | LINUX)? RPAREN
         )?
     ) (
         WITH (
-            COMMA? LANGUAGE EQUAL (R | PYTHON)
-            | DATA_SOURCE EQUAL external_data_source_name = id_
+            COMMA? LANGUAGE EQ (R | PYTHON)
+            | DATA_SOURCE EQ external_data_source_name = id_
         )+ RPAREN
     )?
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-external-resource-pool-transact-sql
 alter_external_resource_pool
-    : ALTER EXTERNAL RESOURCE POOL (pool_name = id_ | DEFAULT_DOUBLE_QUOTE) WITH LPAREN MAX_CPU_PERCENT EQUAL max_cpu_percent = DECIMAL (
-        COMMA? AFFINITY CPU EQUAL (AUTO | (COMMA? DECIMAL TO DECIMAL | COMMA DECIMAL)+)
-        | NUMANODE EQUAL (COMMA? DECIMAL TO DECIMAL | COMMA? DECIMAL)+
-    ) (COMMA? MAX_MEMORY_PERCENT EQUAL max_memory_percent = DECIMAL)? (
-        COMMA? MAX_PROCESSES EQUAL max_processes = DECIMAL
+    : ALTER EXTERNAL RESOURCE POOL (pool_name = id_ | DEFAULT_DOUBLE_QUOTE) WITH LPAREN MAX_CPU_PERCENT EQ max_cpu_percent = INT (
+        COMMA? AFFINITY CPU EQ (AUTO | (COMMA? INT TO INT | COMMA INT)+)
+        | NUMANODE EQ (COMMA? INT TO INT | COMMA? INT)+
+    ) (COMMA? MAX_MEMORY_PERCENT EQ max_memory_percent = INT)? (
+        COMMA? MAX_PROCESSES EQ max_processes = INT
     )? RPAREN
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/create-external-resource-pool-transact-sql
 create_external_resource_pool
-    : CREATE EXTERNAL RESOURCE POOL pool_name = id_ WITH LPAREN MAX_CPU_PERCENT EQUAL max_cpu_percent = DECIMAL (
-        COMMA? AFFINITY CPU EQUAL (AUTO | (COMMA? DECIMAL TO DECIMAL | COMMA DECIMAL)+)
-        | NUMANODE EQUAL (COMMA? DECIMAL TO DECIMAL | COMMA? DECIMAL)+
-    ) (COMMA? MAX_MEMORY_PERCENT EQUAL max_memory_percent = DECIMAL)? (
-        COMMA? MAX_PROCESSES EQUAL max_processes = DECIMAL
+    : CREATE EXTERNAL RESOURCE POOL pool_name = id_ WITH LPAREN MAX_CPU_PERCENT EQ max_cpu_percent = INT (
+        COMMA? AFFINITY CPU EQ (AUTO | (COMMA? INT TO INT | COMMA INT)+)
+        | NUMANODE EQ (COMMA? INT TO INT | COMMA? INT)+
+    ) (COMMA? MAX_MEMORY_PERCENT EQ max_memory_percent = INT)? (
+        COMMA? MAX_PROCESSES EQ max_processes = INT
     )? RPAREN
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-fulltext-catalog-transact-sql
 alter_fulltext_catalog
     : ALTER FULLTEXT CATALOG catalog_name = id_ (
-        REBUILD (WITH ACCENT_SENSITIVITY EQUAL (ON | OFF))?
+        REBUILD (WITH ACCENT_SENSITIVITY EQ (ON | OFF))?
         | REORGANIZE
         | AS DEFAULT
     )
@@ -1363,16 +1363,16 @@ alter_fulltext_catalog
 create_fulltext_catalog
     : CREATE FULLTEXT CATALOG catalog_name = id_ (ON FILEGROUP filegroup = id_)? (
         IN PATH rootpath = STRING
-    )? (WITH ACCENT_SENSITIVITY EQUAL (ON | OFF))? (AS DEFAULT)? (AUTHORIZATION owner_name = id_)?
+    )? (WITH ACCENT_SENSITIVITY EQ (ON | OFF))? (AS DEFAULT)? (AUTHORIZATION owner_name = id_)?
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-fulltext-stoplist-transact-sql
 alter_fulltext_stoplist
     : ALTER FULLTEXT STOPLIST stoplist_name = id_ (
-        ADD stopword = STRING LANGUAGE (STRING | DECIMAL | BINARY)
+        ADD stopword = STRING LANGUAGE (STRING | INT | HEX)
         | DROP (
-            stopword = STRING LANGUAGE (STRING | DECIMAL | BINARY)
-            | ALL (STRING | DECIMAL | BINARY)
+            stopword = STRING LANGUAGE (STRING | INT | HEX)
+            | ALL (STRING | INT | HEX)
             | ALL
         )
     )
@@ -1390,15 +1390,15 @@ alter_login_sql_server
     : ALTER LOGIN login_name = id_ (
         (ENABLE | DISABLE)?
         | WITH (
-            (PASSWORD EQUAL ( password = STRING | password_hash = BINARY HASHED)) (
+            (PASSWORD EQ ( password = STRING | password_hash = HEX HASHED)) (
                 MUST_CHANGE
                 | UNLOCK
             )*
-        )? (OLD_PASSWORD EQUAL old_password = STRING (MUST_CHANGE | UNLOCK)*)? (
-            DEFAULT_DATABASE EQUAL default_database = id_
-        )? (DEFAULT_LANGUAGE EQUAL default_laguage = id_)? (NAME EQUAL login_name = id_)? (
-            CHECK_POLICY EQUAL (ON | OFF)
-        )? (CHECK_EXPIRATION EQUAL (ON | OFF))? (CREDENTIAL EQUAL credential_name = id_)? (
+        )? (OLD_PASSWORD EQ old_password = STRING (MUST_CHANGE | UNLOCK)*)? (
+            DEFAULT_DATABASE EQ default_database = id_
+        )? (DEFAULT_LANGUAGE EQ default_laguage = id_)? (NAME EQ login_name = id_)? (
+            CHECK_POLICY EQ (ON | OFF)
+        )? (CHECK_EXPIRATION EQ (ON | OFF))? (CREDENTIAL EQ credential_name = id_)? (
             NO CREDENTIAL
         )?
         | (ADD | DROP) CREDENTIAL credential_name = id_
@@ -1409,20 +1409,20 @@ alter_login_sql_server
 create_login_sql_server
     : CREATE LOGIN login_name = id_ (
         WITH (
-            (PASSWORD EQUAL ( password = STRING | password_hash = BINARY HASHED)) (
+            (PASSWORD EQ ( password = STRING | password_hash = HEX HASHED)) (
                 MUST_CHANGE
                 | UNLOCK
             )*
-        )? (COMMA? SID EQUAL sid = BINARY)? (COMMA? DEFAULT_DATABASE EQUAL default_database = id_)? (
-            COMMA? DEFAULT_LANGUAGE EQUAL default_laguage = id_
-        )? (COMMA? CHECK_EXPIRATION EQUAL (ON | OFF))? (COMMA? CHECK_POLICY EQUAL (ON | OFF))? (
-            COMMA? CREDENTIAL EQUAL credential_name = id_
+        )? (COMMA? SID EQ sid = HEX)? (COMMA? DEFAULT_DATABASE EQ default_database = id_)? (
+            COMMA? DEFAULT_LANGUAGE EQ default_laguage = id_
+        )? (COMMA? CHECK_EXPIRATION EQ (ON | OFF))? (COMMA? CHECK_POLICY EQ (ON | OFF))? (
+            COMMA? CREDENTIAL EQ credential_name = id_
         )?
         | (
             FROM (
                 WINDOWS (
-                    WITH (COMMA? DEFAULT_DATABASE EQUAL default_database = id_)? (
-                        COMMA? DEFAULT_LANGUAGE EQUAL default_language = STRING
+                    WITH (COMMA? DEFAULT_DATABASE EQ default_database = id_)? (
+                        COMMA? DEFAULT_LANGUAGE EQ default_language = STRING
                     )?
                 )
                 | CERTIFICATE certname = id_
@@ -1436,31 +1436,31 @@ alter_login_azure_sql
     : ALTER LOGIN login_name = id_ (
         (ENABLE | DISABLE)?
         | WITH (
-            PASSWORD EQUAL password = STRING (OLD_PASSWORD EQUAL old_password = STRING)?
-            | NAME EQUAL login_name = id_
+            PASSWORD EQ password = STRING (OLD_PASSWORD EQ old_password = STRING)?
+            | NAME EQ login_name = id_
         )
     )
     ;
 
 create_login_azure_sql
-    : CREATE LOGIN login_name = id_ WITH PASSWORD EQUAL STRING (SID EQUAL sid = BINARY)?
+    : CREATE LOGIN login_name = id_ WITH PASSWORD EQ STRING (SID EQ sid = HEX)?
     ;
 
 alter_login_azure_sql_dw_and_pdw
     : ALTER LOGIN login_name = id_ (
         (ENABLE | DISABLE)?
         | WITH (
-            PASSWORD EQUAL password = STRING (
-                OLD_PASSWORD EQUAL old_password = STRING (MUST_CHANGE | UNLOCK)*
+            PASSWORD EQ password = STRING (
+                OLD_PASSWORD EQ old_password = STRING (MUST_CHANGE | UNLOCK)*
             )?
-            | NAME EQUAL login_name = id_
+            | NAME EQ login_name = id_
         )
     )
     ;
 
 create_login_pdw
     : CREATE LOGIN loginName = id_ (
-        WITH (PASSWORD EQUAL password = STRING (MUST_CHANGE)? (CHECK_POLICY EQUAL (ON | OFF)?)?)
+        WITH (PASSWORD EQ password = STRING (MUST_CHANGE)? (CHECK_POLICY EQ (ON | OFF)?)?)
         | FROM WINDOWS
     )
     ;
@@ -1468,34 +1468,34 @@ create_login_pdw
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-master-key-transact-sql
 alter_master_key_sql_server
     : ALTER MASTER KEY (
-        (FORCE)? REGENERATE WITH ENCRYPTION BY PASSWORD EQUAL password = STRING
+        (FORCE)? REGENERATE WITH ENCRYPTION BY PASSWORD EQ password = STRING
         | (ADD | DROP) ENCRYPTION BY (
             SERVICE MASTER KEY
-            | PASSWORD EQUAL encryption_password = STRING
+            | PASSWORD EQ encryption_password = STRING
         )
     )
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/create-master-key-transact-sql
 create_master_key_sql_server
-    : CREATE MASTER KEY ENCRYPTION BY PASSWORD EQUAL password = STRING
+    : CREATE MASTER KEY ENCRYPTION BY PASSWORD EQ password = STRING
     ;
 
 alter_master_key_azure_sql
     : ALTER MASTER KEY (
-        (FORCE)? REGENERATE WITH ENCRYPTION BY PASSWORD EQUAL password = STRING
-        | ADD ENCRYPTION BY (SERVICE MASTER KEY | PASSWORD EQUAL encryption_password = STRING)
-        | DROP ENCRYPTION BY PASSWORD EQUAL encryption_password = STRING
+        (FORCE)? REGENERATE WITH ENCRYPTION BY PASSWORD EQ password = STRING
+        | ADD ENCRYPTION BY (SERVICE MASTER KEY | PASSWORD EQ encryption_password = STRING)
+        | DROP ENCRYPTION BY PASSWORD EQ encryption_password = STRING
     )
     ;
 
 create_master_key_azure_sql
-    : CREATE MASTER KEY (ENCRYPTION BY PASSWORD EQUAL password = STRING)?
+    : CREATE MASTER KEY (ENCRYPTION BY PASSWORD EQ password = STRING)?
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-message-type-transact-sql
 alter_message_type
-    : ALTER MESSAGE TYPE message_type_name = id_ VALIDATION EQUAL (
+    : ALTER MESSAGE TYPE message_type_name = id_ VALIDATION EQ (
         NONE
         | EMPTY
         | WELL_FORMED_XML
@@ -1505,7 +1505,7 @@ alter_message_type
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-partition-function-transact-sql
 alter_partition_function
-    : ALTER PARTITION FUNCTION partition_function_name = id_ LPAREN RPAREN (SPLIT | MERGE) RANGE LPAREN DECIMAL RPAREN
+    : ALTER PARTITION FUNCTION partition_function_name = id_ LPAREN RPAREN (SPLIT | MERGE) RANGE LPAREN INT RPAREN
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-partition-scheme-transact-sql
@@ -1515,32 +1515,32 @@ alter_partition_scheme
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-remote-service-binding-transact-sql
 alter_remote_service_binding
-    : ALTER REMOTE SERVICE BINDING binding_name = id_ WITH (USER EQUAL user_name = id_)? (
-        COMMA ANONYMOUS EQUAL (ON | OFF)
+    : ALTER REMOTE SERVICE BINDING binding_name = id_ WITH (USER EQ user_name = id_)? (
+        COMMA ANONYMOUS EQ (ON | OFF)
     )?
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/create-remote-service-binding-transact-sql
 create_remote_service_binding
     : CREATE REMOTE SERVICE BINDING binding_name = id_ (AUTHORIZATION owner_name = id_)? TO SERVICE remote_service_name = STRING WITH (
-        USER EQUAL user_name = id_
-    )? (COMMA ANONYMOUS EQUAL (ON | OFF))?
+        USER EQ user_name = id_
+    )? (COMMA ANONYMOUS EQ (ON | OFF))?
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/create-resource-pool-transact-sql
 create_resource_pool
     : CREATE RESOURCE POOL pool_name = id_ (
-        WITH LPAREN (COMMA? MIN_CPU_PERCENT EQUAL DECIMAL)? (
-            COMMA? MAX_CPU_PERCENT EQUAL DECIMAL
-        )? (COMMA? CAP_CPU_PERCENT EQUAL DECIMAL)? (
-            COMMA? AFFINITY SCHEDULER EQUAL (
+        WITH LPAREN (COMMA? MIN_CPU_PERCENT EQ INT)? (
+            COMMA? MAX_CPU_PERCENT EQ INT
+        )? (COMMA? CAP_CPU_PERCENT EQ INT)? (
+            COMMA? AFFINITY SCHEDULER EQ (
                 AUTO
-                | LPAREN (COMMA? (DECIMAL | DECIMAL TO DECIMAL))+ RPAREN
-                | NUMANODE EQUAL LPAREN (COMMA? (DECIMAL | DECIMAL TO DECIMAL))+ RPAREN
+                | LPAREN (COMMA? (INT | INT TO INT))+ RPAREN
+                | NUMANODE EQ LPAREN (COMMA? (INT | INT TO INT))+ RPAREN
             )
-        )? (COMMA? MIN_MEMORY_PERCENT EQUAL DECIMAL)? (COMMA? MAX_MEMORY_PERCENT EQUAL DECIMAL)? (
-            COMMA? MIN_IOPS_PER_VOLUME EQUAL DECIMAL
-        )? (COMMA? MAX_IOPS_PER_VOLUME EQUAL DECIMAL)? RPAREN
+        )? (COMMA? MIN_MEMORY_PERCENT EQ INT)? (COMMA? MAX_MEMORY_PERCENT EQ INT)? (
+            COMMA? MIN_IOPS_PER_VOLUME EQ INT
+        )? (COMMA? MAX_IOPS_PER_VOLUME EQ INT)? RPAREN
     )?
     ;
 
@@ -1548,12 +1548,12 @@ create_resource_pool
 alter_resource_governor
     : ALTER RESOURCE GOVERNOR (
         (DISABLE | RECONFIGURE)
-        | WITH LPAREN CLASSIFIER_FUNCTION EQUAL (
+        | WITH LPAREN CLASSIFIER_FUNCTION EQ (
             schema_name = id_ DOT function_name = id_
             | NULL_
         ) RPAREN
         | RESET STATISTICS
-        | WITH LPAREN MAX_OUTSTANDING_IO_PER_VOLUME EQUAL max_outstanding_io_per_volume = DECIMAL RPAREN
+        | WITH LPAREN MAX_OUTSTANDING_IO_PER_VOLUME EQ max_outstanding_io_per_volume = INT RPAREN
     )
     ;
 
@@ -1562,7 +1562,7 @@ alter_database_audit_specification
     : ALTER DATABASE AUDIT SPECIFICATION audit_specification_name = id_ (
         FOR SERVER AUDIT audit_name = id_
     )? (audit_action_spec_group (COMMA audit_action_spec_group)*)? (
-        WITH LPAREN STATE EQUALS (ON | OFF) RPAREN
+        WITH LPAREN STATE EQ (ON | OFF) RPAREN
     )?
     ;
 
@@ -1600,7 +1600,7 @@ audit_securable
 alter_db_role
     : ALTER ROLE role_name = id_ (
         (ADD | DROP) MEMBER database_principal = id_
-        | WITH NAME EQUAL new_role_name = id_
+        | WITH NAME EQ new_role_name = id_
     )
     ;
 
@@ -1609,7 +1609,7 @@ create_database_audit_specification
     : CREATE DATABASE AUDIT SPECIFICATION audit_specification_name = id_ (
         FOR SERVER AUDIT audit_name = id_
     )? (audit_action_spec_group (COMMA audit_action_spec_group)*)? (
-        WITH LPAREN STATE EQUALS (ON | OFF) RPAREN
+        WITH LPAREN STATE EQ (ON | OFF) RPAREN
     )?
     ;
 
@@ -1621,10 +1621,10 @@ create_db_role
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/create-route-transact-sql
 create_route
     : CREATE ROUTE route_name = id_ (AUTHORIZATION owner_name = id_)? WITH (
-        COMMA? SERVICE_NAME EQUAL route_service_name = STRING
-    )? (COMMA? BROKER_INSTANCE EQUAL broker_instance_identifier = STRING)? (
-        COMMA? LIFETIME EQUAL DECIMAL
-    )? COMMA? ADDRESS EQUAL STRING (COMMA MIRROR_ADDRESS EQUAL STRING)?
+        COMMA? SERVICE_NAME EQ route_service_name = STRING
+    )? (COMMA? BROKER_INSTANCE EQ broker_instance_identifier = STRING)? (
+        COMMA? LIFETIME EQ INT
+    )? COMMA? ADDRESS EQ STRING (COMMA MIRROR_ADDRESS EQ STRING)?
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/create-rule-transact-sql
@@ -1677,17 +1677,17 @@ create_security_policy
             COMMA? AFTER (INSERT | UPDATE)
             | COMMA? BEFORE (UPDATE | DELETE)
         )*
-    )+ (WITH LPAREN STATE EQUAL (ON | OFF) (SCHEMABINDING (ON | OFF))? RPAREN)? (
+    )+ (WITH LPAREN STATE EQ (ON | OFF) (SCHEMABINDING (ON | OFF))? RPAREN)? (
         NOT FOR REPLICATION
     )?
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-sequence-transact-sql
 alter_sequence
-    : ALTER SEQUENCE (schema_name = id_ DOT)? sequence_name = id_ (RESTART (WITH DECIMAL)?)? (
-        INCREMENT BY sequnce_increment = DECIMAL
-    )? (MINVALUE DECIMAL | NO MINVALUE)? (MAXVALUE DECIMAL | NO MAXVALUE)? (CYCLE | NO CYCLE)? (
-        CACHE DECIMAL
+    : ALTER SEQUENCE (schema_name = id_ DOT)? sequence_name = id_ (RESTART (WITH INT)?)? (
+        INCREMENT BY sequnce_increment = INT
+    )? (MINVALUE INT | NO MINVALUE)? (MAXVALUE INT | NO MAXVALUE)? (CYCLE | NO CYCLE)? (
+        CACHE INT
         | NO CACHE
     )?
     ;
@@ -1695,11 +1695,11 @@ alter_sequence
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/create-sequence-transact-sql
 create_sequence
     : CREATE SEQUENCE (schema_name = id_ DOT)? sequence_name = id_ (AS data_type)? (
-        START WITH DECIMAL
-    )? (INCREMENT BY MINUS? DECIMAL)? (MINVALUE (MINUS? DECIMAL)? | NO MINVALUE)? (
-        MAXVALUE (MINUS? DECIMAL)?
+        START WITH INT
+    )? (INCREMENT BY MINUS? INT)? (MINVALUE (MINUS? INT)? | NO MINVALUE)? (
+        MAXVALUE (MINUS? INT)?
         | NO MAXVALUE
-    )? (CYCLE | NO CYCLE)? (CACHE DECIMAL? | NO CACHE)?
+    )? (CYCLE | NO CYCLE)? (CACHE INT? | NO CACHE)?
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-server-audit-transact-sql
@@ -1709,11 +1709,11 @@ alter_server_audit
             TO (
                 FILE (
                     LPAREN (
-                        COMMA? FILEPATH EQUAL filepath = STRING
-                        | COMMA? MAXSIZE EQUAL ( DECIMAL (MB | GB | TB) | UNLIMITED)
-                        | COMMA? MAX_ROLLOVER_FILES EQUAL max_rollover_files = (DECIMAL | UNLIMITED)
-                        | COMMA? MAX_FILES EQUAL max_files = DECIMAL
-                        | COMMA? RESERVE_DISK_SPACE EQUAL (ON | OFF)
+                        COMMA? FILEPATH EQ filepath = STRING
+                        | COMMA? MAXSIZE EQ ( INT (MB | GB | TB) | UNLIMITED)
+                        | COMMA? MAX_ROLLOVER_FILES EQ max_rollover_files = (INT | UNLIMITED)
+                        | COMMA? MAX_FILES EQ max_files = INT
+                        | COMMA? RESERVE_DISK_SPACE EQ (ON | OFF)
                     )* RPAREN
                 )
                 | APPLICATION_LOG
@@ -1721,34 +1721,34 @@ alter_server_audit
             )
         )? (
             WITH LPAREN (
-                COMMA? QUEUE_DELAY EQUAL queue_delay = DECIMAL
-                | COMMA? ON_FAILURE EQUAL (CONTINUE | SHUTDOWN | FAIL_OPERATION)
-                | COMMA? STATE EQUAL (ON | OFF)
+                COMMA? QUEUE_DELAY EQ queue_delay = INT
+                | COMMA? ON_FAILURE EQ (CONTINUE | SHUTDOWN | FAIL_OPERATION)
+                | COMMA? STATE EQ (ON | OFF)
             )* RPAREN
         )? (
             WHERE (
                 COMMA? (NOT?) event_field_name = id_ (
-                    EQUAL
-                    | (LESS GREATER)
-                    | (BANG EQUAL)
-                    | GREATER
-                    | (GREATER EQUAL)
-                    | LESS
-                    | LESS EQUAL
-                ) (DECIMAL | STRING)
+                    EQ
+                    | (LT GT)
+                    | (BANG EQ)
+                    | GT
+                    | (GT EQ)
+                    | LT
+                    | LT EQ
+                ) (INT | STRING)
                 | COMMA? (AND | OR) NOT? (
-                    EQUAL
-                    | (LESS GREATER)
-                    | (BANG EQUAL)
-                    | GREATER
-                    | (GREATER EQUAL)
-                    | LESS
-                    | LESS EQUAL
-                ) (DECIMAL | STRING)
+                    EQ
+                    | (LT GT)
+                    | (BANG EQ)
+                    | GT
+                    | (GT EQ)
+                    | LT
+                    | LT EQ
+                ) (INT | STRING)
             )
         )?
         | REMOVE WHERE
-        | MODIFY NAME EQUAL new_audit_name = id_
+        | MODIFY NAME EQ new_audit_name = id_
     )
     ;
 
@@ -1759,11 +1759,11 @@ create_server_audit
             TO (
                 FILE (
                     LPAREN (
-                        COMMA? FILEPATH EQUAL filepath = STRING
-                        | COMMA? MAXSIZE EQUAL ( DECIMAL (MB | GB | TB) | UNLIMITED)
-                        | COMMA? MAX_ROLLOVER_FILES EQUAL max_rollover_files = (DECIMAL | UNLIMITED)
-                        | COMMA? MAX_FILES EQUAL max_files = DECIMAL
-                        | COMMA? RESERVE_DISK_SPACE EQUAL (ON | OFF)
+                        COMMA? FILEPATH EQ filepath = STRING
+                        | COMMA? MAXSIZE EQ ( INT (MB | GB | TB) | UNLIMITED)
+                        | COMMA? MAX_ROLLOVER_FILES EQ max_rollover_files = (INT | UNLIMITED)
+                        | COMMA? MAX_FILES EQ max_files = INT
+                        | COMMA? RESERVE_DISK_SPACE EQ (ON | OFF)
                     )* RPAREN
                 )
                 | APPLICATION_LOG
@@ -1771,35 +1771,35 @@ create_server_audit
             )
         )? (
             WITH LPAREN (
-                COMMA? QUEUE_DELAY EQUAL queue_delay = DECIMAL
-                | COMMA? ON_FAILURE EQUAL (CONTINUE | SHUTDOWN | FAIL_OPERATION)
-                | COMMA? STATE EQUAL (ON | OFF)
-                | COMMA? AUDIT_GUID EQUAL audit_guid = id_
+                COMMA? QUEUE_DELAY EQ queue_delay = INT
+                | COMMA? ON_FAILURE EQ (CONTINUE | SHUTDOWN | FAIL_OPERATION)
+                | COMMA? STATE EQ (ON | OFF)
+                | COMMA? AUDIT_GUID EQ audit_guid = id_
             )* RPAREN
         )? (
             WHERE (
                 COMMA? (NOT?) event_field_name = id_ (
-                    EQUAL
-                    | (LESS GREATER)
-                    | (BANG EQUAL)
-                    | GREATER
-                    | (GREATER EQUAL)
-                    | LESS
-                    | LESS EQUAL
-                ) (DECIMAL | STRING)
+                    EQ
+                    | (LT GT)
+                    | (BANG EQ)
+                    | GT
+                    | (GT EQ)
+                    | LT
+                    | LT EQ
+                ) (INT | STRING)
                 | COMMA? (AND | OR) NOT? (
-                    EQUAL
-                    | (LESS GREATER)
-                    | (BANG EQUAL)
-                    | GREATER
-                    | (GREATER EQUAL)
-                    | LESS
-                    | LESS EQUAL
-                ) (DECIMAL | STRING)
+                    EQ
+                    | (LT GT)
+                    | (BANG EQ)
+                    | GT
+                    | (GT EQ)
+                    | LT
+                    | LT EQ
+                ) (INT | STRING)
             )
         )?
         | REMOVE WHERE
-        | MODIFY NAME EQUAL new_audit_name = id_
+        | MODIFY NAME EQ new_audit_name = id_
     )
     ;
 
@@ -1809,7 +1809,7 @@ alter_server_audit_specification
     : ALTER SERVER AUDIT SPECIFICATION audit_specification_name = id_ (
         FOR SERVER AUDIT audit_name = id_
     )? ((ADD | DROP) LPAREN audit_action_group_name = id_ RPAREN)* (
-        WITH LPAREN STATE EQUAL (ON | OFF) RPAREN
+        WITH LPAREN STATE EQ (ON | OFF) RPAREN
     )?
     ;
 
@@ -1818,7 +1818,7 @@ create_server_audit_specification
     : CREATE SERVER AUDIT SPECIFICATION audit_specification_name = id_ (
         FOR SERVER AUDIT audit_name = id_
     )? (ADD LPAREN audit_action_group_name = id_ RPAREN)* (
-        WITH LPAREN STATE EQUAL (ON | OFF) RPAREN
+        WITH LPAREN STATE EQ (ON | OFF) RPAREN
     )?
     ;
 
@@ -1828,27 +1828,27 @@ alter_server_configuration
     : ALTER SERVER CONFIGURATION SET (
         (
             PROCESS AFFINITY (
-                CPU EQUAL (AUTO | (COMMA? DECIMAL | COMMA? DECIMAL TO DECIMAL)+)
-                | NUMANODE EQUAL ( COMMA? DECIMAL | COMMA? DECIMAL TO DECIMAL)+
+                CPU EQ (AUTO | (COMMA? INT | COMMA? INT TO INT)+)
+                | NUMANODE EQ ( COMMA? INT | COMMA? INT TO INT)+
             )
             | DIAGNOSTICS LOG (
                 ON
                 | OFF
-                | PATH EQUAL (STRING | DEFAULT)
-                | MAX_SIZE EQUAL (DECIMAL MB | DEFAULT)
-                | MAX_FILES EQUAL (DECIMAL | DEFAULT)
+                | PATH EQ (STRING | DEFAULT)
+                | MAX_SIZE EQ (INT MB | DEFAULT)
+                | MAX_FILES EQ (INT | DEFAULT)
             )
             | FAILOVER CLUSTER PROPERTY (
-                VERBOSELOGGING EQUAL (STRING | DEFAULT)
-                | SQLDUMPERFLAGS EQUAL (STRING | DEFAULT)
-                | SQLDUMPERPATH EQUAL (STRING | DEFAULT)
+                VERBOSELOGGING EQ (STRING | DEFAULT)
+                | SQLDUMPERFLAGS EQ (STRING | DEFAULT)
+                | SQLDUMPERPATH EQ (STRING | DEFAULT)
                 | SQLDUMPERTIMEOUT (STRING | DEFAULT)
-                | FAILURECONDITIONLEVEL EQUAL (STRING | DEFAULT)
-                | HEALTHCHECKTIMEOUT EQUAL (DECIMAL | DEFAULT)
+                | FAILURECONDITIONLEVEL EQ (STRING | DEFAULT)
+                | HEALTHCHECKTIMEOUT EQ (INT | DEFAULT)
             )
-            | HADR CLUSTER CONTEXT EQUAL (STRING | LOCAL)
+            | HADR CLUSTER CONTEXT EQ (STRING | LOCAL)
             | BUFFER POOL EXTENSION (
-                ON LPAREN FILENAME EQUAL STRING COMMA SIZE EQUAL DECIMAL (KB | MB | GB) RPAREN
+                ON LPAREN FILENAME EQ STRING COMMA SIZE EQ INT (KB | MB | GB) RPAREN
                 | OFF
             )
             | SET SOFTNUMA (ON | OFF)
@@ -1860,7 +1860,7 @@ alter_server_configuration
 alter_server_role
     : ALTER SERVER ROLE server_role_name = id_ (
         (ADD | DROP) MEMBER server_principal = id_
-        | WITH NAME EQUAL new_server_role_name = id_
+        | WITH NAME EQ new_server_role_name = id_
     )
     ;
 
@@ -1898,8 +1898,8 @@ alter_service_master_key
         FORCE? REGENERATE
         | (
             WITH (
-                OLD_ACCOUNT EQUAL acold_account_name = STRING COMMA OLD_PASSWORD EQUAL old_password = STRING
-                | NEW_ACCOUNT EQUAL new_account_name = STRING COMMA NEW_PASSWORD EQUAL new_password = STRING
+                OLD_ACCOUNT EQ acold_account_name = STRING COMMA OLD_PASSWORD EQ old_password = STRING
+                | NEW_ACCOUNT EQ new_account_name = STRING COMMA NEW_PASSWORD EQ new_password = STRING
             )?
         )
     )
@@ -1911,7 +1911,7 @@ alter_symmetric_key
     : ALTER SYMMETRIC KEY key_name = id_ (
         (ADD | DROP) ENCRYPTION BY (
             CERTIFICATE certificate_name = id_
-            | PASSWORD EQUAL password = STRING
+            | PASSWORD EQ password = STRING
             | SYMMETRIC KEY symmetric_key_name = id_
             | ASYMMETRIC KEY Asym_key_name = id_
         )
@@ -1929,12 +1929,12 @@ create_synonym
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-user-transact-sql
 alter_user
     : ALTER USER username = id_ WITH (
-        COMMA? NAME EQUAL newusername = id_
-        | COMMA? DEFAULT_SCHEMA EQUAL ( schema_name = id_ | NULL_)
-        | COMMA? LOGIN EQUAL loginame = id_
-        | COMMA? PASSWORD EQUAL STRING (OLD_PASSWORD EQUAL STRING)+
-        | COMMA? DEFAULT_LANGUAGE EQUAL (NONE | lcid = DECIMAL | language_name_or_alias = id_)
-        | COMMA? ALLOW_ENCRYPTED_VALUE_MODIFICATIONS EQUAL (ON | OFF)
+        COMMA? NAME EQ newusername = id_
+        | COMMA? DEFAULT_SCHEMA EQ ( schema_name = id_ | NULL_)
+        | COMMA? LOGIN EQ loginame = id_
+        | COMMA? PASSWORD EQ STRING (OLD_PASSWORD EQ STRING)+
+        | COMMA? DEFAULT_LANGUAGE EQ (NONE | lcid = INT | language_name_or_alias = id_)
+        | COMMA? ALLOW_ENCRYPTED_VALUE_MODIFICATIONS EQ (ON | OFF)
     )+
     ;
 
@@ -1942,31 +1942,31 @@ alter_user
 create_user
     : CREATE USER user_name = id_ ((FOR | FROM) LOGIN login_name = id_)? (
         WITH (
-            COMMA? DEFAULT_SCHEMA EQUAL schema_name = id_
-            | COMMA? ALLOW_ENCRYPTED_VALUE_MODIFICATIONS EQUAL (ON | OFF)
+            COMMA? DEFAULT_SCHEMA EQ schema_name = id_
+            | COMMA? ALLOW_ENCRYPTED_VALUE_MODIFICATIONS EQ (ON | OFF)
         )*
     )?
     | CREATE USER (
         windows_principal = id_ (
             WITH (
-                COMMA? DEFAULT_SCHEMA EQUAL schema_name = id_
-                | COMMA? DEFAULT_LANGUAGE EQUAL (NONE | DECIMAL | language_name_or_alias = id_)
-                | COMMA? SID EQUAL BINARY
-                | COMMA? ALLOW_ENCRYPTED_VALUE_MODIFICATIONS EQUAL (ON | OFF)
+                COMMA? DEFAULT_SCHEMA EQ schema_name = id_
+                | COMMA? DEFAULT_LANGUAGE EQ (NONE | INT | language_name_or_alias = id_)
+                | COMMA? SID EQ HEX
+                | COMMA? ALLOW_ENCRYPTED_VALUE_MODIFICATIONS EQ (ON | OFF)
             )*
         )?
-        | user_name = id_ WITH PASSWORD EQUAL password = STRING (
-            COMMA? DEFAULT_SCHEMA EQUAL schema_name = id_
-            | COMMA? DEFAULT_LANGUAGE EQUAL (NONE | DECIMAL | language_name_or_alias = id_)
-            | COMMA? SID EQUAL BINARY
-            | COMMA? ALLOW_ENCRYPTED_VALUE_MODIFICATIONS EQUAL (ON | OFF)
+        | user_name = id_ WITH PASSWORD EQ password = STRING (
+            COMMA? DEFAULT_SCHEMA EQ schema_name = id_
+            | COMMA? DEFAULT_LANGUAGE EQ (NONE | INT | language_name_or_alias = id_)
+            | COMMA? SID EQ HEX
+            | COMMA? ALLOW_ENCRYPTED_VALUE_MODIFICATIONS EQ (ON | OFF)
         )*
         | Azure_Active_Directory_principal = id_ FROM EXTERNAL PROVIDER
     )
     | CREATE USER user_name = id_ (
         WITHOUT LOGIN (
-            COMMA? DEFAULT_SCHEMA EQUAL schema_name = id_
-            | COMMA? ALLOW_ENCRYPTED_VALUE_MODIFICATIONS EQUAL (ON | OFF)
+            COMMA? DEFAULT_SCHEMA EQ schema_name = id_
+            | COMMA? ALLOW_ENCRYPTED_VALUE_MODIFICATIONS EQ (ON | OFF)
         )*
         | (FOR | FROM) CERTIFICATE cert_name = id_
         | (FOR | FROM) ASYMMETRIC KEY asym_key_name = id_
@@ -1976,19 +1976,19 @@ create_user
 
 create_user_azure_sql_dw
     : CREATE USER user_name = id_ ((FOR | FROM) LOGIN login_name = id_ | WITHOUT LOGIN)? (
-        WITH DEFAULT_SCHEMA EQUAL schema_name = id_
+        WITH DEFAULT_SCHEMA EQ schema_name = id_
     )?
     | CREATE USER Azure_Active_Directory_principal = id_ FROM EXTERNAL PROVIDER (
-        WITH DEFAULT_SCHEMA EQUAL schema_name = id_
+        WITH DEFAULT_SCHEMA EQ schema_name = id_
     )?
     ;
 
 alter_user_azure_sql
     : ALTER USER username = id_ WITH (
-        COMMA? NAME EQUAL newusername = id_
-        | COMMA? DEFAULT_SCHEMA EQUAL schema_name = id_
-        | COMMA? LOGIN EQUAL loginame = id_
-        | COMMA? ALLOW_ENCRYPTED_VALUE_MODIFICATIONS EQUAL (ON | OFF)
+        COMMA? NAME EQ newusername = id_
+        | COMMA? DEFAULT_SCHEMA EQ schema_name = id_
+        | COMMA? LOGIN EQ loginame = id_
+        | COMMA? ALLOW_ENCRYPTED_VALUE_MODIFICATIONS EQ (ON | OFF)
     )+
     ;
 
@@ -1997,12 +1997,12 @@ alter_user_azure_sql
 alter_workload_group
     : ALTER WORKLOAD GROUP (workload_group_group_name = id_ | DEFAULT_DOUBLE_QUOTE) (
         WITH LPAREN (
-            IMPORTANCE EQUAL (LOW | MEDIUM | HIGH)
-            | COMMA? REQUEST_MAX_MEMORY_GRANT_PERCENT EQUAL request_max_memory_grant = DECIMAL
-            | COMMA? REQUEST_MAX_CPU_TIME_SEC EQUAL request_max_cpu_time_sec = DECIMAL
-            | REQUEST_MEMORY_GRANT_TIMEOUT_SEC EQUAL request_memory_grant_timeout_sec = DECIMAL
-            | MAX_DOP EQUAL max_dop = DECIMAL
-            | GROUP_MAX_REQUESTS EQUAL group_max_requests = DECIMAL
+            IMPORTANCE EQ (LOW | MEDIUM | HIGH)
+            | COMMA? REQUEST_MAX_MEMORY_GRANT_PERCENT EQ request_max_memory_grant = INT
+            | COMMA? REQUEST_MAX_CPU_TIME_SEC EQ request_max_cpu_time_sec = INT
+            | REQUEST_MEMORY_GRANT_TIMEOUT_SEC EQ request_memory_grant_timeout_sec = INT
+            | MAX_DOP EQ max_dop = INT
+            | GROUP_MAX_REQUESTS EQ group_max_requests = INT
         )+ RPAREN
     )? (USING (workload_group_pool_name = id_ | DEFAULT_DOUBLE_QUOTE))?
     ;
@@ -2011,12 +2011,12 @@ alter_workload_group
 create_workload_group
     : CREATE WORKLOAD GROUP workload_group_group_name = id_ (
         WITH LPAREN (
-            IMPORTANCE EQUAL (LOW | MEDIUM | HIGH)
-            | COMMA? REQUEST_MAX_MEMORY_GRANT_PERCENT EQUAL request_max_memory_grant = DECIMAL
-            | COMMA? REQUEST_MAX_CPU_TIME_SEC EQUAL request_max_cpu_time_sec = DECIMAL
-            | REQUEST_MEMORY_GRANT_TIMEOUT_SEC EQUAL request_memory_grant_timeout_sec = DECIMAL
-            | MAX_DOP EQUAL max_dop = DECIMAL
-            | GROUP_MAX_REQUESTS EQUAL group_max_requests = DECIMAL
+            IMPORTANCE EQ (LOW | MEDIUM | HIGH)
+            | COMMA? REQUEST_MAX_MEMORY_GRANT_PERCENT EQ request_max_memory_grant = INT
+            | COMMA? REQUEST_MAX_CPU_TIME_SEC EQ request_max_cpu_time_sec = INT
+            | REQUEST_MEMORY_GRANT_TIMEOUT_SEC EQ request_memory_grant_timeout_sec = INT
+            | MAX_DOP EQ max_dop = INT
+            | GROUP_MAX_REQUESTS EQ group_max_requests = INT
         )+ RPAREN
     )? (
         USING (workload_group_pool_name = id_ | DEFAULT_DOUBLE_QUOTE)? (
@@ -2058,18 +2058,18 @@ create_queue
     ;
 
 queue_settings
-    : WITH (STATUS EQUAL on_off COMMA?)? (RETENTION EQUAL on_off COMMA?)? (
+    : WITH (STATUS EQ on_off COMMA?)? (RETENTION EQ on_off COMMA?)? (
         ACTIVATION LPAREN (
             (
-                (STATUS EQUAL on_off COMMA?)? (
-                    PROCEDURE_NAME EQUAL func_proc_name_database_schema COMMA?
-                )? (MAX_QUEUE_READERS EQUAL max_readers = DECIMAL COMMA?)? (
+                (STATUS EQ on_off COMMA?)? (
+                    PROCEDURE_NAME EQ func_proc_name_database_schema COMMA?
+                )? (MAX_QUEUE_READERS EQ max_readers = INT COMMA?)? (
                     EXECUTE AS (SELF | user_name = STRING | OWNER) COMMA?
                 )?
             )
             | DROP
         ) RPAREN COMMA?
-    )? (POISON_MESSAGE_HANDLING LPAREN (STATUS EQUAL on_off) RPAREN)?
+    )? (POISON_MESSAGE_HANDLING LPAREN (STATUS EQ on_off) RPAREN)?
     ;
 
 alter_queue
@@ -2078,12 +2078,12 @@ alter_queue
 
 queue_action
     : REBUILD (WITH LPAREN queue_rebuild_options RPAREN)?
-    | REORGANIZE (WITH LOB_COMPACTION EQUAL on_off)?
+    | REORGANIZE (WITH LOB_COMPACTION EQ on_off)?
     | MOVE TO (id_ | DEFAULT)
     ;
 
 queue_rebuild_options
-    : MAXDOP EQUAL DECIMAL
+    : MAXDOP EQ INT
     ;
 
 create_contract
@@ -2103,7 +2103,7 @@ conversation_statement
 
 message_statement
     : CREATE MESSAGE TYPE message_type_name = id_ (AUTHORIZATION owner_name = id_)? (
-        VALIDATION EQUAL (
+        VALIDATION EQ (
             NONE
             | EMPTY
             | WELL_FORMED_XML
@@ -2138,7 +2138,7 @@ merge_not_matched
 
 // https://msdn.microsoft.com/en-us/library/ms189835.aspx
 delete_statement
-    : with_expression? DELETE (TOP LPAREN expression RPAREN PERCENT? | TOP DECIMAL)? FROM? delete_statement_from with_table_hints? output_clause? (
+    : with_expression? DELETE (TOP LPAREN expression RPAREN PERCENT? | TOP INT)? FROM? delete_statement_from with_table_hints? output_clause? (
         FROM table_sources
     )? (WHERE (search_condition | CURRENT OF (GLOBAL? cursor_name | cursor_var = LOCAL_ID)))? for_clause? option_clause? SEMI?
     ;
@@ -2165,7 +2165,7 @@ insert_statement_value
     ;
 
 receive_statement
-    : LPAREN? RECEIVE (ALL | DISTINCT | top_clause | STAR) (LOCAL_ID EQUALS expression COMMA?)* FROM full_table_name (
+    : LPAREN? RECEIVE (ALL | DISTINCT | top_clause | STAR) (LOCAL_ID EQ expression COMMA?)* FROM full_table_name (
         INTO table_variable = id_ (WHERE where = search_condition)
     )? RPAREN?
     ;
@@ -2208,7 +2208,7 @@ output_dml_list_elem
 
 // https://msdn.microsoft.com/en-ie/library/ms176061.aspx
 create_database
-    : CREATE DATABASE (database = id_) (CONTAINMENT EQUALS ( NONE | PARTIAL))? (
+    : CREATE DATABASE (database = id_) (CONTAINMENT EQ ( NONE | PARTIAL))? (
         ON PRIMARY? database_file_spec ( COMMA database_file_spec)*
     )? (LOG ON database_file_spec ( COMMA database_file_spec)*)? (COLLATE collation_name = id_)? (
         WITH create_database_option ( COMMA create_database_option)*
@@ -2228,8 +2228,8 @@ create_index_options
 
 relational_index_option
     : rebuild_index_option
-    | DROP_EXISTING EQUALS on_off
-    | OPTIMIZE_FOR_SEQUENTIAL_KEY EQUALS on_off
+    | DROP_EXISTING EQ on_off
+    | OPTIMIZE_FOR_SEQUENTIAL_KEY EQ on_off
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-index-transact-sql
@@ -2250,13 +2250,13 @@ resumable_index_options
     ;
 
 resumable_index_option
-    : MAXDOP EQUALS max_degree_of_parallelism = DECIMAL
-    | MAX_DURATION EQUALS max_duration = DECIMAL MINUTES?
+    : MAXDOP EQ max_degree_of_parallelism = INT
+    | MAX_DURATION EQ max_duration = INT MINUTES?
     | low_priority_lock_wait
     ;
 
 reorganize_partition
-    : REORGANIZE (PARTITION EQUALS DECIMAL)? reorganize_options?
+    : REORGANIZE (PARTITION EQ INT)? reorganize_options?
     ;
 
 reorganize_options
@@ -2264,8 +2264,8 @@ reorganize_options
     ;
 
 reorganize_option
-    : LOB_COMPACTION EQUALS on_off
-    | COMPRESS_ALL_ROW_GROUPS EQUALS on_off
+    : LOB_COMPACTION EQ on_off
+    | COMPRESS_ALL_ROW_GROUPS EQ on_off
     ;
 
 set_index_options
@@ -2273,17 +2273,17 @@ set_index_options
     ;
 
 set_index_option
-    : ALLOW_ROW_LOCKS EQUALS on_off
-    | ALLOW_PAGE_LOCKS EQUALS on_off
-    | OPTIMIZE_FOR_SEQUENTIAL_KEY EQUALS on_off
-    | IGNORE_DUP_KEY EQUALS on_off
-    | STATISTICS_NORECOMPUTE EQUALS on_off
-    | COMPRESSION_DELAY EQUALS delay = DECIMAL MINUTES?
+    : ALLOW_ROW_LOCKS EQ on_off
+    | ALLOW_PAGE_LOCKS EQ on_off
+    | OPTIMIZE_FOR_SEQUENTIAL_KEY EQ on_off
+    | IGNORE_DUP_KEY EQ on_off
+    | STATISTICS_NORECOMPUTE EQ on_off
+    | COMPRESSION_DELAY EQ delay = INT MINUTES?
     ;
 
 rebuild_partition
-    : REBUILD (PARTITION EQUALS ALL)? rebuild_index_options?
-    | REBUILD PARTITION EQUALS DECIMAL single_partition_rebuild_index_options?
+    : REBUILD (PARTITION EQ ALL)? rebuild_index_options?
+    | REBUILD PARTITION EQ INT single_partition_rebuild_index_options?
     ;
 
 rebuild_index_options
@@ -2291,20 +2291,20 @@ rebuild_index_options
     ;
 
 rebuild_index_option
-    : PAD_INDEX EQUALS on_off
-    | FILLFACTOR EQUALS DECIMAL
-    | SORT_IN_TEMPDB EQUALS on_off
-    | IGNORE_DUP_KEY EQUALS on_off
-    | STATISTICS_NORECOMPUTE EQUALS on_off
-    | STATISTICS_INCREMENTAL EQUALS on_off
-    | ONLINE EQUALS (ON (LPAREN low_priority_lock_wait RPAREN)? | OFF)
-    | RESUMABLE EQUALS on_off
-    | MAX_DURATION EQUALS times = DECIMAL MINUTES?
-    | ALLOW_ROW_LOCKS EQUALS on_off
-    | ALLOW_PAGE_LOCKS EQUALS on_off
-    | MAXDOP EQUALS max_degree_of_parallelism = DECIMAL
-    | DATA_COMPRESSION EQUALS (NONE | ROW | PAGE | COLUMNSTORE | COLUMNSTORE_ARCHIVE) on_partitions?
-    | XML_COMPRESSION EQUALS on_off on_partitions?
+    : PAD_INDEX EQ on_off
+    | FILLFACTOR EQ INT
+    | SORT_IN_TEMPDB EQ on_off
+    | IGNORE_DUP_KEY EQ on_off
+    | STATISTICS_NORECOMPUTE EQ on_off
+    | STATISTICS_INCREMENTAL EQ on_off
+    | ONLINE EQ (ON (LPAREN low_priority_lock_wait RPAREN)? | OFF)
+    | RESUMABLE EQ on_off
+    | MAX_DURATION EQ times = INT MINUTES?
+    | ALLOW_ROW_LOCKS EQ on_off
+    | ALLOW_PAGE_LOCKS EQ on_off
+    | MAXDOP EQ max_degree_of_parallelism = INT
+    | DATA_COMPRESSION EQ (NONE | ROW | PAGE | COLUMNSTORE | COLUMNSTORE_ARCHIVE) on_partitions?
+    | XML_COMPRESSION EQ on_off on_partitions?
     ;
 
 single_partition_rebuild_index_options
@@ -2312,17 +2312,17 @@ single_partition_rebuild_index_options
     ;
 
 single_partition_rebuild_index_option
-    : SORT_IN_TEMPDB EQUALS on_off
-    | MAXDOP EQUALS max_degree_of_parallelism = DECIMAL
-    | RESUMABLE EQUALS on_off
-    | DATA_COMPRESSION EQUALS (NONE | ROW | PAGE | COLUMNSTORE | COLUMNSTORE_ARCHIVE) on_partitions?
-    | XML_COMPRESSION EQUALS on_off on_partitions?
-    | ONLINE EQUALS (ON (LPAREN low_priority_lock_wait RPAREN)? | OFF)
+    : SORT_IN_TEMPDB EQ on_off
+    | MAXDOP EQ max_degree_of_parallelism = INT
+    | RESUMABLE EQ on_off
+    | DATA_COMPRESSION EQ (NONE | ROW | PAGE | COLUMNSTORE | COLUMNSTORE_ARCHIVE) on_partitions?
+    | XML_COMPRESSION EQ on_off on_partitions?
+    | ONLINE EQ (ON (LPAREN low_priority_lock_wait RPAREN)? | OFF)
     ;
 
 on_partitions
-    : ON PARTITIONS LPAREN partition_number = DECIMAL (TO to_partition_number = DECIMAL)? (
-        COMMA partition_number = DECIMAL (TO to_partition_number = DECIMAL)?
+    : ON PARTITIONS LPAREN partition_number = INT (TO to_partition_number = INT)? (
+        COMMA partition_number = INT (TO to_partition_number = INT)?
     )* RPAREN
     ;
 
@@ -2338,11 +2338,11 @@ create_columnstore_index_options
     ;
 
 columnstore_index_option
-    : DROP_EXISTING EQUALS on_off
-    | MAXDOP EQUALS max_degree_of_parallelism = DECIMAL
-    | ONLINE EQUALS on_off
-    | COMPRESSION_DELAY EQUALS delay = DECIMAL MINUTES?
-    | DATA_COMPRESSION EQUALS (COLUMNSTORE | COLUMNSTORE_ARCHIVE) on_partitions?
+    : DROP_EXISTING EQ on_off
+    | MAXDOP EQ max_degree_of_parallelism = INT
+    | ONLINE EQ on_off
+    | COMPRESSION_DELAY EQ delay = INT MINUTES?
+    | DATA_COMPRESSION EQ (COLUMNSTORE | COLUMNSTORE_ARCHIVE) on_partitions?
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/create-columnstore-index-transact-sql?view=sql-server-ver15
@@ -2363,22 +2363,22 @@ xml_index_options
     ;
 
 xml_index_option
-    : PAD_INDEX EQUALS on_off
-    | FILLFACTOR EQUALS DECIMAL
-    | SORT_IN_TEMPDB EQUALS on_off
-    | IGNORE_DUP_KEY EQUALS on_off
-    | DROP_EXISTING EQUALS on_off
-    | ONLINE EQUALS (ON (LPAREN low_priority_lock_wait RPAREN)? | OFF)
-    | ALLOW_ROW_LOCKS EQUALS on_off
-    | ALLOW_PAGE_LOCKS EQUALS on_off
-    | MAXDOP EQUALS max_degree_of_parallelism = DECIMAL
-    | XML_COMPRESSION EQUALS on_off
+    : PAD_INDEX EQ on_off
+    | FILLFACTOR EQ INT
+    | SORT_IN_TEMPDB EQ on_off
+    | IGNORE_DUP_KEY EQ on_off
+    | DROP_EXISTING EQ on_off
+    | ONLINE EQ (ON (LPAREN low_priority_lock_wait RPAREN)? | OFF)
+    | ALLOW_ROW_LOCKS EQ on_off
+    | ALLOW_PAGE_LOCKS EQ on_off
+    | MAXDOP EQ max_degree_of_parallelism = INT
+    | XML_COMPRESSION EQ on_off
     ;
 
 // https://msdn.microsoft.com/en-us/library/ms187926(v=sql.120).aspx
 create_or_alter_procedure
     : ((CREATE (OR (ALTER | REPLACE))?) | ALTER) proc = (PROC | PROCEDURE) procName = func_proc_name_schema (
-        SEMI DECIMAL
+        SEMI INT
     )? (LPAREN? procedure_param (COMMA procedure_param)* RPAREN?)? (
         WITH procedure_option (COMMA procedure_option)*
     )? (FOR REPLICATION)? AS (as_external_name | sql_clauses*)
@@ -2460,7 +2460,7 @@ procedure_param_default_value
 
 procedure_param
     : LOCAL_ID AS? (type_schema = id_ DOT)? data_type VARYING? (
-        EQUALS default_val = procedure_param_default_value
+        EQ default_val = procedure_param_default_value
     )? (OUT | OUTPUT | READONLY)?
     ;
 
@@ -2481,8 +2481,8 @@ function_option
 // https://msdn.microsoft.com/en-us/library/ms188038.aspx
 create_statistics
     : CREATE STATISTICS id_ ON table_name LPAREN column_name_list RPAREN (
-        WITH (FULLSCAN | SAMPLE DECIMAL (PERCENT | ROWS) | STATS_STREAM) (COMMA NORECOMPUTE)? (
-            COMMA INCREMENTAL EQUAL on_off
+        WITH (FULLSCAN | SAMPLE INT (PERCENT | ROWS) | STATS_STREAM) (COMMA NORECOMPUTE)? (
+            COMMA INCREMENTAL EQ on_off
         )?
     )? SEMI?
     ;
@@ -2496,19 +2496,19 @@ update_statistics_options
     ;
 
 update_statistics_option
-    : (FULLSCAN (COMMA? PERSIST_SAMPLE_PERCENT EQUALS on_off)?)
-    | (SAMPLE number = DECIMAL (PERCENT | ROWS) (COMMA? PERSIST_SAMPLE_PERCENT EQUALS on_off)?)
+    : (FULLSCAN (COMMA? PERSIST_SAMPLE_PERCENT EQ on_off)?)
+    | (SAMPLE number = INT (PERCENT | ROWS) (COMMA? PERSIST_SAMPLE_PERCENT EQ on_off)?)
     | RESAMPLE on_partitions?
-    | STATS_STREAM EQUALS stats_stream_ = expression
-    | ROWCOUNT EQUALS DECIMAL
-    | PAGECOUNT EQUALS DECIMAL
+    | STATS_STREAM EQ stats_stream_ = expression
+    | ROWCOUNT EQ INT
+    | PAGECOUNT EQ INT
     | ALL
     | COLUMNS
     | INDEX
     | NORECOMPUTE
-    | INCREMENTAL EQUALS on_off
-    | MAXDOP EQUALS max_dregree_of_parallelism = DECIMAL
-    | AUTO_DROP EQUALS on_off
+    | INCREMENTAL EQ on_off
+    | MAXDOP EQ max_dregree_of_parallelism = INT
+    | AUTO_DROP EQ on_off
     ;
 
 // https://msdn.microsoft.com/en-us/library/ms174979.aspx
@@ -2531,14 +2531,14 @@ table_options
     ;
 
 table_option
-    : (simple_id | keyword) EQUALS (simple_id | keyword | on_off | DECIMAL)
+    : (simple_id | keyword) EQ (simple_id | keyword | on_off | INT)
     | CLUSTERED COLUMNSTORE INDEX
     | HEAP
-    | FILLFACTOR EQUALS DECIMAL
-    | DISTRIBUTION EQUALS HASH LPAREN id_ RPAREN
+    | FILLFACTOR EQ INT
+    | DISTRIBUTION EQ HASH LPAREN id_ RPAREN
     | CLUSTERED INDEX LPAREN id_ (ASC | DESC)? (COMMA id_ (ASC | DESC)?)* RPAREN
-    | DATA_COMPRESSION EQUALS (NONE | ROW | PAGE) on_partitions?
-    | XML_COMPRESSION EQUALS on_off on_partitions?
+    | DATA_COMPRESSION EQ (NONE | ROW | PAGE) on_partitions?
+    | XML_COMPRESSION EQ on_off on_partitions?
     ;
 
 create_table_index_options
@@ -2546,16 +2546,16 @@ create_table_index_options
     ;
 
 create_table_index_option
-    : PAD_INDEX EQUALS on_off
-    | FILLFACTOR EQUALS DECIMAL
-    | IGNORE_DUP_KEY EQUALS on_off
-    | STATISTICS_NORECOMPUTE EQUALS on_off
-    | STATISTICS_INCREMENTAL EQUALS on_off
-    | ALLOW_ROW_LOCKS EQUALS on_off
-    | ALLOW_PAGE_LOCKS EQUALS on_off
-    | OPTIMIZE_FOR_SEQUENTIAL_KEY EQUALS on_off
-    | DATA_COMPRESSION EQUALS (NONE | ROW | PAGE | COLUMNSTORE | COLUMNSTORE_ARCHIVE) on_partitions?
-    | XML_COMPRESSION EQUALS on_off on_partitions?
+    : PAD_INDEX EQ on_off
+    | FILLFACTOR EQ INT
+    | IGNORE_DUP_KEY EQ on_off
+    | STATISTICS_NORECOMPUTE EQ on_off
+    | STATISTICS_INCREMENTAL EQ on_off
+    | ALLOW_ROW_LOCKS EQ on_off
+    | ALLOW_PAGE_LOCKS EQ on_off
+    | OPTIMIZE_FOR_SEQUENTIAL_KEY EQ on_off
+    | DATA_COMPRESSION EQ (NONE | ROW | PAGE | COLUMNSTORE | COLUMNSTORE_ARCHIVE) on_partitions?
+    | XML_COMPRESSION EQ on_off on_partitions?
     ;
 
 // https://msdn.microsoft.com/en-us/library/ms187956.aspx
@@ -2574,7 +2574,7 @@ view_attribute
 // https://msdn.microsoft.com/en-us/library/ms190273.aspx
 alter_table
     : ALTER TABLE table_name (
-        SET LPAREN LOCK_ESCALATION EQUALS (AUTO | TABLE | DISABLE) RPAREN
+        SET LPAREN LOCK_ESCALATION EQ (AUTO | TABLE | DISABLE) RPAREN
         | ADD column_def_table_constraints
         | ALTER COLUMN (column_definition | column_modifier)
         | DROP COLUMN id_ (COMMA id_)*
@@ -2599,7 +2599,7 @@ switch_partition
     ;
 
 low_priority_lock_wait
-    : WAIT_AT_LOW_PRIORITY LPAREN MAX_DURATION EQUALS max_duration = time MINUTES? COMMA ABORT_AFTER_WAIT EQUALS abort_after_wait = (
+    : WAIT_AT_LOW_PRIORITY LPAREN MAX_DURATION EQ max_duration = time MINUTES? COMMA ABORT_AFTER_WAIT EQ abort_after_wait = (
         NONE
         | SELF
         | BLOCKERS
@@ -2609,7 +2609,7 @@ low_priority_lock_wait
 // https://msdn.microsoft.com/en-us/library/ms174269.aspx
 alter_database
     : ALTER DATABASE (database = id_ | CURRENT) (
-        MODIFY NAME EQUALS new_name = id_
+        MODIFY NAME EQ new_name = id_
         | COLLATE collation = id_
         | SET database_optionspec (WITH termination)?
         | add_or_modify_files
@@ -2626,10 +2626,10 @@ add_or_modify_files
     ;
 
 filespec
-    : LPAREN NAME EQUALS name = id_or_string (COMMA NEWNAME EQUALS new_name = id_or_string)? (
-        COMMA FILENAME EQUALS file_name = STRING
-    )? (COMMA SIZE EQUALS size = file_size)? (COMMA MAXSIZE EQUALS (max_size = file_size) | UNLIMITED)? (
-        COMMA FILEGROWTH EQUALS growth_increment = file_size
+    : LPAREN NAME EQ name = id_or_string (COMMA NEWNAME EQ new_name = id_or_string)? (
+        COMMA FILENAME EQ file_name = STRING
+    )? (COMMA SIZE EQ size = file_size)? (COMMA MAXSIZE EQ (max_size = file_size) | UNLIMITED)? (
+        COMMA FILEGROWTH EQ growth_increment = file_size
     )? (COMMA OFFLINE)? RPAREN
     ;
 
@@ -2639,7 +2639,7 @@ add_or_modify_filegroups
     | MODIFY FILEGROUP filegrou_name = id_ (
         filegroup_updatability_option
         | DEFAULT
-        | NAME EQUALS new_filegroup_name = id_
+        | NAME EQ new_filegroup_name = id_
         | AUTOGROW_SINGLE_FILE
         | AUTOGROW_ALL_FILES
     )
@@ -2684,26 +2684,26 @@ database_optionspec
 auto_option
     : AUTO_CLOSE on_off
     | AUTO_CREATE_STATISTICS OFF
-    | ON ( INCREMENTAL EQUAL ON | OFF)
+    | ON ( INCREMENTAL EQ ON | OFF)
     | AUTO_SHRINK on_off
     | AUTO_UPDATE_STATISTICS on_off
     | AUTO_UPDATE_STATISTICS_ASYNC (ON | OFF)
     ;
 
 change_tracking_option
-    : CHANGE_TRACKING EQUAL (
+    : CHANGE_TRACKING EQ (
         OFF
         | ON LPAREN (change_tracking_option_list (COMMA change_tracking_option_list)*)* RPAREN
     )
     ;
 
 change_tracking_option_list
-    : AUTO_CLEANUP EQUAL on_off
-    | CHANGE_RETENTION EQUAL DECIMAL ( DAYS | HOURS | MINUTES)
+    : AUTO_CLEANUP EQ on_off
+    | CHANGE_RETENTION EQ INT ( DAYS | HOURS | MINUTES)
     ;
 
 containment_option
-    : CONTAINMENT EQUAL (NONE | PARTIAL)
+    : CONTAINMENT EQ (NONE | PARTIAL)
     ;
 
 cursor_option
@@ -2714,17 +2714,17 @@ cursor_option
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-endpoint-transact-sql
 alter_endpoint
     : ALTER ENDPOINT endpointname = id_ (AUTHORIZATION login = id_)? (
-        STATE EQUAL state = (STARTED | STOPPED | DISABLED)
+        STATE EQ state = (STARTED | STOPPED | DISABLED)
     )? AS TCP LPAREN endpoint_listener_clause RPAREN (
         FOR TSQL LPAREN RPAREN
         | FOR SERVICE_BROKER LPAREN endpoint_authentication_clause (
             COMMA? endpoint_encryption_alogorithm_clause
-        )? (COMMA? MESSAGE_FORWARDING EQUAL (ENABLED | DISABLED))? (
-            COMMA? MESSAGE_FORWARD_SIZE EQUAL DECIMAL
+        )? (COMMA? MESSAGE_FORWARDING EQ (ENABLED | DISABLED))? (
+            COMMA? MESSAGE_FORWARD_SIZE EQ INT
         )? RPAREN
         | FOR DATABASE_MIRRORING LPAREN endpoint_authentication_clause (
             COMMA? endpoint_encryption_alogorithm_clause
-        )? COMMA? ROLE EQUAL (WITNESS | PARTNER | ALL) RPAREN
+        )? COMMA? ROLE EQ (WITNESS | PARTNER | ALL) RPAREN
     )
     ;
 
@@ -2748,7 +2748,7 @@ mirroring_witness
     ;
 
 witness_partner_equal
-    : EQUAL
+    : EQ
     ;
 
 partner_option
@@ -2759,7 +2759,7 @@ partner_option
     | RESUME
     | SAFETY (FULL | OFF)
     | SUSPEND
-    | TIMEOUT DECIMAL
+    | TIMEOUT INT
     ;
 
 witness_option
@@ -2784,7 +2784,7 @@ partner_server_tcp_prefix
     ;
 
 port_number
-    : port = DECIMAL
+    : port = INT
     ;
 
 host
@@ -2816,21 +2816,21 @@ db_user_access_option
     ;
 
 delayed_durability_option
-    : DELAYED_DURABILITY EQUAL (DISABLED | ALLOWED | FORCED)
+    : DELAYED_DURABILITY EQ (DISABLED | ALLOWED | FORCED)
     ;
 
 external_access_option
     : DB_CHAINING on_off
     | TRUSTWORTHY on_off
-    | DEFAULT_LANGUAGE EQUAL ( id_ | STRING)
-    | DEFAULT_FULLTEXT_LANGUAGE EQUAL ( id_ | STRING)
-    | NESTED_TRIGGERS EQUAL ( OFF | ON)
-    | TRANSFORM_NOISE_WORDS EQUAL ( OFF | ON)
-    | TWO_DIGIT_YEAR_CUTOFF EQUAL DECIMAL
+    | DEFAULT_LANGUAGE EQ ( id_ | STRING)
+    | DEFAULT_FULLTEXT_LANGUAGE EQ ( id_ | STRING)
+    | NESTED_TRIGGERS EQ ( OFF | ON)
+    | TRANSFORM_NOISE_WORDS EQ ( OFF | ON)
+    | TWO_DIGIT_YEAR_CUTOFF EQ INT
     ;
 
 hadr_options
-    : HADR (( AVAILABILITY GROUP EQUAL availability_group_name = id_ | OFF) | (SUSPEND | RESUME))
+    : HADR (( AVAILABILITY GROUP EQ availability_group_name = id_ | OFF) | (SUSPEND | RESUME))
     ;
 
 mixed_page_allocation_option
@@ -2844,7 +2844,7 @@ parameterization_option
 recovery_option
     : RECOVERY (FULL | BULK_LOGGED | SIMPLE)
     | TORN_PAGE_DETECTION on_off
-    | ACCELERATED_DATABASE_RECOVERY EQUALS on_off
+    | ACCELERATED_DATABASE_RECOVERY EQ on_off
     | PAGE_VERIFY ( CHECKSUM | TORN_PAGE_DETECTION | NONE)
     ;
 
@@ -2868,7 +2868,7 @@ sql_option
     | ANSI_PADDING on_off
     | ANSI_WARNINGS on_off
     | ARITHABORT on_off
-    | COMPATIBILITY_LEVEL EQUAL DECIMAL
+    | COMPATIBILITY_LEVEL EQ INT
     | CONCAT_NULL_YIELDS_NULL on_off
     | NUMERIC_ROUNDABORT on_off
     | QUOTED_IDENTIFIER on_off
@@ -2876,11 +2876,11 @@ sql_option
     ;
 
 target_recovery_time_option
-    : TARGET_RECOVERY_TIME EQUAL DECIMAL (SECONDS | MINUTES)
+    : TARGET_RECOVERY_TIME EQ INT (SECONDS | MINUTES)
     ;
 
 termination
-    : ROLLBACK AFTER seconds = DECIMAL
+    : ROLLBACK AFTER seconds = INT
     | ROLLBACK IMMEDIATE
     | NO_WAIT
     ;
@@ -2999,45 +2999,45 @@ cursor_statement
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/backup-transact-sql
 backup_database
     : BACKUP DATABASE (database_name = id_) (
-        READ_WRITE_FILEGROUPS (COMMA? (FILE | FILEGROUP) EQUAL file_or_filegroup = STRING)*
-    )? (COMMA? (FILE | FILEGROUP) EQUAL file_or_filegroup = STRING)* (
+        READ_WRITE_FILEGROUPS (COMMA? (FILE | FILEGROUP) EQ file_or_filegroup = STRING)*
+    )? (COMMA? (FILE | FILEGROUP) EQ file_or_filegroup = STRING)* (
         TO ( COMMA? logical_device_name = id_)+
-        | TO ( COMMA? (DISK | TAPE | URL) EQUAL (STRING | id_))+
+        | TO ( COMMA? (DISK | TAPE | URL) EQ (STRING | id_))+
     ) (
         (MIRROR TO ( COMMA? logical_device_name = id_)+)+
-        | ( MIRROR TO ( COMMA? (DISK | TAPE | URL) EQUAL (STRING | id_))+)+
+        | ( MIRROR TO ( COMMA? (DISK | TAPE | URL) EQ (STRING | id_))+)+
     )? (
         WITH (
             COMMA? DIFFERENTIAL
             | COMMA? COPY_ONLY
             | COMMA? (COMPRESSION | NO_COMPRESSION)
-            | COMMA? DESCRIPTION EQUAL (STRING | id_)
-            | COMMA? NAME EQUAL backup_set_name = id_
+            | COMMA? DESCRIPTION EQ (STRING | id_)
+            | COMMA? NAME EQ backup_set_name = id_
             | COMMA? CREDENTIAL
             | COMMA? FILE_SNAPSHOT
-            | COMMA? (EXPIREDATE EQUAL (STRING | id_) | RETAINDAYS EQUAL (DECIMAL | id_))
+            | COMMA? (EXPIREDATE EQ (STRING | id_) | RETAINDAYS EQ (INT | id_))
             | COMMA? (NOINIT | INIT)
             | COMMA? (NOSKIP | SKIP_KEYWORD)
             | COMMA? (NOFORMAT | FORMAT)
-            | COMMA? MEDIADESCRIPTION EQUAL (STRING | id_)
-            | COMMA? MEDIANAME EQUAL (medianame = STRING)
-            | COMMA? BLOCKSIZE EQUAL (DECIMAL | id_)
-            | COMMA? BUFFERCOUNT EQUAL (DECIMAL | id_)
-            | COMMA? MAXTRANSFER EQUAL (DECIMAL | id_)
+            | COMMA? MEDIADESCRIPTION EQ (STRING | id_)
+            | COMMA? MEDIANAME EQ (medianame = STRING)
+            | COMMA? BLOCKSIZE EQ (INT | id_)
+            | COMMA? BUFFERCOUNT EQ (INT | id_)
+            | COMMA? MAXTRANSFER EQ (INT | id_)
             | COMMA? (NO_CHECKSUM | CHECKSUM)
             | COMMA? (STOP_ON_ERROR | CONTINUE_AFTER_ERROR)
             | COMMA? RESTART
-            | COMMA? STATS (EQUAL stats_percent = DECIMAL)?
+            | COMMA? STATS (EQ stats_percent = INT)?
             | COMMA? (REWIND | NOREWIND)
             | COMMA? (LOAD | NOUNLOAD)
-            | COMMA? ENCRYPTION LPAREN ALGORITHM EQUAL (
+            | COMMA? ENCRYPTION LPAREN ALGORITHM EQ (
                 AES_128
                 | AES_192
                 | AES_256
                 | TRIPLE_DES_3KEY
-            ) COMMA SERVER CERTIFICATE EQUAL (
+            ) COMMA SERVER CERTIFICATE EQ (
                 encryptor_name = id_
-                | SERVER ASYMMETRIC KEY EQUAL encryptor_name = id_
+                | SERVER ASYMMETRIC KEY EQ encryptor_name = id_
             )
         )*
     )?
@@ -3046,44 +3046,44 @@ backup_database
 backup_log
     : BACKUP LOG (database_name = id_) (
         TO ( COMMA? logical_device_name = id_)+
-        | TO ( COMMA? (DISK | TAPE | URL) EQUAL (STRING | id_))+
+        | TO ( COMMA? (DISK | TAPE | URL) EQ (STRING | id_))+
     ) (
         (MIRROR TO ( COMMA? logical_device_name = id_)+)+
-        | ( MIRROR TO ( COMMA? (DISK | TAPE | URL) EQUAL (STRING | id_))+)+
+        | ( MIRROR TO ( COMMA? (DISK | TAPE | URL) EQ (STRING | id_))+)+
     )? (
         WITH (
             COMMA? DIFFERENTIAL
             | COMMA? COPY_ONLY
             | COMMA? (COMPRESSION | NO_COMPRESSION)
-            | COMMA? DESCRIPTION EQUAL (STRING | id_)
-            | COMMA? NAME EQUAL backup_set_name = id_
+            | COMMA? DESCRIPTION EQ (STRING | id_)
+            | COMMA? NAME EQ backup_set_name = id_
             | COMMA? CREDENTIAL
             | COMMA? FILE_SNAPSHOT
-            | COMMA? (EXPIREDATE EQUAL (STRING | id_) | RETAINDAYS EQUAL (DECIMAL | id_))
+            | COMMA? (EXPIREDATE EQ (STRING | id_) | RETAINDAYS EQ (INT | id_))
             | COMMA? (NOINIT | INIT)
             | COMMA? (NOSKIP | SKIP_KEYWORD)
             | COMMA? (NOFORMAT | FORMAT)
-            | COMMA? MEDIADESCRIPTION EQUAL (STRING | id_)
-            | COMMA? MEDIANAME EQUAL (medianame = STRING)
-            | COMMA? BLOCKSIZE EQUAL (DECIMAL | id_)
-            | COMMA? BUFFERCOUNT EQUAL (DECIMAL | id_)
-            | COMMA? MAXTRANSFER EQUAL (DECIMAL | id_)
+            | COMMA? MEDIADESCRIPTION EQ (STRING | id_)
+            | COMMA? MEDIANAME EQ (medianame = STRING)
+            | COMMA? BLOCKSIZE EQ (INT | id_)
+            | COMMA? BUFFERCOUNT EQ (INT | id_)
+            | COMMA? MAXTRANSFER EQ (INT | id_)
             | COMMA? (NO_CHECKSUM | CHECKSUM)
             | COMMA? (STOP_ON_ERROR | CONTINUE_AFTER_ERROR)
             | COMMA? RESTART
-            | COMMA? STATS (EQUAL stats_percent = DECIMAL)?
+            | COMMA? STATS (EQ stats_percent = INT)?
             | COMMA? (REWIND | NOREWIND)
             | COMMA? (LOAD | NOUNLOAD)
-            | COMMA? (NORECOVERY | STANDBY EQUAL undo_file_name = STRING)
+            | COMMA? (NORECOVERY | STANDBY EQ undo_file_name = STRING)
             | COMMA? NO_TRUNCATE
-            | COMMA? ENCRYPTION LPAREN ALGORITHM EQUAL (
+            | COMMA? ENCRYPTION LPAREN ALGORITHM EQ (
                 AES_128
                 | AES_192
                 | AES_256
                 | TRIPLE_DES_3KEY
-            ) COMMA SERVER CERTIFICATE EQUAL (
+            ) COMMA SERVER CERTIFICATE EQ (
                 encryptor_name = id_
-                | SERVER ASYMMETRIC KEY EQUAL encryptor_name = id_
+                | SERVER ASYMMETRIC KEY EQ encryptor_name = id_
             )
         )*
     )?
@@ -3091,23 +3091,23 @@ backup_log
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/backup-certificate-transact-sql
 backup_certificate
-    : BACKUP CERTIFICATE certname = id_ TO FILE EQUAL cert_file = STRING (
+    : BACKUP CERTIFICATE certname = id_ TO FILE EQ cert_file = STRING (
         WITH PRIVATE KEY LPAREN (
-            COMMA? FILE EQUAL private_key_file = STRING
-            | COMMA? ENCRYPTION BY PASSWORD EQUAL encryption_password = STRING
-            | COMMA? DECRYPTION BY PASSWORD EQUAL decryption_pasword = STRING
+            COMMA? FILE EQ private_key_file = STRING
+            | COMMA? ENCRYPTION BY PASSWORD EQ encryption_password = STRING
+            | COMMA? DECRYPTION BY PASSWORD EQ decryption_pasword = STRING
         )+ RPAREN
     )?
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/backup-master-key-transact-sql
 backup_master_key
-    : BACKUP MASTER KEY TO FILE EQUAL master_key_backup_file = STRING ENCRYPTION BY PASSWORD EQUAL encryption_password = STRING
+    : BACKUP MASTER KEY TO FILE EQ master_key_backup_file = STRING ENCRYPTION BY PASSWORD EQ encryption_password = STRING
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/backup-service-master-key-transact-sql
 backup_service_master_key
-    : BACKUP SERVICE MASTER KEY TO FILE EQUAL service_master_key_backup_file = STRING ENCRYPTION BY PASSWORD EQUAL encryption_password = STRING
+    : BACKUP SERVICE MASTER KEY TO FILE EQ service_master_key_backup_file = STRING ENCRYPTION BY PASSWORD EQ encryption_password = STRING
     ;
 
 kill_statement
@@ -3116,17 +3116,17 @@ kill_statement
 
 // https://docs.microsoft.com/en-us/sql/t-sql/language-elements/kill-transact-sql
 kill_process
-    : (session_id = (DECIMAL | STRING) | UOW) (WITH STATUSONLY)?
+    : (session_id = (INT | STRING) | UOW) (WITH STATUSONLY)?
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/language-elements/kill-query-notification-subscription-transact-sql
 kill_query_notification
-    : QUERY NOTIFICATION SUBSCRIPTION (ALL | subscription_id = DECIMAL)
+    : QUERY NOTIFICATION SUBSCRIPTION (ALL | subscription_id = INT)
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/language-elements/kill-stats-job-transact-sql
 kill_stats_job
-    : STATS JOB job_id = DECIMAL
+    : STATS JOB job_id = INT
     ;
 
 // https://msdn.microsoft.com/en-us/library/ms188332.aspx
@@ -3140,11 +3140,11 @@ execute_body_batch
 
 //https://docs.microsoft.com/it-it/sql/t-sql/language-elements/execute-transact-sql?view=sql-server-ver15
 execute_body
-    : (return_status = LOCAL_ID EQUALS)? (func_proc_name_server_database_schema | execute_var_string) execute_statement_arg?
-    | LPAREN execute_var_string (COMMA execute_var_string)* RPAREN (AS (LOGIN | USER) EQUALS STRING)? (
+    : (return_status = LOCAL_ID EQ)? (func_proc_name_server_database_schema | execute_var_string) execute_statement_arg?
+    | LPAREN execute_var_string (COMMA execute_var_string)* RPAREN (AS (LOGIN | USER) EQ STRING)? (
         AT_KEYWORD linkedServer = id_
     )?
-    | AS ( (LOGIN | USER) EQUALS STRING | CALLER)
+    | AS ( (LOGIN | USER) EQ STRING | CALLER)
     ;
 
 execute_statement_arg
@@ -3153,7 +3153,7 @@ execute_statement_arg
     ;
 
 execute_statement_arg_named
-    : name = LOCAL_ID EQUALS value = execute_parameter
+    : name = LOCAL_ID EQ value = execute_parameter
     ;
 
 execute_statement_arg_unnamed
@@ -3180,7 +3180,7 @@ security_statement
         AS as_principal = principal_id
     )? SEMI?
     // https://msdn.microsoft.com/en-us/library/ms178632.aspx
-    | REVERT (WITH COOKIE EQUALS LOCAL_ID)? SEMI?
+    | REVERT (WITH COOKIE EQ LOCAL_ID)? SEMI?
     | open_key
     | close_key
     | create_key
@@ -3196,33 +3196,33 @@ create_certificate
     : CREATE CERTIFICATE certificate_name = id_ (AUTHORIZATION user_name = id_)? (
         FROM existing_keys
         | generate_new_keys
-    ) (ACTIVE FOR BEGIN DIALOG EQUALS on_off)?
+    ) (ACTIVE FOR BEGIN DIALOG EQ on_off)?
     ;
 
 existing_keys
     : ASSEMBLY assembly_name = id_
-    | EXECUTABLE? FILE EQUAL path_to_file = STRING (WITH PRIVATE KEY LPAREN private_key_options RPAREN)?
+    | EXECUTABLE? FILE EQ path_to_file = STRING (WITH PRIVATE KEY LPAREN private_key_options RPAREN)?
     ;
 
 private_key_options
-    : (FILE | BINARY) EQUALS path = STRING (
-        COMMA (DECRYPTION | ENCRYPTION) BY PASSWORD EQUALS password = STRING
+    : (FILE | HEX) EQ path = STRING (
+        COMMA (DECRYPTION | ENCRYPTION) BY PASSWORD EQ password = STRING
     )?
     ;
 
 generate_new_keys
-    : (ENCRYPTION BY PASSWORD EQUALS password = STRING)? WITH SUBJECT EQUAL certificate_subject_name = STRING (
+    : (ENCRYPTION BY PASSWORD EQ password = STRING)? WITH SUBJECT EQ certificate_subject_name = STRING (
         COMMA date_options
     )*
     ;
 
 date_options
-    : (START_DATE | EXPIRY_DATE) EQUAL STRING
+    : (START_DATE | EXPIRY_DATE) EQ STRING
     ;
 
 open_key
     : OPEN SYMMETRIC KEY key_name = id_ DECRYPTION BY decryption_mechanism
-    | OPEN MASTER KEY DECRYPTION BY PASSWORD EQUALS password = STRING
+    | OPEN MASTER KEY DECRYPTION BY PASSWORD EQ password = STRING
     ;
 
 close_key
@@ -3232,18 +3232,18 @@ close_key
     ;
 
 create_key
-    : CREATE MASTER KEY ENCRYPTION BY PASSWORD EQUALS password = STRING
+    : CREATE MASTER KEY ENCRYPTION BY PASSWORD EQ password = STRING
     | CREATE SYMMETRIC KEY key_name = id_ (AUTHORIZATION user_name = id_)? (
         FROM PROVIDER provider_name = id_
     )? WITH ((key_options | ENCRYPTION BY encryption_mechanism) COMMA?)+
     ;
 
 key_options
-    : KEY_SOURCE EQUAL pass_phrase = STRING
-    | ALGORITHM EQUAL algorithm
-    | IDENTITY_VALUE EQUAL identity_phrase = STRING
-    | PROVIDER_KEY_NAME EQUAL key_name_in_provider = STRING
-    | CREATION_DISPOSITION EQUAL (CREATE_NEW | OPEN_EXISTING)
+    : KEY_SOURCE EQ pass_phrase = STRING
+    | ALGORITHM EQ algorithm
+    | IDENTITY_VALUE EQ identity_phrase = STRING
+    | PROVIDER_KEY_NAME EQ key_name_in_provider = STRING
+    | CREATION_DISPOSITION EQ (CREATE_NEW | OPEN_EXISTING)
     ;
 
 algorithm
@@ -3263,14 +3263,14 @@ encryption_mechanism
     : CERTIFICATE certificate_name = id_
     | ASYMMETRIC KEY asym_key_name = id_
     | SYMMETRIC KEY decrypting_Key_name = id_
-    | PASSWORD EQUALS STRING
+    | PASSWORD EQ STRING
     ;
 
 decryption_mechanism
-    : CERTIFICATE certificate_name = id_ (WITH PASSWORD EQUAL STRING)?
-    | ASYMMETRIC KEY asym_key_name = id_ (WITH PASSWORD EQUAL STRING)?
+    : CERTIFICATE certificate_name = id_ (WITH PASSWORD EQ STRING)?
+    | ASYMMETRIC KEY asym_key_name = id_ (WITH PASSWORD EQ STRING)?
     | SYMMETRIC KEY decrypting_Key_name = id_
-    | PASSWORD EQUAL STRING
+    | PASSWORD EQ STRING
     ;
 
 // https://docs.microsoft.com/en-us/sql/relational-databases/system-functions/sys-fn-builtin-permissions-transact-sql?view=sql-server-ver15
@@ -3388,9 +3388,9 @@ grant_permission
 // https://msdn.microsoft.com/en-us/library/ms190356.aspx
 // https://msdn.microsoft.com/en-us/library/ms189484.aspx
 set_statement
-    : SET LOCAL_ID (DOT member_name = id_)? EQUALS expression
+    : SET LOCAL_ID (DOT member_name = id_)? EQ expression
     | SET LOCAL_ID assignment_operator expression
-    | SET LOCAL_ID EQUALS CURSOR declare_set_cursor_common (
+    | SET LOCAL_ID EQ CURSOR declare_set_cursor_common (
         FOR (READ ONLY | UPDATE (OF column_name_list)?)
     )?
     // https://msdn.microsoft.com/en-us/library/ms189837.aspx
@@ -3405,7 +3405,7 @@ transaction_statement
     | BEGIN (TRAN | TRANSACTION) ((id_ | LOCAL_ID) (WITH MARK STRING)?)?
     // https://msdn.microsoft.com/en-us/library/ms190295.aspx
     | COMMIT (TRAN | TRANSACTION) (
-        (id_ | LOCAL_ID) (WITH LPAREN DELAYED_DURABILITY EQUAL (OFF | ON) RPAREN)?
+        (id_ | LOCAL_ID) (WITH LPAREN DELAYED_DURABILITY EQ (OFF | ON) RPAREN)?
     )?
     // https://msdn.microsoft.com/en-us/library/ms178628.aspx
     | COMMIT WORK?
@@ -3421,7 +3421,7 @@ transaction_statement
 
 // https://msdn.microsoft.com/en-us/library/ms188037.aspx
 go_statement
-    : GO (count = DECIMAL)?
+    : GO (count = INT)?
     ;
 
 // https://msdn.microsoft.com/en-us/library/ms188366.aspx
@@ -3444,7 +3444,7 @@ shutdown_statement
     ;
 
 checkpoint_statement
-    : CHECKPOINT (checkPointDuration = DECIMAL)?
+    : CHECKPOINT (checkPointDuration = INT)?
     ;
 
 dbcc_checkalloc_option
@@ -3457,7 +3457,7 @@ dbcc_checkalloc_option
 // https://learn.microsoft.com/en-us/sql/t-sql/database-console-commands/dbcc-checkalloc-transact-sql?view=sql-server-ver16
 dbcc_checkalloc
     : name = CHECKALLOC (
-        LPAREN (database = id_ | databaseid = STRING | DECIMAL) (
+        LPAREN (database = id_ | databaseid = STRING | INT) (
             COMMA NOINDEX
             | COMMA ( REPAIR_ALLOW_DATA_LOSS | REPAIR_FAST | REPAIR_REBUILD)
         )? RPAREN (
@@ -3468,7 +3468,7 @@ dbcc_checkalloc
 
 // https://learn.microsoft.com/en-us/sql/t-sql/database-console-commands/dbcc-checkcatalog-transact-sql?view=sql-server-ver16
 dbcc_checkcatalog
-    : name = CHECKCATALOG (LPAREN ( database = id_ | databasename = STRING | DECIMAL) RPAREN)? (
+    : name = CHECKCATALOG (LPAREN ( database = id_ | databasename = STRING | INT) RPAREN)? (
         WITH dbcc_option = NO_INFOMSGS
     )?
     ;
@@ -3498,13 +3498,13 @@ dbcc_checkdb_table_option
     | ESTIMATEONLY
     | PHYSICAL_ONLY
     | DATA_PURITY
-    | MAXDOP EQUALS max_dregree_of_parallelism = DECIMAL
+    | MAXDOP EQ max_dregree_of_parallelism = INT
     ;
 
 // https://learn.microsoft.com/en-us/sql/t-sql/database-console-commands/dbcc-checkdb-transact-sql?view=sql-server-ver16
 dbcc_checkdb
     : name = CHECKDB (
-        LPAREN (database = id_ | databasename = STRING | DECIMAL) (
+        LPAREN (database = id_ | databasename = STRING | INT) (
             COMMA (NOINDEX | REPAIR_ALLOW_DATA_LOSS | REPAIR_FAST | REPAIR_REBUILD)
         )? RPAREN
     )? (
@@ -3518,14 +3518,14 @@ dbcc_checkfilegroup_option
     | TABLOCK
     | ESTIMATEONLY
     | PHYSICAL_ONLY
-    | MAXDOP EQUALS max_dregree_of_parallelism = DECIMAL
+    | MAXDOP EQ max_dregree_of_parallelism = INT
     ;
 
 // https://learn.microsoft.com/en-us/sql/t-sql/database-console-commands/dbcc-checkfilegroup-transact-sql?view=sql-server-ver16
 // Additional parameters: https://dbtut.com/index.php/2019/01/01/dbcc-checkfilegroup-command-on-sql-server/
 dbcc_checkfilegroup
     : name = CHECKFILEGROUP (
-        LPAREN (filegroup_id = DECIMAL | filegroup_name = STRING) (
+        LPAREN (filegroup_id = INT | filegroup_name = STRING) (
             COMMA (NOINDEX | REPAIR_ALLOW_DATA_LOSS | REPAIR_FAST | REPAIR_REBUILD)
         )? RPAREN
     )? (
@@ -3552,10 +3552,10 @@ dbcc_checktable
 
 // https://learn.microsoft.com/en-us/sql/t-sql/database-console-commands/dbcc-cleantable-transact-sql?view=sql-server-ver16
 dbcc_cleantable
-    : name = CLEANTABLE LPAREN (database = id_ | databasename = STRING | DECIMAL) COMMA (
+    : name = CLEANTABLE LPAREN (database = id_ | databasename = STRING | INT) COMMA (
         table_or_view = id_
         | table_or_view_name = STRING
-    ) (COMMA batch_size = DECIMAL)? RPAREN (WITH dbcc_option = NO_INFOMSGS)?
+    ) (COMMA batch_size = INT)? RPAREN (WITH dbcc_option = NO_INFOMSGS)?
     ;
 
 dbcc_clonedatabase_option
@@ -3602,7 +3602,7 @@ dbcc_showcontig
 
 // https://learn.microsoft.com/en-us/sql/t-sql/database-console-commands/dbcc-shrinklog-azure-sql-data-warehouse?view=aps-pdw-2016-au7
 dbcc_shrinklog
-    : name = SHRINKLOG (LPAREN SIZE EQUALS ( (DECIMAL ( MB | GB | TB)) | DEFAULT) RPAREN)? (
+    : name = SHRINKLOG (LPAREN SIZE EQ ( (INT ( MB | GB | TB)) | DEFAULT) RPAREN)? (
         WITH dbcc_option = NO_INFOMSGS
     )?
     ;
@@ -3649,7 +3649,7 @@ execute_clause
     ;
 
 declare_local
-    : LOCAL_ID AS? data_type (EQUALS expression)?
+    : LOCAL_ID AS? data_type (EQ expression)?
     ;
 
 table_type_definition
@@ -3690,17 +3690,17 @@ column_definition_element
     : FILESTREAM
     | COLLATE collation_name = id_
     | SPARSE
-    | MASKED WITH LPAREN FUNCTION EQUALS mask_function = STRING RPAREN
+    | MASKED WITH LPAREN FUNCTION EQ mask_function = STRING RPAREN
     | (CONSTRAINT constraint = id_)? DEFAULT constant_expr = expression
-    | IDENTITY (LPAREN seed = DECIMAL COMMA increment = DECIMAL RPAREN)?
+    | IDENTITY (LPAREN seed = INT COMMA increment = INT RPAREN)?
     | NOT FOR REPLICATION
     | GENERATED ALWAYS AS (ROW | TRANSACTION_ID | SEQUENCE_NUMBER) (START | END) HIDDEN_KEYWORD?
     // NULL / NOT NULL is a constraint
     | ROWGUIDCOL
-    | ENCRYPTED WITH LPAREN COLUMN_ENCRYPTION_KEY EQUALS key_name = STRING COMMA ENCRYPTION_TYPE EQUALS (
+    | ENCRYPTED WITH LPAREN COLUMN_ENCRYPTION_KEY EQ key_name = STRING COMMA ENCRYPTION_TYPE EQ (
         DETERMINISTIC
         | RANDOMIZED
-    ) COMMA ALGORITHM EQUALS algo = STRING RPAREN
+    ) COMMA ALGORITHM EQ algo = STRING RPAREN
     | column_constraint
     ;
 
@@ -3711,7 +3711,7 @@ column_modifier
         | NOT FOR REPLICATION
         | SPARSE
         | HIDDEN_KEYWORD
-        | MASKED (WITH (FUNCTION EQUAL STRING | LPAREN FUNCTION EQUAL STRING RPAREN))?
+        | MASKED (WITH (FUNCTION EQ STRING | LPAREN FUNCTION EQ STRING RPAREN))?
     )
     ;
 
@@ -3761,7 +3761,7 @@ connection_node
     ;
 
 primary_key_options
-    : (WITH FILLFACTOR EQUALS DECIMAL)? alter_table_index_options? on_partition_or_filegroup?
+    : (WITH FILLFACTOR EQ INT)? alter_table_index_options? on_partition_or_filegroup?
     ;
 
 foreign_key_options
@@ -3788,22 +3788,22 @@ alter_table_index_options
 
 // https://msdn.microsoft.com/en-us/library/ms186869.aspx
 alter_table_index_option
-    : PAD_INDEX EQUALS on_off
-    | FILLFACTOR EQUALS DECIMAL
-    | IGNORE_DUP_KEY EQUALS on_off
-    | STATISTICS_NORECOMPUTE EQUALS on_off
-    | ALLOW_ROW_LOCKS EQUALS on_off
-    | ALLOW_PAGE_LOCKS EQUALS on_off
-    | OPTIMIZE_FOR_SEQUENTIAL_KEY EQUALS on_off
-    | SORT_IN_TEMPDB EQUALS on_off
-    | MAXDOP EQUALS max_degree_of_parallelism = DECIMAL
-    | DATA_COMPRESSION EQUALS (NONE | ROW | PAGE | COLUMNSTORE | COLUMNSTORE_ARCHIVE) on_partitions?
-    | XML_COMPRESSION EQUALS on_off on_partitions?
-    | DISTRIBUTION EQUALS HASH LPAREN id_ RPAREN
+    : PAD_INDEX EQ on_off
+    | FILLFACTOR EQ INT
+    | IGNORE_DUP_KEY EQ on_off
+    | STATISTICS_NORECOMPUTE EQ on_off
+    | ALLOW_ROW_LOCKS EQ on_off
+    | ALLOW_PAGE_LOCKS EQ on_off
+    | OPTIMIZE_FOR_SEQUENTIAL_KEY EQ on_off
+    | SORT_IN_TEMPDB EQ on_off
+    | MAXDOP EQ max_degree_of_parallelism = INT
+    | DATA_COMPRESSION EQ (NONE | ROW | PAGE | COLUMNSTORE | COLUMNSTORE_ARCHIVE) on_partitions?
+    | XML_COMPRESSION EQ on_off on_partitions?
+    | DISTRIBUTION EQ HASH LPAREN id_ RPAREN
     | CLUSTERED INDEX LPAREN id_ (ASC | DESC)? (COMMA id_ (ASC | DESC)?)* RPAREN
-    | ONLINE EQUALS (ON (LPAREN low_priority_lock_wait RPAREN)? | OFF)
-    | RESUMABLE EQUALS on_off
-    | MAX_DURATION EQUALS times = DECIMAL MINUTES?
+    | ONLINE EQ (ON (LPAREN low_priority_lock_wait RPAREN)? | OFF)
+    | RESUMABLE EQ on_off
+    | MAX_DURATION EQ times = INT MINUTES?
     ;
 
 // https://msdn.microsoft.com/en-us/library/ms180169.aspx
@@ -3839,8 +3839,8 @@ fetch_cursor
 set_special
     : SET id_ (id_ | constant_LOCAL_ID | on_off) SEMI?
     | SET STATISTICS (IO | TIME | XML | PROFILE) on_off SEMI?
-    | SET ROWCOUNT (LOCAL_ID | DECIMAL) SEMI?
-    | SET TEXTSIZE DECIMAL SEMI?
+    | SET ROWCOUNT (LOCAL_ID | INT) SEMI?
+    | SET TEXTSIZE INT SEMI?
     // https://msdn.microsoft.com/en-us/library/ms173763.aspx
     | SET TRANSACTION ISOLATION LEVEL (
         READ UNCOMMITTED
@@ -3848,7 +3848,7 @@ set_special
         | REPEATABLE READ
         | SNAPSHOT
         | SERIALIZABLE
-        | DECIMAL
+        | INT
     ) SEMI?
     // https://msdn.microsoft.com/en-us/library/ms188059.aspx
     | SET IDENTITY_INSERT table_name on_off SEMI?
@@ -3953,14 +3953,14 @@ common_table_expression
     ;
 
 update_elem
-    : LOCAL_ID EQUALS full_column_name (EQUALS | assignment_operator) expression //Combined variable and column update
-    | (full_column_name | LOCAL_ID) (EQUALS | assignment_operator) expression
+    : LOCAL_ID EQ full_column_name (EQ | assignment_operator) expression //Combined variable and column update
+    | (full_column_name | LOCAL_ID) (EQ | assignment_operator) expression
     | udt_column_name = id_ DOT method_name = id_ LPAREN expression_list_ RPAREN
     //| full_column_name DOT WRITE (expression, )
     ;
 
 update_elem_merge
-    : (full_column_name | LOCAL_ID) (EQUALS | assignment_operator) expression
+    : (full_column_name | LOCAL_ID) (EQ | assignment_operator) expression
     | udt_column_name = id_ DOT method_name = id_ LPAREN expression_list_ RPAREN
     //| full_column_name DOT WRITE (expression, )
     ;
@@ -4020,12 +4020,12 @@ top_clause
     ;
 
 top_percent
-    : percent_constant = (REAL | FLOAT | DECIMAL) PERCENT
+    : percent_constant = (REAL | FLOAT | INT) PERCENT
     | LPAREN topper_expression = expression RPAREN PERCENT
     ;
 
 top_count
-    : count_constant = DECIMAL
+    : count_constant = INT
     | LPAREN topcount_expression = expression RPAREN
     ;
 
@@ -4084,7 +4084,7 @@ option_clause
     ;
 
 option
-    : FAST number_rows = DECIMAL
+    : FAST number_rows = INT
     | (HASH | ORDER) GROUP
     | (MERGE | HASH | CONCAT) UNION
     | (LOOP | MERGE | HASH) JOIN
@@ -4093,8 +4093,8 @@ option
     | IGNORE_NONCLUSTERED_COLUMNSTORE_INDEX
     | KEEP PLAN
     | KEEPFIXED PLAN
-    | MAXDOP number_of_processors = DECIMAL
-    | MAXRECURSION number_recursion = DECIMAL
+    | MAXDOP number_of_processors = INT
+    | MAXRECURSION number_recursion = INT
     | OPTIMIZE FOR LPAREN optimize_for_arg (COMMA optimize_for_arg)* RPAREN
     | OPTIMIZE FOR UNKNOWN
     | PARAMETERIZATION (SIMPLE | FORCED)
@@ -4104,7 +4104,7 @@ option
     ;
 
 optimize_for_arg
-    : LOCAL_ID (UNKNOWN | EQUALS (constant | NULL_))
+    : LOCAL_ID (UNKNOWN | EQ (constant | NULL_))
     ;
 
 // https://msdn.microsoft.com/en-us/library/ms176104.aspx
@@ -4128,14 +4128,14 @@ udt_elem
     ;
 
 expression_elem
-    : leftAlias = column_alias eq = EQUALS leftAssignment = expression
+    : leftAlias = column_alias eq = EQ leftAssignment = expression
     | expressionAs = expression as_column_alias?
     ;
 
 select_list_elem
     : asterisk
     | udt_elem
-    | LOCAL_ID (assignment_operator | EQUALS) expression
+    | LOCAL_ID (assignment_operator | EQ) expression
     | expression_elem
     ;
 
@@ -4205,7 +4205,7 @@ change_table
     ;
 
 change_table_changes
-    : CHANGETABLE LPAREN CHANGES changetable = table_name COMMA changesid = (NULL_ | DECIMAL | LOCAL_ID) RPAREN
+    : CHANGETABLE LPAREN CHANGES changetable = table_name COMMA changesid = (NULL_ | INT | LOCAL_ID) RPAREN
     ;
 
 change_table_version
@@ -4266,7 +4266,7 @@ rowset_function
 
 // runtime check.
 bulk_option
-    : id_ EQUALS bulk_option_value = (DECIMAL | STRING)
+    : id_ EQ bulk_option_value = (INT | STRING)
     ;
 
 derived_table
@@ -4511,7 +4511,7 @@ built_in_functions
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/error-state-transact-sql?view=sql-server-ver16
     | ERROR_STATE LPAREN RPAREN # ERROR_STATE
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/formatmessage-transact-sql?view=sql-server-ver16
-    | FORMATMESSAGE LPAREN (msg_number = DECIMAL | msg_string = STRING | msg_variable = LOCAL_ID) COMMA expression (
+    | FORMATMESSAGE LPAREN (msg_number = INT | msg_string = STRING | msg_variable = LOCAL_ID) COMMA expression (
         COMMA expression
     )* RPAREN # FORMATMESSAGE
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/get-filestream-transaction-context-transact-sql?view=sql-server-ver16
@@ -4567,7 +4567,7 @@ built_in_functions
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/ident-seed-transact-sql?view=sql-server-ver16
     | IDENT_SEED LPAREN table_or_view = expression RPAREN # IDENT_SEED
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/ident-seed-transact-sql?view=sql-server-ver16
-    | IDENTITY LPAREN datatype = data_type (COMMA seed = DECIMAL COMMA increment = DECIMAL)? RPAREN # IDENTITY
+    | IDENTITY LPAREN datatype = data_type (COMMA seed = INT COMMA increment = INT)? RPAREN # IDENTITY
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/ident-seed-transact-sql?view=sql-server-ver16
     | SQL_VARIANT_PROPERTY LPAREN expr = expression COMMA property = STRING RPAREN # SQL_VARIANT_PROPERTY
     // Date functions
@@ -4603,7 +4603,7 @@ built_in_functions
         expression COMMA milliseconds = expression RPAREN # DATETIMEFROMPARTS
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/datetimeoffsetfromparts-transact-sql?view=sql-server-ver16
     | DATETIMEOFFSETFROMPARTS LPAREN year = expression COMMA month = expression COMMA day = expression COMMA hour = expression COMMA minute = expression COMMA
-        seconds = expression COMMA fractions = expression COMMA hour_offset = expression COMMA minute_offset = expression COMMA precision = DECIMAL RPAREN #
+        seconds = expression COMMA fractions = expression COMMA hour_offset = expression COMMA minute_offset = expression COMMA precision = INT RPAREN #
         DATETIMEOFFSETFROMPARTS
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/datetrunc-transact-sql?view=sql-server-ver16
     | DATETRUNC LPAREN datepart = dateparts_datetrunc COMMA date = expression RPAREN # DATETRUNC
@@ -4631,14 +4631,14 @@ built_in_functions
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/sysutcdatetime-transact-sql?view=sql-server-ver16
     | SYSUTCDATETIME LPAREN RPAREN # SYSUTCDATETIME
     //https://learn.microsoft.com/en-us/sql/t-sql/functions/timefromparts-transact-sql?view=sql-server-ver16
-    | TIMEFROMPARTS LPAREN hour = expression COMMA minute = expression COMMA seconds = expression COMMA fractions = expression COMMA precision = DECIMAL RPAREN #
+    | TIMEFROMPARTS LPAREN hour = expression COMMA minute = expression COMMA seconds = expression COMMA fractions = expression COMMA precision = INT RPAREN #
         TIMEFROMPARTS
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/todatetimeoffset-transact-sql?view=sql-server-ver16
     | TODATETIMEOFFSET LPAREN datetime_expression = expression COMMA timezoneoffset_expression = expression RPAREN # TODATETIMEOFFSET
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/year-transact-sql?view=sql-server-ver16
     | YEAR LPAREN date = expression RPAREN # YEAR
     // https://msdn.microsoft.com/en-us/library/ms189838.aspx
-    | IDENTITY LPAREN data_type (COMMA seed = DECIMAL)? (COMMA increment = DECIMAL)? RPAREN # IDENTITY
+    | IDENTITY LPAREN data_type (COMMA seed = INT)? (COMMA increment = INT)? RPAREN # IDENTITY
     // https://msdn.microsoft.com/en-us/library/bb839514.aspx
     | MIN_ACTIVE_ROWVERSION LPAREN RPAREN # MIN_ACTIVE_ROWVERSION
     // https://msdn.microsoft.com/en-us/library/ms177562.aspx
@@ -4942,8 +4942,8 @@ table_hint
     : NOEXPAND
     | INDEX (
         LPAREN index_value (COMMA index_value)* RPAREN
-        | EQUALS LPAREN index_value RPAREN
-        | EQUALS index_value // examples in the doc include this syntax
+        | EQ LPAREN index_value RPAREN
+        | EQ index_value // examples in the doc include this syntax
     )
     | FORCESEEK ( LPAREN index_value LPAREN column_name_list RPAREN RPAREN)?
     | FORCESCAN
@@ -4959,7 +4959,7 @@ table_hint
     | ROWLOCK
     | SERIALIZABLE
     | SNAPSHOT
-    | SPATIAL_WINDOW_MAX_CELLS EQUALS DECIMAL
+    | SPATIAL_WINDOW_MAX_CELLS EQ INT
     | TABLOCK
     | TABLOCKX
     | UPDLOCK
@@ -4972,7 +4972,7 @@ table_hint
 
 index_value
     : id_
-    | DECIMAL
+    | INT
     ;
 
 column_alias_list
@@ -5042,30 +5042,30 @@ window_frame_bound
 
 window_frame_preceding
     : UNBOUNDED PRECEDING
-    | DECIMAL PRECEDING
+    | INT PRECEDING
     | CURRENT ROW
     ;
 
 window_frame_following
     : UNBOUNDED FOLLOWING
-    | DECIMAL FOLLOWING
+    | INT FOLLOWING
     ;
 
 create_database_option
     : FILESTREAM (database_filestream_option (COMMA database_filestream_option)*)
-    | DEFAULT_LANGUAGE EQUAL ( id_ | STRING)
-    | DEFAULT_FULLTEXT_LANGUAGE EQUAL ( id_ | STRING)
-    | NESTED_TRIGGERS EQUAL ( OFF | ON)
-    | TRANSFORM_NOISE_WORDS EQUAL ( OFF | ON)
-    | TWO_DIGIT_YEAR_CUTOFF EQUAL DECIMAL
+    | DEFAULT_LANGUAGE EQ ( id_ | STRING)
+    | DEFAULT_FULLTEXT_LANGUAGE EQ ( id_ | STRING)
+    | NESTED_TRIGGERS EQ ( OFF | ON)
+    | TRANSFORM_NOISE_WORDS EQ ( OFF | ON)
+    | TWO_DIGIT_YEAR_CUTOFF EQ INT
     | DB_CHAINING ( OFF | ON)
     | TRUSTWORTHY ( OFF | ON)
     ;
 
 database_filestream_option
     : LPAREN (
-        ( NON_TRANSACTED_ACCESS EQUAL ( OFF | READ_ONLY | FULL))
-        | ( DIRECTORY_NAME EQUAL STRING)
+        ( NON_TRANSACTED_ACCESS EQ ( OFF | READ_ONLY | FULL))
+        | ( DIRECTORY_NAME EQ STRING)
     ) RPAREN
     ;
 
@@ -5081,9 +5081,9 @@ file_group
     ;
 
 file_spec
-    : LPAREN NAME EQUAL (id_ | STRING) COMMA? FILENAME EQUAL file = STRING COMMA? (
-        SIZE EQUAL file_size COMMA?
-    )? (MAXSIZE EQUAL (file_size | UNLIMITED) COMMA?)? (FILEGROWTH EQUAL file_size COMMA?)? RPAREN
+    : LPAREN NAME EQ (id_ | STRING) COMMA? FILENAME EQ file = STRING COMMA? (
+        SIZE EQ file_size COMMA?
+    )? (MAXSIZE EQ (file_size | UNLIMITED) COMMA?)? (FILEGROWTH EQ file_size COMMA?)? RPAREN
     ;
 
 // Primitive.
@@ -5196,15 +5196,15 @@ scalar_function_name
     ;
 
 begin_conversation_timer
-    : BEGIN CONVERSATION TIMER LPAREN LOCAL_ID RPAREN TIMEOUT EQUALS time SEMI?
+    : BEGIN CONVERSATION TIMER LPAREN LOCAL_ID RPAREN TIMEOUT EQ time SEMI?
     ;
 
 begin_conversation_dialog
     : BEGIN DIALOG (CONVERSATION)? dialog_handle = LOCAL_ID FROM SERVICE initiator_service_name = service_name TO SERVICE target_service_name =
         service_name (COMMA service_broker_guid = STRING)? ON CONTRACT contract_name (
-        WITH ((RELATED_CONVERSATION | RELATED_CONVERSATION_GROUP) EQUALS LOCAL_ID COMMA?)? (
-            LIFETIME EQUALS (DECIMAL | LOCAL_ID) COMMA?
-        )? (ENCRYPTION EQUALS on_off)?
+        WITH ((RELATED_CONVERSATION | RELATED_CONVERSATION_GROUP) EQ LOCAL_ID COMMA?)? (
+            LIFETIME EQ (INT | LOCAL_ID) COMMA?
+        )? (ENCRYPTION EQ on_off)?
     )? SEMI?
     ;
 
@@ -5219,7 +5219,7 @@ service_name
 end_conversation
     : END CONVERSATION conversation_handle = LOCAL_ID SEMI? (
         WITH (
-            ERROR EQUALS faliure_code = (LOCAL_ID | STRING) DESCRIPTION EQUALS failure_text = (
+            ERROR EQ faliure_code = (LOCAL_ID | STRING) DESCRIPTION EQ failure_text = (
                 LOCAL_ID
                 | STRING
             )
@@ -5251,9 +5251,9 @@ send_conversation
 
 data_type
     : scaled = (VARCHAR | NVARCHAR | BINARY_KEYWORD | VARBINARY_KEYWORD | SQUARE_BRACKET_ID) LPAREN MAX RPAREN
-    | ext_type = id_ LPAREN scale = DECIMAL COMMA prec = DECIMAL RPAREN
-    | ext_type = id_ LPAREN scale = DECIMAL RPAREN
-    | ext_type = id_ IDENTITY (LPAREN seed = DECIMAL COMMA inc = DECIMAL RPAREN)?
+    | ext_type = id_ LPAREN scale = INT COMMA prec = INT RPAREN
+    | ext_type = id_ LPAREN scale = INT RPAREN
+    | ext_type = id_ IDENTITY (LPAREN seed = INT COMMA inc = INT RPAREN)?
     | double_prec = DOUBLE PRECISION?
     | unscaled_type = id_
     ;
@@ -5261,18 +5261,18 @@ data_type
 // https://msdn.microsoft.com/en-us/library/ms179899.aspx
 constant
     : STRING // string, datetime or uniqueidentifier
-    | BINARY
-    | MINUS? (DECIMAL | REAL | FLOAT)                    // float or decimal
-    | MINUS? dollar = DOLLAR (MINUS | PLUS)? (DECIMAL | FLOAT) // money
+    | HEX
+    | MINUS? (INT | REAL | FLOAT)                    // float or decimal
+    | MINUS? DOLLAR (MINUS | PLUS)? (INT | FLOAT) // money
     | parameter
     ;
 
 // To reduce ambiguity, -X is considered as an application of unary operator
 primitive_constant
     : STRING // string, datetime or uniqueidentifier
-    | BINARY
-    | (DECIMAL | REAL | FLOAT)                    // float or decimal
-    | dollar = DOLLAR (MINUS | PLUS)? (DECIMAL | FLOAT) // money
+    | HEX
+    | (INT | REAL | FLOAT)                    // float or decimal
+    | DOLLAR (MINUS | PLUS)? (INT | FLOAT) // money
     | parameter
     ;
 
@@ -5542,7 +5542,7 @@ keyword
     | INPUT
     | INSENSITIVE
     | INSERTED
-    | INT
+    | KWINT
     | IP
     | IS_MEMBER
     | IS_ROLEMEMBER
@@ -6272,13 +6272,13 @@ id_or_string
 // https://msdn.microsoft.com/en-us/library/ms188074.aspx
 // Spaces are allowed for comparison operators.
 comparison_operator
-    : EQUALS
+    : EQ
     | GT
     | LT
-    | LT EQUALS
-    | GT EQUALS
+    | LT EQ
+    | GT EQ
     | LT GT
-    | EQUALS
+    | EQ
     | GT
     | LT
     ;
@@ -6295,5 +6295,5 @@ assignment_operator
     ;
 
 file_size
-    : DECIMAL (KB | MB | GB | TB | MOD)?
+    : INT (KB | MB | GB | TB | MOD)?
     ;
