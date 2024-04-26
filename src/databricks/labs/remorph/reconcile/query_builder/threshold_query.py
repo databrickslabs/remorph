@@ -54,10 +54,14 @@ class ThresholdQueryBuilder(QueryBuilder):
                 select_exp, where = self._build_expression_numeric_percentage(threshold, base)
                 select_clause.extend(select_exp)
                 where_clause.append(where)
-            else:
+            elif threshold.get_type() == ThresholdMode.DATETIME.value:
                 select_exp, where = self._build_expression_datetime(threshold, base)
                 select_clause.extend(select_exp)
                 where_clause.append(where)
+            else:
+                error_message = f"Threshold type {threshold.get_type()} not supported for column {column}"
+                logger.error(error_message)
+                raise ValueError(error_message)
 
         for column in sorted(self.table_conf.get_join_columns("source")):
             select_clause.append(build_column(this=column, alias=f"{column}_source", table_name="source"))
