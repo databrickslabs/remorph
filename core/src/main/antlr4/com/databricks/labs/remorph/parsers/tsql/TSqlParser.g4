@@ -533,7 +533,7 @@ alter_asymmetric_key_start
 asymmetric_key_option
     : asymmetric_key_option_start asymmetric_key_password_change_option (
         COMMA asymmetric_key_password_change_option
-    )? RR_BRACKET
+    )? RPAREN
     ;
 
 asymmetric_key_option_start
@@ -724,7 +724,7 @@ alter_availability_group_options
             | HEALTH_CHECK_TIMEOUT EQUAL milliseconds = DECIMAL
             | DB_FAILOVER EQUAL ( ON | OFF)
             | REQUIRED_SYNCHRONIZED_SECONDARIES_TO_COMMIT EQUAL DECIMAL
-        ) RR_BRACKET
+        ) RPAREN
     )
     | ADD DATABASE database_name = id_
     | REMOVE DATABASE database_name = id_
@@ -735,17 +735,17 @@ alter_availability_group_options
             )? (COMMA? FAILOVER_MODE EQUAL (AUTOMATIC | MANUAL))? (
                 COMMA? SEEDING_MODE EQUAL (AUTOMATIC | MANUAL)
             )? (COMMA? BACKUP_PRIORITY EQUAL DECIMAL)? (
-                COMMA? PRIMARY_ROLE LPAREN ALLOW_CONNECTIONS EQUAL (READ_WRITE | ALL) RR_BRACKET
-            )? (COMMA? SECONDARY_ROLE LPAREN ALLOW_CONNECTIONS EQUAL ( READ_ONLY) RR_BRACKET)?
+                COMMA? PRIMARY_ROLE LPAREN ALLOW_CONNECTIONS EQUAL (READ_WRITE | ALL) RPAREN
+            )? (COMMA? SECONDARY_ROLE LPAREN ALLOW_CONNECTIONS EQUAL ( READ_ONLY) RPAREN)?
         )
-    ) RR_BRACKET
+    ) RPAREN
     | SECONDARY_ROLE LPAREN (
         ALLOW_CONNECTIONS EQUAL (NO | READ_ONLY | ALL)
-        | READ_ONLY_ROUTING_LIST EQUAL ( LPAREN ( ( STRING)) RR_BRACKET)
+        | READ_ONLY_ROUTING_LIST EQUAL ( LPAREN ( ( STRING)) RPAREN)
     )
     | PRIMARY_ROLE LPAREN (
         ALLOW_CONNECTIONS EQUAL (NO | READ_ONLY | ALL)
-        | READ_ONLY_ROUTING_LIST EQUAL (LPAREN ( (COMMA? STRING)* | NONE) RR_BRACKET)
+        | READ_ONLY_ROUTING_LIST EQUAL (LPAREN ( (COMMA? STRING)* | NONE) RPAREN)
         | SESSION_TIMEOUT EQUAL session_timeout = DECIMAL
     )
     | MODIFY REPLICA ON server_instance = STRING (
@@ -758,14 +758,14 @@ alter_availability_group_options
         )
         | SECONDARY_ROLE LPAREN (
             ALLOW_CONNECTIONS EQUAL (NO | READ_ONLY | ALL)
-            | READ_ONLY_ROUTING_LIST EQUAL ( LPAREN ( ( STRING)) RR_BRACKET)
+            | READ_ONLY_ROUTING_LIST EQUAL ( LPAREN ( ( STRING)) RPAREN)
         )
         | PRIMARY_ROLE LPAREN (
             ALLOW_CONNECTIONS EQUAL (NO | READ_ONLY | ALL)
-            | READ_ONLY_ROUTING_LIST EQUAL (LPAREN ( (COMMA? STRING)* | NONE) RR_BRACKET)
+            | READ_ONLY_ROUTING_LIST EQUAL (LPAREN ( (COMMA? STRING)* | NONE) RPAREN)
             | SESSION_TIMEOUT EQUAL session_timeout = DECIMAL
         )
-    ) RR_BRACKET
+    ) RPAREN
     | REMOVE REPLICA ON STRING
     | JOIN
     | JOIN AVAILABILITY GROUP ON (
@@ -773,7 +773,7 @@ alter_availability_group_options
             LISTENER_URL EQUAL STRING COMMA AVAILABILITY_MODE EQUAL (
                 SYNCHRONOUS_COMMIT
                 | ASYNCHRONOUS_COMMIT
-            ) COMMA FAILOVER_MODE EQUAL MANUAL COMMA SEEDING_MODE EQUAL (AUTOMATIC | MANUAL) RR_BRACKET
+            ) COMMA FAILOVER_MODE EQUAL MANUAL COMMA SEEDING_MODE EQUAL (AUTOMATIC | MANUAL) RPAREN
         )
     )+
     | MODIFY AVAILABILITY GROUP ON (
@@ -782,7 +782,7 @@ alter_availability_group_options
                 COMMA? AVAILABILITY_MODE EQUAL (SYNCHRONOUS_COMMIT | ASYNCHRONOUS_COMMIT)
             )? (COMMA? FAILOVER_MODE EQUAL MANUAL)? (
                 COMMA? SEEDING_MODE EQUAL (AUTOMATIC | MANUAL)
-            )? RR_BRACKET
+            )? RPAREN
         )
     )+
     | GRANT CREATE ANY DATABASE
@@ -790,21 +790,21 @@ alter_availability_group_options
     | FAILOVER
     | FORCE_FAILOVER_ALLOW_DATA_LOSS
     | ADD LISTENER listener_name = STRING LPAREN (
-        WITH DHCP (ON LPAREN ip_v4_failover ip_v4_failover RR_BRACKET)
+        WITH DHCP (ON LPAREN ip_v4_failover ip_v4_failover RPAREN)
         | WITH IP LPAREN (
-            (COMMA? LPAREN ( ip_v4_failover COMMA ip_v4_failover | ip_v6_failover) RR_BRACKET)+ RR_BRACKET (
+            (COMMA? LPAREN ( ip_v4_failover COMMA ip_v4_failover | ip_v6_failover) RPAREN)+ RPAREN (
                 COMMA PORT EQUAL DECIMAL
             )?
         )
-    ) RR_BRACKET
+    ) RPAREN
     | MODIFY LISTENER (
-        ADD IP LPAREN (ip_v4_failover ip_v4_failover | ip_v6_failover) RR_BRACKET
+        ADD IP LPAREN (ip_v4_failover ip_v4_failover | ip_v6_failover) RPAREN
         | PORT EQUAL DECIMAL
     )
     | RESTART LISTENER STRING
     | REMOVE LISTENER STRING
     | OFFLINE
-    | WITH LPAREN DTC_SUPPORT EQUAL PER_DB RR_BRACKET
+    | WITH LPAREN DTC_SUPPORT EQUAL PER_DB RPAREN
     ;
 
 ip_v4_failover
@@ -822,7 +822,7 @@ create_or_alter_broker_priority
         CONTRACT_NAME EQUAL ( ( id_) | ANY) COMMA?
     )? (LOCAL_SERVICE_NAME EQUAL (DOUBLE_FORWARD_SLASH? id_ | ANY) COMMA?)? (
         REMOTE_SERVICE_NAME EQUAL (RemoteServiceName = STRING | ANY) COMMA?
-    )? (PRIORITY_LEVEL EQUAL ( PriorityValue = DECIMAL | DEFAULT))? RR_BRACKET
+    )? (PRIORITY_LEVEL EQUAL ( PriorityValue = DECIMAL | DEFAULT))? RPAREN
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-broker-priority-transact-sql
@@ -838,7 +838,7 @@ alter_certificate
             FILE EQUAL STRING COMMA?
             | DECRYPTION BY PASSWORD EQUAL STRING COMMA?
             | ENCRYPTION BY PASSWORD EQUAL STRING COMMA?
-        )+ RR_BRACKET
+        )+ RPAREN
         | WITH ACTIVE FOR BEGIN_DIALOG EQUAL ( ON | OFF)
     )
     ;
@@ -847,14 +847,14 @@ alter_certificate
 alter_column_encryption_key
     : ALTER COLUMN ENCRYPTION KEY column_encryption_key = id_ (ADD | DROP) VALUE LPAREN COLUMN_MASTER_KEY EQUAL column_master_key_name = id_ (
         COMMA ALGORITHM EQUAL algorithm_name = STRING COMMA ENCRYPTED_VALUE EQUAL BINARY
-    )? RR_BRACKET
+    )? RPAREN
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/create-column-encryption-key-transact-sql
 create_column_encryption_key
     : CREATE COLUMN ENCRYPTION KEY column_encryption_key = id_ WITH VALUES (
         LPAREN COMMA? COLUMN_MASTER_KEY EQUAL column_master_key_name = id_ COMMA ALGORITHM EQUAL algorithm_name = STRING COMMA ENCRYPTED_VALUE
-            EQUAL encrypted_value = BINARY RR_BRACKET COMMA?
+            EQUAL encrypted_value = BINARY RPAREN COMMA?
     )+
     ;
 
@@ -1131,14 +1131,14 @@ lock_table
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/truncate-table-transact-sql
 truncate_table
     : TRUNCATE TABLE table_name (
-        WITH LPAREN PARTITIONS LPAREN (COMMA? (DECIMAL | DECIMAL TO DECIMAL))+ RR_BRACKET RR_BRACKET
+        WITH LPAREN PARTITIONS LPAREN (COMMA? (DECIMAL | DECIMAL TO DECIMAL))+ RPAREN RPAREN
     )?
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/create-column-master-key-transact-sql
 create_column_master_key
     : CREATE COLUMN MASTER KEY key_name = id_ WITH LPAREN KEY_STORE_PROVIDER_NAME EQUAL key_store_provider_name = STRING COMMA KEY_PATH EQUAL
-        key_path = STRING RR_BRACKET
+        key_path = STRING RPAREN
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-credential-transact-sql
@@ -1171,16 +1171,16 @@ create_cryptographic_provider
 create_endpoint
     : CREATE ENDPOINT endpointname = id_ (AUTHORIZATION login = id_)? (
         STATE EQUAL state = (STARTED | STOPPED | DISABLED)
-    )? AS TCP LPAREN endpoint_listener_clause RR_BRACKET (
-        FOR TSQL LPAREN RR_BRACKET
+    )? AS TCP LPAREN endpoint_listener_clause RPAREN (
+        FOR TSQL LPAREN RPAREN
         | FOR SERVICE_BROKER LPAREN endpoint_authentication_clause (
             COMMA? endpoint_encryption_alogorithm_clause
         )? (COMMA? MESSAGE_FORWARDING EQUAL (ENABLED | DISABLED))? (
             COMMA? MESSAGE_FORWARD_SIZE EQUAL DECIMAL
-        )? RR_BRACKET
+        )? RPAREN
         | FOR DATABASE_MIRRORING LPAREN endpoint_authentication_clause (
             COMMA? endpoint_encryption_alogorithm_clause
-        )? COMMA? ROLE EQUAL (WITNESS | PARTNER | ALL) RR_BRACKET
+        )? COMMA? ROLE EQUAL (WITNESS | PARTNER | ALL) RPAREN
     )
     ;
 
@@ -1222,16 +1222,16 @@ create_or_alter_event_session
             LPAREN (SET ( COMMA? event_customizable_attributue = id_ EQUAL (DECIMAL | STRING))*)? (
                 ACTION LPAREN (
                     COMMA? (event_module_guid = id_ DOT)? event_package_name = id_ DOT action_name = id_
-                )+ RR_BRACKET
-            )+ (WHERE event_session_predicate_expression)? RR_BRACKET
+                )+ RPAREN
+            )+ (WHERE event_session_predicate_expression)? RPAREN
         )*
     )* (
         COMMA? DROP EVENT (event_module_guid = id_ DOT)? event_package_name = id_ DOT event_name = id_
     )* (
         (ADD TARGET (event_module_guid = id_ DOT)? event_package_name = id_ DOT target_name = id_) (
             LPAREN SET (
-                COMMA? target_parameter_name = id_ EQUAL (LPAREN? DECIMAL RR_BRACKET? | STRING)
-            )+ RR_BRACKET
+                COMMA? target_parameter_name = id_ EQUAL (LPAREN? DECIMAL RPAREN? | STRING)
+            )+ RPAREN
         )*
     )* (DROP TARGET (event_module_guid = id_ DOT)? event_package_name = id_ DOT target_name = id_)* (
         WITH LPAREN (COMMA? MAX_MEMORY EQUAL max_memory = DECIMAL (KB | MB))? (
@@ -1247,7 +1247,7 @@ create_or_alter_event_session
             )
         )? (COMMA? MAX_EVENT_SIZE EQUAL max_event_size = DECIMAL (KB | MB))? (
             COMMA? MEMORY_PARTITION_MODE EQUAL (NONE | PER_NODE | PER_CPU)
-        )? (COMMA? TRACK_CAUSALITY EQUAL (ON | OFF))? (COMMA? STARTUP_STATE EQUAL (ON | OFF))? RR_BRACKET
+        )? (COMMA? TRACK_CAUSALITY EQUAL (ON | OFF))? (COMMA? STARTUP_STATE EQUAL (ON | OFF))? RPAREN
     )? (STATE EQUAL (START | STOP))?
     ;
 
@@ -1255,14 +1255,14 @@ event_session_predicate_expression
     : (
         COMMA? (AND | OR)? NOT? (
             event_session_predicate_factor
-            | LPAREN event_session_predicate_expression RR_BRACKET
+            | LPAREN event_session_predicate_expression RPAREN
         )
     )+
     ;
 
 event_session_predicate_factor
     : event_session_predicate_leaf
-    | LPAREN event_session_predicate_expression RR_BRACKET
+    | LPAREN event_session_predicate_expression RPAREN
     ;
 
 event_session_predicate_leaf
@@ -1289,7 +1289,7 @@ event_session_predicate_leaf
             DECIMAL
             | STRING
         )
-    ) RR_BRACKET
+    ) RPAREN
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-external-data-source-transact-sql
@@ -1301,18 +1301,18 @@ alter_external_data_source
     )+
     | ALTER EXTERNAL DATA SOURCE data_source_name = id_ WITH LPAREN TYPE EQUAL BLOB_STORAGE COMMA LOCATION EQUAL location = STRING (
         COMMA CREDENTIAL EQUAL credential_name = id_
-    )? RR_BRACKET
+    )? RPAREN
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-external-library-transact-sql
 alter_external_library
     : ALTER EXTERNAL LIBRARY library_name = id_ (AUTHORIZATION owner_name = id_)? (SET | ADD) (
         LPAREN CONTENT EQUAL (client_library = STRING | BINARY | NONE) (
-            COMMA PLATFORM EQUAL (WINDOWS | LINUX)? RR_BRACKET
+            COMMA PLATFORM EQUAL (WINDOWS | LINUX)? RPAREN
         ) WITH (
             COMMA? LANGUAGE EQUAL (R | PYTHON)
             | DATA_SOURCE EQUAL external_data_source_name = id_
-        )+ RR_BRACKET
+        )+ RPAREN
     )
     ;
 
@@ -1320,13 +1320,13 @@ alter_external_library
 create_external_library
     : CREATE EXTERNAL LIBRARY library_name = id_ (AUTHORIZATION owner_name = id_)? FROM (
         COMMA? LPAREN? (CONTENT EQUAL)? (client_library = STRING | BINARY | NONE) (
-            COMMA PLATFORM EQUAL (WINDOWS | LINUX)? RR_BRACKET
+            COMMA PLATFORM EQUAL (WINDOWS | LINUX)? RPAREN
         )?
     ) (
         WITH (
             COMMA? LANGUAGE EQUAL (R | PYTHON)
             | DATA_SOURCE EQUAL external_data_source_name = id_
-        )+ RR_BRACKET
+        )+ RPAREN
     )?
     ;
 
@@ -1337,7 +1337,7 @@ alter_external_resource_pool
         | NUMANODE EQUAL (COMMA? DECIMAL TO DECIMAL | COMMA? DECIMAL)+
     ) (COMMA? MAX_MEMORY_PERCENT EQUAL max_memory_percent = DECIMAL)? (
         COMMA? MAX_PROCESSES EQUAL max_processes = DECIMAL
-    )? RR_BRACKET
+    )? RPAREN
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/create-external-resource-pool-transact-sql
@@ -1347,7 +1347,7 @@ create_external_resource_pool
         | NUMANODE EQUAL (COMMA? DECIMAL TO DECIMAL | COMMA? DECIMAL)+
     ) (COMMA? MAX_MEMORY_PERCENT EQUAL max_memory_percent = DECIMAL)? (
         COMMA? MAX_PROCESSES EQUAL max_processes = DECIMAL
-    )? RR_BRACKET
+    )? RPAREN
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-fulltext-catalog-transact-sql
@@ -1505,7 +1505,7 @@ alter_message_type
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-partition-function-transact-sql
 alter_partition_function
-    : ALTER PARTITION FUNCTION partition_function_name = id_ LPAREN RR_BRACKET (SPLIT | MERGE) RANGE LPAREN DECIMAL RR_BRACKET
+    : ALTER PARTITION FUNCTION partition_function_name = id_ LPAREN RPAREN (SPLIT | MERGE) RANGE LPAREN DECIMAL RPAREN
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-partition-scheme-transact-sql
@@ -1535,12 +1535,12 @@ create_resource_pool
         )? (COMMA? CAP_CPU_PERCENT EQUAL DECIMAL)? (
             COMMA? AFFINITY SCHEDULER EQUAL (
                 AUTO
-                | LPAREN (COMMA? (DECIMAL | DECIMAL TO DECIMAL))+ RR_BRACKET
-                | NUMANODE EQUAL LPAREN (COMMA? (DECIMAL | DECIMAL TO DECIMAL))+ RR_BRACKET
+                | LPAREN (COMMA? (DECIMAL | DECIMAL TO DECIMAL))+ RPAREN
+                | NUMANODE EQUAL LPAREN (COMMA? (DECIMAL | DECIMAL TO DECIMAL))+ RPAREN
             )
         )? (COMMA? MIN_MEMORY_PERCENT EQUAL DECIMAL)? (COMMA? MAX_MEMORY_PERCENT EQUAL DECIMAL)? (
             COMMA? MIN_IOPS_PER_VOLUME EQUAL DECIMAL
-        )? (COMMA? MAX_IOPS_PER_VOLUME EQUAL DECIMAL)? RR_BRACKET
+        )? (COMMA? MAX_IOPS_PER_VOLUME EQUAL DECIMAL)? RPAREN
     )?
     ;
 
@@ -1551,9 +1551,9 @@ alter_resource_governor
         | WITH LPAREN CLASSIFIER_FUNCTION EQUAL (
             schema_name = id_ DOT function_name = id_
             | NULL_
-        ) RR_BRACKET
+        ) RPAREN
         | RESET STATISTICS
-        | WITH LPAREN MAX_OUTSTANDING_IO_PER_VOLUME EQUAL max_outstanding_io_per_volume = DECIMAL RR_BRACKET
+        | WITH LPAREN MAX_OUTSTANDING_IO_PER_VOLUME EQUAL max_outstanding_io_per_volume = DECIMAL RPAREN
     )
     ;
 
@@ -1673,11 +1673,11 @@ create_security_policy
     : CREATE SECURITY POLICY (schema_name = id_ DOT)? security_policy_name = id_ (
         COMMA? ADD (FILTER | BLOCK)? PREDICATE tvf_schema_name = id_ DOT security_predicate_function_name = id_ LPAREN (
             COMMA? column_name_or_arguments = id_
-        )+ RR_BRACKET ON table_schema_name = id_ DOT name = id_ (
+        )+ RPAREN ON table_schema_name = id_ DOT name = id_ (
             COMMA? AFTER (INSERT | UPDATE)
             | COMMA? BEFORE (UPDATE | DELETE)
         )*
-    )+ (WITH LPAREN STATE EQUAL (ON | OFF) (SCHEMABINDING (ON | OFF))? RR_BRACKET)? (
+    )+ (WITH LPAREN STATE EQUAL (ON | OFF) (SCHEMABINDING (ON | OFF))? RPAREN)? (
         NOT FOR REPLICATION
     )?
     ;
@@ -1714,7 +1714,7 @@ alter_server_audit
                         | COMMA? MAX_ROLLOVER_FILES EQUAL max_rollover_files = (DECIMAL | UNLIMITED)
                         | COMMA? MAX_FILES EQUAL max_files = DECIMAL
                         | COMMA? RESERVE_DISK_SPACE EQUAL (ON | OFF)
-                    )* RR_BRACKET
+                    )* RPAREN
                 )
                 | APPLICATION_LOG
                 | SECURITY_LOG
@@ -1724,7 +1724,7 @@ alter_server_audit
                 COMMA? QUEUE_DELAY EQUAL queue_delay = DECIMAL
                 | COMMA? ON_FAILURE EQUAL (CONTINUE | SHUTDOWN | FAIL_OPERATION)
                 | COMMA? STATE EQUAL (ON | OFF)
-            )* RR_BRACKET
+            )* RPAREN
         )? (
             WHERE (
                 COMMA? (NOT?) event_field_name = id_ (
@@ -1764,7 +1764,7 @@ create_server_audit
                         | COMMA? MAX_ROLLOVER_FILES EQUAL max_rollover_files = (DECIMAL | UNLIMITED)
                         | COMMA? MAX_FILES EQUAL max_files = DECIMAL
                         | COMMA? RESERVE_DISK_SPACE EQUAL (ON | OFF)
-                    )* RR_BRACKET
+                    )* RPAREN
                 )
                 | APPLICATION_LOG
                 | SECURITY_LOG
@@ -1775,7 +1775,7 @@ create_server_audit
                 | COMMA? ON_FAILURE EQUAL (CONTINUE | SHUTDOWN | FAIL_OPERATION)
                 | COMMA? STATE EQUAL (ON | OFF)
                 | COMMA? AUDIT_GUID EQUAL audit_guid = id_
-            )* RR_BRACKET
+            )* RPAREN
         )? (
             WHERE (
                 COMMA? (NOT?) event_field_name = id_ (
@@ -1808,8 +1808,8 @@ create_server_audit
 alter_server_audit_specification
     : ALTER SERVER AUDIT SPECIFICATION audit_specification_name = id_ (
         FOR SERVER AUDIT audit_name = id_
-    )? ((ADD | DROP) LPAREN audit_action_group_name = id_ RR_BRACKET)* (
-        WITH LPAREN STATE EQUAL (ON | OFF) RR_BRACKET
+    )? ((ADD | DROP) LPAREN audit_action_group_name = id_ RPAREN)* (
+        WITH LPAREN STATE EQUAL (ON | OFF) RPAREN
     )?
     ;
 
@@ -1817,8 +1817,8 @@ alter_server_audit_specification
 create_server_audit_specification
     : CREATE SERVER AUDIT SPECIFICATION audit_specification_name = id_ (
         FOR SERVER AUDIT audit_name = id_
-    )? (ADD LPAREN audit_action_group_name = id_ RR_BRACKET)* (
-        WITH LPAREN STATE EQUAL (ON | OFF) RR_BRACKET
+    )? (ADD LPAREN audit_action_group_name = id_ RPAREN)* (
+        WITH LPAREN STATE EQUAL (ON | OFF) RPAREN
     )?
     ;
 
@@ -1848,7 +1848,7 @@ alter_server_configuration
             )
             | HADR CLUSTER CONTEXT EQUAL (STRING | LOCAL)
             | BUFFER POOL EXTENSION (
-                ON LPAREN FILENAME EQUAL STRING COMMA SIZE EQUAL DECIMAL (KB | MB | GB) RR_BRACKET
+                ON LPAREN FILENAME EQUAL STRING COMMA SIZE EQUAL DECIMAL (KB | MB | GB) RPAREN
                 | OFF
             )
             | SET SOFTNUMA (ON | OFF)
@@ -1888,7 +1888,7 @@ opt_arg_clause
 create_service
     : CREATE SERVICE create_service_name = id_ (AUTHORIZATION owner_name = id_)? ON QUEUE (
         schema_name = id_ DOT
-    )? queue_name = id_ (LPAREN (COMMA? (id_ | DEFAULT))+ RR_BRACKET)?
+    )? queue_name = id_ (LPAREN (COMMA? (id_ | DEFAULT))+ RPAREN)?
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-service-master-key-transact-sql
@@ -2003,7 +2003,7 @@ alter_workload_group
             | REQUEST_MEMORY_GRANT_TIMEOUT_SEC EQUAL request_memory_grant_timeout_sec = DECIMAL
             | MAX_DOP EQUAL max_dop = DECIMAL
             | GROUP_MAX_REQUESTS EQUAL group_max_requests = DECIMAL
-        )+ RR_BRACKET
+        )+ RPAREN
     )? (USING (workload_group_pool_name = id_ | DEFAULT_DOUBLE_QUOTE))?
     ;
 
@@ -2017,7 +2017,7 @@ create_workload_group
             | REQUEST_MEMORY_GRANT_TIMEOUT_SEC EQUAL request_memory_grant_timeout_sec = DECIMAL
             | MAX_DOP EQUAL max_dop = DECIMAL
             | GROUP_MAX_REQUESTS EQUAL group_max_requests = DECIMAL
-        )+ RR_BRACKET
+        )+ RPAREN
     )? (
         USING (workload_group_pool_name = id_ | DEFAULT_DOUBLE_QUOTE)? (
             COMMA? EXTERNAL external_pool_name = id_
@@ -2068,8 +2068,8 @@ queue_settings
                 )?
             )
             | DROP
-        ) RR_BRACKET COMMA?
-    )? (POISON_MESSAGE_HANDLING LPAREN (STATUS EQUAL on_off) RR_BRACKET)?
+        ) RPAREN COMMA?
+    )? (POISON_MESSAGE_HANDLING LPAREN (STATUS EQUAL on_off) RPAREN)?
     ;
 
 alter_queue
@@ -2077,7 +2077,7 @@ alter_queue
     ;
 
 queue_action
-    : REBUILD (WITH LPAREN queue_rebuild_options RR_BRACKET)?
+    : REBUILD (WITH LPAREN queue_rebuild_options RPAREN)?
     | REORGANIZE (WITH LOB_COMPACTION EQUAL on_off)?
     | MOVE TO (id_ | DEFAULT)
     ;
@@ -2089,7 +2089,7 @@ queue_rebuild_options
 create_contract
     : CREATE CONTRACT contract_name (AUTHORIZATION owner_name = id_)? LPAREN (
         (message_type_name = id_ | DEFAULT) SENT BY (INITIATOR | TARGET | ANY) COMMA?
-    )+ RR_BRACKET
+    )+ RPAREN
     ;
 
 conversation_statement
@@ -2715,16 +2715,16 @@ cursor_option
 alter_endpoint
     : ALTER ENDPOINT endpointname = id_ (AUTHORIZATION login = id_)? (
         STATE EQUAL state = (STARTED | STOPPED | DISABLED)
-    )? AS TCP LPAREN endpoint_listener_clause RR_BRACKET (
-        FOR TSQL LPAREN RR_BRACKET
+    )? AS TCP LPAREN endpoint_listener_clause RPAREN (
+        FOR TSQL LPAREN RPAREN
         | FOR SERVICE_BROKER LPAREN endpoint_authentication_clause (
             COMMA? endpoint_encryption_alogorithm_clause
         )? (COMMA? MESSAGE_FORWARDING EQUAL (ENABLED | DISABLED))? (
             COMMA? MESSAGE_FORWARD_SIZE EQUAL DECIMAL
-        )? RR_BRACKET
+        )? RPAREN
         | FOR DATABASE_MIRRORING LPAREN endpoint_authentication_clause (
             COMMA? endpoint_encryption_alogorithm_clause
-        )? COMMA? ROLE EQUAL (WITNESS | PARTNER | ALL) RR_BRACKET
+        )? COMMA? ROLE EQUAL (WITNESS | PARTNER | ALL) RPAREN
     )
     ;
 
@@ -2942,7 +2942,7 @@ drop_view
 
 create_type
     : CREATE TYPE name = simple_name (FROM data_type null_notnull?)? (
-        AS TABLE LPAREN column_def_table_constraints RR_BRACKET
+        AS TABLE LPAREN column_def_table_constraints RPAREN
     )?
     ;
 
@@ -3096,7 +3096,7 @@ backup_certificate
             COMMA? FILE EQUAL private_key_file = STRING
             | COMMA? ENCRYPTION BY PASSWORD EQUAL encryption_password = STRING
             | COMMA? DECRYPTION BY PASSWORD EQUAL decryption_pasword = STRING
-        )+ RR_BRACKET
+        )+ RPAREN
     )?
     ;
 
@@ -3711,7 +3711,7 @@ column_modifier
         | NOT FOR REPLICATION
         | SPARSE
         | HIDDEN_KEYWORD
-        | MASKED (WITH (FUNCTION EQUAL STRING | LPAREN FUNCTION EQUAL STRING RR_BRACKET))?
+        | MASKED (WITH (FUNCTION EQUAL STRING | LPAREN FUNCTION EQUAL STRING RPAREN))?
     )
     ;
 
@@ -4259,7 +4259,7 @@ full_column_name_list
 // https://msdn.microsoft.com/en-us/library/ms190312.aspx
 rowset_function
     : (
-        OPENROWSET LPAREN provider_name = STRING COMMA connectionString = STRING COMMA sql = STRING RR_BRACKET
+        OPENROWSET LPAREN provider_name = STRING COMMA connectionString = STRING COMMA sql = STRING RPAREN
     )
     | (OPENROWSET LPAREN BULK data_file = STRING COMMA (bulk_option (COMMA bulk_option)* | id_) RPAREN)
     ;
@@ -5066,7 +5066,7 @@ database_filestream_option
     : LPAREN (
         ( NON_TRANSACTED_ACCESS EQUAL ( OFF | READ_ONLY | FULL))
         | ( DIRECTORY_NAME EQUAL STRING)
-    ) RR_BRACKET
+    ) RPAREN
     ;
 
 database_file_spec
@@ -5083,7 +5083,7 @@ file_group
 file_spec
     : LPAREN NAME EQUAL (id_ | STRING) COMMA? FILENAME EQUAL file = STRING COMMA? (
         SIZE EQUAL file_size COMMA?
-    )? (MAXSIZE EQUAL (file_size | UNLIMITED) COMMA?)? (FILEGROWTH EQUAL file_size COMMA?)? RR_BRACKET
+    )? (MAXSIZE EQUAL (file_size | UNLIMITED) COMMA?)? (FILEGROWTH EQUAL file_size COMMA?)? RPAREN
     ;
 
 // Primitive.
