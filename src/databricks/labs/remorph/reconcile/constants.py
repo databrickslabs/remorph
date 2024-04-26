@@ -83,3 +83,7 @@ class Constants:
             "target": HashAlgorithm.DATABRICKS_SHA_256.value,
         },
     }
+
+
+class SampleConfig:
+    SAMPLE_ROWS = 50
