@@ -11,7 +11,7 @@ from databricks.labs.blueprint.installer import InstallState
 from databricks.labs.blueprint.tui import Prompts
 from databricks.labs.blueprint.wheels import ProductInfo
 from databricks.labs.remorph.__about__ import __version__
-from databricks.labs.remorph.config import MorphConfig, SQLGLOT_DIALECTS
+from databricks.labs.remorph.config import SQLGLOT_DIALECTS, MorphConfig
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.errors import NotFound
 from databricks.sdk.retries import retried
