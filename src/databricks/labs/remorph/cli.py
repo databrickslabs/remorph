@@ -38,7 +38,7 @@ def transpile(
     default_config = installation.load(MorphConfig)
     mode = mode if mode else "current"  # not checking for default config as it will always be current
 
-    if source.lower() not in DIALECTS:
+    if source.lower() not in SQLGLOT_DIALECTS:
         raise_validation_exception(f"Error: Invalid value for '--source': '{source}' is not one of {DIALECTS}. ")
     if not os.path.exists(input_sql) or input_sql in {None, ""}:
         raise_validation_exception(f"Error: Invalid value for '--input_sql': Path '{input_sql}' does not exist.")
@@ -92,7 +92,7 @@ def reconcile(w: WorkspaceClient, recon_conf: str, conn_profile: str, source: st
 def generate_lineage(w: WorkspaceClient, source: str, input_sql: str, output_folder: str):
     """Generates a lineage of source SQL files or folder"""
     logger.info(f"User: {w.current_user.me()}")
-    if source.lower() not in DIALECTS:
+    if source.lower() not in SQLGLOT_DIALECTS:
         raise_validation_exception(f"Error: Invalid value for '--source': '{source}' is not one of {DIALECTS}. ")
     if not os.path.exists(input_sql) or input_sql in {None, ""}:
         raise_validation_exception(f"Error: Invalid value for '--input_sql': Path '{input_sql}' does not exist.")
