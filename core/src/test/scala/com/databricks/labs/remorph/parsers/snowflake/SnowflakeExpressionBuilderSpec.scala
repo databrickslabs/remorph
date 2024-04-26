@@ -177,6 +177,89 @@ class SnowflakeExpressionBuilderSpec extends AnyWordSpec with SnowflakeParserTes
             GreaterThanOrEqual(Column("col1"), Literal(float = Some(3.14f))),
             LesserThanOrEqual(Column("col1"), Literal(integer = Some(42))))))
     }
+
+    "translate LIKE expressions" in {
+      example(
+        "col1 LIKE '%foo'",
+        _.predicate,
+        Like(Column("col1"), Seq(Literal(string = Some("%foo"))), None, caseSensitive = true))
+      example(
+        "col1 ILIKE '%foo'",
+        _.predicate,
+        Like(Column("col1"), Seq(Literal(string = Some("%foo"))), None, caseSensitive = false))
+      example(
+        "col1 NOT LIKE '%foo'",
+        _.predicate,
+        Not(Like(Column("col1"), Seq(Literal(string = Some("%foo"))), None, caseSensitive = true)))
+      example(
+        "col1 NOT ILIKE '%foo'",
+        _.predicate,
+        Not(Like(Column("col1"), Seq(Literal(string = Some("%foo"))), None, caseSensitive = false)))
+      example(
+        "col1 LIKE '%foo' ESCAPE '^'",
+        _.predicate,
+        Like(
+          Column("col1"),
+          Seq(Literal(string = Some("%foo"))),
+          Some(Literal(string = Some("^"))),
+          caseSensitive = true))
+      example(
+        "col1 ILIKE '%foo' ESCAPE '^'",
+        _.predicate,
+        Like(
+          Column("col1"),
+          Seq(Literal(string = Some("%foo"))),
+          Some(Literal(string = Some("^"))),
+          caseSensitive = false))
+
+      example(
+        "col1 NOT LIKE '%foo' ESCAPE '^'",
+        _.predicate,
+        Not(
+          Like(
+            Column("col1"),
+            Seq(Literal(string = Some("%foo"))),
+            Some(Literal(string = Some("^"))),
+            caseSensitive = true)))
+      example(
+        "col1 NOT ILIKE '%foo' ESCAPE '^'",
+        _.predicate,
+        Not(
+          Like(
+            Column("col1"),
+            Seq(Literal(string = Some("%foo"))),
+            Some(Literal(string = Some("^"))),
+            caseSensitive = false)))
+
+      example(
+        "col1 LIKE ANY ('%foo', 'bar%', '%qux%')",
+        _.predicate,
+        Like(
+          Column("col1"),
+          Seq(Literal(string = Some("%foo")), Literal(string = Some("bar%")), Literal(string = Some("%qux%"))),
+          None,
+          caseSensitive = true))
+
+      example(
+        "col1 LIKE ANY ('%foo', 'bar%', '%qux%') ESCAPE '^'",
+        _.predicate,
+        Like(
+          Column("col1"),
+          Seq(Literal(string = Some("%foo")), Literal(string = Some("bar%")), Literal(string = Some("%qux%"))),
+          Some(Literal(string = Some("^"))),
+          caseSensitive = true))
+
+      example("col1 RLIKE '[a-z][A-Z]*'", _.predicate, RLike(Column("col1"), Literal(string = Some("[a-z][A-Z]*"))))
+      example(
+        "col1 NOT RLIKE '[a-z][A-Z]*'",
+        _.predicate,
+        Not(RLike(Column("col1"), Literal(string = Some("[a-z][A-Z]*")))))
+    }
+
+    "translate IS [NOT] NULL expressions" in {
+      example("col1 IS NULL", _.predicate, IsNull(Column("col1")))
+      example("col1 IS NOT NULL", _.predicate, Not(IsNull(Column("col1"))))
+    }
   }
 
   "translate CASE expressions" in {
