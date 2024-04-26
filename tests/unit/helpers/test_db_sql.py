@@ -1,9 +1,9 @@
 from unittest.mock import patch
 
 import pytest
-from databricks.sdk.errors.base import DatabricksError
 
 from databricks.labs.remorph.helpers.db_sql import get_sql_backend
+from databricks.sdk.errors.base import DatabricksError
 
 
 @pytest.fixture()

@@ -243,5 +243,125 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with ParserTestCommon with Mat
           Seq(Column("a"))))
     }
 
+    "translate queries with WITH clauses" in {
+      example(
+        query = "WITH a (b, c, d) AS (SELECT x, y, z FROM e) SELECT b, c, d FROM a",
+        expectedAst = WithCTE(
+          Seq(
+            CTEDefinition(
+              tableName = "a",
+              columns = Seq(Column("b"), Column("c"), Column("d")),
+              cte = Project(namedTable("e"), Seq(Column("x"), Column("y"), Column("z"))))),
+          Project(namedTable("a"), Seq(Column("b"), Column("c"), Column("d")))))
+
+      example(
+        query =
+          "WITH a (b, c, d) AS (SELECT x, y, z FROM e), aa (bb, cc) AS (SELECT xx, yy FROM f) SELECT b, c, d FROM a",
+        expectedAst = WithCTE(
+          Seq(
+            CTEDefinition(
+              tableName = "a",
+              columns = Seq(Column("b"), Column("c"), Column("d")),
+              cte = Project(namedTable("e"), Seq(Column("x"), Column("y"), Column("z")))),
+            CTEDefinition(
+              tableName = "aa",
+              columns = Seq(Column("bb"), Column("cc")),
+              cte = Project(namedTable("f"), Seq(Column("xx"), Column("yy"))))),
+          Project(namedTable("a"), Seq(Column("b"), Column("c"), Column("d")))))
+    }
+
+    "translate a query with WHERE, GROUP BY, HAVING, QUALIFY" in {
+      example(
+        query = """SELECT c2, SUM(c3) OVER (PARTITION BY c2) as r
+                  |  FROM t1
+                  |  WHERE c3 < 4
+                  |  GROUP BY c2, c3
+                  |  HAVING AVG(c1) >= 5
+                  |  QUALIFY MIN(r) > 6""".stripMargin,
+        expectedAst = Project(
+          Filter(
+            Filter(
+              Aggregate(
+                input = Filter(namedTable("t1"), LesserThan(Column("c3"), Literal(integer = Some(4)))),
+                group_type = GroupBy,
+                grouping_expressions = Seq(Column("c2"), Column("c3")),
+                pivot = None),
+              GreaterThanOrEqual(Avg(Column("c1")), Literal(integer = Some(5)))),
+            GreaterThan(Min(Column("r")), Literal(integer = Some(6)))),
+          Seq(
+            Column("c2"),
+            Alias(Window(Sum(Column("c3")), Seq(Column("c2")), Seq(), DummyWindowFrame), Seq("r"), None))))
+    }
+
+    "translate a query with set operators" in {
+      example(
+        "SELECT a FROM t1 UNION SELECT b FROM t2",
+        SetOperation(
+          Project(namedTable("t1"), Seq(Column("a"))),
+          Project(namedTable("t2"), Seq(Column("b"))),
+          UnionSetOp,
+          is_all = false,
+          by_name = false,
+          allow_missing_columns = false))
+      example(
+        "SELECT a FROM t1 UNION ALL SELECT b FROM t2",
+        SetOperation(
+          Project(namedTable("t1"), Seq(Column("a"))),
+          Project(namedTable("t2"), Seq(Column("b"))),
+          UnionSetOp,
+          is_all = true,
+          by_name = false,
+          allow_missing_columns = false))
+      example(
+        "SELECT a FROM t1 MINUS SELECT b FROM t2",
+        SetOperation(
+          Project(namedTable("t1"), Seq(Column("a"))),
+          Project(namedTable("t2"), Seq(Column("b"))),
+          ExceptSetOp,
+          is_all = false,
+          by_name = false,
+          allow_missing_columns = false))
+      example(
+        "SELECT a FROM t1 EXCEPT SELECT b FROM t2",
+        SetOperation(
+          Project(namedTable("t1"), Seq(Column("a"))),
+          Project(namedTable("t2"), Seq(Column("b"))),
+          ExceptSetOp,
+          is_all = false,
+          by_name = false,
+          allow_missing_columns = false))
+
+      example(
+        "SELECT a FROM t1 INTERSECT SELECT b FROM t2",
+        SetOperation(
+          Project(namedTable("t1"), Seq(Column("a"))),
+          Project(namedTable("t2"), Seq(Column("b"))),
+          IntersectSetOp,
+          is_all = false,
+          by_name = false,
+          allow_missing_columns = false))
+
+      example(
+        "SELECT a FROM t1 INTERSECT SELECT b FROM t2 MINUS SELECT c FROM t3 UNION SELECT d FROM t4",
+        SetOperation(
+          SetOperation(
+            SetOperation(
+              Project(namedTable("t1"), Seq(Column("a"))),
+              Project(namedTable("t2"), Seq(Column("b"))),
+              IntersectSetOp,
+              is_all = false,
+              by_name = false,
+              allow_missing_columns = false),
+            Project(namedTable("t3"), Seq(Column("c"))),
+            ExceptSetOp,
+            is_all = false,
+            by_name = false,
+            allow_missing_columns = false),
+          Project(namedTable("t4"), Seq(Column("d"))),
+          UnionSetOp,
+          is_all = false,
+          by_name = false,
+          allow_missing_columns = false))
+    }
   }
 }

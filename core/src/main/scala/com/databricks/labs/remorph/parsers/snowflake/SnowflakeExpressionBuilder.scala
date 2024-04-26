@@ -1,45 +1,39 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
-import com.databricks.labs.remorph.parsers.{intermediate => ir}
+import com.databricks.labs.remorph.parsers.{ParserCommon, IncompleteParser, intermediate => ir}
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser._
 
 import scala.collection.JavaConverters._
-class SnowflakeExpressionBuilder extends SnowflakeParserBaseVisitor[ir.Expression] {
+class SnowflakeExpressionBuilder
+    extends SnowflakeParserBaseVisitor[ir.Expression]
+    with ParserCommon
+    with IncompleteParser[ir.Expression] {
 
-  override def visitSelect_list_elem(ctx: SnowflakeParser.Select_list_elemContext): ir.Expression = {
-    if (ctx.column_elem() != null) {
-      val column = ctx.column_elem().accept(this)
-      if (ctx.as_alias() != null) {
-        ctx.as_alias().accept(this) match {
-          case ir.Alias(_, name, metadata) => ir.Alias(column, name, metadata)
-          case _ => null
-        }
-      } else {
-        column
-      }
-    } else if (ctx.expression_elem() != null) {
-      ctx.expression_elem().accept(this)
-    } else {
-      null
+  protected override def wrapUnresolvedInput(unparsedInput: String): ir.UnresolvedExpression =
+    ir.UnresolvedExpression(unparsedInput)
+  override def visitSelect_list_elem(ctx: Select_list_elemContext): ir.Expression = {
+    val rawExpression = ctx match {
+      case c if c.column_elem() != null => c.column_elem().accept(this)
+      case c if c.expression_elem() != null => c.expression_elem().accept(this)
+      case c if c.column_elem_star() != null => c.column_elem_star().accept(this)
     }
+    buildAlias(ctx.as_alias(), rawExpression)
   }
+
+  override def visitColumn_elem_star(ctx: Column_elem_starContext): ir.Expression = {
+    ir.Star(Option(ctx.object_name_or_alias()).map {
+      case c if c.object_name() != null => c.object_name().getText
+      case c if c.alias() != null => c.alias().id_().getText
+    })
+  }
+
+  private def buildAlias(ctx: As_aliasContext, input: ir.Expression): ir.Expression =
+    Option(ctx).fold(input) { c =>
+      val alias = c.alias().id_().getText
+      ir.Alias(input, Seq(alias), None)
+    }
   override def visitColumn_name(ctx: Column_nameContext): ir.Expression = {
     ir.Column(ctx.id_(0).getText)
-  }
-
-  override def visitAs_alias(ctx: As_aliasContext): ir.Expression = {
-    val alias = ctx.alias().id_().getText
-    ir.Alias(null, Seq(alias), None)
-  }
-
-  override def visitAggregate_function(ctx: Aggregate_functionContext): ir.Expression = {
-    val param = ctx.expr_list().accept(this)
-    val functionName = ctx.id_().builtin_function()
-    if (functionName.COUNT() != null) {
-      ir.Count(param)
-    } else {
-      null
-    }
   }
 
   override def visitPrimitive_expression(ctx: Primitive_expressionContext): ir.Expression = {
@@ -93,23 +87,24 @@ class SnowflakeExpressionBuilder extends SnowflakeParserBaseVisitor[ir.Expressio
     case _ => ir.Literal(decimal = Some(ir.Decimal(decimal, None, None)))
   }
 
-  override def visitExpr(ctx: ExprContext): ir.Expression = {
-
-    if (ctx.AND() != null) {
+  override def visitExpr(ctx: ExprContext): ir.Expression = ctx match {
+    case c if c.AND() != null =>
       val left = ctx.expr(0).accept(this)
       val right = ctx.expr(1).accept(this)
       ir.And(left, right)
-    } else if (ctx.OR() != null) {
+    case c if c.OR() != null =>
       val left = ctx.expr(0).accept(this)
       val right = ctx.expr(1).accept(this)
       ir.Or(left, right)
-    } else if (ctx.comparison_operator() != null) {
+    case c if c.comparison_operator() != null =>
       val left = ctx.expr(0).accept(this)
       val right = ctx.expr(1).accept(this)
       buildComparisonExpression(ctx.comparison_operator(), left, right)
-    } else {
-      visitChildren(ctx)
-    }
+    case c if c.over_clause() != null =>
+      val windowFunction = c.expr(0).accept(this)
+      buildWindow(c.over_clause(), windowFunction)
+    case c => visitChildren(c)
+
   }
 
   private def buildComparisonExpression(
@@ -135,8 +130,7 @@ class SnowflakeExpressionBuilder extends SnowflakeParserBaseVisitor[ir.Expressio
 
   override def visitSearch_condition(ctx: Search_conditionContext): ir.Expression = {
     val pred = ctx.predicate().accept(this)
-    // TODO: investigate why NOT() is a list here
-    if (ctx.NOT().size() > 0) {
+    if (ctx.NOT().size() % 2 == 1) {
       ir.Not(pred)
     } else {
       pred
@@ -145,22 +139,21 @@ class SnowflakeExpressionBuilder extends SnowflakeParserBaseVisitor[ir.Expressio
 
   override def visitRanking_windowed_function(ctx: Ranking_windowed_functionContext): ir.Expression = {
     val windowFunction = buildWindowFunction(ctx)
-    val overClause = Option(ctx.over_clause())
+    buildWindow(ctx.over_clause(), windowFunction)
+  }
+
+  private def buildWindow(ctx: Over_clauseContext, windowFunction: ir.Expression): ir.Expression = {
+    val overClause = Option(ctx)
     val partitionSpec =
       overClause.flatMap(o => Option(o.partition_by())).map(buildPartitionSpec).getOrElse(Seq())
     val sortOrder =
       overClause.flatMap(o => Option(o.order_by_expr())).map(buildSortOrder).getOrElse(Seq())
-    // dummy implementation because the grammar for this is missing
-    // see https://github.com/databrickslabs/remorph/issues/258
-    val frameSpec = ir.WindowFrame(
-      frame_type = ir.RowsFrame,
-      lower = ir.FrameBoundary(current_row = false, unbounded = true, value = ir.Noop),
-      upper = ir.FrameBoundary(current_row = true, unbounded = false, value = ir.Noop))
+
     ir.Window(
       window_function = windowFunction,
       partition_spec = partitionSpec,
       sort_order = sortOrder,
-      frame_spec = frameSpec)
+      frame_spec = DummyWindowFrame)
   }
 
   private def buildWindowFunction(ctx: Ranking_windowed_functionContext): ir.Expression = {
@@ -199,5 +192,53 @@ class SnowflakeExpressionBuilder extends SnowflakeParserBaseVisitor[ir.Expressio
       // see https://github.com/databrickslabs/remorph/issues/258
       ir.SortOrder(expr.accept(this), direction, ir.SortNullsLast)
     }
+  }
+
+  override def visitAggregate_function(ctx: Aggregate_functionContext): ir.Expression = {
+    val param = ctx.expr_list().expr(0).accept(this)
+    buildBuiltinFunction(ctx.id_().builtin_function(), param)
+  }
+
+  private def buildBuiltinFunction(ctx: Builtin_functionContext, param: ir.Expression): ir.Expression =
+    Option(ctx)
+      .collect {
+        case c if c.AVG() != null => ir.Avg(param)
+        case c if c.SUM() != null => ir.Sum(param)
+        case c if c.MIN() != null => ir.Min(param)
+        case c if c.COUNT() != null => ir.Count(param)
+      }
+      .getOrElse(param)
+
+  override def visitCase_expression(ctx: Case_expressionContext): ir.Expression = {
+    val exprs = ctx.expr().asScala
+    val otherwise = Option(ctx.ELSE()).flatMap(els => exprs.find(occursBefore(els, _)).map(_.accept(this)))
+    ctx match {
+      case c if c.switch_section().size() > 0 =>
+        val expression = exprs.find(occursBefore(_, ctx.switch_section(0))).map(_.accept(this))
+        val branches = c.switch_section().asScala.map { branch =>
+          ir.WhenBranch(branch.expr(0).accept(this), branch.expr(1).accept(this))
+        }
+        ir.Case(expression, branches, otherwise)
+      case c if c.switch_search_condition_section().size() > 0 =>
+        val branches = c.switch_search_condition_section().asScala.map { branch =>
+          ir.WhenBranch(branch.search_condition().accept(this), branch.expr().accept(this))
+        }
+        ir.Case(None, branches, otherwise)
+    }
+  }
+  override def visitPredicate(ctx: PredicateContext): ir.Expression = ctx match {
+    case c if c.EXISTS() != null =>
+      ir.Exists(c.subquery().accept(new SnowflakeRelationBuilder))
+    case c if c.IN() != null =>
+      val isin: ir.Expression = ir.IsIn(c.subquery().accept(new SnowflakeRelationBuilder), c.expr(0).accept(this))
+      Option(c.NOT()).fold(isin)(_ => ir.Not(isin))
+    case c if c.BETWEEN() != null =>
+      val expression = c.expr(0).accept(this)
+      val lowerBound = c.expr(1).accept(this)
+      val upperBound = c.expr(2).accept(this)
+      val between: ir.Expression =
+        ir.And(ir.GreaterThanOrEqual(expression, lowerBound), ir.LesserThanOrEqual(expression, upperBound))
+      Option(c.NOT()).fold(between)(_ => ir.Not(between))
+    case c => visitChildren(c)
   }
 }

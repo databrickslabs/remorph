@@ -2,9 +2,8 @@ import logging
 from io import StringIO
 
 from databricks.labs.lsql.backends import SqlBackend
-from databricks.sdk.errors.base import DatabricksError
-
 from databricks.labs.remorph.config import MorphConfig
+from databricks.sdk.errors.base import DatabricksError
 
 logger = logging.getLogger(__name__)
 
