@@ -4,9 +4,9 @@ import com.databricks.labs.remorph.parsers.intermediate._
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-class SnowflakeRelationBuilderSpec extends AnyWordSpec with ParserTestCommon with Matchers {
+class SnowflakeRelationBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon with Matchers {
 
-  override def astBuilder: SnowflakeParserBaseVisitor[_] = new SnowflakeRelationBuilder
+  override protected def astBuilder: SnowflakeParserBaseVisitor[_] = new SnowflakeRelationBuilder
 
   "SnowflakeRelationBuilder" should {
 

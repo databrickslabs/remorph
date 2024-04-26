@@ -5,9 +5,9 @@ import org.scalatest.Assertion
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-class TSqlAstBuilderSpec extends AnyWordSpec with ParserTestCommon with Matchers {
+class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matchers {
 
-  override def astBuilder: TSqlParserBaseVisitor[_] = new TSqlAstBuilder
+  override protected def astBuilder: TSqlParserBaseVisitor[_] = new TSqlAstBuilder
 
   private def example(query: String, expectedAst: TreeNode): Assertion =
     example(query, _.tsql_file(), expectedAst)
