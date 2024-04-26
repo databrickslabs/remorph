@@ -1,7 +1,11 @@
-from unittest.mock import patch
+import json
+from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 import pytest
+from pyspark.sql.session import SparkSession
 
+from databricks.connect.session import DatabricksSession
 from databricks.labs.blueprint.tui import MockPrompts
 from databricks.labs.remorph.helpers.recon_config_utils import ReconConfigPrompts
 from databricks.sdk.errors.platform import ResourceDoesNotExist
@@ -143,14 +147,12 @@ def test_store_connection_secrets_overwrite(mock_workspace_client):
     ):
         recon_conf = ReconConfigPrompts(mock_workspace_client, prompts)
         recon_conf.store_connection_secrets("scope_name", ("source", {"key": "value"}))
-        
-        
-def test_generate_recon_config_no_secrets_configured(mock_workspace_client):
-    source_dict = {"databricks": "0", "netezza": "1", "oracle": "2", "snowflake": "3"}
 
+
+def test_generate_recon_config_no_secrets_configured(mock_workspace_client):
     prompts = MockPrompts(
         {
-            r"Select the source": source_dict["snowflake"],
+            r"Select the source": SOURCE_DICT["snowflake"],
             r".*Did you setup the secrets for the": "no",
         }
     )
@@ -168,11 +170,10 @@ def test_generate_recon_config_no_secrets_configured(mock_workspace_client):
 
 
 def test_generate_recon_config_create_scope_no(mock_workspace_client):
-    source_dict = {"databricks": "0", "netezza": "1", "oracle": "2", "snowflake": "3"}
 
     prompts = MockPrompts(
         {
-            r"Select the source": source_dict["snowflake"],
+            r"Select the source": SOURCE_DICT["snowflake"],
             r".*Did you setup the secrets for the": "yes",
             r"Enter Secret Scope name": "dummy",
             r"Do you want to create a new one?": "no",
@@ -189,12 +190,11 @@ def test_generate_recon_config_create_scope_no(mock_workspace_client):
 
 
 def test_recon_config_prompt_and_save_config_details(mock_workspace_client):
-    source_dict = {"databricks": "0", "netezza": "1", "oracle": "2", "snowflake": "3"}
     filter_dict = {"exclude": "0", "include": "1"}
 
     prompts = MockPrompts(
         {
-            r"Select the source": source_dict["snowflake"],
+            r"Select the source": SOURCE_DICT["snowflake"],
             r".*Did you setup the secrets for the": "yes",
             r"Enter Secret Scope name": "dummy",
             r"Enter `snowflake` catalog_name": "sf_catalog",
@@ -209,28 +209,24 @@ def test_recon_config_prompt_and_save_config_details(mock_workspace_client):
     )
 
     # Patch the scope_exists method to return True
-    with patch(
-        "databricks.labs.remorph.helpers.db_workspace_utils.DatabricksSecretsClient._scope_exists",
-        return_value=True,
-    ):
-        # Patch the builder method to return a SparkSession
-        with patch.object(DatabricksSession, "builder", MagicMock(return_value=SparkSession.builder)):
-            recon_conf = ReconConfigPrompts(mock_workspace_client, prompts)
-            recon_conf.prompt_source()
+    mock_workspace_client.secrets.list_scopes.side_effect = [[SecretScope(name="dummy")]]
+    # Patch the builder method to return a SparkSession
+    with patch.object(DatabricksSession, "builder", MagicMock(return_value=SparkSession.builder)):
+        recon_conf = ReconConfigPrompts(mock_workspace_client, prompts)
+        recon_conf.prompt_source()
 
-            recon_conf.prompt_and_save_config_details()
+        recon_conf.prompt_and_save_config_details()
 
-            # Check that the config file is created
-            assert Path("./recon_conf_snowflake.json").exists()
+        # Check that the config file is created
+        assert Path("./recon_conf_snowflake.json").exists()
 
-            # Check the contents of the config file
-            with open(Path("./recon_conf_snowflake.json"), "r", encoding="utf-8") as file:
-                content = file.read().strip()
-                reconf_config = json.loads(content)
-                assert reconf_config["source_catalog"] == "sf_catalog", "Source catalog name is incorrect"
-                assert reconf_config["source_schema"] == "sf_schema", "Source schema name is incorrect"
-                assert reconf_config["target_catalog"] == "tgt_catalog", "Target catalog name is incorrect"
-                assert reconf_config["target_schema"] == "tgt_schema", "Target schema name is incorrect"
+        # Check the contents of the config file
+        with open(Path("./recon_conf_snowflake.json"), "r", encoding="utf-8") as file:
+            content = file.read().strip()
+            reconf_config = json.loads(content)
+            assert reconf_config["source_catalog"] == "sf_catalog", "Source catalog name is incorrect"
+            assert reconf_config["source_schema"] == "sf_schema", "Source schema name is incorrect"
+            assert reconf_config["target_catalog"] == "tgt_catalog", "Target catalog name is incorrect"
+            assert reconf_config["target_schema"] == "tgt_schema", "Target schema name is incorrect"
 
-            Path("./recon_conf_snowflake.json").unlink()        
-        
+        Path("./recon_conf_snowflake.json").unlink()

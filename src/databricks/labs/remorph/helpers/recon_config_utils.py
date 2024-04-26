@@ -1,23 +1,21 @@
 import json
 import logging
-import os
+import webbrowser
 
 from databricks.connect import DatabricksSession
+from databricks.labs.blueprint.installation import Installation
 from databricks.labs.blueprint.tui import Prompts
-from databricks.sdk import WorkspaceClient
+from databricks.labs.blueprint.wheels import ProductInfo
 
-from databricks.labs.remorph.helpers.db_workspace_utils import DatabricksSecretsClient
-from databricks.labs.remorph.reconcile.connectors.data_source_factory import (
-    DataSourceFactory,
-)
+from databricks.labs.remorph.__about__ import __version__
 from databricks.labs.remorph.reconcile.constants import SourceType
-from databricks.labs.remorph.reconcile.recon_config import TableRecon
-
-
-
-
+from databricks.labs.remorph.config import TableRecon, get_data_source
+from databricks.sdk import WorkspaceClient
 from databricks.sdk.errors.platform import ResourceDoesNotExist
 
+from ..config import get_data_source
+
+PRODUCT_INFO = ProductInfo(__file__)
 
 logger = logging.getLogger(__name__)
 
@@ -153,7 +151,7 @@ class ReconConfigPrompts:
         # Prompt for secret scope
         secret_scope = self._prompts.question("Enter Secret Scope name")
 
-        self._db_secrets.get_or_create_scope(secret_scope)
+        self._ensure_scope_exists(secret_scope)
 
         # Prompt for catalog and schema
         catalog_schema_dict = self._prompt_catalog_schema()
@@ -175,7 +173,7 @@ class ReconConfigPrompts:
             exclude_list = subset_tables if filter_type == "exclude" else None
 
         # Get DataSource
-        data_source = DataSourceFactory.get_data_source(self._source, spark, self._db_secrets.ws, secret_scope)
+        data_source = get_data_source(self._source, spark, self._ws, secret_scope)
         logger.debug(f"Listing tables for `{self._source}` using DataSource")
         # Get TableRecon config
         recon_config = data_source.list_tables(
@@ -193,16 +191,23 @@ class ReconConfigPrompts:
 
         return recon_config
 
-    def _save_config_details(self, recon_config_json):
+    def _save_config_details(self, recon_config: TableRecon):
         """
-        Save the config details in a file
+        Save the config details in a file on Databricks Workspace
         """
-        recon_conf_abspath = os.path.abspath(f"./recon_conf_{self._source}.json")
-        logger.debug(f"Saving the config details for `{self._source}` in `{recon_conf_abspath}` file")
-        with open(f"./recon_conf_{self._source}.json", "w", encoding="utf-8") as f:
-            exit_code = f.write(recon_config_json)
-            logger.debug(f"File written, exit_code {exit_code}")
-        logger.info(f"Config details are saved at path: `{recon_conf_abspath}`")
+        recon_conf_file = f"./recon_conf_{self._source}.json"
+
+        # Create Installation object
+        workspace_client = WorkspaceClient(product="remorph", product_version=__version__)
+        installation = Installation(workspace_client, PRODUCT_INFO.product_name())
+
+        logger.debug(f"Saving the config details for `{self._source}` in `{recon_conf_file}` on Databricks Workspace ")
+        ws_file_url = installation.save(recon_config, filename=recon_conf_file)
+        logger.debug(f"Written `{recon_conf_file}` on Databricks Workspace ")
+
+        if self._prompts.confirm(f"Open `{recon_conf_file}` config file in the browser?"):
+            webbrowser.open(ws_file_url)
+        logger.info(f"Config `{recon_conf_file}` is saved at path: `{ws_file_url}` ")
 
     def prompt_and_save_config_details(self):
         """
@@ -211,11 +216,8 @@ class ReconConfigPrompts:
         # Check for Secrets Scope
         self._confirm_secret_scope()
         recon_config = self._prompt_config_details()
-        recon_config_json = json.dumps(recon_config, default=vars, indent=2, sort_keys=True)
-        recon_config_json_formatted = recon_config_json.replace("null", "None")
-        logger.debug(f"recon_config_json : {recon_config_json_formatted}")
-
-        self._save_config_details(recon_config_json_formatted)
+        logger.debug(f"recon_config_json : {json.dumps(recon_config, default=vars, indent=2, sort_keys=True)}")
+        self._save_config_details(recon_config)
 
     def _prompt_snowflake_connection_details(self) -> tuple[str, dict[str, str]]:
         """

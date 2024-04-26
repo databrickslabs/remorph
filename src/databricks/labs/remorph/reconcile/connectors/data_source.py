@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 
 from pyspark.sql import DataFrame, SparkSession
 
+from databricks.labs.remorph.config import TableRecon
 from databricks.labs.remorph.reconcile.recon_config import JdbcReaderOptions, Schema
 from databricks.sdk import WorkspaceClient
 
@@ -14,10 +15,10 @@ class DataSource(ABC):
     # TODO need to remove connection_params
     def __init__(
         self,
-        engine: str,
         spark: SparkSession,
         ws: WorkspaceClient,
         scope: str,
+        engine: str = None,
     ):
         self.engine = engine
         self.spark = spark

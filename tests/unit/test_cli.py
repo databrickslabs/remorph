@@ -308,8 +308,9 @@ def test_recon_with_valid_input(mock_workspace_client_cli):
 def test_cli_generate_recon_config(mock_workspace_client):
     with patch("databricks.labs.remorph.cli.ReconConfigPrompts") as mock_recon_config:
         cli.generate_recon_config(mock_workspace_client)
+        mock_recon_config.assert_called_once_with(mock_workspace_client)
 
-        
+
 def test_generate_lineage_valid_input(temp_dirs_for_lineage, mock_workspace_client_cli):
     input_dir, output_dir = temp_dirs_for_lineage
     cli.generate_lineage(
