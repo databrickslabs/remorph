@@ -1,4 +1,5 @@
 import codecs
+import re
 from pathlib import Path
 
 
@@ -88,3 +89,12 @@ def read_file(filename: str | Path) -> str:
     # pylint: disable=unspecified-encoding
     with Path(filename).open() as file:
         return file.read()
+
+
+def remove_hexadecimal_chars(input_string: str) -> str:
+    """
+    Removes the HexaDecimal characters (BOM) from the given string if it exists.
+    :param input_string: String with HexaDecimal characters ( \x1b[4mWHERE\x1b[0m )
+    :return: String without HexaDecimal characters ( WHERE )
+    """
+    return re.sub(r'\x1b\[\d+m', '', input_string)
