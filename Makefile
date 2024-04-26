@@ -22,7 +22,10 @@ fmt-scala:
 
 test: test-python test-scala
 
-test-python:
+setup_spark_remote:
+	.github/scripts/setup_spark_remote.sh
+
+test-python: setup_spark_remote
 	hatch run test
 
 test-scala:
