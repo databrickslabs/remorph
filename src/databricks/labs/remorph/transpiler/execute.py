@@ -2,8 +2,6 @@ import logging
 import os
 from pathlib import Path
 
-from databricks.sdk import WorkspaceClient
-
 from databricks.labs.remorph.config import MorphConfig
 from databricks.labs.remorph.helpers import db_sql
 from databricks.labs.remorph.helpers.execution_time import timeit
@@ -17,6 +15,7 @@ from databricks.labs.remorph.helpers.morph_status import MorphStatus, Validation
 from databricks.labs.remorph.helpers.validation import Validator
 from databricks.labs.remorph.snow import lca_utils
 from databricks.labs.remorph.snow.sql_transpiler import SqlglotEngine
+from databricks.sdk import WorkspaceClient
 
 # pylint: disable=unspecified-encoding
 

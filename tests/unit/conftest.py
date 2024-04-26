@@ -1,20 +1,19 @@
-# pylint: disable=wrong-import-order,ungrouped-imports, useless-suppression)
 import re
 from pathlib import Path
 from unittest.mock import create_autospec
 
 import pytest
-from databricks.connect import DatabricksSession
-from databricks.sdk import WorkspaceClient
-from databricks.sdk.core import Config
-from databricks.sdk.service import iam
 from sqlglot import ErrorLevel, UnsupportedError
 from sqlglot import parse_one as sqlglot_parse_one
 from sqlglot import transpile
 
+from databricks.connect import DatabricksSession
 from databricks.labs.remorph.config import SQLGLOT_DIALECTS, MorphConfig
 from databricks.labs.remorph.snow.databricks import Databricks
 from databricks.labs.remorph.snow.snowflake import Snow
+from databricks.sdk import WorkspaceClient
+from databricks.sdk.core import Config
+from databricks.sdk.service import iam
 
 from .snow.helpers.functional_test_cases import (
     FunctionalTestFile,
