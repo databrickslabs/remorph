@@ -5,14 +5,14 @@ from sqlglot import expressions as exp
 
 
 def _apply_func_expr(expr: exp.Expression, expr_func: Callable, **kwargs) -> exp.Expression:
-    level = 0 if isinstance(expr, exp.Column) else 1
+    is_terminal = isinstance(expr, exp.Column)
     new_expr = expr.copy()
     for node in new_expr.dfs():
         if isinstance(node, exp.Column):
             column_name = node.name
             table_name = node.table
             func = expr_func(this=exp.Column(this=column_name, table=table_name), **kwargs)
-            if level == 0:
+            if is_terminal:
                 return func
             node.replace(func)
     return new_expr
@@ -82,13 +82,13 @@ def anonymous(expr: exp.Expression, func: str) -> exp.Anonymous | exp.Expression
         'SELECT UNIX_TIMESTAMP(col1) FROM DUAL'
 
     """
-    level = 0 if isinstance(expr, exp.Column) else 1
+    is_terminal = isinstance(expr, exp.Column)
     new_expr = expr.copy()
     for node in new_expr.dfs():
         if isinstance(node, exp.Column):
             name = f"{node.table}.{node.name}" if node.table else node.name
             anonymous_func = exp.Column(this=func.format(name))
-            if level == 0:
+            if is_terminal:
                 return anonymous_func
             node.replace(anonymous_func)
     return new_expr
