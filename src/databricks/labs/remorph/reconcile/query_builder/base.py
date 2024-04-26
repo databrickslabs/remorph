@@ -113,13 +113,6 @@ class QueryBuilder(ABC):
 
         return col_origin, col_alias
 
-    @staticmethod
-    def _generate_join_condition(columns: set[str]):
-        condition_strings = []
-        for column in columns:
-            condition_strings.append(f"source.{column} <=> databricks.{column} ")
-        return " and ".join(condition_strings)
-
     def _generate_transform_rule_mapping(self, cols: list[str]) -> list[TransformRuleMapping]:
         # compute custom transformation
         if self.transform_dict:

@@ -2,7 +2,6 @@ import logging
 
 from sqlglot import expressions as exp
 from sqlglot import select
-from sqlglot.expressions import From, Join
 
 from databricks.labs.remorph.reconcile.constants import ThresholdMode
 from databricks.labs.remorph.reconcile.query_builder.base import QueryBuilder
@@ -57,7 +56,7 @@ class ThresholdQueryBuilder(QueryBuilder):
         from_clause, join_clause = self._generate_from_and_join_clause()
         return select(*select_clause).from_(from_clause).join(join_clause).where(where).sql(dialect=Databricks)
 
-    def _generate_select_where_clause(self) -> tuple[list[exp.Expression], exp.Expression]:
+    def _generate_select_where_clause(self) -> tuple[list[exp.Alias], exp.Or]:
         thresholds = self.table_conf.thresholds
 
         def _build_alias(this, table_name):
@@ -107,7 +106,7 @@ class ThresholdQueryBuilder(QueryBuilder):
 
         return select_clause, where
 
-    def _generate_from_and_join_clause(self) -> tuple[From, Join]:
+    def _generate_from_and_join_clause(self) -> tuple[exp.From, exp.Join]:
         join_columns = sorted(self.table_conf.get_join_columns)
         source_view = f"{self.table_conf.source_name}_df_threshold_vw"
         target_view = f"{self.table_conf.target_name}_df_threshold_vw"

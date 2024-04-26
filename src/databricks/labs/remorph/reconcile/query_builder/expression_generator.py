@@ -1,5 +1,4 @@
 from sqlglot import expressions as exp
-from sqlglot.expressions import Alias, Case, Column, Expression, From, Join, Sub
 
 from databricks.labs.remorph.reconcile.recon_config import Thresholds
 
@@ -30,21 +29,21 @@ def anonymous(node, func: str):
     return node
 
 
-def build_column(this, table_name="", quoted=False) -> Column:
+def build_column(this, table_name="", quoted=False) -> exp.Column:
     return exp.Column(this=exp.Identifier(this=this, quoted=quoted), table=table_name)
 
 
-def build_alias(this: exp.ExpOrStr, alias="", table_name="", quoted=False) -> Alias:
+def build_alias(this: exp.ExpOrStr, alias="", table_name="", quoted=False) -> exp.Alias:
     if isinstance(this, str):
         return exp.Alias(this=build_column(this, table_name), alias=exp.Identifier(this=alias, quoted=quoted))
     return exp.Alias(this=this, alias=exp.Identifier(this=alias, quoted=quoted))
 
 
-def build_from_clause(table_name: str, table_alias: str) -> From:
+def build_from_clause(table_name: str, table_alias: str) -> exp.From:
     return exp.From(this=exp.Table(this=exp.Identifier(this=table_name), alias=table_alias))
 
 
-def build_join_clause(table_name: str, table_alias: str, join_columns: list, kind: str = "inner") -> Join:
+def build_join_clause(table_name: str, table_alias: str, join_columns: list, kind: str = "inner") -> exp.Join:
     join_conditions = []
     for column in join_columns:
         join_condition = exp.NullSafeEQ(
@@ -60,14 +59,14 @@ def build_join_clause(table_name: str, table_alias: str, join_columns: list, kin
     return exp.Join(this=exp.Table(this=exp.Identifier(this=table_name), alias=table_alias), kind=kind, on=on_condition)
 
 
-def build_sub(left_column_name, left_table_name="", right_column_name="", right_table_name="") -> Sub:
+def build_sub(left_column_name, left_table_name="", right_column_name="", right_table_name="") -> exp.Sub:
     return exp.Sub(
         this=build_column(left_column_name, left_table_name),
         expression=build_column(right_column_name, right_table_name),
     )
 
 
-def build_threshold_absolute_case(base: exp.Expression, threshold: Thresholds) -> Expression:
+def build_threshold_absolute_case(base: exp.Expression, threshold: Thresholds) -> exp.Case:
     eq_if = exp.If(
         this=exp.EQ(this=base, expression=exp.Literal(this='0', is_string=False)),
         true=exp.Identifier(this="Match", quoted=True),
@@ -83,7 +82,7 @@ def build_threshold_absolute_case(base: exp.Expression, threshold: Thresholds) -
     return exp.Case(ifs=[eq_if, between_if], default=exp.Identifier(this="Failed", quoted=True))
 
 
-def build_threshold_percentile_case(base: exp.Expression, threshold: Thresholds) -> Case:
+def build_threshold_percentile_case(base: exp.Expression, threshold: Thresholds) -> exp.Case:
     eq_if = exp.If(
         this=exp.EQ(this=base, expression=exp.Literal(this='0', is_string=False)),
         true=exp.Identifier(this="Match", quoted=True),
@@ -121,7 +120,7 @@ def build_threshold_percentile_case(base: exp.Expression, threshold: Thresholds)
     return exp.Case(ifs=[eq_if, between_if], default=exp.Identifier(this="Failed", quoted=True))
 
 
-def build_where_clause(where_clause=list[exp.Expression]) -> Expression:
+def build_where_clause(where_clause=list[exp.Expression]) -> exp.Or:
     # Start with a default
     combined_expression = exp.Or(this='1 = 1', expression='1 = 1')
 
