@@ -496,7 +496,7 @@ INSENSITIVE                                 : 'INSENSITIVE';
 INSERT                                      : 'INSERT';
 INSERTED                                    : 'INSERTED';
 INSTEAD                                     : 'INSTEAD';
-INT                                         : 'INT';
+KWINT                                       : 'INT';
 INTERSECT                                   : 'INTERSECT';
 INTO                                        : 'INTO';
 IO                                          : 'IO';
@@ -1221,16 +1221,16 @@ SINGLE_QUOTE       : '\'';
 SQUARE_BRACKET_ID  : '[' (~']' | ']' ']')* ']';
 LOCAL_ID           : '@' ([A-Z_$@#0-9] | FullWidthLetter)*;
 TEMP_ID            : '#' ([A-Z_$@#0-9] | FullWidthLetter)*;
-DECIMAL            : DEC_DIGIT+;
+INT            : DEC_DIGIT+;
 ID                 : ( [A-Z_#] | FullWidthLetter) ( [A-Z_#$@0-9] | FullWidthLetter)*;
 STRING options {
     caseInsensitive = false;
 }      : 'N'? '\'' (~'\'' | '\'\'')* '\'';
-BINARY : '0' 'X' HEX_DIGIT*;
+HEX : '0' 'X' HEX_DIGIT*;
 FLOAT  : DEC_DOT_DEC;
-REAL   : (DECIMAL | DEC_DOT_DEC) ('E' [+-]? DEC_DIGIT+);
+REAL   : (INT | DEC_DOT_DEC) ('E' [+-]? DEC_DIGIT+);
 
-EQUAL: '=';
+EQ: '=';
 
 GT          : '>';
 LT          : '<';

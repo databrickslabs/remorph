@@ -11,7 +11,9 @@ import scala.collection.JavaConverters._
  */
 class TSqlAstBuilder extends TSqlParserBaseVisitor[ir.TreeNode] {
 
-  // TODO investigate why this is needed
+  // When a node has multiple children, this method is called to aggregate the results and returns
+  // the IR that represents the node as a whole.
+  // TODO: JI: This is probably because the grammar is poorly designed. I will get to that later
   override protected def aggregateResult(aggregate: ir.TreeNode, nextResult: ir.TreeNode): ir.TreeNode = {
     if (nextResult == null) {
       aggregate
