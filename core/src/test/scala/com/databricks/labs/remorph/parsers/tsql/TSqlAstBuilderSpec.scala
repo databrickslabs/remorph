@@ -27,8 +27,8 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
             Seq(
               Literal(integer = Some(42)),
               Literal(float = Some(6.4f)),
-              Literal(hex = Some("0x5A")),
-              Literal(real = Some("2.7E9")),
+              Literal(string = Some("0x5A")),
+              Literal(double = Some(2.7e9)),
               UnresolvedExpression("$40"))))
       }
     }
