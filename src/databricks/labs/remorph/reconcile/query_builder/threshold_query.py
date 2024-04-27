@@ -35,6 +35,7 @@ class ThresholdQueryBuilder(QueryBuilder):
         select_clause = []
         where_clause = []
 
+        # threshold columns
         for threshold in thresholds:
             column = threshold.column_name
             base = exp.Paren(
@@ -46,23 +47,10 @@ class ThresholdQueryBuilder(QueryBuilder):
                 )
             ).transform(coalesce)
 
-            if threshold.get_type() == ThresholdMode.NUMBER_ABSOLUTE.value:
-                select_exp, where = self._build_expression_numeric_absolute(threshold, base)
-                select_clause.extend(select_exp)
-                where_clause.append(where)
-            elif threshold.get_type() == ThresholdMode.NUMBER_PERCENTAGE.value:
-                select_exp, where = self._build_expression_numeric_percentage(threshold, base)
-                select_clause.extend(select_exp)
-                where_clause.append(where)
-            elif threshold.get_type() == ThresholdMode.DATETIME.value:
-                select_exp, where = self._build_expression_datetime(threshold, base)
-                select_clause.extend(select_exp)
-                where_clause.append(where)
-            else:
-                error_message = f"Threshold type {threshold.get_type()} not supported for column {column}"
-                logger.error(error_message)
-                raise ValueError(error_message)
-
+            select_exp, where = self._build_expression_type(threshold, base)
+            select_clause.extend(select_exp)
+            where_clause.append(where)
+        # join columns
         for column in sorted(self.table_conf.get_join_columns("source")):
             select_clause.append(build_column(this=column, alias=f"{column}_source", table_name="source"))
         where = build_where_clause(where_clause)
@@ -80,49 +68,39 @@ class ThresholdQueryBuilder(QueryBuilder):
         select_clause.append(
             build_column(this=column, alias=f"{column}_databricks", table_name="databricks").transform(coalesce)
         )
-        where = exp.NEQ(this=base, expression=exp.Literal(this="0", is_string=False))
-        return select_clause, where
+        where_clause = exp.NEQ(this=base, expression=exp.Literal(this="0", is_string=False))
+        return select_clause, where_clause
 
-    def _build_expression_numeric_absolute(
+    def _build_expression_type(
         self, threshold: Thresholds, base: exp.Expression
     ) -> tuple[list[exp.Alias], exp.Expression]:
         column = threshold.column_name
-        select_clause, where = self._build_expression_alias_components(threshold, base)
-        select_clause.append(
-            build_column(
-                this=self._build_threshold_absolute_case(base=base, threshold=threshold), alias=f"{column}_match"
-            )
-        )
-        return select_clause, where
+        # default expressions
+        select_clause, where_clause = self._build_expression_alias_components(threshold, base)
 
-    def _build_expression_numeric_percentage(
-        self, threshold: Thresholds, base: exp.Expression
-    ) -> tuple[list[exp.Alias], exp.Expression]:
-        column = threshold.column_name
-        select_clause, where = self._build_expression_alias_components(threshold, base)
-        select_clause.append(
-            build_column(
-                this=self._build_threshold_percentage_case(base=base, threshold=threshold), alias=f"{column}_match"
-            )
-        )
-        return select_clause, where
+        if (
+            threshold.get_type() == ThresholdMode.NUMBER_ABSOLUTE.value
+            or threshold.get_type() == ThresholdMode.DATETIME.value
+        ):
+            if threshold.get_type() == ThresholdMode.DATETIME.value:
+                # unix_timestamp expression only if it is datetime
+                select_clause = [expression.transform(anonymous, "unix_timestamp({})") for expression in select_clause]
+                base = base.transform(anonymous, "unix_timestamp({})")
+                where_clause = exp.NEQ(this=base, expression=exp.Literal(this="0", is_string=False))
 
-    def _build_expression_datetime(
-        self, threshold: Thresholds, base: exp.Expression
-    ) -> tuple[list[exp.Alias], exp.Expression]:
-        select_clause = []
-        column = threshold.column_name
-        select_clause, _ = self._build_expression_alias_components(threshold, base)
-        select_clause = [expression.transform(anonymous, "unix_timestamp({})") for expression in select_clause]
-        exp_anonymous = base.transform(anonymous, "unix_timestamp({})")
-        select_clause.append(
-            build_column(
-                this=self._build_threshold_absolute_case(base=exp_anonymous, threshold=threshold),
-                alias=f"{column}_match",
-            )
-        )
-        where = exp.NEQ(this=exp_anonymous, expression=exp.Literal(this="0", is_string=False))
-        return select_clause, where
+            # absolute threshold
+            func = self._build_threshold_absolute_case
+        elif threshold.get_type() == ThresholdMode.NUMBER_PERCENTAGE.value:
+            # percentage threshold
+            func = self._build_threshold_percentage_case
+        else:
+            error_message = f"Threshold type {threshold.get_type()} not supported for column {column}"
+            logger.error(error_message)
+            raise ValueError(error_message)
+
+        select_clause.append(build_column(this=func(base=base, threshold=threshold), alias=f"{column}_match"))
+
+        return select_clause, where_clause
 
     def _generate_from_and_join_clause(self) -> tuple[exp.From, exp.Join]:
         join_columns = sorted(self.table_conf.get_join_columns("source"))
