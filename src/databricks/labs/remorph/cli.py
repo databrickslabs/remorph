@@ -1,18 +1,17 @@
 import json
 import os
 from json import JSONDecodeError
-from pathlib import Path
 
 from databricks.labs.blueprint.cli import App
 from databricks.labs.blueprint.entrypoint import get_logger
-from databricks.labs.blueprint.installation import Installation
-from databricks.labs.remorph.config import SQLGLOT_DIALECTS, MorphConfig
+from databricks.labs.blueprint.installation import Installation, SerdeError
+from databricks.labs.remorph.config import SQLGLOT_DIALECTS, MorphConfig, TableRecon
 from databricks.labs.remorph.helpers.recon_config_utils import ReconConfigPrompts
 from databricks.labs.remorph.lineage import lineage_generator
 from databricks.labs.remorph.reconcile.execute import recon
-from databricks.labs.remorph.reconcile.recon_config import TableRecon
 from databricks.labs.remorph.transpiler.execute import morph
 from databricks.sdk import WorkspaceClient
+from databricks.sdk.errors import ResourceDoesNotExist
 
 remorph = App(__file__)
 logger = get_logger(__file__)
@@ -97,14 +96,16 @@ def validate_recon_config(w: WorkspaceClient, recon_conf: str):
     logger.debug(f"user: {w.current_user.me()}")
     logger.info("Validating reconcile config file")
 
-    # Converts the JSON data to the TableRecon dataclass
     try:
-        Installation.load_local(type_ref=TableRecon, file=Path(recon_conf))
-    except JSONDecodeError as e:
+        installation = Installation.current(w, 'remorph')
+        installation.load(type_ref=TableRecon, filename=recon_conf)
+    except (SerdeError, JSONDecodeError, ResourceDoesNotExist) as e:
         raise_validation_exception(f"Error: Invalid reconciliation config file `{recon_conf}`: {e}")
+
     logger.info(f"`{recon_conf}` config file is valid")
 
-@remorph.command    
+
+@remorph.command
 def generate_lineage(w: WorkspaceClient, source: str, input_sql: str, output_folder: str):
     """Generates a lineage of source SQL files or folder"""
     logger.info(f"User: {w.current_user.me()}")
