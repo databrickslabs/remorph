@@ -2,18 +2,21 @@ import json
 import logging
 import webbrowser
 
+from pyspark.sql import SparkSession
+
 from databricks.connect import DatabricksSession
 from databricks.labs.blueprint.installation import Installation
 from databricks.labs.blueprint.tui import Prompts
 from databricks.labs.blueprint.wheels import ProductInfo
-
 from databricks.labs.remorph.__about__ import __version__
+from databricks.labs.remorph.config import TableRecon
+from databricks.labs.remorph.reconcile.connectors.data_source import DataSource
+from databricks.labs.remorph.reconcile.connectors.databricks import DatabricksDataSource
+from databricks.labs.remorph.reconcile.connectors.oracle import OracleDataSource
+from databricks.labs.remorph.reconcile.connectors.snowflake import SnowflakeDataSource
 from databricks.labs.remorph.reconcile.constants import SourceType
-from databricks.labs.remorph.config import TableRecon, get_data_source
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.errors.platform import ResourceDoesNotExist
-
-from ..config import get_data_source
 
 PRODUCT_INFO = ProductInfo(__file__)
 
@@ -24,6 +27,24 @@ recon_source_choices = [
     SourceType.ORACLE.value,
     SourceType.DATABRICKS.value,
 ]
+
+
+def get_data_source(
+    engine: str,
+    spark: SparkSession,
+    ws: WorkspaceClient,
+    scope: str,
+) -> DataSource:
+    logger.debug(f"Creating DataSource for `{engine.lower()}`")
+    match engine.lower():
+        case SourceType.SNOWFLAKE.value:
+            return SnowflakeDataSource(spark, ws, scope)
+        case SourceType.ORACLE.value:
+            return OracleDataSource(spark, ws, scope)
+        case SourceType.DATABRICKS.value:
+            return DatabricksDataSource(spark, ws, scope)
+        case _:
+            raise ValueError(f"Unsupported engine: {engine}")
 
 
 class ReconConfigPrompts:
@@ -143,7 +164,7 @@ class ReconConfigPrompts:
                 f"\nUse `remorph configure-secrets` to setup Scope and Secrets."
             )
 
-    def _prompt_config_details(self) -> TableRecon:
+    def _prompt_config_details(self) -> tuple[TableRecon, str]:
         """
         Prompt for Scope, source, target catalog and schema names. Get the table list and return the TableRecon config
         :return: TableRecon
@@ -189,25 +210,25 @@ class ReconConfigPrompts:
         logger.info("Recon Config details are fetched successfully...")
         logger.debug(f"Recon Config : {recon_config}")
 
-        return recon_config
+        return recon_config, f"recon_conf_{self._source}_{catalog_schema_dict.get('src_catalog')}.json"
 
-    def _save_config_details(self, recon_config: TableRecon):
+    def _save_config_details(self, recon_config_json: str, file_name: str = "recon_config.json"):
         """
         Save the config details in a file on Databricks Workspace
         """
-        recon_conf_file = f"./recon_conf_{self._source}.json"
 
         # Create Installation object
         workspace_client = WorkspaceClient(product="remorph", product_version=__version__)
         installation = Installation(workspace_client, PRODUCT_INFO.product_name())
+        logger.debug(f"Saving the config details for `{self._source}` in `{file_name}` on Databricks Workspace ")
+        installation.upload(filename=file_name, raw=recon_config_json.encode("utf-8"))
+        ws_file_url = f"{installation.install_folder()}/{file_name}"
+        logger.debug(f"Written `{file_name}` on Databricks Workspace ")
 
-        logger.debug(f"Saving the config details for `{self._source}` in `{recon_conf_file}` on Databricks Workspace ")
-        ws_file_url = installation.save(recon_config, filename=recon_conf_file)
-        logger.debug(f"Written `{recon_conf_file}` on Databricks Workspace ")
-
-        if self._prompts.confirm(f"Open `{recon_conf_file}` config file in the browser?"):
+        if self._prompts.confirm(f"Open `{file_name}` config file in the browser?"):
             webbrowser.open(ws_file_url)
-        logger.info(f"Config `{recon_conf_file}` is saved at path: `{ws_file_url}` ")
+        logger.info(f"Config `{file_name}` is saved at path: `{ws_file_url}` ")
+        return ws_file_url
 
     def prompt_and_save_config_details(self):
         """
@@ -215,9 +236,10 @@ class ReconConfigPrompts:
         """
         # Check for Secrets Scope
         self._confirm_secret_scope()
-        recon_config = self._prompt_config_details()
-        logger.debug(f"recon_config_json : {json.dumps(recon_config, default=vars, indent=2, sort_keys=True)}")
-        self._save_config_details(recon_config)
+        recon_config, recon_config_file = self._prompt_config_details()
+        recon_config_json = json.dumps(recon_config, default=vars, indent=2, sort_keys=True).replace("null", "None")
+        logger.debug(f"recon_config_json : {recon_config_json}")
+        self._save_config_details(recon_config_json, recon_config_file)
 
     def _prompt_snowflake_connection_details(self) -> tuple[str, dict[str, str]]:
         """

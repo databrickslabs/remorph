@@ -4,15 +4,15 @@ from pyspark.errors import PySparkException
 from pyspark.sql import DataFrame
 from pyspark.sql.functions import col
 
-from databricks.labs.remorph.reconcile.connectors.data_source import DataSource
 from databricks.labs.remorph.config import TableRecon
-from databricks.labs.remorph.reconcile.recon_config import (
-    JdbcReaderOptions,
-    Schema,
-)
+from databricks.labs.remorph.reconcile.connectors.data_source import DataSource
+from databricks.labs.remorph.reconcile.constants import SourceType
+from databricks.labs.remorph.reconcile.recon_config import JdbcReaderOptions, Schema
 
 
 class DatabricksDataSource(DataSource):
+    def __init__(self, spark, ws, scope):
+        super().__init__(spark, ws, scope, engine=SourceType.DATABRICKS.value)
 
     def read_data(self, catalog: str, schema: str, query: str, options: JdbcReaderOptions | None) -> DataFrame:
         table_query = ""

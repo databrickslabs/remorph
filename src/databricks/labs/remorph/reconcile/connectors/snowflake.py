@@ -5,9 +5,9 @@ from pyspark.errors import PySparkException
 from pyspark.sql import DataFrame
 from pyspark.sql.functions import col
 
+from databricks.labs.remorph.config import TableRecon
 from databricks.labs.remorph.reconcile.connectors.data_source import DataSource
 from databricks.labs.remorph.reconcile.constants import SourceDriver, SourceType
-from databricks.labs.remorph.config import TableRecon
 from databricks.labs.remorph.reconcile.recon_config import (
     JdbcReaderOptions,
     Schema,
@@ -89,11 +89,11 @@ class SnowflakeDataSource(DataSource):
         return re.sub(r'\s+', ' ', query)
 
     def list_tables(
-            self,
-            catalog: str,
-            schema: str,
-            include_list: list[str] | None,
-            exclude_list: list[str] | None,
+        self,
+        catalog: str,
+        schema: str,
+        include_list: list[str] | None,
+        exclude_list: list[str] | None,
     ) -> TableRecon:
 
         filter_list = include_list

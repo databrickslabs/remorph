@@ -1,16 +1,15 @@
 from pyspark.errors import PySparkException
 from pyspark.sql import DataFrame, DataFrameReader
 
+from databricks.labs.remorph.config import TableRecon
 from databricks.labs.remorph.reconcile.connectors.data_source import DataSource
 from databricks.labs.remorph.reconcile.constants import SourceDriver, SourceType
-from databricks.labs.remorph.config import TableRecon
-from databricks.labs.remorph.reconcile.recon_config import (
-    JdbcReaderOptions,
-    Schema,
-)
+from databricks.labs.remorph.reconcile.recon_config import JdbcReaderOptions, Schema
 
 
 class OracleDataSource(DataSource):
+    def __init__(self, spark, ws, scope):
+        super().__init__(spark, ws, scope, engine=SourceType.ORACLE.value)
 
     @property
     def get_jdbc_url(self) -> str:

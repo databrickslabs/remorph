@@ -13,10 +13,9 @@ def initial_setup():
     spark = pyspark_sql_session.SparkSession.builder.getOrCreate()
 
     # Define the source, workspace, and scope
-    engine = "databricks"
     ws = create_autospec(WorkspaceClient)
     scope = "scope"
-    return engine, spark, ws, scope
+    return spark, ws, scope
 
 
 def test_get_schema_query():
@@ -40,10 +39,10 @@ def test_get_schema_query():
 
 def test_get_schema():
     # initial setup
-    engine, spark, ws, scope = initial_setup()
+    spark, ws, scope = initial_setup()
 
     # catalog as catalog
-    dd = DatabricksDataSource(engine, spark, ws, scope)
+    dd = DatabricksDataSource(spark, ws, scope)
     dd.get_schema("catalog", "schema", "supplier")
     spark.sql.assert_called_with(
         re.sub(
@@ -65,10 +64,10 @@ def test_get_schema():
 
 def test_read_data():
     # initial setup
-    engine, spark, ws, scope = initial_setup()
+    spark, ws, scope = initial_setup()
 
     # create object for DatabricksDataSource
-    dd = DatabricksDataSource(engine, spark, ws, scope)
+    dd = DatabricksDataSource(spark, ws, scope)
 
     # Test with query
     dd.read_data("catalog", "schema", "select id as id, ename as name from confidential.data.employee", None)
@@ -81,10 +80,10 @@ def test_read_data():
 
 def test_read_data_exception_handling():
     # initial setup
-    engine, spark, ws, scope = initial_setup()
+    spark, ws, scope = initial_setup()
 
     # create object for DatabricksDataSource
-    dd = DatabricksDataSource(engine, spark, ws, scope)
+    dd = DatabricksDataSource(spark, ws, scope)
 
     spark.sql.side_effect = PySparkException("Test Exception")
 
@@ -99,10 +98,10 @@ def test_read_data_exception_handling():
 
 def test_get_schema_exception_handling():
     # initial setup
-    engine, spark, ws, scope = initial_setup()
+    spark, ws, scope = initial_setup()
 
     # create object for DatabricksDataSource
-    dd = DatabricksDataSource(engine, spark, ws, scope)
+    dd = DatabricksDataSource(spark, ws, scope)
     spark.sql().where.side_effect = PySparkException("Test Exception")
     with pytest.raises(PySparkException, match=".*Test Exception.*"):
         dd.get_schema("catalog", "schema", "supplier")

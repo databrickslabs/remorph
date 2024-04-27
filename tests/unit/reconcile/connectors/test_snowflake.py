@@ -15,15 +15,14 @@ def initial_setup():
     spark = pyspark_sql_session.SparkSession.builder.getOrCreate()
 
     # Define the source, workspace, and scope
-    engine = "snowflake"
     ws = create_autospec(WorkspaceClient)
     scope = "scope"
-    return engine, spark, ws, scope
+    return spark, ws, scope
 
 
 def test_get_jdbc_url():
     # initial setup
-    engine, spark, ws, init_scope = initial_setup()
+    spark, ws, init_scope = initial_setup()
     # Mocking get secret method to return the required values
     ws.dbutils.secrets.get = MagicMock()
     ws.dbutils.secrets.get.side_effect = lambda key, scope: {
@@ -37,7 +36,7 @@ def test_get_jdbc_url():
         'snowflake_sfUrl': 'my_url',
     }[key]
     # create object for SnowflakeDataSource
-    ds = SnowflakeDataSource(engine, spark, ws, init_scope)
+    ds = SnowflakeDataSource(spark, ws, init_scope)
     url = ds.get_jdbc_url
     # Assert that the URL is generated correctly
     assert url == (
@@ -50,7 +49,7 @@ def test_get_jdbc_url():
 
 def test_read_data_with_out_options():
     # initial setup
-    engine, spark, ws, init_scope = initial_setup()
+    spark, ws, init_scope = initial_setup()
     # Mocking get secret method to return the required values
     ws.dbutils.secrets.get = MagicMock()
     ws.dbutils.secrets.get.side_effect = lambda key, scope: {
@@ -65,7 +64,7 @@ def test_read_data_with_out_options():
     }[key]
 
     # create object for SnowflakeDataSource
-    ds = SnowflakeDataSource(engine, spark, ws, init_scope)
+    ds = SnowflakeDataSource(spark, ws, init_scope)
     # Create a Tables configuration object with no JDBC reader options
     table_conf = Table(
         source_name="supplier",
@@ -100,7 +99,7 @@ def test_read_data_with_out_options():
 
 def test_read_data_with_options():
     # initial setup
-    engine, spark, ws, init_scope = initial_setup()
+    spark, ws, init_scope = initial_setup()
     # Mocking get secret method to return the required values
     ws.dbutils.secrets.get = MagicMock()
     ws.dbutils.secrets.get.side_effect = lambda key, scope: {
@@ -115,7 +114,7 @@ def test_read_data_with_options():
     }[key]
 
     # create object for SnowflakeDataSource
-    ds = SnowflakeDataSource(engine, spark, ws, init_scope)
+    ds = SnowflakeDataSource(spark, ws, init_scope)
     # Create a Tables configuration object with JDBC reader options
     table_conf = Table(
         source_name="supplier",
@@ -154,7 +153,7 @@ def test_read_data_with_options():
 
 def test_get_schema():
     # initial setup
-    engine, spark, ws, init_scope = initial_setup()
+    spark, ws, init_scope = initial_setup()
     # Mocking get secret method to return the required values
     ws.dbutils.secrets.get = MagicMock()
     ws.dbutils.secrets.get.side_effect = lambda key, scope: {
@@ -169,7 +168,7 @@ def test_get_schema():
     }[key]
 
     # create object for SnowflakeDataSource
-    ds = SnowflakeDataSource(engine, spark, ws, init_scope)
+    ds = SnowflakeDataSource(spark, ws, init_scope)
     # call test method
     ds.get_schema("catalog", "schema", "supplier")
     # spark assertions
@@ -200,9 +199,9 @@ def test_get_schema():
 
 def test_get_schema_query():
     # initial setup
-    engine, spark, ws, scope = initial_setup()
+    spark, ws, scope = initial_setup()
     # create object for SnowflakeDataSource
-    ds = SnowflakeDataSource(engine, spark, ws, scope)
+    ds = SnowflakeDataSource(spark, ws, scope)
     schema = ds.get_schema_query("catalog", "schema", "supplier")
     assert schema == re.sub(
         r'\s+',
@@ -217,8 +216,8 @@ def test_get_schema_query():
 
 def test_read_data_exception_handling():
     # initial setup
-    engine, spark, ws, scope = initial_setup()
-    ds = SnowflakeDataSource(engine, spark, ws, scope)
+    spark, ws, scope = initial_setup()
+    ds = SnowflakeDataSource(spark, ws, scope)
     # Create a Tables configuration object
     table_conf = Table(
         source_name="supplier",
@@ -246,8 +245,8 @@ def test_read_data_exception_handling():
 
 def test_get_schema_exception_handling():
     # initial setup
-    engine, spark, ws, scope = initial_setup()
-    ds = SnowflakeDataSource(engine, spark, ws, scope)
+    spark, ws, scope = initial_setup()
+    ds = SnowflakeDataSource(spark, ws, scope)
 
     spark.read.format().option().options().load.side_effect = PySparkException("Test Exception")
 

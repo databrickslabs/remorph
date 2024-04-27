@@ -100,7 +100,7 @@ def generate_recon_config(w: WorkspaceClient):
     # Prompt for connection details and save the config
     recon_conf.prompt_and_save_config_details()
 
-    
+
 def generate_lineage(w: WorkspaceClient, source: str, input_sql: str, output_folder: str):
     """Generates a lineage of source SQL files or folder"""
     logger.info(f"User: {w.current_user.me()}")
@@ -127,7 +127,6 @@ def configure_secrets(w: WorkspaceClient):
 
     logger.info(f"Setting up Scope, Secrets for `{source}` reconciliation")
     recon_conf.prompt_and_save_connection_details()
-
 
 
 if __name__ == "__main__":

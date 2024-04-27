@@ -1,13 +1,19 @@
 import json
-from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
 from pyspark.sql.session import SparkSession
 
 from databricks.connect.session import DatabricksSession
+from databricks.labs.blueprint.installation import MockInstallation
 from databricks.labs.blueprint.tui import MockPrompts
-from databricks.labs.remorph.helpers.recon_config_utils import ReconConfigPrompts
+from databricks.labs.remorph.config import TableRecon
+from databricks.labs.remorph.helpers.recon_config_utils import (
+    ReconConfigPrompts,
+    get_data_source,
+)
+from databricks.labs.remorph.reconcile.constants import SourceType
+from databricks.labs.remorph.reconcile.recon_config import Table
 from databricks.sdk.errors.platform import ResourceDoesNotExist
 from databricks.sdk.service.workspace import SecretScope
 
@@ -170,7 +176,6 @@ def test_generate_recon_config_no_secrets_configured(mock_workspace_client):
 
 
 def test_generate_recon_config_create_scope_no(mock_workspace_client):
-
     prompts = MockPrompts(
         {
             r"Select the source": SOURCE_DICT["snowflake"],
@@ -203,30 +208,57 @@ def test_recon_config_prompt_and_save_config_details(mock_workspace_client):
             r"Enter target schema_name": "tgt_schema",
             r"Do you want to include/exclude a set of tables?": "yes",
             r"Select the filter type": filter_dict["include"],
-            r"Enter the tables(separated by comma) to `include`": "table1, table2",
-            r".*": "",
+            r"Enter the tables.*": "table1, table2",
+            r"Open.* config file in the browser?": "yes",
         }
+    )
+
+    filename = "recon_conf_snowflake.json"
+    recon_confing = TableRecon(
+        source_schema="src_schema",
+        source_catalog="src_catalog",
+        target_catalog="tgt_catalog",
+        target_schema="tgt_schema",
+        tables=[Table(source_name="table1", target_name="table1"), Table(source_name="table2", target_name="table2")],
     )
 
     # Patch the scope_exists method to return True
     mock_workspace_client.secrets.list_scopes.side_effect = [[SecretScope(name="dummy")]]
     # Patch the builder method to return a SparkSession
     with patch.object(DatabricksSession, "builder", MagicMock(return_value=SparkSession.builder)):
-        recon_conf = ReconConfigPrompts(mock_workspace_client, prompts)
-        recon_conf.prompt_source()
+        # mock WorkspaceClient and Installation in _save_config_details
+        with patch("databricks.labs.remorph.helpers.recon_config_utils.WorkspaceClient", mock_workspace_client):
+            with patch("databricks.labs.remorph.helpers.recon_config_utils.Installation", MagicMock()):
+                recon_conf = ReconConfigPrompts(mock_workspace_client, prompts)
+                recon_conf.prompt_source()
 
-        recon_conf.prompt_and_save_config_details()
+                recon_conf.prompt_and_save_config_details()
 
-        # Check that the config file is created
-        assert Path("./recon_conf_snowflake.json").exists()
+    raw = json.dumps(recon_confing, default=vars, indent=2, sort_keys=True).encode("utf-8")
 
-        # Check the contents of the config file
-        with open(Path("./recon_conf_snowflake.json"), "r", encoding="utf-8") as file:
-            content = file.read().strip()
-            reconf_config = json.loads(content)
-            assert reconf_config["source_catalog"] == "sf_catalog", "Source catalog name is incorrect"
-            assert reconf_config["source_schema"] == "sf_schema", "Source schema name is incorrect"
-            assert reconf_config["target_catalog"] == "tgt_catalog", "Target catalog name is incorrect"
-            assert reconf_config["target_schema"] == "tgt_schema", "Target schema name is incorrect"
+    installation = MockInstallation()
+    target = installation.upload(filename, raw)
 
-        Path("./recon_conf_snowflake.json").unlink()
+    assert target == f"~/mock/{filename}"
+
+    installation.assert_file_uploaded(filename)
+
+
+def test_get_data_source(mock_workspace_client):
+    pyspark_sql_session = MagicMock()
+    spark = pyspark_sql_session.SparkSession.builder.getOrCreate()
+
+    with pytest.raises(ValueError, match="Unsupported engine: teradata"):
+        get_data_source("teradata", spark, mock_workspace_client, "dummy_scope")
+
+    snowflake_datasource = get_data_source(SourceType.SNOWFLAKE.value, spark, mock_workspace_client, "dummy_scope")
+
+    oracle_datasource = get_data_source(SourceType.ORACLE.value, spark, mock_workspace_client, "dummy_scope")
+
+    databricks_datasource = get_data_source(SourceType.DATABRICKS.value, spark, mock_workspace_client, "dummy_scope")
+
+    assert snowflake_datasource and type(snowflake_datasource).__name__ == "SnowflakeDataSource"
+
+    assert oracle_datasource and type(oracle_datasource).__name__ == "OracleDataSource"
+
+    assert databricks_datasource and type(databricks_datasource).__name__ == "DatabricksDataSource"
