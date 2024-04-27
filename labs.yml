@@ -55,3 +55,14 @@ commands:
     flags:
         - name: recon_conf
           description: Path of the data-recon config
+  - name: generate-lineage
+    description: Utility to generate a lineage of the SQL files
+    flags:
+      - name: source
+        description: Input SQL Dialect Type Accepted Values [snowflake, tsql]
+      - name: input-sql
+        description: Input SQL Folder or File
+      - name: output-folder
+        description: Directory to store the generated lineage file
+  - name: configure-secrets
+    description: Utility to setup Scope and Secrets on Databricks Workspace

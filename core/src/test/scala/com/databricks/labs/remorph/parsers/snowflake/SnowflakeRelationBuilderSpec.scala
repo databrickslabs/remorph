@@ -4,9 +4,9 @@ import com.databricks.labs.remorph.parsers.intermediate._
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-class SnowflakeRelationBuilderSpec extends AnyWordSpec with ParserTestCommon with Matchers {
+class SnowflakeRelationBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon with Matchers {
 
-  override def astBuilder: SnowflakeParserBaseVisitor[_] = new SnowflakeRelationBuilder
+  override protected def astBuilder: SnowflakeParserBaseVisitor[_] = new SnowflakeRelationBuilder
 
   "SnowflakeRelationBuilder" should {
 
@@ -129,6 +129,36 @@ class SnowflakeRelationBuilderSpec extends AnyWordSpec with ParserTestCommon wit
               sort_order = Seq(SortOrder(Column("o"), AscendingSortDirection, SortNullsLast)),
               frame_spec = DummyWindowFrame),
             Literal(integer = Some(1)))))
+    }
+
+    "translate SELECT DISTINCT clauses" in {
+      example(
+        "SELECT DISTINCT a FROM t",
+        _.select_statement(),
+        Project(
+          Deduplicate(
+            input = namedTable("t"),
+            column_names = Seq("a"),
+            all_columns_as_keys = false,
+            within_watermark = false),
+          Seq(Column("a"))))
+    }
+
+    "translate SELECT TOP clauses" in {
+      example("SELECT TOP 42 a FROM t", _.select_statement(), Project(Limit(namedTable("t"), 42), Seq(Column("a"))))
+
+      example(
+        "SELECT DISTINCT TOP 42 a FROM t",
+        _.select_statement(),
+        Project(
+          Limit(Deduplicate(namedTable("t"), Seq("a"), all_columns_as_keys = false, within_watermark = false), 42),
+          Seq(Column("a"))))
+    }
+  }
+
+  "Unparsed input" should {
+    "be reported as UnresolvedRelation" in {
+      example("MATCH_RECOGNIZE()", _.match_recognize(), UnresolvedRelation("MATCH_RECOGNIZE()"))
     }
   }
 }

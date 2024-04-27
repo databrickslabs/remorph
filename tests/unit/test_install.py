@@ -3,18 +3,18 @@ from datetime import timedelta
 from unittest.mock import create_autospec
 
 import pytest
+
 from databricks.labs.blueprint.installation import Installation, MockInstallation
 from databricks.labs.blueprint.tui import MockPrompts, Prompts
-from databricks.sdk import WorkspaceClient
-from databricks.sdk.errors import NotFound
-from databricks.sdk.service.catalog import CatalogInfo
-
 from databricks.labs.remorph.config import MorphConfig
 from databricks.labs.remorph.install import (
     CatalogSetup,
     WorkspaceInstallation,
     WorkspaceInstaller,
 )
+from databricks.sdk import WorkspaceClient
+from databricks.sdk.errors import NotFound
+from databricks.sdk.service.catalog import CatalogInfo
 
 
 @pytest.fixture
@@ -36,7 +36,7 @@ def mock_installation():
 def test_install(ws, mock_installation):
     prompts = MockPrompts(
         {
-            r"Select the source": "0",
+            r"Select the source": "10",
             r"Do you want to Skip Validation": "yes",
             r"Enter catalog_name": "remorph_test",
             r".*Do you want to create a new one?": "yes",
@@ -57,7 +57,7 @@ def test_install_dbr(ws, mock_installation, monkeypatch):
     monkeypatch.setenv("DATABRICKS_RUNTIME_VERSION", "14.1")
     prompts = MockPrompts(
         {
-            r"Select the source": "0",
+            r"Select the source": "10",
             r"Do you want to Skip Validation": "yes",
             r".*": "",
         }
@@ -70,7 +70,7 @@ def test_install_dbr(ws, mock_installation, monkeypatch):
 def test_save_config(ws, mock_installation):
     prompts = MockPrompts(
         {
-            r"Select the source": "0",
+            r"Select the source": "10",
             r"Do you want to Skip Validation": "yes",
             r".*": "",
         }
@@ -95,7 +95,7 @@ def test_save_config(ws, mock_installation):
 def test_create_sql_warehouse(ws, mock_installation):
     prompts = MockPrompts(
         {
-            r"Select the source": "0",
+            r"Select the source": "10",
             r"Do you want to Skip Validation": "No",
             r"Do you want to use SQL Warehouse for validation?": "yes",
             r"Select PRO or SERVERLESS SQL warehouse to run validation on": "0",
@@ -127,7 +127,7 @@ def test_create_sql_warehouse(ws, mock_installation):
 def test_create_catalog_schema(ws, mock_installation):
     prompts = MockPrompts(
         {
-            r"Select the source": "0",
+            r"Select the source": "10",
             r"Do you want to Skip Validation": "No",
             r"Do you want to use SQL Warehouse for validation?": "No",
             r"Enter a valid cluster_id to proceed": "test_cluster",
@@ -159,7 +159,7 @@ def test_create_catalog_schema(ws, mock_installation):
 def test_create_catalog_no(ws, mock_installation):
     prompts = MockPrompts(
         {
-            r"Select the source": "0",
+            r"Select the source": "10",
             r"Do you want to Skip Validation": "No",
             r"Enter catalog_name": "test",
             r".*Do you want to create a new one?": "no",
@@ -174,7 +174,7 @@ def test_create_catalog_no(ws, mock_installation):
 def test_create_schema_no(ws, mock_installation):
     prompts = MockPrompts(
         {
-            r"Select the source": "0",
+            r"Select the source": "10",
             r"Do you want to Skip Validation": "No",
             r"Enter catalog_name": "test",
             r".*Do you want to create a new one?": "yes",

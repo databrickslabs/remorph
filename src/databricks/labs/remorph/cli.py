@@ -6,12 +6,13 @@ from pathlib import Path
 from databricks.labs.blueprint.cli import App
 from databricks.labs.blueprint.entrypoint import get_logger
 from databricks.labs.blueprint.installation import Installation
-from databricks.sdk import WorkspaceClient
-
-from databricks.labs.remorph.config import MorphConfig
+from databricks.labs.remorph.config import SQLGLOT_DIALECTS, MorphConfig
+from databricks.labs.remorph.helpers.recon_config_utils import ReconConfigPrompts
+from databricks.labs.remorph.lineage import lineage_generator
 from databricks.labs.remorph.reconcile.execute import recon
 from databricks.labs.remorph.reconcile.recon_config import TableRecon
 from databricks.labs.remorph.transpiler.execute import morph
+from databricks.sdk import WorkspaceClient
 
 remorph = App(__file__)
 logger = get_logger(__file__)
@@ -37,8 +38,8 @@ def transpile(
     installation = Installation.current(w, 'remorph')
     default_config = installation.load(MorphConfig)
     mode = mode if mode else "current"  # not checking for default config as it will always be current
-
-    if source.lower() not in {"snowflake", "tsql"}:
+    dialects = SQLGLOT_DIALECTS.keys()
+    if source.lower() not in dialects:
         raise_validation_exception(
             f"Error: Invalid value for '--source': '{source}' is not one of 'snowflake', 'tsql'. "
         )
@@ -102,6 +103,34 @@ def validate_recon_config(w: WorkspaceClient, recon_conf: str):
     except JSONDecodeError as e:
         raise_validation_exception(f"Error: Invalid reconciliation config file `{recon_conf}`: {e}")
     logger.info(f"`{recon_conf}` config file is valid")
+
+@remorph.command    
+def generate_lineage(w: WorkspaceClient, source: str, input_sql: str, output_folder: str):
+    """Generates a lineage of source SQL files or folder"""
+    logger.info(f"User: {w.current_user.me()}")
+    dialects = SQLGLOT_DIALECTS.keys()
+    if source.lower() not in dialects:
+        raise_validation_exception(f"Error: Invalid value for '--source': '{source}' is not one of {dialects}. ")
+    if not os.path.exists(input_sql) or input_sql in {None, ""}:
+        raise_validation_exception(f"Error: Invalid value for '--input_sql': Path '{input_sql}' does not exist.")
+    if not os.path.exists(output_folder) or output_folder in {None, ""}:
+        raise_validation_exception(
+            f"Error: Invalid value for '--output-folder': Path '{output_folder}' does not exist."
+        )
+
+    lineage_generator(source, input_sql, output_folder)
+
+
+@remorph.command
+def configure_secrets(w: WorkspaceClient):
+    """Setup reconciliation connection profile details as Secrets on Databricks Workspace"""
+    recon_conf = ReconConfigPrompts(w)
+
+    # Prompt for source
+    source = recon_conf.prompt_source()
+
+    logger.info(f"Setting up Scope, Secrets for `{source}` reconciliation")
+    recon_conf.prompt_and_save_connection_details()
 
 
 if __name__ == "__main__":
