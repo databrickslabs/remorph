@@ -18,6 +18,22 @@ def _apply_func_expr(expr: exp.Expression, expr_func: Callable, **kwargs) -> exp
     return new_expr
 
 
+def concat(expr: list[exp.Expression]) -> exp.Expression:
+    return exp.Concat(expressions=expr, safe=True)
+
+
+def sha2(expr: exp.Expression, num_bits: str, is_expr: bool = False) -> exp.Expression:
+    if is_expr:
+        return exp.SHA2(this=expr, length=exp.Literal(this=num_bits, is_string=False))
+    return _apply_func_expr(expr, exp.SHA2, length=exp.Literal(this=num_bits, is_string=False))
+
+
+def lower(expr: exp.Expression, is_expr: bool = False) -> exp.Expression:
+    if is_expr:
+        return exp.Lower(this=expr)
+    return _apply_func_expr(expr, exp.Lower)
+
+
 def coalesce(expr: exp.Expression, default="0", is_string=False) -> exp.Coalesce | exp.Expression:
     expressions = [exp.Literal(this=default, is_string=is_string)]
     return _apply_func_expr(expr, exp.Coalesce, expressions=expressions)
@@ -118,6 +134,12 @@ def transform_expression(
     return expr
 
 
+def _get_hash_transform(source: str):
+    if SourceType_hash_algo_mapping.get(source) is not None:
+        return SourceType_hash_algo_mapping.get(source)
+    raise ValueError(f"Source {source} is not supported")
+
+
 DataType_transform_mapping = {
     "default": [partial(coalesce, default='', is_string=True), trim],
     "snowflake": {exp.DataType.Type.ARRAY.value: [array_to_string, array_sort]},
@@ -128,4 +150,10 @@ DataType_transform_mapping = {
     "databricks": {
         exp.DataType.Type.ARRAY.value: [partial(anonymous, func="concat_ws(',', sort_array({}))")],
     },
+}
+
+SourceType_hash_algo_mapping = {
+    "snowflake": [partial(sha2, num_bits="256", is_expr=True)],
+    "databricks": [partial(sha2, num_bits="256", is_expr=True)],
+    "oracle": [partial(sha2, num_bits="256", is_expr=True)],
 }

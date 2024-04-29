@@ -49,16 +49,20 @@ def table_conf_with_opts():
         jdbc_reader_options=JdbcReaderOptions(
             number_partitions=100, partition_column="s_nationkey", lower_bound="0", upper_bound="100"
         ),
-        join_columns=["s_suppkey"],
-        select_columns=["s_suppkey", "s_name", "s_address"],
+        join_columns=["s_suppkey", "s_nationkey"],
+        select_columns=["s_suppkey", "s_name", "s_address", "s_phone", "s_acctbal", "s_nationkey"],
         drop_columns=["s_comment"],
         column_mapping=[
             ColumnMapping(source_name="s_suppkey", target_name="s_suppkey_t"),
             ColumnMapping(source_name="s_address", target_name="s_address_t"),
+            ColumnMapping(source_name="s_nationkey", target_name="s_nationkey_t"),
+            ColumnMapping(source_name="s_phone", target_name="s_phone_t"),
+            ColumnMapping(source_name="s_acctbal", target_name="s_acctbal_t"),
+            ColumnMapping(source_name="s_comment", target_name="s_comment_t"),
         ],
         transformations=[
             Transformation(column_name="s_address", source="trim(s_address)", target="trim(s_address_t)"),
-            Transformation(column_name="s_phone", source="trim(s_phone)", target="trim(s_phone)"),
+            Transformation(column_name="s_phone", source="trim(s_phone)", target="trim(s_phone_t)"),
             Transformation(column_name="s_name", source="trim(s_name)", target="trim(s_name)"),
         ],
         thresholds=[Thresholds(column_name="s_acctbal", lower_bound="0", upper_bound="100", type="int")],
