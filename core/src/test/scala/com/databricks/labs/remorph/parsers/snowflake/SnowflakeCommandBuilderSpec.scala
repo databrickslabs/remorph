@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
-import com.databricks.labs.remorph.parsers.intermediate.{Command, CreateInlineUDF, DoubleType, FunctionParameter, JavaUDFInfo, JavascriptUDFInfo, PythonUDFInfo, UnparsedType, VarCharType}
+import com.databricks.labs.remorph.parsers.intermediate.{Command, CreateInlineUDF, DoubleType, FunctionParameter, JavaUDFInfo, JavascriptUDFInfo, Literal, PythonUDFInfo, ScalaUDFInfo, UnparsedType, VarCharType}
 import org.antlr.v4.runtime.tree.ParseTreeVisitor
 import org.scalatest.Assertion
 import org.scalatest.matchers.should
@@ -104,6 +104,34 @@ class SnowflakeCommandBuilderSpec extends AnyWordSpec with SnowflakeParserTestCo
           acceptsNullParameters = false,
           comment = Some("Compute factorial using JavaScript"),
           body = javascriptCode))
+    }
+
+    "translate Scala UDF create command" in {
+      val scalaCode = """class Echo {
+                        |  def echoVarchar(x : String): String = {
+                        |    return x
+                        |  }
+                        |}""".stripMargin
+
+      example(
+        query = s"""CREATE OR REPLACE FUNCTION echo_varchar(x VARCHAR DEFAULT 'foo')
+                  |  RETURNS VARCHAR
+                  |  LANGUAGE SCALA
+                  |  CALLED ON NULL INPUT
+                  |  RUNTIME_VERSION = '2.12'
+                  |  HANDLER='Echo.echoVarchar'
+                  |  AS
+                  |  $$$$
+                  |  $scalaCode
+                  |  $$$$;""".stripMargin,
+        expectedAst = CreateInlineUDF(
+          name = "echo_varchar",
+          returnType = VarCharType(None),
+          parameters = Seq(FunctionParameter("x", VarCharType(None), Some(Literal(string = Some("foo"))))),
+          runtimeInfo = ScalaUDFInfo(runtimeVersion = Some("2.12"), imports = Seq(), handler = "Echo.echoVarchar"),
+          acceptsNullParameters = true,
+          comment = None,
+          body = scalaCode))
     }
   }
 }

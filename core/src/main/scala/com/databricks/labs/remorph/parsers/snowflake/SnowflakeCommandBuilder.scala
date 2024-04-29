@@ -19,6 +19,7 @@ class SnowflakeCommandBuilder
       case c if c.JAVA() != null => buildJavaUDF(c)
       case c if c.PYTHON() != null => buildPythonUDF(c)
       case c if c.JAVASCRIPT() != null => ir.JavascriptUDFInfo
+      case c if c.SCALA() != null => buildScalaUDF(c)
     }
     val name = ctx.object_name().getText
     val returnType = DataTypeBuilder.buildDataType(ctx.data_type())
@@ -41,7 +42,11 @@ class SnowflakeCommandBuilder
     case c if c.string() != null => extractString(c.string())
   }).trim
 
-  private def buildJavaUDF(ctx: Create_functionContext): ir.JavaUDFInfo = {
+  private def buildJavaUDF(ctx: Create_functionContext): ir.UDFRuntimeInfo = buildJVMUDF(ctx)(ir.JavaUDFInfo.apply)
+  private def buildScalaUDF(ctx: Create_functionContext): ir.UDFRuntimeInfo = buildJVMUDF(ctx)(ir.ScalaUDFInfo.apply)
+
+  private def buildJVMUDF(ctx: Create_functionContext)(
+      ctr: (Option[String], Seq[String], String) => ir.UDFRuntimeInfo): ir.UDFRuntimeInfo = {
     val imports =
       ctx
         .string_list()
@@ -49,16 +54,14 @@ class SnowflakeCommandBuilder
         .find(occursBefore(ctx.IMPORTS(), _))
         .map(_.string().asScala.map(extractString))
         .getOrElse(Seq())
-    ir.JavaUDFInfo(extractRuntimeVersion(ctx), imports, extractHandler(ctx))
+    ctr(extractRuntimeVersion(ctx), imports, extractHandler(ctx))
   }
-
   private def extractRuntimeVersion(ctx: Create_functionContext): Option[String] = ctx.string().asScala.collectFirst {
     case c if occursBefore(ctx.RUNTIME_VERSION(), c) => extractString(c)
   }
 
   private def extractHandler(ctx: Create_functionContext): String =
     Option(ctx.HANDLER()).flatMap(h => ctx.string().asScala.find(occursBefore(h, _))).map(extractString).get
-
 
   private def buildPythonUDF(ctx: Create_functionContext): ir.PythonUDFInfo = {
     val packages =
