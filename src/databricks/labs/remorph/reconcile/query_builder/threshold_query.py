@@ -7,9 +7,12 @@ from databricks.labs.remorph.reconcile.constants import ThresholdMode
 from databricks.labs.remorph.reconcile.query_builder.base import QueryBuilder
 from databricks.labs.remorph.reconcile.query_builder.expression_generator import (
     anonymous,
+    build_between,
     build_column,
     build_from_clause,
+    build_if,
     build_join_clause,
+    build_literal,
     build_sub,
     build_where_clause,
     coalesce,
@@ -78,10 +81,7 @@ class ThresholdQueryBuilder(QueryBuilder):
         # default expressions
         select_clause, where_clause = self._build_expression_alias_components(threshold, base)
 
-        if (
-            threshold.get_type() == ThresholdMode.NUMBER_ABSOLUTE.value
-            or threshold.get_type() == ThresholdMode.DATETIME.value
-        ):
+        if threshold.get_type() in (ThresholdMode.NUMBER_ABSOLUTE.value, ThresholdMode.DATETIME.value):
             if threshold.get_type() == ThresholdMode.DATETIME.value:
                 # unix_timestamp expression only if it is datetime
                 select_clause = [expression.transform(anonymous, "unix_timestamp({})") for expression in select_clause]
@@ -118,27 +118,30 @@ class ThresholdQueryBuilder(QueryBuilder):
         return from_clause, join_clause
 
     def _build_threshold_absolute_case(self, base: exp.Expression, threshold: Thresholds) -> exp.Case:
-        eq_if = exp.If(
-            this=exp.EQ(this=base, expression=exp.Literal(this='0', is_string=False)),
+        eq_if = build_if(
+            this=exp.EQ(this=base, expression=build_literal(this="0", is_string=False)),
             true=exp.Identifier(this="Match", quoted=True),
         )
-        between_if = exp.If(
-            this=exp.Between(
-                this=base,
-                low=exp.Literal(this=threshold.lower_bound.replace("%", ""), is_string=False),
-                high=exp.Literal(this=threshold.upper_bound.replace("%", ""), is_string=False),
-            ),
+
+        between_base = build_between(
+            this=base,
+            low=build_literal(threshold.lower_bound.replace("%", ""), is_string=False),
+            high=build_literal(threshold.upper_bound.replace("%", ""), is_string=False),
+        )
+
+        between_if = build_if(
+            this=between_base,
             true=exp.Identifier(this="Warning", quoted=True),
         )
         return exp.Case(ifs=[eq_if, between_if], default=exp.Identifier(this="Failed", quoted=True))
 
     def _build_threshold_percentage_case(self, base: exp.Expression, threshold: Thresholds) -> exp.Case:
         eq_if = exp.If(
-            this=exp.EQ(this=base, expression=exp.Literal(this='0', is_string=False)),
+            this=exp.EQ(this=base, expression=build_literal(this="0", is_string=False)),
             true=exp.Identifier(this="Match", quoted=True),
         )
 
-        denominator = exp.If(
+        denominator = build_if(
             this=exp.Or(
                 this=exp.EQ(
                     this=exp.Column(this=threshold.column_name, table="databricks"),
@@ -158,13 +161,14 @@ class ThresholdQueryBuilder(QueryBuilder):
 
         division = exp.Div(this=base, expression=denominator, typed=False, safe=False)
         percentage = exp.Mul(this=exp.Paren(this=division), expression=exp.Literal(this="100", is_string=False))
+        between_base = build_between(
+            this=percentage,
+            low=build_literal(threshold.lower_bound.replace("%", ""), is_string=False),
+            high=build_literal(threshold.upper_bound.replace("%", ""), is_string=False),
+        )
 
-        between_if = exp.If(
-            this=exp.Between(
-                this=percentage,
-                low=exp.Literal(this=threshold.lower_bound.replace("%", ""), is_string=False),
-                high=exp.Literal(this=threshold.upper_bound.replace("%", ""), is_string=False),
-            ),
+        between_if = build_if(
+            this=between_base,
             true=exp.Identifier(this="Warning", quoted=True),
         )
         return exp.Case(ifs=[eq_if, between_if], default=exp.Identifier(this="Failed", quoted=True))

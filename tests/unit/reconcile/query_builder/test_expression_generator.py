@@ -4,8 +4,10 @@ from sqlglot import parse_one
 from databricks.labs.remorph.reconcile.query_builder.expression_generator import (
     array_sort,
     array_to_string,
+    build_between,
     build_column,
     build_from_clause,
+    build_if,
     build_join_clause,
     build_literal,
     build_sub,
@@ -156,3 +158,35 @@ def test_build_where_clause():
     result = build_where_clause(where_clause, "and")
     assert str(result) == "(1 = 1 AND 1 = 1) AND test_table.test_column = 1"
     assert isinstance(result, exp.And)
+
+
+def test_build_if():
+    # with true and false
+    result = build_if(
+        this=exp.EQ(
+            this=exp.Column(this="test_column", table="test_table"), expression=exp.Literal(this='1', is_string=False)
+        ),
+        true=exp.Literal(this='1', is_string=False),
+        false=exp.Literal(this='0', is_string=False),
+    )
+    assert str(result) == "CASE WHEN test_table.test_column = 1 THEN 1 ELSE 0 END"
+    assert isinstance(result, exp.If)
+
+    # without false
+    result = build_if(
+        this=exp.EQ(
+            this=exp.Column(this="test_column", table="test_table"), expression=exp.Literal(this='1', is_string=False)
+        ),
+        true=exp.Literal(this='1', is_string=False),
+    )
+    assert str(result) == "CASE WHEN test_table.test_column = 1 THEN 1 END"
+
+
+def test_build_between():
+    result = build_between(
+        this=exp.Column(this="test_column", table="test_table"),
+        low=exp.Literal(this='1', is_string=False),
+        high=exp.Literal(this='2', is_string=False),
+    )
+    assert str(result) == "test_table.test_column BETWEEN 1 AND 2"
+    assert isinstance(result, exp.Between)

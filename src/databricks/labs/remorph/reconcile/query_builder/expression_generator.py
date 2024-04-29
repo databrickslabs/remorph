@@ -64,7 +64,7 @@ def array_sort(expr: exp.Expression, asc=True):
     return _apply_func_expr(expr, exp.ArraySort, expression=exp.Boolean(this=asc))
 
 
-def anonymous(expr: exp.Expression, func: str) -> exp.Anonymous | exp.Expression:
+def anonymous(expr: exp.Column, func: str) -> exp.Anonymous | exp.Expression:
     """
 
     This function used in cases where the sql functions are not available in sqlGlot expressions
@@ -174,6 +174,14 @@ def build_where_clause(where_clause=list[exp.Expression], condition_type: str = 
         combined_expression = func(this=combined_expression, expression=expression)
 
     return combined_expression
+
+
+def build_if(this: exp.Expression, true: exp.Expression, false: exp.Expression | None = None) -> exp.If:
+    return exp.If(this=this, true=true, false=false)
+
+
+def build_between(this: exp.Expression, low: exp.Expression, high: exp.Expression) -> exp.Between:
+    return exp.Between(this=this, low=low, high=high)
 
 
 DataType_transform_mapping = {
