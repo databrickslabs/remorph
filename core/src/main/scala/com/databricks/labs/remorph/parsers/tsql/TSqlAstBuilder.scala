@@ -29,10 +29,11 @@ class TSqlAstBuilder extends TSqlParserBaseVisitor[ir.TreeNode] {
       .select_list_elem()
       .asScala
       .map(_.accept(new TSqlExpressionBuilder))
-    val fromTable = rawExpression.table_sources().accept(new TSqlRelationBuilder)
-
-    ir.Project(fromTable, columnExpression)
-
+    if (rawExpression.table_sources() == null) {
+      // Not all SELECT statements require a table relation
+      return ir.Project(ir.NoTable(), columnExpression)
+    }
+    ir.Project(rawExpression.table_sources().accept(new TSqlRelationBuilder), columnExpression)
   }
 
 }
