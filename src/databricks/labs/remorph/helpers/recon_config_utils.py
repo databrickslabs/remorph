@@ -2,18 +2,13 @@ import json
 import logging
 import webbrowser
 
-from pyspark.sql import SparkSession
-
 from databricks.connect import DatabricksSession
 from databricks.labs.blueprint.installation import Installation
 from databricks.labs.blueprint.tui import Prompts
 from databricks.labs.blueprint.wheels import ProductInfo
 from databricks.labs.remorph.__about__ import __version__
 from databricks.labs.remorph.config import TableRecon
-from databricks.labs.remorph.reconcile.connectors.data_source import DataSource
-from databricks.labs.remorph.reconcile.connectors.databricks import DatabricksDataSource
-from databricks.labs.remorph.reconcile.connectors.oracle import OracleDataSource
-from databricks.labs.remorph.reconcile.connectors.snowflake import SnowflakeDataSource
+from databricks.labs.remorph.reconcile.connectors.client import get_data_source
 from databricks.labs.remorph.reconcile.constants import SourceType
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.errors.platform import ResourceDoesNotExist
@@ -27,24 +22,6 @@ recon_source_choices = [
     SourceType.ORACLE.value,
     SourceType.DATABRICKS.value,
 ]
-
-
-def get_data_source(
-    engine: str,
-    spark: SparkSession,
-    ws: WorkspaceClient,
-    scope: str,
-) -> DataSource:
-    logger.debug(f"Creating DataSource for `{engine.lower()}`")
-    match engine.lower():
-        case SourceType.SNOWFLAKE.value:
-            return SnowflakeDataSource(spark, ws, scope)
-        case SourceType.ORACLE.value:
-            return OracleDataSource(spark, ws, scope)
-        case SourceType.DATABRICKS.value:
-            return DatabricksDataSource(spark, ws, scope)
-        case _:
-            raise ValueError(f"Unsupported engine: {engine}")
 
 
 class ReconConfigPrompts:

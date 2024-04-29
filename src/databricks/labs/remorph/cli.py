@@ -101,6 +101,7 @@ def generate_recon_config(w: WorkspaceClient):
     recon_conf.prompt_and_save_config_details()
 
 
+@remorph.command
 def generate_lineage(w: WorkspaceClient, source: str, input_sql: str, output_folder: str):
     """Generates a lineage of source SQL files or folder"""
     logger.info(f"User: {w.current_user.me()}")
