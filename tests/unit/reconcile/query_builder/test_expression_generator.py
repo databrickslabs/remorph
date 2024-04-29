@@ -1,5 +1,9 @@
+from collections.abc import Callable
+
+import pytest
 from sqlglot import expressions as exp
 from sqlglot import parse_one
+from sqlglot.expressions import Column
 
 from databricks.labs.remorph.reconcile.query_builder.expression_generator import (
     array_sort,
@@ -7,7 +11,11 @@ from databricks.labs.remorph.reconcile.query_builder.expression_generator import
     build_column,
     build_literal,
     coalesce,
+    concat,
+    get_hash_transform,
     json_format,
+    lower,
+    sha2,
     sort_array,
     to_char,
     trim,
@@ -78,3 +86,30 @@ def test_build_literal():
     expected = exp.Literal(this="abc", is_string=True)
 
     assert actual == expected
+
+
+def test_sha2(expr):
+    assert sha2(expr, num_bits="256").sql() == "SELECT SHA2(col1, 256) FROM DUAL"
+    assert (
+        sha2(Column(this="CONCAT(col1,col2,col3)"), num_bits="256", is_expr=True).sql()
+        == "SHA2(CONCAT(col1,col2,col3), 256)"
+    )
+
+
+def test_concat():
+    exprs = [exp.Expression(this="col1"), exp.Expression(this="col2")]
+    assert concat(exprs) == exp.Concat(
+        expressions=[exp.Expression(this="col1"), exp.Expression(this="col2")], safe=True
+    )
+
+
+def test_lower(expr):
+    assert lower(expr).sql() == "SELECT LOWER(col1) FROM DUAL"
+    assert lower(Column(this="CONCAT(col1,col2,col3)"), is_expr=True).sql() == "LOWER(CONCAT(col1,col2,col3))"
+
+
+def test_get_hash_transform():
+    assert isinstance(get_hash_transform("snowflake"), Callable) is True
+
+    with pytest.raises(ValueError):
+        get_hash_transform("unknown")

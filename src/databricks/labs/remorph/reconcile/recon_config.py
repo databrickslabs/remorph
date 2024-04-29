@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from dataclasses import dataclass
 
 from pyspark.sql import DataFrame
@@ -141,3 +142,9 @@ class ReconcileOutput:
     missing_in_src: DataFrame
     missing_in_tgt: DataFrame
     mismatch: DataFrame | None = None
+
+
+@dataclass
+class HashAlgoMap:
+    dialect: str
+    algo: Callable

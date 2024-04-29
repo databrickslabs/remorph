@@ -3,6 +3,8 @@ from functools import partial
 
 from sqlglot import expressions as exp
 
+from databricks.labs.remorph.reconcile.recon_config import HashAlgoMap
+
 
 def _apply_func_expr(expr: exp.Expression, expr_func: Callable, **kwargs) -> exp.Expression:
     level = 0 if isinstance(expr, exp.Column) else 1
@@ -124,19 +126,24 @@ def build_literal(this: exp.ExpOrStr, alias=None, quoted=False, is_string=True) 
 
 
 def transform_expression(
-    expr: exp.Expression, funcs: list[Callable[[exp.Expression], exp.Expression]]
+    expr: exp.Expression,
+    funcs: Callable[[exp.Expression], exp.Expression] | list[Callable[[exp.Expression], exp.Expression]],
 ) -> exp.Expression:
-    for func in funcs:
-        expr = func(expr)
+    if isinstance(funcs, list):
+        for func in funcs:
+            expr = func(expr)
+    else:
+        expr = funcs(expr)
     assert isinstance(expr, exp.Expression), (
         f"Func returned an instance of type [{type(expr)}], " "should have been Expression."
     )
     return expr
 
 
-def _get_hash_transform(source: str):
-    if SourceType_hash_algo_mapping.get(source) is not None:
-        return SourceType_hash_algo_mapping.get(source)
+def get_hash_transform(source: str):
+    dialect_algo = list(filter(lambda dialect: dialect.dialect == source, Dialect_hash_algo_mapping))
+    if dialect_algo:
+        return dialect_algo[0].algo
     raise ValueError(f"Source {source} is not supported")
 
 
@@ -152,8 +159,8 @@ DataType_transform_mapping = {
     },
 }
 
-SourceType_hash_algo_mapping = {
-    "snowflake": [partial(sha2, num_bits="256", is_expr=True)],
-    "databricks": [partial(sha2, num_bits="256", is_expr=True)],
-    "oracle": [partial(sha2, num_bits="256", is_expr=True)],
-}
+Dialect_hash_algo_mapping = [
+    HashAlgoMap(dialect="snowflake", algo=partial(sha2, num_bits="256", is_expr=True)),
+    HashAlgoMap(dialect="oracle", algo=partial(sha2, num_bits="256", is_expr=True)),
+    HashAlgoMap(dialect="databricks", algo=partial(sha2, num_bits="256", is_expr=True)),
+]

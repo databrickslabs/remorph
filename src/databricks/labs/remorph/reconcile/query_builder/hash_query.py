@@ -2,9 +2,9 @@ import sqlglot.expressions as exp
 
 from databricks.labs.remorph.reconcile.query_builder.base import QueryBuilder
 from databricks.labs.remorph.reconcile.query_builder.expression_generator import (
-    _get_hash_transform,
     build_column,
     concat,
+    get_hash_transform,
     lower,
     transform_expression,
 )
@@ -49,5 +49,5 @@ class HashQueryBuilder(QueryBuilder):
 
     @staticmethod
     def _hash_transform(node: exp.Expression, source: str):
-        transform = _get_hash_transform(source)
+        transform = get_hash_transform(source)
         return transform_expression(node, transform)
