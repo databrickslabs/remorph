@@ -9,6 +9,7 @@ from databricks.labs.remorph.helpers.file_utils import (
     dir_walk,
     is_sql_file,
     make_dir,
+    refactor_hexadecimal_chars,
     remove_bom,
 )
 
@@ -136,3 +137,13 @@ def test_dir_walk_empty_dir():
     assert len(result[0][1]) == 0
     assert len(result[0][2]) == 0
     safe_remove_dir(path)
+
+
+def test_refactor_hexadecimal_chars():
+    input_string = "SELECT * FROM test \x1b[4mWHERE\x1b[0m"
+    output_string = "SELECT * FROM test --> WHERE <--"
+    assert refactor_hexadecimal_chars(input_string) == output_string
+
+    input_string2 = "SELECT \x1b[4marray_agg(\x1b[0mafter_state order by timestamp asc) FROM dual"
+    output_string2 = "SELECT --> array_agg( <--after_state order by timestamp asc) FROM dual"
+    assert refactor_hexadecimal_chars(input_string2) == output_string2
