@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
-import com.databricks.labs.remorph.parsers.intermediate.{Command, CreateInlineUDF, FunctionParameter, JavaUDFInfo, VarCharType}
+import com.databricks.labs.remorph.parsers.intermediate.{Command, CreateInlineUDF, FunctionParameter, JavaUDFInfo, PythonUDFInfo, UnparsedType, VarCharType}
 import org.antlr.v4.runtime.tree.ParseTreeVisitor
 import org.scalatest.Assertion
 import org.scalatest.matchers.should
@@ -44,6 +44,37 @@ class SnowflakeCommandBuilderSpec extends AnyWordSpec with SnowflakeParserTestCo
           comment = None,
           body = javaCode))
 
+    }
+
+    "translate Python UDF create command" in {
+      val pythonCode = """import numpy as np
+                         |import pandas as pd
+                         |import xgboost as xgb
+                         |def udf():
+                         |    return [np.__version__, pd.__version__, xgb.__version__]
+                         |""".stripMargin
+
+      example(
+        query = s"""CREATE OR REPLACE FUNCTION py_udf()
+                  |  RETURNS VARIANT
+                  |  LANGUAGE PYTHON
+                  |  RUNTIME_VERSION = '3.8'
+                  |  PACKAGES = ('numpy','pandas','xgboost==1.5.0')
+                  |  HANDLER = 'udf'
+                  |AS $$$$
+                  |$pythonCode
+                  |$$$$;""".stripMargin,
+        expectedAst = CreateInlineUDF(
+          name = "py_udf",
+          returnType = UnparsedType(),
+          parameters = Seq(),
+          runtimeInfo = PythonUDFInfo(
+            runtimeVersion = Some("3.8"),
+            packages = Seq("numpy", "pandas", "xgboost==1.5.0"),
+            handler = "udf"),
+          acceptsNullParameters = false,
+          comment = None,
+          body = pythonCode.trim))
     }
   }
 }

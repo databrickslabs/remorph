@@ -79,7 +79,7 @@ case class FunctionParameter(name: String, dataType: DataType, defaultValue: Opt
 sealed trait UDFRuntimeInfo
 case class JavaUDFInfo(runtimeVersion: Option[String], imports: Seq[String], handler: String)
     extends UDFRuntimeInfo
-case class PythonUDFInfo(runtimeVersion: String) extends UDFRuntimeInfo
+case class PythonUDFInfo(runtimeVersion: Option[String], packages: Seq[String], handler: String) extends UDFRuntimeInfo
 
 case class JavascriptUDFInfo() extends UDFRuntimeInfo
 

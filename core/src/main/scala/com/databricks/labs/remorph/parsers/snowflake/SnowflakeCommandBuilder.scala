@@ -10,9 +10,14 @@ class SnowflakeCommandBuilder
     with IncompleteParser[ir.Command] {
   override protected def wrapUnresolvedInput(unparsedInput: String): ir.Command = ir.UnresolvedCommand(unparsedInput)
 
+  private def extractString(ctx: StrContext): String = {
+    ctx.getText.stripPrefix("'").stripSuffix("'")
+  }
+
   override def visitCreate_function(ctx: Create_functionContext): ir.Command = {
     val runtimeInfo = ctx match {
       case c if c.JAVA() != null => buildJavaUDF(c)
+      case c if c.PYTHON() != null => buildPythonUDF(c)
     }
     val name = ctx.object_name().getText
     val returnType = DataTypeBuilder.buildDataType(ctx.data_type())
@@ -30,10 +35,12 @@ class SnowflakeCommandBuilder
       defaultValue = Option(ctx.arg_default_value_clause()).map(_.expr().accept(new SnowflakeExpressionBuilder)))
   }
 
+  private def buildFunctionBody(ctx: Function_definitionContext): String = (ctx match {
+    case c if c.DBL_DOLLAR() != null => c.DBL_DOLLAR().getText.stripPrefix("$$").stripSuffix("$$")
+    case c if c.string() != null => extractString(c.string())
+  }).trim
+
   private def buildJavaUDF(ctx: Create_functionContext): ir.JavaUDFInfo = {
-    val runtimeVersion = ctx.string().asScala.collectFirst {
-      case c if occursBefore(ctx.RUNTIME_VERSION(), c) => c.getText
-    }
     val imports =
       ctx
         .string_list()
@@ -41,18 +48,26 @@ class SnowflakeCommandBuilder
         .find(occursBefore(ctx.IMPORTS(), _))
         .map(_.string().asScala.map(extractString))
         .getOrElse(Seq())
-    val handler =
-      Option(ctx.HANDLER()).flatMap(h => ctx.string().asScala.find(occursBefore(h, _))).map(extractString).get
-    ir.JavaUDFInfo(runtimeVersion, imports, handler)
+    ir.JavaUDFInfo(extractRuntimeVersion(ctx), imports, extractHandler(ctx))
   }
 
-  private def extractString(ctx: StrContext): String = {
-    ctx.getText.stripPrefix("'").stripSuffix("'")
+  private def extractRuntimeVersion(ctx: Create_functionContext): Option[String] = ctx.string().asScala.collectFirst {
+    case c if occursBefore(ctx.RUNTIME_VERSION(), c) => extractString(c)
   }
 
-  private def buildFunctionBody(ctx: Function_definitionContext): String = ctx match {
-    case c if c.DBL_DOLLAR() != null => c.DBL_DOLLAR().getText
-    case c if c.string() != null => extractString(c.string())
+  private def extractHandler(ctx: Create_functionContext): String =
+    Option(ctx.HANDLER()).flatMap(h => ctx.string().asScala.find(occursBefore(h, _))).map(extractString).get
+
+
+  private def buildPythonUDF(ctx: Create_functionContext): ir.PythonUDFInfo = {
+    val packages =
+      ctx
+        .string_list()
+        .asScala
+        .find(occursBefore(ctx.PACKAGES(0), _))
+        .map(_.string().asScala.map(extractString))
+        .getOrElse(Seq())
+    ir.PythonUDFInfo(extractRuntimeVersion(ctx), packages, extractHandler(ctx))
   }
 
 }
