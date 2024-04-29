@@ -239,7 +239,7 @@ class ReconConfigPrompts:
         # Check for Secrets Scope
         self._confirm_secret_scope()
         recon_config, recon_config_file = self._prompt_config_details()
-        recon_config_json = json.dumps(recon_config, default=vars, indent=2, sort_keys=True)  # .replace("null", "None")
+        recon_config_json = json.dumps(recon_config, default=vars, indent=2, sort_keys=True)
         logger.debug(f"recon_config_json : {recon_config_json}")
         self._save_config_details(recon_config_json, recon_config_file)
 
