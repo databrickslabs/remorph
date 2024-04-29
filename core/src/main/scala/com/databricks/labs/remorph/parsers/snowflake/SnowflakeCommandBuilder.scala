@@ -20,6 +20,7 @@ class SnowflakeCommandBuilder
       case c if c.PYTHON() != null => buildPythonUDF(c)
       case c if c.JAVASCRIPT() != null => ir.JavascriptUDFInfo
       case c if c.SCALA() != null => buildScalaUDF(c)
+      case c if c.SQL() != null || c.LANGUAGE() == null => ir.SQLUDFInfo(c.MEMOIZABLE() != null)
     }
     val name = ctx.object_name().getText
     val returnType = DataTypeBuilder.buildDataType(ctx.data_type())

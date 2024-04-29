@@ -2,10 +2,10 @@ package com.databricks.labs.remorph.parsers
 
 import com.databricks.labs.remorph.parsers.intermediate.{NamedTable, Relation, TreeNode}
 import org.antlr.v4.runtime.tree.ParseTreeVisitor
-import org.antlr.v4.runtime.{CharStream, CharStreams, CommonTokenStream, RuleContext, TokenSource, TokenStream}
+import org.antlr.v4.runtime.{CharStream, CharStreams, CommonTokenStream, Parser, RuleContext, TokenSource, TokenStream}
 import org.scalatest.{Assertion, Assertions}
 
-trait ParserTestCommon[P] { self: Assertions =>
+trait ParserTestCommon[P <: Parser] { self: Assertions =>
 
   protected def makeLexer(chars: CharStream): TokenSource
   protected def makeParser(tokens: TokenStream): P

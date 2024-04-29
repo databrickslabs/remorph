@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
-import com.databricks.labs.remorph.parsers.intermediate.{Command, CreateInlineUDF, DoubleType, FunctionParameter, JavaUDFInfo, JavascriptUDFInfo, Literal, PythonUDFInfo, ScalaUDFInfo, UnparsedType, VarCharType}
+import com.databricks.labs.remorph.parsers.intermediate.{Command, CreateInlineUDF, DecimalType, DoubleType, FunctionParameter, JavaUDFInfo, JavascriptUDFInfo, Literal, PythonUDFInfo, SQLUDFInfo, ScalaUDFInfo, UnparsedType, VarCharType}
 import org.antlr.v4.runtime.tree.ParseTreeVisitor
 import org.scalatest.Assertion
 import org.scalatest.matchers.should
@@ -132,6 +132,24 @@ class SnowflakeCommandBuilderSpec extends AnyWordSpec with SnowflakeParserTestCo
           acceptsNullParameters = true,
           comment = None,
           body = scalaCode))
+    }
+
+    "translate SQL UDF create command" in {
+      example(
+        query = """CREATE FUNCTION multiply1 (a number, b number)
+                  |  RETURNS number
+                  |  COMMENT='multiply two numbers'
+                  |  AS 'a * b';""".stripMargin,
+        expectedAst = CreateInlineUDF(
+          name = "multiply1",
+          returnType = DecimalType(None, None),
+          parameters = Seq(
+            FunctionParameter("a", DecimalType(None, None), None),
+            FunctionParameter("b", DecimalType(None, None), None)),
+          runtimeInfo = SQLUDFInfo(memoizable = false),
+          acceptsNullParameters = false,
+          comment = Some("multiply two numbers"),
+          body = "a * b"))
     }
   }
 }
