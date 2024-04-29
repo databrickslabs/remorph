@@ -210,9 +210,11 @@ class ReconConfigPrompts:
         logger.info("Recon Config details are fetched successfully...")
         logger.debug(f"Recon Config : {recon_config}")
 
-        return recon_config, f"recon_conf_{self._source}_{catalog_schema_dict.get('src_catalog')}.json"
+        file_name = f"recon_config_{self._source}_{catalog_schema_dict.get('src_catalog')}.json"
 
-    def _save_config_details(self, recon_config_json: str, file_name: str = "recon_config.json"):
+        return recon_config, file_name
+
+    def _save_config_details(self, recon_config_json: str, file_name: str):
         """
         Save the config details in a file on Databricks Workspace
         """
@@ -237,7 +239,7 @@ class ReconConfigPrompts:
         # Check for Secrets Scope
         self._confirm_secret_scope()
         recon_config, recon_config_file = self._prompt_config_details()
-        recon_config_json = json.dumps(recon_config, default=vars, indent=2, sort_keys=True).replace("null", "None")
+        recon_config_json = json.dumps(recon_config, default=vars, indent=2, sort_keys=True)  # .replace("null", "None")
         logger.debug(f"recon_config_json : {recon_config_json}")
         self._save_config_details(recon_config_json, recon_config_file)
 

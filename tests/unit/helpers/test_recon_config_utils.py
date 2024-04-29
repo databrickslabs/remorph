@@ -210,6 +210,7 @@ def test_recon_config_prompt_and_save_config_details(mock_workspace_client):
             r"Select the filter type": filter_dict["include"],
             r"Enter the tables.*": "table1, table2",
             r"Open.* config file in the browser?": "yes",
+            r"Would you like to keep the Catalog.*": "yes",
         }
     )
 
