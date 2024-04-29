@@ -102,5 +102,10 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
           Subtract(
             Multiply(Add(Mod(Column("a"), Literal(integer = Some(3))), Column("b")), Literal(integer = Some(2))),
             Divide(Column("c"), Literal(integer = Some(5)))))))
+    example(query = "SELECT a || b", expectedAst = Project(NoTable(), Seq(Concat(Column("a"), Column("b")))))
+
+    example(
+      query = "SELECT a || b || c",
+      expectedAst = Project(NoTable(), Seq(Concat(Concat(Column("a"), Column("b")), Column("c")))))
   }
 }
