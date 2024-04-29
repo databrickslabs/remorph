@@ -1,3 +1,5 @@
+from typing import Tuple
+
 from sqlglot import ErrorLevel, Expression, exp, parse, transpile
 from sqlglot.dialects.dialect import Dialect
 from sqlglot.errors import ParseError, TokenError, UnsupportedError
@@ -12,7 +14,7 @@ class SqlglotEngine:
 
     def transpile(
         self, write_dialect: Dialect, sql: str, file_name: str, error_list: list[ParserError]
-    ) -> (list[str], list[ParserError]):
+    ) -> Tuple[list[str], list[ParserError]]:
         try:
             transpiled_sql = transpile(sql, read=self.read_dialect, write=write_dialect, pretty=True, error_level=None)
         except (ParseError, TokenError, UnsupportedError) as e:

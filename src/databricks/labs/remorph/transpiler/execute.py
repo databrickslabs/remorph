@@ -185,7 +185,7 @@ def morph(workspace_client: WorkspaceClient, config: MorphConfig):
     error_log_file = "None"
     if error_list_count > 0:
         error_log_file = Path.cwd() / f"err_{os.getpid()}.lst"
-        with error_log_file.open("a") as e:
+        with Path(error_log_file).open("a") as e:
             e.writelines(f"{err}\n" for err in result.error_log_list)
 
     status.append(

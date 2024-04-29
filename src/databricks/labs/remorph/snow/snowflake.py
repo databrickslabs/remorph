@@ -220,7 +220,6 @@ class Snow(Snowflake):
     snowflake = Snowflake()
 
     class Tokenizer(snowflake.Tokenizer):
-        IDENTIFIERS: ClassVar[list[str]] = ['"']
 
         COMMENTS: ClassVar[list[str]] = ["--", "//", ("/*", "*/")]
         STRING_ESCAPES: ClassVar[list[str]] = ["\\", "'"]
@@ -378,7 +377,7 @@ class Snow(Snowflake):
             TokenType.PARAMETER: lambda self: self._parse_parameter(),
         }
 
-        FUNC_TOKENS: ClassVar[dict] = {*Snowflake.Parser.FUNC_TOKENS, TokenType.COLLATE}
+        FUNC_TOKENS: ClassVar[set] = {*Snowflake.Parser.FUNC_TOKENS, TokenType.COLLATE}
 
         COLUMN_OPERATORS: ClassVar[dict] = {
             **Snowflake.Parser.COLUMN_OPERATORS,

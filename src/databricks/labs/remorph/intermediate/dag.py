@@ -1,4 +1,5 @@
 import logging
+from typing import List
 
 logger = logging.getLogger(__name__)
 
@@ -6,8 +7,8 @@ logger = logging.getLogger(__name__)
 class Node:
     def __init__(self, name: str):
         self.name = name.lower()
-        self.children = []
-        self.parents = []
+        self.children: List[str] = []
+        self.parents: List[str] = []
 
     def add_parent(self, node: str):
         self.parents.append(node)

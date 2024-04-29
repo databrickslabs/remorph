@@ -1,6 +1,7 @@
 import logging
 
 from sqlglot import ErrorLevel, exp, parse
+from sqlglot.dialects.dialect import Dialect
 from sqlglot.errors import ParseError, TokenError, UnsupportedError
 from sqlglot.expressions import Expression, Select
 from sqlglot.optimizer.scope import build_scope
@@ -13,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 def check_for_unsupported_lca(
-    dialect: str,
+    dialect: str | Dialect,
     sql: str,
     filename: str,
 ) -> ValidationError | None:
