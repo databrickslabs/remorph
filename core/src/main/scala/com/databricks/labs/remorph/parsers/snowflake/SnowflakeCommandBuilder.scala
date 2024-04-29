@@ -18,6 +18,7 @@ class SnowflakeCommandBuilder
     val runtimeInfo = ctx match {
       case c if c.JAVA() != null => buildJavaUDF(c)
       case c if c.PYTHON() != null => buildPythonUDF(c)
+      case c if c.JAVASCRIPT() != null => ir.JavascriptUDFInfo
     }
     val name = ctx.object_name().getText
     val returnType = DataTypeBuilder.buildDataType(ctx.data_type())

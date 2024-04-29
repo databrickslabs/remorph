@@ -81,7 +81,7 @@ case class JavaUDFInfo(runtimeVersion: Option[String], imports: Seq[String], han
     extends UDFRuntimeInfo
 case class PythonUDFInfo(runtimeVersion: Option[String], packages: Seq[String], handler: String) extends UDFRuntimeInfo
 
-case class JavascriptUDFInfo() extends UDFRuntimeInfo
+case object JavascriptUDFInfo extends UDFRuntimeInfo
 
 case class ScalaUDFInfo() extends UDFRuntimeInfo
 

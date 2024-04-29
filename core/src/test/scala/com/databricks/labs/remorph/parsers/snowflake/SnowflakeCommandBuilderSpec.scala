@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
-import com.databricks.labs.remorph.parsers.intermediate.{Command, CreateInlineUDF, FunctionParameter, JavaUDFInfo, PythonUDFInfo, UnparsedType, VarCharType}
+import com.databricks.labs.remorph.parsers.intermediate.{Command, CreateInlineUDF, DoubleType, FunctionParameter, JavaUDFInfo, JavascriptUDFInfo, PythonUDFInfo, UnparsedType, VarCharType}
 import org.antlr.v4.runtime.tree.ParseTreeVisitor
 import org.scalatest.Assertion
 import org.scalatest.matchers.should
@@ -75,6 +75,35 @@ class SnowflakeCommandBuilderSpec extends AnyWordSpec with SnowflakeParserTestCo
           acceptsNullParameters = false,
           comment = None,
           body = pythonCode.trim))
+    }
+
+    "translate JavaScript UDF create command" in {
+      val javascriptCode = """if (D <= 0) {
+                             |    return 1;
+                             |  } else {
+                             |    var result = 1;
+                             |    for (var i = 2; i <= D; i++) {
+                             |      result = result * i;
+                             |    }
+                             |    return result;
+                             |  }""".stripMargin
+      example(
+        query = s"""CREATE OR REPLACE FUNCTION js_factorial(d double)
+                  |  RETURNS double
+                  |  LANGUAGE JAVASCRIPT
+                  |  STRICT
+                  |  COMMENT = 'Compute factorial using JavaScript'
+                  |  AS '
+                  |  $javascriptCode
+                  |  ';""".stripMargin,
+        expectedAst = CreateInlineUDF(
+          name = "js_factorial",
+          returnType = DoubleType(),
+          parameters = Seq(FunctionParameter("d", DoubleType(), None)),
+          runtimeInfo = JavascriptUDFInfo,
+          acceptsNullParameters = false,
+          comment = Some("Compute factorial using JavaScript"),
+          body = javascriptCode))
     }
   }
 }
