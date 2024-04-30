@@ -27,7 +27,7 @@ def test_transpile_exception(transpiler, write_dialect):
     )
     assert result[0] == ""
     assert error_list[0].file_name == "file.sql"
-    assert "Error Parsing args" in error_list[0].exception.args[0]
+    assert "Error Parsing args" in error_list[0].exception
 
 
 def test_parse_query(transpiler):
@@ -64,7 +64,7 @@ def test_tokenizer_exception(transpiler, write_dialect):
 
     assert result == [""]
     assert error_list[0].file_name == "file.sql"
-    assert "Error tokenizing" in error_list[0].exception.args[0]
+    assert "Error tokenizing" in error_list[0].exception
 
 
 def test_procedure_conversion(transpiler, write_dialect):

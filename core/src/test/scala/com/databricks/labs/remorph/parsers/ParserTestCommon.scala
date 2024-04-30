@@ -1,27 +1,28 @@
-package com.databricks.labs.remorph.parsers.snowflake
+package com.databricks.labs.remorph.parsers
 
 import com.databricks.labs.remorph.parsers.intermediate.{NamedTable, Relation, TreeNode}
-import org.antlr.v4.runtime.{CharStreams, CommonTokenStream, RuleContext}
+import org.antlr.v4.runtime.tree.ParseTreeVisitor
+import org.antlr.v4.runtime.{CharStream, CharStreams, CommonTokenStream, RuleContext, TokenSource, TokenStream}
 import org.scalatest.{Assertion, Assertions}
 
-trait ParserTestCommon { self: Assertions =>
+trait ParserTestCommon[P] { self: Assertions =>
 
-  def astBuilder: SnowflakeParserBaseVisitor[_]
-  protected def parseString[R <: RuleContext](input: String, rule: SnowflakeParser => R): R = {
+  protected def makeLexer(chars: CharStream): TokenSource
+  protected def makeParser(tokens: TokenStream): P
+
+  protected def astBuilder: ParseTreeVisitor[_]
+  protected def parseString[R <: RuleContext](input: String, rule: P => R): R = {
     val inputString = CharStreams.fromString(input)
-    val lexer = new SnowflakeLexer(inputString)
+    val lexer = makeLexer(inputString)
     val tokenStream = new CommonTokenStream(lexer)
-    val parser = new SnowflakeParser(tokenStream)
+    val parser = makeParser(tokenStream)
     val tree = rule(parser)
     // uncomment the following line if you need a peek in the Snowflake AST
     // println(tree.toStringTree(parser))
     tree
   }
 
-  protected def example[R <: RuleContext](
-      query: String,
-      rule: SnowflakeParser => R,
-      expectedAst: TreeNode): Assertion = {
+  protected def example[R <: RuleContext](query: String, rule: P => R, expectedAst: TreeNode): Assertion = {
     val sfTree = parseString(query, rule)
 
     val result = astBuilder.visit(sfTree)

@@ -88,3 +88,16 @@ def read_file(filename: str | Path) -> str:
     # pylint: disable=unspecified-encoding
     with Path(filename).open() as file:
         return file.read()
+
+
+def refactor_hexadecimal_chars(input_string: str) -> str:
+    """
+    Updates the HexaDecimal characters ( \x1b[\\d+m ) in the given string as below.
+    :param input_string: String with HexaDecimal characters. ex: ( \x1b[4mWHERE\x1b[0m )
+    :return: String with HexaDecimal characters refactored to arrows. ex: ( --> WHERE <--)
+    """
+    output_string = input_string
+    highlight = {"\x1b[4m": "--> ", "\x1b[0m": " <--"}
+    for key, value in highlight.items():
+        output_string = output_string.replace(key, value)
+    return output_string

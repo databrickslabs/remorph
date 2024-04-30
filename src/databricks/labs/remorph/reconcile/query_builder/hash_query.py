@@ -24,7 +24,12 @@ class HashQueryBuilder(QueryBuilder):
         key_cols_with_transform = self._add_transformations(cols_with_alias, self.source)
         hash_col_with_transform = [self._generate_hash_algorithm(hash_cols)]
 
-        res = exp.select(*hash_col_with_transform + key_cols_with_transform).from_(":tbl").where(self.filter).sql()
+        res = (
+            exp.select(*hash_col_with_transform + key_cols_with_transform)
+            .from_(":tbl")
+            .where(self.filter)
+            .sql(dialect=self.source)
+        )
 
         return res
 
