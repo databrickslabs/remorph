@@ -35,13 +35,13 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
     "translate a query with a JOIN" in {
       val joinCondition = And(Equals(Column("A"), Column("A")), Equals(Column("B"), Column("B")))
 
-      val joinAst = Join(NamedTable("DBO.TABLE_X", Map(), false),
+      val joinAst = Join(
+        NamedTable("DBO.TABLE_X", Map(), false),
         NamedTable("DBO.TABLE_Y", Map(), false),
         Some(joinCondition),
         InnerJoin,
         Seq(),
-        JoinDataType(false, false)
-      )
+        JoinDataType(false, false))
 
       example(
         query = "SELECT T1.A, T2.B FROM DBO.TABLE_X AS T1 INNER JOIN DBO.TABLE_Y AS T2 ON T1.A = T2.A AND T1.B = T2.B",
@@ -58,16 +58,15 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
         Some(joinConditionX),
         InnerJoin,
         Seq(),
-        JoinDataType(false, false)
-      )
+        JoinDataType(false, false))
 
-      val joinMainAst = Join(joinFirstAst,
+      val joinMainAst = Join(
+        joinFirstAst,
         NamedTable("DBO.TABLE_Z", Map(), false),
         Some(joinConditionZ),
         LeftOuterJoin,
         Seq(),
-        JoinDataType(false, false)
-      )
+        JoinDataType(false, false))
 
       example(
         query = "SELECT T1.A, T2.B FROM DBO.TABLE_X AS T1 INNER JOIN DBO.TABLE_Y AS T2 ON T1.A = T2.A " +
