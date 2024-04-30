@@ -13,6 +13,12 @@ case class And(left: Expression, right: Expression) extends Binary(left, right) 
 case class Or(left: Expression, right: Expression) extends Binary(left, right) with Predicate {}
 case class Not(pred: Expression) extends Unary(pred) with Predicate {}
 
+object Minus {
+  def apply(expr: Expression): Subtract = Subtract(Literal(integer = Some(0)), expr)
+  def unapply(sub: Subtract): Expression = sub.right
+}
+
+case class Subtract(left: Expression, right: Expression) extends Binary(left, right) {}
 case class Equals(left: Expression, right: Expression) extends Binary(left, right) with Predicate {}
 case class NotEquals(left: Expression, right: Expression) extends Binary(left, right) with Predicate {}
 case class GreaterThan(left: Expression, right: Expression) extends Binary(left, right) with Predicate {}

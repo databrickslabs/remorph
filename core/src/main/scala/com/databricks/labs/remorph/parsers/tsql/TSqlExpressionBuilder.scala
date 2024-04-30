@@ -18,6 +18,7 @@ class TSqlExpressionBuilder
   override def visitExpression(ctx: ExpressionContext): Expression = ctx match {
     case c if c.full_column_name() != null => c.full_column_name().accept(this)
     case c if c.primitive_expression() != null => c.primitive_expression().accept(this)
+    case c if c.unary_operator_expression() != null => c.unary_operator_expression().accept(this)
   }
 
   override def visitFull_column_name(ctx: Full_column_nameContext): Expression = {
@@ -33,6 +34,13 @@ class TSqlExpressionBuilder
     case c if c.HEX() != null => c.HEX() accept (this)
     case c if c.REAL() != null => c.REAL() accept (this)
   }
+
+  override def visitUnary_operator_expression(ctx: Unary_operator_expressionContext): Expression =
+    ctx match {
+      case c if c.BIT_NOT() != null => ir.Not(c.expression().accept(this))
+      case c if c.MINUS() != null => ir.Minus(c.expression().accept(this))
+      case c if c.PLUS() != null => c.expression().accept(this)
+    }
 
   override def visitTerminal(node: TerminalNode): Expression = node.getSymbol.getType match {
     case c if c == STRING => Literal(string = Some(node.getText))
