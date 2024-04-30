@@ -41,6 +41,7 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
       example("1 / 2", _.expression(), Divide(Literal(integer = Some(1)), Literal(integer = Some(2))))
       example("1 % 2", _.expression(), Mod(Literal(integer = Some(1)), Literal(integer = Some(2))))
       example("'A' || 'B'", _.expression(), Concat(Literal(string = Some("A")), Literal(string = Some("B"))))
+      example("4 ^ 2", _.expression(), BitwiseXor(Literal(integer = Some(4)), Literal(integer = Some(2))))
     }
     "translate complex binary expressions" in {
       example("a + b * 2", _.expression(), Add(Column("a"), Multiply(Column("b"), Literal(integer = Some(2)))))
