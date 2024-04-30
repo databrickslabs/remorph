@@ -4222,8 +4222,17 @@ join_part
     | unpivot
     ;
 
+outer_join
+    : (LEFT | RIGHT | FULL) OUTER?
+    ;
+
+join_type
+    : INNER
+    | outer_join
+    ;
+
 join_on
-    : (inner = INNER? | join_type = (LEFT | RIGHT | FULL) outer = OUTER?) (
+    : join_type? (
         join_hint = (LOOP | HASH | MERGE | REMOTE)
     )? JOIN source = table_source ON cond = search_condition
     ;

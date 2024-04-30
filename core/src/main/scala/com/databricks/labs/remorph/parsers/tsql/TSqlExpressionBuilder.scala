@@ -5,6 +5,8 @@ import com.databricks.labs.remorph.parsers.intermediate.{Column, Expression, Lit
 import org.antlr.v4.runtime.tree.TerminalNode
 import com.databricks.labs.remorph.parsers.tsql.TSqlParser._
 
+import scala.collection.JavaConverters._
+
 class TSqlExpressionBuilder
     extends TSqlParserBaseVisitor[Expression]
     with ParserCommon
@@ -29,9 +31,9 @@ class TSqlExpressionBuilder
     case c if c.DOLLAR() != null => wrapUnresolvedInput(ctx.getText)
     case c if c.STRING() != null => c.STRING().accept(this)
     case c if c.INT() != null => c.INT().accept(this)
-    case c if c.FLOAT() != null => c.FLOAT() accept (this)
-    case c if c.HEX() != null => c.HEX() accept (this)
-    case c if c.REAL() != null => c.REAL() accept (this)
+    case c if c.FLOAT() != null => c.FLOAT().accept(this)
+    case c if c.HEX() != null => c.HEX().accept(this)
+    case c if c.REAL() != null => c.REAL().accept(this)
   }
 
   override def visitTerminal(node: TerminalNode): Expression = node.getSymbol.getType match {
@@ -41,5 +43,27 @@ class TSqlExpressionBuilder
     case c if c == HEX => Literal(string = Some(node.getText)) // Preserve format for now
     case c if c == REAL => Literal(double = Some(node.getText.toDouble))
     case _ => wrapUnresolvedInput(node.getText)
+  }
+  override def visitSearch_condition(ctx: Search_conditionContext): Expression = {
+    if (ctx.search_condition().size() > 1) {
+      val conditions = ctx.search_condition().asScala.map(_.accept(this))
+      conditions.reduce((left, right) => ir.And(left, right))
+    } else {
+      ctx.predicate().accept(this)
+    }
+  }
+
+  override def visitPredicate(ctx: PredicateContext): Expression = {
+    val left = ctx.expression(0).accept(this)
+    val right = ctx.expression(1).accept(this)
+    val operator = ctx.comparison_operator().getText
+    operator match {
+      case "=" => ir.Equals(left, right)
+      case "!=" => ir.NotEquals(left, right)
+      case ">" => ir.GreaterThan(left, right)
+      case "<" => ir.LesserThan(left, right)
+      case ">=" => ir.GreaterThanOrEqual(left, right)
+      case "<=" => ir.LesserThanOrEqual(left, right)
+    }
   }
 }
