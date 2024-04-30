@@ -43,12 +43,17 @@ class TSqlExpressionBuilder
   }
 
   override def visitTerminal(node: TerminalNode): ir.Expression = node.getSymbol.getType match {
-    case c if c == STRING => Literal(string = Some(node.getText))
+    case c if c == STRING => Literal(string = Some(removeQuotes(node.getText)))
     case c if c == INT => Literal(integer = Some(node.getText.toInt))
     case c if c == FLOAT => Literal(float = Some(node.getText.toFloat))
     case c if c == HEX => Literal(string = Some(node.getText)) // Preserve format for now
     case c if c == REAL => Literal(double = Some(node.getText.toDouble))
+    case c if c == NULL_ => Literal(nullType = Some(ir.NullType()))
     case _ => wrapUnresolvedInput(node.getText)
+  }
+
+  private def removeQuotes(str: String): String = {
+    str.stripPrefix("'").stripSuffix("'")
   }
 
   private def buildBinaryExpression(left: ir.Expression, right: ir.Expression, operator: Token): ir.Expression =

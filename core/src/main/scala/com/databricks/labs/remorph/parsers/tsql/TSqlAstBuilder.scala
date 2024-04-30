@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.parsers.tsql
 
-import com.databricks.labs.remorph.parsers.tsql.TSqlParser._
+import com.databricks.labs.remorph.parsers.tsql.TSqlParser.Select_statement_standaloneContext
 import com.databricks.labs.remorph.parsers.{intermediate => ir}
 
 import scala.collection.JavaConverters._
@@ -29,11 +29,8 @@ class TSqlAstBuilder extends TSqlParserBaseVisitor[ir.TreeNode] {
       .select_list_elem()
       .asScala
       .map(_.accept(new TSqlExpressionBuilder))
-    if (rawExpression.table_sources() == null) {
-      // Not all SELECT statements require a table relation
-      return ir.Project(ir.NoTable(), columnExpression)
-    }
-    ir.Project(rawExpression.table_sources().accept(new TSqlRelationBuilder), columnExpression)
+    val tableSources = Option(rawExpression.table_sources())
+      .fold(ir.NoTable().asInstanceOf[ir.Relation])(_.accept(new TSqlRelationBuilder))
+    ir.Project(tableSources, columnExpression)
   }
-
 }

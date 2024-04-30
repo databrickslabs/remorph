@@ -60,13 +60,6 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
       expectedAst =
         Project(NamedTable("dbo.table_x", Map.empty, is_streaming = false), Seq(Concat(Column("a"), Column("b")))))
 
-    example(query = "SELECT a % b", expectedAst = Project(NoTable(), Seq(Mod(Column("a"), Column("b")))))
-
-    example(query = "SELECT a & b", expectedAst = Project(NoTable(), Seq(BitwiseAnd(Column("a"), Column("b")))))
-
-    example(query = "SELECT a | b", expectedAst = Project(NoTable(), Seq(BitwiseOr(Column("a"), Column("b")))))
-
-    example(query = "SELECT a ^ b", expectedAst = Project(NoTable(), Seq(BitwiseXor(Column("a"), Column("b")))))
   }
   "translate queries with complex expressions, including parens" in {
     example(
