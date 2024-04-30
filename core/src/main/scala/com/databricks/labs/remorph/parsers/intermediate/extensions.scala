@@ -49,3 +49,5 @@ case class Like(expression: Expression, patterns: Seq[Expression], escape: Optio
 case class RLike(expression: Expression, pattern: Expression) extends Expression {}
 
 case class IsNull(expression: Expression) extends Expression {}
+
+case class Batch(statements: Seq[Plan]) extends Plan
