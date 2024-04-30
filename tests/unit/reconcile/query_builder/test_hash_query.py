@@ -1,5 +1,5 @@
 from databricks.labs.remorph.reconcile.query_builder.hash_query import HashQueryBuilder
-from databricks.labs.remorph.reconcile.recon_config import ColumnMapping, Filters
+from databricks.labs.remorph.reconcile.recon_config import Filters
 
 
 def test_hash_query_builder_for_snowflake_src(table_conf_with_opts, schema):
@@ -24,17 +24,10 @@ def test_hash_query_builder_for_snowflake_src(table_conf_with_opts, schema):
     assert tgt_actual == tgt_expected
 
 
-def test_hash_query_builder_for_oracle_src(table_conf_mock, schema):
+def test_hash_query_builder_for_oracle_src(table_conf_mock, schema, column_mapping):
     table_conf = table_conf_mock(
         join_columns=["s_suppkey", "s_nationkey"],
-        column_mapping=[
-            ColumnMapping(source_name="s_suppkey", target_name="s_suppkey_t"),
-            ColumnMapping(source_name="s_nationkey", target_name='s_nationkey_t'),
-            ColumnMapping(source_name="s_address", target_name="s_address_t"),
-            ColumnMapping(source_name="s_phone", target_name="s_phone_t"),
-            ColumnMapping(source_name="s_acctbal", target_name="s_acctbal_t"),
-            ColumnMapping(source_name="s_comment", target_name="s_comment_t"),
-        ],
+        column_mapping=column_mapping,
         filters=Filters(source="s_nationkey=1"),
     )
     sch, sch_with_alias = schema

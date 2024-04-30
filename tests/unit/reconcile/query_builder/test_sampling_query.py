@@ -75,7 +75,7 @@ def test_build_query_for_snowflake_src(mock_spark_session, table_conf_mock, sche
     assert tgt_expected == tgt_actual
 
 
-def test_build_query_for_oracle_src(mock_spark_session, table_conf_mock, schema):
+def test_build_query_for_oracle_src(mock_spark_session, table_conf_mock, schema, column_mapping):
     spark = mock_spark_session
     _, sch_with_alias = schema
     df_schema = StructType(
@@ -100,14 +100,7 @@ def test_build_query_for_oracle_src(mock_spark_session, table_conf_mock, schema)
 
     conf = table_conf_mock(
         join_columns=["s_suppkey", "s_nationkey"],
-        column_mapping=[
-            ColumnMapping(source_name="s_suppkey", target_name="s_suppkey_t"),
-            ColumnMapping(source_name="s_nationkey", target_name='s_nationkey_t'),
-            ColumnMapping(source_name="s_address", target_name="s_address_t"),
-            ColumnMapping(source_name="s_phone", target_name="s_phone_t"),
-            ColumnMapping(source_name="s_acctbal", target_name="s_acctbal_t"),
-            ColumnMapping(source_name="s_comment", target_name="s_comment_t"),
-        ],
+        column_mapping=column_mapping,
         filters=Filters(source="s_nationkey=1"),
     )
 
