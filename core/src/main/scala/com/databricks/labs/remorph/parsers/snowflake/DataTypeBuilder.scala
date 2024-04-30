@@ -9,7 +9,9 @@ object DataTypeBuilder {
   def buildDataType(ctx: Data_typeContext): ir.DataType = {
     val sizeOpt = Option(ctx.data_type_size()).map(_.getText.toInt)
     ctx match {
-      case c if c.int_alias != null => ir.IntegerType()
+      case c if c.int_alias != null =>
+        // see https://docs.snowflake.com/en/sql-reference/data-types-numeric#int-integer-bigint-smallint-tinyint-byteint
+        ir.DecimalType(Some(38), None)
       case c if c.number_alias != null =>
         val nums = c.num().asScala
         val precision = nums.headOption.map(_.getText.toInt)

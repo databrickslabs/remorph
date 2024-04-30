@@ -4,7 +4,7 @@ import com.databricks.labs.remorph.parsers.{IncompleteParser, ParserCommon, inte
 import SnowflakeParser.{StringContext => StrContext, _}
 
 import scala.collection.JavaConverters._
-class SnowflakeCommandBuilder
+class SnowflakeDDLBuilder
     extends SnowflakeParserBaseVisitor[ir.Command]
     with ParserCommon
     with IncompleteParser[ir.Command] {

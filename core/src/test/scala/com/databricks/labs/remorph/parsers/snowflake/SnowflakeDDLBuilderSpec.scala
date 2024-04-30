@@ -6,9 +6,9 @@ import org.scalatest.Assertion
 import org.scalatest.matchers.should
 import org.scalatest.wordspec.AnyWordSpec
 
-class SnowflakeCommandBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon with should.Matchers {
+class SnowflakeDDLBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon with should.Matchers {
 
-  override protected def astBuilder: ParseTreeVisitor[_] = new SnowflakeCommandBuilder
+  override protected def astBuilder: ParseTreeVisitor[_] = new SnowflakeDDLBuilder
 
   private def example(query: String, expectedAst: Command): Assertion = example(query, _.create_command(), expectedAst)
 
