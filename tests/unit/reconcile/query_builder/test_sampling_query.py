@@ -127,9 +127,9 @@ def test_build_query_for_oracle_src(mock_spark_session, table_conf_mock, schema)
         's_nationkey, 2 AS s_suppkey UNION SELECT 33 AS s_nationkey, 3 AS s_suppkey), '
         "src AS (SELECT COALESCE(TRIM(s_acctbal), '') AS s_acctbal, "
         "COALESCE(TRIM(s_address), '') AS s_address, "
-        "nvl(trim(to_char(s_comment)),'_null_recon_') AS s_comment, "
+        "NVL(TRIM(TO_CHAR(s_comment)),'_null_recon_') AS s_comment, "
         "COALESCE(TRIM(s_name), '') AS s_name, COALESCE(TRIM(s_nationkey), '') AS "
-        "s_nationkey, nvl(trim(to_char(s_phone)),'_null_recon_') AS s_phone, "
+        "s_nationkey, NVL(TRIM(TO_CHAR(s_phone)),'_null_recon_') AS s_phone, "
         "COALESCE(TRIM(s_suppkey), '') AS s_suppkey FROM :tbl WHERE s_nationkey = 1) "
         'SELECT s_acctbal, s_address, s_comment, s_name, s_nationkey, s_phone, '
         's_suppkey FROM src INNER JOIN recon USING (s_nationkey, s_suppkey)'

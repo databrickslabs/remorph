@@ -82,7 +82,7 @@ def array_sort(expr: exp.Expression, asc=True):
     return _apply_func_expr(expr, exp.ArraySort, expression=exp.Boolean(this=asc))
 
 
-def anonymous(expr: exp.Expression, func: str) -> exp.Anonymous | exp.Expression:
+def anonymous(expr: exp.Expression, func: str, is_expr: bool = False) -> exp.Anonymous | exp.Expression:
     """
 
     This function used in cases where the sql functions are not available in sqlGlot expressions
@@ -100,6 +100,8 @@ def anonymous(expr: exp.Expression, func: str) -> exp.Anonymous | exp.Expression
         'SELECT UNIX_TIMESTAMP(col1) FROM DUAL'
 
     """
+    if is_expr:
+        return exp.Column(this=func.format(expr))
     new_expr = expr.copy()
     for node in new_expr.dfs():
         if isinstance(node, exp.Column):
@@ -127,13 +129,10 @@ def build_literal(this: exp.ExpOrStr, alias=None, quoted=False, is_string=True) 
 
 def transform_expression(
     expr: exp.Expression,
-    funcs: Callable[[exp.Expression], exp.Expression] | list[Callable[[exp.Expression], exp.Expression]],
+    funcs: list[Callable[[exp.Expression], exp.Expression]],
 ) -> exp.Expression:
-    if isinstance(funcs, list):
-        for func in funcs:
-            expr = func(expr)
-    else:
-        expr = funcs(expr)
+    for func in funcs:
+        expr = func(expr)
     assert isinstance(expr, exp.Expression), (
         f"Func returned an instance of type [{type(expr)}], " "should have been Expression."
     )
@@ -151,16 +150,18 @@ DataType_transform_mapping = {
     "default": [partial(coalesce, default='', is_string=True), trim],
     "snowflake": {exp.DataType.Type.ARRAY.value: [array_to_string, array_sort]},
     "oracle": {
-        exp.DataType.Type.NCHAR.value: [partial(anonymous, func="nvl(trim(to_char({})),'_null_recon_')")],
-        exp.DataType.Type.NVARCHAR.value: [partial(anonymous, func="nvl(trim(to_char({})),'_null_recon_')")],
+        exp.DataType.Type.NCHAR.value: [partial(anonymous, func="NVL(TRIM(TO_CHAR({})),'_null_recon_')")],
+        exp.DataType.Type.NVARCHAR.value: [partial(anonymous, func="NVL(TRIM(TO_CHAR({})),'_null_recon_')")],
     },
     "databricks": {
-        exp.DataType.Type.ARRAY.value: [partial(anonymous, func="concat_ws(',', sort_array({}))")],
+        exp.DataType.Type.ARRAY.value: [partial(anonymous, func="CONCAT_WS(',', SORT_ARRAY({}))")],
     },
 }
 
 Dialect_hash_algo_mapping = [
-    HashAlgoMap(dialect="snowflake", algo=partial(sha2, num_bits="256", is_expr=True)),
-    HashAlgoMap(dialect="oracle", algo=partial(sha2, num_bits="256", is_expr=True)),
-    HashAlgoMap(dialect="databricks", algo=partial(sha2, num_bits="256", is_expr=True)),
+    HashAlgoMap(dialect="snowflake", algo=[partial(sha2, num_bits="256", is_expr=True)]),
+    HashAlgoMap(
+        dialect="oracle", algo=[partial(anonymous, func="RAWTOHEX(STANDARD_HASH({}, 'SHA256'))", is_expr=True)]
+    ),
+    HashAlgoMap(dialect="databricks", algo=[partial(sha2, num_bits="256", is_expr=True)]),
 ]

@@ -147,4 +147,4 @@ class ReconcileOutput:
 @dataclass
 class HashAlgoMap:
     dialect: str
-    algo: Callable
+    algo: list[Callable]

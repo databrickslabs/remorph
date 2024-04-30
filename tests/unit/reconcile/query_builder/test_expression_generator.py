@@ -1,5 +1,3 @@
-from collections.abc import Callable
-
 import pytest
 from sqlglot import expressions as exp
 from sqlglot import parse_one
@@ -109,7 +107,7 @@ def test_lower(expr):
 
 
 def test_get_hash_transform():
-    assert isinstance(get_hash_transform("snowflake"), Callable) is True
+    assert isinstance(get_hash_transform("snowflake"), list) is True
 
     with pytest.raises(ValueError):
         get_hash_transform("unknown")
