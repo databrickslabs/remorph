@@ -5,14 +5,14 @@ from sqlglot import expressions as exp
 
 
 def _apply_func_expr(expr: exp.Expression, expr_func: Callable, **kwargs) -> exp.Expression:
-    level = 0 if isinstance(expr, exp.Column) else 1
+    is_terminal = isinstance(expr, exp.Column)
     new_expr = expr.copy()
     for node in new_expr.dfs():
         if isinstance(node, exp.Column):
             column_name = node.name
             table_name = node.table
             func = expr_func(this=exp.Column(this=column_name, table=table_name), **kwargs)
-            if level == 0:
+            if is_terminal:
                 return func
             node.replace(func)
     return new_expr
@@ -64,7 +64,7 @@ def array_sort(expr: exp.Expression, asc=True):
     return _apply_func_expr(expr, exp.ArraySort, expression=exp.Boolean(this=asc))
 
 
-def anonymous(expr: exp.Expression, func: str) -> exp.Anonymous | exp.Expression:
+def anonymous(expr: exp.Column, func: str) -> exp.Anonymous | exp.Expression:
     """
 
     This function used in cases where the sql functions are not available in sqlGlot expressions
@@ -77,15 +77,20 @@ def anonymous(expr: exp.Expression, func: str) -> exp.Anonymous | exp.Expression
     To achieve the same,we can use the function as below:
     eg:
         >>> expr = parse_one("select col1 from dual")
-        >>> transformed_expr=anonymous(expr,"unix_timestamp")
+        >>> transformed_expr=anonymous(expr,"unix_timestamp({})")
         >>> print(transformed_expr)
         'SELECT UNIX_TIMESTAMP(col1) FROM DUAL'
 
     """
+    is_terminal = isinstance(expr, exp.Column)
     new_expr = expr.copy()
     for node in new_expr.dfs():
         if isinstance(node, exp.Column):
-            return exp.Column(this=func.format(node.name))
+            name = f"{node.table}.{node.name}" if node.table else node.name
+            anonymous_func = exp.Column(this=func.format(name))
+            if is_terminal:
+                return anonymous_func
+            node.replace(anonymous_func)
     return new_expr
 
 
@@ -93,7 +98,7 @@ def build_column(this: exp.ExpOrStr, table_name="", quoted=False, alias=None) ->
     if alias:
         if isinstance(this, str):
             return exp.Alias(
-                this=exp.Column(this=this, table_name=table_name), alias=exp.Identifier(this=alias, quoted=quoted)
+                this=exp.Column(this=this, table=table_name), alias=exp.Identifier(this=alias, quoted=quoted)
             )
         return exp.Alias(this=this, alias=exp.Identifier(this=alias, quoted=quoted))
     return exp.Column(this=exp.Identifier(this=this, quoted=quoted), table=table_name)
@@ -116,6 +121,67 @@ def transform_expression(
         f"Func returned an instance of type [{type(expr)}], " "should have been Expression."
     )
     return expr
+
+
+def build_from_clause(table_name: str, table_alias: str | None = None) -> exp.From:
+    return exp.From(this=exp.Table(this=exp.Identifier(this=table_name), alias=table_alias))
+
+
+def build_join_clause(
+    table_name: str,
+    join_columns: list,
+    source_table_alias: str | None = None,
+    target_table_alias: str | None = None,
+    kind: str = "inner",
+) -> exp.Join:
+    join_conditions = []
+    for column in join_columns:
+        join_condition = exp.NullSafeEQ(
+            this=exp.Column(this=column, table=source_table_alias),
+            expression=exp.Column(this=column, table=target_table_alias),
+        )
+        join_conditions.append(join_condition)
+
+    # Combine all join conditions with AND
+    on_condition = join_conditions[0]
+    for condition in join_conditions[1:]:
+        on_condition = exp.And(this=on_condition, expression=condition)
+
+    return exp.Join(
+        this=exp.Table(this=exp.Identifier(this=table_name), alias=target_table_alias), kind=kind, on=on_condition
+    )
+
+
+def build_sub(
+    left_column_name: str,
+    right_column_name: str,
+    left_table_name: str | None = None,
+    right_table_name: str | None = None,
+) -> exp.Sub:
+    return exp.Sub(
+        this=build_column(left_column_name, left_table_name),
+        expression=build_column(right_column_name, right_table_name),
+    )
+
+
+def build_where_clause(where_clause=list[exp.Expression], condition_type: str = "or") -> exp.Or:
+    func = exp.Or if condition_type == "or" else exp.And
+    # Start with a default
+    combined_expression = exp.Paren(this=func(this='1 = 1', expression='1 = 1'))
+
+    # Loop through the expressions and combine them with OR
+    for expression in where_clause:
+        combined_expression = func(this=combined_expression, expression=expression)
+
+    return combined_expression
+
+
+def build_if(this: exp.Expression, true: exp.Expression, false: exp.Expression | None = None) -> exp.If:
+    return exp.If(this=this, true=true, false=false)
+
+
+def build_between(this: exp.Expression, low: exp.Expression, high: exp.Expression) -> exp.Between:
+    return exp.Between(this=this, low=low, high=high)
 
 
 DataType_transform_mapping = {

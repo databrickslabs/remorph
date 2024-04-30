@@ -71,3 +71,5 @@ case class Concat(left: Expression, right: Expression) extends Binary(left, righ
 
 // Some statements, such as SELECT, do not require a table specification
 case class NoTable() extends Relation {}
+
+case class Batch(statements: Seq[Plan]) extends Plan
