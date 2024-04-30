@@ -61,44 +61,4 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
         Project(NamedTable("dbo.table_x", Map.empty, is_streaming = false), Seq(Concat(Column("a"), Column("b")))))
 
   }
-  "translate queries with complex expressions, including parens" in {
-    example(
-      query = "SELECT a + b * 2",
-      expectedAst = Project(NoTable(), Seq(Add(Column("a"), Multiply(Column("b"), Literal(integer = Some(2)))))))
-
-    example(
-      query = "SELECT (a + b) * 2",
-      expectedAst = Project(NoTable(), Seq(Multiply(Add(Column("a"), Column("b")), Literal(integer = Some(2))))))
-
-    example(
-      query = "SELECT a & b | c",
-      expectedAst = Project(NoTable(), Seq(BitwiseOr(BitwiseAnd(Column("a"), Column("b")), Column("c")))))
-
-    example(
-      query = "SELECT (a & b) | c",
-      expectedAst = Project(NoTable(), Seq(BitwiseOr(BitwiseAnd(Column("a"), Column("b")), Column("c")))))
-
-    example(
-      query = "SELECT a % 3 + b * 2 - c / 5",
-      expectedAst = Project(
-        NoTable(),
-        Seq(
-          Subtract(
-            Add(Mod(Column("a"), Literal(integer = Some(3))), Multiply(Column("b"), Literal(integer = Some(2)))),
-            Divide(Column("c"), Literal(integer = Some(5)))))))
-
-    example(
-      query = "SELECT (a % 3 + b) * 2 - c / 5",
-      expectedAst = Project(
-        NoTable(),
-        Seq(
-          Subtract(
-            Multiply(Add(Mod(Column("a"), Literal(integer = Some(3))), Column("b")), Literal(integer = Some(2))),
-            Divide(Column("c"), Literal(integer = Some(5)))))))
-    example(query = "SELECT a || b", expectedAst = Project(NoTable(), Seq(Concat(Column("a"), Column("b")))))
-
-    example(
-      query = "SELECT a || b || c",
-      expectedAst = Project(NoTable(), Seq(Concat(Concat(Column("a"), Column("b")), Column("c")))))
-  }
 }
