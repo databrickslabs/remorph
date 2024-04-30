@@ -20,6 +20,10 @@ class SnowflakeAstBuilder extends SnowflakeParserBaseVisitor[ir.TreeNode] {
     }
   }
 
+  override def visitBatch(ctx: BatchContext): ir.TreeNode = {
+    ir.Batch(ctx.sql_command().asScala.map(_.accept(this)).collect { case p: ir.Plan => p })
+  }
+
   override def visitQuery_statement(ctx: Query_statementContext): ir.TreeNode = {
     val select = ctx.select_statement().accept(new SnowflakeRelationBuilder)
     val withCTE = buildCTE(ctx.with_expression(), select)
