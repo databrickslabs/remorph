@@ -7,7 +7,7 @@ import scala.collection.JavaConverters._
 object DataTypeBuilder {
 
   def buildDataType(ctx: Data_typeContext): ir.DataType = {
-    val sizeOpt = Option(ctx.data_type_size()).map(_.getText.toInt)
+    val sizeOpt = Option(ctx.data_type_size()).map(_.num().getText.toInt)
     ctx match {
       case c if c.int_alias != null =>
         // see https://docs.snowflake.com/en/sql-reference/data-types-numeric#int-integer-bigint-smallint-tinyint-byteint
