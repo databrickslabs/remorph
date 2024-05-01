@@ -47,17 +47,28 @@ class TSqlExpressionBuilder
   override def visitSearch_condition(ctx: Search_conditionContext): Expression = {
     if (ctx.search_condition().size() > 1) {
       val conditions = ctx.search_condition().asScala.map(_.accept(this))
-      conditions.reduce((left, right) => ir.And(left, right))
+      conditions.reduce((left, right) =>
+        ctx match {
+          case c if c.AND() != null => ir.And(left, right)
+          case c if c.OR() != null => ir.Or(left, right)
+          case c if c.NOT() != null => ir.Not(left)
+        })
     } else {
-      ctx.predicate().accept(this)
+
+      if (!ctx.NOT().isEmpty) {
+
+        ir.Not(ctx.predicate().accept(this))
+      } else {
+        ctx.predicate().accept(this)
+      }
     }
+
   }
 
   override def visitPredicate(ctx: PredicateContext): Expression = {
     val left = ctx.expression(0).accept(this)
     val right = ctx.expression(1).accept(this)
-    val operator = ctx.comparison_operator().getText
-    operator match {
+    ctx.comparison_operator().getText match {
       case "=" => ir.Equals(left, right)
       case "!=" => ir.NotEquals(left, right)
       case ">" => ir.GreaterThan(left, right)

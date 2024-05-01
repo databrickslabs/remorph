@@ -48,7 +48,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
         expectedAst = Project(joinAst, Seq(Column("A"), Column("B"))))
     }
 
-    "translate a query with Multiple JOIN" in {
+    "translate a query with Multiple JOIN AND Condition" in {
       val joinConditionX = Equals(Column("A"), Column("A"))
       val joinConditionZ = And(Equals(Column("A"), Column("A")), Equals(Column("B"), Column("B")))
 
@@ -71,6 +71,32 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
       example(
         query = "SELECT T1.A, T2.B FROM DBO.TABLE_X AS T1 INNER JOIN DBO.TABLE_Y AS T2 ON T1.A = T2.A " +
           "LEFT JOIN DBO.TABLE_Z AS T3 ON T1.A = T3.A AND T1.B = T3.B",
+        expectedAst = Project(joinMainAst, Seq(Column("A"), Column("B"))))
+    }
+
+    "translate a query with Multiple JOIN OR Condition" in {
+      val joinConditionX = Equals(Column("A"), Column("A"))
+      val joinConditionZ = Or(Equals(Column("A"), Column("A")), Equals(Column("B"), Column("B")))
+
+      val joinFirstAst = Join(
+        NamedTable("DBO.TABLE_X", Map(), false),
+        NamedTable("DBO.TABLE_Y", Map(), false),
+        Some(joinConditionX),
+        InnerJoin,
+        Seq(),
+        JoinDataType(false, false))
+
+      val joinMainAst = Join(
+        joinFirstAst,
+        NamedTable("DBO.TABLE_Z", Map(), false),
+        Some(joinConditionZ),
+        LeftOuterJoin,
+        Seq(),
+        JoinDataType(false, false))
+
+      example(
+        query = "SELECT T1.A, T2.B FROM DBO.TABLE_X AS T1 INNER JOIN DBO.TABLE_Y AS T2 ON T1.A = T2.A " +
+          "LEFT JOIN DBO.TABLE_Z AS T3 ON T1.A = T3.A OR T1.B = T3.B",
         expectedAst = Project(joinMainAst, Seq(Column("A"), Column("B"))))
     }
   }

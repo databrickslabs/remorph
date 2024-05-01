@@ -1,11 +1,13 @@
 package com.databricks.labs.remorph.parsers.tsql
 
-import com.databricks.labs.remorph.parsers.{intermediate => ir}
+import com.databricks.labs.remorph.parsers.{IncompleteParser, intermediate => ir}
 import com.databricks.labs.remorph.parsers.tsql.TSqlParser._
 
 import scala.collection.JavaConverters._
 
-class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.Relation] {
+class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.Relation] with IncompleteParser[ir.Relation] {
+
+  protected override def wrapUnresolvedInput(unparsedInput: String): ir.Relation = ir.UnresolvedRelation(unparsedInput)
 
   override def visitTable_source_item(ctx: Table_source_itemContext): ir.Relation = {
     val table = ctx.full_table_name().getText

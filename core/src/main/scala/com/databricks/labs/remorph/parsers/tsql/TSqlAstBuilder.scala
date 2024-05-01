@@ -30,7 +30,7 @@ class TSqlAstBuilder extends TSqlParserBaseVisitor[ir.TreeNode] {
       .asScala
       .map(_.accept(new TSqlExpressionBuilder))
     val fromTable = rawExpression.table_sources().accept(new TSqlRelationBuilder)
-
+    // [TODO]: Handle Where, Group By, Having, Order By, Limit, Offset
     ir.Project(fromTable, columnExpression)
 
   }
