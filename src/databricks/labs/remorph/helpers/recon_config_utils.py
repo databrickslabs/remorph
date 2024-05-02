@@ -5,15 +5,11 @@ import webbrowser
 from databricks.connect import DatabricksSession
 from databricks.labs.blueprint.installation import Installation
 from databricks.labs.blueprint.tui import Prompts
-from databricks.labs.blueprint.wheels import ProductInfo
-from databricks.labs.remorph.__about__ import __version__
 from databricks.labs.remorph.config import TableRecon
 from databricks.labs.remorph.reconcile.connectors.client import get_data_source
 from databricks.labs.remorph.reconcile.constants import SourceType
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.errors.platform import ResourceDoesNotExist
-
-PRODUCT_INFO = ProductInfo(__file__)
 
 logger = logging.getLogger(__name__)
 
@@ -197,8 +193,7 @@ class ReconConfigPrompts:
         """
 
         # Create Installation object
-        workspace_client = WorkspaceClient(product="remorph", product_version=__version__)
-        installation = Installation(workspace_client, PRODUCT_INFO.product_name())
+        installation = Installation(self._ws, "remorph")
         logger.debug(f"Saving the config details for `{self._source}` in `{file_name}` on Databricks Workspace ")
         installation.upload(filename=file_name, raw=recon_config_json.encode("utf-8"))
         ws_file_url = f"{installation.install_folder()}/{file_name}"
