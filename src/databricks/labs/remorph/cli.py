@@ -91,6 +91,7 @@ def reconcile(w: WorkspaceClient, recon_conf: str, conn_profile: str, source: st
 @remorph.command
 def generate_recon_config(w: WorkspaceClient):
     """generates config file for reconciliation"""
+    logger.info(f"User: {w.current_user.me()}")
     logger.info("Generating config file for reconcile")
     recon_conf = ReconConfigPrompts(w)
 
@@ -120,6 +121,7 @@ def generate_lineage(w: WorkspaceClient, source: str, input_sql: str, output_fol
 @remorph.command
 def configure_secrets(w: WorkspaceClient):
     """Setup reconciliation connection profile details as Secrets on Databricks Workspace"""
+    logger.info(f"User: {w.current_user.me()}")
     recon_conf = ReconConfigPrompts(w)
 
     # Prompt for source
