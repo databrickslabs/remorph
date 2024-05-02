@@ -54,7 +54,25 @@ class TSqlExpressionBuilder
     case _ => wrapUnresolvedInput(node.getText)
   }
 
-  override def visitSearch_condition(ctx: Search_conditionContext): Expression = {
+  private def removeQuotes(str: String): String = {
+    str.stripPrefix("'").stripSuffix("'")
+  }
+
+  private def buildBinaryExpression(left: ir.Expression, right: ir.Expression, operator: Token): ir.Expression =
+    operator.getType match {
+      case STAR => ir.Multiply(left, right)
+      case DIV => ir.Divide(left, right)
+      case MOD => ir.Mod(left, right)
+      case PLUS => ir.Add(left, right)
+      case MINUS => ir.Subtract(left, right)
+      case BIT_AND => ir.BitwiseAnd(left, right)
+      case BIT_XOR => ir.BitwiseXor(left, right)
+      case BIT_OR => ir.BitwiseOr(left, right)
+      case DOUBLE_BAR => ir.Concat(left, right)
+      case _ => ir.UnresolvedOperator(s"Unsupported operator: ${operator.getText}")
+    }
+
+  override def visitSearch_condition(ctx: Search_conditionContext): ir.Expression = {
     if (ctx.search_condition().size() > 1) {
       val conditions = ctx.search_condition().asScala.map(_.accept(this))
       conditions.reduce((left, right) =>
@@ -75,7 +93,7 @@ class TSqlExpressionBuilder
 
   }
 
-  override def visitPredicate(ctx: PredicateContext): Expression = {
+  override def visitPredicate(ctx: PredicateContext): ir.Expression = {
     val left = ctx.expression(0).accept(this)
     val right = ctx.expression(1).accept(this)
     ctx.comparison_operator().getText match {
@@ -88,22 +106,4 @@ class TSqlExpressionBuilder
     }
   }
 
-
-  private def removeQuotes(str: String): String = {
-    str.stripPrefix("'").stripSuffix("'")
-  }
-
-  private def buildBinaryExpression(left: ir.Expression, right: ir.Expression, operator: Token): ir.Expression =
-    operator.getType match {
-      case STAR => ir.Multiply(left, right)
-      case DIV => ir.Divide(left, right)
-      case MOD => ir.Mod(left, right)
-      case PLUS => ir.Add(left, right)
-      case MINUS => ir.Subtract(left, right)
-      case BIT_AND => ir.BitwiseAnd(left, right)
-      case BIT_XOR => ir.BitwiseXor(left, right)
-      case BIT_OR => ir.BitwiseOr(left, right)
-      case DOUBLE_BAR => ir.Concat(left, right)
-      case _ => ir.UnresolvedOperator(s"Unsupported operator: ${operator.getText}")
-    }
 }

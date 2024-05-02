@@ -20,7 +20,6 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
         expectedAst = Project(NamedTable("dbo.table_x", Map.empty, is_streaming = false), Seq(Column("a"))))
     }
 
-
     "accept constants in selects" in {
       example(
         query = "SELECT 42, 6.4, 0x5A, 2.7E9, $40 FROM dbo.table_x",
