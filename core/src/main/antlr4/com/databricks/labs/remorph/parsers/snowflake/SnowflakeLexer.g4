@@ -447,6 +447,7 @@ IS           : 'IS';
 // ISOLATION:                                             'ISOLATION';
 JAVA                            : 'JAVA';
 JAVASCRIPT                      : 'JAVASCRIPT';
+SCALA                           : 'SCALA';
 JDBC_TREAT_DECIMAL_AS_INT       : 'JDBC_TREAT_DECIMAL_AS_INT';
 JDBC_TREAT_TIMESTAMP_NTZ_AS_UTC : 'JDBC_TREAT_TIMESTAMP_NTZ_AS_UTC';
 JDBC_USE_SESSION_TIMEZONE       : 'JDBC_USE_SESSION_TIMEZONE';

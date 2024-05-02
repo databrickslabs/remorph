@@ -1,5 +1,4 @@
 import codecs
-import re
 from pathlib import Path
 
 
@@ -91,10 +90,14 @@ def read_file(filename: str | Path) -> str:
         return file.read()
 
 
-def remove_hexadecimal_chars(input_string: str) -> str:
+def refactor_hexadecimal_chars(input_string: str) -> str:
     """
-    Removes the HexaDecimal characters ( \x1b[\\d+m ) from the given string if it exists.
-    :param input_string: String with HexaDecimal characters ex: ( \x1b[4mWHERE\x1b[0m )
-    :return: String without HexaDecimal characters ex: ( WHERE )
+    Updates the HexaDecimal characters ( \x1b[\\d+m ) in the given string as below.
+    :param input_string: String with HexaDecimal characters. ex: ( \x1b[4mWHERE\x1b[0m )
+    :return: String with HexaDecimal characters refactored to arrows. ex: ( --> WHERE <--)
     """
-    return re.sub(r'\x1b\[\d+m', '', input_string)
+    output_string = input_string
+    highlight = {"\x1b[4m": "--> ", "\x1b[0m": " <--"}
+    for key, value in highlight.items():
+        output_string = output_string.replace(key, value)
+    return output_string
