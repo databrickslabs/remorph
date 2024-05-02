@@ -31,6 +31,9 @@ class SnowflakeAstBuilder extends SnowflakeParserBaseVisitor[ir.TreeNode] {
 
   }
 
+  override def visitDdl_command(ctx: Ddl_commandContext): ir.TreeNode =
+    ctx.accept(new SnowflakeDDLBuilder)
+
   private def buildCTE(ctx: With_expressionContext, relation: ir.Relation): ir.Relation = {
     if (ctx == null) {
       return relation
