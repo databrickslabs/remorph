@@ -16,13 +16,14 @@ def test_threshold_comparison_query_with_one_threshold(table_conf_with_opts, sch
     assert re.sub(r'\s+', ' ', comparison_query.strip().lower()) == re.sub(
         r'\s+',
         ' ',
-        """select coalesce(source.s_acctbal, 0) as s_acctbal_source, coalesce(databricks.s_acctbal, 
-        0) as s_acctbal_databricks, case when (coalesce(source.s_acctbal, 0) - coalesce(databricks.s_acctbal, 
-        0)) = 0 then `match` when (coalesce(source.s_acctbal, 0) - coalesce(databricks.s_acctbal, 0)) between 0 and 
-        100 then `warning` else `failed` end as s_acctbal_match, source.s_suppkey as s_suppkey_source from 
-        supplier_df_threshold_vw as source inner join target_supplier_df_threshold_vw as databricks on 
-        source.s_suppkey <=> databricks.s_suppkey where (1 = 1 or 1 = 1) or (coalesce(source.s_acctbal, 0) - 
-        coalesce(databricks.s_acctbal, 0)) <> 0""".strip().lower(),
+        """select coalesce(source.s_acctbal, 0) as s_acctbal_source, coalesce(databricks.s_acctbal,
+        0) as s_acctbal_databricks, case when (coalesce(source.s_acctbal, 0) - coalesce(databricks.s_acctbal,
+        0)) = 0 then `match` when (coalesce(source.s_acctbal, 0) - coalesce(databricks.s_acctbal, 0)) between 0 and
+        100 then `warning` else `failed` end as s_acctbal_match, source.s_nationkey as s_nationkey_source,
+        source.s_suppkey as s_suppkey_source from supplier_df_threshold_vw as source inner join
+        target_supplier_df_threshold_vw as databricks on source.s_nationkey <=> databricks.s_nationkey and
+        source.s_suppkey <=> databricks.s_suppkey where (1 = 1 or 1 = 1) or
+        (coalesce(source.s_acctbal, 0) - coalesce(databricks.s_acctbal, 0)) <> 0""".strip().lower(),
     )
 
 
