@@ -10,7 +10,7 @@ class SnowflakeDDLBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
 
   override protected def astBuilder: ParseTreeVisitor[_] = new SnowflakeDDLBuilder
 
-  private def example(query: String, expectedAst: Command): Assertion = example(query, _.create_command(), expectedAst)
+  private def example(query: String, expectedAst: Catalog): Assertion = example(query, _.create_command(), expectedAst)
 
   "SnowflakeCommandBuilder" should {
     "translate Java UDF create command" in {

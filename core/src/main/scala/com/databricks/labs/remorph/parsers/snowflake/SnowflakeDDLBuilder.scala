@@ -5,16 +5,16 @@ import SnowflakeParser.{StringContext => StrContext, _}
 
 import scala.collection.JavaConverters._
 class SnowflakeDDLBuilder
-    extends SnowflakeParserBaseVisitor[ir.Command]
+    extends SnowflakeParserBaseVisitor[ir.Catalog]
     with ParserCommon
-    with IncompleteParser[ir.Command] {
-  override protected def wrapUnresolvedInput(unparsedInput: String): ir.Command = ir.UnresolvedCommand(unparsedInput)
+    with IncompleteParser[ir.Catalog] {
+  override protected def wrapUnresolvedInput(unparsedInput: String): ir.Catalog = ir.UnresolvedCatalog(unparsedInput)
 
   private def extractString(ctx: StrContext): String = {
     ctx.getText.stripPrefix("'").stripSuffix("'")
   }
 
-  override def visitCreate_function(ctx: Create_functionContext): ir.Command = {
+  override def visitCreate_function(ctx: Create_functionContext): ir.Catalog = {
     val runtimeInfo = ctx match {
       case c if c.JAVA() != null => buildJavaUDF(c)
       case c if c.PYTHON() != null => buildPythonUDF(c)
@@ -75,7 +75,7 @@ class SnowflakeDDLBuilder
     ir.PythonUDFInfo(extractRuntimeVersion(ctx), packages, extractHandler(ctx))
   }
 
-  override def visitCreate_table(ctx: Create_tableContext): ir.Command = {
+  override def visitCreate_table(ctx: Create_tableContext): ir.Catalog = {
     val tableName = ctx.object_name().getText
     val columns = buildColumnDeclarations(
       ctx

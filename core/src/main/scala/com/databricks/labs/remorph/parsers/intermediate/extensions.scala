@@ -91,7 +91,7 @@ case class CreateInlineUDF(
     acceptsNullParameters: Boolean,
     comment: Option[String],
     body: String)
-    extends Command {}
+    extends Catalog {}
 
 sealed trait Constraint
 case object Unique extends Constraint
@@ -109,4 +109,4 @@ case class ColumnDeclaration(
     virtualColumnDeclaration: Option[Expression],
     constraints: Seq[Constraint])
 
-case class CreateTableCommand(name: String, columns: Seq[ColumnDeclaration]) extends Command {}
+case class CreateTableCommand(name: String, columns: Seq[ColumnDeclaration]) extends Catalog {}
