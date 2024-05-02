@@ -73,3 +73,22 @@ case class Concat(left: Expression, right: Expression) extends Binary(left, righ
 case class NoTable() extends Relation {}
 
 case class Batch(statements: Seq[Plan]) extends Plan
+
+case class FunctionParameter(name: String, dataType: DataType, defaultValue: Option[Expression])
+
+sealed trait UDFRuntimeInfo
+case class JavaUDFInfo(runtimeVersion: Option[String], imports: Seq[String], handler: String) extends UDFRuntimeInfo
+case class PythonUDFInfo(runtimeVersion: Option[String], packages: Seq[String], handler: String) extends UDFRuntimeInfo
+case object JavascriptUDFInfo extends UDFRuntimeInfo
+case class ScalaUDFInfo(runtimeVersion: Option[String], imports: Seq[String], handler: String) extends UDFRuntimeInfo
+case class SQLUDFInfo(memoizable: Boolean) extends UDFRuntimeInfo
+
+case class CreateInlineUDF(
+    name: String,
+    returnType: DataType,
+    parameters: Seq[FunctionParameter],
+    runtimeInfo: UDFRuntimeInfo,
+    acceptsNullParameters: Boolean,
+    comment: Option[String],
+    body: String)
+    extends Command {}
