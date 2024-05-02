@@ -10,7 +10,7 @@ from databricks.labs.remorph.snow import databricks, experimental, snowflake
 logger = logging.getLogger(__name__)
 
 SQLGLOT_DIALECTS = {
-    "bigquery": bigquery.BigQuery,
+    "bigquery": bigquery.BigQueryDialect,
     "databricks": databricks.Databricks,
     "experimental": experimental.DatabricksExperimental,
     "drill": Dialects.DRILL,

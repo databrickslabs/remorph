@@ -6,8 +6,7 @@ from sqlglot.dialects.bigquery import BigQuery
 logger = logging.getLogger(__name__)
 
 
-# pylint: disable=function-redefined
-class BigQuery(BigQuery):
+class BigQueryDialect(BigQuery):
     # Instantiate BigQuery Dialect
     bigquery = BigQuery()
 
