@@ -1,17 +1,17 @@
 import logging
 from typing import ClassVar
 
-from sqlglot.dialects.bigquery import BigQuery
+from sqlglot.dialects import bigquery as org
 
 logger = logging.getLogger(__name__)
 
 
-class BigQueryDialect(BigQuery):
+class BigQuery(org.BigQuery):
     # Instantiate BigQuery Dialect
-    bigquery = BigQuery()
+    bigquery = org.BigQuery()
 
-    class Parser(BigQuery.Parser):
+    class Parser(org.BigQuery.Parser):
         FUNCTIONS: ClassVar[dict] = {
-            **BigQuery.Parser.FUNCTIONS,
+            **org.BigQuery.Parser.FUNCTIONS,
             # TODO:  Add BigQuery specific functions implementation here
         }
