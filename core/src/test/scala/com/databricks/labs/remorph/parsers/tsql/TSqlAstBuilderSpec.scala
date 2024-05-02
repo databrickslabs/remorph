@@ -1,9 +1,10 @@
 package com.databricks.labs.remorph.parsers.tsql
 
-import com.databricks.labs.remorph.parsers.intermediate._
 import org.scalatest.Assertion
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+
+import com.databricks.labs.remorph.parsers.intermediate._
 
 class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matchers {
 
@@ -18,6 +19,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
         query = "SELECT a FROM dbo.table_x",
         expectedAst = Project(NamedTable("dbo.table_x", Map.empty, is_streaming = false), Seq(Column("a"))))
     }
+
 
     "accept constants in selects" in {
       example(
@@ -98,6 +100,34 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
         query = "SELECT T1.A, T2.B FROM DBO.TABLE_X AS T1 INNER JOIN DBO.TABLE_Y AS T2 ON T1.A = T2.A " +
           "LEFT JOIN DBO.TABLE_Z AS T3 ON T1.A = T3.A OR T1.B = T3.B",
         expectedAst = Project(joinMainAst, Seq(Column("A"), Column("B"))))
+
     }
+  }
+  "translate SELECT queries with binary expressions" in {
+    example(
+      query = "SELECT a + b FROM dbo.table_x",
+      expectedAst =
+        Project(NamedTable("dbo.table_x", Map.empty, is_streaming = false), Seq(Add(Column("a"), Column("b")))))
+
+    example(
+      query = "SELECT a - b FROM dbo.table_x",
+      expectedAst =
+        Project(NamedTable("dbo.table_x", Map.empty, is_streaming = false), Seq(Subtract(Column("a"), Column("b")))))
+
+    example(
+      query = "SELECT a * b FROM dbo.table_x",
+      expectedAst =
+        Project(NamedTable("dbo.table_x", Map.empty, is_streaming = false), Seq(Multiply(Column("a"), Column("b")))))
+
+    example(
+      query = "SELECT a / b FROM dbo.table_x",
+      expectedAst =
+        Project(NamedTable("dbo.table_x", Map.empty, is_streaming = false), Seq(Divide(Column("a"), Column("b")))))
+
+    example(
+      query = "SELECT a || b FROM dbo.table_x",
+      expectedAst =
+        Project(NamedTable("dbo.table_x", Map.empty, is_streaming = false), Seq(Concat(Column("a"), Column("b")))))
+
   }
 }

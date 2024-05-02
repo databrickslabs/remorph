@@ -11,3 +11,4 @@ target/
 coverage.*
 *.iws
 /core/gen/
+*.tokens

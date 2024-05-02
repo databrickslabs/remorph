@@ -50,4 +50,26 @@ case class RLike(expression: Expression, pattern: Expression) extends Expression
 
 case class IsNull(expression: Expression) extends Expression {}
 
+case class UnresolvedOperator(unparsed_target: String) extends Expression {}
+
+// TODO: TSQL grammar has a number of operators not yet supported - add them here, if not already supported
+
+// Arithmetic expressions
+case class Multiply(left: Expression, right: Expression) extends Binary(left, right) {}
+case class Divide(left: Expression, right: Expression) extends Binary(left, right) {}
+case class Mod(left: Expression, right: Expression) extends Binary(left, right) {}
+case class Add(left: Expression, right: Expression) extends Binary(left, right) {}
+case class Subtract(left: Expression, right: Expression) extends Binary(left, right) {}
+
+// Binary bitwise expressions
+case class BitwiseAnd(left: Expression, right: Expression) extends Binary(left, right) {}
+case class BitwiseOr(left: Expression, right: Expression) extends Binary(left, right) {}
+case class BitwiseXor(left: Expression, right: Expression) extends Binary(left, right) {}
+
+// Other binary expressions
+case class Concat(left: Expression, right: Expression) extends Binary(left, right) {}
+
+// Some statements, such as SELECT, do not require a table specification
+case class NoTable() extends Relation {}
+
 case class Batch(statements: Seq[Plan]) extends Plan
