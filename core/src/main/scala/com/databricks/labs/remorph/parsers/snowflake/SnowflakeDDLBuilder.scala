@@ -89,13 +89,18 @@ class SnowflakeDDLBuilder
   }
 
   private def buildColumnDeclarations(ctx: Seq[Column_decl_itemContext]): Seq[ir.ColumnDeclaration] = {
+    // According to the grammar, either ctx.full_col_decl or ctx.out_of_line_constraint is non-null.
     val columns = ctx.collect {
       case c if c.full_col_decl() != null => buildColumnDeclaration(c.full_col_decl())
     }
-    val outOfLineConstraints = ctx.collect {
+    // An out-of-line constraint may apply to one or many columns
+    // When an out-of-line contraint applies to multiple columns,
+    // we record a column-name -> constraint mapping for each.
+    val outOfLineConstraints: Seq[(String, ir.Constraint)] = ctx.collect {
       case c if c.out_of_line_constraint() != null => buildOutOfLineConstraint(c.out_of_line_constraint())
     }.flatten
 
+    // Finally, for every column, we "inject" the relevant out-of-line constraints
     columns.map { col =>
       val additionalConstraints = outOfLineConstraints.collect {
         case (columnName, constraint) if columnName == col.name => constraint
