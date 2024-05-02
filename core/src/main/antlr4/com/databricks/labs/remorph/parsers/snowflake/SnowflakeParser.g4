@@ -1672,7 +1672,7 @@ create_function
     : CREATE or_replace? SECURE? FUNCTION if_not_exists? object_name LR_BRACKET (
         arg_decl (COMMA arg_decl)*
     )? RR_BRACKET RETURNS (data_type | TABLE LR_BRACKET (col_decl (COMMA col_decl)*)? RR_BRACKET) (
-        LANGUAGE (JAVA | PYTHON | JAVASCRIPT | SQL)
+        LANGUAGE (JAVA | PYTHON | JAVASCRIPT | SCALA | SQL)
     )? (CALLED ON NULL_ INPUT | RETURNS NULL_ ON NULL_ INPUT | STRICT)? (VOLATILE | IMMUTABLE)? (
         PACKAGES EQ '(' string_list ')'
     )? (RUNTIME_VERSION EQ (string | FLOAT))? (IMPORTS EQ '(' string_list ')')? (

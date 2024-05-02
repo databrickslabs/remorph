@@ -42,6 +42,9 @@ It will print out the parser's output for your query in a LISP-like format:
 ```
 
 This will be useful to know which methods in `SnowflakeAstBuilder` you need to override/modify.
+Note however, that ANTLR4 generated parser tree visitors automatically call accept on nodes,
+so you do not always need to override some intermediate method, just to call accept() yourself.
+
 
 ## Step 4: modify SnowflakeAstBuilder
 
