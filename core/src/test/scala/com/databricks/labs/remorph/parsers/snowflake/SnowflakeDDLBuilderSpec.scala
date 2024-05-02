@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
-import com.databricks.labs.remorph.parsers.intermediate.{Command, CreateInlineUDF, DecimalType, DoubleType, FunctionParameter, JavaUDFInfo, JavascriptUDFInfo, Literal, PythonUDFInfo, SQLUDFInfo, ScalaUDFInfo, UnparsedType, VarCharType}
+import com.databricks.labs.remorph.parsers.intermediate._
 import org.antlr.v4.runtime.tree.ParseTreeVisitor
 import org.scalatest.Assertion
 import org.scalatest.matchers.should
@@ -150,6 +150,52 @@ class SnowflakeDDLBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
           acceptsNullParameters = false,
           comment = Some("multiply two numbers"),
           body = "a * b"))
+    }
+
+    "translate CREATE TABLE commands" in {
+      example(
+        query = "CREATE TABLE s.t1 (x VARCHAR)",
+        expectedAst =
+          CreateTableCommand(name = "s.t1", columns = Seq(ColumnDeclaration("x", VarCharType(None), None, Seq()))))
+
+      example(
+        query = "CREATE TABLE s.t1 (x VARCHAR UNIQUE)",
+        expectedAst = CreateTableCommand(
+          name = "s.t1",
+          columns = Seq(ColumnDeclaration("x", VarCharType(None), None, Seq(Unique)))))
+
+      example(
+        query = "CREATE TABLE s.t1 (x VARCHAR NOT NULL)",
+        expectedAst = CreateTableCommand(
+          name = "s.t1",
+          columns = Seq(ColumnDeclaration("x", VarCharType(None), None, Seq(NotNull)))))
+
+      example(
+        query = "CREATE TABLE s.t1 (x VARCHAR PRIMARY KEY)",
+        expectedAst = CreateTableCommand(
+          name = "s.t1",
+          columns = Seq(ColumnDeclaration("x", VarCharType(None), None, Seq(PrimaryKey)))))
+
+      example(
+        query = "CREATE TABLE s.t1 (x VARCHAR UNIQUE FOREIGN KEY REFERENCES s.t2 (y))",
+        expectedAst = CreateTableCommand(
+          name = "s.t1",
+          columns = Seq(ColumnDeclaration("x", VarCharType(None), None, Seq(Unique, ForeignKey("s.t2.y"))))))
+
+      example(
+        query = """CREATE TABLE s.t1 (
+            |  id VARCHAR PRIMARY KEY NOT NULL,
+            |  a VARCHAR(32) UNIQUE,
+            |  b INTEGER,
+            |  CONSTRAINT fkey FOREIGN KEY (a, b) REFERENCES s.t2 (x, y)
+            |)
+            |""".stripMargin,
+        expectedAst = CreateTableCommand(
+          name = "s.t1",
+          columns = Seq(
+            ColumnDeclaration("id", VarCharType(None), None, Seq(NotNull, PrimaryKey)),
+            ColumnDeclaration("a", VarCharType(Some(32)), None, Seq(Unique, ForeignKey("s.t2.x"))),
+            ColumnDeclaration("b", DecimalType(Some(38), None), None, Seq(ForeignKey("s.t2.y"))))))
     }
   }
 }

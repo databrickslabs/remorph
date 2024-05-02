@@ -92,3 +92,17 @@ case class CreateInlineUDF(
     comment: Option[String],
     body: String)
     extends Command {}
+
+sealed trait Constraint
+case object Unique extends Constraint
+case object NotNull extends Constraint
+case object PrimaryKey extends Constraint
+case class ForeignKey(references: String) extends Constraint
+
+case class ColumnDeclaration(
+    name: String,
+    dataType: DataType,
+    virtualColumnDeclaration: Option[Expression],
+    constraints: Seq[Constraint])
+
+case class CreateTableCommand(name: String, columns: Seq[ColumnDeclaration]) extends Command {}

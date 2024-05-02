@@ -75,4 +75,63 @@ class SnowflakeDDLBuilder
     ir.PythonUDFInfo(extractRuntimeVersion(ctx), packages, extractHandler(ctx))
   }
 
+  override def visitCreate_table(ctx: Create_tableContext): ir.Command = {
+    val tableName = ctx.object_name().getText
+    val columns = buildColumnDeclarations(
+      ctx
+        .create_table_clause()
+        .column_decl_item_list_paren()
+        .column_decl_item_list()
+        .column_decl_item()
+        .asScala)
+
+    ir.CreateTableCommand(tableName, columns)
+  }
+
+  private def buildColumnDeclarations(ctx: Seq[Column_decl_itemContext]): Seq[ir.ColumnDeclaration] = {
+    val columns = ctx.collect {
+      case c if c.full_col_decl() != null => buildColumnDeclaration(c.full_col_decl())
+    }
+    val outOfLineConstraints = ctx.collect {
+      case c if c.out_of_line_constraint() != null => buildOutOfLineConstraint(c.out_of_line_constraint())
+    }.flatten
+
+    columns.map { col =>
+      val additionalConstraints = outOfLineConstraints.collect {
+        case (columnName, constraint) if columnName == col.name => constraint
+      }
+      col.copy(constraints = col.constraints ++ additionalConstraints)
+    }
+  }
+
+  private def buildColumnDeclaration(ctx: Full_col_declContext): ir.ColumnDeclaration = {
+    val name = ctx.col_decl().column_name().getText
+    val dataType = DataTypeBuilder.buildDataType(ctx.col_decl().data_type())
+    val constraints = ctx.inline_constraint().asScala.map(buildInlineConstraint)
+    val nullability = if (ctx.null_not_null().asScala.exists(_.NOT() != null)) Seq(ir.NotNull) else Seq()
+    ir.ColumnDeclaration(name, dataType, virtualColumnDeclaration = None, nullability ++ constraints)
+  }
+
+  private def buildOutOfLineConstraint(ctx: Out_of_line_constraintContext): Seq[(String, ir.Constraint)] = {
+    val columnNames = ctx.column_list_in_parentheses(0).column_list().column_name().asScala.map(_.getText)
+    val constraints = ctx match {
+      case c if c.UNIQUE() != null => List.fill(columnNames.size)(ir.Unique)
+      case c if c.primary_key() != null => List.fill(columnNames.size)(ir.PrimaryKey)
+      case c if c.foreign_key() != null =>
+        val referencedObject = c.object_name().getText
+        val references =
+          c.column_list_in_parentheses(1).column_list().column_name().asScala.map(referencedObject + "." + _.getText)
+        references.map(ir.ForeignKey.apply)
+
+    }
+    columnNames.zip(constraints)
+  }
+
+  private def buildInlineConstraint(ctx: Inline_constraintContext): ir.Constraint = ctx match {
+    case c if c.UNIQUE() != null => ir.Unique
+    case c if c.primary_key() != null => ir.PrimaryKey
+    case c if c.foreign_key() != null =>
+      val references = c.object_name().getText + Option(ctx.column_name()).map("." + _.getText).getOrElse("")
+      ir.ForeignKey(references)
+  }
 }
