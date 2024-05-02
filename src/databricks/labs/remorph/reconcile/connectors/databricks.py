@@ -46,4 +46,4 @@ class DatabricksDataSource(DataSource):
                     col_name"""
         return re.sub(r'\s+', ' ', query)
 
-    databricks_datatype_mapper = {}
+    databricks_datatype_mapper: dict[str, str] = {}

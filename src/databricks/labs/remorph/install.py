@@ -61,7 +61,7 @@ class WorkspaceInstaller:
         schema_name = "convertor_test"
         ws_config = None
 
-        source_prompt = self._prompts.choice("Select the source", SQLGLOT_DIALECTS.keys())
+        source_prompt = self._prompts.choice("Select the source", list(SQLGLOT_DIALECTS.keys()))
         source = source_prompt.lower()
 
         skip_validation = self._prompts.confirm("Do you want to Skip Validation")

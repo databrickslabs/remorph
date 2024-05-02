@@ -23,13 +23,13 @@ class SqlglotEngine:
 
         return transpiled_sql, error_list
 
-    def parse(self, sql: str, file_name: str) -> (list[Expression] | None, ParserError | None):
+    def parse(self, sql: str, file_name: str) -> Tuple[list[Expression] | None, ParserError | None]:
         expression = None
         error = None
         try:
             expression = parse(sql, read=self.read_dialect, error_level=ErrorLevel.IMMEDIATE)
         except (ParseError, TokenError, UnsupportedError) as e:
-            error = ParserError(file_name, e)
+            error = ParserError(file_name, str(e))
 
         return expression, error
 
@@ -50,3 +50,4 @@ class SqlglotEngine:
     def _find_root_tables(expression) -> str:
         for table in expression.find_all(exp.Table, bfs=False):
             return table.name
+        return ""

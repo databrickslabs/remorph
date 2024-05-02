@@ -43,7 +43,7 @@ class SnowflakeDataSource(DataSource):
     def get_schema(self, catalog: str, schema: str, table: str) -> list[Schema]:
         try:
             schema_query = self.get_schema_query(catalog, schema, table)
-            schema_df = self.reader(schema_query).load()
+            schema_df = self.reader(schema_query)
             return [Schema(field.column_name.lower(), field.data_type.lower()) for field in schema_df.collect()]
         except PySparkException as e:
             error_msg = (
@@ -73,4 +73,4 @@ class SnowflakeDataSource(DataSource):
         and lower(table_schema) = '{schema}' order by ordinal_position"""
         return re.sub(r'\s+', ' ', query)
 
-    snowflake_datatype_mapper = {}
+    snowflake_datatype_mapper: dict[str, str] = {}

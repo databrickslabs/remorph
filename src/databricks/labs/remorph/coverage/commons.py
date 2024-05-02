@@ -44,7 +44,7 @@ def write_json_line(file: TextIO, content: ReportEntry):
     file.write("\n")
 
 
-def get_env_var(env_var: str, *, required: bool = False) -> str:
+def get_env_var(env_var: str, *, required: bool = False) -> str | None:
     """
     Get the value of an environment variable.
 

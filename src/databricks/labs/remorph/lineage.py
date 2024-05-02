@@ -21,12 +21,12 @@ def _generate_dot_file_contents(dag: DAG) -> str:
 
 
 def lineage_generator(source: str, input_sql: str, output_folder: str):
-    input_sql = Path(input_sql)
+    input_sql_path = Path(input_sql)
     output_folder = output_folder if output_folder.endswith('/') else output_folder + '/'
 
-    msg = f"Processing for SQLs at this location: {input_sql}"
+    msg = f"Processing for SQLs at this location: {input_sql_path}"
     logger.info(msg)
-    root_table_identifier = RootTableIdentifier(source, input_sql)
+    root_table_identifier = RootTableIdentifier(source, input_sql_path)
     generated_dag = root_table_identifier.generate_lineage()
     lineage_file_content = _generate_dot_file_contents(generated_dag)
 

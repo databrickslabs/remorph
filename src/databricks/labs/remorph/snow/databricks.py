@@ -209,7 +209,7 @@ def _array_construct_compact(self: Databricks.Generator, expression: local_expre
 def _array_slice(self: Databricks.Generator, expression: local_expression.ArraySlice) -> str:
     from_expr = self.sql(expression, "from")
     # In Databricks: array indices start at 1 in function `slice(array, start, length)`
-    from_expr = 1 if from_expr == "0" else from_expr
+    parsed_from_expr = 1 if from_expr == "0" else from_expr
 
     to_expr = self.sql(expression, "to")
     # Convert string expression to number and check if it is negative number
@@ -218,7 +218,7 @@ def _array_slice(self: Databricks.Generator, expression: local_expression.ArrayS
         raise UnsupportedError(err_message)
 
     func = "SLICE"
-    func_expr = self.func(func, expression.this, exp.Literal.number(from_expr), expression.args["to"])
+    func_expr = self.func(func, expression.this, exp.Literal.number(parsed_from_expr), expression.args["to"])
     return func_expr
 
 
