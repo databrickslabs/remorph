@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from dataclasses import dataclass
 
 from pyspark.sql import DataFrame
@@ -94,7 +95,9 @@ class Table:
 
     def get_src_to_tgt_col_mapping(self, cols: list[str] | set[str] | str, layer: str) -> set[str] | str:
         if layer == "source":
-            return cols
+            if isinstance(cols, str):
+                return cols
+            return set(cols)
         if isinstance(cols, list | set):
             columns = set()
             for col in cols:
@@ -165,3 +168,9 @@ class ReconcileOutput:
     missing_in_src: DataFrame
     missing_in_tgt: DataFrame
     mismatch: DataFrame | None = None
+
+
+@dataclass
+class DialectHashConfig:
+    dialect: str
+    algo: list[Callable]
