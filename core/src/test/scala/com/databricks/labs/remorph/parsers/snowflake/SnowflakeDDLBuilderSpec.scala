@@ -16,7 +16,7 @@ class SnowflakeDDLBuilderSpec
 
   override protected def astBuilder: SnowflakeDDLBuilder = new SnowflakeDDLBuilder
 
-  private def example(query: String, expectedAst: Catalog): Assertion = example(query, _.create_command(), expectedAst)
+  private def example(query: String, expectedAst: Catalog): Assertion = example(query, _.ddl_command(), expectedAst)
 
   "SnowflakeCommandBuilder" should {
     "translate Java UDF create command" in {
@@ -174,7 +174,7 @@ class SnowflakeDDLBuilderSpec
         query = "CREATE TABLE s.t1 (x VARCHAR NOT NULL)",
         expectedAst = CreateTableCommand(
           name = "s.t1",
-          columns = Seq(ColumnDeclaration("x", VarCharType(None), None, Seq(NotNull)))))
+          columns = Seq(ColumnDeclaration("x", VarCharType(None), None, Seq(Nullability(false))))))
 
       example(
         query = "CREATE TABLE s.t1 (x VARCHAR PRIMARY KEY)",
@@ -199,9 +199,36 @@ class SnowflakeDDLBuilderSpec
         expectedAst = CreateTableCommand(
           name = "s.t1",
           columns = Seq(
-            ColumnDeclaration("id", VarCharType(None), None, Seq(NotNull, PrimaryKey)),
+            ColumnDeclaration("id", VarCharType(None), None, Seq(Nullability(false), PrimaryKey)),
             ColumnDeclaration("a", VarCharType(Some(32)), None, Seq(Unique, ForeignKey("s.t2.x"))),
             ColumnDeclaration("b", DecimalType(Some(38), None), None, Seq(ForeignKey("s.t2.y"))))))
+    }
+
+    "translate ALTER TABLE commands" in {
+      example(
+        query = "ALTER TABLE s.t1 ADD COLUMN c VARCHAR",
+        expectedAst = AlterTableCommand("s.t1", Seq(AddColumn(ColumnDeclaration("c", VarCharType(None))))))
+
+      example(
+        query = "ALTER TABLE s.t1 ADD CONSTRAINT pk PRIMARY KEY (a, b, c)",
+        expectedAst = AlterTableCommand("s.t1", Seq(
+          AddConstraint("a", PrimaryKey),
+          AddConstraint("b", PrimaryKey),
+          AddConstraint("c", PrimaryKey)
+        )))
+
+      example (
+        query = "ALTER TABLE s.t1 ALTER (COLUMN a TYPE INT)",
+        expectedAst = AlterTableCommand("s.t1", Seq(ChangeColumnDataType("a", DecimalType(Some(38), None))))
+      )
+      example (
+        query = "ALTER TABLE s.t1 ALTER (COLUMN a NOT NULL)",
+        expectedAst = AlterTableCommand("s.t1", Seq(AddConstraint("a", Nullability(false))))
+      )
+      example (
+        query = "ALTER TABLE s.t1 ALTER (COLUMN a DROP NOT NULL)",
+        expectedAst = AlterTableCommand("s.t1", Seq(AddConstraint("a", Nullability(true))))
+      )
     }
 
     "wrap unknown AST in UnresolvedCatalog" in {

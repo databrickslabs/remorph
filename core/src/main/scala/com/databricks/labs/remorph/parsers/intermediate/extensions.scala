@@ -105,7 +105,7 @@ case class CreateInlineUDF(
 
 sealed trait Constraint
 case object Unique extends Constraint
-case object NotNull extends Constraint
+case class Nullability(nullable: Boolean) extends Constraint
 case object PrimaryKey extends Constraint
 case class ForeignKey(references: String) extends Constraint
 case class UnresolvedConstraint(inputText: String) extends Constraint
@@ -121,3 +121,11 @@ case class ColumnDeclaration(
     constraints: Seq[Constraint] = Seq.empty)
 
 case class CreateTableCommand(name: String, columns: Seq[ColumnDeclaration]) extends Catalog {}
+
+sealed trait TableAlteration
+case class AddColumn(columnDeclaration: ColumnDeclaration) extends TableAlteration
+case class AddConstraint(columnName: String, constraint: Constraint) extends TableAlteration
+case class ChangeColumnDataType(columnName: String, newDataType: DataType) extends TableAlteration
+case class UnresolvedTableAlteration(inputText: String) extends TableAlteration
+
+case class AlterTableCommand(tableName: String, alterations: Seq[TableAlteration]) extends Catalog {}

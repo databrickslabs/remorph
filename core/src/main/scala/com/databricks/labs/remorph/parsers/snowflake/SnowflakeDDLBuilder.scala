@@ -2,6 +2,7 @@ package com.databricks.labs.remorph.parsers.snowflake
 
 import com.databricks.labs.remorph.parsers.{IncompleteParser, ParserCommon, intermediate => ir}
 import SnowflakeParser.{StringContext => StrContext, _}
+import com.databricks.labs.remorph.parsers.intermediate.AddColumn
 
 import scala.collection.JavaConverters._
 class SnowflakeDDLBuilder
@@ -113,7 +114,11 @@ class SnowflakeDDLBuilder
     val name = ctx.col_decl().column_name().getText
     val dataType = DataTypeBuilder.buildDataType(ctx.col_decl().data_type())
     val constraints = ctx.inline_constraint().asScala.map(buildInlineConstraint)
-    val nullability = if (ctx.null_not_null().asScala.exists(_.NOT() != null)) Seq(ir.NotNull) else Seq()
+    val nullability = if (ctx.null_not_null().isEmpty) {
+      Seq()
+    } else {
+      Seq(ir.Nullability(!ctx.null_not_null().asScala.exists(_.NOT() != null)))
+    }
     ir.ColumnDeclaration(name, dataType, virtualColumnDeclaration = None, nullability ++ constraints)
   }
 
@@ -140,5 +145,40 @@ class SnowflakeDDLBuilder
       val references = c.object_name().getText + Option(ctx.column_name()).map("." + _.getText).getOrElse("")
       ir.ForeignKey(references)
     case c => ir.UnresolvedConstraint(c.getText)
+  }
+
+  override def visitAlter_table(ctx: Alter_tableContext): ir.Catalog = {
+    val tableName = ctx.object_name(0).getText
+    ctx match {
+      case c if c.table_column_action() != null =>
+        ir.AlterTableCommand(tableName, buildColumnActions(c.table_column_action()))
+      case c if c.constraint_action() != null =>
+        ir.AlterTableCommand(tableName, buildConstraintActions(c.constraint_action()))
+      case c => ir.UnresolvedCatalog(c.getText)
+    }
+  }
+
+  private def buildColumnActions(ctx: Table_column_actionContext): Seq[ir.TableAlteration] = ctx match {
+    case c if c.ADD() != null =>
+      c.full_col_decl().asScala.map(buildColumnDeclaration).map(AddColumn.apply)
+    case c if !c.alter_column_clause().isEmpty =>
+      c.alter_column_clause().asScala.map(buildColumnAlterations)
+    case c => Seq(ir.UnresolvedTableAlteration(c.getText))
+  }
+
+  private def buildConstraintActions(ctx: Constraint_actionContext): Seq[ir.TableAlteration] = ctx match {
+    case c if c.ADD() != null =>
+      buildOutOfLineConstraint(c.out_of_line_constraint()).map(ir.AddConstraint.tupled)
+    case c => Seq(ir.UnresolvedTableAlteration(c.getText))
+  }
+
+  private def buildColumnAlterations(ctx: Alter_column_clauseContext): ir.TableAlteration = {
+    val columnName = ctx.column_name().getText
+    ctx match {
+      case c if c.data_type() != null =>
+        ir.ChangeColumnDataType(columnName, DataTypeBuilder.buildDataType(c.data_type()))
+      case c if c.NOT() != null => ir.AddConstraint(columnName, ir.Nullability(c.DROP() != null))
+      case c => ir.UnresolvedTableAlteration(c.getText)
+    }
   }
 }
