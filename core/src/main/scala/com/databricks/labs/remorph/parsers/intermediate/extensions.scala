@@ -99,6 +99,10 @@ case object NotNull extends Constraint
 case object PrimaryKey extends Constraint
 case class ForeignKey(references: String) extends Constraint
 
+// This, and the above, are likely to change in a not-so-remote future.
+// There's already a CreateTable case defined in catalog.scala but its structure seems too different from
+// the information Snowflake grammar carries.
+// In future changes, we'll have to reconcile this CreateTableCommand with the "Sparkier" CreateTable somehow.
 case class ColumnDeclaration(
     name: String,
     dataType: DataType,
