@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.parsers.tsql
 
-import com.databricks.labs.remorph.parsers.tsql.TSqlParser._
+import com.databricks.labs.remorph.parsers.tsql.TSqlParser.Select_statement_standaloneContext
 import com.databricks.labs.remorph.parsers.{intermediate => ir}
 
 import scala.collection.JavaConverters._
@@ -29,10 +29,10 @@ class TSqlAstBuilder extends TSqlParserBaseVisitor[ir.TreeNode] {
       .select_list_elem()
       .asScala
       .map(_.accept(new TSqlExpressionBuilder))
-    val fromTable = rawExpression.table_sources().accept(new TSqlRelationBuilder)
 
-    ir.Project(fromTable, columnExpression)
-
+    // [TODO]: Handle Where, Group By, Having, Order By, Limit, Offset
+    val tableSources = Option(rawExpression.table_sources())
+      .fold[ir.Relation](ir.NoTable())(_.accept(new TSqlRelationBuilder))
+    ir.Project(tableSources, columnExpression)
   }
-
 }

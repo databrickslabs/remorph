@@ -3892,20 +3892,20 @@ constant_LOCAL_ID
 // https://docs.microsoft.com/en-us/sql/t-sql/language-elements/expressions-transact-sql
 // Operator precendence: https://docs.microsoft.com/en-us/sql/t-sql/language-elements/operator-precedence-transact-sql
 expression
-    : primitive_expression
-    | function_call
-    | expression DOT (value_call | query_call | exist_call | modify_call)
-    | expression DOT hierarchyid_call
-    | expression COLLATE id_
-    | case_expression
-    | full_column_name
-    | bracket_expression
-    | unary_operator_expression
-    | expression op = (STAR | DIV | MOD) expression
-    | expression op = (PLUS | MINUS | BIT_AND | BIT_XOR | BIT_OR | DOUBLE_BAR) expression
-    | expression time_zone
-    | over_clause
-    | DOLLAR_ACTION
+    : primitive_expression #expr_primitive
+    | function_call #expr_func
+    | expression DOT (value_call | query_call | exist_call | modify_call) #expr_dot
+    | expression DOT hierarchyid_call #expr_hierarchyid
+    | expression COLLATE id_ #expr_collate
+    | case_expression #expr_case
+    | full_column_name #expr_full_column
+    | bracket_expression #expr_precedence
+    | unary_operator_expression #expr_unary
+    | expression op = (STAR | DIV | MOD) expression #expr_op_prec_1
+    | expression op = (PLUS | MINUS | BIT_AND | BIT_XOR | BIT_OR | DOUBLE_BAR) expression #expr_op_prec_2
+    | expression time_zone #expr_tz
+    | over_clause #expr_over
+    | DOLLAR_ACTION #expr_dollar
     ;
 
 parameter
@@ -3934,6 +3934,8 @@ unary_operator_expression
     | op = (PLUS | MINUS) expression
     ;
 
+// TODO: This is likely incorrect! Precedence can probably be expressed directly in expression rule
+// and now we need to process this rule explicitly in the visitor.
 bracket_expression
     : LPAREN expression RPAREN
     | LPAREN subquery RPAREN
@@ -4222,8 +4224,17 @@ join_part
     | unpivot
     ;
 
+outer_join
+    : (LEFT | RIGHT | FULL) OUTER?
+    ;
+
+join_type
+    : INNER
+    | outer_join
+    ;
+
 join_on
-    : (inner = INNER? | join_type = (LEFT | RIGHT | FULL) outer = OUTER?) (
+    : join_type? (
         join_hint = (LOOP | HASH | MERGE | REMOTE)
     )? JOIN source = table_source ON cond = search_condition
     ;
