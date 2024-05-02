@@ -3,7 +3,7 @@ from functools import partial
 
 from sqlglot import expressions as exp
 
-from databricks.labs.remorph.reconcile.recon_config import HashAlgoMap
+from databricks.labs.remorph.reconcile.recon_config import DialectHashConfig
 
 
 def _apply_func_expr(expr: exp.Expression, expr_func: Callable, **kwargs) -> exp.Expression:
@@ -225,9 +225,9 @@ DataType_transform_mapping = {
 }
 
 Dialect_hash_algo_mapping = [
-    HashAlgoMap(dialect="snowflake", algo=[partial(sha2, num_bits="256", is_expr=True)]),
-    HashAlgoMap(
+    DialectHashConfig(dialect="snowflake", algo=[partial(sha2, num_bits="256", is_expr=True)]),
+    DialectHashConfig(
         dialect="oracle", algo=[partial(anonymous, func="RAWTOHEX(STANDARD_HASH({}, 'SHA256'))", is_expr=True)]
     ),
-    HashAlgoMap(dialect="databricks", algo=[partial(sha2, num_bits="256", is_expr=True)]),
+    DialectHashConfig(dialect="databricks", algo=[partial(sha2, num_bits="256", is_expr=True)]),
 ]

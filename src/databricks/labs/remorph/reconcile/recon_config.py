@@ -171,6 +171,6 @@ class ReconcileOutput:
 
 
 @dataclass
-class HashAlgoMap:
+class DialectHashConfig:
     dialect: str
     algo: list[Callable]
