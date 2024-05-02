@@ -1,7 +1,7 @@
 from abc import ABC
 
+import sqlglot.expressions as exp
 from sqlglot import parse_one
-from sqlglot.expressions import Alias, Column, Expression
 
 from databricks.labs.remorph.reconcile.query_builder.expression_generator import (
     DataType_transform_mapping,
@@ -35,10 +35,6 @@ class QueryBuilder(ABC):
         return self._table_conf
 
     @property
-    def schema_dict(self) -> dict[str, str]:
-        return {v.column_name: v.data_type for v in self._schema}
-
-    @property
     def select_columns(self) -> set[str]:
         return self.table_conf.get_select_columns(self._schema, self._layer)
 
@@ -66,32 +62,37 @@ class QueryBuilder(ABC):
     def user_transformations(self) -> dict[str, str]:
         return self._table_conf.get_transformation_dict(self._layer)
 
-    @property
-    def table_name(self) -> str:
-        return self._table_conf.source_name if self._layer == "source" else self._table_conf.target_name
+    def add_transformations(self, aliases: list[exp.Alias], source: str) -> list[exp.Alias]:
+        if self.user_transformations:
+            alias_with_user_transforms = self._apply_user_transformation(aliases)
+            default_transform_schema: list[Schema] = list(
+                filter(lambda sch: sch.column_name not in self.user_transformations.keys(), self.schema)
+            )
+            return self._apply_default_transformation(alias_with_user_transforms, default_transform_schema, source)
+        return self._apply_default_transformation(aliases, self.schema, source)
 
-    def apply_user_transformation(self, aliases: list[Alias]) -> list[Alias]:
+    def _apply_user_transformation(self, aliases: list[exp.Alias]) -> list[exp.Alias]:
         with_transform = []
         for alias in aliases:
             with_transform.append(alias.transform(self._user_transformer, self.user_transformations))
         return with_transform
 
     @staticmethod
-    def _user_transformer(node: Expression, user_transformations: dict[str, str]) -> Expression:
-        if isinstance(node, Column) and user_transformations:
+    def _user_transformer(node: exp.Expression, user_transformations: dict[str, str]) -> exp.Expression:
+        if isinstance(node, exp.Column) and user_transformations:
             column_name = node.name
             if column_name in user_transformations.keys():
                 return parse_one(user_transformations.get(column_name))
         return node
 
-    def apply_default_transformation(self, aliases: list[Alias], schema: list[Schema], source) -> list[Alias]:
+    def _apply_default_transformation(self, aliases: list[exp.Alias], schema: list[Schema], source) -> list[exp.Alias]:
         with_transform = []
         for alias in aliases:
             with_transform.append(alias.transform(self._default_transformer, schema, source))
         return with_transform
 
     @staticmethod
-    def _default_transformer(node: Expression, schema: list[Schema], source) -> Expression:
+    def _default_transformer(node: exp.Expression, schema: list[Schema], source) -> exp.Expression:
         def _get_transform(datatype: str):
             if DataType_transform_mapping.get(source) is not None:
                 if DataType_transform_mapping.get(source).get(datatype.upper()) is not None:
@@ -101,7 +102,7 @@ class QueryBuilder(ABC):
             return DataType_transform_mapping.get("default")
 
         schema_dict = {v.column_name: v.data_type for v in schema}
-        if isinstance(node, Column):
+        if isinstance(node, exp.Column):
             column_name = node.name
             if column_name in schema_dict.keys():
                 transform = _get_transform(schema_dict.get(column_name))

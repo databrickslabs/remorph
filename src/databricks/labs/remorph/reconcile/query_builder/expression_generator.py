@@ -3,6 +3,8 @@ from functools import partial
 
 from sqlglot import expressions as exp
 
+from databricks.labs.remorph.reconcile.recon_config import DialectHashConfig
+
 
 def _apply_func_expr(expr: exp.Expression, expr_func: Callable, **kwargs) -> exp.Expression:
     is_terminal = isinstance(expr, exp.Column)
@@ -16,6 +18,22 @@ def _apply_func_expr(expr: exp.Expression, expr_func: Callable, **kwargs) -> exp
                 return func
             node.replace(func)
     return new_expr
+
+
+def concat(expr: list[exp.Expression]) -> exp.Expression:
+    return exp.Concat(expressions=expr, safe=True)
+
+
+def sha2(expr: exp.Expression, num_bits: str, is_expr: bool = False) -> exp.Expression:
+    if is_expr:
+        return exp.SHA2(this=expr, length=exp.Literal(this=num_bits, is_string=False))
+    return _apply_func_expr(expr, exp.SHA2, length=exp.Literal(this=num_bits, is_string=False))
+
+
+def lower(expr: exp.Expression, is_expr: bool = False) -> exp.Expression:
+    if is_expr:
+        return exp.Lower(this=expr)
+    return _apply_func_expr(expr, exp.Lower)
 
 
 def coalesce(expr: exp.Expression, default="0", is_string=False) -> exp.Coalesce | exp.Expression:
@@ -64,7 +82,7 @@ def array_sort(expr: exp.Expression, asc=True):
     return _apply_func_expr(expr, exp.ArraySort, expression=exp.Boolean(this=asc))
 
 
-def anonymous(expr: exp.Column, func: str) -> exp.Anonymous | exp.Expression:
+def anonymous(expr: exp.Column, func: str, is_expr: bool = False) -> exp.Anonymous | exp.Expression:
     """
 
     This function used in cases where the sql functions are not available in sqlGlot expressions
@@ -82,6 +100,8 @@ def anonymous(expr: exp.Column, func: str) -> exp.Anonymous | exp.Expression:
         'SELECT UNIX_TIMESTAMP(col1) FROM DUAL'
 
     """
+    if is_expr:
+        return exp.Column(this=func.format(expr))
     is_terminal = isinstance(expr, exp.Column)
     new_expr = expr.copy()
     for node in new_expr.dfs():
@@ -113,7 +133,8 @@ def build_literal(this: exp.ExpOrStr, alias=None, quoted=False, is_string=True) 
 
 
 def transform_expression(
-    expr: exp.Expression, funcs: list[Callable[[exp.Expression], exp.Expression]]
+    expr: exp.Expression,
+    funcs: list[Callable[[exp.Expression], exp.Expression]],
 ) -> exp.Expression:
     for func in funcs:
         expr = func(expr)
@@ -121,6 +142,13 @@ def transform_expression(
         f"Func returned an instance of type [{type(expr)}], " "should have been Expression."
     )
     return expr
+
+
+def get_hash_transform(source: str):
+    dialect_algo = list(filter(lambda dialect: dialect.dialect == source, Dialect_hash_algo_mapping))
+    if dialect_algo:
+        return dialect_algo[0].algo
+    raise ValueError(f"Source {source} is not supported")
 
 
 def build_from_clause(table_name: str, table_alias: str | None = None) -> exp.From:
@@ -188,10 +216,18 @@ DataType_transform_mapping = {
     "default": [partial(coalesce, default='', is_string=True), trim],
     "snowflake": {exp.DataType.Type.ARRAY.value: [array_to_string, array_sort]},
     "oracle": {
-        exp.DataType.Type.NCHAR.value: [partial(anonymous, func="nvl(trim(to_char({})),'_null_recon_')")],
-        exp.DataType.Type.NVARCHAR.value: [partial(anonymous, func="nvl(trim(to_char({})),'_null_recon_')")],
+        exp.DataType.Type.NCHAR.value: [partial(anonymous, func="NVL(TRIM(TO_CHAR({})),'_null_recon_')")],
+        exp.DataType.Type.NVARCHAR.value: [partial(anonymous, func="NVL(TRIM(TO_CHAR({})),'_null_recon_')")],
     },
     "databricks": {
-        exp.DataType.Type.ARRAY.value: [partial(anonymous, func="concat_ws(',', sort_array({}))")],
+        exp.DataType.Type.ARRAY.value: [partial(anonymous, func="CONCAT_WS(',', SORT_ARRAY({}))")],
     },
 }
+
+Dialect_hash_algo_mapping = [
+    DialectHashConfig(dialect="snowflake", algo=[partial(sha2, num_bits="256", is_expr=True)]),
+    DialectHashConfig(
+        dialect="oracle", algo=[partial(anonymous, func="RAWTOHEX(STANDARD_HASH({}, 'SHA256'))", is_expr=True)]
+    ),
+    DialectHashConfig(dialect="databricks", algo=[partial(sha2, num_bits="256", is_expr=True)]),
+]
