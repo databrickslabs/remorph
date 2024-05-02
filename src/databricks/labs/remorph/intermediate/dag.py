@@ -22,7 +22,7 @@ class Node:
 
 class DAG:
     def __init__(self):
-        self.nodes = {}
+        self.nodes: dict[str, Node] = {}
 
     def add_node(self, node_name: str):
         if node_name not in self.nodes and node_name not in {None, "none"}:
@@ -38,8 +38,8 @@ class DAG:
             self.add_node(child_name)
 
         if child_name is not None:
-            self.nodes[parent_name].add_child(self.nodes[child_name])
-            self.nodes[child_name].add_parent(self.nodes[parent_name])
+            self.nodes[parent_name].add_child(child_name)
+            self.nodes[child_name].add_parent(parent_name)
 
     def identify_immediate_parents(self, table_name: str):
         table_name = table_name.lower()  # convert to lower() case
@@ -47,7 +47,7 @@ class DAG:
             logger.debug(f"Table with the name {table_name} not found in the DAG")
             return []
 
-        return [parent.name for parent in self.nodes[table_name].parents]
+        return [parent for parent in self.nodes[table_name].parents]
 
     def identify_immediate_children(self, table_name: str):
         table_name = table_name.lower()  # convert to lower() case
@@ -55,12 +55,12 @@ class DAG:
             logger.debug(f"Table with the name {table_name} not found in the DAG")
             return []
 
-        return [child.name for child in self.nodes[table_name].children]
+        return [child for child in self.nodes[table_name].children]
 
     def _is_root_node(self, node_name: str) -> bool:
         return len(self.identify_immediate_parents(node_name)) == 0
 
-    def walk_bfs(self, node: str, level: int) -> set:
+    def walk_bfs(self, node: Node, level: int) -> set:
         tables_at_level = set()
         queue = [(node, 0)]  # The queue for the BFS. Each element is a tuple (node, level).
         while queue:

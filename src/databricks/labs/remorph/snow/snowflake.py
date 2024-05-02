@@ -1,7 +1,7 @@
 import copy
 import logging
 import re
-from typing import ClassVar
+from typing import ClassVar, Tuple
 
 from sqlglot import exp
 from sqlglot.dialects.dialect import build_date_delta as parse_date_delta
@@ -221,7 +221,7 @@ class Snow(Snowflake):
 
     class Tokenizer(snowflake.Tokenizer):
 
-        COMMENTS: ClassVar[list[str]] = ["--", "//", ("/*", "*/")]
+        COMMENTS: ClassVar[list[str | Tuple]] = ["--", "//", ("/*", "*/")]
         STRING_ESCAPES: ClassVar[list[str]] = ["\\", "'"]
 
         CUSTOM_TOKEN_MAP: ClassVar[dict] = {
@@ -384,7 +384,7 @@ class Snow(Snowflake):
             TokenType.COLON: lambda self, this, path: self._json_column_op(this, path),
         }
 
-        TIMESTAMPS: ClassVar[dict] = Snowflake.Parser.TIMESTAMPS.copy() - {TokenType.TIME}
+        TIMESTAMPS: set[TokenType] = Snowflake.Parser.TIMESTAMPS.copy() - {TokenType.TIME}
 
         RANGE_PARSERS: ClassVar[dict] = {
             **Snowflake.Parser.RANGE_PARSERS,

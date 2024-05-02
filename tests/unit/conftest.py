@@ -141,7 +141,7 @@ def dialect_context():
 
 
 def parse_sql_files(input_dir: Path, source: str, target: str, is_expected_exception):
-    suite = []
+    suite: list[FunctionalTestFile | FunctionalTestFileWithExpectedException] = []
     for filenames in input_dir.rglob("*.sql"):
         with open(filenames, 'r', encoding="utf-8") as file_content:
             content = file_content.read()

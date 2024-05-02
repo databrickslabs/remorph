@@ -1,5 +1,6 @@
 from collections.abc import Callable
 from functools import partial
+from typing import Type
 
 from sqlglot import expressions as exp
 
@@ -171,7 +172,7 @@ def build_join_clause(
         join_conditions.append(join_condition)
 
     # Combine all join conditions with AND
-    on_condition = join_conditions[0]
+    on_condition: exp.NullSafeEQ | exp.And = join_conditions[0]
     for condition in join_conditions[1:]:
         on_condition = exp.And(this=on_condition, expression=condition)
 
@@ -195,7 +196,7 @@ def build_sub(
 def build_where_clause(where_clause=list[exp.Expression], condition_type: str = "or") -> exp.Or:
     func = exp.Or if condition_type == "or" else exp.And
     # Start with a default
-    combined_expression = exp.Paren(this=func(this='1 = 1', expression='1 = 1'))
+    combined_expression: exp.Paren | Type[exp.Or | exp.And] = exp.Paren(this=func(this='1 = 1', expression='1 = 1'))
 
     # Loop through the expressions and combine them with OR
     for expression in where_clause:

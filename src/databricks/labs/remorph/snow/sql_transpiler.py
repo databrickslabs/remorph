@@ -23,7 +23,7 @@ class SqlglotEngine:
 
         return transpiled_sql, error_list
 
-    def parse(self, sql: str, file_name: str) -> Tuple[list[Expression] | None, ParserError | None]:
+    def parse(self, sql: str, file_name: str) -> Tuple[list[Expression | None] | None, ParserError | None]:
         expression = None
         error = None
         try:

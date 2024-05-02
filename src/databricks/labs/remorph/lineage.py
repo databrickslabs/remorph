@@ -13,7 +13,7 @@ def _generate_dot_file_contents(dag: DAG) -> str:
     for node_name, node in dag.nodes.items():
         if node.parents:
             for parent in node.parents:
-                _lineage_str += f"    {node_name.capitalize()} --> {parent.name.capitalize()}\n"
+                _lineage_str += f"    {node_name.capitalize()} --> {parent.capitalize()}\n"
         else:
             # Include nodes without parents to ensure they appear in the diagram
             _lineage_str += f"    {node_name.capitalize()}\n"

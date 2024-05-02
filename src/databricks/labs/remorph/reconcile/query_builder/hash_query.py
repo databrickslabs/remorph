@@ -16,7 +16,7 @@ class HashQueryBuilder(QueryBuilder):
         key_cols = sorted(self.join_columns | self.partition_column)
 
         cols_with_alias = [
-            build_column(this=col, alias=self.table_conf.get_tgt_to_src_col_mapping(col, self.layer))
+            build_column(this=col, alias=self.table_conf.get_layer_tgt_to_src_col_mapping(col, self.layer))
             for col in key_cols
         ]
 

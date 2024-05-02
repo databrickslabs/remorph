@@ -6,8 +6,8 @@ from databricks.labs.remorph.snow.databricks import Databricks
 from databricks.labs.remorph.snow.snowflake import Snow
 
 if __name__ == "__main__":
-    input_dir = commons.get_env_var("INPUT_DIR", required=True)
-    output_dir = commons.get_env_var("OUTPUT_DIR", required=True)
+    input_dir = commons.get_env_var("INPUT_DIR", required=True) or ""
+    output_dir = commons.get_env_var("OUTPUT_DIR", required=True) or ""
 
     REMORPH_COMMIT_HASH = commons.get_current_commit_hash() or ""  # C0103 pylint
     product_info = ProductInfo(__file__)
