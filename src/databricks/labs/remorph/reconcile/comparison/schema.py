@@ -11,11 +11,11 @@ from databricks.labs.remorph.reconcile.recon_config import Schema, Table
 
 
 @dataclass
-class SchemaCompareMap:
+class SchemaCompareMaster:
     source_column: str
-    source_data_type: str
+    source_datatype: str
     databricks_column: str
-    databricks_data_type: str
+    databricks_datatype: str
     is_valid: bool = True
 
 
@@ -37,7 +37,7 @@ class SchemaCompare:
         self.table_conf = table_conf
         self.spark = spark
 
-    def _build_master(self) -> list[SchemaCompareMap]:
+    def _build_master(self) -> list[SchemaCompareMaster]:
         master_schema = self.source_schema
         if self.table_conf.select_columns:
             master_schema = [s for s in master_schema if s.column_name in self.table_conf.select_columns]
@@ -46,11 +46,11 @@ class SchemaCompare:
 
         target_column_map = self.table_conf.to_src_col_map or {}
         master_schema = [
-            SchemaCompareMap(
+            SchemaCompareMaster(
                 source_column=s.column_name,
-                databricks_column=target_column_map.get(s.column_name, ''),
-                source_data_type=s.data_type,
-                databricks_data_type=next(
+                databricks_column=target_column_map.get(s.column_name, s.column_name),
+                source_datatype=s.data_type,
+                databricks_datatype=next(
                     (
                         tgt.data_type
                         for tgt in self.databricks_schema
@@ -63,14 +63,14 @@ class SchemaCompare:
         ]
         return master_schema
 
-    def _create_dataframe(self, schema_compare_maps: list[SchemaCompareMap]) -> DataFrame:
+    def _create_dataframe(self, schema_compare_master: list[SchemaCompareMaster]) -> DataFrame:
         # Define the schema for the DataFrame
         schema = StructType(
             [
                 StructField("source_column", StringType(), True),
-                StructField("source_data_type", StringType(), True),
+                StructField("source_datatype", StringType(), True),
                 StructField("databricks_column", StringType(), True),
-                StructField("databricks_data_type", StringType(), True),
+                StructField("databricks_datatype", StringType(), True),
                 StructField("is_valid", BooleanType(), True),
             ]
         )
@@ -78,12 +78,12 @@ class SchemaCompare:
         data = [
             (
                 item.source_column,
-                item.source_data_type,
+                item.source_datatype,
                 item.databricks_column,
-                item.databricks_data_type,
+                item.databricks_datatype,
                 item.is_valid,
             )
-            for item in schema_compare_maps
+            for item in schema_compare_master
         ]
         # Create DataFrame
         df = self.spark.createDataFrame(data, schema)
@@ -99,15 +99,15 @@ class SchemaCompare:
         )
 
     @classmethod
-    def _all_valid(cls, schema_compare_maps: list[SchemaCompareMap]) -> str:
+    def _all_valid(cls, schema_compare_maps: list[SchemaCompareMaster]) -> str:
         return "Success" if all(x.is_valid for x in schema_compare_maps) else "Failed"
 
     @classmethod
-    def _validate_parsed_query(cls, master, parsed_query):
-        databricks_query = f"create table dummy ({master.source_column} {master.databricks_data_type})"
+    def _validate_parsed_query(cls, master, parsed_query) -> None:
+        databricks_query = f"create table dummy ({master.source_column} {master.databricks_datatype})"
         logger.info(
             f"""
-        Snowflake datatype: create table dummy ({master.source_column} {master.source_data_type})
+        Snowflake datatype: create table dummy ({master.source_column} {master.source_datatype})
         Parse datatype: {parsed_query}
         Databricks datatype: {databricks_query}
         """
@@ -119,9 +119,9 @@ class SchemaCompare:
         master_schema = self._build_master()
         for master in master_schema:
             if self.source.upper() != SourceType.DATABRICKS.value:
-                parsed_query = self._parse(master.source_column, master.source_data_type)
+                parsed_query = self._parse(master.source_column, master.source_datatype)
                 self._validate_parsed_query(master, parsed_query)
-            elif master.source_data_type.lower() != master.databricks_data_type.lower():
+            elif master.source_datatype.lower() != master.databricks_datatype.lower():
                 master.is_valid = False
 
         df = self._create_dataframe(master_schema)
