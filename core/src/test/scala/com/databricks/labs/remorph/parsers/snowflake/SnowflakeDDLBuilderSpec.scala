@@ -1,16 +1,22 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
-import com.databricks.labs.remorph.parsers.intermediate.{Command, CreateInlineUDF, DecimalType, DoubleType, FunctionParameter, JavaUDFInfo, JavascriptUDFInfo, Literal, PythonUDFInfo, SQLUDFInfo, ScalaUDFInfo, UnparsedType, VarCharType}
-import org.antlr.v4.runtime.tree.ParseTreeVisitor
+import com.databricks.labs.remorph.parsers.intermediate._
+import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser.{Inline_constraintContext, Out_of_line_constraintContext}
+import org.mockito.Mockito._
 import org.scalatest.Assertion
 import org.scalatest.matchers.should
 import org.scalatest.wordspec.AnyWordSpec
+import org.scalatestplus.mockito.MockitoSugar
 
-class SnowflakeDDLBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon with should.Matchers {
+class SnowflakeDDLBuilderSpec
+    extends AnyWordSpec
+    with SnowflakeParserTestCommon
+    with should.Matchers
+    with MockitoSugar {
 
-  override protected def astBuilder: ParseTreeVisitor[_] = new SnowflakeDDLBuilder
+  override protected def astBuilder: SnowflakeDDLBuilder = new SnowflakeDDLBuilder
 
-  private def example(query: String, expectedAst: Command): Assertion = example(query, _.create_command(), expectedAst)
+  private def example(query: String, expectedAst: Catalog): Assertion = example(query, _.create_command(), expectedAst)
 
   "SnowflakeCommandBuilder" should {
     "translate Java UDF create command" in {
@@ -151,5 +157,83 @@ class SnowflakeDDLBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
           comment = Some("multiply two numbers"),
           body = "a * b"))
     }
+
+    "translate CREATE TABLE commands" in {
+      example(
+        query = "CREATE TABLE s.t1 (x VARCHAR)",
+        expectedAst =
+          CreateTableCommand(name = "s.t1", columns = Seq(ColumnDeclaration("x", VarCharType(None), None, Seq()))))
+
+      example(
+        query = "CREATE TABLE s.t1 (x VARCHAR UNIQUE)",
+        expectedAst = CreateTableCommand(
+          name = "s.t1",
+          columns = Seq(ColumnDeclaration("x", VarCharType(None), None, Seq(Unique)))))
+
+      example(
+        query = "CREATE TABLE s.t1 (x VARCHAR NOT NULL)",
+        expectedAst = CreateTableCommand(
+          name = "s.t1",
+          columns = Seq(ColumnDeclaration("x", VarCharType(None), None, Seq(NotNull)))))
+
+      example(
+        query = "CREATE TABLE s.t1 (x VARCHAR PRIMARY KEY)",
+        expectedAst = CreateTableCommand(
+          name = "s.t1",
+          columns = Seq(ColumnDeclaration("x", VarCharType(None), None, Seq(PrimaryKey)))))
+
+      example(
+        query = "CREATE TABLE s.t1 (x VARCHAR UNIQUE FOREIGN KEY REFERENCES s.t2 (y))",
+        expectedAst = CreateTableCommand(
+          name = "s.t1",
+          columns = Seq(ColumnDeclaration("x", VarCharType(None), None, Seq(Unique, ForeignKey("s.t2.y"))))))
+
+      example(
+        query = """CREATE TABLE s.t1 (
+            |  id VARCHAR PRIMARY KEY NOT NULL,
+            |  a VARCHAR(32) UNIQUE,
+            |  b INTEGER,
+            |  CONSTRAINT fkey FOREIGN KEY (a, b) REFERENCES s.t2 (x, y)
+            |)
+            |""".stripMargin,
+        expectedAst = CreateTableCommand(
+          name = "s.t1",
+          columns = Seq(
+            ColumnDeclaration("id", VarCharType(None), None, Seq(NotNull, PrimaryKey)),
+            ColumnDeclaration("a", VarCharType(Some(32)), None, Seq(Unique, ForeignKey("s.t2.x"))),
+            ColumnDeclaration("b", DecimalType(Some(38), None), None, Seq(ForeignKey("s.t2.y"))))))
+    }
+
+    "wrap unknown AST in UnresolvedCatalog" in {
+      astBuilder.visit(parseString("CREATE USER homer", _.create_command())) shouldBe a[UnresolvedCatalog]
+    }
   }
+
+  "SnowflakeDDLBuilder.buildOutOfLineConstraint" should {
+
+    "handle unexpected input" in {
+      val columnList = parseString("(a, b, c)", _.column_list_in_parentheses())
+      val outOfLineConstraint = mock[Out_of_line_constraintContext]
+      when(outOfLineConstraint.column_list_in_parentheses(0)).thenReturn(columnList)
+      val dummyInputTextForOutOfLineConstraint = "dummy"
+      when(outOfLineConstraint.getText).thenReturn(dummyInputTextForOutOfLineConstraint)
+      val result = astBuilder.buildOutOfLineConstraint(outOfLineConstraint)
+      result shouldBe Seq(
+        "a" -> UnresolvedConstraint(dummyInputTextForOutOfLineConstraint),
+        "b" -> UnresolvedConstraint(dummyInputTextForOutOfLineConstraint),
+        "c" -> UnresolvedConstraint(dummyInputTextForOutOfLineConstraint))
+    }
+  }
+
+  "SnowflakeDDLBuilder.buildInlineConstraint" should {
+
+    "handle unexpected input" in {
+      val inlineConstraint = mock[Inline_constraintContext]
+      val dummyInputTextForInlineConstraint = "dummy"
+      when(inlineConstraint.getText).thenReturn(dummyInputTextForInlineConstraint)
+      val result = astBuilder.buildInlineConstraint(inlineConstraint)
+      result shouldBe UnresolvedConstraint(dummyInputTextForInlineConstraint)
+    }
+  }
+
 }
