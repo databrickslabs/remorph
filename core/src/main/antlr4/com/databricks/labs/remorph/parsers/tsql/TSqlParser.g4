@@ -5280,7 +5280,9 @@ constant
 primitive_constant
     : STRING // string, datetime or uniqueidentifier
     | HEX
-    | (INT | REAL | FLOAT)                    // float or decimal
+    | INT
+    | REAL
+    | FLOAT
     | DOLLAR (MINUS | PLUS)? (INT | FLOAT) // money
     | parameter
     ;
