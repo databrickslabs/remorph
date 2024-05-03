@@ -105,3 +105,157 @@ def schema():
 @pytest.fixture
 def expr():
     return parse_one("SELECT col1 FROM DUAL")
+
+
+@pytest.fixture
+def snowflake_databricks_schema():
+    src_schema = [
+        Schema("col_boolean", "boolean"),
+        Schema("col_char", "varchar(1)"),
+        Schema("col_varchar", "varchar(16777216)"),
+        Schema("col_string", "varchar(16777216)"),
+        Schema("col_text", "varchar(16777216)"),
+        Schema("col_binary", "binary(8388608)"),
+        Schema("col_varbinary", "binary(8388608)"),
+        Schema("col_int", "number(38,0)"),
+        Schema("col_bigint", "number(38,0)"),
+        Schema("col_smallint", "number(38,0)"),
+        Schema("col_float", "float"),
+        Schema("col_float4", "float"),
+        Schema("col_double", "float"),
+        Schema("col_real", "float"),
+        Schema("col_date", "date"),
+        Schema("col_time", "time(9)"),
+        Schema("col_timestamp", "timestamp_ntz(9)"),
+        Schema("col_timestamp_ltz", "timestamp_ltz(9)"),
+        Schema("col_timestamp_ntz", "timestamp_ntz(9)"),
+        Schema("col_timestamp_tz", "timestamp_tz(9)"),
+        Schema("col_variant", "variant"),
+        Schema("col_object", "object"),
+        Schema("col_array", "array"),
+        Schema("col_geography", "geography"),
+        Schema("col_num10", "number(10,1)"),
+        Schema("col_dec", "number(20,2)"),
+        Schema("col_numeric_2", "numeric(38,0)"),
+        Schema("dummy", "string"),
+    ]
+    tgt_schema = [
+        Schema("col_boolean", "boolean"),
+        Schema("char", "string"),
+        Schema("col_varchar", "string"),
+        Schema("col_string", "string"),
+        Schema("col_text", "string"),
+        Schema("col_binary", "binary"),
+        Schema("col_varbinary", "binary"),
+        Schema("col_int", "decimal(38,0)"),
+        Schema("col_bigint", "decimal(38,0)"),
+        Schema("col_smallint", "decimal(38,0)"),
+        Schema("col_float", "double"),
+        Schema("col_float4", "double"),
+        Schema("col_double", "double"),
+        Schema("col_real", "double"),
+        Schema("col_date", "date"),
+        Schema("col_time", "timestamp"),
+        Schema("col_timestamp", "timestamp"),
+        Schema("col_timestamp_ltz", "timestamp"),
+        Schema("col_timestamp_ntz", "timestamp_ntz"),
+        Schema("col_timestamp_tz", "timestamp"),
+        Schema("col_variant", "string"),
+        Schema("col_object", "string"),
+        Schema("array_col", "array<string>"),
+        Schema("col_geography", "string"),
+        Schema("col_num10", "decimal(10,1)"),
+        Schema("col_dec", "decimal(20,1)"),
+        Schema("col_numeric_2", "decimal(38,0)"),
+    ]
+    return src_schema, tgt_schema
+
+
+@pytest.fixture
+def databricks_databricks_schema():
+    src_schema = [
+        Schema("col_boolean", "boolean"),
+        Schema("col_char", "string"),
+        Schema("col_int", "int"),
+        Schema("col_string", "string"),
+        Schema("col_bigint", "bigint"),
+        Schema("col_num10", "decimal(10,1)"),
+        Schema("col_dec", "decimal(20,2)"),
+        Schema("col_numeric_2", "decimal(38,0)"),
+        Schema("dummy", "string"),
+    ]
+    tgt_schema = [
+        Schema("col_boolean", "boolean"),
+        Schema("char", "string"),
+        Schema("col_int", "int"),
+        Schema("col_string", "string"),
+        Schema("col_bigint", "int"),
+        Schema("col_num10", "decimal(10,1)"),
+        Schema("col_dec", "decimal(20,1)"),
+        Schema("col_numeric_2", "decimal(38,0)"),
+    ]
+    return src_schema, tgt_schema
+
+
+@pytest.fixture
+def oracle_databricks_schema():
+    src_schema = [
+        Schema("col_xmltype", "xmltype"),
+        Schema("col_char", "char(1)"),
+        Schema("col_nchar", "nchar(255)"),
+        Schema("col_varchar", "varchar2(255)"),
+        Schema("col_varchar2", "varchar2(255)"),
+        Schema("col_nvarchar", "nvarchar2(255)"),
+        Schema("col_nvarchar2", "nvarchar2(255)"),
+        Schema("col_character", "char(255)"),
+        Schema("col_clob", "clob"),
+        Schema("col_nclob", "nclob"),
+        Schema("col_long", "long"),
+        Schema("col_number", "number(10,2)"),
+        Schema("col_float", "float"),
+        Schema("col_binary_float", "binary_float"),
+        Schema("col_binary_double", "binary_double"),
+        Schema("col_date", "date"),
+        Schema("col_timestamp", "timestamp(6)"),
+        Schema("col_time_with_tz", "timestamp(6) with time zone"),
+        Schema("col_timestamp_with_tz", "timestamp(6) with time zone"),
+        Schema("col_timestamp_with_local_tz", "timestamp(6) with local time zone"),
+        Schema("col_blob", "blob"),
+        Schema("col_rowid", "rowid"),
+        Schema("col_urowid", "urowid"),
+        Schema("col_anytype", "anytype"),
+        Schema("col_anydata", "anydata"),
+        Schema("col_anydataset", "anydataset"),
+        Schema("dummy", "string"),
+    ]
+
+    tgt_schema = [
+        Schema("col_xmltype", "string"),
+        Schema("char", "string"),
+        Schema("col_nchar", "string"),
+        Schema("col_varchar", "string"),
+        Schema("col_varchar2", "string"),
+        Schema("col_nvarchar", "string"),
+        Schema("col_nvarchar2", "string"),
+        Schema("col_character", "string"),
+        Schema("col_clob", "string"),
+        Schema("col_nclob", "string"),
+        Schema("col_long", "string"),
+        Schema("col_number", "DECIMAL(10,2)"),
+        Schema("col_float", "double"),
+        Schema("col_binary_float", "double"),
+        Schema("col_binary_double", "double"),
+        Schema("col_date", "date"),
+        Schema("col_timestamp", "timestamp"),
+        Schema("col_time_with_tz", "timestamp"),
+        Schema("col_timestamp_with_tz", "timestamp"),
+        Schema("col_timestamp_with_local_tz", "timestamp"),
+        Schema("col_blob", "binary"),
+        Schema("col_rowid", "string"),
+        Schema("col_urowid", "string"),
+        Schema("col_anytype", "string"),
+        Schema("col_anydata", "string"),
+        Schema("col_anydataset", "string"),
+    ]
+
+    return src_schema, tgt_schema
