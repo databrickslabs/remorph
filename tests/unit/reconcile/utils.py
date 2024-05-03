@@ -2,7 +2,7 @@ from pyspark import Row
 from pyspark.testing import assertDataFrameEqual
 
 from databricks.labs.remorph.reconcile.recon_config import ReconcileOutput
-from databricks.labs.remorph.reconcile.data_reconciler import DataReconciler
+from databricks.labs.remorph.reconcile.utils import reconcile_data, capture_mismatch_data_and_cols
 
 
 def test_compare_data_for_report_all(mock_spark_session):
@@ -31,7 +31,7 @@ def test_compare_data_for_report_all(mock_spark_session):
         [Row(s_suppkey=3, s_nationkey=33), Row(s_suppkey=5, s_nationkey=55)]
     )
 
-    actual = DataReconciler().compare_data(
+    actual = reconcile_data(
         source=source, target=target, join_cols=["s_suppkey", "s_nationkey"], report_type="all"
     )
     expected = ReconcileOutput(missing_in_src=missing_in_src, missing_in_tgt=missing_in_tgt, mismatch=mismatch)
@@ -66,7 +66,7 @@ def test_compare_data_for_report_hash(mock_spark_session):
         [Row(s_suppkey=2, s_nationkey=22), Row(s_suppkey=3, s_nationkey=33), Row(s_suppkey=5, s_nationkey=55)]
     )
 
-    actual = DataReconciler().compare_data(
+    actual = reconcile_data(
         source=source, target=target, join_cols=["s_suppkey", "s_nationkey"], report_type="hash"
     )
     expected = ReconcileOutput(missing_in_src=missing_in_src, missing_in_tgt=missing_in_tgt, mismatch=None)
@@ -74,3 +74,41 @@ def test_compare_data_for_report_hash(mock_spark_session):
     assert actual.mismatch == expected.mismatch
     assertDataFrameEqual(actual.missing_in_src, expected.missing_in_src)
     assertDataFrameEqual(actual.missing_in_tgt, expected.missing_in_tgt)
+
+
+def test_capture_mismatch_data_and_cols(mock_spark_session):
+    source = mock_spark_session.createDataFrame(
+        [
+            Row(s_suppkey=1, s_nationkey=11, s_name='supp-1', s_address='a-1', s_phone='ph-1', s_acctbal=100),
+            Row(s_suppkey=2, s_nationkey=22, s_name='supp-22', s_address='a-2', s_phone='ph-2', s_acctbal=200),
+            Row(s_suppkey=3, s_nationkey=33, s_name='supp-3', s_address='a-3', s_phone='ph-3', s_acctbal=300),
+            Row(s_suppkey=5, s_nationkey=55, s_name='supp-5', s_address='a-5', s_phone='ph-5', s_acctbal=400),
+        ]
+    )
+    target = mock_spark_session.createDataFrame(
+        [
+            Row(s_suppkey=1, s_nationkey=11, s_name='supp-1', s_address='a-1', s_phone='ph-1', s_acctbal=100),
+            Row(s_suppkey=2, s_nationkey=22, s_name='supp-2', s_address='a-2', s_phone='ph-2', s_acctbal=2000),
+            Row(s_suppkey=3, s_nationkey=33, s_name='supp-33', s_address='a-3', s_phone='ph-3', s_acctbal=300),
+            Row(s_suppkey=4, s_nationkey=44, s_name='supp-4', s_address='a-4', s_phone='ph-4', s_acctbal=400),
+        ]
+    )
+
+    actual_df, actual_cols = capture_mismatch_data_and_cols(source=source, target=target,
+                                                            join_cols=["s_suppkey", "s_nationkey"])
+
+    expected_df = mock_spark_session.createDataFrame([
+        Row(s_suppkey=2, s_nationkey=22, s_acctbal_base=200, s_acctbal_compare=2000, s_acctbal_match=False,
+            s_address_base='a-2',
+            s_address_compare='a-2', s_address_match=True, s_name_base='supp-22', s_name_compare='supp-2',
+            s_name_match=False, s_phone_base='ph-2',
+            s_phone_compare='ph-2', s_phone_match=True),
+        Row(s_suppkey=3, s_nationkey=33, s_acctbal_base=300, s_acctbal_compare=300, s_acctbal_match=True,
+            s_address_base='a-3',
+            s_address_compare='a-3', s_address_match=True, s_name_base='supp-3', s_name_compare='supp-33',
+            s_name_match=False, s_phone_base='ph-3',
+            s_phone_compare='ph-3', s_phone_match=True)
+    ])
+
+    assertDataFrameEqual(actual_df, expected_df)
+    assert sorted(actual_cols) == ['s_acctbal', 's_name']
