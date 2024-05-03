@@ -100,6 +100,14 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
             Literal(integer = Some(7))),
           Literal(integer = Some(66))))
       example(
+        "1 + -2 * 3 + 7 + ~66",
+        _.expression(),
+        Add(
+          Add(
+            Add(Literal(integer = Some(1)), Multiply(UMinus(Literal(integer = Some(2))), Literal(integer = Some(3)))),
+            Literal(integer = Some(7))),
+          BitwiseNot(Literal(integer = Some(66)))))
+      example(
         "1 + -2 * 3 + 7 | 1980 || 'leeds1' || 'leeds2' || 'leeds3'",
         _.expression(),
         Concat(
