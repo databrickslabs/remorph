@@ -27,11 +27,28 @@ class TSqlExpressionBuilder
     ctx.expression().accept(this)
   }
 
+  override def visitExpr_bit_not(ctx: Expr_bit_notContext): ir.Expression = {
+    ir.BitwiseNot(ctx.expression().accept(this))
+  }
+
+  override def visitExpr_unary(ctx: Expr_unaryContext): ir.Expression = ctx.op.getType() match {
+    case MINUS => ir.UMinus(ctx.expression().accept(this))
+    case PLUS => ir.UPlus(ctx.expression().accept(this))
+  }
+
   override def visitExpr_op_prec_1(ctx: Expr_op_prec_1Context): ir.Expression = {
     buildBinaryExpression(ctx.expression(0).accept(this), ctx.expression(1).accept(this), ctx.op)
   }
 
   override def visitExpr_op_prec_2(ctx: Expr_op_prec_2Context): ir.Expression = {
+    buildBinaryExpression(ctx.expression(0).accept(this), ctx.expression(1).accept(this), ctx.op)
+  }
+
+  override def visitExpr_op_prec_3(ctx: Expr_op_prec_3Context): ir.Expression = {
+    buildBinaryExpression(ctx.expression(0).accept(this), ctx.expression(1).accept(this), ctx.op)
+  }
+
+  override def visitExpr_op_prec_4(ctx: Expr_op_prec_4Context): ir.Expression = {
     buildBinaryExpression(ctx.expression(0).accept(this), ctx.expression(1).accept(this), ctx.op)
   }
 
@@ -66,6 +83,7 @@ class TSqlExpressionBuilder
       case PLUS => ir.Add(left, right)
       case MINUS => ir.Subtract(left, right)
       case BIT_AND => ir.BitwiseAnd(left, right)
+      case BIT_NOT => ir.BitwiseAnd(left, right)
       case BIT_XOR => ir.BitwiseXor(left, right)
       case BIT_OR => ir.BitwiseOr(left, right)
       case DOUBLE_BAR => ir.Concat(left, right)

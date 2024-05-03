@@ -54,14 +54,24 @@ case class UnresolvedOperator(unparsed_target: String) extends Expression {}
 
 // TODO: TSQL grammar has a number of operators not yet supported - add them here, if not already supported
 
-// Arithmetic expressions
+// Operators, in order of precedence
+
+// Bitwise NOT is highest precedence after parens '(' ')'
+case class BitwiseNot(expression: Expression) extends Unary(expression) {}
+
+// Unary arithmetic expressions
+case class UMinus(expression: Expression) extends Unary(expression) {}
+case class UPlus(expression: Expression) extends Unary(expression) {}
+
+// Binary Arithmetic expressions
 case class Multiply(left: Expression, right: Expression) extends Binary(left, right) {}
 case class Divide(left: Expression, right: Expression) extends Binary(left, right) {}
 case class Mod(left: Expression, right: Expression) extends Binary(left, right) {}
+
 case class Add(left: Expression, right: Expression) extends Binary(left, right) {}
 case class Subtract(left: Expression, right: Expression) extends Binary(left, right) {}
 
-// Binary bitwise expressions
+// Binary bitwise expressions and con
 case class BitwiseAnd(left: Expression, right: Expression) extends Binary(left, right) {}
 case class BitwiseOr(left: Expression, right: Expression) extends Binary(left, right) {}
 case class BitwiseXor(left: Expression, right: Expression) extends Binary(left, right) {}
