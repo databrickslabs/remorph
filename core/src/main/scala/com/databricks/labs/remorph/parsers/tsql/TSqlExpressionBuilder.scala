@@ -21,20 +21,47 @@ class TSqlExpressionBuilder
     Column(ctx.id_.getText)
   }
 
-  // This is merely a placeholder until the grammar can be fixed. It ensures that the
-  // precedence expression is correctly handled
-  override def visitBracket_expression(ctx: Bracket_expressionContext): ir.Expression = {
-    ctx.expression().accept(this)
+  /**
+   * Expression precedence as defined by parenthesis
+   *
+   * @param ctx
+   *   the Expr_precedenceContext to visit, which contains the expression to which precedence is applied
+   * @return
+   *   the visited expression
+   *
+   * Note that precedence is explicitly placed in the AST as if we wish to construct source code from the AST, we need
+   * to know that the () were there, and they would otherwise be elided and the generated code would be incorrect.
+   * Without the Precedence marker, code such as:
+   *
+   * <code>( 1 + 2 ) * 3 -> Multiply(Add(Literal(1), Literal(2)), Literal(3))</code>
+   *
+   * And without doing cumbersome detection in the AST, the translated code would be:
+   *
+   * <code>1 + 2 * 3</code>
+   *
+   * It now builds the AST as:
+   *
+   * <code>( 1 + 2 ) * 3 -> Multiply(Precedence(Add(Literal(1), Literal(2))), Literal(3))</code>
+   *
+   * The AST walker can now correctly generate the code:
+   *
+   * <code>( 1 + 2 ) * 3</code>
+   *
+   * Without any complicated logic to detect the need for parentheses.
+   */
+  override def visitExpr_precedence(ctx: Expr_precedenceContext): ir.Expression = {
+    ir.Precedence(ctx.expression().accept(this))
   }
 
   override def visitExpr_bit_not(ctx: Expr_bit_notContext): ir.Expression = {
     ir.BitwiseNot(ctx.expression().accept(this))
   }
 
+  // Note that while we could evaluate the unary expression if it is a numeric
+  // constant, it is usually better to be explicit about the unary operation as
+  // if people use -+-42 then maybe they have a reason.
   override def visitExpr_unary(ctx: Expr_unaryContext): ir.Expression = ctx.op.getType match {
-    // Note that while we could evaluate the unary expression if it is a numeric
-    // constant, it is usually better to be explicit about the unary operation as
-    // if people use -+-42 then maybe they have a reason.
+
     case MINUS => ir.UMinus(ctx.expression().accept(this))
     case PLUS => ir.UPlus(ctx.expression().accept(this))
   }
