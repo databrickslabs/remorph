@@ -1,14 +1,20 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
 import com.databricks.labs.remorph.parsers.intermediate._
-import org.antlr.v4.runtime.tree.ParseTreeVisitor
+import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser.{Inline_constraintContext, Out_of_line_constraintContext}
+import org.mockito.Mockito._
 import org.scalatest.Assertion
 import org.scalatest.matchers.should
 import org.scalatest.wordspec.AnyWordSpec
+import org.scalatestplus.mockito.MockitoSugar
 
-class SnowflakeDDLBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon with should.Matchers {
+class SnowflakeDDLBuilderSpec
+    extends AnyWordSpec
+    with SnowflakeParserTestCommon
+    with should.Matchers
+    with MockitoSugar {
 
-  override protected def astBuilder: ParseTreeVisitor[_] = new SnowflakeDDLBuilder
+  override protected def astBuilder: SnowflakeDDLBuilder = new SnowflakeDDLBuilder
 
   private def example(query: String, expectedAst: Catalog): Assertion = example(query, _.create_command(), expectedAst)
 
@@ -197,5 +203,37 @@ class SnowflakeDDLBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
             ColumnDeclaration("a", VarCharType(Some(32)), None, Seq(Unique, ForeignKey("s.t2.x"))),
             ColumnDeclaration("b", DecimalType(Some(38), None), None, Seq(ForeignKey("s.t2.y"))))))
     }
+
+    "wrap unknown AST in UnresolvedCatalog" in {
+      astBuilder.visit(parseString("CREATE USER homer", _.create_command())) shouldBe a[UnresolvedCatalog]
+    }
   }
+
+  "SnowflakeDDLBuilder.buildOutOfLineConstraint" should {
+
+    "handle unexpected input" in {
+      val columnList = parseString("(a, b, c)", _.column_list_in_parentheses())
+      val outOfLineConstraint = mock[Out_of_line_constraintContext]
+      when(outOfLineConstraint.column_list_in_parentheses(0)).thenReturn(columnList)
+      val dummyInputTextForOutOfLineConstraint = "dummy"
+      when(outOfLineConstraint.getText).thenReturn(dummyInputTextForOutOfLineConstraint)
+      val result = astBuilder.buildOutOfLineConstraint(outOfLineConstraint)
+      result shouldBe Seq(
+        "a" -> UnresolvedConstraint(dummyInputTextForOutOfLineConstraint),
+        "b" -> UnresolvedConstraint(dummyInputTextForOutOfLineConstraint),
+        "c" -> UnresolvedConstraint(dummyInputTextForOutOfLineConstraint))
+    }
+  }
+
+  "SnowflakeDDLBuilder.buildInlineConstraint" should {
+
+    "handle unexpected input" in {
+      val inlineConstraint = mock[Inline_constraintContext]
+      val dummyInputTextForInlineConstraint = "dummy"
+      when(inlineConstraint.getText).thenReturn(dummyInputTextForInlineConstraint)
+      val result = astBuilder.buildInlineConstraint(inlineConstraint)
+      result shouldBe UnresolvedConstraint(dummyInputTextForInlineConstraint)
+    }
+  }
+
 }
