@@ -200,8 +200,16 @@ class SnowflakeDDLBuilderSpec
           name = "s.t1",
           columns = Seq(
             ColumnDeclaration("id", VarCharType(None), None, Seq(Nullability(false), PrimaryKey)),
-            ColumnDeclaration("a", VarCharType(Some(32)), None, Seq(Unique, ForeignKey("s.t2.x"))),
-            ColumnDeclaration("b", DecimalType(Some(38), None), None, Seq(ForeignKey("s.t2.y"))))))
+            ColumnDeclaration(
+              "a",
+              VarCharType(Some(32)),
+              None,
+              Seq(Unique, NamedConstraint("fkey", ForeignKey("s.t2.x")))),
+            ColumnDeclaration(
+              "b",
+              DecimalType(Some(38), None),
+              None,
+              Seq(NamedConstraint("fkey", ForeignKey("s.t2.y")))))))
     }
 
     "translate ALTER TABLE commands" in {
@@ -211,24 +219,22 @@ class SnowflakeDDLBuilderSpec
 
       example(
         query = "ALTER TABLE s.t1 ADD CONSTRAINT pk PRIMARY KEY (a, b, c)",
-        expectedAst = AlterTableCommand("s.t1", Seq(
-          AddConstraint("a", PrimaryKey),
-          AddConstraint("b", PrimaryKey),
-          AddConstraint("c", PrimaryKey)
-        )))
+        expectedAst = AlterTableCommand(
+          "s.t1",
+          Seq(
+            AddConstraint("a", NamedConstraint("pk", PrimaryKey)),
+            AddConstraint("b", NamedConstraint("pk", PrimaryKey)),
+            AddConstraint("c", NamedConstraint("pk", PrimaryKey)))))
 
-      example (
+      example(
         query = "ALTER TABLE s.t1 ALTER (COLUMN a TYPE INT)",
-        expectedAst = AlterTableCommand("s.t1", Seq(ChangeColumnDataType("a", DecimalType(Some(38), None))))
-      )
-      example (
+        expectedAst = AlterTableCommand("s.t1", Seq(ChangeColumnDataType("a", DecimalType(Some(38), None)))))
+      example(
         query = "ALTER TABLE s.t1 ALTER (COLUMN a NOT NULL)",
-        expectedAst = AlterTableCommand("s.t1", Seq(AddConstraint("a", Nullability(false))))
-      )
-      example (
+        expectedAst = AlterTableCommand("s.t1", Seq(AddConstraint("a", Nullability(false)))))
+      example(
         query = "ALTER TABLE s.t1 ALTER (COLUMN a DROP NOT NULL)",
-        expectedAst = AlterTableCommand("s.t1", Seq(AddConstraint("a", Nullability(true))))
-      )
+        expectedAst = AlterTableCommand("s.t1", Seq(AddConstraint("a", Nullability(true)))))
     }
 
     "wrap unknown AST in UnresolvedCatalog" in {

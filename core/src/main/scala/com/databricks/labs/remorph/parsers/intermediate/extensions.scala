@@ -104,11 +104,13 @@ case class CreateInlineUDF(
     extends Catalog {}
 
 sealed trait Constraint
-case object Unique extends Constraint
-case class Nullability(nullable: Boolean) extends Constraint
-case object PrimaryKey extends Constraint
-case class ForeignKey(references: String) extends Constraint
-case class UnresolvedConstraint(inputText: String) extends Constraint
+sealed trait UnnamedConstraint extends Constraint
+case object Unique extends UnnamedConstraint
+case class Nullability(nullable: Boolean) extends UnnamedConstraint
+case object PrimaryKey extends UnnamedConstraint
+case class ForeignKey(references: String) extends UnnamedConstraint
+case class NamedConstraint(name: String, constraint: UnnamedConstraint) extends Constraint
+case class UnresolvedConstraint(inputText: String) extends UnnamedConstraint
 
 // This, and the above, are likely to change in a not-so-remote future.
 // There's already a CreateTable case defined in catalog.scala but its structure seems too different from
