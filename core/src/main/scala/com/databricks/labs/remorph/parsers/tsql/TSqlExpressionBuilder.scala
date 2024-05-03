@@ -32,7 +32,7 @@ class TSqlExpressionBuilder
    * Note that precedence COULD be explicitly placed in the AST here. If we wish to construct an exact replication of
    * expression source code from the AST, we need to know that the () were there. Redundant parens are otherwise elided
    * and the generated code may seem to be incorrect in the eyes of the customer, even though it will be logically
-   * equivalent. redundant parentheses.
+   * equivalent.
    */
   override def visitExpr_precedence(ctx: Expr_precedenceContext): ir.Expression = {
     ctx.expression().accept(this)
