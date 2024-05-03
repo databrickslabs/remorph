@@ -119,15 +119,16 @@ class SnowflakeDDLBuilder
 
   private def buildOutOfLineConstraint(ctx: Out_of_line_constraintContext): Seq[(String, ir.Constraint)] = {
     val columnNames = ctx.column_list_in_parentheses(0).column_list().column_name().asScala.map(_.getText)
+    val repeatForEveryColumnName = List.fill[ir.Constraint](columnNames.size)(_)
     val constraints = ctx match {
-      case c if c.UNIQUE() != null => List.fill(columnNames.size)(ir.Unique)
-      case c if c.primary_key() != null => List.fill(columnNames.size)(ir.PrimaryKey)
+      case c if c.UNIQUE() != null => repeatForEveryColumnName(ir.Unique)
+      case c if c.primary_key() != null => repeatForEveryColumnName(ir.PrimaryKey)
       case c if c.foreign_key() != null =>
         val referencedObject = c.object_name().getText
         val references =
           c.column_list_in_parentheses(1).column_list().column_name().asScala.map(referencedObject + "." + _.getText)
         references.map(ir.ForeignKey.apply)
-      case c => List.fill(columnNames.size)(ir.UnresolvedConstraint(c.getText))
+      case c => repeatForEveryColumnName(ir.UnresolvedConstraint(c.getText))
     }
     columnNames.zip(constraints)
   }
