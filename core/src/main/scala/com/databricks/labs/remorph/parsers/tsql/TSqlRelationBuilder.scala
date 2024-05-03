@@ -9,38 +9,38 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.Relation] with Incomp
 
   protected override def wrapUnresolvedInput(unparsedInput: String): ir.Relation = ir.UnresolvedRelation(unparsedInput)
 
-  override def visitTable_source_item(ctx: Table_source_itemContext): ir.Relation = {
-    val table = ctx.full_table_name().getText
-    // [TODO]: Handle Table Alias ctx.table_alias().getText
+  override def visitTableSourceItem(ctx: TableSourceItemContext): ir.Relation = {
+    val table = ctx.fullTableName().getText
+    // [TODO]: Handle Table Alias ctx.tableAlias().getText
     ir.NamedTable(table, Map.empty, is_streaming = false)
   }
 
-  override def visitTable_source(ctx: Table_sourceContext): ir.Relation = {
-    val left = ctx.table_source_item().accept(this)
-    // [TODO]: Handle Table Alias ctx.table_alias().getText
+  override def visitTableSource(ctx: TableSourceContext): ir.Relation = {
+    val left = ctx.tableSourceItem().accept(this)
+    // [TODO]: Handle Table Alias ctx.tableAlias().getText
     ctx match {
-      case c if c.join_part() != null => c.join_part().asScala.foldLeft(left)(buildJoin)
+      case c if c.joinPart() != null => c.joinPart().asScala.foldLeft(left)(buildJoin)
     }
   }
 
-  private def translateJoinType(ctx: Join_onContext): ir.JoinType = {
-    val joinType = ctx.join_type()
-    if (joinType == null || joinType.outer_join() == null || joinType.INNER() != null) {
+  private def translateJoinType(ctx: JoinOnContext): ir.JoinType = {
+    val joinType = ctx.joinType()
+    if (joinType == null || joinType.outerJoin() == null || joinType.INNER() != null) {
       ir.InnerJoin
-    } else if (joinType.outer_join().LEFT() != null) {
+    } else if (joinType.outerJoin().LEFT() != null) {
       ir.LeftOuterJoin
-    } else if (joinType.outer_join().RIGHT() != null) {
+    } else if (joinType.outerJoin().RIGHT() != null) {
       ir.RightOuterJoin
-    } else if (joinType.outer_join().FULL() != null) {
+    } else if (joinType.outerJoin().FULL() != null) {
       ir.FullOuterJoin
     } else {
       ir.UnspecifiedJoin
     }
   }
-  private def buildJoin(left: ir.Relation, right: Join_partContext): ir.Join = {
-    val joinExpression = right.join_on()
-    val rightRelation = joinExpression.table_source().accept(this)
-    val joinCondition = joinExpression.search_condition().accept(new TSqlExpressionBuilder)
+  private def buildJoin(left: ir.Relation, right: JoinPartContext): ir.Join = {
+    val joinExpression = right.joinOn()
+    val rightRelation = joinExpression.tableSource().accept(this)
+    val joinCondition = joinExpression.searchCondition().accept(new TSqlExpressionBuilder)
 
     ir.Join(
       left,
@@ -50,5 +50,4 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.Relation] with Incomp
       Seq(),
       ir.JoinDataType(is_left_struct = false, is_right_struct = false))
   }
-
 }

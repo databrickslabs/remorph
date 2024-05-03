@@ -11,7 +11,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
   override protected def astBuilder: TSqlParserBaseVisitor[_] = new TSqlAstBuilder
 
   private def example(query: String, expectedAst: TreeNode): Assertion =
-    example(query, _.tsql_file(), expectedAst)
+    example(query, _.tsqlFile(), expectedAst)
 
   "tsql visitor" should {
     "translate a simple SELECT query" in {
@@ -37,12 +37,12 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
       val joinCondition = And(Equals(Column("A"), Column("A")), Equals(Column("B"), Column("B")))
 
       val joinAst = Join(
-        NamedTable("DBO.TABLE_X", Map(), false),
-        NamedTable("DBO.TABLE_Y", Map(), false),
+        NamedTable("DBO.TABLE_X", Map(), is_streaming = false),
+        NamedTable("DBO.TABLE_Y", Map(), is_streaming = false),
         Some(joinCondition),
         InnerJoin,
         Seq(),
-        JoinDataType(false, false))
+        JoinDataType(is_left_struct = false, is_right_struct = false))
 
       example(
         query = "SELECT T1.A, T2.B FROM DBO.TABLE_X AS T1 INNER JOIN DBO.TABLE_Y AS T2 ON T1.A = T2.A AND T1.B = T2.B",
@@ -54,20 +54,20 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
       val joinConditionZ = And(Equals(Column("A"), Column("A")), Equals(Column("B"), Column("B")))
 
       val joinFirstAst = Join(
-        NamedTable("DBO.TABLE_X", Map(), false),
-        NamedTable("DBO.TABLE_Y", Map(), false),
+        NamedTable("DBO.TABLE_X", Map(), is_streaming = false),
+        NamedTable("DBO.TABLE_Y", Map(), is_streaming = false),
         Some(joinConditionX),
         InnerJoin,
         Seq(),
-        JoinDataType(false, false))
+        JoinDataType(is_left_struct = false, is_right_struct = false))
 
       val joinMainAst = Join(
         joinFirstAst,
-        NamedTable("DBO.TABLE_Z", Map(), false),
+        NamedTable("DBO.TABLE_Z", Map(), is_streaming = false),
         Some(joinConditionZ),
         LeftOuterJoin,
         Seq(),
-        JoinDataType(false, false))
+        JoinDataType(is_left_struct = false, is_right_struct = false))
 
       example(
         query = "SELECT T1.A, T2.B FROM DBO.TABLE_X AS T1 INNER JOIN DBO.TABLE_Y AS T2 ON T1.A = T2.A " +
@@ -80,20 +80,20 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
       val joinConditionZ = Or(Equals(Column("A"), Column("A")), Equals(Column("B"), Column("B")))
 
       val joinFirstAst = Join(
-        NamedTable("DBO.TABLE_X", Map(), false),
-        NamedTable("DBO.TABLE_Y", Map(), false),
+        NamedTable("DBO.TABLE_X", Map(), is_streaming = false),
+        NamedTable("DBO.TABLE_Y", Map(), is_streaming = false),
         Some(joinConditionX),
         InnerJoin,
         Seq(),
-        JoinDataType(false, false))
+        JoinDataType(is_left_struct = false, is_right_struct = false))
 
       val joinMainAst = Join(
         joinFirstAst,
-        NamedTable("DBO.TABLE_Z", Map(), false),
+        NamedTable("DBO.TABLE_Z", Map(), is_streaming = false),
         Some(joinConditionZ),
         LeftOuterJoin,
         Seq(),
-        JoinDataType(false, false))
+        JoinDataType(is_left_struct = false, is_right_struct = false))
 
       example(
         query = "SELECT T1.A, T2.B FROM DBO.TABLE_X AS T1 INNER JOIN DBO.TABLE_Y AS T2 ON T1.A = T2.A " +
@@ -127,6 +127,5 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
       query = "SELECT a || b FROM dbo.table_x",
       expectedAst =
         Project(NamedTable("dbo.table_x", Map.empty, is_streaming = false), Seq(Concat(Column("a"), Column("b")))))
-
   }
 }

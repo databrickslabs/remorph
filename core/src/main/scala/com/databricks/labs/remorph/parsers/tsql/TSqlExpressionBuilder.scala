@@ -17,7 +17,7 @@ class TSqlExpressionBuilder
   protected override def wrapUnresolvedInput(unparsedInput: String): ir.UnresolvedExpression =
     ir.UnresolvedExpression(unparsedInput)
 
-  override def visitFull_column_name(ctx: Full_column_nameContext): ir.Expression = {
+  override def visitFullColumnName(ctx: FullColumnNameContext): ir.Expression = {
     Column(ctx.id_.getText)
   }
 
@@ -25,7 +25,7 @@ class TSqlExpressionBuilder
    * Expression precedence as defined by parenthesis
    *
    * @param ctx
-   *   the Expr_precedenceContext to visit, which contains the expression to which precedence is applied
+   *   the ExprPrecedenceContext to visit, which contains the expression to which precedence is applied
    * @return
    *   the visited expression in IR
    *
@@ -34,39 +34,39 @@ class TSqlExpressionBuilder
    * and the generated code may seem to be incorrect in the eyes of the customer, even though it will be logically
    * equivalent.
    */
-  override def visitExpr_precedence(ctx: Expr_precedenceContext): ir.Expression = {
+  override def visitExprPrecedence(ctx: ExprPrecedenceContext): ir.Expression = {
     ctx.expression().accept(this)
   }
 
-  override def visitExpr_bit_not(ctx: Expr_bit_notContext): ir.Expression = {
+  override def visitExprBitNot(ctx: ExprBitNotContext): ir.Expression = {
     ir.BitwiseNot(ctx.expression().accept(this))
   }
 
   // Note that while we could evaluate the unary expression if it is a numeric
   // constant, it is usually better to be explicit about the unary operation as
   // if people use -+-42 then maybe they have a reason.
-  override def visitExpr_unary(ctx: Expr_unaryContext): ir.Expression = ctx.op.getType match {
+  override def visitExprUnary(ctx: ExprUnaryContext): ir.Expression = ctx.op.getType match {
+
     case MINUS => ir.UMinus(ctx.expression().accept(this))
     case PLUS => ir.UPlus(ctx.expression().accept(this))
   }
-
-  override def visitExpr_op_prec_1(ctx: Expr_op_prec_1Context): ir.Expression = {
+  override def visitExprOpPrec1(ctx: ExprOpPrec1Context): ir.Expression = {
     buildBinaryExpression(ctx.expression(0).accept(this), ctx.expression(1).accept(this), ctx.op)
   }
 
-  override def visitExpr_op_prec_2(ctx: Expr_op_prec_2Context): ir.Expression = {
+  override def visitExprOpPrec2(ctx: ExprOpPrec2Context): ir.Expression = {
     buildBinaryExpression(ctx.expression(0).accept(this), ctx.expression(1).accept(this), ctx.op)
   }
 
-  override def visitExpr_op_prec_3(ctx: Expr_op_prec_3Context): ir.Expression = {
+  override def visitExprOpPrec3(ctx: ExprOpPrec3Context): ir.Expression = {
     buildBinaryExpression(ctx.expression(0).accept(this), ctx.expression(1).accept(this), ctx.op)
   }
 
-  override def visitExpr_op_prec_4(ctx: Expr_op_prec_4Context): ir.Expression = {
+  override def visitExprOpPrec4(ctx: ExprOpPrec4Context): ir.Expression = {
     buildBinaryExpression(ctx.expression(0).accept(this), ctx.expression(1).accept(this), ctx.op)
   }
 
-  override def visitPrimitive_constant(ctx: Primitive_constantContext): ir.Expression = ctx match {
+  override def visitPrimitiveConstant(ctx: PrimitiveConstantContext): ir.Expression = ctx match {
     case c if c.DOLLAR() != null => wrapUnresolvedInput(ctx.getText)
     case c if c.STRING() != null => c.STRING().accept(this)
     case c if c.INT() != null => c.INT().accept(this)
@@ -103,9 +103,9 @@ class TSqlExpressionBuilder
       case _ => ir.UnresolvedOperator(s"Unsupported operator: ${operator.getText}")
     }
 
-  override def visitSearch_condition(ctx: Search_conditionContext): ir.Expression = {
-    if (ctx.search_condition().size() > 1) {
-      val conditions = ctx.search_condition().asScala.map(_.accept(this))
+  override def visitSearchCondition(ctx: SearchConditionContext): ir.Expression = {
+    if (ctx.searchCondition().size() > 1) {
+      val conditions = ctx.searchCondition().asScala.map(_.accept(this))
       conditions.reduce((left, right) =>
         ctx match {
           case c if c.AND() != null => ir.And(left, right)
@@ -113,9 +113,7 @@ class TSqlExpressionBuilder
           case c if c.NOT() != null => ir.Not(left)
         })
     } else {
-
       if (!ctx.NOT().isEmpty) {
-
         ir.Not(ctx.predicate().accept(this))
       } else {
         ctx.predicate().accept(this)
@@ -126,7 +124,7 @@ class TSqlExpressionBuilder
   override def visitPredicate(ctx: PredicateContext): ir.Expression = {
     val left = ctx.expression(0).accept(this)
     val right = ctx.expression(1).accept(this)
-    ctx.comparison_operator().getText match {
+    ctx.comparisonOperator().getText match {
       case "=" => ir.Equals(left, right)
       case "!=" => ir.NotEquals(left, right)
       case ">" => ir.GreaterThan(left, right)
@@ -135,5 +133,4 @@ class TSqlExpressionBuilder
       case "<=" => ir.LesserThanOrEqual(left, right)
     }
   }
-
 }
