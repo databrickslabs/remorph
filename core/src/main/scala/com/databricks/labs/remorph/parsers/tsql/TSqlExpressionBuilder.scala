@@ -86,6 +86,7 @@ class TSqlExpressionBuilder
       case PLUS => ir.Add(left, right)
       case MINUS => ir.Subtract(left, right)
       case BIT_AND => ir.BitwiseAnd(left, right)
+      case BIT_NOT => ir.BitwiseAnd(left, right)
       case BIT_XOR => ir.BitwiseXor(left, right)
       case BIT_OR => ir.BitwiseOr(left, right)
       case DOUBLE_BAR => ir.Concat(left, right)
