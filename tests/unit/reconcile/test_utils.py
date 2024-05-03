@@ -2,7 +2,10 @@ from pyspark import Row
 from pyspark.testing import assertDataFrameEqual
 
 from databricks.labs.remorph.reconcile.recon_config import ReconcileOutput
-from databricks.labs.remorph.reconcile.utils import reconcile_data, capture_mismatch_data_and_cols
+from databricks.labs.remorph.reconcile.utils import (
+    capture_mismatch_data_and_cols,
+    reconcile_data,
+)
 
 
 def test_compare_data_for_report_all(mock_spark_session):
@@ -31,9 +34,7 @@ def test_compare_data_for_report_all(mock_spark_session):
         [Row(s_suppkey=3, s_nationkey=33), Row(s_suppkey=5, s_nationkey=55)]
     )
 
-    actual = reconcile_data(
-        source=source, target=target, join_cols=["s_suppkey", "s_nationkey"], report_type="all"
-    )
+    actual = reconcile_data(source=source, target=target, join_cols=["s_suppkey", "s_nationkey"], report_type="all")
     expected = ReconcileOutput(missing_in_src=missing_in_src, missing_in_tgt=missing_in_tgt, mismatch=mismatch)
 
     assertDataFrameEqual(actual.mismatch, expected.mismatch)
@@ -66,9 +67,7 @@ def test_compare_data_for_report_hash(mock_spark_session):
         [Row(s_suppkey=2, s_nationkey=22), Row(s_suppkey=3, s_nationkey=33), Row(s_suppkey=5, s_nationkey=55)]
     )
 
-    actual = reconcile_data(
-        source=source, target=target, join_cols=["s_suppkey", "s_nationkey"], report_type="hash"
-    )
+    actual = reconcile_data(source=source, target=target, join_cols=["s_suppkey", "s_nationkey"], report_type="hash")
     expected = ReconcileOutput(missing_in_src=missing_in_src, missing_in_tgt=missing_in_tgt, mismatch=None)
 
     assert actual.mismatch == expected.mismatch
@@ -94,21 +93,46 @@ def test_capture_mismatch_data_and_cols(mock_spark_session):
         ]
     )
 
-    actual_df, actual_cols = capture_mismatch_data_and_cols(source=source, target=target,
-                                                            join_cols=["s_suppkey", "s_nationkey"])
+    actual_df, actual_cols = capture_mismatch_data_and_cols(
+        source=source, target=target, join_cols=["s_suppkey", "s_nationkey"]
+    )
 
-    expected_df = mock_spark_session.createDataFrame([
-        Row(s_suppkey=2, s_nationkey=22, s_acctbal_base=200, s_acctbal_compare=2000, s_acctbal_match=False,
-            s_address_base='a-2',
-            s_address_compare='a-2', s_address_match=True, s_name_base='supp-22', s_name_compare='supp-2',
-            s_name_match=False, s_phone_base='ph-2',
-            s_phone_compare='ph-2', s_phone_match=True),
-        Row(s_suppkey=3, s_nationkey=33, s_acctbal_base=300, s_acctbal_compare=300, s_acctbal_match=True,
-            s_address_base='a-3',
-            s_address_compare='a-3', s_address_match=True, s_name_base='supp-3', s_name_compare='supp-33',
-            s_name_match=False, s_phone_base='ph-3',
-            s_phone_compare='ph-3', s_phone_match=True)
-    ])
+    expected_df = mock_spark_session.createDataFrame(
+        [
+            Row(
+                s_suppkey=2,
+                s_nationkey=22,
+                s_acctbal_base=200,
+                s_acctbal_compare=2000,
+                s_acctbal_match=False,
+                s_address_base='a-2',
+                s_address_compare='a-2',
+                s_address_match=True,
+                s_name_base='supp-22',
+                s_name_compare='supp-2',
+                s_name_match=False,
+                s_phone_base='ph-2',
+                s_phone_compare='ph-2',
+                s_phone_match=True,
+            ),
+            Row(
+                s_suppkey=3,
+                s_nationkey=33,
+                s_acctbal_base=300,
+                s_acctbal_compare=300,
+                s_acctbal_match=True,
+                s_address_base='a-3',
+                s_address_compare='a-3',
+                s_address_match=True,
+                s_name_base='supp-3',
+                s_name_compare='supp-33',
+                s_name_match=False,
+                s_phone_base='ph-3',
+                s_phone_compare='ph-3',
+                s_phone_match=True,
+            ),
+        ]
+    )
 
     assertDataFrameEqual(actual_df, expected_df)
     assert sorted(actual_cols) == ['s_acctbal', 's_name']
