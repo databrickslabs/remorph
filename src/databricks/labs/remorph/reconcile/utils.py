@@ -6,30 +6,32 @@ from databricks.labs.remorph.reconcile.recon_config import ReconcileOutput
 
 def reconcile_data(source: DataFrame, target: DataFrame, join_cols: list[str],
                    report_type: str) -> ReconcileOutput:
+    source_alias = 'src'
+    target_alias = 'tgt'
     join = join_cols if report_type in {"data", "all"} else "hash_value_recon"
-    df = source.alias('s').join(other=target.alias('t'), on=join, how="full")
+    df = source.alias(source_alias).join(other=target.alias(target_alias), on=join, how="full")
 
-    mismatch = _get_mismatch_data(df) if report_type in {"all", "data"} else None
+    mismatch = _get_mismatch_data(df, source_alias, target_alias) if report_type in {"all", "data"} else None
     missing_in_src = (
-        df.filter(col("s.hash_value_recon").isNull())
-        .select((join_cols if report_type == "all" else "t.*"))
+        df.filter(col(f"{source_alias}.hash_value_recon").isNull())
+        .select((join_cols if report_type == "all" else f"{target_alias}.*"))
         .drop("hash_value_recon")
     )
     missing_in_tgt = (
-        df.filter(col("t.hash_value_recon").isNull())
-        .drop("hash_value_recon")
-        .select((join_cols if report_type == "all" else "s.*"))
+        df.filter(col(f"{target_alias}.hash_value_recon").isNull())
+        .select((join_cols if report_type == "all" else f"{source_alias}.*"))
         .drop("hash_value_recon")
     )
     return ReconcileOutput(missing_in_src=missing_in_src, missing_in_tgt=missing_in_tgt, mismatch=mismatch)
 
 
-def _get_mismatch_data(df: DataFrame) -> DataFrame:
+def _get_mismatch_data(df: DataFrame, src_alias: str, tgt_alias: str) -> DataFrame:
     return (
-        df.filter((col("s.hash_value_recon").isNotNull()) & (col("t.hash_value_recon").isNotNull()))
-        .withColumn("hash_match", col("s.hash_value_recon") == col("t.hash_value_recon"))
+        df.filter(
+            (col(f"{src_alias}.hash_value_recon").isNotNull()) & (col(f"{tgt_alias}.hash_value_recon").isNotNull()))
+        .withColumn("hash_match", col(f"{src_alias}.hash_value_recon") == col(f"{tgt_alias}.hash_value_recon"))
         .filter(col("hash_match") == lit(False))
-        .select("s.*")
+        .select(f"{src_alias}.*")
         .drop("hash_value_recon")
     )
 
