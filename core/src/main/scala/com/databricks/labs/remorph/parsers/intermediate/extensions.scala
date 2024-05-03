@@ -98,6 +98,7 @@ case object Unique extends Constraint
 case object NotNull extends Constraint
 case object PrimaryKey extends Constraint
 case class ForeignKey(references: String) extends Constraint
+case class UnresolvedConstraint(inputText: String) extends Constraint
 
 // This, and the above, are likely to change in a not-so-remote future.
 // There's already a CreateTable case defined in catalog.scala but its structure seems too different from

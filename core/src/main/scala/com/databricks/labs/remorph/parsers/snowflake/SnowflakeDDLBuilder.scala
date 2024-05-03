@@ -127,7 +127,7 @@ class SnowflakeDDLBuilder
         val references =
           c.column_list_in_parentheses(1).column_list().column_name().asScala.map(referencedObject + "." + _.getText)
         references.map(ir.ForeignKey.apply)
-
+      case c => List.fill(columnNames.size)(ir.UnresolvedConstraint(c.getText))
     }
     columnNames.zip(constraints)
   }
@@ -138,5 +138,6 @@ class SnowflakeDDLBuilder
     case c if c.foreign_key() != null =>
       val references = c.object_name().getText + Option(ctx.column_name()).map("." + _.getText).getOrElse("")
       ir.ForeignKey(references)
+    case c => ir.UnresolvedConstraint(c.getText)
   }
 }
