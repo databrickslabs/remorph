@@ -81,3 +81,16 @@ def test_validate_format_result_with_invalid_query(morph_config):
     result, exception = validator.validate_format_result(morph_config, query)
     assert "Exception Start" in result
     assert "[UNRESOLVED_ROUTINE]" in exception
+
+
+def test_validate_with_no_rows_returned(morph_config):
+    query = "SELECT * FROM a_table"
+    sql_backend = MockBackend(
+        rows={
+            "EXPLAIN SELECT": [],
+        }
+    )
+    validator = Validator(sql_backend)
+    result, exception = validator.validate_format_result(morph_config, query)
+    assert "Exception Start" in result
+    assert "No results returned" in exception
