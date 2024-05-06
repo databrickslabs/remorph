@@ -35,7 +35,7 @@ def test_compare_data_for_report_all(mock_spark_session):
         [Row(s_suppkey=3, s_nationkey=33), Row(s_suppkey=5, s_nationkey=55)]
     )
 
-    actual = reconcile_data(source=source, target=target, join_columns=["s_suppkey", "s_nationkey"], report_type="all")
+    actual = reconcile_data(source=source, target=target, key_columns=["s_suppkey", "s_nationkey"], report_type="all")
     expected = ReconcileOutput(missing_in_src=missing_in_src, missing_in_tgt=missing_in_tgt, mismatch=mismatch)
 
     assertDataFrameEqual(actual.mismatch, expected.mismatch)
@@ -68,7 +68,7 @@ def test_compare_data_for_report_hash(mock_spark_session):
         [Row(s_suppkey=2, s_nationkey=22), Row(s_suppkey=3, s_nationkey=33), Row(s_suppkey=5, s_nationkey=55)]
     )
 
-    actual = reconcile_data(source=source, target=target, join_columns=["s_suppkey", "s_nationkey"], report_type="hash")
+    actual = reconcile_data(source=source, target=target, key_columns=["s_suppkey", "s_nationkey"], report_type="hash")
     expected = ReconcileOutput(missing_in_src=missing_in_src, missing_in_tgt=missing_in_tgt, mismatch=None)
 
     assert actual.mismatch == expected.mismatch
@@ -160,4 +160,8 @@ def test_capture_mismatch_data_and_cols_fail(mock_spark_session):
     with pytest.raises(ValueError) as exception:
         capture_mismatch_data_and_columns(source=source, target=target, key_columns=["s_suppkey"])
 
-    assert str(exception.value) == "source and target should have same columns for capturing the mismatch data"
+    assert str(exception.value) == (
+        "source and target should have same columns for capturing the mismatch data\n"
+        "columns missing in source: None\n"
+        "columns missing in target: s_nationkey,s_name,s_address,s_phone,s_acctbal\n"
+    )
