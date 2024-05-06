@@ -129,5 +129,11 @@ case class AddColumn(columnDeclaration: ColumnDeclaration) extends TableAlterati
 case class AddConstraint(columnName: String, constraint: Constraint) extends TableAlteration
 case class ChangeColumnDataType(columnName: String, newDataType: DataType) extends TableAlteration
 case class UnresolvedTableAlteration(inputText: String) extends TableAlteration
+case class DropConstraintByName(constraintName: String) extends TableAlteration
+// When constraintName is None, drop the constraint on every relevant column
+case class DropConstraint(columnName: Option[String], constraint: Constraint) extends TableAlteration
+case class DropColumns(columnNames: Seq[String]) extends TableAlteration
+case class RenameConstraint(oldName: String, newName: String) extends TableAlteration
+case class RenameColumn(oldName: String, newName: String) extends TableAlteration
 
 case class AlterTableCommand(tableName: String, alterations: Seq[TableAlteration]) extends Catalog {}

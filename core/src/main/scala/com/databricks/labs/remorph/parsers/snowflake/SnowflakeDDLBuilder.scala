@@ -98,7 +98,7 @@ class SnowflakeDDLBuilder
     // When an out-of-line contraint applies to multiple columns,
     // we record a column-name -> constraint mapping for each.
     val outOfLineConstraints: Seq[(String, ir.Constraint)] = ctx.collect {
-      case c if c.out_of_line_constraint() != null => buildOutOfLineConstraint(c.out_of_line_constraint())
+      case c if c.out_of_line_constraint() != null => buildOutOfLineConstraints(c.out_of_line_constraint())
     }.flatten
 
     // Finally, for every column, we "inject" the relevant out-of-line constraints
@@ -122,7 +122,7 @@ class SnowflakeDDLBuilder
     ir.ColumnDeclaration(name, dataType, virtualColumnDeclaration = None, nullability ++ constraints)
   }
 
-  private[snowflake] def buildOutOfLineConstraint(ctx: Out_of_line_constraintContext): Seq[(String, ir.Constraint)] = {
+  private[snowflake] def buildOutOfLineConstraints(ctx: Out_of_line_constraintContext): Seq[(String, ir.Constraint)] = {
     val columnNames = ctx.column_list_in_parentheses(0).column_list().column_name().asScala.map(_.getText)
     val repeatForEveryColumnName = List.fill[ir.UnnamedConstraint](columnNames.size)(_)
     val unnamedConstraints = ctx match {
@@ -167,12 +167,10 @@ class SnowflakeDDLBuilder
       c.full_col_decl().asScala.map(buildColumnDeclaration).map(AddColumn.apply)
     case c if !c.alter_column_clause().isEmpty =>
       c.alter_column_clause().asScala.map(buildColumnAlterations)
-    case c => Seq(ir.UnresolvedTableAlteration(c.getText))
-  }
-
-  private def buildConstraintActions(ctx: Constraint_actionContext): Seq[ir.TableAlteration] = ctx match {
-    case c if c.ADD() != null =>
-      buildOutOfLineConstraint(c.out_of_line_constraint()).map(ir.AddConstraint.tupled)
+    case c if c.DROP() != null =>
+      Seq(ir.DropColumns(c.column_list().column_name().asScala.map(_.getText)))
+    case c if c.RENAME() != null =>
+      Seq(ir.RenameColumn(c.column_name(0).getText, c.column_name(1).getText))
     case c => Seq(ir.UnresolvedTableAlteration(c.getText))
   }
 
@@ -181,8 +179,40 @@ class SnowflakeDDLBuilder
     ctx match {
       case c if c.data_type() != null =>
         ir.ChangeColumnDataType(columnName, DataTypeBuilder.buildDataType(c.data_type()))
-      case c if c.NOT() != null => ir.AddConstraint(columnName, ir.Nullability(c.DROP() != null))
+      case c if c.DROP() != null && c.NULL_() != null =>
+        ir.DropConstraint(Some(columnName), ir.Nullability(c.NOT() == null))
+      case c if c.NULL_() != null =>
+        ir.AddConstraint(columnName, ir.Nullability(c.NOT() == null))
       case c => ir.UnresolvedTableAlteration(c.getText)
+    }
+  }
+
+  private def buildConstraintActions(ctx: Constraint_actionContext): Seq[ir.TableAlteration] = ctx match {
+    case c if c.ADD() != null =>
+      buildOutOfLineConstraints(c.out_of_line_constraint()).map(ir.AddConstraint.tupled)
+    case c if c.DROP() != null =>
+      buildDropConstraints(c)
+    case c if c.RENAME() != null =>
+      Seq(ir.RenameConstraint(c.id_(0).getText, c.id_(1).getText))
+    case c => Seq(ir.UnresolvedTableAlteration(c.getText))
+  }
+
+  private def buildDropConstraints(ctx: Constraint_actionContext): Seq[ir.TableAlteration] = {
+    val columnListOpt = Option(ctx.column_list_in_parentheses())
+    val affectedColumns = columnListOpt.map(_.column_list().column_name().asScala.map(_.getText)).getOrElse(Seq())
+    ctx match {
+      case c if c.primary_key() != null => dropConstraints(affectedColumns, ir.PrimaryKey)
+      case c if c.UNIQUE() != null => dropConstraints(affectedColumns, ir.Unique)
+      case c if c.id_.size() > 0 => Seq(ir.DropConstraintByName(c.id_(0).getText))
+      case c => Seq(ir.UnresolvedTableAlteration(ctx.getText))
+    }
+  }
+
+  private def dropConstraints(affectedColumns: Seq[String], constraint: ir.Constraint): Seq[ir.TableAlteration] = {
+    if (affectedColumns.isEmpty) {
+      Seq(ir.DropConstraint(None, constraint))
+    } else {
+      affectedColumns.map(col => ir.DropConstraint(Some(col), constraint))
     }
   }
 }

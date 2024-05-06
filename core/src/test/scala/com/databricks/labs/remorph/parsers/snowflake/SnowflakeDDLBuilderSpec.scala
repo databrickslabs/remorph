@@ -234,7 +234,29 @@ class SnowflakeDDLBuilderSpec
         expectedAst = AlterTableCommand("s.t1", Seq(AddConstraint("a", Nullability(false)))))
       example(
         query = "ALTER TABLE s.t1 ALTER (COLUMN a DROP NOT NULL)",
-        expectedAst = AlterTableCommand("s.t1", Seq(AddConstraint("a", Nullability(true)))))
+        expectedAst = AlterTableCommand("s.t1", Seq(DropConstraint(Some("a"), Nullability(false)))))
+
+      example(
+        query = "ALTER TABLE s.t1 DROP COLUMN a",
+        expectedAst = AlterTableCommand("s.t1", Seq(DropColumns(Seq("a")))))
+
+      example(
+        query = "ALTER TABLE s.t1 DROP PRIMARY KEY",
+        expectedAst = AlterTableCommand("s.t1", Seq(DropConstraint(None, PrimaryKey))))
+      example(
+        query = "ALTER TABLE s.t1 DROP CONSTRAINT pk",
+        expectedAst = AlterTableCommand("s.t1", Seq(DropConstraintByName("pk"))))
+      example(
+        query = "ALTER TABLE s.t1 DROP UNIQUE (b, c)",
+        expectedAst =
+          AlterTableCommand("s.t1", Seq(DropConstraint(Some("b"), Unique), DropConstraint(Some("c"), Unique))))
+
+      example(
+        query = "ALTER TABLE s.t1 RENAME COLUMN a TO aa",
+        expectedAst = AlterTableCommand("s.t1", Seq(RenameColumn("a", "aa"))))
+      example(
+        query = "ALTER TABLE s.t1 RENAME CONSTRAINT pk TO pk_t1",
+        expectedAst = AlterTableCommand("s.t1", Seq(RenameConstraint("pk", "pk_t1"))))
     }
 
     "wrap unknown AST in UnresolvedCatalog" in {
@@ -250,7 +272,7 @@ class SnowflakeDDLBuilderSpec
       when(outOfLineConstraint.column_list_in_parentheses(0)).thenReturn(columnList)
       val dummyInputTextForOutOfLineConstraint = "dummy"
       when(outOfLineConstraint.getText).thenReturn(dummyInputTextForOutOfLineConstraint)
-      val result = astBuilder.buildOutOfLineConstraint(outOfLineConstraint)
+      val result = astBuilder.buildOutOfLineConstraints(outOfLineConstraint)
       result shouldBe Seq(
         "a" -> UnresolvedConstraint(dummyInputTextForOutOfLineConstraint),
         "b" -> UnresolvedConstraint(dummyInputTextForOutOfLineConstraint),
