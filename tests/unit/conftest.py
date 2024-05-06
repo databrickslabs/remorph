@@ -6,6 +6,7 @@ import pytest
 from sqlglot import ErrorLevel, UnsupportedError
 from sqlglot import parse_one as sqlglot_parse_one
 from sqlglot import transpile
+from sqlglot.errors import SqlglotError
 
 from databricks.connect import DatabricksSession
 from databricks.labs.remorph.config import SQLGLOT_DIALECTS, MorphConfig
@@ -157,11 +158,10 @@ def parse_sql_files(input_dir: Path, source: str, target: str, is_expected_excep
                 target_sql = re.split(r'-- \w+ sql:', target_sql)[0].strip().rstrip(';').replace('\\', '')
                 # when multiple sqls are present below target
                 test_name = filenames.name.replace(".sql", "")
-                if is_expected_exception:
+                if is_expected_exception and isinstance(expected_exceptions[test_name], SqlglotError):
+                    expected_exception: SqlglotError = expected_exceptions[test_name]
                     suite.append(
-                        FunctionalTestFileWithExpectedException(
-                            target_sql, source_sql, test_name, expected_exceptions[test_name]
-                        )
+                        FunctionalTestFileWithExpectedException(target_sql, source_sql, test_name, expected_exception)
                     )
                 else:
                     suite.append(FunctionalTestFile(target_sql, source_sql, test_name))

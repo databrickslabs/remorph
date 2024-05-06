@@ -33,8 +33,8 @@ class ThresholdQueryBuilder(QueryBuilder):
         logger.info(f"Threshold Comparison query: {query}")
         return query
 
-    def _generate_select_where_clause(self) -> tuple[list[exp.Alias], exp.Or]:
-        thresholds = self.table_conf.thresholds
+    def _generate_select_where_clause(self) -> tuple[list[exp.Expression], exp.Expression]:
+        thresholds = self.table_conf.thresholds if self.table_conf.thresholds else []
         select_clause = []
         where_clause = []
 
@@ -62,7 +62,7 @@ class ThresholdQueryBuilder(QueryBuilder):
 
     def _build_expression_alias_components(
         self, threshold: Thresholds, base: exp.Expression
-    ) -> tuple[list[exp.Alias], exp.Expression]:
+    ) -> tuple[list[exp.Expression], exp.Expression]:
         select_clause = []
         column = threshold.column_name
         select_clause.append(
@@ -76,7 +76,7 @@ class ThresholdQueryBuilder(QueryBuilder):
 
     def _build_expression_type(
         self, threshold: Thresholds, base: exp.Expression
-    ) -> tuple[list[exp.Alias], exp.Expression]:
+    ) -> tuple[list[exp.Expression], exp.Expression]:
         column = threshold.column_name
         # default expressions
         select_clause, where_clause = self._build_expression_alias_components(threshold, base)

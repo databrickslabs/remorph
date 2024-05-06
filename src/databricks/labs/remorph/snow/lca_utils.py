@@ -1,10 +1,10 @@
 import logging
 
 from sqlglot import ErrorLevel, exp, parse
-from sqlglot.dialects.dialect import Dialect
+from sqlglot.dialects.dialect import DialectType
 from sqlglot.errors import ParseError, TokenError, UnsupportedError
 from sqlglot.expressions import Expression, Select
-from sqlglot.optimizer.scope import build_scope
+from sqlglot.optimizer.scope import build_scope, Scope
 
 from databricks.labs.remorph.helpers.morph_status import ValidationError
 from databricks.labs.remorph.snow.local_expression import AliasInfo
@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 def check_for_unsupported_lca(
-    dialect: str | Dialect,
+    dialect: DialectType,
     sql: str,
     filename: str,
 ) -> ValidationError | None:
@@ -22,7 +22,7 @@ def check_for_unsupported_lca(
     Check for presence of unsupported lateral column aliases in window expressions and where clauses
     :return: An error if found
     """
-    if dialect.upper() == "SNOWFLAKE":
+    if str(dialect).upper() == "SNOWFLAKE":
         dialect = Snow
 
     try:
@@ -57,12 +57,19 @@ def check_for_unsupported_lca(
 def unalias_lca_in_select(expr: exp.Expression) -> exp.Expression:
     if not isinstance(expr, exp.Select):
         return expr
-    root_select = build_scope(expr)
+
+    root_select: Scope = Scope(expression=expr)
+
+    if build_scope(expr) is None:
+        raise ValueError("Scope not found for select expression")
+    else:
+        root_select = build_scope(expr)
+
     # We won't search inside nested selects, they will be visited separately
     nested_selects = {*root_select.derived_tables, *root_select.subqueries}
     alias_info = _find_aliases_in_select(expr)
-    where_ast: Expression = expr.args.get("where")
-    if where_ast:
+    where_ast = expr.args.get("where")
+    if where_ast and isinstance(where_ast, Expression):
         for column in where_ast.walk(prune=lambda n: n in nested_selects):
             if (
                 isinstance(column, exp.Column)
@@ -109,8 +116,8 @@ def _find_invalid_lca_in_where(
     aliases: dict[str, AliasInfo],
 ) -> set[str]:
     aliases_in_where = set()
-    where_ast: Expression = select_expr.args.get("where")
-    if where_ast:
+    where_ast = select_expr.args.get("where")
+    if where_ast and isinstance(where_ast, Expression):
         for column in where_ast.find_all(exp.Column):
             if column.name in aliases and not aliases[column.name].is_same_name_as_column:
                 aliases_in_where.add(column.name)

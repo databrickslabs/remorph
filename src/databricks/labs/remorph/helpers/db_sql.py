@@ -21,7 +21,7 @@ def get_sql_backend(ws: WorkspaceClient, config: MorphConfig) -> SqlBackend:
     catalog_name = config.catalog_name
     schema_name = config.schema_name
     if warehouse_id:
-        sql_backend = StatementExecutionBackend(ws, warehouse_id, catalog=catalog_name, schema=schema_name)
+        sql_backend: SqlBackend = StatementExecutionBackend(ws, warehouse_id, catalog=catalog_name, schema=schema_name)
     else:
         # assigning cluster id explicitly to the config as user can provide them during installation
         ws.config.cluster_id = cluster_id if cluster_id else ws.config.cluster_id

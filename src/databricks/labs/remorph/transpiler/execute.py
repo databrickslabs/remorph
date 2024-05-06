@@ -89,9 +89,9 @@ def process_directory(
         logger.info(f"Processing file :{file}")
         if is_sql_file(file):
             if output_folder in {None, "None"}:
-                output_folder_base = root / "transpiled"
+                output_folder_base = f"{root.name}/transpiled"
             else:
-                output_folder_base = f'{output_folder.rstrip("/")}/{base_root}'
+                output_folder_base = f'{str(output_folder).rstrip("/")}/{base_root}'
 
             output_file_name = Path(output_folder_base) / Path(file).name
             make_dir(output_folder_base)
@@ -110,7 +110,7 @@ def process_directory(
 
 
 def process_recursive_dirs(config: MorphConfig, validator: Validator, transpiler: SqlglotEngine):
-    input_sql = Path(config.input_sql)
+    input_sql = Path(str(config.input_sql))
     parse_error_list = []
     validate_error_list = []
 
@@ -142,13 +142,13 @@ def morph(workspace_client: WorkspaceClient, config: MorphConfig):
     :param config: The configuration for the morph operation.
     :param workspace_client: The WorkspaceClient object.
     """
-    input_sql = Path(config.input_sql)
+    input_sql = Path(str(config.input_sql))
     status = []
     result = MorphStatus([], 0, 0, 0, [])
 
     read_dialect = config.get_read_dialect()
     transpiler = SqlglotEngine(read_dialect)
-    validator = None
+    validator: Validator = None
     if not config.skip_validation:
         validator = Validator(db_sql.get_sql_backend(workspace_client, config))
 
@@ -159,7 +159,7 @@ def morph(workspace_client: WorkspaceClient, config: MorphConfig):
             if config.output_folder in {None, "None"}:
                 output_folder = input_sql.parent / "transpiled"
             else:
-                output_folder = Path(config.output_folder.rstrip("/"))
+                output_folder = Path(str(config.output_folder).rstrip("/"))
 
             make_dir(output_folder)
             output_file = output_folder / input_sql.name
@@ -184,9 +184,10 @@ def morph(workspace_client: WorkspaceClient, config: MorphConfig):
 
     error_log_file = "None"
     if error_list_count > 0:
-        error_log_file = Path.cwd() / f"err_{os.getpid()}.lst"
-        with Path(error_log_file).open("a") as e:
-            e.writelines(f"{err}\n" for err in result.error_log_list)
+        error_log_file = Path.cwd().joinpath(f"err_{os.getpid()}.lst")
+        if result.error_log_list:
+            with Path(error_log_file).open("a") as e:
+                e.writelines(f"{err}\n" for err in result.error_log_list)
 
     status.append(
         {

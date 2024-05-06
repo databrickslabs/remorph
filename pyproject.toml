@@ -52,8 +52,8 @@ dependencies = [
   "databricks-connect",
   "types-pyYAML",
   "types-pytz",
-  "databricks-labs-pylint~=0.1.0",
-  "mypy~=1.9.0",
+  "databricks-labs-pylint~=0.4.0",
+  "mypy~=1.10.0",
 ]
 
 [tool.hatch.envs.default.scripts]

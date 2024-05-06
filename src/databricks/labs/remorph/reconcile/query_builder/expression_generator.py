@@ -1,6 +1,5 @@
 from collections.abc import Callable
 from functools import partial
-from typing import Type
 
 from sqlglot import expressions as exp
 
@@ -115,7 +114,7 @@ def anonymous(expr: exp.Column, func: str, is_expr: bool = False) -> exp.Anonymo
     return new_expr
 
 
-def build_column(this: exp.ExpOrStr, table_name="", quoted=False, alias=None) -> exp.Alias | exp.Column:
+def build_column(this: exp.ExpOrStr, table_name="", quoted=False, alias=None) -> exp.Expression:
     if alias:
         if isinstance(this, str):
             return exp.Alias(
@@ -193,10 +192,10 @@ def build_sub(
     )
 
 
-def build_where_clause(where_clause=list[exp.Expression], condition_type: str = "or") -> exp.Or:
+def build_where_clause(where_clause: list[exp.Expression], condition_type: str = "or") -> exp.Expression:
     func = exp.Or if condition_type == "or" else exp.And
     # Start with a default
-    combined_expression: exp.Paren | Type[exp.Or | exp.And] = exp.Paren(this=func(this='1 = 1', expression='1 = 1'))
+    combined_expression: exp.Expression = exp.Paren(this=func(this='1 = 1', expression='1 = 1'))
 
     # Loop through the expressions and combine them with OR
     for expression in where_clause:
@@ -213,9 +212,9 @@ def build_between(this: exp.Expression, low: exp.Expression, high: exp.Expressio
     return exp.Between(this=this, low=low, high=high)
 
 
-DataType_transform_mapping = {
-    "default": [partial(coalesce, default='', is_string=True), trim],
-    "snowflake": {exp.DataType.Type.ARRAY.value: [array_to_string, array_sort]},
+DataType_transform_mapping: dict[str, dict[exp.Expression, list[partial[exp.Expression]]]] = {
+    "default": {exp.Expression(): [partial(coalesce, default='', is_string=True), partial(trim)]},
+    "snowflake": {exp.DataType.Type.ARRAY.value: [partial(array_to_string), partial(array_sort)]},
     "oracle": {
         exp.DataType.Type.NCHAR.value: [partial(anonymous, func="NVL(TRIM(TO_CHAR({})),'_null_recon_')")],
         exp.DataType.Type.NVARCHAR.value: [partial(anonymous, func="NVL(TRIM(TO_CHAR({})),'_null_recon_')")],
