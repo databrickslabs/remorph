@@ -154,6 +154,7 @@ def test_create_catalog_schema(ws, mock_installation):
     assert config.skip_validation is False
     assert config.catalog_name == "test"
     assert config.schema_name == "schema"
+    assert config.sdk_config.get("cluster_id") == ws.config.cluster_id
 
 
 def test_create_catalog_no(ws, mock_installation):
