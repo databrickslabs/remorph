@@ -162,7 +162,7 @@ class SnowflakeDDLBuilder
     }
   }
 
-  private def buildColumnActions(ctx: Table_column_actionContext): Seq[ir.TableAlteration] = ctx match {
+  private[snowflake] def buildColumnActions(ctx: Table_column_actionContext): Seq[ir.TableAlteration] = ctx match {
     case c if c.ADD() != null =>
       c.full_col_decl().asScala.map(buildColumnDeclaration).map(AddColumn.apply)
     case c if !c.alter_column_clause().isEmpty =>
@@ -174,7 +174,7 @@ class SnowflakeDDLBuilder
     case c => Seq(ir.UnresolvedTableAlteration(c.getText))
   }
 
-  private def buildColumnAlterations(ctx: Alter_column_clauseContext): ir.TableAlteration = {
+  private[snowflake] def buildColumnAlterations(ctx: Alter_column_clauseContext): ir.TableAlteration = {
     val columnName = ctx.column_name().getText
     ctx match {
       case c if c.data_type() != null =>
@@ -187,7 +187,7 @@ class SnowflakeDDLBuilder
     }
   }
 
-  private def buildConstraintActions(ctx: Constraint_actionContext): Seq[ir.TableAlteration] = ctx match {
+  private[snowflake] def buildConstraintActions(ctx: Constraint_actionContext): Seq[ir.TableAlteration] = ctx match {
     case c if c.ADD() != null =>
       buildOutOfLineConstraints(c.out_of_line_constraint()).map(ir.AddConstraint.tupled)
     case c if c.DROP() != null =>
@@ -197,7 +197,7 @@ class SnowflakeDDLBuilder
     case c => Seq(ir.UnresolvedTableAlteration(c.getText))
   }
 
-  private def buildDropConstraints(ctx: Constraint_actionContext): Seq[ir.TableAlteration] = {
+  private[snowflake] def buildDropConstraints(ctx: Constraint_actionContext): Seq[ir.TableAlteration] = {
     val columnListOpt = Option(ctx.column_list_in_parentheses())
     val affectedColumns = columnListOpt.map(_.column_list().column_name().asScala.map(_.getText)).getOrElse(Seq())
     ctx match {
