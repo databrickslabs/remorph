@@ -1,12 +1,15 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
 import com.databricks.labs.remorph.parsers.intermediate._
+import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser.{Builtin_functionContext, Id_Context, Join_typeContext, Outer_joinContext}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+import org.mockito.Mockito._
+import org.scalatestplus.mockito.MockitoSugar
 
-class SnowflakeRelationBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon with Matchers {
+class SnowflakeRelationBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon with Matchers with MockitoSugar {
 
-  override protected def astBuilder: SnowflakeParserBaseVisitor[_] = new SnowflakeRelationBuilder
+  override protected def astBuilder: SnowflakeRelationBuilder = new SnowflakeRelationBuilder
 
   "SnowflakeRelationBuilder" should {
 
@@ -30,6 +33,33 @@ class SnowflakeRelationBuilderSpec extends AnyWordSpec with SnowflakeParserTestC
           group_type = GroupBy,
           grouping_expressions = Seq(Column("some_column")),
           pivot = None))
+
+      example(
+        query = "FROM t1 PIVOT (AVG(a) FOR d IN('x', 'y'))",
+        rule = _.select_optional_clauses(),
+        Aggregate(
+          input = namedTable("t1"),
+          group_type = Pivot,
+          grouping_expressions = Seq(Avg(Column("a"))),
+          pivot = Some(Pivot(Column("d"), Seq(Literal(string = Some("x")), Literal(string = Some("y")))))))
+
+      example(
+        query = "FROM t1 PIVOT (COUNT(a) FOR d IN('x', 'y'))",
+        rule = _.select_optional_clauses(),
+        Aggregate(
+          input = namedTable("t1"),
+          group_type = Pivot,
+          grouping_expressions = Seq(Count(Column("a"))),
+          pivot = Some(Pivot(Column("d"), Seq(Literal(string = Some("x")), Literal(string = Some("y")))))))
+
+      example(
+        query = "FROM t1 PIVOT (MIN(a) FOR d IN('x', 'y'))",
+        rule = _.select_optional_clauses(),
+        Aggregate(
+          input = namedTable("t1"),
+          group_type = Pivot,
+          grouping_expressions = Seq(Min(Column("a"))),
+          pivot = Some(Pivot(Column("d"), Seq(Literal(string = Some("x")), Literal(string = Some("y")))))))
     }
 
     "translate ORDER BY clauses" in {
@@ -133,15 +163,16 @@ class SnowflakeRelationBuilderSpec extends AnyWordSpec with SnowflakeParserTestC
 
     "translate SELECT DISTINCT clauses" in {
       example(
-        "SELECT DISTINCT a FROM t",
+        "SELECT DISTINCT a, b AS bb FROM t",
         _.select_statement(),
         Project(
           Deduplicate(
             input = namedTable("t"),
-            column_names = Seq("a"),
+            column_names = Seq("a", "bb"),
             all_columns_as_keys = false,
             within_watermark = false),
-          Seq(Column("a"))))
+          Seq(Column("a"), Alias(Column("b"), Seq("bb"), None))))
+
     }
 
     "translate SELECT TOP clauses" in {
@@ -159,6 +190,39 @@ class SnowflakeRelationBuilderSpec extends AnyWordSpec with SnowflakeParserTestC
   "Unparsed input" should {
     "be reported as UnresolvedRelation" in {
       example("MATCH_RECOGNIZE()", _.match_recognize(), UnresolvedRelation("MATCH_RECOGNIZE()"))
+    }
+  }
+
+  "SnowflakeRelationBuilder.translateJoinType" should {
+    "handle unresolved join type" in {
+      val outerJoin = mock[Outer_joinContext]
+      val joinType = mock[Join_typeContext]
+      when(joinType.outer_join()).thenReturn(outerJoin)
+      astBuilder.translateJoinType(joinType) shouldBe UnspecifiedJoin
+      verify(outerJoin).LEFT()
+      verify(outerJoin).RIGHT()
+      verify(outerJoin).FULL()
+      verify(joinType, times(4)).outer_join()
+    }
+  }
+
+  "SnowflakeRelationBuilder.translateAggregateFunction" should {
+    "handler unresolved input" in {
+      val param = parseString("x", _.id_())
+      val builtinFunc = mock[Builtin_functionContext]
+      val aggFunc = mock[Id_Context]
+      when(aggFunc.builtin_function()).thenReturn(builtinFunc)
+      val dummyTextForAggFunc = "dummy"
+      when(aggFunc.getText).thenReturn(dummyTextForAggFunc)
+      astBuilder.translateAggregateFunction(aggFunc, param) shouldBe UnresolvedExpression(dummyTextForAggFunc)
+      verify(aggFunc, times(8)).builtin_function()
+      verify(aggFunc).getText
+      verifyNoMoreInteractions(aggFunc)
+      verify(builtinFunc).AVG()
+      verify(builtinFunc).SUM()
+      verify(builtinFunc).COUNT()
+      verify(builtinFunc).MIN()
+      verifyNoMoreInteractions(builtinFunc)
     }
   }
 }

@@ -1,12 +1,19 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
 import com.databricks.labs.remorph.parsers.intermediate._
+import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser.{Comparison_operatorContext, LiteralContext, Ranking_windowed_functionContext}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+import org.mockito.Mockito._
+import org.scalatestplus.mockito.MockitoSugar
 
-class SnowflakeExpressionBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon with Matchers {
+class SnowflakeExpressionBuilderSpec
+    extends AnyWordSpec
+    with SnowflakeParserTestCommon
+    with Matchers
+    with MockitoSugar {
 
-  override protected def astBuilder: SnowflakeParserBaseVisitor[_] = new SnowflakeExpressionBuilder
+  override protected def astBuilder: SnowflakeExpressionBuilder = new SnowflakeExpressionBuilder
 
   "SnowflakeExpressionBuilder" should {
     "translate literals" in {
@@ -308,6 +315,52 @@ class SnowflakeExpressionBuilderSpec extends AnyWordSpec with SnowflakeParserTes
   "Unparsed input" should {
     "be reported as UnresolvedExpression" in {
       example("{'name':'Homer Simpson'}", _.json_literal(), UnresolvedExpression("{'name':'Homer Simpson'}"))
+    }
+  }
+
+  "SnowflakeExpressionBuilder.visit_Literal" should {
+    "handle unresolved input" in {
+      val literal = mock[LiteralContext]
+      astBuilder.visitLiteral(literal) shouldBe Literal(nullType = Some(NullType()))
+      verify(literal).sign()
+      verify(literal).STRING()
+      verify(literal).DECIMAL()
+      verify(literal).FLOAT()
+      verify(literal).REAL()
+      verify(literal).true_false()
+      verify(literal).NULL_()
+      verifyNoMoreInteractions(literal)
+    }
+  }
+
+  "SnowflakeExpressionBuilder.buildComparisonExpression" should {
+    "handle unresolved input" in {
+      val operator = mock[Comparison_operatorContext]
+      val dummyTextForOperator = "dummy"
+      when(operator.getText).thenReturn(dummyTextForOperator)
+      astBuilder.buildComparisonExpression(operator, null, null) shouldBe UnresolvedExpression(dummyTextForOperator)
+      verify(operator).EQ()
+      verify(operator).NE()
+      verify(operator).LTGT()
+      verify(operator).GT()
+      verify(operator).LT()
+      verify(operator).GE()
+      verify(operator).LE()
+      verify(operator).getText
+      verifyNoMoreInteractions(operator)
+    }
+  }
+
+  "SnowflakeExpressionBuilder.buildWindowFunction" should {
+    "handle unresolved input" in {
+      val windowedFunction = mock[Ranking_windowed_functionContext]
+      val dummyTextForWindowedFunction = "dummy"
+      when(windowedFunction.getText).thenReturn(dummyTextForWindowedFunction)
+      astBuilder.buildWindowFunction(windowedFunction) shouldBe UnresolvedExpression(dummyTextForWindowedFunction)
+      verify(windowedFunction).ROW_NUMBER()
+      verify(windowedFunction).NTILE()
+      verify(windowedFunction).getText
+      verifyNoMoreInteractions(windowedFunction)
     }
   }
 }
