@@ -102,10 +102,10 @@ class WorkspaceInstaller:
 
         if self._ws.config.cluster_id:
             logger.info(f"Using cluster {self._ws.config.cluster_id} for validation")
-            return {"cluster": self._ws.config.cluster_id}
+            return {"cluster_id": self._ws.config.cluster_id}
 
         cluster_id = self._prompts.question("Enter a valid cluster_id to proceed")
-        return {"cluster": cluster_id}
+        return {"cluster_id": cluster_id}
 
     def _configure_warehouse(self):
         def warehouse_type(_):

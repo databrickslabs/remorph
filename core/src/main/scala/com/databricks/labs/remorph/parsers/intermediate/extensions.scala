@@ -91,4 +91,23 @@ case class CreateInlineUDF(
     acceptsNullParameters: Boolean,
     comment: Option[String],
     body: String)
-    extends Command {}
+    extends Catalog {}
+
+sealed trait Constraint
+case object Unique extends Constraint
+case object NotNull extends Constraint
+case object PrimaryKey extends Constraint
+case class ForeignKey(references: String) extends Constraint
+case class UnresolvedConstraint(inputText: String) extends Constraint
+
+// This, and the above, are likely to change in a not-so-remote future.
+// There's already a CreateTable case defined in catalog.scala but its structure seems too different from
+// the information Snowflake grammar carries.
+// In future changes, we'll have to reconcile this CreateTableCommand with the "Sparkier" CreateTable somehow.
+case class ColumnDeclaration(
+    name: String,
+    dataType: DataType,
+    virtualColumnDeclaration: Option[Expression],
+    constraints: Seq[Constraint])
+
+case class CreateTableCommand(name: String, columns: Seq[ColumnDeclaration]) extends Catalog {}
