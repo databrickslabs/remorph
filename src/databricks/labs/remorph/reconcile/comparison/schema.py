@@ -1,23 +1,18 @@
 import logging
-from dataclasses import dataclass
+from dataclasses import asdict
 
 from pyspark.sql import DataFrame, SparkSession
-from pyspark.sql.types import BooleanType, StringType, StructField, StructType
+from pyspark.sql.types import StructType
 from sqlglot import parse_one
 
 from databricks.labs.remorph.config import MorphConfig
-from databricks.labs.remorph.reconcile.constants import SourceType
-from databricks.labs.remorph.reconcile.recon_config import Schema, Table
-
-
-@dataclass
-class SchemaCompareMaster:
-    source_column: str
-    source_datatype: str
-    databricks_column: str
-    databricks_datatype: str
-    is_valid: bool = True
-
+from databricks.labs.remorph.reconcile.constants import Constants, SourceType
+from databricks.labs.remorph.reconcile.recon_config import (
+    Schema,
+    SchemaMatchResult,
+    SchemCompareOutput,
+    Table,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +32,7 @@ class SchemaCompare:
         self.table_conf = table_conf
         self.spark = spark
 
-    def _build_master(self) -> list[SchemaCompareMaster]:
+    def _build_master_schema(self) -> list[SchemaMatchResult]:
         master_schema = self.source_schema
         if self.table_conf.select_columns:
             master_schema = [s for s in master_schema if s.column_name in self.table_conf.select_columns]
@@ -46,7 +41,7 @@ class SchemaCompare:
 
         target_column_map = self.table_conf.to_src_col_map or {}
         master_schema = [
-            SchemaCompareMaster(
+            SchemaMatchResult(
                 source_column=s.column_name,
                 databricks_column=target_column_map.get(s.column_name, s.column_name),
                 source_datatype=s.data_type,
@@ -63,33 +58,17 @@ class SchemaCompare:
         ]
         return master_schema
 
-    def _create_dataframe(self, schema_compare_master: list[SchemaCompareMaster]) -> DataFrame:
-        # Define the schema for the DataFrame
-        schema = StructType(
-            [
-                StructField("source_column", StringType(), True),
-                StructField("source_datatype", StringType(), True),
-                StructField("databricks_column", StringType(), True),
-                StructField("databricks_datatype", StringType(), True),
-                StructField("is_valid", BooleanType(), True),
-            ]
-        )
-        # Convert list of dataclass objects to list of tuples
-        data = [
-            (
-                item.source_column,
-                item.source_datatype,
-                item.databricks_column,
-                item.databricks_datatype,
-                item.is_valid,
-            )
-            for item in schema_compare_master
-        ]
-        # Create DataFrame
+    def _create_dataframe(self, data: list, schema: StructType) -> DataFrame:
+        """
+        :param data: Expectation is list of dataclass
+        :param schema: Target schema
+        :return: DataFrame
+        """
+        data = [tuple(asdict(item).values()) for item in data]
         df = self.spark.createDataFrame(data, schema)
+
         return df
 
-    # TODO : Once we have inline sql parse functions in transpiler we have to replace this
     def _parse(self, column: str, data_type: str) -> str:
         config = MorphConfig(source=self.source)
         return (
@@ -99,11 +78,11 @@ class SchemaCompare:
         )
 
     @classmethod
-    def _all_valid(cls, schema_compare_maps: list[SchemaCompareMaster]) -> str:
-        return "Success" if all(x.is_valid for x in schema_compare_maps) else "Failed"
+    def _all_valid(cls, schema_compare_maps: list[SchemaMatchResult]) -> bool:
+        return bool(all(x.is_valid for x in schema_compare_maps))
 
     @classmethod
-    def _validate_parsed_query(cls, master, parsed_query) -> None:
+    def _validate_parsed_query(cls, master: SchemaMatchResult, parsed_query) -> None:
         databricks_query = f"create table dummy ({master.source_column} {master.databricks_datatype})"
         logger.info(
             f"""
@@ -115,8 +94,15 @@ class SchemaCompare:
         if parsed_query.lower() != databricks_query.lower():
             master.is_valid = False
 
-    def compare(self) -> tuple[str, DataFrame]:
-        master_schema = self._build_master()
+    def compare(self) -> SchemCompareOutput:
+        """
+        This method compares the source schema and the Databricks schema. It checks if the data types of the columns in the source schema
+        match with the corresponding columns in the Databricks schema by parsing using remorph transpile.
+
+        Returns:
+            SchemCompareOutput: A dataclass object containing a boolean indicating the overall result of the comparison and a DataFrame with the comparison details.
+        """
+        master_schema = self._build_master_schema()
         for master in master_schema:
             if self.source.upper() != SourceType.DATABRICKS.value:
                 parsed_query = self._parse(master.source_column, master.source_datatype)
@@ -124,6 +110,6 @@ class SchemaCompare:
             elif master.source_datatype.lower() != master.databricks_datatype.lower():
                 master.is_valid = False
 
-        df = self._create_dataframe(master_schema)
+        df = self._create_dataframe(master_schema, Constants.schema_compare)
         final_result = self._all_valid(master_schema)
-        return final_result, df
+        return SchemCompareOutput(final_result, df)

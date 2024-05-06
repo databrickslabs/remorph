@@ -156,7 +156,7 @@ def snowflake_databricks_schema():
         Schema("col_real", "double"),
         Schema("col_date", "date"),
         Schema("col_time", "timestamp"),
-        Schema("col_timestamp", "timestamp"),
+        Schema("col_timestamp", "timestamp_ntz"),
         Schema("col_timestamp_ltz", "timestamp"),
         Schema("col_timestamp_ntz", "timestamp_ntz"),
         Schema("col_timestamp_tz", "timestamp"),

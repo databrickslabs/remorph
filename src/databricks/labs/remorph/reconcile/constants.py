@@ -1,5 +1,7 @@
 from enum import Enum, auto
 
+from pyspark.sql.types import BooleanType, StringType, StructField, StructType
+
 
 class AutoName(Enum):
     """
@@ -86,6 +88,17 @@ class Constants:
             "target": HashAlgorithm.DATABRICKS_SHA_256.value,
         },
     }
+
+    # Define the schema for the schema compare DataFrame
+    schema_compare = StructType(
+        [
+            StructField("source_column", StringType(), False),
+            StructField("source_datatype", StringType(), False),
+            StructField("databricks_column", StringType(), True),
+            StructField("databricks_datatype", StringType(), True),
+            StructField("is_valid", BooleanType(), False),
+        ]
+    )
 
 
 class SampleConfig:

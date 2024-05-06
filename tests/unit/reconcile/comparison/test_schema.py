@@ -15,14 +15,14 @@ def test_snowflake_schema_compare(snowflake_databricks_schema, mock_spark_sessio
         ],
     )
 
-    result, df = SchemaCompare(src_schema, tgt_schema, "snowflake", table_conf, spark).compare()
-    print(f"Result: {result}")
+    schema_compare_output = SchemaCompare(src_schema, tgt_schema, "snowflake", table_conf, spark).compare()
+    df = schema_compare_output.compare_df
     df.show(100, truncate=False)
 
-    assert result == "Failed"
+    assert not schema_compare_output.is_valid
     assert df.count() == 27
-    assert df.filter("is_valid = 'true'").count() == 24
-    assert df.filter("is_valid = 'false'").count() == 3
+    assert df.filter("is_valid = 'true'").count() == 25
+    assert df.filter("is_valid = 'false'").count() == 2
 
 
 def test_databricks_schema_compare(databricks_databricks_schema, mock_spark_session):
@@ -31,20 +31,19 @@ def test_databricks_schema_compare(databricks_databricks_schema, mock_spark_sess
     table_conf = Table(
         source_name="supplier",
         target_name="supplier",
-        drop_columns=["dummy"],
         column_mapping=[
             ColumnMapping(source_name="col_char", target_name="char"),
             ColumnMapping(source_name="col_array", target_name="array_col"),
         ],
     )
-    result, df = SchemaCompare(src_schema, tgt_schema, "databricks", table_conf, spark).compare()
-    print(f"Result: {result}")
+    schema_compare_output = SchemaCompare(src_schema, tgt_schema, "databricks", table_conf, spark).compare()
+    df = schema_compare_output.compare_df
     df.show(100, truncate=False)
 
-    assert result == "Failed"
-    assert df.count() == 8
+    assert not schema_compare_output.is_valid
+    assert df.count() == 9
     assert df.filter("is_valid = 'true'").count() == 6
-    assert df.filter("is_valid = 'false'").count() == 2
+    assert df.filter("is_valid = 'false'").count() == 3
 
 
 def test_oracle_schema_compare(oracle_databricks_schema, mock_spark_session):
@@ -59,11 +58,11 @@ def test_oracle_schema_compare(oracle_databricks_schema, mock_spark_session):
             ColumnMapping(source_name="col_array", target_name="array_col"),
         ],
     )
-    result, df = SchemaCompare(src_schema, tgt_schema, "oracle", table_conf, spark).compare()
-    print(f"Result: {result}")
+    schema_compare_output = SchemaCompare(src_schema, tgt_schema, "oracle", table_conf, spark).compare()
+    df = schema_compare_output.compare_df
     df.show(100, truncate=False)
 
-    assert result == "Failed"
+    assert not schema_compare_output.is_valid
     assert df.count() == 26
-    assert df.filter("is_valid = 'true'").count() == 18
-    assert df.filter("is_valid = 'false'").count() == 8
+    assert df.filter("is_valid = 'true'").count() == 19
+    assert df.filter("is_valid = 'false'").count() == 7
