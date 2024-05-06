@@ -133,7 +133,7 @@ class SnowflakeDDLBuilder
     columnNames.zip(constraints)
   }
 
-  private [snowflake] def buildInlineConstraint(ctx: Inline_constraintContext): ir.Constraint = ctx match {
+  private[snowflake] def buildInlineConstraint(ctx: Inline_constraintContext): ir.Constraint = ctx match {
     case c if c.UNIQUE() != null => ir.Unique
     case c if c.primary_key() != null => ir.PrimaryKey
     case c if c.foreign_key() != null =>
