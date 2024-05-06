@@ -49,7 +49,7 @@ def test_query_with_analysis_error(morph_config):
         result, exception = validator.validate_format_result(morph_config, query)
         if should_succeed:
             assert query in result
-            assert exception is None
+            assert "[WARNING]" in exception
         else:
             assert err in exception
 
