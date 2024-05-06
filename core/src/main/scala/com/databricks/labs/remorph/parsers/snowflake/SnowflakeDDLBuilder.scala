@@ -5,16 +5,16 @@ import SnowflakeParser.{StringContext => StrContext, _}
 
 import scala.collection.JavaConverters._
 class SnowflakeDDLBuilder
-    extends SnowflakeParserBaseVisitor[ir.Command]
+    extends SnowflakeParserBaseVisitor[ir.Catalog]
     with ParserCommon
-    with IncompleteParser[ir.Command] {
-  override protected def wrapUnresolvedInput(unparsedInput: String): ir.Command = ir.UnresolvedCommand(unparsedInput)
+    with IncompleteParser[ir.Catalog] {
+  override protected def wrapUnresolvedInput(unparsedInput: String): ir.Catalog = ir.UnresolvedCatalog(unparsedInput)
 
   private def extractString(ctx: StrContext): String = {
     ctx.getText.stripPrefix("'").stripSuffix("'")
   }
 
-  override def visitCreate_function(ctx: Create_functionContext): ir.Command = {
+  override def visitCreate_function(ctx: Create_functionContext): ir.Catalog = {
     val runtimeInfo = ctx match {
       case c if c.JAVA() != null => buildJavaUDF(c)
       case c if c.PYTHON() != null => buildPythonUDF(c)
@@ -75,4 +75,70 @@ class SnowflakeDDLBuilder
     ir.PythonUDFInfo(extractRuntimeVersion(ctx), packages, extractHandler(ctx))
   }
 
+  override def visitCreate_table(ctx: Create_tableContext): ir.Catalog = {
+    val tableName = ctx.object_name().getText
+    val columns = buildColumnDeclarations(
+      ctx
+        .create_table_clause()
+        .column_decl_item_list_paren()
+        .column_decl_item_list()
+        .column_decl_item()
+        .asScala)
+
+    ir.CreateTableCommand(tableName, columns)
+  }
+
+  private def buildColumnDeclarations(ctx: Seq[Column_decl_itemContext]): Seq[ir.ColumnDeclaration] = {
+    // According to the grammar, either ctx.full_col_decl or ctx.out_of_line_constraint is non-null.
+    val columns = ctx.collect {
+      case c if c.full_col_decl() != null => buildColumnDeclaration(c.full_col_decl())
+    }
+    // An out-of-line constraint may apply to one or many columns
+    // When an out-of-line contraint applies to multiple columns,
+    // we record a column-name -> constraint mapping for each.
+    val outOfLineConstraints: Seq[(String, ir.Constraint)] = ctx.collect {
+      case c if c.out_of_line_constraint() != null => buildOutOfLineConstraint(c.out_of_line_constraint())
+    }.flatten
+
+    // Finally, for every column, we "inject" the relevant out-of-line constraints
+    columns.map { col =>
+      val additionalConstraints = outOfLineConstraints.collect {
+        case (columnName, constraint) if columnName == col.name => constraint
+      }
+      col.copy(constraints = col.constraints ++ additionalConstraints)
+    }
+  }
+
+  private def buildColumnDeclaration(ctx: Full_col_declContext): ir.ColumnDeclaration = {
+    val name = ctx.col_decl().column_name().getText
+    val dataType = DataTypeBuilder.buildDataType(ctx.col_decl().data_type())
+    val constraints = ctx.inline_constraint().asScala.map(buildInlineConstraint)
+    val nullability = if (ctx.null_not_null().asScala.exists(_.NOT() != null)) Seq(ir.NotNull) else Seq()
+    ir.ColumnDeclaration(name, dataType, virtualColumnDeclaration = None, nullability ++ constraints)
+  }
+
+  private[snowflake] def buildOutOfLineConstraint(ctx: Out_of_line_constraintContext): Seq[(String, ir.Constraint)] = {
+    val columnNames = ctx.column_list_in_parentheses(0).column_list().column_name().asScala.map(_.getText)
+    val repeatForEveryColumnName = List.fill[ir.Constraint](columnNames.size)(_)
+    val constraints = ctx match {
+      case c if c.UNIQUE() != null => repeatForEveryColumnName(ir.Unique)
+      case c if c.primary_key() != null => repeatForEveryColumnName(ir.PrimaryKey)
+      case c if c.foreign_key() != null =>
+        val referencedObject = c.object_name().getText
+        val references =
+          c.column_list_in_parentheses(1).column_list().column_name().asScala.map(referencedObject + "." + _.getText)
+        references.map(ir.ForeignKey.apply)
+      case c => repeatForEveryColumnName(ir.UnresolvedConstraint(c.getText))
+    }
+    columnNames.zip(constraints)
+  }
+
+  private[snowflake] def buildInlineConstraint(ctx: Inline_constraintContext): ir.Constraint = ctx match {
+    case c if c.UNIQUE() != null => ir.Unique
+    case c if c.primary_key() != null => ir.PrimaryKey
+    case c if c.foreign_key() != null =>
+      val references = c.object_name().getText + Option(ctx.column_name()).map("." + _.getText).getOrElse("")
+      ir.ForeignKey(references)
+    case c => ir.UnresolvedConstraint(c.getText)
+  }
 }
