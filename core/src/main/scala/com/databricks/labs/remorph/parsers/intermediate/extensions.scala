@@ -71,7 +71,7 @@ case class Mod(left: Expression, right: Expression) extends Binary(left, right) 
 case class Add(left: Expression, right: Expression) extends Binary(left, right) {}
 case class Subtract(left: Expression, right: Expression) extends Binary(left, right) {}
 
-// Binary bitwise expressions and con
+// Binary bitwise expressions
 case class BitwiseAnd(left: Expression, right: Expression) extends Binary(left, right) {}
 case class BitwiseOr(left: Expression, right: Expression) extends Binary(left, right) {}
 case class BitwiseXor(left: Expression, right: Expression) extends Binary(left, right) {}

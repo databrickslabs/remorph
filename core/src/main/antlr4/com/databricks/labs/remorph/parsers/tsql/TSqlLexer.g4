@@ -1212,8 +1212,6 @@ IPV4_ADDR: DEC_DIGIT+ '.' DEC_DIGIT+ '.' DEC_DIGIT+ '.' DEC_DIGIT+;
 SPACE: [ \t\r\n]+ -> skip;
 // https://docs.microsoft.com/en-us/sql/t-sql/language-elements/slash-star-comment-transact-sql
 COMMENT      : '/*' (COMMENT | .)*? '*/' -> channel(HIDDEN);
-//TODO: In ANTLR v4 we cannot distinguish between 7 + ---42 amd  -- A comment. Needs custom char stream
-// ANTLR will match the longest sequence in the lexer rules and will always pick comment over uminus uminus
 LINE_COMMENT : '--' ~[\r\n]*             -> channel(HIDDEN);
 
 // TODO: ID can be not only Latin.
