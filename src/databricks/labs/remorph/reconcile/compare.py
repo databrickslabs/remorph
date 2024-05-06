@@ -2,8 +2,17 @@ from pyspark.sql import DataFrame
 from pyspark.sql.functions import col, expr, lit
 
 from databricks.labs.remorph.reconcile.constants import Constants
-from databricks.labs.remorph.reconcile.exception import raise_column_mismatch_exception
+from databricks.labs.remorph.reconcile.exception import ColumnMismatchException
 from databricks.labs.remorph.reconcile.recon_config import ReconcileOutput
+
+
+def raise_column_mismatch_exception(msg: str, source_missing: list[str], target_missing: list[str]) -> Exception:
+    error_msg = (
+        f"{msg}\n"
+        f"columns missing in source: {','.join(source_missing) if source_missing else None}\n"
+        f"columns missing in target: {','.join(target_missing) if target_missing else None}\n"
+    )
+    return ColumnMismatchException(error_msg)
 
 
 def reconcile_data(source: DataFrame, target: DataFrame, key_columns: list[str], report_type: str) -> ReconcileOutput:
