@@ -130,6 +130,10 @@ class DateTrunc(Func):
     arg_types: ClassVar[dict] = {"unit": False, "this": True, "zone": False}
 
 
+class Median(Func):
+    arg_types: ClassVar[dict] = {"this": True}
+
+
 @dataclass
 class WithinGroupParams:
     agg_col: exp.Column
