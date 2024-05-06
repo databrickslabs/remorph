@@ -13,7 +13,7 @@ SELECT d.value:display_position::NUMBER as item_card_impression_display_position
 SELECT
                       CAST(d.value.display_position AS DECIMAL(38, 0)) AS item_card_impression_display_position,
                       CAST(i.impression_attributes AS STRING) AS item_card_impression_impression_attributes,
-                      CAST(CURRENT_TIMESTAMP() AS TIMESTAMP) AS dwh_created_date_time_utc,
+                      CAST(CURRENT_TIMESTAMP() AS TIMESTAMP_NTZ) AS dwh_created_date_time_utc,
                       CAST(i.propensity AS DOUBLE) AS propensity, candidates
                FROM dwh.vw_replacement_customer AS d LATERAL VIEW OUTER EXPLODE(d.item_card_impressions) AS i
                WHERE event_date_pt = '{start_date}' AND event_name IN ('store.replacements_view');
