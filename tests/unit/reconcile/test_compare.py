@@ -3,9 +3,11 @@ from pyspark import Row
 from pyspark.testing import assertDataFrameEqual
 
 from databricks.labs.remorph.reconcile.compare import (
+    alias_column_str,
     capture_mismatch_data_and_columns,
     reconcile_data,
 )
+from databricks.labs.remorph.reconcile.exception import ColumnMismatchException
 from databricks.labs.remorph.reconcile.recon_config import ReconcileOutput
 
 
@@ -157,7 +159,7 @@ def test_capture_mismatch_data_and_cols_fail(mock_spark_session):
         ]
     )
 
-    with pytest.raises(ValueError) as exception:
+    with pytest.raises(ColumnMismatchException) as exception:
         capture_mismatch_data_and_columns(source=source, target=target, key_columns=["s_suppkey"])
 
     assert str(exception.value) == (
@@ -165,3 +167,12 @@ def test_capture_mismatch_data_and_cols_fail(mock_spark_session):
         "columns missing in source: None\n"
         "columns missing in target: s_nationkey,s_name,s_address,s_phone,s_acctbal\n"
     )
+
+
+def test_alias_column_str(mock_spark_session):
+    column_list = ['col1', 'col2', 'col3']
+    alias = 'source'
+    actual = alias_column_str(alias=alias, columns=column_list)
+    expected = ['source.col1', 'source.col2', 'source.col3']
+
+    assert actual == expected

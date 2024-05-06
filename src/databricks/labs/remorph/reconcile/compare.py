@@ -2,17 +2,8 @@ from pyspark.sql import DataFrame
 from pyspark.sql.functions import col, expr, lit
 
 from databricks.labs.remorph.reconcile.constants import Constants
+from databricks.labs.remorph.reconcile.exception import raise_column_mismatch_exception
 from databricks.labs.remorph.reconcile.recon_config import ReconcileOutput
-from databricks.labs.remorph.reconcile.utils import alias_column_str
-
-
-def raise_column_mismatch_exception(msg: str, source_missing: list[str], target_missing: list[str]) -> Exception:
-    error_msg = (
-        f"{msg}\n"
-        f"columns missing in source: {','.join(source_missing) if source_missing else None}\n"
-        f"columns missing in target: {','.join(target_missing) if target_missing else None}\n"
-    )
-    return ValueError(error_msg)
 
 
 def reconcile_data(source: DataFrame, target: DataFrame, key_columns: list[str], report_type: str) -> ReconcileOutput:
@@ -81,8 +72,8 @@ def _get_mismatch_columns(df: DataFrame, columns: list[str]):
 
 
 def _get_mismatch_df(source: DataFrame, target: DataFrame, key_columns: list[str], column_list: list[str]):
-    source_aliased = [col('base.' + c).alias(c + '_base') for c in column_list]
-    target_aliased = [col('compare.' + c).alias(c + '_compare') for c in column_list]
+    source_aliased = [col('base.' + column).alias(column + '_base') for column in column_list]
+    target_aliased = [col('compare.' + column).alias(column + '_compare') for column in column_list]
 
     match_expr = [expr(f"{column}_base=={column}_compare").alias(column + "_match") for column in column_list]
     select_expr = key_columns + source_aliased + target_aliased + match_expr
@@ -98,3 +89,7 @@ def _get_mismatch_df(source: DataFrame, target: DataFrame, key_columns: list[str
     )
     compare_columns = [column for column in mismatch_df.columns if column not in key_columns]
     return mismatch_df.select(*key_columns + sorted(compare_columns))
+
+
+def alias_column_str(alias: str, columns: list[str]) -> list[str]:
+    return [f"{alias}.{column}" for column in columns]
