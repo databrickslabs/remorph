@@ -25,10 +25,8 @@ commands:
         default: true
         description: Validate Transpiled Code, default True validation skipped, False validate
       - name: catalog-name
-        default: transpiler_test
         description: Catalog Name Applicable only when Validation Mode is DATABRICKS
       - name: schema-name
-        default: convertor_test
         description: Schema Name Applicable only when Validation Mode is DATABRICKS
       - name: mode
         default: current
