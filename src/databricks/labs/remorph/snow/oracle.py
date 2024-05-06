@@ -5,7 +5,7 @@ from sqlglot.tokens import TokenType
 
 
 class Oracle(Orc):
-    # Instantiate Snowflake Dialect
+    # Instantiate Oracle Dialect
     oracle = Orc()
 
     class Tokenizer(oracle.Tokenizer):
