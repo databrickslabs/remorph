@@ -29,6 +29,8 @@ class TSqlAstBuilder extends TSqlParserBaseVisitor[ir.TreeNode] {
       .select_list_elem()
       .asScala
       .map(_.accept(new TSqlExpressionBuilder))
+
+    // [TODO]: Handle Where, Group By, Having, Order By, Limit, Offset
     val tableSources = Option(rawExpression.table_sources())
       .fold[ir.Relation](ir.NoTable())(_.accept(new TSqlRelationBuilder))
     ir.Project(tableSources, columnExpression)
