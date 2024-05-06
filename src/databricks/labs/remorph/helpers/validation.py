@@ -87,9 +87,6 @@ class Validator:
             if "[TABLE_OR_VIEW_NOT_FOUND]" in err_msg or "[TABLE_OR_VIEW_ALREADY_EXISTS]" in err_msg:
                 logger.debug(f"Analysis Exception : IGNORED: {err_msg}")
                 return True, "warning", err_msg
-            if "[SCHEMA_NOT_FOUND]" in err_msg:
-                logger.debug(f"Analysis Exception : IGNORED: {err_msg}")
-                return True, "warning", err_msg
             if "Hive support is required to CREATE Hive TABLE (AS SELECT).;" in err_msg:
                 logger.debug(f"Analysis Exception : IGNORED: {err_msg}")
                 return True, "warning", err_msg
