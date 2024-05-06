@@ -626,3 +626,20 @@ class Databricks(Databricks):  #
                 sql = f"UPDATE {this} SET {set_sql}{expression_sql}{order}{limit}"
 
             return self.prepend_ctes(expression, sql)
+
+        def struct_sql(self, expression: exp.Struct) -> str:
+            expression.set(
+                "expressions",
+                [
+                    (
+                        exp.alias_(
+                            e.expression, e.name if hasattr(e.this, "is_string") and e.this.is_string else e.this
+                        )
+                        if isinstance(e, exp.PropertyEQ)
+                        else e
+                    )
+                    for e in expression.expressions
+                ],
+            )
+
+            return self.function_fallback_sql(expression)
