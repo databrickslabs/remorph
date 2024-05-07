@@ -118,6 +118,10 @@ def _datatype_map(self, expression) -> str:
         return "STRING"
     if expression.this in [exp.DataType.Type.TIMESTAMP, exp.DataType.Type.TIMESTAMPLTZ]:
         return "TIMESTAMP"
+    if expression.this == exp.DataType.Type.BINARY:
+        return "BINARY"
+    if expression.this == exp.DataType.Type.NCHAR:
+        return "STRING"
     return self.datatype_sql(expression)
 
 
@@ -335,6 +339,8 @@ class Databricks(Databricks):  #
             exp.DataType.Type.VARCHAR: "STRING",
             exp.DataType.Type.VARIANT: "STRING",
             exp.DataType.Type.FLOAT: "DOUBLE",
+            exp.DataType.Type.OBJECT: "STRING",
+            exp.DataType.Type.GEOGRAPHY: "STRING",
         }
 
         TRANSFORMS: ClassVar[dict] = {
