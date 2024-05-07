@@ -243,7 +243,7 @@ class SnowflakeExpressionBuilder
         val patterns = if (c.ANY() != null) {
           c.expr()
             .asScala
-            .filter(e => occursBefore(c.LR_BRACKET(), e) && occursBefore(e, c.RR_BRACKET()))
+            .filter(e => occursBefore(c.L_PAREN(), e) && occursBefore(e, c.R_PAREN()))
             .map(_.accept(this)) _
         } else {
           Seq(c.expr(1).accept(this))
