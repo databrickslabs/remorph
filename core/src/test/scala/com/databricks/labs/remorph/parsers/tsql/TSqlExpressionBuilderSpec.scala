@@ -62,5 +62,67 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
           Divide(Column("c"), Literal(integer = Some(5)))))
       example(query = "a || b || c", _.expression(), Concat(Concat(Column("a"), Column("b")), Column("c")))
     }
+    "correctly apply operator precedence and associativity" in {
+      example(
+        "1 + -++-2",
+        _.expression(),
+        Add(Literal(integer = Some(1)), UMinus(UPlus(UPlus(UMinus(Literal(integer = Some(2))))))))
+      example(
+        "1 + ~ 2 * 3",
+        _.expression(),
+        Add(Literal(integer = Some(1)), Multiply(BitwiseNot(Literal(integer = Some(2))), Literal(integer = Some(3)))))
+      example(
+        "1 + -2 * 3",
+        _.expression(),
+        Add(Literal(integer = Some(1)), Multiply(UMinus(Literal(integer = Some(2))), Literal(integer = Some(3)))))
+      example(
+        "1 + -2 * 3 + 7 & 66",
+        _.expression(),
+        BitwiseAnd(
+          Add(
+            Add(Literal(integer = Some(1)), Multiply(UMinus(Literal(integer = Some(2))), Literal(integer = Some(3)))),
+            Literal(integer = Some(7))),
+          Literal(integer = Some(66))))
+      example(
+        "1 + -2 * 3 + 7 ^ 66",
+        _.expression(),
+        BitwiseXor(
+          Add(
+            Add(Literal(integer = Some(1)), Multiply(UMinus(Literal(integer = Some(2))), Literal(integer = Some(3)))),
+            Literal(integer = Some(7))),
+          Literal(integer = Some(66))))
+      example(
+        "1 + -2 * 3 + 7 | 66",
+        _.expression(),
+        BitwiseOr(
+          Add(
+            Add(Literal(integer = Some(1)), Multiply(UMinus(Literal(integer = Some(2))), Literal(integer = Some(3)))),
+            Literal(integer = Some(7))),
+          Literal(integer = Some(66))))
+      example(
+        "1 + -2 * 3 + 7 + ~66",
+        _.expression(),
+        Add(
+          Add(
+            Add(Literal(integer = Some(1)), Multiply(UMinus(Literal(integer = Some(2))), Literal(integer = Some(3)))),
+            Literal(integer = Some(7))),
+          BitwiseNot(Literal(integer = Some(66)))))
+      example(
+        "1 + -2 * 3 + 7 | 1980 || 'leeds1' || 'leeds2' || 'leeds3'",
+        _.expression(),
+        Concat(
+          Concat(
+            Concat(
+              BitwiseOr(
+                Add(
+                  Add(
+                    Literal(integer = Some(1)),
+                    Multiply(UMinus(Literal(integer = Some(2))), Literal(integer = Some(3)))),
+                  Literal(integer = Some(7))),
+                Literal(integer = Some(1980))),
+              Literal(string = Some("leeds1"))),
+            Literal(string = Some("leeds2"))),
+          Literal(string = Some("leeds3"))))
+    }
   }
 }
