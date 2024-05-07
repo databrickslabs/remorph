@@ -35,12 +35,9 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
     }
     "translate complex binary expressions" in {
       example("a + b * 2", _.expression(), Add(Column("a"), Multiply(Column("b"), Literal(integer = Some(2)))))
-      example(
-        "(a + b) * 2",
-        _.expression(),
-        Multiply(Precedence(Add(Column("a"), Column("b"))), Literal(integer = Some(2))))
+      example("(a + b) * 2", _.expression(), Multiply(Add(Column("a"), Column("b")), Literal(integer = Some(2))))
       example("a & b | c", _.expression(), BitwiseOr(BitwiseAnd(Column("a"), Column("b")), Column("c")))
-      example("(a & b) | c", _.expression(), BitwiseOr(Precedence(BitwiseAnd(Column("a"), Column("b"))), Column("c")))
+      example("(a & b) | c", _.expression(), BitwiseOr(BitwiseAnd(Column("a"), Column("b")), Column("c")))
       example(
         "a % 3 + b * 2 - c / 5",
         _.expression(),
@@ -51,9 +48,7 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
         "(a % 3 + b) * 2 - c / 5",
         _.expression(),
         Subtract(
-          Multiply(
-            Precedence(Add(Mod(Column("a"), Literal(integer = Some(3))), Column("b"))),
-            Literal(integer = Some(2))),
+          Multiply(Add(Mod(Column("a"), Literal(integer = Some(3))), Column("b")), Literal(integer = Some(2))),
           Divide(Column("c"), Literal(integer = Some(5)))))
       example(query = "a || b || c", _.expression(), Concat(Concat(Column("a"), Column("b")), Column("c")))
     }
@@ -123,49 +118,41 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
       example(
         "(1 + 2) * 3",
         _.expression(),
-        Multiply(Precedence(Add(Literal(integer = Some(1)), Literal(integer = Some(2)))), Literal(integer = Some(3))))
+        Multiply(Add(Literal(integer = Some(1)), Literal(integer = Some(2))), Literal(integer = Some(3))))
       example(
         "1 + (2 * 3)",
         _.expression(),
-        Add(Literal(integer = Some(1)), Precedence(Multiply(Literal(integer = Some(2)), Literal(integer = Some(3))))))
+        Add(Literal(integer = Some(1)), Multiply(Literal(integer = Some(2)), Literal(integer = Some(3)))))
       example(
         "(1 + 2) * (3 + 4)",
         _.expression(),
         Multiply(
-          Precedence(Add(Literal(integer = Some(1)), Literal(integer = Some(2)))),
-          Precedence(Add(Literal(integer = Some(3)), Literal(integer = Some(4))))))
+          Add(Literal(integer = Some(1)), Literal(integer = Some(2))),
+          Add(Literal(integer = Some(3)), Literal(integer = Some(4)))))
       example(
         "1 + (2 * 3) + 4",
         _.expression(),
         Add(
-          Add(Literal(integer = Some(1)), Precedence(Multiply(Literal(integer = Some(2)), Literal(integer = Some(3))))),
+          Add(Literal(integer = Some(1)), Multiply(Literal(integer = Some(2)), Literal(integer = Some(3)))),
           Literal(integer = Some(4))))
       example(
         "1 + (2 * 3 + 4)",
         _.expression(),
         Add(
           Literal(integer = Some(1)),
-          Precedence(
-            Add(Multiply(Literal(integer = Some(2)), Literal(integer = Some(3))), Literal(integer = Some(4))))))
+          Add(Multiply(Literal(integer = Some(2)), Literal(integer = Some(3))), Literal(integer = Some(4)))))
       example(
         "1 + (2 * (3 + 4))",
         _.expression(),
         Add(
           Literal(integer = Some(1)),
-          Precedence(
-            Multiply(
-              Literal(integer = Some(2)),
-              Precedence(Add(Literal(integer = Some(3)), Literal(integer = Some(4))))))))
+          Multiply(Literal(integer = Some(2)), Add(Literal(integer = Some(3)), Literal(integer = Some(4))))))
       example(
         "(1 + (2 * (3 + 4)))",
         _.expression(),
-        Precedence(
-          Add(
-            Literal(integer = Some(1)),
-            Precedence(
-              Multiply(
-                Literal(integer = Some(2)),
-                Precedence(Add(Literal(integer = Some(3)), Literal(integer = Some(4)))))))))
+        Add(
+          Literal(integer = Some(1)),
+          Multiply(Literal(integer = Some(2)), Add(Literal(integer = Some(3)), Literal(integer = Some(4))))))
     }
   }
 }

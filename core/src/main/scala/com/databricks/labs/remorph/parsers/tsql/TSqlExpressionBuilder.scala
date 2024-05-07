@@ -27,30 +27,15 @@ class TSqlExpressionBuilder
    * @param ctx
    *   the Expr_precedenceContext to visit, which contains the expression to which precedence is applied
    * @return
-   *   the visited expression
+   *   the visited expression in IR
    *
-   * Note that precedence is explicitly placed in the AST as if we wish to construct source code from the AST, we need
-   * to know that the () were there, and they would otherwise be elided and the generated code would be incorrect.
-   * Without the Precedence marker, code such as:
-   *
-   * <code>( 1 + 2 ) * 3 -> Multiply(Add(Literal(1), Literal(2)), Literal(3))</code>
-   *
-   * And without doing cumbersome detection in the AST, the translated code would be:
-   *
-   * <code>1 + 2 * 3</code>
-   *
-   * It now builds the AST as:
-   *
-   * <code>( 1 + 2 ) * 3 -> Multiply(Precedence(Add(Literal(1), Literal(2))), Literal(3))</code>
-   *
-   * The AST walker can now correctly generate the code:
-   *
-   * <code>( 1 + 2 ) * 3</code>
-   *
-   * Without any complicated logic to detect the need for parentheses.
+   * Note that precedence COULD be explicitly placed in the AST here. If we wish to construct an exact replication of
+   * expression source code from the AST, we need to know that the () were there. Redundant parens are otherwise elided
+   * and the generated code may seem to be incorrect in the eyes of the customer, even though it will be logically
+   * equivalent. redundant parentheses.
    */
   override def visitExpr_precedence(ctx: Expr_precedenceContext): ir.Expression = {
-    ir.Precedence(ctx.expression().accept(this))
+    ctx.expression().accept(this)
   }
 
   override def visitExpr_bit_not(ctx: Expr_bit_notContext): ir.Expression = {
