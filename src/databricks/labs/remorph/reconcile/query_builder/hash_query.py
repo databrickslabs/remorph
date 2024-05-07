@@ -1,5 +1,6 @@
 import sqlglot.expressions as exp
 
+from databricks.labs.remorph.reconcile.constants import Constants
 from databricks.labs.remorph.reconcile.query_builder.base import QueryBuilder
 from databricks.labs.remorph.reconcile.query_builder.expression_generator import (
     build_column,
@@ -40,7 +41,7 @@ class HashQueryBuilder(QueryBuilder):
 
         hash_expr = concat_expr.transform(self._hash_transform, self.source).transform(lower, is_expr=True)
 
-        return build_column(hash_expr, alias="hash_value_recon")
+        return build_column(hash_expr, alias=Constants.hash_column_name)
 
     @staticmethod
     def _hash_transform(node: exp.Expression, source: str):
