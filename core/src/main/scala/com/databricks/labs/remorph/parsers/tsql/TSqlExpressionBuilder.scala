@@ -61,7 +61,6 @@ class TSqlExpressionBuilder
   // constant, it is usually better to be explicit about the unary operation as
   // if people use -+-42 then maybe they have a reason.
   override def visitExpr_unary(ctx: Expr_unaryContext): ir.Expression = ctx.op.getType match {
-
     case MINUS => ir.UMinus(ctx.expression().accept(this))
     case PLUS => ir.UPlus(ctx.expression().accept(this))
   }
