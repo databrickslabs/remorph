@@ -23,20 +23,14 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.Relation] with Incomp
     }
   }
 
-  private def translateJoinType(ctx: JoinOnContext): ir.JoinType = {
-    val joinType = ctx.joinType()
-    if (joinType == null || joinType.outerJoin() == null || joinType.INNER() != null) {
-      ir.InnerJoin
-    } else if (joinType.outerJoin().LEFT() != null) {
-      ir.LeftOuterJoin
-    } else if (joinType.outerJoin().RIGHT() != null) {
-      ir.RightOuterJoin
-    } else if (joinType.outerJoin().FULL() != null) {
-      ir.FullOuterJoin
-    } else {
-      ir.UnspecifiedJoin
-    }
+  private def translateJoinType(ctx: JoinOnContext): ir.JoinType = ctx.joinType() match {
+    case jt if jt == null || jt.outerJoin() == null || jt.INNER() != null => ir.InnerJoin
+    case jt if jt.outerJoin().LEFT() != null => ir.LeftOuterJoin
+    case jt if jt.outerJoin().RIGHT() != null => ir.RightOuterJoin
+    case jt if jt.outerJoin().FULL() != null => ir.FullOuterJoin
+    case _ => ir.UnspecifiedJoin
   }
+
   private def buildJoin(left: ir.Relation, right: JoinPartContext): ir.Join = {
     val joinExpression = right.joinOn()
     val rightRelation = joinExpression.tableSource().accept(this)

@@ -99,7 +99,36 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
         query = "SELECT T1.A, T2.B FROM DBO.TABLE_X AS T1 INNER JOIN DBO.TABLE_Y AS T2 ON T1.A = T2.A " +
           "LEFT JOIN DBO.TABLE_Z AS T3 ON T1.A = T3.A OR T1.B = T3.B",
         expectedAst = Project(joinMainAst, Seq(Column("A"), Column("B"))))
+    }
+    "translate a query with a RIGHT OUTER JOIN" in {
+      val joinCondition = Equals(Column("A"), Column("A"))
 
+      val joinAst = Join(
+        NamedTable("DBO.TABLE_X", Map(), is_streaming = false),
+        NamedTable("DBO.TABLE_Y", Map(), is_streaming = false),
+        Some(joinCondition),
+        RightOuterJoin,
+        Seq(),
+        JoinDataType(is_left_struct = false, is_right_struct = false))
+
+      example(
+        query = "SELECT T1.A FROM DBO.TABLE_X AS T1 RIGHT OUTER JOIN DBO.TABLE_Y AS T2 ON T1.A = T2.A",
+        expectedAst = Project(joinAst, Seq(Column("A"))))
+    }
+    "translate a query with a FULL OUTER JOIN" in {
+      val joinCondition = Equals(Column("A"), Column("A"))
+
+      val joinAst = Join(
+        NamedTable("DBO.TABLE_X", Map(), is_streaming = false),
+        NamedTable("DBO.TABLE_Y", Map(), is_streaming = false),
+        Some(joinCondition),
+        FullOuterJoin,
+        Seq(),
+        JoinDataType(is_left_struct = false, is_right_struct = false))
+
+      example(
+        query = "SELECT T1.A FROM DBO.TABLE_X AS T1 FULL OUTER JOIN DBO.TABLE_Y AS T2 ON T1.A = T2.A",
+        expectedAst = Project(joinAst, Seq(Column("A"))))
     }
   }
   "translate SELECT queries with binary expressions" in {
