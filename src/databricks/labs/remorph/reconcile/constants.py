@@ -71,7 +71,7 @@ class ThresholdMatchType(AutoName):
 
 
 class Constants:
-    hash_column_name = "hash_value__recon"
+    hash_column_name = "hash_value_recon"
     hash_algorithm_mapping = {  # noqa RUF012
         SourceType.SNOWFLAKE.value: {
             "source": HashAlgorithm.SNOWFLAKE_SHA_256.value,
