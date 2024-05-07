@@ -27,11 +27,31 @@ class TSqlExpressionBuilder
     ctx.expression().accept(this)
   }
 
+  override def visitExpr_bit_not(ctx: Expr_bit_notContext): ir.Expression = {
+    ir.BitwiseNot(ctx.expression().accept(this))
+  }
+
+  override def visitExpr_unary(ctx: Expr_unaryContext): ir.Expression = ctx.op.getType match {
+    // Note that while we could evaluate the unary expression if it is a numeric
+    // constant, it is usually better to be explicit about the unary operation as
+    // if people use -+-42 then maybe they have a reason.
+    case MINUS => ir.UMinus(ctx.expression().accept(this))
+    case PLUS => ir.UPlus(ctx.expression().accept(this))
+  }
+
   override def visitExpr_op_prec_1(ctx: Expr_op_prec_1Context): ir.Expression = {
     buildBinaryExpression(ctx.expression(0).accept(this), ctx.expression(1).accept(this), ctx.op)
   }
 
   override def visitExpr_op_prec_2(ctx: Expr_op_prec_2Context): ir.Expression = {
+    buildBinaryExpression(ctx.expression(0).accept(this), ctx.expression(1).accept(this), ctx.op)
+  }
+
+  override def visitExpr_op_prec_3(ctx: Expr_op_prec_3Context): ir.Expression = {
+    buildBinaryExpression(ctx.expression(0).accept(this), ctx.expression(1).accept(this), ctx.op)
+  }
+
+  override def visitExpr_op_prec_4(ctx: Expr_op_prec_4Context): ir.Expression = {
     buildBinaryExpression(ctx.expression(0).accept(this), ctx.expression(1).accept(this), ctx.op)
   }
 
@@ -90,7 +110,6 @@ class TSqlExpressionBuilder
         ctx.predicate().accept(this)
       }
     }
-
   }
 
   override def visitPredicate(ctx: PredicateContext): ir.Expression = {
