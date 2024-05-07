@@ -107,7 +107,7 @@ case class UnresolvedConstraint(inputText: String) extends Constraint
 case class ColumnDeclaration(
     name: String,
     dataType: DataType,
-    virtualColumnDeclaration: Option[Expression] = None,
-    constraints: Seq[Constraint] = Seq())
+    virtualColumnDeclaration: Option[Expression] = Option.empty,
+    constraints: Seq[Constraint] = Seq.empty)
 
 case class CreateTableCommand(name: String, columns: Seq[ColumnDeclaration]) extends Catalog {}
