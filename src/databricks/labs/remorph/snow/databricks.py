@@ -79,37 +79,44 @@ def _curr_time():
     return "date_format(current_timestamp(), 'HH:mm:ss')"
 
 
-def _lateral_view(self, expression: exp.Lateral) -> str:
-    str_lateral_view = "LATERAL VIEW"
-    str_outer = "OUTER"
-    str_explode = "EXPLODE("
-    str_pfx = f"{str_lateral_view} {str_explode}"
-    str_alias = ")"
+def _select_contains_index(expression: exp.Select) -> bool:
+    for expr in expression.expressions:
+        column = expr.unalias() if isinstance(expr, exp.Alias) else expr
+        if column.name == "index":
+            return True
+    return False
 
+
+def _lateral_view(self: Databricks.Generator, expression: exp.Lateral) -> str:
     this = expression.args['this']
     alias = expression.args['alias']
-    # [TODO]: Implement for options: RECURSIVE and MODE
-    # view = expression.args['view']
-    # outer = expression.args['outer']
-    # cross_apply = expression.args['cross_apply']
+    alias_str = f" AS {alias.name}" if isinstance(alias, exp.TableAlias) else ""
+    generator_function_str = self.sql(this)
+    is_outer = False
+
     if isinstance(this, exp.Explode):
         explode_expr = this
+        parent_select = explode_expr.parent_select
+        select_contains_index = _select_contains_index(parent_select) if parent_select else False
+        generator_expr = ""
         if isinstance(explode_expr.this, exp.Kwarg):
-            str_pfx = str_pfx + self.sql(explode_expr.this, 'expression')
+            generator_expr = self.sql(explode_expr.this, 'expression')
             if not isinstance(explode_expr.this.expression, exp.ParseJSON):
-                str_pfx = str_pfx.replace("{", "").replace("}", "")
-
+                generator_expr = generator_expr.replace("{", "").replace("}", "")
         for expr in explode_expr.expressions:
             node = str(expr.this).upper()
             if node == "PATH":
-                str_pfx = str_pfx + "." + self.sql(expr, 'expression').replace("'", "")
+                generator_expr += "." + self.sql(expr, 'expression').replace("'", "")
             if node == "OUTER":
-                str_pfx = str_pfx.replace(str_lateral_view, f"{str_lateral_view} {str_outer}")
+                is_outer = True
 
-        if isinstance(alias, exp.TableAlias):
-            str_alias = str_alias + f" AS {alias.name}"
+        if select_contains_index:
+            generator_function_str = f"POSEXPLODE({generator_expr})"
+            alias_str = f"{' ' + alias.name if isinstance(alias, exp.TableAlias) else ''} AS index, value"
+        else:
+            generator_function_str = f"EXPLODE({generator_expr})"
 
-    return self.sql(str_pfx + str_alias)
+    return self.sql(f"LATERAL VIEW {'OUTER ' if is_outer else ''}{generator_function_str}{alias_str}")
 
 
 # [TODO] Add more datatype coverage https://docs.databricks.com/sql/language-manual/sql-ref-datatypes.html

@@ -32,7 +32,6 @@ class SqlglotEngine:
         return expression, error
 
     def parse_sql_content(self, sql, file_name):
-
         parsed_expression, _ = self.parse(sql, file_name)
         if parsed_expression is not None:
             for expr in parsed_expression:
