@@ -5,7 +5,7 @@ from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.types import BooleanType, StringType, StructField, StructType
 from sqlglot import parse_one
 
-from databricks.labs.remorph.config import MorphConfig
+from databricks.labs.remorph.config import SQLGLOT_DIALECTS
 from databricks.labs.remorph.reconcile.constants import SourceType
 from databricks.labs.remorph.reconcile.recon_config import (
     Schema,
@@ -44,9 +44,9 @@ class SchemaCompare:
     ) -> list[SchemaMatchResult]:
         master_schema = source_schema
         if table_conf.select_columns:
-            master_schema = [s for s in master_schema if s.column_name in table_conf.select_columns]
+            master_schema = [schema for schema in master_schema if schema.column_name in table_conf.select_columns]
         if table_conf.drop_columns:
-            master_schema = [s for s in master_schema if s.column_name not in table_conf.drop_columns]
+            master_schema = [sschema for sschema in master_schema if sschema.column_name not in table_conf.drop_columns]
 
         target_column_map = table_conf.to_src_col_map or {}
         master_schema = [
@@ -80,15 +80,14 @@ class SchemaCompare:
 
     @classmethod
     def _parse(cls, source: str, column: str, data_type: str) -> str:
-        config = MorphConfig(source=source)
         return (
-            parse_one(f"create table dummy ({column} {data_type})", read=config.get_read_dialect())
-            .sql(dialect=config.get_write_dialect())
+            parse_one(f"create table dummy ({column} {data_type})", read=SQLGLOT_DIALECTS.get(source))
+            .sql(dialect=SQLGLOT_DIALECTS.get("databricks"))
             .replace(", ", ",")
         )
 
     @classmethod
-    def _all_valid(cls, schema_compare_maps: list[SchemaMatchResult]) -> bool:
+    def _table_schema_status(cls, schema_compare_maps: list[SchemaMatchResult]) -> bool:
         return bool(all(x.is_valid for x in schema_compare_maps))
 
     @classmethod
@@ -96,7 +95,7 @@ class SchemaCompare:
         databricks_query = f"create table dummy ({master.source_column} {master.databricks_datatype})"
         logger.info(
             f"""
-        Snowflake datatype: create table dummy ({master.source_column} {master.source_datatype})
+        Source datatype: create table dummy ({master.source_column} {master.source_datatype})
         Parse datatype: {parsed_query}
         Databricks datatype: {databricks_query}
         """
@@ -127,5 +126,5 @@ class SchemaCompare:
                 master.is_valid = False
 
         df = self._create_dataframe(master_schema, self._schema_compare_schema)
-        final_result = self._all_valid(master_schema)
+        final_result = self._table_schema_status(master_schema)
         return SchemCompareOutput(final_result, df)

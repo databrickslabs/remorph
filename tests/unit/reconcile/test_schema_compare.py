@@ -184,7 +184,6 @@ def test_snowflake_schema_compare(schemas, mock_spark_session):
         table_conf,
     )
     df = schema_compare_output.compare_df
-    df.show(100, truncate=False)
 
     assert not schema_compare_output.is_valid
     assert df.count() == 27
@@ -220,7 +219,6 @@ def test_databricks_schema_compare(schemas, mock_spark_session):
         table_conf,
     )
     df = schema_compare_output.compare_df
-    df.show(100, truncate=False)
 
     assert not schema_compare_output.is_valid
     assert df.count() == 8
@@ -247,7 +245,6 @@ def test_oracle_schema_compare(schemas, mock_spark_session):
         table_conf,
     )
     df = schema_compare_output.compare_df
-    df.show(100, truncate=False)
 
     assert not schema_compare_output.is_valid
     assert df.count() == 26
@@ -282,7 +279,6 @@ def test_schema_compare(mock_spark_session):
         table_conf,
     )
     df = schema_compare_output.compare_df
-    df.show(100, truncate=False)
 
     assert schema_compare_output.is_valid
     assert df.count() == 2
