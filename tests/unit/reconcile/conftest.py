@@ -178,7 +178,7 @@ def databricks_databricks_schema():
         Schema("col_char", "string"),
         Schema("col_int", "int"),
         Schema("col_string", "string"),
-        Schema("col_bigint", "bigint"),
+        Schema("col_bigint", "int"),
         Schema("col_num10", "decimal(10,1)"),
         Schema("col_dec", "decimal(20,2)"),
         Schema("col_numeric_2", "decimal(38,0)"),

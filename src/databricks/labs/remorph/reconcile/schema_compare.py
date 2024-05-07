@@ -104,7 +104,7 @@ class SchemaCompare:
         """
         master_schema = self._build_master_schema()
         for master in master_schema:
-            if self.source.upper() != SourceType.DATABRICKS.value:
+            if self.source.upper() != str(SourceType.DATABRICKS.value).upper():
                 parsed_query = self._parse(master.source_column, master.source_datatype)
                 self._validate_parsed_query(master, parsed_query)
             elif master.source_datatype.lower() != master.databricks_datatype.lower():
