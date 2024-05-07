@@ -20,16 +20,8 @@ logger = logging.getLogger(__name__)
 class SchemaCompare:
     def __init__(
         self,
-        source_schema: list[Schema],
-        databricks_schema: list[Schema],
-        source: str,
-        table_conf: Table,
         spark: SparkSession,
     ):
-        self.source_schema = source_schema
-        self.databricks_schema = databricks_schema
-        self.source = source
-        self.table_conf = table_conf
         self.spark = spark
 
     # Define the schema for the schema compare DataFrame
@@ -43,14 +35,20 @@ class SchemaCompare:
         ]
     )
 
-    def _build_master_schema(self) -> list[SchemaMatchResult]:
-        master_schema = self.source_schema
-        if self.table_conf.select_columns:
-            master_schema = [s for s in master_schema if s.column_name in self.table_conf.select_columns]
-        if self.table_conf.drop_columns:
-            master_schema = [s for s in master_schema if s.column_name not in self.table_conf.drop_columns]
+    @classmethod
+    def _build_master_schema(
+        cls,
+        source_schema: list[Schema],
+        databricks_schema: list[Schema],
+        table_conf: Table,
+    ) -> list[SchemaMatchResult]:
+        master_schema = source_schema
+        if table_conf.select_columns:
+            master_schema = [s for s in master_schema if s.column_name in table_conf.select_columns]
+        if table_conf.drop_columns:
+            master_schema = [s for s in master_schema if s.column_name not in table_conf.drop_columns]
 
-        target_column_map = self.table_conf.to_src_col_map or {}
+        target_column_map = table_conf.to_src_col_map or {}
         master_schema = [
             SchemaMatchResult(
                 source_column=s.column_name,
@@ -59,7 +57,7 @@ class SchemaCompare:
                 databricks_datatype=next(
                     (
                         tgt.data_type
-                        for tgt in self.databricks_schema
+                        for tgt in databricks_schema
                         if tgt.column_name == target_column_map.get(s.column_name, s.column_name)
                     ),
                     "",
@@ -80,8 +78,9 @@ class SchemaCompare:
 
         return df
 
-    def _parse(self, column: str, data_type: str) -> str:
-        config = MorphConfig(source=self.source)
+    @classmethod
+    def _parse(cls, source: str, column: str, data_type: str) -> str:
+        config = MorphConfig(source=source)
         return (
             parse_one(f"create table dummy ({column} {data_type})", read=config.get_read_dialect())
             .sql(dialect=config.get_write_dialect())
@@ -105,7 +104,13 @@ class SchemaCompare:
         if parsed_query.lower() != databricks_query.lower():
             master.is_valid = False
 
-    def compare(self) -> SchemCompareOutput:
+    def compare(
+        self,
+        source_schema: list[Schema],
+        databricks_schema: list[Schema],
+        source: str,
+        table_conf: Table,
+    ) -> SchemCompareOutput:
         """
         This method compares the source schema and the Databricks schema. It checks if the data types of the columns in the source schema
         match with the corresponding columns in the Databricks schema by parsing using remorph transpile.
@@ -113,10 +118,10 @@ class SchemaCompare:
         Returns:
             SchemCompareOutput: A dataclass object containing a boolean indicating the overall result of the comparison and a DataFrame with the comparison details.
         """
-        master_schema = self._build_master_schema()
+        master_schema = self._build_master_schema(source_schema, databricks_schema, table_conf)
         for master in master_schema:
-            if self.source.upper() != str(SourceType.DATABRICKS.value).upper():
-                parsed_query = self._parse(master.source_column, master.source_datatype)
+            if source.upper() != str(SourceType.DATABRICKS.value).upper():
+                parsed_query = self._parse(source, master.source_column, master.source_datatype)
                 self._validate_parsed_query(master, parsed_query)
             elif master.source_datatype.lower() != master.databricks_datatype.lower():
                 master.is_valid = False
