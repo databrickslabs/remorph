@@ -1,12 +1,13 @@
 import re
 from pathlib import Path
+from typing import Sequence
 from unittest.mock import create_autospec
 
 import pytest
 from sqlglot import ErrorLevel, UnsupportedError
+from sqlglot.errors import SqlglotError
 from sqlglot import parse_one as sqlglot_parse_one
 from sqlglot import transpile
-from sqlglot.errors import SqlglotError
 
 from databricks.connect import DatabricksSession
 from databricks.labs.remorph.config import SQLGLOT_DIALECTS, MorphConfig
@@ -158,11 +159,9 @@ def parse_sql_files(input_dir: Path, source: str, target: str, is_expected_excep
                 target_sql = re.split(r'-- \w+ sql:', target_sql)[0].strip().rstrip(';').replace('\\', '')
                 # when multiple sqls are present below target
                 test_name = filenames.name.replace(".sql", "")
-                if is_expected_exception and isinstance(expected_exceptions[test_name], SqlglotError):
-                    expected_exception: SqlglotError = expected_exceptions[test_name]
-                    suite.append(
-                        FunctionalTestFileWithExpectedException(target_sql, source_sql, test_name, expected_exception)
-                    )
+                if is_expected_exception:
+                    exception = expected_exceptions.get(test_name, SqlglotError(test_name))
+                    suite.append(FunctionalTestFileWithExpectedException(target_sql, source_sql, test_name, exception))
                 else:
                     suite.append(FunctionalTestFile(target_sql, source_sql, test_name))
     return suite
@@ -170,7 +169,7 @@ def parse_sql_files(input_dir: Path, source: str, target: str, is_expected_excep
 
 def get_functional_test_files_from_directory(
     input_dir: Path, source: str, target: str, is_expected_exception=False
-) -> list[FunctionalTestFile] | list[FunctionalTestFileWithExpectedException]:
+) -> Sequence[FunctionalTestFileWithExpectedException]:
     """Get all functional tests in the input_dir."""
     suite = parse_sql_files(input_dir, source, target, is_expected_exception)
     return suite

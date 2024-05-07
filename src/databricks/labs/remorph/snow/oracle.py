@@ -8,5 +8,7 @@ class Oracle(Orc):
     # Instantiate Oracle Dialect
     oracle = Orc()
 
-    class Tokenizer(oracle.Tokenizer):
-        KEYWORDS: ClassVar[dict] = {**Orc.Tokenizer.KEYWORDS, 'LONG': TokenType.TEXT}
+    class Tokenizer(Orc.Tokenizer):
+        def __init__(self):
+            super().__init__()
+            self.KEYWORDS: ClassVar[dict] = {**Orc.Tokenizer.KEYWORDS, 'LONG': TokenType.TEXT}

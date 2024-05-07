@@ -4,7 +4,7 @@ from sqlglot import ErrorLevel, exp, parse
 from sqlglot.dialects.dialect import DialectType
 from sqlglot.errors import ParseError, TokenError, UnsupportedError
 from sqlglot.expressions import Expression, Select
-from sqlglot.optimizer.scope import build_scope, Scope
+from sqlglot.optimizer.scope import build_scope
 
 from databricks.labs.remorph.helpers.morph_status import ValidationError
 from databricks.labs.remorph.snow.local_expression import AliasInfo
@@ -58,12 +58,10 @@ def unalias_lca_in_select(expr: exp.Expression) -> exp.Expression:
     if not isinstance(expr, exp.Select):
         return expr
 
-    root_select: Scope = Scope(expression=expr)
+    root_select = build_scope(expr)
 
-    if build_scope(expr) is None:
-        raise ValueError("Scope not found for select expression")
-    else:
-        root_select = build_scope(expr)
+    if root_select is None:
+        raise ValueError("Failed to build scope for the select expression")
 
     # We won't search inside nested selects, they will be visited separately
     nested_selects = {*root_select.derived_tables, *root_select.subqueries}

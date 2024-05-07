@@ -90,7 +90,8 @@ class WorkspaceInstaller:
             mode="current",  # mode will not have a prompt as this is hidden flag
         )
 
-        ws_file_url = self._installation.save(config)
+        self._installation.save(config)
+        ws_file_url = self._installation.workspace_link(config.__file__)
         if self._prompts.confirm("Open config file in the browser and continue installing?"):
             webbrowser.open(ws_file_url)
         return config

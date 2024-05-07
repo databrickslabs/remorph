@@ -1,7 +1,7 @@
 import copy
 import logging
 import re
-from typing import ClassVar, Tuple
+from typing import ClassVar, Sequence, Union
 
 from sqlglot import exp
 from sqlglot.dialects.dialect import build_date_delta as parse_date_delta
@@ -219,19 +219,22 @@ class Snow(Snowflake):
     # Instantiate Snowflake Dialect
     snowflake = Snowflake()
 
-    class Tokenizer(snowflake.Tokenizer):
-
-        COMMENTS: ClassVar[list[str | Tuple]] = ["--", "//", ("/*", "*/")]
-        STRING_ESCAPES: ClassVar[list[str]] = ["\\", "'"]
+    class Tokenizer(Snowflake.Tokenizer):
+        def __init__(self):
+            super().__init__()
+            self.sql = None
+            self.size = None
+            self.KEYWORDS: ClassVar[dict] = {**Snowflake.Tokenizer.KEYWORDS}
+            # DEC is not a reserved keyword in Snowflake it can be used as table alias
+            self.KEYWORDS.pop("DEC")
+            self.COMMENTS: ClassVar[list[Sequence[str]]] = ["--", "//", ("/*", "*/")]
+            self.STRING_ESCAPES: ClassVar[list[str]] = ["\\", "'"]
+            self.KEYWORD_TRIE = {}
 
         CUSTOM_TOKEN_MAP: ClassVar[dict] = {
             r"(?i)CREATE\s+OR\s+REPLACE\s+PROCEDURE": TokenType.PROCEDURE,
             r"(?i)var\s+\w+\s+=\s+\w+?": TokenType.VAR,
         }
-
-        KEYWORDS: ClassVar[dict] = {**Snowflake.Tokenizer.KEYWORDS}
-        # DEC is not a reserved keyword in Snowflake it can be used as table alias
-        KEYWORDS.pop("DEC")
 
         @classmethod
         def update_keywords(cls, new_key_word_dict):
@@ -314,90 +317,90 @@ class Snow(Snowflake):
                 raise ParseError(msg) from e
             return self.tokens
 
-    class Parser(snowflake.Parser):
-        FUNCTIONS: ClassVar[dict] = {
-            **Snowflake.Parser.FUNCTIONS,
-            "ARRAY_AGG": exp.ArrayAgg.from_arg_list,
-            "STRTOK_TO_ARRAY": local_expression.Split.from_arg_list,
-            "DATE_FROM_PARTS": local_expression.MakeDate.from_arg_list,
-            "CONVERT_TIMEZONE": local_expression.ConvertTimeZone.from_arg_list,
-            "TRY_TO_DATE": local_expression.TryToDate.from_arg_list,
-            "STRTOK": local_expression.StrTok.from_arg_list,
-            "SPLIT_PART": _parse_split_part,
-            "TIMESTAMPADD": _parse_date_add,
-            "TRY_TO_DECIMAL": _parse_trytonumber,
-            "TRY_TO_NUMBER": _parse_trytonumber,
-            "TRY_TO_NUMERIC": _parse_trytonumber,
-            "DATEADD": parse_date_delta(exp.DateAdd, unit_mapping=DATE_DELTA_INTERVAL),
-            "DATEDIFF": parse_date_delta(exp.DateDiff, unit_mapping=DATE_DELTA_INTERVAL),
-            "IS_INTEGER": local_expression.IsInteger.from_arg_list,
-            "DIV0NULL": _div0null_to_if,
-            "JSON_EXTRACT_PATH_TEXT": _parse_json_extract_path_text,
-            "BITOR_AGG": local_expression.BitOr.from_arg_list,
-            "ARRAY_CONTAINS": _parse_array_contains,
-            "DAYNAME": _parse_dayname,
-            "BASE64_ENCODE": exp.ToBase64.from_arg_list,
-            "BASE64_DECODE_STRING": exp.FromBase64.from_arg_list,
-            "TRY_BASE64_DECODE_STRING": exp.FromBase64.from_arg_list,
-            "ARRAY_CONSTRUCT_COMPACT": local_expression.ArrayConstructCompact.from_arg_list,
-            "ARRAY_INTERSECTION": local_expression.ArrayIntersection.from_arg_list,
-            "ARRAY_SLICE": local_expression.ArraySlice.from_arg_list,
-            "MONTHNAME": _parse_monthname,
-            "MONTH_NAME": _parse_monthname,
-            "OBJECT_CONSTRUCT": _parse_object_construct,
-            "OBJECT_KEYS": local_expression.ObjectKeys.from_arg_list,
-            "TRY_PARSE_JSON": exp.ParseJSON.from_arg_list,
-            "TIMEDIFF": parse_date_delta(exp.DateDiff, unit_mapping=DATE_DELTA_INTERVAL),
-            "TIMESTAMPDIFF": parse_date_delta(exp.DateDiff, unit_mapping=DATE_DELTA_INTERVAL),
-            "TIMEADD": _parse_date_add,
-            "TO_BOOLEAN": lambda args: _parse_to_boolean(args, error=True),
-            "TO_DECIMAL": _parse_tonumber,
-            "TO_DOUBLE": local_expression.ToDouble.from_arg_list,
-            "TO_NUMBER": _parse_tonumber,
-            "TO_NUMERIC": _parse_tonumber,
-            "TO_OBJECT": local_expression.ToObject.from_arg_list,
-            "TO_TIME": _parse_to_timestamp,
-            "TIMESTAMP_FROM_PARTS": local_expression.TimestampFromParts.from_arg_list,
-            "TO_VARIANT": local_expression.ToVariant.from_arg_list,
-            "TRY_TO_BOOLEAN": lambda args: _parse_to_boolean(args, error=False),
-            "UUID_STRING": local_expression.UUID.from_arg_list,
-            "SYSDATE": exp.CurrentTimestamp.from_arg_list,
-            "TRUNC": lambda args: local_expression.DateTrunc(unit=seq_get(args, 1), this=seq_get(args, 0)),
-            "APPROX_PERCENTILE": exp.ApproxQuantile.from_arg_list,
-            "NTH_VALUE": local_expression.NthValue.from_arg_list,
-            "MEDIAN": local_expression.Median.from_arg_list,
-        }
+    class Parser(Snowflake.Parser):
+        def __init__(self):
+            super().__init__()
+            self.FUNCTIONS: ClassVar[dict] = {
+                **Snowflake.Parser.FUNCTIONS,
+                "ARRAY_AGG": exp.ArrayAgg.from_arg_list,
+                "STRTOK_TO_ARRAY": local_expression.Split.from_arg_list,
+                "DATE_FROM_PARTS": local_expression.MakeDate.from_arg_list,
+                "CONVERT_TIMEZONE": local_expression.ConvertTimeZone.from_arg_list,
+                "TRY_TO_DATE": local_expression.TryToDate.from_arg_list,
+                "STRTOK": local_expression.StrTok.from_arg_list,
+                "SPLIT_PART": _parse_split_part,
+                "TIMESTAMPADD": _parse_date_add,
+                "TRY_TO_DECIMAL": _parse_trytonumber,
+                "TRY_TO_NUMBER": _parse_trytonumber,
+                "TRY_TO_NUMERIC": _parse_trytonumber,
+                "DATEADD": parse_date_delta(exp.DateAdd, unit_mapping=DATE_DELTA_INTERVAL),
+                "DATEDIFF": parse_date_delta(exp.DateDiff, unit_mapping=DATE_DELTA_INTERVAL),
+                "IS_INTEGER": local_expression.IsInteger.from_arg_list,
+                "DIV0NULL": _div0null_to_if,
+                "JSON_EXTRACT_PATH_TEXT": _parse_json_extract_path_text,
+                "BITOR_AGG": local_expression.BitOr.from_arg_list,
+                "ARRAY_CONTAINS": _parse_array_contains,
+                "DAYNAME": _parse_dayname,
+                "BASE64_ENCODE": exp.ToBase64.from_arg_list,
+                "BASE64_DECODE_STRING": exp.FromBase64.from_arg_list,
+                "TRY_BASE64_DECODE_STRING": exp.FromBase64.from_arg_list,
+                "ARRAY_CONSTRUCT_COMPACT": local_expression.ArrayConstructCompact.from_arg_list,
+                "ARRAY_INTERSECTION": local_expression.ArrayIntersection.from_arg_list,
+                "ARRAY_SLICE": local_expression.ArraySlice.from_arg_list,
+                "MONTHNAME": _parse_monthname,
+                "MONTH_NAME": _parse_monthname,
+                "OBJECT_CONSTRUCT": _parse_object_construct,
+                "OBJECT_KEYS": local_expression.ObjectKeys.from_arg_list,
+                "TRY_PARSE_JSON": exp.ParseJSON.from_arg_list,
+                "TIMEDIFF": parse_date_delta(exp.DateDiff, unit_mapping=DATE_DELTA_INTERVAL),
+                "TIMESTAMPDIFF": parse_date_delta(exp.DateDiff, unit_mapping=DATE_DELTA_INTERVAL),
+                "TIMEADD": _parse_date_add,
+                "TO_BOOLEAN": lambda args: _parse_to_boolean(args, error=True),
+                "TO_DECIMAL": _parse_tonumber,
+                "TO_DOUBLE": local_expression.ToDouble.from_arg_list,
+                "TO_NUMBER": _parse_tonumber,
+                "TO_NUMERIC": _parse_tonumber,
+                "TO_OBJECT": local_expression.ToObject.from_arg_list,
+                "TO_TIME": _parse_to_timestamp,
+                "TIMESTAMP_FROM_PARTS": local_expression.TimestampFromParts.from_arg_list,
+                "TO_VARIANT": local_expression.ToVariant.from_arg_list,
+                "TRY_TO_BOOLEAN": lambda args: _parse_to_boolean(args, error=False),
+                "UUID_STRING": local_expression.UUID.from_arg_list,
+                "SYSDATE": exp.CurrentTimestamp.from_arg_list,
+                "TRUNC": lambda args: local_expression.DateTrunc(unit=seq_get(args, 1), this=seq_get(args, 0)),
+                "APPROX_PERCENTILE": exp.ApproxQuantile.from_arg_list,
+                "NTH_VALUE": local_expression.NthValue.from_arg_list,
+                "MEDIAN": local_expression.Median.from_arg_list,
+            }
 
-        FUNCTION_PARSERS: ClassVar[dict] = {
-            **Snowflake.Parser.FUNCTION_PARSERS,
-            "LISTAGG": lambda self: self._parse_list_agg(),
-        }
+            self.FUNCTION_PARSERS: ClassVar[dict] = {
+                **Snowflake.Parser.FUNCTION_PARSERS,
+                "LISTAGG": lambda args: self._parse_list_agg(),
+            }
 
-        PLACEHOLDER_PARSERS: ClassVar[dict] = {
-            **Snowflake.Parser.PLACEHOLDER_PARSERS,
-            TokenType.PARAMETER: lambda self: self._parse_parameter(),
-        }
+            self.PLACEHOLDER_PARSERS: ClassVar[dict] = {
+                **Snowflake.Parser.PLACEHOLDER_PARSERS,
+                TokenType.PARAMETER: lambda args: self._parse_parameter(),
+            }
 
-        FUNC_TOKENS: ClassVar[set] = {*Snowflake.Parser.FUNC_TOKENS, TokenType.COLLATE}
+            self.FUNC_TOKENS: ClassVar[set] = {*Snowflake.Parser.FUNC_TOKENS, TokenType.COLLATE}
 
-        COLUMN_OPERATORS: ClassVar[dict] = {
-            **Snowflake.Parser.COLUMN_OPERATORS,
-            TokenType.COLON: lambda self, this, path: self._json_column_op(this, path),
-        }
+            self.COLUMN_OPERATORS: ClassVar[dict] = {
+                **Snowflake.Parser.COLUMN_OPERATORS,
+                TokenType.COLON: lambda args, this, path: self._json_column_op(this, path),
+            }
 
-        TIMESTAMPS: set[TokenType] = Snowflake.Parser.TIMESTAMPS.copy() - {TokenType.TIME}
+            self.TIMESTAMPS: set[TokenType] = Snowflake.Parser.TIMESTAMPS.copy() - {TokenType.TIME}
 
-        RANGE_PARSERS: ClassVar[dict] = {
-            **Snowflake.Parser.RANGE_PARSERS,
-        }
+            self.RANGE_PARSERS: ClassVar[dict] = {
+                **Snowflake.Parser.RANGE_PARSERS,
+            }
 
-        ALTER_PARSERS: ClassVar[dict] = {**Snowflake.Parser.ALTER_PARSERS}
+            self.ALTER_PARSERS: ClassVar[dict] = {**Snowflake.Parser.ALTER_PARSERS}
 
         def _parse_list_agg(self) -> exp.GroupConcat:
             if self._match(TokenType.DISTINCT):
-                args: list[exp.Expression | None] = [
-                    self.expression(exp.Distinct, expressions=[self._parse_conjunction()])
-                ]
+                args: list[exp.Expression] = [self.expression(exp.Distinct, expressions=[self._parse_conjunction()])]
                 if self._match(TokenType.COMMA):
                     args.extend(self._parse_csv(self._parse_conjunction))
             else:
@@ -422,13 +425,13 @@ class Snow(Snowflake):
             wrapped = self._match(TokenType.L_BRACE)
             this = self._parse_var() or self._parse_identifier() or self._parse_primary()
             self._match(TokenType.R_BRACE)
-            suffix = ""
+            suffix: Union[exp.Expression | None] = None
             if not self._match(TokenType.SPACE) or self._match(TokenType.DOT):
                 suffix = self._parse_var() or self._parse_identifier() or self._parse_primary()
 
             return self.expression(local_expression.Parameter, this=this, wrapped=wrapped, suffix=suffix)
 
-        def _get_table_alias(self) -> str | None:
+        def _get_table_alias(self) -> exp.TableAlias | None:
             """
             :returns the `table alias` by looping through all the tokens until it finds the `From` token.
             Example:
@@ -454,7 +457,7 @@ class Snow(Snowflake):
                         break
                     self_copy._parse_table_parts()  # parse the table parts
                     table_alias = self_copy._parse_table_alias()  # get to table alias
-                    return str(table_alias)
+                    return table_alias
 
             return table_alias
 
@@ -465,7 +468,7 @@ class Snow(Snowflake):
             to `Lateral View` alias.
             :return: the expression based on the alias.
             """
-            table_alias = self._get_table_alias()
+            table_alias = str(self._get_table_alias()) if self._get_table_alias() else None
             is_name_value = this.name.upper() == "VALUE"
             is_path_value = path.alias_or_name.upper() == "VALUE"
 

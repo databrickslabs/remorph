@@ -43,7 +43,6 @@ class TryToDate(Func):
 
 
 class SplitPart(Func):
-
     arg_types = {"this": True, "expression": False, "partNum": False}
 
 
@@ -131,11 +130,15 @@ class UUID(Func):
 
 
 class DateTrunc(Func):
-    arg_types: ClassVar[dict] = {"unit": False, "this": True, "zone": False}
+    def __init__(self):
+        super().__init__()
+        self.arg_types: ClassVar[dict] = {"unit": False, "this": True, "zone": False}
 
 
 class Median(Func):
-    arg_types: ClassVar[dict] = {"this": True}
+    def __init__(self):
+        super().__init__()
+        self.arg_types: ClassVar[dict] = {"this": True}
 
 
 @dataclass

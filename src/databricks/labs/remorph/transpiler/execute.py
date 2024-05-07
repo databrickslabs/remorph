@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 
 def process_file(
     config: MorphConfig,
-    validator: Validator,
+    validator: Validator | None,
     transpiler: SqlglotEngine,
     input_file: str | Path,
     output_file: str | Path,
@@ -56,8 +56,9 @@ def process_file(
                     w.write(output)
                     w.write("\n;\n")
                 else:
-                    output_string, exception = validator.validate_format_result(config, output)
-                    w.write(output_string)
+                    if validator:
+                        output_string, exception = validator.validate_format_result(config, output)
+                        w.write(output_string)
                     if exception is not None:
                         validate_error_list.append(ValidationError(str(input_file), exception))
             else:
@@ -72,7 +73,7 @@ def process_file(
 
 def process_directory(
     config: MorphConfig,
-    validator: Validator,
+    validator: Validator | None,
     transpiler: SqlglotEngine,
     root: str | Path,
     base_root: str,
@@ -109,7 +110,7 @@ def process_directory(
     return counter, parse_error_list, validate_error_list
 
 
-def process_recursive_dirs(config: MorphConfig, validator: Validator, transpiler: SqlglotEngine):
+def process_recursive_dirs(config: MorphConfig, validator: Validator | None, transpiler: SqlglotEngine):
     input_sql = Path(str(config.input_sql))
     parse_error_list = []
     validate_error_list = []
@@ -148,7 +149,7 @@ def morph(workspace_client: WorkspaceClient, config: MorphConfig):
 
     read_dialect = config.get_read_dialect()
     transpiler = SqlglotEngine(read_dialect)
-    validator: Validator = None
+    validator = None
     if not config.skip_validation:
         validator = Validator(db_sql.get_sql_backend(workspace_client, config))
 
@@ -184,7 +185,7 @@ def morph(workspace_client: WorkspaceClient, config: MorphConfig):
 
     error_log_file = "None"
     if error_list_count > 0:
-        error_log_file = Path.cwd().joinpath(f"err_{os.getpid()}.lst")
+        error_log_file = str(Path.cwd().joinpath(f"err_{os.getpid()}.lst"))
         if result.error_log_list:
             with Path(error_log_file).open("a") as e:
                 e.writelines(f"{err}\n" for err in result.error_log_list)
