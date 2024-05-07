@@ -2,11 +2,11 @@ import logging
 from dataclasses import asdict
 
 from pyspark.sql import DataFrame, SparkSession
-from pyspark.sql.types import StructType
+from pyspark.sql.types import BooleanType, StringType, StructField, StructType
 from sqlglot import parse_one
 
 from databricks.labs.remorph.config import MorphConfig
-from databricks.labs.remorph.reconcile.constants import Constants, SourceType
+from databricks.labs.remorph.reconcile.constants import SourceType
 from databricks.labs.remorph.reconcile.recon_config import (
     Schema,
     SchemaMatchResult,
@@ -31,6 +31,17 @@ class SchemaCompare:
         self.source = source
         self.table_conf = table_conf
         self.spark = spark
+
+    # Define the schema for the schema compare DataFrame
+    _schema_compare_schema: StructType = StructType(
+        [
+            StructField("source_column", StringType(), False),
+            StructField("source_datatype", StringType(), False),
+            StructField("databricks_column", StringType(), True),
+            StructField("databricks_datatype", StringType(), True),
+            StructField("is_valid", BooleanType(), False),
+        ]
+    )
 
     def _build_master_schema(self) -> list[SchemaMatchResult]:
         master_schema = self.source_schema
@@ -110,6 +121,6 @@ class SchemaCompare:
             elif master.source_datatype.lower() != master.databricks_datatype.lower():
                 master.is_valid = False
 
-        df = self._create_dataframe(master_schema, Constants.schema_compare)
+        df = self._create_dataframe(master_schema, self._schema_compare_schema)
         final_result = self._all_valid(master_schema)
         return SchemCompareOutput(final_result, df)
