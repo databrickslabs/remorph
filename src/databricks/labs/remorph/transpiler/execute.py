@@ -145,25 +145,6 @@ def _process_recursive_dirs(config: MorphConfig, validator: Validator, transpile
     return MorphStatus(file_list, counter, len(parse_error_list), len(validate_error_list), error_log)
 
 
-def _parse(
-    transpiler: SqlglotEngine, write_dialect: Dialect, sql: str, input_file, error_list: list[ParserError]
-) -> TranspilationResult:
-    return transpiler.transpile(write_dialect, sql, str(input_file), error_list)
-
-
-def _validation(validator: Validator, config: MorphConfig, sql: str) -> ValidationResult:
-    return validator.validate_format_result(config, sql)
-
-
-def _verify_workspace_client(workspace_client: WorkspaceClient) -> WorkspaceClient:
-    # pylint: disable=protected-access
-    if workspace_client.config._product != "remorph":
-        workspace_client.config._product = "remorph"
-    if workspace_client.config._product_version != __version__:
-        workspace_client.config._product_version = __version__
-    return workspace_client
-
-
 @timeit
 def morph(workspace_client: WorkspaceClient, config: MorphConfig):
     """
@@ -228,6 +209,25 @@ def morph(workspace_client: WorkspaceClient, config: MorphConfig):
         }
     )
     return status
+
+
+def _verify_workspace_client(workspace_client: WorkspaceClient) -> WorkspaceClient:
+    # pylint: disable=protected-access
+    if workspace_client.config._product != "remorph":
+        workspace_client.config._product = "remorph"
+    if workspace_client.config._product_version != __version__:
+        workspace_client.config._product_version = __version__
+    return workspace_client
+
+
+def _parse(
+    transpiler: SqlglotEngine, write_dialect: Dialect, sql: str, input_file, error_list: list[ParserError]
+) -> TranspilationResult:
+    return transpiler.transpile(write_dialect, sql, str(input_file), error_list)
+
+
+def _validation(validator: Validator, config: MorphConfig, sql: str) -> ValidationResult:
+    return validator.validate_format_result(config, sql)
 
 
 @timeit
