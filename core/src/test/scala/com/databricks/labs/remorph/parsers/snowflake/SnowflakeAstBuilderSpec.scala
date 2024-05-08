@@ -220,6 +220,9 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
       singleQueryExample(
         query = "SELECT a FROM b LIMIT 5 OFFSET 10",
         expectedAst = Project(Offset(Limit(NamedTable("b", Map.empty, is_streaming = false), 5), 10), Seq(Column("a"))))
+      singleQueryExample(
+        query = "SELECT a FROM b OFFSET 10 FETCH FIRST 42",
+        expectedAst = Project(Offset(NamedTable("b", Map.empty, is_streaming = false), 10), Seq(Column("a"))))
     }
     "translate a query with PIVOT" in {
       singleQueryExample(
@@ -370,15 +373,15 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
     "translate batches of queries" in {
       example(
         """
-          |SELECT 1 FROM t1;
-          |SELECT 2 FROM t2;
+          |CREATE TABLE t1 (x VARCHAR);
+          |SELECT x FROM t1;
           |SELECT 3 FROM t3;
           |""".stripMargin,
         _.snowflake_file(),
         Batch(
           Seq(
-            Project(namedTable("t1"), Seq(Literal(integer = Some(1)))),
-            Project(namedTable("t2"), Seq(Literal(integer = Some(2)))),
+            CreateTableCommand("t1", Seq(ColumnDeclaration("x", VarCharType(None)))),
+            Project(namedTable("t1"), Seq(Column("x"))),
             Project(namedTable("t3"), Seq(Literal(integer = Some(3)))))))
     }
   }
