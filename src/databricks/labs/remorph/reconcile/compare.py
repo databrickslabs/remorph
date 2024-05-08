@@ -1,3 +1,5 @@
+from typing import Tuple
+
 from pyspark.sql import DataFrame
 from pyspark.sql.functions import col, expr, lit
 
@@ -19,7 +21,7 @@ def reconcile_data(source: DataFrame, target: DataFrame, key_columns: list[str],
     source_alias = "src"
     target_alias = "tgt"
     if report_type not in {"data", "all"}:
-        key_columns = Constants.hash_column_name
+        key_columns = [Constants.hash_column_name]
     df = source.alias(source_alias).join(other=target.alias(target_alias), on=key_columns, how="full")
 
     mismatch = (
@@ -56,7 +58,7 @@ def _get_mismatch_data(df: DataFrame, src_alias: str, tgt_alias: str, select_col
 
 def capture_mismatch_data_and_columns(
     source: DataFrame, target: DataFrame, key_columns: list[str]
-) -> (DataFrame, list[str]):
+) -> Tuple[DataFrame, list[str]]:
     source_columns = source.columns
     target_columns = target.columns
 
@@ -93,7 +95,7 @@ def _get_mismatch_df(source: DataFrame, target: DataFrame, key_columns: list[str
     mismatch_df = (
         source.alias('base')
         .join(other=target.alias('compare'), on=key_columns, how="inner")
-        .select(select_expr)
+        .select(*select_expr)
         .filter(filter_expr)
     )
     compare_columns = [column for column in mismatch_df.columns if column not in key_columns]

@@ -53,7 +53,7 @@ def sort_array(expr: exp.Expression, asc=True):
     return _apply_func_expr(expr, exp.SortArray, asc=exp.Boolean(this=asc))
 
 
-def to_char(expr: exp.Expression, to_format=None, nls_param=None):
+def to_char(expr: exp.Expression, to_format=None, nls_param=None) -> exp.ToChar | exp.Expression:
     if to_format:
         return _apply_func_expr(
             expr, exp.ToChar, format=exp.Literal(this=to_format, is_string=True), nls_param=nls_param
@@ -212,8 +212,8 @@ def build_between(this: exp.Expression, low: exp.Expression, high: exp.Expressio
     return exp.Between(this=this, low=low, high=high)
 
 
-DataType_transform_mapping: dict[str, dict[exp.Expression, list[partial[exp.Expression]]]] = {
-    "default": {exp.Expression(): [partial(coalesce, default='', is_string=True), partial(trim)]},
+DataType_transform_mapping: dict[str, dict[str, list[partial[exp.Expression]]]] = {
+    "default": {"default": [partial(coalesce, default='', is_string=True), partial(trim)]},
     "snowflake": {exp.DataType.Type.ARRAY.value: [partial(array_to_string), partial(array_sort)]},
     "oracle": {
         exp.DataType.Type.NCHAR.value: [partial(anonymous, func="NVL(TRIM(TO_CHAR({})),'_null_recon_')")],

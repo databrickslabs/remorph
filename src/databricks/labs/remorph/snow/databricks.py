@@ -326,8 +326,8 @@ class Databricks(org_databricks.Databricks):  #
     databricks = org_databricks.Databricks()
 
     class Generator(org_databricks.Databricks.Generator):
-        def __init__(self):
-            super().__init__()
+        def __init__(self, dialect: str):
+            super().__init__(dialect=dialect)
             self.TRANSFORMS: ClassVar[dict] = {
                 **org_databricks.Databricks.Generator.TRANSFORMS,
                 exp.Create: _format_create_sql,
@@ -376,6 +376,7 @@ class Databricks(org_databricks.Databricks):  #
             }
 
         COLLATE_IS_FUNC = True
+
         # [TODO]: Variant needs to be transformed better, for now parsing to string was deemed as the choice.
 
         def preprocess(self, expression: exp.Expression) -> exp.Expression:
