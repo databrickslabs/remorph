@@ -10,23 +10,47 @@ from databricks.sdk import WorkspaceClient
 class DataSource(ABC):
     # TODO need to remove connection_params
     def __init__(
-        self,
-        engine: str,
-        spark: SparkSession,
-        ws: WorkspaceClient,
-        scope: str,
+            self,
+            engine: str,
+            spark: SparkSession,
+            ws: WorkspaceClient,
+            scope: str,
+            catalog: str,
+            schema: str
     ):
-        self.engine = engine
+        self._engine = engine
         self.spark = spark
-        self.ws = ws
-        self.scope = scope
+        self._ws = ws
+        self._scope = scope
+        self._catalog = catalog
+        self._schema = schema
+
+    @property
+    def engine(self):
+        return self._engine
+
+    @property
+    def ws(self):
+        return self._ws
+
+    @property
+    def scope(self):
+        return self._scope
+
+    @property
+    def catalog(self):
+        return self._catalog
+
+    @property
+    def schema(self):
+        return self._schema
 
     @abstractmethod
-    def read_data(self, catalog: str, schema: str, query: str, options: JdbcReaderOptions) -> DataFrame:
+    def read_data(self, query: str, options: JdbcReaderOptions) -> DataFrame:
         return NotImplemented
 
     @abstractmethod
-    def get_schema(self, catalog: str, schema: str, table: str) -> list[Schema]:
+    def get_schema(self, table: str) -> list[Schema]:
         return NotImplemented
 
     def _get_jdbc_reader(self, query, jdbc_url, driver):
