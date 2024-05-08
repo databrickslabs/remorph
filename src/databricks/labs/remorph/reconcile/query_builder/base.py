@@ -36,7 +36,7 @@ class QueryBuilder(ABC):
 
     @property
     def select_columns(self) -> set[str]:
-        return self.table_conf.get_select_columns(self._schema, self._layer)
+        return self.table_conf.get_select_columns(self._schema)
 
     @property
     def threshold_columns(self) -> set[str]:

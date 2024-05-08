@@ -1,5 +1,3 @@
-from typing import Type
-
 from sqlglot import ParseError, UnsupportedError
 from sqlglot.errors import SqlglotError
 
@@ -29,7 +27,7 @@ class FunctionalTestFileWithExpectedException(FunctionalTestFile):
 
 # This dict has the details about which tests have expected exceptions (Either UnsupportedError or ParseError)
 
-expected_exceptions: dict[str, Type[SqlglotError]] = {
+expected_exceptions: dict[str, type[SqlglotError]] = {
     'test_regexp_replace_2': ParseError,
     'test_monthname_8': ParseError,
     'test_monthname_9': ParseError,
@@ -51,7 +49,7 @@ expected_exceptions: dict[str, Type[SqlglotError]] = {
     'test_position_2': ParseError,
     'test_split_part_8': ParseError,
     'test_split_part_7': ParseError,
-    'test_trunc_2': UnsupportedError,
+    'test_trunc_2': ParseError,
     'test_to_number_9': UnsupportedError,
     'test_to_number_10': ParseError,
     'test_startswith_2': ParseError,

@@ -1,5 +1,4 @@
 import logging
-from typing import List
 
 logger = logging.getLogger(__name__)
 
@@ -7,8 +6,8 @@ logger = logging.getLogger(__name__)
 class Node:
     def __init__(self, name: str):
         self.name = name.lower()
-        self.children: List[str] = []
-        self.parents: List[str] = []
+        self.children: list[str] = []
+        self.parents: list[str] = []
 
     def add_parent(self, node: str):
         self.parents.append(node)
@@ -47,7 +46,7 @@ class DAG:
             logger.debug(f"Table with the name {table_name} not found in the DAG")
             return []
 
-        return [parent for parent in self.nodes[table_name].parents]
+        return list(self.nodes[table_name].parents)
 
     def identify_immediate_children(self, table_name: str):
         table_name = table_name.lower()  # convert to lower() case
@@ -55,7 +54,7 @@ class DAG:
             logger.debug(f"Table with the name {table_name} not found in the DAG")
             return []
 
-        return [child for child in self.nodes[table_name].children]
+        return list(self.nodes[table_name].children)
 
     def _is_root_node(self, node_name: str) -> bool:
         return len(self.identify_immediate_parents(node_name)) == 0

@@ -109,7 +109,7 @@ class Table:
             return cols
         return self.to_tgt_col_map.get(cols, cols)
 
-    def get_select_columns(self, schema: list[Schema], layer: str) -> set[str]:
+    def get_select_columns(self, schema: list[Schema]) -> set[str]:
         if self.select_columns is None:
             return {sch.column_name for sch in schema}
         if self.to_src_col_map:

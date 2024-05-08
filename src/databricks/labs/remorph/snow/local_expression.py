@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-from typing import ClassVar
 
 from sqlglot import expressions as exp
 from sqlglot.expressions import AggFunc, Condition, Expression, Func
@@ -130,15 +129,11 @@ class UUID(Func):
 
 
 class DateTrunc(Func):
-    def __init__(self):
-        super().__init__()
-        self.arg_types: ClassVar[dict] = {"unit": False, "this": True, "zone": False}
+    arg_types = {"unit": False, "this": True, "zone": False}
 
 
 class Median(Func):
-    def __init__(self):
-        super().__init__()
-        self.arg_types: ClassVar[dict] = {"this": True}
+    arg_types = {"this": True}
 
 
 @dataclass

@@ -66,7 +66,7 @@ fmt         = ["black .",
                "pylint --output-format=colorized -j 0 src tests"]
 verify      = ["black --check .",
                "ruff check .",
-               "mypy .",
+               "mypy --disable-error-code 'annotation-unchecked' .",
                "pylint --output-format=colorized -j 0 src tests"]
 
 [tool.hatch.envs.sqlglot-latest]

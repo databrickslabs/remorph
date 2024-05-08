@@ -1,6 +1,5 @@
 import logging
 import re
-from typing import ClassVar
 
 from sqlglot import expressions as exp
 from sqlglot.dialects import hive
@@ -326,57 +325,55 @@ class Databricks(org_databricks.Databricks):  #
     databricks = org_databricks.Databricks()
 
     class Generator(org_databricks.Databricks.Generator):
-        def __init__(self):
-            super().__init__()
-            self.TRANSFORMS: ClassVar[dict] = {
-                **org_databricks.Databricks.Generator.TRANSFORMS,
-                exp.Create: _format_create_sql,
-                exp.DataType: _datatype_map,
-                exp.CurrentTime: _curr_time(),
-                exp.Lateral: _lateral_view,
-                exp.FromBase64: rename_func("UNBASE64"),
-                local_expression.Parameter: _parm_sfx,
-                local_expression.ToBoolean: _to_boolean,
-                local_expression.Bracket: _lateral_bracket_sql,
-                local_expression.MakeDate: rename_func("MAKE_DATE"),
-                local_expression.TryToDate: try_to_date,
-                local_expression.TryToNumber: try_to_number,
-                local_expression.IsInteger: _is_integer,
-                local_expression.JsonExtractPathText: _parse_json_extract_path_text,
-                local_expression.BitOr: rename_func("BIT_OR"),
-                local_expression.ArrayConstructCompact: _array_construct_compact,
-                local_expression.ArrayIntersection: rename_func("ARRAY_INTERSECT"),
-                local_expression.ArraySlice: _array_slice,
-                local_expression.ObjectKeys: rename_func("JSON_OBJECT_KEYS"),
-                exp.ParseJSON: _parse_json,
-                local_expression.TimestampFromParts: rename_func("MAKE_TIMESTAMP"),
-                local_expression.ToDouble: rename_func("DOUBLE"),
-                exp.Rand: rename_func("RANDOM"),
-                local_expression.ToVariant: rename_func("TO_JSON"),
-                local_expression.ToObject: rename_func("TO_JSON"),
-                exp.ToBase64: rename_func("BASE64"),
-                local_expression.ToNumber: _to_number,
-                local_expression.UUID: _uuid,
-                local_expression.DateTrunc: _parse_date_trunc,
-                exp.ApproxQuantile: rename_func("APPROX_PERCENTILE"),
-                exp.TimestampTrunc: timestamptrunc_sql,
-                exp.Mod: rename_func("MOD"),
-                exp.NullSafeEQ: lambda self, e: self.binary(e, "<=>"),
-            }
-            self.TYPE_MAPPING: ClassVar[dict] = {
-                **org_databricks.Databricks.Generator.TYPE_MAPPING,
-                exp.DataType.Type.TINYINT: "TINYINT",
-                exp.DataType.Type.SMALLINT: "SMALLINT",
-                exp.DataType.Type.INT: "INT",
-                exp.DataType.Type.BIGINT: "BIGINT",
-                exp.DataType.Type.DATETIME: "TIMESTAMP",
-                exp.DataType.Type.VARCHAR: "STRING",
-                exp.DataType.Type.VARIANT: "STRING",
-                exp.DataType.Type.FLOAT: "DOUBLE",
-            }
-
         COLLATE_IS_FUNC = True
         # [TODO]: Variant needs to be transformed better, for now parsing to string was deemed as the choice.
+        TYPE_MAPPING = {
+            **org_databricks.Databricks.Generator.TYPE_MAPPING,
+            exp.DataType.Type.TINYINT: "TINYINT",
+            exp.DataType.Type.SMALLINT: "SMALLINT",
+            exp.DataType.Type.INT: "INT",
+            exp.DataType.Type.BIGINT: "BIGINT",
+            exp.DataType.Type.DATETIME: "TIMESTAMP",
+            exp.DataType.Type.VARCHAR: "STRING",
+            exp.DataType.Type.VARIANT: "STRING",
+            exp.DataType.Type.FLOAT: "DOUBLE",
+        }
+
+        TRANSFORMS = {
+            **org_databricks.Databricks.Generator.TRANSFORMS,
+            exp.Create: _format_create_sql,
+            exp.DataType: _datatype_map,
+            exp.CurrentTime: _curr_time(),
+            exp.Lateral: _lateral_view,
+            exp.FromBase64: rename_func("UNBASE64"),
+            local_expression.Parameter: _parm_sfx,
+            local_expression.ToBoolean: _to_boolean,
+            local_expression.Bracket: _lateral_bracket_sql,
+            local_expression.MakeDate: rename_func("MAKE_DATE"),
+            local_expression.TryToDate: try_to_date,
+            local_expression.TryToNumber: try_to_number,
+            local_expression.IsInteger: _is_integer,
+            local_expression.JsonExtractPathText: _parse_json_extract_path_text,
+            local_expression.BitOr: rename_func("BIT_OR"),
+            local_expression.ArrayConstructCompact: _array_construct_compact,
+            local_expression.ArrayIntersection: rename_func("ARRAY_INTERSECT"),
+            local_expression.ArraySlice: _array_slice,
+            local_expression.ObjectKeys: rename_func("JSON_OBJECT_KEYS"),
+            exp.ParseJSON: _parse_json,
+            local_expression.TimestampFromParts: rename_func("MAKE_TIMESTAMP"),
+            local_expression.ToDouble: rename_func("DOUBLE"),
+            exp.Rand: rename_func("RANDOM"),
+            local_expression.ToVariant: rename_func("TO_JSON"),
+            local_expression.ToObject: rename_func("TO_JSON"),
+            exp.ToBase64: rename_func("BASE64"),
+            local_expression.ToNumber: _to_number,
+            local_expression.UUID: _uuid,
+            local_expression.DateTrunc: _parse_date_trunc,
+            exp.ApproxQuantile: rename_func("APPROX_PERCENTILE"),
+            exp.TimestampTrunc: timestamptrunc_sql,
+            exp.Mod: rename_func("MOD"),
+            exp.NullSafeEQ: lambda self, e: self.binary(e, "<=>"),
+        }
 
         def preprocess(self, expression: exp.Expression) -> exp.Expression:
             fixed_ast = expression.transform(lca_utils.unalias_lca_in_select, copy=False)
@@ -419,13 +416,13 @@ class Databricks(org_databricks.Databricks):  #
             op_sql = f"{op_sql} JOIN" if op_sql else "JOIN"
             return f"{self.seg(op_sql)} {this_sql}{on_sql}"
 
-        def arrayagg_sql(self, expr: exp.ArrayAgg) -> str:
-            sql = self.func("ARRAY_AGG", expr.this)
-            within_group = expr.parent if isinstance(expr.parent, exp.WithinGroup) else None
+        def arrayagg_sql(self, expression: exp.ArrayAgg) -> str:
+            sql = self.func("ARRAY_AGG", expression.this)
+            within_group = expression.parent if isinstance(expression.parent, exp.WithinGroup) else None
             if not within_group:
                 return sql
 
-            wg_params = _get_within_group_params(expr, within_group)
+            wg_params = _get_within_group_params(expression, within_group)
             if wg_params.agg_col == wg_params.order_col:
                 return f"SORT_ARRAY({sql}{'' if wg_params.is_order_asc else ', FALSE'})"
 
@@ -551,7 +548,7 @@ class Databricks(org_databricks.Databricks):  #
             part_num = self.sql(expression.args["partNum"])
             return f"SPLIT_PART({expr_name}, {delimiter}, {part_num})"
 
-        def transaction_sql(self, expression: exp.Transaction) -> str:  # noqa: ARG002 pylint: disable=unused-argument
+        def transaction_sql(self, expression: exp.Transaction) -> str:
             """
             Skip begin command
             :param expression:
@@ -559,7 +556,7 @@ class Databricks(org_databricks.Databricks):  #
             """
             return ""
 
-        def rollback_sql(self, expression: exp.Rollback) -> str:  # noqa: ARG002 pylint: disable=unused-argument
+        def rollback_sql(self, expression: exp.Rollback) -> str:
             """
             Skip rollback command
             :param expression:
@@ -567,7 +564,7 @@ class Databricks(org_databricks.Databricks):  #
             """
             return ""
 
-        def commit_sql(self, expression: exp.Commit) -> str:  # noqa: ARG002 pylint: disable=unused-argument
+        def commit_sql(self, expression: exp.Commit) -> str:
             """
             Skip commit command
             :param expression:

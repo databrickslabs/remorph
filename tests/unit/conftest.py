@@ -1,11 +1,11 @@
 import re
 from pathlib import Path
-from typing import Sequence
+from collections.abc import Sequence
 from unittest.mock import create_autospec
 
 import pytest
 from sqlglot import ErrorLevel, UnsupportedError
-from sqlglot.errors import SqlglotError
+from sqlglot.errors import SqlglotError, ParseError
 from sqlglot import parse_one as sqlglot_parse_one
 from sqlglot import transpile
 
@@ -160,7 +160,10 @@ def parse_sql_files(input_dir: Path, source: str, target: str, is_expected_excep
                 # when multiple sqls are present below target
                 test_name = filenames.name.replace(".sql", "")
                 if is_expected_exception:
-                    exception = expected_exceptions.get(test_name, SqlglotError(test_name))
+                    exception_type = expected_exceptions.get(test_name, SqlglotError)
+                    exception = SqlglotError(test_name)
+                    if exception_type in {ParseError, UnsupportedError}:
+                        exception = exception_type(test_name)
                     suite.append(FunctionalTestFileWithExpectedException(target_sql, source_sql, test_name, exception))
                 else:
                     suite.append(FunctionalTestFile(target_sql, source_sql, test_name))

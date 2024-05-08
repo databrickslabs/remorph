@@ -17,9 +17,9 @@ def raise_column_mismatch_exception(msg: str, source_missing: list[str], target_
 
 def reconcile_data(source: DataFrame, target: DataFrame, key_columns: list[str], report_type: str) -> ReconcileOutput:
     source_alias = "src"
-    target_alias = "tgt"
+    target_alias: str = "tgt"
     if report_type not in {"data", "all"}:
-        key_columns = Constants.hash_column_name
+        key_columns = [Constants.hash_column_name]
     df = source.alias(source_alias).join(other=target.alias(target_alias), on=key_columns, how="full")
 
     mismatch = (
@@ -56,7 +56,7 @@ def _get_mismatch_data(df: DataFrame, src_alias: str, tgt_alias: str, select_col
 
 def capture_mismatch_data_and_columns(
     source: DataFrame, target: DataFrame, key_columns: list[str]
-) -> (DataFrame, list[str]):
+) -> tuple[DataFrame, list[str]]:
     source_columns = source.columns
     target_columns = target.columns
 
@@ -85,7 +85,8 @@ def _get_mismatch_df(source: DataFrame, target: DataFrame, key_columns: list[str
     target_aliased = [col('compare.' + column).alias(column + '_compare') for column in column_list]
 
     match_expr = [expr(f"{column}_base=={column}_compare").alias(column + "_match") for column in column_list]
-    select_expr = key_columns + source_aliased + target_aliased + match_expr
+    key_cols = [col(column) for column in key_columns]
+    select_expr = key_cols + source_aliased + target_aliased + match_expr
 
     filter_columns = " and ".join([column + "_match" for column in column_list])
     filter_expr = ~expr(filter_columns)

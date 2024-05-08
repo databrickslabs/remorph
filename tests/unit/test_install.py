@@ -68,7 +68,7 @@ def test_install_dbr(ws, mock_installation, monkeypatch):
 
 
 def test_save_config(ws, mock_installation, monkeypatch):
-    def mock_open(url, new=0, autoraise=True):
+    def mock_open(url):
         print(f"Opening URL: {url}")
 
     monkeypatch.setattr("webbrowser.open", mock_open)
