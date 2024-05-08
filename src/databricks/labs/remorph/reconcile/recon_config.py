@@ -174,3 +174,18 @@ class ReconcileOutput:
 class DialectHashConfig:
     dialect: str
     algo: list[Callable]
+
+
+@dataclass
+class SchemaMatchResult:
+    source_column: str
+    source_datatype: str
+    databricks_column: str
+    databricks_datatype: str
+    is_valid: bool = True
+
+
+@dataclass
+class SchemCompareOutput:
+    is_valid: bool
+    compare_df: DataFrame

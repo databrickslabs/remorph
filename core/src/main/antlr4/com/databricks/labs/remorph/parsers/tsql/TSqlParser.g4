@@ -3892,20 +3892,24 @@ constant_LOCAL_ID
 // https://docs.microsoft.com/en-us/sql/t-sql/language-elements/expressions-transact-sql
 // Operator precendence: https://docs.microsoft.com/en-us/sql/t-sql/language-elements/operator-precedence-transact-sql
 expression
-    : primitive_expression #expr_primitive
+    : LPAREN expression RPAREN #expr_precedence
+    | <assoc=right> op=BIT_NOT expression #expr_bit_not
+    | <assoc=right> op=(PLUS | MINUS) expression #expr_unary
+    | expression op=(STAR | DIV | MOD) expression #expr_op_prec_1
+    | expression op=(PLUS | MINUS) expression #expr_op_prec_2
+    | expression op=(BIT_AND | BIT_XOR | BIT_OR) expression #expr_op_prec_3
+    | expression op=DOUBLE_BAR expression #expr_op_prec_4
+    | primitive_expression #expr_primitive
     | function_call #expr_func
     | expression DOT (value_call | query_call | exist_call | modify_call) #expr_dot
     | expression DOT hierarchyid_call #expr_hierarchyid
     | expression COLLATE id_ #expr_collate
     | case_expression #expr_case
     | full_column_name #expr_full_column
-    | bracket_expression #expr_precedence
-    | unary_operator_expression #expr_unary
-    | expression op = (STAR | DIV | MOD) expression #expr_op_prec_1
-    | expression op = (PLUS | MINUS | BIT_AND | BIT_XOR | BIT_OR | DOUBLE_BAR) expression #expr_op_prec_2
     | expression time_zone #expr_tz
     | over_clause #expr_over
     | DOLLAR_ACTION #expr_dollar
+    | LPAREN subquery RPAREN #expr_subquery
     ;
 
 parameter
@@ -3927,18 +3931,6 @@ primitive_expression
 case_expression
     : CASE caseExpr = expression switch_section+ (ELSE elseExpr = expression)? END
     | CASE switch_search_condition_section+ (ELSE elseExpr = expression)? END
-    ;
-
-unary_operator_expression
-    : BIT_NOT expression
-    | op = (PLUS | MINUS) expression
-    ;
-
-// TODO: This is likely incorrect! Precedence can probably be expressed directly in expression rule
-// and now we need to process this rule explicitly in the visitor.
-bracket_expression
-    : LPAREN expression RPAREN
-    | LPAREN subquery RPAREN
     ;
 
 subquery
@@ -5282,7 +5274,9 @@ constant
 primitive_constant
     : STRING // string, datetime or uniqueidentifier
     | HEX
-    | (INT | REAL | FLOAT)                    // float or decimal
+    | INT
+    | REAL
+    | FLOAT
     | DOLLAR (MINUS | PLUS)? (INT | FLOAT) // money
     | parameter
     ;

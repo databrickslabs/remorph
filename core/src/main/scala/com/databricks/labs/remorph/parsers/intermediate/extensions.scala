@@ -54,10 +54,20 @@ case class UnresolvedOperator(unparsed_target: String) extends Expression {}
 
 // TODO: TSQL grammar has a number of operators not yet supported - add them here, if not already supported
 
-// Arithmetic expressions
+// Operators, in order of precedence
+
+// Bitwise NOT is highest precedence after parens '(' ')'
+case class BitwiseNot(expression: Expression) extends Unary(expression) {}
+
+// Unary arithmetic expressions
+case class UMinus(expression: Expression) extends Unary(expression) {}
+case class UPlus(expression: Expression) extends Unary(expression) {}
+
+// Binary Arithmetic expressions
 case class Multiply(left: Expression, right: Expression) extends Binary(left, right) {}
 case class Divide(left: Expression, right: Expression) extends Binary(left, right) {}
 case class Mod(left: Expression, right: Expression) extends Binary(left, right) {}
+
 case class Add(left: Expression, right: Expression) extends Binary(left, right) {}
 case class Subtract(left: Expression, right: Expression) extends Binary(left, right) {}
 
@@ -107,7 +117,7 @@ case class UnresolvedConstraint(inputText: String) extends Constraint
 case class ColumnDeclaration(
     name: String,
     dataType: DataType,
-    virtualColumnDeclaration: Option[Expression],
-    constraints: Seq[Constraint])
+    virtualColumnDeclaration: Option[Expression] = Option.empty,
+    constraints: Seq[Constraint] = Seq.empty)
 
 case class CreateTableCommand(name: String, columns: Seq[ColumnDeclaration]) extends Catalog {}

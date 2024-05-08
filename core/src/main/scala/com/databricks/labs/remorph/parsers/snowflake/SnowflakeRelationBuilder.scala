@@ -157,22 +157,14 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.Relation] w
       value_column_name = valueColumnName)
   }
 
-  private def translateAggregateFunction(aggFunc: Id_Context, parameter: Id_Context): ir.Expression = {
+  private[snowflake] def translateAggregateFunction(aggFunc: Id_Context, parameter: Id_Context): ir.Expression = {
     val column = ir.Column(parameter.getText)
-    if (aggFunc.builtin_function() != null) {
-      if (aggFunc.builtin_function().SUM() != null) {
-        ir.Sum(column)
-      } else if (aggFunc.builtin_function().AVG() != null) {
-        ir.Avg(column)
-      } else if (aggFunc.builtin_function().COUNT() != null) {
-        ir.Count(column)
-      } else if (aggFunc.builtin_function().MIN() != null) {
-        ir.Min(column)
-      } else {
-        null
-      }
-    } else {
-      null
+    aggFunc match {
+      case f if f.builtin_function() != null && f.builtin_function().SUM() != null => ir.Sum(column)
+      case f if f.builtin_function() != null && f.builtin_function().AVG() != null => ir.Avg(column)
+      case f if f.builtin_function() != null && f.builtin_function().COUNT() != null => ir.Count(column)
+      case f if f.builtin_function() != null && f.builtin_function().MIN() != null => ir.Min(column)
+      case _ => ir.UnresolvedExpression(aggFunc.getText)
     }
   }
   override def visitTable_source_item_joined(ctx: Table_source_item_joinedContext): ir.Relation = {
@@ -191,7 +183,7 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.Relation] w
     ctx.join_clause().asScala.foldLeft(left)(buildJoin)
   }
 
-  private def translateJoinType(joinType: Join_typeContext): ir.JoinType = {
+  private[snowflake] def translateJoinType(joinType: Join_typeContext): ir.JoinType = {
     if (joinType == null || joinType.outer_join() == null) {
       ir.InnerJoin
     } else if (joinType.outer_join().LEFT() != null) {

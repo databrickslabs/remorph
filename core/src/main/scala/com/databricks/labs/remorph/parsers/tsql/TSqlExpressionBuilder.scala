@@ -21,10 +21,33 @@ class TSqlExpressionBuilder
     Column(ctx.id_.getText)
   }
 
-  // This is merely a placeholder until the grammar can be fixed. It ensures that the
-  // precedence expression is correctly handled
-  override def visitBracket_expression(ctx: Bracket_expressionContext): ir.Expression = {
+  /**
+   * Expression precedence as defined by parenthesis
+   *
+   * @param ctx
+   *   the Expr_precedenceContext to visit, which contains the expression to which precedence is applied
+   * @return
+   *   the visited expression in IR
+   *
+   * Note that precedence COULD be explicitly placed in the AST here. If we wish to construct an exact replication of
+   * expression source code from the AST, we need to know that the () were there. Redundant parens are otherwise elided
+   * and the generated code may seem to be incorrect in the eyes of the customer, even though it will be logically
+   * equivalent. redundant parentheses.
+   */
+  override def visitExpr_precedence(ctx: Expr_precedenceContext): ir.Expression = {
     ctx.expression().accept(this)
+  }
+
+  override def visitExpr_bit_not(ctx: Expr_bit_notContext): ir.Expression = {
+    ir.BitwiseNot(ctx.expression().accept(this))
+  }
+
+  // Note that while we could evaluate the unary expression if it is a numeric
+  // constant, it is usually better to be explicit about the unary operation as
+  // if people use -+-42 then maybe they have a reason.
+  override def visitExpr_unary(ctx: Expr_unaryContext): ir.Expression = ctx.op.getType match {
+    case MINUS => ir.UMinus(ctx.expression().accept(this))
+    case PLUS => ir.UPlus(ctx.expression().accept(this))
   }
 
   override def visitExpr_op_prec_1(ctx: Expr_op_prec_1Context): ir.Expression = {
@@ -32,6 +55,14 @@ class TSqlExpressionBuilder
   }
 
   override def visitExpr_op_prec_2(ctx: Expr_op_prec_2Context): ir.Expression = {
+    buildBinaryExpression(ctx.expression(0).accept(this), ctx.expression(1).accept(this), ctx.op)
+  }
+
+  override def visitExpr_op_prec_3(ctx: Expr_op_prec_3Context): ir.Expression = {
+    buildBinaryExpression(ctx.expression(0).accept(this), ctx.expression(1).accept(this), ctx.op)
+  }
+
+  override def visitExpr_op_prec_4(ctx: Expr_op_prec_4Context): ir.Expression = {
     buildBinaryExpression(ctx.expression(0).accept(this), ctx.expression(1).accept(this), ctx.op)
   }
 
@@ -90,7 +121,6 @@ class TSqlExpressionBuilder
         ctx.predicate().accept(this)
       }
     }
-
   }
 
   override def visitPredicate(ctx: PredicateContext): ir.Expression = {

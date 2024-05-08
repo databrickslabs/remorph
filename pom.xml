@@ -100,6 +100,7 @@
             <goals>
               <goal>compile</goal>
               <goal>testCompile</goal>
+              <goal>doc</goal>
             </goals>
           </execution>
           <execution>
@@ -262,7 +263,17 @@
           <plugin>
             <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-javadoc-plugin</artifactId>
-            <version>3.5.0</version>
+            <version>3.6.3</version>
+            <configuration>
+              <tags>
+                <tag>
+                  <name>inheritDoc</name>
+                  <placement>m</placement>
+                  <head>Overrides:</head>
+                  <use>false</use>
+                </tag>
+              </tags>
+            </configuration>
             <executions>
               <execution>
                 <id>attach-javadocs</id>
