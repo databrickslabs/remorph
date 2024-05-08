@@ -9,15 +9,7 @@ from databricks.sdk import WorkspaceClient
 
 class DataSource(ABC):
     # TODO need to remove connection_params
-    def __init__(
-            self,
-            engine: str,
-            spark: SparkSession,
-            ws: WorkspaceClient,
-            scope: str,
-            catalog: str,
-            schema: str
-    ):
+    def __init__(self, engine: str, spark: SparkSession, ws: WorkspaceClient, scope: str, catalog: str, schema: str):
         self._engine = engine
         self.spark = spark
         self._ws = ws

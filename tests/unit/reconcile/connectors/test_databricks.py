@@ -22,7 +22,7 @@ def initial_setup():
 def test_get_schema_query():
     # initial setup
     engine, spark, ws, scope = initial_setup()
-    dd = DatabricksDataSource(engine, spark, ws, scope)
+    dd = DatabricksDataSource(engine, spark, ws, scope, "catalog", "schema")
 
     # catalog as catalog
     schema_query = dd.get_schema_query("catalog", "schema", "supplier")
@@ -45,8 +45,8 @@ def test_get_schema():
     engine, spark, ws, scope = initial_setup()
 
     # catalog as catalog
-    dd = DatabricksDataSource(engine, spark, ws, scope)
-    dd.get_schema("catalog", "schema", "supplier")
+    dd = DatabricksDataSource(engine, spark, ws, scope, "catalog", "schema")
+    dd.get_schema("supplier")
     spark.sql.assert_called_with(
         re.sub(
             r'\s+',
@@ -59,8 +59,9 @@ def test_get_schema():
     )
     spark.sql().where.assert_called_with("col_name not like '#%'")
 
+    dd = DatabricksDataSource(engine, spark, ws, scope, "hive_metastore", "schema")
     # hive_metastore as catalog
-    dd.get_schema("hive_metastore", "schema", "supplier")
+    dd.get_schema("supplier")
     spark.sql.assert_called_with(re.sub(r'\s+', ' ', """describe table schema.supplier"""))
     spark.sql().where.assert_called_with("col_name not like '#%'")
 
@@ -70,14 +71,14 @@ def test_read_data():
     engine, spark, ws, scope = initial_setup()
 
     # create object for DatabricksDataSource
-    dd = DatabricksDataSource(engine, spark, ws, scope)
+    dd = DatabricksDataSource(engine, spark, ws, scope, "catalog", "schema")
 
     # Test with query
-    dd.read_data("catalog", "schema", "select id as id, ename as name from confidential.data.employee", None)
+    dd.read_data("select id as id, ename as name from confidential.data.employee", None)
     spark.sql.assert_called_with("select id as id, ename as name from confidential.data.employee")
 
     # Test with table name
-    dd.read_data("catalog", "schema", "employee", None)
+    dd.read_data("employee", None)
     spark.sql.assert_called_with("select * from catalog.schema.employee")
 
 
@@ -86,17 +87,17 @@ def test_read_data_exception_handling():
     engine, spark, ws, scope = initial_setup()
 
     # create object for DatabricksDataSource
-    dd = DatabricksDataSource(engine, spark, ws, scope)
+    dd = DatabricksDataSource(engine, spark, ws, scope, "catalog", "schema")
 
     spark.sql.side_effect = PySparkException("Test Exception")
 
     with pytest.raises(
-        PySparkException,
-        match="An error occurred while fetching Databricks Data using the "
-        "following select id as id, ename as name from "
-        "confidential.data.employee in DatabricksDataSource : Test Exception",
+            PySparkException,
+            match="An error occurred while fetching Databricks Data using the "
+                  "following select id as id, ename as name from "
+                  "confidential.data.employee in DatabricksDataSource : Test Exception",
     ):
-        dd.read_data("catalog", "schema", "select id as id, ename as name from confidential.data.employee", None)
+        dd.read_data("select id as id, ename as name from confidential.data.employee", None)
 
 
 def test_get_schema_exception_handling():
@@ -104,7 +105,7 @@ def test_get_schema_exception_handling():
     engine, spark, ws, scope = initial_setup()
 
     # create object for DatabricksDataSource
-    dd = DatabricksDataSource(engine, spark, ws, scope)
+    dd = DatabricksDataSource(engine, spark, ws, scope, "catalog", "schema")
     spark.sql().where.side_effect = PySparkException("Test Exception")
     with pytest.raises(PySparkException, match=".*Test Exception.*"):
-        dd.get_schema("catalog", "schema", "supplier")
+        dd.get_schema("supplier")
