@@ -107,7 +107,7 @@ class SnowflakeExpressionBuilder
 
   }
 
-  private def buildComparisonExpression(
+  private[snowflake] def buildComparisonExpression(
       op: Comparison_operatorContext,
       left: ir.Expression,
       right: ir.Expression): ir.Expression = {
@@ -124,7 +124,7 @@ class SnowflakeExpressionBuilder
     } else if (op.LE() != null) {
       ir.LesserThanOrEqual(left, right)
     } else {
-      visitChildren(op)
+      ir.UnresolvedExpression(op.getText)
     }
   }
 
@@ -156,15 +156,12 @@ class SnowflakeExpressionBuilder
       frame_spec = DummyWindowFrame)
   }
 
-  private def buildWindowFunction(ctx: Ranking_windowed_functionContext): ir.Expression = {
-    if (ctx.ROW_NUMBER() != null) {
-      ir.RowNumber
-    } else if (ctx.NTILE() != null) {
+  private[snowflake] def buildWindowFunction(ctx: Ranking_windowed_functionContext): ir.Expression = ctx match {
+    case c if c.ROW_NUMBER() != null => ir.RowNumber
+    case c if c.NTILE() != null =>
       val parameter = ctx.expr(0).accept(this)
       ir.NTile(parameter)
-    } else {
-      visitChildren(ctx)
-    }
+    case c => ir.UnresolvedExpression(c.getText)
   }
 
   private def buildPartitionSpec(ctx: Partition_byContext): Seq[ir.Expression] = {

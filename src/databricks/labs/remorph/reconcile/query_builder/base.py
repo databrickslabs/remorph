@@ -11,7 +11,6 @@ from databricks.labs.remorph.reconcile.recon_config import Schema, Table
 
 
 class QueryBuilder(ABC):
-
     def __init__(self, table_conf: Table, schema: list[Schema], layer: str, source: str):
         self._table_conf = table_conf
         self._schema = schema

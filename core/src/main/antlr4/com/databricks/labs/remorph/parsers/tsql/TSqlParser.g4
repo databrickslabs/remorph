@@ -3892,7 +3892,7 @@ constant_LOCAL_ID
 // https://docs.microsoft.com/en-us/sql/t-sql/language-elements/expressions-transact-sql
 // Operator precendence: https://docs.microsoft.com/en-us/sql/t-sql/language-elements/operator-precedence-transact-sql
 expression
-    : bracket_expression #expr_precedence
+    : LPAREN expression RPAREN #expr_precedence
     | <assoc=right> op=BIT_NOT expression #expr_bit_not
     | <assoc=right> op=(PLUS | MINUS) expression #expr_unary
     | expression op=(STAR | DIV | MOD) expression #expr_op_prec_1
@@ -3909,6 +3909,7 @@ expression
     | expression time_zone #expr_tz
     | over_clause #expr_over
     | DOLLAR_ACTION #expr_dollar
+    | LPAREN subquery RPAREN #expr_subquery
     ;
 
 parameter
@@ -3930,13 +3931,6 @@ primitive_expression
 case_expression
     : CASE caseExpr = expression switch_section+ (ELSE elseExpr = expression)? END
     | CASE switch_search_condition_section+ (ELSE elseExpr = expression)? END
-    ;
-
-// TODO: This is likely incorrect! Precedence can probably be expressed directly in expression rule
-// and now we need to process this rule explicitly in the visitor.
-bracket_expression
-    : LPAREN expression RPAREN
-    | LPAREN subquery RPAREN
     ;
 
 subquery

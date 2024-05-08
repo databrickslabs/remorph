@@ -21,7 +21,6 @@ def _union_concat(unions: list[exp.Select], result: exp.Union | exp.Select, cnt=
 
 
 class SamplingQueryBuilder(QueryBuilder):
-
     def build_query(self, df: DataFrame):
         if self.layer == "source":
             key_cols = sorted(self.join_columns)
