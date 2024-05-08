@@ -10,8 +10,6 @@ from databricks.labs.remorph.config import (
     TranspilationResult,
     ValidationResult,
 )
-from databricks.labs.remorph.__about__ import __version__
-from databricks.labs.remorph.config import MorphConfig
 from databricks.labs.remorph.helpers import db_sql
 from databricks.labs.remorph.helpers.execution_time import timeit
 from databricks.labs.remorph.helpers.file_utils import (

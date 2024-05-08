@@ -8,17 +8,16 @@ import pytest
 from databricks.connect import DatabricksSession
 from databricks.labs.lsql.backends import MockBackend
 from databricks.labs.lsql.core import Row
-from databricks.labs.remorph.config import MorphConfig, ValidationResult
 from databricks.labs.remorph.__about__ import __version__
-from databricks.labs.remorph.config import MorphConfig
+from databricks.labs.remorph.config import MorphConfig, ValidationResult
 from databricks.labs.remorph.helpers.file_utils import make_dir
 from databricks.labs.remorph.helpers.validation import Validator
 from databricks.labs.remorph.transpiler.execute import (
     morph,
     morph_column_exp,
     morph_sql,
+    verify_workspace_client,
 )
-from databricks.labs.remorph.transpiler.execute import morph, verify_workspace_client
 from databricks.sdk.core import Config
 
 # pylint: disable=unspecified-encoding
