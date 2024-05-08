@@ -2,6 +2,7 @@ import logging
 import os
 from pathlib import Path
 
+from databricks.labs.remorph.__about__ import __version__
 from databricks.labs.remorph.config import MorphConfig
 from databricks.labs.remorph.helpers import db_sql
 from databricks.labs.remorph.helpers.execution_time import timeit
@@ -198,3 +199,12 @@ def morph(workspace_client: WorkspaceClient, config: MorphConfig):
         }
     )
     return status
+
+
+def verify_workspace_client(workspace_client: WorkspaceClient) -> WorkspaceClient:
+    # pylint: disable=protected-access
+    if workspace_client.config._product != "remorph":
+        workspace_client.config._product = "remorph"
+    if workspace_client.config._product_version != __version__:
+        workspace_client.config._product_version = __version__
+    return workspace_client

@@ -7,10 +7,11 @@ import pytest
 
 from databricks.connect import DatabricksSession
 from databricks.labs.lsql.backends import MockBackend
+from databricks.labs.remorph.__about__ import __version__
 from databricks.labs.remorph.config import MorphConfig
 from databricks.labs.remorph.helpers.file_utils import make_dir
 from databricks.labs.remorph.helpers.validation import Validator
-from databricks.labs.remorph.transpiler.execute import morph
+from databricks.labs.remorph.transpiler.execute import morph, verify_workspace_client
 from databricks.sdk.core import Config
 
 # pylint: disable=unspecified-encoding
@@ -380,3 +381,19 @@ def test_with_not_existing_file_skip_validation(initial_setup, mock_workspace_cl
 
     # cleanup
     safe_remove_dir(input_dir)
+
+
+def test_verify_workspace_client(mock_workspace_client):
+    # pylint: disable=protected-access
+    # True condition
+    workspace_client = verify_workspace_client(mock_workspace_client)
+    assert workspace_client.config._product == "remorph"
+    assert workspace_client.config._product_version == __version__
+
+    # False condition
+    workspace_client = mock_workspace_client
+    workspace_client.config._product = "remorph"
+    workspace_client.config._product_version = __version__
+    workspace_client = verify_workspace_client(workspace_client)
+    assert workspace_client.config._product == "remorph"
+    assert workspace_client.config._product_version == __version__
