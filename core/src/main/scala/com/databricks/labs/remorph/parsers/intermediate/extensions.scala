@@ -139,6 +139,8 @@ case class RenameColumn(oldName: String, newName: String) extends TableAlteratio
 
 case class AlterTableCommand(tableName: String, alterations: Seq[TableAlteration]) extends Catalog {}
 
+case class Dot(left: Expression, right: Expression) extends Binary(left, right) {}
+
 case class NextValue(sequenceName: String) extends Expression {}
 case class ArrayAccess(array: Expression, index: Expression) extends Expression {}
 case class JsonAccess(json: Expression, path: Seq[String]) extends Expression {}

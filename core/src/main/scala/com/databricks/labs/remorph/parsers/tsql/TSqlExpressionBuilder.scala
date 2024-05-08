@@ -71,12 +71,28 @@ class TSqlExpressionBuilder
   override def visitExprFunc(ctx: ExprFuncContext): Expression = ctx.functionCall.accept(this)
 
   override def visitPrimitiveConstant(ctx: PrimitiveConstantContext): ir.Expression = ctx match {
+  override def visitExprDot(ctx: ExprDotContext): ir.Expression = {
+    val left = ctx.expression(0).accept(this)
+    val right = ctx.expression(1).accept(this)
+    ir.Dot(left, right)
+  }
+
+  override def visitPrimitive_constant(ctx: Primitive_constantContext): ir.Expression = ctx match {
     case c if c.DOLLAR() != null => wrapUnresolvedInput(ctx.getText)
     case c if c.STRING() != null => c.STRING().accept(this)
     case c if c.INT() != null => c.INT().accept(this)
     case c if c.FLOAT() != null => c.FLOAT().accept(this)
     case c if c.HEX() != null => c.HEX().accept(this)
     case c if c.REAL() != null => c.REAL().accept(this)
+  }
+
+  override def visitId_(ctx: Id_Context): ir.Expression = ctx match {
+    case c if c.ID() != null => Identifier(ctx.getText, isQuoted = false)
+    case c if c.TEMP_ID() != null => Identifier(ctx.getText, isQuoted = false)
+    case c if c.DOUBLE_QUOTE_ID() != null => Identifier(ctx.getText, isQuoted = true)
+    case c if c.SQUARE_BRACKET_ID() != null => Identifier(ctx.getText, isQuoted = true)
+    case c if c.RAW() != null => Identifier(ctx.getText, isQuoted = false)
+    case _ => Identifier(ctx.getText, isQuoted = false)
   }
 
   override def visitTerminal(node: TerminalNode): ir.Expression = node.getSymbol.getType match {

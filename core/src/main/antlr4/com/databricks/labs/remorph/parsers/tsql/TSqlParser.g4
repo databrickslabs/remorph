@@ -3892,24 +3892,28 @@ constant_LOCAL_ID
 // https://docs.microsoft.com/en-us/sql/t-sql/language-elements/expressions-transact-sql
 // Operator precendence: https://docs.microsoft.com/en-us/sql/t-sql/language-elements/operator-precedence-transact-sql
 expression
-    : LPAREN expression RPAREN #exprPrecedence
-    | <assoc=right> op=BIT_NOT expression #exprBitNot
-    | <assoc=right> op=(PLUS | MINUS) expression #exprUnary
-    | expression op=(STAR | DIV | MOD) expression #exprOpPrec1
-    | expression op=(PLUS | MINUS) expression #exprOpPrec2
-    | expression op=(BIT_AND | BIT_XOR | BIT_OR) expression #exprOpPrec3
-    | expression op=DOUBLE_BAR expression #exprOpPrec4
-    | primitiveExpression #exprPrimitive
-    | functionCall #exprFunc
-    | expression DOT (valueCall | queryCall | existCall | modifyCall) #exprDot
-    | expression DOT hierarchyidCall #exprHierarchyid
-    | expression COLLATE id #exprCollate
-    | caseExpression #exprCase
-    | fullColumnName #exprFullColumn
-    | expression timeZone #exprTz
-    | overClause #exprOver
-    | DOLLAR_ACTION #exprDollar
-    | LPAREN subquery RPAREN #exprSubquery
+    : LPAREN expression RPAREN                                  #exprPrecedence
+    | <assoc=right> op=BIT_NOT expression                       #exprBititNot
+    | <assoc=right> op=(PLUS | MINUS) expression                #exprUnary
+    | expression op=(STAR | DIV | MOD) expression               #exprOpPrec1
+    | expression op=(PLUS | MINUS) expression                   #exprOpPrec2
+    | expression op=(BIT_AND | BIT_XOR | BIT_OR) expression     #exprOpPrec3
+    | expression op=DOUBLE_BAR expression                       #exprOpPrec4
+    | primitiveExpression                                       #exprPrimitive
+    | functionCall                                              #exprFunc
+    | expression COLLATE id_                                    #exprCollate
+    | caseExpression                                            #exprCase
+    | expression timeZone                                       #exprTz
+    | overClause                                                #exprOver
+    | hierarchyidCall                                           #exprHierarchyId
+    | valueCall                                                 #exprValue
+    | queryCall                                                 #expryQuery
+    | existCall                                                 #exprExist
+    | modifyCall                                                #exprModiy
+    | id                                                        #exprId
+    | DOLLAR_ACTION                                             #exprDollar
+    | <assoc=right> expression DOT expression                   #exprDot
+    | LPAREN subquery RPAREN                                    #exprSubquery
     ;
 
 parameter
@@ -5598,7 +5602,7 @@ id
     : ID
     | TEMP_ID
     | DOUBLE_QUOTE_ID
-    | DOUBLE_QUOTE_BLANK
+    | DOUBLE_QUOTE_BLANK // TODO: This is silly I think - remove
     | SQUARE_BRACKET_ID
     | keyword
     | RAW
