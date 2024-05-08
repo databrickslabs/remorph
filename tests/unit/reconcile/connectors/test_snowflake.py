@@ -37,7 +37,7 @@ def test_get_jdbc_url():
         'snowflake_sfUrl': 'my_url',
     }[secret_name]
     # create object for SnowflakeDataSource
-    ds = SnowflakeDataSource(engine, spark, ws, scope, "catalog", "schema")
+    ds = SnowflakeDataSource(engine, spark, ws, scope)
     url = ds.get_jdbc_url
     # Assert that the URL is generated correctly
     assert url == (
@@ -65,7 +65,7 @@ def test_read_data_with_out_options():
     }[secret_name]
 
     # create object for SnowflakeDataSource
-    ds = SnowflakeDataSource(engine, spark, ws, scope, "catalog", "schema")
+    ds = SnowflakeDataSource(engine, spark, ws, scope)
     # Create a Tables configuration object with no JDBC reader options
     table_conf = Table(
         source_name="supplier",
@@ -81,7 +81,7 @@ def test_read_data_with_out_options():
     )
 
     # Call the read_data method with the Tables configuration
-    ds.read_data("select 1 from dual", table_conf.jdbc_reader_options)
+    ds.read_data("catalog", "schema", "select 1 from dual", table_conf.jdbc_reader_options)
 
     # spark assertions
     spark.read.format.assert_called_with("snowflake")
@@ -115,7 +115,7 @@ def test_read_data_with_options():
     }[secret_name]
 
     # create object for SnowflakeDataSource
-    ds = SnowflakeDataSource(engine, spark, ws, scope, "catalog", "schema")
+    ds = SnowflakeDataSource(engine, spark, ws, scope)
     # Create a Tables configuration object with JDBC reader options
     table_conf = Table(
         source_name="supplier",
@@ -133,7 +133,7 @@ def test_read_data_with_options():
     )
 
     # Call the read_data method with the Tables configuration
-    ds.read_data("select 1 from dual", table_conf.jdbc_reader_options)
+    ds.read_data("catalog", "schema", "select 1 from dual", table_conf.jdbc_reader_options)
 
     # spark assertions
     spark.read.format.assert_called_with("jdbc")
@@ -166,9 +166,9 @@ def test_get_schema():
     }[secret_name]
 
     # create object for SnowflakeDataSource
-    ds = SnowflakeDataSource(engine, spark, ws, scope, "catalog", "schema")
+    ds = SnowflakeDataSource(engine, spark, ws, scope)
     # call test method
-    ds.get_schema("supplier")
+    ds.get_schema("catalog", "schema", "supplier")
     # spark assertions
     spark.read.format.assert_called_with("snowflake")
     spark.read.format().option.assert_called_with(
@@ -198,7 +198,7 @@ def test_get_schema_query():
     # initial setup
     engine, spark, ws, scope = initial_setup()
     # create object for SnowflakeDataSource
-    ds = SnowflakeDataSource(engine, spark, ws, scope, "catalog", "schema")
+    ds = SnowflakeDataSource(engine, spark, ws, scope)
     schema = ds.get_schema_query("catalog", "schema", "supplier")
     assert schema == re.sub(
         r'\s+',
@@ -213,7 +213,7 @@ def test_get_schema_query():
 def test_read_data_exception_handling():
     # initial setup
     engine, spark, ws, scope = initial_setup()
-    ds = SnowflakeDataSource(engine, spark, ws, scope, "catalog", "schema")
+    ds = SnowflakeDataSource(engine, spark, ws, scope)
     # Create a Tables configuration object
     table_conf = Table(
         source_name="supplier",
@@ -232,25 +232,25 @@ def test_read_data_exception_handling():
 
     # Call the read_data method with the Tables configuration and assert that a PySparkException is raised
     with pytest.raises(
-            PySparkException,
-            match="An error occurred while fetching Snowflake Data using the following "
-                  "select 1 from dual in SnowflakeDataSource : Test Exception",
+        PySparkException,
+        match="An error occurred while fetching Snowflake Data using the following "
+        "select 1 from dual in SnowflakeDataSource : Test Exception",
     ):
-        ds.read_data("select 1 from dual", table_conf.jdbc_reader_options)
+        ds.read_data("catalog", "schema", "select 1 from dual", table_conf.jdbc_reader_options)
 
 
 def test_get_schema_exception_handling():
     # initial setup
     engine, spark, ws, scope = initial_setup()
-    ds = SnowflakeDataSource(engine, spark, ws, scope, "catalog", "schema")
+    ds = SnowflakeDataSource(engine, spark, ws, scope)
 
     spark.read.format().option().options().load.side_effect = PySparkException("Test Exception")
 
     # Call the get_schema method with predefined table, schema, and catalog names and assert that a PySparkException
     # is raised
     with pytest.raises(
-            PySparkException,
-            match="An error occurred while fetching Snowflake Schema using the following "
-                  "supplier in SnowflakeDataSource: Test Exception",
+        PySparkException,
+        match="An error occurred while fetching Snowflake Schema using the following "
+        "supplier in SnowflakeDataSource: Test Exception",
     ):
-        ds.get_schema("supplier")
+        ds.get_schema("catalog", "schema", "supplier")

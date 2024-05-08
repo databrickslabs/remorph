@@ -29,9 +29,8 @@ class Reconciliation:
         self.report_type = report_type
 
     def run_reconcile(self):
-        reconciler = Reconciler(
-            source=self.source, target=self.target, table_conf=self.table_conf, report_type=self.report_type
-        )
+        reconciler = Reconciler(source=self.source, target=self.target, table_conf=self.table_conf,
+                                report_type=self.report_type)
         if self.report_type == ReportType.ALL.value:
             reconciler.reconcile_data()
             reconciler.reconcile_schema()
