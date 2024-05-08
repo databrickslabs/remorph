@@ -2,7 +2,14 @@ import logging
 import os
 from pathlib import Path
 
-from databricks.labs.remorph.config import MorphConfig
+from sqlglot.dialects.dialect import Dialect
+
+from databricks.labs.remorph.__about__ import __version__
+from databricks.labs.remorph.config import (
+    MorphConfig,
+    TranspilationResult,
+    ValidationResult,
+)
 from databricks.labs.remorph.helpers import db_sql
 from databricks.labs.remorph.helpers.execution_time import timeit
 from databricks.labs.remorph.helpers.file_utils import (
@@ -11,7 +18,11 @@ from databricks.labs.remorph.helpers.file_utils import (
     make_dir,
     remove_bom,
 )
-from databricks.labs.remorph.helpers.morph_status import MorphStatus, ValidationError
+from databricks.labs.remorph.helpers.morph_status import (
+    MorphStatus,
+    ParserError,
+    ValidationError,
+)
 from databricks.labs.remorph.helpers.validation import Validator
 from databricks.labs.remorph.snow import lca_utils
 from databricks.labs.remorph.snow.sql_transpiler import SqlglotEngine
@@ -46,20 +57,20 @@ def process_file(
 
     write_dialect = config.get_write_dialect()
 
-    transpiled_sql, parse_error_list = transpiler.transpile(write_dialect, sql, str(input_file), [])
+    transpiler_result: TranspilationResult = parse(transpiler, write_dialect, sql, input_file, [])
 
     with output_file.open("w") as w:
-        for output in transpiled_sql:
+        for output in transpiler_result.transpiled_sql:
             if output:
                 no_of_sqls = no_of_sqls + 1
                 if config.skip_validation:
                     w.write(output)
                     w.write("\n;\n")
                 else:
-                    output_string, exception = validator.validate_format_result(config, output)
-                    w.write(output_string)
-                    if exception is not None:
-                        validate_error_list.append(ValidationError(str(input_file), exception))
+                    validation_result: ValidationResult = validation(validator, config, output)
+                    w.write(validation_result.validated_sql)
+                    if validation_result.exception_msg is not None:
+                        validate_error_list.append(ValidationError(str(input_file), validation_result.exception_msg))
             else:
                 warning_message = (
                     f"Skipped a query from file {input_file!s}. "
@@ -67,7 +78,7 @@ def process_file(
                 )
                 logger.warning(warning_message)
 
-    return no_of_sqls, parse_error_list, validate_error_list
+    return no_of_sqls, transpiler_result.parse_error_list, validate_error_list
 
 
 def process_directory(
@@ -198,3 +209,51 @@ def morph(workspace_client: WorkspaceClient, config: MorphConfig):
         }
     )
     return status
+
+
+def parse(
+    transpiler: SqlglotEngine, write_dialect: Dialect, sql: str, input_file, error_list: list[ParserError]
+) -> TranspilationResult:
+    return transpiler.transpile(write_dialect, sql, str(input_file), error_list)
+
+
+def validation(validator: Validator, config: MorphConfig, sql: str) -> ValidationResult:
+    return validator.validate_format_result(config, sql)
+
+
+def morph_sql(
+    workspace_client: WorkspaceClient, config: MorphConfig, sql: str
+) -> tuple[TranspilationResult, ValidationResult | None]:
+
+    workspace_client: WorkspaceClient = verify_workspace_client(workspace_client)
+
+    read_dialect: Dialect = config.get_read_dialect()
+    write_dialect: Dialect = config.get_write_dialect()
+    transpiler: SqlglotEngine = SqlglotEngine(read_dialect)
+
+    transpiler_result = parse(transpiler, write_dialect, sql, "inline_sql", [])
+
+    if not config.skip_validation:
+        validator = Validator(db_sql.get_sql_backend(workspace_client, config))
+        return transpiler_result, validation(validator, config, transpiler_result.transpiled_sql[0])
+
+    return transpiler_result, None
+
+
+def verify_workspace_client(workspace_client: WorkspaceClient) -> WorkspaceClient:
+    # pylint: disable=protected-access
+    if workspace_client.config._product != "remorph":
+        workspace_client.config._product = "remorph"
+    if workspace_client.config._product_version != __version__:
+        workspace_client.config._product_version = __version__
+    return workspace_client
+
+
+def morph_column_exp(
+    workspace_client: WorkspaceClient, config: MorphConfig, exp: list[str]
+) -> list[tuple[TranspilationResult, ValidationResult | None]]:
+    config.skip_validation = True
+    result = []
+    for sql in exp:
+        result.append(morph_sql(workspace_client, config, sql))
+    return result

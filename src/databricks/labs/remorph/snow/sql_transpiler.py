@@ -2,6 +2,7 @@ from sqlglot import ErrorLevel, Expression, exp, parse, transpile
 from sqlglot.dialects.dialect import Dialect
 from sqlglot.errors import ParseError, TokenError, UnsupportedError
 
+from databricks.labs.remorph.config import TranspilationResult
 from databricks.labs.remorph.helpers.file_utils import refactor_hexadecimal_chars
 from databricks.labs.remorph.helpers.morph_status import ParserError
 
@@ -12,14 +13,14 @@ class SqlglotEngine:
 
     def transpile(
         self, write_dialect: Dialect, sql: str, file_name: str, error_list: list[ParserError]
-    ) -> (list[str], list[ParserError]):
+    ) -> TranspilationResult:
         try:
             transpiled_sql = transpile(sql, read=self.read_dialect, write=write_dialect, pretty=True, error_level=None)
         except (ParseError, TokenError, UnsupportedError) as e:
             transpiled_sql = [""]
             error_list.append(ParserError(file_name, refactor_hexadecimal_chars(str(e))))
 
-        return transpiled_sql, error_list
+        return TranspilationResult(transpiled_sql, error_list)
 
     def parse(self, sql: str, file_name: str) -> (list[Expression] | None, ParserError | None):
         expression = None

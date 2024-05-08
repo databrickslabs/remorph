@@ -7,10 +7,15 @@ import pytest
 
 from databricks.connect import DatabricksSession
 from databricks.labs.lsql.backends import MockBackend
-from databricks.labs.remorph.config import MorphConfig
+from databricks.labs.lsql.core import Row
+from databricks.labs.remorph.config import MorphConfig, ValidationResult
 from databricks.labs.remorph.helpers.file_utils import make_dir
 from databricks.labs.remorph.helpers.validation import Validator
-from databricks.labs.remorph.transpiler.execute import morph
+from databricks.labs.remorph.transpiler.execute import (
+    morph,
+    morph_column_exp,
+    morph_sql,
+)
 from databricks.sdk.core import Config
 
 # pylint: disable=unspecified-encoding
@@ -254,7 +259,9 @@ def test_with_file(initial_setup, mock_workspace_client):
     )
     mock_validate = create_autospec(Validator)
     mock_validate.spark = spark
-    mock_validate.validate_format_result.return_value = (""" Mock validated query """, "Mock validation error")
+    mock_validate.validate_format_result.return_value = ValidationResult(
+        """ Mock validated query """, "Mock validation error"
+    )
 
     with (
         patch(
@@ -380,3 +387,55 @@ def test_with_not_existing_file_skip_validation(initial_setup, mock_workspace_cl
 
     # cleanup
     safe_remove_dir(input_dir)
+
+
+def test_morph_sql(mock_workspace_client):
+    config = MorphConfig(
+        source="snowflake",
+        skip_validation=False,
+        catalog_name="catalog",
+        schema_name="schema",
+    )
+    query = """select col from table;"""
+
+    with patch(
+        'databricks.labs.remorph.helpers.db_sql.get_sql_backend',
+        return_value=MockBackend(
+            rows={
+                "EXPLAIN SELECT": [Row(plan="== Physical Plan ==")],
+            }
+        ),
+    ):
+        transpiler_result, validation_result = morph_sql(mock_workspace_client, config, query)
+        assert transpiler_result.transpiled_sql[0] == 'SELECT\n  col\nFROM table'
+        assert validation_result.exception_msg is None
+
+
+def test_morph_column_exp(mock_workspace_client):
+    config = MorphConfig(
+        source="snowflake",
+        skip_validation=True,
+        catalog_name="catalog",
+        schema_name="schema",
+    )
+    query = ["case when col1 is null then 1 else 0 end", "col2 * 2", "current_timestamp()"]
+
+    with patch(
+        'databricks.labs.remorph.helpers.db_sql.get_sql_backend',
+        return_value=MockBackend(
+            rows={
+                "EXPLAIN SELECT": [Row(plan="== Physical Plan ==")],
+            }
+        ),
+    ):
+        result = morph_column_exp(mock_workspace_client, config, query)
+        assert len(result) == 3
+        assert result[0][0].transpiled_sql[0] == 'CASE WHEN col1 IS NULL THEN 1 ELSE 0 END'
+        assert result[1][0].transpiled_sql[0] == 'col2 * 2'
+        assert result[2][0].transpiled_sql[0] == 'CURRENT_TIMESTAMP()'
+        assert result[0][0].parse_error_list == []
+        assert result[1][0].parse_error_list == []
+        assert result[2][0].parse_error_list == []
+        assert result[0][1] is None
+        assert result[1][1] is None
+        assert result[2][1] is None
