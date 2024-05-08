@@ -96,13 +96,12 @@ class QueryBuilder(ABC):
     @staticmethod
     def _default_transformer(node: exp.Expression, schema: list[Schema], source) -> exp.Expression:
         def _get_transform(datatype: str):
-            mapping = DataType_transform_mapping.get(source, {})
-            if mapping is not None:
-                if DataType_transform_mapping.get(datatype.upper()) is not None:
-                    return DataType_transform_mapping.get(datatype.upper())
-                if DataType_transform_mapping.get("default") is not None:
-                    return mapping.get(exp.Literal(this="default"))
-            return DataType_transform_mapping.get("default")
+            if DataType_transform_mapping.get(source) is not None:
+                if DataType_transform_mapping.get(source, {}).get(datatype.upper()) is not None:
+                    return DataType_transform_mapping.get(source, {}).get(datatype.upper())
+                if DataType_transform_mapping.get(source, {}).get("default") is not None:
+                    return DataType_transform_mapping.get(source, {}).get("default")
+                return DataType_transform_mapping.get("default", {}).get("default")
 
         schema_dict = {v.column_name: v.data_type for v in schema}
         if isinstance(node, exp.Column):

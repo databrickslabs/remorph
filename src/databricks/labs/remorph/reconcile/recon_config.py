@@ -93,13 +93,15 @@ class Table:
             return {c.target_name: c.source_name for c in self.column_mapping}
         return None
 
-    def get_src_to_tgt_col_mapping_list(self, cols: list[str]) -> set[str]:
+    def get_src_to_tgt_col_mapping_list(self, cols: list[str], layer: str) -> set[str]:
+        if layer == "source":
+            return set(cols)
         return {self.to_src_col_map.get(col, col) for col in cols}
 
     def get_layer_src_to_tgt_col_mapping(self, cols: str, layer: str) -> str:
         if layer == "source":
             return cols
-        return self.to_src_col_map.get(cols, cols) or cols
+        return self.to_src_col_map.get(cols, cols)
 
     def get_tgt_to_src_col_mapping_list(self, cols: list[str] | set[str]) -> set[str]:
         return {self.to_tgt_col_map.get(col, col) for col in cols}
@@ -113,7 +115,7 @@ class Table:
         if self.select_columns is None:
             return {sch.column_name for sch in schema}
         if self.to_src_col_map:
-            return self.get_src_to_tgt_col_mapping_list(self.select_columns)
+            return self.get_src_to_tgt_col_mapping_list(self.select_columns, layer)
         return set(self.select_columns)
 
     def get_threshold_columns(self, layer: str) -> set[str]:

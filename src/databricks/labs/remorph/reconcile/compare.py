@@ -94,7 +94,7 @@ def _get_mismatch_df(source: DataFrame, target: DataFrame, key_columns: list[str
     mismatch_df = (
         source.alias('base')
         .join(other=target.alias('compare'), on=key_columns, how="inner")
-        .select(select_expr)
+        .select(*select_expr)
         .filter(filter_expr)
     )
     compare_columns = [column for column in mismatch_df.columns if column not in key_columns]
