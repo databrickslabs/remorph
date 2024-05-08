@@ -154,5 +154,20 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
           Literal(integer = Some(1)),
           Multiply(Literal(integer = Some(2)), Add(Literal(integer = Some(3)), Literal(integer = Some(4))))))
     }
+    "correctly resolve dot delimited plain references" in {
+      example("a", _.expression(), Identifier("a", isQuoted = false))
+      example("a.b", _.expression(), Dot(Identifier("a", isQuoted = false), Identifier("b", isQuoted = false)))
+      example("a.b.c", _.expression(), Dot(
+        Identifier("a", isQuoted = false),
+        Dot(Identifier("b", isQuoted = false), Identifier("c", isQuoted = false))))
+    }
+    "correctly resolve quoted identifiers" in {
+      example("\"a\"", _.expression(), Identifier("\"a\"", isQuoted = true))
+      example("[a]", _.expression(), Identifier("\"a\"", isQuoted = true))
+      example("[a].[b]", _.expression(), Dot(Identifier("[a]", isQuoted = true), Identifier("[b]", isQuoted = true)))
+      example("[a].[b].[c]", _.expression(), Dot(
+        Identifier("[a]", isQuoted = true),
+        Dot(Identifier("[b]", isQuoted = true), Identifier("[c]", isQuoted = true))))
+    }
   }
 }
