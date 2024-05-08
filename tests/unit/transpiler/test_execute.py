@@ -439,3 +439,42 @@ def test_morph_column_exp(mock_workspace_client):
         assert result[0][1] is None
         assert result[1][1] is None
         assert result[2][1] is None
+
+
+def test_with_file_with_success(initial_setup, mock_workspace_client):
+    input_dir = initial_setup
+    sdk_config = create_autospec(Config)
+    spark = create_autospec(DatabricksSession)
+    config = MorphConfig(
+        input_sql=str(input_dir / "query1.sql"),
+        output_folder="None",
+        sdk_config=sdk_config,
+        source="snowflake",
+        skip_validation=False,
+    )
+    mock_validate = create_autospec(Validator)
+    mock_validate.spark = spark
+    mock_validate.validate_format_result.return_value = ValidationResult(""" Mock validated query """, None)
+
+    with (
+        patch(
+            'databricks.labs.remorph.helpers.db_sql.get_sql_backend',
+            return_value=MockBackend(),
+        ),
+        patch("databricks.labs.remorph.transpiler.execute.Validator", return_value=mock_validate),
+    ):
+        status = morph(mock_workspace_client, config)
+        # assert the status
+        assert status is not None, "Status returned by morph function is None"
+        assert isinstance(status, list), "Status returned by morph function is not a list"
+        assert len(status) > 0, "Status returned by morph function is an empty list"
+        for stat in status:
+            assert stat["total_files_processed"] == 1, "total_files_processed does not match expected value"
+            assert stat["total_queries_processed"] == 1, "total_queries_processed does not match expected value"
+            assert (
+                stat["no_of_sql_failed_while_parsing"] == 0
+            ), "no_of_sql_failed_while_parsing does not match expected value"
+            assert (
+                stat["no_of_sql_failed_while_validating"] == 0
+            ), "no_of_sql_failed_while_validating does not match expected value"
+            assert stat["error_log_file"] == "None", "error_log_file does not match expected value"
