@@ -134,6 +134,10 @@ class Median(Func):
     arg_types: ClassVar[dict] = {"this": True}
 
 
+class JinjaExpression(Expression):
+    arg_types: ClassVar[dict] = {"this": False}
+
+
 @dataclass
 class WithinGroupParams:
     agg_col: exp.Column

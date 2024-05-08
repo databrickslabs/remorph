@@ -385,6 +385,7 @@ class Snow(Snowflake):
             **Snowflake.Parser.COLUMN_OPERATORS,
             TokenType.COLON: lambda self, this, path: self._json_column_op(this, path),
         }
+        COLUMN_OPERATORS.pop(TokenType.PLACEHOLDER)
 
         TIMESTAMPS: ClassVar[dict] = Snowflake.Parser.TIMESTAMPS.copy() - {TokenType.TIME}
 
@@ -494,3 +495,29 @@ class Snow(Snowflake):
                 return self.expression(local_expression.Bracket, this=this, expressions=[path])
 
             return self.expression(exp.Bracket, this=this, expressions=[path])
+
+        def _parse_placeholder(self) -> exp.Expression | None:
+            """
+            Parse a placeholder expression like {{ ref("table") }} or {{var('abc')}}
+            """
+            if not self._match_pair(TokenType.L_BRACE, TokenType.L_BRACE, advance=False):
+                return None
+            start_token = self._curr
+            # We need to find the closing braces `}}` to extract the Jinja expression
+            # We will look till max_placeholder_lookahead tokens to find the closing braces
+            max_placeholder_lookahead = 50
+            found_r_braces = False
+            for _ in range(max_placeholder_lookahead):
+                if not self._match_pair(TokenType.R_BRACE, TokenType.R_BRACE, advance=False):
+                    self._advance()
+                    continue
+                self._advance()
+                found_r_braces = True
+                break
+
+            if not found_r_braces:
+                self.raise_error("Expecting }}")
+
+            jinja_expr = self._find_sql(start_token, self._curr)
+            self._advance()
+            return self.expression(local_expression.JinjaExpression, this=jinja_expr)
