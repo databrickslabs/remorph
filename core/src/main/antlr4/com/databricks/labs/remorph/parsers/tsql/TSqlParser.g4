@@ -3892,29 +3892,28 @@ constant_LOCAL_ID
 // https://docs.microsoft.com/en-us/sql/t-sql/language-elements/expressions-transact-sql
 // Operator precendence: https://docs.microsoft.com/en-us/sql/t-sql/language-elements/operator-precedence-transact-sql
 expression
-    : LPAREN expression RPAREN                                  #expr_precedence
-    | <assoc=right> op=BIT_NOT expression                       #expr_bit_not
-    | <assoc=right> op=(PLUS | MINUS) expression                #expr_unary
-    | expression op=(STAR | DIV | MOD) expression               #expr_op_prec_1
-    | expression op=(PLUS | MINUS) expression                   #expr_op_prec_2
-    | expression op=(BIT_AND | BIT_XOR | BIT_OR) expression     #expr_op_prec_3
-    | expression op=DOUBLE_BAR expression                       #expr_op_prec_4
-    | primitive_expression                                      #expr_primitive
-    | function_call                                             #expr_func
-    | expression COLLATE id_                                    #expr_collate
-    | case_expression                                           #expr_case
-    | expression time_zone                                      #expr_tz
-    | over_clause                                               #expr_over
-    | hierarchyid_call                                          #exprHierarchyId
-    | value_call                                                #exprValue
-    | query_call                                                #expryQuery
-    | exist_call                                                #exprExist
-    | modify_call                                               #exprModiy
-    | id_                                                       #expr_id
-    | DOLLAR_ACTION                                             #expr_dollar
+    : LPAREN expression RPAREN                                  #exprPrecedence
+    | <assoc=right> op=BIT_NOT expression                       #exprBitNot
+    | <assoc=right> op=(PLUS | MINUS) expression                #exprUnary
+    | expression op=(STAR | DIV | MOD) expression               #exprOpPrec1
+    | expression op=(PLUS | MINUS) expression                   #exprOpPrec2
+    | expression op=(BIT_AND | BIT_XOR | BIT_OR) expression     #exprOpPrec3
+    | expression op=DOUBLE_BAR expression                       #exprOpPrec4
+    | primitiveExpression                                       #exprPrimitive
+    | functionCall                                              #exprFunc
+    | expression COLLATE id_                                    #exprCollate
+    | caseExpression                                            #exprCase
+    | expression timeZone                                       #exprTimeZone
+    | overClause                                                #exprOver
+    | hierarchyidCall                                           #exprHierarchyId
+    | valueCall                                                 #exprValue
+    | queryCall                                                 #expryQuery
+    | existCall                                                 #exprExist
+    | modifyCall                                                #exprModiy
+    | id_                                                       #exprId
+    | DOLLAR_ACTION                                             #exprDollar
     | <assoc=right> expression DOT expression                   #exprDot
-    | LPAREN subquery RPAREN                                    #expr_subquery
-    | over_clause                                               #expr_over
+    | LPAREN subquery RPAREN                                    #exprSubquery
     ;
 
 parameter
