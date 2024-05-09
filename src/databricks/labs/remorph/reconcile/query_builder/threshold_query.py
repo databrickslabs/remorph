@@ -60,8 +60,9 @@ class ThresholdQueryBuilder(QueryBuilder):
 
         return select_clause, where
 
+    @classmethod
     def _build_expression_alias_components(
-        self, threshold: Thresholds, base: exp.Expression
+        cls, threshold: Thresholds, base: exp.Expression
     ) -> tuple[list[exp.Alias], exp.Expression]:
         select_clause = []
         column = threshold.column_name
@@ -117,7 +118,8 @@ class ThresholdQueryBuilder(QueryBuilder):
 
         return from_clause, join_clause
 
-    def _build_threshold_absolute_case(self, base: exp.Expression, threshold: Thresholds) -> exp.Case:
+    @classmethod
+    def _build_threshold_absolute_case(cls, base: exp.Expression, threshold: Thresholds) -> exp.Case:
         eq_if = build_if(
             this=exp.EQ(this=base, expression=build_literal(this="0", is_string=False)),
             true=exp.Identifier(this="Match", quoted=True),
@@ -135,7 +137,8 @@ class ThresholdQueryBuilder(QueryBuilder):
         )
         return exp.Case(ifs=[eq_if, between_if], default=exp.Identifier(this="Failed", quoted=True))
 
-    def _build_threshold_percentage_case(self, base: exp.Expression, threshold: Thresholds) -> exp.Case:
+    @classmethod
+    def _build_threshold_percentage_case(cls, base: exp.Expression, threshold: Thresholds) -> exp.Case:
         eq_if = exp.If(
             this=exp.EQ(this=base, expression=build_literal(this="0", is_string=False)),
             true=exp.Identifier(this="Match", quoted=True),

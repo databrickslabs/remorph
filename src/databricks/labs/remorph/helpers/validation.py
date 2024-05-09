@@ -2,7 +2,7 @@ import logging
 from io import StringIO
 
 from databricks.labs.lsql.backends import SqlBackend
-from databricks.labs.remorph.config import MorphConfig
+from databricks.labs.remorph.config import MorphConfig, ValidationResult
 from databricks.sdk.errors.base import DatabricksError
 
 logger = logging.getLogger(__name__)
@@ -16,7 +16,7 @@ class Validator:
     def __init__(self, sql_backend: SqlBackend):
         self._sql_backend = sql_backend
 
-    def validate_format_result(self, config: MorphConfig, input_sql: str) -> tuple[str, str | None]:
+    def validate_format_result(self, config: MorphConfig, input_sql: str) -> ValidationResult:
         """
         Validates the SQL query and formats the result.
 
@@ -50,7 +50,7 @@ class Validator:
 
             result = buffer.getvalue()
 
-        return result, exception_msg
+        return ValidationResult(result, exception_msg)
 
     def _query(self, sql_backend: SqlBackend, query: str) -> tuple[bool, str | None, str | None]:
         """
@@ -71,8 +71,8 @@ class Validator:
             if not rows:
                 return False, "error", "No results returned from explain query."
 
-            if "Error occurred during query planning" in rows[0].as_dict().get("plan", ""):
-                error_details = rows[1].as_dict().get("plan", "Unknown error.") if len(rows) > 1 else "Unknown error."
+            if "Error occurred during query planning" in rows[0].asDict().get("plan", ""):
+                error_details = rows[1].asDict().get("plan", "Unknown error.") if len(rows) > 1 else "Unknown error."
                 raise DatabricksError(error_details)
             return True, None, None
         except DatabricksError as dbe:
