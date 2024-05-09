@@ -1,30 +1,72 @@
 import logging
-from functools import cached_property
 from pathlib import Path
 
+from sqlglot import Dialects
+
+from databricks.connect import DatabricksSession
 from databricks.labs.blueprint.installation import Installation
-from databricks.labs.remorph.config import DatabaseConfig, TableRecon
+from databricks.labs.remorph.config import SQLGLOT_DIALECTS, DatabaseConfig, TableRecon
 from databricks.labs.remorph.reconcile.compare import (
     capture_mismatch_data_and_columns,
     reconcile_data,
 )
 from databricks.labs.remorph.reconcile.connectors.data_source import DataSource
+from databricks.labs.remorph.reconcile.connectors.databricks import DatabricksDataSource
+from databricks.labs.remorph.reconcile.connectors.source_adapter import (
+    DataSourceAdapter,
+)
 from databricks.labs.remorph.reconcile.constants import Layer
 from databricks.labs.remorph.reconcile.query_builder.hash_query import HashQueryBuilder
 from databricks.labs.remorph.reconcile.query_builder.sampling_query import (
     SamplingQueryBuilder,
 )
-from databricks.labs.remorph.reconcile.recon_config import ReconcileOutput, Table
+from databricks.labs.remorph.reconcile.recon_config import (
+    ReconcileOutput,
+    Schema,
+    Table,
+)
+from databricks.labs.remorph.reconcile.schema_compare import SchemaCompare
+from databricks.sdk import WorkspaceClient
 
 logger = logging.getLogger(__name__)
 
 
-def recon(recon_conf, conn_profile, source, report):
-    logger.info(conn_profile)
+def recon(recon_conf, ws: WorkspaceClient, source: Dialects, report):
     logger.info(source)
     logger.info(report)
 
     table_recon = get_config(Path(recon_conf))
+    database_config = DatabaseConfig(
+        source_catalog=table_recon.source_catalog,
+        source_schema=table_recon.source_schema,
+        target_catalog=table_recon.target_catalog,
+        target_schema=table_recon.target_schema,
+    )
+
+    spark = DatabricksSession.builder.sdkConfig(ws.config).getOrCreate()
+
+    source = DataSourceAdapter().create_adapter(engine=source, spark=spark, ws=ws, scope="")
+    target = DatabricksDataSource(engine=SQLGLOT_DIALECTS.get("databricks"), spark=spark, ws=ws, scope="")
+    schema_comparator = SchemaCompare(spark=spark)
+
+    # initialise the Reconciliation
+    reconciler = Reconciliation(source, target, database_config, report, schema_comparator)
+
+    for table_conf in table_recon.tables:
+        src_schema = source.get_schema(
+            catalog=database_config.source_catalog, schema=database_config.source_schema, table=table_conf.source_name
+        )
+        tgt_schema = target.get_schema(
+            catalog=database_config.target_catalog, schema=database_config.target_schema, table=table_conf.source_name
+        )
+
+        if report in {"data", "hash"}:
+            reconciler.reconcile_data(table_conf=table_conf, src_schema=src_schema, tgt_schema=tgt_schema)
+        elif report == "schema":
+            reconciler.reconcile_schema(table_conf=table_conf, src_schema=src_schema, tgt_schema=tgt_schema)
+        else:
+            reconciler.reconcile_data(table_conf=table_conf, src_schema=src_schema, tgt_schema=tgt_schema)
+            reconciler.reconcile_schema(table_conf=table_conf, src_schema=src_schema, tgt_schema=tgt_schema)
 
 
 class Reconciliation:
@@ -32,98 +74,70 @@ class Reconciliation:
         self,
         source: DataSource,
         target: DataSource,
-        table_conf: Table,
         database_config: DatabaseConfig,
         report_type: str,
+        schema_comparator: SchemaCompare,
     ):
         self._source = source
         self._target = target
-        self._table_conf = table_conf
         self._report_type = report_type
         self._source_catalog = database_config.source_catalog
         self._source_schema = database_config.source_schema
         self._target_catalog = database_config.target_catalog
         self._target_schema = database_config.target_schema
+        self._schema_comparator = schema_comparator
 
-    @cached_property
-    def src_schema(self):
-        return self._source.get_schema(
-            catalog=self._source_catalog, schema=self._source_schema, table=self._table_conf.source_name
-        )
+    def reconcile_data(self, table_conf: Table, src_schema: list[Schema], tgt_schema: list[Schema]):
+        reconcile_output = self._get_reconcile_output(table_conf, src_schema, tgt_schema)
+        return self._get_sample_data(table_conf, reconcile_output, src_schema, tgt_schema)
 
-    @cached_property
-    def tgt_schema(self):
-        return self._target.get_schema(
-            catalog=self._target_catalog, schema=self._target_schema, table=self._table_conf.target_name
-        )
+    def reconcile_schema(self, src_schema, tgt_schema, table_conf):
+        return self._schema_comparator.compare(src_schema, tgt_schema, self._source.engine, table_conf)
 
-    @cached_property
-    def src_hash_query(self):
-        return HashQueryBuilder(
-            self._table_conf, self.src_schema, Layer.SOURCE.value, self._source.engine
-        ).build_query()
-
-    @cached_property
-    def tgt_hash_query(self):
-        return HashQueryBuilder(
-            self._table_conf, self.tgt_schema, Layer.TARGET.value, self._target.engine
-        ).build_query()
-
-    @cached_property
-    def src_sampler(self):
-        return SamplingQueryBuilder(self._table_conf, self.src_schema, Layer.SOURCE.value, self._source.engine)
-
-    @cached_property
-    def tgt_sampler(self):
-        return SamplingQueryBuilder(self._table_conf, self.tgt_schema, Layer.TARGET.value, self._target.engine)
-
-    def reconcile_data(self):
-        reconcile_output = self._get_reconcile_output()
-        return self._get_sample_data(reconcile_output)
-
-    def reconcile_schema(self):
-        raise NotImplementedError
-
-    def _get_reconcile_output(self):
+    def _get_reconcile_output(self, table_conf, src_schema, tgt_schema):
+        src_hash_query = HashQueryBuilder(table_conf, src_schema, Layer.SOURCE.value, self._source.engine).build_query()
+        tgt_hash_query = HashQueryBuilder(table_conf, tgt_schema, Layer.TARGET.value, self._target.engine).build_query()
         src_data = self._source.read_data(
             catalog=self._source_catalog,
             schema=self._source_schema,
-            query=self.src_hash_query,
-            options=self._table_conf.jdbc_reader_options,
+            query=src_hash_query,
+            options=table_conf.jdbc_reader_options,
         )
         tgt_data = self._target.read_data(
             catalog=self._target_catalog,
             schema=self._target_schema,
-            query=self.tgt_hash_query,
-            options=self._table_conf.jdbc_reader_options,
+            query=tgt_hash_query,
+            options=table_conf.jdbc_reader_options,
         )
 
         return reconcile_data(
-            source=src_data, target=tgt_data, key_columns=self._table_conf.join_columns, report_type=self._report_type
+            source=src_data, target=tgt_data, key_columns=table_conf.join_columns, report_type=self._report_type
         )
 
-    def _get_sample_data(self, reconcile_output):
-        src_mismatch_sample_query = self.src_sampler.build_query(reconcile_output.mismatch)
-        tgt_mismatch_sample_query = self.tgt_sampler.build_query(reconcile_output.mismatch)
+    def _get_sample_data(self, table_conf, reconcile_output, src_schema, tgt_schema):
+        src_sampler = SamplingQueryBuilder(table_conf, src_schema, Layer.SOURCE.value, self._source.engine)
+        tgt_sampler = SamplingQueryBuilder(table_conf, tgt_schema, Layer.TARGET.value, self._target.engine)
+        src_mismatch_sample_query = src_sampler.build_query(reconcile_output.mismatch)
+        tgt_mismatch_sample_query = tgt_sampler.build_query(reconcile_output.mismatch)
 
         src_data = self._source.read_data(
             catalog=self._source_catalog,
             schema=self._source_schema,
             query=src_mismatch_sample_query,
-            options=self._table_conf.jdbc_reader_options,
+            options=table_conf.jdbc_reader_options,
         )
         tgt_data = self._target.read_data(
             catalog=self._target_catalog,
             schema=self._target_schema,
             query=tgt_mismatch_sample_query,
-            options=self._table_conf.jdbc_reader_options,
+            options=table_conf.jdbc_reader_options,
         )
 
         mismatch_data = capture_mismatch_data_and_columns(
-            source=src_data, target=tgt_data, key_columns=self._table_conf.join_columns
+            source=src_data, target=tgt_data, key_columns=table_conf.join_columns
         )
-        missing_in_src_sample_query = self.tgt_sampler.build_query(reconcile_output.missing_in_src)
-        missing_in_tgt_sample_query = self.src_sampler.build_query(reconcile_output.missing_in_tgt)
+        missing_in_src_sample_query = tgt_sampler.build_query(reconcile_output.missing_in_src)
+        missing_in_tgt_sample_query = src_sampler.build_query(reconcile_output.missing_in_tgt)
 
         return ReconcileOutput(
             mismatch=mismatch_data,

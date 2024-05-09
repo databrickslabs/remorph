@@ -81,14 +81,16 @@ def reconcile(w: WorkspaceClient, recon_conf: str, conn_profile: str, source: st
         raise_validation_exception(f"Error: Invalid value for '--recon_conf': Path '{recon_conf}' does not exist.")
     if not os.path.exists(conn_profile) or conn_profile in {None, ""}:
         raise_validation_exception(f"Error: Invalid value for '--conn_profile': Path '{conn_profile}' does not exist.")
-    if source.lower() not in "snowflake":
-        raise_validation_exception(f"Error: Invalid value for '--source': '{source}' is not one of 'snowflake'. ")
-    if report.lower() not in {"data", "schema", "all"}:
+    if source.lower() not in ["databricks", "snowflake", "oracle"]:
         raise_validation_exception(
-            f"Error: Invalid value for '--report': '{report}' is not one of 'data', 'schema', 'all' "
+            f"Error: Invalid value for '--source': '{source}' is not one of 'databricks', 'snowflake', 'oracle'. "
+        )
+    if report.lower() not in {"data", "schema", "all", "hash"}:
+        raise_validation_exception(
+            f"Error: Invalid value for '--report': '{report}' is not one of 'data', 'schema', 'all' , 'hash'"
         )
 
-    recon(recon_conf, conn_profile, source, report)
+    recon(recon_conf, w, SQLGLOT_DIALECTS.get(source.lower()), report)
 
 
 @remorph.command

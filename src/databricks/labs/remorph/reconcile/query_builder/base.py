@@ -1,7 +1,7 @@
 from abc import ABC
 
 import sqlglot.expressions as exp
-from sqlglot import parse_one
+from sqlglot import Dialects, parse_one
 
 from databricks.labs.remorph.reconcile.query_builder.expression_generator import (
     DataType_transform_mapping,
@@ -11,7 +11,7 @@ from databricks.labs.remorph.reconcile.recon_config import Schema, Table
 
 
 class QueryBuilder(ABC):
-    def __init__(self, table_conf: Table, schema: list[Schema], layer: str, source: str):
+    def __init__(self, table_conf: Table, schema: list[Schema], layer: str, source: Dialects):
         self._table_conf = table_conf
         self._schema = schema
         self._layer = layer
