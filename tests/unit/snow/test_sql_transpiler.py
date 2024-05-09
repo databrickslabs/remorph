@@ -17,17 +17,17 @@ def write_dialect(morph_config):
 
 
 def test_transpile_snowflake(transpiler, write_dialect):
-    result, _ = transpiler.transpile(write_dialect, "SELECT CURRENT_TIMESTAMP(0)", "file.sql", [])
-    assert result[0] == "SELECT\n  CURRENT_TIMESTAMP()"
+    transpiler_result = transpiler.transpile(write_dialect, "SELECT CURRENT_TIMESTAMP(0)", "file.sql", [])
+    assert transpiler_result.transpiled_sql[0] == "SELECT\n  CURRENT_TIMESTAMP()"
 
 
 def test_transpile_exception(transpiler, write_dialect):
-    result, error_list = transpiler.transpile(
+    transpiler_result = transpiler.transpile(
         write_dialect, "SELECT TRY_TO_NUMBER(COLUMN, $99.99, 27) FROM table", "file.sql", []
     )
-    assert result[0] == ""
-    assert error_list[0].file_name == "file.sql"
-    assert "Error Parsing args" in error_list[0].exception
+    assert transpiler_result.transpiled_sql[0] == ""
+    assert transpiler_result.parse_error_list[0].file_name == "file.sql"
+    assert "Error Parsing args" in transpiler_result.parse_error_list[0].exception
 
 
 def test_parse_query(transpiler):
@@ -60,17 +60,20 @@ def test_parse_invalid_query(transpiler):
 
 
 def test_tokenizer_exception(transpiler, write_dialect):
-    result, error_list = transpiler.transpile(write_dialect, "1SELECT ~v\ud83d' ", "file.sql", [])
+    transpiler_result = transpiler.transpile(write_dialect, "1SELECT ~v\ud83d' ", "file.sql", [])
 
-    assert result == [""]
-    assert error_list[0].file_name == "file.sql"
-    assert "Error tokenizing" in error_list[0].exception
+    assert transpiler_result.transpiled_sql == [""]
+    assert transpiler_result.parse_error_list[0].file_name == "file.sql"
+    assert "Error tokenizing" in transpiler_result.parse_error_list[0].exception
 
 
 def test_procedure_conversion(transpiler, write_dialect):
     procedure_sql = "CREATE OR REPLACE PROCEDURE my_procedure() AS BEGIN SELECT * FROM my_table; END;"
-    result, _ = transpiler.transpile(write_dialect, procedure_sql, "file.sql", [])
-    assert result[0] == "CREATE PROCEDURE my_procedure(\n  \n) AS BEGIN\nSELECT\n  *\nFROM my_table"
+    transpiler_result = transpiler.transpile(write_dialect, procedure_sql, "file.sql", [])
+    assert (
+        transpiler_result.transpiled_sql[0]
+        == "CREATE PROCEDURE my_procedure(\n  \n) AS BEGIN\nSELECT\n  *\nFROM my_table"
+    )
 
 
 def test_find_root_tables(transpiler):

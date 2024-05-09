@@ -3,6 +3,7 @@ from dataclasses import dataclass
 
 from sqlglot.dialects.dialect import Dialect, Dialects
 
+from databricks.labs.remorph.helpers.morph_status import ParserError
 from databricks.labs.remorph.reconcile.recon_config import Table
 from databricks.labs.remorph.snow import databricks, experimental, oracle, snowflake
 
@@ -72,3 +73,15 @@ class DatabaseConfig:
     target_catalog: str
     target_schema: str
     source_catalog: str | None = None
+
+
+@dataclass
+class TranspilationResult:
+    transpiled_sql: list[str]
+    parse_error_list: list[ParserError]
+
+
+@dataclass
+class ValidationResult:
+    validated_sql: str
+    exception_msg: str | None
