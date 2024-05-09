@@ -6,7 +6,6 @@ class Oracle(Orc):
     # Instantiate Oracle Dialect
     oracle = Orc()
 
-
     class Tokenizer(Orc.Tokenizer):
         KEYWORDS = {
             **Orc.Tokenizer.KEYWORDS,
