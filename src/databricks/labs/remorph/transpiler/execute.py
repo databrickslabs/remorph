@@ -221,7 +221,7 @@ def _verify_workspace_client(workspace_client: WorkspaceClient) -> WorkspaceClie
 
 
 def _parse(
-    transpiler: SqlglotEngine, write_dialect: Dialect, sql: str, input_file, error_list: list[ParserError]
+    transpiler: SqlglotEngine, write_dialect: Dialect, sql: str, input_file: str | Path, error_list: list[ParserError]
 ) -> TranspilationResult:
     return transpiler.transpile(write_dialect, sql, str(input_file), error_list)
 
@@ -251,10 +251,10 @@ def morph_sql(
 
 @timeit
 def morph_column_exp(
-    workspace_client: WorkspaceClient, config: MorphConfig, exp: list[str]
+    workspace_client: WorkspaceClient, config: MorphConfig, expressions: list[str]
 ) -> list[tuple[TranspilationResult, ValidationResult | None]]:
     config.skip_validation = True
     result = []
-    for sql in exp:
+    for sql in expressions:
         result.append(morph_sql(workspace_client, config, sql))
     return result
