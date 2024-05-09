@@ -16,7 +16,7 @@ dependencies = [
   "databricks-sdk>=0.18.0",
   "sqlglot==23.13.7",
   "databricks-labs-blueprint[yaml]>=0.2.3",
-  "databricks-labs-lsql>=0.2.3",
+  "databricks-labs-lsql>=0.4.3",
 ]
 
 [project.urls]
