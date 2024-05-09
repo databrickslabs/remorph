@@ -3901,7 +3901,7 @@ expression
     | expression op=DOUBLE_BAR expression                       #exprOpPrec4
     | primitiveExpression                                       #exprPrimitive
     | functionCall                                              #exprFunc
-    | expression COLLATE id_                                    #exprCollate
+    | expression COLLATE id                                     #exprCollate
     | caseExpression                                            #exprCase
     | expression timeZone                                       #exprTz
     | overClause                                                #exprOver

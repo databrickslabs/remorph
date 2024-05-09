@@ -52,6 +52,7 @@ class TSqlExpressionBuilder
     case MINUS => ir.UMinus(ctx.expression().accept(this))
     case PLUS => ir.UPlus(ctx.expression().accept(this))
   }
+
   override def visitExprOpPrec1(ctx: ExprOpPrec1Context): ir.Expression = {
     buildBinaryExpression(ctx.expression(0).accept(this), ctx.expression(1).accept(this), ctx.op)
   }
@@ -77,7 +78,7 @@ class TSqlExpressionBuilder
     ir.Dot(left, right)
   }
 
-  override def visitPrimitive_constant(ctx: Primitive_constantContext): ir.Expression = ctx match {
+  override def visitPrimitiveConstant(ctx: PrimitiveConstantContext): ir.Expression = ctx match {
     case c if c.DOLLAR() != null => wrapUnresolvedInput(ctx.getText)
     case c if c.STRING() != null => c.STRING().accept(this)
     case c if c.INT() != null => c.INT().accept(this)
