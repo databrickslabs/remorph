@@ -7,11 +7,15 @@ import pytest
 
 from databricks.connect import DatabricksSession
 from databricks.labs.lsql.backends import MockBackend
-from databricks.labs.remorph.__about__ import __version__
-from databricks.labs.remorph.config import MorphConfig
+from databricks.labs.lsql.core import Row
+from databricks.labs.remorph.config import MorphConfig, ValidationResult
 from databricks.labs.remorph.helpers.file_utils import make_dir
 from databricks.labs.remorph.helpers.validation import Validator
-from databricks.labs.remorph.transpiler.execute import morph, verify_workspace_client
+from databricks.labs.remorph.transpiler.execute import (
+    morph,
+    morph_column_exp,
+    morph_sql,
+)
 from databricks.sdk.core import Config
 
 # pylint: disable=unspecified-encoding
@@ -255,7 +259,9 @@ def test_with_file(initial_setup, mock_workspace_client):
     )
     mock_validate = create_autospec(Validator)
     mock_validate.spark = spark
-    mock_validate.validate_format_result.return_value = (""" Mock validated query """, "Mock validation error")
+    mock_validate.validate_format_result.return_value = ValidationResult(
+        """ Mock validated query """, "Mock validation error"
+    )
 
     with (
         patch(
@@ -383,17 +389,92 @@ def test_with_not_existing_file_skip_validation(initial_setup, mock_workspace_cl
     safe_remove_dir(input_dir)
 
 
-def test_verify_workspace_client(mock_workspace_client):
-    # pylint: disable=protected-access
-    # True condition
-    workspace_client = verify_workspace_client(mock_workspace_client)
-    assert workspace_client.config._product == "remorph"
-    assert workspace_client.config._product_version == __version__
+def test_morph_sql(mock_workspace_client):
+    config = MorphConfig(
+        source="snowflake",
+        skip_validation=False,
+        catalog_name="catalog",
+        schema_name="schema",
+    )
+    query = """select col from table;"""
 
-    # False condition
-    workspace_client = mock_workspace_client
-    workspace_client.config._product = "remorph"
-    workspace_client.config._product_version = __version__
-    workspace_client = verify_workspace_client(workspace_client)
-    assert workspace_client.config._product == "remorph"
-    assert workspace_client.config._product_version == __version__
+    with patch(
+        'databricks.labs.remorph.helpers.db_sql.get_sql_backend',
+        return_value=MockBackend(
+            rows={
+                "EXPLAIN SELECT": [Row(plan="== Physical Plan ==")],
+            }
+        ),
+    ):
+        transpiler_result, validation_result = morph_sql(mock_workspace_client, config, query)
+        assert transpiler_result.transpiled_sql[0] == 'SELECT\n  col\nFROM table'
+        assert validation_result.exception_msg is None
+
+
+def test_morph_column_exp(mock_workspace_client):
+    config = MorphConfig(
+        source="snowflake",
+        skip_validation=True,
+        catalog_name="catalog",
+        schema_name="schema",
+    )
+    query = ["case when col1 is null then 1 else 0 end", "col2 * 2", "current_timestamp()"]
+
+    with patch(
+        'databricks.labs.remorph.helpers.db_sql.get_sql_backend',
+        return_value=MockBackend(
+            rows={
+                "EXPLAIN SELECT": [Row(plan="== Physical Plan ==")],
+            }
+        ),
+    ):
+        result = morph_column_exp(mock_workspace_client, config, query)
+        assert len(result) == 3
+        assert result[0][0].transpiled_sql[0] == 'CASE WHEN col1 IS NULL THEN 1 ELSE 0 END'
+        assert result[1][0].transpiled_sql[0] == 'col2 * 2'
+        assert result[2][0].transpiled_sql[0] == 'CURRENT_TIMESTAMP()'
+        assert result[0][0].parse_error_list == []
+        assert result[1][0].parse_error_list == []
+        assert result[2][0].parse_error_list == []
+        assert result[0][1] is None
+        assert result[1][1] is None
+        assert result[2][1] is None
+
+
+def test_with_file_with_success(initial_setup, mock_workspace_client):
+    input_dir = initial_setup
+    sdk_config = create_autospec(Config)
+    spark = create_autospec(DatabricksSession)
+    config = MorphConfig(
+        input_sql=str(input_dir / "query1.sql"),
+        output_folder="None",
+        sdk_config=sdk_config,
+        source="snowflake",
+        skip_validation=False,
+    )
+    mock_validate = create_autospec(Validator)
+    mock_validate.spark = spark
+    mock_validate.validate_format_result.return_value = ValidationResult(""" Mock validated query """, None)
+
+    with (
+        patch(
+            'databricks.labs.remorph.helpers.db_sql.get_sql_backend',
+            return_value=MockBackend(),
+        ),
+        patch("databricks.labs.remorph.transpiler.execute.Validator", return_value=mock_validate),
+    ):
+        status = morph(mock_workspace_client, config)
+        # assert the status
+        assert status is not None, "Status returned by morph function is None"
+        assert isinstance(status, list), "Status returned by morph function is not a list"
+        assert len(status) > 0, "Status returned by morph function is an empty list"
+        for stat in status:
+            assert stat["total_files_processed"] == 1, "total_files_processed does not match expected value"
+            assert stat["total_queries_processed"] == 1, "total_queries_processed does not match expected value"
+            assert (
+                stat["no_of_sql_failed_while_parsing"] == 0
+            ), "no_of_sql_failed_while_parsing does not match expected value"
+            assert (
+                stat["no_of_sql_failed_while_validating"] == 0
+            ), "no_of_sql_failed_while_validating does not match expected value"
+            assert stat["error_log_file"] == "None", "error_log_file does not match expected value"
