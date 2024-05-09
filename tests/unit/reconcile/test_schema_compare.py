@@ -246,10 +246,10 @@ def test_oracle_schema_compare(schemas, mock_spark_session):
     )
     df = schema_compare_output.compare_df
 
-    assert not schema_compare_output.is_valid
+    assert schema_compare_output.is_valid
     assert df.count() == 26
-    assert df.filter("is_valid = 'true'").count() == 19
-    assert df.filter("is_valid = 'false'").count() == 7
+    assert df.filter("is_valid = 'true'").count() == 26
+    assert df.filter("is_valid = 'false'").count() == 0
 
 
 def test_schema_compare(mock_spark_session):

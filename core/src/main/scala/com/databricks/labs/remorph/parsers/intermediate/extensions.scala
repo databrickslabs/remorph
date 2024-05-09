@@ -9,6 +9,7 @@ abstract class Binary(left: Expression, right: Expression) extends Expression {}
 
 trait Predicate extends AstExtension
 
+case class Precedence(expression: Expression) extends Expression {}
 case class And(left: Expression, right: Expression) extends Binary(left, right) with Predicate {}
 case class Or(left: Expression, right: Expression) extends Binary(left, right) with Predicate {}
 case class Not(pred: Expression) extends Unary(pred) with Predicate {}
@@ -104,11 +105,13 @@ case class CreateInlineUDF(
     extends Catalog {}
 
 sealed trait Constraint
-case object Unique extends Constraint
-case object NotNull extends Constraint
-case object PrimaryKey extends Constraint
-case class ForeignKey(references: String) extends Constraint
-case class UnresolvedConstraint(inputText: String) extends Constraint
+sealed trait UnnamedConstraint extends Constraint
+case object Unique extends UnnamedConstraint
+case class Nullability(nullable: Boolean) extends UnnamedConstraint
+case object PrimaryKey extends UnnamedConstraint
+case class ForeignKey(references: String) extends UnnamedConstraint
+case class NamedConstraint(name: String, constraint: UnnamedConstraint) extends Constraint
+case class UnresolvedConstraint(inputText: String) extends UnnamedConstraint
 
 // This, and the above, are likely to change in a not-so-remote future.
 // There's already a CreateTable case defined in catalog.scala but its structure seems too different from
@@ -121,3 +124,17 @@ case class ColumnDeclaration(
     constraints: Seq[Constraint] = Seq.empty)
 
 case class CreateTableCommand(name: String, columns: Seq[ColumnDeclaration]) extends Catalog {}
+
+sealed trait TableAlteration
+case class AddColumn(columnDeclaration: ColumnDeclaration) extends TableAlteration
+case class AddConstraint(columnName: String, constraint: Constraint) extends TableAlteration
+case class ChangeColumnDataType(columnName: String, newDataType: DataType) extends TableAlteration
+case class UnresolvedTableAlteration(inputText: String) extends TableAlteration
+case class DropConstraintByName(constraintName: String) extends TableAlteration
+// When constraintName is None, drop the constraint on every relevant column
+case class DropConstraint(columnName: Option[String], constraint: Constraint) extends TableAlteration
+case class DropColumns(columnNames: Seq[String]) extends TableAlteration
+case class RenameConstraint(oldName: String, newName: String) extends TableAlteration
+case class RenameColumn(oldName: String, newName: String) extends TableAlteration
+
+case class AlterTableCommand(tableName: String, alterations: Seq[TableAlteration]) extends Catalog {}
