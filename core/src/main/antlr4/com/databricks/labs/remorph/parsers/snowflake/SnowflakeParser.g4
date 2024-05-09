@@ -76,11 +76,11 @@ insert_multi_table_statement
     ;
 
 into_clause2
-    : INTO object_name ('(' column_list ')')? values_list?
+    : INTO object_name (L_PAREN column_list R_PAREN)? values_list?
     ;
 
 values_list
-    : VALUES '(' value_item (COMMA value_item)* ')'
+    : VALUES L_PAREN value_item (COMMA value_item)* R_PAREN
     ;
 
 value_item
@@ -103,12 +103,12 @@ merge_cond
     ;
 
 merge_update_delete
-    : UPDATE SET column_name EQ expr (',' column_name EQ expr)*
+    : UPDATE SET column_name EQ expr (COLON column_name EQ expr)*
     | DELETE
     ;
 
 merge_insert
-    : INSERT ('(' column_list ')')? VALUES '(' expr_list ')'
+    : INSERT (L_PAREN column_list R_PAREN)? VALUES L_PAREN expr_list R_PAREN
     ;
 
 update_statement
@@ -119,7 +119,7 @@ update_statement
 
 table_or_query
     : object_name as_alias?
-    | '(' subquery ')' as_alias?
+    | L_PAREN subquery R_PAREN as_alias?
     ;
 
 delete_statement
@@ -129,7 +129,7 @@ delete_statement
     ;
 
 values_builder
-    : VALUES '(' expr_list ')' (COMMA '(' expr_list ')')?
+    : VALUES L_PAREN expr_list R_PAREN (COMMA L_PAREN expr_list R_PAREN)?
     ;
 
 other_command
@@ -171,18 +171,18 @@ copy_into_table
     )?
     //
     /* Data load with transformation */
-    | COPY INTO object_name ('(' column_list ')')? FROM '(' SELECT select_list FROM (
+    | COPY INTO object_name (L_PAREN column_list R_PAREN)? FROM L_PAREN SELECT select_list FROM (
         table_stage
         | user_stage
         | named_stage
-    ) ')' files? pattern? file_format? copy_options*
+    ) R_PAREN files? pattern? file_format? copy_options*
     ;
 
 external_location
     //(for Amazon S3)
     : S3_PATH //'s3://<bucket>[/<path>]'
     //        ( ( STORAGE_INTEGRATION EQ id_ )?
-    //        | ( CREDENTIALS EQ '(' ( AWS_KEY_ID EQ string AWS_SECRET_KEY EQ string ( AWS_TOKEN EQ string )? ) ')' )?
+    //        | ( CREDENTIALS EQ L_PAREN ( AWS_KEY_ID EQ string AWS_SECRET_KEY EQ string ( AWS_TOKEN EQ string )? ) R_PAREN )?
     //        )?
     //        [ ENCRYPTION = ( [ TYPE = 'AWS_CSE' ] [ MASTER_KEY = '<string>' ] |
     //                   [ TYPE = 'AWS_SSE_S3' ] |
@@ -195,17 +195,17 @@ external_location
     // (for Microsoft Azure)
     | AZURE_PATH //'azure://<account>.blob.core.windows.net/<container>[/<path>]'
     //        (   ( STORAGE_INTEGRATION EQ id_ )?
-    //            | ( CREDENTIALS EQ '(' ( AZURE_SAS_TOKEN EQ string ) ')' )
+    //            | ( CREDENTIALS EQ L_PAREN ( AZURE_SAS_TOKEN EQ string ) R_PAREN )
     //        )?
     //[ ENCRYPTION = ( [ TYPE = { 'AZURE_CSE' | 'NONE' } ] [ MASTER_KEY = '<string>' ] ) ]
     ;
 
 files
-    : FILES EQ '(' string (COMMA string)* ')'
+    : FILES EQ L_PAREN string (COMMA string)* R_PAREN
     ;
 
 file_format
-    : FILE_FORMAT EQ '(' (format_name | format_type) ')'
+    : FILE_FORMAT EQ L_PAREN (format_name | format_type) R_PAREN
     ;
 
 format_name
@@ -217,14 +217,14 @@ format_type
     ;
 
 stage_file_format
-    : STAGE_FILE_FORMAT EQ LR_BRACKET FORMAT_NAME EQ string
-    | TYPE EQ type_fileformat format_type_options+ RR_BRACKET
+    : STAGE_FILE_FORMAT EQ L_PAREN FORMAT_NAME EQ string
+    | TYPE EQ type_fileformat format_type_options+ R_PAREN
     ;
 
 copy_into_location
     : COPY INTO (table_stage | user_stage | named_stage | external_location) FROM (
         object_name
-        | '(' query_statement ')'
+        | L_PAREN query_statement R_PAREN
     ) partition_by? file_format? copy_options? (VALIDATION_MODE EQ RETURN_ROWS)? HEADER?
     ;
 
@@ -234,7 +234,7 @@ comment
     ;
 
 function_signature
-    : '(' data_type_list? ')'
+    : L_PAREN data_type_list? R_PAREN
     ;
 
 commit
@@ -242,7 +242,7 @@ commit
     ;
 
 execute_immediate
-    : EXECUTE IMMEDIATE (string | id_ | ID2) (USING '(' id_ (COMMA id_)* ')')?
+    : EXECUTE IMMEDIATE (string | id_ | ID2) (USING L_PAREN id_ (COMMA id_)* R_PAREN)?
     | EXECUTE IMMEDIATE DBL_DOLLAR
     ;
 
@@ -436,7 +436,7 @@ user_stage
 
 //  @[<namespace>.]%<table_name>[/<path>]
 table_stage
-    : AT schema_name? '%' id_ stage_path?
+    : AT schema_name? MODULE id_ stage_path?
     ;
 
 //  @[<namespace>.]<ext_stage_name>[/<path>]
@@ -513,7 +513,7 @@ rollback
 
 set
     : SET id_ EQ expr
-    | SET LR_BRACKET id_ (COMMA id_)* RR_BRACKET EQ LR_BRACKET expr (COMMA expr)* RR_BRACKET
+    | SET L_PAREN id_ (COMMA id_)* R_PAREN EQ L_PAREN expr (COMMA expr)* R_PAREN
     ;
 
 truncate_materialized_view
@@ -526,7 +526,7 @@ truncate_table
 
 unset
     : UNSET id_
-    | UNSET '(' id_ (COMMA id_)* ')'
+    | UNSET L_PAREN id_ (COMMA id_)* R_PAREN
     ;
 
 // alter commands
@@ -621,7 +621,7 @@ object_properties
     | DEFAULT_WAREHOUSE EQ string
     | DEFAULT_NAMESPACE EQ string
     | DEFAULT_ROLE EQ string
-    //| DEFAULT_SECONDARY_ROLES EQ '(' 'ALL' ')'
+    //| DEFAULT_SECONDARY_ROLES EQ L_PAREN 'ALL' R_PAREN
     | MINS_TO_BYPASS_MFA EQ num
     | RSA_PUBLIC_KEY EQ string
     | RSA_PUBLIC_KEY_2 EQ string
@@ -675,7 +675,7 @@ alter_alert
         resume_suspend
         | SET alert_set_clause+
         | UNSET alert_unset_clause+
-        | MODIFY CONDITION EXISTS '(' alert_condition ')'
+        | MODIFY CONDITION EXISTS L_PAREN alert_condition R_PAREN
         | MODIFY ACTION alert_action
     )
     ;
@@ -700,8 +700,8 @@ alert_unset_clause
 alter_api_integration
     : ALTER API? INTEGRATION if_exists? id_ SET (API_AWS_ROLE_ARN EQ string)? (
         AZURE_AD_APPLICATION_ID EQ string
-    )? (API_KEY EQ string)? enabled_true_false? (API_ALLOWED_PREFIXES EQ '(' string ')')? (
-        API_BLOCKED_PREFIXES EQ '(' string ')'
+    )? (API_KEY EQ string)? enabled_true_false? (API_ALLOWED_PREFIXES EQ L_PAREN string R_PAREN)? (
+        API_BLOCKED_PREFIXES EQ L_PAREN string R_PAREN
     )? comment_clause?
     | ALTER API? INTEGRATION id_ set_tags
     | ALTER API? INTEGRATION id_ unset_tags
@@ -756,14 +756,14 @@ alter_dynamic_table
 
 alter_external_table
     : ALTER EXTERNAL TABLE if_exists? object_name REFRESH string?
-    | ALTER EXTERNAL TABLE if_exists? object_name ADD FILES '(' string_list ')'
-    | ALTER EXTERNAL TABLE if_exists? object_name REMOVE FILES '(' string_list ')'
+    | ALTER EXTERNAL TABLE if_exists? object_name ADD FILES L_PAREN string_list R_PAREN
+    | ALTER EXTERNAL TABLE if_exists? object_name REMOVE FILES L_PAREN string_list R_PAREN
     | ALTER EXTERNAL TABLE if_exists? object_name SET (AUTO_REFRESH EQ true_false)? tag_decl_list?
     | ALTER EXTERNAL TABLE if_exists? object_name unset_tags
     //Partitions added and removed manually
-    | ALTER EXTERNAL TABLE object_name if_exists? ADD PARTITION '(' column_name EQ string (
+    | ALTER EXTERNAL TABLE object_name if_exists? ADD PARTITION L_PAREN column_name EQ string (
         COMMA column_name EQ string
-    )* ')' LOCATION string
+    )* R_PAREN LOCATION string
     | ALTER EXTERNAL TABLE object_name if_exists? DROP PARTITION LOCATION string
     ;
 
@@ -818,8 +818,8 @@ alter_function
     | alter_function_signature UNSET (SECURE | COMMENT)
     // External Functions
     | alter_function_signature SET API_INTEGRATION EQ id_
-    | alter_function_signature SET HEADERS EQ '(' header_decl* ')'
-    | alter_function_signature SET CONTEXT_HEADERS EQ '(' id_* ')'
+    | alter_function_signature SET HEADERS EQ L_PAREN header_decl* R_PAREN
+    | alter_function_signature SET CONTEXT_HEADERS EQ L_PAREN id_* R_PAREN
     | alter_function_signature SET MAX_BATCH_ROWS EQ num
     | alter_function_signature SET COMPRESSION EQ compression_type
     | alter_function_signature SET (REQUEST_TRANSLATOR | RESPONSE_TRANSLATOR) EQ id_
@@ -836,7 +836,7 @@ alter_function
     ;
 
 alter_function_signature
-    : ALTER FUNCTION if_exists? id_ '(' data_type_list? ')'
+    : ALTER FUNCTION if_exists? id_ L_PAREN data_type_list? R_PAREN
     ;
 
 data_type_list
@@ -852,7 +852,7 @@ alter_masking_policy
 alter_materialized_view
     : ALTER MATERIALIZED VIEW id_ (
         RENAME TO id_
-        | CLUSTER BY '(' expr_list ')'
+        | CLUSTER BY L_PAREN expr_list R_PAREN
         | DROP CLUSTERING KEY
         | resume_suspend RECLUSTER?
         | SET ( SECURE? comment_clause?)
@@ -883,10 +883,10 @@ alter_pipe
     ;
 
 alter_procedure
-    : ALTER PROCEDURE if_exists? id_ '(' data_type_list? ')' RENAME TO id_
-    | ALTER PROCEDURE if_exists? id_ '(' data_type_list? ')' SET comment_clause
-    | ALTER PROCEDURE if_exists? id_ '(' data_type_list? ')' UNSET COMMENT
-    | ALTER PROCEDURE if_exists? id_ '(' data_type_list? ')' EXECUTE AS caller_owner
+    : ALTER PROCEDURE if_exists? id_ L_PAREN data_type_list? R_PAREN RENAME TO id_
+    | ALTER PROCEDURE if_exists? id_ L_PAREN data_type_list? R_PAREN SET comment_clause
+    | ALTER PROCEDURE if_exists? id_ L_PAREN data_type_list? R_PAREN UNSET COMMENT
+    | ALTER PROCEDURE if_exists? id_ L_PAREN data_type_list? R_PAREN EXECUTE AS caller_owner
     ;
 
 alter_replication_group
@@ -921,7 +921,7 @@ frequency
     ;
 
 notify_users
-    : NOTIFY_USERS EQ LR_BRACKET id_ (COMMA id_)* RR_BRACKET
+    : NOTIFY_USERS EQ L_PAREN id_ (COMMA id_)* R_PAREN
     ;
 
 triggerDefinition
@@ -931,8 +931,8 @@ triggerDefinition
 alter_resource_monitor
     : ALTER RESOURCE MONITOR if_exists? id_ (
         SET credit_quota? frequency? (
-            START_TIMESTAMP EQ LR_BRACKET string
-            | IMMEDIATELY RR_BRACKET
+            START_TIMESTAMP EQ L_PAREN string
+            | IMMEDIATELY R_PAREN
         )? (END_TIMESTAMP EQ string)?
     )? (notify_users ( TRIGGERS triggerDefinition (COMMA triggerDefinition)*)?)?
     ;
@@ -982,14 +982,14 @@ alter_security_integration_external_oauth
         ENABLED EQ true_false
     )? (EXTERNAL_OAUTH_TYPE EQ ( OKTA | AZURE | PING_FEDERATE | CUSTOM))? (
         EXTERNAL_OAUTH_ISSUER EQ string
-    )? (EXTERNAL_OAUTH_TOKEN_USER_MAPPING_CLAIM EQ (string | '(' string_list ')'))? (
+    )? (EXTERNAL_OAUTH_TOKEN_USER_MAPPING_CLAIM EQ (string | L_PAREN string_list R_PAREN))? (
         EXTERNAL_OAUTH_SNOWFLAKE_USER_MAPPING_ATTRIBUTE EQ string
     )? (EXTERNAL_OAUTH_JWS_KEYS_URL EQ string)?                      // For OKTA | PING_FEDERATE | CUSTOM
-    (EXTERNAL_OAUTH_JWS_KEYS_URL EQ (string | '(' string_list ')'))? // For Azure
+    (EXTERNAL_OAUTH_JWS_KEYS_URL EQ (string | L_PAREN string_list R_PAREN))? // For Azure
     (EXTERNAL_OAUTH_RSA_PUBLIC_KEY EQ string)? (EXTERNAL_OAUTH_RSA_PUBLIC_KEY_2 EQ string)? (
-        EXTERNAL_OAUTH_BLOCKED_ROLES_LIST EQ '(' string_list ')'
-    )? (EXTERNAL_OAUTH_ALLOWED_ROLES_LIST EQ '(' string_list ')')? (
-        EXTERNAL_OAUTH_AUDIENCE_LIST EQ '(' string ')'
+        EXTERNAL_OAUTH_BLOCKED_ROLES_LIST EQ L_PAREN string_list R_PAREN
+    )? (EXTERNAL_OAUTH_ALLOWED_ROLES_LIST EQ L_PAREN string_list R_PAREN)? (
+        EXTERNAL_OAUTH_AUDIENCE_LIST EQ L_PAREN string R_PAREN
     )? (EXTERNAL_OAUTH_ANY_ROLE_MODE EQ (DISABLE | ENABLE | ENABLE_FOR_PRIVILEGE))? (
         EXTERNAL_OAUTH_ANY_ROLE_MODE EQ string
     )? // Only for EXTERNAL_OAUTH_TYPE EQ CUSTOM
@@ -1013,15 +1013,15 @@ alter_security_integration_snowflake_oauth
     : ALTER SECURITY? INTEGRATION if_exists? id_ SET (TYPE EQ EXTERNAL_OAUTH)? enabled_true_false? (
         EXTERNAL_OAUTH_TYPE EQ ( OKTA | AZURE | PING_FEDERATE | CUSTOM)
     )? (EXTERNAL_OAUTH_ISSUER EQ string)? (
-        EXTERNAL_OAUTH_TOKEN_USER_MAPPING_CLAIM EQ (string | '(' string_list ')')
+        EXTERNAL_OAUTH_TOKEN_USER_MAPPING_CLAIM EQ (string | L_PAREN string_list R_PAREN)
     )? (EXTERNAL_OAUTH_SNOWFLAKE_USER_MAPPING_ATTRIBUTE EQ string)? (
         EXTERNAL_OAUTH_JWS_KEYS_URL EQ string
     )?                                                                // For OKTA | PING_FEDERATE | CUSTOM
-    (EXTERNAL_OAUTH_JWS_KEYS_URL EQ ( string | '(' string_list ')'))? // For Azure
+    (EXTERNAL_OAUTH_JWS_KEYS_URL EQ ( string | L_PAREN string_list R_PAREN))? // For Azure
     (EXTERNAL_OAUTH_RSA_PUBLIC_KEY EQ string)? (EXTERNAL_OAUTH_RSA_PUBLIC_KEY_2 EQ string)? (
-        EXTERNAL_OAUTH_BLOCKED_ROLES_LIST EQ '(' string_list ')'
-    )? (EXTERNAL_OAUTH_ALLOWED_ROLES_LIST EQ '(' string_list ')')? (
-        EXTERNAL_OAUTH_AUDIENCE_LIST EQ '(' string ')'
+        EXTERNAL_OAUTH_BLOCKED_ROLES_LIST EQ L_PAREN string_list R_PAREN
+    )? (EXTERNAL_OAUTH_ALLOWED_ROLES_LIST EQ L_PAREN string_list R_PAREN)? (
+        EXTERNAL_OAUTH_AUDIENCE_LIST EQ L_PAREN string R_PAREN
     )? (EXTERNAL_OAUTH_ANY_ROLE_MODE EQ DISABLE | ENABLE | ENABLE_FOR_PRIVILEGE)? (
         EXTERNAL_OAUTH_SCOPE_DELIMITER EQ string
     ) // Only for EXTERNAL_OAUTH_TYPE EQ CUSTOM
@@ -1096,8 +1096,8 @@ alter_share
 
 alter_storage_integration
     : ALTER STORAGE? INTEGRATION if_exists? id_ SET cloud_provider_params2? enabled_true_false? (
-        STORAGE_ALLOWED_LOCATIONS EQ '(' string_list ')'
-    )? (STORAGE_BLOCKED_LOCATIONS EQ '(' string_list ')')? comment_clause?
+        STORAGE_ALLOWED_LOCATIONS EQ L_PAREN string_list R_PAREN
+    )? (STORAGE_BLOCKED_LOCATIONS EQ L_PAREN string_list R_PAREN)? comment_clause?
     | ALTER STORAGE? INTEGRATION if_exists? id_ set_tags
     | ALTER STORAGE? INTEGRATION id_ unset_tags
     | ALTER STORAGE? INTEGRATION if_exists? id_ UNSET (
@@ -1126,7 +1126,7 @@ alter_table
     | ALTER TABLE if_exists? object_name ext_table_column_action
     | ALTER TABLE if_exists? object_name search_optimization_action
     | ALTER TABLE if_exists? object_name SET stage_file_format? (
-        STAGE_COPY_OPTIONS EQ '(' copy_options ')'
+        STAGE_COPY_OPTIONS EQ L_PAREN copy_options R_PAREN
     )? (DATA_RETENTION_TIME_IN_DAYS EQ num)? (MAX_DATA_EXTENSION_TIME_IN_DAYS EQ num)? (
         CHANGE_TRACKING EQ true_false
     )? default_ddl_collation? comment_clause?
@@ -1148,7 +1148,7 @@ alter_table
     ;
 
 clustering_action
-    : CLUSTER BY '(' expr_list ')'
+    : CLUSTER BY L_PAREN expr_list R_PAREN
     | RECLUSTER ( MAX_SIZE EQ num)? ( WHERE expr)?
     | resume_suspend RECLUSTER
     | DROP CLUSTERING KEY
@@ -1158,11 +1158,11 @@ table_column_action
     : ADD COLUMN? if_not_exists? full_col_decl (COMMA full_col_decl)*
     | RENAME COLUMN column_name TO column_name
     | alter_modify (
-        '(' alter_column_clause (',' alter_column_clause)* ')'
-        | alter_column_clause (',' alter_column_clause)*
+        L_PAREN alter_column_clause (COLON alter_column_clause)* R_PAREN
+        | alter_column_clause (COLON alter_column_clause)*
     )
     | alter_modify COLUMN column_name SET MASKING POLICY id_ (
-        USING '(' column_name COMMA column_list ')'
+        USING L_PAREN column_name COMMA column_list R_PAREN
     )? FORCE?
     | alter_modify COLUMN column_name UNSET MASKING POLICY
     | alter_modify column_set_tags (COMMA column_set_tags)*
@@ -1185,7 +1185,7 @@ alter_column_clause
 inline_constraint
     : (CONSTRAINT id_)? (
         (UNIQUE | primary_key) common_constraint_properties*
-        | foreign_key REFERENCES object_name (LR_BRACKET column_name RR_BRACKET)? constraint_properties
+        | foreign_key REFERENCES object_name (L_PAREN column_name R_PAREN)? constraint_properties
     )
     ;
 
@@ -1238,7 +1238,7 @@ constraint_properties
     ;
 
 ext_table_column_action
-    : ADD COLUMN? column_name data_type AS '(' expr ')'
+    : ADD COLUMN? column_name data_type AS L_PAREN expr R_PAREN
     | RENAME COLUMN column_name TO column_name
     | DROP COLUMN? column_list
     ;
@@ -1260,16 +1260,16 @@ search_optimization_action
     ;
 
 search_method_with_target
-    : (EQUALITY | SUBSTRING | GEO) '(' (STAR | expr) ')'
+    : (EQUALITY | SUBSTRING | GEO) L_PAREN (STAR | expr) R_PAREN
     ;
 
 alter_table_alter_column
     : ALTER TABLE object_name alter_modify (
-        '(' alter_column_decl_list ')'
+        L_PAREN alter_column_decl_list R_PAREN
         | alter_column_decl_list
     )
     | ALTER TABLE object_name alter_modify COLUMN column_name SET MASKING POLICY id_ (
-        USING '(' column_name COMMA column_list ')'
+        USING L_PAREN column_name COMMA column_list R_PAREN
     )? FORCE?
     | ALTER TABLE object_name alter_modify COLUMN column_name UNSET MASKING POLICY
     | ALTER TABLE object_name alter_modify column_set_tags (COMMA column_set_tags)*
@@ -1338,7 +1338,7 @@ alter_view
     | ALTER VIEW if_exists? object_name ADD ROW ACCESS POLICY id_ ON column_list_in_parentheses COMMA DROP ROW ACCESS POLICY id_
     | ALTER VIEW if_exists? object_name DROP ALL ROW ACCESS POLICIES
     | ALTER VIEW object_name alter_modify COLUMN? id_ SET MASKING POLICY id_ (
-        USING '(' column_name COMMA column_list ')'
+        USING L_PAREN column_name COMMA column_list R_PAREN
     )? FORCE?
     | ALTER VIEW object_name alter_modify COLUMN? id_ UNSET MASKING POLICY
     | ALTER VIEW object_name alter_modify COLUMN? id_ set_tags
@@ -1385,8 +1385,8 @@ alter_tag_opts
     ;
 
 alter_network_policy_opts
-    : if_exists? id_ SET (ALLOWED_IP_LIST EQ '(' string_list ')')? (
-        BLOCKED_IP_LIST EQ '(' string_list ')'
+    : if_exists? id_ SET (ALLOWED_IP_LIST EQ L_PAREN string_list R_PAREN)? (
+        BLOCKED_IP_LIST EQ L_PAREN string_list R_PAREN
     )? comment_clause?
     | if_exists? id_ UNSET COMMENT
     | id_ RENAME TO id_
@@ -1400,7 +1400,7 @@ alter_warehouse_opts
     | id_fn set_tags
     | id_fn unset_tags
     | id_fn UNSET id_ (COMMA id_)*
-    | id_ SET wh_properties (',' wh_properties)*
+    | id_ SET wh_properties (COLON wh_properties)*
     ;
 
 alter_account_opts
@@ -1485,7 +1485,7 @@ create_account
     ;
 
 create_alert
-    : CREATE or_replace? ALERT if_not_exists? id_ WAREHOUSE EQ id_ SCHEDULE EQ string IF '(' EXISTS '(' alert_condition ')' ')' THEN alert_action
+    : CREATE or_replace? ALERT if_not_exists? id_ WAREHOUSE EQ id_ SCHEDULE EQ string IF L_PAREN EXISTS L_PAREN alert_condition R_PAREN R_PAREN THEN alert_action
     ;
 
 alert_condition
@@ -1501,20 +1501,20 @@ alert_action
 create_api_integration
     : CREATE or_replace? API INTEGRATION if_not_exists? id_ API_PROVIDER EQ (id_) API_AWS_ROLE_ARN EQ string (
         API_KEY EQ string
-    )? API_ALLOWED_PREFIXES EQ LR_BRACKET string RR_BRACKET (
-        API_BLOCKED_PREFIXES EQ LR_BRACKET string RR_BRACKET
+    )? API_ALLOWED_PREFIXES EQ L_PAREN string R_PAREN (
+        API_BLOCKED_PREFIXES EQ L_PAREN string R_PAREN
     )? ENABLED EQ true_false comment_clause?
     | CREATE or_replace? API INTEGRATION if_not_exists? id_ API_PROVIDER EQ id_ AZURE_TENANT_ID EQ string AZURE_AD_APPLICATION_ID EQ string (
         API_KEY EQ string
-    )? API_ALLOWED_PREFIXES EQ '(' string ')' (API_BLOCKED_PREFIXES EQ '(' string ')')? ENABLED EQ true_false comment_clause?
-    | CREATE or_replace API INTEGRATION if_not_exists id_ API_PROVIDER EQ id_ GOOGLE_AUDIENCE EQ string API_ALLOWED_PREFIXES EQ '(' string ')' (
-        API_BLOCKED_PREFIXES EQ '(' string ')'
+    )? API_ALLOWED_PREFIXES EQ L_PAREN string R_PAREN (API_BLOCKED_PREFIXES EQ L_PAREN string R_PAREN)? ENABLED EQ true_false comment_clause?
+    | CREATE or_replace API INTEGRATION if_not_exists id_ API_PROVIDER EQ id_ GOOGLE_AUDIENCE EQ string API_ALLOWED_PREFIXES EQ L_PAREN string R_PAREN (
+        API_BLOCKED_PREFIXES EQ L_PAREN string R_PAREN
     )? ENABLED EQ true_false comment_clause?
     ;
 
 create_object_clone
     : CREATE or_replace? (DATABASE | SCHEMA | TABLE) if_not_exists? id_ CLONE object_name (
-        at_before1 LR_BRACKET (TIMESTAMP ASSOC string | OFFSET ASSOC string | STATEMENT ASSOC id_) RR_BRACKET
+        at_before1 L_PAREN (TIMESTAMP ASSOC string | OFFSET ASSOC string | STATEMENT ASSOC id_) R_PAREN
     )?
     | CREATE or_replace? (STAGE | FILE FORMAT | SEQUENCE | STREAM | TASK) if_not_exists? object_name CLONE object_name
     ;
@@ -1534,7 +1534,7 @@ create_database
 
 clone_at_before
     : CLONE id_ (
-        at_before1 LR_BRACKET (TIMESTAMP ASSOC string | OFFSET ASSOC string | STATEMENT ASSOC id_) RR_BRACKET
+        at_before1 L_PAREN (TIMESTAMP ASSOC string | OFFSET ASSOC string | STATEMENT ASSOC id_) R_PAREN
     )?
     ;
 
@@ -1571,29 +1571,29 @@ create_event_table
     ;
 
 create_external_function
-    : CREATE or_replace? SECURE? EXTERNAL FUNCTION object_name LR_BRACKET (
+    : CREATE or_replace? SECURE? EXTERNAL FUNCTION object_name L_PAREN (
         arg_name arg_data_type (COMMA arg_name arg_data_type)*
-    )? RR_BRACKET RETURNS data_type null_not_null? (
+    )? R_PAREN RETURNS data_type null_not_null? (
         ( CALLED ON NULL_ INPUT)
         | ((RETURNS NULL_ ON NULL_ INPUT) | STRICT)
     )? (VOLATILE | IMMUTABLE)? comment_clause? API_INTEGRATION EQ id_ (
-        HEADERS EQ LR_BRACKET header_decl (COMMA header_decl)* RR_BRACKET
-    )? (CONTEXT_HEADERS EQ LR_BRACKET id_ (COMMA id_)* RR_BRACKET)? (MAX_BATCH_ROWS EQ num)? compression? (
+        HEADERS EQ L_PAREN header_decl (COMMA header_decl)* R_PAREN
+    )? (CONTEXT_HEADERS EQ L_PAREN id_ (COMMA id_)* R_PAREN)? (MAX_BATCH_ROWS EQ num)? compression? (
         REQUEST_TRANSLATOR EQ id_
     )? (RESPONSE_TRANSLATOR EQ id_)? AS string
     ;
 
 create_external_table
     // Partitions computed from expressions
-    : CREATE or_replace? EXTERNAL TABLE if_not_exists? object_name '(' external_table_column_decl_list ')' cloud_provider_params3? partition_by? WITH?
+    : CREATE or_replace? EXTERNAL TABLE if_not_exists? object_name L_PAREN external_table_column_decl_list R_PAREN cloud_provider_params3? partition_by? WITH?
         LOCATION EQ named_stage (REFRESH_ON_CREATE EQ true_false)? (AUTO_REFRESH EQ true_false)? pattern? file_format (
         AWS_SNS_TOPIC EQ string
     )? copy_grants? with_row_access_policy? with_tags? comment_clause?
     // Partitions added and removed manually
-    | CREATE or_replace? EXTERNAL TABLE if_not_exists? object_name '(' external_table_column_decl_list ')' cloud_provider_params3? partition_by? WITH?
+    | CREATE or_replace? EXTERNAL TABLE if_not_exists? object_name L_PAREN external_table_column_decl_list R_PAREN cloud_provider_params3? partition_by? WITH?
         LOCATION EQ named_stage PARTITION_TYPE EQ USER_SPECIFIED file_format copy_grants? with_row_access_policy? with_tags? comment_clause?
     // Delta Lake
-    | CREATE or_replace? EXTERNAL TABLE if_not_exists? object_name '(' external_table_column_decl_list ')' cloud_provider_params3? partition_by? WITH?
+    | CREATE or_replace? EXTERNAL TABLE if_not_exists? object_name L_PAREN external_table_column_decl_list R_PAREN cloud_provider_params3? partition_by? WITH?
         LOCATION EQ named_stage PARTITION_TYPE EQ USER_SPECIFIED file_format (
         TABLE_FORMAT EQ DELTA
     )? copy_grants? with_row_access_policy? with_tags? comment_clause?
@@ -1660,7 +1660,7 @@ col_decl
     ;
 
 virtual_column_decl
-    : AS '(' function_call ')'
+    : AS L_PAREN function_call R_PAREN
     ;
 
 function_definition
@@ -1669,18 +1669,18 @@ function_definition
     ;
 
 create_function
-    : CREATE or_replace? SECURE? FUNCTION if_not_exists? object_name LR_BRACKET (
+    : CREATE or_replace? SECURE? FUNCTION if_not_exists? object_name L_PAREN (
         arg_decl (COMMA arg_decl)*
-    )? RR_BRACKET RETURNS (data_type | TABLE LR_BRACKET (col_decl (COMMA col_decl)*)? RR_BRACKET) (
+    )? R_PAREN RETURNS (data_type | TABLE L_PAREN (col_decl (COMMA col_decl)*)? R_PAREN) (
         LANGUAGE (JAVA | PYTHON | JAVASCRIPT | SCALA | SQL)
     )? (CALLED ON NULL_ INPUT | RETURNS NULL_ ON NULL_ INPUT | STRICT)? (VOLATILE | IMMUTABLE)? (
-        PACKAGES EQ '(' string_list ')'
-    )? (RUNTIME_VERSION EQ (string | FLOAT))? (IMPORTS EQ '(' string_list ')')? (
-        PACKAGES EQ '(' string_list ')'
+        PACKAGES EQ L_PAREN string_list R_PAREN
+    )? (RUNTIME_VERSION EQ (string | FLOAT))? (IMPORTS EQ L_PAREN string_list R_PAREN)? (
+        PACKAGES EQ L_PAREN string_list R_PAREN
     )? (HANDLER EQ string)? null_not_null? comment_clause? AS function_definition
-    | CREATE or_replace? SECURE? FUNCTION object_name LR_BRACKET (arg_decl (COMMA arg_decl)*)? RR_BRACKET RETURNS (
+    | CREATE or_replace? SECURE? FUNCTION object_name L_PAREN (arg_decl (COMMA arg_decl)*)? R_PAREN RETURNS (
         data_type
-        | TABLE LR_BRACKET (col_decl (COMMA col_decl)*)? RR_BRACKET
+        | TABLE L_PAREN (col_decl (COMMA col_decl)*)? R_PAREN
     ) null_not_null? (CALLED ON NULL_ INPUT | RETURNS NULL_ ON NULL_ INPUT | STRICT)? (
         VOLATILE
         | IMMUTABLE
@@ -1694,9 +1694,9 @@ create_managed_account
     ;
 
 create_masking_policy
-    : CREATE or_replace? MASKING POLICY if_not_exists? object_name AS '(' arg_name arg_data_type (
+    : CREATE or_replace? MASKING POLICY if_not_exists? object_name AS L_PAREN arg_name arg_data_type (
         COMMA arg_name arg_data_type
-    )? ')' RETURNS arg_data_type ARROW expr comment_clause?
+    )? R_PAREN RETURNS arg_data_type ARROW expr comment_clause?
     ;
 
 tag_decl
@@ -1704,19 +1704,19 @@ tag_decl
     ;
 
 column_list_in_parentheses
-    : LR_BRACKET column_list RR_BRACKET
+    : L_PAREN column_list R_PAREN
     ;
 
 create_materialized_view
     : CREATE or_replace? SECURE? MATERIALIZED VIEW if_not_exists? object_name (
-        LR_BRACKET column_list_with_comment RR_BRACKET
+        L_PAREN column_list_with_comment R_PAREN
     )? view_col* with_row_access_policy? with_tags? copy_grants? comment_clause? cluster_by? AS select_statement
     //NOTA MATERIALIZED VIEW accept only simple select statement at this time
     ;
 
 create_network_policy
-    : CREATE or_replace? NETWORK POLICY id_ ALLOWED_IP_LIST EQ '(' string_list? ')' (
-        BLOCKED_IP_LIST EQ '(' string_list? ')'
+    : CREATE or_replace? NETWORK POLICY id_ ALLOWED_IP_LIST EQ L_PAREN string_list? R_PAREN (
+        BLOCKED_IP_LIST EQ L_PAREN string_list? R_PAREN
     )? comment_clause?
     ;
 
@@ -1767,24 +1767,24 @@ not_null
     ;
 
 create_procedure
-    : CREATE or_replace? PROCEDURE object_name LR_BRACKET (arg_decl (COMMA arg_decl)*)? RR_BRACKET RETURNS (
+    : CREATE or_replace? PROCEDURE object_name L_PAREN (arg_decl (COMMA arg_decl)*)? R_PAREN RETURNS (
         data_type
-        | TABLE LR_BRACKET (col_decl (COMMA col_decl)*)? RR_BRACKET
+        | TABLE L_PAREN (col_decl (COMMA col_decl)*)? R_PAREN
     ) not_null? LANGUAGE SQL (CALLED ON NULL_ INPUT | RETURNS NULL_ ON NULL_ INPUT | STRICT)? (
         VOLATILE
         | IMMUTABLE
     )? // Note: VOLATILE and IMMUTABLE are deprecated.
     comment_clause? executa_as? AS procedure_definition
-    | CREATE or_replace? SECURE? PROCEDURE object_name LR_BRACKET (arg_decl (COMMA arg_decl)*)? RR_BRACKET RETURNS data_type not_null? LANGUAGE
+    | CREATE or_replace? SECURE? PROCEDURE object_name L_PAREN (arg_decl (COMMA arg_decl)*)? R_PAREN RETURNS data_type not_null? LANGUAGE
         JAVASCRIPT (CALLED ON NULL_ INPUT | RETURNS NULL_ ON NULL_ INPUT | STRICT)? (
         VOLATILE
         | IMMUTABLE
     )? // Note: VOLATILE and IMMUTABLE are deprecated.
     comment_clause? executa_as? AS procedure_definition
-    | CREATE or_replace? SECURE? PROCEDURE object_name LR_BRACKET (arg_decl (COMMA arg_decl)*)? RR_BRACKET RETURNS (
+    | CREATE or_replace? SECURE? PROCEDURE object_name L_PAREN (arg_decl (COMMA arg_decl)*)? R_PAREN RETURNS (
         data_type not_null?
-        | TABLE LR_BRACKET (col_decl (COMMA col_decl)*)? RR_BRACKET
-    ) LANGUAGE PYTHON RUNTIME_VERSION EQ string (IMPORTS EQ '(' string_list ')')? PACKAGES EQ '(' string_list ')' HANDLER EQ string
+        | TABLE L_PAREN (col_decl (COMMA col_decl)*)? R_PAREN
+    ) LANGUAGE PYTHON RUNTIME_VERSION EQ string (IMPORTS EQ L_PAREN string_list R_PAREN)? PACKAGES EQ L_PAREN string_list R_PAREN HANDLER EQ string
     //            ( CALLED ON NULL_ INPUT | RETURNS NULL_ ON NULL_ INPUT | STRICT )?
     //            ( VOLATILE | IMMUTABLE )? // Note: VOLATILE and IMMUTABLE are deprecated.
     comment_clause? executa_as? AS procedure_definition
@@ -1813,9 +1813,9 @@ create_role
     ;
 
 create_row_access_policy
-    : CREATE or_replace? ROW ACCESS POLICY if_not_exists? id_ AS LR_BRACKET arg_decl (
+    : CREATE or_replace? ROW ACCESS POLICY if_not_exists? id_ AS L_PAREN arg_decl (
         COMMA arg_decl
-    )* RR_BRACKET RETURNS BOOLEAN ARROW expr comment_clause?
+    )* R_PAREN RETURNS BOOLEAN ARROW expr comment_clause?
     ;
 
 create_schema
@@ -1832,15 +1832,15 @@ create_security_integration_external_oauth
         | CUSTOM
     ) EXTERNAL_OAUTH_ISSUER EQ string EXTERNAL_OAUTH_TOKEN_USER_MAPPING_CLAIM EQ (
         string
-        | '(' string_list ')'
+        | L_PAREN string_list R_PAREN
     ) EXTERNAL_OAUTH_SNOWFLAKE_USER_MAPPING_ATTRIBUTE EQ string (
         EXTERNAL_OAUTH_JWS_KEYS_URL EQ string
     )?                                                               // For OKTA | PING_FEDERATE | CUSTOM
-    (EXTERNAL_OAUTH_JWS_KEYS_URL EQ (string | '(' string_list ')'))? // For Azure
-    (EXTERNAL_OAUTH_BLOCKED_ROLES_LIST EQ '(' string_list ')')? (
-        EXTERNAL_OAUTH_ALLOWED_ROLES_LIST EQ '(' string_list ')'
+    (EXTERNAL_OAUTH_JWS_KEYS_URL EQ (string | L_PAREN string_list R_PAREN))? // For Azure
+    (EXTERNAL_OAUTH_BLOCKED_ROLES_LIST EQ L_PAREN string_list R_PAREN)? (
+        EXTERNAL_OAUTH_ALLOWED_ROLES_LIST EQ L_PAREN string_list R_PAREN
     )? (EXTERNAL_OAUTH_RSA_PUBLIC_KEY EQ string)? (EXTERNAL_OAUTH_RSA_PUBLIC_KEY_2 EQ string)? (
-        EXTERNAL_OAUTH_AUDIENCE_LIST EQ '(' string ')'
+        EXTERNAL_OAUTH_AUDIENCE_LIST EQ L_PAREN string R_PAREN
     )? (EXTERNAL_OAUTH_ANY_ROLE_MODE EQ (DISABLE | ENABLE | ENABLE_FOR_PRIVILEGE))? (
         EXTERNAL_OAUTH_SCOPE_DELIMITER EQ string
     )? // Only for EXTERNAL_OAUTH_TYPE EQ CUSTOM
@@ -1856,15 +1856,15 @@ create_security_integration_snowflake_oauth
     //Required when OAUTH_CLIENTEQLOOKER
     enabled_true_false? (OAUTH_ISSUE_REFRESH_TOKENS EQ true_false)? (
         OAUTH_REFRESH_TOKEN_VALIDITY EQ num
-    )? (OAUTH_USE_SECONDARY_ROLES EQ implicit_none)? (BLOCKED_ROLES_LIST EQ '(' string_list ')')? comment_clause?
+    )? (OAUTH_USE_SECONDARY_ROLES EQ implicit_none)? (BLOCKED_ROLES_LIST EQ L_PAREN string_list R_PAREN)? comment_clause?
     // Snowflake OAuth for custom clients
     | CREATE or_replace? SECURITY INTEGRATION if_not_exists? id_ TYPE EQ OAUTH OAUTH_CLIENT EQ CUSTOM
     //OAUTH_CLIENT_TYPE EQ 'CONFIDENTIAL' | 'PUBLIC'
     OAUTH_REDIRECT_URI EQ string enabled_true_false? (
         OAUTH_ALLOW_NON_TLS_REDIRECT_URI EQ true_false
     )? (OAUTH_ENFORCE_PKCE EQ true_false)? (OAUTH_USE_SECONDARY_ROLES EQ implicit_none)? (
-        PRE_AUTHORIZED_ROLES_LIST EQ '(' string_list ')'
-    )? (BLOCKED_ROLES_LIST EQ '(' string_list ')')? (OAUTH_ISSUE_REFRESH_TOKENS EQ true_false)? (
+        PRE_AUTHORIZED_ROLES_LIST EQ L_PAREN string_list R_PAREN
+    )? (BLOCKED_ROLES_LIST EQ L_PAREN string_list R_PAREN)? (OAUTH_ISSUE_REFRESH_TOKENS EQ true_false)? (
         OAUTH_REFRESH_TOKEN_VALIDITY EQ num
     )? network_policy? (OAUTH_CLIENT_RSA_PUBLIC_KEY EQ string)? (
         OAUTH_CLIENT_RSA_PUBLIC_KEY_2 EQ string
@@ -1965,7 +1965,7 @@ format_type_options
     | ESCAPE_UNENCLOSED_FIELD EQ (string | NONE | NONE_Q)
     | TRIM_SPACE EQ true_false
     | FIELD_OPTIONALLY_ENCLOSED_BY EQ (string | NONE | NONE_Q | SINGLE_QUOTE)
-    | NULL_IF EQ LR_BRACKET string_list RR_BRACKET
+    | NULL_IF EQ L_PAREN string_list R_PAREN
     | ERROR_ON_COLUMN_COUNT_MISMATCH EQ true_false
     | REPLACE_INVALID_CHARACTERS EQ true_false
     | EMPTY_FIELD_AS_NULL EQ true_false
@@ -2034,7 +2034,7 @@ copy_options
     ;
 
 stage_encryption_opts_internal
-    : ENCRYPTION EQ LR_BRACKET TYPE EQ (SNOWFLAKE_FULL | SNOWFLAKE_SSE) RR_BRACKET
+    : ENCRYPTION EQ L_PAREN TYPE EQ (SNOWFLAKE_FULL | SNOWFLAKE_SSE) R_PAREN
     ;
 
 stage_type
@@ -2050,7 +2050,7 @@ stage_kms_key
     ;
 
 stage_encryption_opts_aws
-    : ENCRYPTION EQ LR_BRACKET (stage_type? stage_master_key | stage_type stage_kms_key?) RR_BRACKET
+    : ENCRYPTION EQ L_PAREN (stage_type? stage_master_key | stage_type stage_kms_key?) R_PAREN
     ;
 
 aws_token
@@ -2076,7 +2076,7 @@ azure_encryption_value
     ;
 
 stage_encryption_opts_az
-    : ENCRYPTION EQ LR_BRACKET azure_encryption_value RR_BRACKET
+    : ENCRYPTION EQ L_PAREN azure_encryption_value R_PAREN
     ;
 
 storage_integration_eq_id
@@ -2085,7 +2085,7 @@ storage_integration_eq_id
 
 az_credential_or_storage_integration
     : storage_integration_eq_id
-    | CREDENTIALS EQ LR_BRACKET AZURE_SAS_TOKEN EQ string RR_BRACKET
+    | CREDENTIALS EQ L_PAREN AZURE_SAS_TOKEN EQ string R_PAREN
     ;
 
 gcp_encryption_value
@@ -2095,12 +2095,12 @@ gcp_encryption_value
     ;
 
 stage_encryption_opts_gcp
-    : ENCRYPTION EQ LR_BRACKET gcp_encryption_value RR_BRACKET
+    : ENCRYPTION EQ L_PAREN gcp_encryption_value R_PAREN
     ;
 
 aws_credential_or_storage_integration
     : storage_integration_eq_id
-    | CREDENTIALS EQ LR_BRACKET (aws_key_id aws_secret_key aws_token? | aws_role) RR_BRACKET
+    | CREDENTIALS EQ L_PAREN (aws_key_id aws_secret_key aws_token? | aws_role) R_PAREN
     ;
 
 external_stage_params
@@ -2143,36 +2143,36 @@ notification_integration
     ;
 
 directory_table_internal_params
-    : DIRECTORY EQ LR_BRACKET (
+    : DIRECTORY EQ L_PAREN (
         enable refresh_on_create?
         | REFRESH_ON_CREATE EQ FALSE
         | refresh_on_create enable
-    ) RR_BRACKET
+    ) R_PAREN
     ;
 
 directory_table_external_params
     // (for Amazon S3)
-    : DIRECTORY EQ LR_BRACKET enable refresh_on_create? auto_refresh? RR_BRACKET
+    : DIRECTORY EQ L_PAREN enable refresh_on_create? auto_refresh? R_PAREN
     // (for Google Cloud Storage)
-    | DIRECTORY EQ LR_BRACKET enable auto_refresh? refresh_on_create? notification_integration? RR_BRACKET
+    | DIRECTORY EQ L_PAREN enable auto_refresh? refresh_on_create? notification_integration? R_PAREN
     // (for Microsoft Azure)
-    | DIRECTORY EQ LR_BRACKET enable refresh_on_create? auto_refresh? notification_integration? RR_BRACKET
+    | DIRECTORY EQ L_PAREN enable refresh_on_create? auto_refresh? notification_integration? R_PAREN
     ;
 
 /* ===========  Stage DDL section =========== */
 create_stage
     : CREATE or_replace? temporary? STAGE if_not_exists? object_name_or_identifier stage_encryption_opts_internal? directory_table_internal_params? (
-        FILE_FORMAT EQ LR_BRACKET (
+        FILE_FORMAT EQ L_PAREN (
             FORMAT_NAME EQ string
             | TYPE EQ type_fileformat format_type_options*
-        ) RR_BRACKET
-    )? (COPY_OPTIONS_ EQ LR_BRACKET copy_options RR_BRACKET)? with_tags? comment_clause?
+        ) R_PAREN
+    )? (COPY_OPTIONS_ EQ L_PAREN copy_options R_PAREN)? with_tags? comment_clause?
     | CREATE or_replace? temporary? STAGE if_not_exists? object_name_or_identifier external_stage_params directory_table_external_params? (
-        FILE_FORMAT EQ LR_BRACKET (
+        FILE_FORMAT EQ L_PAREN (
             FORMAT_NAME EQ string
             | TYPE EQ type_fileformat format_type_options*
-        ) RR_BRACKET
-    )? (COPY_OPTIONS_ EQ LR_BRACKET copy_options RR_BRACKET)? with_tags? comment_clause?
+        ) R_PAREN
+    )? (COPY_OPTIONS_ EQ L_PAREN copy_options R_PAREN)? with_tags? comment_clause?
     ;
 
 alter_stage
@@ -2180,7 +2180,7 @@ alter_stage
     | ALTER STAGE if_exists? object_name_or_identifier set_tags
     | ALTER STAGE if_exists? object_name_or_identifier unset_tags
     | ALTER STAGE if_exists? object_name_or_identifier SET external_stage_params? file_format? (
-        COPY_OPTIONS_ EQ LR_BRACKET copy_options RR_BRACKET
+        COPY_OPTIONS_ EQ L_PAREN copy_options R_PAREN
     )? comment_clause?
     ;
 
@@ -2220,8 +2220,8 @@ cloud_provider_params3
 
 create_storage_integration
     : CREATE or_replace? STORAGE INTEGRATION if_not_exists? id_ TYPE EQ EXTERNAL_STAGE cloud_provider_params ENABLED EQ true_false
-        STORAGE_ALLOWED_LOCATIONS EQ LR_BRACKET string_list RR_BRACKET (
-        STORAGE_BLOCKED_LOCATIONS EQ LR_BRACKET string_list RR_BRACKET
+        STORAGE_ALLOWED_LOCATIONS EQ L_PAREN string_list R_PAREN (
+        STORAGE_BLOCKED_LOCATIONS EQ L_PAREN string_list R_PAREN
     )? comment_clause?
     ;
 
@@ -2242,12 +2242,12 @@ show_initial_rows
     ;
 
 stream_time
-    : at_before1 LR_BRACKET (
+    : at_before1 L_PAREN (
         TIMESTAMP ASSOC string
         | OFFSET ASSOC string
         | STATEMENT ASSOC id_
         | STREAM ASSOC string
-    ) RR_BRACKET
+    ) R_PAREN
     ;
 
 create_stream
@@ -2274,11 +2274,11 @@ table_type
     ;
 
 with_tags
-    : WITH? TAG LR_BRACKET tag_decl (COMMA tag_decl)* RR_BRACKET
+    : WITH? TAG L_PAREN tag_decl (COMMA tag_decl)* R_PAREN
     ;
 
 with_row_access_policy
-    : WITH? ROW ACCESS POLICY id_ ON LR_BRACKET column_name (COMMA column_name)* RR_BRACKET
+    : WITH? ROW ACCESS POLICY id_ ON L_PAREN column_name (COMMA column_name)* R_PAREN
     ;
 
 cluster_by
@@ -2305,7 +2305,7 @@ order_noorder
 default_value
     : DEFAULT expr
     | (AUTOINCREMENT | IDENTITY) (
-        LR_BRACKET num COMMA num RR_BRACKET
+        L_PAREN num COMMA num R_PAREN
         | start_with
         | increment_by
         | start_with increment_by
@@ -2350,14 +2350,14 @@ create_table
     ;
 
 column_decl_item_list_paren
-    : '(' column_decl_item_list ')'
+    : L_PAREN column_decl_item_list R_PAREN
     ;
 
 create_table_clause
     : (
         column_decl_item_list_paren cluster_by?
         | cluster_by? comment_clause? column_decl_item_list_paren
-    ) stage_file_format? (STAGE_COPY_OPTIONS EQ LR_BRACKET copy_options RR_BRACKET)? (
+    ) stage_file_format? (STAGE_COPY_OPTIONS EQ L_PAREN copy_options R_PAREN)? (
         DATA_RETENTION_TIME_IN_DAYS EQ num
     )? (MAX_DATA_EXTENSION_TIME_IN_DAYS EQ num)? change_tracking? default_ddl_collation? copy_grants? comment_clause? with_row_access_policy?
         with_tags?
@@ -2367,7 +2367,7 @@ create_table_as_select
     : CREATE or_replace? table_type? TABLE (
         if_not_exists? object_name
         | object_name if_not_exists?
-    ) ('(' column_decl_item_list ')')? cluster_by? copy_grants? with_row_access_policy? with_tags? comment_clause? AS query_statement
+    ) (L_PAREN column_decl_item_list R_PAREN)? cluster_by? copy_grants? with_row_access_policy? with_tags? comment_clause? AS query_statement
     ;
 
 create_table_like
@@ -2522,7 +2522,7 @@ sql
     ;
 
 call
-    : CALL object_name '(' expr_list? ')'
+    : CALL object_name L_PAREN expr_list? R_PAREN
     ;
 
 create_user
@@ -2535,7 +2535,7 @@ view_col
 
 create_view
     : CREATE or_replace? SECURE? RECURSIVE? VIEW if_not_exists? object_name (
-        LR_BRACKET column_list_with_comment RR_BRACKET
+        L_PAREN column_list_with_comment R_PAREN
     )? view_col* with_row_access_policy? with_tags? copy_grants? comment_clause? AS query_statement
     ;
 
@@ -2791,7 +2791,7 @@ cascade_restrict
     ;
 
 arg_types
-    : LR_BRACKET data_type_list? RR_BRACKET
+    : L_PAREN data_type_list? R_PAREN
     ;
 
 // undrop commands
@@ -2959,7 +2959,7 @@ describe_procedure
     ;
 
 describe_result
-    : describe RESULT (STRING | LAST_QUERY_ID LR_BRACKET RR_BRACKET)
+    : describe RESULT (STRING | LAST_QUERY_ID L_PAREN R_PAREN)
     ;
 
 describe_row_access_policy
@@ -3409,7 +3409,7 @@ string_list
 
 id_fn
     : id_
-    | IDENTIFIER '(' id_ ')'
+    | IDENTIFIER L_PAREN id_ R_PAREN
     ;
 
 id_
@@ -3643,7 +3643,7 @@ pattern
 //    ;
 
 column_name
-    : (id_ '.')? id_
+    : (id_ DOT)? id_
     ;
 
 column_list
@@ -3662,7 +3662,7 @@ object_name
 
 object_name_or_identifier
     : object_name
-    | IDENTIFIER LR_BRACKET string RR_BRACKET
+    | IDENTIFIER L_PAREN string R_PAREN
     ;
 
 num
@@ -3705,27 +3705,27 @@ expr
     | function_call
     | subquery
     | expr IS null_not_null
-    | expr NOT? IN LR_BRACKET (subquery | expr_list) RR_BRACKET
+    | expr NOT? IN L_PAREN (subquery | expr_list) R_PAREN
     | expr NOT? ( LIKE | ILIKE) expr (ESCAPE expr)?
     | expr NOT? RLIKE expr
-    | expr NOT? (LIKE | ILIKE) ANY LR_BRACKET expr (COMMA expr)* RR_BRACKET (ESCAPE expr)?
+    | expr NOT? (LIKE | ILIKE) ANY L_PAREN expr (COMMA expr)* R_PAREN (ESCAPE expr)?
     | primitive_expression //Should be latest rule as it's nearly a catch all
     ;
 
 iff_expr
-    : IFF '(' search_condition ',' expr ',' expr ')'
+    : IFF L_PAREN search_condition COLON expr COLON expr R_PAREN
     ;
 
 trim_expression
-    : (TRIM | LTRIM | RTRIM) LR_BRACKET expr (COMMA string)* RR_BRACKET
+    : (TRIM | LTRIM | RTRIM) L_PAREN expr (COMMA string)* R_PAREN
     ;
 
 try_cast_expr
-    : TRY_CAST LR_BRACKET expr AS data_type RR_BRACKET
+    : TRY_CAST L_PAREN expr AS data_type R_PAREN
     ;
 
 cast_expr
-    : CAST LR_BRACKET expr AS data_type RR_BRACKET
+    : CAST L_PAREN expr AS data_type R_PAREN
     | (TIMESTAMP | DATE | TIME | INTERVAL) expr
     ;
 
@@ -3743,17 +3743,17 @@ value
     ;
 
 arr_literal
-    : LSB value (',' value)* RSB
+    : LSB value (COLON value)* RSB
     | LSB RSB
     ;
 
 data_type_size
-    : LR_BRACKET num RR_BRACKET
+    : L_PAREN num R_PAREN
     ;
 
 data_type
     : int_alias = (INT | INTEGER | SMALLINT | TINYINT | BYTEINT | BIGINT)
-    | number_alias = (NUMBER | NUMERIC | DECIMAL_) (LR_BRACKET num (COMMA num)? RR_BRACKET)?
+    | number_alias = (NUMBER | NUMERIC | DECIMAL_) (L_PAREN num (COMMA num)? R_PAREN)?
     | float_alias = (FLOAT_ | FLOAT4 | FLOAT8 | DOUBLE | DOUBLE_PRECISION | REAL_)
     | BOOLEAN
     | DATE
@@ -3784,7 +3784,7 @@ data_type
 primitive_expression
     : DEFAULT //?
     | NULL_
-    | id_ ('.' id_)* // json field access
+    | id_ (DOT id_)* // json field access
     | full_column_name
     | literal
     | BOTH_Q
@@ -3803,7 +3803,7 @@ order_by_expr
 //    ;
 
 //over_clause_window
-//    : OVER '(' partition_by? order_by_expr (cumulative_frame | sliding_frame)? ')'
+//    : OVER L_PAREN partition_by? order_by_expr (cumulative_frame | sliding_frame)? R_PAREN
 //    ;
 
 asc_desc
@@ -3812,28 +3812,28 @@ asc_desc
     ;
 
 over_clause
-    : OVER '(' partition_by order_by_expr? ')'
-    | OVER '(' order_by_expr ')'
+    : OVER L_PAREN partition_by order_by_expr? R_PAREN
+    | OVER L_PAREN order_by_expr R_PAREN
     ;
 
 function_call
-    : unary_or_binary_builtin_function LR_BRACKET expr (COMMA expr)* RR_BRACKET
-    | binary_builtin_function LR_BRACKET expr COMMA expr RR_BRACKET
-    | binary_or_ternary_builtin_function LR_BRACKET expr COMMA expr (COMMA expr)* RR_BRACKET
-    | ternary_builtin_function LR_BRACKET expr COMMA expr COMMA expr RR_BRACKET
+    : unary_or_binary_builtin_function L_PAREN expr (COMMA expr)* R_PAREN
+    | binary_builtin_function L_PAREN expr COMMA expr R_PAREN
+    | binary_or_ternary_builtin_function L_PAREN expr COMMA expr (COMMA expr)* R_PAREN
+    | ternary_builtin_function L_PAREN expr COMMA expr COMMA expr R_PAREN
     | ranking_windowed_function
     | aggregate_function
     //    | aggregate_windowed_function
-    | object_name '(' expr_list? ')'
-    | object_name '(' param_assoc_list ')'
-    | list_function LR_BRACKET expr_list RR_BRACKET
-    | to_date = ( TO_DATE | DATE) LR_BRACKET expr RR_BRACKET
-    | length = ( LENGTH | LEN) LR_BRACKET expr RR_BRACKET
-    | TO_BOOLEAN LR_BRACKET expr RR_BRACKET
+    | object_name L_PAREN expr_list? R_PAREN
+    | object_name L_PAREN param_assoc_list R_PAREN
+    | list_function L_PAREN expr_list R_PAREN
+    | to_date = ( TO_DATE | DATE) L_PAREN expr R_PAREN
+    | length = ( LENGTH | LEN) L_PAREN expr R_PAREN
+    | TO_BOOLEAN L_PAREN expr R_PAREN
     ;
 
 param_assoc_list
-    : param_assoc (',' param_assoc)*
+    : param_assoc (COLON param_assoc)*
     ;
 
 param_assoc
@@ -3845,17 +3845,17 @@ ignore_or_repect_nulls
     ;
 
 ranking_windowed_function
-    : (RANK | DENSE_RANK | ROW_NUMBER) '(' ')' over_clause
-    | NTILE '(' expr ')' over_clause
-    | (LEAD | LAG) LR_BRACKET expr (COMMA expr COMMA expr)? RR_BRACKET ignore_or_repect_nulls? over_clause
-    | (FIRST_VALUE | LAST_VALUE) LR_BRACKET expr RR_BRACKET ignore_or_repect_nulls? over_clause
+    : (RANK | DENSE_RANK | ROW_NUMBER) L_PAREN R_PAREN over_clause
+    | NTILE L_PAREN expr R_PAREN over_clause
+    | (LEAD | LAG) L_PAREN expr (COMMA expr COMMA expr)? R_PAREN ignore_or_repect_nulls? over_clause
+    | (FIRST_VALUE | LAST_VALUE) L_PAREN expr R_PAREN ignore_or_repect_nulls? over_clause
     ;
 
 aggregate_function
-    : id_ '(' DISTINCT? expr_list ')'
-    | id_ '(' STAR ')'
-    | (LISTAGG | ARRAY_AGG) '(' DISTINCT? expr (COMMA string)? ')' (
-        WITHIN GROUP '(' order_by_clause ')'
+    : id_ L_PAREN DISTINCT? expr_list R_PAREN
+    | id_ L_PAREN STAR R_PAREN
+    | (LISTAGG | ARRAY_AGG) L_PAREN DISTINCT? expr (COMMA string)? R_PAREN (
+        WITHIN GROUP L_PAREN order_by_clause R_PAREN
     )?
     ;
 
@@ -3900,8 +3900,8 @@ full_column_name
     ;
 
 bracket_expression
-    : LR_BRACKET expr_list RR_BRACKET
-    | LR_BRACKET subquery RR_BRACKET
+    : L_PAREN expr_list R_PAREN
+    | L_PAREN subquery R_PAREN
     ;
 
 case_expression
@@ -3927,7 +3927,7 @@ with_expression
     ;
 
 common_table_expression
-    : id_ ('(' columns = column_list ')')? AS '(' select_statement set_operators* ')'
+    : id_ (L_PAREN columns = column_list R_PAREN)? AS L_PAREN select_statement set_operators* R_PAREN
     ;
 
 select_statement
@@ -3937,7 +3937,7 @@ select_statement
 
 set_operators
     : (UNION ALL? | EXCEPT | MINUS_ | INTERSECT) select_statement //EXCEPT and MINUS have same SQL meaning
-    | LR_BRACKET select_statement RR_BRACKET
+    | L_PAREN select_statement R_PAREN
     ;
 
 select_optional_clauses
@@ -4024,28 +4024,28 @@ from_clause
     ;
 
 table_sources
-    : table_source (',' table_source)*
+    : table_source (COLON table_source)*
     ;
 
 table_source
     : table_source_item_joined
-    //| '(' table_source ')'
+    //| L_PAREN table_source R_PAREN
     ;
 
 table_source_item_joined
     : object_ref join_clause*
-    | '(' table_source_item_joined ')' join_clause*
+    | L_PAREN table_source_item_joined R_PAREN join_clause*
     ;
 
 object_ref
     : object_name at_before? changes? match_recognize? pivot_unpivot? as_alias? column_list_in_parentheses? sample?
     | object_name START WITH predicate CONNECT BY prior_list?
-    | TABLE '(' function_call ')' pivot_unpivot? as_alias? sample?
+    | TABLE L_PAREN function_call R_PAREN pivot_unpivot? as_alias? sample?
     | values_table sample?
-    | LATERAL? '(' subquery ')' pivot_unpivot? as_alias? column_list_in_parentheses?
+    | LATERAL? L_PAREN subquery R_PAREN pivot_unpivot? as_alias? column_list_in_parentheses?
     | LATERAL (flatten_table | splited_table) as_alias?
     //| AT id_ PATH?
-    //    ('(' FILE_FORMAT ASSOC id_ COMMA pattern_assoc ')')?
+    //    (L_PAREN FILE_FORMAT ASSOC id_ COMMA pattern_assoc R_PAREN)?
     //    as_alias?
     ;
 
@@ -4057,11 +4057,11 @@ flatten_table_option
     ;
 
 flatten_table
-    : FLATTEN LR_BRACKET (INPUT ASSOC)? expr (COMMA flatten_table_option)* RR_BRACKET
+    : FLATTEN L_PAREN (INPUT ASSOC)? expr (COMMA flatten_table_option)* R_PAREN
     ;
 
 splited_table
-    : SPLIT_TO_TABLE LR_BRACKET expr COMMA expr RR_BRACKET
+    : SPLIT_TO_TABLE L_PAREN expr COMMA expr R_PAREN
     ;
 
 prior_list
@@ -4082,28 +4082,28 @@ join_type
     ;
 
 join_clause
-    : join_type? JOIN object_ref ((ON search_condition)? | (USING '(' column_list ')')?)
-    //| join_type? JOIN object_ref (USING '(' column_list ')')?
+    : join_type? JOIN object_ref ((ON search_condition)? | (USING L_PAREN column_list R_PAREN)?)
+    //| join_type? JOIN object_ref (USING L_PAREN column_list R_PAREN)?
     | NATURAL outer_join? JOIN object_ref
     | CROSS JOIN object_ref
     ;
 
 at_before
-    : AT_KEYWORD LR_BRACKET (
+    : AT_KEYWORD L_PAREN (
         TIMESTAMP ASSOC expr
         | OFFSET ASSOC expr
         | STATEMENT ASSOC string
         | STREAM ASSOC string
-    ) RR_BRACKET
-    | BEFORE LR_BRACKET STATEMENT ASSOC string RR_BRACKET
+    ) R_PAREN
+    | BEFORE L_PAREN STATEMENT ASSOC string R_PAREN
     ;
 
 end
-    : END LR_BRACKET (TIMESTAMP ASSOC expr | OFFSET ASSOC expr | STATEMENT ASSOC string) RR_BRACKET
+    : END L_PAREN (TIMESTAMP ASSOC expr | OFFSET ASSOC expr | STATEMENT ASSOC string) R_PAREN
     ;
 
 changes
-    : CHANGES LR_BRACKET INFORMATION ASSOC default_append_only RR_BRACKET at_before end?
+    : CHANGES L_PAREN INFORMATION ASSOC default_append_only R_PAREN at_before end?
     ;
 
 default_append_only
@@ -4159,26 +4159,26 @@ define
     ;
 
 match_recognize
-    : MATCH_RECOGNIZE LR_BRACKET partition_by? order_by_clause? measures? row_match? after_match? pattern? define? RR_BRACKET
+    : MATCH_RECOGNIZE L_PAREN partition_by? order_by_clause? measures? row_match? after_match? pattern? define? R_PAREN
     ;
 
 pivot_unpivot
-    : PIVOT LR_BRACKET id_ LR_BRACKET id_ RR_BRACKET FOR id_ IN LR_BRACKET literal (COMMA literal)* RR_BRACKET RR_BRACKET (
+    : PIVOT L_PAREN id_ L_PAREN id_ R_PAREN FOR id_ IN L_PAREN literal (COMMA literal)* R_PAREN R_PAREN (
         as_alias column_alias_list_in_brackets?
     )?
-    | UNPIVOT LR_BRACKET id_ FOR column_name IN LR_BRACKET column_list RR_BRACKET RR_BRACKET
+    | UNPIVOT L_PAREN id_ FOR column_name IN L_PAREN column_list R_PAREN R_PAREN
     ;
 
 column_alias_list_in_brackets
-    : LR_BRACKET id_ (COMMA id_)* RR_BRACKET
+    : L_PAREN id_ (COMMA id_)* R_PAREN
     ;
 
 expr_list_in_parentheses
-    : LR_BRACKET expr_list RR_BRACKET
+    : L_PAREN expr_list R_PAREN
     ;
 
 values_table
-    : LR_BRACKET values_table_body RR_BRACKET (as_alias column_alias_list_in_brackets?)?
+    : L_PAREN values_table_body R_PAREN (as_alias column_alias_list_in_brackets?)?
     | values_table_body (as_alias column_alias_list_in_brackets?)?
     ;
 
@@ -4192,11 +4192,11 @@ sample_method
     ;
 
 repeatable_seed
-    : (REPEATABLE | SEED) LR_BRACKET num RR_BRACKET
+    : (REPEATABLE | SEED) L_PAREN num R_PAREN
     ;
 
 sample_opts
-    : LR_BRACKET num ROWS? RR_BRACKET repeatable_seed?
+    : L_PAREN num ROWS? R_PAREN repeatable_seed?
     ;
 
 sample
@@ -4204,7 +4204,7 @@ sample
     ;
 
 search_condition
-    : NOT* (predicate | '(' search_condition ')')
+    : NOT* (predicate | L_PAREN search_condition R_PAREN)
     | search_condition AND search_condition
     | search_condition OR search_condition
     ;
@@ -4228,13 +4228,13 @@ subquery
     ;
 
 predicate
-    : EXISTS LR_BRACKET subquery RR_BRACKET
-    | expr comparison_operator (ALL | SOME | ANY) '(' subquery ')'
+    : EXISTS L_PAREN subquery R_PAREN
+    | expr comparison_operator (ALL | SOME | ANY) L_PAREN subquery R_PAREN
     | expr NOT? BETWEEN expr AND expr
-    | expr NOT? IN '(' (subquery | expr_list) ')'
+    | expr NOT? IN L_PAREN (subquery | expr_list) R_PAREN
     | expr NOT? (LIKE | ILIKE) expr (ESCAPE expr)?
     | expr NOT? RLIKE expr
-    | expr NOT? (LIKE | ILIKE) ANY LR_BRACKET expr (COMMA expr)* RR_BRACKET (ESCAPE expr)?
+    | expr NOT? (LIKE | ILIKE) ANY L_PAREN expr (COMMA expr)* R_PAREN (ESCAPE expr)?
     | expr IS null_not_null
     | expr
     ;
@@ -4255,7 +4255,7 @@ group_by_list
 
 group_by_clause
     : GROUP BY group_by_list having_clause?
-    | GROUP BY (CUBE | GROUPING SETS | ROLLUP) LR_BRACKET group_by_list RR_BRACKET
+    | GROUP BY (CUBE | GROUPING SETS | ROLLUP) L_PAREN group_by_list R_PAREN
     | GROUP BY ALL
     ;
 
