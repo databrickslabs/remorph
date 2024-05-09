@@ -49,7 +49,7 @@ expected_exceptions: dict[str, type[SqlglotError]] = {
     'test_position_2': ParseError,
     'test_split_part_8': ParseError,
     'test_split_part_7': ParseError,
-    'test_trunc_2': ParseError,
+    'test_trunc_2': UnsupportedError,
     'test_to_number_9': UnsupportedError,
     'test_to_number_10': ParseError,
     'test_startswith_2': ParseError,

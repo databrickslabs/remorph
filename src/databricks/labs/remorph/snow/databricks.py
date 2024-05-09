@@ -86,7 +86,7 @@ def _select_contains_index(expression: exp.Select) -> bool:
     return False
 
 
-def _lateral_view(self: Databricks.Generator, expression: exp.Lateral) -> str:
+def _lateral_view(self: org_databricks.Databricks.Generator, expression: exp.Lateral) -> str:
     this = expression.args['this']
     alias = expression.args['alias']
     alias_str = f" AS {alias.name}" if isinstance(alias, exp.TableAlias) else ""

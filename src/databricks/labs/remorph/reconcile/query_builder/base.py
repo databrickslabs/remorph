@@ -35,7 +35,7 @@ class QueryBuilder(ABC):
 
     @property
     def select_columns(self) -> set[str]:
-        return self.table_conf.get_select_columns(self._schema)
+        return self.table_conf.get_select_columns(self._schema, self._layer)
 
     @property
     def threshold_columns(self) -> set[str]:
@@ -95,12 +95,15 @@ class QueryBuilder(ABC):
     @staticmethod
     def _default_transformer(node: exp.Expression, schema: list[Schema], source) -> exp.Expression:
         def _get_transform(datatype: str):
-            if DataType_transform_mapping.get(source) is not None:
-                if DataType_transform_mapping.get(source, {}).get(datatype.upper()) is not None:
-                    return DataType_transform_mapping.get(source, {}).get(datatype.upper())
-                if DataType_transform_mapping.get(source, {}).get("default") is not None:
-                    return DataType_transform_mapping.get(source, {}).get("default")
+            if DataType_transform_mapping.get(source) is None:
                 return DataType_transform_mapping.get("default", {}).get("default")
+
+            if DataType_transform_mapping.get(source, {}).get(datatype.upper()) is not None:
+                return DataType_transform_mapping.get(source, {}).get(datatype.upper())
+            if DataType_transform_mapping.get(source, {}).get("default") is not None:
+                return DataType_transform_mapping.get(source, {}).get("default")
+
+            return DataType_transform_mapping.get("default", {}).get("default")
 
         schema_dict = {v.column_name: v.data_type for v in schema}
         if isinstance(node, exp.Column):

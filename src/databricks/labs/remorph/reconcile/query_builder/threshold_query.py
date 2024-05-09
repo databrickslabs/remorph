@@ -62,7 +62,7 @@ class ThresholdQueryBuilder(QueryBuilder):
 
     @classmethod
     def _build_expression_alias_components(
-        self, threshold: Thresholds, base: exp.Expression
+        cls, threshold: Thresholds, base: exp.Expression
     ) -> tuple[list[exp.Expression], exp.Expression]:
         select_clause = []
         column = threshold.column_name
