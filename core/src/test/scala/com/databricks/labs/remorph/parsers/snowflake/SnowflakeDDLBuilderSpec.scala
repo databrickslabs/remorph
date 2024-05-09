@@ -1,7 +1,7 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
 import com.databricks.labs.remorph.parsers.intermediate._
-import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser.{Inline_constraintContext, Out_of_line_constraintContext}
+import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser.{StringContext => _, _}
 import org.mockito.Mockito._
 import org.scalatest.Assertion
 import org.scalatest.matchers.should
@@ -16,7 +16,7 @@ class SnowflakeDDLBuilderSpec
 
   override protected def astBuilder: SnowflakeDDLBuilder = new SnowflakeDDLBuilder
 
-  private def example(query: String, expectedAst: Catalog): Assertion = example(query, _.create_command(), expectedAst)
+  private def example(query: String, expectedAst: Catalog): Assertion = example(query, _.ddl_command(), expectedAst)
 
   "SnowflakeCommandBuilder" should {
     "translate Java UDF create command" in {
@@ -174,7 +174,7 @@ class SnowflakeDDLBuilderSpec
         query = "CREATE TABLE s.t1 (x VARCHAR NOT NULL)",
         expectedAst = CreateTableCommand(
           name = "s.t1",
-          columns = Seq(ColumnDeclaration("x", VarCharType(None), None, Seq(NotNull)))))
+          columns = Seq(ColumnDeclaration("x", VarCharType(None), None, Seq(Nullability(false))))))
 
       example(
         query = "CREATE TABLE s.t1 (x VARCHAR PRIMARY KEY)",
@@ -199,9 +199,64 @@ class SnowflakeDDLBuilderSpec
         expectedAst = CreateTableCommand(
           name = "s.t1",
           columns = Seq(
-            ColumnDeclaration("id", VarCharType(None), None, Seq(NotNull, PrimaryKey)),
-            ColumnDeclaration("a", VarCharType(Some(32)), None, Seq(Unique, ForeignKey("s.t2.x"))),
-            ColumnDeclaration("b", DecimalType(Some(38), None), None, Seq(ForeignKey("s.t2.y"))))))
+            ColumnDeclaration("id", VarCharType(None), None, Seq(Nullability(false), PrimaryKey)),
+            ColumnDeclaration(
+              "a",
+              VarCharType(Some(32)),
+              None,
+              Seq(Unique, NamedConstraint("fkey", ForeignKey("s.t2.x")))),
+            ColumnDeclaration(
+              "b",
+              DecimalType(Some(38), None),
+              None,
+              Seq(NamedConstraint("fkey", ForeignKey("s.t2.y")))))))
+    }
+
+    "translate ALTER TABLE commands" in {
+      example(
+        query = "ALTER TABLE s.t1 ADD COLUMN c VARCHAR",
+        expectedAst = AlterTableCommand("s.t1", Seq(AddColumn(ColumnDeclaration("c", VarCharType(None))))))
+
+      example(
+        query = "ALTER TABLE s.t1 ADD CONSTRAINT pk PRIMARY KEY (a, b, c)",
+        expectedAst = AlterTableCommand(
+          "s.t1",
+          Seq(
+            AddConstraint("a", NamedConstraint("pk", PrimaryKey)),
+            AddConstraint("b", NamedConstraint("pk", PrimaryKey)),
+            AddConstraint("c", NamedConstraint("pk", PrimaryKey)))))
+
+      example(
+        query = "ALTER TABLE s.t1 ALTER (COLUMN a TYPE INT)",
+        expectedAst = AlterTableCommand("s.t1", Seq(ChangeColumnDataType("a", DecimalType(Some(38), None)))))
+      example(
+        query = "ALTER TABLE s.t1 ALTER (COLUMN a NOT NULL)",
+        expectedAst = AlterTableCommand("s.t1", Seq(AddConstraint("a", Nullability(false)))))
+      example(
+        query = "ALTER TABLE s.t1 ALTER (COLUMN a DROP NOT NULL)",
+        expectedAst = AlterTableCommand("s.t1", Seq(DropConstraint(Some("a"), Nullability(false)))))
+
+      example(
+        query = "ALTER TABLE s.t1 DROP COLUMN a",
+        expectedAst = AlterTableCommand("s.t1", Seq(DropColumns(Seq("a")))))
+
+      example(
+        query = "ALTER TABLE s.t1 DROP PRIMARY KEY",
+        expectedAst = AlterTableCommand("s.t1", Seq(DropConstraint(None, PrimaryKey))))
+      example(
+        query = "ALTER TABLE s.t1 DROP CONSTRAINT pk",
+        expectedAst = AlterTableCommand("s.t1", Seq(DropConstraintByName("pk"))))
+      example(
+        query = "ALTER TABLE s.t1 DROP UNIQUE (b, c)",
+        expectedAst =
+          AlterTableCommand("s.t1", Seq(DropConstraint(Some("b"), Unique), DropConstraint(Some("c"), Unique))))
+
+      example(
+        query = "ALTER TABLE s.t1 RENAME COLUMN a TO aa",
+        expectedAst = AlterTableCommand("s.t1", Seq(RenameColumn("a", "aa"))))
+      example(
+        query = "ALTER TABLE s.t1 RENAME CONSTRAINT pk TO pk_t1",
+        expectedAst = AlterTableCommand("s.t1", Seq(RenameConstraint("pk", "pk_t1"))))
     }
 
     "wrap unknown AST in UnresolvedCatalog" in {
@@ -217,11 +272,19 @@ class SnowflakeDDLBuilderSpec
       when(outOfLineConstraint.column_list_in_parentheses(0)).thenReturn(columnList)
       val dummyInputTextForOutOfLineConstraint = "dummy"
       when(outOfLineConstraint.getText).thenReturn(dummyInputTextForOutOfLineConstraint)
-      val result = astBuilder.buildOutOfLineConstraint(outOfLineConstraint)
+      val result = astBuilder.buildOutOfLineConstraints(outOfLineConstraint)
       result shouldBe Seq(
         "a" -> UnresolvedConstraint(dummyInputTextForOutOfLineConstraint),
         "b" -> UnresolvedConstraint(dummyInputTextForOutOfLineConstraint),
         "c" -> UnresolvedConstraint(dummyInputTextForOutOfLineConstraint))
+      verify(outOfLineConstraint).column_list_in_parentheses(0)
+      verify(outOfLineConstraint).UNIQUE()
+      verify(outOfLineConstraint).primary_key()
+      verify(outOfLineConstraint).foreign_key()
+      verify(outOfLineConstraint).id_()
+      verify(outOfLineConstraint, times(3)).getText
+      verifyNoMoreInteractions(outOfLineConstraint)
+
     }
   }
 
@@ -233,7 +296,99 @@ class SnowflakeDDLBuilderSpec
       when(inlineConstraint.getText).thenReturn(dummyInputTextForInlineConstraint)
       val result = astBuilder.buildInlineConstraint(inlineConstraint)
       result shouldBe UnresolvedConstraint(dummyInputTextForInlineConstraint)
+      verify(inlineConstraint).UNIQUE()
+      verify(inlineConstraint).primary_key()
+      verify(inlineConstraint).foreign_key()
+      verify(inlineConstraint).getText
+      verifyNoMoreInteractions(inlineConstraint)
+
     }
   }
 
+  "SnowflakeDDLBuilder.visitAlter_table" should {
+    "handle unexpected input" in {
+      val tableName = parseString("s.t1", _.object_name())
+      val alterTable = mock[Alter_tableContext]
+      when(alterTable.object_name(0)).thenReturn(tableName)
+      val dummyTextForAlterTable = "dummy"
+      when(alterTable.getText).thenReturn(dummyTextForAlterTable)
+      val result = astBuilder.visitAlter_table(alterTable)
+      result shouldBe UnresolvedCatalog(dummyTextForAlterTable)
+      verify(alterTable).object_name(0)
+      verify(alterTable).table_column_action()
+      verify(alterTable).constraint_action()
+      verify(alterTable).getText
+      verifyNoMoreInteractions(alterTable)
+
+    }
+  }
+
+  "SnowflakeDDLBuilder.buildColumnActions" should {
+    "handle unexpected input" in {
+      val tableColumnAction = mock[Table_column_actionContext]
+      when(tableColumnAction.alter_column_clause())
+        .thenReturn(java.util.Collections.emptyList[Alter_column_clauseContext]())
+      val dummyTextForTableColumnAction = "dummy"
+      when(tableColumnAction.getText).thenReturn(dummyTextForTableColumnAction)
+      val result = astBuilder.buildColumnActions(tableColumnAction)
+      result shouldBe Seq(UnresolvedTableAlteration(dummyTextForTableColumnAction))
+      verify(tableColumnAction).alter_column_clause()
+      verify(tableColumnAction).ADD()
+      verify(tableColumnAction).alter_column_clause()
+      verify(tableColumnAction).DROP()
+      verify(tableColumnAction).RENAME()
+      verify(tableColumnAction).getText
+      verifyNoMoreInteractions(tableColumnAction)
+    }
+  }
+
+  "SnowflakeDDLBuilder.buildColumnAlterations" should {
+    "handle unexpected input" in {
+      val columnName = parseString("a", _.column_name())
+      val alterColumnClause = mock[Alter_column_clauseContext]
+      when(alterColumnClause.column_name()).thenReturn(columnName)
+      val dummyTextForAlterColumnClause = "dummy"
+      when(alterColumnClause.getText).thenReturn(dummyTextForAlterColumnClause)
+      val result = astBuilder.buildColumnAlterations(alterColumnClause)
+      result shouldBe UnresolvedTableAlteration(dummyTextForAlterColumnClause)
+      verify(alterColumnClause).column_name()
+      verify(alterColumnClause).data_type()
+      verify(alterColumnClause).DROP()
+      verify(alterColumnClause).NULL_()
+      verify(alterColumnClause).getText
+      verifyNoMoreInteractions(alterColumnClause)
+    }
+  }
+
+  "SnowflakeDDLBuilder.buildConstraintActions" should {
+    "handle unexpected input" in {
+      val constraintAction = mock[Constraint_actionContext]
+      val dummyTextForConstraintAction = "dummy"
+      when(constraintAction.getText).thenReturn(dummyTextForConstraintAction)
+      val result = astBuilder.buildConstraintActions(constraintAction)
+      result shouldBe Seq(UnresolvedTableAlteration(dummyTextForConstraintAction))
+      verify(constraintAction).ADD()
+      verify(constraintAction).DROP()
+      verify(constraintAction).RENAME()
+      verify(constraintAction).getText
+      verifyNoMoreInteractions(constraintAction)
+    }
+  }
+
+  "SnowflakeDDLBuilder.buildDropConstraints" should {
+    "handle unexpected input" in {
+      val constraintAction = mock[Constraint_actionContext]
+      when(constraintAction.id_()).thenReturn(java.util.Collections.emptyList[Id_Context])
+      val dummyTextForConstraintAction = "dummy"
+      when(constraintAction.getText).thenReturn(dummyTextForConstraintAction)
+      val result = astBuilder.buildDropConstraints(constraintAction)
+      result shouldBe Seq(UnresolvedTableAlteration(dummyTextForConstraintAction))
+      verify(constraintAction).column_list_in_parentheses()
+      verify(constraintAction).primary_key()
+      verify(constraintAction).UNIQUE()
+      verify(constraintAction).id_()
+      verify(constraintAction).getText
+      verifyNoMoreInteractions(constraintAction)
+    }
+  }
 }
