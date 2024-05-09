@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.parsers.tsql
 
-import com.databricks.labs.remorph.parsers.tsql.TSqlParser.Select_statement_standaloneContext
+import com.databricks.labs.remorph.parsers.tsql.TSqlParser.SelectStatementStandaloneContext
 import com.databricks.labs.remorph.parsers.{intermediate => ir}
 
 import scala.collection.JavaConverters._
@@ -22,16 +22,16 @@ class TSqlAstBuilder extends TSqlParserBaseVisitor[ir.TreeNode] {
     }
   }
 
-  override def visitSelect_statement_standalone(ctx: Select_statement_standaloneContext): ir.TreeNode = {
-    val rawExpression = ctx.select_statement().query_expression().query_specification()
+  override def visitSelectStatementStandalone(ctx: SelectStatementStandaloneContext): ir.TreeNode = {
+    val rawExpression = ctx.selectStatement().queryExpression().querySpecification()
     val columnExpression = rawExpression
-      .select_list()
-      .select_list_elem()
+      .selectList()
+      .selectListElem()
       .asScala
       .map(_.accept(new TSqlExpressionBuilder))
 
     // [TODO]: Handle Where, Group By, Having, Order By, Limit, Offset
-    val tableSources = Option(rawExpression.table_sources())
+    val tableSources = Option(rawExpression.tableSources())
       .fold[ir.Relation](ir.NoTable())(_.accept(new TSqlRelationBuilder))
     ir.Project(tableSources, columnExpression)
   }

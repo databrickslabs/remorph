@@ -9,6 +9,7 @@ abstract class Binary(left: Expression, right: Expression) extends Expression {}
 
 trait Predicate extends AstExtension
 
+case class Precedence(expression: Expression) extends Expression {}
 case class And(left: Expression, right: Expression) extends Binary(left, right) with Predicate {}
 case class Or(left: Expression, right: Expression) extends Binary(left, right) with Predicate {}
 case class Not(pred: Expression) extends Unary(pred) with Predicate {}
