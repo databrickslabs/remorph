@@ -34,6 +34,7 @@ class SnowflakeExpressionBuilder
       ir.Alias(input, Seq(alias), None)
     }
   override def visitColumn_name(ctx: Column_nameContext): ir.Expression = {
+    // TODO: Build table as per TSQl
     ir.Column(ctx.id_(0).getText)
   }
 
