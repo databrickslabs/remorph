@@ -50,7 +50,7 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.Relation] w
       projectExpressions: Seq[ir.Expression]): ir.Relation =
     if (Option(ctx).exists(_.DISTINCT() != null)) {
       val columnNames = projectExpressions.collect {
-        case ir.Column(c) => Seq(c)
+        case ir.Column(c, _) => Seq(c)
         case ir.Alias(_, a, _) => a
       }.flatten
       ir.Deduplicate(input, columnNames, all_columns_as_keys = columnNames.isEmpty, within_watermark = false)

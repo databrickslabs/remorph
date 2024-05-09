@@ -34,23 +34,48 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
       example("4 ^ 2", _.expression(), BitwiseXor(Literal(integer = Some(4)), Literal(integer = Some(2))))
     }
     "translate complex binary expressions" in {
-      example("a + b * 2", _.expression(), Add(Column("a"), Multiply(Column("b"), Literal(integer = Some(2)))))
-      example("(a + b) * 2", _.expression(), Multiply(Add(Column("a"), Column("b")), Literal(integer = Some(2))))
-      example("a & b | c", _.expression(), BitwiseOr(BitwiseAnd(Column("a"), Column("b")), Column("c")))
-      example("(a & b) | c", _.expression(), BitwiseOr(BitwiseAnd(Column("a"), Column("b")), Column("c")))
+      example(
+        "a + b * 2",
+        _.expression(),
+        Add(Identifier("a", isQuoted = false), Multiply(Identifier("b", isQuoted = false), Literal(integer = Some(2)))))
+      example(
+        "(a + b) * 2",
+        _.expression(),
+        Multiply(Add(Identifier("a", isQuoted = false), Identifier("b", isQuoted = false)), Literal(integer = Some(2))))
+      example(
+        "a & b | c",
+        _.expression(),
+        BitwiseOr(
+          BitwiseAnd(Identifier("a", isQuoted = false), Identifier("b", isQuoted = false)),
+          Identifier("c", isQuoted = false)))
+      example(
+        "(a & b) | c",
+        _.expression(),
+        BitwiseOr(
+          BitwiseAnd(Identifier("a", isQuoted = false), Identifier("b", isQuoted = false)),
+          Identifier("c", isQuoted = false)))
       example(
         "a % 3 + b * 2 - c / 5",
         _.expression(),
         Subtract(
-          Add(Mod(Column("a"), Literal(integer = Some(3))), Multiply(Column("b"), Literal(integer = Some(2)))),
-          Divide(Column("c"), Literal(integer = Some(5)))))
+          Add(
+            Mod(Identifier("a", isQuoted = false), Literal(integer = Some(3))),
+            Multiply(Identifier("b", isQuoted = false), Literal(integer = Some(2)))),
+          Divide(Identifier("c", isQuoted = false), Literal(integer = Some(5)))))
       example(
         "(a % 3 + b) * 2 - c / 5",
         _.expression(),
         Subtract(
-          Multiply(Add(Mod(Column("a"), Literal(integer = Some(3))), Column("b")), Literal(integer = Some(2))),
-          Divide(Column("c"), Literal(integer = Some(5)))))
-      example(query = "a || b || c", _.expression(), Concat(Concat(Column("a"), Column("b")), Column("c")))
+          Multiply(
+            Add(Mod(Identifier("a", isQuoted = false), Literal(integer = Some(3))), Identifier("b", isQuoted = false)),
+            Literal(integer = Some(2))),
+          Divide(Identifier("c", isQuoted = false), Literal(integer = Some(5)))))
+      example(
+        query = "a || b || c",
+        _.expression(),
+        Concat(
+          Concat(Identifier("a", isQuoted = false), Identifier("b", isQuoted = false)),
+          Identifier("c", isQuoted = false)))
     }
     "correctly apply operator precedence and associativity" in {
       example(
@@ -166,7 +191,7 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
     }
     "correctly resolve quoted identifiers" in {
       example("\"a\"", _.expression(), Identifier("\"a\"", isQuoted = true))
-      example("[a]", _.expression(), Identifier("\"a\"", isQuoted = true))
+      example("[a]", _.expression(), Identifier("[a]", isQuoted = true))
       example("[a].[b]", _.expression(), Dot(Identifier("[a]", isQuoted = true), Identifier("[b]", isQuoted = true)))
       example(
         "[a].[b].[c]",

@@ -3916,6 +3916,7 @@ expression
     | LPAREN subquery RPAREN                                    #exprSubquery
     ;
 
+// TODO: Implement this
 parameter
     : PLACEHOLDER
     ;
@@ -3965,9 +3966,11 @@ updateElemMerge
 
 // https://docs.microsoft.com/en-us/sql/t-sql/queries/search-condition-transact-sql
 searchCondition
-    : NOT* (predicate | LPAREN searchCondition RPAREN)
-    | searchCondition AND searchCondition // AND takes precedence over OR
-    | searchCondition OR searchCondition
+    : LPAREN searchCondition RPAREN         #scPrec
+    | NOT searchCondition                   #scNot
+    | searchCondition AND searchCondition   #scAnd
+    | searchCondition OR searchCondition    #scOr
+    | predicate                             #scPred
     ;
 
 predicate
@@ -3982,8 +3985,6 @@ predicate
     | expression IS nullNotnull
     ;
 
-// Changed union rule to sqlUnion to avoid union construct with C++ target.  Issue reported by person who generates into C++.  This individual reports change causes generated code to work
-
 queryExpression
     : querySpecification selectOrderByClause? unions += sqlUnion* //if using top, order by can be on the "top" side of union :/
     | LPAREN queryExpression RPAREN (UNION ALL? queryExpression)?
@@ -3997,10 +3998,11 @@ sqlUnion
     ;
 
 // https://msdn.microsoft.com/en-us/library/ms176104.aspx
+// TODO: This is too much for one rule and it still misses things - rewrite
 querySpecification
-    : SELECT allOrDistinct = (ALL | DISTINCT)? top = topClause? columns = selectList
+    : SELECT ad=(ALL | DISTINCT)? topClause? selectList
     // https://msdn.microsoft.com/en-us/library/ms188029.aspx
-    (INTO into = tableName)? (FROM from = tableSources)? (WHERE where = searchCondition)?
+    (INTO into =tableName)? (FROM tableSources)? (WHERE where = searchCondition)?
     // https://msdn.microsoft.com/en-us/library/ms177673.aspx
     (
         GROUP BY (
@@ -4138,11 +4140,11 @@ selectListElem
     ;
 
 tableSources
-    : nonAnsiJoin
-    | source += tableSource (COMMA source += tableSource)*
+    : source += tableSource (COMMA source += tableSource)*
     ;
 
 // https://sqlenlight.com/support/help/sa0006/
+// TODO: This is exactly the same as tableSources alt 2 - investigate
 nonAnsiJoin
     : source += tableSource (COMMA source += tableSource)+
     ;
@@ -5276,11 +5278,13 @@ constant
 
 // To reduce ambiguity, -X is considered as an application of unary operator
 primitiveConstant
-    : STRING // string, datetime or uniqueidentifier
-    | HEX
-    | INT
-    | REAL
-    | FLOAT
+    : con = (
+              STRING // string, datetime or uniqueidentifier
+            | HEX
+            | INT
+            | REAL
+            | FLOAT
+            )
     | DOLLAR (MINUS | PLUS)? (INT | FLOAT) // money
     | parameter
     ;
@@ -6263,7 +6267,7 @@ id_
     : ID
     | TEMP_ID
     | DOUBLE_QUOTE_ID
-    | DOUBLE_QUOTE_BLANK // TODO: This is silly I think - remove
+    | DOUBLE_QUOTE_BLANK // TODO: This is unnecessary I think - remove
     | SQUARE_BRACKET_ID
     | keyword
     | RAW

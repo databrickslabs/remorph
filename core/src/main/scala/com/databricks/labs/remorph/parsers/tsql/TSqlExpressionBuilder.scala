@@ -1,13 +1,10 @@
 package com.databricks.labs.remorph.parsers.tsql
 
-import org.antlr.v4.runtime.Token
-import org.antlr.v4.runtime.tree.TerminalNode
-
-import com.databricks.labs.remorph.parsers.intermediate.{Column, Literal, Identifier}
+import com.databricks.labs.remorph.parsers.intermediate.{Identifier, Literal}
 import com.databricks.labs.remorph.parsers.tsql.TSqlParser._
 import com.databricks.labs.remorph.parsers.{IncompleteParser, ParserCommon, intermediate => ir}
-
-import scala.collection.JavaConverters._
+import org.antlr.v4.runtime.Token
+import org.antlr.v4.runtime.tree.TerminalNode
 
 class TSqlExpressionBuilder
     extends TSqlParserBaseVisitor[ir.Expression]
@@ -17,9 +14,11 @@ class TSqlExpressionBuilder
   protected override def wrapUnresolvedInput(unparsedInput: String): ir.UnresolvedExpression =
     ir.UnresolvedExpression(unparsedInput)
 
-  override def visitFullColumnName(ctx: FullColumnNameContext): ir.Expression = {
-    Column(ctx.id_.getText)
-  }
+  override def visitFullColumnName(ctx: FullColumnNameContext): ir.Expression =
+    ctx.accept(new TSqlColumnBuilder) match {
+      case c: ir.Column => c
+      case c => wrapUnresolvedInput(ctx.getText)
+    }
 
   /**
    * Expression precedence as defined by parenthesis
@@ -119,34 +118,4 @@ class TSqlExpressionBuilder
       case _ => ir.UnresolvedOperator(s"Unsupported operator: ${operator.getText}")
     }
 
-  override def visitSearchCondition(ctx: SearchConditionContext): ir.Expression = {
-    if (ctx.searchCondition().size() > 1) {
-      val conditions = ctx.searchCondition().asScala.map(_.accept(this))
-      conditions.reduce((left, right) =>
-        ctx match {
-          case c if c.AND() != null => ir.And(left, right)
-          case c if c.OR() != null => ir.Or(left, right)
-          case c if c.NOT() != null => ir.Not(left)
-        })
-    } else {
-      if (!ctx.NOT().isEmpty) {
-        ir.Not(ctx.predicate().accept(this))
-      } else {
-        ctx.predicate().accept(this)
-      }
-    }
-  }
-
-  override def visitPredicate(ctx: PredicateContext): ir.Expression = {
-    val left = ctx.expression(0).accept(this)
-    val right = ctx.expression(1).accept(this)
-    ctx.comparisonOperator().getText match {
-      case "=" => ir.Equals(left, right)
-      case "!=" => ir.NotEquals(left, right)
-      case ">" => ir.GreaterThan(left, right)
-      case "<" => ir.LesserThan(left, right)
-      case ">=" => ir.GreaterThanOrEqual(left, right)
-      case "<=" => ir.LesserThanOrEqual(left, right)
-    }
-  }
 }
