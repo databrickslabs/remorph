@@ -2,8 +2,6 @@ package com.databricks.labs.remorph.parsers.tsql
 
 import com.databricks.labs.remorph.parsers.tsql.TSqlParser._
 import com.databricks.labs.remorph.parsers.{intermediate => ir}
-import org.antlr.v4.runtime.Token
-import org.antlr.v4.runtime.tree.TerminalNode
 
 import scala.collection.JavaConverters.asScalaBufferConverter
 
@@ -53,7 +51,7 @@ class TSqlColumnBuilder extends TSqlExpressionBuilder {
 
   override def visitFullTableName(ctx: FullTableNameContext): ir.Literal = {
     // Extract the components of the full table name, if they exist
-    val linkedServer = Option(ctx.linkedServer).map(_.getText)
+    val linkedServer = Option(ctx.linkedServer).map(_ => ctx.linkedServer.getText + ".")
     val database = Option(ctx.database).map(_.getText)
     val schema = Option(ctx.schema).map(_.getText)
     val name = ctx.table.getText
@@ -63,36 +61,16 @@ class TSqlColumnBuilder extends TSqlExpressionBuilder {
   }
 
   override def visitFullColumnName(ctx: FullColumnNameContext): ir.Column = {
-    val tableName = Option(ctx.fullTableName).map(_.accept(this) match {
-      case nt: ir.Literal => nt.string
-      case _ => ""
-    })
     val columnName = ctx.id_.getText
-    val fullColumnName = tableName.map(_ + "." + columnName).getOrElse(columnName)
-    ir.Column(fullColumnName)
-  }
-
-  override def visitPrimitiveConstant(ctx: TSqlParser.PrimitiveConstantContext): ir.Expression = {
-    if (ctx.DOLLAR != null) {
-      return ir.Literal(string = Some(ctx.getText))
+    val fullColumnName = ctx.fullTableName() match {
+      case null => columnName
+      case ft =>
+        ft.accept(this) match {
+          case nt: ir.Literal if nt.string.isDefined => nt.string.get + "." + columnName
+          case _ => columnName
+        }
     }
-    buildConstant(ctx.con)
-  }
-
-  override def visitTerminal(node: TerminalNode): ir.Expression = buildConstant(node.getSymbol)
-
-  private def removeQuotes(str: String): String = {
-    str.stripPrefix("'").stripSuffix("'")
-  }
-
-  private def buildConstant(con: Token): ir.Expression = con.getType match {
-    case c if c == STRING => ir.Literal(string = Some(removeQuotes(con.getText)))
-    case c if c == INT => ir.Literal(integer = Some(con.getText.toInt))
-    case c if c == FLOAT => ir.Literal(float = Some(con.getText.toFloat))
-    case c if c == HEX => ir.Literal(string = Some(con.getText)) // Preserve format for now
-    case c if c == REAL => ir.Literal(double = Some(con.getText.toDouble))
-    case c if c == NULL_ => ir.Literal(nullType = Some(ir.NullType()))
-    case _ => ir.UnresolvedExpression(con.getText)
+    ir.Column(fullColumnName)
   }
 
   override def visitScNot(ctx: TSqlParser.ScNotContext): ir.Expression =

@@ -306,6 +306,7 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
           Dot(Identifier("b", isQuoted = false), Identifier("c", isQuoted = false))))
     }
     "correctly resolve quoted identifiers" in {
+      example("RAW", _.expression(), Identifier("RAW", isQuoted = false))
       example("\"a\"", _.expression(), Identifier("\"a\"", isQuoted = true))
       example("[a]", _.expression(), Identifier("[a]", isQuoted = true))
       example("[a].[b]", _.expression(), Dot(Identifier("[a]", isQuoted = true), Identifier("[b]", isQuoted = true)))

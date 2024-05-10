@@ -1,5 +1,6 @@
 package com.databricks.labs.remorph.parsers.tsql
 
+import com.databricks.labs.remorph.parsers.intermediate.Identifier
 import com.databricks.labs.remorph.parsers.FunctionBuilder
 import com.databricks.labs.remorph.parsers.intermediate.{Column, Expression, Literal}
 import com.databricks.labs.remorph.parsers.tsql.TSqlParser._
@@ -20,7 +21,7 @@ class TSqlExpressionBuilder
     ir.UnresolvedExpression(unparsedInput)
 
   override def visitFullColumnName(ctx: FullColumnNameContext): ir.Expression = {
-    Column(ctx.id.getText)
+    ir.Column(ctx.id.getText)
   }
 
   /**
@@ -48,7 +49,6 @@ class TSqlExpressionBuilder
   // constant, it is usually better to be explicit about the unary operation as
   // if people use -+-42 then maybe they have a reason.
   override def visitExprUnary(ctx: ExprUnaryContext): ir.Expression = ctx.op.getType match {
-
     case MINUS => ir.UMinus(ctx.expression().accept(this))
     case PLUS => ir.UPlus(ctx.expression().accept(this))
   }
@@ -78,16 +78,24 @@ class TSqlExpressionBuilder
     ir.Dot(left, right)
   }
 
-  override def visitPrimitiveConstant(ctx: PrimitiveConstantContext): ir.Expression = ctx match {
-    case c if c.DOLLAR() != null => wrapUnresolvedInput(ctx.getText)
-    case c if c.STRING() != null => c.STRING().accept(this)
-    case c if c.INT() != null => c.INT().accept(this)
-    case c if c.FLOAT() != null => c.FLOAT().accept(this)
-    case c if c.HEX() != null => c.HEX().accept(this)
-    case c if c.REAL() != null => c.REAL().accept(this)
+  override def visitPrimitiveConstant(ctx: TSqlParser.PrimitiveConstantContext): ir.Expression = {
+    if (ctx.DOLLAR != null) {
+      return ir.Literal(string = Some(ctx.getText))
+    }
+    buildConstant(ctx.con)
   }
 
-  override def visitId_(ctx: Id_Context): ir.Expression = ctx match {
+  private def buildConstant(con: Token): ir.Expression = con.getType match {
+    case c if c == STRING => ir.Literal(string = Some(removeQuotes(con.getText)))
+    case c if c == INT => ir.Literal(integer = Some(con.getText.toInt))
+    case c if c == FLOAT => ir.Literal(float = Some(con.getText.toFloat))
+    case c if c == HEX => ir.Literal(string = Some(con.getText)) // Preserve format for now
+    case c if c == REAL => ir.Literal(double = Some(con.getText.toDouble))
+    case c if c == NULL_ => ir.Literal(nullType = Some(ir.NullType()))
+    case _ => ir.UnresolvedExpression(con.getText)
+  }
+
+  override def visitId(ctx: IdContext): ir.Expression = ctx match {
     case c if c.ID() != null => Identifier(ctx.getText, isQuoted = false)
     case c if c.TEMP_ID() != null => Identifier(ctx.getText, isQuoted = false)
     case c if c.DOUBLE_QUOTE_ID() != null => Identifier(ctx.getText, isQuoted = true)
@@ -96,15 +104,7 @@ class TSqlExpressionBuilder
     case _ => Identifier(ctx.getText, isQuoted = false)
   }
 
-  override def visitTerminal(node: TerminalNode): ir.Expression = node.getSymbol.getType match {
-    case c if c == STRING => Literal(string = Some(removeQuotes(node.getText)))
-    case c if c == INT => Literal(integer = Some(node.getText.toInt))
-    case c if c == FLOAT => Literal(float = Some(node.getText.toFloat))
-    case c if c == HEX => Literal(string = Some(node.getText)) // Preserve format for now
-    case c if c == REAL => Literal(double = Some(node.getText.toDouble))
-    case c if c == NULL_ => Literal(nullType = Some(ir.NullType()))
-    case _ => wrapUnresolvedInput(node.getText)
-  }
+  override def visitTerminal(node: TerminalNode): ir.Expression = buildConstant(node.getSymbol)
 
   private def removeQuotes(str: String): String = {
     str.stripPrefix("'").stripSuffix("'")
