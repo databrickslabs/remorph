@@ -1,13 +1,13 @@
 import logging
+from typing import Optional
 
+from databricks.labs.remorph.helpers.morph_status import ValidationError
+from databricks.labs.remorph.snow.local_expression import AliasInfo
 from sqlglot import expressions as exp, parse
 from sqlglot.dialects.dialect import DialectType
 from sqlglot.errors import ParseError, TokenError, UnsupportedError, ErrorLevel
 from sqlglot.expressions import Expression, Select
-from sqlglot.optimizer.scope import build_scope
-
-from databricks.labs.remorph.helpers.morph_status import ValidationError
-from databricks.labs.remorph.snow.local_expression import AliasInfo
+from sqlglot.optimizer.scope import build_scope, Scope
 
 logger = logging.getLogger(__name__)
 
@@ -55,16 +55,15 @@ def unalias_lca_in_select(expr: exp.Expression) -> exp.Expression:
     if not isinstance(expr, exp.Select):
         return expr
 
-    root_select = build_scope(expr)
-
-    if root_select is None:
-        raise ValueError("Failed to build scope for the select expression")
+    root_select: Optional[Scope] = build_scope(expr)
+    if not root_select:
+        return expr
 
     # We won't search inside nested selects, they will be visited separately
     nested_selects = {*root_select.derived_tables, *root_select.subqueries}
     alias_info = _find_aliases_in_select(expr)
-    where_ast = expr.args.get("where")
-    if where_ast and isinstance(where_ast, Expression):
+    where_ast: Optional[Expression] = expr.args.get("where")
+    if where_ast:
         for column in where_ast.walk(prune=lambda n: n in nested_selects):
             if (
                 isinstance(column, exp.Column)
@@ -111,8 +110,8 @@ def _find_invalid_lca_in_where(
     aliases: dict[str, AliasInfo],
 ) -> set[str]:
     aliases_in_where = set()
-    where_ast = select_expr.args.get("where")
-    if where_ast and isinstance(where_ast, Expression):
+    where_ast: Optional[Expression] = select_expr.args.get("where")
+    if where_ast:
         for column in where_ast.find_all(exp.Column):
             if column.name in aliases and not aliases[column.name].is_same_name_as_column:
                 aliases_in_where.add(column.name)
