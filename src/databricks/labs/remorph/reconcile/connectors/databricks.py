@@ -1,17 +1,35 @@
 import re
 
+from databricks.sdk import WorkspaceClient
 from pyspark.errors import PySparkException
-from pyspark.sql import DataFrame
+from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.functions import col
+from sqlglot import Dialects
 
+from databricks.labs.remorph.reconcile.connectors.secrets import SecretsMixin
 from databricks.labs.remorph.reconcile.connectors.data_source import DataSource
 from databricks.labs.remorph.reconcile.recon_config import JdbcReaderOptions, Schema
 
 
-class DatabricksDataSource(DataSource):
-    def read_data(self, catalog: str, schema: str, query: str, options: JdbcReaderOptions) -> DataFrame:
+class DatabricksDataSource(DataSource, SecretsMixin):
+
+    def __init__(
+            self,
+            engine: Dialects,
+            spark: SparkSession,
+            ws: WorkspaceClient,
+            scope: str,
+    ):
+        self.engine = engine
+        self.spark = spark
+        self.ws = ws
+        self.scope = scope
+
+    def read_query_data(self, catalog: str, schema: str, query: str, options: JdbcReaderOptions | None) -> DataFrame:
         try:
-            table_query = self._get_table_or_query(catalog, schema, query)
+            if catalog and catalog != "hive_metastore":
+                table_query = query.format(catalog_name=catalog, schema_name=schema)
+            table_query = query.format(schema_name=schema)
             df = self.spark.sql(table_query)
             return df.select([col(column).alias(column.lower()) for column in df.columns])
         except PySparkException as e:
@@ -46,4 +64,3 @@ class DatabricksDataSource(DataSource):
                     col_name"""
         return re.sub(r'\s+', ' ', query)
 
-    databricks_datatype_mapper = {}

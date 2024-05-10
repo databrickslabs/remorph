@@ -165,8 +165,11 @@ class Schema:
 
 @dataclass
 class ReconcileOutput:
-    missing_in_src: DataFrame
-    missing_in_tgt: DataFrame
+    mismatch_count: int
+    missing_in_src_count: int
+    missing_in_tgt_count: int
+    missing_in_src: DataFrame | None = None
+    missing_in_tgt: DataFrame | None = None
     mismatch: DataFrame | None = None
 
 

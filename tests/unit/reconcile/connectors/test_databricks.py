@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, create_autospec
 import pytest
 from pyspark.errors import PySparkException
 
+from databricks.labs.remorph.config import SQLGLOT_DIALECTS
 from databricks.labs.remorph.reconcile.connectors.databricks import DatabricksDataSource
 from databricks.sdk import WorkspaceClient
 
@@ -13,7 +14,7 @@ def initial_setup():
     spark = pyspark_sql_session.SparkSession.builder.getOrCreate()
 
     # Define the source, workspace, and scope
-    engine = "databricks"
+    engine = SQLGLOT_DIALECTS.get("databricks")
     ws = create_autospec(WorkspaceClient)
     scope = "scope"
     return engine, spark, ws, scope
@@ -73,12 +74,8 @@ def test_read_data():
     dd = DatabricksDataSource(engine, spark, ws, scope)
 
     # Test with query
-    dd.read_data("catalog", "schema", "select id as id, ename as name from confidential.data.employee", None)
-    spark.sql.assert_called_with("select id as id, ename as name from confidential.data.employee")
-
-    # Test with table name
-    dd.read_data("catalog", "schema", "employee", None)
-    spark.sql.assert_called_with("select * from catalog.schema.employee")
+    dd.read_query_data("catalog", "schema", "select id as id, name as name from confidential.data.employee", None)
+    spark.sql.assert_called_with("select id as id, name as name from confidential.data.employee")
 
 
 def test_read_data_exception_handling():
@@ -96,7 +93,7 @@ def test_read_data_exception_handling():
         "following select id as id, ename as name from "
         "confidential.data.employee in DatabricksDataSource : Test Exception",
     ):
-        dd.read_data("catalog", "schema", "select id as id, ename as name from confidential.data.employee", None)
+        dd.read_query_data("catalog", "schema", "select id as id, ename as name from confidential.data.employee", None)
 
 
 def test_get_schema_exception_handling():

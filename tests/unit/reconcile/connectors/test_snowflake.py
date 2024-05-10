@@ -1,9 +1,12 @@
+import base64
 import re
 from unittest.mock import MagicMock, create_autospec
 
 import pytest
+from databricks.sdk.service.workspace import GetSecretResponse
 from pyspark.errors import PySparkException
 
+from databricks.labs.remorph.config import SQLGLOT_DIALECTS
 from databricks.labs.remorph.reconcile.connectors.snowflake import SnowflakeDataSource
 from databricks.labs.remorph.reconcile.constants import SourceDriver
 from databricks.labs.remorph.reconcile.recon_config import JdbcReaderOptions, Table
@@ -15,7 +18,7 @@ def initial_setup():
     spark = pyspark_sql_session.SparkSession.builder.getOrCreate()
 
     # Define the source, workspace, and scope
-    engine = "snowflake"
+    engine = SQLGLOT_DIALECTS.get("snowflake")
     ws = create_autospec(WorkspaceClient)
     scope = "scope"
     return engine, spark, ws, scope
@@ -27,14 +30,14 @@ def test_get_jdbc_url():
     # Mocking get secret method to return the required values
     ws.secrets.get_secret = MagicMock()
     ws.secrets.get_secret.side_effect = lambda scope, secret_name: {
-        'snowflake_account': 'my_account',
-        'snowflake_sfUser': 'my_user',
-        'snowflake_sfPassword': 'my_password',
-        'snowflake_sfDatabase': 'my_database',
-        'snowflake_sfSchema': 'my_schema',
-        'snowflake_sfWarehouse': 'my_warehouse',
-        'snowflake_sfRole': 'my_role',
-        'snowflake_sfUrl': 'my_url',
+        'sfAccount': 'my_account',
+        'sfUser': 'my_user',
+        'sfPassword': 'my_password',
+        'sfDatabase': 'my_database',
+        'sfSchema': 'my_schema',
+        'sfWarehouse': 'my_warehouse',
+        'sfRole': 'my_role',
+        'sfUrl': 'my_url',
     }[secret_name]
     # create object for SnowflakeDataSource
     ds = SnowflakeDataSource(engine, spark, ws, scope)
@@ -54,14 +57,14 @@ def test_read_data_with_out_options():
     # Mocking get secret method to return the required values
     ws.secrets.get_secret = MagicMock()
     ws.secrets.get_secret.side_effect = lambda scope, secret_name: {
-        'snowflake_account': 'my_account',
-        'snowflake_sfUser': 'my_user',
-        'snowflake_sfPassword': 'my_password',
-        'snowflake_sfDatabase': 'my_database',
-        'snowflake_sfSchema': 'my_schema',
-        'snowflake_sfWarehouse': 'my_warehouse',
-        'snowflake_sfRole': 'my_role',
-        'snowflake_sfUrl': 'my_url',
+        'sfAccount': 'my_account',
+        'sfUser': 'my_user',
+        'sfPassword': 'my_password',
+        'sfDatabase': 'my_database',
+        'sfSchema': 'my_schema',
+        'sfWarehouse': 'my_warehouse',
+        'sfRole': 'my_role',
+        'sfUrl': 'my_url',
     }[secret_name]
 
     # create object for SnowflakeDataSource
@@ -81,7 +84,7 @@ def test_read_data_with_out_options():
     )
 
     # Call the read_data method with the Tables configuration
-    ds.read_data("catalog", "schema", "select 1 from dual", table_conf.jdbc_reader_options)
+    ds.read_query_data("catalog", "schema", "select 1 from dual", table_conf.jdbc_reader_options)
 
     # spark assertions
     spark.read.format.assert_called_with("snowflake")
@@ -104,14 +107,14 @@ def test_read_data_with_options():
     # Mocking get secret method to return the required values
     ws.secrets.get_secret = MagicMock()
     ws.secrets.get_secret.side_effect = lambda scope, secret_name: {
-        'snowflake_account': 'my_account',
-        'snowflake_sfUser': 'my_user',
-        'snowflake_sfPassword': 'my_password',
-        'snowflake_sfDatabase': 'my_database',
-        'snowflake_sfSchema': 'my_schema',
-        'snowflake_sfWarehouse': 'my_warehouse',
-        'snowflake_sfRole': 'my_role',
-        'snowflake_sfUrl': 'my_url',
+        'sfAccount': 'my_account',
+        'sfUser': 'my_user',
+        'sfPassword': 'my_password',
+        'sfDatabase': 'my_database',
+        'sfSchema': 'my_schema',
+        'sfWarehouse': 'my_warehouse',
+        'sfRole': 'my_role',
+        'sfUrl': 'my_url',
     }[secret_name]
 
     # create object for SnowflakeDataSource
@@ -133,7 +136,7 @@ def test_read_data_with_options():
     )
 
     # Call the read_data method with the Tables configuration
-    ds.read_data("catalog", "schema", "select 1 from dual", table_conf.jdbc_reader_options)
+    ds.read_query_data("catalog", "schema", "select 1 from dual", table_conf.jdbc_reader_options)
 
     # spark assertions
     spark.read.format.assert_called_with("jdbc")
@@ -155,14 +158,14 @@ def test_get_schema():
     # Mocking get secret method to return the required values
     ws.secrets.get_secret = MagicMock()
     ws.secrets.get_secret.side_effect = lambda scope, secret_name: {
-        'snowflake_account': 'my_account',
-        'snowflake_sfUser': 'my_user',
-        'snowflake_sfPassword': 'my_password',
-        'snowflake_sfDatabase': 'my_database',
-        'snowflake_sfSchema': 'my_schema',
-        'snowflake_sfWarehouse': 'my_warehouse',
-        'snowflake_sfRole': 'my_role',
-        'snowflake_sfUrl': 'my_url',
+        'sfAccount': 'my_account',
+        'sfUser': 'my_user',
+        'sfPassword': 'my_password',
+        'sfDatabase': 'my_database',
+        'sfSchema': 'my_schema',
+        'sfWarehouse': 'my_warehouse',
+        'sfRole': 'my_role',
+        'sfUrl': 'my_url',
     }[secret_name]
 
     # create object for SnowflakeDataSource
@@ -232,11 +235,11 @@ def test_read_data_exception_handling():
 
     # Call the read_data method with the Tables configuration and assert that a PySparkException is raised
     with pytest.raises(
-        PySparkException,
-        match="An error occurred while fetching Snowflake Data using the following "
-        "select 1 from dual in SnowflakeDataSource : Test Exception",
+            PySparkException,
+            match="An error occurred while fetching Snowflake Data using the following "
+                  "select 1 from dual in SnowflakeDataSource : Test Exception",
     ):
-        ds.read_data("catalog", "schema", "select 1 from dual", table_conf.jdbc_reader_options)
+        ds.read_query_data("catalog", "schema", "select 1 from dual", table_conf.jdbc_reader_options)
 
 
 def test_get_schema_exception_handling():
@@ -249,8 +252,8 @@ def test_get_schema_exception_handling():
     # Call the get_schema method with predefined table, schema, and catalog names and assert that a PySparkException
     # is raised
     with pytest.raises(
-        PySparkException,
-        match="An error occurred while fetching Snowflake Schema using the following "
-        "supplier in SnowflakeDataSource: Test Exception",
+            PySparkException,
+            match="An error occurred while fetching Snowflake Schema using the following "
+                  "supplier in SnowflakeDataSource: Test Exception",
     ):
         ds.get_schema("catalog", "schema", "supplier")

@@ -35,7 +35,14 @@ def reconcile_data(source: DataFrame, target: DataFrame, key_columns: list[str],
         .select((key_columns if report_type == "all" else alias_column_str(source_alias, source.columns)))
         .drop(Constants.hash_column_name)
     )
-    return ReconcileOutput(missing_in_src=missing_in_src, missing_in_tgt=missing_in_tgt, mismatch=mismatch)
+    if not mismatch:
+        mismatch_count = 0
+    else:
+        mismatch_count = mismatch.count()
+
+    return ReconcileOutput(mismatch_count=mismatch_count, missing_in_src_count=missing_in_src.count(),
+                           missing_in_tgt_count=missing_in_tgt.count(), missing_in_src=missing_in_src,
+                           missing_in_tgt=missing_in_tgt, mismatch=mismatch)
 
 
 def _get_mismatch_data(df: DataFrame, src_alias: str, tgt_alias: str, select_columns) -> DataFrame:
@@ -55,7 +62,7 @@ def _get_mismatch_data(df: DataFrame, src_alias: str, tgt_alias: str, select_col
 
 
 def capture_mismatch_data_and_columns(
-    source: DataFrame, target: DataFrame, key_columns: list[str]
+        source: DataFrame, target: DataFrame, key_columns: list[str]
 ) -> (DataFrame, list[str]):
     source_columns = source.columns
     target_columns = target.columns

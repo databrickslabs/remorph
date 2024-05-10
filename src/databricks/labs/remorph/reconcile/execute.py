@@ -71,12 +71,13 @@ def recon(ws: WorkspaceClient, recon_conf: str, source: Dialects, report_type: s
 
 class Reconciliation:
     def __init__(
-        self,
-        source: DataSource,
-        target: DataSource,
-        database_config: DatabaseConfig,
-        report_type: str,
-        schema_comparator: SchemaCompare,
+            self,
+            source: DataSource,
+            target: DataSource,
+            database_config: DatabaseConfig,
+            report_type: str,
+            schema_comparator: SchemaCompare,
+            source_engine: Dialects
     ):
         self._source = source
         self._target = target
@@ -86,24 +87,26 @@ class Reconciliation:
         self._target_catalog = database_config.target_catalog
         self._target_schema = database_config.target_schema
         self._schema_comparator = schema_comparator
+        self._target_engine = SQLGLOT_DIALECTS.get("databricks")
+        self._source_engine = source_engine
 
     def reconcile_data(self, table_conf: Table, src_schema: list[Schema], tgt_schema: list[Schema]):
         reconcile_output = self._get_reconcile_output(table_conf, src_schema, tgt_schema)
         return self._get_sample_data(table_conf, reconcile_output, src_schema, tgt_schema)
 
     def reconcile_schema(self, src_schema, tgt_schema, table_conf):
-        return self._schema_comparator.compare(src_schema, tgt_schema, self._source.engine, table_conf)
+        return self._schema_comparator.compare(src_schema, tgt_schema, self._source_engine, table_conf)
 
     def _get_reconcile_output(self, table_conf, src_schema, tgt_schema):
-        src_hash_query = HashQueryBuilder(table_conf, src_schema, Layer.SOURCE.value, self._source.engine).build_query()
-        tgt_hash_query = HashQueryBuilder(table_conf, tgt_schema, Layer.TARGET.value, self._target.engine).build_query()
-        src_data = self._source.read_data(
+        src_hash_query = HashQueryBuilder(table_conf, src_schema, Layer.SOURCE.value, self._source_engine).build_query()
+        tgt_hash_query = HashQueryBuilder(table_conf, tgt_schema, Layer.TARGET.value, self._target_engine).build_query()
+        src_data = self._source.read_query_data(
             catalog=self._source_catalog,
             schema=self._source_schema,
             query=src_hash_query,
             options=table_conf.jdbc_reader_options,
         )
-        tgt_data = self._target.read_data(
+        tgt_data = self._target.read_query_data(
             catalog=self._target_catalog,
             schema=self._target_schema,
             query=tgt_hash_query,
@@ -115,34 +118,73 @@ class Reconciliation:
         )
 
     def _get_sample_data(self, table_conf, reconcile_output, src_schema, tgt_schema):
-        src_sampler = SamplingQueryBuilder(table_conf, src_schema, Layer.SOURCE.value, self._source.engine)
-        tgt_sampler = SamplingQueryBuilder(table_conf, tgt_schema, Layer.TARGET.value, self._target.engine)
-        src_mismatch_sample_query = src_sampler.build_query(reconcile_output.mismatch)
-        tgt_mismatch_sample_query = tgt_sampler.build_query(reconcile_output.mismatch)
-
-        src_data = self._source.read_data(
-            catalog=self._source_catalog,
-            schema=self._source_schema,
-            query=src_mismatch_sample_query,
-            options=table_conf.jdbc_reader_options,
-        )
-        tgt_data = self._target.read_data(
-            catalog=self._target_catalog,
-            schema=self._target_schema,
-            query=tgt_mismatch_sample_query,
-            options=table_conf.jdbc_reader_options,
-        )
-
-        mismatch_data = capture_mismatch_data_and_columns(
-            source=src_data, target=tgt_data, key_columns=table_conf.join_columns
-        )
-        missing_in_src_sample_query = tgt_sampler.build_query(reconcile_output.missing_in_src)
-        missing_in_tgt_sample_query = src_sampler.build_query(reconcile_output.missing_in_tgt)
+        if reconcile_output.mismatch_count > 0 or reconcile_output.missing_in_src_count > 0 or reconcile_output.missing_in_tgt_count > 0:
+            src_sampler = SamplingQueryBuilder(table_conf, src_schema, Layer.SOURCE.value, self._source_engine)
+            tgt_sampler = SamplingQueryBuilder(table_conf, tgt_schema, Layer.TARGET.value, self._target_engine)
+            if reconcile_output.mismatch_count > 0:
+                mismatch_data = self._get_mismatch_data(src_sampler, tgt_sampler, reconcile_output.mismatch,
+                                                        table_conf.join_columns)
+            else:
+                mismatch_data = None
+            if reconcile_output.missing_in_src_count > 0:
+                missing_in_src = self._get_missing_in_src_data(tgt_sampler, reconcile_output.missing_in_src)
+            else:
+                missing_in_src = None
+            if reconcile_output.missing_in_tgt_count > 0:
+                missing_in_tgt = self._get_missing_in_tgt_data(src_sampler, reconcile_output.missing_in_tgt)
+            else:
+                missing_in_tgt = None
+        else:
+            mismatch_data = None
+            missing_in_src = None
+            missing_in_tgt = None
 
         return ReconcileOutput(
             mismatch=mismatch_data,
-            missing_in_src=missing_in_src_sample_query,
-            missing_in_tgt=missing_in_tgt_sample_query,
+            mismatch_count=reconcile_output.mismatch_count,
+            missing_in_src_count=reconcile_output.missing_in_src_count,
+            missing_in_tgt_count=reconcile_output.missing_in_tgt_count,
+            missing_in_src=missing_in_src,
+            missing_in_tgt=missing_in_tgt,
+        )
+
+    def _get_mismatch_data(self, src_sampler, tgt_sampler, mismatch, key_columns):
+        src_mismatch_sample_query = src_sampler.build_query(mismatch)
+        tgt_mismatch_sample_query = tgt_sampler.build_query(mismatch)
+
+        src_data = self._source.read_query_data(
+            catalog=self._source_catalog,
+            schema=self._source_schema,
+            query=src_mismatch_sample_query,
+            options=None,
+        )
+        tgt_data = self._target.read_query_data(
+            catalog=self._target_catalog,
+            schema=self._target_schema,
+            query=tgt_mismatch_sample_query,
+            options=None,
+        )
+
+        return capture_mismatch_data_and_columns(
+            source=src_data, target=tgt_data, key_columns=key_columns
+        )
+
+    def _get_missing_in_src_data(self, sampler, missing_df):
+        missing_in_src_sample_query = sampler.build_query(missing_df)
+        return self._target.read_query_data(
+            catalog=self._target_catalog,
+            schema=self._target_schema,
+            query=missing_in_src_sample_query,
+            options=None,
+        )
+
+    def _get_missing_in_tgt_data(self, sampler, missing_df):
+        missing_in_tgt_sample_query = sampler.build_query(missing_df)
+        return self._source.read_query_data(
+            catalog=self._source_catalog,
+            schema=self._source_schema,
+            query=missing_in_tgt_sample_query,
+            options=None,
         )
 
 

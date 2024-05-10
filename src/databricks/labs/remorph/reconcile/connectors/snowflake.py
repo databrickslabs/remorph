@@ -1,27 +1,44 @@
 import re
 
+from databricks.sdk import WorkspaceClient
 from pyspark.errors import PySparkException
-from pyspark.sql import DataFrame
+from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.functions import col
+from sqlglot import Dialects
 
+from databricks.labs.remorph.reconcile.connectors.jdbc_reader import JDBCReaderMixin
+from databricks.labs.remorph.reconcile.connectors.secrets import SecretsMixin
 from databricks.labs.remorph.reconcile.connectors.data_source import DataSource
 from databricks.labs.remorph.reconcile.constants import SourceDriver, SourceType
 from databricks.labs.remorph.reconcile.recon_config import JdbcReaderOptions, Schema
 
 
-class SnowflakeDataSource(DataSource):
+class SnowflakeDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
+
+    def __init__(
+            self,
+            engine: Dialects,
+            spark: SparkSession,
+            ws: WorkspaceClient,
+            scope: str,
+    ):
+        self._engine = engine
+        self._spark = spark
+        self._ws = ws
+        self._scope = scope
+
     @property
     def get_jdbc_url(self) -> str:
         return (
-            f"jdbc:{SourceType.SNOWFLAKE.value}://{self._get_secrets('account')}.snowflakecomputing.com"
-            f"/?user={self._get_secrets('sfUser')}&password={self._get_secrets('sfPassword')}"
-            f"&db={self._get_secrets('sfDatabase')}&schema={self._get_secrets('sfSchema')}"
-            f"&warehouse={self._get_secrets('sfWarehouse')}&role={self._get_secrets('sfRole')}"
+            f"jdbc:{SourceType.SNOWFLAKE.value}://{self._get_secret_if_exists('sfAccount')}.snowflakecomputing.com"
+            f"/?user={self._get_secret_if_exists('sfUser')}&password={self._get_secret_if_exists('sfPassword')}"
+            f"&db={self._get_secret_if_exists('sfDatabase')}&schema={self._get_secret_if_exists('sfSchema')}"
+            f"&warehouse={self._get_secret_if_exists('sfWarehouse')}&role={self._get_secret_if_exists('sfRole')}"
         )
 
-    def read_data(self, catalog: str, schema: str, query: str, options: JdbcReaderOptions) -> DataFrame:
+    def read_query_data(self, catalog: str, schema: str, query: str, options: JdbcReaderOptions | None) -> DataFrame:
         try:
-            table_query = self._get_table_or_query(catalog, schema, query)
+            table_query = query.format(catalog_name=catalog, schema_name=schema)
 
             if options is None:
                 df = self.reader(table_query)
@@ -54,15 +71,15 @@ class SnowflakeDataSource(DataSource):
 
     def reader(self, query: str) -> DataFrame:
         options = {
-            "sfUrl": self._get_secrets('sfUrl'),
-            "sfUser": self._get_secrets('sfUser'),
-            "sfPassword": self._get_secrets('sfPassword'),
-            "sfDatabase": self._get_secrets('sfDatabase'),
-            "sfSchema": self._get_secrets('sfSchema'),
-            "sfWarehouse": self._get_secrets('sfWarehouse'),
-            "sfRole": self._get_secrets('sfRole'),
+            "sfUrl": self._get_secret_if_exists('sfUrl'),
+            "sfUser": self._get_secret_if_exists('sfUser'),
+            "sfPassword": self._get_secret_if_exists('sfPassword'),
+            "sfDatabase": self._get_secret_if_exists('sfDatabase'),
+            "sfSchema": self._get_secret_if_exists('sfSchema'),
+            "sfWarehouse": self._get_secret_if_exists('sfWarehouse'),
+            "sfRole": self._get_secret_if_exists('sfRole'),
         }
-        return self.spark.read.format("snowflake").option("dbtable", f"({query}) as tmp").options(**options).load()
+        return self._spark.read.format("snowflake").option("dbtable", f"({query}) as tmp").options(**options).load()
 
     @staticmethod
     def get_schema_query(catalog: str, schema: str, table: str):
@@ -73,4 +90,3 @@ class SnowflakeDataSource(DataSource):
         and lower(table_schema) = '{schema}' order by ordinal_position"""
         return re.sub(r'\s+', ' ', query)
 
-    snowflake_datatype_mapper = {}
