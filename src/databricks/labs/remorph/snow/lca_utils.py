@@ -8,7 +8,6 @@ from sqlglot.optimizer.scope import build_scope
 
 from databricks.labs.remorph.helpers.morph_status import ValidationError
 from databricks.labs.remorph.snow.local_expression import AliasInfo
-from databricks.labs.remorph.snow.snowflake import Snow
 
 logger = logging.getLogger(__name__)
 
@@ -22,8 +21,6 @@ def check_for_unsupported_lca(
     Check for presence of unsupported lateral column aliases in window expressions and where clauses
     :return: An error if found
     """
-    if str(dialect).upper() == "SNOWFLAKE":
-        dialect = Snow
 
     try:
         parsed_expr = parse(sql, read=dialect, error_level=ErrorLevel.RAISE)

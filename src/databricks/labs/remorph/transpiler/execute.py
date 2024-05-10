@@ -3,7 +3,7 @@ import os
 from pathlib import Path
 
 from databricks.labs.remorph.__about__ import __version__
-from databricks.labs.remorph.config import MorphConfig
+from databricks.labs.remorph.config import MorphConfig, SQLGLOT_DIALECTS
 from databricks.labs.remorph.helpers import db_sql
 from databricks.labs.remorph.helpers.execution_time import timeit
 from databricks.labs.remorph.helpers.file_utils import (
@@ -40,7 +40,7 @@ def process_file(
     with input_file.open("r") as f:
         sql = remove_bom(f.read())
 
-    lca_error = lca_utils.check_for_unsupported_lca(config.source, sql, str(input_file))
+    lca_error = lca_utils.check_for_unsupported_lca(SQLGLOT_DIALECTS.get(config.source.lower()), sql, str(input_file))
 
     if lca_error:
         validate_error_list.append(lca_error)

@@ -98,10 +98,12 @@ class QueryBuilder(ABC):
             if DataType_transform_mapping.get(source) is None:
                 return DataType_transform_mapping.get("default", {}).get("default")
 
-            if DataType_transform_mapping.get(source, {}).get(datatype.upper()) is not None:
-                return DataType_transform_mapping.get(source, {}).get(datatype.upper())
-            if DataType_transform_mapping.get(source, {}).get("default") is not None:
-                return DataType_transform_mapping.get(source, {}).get("default")
+            source_mapping = DataType_transform_mapping.get(source, {})
+
+            if source_mapping.get(datatype.upper()) is not None:
+                return source_mapping.get(datatype.upper())
+            if source_mapping.get("default") is not None:
+                return source_mapping.get("default")
 
             return DataType_transform_mapping.get("default", {}).get("default")
 

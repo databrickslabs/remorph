@@ -69,7 +69,7 @@ def dir_walk(root: Path):
 
 def get_sql_file(input_path: str | Path) -> list[Path]:
     """
-    Generator that yields the names of all SQL files in the given directory tree.
+    Returns a list of SQL files in the given directory.
     :param input_path: Path
     :return: List of SQL files
     """

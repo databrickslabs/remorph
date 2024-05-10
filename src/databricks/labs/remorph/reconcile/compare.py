@@ -17,7 +17,7 @@ def raise_column_mismatch_exception(msg: str, source_missing: list[str], target_
 
 def reconcile_data(source: DataFrame, target: DataFrame, key_columns: list[str], report_type: str) -> ReconcileOutput:
     source_alias = "src"
-    target_alias: str = "tgt"
+    target_alias = "tgt"
     if report_type not in {"data", "all"}:
         key_columns = [Constants.hash_column_name]
     df = source.alias(source_alias).join(other=target.alias(target_alias), on=key_columns, how="full")

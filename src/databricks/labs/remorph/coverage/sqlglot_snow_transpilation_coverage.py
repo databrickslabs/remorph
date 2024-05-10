@@ -7,8 +7,8 @@ from sqlglot.dialects.snowflake import Snowflake
 from databricks.labs.remorph.coverage import commons
 
 if __name__ == "__main__":
-    input_dir: str = commons.get_env_var("INPUT_DIR", required=True) or ""
-    output_dir: str = commons.get_env_var("OUTPUT_DIR", required=True) or ""
+    input_dir = commons.get_env_var("INPUT_DIR", required=True)
+    output_dir = commons.get_env_var("OUTPUT_DIR", required=True)
     sqlglot_version = sqlglot.__version__
     SQLGLOT_COMMIT_HASH = ""  # C0103 pylint
 
@@ -18,6 +18,6 @@ if __name__ == "__main__":
         sqlglot_version,
         Snowflake,
         Databricks,
-        Path(input_dir),
-        Path(output_dir),
+        Path(str(input_dir)),
+        Path(str(output_dir)),
     )
