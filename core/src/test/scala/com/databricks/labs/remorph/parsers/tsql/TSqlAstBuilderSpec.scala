@@ -3,7 +3,6 @@ package com.databricks.labs.remorph.parsers.tsql
 import org.scalatest.Assertion
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-
 import com.databricks.labs.remorph.parsers.intermediate._
 
 class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matchers {
