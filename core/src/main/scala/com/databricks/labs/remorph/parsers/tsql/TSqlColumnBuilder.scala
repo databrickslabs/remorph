@@ -13,19 +13,6 @@ import scala.collection.JavaConverters.asScalaBufferConverter
  */
 class TSqlColumnBuilder extends TSqlExpressionBuilder {
 
-  override def visitFullColumnName(ctx: FullColumnNameContext): ir.Column = ctx.fullTableName.accept(this) match {
-    case table: ir.Table => ir.Column(ctx.id_.getText, Some(table))
-    case _ => ir.Column(ctx.id_.getText)
-  }
-
-  override def visitFullTableName(ctx: FullTableNameContext): ir.Table = {
-    ir.Table(
-      linkedServer = if (ctx.linkedServer == null) None else Option(ctx.linkedServer.getText),
-      database = if (ctx.database == null) None else Option(ctx.database.getText),
-      schema = if (ctx.schema == null) None else Option(ctx.schema.getText),
-      name = ctx.table.getText)
-  }
-
   override def visitExprDot(ctx: ExprDotContext): ir.Column = {
     val left = ctx.expression(0).accept(this)
     val right = ctx.expression(1).accept(this)
@@ -33,8 +20,8 @@ class TSqlColumnBuilder extends TSqlExpressionBuilder {
     (left, right) match {
 
       // x.y
-      case (table: ir.Column, column: ir.Column) =>
-        ir.Column(column.name, Some(ir.Table(table.name)))
+      case (c1: ir.Column, c2: ir.Column) =>
+        ir.Column(c1.name + "." + c2.name)
       case _ => throw new IllegalArgumentException("Expected a Table and a Column")
     }
   }
@@ -63,6 +50,27 @@ class TSqlColumnBuilder extends TSqlExpressionBuilder {
   // TODO: A lot of work here for things that are not just simple x.y.z
   override def visitSelectListElem(ctx: TSqlParser.SelectListElemContext): ir.Expression =
     ctx.expressionElem.accept(this)
+
+  override def visitFullTableName(ctx: FullTableNameContext): ir.Literal = {
+    // Extract the components of the full table name, if they exist
+    val linkedServer = Option(ctx.linkedServer).map(_.getText)
+    val database = Option(ctx.database).map(_.getText)
+    val schema = Option(ctx.schema).map(_.getText)
+    val name = ctx.table.getText
+
+    val unparsedIdentifier = List(linkedServer, database, schema, Some(name)).flatten.mkString(".")
+    ir.Literal(string = Some(unparsedIdentifier))
+  }
+
+  override def visitFullColumnName(ctx: FullColumnNameContext): ir.Column = {
+    val tableName = Option(ctx.fullTableName).map(_.accept(this) match {
+      case nt: ir.Literal => nt.string
+      case _ => ""
+    })
+    val columnName = ctx.id_.getText
+    val fullColumnName = tableName.map(_ + "." + columnName).getOrElse(columnName)
+    ir.Column(fullColumnName)
+  }
 
   override def visitPrimitiveConstant(ctx: TSqlParser.PrimitiveConstantContext): ir.Expression = {
     if (ctx.DOLLAR != null) {
@@ -101,8 +109,8 @@ class TSqlColumnBuilder extends TSqlExpressionBuilder {
   override def visitScPrec(ctx: TSqlParser.ScPrecContext): ir.Expression = ctx.searchCondition.accept(this)
 
   override def visitPredicate(ctx: TSqlParser.PredicateContext): ir.Expression = {
-    val left = ctx.expression(0).accept(new TSqlColumnBuilder).asInstanceOf[ir.Expression]
-    val right = ctx.expression(1).accept(new TSqlColumnBuilder).asInstanceOf[ir.Expression]
+    val left = ctx.expression(0).accept(this)
+    val right = ctx.expression(1).accept(this)
 
     ctx.comparisonOperator match {
       case op if op.LT != null && op.EQ != null => ir.LesserThanOrEqual(left, right)

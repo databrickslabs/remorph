@@ -4697,7 +4697,7 @@ ddlObject
 
 fullColumnName
     : ((DELETED | INSERTED | fullTableName) DOT)? (
-        columnName = id
+          id
         | (DOLLAR (IDENTITY | ROWGUID))
     )
     ;

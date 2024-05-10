@@ -50,18 +50,11 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
           Join(
             NamedTable("DBO.TABLE_X", Map(), is_streaming = false),
             NamedTable("DBO.TABLE_Y", Map(), is_streaming = false),
-            Some(
-              And(
-                Equals(
-                  Column("A", Some(Table("T1", None, None, None))),
-                  Column("A", Some(Table("T2", None, None, None)))),
-                Equals(
-                  Column("B", Some(Table("T1", None, None, None))),
-                  Column("B", Some(Table("T2", None, None, None)))))),
+            Some(And(Equals(Column("T1.A"), Column("T2.A")), Equals(Column("T1.B"), Column("T2.B")))),
             InnerJoin,
             List(),
             JoinDataType(is_left_struct = false, is_right_struct = false)),
-          List(Column("A", Some(Table("T1", None, None, None))), Column("B", Some(Table("T2", None, None, None))))))
+          List(Column("T1.A"), Column("T2.B"))))
     }
     "translate a query with Multiple JOIN AND Condition" in {
       example(
@@ -72,26 +65,16 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
             Join(
               NamedTable("DBO.TABLE_X", Map(), is_streaming = false),
               NamedTable("DBO.TABLE_Y", Map(), is_streaming = false),
-              Some(
-                Equals(
-                  Column("A", Some(Table("T1", None, None, None))),
-                  Column("A", Some(Table("T2", None, None, None))))),
+              Some(Equals(Column("T1.A"), Column("T2.A"))),
               InnerJoin,
               List(),
               JoinDataType(is_left_struct = false, is_right_struct = false)),
             NamedTable("DBO.TABLE_Z", Map(), is_streaming = false),
-            Some(
-              And(
-                Equals(
-                  Column("A", Some(Table("T1", None, None, None))),
-                  Column("A", Some(Table("T3", None, None, None)))),
-                Equals(
-                  Column("B", Some(Table("T1", None, None, None))),
-                  Column("B", Some(Table("T3", None, None, None)))))),
+            Some(And(Equals(Column("T1.A"), Column("T3.A")), Equals(Column("T1.B"), Column("T3.B")))),
             LeftOuterJoin,
             List(),
             JoinDataType(is_left_struct = false, is_right_struct = false)),
-          List(Column("A", Some(Table("T1", None, None, None))), Column("B", Some(Table("T2", None, None, None))))))
+          List(Column("T1.A"), Column("T2.B"))))
     }
     "translate a query with Multiple JOIN OR Conditions" in {
       example(
@@ -102,26 +85,16 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
             Join(
               NamedTable("DBO.TABLE_X", Map(), is_streaming = false),
               NamedTable("DBO.TABLE_Y", Map(), is_streaming = false),
-              Some(
-                Equals(
-                  Column("A", Some(Table("T1", None, None, None))),
-                  Column("A", Some(Table("T2", None, None, None))))),
+              Some(Equals(Column("T1.A"), Column("T2.A"))),
               InnerJoin,
               List(),
               JoinDataType(is_left_struct = false, is_right_struct = false)),
             NamedTable("DBO.TABLE_Z", Map(), is_streaming = false),
-            Some(
-              Or(
-                Equals(
-                  Column("A", Some(Table("T1", None, None, None))),
-                  Column("A", Some(Table("T3", None, None, None)))),
-                Equals(
-                  Column("B", Some(Table("T1", None, None, None))),
-                  Column("B", Some(Table("T3", None, None, None)))))),
+            Some(Or(Equals(Column("T1.A"), Column("T3.A")), Equals(Column("T1.B"), Column("T3.B")))),
             LeftOuterJoin,
             List(),
             JoinDataType(is_left_struct = false, is_right_struct = false)),
-          List(Column("A", Some(Table("T1", None, None, None))), Column("B", Some(Table("T2", None, None, None))))))
+          List(Column("T1.A"), Column("T2.B"))))
     }
     "translate a query with a RIGHT OUTER JOIN" in {
       example(
@@ -130,14 +103,11 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
           Join(
             NamedTable("DBO.TABLE_X", Map(), is_streaming = false),
             NamedTable("DBO.TABLE_Y", Map(), is_streaming = false),
-            Some(
-              Equals(
-                Column("A", Some(Table("T1", None, None, None))),
-                Column("A", Some(Table("T2", None, None, None))))),
+            Some(Equals(Column("T1.A"), Column("T2.A"))),
             RightOuterJoin,
             List(),
             JoinDataType(is_left_struct = false, is_right_struct = false)),
-          List(Column("A", Some(Table("T1", None, None, None))))))
+          List(Column("T1.A"))))
     }
     "translate a query with a FULL OUTER JOIN" in {
       example(
@@ -146,14 +116,11 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
           Join(
             NamedTable("DBO.TABLE_X", Map(), is_streaming = false),
             NamedTable("DBO.TABLE_Y", Map(), is_streaming = false),
-            Some(
-              Equals(
-                Column("A", Some(Table("T1", None, None, None))),
-                Column("A", Some(Table("T2", None, None, None))))),
+            Some(Equals(Column("T1.A"), Column("T2.A"))),
             FullOuterJoin,
             List(),
             JoinDataType(is_left_struct = false, is_right_struct = false)),
-          List(Column("A", Some(Table("T1", None, None, None))))))
+          List(Column("T1.A"))))
     }
   }
 }

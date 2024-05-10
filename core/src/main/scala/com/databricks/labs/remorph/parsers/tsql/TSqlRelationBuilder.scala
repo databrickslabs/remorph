@@ -1,7 +1,7 @@
 package com.databricks.labs.remorph.parsers.tsql
 
-import com.databricks.labs.remorph.parsers.{IncompleteParser, intermediate => ir}
 import com.databricks.labs.remorph.parsers.tsql.TSqlParser._
+import com.databricks.labs.remorph.parsers.{IncompleteParser, intermediate => ir}
 
 import scala.collection.JavaConverters._
 
@@ -10,9 +10,22 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.Relation] with Incomp
   protected override def wrapUnresolvedInput(unparsedInput: String): ir.Relation = ir.UnresolvedRelation(unparsedInput)
 
   override def visitTableSourceItem(ctx: TableSourceItemContext): ir.Relation = {
-    val table = ctx.fullTableName().getText
     // [TODO]: Handle Table Alias ctx.tableAlias().getText
-    ir.NamedTable(table, Map.empty, is_streaming = false)
+    ctx.fullTableName().accept(this)
+  }
+
+  override def visitFullTableName(ctx: FullTableNameContext): ir.NamedTable = {
+    // Extract the components of the full table name, if they exist
+    val linkedServer = Option(ctx.linkedServer).map(_.getText)
+    val database = Option(ctx.database).map(_.getText)
+    val schema = Option(ctx.schema).map(_.getText)
+    val name = ctx.table.getText
+
+    // Build the unparsed_identifier string
+    val unparsedIdentifier = List(linkedServer, database, schema, Some(name)).flatten.mkString(".")
+
+    // Create the NamedTable
+    ir.NamedTable(unparsedIdentifier, Map.empty, is_streaming = false)
   }
 
   /**
