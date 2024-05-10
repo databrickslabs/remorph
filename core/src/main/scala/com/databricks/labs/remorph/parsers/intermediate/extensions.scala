@@ -2,14 +2,7 @@ package com.databricks.labs.remorph.parsers.intermediate
 
 trait AstExtension
 
-case class Table(
-    name: String,
-    linkedServer: Option[String] = None,
-    database: Option[String] = None,
-    schema: Option[String] = None)
-    extends Expression
-    with AstExtension {}
-case class Column(name: String, table: Option[Table] = None) extends Expression with AstExtension {}
+case class Column(name: String) extends Expression with AstExtension {}
 
 case class Identifier(name: String, isQuoted: Boolean) extends Expression with AstExtension {}
 
@@ -18,7 +11,6 @@ abstract class Binary(left: Expression, right: Expression) extends Expression {}
 
 trait Predicate extends AstExtension
 
-case class Precedence(expression: Expression) extends Expression {}
 case class And(left: Expression, right: Expression) extends Binary(left, right) with Predicate {}
 case class Or(left: Expression, right: Expression) extends Binary(left, right) with Predicate {}
 case class Not(pred: Expression) extends Unary(pred) with Predicate {}
