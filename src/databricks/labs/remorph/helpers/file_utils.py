@@ -1,6 +1,6 @@
 import codecs
 from pathlib import Path
-from typing import Generator
+from collections.abc import Generator
 
 
 # Optionally check to see if a string begins with a Byte Order Mark
