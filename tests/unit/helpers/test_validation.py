@@ -11,9 +11,9 @@ def test_valid_query(morph_config):
         }
     )
     validator = Validator(sql_backend)
-    result, exception = validator.validate_format_result(morph_config, query)
-    assert query in result
-    assert exception is None
+    validation_result = validator.validate_format_result(morph_config, query)
+    assert query in validation_result.validated_sql
+    assert validation_result.exception_msg is None
 
 
 def test_query_with_syntax_error(morph_config):
@@ -24,9 +24,9 @@ def test_query_with_syntax_error(morph_config):
         }
     )
     validator = Validator(sql_backend)
-    result, exception = validator.validate_format_result(morph_config, query)
-    assert "Exception Start" in result
-    assert "Syntax error" in exception
+    validation_result = validator.validate_format_result(morph_config, query)
+    assert "Exception Start" in validation_result.validated_sql
+    assert "Syntax error" in validation_result.exception_msg
 
 
 def test_query_with_analysis_error(morph_config):
@@ -46,12 +46,12 @@ def test_query_with_analysis_error(morph_config):
             }
         )
         validator = Validator(sql_backend)
-        result, exception = validator.validate_format_result(morph_config, query)
+        validation_result = validator.validate_format_result(morph_config, query)
         if should_succeed:
-            assert query in result
-            assert "[WARNING]:" in exception
+            assert query in validation_result.validated_sql
+            assert "[WARNING]:" in validation_result.exception_msg
         else:
-            assert err in exception
+            assert err in validation_result.exception_msg
 
 
 def test_validate_format_result_with_valid_query(morph_config):
@@ -62,9 +62,9 @@ def test_validate_format_result_with_valid_query(morph_config):
         }
     )
     validator = Validator(sql_backend)
-    result, exception = validator.validate_format_result(morph_config, query)
-    assert query in result
-    assert exception is None
+    validation_result = validator.validate_format_result(morph_config, query)
+    assert query in validation_result.validated_sql
+    assert validation_result.exception_msg is None
 
 
 def test_validate_format_result_with_invalid_query(morph_config):
@@ -78,9 +78,9 @@ def test_validate_format_result_with_invalid_query(morph_config):
         }
     )
     validator = Validator(sql_backend)
-    result, exception = validator.validate_format_result(morph_config, query)
-    assert "Exception Start" in result
-    assert "[UNRESOLVED_ROUTINE]" in exception
+    validation_result = validator.validate_format_result(morph_config, query)
+    assert "Exception Start" in validation_result.validated_sql
+    assert "[UNRESOLVED_ROUTINE]" in validation_result.exception_msg
 
 
 def test_validate_with_no_rows_returned(morph_config):
@@ -91,6 +91,6 @@ def test_validate_with_no_rows_returned(morph_config):
         }
     )
     validator = Validator(sql_backend)
-    result, exception = validator.validate_format_result(morph_config, query)
-    assert "Exception Start" in result
-    assert "No results returned" in exception
+    validation_result = validator.validate_format_result(morph_config, query)
+    assert "Exception Start" in validation_result.validated_sql
+    assert "No results returned" in validation_result.exception_msg
