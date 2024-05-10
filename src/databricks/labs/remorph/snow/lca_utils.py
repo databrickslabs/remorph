@@ -1,8 +1,8 @@
 import logging
 
-from sqlglot import ErrorLevel, exp, parse
+from sqlglot import expressions as exp, parse
 from sqlglot.dialects.dialect import DialectType
-from sqlglot.errors import ParseError, TokenError, UnsupportedError
+from sqlglot.errors import ParseError, TokenError, UnsupportedError, ErrorLevel
 from sqlglot.expressions import Expression, Select
 from sqlglot.optimizer.scope import build_scope
 

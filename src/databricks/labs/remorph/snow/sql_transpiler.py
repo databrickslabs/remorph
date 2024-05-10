@@ -1,6 +1,7 @@
-from sqlglot import ErrorLevel, Expression, exp, parse, transpile
+from sqlglot import expressions as exp, parse, transpile
 from sqlglot.dialects.dialect import Dialect, DialectType
-from sqlglot.errors import ParseError, TokenError, UnsupportedError
+from sqlglot.errors import ErrorLevel, ParseError, TokenError, UnsupportedError
+from sqlglot.expressions import Expression
 
 from databricks.labs.remorph.config import TranspilationResult
 from databricks.labs.remorph.helpers.file_utils import refactor_hexadecimal_chars

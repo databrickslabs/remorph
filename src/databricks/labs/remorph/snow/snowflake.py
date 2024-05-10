@@ -2,9 +2,9 @@ import copy
 import logging
 import re
 
-from sqlglot import exp
-from sqlglot.dialects.dialect import build_date_delta as parse_date_delta
-from sqlglot.dialects.snowflake import Snowflake, build_formatted_time
+from sqlglot import expressions as exp
+from sqlglot.dialects.dialect import build_date_delta as parse_date_delta, build_formatted_time
+from sqlglot.dialects.snowflake import Snowflake
 from sqlglot.errors import ParseError
 from sqlglot.helper import is_int, seq_get
 from sqlglot.optimizer.simplify import simplify_literals
