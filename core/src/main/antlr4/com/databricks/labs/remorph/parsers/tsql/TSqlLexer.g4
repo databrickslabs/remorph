@@ -1176,6 +1176,8 @@ TZOFFSET    : 'TZOFFSET';
 ISO_WEEK    : 'ISO_WEEK';
 WEEKDAY     : 'WEEKDAY';
 
+
+// TODO: These are all broken and prevent valid identifiers from working - FIX
 YEAR_ABBR        : 'yy' | 'yyyy';
 QUARTER_ABBR     : 'qq' | 'q';
 MONTH_ABBR       : 'mm' | 'm';
