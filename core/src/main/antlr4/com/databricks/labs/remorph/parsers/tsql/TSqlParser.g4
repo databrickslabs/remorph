@@ -2040,7 +2040,7 @@ createPartitionFunction
     : CREATE PARTITION FUNCTION partitionFunctionName = id_ LPAREN inputParameterType = dataType RPAREN AS RANGE (
         LEFT
         | RIGHT
-    )? FOR VALUES LPAREN boundaryValues = expressionList_ RPAREN
+    )? FOR VALUES LPAREN boundaryValues = expressionList RPAREN
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/create-partition-scheme-transact-sql?view=sql-server-ver15
@@ -3949,13 +3949,13 @@ commonTableExpression
 updateElem
     : LOCAL_ID EQ fullColumnName (EQ | assignmentOperator) expression //Combined variable and column update
     | (fullColumnName | LOCAL_ID) (EQ | assignmentOperator) expression
-    | udtColumnName = id_ DOT methodName = id_ LPAREN expressionList_ RPAREN
+    | udtColumnName = id_ DOT methodName = id_ LPAREN expressionList RPAREN
     //| fullColumnName DOT WRITE (expression, )
     ;
 
 updateElemMerge
     : (fullColumnName | LOCAL_ID) (EQ | assignmentOperator) expression
-    | udtColumnName = id_ DOT methodName = id_ LPAREN expressionList_ RPAREN
+    | udtColumnName = id_ DOT methodName = id_ LPAREN expressionList RPAREN
     //| fullColumnName DOT WRITE (expression, )
     ;
 
@@ -3973,7 +3973,7 @@ predicate
     | expression ME expression ////SQL-82 syntax for left outer joins; PE. See https://stackoverflow.com/questions/40665/in-sybase-sql
     | expression comparisonOperator (ALL | SOME | ANY) LPAREN subquery RPAREN
     | expression NOT* BETWEEN expression AND expression
-    | expression NOT* IN LPAREN (subquery | expressionList_) RPAREN
+    | expression NOT* IN LPAREN (subquery | expressionList) RPAREN
     | expression NOT* LIKE expression (ESCAPE expression)?
     | expression IS nullNotnull
     ;
@@ -4280,14 +4280,21 @@ derivedTable
     ;
 
 functionCall
-    : rankingWindowedFunction                      # RANKING_WINDOWED_FUNC
-    | aggregateWindowedFunction                    # AGGREGATE_WINDOWED_FUNC
-    | analyticWindowedFunction                     # ANALYTIC_WINDOWED_FUNC
-    | builtInFunctions                             # BUILT_IN_FUNC
-    | scalarFunctionName LPAREN expressionList_? RPAREN # SCALAR_FUNCTION
-    | freetextFunction                              # FREE_TEXT
-    | partitionFunction                             # PARTITION_FUNC
-    | hierarchyidStaticMethod                      # HIERARCHYID_METHOD
+    : rankingWindowedFunction
+    | aggregateWindowedFunction
+    | analyticWindowedFunction
+    | builtInFunctions
+    | scalarFunctionName LPAREN expressionList? RPAREN
+    | freetextFunction
+    | partitionFunction
+    | hierarchyidStaticMethod
+    | standardFunction
+    ;
+
+// Standard functions are built in but take standarad syntax, or are
+// some user function etc
+standardFunction
+    : id_ LPAREN expressionList? RPAREN
     ;
 
 partitionFunction
@@ -4331,450 +4338,30 @@ jsonNullClause
     ;
 
 builtInFunctions
-    // Metadata functions
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/app-name-transact-sql?view=sql-server-ver16
-    : APP_NAME LPAREN RPAREN # APP_NAME
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/applock-mode-transact-sql?view=sql-server-ver16
-    | APPLOCK_MODE LPAREN databasePrincipal = expression COMMA resourceName = expression COMMA lockOwner = expression RPAREN # APPLOCK_MODE
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/applock-test-transact-sql?view=sql-server-ver16
-    | APPLOCK_TEST LPAREN databasePrincipal = expression COMMA resourceName = expression COMMA lockMode = expression COMMA lockOwner = expression RPAREN #
-        APPLOCK_TEST
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/assemblyproperty-transact-sql?view=sql-server-ver16
-    | ASSEMBLYPROPERTY LPAREN assemblyName = expression COMMA propertyName = expression RPAREN # ASSEMBLYPROPERTY
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/col-length-transact-sql?view=sql-server-ver16
-    | COL_LENGTH LPAREN table = expression COMMA column = expression RPAREN # COL_LENGTH
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/col-name-transact-sql?view=sql-server-ver16
-    | COL_NAME LPAREN tableId = expression COMMA columnId = expression RPAREN # COL_NAME
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/columnproperty-transact-sql?view=sql-server-ver16
-    | COLUMNPROPERTY LPAREN id = expression COMMA column = expression COMMA property = expression RPAREN # COLUMNPROPERTY
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/databasepropertyex-transact-sql?view=sql-server-ver16
-    | DATABASEPROPERTYEX LPAREN database = expression COMMA property = expression RPAREN # DATABASEPROPERTYEX
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/db-id-transact-sql?view=sql-server-ver16
-    | DB_ID LPAREN databaseName = expression? RPAREN # DB_ID
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/db-name-transact-sql?view=sql-server-ver16
-    | DB_NAME LPAREN databaseId = expression? RPAREN # DB_NAME
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/file-id-transact-sql?view=sql-server-ver16
-    | FILE_ID LPAREN fileName = expression RPAREN # FILE_ID
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/file-idex-transact-sql?view=sql-server-ver16
-    | FILE_IDEX LPAREN fileName = expression RPAREN # FILE_IDEX
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/file-name-transact-sql?view=sql-server-ver16
-    | FILE_NAME LPAREN fileId = expression RPAREN # FILE_NAME
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/filegroup-id-transact-sql?view=sql-server-ver16
-    | FILEGROUP_ID LPAREN filegroupName = expression RPAREN # FILEGROUP_ID
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/filegroup-name-transact-sql?view=sql-server-ver16
-    | FILEGROUP_NAME LPAREN filegroupId = expression RPAREN # FILEGROUP_NAME
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/filegroupproperty-transact-sql?view=sql-server-ver16
-    | FILEGROUPPROPERTY LPAREN filegroupName = expression COMMA property = expression RPAREN # FILEGROUPPROPERTY
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/fileproperty-transact-sql?view=sql-server-ver16
-    | FILEPROPERTY LPAREN fileName = expression COMMA property = expression RPAREN # FILEPROPERTY
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/filepropertyex-transact-sql?view=sql-server-ver16
-    | FILEPROPERTYEX LPAREN name = expression COMMA property = expression RPAREN # FILEPROPERTYEX
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/fulltextcatalogproperty-transact-sql?view=sql-server-ver16
-    | FULLTEXTCATALOGPROPERTY LPAREN catalogName = expression COMMA property = expression RPAREN # FULLTEXTCATALOGPROPERTY
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/fulltextserviceproperty-transact-sql?view=sql-server-ver16
-    | FULLTEXTSERVICEPROPERTY LPAREN property = expression RPAREN # FULLTEXTSERVICEPROPERTY
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/index-col-transact-sql?view=sql-server-ver16
-    | INDEX_COL LPAREN tableOrViewName = expression COMMA indexId = expression COMMA keyId = expression RPAREN # INDEX_COL
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/indexkey-property-transact-sql?view=sql-server-ver16
-    | INDEXKEY_PROPERTY LPAREN objectId = expression COMMA indexId = expression COMMA keyId = expression COMMA property = expression RPAREN # INDEXKEY_PROPERTY
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/indexproperty-transact-sql?view=sql-server-ver16
-    | INDEXPROPERTY LPAREN objectId = expression COMMA indexOrStatisticsName = expression COMMA property = expression RPAREN # INDEXPROPERTY
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/next-value-for-transact-sql?view=sql-server-ver16
-    | NEXT VALUE FOR sequenceName = tableName (OVER LPAREN orderByClause RPAREN)? # NEXT_VALUE_FOR
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/object-definition-transact-sql?view=sql-server-ver16
-    | OBJECT_DEFINITION LPAREN objectId = expression RPAREN # OBJECT_DEFINITION
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/object-id-transact-sql?view=sql-server-ver16
-    | OBJECT_ID LPAREN objectName = expression (COMMA objectType = expression)? RPAREN # OBJECT_ID
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/object-name-transact-sql?view=sql-server-ver16
-    | OBJECT_NAME LPAREN objectId = expression (COMMA databaseId = expression)? RPAREN # OBJECT_NAME
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/object-schema-name-transact-sql?view=sql-server-ver16
-    | OBJECT_SCHEMA_NAME LPAREN objectId = expression (COMMA databaseId = expression)? RPAREN # OBJECT_SCHEMA_NAME
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/objectproperty-transact-sql?view=sql-server-ver16
-    | OBJECTPROPERTY LPAREN id = expression COMMA property = expression RPAREN # OBJECTPROPERTY
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/objectpropertyex-transact-sql?view=sql-server-ver16
-    | OBJECTPROPERTYEX LPAREN id = expression COMMA property = expression RPAREN # OBJECTPROPERTYEX
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/original-db-name-transact-sql?view=sql-server-ver16
-    | ORIGINAL_DB_NAME LPAREN RPAREN # ORIGINAL_DB_NAME
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/parsename-transact-sql?view=sql-server-ver16
-    | PARSENAME LPAREN objectName = expression COMMA objectPiece = expression RPAREN # PARSENAME
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/schema-id-transact-sql?view=sql-server-ver16
-    | SCHEMA_ID LPAREN schemaName = expression? RPAREN # SCHEMA_ID
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/schema-name-transact-sql?view=sql-server-ver16
-    | SCHEMA_NAME LPAREN schemaId = expression? RPAREN # SCHEMA_NAME
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/scope-identity-transact-sql?view=sql-server-ver16
-    | SCOPE_IDENTITY LPAREN RPAREN # SCOPE_IDENTITY
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/serverproperty-transact-sql?view=sql-server-ver16
-    | SERVERPROPERTY LPAREN property = expression RPAREN # SERVERPROPERTY
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/stats-date-transact-sql?view=sql-server-ver16
-    | STATS_DATE LPAREN objectId = expression COMMA statsId = expression RPAREN # STATS_DATE
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/type-id-transact-sql?view=sql-server-ver16
-    | TYPE_ID LPAREN typeName = expression RPAREN # TYPE_ID
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/type-name-transact-sql?view=sql-server-ver16
-    | TYPE_NAME LPAREN typeId = expression RPAREN # TYPE_NAME
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/typeproperty-transact-sql?view=sql-server-ver16
-    | TYPEPROPERTY LPAREN type = expression COMMA property = expression RPAREN # TYPEPROPERTY
-    // String functions
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/ascii-transact-sql?view=sql-server-ver16
-    | ASCII LPAREN characterExpression = expression RPAREN # ASCII
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/char-transact-sql?view=sql-server-ver16
-    | CHAR LPAREN integerExpression = expression RPAREN # CHAR
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/charindex-transact-sql?view=sql-server-ver16
-    | CHARINDEX LPAREN expressionToFind = expression COMMA expressionToSearch = expression (
-        COMMA startLocation = expression
-    )? RPAREN # CHARINDEX
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/concat-transact-sql?view=sql-server-ver16
-    | CONCAT LPAREN stringValue_1 = expression COMMA stringValue_2 = expression (
-        COMMA stringValueN += expression
-    )* RPAREN # CONCAT
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/concat-ws-transact-sql?view=sql-server-ver16
-    | CONCAT_WS LPAREN separator = expression COMMA argument_1 = expression COMMA argument_2 = expression (
-        COMMA argumentN += expression
-    )* RPAREN # CONCAT_WS
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/difference-transact-sql?view=sql-server-ver16
-    | DIFFERENCE LPAREN characterExpression_1 = expression COMMA characterExpression_2 = expression RPAREN # DIFFERENCE
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/format-transact-sql?view=sql-server-ver16
-    | FORMAT LPAREN value = expression COMMA format = expression (COMMA culture = expression)? RPAREN # FORMAT
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/left-transact-sql?view=sql-server-ver16
-    | LEFT LPAREN characterExpression = expression COMMA integerExpression = expression RPAREN # LEFT
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/len-transact-sql?view=sql-server-ver16
-    | LEN LPAREN stringExpression = expression RPAREN # LEN
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/lower-transact-sql?view=sql-server-ver16
-    | LOWER LPAREN characterExpression = expression RPAREN # LOWER
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/ltrim-transact-sql?view=sql-server-ver16
-    | LTRIM LPAREN characterExpression = expression RPAREN # LTRIM
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/nchar-transact-sql?view=sql-server-ver16
-    | NCHAR LPAREN integerExpression = expression RPAREN # NCHAR
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/patindex-transact-sql?view=sql-server-ver16
-    | PATINDEX LPAREN pattern = expression COMMA stringExpression = expression RPAREN # PATINDEX
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/quotename-transact-sql?view=sql-server-ver16
-    | QUOTENAME LPAREN characterString = expression (COMMA quoteCharacter = expression)? RPAREN # QUOTENAME
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/replace-transact-sql?view=sql-server-ver16
-    | REPLACE LPAREN input = expression COMMA replacing = expression COMMA with = expression RPAREN # REPLACE
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/replicate-transact-sql?view=sql-server-ver16
-    | REPLICATE LPAREN stringExpression = expression COMMA integerExpression = expression RPAREN # REPLICATE
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/reverse-transact-sql?view=sql-server-ver16
-    | REVERSE LPAREN stringExpression = expression RPAREN # REVERSE
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/right-transact-sql?view=sql-server-ver16
-    | RIGHT LPAREN characterExpression = expression COMMA integerExpression = expression RPAREN # RIGHT
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/rtrim-transact-sql?view=sql-server-ver16
-    | RTRIM LPAREN characterExpression = expression RPAREN # RTRIM
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/soundex-transact-sql?view=sql-server-ver16
-    | SOUNDEX LPAREN characterExpression = expression RPAREN # SOUNDEX
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/space-transact-sql?view=sql-server-ver16
-    | SPACE_KEYWORD LPAREN integerExpression = expression RPAREN # SPACE
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/str-transact-sql?view=sql-server-ver16
-    | STR LPAREN floatExpression = expression (
-        COMMA lengthExpression = expression ( COMMA decimal = expression)?
-    )? RPAREN # STR
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/string-agg-transact-sql?view=sql-server-ver16
-    | STRING_AGG LPAREN expr = expression COMMA separator = expression RPAREN (
-        WITHIN GROUP LPAREN orderByClause RPAREN
-    )? # STRINGAGG
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/string-escape-transact-sql?view=sql-server-ver16
-    | STRING_ESCAPE LPAREN text_ = expression COMMA type_ = expression RPAREN # STRING_ESCAPE
-    // https://msdn.microsoft.com/fr-fr/library/ms188043.aspx
-    | STUFF LPAREN str = expression COMMA from = expression COMMA to = expression COMMA strWith = expression RPAREN # STUFF
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/substring-transact-sql?view=sql-server-ver16
-    | SUBSTRING LPAREN stringExpression = expression COMMA start_ = expression COMMA length = expression RPAREN # SUBSTRING
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/translate-transact-sql?view=sql-server-ver16
-    | TRANSLATE LPAREN inputString = expression COMMA characters = expression COMMA translations = expression RPAREN # TRANSLATE
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/trim-transact-sql?view=sql-server-ver16
-    | TRIM LPAREN (characters = expression FROM)? string_ = expression RPAREN # TRIM
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/unicode-transact-sql?view=sql-server-ver16
-    | UNICODE LPAREN ncharacterExpression = expression RPAREN # UNICODE
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/upper-transact-sql?view=sql-server-ver16
-    | UPPER LPAREN characterExpression = expression RPAREN # UPPER
+    : NEXT VALUE FOR sequenceName = tableName (OVER LPAREN orderByClause RPAREN)? # NEXT_VALUE_FOR
     // System functions
     // https://msdn.microsoft.com/en-us/library/ms173784.aspx
     | BINARY_CHECKSUM LPAREN (star = STAR | expression (COMMA expression)*) RPAREN # BINARY_CHECKSUM
     // https://msdn.microsoft.com/en-us/library/ms189788.aspx
     | CHECKSUM LPAREN (star = STAR | expression (COMMA expression)*) RPAREN # CHECKSUM
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/compress-transact-sql?view=sql-server-ver16
-    | COMPRESS LPAREN expr = expression RPAREN # COMPRESS
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/connectionproperty-transact-sql?view=sql-server-ver16
-    | CONNECTIONPROPERTY LPAREN property = STRING RPAREN # CONNECTIONPROPERTY
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/context-info-transact-sql?view=sql-server-ver16
-    | CONTEXT_INFO LPAREN RPAREN # CONTEXT_INFO
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/current-request-id-transact-sql?view=sql-server-ver16
-    | CURRENT_REQUEST_ID LPAREN RPAREN # CURRENT_REQUEST_ID
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/current-transaction-id-transact-sql?view=sql-server-ver16
-    | CURRENT_TRANSACTION_ID LPAREN RPAREN # CURRENT_TRANSACTION_ID
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/decompress-transact-sql?view=sql-server-ver16
-    | DECOMPRESS LPAREN expr = expression RPAREN # DECOMPRESS
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/error-line-transact-sql?view=sql-server-ver16
-    | ERROR_LINE LPAREN RPAREN # ERROR_LINE
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/error-message-transact-sql?view=sql-server-ver16
-    | ERROR_MESSAGE LPAREN RPAREN # ERROR_MESSAGE
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/error-number-transact-sql?view=sql-server-ver16
-    | ERROR_NUMBER LPAREN RPAREN # ERROR_NUMBER
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/error-procedure-transact-sql?view=sql-server-ver16
-    | ERROR_PROCEDURE LPAREN RPAREN # ERROR_PROCEDURE
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/error-severity-transact-sql?view=sql-server-ver16
-    | ERROR_SEVERITY LPAREN RPAREN # ERROR_SEVERITY
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/error-state-transact-sql?view=sql-server-ver16
-    | ERROR_STATE LPAREN RPAREN # ERROR_STATE
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/formatmessage-transact-sql?view=sql-server-ver16
-    | FORMATMESSAGE LPAREN (msgNumber = INT | msgString = STRING | msgVariable = LOCAL_ID) COMMA expression (
-        COMMA expression
-    )* RPAREN # FORMATMESSAGE
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/get-filestream-transaction-context-transact-sql?view=sql-server-ver16
-    | GET_FILESTREAM_TRANSACTION_CONTEXT LPAREN RPAREN # GET_FILESTREAM_TRANSACTION_CONTEXT
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/getansinull-transact-sql?view=sql-server-ver16
-    | GETANSINULL LPAREN (database = STRING)? RPAREN # GETANSINULL
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/host-id-transact-sql?view=sql-server-ver16
-    | HOST_ID LPAREN RPAREN # HOST_ID
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/host-name-transact-sql?view=sql-server-ver16
-    | HOST_NAME LPAREN RPAREN # HOST_NAME
-    // https://msdn.microsoft.com/en-us/library/ms184325.aspx
-    | ISNULL LPAREN left = expression COMMA right = expression RPAREN # ISNULL
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/isnumeric-transact-sql?view=sql-server-ver16
-    | ISNUMERIC LPAREN expression RPAREN # ISNUMERIC
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/min-active-rowversion-transact-sql?view=sql-server-ver16
-    | MIN_ACTIVE_ROWVERSION LPAREN RPAREN # MIN_ACTIVE_ROWVERSION
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/newid-transact-sql?view=sql-server-ver16
-    | NEWID LPAREN RPAREN # NEWID
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/newsequentialid-transact-sql?view=sql-server-ver16
-    | NEWSEQUENTIALID LPAREN RPAREN # NEWSEQUENTIALID
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/rowcount-big-transact-sql?view=sql-server-ver16
-    | ROWCOUNT_BIG LPAREN RPAREN # ROWCOUNT_BIG
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/session-context-transact-sql?view=sql-server-ver16
-    | SESSION_CONTEXT LPAREN key = STRING RPAREN # SESSION_CONTEXT
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/xact-state-transact-sql?view=sql-server-ver16
-    | XACT_STATE LPAREN RPAREN # XACT_STATE
-    // https://msdn.microsoft.com/en-us/library/hh231076.aspx
-    // https://msdn.microsoft.com/en-us/library/ms187928.aspx
     | CAST LPAREN expression AS dataType RPAREN     # CAST
     | TRY_CAST LPAREN expression AS dataType RPAREN # TRY_CAST
-    | CONVERT LPAREN convertDataType = dataType COMMA convertExpression = expression (
-        COMMA style = expression
-    )? RPAREN # CONVERT
-    // https://msdn.microsoft.com/en-us/library/ms190349.aspx
-    | COALESCE LPAREN expressionList_ RPAREN # COALESCE
-    // Cursor functions
-    // https://learn.microsoft.com/en-us/sql/t-sql/functions/cursor-rows-transact-sql?view=sql-server-ver16
+ // https://learn.microsoft.com/en-us/sql/t-sql/functions/ident-seed-transact-sql?view=sql-server-ver16
+    | IDENTITY LPAREN datatype = dataType (COMMA seed = INT COMMA increment = INT)? RPAREN # IDENTITY
     | CURSOR_ROWS # CURSOR_ROWS
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/cursor-rows-transact-sql?view=sql-server-ver16
     | FETCH_STATUS # FETCH_STATUS
-    // https://learn.microsoft.com/en-us/sql/t-sql/functions/cursor-status-transact-sql?view=sql-server-ver16
-    | CURSOR_STATUS LPAREN scope = STRING COMMA cursor = expression RPAREN # CURSOR_STATUS
-    // Cryptographic functions
-    // https://learn.microsoft.com/en-us/sql/t-sql/functions/cert-id-transact-sql?view=sql-server-ver16
-    | CERT_ID LPAREN certName = expression RPAREN # CERT_ID
-    // Data type functions
-    // https://learn.microsoft.com/en-us/sql/t-sql/functions/datalength-transact-sql?view=sql-server-ver16
-    | DATALENGTH LPAREN expression RPAREN # DATALENGTH
-    // https://learn.microsoft.com/en-us/sql/t-sql/functions/ident-current-transact-sql?view=sql-server-ver16
-    | IDENT_CURRENT LPAREN tableOrView = expression RPAREN # IDENT_CURRENT
-    // https://learn.microsoft.com/en-us/sql/t-sql/functions/ident-incr-transact-sql?view=sql-server-ver16
-    | IDENT_INCR LPAREN tableOrView = expression RPAREN # IDENT_INCR
-    // https://learn.microsoft.com/en-us/sql/t-sql/functions/ident-seed-transact-sql?view=sql-server-ver16
-    | IDENT_SEED LPAREN tableOrView = expression RPAREN # IDENT_SEED
-    // https://learn.microsoft.com/en-us/sql/t-sql/functions/ident-seed-transact-sql?view=sql-server-ver16
-    | IDENTITY LPAREN datatype = dataType (COMMA seed = INT COMMA increment = INT)? RPAREN # IDENTITY
-    // https://learn.microsoft.com/en-us/sql/t-sql/functions/ident-seed-transact-sql?view=sql-server-ver16
-    | SQL_VARIANT_PROPERTY LPAREN expr = expression COMMA property = STRING RPAREN # SQL_VARIANT_PROPERTY
-    // Date functions
-    //https://infocenter.sybase.com/help/index.jsp?topic=/com.sybase.infocenter.dc36271.1572/html/blocks/CJADIDHD.htm
-    | CURRENT_DATE LPAREN RPAREN # CURRENT_DATE
-    // https://msdn.microsoft.com/en-us/library/ms188751.aspx
-    | CURRENT_TIMESTAMP # CURRENT_TIMESTAMP
-    // https://learn.microsoft.com/en-us/sql/t-sql/functions/current-timezone-transact-sql?view=sql-server-ver16
-    | CURRENT_TIMEZONE LPAREN RPAREN # CURRENT_TIMEZONE
-    // https://learn.microsoft.com/en-us/sql/t-sql/functions/current-timezone-id-transact-sql?view=sql-server-ver16
-    | CURRENT_TIMEZONE_ID LPAREN RPAREN # CURRENT_TIMEZONE_ID
-    // https://learn.microsoft.com/en-us/sql/t-sql/functions/date-bucket-transact-sql?view=sql-server-ver16
-    | DATE_BUCKET LPAREN datepart = dateparts_9 COMMA number = expression COMMA date = expression (
-        COMMA origin = expression
-    )? RPAREN # DATE_BUCKET
-    // https://msdn.microsoft.com/en-us/library/ms186819.aspx
-    | DATEADD LPAREN datepart = dateparts_12 COMMA number = expression COMMA date = expression RPAREN # DATEADD
-    // https://msdn.microsoft.com/en-us/library/ms189794.aspx
-    | DATEDIFF LPAREN datepart = dateparts_12 COMMA dateFirst = expression COMMA dateSecond = expression RPAREN # DATEDIFF
-    // https://learn.microsoft.com/en-us/sql/t-sql/functions/datediff-big-transact-sql?view=sql-server-ver16
-    | DATEDIFF_BIG LPAREN datepart = dateparts_12 COMMA startdate = expression COMMA enddate = expression RPAREN # DATEDIFF_BIG
-    // https://learn.microsoft.com/en-us/sql/t-sql/functions/datefromparts-transact-sql?view=sql-server-ver16
-    | DATEFROMPARTS LPAREN year = expression COMMA month = expression COMMA day = expression RPAREN # DATEFROMPARTS
-    // https://msdn.microsoft.com/en-us/library/ms174395.aspx
-    | DATENAME LPAREN datepart = dateparts_15 COMMA date = expression RPAREN # DATENAME
-    // https://msdn.microsoft.com/en-us/library/ms174420.aspx
-    | DATEPART LPAREN datepart = dateparts_15 COMMA date = expression RPAREN # DATEPART
-    // https://learn.microsoft.com/en-us/sql/t-sql/functions/datetime2fromparts-transact-sql?view=sql-server-ver16
-    | DATETIME2FROMPARTS LPAREN year = expression COMMA month = expression COMMA day = expression COMMA hour = expression COMMA minute = expression COMMA seconds =
-        expression COMMA fractions = expression COMMA precision = expression RPAREN # DATETIME2FROMPARTS
-    // https://learn.microsoft.com/en-us/sql/t-sql/functions/datetimefromparts-transact-sql?view=sql-server-ver16
-    | DATETIMEFROMPARTS LPAREN year = expression COMMA month = expression COMMA day = expression COMMA hour = expression COMMA minute = expression COMMA seconds =
-        expression COMMA milliseconds = expression RPAREN # DATETIMEFROMPARTS
-    // https://learn.microsoft.com/en-us/sql/t-sql/functions/datetimeoffsetfromparts-transact-sql?view=sql-server-ver16
-    | DATETIMEOFFSETFROMPARTS LPAREN year = expression COMMA month = expression COMMA day = expression COMMA hour = expression COMMA minute = expression COMMA
-        seconds = expression COMMA fractions = expression COMMA hourOffset = expression COMMA minuteOffset = expression COMMA precision = INT RPAREN #
-        DATETIMEOFFSETFROMPARTS
-    // https://learn.microsoft.com/en-us/sql/t-sql/functions/datetrunc-transact-sql?view=sql-server-ver16
-    | DATETRUNC LPAREN datepart = datepartsDatetrunc COMMA date = expression RPAREN # DATETRUNC
-    // https://learn.microsoft.com/en-us/sql/t-sql/functions/day-transact-sql?view=sql-server-ver16
-    | DAY LPAREN date = expression RPAREN # DAY
-    // https://learn.microsoft.com/en-us/sql/t-sql/functions/eomonth-transact-sql?view=sql-server-ver16
-    | EOMONTH LPAREN startDate = expression (COMMA monthToAdd = expression)? RPAREN # EOMONTH
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/getdate-transact-sql
-    | GETDATE LPAREN RPAREN # GETDATE
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/getdate-transact-sql
-    | GETUTCDATE LPAREN RPAREN # GETUTCDATE
-    // https://learn.microsoft.com/en-us/sql/t-sql/functions/isdate-transact-sql?view=sql-server-ver16
-    | ISDATE LPAREN expression RPAREN # ISDATE
-    // https://learn.microsoft.com/en-us/sql/t-sql/functions/month-transact-sql?view=sql-server-ver16
-    | MONTH LPAREN date = expression RPAREN # MONTH
-    // https://learn.microsoft.com/en-us/sql/t-sql/functions/smalldatetimefromparts-transact-sql?view=sql-server-ver16
-    | SMALLDATETIMEFROMPARTS LPAREN year = expression COMMA month = expression COMMA day = expression COMMA hour = expression COMMA minute = expression RPAREN #
-        SMALLDATETIMEFROMPARTS
-    // https://learn.microsoft.com/en-us/sql/t-sql/functions/switchoffset-transact-sql?view=sql-server-ver16
-    | SWITCHOFFSET LPAREN datetimeoffsetExpression = expression COMMA timezoneoffsetExpression = expression RPAREN # SWITCHOFFSET
-    // https://learn.microsoft.com/en-us/sql/t-sql/functions/sysdatetime-transact-sql?view=sql-server-ver16
-    | SYSDATETIME LPAREN RPAREN # SYSDATETIME
-    // https://learn.microsoft.com/en-us/sql/t-sql/functions/sysdatetimeoffset-transact-sql?view=sql-server-ver16
-    | SYSDATETIMEOFFSET LPAREN RPAREN # SYSDATETIMEOFFSET
-    // https://learn.microsoft.com/en-us/sql/t-sql/functions/sysutcdatetime-transact-sql?view=sql-server-ver16
-    | SYSUTCDATETIME LPAREN RPAREN # SYSUTCDATETIME
-    //https://learn.microsoft.com/en-us/sql/t-sql/functions/timefromparts-transact-sql?view=sql-server-ver16
-    | TIMEFROMPARTS LPAREN hour = expression COMMA minute = expression COMMA seconds = expression COMMA fractions = expression COMMA precision = INT RPAREN #
-        TIMEFROMPARTS
-    // https://learn.microsoft.com/en-us/sql/t-sql/functions/todatetimeoffset-transact-sql?view=sql-server-ver16
-    | TODATETIMEOFFSET LPAREN datetimeExpression = expression COMMA timezoneoffsetExpression = expression RPAREN # TODATETIMEOFFSET
-    // https://learn.microsoft.com/en-us/sql/t-sql/functions/year-transact-sql?view=sql-server-ver16
-    | YEAR LPAREN date = expression RPAREN # YEAR
-    // https://msdn.microsoft.com/en-us/library/ms189838.aspx
-    | IDENTITY LPAREN dataType (COMMA seed = INT)? (COMMA increment = INT)? RPAREN # IDENTITY
-    // https://msdn.microsoft.com/en-us/library/bb839514.aspx
-    | MIN_ACTIVE_ROWVERSION LPAREN RPAREN # MIN_ACTIVE_ROWVERSION
-    // https://msdn.microsoft.com/en-us/library/ms177562.aspx
-    | NULLIF LPAREN left = expression COMMA right = expression RPAREN # NULLIF
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/parse-transact-sql
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/try-parse-transact-sql
     | PARSE LPAREN str = expression AS dataType (USING culture = expression)? RPAREN # PARSE
-    // https://docs.microsoft.com/en-us/sql/t-sql/xml/xml-data-type-methods
     | xmlDataTypeMethods # XML_DATA_TYPE_FUNC
-    // https://docs.microsoft.com/en-us/sql/t-sql/functions/logical-functions-iif-transact-sql
-    | IIF LPAREN cond = searchCondition COMMA left = expression COMMA right = expression RPAREN # IIF
-    // JSON functions
-    // https://learn.microsoft.com/en-us/sql/t-sql/functions/isjson-transact-sql?view=azure-sqldw-latest
-    | ISJSON LPAREN jsonExpr = expression (COMMA jsonTypeConstraint = expression)? RPAREN # ISJSON
-    // https://learn.microsoft.com/en-us/sql/t-sql/functions/json-object-transact-sql?view=azure-sqldw-latest
+    | JSON_ARRAY LPAREN expressionList? jsonNullClause? RPAREN # JSON_ARRAY
     | JSON_OBJECT LPAREN (keyValue = jsonKeyValue (COMMA keyValue = jsonKeyValue)*)? jsonNullClause? RPAREN # JSON_OBJECT
-    // https://learn.microsoft.com/en-us/sql/t-sql/functions/json-array-transact-sql?view=azure-sqldw-latest
-    | JSON_ARRAY LPAREN expressionList_? jsonNullClause? RPAREN # JSON_ARRAY
-    // https://learn.microsoft.com/en-us/sql/t-sql/functions/json-value-transact-sql?view=azure-sqldw-latest
-    | JSON_VALUE LPAREN expr = expression COMMA path = expression RPAREN # JSON_VALUE
-    // https://learn.microsoft.com/en-us/sql/t-sql/functions/json-query-transact-sql?view=azure-sqldw-latest
-    | JSON_QUERY LPAREN expr = expression (COMMA path = expression)? RPAREN # JSON_QUERY
-    // https://learn.microsoft.com/en-us/sql/t-sql/functions/json-modify-transact-sql?view=azure-sqldw-latest
-    | JSON_MODIFY LPAREN expr = expression COMMA path = expression COMMA newValue = expression RPAREN # JSON_MODIFY
-    // https://learn.microsoft.com/en-us/sql/t-sql/functions/json-path-exists-transact-sql?view=azure-sqldw-latest
-    | JSON_PATH_EXISTS LPAREN valueExpression = expression COMMA sqlJsonPath = expression RPAREN # JSON_PATH_EXISTS
-    // Math functions
-    // https://learn.microsoft.com/en-us/sql/t-sql/functions/abs-transact-sql?view=sql-server-ver16
-    | ABS LPAREN numericExpression = expression RPAREN # ABS
-    // https://learn.microsoft.com/en-us/sql/t-sql/functions/acos-transact-sql?view=sql-server-ver16
-    | ACOS LPAREN floatExpression = expression RPAREN # ACOS
-    // https://learn.microsoft.com/en-us/sql/t-sql/functions/asin-transact-sql?view=sql-server-ver16
-    | ASIN LPAREN floatExpression = expression RPAREN # ASIN
-    // https://learn.microsoft.com/en-us/sql/t-sql/functions/atan-transact-sql?view=sql-server-ver16
-    | ATAN LPAREN floatExpression = expression RPAREN # ATAN
-    // https://learn.microsoft.com/en-us/sql/t-sql/functions/atn2-transact-sql?view=sql-server-ver16
-    | ATN2 LPAREN floatExpression = expression COMMA floatExpression = expression RPAREN # ATN2
-    // https://learn.microsoft.com/en-us/sql/t-sql/functions/ceiling-transact-sql?view=sql-server-ver16
-    | CEILING LPAREN numericExpression = expression RPAREN # CEILING
-    // https://learn.microsoft.com/en-us/sql/t-sql/functions/cos-transact-sql?view=sql-server-ver16
-    | COS LPAREN floatExpression = expression RPAREN # COS
-    // https://learn.microsoft.com/en-us/sql/t-sql/functions/cot-transact-sql?view=sql-server-ver16
-    | COT LPAREN floatExpression = expression RPAREN # COT
-    // https://learn.microsoft.com/en-us/sql/t-sql/functions/degrees-transact-sql?view=sql-server-ver16
-    | DEGREES LPAREN numericExpression = expression RPAREN # DEGREES
-    // https://learn.microsoft.com/en-us/sql/t-sql/functions/exp-transact-sql?view=sql-server-ver16
-    | EXP LPAREN floatExpression = expression RPAREN # EXP
-    // https://learn.microsoft.com/en-us/sql/t-sql/functions/floor-transact-sql?view=sql-server-ver16
-    | FLOOR LPAREN numericExpression = expression RPAREN # FLOOR
-    // https://learn.microsoft.com/en-us/sql/t-sql/functions/log-transact-sql?view=sql-server-ver16
-    | LOG LPAREN floatExpression = expression (COMMA base = expression)? RPAREN # LOG
-    // https://learn.microsoft.com/en-us/sql/t-sql/functions/log10-transact-sql?view=sql-server-ver16
-    | LOG10 LPAREN floatExpression = expression RPAREN # LOG10
-    // https://learn.microsoft.com/en-us/sql/t-sql/functions/pi-transact-sql?view=sql-server-ver16
-    | PI LPAREN RPAREN # PI
-    // https://learn.microsoft.com/en-us/sql/t-sql/functions/power-transact-sql?view=sql-server-ver16
-    | POWER LPAREN floatExpression = expression COMMA y = expression RPAREN # POWER
-    // https://learn.microsoft.com/en-us/sql/t-sql/functions/radians-transact-sql?view=sql-server-ver16
-    | RADIANS LPAREN numericExpression = expression RPAREN # RADIANS
-    // https://learn.microsoft.com/en-us/sql/t-sql/functions/rand-transact-sql?view=sql-server-ver16
-    | RAND LPAREN (seed = expression)? RPAREN # RAND
-    // https://learn.microsoft.com/en-us/sql/t-sql/functions/round-transact-sql?view=sql-server-ver16
-    | ROUND LPAREN numericExpression = expression COMMA length = expression (COMMA function = expression)? RPAREN # ROUND
-    // https://learn.microsoft.com/en-us/sql/t-sql/functions/sign-transact-sql?view=sql-server-ver16
-    | SIGN LPAREN numericExpression = expression RPAREN # MATH_SIGN
-    // https://learn.microsoft.com/en-us/sql/t-sql/functions/sin-transact-sql?view=sql-server-ver16
-    | SIN LPAREN floatExpression = expression RPAREN # SIN
-    // https://learn.microsoft.com/en-us/sql/t-sql/functions/sqrt-transact-sql?view=sql-server-ver16
-    | SQRT LPAREN floatExpression = expression RPAREN # SQRT
-    // https://learn.microsoft.com/en-us/sql/t-sql/functions/square-transact-sql?view=sql-server-ver16
-    | SQUARE LPAREN floatExpression = expression RPAREN # SQUARE
-    // https://learn.microsoft.com/en-us/sql/t-sql/functions/tan-transact-sql?view=sql-server-ver16
-    | TAN LPAREN floatExpression = expression RPAREN # TAN
-    // Logical functions
-    // https://learn.microsoft.com/en-us/sql/t-sql/functions/logical-functions-greatest-transact-sql?view=azure-sqldw-latest
-    | GREATEST LPAREN expressionList_ RPAREN # GREATEST
-    // https://learn.microsoft.com/en-us/sql/t-sql/functions/logical-functions-least-transact-sql?view=azure-sqldw-latest
-    | LEAST LPAREN expressionList_ RPAREN # LEAST
-    // Security functions
-    // https://learn.microsoft.com/en-us/sql/t-sql/functions/certencoded-transact-sql?view=sql-server-ver16
-    | CERTENCODED LPAREN certid = expression RPAREN # CERTENCODED
-    // https://learn.microsoft.com/en-us/sql/t-sql/functions/certprivatekey-transact-sql?view=sql-server-ver16
-    | CERTPRIVATEKEY LPAREN certid = expression COMMA encryptionPassword = expression (
-        COMMA decryptionPasword = expression
-    )? RPAREN # CERTPRIVATEKEY
-    // https://msdn.microsoft.com/en-us/library/ms176050.aspx
-    | CURRENT_USER # CURRENT_USER
-    // https://learn.microsoft.com/en-us/sql/t-sql/functions/database-principal-id-transact-sql?view=sql-server-ver16
-    | DATABASE_PRINCIPAL_ID LPAREN (principalName = expression)? RPAREN # DATABASE_PRINCIPAL_ID
-    // https://learn.microsoft.com/en-us/sql/t-sql/functions/has-dbaccess-transact-sql?view=sql-server-ver16
-    | HAS_DBACCESS LPAREN databaseName = expression RPAREN # HAS_DBACCESS
-    // https://learn.microsoft.com/en-us/sql/t-sql/functions/has-perms-by-name-transact-sql?view=sql-server-ver16
-    | HAS_PERMS_BY_NAME LPAREN securable = expression COMMA securableClass = expression COMMA permission = expression (
-        COMMA subSecurable = expression (COMMA subSecurableClass = expression)?
-    )? RPAREN # HAS_PERMS_BY_NAME
-    // https://learn.microsoft.com/en-us/sql/t-sql/functions/is-member-transact-sql?view=sql-server-ver16
-    | IS_MEMBER LPAREN groupOrRole = expression RPAREN # IS_MEMBER
-    // https://learn.microsoft.com/en-us/sql/t-sql/functions/is-rolemember-transact-sql?view=sql-server-ver16
-    | IS_ROLEMEMBER LPAREN role = expression (COMMA databasePrincipal = expression)? RPAREN # IS_ROLEMEMBER
-    // https://learn.microsoft.com/en-us/sql/t-sql/functions/is-srvrolemember-transact-sql?view=sql-server-ver16
-    | IS_SRVROLEMEMBER LPAREN role = expression (COMMA login = expression)? RPAREN # IS_SRVROLEMEMBER
-    // https://learn.microsoft.com/en-us/sql/t-sql/functions/loginproperty-transact-sql?view=sql-server-ver16
-    | LOGINPROPERTY LPAREN loginName = expression COMMA propertyName = expression RPAREN # LOGINPROPERTY
-    // https://learn.microsoft.com/en-us/sql/t-sql/functions/original-login-transact-sql?view=sql-server-ver16
-    | ORIGINAL_LOGIN LPAREN RPAREN # ORIGINAL_LOGIN
-    // https://learn.microsoft.com/en-us/sql/t-sql/functions/permissions-transact-sql?view=sql-server-ver16
-    | PERMISSIONS LPAREN (objectId = expression (COMMA column = expression)?)? RPAREN # PERMISSIONS
-    // https://learn.microsoft.com/en-us/sql/t-sql/functions/pwdencrypt-transact-sql?view=sql-server-ver16
-    | PWDENCRYPT LPAREN password = expression RPAREN # PWDENCRYPT
-    // https://learn.microsoft.com/en-us/sql/t-sql/functions/pwdcompare-transact-sql?view=sql-server-ver16
-    | PWDCOMPARE LPAREN clearTextPassword = expression COMMA passwordHash = expression (
-        COMMA version = expression
-    )? RPAREN # PWDCOMPARE
     // https://msdn.microsoft.com/en-us/library/ms177587.aspx
     | SESSION_USER # SESSION_USER
-    // https://learn.microsoft.com/en-us/sql/t-sql/functions/sessionproperty-transact-sql?view=sql-server-ver16
-    | SESSIONPROPERTY LPAREN optionName = expression RPAREN # SESSIONPROPERTY
-    // https://learn.microsoft.com/en-us/sql/t-sql/functions/suser-id-transact-sql?view=sql-server-ver16
-    | SUSER_ID LPAREN (login = expression)? RPAREN # SUSER_ID
-    // https://learn.microsoft.com/en-us/sql/t-sql/functions/suser-name-transact-sql?view=sql-server-ver16
-    | SUSER_NAME LPAREN (serverUserSid = expression)? RPAREN # SUSER_SNAME
-    // https://learn.microsoft.com/en-us/sql/t-sql/functions/suser-sid-transact-sql?view=sql-server-ver16
-    | SUSER_SID LPAREN (login = expression (COMMA param2 = expression)?)? RPAREN # SUSER_SID
-    // https://learn.microsoft.com/en-us/sql/t-sql/functions/suser-sname-transact-sql?view=sql-server-ver16
-    | SUSER_SNAME LPAREN (serverUserSid = expression)? RPAREN # SUSER_SNAME
     // https://msdn.microsoft.com/en-us/library/ms179930.aspx
     | SYSTEM_USER # SYSTEM_USER
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/user-transact-sql?view=sql-server-ver16
     | USER # USER
-    // https://learn.microsoft.com/en-us/sql/t-sql/functions/user-id-transact-sql?view=sql-server-ver16
-    | USER_ID LPAREN (user = expression)? RPAREN # USER_ID
-    // https://learn.microsoft.com/en-us/sql/t-sql/functions/user-name-transact-sql?view=sql-server-ver16
-    | USER_NAME LPAREN (id = expression)? RPAREN # USER_NAME
     ;
 
 xmlDataTypeMethods
@@ -4988,10 +4575,10 @@ columnAlias
     ;
 
 tableValueConstructor
-    : VALUES LPAREN exps += expressionList_ RPAREN (COMMA LPAREN exps += expressionList_ RPAREN)*
+    : VALUES LPAREN exps += expressionList RPAREN (COMMA LPAREN exps += expressionList RPAREN)*
     ;
 
-expressionList_
+expressionList
     : exp += expression (COMMA exp += expression)*
     ;
 
@@ -5007,16 +4594,16 @@ aggregateWindowedFunction
     | cnt = (COUNT | COUNT_BIG) LPAREN (STAR | allDistinctExpression) RPAREN overClause?
     | CHECKSUM_AGG LPAREN allDistinctExpression RPAREN
     | GROUPING LPAREN expression RPAREN
-    | GROUPING_ID LPAREN expressionList_ RPAREN
+    | GROUPING_ID LPAREN expressionList RPAREN
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/functions/analytic-functions-transact-sql
 analyticWindowedFunction
     : (FIRST_VALUE | LAST_VALUE) LPAREN expression RPAREN overClause
     | (LAG | LEAD) LPAREN expression (COMMA expression (COMMA expression)?)? RPAREN overClause
-    | (CUME_DIST | PERCENT_RANK) LPAREN RPAREN OVER LPAREN (PARTITION BY expressionList_)? orderByClause RPAREN
+    | (CUME_DIST | PERCENT_RANK) LPAREN RPAREN OVER LPAREN (PARTITION BY expressionList)? orderByClause RPAREN
     | (PERCENTILE_CONT | PERCENTILE_DISC) LPAREN expression RPAREN WITHIN GROUP LPAREN orderByClause RPAREN OVER LPAREN (
-        PARTITION BY expressionList_
+        PARTITION BY expressionList
     )? RPAREN
     ;
 
@@ -5026,7 +4613,7 @@ allDistinctExpression
 
 // https://msdn.microsoft.com/en-us/library/ms189461.aspx
 overClause
-    : OVER LPAREN (PARTITION BY expressionList_)? orderByClause? rowOrRangeClause? RPAREN
+    : OVER LPAREN (PARTITION BY expressionList)? orderByClause? rowOrRangeClause? RPAREN
     ;
 
 rowOrRangeClause

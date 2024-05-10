@@ -2,8 +2,7 @@ package com.databricks.labs.remorph.parsers.tsql
 
 import org.antlr.v4.runtime.Token
 import org.antlr.v4.runtime.tree.TerminalNode
-
-import com.databricks.labs.remorph.parsers.intermediate.{Column, Literal}
+import com.databricks.labs.remorph.parsers.intermediate.{Column, Expression, Literal}
 import com.databricks.labs.remorph.parsers.tsql.TSqlParser._
 import com.databricks.labs.remorph.parsers.{IncompleteParser, ParserCommon, intermediate => ir}
 
@@ -65,6 +64,8 @@ class TSqlExpressionBuilder
   override def visitExprOpPrec4(ctx: ExprOpPrec4Context): ir.Expression = {
     buildBinaryExpression(ctx.expression(0).accept(this), ctx.expression(1).accept(this), ctx.op)
   }
+
+  override def visitExprFunc(ctx: ExprFuncContext): Expression = ctx.accept(new TSqlFunctionBuilder)
 
   override def visitPrimitiveConstant(ctx: PrimitiveConstantContext): ir.Expression = ctx match {
     case c if c.DOLLAR() != null => wrapUnresolvedInput(ctx.getText)
