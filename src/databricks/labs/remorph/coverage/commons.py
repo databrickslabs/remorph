@@ -6,7 +6,7 @@ import os
 import subprocess
 import time
 from collections.abc import Generator
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import TextIO
 
@@ -75,7 +75,7 @@ def get_current_commit_hash() -> str | None:
 
 
 def get_current_time_utc() -> datetime:
-    return datetime.utcnow()
+    return datetime.now(timezone.utc)
 
 
 def parse_sql(sql: str, dialect: type[Dialect]) -> list[Expression]:
