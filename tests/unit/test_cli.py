@@ -7,7 +7,7 @@ import yaml
 
 from databricks.labs.blueprint.tui import MockPrompts
 from databricks.labs.remorph import cli
-from databricks.labs.remorph.config import MorphConfig
+from databricks.labs.remorph.config import SQLGLOT_DIALECTS, MorphConfig
 from databricks.labs.remorph.helpers.recon_config_utils import ReconConfigPrompts
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.errors import NotFound
@@ -300,7 +300,7 @@ def test_recon_with_valid_input(mock_workspace_client_cli):
 
     with patch("os.path.exists", return_value=True), patch("databricks.labs.remorph.cli.recon") as mock_recon:
         cli.reconcile(mock_workspace_client_cli, recon_conf, conn_profile, source, report)
-        mock_recon.assert_called_once_with(recon_conf, conn_profile, source, report)
+        mock_recon.assert_called_once_with(mock_workspace_client_cli, recon_conf, SQLGLOT_DIALECTS.get(source), report)
 
 
 def test_generate_lineage_valid_input(temp_dirs_for_lineage, mock_workspace_client_cli):

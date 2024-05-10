@@ -31,9 +31,9 @@ from databricks.sdk import WorkspaceClient
 logger = logging.getLogger(__name__)
 
 
-def recon(recon_conf, ws: WorkspaceClient, source: Dialects, report):
+def recon(ws: WorkspaceClient, recon_conf: str, source: Dialects, report_type: str):
     logger.info(source)
-    logger.info(report)
+    logger.info(report_type)
 
     table_recon = get_config(Path(recon_conf))
     database_config = DatabaseConfig(
@@ -50,7 +50,7 @@ def recon(recon_conf, ws: WorkspaceClient, source: Dialects, report):
     schema_comparator = SchemaCompare(spark=spark)
 
     # initialise the Reconciliation
-    reconciler = Reconciliation(source, target, database_config, report, schema_comparator)
+    reconciler = Reconciliation(source, target, database_config, report_type, schema_comparator)
 
     for table_conf in table_recon.tables:
         src_schema = source.get_schema(
@@ -60,11 +60,11 @@ def recon(recon_conf, ws: WorkspaceClient, source: Dialects, report):
             catalog=database_config.target_catalog, schema=database_config.target_schema, table=table_conf.source_name
         )
 
-        if report in {"data", "hash"}:
+        if report_type in {"data", "hash"}:
             reconciler.reconcile_data(table_conf=table_conf, src_schema=src_schema, tgt_schema=tgt_schema)
-        elif report == "schema":
+        elif report_type == "schema":
             reconciler.reconcile_schema(table_conf=table_conf, src_schema=src_schema, tgt_schema=tgt_schema)
-        else:
+        elif report_type == "all":
             reconciler.reconcile_data(table_conf=table_conf, src_schema=src_schema, tgt_schema=tgt_schema)
             reconciler.reconcile_schema(table_conf=table_conf, src_schema=src_schema, tgt_schema=tgt_schema)
 

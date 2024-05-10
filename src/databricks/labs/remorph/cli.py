@@ -90,7 +90,7 @@ def reconcile(w: WorkspaceClient, recon_conf: str, conn_profile: str, source: st
             f"Error: Invalid value for '--report': '{report}' is not one of 'data', 'schema', 'all' , 'hash'"
         )
 
-    recon(recon_conf, w, SQLGLOT_DIALECTS.get(source.lower()), report)
+    recon(w, recon_conf, SQLGLOT_DIALECTS.get(source.lower()), report)
 
 
 @remorph.command
