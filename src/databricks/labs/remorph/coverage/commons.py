@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import TextIO
 
 import sqlglot
-from sqlglot import Expression
+from sqlglot.expressions import Expression
 from sqlglot.dialects.dialect import Dialect
 from sqlglot.errors import ErrorLevel
 
