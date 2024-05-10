@@ -2,6 +2,7 @@ import logging
 import os
 from pathlib import Path
 
+from sqlglot.dialects.dialect import Dialect
 from databricks.labs.remorph.__about__ import __version__
 from databricks.labs.remorph.config import (
     MorphConfig,
@@ -26,6 +27,7 @@ from databricks.labs.remorph.helpers.validation import Validator
 from databricks.labs.remorph.snow import lca_utils
 from databricks.labs.remorph.snow.sql_transpiler import SqlglotEngine
 from databricks.sdk import WorkspaceClient
+
 
 # pylint: disable=unspecified-encoding
 
@@ -65,7 +67,7 @@ def _process_file(
                 if config.skip_validation:
                     w.write(output)
                     w.write("\n;\n")
-                else:
+                elif validator:
                     validation_result: ValidationResult = _validation(validator, config, output)
                     w.write(validation_result.validated_sql)
                     if validation_result.exception_msg is not None:
@@ -234,7 +236,7 @@ def _validation(validator: Validator, config: MorphConfig, sql: str) -> Validati
 def morph_sql(
     workspace_client: WorkspaceClient, config: MorphConfig, sql: str
 ) -> tuple[TranspilationResult, ValidationResult | None]:
-    workspace_client: WorkspaceClient = _verify_workspace_client(workspace_client)
+    ws_client: WorkspaceClient = _verify_workspace_client(workspace_client)
 
     read_dialect: Dialect = config.get_read_dialect()
     write_dialect: Dialect = config.get_write_dialect()
@@ -243,7 +245,7 @@ def morph_sql(
     transpiler_result = _parse(transpiler, write_dialect, sql, "inline_sql", [])
 
     if not config.skip_validation:
-        validator = Validator(db_sql.get_sql_backend(workspace_client, config))
+        validator = Validator(db_sql.get_sql_backend(ws_client, config))
         return transpiler_result, _validation(validator, config, transpiler_result.transpiled_sql[0])
 
     return transpiler_result, None
