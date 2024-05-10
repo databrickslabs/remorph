@@ -1,4 +1,5 @@
 import logging
+from collections.abc import Iterable
 
 from sqlglot import expressions as exp
 from sqlglot import parse
@@ -24,7 +25,8 @@ def check_for_unsupported_lca(
     """
 
     try:
-        parsed_expr = parse(sql, read=dialect, error_level=ErrorLevel.RAISE)
+        all_parsed_expressions: Iterable[Expression | None] = parse(sql, read=dialect, error_level=ErrorLevel.RAISE)
+        root_expressions: Iterable[Expression] = [pe for pe in all_parsed_expressions if pe is not None]
     except (ParseError, TokenError, UnsupportedError) as e:
         logger.warning(f"Error while preprocessing {filename}: {e}")
         return None
@@ -32,12 +34,11 @@ def check_for_unsupported_lca(
     aliases_in_where = set()
     aliases_in_window = set()
 
-    for expr in parsed_expr:
-        if expr:
-            for select in expr.find_all(exp.Select, bfs=False):
-                alias_info = _find_aliases_in_select(select)
-                aliases_in_where.update(_find_invalid_lca_in_where(select, alias_info))
-                aliases_in_window.update(_find_invalid_lca_in_window(select, alias_info))
+    for expr in root_expressions:
+        for select in expr.find_all(exp.Select, bfs=False):
+            alias_info = _find_aliases_in_select(select)
+            aliases_in_where.update(_find_invalid_lca_in_where(select, alias_info))
+            aliases_in_window.update(_find_invalid_lca_in_window(select, alias_info))
 
     if not (aliases_in_where or aliases_in_window):
         return None
