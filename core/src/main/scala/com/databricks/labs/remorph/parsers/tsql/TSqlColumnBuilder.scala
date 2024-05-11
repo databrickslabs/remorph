@@ -16,7 +16,6 @@ class TSqlColumnBuilder extends TSqlExpressionBuilder {
     val right = ctx.expression(1).accept(this)
 
     (left, right) match {
-
       // x.y
       case (c1: ir.Column, c2: ir.Column) =>
         ir.Column(c1.name + "." + c2.name)
@@ -33,14 +32,7 @@ class TSqlColumnBuilder extends TSqlExpressionBuilder {
    * @return
    *   the visited Column object
    */
-  override def visitId_(ctx: Id_Context): ir.Expression = ctx match {
-    case c if c.ID() != null => ir.Column(ctx.getText)
-    case c if c.TEMP_ID() != null => ir.Column(ctx.getText)
-    case c if c.DOUBLE_QUOTE_ID() != null => ir.Column(ctx.getText)
-    case c if c.SQUARE_BRACKET_ID() != null => ir.Column(ctx.getText)
-    case c if c.RAW() != null => ir.Column(ctx.getText)
-    case _ => ir.UnresolvedExpression(ctx.getText)
-  }
+  override def visitId_(ctx: Id_Context): ir.Expression = ir.Column(ctx.getText)
 
   override def visitSelectList(ctx: TSqlParser.SelectListContext): ir.Expression =
     ir.ExpressionList(ctx.selectListElem().asScala.toList.map(_.accept(this)))
