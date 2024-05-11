@@ -2,23 +2,11 @@ package com.databricks.labs.remorph.parsers.tsql
 
 import com.databricks.labs.remorph.parsers.intermediate.Identifier
 import com.databricks.labs.remorph.parsers.tsql.TSqlParser._
-import com.databricks.labs.remorph.parsers.{IncompleteParser, ParserCommon, intermediate => ir}
+import com.databricks.labs.remorph.parsers.{ParserCommon, intermediate => ir}
 import org.antlr.v4.runtime.Token
 import org.antlr.v4.runtime.tree.TerminalNode
 
-class TSqlExpressionBuilder
-    extends TSqlParserBaseVisitor[ir.Expression]
-    with ParserCommon
-    with IncompleteParser[ir.Expression] {
-
-  protected override def wrapUnresolvedInput(unparsedInput: String): ir.UnresolvedExpression =
-    ir.UnresolvedExpression(unparsedInput)
-
-//  override def visitFullColumnName(ctx: FullColumnNameContext): ir.Expression =
-//    ctx.accept(new TSqlColumnBuilder) match {
-//      case c: ir.Column => c
-//      case c => wrapUnresolvedInput(ctx.getText)
-//    }
+class TSqlExpressionBuilder extends TSqlParserBaseVisitor[ir.Expression] with ParserCommon {
 
   /**
    * Expression precedence as defined by parenthesis
@@ -85,7 +73,6 @@ class TSqlExpressionBuilder
     case c if c == HEX => ir.Literal(string = Some(con.getText)) // Preserve format for now
     case c if c == REAL => ir.Literal(double = Some(con.getText.toDouble))
     case c if c == NULL_ => ir.Literal(nullType = Some(ir.NullType()))
-    case _ => ir.UnresolvedExpression(con.getText)
   }
 
   override def visitId_(ctx: Id_Context): ir.Expression = ctx match {
@@ -114,7 +101,5 @@ class TSqlExpressionBuilder
       case BIT_XOR => ir.BitwiseXor(left, right)
       case BIT_OR => ir.BitwiseOr(left, right)
       case DOUBLE_BAR => ir.Concat(left, right)
-      case _ => ir.UnresolvedOperator(s"Unsupported operator: ${operator.getText}")
     }
-
 }
