@@ -4284,17 +4284,28 @@ functionCall
     | aggregateWindowedFunction
     | analyticWindowedFunction
     | builtInFunctions
-    | scalarFunctionName LPAREN expressionList? RPAREN
+    | standardFunction
     | freetextFunction
     | partitionFunction
     | hierarchyidStaticMethod
-    | standardFunction
+    // TODO: This is broken and highly ambiguous - will need to be reworked
+    | scalarFunctionName LPAREN expressionList? RPAREN
     ;
 
 // Standard functions are built in but take standarad syntax, or are
 // some user function etc
 standardFunction
-    : id_ LPAREN expressionList? RPAREN
+    : funcId LPAREN expressionList? RPAREN
+    ;
+
+funcId
+    : id_
+    | LOG
+    | FORMAT
+    | LEFT
+    | RIGHT
+    | REPLACE
+    | CONCAT
     ;
 
 partitionFunction
@@ -4373,13 +4384,10 @@ xmlDataTypeMethods
 
 // https://learn.microsoft.com/en-us/sql/t-sql/functions/date-bucket-transact-sql?view=sql-server-ver16
 dateparts_9
-    : YEAR
-    | YEAR_ABBR
+    : YEAR_ABBR
     | QUARTER
     | QUARTER_ABBR
-    | MONTH
     | MONTH_ABBR
-    | DAY
     | DAY_ABBR
     | WEEK
     | WEEK_ABBR
@@ -4902,16 +4910,11 @@ keyword
     | ANSI_NULLS
     | ANSI_PADDING
     | ANSI_WARNINGS
-    | APP_NAME
     | APPLICATION_LOG
-    | APPLOCK_MODE
-    | APPLOCK_TEST
     | APPLY
     | ARITHABORT
     | ARITHIGNORE
-    | ASCII
     | ASSEMBLY
-    | ASSEMBLYPROPERTY
     | AT_KEYWORD
     | AUDIT
     | AUDIT_GUID
@@ -4945,14 +4948,9 @@ keyword
     | TRY_CAST
     | CATALOG
     | CATCH
-    | CERT_ID
-    | CERTENCODED
-    | CERTPRIVATEKEY
     | CHANGE
     | CHANGE_RETENTION
     | CHANGE_TRACKING
-    | CHAR
-    | CHARINDEX
     | CHECKALLOC
     | CHECKCATALOG
     | CHECKCONSTRAINTS
@@ -4964,12 +4962,9 @@ keyword
     | CLEANTABLE
     | CLEANUP
     | CLONEDATABASE
-    | COL_LENGTH
-    | COL_NAME
     | COLLECTION
     | COLUMN_ENCRYPTION_KEY
     | COLUMN_MASTER_KEY
-    | COLUMNPROPERTY
     | COLUMNS
     | COLUMNSTORE
     | COLUMNSTORE_ARCHIVE
@@ -4978,7 +4973,6 @@ keyword
     | COMPRESS_ALL_ROW_GROUPS
     | COMPRESSION_DELAY
     | CONCAT
-    | CONCAT_WS
     | CONCAT_NULL_YIELDS_NULL
     | CONTENT
     | CONTROL
@@ -4994,22 +4988,12 @@ keyword
     | CUME_DIST
     | CURSOR_CLOSE_ON_COMMIT
     | CURSOR_DEFAULT
-    | CURSOR_STATUS
     | DATA
     | DATA_PURITY
-    | DATABASE_PRINCIPAL_ID
-    | DATABASEPROPERTYEX
-    | DATALENGTH
     | DATE_CORRELATION_OPTIMIZATION
-    | DATEADD
-    | DATEDIFF
-    | DATENAME
-    | DATEPART
     | DAYS
     | DB_CHAINING
     | DB_FAILOVER
-    | DB_ID
-    | DB_NAME
     | DBCC
     | DBREINDEX
     | DECRYPTION
@@ -5028,7 +5012,6 @@ keyword
     | DETERMINISTIC
     | DHCP
     | DIALOG
-    | DIFFERENCE
     | DIRECTORY_NAME
     | DISABLE
     | DISABLE_BROKER
@@ -5063,18 +5046,10 @@ keyword
     | FAILURE_CONDITION_LEVEL
     | FAST
     | FAST_FORWARD
-    | FILE_ID
-    | FILE_IDEX
-    | FILE_NAME
     | FILEGROUP
-    | FILEGROUP_ID
-    | FILEGROUP_NAME
-    | FILEGROUPPROPERTY
     | FILEGROWTH
     | FILENAME
     | FILEPATH
-    | FILEPROPERTY
-    | FILEPROPERTYEX
     | FILESTREAM
     | FILTER
     | FIRST
@@ -5091,30 +5066,20 @@ keyword
     | FREE
     | FULLSCAN
     | FULLTEXT
-    | FULLTEXTCATALOGPROPERTY
-    | FULLTEXTSERVICEPROPERTY
     | GB
     | GENERATED
-    | GETDATE
-    | GETUTCDATE
     | GLOBAL
     | GO
-    | GREATEST
     | GROUP_MAX_REQUESTS
     | GROUPING
     | GROUPING_ID
     | HADR
-    | HAS_DBACCESS
-    | HAS_PERMS_BY_NAME
     | HASH
     | HEALTH_CHECK_TIMEOUT
     | HIDDEN_KEYWORD
     | HIGH
     | HONOR_BROKER_PRIORITY
     | HOURS
-    | IDENT_CURRENT
-    | IDENT_INCR
-    | IDENT_SEED
     | IDENTITY_VALUE
     | IGNORE_CONSTRAINTS
     | IGNORE_DUP_KEY
@@ -5127,28 +5092,17 @@ keyword
     | IMPORTANCE
     | INCLUDE_NULL_VALUES
     | INCREMENTAL
-    | INDEX_COL
-    | INDEXKEY_PROPERTY
-    | INDEXPROPERTY
     | INITIATOR
     | INPUT
     | INSENSITIVE
     | INSERTED
     | KWINT
     | IP
-    | IS_MEMBER
-    | IS_ROLEMEMBER
-    | IS_SRVROLEMEMBER
-    | ISJSON
     | ISOLATION
     | JOB
     | JSON
     | JSON_OBJECT
     | JSON_ARRAY
-    | JSON_VALUE
-    | JSON_QUERY
-    | JSON_MODIFY
-    | JSON_PATH_EXISTS
     | KB
     | KEEP
     | KEEPDEFAULTS
@@ -5161,8 +5115,6 @@ keyword
     | LAST
     | LAST_VALUE
     | LEAD
-    | LEAST
-    | LEN
     | LEVEL
     | LIST
     | LISTENER
@@ -5173,11 +5125,8 @@ keyword
     | LOCK
     | LOCK_ESCALATION
     | LOGIN
-    | LOGINPROPERTY
     | LOOP
     | LOW
-    | LOWER
-    | LTRIM
     | MANUAL
     | MARK
     | MASKED
@@ -5199,7 +5148,6 @@ keyword
     | MEMORY_OPTIMIZED_DATA
     | MESSAGE
     | MIN
-    | MIN_ACTIVE_ROWVERSION
     | MIN_CPU_PERCENT
     | MIN_IOPS_PER_VOLUME
     | MIN_MEMORY_PERCENT
@@ -5212,7 +5160,6 @@ keyword
     | MOVE
     | MULTI_USER
     | NAME
-    | NCHAR
     | NESTED_TRIGGERS
     | NEW_ACCOUNT
     | NEW_BROKER
@@ -5242,12 +5189,6 @@ keyword
     | NUMBER
     | NUMERIC_ROUNDABORT
     | OBJECT
-    | OBJECT_DEFINITION
-    | OBJECT_ID
-    | OBJECT_NAME
-    | OBJECT_SCHEMA_NAME
-    | OBJECTPROPERTY
-    | OBJECTPROPERTYEX
     | OFFLINE
     | OFFSET
     | OLD_ACCOUNT
@@ -5258,8 +5199,6 @@ keyword
     | OPTIMISTIC
     | OPTIMIZE
     | OPTIMIZE_FOR_SEQUENTIAL_KEY
-    | ORIGINAL_DB_NAME
-    | ORIGINAL_LOGIN
     | OUT
     | OUTPUT
     | OVERRIDE
@@ -5270,19 +5209,16 @@ keyword
     | PAGECOUNT
     | PAGLOCK
     | PARAMETERIZATION
-    | PARSENAME
     | PARSEONLY
     | PARTITION
     | PARTITIONS
     | PARTNER
     | PATH
-    | PATINDEX
     | PAUSE
     | PDW_SHOWSPACEUSED
     | PERCENT_RANK
     | PERCENTILE_CONT
     | PERCENTILE_DISC
-    | PERMISSIONS
     | PERSIST_SAMPLE_PERCENT
     | PHYSICAL_ONLY
     | POISON_MESSAGE_HANDLING
@@ -5301,14 +5237,11 @@ keyword
     | PROPERTY
     | PROVIDER
     | PROVIDER_KEY_NAME
-    | PWDCOMPARE
-    | PWDENCRYPT
     | QUERY
     | QUERY_SQUARE_BRACKET
     | QUEUE
     | QUEUE_DELAY
     | QUOTED_IDENTIFIER
-    | QUOTENAME
     | RANDOMIZED
     | RANGE
     | RANK
@@ -5343,7 +5276,6 @@ keyword
     | REPEATABLEREAD
     | REPLACE
     | REPLICA
-    | REPLICATE
     | REQUEST_MAX_CPU_TIME_SEC
     | REQUEST_MAX_MEMORY_GRANT_PERCENT
     | REQUEST_MEMORY_GRANT_TIMEOUT_SEC
@@ -5355,7 +5287,6 @@ keyword
     | RESTRICTED_USER
     | RESUMABLE
     | RETENTION
-    | REVERSE
     | ROBUST
     | ROOT
     | ROUTE
@@ -5364,12 +5295,8 @@ keyword
     | ROWGUID
     | ROWLOCK
     | ROWS
-    | RTRIM
     | SAMPLE
-    | SCHEMA_ID
-    | SCHEMA_NAME
     | SCHEMABINDING
-    | SCOPE_IDENTITY
     | SCOPED
     | SCROLL
     | SCROLL_LOCKS
@@ -5390,9 +5317,7 @@ keyword
     | SEQUENCE
     | SEQUENCE_NUMBER
     | SERIALIZABLE
-    | SERVERPROPERTY
     | SERVICEBROKER
-    | SESSIONPROPERTY
     | SESSION_TIMEOUT
     | SETERROR
     | SHARE
@@ -5409,36 +5334,23 @@ keyword
     | SMALLINT
     | SNAPSHOT
     | SORT_IN_TEMPDB
-    | SOUNDEX
-    | SPACE_KEYWORD
     | SPARSE
     | SPATIAL_WINDOW_MAX_CELLS
-    | SQL_VARIANT_PROPERTY
     | STANDBY
     | START_DATE
     | STATIC
     | STATISTICS_INCREMENTAL
     | STATISTICS_NORECOMPUTE
-    | STATS_DATE
     | STATS_STREAM
     | STATUS
     | STATUSONLY
     | STDEV
     | STDEVP
     | STOPLIST
-    | STR
-    | STRING_AGG
-    | STRING_ESCAPE
-    | STUFF
     | SUBJECT
     | SUBSCRIBE
     | SUBSCRIPTION
-    | SUBSTRING
     | SUM
-    | SUSER_ID
-    | SUSER_NAME
-    | SUSER_SID
-    | SUSER_SNAME
     | SUSPEND
     | SYMMETRIC
     | SYNCHRONOUS_COMMIT
@@ -5461,8 +5373,6 @@ keyword
     | TRACKING
     | TRANSACTION_ID
     | TRANSFORM_NOISE_WORDS
-    | TRANSLATE
-    | TRIM
     | TRIPLE_DES
     | TRIPLE_DES_3KEY
     | TRUSTWORTHY
@@ -5470,21 +5380,14 @@ keyword
     | TSQL
     | TWO_DIGIT_YEAR_CUTOFF
     | TYPE
-    | TYPE_ID
-    | TYPE_NAME
     | TYPE_WARNING
-    | TYPEPROPERTY
     | UNBOUNDED
     | UNCOMMITTED
-    | UNICODE
     | UNKNOWN
     | UNLIMITED
     | UNMASK
     | UOW
     | UPDLOCK
-    | UPPER
-    | USER_ID
-    | USER_NAME
     | USING
     | VALID_XML
     | VALIDATION
@@ -5544,29 +5447,23 @@ keyword
     | CHECK_EXPIRATION
     | CLASSIFIER_FUNCTION
     | CLUSTER
-    | COMPRESS
     | COMPRESSION
     | CONNECT
     | CONNECTION
     | CONFIGURATION
-    | CONNECTIONPROPERTY
     | CONTAINMENT
     | CONTEXT
-    | CONTEXT_INFO
     | CONTINUE_AFTER_ERROR
     | CONTRACT
     | CONTRACT_NAME
     | CONVERSATION
     | COPY_ONLY
-    | CURRENT_REQUEST_ID
-    | CURRENT_TRANSACTION_ID
     | CYCLE
     | DATA_COMPRESSION
     | DATA_SOURCE
     | DATABASE_MIRRORING
     | DATASPACE
     | DDL
-    | DECOMPRESS
     | DEFAULT_DATABASE
     | DEFAULT_SCHEMA
     | DIAGNOSTICS
@@ -5576,12 +5473,6 @@ keyword
     | ENABLED
     | ENDPOINT
     | ERROR
-    | ERROR_LINE
-    | ERROR_MESSAGE
-    | ERROR_NUMBER
-    | ERROR_PROCEDURE
-    | ERROR_SEVERITY
-    | ERROR_STATE
     | EVENT
     | EVENTDATA
     | EVENT_RETENTION_MODE
@@ -5595,11 +5486,8 @@ keyword
     | FILE_SNAPSHOT
     | FORCESEEK
     | FORCE_SERVICE_ALLOW_DATA_LOSS
-    | FORMATMESSAGE
     | GET
-    | GET_FILESTREAM_TRANSACTION_CONTEXT
     | GETANCESTOR
-    | GETANSINULL
     | GETDESCENDANT
     | GETLEVEL
     | GETREPARENTEDVALUE
@@ -5609,8 +5497,6 @@ keyword
     | HEALTHCHECKTIMEOUT
     | HEAP
     | HIERARCHYID
-    | HOST_ID
-    | HOST_NAME
     | IIF
     | IO
     | INCLUDE
@@ -5619,8 +5505,6 @@ keyword
     | INIT
     | INSTEAD
     | ISDESCENDANTOF
-    | ISNULL
-    | ISNUMERIC
     | KERBEROS
     | KEY_PATH
     | KEY_STORE_PROVIDER_NAME
@@ -5653,8 +5537,6 @@ keyword
     | MINVALUE
     | MIRROR
     | MUST_CHANGE
-    | NEWID
-    | NEWSEQUENTIALID
     | NOFORMAT
     | NOINIT
     | NONE
@@ -5699,7 +5581,6 @@ keyword
     | REWIND
     | ROLE
     | ROUND_ROBIN
-    | ROWCOUNT_BIG
     | RSA_512
     | RSA_1024
     | RSA_2048
@@ -5715,7 +5596,6 @@ keyword
     | SERVICE_BROKER
     | SERVICE_NAME
     | SESSION
-    | SESSION_CONTEXT
     | SETTINGS
     | SHRINKLOG
     | SID
@@ -5757,52 +5637,6 @@ keyword
     | WITHOUT
     | WITNESS
     | XACT_ABORT
-    | XACT_STATE
-    //
-    | ABS
-    | ACOS
-    | ASIN
-    | ATAN
-    | ATN2
-    | CEILING
-    | COS
-    | COT
-    | DEGREES
-    | EXP
-    | FLOOR
-    | LOG10
-    | PI
-    | POWER
-    | RADIANS
-    | RAND
-    | ROUND
-    | SIGN
-    | SIN
-    | SQRT
-    | SQUARE
-    | TAN
-    //
-    | CURRENT_TIMEZONE
-    | CURRENT_TIMEZONE_ID
-    | DATE_BUCKET
-    | DATEDIFF_BIG
-    | DATEFROMPARTS
-    | DATETIME2FROMPARTS
-    | DATETIMEFROMPARTS
-    | DATETIMEOFFSETFROMPARTS
-    | DATETRUNC
-    | DAY
-    | EOMONTH
-    | ISDATE
-    | MONTH
-    | SMALLDATETIMEFROMPARTS
-    | SWITCHOFFSET
-    | SYSDATETIME
-    | SYSDATETIMEOFFSET
-    | SYSUTCDATETIME
-    | TIMEFROMPARTS
-    | TODATETIMEOFFSET
-    | YEAR
     //
     | QUARTER
     | DAYOFYEAR
