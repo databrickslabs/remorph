@@ -7,6 +7,7 @@ import com.databricks.labs.remorph.parsers.tsql.TSqlParser._
 import com.databricks.labs.remorph.parsers.{IncompleteParser, ParserCommon, intermediate => ir}
 
 import scala.collection.JavaConverters._
+import scala.collection.convert.ImplicitConversions.`collection AsScalaIterable`
 
 class TSqlExpressionBuilder
     extends TSqlParserBaseVisitor[ir.Expression]
@@ -65,7 +66,10 @@ class TSqlExpressionBuilder
     buildBinaryExpression(ctx.expression(0).accept(this), ctx.expression(1).accept(this), ctx.op)
   }
 
-  override def visitExprFunc(ctx: ExprFuncContext): Expression = ctx.accept(new TSqlFunctionBuilder)
+  override def visitExprFunc(ctx: ExprFuncContext): Expression = ctx.functionCall.accept(new TSqlFunctionBuilder)
+
+  override def visitExpressionList(ctx: ExpressionListContext): ir.ExpressionList =
+    ir.ExpressionList(ctx.expression().toList.map(_.accept(this).asInstanceOf[ir.Expression]))
 
   override def visitPrimitiveConstant(ctx: PrimitiveConstantContext): ir.Expression = ctx match {
     case c if c.DOLLAR() != null => wrapUnresolvedInput(ctx.getText)

@@ -1,10 +1,10 @@
 package com.databricks.labs.remorph.parsers.tsql
 
-import com.databricks.labs.remorph.parsers.tsql.TSqlParser.{ExpressionListContext, StandardFunctionContext}
+import com.databricks.labs.remorph.parsers.intermediate.Expression
+import com.databricks.labs.remorph.parsers.tsql.TSqlParser.{ExprFuncContext, StandardFunctionContext}
 import com.databricks.labs.remorph.parsers.{intermediate => ir}
 
 import java.util.Locale
-import scala.collection.convert.ImplicitConversions.`collection AsScalaIterable`
 
 case class FunDef(argMin: Int, argMax: Int = Int.MaxValue, convertible: Boolean = true)
 
@@ -147,7 +147,6 @@ class TSqlFunctionBuilder extends TSqlExpressionBuilder {
     "YEAR" -> FunDef(1, 1),
     "MIN_ACTIVE_ROWVERSION" -> FunDef(0, 0),
     "NULLIF" -> FunDef(2, 2),
-    "PARSE" -> FunDef(2, 3),
     "IFF" -> FunDef(3, 3),
     "ISJSON" -> FunDef(1, 2),
     "JSON_VALUE" -> FunDef(2, 2),
@@ -202,15 +201,15 @@ class TSqlFunctionBuilder extends TSqlExpressionBuilder {
     "USER_NAME" -> FunDef(0, 1))
 
   override def visitStandardFunction(ctx: StandardFunctionContext): ir.Expression = {
-    val name = ctx.id_.getText.toUpperCase(Locale.getDefault())
-    val defnOption = functions.get(name)
+    val name = ctx.funcId.getText
+    val uName = name.toUpperCase(Locale.getDefault())
+    val defnOption = functions.get(uName)
 
     val args = ctx.expressionList() match {
       case null => Seq.empty
       case list =>
         list.accept(this) match {
           case exprList: ir.ExpressionList => exprList.expressions
-          case _ => Seq.empty
         }
     }
 
@@ -230,6 +229,5 @@ class TSqlFunctionBuilder extends TSqlExpressionBuilder {
     }
   }
 
-  override def visitExpressionList(ctx: ExpressionListContext): ir.ExpressionList =
-    ir.ExpressionList(ctx.expression().toList.map(_.accept(this).asInstanceOf[ir.Expression]))
+  override def visitExprFunc(ctx: ExprFuncContext): Expression = ctx.functionCall.accept(this)
 }
