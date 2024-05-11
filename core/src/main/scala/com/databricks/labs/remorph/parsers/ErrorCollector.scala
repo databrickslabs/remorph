@@ -33,8 +33,10 @@ class ErrorCollector(sourceCode: String, fileName: String) extends BaseErrorList
       val end = Math.min(lines(error.line - 1).length, error.offendingToken.getStopIndex + 32)
       val windowedLine = (if (start > 0) "..." else "") + lines(error.line - 1)
         .substring(start, end) + (if (end < lines(error.line - 1).length) "..." else "")
+      val markerStart =
+        if (start > 0) error.offendingToken.getStartIndex - start + 3 else error.offendingToken.getStartIndex - start
       val marker =
-        " " * (error.offendingToken.getStartIndex - start) + "^" *
+        " " * markerStart + "^" *
           (error.offendingToken.getStopIndex - error.offendingToken.getStartIndex + 1)
       s"File: $fileName, Line: ${error.line}, Token: ${error.offendingToken.getText}\n$windowedLine\n$marker"
     }
