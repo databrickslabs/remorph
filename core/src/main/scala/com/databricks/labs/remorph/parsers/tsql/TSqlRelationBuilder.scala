@@ -58,7 +58,6 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.Relation] with Incomp
   override def visitTableSources(ctx: TSqlParser.TableSourcesContext): ir.Relation = {
     val relations = ctx.tableSource().asScala.toList.map(_.accept(this)).collect { case r: ir.Relation => r }
     relations match {
-      case head :: Nil => head
       case head :: tail =>
         tail.foldLeft(head)((acc, relation) =>
           ir.Join(
