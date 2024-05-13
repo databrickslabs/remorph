@@ -5,12 +5,7 @@ import com.databricks.labs.remorph.parsers.{ParserCommon, intermediate => ir}
 import org.antlr.v4.runtime.Token
 import org.antlr.v4.runtime.tree.TerminalNode
 
-import scala.collection.JavaConverters.asScalaBufferConverter
-
 class TSqlExpressionBuilder extends TSqlParserBaseVisitor[ir.Expression] with ParserCommon {
-
-  override def visitSelectList(ctx: TSqlParser.SelectListContext): ir.Expression =
-    ir.ExpressionList(ctx.selectListElem().asScala.toList.map(_.accept(this)))
 
   // TODO: A lot of work here for things that are not just simple x.y.z
   override def visitSelectListElem(ctx: TSqlParser.SelectListElemContext): ir.Expression =

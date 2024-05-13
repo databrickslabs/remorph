@@ -352,10 +352,6 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
       example("a", _.fullColumnName(), Column("a"))
     }
 
-    "translate a list of elements" in {
-      example("a, b, c", _.selectList(), ExpressionList(Seq(Column("a"), Column("b"), Column("c"))))
-    }
-
     "translate search conditions" in {
       example("a = b", _.searchCondition(), Equals(Column("a"), Column("b")))
       example("a > b", _.searchCondition(), GreaterThan(Column("a"), Column("b")))

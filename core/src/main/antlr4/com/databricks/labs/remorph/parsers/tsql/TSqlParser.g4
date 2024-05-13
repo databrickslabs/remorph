@@ -4000,7 +4000,7 @@ sqlUnion
 // https://msdn.microsoft.com/en-us/library/ms176104.aspx
 // TODO: This is too much for one rule and it still misses things - rewrite
 querySpecification
-    : SELECT ad=(ALL | DISTINCT)? topClause? selectList
+    : SELECT ad=(ALL | DISTINCT)? topClause? selectListElem (COMMA selectListElem)*
     // https://msdn.microsoft.com/en-us/library/ms188029.aspx
     (INTO into =tableName)? (FROM tableSources)? (WHERE where = searchCondition)?
     // https://msdn.microsoft.com/en-us/library/ms177673.aspx

@@ -3,7 +3,7 @@ package com.databricks.labs.remorph.parsers.tsql
 import com.databricks.labs.remorph.parsers.tsql.TSqlParser._
 import com.databricks.labs.remorph.parsers.{IncompleteParser, intermediate => ir}
 
-import scala.collection.JavaConverters._
+import scala.collection.JavaConverters.asScalaBufferConverter
 
 class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.Relation] with IncompleteParser[ir.Relation] {
 
@@ -29,7 +29,8 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.Relation] with Incomp
 
     // TODO: Process all the other elements of a query specification
 
-    val columns = ctx.selectList.accept(new TSqlExpressionBuilder).asInstanceOf[ir.ExpressionList].expressions
+    val columns =
+      ctx.selectListElem().asScala.toList.map(_.accept(new TSqlExpressionBuilder()))
     val from = Option(ctx.tableSources()).map(_.accept(new TSqlRelationBuilder)).getOrElse(ir.NoTable())
 
     ir.Project(from, columns)
