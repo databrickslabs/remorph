@@ -4295,7 +4295,7 @@ functionCall
 // Standard functions are built in but take standarad syntax, or are
 // some user function etc
 standardFunction
-    : funcId LPAREN expressionList? RPAREN
+    : funcId LPAREN (expression (COMMA expression)*)? RPAREN
     ;
 
 funcId

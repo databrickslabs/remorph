@@ -138,5 +138,3 @@ case class RenameConstraint(oldName: String, newName: String) extends TableAlter
 case class RenameColumn(oldName: String, newName: String) extends TableAlteration
 
 case class AlterTableCommand(tableName: String, alterations: Seq[TableAlteration]) extends Catalog {}
-
-case class ExpressionList(expressions: Seq[Expression]) extends Expression {}
