@@ -3893,7 +3893,7 @@ constant_LOCAL_ID
 // Operator precendence: https://docs.microsoft.com/en-us/sql/t-sql/language-elements/operator-precedence-transact-sql
 expression
     : LPAREN expression RPAREN                                  #exprPrecedence
-    | <assoc=right> op=BIT_NOT expression                       #exprBititNot
+    | <assoc=right> op=BIT_NOT expression                       #exprBitNot
     | <assoc=right> op=(PLUS | MINUS) expression                #exprUnary
     | expression op=(STAR | DIV | MOD) expression               #exprOpPrec1
     | expression op=(PLUS | MINUS) expression                   #exprOpPrec2
