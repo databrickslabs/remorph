@@ -2,7 +2,8 @@ import pytest
 from pyspark import Row
 from pyspark.testing import assertDataFrameEqual
 
-from databricks.labs.remorph.reconcile.connectors.mock_data_source import MockDataSource
+from databricks.labs.remorph.reconcile.connectors.data_source import MockDataSource
+from databricks.labs.remorph.reconcile.exception import MockDataNotAvailableException
 from databricks.labs.remorph.reconcile.recon_config import Schema
 
 catalog = "org"
@@ -55,10 +56,10 @@ def test_mock_data_source_happy(mock_spark):
 def test_mock_data_source_fail(mock_spark):
     data_source = MockDataSource({}, {})
 
-    with pytest.raises(ValueError) as exception:
+    with pytest.raises(MockDataNotAvailableException) as exception:
         data_source.read_query_data(catalog, schema, table, "select * from test", None)
     assert str(exception.value) == "data is not mocked for the combination : ('org', 'data', 'select * from test')"
 
-    with pytest.raises(ValueError) as exception:
+    with pytest.raises(MockDataNotAvailableException) as exception:
         data_source.get_schema(catalog, schema, "unknown")
     assert str(exception.value) == "schema is not mocked for the combination : ('org', 'data', 'unknown')"

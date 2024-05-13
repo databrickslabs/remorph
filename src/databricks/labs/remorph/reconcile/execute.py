@@ -45,7 +45,7 @@ def recon(ws: WorkspaceClient, recon_conf: str, source_dialect: Dialects, report
     spark = DatabricksSession.builder.sdkConfig(ws.config).getOrCreate()
 
     source = DataSourceAdapter().create_adapter(engine=source_dialect, spark=spark, ws=ws, scope="")
-    target = DatabricksDataSource(engine=SQLGLOT_DIALECTS.get("databricks"), spark=spark, ws=ws, scope="")
+    target = DatabricksDataSource(engine=SQLGLOT_DIALECTS.get("databricks"), spark=spark, ws=ws, secret_scope="")
     schema_comparator = SchemaCompare(spark=spark)
 
     # initialise the Reconciliation

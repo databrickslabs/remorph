@@ -5,7 +5,7 @@ from pyspark import Row
 from pyspark.testing import assertDataFrameEqual
 
 from databricks.labs.remorph.config import SQLGLOT_DIALECTS, DatabaseConfig
-from databricks.labs.remorph.reconcile.connectors.mock_data_source import MockDataSource
+from databricks.labs.remorph.reconcile.connectors.data_source import MockDataSource
 from databricks.labs.remorph.reconcile.execute import Reconciliation
 from databricks.labs.remorph.reconcile.recon_config import (
     MismatchOutput,

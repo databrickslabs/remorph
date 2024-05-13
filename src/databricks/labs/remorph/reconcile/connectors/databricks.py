@@ -18,12 +18,12 @@ class DatabricksDataSource(DataSource, SecretsMixin):
         engine: Dialects,
         spark: SparkSession,
         ws: WorkspaceClient,
-        scope: str,
+        secret_scope: str,
     ):
-        self.engine = engine
-        self.spark = spark
-        self.ws = ws
-        self.scope = scope
+        self._engine = engine
+        self._spark = spark
+        self._ws = ws
+        self._secret_scope = secret_scope
 
     def read_query_data(
         self, catalog: str, schema: str, table: str, query: str, options: JdbcReaderOptions | None
@@ -32,7 +32,7 @@ class DatabricksDataSource(DataSource, SecretsMixin):
             if catalog and catalog != "hive_metastore":
                 table_query = query.replace(":tbl", f"{schema}.{table}")
             table_query = query.replace(":tbl", f"{catalog}.{schema}.{table}")
-            df = self.spark.sql(table_query)
+            df = self._spark.sql(table_query)
             return df.select([col(column).alias(column.lower()) for column in df.columns])
         except PySparkException as e:
             error_msg = (
@@ -44,7 +44,7 @@ class DatabricksDataSource(DataSource, SecretsMixin):
     def get_schema(self, catalog: str, schema: str, table: str) -> list[Schema]:
         try:
             schema_query = self.get_schema_query(catalog, schema, table)
-            schema_df = self.spark.sql(schema_query).where("col_name not like '#%'").distinct()
+            schema_df = self._spark.sql(schema_query).where("col_name not like '#%'").distinct()
             return [Schema(field.col_name.lower(), field.data_type.lower()) for field in schema_df.collect()]
         except PySparkException as e:
             error_msg = (

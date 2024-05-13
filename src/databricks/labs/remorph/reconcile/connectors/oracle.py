@@ -17,12 +17,12 @@ class OracleDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
         engine: Dialects,
         spark: SparkSession,
         ws: WorkspaceClient,
-        scope: str,
+        secret_scope: str,
     ):
-        self.engine = engine
-        self.spark = spark
-        self.ws = ws
-        self.scope = scope
+        self._engine = engine
+        self._spark = spark
+        self._ws = ws
+        self._secret_scope = secret_scope
 
     @property
     def get_jdbc_url(self) -> str:
