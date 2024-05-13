@@ -22,10 +22,10 @@ class TSqlAstBuilder extends TSqlParserBaseVisitor[ir.TreeNode] {
   }
 
   /**
-   * Build a complete AST for a select statement using a dedicated visitor.
+   * Build a complete AST for a select statement.
    * @param ctx
    *   the parse tree
    */
   override def visitSelectStatementStandalone(ctx: SelectStatementStandaloneContext): ir.TreeNode =
-    ctx.accept(new TSqlSelectBuilder)
+    ctx.accept(new TSqlRelationBuilder)
 }

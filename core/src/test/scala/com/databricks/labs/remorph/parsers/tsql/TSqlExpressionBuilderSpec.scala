@@ -36,6 +36,10 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
       example("4 ^ 2", _.expression(), ir.BitwiseXor(ir.Literal(integer = Some(4)), ir.Literal(integer = Some(2))))
     }
     "translate complex binary expressions" in {
+      example("a + b * 2", _.expression(), Add(Column("a"), Multiply(Column("b"), Literal(integer = Some(2)))))
+      example("(a + b) * 2", _.expression(), Multiply(Add(Column("a"), Column("b")), Literal(integer = Some(2))))
+      example("a & b | c", _.expression(), BitwiseOr(BitwiseAnd(Column("a"), Column("b")), Column("c")))
+      example("(a & b) | c", _.expression(), BitwiseOr(BitwiseAnd(Column("a"), Column("b")), Column("c")))
       example(
         "a + b * 2",
         _.expression(),
@@ -52,6 +56,9 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
       example(
         "a % 3 + b * 2 - c / 5",
         _.expression(),
+        Subtract(
+          Add(Mod(Column("a"), Literal(integer = Some(3))), Multiply(Column("b"), Literal(integer = Some(2)))),
+          Divide(Column("c"), Literal(integer = Some(5)))))
         ir.Subtract(
           ir.Add(
             ir.Mod(ir.Column("a"), ir.Literal(integer = Some(3))),
@@ -60,6 +67,10 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
       example(
         "(a % 3 + b) * 2 - c / 5",
         _.expression(),
+        Subtract(
+          Multiply(Add(Mod(Column("a"), Literal(integer = Some(3))), Column("b")), Literal(integer = Some(2))),
+          Divide(Column("c"), Literal(integer = Some(5)))))
+      example(query = "a || b || c", _.expression(), Concat(Concat(Column("a"), Column("b")), Column("c")))
         ir.Subtract(
           ir.Multiply(
             ir.Add(ir.Mod(ir.Column("a"), ir.Literal(integer = Some(3))), ir.Column("b")),
@@ -296,30 +307,81 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
           is_user_defined_function = false))
     }
     "correctly resolve dot delimited plain references" in {
-      example("a", _.expression(), Identifier("a", isQuoted = false))
-      example("a.b", _.expression(), Dot(Identifier("a", isQuoted = false), Identifier("b", isQuoted = false)))
-      example(
-        "a.b.c",
-        _.expression(),
-        Dot(
-          Identifier("a", isQuoted = false),
-          Dot(Identifier("b", isQuoted = false), Identifier("c", isQuoted = false))))
+      example("a", _.expression(), Column("a"))
+      example("a.b", _.expression(), Column("a.b"))
+      example("a.b.c", _.expression(), Column("a.b.c"))
     }
     "correctly resolve quoted identifiers" in {
-      example("RAW", _.expression(), Identifier("RAW", isQuoted = false))
-      example("#RAW", _.expression(), Identifier("#RAW", isQuoted = false))
-      example("\"a\"", _.expression(), Identifier("\"a\"", isQuoted = true))
-      example("[a]", _.expression(), Identifier("[a]", isQuoted = true))
-      example("[a].[b]", _.expression(), Dot(Identifier("[a]", isQuoted = true), Identifier("[b]", isQuoted = true)))
-      example(
-        "[a].[b].[c]",
-        _.expression(),
-        Dot(
-          Identifier("[a]", isQuoted = true),
-          Dot(Identifier("[b]", isQuoted = true), Identifier("[c]", isQuoted = true))))
+      example("RAW", _.expression(), Column("RAW"))
+      example("#RAW", _.expression(), Column("#RAW"))
+      example("\"a\"", _.expression(), Column("\"a\""))
+      example("[a]", _.expression(), Column("[a]"))
+      example("[a].[b]", _.expression(), Column("[a].[b]"))
+      example("[a].[b].[c]", _.expression(), Column("[a].[b].[c]"))
     }
+
     "correctly resolve keywords used as identifiers" in {
-      example("ABORT", _.expression(), Identifier("ABORT", isQuoted = false))
+      example("ABORT", _.expression(), Column("ABORT"))
+    }
+
+    "translate a simple column" in {
+      example("a", _.selectListElem(), Column("a"))
+      example("#a", _.selectListElem(), Column("#a"))
+      example("[a]", _.selectListElem(), Column("[a]"))
+      example("\"a\"", _.selectListElem(), Column("\"a\""))
+      example("RAW", _.selectListElem(), Column("RAW"))
+    }
+
+    "translate a column with a table" in {
+      example("table_x.a", _.selectListElem(), Column("table_x.a"))
+    }
+
+    "translate a column with a schema" in {
+      example("schema1.table_x.a", _.selectListElem(), Column("schema1.table_x.a"))
+    }
+
+    "translate a column with a database" in {
+      example("database1.schema1.table_x.a", _.selectListElem(), Column("database1.schema1.table_x.a"))
+    }
+
+    "translate a column with a server" in {
+      example("server1..schema1.table_x.a", _.fullColumnName(), Column("server1..schema1.table_x.a"))
+    }
+
+    "translate a column without a table reference" in {
+      example("a", _.fullColumnName(), Column("a"))
+    }
+
+    "translate a list of elements" in {
+      example("a, b, c", _.selectList(), ExpressionList(Seq(Column("a"), Column("b"), Column("c"))))
+    }
+
+    "translate search conditions" in {
+      example("a = b", _.searchCondition(), Equals(Column("a"), Column("b")))
+      example("a > b", _.searchCondition(), GreaterThan(Column("a"), Column("b")))
+      example("a < b", _.searchCondition(), LesserThan(Column("a"), Column("b")))
+      example("a >= b", _.searchCondition(), GreaterThanOrEqual(Column("a"), Column("b")))
+      example("a <= b", _.searchCondition(), LesserThanOrEqual(Column("a"), Column("b")))
+      example("a > = b", _.searchCondition(), GreaterThanOrEqual(Column("a"), Column("b")))
+      example("a <  = b", _.searchCondition(), LesserThanOrEqual(Column("a"), Column("b")))
+      example("a <> b", _.searchCondition(), NotEquals(Column("a"), Column("b")))
+      example("NOT a = b", _.searchCondition(), Not(Equals(Column("a"), Column("b"))))
+      example(
+        "a = b AND c = e",
+        _.searchCondition(),
+        And(Equals(Column("a"), Column("b")), Equals(Column("c"), Column("e"))))
+      example(
+        "a = b OR c = e",
+        _.searchCondition(),
+        Or(Equals(Column("a"), Column("b")), Equals(Column("c"), Column("e"))))
+      example(
+        "a = b AND c = x OR e = f",
+        _.searchCondition(),
+        Or(And(Equals(Column("a"), Column("b")), Equals(Column("c"), Column("x"))), Equals(Column("e"), Column("f"))))
+      example(
+        "a = b AND (c = x OR e = f)",
+        _.searchCondition(),
+        And(Equals(Column("a"), Column("b")), Or(Equals(Column("c"), Column("x")), Equals(Column("e"), Column("f")))))
     }
   }
 }
