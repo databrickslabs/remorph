@@ -4299,7 +4299,7 @@ standardFunction
     ;
 
 funcId
-    : id_
+    : id
     | LOG
     | FORMAT
     | LEFT

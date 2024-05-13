@@ -351,7 +351,7 @@ class TSqlExpressionBuilder
             s"Function $name expects between ${defn.argMin} and ${defn.argMax} arguments")
         }
         if (!defn.convertible) {
-          // Note that this will change when we handle user defined functions
+          // This function was flagged in the table as something that cannot be converted with current functionality
           return ir.UnresolvedFunction(name, args, is_distinct = false, is_user_defined_function = false)
         }
         ir.CallFunction(name, args)
