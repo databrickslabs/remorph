@@ -18,7 +18,7 @@ class TSqlExpressionBuilder
     ir.UnresolvedExpression(unparsedInput)
 
   override def visitFullColumnName(ctx: FullColumnNameContext): ir.Expression = {
-    Column(ctx.id_.getText)
+    Column(ctx.id.getText)
   }
 
   /**
