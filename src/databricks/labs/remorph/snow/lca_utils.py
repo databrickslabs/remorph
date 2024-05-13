@@ -1,10 +1,13 @@
 import logging
+from collections.abc import Iterable
 
-from sqlglot import expressions as exp, parse
+from sqlglot import expressions as exp
+from sqlglot import parse
 from sqlglot.dialects.dialect import DialectType
-from sqlglot.errors import ParseError, TokenError, UnsupportedError, ErrorLevel
+from sqlglot.errors import ErrorLevel, ParseError, TokenError, UnsupportedError
 from sqlglot.expressions import Expression, Select
-from sqlglot.optimizer.scope import build_scope, Scope
+from sqlglot.optimizer.scope import Scope, build_scope
+
 
 from databricks.labs.remorph.helpers.morph_status import ValidationError
 from databricks.labs.remorph.snow.local_expression import AliasInfo
@@ -23,7 +26,8 @@ def check_for_unsupported_lca(
     """
 
     try:
-        parsed_expr = parse(sql, read=dialect, error_level=ErrorLevel.RAISE)
+        all_parsed_expressions: Iterable[Expression | None] = parse(sql, read=dialect, error_level=ErrorLevel.RAISE)
+        root_expressions: Iterable[Expression] = [pe for pe in all_parsed_expressions if pe is not None]
     except (ParseError, TokenError, UnsupportedError) as e:
         logger.warning(f"Error while preprocessing {filename}: {e}")
         return None
@@ -31,12 +35,11 @@ def check_for_unsupported_lca(
     aliases_in_where = set()
     aliases_in_window = set()
 
-    for expr in parsed_expr:
-        if expr:
-            for select in expr.find_all(exp.Select, bfs=False):
-                alias_info = _find_aliases_in_select(select)
-                aliases_in_where.update(_find_invalid_lca_in_where(select, alias_info))
-                aliases_in_window.update(_find_invalid_lca_in_window(select, alias_info))
+    for expr in root_expressions:
+        for select in expr.find_all(exp.Select, bfs=False):
+            alias_info = _find_aliases_in_select(select)
+            aliases_in_where.update(_find_invalid_lca_in_where(select, alias_info))
+            aliases_in_window.update(_find_invalid_lca_in_window(select, alias_info))
 
     if not (aliases_in_where or aliases_in_window):
         return None
@@ -65,21 +68,23 @@ def unalias_lca_in_select(expr: exp.Expression) -> exp.Expression:
     where_ast: Expression | None = expr.args.get("where")
     if where_ast:
         for column in where_ast.walk(prune=lambda n: n in nested_selects):
-            if (
-                isinstance(column, exp.Column)
-                and column.name in alias_info
-                and not alias_info[column.name].is_same_name_as_column
-            ):
-                column.replace(alias_info[column.name].expression)
+            _replace_aliases(column, alias_info)
     for window in _find_windows_in_select(expr):
         for column in window.walk():
-            if (
-                isinstance(column, exp.Column)
-                and column.name in alias_info
-                and not alias_info[column.name].is_same_name_as_column
-            ):
-                column.replace(alias_info[column.name].expression)
+            _replace_aliases(column, alias_info)
     return expr
+
+
+def _replace_aliases(column: Expression, alias_info: dict[str, AliasInfo]):
+    if (
+        isinstance(column, exp.Column)
+        and column.name in alias_info
+        and not alias_info[column.name].is_same_name_as_column
+    ):
+        unaliased_expr = alias_info[column.name].expression
+        column.replace(unaliased_expr)
+        for col in unaliased_expr.walk():
+            _replace_aliases(col, alias_info)
 
 
 def _find_windows_in_select(select: Select) -> list[exp.Window]:
@@ -101,7 +106,7 @@ def _find_aliases_in_select(select_expr: Select) -> dict[str, AliasInfo]:
                 if column.name == alias_name:
                     is_same_name_as_column = True
                     break
-            aliases[alias_name] = AliasInfo(alias_name, expr.unalias(), is_same_name_as_column)
+            aliases[alias_name] = AliasInfo(alias_name, expr.unalias().copy(), is_same_name_as_column)
     return aliases
 
 

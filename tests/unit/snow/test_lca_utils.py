@@ -1,3 +1,5 @@
+from unittest.mock import patch
+
 from sqlglot import parse_one
 
 from databricks.labs.remorph.config import SQLGLOT_DIALECTS
@@ -264,4 +266,50 @@ def test_fix_lca_in_cte(normalize_string):
     """
     ast = parse_one(input_sql)
     generated_sql = ast.sql(Databricks, pretty=False)
+    assert normalize_string(generated_sql) == normalize_string(expected_sql)
+
+
+def test_fix_nested_lca(normalize_string):
+    input_sql = """
+        SELECT
+            b * c as new_b,
+            a - new_b as ab_diff
+        FROM my_table
+        WHERE ab_diff >= 0
+    """
+    expected_sql = """
+        SELECT
+            b * c as new_b,
+            a - new_b as ab_diff
+        FROM my_table
+        WHERE a - b * c >= 0
+    """
+    ast = parse_one(input_sql)
+    generated_sql = ast.sql(Databricks, pretty=False)
+    assert normalize_string(generated_sql) == normalize_string(expected_sql)
+
+
+def test_fix_nested_lca_with_no_scope(normalize_string):
+    # This test is to check if the code can handle the case where the scope is not available
+    # In this case we will not fix the invalid LCA and return the original query
+    input_sql = """
+        SELECT
+            b * c as new_b,
+            a - new_b as ab_diff
+        FROM my_table
+        WHERE ab_diff >= 0
+    """
+    expected_sql = """
+        SELECT
+            b * c as new_b,
+            a - new_b as ab_diff
+        FROM my_table
+        WHERE ab_diff >= 0
+    """
+    ast = parse_one(input_sql)
+    with patch(
+        'databricks.labs.remorph.snow.lca_utils.build_scope',
+        return_value=None,
+    ):
+        generated_sql = ast.sql(Databricks, pretty=False)
     assert normalize_string(generated_sql) == normalize_string(expected_sql)
