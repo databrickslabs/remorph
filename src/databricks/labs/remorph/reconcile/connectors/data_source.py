@@ -8,7 +8,9 @@ from databricks.labs.remorph.reconcile.recon_config import JdbcReaderOptions, Sc
 class DataSource(ABC):
 
     @abstractmethod
-    def read_query_data(self, catalog: str, schema: str, query: str, options: JdbcReaderOptions | None) -> DataFrame:
+    def read_query_data(
+        self, catalog: str, schema: str, table: str, query: str, options: JdbcReaderOptions | None
+    ) -> DataFrame:
         return NotImplemented
 
     @abstractmethod

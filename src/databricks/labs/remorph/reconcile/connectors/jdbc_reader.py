@@ -1,5 +1,3 @@
-import re
-
 from pyspark.sql import SparkSession
 
 from databricks.labs.remorph.reconcile.recon_config import JdbcReaderOptions
@@ -26,4 +24,3 @@ class JDBCReaderMixin:
             "upperBound": options.upper_bound,
             "fetchsize": options.fetch_size,
         }
-

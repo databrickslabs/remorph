@@ -1,35 +1,37 @@
 import re
 
-from databricks.sdk import WorkspaceClient
 from pyspark.errors import PySparkException
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.functions import col
 from sqlglot import Dialects
 
-from databricks.labs.remorph.reconcile.connectors.secrets import SecretsMixin
 from databricks.labs.remorph.reconcile.connectors.data_source import DataSource
+from databricks.labs.remorph.reconcile.connectors.secrets import SecretsMixin
 from databricks.labs.remorph.reconcile.recon_config import JdbcReaderOptions, Schema
+from databricks.sdk import WorkspaceClient
 
 
 class DatabricksDataSource(DataSource, SecretsMixin):
 
     def __init__(
-            self,
-            engine: Dialects,
-            spark: SparkSession,
-            ws: WorkspaceClient,
-            scope: str,
+        self,
+        engine: Dialects,
+        spark: SparkSession,
+        ws: WorkspaceClient,
+        scope: str,
     ):
         self.engine = engine
         self.spark = spark
         self.ws = ws
         self.scope = scope
 
-    def read_query_data(self, catalog: str, schema: str, query: str, options: JdbcReaderOptions | None) -> DataFrame:
+    def read_query_data(
+        self, catalog: str, schema: str, table: str, query: str, options: JdbcReaderOptions | None
+    ) -> DataFrame:
         try:
             if catalog and catalog != "hive_metastore":
-                table_query = query.format(catalog_name=catalog, schema_name=schema)
-            table_query = query.format(schema_name=schema)
+                table_query = query.replace(":tbl", f"{schema}.{table}")
+            table_query = query.replace(":tbl", f"{catalog}.{schema}.{table}")
             df = self.spark.sql(table_query)
             return df.select([col(column).alias(column.lower()) for column in df.columns])
         except PySparkException as e:
@@ -63,4 +65,3 @@ class DatabricksDataSource(DataSource, SecretsMixin):
                     and lower(table_schema)='{schema}' and lower(table_name) ='{table}' order by 
                     col_name"""
         return re.sub(r'\s+', ' ', query)
-

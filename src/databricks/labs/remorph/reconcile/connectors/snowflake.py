@@ -1,26 +1,26 @@
 import re
 
-from databricks.sdk import WorkspaceClient
 from pyspark.errors import PySparkException
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.functions import col
 from sqlglot import Dialects
 
+from databricks.labs.remorph.reconcile.connectors.data_source import DataSource
 from databricks.labs.remorph.reconcile.connectors.jdbc_reader import JDBCReaderMixin
 from databricks.labs.remorph.reconcile.connectors.secrets import SecretsMixin
-from databricks.labs.remorph.reconcile.connectors.data_source import DataSource
 from databricks.labs.remorph.reconcile.constants import SourceDriver, SourceType
 from databricks.labs.remorph.reconcile.recon_config import JdbcReaderOptions, Schema
+from databricks.sdk import WorkspaceClient
 
 
 class SnowflakeDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
 
     def __init__(
-            self,
-            engine: Dialects,
-            spark: SparkSession,
-            ws: WorkspaceClient,
-            scope: str,
+        self,
+        engine: Dialects,
+        spark: SparkSession,
+        ws: WorkspaceClient,
+        scope: str,
     ):
         self._engine = engine
         self._spark = spark
@@ -36,9 +36,11 @@ class SnowflakeDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
             f"&warehouse={self._get_secret_if_exists('sfWarehouse')}&role={self._get_secret_if_exists('sfRole')}"
         )
 
-    def read_query_data(self, catalog: str, schema: str, query: str, options: JdbcReaderOptions | None) -> DataFrame:
+    def read_query_data(
+        self, catalog: str, schema: str, table: str, query: str, options: JdbcReaderOptions | None
+    ) -> DataFrame:
         try:
-            table_query = query.format(catalog_name=catalog, schema_name=schema)
+            table_query = query.replace(":tbl", f"{catalog}.{schema}.{table}")
 
             if options is None:
                 df = self.reader(table_query)
@@ -89,4 +91,3 @@ class SnowflakeDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
         {catalog}.INFORMATION_SCHEMA.COLUMNS where lower(table_name)='{table}' 
         and lower(table_schema) = '{schema}' order by ordinal_position"""
         return re.sub(r'\s+', ' ', query)
-

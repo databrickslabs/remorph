@@ -6,12 +6,17 @@ from databricks.labs.remorph.reconcile.recon_config import JdbcReaderOptions, Sc
 
 class MockDataSource(DataSource):
 
-    def __init__(self, dataframe_repository: dict[(str, str, str), DataFrame],
-                 schema_repository: dict[(str, str, str), list[Schema]]):
+    def __init__(
+        self,
+        dataframe_repository: dict[(str, str, str), DataFrame],
+        schema_repository: dict[(str, str, str), list[Schema]],
+    ):
         self._dataframe_repository: dict[(str, str, str), DataFrame] = dataframe_repository
         self._schema_repository: dict[(str, str, str), list[Schema]] = schema_repository
 
-    def read_query_data(self, catalog: str, schema: str, query: str, options: JdbcReaderOptions) -> DataFrame:
+    def read_query_data(
+        self, catalog: str, schema: str, table: str, query: str, options: JdbcReaderOptions | None
+    ) -> DataFrame:
         mock_df = self._dataframe_repository.get((catalog, schema, query))
         if not mock_df:
             raise ValueError(f"data is not mocked for the combination : {(catalog, schema, query)}")

@@ -1,4 +1,3 @@
-import base64
 import logging
 
 from databricks.sdk import WorkspaceClient

@@ -168,9 +168,15 @@ class ReconcileOutput:
     mismatch_count: int
     missing_in_src_count: int
     missing_in_tgt_count: int
+    mismatch: MismatchOutput | None = None
     missing_in_src: DataFrame | None = None
     missing_in_tgt: DataFrame | None = None
-    mismatch: DataFrame | None = None
+
+
+@dataclass
+class MismatchOutput:
+    mismatch_df: DataFrame | None = None
+    mismatch_columns: list[str] | None = None
 
 
 @dataclass

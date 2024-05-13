@@ -1,18 +1,21 @@
 import re
 
+from databricks.labs.remorph.config import SQLGLOT_DIALECTS
 from databricks.labs.remorph.reconcile.query_builder.threshold_query import (
     ThresholdQueryBuilder,
 )
 from databricks.labs.remorph.reconcile.recon_config import Schema, Thresholds
 
 
-def test_threshold_comparison_query_with_one_threshold(table_conf_with_opts, schema):
+def test_threshold_comparison_query_with_one_threshold(table_conf_with_opts, table_schema):
     # table conf
     table_conf = table_conf_with_opts
     # schema
-    schema, _ = schema
-    schema.append(Schema("s_suppdate", "timestamp"))
-    comparison_query = ThresholdQueryBuilder(table_conf, schema, "source", "oracle").build_comparison_query()
+    table_schema, _ = table_schema
+    table_schema.append(Schema("s_suppdate", "timestamp"))
+    comparison_query = ThresholdQueryBuilder(
+        table_conf, table_schema, "source", SQLGLOT_DIALECTS.get("oracle")
+    ).build_comparison_query()
     assert re.sub(r'\s+', ' ', comparison_query.strip().lower()) == re.sub(
         r'\s+',
         ' ',
@@ -27,7 +30,7 @@ def test_threshold_comparison_query_with_one_threshold(table_conf_with_opts, sch
     )
 
 
-def test_threshold_comparison_query_with_dual_threshold(table_conf_with_opts, schema):
+def test_threshold_comparison_query_with_dual_threshold(table_conf_with_opts, table_schema):
     # table conf
     table_conf = table_conf_with_opts
     table_conf.join_columns = ["s_suppkey", "s_suppdate"]
@@ -37,10 +40,12 @@ def test_threshold_comparison_query_with_dual_threshold(table_conf_with_opts, sc
     ]
 
     # schema
-    schema, _ = schema
-    schema.append(Schema("s_suppdate", "timestamp"))
+    table_schema, _ = table_schema
+    table_schema.append(Schema("s_suppdate", "timestamp"))
 
-    comparison_query = ThresholdQueryBuilder(table_conf, schema, "target", "databricks").build_comparison_query()
+    comparison_query = ThresholdQueryBuilder(
+        table_conf, table_schema, "target", SQLGLOT_DIALECTS.get("databricks")
+    ).build_comparison_query()
     assert re.sub(r'\s+', ' ', comparison_query.strip().lower()) == re.sub(
         r'\s+',
         ' ',

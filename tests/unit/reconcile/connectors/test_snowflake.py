@@ -1,9 +1,7 @@
-import base64
 import re
 from unittest.mock import MagicMock, create_autospec
 
 import pytest
-from databricks.sdk.service.workspace import GetSecretResponse
 from pyspark.errors import PySparkException
 
 from databricks.labs.remorph.config import SQLGLOT_DIALECTS
@@ -84,11 +82,11 @@ def test_read_data_with_out_options():
     )
 
     # Call the read_data method with the Tables configuration
-    ds.read_query_data("catalog", "schema", "select 1 from dual", table_conf.jdbc_reader_options)
+    ds.read_query_data("org", "data", "employee", "select 1 from :tbl", table_conf.jdbc_reader_options)
 
     # spark assertions
     spark.read.format.assert_called_with("snowflake")
-    spark.read.format().option.assert_called_with("dbtable", "(select 1 from dual) as tmp")
+    spark.read.format().option.assert_called_with("dbtable", "(select 1 from org.data.employee) as tmp")
     spark.read.format().option().options.assert_called_with(
         sfUrl="my_url",
         sfUser="my_user",
@@ -136,7 +134,7 @@ def test_read_data_with_options():
     )
 
     # Call the read_data method with the Tables configuration
-    ds.read_query_data("catalog", "schema", "select 1 from dual", table_conf.jdbc_reader_options)
+    ds.read_query_data("org", "data", "employee", "select 1 from :tbl", table_conf.jdbc_reader_options)
 
     # spark assertions
     spark.read.format.assert_called_with("jdbc")
@@ -145,7 +143,7 @@ def test_read_data_with_options():
         "jdbc:snowflake://my_account.snowflakecomputing.com/?user=my_user&password=my_password&db=my_database&schema=my_schema&warehouse=my_warehouse&role=my_role",
     )
     spark.read.format().option().option.assert_called_with("driver", SourceDriver.SNOWFLAKE.value)
-    spark.read.format().option().option().option.assert_called_with("dbtable", "(select 1 from dual) tmp")
+    spark.read.format().option().option().option.assert_called_with("dbtable", "(select 1 from org.data.employee) tmp")
     spark.read.format().option().option().option().options.assert_called_with(
         numPartitions=100, partitionColumn='s_nationkey', lowerBound='0', upperBound='100', fetchsize=100
     )
@@ -235,11 +233,11 @@ def test_read_data_exception_handling():
 
     # Call the read_data method with the Tables configuration and assert that a PySparkException is raised
     with pytest.raises(
-            PySparkException,
-            match="An error occurred while fetching Snowflake Data using the following "
-                  "select 1 from dual in SnowflakeDataSource : Test Exception",
+        PySparkException,
+        match="An error occurred while fetching Snowflake Data using the following "
+        "select 1 from :tbl in SnowflakeDataSource : Test Exception",
     ):
-        ds.read_query_data("catalog", "schema", "select 1 from dual", table_conf.jdbc_reader_options)
+        ds.read_query_data("org", "data", "employee", "select 1 from :tbl", table_conf.jdbc_reader_options)
 
 
 def test_get_schema_exception_handling():
@@ -252,8 +250,8 @@ def test_get_schema_exception_handling():
     # Call the get_schema method with predefined table, schema, and catalog names and assert that a PySparkException
     # is raised
     with pytest.raises(
-            PySparkException,
-            match="An error occurred while fetching Snowflake Schema using the following "
-                  "supplier in SnowflakeDataSource: Test Exception",
+        PySparkException,
+        match="An error occurred while fetching Snowflake Schema using the following "
+        "supplier in SnowflakeDataSource: Test Exception",
     ):
         ds.get_schema("catalog", "schema", "supplier")

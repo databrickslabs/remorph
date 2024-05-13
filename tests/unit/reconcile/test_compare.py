@@ -8,7 +8,10 @@ from databricks.labs.remorph.reconcile.compare import (
     reconcile_data,
 )
 from databricks.labs.remorph.reconcile.exception import ColumnMismatchException
-from databricks.labs.remorph.reconcile.recon_config import ReconcileOutput
+from databricks.labs.remorph.reconcile.recon_config import (
+    MismatchOutput,
+    ReconcileOutput,
+)
 
 
 def test_compare_data_for_report_all(mock_spark):
@@ -29,19 +32,21 @@ def test_compare_data_for_report_all(mock_spark):
         ]
     )
 
-    mismatch = mock_spark.createDataFrame([Row(s_suppkey=2, s_nationkey=22)])
-    missing_in_src = mock_spark.createDataFrame(
-        [Row(s_suppkey=4, s_nationkey=44), Row(s_suppkey=5, s_nationkey=56)]
-    )
-    missing_in_tgt = mock_spark.createDataFrame(
-        [Row(s_suppkey=3, s_nationkey=33), Row(s_suppkey=5, s_nationkey=55)]
-    )
+    mismatch = MismatchOutput(mismatch_df=mock_spark.createDataFrame([Row(s_suppkey=2, s_nationkey=22)]))
+    missing_in_src = mock_spark.createDataFrame([Row(s_suppkey=4, s_nationkey=44), Row(s_suppkey=5, s_nationkey=56)])
+    missing_in_tgt = mock_spark.createDataFrame([Row(s_suppkey=3, s_nationkey=33), Row(s_suppkey=5, s_nationkey=55)])
 
     actual = reconcile_data(source=source, target=target, key_columns=["s_suppkey", "s_nationkey"], report_type="all")
-    expected = ReconcileOutput(mismatch_count=1, missing_in_src_count=1, missing_in_tgt_count=1,
-                               missing_in_src=missing_in_src, missing_in_tgt=missing_in_tgt, mismatch=mismatch)
+    expected = ReconcileOutput(
+        mismatch_count=1,
+        missing_in_src_count=1,
+        missing_in_tgt_count=1,
+        missing_in_src=missing_in_src,
+        missing_in_tgt=missing_in_tgt,
+        mismatch=mismatch,
+    )
 
-    assertDataFrameEqual(actual.mismatch, expected.mismatch)
+    assertDataFrameEqual(actual.mismatch.mismatch_df, expected.mismatch.mismatch_df)
     assertDataFrameEqual(actual.missing_in_src, expected.missing_in_src)
     assertDataFrameEqual(actual.missing_in_tgt, expected.missing_in_tgt)
 
@@ -72,10 +77,17 @@ def test_compare_data_for_report_hash(mock_spark):
     )
 
     actual = reconcile_data(source=source, target=target, key_columns=["s_suppkey", "s_nationkey"], report_type="hash")
-    expected = ReconcileOutput(missing_in_src=missing_in_src, missing_in_tgt=missing_in_tgt, mismatch=None,
-                               mismatch_count=0, missing_in_src_count=1, missing_in_tgt_count=1)
+    expected = ReconcileOutput(
+        missing_in_src=missing_in_src,
+        missing_in_tgt=missing_in_tgt,
+        mismatch=None,
+        mismatch_count=0,
+        missing_in_src_count=1,
+        missing_in_tgt_count=1,
+    )
 
-    assert actual.mismatch == expected.mismatch
+    assert actual.mismatch.mismatch_df is None
+    assert actual.mismatch.mismatch_columns is None
     assertDataFrameEqual(actual.missing_in_src, expected.missing_in_src)
     assertDataFrameEqual(actual.missing_in_tgt, expected.missing_in_tgt)
 
@@ -98,9 +110,7 @@ def test_capture_mismatch_data_and_cols(mock_spark):
         ]
     )
 
-    actual_df, actual_cols = capture_mismatch_data_and_columns(
-        source=source, target=target, key_columns=["s_suppkey", "s_nationkey"]
-    )
+    actual = capture_mismatch_data_and_columns(source=source, target=target, key_columns=["s_suppkey", "s_nationkey"])
 
     expected_df = mock_spark.createDataFrame(
         [
@@ -139,8 +149,8 @@ def test_capture_mismatch_data_and_cols(mock_spark):
         ]
     )
 
-    assertDataFrameEqual(actual_df, expected_df)
-    assert sorted(actual_cols) == ['s_acctbal', 's_name']
+    assertDataFrameEqual(actual.mismatch_df, expected_df)
+    assert sorted(actual.mismatch_columns) == ['s_acctbal', 's_name']
 
 
 def test_capture_mismatch_data_and_cols_fail(mock_spark):

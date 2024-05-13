@@ -3,10 +3,9 @@ from dataclasses import asdict
 
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.types import BooleanType, StringType, StructField, StructType
-from sqlglot import parse_one
+from sqlglot import Dialects, parse_one
 
 from databricks.labs.remorph.config import SQLGLOT_DIALECTS
-from databricks.labs.remorph.reconcile.constants import SourceType
 from databricks.labs.remorph.reconcile.recon_config import (
     Schema,
     SchemaMatchResult,
@@ -107,7 +106,7 @@ class SchemaCompare:
         self,
         source_schema: list[Schema],
         databricks_schema: list[Schema],
-        source: str,
+        source: Dialects,
         table_conf: Table,
     ) -> SchemCompareOutput:
         """
@@ -119,7 +118,7 @@ class SchemaCompare:
         """
         master_schema = self._build_master_schema(source_schema, databricks_schema, table_conf)
         for master in master_schema:
-            if source.upper() != str(SourceType.DATABRICKS.value).upper():
+            if source != SQLGLOT_DIALECTS.get("databricks"):
                 parsed_query = self._parse(source, master.source_column, master.source_datatype)
                 self._validate_parsed_query(master, parsed_query)
             elif master.source_datatype.lower() != master.databricks_datatype.lower():

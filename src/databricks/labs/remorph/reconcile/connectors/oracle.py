@@ -1,23 +1,23 @@
-from databricks.sdk import WorkspaceClient
 from pyspark.errors import PySparkException
 from pyspark.sql import DataFrame, DataFrameReader, SparkSession
 from sqlglot import Dialects
 
+from databricks.labs.remorph.reconcile.connectors.data_source import DataSource
 from databricks.labs.remorph.reconcile.connectors.jdbc_reader import JDBCReaderMixin
 from databricks.labs.remorph.reconcile.connectors.secrets import SecretsMixin
-from databricks.labs.remorph.reconcile.connectors.data_source import DataSource
 from databricks.labs.remorph.reconcile.constants import SourceDriver, SourceType
 from databricks.labs.remorph.reconcile.recon_config import JdbcReaderOptions, Schema
+from databricks.sdk import WorkspaceClient
 
 
 class OracleDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
 
     def __init__(
-            self,
-            engine: Dialects,
-            spark: SparkSession,
-            ws: WorkspaceClient,
-            scope: str,
+        self,
+        engine: Dialects,
+        spark: SparkSession,
+        ws: WorkspaceClient,
+        scope: str,
     ):
         self.engine = engine
         self.spark = spark
@@ -32,9 +32,11 @@ class OracleDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
             f":{self._get_secret_if_exists('port')}/{self._get_secret_if_exists('database')}"
         )
 
-    def read_query_data(self, catalog: str, schema: str, query: str, options: JdbcReaderOptions | None) -> DataFrame:
+    def read_query_data(
+        self, catalog: str, schema: str, table: str, query: str, options: JdbcReaderOptions | None
+    ) -> DataFrame:
         try:
-            read_query = query.format(schema_name=schema)
+            read_query = query.replace(":tbl", f"{schema}.{table}")
             if options is None:
                 return self.reader(read_query).options(**self._get_timestamp_options()).load()
             options = self._get_jdbc_reader_options(options) | self._get_timestamp_options()

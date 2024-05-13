@@ -74,8 +74,8 @@ def test_read_data():
     dd = DatabricksDataSource(engine, spark, ws, scope)
 
     # Test with query
-    dd.read_query_data("catalog", "schema", "select id as id, name as name from confidential.data.employee", None)
-    spark.sql.assert_called_with("select id as id, name as name from confidential.data.employee")
+    dd.read_query_data("org", "data", "employee", "select id as id, name as name from :tbl", None)
+    spark.sql.assert_called_with("select id as id, name as name from org.data.employee")
 
 
 def test_read_data_exception_handling():
@@ -91,9 +91,9 @@ def test_read_data_exception_handling():
         PySparkException,
         match="An error occurred while fetching Databricks Data using the "
         "following select id as id, ename as name from "
-        "confidential.data.employee in DatabricksDataSource : Test Exception",
+        "org.data.employee in DatabricksDataSource : Test Exception",
     ):
-        dd.read_query_data("catalog", "schema", "select id as id, ename as name from confidential.data.employee", None)
+        dd.read_query_data("org", "data", "employee", "select id as id, ename as name from :tbl", None)
 
 
 def test_get_schema_exception_handling():
@@ -104,4 +104,4 @@ def test_get_schema_exception_handling():
     dd = DatabricksDataSource(engine, spark, ws, scope)
     spark.sql().where.side_effect = PySparkException("Test Exception")
     with pytest.raises(PySparkException, match=".*Test Exception.*"):
-        dd.get_schema("catalog", "schema", "supplier")
+        dd.get_schema("org", "data", "employee")

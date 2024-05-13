@@ -11,9 +11,9 @@ from databricks.labs.remorph.reconcile.recon_config import (
 )
 
 
-def test_build_query_for_snowflake_src(mock_spark, table_conf_mock, schema):
+def test_build_query_for_snowflake_src(mock_spark, table_conf_mock, table_schema):
     spark = mock_spark
-    sch, sch_with_alias = schema
+    sch, sch_with_alias = table_schema
     df_schema = StructType(
         [
             StructField('s_suppkey', IntegerType()),
@@ -75,9 +75,9 @@ def test_build_query_for_snowflake_src(mock_spark, table_conf_mock, schema):
     assert tgt_expected == tgt_actual
 
 
-def test_build_query_for_oracle_src(mock_spark, table_conf_mock, schema, column_mapping):
+def test_build_query_for_oracle_src(mock_spark, table_conf_mock, table_schema, column_mapping):
     spark = mock_spark
-    _, sch_with_alias = schema
+    _, sch_with_alias = table_schema
     df_schema = StructType(
         [
             StructField('s_suppkey', IntegerType()),

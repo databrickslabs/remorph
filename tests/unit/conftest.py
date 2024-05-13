@@ -10,8 +10,15 @@ from sqlglot import transpile
 
 from databricks.connect import DatabricksSession
 from databricks.labs.remorph.config import SQLGLOT_DIALECTS, MorphConfig
-from databricks.labs.remorph.reconcile.recon_config import Schema, ColumnMapping, Transformation, Thresholds, Filters, \
-    JdbcReaderOptions, Table
+from databricks.labs.remorph.reconcile.recon_config import (
+    ColumnMapping,
+    Filters,
+    JdbcReaderOptions,
+    Schema,
+    Table,
+    Thresholds,
+    Transformation,
+)
 from databricks.labs.remorph.snow.databricks import Databricks
 from databricks.labs.remorph.snow.snowflake import Snow
 from databricks.sdk import WorkspaceClient
@@ -183,7 +190,7 @@ def parse_sql_files(input_dir: Path, source: str, target: str, is_expected_excep
 
 
 def get_functional_test_files_from_directory(
-        input_dir: Path, source: str, target: str, is_expected_exception=False
+    input_dir: Path, source: str, target: str, is_expected_exception=False
 ) -> list[FunctionalTestFile] | list[FunctionalTestFileWithExpectedException]:
     """Get all functional tests in the input_dir."""
     suite = parse_sql_files(input_dir, source, target, is_expected_exception)
@@ -244,7 +251,7 @@ def column_mapping():
 
 
 @pytest.fixture
-def schema():
+def table_schema():
     sch = [
         Schema("s_suppkey", "number"),
         Schema("s_name", "varchar"),
