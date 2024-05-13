@@ -24,16 +24,6 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
       example("0.123456789", _.expression(), Literal(double = Some(0.123456789)))
       example("0.123456789e-1234", _.expression(), Literal(decimal = Some(Decimal("0.123456789e-1234", None, None))))
     }
-    // TODO: Note that the lexer and parser do not currently support true and false literals
-    "translate true and false literals" ignore {
-      example("true", _.expression(), Literal(boolean = Some(true)))
-      example("false", _.expression(), Literal(boolean = Some(false)))
-    }
-    // TODO: Note unary expressions are not currently visited - need to add Not, Bitwise...
-    "handle unary expressions" ignore {
-      example("-1", _.expression(), Literal(integer = Some(-1)))
-      example("+1", _.expression(), Literal(integer = Some(1)))
-    }
     "translate simple numeric binary expressions" in {
       example("1 + 2", _.expression(), Add(Literal(integer = Some(1)), Literal(integer = Some(2))))
       example("1 - 2", _.expression(), Subtract(Literal(integer = Some(1)), Literal(integer = Some(2))))
@@ -61,6 +51,108 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
           Multiply(Add(Mod(Column("a"), Literal(integer = Some(3))), Column("b")), Literal(integer = Some(2))),
           Divide(Column("c"), Literal(integer = Some(5)))))
       example(query = "a || b || c", _.expression(), Concat(Concat(Column("a"), Column("b")), Column("c")))
+    }
+    "correctly apply operator precedence and associativity" in {
+      example(
+        "1 + -++-2",
+        _.expression(),
+        Add(Literal(integer = Some(1)), UMinus(UPlus(UPlus(UMinus(Literal(integer = Some(2))))))))
+      example(
+        "1 + ~ 2 * 3",
+        _.expression(),
+        Add(Literal(integer = Some(1)), Multiply(BitwiseNot(Literal(integer = Some(2))), Literal(integer = Some(3)))))
+      example(
+        "1 + -2 * 3",
+        _.expression(),
+        Add(Literal(integer = Some(1)), Multiply(UMinus(Literal(integer = Some(2))), Literal(integer = Some(3)))))
+      example(
+        "1 + -2 * 3 + 7 & 66",
+        _.expression(),
+        BitwiseAnd(
+          Add(
+            Add(Literal(integer = Some(1)), Multiply(UMinus(Literal(integer = Some(2))), Literal(integer = Some(3)))),
+            Literal(integer = Some(7))),
+          Literal(integer = Some(66))))
+      example(
+        "1 + -2 * 3 + 7 ^ 66",
+        _.expression(),
+        BitwiseXor(
+          Add(
+            Add(Literal(integer = Some(1)), Multiply(UMinus(Literal(integer = Some(2))), Literal(integer = Some(3)))),
+            Literal(integer = Some(7))),
+          Literal(integer = Some(66))))
+      example(
+        "1 + -2 * 3 + 7 | 66",
+        _.expression(),
+        BitwiseOr(
+          Add(
+            Add(Literal(integer = Some(1)), Multiply(UMinus(Literal(integer = Some(2))), Literal(integer = Some(3)))),
+            Literal(integer = Some(7))),
+          Literal(integer = Some(66))))
+      example(
+        "1 + -2 * 3 + 7 + ~66",
+        _.expression(),
+        Add(
+          Add(
+            Add(Literal(integer = Some(1)), Multiply(UMinus(Literal(integer = Some(2))), Literal(integer = Some(3)))),
+            Literal(integer = Some(7))),
+          BitwiseNot(Literal(integer = Some(66)))))
+      example(
+        "1 + -2 * 3 + 7 | 1980 || 'leeds1' || 'leeds2' || 'leeds3'",
+        _.expression(),
+        Concat(
+          Concat(
+            Concat(
+              BitwiseOr(
+                Add(
+                  Add(
+                    Literal(integer = Some(1)),
+                    Multiply(UMinus(Literal(integer = Some(2))), Literal(integer = Some(3)))),
+                  Literal(integer = Some(7))),
+                Literal(integer = Some(1980))),
+              Literal(string = Some("leeds1"))),
+            Literal(string = Some("leeds2"))),
+          Literal(string = Some("leeds3"))))
+    }
+    "correctly respect explicit precedence with parentheses" in {
+      example(
+        "(1 + 2) * 3",
+        _.expression(),
+        Multiply(Add(Literal(integer = Some(1)), Literal(integer = Some(2))), Literal(integer = Some(3))))
+      example(
+        "1 + (2 * 3)",
+        _.expression(),
+        Add(Literal(integer = Some(1)), Multiply(Literal(integer = Some(2)), Literal(integer = Some(3)))))
+      example(
+        "(1 + 2) * (3 + 4)",
+        _.expression(),
+        Multiply(
+          Add(Literal(integer = Some(1)), Literal(integer = Some(2))),
+          Add(Literal(integer = Some(3)), Literal(integer = Some(4)))))
+      example(
+        "1 + (2 * 3) + 4",
+        _.expression(),
+        Add(
+          Add(Literal(integer = Some(1)), Multiply(Literal(integer = Some(2)), Literal(integer = Some(3)))),
+          Literal(integer = Some(4))))
+      example(
+        "1 + (2 * 3 + 4)",
+        _.expression(),
+        Add(
+          Literal(integer = Some(1)),
+          Add(Multiply(Literal(integer = Some(2)), Literal(integer = Some(3))), Literal(integer = Some(4)))))
+      example(
+        "1 + (2 * (3 + 4))",
+        _.expression(),
+        Add(
+          Literal(integer = Some(1)),
+          Multiply(Literal(integer = Some(2)), Add(Literal(integer = Some(3)), Literal(integer = Some(4))))))
+      example(
+        "(1 + (2 * (3 + 4)))",
+        _.expression(),
+        Add(
+          Literal(integer = Some(1)),
+          Multiply(Literal(integer = Some(2)), Add(Literal(integer = Some(3)), Literal(integer = Some(4))))))
     }
   }
 }

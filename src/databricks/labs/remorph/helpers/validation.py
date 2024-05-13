@@ -2,7 +2,7 @@ import logging
 from io import StringIO
 
 from databricks.labs.lsql.backends import SqlBackend
-from databricks.labs.remorph.config import MorphConfig
+from databricks.labs.remorph.config import MorphConfig, ValidationResult
 from databricks.sdk.errors.base import DatabricksError
 
 logger = logging.getLogger(__name__)
@@ -16,7 +16,7 @@ class Validator:
     def __init__(self, sql_backend: SqlBackend):
         self._sql_backend = sql_backend
 
-    def validate_format_result(self, config: MorphConfig, input_sql: str) -> tuple[str, str | None]:
+    def validate_format_result(self, config: MorphConfig, input_sql: str) -> ValidationResult:
         """
         Validates the SQL query and formats the result.
 
@@ -31,10 +31,11 @@ class Validator:
         - tuple: A tuple containing the result of the validation and the exception message (if any).
         """
         logger.debug(f"Validating query with catalog {config.catalog_name} and schema {config.schema_name}")
-        (is_valid, exception_msg) = self._query(self._sql_backend, input_sql)
+        (is_valid, exception_type, exception_msg) = self._query(self._sql_backend, input_sql)
         if is_valid:
             result = input_sql + "\n;\n"
-            exception_msg = None
+            if exception_type is not None:
+                exception_msg = f"[{exception_type.upper()}]: {exception_msg}"
         else:
             query = ""
             if "[UNRESOLVED_ROUTINE]" in exception_msg:
@@ -49,9 +50,9 @@ class Validator:
 
             result = buffer.getvalue()
 
-        return result, exception_msg
+        return ValidationResult(result, exception_msg)
 
-    def _query(self, sql_backend: SqlBackend, query: str) -> tuple[bool, str | None]:
+    def _query(self, sql_backend: SqlBackend, query: str) -> tuple[bool, str | None, str | None]:
         """
         Validate a given SQL query using the provided SQL backend
 
@@ -68,26 +69,26 @@ class Validator:
         try:
             rows = list(sql_backend.fetch(explain_query))
             if not rows:
-                return False, "No results returned from explain query."
+                return False, "error", "No results returned from explain query."
 
-            if "Error occurred during query planning" in rows[0].as_dict().get("plan", ""):
-                error_details = rows[1].as_dict().get("plan", "Unknown error.") if len(rows) > 1 else "Unknown error."
+            if "Error occurred during query planning" in rows[0].asDict().get("plan", ""):
+                error_details = rows[1].asDict().get("plan", "Unknown error.") if len(rows) > 1 else "Unknown error."
                 raise DatabricksError(error_details)
-            return True, None
+            return True, None, None
         except DatabricksError as dbe:
             err_msg = str(dbe)
             if "[PARSE_SYNTAX_ERROR]" in err_msg:
                 logger.debug(f"Syntax Exception : NOT IGNORED. Flag as syntax error: {err_msg}")
-                return False, err_msg
+                return False, "error", err_msg
             if "[UNRESOLVED_ROUTINE]" in err_msg:
                 logger.debug(f"Analysis Exception : NOT IGNORED: Flag as Function Missing error {err_msg}")
-                return False, err_msg
+                return False, "error", err_msg
             if "[TABLE_OR_VIEW_NOT_FOUND]" in err_msg or "[TABLE_OR_VIEW_ALREADY_EXISTS]" in err_msg:
                 logger.debug(f"Analysis Exception : IGNORED: {err_msg}")
-                return True, err_msg
+                return True, "warning", err_msg
             if "Hive support is required to CREATE Hive TABLE (AS SELECT).;" in err_msg:
                 logger.debug(f"Analysis Exception : IGNORED: {err_msg}")
-                return True, err_msg
+                return True, "warning", err_msg
 
             logger.debug(f"Unknown Exception: {err_msg}")
-            return False, err_msg
+            return False, "error", err_msg
