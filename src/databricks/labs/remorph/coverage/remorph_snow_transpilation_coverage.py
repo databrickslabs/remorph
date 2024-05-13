@@ -9,6 +9,10 @@ if __name__ == "__main__":
     input_dir = commons.get_env_var("INPUT_DIR", required=True)
     output_dir = commons.get_env_var("OUTPUT_DIR", required=True)
 
+    # Ensure input_dir and output_dir are not None
+    input_dir = input_dir if input_dir is not None else ""
+    output_dir = output_dir if output_dir is not None else ""
+
     REMORPH_COMMIT_HASH = commons.get_current_commit_hash() or ""  # C0103 pylint
     product_info = ProductInfo(__file__)
     remorph_version = product_info.unreleased_version()
@@ -19,6 +23,6 @@ if __name__ == "__main__":
         remorph_version,
         Snow,
         Databricks,
-        Path(str(input_dir)),
-        Path(str(output_dir)),
+        Path(input_dir),
+        Path(output_dir),
     )

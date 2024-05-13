@@ -46,7 +46,7 @@ class SqlglotEngine:
                         yield self._find_root_tables(select), child
 
     @staticmethod
-    def _find_root_tables(expression) -> str:
+    def _find_root_tables(expression) -> str | None:
         for table in expression.find_all(exp.Table, bfs=False):
             return table.name
-        return ""
+        return None

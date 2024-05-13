@@ -12,12 +12,16 @@ if __name__ == "__main__":
     sqlglot_version = sqlglot.__version__
     SQLGLOT_COMMIT_HASH = ""  # C0103 pylint
 
+    # Ensure input_dir and output_dir are not None
+    input_dir = input_dir if input_dir is not None else ""
+    output_dir = output_dir if output_dir is not None else ""
+
     commons.collect_transpilation_stats(
         "SQLGlot",
         SQLGLOT_COMMIT_HASH,
         sqlglot_version,
         Snowflake,
         Databricks,
-        Path(str(input_dir)),
-        Path(str(output_dir)),
+        Path(input_dir),
+        Path(output_dir),
     )

@@ -122,7 +122,10 @@ def _process_directory(
 
 
 def _process_recursive_dirs(config: MorphConfig, validator: Validator | None, transpiler: SqlglotEngine):
-    input_sql = Path(str(config.input_sql))
+
+    input_sql_path = config.input_sql if config.input_sql else ""
+
+    input_sql = Path(input_sql_path)
     parse_error_list = []
     validate_error_list = []
 
