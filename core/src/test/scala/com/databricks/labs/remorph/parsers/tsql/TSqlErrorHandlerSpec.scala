@@ -1,15 +1,16 @@
 package com.databricks.labs.remorph.parsers.tsql
 
-import ch.qos.logback.classic.{Level, Logger}
-import ch.qos.logback.classic.spi.ILoggingEvent
-import ch.qos.logback.core.read.ListAppender
 import com.databricks.labs.remorph.parsers.{ErrorCollector, ErrorDetail}
 import org.antlr.v4.runtime.CommonToken
+import org.apache.logging.log4j.core.appender.AbstractAppender
+import org.apache.logging.log4j.core.config.{Configuration, Configurator}
+import org.apache.logging.log4j.core.layout.PatternLayout
+import org.apache.logging.log4j.core.{LogEvent, LoggerContext}
+import org.apache.logging.log4j.{Level, LogManager, Logger}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
-import org.slf4j.LoggerFactory
 
-import scala.collection.convert.ImplicitConversions.`collection AsScalaIterable`
+import scala.collection.mutable.ListBuffer
 
 class TSqlErrorHandlerSpec extends AnyFlatSpec with Matchers {
 
@@ -80,22 +81,42 @@ class TSqlErrorHandlerSpec extends AnyFlatSpec with Matchers {
     errorCollector.errors += ErrorDetail(1, 1, "msg", token)
 
     // Capture the logs
-    val logger = LoggerFactory.getLogger("com.databricks.labs.remorph.parsers.ErrorCollector").asInstanceOf[Logger]
-    val originalLevel = logger.getLevel
-    logger.setLevel(Level.ERROR)
-    val listAppender = new ListAppender[ILoggingEvent]
-    listAppender.start()
-    logger.addAppender(listAppender)
+    val logger: Logger = LogManager.getLogger("com.databricks.labs.remorph.parsers.ErrorCollector")
+    Configurator.setLevel(logger.getName, Level.ERROR)
+    val layout = PatternLayout.createDefaultLayout()
+
+    // Create a custom appender to capture the logs
+    val appenderName = "CaptureAppender"
+    val appender = new AbstractAppender(appenderName, null, layout, false, null) {
+      val logMessages: ListBuffer[String] = ListBuffer()
+
+      override def append(event: LogEvent): Unit = {
+        logMessages += event.getMessage.getFormattedMessage
+      }
+
+      def getLogMessages: List[String] = logMessages.toList
+    }
+    appender.start()
+
+    val context: LoggerContext = LogManager.getContext(false).asInstanceOf[LoggerContext]
+    val config: Configuration = context.getConfiguration
+
+    config.addAppender(appender)
+    // Get the logger config
+    val loggerConfig = config.getLoggerConfig(logger.getName)
+
+    // Add the appender to the logger and set additivity to false
+    loggerConfig.addAppender(appender, null, null)
+    loggerConfig.setAdditive(false)
+
+    // Update the logger context with the new configuration
+    context.updateLoggers()
 
     // Call the method
     errorCollector.logErrors()
 
     // Check the logs
-    val logs = listAppender.list.map(_.getFormattedMessage)
-    logs.exists(log => log.startsWith("File: fileName, Line: 1")) shouldBe true
-
-    // Reset the logger
-    logger.detachAppender(listAppender)
-    logger.setLevel(originalLevel)
+    val logs = appender.getLogMessages
+    logs.exists(log => log.contains("File: fileName, Line: 1")) shouldBe true
   }
 }

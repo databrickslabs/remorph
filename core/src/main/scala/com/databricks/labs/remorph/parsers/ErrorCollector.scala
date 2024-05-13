@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.parsers
 
-import com.typesafe.scalalogging.Logger
+import org.apache.logging.log4j.{LogManager, Logger}
 import org.antlr.v4.runtime.{BaseErrorListener, RecognitionException, Recognizer, Token}
 import org.json4s._
 import org.json4s.jackson.Serialization
@@ -12,7 +12,7 @@ case class ErrorDetail(line: Int, charPositionInLine: Int, msg: String, offendin
 
 class ErrorCollector(sourceCode: String, fileName: String) extends BaseErrorListener {
   val errors: ListBuffer[ErrorDetail] = ListBuffer()
-  val logger: Logger = Logger[ErrorCollector]
+  val logger: Logger = LogManager.getLogger(classOf[ErrorCollector])
 
   implicit val formats: Formats = Serialization.formats(NoTypeHints)
 
