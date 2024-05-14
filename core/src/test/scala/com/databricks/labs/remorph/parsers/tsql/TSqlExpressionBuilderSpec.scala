@@ -263,7 +263,7 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
         ir.UnresolvedFunction("UNKNOWN_FUNCTION", List(), is_distinct = false, is_user_defined_function = false))
     }
 
-    "throw an exception for invalid function arguments" in {
+    "translate functions with invalid function argument counts" in {
       // Later, we will register a semantic or lint error
       example(
         "USER_NAME('a', 'b', 'c', 'd')", // USER_NAME function only accepts 0 or 1 argument
@@ -282,6 +282,18 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
         "FLOOR()", // FLOOR requires 1 argument
         _.expression(),
         ir.UnresolvedFunction("FLOOR", List(), is_distinct = false, is_user_defined_function = false))
+    }
+
+    "translate functions that we know cannot be converted" in {
+      // Later, we will register a semantic or lint error
+      example(
+        "CONNECTIONPROPERTY('property')",
+        _.expression(),
+        ir.UnresolvedFunction(
+          "CONNECTIONPROPERTY",
+          List(ir.Literal(string = Some("property"))),
+          is_distinct = false,
+          is_user_defined_function = false))
     }
   }
 }

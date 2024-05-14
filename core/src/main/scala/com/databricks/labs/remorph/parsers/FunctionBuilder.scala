@@ -13,6 +13,7 @@ class FunctionBuilder
 object FunctionBuilder {
 
   // TODO: Add more functions as we find them
+  // GCOVR_EXCL_START
   def functionArity(functionName: String): Option[FunctionArity] = functionName match {
     case "APP_NAME" => Some(FixedArity(0))
     case "APPLOCK_MODE" => Some(FixedArity(3))
@@ -85,7 +86,7 @@ object FunctionBuilder {
     case "UNICODE" => Some(FixedArity(1))
     case "UPPER" => Some(FixedArity(1))
     case "COMPRESS" => Some(FixedArity(1))
-    case "CONNECTIONPROPERTY" => Some(FixedArity(1))
+    case "CONNECTIONPROPERTY" => Some(FixedArity(1, convertible = false))
     case "CONTEXT_INFO" => Some(FixedArity(0))
     case "CURRENT_REQUEST_ID" => Some(FixedArity(0))
     case "CURRENT_TRANSACTION_ID" => Some(FixedArity(0))
@@ -203,6 +204,7 @@ object FunctionBuilder {
     case "USER_NAME" => Some(VariableArity(0, 1))
     case _ => None
   }
+  // GCOVR_EXCL_STOP
 
   def buildFunction(name: String, args: Seq[ir.Expression]): ir.Expression = {
     val uName = name.toUpperCase(Locale.getDefault())
