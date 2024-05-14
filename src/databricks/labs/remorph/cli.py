@@ -54,6 +54,9 @@ def transpile(
         )
 
     sdk_config = default_config.sdk_config if default_config.sdk_config else None
+    catalog_name = catalog_name if catalog_name else default_config.catalog_name
+    schema_name = schema_name if schema_name else default_config.schema_name
+
     config = MorphConfig(
         source=source.lower(),
         input_sql=input_sql,

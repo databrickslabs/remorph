@@ -185,7 +185,6 @@ def test_transpile_empty_output_folder(mock_workspace_client_cli):
 
 
 def test_transpile_with_incorrect_input_mode(mock_workspace_client_cli):
-
     with (
         patch("os.path.exists", return_value=True),
         pytest.raises(Exception, match="Error: Invalid value for '--mode':"),
@@ -211,7 +210,6 @@ def test_transpile_with_incorrect_input_mode(mock_workspace_client_cli):
 
 
 def test_transpile_with_incorrect_input_source(mock_workspace_client_cli):
-
     with (
         patch("os.path.exists", return_value=True),
         pytest.raises(Exception, match="Error: Invalid value for '--source':"),
