@@ -4,7 +4,7 @@ import os
 from databricks.labs.blueprint.cli import App
 from databricks.labs.blueprint.entrypoint import get_logger
 from databricks.labs.blueprint.installation import Installation
-from databricks.labs.remorph.config import SQLGLOT_DIALECTS, MorphConfig
+from databricks.labs.remorph.config import SQLGLOT_DIALECTS, MorphConfig, TableRecon
 from databricks.labs.remorph.helpers.recon_config_utils import ReconConfigPrompts
 from databricks.labs.remorph.lineage import lineage_generator
 from databricks.labs.remorph.reconcile.execute import recon
@@ -23,14 +23,14 @@ def raise_validation_exception(msg: str) -> Exception:
 
 @remorph.command
 def transpile(
-    w: WorkspaceClient,
-    source: str,
-    input_sql: str,
-    output_folder: str,
-    skip_validation: str,
-    catalog_name: str,
-    schema_name: str,
-    mode: str,
+        w: WorkspaceClient,
+        source: str,
+        input_sql: str,
+        output_folder: str,
+        skip_validation: str,
+        catalog_name: str,
+        schema_name: str,
+        mode: str,
 ):
     """transpiles source dialect to databricks dialect"""
     logger.info(f"user: {w.current_user.me()}")
@@ -74,13 +74,12 @@ def transpile(
 
 
 @remorph.command
-def reconcile(w: WorkspaceClient, recon_conf: str, conn_profile: str, source: str, report: str):
+def reconcile(w: WorkspaceClient, source: str, report: str):
     """reconciles source to databricks datasets"""
     logger.info(f"user: {w.current_user.me()}")
-    if not os.path.exists(recon_conf) or recon_conf in {None, ""}:
-        raise_validation_exception(f"Error: Invalid value for '--recon_conf': Path '{recon_conf}' does not exist.")
-    if not os.path.exists(conn_profile) or conn_profile in {None, ""}:
-        raise_validation_exception(f"Error: Invalid value for '--conn_profile': Path '{conn_profile}' does not exist.")
+    installation = Installation.current(w, 'remorph')
+    table_recon = installation.load(TableRecon)
+
     if source.lower() not in ["databricks", "snowflake", "oracle"]:
         raise_validation_exception(
             f"Error: Invalid value for '--source': '{source}' is not one of 'databricks', 'snowflake', 'oracle'. "
@@ -90,7 +89,7 @@ def reconcile(w: WorkspaceClient, recon_conf: str, conn_profile: str, source: st
             f"Error: Invalid value for '--report': '{report}' is not one of 'data', 'schema', 'all' , 'hash'"
         )
 
-    recon(w, recon_conf, SQLGLOT_DIALECTS.get(source.lower()), report)
+    recon(w, table_recon, SQLGLOT_DIALECTS.get(source.lower()), report)
 
 
 @remorph.command

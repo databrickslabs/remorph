@@ -31,10 +31,9 @@ from databricks.sdk import WorkspaceClient
 logger = logging.getLogger(__name__)
 
 
-def recon(ws: WorkspaceClient, recon_conf: str, source_dialect: Dialects, report_type: str):
+def recon(ws: WorkspaceClient, table_recon: TableRecon, source_dialect: Dialects, report_type: str):
     logger.info(report_type)
 
-    table_recon = get_config(Path(recon_conf))
     database_config = DatabaseConfig(
         source_catalog=table_recon.source_catalog,
         source_schema=table_recon.source_schema,
@@ -44,8 +43,9 @@ def recon(ws: WorkspaceClient, recon_conf: str, source_dialect: Dialects, report
 
     spark = DatabricksSession.builder.sdkConfig(ws.config).getOrCreate()
 
-    source = DataSourceAdapter().create_adapter(engine=source_dialect, spark=spark, ws=ws, scope="")
-    target = DatabricksDataSource(engine=SQLGLOT_DIALECTS.get("databricks"), spark=spark, ws=ws, secret_scope="")
+    source = DataSourceAdapter().create_adapter(engine=source_dialect, spark=spark, ws=ws, secret_scope="secret_scope")
+    target = DatabricksDataSource(engine=SQLGLOT_DIALECTS.get("databricks"), spark=spark, ws=ws,
+                                  secret_scope="secret_scope")
     schema_comparator = SchemaCompare(spark=spark)
 
     # initialise the Reconciliation
@@ -72,13 +72,13 @@ def recon(ws: WorkspaceClient, recon_conf: str, source_dialect: Dialects, report
 
 class Reconciliation:
     def __init__(
-        self,
-        source: DataSource,
-        target: DataSource,
-        database_config: DatabaseConfig,
-        report_type: str,
-        schema_comparator: SchemaCompare,
-        source_engine: Dialects,
+            self,
+            source: DataSource,
+            target: DataSource,
+            database_config: DatabaseConfig,
+            report_type: str,
+            schema_comparator: SchemaCompare,
+            source_engine: Dialects,
     ):
         self._source = source
         self._target = target
@@ -126,9 +126,9 @@ class Reconciliation:
         missing_in_tgt = None
 
         if (
-            reconcile_output.mismatch_count > 0
-            or reconcile_output.missing_in_src_count > 0
-            or reconcile_output.missing_in_tgt_count > 0
+                reconcile_output.mismatch_count > 0
+                or reconcile_output.missing_in_src_count > 0
+                or reconcile_output.missing_in_tgt_count > 0
         ):
             src_sampler = SamplingQueryBuilder(table_conf, src_schema, Layer.SOURCE.value, self._source_engine)
             tgt_sampler = SamplingQueryBuilder(table_conf, tgt_schema, Layer.TARGET.value, self._target_engine)
@@ -202,8 +202,3 @@ class Reconciliation:
             query=sample_query,
             options=None,
         )
-
-
-def get_config(file: Path):
-    # Convert the JSON data to the TableRecon dataclass
-    return Installation.load_local(type_ref=TableRecon, file=file)
