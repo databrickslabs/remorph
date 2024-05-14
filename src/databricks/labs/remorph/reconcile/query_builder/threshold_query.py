@@ -175,3 +175,25 @@ class ThresholdQueryBuilder(QueryBuilder):
             true=exp.Identifier(this="Warning", quoted=True),
         )
         return exp.Case(ifs=[eq_if, between_if], default=exp.Identifier(this="Failed", quoted=True))
+
+    def build_threshold_query(self) -> str:
+        """
+        This method builds a threshold query based on the configuration of the table and the columns involved.
+
+        The query is constructed by selecting the necessary columns (partition, join, and threshold columns)
+        from a specified table. Any transformations specified in the table configuration are applied to the
+        selected columns. The query also includes a WHERE clause based on the filter defined in the table configuration.
+
+        The resulting query is then converted to a SQL string using the dialect of the source database.
+
+        Returns:
+            str: The SQL string representation of the threshold query.
+        """
+        keys: list[str] = sorted(self.partition_column.union(self.join_columns).union(self.threshold_columns))
+        select_clause = [
+            build_column(this=col, alias=self.table_conf.get_tgt_to_src_col_mapping(col, self.layer)) for col in keys
+        ]
+        select_clause = self.add_transformations(select_clause, self.source)
+        query = select(*select_clause).from_(":tbl").where(self.filter)
+        logger.info(f"{self.source} Threshold query: {query}")
+        return query.sql(dialect=self.source)
