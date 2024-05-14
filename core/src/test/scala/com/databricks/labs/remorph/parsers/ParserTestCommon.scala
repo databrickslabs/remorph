@@ -9,7 +9,7 @@ trait ParserTestCommon[P <: Parser] { self: Assertions =>
 
   protected def makeLexer(chars: CharStream): TokenSource
   protected def makeParser(tokens: TokenStream): P
-  protected def makeErrHandler(chars: String): ErrorCollector = null
+  protected def makeErrHandler(chars: String): ErrorCollector = new DefaultErrorCollector
   protected def astBuilder: ParseTreeVisitor[_]
   protected var errHandler: ErrorCollector = _
 
@@ -19,10 +19,8 @@ trait ParserTestCommon[P <: Parser] { self: Assertions =>
     val tokenStream = new CommonTokenStream(lexer)
     val parser = makeParser(tokenStream)
     errHandler = makeErrHandler(input)
-    if (errHandler != null) {
-      parser.removeErrorListeners()
-      parser.addErrorListener(errHandler)
-    }
+    parser.removeErrorListeners()
+    parser.addErrorListener(errHandler)
     val tree = rule(parser)
 
     // uncomment the following line if you need a peek in the Snowflake/TSQL AST
@@ -32,9 +30,9 @@ trait ParserTestCommon[P <: Parser] { self: Assertions =>
 
   protected def example[R <: RuleContext](query: String, rule: P => R, expectedAst: TreeNode): Assertion = {
     val sfTree = parseString(query, rule)
-    if (errHandler != null && errHandler.errorCount() != 0) {
+    if (errHandler != null && errHandler.errorCount != 0) {
       errHandler.logErrors()
-      assert(1 == 2, s"${errHandler.errorCount()} errors found in the input string")
+      assert(1 == 2, s"${errHandler.errorCount} errors found in the input string")
     }
 
     val result = astBuilder.visit(sfTree)
@@ -43,5 +41,4 @@ trait ParserTestCommon[P <: Parser] { self: Assertions =>
   }
 
   protected def namedTable(name: String): Relation = NamedTable(name, Map.empty, is_streaming = false)
-
 }

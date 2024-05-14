@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.parsers.tsql
 
-import com.databricks.labs.remorph.parsers.{ErrorCollector, ErrorDetail}
+import com.databricks.labs.remorph.parsers.{ErrorDetail, ProductionErrorCollector}
 import org.antlr.v4.runtime.CommonToken
 import org.apache.logging.log4j.core.appender.AbstractAppender
 import org.apache.logging.log4j.core.config.{Configuration, Configurator}
@@ -15,7 +15,7 @@ import scala.collection.mutable.ListBuffer
 class TSqlErrorHandlerSpec extends AnyFlatSpec with Matchers {
 
   "ErrorCollector" should "collect syntax errors correctly" in {
-    val errorCollector = new ErrorCollector("sourceCode", "fileName")
+    val errorCollector = new ProductionErrorCollector("sourceCode", "fileName")
     val token = new CommonToken(1)
     val recognizer: Null = null
     val e: Null = null
@@ -24,38 +24,38 @@ class TSqlErrorHandlerSpec extends AnyFlatSpec with Matchers {
   }
 
   it should "format errors correctly" in {
-    val errorCollector = new ErrorCollector("sourceCode", "fileName")
+    val errorCollector = new ProductionErrorCollector("sourceCode", "fileName")
     val token = new CommonToken(1)
     token.setLine(1)
     token.setCharPositionInLine(1)
     token.setText("text")
     errorCollector.errors += ErrorDetail(1, 1, "msg", token)
-    errorCollector.formatErrors().head should include("Token: text")
+    errorCollector.formatErrors.head should include("Token: text")
   }
 
   it should "convert errors to JSON correctly" in {
-    val errorCollector = new ErrorCollector("sourceCode", "fileName")
+    val errorCollector = new ProductionErrorCollector("sourceCode", "fileName")
     val token = new CommonToken(1)
     token.setLine(1)
     token.setCharPositionInLine(1)
     token.setText("text")
     errorCollector.errors += ErrorDetail(1, 1, "msg", token)
-    errorCollector.errorsAsJson() should include("\"line\":1")
+    errorCollector.errorsAsJson should include("\"line\":1")
   }
 
   it should "count errors correctly" in {
-    val errorCollector = new ErrorCollector("sourceCode", "fileName")
+    val errorCollector = new ProductionErrorCollector("sourceCode", "fileName")
     val token = new CommonToken(1)
     token.setLine(1)
     token.setCharPositionInLine(1)
     token.setText("text")
     errorCollector.errors += ErrorDetail(1, 1, "msg", token)
-    errorCollector.errorCount() shouldBe 1
+    errorCollector.errorCount shouldBe 1
   }
 
   it should "window long lines correctly" in {
     val longLine = "a" * 40 + "error" + "a" * 40
-    val errorCollector = new ErrorCollector(longLine, "fileName")
+    val errorCollector = new ProductionErrorCollector(longLine, "fileName")
     val token = new CommonToken(1)
     token.setLine(1)
     token.setCharPositionInLine(40)
@@ -65,7 +65,7 @@ class TSqlErrorHandlerSpec extends AnyFlatSpec with Matchers {
     errorCollector.errors += ErrorDetail(1, 40, "msg", token)
 
     // Call the method
-    val formattedErrors = errorCollector.formatErrors()
+    val formattedErrors = errorCollector.formatErrors
 
     // Check the windowing
     val s = "..." + "a" * 32 + "error" + "a" * 31 + "...\n" + " " * 35 + "^^^^^"
@@ -73,7 +73,7 @@ class TSqlErrorHandlerSpec extends AnyFlatSpec with Matchers {
   }
 
   it should "log errors correctly" in {
-    val errorCollector = new ErrorCollector("sourceCode", "fileName")
+    val errorCollector = new ProductionErrorCollector("sourceCode", "fileName")
     val token = new CommonToken(1)
     token.setLine(1)
     token.setCharPositionInLine(1)

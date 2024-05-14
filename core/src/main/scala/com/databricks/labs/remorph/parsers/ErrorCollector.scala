@@ -1,16 +1,44 @@
 package com.databricks.labs.remorph.parsers
 
+import org.antlr.v4.runtime._
 import org.apache.logging.log4j.{LogManager, Logger}
-import org.antlr.v4.runtime.{BaseErrorListener, RecognitionException, Recognizer, Token}
 import org.json4s._
 import org.json4s.jackson.Serialization
 import org.json4s.jackson.Serialization.write
 
 import scala.collection.mutable.ListBuffer
 
+sealed trait ErrorCollector extends BaseErrorListener {
+  def logErrors(): Unit = {}
+  def errorsAsJson: String = "{}"
+  def errorCount: Int = 0
+  private[parsers] def formatErrors: Seq[String] = Seq()
+  def reset(): Unit = {}
+}
+
 case class ErrorDetail(line: Int, charPositionInLine: Int, msg: String, offendingToken: Token)
 
-class ErrorCollector(sourceCode: String, fileName: String) extends BaseErrorListener {
+class DefaultErrorCollector extends ErrorCollector {
+
+  var count: Int = 0
+  val antlrErr: ConsoleErrorListener = new ConsoleErrorListener()
+
+  override def syntaxError(
+      recognizer: Recognizer[_, _],
+      offendingSymbol: Any,
+      line: Int,
+      charPositionInLine: Int,
+      msg: String,
+      e: RecognitionException): Unit = {
+    antlrErr.syntaxError(recognizer, offendingSymbol, line, charPositionInLine, msg, e)
+    count += 1
+  }
+
+  override def errorCount: Int = count
+  override def reset(): Unit = count = 0
+}
+
+class ProductionErrorCollector(sourceCode: String, fileName: String) extends ErrorCollector {
   val errors: ListBuffer[ErrorDetail] = ListBuffer()
   val logger: Logger = LogManager.getLogger(classOf[ErrorCollector])
 
@@ -26,7 +54,7 @@ class ErrorCollector(sourceCode: String, fileName: String) extends BaseErrorList
     errors += ErrorDetail(line, charPositionInLine, msg, offendingSymbol.asInstanceOf[Token])
   }
 
-  def formatErrors(): Seq[String] = {
+  override private[parsers] def formatErrors: Seq[String] = {
     val lines = sourceCode.split("\n")
     errors.map { error =>
       val start = Math.max(0, error.offendingToken.getStartIndex - 32)
@@ -42,18 +70,14 @@ class ErrorCollector(sourceCode: String, fileName: String) extends BaseErrorList
     }
   }
 
-  def logErrors(): Unit = {
-    val formattedErrors = formatErrors()
+  override def logErrors(): Unit = {
+    val formattedErrors = formatErrors
     if (formattedErrors.nonEmpty) {
       formattedErrors.foreach(error => logger.error(error))
     }
   }
 
-  def errorsAsJson(): String = {
-    write(errors)
-  }
+  override def errorsAsJson: String = write(errors)
 
-  def errorCount(): Int = {
-    errors.size
-  }
+  override def errorCount: Int = errors.size
 }
