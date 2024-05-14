@@ -213,7 +213,7 @@ object FunctionBuilder {
     defnOption match {
       case Some(FixedArity(_, false)) | Some(VariableArity(_, _, false)) =>
         // Should raise a warning/lint error here
-        ir.UnresolvedFunction(name, args, false, is_user_defined_function = false)
+        ir.UnresolvedFunction(name, args, is_distinct = false, is_user_defined_function = false)
 
       case Some(FixedArity(arity, true)) if args.length == arity =>
         ir.CallFunction(name, args)
