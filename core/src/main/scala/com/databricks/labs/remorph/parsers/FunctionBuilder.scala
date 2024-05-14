@@ -103,7 +103,6 @@ object FunctionBuilder {
     case "HOST_NAME" => Some(FixedArity(0))
     case "ISNULL" => Some(FixedArity(2))
     case "ISNUMERIC" => Some(FixedArity(1))
-    case "MIN_ACTIVE_ROWVERSION" => Some(FixedArity(0))
     case "NEWID" => Some(FixedArity(0))
     case "NEWSEQUENTIALID" => Some(FixedArity(0))
     case "ROWCOUNT_BIG" => Some(FixedArity(0))

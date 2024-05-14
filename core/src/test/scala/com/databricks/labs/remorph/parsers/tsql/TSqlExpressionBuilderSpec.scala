@@ -264,19 +264,24 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
     }
 
     "throw an exception for invalid function arguments" in {
-      // Later, we will not throw an exception but register a semantic error
-      intercept[IllegalArgumentException] {
-        example(
-          "USER_NAME('a', 'b', 'c', 'd')", // USER_NAME function only accepts 0 or 1 argument
-          _.expression(),
-          ir.Noop)
-      }
-      intercept[IllegalArgumentException] {
-        example(
-          "FLOOR()", // FLOOR requires 1 argument
-          _.expression(),
-          ir.Noop)
-      }
+      // Later, we will register a semantic or lint error
+      example(
+        "USER_NAME('a', 'b', 'c', 'd')", // USER_NAME function only accepts 0 or 1 argument
+        _.expression(),
+        ir.UnresolvedFunction(
+          "USER_NAME",
+          Seq(
+            ir.Literal(string = Some("a")),
+            ir.Literal(string = Some("b")),
+            ir.Literal(string = Some("c")),
+            ir.Literal(string = Some("d"))),
+          is_distinct = false,
+          is_user_defined_function = false))
+
+      example(
+        "FLOOR()", // FLOOR requires 1 argument
+        _.expression(),
+        ir.UnresolvedFunction("FLOOR", List(), is_distinct = false, is_user_defined_function = false))
     }
   }
 }
