@@ -11,7 +11,7 @@ from databricks.labs.remorph.reconcile.recon_config import (
 )
 
 
-def test_threshold_comparison_query_with_one_threshold(table_conf_with_opts, schema):
+def test_threshold_comparison_query_with_single_threshold(table_conf_with_opts, schema):
     # table conf
     table_conf = table_conf_with_opts
     # schema
@@ -32,7 +32,7 @@ def test_threshold_comparison_query_with_one_threshold(table_conf_with_opts, sch
     )
 
 
-def test_threshold_comparison_query_with_dual_threshold(table_conf_with_opts, schema):
+def test_threshold_comparison_query_with_multiple_threshold(table_conf_with_opts, schema):
     # table conf
     table_conf = table_conf_with_opts
     table_conf.join_columns = ["s_suppkey", "s_suppdate"]
@@ -87,7 +87,7 @@ def test_build_threshold_query_with_single_threshold(table_conf_with_opts, schem
     )
 
 
-def test_build_threshold_query_with_dual_threshold(table_conf_with_opts, schema):
+def test_build_threshold_query_with_multiple_threshold(table_conf_with_opts, schema):
     table_conf = table_conf_with_opts
     table_conf.jdbc_reader_options = JdbcReaderOptions(
         number_partitions=100, partition_column="s_phone", lower_bound="0", upper_bound="100"
