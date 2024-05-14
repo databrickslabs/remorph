@@ -2,6 +2,7 @@ import logging
 
 from pyspark.sql import SparkSession
 
+from databricks.labs.remorph.config import SQLGLOT_DIALECTS
 from databricks.labs.remorph.reconcile.connectors.data_source import DataSource
 from databricks.labs.remorph.reconcile.connectors.databricks import DatabricksDataSource
 from databricks.labs.remorph.reconcile.connectors.oracle import OracleDataSource
@@ -21,10 +22,10 @@ def get_data_source(
     logger.debug(f"Creating DataSource for `{engine.lower()}`")
     match engine.lower():
         case SourceType.SNOWFLAKE.value:
-            return SnowflakeDataSource(spark, ws, scope)
+            return SnowflakeDataSource(spark, ws, scope, SQLGLOT_DIALECTS.get(engine))
         case SourceType.ORACLE.value:
-            return OracleDataSource(spark, ws, scope)
+            return OracleDataSource(spark, ws, scope, SQLGLOT_DIALECTS.get(engine))
         case SourceType.DATABRICKS.value:
-            return DatabricksDataSource(spark, ws, scope)
+            return DatabricksDataSource(spark, ws, scope, SQLGLOT_DIALECTS.get(engine))
         case _:
             raise ValueError(f"Unsupported engine: {engine}")

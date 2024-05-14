@@ -8,8 +8,6 @@ from databricks.labs.remorph.reconcile.recon_config import JdbcReaderOptions, Sc
 
 
 class OracleDataSource(DataSource):
-    def __init__(self, spark, ws, scope):
-        super().__init__(spark, ws, scope, engine=SourceType.ORACLE.value)
 
     @property
     def get_jdbc_url(self) -> str:

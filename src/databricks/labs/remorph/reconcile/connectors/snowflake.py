@@ -18,8 +18,6 @@ logger = logging.getLogger(__name__)
 
 
 class SnowflakeDataSource(DataSource):
-    def __init__(self, spark, ws, scope):
-        super().__init__(spark, ws, scope, engine=SourceType.SNOWFLAKE.value)
 
     @property
     def get_jdbc_url(self) -> str:

@@ -21,10 +21,11 @@ recon_source_choices = [
 
 
 class ReconConfigPrompts:
-    def __init__(self, ws: WorkspaceClient, prompts: Prompts = Prompts()):
+    def __init__(self, ws: WorkspaceClient, installation: Installation = None, prompts: Prompts = Prompts()):
         self._source = None
         self._prompts = prompts
         self._ws = ws
+        self._installation = installation
 
     def _scope_exists(self, scope_name: str) -> bool:
         scope_exists = scope_name in [scope.name for scope in self._ws.secrets.list_scopes()]
@@ -192,11 +193,9 @@ class ReconConfigPrompts:
         Save the config details in a file on Databricks Workspace
         """
 
-        # Create Installation object
-        installation = Installation(self._ws, "remorph")
         logger.debug(f"Saving the config details for `{self._source}` in `{file_name}` on Databricks Workspace ")
-        installation.upload(filename=file_name, raw=recon_config_json.encode("utf-8"))
-        ws_file_url = f"{installation.install_folder()}/{file_name}"
+        self._installation.upload(filename=file_name, raw=recon_config_json.encode("utf-8"))
+        ws_file_url = f"{self._installation.install_folder()}/{file_name}"
         logger.debug(f"Written `{file_name}` on Databricks Workspace ")
 
         if self._prompts.confirm(f"Open `{file_name}` config file in the browser?"):

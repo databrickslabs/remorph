@@ -96,7 +96,11 @@ def generate_recon_config(w: WorkspaceClient):
     """generates config file for reconciliation"""
     logger.info(f"User: {w.current_user.me()}")
     logger.info("Generating config file for reconcile")
-    recon_conf = ReconConfigPrompts(w)
+
+    # Create Installation object
+    installation = Installation(w, "remorph")
+
+    recon_conf = ReconConfigPrompts(w, installation)
 
     # Prompt for source
     recon_conf.prompt_source()

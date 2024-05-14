@@ -3,8 +3,9 @@ import re
 from abc import ABC, abstractmethod
 
 from pyspark.sql import DataFrame, SparkSession
+from sqlglot.dialects.dialect import DialectType
 
-from databricks.labs.remorph.config import TableRecon
+from databricks.labs.remorph.config import TableRecon, SQLGLOT_DIALECTS
 from databricks.labs.remorph.reconcile.recon_config import JdbcReaderOptions, Schema
 from databricks.sdk import WorkspaceClient
 
@@ -18,7 +19,7 @@ class DataSource(ABC):
         spark: SparkSession,
         ws: WorkspaceClient,
         scope: str,
-        engine: str = None,
+        engine: DialectType,
     ):
         self.engine = engine
         self.spark = spark
@@ -62,7 +63,8 @@ class DataSource(ABC):
         }
 
     def _get_secrets(self, key_name: str):
-        key = self.engine + '_' + key_name
+        engine_name = "snowflake" if self.engine == SQLGLOT_DIALECTS.get("snowflake") else self.engine.__name__
+        key = engine_name + '_' + key_name
         dbutils = self.ws.dbutils
         logger.debug(f"Fetching secret using DBUtils: {key}")
         secret = dbutils.secrets.get(scope=self.scope, key=key)

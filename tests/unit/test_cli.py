@@ -365,7 +365,7 @@ def test_configure_secrets_databricks(mock_workspace_client):
         }
     )
 
-    recon_conf = ReconConfigPrompts(mock_workspace_client, prompts)
+    recon_conf = ReconConfigPrompts(mock_workspace_client, prompts=prompts)
     recon_conf.prompt_source()
 
     recon_conf.prompt_and_save_connection_details()

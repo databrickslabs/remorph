@@ -4,6 +4,7 @@ from unittest.mock import MagicMock, create_autospec
 import pytest
 from pyspark.errors import PySparkException
 
+from databricks.labs.remorph.config import SQLGLOT_DIALECTS
 from databricks.labs.remorph.reconcile.connectors.databricks import DatabricksDataSource
 from databricks.sdk import WorkspaceClient
 
@@ -42,7 +43,8 @@ def test_get_schema():
     spark, ws, scope = initial_setup()
 
     # catalog as catalog
-    dd = DatabricksDataSource(spark, ws, scope)
+    dd = DatabricksDataSource(spark, ws, scope, SQLGLOT_DIALECTS.get("databricks"))
+
     dd.get_schema("catalog", "schema", "supplier")
     spark.sql.assert_called_with(
         re.sub(
@@ -67,7 +69,7 @@ def test_read_data():
     spark, ws, scope = initial_setup()
 
     # create object for DatabricksDataSource
-    dd = DatabricksDataSource(spark, ws, scope)
+    dd = DatabricksDataSource(spark, ws, scope, SQLGLOT_DIALECTS.get("databricks"))
 
     # Test with query
     dd.read_data("catalog", "schema", "select id as id, ename as name from confidential.data.employee", None)
@@ -83,7 +85,7 @@ def test_read_data_exception_handling():
     spark, ws, scope = initial_setup()
 
     # create object for DatabricksDataSource
-    dd = DatabricksDataSource(spark, ws, scope)
+    dd = DatabricksDataSource(spark, ws, scope, SQLGLOT_DIALECTS.get("databricks"))
 
     spark.sql.side_effect = PySparkException("Test Exception")
 
@@ -100,8 +102,8 @@ def test_get_schema_exception_handling():
     # initial setup
     spark, ws, scope = initial_setup()
 
-    # create object for DatabricksDataSource
-    dd = DatabricksDataSource(spark, ws, scope)
+    # create object for DatabricksDataSources
+    dd = DatabricksDataSource(spark, ws, scope, SQLGLOT_DIALECTS.get("databricks"))
     spark.sql().where.side_effect = PySparkException("Test Exception")
     with pytest.raises(PySparkException, match=".*Test Exception.*"):
         dd.get_schema("catalog", "schema", "supplier")
