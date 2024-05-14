@@ -17,6 +17,7 @@ from databricks.labs.remorph.helpers.file_utils import (
     is_sql_file,
     make_dir,
     remove_bom,
+    remove_set_options,
 )
 from databricks.labs.remorph.helpers.morph_status import (
     MorphStatus,
@@ -50,14 +51,16 @@ def _process_file(
     with input_file.open("r") as f:
         sql = remove_bom(f.read())
 
-    lca_error = lca_utils.check_for_unsupported_lca(config.source, sql, str(input_file))
+    updated_sql = remove_set_options(config.source, sql)
+
+    lca_error = lca_utils.check_for_unsupported_lca(config.source, updated_sql, str(input_file))
 
     if lca_error:
         validate_error_list.append(lca_error)
 
     write_dialect = config.get_write_dialect()
 
-    transpiler_result: TranspilationResult = _parse(transpiler, write_dialect, sql, input_file, [])
+    transpiler_result: TranspilationResult = _parse(transpiler, write_dialect, updated_sql, input_file, [])
 
     with output_file.open("w") as w:
         for output in transpiler_result.transpiled_sql:

@@ -1,5 +1,9 @@
 import codecs
+import logging
+import re
 from pathlib import Path
+
+logger = logging.getLogger(__name__)
 
 
 # Optionally check to see if a string begins with a Byte Order Mark
@@ -100,4 +104,26 @@ def refactor_hexadecimal_chars(input_string: str) -> str:
     highlight = {"\x1b[4m": "--> ", "\x1b[0m": " <--"}
     for key, value in highlight.items():
         output_string = output_string.replace(key, value)
+    return output_string
+
+
+def remove_set_options(source: str, input_string: str) -> str:
+    """
+    Logs a warning message with the SET options in the given string and removes those.
+    :param source: Snowflake, Presto, BigQuery, etc.
+    :param input_string: String with SET options
+    :return: String without SET options
+    """
+
+    lines = []
+    output_string = input_string
+
+    for line in input_string.splitlines():
+        if line.startswith('!set'):
+            lines.append(line)
+            output_string = re.sub(f"{line}", "", output_string)
+
+    set_options = "\n ".join(lines)
+    logger.warning(f"WARNING: `{source.upper()}` SET Options are not supported: \n {set_options}")
+
     return output_string
