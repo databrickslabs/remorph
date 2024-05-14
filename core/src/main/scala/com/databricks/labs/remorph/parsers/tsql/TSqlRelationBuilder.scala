@@ -1,20 +1,16 @@
 package com.databricks.labs.remorph.parsers.tsql
 
 import com.databricks.labs.remorph.parsers.tsql.TSqlParser._
-import com.databricks.labs.remorph.parsers.{IncompleteParser, intermediate => ir}
+import com.databricks.labs.remorph.parsers.{intermediate => ir}
 
 import scala.collection.JavaConverters.asScalaBufferConverter
 
-class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.Relation] with IncompleteParser[ir.Relation] {
-
-  protected override def wrapUnresolvedInput(unparsedInput: String): ir.Relation = ir.UnresolvedRelation(unparsedInput)
+class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.Relation] {
 
   override def visitSelectStatementStandalone(ctx: TSqlParser.SelectStatementStandaloneContext): ir.Relation = {
 
     // TODO: Process ctx.WithExpression
     ctx.selectStatement().accept(this)
-    // val tableSources = Option(rawExpression.tableSources()).fold[ir.Relation](ir.NoTable())
-    // (_.accept(new TSqlRelationBuilder))
   }
 
   override def visitSelectStatement(ctx: TSqlParser.SelectStatementContext): ir.Relation = {
@@ -30,7 +26,7 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.Relation] with Incomp
     // TODO: Process all the other elements of a query specification
 
     val columns =
-      ctx.selectListElem().asScala.toList.map(_.accept(new TSqlExpressionBuilder()))
+      ctx.selectListElem().asScala.map(_.accept(new TSqlExpressionBuilder()))
     val from = Option(ctx.tableSources()).map(_.accept(new TSqlRelationBuilder)).getOrElse(ir.NoTable())
 
     ir.Project(from, columns)
@@ -67,7 +63,9 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.Relation] with Incomp
             ir.CrossJoin,
             Seq.empty,
             ir.JoinDataType(is_left_struct = false, is_right_struct = false)))
-      case Nil => ir.NoTable()
+      // GCOVR_EXCL_START  ctx.tableSource always returns at least 1 element
+      case _ => ir.NoTable()
+      // GCOVR_EXCL_STOP
     }
   }
 

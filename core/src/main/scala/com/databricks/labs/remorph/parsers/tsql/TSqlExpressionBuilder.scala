@@ -24,14 +24,12 @@ class TSqlExpressionBuilder extends TSqlParserBaseVisitor[ir.Expression] with Pa
 
   override def visitFullColumnName(ctx: FullColumnNameContext): ir.Column = {
     val columnName = ctx.id.getText
-    val fullColumnName = ctx.fullTableName() match {
-      case null => columnName
-      case ft =>
-        ft.accept(this) match {
-          case nt: ir.Literal if nt.string.isDefined => nt.string.get + "." + columnName
-          case _ => columnName
-        }
-    }
+    val fullColumnName = Option(ctx.fullTableName())
+      .map(_.accept(this))
+      .collect {
+        case nt: ir.Literal if nt.string.isDefined => nt.string.get + "." + columnName
+      }
+      .getOrElse(columnName)
     ir.Column(fullColumnName)
   }
 
