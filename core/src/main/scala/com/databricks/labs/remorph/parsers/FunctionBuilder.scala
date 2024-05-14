@@ -1,4 +1,4 @@
-package com.databricks.labs.remorph
+package com.databricks.labs.remorph.parsers
 
 import com.databricks.labs.remorph.parsers.{intermediate => ir}
 

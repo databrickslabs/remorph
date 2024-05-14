@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.parsers.tsql
 
-import com.databricks.labs.remorph.FunctionBuilder
+import com.databricks.labs.remorph.parsers.FunctionBuilder
 import com.databricks.labs.remorph.parsers.intermediate.{Column, Expression, Literal}
 import com.databricks.labs.remorph.parsers.tsql.TSqlParser._
 import com.databricks.labs.remorph.parsers.{IncompleteParser, ParserCommon, intermediate => ir}
