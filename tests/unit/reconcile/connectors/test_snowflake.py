@@ -2,11 +2,11 @@ import re
 from unittest.mock import MagicMock, create_autospec
 
 import pytest
-from pyspark.errors import PySparkException
 
 from databricks.labs.remorph.config import SQLGLOT_DIALECTS
 from databricks.labs.remorph.reconcile.connectors.snowflake import SnowflakeDataSource
 from databricks.labs.remorph.reconcile.constants import SourceDriver
+from databricks.labs.remorph.reconcile.exception import DataSourceRuntimeException
 from databricks.labs.remorph.reconcile.recon_config import JdbcReaderOptions, Table
 from databricks.sdk import WorkspaceClient
 
@@ -82,7 +82,7 @@ def test_read_data_with_out_options():
     )
 
     # Call the read_data method with the Tables configuration
-    ds.read_query_data("org", "data", "employee", "select 1 from :tbl", table_conf.jdbc_reader_options)
+    ds.read_data("org", "data", "employee", "select 1 from :tbl", table_conf.jdbc_reader_options)
 
     # spark assertions
     spark.read.format.assert_called_with("snowflake")
@@ -134,7 +134,7 @@ def test_read_data_with_options():
     )
 
     # Call the read_data method with the Tables configuration
-    ds.read_query_data("org", "data", "employee", "select 1 from :tbl", table_conf.jdbc_reader_options)
+    ds.read_data("org", "data", "employee", "select 1 from :tbl", table_conf.jdbc_reader_options)
 
     # spark assertions
     spark.read.format.assert_called_with("jdbc")
@@ -229,15 +229,14 @@ def test_read_data_exception_handling():
         filters=None,
     )
 
-    spark.read.format().option().options().load.side_effect = PySparkException("Test Exception")
+    spark.read.format().option().options().load.side_effect = RuntimeError("Test Exception")
 
     # Call the read_data method with the Tables configuration and assert that a PySparkException is raised
     with pytest.raises(
-        PySparkException,
-        match="An error occurred while fetching Snowflake Data using the following "
-        "select 1 from :tbl in SnowflakeDataSource : Test Exception",
+        DataSourceRuntimeException,
+        match="Runtime exception occurred while fetching data using select 1 from org.data.employee : Test Exception",
     ):
-        ds.read_query_data("org", "data", "employee", "select 1 from :tbl", table_conf.jdbc_reader_options)
+        ds.read_data("org", "data", "employee", "select 1 from :tbl", table_conf.jdbc_reader_options)
 
 
 def test_get_schema_exception_handling():
@@ -245,13 +244,17 @@ def test_get_schema_exception_handling():
     engine, spark, ws, scope = initial_setup()
     ds = SnowflakeDataSource(engine, spark, ws, scope)
 
-    spark.read.format().option().options().load.side_effect = PySparkException("Test Exception")
+    spark.read.format().option().options().load.side_effect = RuntimeError("Test Exception")
 
     # Call the get_schema method with predefined table, schema, and catalog names and assert that a PySparkException
     # is raised
     with pytest.raises(
-        PySparkException,
-        match="An error occurred while fetching Snowflake Schema using the following "
-        "supplier in SnowflakeDataSource: Test Exception",
+        DataSourceRuntimeException,
+        match=r"Runtime exception occurred while fetching schema using select column_name, case when numeric_precision "
+        "is not null and numeric_scale is not null then concat\\(data_type, '\\(', numeric_precision, ',' , "
+        "numeric_scale, '\\)'\\) when lower\\(data_type\\) = 'text' then concat\\('varchar', '\\(', "
+        "CHARACTER_MAXIMUM_LENGTH, '\\)'\\) else data_type end as data_type from catalog.INFORMATION_SCHEMA.COLUMNS "
+        "where lower\\(table_name\\)='supplier' and lower\\(table_schema\\) = 'schema' order by ordinal_position : Test "
+        "Exception",
     ):
         ds.get_schema("catalog", "schema", "supplier")

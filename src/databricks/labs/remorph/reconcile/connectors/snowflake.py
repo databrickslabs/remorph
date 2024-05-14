@@ -1,6 +1,5 @@
 import re
 
-from pyspark.errors import PySparkException
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.functions import col
 from sqlglot import Dialects
@@ -36,12 +35,11 @@ class SnowflakeDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
             f"&warehouse={self._get_secret_if_exists('sfWarehouse')}&role={self._get_secret_if_exists('sfRole')}"
         )
 
-    def read_query_data(
+    def read_data(
         self, catalog: str, schema: str, table: str, query: str, options: JdbcReaderOptions | None
     ) -> DataFrame:
+        table_query = query.replace(":tbl", f"{catalog}.{schema}.{table}")
         try:
-            table_query = query.replace(":tbl", f"{catalog}.{schema}.{table}")
-
             if options is None:
                 df = self.reader(table_query)
             else:
@@ -52,24 +50,16 @@ class SnowflakeDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
                     .load()
                 )
             return df.select([col(column).alias(column.lower()) for column in df.columns])
-        except PySparkException as e:
-            error_msg = (
-                f"An error occurred while fetching Snowflake Data using the following {query} in "
-                f"SnowflakeDataSource : {e!s}"
-            )
-            raise PySparkException(error_msg) from e
+        except RuntimeError as e:
+            raise self._raise_runtime_exception(e, "data", table_query)
 
     def get_schema(self, catalog: str, schema: str, table: str) -> list[Schema]:
+        schema_query = self.get_schema_query(catalog, schema, table)
         try:
-            schema_query = self.get_schema_query(catalog, schema, table)
             schema_df = self.reader(schema_query).load()
             return [Schema(field.column_name.lower(), field.data_type.lower()) for field in schema_df.collect()]
-        except PySparkException as e:
-            error_msg = (
-                f"An error occurred while fetching Snowflake Schema using the following {table} in "
-                f"SnowflakeDataSource: {e!s}"
-            )
-            raise PySparkException(error_msg) from e
+        except RuntimeError as e:
+            raise self._raise_runtime_exception(e, "schema", schema_query)
 
     def reader(self, query: str) -> DataFrame:
         options = {

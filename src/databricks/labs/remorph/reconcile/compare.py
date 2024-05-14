@@ -38,9 +38,8 @@ def reconcile_data(source: DataFrame, target: DataFrame, key_columns: list[str],
         .select((key_columns if report_type == "all" else alias_column_str(source_alias, source.columns)))
         .drop(Constants.hash_column_name)
     )
-    if not mismatch:
-        mismatch_count = 0
-    else:
+    mismatch_count = 0
+    if mismatch:
         mismatch_count = mismatch.count()
 
     return ReconcileOutput(

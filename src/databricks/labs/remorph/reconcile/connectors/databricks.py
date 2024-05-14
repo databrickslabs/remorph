@@ -1,6 +1,5 @@
 import re
 
-from pyspark.errors import PySparkException
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.functions import col
 from sqlglot import Dialects
@@ -25,33 +24,26 @@ class DatabricksDataSource(DataSource, SecretsMixin):
         self._ws = ws
         self._secret_scope = secret_scope
 
-    def read_query_data(
+    def read_data(
         self, catalog: str, schema: str, table: str, query: str, options: JdbcReaderOptions | None
     ) -> DataFrame:
+        table_with_namespace = f"{schema}.{table}"
+        if catalog and catalog != "hive_metastore":
+            table_with_namespace = f"{catalog}.{schema}.{table}"
+        table_query = query.replace(":tbl", table_with_namespace)
         try:
-            if catalog and catalog != "hive_metastore":
-                table_query = query.replace(":tbl", f"{schema}.{table}")
-            table_query = query.replace(":tbl", f"{catalog}.{schema}.{table}")
             df = self._spark.sql(table_query)
             return df.select([col(column).alias(column.lower()) for column in df.columns])
-        except PySparkException as e:
-            error_msg = (
-                f"An error occurred while fetching Databricks Data using the following {table_query} in "
-                f"DatabricksDataSource : {e!s}"
-            )
-            raise PySparkException(error_msg) from e
+        except RuntimeError as e:
+            raise self._raise_runtime_exception(e, "data", table_query)
 
     def get_schema(self, catalog: str, schema: str, table: str) -> list[Schema]:
+        schema_query = self.get_schema_query(catalog, schema, table)
         try:
-            schema_query = self.get_schema_query(catalog, schema, table)
             schema_df = self._spark.sql(schema_query).where("col_name not like '#%'").distinct()
             return [Schema(field.col_name.lower(), field.data_type.lower()) for field in schema_df.collect()]
-        except PySparkException as e:
-            error_msg = (
-                f"An error occurred while fetching Databricks Schema using the following "
-                f"{schema_query} query in DatabricksDataSource: {e!s}"
-            )
-            raise PySparkException(error_msg) from e
+        except RuntimeError as e:
+            raise self._raise_runtime_exception(e, "schema", schema_query)
 
     @staticmethod
     def get_schema_query(catalog: str, schema: str, table: str):

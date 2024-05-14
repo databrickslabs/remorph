@@ -101,14 +101,14 @@ class Reconciliation:
     def _get_reconcile_output(self, table_conf, src_schema, tgt_schema):
         src_hash_query = HashQueryBuilder(table_conf, src_schema, Layer.SOURCE.value, self._source_engine).build_query()
         tgt_hash_query = HashQueryBuilder(table_conf, tgt_schema, Layer.TARGET.value, self._target_engine).build_query()
-        src_data = self._source.read_query_data(
+        src_data = self._source.read_data(
             catalog=self._source_catalog,
             schema=self._source_schema,
             table=table_conf.source_name,
             query=src_hash_query,
             options=table_conf.jdbc_reader_options,
         )
-        tgt_data = self._target.read_query_data(
+        tgt_data = self._target.read_data(
             catalog=self._target_catalog,
             schema=self._target_schema,
             table=table_conf.target_name,
@@ -121,6 +121,10 @@ class Reconciliation:
         )
 
     def _get_sample_data(self, table_conf, reconcile_output, src_schema, tgt_schema):
+        mismatch = None
+        missing_in_src = None
+        missing_in_tgt = None
+
         if (
             reconcile_output.mismatch_count > 0
             or reconcile_output.missing_in_src_count > 0
@@ -137,8 +141,6 @@ class Reconciliation:
                     table_conf.source_name,
                     table_conf.target_name,
                 )
-            else:
-                mismatch = None
 
             if reconcile_output.missing_in_src_count > 0:
                 missing_in_src = self._get_missing_data(
@@ -149,8 +151,7 @@ class Reconciliation:
                     self._target_schema,
                     table_conf.target_name,
                 )
-            else:
-                missing_in_src = None
+
             if reconcile_output.missing_in_tgt_count > 0:
                 missing_in_tgt = self._get_missing_data(
                     self._source,
@@ -160,12 +161,6 @@ class Reconciliation:
                     self._source_schema,
                     table_conf.source_name,
                 )
-            else:
-                missing_in_tgt = None
-        else:
-            mismatch = None
-            missing_in_src = None
-            missing_in_tgt = None
 
         return ReconcileOutput(
             mismatch=mismatch,
@@ -180,14 +175,14 @@ class Reconciliation:
         src_mismatch_sample_query = src_sampler.build_query(mismatch)
         tgt_mismatch_sample_query = tgt_sampler.build_query(mismatch)
 
-        src_data = self._source.read_query_data(
+        src_data = self._source.read_data(
             catalog=self._source_catalog,
             schema=self._source_schema,
             table=src_table,
             query=src_mismatch_sample_query,
             options=None,
         )
-        tgt_data = self._target.read_query_data(
+        tgt_data = self._target.read_data(
             catalog=self._target_catalog,
             schema=self._target_schema,
             table=tgt_table,
@@ -200,7 +195,7 @@ class Reconciliation:
     @staticmethod
     def _get_missing_data(reader, sampler, missing_df, catalog, schema, table_name: str):
         sample_query = sampler.build_query(missing_df)
-        return reader.read_query_data(
+        return reader.read_data(
             catalog=catalog,
             schema=schema,
             table=table_name,

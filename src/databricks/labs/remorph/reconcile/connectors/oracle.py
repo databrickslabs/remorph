@@ -1,4 +1,3 @@
-from pyspark.errors import PySparkException
 from pyspark.sql import DataFrame, DataFrameReader, SparkSession
 from sqlglot import Dialects
 
@@ -32,32 +31,25 @@ class OracleDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
             f":{self._get_secret_if_exists('port')}/{self._get_secret_if_exists('database')}"
         )
 
-    def read_query_data(
+    def read_data(
         self, catalog: str, schema: str, table: str, query: str, options: JdbcReaderOptions | None
     ) -> DataFrame:
+        table_query = query.replace(":tbl", f"{schema}.{table}")
         try:
-            read_query = query.replace(":tbl", f"{schema}.{table}")
             if options is None:
-                return self.reader(read_query).options(**self._get_timestamp_options()).load()
+                return self.reader(table_query).options(**self._get_timestamp_options()).load()
             options = self._get_jdbc_reader_options(options) | self._get_timestamp_options()
-            return self.reader(read_query).options(**options).load()
-        except PySparkException as e:
-            error_msg = (
-                f"An error occurred while fetching Oracle Data using the following {query} in OracleDataSource : {e!s}"
-            )
-            raise PySparkException(error_msg) from e
+            return self.reader(table_query).options(**options).load()
+        except RuntimeError as e:
+            raise self._raise_runtime_exception(e, "data", table_query)
 
     def get_schema(self, catalog: str, schema: str, table: str) -> list[Schema]:
+        schema_query = self._get_schema_query(table, schema)
         try:
-            schema_query = self._get_schema_query(table, schema)
             schema_df = self.reader(schema_query).load()
             return [Schema(field.column_name.lower(), field.data_type.lower()) for field in schema_df.collect()]
-        except PySparkException as e:
-            error_msg = (
-                f"An error occurred while fetching Oracle Schema using the following {table} in "
-                f"OracleDataSource: {e!s}"
-            )
-            raise PySparkException(error_msg) from e
+        except RuntimeError as e:
+            raise self._raise_runtime_exception(e, "schema", schema_query)
 
     @staticmethod
     def _get_timestamp_options() -> dict[str, str]:

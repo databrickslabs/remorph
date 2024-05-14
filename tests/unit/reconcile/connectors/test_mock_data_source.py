@@ -3,7 +3,7 @@ from pyspark import Row
 from pyspark.testing import assertDataFrameEqual
 
 from databricks.labs.remorph.reconcile.connectors.data_source import MockDataSource
-from databricks.labs.remorph.reconcile.exception import MockDataNotAvailableException
+from databricks.labs.remorph.reconcile.exception import DataSourceRuntimeException
 from databricks.labs.remorph.reconcile.recon_config import Schema
 
 catalog = "org"
@@ -35,7 +35,7 @@ def test_mock_data_source_happy(mock_spark):
 
     data_source = MockDataSource(dataframe_repository, schema_repository)
 
-    actual_data = data_source.read_query_data(catalog, schema, table, "select * from employee", None)
+    actual_data = data_source.read_data(catalog, schema, table, "select * from employee", None)
     expected_data = mock_spark.createDataFrame(
         [
             Row(emp_id="1", emp_name="name-1", sal=100),
@@ -56,10 +56,14 @@ def test_mock_data_source_happy(mock_spark):
 def test_mock_data_source_fail(mock_spark):
     data_source = MockDataSource({}, {})
 
-    with pytest.raises(MockDataNotAvailableException) as exception:
-        data_source.read_query_data(catalog, schema, table, "select * from test", None)
-    assert str(exception.value) == "data is not mocked for the combination : ('org', 'data', 'select * from test')"
+    with pytest.raises(
+        DataSourceRuntimeException,
+        match="Runtime exception occurred while fetching data using \\(org, data, select \\* from test\\) : Mock Exception",
+    ):
+        data_source.read_data(catalog, schema, table, "select * from test", None)
 
-    with pytest.raises(MockDataNotAvailableException) as exception:
+    with pytest.raises(
+        DataSourceRuntimeException,
+        match="Runtime exception occurred while fetching schema using \\(org, data, unknown\\) : Mock Exception",
+    ):
         data_source.get_schema(catalog, schema, "unknown")
-    assert str(exception.value) == "schema is not mocked for the combination : ('org', 'data', 'unknown')"

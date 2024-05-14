@@ -6,6 +6,7 @@ from pyspark.errors import PySparkException
 
 from databricks.labs.remorph.config import SQLGLOT_DIALECTS
 from databricks.labs.remorph.reconcile.connectors.databricks import DatabricksDataSource
+from databricks.labs.remorph.reconcile.exception import DataSourceRuntimeException
 from databricks.sdk import WorkspaceClient
 
 
@@ -74,7 +75,7 @@ def test_read_data():
     dd = DatabricksDataSource(engine, spark, ws, scope)
 
     # Test with query
-    dd.read_query_data("org", "data", "employee", "select id as id, name as name from :tbl", None)
+    dd.read_data("org", "data", "employee", "select id as id, name as name from :tbl", None)
     spark.sql.assert_called_with("select id as id, name as name from org.data.employee")
 
 
@@ -85,15 +86,13 @@ def test_read_data_exception_handling():
     # create object for DatabricksDataSource
     dd = DatabricksDataSource(engine, spark, ws, scope)
 
-    spark.sql.side_effect = PySparkException("Test Exception")
+    spark.sql.side_effect = RuntimeError("Test Exception")
 
     with pytest.raises(
-        PySparkException,
-        match="An error occurred while fetching Databricks Data using the "
-        "following select id as id, ename as name from "
-        "org.data.employee in DatabricksDataSource : Test Exception",
+        DataSourceRuntimeException,
+        match="Runtime exception occurred while fetching data using select id as id, ename as name from org.data.employee : Test Exception",
     ):
-        dd.read_query_data("org", "data", "employee", "select id as id, ename as name from :tbl", None)
+        dd.read_data("org", "data", "employee", "select id as id, ename as name from :tbl", None)
 
 
 def test_get_schema_exception_handling():
