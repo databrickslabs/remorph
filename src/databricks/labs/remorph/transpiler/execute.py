@@ -28,7 +28,6 @@ from databricks.labs.remorph.snow import lca_utils
 from databricks.labs.remorph.snow.sql_transpiler import SqlglotEngine
 from databricks.sdk import WorkspaceClient
 
-
 # pylint: disable=unspecified-encoding
 
 logger = logging.getLogger(__name__)
@@ -122,10 +121,11 @@ def _process_directory(
 
 
 def _process_recursive_dirs(config: MorphConfig, validator: Validator | None, transpiler: SqlglotEngine):
+    if not config.input_sql:
+        logger.error("Input SQL path is not provided.")
+        raise ValueError("Input SQL path is not provided.")
 
-    input_sql_path = config.input_sql if config.input_sql else ""
-
-    input_sql = Path(input_sql_path)
+    input_sql = Path(config.input_sql)
     parse_error_list = []
     validate_error_list = []
 

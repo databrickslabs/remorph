@@ -191,7 +191,8 @@ class ThresholdQueryBuilder(QueryBuilder):
         """
         keys: list[str] = sorted(self.partition_column.union(self.join_columns).union(self.threshold_columns))
         select_clause = [
-            build_column(this=col, alias=self.table_conf.get_tgt_to_src_col_mapping(col, self.layer)) for col in keys
+            build_column(this=col, alias=self.table_conf.get_layer_tgt_to_src_col_mapping(col, self.layer))
+            for col in keys
         ]
         select_clause = self.add_transformations(select_clause, self.source)
         query = select(*select_clause).from_(":tbl").where(self.filter)
