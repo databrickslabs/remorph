@@ -974,6 +974,7 @@ TIME_OUTPUT_FORMAT          : 'TIME_OUTPUT_FORMAT';
 TO                          : 'TO';
 TO_BOOLEAN                  : 'TO_BOOLEAN';
 TO_DATE                     : 'TO_DATE';
+TO_TIME                     : 'TO_TIME';
 TO_TIMESTAMP                : 'TO_TIMESTAMP';
 TOP                         : 'TOP';
 // TRACKING:                                              'TRACKING';
