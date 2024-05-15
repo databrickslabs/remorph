@@ -1,17 +1,15 @@
 import logging
-from pathlib import Path
+import uuid
 
+from pyspark.sql import SparkSession
 from sqlglot import Dialects
 
-from databricks.connect import DatabricksSession
-from databricks.labs.blueprint.installation import Installation
 from databricks.labs.remorph.config import SQLGLOT_DIALECTS, DatabaseConfig, TableRecon
 from databricks.labs.remorph.reconcile.compare import (
     capture_mismatch_data_and_columns,
     reconcile_data,
 )
 from databricks.labs.remorph.reconcile.connectors.data_source import DataSource
-from databricks.labs.remorph.reconcile.connectors.databricks import DatabricksDataSource
 from databricks.labs.remorph.reconcile.connectors.source_adapter import (
     DataSourceAdapter,
 )
@@ -31,7 +29,9 @@ from databricks.sdk import WorkspaceClient
 logger = logging.getLogger(__name__)
 
 
-def recon(ws: WorkspaceClient, table_recon: TableRecon, source_dialect: Dialects, report_type: str):
+def recon(
+    ws: WorkspaceClient, spark: SparkSession, table_recon: TableRecon, source_dialect: Dialects, report_type: str
+):
     logger.info(report_type)
 
     database_config = DatabaseConfig(
@@ -41,13 +41,10 @@ def recon(ws: WorkspaceClient, table_recon: TableRecon, source_dialect: Dialects
         target_schema=table_recon.target_schema,
     )
 
-    spark = DatabricksSession.builder.sdkConfig(ws.config).getOrCreate()
-
-    source = DataSourceAdapter().create_adapter(engine=source_dialect, spark=spark, ws=ws, secret_scope="secret_scope")
-    target = DatabricksDataSource(engine=SQLGLOT_DIALECTS.get("databricks"), spark=spark, ws=ws,
-                                  secret_scope="secret_scope")
+    source, target = _initialise_data_source(engine=source_dialect, spark=spark, ws=ws, secret_scope="secret_scope")
     schema_comparator = SchemaCompare(spark=spark)
 
+    recon_id = str(uuid.uuid4())
     # initialise the Reconciliation
     reconciler = Reconciliation(source, target, database_config, report_type, schema_comparator, source_dialect)
 
@@ -67,18 +64,27 @@ def recon(ws: WorkspaceClient, table_recon: TableRecon, source_dialect: Dialects
             reconciler.reconcile_data(table_conf=table_conf, src_schema=src_schema, tgt_schema=tgt_schema)
             reconciler.reconcile_schema(table_conf=table_conf, src_schema=src_schema, tgt_schema=tgt_schema)
 
-        return 0
+    return recon_id
+
+
+def _initialise_data_source(ws: WorkspaceClient, spark: SparkSession, engine: Dialects, secret_scope: str):
+    source = DataSourceAdapter().create_adapter(engine=engine, spark=spark, ws=ws, secret_scope=secret_scope)
+    target = DataSourceAdapter().create_adapter(
+        engine=SQLGLOT_DIALECTS.get("databricks"), spark=spark, ws=ws, secret_scope=secret_scope
+    )
+
+    return source, target
 
 
 class Reconciliation:
     def __init__(
-            self,
-            source: DataSource,
-            target: DataSource,
-            database_config: DatabaseConfig,
-            report_type: str,
-            schema_comparator: SchemaCompare,
-            source_engine: Dialects,
+        self,
+        source: DataSource,
+        target: DataSource,
+        database_config: DatabaseConfig,
+        report_type: str,
+        schema_comparator: SchemaCompare,
+        source_engine: Dialects,
     ):
         self._source = source
         self._target = target
@@ -126,9 +132,9 @@ class Reconciliation:
         missing_in_tgt = None
 
         if (
-                reconcile_output.mismatch_count > 0
-                or reconcile_output.missing_in_src_count > 0
-                or reconcile_output.missing_in_tgt_count > 0
+            reconcile_output.mismatch_count > 0
+            or reconcile_output.missing_in_src_count > 0
+            or reconcile_output.missing_in_tgt_count > 0
         ):
             src_sampler = SamplingQueryBuilder(table_conf, src_schema, Layer.SOURCE.value, self._source_engine)
             tgt_sampler = SamplingQueryBuilder(table_conf, tgt_schema, Layer.TARGET.value, self._target_engine)

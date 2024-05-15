@@ -1,12 +1,14 @@
 from dataclasses import dataclass
+from unittest.mock import create_autospec, patch
 
 import pytest
 from pyspark import Row
 from pyspark.testing import assertDataFrameEqual
 
-from databricks.labs.remorph.config import SQLGLOT_DIALECTS, DatabaseConfig
+from databricks.connect import DatabricksSession
+from databricks.labs.remorph.config import SQLGLOT_DIALECTS, DatabaseConfig, TableRecon
 from databricks.labs.remorph.reconcile.connectors.data_source import MockDataSource
-from databricks.labs.remorph.reconcile.execute import Reconciliation
+from databricks.labs.remorph.reconcile.execute import Reconciliation, recon
 from databricks.labs.remorph.reconcile.recon_config import (
     MismatchOutput,
     ReconcileOutput,
@@ -405,3 +407,69 @@ def test_reconcile_data_missing_and_no_mismatch(mock_spark, table_conf_with_opts
 
     assertDataFrameEqual(actual.missing_in_src, expected.missing_in_src)
     assertDataFrameEqual(actual.missing_in_tgt, expected.missing_in_tgt)
+
+
+def test_recon(mock_workspace_client, table_conf_with_opts, table_schema, mock_spark, query_store):
+    table_recon = TableRecon(
+        source_catalog="org",
+        source_schema="data",
+        target_catalog="org",
+        target_schema='data',
+        tables=[table_conf_with_opts],
+    )
+    spark = create_autospec(DatabricksSession)
+    src_schema, tgt_schema = table_schema
+    source_dataframe_repository = {
+        (
+            CATALOG,
+            SCHEMA,
+            query_store.source_hash_query,
+        ): mock_spark.createDataFrame(
+            [
+                Row(hash_value_recon="a1b", s_nationkey=11, s_suppkey=1),
+                Row(hash_value_recon="c2d", s_nationkey=22, s_suppkey=2),
+                Row(hash_value_recon="e3g", s_nationkey=33, s_suppkey=3),
+            ]
+        ),
+        (CATALOG, SCHEMA, query_store.source_mismatch_query): mock_spark.createDataFrame(
+            [Row(s_address='address-2', s_name='name-2', s_nationkey=22, s_phone="222-2", s_suppkey=2)]
+        ),
+        (CATALOG, SCHEMA, query_store.target_missing_query): mock_spark.createDataFrame(
+            [Row(s_address='address-3', s_name='name-3', s_nationkey=33, s_phone="333", s_suppkey=3)]
+        ),
+    }
+    source_schema_repository = {(CATALOG, SCHEMA, TABLE): src_schema}
+
+    target_dataframe_repository = {
+        (
+            CATALOG,
+            SCHEMA,
+            query_store.target_hash_query,
+        ): mock_spark.createDataFrame(
+            [
+                Row(hash_value_recon="a1b", s_nationkey=11, s_suppkey=1),
+                Row(hash_value_recon="c2de", s_nationkey=22, s_suppkey=2),
+                Row(hash_value_recon="k4l", s_nationkey=44, s_suppkey=4),
+            ]
+        ),
+        (CATALOG, SCHEMA, query_store.target_mismatch_query): mock_spark.createDataFrame(
+            [Row(s_address='address-22', s_name='name-2', s_nationkey=22, s_phone="222", s_suppkey=2)]
+        ),
+        (CATALOG, SCHEMA, query_store.source_missing_query): mock_spark.createDataFrame(
+            [Row(s_address='address-4', s_name='name-4', s_nationkey=44, s_phone="444", s_suppkey=4)]
+        ),
+    }
+
+    target_schema_repository = {(CATALOG, SCHEMA, TABLE): tgt_schema}
+    source = MockDataSource(source_dataframe_repository, source_schema_repository)
+    target = MockDataSource(target_dataframe_repository, target_schema_repository)
+
+    with (
+        patch("databricks.labs.remorph.reconcile.execute._initialise_data_source", return_value=(source, target)),
+        patch(
+            "databricks.labs.remorph.reconcile.execute.uuid.uuid4", return_value="00112233-4455-6677-8899-aabbccddeeff"
+        ),
+    ):
+        recon_id = recon(mock_workspace_client, spark, table_recon, SQLGLOT_DIALECTS.get("databricks"), "data")
+
+    assert recon_id == "00112233-4455-6677-8899-aabbccddeeff"

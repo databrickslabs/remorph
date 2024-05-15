@@ -1,6 +1,9 @@
 import json
 import os
 
+from pyspark.sql import SparkSession
+
+from databricks.connect import DatabricksSession
 from databricks.labs.blueprint.cli import App
 from databricks.labs.blueprint.entrypoint import get_logger
 from databricks.labs.blueprint.installation import Installation
@@ -23,14 +26,14 @@ def raise_validation_exception(msg: str) -> Exception:
 
 @remorph.command
 def transpile(
-        w: WorkspaceClient,
-        source: str,
-        input_sql: str,
-        output_folder: str,
-        skip_validation: str,
-        catalog_name: str,
-        schema_name: str,
-        mode: str,
+    w: WorkspaceClient,
+    source: str,
+    input_sql: str,
+    output_folder: str,
+    skip_validation: str,
+    catalog_name: str,
+    schema_name: str,
+    mode: str,
 ):
     """transpiles source dialect to databricks dialect"""
     logger.info(f"user: {w.current_user.me()}")
@@ -89,7 +92,13 @@ def reconcile(w: WorkspaceClient, source: str, report: str):
             f"Error: Invalid value for '--report': '{report}' is not one of 'data', 'schema', 'all' , 'hash'"
         )
 
-    recon(w, table_recon, SQLGLOT_DIALECTS.get(source.lower()), report)
+    spark = _get_spark_session(w)
+
+    recon(w, spark, table_recon, SQLGLOT_DIALECTS.get(source.lower()), report)
+
+
+def _get_spark_session(ws: WorkspaceClient) -> SparkSession:
+    return DatabricksSession.builder.sdkConfig(ws.config).getOrCreate()
 
 
 @remorph.command
