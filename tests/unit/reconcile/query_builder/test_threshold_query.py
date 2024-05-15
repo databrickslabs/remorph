@@ -3,10 +3,15 @@ import re
 from databricks.labs.remorph.reconcile.query_builder.threshold_query import (
     ThresholdQueryBuilder,
 )
-from databricks.labs.remorph.reconcile.recon_config import Schema, Thresholds
+from databricks.labs.remorph.reconcile.recon_config import (
+    JdbcReaderOptions,
+    Schema,
+    Thresholds,
+    Transformation,
+)
 
 
-def test_threshold_comparison_query_with_one_threshold(table_conf_with_opts, schema):
+def test_threshold_comparison_query_with_single_threshold(table_conf_with_opts, schema):
     # table conf
     table_conf = table_conf_with_opts
     # schema
@@ -27,7 +32,7 @@ def test_threshold_comparison_query_with_one_threshold(table_conf_with_opts, sch
     )
 
 
-def test_threshold_comparison_query_with_dual_threshold(table_conf_with_opts, schema):
+def test_threshold_comparison_query_with_multiple_threshold(table_conf_with_opts, schema):
     # table conf
     table_conf = table_conf_with_opts
     table_conf.join_columns = ["s_suppkey", "s_suppdate"]
@@ -59,4 +64,51 @@ def test_threshold_comparison_query_with_dual_threshold(table_conf_with_opts, sc
         source.s_suppkey <=> databricks.s_suppkey where (1 = 1 or 1 = 1) or (coalesce(source.s_acctbal, 0) -
         coalesce(databricks.s_acctbal, 0)) <> 0 or (coalesce(unix_timestamp(source.s_suppdate), 0) -
         coalesce(unix_timestamp(databricks.s_suppdate), 0)) <> 0""".strip().lower(),
+    )
+
+
+def test_build_threshold_query_with_single_threshold(table_conf_with_opts, schema):
+    table_conf = table_conf_with_opts
+    table_conf.jdbc_reader_options = None
+    table_conf.transformations = [
+        Transformation(column_name="s_acctbal", source="trim(s_acctbal)", target="trim(s_acctbal)")
+    ]
+    src_schema, tgt_schema = schema
+    src_query = ThresholdQueryBuilder(table_conf, src_schema, "source", "oracle").build_threshold_query()
+    target_query = ThresholdQueryBuilder(table_conf, tgt_schema, "target", "databricks").build_threshold_query()
+    assert src_query == (
+        "SELECT TRIM(s_acctbal) AS s_acctbal, COALESCE(TRIM(s_nationkey), '') AS s_nationkey, "
+        "COALESCE(TRIM(s_suppkey), '') AS s_suppkey FROM :tbl WHERE s_name = 't' AND s_address = 'a'"
+    )
+    assert target_query == (
+        "SELECT TRIM(s_acctbal) AS s_acctbal, COALESCE(TRIM(s_nationkey_t), '') AS s_nationkey, "
+        "COALESCE(TRIM(s_suppkey_t), '') AS s_suppkey FROM :tbl WHERE s_name = 't' AND "
+        "s_address_t = 'a'"
+    )
+
+
+def test_build_threshold_query_with_multiple_threshold(table_conf_with_opts, schema):
+    table_conf = table_conf_with_opts
+    table_conf.jdbc_reader_options = JdbcReaderOptions(
+        number_partitions=100, partition_column="s_phone", lower_bound="0", upper_bound="100"
+    )
+    table_conf.thresholds = [
+        Thresholds(column_name="s_acctbal", lower_bound="5%", upper_bound="-5%", type="float"),
+        Thresholds(column_name="s_suppdate", lower_bound="-86400", upper_bound="86400", type="timestamp"),
+    ]
+    table_conf.filters = None
+    src_schema, tgt_schema = schema
+    src_schema.append(Schema("s_suppdate", "timestamp"))
+    tgt_schema.append(Schema("s_suppdate", "timestamp"))
+    src_query = ThresholdQueryBuilder(table_conf, src_schema, "source", "oracle").build_threshold_query()
+    target_query = ThresholdQueryBuilder(table_conf, tgt_schema, "target", "databricks").build_threshold_query()
+    assert src_query == (
+        "SELECT COALESCE(TRIM(s_acctbal), '') AS s_acctbal, COALESCE(TRIM(s_nationkey), "
+        "'') AS s_nationkey, TRIM(s_phone) AS s_phone, COALESCE(TRIM(s_suppdate), '') AS s_suppdate, "
+        "COALESCE(TRIM(s_suppkey), '') AS s_suppkey FROM :tbl"
+    )
+    assert target_query == (
+        "SELECT COALESCE(TRIM(s_acctbal_t), '') AS s_acctbal, COALESCE(TRIM(s_nationkey_t), "
+        "'') AS s_nationkey, COALESCE(TRIM(s_suppdate), '') AS s_suppdate, COALESCE(TRIM("
+        "s_suppkey_t), '') AS s_suppkey FROM :tbl"
     )
