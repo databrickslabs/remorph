@@ -279,8 +279,8 @@ continueStatement
 
 // https://docs.microsoft.com/en-us/sql/t-sql/language-elements/goto-transact-sql
 gotoStatement
-    : GOTO id_ SEMI?
-    | id_ COLON SEMI?
+    : GOTO id SEMI?
+    | id COLON SEMI?
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/language-elements/return-transact-sql
@@ -369,37 +369,37 @@ anotherStatement
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-application-role-transact-sql
 alterApplicationRole
-    : ALTER APPLICATION ROLE applictionRole = id_ WITH (
-        COMMA? NAME EQ newApplicationRoleName = id_
+    : ALTER APPLICATION ROLE applictionRole = id WITH (
+        COMMA? NAME EQ newApplicationRoleName = id
     )? (COMMA? PASSWORD EQ applicationRolePassword = STRING)? (
-        COMMA? DEFAULT_SCHEMA EQ appRoleDefaultSchema = id_
+        COMMA? DEFAULT_SCHEMA EQ appRoleDefaultSchema = id
     )?
     ;
 
 // https://learn.microsoft.com/en-us/sql/t-sql/statements/alter-xml-schema-collection-transact-sql?view=sql-server-ver16
 alterXmlSchemaCollection
-    : ALTER XML SCHEMA COLLECTION (id_ DOT)? id_ ADD STRING
+    : ALTER XML SCHEMA COLLECTION (id DOT)? id ADD STRING
     ;
 
 createApplicationRole
-    : CREATE APPLICATION ROLE applictionRole = id_ WITH (
+    : CREATE APPLICATION ROLE applictionRole = id WITH (
         COMMA? PASSWORD EQ applicationRolePassword = STRING
-    )? (COMMA? DEFAULT_SCHEMA EQ appRoleDefaultSchema = id_)?
+    )? (COMMA? DEFAULT_SCHEMA EQ appRoleDefaultSchema = id)?
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-aggregate-transact-sql
 
 dropAggregate
-    : DROP AGGREGATE (IF EXISTS)? (schemaName = id_ DOT)? aggregateName = id_
+    : DROP AGGREGATE (IF EXISTS)? (schemaName = id DOT)? aggregateName = id
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-application-role-transact-sql
 dropApplicationRole
-    : DROP APPLICATION ROLE rolename = id_
+    : DROP APPLICATION ROLE rolename = id
     ;
 
 alterAssembly
-    : alterAssemblyStart assemblyName = id_ alterAssemblyClause
+    : alterAssemblyStart assemblyName = id alterAssemblyClause
     ;
 
 alterAssemblyStart
@@ -441,7 +441,7 @@ alterAsssemblyAddClauseStart
 
 // need to implement
 alterAssemblyClientFileClause
-    : alterAssemblyFileName (alterAssemblyAs id_)?
+    : alterAssemblyFileName (alterAssemblyAs id)?
     ;
 
 alterAssemblyFileName
@@ -450,7 +450,7 @@ alterAssemblyFileName
 
 //need to implement
 alterAssemblyFileBits
-    : alterAssemblyAs id_
+    : alterAssemblyAs id
     ;
 
 alterAssemblyAs
@@ -483,12 +483,12 @@ networkFileShare
     ;
 
 networkComputer
-    : computerName = id_
+    : computerName = id
     ;
 
 filePath
     : BACKSLASH filePath
-    | id_
+    | id
     ;
 
 localFile
@@ -510,20 +510,20 @@ multipleLocalFileStart
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/create-assembly-transact-sql
 createAssembly
-    : CREATE ASSEMBLY assemblyName = id_ (AUTHORIZATION ownerName = id_)? FROM (
+    : CREATE ASSEMBLY assemblyName = id (AUTHORIZATION ownerName = id)? FROM (
         COMMA? (STRING | HEX)
     )+ (WITH PERMISSION_SET EQ (SAFE | EXTERNAL_ACCESS | UNSAFE))?
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-assembly-transact-sql
 dropAssembly
-    : DROP ASSEMBLY (IF EXISTS)? (COMMA? assemblyName = id_)+ (WITH NO DEPENDENTS)?
+    : DROP ASSEMBLY (IF EXISTS)? (COMMA? assemblyName = id)+ (WITH NO DEPENDENTS)?
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-asymmetric-key-transact-sql
 
 alterAsymmetricKey
-    : alterAsymmetricKeyStart Asym_Key_Name = id_ (asymmetricKeyOption | REMOVE PRIVATE KEY)
+    : alterAsymmetricKeyStart Asym_Key_Name = id (asymmetricKeyOption | REMOVE PRIVATE KEY)
     ;
 
 alterAsymmetricKeyStart
@@ -548,12 +548,12 @@ asymmetricKeyPasswordChangeOption
 //https://docs.microsoft.com/en-us/sql/t-sql/statements/create-asymmetric-key-transact-sql
 
 createAsymmetricKey
-    : CREATE ASYMMETRIC KEY Asym_Key_Nam = id_ (AUTHORIZATION databasePrincipalName = id_)? (
+    : CREATE ASYMMETRIC KEY Asym_Key_Nam = id (AUTHORIZATION databasePrincipalName = id)? (
         FROM (
             FILE EQ STRING
             | EXECUTABLE_FILE EQ STRING
-            | ASSEMBLY Assembly_Name = id_
-            | PROVIDER Provider_Name = id_
+            | ASSEMBLY Assembly_Name = id
+            | PROVIDER Provider_Name = id
         )
     )? (
         WITH (
@@ -566,7 +566,7 @@ createAsymmetricKey
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-asymmetric-key-transact-sql
 dropAsymmetricKey
-    : DROP ASYMMETRIC KEY keyName = id_ (REMOVE PROVIDER KEY)?
+    : DROP ASYMMETRIC KEY keyName = id (REMOVE PROVIDER KEY)?
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-authorization-transact-sql
@@ -576,7 +576,7 @@ alterAuthorization
     ;
 
 authorizationGrantee
-    : principalName = id_
+    : principalName = id
     | SCHEMA OWNER
     ;
 
@@ -704,7 +704,7 @@ classTypeForGrant
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-availability-group-transact-sql
 dropAvailabilityGroup
-    : DROP AVAILABILITY GROUP groupName = id_
+    : DROP AVAILABILITY GROUP groupName = id
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-availability-group-transact-sql
@@ -713,7 +713,7 @@ alterAvailabilityGroup
     ;
 
 alterAvailabilityGroupStart
-    : ALTER AVAILABILITY GROUP groupName = id_
+    : ALTER AVAILABILITY GROUP groupName = id
     ;
 
 alterAvailabilityGroupOptions
@@ -726,8 +726,8 @@ alterAvailabilityGroupOptions
             | REQUIRED_SYNCHRONIZED_SECONDARIES_TO_COMMIT EQ INT
         ) RPAREN
     )
-    | ADD DATABASE databaseName = id_
-    | REMOVE DATABASE databaseName = id_
+    | ADD DATABASE databaseName = id
+    | REMOVE DATABASE databaseName = id
     | ADD REPLICA ON serverInstance = STRING (
         WITH LPAREN (
             (ENDPOINT_URL EQ STRING)? (
@@ -818,21 +818,21 @@ ipV6_failover
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-broker-priority-transact-sql
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/create-broker-priority-transact-sql
 createOrAlterBrokerPriority
-    : (CREATE | ALTER) BROKER PRIORITY ConversationPriorityName = id_ FOR CONVERSATION SET LPAREN (
-        CONTRACT_NAME EQ ( ( id_) | ANY) COMMA?
-    )? (LOCAL_SERVICE_NAME EQ (DOUBLE_FORWARD_SLASH? id_ | ANY) COMMA?)? (
+    : (CREATE | ALTER) BROKER PRIORITY ConversationPriorityName = id FOR CONVERSATION SET LPAREN (
+        CONTRACT_NAME EQ ( ( id) | ANY) COMMA?
+    )? (LOCAL_SERVICE_NAME EQ (DOUBLE_FORWARD_SLASH? id | ANY) COMMA?)? (
         REMOTE_SERVICE_NAME EQ (RemoteServiceName = STRING | ANY) COMMA?
     )? (PRIORITY_LEVEL EQ ( PriorityValue = INT | DEFAULT))? RPAREN
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-broker-priority-transact-sql
 dropBrokerPriority
-    : DROP BROKER PRIORITY ConversationPriorityName = id_
+    : DROP BROKER PRIORITY ConversationPriorityName = id
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-certificate-transact-sql
 alterCertificate
-    : ALTER CERTIFICATE certificateName = id_ (
+    : ALTER CERTIFICATE certificateName = id (
         REMOVE PRIVATE_KEY
         | WITH PRIVATE KEY LPAREN (
             FILE EQ STRING COMMA?
@@ -845,57 +845,57 @@ alterCertificate
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-column-encryption-key-transact-sql
 alterColumnEncryptionKey
-    : ALTER COLUMN ENCRYPTION KEY columnEncryptionKey = id_ (ADD | DROP) VALUE LPAREN COLUMN_MASTER_KEY EQ columnMasterKeyName = id_ (
+    : ALTER COLUMN ENCRYPTION KEY columnEncryptionKey = id (ADD | DROP) VALUE LPAREN COLUMN_MASTER_KEY EQ columnMasterKeyName = id (
         COMMA ALGORITHM EQ algorithmName = STRING COMMA ENCRYPTED_VALUE EQ HEX
     )? RPAREN
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/create-column-encryption-key-transact-sql
 createColumnEncryptionKey
-    : CREATE COLUMN ENCRYPTION KEY columnEncryptionKey = id_ WITH VALUES (
-        LPAREN COMMA? COLUMN_MASTER_KEY EQ columnMasterKeyName = id_ COMMA ALGORITHM EQ algorithmName = STRING COMMA ENCRYPTED_VALUE
+    : CREATE COLUMN ENCRYPTION KEY columnEncryptionKey = id WITH VALUES (
+        LPAREN COMMA? COLUMN_MASTER_KEY EQ columnMasterKeyName = id COMMA ALGORITHM EQ algorithmName = STRING COMMA ENCRYPTED_VALUE
             EQ encryptedValue = HEX RPAREN COMMA?
     )+
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-certificate-transact-sql
 dropCertificate
-    : DROP CERTIFICATE certificateName = id_
+    : DROP CERTIFICATE certificateName = id
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-column-encryption-key-transact-sql
 dropColumnEncryptionKey
-    : DROP COLUMN ENCRYPTION KEY keyName = id_
+    : DROP COLUMN ENCRYPTION KEY keyName = id
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-column-master-key-transact-sql
 dropColumnMasterKey
-    : DROP COLUMN MASTER KEY keyName = id_
+    : DROP COLUMN MASTER KEY keyName = id
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-contract-transact-sql
 dropContract
-    : DROP CONTRACT droppedContractName = id_
+    : DROP CONTRACT droppedContractName = id
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-credential-transact-sql
 dropCredential
-    : DROP CREDENTIAL credentialName = id_
+    : DROP CREDENTIAL credentialName = id
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-cryptographic-provider-transact-sql
 dropCryptograhicProvider
-    : DROP CRYPTOGRAPHIC PROVIDER providerName = id_
+    : DROP CRYPTOGRAPHIC PROVIDER providerName = id
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-database-transact-sql
 dropDatabase
-    : DROP DATABASE (IF EXISTS)? (COMMA? databaseNameOrDatabaseSnapshotName = id_)+
+    : DROP DATABASE (IF EXISTS)? (COMMA? databaseNameOrDatabaseSnapshotName = id)+
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-database-audit-specification-transact-sql
 dropDatabaseAuditSpecification
-    : DROP DATABASE AUDIT SPECIFICATION auditSpecificationName = id_
+    : DROP DATABASE AUDIT SPECIFICATION auditSpecificationName = id
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-database-encryption-key-transact-sql?view=sql-server-ver15
@@ -905,76 +905,76 @@ dropDatabaseEncryptionKey
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-database-scoped-credential-transact-sql
 dropDatabaseScopedCredential
-    : DROP DATABASE SCOPED CREDENTIAL credentialName = id_
+    : DROP DATABASE SCOPED CREDENTIAL credentialName = id
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-default-transact-sql
 dropDefault
-    : DROP DEFAULT (IF EXISTS)? (COMMA? (schemaName = id_ DOT)? defaultName = id_)
+    : DROP DEFAULT (IF EXISTS)? (COMMA? (schemaName = id DOT)? defaultName = id)
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-endpoint-transact-sql
 dropEndpoint
-    : DROP ENDPOINT endPointName = id_
+    : DROP ENDPOINT endPointName = id
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-external-data-source-transact-sql
 dropExternalDataSource
-    : DROP EXTERNAL DATA SOURCE externalDataSourceName = id_
+    : DROP EXTERNAL DATA SOURCE externalDataSourceName = id
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-external-file-format-transact-sql
 dropExternalFileFormat
-    : DROP EXTERNAL FILE FORMAT externalFileFormatName = id_
+    : DROP EXTERNAL FILE FORMAT externalFileFormatName = id
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-external-library-transact-sql
 dropExternalLibrary
-    : DROP EXTERNAL LIBRARY libraryName = id_ (AUTHORIZATION ownerName = id_)?
+    : DROP EXTERNAL LIBRARY libraryName = id (AUTHORIZATION ownerName = id)?
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-external-resource-pool-transact-sql
 dropExternalResourcePool
-    : DROP EXTERNAL RESOURCE POOL poolName = id_
+    : DROP EXTERNAL RESOURCE POOL poolName = id
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-external-table-transact-sql
 dropExternalTable
-    : DROP EXTERNAL TABLE (databaseName = id_ DOT)? (schemaName = id_ DOT)? table = id_
+    : DROP EXTERNAL TABLE (databaseName = id DOT)? (schemaName = id DOT)? table = id
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-event-notification-transact-sql
 dropEventNotifications
-    : DROP EVENT NOTIFICATION (COMMA? notificationName = id_)+ ON (
+    : DROP EVENT NOTIFICATION (COMMA? notificationName = id)+ ON (
         SERVER
         | DATABASE
-        | QUEUE queueName = id_
+        | QUEUE queueName = id
     )
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-event-session-transact-sql
 dropEventSession
-    : DROP EVENT SESSION eventSessionName = id_ ON SERVER
+    : DROP EVENT SESSION eventSessionName = id ON SERVER
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-fulltext-catalog-transact-sql
 dropFulltextCatalog
-    : DROP FULLTEXT CATALOG catalogName = id_
+    : DROP FULLTEXT CATALOG catalogName = id
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-fulltext-index-transact-sql
 dropFulltextIndex
-    : DROP FULLTEXT INDEX ON (schema = id_ DOT)? table = id_
+    : DROP FULLTEXT INDEX ON (schema = id DOT)? table = id
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-fulltext-stoplist-transact-sql
 dropFulltextStoplist
-    : DROP FULLTEXT STOPLIST stoplistName = id_
+    : DROP FULLTEXT STOPLIST stoplistName = id
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-login-transact-sql
 dropLogin
-    : DROP LOGIN loginName = id_
+    : DROP LOGIN loginName = id
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-master-key-transact-sql
@@ -984,132 +984,132 @@ dropMasterKey
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-message-type-transact-sql
 dropMessageType
-    : DROP MESSAGE TYPE messageTypeName = id_
+    : DROP MESSAGE TYPE messageTypeName = id
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-partition-function-transact-sql
 dropPartitionFunction
-    : DROP PARTITION FUNCTION partitionFunctionName = id_
+    : DROP PARTITION FUNCTION partitionFunctionName = id
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-partition-scheme-transact-sql
 dropPartitionScheme
-    : DROP PARTITION SCHEME partitionSchemeName = id_
+    : DROP PARTITION SCHEME partitionSchemeName = id
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-queue-transact-sql
 dropQueue
-    : DROP QUEUE (databaseName = id_ DOT)? (schemaName = id_ DOT)? queueName = id_
+    : DROP QUEUE (databaseName = id DOT)? (schemaName = id DOT)? queueName = id
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-remote-service-binding-transact-sql
 dropRemoteServiceBinding
-    : DROP REMOTE SERVICE BINDING bindingName = id_
+    : DROP REMOTE SERVICE BINDING bindingName = id
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-resource-pool-transact-sql
 dropResourcePool
-    : DROP RESOURCE POOL poolName = id_
+    : DROP RESOURCE POOL poolName = id
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-role-transact-sql
 dropDbRole
-    : DROP ROLE (IF EXISTS)? roleName = id_
+    : DROP ROLE (IF EXISTS)? roleName = id
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-route-transact-sql
 dropRoute
-    : DROP ROUTE routeName = id_
+    : DROP ROUTE routeName = id
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-rule-transact-sql
 dropRule
-    : DROP RULE (IF EXISTS)? (COMMA? (schemaName = id_ DOT)? ruleName = id_)?
+    : DROP RULE (IF EXISTS)? (COMMA? (schemaName = id DOT)? ruleName = id)?
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-schema-transact-sql
 dropSchema
-    : DROP SCHEMA (IF EXISTS)? schemaName = id_
+    : DROP SCHEMA (IF EXISTS)? schemaName = id
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-search-property-list-transact-sql
 dropSearchPropertyList
-    : DROP SEARCH PROPERTY LIST propertyListName = id_
+    : DROP SEARCH PROPERTY LIST propertyListName = id
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-security-policy-transact-sql
 dropSecurityPolicy
-    : DROP SECURITY POLICY (IF EXISTS)? (schemaName = id_ DOT)? securityPolicyName = id_
+    : DROP SECURITY POLICY (IF EXISTS)? (schemaName = id DOT)? securityPolicyName = id
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-sequence-transact-sql
 dropSequence
     : DROP SEQUENCE (IF EXISTS)? (
-        COMMA? (databaseName = id_ DOT)? (schemaName = id_ DOT)? sequenceName = id_
+        COMMA? (databaseName = id DOT)? (schemaName = id DOT)? sequenceName = id
     )?
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-server-audit-transact-sql
 dropServerAudit
-    : DROP SERVER AUDIT auditName = id_
+    : DROP SERVER AUDIT auditName = id
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-server-audit-specification-transact-sql
 dropServerAuditSpecification
-    : DROP SERVER AUDIT SPECIFICATION auditSpecificationName = id_
+    : DROP SERVER AUDIT SPECIFICATION auditSpecificationName = id
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-server-role-transact-sql
 dropServerRole
-    : DROP SERVER ROLE roleName = id_
+    : DROP SERVER ROLE roleName = id
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-service-transact-sql
 dropService
-    : DROP SERVICE droppedServiceName = id_
+    : DROP SERVICE droppedServiceName = id
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-signature-transact-sql
 dropSignature
-    : DROP (COUNTER)? SIGNATURE FROM (schemaName = id_ DOT)? moduleName = id_ BY (
-        COMMA? CERTIFICATE certName = id_
-        | COMMA? ASYMMETRIC KEY AsymKeyName = id_
+    : DROP (COUNTER)? SIGNATURE FROM (schemaName = id DOT)? moduleName = id BY (
+        COMMA? CERTIFICATE certName = id
+        | COMMA? ASYMMETRIC KEY AsymKeyName = id
     )+
     ;
 
 dropStatisticsNameAzureDwAndPdw
-    : DROP STATISTICS (schemaName = id_ DOT)? objectName = id_ DOT statisticsName = id_
+    : DROP STATISTICS (schemaName = id DOT)? objectName = id DOT statisticsName = id
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-symmetric-key-transact-sql
 dropSymmetricKey
-    : DROP SYMMETRIC KEY symmetricKeyName = id_ (REMOVE PROVIDER KEY)?
+    : DROP SYMMETRIC KEY symmetricKeyName = id (REMOVE PROVIDER KEY)?
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-synonym-transact-sql
 dropSynonym
-    : DROP SYNONYM (IF EXISTS)? (schema = id_ DOT)? synonymName = id_
+    : DROP SYNONYM (IF EXISTS)? (schema = id DOT)? synonymName = id
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-user-transact-sql
 dropUser
-    : DROP USER (IF EXISTS)? userName = id_
+    : DROP USER (IF EXISTS)? userName = id
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-workload-group-transact-sql
 dropWorkloadGroup
-    : DROP WORKLOAD GROUP groupName = id_
+    : DROP WORKLOAD GROUP groupName = id
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-xml-schema-collection-transact-sql
 dropXmlSchemaCollection
-    : DROP XML SCHEMA COLLECTION (relationalSchema = id_ DOT)? sqlIdentifier = id_
+    : DROP XML SCHEMA COLLECTION (relationalSchema = id DOT)? sqlIdentifier = id
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/disable-trigger-transact-sql
 disableTrigger
-    : DISABLE TRIGGER (( COMMA? (schemaName = id_ DOT)? triggerName = id_)+ | ALL) ON (
-        (schemaId = id_ DOT)? objectName = id_
+    : DISABLE TRIGGER (( COMMA? (schemaName = id DOT)? triggerName = id)+ | ALL) ON (
+        (schemaId = id DOT)? objectName = id
         | DATABASE
         | ALL SERVER
     )
@@ -1117,8 +1117,8 @@ disableTrigger
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/enable-trigger-transact-sql
 enableTrigger
-    : ENABLE TRIGGER (( COMMA? (schemaName = id_ DOT)? triggerName = id_)+ | ALL) ON (
-        (schemaId = id_ DOT)? objectName = id_
+    : ENABLE TRIGGER (( COMMA? (schemaName = id DOT)? triggerName = id)+ | ALL) ON (
+        (schemaId = id DOT)? objectName = id
         | DATABASE
         | ALL SERVER
     )
@@ -1137,39 +1137,39 @@ truncateTable
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/create-column-master-key-transact-sql
 createColumnMasterKey
-    : CREATE COLUMN MASTER KEY keyName = id_ WITH LPAREN KEY_STORE_PROVIDER_NAME EQ keyStoreProviderName = STRING COMMA KEY_PATH EQ
+    : CREATE COLUMN MASTER KEY keyName = id WITH LPAREN KEY_STORE_PROVIDER_NAME EQ keyStoreProviderName = STRING COMMA KEY_PATH EQ
         keyPath = STRING RPAREN
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-credential-transact-sql
 alterCredential
-    : ALTER CREDENTIAL credentialName = id_ WITH IDENTITY EQ identityName = STRING (
+    : ALTER CREDENTIAL credentialName = id WITH IDENTITY EQ identityName = STRING (
         COMMA SECRET EQ secret = STRING
     )?
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/create-credential-transact-sql
 createCredential
-    : CREATE CREDENTIAL credentialName = id_ WITH IDENTITY EQ identityName = STRING (
+    : CREATE CREDENTIAL credentialName = id WITH IDENTITY EQ identityName = STRING (
         COMMA SECRET EQ secret = STRING
-    )? (FOR CRYPTOGRAPHIC PROVIDER cryptographicProviderName = id_)?
+    )? (FOR CRYPTOGRAPHIC PROVIDER cryptographicProviderName = id)?
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-cryptographic-provider-transact-sql
 alterCryptographicProvider
-    : ALTER CRYPTOGRAPHIC PROVIDER providerName = id_ (
+    : ALTER CRYPTOGRAPHIC PROVIDER providerName = id (
         FROM FILE EQ cryptoProviderDdlFile = STRING
     )? (ENABLE | DISABLE)?
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/create-cryptographic-provider-transact-sql
 createCryptographicProvider
-    : CREATE CRYPTOGRAPHIC PROVIDER providerName = id_ FROM FILE EQ pathOf_DLL = STRING
+    : CREATE CRYPTOGRAPHIC PROVIDER providerName = id FROM FILE EQ pathOf_DLL = STRING
     ;
 
 // https://learn.microsoft.com/en-us/sql/t-sql/statements/create-endpoint-transact-sql?view=sql-server-ver16
 createEndpoint
-    : CREATE ENDPOINT endpointname = id_ (AUTHORIZATION login = id_)? (
+    : CREATE ENDPOINT endpointname = id (AUTHORIZATION login = id)? (
         STATE EQ state = (STARTED | STOPPED | DISABLED)
     )? AS TCP LPAREN endpointListenerClause RPAREN (
         FOR TSQL LPAREN RPAREN
@@ -1190,8 +1190,8 @@ endpointEncryptionAlogorithmClause
 
 endpointAuthenticationClause
     : AUTHENTICATION EQ (
-        WINDOWS (NTLM | KERBEROS | NEGOTIATE)? (CERTIFICATE certName = id_)?
-        | CERTIFICATE certName = id_ WINDOWS? (NTLM | KERBEROS | NEGOTIATE)?
+        WINDOWS (NTLM | KERBEROS | NEGOTIATE)? (CERTIFICATE certName = id)?
+        | CERTIFICATE certName = id WINDOWS? (NTLM | KERBEROS | NEGOTIATE)?
     )
     ;
 
@@ -1203,11 +1203,11 @@ endpointListenerClause
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/create-event-notification-transact-sql
 createEventNotification
-    : CREATE EVENT NOTIFICATION eventNotificationName = id_ ON (
+    : CREATE EVENT NOTIFICATION eventNotificationName = id ON (
         SERVER
         | DATABASE
-        | QUEUE queueName = id_
-    ) (WITH FAN_IN)? FOR (COMMA? eventTypeOrGroup = id_)+ TO SERVICE brokerService = STRING COMMA brokerServiceSpecifierOrCurrentDatabase =
+        | QUEUE queueName = id
+    ) (WITH FAN_IN)? FOR (COMMA? eventTypeOrGroup = id)+ TO SERVICE brokerService = STRING COMMA brokerServiceSpecifierOrCurrentDatabase =
         STRING
     ;
 
@@ -1215,25 +1215,25 @@ createEventNotification
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/create-event-session-transact-sql
 // todo: not implemented
 createOrAlterEventSession
-    : (CREATE | ALTER) EVENT SESSION eventSessionName = id_ ON SERVER (
+    : (CREATE | ALTER) EVENT SESSION eventSessionName = id ON SERVER (
         COMMA? ADD EVENT (
-            (eventModuleGuid = id_ DOT)? eventPackageName = id_ DOT eventName = id_
+            (eventModuleGuid = id DOT)? eventPackageName = id DOT eventName = id
         ) (
-            LPAREN (SET ( COMMA? eventCustomizableAttributue = id_ EQ (INT | STRING))*)? (
+            LPAREN (SET ( COMMA? eventCustomizableAttributue = id EQ (INT | STRING))*)? (
                 ACTION LPAREN (
-                    COMMA? (eventModuleGuid = id_ DOT)? eventPackageName = id_ DOT actionName = id_
+                    COMMA? (eventModuleGuid = id DOT)? eventPackageName = id DOT actionName = id
                 )+ RPAREN
             )+ (WHERE eventSessionPredicateExpression)? RPAREN
         )*
     )* (
-        COMMA? DROP EVENT (eventModuleGuid = id_ DOT)? eventPackageName = id_ DOT eventName = id_
+        COMMA? DROP EVENT (eventModuleGuid = id DOT)? eventPackageName = id DOT eventName = id
     )* (
-        (ADD TARGET (eventModuleGuid = id_ DOT)? eventPackageName = id_ DOT targetName = id_) (
+        (ADD TARGET (eventModuleGuid = id DOT)? eventPackageName = id DOT targetName = id) (
             LPAREN SET (
-                COMMA? targetParameterName = id_ EQ (LPAREN? INT RPAREN? | STRING)
+                COMMA? targetParameterName = id EQ (LPAREN? INT RPAREN? | STRING)
             )+ RPAREN
         )*
-    )* (DROP TARGET (eventModuleGuid = id_ DOT)? eventPackageName = id_ DOT targetName = id_)* (
+    )* (DROP TARGET (eventModuleGuid = id DOT)? eventPackageName = id DOT targetName = id)* (
         WITH LPAREN (COMMA? MAX_MEMORY EQ maxMemory = INT (KB | MB))? (
             COMMA? EVENT_RETENTION_MODE EQ (
                 ALLOW_SINGLE_EVENT_LOSS
@@ -1267,11 +1267,11 @@ eventSessionPredicateFactor
 
 eventSessionPredicateLeaf
     : (
-        eventFieldName = id_
+        eventFieldName = id
         | (
-            eventFieldName = id_
+            eventFieldName = id
             | (
-                (eventModuleGuid = id_ DOT)? eventPackageName = id_ DOT predicateSourceName = id_
+                (eventModuleGuid = id DOT)? eventPackageName = id DOT predicateSourceName = id
             )
         ) (
             EQ
@@ -1283,9 +1283,9 @@ eventSessionPredicateLeaf
             | LT EQ
         ) (INT | STRING)
     )
-    | (eventModuleGuid = id_ DOT)? eventPackageName = id_ DOT predicateCompareName = id_ LPAREN (
-        eventFieldName = id_
-        | ((eventModuleGuid = id_ DOT)? eventPackageName = id_ DOT predicateSourceName = id_) COMMA (
+    | (eventModuleGuid = id DOT)? eventPackageName = id DOT predicateCompareName = id LPAREN (
+        eventFieldName = id
+        | ((eventModuleGuid = id DOT)? eventPackageName = id DOT predicateSourceName = id) COMMA (
             INT
             | STRING
         )
@@ -1294,45 +1294,45 @@ eventSessionPredicateLeaf
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-external-data-source-transact-sql
 alterExternalDataSource
-    : ALTER EXTERNAL DATA SOURCE dataSourceName = id_ SET (
+    : ALTER EXTERNAL DATA SOURCE dataSourceName = id SET (
         LOCATION EQ location = STRING COMMA?
         | RESOURCE_MANAGER_LOCATION EQ resourceManagerLocation = STRING COMMA?
-        | CREDENTIAL EQ credentialName = id_
+        | CREDENTIAL EQ credentialName = id
     )+
-    | ALTER EXTERNAL DATA SOURCE dataSourceName = id_ WITH LPAREN TYPE EQ BLOB_STORAGE COMMA LOCATION EQ location = STRING (
-        COMMA CREDENTIAL EQ credentialName = id_
+    | ALTER EXTERNAL DATA SOURCE dataSourceName = id WITH LPAREN TYPE EQ BLOB_STORAGE COMMA LOCATION EQ location = STRING (
+        COMMA CREDENTIAL EQ credentialName = id
     )? RPAREN
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-external-library-transact-sql
 alterExternalLibrary
-    : ALTER EXTERNAL LIBRARY libraryName = id_ (AUTHORIZATION ownerName = id_)? (SET | ADD) (
+    : ALTER EXTERNAL LIBRARY libraryName = id (AUTHORIZATION ownerName = id)? (SET | ADD) (
         LPAREN CONTENT EQ (clientLibrary = STRING | HEX | NONE) (
             COMMA PLATFORM EQ (WINDOWS | LINUX)? RPAREN
         ) WITH (
             COMMA? LANGUAGE EQ (R | PYTHON)
-            | DATA_SOURCE EQ externalDataSourceName = id_
+            | DATA_SOURCE EQ externalDataSourceName = id
         )+ RPAREN
     )
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/create-external-library-transact-sql
 createExternalLibrary
-    : CREATE EXTERNAL LIBRARY libraryName = id_ (AUTHORIZATION ownerName = id_)? FROM (
+    : CREATE EXTERNAL LIBRARY libraryName = id (AUTHORIZATION ownerName = id)? FROM (
         COMMA? LPAREN? (CONTENT EQ)? (clientLibrary = STRING | HEX | NONE) (
             COMMA PLATFORM EQ (WINDOWS | LINUX)? RPAREN
         )?
     ) (
         WITH (
             COMMA? LANGUAGE EQ (R | PYTHON)
-            | DATA_SOURCE EQ externalDataSourceName = id_
+            | DATA_SOURCE EQ externalDataSourceName = id
         )+ RPAREN
     )?
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-external-resource-pool-transact-sql
 alterExternalResourcePool
-    : ALTER EXTERNAL RESOURCE POOL (poolName = id_ | DEFAULT_DOUBLE_QUOTE) WITH LPAREN MAX_CPU_PERCENT EQ maxCpuPercent = INT (
+    : ALTER EXTERNAL RESOURCE POOL (poolName = id | DEFAULT_DOUBLE_QUOTE) WITH LPAREN MAX_CPU_PERCENT EQ maxCpuPercent = INT (
         COMMA? AFFINITY CPU EQ (AUTO | (COMMA? INT TO INT | COMMA INT)+)
         | NUMANODE EQ (COMMA? INT TO INT | COMMA? INT)+
     ) (COMMA? MAX_MEMORY_PERCENT EQ maxMemoryPercent = INT)? (
@@ -1342,7 +1342,7 @@ alterExternalResourcePool
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/create-external-resource-pool-transact-sql
 createExternalResourcePool
-    : CREATE EXTERNAL RESOURCE POOL poolName = id_ WITH LPAREN MAX_CPU_PERCENT EQ maxCpuPercent = INT (
+    : CREATE EXTERNAL RESOURCE POOL poolName = id WITH LPAREN MAX_CPU_PERCENT EQ maxCpuPercent = INT (
         COMMA? AFFINITY CPU EQ (AUTO | (COMMA? INT TO INT | COMMA INT)+)
         | NUMANODE EQ (COMMA? INT TO INT | COMMA? INT)+
     ) (COMMA? MAX_MEMORY_PERCENT EQ maxMemoryPercent = INT)? (
@@ -1352,7 +1352,7 @@ createExternalResourcePool
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-fulltext-catalog-transact-sql
 alterFulltextCatalog
-    : ALTER FULLTEXT CATALOG catalogName = id_ (
+    : ALTER FULLTEXT CATALOG catalogName = id (
         REBUILD (WITH ACCENT_SENSITIVITY EQ (ON | OFF))?
         | REORGANIZE
         | AS DEFAULT
@@ -1361,14 +1361,14 @@ alterFulltextCatalog
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/create-fulltext-catalog-transact-sql
 createFulltextCatalog
-    : CREATE FULLTEXT CATALOG catalogName = id_ (ON FILEGROUP filegroup = id_)? (
+    : CREATE FULLTEXT CATALOG catalogName = id (ON FILEGROUP filegroup = id)? (
         IN PATH rootpath = STRING
-    )? (WITH ACCENT_SENSITIVITY EQ (ON | OFF))? (AS DEFAULT)? (AUTHORIZATION ownerName = id_)?
+    )? (WITH ACCENT_SENSITIVITY EQ (ON | OFF))? (AS DEFAULT)? (AUTHORIZATION ownerName = id)?
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-fulltext-stoplist-transact-sql
 alterFulltextStoplist
-    : ALTER FULLTEXT STOPLIST stoplistName = id_ (
+    : ALTER FULLTEXT STOPLIST stoplistName = id (
         ADD stopword = STRING LANGUAGE (STRING | INT | HEX)
         | DROP (
             stopword = STRING LANGUAGE (STRING | INT | HEX)
@@ -1380,14 +1380,14 @@ alterFulltextStoplist
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/create-fulltext-stoplist-transact-sql
 createFulltextStoplist
-    : CREATE FULLTEXT STOPLIST stoplistName = id_ (
-        FROM ((databaseName = id_ DOT)? sourceStoplistName = id_ | SYSTEM STOPLIST)
-    )? (AUTHORIZATION ownerName = id_)?
+    : CREATE FULLTEXT STOPLIST stoplistName = id (
+        FROM ((databaseName = id DOT)? sourceStoplistName = id | SYSTEM STOPLIST)
+    )? (AUTHORIZATION ownerName = id)?
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-login-transact-sql
 alterLoginSqlServer
-    : ALTER LOGIN loginName = id_ (
+    : ALTER LOGIN loginName = id (
         (ENABLE | DISABLE)?
         | WITH (
             (PASSWORD EQ ( password = STRING | passwordHash = HEX HASHED)) (
@@ -1395,71 +1395,71 @@ alterLoginSqlServer
                 | UNLOCK
             )*
         )? (OLD_PASSWORD EQ oldPassword = STRING (MUST_CHANGE | UNLOCK)*)? (
-            DEFAULT_DATABASE EQ defaultDatabase = id_
-        )? (DEFAULT_LANGUAGE EQ defaultLaguage = id_)? (NAME EQ loginName = id_)? (
+            DEFAULT_DATABASE EQ defaultDatabase = id
+        )? (DEFAULT_LANGUAGE EQ defaultLaguage = id)? (NAME EQ loginName = id)? (
             CHECK_POLICY EQ (ON | OFF)
-        )? (CHECK_EXPIRATION EQ (ON | OFF))? (CREDENTIAL EQ credentialName = id_)? (
+        )? (CHECK_EXPIRATION EQ (ON | OFF))? (CREDENTIAL EQ credentialName = id)? (
             NO CREDENTIAL
         )?
-        | (ADD | DROP) CREDENTIAL credentialName = id_
+        | (ADD | DROP) CREDENTIAL credentialName = id
     )
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/create-login-transact-sql
 createLoginSqlServer
-    : CREATE LOGIN loginName = id_ (
+    : CREATE LOGIN loginName = id (
         WITH (
             (PASSWORD EQ ( password = STRING | passwordHash = HEX HASHED)) (
                 MUST_CHANGE
                 | UNLOCK
             )*
-        )? (COMMA? SID EQ sid = HEX)? (COMMA? DEFAULT_DATABASE EQ defaultDatabase = id_)? (
-            COMMA? DEFAULT_LANGUAGE EQ defaultLaguage = id_
+        )? (COMMA? SID EQ sid = HEX)? (COMMA? DEFAULT_DATABASE EQ defaultDatabase = id)? (
+            COMMA? DEFAULT_LANGUAGE EQ defaultLaguage = id
         )? (COMMA? CHECK_EXPIRATION EQ (ON | OFF))? (COMMA? CHECK_POLICY EQ (ON | OFF))? (
-            COMMA? CREDENTIAL EQ credentialName = id_
+            COMMA? CREDENTIAL EQ credentialName = id
         )?
         | (
             FROM (
                 WINDOWS (
-                    WITH (COMMA? DEFAULT_DATABASE EQ defaultDatabase = id_)? (
+                    WITH (COMMA? DEFAULT_DATABASE EQ defaultDatabase = id)? (
                         COMMA? DEFAULT_LANGUAGE EQ defaultLanguage = STRING
                     )?
                 )
-                | CERTIFICATE certname = id_
-                | ASYMMETRIC KEY asymKeyName = id_
+                | CERTIFICATE certname = id
+                | ASYMMETRIC KEY asymKeyName = id
             )
         )
     )
     ;
 
 alterLoginAzureSql
-    : ALTER LOGIN loginName = id_ (
+    : ALTER LOGIN loginName = id (
         (ENABLE | DISABLE)?
         | WITH (
             PASSWORD EQ password = STRING (OLD_PASSWORD EQ oldPassword = STRING)?
-            | NAME EQ loginName = id_
+            | NAME EQ loginName = id
         )
     )
     ;
 
 createLoginAzureSql
-    : CREATE LOGIN loginName = id_ WITH PASSWORD EQ STRING (SID EQ sid = HEX)?
+    : CREATE LOGIN loginName = id WITH PASSWORD EQ STRING (SID EQ sid = HEX)?
     ;
 
 alterLoginAzureSqlDwAndPdw
-    : ALTER LOGIN loginName = id_ (
+    : ALTER LOGIN loginName = id (
         (ENABLE | DISABLE)?
         | WITH (
             PASSWORD EQ password = STRING (
                 OLD_PASSWORD EQ oldPassword = STRING (MUST_CHANGE | UNLOCK)*
             )?
-            | NAME EQ loginName = id_
+            | NAME EQ loginName = id
         )
     )
     ;
 
 createLoginPdw
-    : CREATE LOGIN loginName = id_ (
+    : CREATE LOGIN loginName = id (
         WITH (PASSWORD EQ password = STRING (MUST_CHANGE)? (CHECK_POLICY EQ (ON | OFF)?)?)
         | FROM WINDOWS
     )
@@ -1495,41 +1495,41 @@ createMasterKeyAzureSql
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-message-type-transact-sql
 alterMessageType
-    : ALTER MESSAGE TYPE messageTypeName = id_ VALIDATION EQ (
+    : ALTER MESSAGE TYPE messageTypeName = id VALIDATION EQ (
         NONE
         | EMPTY
         | WELL_FORMED_XML
-        | VALID_XML WITH SCHEMA COLLECTION schemaCollectionName = id_
+        | VALID_XML WITH SCHEMA COLLECTION schemaCollectionName = id
     )
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-partition-function-transact-sql
 alterPartitionFunction
-    : ALTER PARTITION FUNCTION partitionFunctionName = id_ LPAREN RPAREN (SPLIT | MERGE) RANGE LPAREN INT RPAREN
+    : ALTER PARTITION FUNCTION partitionFunctionName = id LPAREN RPAREN (SPLIT | MERGE) RANGE LPAREN INT RPAREN
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-partition-scheme-transact-sql
 alterPartitionScheme
-    : ALTER PARTITION SCHEME partitionSchemeName = id_ NEXT USED (fileGroupName = id_)?
+    : ALTER PARTITION SCHEME partitionSchemeName = id NEXT USED (fileGroupName = id)?
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-remote-service-binding-transact-sql
 alterRemoteServiceBinding
-    : ALTER REMOTE SERVICE BINDING bindingName = id_ WITH (USER EQ userName = id_)? (
+    : ALTER REMOTE SERVICE BINDING bindingName = id WITH (USER EQ userName = id)? (
         COMMA ANONYMOUS EQ (ON | OFF)
     )?
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/create-remote-service-binding-transact-sql
 createRemoteServiceBinding
-    : CREATE REMOTE SERVICE BINDING bindingName = id_ (AUTHORIZATION ownerName = id_)? TO SERVICE remoteServiceName = STRING WITH (
-        USER EQ userName = id_
+    : CREATE REMOTE SERVICE BINDING bindingName = id (AUTHORIZATION ownerName = id)? TO SERVICE remoteServiceName = STRING WITH (
+        USER EQ userName = id
     )? (COMMA ANONYMOUS EQ (ON | OFF))?
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/create-resource-pool-transact-sql
 createResourcePool
-    : CREATE RESOURCE POOL poolName = id_ (
+    : CREATE RESOURCE POOL poolName = id (
         WITH LPAREN (COMMA? MIN_CPU_PERCENT EQ INT)? (
             COMMA? MAX_CPU_PERCENT EQ INT
         )? (COMMA? CAP_CPU_PERCENT EQ INT)? (
@@ -1549,7 +1549,7 @@ alterResourceGovernor
     : ALTER RESOURCE GOVERNOR (
         (DISABLE | RECONFIGURE)
         | WITH LPAREN CLASSIFIER_FUNCTION EQ (
-            schemaName = id_ DOT functionName = id_
+            schemaName = id DOT functionName = id
             | NULL_
         ) RPAREN
         | RESET STATISTICS
@@ -1559,15 +1559,15 @@ alterResourceGovernor
 
 // https://learn.microsoft.com/en-us/sql/t-sql/statements/alter-database-audit-specification-transact-sql?view=sql-server-ver16
 alterDatabaseAuditSpecification
-    : ALTER DATABASE AUDIT SPECIFICATION auditSpecificationName = id_ (
-        FOR SERVER AUDIT auditName = id_
+    : ALTER DATABASE AUDIT SPECIFICATION auditSpecificationName = id (
+        FOR SERVER AUDIT auditName = id
     )? (auditActionSpecGroup (COMMA auditActionSpecGroup)*)? (
         WITH LPAREN STATE EQ (ON | OFF) RPAREN
     )?
     ;
 
 auditActionSpecGroup
-    : (ADD | DROP) LPAREN (auditActionSpecification | auditActionGroupName = id_) RPAREN
+    : (ADD | DROP) LPAREN (auditActionSpecification | auditActionGroupName = id) RPAREN
     ;
 
 auditActionSpecification
@@ -1593,21 +1593,21 @@ auditClassName
     ;
 
 auditSecurable
-    : ((id_ DOT)? id_ DOT)? id_
+    : ((id DOT)? id DOT)? id
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-role-transact-sql
 alterDbRole
-    : ALTER ROLE roleName = id_ (
-        (ADD | DROP) MEMBER databasePrincipal = id_
-        | WITH NAME EQ newRoleName = id_
+    : ALTER ROLE roleName = id (
+        (ADD | DROP) MEMBER databasePrincipal = id
+        | WITH NAME EQ newRoleName = id
     )
     ;
 
 // https://learn.microsoft.com/en-us/sql/t-sql/statements/create-database-audit-specification-transact-sql?view=sql-server-ver16
 createDatabaseAuditSpecification
-    : CREATE DATABASE AUDIT SPECIFICATION auditSpecificationName = id_ (
-        FOR SERVER AUDIT auditName = id_
+    : CREATE DATABASE AUDIT SPECIFICATION auditSpecificationName = id (
+        FOR SERVER AUDIT auditName = id
     )? (auditActionSpecGroup (COMMA auditActionSpecGroup)*)? (
         WITH LPAREN STATE EQ (ON | OFF) RPAREN
     )?
@@ -1615,12 +1615,12 @@ createDatabaseAuditSpecification
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/create-role-transact-sql
 createDbRole
-    : CREATE ROLE roleName = id_ (AUTHORIZATION ownerName = id_)?
+    : CREATE ROLE roleName = id (AUTHORIZATION ownerName = id)?
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/create-route-transact-sql
 createRoute
-    : CREATE ROUTE routeName = id_ (AUTHORIZATION ownerName = id_)? WITH (
+    : CREATE ROUTE routeName = id (AUTHORIZATION ownerName = id)? WITH (
         COMMA? SERVICE_NAME EQ routeServiceName = STRING
     )? (COMMA? BROKER_INSTANCE EQ brokerInstanceIdentifier = STRING)? (
         COMMA? LIFETIME EQ INT
@@ -1629,51 +1629,51 @@ createRoute
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/create-rule-transact-sql
 createRule
-    : CREATE RULE (schemaName = id_ DOT)? ruleName = id_ AS searchCondition
+    : CREATE RULE (schemaName = id DOT)? ruleName = id AS searchCondition
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-schema-transact-sql
 alterSchemaSql
-    : ALTER SCHEMA schemaName = id_ TRANSFER (
+    : ALTER SCHEMA schemaName = id TRANSFER (
         (OBJECT | TYPE | XML SCHEMA COLLECTION) DOUBLE_COLON
-    )? id_ (DOT id_)?
+    )? id (DOT id)?
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/create-schema-transact-sql
 createSchema
     : CREATE SCHEMA (
-        schemaName = id_
-        | AUTHORIZATION ownerName = id_
-        | schemaName = id_ AUTHORIZATION ownerName = id_
+        schemaName = id
+        | AUTHORIZATION ownerName = id
+        | schemaName = id AUTHORIZATION ownerName = id
     ) (
         createTable
         | createView
-        | (GRANT | DENY) (SELECT | INSERT | DELETE | UPDATE) ON (SCHEMA DOUBLE_COLON)? objectName = id_ TO ownerName = id_
-        | REVOKE (SELECT | INSERT | DELETE | UPDATE) ON (SCHEMA DOUBLE_COLON)? objectName = id_ FROM ownerName = id_
+        | (GRANT | DENY) (SELECT | INSERT | DELETE | UPDATE) ON (SCHEMA DOUBLE_COLON)? objectName = id TO ownerName = id
+        | REVOKE (SELECT | INSERT | DELETE | UPDATE) ON (SCHEMA DOUBLE_COLON)? objectName = id FROM ownerName = id
     )*
     ;
 
 createSchemaAzureSqlDwAndPdw
-    : CREATE SCHEMA schemaName = id_ (AUTHORIZATION ownerName = id_)?
+    : CREATE SCHEMA schemaName = id (AUTHORIZATION ownerName = id)?
     ;
 
 alterSchemaAzureSqlDwAndPdw
-    : ALTER SCHEMA schemaName = id_ TRANSFER (OBJECT DOUBLE_COLON)? id_ (DOT ID)?
+    : ALTER SCHEMA schemaName = id TRANSFER (OBJECT DOUBLE_COLON)? id (DOT ID)?
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/create-search-property-list-transact-sql
 createSearchPropertyList
-    : CREATE SEARCH PROPERTY LIST newListName = id_ (
-        FROM (databaseName = id_ DOT)? sourceListName = id_
-    )? (AUTHORIZATION ownerName = id_)?
+    : CREATE SEARCH PROPERTY LIST newListName = id (
+        FROM (databaseName = id DOT)? sourceListName = id
+    )? (AUTHORIZATION ownerName = id)?
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/create-security-policy-transact-sql
 createSecurityPolicy
-    : CREATE SECURITY POLICY (schemaName = id_ DOT)? securityPolicyName = id_ (
-        COMMA? ADD (FILTER | BLOCK)? PREDICATE tvfSchemaName = id_ DOT securityPredicateFunctionName = id_ LPAREN (
-            COMMA? columnNameOrArguments = id_
-        )+ RPAREN ON tableSchemaName = id_ DOT name = id_ (
+    : CREATE SECURITY POLICY (schemaName = id DOT)? securityPolicyName = id (
+        COMMA? ADD (FILTER | BLOCK)? PREDICATE tvfSchemaName = id DOT securityPredicateFunctionName = id LPAREN (
+            COMMA? columnNameOrArguments = id
+        )+ RPAREN ON tableSchemaName = id DOT name = id (
             COMMA? AFTER (INSERT | UPDATE)
             | COMMA? BEFORE (UPDATE | DELETE)
         )*
@@ -1684,7 +1684,7 @@ createSecurityPolicy
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-sequence-transact-sql
 alterSequence
-    : ALTER SEQUENCE (schemaName = id_ DOT)? sequenceName = id_ (RESTART (WITH INT)?)? (
+    : ALTER SEQUENCE (schemaName = id DOT)? sequenceName = id (RESTART (WITH INT)?)? (
         INCREMENT BY sequnceIncrement = INT
     )? (MINVALUE INT | NO MINVALUE)? (MAXVALUE INT | NO MAXVALUE)? (CYCLE | NO CYCLE)? (
         CACHE INT
@@ -1694,7 +1694,7 @@ alterSequence
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/create-sequence-transact-sql
 createSequence
-    : CREATE SEQUENCE (schemaName = id_ DOT)? sequenceName = id_ (AS dataType)? (
+    : CREATE SEQUENCE (schemaName = id DOT)? sequenceName = id (AS dataType)? (
         START WITH INT
     )? (INCREMENT BY MINUS? INT)? (MINVALUE (MINUS? INT)? | NO MINVALUE)? (
         MAXVALUE (MINUS? INT)?
@@ -1704,7 +1704,7 @@ createSequence
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-server-audit-transact-sql
 alterServerAudit
-    : ALTER SERVER AUDIT auditName = id_ (
+    : ALTER SERVER AUDIT auditName = id (
         (
             TO (
                 FILE (
@@ -1727,7 +1727,7 @@ alterServerAudit
             )* RPAREN
         )? (
             WHERE (
-                COMMA? (NOT?) eventFieldName = id_ (
+                COMMA? (NOT?) eventFieldName = id (
                     EQ
                     | (LT GT)
                     | (BANG EQ)
@@ -1748,13 +1748,13 @@ alterServerAudit
             )
         )?
         | REMOVE WHERE
-        | MODIFY NAME EQ newAuditName = id_
+        | MODIFY NAME EQ newAuditName = id
     )
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/create-server-audit-transact-sql
 createServerAudit
-    : CREATE SERVER AUDIT auditName = id_ (
+    : CREATE SERVER AUDIT auditName = id (
         (
             TO (
                 FILE (
@@ -1774,11 +1774,11 @@ createServerAudit
                 COMMA? QUEUE_DELAY EQ queueDelay = INT
                 | COMMA? ON_FAILURE EQ (CONTINUE | SHUTDOWN | FAIL_OPERATION)
                 | COMMA? STATE EQ (ON | OFF)
-                | COMMA? AUDIT_GUID EQ auditGuid = id_
+                | COMMA? AUDIT_GUID EQ auditGuid = id
             )* RPAREN
         )? (
             WHERE (
-                COMMA? (NOT?) eventFieldName = id_ (
+                COMMA? (NOT?) eventFieldName = id (
                     EQ
                     | (LT GT)
                     | (BANG EQ)
@@ -1799,25 +1799,25 @@ createServerAudit
             )
         )?
         | REMOVE WHERE
-        | MODIFY NAME EQ newAuditName = id_
+        | MODIFY NAME EQ newAuditName = id
     )
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-server-audit-specification-transact-sql
 
 alterServerAuditSpecification
-    : ALTER SERVER AUDIT SPECIFICATION auditSpecificationName = id_ (
-        FOR SERVER AUDIT auditName = id_
-    )? ((ADD | DROP) LPAREN auditActionGroupName = id_ RPAREN)* (
+    : ALTER SERVER AUDIT SPECIFICATION auditSpecificationName = id (
+        FOR SERVER AUDIT auditName = id
+    )? ((ADD | DROP) LPAREN auditActionGroupName = id RPAREN)* (
         WITH LPAREN STATE EQ (ON | OFF) RPAREN
     )?
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/create-server-audit-specification-transact-sql
 createServerAuditSpecification
-    : CREATE SERVER AUDIT SPECIFICATION auditSpecificationName = id_ (
-        FOR SERVER AUDIT auditName = id_
-    )? (ADD LPAREN auditActionGroupName = id_ RPAREN)* (
+    : CREATE SERVER AUDIT SPECIFICATION auditSpecificationName = id (
+        FOR SERVER AUDIT auditName = id
+    )? (ADD LPAREN auditActionGroupName = id RPAREN)* (
         WITH LPAREN STATE EQ (ON | OFF) RPAREN
     )?
     ;
@@ -1858,37 +1858,37 @@ alterServerConfiguration
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-server-role-transact-sql
 alterServerRole
-    : ALTER SERVER ROLE serverRoleName = id_ (
-        (ADD | DROP) MEMBER serverPrincipal = id_
-        | WITH NAME EQ newServerRoleName = id_
+    : ALTER SERVER ROLE serverRoleName = id (
+        (ADD | DROP) MEMBER serverPrincipal = id
+        | WITH NAME EQ newServerRoleName = id
     )
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/create-server-role-transact-sql
 createServerRole
-    : CREATE SERVER ROLE serverRole = id_ (AUTHORIZATION serverPrincipal = id_)?
+    : CREATE SERVER ROLE serverRole = id (AUTHORIZATION serverPrincipal = id)?
     ;
 
 alterServerRolePdw
-    : ALTER SERVER ROLE serverRoleName = id_ (ADD | DROP) MEMBER login = id_
+    : ALTER SERVER ROLE serverRoleName = id (ADD | DROP) MEMBER login = id
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-service-transact-sql
 alterService
-    : ALTER SERVICE modifiedServiceName = id_ (
-        ON QUEUE (schemaName = id_ DOT)? queueName = id_
+    : ALTER SERVICE modifiedServiceName = id (
+        ON QUEUE (schemaName = id DOT)? queueName = id
     )? (LPAREN optArgClause (COMMA optArgClause)* RPAREN)?
     ;
 
 optArgClause
-    : (ADD | DROP) CONTRACT modifiedContractName = id_
+    : (ADD | DROP) CONTRACT modifiedContractName = id
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/create-service-transact-sql
 createService
-    : CREATE SERVICE createServiceName = id_ (AUTHORIZATION ownerName = id_)? ON QUEUE (
-        schemaName = id_ DOT
-    )? queueName = id_ (LPAREN (COMMA? (id_ | DEFAULT))+ RPAREN)?
+    : CREATE SERVICE createServiceName = id (AUTHORIZATION ownerName = id)? ON QUEUE (
+        schemaName = id DOT
+    )? queueName = id (LPAREN (COMMA? (id | DEFAULT))+ RPAREN)?
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-service-master-key-transact-sql
@@ -1908,86 +1908,86 @@ alterServiceMasterKey
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-symmetric-key-transact-sql
 
 alterSymmetricKey
-    : ALTER SYMMETRIC KEY keyName = id_ (
+    : ALTER SYMMETRIC KEY keyName = id (
         (ADD | DROP) ENCRYPTION BY (
-            CERTIFICATE certificateName = id_
+            CERTIFICATE certificateName = id
             | PASSWORD EQ password = STRING
-            | SYMMETRIC KEY symmetricKeyName = id_
-            | ASYMMETRIC KEY AsymKeyName = id_
+            | SYMMETRIC KEY symmetricKeyName = id
+            | ASYMMETRIC KEY AsymKeyName = id
         )
     )
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/create-synonym-transact-sql
 createSynonym
-    : CREATE SYNONYM (schemaName_1 = id_ DOT)? synonymName = id_ FOR (
-        (serverName = id_ DOT)? (databaseName = id_ DOT)? (schemaName_2 = id_ DOT)? objectName = id_
-        | (databaseOrSchema2 = id_ DOT)? (schemaId_2_orObjectName = id_ DOT)?
+    : CREATE SYNONYM (schemaName_1 = id DOT)? synonymName = id FOR (
+        (serverName = id DOT)? (databaseName = id DOT)? (schemaName_2 = id DOT)? objectName = id
+        | (databaseOrSchema2 = id DOT)? (schemaId2_orObjectName = id DOT)?
     )
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-user-transact-sql
 alterUser
-    : ALTER USER username = id_ WITH (
-        COMMA? NAME EQ newusername = id_
-        | COMMA? DEFAULT_SCHEMA EQ ( schemaName = id_ | NULL_)
-        | COMMA? LOGIN EQ loginame = id_
+    : ALTER USER username = id WITH (
+        COMMA? NAME EQ newusername = id
+        | COMMA? DEFAULT_SCHEMA EQ ( schemaName = id | NULL_)
+        | COMMA? LOGIN EQ loginame = id
         | COMMA? PASSWORD EQ STRING (OLD_PASSWORD EQ STRING)+
-        | COMMA? DEFAULT_LANGUAGE EQ (NONE | lcid = INT | languageNameOrAlias = id_)
+        | COMMA? DEFAULT_LANGUAGE EQ (NONE | lcid = INT | languageNameOrAlias = id)
         | COMMA? ALLOW_ENCRYPTED_VALUE_MODIFICATIONS EQ (ON | OFF)
     )+
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/create-user-transact-sql
 createUser
-    : CREATE USER userName = id_ ((FOR | FROM) LOGIN loginName = id_)? (
+    : CREATE USER userName = id ((FOR | FROM) LOGIN loginName = id)? (
         WITH (
-            COMMA? DEFAULT_SCHEMA EQ schemaName = id_
+            COMMA? DEFAULT_SCHEMA EQ schemaName = id
             | COMMA? ALLOW_ENCRYPTED_VALUE_MODIFICATIONS EQ (ON | OFF)
         )*
     )?
     | CREATE USER (
-        windowsPrincipal = id_ (
+        windowsPrincipal = id (
             WITH (
-                COMMA? DEFAULT_SCHEMA EQ schemaName = id_
-                | COMMA? DEFAULT_LANGUAGE EQ (NONE | INT | languageNameOrAlias = id_)
+                COMMA? DEFAULT_SCHEMA EQ schemaName = id
+                | COMMA? DEFAULT_LANGUAGE EQ (NONE | INT | languageNameOrAlias = id)
                 | COMMA? SID EQ HEX
                 | COMMA? ALLOW_ENCRYPTED_VALUE_MODIFICATIONS EQ (ON | OFF)
             )*
         )?
-        | userName = id_ WITH PASSWORD EQ password = STRING (
-            COMMA? DEFAULT_SCHEMA EQ schemaName = id_
-            | COMMA? DEFAULT_LANGUAGE EQ (NONE | INT | languageNameOrAlias = id_)
+        | userName = id WITH PASSWORD EQ password = STRING (
+            COMMA? DEFAULT_SCHEMA EQ schemaName = id
+            | COMMA? DEFAULT_LANGUAGE EQ (NONE | INT | languageNameOrAlias = id)
             | COMMA? SID EQ HEX
             | COMMA? ALLOW_ENCRYPTED_VALUE_MODIFICATIONS EQ (ON | OFF)
         )*
-        | Azure_Active_DirectoryPrincipal = id_ FROM EXTERNAL PROVIDER
+        | Azure_Active_DirectoryPrincipal = id FROM EXTERNAL PROVIDER
     )
-    | CREATE USER userName = id_ (
+    | CREATE USER userName = id (
         WITHOUT LOGIN (
-            COMMA? DEFAULT_SCHEMA EQ schemaName = id_
+            COMMA? DEFAULT_SCHEMA EQ schemaName = id
             | COMMA? ALLOW_ENCRYPTED_VALUE_MODIFICATIONS EQ (ON | OFF)
         )*
-        | (FOR | FROM) CERTIFICATE certName = id_
-        | (FOR | FROM) ASYMMETRIC KEY asymKeyName = id_
+        | (FOR | FROM) CERTIFICATE certName = id
+        | (FOR | FROM) ASYMMETRIC KEY asymKeyName = id
     )
-    | CREATE USER userName = id_
+    | CREATE USER userName = id
     ;
 
 createUserAzureSqlDw
-    : CREATE USER userName = id_ ((FOR | FROM) LOGIN loginName = id_ | WITHOUT LOGIN)? (
-        WITH DEFAULT_SCHEMA EQ schemaName = id_
+    : CREATE USER userName = id ((FOR | FROM) LOGIN loginName = id | WITHOUT LOGIN)? (
+        WITH DEFAULT_SCHEMA EQ schemaName = id
     )?
-    | CREATE USER Azure_Active_DirectoryPrincipal = id_ FROM EXTERNAL PROVIDER (
-        WITH DEFAULT_SCHEMA EQ schemaName = id_
+    | CREATE USER Azure_Active_DirectoryPrincipal = id FROM EXTERNAL PROVIDER (
+        WITH DEFAULT_SCHEMA EQ schemaName = id
     )?
     ;
 
 alterUserAzureSql
-    : ALTER USER username = id_ WITH (
-        COMMA? NAME EQ newusername = id_
-        | COMMA? DEFAULT_SCHEMA EQ schemaName = id_
-        | COMMA? LOGIN EQ loginame = id_
+    : ALTER USER username = id WITH (
+        COMMA? NAME EQ newusername = id
+        | COMMA? DEFAULT_SCHEMA EQ schemaName = id
+        | COMMA? LOGIN EQ loginame = id
         | COMMA? ALLOW_ENCRYPTED_VALUE_MODIFICATIONS EQ (ON | OFF)
     )+
     ;
@@ -1995,7 +1995,7 @@ alterUserAzureSql
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-workload-group-transact-sql
 
 alterWorkloadGroup
-    : ALTER WORKLOAD GROUP (workloadGroupGroupName = id_ | DEFAULT_DOUBLE_QUOTE) (
+    : ALTER WORKLOAD GROUP (workloadGroupGroupName = id | DEFAULT_DOUBLE_QUOTE) (
         WITH LPAREN (
             IMPORTANCE EQ (LOW | MEDIUM | HIGH)
             | COMMA? REQUEST_MAX_MEMORY_GRANT_PERCENT EQ requestMaxMemoryGrant = INT
@@ -2004,12 +2004,12 @@ alterWorkloadGroup
             | MAX_DOP EQ maxDop = INT
             | GROUP_MAX_REQUESTS EQ groupMaxRequests = INT
         )+ RPAREN
-    )? (USING (workloadGroupPoolName = id_ | DEFAULT_DOUBLE_QUOTE))?
+    )? (USING (workloadGroupPoolName = id | DEFAULT_DOUBLE_QUOTE))?
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/create-workload-group-transact-sql
 createWorkloadGroup
-    : CREATE WORKLOAD GROUP workloadGroupGroupName = id_ (
+    : CREATE WORKLOAD GROUP workloadGroupGroupName = id (
         WITH LPAREN (
             IMPORTANCE EQ (LOW | MEDIUM | HIGH)
             | COMMA? REQUEST_MAX_MEMORY_GRANT_PERCENT EQ requestMaxMemoryGrant = INT
@@ -2019,8 +2019,8 @@ createWorkloadGroup
             | GROUP_MAX_REQUESTS EQ groupMaxRequests = INT
         )+ RPAREN
     )? (
-        USING (workloadGroupPoolName = id_ | DEFAULT_DOUBLE_QUOTE)? (
-            COMMA? EXTERNAL externalPoolName = id_
+        USING (workloadGroupPoolName = id | DEFAULT_DOUBLE_QUOTE)? (
+            COMMA? EXTERNAL externalPoolName = id
             | DEFAULT_DOUBLE_QUOTE
         )?
     )?
@@ -2028,16 +2028,16 @@ createWorkloadGroup
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/create-xml-schema-collection-transact-sql
 createXmlSchemaCollection
-    : CREATE XML SCHEMA COLLECTION (relationalSchema = id_ DOT)? sqlIdentifier = id_ AS (
+    : CREATE XML SCHEMA COLLECTION (relationalSchema = id DOT)? sqlIdentifier = id AS (
         STRING
-        | id_
+        | id
         | LOCAL_ID
     )
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/create-partition-function-transact-sql?view=sql-server-ver15
 createPartitionFunction
-    : CREATE PARTITION FUNCTION partitionFunctionName = id_ LPAREN inputParameterType = dataType RPAREN AS RANGE (
+    : CREATE PARTITION FUNCTION partitionFunctionName = id LPAREN inputParameterType = dataType RPAREN AS RANGE (
         LEFT
         | RIGHT
     )? FOR VALUES LPAREN boundaryValues = expressionList_ RPAREN
@@ -2045,14 +2045,14 @@ createPartitionFunction
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/create-partition-scheme-transact-sql?view=sql-server-ver15
 createPartitionScheme
-    : CREATE PARTITION SCHEME partitionSchemeName = id_ AS PARTITION partitionFunctionName = id_ ALL? TO LPAREN fileGroupNames += id_ (
-        COMMA fileGroupNames += id_
+    : CREATE PARTITION SCHEME partitionSchemeName = id AS PARTITION partitionFunctionName = id ALL? TO LPAREN fileGroupNames += id (
+        COMMA fileGroupNames += id
     )* RPAREN
     ;
 
 createQueue
-    : CREATE QUEUE (fullTableName | queueName = id_) queueSettings? (
-        ON filegroup = id_
+    : CREATE QUEUE (fullTableName | queueName = id) queueSettings? (
+        ON filegroup = id
         | DEFAULT
     )?
     ;
@@ -2073,13 +2073,13 @@ queueSettings
     ;
 
 alterQueue
-    : ALTER QUEUE (fullTableName | queueName = id_) (queueSettings | queueAction)
+    : ALTER QUEUE (fullTableName | queueName = id) (queueSettings | queueAction)
     ;
 
 queueAction
     : REBUILD (WITH LPAREN queueRebuildOptions RPAREN)?
     | REORGANIZE (WITH LOB_COMPACTION EQ onOff)?
-    | MOVE TO (id_ | DEFAULT)
+    | MOVE TO (id | DEFAULT)
     ;
 
 queueRebuildOptions
@@ -2087,8 +2087,8 @@ queueRebuildOptions
     ;
 
 createContract
-    : CREATE CONTRACT contractName (AUTHORIZATION ownerName = id_)? LPAREN (
-        (messageTypeName = id_ | DEFAULT) SENT BY (INITIATOR | TARGET | ANY) COMMA?
+    : CREATE CONTRACT contractName (AUTHORIZATION ownerName = id)? LPAREN (
+        (messageTypeName = id | DEFAULT) SENT BY (INITIATOR | TARGET | ANY) COMMA?
     )+ RPAREN
     ;
 
@@ -2102,12 +2102,12 @@ conversationStatement
     ;
 
 messageStatement
-    : CREATE MESSAGE TYPE messageTypeName = id_ (AUTHORIZATION ownerName = id_)? (
+    : CREATE MESSAGE TYPE messageTypeName = id (AUTHORIZATION ownerName = id)? (
         VALIDATION EQ (
             NONE
             | EMPTY
             | WELL_FORMED_XML
-            | VALID_XML WITH SCHEMA COLLECTION schemaCollectionName = id_
+            | VALID_XML WITH SCHEMA COLLECTION schemaCollectionName = id
         )
     )
     ;
@@ -2166,7 +2166,7 @@ insertStatementValue
 
 receiveStatement
     : LPAREN? RECEIVE (ALL | DISTINCT | topClause | STAR) (LOCAL_ID EQ expression COMMA?)* FROM fullTableName (
-        INTO tableVariable = id_ (WHERE where = searchCondition)
+        INTO tableVariable = id (WHERE where = searchCondition)
     )? RPAREN?
     ;
 
@@ -2208,18 +2208,18 @@ outputDmlListElem
 
 // https://msdn.microsoft.com/en-ie/library/ms176061.aspx
 createDatabase
-    : CREATE DATABASE (database = id_) (CONTAINMENT EQ ( NONE | PARTIAL))? (
+    : CREATE DATABASE (database = id) (CONTAINMENT EQ ( NONE | PARTIAL))? (
         ON PRIMARY? databaseFileSpec ( COMMA databaseFileSpec)*
-    )? (LOG ON databaseFileSpec ( COMMA databaseFileSpec)*)? (COLLATE collationName = id_)? (
+    )? (LOG ON databaseFileSpec ( COMMA databaseFileSpec)*)? (COLLATE collationName = id)? (
         WITH createDatabaseOption ( COMMA createDatabaseOption)*
     )?
     ;
 
 // https://msdn.microsoft.com/en-us/library/ms188783.aspx
 createIndex
-    : CREATE UNIQUE? clustered? INDEX id_ ON tableName LPAREN columnNameListWithOrder RPAREN (
+    : CREATE UNIQUE? clustered? INDEX id ON tableName LPAREN columnNameListWithOrder RPAREN (
         INCLUDE LPAREN columnNameList RPAREN
-    )? (WHERE where = searchCondition)? (createIndexOptions)? (ON id_)? SEMI?
+    )? (WHERE where = searchCondition)? (createIndexOptions)? (ON id)? SEMI?
     ;
 
 createIndexOptions
@@ -2234,7 +2234,7 @@ relationalIndexOption
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-index-transact-sql
 alterIndex
-    : ALTER INDEX (id_ | ALL) ON tableName (
+    : ALTER INDEX (id | ALL) ON tableName (
         DISABLE
         | PAUSE
         | ABORT
@@ -2328,8 +2328,8 @@ onPartitions
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/create-columnstore-index-transact-sql?view=sql-server-ver15
 createColumnstoreIndex
-    : CREATE CLUSTERED COLUMNSTORE INDEX id_ ON tableName createColumnstoreIndexOptions? (
-        ON id_
+    : CREATE CLUSTERED COLUMNSTORE INDEX id ON tableName createColumnstoreIndexOptions? (
+        ON id
     )? SEMI?
     ;
 
@@ -2347,14 +2347,14 @@ columnstoreIndexOption
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/create-columnstore-index-transact-sql?view=sql-server-ver15
 createNonclusteredColumnstoreIndex
-    : CREATE NONCLUSTERED? COLUMNSTORE INDEX id_ ON tableName LPAREN columnNameListWithOrder RPAREN (
+    : CREATE NONCLUSTERED? COLUMNSTORE INDEX id ON tableName LPAREN columnNameListWithOrder RPAREN (
         WHERE searchCondition
-    )? createColumnstoreIndexOptions? (ON id_)? SEMI?
+    )? createColumnstoreIndexOptions? (ON id)? SEMI?
     ;
 
 createXmlIndex
-    : CREATE PRIMARY? XML INDEX id_ ON tableName LPAREN id_ RPAREN (
-        USING XML INDEX id_ (FOR (VALUE | PATH | PROPERTY)?)?
+    : CREATE PRIMARY? XML INDEX id ON tableName LPAREN id RPAREN (
+        USING XML INDEX id (FOR (VALUE | PATH | PROPERTY)?)?
     )? xmlIndexOptions? SEMI?
     ;
 
@@ -2385,7 +2385,7 @@ createOrAlterProcedure
     ;
 
 asExternalName
-    : EXTERNAL NAME assemblyName = id_ DOT className = id_ DOT methodName = id_
+    : EXTERNAL NAME assemblyName = id DOT className = id DOT methodName = id
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/create-trigger-transact-sql
@@ -2459,7 +2459,7 @@ procedureParamDefaultValue
     ;
 
 procedureParam
-    : LOCAL_ID AS? (typeSchema = id_ DOT)? dataType VARYING? (
+    : LOCAL_ID AS? (typeSchema = id DOT)? dataType VARYING? (
         EQ defaultVal = procedureParamDefaultValue
     )? (OUT | OUTPUT | READONLY)?
     ;
@@ -2480,7 +2480,7 @@ functionOption
 
 // https://msdn.microsoft.com/en-us/library/ms188038.aspx
 createStatistics
-    : CREATE STATISTICS id_ ON tableName LPAREN columnNameList RPAREN (
+    : CREATE STATISTICS id ON tableName LPAREN columnNameList RPAREN (
         WITH (FULLSCAN | SAMPLE INT (PERCENT | ROWS) | STATS_STREAM) (COMMA NORECOMPUTE)? (
             COMMA INCREMENTAL EQ onOff
         )?
@@ -2488,7 +2488,7 @@ createStatistics
     ;
 
 updateStatistics
-    : UPDATE STATISTICS fullTableName (id_ | LPAREN id_ ( COMMA id_)* RPAREN)? updateStatisticsOptions?
+    : UPDATE STATISTICS fullTableName (id | LPAREN id ( COMMA id)* RPAREN)? updateStatisticsOptions?
     ;
 
 updateStatisticsOptions
@@ -2515,14 +2515,14 @@ updateStatisticsOption
 createTable
     : CREATE TABLE tableName LPAREN columnDefTableConstraints (COMMA? tableIndices)* COMMA? RPAREN (
         LOCK simpleId
-    )? tableOptions* (ON id_ | DEFAULT | onPartitionOrFilegroup)? (TEXTIMAGE_ON id_ | DEFAULT)? SEMI?
+    )? tableOptions* (ON id | DEFAULT | onPartitionOrFilegroup)? (TEXTIMAGE_ON id | DEFAULT)? SEMI?
     ;
 
 tableIndices
-    : INDEX id_ UNIQUE? clustered? LPAREN columnNameListWithOrder RPAREN
-    | INDEX id_ CLUSTERED COLUMNSTORE
-    | INDEX id_ NONCLUSTERED? COLUMNSTORE LPAREN columnNameList RPAREN createTableIndexOptions? (
-        ON id_
+    : INDEX id UNIQUE? clustered? LPAREN columnNameListWithOrder RPAREN
+    | INDEX id CLUSTERED COLUMNSTORE
+    | INDEX id NONCLUSTERED? COLUMNSTORE LPAREN columnNameList RPAREN createTableIndexOptions? (
+        ON id
     )?
     ;
 
@@ -2535,8 +2535,8 @@ tableOption
     | CLUSTERED COLUMNSTORE INDEX
     | HEAP
     | FILLFACTOR EQ INT
-    | DISTRIBUTION EQ HASH LPAREN id_ RPAREN
-    | CLUSTERED INDEX LPAREN id_ (ASC | DESC)? (COMMA id_ (ASC | DESC)?)* RPAREN
+    | DISTRIBUTION EQ HASH LPAREN id RPAREN
+    | CLUSTERED INDEX LPAREN id (ASC | DESC)? (COMMA id (ASC | DESC)?)* RPAREN
     | DATA_COMPRESSION EQ (NONE | ROW | PAGE) onPartitions?
     | XML_COMPRESSION EQ onOff onPartitions?
     ;
@@ -2577,16 +2577,16 @@ alterTable
         SET LPAREN LOCK_ESCALATION EQ (AUTO | TABLE | DISABLE) RPAREN
         | ADD columnDefTableConstraints
         | ALTER COLUMN (columnDefinition | columnModifier)
-        | DROP COLUMN id_ (COMMA id_)*
-        | DROP CONSTRAINT constraint = id_
-        | WITH (CHECK | NOCHECK) ADD (CONSTRAINT constraint = id_)? (
+        | DROP COLUMN id (COMMA id)*
+        | DROP CONSTRAINT constraint = id
+        | WITH (CHECK | NOCHECK) ADD (CONSTRAINT constraint = id)? (
             FOREIGN KEY LPAREN fk = columnNameList RPAREN REFERENCES tableName (
                 LPAREN pk = columnNameList RPAREN
             )? (onDelete | onUpdate)*
             | CHECK LPAREN searchCondition RPAREN
         )
-        | (NOCHECK | CHECK) CONSTRAINT constraint = id_
-        | (ENABLE | DISABLE) TRIGGER id_?
+        | (NOCHECK | CHECK) CONSTRAINT constraint = id
+        | (ENABLE | DISABLE) TRIGGER id?
         | REBUILD tableOptions
         | SWITCH switchPartition
     ) SEMI?
@@ -2608,9 +2608,9 @@ lowPriorityLockWait
 
 // https://msdn.microsoft.com/en-us/library/ms174269.aspx
 alterDatabase
-    : ALTER DATABASE (database = id_ | CURRENT) (
-        MODIFY NAME EQ newName = id_
-        | COLLATE collation = id_
+    : ALTER DATABASE (database = id | CURRENT) (
+        MODIFY NAME EQ newName = id
+        | COLLATE collation = id
         | SET databaseOptionspec (WITH termination)?
         | addOrModifyFiles
         | addOrModifyFilegroups
@@ -2619,9 +2619,9 @@ alterDatabase
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-database-transact-sql-file-and-filegroup-options?view=sql-server-ver15
 addOrModifyFiles
-    : ADD FILE fileSpec (COMMA fileSpec)* (TO FILEGROUP filegroupName = id_)?
+    : ADD FILE fileSpec (COMMA fileSpec)* (TO FILEGROUP filegroupName = id)?
     | ADD LOG FILE fileSpec (COMMA fileSpec)*
-    | REMOVE FILE logicalFileName = id_
+    | REMOVE FILE logicalFileName = id
     | MODIFY FILE fileSpec
     ;
 
@@ -2634,12 +2634,12 @@ fileSpec
     ;
 
 addOrModifyFilegroups
-    : ADD FILEGROUP filegroupName = id_ (CONTAINS FILESTREAM | CONTAINS MEMORY_OPTIMIZED_DATA)?
-    | REMOVE FILEGROUP filegrouName = id_
-    | MODIFY FILEGROUP filegrouName = id_ (
+    : ADD FILEGROUP filegroupName = id (CONTAINS FILESTREAM | CONTAINS MEMORY_OPTIMIZED_DATA)?
+    | REMOVE FILEGROUP filegrouName = id
+    | MODIFY FILEGROUP filegrouName = id (
         filegroupUpdatabilityOption
         | DEFAULT
-        | NAME EQ newFilegroupName = id_
+        | NAME EQ newFilegroupName = id
         | AUTOGROW_SINGLE_FILE
         | AUTOGROW_ALL_FILES
     )
@@ -2713,7 +2713,7 @@ cursorOption
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-endpoint-transact-sql
 alterEndpoint
-    : ALTER ENDPOINT endpointname = id_ (AUTHORIZATION login = id_)? (
+    : ALTER ENDPOINT endpointname = id (AUTHORIZATION login = id)? (
         STATE EQ state = (STARTED | STOPPED | DISABLED)
     )? AS TCP LPAREN endpointListenerClause RPAREN (
         FOR TSQL LPAREN RPAREN
@@ -2788,8 +2788,8 @@ portNumber
     ;
 
 host
-    : id_ DOT host
-    | (id_ DOT | id_)
+    : id DOT host
+    | (id DOT | id)
     ;
 
 dateCorrelationOptimizationOption
@@ -2822,15 +2822,15 @@ delayedDurabilityOption
 externalAccessOption
     : DB_CHAINING onOff
     | TRUSTWORTHY onOff
-    | DEFAULT_LANGUAGE EQ ( id_ | STRING)
-    | DEFAULT_FULLTEXT_LANGUAGE EQ ( id_ | STRING)
+    | DEFAULT_LANGUAGE EQ ( id | STRING)
+    | DEFAULT_FULLTEXT_LANGUAGE EQ ( id | STRING)
     | NESTED_TRIGGERS EQ ( OFF | ON)
     | TRANSFORM_NOISE_WORDS EQ ( OFF | ON)
     | TWO_DIGIT_YEAR_CUTOFF EQ INT
     ;
 
 hadrOptions
-    : HADR (( AVAILABILITY GROUP EQ availabilityGroupName = id_ | OFF) | (SUSPEND | RESUME))
+    : HADR (( AVAILABILITY GROUP EQ availabilityGroupName = id | OFF) | (SUSPEND | RESUME))
     ;
 
 mixedPageAllocationOption
@@ -2894,11 +2894,11 @@ dropIndex
     ;
 
 dropRelationalOrXmlOrSpatialIndex
-    : indexName = id_ ON fullTableName
+    : indexName = id ON fullTableName
     ;
 
 dropBackwardCompatibleIndex
-    : (ownerName = id_ DOT)? tableOrViewName = id_ DOT indexName = id_
+    : (ownerName = id DOT)? tableOrViewName = id DOT indexName = id
     ;
 
 // https://msdn.microsoft.com/en-us/library/ms174969.aspx
@@ -2927,7 +2927,7 @@ dropFunction
 
 // https://msdn.microsoft.com/en-us/library/ms175075.aspx
 dropStatistics
-    : DROP STATISTICS (COMMA? (tableName DOT)? name = id_)+ SEMI
+    : DROP STATISTICS (COMMA? (tableName DOT)? name = id)+ SEMI
     ;
 
 // https://msdn.microsoft.com/en-us/library/ms173790.aspx
@@ -2957,14 +2957,14 @@ rowsetFunctionLimited
 
 // https://msdn.microsoft.com/en-us/library/ms188427(v=sql.120).aspx
 openquery
-    : OPENQUERY LPAREN linkedServer = id_ COMMA query = STRING RPAREN
+    : OPENQUERY LPAREN linkedServer = id COMMA query = STRING RPAREN
     ;
 
 // https://msdn.microsoft.com/en-us/library/ms179856.aspx
 opendatasource
-    : OPENDATASOURCE LPAREN provider = STRING COMMA init = STRING RPAREN DOT (database = id_)? DOT (
-        scheme = id_
-    )? DOT (table = id_)
+    : OPENDATASOURCE LPAREN provider = STRING COMMA init = STRING RPAREN DOT (database = id)? DOT (
+        scheme = id
+    )? DOT (table = id)
     ;
 
 // Other statements.
@@ -2978,7 +2978,7 @@ declareStatement
     ;
 
 xmlDeclaration
-    : xmlNamespaceUri = STRING AS id_
+    : xmlNamespaceUri = STRING AS id
     | DEFAULT STRING
     ;
 
@@ -2998,32 +2998,32 @@ cursorStatement
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/backup-transact-sql
 backupDatabase
-    : BACKUP DATABASE (databaseName = id_) (
+    : BACKUP DATABASE (databaseName = id) (
         READ_WRITE_FILEGROUPS (COMMA? (FILE | FILEGROUP) EQ fileOrFilegroup = STRING)*
     )? (COMMA? (FILE | FILEGROUP) EQ fileOrFilegroup = STRING)* (
-        TO ( COMMA? logicalDeviceName = id_)+
-        | TO ( COMMA? (DISK | TAPE | URL) EQ (STRING | id_))+
+        TO ( COMMA? logicalDeviceName = id)+
+        | TO ( COMMA? (DISK | TAPE | URL) EQ (STRING | id))+
     ) (
-        (MIRROR TO ( COMMA? logicalDeviceName = id_)+)+
-        | ( MIRROR TO ( COMMA? (DISK | TAPE | URL) EQ (STRING | id_))+)+
+        (MIRROR TO ( COMMA? logicalDeviceName = id)+)+
+        | ( MIRROR TO ( COMMA? (DISK | TAPE | URL) EQ (STRING | id))+)+
     )? (
         WITH (
             COMMA? DIFFERENTIAL
             | COMMA? COPY_ONLY
             | COMMA? (COMPRESSION | NO_COMPRESSION)
-            | COMMA? DESCRIPTION EQ (STRING | id_)
-            | COMMA? NAME EQ backupSetName = id_
+            | COMMA? DESCRIPTION EQ (STRING | id)
+            | COMMA? NAME EQ backupSetName = id
             | COMMA? CREDENTIAL
             | COMMA? FILE_SNAPSHOT
-            | COMMA? (EXPIREDATE EQ (STRING | id_) | RETAINDAYS EQ (INT | id_))
+            | COMMA? (EXPIREDATE EQ (STRING | id) | RETAINDAYS EQ (INT | id))
             | COMMA? (NOINIT | INIT)
             | COMMA? (NOSKIP | SKIP_KEYWORD)
             | COMMA? (NOFORMAT | FORMAT)
-            | COMMA? MEDIADESCRIPTION EQ (STRING | id_)
+            | COMMA? MEDIADESCRIPTION EQ (STRING | id)
             | COMMA? MEDIANAME EQ (medianame = STRING)
-            | COMMA? BLOCKSIZE EQ (INT | id_)
-            | COMMA? BUFFERCOUNT EQ (INT | id_)
-            | COMMA? MAXTRANSFER EQ (INT | id_)
+            | COMMA? BLOCKSIZE EQ (INT | id)
+            | COMMA? BUFFERCOUNT EQ (INT | id)
+            | COMMA? MAXTRANSFER EQ (INT | id)
             | COMMA? (NO_CHECKSUM | CHECKSUM)
             | COMMA? (STOP_ON_ERROR | CONTINUE_AFTER_ERROR)
             | COMMA? RESTART
@@ -3036,38 +3036,38 @@ backupDatabase
                 | AES_256
                 | TRIPLE_DES_3KEY
             ) COMMA SERVER CERTIFICATE EQ (
-                encryptorName = id_
-                | SERVER ASYMMETRIC KEY EQ encryptorName = id_
+                encryptorName = id
+                | SERVER ASYMMETRIC KEY EQ encryptorName = id
             )
         )*
     )?
     ;
 
 backupLog
-    : BACKUP LOG (databaseName = id_) (
-        TO ( COMMA? logicalDeviceName = id_)+
-        | TO ( COMMA? (DISK | TAPE | URL) EQ (STRING | id_))+
+    : BACKUP LOG (databaseName = id) (
+        TO ( COMMA? logicalDeviceName = id)+
+        | TO ( COMMA? (DISK | TAPE | URL) EQ (STRING | id))+
     ) (
-        (MIRROR TO ( COMMA? logicalDeviceName = id_)+)+
-        | ( MIRROR TO ( COMMA? (DISK | TAPE | URL) EQ (STRING | id_))+)+
+        (MIRROR TO ( COMMA? logicalDeviceName = id)+)+
+        | ( MIRROR TO ( COMMA? (DISK | TAPE | URL) EQ (STRING | id))+)+
     )? (
         WITH (
             COMMA? DIFFERENTIAL
             | COMMA? COPY_ONLY
             | COMMA? (COMPRESSION | NO_COMPRESSION)
-            | COMMA? DESCRIPTION EQ (STRING | id_)
-            | COMMA? NAME EQ backupSetName = id_
+            | COMMA? DESCRIPTION EQ (STRING | id)
+            | COMMA? NAME EQ backupSetName = id
             | COMMA? CREDENTIAL
             | COMMA? FILE_SNAPSHOT
-            | COMMA? (EXPIREDATE EQ (STRING | id_) | RETAINDAYS EQ (INT | id_))
+            | COMMA? (EXPIREDATE EQ (STRING | id) | RETAINDAYS EQ (INT | id))
             | COMMA? (NOINIT | INIT)
             | COMMA? (NOSKIP | SKIP_KEYWORD)
             | COMMA? (NOFORMAT | FORMAT)
-            | COMMA? MEDIADESCRIPTION EQ (STRING | id_)
+            | COMMA? MEDIADESCRIPTION EQ (STRING | id)
             | COMMA? MEDIANAME EQ (medianame = STRING)
-            | COMMA? BLOCKSIZE EQ (INT | id_)
-            | COMMA? BUFFERCOUNT EQ (INT | id_)
-            | COMMA? MAXTRANSFER EQ (INT | id_)
+            | COMMA? BLOCKSIZE EQ (INT | id)
+            | COMMA? BUFFERCOUNT EQ (INT | id)
+            | COMMA? MAXTRANSFER EQ (INT | id)
             | COMMA? (NO_CHECKSUM | CHECKSUM)
             | COMMA? (STOP_ON_ERROR | CONTINUE_AFTER_ERROR)
             | COMMA? RESTART
@@ -3082,8 +3082,8 @@ backupLog
                 | AES_256
                 | TRIPLE_DES_3KEY
             ) COMMA SERVER CERTIFICATE EQ (
-                encryptorName = id_
-                | SERVER ASYMMETRIC KEY EQ encryptorName = id_
+                encryptorName = id
+                | SERVER ASYMMETRIC KEY EQ encryptorName = id
             )
         )*
     )?
@@ -3091,7 +3091,7 @@ backupLog
 
 // https://docs.microsoft.com/en-us/sql/t-sql/statements/backup-certificate-transact-sql
 backupCertificate
-    : BACKUP CERTIFICATE certname = id_ TO FILE EQ certFile = STRING (
+    : BACKUP CERTIFICATE certname = id TO FILE EQ certFile = STRING (
         WITH PRIVATE KEY LPAREN (
             COMMA? FILE EQ privateKeyFile = STRING
             | COMMA? ENCRYPTION BY PASSWORD EQ encryptionPassword = STRING
@@ -3142,7 +3142,7 @@ executeBodyBatch
 executeBody
     : (returnStatus = LOCAL_ID EQ)? (funcProcNameServerDatabaseSchema | executeVarString) executeStatementArg?
     | LPAREN executeVarString (COMMA executeVarString)* RPAREN (AS (LOGIN | USER) EQ STRING)? (
-        AT_KEYWORD linkedServer = id_
+        AT_KEYWORD linkedServer = id
     )?
     | AS ( (LOGIN | USER) EQ STRING | CALLER)
     ;
@@ -3161,7 +3161,7 @@ executeStatementArgUnnamed
     ;
 
 executeParameter
-    : (constant | LOCAL_ID (OUTPUT | OUT)? | id_ | DEFAULT | NULL_)
+    : (constant | LOCAL_ID (OUTPUT | OUT)? | id | DEFAULT | NULL_)
     ;
 
 executeVarString
@@ -3188,19 +3188,19 @@ securityStatement
     ;
 
 principalId
-    : id_
+    : id
     | PUBLIC
     ;
 
 createCertificate
-    : CREATE CERTIFICATE certificateName = id_ (AUTHORIZATION userName = id_)? (
+    : CREATE CERTIFICATE certificateName = id (AUTHORIZATION userName = id)? (
         FROM existingKeys
         | generateNewKeys
     ) (ACTIVE FOR BEGIN DIALOG EQ onOff)?
     ;
 
 existingKeys
-    : ASSEMBLY assemblyName = id_
+    : ASSEMBLY assemblyName = id
     | EXECUTABLE? FILE EQ pathToFile = STRING (WITH PRIVATE KEY LPAREN privateKeyOptions RPAREN)?
     ;
 
@@ -3221,20 +3221,20 @@ dateOptions
     ;
 
 openKey
-    : OPEN SYMMETRIC KEY keyName = id_ DECRYPTION BY decryptionMechanism
+    : OPEN SYMMETRIC KEY keyName = id DECRYPTION BY decryptionMechanism
     | OPEN MASTER KEY DECRYPTION BY PASSWORD EQ password = STRING
     ;
 
 closeKey
-    : CLOSE SYMMETRIC KEY keyName = id_
+    : CLOSE SYMMETRIC KEY keyName = id
     | CLOSE ALL SYMMETRIC KEYS
     | CLOSE MASTER KEY
     ;
 
 createKey
     : CREATE MASTER KEY ENCRYPTION BY PASSWORD EQ password = STRING
-    | CREATE SYMMETRIC KEY keyName = id_ (AUTHORIZATION userName = id_)? (
-        FROM PROVIDER providerName = id_
+    | CREATE SYMMETRIC KEY keyName = id (AUTHORIZATION userName = id)? (
+        FROM PROVIDER providerName = id
     )? WITH ((keyOptions | ENCRYPTION BY encryptionMechanism) COMMA?)+
     ;
 
@@ -3260,16 +3260,16 @@ algorithm
     ;
 
 encryptionMechanism
-    : CERTIFICATE certificateName = id_
-    | ASYMMETRIC KEY asymKeyName = id_
-    | SYMMETRIC KEY decrypting_KeyName = id_
+    : CERTIFICATE certificateName = id
+    | ASYMMETRIC KEY asymKeyName = id
+    | SYMMETRIC KEY decrypting_KeyName = id
     | PASSWORD EQ STRING
     ;
 
 decryptionMechanism
-    : CERTIFICATE certificateName = id_ (WITH PASSWORD EQ STRING)?
-    | ASYMMETRIC KEY asymKeyName = id_ (WITH PASSWORD EQ STRING)?
-    | SYMMETRIC KEY decrypting_KeyName = id_
+    : CERTIFICATE certificateName = id (WITH PASSWORD EQ STRING)?
+    | ASYMMETRIC KEY asymKeyName = id (WITH PASSWORD EQ STRING)?
+    | SYMMETRIC KEY decrypting_KeyName = id
     | PASSWORD EQ STRING
     ;
 
@@ -3388,7 +3388,7 @@ grantPermission
 // https://msdn.microsoft.com/en-us/library/ms190356.aspx
 // https://msdn.microsoft.com/en-us/library/ms189484.aspx
 setStatement
-    : SET LOCAL_ID (DOT memberName = id_)? EQ expression
+    : SET LOCAL_ID (DOT memberName = id)? EQ expression
     | SET LOCAL_ID assignmentOperator expression
     | SET LOCAL_ID EQ CURSOR declareSetCursorCommon (
         FOR (READ ONLY | UPDATE (OF columnNameList)?)
@@ -3400,23 +3400,23 @@ setStatement
 // https://msdn.microsoft.com/en-us/library/ms174377.aspx
 transactionStatement
     // https://msdn.microsoft.com/en-us/library/ms188386.aspx
-    : BEGIN DISTRIBUTED (TRAN | TRANSACTION) (id_ | LOCAL_ID)?
+    : BEGIN DISTRIBUTED (TRAN | TRANSACTION) (id | LOCAL_ID)?
     // https://msdn.microsoft.com/en-us/library/ms188929.aspx
-    | BEGIN (TRAN | TRANSACTION) ((id_ | LOCAL_ID) (WITH MARK STRING)?)?
+    | BEGIN (TRAN | TRANSACTION) ((id | LOCAL_ID) (WITH MARK STRING)?)?
     // https://msdn.microsoft.com/en-us/library/ms190295.aspx
     | COMMIT (TRAN | TRANSACTION) (
-        (id_ | LOCAL_ID) (WITH LPAREN DELAYED_DURABILITY EQ (OFF | ON) RPAREN)?
+        (id | LOCAL_ID) (WITH LPAREN DELAYED_DURABILITY EQ (OFF | ON) RPAREN)?
     )?
     // https://msdn.microsoft.com/en-us/library/ms178628.aspx
     | COMMIT WORK?
-    | COMMIT id_
-    | ROLLBACK id_
+    | COMMIT id
+    | ROLLBACK id
     // https://msdn.microsoft.com/en-us/library/ms181299.aspx
-    | ROLLBACK (TRAN | TRANSACTION) (id_ | LOCAL_ID)?
+    | ROLLBACK (TRAN | TRANSACTION) (id | LOCAL_ID)?
     // https://msdn.microsoft.com/en-us/library/ms174973.aspx
     | ROLLBACK WORK?
     // https://msdn.microsoft.com/en-us/library/ms188378.aspx
-    | SAVE (TRAN | TRANSACTION) (id_ | LOCAL_ID)?
+    | SAVE (TRAN | TRANSACTION) (id | LOCAL_ID)?
     ;
 
 // https://msdn.microsoft.com/en-us/library/ms188037.aspx
@@ -3426,7 +3426,7 @@ goStatement
 
 // https://msdn.microsoft.com/en-us/library/ms188366.aspx
 useStatement
-    : USE database = id_
+    : USE database = id
     ;
 
 setuserStatement
@@ -3457,7 +3457,7 @@ dbccCheckallocOption
 // https://learn.microsoft.com/en-us/sql/t-sql/database-console-commands/dbcc-checkalloc-transact-sql?view=sql-server-ver16
 dbccCheckalloc
     : name = CHECKALLOC (
-        LPAREN (database = id_ | databaseid = STRING | INT) (
+        LPAREN (database = id | databaseid = STRING | INT) (
             COMMA NOINDEX
             | COMMA ( REPAIR_ALLOW_DATA_LOSS | REPAIR_FAST | REPAIR_REBUILD)
         )? RPAREN (
@@ -3468,7 +3468,7 @@ dbccCheckalloc
 
 // https://learn.microsoft.com/en-us/sql/t-sql/database-console-commands/dbcc-checkcatalog-transact-sql?view=sql-server-ver16
 dbccCheckcatalog
-    : name = CHECKCATALOG (LPAREN ( database = id_ | databasename = STRING | INT) RPAREN)? (
+    : name = CHECKCATALOG (LPAREN ( database = id | databasename = STRING | INT) RPAREN)? (
         WITH dbccOption = NO_INFOMSGS
     )?
     ;
@@ -3482,7 +3482,7 @@ dbccCheckconstraintsOption
 // https://learn.microsoft.com/en-us/sql/t-sql/database-console-commands/dbcc-checkconstraints-transact-sql?view=sql-server-ver16
 dbccCheckconstraints
     : name = CHECKCONSTRAINTS (
-        LPAREN (tableOrConstraint = id_ | tableOrConstraintName = STRING) RPAREN
+        LPAREN (tableOrConstraint = id | tableOrConstraintName = STRING) RPAREN
     )? (
         WITH dbccOption = dbccCheckconstraintsOption (
             COMMA dbccOption = dbccCheckconstraintsOption
@@ -3504,7 +3504,7 @@ dbccCheckdbTableOption
 // https://learn.microsoft.com/en-us/sql/t-sql/database-console-commands/dbcc-checkdb-transact-sql?view=sql-server-ver16
 dbccCheckdb
     : name = CHECKDB (
-        LPAREN (database = id_ | databasename = STRING | INT) (
+        LPAREN (database = id | databasename = STRING | INT) (
             COMMA (NOINDEX | REPAIR_ALLOW_DATA_LOSS | REPAIR_FAST | REPAIR_REBUILD)
         )? RPAREN
     )? (
@@ -3552,8 +3552,8 @@ dbccChecktable
 
 // https://learn.microsoft.com/en-us/sql/t-sql/database-console-commands/dbcc-cleantable-transact-sql?view=sql-server-ver16
 dbccCleantable
-    : name = CLEANTABLE LPAREN (database = id_ | databasename = STRING | INT) COMMA (
-        tableOrView = id_
+    : name = CLEANTABLE LPAREN (database = id | databasename = STRING | INT) COMMA (
+        tableOrView = id
         | tableOrViewName = STRING
     ) (COMMA batchSize = INT)? RPAREN (WITH dbccOption = NO_INFOMSGS)?
     ;
@@ -3568,14 +3568,14 @@ dbccClonedatabaseOption
 
 // https://learn.microsoft.com/en-us/sql/t-sql/database-console-commands/dbcc-clonedatabase-transact-sql?view=sql-server-ver16
 dbccClonedatabase
-    : name = CLONEDATABASE LPAREN sourceDatabase = id_ COMMA targetDatabase = id_ RPAREN (
+    : name = CLONEDATABASE LPAREN sourceDatabase = id COMMA targetDatabase = id RPAREN (
         WITH dbccOption = dbccClonedatabaseOption (COMMA dbccOption = dbccClonedatabaseOption)*
     )?
     ;
 
 // https://learn.microsoft.com/en-us/sql/t-sql/database-console-commands/dbcc-pdw-showspaceused-transact-sql?view=aps-pdw-2016-au7
 dbccPdwShowspaceused
-    : name = PDW_SHOWSPACEUSED (LPAREN tablename = id_ RPAREN)? (
+    : name = PDW_SHOWSPACEUSED (LPAREN tablename = id RPAREN)? (
         WITH dbccOption = IGNORE_REPLICATED_TABLE_CACHE
     )?
     ;
@@ -3616,7 +3616,7 @@ dbccDbreindex
 
 // https://learn.microsoft.com/en-us/sql/t-sql/database-console-commands/dbcc-dllname-free-transact-sql?view=sql-server-ver16
 dbccDllFree
-    : dllname = id_ LPAREN name = FREE RPAREN (WITH dbccOption = NO_INFOMSGS)?
+    : dllname = id LPAREN name = FREE RPAREN (WITH dbccOption = NO_INFOMSGS)?
     ;
 
 // https://learn.microsoft.com/en-us/sql/t-sql/database-console-commands/dbcc-dropcleanbuffers-transact-sql?view=sql-server-ver16
@@ -3657,7 +3657,7 @@ tableTypeDefinition
     ;
 
 tableTypeIndices
-    : (((PRIMARY KEY | INDEX id_) (CLUSTERED | NONCLUSTERED)?) | UNIQUE) LPAREN columnNameListWithOrder RPAREN
+    : (((PRIMARY KEY | INDEX id) (CLUSTERED | NONCLUSTERED)?) | UNIQUE) LPAREN columnNameListWithOrder RPAREN
     | CHECK LPAREN searchCondition RPAREN
     ;
 
@@ -3683,15 +3683,15 @@ columnDefTableConstraint
 // There is a documentation error: column definition elements can be given in
 // any order
 columnDefinition
-    : id_ (dataType | AS expression PERSISTED?) columnDefinitionElement* columnIndex?
+    : id (dataType | AS expression PERSISTED?) columnDefinitionElement* columnIndex?
     ;
 
 columnDefinitionElement
     : FILESTREAM
-    | COLLATE collationName = id_
+    | COLLATE collationName = id
     | SPARSE
     | MASKED WITH LPAREN FUNCTION EQ maskFunction = STRING RPAREN
-    | (CONSTRAINT constraint = id_)? DEFAULT constantExpr = expression
+    | (CONSTRAINT constraint = id)? DEFAULT constantExpr = expression
     | IDENTITY (LPAREN seed = INT COMMA increment = INT RPAREN)?
     | NOT FOR REPLICATION
     | GENERATED ALWAYS AS (ROW | TRANSACTION_ID | SEQUENCE_NUMBER) (START | END) HIDDEN_KEYWORD?
@@ -3705,7 +3705,7 @@ columnDefinitionElement
     ;
 
 columnModifier
-    : id_ (ADD | DROP) (
+    : id (ADD | DROP) (
         ROWGUIDCOL
         | PERSISTED
         | NOT FOR REPLICATION
@@ -3716,14 +3716,14 @@ columnModifier
     ;
 
 materializedColumnDefinition
-    : id_ (COMPUTE | AS) expression (MATERIALIZED | NOT MATERIALIZED)?
+    : id (COMPUTE | AS) expression (MATERIALIZED | NOT MATERIALIZED)?
     ;
 
 // https://msdn.microsoft.com/en-us/library/ms186712.aspx
 // There is a documentation error: NOT NULL is a constraint
 // and therefore can be given a name.
 columnConstraint
-    : (CONSTRAINT constraint = id_)? (
+    : (CONSTRAINT constraint = id)? (
         nullNotnull
         | ( (PRIMARY KEY | UNIQUE) clustered? primaryKeyOptions)
         | ( (FOREIGN KEY)? foreignKeyOptions)
@@ -3732,32 +3732,32 @@ columnConstraint
     ;
 
 columnIndex
-    : INDEX indexName = id_ clustered? createTableIndexOptions? onPartitionOrFilegroup? (
-        FILESTREAM_ON (filestreamFilegroupOrPartitionSchemaName = id_ | NULL_DOUBLE_QUOTE)
+    : INDEX indexName = id clustered? createTableIndexOptions? onPartitionOrFilegroup? (
+        FILESTREAM_ON (filestreamFilegroupOrPartitionSchemaName = id | NULL_DOUBLE_QUOTE)
     )?
     ;
 
 onPartitionOrFilegroup
     : ON (
-        (partitionSchemeName = id_ LPAREN partitionColumnName = id_ RPAREN)
-        | filegroup = id_
+        (partitionSchemeName = id LPAREN partitionColumnName = id RPAREN)
+        | filegroup = id
         | DEFAULT_DOUBLE_QUOTE
     )
     ;
 
 // https://msdn.microsoft.com/en-us/library/ms188066.aspx
 tableConstraint
-    : (CONSTRAINT constraint = id_)? (
+    : (CONSTRAINT constraint = id)? (
         ((PRIMARY KEY | UNIQUE) clustered? LPAREN columnNameListWithOrder RPAREN primaryKeyOptions)
         | ( FOREIGN KEY LPAREN fk = columnNameList RPAREN foreignKeyOptions)
         | ( CONNECTION LPAREN connectionNode ( COMMA connectionNode)* RPAREN)
-        | ( DEFAULT constantExpr = expression FOR column = id_ (WITH VALUES)?)
+        | ( DEFAULT constantExpr = expression FOR column = id (WITH VALUES)?)
         | checkConstraint
     )
     ;
 
 connectionNode
-    : fromNodeTable = id_ TO toNodeTable = id_
+    : fromNodeTable = id TO toNodeTable = id
     ;
 
 primaryKeyOptions
@@ -3799,8 +3799,8 @@ alterTableIndexOption
     | MAXDOP EQ maxDegreeOfParallelism = INT
     | DATA_COMPRESSION EQ (NONE | ROW | PAGE | COLUMNSTORE | COLUMNSTORE_ARCHIVE) onPartitions?
     | XML_COMPRESSION EQ onOff onPartitions?
-    | DISTRIBUTION EQ HASH LPAREN id_ RPAREN
-    | CLUSTERED INDEX LPAREN id_ (ASC | DESC)? (COMMA id_ (ASC | DESC)?)* RPAREN
+    | DISTRIBUTION EQ HASH LPAREN id RPAREN
+    | CLUSTERED INDEX LPAREN id (ASC | DESC)? (COMMA id (ASC | DESC)?)* RPAREN
     | ONLINE EQ (ON (LPAREN lowPriorityLockWait RPAREN)? | OFF)
     | RESUMABLE EQ onOff
     | MAX_DURATION EQ times = INT MINUTES?
@@ -3837,7 +3837,7 @@ fetchCursor
 // https://msdn.microsoft.com/en-us/library/ms190356.aspx
 // Runtime check.
 setSpecial
-    : SET id_ (id_ | constant_LOCAL_ID | onOff) SEMI?
+    : SET id (id | constant_LOCAL_ID | onOff) SEMI?
     | SET STATISTICS (IO | TIME | XML | PROFILE) onOff SEMI?
     | SET ROWCOUNT (LOCAL_ID | INT) SEMI?
     | SET TEXTSIZE INT SEMI?
@@ -3903,7 +3903,7 @@ expression
     | functionCall #exprFunc
     | expression DOT (valueCall | queryCall | existCall | modifyCall) #exprDot
     | expression DOT hierarchyidCall #exprHierarchyid
-    | expression COLLATE id_ #exprCollate
+    | expression COLLATE id #exprCollate
     | caseExpression #exprCase
     | fullColumnName #exprFullColumn
     | expression timeZone #exprTz
@@ -3943,19 +3943,19 @@ withExpression
     ;
 
 commonTableExpression
-    : expressionName = id_ (LPAREN columns = columnNameList RPAREN)? AS LPAREN cteQuery = selectStatement RPAREN
+    : expressionName = id (LPAREN columns = columnNameList RPAREN)? AS LPAREN cteQuery = selectStatement RPAREN
     ;
 
 updateElem
     : LOCAL_ID EQ fullColumnName (EQ | assignmentOperator) expression //Combined variable and column update
     | (fullColumnName | LOCAL_ID) (EQ | assignmentOperator) expression
-    | udtColumnName = id_ DOT methodName = id_ LPAREN expressionList_ RPAREN
+    | udtColumnName = id DOT methodName = id LPAREN expressionList_ RPAREN
     //| fullColumnName DOT WRITE (expression, )
     ;
 
 updateElemMerge
     : (fullColumnName | LOCAL_ID) (EQ | assignmentOperator) expression
-    | udtColumnName = id_ DOT methodName = id_ LPAREN expressionList_ RPAREN
+    | udtColumnName = id DOT methodName = id LPAREN expressionList_ RPAREN
     //| fullColumnName DOT WRITE (expression, )
     ;
 
@@ -4117,8 +4117,8 @@ asterisk
     ;
 
 udtElem
-    : udtColumnName = id_ DOT nonStaticAttr = id_ udtMethodArguments asColumnAlias?
-    | udtColumnName = id_ DOUBLE_COLON staticAttr = id_ udtMethodArguments? asColumnAlias?
+    : udtColumnName = id DOT nonStaticAttr = id udtMethodArguments asColumnAlias?
+    | udtColumnName = id DOUBLE_COLON staticAttr = id udtMethodArguments? asColumnAlias?
     ;
 
 expressionElem
@@ -4190,7 +4190,7 @@ schemaDeclaration
     ;
 
 columnDeclaration
-    : id_ dataType STRING?
+    : id dataType STRING?
     ;
 
 changeTable
@@ -4264,12 +4264,12 @@ rowsetFunction
     : (
         OPENROWSET LPAREN providerName = STRING COMMA connectionString = STRING COMMA sql = STRING RPAREN
     )
-    | (OPENROWSET LPAREN BULK dataFile = STRING COMMA (bulkOption (COMMA bulkOption)* | id_) RPAREN)
+    | (OPENROWSET LPAREN BULK dataFile = STRING COMMA (bulkOption (COMMA bulkOption)* | id) RPAREN)
     ;
 
 // runtime check.
 bulkOption
-    : id_ EQ bulkOptionValue = (INT | STRING)
+    : id EQ bulkOptionValue = (INT | STRING)
     ;
 
 derivedTable
@@ -4291,7 +4291,7 @@ functionCall
     ;
 
 partitionFunction
-    : (database = id_ DOT)? DOLLAR_PARTITION DOT funcName = id_ LPAREN expression RPAREN
+    : (database = id DOT)? DOLLAR_PARTITION DOT funcName = id LPAREN expression RPAREN
     ;
 
 freetextFunction
@@ -4346,7 +4346,7 @@ builtInFunctions
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/col-name-transact-sql?view=sql-server-ver16
     | COL_NAME LPAREN tableId = expression COMMA columnId = expression RPAREN # COL_NAME
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/columnproperty-transact-sql?view=sql-server-ver16
-    | COLUMNPROPERTY LPAREN id = expression COMMA column = expression COMMA property = expression RPAREN # COLUMNPROPERTY
+    | COLUMNPROPERTY LPAREN expression COMMA column = expression COMMA property = expression RPAREN # COLUMNPROPERTY
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/databasepropertyex-transact-sql?view=sql-server-ver16
     | DATABASEPROPERTYEX LPAREN database = expression COMMA property = expression RPAREN # DATABASEPROPERTYEX
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/db-id-transact-sql?view=sql-server-ver16
@@ -4390,9 +4390,9 @@ builtInFunctions
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/object-schema-name-transact-sql?view=sql-server-ver16
     | OBJECT_SCHEMA_NAME LPAREN objectId = expression (COMMA databaseId = expression)? RPAREN # OBJECT_SCHEMA_NAME
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/objectproperty-transact-sql?view=sql-server-ver16
-    | OBJECTPROPERTY LPAREN id = expression COMMA property = expression RPAREN # OBJECTPROPERTY
+    | OBJECTPROPERTY LPAREN  expression COMMA property = expression RPAREN # OBJECTPROPERTY
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/objectpropertyex-transact-sql?view=sql-server-ver16
-    | OBJECTPROPERTYEX LPAREN id = expression COMMA property = expression RPAREN # OBJECTPROPERTYEX
+    | OBJECTPROPERTYEX LPAREN  expression COMMA property = expression RPAREN # OBJECTPROPERTYEX
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/original-db-name-transact-sql?view=sql-server-ver16
     | ORIGINAL_DB_NAME LPAREN RPAREN # ORIGINAL_DB_NAME
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/parsename-transact-sql?view=sql-server-ver16
@@ -4583,21 +4583,21 @@ builtInFunctions
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/current-timezone-id-transact-sql?view=sql-server-ver16
     | CURRENT_TIMEZONE_ID LPAREN RPAREN # CURRENT_TIMEZONE_ID
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/date-bucket-transact-sql?view=sql-server-ver16
-    | DATE_BUCKET LPAREN datepart = dateparts_9 COMMA number = expression COMMA date = expression (
+    | DATE_BUCKET LPAREN datepart = id COMMA number = expression COMMA date = expression (
         COMMA origin = expression
     )? RPAREN # DATE_BUCKET
     // https://msdn.microsoft.com/en-us/library/ms186819.aspx
-    | DATEADD LPAREN datepart = dateparts_12 COMMA number = expression COMMA date = expression RPAREN # DATEADD
+    | DATEADD LPAREN datepart = id COMMA number = expression COMMA date = expression RPAREN # DATEADD
     // https://msdn.microsoft.com/en-us/library/ms189794.aspx
-    | DATEDIFF LPAREN datepart = dateparts_12 COMMA dateFirst = expression COMMA dateSecond = expression RPAREN # DATEDIFF
+    | DATEDIFF LPAREN datepart = id COMMA dateFirst = expression COMMA dateSecond = expression RPAREN # DATEDIFF
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/datediff-big-transact-sql?view=sql-server-ver16
-    | DATEDIFF_BIG LPAREN datepart = dateparts_12 COMMA startdate = expression COMMA enddate = expression RPAREN # DATEDIFF_BIG
+    | DATEDIFF_BIG LPAREN datepart = id COMMA startdate = expression COMMA enddate = expression RPAREN # DATEDIFF_BIG
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/datefromparts-transact-sql?view=sql-server-ver16
     | DATEFROMPARTS LPAREN year = expression COMMA month = expression COMMA day = expression RPAREN # DATEFROMPARTS
     // https://msdn.microsoft.com/en-us/library/ms174395.aspx
-    | DATENAME LPAREN datepart = dateparts_15 COMMA date = expression RPAREN # DATENAME
+    | DATENAME LPAREN datepart = id COMMA date = expression RPAREN # DATENAME
     // https://msdn.microsoft.com/en-us/library/ms174420.aspx
-    | DATEPART LPAREN datepart = dateparts_15 COMMA date = expression RPAREN # DATEPART
+    | DATEPART LPAREN datepart = id COMMA date = expression RPAREN # DATEPART
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/datetime2fromparts-transact-sql?view=sql-server-ver16
     | DATETIME2FROMPARTS LPAREN year = expression COMMA month = expression COMMA day = expression COMMA hour = expression COMMA minute = expression COMMA seconds =
         expression COMMA fractions = expression COMMA precision = expression RPAREN # DATETIME2FROMPARTS
@@ -4609,9 +4609,7 @@ builtInFunctions
         seconds = expression COMMA fractions = expression COMMA hourOffset = expression COMMA minuteOffset = expression COMMA precision = INT RPAREN #
         DATETIMEOFFSETFROMPARTS
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/datetrunc-transact-sql?view=sql-server-ver16
-    | DATETRUNC LPAREN datepart = datepartsDatetrunc COMMA date = expression RPAREN # DATETRUNC
-    // https://learn.microsoft.com/en-us/sql/t-sql/functions/day-transact-sql?view=sql-server-ver16
-    | DAY LPAREN date = expression RPAREN # DAY
+    | DATETRUNC LPAREN datepart = id COMMA date = expression RPAREN # DATETRUNC
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/eomonth-transact-sql?view=sql-server-ver16
     | EOMONTH LPAREN startDate = expression (COMMA monthToAdd = expression)? RPAREN # EOMONTH
     // https://docs.microsoft.com/en-us/sql/t-sql/functions/getdate-transact-sql
@@ -4620,8 +4618,6 @@ builtInFunctions
     | GETUTCDATE LPAREN RPAREN # GETUTCDATE
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/isdate-transact-sql?view=sql-server-ver16
     | ISDATE LPAREN expression RPAREN # ISDATE
-    // https://learn.microsoft.com/en-us/sql/t-sql/functions/month-transact-sql?view=sql-server-ver16
-    | MONTH LPAREN date = expression RPAREN # MONTH
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/smalldatetimefromparts-transact-sql?view=sql-server-ver16
     | SMALLDATETIMEFROMPARTS LPAREN year = expression COMMA month = expression COMMA day = expression COMMA hour = expression COMMA minute = expression RPAREN #
         SMALLDATETIMEFROMPARTS
@@ -4639,7 +4635,6 @@ builtInFunctions
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/todatetimeoffset-transact-sql?view=sql-server-ver16
     | TODATETIMEOFFSET LPAREN datetimeExpression = expression COMMA timezoneoffsetExpression = expression RPAREN # TODATETIMEOFFSET
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/year-transact-sql?view=sql-server-ver16
-    | YEAR LPAREN date = expression RPAREN # YEAR
     // https://msdn.microsoft.com/en-us/library/ms189838.aspx
     | IDENTITY LPAREN dataType (COMMA seed = INT)? (COMMA increment = INT)? RPAREN # IDENTITY
     // https://msdn.microsoft.com/en-us/library/bb839514.aspx
@@ -4774,7 +4769,7 @@ builtInFunctions
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/user-id-transact-sql?view=sql-server-ver16
     | USER_ID LPAREN (user = expression)? RPAREN # USER_ID
     // https://learn.microsoft.com/en-us/sql/t-sql/functions/user-name-transact-sql?view=sql-server-ver16
-    | USER_NAME LPAREN (id = expression)? RPAREN # USER_NAME
+    | USER_NAME LPAREN expression? RPAREN # USER_NAME
     ;
 
 xmlDataTypeMethods
@@ -4782,61 +4777,6 @@ xmlDataTypeMethods
     | queryMethod
     | existMethod
     | modifyMethod
-    ;
-
-// https://learn.microsoft.com/en-us/sql/t-sql/functions/date-bucket-transact-sql?view=sql-server-ver16
-dateparts_9
-    : YEAR
-    | YEAR_ABBR
-    | QUARTER
-    | QUARTER_ABBR
-    | MONTH
-    | MONTH_ABBR
-    | DAY
-    | DAY_ABBR
-    | WEEK
-    | WEEK_ABBR
-    | HOUR
-    | HOUR_ABBR
-    | MINUTE
-    | MINUTE_ABBR
-    | SECOND
-    | SECOND_ABBR
-    | MILLISECOND
-    | MILLISECOND_ABBR
-    ;
-
-// https://learn.microsoft.com/en-us/sql/t-sql/functions/dateadd-transact-sql?view=sql-server-ver16
-dateparts_12
-    : dateparts_9
-    | DAYOFYEAR
-    | DAYOFYEAR_ABBR
-    | MICROSECOND
-    | MICROSECOND_ABBR
-    | NANOSECOND
-    | NANOSECOND_ABBR
-    ;
-
-// https://learn.microsoft.com/en-us/sql/t-sql/functions/datename-transact-sql?view=sql-server-ver16
-dateparts_15
-    : dateparts_12
-    | WEEKDAY
-    | WEEKDAY_ABBR
-    | TZOFFSET
-    | TZOFFSET_ABBR
-    | ISO_WEEK
-    | ISO_WEEK_ABBR
-    ;
-
-// https://learn.microsoft.com/en-us/sql/t-sql/functions/datetrunc-transact-sql?view=sql-server-ver16
-datepartsDatetrunc
-    : dateparts_9
-    | DAYOFYEAR
-    | DAYOFYEAR_ABBR
-    | MICROSECOND
-    | MICROSECOND_ABBR
-    | ISO_WEEK
-    | ISO_WEEK_ABBR
     ;
 
 valueMethod
@@ -4911,7 +4851,7 @@ asTableAlias
     ;
 
 tableAlias
-    : id_
+    : id
     ;
 
 // https://msdn.microsoft.com/en-us/library/ms187373.aspx
@@ -4974,7 +4914,7 @@ tableHint
     ;
 
 indexValue
-    : id_
+    : id
     | INT
     ;
 
@@ -4983,7 +4923,7 @@ columnAliasList
     ;
 
 columnAlias
-    : id_
+    : id
     | STRING
     ;
 
@@ -5056,8 +4996,8 @@ windowFrameFollowing
 
 createDatabaseOption
     : FILESTREAM (databaseFilestreamOption (COMMA databaseFilestreamOption)*)
-    | DEFAULT_LANGUAGE EQ ( id_ | STRING)
-    | DEFAULT_FULLTEXT_LANGUAGE EQ ( id_ | STRING)
+    | DEFAULT_LANGUAGE EQ ( id | STRING)
+    | DEFAULT_FULLTEXT_LANGUAGE EQ ( id | STRING)
     | NESTED_TRIGGERS EQ ( OFF | ON)
     | TRANSFORM_NOISE_WORDS EQ ( OFF | ON)
     | TWO_DIGIT_YEAR_CUTOFF EQ INT
@@ -5078,13 +5018,13 @@ databaseFileSpec
     ;
 
 fileGroup
-    : FILEGROUP id_ (CONTAINS FILESTREAM)? (DEFAULT)? (CONTAINS MEMORY_OPTIMIZED_DATA)? fileSpecification (
+    : FILEGROUP id (CONTAINS FILESTREAM)? (DEFAULT)? (CONTAINS MEMORY_OPTIMIZED_DATA)? fileSpecification (
         COMMA fileSpecification
     )*
     ;
 
 fileSpecification
-    : LPAREN NAME EQ (id_ | STRING) COMMA? FILENAME EQ file = STRING COMMA? (
+    : LPAREN NAME EQ (id | STRING) COMMA? FILENAME EQ file = STRING COMMA? (
         SIZE EQ fileSize COMMA?
     )? (MAXSIZE EQ (fileSize | UNLIMITED) COMMA?)? (FILEGROWTH EQ fileSize COMMA?)? RPAREN
     ;
@@ -5092,53 +5032,53 @@ fileSpecification
 // Primitive.
 entityName
     : (
-        server = id_ DOT database = id_ DOT schema = id_ DOT
-        | database = id_ DOT (schema = id_)? DOT
-        | schema = id_ DOT
-    )? table = id_
+        server = id DOT database = id DOT schema = id DOT
+        | database = id DOT (schema = id)? DOT
+        | schema = id DOT
+    )? table = id
     ;
 
 entityNameForAzureDw
-    : schema = id_
-    | schema = id_ DOT objectName = id_
+    : schema = id
+    | schema = id DOT objectName = id
     ;
 
 entityNameForParallelDw
-    : schemaDatabase = id_
-    | schema = id_ DOT objectName = id_
+    : schemaDatabase = id
+    | schema = id DOT objectName = id
     ;
 
 fullTableName
     : (
-        linkedServer = id_ DOT DOT schema = id_ DOT
-        | server = id_ DOT database = id_ DOT schema = id_ DOT
-        | database = id_ DOT schema = id_? DOT
-        | schema = id_ DOT
-    )? table = id_
+        linkedServer = id DOT DOT schema = id DOT
+        | server = id DOT database = id DOT schema = id DOT
+        | database = id DOT schema = id? DOT
+        | schema = id DOT
+    )? table = id
     ;
 
 tableName
-    : (database = id_ DOT schema = id_? DOT | schema = id_ DOT)? (
-        table = id_
+    : (database = id DOT schema = id? DOT | schema = id DOT)? (
+        table = id
         | blockingHierarchy = BLOCKING_HIERARCHY
     )
     ;
 
 simpleName
-    : (schema = id_ DOT)? name = id_
+    : (schema = id DOT)? name = id
     ;
 
 funcProcNameSchema
-    : ((schema = id_) DOT)? procedure = id_
+    : ((schema = id) DOT)? procedure = id
     ;
 
 funcProcNameDatabaseSchema
-    : database = id_? DOT schema = id_? DOT procedure = id_
+    : database = id? DOT schema = id? DOT procedure = id
     | funcProcNameSchema
     ;
 
 funcProcNameServerDatabaseSchema
-    : server = id_? DOT database = id_? DOT schema = id_? DOT procedure = id_
+    : server = id? DOT database = id? DOT schema = id? DOT procedure = id
     | funcProcNameDatabaseSchema
     ;
 
@@ -5149,13 +5089,13 @@ ddlObject
 
 fullColumnName
     : ((DELETED | INSERTED | fullTableName) DOT)? (
-        columnName = id_
+        columnName = id
         | (DOLLAR (IDENTITY | ROWGUID))
     )
     ;
 
 columnNameListWithOrder
-    : id_ (ASC | DESC)? (COMMA id_ (ASC | DESC)?)*
+    : id (ASC | DESC)? (COMMA id (ASC | DESC)?)*
     ;
 
 //For some reason, sql server allows any number of prefixes:  Here, h is the column: a.b.c.d.e.f.g.h
@@ -5164,15 +5104,15 @@ insertColumnNameList
     ;
 
 insertColumnId
-    : (ignore += id_? DOT)* id_
+    : (ignore += id? DOT)* id
     ;
 
 columnNameList
-    : col += id_ (COMMA col += id_)*
+    : col += id (COMMA col += id)*
     ;
 
 cursorName
-    : id_
+    : id
     | LOCAL_ID
     ;
 
@@ -5212,11 +5152,11 @@ beginConversationDialog
     ;
 
 contractName
-    : (id_ | expression)
+    : (id | expression)
     ;
 
 serviceName
-    : (id_ | expression)
+    : (id | expression)
     ;
 
 endConversation
@@ -5239,8 +5179,8 @@ getConversation
     ;
 
 queueId
-    : (databaseName = id_ DOT schemaName = id_ DOT name = id_)
-    | id_
+    : (databaseName = id DOT schemaName = id DOT name = id)
+    | id
     ;
 
 sendConversation
@@ -5254,11 +5194,11 @@ sendConversation
 
 dataType
     : scaled = (VARCHAR | NVARCHAR | BINARY_KEYWORD | VARBINARY_KEYWORD | SQUARE_BRACKET_ID) LPAREN MAX RPAREN
-    | extType = id_ LPAREN scale = INT COMMA prec = INT RPAREN
-    | extType = id_ LPAREN scale = INT RPAREN
-    | extType = id_ IDENTITY (LPAREN seed = INT COMMA inc = INT RPAREN)?
+    | extType = id LPAREN scale = INT COMMA prec = INT RPAREN
+    | extType = id LPAREN scale = INT RPAREN
+    | extType = id IDENTITY (LPAREN seed = INT COMMA inc = INT RPAREN)?
     | doublePrec = DOUBLE PRECISION?
-    | unscaledType = id_
+    | unscaledType = id
     ;
 
 // https://msdn.microsoft.com/en-us/library/ms179899.aspx
@@ -6204,10 +6144,8 @@ keyword
     | DATETIMEFROMPARTS
     | DATETIMEOFFSETFROMPARTS
     | DATETRUNC
-    | DAY
     | EOMONTH
     | ISDATE
-    | MONTH
     | SMALLDATETIMEFROMPARTS
     | SWITCHOFFSET
     | SYSDATETIME
@@ -6215,39 +6153,9 @@ keyword
     | SYSUTCDATETIME
     | TIMEFROMPARTS
     | TODATETIMEOFFSET
-    | YEAR
-    //
-    | QUARTER
-    | DAYOFYEAR
-    | WEEK
-    | HOUR
-    | MINUTE
-    | SECOND
-    | MILLISECOND
-    | MICROSECOND
-    | NANOSECOND
-    | TZOFFSET
-    | ISO_WEEK
-    | WEEKDAY
-    //
-    | YEAR_ABBR
-    | QUARTER_ABBR
-    | MONTH_ABBR
-    | DAYOFYEAR_ABBR
-    | DAY_ABBR
-    | WEEK_ABBR
-    | HOUR_ABBR
-    | MINUTE_ABBR
-    | SECOND_ABBR
-    | MILLISECOND_ABBR
-    | MICROSECOND_ABBR
-    | NANOSECOND_ABBR
-    | TZOFFSET_ABBR
-    | ISO_WEEK_ABBR
-    | WEEKDAY_ABBR
     //
     | SP_EXECUTESQL
-    //Build-ins:
+    //Built-ins:
     | VARCHAR
     | NVARCHAR
     | PRECISION //For some reason this is possible to use as ID
@@ -6255,7 +6163,7 @@ keyword
     ;
 
 // https://msdn.microsoft.com/en-us/library/ms175874.aspx
-id_
+id
     : ID
     | TEMP_ID
     | DOUBLE_QUOTE_ID
@@ -6270,7 +6178,7 @@ simpleId
     ;
 
 idOrString
-    : id_
+    : id
     | STRING
     ;
 
