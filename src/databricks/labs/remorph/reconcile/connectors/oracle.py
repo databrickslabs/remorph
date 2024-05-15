@@ -32,7 +32,7 @@ class OracleDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
         )
 
     def read_data(
-        self, catalog: str, schema: str, table: str, query: str, options: JdbcReaderOptions | None
+        self, catalog: str | None, schema: str, table: str, query: str, options: JdbcReaderOptions | None
     ) -> DataFrame:
         table_query = query.replace(":tbl", f"{schema}.{table}")
         try:
@@ -43,7 +43,7 @@ class OracleDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
         except RuntimeError as e:
             raise self._raise_runtime_exception(e, "data", table_query)
 
-    def get_schema(self, catalog: str, schema: str, table: str) -> list[Schema]:
+    def get_schema(self, catalog: str | None, schema: str, table: str) -> list[Schema]:
         schema_query = self._get_schema_query(table, schema)
         try:
             schema_df = self.reader(schema_query).load()
@@ -55,9 +55,7 @@ class OracleDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
     def _get_timestamp_options() -> dict[str, str]:
         return {
             "oracle.jdbc.mapDateToTimestamp": "False",
-            "sessionInitStatement": """BEGIN dbms_session.set_nls('nls_date_format', '''YYYY-MM-DD''');
-                                 dbms_session.set_nls('nls_timestamp_format', '''YYYY-MM-DD HH24:MI:SS''');
-                           END;""",
+            "sessionInitStatement": "BEGIN dbms_session.set_nls('nls_date_format', '''YYYY-MM-DD''');dbms_session.set_nls('nls_timestamp_format', '''YYYY-MM-DD HH24:MI:SS''');END;",
         }
 
     def reader(self, query: str) -> DataFrameReader:

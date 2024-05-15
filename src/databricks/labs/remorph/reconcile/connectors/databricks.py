@@ -27,9 +27,9 @@ class DatabricksDataSource(DataSource, SecretsMixin):
     def read_data(
         self, catalog: str, schema: str, table: str, query: str, options: JdbcReaderOptions | None
     ) -> DataFrame:
-        table_with_namespace = f"{schema}.{table}"
-        if catalog and catalog != "hive_metastore":
-            table_with_namespace = f"{catalog}.{schema}.{table}"
+        table_with_namespace = f"{catalog}.{schema}.{table}"
+        if catalog is None or catalog == "hive_metastore":
+            table_with_namespace = f"{schema}.{table}"
         table_query = query.replace(":tbl", table_with_namespace)
         try:
             df = self._spark.sql(table_query)
