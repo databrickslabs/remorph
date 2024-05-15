@@ -120,12 +120,10 @@ def _process_directory(
     return counter, parse_error_list, validate_error_list
 
 
-def _process_recursive_dirs(config: MorphConfig, validator: Validator | None, transpiler: SqlglotEngine):
-    if not config.input_sql:
-        logger.error("Input SQL path is not provided.")
-        raise ValueError("Input SQL path is not provided.")
-
-    input_sql = Path(config.input_sql)
+def _process_recursive_dirs(
+    config: MorphConfig, input_sql_path: Path, validator: Validator | None, transpiler: SqlglotEngine
+):
+    input_sql = input_sql_path
     parse_error_list = []
     validate_error_list = []
 
@@ -157,7 +155,11 @@ def morph(workspace_client: WorkspaceClient, config: MorphConfig):
     :param config: The configuration for the morph operation.
     :param workspace_client: The WorkspaceClient object.
     """
-    input_sql = Path(str(config.input_sql))
+    if not config.input_sql:
+        logger.error("Input SQL path is not provided.")
+        raise ValueError("Input SQL path is not provided.")
+
+    input_sql = Path(config.input_sql)
     status = []
     result = MorphStatus([], 0, 0, 0, [])
 
@@ -187,7 +189,7 @@ def morph(workspace_client: WorkspaceClient, config: MorphConfig):
             msg = f"{input_sql} is not a SQL file."
             logger.warning(msg)
     elif input_sql.is_dir():
-        result = _process_recursive_dirs(config, validator, transpiler)
+        result = _process_recursive_dirs(config, input_sql, validator, transpiler)
     else:
         msg = f"{input_sql} does not exist."
         logger.error(msg)
