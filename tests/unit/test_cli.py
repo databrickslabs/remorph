@@ -282,7 +282,7 @@ def test_recon_with_valid_input(mock_workspace_client_cli):
     spark = create_autospec(DatabricksSession)
     with (
         patch("databricks.labs.remorph.cli._get_spark_session", return_value=spark),
-        patch("databricks.labs.remorph.cli.recon") as mock_recon,
+        patch("databricks.labs.remorph.cli.recon", return_value="123") as mock_recon,
     ):
         cli.reconcile(mock_workspace_client_cli, source, report)
         mock_recon.assert_called_once_with(

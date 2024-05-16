@@ -94,7 +94,9 @@ def reconcile(w: WorkspaceClient, source: str, report: str):
 
     spark = _get_spark_session(w)
 
-    recon(w, spark, table_recon, SQLGLOT_DIALECTS.get(source.lower()), report)
+    recon_id = recon(w, spark, table_recon, SQLGLOT_DIALECTS.get(source.lower()), report)
+
+    print(json.dumps(recon_id))
 
 
 def _get_spark_session(ws: WorkspaceClient) -> SparkSession:
