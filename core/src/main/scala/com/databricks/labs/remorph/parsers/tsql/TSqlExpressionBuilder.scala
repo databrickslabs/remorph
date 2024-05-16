@@ -1,11 +1,11 @@
 package com.databricks.labs.remorph.parsers.tsql
 
-import org.antlr.v4.runtime.Token
-import org.antlr.v4.runtime.tree.TerminalNode
-
-import com.databricks.labs.remorph.parsers.intermediate.{Column, Literal}
+import com.databricks.labs.remorph.parsers.FunctionBuilder
+import com.databricks.labs.remorph.parsers.intermediate.{Column, Expression, Literal}
 import com.databricks.labs.remorph.parsers.tsql.TSqlParser._
 import com.databricks.labs.remorph.parsers.{IncompleteParser, ParserCommon, intermediate => ir}
+import org.antlr.v4.runtime.Token
+import org.antlr.v4.runtime.tree.TerminalNode
 
 import scala.collection.JavaConverters._
 
@@ -13,6 +13,8 @@ class TSqlExpressionBuilder
     extends TSqlParserBaseVisitor[ir.Expression]
     with ParserCommon
     with IncompleteParser[ir.Expression] {
+
+  case class FunDef(argMin: Int, argMax: Int = Int.MaxValue, convertible: Boolean = true)
 
   protected override def wrapUnresolvedInput(unparsedInput: String): ir.UnresolvedExpression =
     ir.UnresolvedExpression(unparsedInput)
@@ -65,6 +67,8 @@ class TSqlExpressionBuilder
   override def visitExprOpPrec4(ctx: ExprOpPrec4Context): ir.Expression = {
     buildBinaryExpression(ctx.expression(0).accept(this), ctx.expression(1).accept(this), ctx.op)
   }
+
+  override def visitExprFunc(ctx: ExprFuncContext): Expression = ctx.functionCall.accept(this)
 
   override def visitPrimitiveConstant(ctx: PrimitiveConstantContext): ir.Expression = ctx match {
     case c if c.DOLLAR() != null => wrapUnresolvedInput(ctx.getText)
@@ -132,5 +136,12 @@ class TSqlExpressionBuilder
       case ">=" => ir.GreaterThanOrEqual(left, right)
       case "<=" => ir.LesserThanOrEqual(left, right)
     }
+  }
+
+  override def visitStandardFunction(ctx: StandardFunctionContext): ir.Expression = {
+    val name = ctx.funcId.getText
+    val args = Option(ctx.expression()).map(_.asScala.map(_.accept(this))).getOrElse(Seq.empty)
+    FunctionBuilder.buildFunction(name, args)
+
   }
 }
