@@ -5,7 +5,7 @@ from abc import ABC, abstractmethod
 from pyspark.sql import DataFrame, SparkSession
 from sqlglot.dialects.dialect import DialectType
 
-from databricks.labs.remorph.config import TableRecon, SQLGLOT_DIALECTS
+from databricks.labs.remorph.config import SQLGLOT_DIALECTS, TableRecon
 from databricks.labs.remorph.reconcile.recon_config import JdbcReaderOptions, Schema
 from databricks.sdk import WorkspaceClient
 

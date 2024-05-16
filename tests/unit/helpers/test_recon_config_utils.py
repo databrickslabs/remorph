@@ -62,8 +62,8 @@ def test_configure_secrets_oracle_insert(mock_workspace_client):
     mock_workspace_client.secrets.list_scopes.side_effect = [[SecretScope(name="scope_name")]]
 
     with patch(
-            "databricks.labs.remorph.helpers.recon_config_utils.ReconConfigPrompts._secret_key_exists",
-            return_value=False,
+        "databricks.labs.remorph.helpers.recon_config_utils.ReconConfigPrompts._secret_key_exists",
+        return_value=False,
     ):
         recon_conf = ReconConfigPrompts(mock_workspace_client, prompts=prompts)
         recon_conf.prompt_source()
@@ -80,8 +80,8 @@ def test_configure_secrets_invalid_source(mock_workspace_client):
     )
 
     with patch(
-            "databricks.labs.remorph.helpers.recon_config_utils.ReconConfigPrompts._scope_exists",
-            return_value=True,
+        "databricks.labs.remorph.helpers.recon_config_utils.ReconConfigPrompts._scope_exists",
+        return_value=True,
     ):
         recon_conf = ReconConfigPrompts(mock_workspace_client, prompts=prompts)
         with pytest.raises(ValueError, match="cannot get answer within 10 attempt"):
@@ -149,8 +149,7 @@ def test_store_connection_secrets_overwrite(mock_workspace_client):
     )
 
     with patch(
-            "databricks.labs.remorph.helpers.recon_config_utils.ReconConfigPrompts._secret_key_exists",
-            return_value=True
+        "databricks.labs.remorph.helpers.recon_config_utils.ReconConfigPrompts._secret_key_exists", return_value=True
     ):
         recon_conf = ReconConfigPrompts(mock_workspace_client, prompts=prompts)
         recon_conf.store_connection_secrets("scope_name", ("source", {"key": "value"}))
@@ -232,8 +231,7 @@ def test_recon_config_prompt_and_save_config_details(mock_workspace_client):
         # mock WorkspaceClient and Installation in _save_config_details
         with patch("databricks.labs.remorph.helpers.recon_config_utils.WorkspaceClient", mock_workspace_client):
             with patch("databricks.labs.remorph.helpers.recon_config_utils.Installation", MagicMock()):
-                recon_conf = ReconConfigPrompts(mock_workspace_client, installation=installation,
-                                                prompts=prompts)
+                recon_conf = ReconConfigPrompts(mock_workspace_client, installation=installation, prompts=prompts)
                 recon_conf.prompt_source()
 
                 recon_conf.prompt_and_save_config_details()
