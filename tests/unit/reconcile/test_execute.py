@@ -425,7 +425,6 @@ def test_recon_for_report_type_is_data(
         target_schema='data',
         tables=[table_conf_with_opts],
     )
-    spark = create_autospec(DatabricksSession)
     src_schema, tgt_schema = table_schema
     source_dataframe_repository = {
         (
@@ -478,7 +477,7 @@ def test_recon_for_report_type_is_data(
             "databricks.labs.remorph.reconcile.execute.uuid.uuid4", return_value="00112233-4455-6677-8899-aabbccddeeff"
         ),
     ):
-        recon_id = recon(mock_workspace_client, spark, table_recon, SQLGLOT_DIALECTS.get("databricks"), "data")
+        recon_id = recon(mock_workspace_client, mock_spark, table_recon, SQLGLOT_DIALECTS.get("databricks"), "data")
 
     assert recon_id == "00112233-4455-6677-8899-aabbccddeeff"
 
