@@ -1,9 +1,11 @@
 package com.databricks.labs.remorph.parsers.tsql
 
 import com.databricks.labs.remorph.parsers.tsql.TSqlParser._
-import com.databricks.labs.remorph.parsers.{ParserCommon, intermediate => ir}
+import com.databricks.labs.remorph.parsers.{FunctionBuilder, ParserCommon, intermediate => ir}
 import org.antlr.v4.runtime.Token
 import org.antlr.v4.runtime.tree.TerminalNode
+
+import scala.collection.JavaConverters.asScalaBufferConverter
 
 class TSqlExpressionBuilder extends TSqlParserBaseVisitor[ir.Expression] with ParserCommon {
 
@@ -100,7 +102,7 @@ class TSqlExpressionBuilder extends TSqlParserBaseVisitor[ir.Expression] with Pa
     }
   }
 
-  override def visitExprFunc(ctx: ExprFuncContext): Expression = ctx.functionCall.accept(this)
+  override def visitExprFunc(ctx: ExprFuncContext): ir.Expression = ctx.functionCall.accept(this)
 
   override def visitPrimitiveConstant(ctx: TSqlParser.PrimitiveConstantContext): ir.Expression = {
     if (ctx.DOLLAR != null) {
@@ -183,42 +185,9 @@ class TSqlExpressionBuilder extends TSqlParserBaseVisitor[ir.Expression] with Pa
     case c if c == NULL_ => ir.Literal(nullType = Some(ir.NullType()))
   }
 
-
-  override def visitSearchCondition(ctx: SearchConditionContext): ir.Expression = {
-    if (ctx.searchCondition().size() > 1) {
-      val conditions = ctx.searchCondition().asScala.map(_.accept(this))
-      conditions.reduce((left, right) =>
-        ctx match {
-          case c if c.AND() != null => ir.And(left, right)
-          case c if c.OR() != null => ir.Or(left, right)
-          case c if c.NOT() != null => ir.Not(left)
-        })
-    } else {
-      if (!ctx.NOT().isEmpty) {
-        ir.Not(ctx.predicate().accept(this))
-      } else {
-        ctx.predicate().accept(this)
-      }
-    }
-  }
-
-  override def visitPredicate(ctx: PredicateContext): ir.Expression = {
-    val left = ctx.expression(0).accept(this)
-    val right = ctx.expression(1).accept(this)
-    ctx.comparisonOperator().getText match {
-      case "=" => ir.Equals(left, right)
-      case "!=" => ir.NotEquals(left, right)
-      case ">" => ir.GreaterThan(left, right)
-      case "<" => ir.LesserThan(left, right)
-      case ">=" => ir.GreaterThanOrEqual(left, right)
-      case "<=" => ir.LesserThanOrEqual(left, right)
-    }
-  }
-
   override def visitStandardFunction(ctx: StandardFunctionContext): ir.Expression = {
     val name = ctx.funcId.getText
     val args = Option(ctx.expression()).map(_.asScala.map(_.accept(this))).getOrElse(Seq.empty)
     FunctionBuilder.buildFunction(name, args)
-
   }
 }
