@@ -31,7 +31,7 @@ from .snow.helpers.functional_test_cases import (
 )
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def mock_spark() -> SparkSession:
     """
     Method helps to create spark session
