@@ -3,6 +3,7 @@ from sqlglot import expressions as exp
 from sqlglot import parse_one
 from sqlglot.expressions import Column
 
+from databricks.labs.remorph.config import SQLGLOT_DIALECTS
 from databricks.labs.remorph.reconcile.query_builder.expression_generator import (
     array_sort,
     array_to_string,
@@ -117,10 +118,10 @@ def test_lower(expr):
 
 
 def test_get_hash_transform():
-    assert isinstance(get_hash_transform("snowflake"), list) is True
+    assert isinstance(get_hash_transform(SQLGLOT_DIALECTS.get("snowflake")), list) is True
 
     with pytest.raises(ValueError):
-        get_hash_transform("unknown")
+        get_hash_transform(SQLGLOT_DIALECTS.get("trino"))
 
 
 def test_build_from_clause():

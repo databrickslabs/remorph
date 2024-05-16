@@ -1,8 +1,10 @@
 from collections.abc import Callable
 from functools import partial
 
+from sqlglot import Dialects
 from sqlglot import expressions as exp
 
+from databricks.labs.remorph.config import SQLGLOT_DIALECTS
 from databricks.labs.remorph.reconcile.recon_config import DialectHashConfig
 
 
@@ -144,7 +146,7 @@ def transform_expression(
     return expr
 
 
-def get_hash_transform(source: str):
+def get_hash_transform(source: Dialects):
     dialect_algo = list(filter(lambda dialect: dialect.dialect == source, Dialect_hash_algo_mapping))
     if dialect_algo:
         return dialect_algo[0].algo
@@ -225,9 +227,10 @@ DataType_transform_mapping = {
 }
 
 Dialect_hash_algo_mapping = [
-    DialectHashConfig(dialect="snowflake", algo=[partial(sha2, num_bits="256", is_expr=True)]),
+    DialectHashConfig(dialect=SQLGLOT_DIALECTS.get("snowflake"), algo=[partial(sha2, num_bits="256", is_expr=True)]),
     DialectHashConfig(
-        dialect="oracle", algo=[partial(anonymous, func="RAWTOHEX(STANDARD_HASH({}, 'SHA256'))", is_expr=True)]
+        dialect=SQLGLOT_DIALECTS.get("oracle"),
+        algo=[partial(anonymous, func="RAWTOHEX(STANDARD_HASH({}, 'SHA256'))", is_expr=True)],
     ),
-    DialectHashConfig(dialect="databricks", algo=[partial(sha2, num_bits="256", is_expr=True)]),
+    DialectHashConfig(dialect=SQLGLOT_DIALECTS.get("databricks"), algo=[partial(sha2, num_bits="256", is_expr=True)]),
 ]

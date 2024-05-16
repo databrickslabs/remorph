@@ -41,7 +41,7 @@ def recon(
         target_schema=table_recon.target_schema,
     )
 
-    source, target = _initialise_data_source(engine=source_dialect, spark=spark, ws=ws, secret_scope="secret_scope")
+    source, target = initialise_data_source(engine=source_dialect, spark=spark, ws=ws, secret_scope="secret_scope")
     schema_comparator = SchemaCompare(spark=spark)
 
     recon_id = str(uuid.uuid4())
@@ -67,7 +67,7 @@ def recon(
     return recon_id
 
 
-def _initialise_data_source(ws: WorkspaceClient, spark: SparkSession, engine: Dialects, secret_scope: str):
+def initialise_data_source(ws: WorkspaceClient, spark: SparkSession, engine: Dialects, secret_scope: str):
     source = DataSourceAdapter().create_adapter(engine=engine, spark=spark, ws=ws, secret_scope=secret_scope)
     target = DataSourceAdapter().create_adapter(
         engine=SQLGLOT_DIALECTS.get("databricks"), spark=spark, ws=ws, secret_scope=secret_scope

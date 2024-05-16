@@ -19,10 +19,10 @@ def test_create_adapter_for_snowflake_dialect():
     ws = create_autospec(WorkspaceClient)
     scope = "scope"
 
-    data_source = DataSourceAdapter().create_adapter(engine, spark, ws, scope).__class__
+    data_source = DataSourceAdapter().create_adapter(engine, spark, ws, scope)
     snowflake_data_source = SnowflakeDataSource(engine, spark, ws, scope).__class__
 
-    assert data_source == snowflake_data_source
+    assert isinstance(data_source, snowflake_data_source)
 
 
 def test_create_adapter_for_oracle_dialect():
@@ -31,10 +31,10 @@ def test_create_adapter_for_oracle_dialect():
     ws = create_autospec(WorkspaceClient)
     scope = "scope"
 
-    data_source = DataSourceAdapter().create_adapter(engine, spark, ws, scope).__class__
+    data_source = DataSourceAdapter().create_adapter(engine, spark, ws, scope)
     oracle_data_source = OracleDataSource(engine, spark, ws, scope).__class__
 
-    assert data_source == oracle_data_source
+    assert isinstance(data_source, oracle_data_source)
 
 
 def test_create_adapter_for_databricks_dialect():
@@ -43,10 +43,10 @@ def test_create_adapter_for_databricks_dialect():
     ws = create_autospec(WorkspaceClient)
     scope = "scope"
 
-    data_source = DataSourceAdapter().create_adapter(engine, spark, ws, scope).__class__
+    data_source = DataSourceAdapter().create_adapter(engine, spark, ws, scope)
     databricks_data_source = DatabricksDataSource(engine, spark, ws, scope).__class__
 
-    assert data_source == databricks_data_source
+    assert isinstance(data_source, databricks_data_source)
 
 
 def test_raise_exception_for_unknown_dialect():
