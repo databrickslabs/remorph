@@ -1,5 +1,5 @@
 import logging
-import uuid
+from uuid import uuid4
 
 from pyspark.sql import SparkSession
 from sqlglot import Dialects
@@ -44,7 +44,7 @@ def recon(
     source, target = initialise_data_source(engine=source_dialect, spark=spark, ws=ws, secret_scope="secret_scope")
     schema_comparator = SchemaCompare(spark=spark)
 
-    recon_id = str(uuid.uuid4())
+    recon_id = str(uuid4())
     # initialise the Reconciliation
     reconciler = Reconciliation(source, target, database_config, report_type, schema_comparator, source_dialect)
 
@@ -56,7 +56,7 @@ def recon(
             catalog=database_config.target_catalog, schema=database_config.target_schema, table=table_conf.source_name
         )
 
-        if report_type in {"data", "hash"}:
+        if report_type in {"data", "row"}:
             reconciler.reconcile_data(table_conf=table_conf, src_schema=src_schema, tgt_schema=tgt_schema)
         elif report_type == "schema":
             reconciler.reconcile_schema(table_conf=table_conf, src_schema=src_schema, tgt_schema=tgt_schema)

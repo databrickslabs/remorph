@@ -87,9 +87,9 @@ def reconcile(w: WorkspaceClient, source: str, report: str):
         raise_validation_exception(
             f"Error: Invalid value for '--source': '{source}' is not one of 'databricks', 'snowflake', 'oracle'. "
         )
-    if report.lower() not in {"data", "schema", "all", "hash"}:
+    if report.lower() not in {"data", "schema", "all", "row"}:
         raise_validation_exception(
-            f"Error: Invalid value for '--report': '{report}' is not one of 'data', 'schema', 'all' , 'hash'"
+            f"Error: Invalid value for '--report': '{report}' is not one of 'data', 'schema', 'all' , 'row'"
         )
 
     spark = _get_spark_session(w)

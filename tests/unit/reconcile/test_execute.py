@@ -1,11 +1,10 @@
 from dataclasses import dataclass
-from unittest.mock import create_autospec, patch
+from unittest.mock import patch
 
 import pytest
 from pyspark import Row
 from pyspark.testing import assertDataFrameEqual
 
-from databricks.connect import DatabricksSession
 from databricks.labs.remorph.config import SQLGLOT_DIALECTS, DatabaseConfig, TableRecon
 from databricks.labs.remorph.reconcile.connectors.data_source import MockDataSource
 from databricks.labs.remorph.reconcile.connectors.databricks import DatabricksDataSource
@@ -473,9 +472,7 @@ def test_recon_for_report_type_is_data(
 
     with (
         patch("databricks.labs.remorph.reconcile.execute.initialise_data_source", return_value=(source, target)),
-        patch(
-            "databricks.labs.remorph.reconcile.execute.uuid.uuid4", return_value="00112233-4455-6677-8899-aabbccddeeff"
-        ),
+        patch("databricks.labs.remorph.reconcile.execute.uuid4", return_value="00112233-4455-6677-8899-aabbccddeeff"),
     ):
         recon_id = recon(mock_workspace_client, mock_spark, table_recon, SQLGLOT_DIALECTS.get("databricks"), "data")
 
@@ -540,9 +537,7 @@ def test_recon_for_report_type_is_schema(
 
     with (
         patch("databricks.labs.remorph.reconcile.execute.initialise_data_source", return_value=(source, target)),
-        patch(
-            "databricks.labs.remorph.reconcile.execute.uuid.uuid4", return_value="00112233-4455-6677-8899-aabbccddeeff"
-        ),
+        patch("databricks.labs.remorph.reconcile.execute.uuid4", return_value="00112233-4455-6677-8899-aabbccddeeff"),
     ):
         recon_id = recon(mock_workspace_client, mock_spark, table_recon, SQLGLOT_DIALECTS.get("databricks"), "schema")
 
@@ -607,24 +602,21 @@ def test_recon_for_report_type_is_all(
 
     with (
         patch("databricks.labs.remorph.reconcile.execute.initialise_data_source", return_value=(source, target)),
-        patch(
-            "databricks.labs.remorph.reconcile.execute.uuid.uuid4", return_value="00112233-4455-6677-8899-aabbccddeeff"
-        ),
+        patch("databricks.labs.remorph.reconcile.execute.uuid4", return_value="00112233-4455-6677-8899-aabbccddeeff"),
     ):
         recon_id = recon(mock_workspace_client, mock_spark, table_recon, SQLGLOT_DIALECTS.get("snowflake"), "all")
 
     assert recon_id == "00112233-4455-6677-8899-aabbccddeeff"
 
 
-def test__initialise_data_source(mock_workspace_client):
-    spark = create_autospec(DatabricksSession)
+def test__initialise_data_source(mock_workspace_client, mock_spark):
     src_engine = SQLGLOT_DIALECTS.get("snowflake")
     secret_scope = "test"
 
-    source, target = initialise_data_source(mock_workspace_client, spark, src_engine, secret_scope)
+    source, target = initialise_data_source(mock_workspace_client, mock_spark, src_engine, secret_scope)
 
-    snowflake_data_source = SnowflakeDataSource(src_engine, spark, mock_workspace_client, secret_scope).__class__
-    databricks_data_source = DatabricksDataSource(src_engine, spark, mock_workspace_client, secret_scope).__class__
+    snowflake_data_source = SnowflakeDataSource(src_engine, mock_spark, mock_workspace_client, secret_scope).__class__
+    databricks_data_source = DatabricksDataSource(src_engine, mock_spark, mock_workspace_client, secret_scope).__class__
 
     assert isinstance(source, snowflake_data_source)
     assert isinstance(target, databricks_data_source)
