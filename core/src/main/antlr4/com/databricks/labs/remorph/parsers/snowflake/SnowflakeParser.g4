@@ -3703,15 +3703,18 @@ expr
     | trim_expression
     | function_call
     | subquery // Probably wrong
-    | expr IS null_not_null
-    | expr NOT? IN L_PAREN (subquery | expr_list) R_PAREN
-    | expr NOT? ( LIKE | ILIKE) expr (ESCAPE expr)?
-    | expr NOT? RLIKE expr
-    | expr NOT? (LIKE | ILIKE) ANY L_PAREN expr (COMMA expr)* R_PAREN (ESCAPE expr)?
+    | expr predicate_partial
     | primitive_expression //Should be latest rule as it's nearly a catch all
     ;
 
-
+predicate_partial
+    : IS null_not_null
+    | NOT? IN L_PAREN (subquery | expr_list) R_PAREN
+    | NOT? ( LIKE | ILIKE) expr (ESCAPE expr)?
+    | NOT? RLIKE expr
+    | NOT? (LIKE | ILIKE) ANY L_PAREN expr (COMMA expr)* R_PAREN (ESCAPE expr)?
+    | NOT? BETWEEN expr AND expr
+    ;
 
 json_path
     : json_path_elem (DOT json_path_elem)*
@@ -4236,12 +4239,7 @@ subquery
 predicate
     : EXISTS L_PAREN subquery R_PAREN
     | expr comparison_operator (ALL | SOME | ANY) L_PAREN subquery R_PAREN
-    | expr NOT? BETWEEN expr AND expr
-    | expr NOT? IN L_PAREN (subquery | expr_list) R_PAREN
-    | expr NOT? (LIKE | ILIKE) expr (ESCAPE expr)?
-    | expr NOT? RLIKE expr
-    | expr NOT? (LIKE | ILIKE) ANY L_PAREN expr (COMMA expr)* R_PAREN (ESCAPE expr)?
-    | expr IS null_not_null
+    | expr predicate_partial
     | expr
     ;
 

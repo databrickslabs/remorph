@@ -104,6 +104,9 @@ class SnowflakeExpressionBuilder
       val left = ctx.expr(0).accept(this)
       val right = ctx.expr(1).accept(this)
       ir.Or(left, right)
+    case c if c.predicate_partial() != null =>
+      val expression = c.expr(0).accept(this)
+      buildPredicatePartial(c.predicate_partial(), expression)
     case c if c.comparison_operator() != null =>
       val left = ctx.expr(0).accept(this)
       val right = ctx.expr(1).accept(this)
@@ -303,27 +306,32 @@ class SnowflakeExpressionBuilder
         ir.Case(None, branches, otherwise)
     }
   }
-  override def visitPredicate(ctx: PredicateContext): ir.Expression = {
+  override def visitPredicate(ctx: PredicateContext): ir.Expression = ctx match {
+    case c if c.EXISTS() != null =>
+      ir.Exists(c.subquery().accept(new SnowflakeRelationBuilder))
+    case c if c.predicate_partial() != null =>
+      val expr = c.expr().accept(this)
+      buildPredicatePartial(c.predicate_partial(), expr)
+    case c => visitChildren(c)
+  }
 
+  private def buildPredicatePartial(ctx: Predicate_partialContext, expression: ir.Expression): ir.Expression = {
     val predicate = ctx match {
-      case c if c.EXISTS() != null =>
-        ir.Exists(c.subquery().accept(new SnowflakeRelationBuilder))
+
       case c if c.IN() != null =>
-        ir.IsIn(c.subquery().accept(new SnowflakeRelationBuilder), c.expr(0).accept(this))
+        ir.IsIn(c.subquery().accept(new SnowflakeRelationBuilder), expression)
       case c if c.BETWEEN() != null =>
-        val expression = c.expr(0).accept(this)
-        val lowerBound = c.expr(1).accept(this)
-        val upperBound = c.expr(2).accept(this)
+        val lowerBound = c.expr(0).accept(this)
+        val upperBound = c.expr(1).accept(this)
         ir.And(ir.GreaterThanOrEqual(expression, lowerBound), ir.LesserThanOrEqual(expression, upperBound))
       case c if c.LIKE() != null || c.ILIKE() != null =>
-        val expression = c.expr(0).accept(this)
         val patterns = if (c.ANY() != null) {
           c.expr()
             .asScala
             .filter(e => occursBefore(c.L_PAREN(), e) && occursBefore(e, c.R_PAREN()))
-            .map(_.accept(this)) _
+            .map(_.accept(this))
         } else {
-          Seq(c.expr(1).accept(this))
+          Seq(c.expr(0).accept(this))
         }
         val escape = Option(c.ESCAPE())
           .flatMap(_ =>
@@ -333,14 +341,13 @@ class SnowflakeExpressionBuilder
               .map(_.accept(this)))
         ir.Like(expression, patterns, escape, c.LIKE() != null)
       case c if c.RLIKE() != null =>
-        val expression = c.expr(0).accept(this)
-        val pattern = c.expr(1).accept(this)
+        val pattern = c.expr(0).accept(this)
         ir.RLike(expression, pattern)
       case c if c.IS() != null =>
-        val isNull: ir.Expression = ir.IsNull(c.expr(0).accept(this))
+        val isNull: ir.Expression = ir.IsNull(expression)
         Option(c.null_not_null().NOT()).fold(isNull)(_ => ir.Not(isNull))
-      case c => visitChildren(c)
     }
     Option(ctx.NOT()).fold(predicate)(_ => ir.Not(predicate))
   }
+
 }

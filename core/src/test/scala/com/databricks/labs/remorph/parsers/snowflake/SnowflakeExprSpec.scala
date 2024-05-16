@@ -6,7 +6,9 @@ import org.scalatest.Assertion
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.mockito.Mockito._
+import org.scalatest.Checkpoints.Checkpoint
 import org.scalatestplus.mockito.MockitoSugar
+
 import scala.collection.JavaConverters._
 
 class SnowflakeExprSpec extends AnyWordSpec with SnowflakeParserTestCommon with Matchers with MockitoSugar {
@@ -69,6 +71,108 @@ class SnowflakeExprSpec extends AnyWordSpec with SnowflakeParserTestCommon with 
       example("TO_DATE('2024-05-15')", Cast(Literal(string = Some("2024-05-15")), DateType()))
       example("INTERVAL '1 hour'", Cast(Literal(string = Some("1 hour")), IntervalType()))
       example("42::FLOAT", Cast(Literal(integer = Some(42)), DoubleType()))
+    }
+
+    def exprAndPredicateExample(query: String, expectedAst: Expression): Unit = {
+      val cp = new Checkpoint()
+      cp(example(query, _.expr(), expectedAst))
+      cp(example(query, _.predicate(), expectedAst))
+      cp.reportAll()
+    }
+
+    "translate IN expressions" in {
+      exprAndPredicateExample(
+        "col1 IN (SELECT * FROM t)",
+        IsIn(Project(namedTable("t"), Seq(Star(None))), Column("col1")))
+      exprAndPredicateExample(
+        "col1 NOT IN (SELECT * FROM t)",
+        Not(IsIn(Project(namedTable("t"), Seq(Star(None))), Column("col1"))))
+    }
+
+    "translate BETWEEN expressions" in {
+      exprAndPredicateExample(
+        "col1 BETWEEN 3.14 AND 42",
+        And(
+          GreaterThanOrEqual(Column("col1"), Literal(float = Some(3.14f))),
+          LesserThanOrEqual(Column("col1"), Literal(integer = Some(42)))))
+      exprAndPredicateExample(
+        "col1 NOT BETWEEN 3.14 AND 42",
+        Not(
+          And(
+            GreaterThanOrEqual(Column("col1"), Literal(float = Some(3.14f))),
+            LesserThanOrEqual(Column("col1"), Literal(integer = Some(42))))))
+    }
+
+    "translate LIKE expressions" in {
+      exprAndPredicateExample(
+        "col1 LIKE '%foo'",
+        Like(Column("col1"), Seq(Literal(string = Some("%foo"))), None, caseSensitive = true))
+      exprAndPredicateExample(
+        "col1 ILIKE '%foo'",
+        Like(Column("col1"), Seq(Literal(string = Some("%foo"))), None, caseSensitive = false))
+      exprAndPredicateExample(
+        "col1 NOT LIKE '%foo'",
+        Not(Like(Column("col1"), Seq(Literal(string = Some("%foo"))), None, caseSensitive = true)))
+      exprAndPredicateExample(
+        "col1 NOT ILIKE '%foo'",
+        Not(Like(Column("col1"), Seq(Literal(string = Some("%foo"))), None, caseSensitive = false)))
+      exprAndPredicateExample(
+        "col1 LIKE '%foo' ESCAPE '^'",
+        Like(
+          Column("col1"),
+          Seq(Literal(string = Some("%foo"))),
+          Some(Literal(string = Some("^"))),
+          caseSensitive = true))
+      exprAndPredicateExample(
+        "col1 ILIKE '%foo' ESCAPE '^'",
+        Like(
+          Column("col1"),
+          Seq(Literal(string = Some("%foo"))),
+          Some(Literal(string = Some("^"))),
+          caseSensitive = false))
+
+      exprAndPredicateExample(
+        "col1 NOT LIKE '%foo' ESCAPE '^'",
+        Not(
+          Like(
+            Column("col1"),
+            Seq(Literal(string = Some("%foo"))),
+            Some(Literal(string = Some("^"))),
+            caseSensitive = true)))
+      exprAndPredicateExample(
+        "col1 NOT ILIKE '%foo' ESCAPE '^'",
+        Not(
+          Like(
+            Column("col1"),
+            Seq(Literal(string = Some("%foo"))),
+            Some(Literal(string = Some("^"))),
+            caseSensitive = false)))
+
+      exprAndPredicateExample(
+        "col1 LIKE ANY ('%foo', 'bar%', '%qux%')",
+        Like(
+          Column("col1"),
+          Seq(Literal(string = Some("%foo")), Literal(string = Some("bar%")), Literal(string = Some("%qux%"))),
+          None,
+          caseSensitive = true))
+
+      exprAndPredicateExample(
+        "col1 LIKE ANY ('%foo', 'bar%', '%qux%') ESCAPE '^'",
+        Like(
+          Column("col1"),
+          Seq(Literal(string = Some("%foo")), Literal(string = Some("bar%")), Literal(string = Some("%qux%"))),
+          Some(Literal(string = Some("^"))),
+          caseSensitive = true))
+
+      exprAndPredicateExample("col1 RLIKE '[a-z][A-Z]*'", RLike(Column("col1"), Literal(string = Some("[a-z][A-Z]*"))))
+      exprAndPredicateExample(
+        "col1 NOT RLIKE '[a-z][A-Z]*'",
+        Not(RLike(Column("col1"), Literal(string = Some("[a-z][A-Z]*")))))
+    }
+
+    "translate IS [NOT] NULL expressions" in {
+      exprAndPredicateExample("col1 IS NULL", IsNull(Column("col1")))
+      exprAndPredicateExample("col1 IS NOT NULL", Not(IsNull(Column("col1"))))
     }
   }
 
