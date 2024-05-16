@@ -30,6 +30,14 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
             Literal(double = Some(2.7e9)),
             Literal(string = Some("$40")))))
     }
+
+    "translate table source items with aliases" in {
+      example(
+        query = "SELECT a FROM dbo.table_x AS t",
+        expectedAst =
+          Project(TableAlias(NamedTable("dbo.table_x", Map.empty, is_streaming = false), "t"), Seq(Column("a"))))
+    }
+
     "infer a cross join" in {
       example(
         query = "SELECT a, b, c FROM dbo.table_x, dbo.table_y",

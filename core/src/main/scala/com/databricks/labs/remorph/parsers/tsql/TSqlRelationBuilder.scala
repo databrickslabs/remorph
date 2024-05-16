@@ -71,16 +71,19 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.Relation] {
 
   override def visitTableSource(ctx: TableSourceContext): ir.Relation = {
     val left = ctx.tableSourceItem().accept(this)
-    // [TODO]: Handle Table Alias ctx.tableAlias().getText
     ctx match {
       case c if c.joinPart() != null => c.joinPart().asScala.foldLeft(left)(buildJoin)
     }
   }
 
   override def visitTableSourceItem(ctx: TableSourceItemContext): ir.Relation = {
-    // [TODO]: Handle Table Alias ctx.tableAlias().getText
-    ctx.fullTableName().accept(this)
+    Option(ctx.asTableAlias()).map(_.id.getText) match {
+      case Some(alias) =>
+        ir.TableAlias(ir.NamedTable(ctx.fullTableName().getText, Map.empty, is_streaming = false), alias)
+      case None => ir.NamedTable(ctx.fullTableName().getText, Map.empty, is_streaming = false)
+    }
   }
+
 
   private def translateJoinType(ctx: JoinOnContext): ir.JoinType = ctx.joinType() match {
     case jt if jt == null || jt.outerJoin() == null || jt.INNER() != null => ir.InnerJoin
