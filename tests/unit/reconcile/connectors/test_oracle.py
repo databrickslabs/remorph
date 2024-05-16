@@ -1,3 +1,4 @@
+import base64
 from unittest.mock import MagicMock, create_autospec
 
 import pytest
@@ -8,6 +9,21 @@ from databricks.labs.remorph.reconcile.constants import SourceDriver
 from databricks.labs.remorph.reconcile.exception import DataSourceRuntimeException
 from databricks.labs.remorph.reconcile.recon_config import JdbcReaderOptions, Table
 from databricks.sdk import WorkspaceClient
+from databricks.sdk.service.workspace import GetSecretResponse
+
+
+def mock_secret(scope, key):
+    secret_mock = {
+        "scope": {
+            'user': GetSecretResponse(key='user', value=base64.b64encode(bytes('my_user', 'utf-8'))),
+            'password': GetSecretResponse(key='password', value=base64.b64encode(bytes('my_password', 'utf-8'))),
+            'host': GetSecretResponse(key='host', value=base64.b64encode(bytes('my_host', 'utf-8'))),
+            'port': GetSecretResponse(key='port', value=base64.b64encode(bytes('777', 'utf-8'))),
+            'database': GetSecretResponse(key='database', value=base64.b64encode(bytes('my_database', 'utf-8'))),
+        }
+    }
+
+    return secret_mock[scope][key]
 
 
 def initial_setup():
@@ -18,21 +34,13 @@ def initial_setup():
     engine = SQLGLOT_DIALECTS.get("oracle")
     ws = create_autospec(WorkspaceClient)
     scope = "scope"
+    ws.secrets.get_secret.side_effect = mock_secret
     return engine, spark, ws, scope
 
 
 def test_read_data_with_options():
     # initial setup
     engine, spark, ws, scope = initial_setup()
-    # Mocking get secret method to return the required values
-    ws.secrets.get_secret = MagicMock()
-    ws.secrets.get_secret.side_effect = lambda scope, secret_name: {
-        'user': 'my_user',
-        'password': 'my_password',
-        'host': 'my_host',
-        'port': '777',
-        'database': 'my_database',
-    }[secret_name]
 
     # create object for SnowflakeDataSource
     ds = OracleDataSource(engine, spark, ws, scope)
@@ -80,15 +88,6 @@ def test_read_data_with_options():
 def test_get_schema():
     # initial setup
     engine, spark, ws, scope = initial_setup()
-    # Mocking get secret method to return the required values
-    ws.secrets.get_secret = MagicMock()
-    ws.secrets.get_secret.side_effect = lambda scope, secret_name: {
-        'user': 'my_user',
-        'password': 'my_password',
-        'host': 'my_host',
-        'port': '777',
-        'database': 'my_database',
-    }[secret_name]
 
     # create object for SnowflakeDataSource
     ds = OracleDataSource(engine, spark, ws, scope)

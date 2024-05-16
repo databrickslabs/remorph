@@ -26,9 +26,9 @@ class OracleDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
     @property
     def get_jdbc_url(self) -> str:
         return (
-            f"jdbc:{SourceType.ORACLE.value}:thin:{self._get_secret_if_exists('user')}"
-            f"/{self._get_secret_if_exists('password')}@//{self._get_secret_if_exists('host')}"
-            f":{self._get_secret_if_exists('port')}/{self._get_secret_if_exists('database')}"
+            f"jdbc:{SourceType.ORACLE.value}:thin:{self._get_secret('user')}"
+            f"/{self._get_secret('password')}@//{self._get_secret('host')}"
+            f":{self._get_secret('port')}/{self._get_secret('database')}"
         )
 
     def read_data(

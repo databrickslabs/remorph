@@ -83,7 +83,7 @@ def reconcile(w: WorkspaceClient, source: str, report: str):
     installation = Installation.current(w, 'remorph')
     table_recon = installation.load(TableRecon)
 
-    if source.lower() not in ["databricks", "snowflake", "oracle"]:
+    if source.lower() not in {"databricks", "snowflake", "oracle"}:
         raise_validation_exception(
             f"Error: Invalid value for '--source': '{source}' is not one of 'databricks', 'snowflake', 'oracle'. "
         )

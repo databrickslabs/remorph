@@ -195,6 +195,6 @@ class SchemaMatchResult:
 
 
 @dataclass
-class SchemCompareOutput:
+class SchemaCompareOutput:
     is_valid: bool
     compare_df: DataFrame

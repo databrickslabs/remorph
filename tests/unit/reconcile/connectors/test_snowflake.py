@@ -1,3 +1,4 @@
+import base64
 import re
 from unittest.mock import MagicMock, create_autospec
 
@@ -9,6 +10,24 @@ from databricks.labs.remorph.reconcile.constants import SourceDriver
 from databricks.labs.remorph.reconcile.exception import DataSourceRuntimeException
 from databricks.labs.remorph.reconcile.recon_config import JdbcReaderOptions, Table
 from databricks.sdk import WorkspaceClient
+from databricks.sdk.service.workspace import GetSecretResponse
+
+
+def mock_secret(scope, key):
+    secret_mock = {
+        "scope": {
+            'sfAccount': GetSecretResponse(key='sfAccount', value=base64.b64encode(bytes('my_account', 'utf-8'))),
+            'sfUser': GetSecretResponse(key='sfUser', value=base64.b64encode(bytes('my_user', 'utf-8'))),
+            'sfPassword': GetSecretResponse(key='sfPassword', value=base64.b64encode(bytes('my_password', 'utf-8'))),
+            'sfDatabase': GetSecretResponse(key='sfDatabase', value=base64.b64encode(bytes('my_database', 'utf-8'))),
+            'sfSchema': GetSecretResponse(key='sfSchema', value=base64.b64encode(bytes('my_schema', 'utf-8'))),
+            'sfWarehouse': GetSecretResponse(key='sfWarehouse', value=base64.b64encode(bytes('my_warehouse', 'utf-8'))),
+            'sfRole': GetSecretResponse(key='sfRole', value=base64.b64encode(bytes('my_role', 'utf-8'))),
+            'sfUrl': GetSecretResponse(key='sfUrl', value=base64.b64encode(bytes('my_url', 'utf-8'))),
+        }
+    }
+
+    return secret_mock[scope][key]
 
 
 def initial_setup():
@@ -19,24 +38,29 @@ def initial_setup():
     engine = SQLGLOT_DIALECTS.get("snowflake")
     ws = create_autospec(WorkspaceClient)
     scope = "scope"
+    ws.secrets.get_secret.side_effect = mock_secret
     return engine, spark, ws, scope
 
 
-def test_get_jdbc_url():
+def test_get_jdbc_url_happy():
     # initial setup
     engine, spark, ws, scope = initial_setup()
-    # Mocking get secret method to return the required values
-    ws.secrets.get_secret = MagicMock()
-    ws.secrets.get_secret.side_effect = lambda scope, secret_name: {
-        'sfAccount': 'my_account',
-        'sfUser': 'my_user',
-        'sfPassword': 'my_password',
-        'sfDatabase': 'my_database',
-        'sfSchema': 'my_schema',
-        'sfWarehouse': 'my_warehouse',
-        'sfRole': 'my_role',
-        'sfUrl': 'my_url',
-    }[secret_name]
+    # create object for SnowflakeDataSource
+    ds = SnowflakeDataSource(engine, spark, ws, scope)
+    url = ds.get_jdbc_url
+    # Assert that the URL is generated correctly
+    assert url == (
+        "jdbc:snowflake://my_account.snowflakecomputing.com"
+        "/?user=my_user&password=my_password"
+        "&db=my_database&schema=my_schema"
+        "&warehouse=my_warehouse&role=my_role"
+    )
+
+
+def test_get_jdbc_url_fail():
+    # initial setup
+    engine, spark, ws, scope = initial_setup()
+    ws.secrets.get_secret.side_effect = mock_secret
     # create object for SnowflakeDataSource
     ds = SnowflakeDataSource(engine, spark, ws, scope)
     url = ds.get_jdbc_url
@@ -52,18 +76,6 @@ def test_get_jdbc_url():
 def test_read_data_with_out_options():
     # initial setup
     engine, spark, ws, scope = initial_setup()
-    # Mocking get secret method to return the required values
-    ws.secrets.get_secret = MagicMock()
-    ws.secrets.get_secret.side_effect = lambda scope, secret_name: {
-        'sfAccount': 'my_account',
-        'sfUser': 'my_user',
-        'sfPassword': 'my_password',
-        'sfDatabase': 'my_database',
-        'sfSchema': 'my_schema',
-        'sfWarehouse': 'my_warehouse',
-        'sfRole': 'my_role',
-        'sfUrl': 'my_url',
-    }[secret_name]
 
     # create object for SnowflakeDataSource
     ds = SnowflakeDataSource(engine, spark, ws, scope)
@@ -102,18 +114,6 @@ def test_read_data_with_out_options():
 def test_read_data_with_options():
     # initial setup
     engine, spark, ws, scope = initial_setup()
-    # Mocking get secret method to return the required values
-    ws.secrets.get_secret = MagicMock()
-    ws.secrets.get_secret.side_effect = lambda scope, secret_name: {
-        'sfAccount': 'my_account',
-        'sfUser': 'my_user',
-        'sfPassword': 'my_password',
-        'sfDatabase': 'my_database',
-        'sfSchema': 'my_schema',
-        'sfWarehouse': 'my_warehouse',
-        'sfRole': 'my_role',
-        'sfUrl': 'my_url',
-    }[secret_name]
 
     # create object for SnowflakeDataSource
     ds = SnowflakeDataSource(engine, spark, ws, scope)
@@ -154,18 +154,6 @@ def test_get_schema():
     # initial setup
     engine, spark, ws, scope = initial_setup()
     # Mocking get secret method to return the required values
-    ws.secrets.get_secret = MagicMock()
-    ws.secrets.get_secret.side_effect = lambda scope, secret_name: {
-        'sfAccount': 'my_account',
-        'sfUser': 'my_user',
-        'sfPassword': 'my_password',
-        'sfDatabase': 'my_database',
-        'sfSchema': 'my_schema',
-        'sfWarehouse': 'my_warehouse',
-        'sfRole': 'my_role',
-        'sfUrl': 'my_url',
-    }[secret_name]
-
     # create object for SnowflakeDataSource
     ds = SnowflakeDataSource(engine, spark, ws, scope)
     # call test method
@@ -242,6 +230,7 @@ def test_read_data_exception_handling():
 def test_get_schema_exception_handling():
     # initial setup
     engine, spark, ws, scope = initial_setup()
+
     ds = SnowflakeDataSource(engine, spark, ws, scope)
 
     spark.read.format().option().options().load.side_effect = RuntimeError("Test Exception")

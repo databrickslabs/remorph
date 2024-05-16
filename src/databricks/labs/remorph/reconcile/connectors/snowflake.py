@@ -29,10 +29,10 @@ class SnowflakeDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
     @property
     def get_jdbc_url(self) -> str:
         return (
-            f"jdbc:{SourceType.SNOWFLAKE.value}://{self._get_secret_if_exists('sfAccount')}.snowflakecomputing.com"
-            f"/?user={self._get_secret_if_exists('sfUser')}&password={self._get_secret_if_exists('sfPassword')}"
-            f"&db={self._get_secret_if_exists('sfDatabase')}&schema={self._get_secret_if_exists('sfSchema')}"
-            f"&warehouse={self._get_secret_if_exists('sfWarehouse')}&role={self._get_secret_if_exists('sfRole')}"
+            f"jdbc:{SourceType.SNOWFLAKE.value}://{self._get_secret('sfAccount')}.snowflakecomputing.com"
+            f"/?user={self._get_secret('sfUser')}&password={self._get_secret('sfPassword')}"
+            f"&db={self._get_secret('sfDatabase')}&schema={self._get_secret('sfSchema')}"
+            f"&warehouse={self._get_secret('sfWarehouse')}&role={self._get_secret('sfRole')}"
         )
 
     def read_data(
@@ -63,13 +63,13 @@ class SnowflakeDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
 
     def reader(self, query: str) -> DataFrame:
         options = {
-            "sfUrl": self._get_secret_if_exists('sfUrl'),
-            "sfUser": self._get_secret_if_exists('sfUser'),
-            "sfPassword": self._get_secret_if_exists('sfPassword'),
-            "sfDatabase": self._get_secret_if_exists('sfDatabase'),
-            "sfSchema": self._get_secret_if_exists('sfSchema'),
-            "sfWarehouse": self._get_secret_if_exists('sfWarehouse'),
-            "sfRole": self._get_secret_if_exists('sfRole'),
+            "sfUrl": self._get_secret('sfUrl'),
+            "sfUser": self._get_secret('sfUser'),
+            "sfPassword": self._get_secret('sfPassword'),
+            "sfDatabase": self._get_secret('sfDatabase'),
+            "sfSchema": self._get_secret('sfSchema'),
+            "sfWarehouse": self._get_secret('sfWarehouse'),
+            "sfRole": self._get_secret('sfRole'),
         }
         return self._spark.read.format("snowflake").option("dbtable", f"({query}) as tmp").options(**options).load()
 

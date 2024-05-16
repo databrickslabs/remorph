@@ -44,6 +44,11 @@ commands:
       - name: report
         default: all
         description: Report type, Accepted Values [all,data,schema,hash]
+
+    table_template: |-
+      recon_id
+      {{range .}}{{.recon_id}}
+      {{end}}
   - name: generate-lineage
     description: Utility to generate a lineage of the SQL files
     flags:
