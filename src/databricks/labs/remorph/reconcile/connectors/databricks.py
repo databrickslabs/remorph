@@ -2,7 +2,7 @@ import re
 
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.functions import col
-from sqlglot import Dialects
+from sqlglot import Dialect
 
 from databricks.labs.remorph.reconcile.connectors.data_source import DataSource
 from databricks.labs.remorph.reconcile.connectors.secrets import SecretsMixin
@@ -14,7 +14,7 @@ class DatabricksDataSource(DataSource, SecretsMixin):
 
     def __init__(
         self,
-        engine: Dialects,
+        engine: Dialect,
         spark: SparkSession,
         ws: WorkspaceClient,
         secret_scope: str,
@@ -38,7 +38,7 @@ class DatabricksDataSource(DataSource, SecretsMixin):
             raise self._raise_runtime_exception(e, "data", table_query)
 
     def get_schema(self, catalog: str, schema: str, table: str) -> list[Schema]:
-        schema_query = self.get_schema_query(catalog, schema, table)
+        schema_query = DatabricksDataSource._get_schema_query(catalog, schema, table)
         try:
             schema_df = self._spark.sql(schema_query).where("col_name not like '#%'").distinct()
             return [Schema(field.col_name.lower(), field.data_type.lower()) for field in schema_df.collect()]
@@ -46,7 +46,7 @@ class DatabricksDataSource(DataSource, SecretsMixin):
             raise self._raise_runtime_exception(e, "schema", schema_query)
 
     @staticmethod
-    def get_schema_query(catalog: str, schema: str, table: str):
+    def _get_schema_query(catalog: str, schema: str, table: str):
         # TODO: Ensure that the target_catalog in the configuration is not set to "hive_metastore". The source_catalog
         #  can only be set to "hive_metastore" if the source type is "databricks".
         if catalog == "hive_metastore":

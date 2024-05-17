@@ -18,8 +18,12 @@ class Test(SecretsMixin):
 def mock_secret(scope, key):
     secret_mock = {
         "scope": {
-            'user_name': GetSecretResponse(key='user_name', value=base64.b64encode(bytes('my_user', 'utf-8'))),
-            'password': GetSecretResponse(key='password', value=base64.b64encode(bytes('my_password', 'utf-8'))),
+            'user_name': GetSecretResponse(
+                key='user_name', value=base64.b64encode(bytes('my_user', 'utf-8')).decode('utf-8')
+            ),
+            'password': GetSecretResponse(
+                key='password', value=base64.b64encode(bytes('my_password', 'utf-8')).decode('utf-8')
+            ),
         }
     }
 

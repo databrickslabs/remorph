@@ -1,11 +1,11 @@
-from databricks.labs.remorph.config import SQLGLOT_DIALECTS
+from databricks.labs.remorph.config import get_dialect
 from databricks.labs.remorph.reconcile.query_builder.hash_query import HashQueryBuilder
 from databricks.labs.remorph.reconcile.recon_config import Filters
 
 
 def test_hash_query_builder_for_snowflake_src(table_conf_with_opts, table_schema):
     sch, sch_with_alias = table_schema
-    src_actual = HashQueryBuilder(table_conf_with_opts, sch, "source", SQLGLOT_DIALECTS.get("snowflake")).build_query()
+    src_actual = HashQueryBuilder(table_conf_with_opts, sch, "source", get_dialect("snowflake")).build_query()
     src_expected = (
         "SELECT LOWER(SHA2(CONCAT(TRIM(s_address), TRIM(s_name), COALESCE(TRIM(s_nationkey), ''), "
         "TRIM(s_phone), COALESCE(TRIM(s_suppkey), '')), 256)) AS hash_value_recon, COALESCE(TRIM("
@@ -14,7 +14,7 @@ def test_hash_query_builder_for_snowflake_src(table_conf_with_opts, table_schema
     )
 
     tgt_actual = HashQueryBuilder(
-        table_conf_with_opts, sch_with_alias, "target", SQLGLOT_DIALECTS.get("databricks")
+        table_conf_with_opts, sch_with_alias, "target", get_dialect("databricks")
     ).build_query()
     tgt_expected = (
         "SELECT LOWER(SHA2(CONCAT(TRIM(s_address_t), TRIM(s_name), COALESCE(TRIM(s_nationkey_t), ''), "

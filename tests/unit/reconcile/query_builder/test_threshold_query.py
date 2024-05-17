@@ -1,6 +1,6 @@
 import re
 
-from databricks.labs.remorph.config import SQLGLOT_DIALECTS
+from databricks.labs.remorph.config import get_dialect
 from databricks.labs.remorph.reconcile.query_builder.threshold_query import (
     ThresholdQueryBuilder,
 )
@@ -19,7 +19,7 @@ def test_threshold_comparison_query_with_one_threshold(table_conf_with_opts, tab
     table_schema, _ = table_schema
     table_schema.append(Schema("s_suppdate", "timestamp"))
     comparison_query = ThresholdQueryBuilder(
-        table_conf, table_schema, "source", SQLGLOT_DIALECTS.get("oracle")
+        table_conf, table_schema, "source", get_dialect("oracle")
     ).build_comparison_query()
     assert re.sub(r'\s+', ' ', comparison_query.strip().lower()) == re.sub(
         r'\s+',
@@ -49,7 +49,7 @@ def test_threshold_comparison_query_with_dual_threshold(table_conf_with_opts, ta
     table_schema.append(Schema("s_suppdate", "timestamp"))
 
     comparison_query = ThresholdQueryBuilder(
-        table_conf, table_schema, "target", SQLGLOT_DIALECTS.get("databricks")
+        table_conf, table_schema, "target", get_dialect("databricks")
     ).build_comparison_query()
     assert re.sub(r'\s+', ' ', comparison_query.strip().lower()) == re.sub(
         r'\s+',
@@ -79,11 +79,9 @@ def test_build_threshold_query_with_single_threshold(table_conf_with_opts, table
         Transformation(column_name="s_acctbal", source="trim(s_acctbal)", target="trim(s_acctbal)")
     ]
     src_schema, tgt_schema = table_schema
-    src_query = ThresholdQueryBuilder(
-        table_conf, src_schema, "source", SQLGLOT_DIALECTS.get("oracle")
-    ).build_threshold_query()
+    src_query = ThresholdQueryBuilder(table_conf, src_schema, "source", get_dialect("oracle")).build_threshold_query()
     target_query = ThresholdQueryBuilder(
-        table_conf, tgt_schema, "target", SQLGLOT_DIALECTS.get("databricks")
+        table_conf, tgt_schema, "target", get_dialect("databricks")
     ).build_threshold_query()
     assert src_query == (
         "SELECT TRIM(s_acctbal) AS s_acctbal, COALESCE(TRIM(s_nationkey), '') AS s_nationkey, "
@@ -109,11 +107,9 @@ def test_build_threshold_query_with_multiple_threshold(table_conf_with_opts, tab
     src_schema, tgt_schema = table_schema
     src_schema.append(Schema("s_suppdate", "timestamp"))
     tgt_schema.append(Schema("s_suppdate", "timestamp"))
-    src_query = ThresholdQueryBuilder(
-        table_conf, src_schema, "source", SQLGLOT_DIALECTS.get("oracle")
-    ).build_threshold_query()
+    src_query = ThresholdQueryBuilder(table_conf, src_schema, "source", get_dialect("oracle")).build_threshold_query()
     target_query = ThresholdQueryBuilder(
-        table_conf, tgt_schema, "target", SQLGLOT_DIALECTS.get("databricks")
+        table_conf, tgt_schema, "target", get_dialect("databricks")
     ).build_threshold_query()
     assert src_query == (
         "SELECT COALESCE(TRIM(s_acctbal), '') AS s_acctbal, COALESCE(TRIM(s_nationkey), "

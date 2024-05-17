@@ -4,7 +4,7 @@ from unittest.mock import MagicMock, create_autospec
 
 import pytest
 
-from databricks.labs.remorph.config import SQLGLOT_DIALECTS
+from databricks.labs.remorph.config import get_dialect
 from databricks.labs.remorph.reconcile.connectors.snowflake import SnowflakeDataSource
 from databricks.labs.remorph.reconcile.constants import SourceDriver
 from databricks.labs.remorph.reconcile.exception import DataSourceRuntimeException
@@ -16,14 +16,28 @@ from databricks.sdk.service.workspace import GetSecretResponse
 def mock_secret(scope, key):
     secret_mock = {
         "scope": {
-            'sfAccount': GetSecretResponse(key='sfAccount', value=base64.b64encode(bytes('my_account', 'utf-8'))),
-            'sfUser': GetSecretResponse(key='sfUser', value=base64.b64encode(bytes('my_user', 'utf-8'))),
-            'sfPassword': GetSecretResponse(key='sfPassword', value=base64.b64encode(bytes('my_password', 'utf-8'))),
-            'sfDatabase': GetSecretResponse(key='sfDatabase', value=base64.b64encode(bytes('my_database', 'utf-8'))),
-            'sfSchema': GetSecretResponse(key='sfSchema', value=base64.b64encode(bytes('my_schema', 'utf-8'))),
-            'sfWarehouse': GetSecretResponse(key='sfWarehouse', value=base64.b64encode(bytes('my_warehouse', 'utf-8'))),
-            'sfRole': GetSecretResponse(key='sfRole', value=base64.b64encode(bytes('my_role', 'utf-8'))),
-            'sfUrl': GetSecretResponse(key='sfUrl', value=base64.b64encode(bytes('my_url', 'utf-8'))),
+            'sfAccount': GetSecretResponse(
+                key='sfAccount', value=base64.b64encode(bytes('my_account', 'utf-8')).decode('utf-8')
+            ),
+            'sfUser': GetSecretResponse(
+                key='sfUser', value=base64.b64encode(bytes('my_user', 'utf-8')).decode('utf-8')
+            ),
+            'sfPassword': GetSecretResponse(
+                key='sfPassword', value=base64.b64encode(bytes('my_password', 'utf-8')).decode('utf-8')
+            ),
+            'sfDatabase': GetSecretResponse(
+                key='sfDatabase', value=base64.b64encode(bytes('my_database', 'utf-8')).decode('utf-8')
+            ),
+            'sfSchema': GetSecretResponse(
+                key='sfSchema', value=base64.b64encode(bytes('my_schema', 'utf-8')).decode('utf-8')
+            ),
+            'sfWarehouse': GetSecretResponse(
+                key='sfWarehouse', value=base64.b64encode(bytes('my_warehouse', 'utf-8')).decode('utf-8')
+            ),
+            'sfRole': GetSecretResponse(
+                key='sfRole', value=base64.b64encode(bytes('my_role', 'utf-8')).decode('utf-8')
+            ),
+            'sfUrl': GetSecretResponse(key='sfUrl', value=base64.b64encode(bytes('my_url', 'utf-8')).decode('utf-8')),
         }
     }
 
@@ -35,7 +49,7 @@ def initial_setup():
     spark = pyspark_sql_session.SparkSession.builder.getOrCreate()
 
     # Define the source, workspace, and scope
-    engine = SQLGLOT_DIALECTS.get("snowflake")
+    engine = get_dialect("snowflake")
     ws = create_autospec(WorkspaceClient)
     scope = "scope"
     ws.secrets.get_secret.side_effect = mock_secret
@@ -188,7 +202,7 @@ def test_get_schema_query():
     engine, spark, ws, scope = initial_setup()
     # create object for SnowflakeDataSource
     ds = SnowflakeDataSource(engine, spark, ws, scope)
-    schema = ds.get_schema_query("catalog", "schema", "supplier")
+    schema = ds._get_schema_query("catalog", "schema", "supplier")
     assert schema == re.sub(
         r'\s+',
         ' ',

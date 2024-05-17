@@ -1,6 +1,6 @@
 import pytest
 
-from databricks.labs.remorph.config import SQLGLOT_DIALECTS
+from databricks.labs.remorph.config import get_dialect
 from databricks.labs.remorph.reconcile.recon_config import ColumnMapping, Schema, Table
 from databricks.labs.remorph.reconcile.schema_compare import SchemaCompare
 
@@ -181,7 +181,7 @@ def test_snowflake_schema_compare(schemas, mock_spark):
     schema_compare_output = SchemaCompare(spark).compare(
         src_schema,
         tgt_schema,
-        SQLGLOT_DIALECTS.get("snowflake"),
+        get_dialect("snowflake"),
         table_conf,
     )
     df = schema_compare_output.compare_df
@@ -216,7 +216,7 @@ def test_databricks_schema_compare(schemas, mock_spark):
     schema_compare_output = SchemaCompare(spark).compare(
         src_schema,
         tgt_schema,
-        SQLGLOT_DIALECTS.get("databricks"),
+        get_dialect("databricks"),
         table_conf,
     )
     df = schema_compare_output.compare_df
@@ -242,7 +242,7 @@ def test_oracle_schema_compare(schemas, mock_spark):
     schema_compare_output = SchemaCompare(spark).compare(
         src_schema,
         tgt_schema,
-        SQLGLOT_DIALECTS.get("oracle"),
+        get_dialect("oracle"),
         table_conf,
     )
     df = schema_compare_output.compare_df
@@ -276,7 +276,7 @@ def test_schema_compare(mock_spark):
     schema_compare_output = SchemaCompare(spark).compare(
         src_schema,
         tgt_schema,
-        SQLGLOT_DIALECTS.get("databricks"),
+        get_dialect("databricks"),
         table_conf,
     )
     df = schema_compare_output.compare_df

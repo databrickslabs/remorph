@@ -7,7 +7,12 @@ from databricks.connect import DatabricksSession
 from databricks.labs.blueprint.cli import App
 from databricks.labs.blueprint.entrypoint import get_logger
 from databricks.labs.blueprint.installation import Installation
-from databricks.labs.remorph.config import SQLGLOT_DIALECTS, MorphConfig, TableRecon
+from databricks.labs.remorph.config import (
+    SQLGLOT_DIALECTS,
+    MorphConfig,
+    TableRecon,
+    get_dialect,
+)
 from databricks.labs.remorph.helpers.recon_config_utils import ReconConfigPrompts
 from databricks.labs.remorph.lineage import lineage_generator
 from databricks.labs.remorph.reconcile.execute import recon
@@ -94,7 +99,7 @@ def reconcile(w: WorkspaceClient, source: str, report: str):
 
     spark = _get_spark_session(w)
 
-    recon_id = recon(w, spark, table_recon, SQLGLOT_DIALECTS.get(source.lower()), report)
+    recon_id = recon(w, spark, table_recon, get_dialect(source.lower()), report)
 
     print(json.dumps(recon_id))
 

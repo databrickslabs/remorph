@@ -1,5 +1,5 @@
 import sqlglot.expressions as exp
-from sqlglot import Dialects
+from sqlglot import Dialect
 
 from databricks.labs.remorph.reconcile.constants import Constants
 from databricks.labs.remorph.reconcile.query_builder.base import QueryBuilder
@@ -45,6 +45,6 @@ class HashQueryBuilder(QueryBuilder):
         return build_column(hash_expr, alias=Constants.hash_column_name)
 
     @staticmethod
-    def _hash_transform(node: exp.Expression, source: Dialects):
+    def _hash_transform(node: exp.Expression, source: Dialect):
         transform = get_hash_transform(source)
         return transform_expression(node, transform)

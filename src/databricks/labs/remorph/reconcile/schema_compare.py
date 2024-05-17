@@ -3,15 +3,16 @@ from dataclasses import asdict
 
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.types import BooleanType, StringType, StructField, StructType
-from sqlglot import Dialects, parse_one
+from sqlglot import Dialect, parse_one
 
-from databricks.labs.remorph.config import SQLGLOT_DIALECTS
+from databricks.labs.remorph.config import get_dialect
 from databricks.labs.remorph.reconcile.recon_config import (
     Schema,
     SchemaCompareOutput,
     SchemaMatchResult,
     Table,
 )
+from databricks.labs.remorph.snow.databricks import Databricks
 
 logger = logging.getLogger(__name__)
 
@@ -78,10 +79,10 @@ class SchemaCompare:
         return df
 
     @classmethod
-    def _parse(cls, source: Dialects, column: str, data_type: str) -> str:
+    def _parse(cls, source: Dialect, column: str, data_type: str) -> str:
         return (
             parse_one(f"create table dummy ({column} {data_type})", read=source)
-            .sql(dialect=SQLGLOT_DIALECTS.get("databricks"))
+            .sql(dialect=get_dialect("databricks"))
             .replace(", ", ",")
         )
 
@@ -106,7 +107,7 @@ class SchemaCompare:
         self,
         source_schema: list[Schema],
         databricks_schema: list[Schema],
-        source: Dialects,
+        source: Dialect,
         table_conf: Table,
     ) -> SchemaCompareOutput:
         """
@@ -118,7 +119,7 @@ class SchemaCompare:
         """
         master_schema = self._build_master_schema(source_schema, databricks_schema, table_conf)
         for master in master_schema:
-            if source != SQLGLOT_DIALECTS.get("databricks"):
+            if not isinstance(source, Databricks):
                 parsed_query = self._parse(source, master.source_column, master.source_datatype)
                 self._validate_parsed_query(master, parsed_query)
             elif master.source_datatype.lower() != master.databricks_datatype.lower():

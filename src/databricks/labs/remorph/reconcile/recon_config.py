@@ -5,6 +5,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 
 from pyspark.sql import DataFrame
+from sqlglot import Dialect
 from sqlglot import expressions as exp
 
 from databricks.labs.remorph.reconcile.constants import ThresholdMode
@@ -181,7 +182,7 @@ class MismatchOutput:
 
 @dataclass
 class DialectHashConfig:
-    dialect: str
+    dialect: Dialect
     algo: list[Callable]
 
 

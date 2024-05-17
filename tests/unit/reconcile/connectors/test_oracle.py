@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, create_autospec
 
 import pytest
 
-from databricks.labs.remorph.config import SQLGLOT_DIALECTS
+from databricks.labs.remorph.config import get_dialect
 from databricks.labs.remorph.reconcile.connectors.oracle import OracleDataSource
 from databricks.labs.remorph.reconcile.constants import SourceDriver
 from databricks.labs.remorph.reconcile.exception import DataSourceRuntimeException
@@ -15,11 +15,15 @@ from databricks.sdk.service.workspace import GetSecretResponse
 def mock_secret(scope, key):
     secret_mock = {
         "scope": {
-            'user': GetSecretResponse(key='user', value=base64.b64encode(bytes('my_user', 'utf-8'))),
-            'password': GetSecretResponse(key='password', value=base64.b64encode(bytes('my_password', 'utf-8'))),
-            'host': GetSecretResponse(key='host', value=base64.b64encode(bytes('my_host', 'utf-8'))),
-            'port': GetSecretResponse(key='port', value=base64.b64encode(bytes('777', 'utf-8'))),
-            'database': GetSecretResponse(key='database', value=base64.b64encode(bytes('my_database', 'utf-8'))),
+            'user': GetSecretResponse(key='user', value=base64.b64encode(bytes('my_user', 'utf-8')).decode('utf-8')),
+            'password': GetSecretResponse(
+                key='password', value=base64.b64encode(bytes('my_password', 'utf-8')).decode('utf-8')
+            ),
+            'host': GetSecretResponse(key='host', value=base64.b64encode(bytes('my_host', 'utf-8')).decode('utf-8')),
+            'port': GetSecretResponse(key='port', value=base64.b64encode(bytes('777', 'utf-8')).decode('utf-8')),
+            'database': GetSecretResponse(
+                key='database', value=base64.b64encode(bytes('my_database', 'utf-8')).decode('utf-8')
+            ),
         }
     }
 
@@ -31,7 +35,7 @@ def initial_setup():
     spark = pyspark_sql_session.SparkSession.builder.getOrCreate()
 
     # Define the source, workspace, and scope
-    engine = SQLGLOT_DIALECTS.get("oracle")
+    engine = get_dialect("oracle")
     ws = create_autospec(WorkspaceClient)
     scope = "scope"
     ws.secrets.get_secret.side_effect = mock_secret
@@ -79,7 +83,9 @@ def test_read_data_with_options():
         "upperBound": "100",
         "fetchsize": 100,
         "oracle.jdbc.mapDateToTimestamp": "False",
-        "sessionInitStatement": r"BEGIN dbms_session.set_nls('nls_date_format', '''YYYY-MM-DD''');dbms_session.set_nls('nls_timestamp_format', '''YYYY-MM-DD HH24:MI:SS''');END;",
+        "sessionInitStatement": r"BEGIN dbms_session.set_nls('nls_date_format', "
+        r"'''YYYY-MM-DD''');dbms_session.set_nls('nls_timestamp_format', '''YYYY-MM-DD "
+        r"HH24:MI:SS''');END;",
     }
     assert actual_args == expected_args
     spark.read.format().option().option().option().options().load.assert_called_once()

@@ -8,7 +8,7 @@ import yaml
 from databricks.connect import DatabricksSession
 from databricks.labs.blueprint.tui import MockPrompts
 from databricks.labs.remorph import cli
-from databricks.labs.remorph.config import SQLGLOT_DIALECTS, MorphConfig, TableRecon
+from databricks.labs.remorph.config import MorphConfig, TableRecon, get_dialect
 from databricks.labs.remorph.helpers.recon_config_utils import ReconConfigPrompts
 from databricks.labs.remorph.reconcile.recon_config import Table
 from databricks.sdk import WorkspaceClient
@@ -308,7 +308,7 @@ def test_recon_with_valid_input(mock_workspace_client_cli):
                 ],
                 source_catalog='src_catalog',
             ),
-            SQLGLOT_DIALECTS.get(source),
+            get_dialect(source),
             report,
         )
 

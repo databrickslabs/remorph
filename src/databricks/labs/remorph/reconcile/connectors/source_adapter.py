@@ -1,21 +1,23 @@
 from pyspark.sql import SparkSession
-from sqlglot import Dialects
+from sqlglot import Dialect
 
-from databricks.labs.remorph.config import SQLGLOT_DIALECTS
 from databricks.labs.remorph.reconcile.connectors.data_source import DataSource
 from databricks.labs.remorph.reconcile.connectors.databricks import DatabricksDataSource
 from databricks.labs.remorph.reconcile.connectors.oracle import OracleDataSource
 from databricks.labs.remorph.reconcile.connectors.snowflake import SnowflakeDataSource
+from databricks.labs.remorph.snow.databricks import Databricks
+from databricks.labs.remorph.snow.oracle import Oracle
+from databricks.labs.remorph.snow.snowflake import Snow
 from databricks.sdk import WorkspaceClient
 
 
 class DataSourceAdapter:
     @staticmethod
-    def create_adapter(engine: Dialects, spark: SparkSession, ws: WorkspaceClient, secret_scope: str) -> DataSource:
-        if engine == SQLGLOT_DIALECTS.get("snowflake"):
+    def create_adapter(engine: Dialect, spark: SparkSession, ws: WorkspaceClient, secret_scope: str) -> DataSource:
+        if isinstance(engine, Snow):
             return SnowflakeDataSource(engine, spark, ws, secret_scope)
-        if engine == SQLGLOT_DIALECTS.get("oracle"):
+        if isinstance(engine, Oracle):
             return OracleDataSource(engine, spark, ws, secret_scope)
-        if engine == SQLGLOT_DIALECTS.get("databricks"):
+        if isinstance(engine, Databricks):
             return DatabricksDataSource(engine, spark, ws, secret_scope)
         raise ValueError(f"Unsupported source type --> {engine}")

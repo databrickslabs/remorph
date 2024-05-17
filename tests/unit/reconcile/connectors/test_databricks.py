@@ -3,7 +3,7 @@ from unittest.mock import MagicMock, create_autospec
 
 import pytest
 
-from databricks.labs.remorph.config import SQLGLOT_DIALECTS
+from databricks.labs.remorph.config import get_dialect
 from databricks.labs.remorph.reconcile.connectors.databricks import DatabricksDataSource
 from databricks.labs.remorph.reconcile.exception import DataSourceRuntimeException
 from databricks.sdk import WorkspaceClient
@@ -14,7 +14,7 @@ def initial_setup():
     spark = pyspark_sql_session.SparkSession.builder.getOrCreate()
 
     # Define the source, workspace, and scope
-    engine = SQLGLOT_DIALECTS.get("databricks")
+    engine = get_dialect("databricks")
     ws = create_autospec(WorkspaceClient)
     scope = "scope"
     return engine, spark, ws, scope
@@ -26,7 +26,7 @@ def test_get_schema_query():
     dd = DatabricksDataSource(engine, spark, ws, scope)
 
     # catalog as catalog
-    schema_query = dd.get_schema_query("catalog", "schema", "supplier")
+    schema_query = dd._get_schema_query("catalog", "schema", "supplier")
     assert re.sub(r'\s+', ' ', schema_query) == re.sub(
         r'\s+',
         ' ',
@@ -37,7 +37,7 @@ def test_get_schema_query():
     )
 
     # hive_metastore as catalog
-    schema_query = dd.get_schema_query("hive_metastore", "schema", "supplier")
+    schema_query = dd._get_schema_query("hive_metastore", "schema", "supplier")
     assert re.sub(r'\s+', ' ', schema_query) == re.sub(r'\s+', ' ', """describe table schema.supplier""")
 
 

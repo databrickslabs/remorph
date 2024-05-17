@@ -2,9 +2,9 @@ import logging
 from uuid import uuid4
 
 from pyspark.sql import SparkSession
-from sqlglot import Dialects
+from sqlglot import Dialect
 
-from databricks.labs.remorph.config import SQLGLOT_DIALECTS, DatabaseConfig, TableRecon
+from databricks.labs.remorph.config import DatabaseConfig, TableRecon, get_dialect
 from databricks.labs.remorph.reconcile.compare import (
     capture_mismatch_data_and_columns,
     reconcile_data,
@@ -29,9 +29,7 @@ from databricks.sdk import WorkspaceClient
 logger = logging.getLogger(__name__)
 
 
-def recon(
-    ws: WorkspaceClient, spark: SparkSession, table_recon: TableRecon, source_dialect: Dialects, report_type: str
-):
+def recon(ws: WorkspaceClient, spark: SparkSession, table_recon: TableRecon, source_dialect: Dialect, report_type: str):
     logger.info(report_type)
 
     database_config = DatabaseConfig(
@@ -67,10 +65,10 @@ def recon(
     return recon_id
 
 
-def initialise_data_source(ws: WorkspaceClient, spark: SparkSession, engine: Dialects, secret_scope: str):
+def initialise_data_source(ws: WorkspaceClient, spark: SparkSession, engine: Dialect, secret_scope: str):
     source = DataSourceAdapter().create_adapter(engine=engine, spark=spark, ws=ws, secret_scope=secret_scope)
     target = DataSourceAdapter().create_adapter(
-        engine=SQLGLOT_DIALECTS.get("databricks"), spark=spark, ws=ws, secret_scope=secret_scope
+        engine=get_dialect("databricks"), spark=spark, ws=ws, secret_scope=secret_scope
     )
 
     return source, target
@@ -84,7 +82,7 @@ class Reconciliation:
         database_config: DatabaseConfig,
         report_type: str,
         schema_comparator: SchemaCompare,
-        source_engine: Dialects,
+        source_engine: Dialect,
     ):
         self._source = source
         self._target = target
@@ -94,7 +92,7 @@ class Reconciliation:
         self._target_catalog = database_config.target_catalog
         self._target_schema = database_config.target_schema
         self._schema_comparator = schema_comparator
-        self._target_engine = SQLGLOT_DIALECTS.get("databricks")
+        self._target_engine = get_dialect("databricks")
         self._source_engine = source_engine
 
     def reconcile_data(self, table_conf: Table, src_schema: list[Schema], tgt_schema: list[Schema]):
