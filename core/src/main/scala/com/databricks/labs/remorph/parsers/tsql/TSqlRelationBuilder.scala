@@ -76,13 +76,11 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.Relation] {
     }
   }
 
-  override def visitTableSourceItem(ctx: TableSourceItemContext): ir.Relation = {
-    Option(ctx.asTableAlias()).map(_.id.getText) match {
-      case Some(alias) =>
-        ir.TableAlias(ir.NamedTable(ctx.fullTableName().getText, Map.empty, is_streaming = false), alias)
-      case None => ir.NamedTable(ctx.fullTableName().getText, Map.empty, is_streaming = false)
-    }
-  }
+  // TODO: note that not all table source items have fullTableName
+  override def visitTableSourceItem(ctx: TableSourceItemContext): ir.Relation =
+    Option(ctx.asTableAlias())
+      .map(alias => ir.TableAlias(ctx.fullTableName().accept(this), alias.id.getText))
+      .getOrElse(ctx.fullTableName().accept(this))
 
   private def translateJoinType(ctx: JoinOnContext): ir.JoinType = ctx.joinType() match {
     case jt if jt == null || jt.outerJoin() == null || jt.INNER() != null => ir.InnerJoin
