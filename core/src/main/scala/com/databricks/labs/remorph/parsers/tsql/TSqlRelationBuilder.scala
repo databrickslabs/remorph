@@ -84,7 +84,6 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.Relation] {
     }
   }
 
-
   private def translateJoinType(ctx: JoinOnContext): ir.JoinType = ctx.joinType() match {
     case jt if jt == null || jt.outerJoin() == null || jt.INNER() != null => ir.InnerJoin
     case jt if jt.outerJoin().LEFT() != null => ir.LeftOuterJoin
