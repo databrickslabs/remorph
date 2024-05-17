@@ -5,12 +5,10 @@ from unittest.mock import create_autospec, patch
 import pytest
 import yaml
 
-from databricks.connect import DatabricksSession
 from databricks.labs.blueprint.tui import MockPrompts
 from databricks.labs.remorph import cli
-from databricks.labs.remorph.config import MorphConfig, TableRecon, get_dialect
+from databricks.labs.remorph.config import MorphConfig
 from databricks.labs.remorph.helpers.recon_config_utils import ReconConfigPrompts
-from databricks.labs.remorph.reconcile.recon_config import Table
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.errors import NotFound
 
@@ -257,59 +255,6 @@ def test_transpile_with_incorrect_input_source(mock_workspace_client_cli):
             catalog_name,
             schema_name,
             mode,
-        )
-
-
-def test_recon_with_invalid_source(mock_workspace_client_cli):
-    source = "invalid_source"
-    report = "data"
-
-    with (pytest.raises(Exception, match="Error: Invalid value for '--source'"),):
-        cli.reconcile(mock_workspace_client_cli, source, report)
-
-
-def test_recon_with_invalid_report(mock_workspace_client_cli):
-    source = "snowflake"
-    report = "invalid_report"
-
-    with (pytest.raises(Exception, match="Error: Invalid value for '--report'"),):
-        cli.reconcile(mock_workspace_client_cli, source, report)
-
-
-def test_recon_with_valid_input(mock_workspace_client_cli):
-    source = "snowflake"
-    report = "data"
-    spark = create_autospec(DatabricksSession)
-    with (
-        patch("databricks.labs.remorph.cli._get_spark_session", return_value=spark),
-        patch("databricks.labs.remorph.cli.recon", return_value="123") as mock_recon,
-    ):
-        cli.reconcile(mock_workspace_client_cli, source, report)
-        mock_recon.assert_called_once_with(
-            mock_workspace_client_cli,
-            spark,
-            TableRecon(
-                source_schema='src_schema',
-                target_catalog='src_catalog',
-                target_schema='tgt_schema',
-                tables=[
-                    Table(
-                        source_name='src_table',
-                        target_name='tgt_table',
-                        join_columns=['id'],
-                        jdbc_reader_options=None,
-                        select_columns=None,
-                        drop_columns=None,
-                        column_mapping=None,
-                        transformations=None,
-                        thresholds=None,
-                        filters=None,
-                    )
-                ],
-                source_catalog='src_catalog',
-            ),
-            get_dialect(source),
-            report,
         )
 
 

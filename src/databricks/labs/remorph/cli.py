@@ -7,15 +7,9 @@ from databricks.connect import DatabricksSession
 from databricks.labs.blueprint.cli import App
 from databricks.labs.blueprint.entrypoint import get_logger
 from databricks.labs.blueprint.installation import Installation
-from databricks.labs.remorph.config import (
-    SQLGLOT_DIALECTS,
-    MorphConfig,
-    TableRecon,
-    get_dialect,
-)
+from databricks.labs.remorph.config import SQLGLOT_DIALECTS, MorphConfig
 from databricks.labs.remorph.helpers.recon_config_utils import ReconConfigPrompts
 from databricks.labs.remorph.lineage import lineage_generator
-from databricks.labs.remorph.reconcile.execute import recon
 from databricks.labs.remorph.transpiler.execute import morph
 from databricks.sdk import WorkspaceClient
 
@@ -83,10 +77,8 @@ def transpile(
 
 @remorph.command
 def reconcile(w: WorkspaceClient, source: str, report: str):
-    """reconciles source to databricks datasets"""
+    """[EXPERIMENTAL] reconciles source to databricks datasets"""
     logger.info(f"user: {w.current_user.me()}")
-    installation = Installation.current(w, 'remorph')
-    table_recon = installation.load(TableRecon)
 
     if source.lower() not in {"databricks", "snowflake", "oracle"}:
         raise_validation_exception(
@@ -97,11 +89,7 @@ def reconcile(w: WorkspaceClient, source: str, report: str):
             f"Error: Invalid value for '--report': '{report}' is not one of 'data', 'schema', 'all' , 'row'"
         )
 
-    spark = _get_spark_session(w)
-
-    recon_id = recon(w, spark, table_recon, get_dialect(source.lower()), report)
-
-    print(json.dumps(recon_id))
+    raise NotImplementedError
 
 
 def _get_spark_session(ws: WorkspaceClient) -> SparkSession:
