@@ -1,13 +1,15 @@
 import json
 import os
 
+from pyspark.sql import SparkSession
+
+from databricks.connect import DatabricksSession
 from databricks.labs.blueprint.cli import App
 from databricks.labs.blueprint.entrypoint import get_logger
 from databricks.labs.blueprint.installation import Installation
 from databricks.labs.remorph.config import SQLGLOT_DIALECTS, MorphConfig
 from databricks.labs.remorph.helpers.recon_config_utils import ReconConfigPrompts
 from databricks.labs.remorph.lineage import lineage_generator
-from databricks.labs.remorph.reconcile.execute import recon
 from databricks.labs.remorph.transpiler.execute import morph
 from databricks.sdk import WorkspaceClient
 
@@ -74,21 +76,24 @@ def transpile(
 
 
 @remorph.command
-def reconcile(w: WorkspaceClient, recon_conf: str, conn_profile: str, source: str, report: str):
-    """reconciles source to databricks datasets"""
+def reconcile(w: WorkspaceClient, source: str, report: str):
+    """[EXPERIMENTAL] reconciles source to databricks datasets"""
     logger.info(f"user: {w.current_user.me()}")
-    if not os.path.exists(recon_conf) or recon_conf in {None, ""}:
-        raise_validation_exception(f"Error: Invalid value for '--recon_conf': Path '{recon_conf}' does not exist.")
-    if not os.path.exists(conn_profile) or conn_profile in {None, ""}:
-        raise_validation_exception(f"Error: Invalid value for '--conn_profile': Path '{conn_profile}' does not exist.")
-    if source.lower() not in "snowflake":
-        raise_validation_exception(f"Error: Invalid value for '--source': '{source}' is not one of 'snowflake'. ")
-    if report.lower() not in {"data", "schema", "all"}:
+
+    if source.lower() not in {"databricks", "snowflake", "oracle"}:
         raise_validation_exception(
-            f"Error: Invalid value for '--report': '{report}' is not one of 'data', 'schema', 'all' "
+            f"Error: Invalid value for '--source': '{source}' is not one of 'databricks', 'snowflake', 'oracle'. "
+        )
+    if report.lower() not in {"data", "schema", "all", "row"}:
+        raise_validation_exception(
+            f"Error: Invalid value for '--report': '{report}' is not one of 'data', 'schema', 'all' , 'row'"
         )
 
-    recon(recon_conf, conn_profile, source, report)
+    raise NotImplementedError
+
+
+def _get_spark_session(ws: WorkspaceClient) -> SparkSession:
+    return DatabricksSession.builder.sdkConfig(ws.config).getOrCreate()
 
 
 @remorph.command

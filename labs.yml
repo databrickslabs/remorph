@@ -39,15 +39,16 @@ commands:
   - name: reconcile
     description: Reconcile is an utility to streamline the reconciliation process between source data and target data residing on Databricks.
     flags:
-      - name: recon_conf
-        description: Path of the data-recon config
-      - name: conn_profile
-        description: Path of the source connection config
       - name: source
-        description: Source Type, Accepted Values [snowflake]
+        description: Source Type, Accepted Values [snowflake, databricks, oracle]
       - name: report
         default: all
-        description: Report type
+        description: Report type, Accepted Values [all, data, schema, row]
+
+    table_template: |-
+      recon_id
+      {{range .}}{{.recon_id}}
+      {{end}}
   - name: generate-lineage
     description: Utility to generate a lineage of the SQL files
     flags:

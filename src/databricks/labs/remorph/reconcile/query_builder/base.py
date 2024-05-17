@@ -1,7 +1,7 @@
 from abc import ABC
 
 import sqlglot.expressions as exp
-from sqlglot import parse_one
+from sqlglot import Dialect, parse_one
 
 from databricks.labs.remorph.reconcile.query_builder.expression_generator import (
     DataType_transform_mapping,
@@ -11,14 +11,14 @@ from databricks.labs.remorph.reconcile.recon_config import Schema, Table
 
 
 class QueryBuilder(ABC):
-    def __init__(self, table_conf: Table, schema: list[Schema], layer: str, source: str):
+    def __init__(self, table_conf: Table, schema: list[Schema], layer: str, source: Dialect):
         self._table_conf = table_conf
         self._schema = schema
         self._layer = layer
         self._source = source
 
     @property
-    def source(self) -> str:
+    def source(self) -> Dialect:
         return self._source
 
     @property
@@ -61,7 +61,7 @@ class QueryBuilder(ABC):
     def user_transformations(self) -> dict[str, str]:
         return self._table_conf.get_transformation_dict(self._layer)
 
-    def add_transformations(self, aliases: list[exp.Alias], source: str) -> list[exp.Alias]:
+    def add_transformations(self, aliases: list[exp.Alias], source: Dialect) -> list[exp.Alias]:
         if self.user_transformations:
             alias_with_user_transforms = self._apply_user_transformation(aliases)
             default_transform_schema: list[Schema] = list(
@@ -84,14 +84,16 @@ class QueryBuilder(ABC):
                 return parse_one(user_transformations.get(column_name))
         return node
 
-    def _apply_default_transformation(self, aliases: list[exp.Alias], schema: list[Schema], source) -> list[exp.Alias]:
+    def _apply_default_transformation(
+        self, aliases: list[exp.Alias], schema: list[Schema], source: Dialect
+    ) -> (list)[exp.Alias]:
         with_transform = []
         for alias in aliases:
             with_transform.append(alias.transform(self._default_transformer, schema, source))
         return with_transform
 
     @staticmethod
-    def _default_transformer(node: exp.Expression, schema: list[Schema], source) -> exp.Expression:
+    def _default_transformer(node: exp.Expression, schema: list[Schema], source: Dialect) -> exp.Expression:
         def _get_transform(datatype: str):
             if DataType_transform_mapping.get(source) is not None:
                 if DataType_transform_mapping.get(source).get(datatype.upper()) is not None:
