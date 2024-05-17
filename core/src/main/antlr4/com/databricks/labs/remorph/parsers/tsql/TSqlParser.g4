@@ -4151,7 +4151,7 @@ nonAnsiJoin
 
 // https://docs.microsoft.com/en-us/sql/t-sql/queries/from-transact-sql
 tableSource
-    : tableSourceItem joins += joinPart*
+    : tableSourceItem joinPart*
     ;
 
 tableSourceItem
@@ -4455,11 +4455,7 @@ asColumnAlias
     ;
 
 asTableAlias
-    : AS? tableAlias
-    ;
-
-tableAlias
-    : id
+    : AS? (id | DOUBLE_QUOTE_ID)
     ;
 
 // https://msdn.microsoft.com/en-us/library/ms187373.aspx
@@ -4527,7 +4523,7 @@ indexValue
     ;
 
 columnAliasList
-    : LPAREN alias += columnAlias (COMMA alias += columnAlias)* RPAREN
+    : LPAREN columnAlias (COMMA columnAlias)* RPAREN
     ;
 
 columnAlias

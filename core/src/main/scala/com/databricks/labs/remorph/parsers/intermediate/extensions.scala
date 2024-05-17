@@ -82,6 +82,9 @@ case class Concat(left: Expression, right: Expression) extends Binary(left, righ
 
 // Some statements, such as SELECT, do not require a table specification
 case class NoTable() extends Relation {}
+// It was not clear to me the NamedTable options should be used for the alias. I'm assuming it is not what
+// they are for.
+case class TableAlias(relation: Relation, alias: String) extends Relation {}
 
 case class Batch(statements: Seq[Plan]) extends Plan
 

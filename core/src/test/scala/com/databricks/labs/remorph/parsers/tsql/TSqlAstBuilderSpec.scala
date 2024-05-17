@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.parsers.tsql
 
-import com.databricks.labs.remorph.parsers.intermediate._
+import com.databricks.labs.remorph.parsers.intermediate.{TableAlias, _}
 import org.scalatest.Assertion
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -30,6 +30,14 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
             Literal(double = Some(2.7e9)),
             Literal(string = Some("$40")))))
     }
+
+    "translate table source items with aliases" in {
+      example(
+        query = "SELECT a FROM dbo.table_x AS t",
+        expectedAst =
+          Project(TableAlias(NamedTable("dbo.table_x", Map.empty, is_streaming = false), "t"), Seq(Column("a"))))
+    }
+
     "infer a cross join" in {
       example(
         query = "SELECT a, b, c FROM dbo.table_x, dbo.table_y",
@@ -48,8 +56,8 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
         query = "SELECT T1.A, T2.B FROM DBO.TABLE_X AS T1 INNER JOIN DBO.TABLE_Y AS T2 ON T1.A = T2.A AND T1.B = T2.B",
         expectedAst = Project(
           Join(
-            NamedTable("DBO.TABLE_X", Map(), is_streaming = false),
-            NamedTable("DBO.TABLE_Y", Map(), is_streaming = false),
+            TableAlias(NamedTable("DBO.TABLE_X", Map(), is_streaming = false), "T1"),
+            TableAlias(NamedTable("DBO.TABLE_Y", Map(), is_streaming = false), "T2"),
             Some(And(Equals(Column("T1.A"), Column("T2.A")), Equals(Column("T1.B"), Column("T2.B")))),
             InnerJoin,
             List(),
@@ -63,13 +71,13 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
         expectedAst = Project(
           Join(
             Join(
-              NamedTable("DBO.TABLE_X", Map(), is_streaming = false),
-              NamedTable("DBO.TABLE_Y", Map(), is_streaming = false),
+              TableAlias(NamedTable("DBO.TABLE_X", Map(), is_streaming = false), "T1"),
+              TableAlias(NamedTable("DBO.TABLE_Y", Map(), is_streaming = false), "T2"),
               Some(Equals(Column("T1.A"), Column("T2.A"))),
               InnerJoin,
               List(),
               JoinDataType(is_left_struct = false, is_right_struct = false)),
-            NamedTable("DBO.TABLE_Z", Map(), is_streaming = false),
+            TableAlias(NamedTable("DBO.TABLE_Z", Map(), is_streaming = false), "T3"),
             Some(And(Equals(Column("T1.A"), Column("T3.A")), Equals(Column("T1.B"), Column("T3.B")))),
             LeftOuterJoin,
             List(),
@@ -83,13 +91,13 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
         expectedAst = Project(
           Join(
             Join(
-              NamedTable("DBO.TABLE_X", Map(), is_streaming = false),
-              NamedTable("DBO.TABLE_Y", Map(), is_streaming = false),
+              TableAlias(NamedTable("DBO.TABLE_X", Map(), is_streaming = false), "T1"),
+              TableAlias(NamedTable("DBO.TABLE_Y", Map(), is_streaming = false), "T2"),
               Some(Equals(Column("T1.A"), Column("T2.A"))),
               InnerJoin,
               List(),
               JoinDataType(is_left_struct = false, is_right_struct = false)),
-            NamedTable("DBO.TABLE_Z", Map(), is_streaming = false),
+            TableAlias(NamedTable("DBO.TABLE_Z", Map(), is_streaming = false), "T3"),
             Some(Or(Equals(Column("T1.A"), Column("T3.A")), Equals(Column("T1.B"), Column("T3.B")))),
             LeftOuterJoin,
             List(),
@@ -101,8 +109,8 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
         query = "SELECT T1.A FROM DBO.TABLE_X AS T1 RIGHT OUTER JOIN DBO.TABLE_Y AS T2 ON T1.A = T2.A",
         expectedAst = Project(
           Join(
-            NamedTable("DBO.TABLE_X", Map(), is_streaming = false),
-            NamedTable("DBO.TABLE_Y", Map(), is_streaming = false),
+            TableAlias(NamedTable("DBO.TABLE_X", Map(), is_streaming = false), "T1"),
+            TableAlias(NamedTable("DBO.TABLE_Y", Map(), is_streaming = false), "T2"),
             Some(Equals(Column("T1.A"), Column("T2.A"))),
             RightOuterJoin,
             List(),
@@ -114,8 +122,8 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
         query = "SELECT T1.A FROM DBO.TABLE_X AS T1 FULL OUTER JOIN DBO.TABLE_Y AS T2 ON T1.A = T2.A",
         expectedAst = Project(
           Join(
-            NamedTable("DBO.TABLE_X", Map(), is_streaming = false),
-            NamedTable("DBO.TABLE_Y", Map(), is_streaming = false),
+            TableAlias(NamedTable("DBO.TABLE_X", Map(), is_streaming = false), "T1"),
+            TableAlias(NamedTable("DBO.TABLE_Y", Map(), is_streaming = false), "T2"),
             Some(Equals(Column("T1.A"), Column("T2.A"))),
             FullOuterJoin,
             List(),
