@@ -1,40 +1,52 @@
 import re
 
-from pyspark.errors import PySparkException
-from pyspark.sql import DataFrame
+from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.functions import col
+from sqlglot import Dialect
 
 from databricks.labs.remorph.reconcile.connectors.data_source import DataSource
+from databricks.labs.remorph.reconcile.connectors.secrets import SecretsMixin
 from databricks.labs.remorph.reconcile.recon_config import JdbcReaderOptions, Schema
+from databricks.sdk import WorkspaceClient
 
 
-class DatabricksDataSource(DataSource):
-    def read_data(self, catalog: str, schema: str, query: str, options: JdbcReaderOptions) -> DataFrame:
+class DatabricksDataSource(DataSource, SecretsMixin):
+
+    def __init__(
+        self,
+        engine: Dialect,
+        spark: SparkSession,
+        ws: WorkspaceClient,
+        secret_scope: str,
+    ):
+        self._engine = engine
+        self._spark = spark
+        self._ws = ws
+        self._secret_scope = secret_scope
+
+    def read_data(
+        self, catalog: str, schema: str, table: str, query: str, options: JdbcReaderOptions | None
+    ) -> DataFrame:
+        table_with_namespace = f"{catalog}.{schema}.{table}"
+        if catalog is None or catalog == "hive_metastore":
+            table_with_namespace = f"{schema}.{table}"
+        table_query = query.replace(":tbl", table_with_namespace)
         try:
-            table_query = self._get_table_or_query(catalog, schema, query)
-            df = self.spark.sql(table_query)
+            df = self._spark.sql(table_query)
             return df.select([col(column).alias(column.lower()) for column in df.columns])
-        except PySparkException as e:
-            error_msg = (
-                f"An error occurred while fetching Databricks Data using the following {table_query} in "
-                f"DatabricksDataSource : {e!s}"
-            )
-            raise PySparkException(error_msg) from e
+        except RuntimeError as e:
+            raise self._raise_runtime_exception(e, "data", table_query)
 
     def get_schema(self, catalog: str, schema: str, table: str) -> list[Schema]:
+        schema_query = DatabricksDataSource._get_schema_query(catalog, schema, table)
         try:
-            schema_query = self.get_schema_query(catalog, schema, table)
-            schema_df = self.spark.sql(schema_query).where("col_name not like '#%'").distinct()
+            schema_df = self._spark.sql(schema_query).where("col_name not like '#%'").distinct()
             return [Schema(field.col_name.lower(), field.data_type.lower()) for field in schema_df.collect()]
-        except PySparkException as e:
-            error_msg = (
-                f"An error occurred while fetching Databricks Schema using the following "
-                f"{schema_query} query in DatabricksDataSource: {e!s}"
-            )
-            raise PySparkException(error_msg) from e
+        except RuntimeError as e:
+            raise self._raise_runtime_exception(e, "schema", schema_query)
 
     @staticmethod
-    def get_schema_query(catalog: str, schema: str, table: str):
+    def _get_schema_query(catalog: str, schema: str, table: str):
         # TODO: Ensure that the target_catalog in the configuration is not set to "hive_metastore". The source_catalog
         #  can only be set to "hive_metastore" if the source type is "databricks".
         if catalog == "hive_metastore":
@@ -45,5 +57,3 @@ class DatabricksDataSource(DataSource):
                     and lower(table_schema)='{schema}' and lower(table_name) ='{table}' order by 
                     col_name"""
         return re.sub(r'\s+', ' ', query)
-
-    databricks_datatype_mapper = {}

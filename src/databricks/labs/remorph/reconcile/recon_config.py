@@ -5,6 +5,7 @@ from collections.abc import Callable
 from dataclasses import dataclass
 
 from pyspark.sql import DataFrame
+from sqlglot import Dialect
 from sqlglot import expressions as exp
 
 from databricks.labs.remorph.reconcile.constants import ThresholdMode
@@ -165,14 +166,23 @@ class Schema:
 
 @dataclass
 class ReconcileOutput:
-    missing_in_src: DataFrame
-    missing_in_tgt: DataFrame
-    mismatch: DataFrame | None = None
+    mismatch_count: int = 0
+    missing_in_src_count: int = 0
+    missing_in_tgt_count: int = 0
+    mismatch: MismatchOutput | None = None
+    missing_in_src: DataFrame | None = None
+    missing_in_tgt: DataFrame | None = None
+
+
+@dataclass
+class MismatchOutput:
+    mismatch_df: DataFrame | None = None
+    mismatch_columns: list[str] | None = None
 
 
 @dataclass
 class DialectHashConfig:
-    dialect: str
+    dialect: Dialect
     algo: list[Callable]
 
 
@@ -186,6 +196,6 @@ class SchemaMatchResult:
 
 
 @dataclass
-class SchemCompareOutput:
+class SchemaCompareOutput:
     is_valid: bool
     compare_df: DataFrame

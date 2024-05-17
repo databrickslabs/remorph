@@ -3,7 +3,10 @@ from pyspark.sql.functions import col, expr, lit
 
 from databricks.labs.remorph.reconcile.constants import Constants
 from databricks.labs.remorph.reconcile.exception import ColumnMismatchException
-from databricks.labs.remorph.reconcile.recon_config import ReconcileOutput
+from databricks.labs.remorph.reconcile.recon_config import (
+    MismatchOutput,
+    ReconcileOutput,
+)
 
 
 def raise_column_mismatch_exception(msg: str, source_missing: list[str], target_missing: list[str]) -> Exception:
@@ -35,7 +38,18 @@ def reconcile_data(source: DataFrame, target: DataFrame, key_columns: list[str],
         .select((key_columns if report_type == "all" else alias_column_str(source_alias, source.columns)))
         .drop(Constants.hash_column_name)
     )
-    return ReconcileOutput(missing_in_src=missing_in_src, missing_in_tgt=missing_in_tgt, mismatch=mismatch)
+    mismatch_count = 0
+    if mismatch:
+        mismatch_count = mismatch.count()
+
+    return ReconcileOutput(
+        mismatch_count=mismatch_count,
+        missing_in_src_count=missing_in_src.count(),
+        missing_in_tgt_count=missing_in_tgt.count(),
+        missing_in_src=missing_in_src,
+        missing_in_tgt=missing_in_tgt,
+        mismatch=MismatchOutput(mismatch_df=mismatch),
+    )
 
 
 def _get_mismatch_data(df: DataFrame, src_alias: str, tgt_alias: str, select_columns) -> DataFrame:
@@ -54,9 +68,7 @@ def _get_mismatch_data(df: DataFrame, src_alias: str, tgt_alias: str, select_col
     )
 
 
-def capture_mismatch_data_and_columns(
-    source: DataFrame, target: DataFrame, key_columns: list[str]
-) -> (DataFrame, list[str]):
+def capture_mismatch_data_and_columns(source: DataFrame, target: DataFrame, key_columns: list[str]) -> MismatchOutput:
     source_columns = source.columns
     target_columns = target.columns
 
@@ -69,7 +81,7 @@ def capture_mismatch_data_and_columns(
     check_columns = [column for column in source_columns if column not in key_columns]
     mismatch_df = _get_mismatch_df(source, target, key_columns, check_columns)
     mismatch_columns = _get_mismatch_columns(mismatch_df, check_columns)
-    return mismatch_df, mismatch_columns
+    return MismatchOutput(mismatch_df, mismatch_columns)
 
 
 def _get_mismatch_columns(df: DataFrame, columns: list[str]):
