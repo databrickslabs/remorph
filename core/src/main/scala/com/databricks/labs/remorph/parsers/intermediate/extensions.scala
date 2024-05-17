@@ -3,13 +3,13 @@ package com.databricks.labs.remorph.parsers.intermediate
 trait AstExtension
 
 case class Column(name: String) extends Expression with AstExtension {}
+case class Identifier(name: String, isQuoted: Boolean) extends Expression with AstExtension {}
 
 abstract class Unary(pred: Expression) extends Expression {}
 abstract class Binary(left: Expression, right: Expression) extends Expression {}
 
 trait Predicate extends AstExtension
 
-case class Precedence(expression: Expression) extends Expression {}
 case class And(left: Expression, right: Expression) extends Binary(left, right) with Predicate {}
 case class Or(left: Expression, right: Expression) extends Binary(left, right) with Predicate {}
 case class Not(pred: Expression) extends Unary(pred) with Predicate {}
@@ -138,6 +138,9 @@ case class RenameConstraint(oldName: String, newName: String) extends TableAlter
 case class RenameColumn(oldName: String, newName: String) extends TableAlteration
 
 case class AlterTableCommand(tableName: String, alterations: Seq[TableAlteration]) extends Catalog {}
+
+// Used for raw expressions that have no context
+case class Dot(left: Expression, right: Expression) extends Binary(left, right) {}
 
 case class NextValue(sequenceName: String) extends Expression {}
 case class ArrayAccess(array: Expression, index: Expression) extends Expression {}
