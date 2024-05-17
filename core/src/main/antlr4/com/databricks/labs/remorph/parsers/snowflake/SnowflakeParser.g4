@@ -3681,7 +3681,7 @@ expr_list_sorted
 expr
     : object_name DOT NEXTVAL
     | expr LSB expr RSB //array access
-    | expr COLON expr   //json access
+    | expr COLON json_path   //json access
     | expr DOT (VALUE | expr)
     | expr COLLATE string
     | case_expression
@@ -3699,34 +3699,43 @@ expr
     | expr over_clause
     | cast_expr
     | expr COLON_COLON data_type // Cast also
-    | try_cast_expr
     | json_literal
     | trim_expression
     | function_call
-    | subquery
-    | expr IS null_not_null
-    | expr NOT? IN L_PAREN (subquery | expr_list) R_PAREN
-    | expr NOT? ( LIKE | ILIKE) expr (ESCAPE expr)?
-    | expr NOT? RLIKE expr
-    | expr NOT? (LIKE | ILIKE) ANY L_PAREN expr (COMMA expr)* R_PAREN (ESCAPE expr)?
+    | subquery // Probably wrong
+    | expr predicate_partial
     | primitive_expression //Should be latest rule as it's nearly a catch all
     ;
 
+predicate_partial
+    : IS null_not_null
+    | NOT? IN L_PAREN (subquery | expr_list) R_PAREN
+    | NOT? ( LIKE | ILIKE) expr (ESCAPE expr)?
+    | NOT? RLIKE expr
+    | NOT? (LIKE | ILIKE) ANY L_PAREN expr (COMMA expr)* R_PAREN (ESCAPE expr)?
+    | NOT? BETWEEN expr AND expr
+    ;
+
+json_path
+    : json_path_elem (DOT json_path_elem)*
+    ;
+
+json_path_elem
+    : ID | DOUBLE_QUOTE_ID
+    ;
+
 iff_expr
-    : IFF L_PAREN search_condition COLON expr COLON expr R_PAREN
+    : IFF L_PAREN search_condition COMMA expr COMMA expr R_PAREN
     ;
 
 trim_expression
     : (TRIM | LTRIM | RTRIM) L_PAREN expr (COMMA string)* R_PAREN
     ;
 
-try_cast_expr
-    : TRY_CAST L_PAREN expr AS data_type R_PAREN
-    ;
-
 cast_expr
-    : CAST L_PAREN expr AS data_type R_PAREN
-    | (TIMESTAMP | DATE | TIME | INTERVAL) expr
+    : cast_op = (TRY_CAST | CAST) L_PAREN expr AS data_type R_PAREN
+    | conversion = (TO_TIMESTAMP | TO_DATE | DATE | TO_TIME | TIME ) L_PAREN expr R_PAREN
+    | INTERVAL expr
     ;
 
 json_literal
@@ -3743,7 +3752,7 @@ value
     ;
 
 arr_literal
-    : LSB value (COLON value)* RSB
+    : LSB value (COMMA value)* RSB
     | LSB RSB
     ;
 
@@ -4230,12 +4239,7 @@ subquery
 predicate
     : EXISTS L_PAREN subquery R_PAREN
     | expr comparison_operator (ALL | SOME | ANY) L_PAREN subquery R_PAREN
-    | expr NOT? BETWEEN expr AND expr
-    | expr NOT? IN L_PAREN (subquery | expr_list) R_PAREN
-    | expr NOT? (LIKE | ILIKE) expr (ESCAPE expr)?
-    | expr NOT? RLIKE expr
-    | expr NOT? (LIKE | ILIKE) ANY L_PAREN expr (COMMA expr)* R_PAREN (ESCAPE expr)?
-    | expr IS null_not_null
+    | expr predicate_partial
     | expr
     ;
 

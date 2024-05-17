@@ -138,3 +138,9 @@ case class RenameConstraint(oldName: String, newName: String) extends TableAlter
 case class RenameColumn(oldName: String, newName: String) extends TableAlteration
 
 case class AlterTableCommand(tableName: String, alterations: Seq[TableAlteration]) extends Catalog {}
+
+case class NextValue(sequenceName: String) extends Expression {}
+case class ArrayAccess(array: Expression, index: Expression) extends Expression {}
+case class JsonAccess(json: Expression, path: Seq[String]) extends Expression {}
+case class Collate(string: Expression, specification: String) extends Expression {}
+case class Iff(condition: Expression, thenBranch: Expression, elseBranch: Expression) extends Expression {}
