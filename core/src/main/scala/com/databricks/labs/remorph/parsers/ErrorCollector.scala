@@ -16,6 +16,8 @@ sealed trait ErrorCollector extends BaseErrorListener {
   def reset(): Unit = {}
 }
 
+class EmptyErrorCollector extends ErrorCollector
+
 case class ErrorDetail(line: Int, charPositionInLine: Int, msg: String, offendingToken: Token)
 
 class DefaultErrorCollector extends ErrorCollector {
@@ -80,4 +82,6 @@ class ProductionErrorCollector(sourceCode: String, fileName: String) extends Err
   override def errorsAsJson: String = write(errors)
 
   override def errorCount: Int = errors.size
+
+  override def reset(): Unit = errors.clear()
 }

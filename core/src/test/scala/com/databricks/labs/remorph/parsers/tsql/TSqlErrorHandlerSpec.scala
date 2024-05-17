@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.parsers.tsql
 
-import com.databricks.labs.remorph.parsers.{ErrorDetail, ProductionErrorCollector}
+import com.databricks.labs.remorph.parsers.{DefaultErrorCollector, EmptyErrorCollector, ErrorDetail, ProductionErrorCollector}
 import org.antlr.v4.runtime.CommonToken
 import org.apache.logging.log4j.core.appender.AbstractAppender
 import org.apache.logging.log4j.core.config.{Configuration, Configurator}
@@ -10,6 +10,7 @@ import org.apache.logging.log4j.{Level, LogManager, Logger}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 
+import java.io.{ByteArrayOutputStream, PrintStream}
 import scala.collection.mutable.ListBuffer
 
 class TSqlErrorHandlerSpec extends AnyFlatSpec with Matchers {
@@ -118,5 +119,63 @@ class TSqlErrorHandlerSpec extends AnyFlatSpec with Matchers {
     // Check the logs
     val logs = appender.getLogMessages
     logs.exists(log => log.contains("File: fileName, Line: 1")) shouldBe true
+  }
+
+  it should "capture syntax errors correctly using syntaxError method" in {
+    val errorCollector = new ProductionErrorCollector("sourceCode", "fileName")
+    errorCollector.reset()
+    val token = new CommonToken(1)
+    token.setLine(10)
+    token.setCharPositionInLine(5)
+    token.setText("errorText")
+
+    errorCollector.syntaxError(null, token, 10, 5, "Syntax error message", null)
+
+    errorCollector.errorCount shouldBe 1
+    errorCollector.errors should contain(ErrorDetail(10, 5, "Syntax error message", token))
+  }
+
+  def captureStdErr[T](block: => T): (T, String) = {
+    val originalErr = System.err
+    val errContent = new ByteArrayOutputStream()
+    val printStream = new PrintStream(errContent)
+    System.setErr(printStream)
+    try {
+      val result = block
+      printStream.flush()
+      (result, errContent.toString)
+    } finally {
+      System.setErr(originalErr)
+    }
+  }
+
+  it should "capture syntax errors correctly using the default syntaxError method" in {
+    val errorCollector = new DefaultErrorCollector()
+    errorCollector.reset()
+    val token = new CommonToken(1)
+    token.setLine(10)
+    token.setCharPositionInLine(5)
+    token.setText("errorText")
+    val (_, capturedErr) = captureStdErr {
+      errorCollector.syntaxError(
+        null,
+        token,
+        10,
+        5,
+        "Ignore this Syntax error message - it is supposed to be here",
+        null)
+    }
+    errorCollector.errorCount shouldBe 1
+    capturedErr should include("Ignore this Syntax error message")
+  }
+
+  it should "have sensible defaults" in {
+    val errorCollector = new EmptyErrorCollector()
+    errorCollector.errorCount shouldBe 0
+    errorCollector.logErrors()
+    errorCollector.reset()
+    errorCollector.errorCount shouldBe 0
+    errorCollector.formatErrors shouldBe List()
+    errorCollector.errorsAsJson shouldBe "{}"
   }
 }
