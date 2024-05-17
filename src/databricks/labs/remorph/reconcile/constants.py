@@ -50,13 +50,6 @@ class HashAlgorithm(Enum):
     ORACLE_MD5 = "lower(RAWTOHEX(STANDARD_HASH({}, 'MD5')))"
 
 
-class ReportType(AutoName):
-    DATA = "data"
-    SCHEMA = "schema"
-    HASH = "hash"
-    ALL = "all"
-
-
 class ThresholdMode(AutoName):
     PERCENTAGE = "percentage"
     ABSOLUTE = "absolute"
@@ -65,13 +58,7 @@ class ThresholdMode(AutoName):
     DATETIME = "datetime"
 
 
-class ThresholdMatchType(AutoName):
-    INTEGER = "integer"
-    TIMESTAMP = "timestamp"
-
-
 class Constants:
-    hash_column_name = "hash_value_recon"
     hash_algorithm_mapping = {  # noqa RUF012
         SourceType.SNOWFLAKE.value: {
             "source": HashAlgorithm.SNOWFLAKE_SHA_256.value,
@@ -86,7 +73,3 @@ class Constants:
             "target": HashAlgorithm.DATABRICKS_SHA_256.value,
         },
     }
-
-
-class SampleConfig:
-    SAMPLE_ROWS = 50
