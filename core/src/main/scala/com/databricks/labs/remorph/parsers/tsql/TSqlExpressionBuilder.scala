@@ -250,6 +250,87 @@ class TSqlExpressionBuilder extends TSqlParserBaseVisitor[ir.Expression] with Pa
     FunctionBuilder.buildFunction(name, args)
   }
 
+  // Note that this visitor is made complicated and difficult because the built in ir does not use options
+  // and so we build placeholder values for the optional values. They also do not extend expression
+  // so we can't build them logically with visit and accept. Maybe replace them with
+  // extensions that do do this?
+  override def visitExprOver(ctx: ExprOverContext): ir.Window = {
+    val windowFunction = ctx.expression().accept(this)
+    val partitionByExpressions =
+      Option(ctx.overClause().expression()).map(_.asScala.toList.map(_.accept(this))).getOrElse(List.empty)
+    val orderByExpressions = Option(ctx.overClause().orderByClause())
+      .map(_.orderByExpression().asScala.toList.map { orderByExpr =>
+        val expression = orderByExpr.expression().accept(this)
+        val sortOrder =
+          if (Option(orderByExpr.DESC()).isDefined) ir.AscendingSortDirection
+          else ir.DescendingSortDirection
+        ir.SortOrder(expression, sortOrder, ir.SortNullsUnspecified)
+      })
+      .getOrElse(List.empty)
+    val rowRange = Option(ctx.overClause().rowOrRangeClause())
+      .map(buildWindowFrame)
+      .getOrElse(
+        ir.WindowFrame(
+          ir.UndefinedFrame,
+          ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop),
+          ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop)))
+
+    ir.Window(windowFunction, partitionByExpressions, orderByExpressions, rowRange)
+  }
+
+  private def buildWindowFrame(ctx: RowOrRangeClauseContext): ir.WindowFrame = {
+    val frameType = buildFrameType(ctx)
+    Option(ctx.windowFrameExtent().windowFramePreceding()) match {
+      case Some(preceding) =>
+        val frameStart = buildFramePreceding(preceding)
+        ir.WindowFrame(frameType, frameStart, ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop))
+      case None =>
+        val bound1 = ctx.windowFrameExtent().windowFrameBound(0)
+        val bound2 = ctx.windowFrameExtent().windowFrameBound(1)
+        val frameStart = if (bound1.windowFramePreceding() != null) {
+          buildFramePreceding(bound1.windowFramePreceding())
+        } else {
+          buildFramePreceding(bound2.windowFramePreceding())
+        }
+
+        val frameEnd = if (bound2.windowFrameFollowing() != null) {
+          buildFrameFollowing(bound1.windowFrameFollowing())
+        } else {
+          buildFrameFollowing(bound2.windowFrameFollowing())
+        }
+        ir.WindowFrame(frameType, frameStart, frameEnd)
+    }
+  }
+
+  private def buildFrameType(ctx: RowOrRangeClauseContext): ir.FrameType = {
+    (Option(ctx.ROWS()), Option(ctx.RANGE())) match {
+      case (Some(_), None) => ir.RowsFrame
+      case (None, Some(_)) => ir.RangeFrame
+      case _ => ir.UndefinedFrame
+    }
+  }
+
+  private def buildFramePreceding(ctx: WindowFramePrecedingContext): ir.FrameBoundary = {
+    // Style guide says not to use _ in match, but the code is much simpler like this
+    (Option(ctx.UNBOUNDED()), Option(ctx.INT()), Option(ctx.CURRENT())) match {
+      case (Some(_), None, None) => ir.FrameBoundary(current_row = false, unbounded = true, value = ir.Noop)
+      case (None, Some(intNode), None) =>
+        ir.FrameBoundary(
+          current_row = false,
+          unbounded = false,
+          value = ir.Literal(integer = Some(intNode.getText.toInt)))
+      case (None, None, Some(_)) => ir.FrameBoundary(current_row = true, unbounded = false, ir.Noop)
+      case _ => ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop) // Cannot be reached
+    }
+  }
+
+  private def buildFrameFollowing(ctx: WindowFrameFollowingContext): ir.FrameBoundary =
+    Option(ctx.UNBOUNDED()) match {
+      case Some(_) => ir.FrameBoundary(current_row = false, unbounded = true, value = ir.Noop)
+      case None => // Indicates that it is a number, not unbounded
+        ir.FrameBoundary(current_row = false, unbounded = false, ir.Literal(integer = Some(ctx.INT.getText.toInt)))
+    }
+
   /**
    * This is a special case where we are building a column definition. This is used in the SELECT statement to define
    * the columns that are being selected. This is a special case because we need to handle the aliasing of columns.

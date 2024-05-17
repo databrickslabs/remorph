@@ -3912,6 +3912,9 @@ expression
     | DOLLAR_ACTION                                             #exprDollar
     | <assoc=right> expression DOT expression                   #exprDot
     | LPAREN subquery RPAREN                                    #exprSubquery
+    | ALL expression                                            #exprAll
+    | DISTINCT expression                                       #exprDistinct
+    | STAR                                                      #exprStar
     ;
 
 // TODO: Implement this
@@ -4029,7 +4032,7 @@ topCount
 
 // https://docs.microsoft.com/en-us/sql/t-sql/queries/select-over-clause-transact-sql?view=sql-server-ver16
 orderByClause
-    : ORDER BY orderBys += orderByExpression (COMMA orderBys += orderByExpression)*
+    : ORDER BY orderByExpression (COMMA orderByExpression)*
     ;
 
 // https://msdn.microsoft.com/en-us/library/ms188385.aspx
@@ -4059,7 +4062,7 @@ xmlCommonDirectives
     ;
 
 orderByExpression
-    : orderBy = expression (ascending = ASC | descending = DESC)?
+    : expression (ASC | DESC)?
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/queries/select-group-by-transact-sql?view=sql-server-ver15
@@ -4252,7 +4255,7 @@ unpivot
     ;
 
 pivotClause
-    : LPAREN aggregateWindowedFunction FOR fullColumnName IN columnAliasList RPAREN
+    : LPAREN expression FOR fullColumnName IN columnAliasList RPAREN
     ;
 
 unpivotClause
@@ -4284,9 +4287,7 @@ derivedTable
     ;
 
 functionCall
-    : rankingWindowedFunction
-    | aggregateWindowedFunction
-    | analyticWindowedFunction
+    : analyticWindowedFunction
     | builtInFunctions
     | standardFunction
     | freetextFunction
@@ -4525,38 +4526,19 @@ expressionList
     : exp += expression (COMMA exp += expression)*
     ;
 
-// https://msdn.microsoft.com/en-us/library/ms189798.aspx
-rankingWindowedFunction
-    : (RANK | DENSE_RANK | ROW_NUMBER) LPAREN RPAREN overClause
-    | NTILE LPAREN expression RPAREN overClause
-    ;
-
-// https://msdn.microsoft.com/en-us/library/ms173454.aspx
-aggregateWindowedFunction
-    : aggFunc = (AVG | MAX | MIN | SUM | STDEV | STDEVP | VAR | VARP) LPAREN allDistinctExpression RPAREN overClause?
-    | cnt = (COUNT | COUNT_BIG) LPAREN (STAR | allDistinctExpression) RPAREN overClause?
-    | CHECKSUM_AGG LPAREN allDistinctExpression RPAREN
-    | GROUPING LPAREN expression RPAREN
-    | GROUPING_ID LPAREN expressionList RPAREN
-    ;
-
 // https://docs.microsoft.com/en-us/sql/t-sql/functions/analytic-functions-transact-sql
 analyticWindowedFunction
-    : (FIRST_VALUE | LAST_VALUE) LPAREN expression RPAREN overClause
-    | (LAG | LEAD) LPAREN expression (COMMA expression (COMMA expression)?)? RPAREN overClause
+    : (FIRST_VALUE | LAST_VALUE) LPAREN expression RPAREN
+    | (LAG | LEAD) LPAREN expression (COMMA expression (COMMA expression)?)? RPAREN
     | (CUME_DIST | PERCENT_RANK) LPAREN RPAREN OVER LPAREN (PARTITION BY expressionList)? orderByClause RPAREN
     | (PERCENTILE_CONT | PERCENTILE_DISC) LPAREN expression RPAREN WITHIN GROUP LPAREN orderByClause RPAREN OVER LPAREN (
         PARTITION BY expressionList
     )? RPAREN
     ;
 
-allDistinctExpression
-    : (ALL | DISTINCT)? expression
-    ;
-
 // https://msdn.microsoft.com/en-us/library/ms189461.aspx
 overClause
-    : OVER LPAREN (PARTITION BY expressionList)? orderByClause? rowOrRangeClause? RPAREN
+    : OVER LPAREN (PARTITION BY expression (COMMA expression)*)? orderByClause? rowOrRangeClause? RPAREN
     ;
 
 rowOrRangeClause
@@ -4845,7 +4827,6 @@ keyword
     | AUTOGROW_ALL_FILES
     | AUTOGROW_SINGLE_FILE
     | AVAILABILITY
-    | AVG
     | BACKUP_CLONEDB
     | BACKUP_PRIORITY
     | BASE64
@@ -4873,7 +4854,6 @@ keyword
     | CHECKDB
     | CHECKFILEGROUP
     | CHECKSUM
-    | CHECKSUM_AGG
     | CHECKTABLE
     | CLEANTABLE
     | CLEANUP
@@ -4893,8 +4873,6 @@ keyword
     | CONTENT
     | CONTROL
     | COOKIE
-    | COUNT
-    | COUNT_BIG
     | COUNTER
     | CPU
     | CREATE_NEW
@@ -4920,7 +4898,6 @@ keyword
     | DELAY
     | DELAYED_DURABILITY
     | DELETED
-    | DENSE_RANK
     | DEPENDENTS
     | DES
     | DESCRIPTION
@@ -4988,7 +4965,6 @@ keyword
     | GO
     | GROUP_MAX_REQUESTS
     | GROUPING
-    | GROUPING_ID
     | HADR
     | HASH
     | HEALTH_CHECK_TIMEOUT
@@ -5063,7 +5039,6 @@ keyword
     | MEDIUM
     | MEMORY_OPTIMIZED_DATA
     | MESSAGE
-    | MIN
     | MIN_CPU_PERCENT
     | MIN_IOPS_PER_VOLUME
     | MIN_MEMORY_PERCENT
@@ -5160,7 +5135,6 @@ keyword
     | QUOTED_IDENTIFIER
     | RANDOMIZED
     | RANGE
-    | RANK
     | RC2
     | RC4
     | RC4_128
@@ -5207,7 +5181,6 @@ keyword
     | ROOT
     | ROUTE
     | ROW
-    | ROW_NUMBER
     | ROWGUID
     | ROWLOCK
     | ROWS
@@ -5260,13 +5233,10 @@ keyword
     | STATS_STREAM
     | STATUS
     | STATUSONLY
-    | STDEV
-    | STDEVP
     | STOPLIST
     | SUBJECT
     | SUBSCRIBE
     | SUBSCRIPTION
-    | SUM
     | SUSPEND
     | SYMMETRIC
     | SYNCHRONOUS_COMMIT
@@ -5309,9 +5279,7 @@ keyword
     | VALIDATION
     | VALUE
     | VALUE_SQUARE_BRACKET
-    | VAR
     | VARBINARY_KEYWORD
-    | VARP
     | VERIFY_CLONEDB
     | VERSION
     | VIEW_METADATA
