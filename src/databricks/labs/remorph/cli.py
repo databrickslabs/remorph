@@ -98,7 +98,7 @@ def _get_spark_session(ws: WorkspaceClient) -> SparkSession:
 
 @remorph.command
 def generate_lineage(w: WorkspaceClient, source: str, input_sql: str, output_folder: str):
-    """Generates a lineage of source SQL files or folder"""
+    """[Experimental] Generates a lineage of source SQL files or folder"""
     logger.info(f"User: {w.current_user.me()}")
     if source.lower() not in SQLGLOT_DIALECTS:
         raise_validation_exception(f"Error: Invalid value for '--source': '{source}' is not one of {DIALECTS}. ")

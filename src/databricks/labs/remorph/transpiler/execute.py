@@ -148,7 +148,7 @@ def _process_recursive_dirs(config: MorphConfig, validator: Validator, transpile
 @timeit
 def morph(workspace_client: WorkspaceClient, config: MorphConfig):
     """
-    Transpiles the SQL queries from one dialect to another.
+    [Experimental] Transpiles the SQL queries from one dialect to another.
 
     :param config: The configuration for the morph operation.
     :param workspace_client: The WorkspaceClient object.
@@ -221,19 +221,30 @@ def _verify_workspace_client(workspace_client: WorkspaceClient) -> WorkspaceClie
 
 
 def _parse(
-    transpiler: SqlglotEngine, write_dialect: Dialect, sql: str, input_file: str | Path, error_list: list[ParserError]
+    transpiler: SqlglotEngine,
+    write_dialect: Dialect,
+    sql: str,
+    input_file: str | Path,
+    error_list: list[ParserError],
 ) -> TranspilationResult:
     return transpiler.transpile(write_dialect, sql, str(input_file), error_list)
 
 
-def _validation(validator: Validator, config: MorphConfig, sql: str) -> ValidationResult:
+def _validation(
+    validator: Validator,
+    config: MorphConfig,
+    sql: str,
+) -> ValidationResult:
     return validator.validate_format_result(config, sql)
 
 
 @timeit
 def morph_sql(
-    workspace_client: WorkspaceClient, config: MorphConfig, sql: str
+    workspace_client: WorkspaceClient,
+    config: MorphConfig,
+    sql: str,
 ) -> tuple[TranspilationResult, ValidationResult | None]:
+    """[Experimental] Transpile a single SQL query from one dialect to another."""
     workspace_client: WorkspaceClient = _verify_workspace_client(workspace_client)
 
     read_dialect: Dialect = config.get_read_dialect()
@@ -251,8 +262,11 @@ def morph_sql(
 
 @timeit
 def morph_column_exp(
-    workspace_client: WorkspaceClient, config: MorphConfig, expressions: list[str]
+    workspace_client: WorkspaceClient,
+    config: MorphConfig,
+    expressions: list[str],
 ) -> list[tuple[TranspilationResult, ValidationResult | None]]:
+    """[Experimental] Transpile a list of SQL expressions from one dialect to another."""
     config.skip_validation = True
     result = []
     for sql in expressions:

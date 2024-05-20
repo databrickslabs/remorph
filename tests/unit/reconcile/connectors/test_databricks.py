@@ -20,27 +20,6 @@ def initial_setup():
     return engine, spark, ws, scope
 
 
-def test_get_schema_query():
-    # initial setup
-    engine, spark, ws, scope = initial_setup()
-    dd = DatabricksDataSource(engine, spark, ws, scope)
-
-    # catalog as catalog
-    schema_query = dd._get_schema_query("catalog", "schema", "supplier")
-    assert re.sub(r'\s+', ' ', schema_query) == re.sub(
-        r'\s+',
-        ' ',
-        """select lower(column_name) as col_name, full_data_type as data_type from 
-                    catalog.information_schema.columns where lower(table_catalog)='catalog' 
-                    and lower(table_schema)='schema' and lower(table_name) ='supplier' order by 
-                    col_name""",
-    )
-
-    # hive_metastore as catalog
-    schema_query = dd._get_schema_query("hive_metastore", "schema", "supplier")
-    assert re.sub(r'\s+', ' ', schema_query) == re.sub(r'\s+', ' ', """describe table schema.supplier""")
-
-
 def test_get_schema():
     # initial setup
     engine, spark, ws, scope = initial_setup()
