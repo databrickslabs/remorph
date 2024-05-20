@@ -51,10 +51,7 @@ class Thresholds:
 
         if any(self.type in numeric_type.value.lower() for numeric_type in exp.DataType.TEMPORAL_TYPES):
             return "datetime"
-
-        error_message = f"Threshold type {self.type} not supported in column {self.column_name}"
-        logger.error(error_message)
-        raise ValueError(error_message)
+        return None
 
 
 @dataclass
