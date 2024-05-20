@@ -1,4 +1,5 @@
 import base64
+import re
 from unittest.mock import MagicMock, create_autospec
 
 import pytest
@@ -102,7 +103,10 @@ def test_get_schema():
     spark.read.format.assert_called_with("jdbc")
     spark.read.format().option().option().option.assert_called_with(
         "dbtable",
-        r"""(select column_name, case when (data_precision is not null
+        re.sub(
+            r'\s+',
+            ' ',
+            r"""(select column_name, case when (data_precision is not null
                                               and data_scale <> 0)
                                               then data_type || '(' || data_precision || ',' || data_scale || ')'
                                               when (data_precision is not null and data_scale = 0)
@@ -113,7 +117,8 @@ def test_get_schema():
                                               else data_type || '(' || CHAR_LENGTH || ')'
                                               end data_type
                                               FROM ALL_TAB_COLUMNS
-                            WHERE lower(TABLE_NAME) = 'employee' and lower(owner) = 'data' ) tmp""",
+                            WHERE lower(TABLE_NAME) = 'employee' and lower(owner) = 'data') tmp""",
+        ),
     )
 
 

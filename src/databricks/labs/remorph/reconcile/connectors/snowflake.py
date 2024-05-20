@@ -12,6 +12,12 @@ from databricks.sdk import WorkspaceClient
 
 
 class SnowflakeDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
+    _DRIVER = "snowflake"
+    _SCHEMA_QUERY = """select column_name, case when numeric_precision is not null and numeric_scale is not null then 
+        concat(data_type, '(', numeric_precision, ',' , numeric_scale, ')') when lower(data_type) = 'text' then 
+        concat('varchar', '(', CHARACTER_MAXIMUM_LENGTH, ')')  else data_type end as data_type from 
+        {catalog}.INFORMATION_SCHEMA.COLUMNS where lower(table_name)='{table}' 
+        and lower(table_schema) = '{schema}' order by ordinal_position"""
 
     def __init__(
         self,
@@ -24,12 +30,11 @@ class SnowflakeDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
         self._spark = spark
         self._ws = ws
         self._secret_scope = secret_scope
-        self._driver ="net.snowflake.client.jdbc.SnowflakeDriver"
 
     @property
     def get_jdbc_url(self) -> str:
         return (
-            f"jdbc:{self._driver}://{self._get_secret('sfAccount')}.snowflakecomputing.com"
+            f"jdbc:{SnowflakeDataSource._DRIVER}://{self._get_secret('sfAccount')}.snowflakecomputing.com"
             f"/?user={self._get_secret('sfUser')}&password={self._get_secret('sfPassword')}"
             f"&db={self._get_secret('sfDatabase')}&schema={self._get_secret('sfSchema')}"
             f"&warehouse={self._get_secret('sfWarehouse')}&role={self._get_secret('sfRole')}"
@@ -44,13 +49,21 @@ class SnowflakeDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
                 df = self.reader(table_query).load()
             else:
                 options = self._get_jdbc_reader_options(options)
-                df = self._get_jdbc_reader(table_query, self.get_jdbc_url, self._driver).options(**options).load()
+                df = (
+                    self._get_jdbc_reader(table_query, self.get_jdbc_url, SnowflakeDataSource._DRIVER)
+                    .options(**options)
+                    .load()
+                )
             return df.select([col(column).alias(column.lower()) for column in df.columns])
         except RuntimeError as e:
             raise self._raise_runtime_exception(e, "data", table_query)
 
     def get_schema(self, catalog: str, schema: str, table: str) -> list[Schema]:
-        schema_query = SnowflakeDataSource._get_schema_query(catalog, schema, table)
+        schema_query = re.sub(
+            r'\s+',
+            ' ',
+            SnowflakeDataSource._SCHEMA_QUERY.format(catalog=catalog, schema=schema, table=table),
+        )
         try:
             schema_df = self.reader(schema_query).load()
             return [Schema(field.column_name.lower(), field.data_type.lower()) for field in schema_df.collect()]
@@ -68,12 +81,3 @@ class SnowflakeDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
             "sfRole": self._get_secret('sfRole'),
         }
         return self._spark.read.format("snowflake").option("dbtable", f"({query}) as tmp").options(**options)
-
-    @staticmethod
-    def _get_schema_query(catalog: str, schema: str, table: str):
-        query = f"""select column_name, case when numeric_precision is not null and numeric_scale is not null then 
-        concat(data_type, '(', numeric_precision, ',' , numeric_scale, ')') when lower(data_type) = 'text' then 
-        concat('varchar', '(', CHARACTER_MAXIMUM_LENGTH, ')')  else data_type end as data_type from 
-        {catalog}.INFORMATION_SCHEMA.COLUMNS where lower(table_name)='{table}' 
-        and lower(table_schema) = '{schema}' order by ordinal_position"""
-        return re.sub(r'\s+', ' ', query)
