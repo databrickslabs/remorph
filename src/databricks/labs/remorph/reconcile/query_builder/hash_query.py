@@ -1,7 +1,6 @@
 import sqlglot.expressions as exp
 from sqlglot import Dialect
 
-from databricks.labs.remorph.reconcile.constants import Constants
 from databricks.labs.remorph.reconcile.query_builder.base import QueryBuilder
 from databricks.labs.remorph.reconcile.query_builder.expression_generator import (
     build_column,
@@ -11,8 +10,11 @@ from databricks.labs.remorph.reconcile.query_builder.expression_generator import
     transform_expression,
 )
 
+_HASH_COLUMN_NAME = "hash_value_recon"
+
 
 class HashQueryBuilder(QueryBuilder):
+
     def build_query(self) -> str:
         hash_cols = sorted((self.join_columns | self.select_columns) - self.threshold_columns - self.drop_columns)
         key_cols = sorted(self.join_columns | self.partition_column)
@@ -23,7 +25,7 @@ class HashQueryBuilder(QueryBuilder):
         ]
 
         key_cols_with_transform = self.add_transformations(cols_with_alias, self.source)
-        hash_col_with_transform = [self._generate_hash_algorithm(hash_cols)]
+        hash_col_with_transform = [self._generate_hash_algorithm(hash_cols, _HASH_COLUMN_NAME)]
 
         res = (
             exp.select(*hash_col_with_transform + key_cols_with_transform)
@@ -34,7 +36,7 @@ class HashQueryBuilder(QueryBuilder):
 
         return res
 
-    def _generate_hash_algorithm(self, cols: list[str]) -> exp.Expression:
+    def _generate_hash_algorithm(self, cols: list[str], column_alias: str) -> exp.Expression:
         cols_with_alias = [build_column(this=col, alias=None) for col in cols]
         cols_with_transform = self.add_transformations(cols_with_alias, self.source)
         col_exprs = exp.select(*cols_with_transform).iter_expressions()
@@ -42,7 +44,7 @@ class HashQueryBuilder(QueryBuilder):
 
         hash_expr = concat_expr.transform(self._hash_transform, self.source).transform(lower, is_expr=True)
 
-        return build_column(hash_expr, alias=Constants.hash_column_name)
+        return build_column(hash_expr, alias=column_alias)
 
     @staticmethod
     def _hash_transform(node: exp.Expression, source: Dialect):

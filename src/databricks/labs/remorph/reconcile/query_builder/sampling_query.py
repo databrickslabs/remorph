@@ -2,12 +2,13 @@ import sqlglot.expressions as exp
 from pyspark.sql import DataFrame
 from sqlglot import select
 
-from databricks.labs.remorph.reconcile.constants import SampleConfig
 from databricks.labs.remorph.reconcile.query_builder.base import QueryBuilder
 from databricks.labs.remorph.reconcile.query_builder.expression_generator import (
     build_column,
     build_literal,
 )
+
+_SAMPLE_ROWS = 50
 
 
 def _union_concat(unions: list[exp.Select], result: exp.Union | exp.Select, cnt=0) -> exp.Select | exp.Union:
@@ -50,7 +51,7 @@ class SamplingQueryBuilder(QueryBuilder):
     @staticmethod
     def _get_with_clause(df: DataFrame) -> exp.Select:
         union_res = []
-        for row in df.take(SampleConfig.SAMPLE_ROWS):
+        for row in df.take(_SAMPLE_ROWS):
             row_select = [build_literal(this=value, alias=col, is_string=False) for col, value in zip(df.columns, row)]
             union_res.append(select(*row_select))
         union_statements = _union_concat(union_res, union_res[0], 0)

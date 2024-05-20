@@ -1,15 +1,29 @@
+import re
+
 from pyspark.sql import DataFrame, DataFrameReader, SparkSession
 from sqlglot import Dialect
 
 from databricks.labs.remorph.reconcile.connectors.data_source import DataSource
 from databricks.labs.remorph.reconcile.connectors.jdbc_reader import JDBCReaderMixin
 from databricks.labs.remorph.reconcile.connectors.secrets import SecretsMixin
-from databricks.labs.remorph.reconcile.constants import SourceDriver, SourceType
 from databricks.labs.remorph.reconcile.recon_config import JdbcReaderOptions, Schema
 from databricks.sdk import WorkspaceClient
 
 
 class OracleDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
+    _DRIVER = "oracle"
+    _SCHEMA_QUERY = """select column_name, case when (data_precision is not null
+                                              and data_scale <> 0)
+                                              then data_type || '(' || data_precision || ',' || data_scale || ')'
+                                              when (data_precision is not null and data_scale = 0)
+                                              then data_type || '(' || data_precision || ')'
+                                              when data_precision is null and (lower(data_type) in ('date') or
+                                              lower(data_type) like 'timestamp%') then  data_type
+                                              when CHAR_LENGTH == 0 then data_type
+                                              else data_type || '(' || CHAR_LENGTH || ')'
+                                              end data_type
+                                              FROM ALL_TAB_COLUMNS
+                            WHERE lower(TABLE_NAME) = '{table}' and lower(owner) = '{owner}'"""
 
     def __init__(
         self,
@@ -26,7 +40,7 @@ class OracleDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
     @property
     def get_jdbc_url(self) -> str:
         return (
-            f"jdbc:{SourceType.ORACLE.value}:thin:{self._get_secret('user')}"
+            f"jdbc:{OracleDataSource._DRIVER}:thin:{self._get_secret('user')}"
             f"/{self._get_secret('password')}@//{self._get_secret('host')}"
             f":{self._get_secret('port')}/{self._get_secret('database')}"
         )
@@ -44,7 +58,11 @@ class OracleDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
             raise self._raise_runtime_exception(e, "data", table_query)
 
     def get_schema(self, catalog: str | None, schema: str, table: str) -> list[Schema]:
-        schema_query = OracleDataSource._get_schema_query(table, schema)
+        schema_query = re.sub(
+            r'\s+',
+            ' ',
+            OracleDataSource._SCHEMA_QUERY.format(table=table, owner=schema),
+        )
         try:
             schema_df = self.reader(schema_query).load()
             return [Schema(field.column_name.lower(), field.data_type.lower()) for field in schema_df.collect()]
@@ -61,19 +79,4 @@ class OracleDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
         }
 
     def reader(self, query: str) -> DataFrameReader:
-        return self._get_jdbc_reader(query, self.get_jdbc_url, SourceDriver.ORACLE.value)
-
-    @staticmethod
-    def _get_schema_query(table: str, owner: str) -> str:
-        return f"""select column_name, case when (data_precision is not null
-                                              and data_scale <> 0)
-                                              then data_type || '(' || data_precision || ',' || data_scale || ')'
-                                              when (data_precision is not null and data_scale = 0)
-                                              then data_type || '(' || data_precision || ')'
-                                              when data_precision is null and (lower(data_type) in ('date') or
-                                              lower(data_type) like 'timestamp%') then  data_type
-                                              when CHAR_LENGTH == 0 then data_type
-                                              else data_type || '(' || CHAR_LENGTH || ')'
-                                              end data_type
-                                              FROM ALL_TAB_COLUMNS
-                            WHERE lower(TABLE_NAME) = '{table}' and lower(owner) = '{owner}' """
+        return self._get_jdbc_reader(query, self.get_jdbc_url, OracleDataSource._DRIVER)
