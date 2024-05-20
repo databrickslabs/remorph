@@ -110,8 +110,44 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
 
   "translate windowing functions in all forms" in {
     example(
+      """SUM(salary) OVER (PARTITION BY department ORDER BY employee_id
+         RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)""",
+      _.expression(),
+      ir.Window(
+        ir.CallFunction("SUM", Seq(ir.Column("salary"))),
+        Seq(ir.Column("department")),
+        Seq(ir.SortOrder(ir.Column("employee_id"), ir.AscendingSortDirection, ir.SortNullsUnspecified)),
+        ir.WindowFrame(
+          ir.RangeFrame,
+          ir.FrameBoundary(current_row = false, unbounded = true, ir.Noop),
+          ir.FrameBoundary(current_row = true, unbounded = false, ir.Noop))))
+    example(
+      "SUM(salary) OVER (PARTITION BY department ORDER BY employee_id ROWS UNBOUNDED PRECEDING)",
+      _.expression(),
+      ir.Window(
+        ir.CallFunction("SUM", Seq(ir.Column("salary"))),
+        Seq(ir.Column("department")),
+        Seq(ir.SortOrder(ir.Column("employee_id"), ir.AscendingSortDirection, ir.SortNullsUnspecified)),
+        ir.WindowFrame(
+          ir.RowsFrame,
+          ir.FrameBoundary(current_row = false, unbounded = true, ir.Noop),
+          ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop))))
+
+    example(
+      "SUM(salary) OVER (PARTITION BY department ORDER BY employee_id ROWS 66 PRECEDING)",
+      _.expression(),
+      ir.Window(
+        ir.CallFunction("SUM", Seq(ir.Column("salary"))),
+        Seq(ir.Column("department")),
+        Seq(ir.SortOrder(ir.Column("employee_id"), ir.AscendingSortDirection, ir.SortNullsUnspecified)),
+        ir.WindowFrame(
+          ir.RowsFrame,
+          ir.FrameBoundary(current_row = false, unbounded = false, ir.Literal(integer = Some(66))),
+          ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop))))
+
+    example(
       query = """
-      AVG(salary) OVER (PARTITION BY department_id ORDER BY employee_id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) as avg_salary
+      AVG(salary) OVER (PARTITION BY department_id ORDER BY employee_id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)
     """,
       _.expression(),
       ir.Window(
@@ -125,7 +161,7 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
 
     example(
       query = """
-      SUM(sales) OVER (ORDER BY month ROWS BETWEEN CURRENT ROW AND 2 FOLLOWING) as rolling_sales
+      SUM(sales) OVER (ORDER BY month ROWS BETWEEN CURRENT ROW AND 2 FOLLOWING)
     """,
       _.expression(),
       ir.Window(
@@ -137,13 +173,37 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
           ir.FrameBoundary(current_row = true, unbounded = false, ir.Noop),
           ir.FrameBoundary(current_row = false, unbounded = false, ir.Literal(integer = Some(2))))))
 
+    example(
+      "ROW_NUMBER() OVER (PARTITION BY department ORDER BY salary DESC)",
+      _.selectListElem(),
+      ir.Window(
+        ir.CallFunction("ROW_NUMBER", Seq.empty),
+        Seq(ir.Column("department")),
+        Seq(ir.SortOrder(ir.Column("salary"), ir.DescendingSortDirection, ir.SortNullsUnspecified)),
+        ir.WindowFrame(
+          ir.UndefinedFrame,
+          ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop),
+          ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop))))
+
+    example(
+      "ROW_NUMBER() OVER (PARTITION BY department)",
+      _.selectListElem(),
+      ir.Window(
+        ir.CallFunction("ROW_NUMBER", Seq.empty),
+        Seq(ir.Column("department")),
+        List(),
+        ir.WindowFrame(
+          ir.UndefinedFrame,
+          ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop),
+          ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop))))
+
   }
 
   // TODO: Analytic functions are next
   "translate analytic windowing functions in all forms" ignore {
     example(
       query = """
-    LEAD(salary, 1) OVER (PARTITION BY department_id ORDER BY employee_id DESC) as next_salary
+    LEAD(salary, 1) OVER (PARTITION BY department_id ORDER BY employee_id DESC)
   """,
       _.expression(),
       ir.Window(

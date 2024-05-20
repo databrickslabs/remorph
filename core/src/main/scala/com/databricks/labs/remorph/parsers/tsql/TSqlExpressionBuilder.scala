@@ -268,16 +268,19 @@ class TSqlExpressionBuilder extends TSqlParserBaseVisitor[ir.Expression] with Pa
         ir.SortOrder(expression, sortOrder, ir.SortNullsUnspecified)
       })
       .getOrElse(List.empty)
+
     val rowRange = Option(ctx.overClause().rowOrRangeClause())
       .map(buildWindowFrame)
-      .getOrElse(
-        ir.WindowFrame(
-          ir.UndefinedFrame,
-          ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop),
-          ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop)))
+      .getOrElse(noWindowFrame)
 
     ir.Window(windowFunction, partitionByExpressions, orderByExpressions, rowRange)
   }
+
+  private def noWindowFrame: ir.WindowFrame =
+    ir.WindowFrame(
+      ir.UndefinedFrame,
+      ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop),
+      ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop))
 
   private def buildWindowFrame(ctx: RowOrRangeClauseContext): ir.WindowFrame = {
     val frameType = buildFrameType(ctx)
@@ -292,17 +295,13 @@ class TSqlExpressionBuilder extends TSqlParserBaseVisitor[ir.Expression] with Pa
         }
         ir.WindowFrame(frameType, frameStart, frameEnd)
       case _ => // Cannot reach
-        ir.WindowFrame(
-          frameType,
-          ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop),
-          ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop))
+        noWindowFrame
     }
   }
 
   private def buildFrameType(ctx: RowOrRangeClauseContext): ir.FrameType = {
     if (Option(ctx.ROWS()).isDefined) ir.RowsFrame
-    else if (Option(ctx.RANGE()).isDefined) ir.RangeFrame
-    else ir.UndefinedFrame
+    else ir.RangeFrame
   }
 
   private def buildFrame(ctx: WindowFrameBoundContext): ir.FrameBoundary = {
