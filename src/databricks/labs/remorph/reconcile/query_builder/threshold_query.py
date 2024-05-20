@@ -189,11 +189,22 @@ class ThresholdQueryBuilder(QueryBuilder):
         Returns:
             str: The SQL string representation of the threshold query.
         """
-        keys: list[str] = sorted(self.partition_column.union(self.join_columns).union(self.threshold_columns))
-        select_clause = [
+        # key column expression
+        keys: list[str] = sorted(self.partition_column.union(self.join_columns))
+        keys_select_alias = [
             build_column(this=col, alias=self.table_conf.get_tgt_to_src_col_mapping(col, self.layer)) for col in keys
         ]
-        select_clause = self.add_transformations(select_clause, self.source)
-        query = select(*select_clause).from_(":tbl").where(self.filter)
+        keys_expr = self.add_transformations(keys_select_alias, self.source)
+
+        # threshold column expression
+        threshold_alias = [
+            build_column(this=col, alias=self.table_conf.get_tgt_to_src_col_mapping(col, self.layer))
+            for col in sorted(self.threshold_columns)
+        ]
+        thresholds_expr = threshold_alias
+        if self.user_transformations:
+            thresholds_expr = self._apply_user_transformation(threshold_alias)
+
+        query = select(*keys_expr + thresholds_expr).from_(":tbl").where(self.filter)
         logger.info(f"{self.source} Threshold query: {query}")
         return query.sql(dialect=self.source)
