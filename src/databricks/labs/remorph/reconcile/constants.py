@@ -19,16 +19,3 @@ class SourceType(AutoName):
     NETEZZA = auto()
     ORACLE = auto()
     DATABRICKS = auto()
-
-
-class Layer(AutoName):
-    SOURCE = auto()
-    TARGET = auto()
-
-
-class ThresholdMode(AutoName):
-    PERCENTAGE = "percentage"
-    ABSOLUTE = "absolute"
-    NUMBER_ABSOLUTE = "number_absolute"
-    NUMBER_PERCENTAGE = "number_percentage"
-    DATETIME = "datetime"

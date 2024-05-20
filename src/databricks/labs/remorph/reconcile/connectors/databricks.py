@@ -10,6 +10,19 @@ from databricks.labs.remorph.reconcile.recon_config import JdbcReaderOptions, Sc
 from databricks.sdk import WorkspaceClient
 
 
+def _get_schema_query(catalog: str, schema: str, table: str):
+    # TODO: Ensure that the target_catalog in the configuration is not set to "hive_metastore". The source_catalog
+    #  can only be set to "hive_metastore" if the source type is "databricks".
+    if catalog == "hive_metastore":
+        return f"describe table {schema}.{table}"
+
+    query = f"""select lower(column_name) as col_name, full_data_type as data_type from 
+                {catalog}.information_schema.columns where lower(table_catalog)='{catalog}' 
+                and lower(table_schema)='{schema}' and lower(table_name) ='{table}' order by 
+                col_name"""
+    return re.sub(r'\s+', ' ', query)
+
+
 class DatabricksDataSource(DataSource, SecretsMixin):
 
     def __init__(
@@ -25,7 +38,12 @@ class DatabricksDataSource(DataSource, SecretsMixin):
         self._secret_scope = secret_scope
 
     def read_data(
-        self, catalog: str, schema: str, table: str, query: str, options: JdbcReaderOptions | None
+        self,
+        catalog: str,
+        schema: str,
+        table: str,
+        query: str,
+        options: JdbcReaderOptions | None,
     ) -> DataFrame:
         table_with_namespace = f"{catalog}.{schema}.{table}"
         if catalog is None or catalog == "hive_metastore":
@@ -37,23 +55,15 @@ class DatabricksDataSource(DataSource, SecretsMixin):
         except RuntimeError as e:
             raise self._raise_runtime_exception(e, "data", table_query)
 
-    def get_schema(self, catalog: str, schema: str, table: str) -> list[Schema]:
-        schema_query = DatabricksDataSource._get_schema_query(catalog, schema, table)
+    def get_schema(
+        self,
+        catalog: str,
+        schema: str,
+        table: str,
+    ) -> list[Schema]:
+        schema_query = _get_schema_query(catalog, schema, table)
         try:
             schema_df = self._spark.sql(schema_query).where("col_name not like '#%'").distinct()
             return [Schema(field.col_name.lower(), field.data_type.lower()) for field in schema_df.collect()]
         except RuntimeError as e:
             raise self._raise_runtime_exception(e, "schema", schema_query)
-
-    @staticmethod
-    def _get_schema_query(catalog: str, schema: str, table: str):
-        # TODO: Ensure that the target_catalog in the configuration is not set to "hive_metastore". The source_catalog
-        #  can only be set to "hive_metastore" if the source type is "databricks".
-        if catalog == "hive_metastore":
-            return f"describe table {schema}.{table}"
-
-        query = f"""select lower(column_name) as col_name, full_data_type as data_type from 
-                    {catalog}.information_schema.columns where lower(table_catalog)='{catalog}' 
-                    and lower(table_schema)='{schema}' and lower(table_name) ='{table}' order by 
-                    col_name"""
-        return re.sub(r'\s+', ' ', query)

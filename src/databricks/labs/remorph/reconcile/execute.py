@@ -13,7 +13,6 @@ from databricks.labs.remorph.reconcile.connectors.data_source import DataSource
 from databricks.labs.remorph.reconcile.connectors.source_adapter import (
     DataSourceAdapter,
 )
-from databricks.labs.remorph.reconcile.constants import Layer
 from databricks.labs.remorph.reconcile.query_builder.hash_query import HashQueryBuilder
 from databricks.labs.remorph.reconcile.query_builder.sampling_query import (
     SamplingQueryBuilder,
@@ -123,8 +122,8 @@ class Reconciliation:
         return self._schema_comparator.compare(src_schema, tgt_schema, self._source_engine, table_conf)
 
     def _get_reconcile_output(self, table_conf, src_schema, tgt_schema):
-        src_hash_query = HashQueryBuilder(table_conf, src_schema, Layer.SOURCE.value, self._source_engine).build_query()
-        tgt_hash_query = HashQueryBuilder(table_conf, tgt_schema, Layer.TARGET.value, self._target_engine).build_query()
+        src_hash_query = HashQueryBuilder(table_conf, src_schema, "source", self._source_engine).build_query()
+        tgt_hash_query = HashQueryBuilder(table_conf, tgt_schema, "target", self._target_engine).build_query()
         src_data = self._source.read_data(
             catalog=self._source_catalog,
             schema=self._source_schema,
@@ -154,8 +153,8 @@ class Reconciliation:
             or reconcile_output.missing_in_src_count > 0
             or reconcile_output.missing_in_tgt_count > 0
         ):
-            src_sampler = SamplingQueryBuilder(table_conf, src_schema, Layer.SOURCE.value, self._source_engine)
-            tgt_sampler = SamplingQueryBuilder(table_conf, tgt_schema, Layer.TARGET.value, self._target_engine)
+            src_sampler = SamplingQueryBuilder(table_conf, src_schema, "source", self._source_engine)
+            tgt_sampler = SamplingQueryBuilder(table_conf, tgt_schema, "target", self._target_engine)
             if reconcile_output.mismatch_count > 0:
                 mismatch = self._get_mismatch_data(
                     src_sampler,
@@ -218,10 +217,10 @@ class Reconciliation:
 
     def _get_threshold_output(self, table_conf: Table, src_schema: list[Schema], tgt_schema: list[Schema]):
         src_threshold_query = ThresholdQueryBuilder(
-            table_conf, src_schema, Layer.SOURCE.value, self._source_engine
+            table_conf, src_schema, "source", self._source_engine
         ).build_threshold_query()
         tgt_threshold_query = ThresholdQueryBuilder(
-            table_conf, tgt_schema, Layer.TARGET.value, self._target_engine
+            table_conf, tgt_schema, "target", self._target_engine
         ).build_threshold_query()
 
         src_data = self._source.read_data(
@@ -246,7 +245,7 @@ class Reconciliation:
         tgt_data.createOrReplaceTempView(target_view)
 
         threshold_comparison_query = ThresholdQueryBuilder(
-            table_conf, src_schema, Layer.TARGET.value, self._target_engine
+            table_conf, src_schema, "target", self._target_engine
         ).build_comparison_query()
 
         threshold_result = self._target.read_data(
@@ -256,7 +255,7 @@ class Reconciliation:
             query=threshold_comparison_query,
             options=table_conf.jdbc_reader_options,
         )
-        threshold_columns = table_conf.get_threshold_columns(Layer.SOURCE.value)
+        threshold_columns = table_conf.get_threshold_columns("source")
         failed_where_cond = " OR ".join([name + "_match = 'Failed'" for name in threshold_columns])
         mismatched_df = threshold_result.filter(failed_where_cond)
         mismatched_count = mismatched_df.count()
