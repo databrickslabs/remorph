@@ -3981,6 +3981,7 @@ predicate
     | expression NOT* IN LPAREN (subquery | expressionList) RPAREN
     | expression NOT* LIKE expression (ESCAPE expression)?
     | expression IS nullNotnull
+    | expression
     ;
 
 queryExpression

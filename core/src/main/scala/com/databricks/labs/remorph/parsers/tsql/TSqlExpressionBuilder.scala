@@ -115,10 +115,9 @@ class TSqlExpressionBuilder extends TSqlParserBaseVisitor[ir.Expression] with Pa
       .map { section =>
         section.accept(this) match {
           case wb: ir.WhenBranch => wb
-          case _ => throw new RuntimeException("Expected a WhenBranch")
+          case _ => throw new RuntimeException("Expected a WhenBranch") // Cannot reach
         }
       }
-      .toSeq
 
     ir.Case(caseExpr, whenThenPairs, elseExpr)
   }
@@ -149,16 +148,19 @@ class TSqlExpressionBuilder extends TSqlParserBaseVisitor[ir.Expression] with Pa
   override def visitScPrec(ctx: TSqlParser.ScPrecContext): ir.Expression = ctx.searchCondition.accept(this)
 
   override def visitPredicate(ctx: TSqlParser.PredicateContext): ir.Expression = {
-    val left = ctx.expression(0).accept(this)
-    val right = ctx.expression(1).accept(this)
-
-    ctx.comparisonOperator match {
-      case op if op.LT != null && op.EQ != null => ir.LesserThanOrEqual(left, right)
-      case op if op.GT != null && op.EQ != null => ir.GreaterThanOrEqual(left, right)
-      case op if op.LT != null && op.GT != null => ir.NotEquals(left, right)
-      case op if op.EQ != null => ir.Equals(left, right)
-      case op if op.GT != null => ir.GreaterThan(left, right)
-      case op if op.LT != null => ir.LesserThan(left, right)
+    ctx.expression().size() match {
+      case 1 => ctx.expression(0).accept(this)
+      case _ =>
+        val left = ctx.expression(0).accept(this)
+        val right = ctx.expression(1).accept(this)
+        ctx.comparisonOperator match {
+          case op if op.LT != null && op.EQ != null => ir.LesserThanOrEqual(left, right)
+          case op if op.GT != null && op.EQ != null => ir.GreaterThanOrEqual(left, right)
+          case op if op.LT != null && op.GT != null => ir.NotEquals(left, right)
+          case op if op.EQ != null => ir.Equals(left, right)
+          case op if op.GT != null => ir.GreaterThan(left, right)
+          case op if op.LT != null => ir.LesserThan(left, right)
+        }
     }
   }
 
