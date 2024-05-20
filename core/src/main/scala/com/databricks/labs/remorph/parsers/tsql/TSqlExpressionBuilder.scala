@@ -102,6 +102,30 @@ class TSqlExpressionBuilder extends TSqlParserBaseVisitor[ir.Expression] with Pa
     }
   }
 
+  override def visitExprCase(ctx: ExprCaseContext): ir.Expression = {
+    ctx.caseExpression().accept(this)
+  }
+
+  override def visitCaseExpression(ctx: CaseExpressionContext): ir.Expression = {
+    val caseExpr = if (ctx.caseExpr != null) Option(ctx.caseExpr.accept(this)) else None
+    val elseExpr = if (ctx.elseExpr != null) Option(ctx.elseExpr.accept(this)) else None
+    val whenThenPairs: Seq[ir.WhenBranch] = ctx
+      .switchSection()
+      .asScala
+      .map { section =>
+        section.accept(this) match {
+          case wb: ir.WhenBranch => wb
+          case _ => throw new RuntimeException("Expected a WhenBranch")
+        }
+      }
+      .toSeq
+
+    ir.Case(caseExpr, whenThenPairs, elseExpr)
+  }
+
+  override def visitSwitchSection(ctx: SwitchSectionContext): ir.Expression =
+    ir.WhenBranch(ctx.searchCondition.accept(this), ctx.expression().accept(this))
+
   override def visitExprFunc(ctx: ExprFuncContext): ir.Expression = ctx.functionCall.accept(this)
 
   override def visitPrimitiveConstant(ctx: TSqlParser.PrimitiveConstantContext): ir.Expression = {
