@@ -11,7 +11,11 @@ from databricks.labs.remorph.reconcile.query_builder.expression_generator import
 _SAMPLE_ROWS = 50
 
 
-def _union_concat(unions: list[exp.Select], result: exp.Union | exp.Select, cnt=0) -> exp.Select | exp.Union:
+def _union_concat(
+    unions: list[exp.Select],
+    result: exp.Union | exp.Select,
+    cnt=0,
+) -> exp.Select | exp.Union:
     if len(unions) == 1:
         return result
     if cnt == len(unions) - 2:

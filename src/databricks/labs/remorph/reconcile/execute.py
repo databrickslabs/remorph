@@ -13,7 +13,6 @@ from databricks.labs.remorph.reconcile.connectors.data_source import DataSource
 from databricks.labs.remorph.reconcile.connectors.source_adapter import (
     DataSourceAdapter,
 )
-from databricks.labs.remorph.reconcile.constants import Layer
 from databricks.labs.remorph.reconcile.query_builder.hash_query import HashQueryBuilder
 from databricks.labs.remorph.reconcile.query_builder.sampling_query import (
     SamplingQueryBuilder,
@@ -114,8 +113,8 @@ class Reconciliation:
         return self._schema_comparator.compare(src_schema, tgt_schema, self._source_engine, table_conf)
 
     def _get_reconcile_output(self, table_conf, src_schema, tgt_schema):
-        src_hash_query = HashQueryBuilder(table_conf, src_schema, Layer.SOURCE.value, self._source_engine).build_query()
-        tgt_hash_query = HashQueryBuilder(table_conf, tgt_schema, Layer.TARGET.value, self._target_engine).build_query()
+        src_hash_query = HashQueryBuilder(table_conf, src_schema, "source", self._source_engine).build_query()
+        tgt_hash_query = HashQueryBuilder(table_conf, tgt_schema, "target", self._target_engine).build_query()
         src_data = self._source.read_data(
             catalog=self._source_catalog,
             schema=self._source_schema,
@@ -145,8 +144,8 @@ class Reconciliation:
             or reconcile_output.missing_in_src_count > 0
             or reconcile_output.missing_in_tgt_count > 0
         ):
-            src_sampler = SamplingQueryBuilder(table_conf, src_schema, Layer.SOURCE.value, self._source_engine)
-            tgt_sampler = SamplingQueryBuilder(table_conf, tgt_schema, Layer.TARGET.value, self._target_engine)
+            src_sampler = SamplingQueryBuilder(table_conf, src_schema, "source", self._source_engine)
+            tgt_sampler = SamplingQueryBuilder(table_conf, tgt_schema, "target", self._target_engine)
             if reconcile_output.mismatch_count > 0:
                 mismatch = self._get_mismatch_data(
                     src_sampler,

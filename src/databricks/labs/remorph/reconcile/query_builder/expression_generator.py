@@ -214,7 +214,7 @@ def build_between(this: exp.Expression, low: exp.Expression, high: exp.Expressio
     return exp.Between(this=this, low=low, high=high)
 
 
-# [TODO]NEED TO UPDATE THE KEY TO HANDLE DIALECT TYPE
+# [TODO] NEED TO UPDATE THE KEY TO HANDLE DIALECT TYPE
 DataType_transform_mapping = {
     "default": [partial(coalesce, default='', is_string=True), trim],
     "snowflake": {exp.DataType.Type.ARRAY.value: [array_to_string, array_sort]},

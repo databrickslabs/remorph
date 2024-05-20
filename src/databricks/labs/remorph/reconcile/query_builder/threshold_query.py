@@ -3,7 +3,6 @@ import logging
 from sqlglot import expressions as exp
 from sqlglot import select
 
-from databricks.labs.remorph.reconcile.constants import ThresholdMode
 from databricks.labs.remorph.reconcile.query_builder.base import QueryBuilder
 from databricks.labs.remorph.reconcile.query_builder.expression_generator import (
     anonymous,
@@ -62,7 +61,9 @@ class ThresholdQueryBuilder(QueryBuilder):
 
     @classmethod
     def _build_expression_alias_components(
-        cls, threshold: Thresholds, base: exp.Expression
+        cls,
+        threshold: Thresholds,
+        base: exp.Expression,
     ) -> tuple[list[exp.Alias], exp.Expression]:
         select_clause = []
         column = threshold.column_name
@@ -76,14 +77,16 @@ class ThresholdQueryBuilder(QueryBuilder):
         return select_clause, where_clause
 
     def _build_expression_type(
-        self, threshold: Thresholds, base: exp.Expression
+        self,
+        threshold: Thresholds,
+        base: exp.Expression,
     ) -> tuple[list[exp.Alias], exp.Expression]:
         column = threshold.column_name
         # default expressions
         select_clause, where_clause = self._build_expression_alias_components(threshold, base)
 
-        if threshold.get_type() in (ThresholdMode.NUMBER_ABSOLUTE.value, ThresholdMode.DATETIME.value):
-            if threshold.get_type() == ThresholdMode.DATETIME.value:
+        if threshold.get_type() in {"number_absolute", "datetime"}:
+            if threshold.get_type() == "datetime":
                 # unix_timestamp expression only if it is datetime
                 select_clause = [expression.transform(anonymous, "unix_timestamp({})") for expression in select_clause]
                 base = base.transform(anonymous, "unix_timestamp({})")
@@ -91,7 +94,7 @@ class ThresholdQueryBuilder(QueryBuilder):
 
             # absolute threshold
             func = self._build_threshold_absolute_case
-        elif threshold.get_type() == ThresholdMode.NUMBER_PERCENTAGE.value:
+        elif threshold.get_type() == "number_percentage":
             # percentage threshold
             func = self._build_threshold_percentage_case
         else:
@@ -119,7 +122,11 @@ class ThresholdQueryBuilder(QueryBuilder):
         return from_clause, join_clause
 
     @classmethod
-    def _build_threshold_absolute_case(cls, base: exp.Expression, threshold: Thresholds) -> exp.Case:
+    def _build_threshold_absolute_case(
+        cls,
+        base: exp.Expression,
+        threshold: Thresholds,
+    ) -> exp.Case:
         eq_if = build_if(
             this=exp.EQ(this=base, expression=build_literal(this="0", is_string=False)),
             true=exp.Identifier(this="Match", quoted=True),
@@ -138,7 +145,11 @@ class ThresholdQueryBuilder(QueryBuilder):
         return exp.Case(ifs=[eq_if, between_if], default=exp.Identifier(this="Failed", quoted=True))
 
     @classmethod
-    def _build_threshold_percentage_case(cls, base: exp.Expression, threshold: Thresholds) -> exp.Case:
+    def _build_threshold_percentage_case(
+        cls,
+        base: exp.Expression,
+        threshold: Thresholds,
+    ) -> exp.Case:
         eq_if = exp.If(
             this=exp.EQ(this=base, expression=build_literal(this="0", is_string=False)),
             true=exp.Identifier(this="Match", quoted=True),
