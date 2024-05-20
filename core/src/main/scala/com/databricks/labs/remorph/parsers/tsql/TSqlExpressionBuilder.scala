@@ -112,17 +112,12 @@ class TSqlExpressionBuilder extends TSqlParserBaseVisitor[ir.Expression] with Pa
     val whenThenPairs: Seq[ir.WhenBranch] = ctx
       .switchSection()
       .asScala
-      .map { section =>
-        section.accept(this) match {
-          case wb: ir.WhenBranch => wb
-          case _ => throw new RuntimeException("Expected a WhenBranch") // Cannot reach
-        }
-      }
+      .map(buildWhen)
 
     ir.Case(caseExpr, whenThenPairs, elseExpr)
   }
 
-  override def visitSwitchSection(ctx: SwitchSectionContext): ir.Expression =
+  private def buildWhen(ctx: SwitchSectionContext): ir.WhenBranch =
     ir.WhenBranch(ctx.searchCondition.accept(this), ctx.expression().accept(this))
 
   override def visitExprFunc(ctx: ExprFuncContext): ir.Expression = ctx.functionCall.accept(this)
