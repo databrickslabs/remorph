@@ -50,20 +50,25 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
         _.expression(),
         ir.BitwiseOr(ir.BitwiseAnd(ir.Column("a"), ir.Column("b")), ir.Column("c")))
       example(
+        "a + b * 2",
+        _.expression(),
+        ir.Add(ir.Column("a"), ir.Multiply(ir.Column("b"), ir.Literal(integer = Some(2)))))
+      example(
+        "(a + b) * 2",
+        _.expression(),
+        ir.Multiply(ir.Add(ir.Column("a"), ir.Column("b")), ir.Literal(integer = Some(2))))
+      example("a & b | c", _.expression(), ir.BitwiseOr(ir.BitwiseAnd(ir.Column("a"), ir.Column("b")), ir.Column("c")))
+      example(
+        "(a & b) | c",
+        _.expression(),
+        ir.BitwiseOr(ir.BitwiseAnd(ir.Column("a"), ir.Column("b")), ir.Column("c")))
+      example(
         "a % 3 + b * 2 - c / 5",
         _.expression(),
         ir.Subtract(
           ir.Add(
             ir.Mod(ir.Column("a"), ir.Literal(integer = Some(3))),
             ir.Multiply(ir.Column("b"), ir.Literal(integer = Some(2)))),
-          ir.Divide(ir.Column("c"), ir.Literal(integer = Some(5)))))
-      example(
-        "(a % 3 + b) * 2 - c / 5",
-        _.expression(),
-        ir.Subtract(
-          ir.Multiply(
-            ir.Add(ir.Mod(ir.Column("a"), ir.Literal(integer = Some(3))), ir.Column("b")),
-            ir.Literal(integer = Some(2))),
           ir.Divide(ir.Column("c"), ir.Literal(integer = Some(5)))))
       example(
         query = "a || b || c",
@@ -294,6 +299,83 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
           List(ir.Literal(string = Some("property"))),
           is_distinct = false,
           is_user_defined_function = false))
+    }
+    "correctly resolve dot delimited plain references" in {
+      example("a", _.expression(), ir.Column("a"))
+      example("a.b", _.expression(), ir.Column("a.b"))
+      example("a.b.c", _.expression(), ir.Column("a.b.c"))
+    }
+    "correctly resolve quoted identifiers" in {
+      example("RAW", _.expression(), ir.Column("RAW"))
+      example("#RAW", _.expression(), ir.Column("#RAW"))
+      example("\"a\"", _.expression(), ir.Column("\"a\""))
+      example("[a]", _.expression(), ir.Column("[a]"))
+      example("[a].[b]", _.expression(), ir.Column("[a].[b]"))
+      example("[a].[b].[c]", _.expression(), ir.Column("[a].[b].[c]"))
+    }
+
+    "correctly resolve keywords used as identifiers" in {
+      example("ABORT", _.expression(), ir.Column("ABORT"))
+    }
+
+    "translate a simple column" in {
+      example("a", _.selectListElem(), ir.Column("a"))
+      example("#a", _.selectListElem(), ir.Column("#a"))
+      example("[a]", _.selectListElem(), ir.Column("[a]"))
+      example("\"a\"", _.selectListElem(), ir.Column("\"a\""))
+      example("RAW", _.selectListElem(), ir.Column("RAW"))
+    }
+
+    "translate a column with a table" in {
+      example("table_x.a", _.selectListElem(), ir.Column("table_x.a"))
+    }
+
+    "translate a column with a schema" in {
+      example("schema1.table_x.a", _.selectListElem(), ir.Column("schema1.table_x.a"))
+    }
+
+    "translate a column with a database" in {
+      example("database1.schema1.table_x.a", _.selectListElem(), ir.Column("database1.schema1.table_x.a"))
+    }
+
+    "translate a column with a server" in {
+      example("server1..schema1.table_x.a", _.fullColumnName(), ir.Column("server1..schema1.table_x.a"))
+    }
+
+    "translate a column without a table reference" in {
+      example("a", _.fullColumnName(), ir.Column("a"))
+    }
+
+    "translate search conditions" in {
+      example("a = b", _.searchCondition(), ir.Equals(ir.Column("a"), ir.Column("b")))
+      example("a > b", _.searchCondition(), ir.GreaterThan(ir.Column("a"), ir.Column("b")))
+      example("a < b", _.searchCondition(), ir.LesserThan(ir.Column("a"), ir.Column("b")))
+      example("a >= b", _.searchCondition(), ir.GreaterThanOrEqual(ir.Column("a"), ir.Column("b")))
+      example("a <= b", _.searchCondition(), ir.LesserThanOrEqual(ir.Column("a"), ir.Column("b")))
+      example("a > = b", _.searchCondition(), ir.GreaterThanOrEqual(ir.Column("a"), ir.Column("b")))
+      example("a <  = b", _.searchCondition(), ir.LesserThanOrEqual(ir.Column("a"), ir.Column("b")))
+      example("a <> b", _.searchCondition(), ir.NotEquals(ir.Column("a"), ir.Column("b")))
+      example("NOT a = b", _.searchCondition(), ir.Not(ir.Equals(ir.Column("a"), ir.Column("b"))))
+      example(
+        "a = b AND c = e",
+        _.searchCondition(),
+        ir.And(ir.Equals(ir.Column("a"), ir.Column("b")), ir.Equals(ir.Column("c"), ir.Column("e"))))
+      example(
+        "a = b OR c = e",
+        _.searchCondition(),
+        ir.Or(ir.Equals(ir.Column("a"), ir.Column("b")), ir.Equals(ir.Column("c"), ir.Column("e"))))
+      example(
+        "a = b AND c = x OR e = f",
+        _.searchCondition(),
+        ir.Or(
+          ir.And(ir.Equals(ir.Column("a"), ir.Column("b")), ir.Equals(ir.Column("c"), ir.Column("x"))),
+          ir.Equals(ir.Column("e"), ir.Column("f"))))
+      example(
+        "a = b AND (c = x OR e = f)",
+        _.searchCondition(),
+        ir.And(
+          ir.Equals(ir.Column("a"), ir.Column("b")),
+          ir.Or(ir.Equals(ir.Column("c"), ir.Column("x")), ir.Equals(ir.Column("e"), ir.Column("f")))))
     }
   }
 }

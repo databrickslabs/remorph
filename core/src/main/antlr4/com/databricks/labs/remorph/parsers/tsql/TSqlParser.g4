@@ -3892,26 +3892,31 @@ constant_LOCAL_ID
 // https://docs.microsoft.com/en-us/sql/t-sql/language-elements/expressions-transact-sql
 // Operator precendence: https://docs.microsoft.com/en-us/sql/t-sql/language-elements/operator-precedence-transact-sql
 expression
-    : LPAREN expression RPAREN #exprPrecedence
-    | <assoc=right> op=BIT_NOT expression #exprBitNot
-    | <assoc=right> op=(PLUS | MINUS) expression #exprUnary
-    | expression op=(STAR | DIV | MOD) expression #exprOpPrec1
-    | expression op=(PLUS | MINUS) expression #exprOpPrec2
-    | expression op=(BIT_AND | BIT_XOR | BIT_OR) expression #exprOpPrec3
-    | expression op=DOUBLE_BAR expression #exprOpPrec4
-    | primitiveExpression #exprPrimitive
-    | functionCall #exprFunc
-    | expression DOT (valueCall | queryCall | existCall | modifyCall) #exprDot
-    | expression DOT hierarchyidCall #exprHierarchyid
-    | expression COLLATE id #exprCollate
-    | caseExpression #exprCase
-    | fullColumnName #exprFullColumn
-    | expression timeZone #exprTz
-    | overClause #exprOver
-    | DOLLAR_ACTION #exprDollar
-    | LPAREN subquery RPAREN #exprSubquery
+    : LPAREN expression RPAREN                                  #exprPrecedence
+    | <assoc=right> op=BIT_NOT expression                       #exprBitNot
+    | <assoc=right> op=(PLUS | MINUS) expression                #exprUnary
+    | expression op=(STAR | DIV | MOD) expression               #exprOpPrec1
+    | expression op=(PLUS | MINUS) expression                   #exprOpPrec2
+    | expression op=(BIT_AND | BIT_XOR | BIT_OR) expression     #exprOpPrec3
+    | expression op=DOUBLE_BAR expression                       #exprOpPrec4
+    | primitiveExpression                                       #exprPrimitive
+    | functionCall                                              #exprFunc
+    | expression COLLATE id                                     #exprCollate
+    | caseExpression                                            #exprCase
+    | expression timeZone                                       #exprTz
+    | overClause                                                #exprOver
+    | hierarchyidCall                                           #exprHierarchyId
+    | valueCall                                                 #exprValue
+    | queryCall                                                 #expryQuery
+    | existCall                                                 #exprExist
+    | modifyCall                                                #exprModiy
+    | id                                                        #exprId
+    | DOLLAR_ACTION                                             #exprDollar
+    | <assoc=right> expression DOT expression                   #exprDot
+    | LPAREN subquery RPAREN                                    #exprSubquery
     ;
 
+// TODO: Implement this
 parameter
     : PLACEHOLDER
     ;
@@ -3961,9 +3966,11 @@ updateElemMerge
 
 // https://docs.microsoft.com/en-us/sql/t-sql/queries/search-condition-transact-sql
 searchCondition
-    : NOT* (predicate | LPAREN searchCondition RPAREN)
-    | searchCondition AND searchCondition // AND takes precedence over OR
-    | searchCondition OR searchCondition
+    : LPAREN searchCondition RPAREN         #scPrec
+    | NOT searchCondition                   #scNot
+    | searchCondition AND searchCondition   #scAnd
+    | searchCondition OR searchCondition    #scOr
+    | predicate                             #scPred
     ;
 
 predicate
@@ -3978,8 +3985,6 @@ predicate
     | expression IS nullNotnull
     ;
 
-// Changed union rule to sqlUnion to avoid union construct with C++ target.  Issue reported by person who generates into C++.  This individual reports change causes generated code to work
-
 queryExpression
     : querySpecification selectOrderByClause? unions += sqlUnion* //if using top, order by can be on the "top" side of union :/
     | LPAREN queryExpression RPAREN (UNION ALL? queryExpression)?
@@ -3993,10 +3998,11 @@ sqlUnion
     ;
 
 // https://msdn.microsoft.com/en-us/library/ms176104.aspx
+// TODO: This is too much for one rule and it still misses things - rewrite
 querySpecification
-    : SELECT allOrDistinct = (ALL | DISTINCT)? top = topClause? columns = selectList
+    : SELECT ad=(ALL | DISTINCT)? topClause? selectListElem (COMMA selectListElem)*
     // https://msdn.microsoft.com/en-us/library/ms188029.aspx
-    (INTO into = tableName)? (FROM from = tableSources)? (WHERE where = searchCondition)?
+    (INTO into =tableName)? (FROM tableSources)? (WHERE where = searchCondition)?
     // https://msdn.microsoft.com/en-us/library/ms177673.aspx
     (
         GROUP BY (
@@ -4134,18 +4140,18 @@ selectListElem
     ;
 
 tableSources
-    : nonAnsiJoin
-    | source += tableSource (COMMA source += tableSource)*
+    : source += tableSource (COMMA source += tableSource)*
     ;
 
 // https://sqlenlight.com/support/help/sa0006/
+// TODO: This is exactly the same as tableSources alt 2 - investigate
 nonAnsiJoin
     : source += tableSource (COMMA source += tableSource)+
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/queries/from-transact-sql
 tableSource
-    : tableSourceItem joins += joinPart*
+    : tableSourceItem joinPart*
     ;
 
 tableSourceItem
@@ -4449,11 +4455,7 @@ asColumnAlias
     ;
 
 asTableAlias
-    : AS? tableAlias
-    ;
-
-tableAlias
-    : id
+    : AS? (id | DOUBLE_QUOTE_ID)
     ;
 
 // https://msdn.microsoft.com/en-us/library/ms187373.aspx
@@ -4521,7 +4523,7 @@ indexValue
     ;
 
 columnAliasList
-    : LPAREN alias += columnAlias (COMMA alias += columnAlias)* RPAREN
+    : LPAREN columnAlias (COMMA columnAlias)* RPAREN
     ;
 
 columnAlias
@@ -4691,7 +4693,7 @@ ddlObject
 
 fullColumnName
     : ((DELETED | INSERTED | fullTableName) DOT)? (
-        columnName = id
+          id
         | (DOLLAR (IDENTITY | ROWGUID))
     )
     ;
@@ -4814,11 +4816,13 @@ constant
 
 // To reduce ambiguity, -X is considered as an application of unary operator
 primitiveConstant
-    : STRING // string, datetime or uniqueidentifier
-    | HEX
-    | INT
-    | REAL
-    | FLOAT
+    : con = (
+              STRING // string, datetime or uniqueidentifier
+            | HEX
+            | INT
+            | REAL
+            | FLOAT
+            )
     | DOLLAR (MINUS | PLUS)? (INT | FLOAT) // money
     | parameter
     ;
@@ -5598,7 +5602,7 @@ id
     : ID
     | TEMP_ID
     | DOUBLE_QUOTE_ID
-    | DOUBLE_QUOTE_BLANK
+    | DOUBLE_QUOTE_BLANK // TODO: This is unnecessary I think - remove
     | SQUARE_BRACKET_ID
     | keyword
     | RAW
