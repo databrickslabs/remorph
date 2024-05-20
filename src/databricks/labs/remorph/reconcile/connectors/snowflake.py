@@ -7,7 +7,6 @@ from sqlglot import Dialect
 from databricks.labs.remorph.reconcile.connectors.data_source import DataSource
 from databricks.labs.remorph.reconcile.connectors.jdbc_reader import JDBCReaderMixin
 from databricks.labs.remorph.reconcile.connectors.secrets import SecretsMixin
-from databricks.labs.remorph.reconcile.constants import SourceDriver, SourceType
 from databricks.labs.remorph.reconcile.recon_config import JdbcReaderOptions, Schema
 from databricks.sdk import WorkspaceClient
 
@@ -25,11 +24,12 @@ class SnowflakeDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
         self._spark = spark
         self._ws = ws
         self._secret_scope = secret_scope
+        self._driver ="net.snowflake.client.jdbc.SnowflakeDriver"
 
     @property
     def get_jdbc_url(self) -> str:
         return (
-            f"jdbc:{SourceType.SNOWFLAKE.value}://{self._get_secret('sfAccount')}.snowflakecomputing.com"
+            f"jdbc:{self._driver}://{self._get_secret('sfAccount')}.snowflakecomputing.com"
             f"/?user={self._get_secret('sfUser')}&password={self._get_secret('sfPassword')}"
             f"&db={self._get_secret('sfDatabase')}&schema={self._get_secret('sfSchema')}"
             f"&warehouse={self._get_secret('sfWarehouse')}&role={self._get_secret('sfRole')}"
@@ -44,11 +44,7 @@ class SnowflakeDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
                 df = self.reader(table_query).load()
             else:
                 options = self._get_jdbc_reader_options(options)
-                df = (
-                    self._get_jdbc_reader(table_query, self.get_jdbc_url, SourceDriver.SNOWFLAKE.value)
-                    .options(**options)
-                    .load()
-                )
+                df = self._get_jdbc_reader(table_query, self.get_jdbc_url, self._driver).options(**options).load()
             return df.select([col(column).alias(column.lower()) for column in df.columns])
         except RuntimeError as e:
             raise self._raise_runtime_exception(e, "data", table_query)

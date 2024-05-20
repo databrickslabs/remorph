@@ -5,7 +5,6 @@ import pytest
 
 from databricks.labs.remorph.config import get_dialect
 from databricks.labs.remorph.reconcile.connectors.oracle import OracleDataSource
-from databricks.labs.remorph.reconcile.constants import SourceDriver
 from databricks.labs.remorph.reconcile.exception import DataSourceRuntimeException
 from databricks.labs.remorph.reconcile.recon_config import JdbcReaderOptions, Table
 from databricks.sdk import WorkspaceClient
@@ -73,7 +72,7 @@ def test_read_data_with_options():
         "url",
         "jdbc:oracle:thin:my_user/my_password@//my_host:777/my_database",
     )
-    spark.read.format().option().option.assert_called_with("driver", SourceDriver.ORACLE.value)
+    spark.read.format().option().option.assert_called_with("driver", "oracle")
     spark.read.format().option().option().option.assert_called_with("dbtable", "(select 1 from data.employee) tmp")
     actual_args = spark.read.format().option().option().option().options.call_args.kwargs
     expected_args = {

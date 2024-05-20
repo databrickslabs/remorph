@@ -1,7 +1,6 @@
 import sqlglot.expressions as exp
 from sqlglot import Dialect
 
-from databricks.labs.remorph.reconcile.constants import HashAlgorithm
 from databricks.labs.remorph.reconcile.query_builder.base import QueryBuilder
 from databricks.labs.remorph.reconcile.query_builder.expression_generator import (
     build_column,
@@ -11,9 +10,12 @@ from databricks.labs.remorph.reconcile.query_builder.expression_generator import
     transform_expression,
 )
 
+_HASH_COLUMN_NAME = "hash_value_recon"
+
 
 class HashQueryBuilder(QueryBuilder):
-    def build_query(self, hash_column_alias: str) -> str:
+
+    def build_query(self) -> str:
         hash_cols = sorted((self.join_columns | self.select_columns) - self.threshold_columns - self.drop_columns)
         key_cols = sorted(self.join_columns | self.partition_column)
 
@@ -23,7 +25,7 @@ class HashQueryBuilder(QueryBuilder):
         ]
 
         key_cols_with_transform = self.add_transformations(cols_with_alias, self.source)
-        hash_col_with_transform = [self._generate_hash_algorithm(hash_cols, hash_column_alias)]
+        hash_col_with_transform = [self._generate_hash_algorithm(hash_cols, _HASH_COLUMN_NAME)]
 
         res = (
             exp.select(*hash_col_with_transform + key_cols_with_transform)

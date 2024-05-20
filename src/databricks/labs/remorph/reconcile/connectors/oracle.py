@@ -4,7 +4,6 @@ from sqlglot import Dialect
 from databricks.labs.remorph.reconcile.connectors.data_source import DataSource
 from databricks.labs.remorph.reconcile.connectors.jdbc_reader import JDBCReaderMixin
 from databricks.labs.remorph.reconcile.connectors.secrets import SecretsMixin
-from databricks.labs.remorph.reconcile.constants import SourceDriver, SourceType
 from databricks.labs.remorph.reconcile.recon_config import JdbcReaderOptions, Schema
 from databricks.sdk import WorkspaceClient
 
@@ -22,11 +21,12 @@ class OracleDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
         self._spark = spark
         self._ws = ws
         self._secret_scope = secret_scope
+        self._driver = "oracle"
 
     @property
     def get_jdbc_url(self) -> str:
         return (
-            f"jdbc:{SourceType.ORACLE.value}:thin:{self._get_secret('user')}"
+            f"jdbc:{self._driver}:thin:{self._get_secret('user')}"
             f"/{self._get_secret('password')}@//{self._get_secret('host')}"
             f":{self._get_secret('port')}/{self._get_secret('database')}"
         )
@@ -61,7 +61,7 @@ class OracleDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
         }
 
     def reader(self, query: str) -> DataFrameReader:
-        return self._get_jdbc_reader(query, self.get_jdbc_url, SourceDriver.ORACLE.value)
+        return self._get_jdbc_reader(query, self.get_jdbc_url, self._driver)
 
     @staticmethod
     def _get_schema_query(table: str, owner: str) -> str:
