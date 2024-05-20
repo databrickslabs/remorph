@@ -1,7 +1,7 @@
 import logging
 from uuid import uuid4
 
-from pyspark.sql import SparkSession
+from pyspark.sql import DataFrame, SparkSession
 from sqlglot import Dialect
 
 from databricks.labs.remorph.config import DatabaseConfig, TableRecon, get_dialect
@@ -72,6 +72,17 @@ def initialise_data_source(ws: WorkspaceClient, spark: SparkSession, engine: Dia
     )
 
     return source, target
+
+
+def _get_missing_data(reader, sampler, missing_df, catalog, schema, table_name: str) -> DataFrame:
+    sample_query = sampler.build_query(missing_df)
+    return reader.read_data(
+        catalog=catalog,
+        schema=schema,
+        table=table_name,
+        query=sample_query,
+        options=None,
+    )
 
 
 class Reconciliation:
@@ -147,7 +158,7 @@ class Reconciliation:
                 )
 
             if reconcile_output.missing_in_src_count > 0:
-                missing_in_src = self._get_missing_data(
+                missing_in_src = _get_missing_data(
                     self._target,
                     tgt_sampler,
                     reconcile_output.missing_in_src,
@@ -157,7 +168,7 @@ class Reconciliation:
                 )
 
             if reconcile_output.missing_in_tgt_count > 0:
-                missing_in_tgt = self._get_missing_data(
+                missing_in_tgt = _get_missing_data(
                     self._source,
                     src_sampler,
                     reconcile_output.missing_in_tgt,
@@ -195,14 +206,3 @@ class Reconciliation:
         )
 
         return capture_mismatch_data_and_columns(source=src_data, target=tgt_data, key_columns=key_columns)
-
-    @staticmethod
-    def _get_missing_data(reader, sampler, missing_df, catalog, schema, table_name: str):
-        sample_query = sampler.build_query(missing_df)
-        return reader.read_data(
-            catalog=catalog,
-            schema=schema,
-            table=table_name,
-            query=sample_query,
-            options=None,
-        )

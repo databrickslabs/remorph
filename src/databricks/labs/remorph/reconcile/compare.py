@@ -1,12 +1,13 @@
 from pyspark.sql import DataFrame
 from pyspark.sql.functions import col, expr, lit
 
-from databricks.labs.remorph.reconcile.constants import Constants
 from databricks.labs.remorph.reconcile.exception import ColumnMismatchException
 from databricks.labs.remorph.reconcile.recon_config import (
     MismatchOutput,
     ReconcileOutput,
 )
+
+_HASH_COLUMN_NAME = "hash_value_recon"
 
 
 def raise_column_mismatch_exception(msg: str, source_missing: list[str], target_missing: list[str]) -> Exception:
@@ -22,21 +23,21 @@ def reconcile_data(source: DataFrame, target: DataFrame, key_columns: list[str],
     source_alias = "src"
     target_alias = "tgt"
     if report_type not in {"data", "all"}:
-        key_columns = Constants.hash_column_name
+        key_columns = _HASH_COLUMN_NAME
     df = source.alias(source_alias).join(other=target.alias(target_alias), on=key_columns, how="full")
 
     mismatch = (
         _get_mismatch_data(df, source_alias, target_alias, source.columns) if report_type in {"all", "data"} else None
     )
     missing_in_src = (
-        df.filter(col(f"{source_alias}.{Constants.hash_column_name}").isNull())
+        df.filter(col(f"{source_alias}.{_HASH_COLUMN_NAME}").isNull())
         .select((key_columns if report_type == "all" else alias_column_str(target_alias, target.columns)))
-        .drop(Constants.hash_column_name)
+        .drop(_HASH_COLUMN_NAME)
     )
     missing_in_tgt = (
-        df.filter(col(f"{target_alias}.{Constants.hash_column_name}").isNull())
+        df.filter(col(f"{target_alias}.{_HASH_COLUMN_NAME}").isNull())
         .select((key_columns if report_type == "all" else alias_column_str(source_alias, source.columns)))
-        .drop(Constants.hash_column_name)
+        .drop(_HASH_COLUMN_NAME)
     )
     mismatch_count = 0
     if mismatch:
@@ -55,16 +56,16 @@ def reconcile_data(source: DataFrame, target: DataFrame, key_columns: list[str],
 def _get_mismatch_data(df: DataFrame, src_alias: str, tgt_alias: str, select_columns) -> DataFrame:
     return (
         df.filter(
-            (col(f"{src_alias}.{Constants.hash_column_name}").isNotNull())
-            & (col(f"{tgt_alias}.{Constants.hash_column_name}").isNotNull())
+            (col(f"{src_alias}.{_HASH_COLUMN_NAME}").isNotNull())
+            & (col(f"{tgt_alias}.{_HASH_COLUMN_NAME}").isNotNull())
         )
         .withColumn(
             "hash_match",
-            col(f"{src_alias}.{Constants.hash_column_name}") == col(f"{tgt_alias}.{Constants.hash_column_name}"),
+            col(f"{src_alias}.{_HASH_COLUMN_NAME}") == col(f"{tgt_alias}.{_HASH_COLUMN_NAME}"),
         )
         .filter(col("hash_match") == lit(False))
         .select(alias_column_str(src_alias, select_columns))
-        .drop(Constants.hash_column_name)
+        .drop(_HASH_COLUMN_NAME)
     )
 
 

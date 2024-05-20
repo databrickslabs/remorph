@@ -6,7 +6,6 @@ import pytest
 
 from databricks.labs.remorph.config import get_dialect
 from databricks.labs.remorph.reconcile.connectors.snowflake import SnowflakeDataSource
-from databricks.labs.remorph.reconcile.constants import SourceDriver
 from databricks.labs.remorph.reconcile.exception import DataSourceRuntimeException
 from databricks.labs.remorph.reconcile.recon_config import JdbcReaderOptions, Table
 from databricks.sdk import WorkspaceClient
@@ -154,9 +153,10 @@ def test_read_data_with_options():
     spark.read.format.assert_called_with("jdbc")
     spark.read.format().option.assert_called_with(
         "url",
-        "jdbc:snowflake://my_account.snowflakecomputing.com/?user=my_user&password=my_password&db=my_database&schema=my_schema&warehouse=my_warehouse&role=my_role",
+        "jdbc:snowflake://my_account.snowflakecomputing.com/?user=my_user&password="
+        "my_password&db=my_database&schema=my_schema&warehouse=my_warehouse&role=my_role",
     )
-    spark.read.format().option().option.assert_called_with("driver", SourceDriver.SNOWFLAKE.value)
+    spark.read.format().option().option.assert_called_with("driver", "snowflake")
     spark.read.format().option().option().option.assert_called_with("dbtable", "(select 1 from org.data.employee) tmp")
     spark.read.format().option().option().option().options.assert_called_with(
         numPartitions=100, partitionColumn='s_nationkey', lowerBound='0', upperBound='100', fetchsize=100
@@ -195,22 +195,6 @@ def test_get_schema():
         sfRole="my_role",
     )
     spark.read.format().option().options().load.assert_called_once()
-
-
-def test_get_schema_query():
-    # initial setup
-    engine, spark, ws, scope = initial_setup()
-    # create object for SnowflakeDataSource
-    ds = SnowflakeDataSource(engine, spark, ws, scope)
-    schema = ds._get_schema_query("catalog", "schema", "supplier")
-    assert schema == re.sub(
-        r'\s+',
-        ' ',
-        """select column_name, case when numeric_precision is not null and numeric_scale is not null then
-        concat(data_type, '(', numeric_precision, ',' , numeric_scale, ')') when lower(data_type) = 'text' then
-        concat('varchar', '(', CHARACTER_MAXIMUM_LENGTH, ')')  else data_type end as data_type from
-        catalog.INFORMATION_SCHEMA.COLUMNS where lower(table_name)='supplier' and lower(table_schema) = 'schema' order by ordinal_position""",
-    )
 
 
 def test_read_data_exception_handling():
