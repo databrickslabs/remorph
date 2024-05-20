@@ -23,6 +23,15 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
         query = "SELECT a FROM dbo.table_x",
         expectedAst = Batch(Seq(Project(NamedTable("dbo.table_x", Map.empty, is_streaming = false), Seq(Column("a"))))))
     }
+
+    "translate column aliases" in {
+      example(
+        query = "SELECT a AS b, J = BigCol FROM dbo.table_x",
+        expectedAst = Project(
+          NamedTable("dbo.table_x", Map.empty, is_streaming = false),
+          Seq(Alias(Column("a"), Seq("b"), None), Alias(Column("BigCol"), Seq("J"), None))))
+    }
+
     "accept constants in selects" in {
       example(
         query = "SELECT 42, 6.4, 0x5A, 2.7E9, $40",

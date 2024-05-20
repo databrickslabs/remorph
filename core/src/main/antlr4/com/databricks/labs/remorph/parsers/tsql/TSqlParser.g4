@@ -4127,8 +4127,8 @@ udtElem
     ;
 
 expressionElem
-    : leftAlias = columnAlias eq = EQ leftAssignment = expression
-    | expressionAs = expression asColumnAlias?
+    : columnAlias EQ expression
+    | expression asColumnAlias?
     ;
 
 selectListElem
