@@ -18,15 +18,20 @@ from databricks.labs.remorph.reconcile.query_builder.hash_query import HashQuery
 from databricks.labs.remorph.reconcile.query_builder.sampling_query import (
     SamplingQueryBuilder,
 )
+from databricks.labs.remorph.reconcile.query_builder.threshold_query import (
+    ThresholdQueryBuilder,
+)
 from databricks.labs.remorph.reconcile.recon_config import (
     ReconcileOutput,
     Schema,
     Table,
+    ThresholdOutput,
 )
 from databricks.labs.remorph.reconcile.schema_compare import SchemaCompare
 from databricks.sdk import WorkspaceClient
 
 logger = logging.getLogger(__name__)
+_SAMPLE_ROWS = 50
 
 
 def recon(ws: WorkspaceClient, spark: SparkSession, table_recon: TableRecon, source_dialect: Dialect, report_type: str):
@@ -86,6 +91,7 @@ def _get_missing_data(reader, sampler, missing_df, catalog, schema, table_name: 
 
 
 class Reconciliation:
+
     def __init__(
         self,
         source: DataSource,
@@ -107,8 +113,11 @@ class Reconciliation:
         self._source_engine = source_engine
 
     def reconcile_data(self, table_conf: Table, src_schema: list[Schema], tgt_schema: list[Schema]):
-        reconcile_output = self._get_reconcile_output(table_conf, src_schema, tgt_schema)
-        return self._get_sample_data(table_conf, reconcile_output, src_schema, tgt_schema)
+        data_reconcile_output = self._get_reconcile_output(table_conf, src_schema, tgt_schema)
+        reconcile_output = self._get_sample_data(table_conf, data_reconcile_output, src_schema, tgt_schema)
+        if table_conf.get_threshold_columns("source"):
+            reconcile_output.threshold_output = self._get_threshold_output(table_conf, src_schema, tgt_schema)
+        return reconcile_output
 
     def reconcile_schema(self, src_schema: list[Schema], tgt_schema: list[Schema], table_conf: Table):
         return self._schema_comparator.compare(src_schema, tgt_schema, self._source_engine, table_conf)
@@ -206,3 +215,53 @@ class Reconciliation:
         )
 
         return capture_mismatch_data_and_columns(source=src_data, target=tgt_data, key_columns=key_columns)
+
+    def _get_threshold_output(self, table_conf: Table, src_schema: list[Schema], tgt_schema: list[Schema]):
+        src_threshold_query = ThresholdQueryBuilder(
+            table_conf, src_schema, Layer.SOURCE.value, self._source_engine
+        ).build_threshold_query()
+        tgt_threshold_query = ThresholdQueryBuilder(
+            table_conf, tgt_schema, Layer.TARGET.value, self._target_engine
+        ).build_threshold_query()
+
+        src_data = self._source.read_data(
+            catalog=self._source_catalog,
+            schema=self._source_schema,
+            table=table_conf.source_name,
+            query=src_threshold_query,
+            options=table_conf.jdbc_reader_options,
+        )
+        tgt_data = self._target.read_data(
+            catalog=self._target_catalog,
+            schema=self._target_schema,
+            table=table_conf.target_name,
+            query=tgt_threshold_query,
+            options=table_conf.jdbc_reader_options,
+        )
+
+        source_view = f"source_{table_conf.source_name}_df_threshold_vw"
+        target_view = f"target_{table_conf.target_name}_df_threshold_vw"
+
+        src_data.createOrReplaceTempView(source_view)
+        tgt_data.createOrReplaceTempView(target_view)
+
+        threshold_comparison_query = ThresholdQueryBuilder(
+            table_conf, src_schema, Layer.TARGET.value, self._target_engine
+        ).build_comparison_query()
+
+        threshold_result = self._target.read_data(
+            catalog=self._target_catalog,
+            schema=self._target_schema,
+            table=table_conf.target_name,
+            query=threshold_comparison_query,
+            options=table_conf.jdbc_reader_options,
+        )
+        threshold_columns = table_conf.get_threshold_columns(Layer.SOURCE.value)
+        failed_where_cond = " OR ".join([name + "_match = 'Failed'" for name in threshold_columns])
+        mismatched_df = threshold_result.filter(failed_where_cond)
+        mismatched_count = mismatched_df.count()
+        threshold_df = None
+        if mismatched_count > 0:
+            threshold_df = mismatched_df.limit(_SAMPLE_ROWS)
+
+        return ThresholdOutput(threshold_df=threshold_df, threshold_mismatch_count=mismatched_count)

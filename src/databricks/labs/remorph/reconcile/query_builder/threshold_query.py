@@ -105,8 +105,8 @@ class ThresholdQueryBuilder(QueryBuilder):
 
     def _generate_from_and_join_clause(self) -> tuple[exp.From, exp.Join]:
         join_columns = sorted(self.table_conf.get_join_columns("source"))
-        source_view = f"{self.table_conf.source_name}_df_threshold_vw"
-        target_view = f"{self.table_conf.target_name}_df_threshold_vw"
+        source_view = f"source_{self.table_conf.source_name}_df_threshold_vw"
+        target_view = f"target_{self.table_conf.target_name}_df_threshold_vw"
 
         from_clause = build_from_clause(source_view, "source")
         join_clause = build_join_clause(

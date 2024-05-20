@@ -17,6 +17,7 @@ from databricks.labs.remorph.reconcile.execute import (
 from databricks.labs.remorph.reconcile.recon_config import (
     MismatchOutput,
     ReconcileOutput,
+    ThresholdOutput,
 )
 from databricks.labs.remorph.reconcile.schema_compare import SchemaCompare
 
@@ -33,6 +34,9 @@ class QueryStore:
     target_mismatch_query: str
     source_missing_query: str
     target_missing_query: str
+    source_threshold_query: str
+    target_threshold_query: str
+    threshold_comparison_query: str
 
 
 @pytest.fixture
@@ -43,6 +47,9 @@ def query_store():
     target_mismatch_query = "WITH recon AS (SELECT 22 AS s_nationkey, 2 AS s_suppkey), src AS (SELECT TRIM(s_address_t) AS s_address, TRIM(s_name) AS s_name, COALESCE(TRIM(s_nationkey_t), '') AS s_nationkey, TRIM(s_phone_t) AS s_phone, COALESCE(TRIM(s_suppkey_t), '') AS s_suppkey FROM :tbl WHERE s_name = 't' AND s_address_t = 'a') SELECT s_address, s_name, s_nationkey, s_phone, s_suppkey FROM src INNER JOIN recon USING (s_nationkey, s_suppkey)"
     source_missing_query = "WITH recon AS (SELECT 44 AS s_nationkey, 4 AS s_suppkey), src AS (SELECT TRIM(s_address_t) AS s_address, TRIM(s_name) AS s_name, COALESCE(TRIM(s_nationkey_t), '') AS s_nationkey, TRIM(s_phone_t) AS s_phone, COALESCE(TRIM(s_suppkey_t), '') AS s_suppkey FROM :tbl WHERE s_name = 't' AND s_address_t = 'a') SELECT s_address, s_name, s_nationkey, s_phone, s_suppkey FROM src INNER JOIN recon USING (s_nationkey, s_suppkey)"
     target_missing_query = "WITH recon AS (SELECT 33 AS s_nationkey, 3 AS s_suppkey), src AS (SELECT TRIM(s_address) AS s_address, TRIM(s_name) AS s_name, COALESCE(TRIM(s_nationkey), '') AS s_nationkey, TRIM(s_phone) AS s_phone, COALESCE(TRIM(s_suppkey), '') AS s_suppkey FROM :tbl WHERE s_name = 't' AND s_address = 'a') SELECT s_address, s_name, s_nationkey, s_phone, s_suppkey FROM src INNER JOIN recon USING (s_nationkey, s_suppkey)"
+    source_threshold_query = "SELECT COALESCE(TRIM(s_nationkey), '') AS s_nationkey, COALESCE(TRIM(s_suppkey), '') AS s_suppkey, s_acctbal AS s_acctbal FROM :tbl WHERE s_name = 't' AND s_address = 'a'"
+    target_threshold_query = "SELECT COALESCE(TRIM(s_nationkey_t), '') AS s_nationkey, COALESCE(TRIM(s_suppkey_t), '') AS s_suppkey, s_acctbal_t AS s_acctbal FROM :tbl WHERE s_name = 't' AND s_address_t = 'a'"
+    threshold_comparison_query = "SELECT COALESCE(source.s_acctbal, 0) AS s_acctbal_source, COALESCE(databricks.s_acctbal, 0) AS s_acctbal_databricks, CASE WHEN (COALESCE(source.s_acctbal, 0) - COALESCE(databricks.s_acctbal, 0)) = 0 THEN `Match` WHEN (COALESCE(source.s_acctbal, 0) - COALESCE(databricks.s_acctbal, 0)) BETWEEN 0 AND 100 THEN `Warning` ELSE `Failed` END AS s_acctbal_match, source.s_nationkey AS s_nationkey_source, source.s_suppkey AS s_suppkey_source FROM source_supplier_df_threshold_vw AS source INNER JOIN target_target_supplier_df_threshold_vw AS databricks ON source.s_nationkey <=> databricks.s_nationkey AND source.s_suppkey <=> databricks.s_suppkey WHERE (1 = 1 OR 1 = 1) OR (COALESCE(source.s_acctbal, 0) - COALESCE(databricks.s_acctbal, 0)) <> 0"
 
     return QueryStore(
         source_hash_query=source_hash_query,
@@ -51,6 +58,9 @@ def query_store():
         target_mismatch_query=target_mismatch_query,
         source_missing_query=source_missing_query,
         target_missing_query=target_missing_query,
+        source_threshold_query=source_threshold_query,
+        target_threshold_query=target_threshold_query,
+        threshold_comparison_query=threshold_comparison_query,
     )
 
 
@@ -75,6 +85,9 @@ def test_reconcile_data_with_mismatches_and_missing(mock_spark, table_conf_with_
         (CATALOG, SCHEMA, query_store.target_missing_query): mock_spark.createDataFrame(
             [Row(s_address='address-3', s_name='name-3', s_nationkey=33, s_phone="333", s_suppkey=3)]
         ),
+        (CATALOG, SCHEMA, query_store.source_threshold_query): mock_spark.createDataFrame(
+            [Row(s_nationkey=11, s_suppkey=1, s_acctbal=100)]
+        ),
     }
     source_schema_repository = {(CATALOG, SCHEMA, TABLE): src_schema}
 
@@ -95,6 +108,20 @@ def test_reconcile_data_with_mismatches_and_missing(mock_spark, table_conf_with_
         ),
         (CATALOG, SCHEMA, query_store.source_missing_query): mock_spark.createDataFrame(
             [Row(s_address='address-4', s_name='name-4', s_nationkey=44, s_phone="444", s_suppkey=4)]
+        ),
+        (CATALOG, SCHEMA, query_store.target_threshold_query): mock_spark.createDataFrame(
+            [Row(s_nationkey=11, s_suppkey=1, s_acctbal=210)]
+        ),
+        (CATALOG, SCHEMA, query_store.threshold_comparison_query): mock_spark.createDataFrame(
+            [
+                Row(
+                    s_acctbal_source=100,
+                    s_acctbal_databricks=210,
+                    s_acctbal_match="Failed",
+                    s_nationkey_source=11,
+                    s_suppkey_source=1,
+                )
+            ]
         ),
     }
 
@@ -139,6 +166,20 @@ def test_reconcile_data_with_mismatches_and_missing(mock_spark, table_conf_with_
                 ]
             ),
             mismatch_columns=["s_address", "s_phone"],
+        ),
+        threshold_output=ThresholdOutput(
+            threshold_df=mock_spark.createDataFrame(
+                [
+                    Row(
+                        s_acctbal_source=100,
+                        s_acctbal_databricks=210,
+                        s_acctbal_match="Failed",
+                        s_nationkey_source=11,
+                        s_suppkey_source=1,
+                    )
+                ]
+            ),
+            threshold_mismatch_count=1,
         ),
     )
 
@@ -198,9 +239,24 @@ def test_reconcile_data_with_mismatches_and_missing(mock_spark, table_conf_with_
             ),
         ]
     )
-
     assertDataFrameEqual(actual_schema_reconcile.compare_df, expected_schema_reconcile)
     assert actual_schema_reconcile.is_valid is True
+
+    assertDataFrameEqual(
+        actual_data_reconcile.threshold_output.threshold_df,
+        mock_spark.createDataFrame(
+            [
+                Row(
+                    s_acctbal_source=100,
+                    s_acctbal_databricks=210,
+                    s_acctbal_match="Failed",
+                    s_nationkey_source=11,
+                    s_suppkey_source=1,
+                )
+            ]
+        ),
+    )
+    assert actual_data_reconcile.threshold_output.threshold_mismatch_count == 1
 
 
 def test_reconcile_data_without_mismatches_and_missing(mock_spark, table_conf_with_opts, table_schema, query_store):
@@ -216,6 +272,9 @@ def test_reconcile_data_without_mismatches_and_missing(mock_spark, table_conf_wi
                 Row(hash_value_recon="c2d", s_nationkey=22, s_suppkey=2),
             ]
         ),
+        (CATALOG, SCHEMA, query_store.source_threshold_query): mock_spark.createDataFrame(
+            [Row(s_nationkey=11, s_suppkey=1, s_acctbal=100)]
+        ),
     }
     source_schema_repository = {(CATALOG, SCHEMA, TABLE): src_schema}
 
@@ -228,6 +287,20 @@ def test_reconcile_data_without_mismatches_and_missing(mock_spark, table_conf_wi
             [
                 Row(hash_value_recon="a1b", s_nationkey=11, s_suppkey=1),
                 Row(hash_value_recon="c2d", s_nationkey=22, s_suppkey=2),
+            ]
+        ),
+        (CATALOG, SCHEMA, query_store.target_threshold_query): mock_spark.createDataFrame(
+            [Row(s_nationkey=11, s_suppkey=1, s_acctbal=110)]
+        ),
+        (CATALOG, SCHEMA, query_store.threshold_comparison_query): mock_spark.createDataFrame(
+            [
+                Row(
+                    s_acctbal_source=100,
+                    s_acctbal_databricks=110,
+                    s_acctbal_match="Warning",
+                    s_nationkey_source=11,
+                    s_suppkey_source=1,
+                )
             ]
         ),
     }
@@ -252,10 +325,14 @@ def test_reconcile_data_without_mismatches_and_missing(mock_spark, table_conf_wi
     assert actual.mismatch is None
     assert actual.missing_in_src is None
     assert actual.missing_in_tgt is None
+    assert actual.threshold_output.threshold_df is None
+    assert actual.threshold_output.threshold_mismatch_count == 0
 
 
 def test_reconcile_data_with_mismatch_and_no_missing(mock_spark, table_conf_with_opts, table_schema, query_store):
     src_schema, tgt_schema = table_schema
+    table_conf_with_opts.drop_columns = ["s_acctbal"]
+    table_conf_with_opts.thresholds = None
     source_dataframe_repository = {
         (
             CATALOG,
@@ -342,6 +419,8 @@ def test_reconcile_data_with_mismatch_and_no_missing(mock_spark, table_conf_with
 
 def test_reconcile_data_missing_and_no_mismatch(mock_spark, table_conf_with_opts, table_schema, query_store):
     src_schema, tgt_schema = table_schema
+    table_conf_with_opts.drop_columns = ["s_acctbal"]
+    table_conf_with_opts.thresholds = None
     source_dataframe_repository = {
         (
             CATALOG,
@@ -415,6 +494,8 @@ def test_reconcile_data_missing_and_no_mismatch(mock_spark, table_conf_with_opts
 def test_recon_for_report_type_is_data(
     mock_workspace_client, table_conf_with_opts, table_schema, mock_spark, query_store
 ):
+    table_conf_with_opts.drop_columns = ["s_acctbal"]
+    table_conf_with_opts.thresholds = None
     table_recon = TableRecon(
         source_catalog="org",
         source_schema="data",
@@ -545,6 +626,8 @@ def test_recon_for_report_type_is_schema(
 def test_recon_for_report_type_is_all(
     mock_workspace_client, table_conf_with_opts, table_schema, mock_spark, query_store
 ):
+    table_conf_with_opts.drop_columns = ["s_acctbal"]
+    table_conf_with_opts.thresholds = None
     table_recon = TableRecon(
         source_catalog="org",
         source_schema="data",
