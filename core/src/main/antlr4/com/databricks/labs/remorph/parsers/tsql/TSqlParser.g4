@@ -32,9 +32,8 @@ options {
     tokenVocab = TSqlLexer;
 }
 
-tsqlFile
-    : batch* EOF
-    | executeBodyBatch goStatement* EOF
+tSqlFile
+    : batch? EOF
     ;
 
 batch

@@ -9,8 +9,8 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
 
   override protected def astBuilder: TSqlParserBaseVisitor[_] = new TSqlAstBuilder
 
-  private def example(query: String, expectedAst: TreeNode): Assertion =
-    example(query, _.tsqlFile(), expectedAst)
+  private def example(query: String, expectedAst: Relation): Assertion =
+    example(query, _.tSqlFile(), Batch(Seq(expectedAst)))
 
   "tsql visitor" should {
     "translate a simple SELECT query" in {
