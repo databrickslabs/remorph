@@ -5,7 +5,8 @@ import com.databricks.labs.remorph.parsers.{FunctionBuilder, ParserCommon, inter
 import org.antlr.v4.runtime.Token
 import org.antlr.v4.runtime.tree.{TerminalNode, Trees}
 
-import scala.collection.JavaConverters.{asScalaBufferConverter, collectionAsScalaIterableConverter}
+import scala.collection.JavaConverters.asScalaBufferConverter
+import scala.collection.convert.ImplicitConversions.`collection AsScalaIterable`
 
 class TSqlExpressionBuilder extends TSqlParserBaseVisitor[ir.Expression] with ParserCommon {
 
@@ -262,8 +263,8 @@ class TSqlExpressionBuilder extends TSqlParserBaseVisitor[ir.Expression] with Pa
       .map(_.orderByExpression().asScala.toList.map { orderByExpr =>
         val expression = orderByExpr.expression().accept(this)
         val sortOrder =
-          if (Option(orderByExpr.DESC()).isDefined) ir.AscendingSortDirection
-          else ir.DescendingSortDirection
+          if (Option(orderByExpr.DESC()).isDefined) ir.DescendingSortDirection
+          else ir.AscendingSortDirection
         ir.SortOrder(expression, sortOrder, ir.SortNullsUnspecified)
       })
       .getOrElse(List.empty)
@@ -280,47 +281,43 @@ class TSqlExpressionBuilder extends TSqlParserBaseVisitor[ir.Expression] with Pa
 
   private def buildWindowFrame(ctx: RowOrRangeClauseContext): ir.WindowFrame = {
     val frameType = buildFrameType(ctx)
-    Option(ctx.windowFrameExtent().windowFramePreceding()) match {
-      case Some(preceding) =>
-        val frameStart = buildFramePreceding(preceding)
-        ir.WindowFrame(frameType, frameStart, ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop))
-      case None =>
-        val bound1 = ctx.windowFrameExtent().windowFrameBound(0)
-        val bound2 = ctx.windowFrameExtent().windowFrameBound(1)
-        val frameStart = if (bound1.windowFramePreceding() != null) {
-          buildFramePreceding(bound1.windowFramePreceding())
-        } else {
-          buildFramePreceding(bound2.windowFramePreceding())
-        }
+    val fs = Trees.findAllRuleNodes(ctx, TSqlParser.RULE_windowFrameBound)
 
-        val frameEnd = if (bound2.windowFrameFollowing() != null) {
-          buildFrameFollowing(bound1.windowFrameFollowing())
-        } else {
-          buildFrameFollowing(bound2.windowFrameFollowing())
+    fs.headOption match {
+      case Some(frameStartNode: WindowFrameBoundContext) =>
+        val frameStart = buildFrame(frameStartNode)
+        val frameEnd = fs.tail.headOption match {
+          case Some(frameEndNode: WindowFrameBoundContext) => buildFrame(frameEndNode)
+          case _ => ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop)
         }
         ir.WindowFrame(frameType, frameStart, frameEnd)
+      case _ => // Cannot reach
+        ir.WindowFrame(
+          frameType,
+          ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop),
+          ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop))
     }
   }
 
   private def buildFrameType(ctx: RowOrRangeClauseContext): ir.FrameType = {
-    (Option(ctx.ROWS()), Option(ctx.RANGE())) match {
-      case (Some(_), None) => ir.RowsFrame
-      case (None, Some(_)) => ir.RangeFrame
-      case _ => ir.UndefinedFrame
-    }
+    if (Option(ctx.ROWS()).isDefined) ir.RowsFrame
+    else if (Option(ctx.RANGE()).isDefined) ir.RangeFrame
+    else ir.UndefinedFrame
   }
 
-  private def buildFramePreceding(ctx: WindowFramePrecedingContext): ir.FrameBoundary = {
-    // Style guide says not to use _ in match, but the code is much simpler like this
-    (Option(ctx.UNBOUNDED()), Option(ctx.INT()), Option(ctx.CURRENT())) match {
-      case (Some(_), None, None) => ir.FrameBoundary(current_row = false, unbounded = true, value = ir.Noop)
-      case (None, Some(intNode), None) =>
-        ir.FrameBoundary(
-          current_row = false,
-          unbounded = false,
-          value = ir.Literal(integer = Some(intNode.getText.toInt)))
-      case (None, None, Some(_)) => ir.FrameBoundary(current_row = true, unbounded = false, ir.Noop)
-      case _ => ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop) // Cannot be reached
+  private def buildFrame(ctx: WindowFrameBoundContext): ir.FrameBoundary = {
+    if (Option(ctx.UNBOUNDED()).isDefined) {
+      ir.FrameBoundary(current_row = false, unbounded = true, value = ir.Noop)
+    } else if (Option(ctx.CURRENT()).isDefined) {
+      ir.FrameBoundary(current_row = true, unbounded = false, ir.Noop)
+    } else {
+      Option(ctx.INT())
+        .map(intNode =>
+          ir.FrameBoundary(
+            current_row = false,
+            unbounded = false,
+            value = ir.Literal(integer = Some(intNode.getText.toInt))))
+        .getOrElse(ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop))
     }
   }
 

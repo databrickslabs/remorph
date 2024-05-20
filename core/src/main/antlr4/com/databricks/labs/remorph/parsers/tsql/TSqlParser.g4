@@ -4546,24 +4546,14 @@ rowOrRangeClause
     ;
 
 windowFrameExtent
-    : windowFramePreceding
+    : windowFrameBound
     | BETWEEN windowFrameBound AND windowFrameBound
     ;
 
 windowFrameBound
-    : windowFramePreceding
-    | windowFrameFollowing
-    ;
-
-windowFramePreceding
-    : UNBOUNDED PRECEDING
-    | INT PRECEDING
+    : UNBOUNDED (PRECEDING | FOLLOWING)
+    | INT (PRECEDING | FOLLOWING)
     | CURRENT ROW
-    ;
-
-windowFrameFollowing
-    : UNBOUNDED FOLLOWING
-    | INT FOLLOWING
     ;
 
 createDatabaseOption
