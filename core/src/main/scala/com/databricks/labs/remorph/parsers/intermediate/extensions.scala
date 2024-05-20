@@ -151,3 +151,5 @@ case class ArrayAccess(array: Expression, index: Expression) extends Expression 
 case class JsonAccess(json: Expression, path: Seq[String]) extends Expression {}
 case class Collate(string: Expression, specification: String) extends Expression {}
 case class Iff(condition: Expression, thenBranch: Expression, elseBranch: Expression) extends Expression {}
+
+case class Timezone(expression: Expression, timeZone: Expression) extends Expression {}
