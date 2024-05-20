@@ -41,7 +41,12 @@ class SnowflakeDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
         )
 
     def read_data(
-        self, catalog: str, schema: str, table: str, query: str, options: JdbcReaderOptions | None
+        self,
+        catalog: str,
+        schema: str,
+        table: str,
+        query: str,
+        options: JdbcReaderOptions | None,
     ) -> DataFrame:
         table_query = query.replace(":tbl", f"{catalog}.{schema}.{table}")
         try:
@@ -58,7 +63,12 @@ class SnowflakeDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
         except RuntimeError as e:
             raise self._raise_runtime_exception(e, "data", table_query)
 
-    def get_schema(self, catalog: str, schema: str, table: str) -> list[Schema]:
+    def get_schema(
+        self,
+        catalog: str,
+        schema: str,
+        table: str,
+    ) -> list[Schema]:
         schema_query = re.sub(
             r'\s+',
             ' ',

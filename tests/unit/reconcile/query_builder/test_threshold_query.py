@@ -1,5 +1,7 @@
 import re
 
+import pytest
+
 from databricks.labs.remorph.config import get_dialect
 from databricks.labs.remorph.reconcile.query_builder.threshold_query import (
     ThresholdQueryBuilder,
@@ -121,3 +123,17 @@ def test_build_threshold_query_with_multiple_threshold(table_conf_with_opts, tab
         "'') AS s_nationkey, COALESCE(TRIM(s_suppdate), '') AS s_suppdate, COALESCE(TRIM("
         "s_suppkey_t), '') AS s_suppkey FROM :tbl"
     )
+
+
+def test_build_expression_type_raises_value_error(table_conf_with_opts, table_schema):
+    table_conf = table_conf_with_opts
+    table_conf.thresholds = [
+        Thresholds(column_name="s_acctbal", lower_bound="5%", upper_bound="-5%", type="unknown"),
+    ]
+    table_conf.filters = None
+    src_schema, tgt_schema = table_schema
+    src_schema.append(Schema("s_suppdate", "timestamp"))
+    tgt_schema.append(Schema("s_suppdate", "timestamp"))
+
+    with pytest.raises(ValueError):
+        ThresholdQueryBuilder(table_conf, src_schema, "source", get_dialect("oracle")).build_comparison_query()
