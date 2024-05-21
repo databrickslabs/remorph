@@ -4365,7 +4365,6 @@ builtInFunctions
       // https://learn.microsoft.com/en-us/sql/t-sql/functions/cursor-rows-transact-sql?view=sql-server-ver16
     | FETCH_STATUS # FETCH_STATUS
     | PARSE LPAREN str = expression AS dataType (USING culture = expression)? RPAREN # PARSE
-   // | xmlDataTypeMethods # XML_DATA_TYPE_FUNC
     | JSON_ARRAY LPAREN expressionList? jsonNullClause? RPAREN # JSON_ARRAY
     | JSON_OBJECT LPAREN (keyValue = jsonKeyValue (COMMA keyValue = jsonKeyValue)*)? jsonNullClause? RPAREN # JSON_OBJECT
       // https://msdn.microsoft.com/en-us/library/ms177587.aspx
