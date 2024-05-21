@@ -113,13 +113,14 @@ class ReconCapture:
         )
         _write_df_to_delta(df, f"{self._REMORPH_CATALOG_SCHEMA_NAME}.{self._RECON_METRICS_TABLE_NAME}")
 
-    def _create_map_column_and_insert(
-        self,
+    @classmethod
+    def _create_map_column(
+        cls,
         recon_table_id: int,
         df: DataFrame,
         recon_type: str,
         status: bool,
-    ) -> None:
+    ) -> DataFrame:
         columns = df.columns
         # Create a list of column names and their corresponding column values
         map_args = []
@@ -133,11 +134,20 @@ class ReconCapture:
             .withColumn("status", lit(status))
             .withColumn("inserted_ts", lit(current_timestamp()))
         )
-        df = (
+        return (
             df.groupBy("recon_table_id", "recon_type", "status", "inserted_ts")
             .agg(collect_list("data").alias("data"))
             .selectExpr("recon_table_id", "recon_type", "status", "data", "inserted_ts")
         )
+
+    def _create_map_column_and_insert(
+        self,
+        recon_table_id: int,
+        df: DataFrame,
+        recon_type: str,
+        status: bool,
+    ) -> None:
+        df = self._create_map_column(recon_table_id, df, recon_type, status)
         _write_df_to_delta(df, f"{self._REMORPH_CATALOG_SCHEMA_NAME}.{self._RECON_DETAILS_TABLE_NAME}")
 
     def _insert_into_details_table(
