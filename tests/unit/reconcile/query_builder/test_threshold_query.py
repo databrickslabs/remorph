@@ -21,7 +21,7 @@ def test_threshold_comparison_query_with_one_threshold(table_conf_with_opts, tab
     table_schema, _ = table_schema
     table_schema.append(Schema("s_suppdate", "timestamp"))
     comparison_query = ThresholdQueryBuilder(
-        table_conf, table_schema, "target", get_dialect("databricks")
+        table_conf, table_schema, "source", get_dialect("oracle")
     ).build_comparison_query()
     assert re.sub(r'\s+', ' ', comparison_query.strip().lower()) == re.sub(
         r'\s+',
