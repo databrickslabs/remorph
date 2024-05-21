@@ -1,3 +1,5 @@
+from typing import Iterator
+
 from sqlglot import expressions as exp, parse, transpile
 from sqlglot.dialects.dialect import Dialect, DialectType
 from sqlglot.errors import ErrorLevel, ParseError, TokenError, UnsupportedError
@@ -47,6 +49,9 @@ class SqlglotEngine:
 
     @staticmethod
     def _find_root_tables(expression) -> str | None:
-        for table in expression.find_all(exp.Table, bfs=False):
+        table_iterator: Iterator[exp.Table] = expression.find_all(exp.Table, bfs=False)
+        if not table_iterator:
+            return None
+        for table in table_iterator:
             return table.name
-        return None
+

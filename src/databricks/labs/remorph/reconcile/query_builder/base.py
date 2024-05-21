@@ -13,11 +13,11 @@ from databricks.labs.remorph.reconcile.recon_config import Schema, Table
 
 class QueryBuilder(ABC):
     def __init__(
-        self,
-        table_conf: Table,
-        schema: list[Schema],
-        layer: str,
-        source: Dialect,
+            self,
+            table_conf: Table,
+            schema: list[Schema],
+            layer: str,
+            source: Dialect,
     ):
         self._table_conf = table_conf
         self._schema = schema
@@ -92,7 +92,7 @@ class QueryBuilder(ABC):
         return node
 
     def _apply_default_transformation(
-        self, aliases: list[exp.Expression], schema: list[Schema], source: Dialect
+            self, aliases: list[exp.Expression], schema: list[Schema], source: Dialect
     ) -> (list)[exp.Expression]:
         with_transform = []
         for alias in aliases:
@@ -101,12 +101,10 @@ class QueryBuilder(ABC):
 
     @staticmethod
     def _default_transformer(node: exp.Expression, schema: list[Schema], source: Dialect) -> exp.Expression:
-        source_dialects = [source for source, dialect in SQLGLOT_DIALECTS.items() if dialect == source]
-        source_dialect = source_dialects[0] if source_dialects else "default"
 
         def _get_transform(datatype: str):
-            if DataType_transform_mapping.get(source_dialect) is None:
-                return DataType_transform_mapping.get("default", {}).get("default")
+            source_dialects = [source_key for source_key, dialect in SQLGLOT_DIALECTS.items() if dialect == source]
+            source_dialect = source_dialects[0] if source_dialects else "default"
 
             source_mapping = DataType_transform_mapping.get(source_dialect, {})
 
