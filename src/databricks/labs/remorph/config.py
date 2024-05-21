@@ -28,7 +28,7 @@ SQLGLOT_DIALECTS = {
 }
 
 
-def _get_dialect(engine: str) -> Dialect:
+def get_dialect(engine: str) -> Dialect:
     return Dialect.get_or_raise(SQLGLOT_DIALECTS.get(engine))
 
 
@@ -47,12 +47,12 @@ class MorphConfig:
     mode: str = "current"
 
     def get_read_dialect(self):
-        return _get_dialect(self.source)
+        return get_dialect(self.source)
 
     def get_write_dialect(self):
         if self.mode == "experimental":
-            return _get_dialect("experimental")
-        return _get_dialect("databricks")
+            return get_dialect("experimental")
+        return get_dialect("databricks")
 
 
 @dataclass

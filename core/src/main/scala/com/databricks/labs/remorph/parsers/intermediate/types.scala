@@ -22,10 +22,12 @@ case class VarCharType(size: Option[Int]) extends DataType
 
 // Datatime types
 case class DateType() extends DataType
+case class TimeType() extends DataType
 case class TimestampType() extends DataType
 case class TimestampNTZType() extends DataType
 
 // Interval types
+case class IntervalType() extends DataType
 case class CalendarIntervalType() extends DataType
 case class YearMonthIntervalType() extends DataType
 case class DayTimeIntervalType() extends DataType

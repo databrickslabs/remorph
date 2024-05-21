@@ -2,10 +2,10 @@ import re
 from unittest.mock import MagicMock, create_autospec
 
 import pytest
-from pyspark.errors import PySparkException
 
-from databricks.labs.remorph.config import SQLGLOT_DIALECTS
+from databricks.labs.remorph.config import get_dialect
 from databricks.labs.remorph.reconcile.connectors.databricks import DatabricksDataSource
+from databricks.labs.remorph.reconcile.exception import DataSourceRuntimeException
 from databricks.sdk import WorkspaceClient
 
 
@@ -14,28 +14,10 @@ def initial_setup():
     spark = pyspark_sql_session.SparkSession.builder.getOrCreate()
 
     # Define the source, workspace, and scope
+    engine = get_dialect("databricks")
     ws = create_autospec(WorkspaceClient)
     scope = "scope"
     return spark, ws, scope
-
-
-def test_get_schema_query():
-    # initial setup
-
-    # catalog as catalog
-    schema_query = DatabricksDataSource.get_schema_query("catalog", "schema", "supplier")
-    assert re.sub(r'\s+', ' ', schema_query) == re.sub(
-        r'\s+',
-        ' ',
-        """select lower(column_name) as col_name, full_data_type as data_type from 
-                    catalog.information_schema.columns where lower(table_catalog)='catalog' 
-                    and lower(table_schema)='schema' and lower(table_name) ='supplier' order by 
-                    col_name""",
-    )
-
-    # hive_metastore as catalog
-    schema_query = DatabricksDataSource.get_schema_query("hive_metastore", "schema", "supplier")
-    assert re.sub(r'\s+', ' ', schema_query) == re.sub(r'\s+', ' ', """describe table schema.supplier""")
 
 
 def test_get_schema():
@@ -64,7 +46,7 @@ def test_get_schema():
     spark.sql().where.assert_called_with("col_name not like '#%'")
 
 
-def test_read_data():
+def test_read_data_from_uc():
     # initial setup
     spark, ws, scope = initial_setup()
 
@@ -72,12 +54,20 @@ def test_read_data():
     dd = DatabricksDataSource(spark, ws, scope, SQLGLOT_DIALECTS.get("databricks"))
 
     # Test with query
-    dd.read_data("catalog", "schema", "select id as id, ename as name from confidential.data.employee", None)
-    spark.sql.assert_called_with("select id as id, ename as name from confidential.data.employee")
+    dd.read_data("org", "data", "employee", "select id as id, name as name from :tbl", None)
+    spark.sql.assert_called_with("select id as id, name as name from org.data.employee")
 
-    # Test with table name
-    dd.read_data("catalog", "schema", "employee", None)
-    spark.sql.assert_called_with("select * from catalog.schema.employee")
+
+def test_read_data_from_hive():
+    # initial setup
+    engine, spark, ws, scope = initial_setup()
+
+    # create object for DatabricksDataSource
+    dd = DatabricksDataSource(engine, spark, ws, scope)
+
+    # Test with query
+    dd.read_data("hive_metastore", "data", "employee", "select id as id, name as name from :tbl", None)
+    spark.sql.assert_called_with("select id as id, name as name from data.employee")
 
 
 def test_read_data_exception_handling():
@@ -87,23 +77,29 @@ def test_read_data_exception_handling():
     # create object for DatabricksDataSource
     dd = DatabricksDataSource(spark, ws, scope, SQLGLOT_DIALECTS.get("databricks"))
 
-    spark.sql.side_effect = PySparkException("Test Exception")
+    spark.sql.side_effect = RuntimeError("Test Exception")
 
     with pytest.raises(
-        PySparkException,
-        match="An error occurred while fetching Databricks Data using the "
-        "following select id as id, ename as name from "
-        "confidential.data.employee in DatabricksDataSource : Test Exception",
+        DataSourceRuntimeException,
+        match="Runtime exception occurred while fetching data using select id as id, ename as name from "
+        "org.data.employee : Test Exception",
     ):
-        dd.read_data("catalog", "schema", "select id as id, ename as name from confidential.data.employee", None)
+        dd.read_data("org", "data", "employee", "select id as id, ename as name from :tbl", None)
 
 
 def test_get_schema_exception_handling():
     # initial setup
     spark, ws, scope = initial_setup()
 
-    # create object for DatabricksDataSources
-    dd = DatabricksDataSource(spark, ws, scope, SQLGLOT_DIALECTS.get("databricks"))
-    spark.sql().where.side_effect = PySparkException("Test Exception")
-    with pytest.raises(PySparkException, match=".*Test Exception.*"):
-        dd.get_schema("catalog", "schema", "supplier")
+    # create object for DatabricksDataSource
+    dd = DatabricksDataSource(engine, spark, ws, scope)
+    spark.sql.side_effect = RuntimeError("Test Exception")
+    with pytest.raises(DataSourceRuntimeException) as exception:
+        dd.get_schema("org", "data", "employee")
+
+    assert str(exception.value) == (
+        "Runtime exception occurred while fetching schema using select lower(column_name) "
+        "as col_name, full_data_type as data_type from org.information_schema.columns "
+        "where lower(table_catalog)='org' and lower(table_schema)='data' and lower("
+        "table_name) ='employee' order by col_name : Test Exception"
+    )

@@ -5,9 +5,8 @@ from collections.abc import Callable
 from dataclasses import dataclass
 
 from pyspark.sql import DataFrame
+from sqlglot import Dialect
 from sqlglot import expressions as exp
-
-from databricks.labs.remorph.reconcile.constants import ThresholdMode
 
 logger = logging.getLogger(__name__)
 
@@ -42,24 +41,17 @@ class Thresholds:
     type: str
 
     def get_mode(self):
-        return (
-            ThresholdMode.PERCENTAGE.value
-            if "%" in self.lower_bound or "%" in self.upper_bound
-            else ThresholdMode.ABSOLUTE.value
-        )
+        return "percentage" if "%" in self.lower_bound or "%" in self.upper_bound else "absolute"
 
     def get_type(self):
         if any(self.type in numeric_type.value.lower() for numeric_type in exp.DataType.NUMERIC_TYPES):
-            if self.get_mode() == ThresholdMode.ABSOLUTE.value:
-                return ThresholdMode.NUMBER_ABSOLUTE.value
-            return ThresholdMode.NUMBER_PERCENTAGE.value
+            if self.get_mode() == "absolute":
+                return "number_absolute"
+            return "number_percentage"
 
         if any(self.type in numeric_type.value.lower() for numeric_type in exp.DataType.TEMPORAL_TYPES):
-            return ThresholdMode.DATETIME.value
-
-        error_message = f"Threshold type {self.type} not supported in column {self.column_name}"
-        logger.error(error_message)
-        raise ValueError(error_message)
+            return "datetime"
+        return None
 
 
 @dataclass
@@ -165,14 +157,30 @@ class Schema:
 
 @dataclass
 class ReconcileOutput:
-    missing_in_src: DataFrame
-    missing_in_tgt: DataFrame
-    mismatch: DataFrame | None = None
+    mismatch_count: int = 0
+    missing_in_src_count: int = 0
+    missing_in_tgt_count: int = 0
+    mismatch: MismatchOutput | None = None
+    missing_in_src: DataFrame | None = None
+    missing_in_tgt: DataFrame | None = None
+    threshold_output: ThresholdOutput | None = None
+
+
+@dataclass
+class ThresholdOutput:
+    threshold_df: DataFrame | None
+    threshold_mismatch_count: int = 0
+
+
+@dataclass
+class MismatchOutput:
+    mismatch_df: DataFrame | None = None
+    mismatch_columns: list[str] | None = None
 
 
 @dataclass
 class DialectHashConfig:
-    dialect: str
+    dialect: Dialect
     algo: list[Callable]
 
 
@@ -186,6 +194,6 @@ class SchemaMatchResult:
 
 
 @dataclass
-class SchemCompareOutput:
+class SchemaCompareOutput:
     is_valid: bool
     compare_df: DataFrame
