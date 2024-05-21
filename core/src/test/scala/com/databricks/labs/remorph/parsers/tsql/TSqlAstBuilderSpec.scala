@@ -209,6 +209,82 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
 
       // TODO: Add nodes(), modify(), when we complete UPDATE and CROSS APPLY
     }
+
+    "translate all assignments to local variables as select list elements" in {
+
+      example(
+        query = "SELECT @a = 1, @b = 2, @c = 3",
+        expectedAst = Batch(
+          Seq(Project(
+            NoTable(),
+            Seq(
+              Assign(Identifier("@a", isQuoted = false), Literal(integer = Some(1))),
+              Assign(Identifier("@b", isQuoted = false), Literal(integer = Some(2))),
+              Assign(Identifier("@c", isQuoted = false), Literal(integer = Some(3))))))))
+
+      example(
+        query = "SELECT @a += 1, @b -= 2",
+        expectedAst = Batch(
+          Seq(Project(
+            NoTable(),
+            Seq(
+              Assign(
+                Identifier("@a", isQuoted = false),
+                Add(Identifier("@a", isQuoted = false), Literal(integer = Some(1)))),
+              Assign(
+                Identifier("@b", isQuoted = false),
+                Subtract(Identifier("@b", isQuoted = false), Literal(integer = Some(2)))))))))
+
+      example(
+        query = "SELECT @a *= 1, @b /= 2",
+        expectedAst = Batch(
+          Seq(Project(
+            NoTable(),
+            Seq(
+              Assign(
+                Identifier("@a", isQuoted = false),
+                Multiply(Identifier("@a", isQuoted = false), Literal(integer = Some(1)))),
+              Assign(
+                Identifier("@b", isQuoted = false),
+                Divide(Identifier("@b", isQuoted = false), Literal(integer = Some(2)))))))))
+
+      example(
+        query = "SELECT @a %= myColumn",
+        expectedAst = Batch(Seq(Project(
+          NoTable(),
+          Seq(
+            Assign(Identifier("@a", isQuoted = false), Mod(Identifier("@a", isQuoted = false), Column("myColumn"))))))))
+
+      example(
+        query = "SELECT @a &= myColumn",
+        expectedAst = Batch(
+          Seq(
+            Project(
+              NoTable(),
+              Seq(Assign(
+                Identifier("@a", isQuoted = false),
+                BitwiseAnd(Identifier("@a", isQuoted = false), Column("myColumn"))))))))
+
+      example(
+        query = "SELECT @a ^= myColumn",
+        expectedAst = Batch(
+          Seq(
+            Project(
+              NoTable(),
+              Seq(Assign(
+                Identifier("@a", isQuoted = false),
+                BitwiseXor(Identifier("@a", isQuoted = false), Column("myColumn"))))))))
+
+      example(
+        query = "SELECT @a |= myColumn",
+        expectedAst = Batch(
+          Seq(
+            Project(
+              NoTable(),
+              Seq(Assign(
+                Identifier("@a", isQuoted = false),
+                BitwiseOr(Identifier("@a", isQuoted = false), Column("myColumn"))))))))
+    }
     "translate scalar subqueries as expressions in select list" in {
       example(
         query = """SELECT

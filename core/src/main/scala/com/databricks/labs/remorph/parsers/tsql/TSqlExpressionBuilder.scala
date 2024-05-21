@@ -32,8 +32,8 @@ class TSqlExpressionBuilder extends TSqlParserBaseVisitor[ir.Expression] with Pa
     ctx.op.getType match {
       case EQ => ir.Assign(localId, expression)
       case PE => ir.Assign(localId, ir.Add(localId, expression))
-      case ME => ir.Assign(localId, ir.Multiply(localId, expression))
-      case SE => ir.Assign(localId, ir.Subtract(localId, expression))
+      case ME => ir.Assign(localId, ir.Subtract(localId, expression))
+      case SE => ir.Assign(localId, ir.Multiply(localId, expression))
       case DE => ir.Assign(localId, ir.Divide(localId, expression))
       case MEA => ir.Assign(localId, ir.Mod(localId, expression))
       case AND_ASSIGN => ir.Assign(localId, ir.BitwiseAnd(localId, expression))
