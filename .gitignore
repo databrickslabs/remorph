@@ -12,3 +12,4 @@ coverage.*
 *.iws
 /core/gen/
 *.tokens
+spark-warehouse/
