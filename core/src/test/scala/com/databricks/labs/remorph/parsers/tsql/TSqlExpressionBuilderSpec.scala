@@ -315,6 +315,29 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
           ir.Or(ir.Equals(ir.Column("c"), ir.Column("x")), ir.Equals(ir.Column("e"), ir.Column("f")))))
     }
 
+    "handle non special functions used in dot operators" in {
+      example(
+        "a.b()",
+        _.expression(),
+        ir.Dot(
+          ir.Column("a"),
+          ir.UnresolvedFunction("b", List(), is_distinct = false, is_user_defined_function = false)))
+      example(
+        "a.b.c()",
+        _.expression(),
+        ir.Dot(
+          ir.Column("a"),
+          ir.Dot(
+            ir.Column("b"),
+            ir.UnresolvedFunction("c", List(), is_distinct = false, is_user_defined_function = false))))
+      example(
+        "a.b.c.FLOOR(c)",
+        _.expression(),
+        ir.Dot(
+          ir.Column("a"),
+          ir.Dot(ir.Column("b"), ir.Dot(ir.Column("c"), ir.CallFunction("FLOOR", Seq(ir.Column("c")))))))
+    }
+
     "translate case/when/else expressions" in {
       // Case with an initial expression and an else clause
       example(
