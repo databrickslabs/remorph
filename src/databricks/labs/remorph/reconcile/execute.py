@@ -115,7 +115,7 @@ class Reconciliation:
         data_reconcile_output = self._get_reconcile_output(table_conf, src_schema, tgt_schema)
         reconcile_output = self._get_sample_data(table_conf, data_reconcile_output, src_schema, tgt_schema)
         if table_conf.get_threshold_columns("source"):
-            reconcile_output.threshold_output = self._get_threshold_output(table_conf, src_schema, tgt_schema)
+            reconcile_output.threshold_output = self._reconcile_threshold_data(table_conf, src_schema, tgt_schema)
         return reconcile_output
 
     def reconcile_schema(self, src_schema: list[Schema], tgt_schema: list[Schema], table_conf: Table):
@@ -215,7 +215,21 @@ class Reconciliation:
 
         return capture_mismatch_data_and_columns(source=src_data, target=tgt_data, key_columns=key_columns)
 
-    def _get_threshold_output(self, table_conf: Table, src_schema: list[Schema], tgt_schema: list[Schema]):
+    def _reconcile_threshold_data(self, table_conf: Table, src_schema: list[Schema], tgt_schema: list[Schema]):
+
+        src_data, tgt_data = self._get_threshold_data(table_conf, src_schema, tgt_schema)
+
+        source_view = f"source_{table_conf.source_name}_df_threshold_vw"
+        target_view = f"target_{table_conf.target_name}_df_threshold_vw"
+
+        src_data.createOrReplaceTempView(source_view)
+        tgt_data.createOrReplaceTempView(target_view)
+
+        return self._compute_threshold_comparison(table_conf, src_schema)
+
+    def _get_threshold_data(
+        self, table_conf: Table, src_schema: list[Schema], tgt_schema: list[Schema]
+    ) -> tuple[DataFrame, DataFrame]:
         src_threshold_query = ThresholdQueryBuilder(
             table_conf, src_schema, "source", self._source_engine
         ).build_threshold_query()
@@ -238,12 +252,9 @@ class Reconciliation:
             options=table_conf.jdbc_reader_options,
         )
 
-        source_view = f"source_{table_conf.source_name}_df_threshold_vw"
-        target_view = f"target_{table_conf.target_name}_df_threshold_vw"
+        return src_data, tgt_data
 
-        src_data.createOrReplaceTempView(source_view)
-        tgt_data.createOrReplaceTempView(target_view)
-
+    def _compute_threshold_comparison(self, table_conf: Table, src_schema: list[Schema]) -> ThresholdOutput:
         threshold_comparison_query = ThresholdQueryBuilder(
             table_conf, src_schema, "target", self._target_engine
         ).build_comparison_query()
