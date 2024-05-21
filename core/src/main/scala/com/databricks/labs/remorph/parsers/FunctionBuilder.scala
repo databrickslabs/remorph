@@ -4,9 +4,20 @@ import com.databricks.labs.remorph.parsers.{intermediate => ir}
 
 import java.util.Locale
 
-sealed trait FunctionArity
-case class FixedArity(arity: Int, convertible: Boolean = true) extends FunctionArity
-case class VariableArity(argMin: Int, argMax: Int, convertible: Boolean = true) extends FunctionArity
+sealed trait FunctionType
+case object StandardFunction extends FunctionType
+case object XmlFunction extends FunctionType
+
+sealed trait FunctionArity {}
+
+case class FixedArity(arity: Int, functionType: FunctionType = StandardFunction, isConvertible: Boolean = true)
+    extends FunctionArity
+case class VariableArity(
+    argMin: Int,
+    argMax: Int,
+    functionType: FunctionType = StandardFunction,
+    isConvertible: Boolean = true)
+    extends FunctionArity
 
 object FunctionBuilder {
 
@@ -52,6 +63,23 @@ object FunctionBuilder {
     case "CURRENT_USER" => Some(FixedArity(0))
     case "CURSOR_STATUS" => Some(FixedArity(2))
     case "DATABASE_PRINCIPAL_ID" => Some(VariableArity(0, 1))
+    case "COMPRESS" => Some(FixedArity(1))
+    case "CONCAT" => Some(VariableArity(2, Int.MaxValue))
+    case "CONCAT_WS" => Some(VariableArity(3, Int.MaxValue))
+    case "CONNECTIONPROPERTY" => Some(FixedArity(1, isConvertible = false))
+    case "CONTEXT_INFO" => Some(FixedArity(0))
+    case "CONVERT" => Some(VariableArity(2, 3))
+    case "COS" => Some(FixedArity(1))
+    case "COT" => Some(FixedArity(1))
+    case "CURRENT_DATE" => Some(FixedArity(0))
+    case "CURRENT_REQUEST_ID" => Some(FixedArity(0))
+    case "CURRENT_TIMESTAMP" => Some(FixedArity(0))
+    case "CURRENT_TIMEZONE" => Some(FixedArity(0))
+    case "CURRENT_TIMEZONE_ID" => Some(FixedArity(0))
+    case "CURRENT_TRANSACTION_ID" => Some(FixedArity(0))
+    case "CURRENT_USER" => Some(FixedArity(0))
+    case "CURSOR_STATUS" => Some(FixedArity(2))
+    case "DATABASE_PRINCIPAL_ID" => Some(VariableArity(0, 1))
     case "DATABASEPROPERTY" => Some(FixedArity(2))
     case "DATABASEPROPERTYEX" => Some(FixedArity(2))
     case "DATALENGTH" => Some(FixedArity(1))
@@ -81,6 +109,18 @@ object FunctionBuilder {
     case "ERROR_SEVERITY" => Some(FixedArity(0))
     case "ERROR_STATE" => Some(FixedArity(0))
     case "EXP" => Some(FixedArity(1))
+    case "DECOMPRESS" => Some(FixedArity(1))
+    case "DEGREES" => Some(FixedArity(1))
+    case "DIFFERENCE" => Some(FixedArity(2))
+    case "EOMONTH" => Some(VariableArity(1, 2))
+    case "ERROR_LINE" => Some(FixedArity(0))
+    case "ERROR_MESSAGE" => Some(FixedArity(0))
+    case "ERROR_NUMBER" => Some(FixedArity(0))
+    case "ERROR_PROCEDURE" => Some(FixedArity(0))
+    case "ERROR_SEVERITY" => Some(FixedArity(0))
+    case "ERROR_STATE" => Some(FixedArity(0))
+    case "EXIST" => Some(FixedArity(1, XmlFunction))
+    case "EXP" => Some(FixedArity(1))
     case "FILE_ID" => Some(FixedArity(1))
     case "FILE_IDEX" => Some(FixedArity(1))
     case "FILE_NAME" => Some(FixedArity(1))
@@ -94,6 +134,19 @@ object FunctionBuilder {
     case "FORMATMESSAGE" => Some(VariableArity(2, Int.MaxValue))
     case "FULLTEXTCATALOGPROPERTY" => Some(FixedArity(2))
     case "FULLTEXTSERVICEPROPERTY" => Some(FixedArity(1))
+    case "GET_FILESTREAM_TRANSACTION_CONTEXT" => Some(FixedArity(0))
+    case "GETANSINULL" => Some(VariableArity(0, 1))
+    case "GETDATE" => Some(FixedArity(0))
+    case "GETUTCDATE" => Some(FixedArity(0))
+    case "GREATEST" => Some(VariableArity(1, Int.MaxValue))
+    case "HAS_DBACCESS" => Some(FixedArity(1))
+    case "HAS_PERMS_BY_NAME" => Some(VariableArity(4, 5))
+    case "HOST_ID" => Some(FixedArity(0))
+    case "HOST_NAME" => Some(FixedArity(0))
+    case "IDENT_CURRENT" => Some(FixedArity(1))
+    case "IDENT_INCR" => Some(FixedArity(1))
+    case "IDENT_SEED" => Some(FixedArity(1))
+    case "IFF" => Some(FixedArity(3))
     case "GET_FILESTREAM_TRANSACTION_CONTEXT" => Some(FixedArity(0))
     case "GETANCESTGOR" => Some(FixedArity(1))
     case "GETANSINULL" => Some(VariableArity(0, 1))
@@ -116,6 +169,33 @@ object FunctionBuilder {
     case "INDEX_COL" => Some(FixedArity(3))
     case "INDEXKEY_PROPERTY" => Some(FixedArity(3))
     case "INDEXPROPERTY" => Some(FixedArity(3))
+    case "IS_MEMBER" => Some(FixedArity(1))
+    case "IS_ROLEMEMBER" => Some(VariableArity(1, 2))
+    case "IS_SRVROLEMEMBER" => Some(VariableArity(1, 2))
+    case "ISDATE" => Some(FixedArity(1))
+    case "ISJSON" => Some(VariableArity(1, 2))
+    case "ISNULL" => Some(FixedArity(2))
+    case "ISNUMERIC" => Some(FixedArity(1))
+    case "JSON_MODIFY" => Some(FixedArity(3))
+    case "JSON_PATH_EXISTS" => Some(FixedArity(2))
+    case "JSON_QUERY" => Some(FixedArity(2))
+    case "JSON_VALUE" => Some(FixedArity(2))
+    case "LEAST" => Some(VariableArity(1, Int.MaxValue))
+    case "LEFT" => Some(FixedArity(2))
+    case "LEN" => Some(FixedArity(1))
+    case "LOG" => Some(VariableArity(1, 2))
+    case "LOG10" => Some(FixedArity(1))
+    case "LOGINPROPERTY" => Some(FixedArity(2))
+    case "LOWER" => Some(FixedArity(1))
+    case "LTRIM" => Some(FixedArity(1))
+    case "MIN_ACTIVE_ROWVERSION" => Some(FixedArity(0))
+    case "MODIFY" => Some(FixedArity(1, XmlFunction))
+    case "MONTH" => Some(FixedArity(1))
+    case "NCHAR" => Some(FixedArity(1))
+    case "NEWID" => Some(FixedArity(0))
+    case "NEWSEQUENTIALID" => Some(FixedArity(0))
+    case "NODES" => Some(FixedArity(1, XmlFunction))
+    case "NULLIF" => Some(FixedArity(2))
     case "IS_MEMBER" => Some(FixedArity(1))
     case "IS_ROLEMEMBER" => Some(VariableArity(1, 2))
     case "IS_SRVROLEMEMBER" => Some(VariableArity(1, 2))
@@ -156,6 +236,12 @@ object FunctionBuilder {
     case "PARSE" => Some(VariableArity(2, 3))
     case "PARSENAME" => Some(FixedArity(2))
     case "PATINDEX" => Some(FixedArity(2))
+    case "PERMISSIONS" => Some(VariableArity(0, 2))
+    case "PI" => Some(FixedArity(0))
+    case "POWER" => Some(FixedArity(2))
+    case "PWDCOMPARE" => Some(VariableArity(2, 3))
+    case "PWDENCRYPT" => Some(FixedArity(1))
+    case "QUERY" => Some(FixedArity(1, XmlFunction))
     case "PERMISSIONS" => Some(VariableArity(0, 2))
     case "PI" => Some(FixedArity(0))
     case "POWER" => Some(FixedArity(2))
@@ -215,8 +301,18 @@ object FunctionBuilder {
     case "TYPEPROPERTY" => Some(FixedArity(2))
     case "UNICODE" => Some(FixedArity(1))
     case "UPPER" => Some(FixedArity(1))
+    case "TRANSLATE" => Some(FixedArity(3))
+    case "TRIM" => Some(VariableArity(1, 2))
+    case "TYPE_ID" => Some(FixedArity(1))
+    case "TYPE_NAME" => Some(FixedArity(1))
+    case "TYPEPROPERTY" => Some(FixedArity(2))
+    case "UNICODE" => Some(FixedArity(1))
+    case "UPPER" => Some(FixedArity(1))
     case "USER_ID" => Some(VariableArity(0, 1))
     case "USER_NAME" => Some(VariableArity(0, 1))
+    case "VALUE" => Some(FixedArity(2, XmlFunction))
+    case "XACT_STATE" => Some(FixedArity(0))
+    case "YEAR" => Some(FixedArity(1))
     case "VAR" => Some(FixedArity(1))
     case "VARP" => Some(FixedArity(1))
     case "XACT_STATE" => Some(FixedArity(0))
@@ -224,27 +320,38 @@ object FunctionBuilder {
     case _ => None
   }
 
+  def functionType(name: String): FunctionType = {
+    val uName = name.toUpperCase(Locale.getDefault())
+    val defnOption = functionArity(uName)
+    defnOption match {
+      case Some(fixedArity: FixedArity) => fixedArity.functionType
+      case Some(variableArity: VariableArity) => variableArity.functionType
+      case None => StandardFunction
+    }
+  }
+
   def buildFunction(name: String, args: Seq[ir.Expression]): ir.Expression = {
     val uName = name.toUpperCase(Locale.getDefault())
     val defnOption = functionArity(uName)
 
     defnOption match {
-      case Some(FixedArity(_, false)) | Some(VariableArity(_, _, false)) =>
-        // Should raise a warning/lint error here
+      case Some(fixedArity: FixedArity) if !fixedArity.isConvertible =>
         ir.UnresolvedFunction(name, args, is_distinct = false, is_user_defined_function = false)
 
-      case Some(FixedArity(arity, true)) if args.length == arity =>
+      case Some(fixedArity: FixedArity) if args.length == fixedArity.arity =>
         ir.CallFunction(name, args)
 
-      case Some(VariableArity(argMin, argMax, true)) if args.length >= argMin && args.length <= argMax =>
+      case Some(variableArity: VariableArity) if !variableArity.isConvertible =>
+        ir.UnresolvedFunction(name, args, is_distinct = false, is_user_defined_function = false)
+
+      case Some(variableArity: VariableArity)
+          if args.length >= variableArity.argMin && args.length <= variableArity.argMax =>
         ir.CallFunction(name, args)
 
       case Some(_) =>
-        // Should raise a warning/lint error here about mismatched argument count
         ir.UnresolvedFunction(name, args, is_distinct = false, is_user_defined_function = false)
 
       case None =>
-        // Should raise a warning/lint error here about unknown function
         ir.UnresolvedFunction(name, args, is_distinct = false, is_user_defined_function = false)
     }
   }

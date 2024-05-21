@@ -180,6 +180,35 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
               JoinDataType(is_left_struct = false, is_right_struct = false)),
             List(Column("T1.A"))))))
     }
+
+    "translate simple XML query and values" in {
+      example(
+        query = "SELECT xmlcolumn.query('/root/child') FROM tab",
+        expectedAst = Batch(
+          Seq(Project(
+            NamedTable("tab", Map(), is_streaming = false),
+            Seq(XmlFunction(CallFunction("query", Seq(Literal(string = Some("/root/child")))), Column("xmlcolumn")))))))
+
+      example(
+        "SELECT xmlcolumn.value('path', 'type') FROM tab",
+        expectedAst = Batch(
+          Seq(Project(
+            NamedTable("tab", Map(), is_streaming = false),
+            Seq(XmlFunction(
+              CallFunction("value", Seq(Literal(string = Some("path")), Literal(string = Some("type")))),
+              Column("xmlcolumn")))))))
+
+      example(
+        "SELECT xmlcolumn.exist('/root/child[text()=\"Some Value\"]') FROM xmltable;",
+        expectedAst = Batch(
+          Seq(Project(
+            NamedTable("xmltable", Map(), is_streaming = false),
+            Seq(XmlFunction(
+              CallFunction("exist", Seq(Literal(string = Some("/root/child[text()=\"Some Value\"]")))),
+              Column("xmlcolumn")))))))
+
+      // TODO: Add nodes(), modify(), when we complete UPDATE and CROSS APPLY
+    }
     "translate scalar subqueries as expressions in select list" in {
       example(
         query = """SELECT
