@@ -163,6 +163,13 @@ class ReconcileOutput:
     mismatch: MismatchOutput | None = None
     missing_in_src: DataFrame | None = None
     missing_in_tgt: DataFrame | None = None
+    threshold_output: ThresholdOutput | None = None
+
+
+@dataclass
+class ThresholdOutput:
+    threshold_df: DataFrame | None
+    threshold_mismatch_count: int = 0
 
 
 @dataclass

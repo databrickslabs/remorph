@@ -30,8 +30,8 @@ def test_threshold_comparison_query_with_one_threshold(table_conf_with_opts, tab
         0) as s_acctbal_databricks, case when (coalesce(source.s_acctbal, 0) - coalesce(databricks.s_acctbal,
         0)) = 0 then `match` when (coalesce(source.s_acctbal, 0) - coalesce(databricks.s_acctbal, 0)) between 0 and
         100 then `warning` else `failed` end as s_acctbal_match, source.s_nationkey as s_nationkey_source,
-        source.s_suppkey as s_suppkey_source from supplier_df_threshold_vw as source inner join
-        target_supplier_df_threshold_vw as databricks on source.s_nationkey <=> databricks.s_nationkey and
+        source.s_suppkey as s_suppkey_source from source_supplier_df_threshold_vw as source inner join
+        target_target_supplier_df_threshold_vw as databricks on source.s_nationkey <=> databricks.s_nationkey and
         source.s_suppkey <=> databricks.s_suppkey where (1 = 1 or 1 = 1) or
         (coalesce(source.s_acctbal, 0) - coalesce(databricks.s_acctbal, 0)) <> 0""".strip().lower(),
     )
@@ -66,8 +66,8 @@ def test_threshold_comparison_query_with_dual_threshold(table_conf_with_opts, ta
         0)) = 0 then `match` when (coalesce(unix_timestamp(source.s_suppdate), 0) -
         coalesce(unix_timestamp(databricks.s_suppdate), 0)) between -86400 and 86400 then
         `warning` else `failed` end as s_suppdate_match, source.s_suppdate as s_suppdate_source,
-        source.s_suppkey as s_suppkey_source from supplier_df_threshold_vw as
-        source inner join target_supplier_df_threshold_vw as databricks on source.s_suppdate <=> databricks.s_suppdate and
+        source.s_suppkey as s_suppkey_source from source_supplier_df_threshold_vw as
+        source inner join target_target_supplier_df_threshold_vw as databricks on source.s_suppdate <=> databricks.s_suppdate and
         source.s_suppkey <=> databricks.s_suppkey where (1 = 1 or 1 = 1) or (coalesce(source.s_acctbal, 0) -
         coalesce(databricks.s_acctbal, 0)) <> 0 or (coalesce(unix_timestamp(source.s_suppdate), 0) -
         coalesce(unix_timestamp(databricks.s_suppdate), 0)) <> 0""".strip().lower(),
@@ -78,7 +78,7 @@ def test_build_threshold_query_with_single_threshold(table_conf_with_opts, table
     table_conf = table_conf_with_opts
     table_conf.jdbc_reader_options = None
     table_conf.transformations = [
-        Transformation(column_name="s_acctbal", source="trim(s_acctbal)", target="trim(s_acctbal)")
+        Transformation(column_name="s_acctbal", source="cast(s_acctbal as number)", target="cast(s_acctbal_t as int)")
     ]
     src_schema, tgt_schema = table_schema
     src_query = ThresholdQueryBuilder(table_conf, src_schema, "source", get_dialect("oracle")).build_threshold_query()
@@ -86,13 +86,12 @@ def test_build_threshold_query_with_single_threshold(table_conf_with_opts, table
         table_conf, tgt_schema, "target", get_dialect("databricks")
     ).build_threshold_query()
     assert src_query == (
-        "SELECT TRIM(s_acctbal) AS s_acctbal, COALESCE(TRIM(s_nationkey), '') AS s_nationkey, "
-        "COALESCE(TRIM(s_suppkey), '') AS s_suppkey FROM :tbl WHERE s_name = 't' AND s_address = 'a'"
+        "SELECT COALESCE(TRIM(s_nationkey), '') AS s_nationkey, COALESCE(TRIM(s_suppkey), '') AS s_suppkey, "
+        "CAST(s_acctbal AS NUMBER) AS s_acctbal FROM :tbl WHERE s_name = 't' AND s_address = 'a'"
     )
     assert target_query == (
-        "SELECT TRIM(s_acctbal) AS s_acctbal, COALESCE(TRIM(s_nationkey_t), '') AS s_nationkey, "
-        "COALESCE(TRIM(s_suppkey_t), '') AS s_suppkey FROM :tbl WHERE s_name = 't' AND "
-        "s_address_t = 'a'"
+        "SELECT COALESCE(TRIM(s_nationkey_t), '') AS s_nationkey, COALESCE(TRIM(s_suppkey_t), '') AS s_suppkey, "
+        "CAST(s_acctbal_t AS INT) AS s_acctbal FROM :tbl WHERE s_name = 't' AND s_address_t = 'a'"
     )
 
 
@@ -114,14 +113,12 @@ def test_build_threshold_query_with_multiple_threshold(table_conf_with_opts, tab
         table_conf, tgt_schema, "target", get_dialect("databricks")
     ).build_threshold_query()
     assert src_query == (
-        "SELECT COALESCE(TRIM(s_acctbal), '') AS s_acctbal, COALESCE(TRIM(s_nationkey), "
-        "'') AS s_nationkey, TRIM(s_phone) AS s_phone, COALESCE(TRIM(s_suppdate), '') AS s_suppdate, "
-        "COALESCE(TRIM(s_suppkey), '') AS s_suppkey FROM :tbl"
+        "SELECT COALESCE(TRIM(s_nationkey), '') AS s_nationkey, TRIM(s_phone) AS s_phone, COALESCE(TRIM(s_suppkey), "
+        "'') AS s_suppkey, s_acctbal AS s_acctbal, s_suppdate AS s_suppdate FROM :tbl"
     )
     assert target_query == (
-        "SELECT COALESCE(TRIM(s_acctbal_t), '') AS s_acctbal, COALESCE(TRIM(s_nationkey_t), "
-        "'') AS s_nationkey, COALESCE(TRIM(s_suppdate), '') AS s_suppdate, COALESCE(TRIM("
-        "s_suppkey_t), '') AS s_suppkey FROM :tbl"
+        "SELECT COALESCE(TRIM(s_nationkey_t), '') AS s_nationkey, COALESCE(TRIM(s_suppkey_t), '') AS s_suppkey, "
+        "s_acctbal_t AS s_acctbal, s_suppdate AS s_suppdate FROM :tbl"
     )
 
 
