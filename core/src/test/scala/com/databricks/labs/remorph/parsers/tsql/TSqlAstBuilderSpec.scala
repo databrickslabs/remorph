@@ -40,9 +40,11 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
     "translate collation specifiers" in {
       example(
         query = "SELECT a COLLATE Latin1_General_BIN FROM dbo.table_x",
-        expectedAst = Project(
-          NamedTable("dbo.table_x", Map.empty, is_streaming = false),
-          Seq(Collate(Column("a"), "Latin1_General_BIN"))))
+        expectedAst = Batch(
+          Seq(
+            Project(
+              NamedTable("dbo.table_x", Map.empty, is_streaming = false),
+              Seq(Collate(Column("a"), "Latin1_General_BIN"))))))
     }
 
     "translate table source items with aliases" in {
