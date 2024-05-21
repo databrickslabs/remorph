@@ -164,6 +164,7 @@ class ReconcileOutput:
     missing_in_src: DataFrame | None = None
     missing_in_tgt: DataFrame | None = None
     threshold_output: ThresholdOutput | None = None
+    exception: str | None = None
 
 
 @dataclass
@@ -195,5 +196,6 @@ class SchemaMatchResult:
 
 @dataclass
 class SchemaCompareOutput:
-    is_valid: bool
-    compare_df: DataFrame
+    is_valid: bool = False
+    compare_df: DataFrame | None = None
+    exception: str | None = None

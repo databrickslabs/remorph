@@ -1,13 +1,19 @@
+import logging
 import re
 
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.functions import col
 from sqlglot import Dialect
 
-from databricks.labs.remorph.reconcile.connectors.data_source import DataSource
+from databricks.labs.remorph.reconcile.connectors.data_source import (
+    DataSource,
+    log_and_throw_exception,
+)
 from databricks.labs.remorph.reconcile.connectors.secrets import SecretsMixin
 from databricks.labs.remorph.reconcile.recon_config import JdbcReaderOptions, Schema
 from databricks.sdk import WorkspaceClient
+
+logger = logging.getLogger(__name__)
 
 
 def _get_schema_query(catalog: str, schema: str, table: str):
@@ -44,7 +50,7 @@ class DatabricksDataSource(DataSource, SecretsMixin):
         table: str,
         query: str,
         options: JdbcReaderOptions | None,
-    ) -> DataFrame:
+    ) -> DataFrame | None:
         table_with_namespace = f"{catalog}.{schema}.{table}"
         if catalog is None or catalog == "hive_metastore":
             table_with_namespace = f"{schema}.{table}"
@@ -53,17 +59,17 @@ class DatabricksDataSource(DataSource, SecretsMixin):
             df = self._spark.sql(table_query)
             return df.select([col(column).alias(column.lower()) for column in df.columns])
         except RuntimeError as e:
-            raise self._raise_runtime_exception(e, "data", table_query)
+            return log_and_throw_exception(e, "data", table_query)
 
     def get_schema(
         self,
         catalog: str,
         schema: str,
         table: str,
-    ) -> list[Schema]:
+    ) -> list[Schema] | None:
         schema_query = _get_schema_query(catalog, schema, table)
         try:
             schema_df = self._spark.sql(schema_query).where("col_name not like '#%'").distinct()
             return [Schema(field.col_name.lower(), field.data_type.lower()) for field in schema_df.collect()]
         except RuntimeError as e:
-            raise self._raise_runtime_exception(e, "schema", schema_query)
+            return log_and_throw_exception(e, "schema", schema_query)

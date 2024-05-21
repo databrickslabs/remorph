@@ -1,9 +1,7 @@
-import pytest
 from pyspark import Row
 from pyspark.testing import assertDataFrameEqual
 
 from databricks.labs.remorph.reconcile.connectors.data_source import MockDataSource
-from databricks.labs.remorph.reconcile.exception import DataSourceRuntimeException
 from databricks.labs.remorph.reconcile.recon_config import Schema
 
 catalog = "org"
@@ -55,15 +53,9 @@ def test_mock_data_source_happy(mock_spark):
 
 def test_mock_data_source_fail(mock_spark):
     data_source = MockDataSource({}, {}, Exception("TABLE NOT FOUND"))
-    with pytest.raises(
-        DataSourceRuntimeException,
-        match="Runtime exception occurred while fetching data using \\(org, data, select \\* from test\\) : TABLE"
-        " NOT FOUND",
-    ):
-        data_source.read_data(catalog, schema, table, "select * from test", None)
 
-    with pytest.raises(
-        DataSourceRuntimeException,
-        match="Runtime exception occurred while fetching schema using \\(org, data, unknown\\) : TABLE NOT FOUND",
-    ):
-        data_source.get_schema(catalog, schema, "unknown")
+    actual_data_reconcile = data_source.read_data(catalog, schema, table, "select * from test", None)
+    assert actual_data_reconcile is None, "the expected value is None"
+
+    actual_schema_reconcile = data_source.get_schema(catalog, schema, "unknown")
+    assert actual_schema_reconcile is None, "the expected value is None"

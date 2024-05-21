@@ -1,9 +1,22 @@
+import logging
 from abc import ABC, abstractmethod
 
 from pyspark.sql import DataFrame
 
 from databricks.labs.remorph.reconcile.exception import DataSourceRuntimeException
 from databricks.labs.remorph.reconcile.recon_config import JdbcReaderOptions, Schema
+
+logger = logging.getLogger(__name__)
+
+
+def _raise_runtime_exception(exception: Exception, fetch_type: str, query: str) -> DataSourceRuntimeException:
+    error_msg = f"Runtime exception occurred while fetching {fetch_type} using {query} : {exception}"
+    return DataSourceRuntimeException(error_msg)
+
+
+def log_and_throw_exception(exception: Exception, fetch_type: str, query: str):
+    logger.warning(str(_raise_runtime_exception(exception, fetch_type, query)))
+    print(str(_raise_runtime_exception(exception, fetch_type, query)))
 
 
 class DataSource(ABC):
@@ -17,11 +30,6 @@ class DataSource(ABC):
     @abstractmethod
     def get_schema(self, catalog: str, schema: str, table: str) -> list[Schema]:
         return NotImplemented
-
-    @staticmethod
-    def _raise_runtime_exception(exception: Exception, fetch_type: str, query: str) -> DataSourceRuntimeException:
-        error_msg = f"Runtime exception occurred while fetching {fetch_type} using {query} : {exception}"
-        return DataSourceRuntimeException(error_msg)
 
 
 class MockDataSource(DataSource):
@@ -38,14 +46,14 @@ class MockDataSource(DataSource):
 
     def read_data(
         self, catalog: str, schema: str, table: str, query: str, options: JdbcReaderOptions | None
-    ) -> DataFrame:
+    ) -> DataFrame | None:
         mock_df = self._dataframe_repository.get((catalog, schema, query))
         if not mock_df:
-            raise self._raise_runtime_exception(self._exception, "data", f"({catalog}, {schema}, {query})")
+            return log_and_throw_exception(self._exception, "data", query)
         return mock_df
 
-    def get_schema(self, catalog: str, schema: str, table: str) -> list[Schema]:
+    def get_schema(self, catalog: str, schema: str, table: str) -> list[Schema] | None:
         mock_schema = self._schema_repository.get((catalog, schema, table))
         if not mock_schema:
-            raise self._raise_runtime_exception(self._exception, "schema", f"({catalog}, {schema}, {table})")
+            return log_and_throw_exception(self._exception, "schema", table)
         return mock_schema

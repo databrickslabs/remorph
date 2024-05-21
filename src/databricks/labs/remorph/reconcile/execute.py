@@ -13,6 +13,7 @@ from databricks.labs.remorph.reconcile.connectors.data_source import DataSource
 from databricks.labs.remorph.reconcile.connectors.source_adapter import (
     DataSourceAdapter,
 )
+from databricks.labs.remorph.reconcile.exception import DataSourceRuntimeException
 from databricks.labs.remorph.reconcile.query_builder.hash_query import HashQueryBuilder
 from databricks.labs.remorph.reconcile.query_builder.sampling_query import (
     SamplingQueryBuilder,
@@ -23,6 +24,7 @@ from databricks.labs.remorph.reconcile.query_builder.threshold_query import (
 from databricks.labs.remorph.reconcile.recon_config import (
     ReconcileOutput,
     Schema,
+    SchemaCompareOutput,
     Table,
     ThresholdOutput,
 )
@@ -51,20 +53,39 @@ def recon(ws: WorkspaceClient, spark: SparkSession, table_recon: TableRecon, sou
     reconciler = Reconciliation(source, target, database_config, report_type, schema_comparator, source_dialect)
 
     for table_conf in table_recon.tables:
-        src_schema = source.get_schema(
-            catalog=database_config.source_catalog, schema=database_config.source_schema, table=table_conf.source_name
-        )
-        tgt_schema = target.get_schema(
-            catalog=database_config.target_catalog, schema=database_config.target_schema, table=table_conf.source_name
-        )
+        schema_reconcile_output = None
+        data_reconcile_output = None
+        try:
+            src_schema = source.get_schema(
+                catalog=database_config.source_catalog,
+                schema=database_config.source_schema,
+                table=table_conf.source_name,
+            )
+            tgt_schema = target.get_schema(
+                catalog=database_config.target_catalog,
+                schema=database_config.target_schema,
+                table=table_conf.source_name,
+            )
+            if report_type in {"schema", "all"}:
+                schema_reconcile_output = reconciler.reconcile_schema(
+                    table_conf=table_conf, src_schema=src_schema, tgt_schema=tgt_schema
+                )
+            try:
+                if report_type in {"data", "row", "all"}:
+                    data_reconcile_output = reconciler.reconcile_data(
+                        table_conf=table_conf, src_schema=src_schema, tgt_schema=tgt_schema
+                    )
+            except DataSourceRuntimeException as e:
+                ReconcileOutput(exception=str(e))
+            except Exception as e:
+                ReconcileOutput(exception=str(e))
+        except DataSourceRuntimeException as e:
+            SchemaCompareOutput(exception=str(e))
+        except Exception as e:
+            SchemaCompareOutput(exception=str(e))
 
-        if report_type in {"data", "row"}:
-            reconciler.reconcile_data(table_conf=table_conf, src_schema=src_schema, tgt_schema=tgt_schema)
-        elif report_type == "schema":
-            reconciler.reconcile_schema(table_conf=table_conf, src_schema=src_schema, tgt_schema=tgt_schema)
-        elif report_type == "all":
-            reconciler.reconcile_data(table_conf=table_conf, src_schema=src_schema, tgt_schema=tgt_schema)
-            reconciler.reconcile_schema(table_conf=table_conf, src_schema=src_schema, tgt_schema=tgt_schema)
+        # [TODO] Remove the print with persist logic
+        print(schema_reconcile_output, data_reconcile_output)
 
     return recon_id
 

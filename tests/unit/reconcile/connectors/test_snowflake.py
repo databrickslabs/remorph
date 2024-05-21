@@ -2,11 +2,8 @@ import base64
 import re
 from unittest.mock import MagicMock, create_autospec
 
-import pytest
-
 from databricks.labs.remorph.config import get_dialect
 from databricks.labs.remorph.reconcile.connectors.snowflake import SnowflakeDataSource
-from databricks.labs.remorph.reconcile.exception import DataSourceRuntimeException
 from databricks.labs.remorph.reconcile.recon_config import JdbcReaderOptions, Table
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.service.workspace import GetSecretResponse
@@ -217,12 +214,8 @@ def test_read_data_exception_handling():
 
     spark.read.format().option().options().load.side_effect = RuntimeError("Test Exception")
 
-    # Call the read_data method with the Tables configuration and assert that a PySparkException is raised
-    with pytest.raises(
-        DataSourceRuntimeException,
-        match="Runtime exception occurred while fetching data using select 1 from org.data.employee : Test Exception",
-    ):
-        ds.read_data("org", "data", "employee", "select 1 from :tbl", table_conf.jdbc_reader_options)
+    actual = ds.read_data("org", "data", "employee", "select 1 from :tbl", table_conf.jdbc_reader_options)
+    assert actual is None, "the expected value is None"
 
 
 def test_get_schema_exception_handling():
@@ -233,15 +226,5 @@ def test_get_schema_exception_handling():
 
     spark.read.format().option().options().load.side_effect = RuntimeError("Test Exception")
 
-    # Call the get_schema method with predefined table, schema, and catalog names and assert that a PySparkException
-    # is raised
-    with pytest.raises(
-        DataSourceRuntimeException,
-        match=r"Runtime exception occurred while fetching schema using select column_name, case when numeric_precision "
-        "is not null and numeric_scale is not null then concat\\(data_type, '\\(', numeric_precision, ',' , "
-        "numeric_scale, '\\)'\\) when lower\\(data_type\\) = 'text' then concat\\('varchar', '\\(', "
-        "CHARACTER_MAXIMUM_LENGTH, '\\)'\\) else data_type end as data_type from catalog.INFORMATION_SCHEMA.COLUMNS "
-        "where lower\\(table_name\\)='supplier' and lower\\(table_schema\\) = 'schema' order by ordinal_position : Test "
-        "Exception",
-    ):
-        ds.get_schema("catalog", "schema", "supplier")
+    actual = ds.get_schema("catalog", "schema", "supplier")
+    assert actual is None, "the expected value is None"
