@@ -27,7 +27,9 @@ def _write_df_to_delta(df: DataFrame, table_name: str, mode="append"):
 
 
 class ReconCapture:
-    _REMORPH_CATALOG_SCHEMA_NAME = "remorph.reconcile"
+    _REMORPH_CATALOG = "remorph"
+    _RECONCILE_SCHEMA = "reconcile"
+    _DB_PREFIX = f"{_REMORPH_CATALOG}.{_RECONCILE_SCHEMA}"
     _RECON_TABLE_NAME = "main"
     _RECON_METRICS_TABLE_NAME = "metrics"
     _RECON_DETAILS_TABLE_NAME = "details"
@@ -70,20 +72,30 @@ class ReconCapture:
     ) -> None:
         df = self.spark.sql(
             f"""
-            select {recon_table_id} as recon_table_id,
-            '{self.recon_id}' as recon_id,
-            case when lower('{str(self.source_dialect)}') like '%snow%' then 'Snowflake' 
-            when lower('{str(self.source_dialect)}') like '%oracle%' then 'Oracle'
-            when lower('{str(self.source_dialect)}') like '%databricks%' then 'Databricks'
-            else '{str(self.source_dialect)}' end as source_type,
-            struct('{self.database_config.source_catalog}', '{self.database_config.source_schema}', '{table_conf.source_name}') as source_table,
-            struct('{self.database_config.target_catalog}', '{self.database_config.target_schema}', '{table_conf.target_name}') as target_table,
-            '{self.report_type}' as report_type,
-            cast('{recon_process_duration.start_ts}' as timestamp) as start_ts,
-            cast('{recon_process_duration.end_ts}' as timestamp) as end_ts
+                select {recon_table_id} as recon_table_id,
+                '{self.recon_id}' as recon_id,
+                case 
+                    when lower('{str(self.source_dialect)}') like '%snow%' then 'Snowflake' 
+                    when lower('{str(self.source_dialect)}') like '%oracle%' then 'Oracle'
+                    when lower('{str(self.source_dialect)}') like '%databricks%' then 'Databricks'
+                    else '{str(self.source_dialect)}' 
+                end as source_type,
+                named_struct(
+                    'catalog', '{self.database_config.source_catalog}', 
+                    'schema', '{self.database_config.source_schema}', 
+                    'table_name', '{table_conf.source_name}'
+                ) as source_table,
+                named_struct(
+                    'catalog', '{self.database_config.target_catalog}', 
+                    'schema', '{self.database_config.target_schema}', 
+                    'table_name', '{table_conf.target_name}'
+                ) as target_table,
+                '{self.report_type}' as report_type,
+                cast('{recon_process_duration.start_ts}' as timestamp) as start_ts,
+                cast('{recon_process_duration.end_ts}' as timestamp) as end_ts
             """
         )
-        _write_df_to_delta(df, f"{self._REMORPH_CATALOG_SCHEMA_NAME}.{self._RECON_TABLE_NAME}")
+        _write_df_to_delta(df, f"{self._DB_PREFIX}.{self._RECON_TABLE_NAME}")
 
     def _insert_into_metrics_table(
         self,
@@ -103,15 +115,28 @@ class ReconCapture:
         # TODO: Add Exception message
         df = self.spark.sql(
             f"""
-        select {recon_table_id} as recon_table_id,
-        struct(struct({reconcile_output.missing_in_src_count},{reconcile_output.missing_in_tgt_count}),
-        struct({reconcile_output.mismatch_count},{reconcile_output.threshold_output.threshold_mismatch_count},'{",".join(reconcile_output.mismatch.mismatch_columns)}'),
-        {schema_output.is_valid}) as recon_metrics,
-        struct({status}, '{self.ws.current_user.me().user_name}', "") as run_metrics,
-        current_timestamp() as inserted_ts
-        """
+                select {recon_table_id} as recon_table_id,
+                named_struct(
+                    'row_comparison', named_struct(
+                        'missing_in_src_count', {reconcile_output.missing_in_src_count},
+                        'missing_in_tgt_count', {reconcile_output.missing_in_tgt_count}
+                    ),
+                    'column_comparison', named_struct(
+                        'absolute_mismatch', {reconcile_output.mismatch_count},
+                        'threshold_mismatch', {reconcile_output.threshold_output.threshold_mismatch_count},
+                        'mismatch_columns', '{",".join(reconcile_output.mismatch.mismatch_columns)}'
+                    ),
+                    'schema_comparison', {schema_output.is_valid}
+                ) as recon_metrics,
+                named_struct(
+                    'status', {status}, 
+                    'run_by_user', '{self.ws.current_user.me().user_name}', 
+                    'exception_message', ""
+                ) as run_metrics,
+                current_timestamp() as inserted_ts
+            """
         )
-        _write_df_to_delta(df, f"{self._REMORPH_CATALOG_SCHEMA_NAME}.{self._RECON_METRICS_TABLE_NAME}")
+        _write_df_to_delta(df, f"{self._DB_PREFIX}.{self._RECON_METRICS_TABLE_NAME}")
 
     @classmethod
     def _create_map_column(
@@ -148,7 +173,7 @@ class ReconCapture:
         status: bool,
     ) -> None:
         df = self._create_map_column(recon_table_id, df, recon_type, status)
-        _write_df_to_delta(df, f"{self._REMORPH_CATALOG_SCHEMA_NAME}.{self._RECON_DETAILS_TABLE_NAME}")
+        _write_df_to_delta(df, f"{self._DB_PREFIX}.{self._RECON_DETAILS_TABLE_NAME}")
 
     def _insert_into_details_table(
         self,

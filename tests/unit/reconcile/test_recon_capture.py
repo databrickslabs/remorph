@@ -100,11 +100,7 @@ def test_recon_capture_start(mock_workspace_client, mock_spark):
         spark,
     )
     reconcile_output, schema_output, table_conf, reconcile_process = data_prep(spark)
-    with (
-        patch(
-            'databricks.labs.remorph.reconcile.recon_capture.ReconCapture._REMORPH_CATALOG_SCHEMA_NAME', new='default'
-        ),
-    ):
+    with (patch('databricks.labs.remorph.reconcile.recon_capture.ReconCapture._DB_PREFIX', new='default'),):
         recon_capture.start(
             reconcile_output=reconcile_output,
             schema_output=schema_output,
@@ -117,12 +113,12 @@ def test_recon_capture_start(mock_workspace_client, mock_spark):
     row = remorph_recon_df.collect()[0]
     assert remorph_recon_df.count() == 1
     assert row.recon_id == "73b44582-dbb7-489f-bad1-6a7e8f4821b1"
-    assert row.source_table.col1 == "source_test_catalog"
-    assert row.source_table.col2 == "source_test_schema"
-    assert row.source_table.col3 == "supplier"
-    assert row.target_table.col1 == "target_test_catalog"
-    assert row.target_table.col2 == "target_test_schema"
-    assert row.target_table.col3 == "target_supplier"
+    assert row.source_table.catalog == "source_test_catalog"
+    assert row.source_table.schema == "source_test_schema"
+    assert row.source_table.table_name == "supplier"
+    assert row.target_table.catalog == "target_test_catalog"
+    assert row.target_table.schema == "target_test_schema"
+    assert row.target_table.table_name == "target_supplier"
     assert row.report_type == "all"
     assert row.source_type == "Snowflake"
 
@@ -130,15 +126,15 @@ def test_recon_capture_start(mock_workspace_client, mock_spark):
     remorph_recon_metrics_df = spark.sql("select * from DEFAULT.metrics")
     row = remorph_recon_metrics_df.collect()[0]
     assert remorph_recon_metrics_df.count() == 1
-    assert row.recon_metrics.col1.col1 == 3
-    assert row.recon_metrics.col1.col2 == 4
-    assert row.recon_metrics.col2.col1 == 2
-    assert row.recon_metrics.col2.col2 == 2
-    assert row.recon_metrics.col2.col3 == "name"
-    assert row.recon_metrics.col3 is True
-    assert row.run_metrics.col1 is False
-    assert row.run_metrics.col2 == "remorph"
-    assert row.run_metrics.col3 == ""
+    assert row.recon_metrics.row_comparison.missing_in_src_count == 3
+    assert row.recon_metrics.row_comparison.missing_in_tgt_count == 4
+    assert row.recon_metrics.column_comparison.absolute_mismatch == 2
+    assert row.recon_metrics.column_comparison.threshold_mismatch == 2
+    assert row.recon_metrics.column_comparison.mismatch_columns == "name"
+    assert row.recon_metrics.schema_comparison is True
+    assert row.run_metrics.status is False
+    assert row.run_metrics.run_by_user == "remorph"
+    assert row.run_metrics.exception_message == ""
 
     # assert details
     remorph_recon_details_df = spark.sql("select * from DEFAULT.details")
