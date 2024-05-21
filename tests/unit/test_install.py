@@ -45,7 +45,7 @@ def test_install(ws, mock_installation):
             r".*": "",
         }
     )
-    install = WorkspaceInstaller(prompts, mock_installation, ws)
+    install = WorkspaceInstaller(ws, prompts)
 
     # Assert that the `install` is an instance of WorkspaceInstaller
     assert isinstance(install, WorkspaceInstaller)
