@@ -57,8 +57,8 @@ class OracleDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
         try:
             if options is None:
                 return self.reader(table_query).options(**self._get_timestamp_options()).load()
-            options = self._get_jdbc_reader_options(options) | self._get_timestamp_options()
-            return self.reader(table_query).options(**options).load()
+            reader_options = self._get_jdbc_reader_options(options) | self._get_timestamp_options()
+            return self.reader(table_query).options(**reader_options).load()
         except RuntimeError as e:
             raise self._raise_runtime_exception(e, "data", table_query)
 

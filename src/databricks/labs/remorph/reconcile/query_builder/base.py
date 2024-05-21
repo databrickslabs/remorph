@@ -3,6 +3,7 @@ from abc import ABC
 import sqlglot.expressions as exp
 from sqlglot import Dialect, parse_one
 
+from databricks.labs.remorph.config import SQLGLOT_DIALECTS
 from databricks.labs.remorph.reconcile.query_builder.expression_generator import (
     DataType_transform_mapping,
     transform_expression,
@@ -67,7 +68,7 @@ class QueryBuilder(ABC):
     def user_transformations(self) -> dict[str, str]:
         return self._table_conf.get_transformation_dict(self._layer)
 
-    def add_transformations(self, aliases: list[exp.Alias], source: Dialect) -> list[exp.Alias]:
+    def add_transformations(self, aliases: list[exp.Expression], source: Dialect) -> list[exp.Expression]:
         if self.user_transformations:
             alias_with_user_transforms = self._apply_user_transformation(aliases)
             default_transform_schema: list[Schema] = list(
@@ -91,8 +92,8 @@ class QueryBuilder(ABC):
         return node
 
     def _apply_default_transformation(
-        self, aliases: list[exp.Alias], schema: list[Schema], source: Dialect
-    ) -> (list)[exp.Alias]:
+        self, aliases: list[exp.Expression], schema: list[Schema], source: Dialect
+    ) -> (list)[exp.Expression]:
         with_transform = []
         for alias in aliases:
             with_transform.append(alias.transform(self._default_transformer, schema, source))
@@ -100,11 +101,14 @@ class QueryBuilder(ABC):
 
     @staticmethod
     def _default_transformer(node: exp.Expression, schema: list[Schema], source: Dialect) -> exp.Expression:
+        source_dialects = [source for source, dialect in SQLGLOT_DIALECTS.items() if dialect == source]
+        source_dialect = source_dialects[0] if source_dialects else "default"
+
         def _get_transform(datatype: str):
-            if DataType_transform_mapping.get(source) is None:
+            if DataType_transform_mapping.get(source_dialect) is None:
                 return DataType_transform_mapping.get("default", {}).get("default")
 
-            source_mapping = DataType_transform_mapping.get(source, {})
+            source_mapping = DataType_transform_mapping.get(source_dialect, {})
 
             if source_mapping.get(datatype.upper()) is not None:
                 return source_mapping.get(datatype.upper())

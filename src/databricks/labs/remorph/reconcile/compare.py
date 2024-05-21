@@ -23,7 +23,7 @@ def reconcile_data(source: DataFrame, target: DataFrame, key_columns: list[str],
     source_alias = "src"
     target_alias = "tgt"
     if report_type not in {"data", "all"}:
-        key_columns = _HASH_COLUMN_NAME
+        key_columns = [_HASH_COLUMN_NAME]
     df = source.alias(source_alias).join(other=target.alias(target_alias), on=key_columns, how="full")
 
     mismatch = (

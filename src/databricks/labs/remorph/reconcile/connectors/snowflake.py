@@ -42,7 +42,7 @@ class SnowflakeDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
 
     def read_data(
         self,
-        catalog: str,
+        catalog: str | None,
         schema: str,
         table: str,
         query: str,

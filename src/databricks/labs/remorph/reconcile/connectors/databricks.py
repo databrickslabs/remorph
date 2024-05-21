@@ -39,7 +39,7 @@ class DatabricksDataSource(DataSource, SecretsMixin):
 
     def read_data(
         self,
-        catalog: str,
+        catalog: str | None,
         schema: str,
         table: str,
         query: str,
