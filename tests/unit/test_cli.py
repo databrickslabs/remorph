@@ -24,7 +24,30 @@ def mock_workspace_client_cli():
                 'source': 'snowflake',
                 'sdk_config': {'cluster_id': 'test_cluster'},
             }
-        )
+        ),
+        "/Users/foo/.remorph/recon_config.yml": yaml.dump(
+            {
+                'version': 1,
+                'source_schema': "src_schema",
+                'target_catalog': "src_catalog",
+                'target_schema': "tgt_schema",
+                'tables': [
+                    {
+                        "source_name": 'src_table',
+                        "target_name": 'tgt_table',
+                        "join_columns": ['id'],
+                        "jdbc_reader_options": None,
+                        "select_columns": None,
+                        "drop_columns": None,
+                        "column_mapping": None,
+                        "transformations": None,
+                        "thresholds": None,
+                        "filters": None,
+                    }
+                ],
+                'source_catalog': "src_catalog",
+            }
+        ),
     }
 
     def download(path: str) -> io.StringIO | io.BytesIO:
@@ -37,6 +60,7 @@ def mock_workspace_client_cli():
     workspace_client = create_autospec(WorkspaceClient)
     workspace_client.current_user.me().user_name = "foo"
     workspace_client.workspace.download = download
+    workspace_client.config = None
     return workspace_client
 
 
@@ -232,75 +256,6 @@ def test_transpile_with_incorrect_input_source(mock_workspace_client_cli):
             schema_name,
             mode,
         )
-
-
-def test_recon_with_invalid_recon_conf(mock_workspace_client_cli, tmp_path):
-    with pytest.raises(Exception, match="Error: Invalid value for '--recon_conf'"):
-        invalid_recon_conf_path = tmp_path / "invalid_recon_conf"
-        valid_conn_profile_path = tmp_path / "valid_conn_profile"
-        valid_conn_profile_path.touch()
-        source = "snowflake"
-        report = "data"
-        cli.reconcile(
-            mock_workspace_client_cli,
-            str(invalid_recon_conf_path.absolute()),
-            str(valid_conn_profile_path.absolute()),
-            source,
-            report,
-        )
-
-
-def test_recon_with_invalid_conn_profile(mock_workspace_client_cli, tmp_path):
-    with pytest.raises(Exception, match="Error: Invalid value for '--conn_profile'"):
-        valid_recon_conf_path = tmp_path / "valid_recon_conf"
-        valid_recon_conf_path.touch()
-        invalid_conn_profile_path = tmp_path / "invalid_conn_profile"
-        source = "snowflake"
-        report = "data"
-        cli.reconcile(
-            mock_workspace_client_cli,
-            str(valid_recon_conf_path.absolute()),
-            str(invalid_conn_profile_path.absolute()),
-            source,
-            report,
-        )
-
-
-def test_recon_with_invalid_source(mock_workspace_client_cli):
-    recon_conf = "/path/to/recon/conf"
-    conn_profile = "/path/to/conn/profile"
-    source = "invalid_source"
-    report = "data"
-
-    with (
-        patch("os.path.exists", return_value=True),
-        pytest.raises(Exception, match="Error: Invalid value for '--source'"),
-    ):
-        cli.reconcile(mock_workspace_client_cli, recon_conf, conn_profile, source, report)
-
-
-def test_recon_with_invalid_report(mock_workspace_client_cli):
-    recon_conf = "/path/to/recon/conf"
-    conn_profile = "/path/to/conn/profile"
-    source = "snowflake"
-    report = "invalid_report"
-
-    with (
-        patch("os.path.exists", return_value=True),
-        pytest.raises(Exception, match="Error: Invalid value for '--report'"),
-    ):
-        cli.reconcile(mock_workspace_client_cli, recon_conf, conn_profile, source, report)
-
-
-def test_recon_with_valid_input(mock_workspace_client_cli):
-    recon_conf = "/path/to/recon/conf"
-    conn_profile = "/path/to/conn/profile"
-    source = "snowflake"
-    report = "data"
-
-    with patch("os.path.exists", return_value=True), patch("databricks.labs.remorph.cli.recon") as mock_recon:
-        cli.reconcile(mock_workspace_client_cli, recon_conf, conn_profile, source, report)
-        mock_recon.assert_called_once_with(recon_conf, conn_profile, source, report)
 
 
 def test_generate_lineage_valid_input(temp_dirs_for_lineage, mock_workspace_client_cli):

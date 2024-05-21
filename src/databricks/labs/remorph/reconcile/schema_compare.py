@@ -3,16 +3,16 @@ from dataclasses import asdict
 
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.types import BooleanType, StringType, StructField, StructType
-from sqlglot import parse_one
+from sqlglot import Dialect, parse_one
 
-from databricks.labs.remorph.config import SQLGLOT_DIALECTS
-from databricks.labs.remorph.reconcile.constants import SourceType
+from databricks.labs.remorph.config import get_dialect
 from databricks.labs.remorph.reconcile.recon_config import (
     Schema,
+    SchemaCompareOutput,
     SchemaMatchResult,
-    SchemCompareOutput,
     Table,
 )
+from databricks.labs.remorph.snow.databricks import Databricks
 
 logger = logging.getLogger(__name__)
 
@@ -79,10 +79,10 @@ class SchemaCompare:
         return df
 
     @classmethod
-    def _parse(cls, source: str, column: str, data_type: str) -> str:
+    def _parse(cls, source: Dialect, column: str, data_type: str) -> str:
         return (
-            parse_one(f"create table dummy ({column} {data_type})", read=SQLGLOT_DIALECTS.get(source))
-            .sql(dialect=SQLGLOT_DIALECTS.get("databricks"))
+            parse_one(f"create table dummy ({column} {data_type})", read=source)
+            .sql(dialect=get_dialect("databricks"))
             .replace(", ", ",")
         )
 
@@ -107,19 +107,19 @@ class SchemaCompare:
         self,
         source_schema: list[Schema],
         databricks_schema: list[Schema],
-        source: str,
+        source: Dialect,
         table_conf: Table,
-    ) -> SchemCompareOutput:
+    ) -> SchemaCompareOutput:
         """
         This method compares the source schema and the Databricks schema. It checks if the data types of the columns in the source schema
         match with the corresponding columns in the Databricks schema by parsing using remorph transpile.
 
         Returns:
-            SchemCompareOutput: A dataclass object containing a boolean indicating the overall result of the comparison and a DataFrame with the comparison details.
+            SchemaCompareOutput: A dataclass object containing a boolean indicating the overall result of the comparison and a DataFrame with the comparison details.
         """
         master_schema = self._build_master_schema(source_schema, databricks_schema, table_conf)
         for master in master_schema:
-            if source.upper() != str(SourceType.DATABRICKS.value).upper():
+            if not isinstance(source, Databricks):
                 parsed_query = self._parse(source, master.source_column, master.source_datatype)
                 self._validate_parsed_query(master, parsed_query)
             elif master.source_datatype.lower() != master.databricks_datatype.lower():
@@ -127,4 +127,4 @@ class SchemaCompare:
 
         df = self._create_dataframe(master_schema, self._schema_compare_schema)
         final_result = self._table_schema_status(master_schema)
-        return SchemCompareOutput(final_result, df)
+        return SchemaCompareOutput(final_result, df)

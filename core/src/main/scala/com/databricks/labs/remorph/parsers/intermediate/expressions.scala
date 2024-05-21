@@ -32,13 +32,14 @@ case object SortNullsLast extends NullOrdering
 
 case class SortOrder(child: Expression, direction: SortDirection, nullOrdering: NullOrdering) extends Expression {}
 
-case class Cast(expr: Expression, dataType: DataType, type_str: String) extends Expression {}
+case class Cast(expr: Expression, dataType: DataType, type_str: String = "", returnNullOnError: Boolean = false)
+    extends Expression {}
 
 case class Decimal(value: String, precision: Option[Int], scale: Option[Int]) extends Expression {}
 
 case class CalendarInterval(months: Int, days: Int, microseconds: Long) extends Expression {}
 
-case class ArrayExpr(dataType: DataType, elements: Seq[Literal]) extends Expression {}
+case class ArrayExpr(dataType: Option[DataType], elements: Seq[Literal]) extends Expression {}
 
 case class MapExpr(key_type: DataType, value_type: DataType, keys: Seq[Literal], values: Seq[Literal])
     extends Expression {}

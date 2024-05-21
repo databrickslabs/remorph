@@ -1,5 +1,6 @@
 import pytest
 
+from databricks.labs.remorph.config import get_dialect
 from databricks.labs.remorph.reconcile.recon_config import ColumnMapping, Schema, Table
 from databricks.labs.remorph.reconcile.schema_compare import SchemaCompare
 
@@ -164,9 +165,9 @@ def schemas():
     }
 
 
-def test_snowflake_schema_compare(schemas, mock_spark_session):
+def test_snowflake_schema_compare(schemas, mock_spark):
     src_schema, tgt_schema = schemas["snowflake_databricks_schema"]
-    spark = mock_spark_session
+    spark = mock_spark
     table_conf = Table(
         source_name="supplier",
         target_name="supplier",
@@ -180,7 +181,7 @@ def test_snowflake_schema_compare(schemas, mock_spark_session):
     schema_compare_output = SchemaCompare(spark).compare(
         src_schema,
         tgt_schema,
-        "snowflake",
+        get_dialect("snowflake"),
         table_conf,
     )
     df = schema_compare_output.compare_df
@@ -191,9 +192,9 @@ def test_snowflake_schema_compare(schemas, mock_spark_session):
     assert df.filter("is_valid = 'false'").count() == 2
 
 
-def test_databricks_schema_compare(schemas, mock_spark_session):
+def test_databricks_schema_compare(schemas, mock_spark):
     src_schema, tgt_schema = schemas["databricks_databricks_schema"]
-    spark = mock_spark_session
+    spark = mock_spark
     table_conf = Table(
         source_name="supplier",
         target_name="supplier",
@@ -215,7 +216,7 @@ def test_databricks_schema_compare(schemas, mock_spark_session):
     schema_compare_output = SchemaCompare(spark).compare(
         src_schema,
         tgt_schema,
-        "databricks",
+        get_dialect("databricks"),
         table_conf,
     )
     df = schema_compare_output.compare_df
@@ -226,9 +227,9 @@ def test_databricks_schema_compare(schemas, mock_spark_session):
     assert df.filter("is_valid = 'false'").count() == 1
 
 
-def test_oracle_schema_compare(schemas, mock_spark_session):
+def test_oracle_schema_compare(schemas, mock_spark):
     src_schema, tgt_schema = schemas["oracle_databricks_schema"]
-    spark = mock_spark_session
+    spark = mock_spark
     table_conf = Table(
         source_name="supplier",
         target_name="supplier",
@@ -241,7 +242,7 @@ def test_oracle_schema_compare(schemas, mock_spark_session):
     schema_compare_output = SchemaCompare(spark).compare(
         src_schema,
         tgt_schema,
-        "oracle",
+        get_dialect("oracle"),
         table_conf,
     )
     df = schema_compare_output.compare_df
@@ -252,7 +253,7 @@ def test_oracle_schema_compare(schemas, mock_spark_session):
     assert df.filter("is_valid = 'false'").count() == 0
 
 
-def test_schema_compare(mock_spark_session):
+def test_schema_compare(mock_spark):
     src_schema = [
         Schema("col1", "int"),
         Schema("col2", "string"),
@@ -261,7 +262,7 @@ def test_schema_compare(mock_spark_session):
         Schema("col1", "int"),
         Schema("col2", "string"),
     ]
-    spark = mock_spark_session
+    spark = mock_spark
     table_conf = Table(
         source_name="supplier",
         target_name="supplier",
@@ -275,7 +276,7 @@ def test_schema_compare(mock_spark_session):
     schema_compare_output = SchemaCompare(spark).compare(
         src_schema,
         tgt_schema,
-        "databricks",
+        get_dialect("databricks"),
         table_conf,
     )
     df = schema_compare_output.compare_df
