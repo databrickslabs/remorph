@@ -27,7 +27,7 @@ class ThresholdQueryBuilder(QueryBuilder):
     def build_comparison_query(self) -> str:
         select_clause, where = self._generate_select_where_clause()
         from_clause, join_clause = self._generate_from_and_join_clause()
-        # for threshold comparison query the dialect is always Daabricks
+        # for threshold comparison query the dialect is always Databricks
         query = select(*select_clause).from_(from_clause).join(join_clause).where(where).sql(dialect=Databricks)
         logger.info(f"Threshold Comparison query: {query}")
         return query
@@ -108,8 +108,8 @@ class ThresholdQueryBuilder(QueryBuilder):
 
     def _generate_from_and_join_clause(self) -> tuple[exp.From, exp.Join]:
         join_columns = sorted(self.table_conf.get_join_columns("source"))
-        source_view = f"{self.table_conf.source_name}_df_threshold_vw"
-        target_view = f"{self.table_conf.target_name}_df_threshold_vw"
+        source_view = f"source_{self.table_conf.source_name}_df_threshold_vw"
+        target_view = f"target_{self.table_conf.target_name}_df_threshold_vw"
 
         from_clause = build_from_clause(source_view, "source")
         join_clause = build_join_clause(
@@ -200,15 +200,22 @@ class ThresholdQueryBuilder(QueryBuilder):
         Returns:
             str: The SQL string representation of the threshold query.
         """
-        keys: list[str] = sorted(self.partition_column.union(self.join_columns).union(self.threshold_columns))
-        select_clause = [
-            build_column(
-                this=col,
-                alias=self.table_conf.get_tgt_to_src_col_mapping(col, self.layer),
-            )
-            for col in keys
+        # key column expression
+        keys: list[str] = sorted(self.partition_column.union(self.join_columns))
+        keys_select_alias = [
+            build_column(this=col, alias=self.table_conf.get_tgt_to_src_col_mapping(col, self.layer)) for col in keys
         ]
-        select_clause = self.add_transformations(select_clause, self.source)
-        query = select(*select_clause).from_(":tbl").where(self.filter)
+        keys_expr = self.add_transformations(keys_select_alias, self.source)
+
+        # threshold column expression
+        threshold_alias = [
+            build_column(this=col, alias=self.table_conf.get_tgt_to_src_col_mapping(col, self.layer))
+            for col in sorted(self.threshold_columns)
+        ]
+        thresholds_expr = threshold_alias
+        if self.user_transformations:
+            thresholds_expr = self._apply_user_transformation(threshold_alias)
+
+        query = select(*keys_expr + thresholds_expr).from_(":tbl").where(self.filter)
         logger.info(f"{self.source} Threshold query: {query}")
         return query.sql(dialect=self.source)
