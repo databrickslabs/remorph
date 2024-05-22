@@ -317,13 +317,6 @@ class TSqlExpressionBuilder extends TSqlParserBaseVisitor[ir.Expression] with Pa
     }
   }
 
-  private def buildFrameFollowing(ctx: WindowFrameFollowingContext): ir.FrameBoundary =
-    Option(ctx.UNBOUNDED()) match {
-      case Some(_) => ir.FrameBoundary(current_row = false, unbounded = true, value = ir.Noop)
-      case None => // Indicates that it is a number, not unbounded
-        ir.FrameBoundary(current_row = false, unbounded = false, ir.Literal(integer = Some(ctx.INT.getText.toInt)))
-    }
-
   /**
    * This is a special case where we are building a column definition. This is used in the SELECT statement to define
    * the columns that are being selected. This is a special case because we need to handle the aliasing of columns.

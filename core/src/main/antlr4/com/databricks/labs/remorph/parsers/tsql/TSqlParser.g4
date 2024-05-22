@@ -3903,7 +3903,7 @@ expression
     | expression COLLATE id                                     #exprCollate
     | caseExpression                                            #exprCase
     | expression timeZone                                       #exprTz
-    | overClause                                                #exprOver
+    | expression overClause                                     #exprOver
     | valueCall                                                 #exprValue
     | queryCall                                                 #expryQuery
     | existCall                                                 #exprExist
