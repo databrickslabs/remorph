@@ -1,3 +1,4 @@
+import datetime
 import logging
 from uuid import uuid4
 
@@ -20,9 +21,12 @@ from databricks.labs.remorph.reconcile.query_builder.sampling_query import (
 from databricks.labs.remorph.reconcile.query_builder.threshold_query import (
     ThresholdQueryBuilder,
 )
+from databricks.labs.remorph.reconcile.recon_capture import ReconCapture
 from databricks.labs.remorph.reconcile.recon_config import (
     ReconcileOutput,
+    ReconcileProcessDuration,
     Schema,
+    SchemaCompareOutput,
     Table,
     ThresholdOutput,
 )
@@ -50,7 +54,18 @@ def recon(ws: WorkspaceClient, spark: SparkSession, table_recon: TableRecon, sou
     # initialise the Reconciliation
     reconciler = Reconciliation(source, target, database_config, report_type, schema_comparator, source_dialect)
 
+    # initialise the recon capture class
+    recon_capture = ReconCapture(
+        database_config=database_config,
+        recon_id=recon_id,
+        report_type=report_type,
+        source_dialect=source_dialect,
+        ws=ws,
+        spark=spark,
+    )
+
     for table_conf in table_recon.tables:
+        recon_process_duration = ReconcileProcessDuration(start_ts=str(datetime.datetime.now()), end_ts=None)
         src_schema = source.get_schema(
             catalog=database_config.source_catalog, schema=database_config.source_schema, table=table_conf.source_name
         )
@@ -58,13 +73,20 @@ def recon(ws: WorkspaceClient, spark: SparkSession, table_recon: TableRecon, sou
             catalog=database_config.target_catalog, schema=database_config.target_schema, table=table_conf.source_name
         )
 
-        if report_type in {"data", "row"}:
-            reconciler.reconcile_data(table_conf=table_conf, src_schema=src_schema, tgt_schema=tgt_schema)
-        elif report_type == "schema":
-            reconciler.reconcile_schema(table_conf=table_conf, src_schema=src_schema, tgt_schema=tgt_schema)
-        elif report_type == "all":
-            reconciler.reconcile_data(table_conf=table_conf, src_schema=src_schema, tgt_schema=tgt_schema)
-            reconciler.reconcile_schema(table_conf=table_conf, src_schema=src_schema, tgt_schema=tgt_schema)
+        reconcile_output = ReconcileOutput()
+        schema_output = SchemaCompareOutput()
+        if report_type in {"data", "row", "all"}:
+            reconcile_output = reconciler.reconcile_data(
+                table_conf=table_conf, src_schema=src_schema, tgt_schema=tgt_schema
+            )
+        if report_type in {"schema", "all"}:
+            schema_output = reconciler.reconcile_schema(
+                table_conf=table_conf, src_schema=src_schema, tgt_schema=tgt_schema
+            )
+
+        recon_process_duration.end_ts = str(datetime.datetime.now())
+        # Persist the data to the delta tables
+        recon_capture.start(reconcile_output, schema_output, table_conf, recon_process_duration)
 
     return recon_id
 

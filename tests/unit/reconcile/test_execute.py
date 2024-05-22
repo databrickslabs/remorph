@@ -552,6 +552,7 @@ def test_recon_for_report_type_is_data(
     with (
         patch("databricks.labs.remorph.reconcile.execute.initialise_data_source", return_value=(source, target)),
         patch("databricks.labs.remorph.reconcile.execute.uuid4", return_value="00112233-4455-6677-8899-aabbccddeeff"),
+        patch('databricks.labs.remorph.reconcile.recon_capture.ReconCapture._DB_PREFIX', new='default'),
     ):
         recon_id = recon(mock_workspace_client, mock_spark, table_recon, get_dialect("databricks"), "data")
 
@@ -617,6 +618,7 @@ def test_recon_for_report_type_is_schema(
     with (
         patch("databricks.labs.remorph.reconcile.execute.initialise_data_source", return_value=(source, target)),
         patch("databricks.labs.remorph.reconcile.execute.uuid4", return_value="00112233-4455-6677-8899-aabbccddeeff"),
+        patch('databricks.labs.remorph.reconcile.recon_capture.ReconCapture._DB_PREFIX', new='default'),
     ):
         recon_id = recon(mock_workspace_client, mock_spark, table_recon, get_dialect("databricks"), "schema")
 
@@ -684,6 +686,7 @@ def test_recon_for_report_type_is_all(
     with (
         patch("databricks.labs.remorph.reconcile.execute.initialise_data_source", return_value=(source, target)),
         patch("databricks.labs.remorph.reconcile.execute.uuid4", return_value="00112233-4455-6677-8899-aabbccddeeff"),
+        patch('databricks.labs.remorph.reconcile.recon_capture.ReconCapture._DB_PREFIX', new='default'),
     ):
         recon_id = recon(mock_workspace_client, mock_spark, table_recon, get_dialect("snowflake"), "all")
 
