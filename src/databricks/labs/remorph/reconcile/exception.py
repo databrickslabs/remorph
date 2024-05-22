@@ -4,3 +4,7 @@ class ColumnMismatchException(Exception):
 
 class DataSourceRuntimeException(Exception):
     """Raise the error when there is a runtime exception thrown in DataSource"""
+
+
+class WriteToTableException(Exception):
+    """Raise the error when there is a runtime exception thrown while writing data to table"""
