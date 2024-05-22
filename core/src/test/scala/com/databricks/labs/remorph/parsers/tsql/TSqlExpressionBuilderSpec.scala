@@ -377,5 +377,55 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
           ir.Equals(ir.Column("a"), ir.Column("b")),
           ir.Or(ir.Equals(ir.Column("c"), ir.Column("x")), ir.Equals(ir.Column("e"), ir.Column("f")))))
     }
+
+    "translate case/when/else expressions" in {
+      // Case with an initial expression and an else clause
+      example(
+        "CASE a WHEN 1 THEN 'one' WHEN 2 THEN 'two' ELSE 'other' END",
+        _.expression(),
+        ir.Case(
+          Some(ir.Column("a")),
+          Seq(
+            ir.WhenBranch(ir.Literal(integer = Some(1)), ir.Literal(string = Some("one"))),
+            ir.WhenBranch(ir.Literal(integer = Some(2)), ir.Literal(string = Some("two")))),
+          Some(ir.Literal(string = Some("other")))))
+
+      // Case without an initial expression and with an else clause
+      example(
+        "CASE WHEN a = 1 THEN 'one' WHEN a = 2 THEN 'two' ELSE 'other' END",
+        _.expression(),
+        ir.Case(
+          None,
+          Seq(
+            ir.WhenBranch(ir.Equals(ir.Column("a"), ir.Literal(integer = Some(1))), ir.Literal(string = Some("one"))),
+            ir.WhenBranch(ir.Equals(ir.Column("a"), ir.Literal(integer = Some(2))), ir.Literal(string = Some("two")))),
+          Some(ir.Literal(string = Some("other")))))
+
+      // Case with an initial expression and without an else clause
+      example(
+        "CASE a WHEN 1 THEN 'one' WHEN 2 THEN 'two' END",
+        _.expression(),
+        ir.Case(
+          Some(ir.Column("a")),
+          Seq(
+            ir.WhenBranch(ir.Literal(integer = Some(1)), ir.Literal(string = Some("one"))),
+            ir.WhenBranch(ir.Literal(integer = Some(2)), ir.Literal(string = Some("two")))),
+          None))
+
+      // Case without an initial expression and without an else clause
+      example(
+        "CASE WHEN a = 1 AND b < 7 THEN 'one' WHEN a = 2 THEN 'two' END",
+        _.expression(),
+        ir.Case(
+          None,
+          Seq(
+            ir.WhenBranch(
+              ir.And(
+                ir.Equals(ir.Column("a"), ir.Literal(integer = Some(1))),
+                ir.LesserThan(ir.Column("b"), ir.Literal(integer = Some(7)))),
+              ir.Literal(string = Some("one"))),
+            ir.WhenBranch(ir.Equals(ir.Column("a"), ir.Literal(integer = Some(2))), ir.Literal(string = Some("two")))),
+          None))
+    }
   }
 }

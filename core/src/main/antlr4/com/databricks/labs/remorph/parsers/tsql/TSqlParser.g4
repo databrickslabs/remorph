@@ -3933,8 +3933,7 @@ primitiveExpression
 
 // https://docs.microsoft.com/en-us/sql/t-sql/language-elements/case-transact-sql
 caseExpression
-    : CASE caseExpr = expression switchSection+ (ELSE elseExpr = expression)? END
-    | CASE switchSearchConditionSection+ (ELSE elseExpr = expression)? END
+    : CASE caseExpr=expression? switchSection+ (ELSE elseExpr = expression)? END
     ;
 
 subquery
@@ -3982,6 +3981,7 @@ predicate
     | expression NOT* IN LPAREN (subquery | expressionList) RPAREN
     | expression NOT* LIKE expression (ESCAPE expression)?
     | expression IS nullNotnull
+    | expression
     ;
 
 queryExpression
@@ -4442,10 +4442,7 @@ nodesMethod
     ;
 
 switchSection
-    : WHEN expression THEN expression
-    ;
-
-switchSearchConditionSection
+    // Nore that searchCondition includes an expression only but allows too much for case expression.. on purpose
     : WHEN searchCondition THEN expression
     ;
 
