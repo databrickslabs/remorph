@@ -3904,7 +3904,6 @@ expression
     | caseExpression                                            #exprCase
     | expression timeZone                                       #exprTz
     | overClause                                                #exprOver
-    | hierarchyidCall                                           #exprHierarchyId
     | valueCall                                                 #exprValue
     | queryCall                                                 #expryQuery
     | existCall                                                 #exprExist
@@ -4422,15 +4421,6 @@ modifyMethod
 
 modifyCall
     : (MODIFY | MODIFY_SQUARE_BRACKET) LPAREN xmlDml = STRING RPAREN
-    ;
-
-hierarchyidCall
-    : GETANCESTOR LPAREN n = expression RPAREN
-    | GETDESCENDANT LPAREN child1 = expression COMMA child2 = expression RPAREN
-    | GETLEVEL LPAREN RPAREN
-    | ISDESCENDANTOF LPAREN parent_ = expression RPAREN
-    | GETREPARENTEDVALUE LPAREN oldroot = expression COMMA newroot = expression RPAREN
-    | TOSTRING LPAREN RPAREN
     ;
 
 hierarchyidStaticMethod
@@ -5434,10 +5424,6 @@ keyword
     | FORCESEEK
     | FORCE_SERVICE_ALLOW_DATA_LOSS
     | GET
-    | GETANCESTOR
-    | GETDESCENDANT
-    | GETLEVEL
-    | GETREPARENTEDVALUE
     | GETROOT
     | GOVERNOR
     | HASHED
@@ -5451,7 +5437,6 @@ keyword
     | INFINITE
     | INIT
     | INSTEAD
-    | ISDESCENDANTOF
     | KERBEROS
     | KEY_PATH
     | KEY_STORE_PROVIDER_NAME
