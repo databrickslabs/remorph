@@ -4,8 +4,9 @@ import com.databricks.labs.remorph.parsers.tsql.TSqlParser._
 import com.databricks.labs.remorph.parsers.{FunctionBuilder, ParserCommon, intermediate => ir}
 import org.antlr.v4.runtime.Token
 import org.antlr.v4.runtime.tree.TerminalNode
+import org.antlr.v4.runtime.tree.Trees
 
-import scala.collection.JavaConverters.asScalaBufferConverter
+import scala.collection.JavaConverters.{asScalaBufferConverter, collectionAsScalaIterableConverter}
 
 class TSqlExpressionBuilder extends TSqlParserBaseVisitor[ir.Expression] with ParserCommon {
 
@@ -102,7 +103,28 @@ class TSqlExpressionBuilder extends TSqlParserBaseVisitor[ir.Expression] with Pa
     }
   }
 
+  override def visitExprCase(ctx: ExprCaseContext): ir.Expression = {
+    ctx.caseExpression().accept(this)
+  }
+
+  override def visitCaseExpression(ctx: CaseExpressionContext): ir.Expression = {
+    val caseExpr = if (ctx.caseExpr != null) Option(ctx.caseExpr.accept(this)) else None
+    val elseExpr = if (ctx.elseExpr != null) Option(ctx.elseExpr.accept(this)) else None
+    val whenThenPairs: Seq[ir.WhenBranch] = ctx
+      .switchSection()
+      .asScala
+      .map(buildWhen)
+
+    ir.Case(caseExpr, whenThenPairs, elseExpr)
+  }
+
+  private def buildWhen(ctx: SwitchSectionContext): ir.WhenBranch =
+    ir.WhenBranch(ctx.searchCondition.accept(this), ctx.expression().accept(this))
+
   override def visitExprFunc(ctx: ExprFuncContext): ir.Expression = ctx.functionCall.accept(this)
+
+  override def visitExprCollate(ctx: ExprCollateContext): ir.Expression =
+    ir.Collate(ctx.expression.accept(this), removeQuotes(ctx.id.getText))
 
   override def visitPrimitiveConstant(ctx: TSqlParser.PrimitiveConstantContext): ir.Expression = {
     if (ctx.DOLLAR != null) {
@@ -125,16 +147,19 @@ class TSqlExpressionBuilder extends TSqlParserBaseVisitor[ir.Expression] with Pa
   override def visitScPrec(ctx: TSqlParser.ScPrecContext): ir.Expression = ctx.searchCondition.accept(this)
 
   override def visitPredicate(ctx: TSqlParser.PredicateContext): ir.Expression = {
-    val left = ctx.expression(0).accept(this)
-    val right = ctx.expression(1).accept(this)
-
-    ctx.comparisonOperator match {
-      case op if op.LT != null && op.EQ != null => ir.LesserThanOrEqual(left, right)
-      case op if op.GT != null && op.EQ != null => ir.GreaterThanOrEqual(left, right)
-      case op if op.LT != null && op.GT != null => ir.NotEquals(left, right)
-      case op if op.EQ != null => ir.Equals(left, right)
-      case op if op.GT != null => ir.GreaterThan(left, right)
-      case op if op.LT != null => ir.LesserThan(left, right)
+    ctx.expression().size() match {
+      case 1 => ctx.expression(0).accept(this)
+      case _ =>
+        val left = ctx.expression(0).accept(this)
+        val right = ctx.expression(1).accept(this)
+        ctx.comparisonOperator match {
+          case op if op.LT != null && op.EQ != null => ir.LesserThanOrEqual(left, right)
+          case op if op.GT != null && op.EQ != null => ir.GreaterThanOrEqual(left, right)
+          case op if op.LT != null && op.GT != null => ir.NotEquals(left, right)
+          case op if op.EQ != null => ir.Equals(left, right)
+          case op if op.GT != null => ir.GreaterThan(left, right)
+          case op if op.LT != null => ir.LesserThan(left, right)
+        }
     }
   }
 
@@ -189,5 +214,21 @@ class TSqlExpressionBuilder extends TSqlParserBaseVisitor[ir.Expression] with Pa
     val name = ctx.funcId.getText
     val args = Option(ctx.expression()).map(_.asScala.map(_.accept(this))).getOrElse(Seq.empty)
     FunctionBuilder.buildFunction(name, args)
+  }
+
+  /**
+   * This is a special case where we are building a column definition. This is used in the SELECT statement to define
+   * the columns that are being selected. This is a special case because we need to handle the aliasing of columns.
+   *
+   * @param ctx
+   *   the parse tree
+   */
+  override def visitExpressionElem(ctx: ExpressionElemContext): ir.Expression = {
+    val columnDef = ctx.expression().accept(this)
+    val aliasOption = Trees.findAllRuleNodes(ctx, TSqlParser.RULE_columnAlias).asScala.headOption
+    aliasOption match {
+      case Some(alias) => ir.Alias(columnDef, Seq(alias.getText), None)
+      case _ => columnDef
+    }
   }
 }
