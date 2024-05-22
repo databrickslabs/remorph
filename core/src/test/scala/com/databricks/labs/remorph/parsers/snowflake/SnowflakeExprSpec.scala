@@ -1,17 +1,12 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
 import com.databricks.labs.remorph.parsers.intermediate._
-import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser._
 import org.scalatest.Assertion
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import org.mockito.Mockito._
 import org.scalatest.Checkpoints.Checkpoint
-import org.scalatestplus.mockito.MockitoSugar
 
-import scala.collection.JavaConverters._
-
-class SnowflakeExprSpec extends AnyWordSpec with SnowflakeParserTestCommon with Matchers with MockitoSugar {
+class SnowflakeExprSpec extends AnyWordSpec with SnowflakeParserTestCommon with Matchers {
 
   override protected def astBuilder: SnowflakeExpressionBuilder = new SnowflakeExpressionBuilder
 
@@ -176,17 +171,4 @@ class SnowflakeExprSpec extends AnyWordSpec with SnowflakeParserTestCommon with 
     }
   }
 
-  "SnowflakeExpressionBuilder.buildOp" should {
-    "handle unresolved input" in {
-      val exprContext = mock[ExprContext]
-      val threeOperands = List.fill[ExprContext](3)(mock[ExprContext]).asJava
-      when(exprContext.expr()).thenReturn(threeOperands)
-      val dummyTextForExprContext = "dummy"
-      when(exprContext.getText).thenReturn(dummyTextForExprContext)
-      astBuilder.buildOp(exprContext) shouldBe UnresolvedExpression(dummyTextForExprContext)
-      verify(exprContext).expr()
-      verify(exprContext).getText
-      verifyNoMoreInteractions(exprContext)
-    }
-  }
 }

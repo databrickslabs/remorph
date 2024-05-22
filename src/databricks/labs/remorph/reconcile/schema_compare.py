@@ -8,8 +8,8 @@ from sqlglot import Dialect, parse_one
 from databricks.labs.remorph.config import get_dialect
 from databricks.labs.remorph.reconcile.recon_config import (
     Schema,
-    SchemaCompareOutput,
     SchemaMatchResult,
+    SchemaReconcileOutput,
     Table,
 )
 from databricks.labs.remorph.snow.databricks import Databricks
@@ -109,13 +109,13 @@ class SchemaCompare:
         databricks_schema: list[Schema],
         source: Dialect,
         table_conf: Table,
-    ) -> SchemaCompareOutput:
+    ) -> SchemaReconcileOutput:
         """
         This method compares the source schema and the Databricks schema. It checks if the data types of the columns in the source schema
         match with the corresponding columns in the Databricks schema by parsing using remorph transpile.
 
         Returns:
-            SchemaCompareOutput: A dataclass object containing a boolean indicating the overall result of the comparison and a DataFrame with the comparison details.
+            SchemaReconcileOutput: A dataclass object containing a boolean indicating the overall result of the comparison and a DataFrame with the comparison details.
         """
         master_schema = self._build_master_schema(source_schema, databricks_schema, table_conf)
         for master in master_schema:
@@ -127,4 +127,4 @@ class SchemaCompare:
 
         df = self._create_dataframe(master_schema, self._schema_compare_schema)
         final_result = self._table_schema_status(master_schema)
-        return SchemaCompareOutput(final_result, df)
+        return SchemaReconcileOutput(final_result, df)

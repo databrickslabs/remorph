@@ -5,10 +5,7 @@ from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.functions import col
 from sqlglot import Dialect
 
-from databricks.labs.remorph.reconcile.connectors.data_source import (
-    DataSource,
-    log_and_throw_exception,
-)
+from databricks.labs.remorph.reconcile.connectors.data_source import DataSource
 from databricks.labs.remorph.reconcile.connectors.secrets import SecretsMixin
 from databricks.labs.remorph.reconcile.recon_config import JdbcReaderOptions, Schema
 from databricks.sdk import WorkspaceClient
@@ -59,7 +56,7 @@ class DatabricksDataSource(DataSource, SecretsMixin):
             df = self._spark.sql(table_query)
             return df.select([col(column).alias(column.lower()) for column in df.columns])
         except RuntimeError as e:
-            return log_and_throw_exception(e, "data", table_query)
+            return self.log_and_throw_exception(e, "data", table_query)
 
     def get_schema(
         self,
@@ -72,4 +69,4 @@ class DatabricksDataSource(DataSource, SecretsMixin):
             schema_df = self._spark.sql(schema_query).where("col_name not like '#%'").distinct()
             return [Schema(field.col_name.lower(), field.data_type.lower()) for field in schema_df.collect()]
         except RuntimeError as e:
-            return log_and_throw_exception(e, "schema", schema_query)
+            return self.log_and_throw_exception(e, "schema", schema_query)

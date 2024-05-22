@@ -1,4 +1,5 @@
 import logging
+from datetime import datetime
 from uuid import uuid4
 
 from pyspark.sql import DataFrame, SparkSession
@@ -21,10 +22,12 @@ from databricks.labs.remorph.reconcile.query_builder.sampling_query import (
 from databricks.labs.remorph.reconcile.query_builder.threshold_query import (
     ThresholdQueryBuilder,
 )
+from databricks.labs.remorph.reconcile.recon_capture import ReconCapture
 from databricks.labs.remorph.reconcile.recon_config import (
-    ReconcileOutput,
+    DataReconcileOutput,
+    ReconcileProcessDuration,
     Schema,
-    SchemaCompareOutput,
+    SchemaReconcileOutput,
     Table,
     ThresholdOutput,
 )
@@ -52,40 +55,45 @@ def recon(ws: WorkspaceClient, spark: SparkSession, table_recon: TableRecon, sou
     # initialise the Reconciliation
     reconciler = Reconciliation(source, target, database_config, report_type, schema_comparator, source_dialect)
 
-    for table_conf in table_recon.tables:
-        schema_reconcile_output = None
-        data_reconcile_output = None
-        try:
-            src_schema = source.get_schema(
-                catalog=database_config.source_catalog,
-                schema=database_config.source_schema,
-                table=table_conf.source_name,
-            )
-            tgt_schema = target.get_schema(
-                catalog=database_config.target_catalog,
-                schema=database_config.target_schema,
-                table=table_conf.source_name,
-            )
-            if report_type in {"schema", "all"}:
-                schema_reconcile_output = reconciler.reconcile_schema(
-                    table_conf=table_conf, src_schema=src_schema, tgt_schema=tgt_schema
-                )
-            try:
-                if report_type in {"data", "row", "all"}:
-                    data_reconcile_output = reconciler.reconcile_data(
-                        table_conf=table_conf, src_schema=src_schema, tgt_schema=tgt_schema
-                    )
-            except DataSourceRuntimeException as e:
-                ReconcileOutput(exception=str(e))
-            except Exception as e:
-                ReconcileOutput(exception=str(e))
-        except DataSourceRuntimeException as e:
-            SchemaCompareOutput(exception=str(e))
-        except Exception as e:
-            SchemaCompareOutput(exception=str(e))
+    # initialise the recon capture class
+    recon_capture = ReconCapture(
+        database_config=database_config,
+        recon_id=recon_id,
+        report_type=report_type,
+        source_dialect=source_dialect,
+        ws=ws,
+        spark=spark,
+    )
 
-        # [TODO] Remove the print with persist logic
-        print(schema_reconcile_output, data_reconcile_output)
+    for table_conf in table_recon.tables:
+        recon_process_duration = ReconcileProcessDuration(start_ts=str(datetime.now()), end_ts=None)
+        schema_reconcile_output = SchemaReconcileOutput()
+        data_reconcile_output = DataReconcileOutput()
+        try:
+            src_schema, tgt_schema = get_schema(
+                source=source, target=target, table_conf=table_conf, database_config=database_config
+            )
+        except DataSourceRuntimeException as e:
+            schema_reconcile_output = SchemaReconcileOutput(exception=str(e))
+        else:
+            if report_type in {"schema", "all"}:
+                schema_reconcile_output = run_reconcile_schema(
+                    reconciler=reconciler, table_conf=table_conf, src_schema=src_schema, tgt_schema=tgt_schema
+                )
+
+            if report_type in {"data", "row", "all"}:
+                data_reconcile_output = run_reconcile_data(
+                    reconciler=reconciler, table_conf=table_conf, src_schema=src_schema, tgt_schema=tgt_schema
+                )
+
+        recon_process_duration.end_ts = str(datetime.now())
+        # Persist the data to the delta tables
+        recon_capture.start(
+            data_reconcile_output=data_reconcile_output,
+            schema_reconcile_output=schema_reconcile_output,
+            table_conf=table_conf,
+            recon_process_duration=recon_process_duration,
+        )
 
     return recon_id
 
@@ -206,7 +214,7 @@ class Reconciliation:
                     table_conf.source_name,
                 )
 
-        return ReconcileOutput(
+        return DataReconcileOutput(
             mismatch=mismatch,
             mismatch_count=reconcile_output.mismatch_count,
             missing_in_src_count=reconcile_output.missing_in_src_count,
@@ -296,3 +304,40 @@ class Reconciliation:
             threshold_df = mismatched_df.limit(_SAMPLE_ROWS)
 
         return ThresholdOutput(threshold_df=threshold_df, threshold_mismatch_count=mismatched_count)
+
+
+def get_schema(
+    source: DataSource, target: DataSource, table_conf: Table, database_config: DatabaseConfig
+) -> tuple[list[Schema], list[Schema]]:
+    src_schema = source.get_schema(
+        catalog=database_config.source_catalog,
+        schema=database_config.source_schema,
+        table=table_conf.source_name,
+    )
+    tgt_schema = target.get_schema(
+        catalog=database_config.target_catalog,
+        schema=database_config.target_schema,
+        table=table_conf.source_name,
+    )
+
+    return src_schema, tgt_schema
+
+
+def run_reconcile_data(
+    reconciler: Reconciliation, table_conf: Table, src_schema: list[Schema], tgt_schema: list[Schema]
+) -> DataReconcileOutput:
+    try:
+        return reconciler.reconcile_data(table_conf=table_conf, src_schema=src_schema, tgt_schema=tgt_schema)
+    except DataSourceRuntimeException as e:
+        return DataReconcileOutput(exception=str(e))
+    except Exception as e:
+        return DataReconcileOutput(exception=str(e))
+
+
+def run_reconcile_schema(
+    reconciler: Reconciliation, table_conf: Table, src_schema: list[Schema], tgt_schema: list[Schema]
+):
+    try:
+        return reconciler.reconcile_schema(table_conf=table_conf, src_schema=src_schema, tgt_schema=tgt_schema)
+    except Exception as e:
+        return SchemaReconcileOutput(exception=str(e))

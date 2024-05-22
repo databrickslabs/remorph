@@ -5,10 +5,7 @@ from pyspark.sql import DataFrame, DataFrameReader, SparkSession
 from pyspark.sql.functions import col
 from sqlglot import Dialect
 
-from databricks.labs.remorph.reconcile.connectors.data_source import (
-    DataSource,
-    log_and_throw_exception,
-)
+from databricks.labs.remorph.reconcile.connectors.data_source import DataSource
 from databricks.labs.remorph.reconcile.connectors.jdbc_reader import JDBCReaderMixin
 from databricks.labs.remorph.reconcile.connectors.secrets import SecretsMixin
 from databricks.labs.remorph.reconcile.recon_config import JdbcReaderOptions, Schema
@@ -67,7 +64,7 @@ class SnowflakeDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
                 )
             return df.select([col(column).alias(column.lower()) for column in df.columns])
         except RuntimeError as e:
-            return log_and_throw_exception(e, "data", table_query)
+            return self.log_and_throw_exception(e, "data", table_query)
 
     def get_schema(
         self,
@@ -84,7 +81,7 @@ class SnowflakeDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
             schema_df = self.reader(schema_query).load()
             return [Schema(field.column_name.lower(), field.data_type.lower()) for field in schema_df.collect()]
         except RuntimeError as e:
-            return log_and_throw_exception(e, "schema", schema_query)
+            return self.log_and_throw_exception(e, "schema", schema_query)
 
     def reader(self, query: str) -> DataFrameReader:
         options = {

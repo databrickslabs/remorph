@@ -1,8 +1,11 @@
 import re
 from unittest.mock import MagicMock, create_autospec
 
+import pytest
+
 from databricks.labs.remorph.config import get_dialect
 from databricks.labs.remorph.reconcile.connectors.databricks import DatabricksDataSource
+from databricks.labs.remorph.reconcile.exception import DataSourceRuntimeException
 from databricks.sdk import WorkspaceClient
 
 
@@ -74,8 +77,12 @@ def test_read_data_exception_handling():
     dd = DatabricksDataSource(engine, spark, ws, scope)
     spark.sql.side_effect = RuntimeError("Test Exception")
 
-    actual = dd.read_data("org", "data", "employee", "select id as id, ename as name from :tbl", None)
-    assert actual is None, "the expected value is None"
+    with pytest.raises(
+        DataSourceRuntimeException,
+        match="Runtime exception occurred while fetching data using select id as id, ename as name from "
+        "org.data.employee : Test Exception",
+    ):
+        dd.read_data("org", "data", "employee", "select id as id, ename as name from :tbl", None)
 
 
 def test_get_schema_exception_handling():
@@ -85,5 +92,12 @@ def test_get_schema_exception_handling():
     # create object for DatabricksDataSource
     dd = DatabricksDataSource(engine, spark, ws, scope)
     spark.sql.side_effect = RuntimeError("Test Exception")
-    actual = dd.get_schema("org", "data", "employee")
-    assert actual is None, "the expected value is None"
+    with pytest.raises(DataSourceRuntimeException) as exception:
+        dd.get_schema("org", "data", "employee")
+
+    assert str(exception.value) == (
+        "Runtime exception occurred while fetching schema using select lower(column_name) "
+        "as col_name, full_data_type as data_type from org.information_schema.columns "
+        "where lower(table_catalog)='org' and lower(table_schema)='data' and lower("
+        "table_name) ='employee' order by col_name : Test Exception"
+    )

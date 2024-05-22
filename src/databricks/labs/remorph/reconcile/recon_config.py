@@ -156,27 +156,27 @@ class Schema:
 
 
 @dataclass
-class ReconcileOutput:
-    mismatch_count: int = 0
-    missing_in_src_count: int = 0
-    missing_in_tgt_count: int = 0
-    mismatch: MismatchOutput | None = None
-    missing_in_src: DataFrame | None = None
-    missing_in_tgt: DataFrame | None = None
-    threshold_output: ThresholdOutput | None = None
-    exception: str | None = None
+class MismatchOutput:
+    mismatch_df: DataFrame | None = None
+    mismatch_columns: list[str] | None = None
 
 
 @dataclass
 class ThresholdOutput:
-    threshold_df: DataFrame | None
+    threshold_df: DataFrame | None = None
     threshold_mismatch_count: int = 0
 
 
 @dataclass
-class MismatchOutput:
-    mismatch_df: DataFrame | None = None
-    mismatch_columns: list[str] | None = None
+class DataReconcileOutput:
+    mismatch_count: int = 0
+    missing_in_src_count: int = 0
+    missing_in_tgt_count: int = 0
+    mismatch: MismatchOutput = MismatchOutput(mismatch_columns=[])
+    missing_in_src: DataFrame | None = None
+    missing_in_tgt: DataFrame | None = None
+    threshold_output: ThresholdOutput = ThresholdOutput()
+    exception: str | None = None
 
 
 @dataclass
@@ -195,7 +195,13 @@ class SchemaMatchResult:
 
 
 @dataclass
-class SchemaCompareOutput:
-    is_valid: bool = False
+class SchemaReconcileOutput:
+    is_valid: bool = True
     compare_df: DataFrame | None = None
     exception: str | None = None
+
+
+@dataclass
+class ReconcileProcessDuration:
+    start_ts: str
+    end_ts: str | None

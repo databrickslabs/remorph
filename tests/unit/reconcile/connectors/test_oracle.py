@@ -2,8 +2,11 @@ import base64
 import re
 from unittest.mock import MagicMock, create_autospec
 
+import pytest
+
 from databricks.labs.remorph.config import get_dialect
 from databricks.labs.remorph.reconcile.connectors.oracle import OracleDataSource
+from databricks.labs.remorph.reconcile.exception import DataSourceRuntimeException
 from databricks.labs.remorph.reconcile.recon_config import JdbcReaderOptions, Table
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.service.workspace import GetSecretResponse
@@ -139,8 +142,12 @@ def test_read_data_exception_handling():
 
     spark.read.format().option().option().option().options().load.side_effect = RuntimeError("Test Exception")
 
-    actual = ds.read_data(None, "data", "employee", "select 1 from :tbl", table_conf.jdbc_reader_options)
-    assert actual is None, "the expected value is None"
+    # Call the read_data method with the Tables configuration and assert that a PySparkException is raised
+    with pytest.raises(
+        DataSourceRuntimeException,
+        match="Runtime exception occurred while fetching data using select 1 from data.employee : Test Exception",
+    ):
+        ds.read_data(None, "data", "employee", "select 1 from :tbl", table_conf.jdbc_reader_options)
 
 
 def test_get_schema_exception_handling():
@@ -150,5 +157,21 @@ def test_get_schema_exception_handling():
 
     spark.read.format().option().option().option().load.side_effect = RuntimeError("Test Exception")
 
-    actual = ds.get_schema(None, "data", "employee")
-    assert actual is None, "the expected value is None"
+    # Call the get_schema method with predefined table, schema, and catalog names and assert that a PySparkException
+    # is raised
+    with pytest.raises(
+        DataSourceRuntimeException,
+        match=r"""select column_name, case when (data_precision is not null
+                                                  and data_scale <> 0)
+                                                  then data_type || '(' || data_precision || ',' || data_scale || ')'
+                                                  when (data_precision is not null and data_scale = 0)
+                                                  then data_type || '(' || data_precision || ')'
+                                                  when data_precision is null and (lower(data_type) in ('date') or
+                                                  lower(data_type) like 'timestamp%') then  data_type
+                                                  when CHAR_LENGTH == 0 then data_type
+                                                  else data_type || '(' || CHAR_LENGTH || ')'
+                                                  end data_type
+                                                  FROM ALL_TAB_COLUMNS
+                                WHERE lower(TABLE_NAME) = 'employee' and lower(owner) = 'data' """,
+    ):
+        ds.get_schema(None, "data", "employee")

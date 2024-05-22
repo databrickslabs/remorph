@@ -15,8 +15,8 @@ from databricks.labs.remorph.reconcile.execute import (
     recon,
 )
 from databricks.labs.remorph.reconcile.recon_config import (
+    DataReconcileOutput,
     MismatchOutput,
-    ReconcileOutput,
     ThresholdOutput,
 )
 from databricks.labs.remorph.reconcile.schema_compare import SchemaCompare
@@ -137,7 +137,7 @@ def test_reconcile_data_with_mismatches_and_missing(mock_spark, table_conf_with_
     target = MockDataSource(target_dataframe_repository, target_schema_repository)
     reconciler = Reconciliation(source, target, database_config, "data", schema_comparator, get_dialect("databricks"))
     actual_data_reconcile = reconciler.reconcile_data(table_conf_with_opts, src_schema, tgt_schema)
-    expected_data_reconcile = ReconcileOutput(
+    expected_data_reconcile = DataReconcileOutput(
         mismatch_count=1,
         missing_in_src_count=1,
         missing_in_tgt_count=1,
@@ -379,7 +379,7 @@ def test_reconcile_data_with_mismatch_and_no_missing(mock_spark, table_conf_with
     actual = Reconciliation(
         source, target, database_config, "data", schema_comparator, get_dialect("databricks")
     ).reconcile_data(table_conf_with_opts, src_schema, tgt_schema)
-    expected = ReconcileOutput(
+    expected = DataReconcileOutput(
         mismatch_count=1,
         missing_in_src_count=0,
         missing_in_tgt_count=0,
@@ -469,7 +469,7 @@ def test_reconcile_data_missing_and_no_mismatch(mock_spark, table_conf_with_opts
     actual = Reconciliation(
         source, target, database_config, "data", schema_comparator, get_dialect("databricks")
     ).reconcile_data(table_conf_with_opts, src_schema, tgt_schema)
-    expected = ReconcileOutput(
+    expected = DataReconcileOutput(
         mismatch_count=0,
         missing_in_src_count=1,
         missing_in_tgt_count=1,
@@ -552,6 +552,7 @@ def test_recon_for_report_type_is_data(
     with (
         patch("databricks.labs.remorph.reconcile.execute.initialise_data_source", return_value=(source, target)),
         patch("databricks.labs.remorph.reconcile.execute.uuid4", return_value="00112233-4455-6677-8899-aabbccddeeff"),
+        patch('databricks.labs.remorph.reconcile.recon_capture.ReconCapture._DB_PREFIX', new='default'),
     ):
         recon_id = recon(mock_workspace_client, mock_spark, table_recon, get_dialect("databricks"), "data")
 
@@ -617,6 +618,7 @@ def test_recon_for_report_type_is_schema(
     with (
         patch("databricks.labs.remorph.reconcile.execute.initialise_data_source", return_value=(source, target)),
         patch("databricks.labs.remorph.reconcile.execute.uuid4", return_value="00112233-4455-6677-8899-aabbccddeeff"),
+        patch('databricks.labs.remorph.reconcile.recon_capture.ReconCapture._DB_PREFIX', new='default'),
     ):
         recon_id = recon(mock_workspace_client, mock_spark, table_recon, get_dialect("databricks"), "schema")
 
@@ -684,6 +686,7 @@ def test_recon_for_report_type_is_all(
     with (
         patch("databricks.labs.remorph.reconcile.execute.initialise_data_source", return_value=(source, target)),
         patch("databricks.labs.remorph.reconcile.execute.uuid4", return_value="00112233-4455-6677-8899-aabbccddeeff"),
+        patch('databricks.labs.remorph.reconcile.recon_capture.ReconCapture._DB_PREFIX', new='default'),
     ):
         recon_id = recon(mock_workspace_client, mock_spark, table_recon, get_dialect("snowflake"), "all")
 
