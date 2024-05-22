@@ -13,11 +13,11 @@ from databricks.labs.remorph.reconcile.recon_config import Schema, Table
 
 class QueryBuilder(ABC):
     def __init__(
-            self,
-            table_conf: Table,
-            schema: list[Schema],
-            layer: str,
-            source: Dialect,
+        self,
+        table_conf: Table,
+        schema: list[Schema],
+        layer: str,
+        source: Dialect,
     ):
         self._table_conf = table_conf
         self._schema = schema
@@ -92,7 +92,7 @@ class QueryBuilder(ABC):
         return node
 
     def _apply_default_transformation(
-            self, aliases: list[exp.Expression], schema: list[Schema], source: Dialect
+        self, aliases: list[exp.Expression], schema: list[Schema], source: Dialect
     ) -> (list)[exp.Expression]:
         with_transform = []
         for alias in aliases:

@@ -60,7 +60,9 @@ def test_build_query_for_snowflake_src(mock_spark, table_conf_mock, table_schema
         's_suppkey FROM src INNER JOIN recon USING (s_nationkey, s_suppkey)'
     )
 
-    tgt_actual = SamplingQueryBuilder(conf, sch_with_alias, "target", SQLGLOT_DIALECTS.get("databricks")).build_query(df)
+    tgt_actual = SamplingQueryBuilder(conf, sch_with_alias, "target", SQLGLOT_DIALECTS.get("databricks")).build_query(
+        df
+    )
     tgt_expected = (
         'WITH recon AS (SELECT 11 AS s_nationkey, 1 AS s_suppkey UNION SELECT 22 AS '
         "s_nationkey, 2 AS s_suppkey), src AS (SELECT COALESCE(TRIM(s_acctbal_t), '') "
@@ -129,7 +131,9 @@ def test_build_query_for_oracle_src(mock_spark, table_conf_mock, table_schema, c
         's_suppkey FROM src INNER JOIN recon USING (s_nationkey, s_suppkey)'
     )
 
-    tgt_actual = SamplingQueryBuilder(conf, sch_with_alias, "target", SQLGLOT_DIALECTS.get("databricks")).build_query(df)
+    tgt_actual = SamplingQueryBuilder(conf, sch_with_alias, "target", SQLGLOT_DIALECTS.get("databricks")).build_query(
+        df
+    )
     tgt_expected = (
         'WITH recon AS (SELECT 11 AS s_nationkey, 1 AS s_suppkey UNION SELECT 22 AS '
         's_nationkey, 2 AS s_suppkey UNION SELECT 33 AS s_nationkey, 3 AS s_suppkey), '

@@ -112,31 +112,32 @@ class ReconCapture:
             or reconcile_output.threshold_output.threshold_mismatch_count > 0
         )
 
-        # TODO: Add Exception message
-        df = self.spark.sql(
-            f"""
-                select {recon_table_id} as recon_table_id,
-                named_struct(
-                    'row_comparison', named_struct(
-                        'missing_in_src_count', {reconcile_output.missing_in_src_count},
-                        'missing_in_tgt_count', {reconcile_output.missing_in_tgt_count}
-                    ),
-                    'column_comparison', named_struct(
-                        'absolute_mismatch', {reconcile_output.mismatch_count},
-                        'threshold_mismatch', {reconcile_output.threshold_output.threshold_mismatch_count},
-                        'mismatch_columns', '{",".join(reconcile_output.mismatch.mismatch_columns)}'
-                    ),
-                    'schema_comparison', {schema_output.is_valid}
-                ) as recon_metrics,
-                named_struct(
-                    'status', {status}, 
-                    'run_by_user', '{self.ws.current_user.me().user_name}', 
-                    'exception_message', ""
-                ) as run_metrics,
-                current_timestamp() as inserted_ts
-            """
-        )
-        _write_df_to_delta(df, f"{self._DB_PREFIX}.{self._RECON_METRICS_TABLE_NAME}")
+        if reconcile_output.mismatch.mismatch_columns:
+            # TODO: Add Exception message
+            df = self.spark.sql(
+                f"""
+                    select {recon_table_id} as recon_table_id,
+                    named_struct(
+                        'row_comparison', named_struct(
+                            'missing_in_src_count', {reconcile_output.missing_in_src_count},
+                            'missing_in_tgt_count', {reconcile_output.missing_in_tgt_count}
+                        ),
+                        'column_comparison', named_struct(
+                            'absolute_mismatch', {reconcile_output.mismatch_count},
+                            'threshold_mismatch', {reconcile_output.threshold_output.threshold_mismatch_count},
+                            'mismatch_columns', '{",".join(reconcile_output.mismatch.mismatch_columns)}'
+                        ),
+                        'schema_comparison', {schema_output.is_valid}
+                    ) as recon_metrics,
+                    named_struct(
+                        'status', {status}, 
+                        'run_by_user', '{self.ws.current_user.me().user_name}', 
+                        'exception_message', ""
+                    ) as run_metrics,
+                    current_timestamp() as inserted_ts
+                """
+            )
+            _write_df_to_delta(df, f"{self._DB_PREFIX}.{self._RECON_METRICS_TABLE_NAME}")
 
     @classmethod
     def _create_map_column(
@@ -181,7 +182,7 @@ class ReconCapture:
         reconcile_output: ReconcileOutput,
         schema_output: SchemaCompareOutput,
     ):
-        if reconcile_output.mismatch_count > 0:
+        if reconcile_output.mismatch_count > 0 and reconcile_output.mismatch.mismatch_df:
             self._create_map_column_and_insert(
                 recon_table_id,
                 reconcile_output.mismatch.mismatch_df,
@@ -189,7 +190,7 @@ class ReconCapture:
                 False,
             )
 
-        if reconcile_output.missing_in_src_count > 0:
+        if reconcile_output.missing_in_src_count > 0 and reconcile_output.missing_in_src:
             self._create_map_column_and_insert(
                 recon_table_id,
                 reconcile_output.missing_in_src,
@@ -197,7 +198,7 @@ class ReconCapture:
                 False,
             )
 
-        if reconcile_output.missing_in_tgt_count > 0:
+        if reconcile_output.missing_in_tgt_count > 0 and reconcile_output.missing_in_tgt:
             self._create_map_column_and_insert(
                 recon_table_id,
                 reconcile_output.missing_in_tgt,
@@ -205,7 +206,10 @@ class ReconCapture:
                 False,
             )
 
-        if reconcile_output.threshold_output.threshold_mismatch_count > 0:
+        if (
+            reconcile_output.threshold_output.threshold_mismatch_count > 0
+            and reconcile_output.threshold_output.threshold_df
+        ):
             self._create_map_column_and_insert(
                 recon_table_id,
                 reconcile_output.threshold_output.threshold_df,
