@@ -3679,32 +3679,34 @@ expr_list_sorted
     ;
 
 expr
-    : object_name DOT NEXTVAL
-    | expr LSB expr RSB //array access
-    | expr COLON json_path   //json access
-    | expr DOT (VALUE | expr)
-    | expr COLLATE string
-    | case_expression
-    | iff_expr
-    | bracket_expression
-    | op = ( PLUS | MINUS) expr
-    | expr op = (STAR | DIVIDE | MODULE) expr
-    | expr op = (PLUS | MINUS | PIPE_PIPE) expr
-    | expr comparison_operator expr
-    | op = NOT+ expr
-    | expr AND expr //bool operation
-    | expr OR expr  //bool operation
-    | arr_literal
+    : object_name DOT NEXTVAL                       #exprNextval
+    | expr LSB expr RSB                             #exprArrayAccess
+    | expr COLON json_path                          #exprJsonAccess
+    | expr DOT (VALUE | expr)                       #exprDot
+    | expr COLLATE string                           #exprCollate
+    | case_expression                               #exprCase
+    | iff_expr                                      #exprIff
+    | bracket_expression                            #exprBracket
+    | sign expr                                     #exprSign
+    | expr op = (STAR | DIVIDE | MODULE) expr       #exprPrecedence0
+    | expr op = (PLUS | MINUS | PIPE_PIPE) expr     #exprPrecedence1
+    | expr comparison_operator expr                 #exprComparison
+    | op = NOT+ expr                                #exprNot
+    | expr AND expr                                 #exprAnd
+    | expr OR expr                                  #exprOr
+    | arr_literal                                   #exprArrayLit
     //    | expr time_zone
-    | expr over_clause
-    | cast_expr
-    | expr COLON_COLON data_type // Cast also
-    | json_literal
-    | trim_expression
-    | function_call
-    | subquery // Probably wrong
-    | expr predicate_partial
-    | primitive_expression //Should be latest rule as it's nearly a catch all
+    | expr over_clause                              #exprOver
+    | cast_expr                                     #exprCast
+    | expr COLON_COLON data_type                    #exprAscribe
+    | json_literal                                  #exprJsonLit
+    | trim_expression                               #exprTrim
+    | function_call                                 #exprFuncCall
+    // Probably wrong
+    | subquery                                      #exprSubquery
+    | expr predicate_partial                        #exprPredicate
+    //Should be latest rule as it's nearly a catch all
+    | primitive_expression                          #exprPrimitive
     ;
 
 predicate_partial
