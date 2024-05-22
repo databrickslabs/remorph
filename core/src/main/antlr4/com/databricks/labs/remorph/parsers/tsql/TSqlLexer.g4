@@ -1008,29 +1008,32 @@ SINGLE_QUOTE       : '\'';
 SQUARE_BRACKET_ID  : '[' (~']' | ']' ']')* ']';
 LOCAL_ID           : '@' ([A-Z_$@#0-9] | FullWidthLetter)*;
 TEMP_ID            : '#' ([A-Z_$@#0-9] | FullWidthLetter)*;
-INT            : DEC_DIGIT+;
+
 ID                 : ( [A-Z_#] | FullWidthLetter) ( [A-Z_#$@0-9] | FullWidthLetter)*;
 STRING options {
     caseInsensitive = false;
 }      : 'N'? '\'' (~'\'' | '\'\'')* '\'';
-HEX : '0' 'X' HEX_DIGIT*;
-FLOAT  : DEC_DOT_DEC;
-REAL   : (INT | DEC_DOT_DEC) ('E' [+-]? DEC_DIGIT+);
 
-EQ: '=';
+fragment SIGN: [+-];
 
+INT         : SIGN? DEC_DIGIT+;
+HEX         : SIGN? '0' 'X' HEX_DIGIT*;
+FLOAT       : SIGN? DEC_DOT_DEC;
+REAL        : SIGN? (INT | DEC_DOT_DEC) ('E' [+-]? DEC_DIGIT+);
+MONEY       : SIGN? '$' (INT | FLOAT);
+
+EQ          : '=';
 GT          : '>';
 LT          : '<';
 BANG        : '!';
-
-PE  : '+=';
-ME : '-=';
-SE  : '*=';
-DE   : '/=';
-MEA   : '%=';
-AND_ASSIGN   : '&=';
-XOR_ASSIGN   : '^=';
-OR_ASSIGN    : '|=';
+PE          : '+=';
+ME          : '-=';
+SE          : '*=';
+DE          : '/=';
+MEA         : '%=';
+AND_ASSIGN  : '&=';
+XOR_ASSIGN  : '^=';
+OR_ASSIGN   : '|=';
 
 DOUBLE_BAR   : '||';
 DOT          : '.';

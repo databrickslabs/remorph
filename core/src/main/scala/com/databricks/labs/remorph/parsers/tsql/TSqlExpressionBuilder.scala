@@ -3,8 +3,7 @@ package com.databricks.labs.remorph.parsers.tsql
 import com.databricks.labs.remorph.parsers.tsql.TSqlParser._
 import com.databricks.labs.remorph.parsers.{FunctionBuilder, ParserCommon, intermediate => ir}
 import org.antlr.v4.runtime.Token
-import org.antlr.v4.runtime.tree.TerminalNode
-import org.antlr.v4.runtime.tree.Trees
+import org.antlr.v4.runtime.tree.{TerminalNode, Trees}
 
 import scala.collection.JavaConverters.{asScalaBufferConverter, collectionAsScalaIterableConverter}
 
@@ -60,9 +59,12 @@ class TSqlExpressionBuilder extends TSqlParserBaseVisitor[ir.Expression] with Pa
   // Note that while we could evaluate the unary expression if it is a numeric
   // constant, it is usually better to be explicit about the unary operation as
   // if people use -+-42 then maybe they have a reason.
-  override def visitExprUnary(ctx: ExprUnaryContext): ir.Expression = ctx.op.getType match {
-    case MINUS => ir.UMinus(ctx.expression().accept(this))
-    case PLUS => ir.UPlus(ctx.expression().accept(this))
+  override def visitExprUnary(ctx: ExprUnaryContext): ir.Expression = {
+    val expr = ctx.expression().accept(this)
+    ctx.op.getType match {
+      case MINUS => ir.UMinus(expr)
+      case PLUS => ir.UPlus(expr)
+    }
   }
 
   override def visitExprOpPrec1(ctx: ExprOpPrec1Context): ir.Expression = {
@@ -128,10 +130,7 @@ class TSqlExpressionBuilder extends TSqlParserBaseVisitor[ir.Expression] with Pa
   override def visitExprCollate(ctx: ExprCollateContext): ir.Expression =
     ir.Collate(ctx.expression.accept(this), removeQuotes(ctx.id.getText))
 
-  override def visitPrimitiveConstant(ctx: TSqlParser.PrimitiveConstantContext): ir.Expression = {
-    if (ctx.DOLLAR != null) {
-      return ir.Literal(string = Some(ctx.getText))
-    }
+  override def visitConstant(ctx: TSqlParser.ConstantContext): ir.Expression = {
     buildConstant(ctx.con)
   }
 
@@ -211,11 +210,19 @@ class TSqlExpressionBuilder extends TSqlParserBaseVisitor[ir.Expression] with Pa
 
   private def buildConstant(con: Token): ir.Expression = con.getType match {
     case c if c == STRING => ir.Literal(string = Some(removeQuotes(con.getText)))
-    case c if c == INT => ir.Literal(integer = Some(con.getText.toInt))
-    case c if c == FLOAT => ir.Literal(float = Some(con.getText.toFloat))
-    case c if c == HEX => ir.Literal(string = Some(con.getText)) // Preserve format for now
-    case c if c == REAL => ir.Literal(double = Some(con.getText.toDouble))
     case c if c == NULL_ => ir.Literal(nullType = Some(ir.NullType()))
+    case c if c == HEX => ir.Literal(string = Some(con.getText)) // Preserve format
+    case c if c == MONEY => ir.Money(ir.Literal(string = Some(con.getText)))
+    case _ => convertNumeric(con.getText)
+  }
+
+  // TODO: Maybe start sharing such things between all the parsers?
+  private def convertNumeric(str: String): ir.Literal = BigDecimal(str) match {
+    case d if d.isValidInt => ir.Literal(integer = Some(d.toInt))
+    case d if d.isValidLong => ir.Literal(long = Some(d.toLong))
+    case d if d.isDecimalFloat || d.isExactFloat => ir.Literal(float = Some(d.toFloat))
+    case d if d.isDecimalDouble || d.isExactDouble => ir.Literal(double = Some(d.toDouble))
+    case _ => ir.Literal(decimal = Some(ir.Decimal(str, None, None)))
   }
 
   override def visitStandardFunction(ctx: StandardFunctionContext): ir.Expression = {
