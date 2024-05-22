@@ -283,19 +283,17 @@ class TSqlExpressionBuilder extends TSqlParserBaseVisitor[ir.Expression] with Pa
 
   private def buildWindowFrame(ctx: RowOrRangeClauseContext): ir.WindowFrame = {
     val frameType = buildFrameType(ctx)
-    val fs = Trees.findAllRuleNodes(ctx, TSqlParser.RULE_windowFrameBound)
+    val bounds = Trees
+      .findAllRuleNodes(ctx, TSqlParser.RULE_windowFrameBound)
+      .asScala
+      .collect { case wfb: WindowFrameBoundContext => wfb }
+      .map(buildFrame)
 
-    fs.headOption match {
-      case Some(frameStartNode: WindowFrameBoundContext) =>
-        val frameStart = buildFrame(frameStartNode)
-        val frameEnd = fs.tail.headOption match {
-          case Some(frameEndNode: WindowFrameBoundContext) => buildFrame(frameEndNode)
-          case _ => ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop)
-        }
-        ir.WindowFrame(frameType, frameStart, frameEnd)
-      case _ => // Cannot reach
-        noWindowFrame
-    }
+    val frameStart = bounds.head // Safe due to the nature of window frames always having at least a start bound
+    val frameEnd =
+      bounds.drop(1).headOption.getOrElse(ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop))
+
+    ir.WindowFrame(frameType, frameStart, frameEnd)
   }
 
   private def buildFrameType(ctx: RowOrRangeClauseContext): ir.FrameType = {
