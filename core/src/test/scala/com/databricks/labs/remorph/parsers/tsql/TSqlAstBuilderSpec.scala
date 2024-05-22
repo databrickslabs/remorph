@@ -163,5 +163,24 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
               JoinDataType(is_left_struct = false, is_right_struct = false)),
             List(Column("T1.A"))))))
     }
+    "translate scalar subqueries" in {
+      example(
+        query = """SELECT
+                          EmployeeID,
+                          Name,
+                          (SELECT AvgSalary FROM Employees) AS AverageSalary
+                      FROM
+                          Employees;""",
+        expectedAst = Batch(
+          Seq(Project(
+            NamedTable("Employees", Map(), is_streaming = false),
+            Seq(
+              Column("EmployeeID"),
+              Column("Name"),
+              Alias(
+                ScalarSubquery(Project(NamedTable("Employees", Map(), is_streaming = false), Seq(Column("AvgSalary")))),
+                Seq("AverageSalary"),
+                None))))))
+    }
   }
 }
