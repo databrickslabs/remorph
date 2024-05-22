@@ -42,7 +42,7 @@ jobs:
       - name: Run integration tests
         uses: databrickslabs/sandbox/acceptance@acceptance/v0.2.1
         with:
-          vault_uri: ${{ secrets.VAULT_URI }}
+          vault_uri: "https://labs-azure-tool.vault.azure.net/"
           timeout: 45m
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
