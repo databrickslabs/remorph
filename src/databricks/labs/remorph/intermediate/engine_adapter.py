@@ -1,7 +1,7 @@
 import logging
 from pathlib import Path
 
-from sqlglot.dialects.dialect import DialectType
+from sqlglot.dialects.dialect import Dialect
 
 from databricks.labs.remorph.snow.sql_transpiler import SqlglotEngine
 
@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 
 class EngineAdapter:
-    def __init__(self, dialect: DialectType):
+    def __init__(self, dialect: Dialect):
         self.dialect = dialect
 
     def select_engine(self, input_type: str):

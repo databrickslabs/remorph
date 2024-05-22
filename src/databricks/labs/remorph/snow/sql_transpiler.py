@@ -1,5 +1,5 @@
 from sqlglot import expressions as exp, parse, transpile
-from sqlglot.dialects.dialect import Dialect, DialectType
+from sqlglot.dialects.dialect import Dialect
 from sqlglot.errors import ErrorLevel, ParseError, TokenError, UnsupportedError
 from sqlglot.expressions import Expression
 
@@ -9,7 +9,7 @@ from databricks.labs.remorph.helpers.morph_status import ParserError
 
 
 class SqlglotEngine:
-    def __init__(self, read_dialect: DialectType):
+    def __init__(self, read_dialect: Dialect):
         self.read_dialect = read_dialect
 
     def transpile(
