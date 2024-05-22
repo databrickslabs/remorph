@@ -4388,15 +4388,6 @@ valueCall
     : (VALUE | VALUE_SQUARE_BRACKET) LPAREN xquery = STRING COMMA sqltype = STRING RPAREN
     ;
 
-hierarchyidCall
-    : GETANCESTOR LPAREN n = expression RPAREN
-    | GETDESCENDANT LPAREN child1 = expression COMMA child2 = expression RPAREN
-    | GETLEVEL LPAREN RPAREN
-    | ISDESCENDANTOF LPAREN parent_ = expression RPAREN
-    | GETREPARENTEDVALUE LPAREN oldroot = expression COMMA newroot = expression RPAREN
-    | TOSTRING LPAREN RPAREN
-    ;
-
 hierarchyidStaticMethod
     : HIERARCHYID DOUBLE_COLON (GETROOT LPAREN RPAREN | PARSE LPAREN input = expression RPAREN)
     ;
