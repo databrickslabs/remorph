@@ -5,8 +5,7 @@ import com.databricks.labs.remorph.parsers.{FunctionBuilder, ParserCommon, inter
 import org.antlr.v4.runtime.Token
 import org.antlr.v4.runtime.tree.{TerminalNode, Trees}
 
-import scala.collection.JavaConverters.asScalaBufferConverter
-import scala.collection.convert.ImplicitConversions.`collection AsScalaIterable`
+import scala.collection.JavaConverters._
 
 class TSqlExpressionBuilder extends TSqlParserBaseVisitor[ir.Expression] with ParserCommon {
 
