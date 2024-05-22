@@ -427,5 +427,9 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
             ir.WhenBranch(ir.Equals(ir.Column("a"), ir.Literal(integer = Some(2))), ir.Literal(string = Some("two")))),
           None))
     }
+
+    "translate the $ACTION special column reference" in {
+      example("$ACTION", _.expression(), ir.DollarAction())
+    }
   }
 }

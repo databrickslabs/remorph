@@ -4,6 +4,7 @@ trait AstExtension
 
 case class Column(name: String) extends Expression with AstExtension {}
 case class Identifier(name: String, isQuoted: Boolean) extends Expression with AstExtension {}
+case class DollarAction() extends Expression with AstExtension {}
 
 abstract class Unary(pred: Expression) extends Expression {}
 abstract class Binary(left: Expression, right: Expression) extends Expression {}
