@@ -297,12 +297,6 @@ object FunctionBuilder {
    *   function name for use in lookup/matching
    */
   private def removeQuotesAndBrackets(str: String): String = {
-    str
-      .stripPrefix("'")
-      .stripSuffix("'")
-      .stripPrefix("[")
-      .stripSuffix("]")
-      .stripPrefix("\"")
-      .stripSuffix("\"")
+    str.replaceAll("^['\"\\[]|['\"\\]]$", "")
   }
 }
