@@ -10,14 +10,15 @@ import scala.collection.JavaConverters._
 class TSqlExpressionBuilder extends TSqlParserBaseVisitor[ir.Expression] with ParserCommon {
 
   override def visitSelectListElem(ctx: TSqlParser.SelectListElemContext): ir.Expression = {
-    val handlers = Seq(
+    ctx match {
       // TODO: asterisk not fully handled
-      Option(ctx.asterisk()).map(_ => ctx.asterisk().accept(this)),
+      case c if c.asterisk() != null => c.asterisk().accept(this)
       // TODO: UDT elements seem broken in the grammar
-      Option(ctx.udtElem()).map(_ => ctx.udtElem().accept(this)),
-      Option(ctx.LOCAL_ID()).map(_ => buildLocalAssign(ctx)),
-      Option(ctx.expressionElem()).map(_ => ctx.expressionElem().accept(this)))
-    handlers.flatten.headOption.getOrElse(ir.UnresolvedExpression("Unsupported SelectListElem"))
+      case c if c.udtElem() != null => c.udtElem().accept(this)
+      case c if c.LOCAL_ID() != null => buildLocalAssign(ctx)
+      case c if c.expressionElem() != null => ctx.expressionElem().accept(this)
+      case _ => ir.UnresolvedExpression("Unsupported SelectListElem")
+    }
   }
 
   /**
