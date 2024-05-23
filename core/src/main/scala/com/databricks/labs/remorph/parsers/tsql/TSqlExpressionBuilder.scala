@@ -123,6 +123,8 @@ class TSqlExpressionBuilder extends TSqlParserBaseVisitor[ir.Expression] with Pa
 
   override def visitExprFunc(ctx: ExprFuncContext): ir.Expression = ctx.functionCall.accept(this)
 
+  override def visitExprDollar(ctx: ExprDollarContext): ir.Expression = ir.DollarAction()
+
   override def visitExprCollate(ctx: ExprCollateContext): ir.Expression =
     ir.Collate(ctx.expression.accept(this), removeQuotes(ctx.id.getText))
 
@@ -131,6 +133,12 @@ class TSqlExpressionBuilder extends TSqlParserBaseVisitor[ir.Expression] with Pa
       return ir.Literal(string = Some(ctx.getText))
     }
     buildConstant(ctx.con)
+  }
+
+  override def visitExprTz(ctx: ExprTzContext): ir.Expression = {
+    val expression = ctx.expression().accept(this)
+    val timezone = ctx.timeZone.expression().accept(this)
+    ir.Timezone(expression, timezone)
   }
 
   override def visitScNot(ctx: TSqlParser.ScNotContext): ir.Expression =
