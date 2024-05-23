@@ -6,7 +6,7 @@ from sqlglot.dialects.dialect import Dialect
 from databricks.labs.remorph.__about__ import __version__
 from databricks.labs.remorph.config import (
     MorphConfig,
-    SQLGLOT_DIALECTS,
+    get_dialect,
     TranspilationResult,
     ValidationResult,
 )
@@ -50,7 +50,7 @@ def _process_file(
     with input_file.open("r") as f:
         sql = remove_bom(f.read())
 
-    lca_error = lca_utils.check_for_unsupported_lca(SQLGLOT_DIALECTS.get(config.source.lower()), sql, str(input_file))
+    lca_error = lca_utils.check_for_unsupported_lca(get_dialect(config.source.lower()), sql, str(input_file))
 
     if lca_error:
         validate_error_list.append(lca_error)
