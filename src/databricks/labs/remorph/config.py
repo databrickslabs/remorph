@@ -3,14 +3,16 @@ from dataclasses import dataclass
 
 from sqlglot.dialects.dialect import Dialect, Dialects
 
+from databricks.labs.remorph.bigquery import bigquery
 from databricks.labs.remorph.helpers.morph_status import ParserError
+
 from databricks.labs.remorph.reconcile.recon_config import Table
 from databricks.labs.remorph.snow import databricks, experimental, oracle, snowflake
 
 logger = logging.getLogger(__name__)
 
 SQLGLOT_DIALECTS = {
-    "bigquery": Dialects.BIGQUERY,
+    "bigquery": bigquery.BigQuery,
     "databricks": databricks.Databricks,
     "experimental": experimental.DatabricksExperimental,
     "drill": Dialects.DRILL,
