@@ -9,8 +9,8 @@ from databricks.labs.remorph.reconcile.compare import (
 )
 from databricks.labs.remorph.reconcile.exception import ColumnMismatchException
 from databricks.labs.remorph.reconcile.recon_config import (
+    DataReconcileOutput,
     MismatchOutput,
-    ReconcileOutput,
 )
 
 
@@ -37,7 +37,7 @@ def test_compare_data_for_report_all(mock_spark):
     missing_in_tgt = mock_spark.createDataFrame([Row(s_suppkey=3, s_nationkey=33), Row(s_suppkey=5, s_nationkey=55)])
 
     actual = reconcile_data(source=source, target=target, key_columns=["s_suppkey", "s_nationkey"], report_type="all")
-    expected = ReconcileOutput(
+    expected = DataReconcileOutput(
         mismatch_count=1,
         missing_in_src_count=1,
         missing_in_tgt_count=1,
@@ -77,7 +77,7 @@ def test_compare_data_for_report_hash(mock_spark):
     )
 
     actual = reconcile_data(source=source, target=target, key_columns=["s_suppkey", "s_nationkey"], report_type="hash")
-    expected = ReconcileOutput(
+    expected = DataReconcileOutput(
         missing_in_src=missing_in_src,
         missing_in_tgt=missing_in_tgt,
         mismatch=None,
@@ -87,7 +87,7 @@ def test_compare_data_for_report_hash(mock_spark):
     )
 
     assert actual.mismatch.mismatch_df is None
-    assert actual.mismatch.mismatch_columns is None
+    assert not actual.mismatch.mismatch_columns
     assertDataFrameEqual(actual.missing_in_src, expected.missing_in_src)
     assertDataFrameEqual(actual.missing_in_tgt, expected.missing_in_tgt)
 
