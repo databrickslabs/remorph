@@ -75,7 +75,6 @@ def test_read_data_exception_handling():
 
     # create object for DatabricksDataSource
     dd = DatabricksDataSource(engine, spark, ws, scope)
-
     spark.sql.side_effect = RuntimeError("Test Exception")
 
     with pytest.raises(

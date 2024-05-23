@@ -4,6 +4,17 @@ from unittest.mock import create_autospec
 
 import pytest
 from pyspark.sql import SparkSession
+from pyspark.sql.types import (
+    ArrayType,
+    BooleanType,
+    IntegerType,
+    LongType,
+    MapType,
+    StringType,
+    StructField,
+    StructType,
+    TimestampType,
+)
 from sqlglot import ErrorLevel, UnsupportedError
 from sqlglot import parse_one as sqlglot_parse_one
 from sqlglot import transpile
@@ -271,3 +282,95 @@ def table_schema():
 @pytest.fixture
 def expr():
     return parse_one("SELECT col1 FROM DUAL")
+
+
+@pytest.fixture
+def report_tables_schema():
+    recon_schema = StructType(
+        [
+            StructField("recon_table_id", LongType(), nullable=False),
+            StructField("recon_id", StringType(), nullable=False),
+            StructField("source_type", StringType(), nullable=False),
+            StructField(
+                "source_table",
+                StructType(
+                    [
+                        StructField('catalog', StringType(), nullable=False),
+                        StructField('schema', StringType(), nullable=False),
+                        StructField('table_name', StringType(), nullable=False),
+                    ]
+                ),
+                nullable=False,
+            ),
+            StructField(
+                "target_table",
+                StructType(
+                    [
+                        StructField('catalog', StringType(), nullable=False),
+                        StructField('schema', StringType(), nullable=False),
+                        StructField('table_name', StringType(), nullable=False),
+                    ]
+                ),
+                nullable=False,
+            ),
+            StructField("report_type", StringType(), nullable=False),
+            StructField("start_ts", TimestampType()),
+            StructField("end_ts", TimestampType()),
+        ]
+    )
+
+    metrics_schema = StructType(
+        [
+            StructField("recon_table_id", LongType(), nullable=False),
+            StructField(
+                "recon_metrics",
+                StructType(
+                    [
+                        StructField(
+                            "row_comparison",
+                            StructType(
+                                [
+                                    StructField("missing_in_source", IntegerType()),
+                                    StructField("missing_in_target", IntegerType()),
+                                ]
+                            ),
+                        ),
+                        StructField(
+                            "column_comparison",
+                            StructType(
+                                [
+                                    StructField("absolute_mismatch", IntegerType()),
+                                    StructField("threshold_mismatch", IntegerType()),
+                                    StructField("mismatch_columns", StringType()),
+                                ]
+                            ),
+                        ),
+                        StructField("schema_comparison", BooleanType()),
+                    ]
+                ),
+            ),
+            StructField(
+                "run_metrics",
+                StructType(
+                    [
+                        StructField("status", BooleanType(), nullable=False),
+                        StructField("run_by_user", StringType(), nullable=False),
+                        StructField("exception_message", StringType()),
+                    ]
+                ),
+            ),
+            StructField("inserted_ts", TimestampType(), nullable=False),
+        ]
+    )
+
+    details_schema = StructType(
+        [
+            StructField("recon_table_id", LongType(), nullable=False),
+            StructField("recon_type", StringType(), nullable=False),
+            StructField("status", BooleanType(), nullable=False),
+            StructField("data", ArrayType(MapType(StringType(), StringType())), nullable=False),
+            StructField("inserted_ts", TimestampType(), nullable=False),
+        ]
+    )
+
+    return recon_schema, metrics_schema, details_schema
