@@ -104,7 +104,7 @@ class QueryBuilder(ABC):
 
         def _get_transform(datatype: str):
             source_dialects = [source_key for source_key, dialect in SQLGLOT_DIALECTS.items() if dialect == source]
-            source_dialect = source_dialects[0] if source_dialects else "default"
+            source_dialect = source_dialects[0] if source_dialects else "universal"
 
             source_mapping = DataType_transform_mapping.get(source_dialect, {})
 
@@ -113,7 +113,7 @@ class QueryBuilder(ABC):
             if source_mapping.get("default") is not None:
                 return source_mapping.get("default")
 
-            return DataType_transform_mapping.get("default", {}).get("default")
+            return DataType_transform_mapping.get("universal", {}).get("default")
 
         schema_dict = {v.column_name: v.data_type for v in schema}
         if isinstance(node, exp.Column):

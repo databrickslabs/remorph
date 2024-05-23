@@ -215,7 +215,7 @@ def build_between(this: exp.Expression, low: exp.Expression, high: exp.Expressio
 
 
 DataType_transform_mapping: dict[str, dict[str, list[partial[exp.Expression]]]] = {
-    "default": {"default": [partial(coalesce, default='', is_string=True), partial(trim)]},
+    "universal": {"default": [partial(coalesce, default='', is_string=True), partial(trim)]},
     "snowflake": {exp.DataType.Type.ARRAY.value: [partial(array_to_string), partial(array_sort)]},
     "oracle": {
         exp.DataType.Type.NCHAR.value: [partial(anonymous, func="NVL(TRIM(TO_CHAR({})),'_null_recon_')")],
