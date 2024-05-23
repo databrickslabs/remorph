@@ -1,5 +1,4 @@
 import logging
-import pkgutil
 
 from databricks.labs.lsql.backends import SqlBackend
 from databricks.labs.remorph.config import MorphConfig
@@ -21,9 +20,15 @@ class TableDeployer:
 
     def _load(self, relative_filename: str) -> str:
         logger.info(f" Reading {relative_filename} contents")
-        from databricks.labs import remorph
 
-        data = pkgutil.get_data(remorph, relative_filename)
+        # from databricks.labs import remorph
+        # data = pkgutil.get_data(remorph, relative_filename)
+        # sql = data.decode("utf-8")
+
+        file_path = f"../{relative_filename}"
+        with open(file_path, "r") as file:
+            data = file.read()
         assert data is not None
-        sql = data.decode("utf-8")
+
+        sql = data
         return sql

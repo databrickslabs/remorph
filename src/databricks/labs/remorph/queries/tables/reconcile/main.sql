@@ -1,4 +1,4 @@
-CREATE OR REPLACE TABLE `remorph`.`recon`.`main` (
+CREATE OR REPLACE TABLE main (
     recon_table_id BIGINT NOT NULL,
     recon_id STRING NOT NULL,
     source_type STRING NOT NULL,
