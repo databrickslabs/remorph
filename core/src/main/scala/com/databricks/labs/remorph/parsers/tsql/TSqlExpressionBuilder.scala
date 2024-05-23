@@ -135,6 +135,12 @@ class TSqlExpressionBuilder extends TSqlParserBaseVisitor[ir.Expression] with Pa
     buildConstant(ctx.con)
   }
 
+  override def visitExprTz(ctx: ExprTzContext): ir.Expression = {
+    val expression = ctx.expression().accept(this)
+    val timezone = ctx.timeZone.expression().accept(this)
+    ir.Timezone(expression, timezone)
+  }
+
   override def visitScNot(ctx: TSqlParser.ScNotContext): ir.Expression =
     ir.Not(ctx.searchCondition().accept(this))
 
