@@ -21,7 +21,9 @@ class TableDeployer:
 
     def _load(self, relative_filename: str) -> str:
         logger.info(f" Reading {relative_filename} contents")
-        data = pkgutil.get_data("remorph", relative_filename)
+        from databricks.labs import remorph
+
+        data = pkgutil.get_data(remorph, relative_filename)
         assert data is not None
         sql = data.decode("utf-8")
         return sql

@@ -49,8 +49,8 @@ class WorkspaceInstaller:
     @cached_property
     def _installation(self):
         try:
-            return self._product_info.current_installation(self._ws)
-        except NotFound:
+            return Installation.assume_user_home(self._ws, self._product_info.product_name())
+        except RuntimeError:
             return Installation.assume_global(self._ws, self._product_info.product_name())
 
     def run(self):
