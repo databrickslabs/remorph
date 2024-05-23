@@ -2,6 +2,7 @@ import logging
 from datetime import datetime
 from uuid import uuid4
 
+from pyspark.errors import PySparkException
 from pyspark.sql import DataFrame, SparkSession
 from sqlglot import Dialect
 
@@ -397,7 +398,7 @@ def _run_reconcile_data(
         return reconciler.reconcile_data(table_conf=table_conf, src_schema=src_schema, tgt_schema=tgt_schema)
     except DataSourceRuntimeException as e:
         return DataReconcileOutput(exception=str(e))
-    except Exception as e:
+    except PySparkException as e:
         return DataReconcileOutput(exception=str(e))
 
 
@@ -409,5 +410,5 @@ def _run_reconcile_schema(
 ):
     try:
         return reconciler.reconcile_schema(table_conf=table_conf, src_schema=src_schema, tgt_schema=tgt_schema)
-    except Exception as e:
+    except PySparkException as e:
         return SchemaReconcileOutput(is_valid=False, exception=str(e))

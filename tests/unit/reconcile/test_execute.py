@@ -4,6 +4,7 @@ from unittest.mock import patch
 
 import pytest
 from pyspark import Row
+from pyspark.errors import PySparkException
 from pyspark.testing import assertDataFrameEqual
 
 from databricks.labs.remorph.config import DatabaseConfig, TableRecon, get_dialect
@@ -1372,7 +1373,7 @@ def test_schema_recon_with_general_exception(
         ),
         patch("databricks.labs.remorph.reconcile.execute.Reconciliation.reconcile_schema") as schema_source_mock,
     ):
-        schema_source_mock.side_effect = Exception("Unknown Error")
+        schema_source_mock.side_effect = PySparkException("Unknown Error")
         mock_datetime.now.return_value = datetime(2024, 5, 23, 9, 21, 25, 122185)
         recon_datetime.now.return_value = datetime(2024, 5, 23, 9, 21, 25, 122185)
         recon_id = recon(mock_workspace_client, mock_spark, table_recon, get_dialect("snowflake"), "schema")
@@ -1436,7 +1437,7 @@ def test_data_recon_with_general_exception(
         ),
         patch("databricks.labs.remorph.reconcile.execute.Reconciliation.reconcile_data") as data_source_mock,
     ):
-        data_source_mock.side_effect = Exception("Unknown Error")
+        data_source_mock.side_effect = PySparkException("Unknown Error")
         mock_datetime.now.return_value = datetime(2024, 5, 23, 9, 21, 25, 122185)
         recon_datetime.now.return_value = datetime(2024, 5, 23, 9, 21, 25, 122185)
         recon_id = recon(mock_workspace_client, mock_spark, table_recon, get_dialect("snowflake"), "data")
