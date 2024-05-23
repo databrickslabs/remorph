@@ -70,19 +70,19 @@ def recon(ws: WorkspaceClient, spark: SparkSession, table_recon: TableRecon, sou
         schema_reconcile_output = SchemaReconcileOutput()
         data_reconcile_output = DataReconcileOutput()
         try:
-            src_schema, tgt_schema = get_schema(
+            src_schema, tgt_schema = _get_schema(
                 source=source, target=target, table_conf=table_conf, database_config=database_config
             )
         except DataSourceRuntimeException as e:
             schema_reconcile_output = SchemaReconcileOutput(exception=str(e))
         else:
             if report_type in {"schema", "all"}:
-                schema_reconcile_output = run_reconcile_schema(
+                schema_reconcile_output = _run_reconcile_schema(
                     reconciler=reconciler, table_conf=table_conf, src_schema=src_schema, tgt_schema=tgt_schema
                 )
 
             if report_type in {"data", "row", "all"}:
-                data_reconcile_output = run_reconcile_data(
+                data_reconcile_output = _run_reconcile_data(
                     reconciler=reconciler, table_conf=table_conf, src_schema=src_schema, tgt_schema=tgt_schema
                 )
 
@@ -306,7 +306,7 @@ class Reconciliation:
         return ThresholdOutput(threshold_df=threshold_df, threshold_mismatch_count=mismatched_count)
 
 
-def get_schema(
+def _get_schema(
     source: DataSource, target: DataSource, table_conf: Table, database_config: DatabaseConfig
 ) -> tuple[list[Schema], list[Schema]]:
     src_schema = source.get_schema(
@@ -323,7 +323,7 @@ def get_schema(
     return src_schema, tgt_schema
 
 
-def run_reconcile_data(
+def _run_reconcile_data(
     reconciler: Reconciliation, table_conf: Table, src_schema: list[Schema], tgt_schema: list[Schema]
 ) -> DataReconcileOutput:
     try:
@@ -334,7 +334,7 @@ def run_reconcile_data(
         return DataReconcileOutput(exception=str(e))
 
 
-def run_reconcile_schema(
+def _run_reconcile_schema(
     reconciler: Reconciliation, table_conf: Table, src_schema: list[Schema], tgt_schema: list[Schema]
 ):
     try:

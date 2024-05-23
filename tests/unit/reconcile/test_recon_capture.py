@@ -126,15 +126,15 @@ def test_recon_capture_start(mock_workspace_client, mock_spark):
     remorph_recon_metrics_df = spark.sql("select * from DEFAULT.metrics")
     row = remorph_recon_metrics_df.collect()[0]
     assert remorph_recon_metrics_df.count() == 1
-    assert row.recon_metrics.row_comparison.missing_in_src_count == 3
-    assert row.recon_metrics.row_comparison.missing_in_tgt_count == 4
+    assert row.recon_metrics.row_comparison.missing_in_source == 3
+    assert row.recon_metrics.row_comparison.missing_in_target == 4
     assert row.recon_metrics.column_comparison.absolute_mismatch == 2
     assert row.recon_metrics.column_comparison.threshold_mismatch == 2
     assert row.recon_metrics.column_comparison.mismatch_columns == "name"
     assert row.recon_metrics.schema_comparison is True
     assert row.run_metrics.status is False
     assert row.run_metrics.run_by_user == "remorph"
-    assert row.run_metrics.exception_message == ''
+    assert row.run_metrics.exception_message == ""
 
     # assert details
     remorph_recon_details_df = spark.sql("select * from DEFAULT.details")

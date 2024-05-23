@@ -1,3 +1,4 @@
+from datetime import datetime
 import logging
 
 from pyspark.sql import DataFrame, SparkSession
@@ -75,9 +76,9 @@ class ReconCapture:
                 select {recon_table_id} as recon_table_id,
                 '{self.recon_id}' as recon_id,
                 case 
-                    when lower('{str(self.source_dialect)}') like '%snow%' then 'Snowflake' 
-                    when lower('{str(self.source_dialect)}') like '%oracle%' then 'Oracle'
-                    when lower('{str(self.source_dialect)}') like '%databricks%' then 'Databricks'
+                    when '{str(self.source_dialect)}' like '%Snow%' then 'Snowflake' 
+                    when '{str(self.source_dialect)}' like '%Oracle%' then 'Oracle'
+                    when '{str(self.source_dialect)}' like '%Databricks%' then 'Databricks'
                     else '{str(self.source_dialect)}' 
                 end as source_type,
                 named_struct(
@@ -119,13 +120,15 @@ class ReconCapture:
         if data_reconcile_output.exception is not None:
             exception_msg = data_reconcile_output.exception
 
+        insertion_time = str(datetime.now())
+
         df = self.spark.sql(
             f"""
                 select {recon_table_id} as recon_table_id,
                 named_struct(
                     'row_comparison', named_struct(
-                        'missing_in_src_count', {data_reconcile_output.missing_in_src_count},
-                        'missing_in_tgt_count', {data_reconcile_output.missing_in_tgt_count}
+                        'missing_in_source', {data_reconcile_output.missing_in_src_count},
+                        'missing_in_target', {data_reconcile_output.missing_in_tgt_count}
                     ),
                     'column_comparison', named_struct(
                         'absolute_mismatch', {data_reconcile_output.mismatch_count},
@@ -139,7 +142,7 @@ class ReconCapture:
                     'run_by_user', '{self.ws.current_user.me().user_name}', 
                     'exception_message', '{exception_msg}'
                 ) as run_metrics,
-                current_timestamp() as inserted_ts
+                cast('{insertion_time}' as timestamp) as inserted_ts
             """
         )
         _write_df_to_delta(df, f"{self._DB_PREFIX}.{self._RECON_METRICS_TABLE_NAME}")
@@ -163,7 +166,7 @@ class ReconCapture:
             df.withColumn("recon_table_id", lit(recon_table_id))
             .withColumn("recon_type", lit(recon_type))
             .withColumn("status", lit(status))
-            .withColumn("inserted_ts", lit(current_timestamp()))
+            .withColumn("inserted_ts", lit(datetime.now()))
         )
         return (
             df.groupBy("recon_table_id", "recon_type", "status", "inserted_ts")
