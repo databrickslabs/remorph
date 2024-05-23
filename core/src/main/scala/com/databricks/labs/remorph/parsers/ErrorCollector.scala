@@ -12,7 +12,7 @@ sealed trait ErrorCollector extends BaseErrorListener {
   def logErrors(): Unit = {}
   def errorsAsJson: String = "{}"
   def errorCount: Int = 0
-  private[parsers] def formatErrors: Seq[String] = Seq()
+  private[remorph] def formatErrors: Seq[String] = Seq()
   def reset(): Unit = {}
 }
 
@@ -56,20 +56,46 @@ class ProductionErrorCollector(sourceCode: String, fileName: String) extends Err
     errors += ErrorDetail(line, charPositionInLine, msg, offendingSymbol.asInstanceOf[Token])
   }
 
-  override private[parsers] def formatErrors: Seq[String] = {
+  override private[remorph] def formatErrors: Seq[String] = {
     val lines = sourceCode.split("\n")
     errors.map { error =>
-      val start = Math.max(0, error.offendingToken.getStartIndex - 32)
-      val end = Math.min(lines(error.line - 1).length, error.offendingToken.getStopIndex + 32)
-      val windowedLine = (if (start > 0) "..." else "") + lines(error.line - 1)
-        .substring(start, end) + (if (end < lines(error.line - 1).length) "..." else "")
-      val markerStart =
-        if (start > 0) error.offendingToken.getStartIndex - start + 3 else error.offendingToken.getStartIndex - start
-      val marker =
-        " " * markerStart + "^" *
-          (error.offendingToken.getStopIndex - error.offendingToken.getStartIndex + 1)
-      s"File: $fileName, Line: ${error.line}, Token: ${error.offendingToken.getText}\n$windowedLine\n$marker"
+      val errorLine = lines(error.line - 1)
+      val offendingTokenWidth = error.offendingToken.getStopIndex - error.offendingToken.getStartIndex + 1
+      val errorText = formatError(errorLine, error.charPositionInLine, offendingTokenWidth)
+      s"File: $fileName, Line: ${error.line}, Token: ${error.offendingToken.getText}\n$errorText"
     }
+  }
+
+  private[parsers] def formatError(
+      errorLine: String,
+      errorPosition: Int,
+      errorWidth: Int,
+      windowWidth: Int = 80): String = {
+    val roomForContext = (windowWidth - errorWidth) / 2
+    val clipLeft = errorLine.length > windowWidth && errorPosition >= roomForContext
+    val clipRight =
+      errorLine.length > windowWidth &&
+        errorLine.length - errorPosition - errorWidth >= roomForContext
+    val clipMark = "..."
+    val (markerStart, clippedLine) = (clipLeft, clipRight) match {
+      case (false, false) => (errorPosition, errorLine)
+      case (true, false) =>
+        (
+          windowWidth - (errorLine.length - errorPosition),
+          clipMark + errorLine.substring(errorLine.length - windowWidth + clipMark.length))
+      case (false, true) =>
+        (errorPosition, errorLine.take(windowWidth - clipMark.length) + clipMark)
+      case (true, true) =>
+        val start = errorPosition - roomForContext
+        val clippedLineWithoutClipMarks = errorLine.substring(start, start + windowWidth)
+        (
+          roomForContext,
+          clipMark + clippedLineWithoutClipMarks.substring(
+            clipMark.length,
+            clipMark.length + windowWidth - 2 * clipMark.length) + clipMark)
+
+    }
+    clippedLine + "\n" + " " * markerStart + "^" * errorWidth
   }
 
   override def logErrors(): Unit = {
