@@ -17,7 +17,9 @@ class TSqlExpressionBuilder extends TSqlParserBaseVisitor[ir.Expression] with Pa
       case c if c.udtElem() != null => c.udtElem().accept(this)
       case c if c.LOCAL_ID() != null => buildLocalAssign(ctx)
       case c if c.expressionElem() != null => ctx.expressionElem().accept(this)
+      // $COVERAGE-OFF$ all four possible alts in the grammar are covered
       case _ => ir.UnresolvedExpression("Unsupported SelectListElem")
+      // $COVERAGE-ON$
     }
   }
 
@@ -40,7 +42,10 @@ class TSqlExpressionBuilder extends TSqlParserBaseVisitor[ir.Expression] with Pa
       case AND_ASSIGN => ir.Assign(localId, ir.BitwiseAnd(localId, expression))
       case OR_ASSIGN => ir.Assign(localId, ir.BitwiseOr(localId, expression))
       case XOR_ASSIGN => ir.Assign(localId, ir.BitwiseXor(localId, expression))
+      // $COVERAGE-OFF$ all possible alts in the grammar are covered
+      // We can only reach here if the grammar is changed to add more operators and this function is not updated
       case _ => ir.UnresolvedExpression(ctx.getText) // Handle unexpected operation types
+      // $COVERAGE-ON$
     }
   }
 
