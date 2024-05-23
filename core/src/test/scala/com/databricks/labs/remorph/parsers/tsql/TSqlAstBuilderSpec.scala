@@ -163,7 +163,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
               JoinDataType(is_left_struct = false, is_right_struct = false)),
             List(Column("T1.A"))))))
     }
-    "translate scalar subqueries" in {
+    "translate scalar subqueries as expressions in select list" in {
       example(
         query = """SELECT
                           EmployeeID,
