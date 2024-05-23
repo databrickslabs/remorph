@@ -142,17 +142,23 @@ class Reconciliation:
 
     def reconcile_data(self, table_conf: Table, src_schema: list[Schema], tgt_schema: list[Schema]):
         data_reconcile_output = self._get_reconcile_output(table_conf, src_schema, tgt_schema)
-        reconcile_output = self._get_sample_data(table_conf, data_reconcile_output, src_schema, tgt_schema)
-        if table_conf.get_threshold_columns("source"):
-            reconcile_output.threshold_output = self._reconcile_threshold_data(table_conf, src_schema, tgt_schema)
+        reconcile_output = data_reconcile_output
+        if self._report_type in {"data", "all"}:
+            reconcile_output = self._get_sample_data(table_conf, data_reconcile_output, src_schema, tgt_schema)
+            if table_conf.get_threshold_columns("source"):
+                reconcile_output.threshold_output = self._reconcile_threshold_data(table_conf, src_schema, tgt_schema)
         return reconcile_output
 
     def reconcile_schema(self, src_schema: list[Schema], tgt_schema: list[Schema], table_conf: Table):
         return self._schema_comparator.compare(src_schema, tgt_schema, self._source_engine, table_conf)
 
     def _get_reconcile_output(self, table_conf, src_schema, tgt_schema):
-        src_hash_query = HashQueryBuilder(table_conf, src_schema, "source", self._source_engine).build_query()
-        tgt_hash_query = HashQueryBuilder(table_conf, tgt_schema, "target", self._target_engine).build_query()
+        src_hash_query = HashQueryBuilder(table_conf, src_schema, "source", self._source_engine).build_query(
+            report_type=self._report_type
+        )
+        tgt_hash_query = HashQueryBuilder(table_conf, tgt_schema, "target", self._target_engine).build_query(
+            report_type=self._report_type
+        )
         src_data = self._source.read_data(
             catalog=self._source_catalog,
             schema=self._source_schema,

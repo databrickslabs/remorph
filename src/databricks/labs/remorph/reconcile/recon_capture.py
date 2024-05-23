@@ -1,8 +1,8 @@
-from datetime import datetime
 import logging
+from datetime import datetime
 
 from pyspark.sql import DataFrame, SparkSession
-from pyspark.sql.functions import col, collect_list, create_map, current_timestamp, lit
+from pyspark.sql.functions import col, collect_list, create_map, lit
 from sqlglot import Dialect
 
 from databricks.labs.remorph.config import DatabaseConfig, Table

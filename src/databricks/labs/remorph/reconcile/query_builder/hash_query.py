@@ -24,9 +24,10 @@ _HASH_COLUMN_NAME = "hash_value_recon"
 
 class HashQueryBuilder(QueryBuilder):
 
-    def build_query(self) -> str:
+    def build_query(self, report_type: str) -> str:
         hash_cols = sorted((self.join_columns | self.select_columns) - self.threshold_columns - self.drop_columns)
-        key_cols = sorted(self.join_columns | self.partition_column)
+
+        key_cols = hash_cols if report_type == "row" else sorted(self.join_columns | self.partition_column)
 
         cols_with_alias = [
             build_column(this=col, alias=self.table_conf.get_tgt_to_src_col_mapping(col, self.layer))

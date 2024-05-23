@@ -87,7 +87,7 @@ def test_compare_data_for_report_hash(mock_spark):
     )
 
     assert actual.mismatch.mismatch_df is None
-    assert actual.mismatch.mismatch_columns is None
+    assert not actual.mismatch.mismatch_columns
     assertDataFrameEqual(actual.missing_in_src, expected.missing_in_src)
     assertDataFrameEqual(actual.missing_in_tgt, expected.missing_in_tgt)
 
