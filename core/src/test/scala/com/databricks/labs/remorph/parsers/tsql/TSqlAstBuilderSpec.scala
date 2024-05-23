@@ -39,7 +39,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
         query = "SELECT 42, 6.4, 0x5A, 2.7E9, 4.24523534425245E10, $40",
         expectedAst = Batch(
           Seq(Project(
-            NoTable(),
+            NoTable,
             Seq(
               Literal(integer = Some(42)),
               Literal(float = Some(6.4f)),
@@ -64,6 +64,19 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
         query = "SELECT a FROM dbo.table_x AS t",
         expectedAst = Batch(
           Seq(Project(TableAlias(NamedTable("dbo.table_x", Map.empty, is_streaming = false), "t"), Seq(Column("a"))))))
+    }
+
+    "translate table sources involving *" in {
+      example(
+        query = "SELECT * FROM dbo.table_x",
+        expectedAst = Batch(Seq(Project(NamedTable("dbo.table_x", Map.empty, is_streaming = false), Seq(Star(None))))))
+      example(query = "SELECT t.*", expectedAst = Batch(Seq(Project(NoTable, Seq(Star(objectName = Some("t")))))))
+      example(
+        query = "SELECT x..b.y.*",
+        expectedAst = Batch(Seq(Project(NoTable, Seq(Star(objectName = Some("x..b.y")))))))
+      // TODO: Add tests for OUTPUT clause once implemented - invalid semantics here to force coverage
+      example(query = "SELECT INSERTED.*", expectedAst = Batch(Seq(Project(NoTable, Seq(Inserted(Star(None)))))))
+      example(query = "SELECT DELETED.*", expectedAst = Batch(Seq(Project(NoTable, Seq(Deleted(Star(None)))))))
     }
 
     "infer a cross join" in {

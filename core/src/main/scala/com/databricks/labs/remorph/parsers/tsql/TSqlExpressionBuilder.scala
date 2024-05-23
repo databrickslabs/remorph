@@ -13,38 +13,22 @@ class TSqlExpressionBuilder extends TSqlParserBaseVisitor[ir.Expression] with Pa
     ctx match {
       // TODO: asterisk not fully handled
       case c if c.asterisk() != null => c.asterisk().accept(this)
-      // TODO: UDT elements seem broken in the grammar
-      case c if c.udtElem() != null => c.udtElem().accept(this)
-      case c if c.LOCAL_ID() != null => buildLocalAssign(ctx)
       case c if c.expressionElem() != null => ctx.expressionElem().accept(this)
       case _ => ir.UnresolvedExpression("Unsupported SelectListElem")
     }
   }
 
-  /**
-   * Build a local variable assignment from a column source
-   *
-   * @param ctx
-   *   the parse tree containing the assignment
-   */
-  private def buildLocalAssign(ctx: TSqlParser.SelectListElemContext): ir.Expression = {
-    ir.Noop // Waiting for merge of other PR
-  }
-
-  override def visitTableName(ctx: TableNameContext): ir.Literal = {
+  private def buildTableName(ctx: TableNameContext): String = {
     val linkedServer = Option(ctx.linkedServer).map(_.getText)
     val ids = ctx.ids.asScala.map(_.getText).mkString(".")
-    val fullName = linkedServer.fold(ids)(ls => s"$ls..$ids")
-    ir.Literal(string = Some(fullName))
+    linkedServer.fold(ids)(ls => s"$ls..$ids")
   }
 
   override def visitFullColumnName(ctx: FullColumnNameContext): ir.Column = {
     val columnName = ctx.id.getText
     val fullColumnName = Option(ctx.tableName())
-      .map(_.accept(this))
-      .collect {
-        case nt: ir.Literal if nt.string.isDefined => nt.string.get + "." + columnName
-      }
+      .map(buildTableName)
+      .map(_ + "." + columnName)
       .getOrElse(columnName)
     ir.Column(fullColumnName)
   }
@@ -59,10 +43,7 @@ class TSqlExpressionBuilder extends TSqlParserBaseVisitor[ir.Expression] with Pa
    */
   override def visitAsterisk(ctx: AsteriskContext): ir.Expression = ctx match {
     case _ if ctx.tableName() != null =>
-      val objectName = Option(ctx.tableName().accept(this)).flatMap {
-        case literal: ir.Literal => literal.string
-        case _ => None
-      }
+      val objectName = Option(ctx.tableName()).map(buildTableName)
       ir.Star(objectName)
     case _ if ctx.INSERTED() != null => ir.Inserted(ir.Star(None))
     case _ if ctx.DELETED() != null => ir.Deleted(ir.Star(None))

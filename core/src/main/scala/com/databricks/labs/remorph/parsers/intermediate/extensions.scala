@@ -54,8 +54,6 @@ case class RLike(expression: Expression, pattern: Expression) extends Expression
 
 case class IsNull(expression: Expression) extends Expression {}
 
-case class UnresolvedOperator(unparsed_target: String) extends Expression {}
-
 // TODO: TSQL grammar has a number of operators not yet supported - add them here, if not already supported
 
 // Operators, in order of precedence
@@ -84,7 +82,8 @@ case class BitwiseXor(left: Expression, right: Expression) extends Binary(left, 
 case class Concat(left: Expression, right: Expression) extends Binary(left, right) {}
 
 // Some statements, such as SELECT, do not require a table specification
-case class NoTable() extends Relation {}
+case object NoTable extends Relation {}
+
 // It was not clear to me the NamedTable options should be used for the alias. I'm assuming it is not what
 // they are for.
 case class TableAlias(relation: Relation, alias: String) extends Relation {}

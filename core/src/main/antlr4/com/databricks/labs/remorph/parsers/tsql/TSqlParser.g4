@@ -4116,8 +4116,8 @@ udtMethodArguments
 
 // https://docs.microsoft.com/ru-ru/sql/t-sql/queries/select-clause-transact-sql
 asterisk
-    : (tableName DOT)? STAR
-    | (INSERTED | DELETED) DOT STAR
+    : (INSERTED | DELETED) DOT STAR
+    | (tableName DOT)? STAR
     ;
 
 udtElem

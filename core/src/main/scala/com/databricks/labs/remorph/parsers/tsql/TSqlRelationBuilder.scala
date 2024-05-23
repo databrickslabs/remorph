@@ -27,7 +27,7 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.Relation] {
 
     val columns =
       ctx.selectListElem().asScala.map(_.accept(new TSqlExpressionBuilder()))
-    val from = Option(ctx.tableSources()).map(_.accept(new TSqlRelationBuilder)).getOrElse(ir.NoTable())
+    val from = Option(ctx.tableSources()).map(_.accept(new TSqlRelationBuilder)).getOrElse(ir.NoTable)
 
     ir.Project(from, columns)
   }
@@ -57,7 +57,7 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.Relation] {
             Seq.empty,
             ir.JoinDataType(is_left_struct = false, is_right_struct = false)))
       // GCOVR_EXCL_START  ctx.tableSource always returns at least 1 element
-      case _ => ir.NoTable()
+      case _ => ir.NoTable
       // GCOVR_EXCL_STOP
     }
   }
