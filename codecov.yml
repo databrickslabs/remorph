@@ -1,3 +1,2 @@
 ignore:
-  - "**/*.g4"
   - core/src/main/scala/com/databricks/labs/remorph/parsers/FunctionBuilder.scala
