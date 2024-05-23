@@ -4,6 +4,7 @@ trait AstExtension
 
 case class Column(name: String) extends Expression with AstExtension {}
 case class Identifier(name: String, isQuoted: Boolean) extends Expression with AstExtension {}
+case class DollarAction() extends Expression with AstExtension {}
 
 abstract class Unary(pred: Expression) extends Expression {}
 abstract class Binary(left: Expression, right: Expression) extends Expression {}
@@ -150,3 +151,5 @@ case class ArrayAccess(array: Expression, index: Expression) extends Expression 
 case class JsonAccess(json: Expression, path: Seq[String]) extends Expression {}
 case class Collate(string: Expression, specification: String) extends Expression {}
 case class Iff(condition: Expression, thenBranch: Expression, elseBranch: Expression) extends Expression {}
+
+case class Timezone(expression: Expression, timeZone: Expression) extends Expression {}

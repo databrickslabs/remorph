@@ -427,5 +427,13 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
             ir.WhenBranch(ir.Equals(ir.Column("a"), ir.Literal(integer = Some(2))), ir.Literal(string = Some("two")))),
           None))
     }
+
+    "translate the $ACTION special column reference" in {
+      example("$ACTION", _.expression(), ir.DollarAction())
+    }
+
+    "translate a timezone reference" in {
+      example("a AT TIME ZONE 'UTC'", _.expression(), ir.Timezone(ir.Column("a"), ir.Literal(string = Some("UTC"))))
+    }
   }
 }
