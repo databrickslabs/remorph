@@ -32,18 +32,11 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.Relation] {
     ir.Project(from, columns)
   }
 
-  override def visitFullTableName(ctx: FullTableNameContext): ir.NamedTable = {
-    // Extract the components of the full table name, if they exist
+  override def visitTableName(ctx: TableNameContext): ir.NamedTable = {
     val linkedServer = Option(ctx.linkedServer).map(_.getText)
-    val database = Option(ctx.database).map(_.getText)
-    val schema = Option(ctx.schema).map(_.getText)
-    val name = ctx.table.getText
-
-    // Build the unparsed_identifier string
-    val unparsedIdentifier = List(linkedServer, database, schema, Some(name)).flatten.mkString(".")
-
-    // Create the NamedTable
-    ir.NamedTable(unparsedIdentifier, Map.empty, is_streaming = false)
+    val ids = ctx.ids.asScala.map(_.getText).mkString(".")
+    val fullName = linkedServer.fold(ids)(ls => s"$ls..$ids")
+    ir.NamedTable(fullName, Map.empty, is_streaming = false)
   }
 
   /**
@@ -79,8 +72,8 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.Relation] {
   // TODO: note that not all table source items have fullTableName
   override def visitTableSourceItem(ctx: TableSourceItemContext): ir.Relation =
     Option(ctx.asTableAlias())
-      .map(alias => ir.TableAlias(ctx.fullTableName().accept(this), alias.id.getText))
-      .getOrElse(ctx.fullTableName().accept(this))
+      .map(alias => ir.TableAlias(ctx.tableName().accept(this), alias.id.getText))
+      .getOrElse(ctx.tableName().accept(this))
 
   private def translateJoinType(ctx: JoinOnContext): ir.JoinType = ctx.joinType() match {
     case jt if jt == null || jt.outerJoin() == null || jt.INNER() != null => ir.InnerJoin

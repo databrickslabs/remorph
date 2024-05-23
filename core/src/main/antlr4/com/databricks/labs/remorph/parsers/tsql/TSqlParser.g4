@@ -2050,7 +2050,7 @@ createPartitionScheme
     ;
 
 createQueue
-    : CREATE QUEUE (fullTableName | queueName = id) queueSettings? (
+    : CREATE QUEUE (tableName | queueName = id) queueSettings? (
         ON filegroup = id
         | DEFAULT
     )?
@@ -2072,7 +2072,7 @@ queueSettings
     ;
 
 alterQueue
-    : ALTER QUEUE (fullTableName | queueName = id) (queueSettings | queueAction)
+    : ALTER QUEUE (tableName | queueName = id) (queueSettings | queueAction)
     ;
 
 queueAction
@@ -2164,7 +2164,7 @@ insertStatementValue
     ;
 
 receiveStatement
-    : LPAREN? RECEIVE (ALL | DISTINCT | topClause | STAR) (LOCAL_ID EQ expression COMMA?)* FROM fullTableName (
+    : LPAREN? RECEIVE (ALL | DISTINCT | topClause | STAR) (LOCAL_ID EQ expression COMMA?)* FROM tableName (
         INTO tableVariable = id (WHERE where = searchCondition)
     )? RPAREN?
     ;
@@ -2487,7 +2487,7 @@ createStatistics
     ;
 
 updateStatistics
-    : UPDATE STATISTICS fullTableName (id | LPAREN id ( COMMA id)* RPAREN)? updateStatisticsOptions?
+    : UPDATE STATISTICS tableName (id | LPAREN id ( COMMA id)* RPAREN)? updateStatisticsOptions?
     ;
 
 updateStatisticsOptions
@@ -2893,7 +2893,7 @@ dropIndex
     ;
 
 dropRelationalOrXmlOrSpatialIndex
-    : indexName = id ON fullTableName
+    : indexName = id ON tableName
     ;
 
 dropBackwardCompatibleIndex
@@ -4153,8 +4153,8 @@ tableSource
     ;
 
 tableSourceItem
-    : fullTableName deprecatedTableHint asTableAlias // this is currently allowed
-    | fullTableName asTableAlias? (
+    : tableName deprecatedTableHint asTableAlias // this is currently allowed
+    | tableName asTableAlias? (
         withTableHints
         | deprecatedTableHint
         | sybaseLegacyHints
@@ -4638,20 +4638,8 @@ entityNameForParallelDw
     | schema = id DOT objectName = id
     ;
 
-fullTableName
-    : (
-        linkedServer = id DOT DOT schema = id DOT
-        | server = id DOT database = id DOT schema = id DOT
-        | database = id DOT schema = id? DOT
-        | schema = id DOT
-    )? table = id
-    ;
-
 tableName
-    : (database = id DOT schema = id? DOT | schema = id DOT)? (
-        table = id
-        | blockingHierarchy = BLOCKING_HIERARCHY
-    )
+    : (linkedServer = id DOT DOT)? ids+=id (DOT ids +=id)*
     ;
 
 simpleName
@@ -4673,12 +4661,12 @@ funcProcNameServerDatabaseSchema
     ;
 
 ddlObject
-    : fullTableName
+    : tableName
     | LOCAL_ID
     ;
 
 fullColumnName
-    : ((DELETED | INSERTED | fullTableName) DOT)? (
+    : ((DELETED | INSERTED | tableName) DOT)? (
           id
         | (DOLLAR (IDENTITY | ROWGUID))
     )
@@ -5363,7 +5351,6 @@ keyword
     | BLOCK
     | BLOCKERS
     | BLOCKSIZE
-    | BLOCKING_HIERARCHY
     | BUFFER
     | BUFFERCOUNT
     | CACHE
