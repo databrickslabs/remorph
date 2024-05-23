@@ -52,7 +52,7 @@ class OracleDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
         table: str,
         query: str,
         options: JdbcReaderOptions | None,
-    ) -> DataFrame:
+    ) -> DataFrame | None:
         table_query = query.replace(":tbl", f"{schema}.{table}")
         try:
             if options is None:
@@ -60,14 +60,14 @@ class OracleDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
             options = self._get_jdbc_reader_options(options) | self._get_timestamp_options()
             return self.reader(table_query).options(**options).load()
         except RuntimeError as e:
-            raise self._raise_runtime_exception(e, "data", table_query)
+            return self.log_and_throw_exception(e, "data", table_query)
 
     def get_schema(
         self,
         catalog: str | None,
         schema: str,
         table: str,
-    ) -> list[Schema]:
+    ) -> list[Schema] | None:
         schema_query = re.sub(
             r'\s+',
             ' ',
@@ -77,7 +77,7 @@ class OracleDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
             schema_df = self.reader(schema_query).load()
             return [Schema(field.column_name.lower(), field.data_type.lower()) for field in schema_df.collect()]
         except RuntimeError as e:
-            raise self._raise_runtime_exception(e, "schema", schema_query)
+            return self.log_and_throw_exception(e, "schema", schema_query)
 
     @staticmethod
     def _get_timestamp_options() -> dict[str, str]:

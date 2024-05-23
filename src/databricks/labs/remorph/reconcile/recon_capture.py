@@ -1,15 +1,16 @@
 import logging
+from datetime import datetime
 
 from pyspark.sql import DataFrame, SparkSession
-from pyspark.sql.functions import col, collect_list, create_map, current_timestamp, lit
+from pyspark.sql.functions import col, collect_list, create_map, lit
 from sqlglot import Dialect
 
 from databricks.labs.remorph.config import DatabaseConfig, Table
 from databricks.labs.remorph.reconcile.exception import WriteToTableException
 from databricks.labs.remorph.reconcile.recon_config import (
-    ReconcileOutput,
+    DataReconcileOutput,
     ReconcileProcessDuration,
-    SchemaCompareOutput,
+    SchemaReconcileOutput,
 )
 from databricks.sdk import WorkspaceClient
 
@@ -75,9 +76,9 @@ class ReconCapture:
                 select {recon_table_id} as recon_table_id,
                 '{self.recon_id}' as recon_id,
                 case 
-                    when lower('{str(self.source_dialect)}') like '%snow%' then 'Snowflake' 
-                    when lower('{str(self.source_dialect)}') like '%oracle%' then 'Oracle'
-                    when lower('{str(self.source_dialect)}') like '%databricks%' then 'Databricks'
+                    when '{str(self.source_dialect)}' like '%Snow%' then 'Snowflake' 
+                    when '{str(self.source_dialect)}' like '%Oracle%' then 'Oracle'
+                    when '{str(self.source_dialect)}' like '%Databricks%' then 'Databricks'
                     else '{str(self.source_dialect)}' 
                 end as source_type,
                 named_struct(
@@ -100,40 +101,48 @@ class ReconCapture:
     def _insert_into_metrics_table(
         self,
         recon_table_id: int,
-        reconcile_output: ReconcileOutput,
-        schema_output: SchemaCompareOutput,
+        data_reconcile_output: DataReconcileOutput,
+        schema_reconcile_output: SchemaReconcileOutput,
     ) -> None:
-        # TODO: Add Exception message check
-        status = not (
-            reconcile_output.mismatch_count > 0
-            or reconcile_output.missing_in_src_count > 0
-            or reconcile_output.missing_in_tgt_count > 0
-            or not schema_output.is_valid
-            or reconcile_output.threshold_output.threshold_mismatch_count > 0
-        )
+        status = False
+        if data_reconcile_output.exception in {None, ''} and schema_reconcile_output.exception in {None, ''}:
+            status = not (
+                data_reconcile_output.mismatch_count > 0
+                or data_reconcile_output.missing_in_src_count > 0
+                or data_reconcile_output.missing_in_tgt_count > 0
+                or not schema_reconcile_output.is_valid
+                or data_reconcile_output.threshold_output.threshold_mismatch_count > 0
+            )
 
-        # TODO: Add Exception message
+        exception_msg = ""
+        if schema_reconcile_output.exception is not None:
+            exception_msg = schema_reconcile_output.exception
+        if data_reconcile_output.exception is not None:
+            exception_msg = data_reconcile_output.exception
+
+        insertion_time = str(datetime.now())
+
         df = self.spark.sql(
             f"""
                 select {recon_table_id} as recon_table_id,
                 named_struct(
                     'row_comparison', named_struct(
-                        'missing_in_src_count', {reconcile_output.missing_in_src_count},
-                        'missing_in_tgt_count', {reconcile_output.missing_in_tgt_count}
+                        'missing_in_source', {data_reconcile_output.missing_in_src_count},
+                        'missing_in_target', {data_reconcile_output.missing_in_tgt_count}
                     ),
                     'column_comparison', named_struct(
-                        'absolute_mismatch', {reconcile_output.mismatch_count},
-                        'threshold_mismatch', {reconcile_output.threshold_output.threshold_mismatch_count},
-                        'mismatch_columns', '{",".join(reconcile_output.mismatch.mismatch_columns)}'
+                        'absolute_mismatch', {data_reconcile_output.mismatch_count},
+                        'threshold_mismatch', {data_reconcile_output.threshold_output.threshold_mismatch_count},
+                        'mismatch_columns', '{",".join(data_reconcile_output.mismatch.mismatch_columns)}'
                     ),
-                    'schema_comparison', {schema_output.is_valid}
+                    'schema_comparison', {schema_reconcile_output.is_valid}
                 ) as recon_metrics,
                 named_struct(
                     'status', {status}, 
                     'run_by_user', '{self.ws.current_user.me().user_name}', 
-                    'exception_message', ""
+                    'exception_message', "{exception_msg}"
                 ) as run_metrics,
-                current_timestamp() as inserted_ts
+                cast('{insertion_time}' as timestamp) as inserted_ts
             """
         )
         _write_df_to_delta(df, f"{self._DB_PREFIX}.{self._RECON_METRICS_TABLE_NAME}")
@@ -157,7 +166,7 @@ class ReconCapture:
             df.withColumn("recon_table_id", lit(recon_table_id))
             .withColumn("recon_type", lit(recon_type))
             .withColumn("status", lit(status))
-            .withColumn("inserted_ts", lit(current_timestamp()))
+            .withColumn("inserted_ts", lit(datetime.now()))
         )
         return (
             df.groupBy("recon_table_id", "recon_type", "status", "inserted_ts")
@@ -178,8 +187,8 @@ class ReconCapture:
     def _insert_into_details_table(
         self,
         recon_table_id: int,
-        reconcile_output: ReconcileOutput,
-        schema_output: SchemaCompareOutput,
+        reconcile_output: DataReconcileOutput,
+        schema_output: SchemaReconcileOutput,
     ):
         if reconcile_output.mismatch_count > 0:
             self._create_map_column_and_insert(
@@ -220,12 +229,12 @@ class ReconCapture:
 
     def start(
         self,
-        reconcile_output: ReconcileOutput,
-        schema_output: SchemaCompareOutput,
+        data_reconcile_output: DataReconcileOutput,
+        schema_reconcile_output: SchemaReconcileOutput,
         table_conf: Table,
         recon_process_duration: ReconcileProcessDuration,
     ) -> None:
         recon_table_id = self._generate_recon_main_id(table_conf)
         self._insert_into_main_table(recon_table_id, table_conf, recon_process_duration)
-        self._insert_into_metrics_table(recon_table_id, reconcile_output, schema_output)
-        self._insert_into_details_table(recon_table_id, reconcile_output, schema_output)
+        self._insert_into_metrics_table(recon_table_id, data_reconcile_output, schema_reconcile_output)
+        self._insert_into_details_table(recon_table_id, data_reconcile_output, schema_reconcile_output)

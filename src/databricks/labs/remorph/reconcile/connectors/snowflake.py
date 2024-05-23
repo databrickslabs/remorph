@@ -1,3 +1,4 @@
+import logging
 import re
 
 from pyspark.sql import DataFrame, DataFrameReader, SparkSession
@@ -9,6 +10,8 @@ from databricks.labs.remorph.reconcile.connectors.jdbc_reader import JDBCReaderM
 from databricks.labs.remorph.reconcile.connectors.secrets import SecretsMixin
 from databricks.labs.remorph.reconcile.recon_config import JdbcReaderOptions, Schema
 from databricks.sdk import WorkspaceClient
+
+logger = logging.getLogger(__name__)
 
 
 class SnowflakeDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
@@ -47,7 +50,7 @@ class SnowflakeDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
         table: str,
         query: str,
         options: JdbcReaderOptions | None,
-    ) -> DataFrame:
+    ) -> DataFrame | None:
         table_query = query.replace(":tbl", f"{catalog}.{schema}.{table}")
         try:
             if options is None:
@@ -61,14 +64,14 @@ class SnowflakeDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
                 )
             return df.select([col(column).alias(column.lower()) for column in df.columns])
         except RuntimeError as e:
-            raise self._raise_runtime_exception(e, "data", table_query)
+            return self.log_and_throw_exception(e, "data", table_query)
 
     def get_schema(
         self,
         catalog: str,
         schema: str,
         table: str,
-    ) -> list[Schema]:
+    ) -> list[Schema] | None:
         schema_query = re.sub(
             r'\s+',
             ' ',
@@ -78,7 +81,7 @@ class SnowflakeDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
             schema_df = self.reader(schema_query).load()
             return [Schema(field.column_name.lower(), field.data_type.lower()) for field in schema_df.collect()]
         except RuntimeError as e:
-            raise self._raise_runtime_exception(e, "schema", schema_query)
+            return self.log_and_throw_exception(e, "schema", schema_query)
 
     def reader(self, query: str) -> DataFrameReader:
         options = {

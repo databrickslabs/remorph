@@ -11,10 +11,10 @@ from databricks.labs.remorph.config import DatabaseConfig, get_dialect
 from databricks.labs.remorph.reconcile.exception import WriteToTableException
 from databricks.labs.remorph.reconcile.recon_capture import ReconCapture
 from databricks.labs.remorph.reconcile.recon_config import (
+    DataReconcileOutput,
     MismatchOutput,
-    ReconcileOutput,
     ReconcileProcessDuration,
-    SchemaCompareOutput,
+    SchemaReconcileOutput,
     Table,
     ThresholdOutput,
 )
@@ -61,7 +61,7 @@ def data_prep(spark: SparkSession):
     # Prepare output dataclasses
     mismatch = MismatchOutput(mismatch_df=mismatch_df, mismatch_columns=["name"])
     threshold = ThresholdOutput(threshold_df, threshold_mismatch_count=2)
-    reconcile_output = ReconcileOutput(
+    reconcile_output = DataReconcileOutput(
         mismatch_count=2,
         missing_in_src_count=3,
         missing_in_tgt_count=4,
@@ -70,7 +70,7 @@ def data_prep(spark: SparkSession):
         missing_in_tgt=df2,
         threshold_output=threshold,
     )
-    schema_output = SchemaCompareOutput(is_valid=True, compare_df=schema_df)
+    schema_output = SchemaReconcileOutput(is_valid=True, compare_df=schema_df)
     table_conf = Table(source_name="supplier", target_name="target_supplier")
     reconcile_process = ReconcileProcessDuration(
         start_ts=str(datetime.datetime.now()), end_ts=str(datetime.datetime.now())
@@ -102,8 +102,8 @@ def test_recon_capture_start(mock_workspace_client, mock_spark):
     reconcile_output, schema_output, table_conf, reconcile_process = data_prep(spark)
     with (patch('databricks.labs.remorph.reconcile.recon_capture.ReconCapture._DB_PREFIX', new='default'),):
         recon_capture.start(
-            reconcile_output=reconcile_output,
-            schema_output=schema_output,
+            data_reconcile_output=reconcile_output,
+            schema_reconcile_output=schema_output,
             table_conf=table_conf,
             recon_process_duration=reconcile_process,
         )
@@ -126,8 +126,8 @@ def test_recon_capture_start(mock_workspace_client, mock_spark):
     remorph_recon_metrics_df = spark.sql("select * from DEFAULT.metrics")
     row = remorph_recon_metrics_df.collect()[0]
     assert remorph_recon_metrics_df.count() == 1
-    assert row.recon_metrics.row_comparison.missing_in_src_count == 3
-    assert row.recon_metrics.row_comparison.missing_in_tgt_count == 4
+    assert row.recon_metrics.row_comparison.missing_in_source == 3
+    assert row.recon_metrics.row_comparison.missing_in_target == 4
     assert row.recon_metrics.column_comparison.absolute_mismatch == 2
     assert row.recon_metrics.column_comparison.threshold_mismatch == 2
     assert row.recon_metrics.column_comparison.mismatch_columns == "name"
@@ -189,8 +189,8 @@ def test_recon_capture_start_with_exception(mock_workspace_client, mock_spark):
         ),
     ) and pytest.raises(WriteToTableException):
         recon_capture.start(
-            reconcile_output=reconcile_output,
-            schema_output=schema_output,
+            data_reconcile_output=reconcile_output,
+            schema_reconcile_output=schema_output,
             table_conf=table_conf,
             recon_process_duration=reconcile_process,
         )

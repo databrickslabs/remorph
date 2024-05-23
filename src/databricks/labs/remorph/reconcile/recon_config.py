@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from pyspark.sql import DataFrame
 from sqlglot import Dialect
@@ -158,7 +158,7 @@ class Schema:
 @dataclass
 class MismatchOutput:
     mismatch_df: DataFrame | None = None
-    mismatch_columns: list[str] | None = None
+    mismatch_columns: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -168,14 +168,15 @@ class ThresholdOutput:
 
 
 @dataclass
-class ReconcileOutput:
+class DataReconcileOutput:
     mismatch_count: int = 0
     missing_in_src_count: int = 0
     missing_in_tgt_count: int = 0
-    mismatch: MismatchOutput = MismatchOutput(mismatch_columns=[])
+    mismatch: MismatchOutput = MismatchOutput()
     missing_in_src: DataFrame | None = None
     missing_in_tgt: DataFrame | None = None
     threshold_output: ThresholdOutput = ThresholdOutput()
+    exception: str | None = None
 
 
 @dataclass
@@ -194,9 +195,10 @@ class SchemaMatchResult:
 
 
 @dataclass
-class SchemaCompareOutput:
+class SchemaReconcileOutput:
     is_valid: bool = True
     compare_df: DataFrame | None = None
+    exception: str | None = None
 
 
 @dataclass
