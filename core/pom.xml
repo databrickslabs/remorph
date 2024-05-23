@@ -6,9 +6,9 @@
     <groupId>com.databricks.labs</groupId>
     <artifactId>remorph</artifactId>
     <version>0.2.0</version>
-    <relativePath>..</relativePath>
   </parent>
   <artifactId>remorph-core</artifactId>
+  <packaging>jar</packaging>
   <properties>
     <httpclient.version>4.5.14</httpclient.version>
     <jackson.version>2.15.2</jackson.version>
@@ -146,6 +146,18 @@
             <id>attach-javadocs</id>
             <goals>
               <goal>jar</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-jar-plugin</artifactId>
+        <version>2.4</version>
+        <executions>
+          <execution>
+            <goals>
+              <goal>test-jar</goal>
             </goals>
           </execution>
         </executions>

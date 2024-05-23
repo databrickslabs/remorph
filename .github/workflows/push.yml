@@ -105,10 +105,15 @@ jobs:
           key: ${{ runner.os }}-m2-${{ hashFiles('**/pom.xml') }}
           restore-keys: ${{ runner.os }}-m2
 
-      - name: Run Tests with Maven
-        run: mvn -B scoverage:report --file pom.xml --fail-at-end
+      - name: Run Unit Tests with Maven
+        run: mvn -B scoverage:report -pl core --file pom.xml --fail-at-end
 
       - name: Publish test coverage
         uses: codecov/codecov-action@v4
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: Run Acceptance Tests with Maven
+        run: mvn -B test -pl acceptance --file pom.xml --fail-at-end
+        continue-on-error: true
+

@@ -25,6 +25,7 @@
   <modules>
     <module>core</module>
     <module>py</module>
+    <module>acceptance</module>
   </modules>
   <scm>
     <connection>scm:git:https://github.com/databrickslabs/remorph.git</connection>

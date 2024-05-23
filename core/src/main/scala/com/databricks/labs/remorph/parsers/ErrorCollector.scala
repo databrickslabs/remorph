@@ -62,7 +62,7 @@ class ProductionErrorCollector(sourceCode: String, fileName: String) extends Err
       val errorLine = lines(error.line - 1)
       val offendingTokenWidth = error.offendingToken.getStopIndex - error.offendingToken.getStartIndex + 1
       val errorText = formatError(errorLine, error.charPositionInLine, offendingTokenWidth)
-      s"File: $fileName, Line: ${error.line}, Token: ${error.offendingToken.getText}\n$errorText"
+      s"${error.msg}\nFile: $fileName, Line: ${error.line}, Token: ${error.offendingToken.getText}\n$errorText"
     }
   }
 
