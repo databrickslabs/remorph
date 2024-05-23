@@ -38,7 +38,13 @@ logger = logging.getLogger(__name__)
 _SAMPLE_ROWS = 50
 
 
-def recon(ws: WorkspaceClient, spark: SparkSession, table_recon: TableRecon, source_dialect: Dialect, report_type: str):
+def recon(
+    ws: WorkspaceClient,
+    spark: SparkSession,
+    table_recon: TableRecon,
+    source_dialect: Dialect,
+    report_type: str,
+):
     logger.info(report_type)
 
     database_config = DatabaseConfig(
@@ -98,7 +104,12 @@ def recon(ws: WorkspaceClient, spark: SparkSession, table_recon: TableRecon, sou
     return recon_id
 
 
-def initialise_data_source(ws: WorkspaceClient, spark: SparkSession, engine: Dialect, secret_scope: str):
+def initialise_data_source(
+    ws: WorkspaceClient,
+    spark: SparkSession,
+    engine: Dialect,
+    secret_scope: str,
+):
     source = DataSourceAdapter().create_adapter(engine=engine, spark=spark, ws=ws, secret_scope=secret_scope)
     target = DataSourceAdapter().create_adapter(
         engine=get_dialect("databricks"), spark=spark, ws=ws, secret_scope=secret_scope
@@ -107,7 +118,14 @@ def initialise_data_source(ws: WorkspaceClient, spark: SparkSession, engine: Dia
     return source, target
 
 
-def _get_missing_data(reader, sampler, missing_df, catalog, schema, table_name: str) -> DataFrame:
+def _get_missing_data(
+    reader,
+    sampler,
+    missing_df,
+    catalog,
+    schema,
+    table_name: str,
+) -> DataFrame:
     sample_query = sampler.build_query(missing_df)
     return reader.read_data(
         catalog=catalog,
@@ -140,7 +158,12 @@ class Reconciliation:
         self._target_engine = get_dialect("databricks")
         self._source_engine = source_engine
 
-    def reconcile_data(self, table_conf: Table, src_schema: list[Schema], tgt_schema: list[Schema]):
+    def reconcile_data(
+        self,
+        table_conf: Table,
+        src_schema: list[Schema],
+        tgt_schema: list[Schema],
+    ):
         data_reconcile_output = self._get_reconcile_output(table_conf, src_schema, tgt_schema)
         reconcile_output = data_reconcile_output
         if self._report_type in {"data", "all"}:
@@ -149,10 +172,20 @@ class Reconciliation:
                 reconcile_output.threshold_output = self._reconcile_threshold_data(table_conf, src_schema, tgt_schema)
         return reconcile_output
 
-    def reconcile_schema(self, src_schema: list[Schema], tgt_schema: list[Schema], table_conf: Table):
+    def reconcile_schema(
+        self,
+        src_schema: list[Schema],
+        tgt_schema: list[Schema],
+        table_conf: Table,
+    ):
         return self._schema_comparator.compare(src_schema, tgt_schema, self._source_engine, table_conf)
 
-    def _get_reconcile_output(self, table_conf, src_schema, tgt_schema):
+    def _get_reconcile_output(
+        self,
+        table_conf,
+        src_schema,
+        tgt_schema,
+    ):
         src_hash_query = HashQueryBuilder(table_conf, src_schema, "source", self._source_engine).build_query(
             report_type=self._report_type
         )
@@ -178,7 +211,13 @@ class Reconciliation:
             source=src_data, target=tgt_data, key_columns=table_conf.join_columns, report_type=self._report_type
         )
 
-    def _get_sample_data(self, table_conf, reconcile_output, src_schema, tgt_schema):
+    def _get_sample_data(
+        self,
+        table_conf,
+        reconcile_output,
+        src_schema,
+        tgt_schema,
+    ):
         mismatch = None
         missing_in_src = None
         missing_in_tgt = None
@@ -229,7 +268,15 @@ class Reconciliation:
             missing_in_tgt=missing_in_tgt,
         )
 
-    def _get_mismatch_data(self, src_sampler, tgt_sampler, mismatch, key_columns, src_table: str, tgt_table: str):
+    def _get_mismatch_data(
+        self,
+        src_sampler,
+        tgt_sampler,
+        mismatch,
+        key_columns,
+        src_table: str,
+        tgt_table: str,
+    ):
         src_mismatch_sample_query = src_sampler.build_query(mismatch)
         tgt_mismatch_sample_query = tgt_sampler.build_query(mismatch)
 
@@ -250,7 +297,12 @@ class Reconciliation:
 
         return capture_mismatch_data_and_columns(source=src_data, target=tgt_data, key_columns=key_columns)
 
-    def _reconcile_threshold_data(self, table_conf: Table, src_schema: list[Schema], tgt_schema: list[Schema]):
+    def _reconcile_threshold_data(
+        self,
+        table_conf: Table,
+        src_schema: list[Schema],
+        tgt_schema: list[Schema],
+    ):
 
         src_data, tgt_data = self._get_threshold_data(table_conf, src_schema, tgt_schema)
 
@@ -263,7 +315,10 @@ class Reconciliation:
         return self._compute_threshold_comparison(table_conf, src_schema)
 
     def _get_threshold_data(
-        self, table_conf: Table, src_schema: list[Schema], tgt_schema: list[Schema]
+        self,
+        table_conf: Table,
+        src_schema: list[Schema],
+        tgt_schema: list[Schema],
     ) -> tuple[DataFrame, DataFrame]:
         src_threshold_query = ThresholdQueryBuilder(
             table_conf, src_schema, "source", self._source_engine
@@ -313,7 +368,10 @@ class Reconciliation:
 
 
 def _get_schema(
-    source: DataSource, target: DataSource, table_conf: Table, database_config: DatabaseConfig
+    source: DataSource,
+    target: DataSource,
+    table_conf: Table,
+    database_config: DatabaseConfig,
 ) -> tuple[list[Schema], list[Schema]]:
     src_schema = source.get_schema(
         catalog=database_config.source_catalog,
@@ -330,7 +388,10 @@ def _get_schema(
 
 
 def _run_reconcile_data(
-    reconciler: Reconciliation, table_conf: Table, src_schema: list[Schema], tgt_schema: list[Schema]
+    reconciler: Reconciliation,
+    table_conf: Table,
+    src_schema: list[Schema],
+    tgt_schema: list[Schema],
 ) -> DataReconcileOutput:
     try:
         return reconciler.reconcile_data(table_conf=table_conf, src_schema=src_schema, tgt_schema=tgt_schema)
@@ -341,9 +402,12 @@ def _run_reconcile_data(
 
 
 def _run_reconcile_schema(
-    reconciler: Reconciliation, table_conf: Table, src_schema: list[Schema], tgt_schema: list[Schema]
+    reconciler: Reconciliation,
+    table_conf: Table,
+    src_schema: list[Schema],
+    tgt_schema: list[Schema],
 ):
     try:
         return reconciler.reconcile_schema(table_conf=table_conf, src_schema=src_schema, tgt_schema=tgt_schema)
     except Exception as e:
-        return SchemaReconcileOutput(exception=str(e))
+        return SchemaReconcileOutput(is_valid=False, exception=str(e))

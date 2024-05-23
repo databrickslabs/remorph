@@ -104,15 +104,15 @@ class ReconCapture:
         data_reconcile_output: DataReconcileOutput,
         schema_reconcile_output: SchemaReconcileOutput,
     ) -> None:
-        status = not (
-            data_reconcile_output.mismatch_count > 0
-            or data_reconcile_output.missing_in_src_count > 0
-            or data_reconcile_output.missing_in_tgt_count > 0
-            or not schema_reconcile_output.is_valid
-            or data_reconcile_output.threshold_output.threshold_mismatch_count > 0
-            or data_reconcile_output.exception is None
-            or schema_reconcile_output.exception is None
-        )
+        status = False
+        if data_reconcile_output.exception in {None, ''} and schema_reconcile_output.exception in {None, ''}:
+            status = not (
+                data_reconcile_output.mismatch_count > 0
+                or data_reconcile_output.missing_in_src_count > 0
+                or data_reconcile_output.missing_in_tgt_count > 0
+                or not schema_reconcile_output.is_valid
+                or data_reconcile_output.threshold_output.threshold_mismatch_count > 0
+            )
 
         exception_msg = ""
         if schema_reconcile_output.exception is not None:
@@ -140,7 +140,7 @@ class ReconCapture:
                 named_struct(
                     'status', {status}, 
                     'run_by_user', '{self.ws.current_user.me().user_name}', 
-                    'exception_message', '{exception_msg}'
+                    'exception_message', "{exception_msg}"
                 ) as run_metrics,
                 cast('{insertion_time}' as timestamp) as inserted_ts
             """
