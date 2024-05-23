@@ -8,12 +8,9 @@ sealed trait FunctionArity
 case class FixedArity(arity: Int, convertible: Boolean = true) extends FunctionArity
 case class VariableArity(argMin: Int, argMax: Int, convertible: Boolean = true) extends FunctionArity
 
-class FunctionBuilder
-
 object FunctionBuilder {
 
-  // TODO: Add more functions as we find them
-  // GCOVR_EXCL_START
+  // $COVERAGE-OFF$ - This is a utility function that is not covered exhaustively by tests
   def functionArity(functionName: String): Option[FunctionArity] = functionName match {
     case "ABS" => Some(FixedArity(1))
     case "ACOS" => Some(FixedArity(1))
@@ -210,7 +207,7 @@ object FunctionBuilder {
     case "YEAR" => Some(FixedArity(1))
     case _ => None
   }
-  // GCOVR_EXCL_STOP
+  // $COVERAGE-ON$
 
   def buildFunction(name: String, args: Seq[ir.Expression]): ir.Expression = {
     val uName = name.toUpperCase(Locale.getDefault())
