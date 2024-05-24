@@ -180,6 +180,133 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
               JoinDataType(is_left_struct = false, is_right_struct = false)),
             List(Column("T1.A"))))))
     }
+
+    "cover default case in translateJoinType" in {
+      val joinOnContextMock = mock(classOf[TSqlParser.JoinOnContext])
+
+      val outerJoinContextMock = mock(classOf[TSqlParser.OuterJoinContext])
+
+      // Set up the mock to return null for LEFT(), RIGHT(), and FULL()
+      when(outerJoinContextMock.LEFT()).thenReturn(null)
+      when(outerJoinContextMock.RIGHT()).thenReturn(null)
+      when(outerJoinContextMock.FULL()).thenReturn(null)
+
+      when(joinOnContextMock.joinType()).thenReturn(null)
+
+      val joinTypeContextMock = mock(classOf[TSqlParser.JoinTypeContext])
+      when(joinTypeContextMock.outerJoin()).thenReturn(outerJoinContextMock)
+      when(joinTypeContextMock.INNER()).thenReturn(null)
+      when(joinOnContextMock.joinType()).thenReturn(joinTypeContextMock)
+
+      val builder = new TSqlRelationBuilder
+      val result = builder.translateJoinType(joinOnContextMock)
+      result shouldBe UnspecifiedJoin
+    }
+
+    "translate simple XML query and values" in {
+      example(
+        query = "SELECT xmlcolumn.query('/root/child') FROM tab",
+        expectedAst = Batch(
+          Seq(Project(
+            NamedTable("tab", Map(), is_streaming = false),
+            Seq(XmlFunction(CallFunction("query", Seq(Literal(string = Some("/root/child")))), Column("xmlcolumn")))))))
+
+      example(
+        "SELECT xmlcolumn.value('path', 'type') FROM tab",
+        expectedAst = Batch(
+          Seq(Project(
+            NamedTable("tab", Map(), is_streaming = false),
+            Seq(XmlFunction(
+              CallFunction("value", Seq(Literal(string = Some("path")), Literal(string = Some("type")))),
+              Column("xmlcolumn")))))))
+
+      example(
+        "SELECT xmlcolumn.exist('/root/child[text()=\"Some Value\"]') FROM xmltable;",
+        expectedAst = Batch(
+          Seq(Project(
+            NamedTable("xmltable", Map(), is_streaming = false),
+            Seq(XmlFunction(
+              CallFunction("exist", Seq(Literal(string = Some("/root/child[text()=\"Some Value\"]")))),
+              Column("xmlcolumn")))))))
+
+      // TODO: Add nodes(), modify(), when we complete UPDATE and CROSS APPLY
+    }
+
+    "translate all assignments to local variables as select list elements" in {
+
+      example(
+        query = "SELECT @a = 1, @b = 2, @c = 3",
+        expectedAst = Batch(
+          Seq(Project(
+            NoTable,
+            Seq(
+              Assign(Identifier("@a", isQuoted = false), Literal(integer = Some(1))),
+              Assign(Identifier("@b", isQuoted = false), Literal(integer = Some(2))),
+              Assign(Identifier("@c", isQuoted = false), Literal(integer = Some(3))))))))
+
+      example(
+        query = "SELECT @a += 1, @b -= 2",
+        expectedAst = Batch(
+          Seq(Project(
+            NoTable,
+            Seq(
+              Assign(
+                Identifier("@a", isQuoted = false),
+                Add(Identifier("@a", isQuoted = false), Literal(integer = Some(1)))),
+              Assign(
+                Identifier("@b", isQuoted = false),
+                Subtract(Identifier("@b", isQuoted = false), Literal(integer = Some(2)))))))))
+
+      example(
+        query = "SELECT @a *= 1, @b /= 2",
+        expectedAst = Batch(
+          Seq(Project(
+            NoTable,
+            Seq(
+              Assign(
+                Identifier("@a", isQuoted = false),
+                Multiply(Identifier("@a", isQuoted = false), Literal(integer = Some(1)))),
+              Assign(
+                Identifier("@b", isQuoted = false),
+                Divide(Identifier("@b", isQuoted = false), Literal(integer = Some(2)))))))))
+
+      example(
+        query = "SELECT @a %= myColumn",
+        expectedAst = Batch(Seq(Project(
+          NoTable,
+          Seq(
+            Assign(Identifier("@a", isQuoted = false), Mod(Identifier("@a", isQuoted = false), Column("myColumn"))))))))
+
+      example(
+        query = "SELECT @a &= myColumn",
+        expectedAst = Batch(
+          Seq(
+            Project(
+              NoTable,
+              Seq(Assign(
+                Identifier("@a", isQuoted = false),
+                BitwiseAnd(Identifier("@a", isQuoted = false), Column("myColumn"))))))))
+
+      example(
+        query = "SELECT @a ^= myColumn",
+        expectedAst = Batch(
+          Seq(
+            Project(
+              NoTable,
+              Seq(Assign(
+                Identifier("@a", isQuoted = false),
+                BitwiseXor(Identifier("@a", isQuoted = false), Column("myColumn"))))))))
+
+      example(
+        query = "SELECT @a |= myColumn",
+        expectedAst = Batch(
+          Seq(
+            Project(
+              NoTable,
+              Seq(Assign(
+                Identifier("@a", isQuoted = false),
+                BitwiseOr(Identifier("@a", isQuoted = false), Column("myColumn"))))))))
+    }
     "translate scalar subqueries as expressions in select list" in {
       example(
         query = """SELECT

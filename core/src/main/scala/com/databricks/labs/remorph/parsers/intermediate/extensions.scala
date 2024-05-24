@@ -81,10 +81,16 @@ case class BitwiseXor(left: Expression, right: Expression) extends Binary(left, 
 // Other binary expressions
 case class Concat(left: Expression, right: Expression) extends Binary(left, right) {}
 
+// Assignment operators
+case class Assign(left: Expression, right: Expression) extends Binary(left, right) {}
+
 // Some statements, such as SELECT, do not require a table specification
 case object NoTable extends Relation {}
 
-// It was not clear to me the NamedTable options should be used for the alias. I'm assuming it is not what
+// It was not clear whether the NamedTable options should be used for the alias. I'm assuming it is not what
+case class NoTable() extends Relation {}
+
+// It was not clear whether the NamedTable options should be used for the alias. I'm assuming it is not what
 // they are for.
 case class TableAlias(relation: Relation, alias: String) extends Relation {}
 
@@ -146,6 +152,9 @@ case class AlterTableCommand(tableName: String, alterations: Seq[TableAlteration
 
 // Used for raw expressions that have no context
 case class Dot(left: Expression, right: Expression) extends Binary(left, right) {}
+
+// Specialized function calls, such as XML functions that usually apply to columns
+case class XmlFunction(function: CallFunction, column: Expression) extends Expression {}
 
 case class NextValue(sequenceName: String) extends Expression {}
 case class ArrayAccess(array: Expression, index: Expression) extends Expression {}

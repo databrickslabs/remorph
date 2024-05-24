@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.parsers.common
 
-import com.databricks.labs.remorph.parsers.{FixedArity, FunctionArity, FunctionBuilder, VariableArity}
+import com.databricks.labs.remorph.parsers.{FixedArity, FunctionArity, FunctionBuilder, FunctionType, StandardFunction, UnknownFunction, VariableArity, XmlFunction}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.prop.TableDrivenPropertyChecks
@@ -11,7 +11,9 @@ class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenProp
   // that happen through typos or other mistakes such as deletion.
   "functionArity" should "return correct arity for each function" in {
     val functions = Table(
-      ("functionName", "expectedArity"),
+      ("functionName", "expectedArity"), // Header
+
+      ("MODIFY", Some(FixedArity(1, XmlFunction))),
       ("ABS", Some(FixedArity(1))),
       ("ACOS", Some(FixedArity(1))),
       ("APP_NAME", Some(FixedArity(0))),
@@ -80,6 +82,7 @@ class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenProp
       ("ERROR_PROCEDURE", Some(FixedArity(0))),
       ("ERROR_SEVERITY", Some(FixedArity(0))),
       ("ERROR_STATE", Some(FixedArity(0))),
+      ("EXIST", Some(FixedArity(1, XmlFunction))),
       ("EXP", Some(FixedArity(1))),
       ("FILE_ID", Some(FixedArity(1))),
       ("FILE_IDEX", Some(FixedArity(1))),
@@ -143,6 +146,7 @@ class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenProp
       ("NCHAR", Some(FixedArity(1))),
       ("NEWID", Some(FixedArity(0))),
       ("NEWSEQUENTIALID", Some(FixedArity(0))),
+      ("NODES", Some(FixedArity(1, XmlFunction))),
       ("NTILE", Some(FixedArity(1))),
       ("NULLIF", Some(FixedArity(2))),
       ("OBJECT_DEFINITION", Some(FixedArity(1))),
@@ -153,14 +157,15 @@ class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenProp
       ("OBJECTPROPERTYEX", Some(FixedArity(2))),
       ("ORIGINAL_DB_NAME", Some(FixedArity(0))),
       ("ORIGINAL_LOGIN", Some(FixedArity(0))),
-      ("PARSE", Some(VariableArity(2, 3))),
+      ("PARSE", Some(VariableArity(2, 3, convertible = false))),
       ("PARSENAME", Some(FixedArity(2))),
       ("PATINDEX", Some(FixedArity(2))),
-      ("PERMISSIONS", Some(VariableArity(0, 2))),
+      ("PERMISSIONS", Some(VariableArity(0, 2, convertible = false))),
       ("PI", Some(FixedArity(0))),
       ("POWER", Some(FixedArity(2))),
       ("PWDCOMPARE", Some(VariableArity(2, 3))),
       ("PWDENCRYPT", Some(FixedArity(1))),
+      ("QUERY", Some(FixedArity(1, XmlFunction))),
       ("QUOTENAME", Some(VariableArity(1, 2))),
       ("RADIANS", Some(FixedArity(1))),
       ("RAND", Some(VariableArity(0, 1))),
@@ -225,12 +230,54 @@ class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenProp
     }
   }
 
-  "functionArity" should "build with all possible parameter combinations" in {
-    val fixedArityInstances = List(FixedArity(1, convertible = true), FixedArity(1, convertible = false))
+  "functionType" should "return correct function type for each function" in {
+    val functions = Table(
+      ("functionName", "expectedFunctionType"), // Header
 
-    val variableArityInstances = List(VariableArity(1, 2, convertible = true), VariableArity(1, 2, convertible = false))
+      // This table needs to maintain an example of all types of functions in Arity and FunctionType
+      // However, it is not necessary to test all functions, just one of each type.
+      // However, note that there are no XML functions with VariableArity at the moment.
+      ("MODIFY", XmlFunction),
+      ("ABS", StandardFunction),
+      ("VALUE", XmlFunction),
+      ("CONCAT", StandardFunction),
+      ("TRIM", StandardFunction))
+
+    // Test all FunctionType combinations that currently exist
+    forAll(functions) { (functionName: String, expectedFunctionType: FunctionType) =>
+      FunctionBuilder.functionType(functionName) shouldEqual expectedFunctionType
+    }
+  }
+
+  "functionType" should "return UnknownFunction for functions that do not exist" in {
+    val result = FunctionBuilder.functionType("DOES_NOT_EXIST")
+    result shouldEqual UnknownFunction
+  }
+
+  "functionArity" should "build with all possible parameter combinations" in {
+    val functionTypes = List(StandardFunction, XmlFunction)
+
+    val fixedArityInstances = for {
+      convertible <- List(true, false)
+      functionType <- functionTypes
+    } yield FixedArity(1, functionType, convertible)
+
+    val variableArityInstances = for {
+      convertible <- List(true, false)
+      functionType <- functionTypes
+    } yield VariableArity(1, 2, functionType, convertible)
 
     val allInstances = fixedArityInstances ++ variableArityInstances
-    assert(allInstances.size == 4)
+    assert(allInstances.size == 8)
   }
+
+  "isConvertible method in FunctionArity" should "return true by default" in {
+    val fixedArity = FixedArity(arity = 1)
+    fixedArity.isConvertible should be(true)
+
+    val variableArity = VariableArity(argMin = 1, argMax = 2)
+    variableArity.isConvertible should be(true)
+
+  }
+
 }
