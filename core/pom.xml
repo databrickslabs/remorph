@@ -5,7 +5,7 @@
   <parent>
     <groupId>com.databricks.labs</groupId>
     <artifactId>remorph</artifactId>
-    <version>0.2.0</version>
+    <version>0.2.0-SNAPSHOT</version>
   </parent>
   <artifactId>remorph-core</artifactId>
   <packaging>jar</packaging>

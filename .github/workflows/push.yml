@@ -101,7 +101,7 @@ jobs:
           cache: 'maven'
 
       - name: Run Unit Tests with Maven
-        run: mvn -B install scoverage:report -pl core --file pom.xml --fail-at-end
+        run: mvn --update-snapshots -B install scoverage:report -pl core --file pom.xml --fail-at-end
 
       - name: Uplaod remorph-core jars as Artifacts
         uses: actions/upload-artifact@v4
@@ -140,5 +140,5 @@ jobs:
         run: ls -R ~/.m2
 
       - name: Run Acceptance Tests with Maven
-        run: mvn -B test -o -pl acceptance --file pom.xml --fail-at-end
+        run: mvn --update-snapshots -B test -o -pl acceptance --file pom.xml --fail-at-end
         continue-on-error: true
