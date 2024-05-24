@@ -140,5 +140,5 @@ jobs:
         run: ls -R ~/.m2
 
       - name: Run Acceptance Tests with Maven
-        run: mvn -B test -pl acceptance --file pom.xml --fail-at-end
+        run: mvn -B test -o -pl acceptance --file pom.xml --fail-at-end
         continue-on-error: true
