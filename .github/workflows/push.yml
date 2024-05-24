@@ -101,13 +101,13 @@ jobs:
           cache: 'maven'
 
       - name: Run Unit Tests with Maven
-        run: mvn --update-snapshots -B install scoverage:report -pl core --file pom.xml --fail-at-end
+        run: mvn --update-snapshots -B install scoverage:report -pl "!com.databricks.labs:remorph-acceptance" --file pom.xml --fail-at-end
 
       - name: Uplaod remorph-core jars as Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: remorph-core-jars
-          path: ~/.m2/repository/com/databricks/labs/remorph-core
+          path: ~/.m2/repository/com/databricks/labs/remorph*
 
       - name: Publish test coverage
         uses: codecov/codecov-action@v4
@@ -134,11 +134,11 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: remorph-core-jars
-          path: ~/.m2/repository/com/databricks/labs/remorph-core
+          path: ~/.m2/repository/com/databricks/labs/
 
       - name: Display downloaded artifacts
-        run: ls -R ~/.m2
+        run: ls -lR ~/.m2/repository/com/databricks/labs
 
       - name: Run Acceptance Tests with Maven
-        run: mvn --update-snapshots -B test -o -pl acceptance --file pom.xml --fail-at-end
+        run: mvn -X --update-snapshots -B test -pl acceptance --file pom.xml --fail-at-end
         continue-on-error: true
