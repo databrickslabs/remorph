@@ -1,9 +1,12 @@
 package com.databricks.labs.remorph.parsers.tsql
 
 import com.databricks.labs.remorph.parsers.intermediate._
+import org.mockito.Mockito.{mock, when}
 import org.scalatest.Assertion
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
+
+import java.util.Collections
 
 class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matchers {
 
@@ -195,6 +198,20 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
                 ScalarSubquery(Project(NamedTable("Employees", Map(), is_streaming = false), Seq(Column("AvgSalary")))),
                 Seq("AverageSalary"),
                 None))))))
+    }
+  }
+
+  "visitTableSources" should {
+    "return NoTable when tableSource is empty" in {
+      val mockTableSourcesContext: TSqlParser.TableSourcesContext = mock(classOf[TSqlParser.TableSourcesContext])
+
+      when(mockTableSourcesContext.tableSource())
+        .thenReturn(Collections.emptyList().asInstanceOf[java.util.List[TSqlParser.TableSourceContext]])
+
+      val tSqlRelationBuilder = new TSqlRelationBuilder()
+      val result = tSqlRelationBuilder.visitTableSources(mockTableSourcesContext)
+
+      result shouldBe NoTable
     }
   }
 }

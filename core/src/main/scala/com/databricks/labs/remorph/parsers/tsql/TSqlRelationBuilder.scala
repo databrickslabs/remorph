@@ -56,9 +56,7 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.Relation] {
             ir.CrossJoin,
             Seq.empty,
             ir.JoinDataType(is_left_struct = false, is_right_struct = false)))
-      // $COVERAGE-OFF$  ctx.tableSource always returns at least 1 element
       case _ => ir.NoTable
-      // $COVERAGE-ON$
     }
   }
 

@@ -14,9 +14,7 @@ class TSqlExpressionBuilder extends TSqlParserBaseVisitor[ir.Expression] with Pa
       // TODO: asterisk not fully handled
       case c if c.asterisk() != null => c.asterisk().accept(this)
       case c if c.expressionElem() != null => ctx.expressionElem().accept(this)
-      // $COVERAGE-OFF$  coverage is complete for what we have written so far
       case _ => ir.UnresolvedExpression("Unsupported SelectListElem")
-      // $COVERAGE-ON$
     }
   }
 
