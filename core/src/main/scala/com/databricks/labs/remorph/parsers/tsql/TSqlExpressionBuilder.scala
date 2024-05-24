@@ -291,7 +291,7 @@ class TSqlExpressionBuilder extends TSqlParserBaseVisitor[ir.Expression] with Pa
 
     val frameStart = bounds.head // Safe due to the nature of window frames always having at least a start bound
     val frameEnd =
-      bounds.drop(1).headOption.getOrElse(ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop))
+      bounds.tail.headOption.getOrElse(ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop))
 
     ir.WindowFrame(frameType, frameStart, frameEnd)
   }
@@ -301,21 +301,17 @@ class TSqlExpressionBuilder extends TSqlParserBaseVisitor[ir.Expression] with Pa
     else ir.RangeFrame
   }
 
-  private def buildFrame(ctx: WindowFrameBoundContext): ir.FrameBoundary = {
-    if (Option(ctx.UNBOUNDED()).isDefined) {
-      ir.FrameBoundary(current_row = false, unbounded = true, value = ir.Noop)
-    } else if (Option(ctx.CURRENT()).isDefined) {
-      ir.FrameBoundary(current_row = true, unbounded = false, ir.Noop)
-    } else {
-      Option(ctx.INT())
-        .map(intNode =>
-          ir.FrameBoundary(
-            current_row = false,
-            unbounded = false,
-            value = ir.Literal(integer = Some(intNode.getText.toInt))))
-        .getOrElse(ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop))
+  private def buildFrame(ctx: WindowFrameBoundContext): ir.FrameBoundary =
+    ctx match {
+      case c if c.UNBOUNDED() != null => ir.FrameBoundary(current_row = false, unbounded = true, value = ir.Noop)
+      case c if c.CURRENT() != null => ir.FrameBoundary(current_row = true, unbounded = false, ir.Noop)
+      case c if c.INT() != null =>
+        ir.FrameBoundary(
+          current_row = false,
+          unbounded = false,
+          value = ir.Literal(integer = Some(c.INT().getText.toInt)))
+      case _ => ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop)
     }
-  }
 
   /**
    * This is a special case where we are building a column definition. This is used in the SELECT statement to define
