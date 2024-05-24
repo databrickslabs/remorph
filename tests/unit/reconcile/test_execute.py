@@ -11,7 +11,7 @@ from databricks.labs.remorph.config import DatabaseConfig, TableRecon, get_diale
 from databricks.labs.remorph.reconcile.connectors.data_source import MockDataSource
 from databricks.labs.remorph.reconcile.connectors.databricks import DatabricksDataSource
 from databricks.labs.remorph.reconcile.connectors.snowflake import SnowflakeDataSource
-from databricks.labs.remorph.reconcile.exception import DataSourceRuntimeException
+from databricks.labs.remorph.reconcile.exception import DataSourceRuntimeException, InvalidReportTypeException
 from databricks.labs.remorph.reconcile.execute import (
     Reconciliation,
     initialise_data_source,
@@ -283,10 +283,10 @@ def test_reconcile_data_with_mismatches_and_missing(mock_spark, table_conf_with_
 
 
 def test_reconcile_data_without_mismatches_and_missing(
-    mock_spark,
-    table_conf_with_opts,
-    table_schema,
-    query_store,
+        mock_spark,
+        table_conf_with_opts,
+        table_schema,
+        query_store,
 ):
     src_schema, tgt_schema = table_schema
     source_dataframe_repository = {
@@ -521,11 +521,11 @@ def test_reconcile_data_missing_and_no_mismatch(mock_spark, table_conf_with_opts
 
 @pytest.fixture
 def mock_for_report_type_data(
-    table_conf_with_opts,
-    table_schema,
-    query_store,
-    setup_metadata_table,
-    mock_spark,
+        table_conf_with_opts,
+        table_schema,
+        query_store,
+        setup_metadata_table,
+        mock_spark,
 ):
     table_conf_with_opts.drop_columns = ["s_acctbal"]
     table_conf_with_opts.thresholds = None
@@ -586,7 +586,7 @@ def mock_for_report_type_data(
 
 
 def test_recon_for_report_type_is_data(
-    mock_workspace_client, mock_spark, report_tables_schema, mock_for_report_type_data
+        mock_workspace_client, mock_spark, report_tables_schema, mock_for_report_type_data
 ):
     recon_schema, metrics_schema, details_schema = report_tables_schema
     table_recon, source, target = mock_for_report_type_data
@@ -759,7 +759,7 @@ def mock_for_report_type_schema(table_conf_with_opts, table_schema, query_store,
 
 
 def test_recon_for_report_type_schema(
-    mock_workspace_client, mock_spark, report_tables_schema, mock_for_report_type_schema
+        mock_workspace_client, mock_spark, report_tables_schema, mock_for_report_type_schema
 ):
     recon_schema, metrics_schema, details_schema = report_tables_schema
     table_recon, source, target = mock_for_report_type_schema
@@ -867,12 +867,12 @@ def test_recon_for_report_type_schema(
 
 @pytest.fixture
 def mock_for_report_type_all(
-    mock_workspace_client,
-    table_conf_with_opts,
-    table_schema,
-    mock_spark,
-    query_store,
-    setup_metadata_table,
+        mock_workspace_client,
+        table_conf_with_opts,
+        table_schema,
+        mock_spark,
+        query_store,
+        setup_metadata_table,
 ):
     table_conf_with_opts.drop_columns = ["s_acctbal"]
     table_conf_with_opts.thresholds = None
@@ -1177,7 +1177,7 @@ def mock_for_report_type_row(table_conf_with_opts, table_schema, mock_spark, que
 
 
 def test_recon_for_report_type_is_row(
-    mock_workspace_client, mock_spark, mock_for_report_type_row, report_tables_schema
+        mock_workspace_client, mock_spark, mock_for_report_type_row, report_tables_schema
 ):
     recon_schema, metrics_schema, details_schema = report_tables_schema
     source, target, table_recon = mock_for_report_type_row
@@ -1301,7 +1301,7 @@ def mock_for_recon_exception(table_conf_with_opts, setup_metadata_table):
 
 
 def test_schema_recon_with_data_source_exception(
-    mock_workspace_client, mock_spark, report_tables_schema, mock_for_recon_exception
+        mock_workspace_client, mock_spark, report_tables_schema, mock_for_recon_exception
 ):
     recon_schema, metrics_schema, details_schema = report_tables_schema
     table_recon, source, target = mock_for_recon_exception
@@ -1363,7 +1363,7 @@ def test_schema_recon_with_data_source_exception(
 
 
 def test_schema_recon_with_general_exception(
-    mock_workspace_client, mock_spark, report_tables_schema, mock_for_report_type_schema
+        mock_workspace_client, mock_spark, report_tables_schema, mock_for_report_type_schema
 ):
     recon_schema, metrics_schema, details_schema = report_tables_schema
     table_recon, source, target = mock_for_report_type_schema
@@ -1429,7 +1429,7 @@ def test_schema_recon_with_general_exception(
 
 
 def test_data_recon_with_general_exception(
-    mock_workspace_client, mock_spark, report_tables_schema, mock_for_report_type_schema
+        mock_workspace_client, mock_spark, report_tables_schema, mock_for_report_type_schema
 ):
     recon_schema, metrics_schema, details_schema = report_tables_schema
     table_recon, source, target = mock_for_report_type_schema
@@ -1493,7 +1493,7 @@ def test_data_recon_with_general_exception(
 
 
 def test_data_recon_with_source_exception(
-    mock_workspace_client, mock_spark, report_tables_schema, mock_for_report_type_schema
+        mock_workspace_client, mock_spark, report_tables_schema, mock_for_report_type_schema
 ):
     recon_schema, metrics_schema, details_schema = report_tables_schema
     table_recon, source, target = mock_for_report_type_schema
@@ -1556,7 +1556,7 @@ def test_data_recon_with_source_exception(
     assert final_reconcile_output.recon_id == "00112233-4455-6677-8899-aabbccddeeff"
 
 
-def test__initialise_data_source(mock_workspace_client, mock_spark):
+def test_initialise_data_source(mock_workspace_client, mock_spark):
     src_engine = get_dialect("snowflake")
     secret_scope = "test"
 
@@ -1567,3 +1567,23 @@ def test__initialise_data_source(mock_workspace_client, mock_spark):
 
     assert isinstance(source, snowflake_data_source)
     assert isinstance(target, databricks_data_source)
+
+
+def test_recon_for_wrong_report_type(
+        mock_workspace_client, mock_spark, mock_for_report_type_row, report_tables_schema
+):
+    source, target, table_recon = mock_for_report_type_row
+    with (
+        patch("databricks.labs.remorph.reconcile.execute.datetime") as mock_datetime,
+        patch("databricks.labs.remorph.reconcile.recon_capture.datetime") as recon_datetime,
+        patch("databricks.labs.remorph.reconcile.execute.initialise_data_source", return_value=(source, target)),
+        patch("databricks.labs.remorph.reconcile.execute.uuid4", return_value="00112233-4455-6677-8899-aabbccddeeff"),
+        patch("databricks.labs.remorph.reconcile.recon_capture._DB_PREFIX", new="default"),
+        patch(
+            "databricks.labs.remorph.reconcile.recon_capture.ReconCapture._generate_recon_main_id", return_value=33333
+        ),
+        pytest.raises(InvalidReportTypeException)
+    ):
+        mock_datetime.now.return_value = datetime(2024, 5, 23, 9, 21, 25, 122185)
+        recon_datetime.now.return_value = datetime(2024, 5, 23, 9, 21, 25, 122185)
+        recon(mock_workspace_client, mock_spark, table_recon, get_dialect("snowflake"), "ro")
