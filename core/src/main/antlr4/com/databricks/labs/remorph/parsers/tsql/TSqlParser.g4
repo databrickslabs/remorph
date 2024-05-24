@@ -3927,7 +3927,7 @@ primitiveExpression
     : DEFAULT
     | NULL_
     | LOCAL_ID
-    | primitiveConstant
+    | constant
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/language-elements/case-transact-sql
@@ -4793,23 +4793,14 @@ dataType
 
 // https://msdn.microsoft.com/en-us/library/ms179899.aspx
 constant
-    : STRING // string, datetime or uniqueidentifier
-    | HEX
-    | MINUS? (INT | REAL | FLOAT)                    // float or decimal
-    | MINUS? DOLLAR (MINUS | PLUS)? (INT | FLOAT) // money
-    | parameter
-    ;
-
-// To reduce ambiguity, -X is considered as an application of unary operator
-primitiveConstant
     : con = (
-              STRING // string, datetime or uniqueidentifier
-            | HEX
-            | INT
-            | REAL
-            | FLOAT
-            )
-    | DOLLAR (MINUS | PLUS)? (INT | FLOAT) // money
+          STRING
+        | HEX
+        | INT
+        | REAL
+        | FLOAT
+        | MONEY
+        )
     | parameter
     ;
 

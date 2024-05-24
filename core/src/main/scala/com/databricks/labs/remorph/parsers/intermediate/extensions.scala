@@ -155,3 +155,5 @@ case class Iff(condition: Expression, thenBranch: Expression, elseBranch: Expres
 case class ScalarSubquery(relation: Relation) extends Expression {}
 
 case class Timezone(expression: Expression, timeZone: Expression) extends Expression {}
+
+case class Money(value: Literal) extends Expression {}

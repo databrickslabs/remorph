@@ -36,7 +36,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
 
     "accept constants in selects" in {
       example(
-        query = "SELECT 42, 6.4, 0x5A, 2.7E9, $40",
+        query = "SELECT 42, 6.4, 0x5A, 2.7E9, 4.24523534425245E10, $40",
         expectedAst = Batch(
           Seq(Project(
             NoTable(),
@@ -44,8 +44,9 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
               Literal(integer = Some(42)),
               Literal(float = Some(6.4f)),
               Literal(string = Some("0x5A")),
-              Literal(double = Some(2.7e9)),
-              Literal(string = Some("$40")))))))
+              Literal(long = Some(2700000000L)),
+              Literal(double = Some(4.24523534425245e10)),
+              Money(Literal(string = Some("$40"))))))))
     }
 
     "translate collation specifiers" in {
