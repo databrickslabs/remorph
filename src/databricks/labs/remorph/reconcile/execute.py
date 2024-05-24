@@ -15,7 +15,10 @@ from databricks.labs.remorph.reconcile.connectors.data_source import DataSource
 from databricks.labs.remorph.reconcile.connectors.source_adapter import (
     DataSourceAdapter,
 )
-from databricks.labs.remorph.reconcile.exception import DataSourceRuntimeException
+from databricks.labs.remorph.reconcile.exception import (
+    DataSourceRuntimeException,
+    InvalidReportTypeException,
+)
 from databricks.labs.remorph.reconcile.query_builder.hash_query import HashQueryBuilder
 from databricks.labs.remorph.reconcile.query_builder.sampling_query import (
     SamplingQueryBuilder,
@@ -64,7 +67,7 @@ def recon(
 
     recon_id = str(uuid4())
     # initialise the Reconciliation
-    reconciler = Reconciliation(source, target, database_config, report_type, schema_comparator, source_dialect)
+    reconciler = Reconciliation(source, target, database_config, report_type.lower(), schema_comparator, source_dialect)
 
     # initialise the recon capture class
     recon_capture = ReconCapture(
@@ -87,12 +90,16 @@ def recon(
         except DataSourceRuntimeException as e:
             schema_reconcile_output = SchemaReconcileOutput(exception=str(e))
         else:
-            if report_type in {"schema", "all"}:
+            if report_type.lower() not in {"all", "data", "row", "schema"}:
+                raise InvalidReportTypeException(
+                    f"Invalid report type: {report_type} is not one of 'all', 'data', 'row', 'schema'"
+                )
+            if report_type.lower() in {"schema", "all"}:
                 schema_reconcile_output = _run_reconcile_schema(
                     reconciler=reconciler, table_conf=table_conf, src_schema=src_schema, tgt_schema=tgt_schema
                 )
 
-            if report_type in {"data", "row", "all"}:
+            if report_type.lower() in {"data", "row", "all"}:
                 data_reconcile_output = _run_reconcile_data(
                     reconciler=reconciler, table_conf=table_conf, src_schema=src_schema, tgt_schema=tgt_schema
                 )
@@ -175,6 +182,10 @@ class Reconciliation:
             reconcile_output = self._get_sample_data(table_conf, data_reconcile_output, src_schema, tgt_schema)
             if table_conf.get_threshold_columns("source"):
                 reconcile_output.threshold_output = self._reconcile_threshold_data(table_conf, src_schema, tgt_schema)
+
+        if self._report_type == "row" and table_conf.get_threshold_columns("source"):
+            logger.warning("Threshold comparison is ignored for 'row' report type")
+
         return reconcile_output
 
     def reconcile_schema(
