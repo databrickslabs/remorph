@@ -2050,7 +2050,7 @@ createPartitionScheme
     ;
 
 createQueue
-    : CREATE QUEUE (fullTableName | queueName = id) queueSettings? (
+    : CREATE QUEUE (tableName | queueName = id) queueSettings? (
         ON filegroup = id
         | DEFAULT
     )?
@@ -2072,7 +2072,7 @@ queueSettings
     ;
 
 alterQueue
-    : ALTER QUEUE (fullTableName | queueName = id) (queueSettings | queueAction)
+    : ALTER QUEUE (tableName | queueName = id) (queueSettings | queueAction)
     ;
 
 queueAction
@@ -2164,7 +2164,7 @@ insertStatementValue
     ;
 
 receiveStatement
-    : LPAREN? RECEIVE (ALL | DISTINCT | topClause | STAR) (LOCAL_ID EQ expression COMMA?)* FROM fullTableName (
+    : LPAREN? RECEIVE (ALL | DISTINCT | topClause | STAR) (LOCAL_ID EQ expression COMMA?)* FROM tableName (
         INTO tableVariable = id (WHERE where = searchCondition)
     )? RPAREN?
     ;
@@ -2487,7 +2487,7 @@ createStatistics
     ;
 
 updateStatistics
-    : UPDATE STATISTICS fullTableName (id | LPAREN id ( COMMA id)* RPAREN)? updateStatisticsOptions?
+    : UPDATE STATISTICS tableName (id | LPAREN id ( COMMA id)* RPAREN)? updateStatisticsOptions?
     ;
 
 updateStatisticsOptions
@@ -2893,7 +2893,7 @@ dropIndex
     ;
 
 dropRelationalOrXmlOrSpatialIndex
-    : indexName = id ON fullTableName
+    : indexName = id ON tableName
     ;
 
 dropBackwardCompatibleIndex
@@ -3903,7 +3903,7 @@ expression
     | expression COLLATE id                                     #exprCollate
     | caseExpression                                            #exprCase
     | expression timeZone                                       #exprTz
-    | overClause                                                #exprOver
+    | expression overClause                                     #exprOver
     | valueCall                                                 #exprValue
     | queryCall                                                 #expryQuery
     | existCall                                                 #exprExist
@@ -3912,6 +3912,9 @@ expression
     | DOLLAR_ACTION                                             #exprDollar
     | <assoc=right> expression DOT expression                   #exprDot
     | LPAREN subquery RPAREN                                    #exprSubquery
+    | ALL expression                                            #exprAll
+    | DISTINCT expression                                       #exprDistinct
+    | STAR                                                      #exprStar
     ;
 
 // TODO: Implement this
@@ -4029,7 +4032,7 @@ topCount
 
 // https://docs.microsoft.com/en-us/sql/t-sql/queries/select-over-clause-transact-sql?view=sql-server-ver16
 orderByClause
-    : ORDER BY orderBys += orderByExpression (COMMA orderBys += orderByExpression)*
+    : ORDER BY orderByExpression (COMMA orderByExpression)*
     ;
 
 // https://msdn.microsoft.com/en-us/library/ms188385.aspx
@@ -4059,7 +4062,7 @@ xmlCommonDirectives
     ;
 
 orderByExpression
-    : orderBy = expression (ascending = ASC | descending = DESC)?
+    : expression (ASC | DESC)?
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/queries/select-group-by-transact-sql?view=sql-server-ver15
@@ -4116,8 +4119,8 @@ udtMethodArguments
 
 // https://docs.microsoft.com/ru-ru/sql/t-sql/queries/select-clause-transact-sql
 asterisk
-    : (tableName DOT)? STAR
-    | (INSERTED | DELETED) DOT STAR
+    : (INSERTED | DELETED) DOT STAR
+    | (tableName DOT)? STAR
     ;
 
 udtElem
@@ -4153,8 +4156,8 @@ tableSource
     ;
 
 tableSourceItem
-    : fullTableName deprecatedTableHint asTableAlias // this is currently allowed
-    | fullTableName asTableAlias? (
+    : tableName deprecatedTableHint asTableAlias // this is currently allowed
+    | tableName asTableAlias? (
         withTableHints
         | deprecatedTableHint
         | sybaseLegacyHints
@@ -4252,7 +4255,7 @@ unpivot
     ;
 
 pivotClause
-    : LPAREN aggregateWindowedFunction FOR fullColumnName IN columnAliasList RPAREN
+    : LPAREN expression FOR fullColumnName IN columnAliasList RPAREN
     ;
 
 unpivotClause
@@ -4284,9 +4287,7 @@ derivedTable
     ;
 
 functionCall
-    : rankingWindowedFunction
-    | aggregateWindowedFunction
-    | analyticWindowedFunction
+    : analyticWindowedFunction
     | builtInFunctions
     | standardFunction
     | freetextFunction
@@ -4525,38 +4526,19 @@ expressionList
     : exp += expression (COMMA exp += expression)*
     ;
 
-// https://msdn.microsoft.com/en-us/library/ms189798.aspx
-rankingWindowedFunction
-    : (RANK | DENSE_RANK | ROW_NUMBER) LPAREN RPAREN overClause
-    | NTILE LPAREN expression RPAREN overClause
-    ;
-
-// https://msdn.microsoft.com/en-us/library/ms173454.aspx
-aggregateWindowedFunction
-    : aggFunc = (AVG | MAX | MIN | SUM | STDEV | STDEVP | VAR | VARP) LPAREN allDistinctExpression RPAREN overClause?
-    | cnt = (COUNT | COUNT_BIG) LPAREN (STAR | allDistinctExpression) RPAREN overClause?
-    | CHECKSUM_AGG LPAREN allDistinctExpression RPAREN
-    | GROUPING LPAREN expression RPAREN
-    | GROUPING_ID LPAREN expressionList RPAREN
-    ;
-
 // https://docs.microsoft.com/en-us/sql/t-sql/functions/analytic-functions-transact-sql
 analyticWindowedFunction
-    : (FIRST_VALUE | LAST_VALUE) LPAREN expression RPAREN overClause
-    | (LAG | LEAD) LPAREN expression (COMMA expression (COMMA expression)?)? RPAREN overClause
+    : (FIRST_VALUE | LAST_VALUE) LPAREN expression RPAREN
+    | (LAG | LEAD) LPAREN expression (COMMA expression (COMMA expression)?)? RPAREN
     | (CUME_DIST | PERCENT_RANK) LPAREN RPAREN OVER LPAREN (PARTITION BY expressionList)? orderByClause RPAREN
     | (PERCENTILE_CONT | PERCENTILE_DISC) LPAREN expression RPAREN WITHIN GROUP LPAREN orderByClause RPAREN OVER LPAREN (
         PARTITION BY expressionList
     )? RPAREN
     ;
 
-allDistinctExpression
-    : (ALL | DISTINCT)? expression
-    ;
-
 // https://msdn.microsoft.com/en-us/library/ms189461.aspx
 overClause
-    : OVER LPAREN (PARTITION BY expressionList)? orderByClause? rowOrRangeClause? RPAREN
+    : OVER LPAREN (PARTITION BY expression (COMMA expression)*)? orderByClause? rowOrRangeClause? RPAREN
     ;
 
 rowOrRangeClause
@@ -4564,24 +4546,14 @@ rowOrRangeClause
     ;
 
 windowFrameExtent
-    : windowFramePreceding
+    : windowFrameBound
     | BETWEEN windowFrameBound AND windowFrameBound
     ;
 
 windowFrameBound
-    : windowFramePreceding
-    | windowFrameFollowing
-    ;
-
-windowFramePreceding
-    : UNBOUNDED PRECEDING
-    | INT PRECEDING
+    : UNBOUNDED (PRECEDING | FOLLOWING)
+    | INT (PRECEDING | FOLLOWING)
     | CURRENT ROW
-    ;
-
-windowFrameFollowing
-    : UNBOUNDED FOLLOWING
-    | INT FOLLOWING
     ;
 
 createDatabaseOption
@@ -4638,20 +4610,8 @@ entityNameForParallelDw
     | schema = id DOT objectName = id
     ;
 
-fullTableName
-    : (
-        linkedServer = id DOT DOT schema = id DOT
-        | server = id DOT database = id DOT schema = id DOT
-        | database = id DOT schema = id? DOT
-        | schema = id DOT
-    )? table = id
-    ;
-
 tableName
-    : (database = id DOT schema = id? DOT | schema = id DOT)? (
-        table = id
-        | blockingHierarchy = BLOCKING_HIERARCHY
-    )
+    : (linkedServer = id DOT DOT)? ids+=id (DOT ids +=id)*
     ;
 
 simpleName
@@ -4673,12 +4633,12 @@ funcProcNameServerDatabaseSchema
     ;
 
 ddlObject
-    : fullTableName
+    : tableName
     | LOCAL_ID
     ;
 
 fullColumnName
-    : ((DELETED | INSERTED | fullTableName) DOT)? (
+    : ((DELETED | INSERTED | tableName) DOT)? (
           id
         | (DOLLAR (IDENTITY | ROWGUID))
     )
@@ -4857,7 +4817,6 @@ keyword
     | AUTOGROW_ALL_FILES
     | AUTOGROW_SINGLE_FILE
     | AVAILABILITY
-    | AVG
     | BACKUP_CLONEDB
     | BACKUP_PRIORITY
     | BASE64
@@ -4885,7 +4844,6 @@ keyword
     | CHECKDB
     | CHECKFILEGROUP
     | CHECKSUM
-    | CHECKSUM_AGG
     | CHECKTABLE
     | CLEANTABLE
     | CLEANUP
@@ -4905,8 +4863,6 @@ keyword
     | CONTENT
     | CONTROL
     | COOKIE
-    | COUNT
-    | COUNT_BIG
     | COUNTER
     | CPU
     | CREATE_NEW
@@ -4932,7 +4888,6 @@ keyword
     | DELAY
     | DELAYED_DURABILITY
     | DELETED
-    | DENSE_RANK
     | DEPENDENTS
     | DES
     | DESCRIPTION
@@ -5000,7 +4955,6 @@ keyword
     | GO
     | GROUP_MAX_REQUESTS
     | GROUPING
-    | GROUPING_ID
     | HADR
     | HASH
     | HEALTH_CHECK_TIMEOUT
@@ -5075,7 +5029,6 @@ keyword
     | MEDIUM
     | MEMORY_OPTIMIZED_DATA
     | MESSAGE
-    | MIN
     | MIN_CPU_PERCENT
     | MIN_IOPS_PER_VOLUME
     | MIN_MEMORY_PERCENT
@@ -5172,7 +5125,6 @@ keyword
     | QUOTED_IDENTIFIER
     | RANDOMIZED
     | RANGE
-    | RANK
     | RC2
     | RC4
     | RC4_128
@@ -5219,7 +5171,6 @@ keyword
     | ROOT
     | ROUTE
     | ROW
-    | ROW_NUMBER
     | ROWGUID
     | ROWLOCK
     | ROWS
@@ -5272,13 +5223,10 @@ keyword
     | STATS_STREAM
     | STATUS
     | STATUSONLY
-    | STDEV
-    | STDEVP
     | STOPLIST
     | SUBJECT
     | SUBSCRIBE
     | SUBSCRIPTION
-    | SUM
     | SUSPEND
     | SYMMETRIC
     | SYNCHRONOUS_COMMIT
@@ -5321,9 +5269,7 @@ keyword
     | VALIDATION
     | VALUE
     | VALUE_SQUARE_BRACKET
-    | VAR
     | VARBINARY_KEYWORD
-    | VARP
     | VERIFY_CLONEDB
     | VERSION
     | VIEW_METADATA
@@ -5363,7 +5309,6 @@ keyword
     | BLOCK
     | BLOCKERS
     | BLOCKSIZE
-    | BLOCKING_HIERARCHY
     | BUFFER
     | BUFFERCOUNT
     | CACHE

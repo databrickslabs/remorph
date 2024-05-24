@@ -8,12 +8,8 @@ sealed trait FunctionArity
 case class FixedArity(arity: Int, convertible: Boolean = true) extends FunctionArity
 case class VariableArity(argMin: Int, argMax: Int, convertible: Boolean = true) extends FunctionArity
 
-class FunctionBuilder
-
 object FunctionBuilder {
 
-  // TODO: Add more functions as we find them
-  // GCOVR_EXCL_START
   def functionArity(functionName: String): Option[FunctionArity] = functionName match {
     case "ABS" => Some(FixedArity(1))
     case "ACOS" => Some(FixedArity(1))
@@ -25,12 +21,14 @@ object FunctionBuilder {
     case "ASSEMBLYPROPERTY" => Some(FixedArity(2))
     case "ATAN" => Some(FixedArity(1))
     case "ATN2" => Some(FixedArity(2))
+    case "AVG" => Some(FixedArity(1))
     case "CEILING" => Some(FixedArity(1))
     case "CERT_ID" => Some(FixedArity(1))
     case "CERTENCODED" => Some(FixedArity(1))
     case "CERTPRIVATEKEY" => Some(VariableArity(2, 3))
     case "CHAR" => Some(FixedArity(1))
     case "CHARINDEX" => Some(VariableArity(2, 3))
+    case "CHECKSUM_AGG" => Some(FixedArity(1))
     case "COALESCE" => Some(VariableArity(1, Int.MaxValue))
     case "COL_LENGTH" => Some(FixedArity(2))
     case "COL_NAME" => Some(FixedArity(2))
@@ -43,6 +41,8 @@ object FunctionBuilder {
     case "CONVERT" => Some(VariableArity(2, 3))
     case "COS" => Some(FixedArity(1))
     case "COT" => Some(FixedArity(1))
+    case "COUNT" => Some(FixedArity(1))
+    case "COUNT_BIG" => Some(FixedArity(1))
     case "CURRENT_DATE" => Some(FixedArity(0))
     case "CURRENT_REQUEST_ID" => Some(FixedArity(0))
     case "CURRENT_TIMESTAMP" => Some(FixedArity(0))
@@ -71,6 +71,7 @@ object FunctionBuilder {
     case "DB_NAME" => Some(VariableArity(0, 1))
     case "DECOMPRESS" => Some(FixedArity(1))
     case "DEGREES" => Some(FixedArity(1))
+    case "DENSE_RANK" => Some(FixedArity(0))
     case "DIFFERENCE" => Some(FixedArity(2))
     case "EOMONTH" => Some(VariableArity(1, 2))
     case "ERROR_LINE" => Some(FixedArity(0))
@@ -102,6 +103,8 @@ object FunctionBuilder {
     case "GETREPARENTEDVALUE" => Some(FixedArity(2))
     case "GETUTCDATE" => Some(FixedArity(0))
     case "GREATEST" => Some(VariableArity(1, Int.MaxValue))
+    case "GROUPING" => Some(FixedArity(1))
+    case "GROUPING_ID" => Some(VariableArity(0, Int.MaxValue))
     case "HAS_DBACCESS" => Some(FixedArity(1))
     case "HAS_PERMS_BY_NAME" => Some(VariableArity(4, 5))
     case "HOST_ID" => Some(FixedArity(0))
@@ -133,11 +136,14 @@ object FunctionBuilder {
     case "LOGINPROPERTY" => Some(FixedArity(2))
     case "LOWER" => Some(FixedArity(1))
     case "LTRIM" => Some(FixedArity(1))
+    case "MAX" => Some(FixedArity(1))
+    case "MIN" => Some(FixedArity(1))
     case "MIN_ACTIVE_ROWVERSION" => Some(FixedArity(0))
     case "MONTH" => Some(FixedArity(1))
     case "NCHAR" => Some(FixedArity(1))
     case "NEWID" => Some(FixedArity(0))
     case "NEWSEQUENTIALID" => Some(FixedArity(0))
+    case "NTILE" => Some(FixedArity(1))
     case "NULLIF" => Some(FixedArity(2))
     case "OBJECT_DEFINITION" => Some(FixedArity(1))
     case "OBJECT_ID" => Some(VariableArity(1, 2))
@@ -158,11 +164,13 @@ object FunctionBuilder {
     case "QUOTENAME" => Some(VariableArity(1, 2))
     case "RADIANS" => Some(FixedArity(1))
     case "RAND" => Some(VariableArity(0, 1))
+    case "RANK" => Some(FixedArity(0))
     case "REPLACE" => Some(FixedArity(3))
     case "REPLICATE" => Some(FixedArity(2))
     case "REVERSE" => Some(FixedArity(1))
     case "RIGHT" => Some(FixedArity(2))
     case "ROUND" => Some(VariableArity(2, 3))
+    case "ROW_NUMBER" => Some(FixedArity(0))
     case "ROWCOUNT_BIG" => Some(FixedArity(0))
     case "RTRIM" => Some(FixedArity(1))
     case "SCHEMA_ID" => Some(VariableArity(0, 1))
@@ -180,11 +188,14 @@ object FunctionBuilder {
     case "SQRT" => Some(FixedArity(1))
     case "SQUARE" => Some(FixedArity(1))
     case "STATS_DATE" => Some(FixedArity(2))
+    case "STDEV" => Some(FixedArity(1))
+    case "STDEVP" => Some(FixedArity(1))
     case "STR" => Some(VariableArity(1, 3))
     case "STRING_AGG" => Some(VariableArity(2, 3))
     case "STRING_ESCAPE" => Some(FixedArity(2))
     case "STUFF" => Some(FixedArity(4))
     case "SUBSTRING" => Some(VariableArity(2, 3))
+    case "SUM" => Some(FixedArity(1))
     case "SUSER_ID" => Some(VariableArity(0, 1))
     case "SUSER_NAME" => Some(VariableArity(0, 1))
     case "SUSER_SID" => Some(VariableArity(0, 2))
@@ -206,11 +217,12 @@ object FunctionBuilder {
     case "UPPER" => Some(FixedArity(1))
     case "USER_ID" => Some(VariableArity(0, 1))
     case "USER_NAME" => Some(VariableArity(0, 1))
+    case "VAR" => Some(FixedArity(1))
+    case "VARP" => Some(FixedArity(1))
     case "XACT_STATE" => Some(FixedArity(0))
     case "YEAR" => Some(FixedArity(1))
     case _ => None
   }
-  // GCOVR_EXCL_STOP
 
   def buildFunction(name: String, args: Seq[ir.Expression]): ir.Expression = {
     val uName = name.toUpperCase(Locale.getDefault())
