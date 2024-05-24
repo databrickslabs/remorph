@@ -115,8 +115,9 @@ class TSqlExpressionBuilder extends TSqlParserBaseVisitor[ir.Expression] with Pa
       // x.y
       case (c1: ir.Column, c2: ir.Column) =>
         ir.Column(c1.name + "." + c2.name)
-      // Other cases
+      // $COVERAGE-OFF$ Other cases catchall - there are none created by the grammar  so cannot be reached
       case _ => ir.Dot(left, right)
+      // $COVERAGE-ON$
     }
   }
 
