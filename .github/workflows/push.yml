@@ -97,6 +97,8 @@ jobs:
         uses: actions/setup-java@v1
         with:
           java-version: 11
+          cache: 'maven'
+          cache-dependency-path: 'core/pom.xml'
 
 
 
