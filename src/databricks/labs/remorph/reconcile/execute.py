@@ -382,7 +382,7 @@ def _get_schema(
     tgt_schema = target.get_schema(
         catalog=database_config.target_catalog,
         schema=database_config.target_schema,
-        table=table_conf.source_name,
+        table=table_conf.target_name,
     )
 
     return src_schema, tgt_schema

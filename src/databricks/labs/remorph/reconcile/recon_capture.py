@@ -121,6 +121,7 @@ class ReconCapture:
             exception_msg = data_reconcile_output.exception
 
         insertion_time = str(datetime.now())
+        mismatch_columns = data_reconcile_output.mismatch.mismatch_columns if data_reconcile_output.mismatch else []
 
         df = self.spark.sql(
             f"""
@@ -133,7 +134,7 @@ class ReconCapture:
                     'column_comparison', named_struct(
                         'absolute_mismatch', {data_reconcile_output.mismatch_count},
                         'threshold_mismatch', {data_reconcile_output.threshold_output.threshold_mismatch_count},
-                        'mismatch_columns', '{",".join(data_reconcile_output.mismatch.mismatch_columns)}'
+                        'mismatch_columns', '{",".join(mismatch_columns)}'
                     ),
                     'schema_comparison', {schema_reconcile_output.is_valid}
                 ) as recon_metrics,
