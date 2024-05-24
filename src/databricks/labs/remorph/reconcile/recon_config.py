@@ -77,35 +77,39 @@ class Table:
     def to_src_col_map(self):
         if self.column_mapping:
             return {c.source_name: c.target_name for c in self.column_mapping}
-        return {}
+        return None
 
     @property
     def to_tgt_col_map(self):
         if self.column_mapping:
             return {c.target_name: c.source_name for c in self.column_mapping}
-        return {}
+        return None
 
     def get_src_to_tgt_col_mapping(self, cols: list[str] | set[str] | str, layer: str) -> set[str] | str:
         if layer == "source":
             if isinstance(cols, str):
                 return cols
             return set(cols)
-        if isinstance(cols, list | set):
-            columns = set()
-            for col in cols:
-                columns.add(self.to_src_col_map.get(col, col))
-            return columns
-        return self.to_src_col_map.get(cols, cols)
+        if self.to_src_col_map:
+            if isinstance(cols, list | set):
+                columns = set()
+                for col in cols:
+                    columns.add(self.to_src_col_map.get(col, col))
+                return columns
+            return self.to_src_col_map.get(cols, cols)
+        return cols
 
     def get_tgt_to_src_col_mapping(self, cols: list[str] | set[str] | str, layer: str) -> set[str] | str:
         if layer == "source":
             return cols
-        if isinstance(cols, list | set):
-            columns = set()
-            for col in cols:
-                columns.add(self.to_tgt_col_map.get(col, col))
-            return columns
-        return self.to_tgt_col_map.get(cols, cols)
+        if self.to_tgt_col_map:
+            if isinstance(cols, list | set):
+                columns = set()
+                for col in cols:
+                    columns.add(self.to_tgt_col_map.get(col, col))
+                return columns
+            return self.to_tgt_col_map.get(cols, cols)
+        return cols
 
     def get_select_columns(self, schema: list[Schema], layer: str) -> set[str]:
         if self.select_columns is None:

@@ -28,13 +28,12 @@ def test_hash_query_builder_for_snowflake_src(table_conf_with_opts, table_schema
 
 
 def test_hash_query_builder_for_oracle_src(table_conf_mock, table_schema, column_mapping):
+    schema, _ = table_schema
     table_conf = table_conf_mock(
         join_columns=["s_suppkey", "s_nationkey"],
-        column_mapping=column_mapping,
         filters=Filters(source="s_nationkey=1"),
     )
-    sch, sch_with_alias = table_schema
-    src_actual = HashQueryBuilder(table_conf, sch, "source", get_dialect("oracle")).build_query(report_type="all")
+    src_actual = HashQueryBuilder(table_conf, schema, "source", get_dialect("oracle")).build_query(report_type="all")
     src_expected = (
         "SELECT LOWER(RAWTOHEX(STANDARD_HASH(CONCAT(COALESCE(TRIM(s_acctbal), ''), COALESCE(TRIM(s_address), ''), "
         "COALESCE(TRIM(s_comment), ''), COALESCE(TRIM(s_name), ''), COALESCE(TRIM(s_nationkey), ''), COALESCE(TRIM("
@@ -42,13 +41,13 @@ def test_hash_query_builder_for_oracle_src(table_conf_mock, table_schema, column
         "s_suppkey AS s_suppkey FROM :tbl WHERE s_nationkey = 1"
     )
 
-    tgt_actual = HashQueryBuilder(table_conf, sch_with_alias, "target", get_dialect("databricks")).build_query(
+    tgt_actual = HashQueryBuilder(table_conf, schema, "target", get_dialect("databricks")).build_query(
         report_type="all"
     )
     tgt_expected = (
-        "SELECT LOWER(SHA2(CONCAT(COALESCE(TRIM(s_acctbal_t), ''), COALESCE(TRIM(s_address_t), ''), COALESCE(TRIM("
-        "s_comment_t), ''), COALESCE(TRIM(s_name), ''), COALESCE(TRIM(s_nationkey_t), ''), COALESCE(TRIM(s_phone_t), "
-        "''), COALESCE(TRIM(s_suppkey_t), '')), 256)) AS hash_value_recon, s_nationkey_t AS s_nationkey, s_suppkey_t "
+        "SELECT LOWER(SHA2(CONCAT(COALESCE(TRIM(s_acctbal), ''), COALESCE(TRIM(s_address), ''), COALESCE(TRIM("
+        "s_comment), ''), COALESCE(TRIM(s_name), ''), COALESCE(TRIM(s_nationkey), ''), COALESCE(TRIM(s_phone), "
+        "''), COALESCE(TRIM(s_suppkey), '')), 256)) AS hash_value_recon, s_nationkey AS s_nationkey, s_suppkey "
         "AS s_suppkey FROM :tbl"
     )
 
