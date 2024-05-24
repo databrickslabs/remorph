@@ -112,10 +112,38 @@ jobs:
       - name: Run Unit Tests with Maven
         run: mvn -B install scoverage:report-only -pl core --file pom.xml --fail-at-end
 
+      - name: Uplaod remorph-core jars as Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: remorph-core-jars
+          path: ~/.m2/repository/com/databricks/labs/remorph
+
       - name: Publish test coverage
         uses: codecov/codecov-action@v4
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
+
+  acceptance-tests:
+    needs: test-core
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 11
+        uses: actions/setup-java@v4
+        with:
+          distribution: corretto
+          java-version: 11
+          cache: 'maven'
+
+      - name: Download remorph-core-jars
+        uses: actions/download-artifact@v4
+        with:
+          name: remorph-core-jars
+          path: ~/.m2/repository/com/databricks/labs/remorph
 
       - name: Run Acceptance Tests with Maven
         run: mvn -B test -pl acceptance --file pom.xml --fail-at-end
