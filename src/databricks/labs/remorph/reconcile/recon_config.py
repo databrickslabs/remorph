@@ -90,22 +90,26 @@ class Table:
             if isinstance(cols, str):
                 return cols
             return set(cols)
-        if isinstance(cols, list | set):
-            columns = set()
-            for col in cols:
-                columns.add(self.to_src_col_map.get(col, col))
-            return columns
-        return self.to_src_col_map.get(cols, cols)
+        if self.to_src_col_map:
+            if isinstance(cols, list | set):
+                columns = set()
+                for col in cols:
+                    columns.add(self.to_src_col_map.get(col, col))
+                return columns
+            return self.to_src_col_map.get(cols, cols)
+        return cols
 
     def get_tgt_to_src_col_mapping(self, cols: list[str] | set[str] | str, layer: str) -> set[str] | str:
         if layer == "source":
             return cols
-        if isinstance(cols, list | set):
-            columns = set()
-            for col in cols:
-                columns.add(self.to_tgt_col_map.get(col, col))
-            return columns
-        return self.to_tgt_col_map.get(cols, cols)
+        if self.to_tgt_col_map:
+            if isinstance(cols, list | set):
+                columns = set()
+                for col in cols:
+                    columns.add(self.to_tgt_col_map.get(col, col))
+                return columns
+            return self.to_tgt_col_map.get(cols, cols)
+        return cols
 
     def get_select_columns(self, schema: list[Schema], layer: str) -> set[str]:
         if self.select_columns is None:

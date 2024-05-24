@@ -129,7 +129,7 @@ class ThresholdQueryBuilder(QueryBuilder):
     ) -> exp.Case:
         eq_if = build_if(
             this=exp.EQ(this=base, expression=build_literal(this="0", is_string=False)),
-            true=exp.Identifier(this="Match", quoted=True),
+            true=exp.Literal(this="Match", is_string=True),
         )
 
         between_base = build_between(
@@ -140,9 +140,9 @@ class ThresholdQueryBuilder(QueryBuilder):
 
         between_if = build_if(
             this=between_base,
-            true=exp.Identifier(this="Warning", quoted=True),
+            true=exp.Literal(this="Warning", is_string=True),
         )
-        return exp.Case(ifs=[eq_if, between_if], default=exp.Identifier(this="Failed", quoted=True))
+        return exp.Case(ifs=[eq_if, between_if], default=exp.Literal(this="Failed", is_string=True))
 
     @classmethod
     def _build_threshold_percentage_case(
@@ -152,7 +152,7 @@ class ThresholdQueryBuilder(QueryBuilder):
     ) -> exp.Case:
         eq_if = exp.If(
             this=exp.EQ(this=base, expression=build_literal(this="0", is_string=False)),
-            true=exp.Identifier(this="Match", quoted=True),
+            true=exp.Literal(this="Match", is_string=True),
         )
 
         denominator = build_if(
@@ -183,9 +183,9 @@ class ThresholdQueryBuilder(QueryBuilder):
 
         between_if = build_if(
             this=between_base,
-            true=exp.Identifier(this="Warning", quoted=True),
+            true=exp.Literal(this="Warning", is_string=True),
         )
-        return exp.Case(ifs=[eq_if, between_if], default=exp.Identifier(this="Failed", quoted=True))
+        return exp.Case(ifs=[eq_if, between_if], default=exp.Literal(this="Failed", is_string=True))
 
     def build_threshold_query(self) -> str:
         """

@@ -17,7 +17,7 @@ def _get_schema_query(catalog: str, schema: str, table: str):
     # TODO: Ensure that the target_catalog in the configuration is not set to "hive_metastore". The source_catalog
     #  can only be set to "hive_metastore" if the source type is "databricks".
     if catalog == "hive_metastore":
-        return f"describe table {schema}.{table}"
+        return f"describe table {catalog}.{schema}.{table}"
 
     query = f"""select lower(column_name) as col_name, full_data_type as data_type from 
                 {catalog}.information_schema.columns where lower(table_catalog)='{catalog}' 
@@ -49,8 +49,6 @@ class DatabricksDataSource(DataSource, SecretsMixin):
         options: JdbcReaderOptions | None,
     ) -> DataFrame | None:
         table_with_namespace = f"{catalog}.{schema}.{table}"
-        if catalog is None or catalog == "hive_metastore":
-            table_with_namespace = f"{schema}.{table}"
         table_query = query.replace(":tbl", table_with_namespace)
         try:
             df = self._spark.sql(table_query)

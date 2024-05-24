@@ -13,6 +13,17 @@ import org.scalatest.matchers.should.Matchers
 import java.io.{ByteArrayOutputStream, PrintStream}
 import scala.collection.mutable.ListBuffer
 
+class ListBufferAppender(appenderName: String, layout: PatternLayout)
+    extends AbstractAppender(appenderName, null, layout, false, null) {
+  val logMessages: ListBuffer[String] = ListBuffer()
+
+  override def append(event: LogEvent): Unit = {
+    logMessages += event.getMessage.getFormattedMessage
+  }
+
+  def getLogMessages: List[String] = logMessages.toList
+}
+
 class TSqlErrorHandlerSpec extends AnyFlatSpec with Matchers {
 
   "ErrorCollector" should "collect syntax errors correctly" in {
@@ -69,7 +80,7 @@ class TSqlErrorHandlerSpec extends AnyFlatSpec with Matchers {
     val formattedErrors = errorCollector.formatErrors
 
     // Check the windowing
-    val s = "..." + "a" * 32 + "error" + "a" * 31 + "...\n" + " " * 35 + "^^^^^"
+    val s = "..." + "a" * 34 + "error" + "a" * 35 + "...\n" + " " * 37 + "^^^^^"
     formattedErrors.head should include(s)
   }
 
@@ -88,15 +99,7 @@ class TSqlErrorHandlerSpec extends AnyFlatSpec with Matchers {
 
     // Create a custom appender to capture the logs
     val appenderName = "CaptureAppender"
-    val appender = new AbstractAppender(appenderName, null, layout, false, null) {
-      val logMessages: ListBuffer[String] = ListBuffer()
-
-      override def append(event: LogEvent): Unit = {
-        logMessages += event.getMessage.getFormattedMessage
-      }
-
-      def getLogMessages: List[String] = logMessages.toList
-    }
+    val appender = new ListBufferAppender(appenderName, layout)
     appender.start()
 
     val context: LoggerContext = LogManager.getContext(false).asInstanceOf[LoggerContext]

@@ -12,11 +12,12 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
     "translate literals" in {
       example("null", _.expression(), ir.Literal(nullType = Some(ir.NullType())))
       example("1", _.expression(), ir.Literal(integer = Some(1)))
+      example("-1", _.expression(), ir.Literal(integer = Some(-1)))
+      example("+1", _.expression(), ir.Literal(integer = Some(1)))
       example("1.1", _.expression(), ir.Literal(float = Some(1.1f)))
       example("'foo'", _.expression(), ir.Literal(string = Some("foo")))
     }
-    // TODO: note that scientific notation and decimals are not correctly handled if we copy SnowFlake
-    "translate scientific notation" ignore {
+    "translate scientific notation" in {
       example("1.1e2", _.expression(), ir.Literal(integer = Some(110)))
       example("1.1e-2", _.expression(), ir.Literal(float = Some(0.011f)))
       example("1e2", _.expression(), ir.Literal(integer = Some(100)))
@@ -79,7 +80,7 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
       example(
         "1 + -++-2",
         _.expression(),
-        ir.Add(ir.Literal(integer = Some(1)), ir.UMinus(ir.UPlus(ir.UPlus(ir.UMinus(ir.Literal(integer = Some(2))))))))
+        ir.Add(ir.Literal(integer = Some(1)), ir.UMinus(ir.UPlus(ir.UPlus(ir.Literal(integer = Some(-2)))))))
       example(
         "1 + ~ 2 * 3",
         _.expression(),
@@ -91,7 +92,7 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
         _.expression(),
         ir.Add(
           ir.Literal(integer = Some(1)),
-          ir.Multiply(ir.UMinus(ir.Literal(integer = Some(2))), ir.Literal(integer = Some(3)))))
+          ir.Multiply(ir.Literal(integer = Some(-2)), ir.Literal(integer = Some(3)))))
       example(
         "1 + -2 * 3 + 7 & 66",
         _.expression(),
@@ -99,7 +100,7 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
           ir.Add(
             ir.Add(
               ir.Literal(integer = Some(1)),
-              ir.Multiply(ir.UMinus(ir.Literal(integer = Some(2))), ir.Literal(integer = Some(3)))),
+              ir.Multiply(ir.Literal(integer = Some(-2)), ir.Literal(integer = Some(3)))),
             ir.Literal(integer = Some(7))),
           ir.Literal(integer = Some(66))))
       example(
@@ -109,7 +110,7 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
           ir.Add(
             ir.Add(
               ir.Literal(integer = Some(1)),
-              ir.Multiply(ir.UMinus(ir.Literal(integer = Some(2))), ir.Literal(integer = Some(3)))),
+              ir.Multiply(ir.Literal(integer = Some(-2)), ir.Literal(integer = Some(3)))),
             ir.Literal(integer = Some(7))),
           ir.Literal(integer = Some(66))))
       example(
@@ -119,7 +120,7 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
           ir.Add(
             ir.Add(
               ir.Literal(integer = Some(1)),
-              ir.Multiply(ir.UMinus(ir.Literal(integer = Some(2))), ir.Literal(integer = Some(3)))),
+              ir.Multiply(ir.Literal(integer = Some(-2)), ir.Literal(integer = Some(3)))),
             ir.Literal(integer = Some(7))),
           ir.Literal(integer = Some(66))))
       example(
@@ -129,7 +130,7 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
           ir.Add(
             ir.Add(
               ir.Literal(integer = Some(1)),
-              ir.Multiply(ir.UMinus(ir.Literal(integer = Some(2))), ir.Literal(integer = Some(3)))),
+              ir.Multiply(ir.Literal(integer = Some(-2)), ir.Literal(integer = Some(3)))),
             ir.Literal(integer = Some(7))),
           ir.BitwiseNot(ir.Literal(integer = Some(66)))))
       example(
@@ -142,7 +143,7 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
                 ir.Add(
                   ir.Add(
                     ir.Literal(integer = Some(1)),
-                    ir.Multiply(ir.UMinus(ir.Literal(integer = Some(2))), ir.Literal(integer = Some(3)))),
+                    ir.Multiply(ir.Literal(integer = Some(-2)), ir.Literal(integer = Some(3)))),
                   ir.Literal(integer = Some(7))),
                 ir.Literal(integer = Some(1980))),
               ir.Literal(string = Some("leeds1"))),

@@ -36,7 +36,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
 
     "accept constants in selects" in {
       example(
-        query = "SELECT 42, 6.4, 0x5A, 2.7E9, $40",
+        query = "SELECT 42, 6.4, 0x5A, 2.7E9, 4.24523534425245E10, $40",
         expectedAst = Batch(
           Seq(Project(
             NoTable(),
@@ -44,8 +44,9 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
               Literal(integer = Some(42)),
               Literal(float = Some(6.4f)),
               Literal(string = Some("0x5A")),
-              Literal(double = Some(2.7e9)),
-              Literal(string = Some("$40")))))))
+              Literal(long = Some(2700000000L)),
+              Literal(double = Some(4.24523534425245e10)),
+              Money(Literal(string = Some("$40"))))))))
     }
 
     "translate collation specifiers" in {
@@ -162,6 +163,25 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
               List(),
               JoinDataType(is_left_struct = false, is_right_struct = false)),
             List(Column("T1.A"))))))
+    }
+    "translate scalar subqueries as expressions in select list" in {
+      example(
+        query = """SELECT
+                          EmployeeID,
+                          Name,
+                          (SELECT AvgSalary FROM Employees) AS AverageSalary
+                      FROM
+                          Employees;""",
+        expectedAst = Batch(
+          Seq(Project(
+            NamedTable("Employees", Map(), is_streaming = false),
+            Seq(
+              Column("EmployeeID"),
+              Column("Name"),
+              Alias(
+                ScalarSubquery(Project(NamedTable("Employees", Map(), is_streaming = false), Seq(Column("AvgSalary")))),
+                Seq("AverageSalary"),
+                None))))))
     }
   }
 }
