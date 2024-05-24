@@ -277,7 +277,7 @@ object FunctionBuilder {
       // Found the function but the arg count is incorrect
       case Some(_) =>
         ir.UnresolvedFunction(
-          name,
+          irName,
           args,
           is_distinct = false,
           is_user_defined_function = false,
@@ -285,7 +285,7 @@ object FunctionBuilder {
 
       // Unsupported function
       case None =>
-        ir.UnresolvedFunction(name, args, is_distinct = false, is_user_defined_function = false)
+        ir.UnresolvedFunction(irName, args, is_distinct = false, is_user_defined_function = false)
     }
   }
 
