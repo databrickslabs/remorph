@@ -107,7 +107,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: remorph-core-jars
-          path: ~/.m2/repository/com/databricks/labs/remorph
+          path: ~/.m2/repository/com/databricks/labs/remorph-core
 
       - name: Publish test coverage
         uses: codecov/codecov-action@v4
@@ -134,7 +134,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: remorph-core-jars
-          path: ~/.m2/repository/com/databricks/labs/remorph
+          path: ~/.m2/repository/com/databricks/labs/remorph-core
 
       - name: Display downloaded artifacts
         run: ls -R ~/.m2
