@@ -28,8 +28,8 @@ def test_threshold_comparison_query_with_one_threshold(table_conf_with_opts, tab
         ' ',
         """select coalesce(source.s_acctbal, 0) as s_acctbal_source, coalesce(databricks.s_acctbal,
         0) as s_acctbal_databricks, case when (coalesce(source.s_acctbal, 0) - coalesce(databricks.s_acctbal,
-        0)) = 0 then `match` when (coalesce(source.s_acctbal, 0) - coalesce(databricks.s_acctbal, 0)) between 0 and
-        100 then `warning` else `failed` end as s_acctbal_match, source.s_nationkey as s_nationkey_source,
+        0)) = 0 then 'match' when (coalesce(source.s_acctbal, 0) - coalesce(databricks.s_acctbal, 0)) between 0 and
+        100 then 'warning' else 'failed' end as s_acctbal_match, source.s_nationkey as s_nationkey_source,
         source.s_suppkey as s_suppkey_source from source_supplier_df_threshold_vw as source inner join
         target_target_supplier_df_threshold_vw as databricks on source.s_nationkey <=> databricks.s_nationkey and
         source.s_suppkey <=> databricks.s_suppkey where (1 = 1 or 1 = 1) or
@@ -58,14 +58,14 @@ def test_threshold_comparison_query_with_dual_threshold(table_conf_with_opts, ta
         ' ',
         """select coalesce(source.s_acctbal, 0) as s_acctbal_source, coalesce(databricks.s_acctbal,
         0) as s_acctbal_databricks, case when (coalesce(source.s_acctbal, 0) - coalesce(databricks.s_acctbal,
-        0)) = 0 then `match` when ((coalesce(source.s_acctbal, 0) - coalesce(databricks.s_acctbal,
+        0)) = 0 then 'match' when ((coalesce(source.s_acctbal, 0) - coalesce(databricks.s_acctbal,
         0)) / if(databricks.s_acctbal = 0 or databricks.s_acctbal is null, 1, databricks.s_acctbal)) * 100 between 5
-        and -5 then `warning` else `failed` end as s_acctbal_match, coalesce(unix_timestamp(source.s_suppdate),
+        and -5 then 'warning' else 'failed' end as s_acctbal_match, coalesce(unix_timestamp(source.s_suppdate),
         0) as s_suppdate_source, coalesce(unix_timestamp(databricks.s_suppdate), 0) as s_suppdate_databricks,
         case when (coalesce(unix_timestamp(source.s_suppdate), 0) - coalesce(unix_timestamp(databricks.s_suppdate),
-        0)) = 0 then `match` when (coalesce(unix_timestamp(source.s_suppdate), 0) -
+        0)) = 0 then 'match' when (coalesce(unix_timestamp(source.s_suppdate), 0) -
         coalesce(unix_timestamp(databricks.s_suppdate), 0)) between -86400 and 86400 then
-        `warning` else `failed` end as s_suppdate_match, source.s_suppdate as s_suppdate_source,
+        'warning' else 'failed' end as s_suppdate_match, source.s_suppdate as s_suppdate_source,
         source.s_suppkey as s_suppkey_source from source_supplier_df_threshold_vw as
         source inner join target_target_supplier_df_threshold_vw as databricks on source.s_suppdate <=> databricks.s_suppdate and
         source.s_suppkey <=> databricks.s_suppkey where (1 = 1 or 1 = 1) or (coalesce(source.s_acctbal, 0) -

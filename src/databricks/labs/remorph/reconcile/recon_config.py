@@ -77,13 +77,13 @@ class Table:
     def to_src_col_map(self):
         if self.column_mapping:
             return {c.source_name: c.target_name for c in self.column_mapping}
-        return None
+        return {}
 
     @property
     def to_tgt_col_map(self):
         if self.column_mapping:
             return {c.target_name: c.source_name for c in self.column_mapping}
-        return None
+        return {}
 
     def get_src_to_tgt_col_mapping(self, cols: list[str] | set[str] | str, layer: str) -> set[str] | str:
         if layer == "source":
