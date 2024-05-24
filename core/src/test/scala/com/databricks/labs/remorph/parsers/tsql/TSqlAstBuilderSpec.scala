@@ -181,6 +181,28 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
             List(Column("T1.A"))))))
     }
 
+    "cover default case in translateJoinType" in {
+      val joinOnContextMock = mock(classOf[TSqlParser.JoinOnContext])
+
+      val outerJoinContextMock = mock(classOf[TSqlParser.OuterJoinContext])
+
+      // Set up the mock to return null for LEFT(), RIGHT(), and FULL()
+      when(outerJoinContextMock.LEFT()).thenReturn(null)
+      when(outerJoinContextMock.RIGHT()).thenReturn(null)
+      when(outerJoinContextMock.FULL()).thenReturn(null)
+
+      when(joinOnContextMock.joinType()).thenReturn(null)
+
+      val joinTypeContextMock = mock(classOf[TSqlParser.JoinTypeContext])
+      when(joinTypeContextMock.outerJoin()).thenReturn(outerJoinContextMock)
+      when(joinTypeContextMock.INNER()).thenReturn(null)
+      when(joinOnContextMock.joinType()).thenReturn(joinTypeContextMock)
+
+      val builder = new TSqlRelationBuilder
+      val result = builder.translateJoinType(joinOnContextMock)
+      result shouldBe UnspecifiedJoin
+    }
+
     "translate simple XML query and values" in {
       example(
         query = "SELECT xmlcolumn.query('/root/child') FROM tab",
@@ -216,7 +238,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
         query = "SELECT @a = 1, @b = 2, @c = 3",
         expectedAst = Batch(
           Seq(Project(
-            NoTable(),
+            NoTable,
             Seq(
               Assign(Identifier("@a", isQuoted = false), Literal(integer = Some(1))),
               Assign(Identifier("@b", isQuoted = false), Literal(integer = Some(2))),
@@ -226,7 +248,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
         query = "SELECT @a += 1, @b -= 2",
         expectedAst = Batch(
           Seq(Project(
-            NoTable(),
+            NoTable,
             Seq(
               Assign(
                 Identifier("@a", isQuoted = false),
@@ -239,7 +261,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
         query = "SELECT @a *= 1, @b /= 2",
         expectedAst = Batch(
           Seq(Project(
-            NoTable(),
+            NoTable,
             Seq(
               Assign(
                 Identifier("@a", isQuoted = false),
@@ -251,7 +273,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
       example(
         query = "SELECT @a %= myColumn",
         expectedAst = Batch(Seq(Project(
-          NoTable(),
+          NoTable,
           Seq(
             Assign(Identifier("@a", isQuoted = false), Mod(Identifier("@a", isQuoted = false), Column("myColumn"))))))))
 
@@ -260,7 +282,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
         expectedAst = Batch(
           Seq(
             Project(
-              NoTable(),
+              NoTable,
               Seq(Assign(
                 Identifier("@a", isQuoted = false),
                 BitwiseAnd(Identifier("@a", isQuoted = false), Column("myColumn"))))))))
@@ -270,7 +292,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
         expectedAst = Batch(
           Seq(
             Project(
-              NoTable(),
+              NoTable,
               Seq(Assign(
                 Identifier("@a", isQuoted = false),
                 BitwiseXor(Identifier("@a", isQuoted = false), Column("myColumn"))))))))
@@ -280,7 +302,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
         expectedAst = Batch(
           Seq(
             Project(
-              NoTable(),
+              NoTable,
               Seq(Assign(
                 Identifier("@a", isQuoted = false),
                 BitwiseOr(Identifier("@a", isQuoted = false), Column("myColumn"))))))))

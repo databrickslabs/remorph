@@ -7,17 +7,25 @@ import java.util.Locale
 sealed trait FunctionType
 case object StandardFunction extends FunctionType
 case object XmlFunction extends FunctionType
+case object UnknownFunction extends FunctionType
 
-sealed trait FunctionArity {}
+sealed trait FunctionArity {
+  def isConvertible: Boolean
+}
 
-case class FixedArity(arity: Int, functionType: FunctionType = StandardFunction, isConvertible: Boolean = true)
-    extends FunctionArity
+case class FixedArity(arity: Int, functionType: FunctionType = StandardFunction, convertible: Boolean = true)
+    extends FunctionArity {
+  override def isConvertible: Boolean = convertible
+}
+
 case class VariableArity(
     argMin: Int,
     argMax: Int,
     functionType: FunctionType = StandardFunction,
-    isConvertible: Boolean = true)
-    extends FunctionArity
+    convertible: Boolean = true)
+    extends FunctionArity {
+  override def isConvertible: Boolean = convertible
+}
 
 object FunctionBuilder {
 
@@ -48,6 +56,7 @@ object FunctionBuilder {
     case "CONCAT" => Some(VariableArity(2, Int.MaxValue))
     case "CONCAT_WS" => Some(VariableArity(3, Int.MaxValue))
     case "CONNECTIONPROPERTY" => Some(FixedArity(1, convertible = false))
+    case "CONNECTIONPROPERTY" => Some(FixedArity(1, convertible = false))
     case "CONTEXT_INFO" => Some(FixedArity(0))
     case "CONVERT" => Some(VariableArity(2, 3))
     case "COS" => Some(FixedArity(1))
@@ -66,7 +75,7 @@ object FunctionBuilder {
     case "COMPRESS" => Some(FixedArity(1))
     case "CONCAT" => Some(VariableArity(2, Int.MaxValue))
     case "CONCAT_WS" => Some(VariableArity(3, Int.MaxValue))
-    case "CONNECTIONPROPERTY" => Some(FixedArity(1, isConvertible = false))
+    case "CONNECTIONPROPERTY" => Some(FixedArity(1, convertible = false))
     case "CONTEXT_INFO" => Some(FixedArity(0))
     case "CONVERT" => Some(VariableArity(2, 3))
     case "COS" => Some(FixedArity(1))
@@ -221,10 +230,10 @@ object FunctionBuilder {
     case "OBJECTPROPERTYEX" => Some(FixedArity(2))
     case "ORIGINAL_DB_NAME" => Some(FixedArity(0))
     case "ORIGINAL_LOGIN" => Some(FixedArity(0))
-    case "PARSE" => Some(VariableArity(2, 3))
+    case "PARSE" => Some(VariableArity(2, 3, convertible = false)) // Not in DBSQL
     case "PARSENAME" => Some(FixedArity(2))
     case "PATINDEX" => Some(FixedArity(2))
-    case "PERMISSIONS" => Some(VariableArity(0, 2))
+    case "PERMISSIONS" => Some(VariableArity(0, 2, convertible = false)) // not in DBSQL
     case "PI" => Some(FixedArity(0))
     case "POWER" => Some(FixedArity(2))
     case "PWDCOMPARE" => Some(VariableArity(2, 3))
@@ -302,7 +311,7 @@ object FunctionBuilder {
     defnOption match {
       case Some(fixedArity: FixedArity) => fixedArity.functionType
       case Some(variableArity: VariableArity) => variableArity.functionType
-      case None => StandardFunction
+      case _ => UnknownFunction
     }
   }
 
@@ -311,22 +320,26 @@ object FunctionBuilder {
     val defnOption = functionArity(uName)
 
     defnOption match {
-      case Some(fixedArity: FixedArity) if !fixedArity.isConvertible =>
+      case Some(functionArity) if !functionArity.isConvertible =>
         ir.UnresolvedFunction(name, args, is_distinct = false, is_user_defined_function = false)
 
       case Some(fixedArity: FixedArity) if args.length == fixedArity.arity =>
         ir.CallFunction(name, args)
 
-      case Some(variableArity: VariableArity) if !variableArity.isConvertible =>
-        ir.UnresolvedFunction(name, args, is_distinct = false, is_user_defined_function = false)
-
       case Some(variableArity: VariableArity)
           if args.length >= variableArity.argMin && args.length <= variableArity.argMax =>
         ir.CallFunction(name, args)
 
+      // Found the function but the arg count is incorrect
       case Some(_) =>
-        ir.UnresolvedFunction(name, args, is_distinct = false, is_user_defined_function = false)
+        ir.UnresolvedFunction(
+          name,
+          args,
+          is_distinct = false,
+          is_user_defined_function = false,
+          has_incorrect_argc = true)
 
+      // Unsupported function
       case None =>
         ir.UnresolvedFunction(name, args, is_distinct = false, is_user_defined_function = false)
     }

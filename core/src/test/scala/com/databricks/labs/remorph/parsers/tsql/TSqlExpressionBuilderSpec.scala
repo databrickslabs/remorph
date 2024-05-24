@@ -3,6 +3,9 @@ package com.databricks.labs.remorph.parsers.tsql
 import com.databricks.labs.remorph.parsers.intermediate.FrameBoundary
 import com.databricks.labs.remorph.parsers.tsql.TSqlParser.WindowFrameBoundContext
 import com.databricks.labs.remorph.parsers.{intermediate => ir}
+import org.antlr.v4.runtime.tree.TerminalNodeImpl
+import org.antlr.v4.runtime.{CommonToken, Token}
+import org.mockito.ArgumentMatchers.any
 import org.mockito.ArgumentMatchers.anyInt
 import org.mockito.Mockito.{mock, when}
 import org.mockito.Mockito.{mock, when}
@@ -207,11 +210,127 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
             ir.Literal(integer = Some(2)),
             ir.Add(ir.Literal(integer = Some(3)), ir.Literal(integer = Some(4))))))
     }
+    "translate functions with no parameters" in {
+      example("APP_NAME()", _.expression(), ir.CallFunction("APP_NAME", List()))
+      example("SCOPE_IDENTITY()", _.expression(), ir.CallFunction("SCOPE_IDENTITY", List()))
+    }
+
+    "translate functions with variable numbers of parameters" in {
+      example(
+        "CONCAT('a', 'b', 'c')",
+        _.expression(),
+        ir.CallFunction(
+          "CONCAT",
+          Seq(ir.Literal(string = Some("a")), ir.Literal(string = Some("b")), ir.Literal(string = Some("c")))))
+
+      example(
+        "CONCAT_WS(',', 'a', 'b', 'c')",
+        _.expression(),
+        ir.CallFunction(
+          "CONCAT_WS",
+          List(
+            ir.Literal(string = Some(",")),
+            ir.Literal(string = Some("a")),
+            ir.Literal(string = Some("b")),
+            ir.Literal(string = Some("c")))))
+    }
+
+    "translate functions with functions as parameters" in {
+      example(
+        "CONCAT(Greatest(42, 2, 4, \"ali\"), 'c')",
+        _.expression(),
+        ir.CallFunction(
+          "CONCAT",
+          List(
+            ir.CallFunction(
+              "Greatest",
+              List(
+                ir.Literal(integer = Some(42)),
+                ir.Literal(integer = Some(2)),
+                ir.Literal(integer = Some(4)),
+                ir.Column("\"ali\""))),
+            ir.Literal(string = Some("c")))))
+    }
+
+    "translate functions with complicated expressions as parameters" in {
+      example(
+        "CONCAT('a', 'b' || 'c', Greatest(42, 2, 4, \"ali\"))",
+        _.standardFunction(),
+        ir.CallFunction(
+          "CONCAT",
+          List(
+            ir.Literal(string = Some("a")),
+            ir.Concat(ir.Literal(string = Some("b")), ir.Literal(string = Some("c"))),
+            ir.CallFunction(
+              "Greatest",
+              List(
+                ir.Literal(integer = Some(42)),
+                ir.Literal(integer = Some(2)),
+                ir.Literal(integer = Some(4)),
+                ir.Column("\"ali\""))))))
+    }
+
+    "translate unknown functions as unresolved" in {
+      example(
+        "UNKNOWN_FUNCTION()",
+        _.expression(),
+        ir.UnresolvedFunction("UNKNOWN_FUNCTION", List(), is_distinct = false, is_user_defined_function = false))
+    }
+
+    "translate functions with invalid function argument counts" in {
+      // Later, we will register a semantic or lint error
+      example(
+        "USER_NAME('a', 'b', 'c', 'd')", // USER_NAME function only accepts 0 or 1 argument
+        _.expression(),
+        ir.UnresolvedFunction(
+          "USER_NAME",
+          Seq(
+            ir.Literal(string = Some("a")),
+            ir.Literal(string = Some("b")),
+            ir.Literal(string = Some("c")),
+            ir.Literal(string = Some("d"))),
+          is_distinct = false,
+          is_user_defined_function = false,
+          has_incorrect_argc = true))
+
+      example(
+        "FLOOR()", // FLOOR requires 1 argument
+        _.expression(),
+        ir.UnresolvedFunction(
+          "FLOOR",
+          List(),
+          is_distinct = false,
+          is_user_defined_function = false,
+          has_incorrect_argc = true))
+    }
+
+    "translate functions that we know cannot be converted" in {
+      // Later, we will register a semantic or lint error
+      example(
+        "CONNECTIONPROPERTY('property')",
+        _.expression(),
+        ir.UnresolvedFunction(
+          "CONNECTIONPROPERTY",
+          List(ir.Literal(string = Some("property"))),
+          is_distinct = false,
+          is_user_defined_function = false))
+
+      example(
+        "PERMISSIONS(aaaaa, 'bbbbbb')",
+        _.expression(),
+        ir.UnresolvedFunction(
+          "PERMISSIONS",
+          Seq(ir.Column("aaaaa"), ir.Literal(string = Some("bbbbbb"))),
+          is_distinct = false,
+          is_user_defined_function = false))
+    }
+
     "correctly resolve dot delimited plain references" in {
       example("a", _.expression(), ir.Column("a"))
       example("a.b", _.expression(), ir.Column("a.b"))
       example("a.b.c", _.expression(), ir.Column("a.b.c"))
     }
+
     "correctly resolve quoted identifiers" in {
       example("RAW", _.expression(), ir.Column("RAW"))
       example("#RAW", _.expression(), ir.Column("#RAW"))
@@ -338,6 +457,28 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
           ir.Dot(ir.Column("b"), ir.Dot(ir.Column("c"), ir.CallFunction("FLOOR", Seq(ir.Column("c")))))))
     }
 
+    "handle unknown functions used with dots" in {
+      example(
+        "a.UNKNOWN_FUNCTION()",
+        _.expression(),
+        ir.Dot(
+          ir.Column("a"),
+          ir.UnresolvedFunction("UNKNOWN_FUNCTION", List(), is_distinct = false, is_user_defined_function = false)))
+    }
+
+    "cover case that cannot happen with dot" in {
+      val builder = new TSqlExpressionBuilder
+      val mockCtx = mock(classOf[TSqlParser.ExprDotContext])
+      val expressionMockColumn = mock(classOf[TSqlParser.ExpressionContext])
+      when(mockCtx.expression(0)).thenReturn(expressionMockColumn)
+      when(expressionMockColumn.accept(any())).thenReturn(ir.Column("a"))
+      val expressionMockFunc = mock(classOf[TSqlParser.ExpressionContext])
+      when(mockCtx.expression(1)).thenReturn(expressionMockFunc)
+      when(expressionMockFunc.accept(any())).thenReturn(ir.CallFunction("UNKNOWN_FUNCTION", List()))
+      val result = builder.visitExprDot(mockCtx)
+      result shouldBe a[ir.Dot]
+    }
+
     "translate case/when/else expressions" in {
       // Case with an initial expression and an else clause
       example(
@@ -408,6 +549,25 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
       val result = builder.visitSelectListElem(mockCtx)
 
       // Verify the result
+      result shouldBe a[ir.UnresolvedExpression]
+    }
+
+    "cover default case in buildLocalAssign via visitSelectListElem" in {
+      val selectListElemContextMock = mock(classOf[TSqlParser.SelectListElemContext])
+      val eofToken = new CommonToken(Token.EOF)
+      selectListElemContextMock.op = eofToken
+      when(selectListElemContextMock.LOCAL_ID()).thenReturn(new TerminalNodeImpl(eofToken))
+      when(selectListElemContextMock.asterisk()).thenReturn(null)
+      when(selectListElemContextMock.udtElem()).thenReturn(null)
+      when(selectListElemContextMock.getText).thenReturn("")
+
+      val expressionContextMock = mock(classOf[TSqlParser.ExpressionContext])
+      when(expressionContextMock.accept(any())).thenReturn(null)
+      when(selectListElemContextMock.expression()).thenReturn(expressionContextMock)
+
+      val builder = new TSqlExpressionBuilder
+      val result = builder.visitSelectListElem(selectListElemContextMock)
+
       result shouldBe a[ir.UnresolvedExpression]
     }
   }
