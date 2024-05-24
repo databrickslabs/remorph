@@ -112,12 +112,9 @@ class TSqlExpressionBuilder extends TSqlParserBaseVisitor[ir.Expression] with Pa
     val left = ctx.expression(0).accept(this)
     val right = ctx.expression(1).accept(this)
     (left, right) match {
-      // x.y
       case (c1: ir.Column, c2: ir.Column) =>
         ir.Column(c1.name + "." + c2.name)
-      // $COVERAGE-OFF$ Other cases catchall - there are none created by the grammar  so cannot be reached
-      case _ => ir.Dot(left, right)
-      // $COVERAGE-ON$
+      case _ => ir.Dot(left, right) // This is a placeholder for now as we must match all different valid types
     }
   }
 
@@ -302,7 +299,7 @@ class TSqlExpressionBuilder extends TSqlParserBaseVisitor[ir.Expression] with Pa
     else ir.RangeFrame
   }
 
-  private def buildFrame(ctx: WindowFrameBoundContext): ir.FrameBoundary =
+  private[tsql] def buildFrame(ctx: WindowFrameBoundContext): ir.FrameBoundary =
     ctx match {
       case c if c.UNBOUNDED() != null => ir.FrameBoundary(current_row = false, unbounded = true, value = ir.Noop)
       case c if c.CURRENT() != null => ir.FrameBoundary(current_row = true, unbounded = false, ir.Noop)

@@ -1,6 +1,10 @@
 package com.databricks.labs.remorph.parsers.tsql
 
+import com.databricks.labs.remorph.parsers.intermediate.FrameBoundary
+import com.databricks.labs.remorph.parsers.tsql.TSqlParser.WindowFrameBoundContext
 import com.databricks.labs.remorph.parsers.{intermediate => ir}
+import org.mockito.ArgumentMatchers.anyInt
+import org.mockito.Mockito.{mock, when}
 import org.mockito.Mockito.{mock, when}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -249,6 +253,36 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
       example("a", _.fullColumnName(), ir.Column("a"))
     }
 
+    "return ir.Dot for otherwise unhandled DotExpr" in {
+      val builder = new TSqlExpressionBuilder
+      val mockDotExprCtx = mock(classOf[TSqlParser.ExprDotContext])
+      val mockExpressionCtx = mock(classOf[TSqlParser.ExpressionContext])
+      val mockVisitor = mock(classOf[TSqlExpressionBuilder])
+
+      when(mockDotExprCtx.expression(anyInt())).thenReturn(mockExpressionCtx)
+      when(mockExpressionCtx.accept(mockVisitor)).thenReturn(ir.Literal(string = Some("a")))
+      val result = builder.visitExprDot(mockDotExprCtx)
+
+      result shouldBe a[ir.Dot]
+    }
+
+    "cover the unreachable default case in buildFrame" in {
+      val mockCtx = mock(classOf[WindowFrameBoundContext])
+
+      // Ensure that UNBOUNDED(), CURRENT() and INT() methods return null
+      when(mockCtx.UNBOUNDED()).thenReturn(null)
+      when(mockCtx.CURRENT()).thenReturn(null)
+      when(mockCtx.INT()).thenReturn(null)
+
+      val builder = new TSqlExpressionBuilder
+      val result = builder.buildFrame(mockCtx)
+
+      // Verify the result
+      result shouldBe a[FrameBoundary]
+      result.current_row shouldBe false
+      result.unbounded shouldBe false
+    }
+
     "translate search conditions" in {
       example("a = b", _.searchCondition(), ir.Equals(ir.Column("a"), ir.Column("b")))
       example("a > b", _.searchCondition(), ir.GreaterThan(ir.Column("a"), ir.Column("b")))
@@ -354,5 +388,4 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
       result shouldBe a[ir.UnresolvedExpression]
     }
   }
-
 }
