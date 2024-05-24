@@ -136,6 +136,9 @@ jobs:
           name: remorph-core-jars
           path: ~/.m2/repository/com/databricks/labs/remorph
 
+      - name: Display downloaded artifacts
+        run: ls -R ~/.m2
+
       - name: Run Acceptance Tests with Maven
         run: mvn -B test -pl acceptance --file pom.xml --fail-at-end
         continue-on-error: true
