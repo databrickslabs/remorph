@@ -1,6 +1,7 @@
 package com.databricks.labs.remorph.parsers.tsql
 
 import com.databricks.labs.remorph.parsers.{intermediate => ir}
+import org.mockito.Mockito.{mock, when}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
@@ -436,5 +437,21 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
     "translate a timezone reference" in {
       example("a AT TIME ZONE 'UTC'", _.expression(), ir.Timezone(ir.Column("a"), ir.Literal(string = Some("UTC"))))
     }
+
+    "return UnresolvedExpression for unsupported SelectListElem" in {
+      val builder = new TSqlExpressionBuilder
+      val mockCtx = mock(classOf[TSqlParser.SelectListElemContext])
+
+      // Ensure that both asterisk() and expressionElem() methods return null
+      when(mockCtx.asterisk()).thenReturn(null)
+      when(mockCtx.expressionElem()).thenReturn(null)
+
+      // Call the method with the mock instance
+      val result = builder.visitSelectListElem(mockCtx)
+
+      // Verify the result
+      result shouldBe a[ir.UnresolvedExpression]
+    }
   }
+
 }

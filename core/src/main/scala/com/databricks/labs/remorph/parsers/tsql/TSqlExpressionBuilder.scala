@@ -9,30 +9,45 @@ import scala.collection.JavaConverters.{asScalaBufferConverter, collectionAsScal
 
 class TSqlExpressionBuilder extends TSqlParserBaseVisitor[ir.Expression] with ParserCommon {
 
-  // TODO: A lot of work here for things that are not just simple x.y.z
-  override def visitSelectListElem(ctx: TSqlParser.SelectListElemContext): ir.Expression =
-    ctx.expressionElem.accept(this)
+  override def visitSelectListElem(ctx: TSqlParser.SelectListElemContext): ir.Expression = {
+    ctx match {
+      // TODO: asterisk not fully handled
+      case c if c.asterisk() != null => c.asterisk().accept(this)
+      case c if c.expressionElem() != null => ctx.expressionElem().accept(this)
+      case _ => ir.UnresolvedExpression("Unsupported SelectListElem")
+    }
+  }
 
-  override def visitFullTableName(ctx: FullTableNameContext): ir.Literal = {
-    // Extract the components of the full table name, if they exist
-    val linkedServer = Option(ctx.linkedServer).map(_ => ctx.linkedServer.getText + ".")
-    val database = Option(ctx.database).map(_.getText)
-    val schema = Option(ctx.schema).map(_.getText)
-    val name = ctx.table.getText
-
-    val unparsedIdentifier = List(linkedServer, database, schema, Some(name)).flatten.mkString(".")
-    ir.Literal(string = Some(unparsedIdentifier))
+  private def buildTableName(ctx: TableNameContext): String = {
+    val linkedServer = Option(ctx.linkedServer).map(_.getText)
+    val ids = ctx.ids.asScala.map(_.getText).mkString(".")
+    linkedServer.fold(ids)(ls => s"$ls..$ids")
   }
 
   override def visitFullColumnName(ctx: FullColumnNameContext): ir.Column = {
     val columnName = ctx.id.getText
-    val fullColumnName = Option(ctx.fullTableName())
-      .map(_.accept(this))
-      .collect {
-        case nt: ir.Literal if nt.string.isDefined => nt.string.get + "." + columnName
-      }
+    val fullColumnName = Option(ctx.tableName())
+      .map(buildTableName)
+      .map(_ + "." + columnName)
       .getOrElse(columnName)
     ir.Column(fullColumnName)
+  }
+
+  /**
+   * Handles * used in column expressions.
+   *
+   * This can be used in things like SELECT * FROM table
+   *
+   * @param ctx
+   *   the parse tree
+   */
+  override def visitAsterisk(ctx: AsteriskContext): ir.Expression = ctx match {
+    case _ if ctx.tableName() != null =>
+      val objectName = Option(ctx.tableName()).map(buildTableName)
+      ir.Star(objectName)
+    case _ if ctx.INSERTED() != null => ir.Inserted(ir.Star(None))
+    case _ if ctx.DELETED() != null => ir.Deleted(ir.Star(None))
+    case _ => ir.Star(None)
   }
 
   /**

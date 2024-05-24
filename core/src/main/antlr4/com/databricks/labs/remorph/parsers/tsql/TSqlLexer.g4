@@ -131,7 +131,6 @@ BINDING                                     : 'BINDING';
 BLOB_STORAGE                                : 'BLOB_STORAGE';
 BLOCK                                       : 'BLOCK';
 BLOCKERS                                    : 'BLOCKERS';
-BLOCKING_HIERARCHY                          : 'BLOCKING_HIERARCHY';
 BLOCKSIZE                                   : 'BLOCKSIZE';
 BREAK                                       : 'BREAK';
 BROKER                                      : 'BROKER';
