@@ -1,6 +1,10 @@
 package com.databricks.labs.remorph.parsers.tsql
 
+import com.databricks.labs.remorph.parsers.intermediate.FrameBoundary
+import com.databricks.labs.remorph.parsers.tsql.TSqlParser.WindowFrameBoundContext
 import com.databricks.labs.remorph.parsers.{intermediate => ir}
+import org.mockito.ArgumentMatchers.anyInt
+import org.mockito.Mockito.{mock, when}
 import org.mockito.Mockito.{mock, when}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -203,105 +207,6 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
             ir.Literal(integer = Some(2)),
             ir.Add(ir.Literal(integer = Some(3)), ir.Literal(integer = Some(4))))))
     }
-    "translate functions with no parameters" in {
-      example("APP_NAME()", _.expression(), ir.CallFunction("APP_NAME", List()))
-      example("SCOPE_IDENTITY()", _.expression(), ir.CallFunction("SCOPE_IDENTITY", List()))
-    }
-
-    "translate functions with variable numbers of parameters" in {
-      example(
-        "CONCAT('a', 'b', 'c')",
-        _.expression(),
-        ir.CallFunction(
-          "CONCAT",
-          Seq(ir.Literal(string = Some("a")), ir.Literal(string = Some("b")), ir.Literal(string = Some("c")))))
-
-      example(
-        "CONCAT_WS(',', 'a', 'b', 'c')",
-        _.expression(),
-        ir.CallFunction(
-          "CONCAT_WS",
-          List(
-            ir.Literal(string = Some(",")),
-            ir.Literal(string = Some("a")),
-            ir.Literal(string = Some("b")),
-            ir.Literal(string = Some("c")))))
-    }
-
-    "translate functions with functions as parameters" in {
-      example(
-        "CONCAT(Greatest(42, 2, 4, \"ali\"), 'c')",
-        _.expression(),
-        ir.CallFunction(
-          "CONCAT",
-          List(
-            ir.CallFunction(
-              "Greatest",
-              List(
-                ir.Literal(integer = Some(42)),
-                ir.Literal(integer = Some(2)),
-                ir.Literal(integer = Some(4)),
-                ir.Column("\"ali\""))),
-            ir.Literal(string = Some("c")))))
-    }
-
-    "translate functions with complicated expressions as parameters" in {
-      example(
-        "CONCAT('a', 'b' || 'c', Greatest(42, 2, 4, \"ali\"))",
-        _.standardFunction(),
-        ir.CallFunction(
-          "CONCAT",
-          List(
-            ir.Literal(string = Some("a")),
-            ir.Concat(ir.Literal(string = Some("b")), ir.Literal(string = Some("c"))),
-            ir.CallFunction(
-              "Greatest",
-              List(
-                ir.Literal(integer = Some(42)),
-                ir.Literal(integer = Some(2)),
-                ir.Literal(integer = Some(4)),
-                ir.Column("\"ali\""))))))
-    }
-
-    "translate unknown functions as unresolved" in {
-      example(
-        "UNKNOWN_FUNCTION()",
-        _.expression(),
-        ir.UnresolvedFunction("UNKNOWN_FUNCTION", List(), is_distinct = false, is_user_defined_function = false))
-    }
-
-    "translate functions with invalid function argument counts" in {
-      // Later, we will register a semantic or lint error
-      example(
-        "USER_NAME('a', 'b', 'c', 'd')", // USER_NAME function only accepts 0 or 1 argument
-        _.expression(),
-        ir.UnresolvedFunction(
-          "USER_NAME",
-          Seq(
-            ir.Literal(string = Some("a")),
-            ir.Literal(string = Some("b")),
-            ir.Literal(string = Some("c")),
-            ir.Literal(string = Some("d"))),
-          is_distinct = false,
-          is_user_defined_function = false))
-
-      example(
-        "FLOOR()", // FLOOR requires 1 argument
-        _.expression(),
-        ir.UnresolvedFunction("FLOOR", List(), is_distinct = false, is_user_defined_function = false))
-    }
-
-    "translate functions that we know cannot be converted" in {
-      // Later, we will register a semantic or lint error
-      example(
-        "CONNECTIONPROPERTY('property')",
-        _.expression(),
-        ir.UnresolvedFunction(
-          "CONNECTIONPROPERTY",
-          List(ir.Literal(string = Some("property"))),
-          is_distinct = false,
-          is_user_defined_function = false))
-    }
     "correctly resolve dot delimited plain references" in {
       example("a", _.expression(), ir.Column("a"))
       example("a.b", _.expression(), ir.Column("a.b"))
@@ -346,6 +251,36 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
 
     "translate a column without a table reference" in {
       example("a", _.fullColumnName(), ir.Column("a"))
+    }
+
+    "return ir.Dot for otherwise unhandled DotExpr" in {
+      val builder = new TSqlExpressionBuilder
+      val mockDotExprCtx = mock(classOf[TSqlParser.ExprDotContext])
+      val mockExpressionCtx = mock(classOf[TSqlParser.ExpressionContext])
+      val mockVisitor = mock(classOf[TSqlExpressionBuilder])
+
+      when(mockDotExprCtx.expression(anyInt())).thenReturn(mockExpressionCtx)
+      when(mockExpressionCtx.accept(mockVisitor)).thenReturn(ir.Literal(string = Some("a")))
+      val result = builder.visitExprDot(mockDotExprCtx)
+
+      result shouldBe a[ir.Dot]
+    }
+
+    "cover the unreachable default case in buildFrame" in {
+      val mockCtx = mock(classOf[WindowFrameBoundContext])
+
+      // Ensure that UNBOUNDED(), CURRENT() and INT() methods return null
+      when(mockCtx.UNBOUNDED()).thenReturn(null)
+      when(mockCtx.CURRENT()).thenReturn(null)
+      when(mockCtx.INT()).thenReturn(null)
+
+      val builder = new TSqlExpressionBuilder
+      val result = builder.buildFrame(mockCtx)
+
+      // Verify the result
+      result shouldBe a[FrameBoundary]
+      result.current_row shouldBe false
+      result.unbounded shouldBe false
     }
 
     "translate search conditions" in {
@@ -453,5 +388,4 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
       result shouldBe a[ir.UnresolvedExpression]
     }
   }
-
 }

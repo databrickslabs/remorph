@@ -5,7 +5,7 @@ import com.databricks.labs.remorph.parsers.{FunctionBuilder, ParserCommon, inter
 import org.antlr.v4.runtime.Token
 import org.antlr.v4.runtime.tree.{TerminalNode, Trees}
 
-import scala.collection.JavaConverters.{asScalaBufferConverter, collectionAsScalaIterableConverter}
+import scala.collection.JavaConverters._
 
 class TSqlExpressionBuilder extends TSqlParserBaseVisitor[ir.Expression] with ParserCommon {
 
@@ -112,11 +112,9 @@ class TSqlExpressionBuilder extends TSqlParserBaseVisitor[ir.Expression] with Pa
     val left = ctx.expression(0).accept(this)
     val right = ctx.expression(1).accept(this)
     (left, right) match {
-      // x.y
       case (c1: ir.Column, c2: ir.Column) =>
         ir.Column(c1.name + "." + c2.name)
-      // Other cases
-      case _ => ir.Dot(left, right)
+      case _ => ir.Dot(left, right) // This is a placeholder for now as we must match all different valid types
     }
   }
 
@@ -249,6 +247,69 @@ class TSqlExpressionBuilder extends TSqlParserBaseVisitor[ir.Expression] with Pa
     val args = Option(ctx.expression()).map(_.asScala.map(_.accept(this))).getOrElse(Seq.empty)
     FunctionBuilder.buildFunction(name, args)
   }
+
+  // Note that this visitor is made complicated and difficult because the built in ir does not use options
+  // and so we build placeholder values for the optional values. They also do not extend expression
+  // so we can't build them logically with visit and accept. Maybe replace them with
+  // extensions that do do this?
+  override def visitExprOver(ctx: ExprOverContext): ir.Window = {
+    val windowFunction = ctx.expression().accept(this)
+    val partitionByExpressions =
+      Option(ctx.overClause().expression()).map(_.asScala.toList.map(_.accept(this))).getOrElse(List.empty)
+    val orderByExpressions = Option(ctx.overClause().orderByClause())
+      .map(_.orderByExpression().asScala.toList.map { orderByExpr =>
+        val expression = orderByExpr.expression().accept(this)
+        val sortOrder =
+          if (Option(orderByExpr.DESC()).isDefined) ir.DescendingSortDirection
+          else ir.AscendingSortDirection
+        ir.SortOrder(expression, sortOrder, ir.SortNullsUnspecified)
+      })
+      .getOrElse(List.empty)
+
+    val rowRange = Option(ctx.overClause().rowOrRangeClause())
+      .map(buildWindowFrame)
+      .getOrElse(noWindowFrame)
+
+    ir.Window(windowFunction, partitionByExpressions, orderByExpressions, rowRange)
+  }
+
+  private def noWindowFrame: ir.WindowFrame =
+    ir.WindowFrame(
+      ir.UndefinedFrame,
+      ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop),
+      ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop))
+
+  private def buildWindowFrame(ctx: RowOrRangeClauseContext): ir.WindowFrame = {
+    val frameType = buildFrameType(ctx)
+    val bounds = Trees
+      .findAllRuleNodes(ctx, TSqlParser.RULE_windowFrameBound)
+      .asScala
+      .collect { case wfb: WindowFrameBoundContext => wfb }
+      .map(buildFrame)
+
+    val frameStart = bounds.head // Safe due to the nature of window frames always having at least a start bound
+    val frameEnd =
+      bounds.tail.headOption.getOrElse(ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop))
+
+    ir.WindowFrame(frameType, frameStart, frameEnd)
+  }
+
+  private def buildFrameType(ctx: RowOrRangeClauseContext): ir.FrameType = {
+    if (Option(ctx.ROWS()).isDefined) ir.RowsFrame
+    else ir.RangeFrame
+  }
+
+  private[tsql] def buildFrame(ctx: WindowFrameBoundContext): ir.FrameBoundary =
+    ctx match {
+      case c if c.UNBOUNDED() != null => ir.FrameBoundary(current_row = false, unbounded = true, value = ir.Noop)
+      case c if c.CURRENT() != null => ir.FrameBoundary(current_row = true, unbounded = false, ir.Noop)
+      case c if c.INT() != null =>
+        ir.FrameBoundary(
+          current_row = false,
+          unbounded = false,
+          value = ir.Literal(integer = Some(c.INT().getText.toInt)))
+      case _ => ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop)
+    }
 
   /**
    * This is a special case where we are building a column definition. This is used in the SELECT statement to define
