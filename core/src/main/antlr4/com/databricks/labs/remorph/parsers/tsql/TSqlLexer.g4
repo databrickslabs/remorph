@@ -922,6 +922,7 @@ USING                                       : 'USING';
 VALIDATION                                  : 'VALIDATION';
 VALID_XML                                   : 'VALID_XML';
 VALUE                                       : 'VALUE';
+VALUES                                      : 'VALUES';
 VALUE_SQUARE_BRACKET                        : '[VALUE]';
 VARBINARY_KEYWORD                           : 'VARBINARY';
 VARYING                                     : 'VARYING';

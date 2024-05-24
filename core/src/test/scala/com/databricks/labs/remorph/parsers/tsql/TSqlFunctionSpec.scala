@@ -88,12 +88,18 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
           ir.Literal(string = Some("c")),
           ir.Literal(string = Some("d"))),
         is_distinct = false,
-        is_user_defined_function = false))
+        is_user_defined_function = false,
+        has_incorrect_argc = true))
 
     example(
       "FLOOR()", // FLOOR requires 1 argument
       _.expression(),
-      ir.UnresolvedFunction("FLOOR", List(), is_distinct = false, is_user_defined_function = false))
+      ir.UnresolvedFunction(
+        "FLOOR",
+        List(),
+        is_distinct = false,
+        is_user_defined_function = false,
+        has_incorrect_argc = true))
   }
 
   "translate functions that we know cannot be converted" in {
