@@ -457,10 +457,6 @@ def test_generate_final_reconcile_output_data(mock_workspace_client, mock_spark)
     with (patch('databricks.labs.remorph.reconcile.recon_capture._DB_PREFIX', new='default'),):
         final_output = generate_final_reconcile_output("73b44582-dbb7-489f-bad1-6a7e8f4821b1", mock_spark)
 
-    spark.sql("select * from default.main").show(100, False)
-    spark.sql("select * from default.metrics").show(100, False)
-    spark.sql("select * from default.details").show(100, False)
-
     assert final_output == ReconcileOutput(
         recon_id='73b44582-dbb7-489f-bad1-6a7e8f4821b1',
         results=[
@@ -502,10 +498,6 @@ def test_generate_final_reconcile_output_schema(mock_workspace_client, mock_spar
 
     with (patch('databricks.labs.remorph.reconcile.recon_capture._DB_PREFIX', new='default'),):
         final_output = generate_final_reconcile_output("73b44582-dbb7-489f-bad1-6a7e8f4821b1", mock_spark)
-
-    spark.sql("select * from default.main").show(100, False)
-    spark.sql("select * from default.metrics").show(100, False)
-    spark.sql("select * from default.details").show(100, False)
 
     assert final_output == ReconcileOutput(
         recon_id='73b44582-dbb7-489f-bad1-6a7e8f4821b1',
@@ -549,10 +541,6 @@ def test_generate_final_reconcile_output_all(mock_workspace_client, mock_spark):
     with (patch('databricks.labs.remorph.reconcile.recon_capture._DB_PREFIX', new='default'),):
         final_output = generate_final_reconcile_output("73b44582-dbb7-489f-bad1-6a7e8f4821b1", mock_spark)
 
-    spark.sql("select * from default.main").show(100, False)
-    spark.sql("select * from default.metrics").show(100, False)
-    spark.sql("select * from default.details").show(100, False)
-
     assert final_output == ReconcileOutput(
         recon_id='73b44582-dbb7-489f-bad1-6a7e8f4821b1',
         results=[
@@ -595,10 +583,6 @@ def test_generate_final_reconcile_output_exception(mock_workspace_client, mock_s
 
     with (patch('databricks.labs.remorph.reconcile.recon_capture._DB_PREFIX', new='default'),):
         final_output = generate_final_reconcile_output("73b44582-dbb7-489f-bad1-6a7e8f4821b1", mock_spark)
-
-    spark.sql("select * from default.main").show(100, False)
-    spark.sql("select * from default.metrics").show(100, False)
-    spark.sql("select * from default.details").show(100, False)
 
     assert final_output == ReconcileOutput(
         recon_id='73b44582-dbb7-489f-bad1-6a7e8f4821b1',
