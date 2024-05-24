@@ -26,7 +26,8 @@ from databricks.labs.remorph.reconcile.schema_compare import SchemaCompare
 
 CATALOG = "org"
 SCHEMA = "data"
-TABLE = "supplier"
+SRC_TABLE = "supplier"
+TGT_TABLE = "target_supplier"
 
 
 @dataclass
@@ -59,17 +60,17 @@ def setup_metadata_table(mock_spark, report_tables_schema):
 
 @pytest.fixture
 def query_store(mock_spark):
-    source_hash_query = "SELECT LOWER(SHA2(CONCAT(TRIM(s_address), TRIM(s_name), COALESCE(TRIM(s_nationkey), ''), TRIM(s_phone), COALESCE(TRIM(s_suppkey), '')), 256)) AS hash_value_recon, COALESCE(TRIM(s_nationkey), '') AS s_nationkey, COALESCE(TRIM(s_suppkey), '') AS s_suppkey FROM :tbl WHERE s_name = 't' AND s_address = 'a'"
-    target_hash_query = "SELECT LOWER(SHA2(CONCAT(TRIM(s_address_t), TRIM(s_name), COALESCE(TRIM(s_nationkey_t), ''), TRIM(s_phone_t), COALESCE(TRIM(s_suppkey_t), '')), 256)) AS hash_value_recon, COALESCE(TRIM(s_nationkey_t), '') AS s_nationkey, COALESCE(TRIM(s_suppkey_t), '') AS s_suppkey FROM :tbl WHERE s_name = 't' AND s_address_t = 'a'"
+    source_hash_query = "SELECT LOWER(SHA2(CONCAT(TRIM(s_address), TRIM(s_name), COALESCE(TRIM(s_nationkey), ''), TRIM(s_phone), COALESCE(TRIM(s_suppkey), '')), 256)) AS hash_value_recon, s_nationkey AS s_nationkey, s_suppkey AS s_suppkey FROM :tbl WHERE s_name = 't' AND s_address = 'a'"
+    target_hash_query = "SELECT LOWER(SHA2(CONCAT(TRIM(s_address_t), TRIM(s_name), COALESCE(TRIM(s_nationkey_t), ''), TRIM(s_phone_t), COALESCE(TRIM(s_suppkey_t), '')), 256)) AS hash_value_recon, s_nationkey_t AS s_nationkey, s_suppkey_t AS s_suppkey FROM :tbl WHERE s_name = 't' AND s_address_t = 'a'"
     source_mismatch_query = "WITH recon AS (SELECT 22 AS s_nationkey, 2 AS s_suppkey), src AS (SELECT TRIM(s_address) AS s_address, TRIM(s_name) AS s_name, COALESCE(TRIM(s_nationkey), '') AS s_nationkey, TRIM(s_phone) AS s_phone, COALESCE(TRIM(s_suppkey), '') AS s_suppkey FROM :tbl WHERE s_name = 't' AND s_address = 'a') SELECT s_address, s_name, s_nationkey, s_phone, s_suppkey FROM src INNER JOIN recon USING (s_nationkey, s_suppkey)"
     target_mismatch_query = "WITH recon AS (SELECT 22 AS s_nationkey, 2 AS s_suppkey), src AS (SELECT TRIM(s_address_t) AS s_address, TRIM(s_name) AS s_name, COALESCE(TRIM(s_nationkey_t), '') AS s_nationkey, TRIM(s_phone_t) AS s_phone, COALESCE(TRIM(s_suppkey_t), '') AS s_suppkey FROM :tbl WHERE s_name = 't' AND s_address_t = 'a') SELECT s_address, s_name, s_nationkey, s_phone, s_suppkey FROM src INNER JOIN recon USING (s_nationkey, s_suppkey)"
     source_missing_query = "WITH recon AS (SELECT 44 AS s_nationkey, 4 AS s_suppkey), src AS (SELECT TRIM(s_address_t) AS s_address, TRIM(s_name) AS s_name, COALESCE(TRIM(s_nationkey_t), '') AS s_nationkey, TRIM(s_phone_t) AS s_phone, COALESCE(TRIM(s_suppkey_t), '') AS s_suppkey FROM :tbl WHERE s_name = 't' AND s_address_t = 'a') SELECT s_address, s_name, s_nationkey, s_phone, s_suppkey FROM src INNER JOIN recon USING (s_nationkey, s_suppkey)"
     target_missing_query = "WITH recon AS (SELECT 33 AS s_nationkey, 3 AS s_suppkey), src AS (SELECT TRIM(s_address) AS s_address, TRIM(s_name) AS s_name, COALESCE(TRIM(s_nationkey), '') AS s_nationkey, TRIM(s_phone) AS s_phone, COALESCE(TRIM(s_suppkey), '') AS s_suppkey FROM :tbl WHERE s_name = 't' AND s_address = 'a') SELECT s_address, s_name, s_nationkey, s_phone, s_suppkey FROM src INNER JOIN recon USING (s_nationkey, s_suppkey)"
     source_threshold_query = "SELECT COALESCE(TRIM(s_nationkey), '') AS s_nationkey, COALESCE(TRIM(s_suppkey), '') AS s_suppkey, s_acctbal AS s_acctbal FROM :tbl WHERE s_name = 't' AND s_address = 'a'"
     target_threshold_query = "SELECT COALESCE(TRIM(s_nationkey_t), '') AS s_nationkey, COALESCE(TRIM(s_suppkey_t), '') AS s_suppkey, s_acctbal_t AS s_acctbal FROM :tbl WHERE s_name = 't' AND s_address_t = 'a'"
-    threshold_comparison_query = "SELECT COALESCE(source.s_acctbal, 0) AS s_acctbal_source, COALESCE(databricks.s_acctbal, 0) AS s_acctbal_databricks, CASE WHEN (COALESCE(source.s_acctbal, 0) - COALESCE(databricks.s_acctbal, 0)) = 0 THEN `Match` WHEN (COALESCE(source.s_acctbal, 0) - COALESCE(databricks.s_acctbal, 0)) BETWEEN 0 AND 100 THEN `Warning` ELSE `Failed` END AS s_acctbal_match, source.s_nationkey AS s_nationkey_source, source.s_suppkey AS s_suppkey_source FROM source_supplier_df_threshold_vw AS source INNER JOIN target_target_supplier_df_threshold_vw AS databricks ON source.s_nationkey <=> databricks.s_nationkey AND source.s_suppkey <=> databricks.s_suppkey WHERE (1 = 1 OR 1 = 1) OR (COALESCE(source.s_acctbal, 0) - COALESCE(databricks.s_acctbal, 0)) <> 0"
-    source_row_query = "SELECT LOWER(SHA2(CONCAT(TRIM(s_address), TRIM(s_name), COALESCE(TRIM(s_nationkey), ''), TRIM(s_phone), COALESCE(TRIM(s_suppkey), '')), 256)) AS hash_value_recon, TRIM(s_address) AS s_address, TRIM(s_name) AS s_name, COALESCE(TRIM(s_nationkey), '') AS s_nationkey, TRIM(s_phone) AS s_phone, COALESCE(TRIM(s_suppkey), '') AS s_suppkey FROM :tbl WHERE s_name = 't' AND s_address = 'a'"
-    target_row_query = "SELECT LOWER(SHA2(CONCAT(TRIM(s_address_t), TRIM(s_name), COALESCE(TRIM(s_nationkey_t), ''), TRIM(s_phone_t), COALESCE(TRIM(s_suppkey_t), '')), 256)) AS hash_value_recon, TRIM(s_address_t) AS s_address, TRIM(s_name) AS s_name, COALESCE(TRIM(s_nationkey_t), '') AS s_nationkey, TRIM(s_phone_t) AS s_phone, COALESCE(TRIM(s_suppkey_t), '') AS s_suppkey FROM :tbl WHERE s_name = 't' AND s_address_t = 'a'"
+    threshold_comparison_query = "SELECT COALESCE(source.s_acctbal, 0) AS s_acctbal_source, COALESCE(databricks.s_acctbal, 0) AS s_acctbal_databricks, CASE WHEN (COALESCE(source.s_acctbal, 0) - COALESCE(databricks.s_acctbal, 0)) = 0 THEN 'Match' WHEN (COALESCE(source.s_acctbal, 0) - COALESCE(databricks.s_acctbal, 0)) BETWEEN 0 AND 100 THEN 'Warning' ELSE 'Failed' END AS s_acctbal_match, source.s_nationkey AS s_nationkey_source, source.s_suppkey AS s_suppkey_source FROM source_supplier_df_threshold_vw AS source INNER JOIN target_target_supplier_df_threshold_vw AS databricks ON source.s_nationkey <=> databricks.s_nationkey AND source.s_suppkey <=> databricks.s_suppkey WHERE (1 = 1 OR 1 = 1) OR (COALESCE(source.s_acctbal, 0) - COALESCE(databricks.s_acctbal, 0)) <> 0"
+    source_row_query = "SELECT LOWER(SHA2(CONCAT(TRIM(s_address), TRIM(s_name), COALESCE(TRIM(s_nationkey), ''), TRIM(s_phone), COALESCE(TRIM(s_suppkey), '')), 256)) AS hash_value_recon, TRIM(s_address) AS s_address, TRIM(s_name) AS s_name, s_nationkey AS s_nationkey, TRIM(s_phone) AS s_phone, s_suppkey AS s_suppkey FROM :tbl WHERE s_name = 't' AND s_address = 'a'"
+    target_row_query = "SELECT LOWER(SHA2(CONCAT(TRIM(s_address_t), TRIM(s_name), COALESCE(TRIM(s_nationkey_t), ''), TRIM(s_phone_t), COALESCE(TRIM(s_suppkey_t), '')), 256)) AS hash_value_recon, TRIM(s_address_t) AS s_address, TRIM(s_name) AS s_name, s_nationkey_t AS s_nationkey, TRIM(s_phone_t) AS s_phone, s_suppkey_t AS s_suppkey FROM :tbl WHERE s_name = 't' AND s_address_t = 'a'"
 
     return QueryStore(
         source_hash_query=source_hash_query,
@@ -111,7 +112,7 @@ def test_reconcile_data_with_mismatches_and_missing(mock_spark, table_conf_with_
             [Row(s_nationkey=11, s_suppkey=1, s_acctbal=100)]
         ),
     }
-    source_schema_repository = {(CATALOG, SCHEMA, TABLE): src_schema}
+    source_schema_repository = {(CATALOG, SCHEMA, SRC_TABLE): src_schema}
 
     target_dataframe_repository = {
         (
@@ -147,7 +148,7 @@ def test_reconcile_data_with_mismatches_and_missing(mock_spark, table_conf_with_
         ),
     }
 
-    target_schema_repository = {(CATALOG, SCHEMA, TABLE): tgt_schema}
+    target_schema_repository = {(CATALOG, SCHEMA, TGT_TABLE): tgt_schema}
     database_config = DatabaseConfig(
         source_catalog=CATALOG,
         source_schema=SCHEMA,
@@ -303,7 +304,7 @@ def test_reconcile_data_without_mismatches_and_missing(
             [Row(s_nationkey=11, s_suppkey=1, s_acctbal=100)]
         ),
     }
-    source_schema_repository = {(CATALOG, SCHEMA, TABLE): src_schema}
+    source_schema_repository = {(CATALOG, SCHEMA, SRC_TABLE): src_schema}
 
     target_dataframe_repository = {
         (
@@ -332,7 +333,7 @@ def test_reconcile_data_without_mismatches_and_missing(
         ),
     }
 
-    target_schema_repository = {(CATALOG, SCHEMA, TABLE): tgt_schema}
+    target_schema_repository = {(CATALOG, SCHEMA, TGT_TABLE): tgt_schema}
     database_config = DatabaseConfig(
         source_catalog=CATALOG,
         source_schema=SCHEMA,
@@ -375,7 +376,7 @@ def test_reconcile_data_with_mismatch_and_no_missing(mock_spark, table_conf_with
             [Row(s_address="address-2", s_name="name-2", s_nationkey=22, s_phone="222-2", s_suppkey=2)]
         ),
     }
-    source_schema_repository = {(CATALOG, SCHEMA, TABLE): src_schema}
+    source_schema_repository = {(CATALOG, SCHEMA, SRC_TABLE): src_schema}
 
     target_dataframe_repository = {
         (
@@ -393,7 +394,7 @@ def test_reconcile_data_with_mismatch_and_no_missing(mock_spark, table_conf_with
         ),
     }
 
-    target_schema_repository = {(CATALOG, SCHEMA, TABLE): tgt_schema}
+    target_schema_repository = {(CATALOG, SCHEMA, TGT_TABLE): tgt_schema}
     database_config = DatabaseConfig(
         source_catalog=CATALOG,
         source_schema=SCHEMA,
@@ -464,7 +465,7 @@ def test_reconcile_data_missing_and_no_mismatch(mock_spark, table_conf_with_opts
             [Row(s_address="address-3", s_name="name-3", s_nationkey=33, s_phone="333", s_suppkey=3)]
         ),
     }
-    source_schema_repository = {(CATALOG, SCHEMA, TABLE): src_schema}
+    source_schema_repository = {(CATALOG, SCHEMA, SRC_TABLE): src_schema}
 
     target_dataframe_repository = {
         (
@@ -483,7 +484,7 @@ def test_reconcile_data_missing_and_no_mismatch(mock_spark, table_conf_with_opts
         ),
     }
 
-    target_schema_repository = {(CATALOG, SCHEMA, TABLE): tgt_schema}
+    target_schema_repository = {(CATALOG, SCHEMA, TGT_TABLE): tgt_schema}
     database_config = DatabaseConfig(
         source_catalog=CATALOG,
         source_schema=SCHEMA,
@@ -555,7 +556,7 @@ def mock_for_report_type_data(
             [Row(s_address="address-3", s_name="name-3", s_nationkey=33, s_phone="333", s_suppkey=3)]
         ),
     }
-    source_schema_repository = {(CATALOG, SCHEMA, TABLE): src_schema}
+    source_schema_repository = {(CATALOG, SCHEMA, SRC_TABLE): src_schema}
 
     target_dataframe_repository = {
         (
@@ -577,7 +578,7 @@ def mock_for_report_type_data(
         ),
     }
 
-    target_schema_repository = {(CATALOG, SCHEMA, TABLE): tgt_schema}
+    target_schema_repository = {(CATALOG, SCHEMA, TGT_TABLE): tgt_schema}
     source = MockDataSource(source_dataframe_repository, source_schema_repository)
     target = MockDataSource(target_dataframe_repository, target_schema_repository)
 
@@ -726,7 +727,7 @@ def mock_for_report_type_schema(table_conf_with_opts, table_schema, query_store,
             [Row(s_address="address-3", s_name="name-3", s_nationkey=33, s_phone="333", s_suppkey=3)]
         ),
     }
-    source_schema_repository = {(CATALOG, SCHEMA, TABLE): src_schema}
+    source_schema_repository = {(CATALOG, SCHEMA, SRC_TABLE): src_schema}
 
     target_dataframe_repository = {
         (
@@ -748,7 +749,7 @@ def mock_for_report_type_schema(table_conf_with_opts, table_schema, query_store,
         ),
     }
 
-    target_schema_repository = {(CATALOG, SCHEMA, TABLE): tgt_schema}
+    target_schema_repository = {(CATALOG, SCHEMA, TGT_TABLE): tgt_schema}
     source = MockDataSource(source_dataframe_repository, source_schema_repository)
     target = MockDataSource(target_dataframe_repository, target_schema_repository)
 
@@ -898,7 +899,7 @@ def mock_for_report_type_all(
             [Row(s_address="address-3", s_name="name-3", s_nationkey=33, s_phone="333", s_suppkey=3)]
         ),
     }
-    source_schema_repository = {(CATALOG, SCHEMA, TABLE): src_schema}
+    source_schema_repository = {(CATALOG, SCHEMA, SRC_TABLE): src_schema}
 
     target_dataframe_repository = {
         (
@@ -920,7 +921,7 @@ def mock_for_report_type_all(
         ),
     }
 
-    target_schema_repository = {(CATALOG, SCHEMA, TABLE): tgt_schema}
+    target_schema_repository = {(CATALOG, SCHEMA, TGT_TABLE): tgt_schema}
     source = MockDataSource(source_dataframe_repository, source_schema_repository)
     target = MockDataSource(target_dataframe_repository, target_schema_repository)
     return table_recon, source, target
@@ -1127,7 +1128,7 @@ def mock_for_report_type_row(table_conf_with_opts, table_schema, mock_spark, que
             ]
         ),
     }
-    source_schema_repository = {(CATALOG, SCHEMA, TABLE): src_schema}
+    source_schema_repository = {(CATALOG, SCHEMA, SRC_TABLE): src_schema}
 
     target_dataframe_repository = {
         (
@@ -1164,7 +1165,7 @@ def mock_for_report_type_row(table_conf_with_opts, table_schema, mock_spark, que
         )
     }
 
-    target_schema_repository = {(CATALOG, SCHEMA, TABLE): tgt_schema}
+    target_schema_repository = {(CATALOG, SCHEMA, TGT_TABLE): tgt_schema}
     source = MockDataSource(source_dataframe_repository, source_schema_repository)
     target = MockDataSource(target_dataframe_repository, target_schema_repository)
 

@@ -34,8 +34,18 @@ class HashQueryBuilder(QueryBuilder):
             for col in key_cols
         ]
 
-        key_cols_with_transform = self.add_transformations(cols_with_alias, self.source)
-        hash_col_with_transform = [self._generate_hash_algorithm(hash_cols, _HASH_COLUMN_NAME)]
+        # in case if we have column mapping, we need to sort the target columns in the order of source columns to get
+        # same hash value
+        hash_cols_with_alias = [
+            {"this": col, "alias": self.table_conf.get_tgt_to_src_col_mapping(col, self.layer)} for col in hash_cols
+        ]
+        sorted_hash_cols_with_alias = sorted(hash_cols_with_alias, key=lambda column: column["alias"])
+        hashcols_sorted_as_src_seq = [column["this"] for column in sorted_hash_cols_with_alias]
+
+        key_cols_with_transform = (
+            self._apply_user_transformation(cols_with_alias) if self.user_transformations else cols_with_alias
+        )
+        hash_col_with_transform = [self._generate_hash_algorithm(hashcols_sorted_as_src_seq, _HASH_COLUMN_NAME)]
 
         res = (
             exp.select(*hash_col_with_transform + key_cols_with_transform)
