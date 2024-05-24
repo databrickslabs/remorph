@@ -594,14 +594,16 @@ def test_recon_for_report_type_is_data(
         patch("databricks.labs.remorph.reconcile.recon_capture.datetime") as recon_datetime,
         patch("databricks.labs.remorph.reconcile.execute.initialise_data_source", return_value=(source, target)),
         patch("databricks.labs.remorph.reconcile.execute.uuid4", return_value="00112233-4455-6677-8899-aabbccddeeff"),
-        patch("databricks.labs.remorph.reconcile.recon_capture.ReconCapture._DB_PREFIX", new="default"),
+        patch("databricks.labs.remorph.reconcile.recon_capture._DB_PREFIX", new="default"),
         patch(
             "databricks.labs.remorph.reconcile.recon_capture.ReconCapture._generate_recon_main_id", return_value=11111
         ),
     ):
         mock_datetime.now.return_value = datetime(2024, 5, 23, 9, 21, 25, 122185)
         recon_datetime.now.return_value = datetime(2024, 5, 23, 9, 21, 25, 122185)
-        recon_id = recon(mock_workspace_client, mock_spark, table_recon, get_dialect("databricks"), "data")
+        final_reconcile_output = recon(
+            mock_workspace_client, mock_spark, table_recon, get_dialect("databricks"), "data"
+        )
 
     actual_remorph_recon = mock_spark.sql("SELECT * FROM DEFAULT.MAIN")
     actual_remorph_recon_metrics = mock_spark.sql("SELECT * FROM DEFAULT.METRICS")
@@ -626,7 +628,7 @@ def test_recon_for_report_type_is_data(
         data=[
             (
                 11111,
-                ((1, 1), (1, 0, "s_address,s_phone"), True),
+                ((1, 1), (1, 0, "s_address,s_phone"), None),
                 (False, "remorph", ""),
                 datetime(2024, 5, 23, 9, 21, 25, 122185),
             )
@@ -694,7 +696,7 @@ def test_recon_for_report_type_is_data(
     assertDataFrameEqual(actual_remorph_recon_metrics, expected_remorph_recon_metrics, ignoreNullable=True)
     assertDataFrameEqual(actual_remorph_recon_details, expected_remorph_recon_details, ignoreNullable=True)
 
-    assert recon_id == "00112233-4455-6677-8899-aabbccddeeff"
+    assert final_reconcile_output.recon_id == "00112233-4455-6677-8899-aabbccddeeff"
 
 
 @pytest.fixture
@@ -765,14 +767,16 @@ def test_recon_for_report_type_schema(
         patch("databricks.labs.remorph.reconcile.recon_capture.datetime") as recon_datetime,
         patch("databricks.labs.remorph.reconcile.execute.initialise_data_source", return_value=(source, target)),
         patch("databricks.labs.remorph.reconcile.execute.uuid4", return_value="00112233-4455-6677-8899-aabbccddeeff"),
-        patch("databricks.labs.remorph.reconcile.recon_capture.ReconCapture._DB_PREFIX", new="default"),
+        patch("databricks.labs.remorph.reconcile.recon_capture._DB_PREFIX", new="default"),
         patch(
             "databricks.labs.remorph.reconcile.recon_capture.ReconCapture._generate_recon_main_id", return_value=22222
         ),
     ):
         mock_datetime.now.return_value = datetime(2024, 5, 23, 9, 21, 25, 122185)
         recon_datetime.now.return_value = datetime(2024, 5, 23, 9, 21, 25, 122185)
-        recon_id = recon(mock_workspace_client, mock_spark, table_recon, get_dialect("databricks"), "schema")
+        final_reconcile_output = recon(
+            mock_workspace_client, mock_spark, table_recon, get_dialect("databricks"), "schema"
+        )
 
     actual_remorph_recon = mock_spark.sql("SELECT * FROM DEFAULT.MAIN")
     actual_remorph_recon_metrics = mock_spark.sql("SELECT * FROM DEFAULT.METRICS")
@@ -794,7 +798,7 @@ def test_recon_for_report_type_schema(
         schema=recon_schema,
     )
     expected_remorph_recon_metrics = mock_spark.createDataFrame(
-        data=[(22222, ((0, 0), (0, 0, ""), True), (True, "remorph", ""), datetime(2024, 5, 23, 9, 21, 25, 122185))],
+        data=[(22222, (None, None, True), (True, "remorph", ""), datetime(2024, 5, 23, 9, 21, 25, 122185))],
         schema=metrics_schema,
     )
     expected_remorph_recon_details = mock_spark.createDataFrame(
@@ -857,7 +861,7 @@ def test_recon_for_report_type_schema(
     assertDataFrameEqual(actual_remorph_recon_metrics, expected_remorph_recon_metrics, ignoreNullable=True)
     assertDataFrameEqual(actual_remorph_recon_details, expected_remorph_recon_details, ignoreNullable=True)
 
-    assert recon_id == "00112233-4455-6677-8899-aabbccddeeff"
+    assert final_reconcile_output.recon_id == "00112233-4455-6677-8899-aabbccddeeff"
 
 
 @pytest.fixture
@@ -935,14 +939,14 @@ def test_recon_for_report_type_all(mock_workspace_client, mock_spark, report_tab
         patch("databricks.labs.remorph.reconcile.recon_capture.datetime") as recon_datetime,
         patch("databricks.labs.remorph.reconcile.execute.initialise_data_source", return_value=(source, target)),
         patch("databricks.labs.remorph.reconcile.execute.uuid4", return_value="00112233-4455-6677-8899-aabbccddeeff"),
-        patch("databricks.labs.remorph.reconcile.recon_capture.ReconCapture._DB_PREFIX", new="default"),
+        patch("databricks.labs.remorph.reconcile.recon_capture._DB_PREFIX", new="default"),
         patch(
             "databricks.labs.remorph.reconcile.recon_capture.ReconCapture._generate_recon_main_id", return_value=33333
         ),
     ):
         mock_datetime.now.return_value = datetime(2024, 5, 23, 9, 21, 25, 122185)
         recon_datetime.now.return_value = datetime(2024, 5, 23, 9, 21, 25, 122185)
-        recon_id = recon(mock_workspace_client, mock_spark, table_recon, get_dialect("snowflake"), "all")
+        final_reconcile_output = recon(mock_workspace_client, mock_spark, table_recon, get_dialect("snowflake"), "all")
 
     actual_remorph_recon = mock_spark.sql("SELECT * FROM DEFAULT.MAIN")
     actual_remorph_recon_metrics = mock_spark.sql("SELECT * FROM DEFAULT.METRICS")
@@ -1078,7 +1082,7 @@ def test_recon_for_report_type_all(mock_workspace_client, mock_spark, report_tab
     assertDataFrameEqual(actual_remorph_recon_metrics, expected_remorph_recon_metrics, ignoreNullable=True)
     assertDataFrameEqual(actual_remorph_recon_details, expected_remorph_recon_details, ignoreNullable=True)
 
-    assert recon_id == "00112233-4455-6677-8899-aabbccddeeff"
+    assert final_reconcile_output.recon_id == "00112233-4455-6677-8899-aabbccddeeff"
 
 
 @pytest.fixture
@@ -1181,14 +1185,14 @@ def test_recon_for_report_type_is_row(
         patch("databricks.labs.remorph.reconcile.recon_capture.datetime") as recon_datetime,
         patch("databricks.labs.remorph.reconcile.execute.initialise_data_source", return_value=(source, target)),
         patch("databricks.labs.remorph.reconcile.execute.uuid4", return_value="00112233-4455-6677-8899-aabbccddeeff"),
-        patch("databricks.labs.remorph.reconcile.recon_capture.ReconCapture._DB_PREFIX", new="default"),
+        patch("databricks.labs.remorph.reconcile.recon_capture._DB_PREFIX", new="default"),
         patch(
             "databricks.labs.remorph.reconcile.recon_capture.ReconCapture._generate_recon_main_id", return_value=33333
         ),
     ):
         mock_datetime.now.return_value = datetime(2024, 5, 23, 9, 21, 25, 122185)
         recon_datetime.now.return_value = datetime(2024, 5, 23, 9, 21, 25, 122185)
-        recon_id = recon(mock_workspace_client, mock_spark, table_recon, get_dialect("snowflake"), "row")
+        final_reconcile_output = recon(mock_workspace_client, mock_spark, table_recon, get_dialect("snowflake"), "row")
 
     actual_remorph_recon = mock_spark.sql("SELECT * FROM DEFAULT.MAIN")
     actual_remorph_recon_metrics = mock_spark.sql("SELECT * FROM DEFAULT.METRICS")
@@ -1213,7 +1217,7 @@ def test_recon_for_report_type_is_row(
         data=[
             (
                 33333,
-                ((2, 2), (0, 0, ""), True),
+                ((2, 2), None, None),
                 (False, "remorph", ""),
                 datetime(2024, 5, 23, 9, 21, 25, 122185),
             )
@@ -1274,7 +1278,7 @@ def test_recon_for_report_type_is_row(
     assertDataFrameEqual(actual_remorph_recon_metrics, expected_remorph_recon_metrics, ignoreNullable=True)
     assertDataFrameEqual(actual_remorph_recon_details, expected_remorph_recon_details, ignoreNullable=True)
 
-    assert recon_id == "00112233-4455-6677-8899-aabbccddeeff"
+    assert final_reconcile_output.recon_id == "00112233-4455-6677-8899-aabbccddeeff"
 
 
 @pytest.fixture
@@ -1305,14 +1309,14 @@ def test_schema_recon_with_data_source_exception(
         patch("databricks.labs.remorph.reconcile.recon_capture.datetime") as recon_datetime,
         patch("databricks.labs.remorph.reconcile.execute.initialise_data_source", return_value=(source, target)),
         patch("databricks.labs.remorph.reconcile.execute.uuid4", return_value="00112233-4455-6677-8899-aabbccddeeff"),
-        patch("databricks.labs.remorph.reconcile.recon_capture.ReconCapture._DB_PREFIX", new="default"),
+        patch("databricks.labs.remorph.reconcile.recon_capture._DB_PREFIX", new="default"),
         patch(
             "databricks.labs.remorph.reconcile.recon_capture.ReconCapture._generate_recon_main_id", return_value=33333
         ),
     ):
         mock_datetime.now.return_value = datetime(2024, 5, 23, 9, 21, 25, 122185)
         recon_datetime.now.return_value = datetime(2024, 5, 23, 9, 21, 25, 122185)
-        recon_id = recon(mock_workspace_client, mock_spark, table_recon, get_dialect("snowflake"), "all")
+        final_reconcile_output = recon(mock_workspace_client, mock_spark, table_recon, get_dialect("snowflake"), "all")
 
     actual_remorph_recon = mock_spark.sql("SELECT * FROM DEFAULT.MAIN")
     actual_remorph_recon_metrics = mock_spark.sql("SELECT * FROM DEFAULT.METRICS")
@@ -1354,7 +1358,7 @@ def test_schema_recon_with_data_source_exception(
     assertDataFrameEqual(actual_remorph_recon_metrics, expected_remorph_recon_metrics, ignoreNullable=True)
     assertDataFrameEqual(actual_remorph_recon_details, expected_remorph_recon_details, ignoreNullable=True)
 
-    assert recon_id == "00112233-4455-6677-8899-aabbccddeeff"
+    assert final_reconcile_output.recon_id == "00112233-4455-6677-8899-aabbccddeeff"
 
 
 def test_schema_recon_with_general_exception(
@@ -1367,7 +1371,7 @@ def test_schema_recon_with_general_exception(
         patch("databricks.labs.remorph.reconcile.recon_capture.datetime") as recon_datetime,
         patch("databricks.labs.remorph.reconcile.execute.initialise_data_source", return_value=(source, target)),
         patch("databricks.labs.remorph.reconcile.execute.uuid4", return_value="00112233-4455-6677-8899-aabbccddeeff"),
-        patch("databricks.labs.remorph.reconcile.recon_capture.ReconCapture._DB_PREFIX", new="default"),
+        patch("databricks.labs.remorph.reconcile.recon_capture._DB_PREFIX", new="default"),
         patch(
             "databricks.labs.remorph.reconcile.recon_capture.ReconCapture._generate_recon_main_id", return_value=33333
         ),
@@ -1376,8 +1380,10 @@ def test_schema_recon_with_general_exception(
         schema_source_mock.side_effect = PySparkException("Unknown Error")
         mock_datetime.now.return_value = datetime(2024, 5, 23, 9, 21, 25, 122185)
         recon_datetime.now.return_value = datetime(2024, 5, 23, 9, 21, 25, 122185)
-        recon_id = recon(mock_workspace_client, mock_spark, table_recon, get_dialect("snowflake"), "schema")
-
+        final_reconcile_output = recon(
+            mock_workspace_client, mock_spark, table_recon, get_dialect("snowflake"), "schema"
+        )
+    print(final_reconcile_output)
     expected_remorph_recon = mock_spark.createDataFrame(
         data=[
             (
@@ -1397,7 +1403,7 @@ def test_schema_recon_with_general_exception(
         data=[
             (
                 33333,
-                ((0, 0), (0, 0, ""), False),
+                (None, None, False),
                 (
                     False,
                     "remorph",
@@ -1418,7 +1424,7 @@ def test_schema_recon_with_general_exception(
         mock_spark.sql("SELECT * FROM DEFAULT.DETAILS"), expected_remorph_recon_details, ignoreNullable=True
     )
 
-    assert recon_id == "00112233-4455-6677-8899-aabbccddeeff"
+    assert final_reconcile_output.recon_id == "00112233-4455-6677-8899-aabbccddeeff"
 
 
 def test_data_recon_with_general_exception(
@@ -1431,7 +1437,7 @@ def test_data_recon_with_general_exception(
         patch("databricks.labs.remorph.reconcile.recon_capture.datetime") as recon_datetime,
         patch("databricks.labs.remorph.reconcile.execute.initialise_data_source", return_value=(source, target)),
         patch("databricks.labs.remorph.reconcile.execute.uuid4", return_value="00112233-4455-6677-8899-aabbccddeeff"),
-        patch("databricks.labs.remorph.reconcile.recon_capture.ReconCapture._DB_PREFIX", new="default"),
+        patch("databricks.labs.remorph.reconcile.recon_capture._DB_PREFIX", new="default"),
         patch(
             "databricks.labs.remorph.reconcile.recon_capture.ReconCapture._generate_recon_main_id", return_value=33333
         ),
@@ -1440,7 +1446,7 @@ def test_data_recon_with_general_exception(
         data_source_mock.side_effect = PySparkException("Unknown Error")
         mock_datetime.now.return_value = datetime(2024, 5, 23, 9, 21, 25, 122185)
         recon_datetime.now.return_value = datetime(2024, 5, 23, 9, 21, 25, 122185)
-        recon_id = recon(mock_workspace_client, mock_spark, table_recon, get_dialect("snowflake"), "data")
+        final_reconcile_output = recon(mock_workspace_client, mock_spark, table_recon, get_dialect("snowflake"), "data")
 
     expected_remorph_recon = mock_spark.createDataFrame(
         data=[
@@ -1461,7 +1467,7 @@ def test_data_recon_with_general_exception(
         data=[
             (
                 33333,
-                ((0, 0), (0, 0, ""), True),
+                ((0, 0), (0, 0, ""), None),
                 (
                     False,
                     "remorph",
@@ -1482,7 +1488,7 @@ def test_data_recon_with_general_exception(
         mock_spark.sql("SELECT * FROM DEFAULT.DETAILS"), expected_remorph_recon_details, ignoreNullable=True
     )
 
-    assert recon_id == "00112233-4455-6677-8899-aabbccddeeff"
+    assert final_reconcile_output.recon_id == "00112233-4455-6677-8899-aabbccddeeff"
 
 
 def test_data_recon_with_source_exception(
@@ -1495,7 +1501,7 @@ def test_data_recon_with_source_exception(
         patch("databricks.labs.remorph.reconcile.recon_capture.datetime") as recon_datetime,
         patch("databricks.labs.remorph.reconcile.execute.initialise_data_source", return_value=(source, target)),
         patch("databricks.labs.remorph.reconcile.execute.uuid4", return_value="00112233-4455-6677-8899-aabbccddeeff"),
-        patch("databricks.labs.remorph.reconcile.recon_capture.ReconCapture._DB_PREFIX", new="default"),
+        patch("databricks.labs.remorph.reconcile.recon_capture._DB_PREFIX", new="default"),
         patch(
             "databricks.labs.remorph.reconcile.recon_capture.ReconCapture._generate_recon_main_id", return_value=33333
         ),
@@ -1504,7 +1510,7 @@ def test_data_recon_with_source_exception(
         data_source_mock.side_effect = DataSourceRuntimeException("Source Runtime Error")
         mock_datetime.now.return_value = datetime(2024, 5, 23, 9, 21, 25, 122185)
         recon_datetime.now.return_value = datetime(2024, 5, 23, 9, 21, 25, 122185)
-        recon_id = recon(mock_workspace_client, mock_spark, table_recon, get_dialect("snowflake"), "data")
+        final_reconcile_output = recon(mock_workspace_client, mock_spark, table_recon, get_dialect("snowflake"), "data")
 
     expected_remorph_recon = mock_spark.createDataFrame(
         data=[
@@ -1525,7 +1531,7 @@ def test_data_recon_with_source_exception(
         data=[
             (
                 33333,
-                ((0, 0), (0, 0, ""), True),
+                ((0, 0), (0, 0, ""), None),
                 (
                     False,
                     "remorph",
@@ -1546,7 +1552,7 @@ def test_data_recon_with_source_exception(
         mock_spark.sql("SELECT * FROM DEFAULT.DETAILS"), expected_remorph_recon_details, ignoreNullable=True
     )
 
-    assert recon_id == "00112233-4455-6677-8899-aabbccddeeff"
+    assert final_reconcile_output.recon_id == "00112233-4455-6677-8899-aabbccddeeff"
 
 
 def test__initialise_data_source(mock_workspace_client, mock_spark):

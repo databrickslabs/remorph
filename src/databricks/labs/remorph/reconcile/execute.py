@@ -23,9 +23,13 @@ from databricks.labs.remorph.reconcile.query_builder.sampling_query import (
 from databricks.labs.remorph.reconcile.query_builder.threshold_query import (
     ThresholdQueryBuilder,
 )
-from databricks.labs.remorph.reconcile.recon_capture import ReconCapture
+from databricks.labs.remorph.reconcile.recon_capture import (
+    ReconCapture,
+    generate_final_reconcile_output,
+)
 from databricks.labs.remorph.reconcile.recon_config import (
     DataReconcileOutput,
+    ReconcileOutput,
     ReconcileProcessDuration,
     Schema,
     SchemaReconcileOutput,
@@ -45,7 +49,7 @@ def recon(
     table_recon: TableRecon,
     source_dialect: Dialect,
     report_type: str,
-):
+) -> ReconcileOutput:
     logger.info(report_type)
 
     database_config = DatabaseConfig(
@@ -102,7 +106,7 @@ def recon(
             recon_process_duration=recon_process_duration,
         )
 
-    return recon_id
+    return generate_final_reconcile_output(recon_id=recon_id, spark=spark)
 
 
 def initialise_data_source(
@@ -120,11 +124,11 @@ def initialise_data_source(
 
 
 def _get_missing_data(
-    reader,
-    sampler,
-    missing_df,
-    catalog,
-    schema,
+    reader: DataSource,
+    sampler: SamplingQueryBuilder,
+    missing_df: DataFrame,
+    catalog: str,
+    schema: str,
     table_name: str,
 ) -> DataFrame:
     sample_query = sampler.build_query(missing_df)
