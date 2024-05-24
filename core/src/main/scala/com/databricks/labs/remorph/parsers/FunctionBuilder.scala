@@ -301,7 +301,7 @@ object FunctionBuilder {
     str match {
       case s if s.length < 2 => s
       case s =>
-        quotations.get(s.head).fold(s){ closingQuote =>
+        quotations.get(s.head).fold(s) { closingQuote =>
           if (s.endsWith(closingQuote)) {
             s.substring(1, s.length - 1)
           } else {
