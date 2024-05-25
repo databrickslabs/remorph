@@ -175,7 +175,7 @@ class Reconciliation:
         table_conf: Table,
         src_schema: list[Schema],
         tgt_schema: list[Schema],
-    ):
+    ) -> DataReconcileOutput:
         data_reconcile_output = self._get_reconcile_output(table_conf, src_schema, tgt_schema)
         reconcile_output = data_reconcile_output
         if self._report_type in {"data", "all"}:
