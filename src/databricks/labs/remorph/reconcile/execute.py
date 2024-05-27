@@ -13,7 +13,10 @@ from databricks.labs.remorph.reconcile.compare import (
 )
 from databricks.labs.remorph.reconcile.connectors.data_source import DataSource
 from databricks.labs.remorph.reconcile.connectors.source_adapter import create_adapter
-from databricks.labs.remorph.reconcile.exception import DataSourceRuntimeException
+from databricks.labs.remorph.reconcile.exception import (
+    DataSourceRuntimeException,
+    InvalidInputException,
+)
 from databricks.labs.remorph.reconcile.query_builder.hash_query import HashQueryBuilder
 from databricks.labs.remorph.reconcile.query_builder.sampling_query import (
     SamplingQueryBuilder,
@@ -21,9 +24,13 @@ from databricks.labs.remorph.reconcile.query_builder.sampling_query import (
 from databricks.labs.remorph.reconcile.query_builder.threshold_query import (
     ThresholdQueryBuilder,
 )
-from databricks.labs.remorph.reconcile.recon_capture import ReconCapture
+from databricks.labs.remorph.reconcile.recon_capture import (
+    ReconCapture,
+    generate_final_reconcile_output,
+)
 from databricks.labs.remorph.reconcile.recon_config import (
     DataReconcileOutput,
+    ReconcileOutput,
     ReconcileProcessDuration,
     Schema,
     SchemaReconcileOutput,
@@ -38,20 +45,31 @@ logger = logging.getLogger(__name__)
 _SAMPLE_ROWS = 50
 
 
+def validate_input(input_value: str, list_of_value: set, message: str):
+    if input_value not in list_of_value:
+        error_message = f"{message} --> {input_value} is not one of {list_of_value}"
+        logger.error(error_message)
+        raise InvalidInputException(error_message)
+
+
 def recon(
     ws: WorkspaceClient,
     spark: SparkSession,
     table_recon: TableRecon,
     source_dialect: Dialect,
     report_type: str,
-):
+) -> ReconcileOutput:
     """[EXPERIMENTAL] Reconcile the data between the source and target tables."""
     # verify the workspace client and add proper product and version details
     # TODO For now we are utilising the
     #  verify_workspace_client from transpile/execute.py file. Later verify_workspace_client function has to be
     #  refactored
     ws: WorkspaceClient = verify_workspace_client(ws)
+
+    # validate the report type
+    report_type = report_type.lower()
     logger.info(report_type)
+    validate_input(report_type, {"schema", "data", "row", "all"}, "Invalid report type")
 
     database_config = DatabaseConfig(
         source_catalog=table_recon.source_catalog,
@@ -79,14 +97,14 @@ def recon(
 
     for table_conf in table_recon.tables:
         recon_process_duration = ReconcileProcessDuration(start_ts=str(datetime.now()), end_ts=None)
-        schema_reconcile_output = SchemaReconcileOutput()
+        schema_reconcile_output = SchemaReconcileOutput(is_valid=True)
         data_reconcile_output = DataReconcileOutput()
         try:
             src_schema, tgt_schema = _get_schema(
                 source=source, target=target, table_conf=table_conf, database_config=database_config
             )
         except DataSourceRuntimeException as e:
-            schema_reconcile_output = SchemaReconcileOutput(exception=str(e))
+            schema_reconcile_output = SchemaReconcileOutput(is_valid=False, exception=str(e))
         else:
             if report_type in {"schema", "all"}:
                 schema_reconcile_output = _run_reconcile_schema(
@@ -107,7 +125,7 @@ def recon(
             recon_process_duration=recon_process_duration,
         )
 
-    return recon_id
+    return generate_final_reconcile_output(recon_id=recon_id, spark=spark)
 
 
 def initialise_data_source(
@@ -123,11 +141,11 @@ def initialise_data_source(
 
 
 def _get_missing_data(
-    reader,
-    sampler,
-    missing_df,
-    catalog,
-    schema,
+    reader: DataSource,
+    sampler: SamplingQueryBuilder,
+    missing_df: DataFrame,
+    catalog: str,
+    schema: str,
     table_name: str,
 ) -> DataFrame:
     sample_query = sampler.build_query(missing_df)
@@ -167,13 +185,17 @@ class Reconciliation:
         table_conf: Table,
         src_schema: list[Schema],
         tgt_schema: list[Schema],
-    ):
+    ) -> DataReconcileOutput:
         data_reconcile_output = self._get_reconcile_output(table_conf, src_schema, tgt_schema)
         reconcile_output = data_reconcile_output
         if self._report_type in {"data", "all"}:
             reconcile_output = self._get_sample_data(table_conf, data_reconcile_output, src_schema, tgt_schema)
             if table_conf.get_threshold_columns("source"):
                 reconcile_output.threshold_output = self._reconcile_threshold_data(table_conf, src_schema, tgt_schema)
+
+        if self._report_type == "row" and table_conf.get_threshold_columns("source"):
+            logger.warning("Threshold comparison is ignored for 'row' report type")
+
         return reconcile_output
 
     def reconcile_schema(

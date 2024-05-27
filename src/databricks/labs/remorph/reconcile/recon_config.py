@@ -200,7 +200,7 @@ class SchemaMatchResult:
 
 @dataclass
 class SchemaReconcileOutput:
-    is_valid: bool = True
+    is_valid: bool
     compare_df: DataFrame | None = None
     exception: str | None = None
 
@@ -209,3 +209,24 @@ class SchemaReconcileOutput:
 class ReconcileProcessDuration:
     start_ts: str
     end_ts: str | None
+
+
+@dataclass
+class StatusOutput:
+    row: bool | None = None
+    column: bool | None = None
+    schema: bool | None = None
+
+
+@dataclass
+class ReconcileTableOutput:
+    target_table_name: str
+    source_table_name: str
+    status: StatusOutput = StatusOutput()
+    exception_message: str | None = None
+
+
+@dataclass
+class ReconcileOutput:
+    recon_id: str
+    results: list[ReconcileTableOutput]
