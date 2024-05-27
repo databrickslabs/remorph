@@ -66,11 +66,12 @@ def recon(
         ws=ws_client,
         secret_scope="secret_scope",
     )
-    schema_comparator = SchemaCompare(spark=spark)
 
     recon_id = str(uuid4())
     # initialise the Reconciliation
-    reconciler = Reconciliation(source, target, database_config, report_type, schema_comparator, source_dialect)
+    reconciler = Reconciliation(
+        source, target, database_config, report_type, SchemaCompare(spark=spark), source_dialect
+    )
 
     # initialise the recon capture class
     recon_capture = ReconCapture(

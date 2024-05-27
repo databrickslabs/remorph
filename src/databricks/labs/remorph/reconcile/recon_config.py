@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 from pyspark.sql import DataFrame
 from sqlglot import Dialect
@@ -156,7 +156,7 @@ class Schema:
 @dataclass
 class MismatchOutput:
     mismatch_df: DataFrame | None = None
-    mismatch_columns: list[str] = field(default_factory=list)
+    mismatch_columns: list[str] | None = None
 
 
 @dataclass

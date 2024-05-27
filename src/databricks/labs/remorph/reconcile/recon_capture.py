@@ -121,7 +121,9 @@ class ReconCapture:
             exception_msg = data_reconcile_output.exception
 
         insertion_time = str(datetime.now())
-        mismatch_columns = data_reconcile_output.mismatch.mismatch_columns if data_reconcile_output.mismatch else []
+        mismatch_columns = []
+        if data_reconcile_output.mismatch and data_reconcile_output.mismatch.mismatch_columns:
+            mismatch_columns = data_reconcile_output.mismatch.mismatch_columns
 
         df = self.spark.sql(
             f"""
