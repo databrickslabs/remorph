@@ -213,6 +213,11 @@ def morph(workspace_client: WorkspaceClient, config: MorphConfig):
 
 def verify_workspace_client(workspace_client: WorkspaceClient) -> WorkspaceClient:
     # pylint: disable=protected-access
+    """
+    [Private] Verifies and updates the workspace client configuration.
+
+    TODO: In future refactor this function so it can be used for reconcile module without cross access.
+    """
     if workspace_client.config._product != "remorph":
         workspace_client.config._product = "remorph"
     if workspace_client.config._product_version != __version__:
