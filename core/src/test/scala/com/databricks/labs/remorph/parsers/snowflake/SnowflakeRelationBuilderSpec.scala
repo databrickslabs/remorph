@@ -13,6 +13,10 @@ class SnowflakeRelationBuilderSpec extends AnyWordSpec with SnowflakeParserTestC
 
   "SnowflakeRelationBuilder" should {
 
+    "translate query with no FROM clause" in {
+      example("", _.select_optional_clauses(), NoTable())
+    }
+
     "translate FROM clauses" in {
       example("FROM some_table", _.from_clause(), namedTable("some_table"))
     }

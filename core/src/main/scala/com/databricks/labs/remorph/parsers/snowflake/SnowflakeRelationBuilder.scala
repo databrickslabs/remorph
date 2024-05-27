@@ -64,7 +64,7 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.Relation] w
     }
 
   override def visitSelect_optional_clauses(ctx: Select_optional_clausesContext): ir.Relation = {
-    val from = ctx.from_clause().accept(this)
+    val from = Option(ctx.from_clause()).map(_.accept(this)).getOrElse(ir.NoTable())
     buildOrderBy(
       ctx.order_by_clause(),
       buildQualify(
