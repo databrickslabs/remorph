@@ -31,6 +31,7 @@ from databricks.labs.remorph.reconcile.recon_config import (
     ThresholdOutput,
 )
 from databricks.labs.remorph.reconcile.schema_compare import SchemaCompare
+from databricks.labs.remorph.transpiler.execute import verify_workspace_client
 from databricks.sdk import WorkspaceClient
 
 logger = logging.getLogger(__name__)
@@ -44,6 +45,12 @@ def recon(
     source_dialect: Dialect,
     report_type: str,
 ):
+    """[EXPERIMENTAL] Reconcile the data between the source and target tables."""
+    # verify the workspace client and add proper product and version details
+    # TODO For now we are utilising the
+    #  verify_workspace_client from transpile/execute.py file. Later verify_workspace_client function has to be
+    #  refactored
+    ws: WorkspaceClient = verify_workspace_client(ws)
     logger.info(report_type)
 
     database_config = DatabaseConfig(
