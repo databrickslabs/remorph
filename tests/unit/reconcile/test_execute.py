@@ -586,7 +586,10 @@ def mock_for_report_type_data(
 
 
 def test_recon_for_report_type_is_data(
-    mock_workspace_client, mock_spark, report_tables_schema, mock_for_report_type_data
+    mock_workspace_client,
+    mock_spark,
+    report_tables_schema,
+    mock_for_report_type_data,
 ):
     recon_schema, metrics_schema, details_schema = report_tables_schema
     table_recon, source, target = mock_for_report_type_data
@@ -1173,7 +1176,10 @@ def mock_for_report_type_row(table_conf_with_opts, table_schema, mock_spark, que
 
 
 def test_recon_for_report_type_is_row(
-    mock_workspace_client, mock_spark, mock_for_report_type_row, report_tables_schema
+    mock_workspace_client,
+    mock_spark,
+    mock_for_report_type_row,
+    report_tables_schema,
 ):
     recon_schema, metrics_schema, details_schema = report_tables_schema
     source, target, table_recon = mock_for_report_type_row
@@ -1297,7 +1303,10 @@ def mock_for_recon_exception(table_conf_with_opts, setup_metadata_table):
 
 
 def test_schema_recon_with_data_source_exception(
-    mock_workspace_client, mock_spark, report_tables_schema, mock_for_recon_exception
+    mock_workspace_client,
+    mock_spark,
+    report_tables_schema,
+    mock_for_recon_exception,
 ):
     recon_schema, metrics_schema, details_schema = report_tables_schema
     table_recon, source, target = mock_for_recon_exception
@@ -1359,7 +1368,10 @@ def test_schema_recon_with_data_source_exception(
 
 
 def test_schema_recon_with_general_exception(
-    mock_workspace_client, mock_spark, report_tables_schema, mock_for_report_type_schema
+    mock_workspace_client,
+    mock_spark,
+    report_tables_schema,
+    mock_for_report_type_schema,
 ):
     recon_schema, metrics_schema, details_schema = report_tables_schema
     table_recon, source, target = mock_for_report_type_schema
@@ -1423,7 +1435,10 @@ def test_schema_recon_with_general_exception(
 
 
 def test_data_recon_with_general_exception(
-    mock_workspace_client, mock_spark, report_tables_schema, mock_for_report_type_schema
+    mock_workspace_client,
+    mock_spark,
+    report_tables_schema,
+    mock_for_report_type_schema,
 ):
     recon_schema, metrics_schema, details_schema = report_tables_schema
     table_recon, source, target = mock_for_report_type_schema
@@ -1438,7 +1453,7 @@ def test_data_recon_with_general_exception(
         ),
         patch("databricks.labs.remorph.reconcile.execute.Reconciliation.reconcile_data") as data_source_mock,
     ):
-        data_source_mock.side_effect = PySparkException("Unknown Error")
+        data_source_mock.side_effect = DataSourceRuntimeException("Unknown Error")
         mock_datetime.now.return_value = datetime(2024, 5, 23, 9, 21, 25, 122185)
         recon_datetime.now.return_value = datetime(2024, 5, 23, 9, 21, 25, 122185)
         recon_id = recon(mock_workspace_client, mock_spark, table_recon, get_dialect("snowflake"), "data")
@@ -1487,7 +1502,10 @@ def test_data_recon_with_general_exception(
 
 
 def test_data_recon_with_source_exception(
-    mock_workspace_client, mock_spark, report_tables_schema, mock_for_report_type_schema
+    mock_workspace_client,
+    mock_spark,
+    report_tables_schema,
+    mock_for_report_type_schema,
 ):
     recon_schema, metrics_schema, details_schema = report_tables_schema
     table_recon, source, target = mock_for_report_type_schema

@@ -12,9 +12,7 @@ from databricks.labs.remorph.reconcile.compare import (
     reconcile_data,
 )
 from databricks.labs.remorph.reconcile.connectors.data_source import DataSource
-from databricks.labs.remorph.reconcile.connectors.source_adapter import (
-    DataSourceAdapter,
-)
+from databricks.labs.remorph.reconcile.connectors.source_adapter import create_adapter
 from databricks.labs.remorph.reconcile.exception import DataSourceRuntimeException
 from databricks.labs.remorph.reconcile.query_builder.hash_query import HashQueryBuilder
 from databricks.labs.remorph.reconcile.query_builder.sampling_query import (
@@ -33,6 +31,7 @@ from databricks.labs.remorph.reconcile.recon_config import (
     ThresholdOutput,
 )
 from databricks.labs.remorph.reconcile.schema_compare import SchemaCompare
+from databricks.labs.remorph.transpiler.execute import verify_workspace_client
 from databricks.sdk import WorkspaceClient
 
 logger = logging.getLogger(__name__)
@@ -46,6 +45,12 @@ def recon(
     source_dialect: Dialect,
     report_type: str,
 ):
+    """[EXPERIMENTAL] Reconcile the data between the source and target tables."""
+    # verify the workspace client and add proper product and version details
+    # TODO For now we are utilising the
+    #  verify_workspace_client from transpile/execute.py file. Later verify_workspace_client function has to be
+    #  refactored
+    ws: WorkspaceClient = verify_workspace_client(ws)
     logger.info(report_type)
 
     database_config = DatabaseConfig(
@@ -111,10 +116,8 @@ def initialise_data_source(
     engine: Dialect,
     secret_scope: str,
 ):
-    source = DataSourceAdapter().create_adapter(engine=engine, spark=spark, ws=ws, secret_scope=secret_scope)
-    target = DataSourceAdapter().create_adapter(
-        engine=get_dialect("databricks"), spark=spark, ws=ws, secret_scope=secret_scope
-    )
+    source = create_adapter(engine=engine, spark=spark, ws=ws, secret_scope=secret_scope)
+    target = create_adapter(engine=get_dialect("databricks"), spark=spark, ws=ws, secret_scope=secret_scope)
 
     return source, target
 
@@ -397,8 +400,6 @@ def _run_reconcile_data(
     try:
         return reconciler.reconcile_data(table_conf=table_conf, src_schema=src_schema, tgt_schema=tgt_schema)
     except DataSourceRuntimeException as e:
-        return DataReconcileOutput(exception=str(e))
-    except PySparkException as e:
         return DataReconcileOutput(exception=str(e))
 
 
