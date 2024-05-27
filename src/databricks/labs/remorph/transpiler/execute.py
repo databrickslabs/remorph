@@ -211,8 +211,13 @@ def morph(workspace_client: WorkspaceClient, config: MorphConfig):
     return status
 
 
-def _verify_workspace_client(workspace_client: WorkspaceClient) -> WorkspaceClient:
+def verify_workspace_client(workspace_client: WorkspaceClient) -> WorkspaceClient:
     # pylint: disable=protected-access
+    """
+    [Private] Verifies and updates the workspace client configuration.
+
+    TODO: In future refactor this function so it can be used for reconcile module without cross access.
+    """
     if workspace_client.config._product != "remorph":
         workspace_client.config._product = "remorph"
     if workspace_client.config._product_version != __version__:
@@ -245,7 +250,7 @@ def morph_sql(
     sql: str,
 ) -> tuple[TranspilationResult, ValidationResult | None]:
     """[Experimental] Transpile a single SQL query from one dialect to another."""
-    workspace_client: WorkspaceClient = _verify_workspace_client(workspace_client)
+    workspace_client: WorkspaceClient = verify_workspace_client(workspace_client)
 
     read_dialect: Dialect = config.get_read_dialect()
     write_dialect: Dialect = config.get_write_dialect()

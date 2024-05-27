@@ -76,7 +76,8 @@ case class UnresolvedFunction(
     function_name: String,
     arguments: Seq[Expression],
     is_distinct: Boolean,
-    is_user_defined_function: Boolean)
+    is_user_defined_function: Boolean,
+    has_incorrect_argc: Boolean = false)
     extends Expression {}
 
 case class ExpressionString(expression: String) extends Expression {}

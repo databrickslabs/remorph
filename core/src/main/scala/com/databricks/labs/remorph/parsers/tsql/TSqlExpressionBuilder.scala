@@ -1,7 +1,7 @@
 package com.databricks.labs.remorph.parsers.tsql
 
 import com.databricks.labs.remorph.parsers.tsql.TSqlParser._
-import com.databricks.labs.remorph.parsers.{FunctionBuilder, ParserCommon, intermediate => ir}
+import com.databricks.labs.remorph.parsers.{FunctionBuilder, ParserCommon, StandardFunction, UnknownFunction, XmlFunction, intermediate => ir}
 import org.antlr.v4.runtime.Token
 import org.antlr.v4.runtime.tree.{TerminalNode, Trees}
 
@@ -13,8 +13,37 @@ class TSqlExpressionBuilder extends TSqlParserBaseVisitor[ir.Expression] with Pa
     ctx match {
       // TODO: asterisk not fully handled
       case c if c.asterisk() != null => c.asterisk().accept(this)
+      // TODO: UDT elements seem broken in the grammar
+      case c if c.udtElem() != null => c.udtElem().accept(this)
+      case c if c.LOCAL_ID() != null => buildLocalAssign(ctx)
       case c if c.expressionElem() != null => ctx.expressionElem().accept(this)
+      // $COVERAGE-OFF$ all four possible alts in the grammar are covered
       case _ => ir.UnresolvedExpression("Unsupported SelectListElem")
+      // $COVERAGE-ON$
+    }
+  }
+
+  /**
+   * Build a local variable assignment from a column source
+   *
+   * @param ctx
+   *   the parse tree containing the assignment
+   */
+  private def buildLocalAssign(ctx: TSqlParser.SelectListElemContext): ir.Expression = {
+    val localId = ir.Identifier(ctx.LOCAL_ID().getText, isQuoted = false)
+    val expression = ctx.expression().accept(this)
+    ctx.op.getType match {
+      case EQ => ir.Assign(localId, expression)
+      case PE => ir.Assign(localId, ir.Add(localId, expression))
+      case ME => ir.Assign(localId, ir.Subtract(localId, expression))
+      case SE => ir.Assign(localId, ir.Multiply(localId, expression))
+      case DE => ir.Assign(localId, ir.Divide(localId, expression))
+      case MEA => ir.Assign(localId, ir.Mod(localId, expression))
+      case AND_ASSIGN => ir.Assign(localId, ir.BitwiseAnd(localId, expression))
+      case OR_ASSIGN => ir.Assign(localId, ir.BitwiseOr(localId, expression))
+      case XOR_ASSIGN => ir.Assign(localId, ir.BitwiseXor(localId, expression))
+      // We can only reach here if the grammar is changed to add more operators and this function is not updated
+      case _ => ir.UnresolvedExpression(ctx.getText) // Handle unexpected operation types
     }
   }
 
@@ -114,7 +143,14 @@ class TSqlExpressionBuilder extends TSqlParserBaseVisitor[ir.Expression] with Pa
     (left, right) match {
       case (c1: ir.Column, c2: ir.Column) =>
         ir.Column(c1.name + "." + c2.name)
-      case _ => ir.Dot(left, right) // This is a placeholder for now as we must match all different valid types
+      case (_: ir.Column, c2: ir.CallFunction) =>
+        FunctionBuilder.functionType(c2.function_name) match {
+          case StandardFunction => ir.Dot(left, right)
+          case XmlFunction => ir.XmlFunction(c2, left)
+          case UnknownFunction => ir.Dot(left, right)
+        }
+      // Other cases
+      case _ => ir.Dot(left, right)
     }
   }
 

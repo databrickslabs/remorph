@@ -3852,7 +3852,7 @@ setSpecial
     // https://msdn.microsoft.com/en-us/library/ms188059.aspx
     | SET IDENTITY_INSERT tableName onOff SEMI?
     | SET specialList (COMMA specialList)* onOff
-    | SET modifyMethod
+    // TODO: Rework when it is time to implement SET modifyMethod
     ;
 
 specialList
@@ -3905,9 +3905,6 @@ expression
     | expression timeZone                                       #exprTz
     | expression overClause                                     #exprOver
     | valueCall                                                 #exprValue
-    | queryCall                                                 #expryQuery
-    | existCall                                                 #exprExist
-    | modifyCall                                                #exprModiy
     | id                                                        #exprId
     | DOLLAR_ACTION                                             #exprDollar
     | <assoc=right> expression DOT expression                   #exprDot
@@ -4135,9 +4132,9 @@ expressionElem
 
 selectListElem
     : asterisk
-    | udtElem
-    | LOCAL_ID (assignmentOperator | EQ) expression
+    | LOCAL_ID op=(PE | ME | SE | DE | MEA | AND_ASSIGN | XOR_ASSIGN | OR_ASSIGN | EQ) expression
     | expressionElem
+    | udtElem  // TODO: May not be needed as expressionElem can handle this?
     ;
 
 tableSources
@@ -4293,11 +4290,11 @@ functionCall
     | freetextFunction
     | partitionFunction
     | hierarchyidStaticMethod
-    // TODO: This is broken and highly ambiguous - will need to be reworked
-    | scalarFunctionName LPAREN expressionList? RPAREN
+    // TODO: This is broken and highly ambiguous - will need to be reworked so the expression allows the primitives
+    // | scalarFunctionName LPAREN expressionList? RPAREN
     ;
 
-// Standard functions are built in but take standarad syntax, or are
+// Standard functions are built in but take standard syntax, or are
 // some user function etc
 standardFunction
     : funcId LPAREN (expression (COMMA expression)*)? RPAREN
@@ -4368,7 +4365,6 @@ builtInFunctions
       // https://learn.microsoft.com/en-us/sql/t-sql/functions/cursor-rows-transact-sql?view=sql-server-ver16
     | FETCH_STATUS # FETCH_STATUS
     | PARSE LPAREN str = expression AS dataType (USING culture = expression)? RPAREN # PARSE
-    | xmlDataTypeMethods # XML_DATA_TYPE_FUNC
     | JSON_ARRAY LPAREN expressionList? jsonNullClause? RPAREN # JSON_ARRAY
     | JSON_OBJECT LPAREN (keyValue = jsonKeyValue (COMMA keyValue = jsonKeyValue)*)? jsonNullClause? RPAREN # JSON_OBJECT
       // https://msdn.microsoft.com/en-us/library/ms177587.aspx
@@ -4379,49 +4375,17 @@ builtInFunctions
     | USER # USER
     ;
 
-xmlDataTypeMethods
-    : valueMethod
-    | queryMethod
-    | existMethod
-    | modifyMethod
-    ;
-
 valueMethod
     : (
         locId = LOCAL_ID
         | valueId = fullColumnName
         | eventdata = EVENTDATA LPAREN RPAREN
-        | query = queryMethod
         | LPAREN subquery RPAREN
     ) DOT call = valueCall
     ;
 
 valueCall
     : (VALUE | VALUE_SQUARE_BRACKET) LPAREN xquery = STRING COMMA sqltype = STRING RPAREN
-    ;
-
-queryMethod
-    : (locId = LOCAL_ID | valueId = fullColumnName | LPAREN subquery RPAREN) DOT call = queryCall
-    ;
-
-queryCall
-    : (QUERY | QUERY_SQUARE_BRACKET) LPAREN xquery = STRING RPAREN
-    ;
-
-existMethod
-    : (locId = LOCAL_ID | valueId = fullColumnName | LPAREN subquery RPAREN) DOT call = existCall
-    ;
-
-existCall
-    : (EXIST | EXIST_SQUARE_BRACKET) LPAREN xquery = STRING RPAREN
-    ;
-
-modifyMethod
-    : (locId = LOCAL_ID | valueId = fullColumnName | LPAREN subquery RPAREN) DOT call = modifyCall
-    ;
-
-modifyCall
-    : (MODIFY | MODIFY_SQUARE_BRACKET) LPAREN xmlDml = STRING RPAREN
     ;
 
 hierarchyidStaticMethod
@@ -4917,8 +4881,6 @@ keyword
     | ESTIMATEONLY
     | EXCLUSIVE
     | EXECUTABLE
-    | EXIST
-    | EXIST_SQUARE_BRACKET
     | EXPAND
     | EXPIRY_DATE
     | EXPLICIT
@@ -5037,7 +4999,6 @@ keyword
     | MIXED_PAGE_ALLOCATION
     | MODE
     | MODIFY
-    | MODIFY_SQUARE_BRACKET
     | MOVE
     | MULTI_USER
     | NAME
@@ -5119,7 +5080,6 @@ keyword
     | PROVIDER
     | PROVIDER_KEY_NAME
     | QUERY
-    | QUERY_SQUARE_BRACKET
     | QUEUE
     | QUEUE_DELAY
     | QUOTED_IDENTIFIER

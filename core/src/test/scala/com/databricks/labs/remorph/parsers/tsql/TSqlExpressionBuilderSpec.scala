@@ -3,6 +3,9 @@ package com.databricks.labs.remorph.parsers.tsql
 import com.databricks.labs.remorph.parsers.intermediate.FrameBoundary
 import com.databricks.labs.remorph.parsers.tsql.TSqlParser.WindowFrameBoundContext
 import com.databricks.labs.remorph.parsers.{intermediate => ir}
+import org.antlr.v4.runtime.tree.TerminalNodeImpl
+import org.antlr.v4.runtime.{CommonToken, Token}
+import org.mockito.ArgumentMatchers.any
 import org.mockito.ArgumentMatchers.anyInt
 import org.mockito.Mockito.{mock, when}
 import org.mockito.Mockito.{mock, when}
@@ -207,11 +210,13 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
             ir.Literal(integer = Some(2)),
             ir.Add(ir.Literal(integer = Some(3)), ir.Literal(integer = Some(4))))))
     }
+
     "correctly resolve dot delimited plain references" in {
       example("a", _.expression(), ir.Column("a"))
       example("a.b", _.expression(), ir.Column("a.b"))
       example("a.b.c", _.expression(), ir.Column("a.b.c"))
     }
+
     "correctly resolve quoted identifiers" in {
       example("RAW", _.expression(), ir.Column("RAW"))
       example("#RAW", _.expression(), ir.Column("#RAW"))
@@ -315,6 +320,51 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
           ir.Or(ir.Equals(ir.Column("c"), ir.Column("x")), ir.Equals(ir.Column("e"), ir.Column("f")))))
     }
 
+    "handle non special functions used in dot operators" in {
+      example(
+        "a.b()",
+        _.expression(),
+        ir.Dot(
+          ir.Column("a"),
+          ir.UnresolvedFunction("b", List(), is_distinct = false, is_user_defined_function = false)))
+      example(
+        "a.b.c()",
+        _.expression(),
+        ir.Dot(
+          ir.Column("a"),
+          ir.Dot(
+            ir.Column("b"),
+            ir.UnresolvedFunction("c", List(), is_distinct = false, is_user_defined_function = false))))
+      example(
+        "a.b.c.FLOOR(c)",
+        _.expression(),
+        ir.Dot(
+          ir.Column("a"),
+          ir.Dot(ir.Column("b"), ir.Dot(ir.Column("c"), ir.CallFunction("FLOOR", Seq(ir.Column("c")))))))
+    }
+
+    "handle unknown functions used with dots" in {
+      example(
+        "a.UNKNOWN_FUNCTION()",
+        _.expression(),
+        ir.Dot(
+          ir.Column("a"),
+          ir.UnresolvedFunction("UNKNOWN_FUNCTION", List(), is_distinct = false, is_user_defined_function = false)))
+    }
+
+    "cover case that cannot happen with dot" in {
+      val builder = new TSqlExpressionBuilder
+      val mockCtx = mock(classOf[TSqlParser.ExprDotContext])
+      val expressionMockColumn = mock(classOf[TSqlParser.ExpressionContext])
+      when(mockCtx.expression(0)).thenReturn(expressionMockColumn)
+      when(expressionMockColumn.accept(any())).thenReturn(ir.Column("a"))
+      val expressionMockFunc = mock(classOf[TSqlParser.ExpressionContext])
+      when(mockCtx.expression(1)).thenReturn(expressionMockFunc)
+      when(expressionMockFunc.accept(any())).thenReturn(ir.CallFunction("UNKNOWN_FUNCTION", List()))
+      val result = builder.visitExprDot(mockCtx)
+      result shouldBe a[ir.Dot]
+    }
+
     "translate case/when/else expressions" in {
       // Case with an initial expression and an else clause
       example(
@@ -385,6 +435,25 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
       val result = builder.visitSelectListElem(mockCtx)
 
       // Verify the result
+      result shouldBe a[ir.UnresolvedExpression]
+    }
+
+    "cover default case in buildLocalAssign via visitSelectListElem" in {
+      val selectListElemContextMock = mock(classOf[TSqlParser.SelectListElemContext])
+      val eofToken = new CommonToken(Token.EOF)
+      selectListElemContextMock.op = eofToken
+      when(selectListElemContextMock.LOCAL_ID()).thenReturn(new TerminalNodeImpl(eofToken))
+      when(selectListElemContextMock.asterisk()).thenReturn(null)
+      when(selectListElemContextMock.udtElem()).thenReturn(null)
+      when(selectListElemContextMock.getText).thenReturn("")
+
+      val expressionContextMock = mock(classOf[TSqlParser.ExpressionContext])
+      when(expressionContextMock.accept(any())).thenReturn(null)
+      when(selectListElemContextMock.expression()).thenReturn(expressionContextMock)
+
+      val builder = new TSqlExpressionBuilder
+      val result = builder.visitSelectListElem(selectListElemContextMock)
+
       result shouldBe a[ir.UnresolvedExpression]
     }
   }
