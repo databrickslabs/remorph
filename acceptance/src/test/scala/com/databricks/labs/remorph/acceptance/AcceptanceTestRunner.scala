@@ -65,12 +65,23 @@ class IsResolvedAsSnowflakeQueryRunner(override protected val astBuilder: Snowfl
   override def makeErrHandler(chars: String): ErrorCollector =
     new ProductionErrorCollector(chars, "")
   override def runQuery(query: String): Assertion = {
-    try {
-      val result = astBuilder.visit(parseString(query, _.snowflake_file()))
-      assert(!result.toString.contains("Unresolved"), result.toString)
-    } catch {
-      case NonFatal(_) =>
-        fail(errHandler.formatErrors.mkString("\n"))
+    val result =
+      try {
+        astBuilder.visit(parseString(query, _.snowflake_file()))
+      } catch {
+        case NonFatal(e) =>
+          val formattedErrors = errHandler.formatErrors
+          val msg = if (formattedErrors.nonEmpty) {
+            formattedErrors.mkString("\n")
+          } else {
+            Option(e.getMessage).getOrElse(s"Unexpected exception of class ${e.getClass} was thrown")
+          }
+          fail(msg)
+      }
+    if (result.toString.contains("Unresolved")) {
+      fail(s"Translated query contains unresolved bits: $result")
+    } else {
+      succeed
     }
   }
 

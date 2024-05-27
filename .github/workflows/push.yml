@@ -140,10 +140,16 @@ jobs:
         run: ls -lR ~/.m2/repository/com/databricks/labs
 
       - name: Run Acceptance Tests with Maven
-        run: mvn -X --update-snapshots -B test -pl acceptance --file pom.xml --fail-at-end
+        run: mvn --update-snapshots -B test -pl acceptance --file pom.xml --fail-at-end
         continue-on-error: true
 
       - name: Publish JUnit report
-        uses: mikepenz/action-junit-report@v4
+        uses: EnricoMi/publish-unit-test-result-action@v2
+        if: always()
         with:
-          report_paths: '**/TEST-com.databricks.labs.remorph.acceptance*.xml'
+          files: |
+            **/TEST-com.databricks.labs.remorph.acceptance*.xml
+          comment_title: 'Acceptance tests results'
+          check_name: 'Acceptance Tests Results'
+          fail_on: 'nothing'
+        continue-on-error: true
