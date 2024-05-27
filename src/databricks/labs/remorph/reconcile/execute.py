@@ -53,11 +53,11 @@ def validate_input(input_value: str, list_of_value: set, message: str):
 
 
 def recon(
-    ws: WorkspaceClient,
-    spark: SparkSession,
-    table_recon: TableRecon,
-    source_dialect: Dialect,
-    report_type: str,
+        ws: WorkspaceClient,
+        spark: SparkSession,
+        table_recon: TableRecon,
+        source_dialect: Dialect,
+        report_type: str,
 ) -> ReconcileOutput:
     """[EXPERIMENTAL] Reconcile the data between the source and target tables."""
     # verify the workspace client and add proper product and version details
@@ -141,10 +141,10 @@ def recon(
 
 
 def initialise_data_source(
-    ws: WorkspaceClient,
-    spark: SparkSession,
-    engine: Dialect,
-    secret_scope: str,
+        ws: WorkspaceClient,
+        spark: SparkSession,
+        engine: Dialect,
+        secret_scope: str,
 ):
     source = create_adapter(engine=engine, spark=spark, ws=ws, secret_scope=secret_scope)
     target = create_adapter(engine=get_dialect("databricks"), spark=spark, ws=ws, secret_scope=secret_scope)
@@ -153,12 +153,12 @@ def initialise_data_source(
 
 
 def _get_missing_data(
-    reader: DataSource,
-    sampler: SamplingQueryBuilder,
-    missing_df: DataFrame,
-    catalog: str,
-    schema: str,
-    table_name: str,
+        reader: DataSource,
+        sampler: SamplingQueryBuilder,
+        missing_df: DataFrame,
+        catalog: str,
+        schema: str,
+        table_name: str,
 ) -> DataFrame:
     sample_query = sampler.build_query(missing_df)
     return reader.read_data(
@@ -173,13 +173,13 @@ def _get_missing_data(
 class Reconciliation:
 
     def __init__(
-        self,
-        source: DataSource,
-        target: DataSource,
-        database_config: DatabaseConfig,
-        report_type: str,
-        schema_comparator: SchemaCompare,
-        source_engine: Dialect,
+            self,
+            source: DataSource,
+            target: DataSource,
+            database_config: DatabaseConfig,
+            report_type: str,
+            schema_comparator: SchemaCompare,
+            source_engine: Dialect,
     ):
         self._source = source
         self._target = target
@@ -193,10 +193,10 @@ class Reconciliation:
         self._source_engine = source_engine
 
     def reconcile_data(
-        self,
-        table_conf: Table,
-        src_schema: list[Schema],
-        tgt_schema: list[Schema],
+            self,
+            table_conf: Table,
+            src_schema: list[Schema],
+            tgt_schema: list[Schema],
     ) -> DataReconcileOutput:
         data_reconcile_output = self._get_reconcile_output(table_conf, src_schema, tgt_schema)
         reconcile_output = data_reconcile_output
@@ -211,18 +211,18 @@ class Reconciliation:
         return reconcile_output
 
     def reconcile_schema(
-        self,
-        src_schema: list[Schema],
-        tgt_schema: list[Schema],
-        table_conf: Table,
+            self,
+            src_schema: list[Schema],
+            tgt_schema: list[Schema],
+            table_conf: Table,
     ):
         return self._schema_comparator.compare(src_schema, tgt_schema, self._source_engine, table_conf)
 
     def _get_reconcile_output(
-        self,
-        table_conf,
-        src_schema,
-        tgt_schema,
+            self,
+            table_conf,
+            src_schema,
+            tgt_schema,
     ):
         src_hash_query = HashQueryBuilder(table_conf, src_schema, "source", self._source_engine).build_query(
             report_type=self._report_type
@@ -250,20 +250,20 @@ class Reconciliation:
         )
 
     def _get_sample_data(
-        self,
-        table_conf,
-        reconcile_output,
-        src_schema,
-        tgt_schema,
+            self,
+            table_conf,
+            reconcile_output,
+            src_schema,
+            tgt_schema,
     ):
         mismatch = None
         missing_in_src = None
         missing_in_tgt = None
 
         if (
-            reconcile_output.mismatch_count > 0
-            or reconcile_output.missing_in_src_count > 0
-            or reconcile_output.missing_in_tgt_count > 0
+                reconcile_output.mismatch_count > 0
+                or reconcile_output.missing_in_src_count > 0
+                or reconcile_output.missing_in_tgt_count > 0
         ):
             src_sampler = SamplingQueryBuilder(table_conf, src_schema, "source", self._source_engine)
             tgt_sampler = SamplingQueryBuilder(table_conf, tgt_schema, "target", self._target_engine)
@@ -307,13 +307,13 @@ class Reconciliation:
         )
 
     def _get_mismatch_data(
-        self,
-        src_sampler,
-        tgt_sampler,
-        mismatch,
-        key_columns,
-        src_table: str,
-        tgt_table: str,
+            self,
+            src_sampler,
+            tgt_sampler,
+            mismatch,
+            key_columns,
+            src_table: str,
+            tgt_table: str,
     ):
         src_mismatch_sample_query = src_sampler.build_query(mismatch)
         tgt_mismatch_sample_query = tgt_sampler.build_query(mismatch)
@@ -336,10 +336,10 @@ class Reconciliation:
         return capture_mismatch_data_and_columns(source=src_data, target=tgt_data, key_columns=key_columns)
 
     def _reconcile_threshold_data(
-        self,
-        table_conf: Table,
-        src_schema: list[Schema],
-        tgt_schema: list[Schema],
+            self,
+            table_conf: Table,
+            src_schema: list[Schema],
+            tgt_schema: list[Schema],
     ):
 
         src_data, tgt_data = self._get_threshold_data(table_conf, src_schema, tgt_schema)
@@ -353,10 +353,10 @@ class Reconciliation:
         return self._compute_threshold_comparison(table_conf, src_schema)
 
     def _get_threshold_data(
-        self,
-        table_conf: Table,
-        src_schema: list[Schema],
-        tgt_schema: list[Schema],
+            self,
+            table_conf: Table,
+            src_schema: list[Schema],
+            tgt_schema: list[Schema],
     ) -> tuple[DataFrame, DataFrame]:
         src_threshold_query = ThresholdQueryBuilder(
             table_conf, src_schema, "source", self._source_engine
@@ -406,12 +406,11 @@ class Reconciliation:
 
 
 def _get_schema(
-    source: DataSource,
-    target: DataSource,
-    table_conf: Table,
-    database_config: DatabaseConfig,
+        source: DataSource,
+        target: DataSource,
+        table_conf: Table,
+        database_config: DatabaseConfig,
 ) -> tuple[list[Schema], list[Schema]]:
-
     src_schema = source.get_schema(
         catalog=database_config.source_catalog,
         schema=database_config.source_schema,
@@ -427,10 +426,10 @@ def _get_schema(
 
 
 def _run_reconcile_data(
-    reconciler: Reconciliation,
-    table_conf: Table,
-    src_schema: list[Schema],
-    tgt_schema: list[Schema],
+        reconciler: Reconciliation,
+        table_conf: Table,
+        src_schema: list[Schema],
+        tgt_schema: list[Schema],
 ) -> DataReconcileOutput:
     try:
         return reconciler.reconcile_data(table_conf=table_conf, src_schema=src_schema, tgt_schema=tgt_schema)
@@ -439,12 +438,22 @@ def _run_reconcile_data(
 
 
 def _run_reconcile_schema(
-    reconciler: Reconciliation,
-    table_conf: Table,
-    src_schema: list[Schema],
-    tgt_schema: list[Schema],
+        reconciler: Reconciliation,
+        table_conf: Table,
+        src_schema: list[Schema],
+        tgt_schema: list[Schema],
 ):
     try:
         return reconciler.reconcile_schema(table_conf=table_conf, src_schema=src_schema, tgt_schema=tgt_schema)
     except PySparkException as e:
         return SchemaReconcileOutput(is_valid=False, exception=str(e))
+
+
+#if __name__ == "__main__":
+    #recon(
+    #    ws,
+    #    spark,
+    #    table_recon,
+    #    source_dialect,
+    #    report_type
+    #)
