@@ -1354,7 +1354,7 @@ def test_schema_recon_with_data_source_exception(
         data=[
             (
                 33333,
-                ((0, 0), (0, 0, ""), True),
+                ((0, 0), (0, 0, ""), False),
                 (
                     False,
                     "remorph",
