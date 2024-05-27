@@ -8,3 +8,7 @@ class DataSourceRuntimeException(Exception):
 
 class WriteToTableException(Exception):
     """Raise the error when there is a runtime exception thrown while writing data to table"""
+
+
+class InvalidInputException(ValueError):
+    """Raise the error when the input is invalid"""
