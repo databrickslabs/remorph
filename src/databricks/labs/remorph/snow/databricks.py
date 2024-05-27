@@ -1,10 +1,9 @@
 import logging
 import re
-from typing import ClassVar
 
 from sqlglot import expressions as exp
 from sqlglot.dialects import hive
-from sqlglot.dialects.databricks import Databricks
+from sqlglot.dialects import databricks as org_databricks
 from sqlglot.dialects.dialect import rename_func
 from sqlglot.errors import ParseError, UnsupportedError
 from sqlglot.helper import apply_index_offset, csv
@@ -87,7 +86,7 @@ def _select_contains_index(expression: exp.Select) -> bool:
     return False
 
 
-def _lateral_view(self: Databricks.Generator, expression: exp.Lateral) -> str:
+def _lateral_view(self: org_databricks.Databricks.Generator, expression: exp.Lateral) -> str:
     this = expression.args['this']
     alias = expression.args['alias']
     alias_str = f" AS {alias.name}" if isinstance(alias, exp.TableAlias) else ""
@@ -162,7 +161,7 @@ def try_to_number(self, expression: local_expression.TryToNumber):
     return f"CAST({func_expr} AS DECIMAL({precision}, {scale}))"
 
 
-def _to_boolean(self: Databricks.Generator, expression: local_expression.ToBoolean) -> str:
+def _to_boolean(self: org_databricks.Databricks.Generator, expression: local_expression.ToBoolean) -> str:
     this = self.sql(expression, "this")
     logger.debug(f"Converting {this} to Boolean")
     raise_error = self.sql(expression, "raise_error")
@@ -189,7 +188,7 @@ def _to_boolean(self: Databricks.Generator, expression: local_expression.ToBoole
     return transformed
 
 
-def _is_integer(self: Databricks.Generator, expression: local_expression.IsInteger) -> str:
+def _is_integer(self: org_databricks.Databricks.Generator, expression: local_expression.IsInteger) -> str:
     this = self.sql(expression, "this")
     transformed = f"""
     CASE
@@ -201,7 +200,9 @@ def _is_integer(self: Databricks.Generator, expression: local_expression.IsInteg
     return transformed
 
 
-def _parse_json_extract_path_text(self: Databricks.Generator, expression: local_expression.JsonExtractPathText) -> str:
+def _parse_json_extract_path_text(
+    self: org_databricks.Databricks.Generator, expression: local_expression.JsonExtractPathText
+) -> str:
     this = self.sql(expression, "this")
     path_name = expression.args["path_name"]
     if path_name.is_string:
@@ -211,16 +212,18 @@ def _parse_json_extract_path_text(self: Databricks.Generator, expression: local_
     return f"GET_JSON_OBJECT({this}, {path})"
 
 
-def _array_construct_compact(self: Databricks.Generator, expression: local_expression.ArrayConstructCompact) -> str:
+def _array_construct_compact(
+    self: org_databricks.Databricks.Generator, expression: local_expression.ArrayConstructCompact
+) -> str:
     exclude = "ARRAY(NULL)"
     array_expr = f"ARRAY({self.expressions(expression, flat=True)})"
     return f"ARRAY_EXCEPT({array_expr}, {exclude})"
 
 
-def _array_slice(self: Databricks.Generator, expression: local_expression.ArraySlice) -> str:
+def _array_slice(self: org_databricks.Databricks.Generator, expression: local_expression.ArraySlice) -> str:
     from_expr = self.sql(expression, "from")
     # In Databricks: array indices start at 1 in function `slice(array, start, length)`
-    from_expr = 1 if from_expr == "0" else from_expr
+    parsed_from_expr = 1 if from_expr == "0" else from_expr
 
     to_expr = self.sql(expression, "to")
     # Convert string expression to number and check if it is negative number
@@ -229,7 +232,7 @@ def _array_slice(self: Databricks.Generator, expression: local_expression.ArrayS
         raise UnsupportedError(err_message)
 
     func = "SLICE"
-    func_expr = self.func(func, expression.this, exp.Literal.number(from_expr), expression.args["to"])
+    func_expr = self.func(func, expression.this, exp.Literal.number(parsed_from_expr), expression.args["to"])
     return func_expr
 
 
@@ -275,7 +278,7 @@ def _to_number(self, expression: local_expression.ToNumber):
     return f"CAST({func_expr} AS DECIMAL({precision}, {scale}))"
 
 
-def _uuid(self: Databricks.Generator, expression: local_expression.UUID) -> str:
+def _uuid(self: org_databricks.Databricks.Generator, expression: local_expression.UUID) -> str:
     namespace = self.sql(expression, "this")
     name = self.sql(expression, "name")
 
@@ -286,7 +289,7 @@ def _uuid(self: Databricks.Generator, expression: local_expression.UUID) -> str:
     return "UUID()"
 
 
-def _parse_date_trunc(self: Databricks.Generator, expression: local_expression.DateTrunc) -> str:
+def _parse_date_trunc(self: org_databricks.Databricks.Generator, expression: local_expression.DateTrunc) -> str:
     if not expression.args.get("unit"):
         error_message = f"Required keyword: 'unit' missing for {exp.DateTrunc}"
         raise UnsupportedError(error_message)
@@ -328,16 +331,15 @@ def _create_named_struct_for_cmp(agg_col, order_col) -> exp.Expression:
     return named_struct_func
 
 
-# pylint: disable=function-redefined
-class Databricks(Databricks):  #
+class Databricks(org_databricks.Databricks):  #
     # Instantiate Databricks Dialect
-    databricks = Databricks()
+    databricks = org_databricks.Databricks()
 
-    class Generator(databricks.Generator):
+    class Generator(org_databricks.Databricks.Generator):
         COLLATE_IS_FUNC = True
         # [TODO]: Variant needs to be transformed better, for now parsing to string was deemed as the choice.
-        TYPE_MAPPING: ClassVar[dict] = {
-            **Databricks.Generator.TYPE_MAPPING,
+        TYPE_MAPPING = {
+            **org_databricks.Databricks.Generator.TYPE_MAPPING,
             exp.DataType.Type.TINYINT: "TINYINT",
             exp.DataType.Type.SMALLINT: "SMALLINT",
             exp.DataType.Type.INT: "INT",
@@ -350,8 +352,8 @@ class Databricks(Databricks):  #
             exp.DataType.Type.GEOGRAPHY: "STRING",
         }
 
-        TRANSFORMS: ClassVar[dict] = {
-            **Databricks.Generator.TRANSFORMS,
+        TRANSFORMS = {
+            **org_databricks.Databricks.Generator.TRANSFORMS,
             exp.Create: _format_create_sql,
             exp.DataType: _datatype_map,
             exp.CurrentTime: _curr_time(),
@@ -427,13 +429,13 @@ class Databricks(Databricks):  #
             op_sql = f"{op_sql} JOIN" if op_sql else "JOIN"
             return f"{self.seg(op_sql)} {this_sql}{on_sql}"
 
-        def arrayagg_sql(self, expr: exp.ArrayAgg) -> str:
-            sql = self.func("ARRAY_AGG", expr.this)
-            within_group = expr.parent if isinstance(expr.parent, exp.WithinGroup) else None
+        def arrayagg_sql(self, expression: exp.ArrayAgg) -> str:
+            sql = self.func("ARRAY_AGG", expression.this)
+            within_group = expression.parent if isinstance(expression.parent, exp.WithinGroup) else None
             if not within_group:
                 return sql
 
-            wg_params = _get_within_group_params(expr, within_group)
+            wg_params = _get_within_group_params(expression, within_group)
             if wg_params.agg_col == wg_params.order_col:
                 return f"SORT_ARRAY({sql}{'' if wg_params.is_order_asc else ', FALSE'})"
 
@@ -559,7 +561,7 @@ class Databricks(Databricks):  #
             part_num = self.sql(expression.args["partNum"])
             return f"SPLIT_PART({expr_name}, {delimiter}, {part_num})"
 
-        def transaction_sql(self, expression: exp.Transaction) -> str:  # noqa: ARG002 pylint: disable=unused-argument
+        def transaction_sql(self, expression: exp.Transaction) -> str:
             """
             Skip begin command
             :param expression:
@@ -567,7 +569,7 @@ class Databricks(Databricks):  #
             """
             return ""
 
-        def rollback_sql(self, expression: exp.Rollback) -> str:  # noqa: ARG002 pylint: disable=unused-argument
+        def rollback_sql(self, expression: exp.Rollback) -> str:
             """
             Skip rollback command
             :param expression:
@@ -575,7 +577,7 @@ class Databricks(Databricks):  #
             """
             return ""
 
-        def commit_sql(self, expression: exp.Rollback) -> str:  # noqa: ARG002 pylint: disable=unused-argument
+        def commit_sql(self, expression: exp.Commit) -> str:
             """
             Skip commit command
             :param expression:

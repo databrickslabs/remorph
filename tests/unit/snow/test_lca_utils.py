@@ -2,13 +2,13 @@ from unittest.mock import patch
 
 from sqlglot import parse_one
 
-from databricks.labs.remorph.config import SQLGLOT_DIALECTS
+from databricks.labs.remorph.config import get_dialect
 from databricks.labs.remorph.snow.databricks import Databricks
 from databricks.labs.remorph.snow.lca_utils import check_for_unsupported_lca
 
 
 def test_query_with_no_unsupported_lca_usage():
-    dialect = SQLGLOT_DIALECTS.get("snowflake")
+    dialect = get_dialect("snowflake")
     sql = """
         SELECT
             t.col1,
@@ -23,7 +23,7 @@ def test_query_with_no_unsupported_lca_usage():
 
 
 def test_query_with_valid_alias_usage():
-    dialect = SQLGLOT_DIALECTS.get("snowflake")
+    dialect = get_dialect("snowflake")
     sql = """
         WITH web_v1 as (
         select
@@ -81,7 +81,7 @@ def test_query_with_valid_alias_usage():
 
 
 def test_query_with_lca_in_where():
-    dialect = SQLGLOT_DIALECTS.get("snowflake")
+    dialect = get_dialect("snowflake")
     sql = """
         SELECT
             t.col1,
@@ -97,7 +97,7 @@ def test_query_with_lca_in_where():
 
 
 def test_query_with_lca_in_window():
-    dialect = SQLGLOT_DIALECTS.get("snowflake")
+    dialect = get_dialect("snowflake")
     sql = """
         SELECT
             t.col1,
@@ -113,7 +113,7 @@ def test_query_with_lca_in_window():
 
 
 def test_query_with_error():
-    dialect = SQLGLOT_DIALECTS.get("snowflake")
+    dialect = get_dialect("snowflake")
     sql = """
         SELECT
             t.col1
@@ -128,7 +128,7 @@ def test_query_with_error():
 
 
 def test_query_with_same_alias_and_column_name():
-    dialect = SQLGLOT_DIALECTS.get("snowflake")
+    dialect = get_dialect("snowflake")
     sql = """
     select ca_zip
      from (

@@ -9,12 +9,18 @@ from pyspark.sql.types import BooleanType, StringType, StructField, StructType
 
 from databricks.labs.remorph.config import DatabaseConfig, get_dialect
 from databricks.labs.remorph.reconcile.exception import WriteToTableException
-from databricks.labs.remorph.reconcile.recon_capture import ReconCapture
+from databricks.labs.remorph.reconcile.recon_capture import (
+    ReconCapture,
+    generate_final_reconcile_output,
+)
 from databricks.labs.remorph.reconcile.recon_config import (
     DataReconcileOutput,
     MismatchOutput,
+    ReconcileOutput,
     ReconcileProcessDuration,
+    ReconcileTableOutput,
     SchemaReconcileOutput,
+    StatusOutput,
     Table,
     ThresholdOutput,
 )
@@ -44,19 +50,45 @@ def data_prep(spark: SparkSession):
             StructField("is_valid", BooleanType(), True),
         ]
     )
-    data = [
-        ("source_column1", "source_datatype1", "databricks_column1", "databricks_datatype1", True),
-        ("source_column2", "source_datatype2", "databricks_column2", "databricks_datatype2", True),
-        ("source_column3", "source_datatype3", "databricks_column3", "databricks_datatype3", True),
-        ("source_column4", "source_datatype4", "databricks_column4", "databricks_datatype4", True),
-    ]
-    schema_df = spark.createDataFrame(data, schema)
 
     data = [
+        Row(
+            source_column="source_column1",
+            source_datatype="source_datatype1",
+            databricks_column="databricks_column1",
+            databricks_datatype="databricks_datatype1",
+            is_valid=True,
+        ),
+        Row(
+            source_column="source_column2",
+            source_datatype="source_datatype2",
+            databricks_column="databricks_column2",
+            databricks_datatype="databricks_datatype2",
+            is_valid=True,
+        ),
+        Row(
+            source_column="source_column3",
+            source_datatype="source_datatype3",
+            databricks_column="databricks_column3",
+            databricks_datatype="databricks_datatype3",
+            is_valid=True,
+        ),
+        Row(
+            source_column="source_column4",
+            source_datatype="source_datatype4",
+            databricks_column="databricks_column4",
+            databricks_datatype="databricks_datatype4",
+            is_valid=True,
+        ),
+    ]
+
+    schema_df = spark.createDataFrame(data, schema)
+
+    data_rows = [
         Row(id=1, sal_source=1000, sal_target=1100, sal_match=True),
         Row(id=2, sal_source=2000, sal_target=2100, sal_match=False),
     ]
-    threshold_df = spark.createDataFrame(data)
+    threshold_df = spark.createDataFrame(data_rows)
 
     # Prepare output dataclasses
     mismatch = MismatchOutput(mismatch_df=mismatch_df, mismatch_columns=["name"])
@@ -84,7 +116,7 @@ def data_prep(spark: SparkSession):
     return reconcile_output, schema_output, table_conf, reconcile_process
 
 
-def test_recon_capture_start(mock_workspace_client, mock_spark):
+def test_recon_capture_start_snowflake_all(mock_workspace_client, mock_spark):
     database_config = DatabaseConfig(
         "source_test_schema", "target_test_catalog", "target_test_schema", "source_test_catalog"
     )
@@ -100,7 +132,7 @@ def test_recon_capture_start(mock_workspace_client, mock_spark):
         spark,
     )
     reconcile_output, schema_output, table_conf, reconcile_process = data_prep(spark)
-    with (patch('databricks.labs.remorph.reconcile.recon_capture.ReconCapture._DB_PREFIX', new='default'),):
+    with (patch('databricks.labs.remorph.reconcile.recon_capture._DB_PREFIX', new='default'),):
         recon_capture.start(
             data_reconcile_output=reconcile_output,
             schema_reconcile_output=schema_output,
@@ -167,6 +199,192 @@ def test_recon_capture_start(mock_workspace_client, mock_spark):
     assert rows[4].status is False
 
 
+def test_test_recon_capture_start_databricks_data(mock_workspace_client, mock_spark):
+    database_config = DatabaseConfig("source_test_schema", "target_test_catalog", "target_test_schema")
+    ws = mock_workspace_client
+    source_type = get_dialect("databricks")
+    spark = mock_spark
+    recon_capture = ReconCapture(
+        database_config,
+        "73b44582-dbb7-489f-bad1-6a7e8f4821b1",
+        "data",
+        source_type,
+        ws,
+        spark,
+    )
+    reconcile_output, schema_output, table_conf, reconcile_process = data_prep(spark)
+    schema_output.compare_df = None
+    with (patch('databricks.labs.remorph.reconcile.recon_capture._DB_PREFIX', new='default'),):
+        recon_capture.start(
+            data_reconcile_output=reconcile_output,
+            schema_reconcile_output=schema_output,
+            table_conf=table_conf,
+            recon_process_duration=reconcile_process,
+        )
+
+    # assert main
+    remorph_recon_df = spark.sql("select * from DEFAULT.main")
+    row = remorph_recon_df.collect()[0]
+    assert remorph_recon_df.count() == 1
+    assert row.source_table.catalog is None
+    assert row.report_type == "data"
+    assert row.source_type == "Databricks"
+
+    # assert metrics
+    remorph_recon_metrics_df = spark.sql("select * from DEFAULT.metrics")
+    row = remorph_recon_metrics_df.collect()[0]
+    assert row.recon_metrics.schema_comparison is None
+    assert row.run_metrics.status is False
+
+    # assert details
+    remorph_recon_details_df = spark.sql("select * from DEFAULT.details")
+    assert remorph_recon_details_df.count() == 4
+    assert remorph_recon_details_df.select("recon_type").distinct().count() == 4
+
+
+def test_test_recon_capture_start_databricks_row(mock_workspace_client, mock_spark):
+    database_config = DatabaseConfig(
+        "source_test_schema", "target_test_catalog", "target_test_schema", "source_test_catalog"
+    )
+    ws = mock_workspace_client
+    source_type = get_dialect("databricks")
+    spark = mock_spark
+    recon_capture = ReconCapture(
+        database_config,
+        "73b44582-dbb7-489f-bad1-6a7e8f4821b1",
+        "row",
+        source_type,
+        ws,
+        spark,
+    )
+    reconcile_output, schema_output, table_conf, reconcile_process = data_prep(spark)
+    reconcile_output.mismatch_count = 0
+    reconcile_output.mismatch = MismatchOutput()
+    reconcile_output.threshold_output = ThresholdOutput()
+    schema_output.compare_df = None
+    with (patch('databricks.labs.remorph.reconcile.recon_capture._DB_PREFIX', new='default'),):
+        recon_capture.start(
+            data_reconcile_output=reconcile_output,
+            schema_reconcile_output=schema_output,
+            table_conf=table_conf,
+            recon_process_duration=reconcile_process,
+        )
+
+    # assert main
+    remorph_recon_df = spark.sql("select * from DEFAULT.main")
+    row = remorph_recon_df.collect()[0]
+    assert remorph_recon_df.count() == 1
+    assert row.report_type == "row"
+    assert row.source_type == "Databricks"
+
+    # assert metrics
+    remorph_recon_metrics_df = spark.sql("select * from DEFAULT.metrics")
+    row = remorph_recon_metrics_df.collect()[0]
+    assert row.recon_metrics.column_comparison is None
+    assert row.recon_metrics.schema_comparison is None
+    assert row.run_metrics.status is False
+
+    # assert details
+    remorph_recon_details_df = spark.sql("select * from DEFAULT.details")
+    assert remorph_recon_details_df.count() == 2
+    assert remorph_recon_details_df.select("recon_type").distinct().count() == 2
+
+
+def test_recon_capture_start_oracle_schema(mock_workspace_client, mock_spark):
+    database_config = DatabaseConfig(
+        "source_test_schema", "target_test_catalog", "target_test_schema", "source_test_catalog"
+    )
+    ws = mock_workspace_client
+    source_type = get_dialect("oracle")
+    spark = mock_spark
+    recon_capture = ReconCapture(
+        database_config,
+        "73b44582-dbb7-489f-bad1-6a7e8f4821b1",
+        "schema",
+        source_type,
+        ws,
+        spark,
+    )
+    reconcile_output, schema_output, table_conf, reconcile_process = data_prep(spark)
+    reconcile_output.threshold_output = ThresholdOutput()
+    reconcile_output.mismatch_count = 0
+    reconcile_output.mismatch = MismatchOutput()
+    reconcile_output.missing_in_src_count = 0
+    reconcile_output.missing_in_tgt_count = 0
+    with (patch('databricks.labs.remorph.reconcile.recon_capture._DB_PREFIX', new='default'),):
+        recon_capture.start(
+            data_reconcile_output=reconcile_output,
+            schema_reconcile_output=schema_output,
+            table_conf=table_conf,
+            recon_process_duration=reconcile_process,
+        )
+
+    # assert main
+    remorph_recon_df = spark.sql("select * from DEFAULT.main")
+    row = remorph_recon_df.collect()[0]
+    assert remorph_recon_df.count() == 1
+    assert row.report_type == "schema"
+    assert row.source_type == "Oracle"
+
+    # assert metrics
+    remorph_recon_metrics_df = spark.sql("select * from DEFAULT.metrics")
+    row = remorph_recon_metrics_df.collect()[0]
+    assert row.recon_metrics.row_comparison is None
+    assert row.recon_metrics.column_comparison is None
+    assert row.recon_metrics.schema_comparison is True
+    assert row.run_metrics.status is True
+
+    # assert details
+    remorph_recon_details_df = spark.sql("select * from DEFAULT.details")
+    assert remorph_recon_details_df.count() == 1
+    assert remorph_recon_details_df.select("recon_type").distinct().count() == 1
+
+
+def test_recon_capture_start_oracle_with_exception(mock_workspace_client, mock_spark):
+    database_config = DatabaseConfig(
+        "source_test_schema", "target_test_catalog", "target_test_schema", "source_test_catalog"
+    )
+    ws = mock_workspace_client
+    source_type = get_dialect("oracle")
+    spark = mock_spark
+    recon_capture = ReconCapture(
+        database_config,
+        "73b44582-dbb7-489f-bad1-6a7e8f4821b1",
+        "all",
+        source_type,
+        ws,
+        spark,
+    )
+    reconcile_output, schema_output, table_conf, reconcile_process = data_prep(spark)
+    reconcile_output.threshold_output = ThresholdOutput()
+    reconcile_output.mismatch_count = 0
+    reconcile_output.mismatch = MismatchOutput()
+    reconcile_output.missing_in_src_count = 0
+    reconcile_output.missing_in_tgt_count = 0
+    reconcile_output.exception = "Test exception"
+    with (patch('databricks.labs.remorph.reconcile.recon_capture._DB_PREFIX', new='default'),):
+        recon_capture.start(
+            data_reconcile_output=reconcile_output,
+            schema_reconcile_output=schema_output,
+            table_conf=table_conf,
+            recon_process_duration=reconcile_process,
+        )
+
+    # assert main
+    remorph_recon_df = spark.sql("select * from DEFAULT.main")
+    row = remorph_recon_df.collect()[0]
+    assert remorph_recon_df.count() == 1
+    assert row.report_type == "all"
+    assert row.source_type == "Oracle"
+
+    # assert metrics
+    remorph_recon_metrics_df = spark.sql("select * from DEFAULT.metrics")
+    row = remorph_recon_metrics_df.collect()[0]
+    assert row.recon_metrics.schema_comparison is True
+    assert row.run_metrics.status is False
+    assert row.run_metrics.exception_message == "Test exception"
+
+
 def test_recon_capture_start_with_exception(mock_workspace_client, mock_spark):
     database_config = DatabaseConfig(
         "source_test_schema", "target_test_catalog", "target_test_schema", "source_test_catalog"
@@ -183,14 +401,223 @@ def test_recon_capture_start_with_exception(mock_workspace_client, mock_spark):
         spark,
     )
     reconcile_output, schema_output, table_conf, reconcile_process = data_prep(spark)
-    with (
-        patch(
-            'databricks.labs.remorph.reconcile.recon_capture.ReconCapture._REMORPH_CATALOG_SCHEMA_NAME', new='defaul'
-        ),
-    ) and pytest.raises(WriteToTableException):
+    with (patch('databricks.labs.remorph.reconcile.recon_capture._DB_PREFIX', new='defaul'),) and pytest.raises(
+        WriteToTableException
+    ):
         recon_capture.start(
             data_reconcile_output=reconcile_output,
             schema_reconcile_output=schema_output,
             table_conf=table_conf,
             recon_process_duration=reconcile_process,
         )
+
+
+def test_generate_final_reconcile_output_row(mock_workspace_client, mock_spark):
+    database_config = DatabaseConfig(
+        "source_test_schema",
+        "target_test_catalog",
+        "target_test_schema",
+    )
+    ws = mock_workspace_client
+    source_type = get_dialect("databricks")
+    spark = mock_spark
+    recon_capture = ReconCapture(
+        database_config,
+        "73b44582-dbb7-489f-bad1-6a7e8f4821b1",
+        "row",
+        source_type,
+        ws,
+        spark,
+    )
+    reconcile_output, schema_output, table_conf, reconcile_process = data_prep(spark)
+    with (patch('databricks.labs.remorph.reconcile.recon_capture._DB_PREFIX', new='default'),):
+        recon_capture.start(
+            data_reconcile_output=reconcile_output,
+            schema_reconcile_output=schema_output,
+            table_conf=table_conf,
+            recon_process_duration=reconcile_process,
+        )
+
+    with (patch('databricks.labs.remorph.reconcile.recon_capture._DB_PREFIX', new='default'),):
+        final_output = generate_final_reconcile_output("73b44582-dbb7-489f-bad1-6a7e8f4821b1", mock_spark)
+
+    assert final_output == ReconcileOutput(
+        recon_id='73b44582-dbb7-489f-bad1-6a7e8f4821b1',
+        results=[
+            ReconcileTableOutput(
+                target_table_name='target_test_catalog.target_test_schema.target_supplier',
+                source_table_name='source_test_schema.supplier',
+                status=StatusOutput(row=False, column=None, schema=None),
+                exception_message='',
+            )
+        ],
+    )
+
+
+def test_generate_final_reconcile_output_data(mock_workspace_client, mock_spark):
+    database_config = DatabaseConfig(
+        "source_test_schema",
+        "target_test_catalog",
+        "target_test_schema",
+    )
+    ws = mock_workspace_client
+    source_type = get_dialect("databricks")
+    spark = mock_spark
+    recon_capture = ReconCapture(
+        database_config,
+        "73b44582-dbb7-489f-bad1-6a7e8f4821b1",
+        "data",
+        source_type,
+        ws,
+        spark,
+    )
+    reconcile_output, schema_output, table_conf, reconcile_process = data_prep(spark)
+    with (patch('databricks.labs.remorph.reconcile.recon_capture._DB_PREFIX', new='default'),):
+        recon_capture.start(
+            data_reconcile_output=reconcile_output,
+            schema_reconcile_output=schema_output,
+            table_conf=table_conf,
+            recon_process_duration=reconcile_process,
+        )
+
+    with (patch('databricks.labs.remorph.reconcile.recon_capture._DB_PREFIX', new='default'),):
+        final_output = generate_final_reconcile_output("73b44582-dbb7-489f-bad1-6a7e8f4821b1", mock_spark)
+
+    assert final_output == ReconcileOutput(
+        recon_id='73b44582-dbb7-489f-bad1-6a7e8f4821b1',
+        results=[
+            ReconcileTableOutput(
+                target_table_name='target_test_catalog.target_test_schema.target_supplier',
+                source_table_name='source_test_schema.supplier',
+                status=StatusOutput(row=False, column=False, schema=None),
+                exception_message='',
+            )
+        ],
+    )
+
+
+def test_generate_final_reconcile_output_schema(mock_workspace_client, mock_spark):
+    database_config = DatabaseConfig(
+        "source_test_schema",
+        "target_test_catalog",
+        "target_test_schema",
+    )
+    ws = mock_workspace_client
+    source_type = get_dialect("databricks")
+    spark = mock_spark
+    recon_capture = ReconCapture(
+        database_config,
+        "73b44582-dbb7-489f-bad1-6a7e8f4821b1",
+        "schema",
+        source_type,
+        ws,
+        spark,
+    )
+    reconcile_output, schema_output, table_conf, reconcile_process = data_prep(spark)
+    with (patch('databricks.labs.remorph.reconcile.recon_capture._DB_PREFIX', new='default'),):
+        recon_capture.start(
+            data_reconcile_output=reconcile_output,
+            schema_reconcile_output=schema_output,
+            table_conf=table_conf,
+            recon_process_duration=reconcile_process,
+        )
+
+    with (patch('databricks.labs.remorph.reconcile.recon_capture._DB_PREFIX', new='default'),):
+        final_output = generate_final_reconcile_output("73b44582-dbb7-489f-bad1-6a7e8f4821b1", mock_spark)
+
+    assert final_output == ReconcileOutput(
+        recon_id='73b44582-dbb7-489f-bad1-6a7e8f4821b1',
+        results=[
+            ReconcileTableOutput(
+                target_table_name='target_test_catalog.target_test_schema.target_supplier',
+                source_table_name='source_test_schema.supplier',
+                status=StatusOutput(row=None, column=None, schema=True),
+                exception_message='',
+            )
+        ],
+    )
+
+
+def test_generate_final_reconcile_output_all(mock_workspace_client, mock_spark):
+    database_config = DatabaseConfig(
+        "source_test_schema",
+        "target_test_catalog",
+        "target_test_schema",
+    )
+    ws = mock_workspace_client
+    source_type = get_dialect("databricks")
+    spark = mock_spark
+    recon_capture = ReconCapture(
+        database_config,
+        "73b44582-dbb7-489f-bad1-6a7e8f4821b1",
+        "all",
+        source_type,
+        ws,
+        spark,
+    )
+    reconcile_output, schema_output, table_conf, reconcile_process = data_prep(spark)
+    with (patch('databricks.labs.remorph.reconcile.recon_capture._DB_PREFIX', new='default'),):
+        recon_capture.start(
+            data_reconcile_output=reconcile_output,
+            schema_reconcile_output=schema_output,
+            table_conf=table_conf,
+            recon_process_duration=reconcile_process,
+        )
+
+    with (patch('databricks.labs.remorph.reconcile.recon_capture._DB_PREFIX', new='default'),):
+        final_output = generate_final_reconcile_output("73b44582-dbb7-489f-bad1-6a7e8f4821b1", mock_spark)
+
+    assert final_output == ReconcileOutput(
+        recon_id='73b44582-dbb7-489f-bad1-6a7e8f4821b1',
+        results=[
+            ReconcileTableOutput(
+                target_table_name='target_test_catalog.target_test_schema.target_supplier',
+                source_table_name='source_test_schema.supplier',
+                status=StatusOutput(row=False, column=False, schema=True),
+                exception_message='',
+            )
+        ],
+    )
+
+
+def test_generate_final_reconcile_output_exception(mock_workspace_client, mock_spark):
+    database_config = DatabaseConfig(
+        "source_test_schema",
+        "target_test_catalog",
+        "target_test_schema",
+    )
+    ws = mock_workspace_client
+    source_type = get_dialect("databricks")
+    spark = mock_spark
+    recon_capture = ReconCapture(
+        database_config,
+        "73b44582-dbb7-489f-bad1-6a7e8f4821b1",
+        "all",
+        source_type,
+        ws,
+        spark,
+    )
+    reconcile_output, schema_output, table_conf, reconcile_process = data_prep(spark)
+    reconcile_output.exception = "Test exception"
+    with (patch('databricks.labs.remorph.reconcile.recon_capture._DB_PREFIX', new='default'),):
+        recon_capture.start(
+            data_reconcile_output=reconcile_output,
+            schema_reconcile_output=schema_output,
+            table_conf=table_conf,
+            recon_process_duration=reconcile_process,
+        )
+
+    with (patch('databricks.labs.remorph.reconcile.recon_capture._DB_PREFIX', new='default'),):
+        final_output = generate_final_reconcile_output("73b44582-dbb7-489f-bad1-6a7e8f4821b1", mock_spark)
+
+    assert final_output == ReconcileOutput(
+        recon_id='73b44582-dbb7-489f-bad1-6a7e8f4821b1',
+        results=[
+            ReconcileTableOutput(
+                target_table_name='target_test_catalog.target_test_schema.target_supplier',
+                source_table_name='source_test_schema.supplier',
+                status=StatusOutput(row=None, column=None, schema=None),
+                exception_message='Test exception',
+            )
+        ],
+    )

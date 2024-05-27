@@ -1,5 +1,6 @@
 import re
 
+from pyspark.errors import PySparkException
 from pyspark.sql import DataFrame, DataFrameReader, SparkSession
 from sqlglot import Dialect
 
@@ -52,14 +53,14 @@ class OracleDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
         table: str,
         query: str,
         options: JdbcReaderOptions | None,
-    ) -> DataFrame | None:
+    ) -> DataFrame:
         table_query = query.replace(":tbl", f"{schema}.{table}")
         try:
             if options is None:
                 return self.reader(table_query).options(**self._get_timestamp_options()).load()
-            options = self._get_jdbc_reader_options(options) | self._get_timestamp_options()
-            return self.reader(table_query).options(**options).load()
-        except RuntimeError as e:
+            reader_options = self._get_jdbc_reader_options(options) | self._get_timestamp_options()
+            return self.reader(table_query).options(**reader_options).load()
+        except (RuntimeError, PySparkException) as e:
             return self.log_and_throw_exception(e, "data", table_query)
 
     def get_schema(
@@ -67,7 +68,7 @@ class OracleDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
         catalog: str | None,
         schema: str,
         table: str,
-    ) -> list[Schema] | None:
+    ) -> list[Schema]:
         schema_query = re.sub(
             r'\s+',
             ' ',
@@ -76,7 +77,7 @@ class OracleDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
         try:
             schema_df = self.reader(schema_query).load()
             return [Schema(field.column_name.lower(), field.data_type.lower()) for field in schema_df.collect()]
-        except RuntimeError as e:
+        except (RuntimeError, PySparkException) as e:
             return self.log_and_throw_exception(e, "schema", schema_query)
 
     @staticmethod

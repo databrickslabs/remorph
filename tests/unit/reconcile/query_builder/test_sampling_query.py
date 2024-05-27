@@ -1,5 +1,6 @@
 from pyspark.sql.types import IntegerType, StringType, StructField, StructType
 
+from databricks.labs.remorph.config import get_dialect
 from databricks.labs.remorph.reconcile.query_builder.sampling_query import (
     SamplingQueryBuilder,
 )
@@ -47,7 +48,7 @@ def test_build_query_for_snowflake_src(mock_spark, table_conf_mock, table_schema
         transformations=[Transformation(column_name="s_address", source="trim(s_address)", target="trim(s_address_t)")],
     )
 
-    src_actual = SamplingQueryBuilder(conf, sch, "source", "snowflake").build_query(df)
+    src_actual = SamplingQueryBuilder(conf, sch, "source", get_dialect("snowflake")).build_query(df)
     src_expected = (
         'WITH recon AS (SELECT 11 AS s_nationkey, 1 AS s_suppkey UNION SELECT 22 AS '
         "s_nationkey, 2 AS s_suppkey), src AS (SELECT COALESCE(TRIM(s_acctbal), '') "
@@ -59,7 +60,7 @@ def test_build_query_for_snowflake_src(mock_spark, table_conf_mock, table_schema
         's_suppkey FROM src INNER JOIN recon USING (s_nationkey, s_suppkey)'
     )
 
-    tgt_actual = SamplingQueryBuilder(conf, sch_with_alias, "target", "databricks").build_query(df)
+    tgt_actual = SamplingQueryBuilder(conf, sch_with_alias, "target", get_dialect("databricks")).build_query(df)
     tgt_expected = (
         'WITH recon AS (SELECT 11 AS s_nationkey, 1 AS s_suppkey UNION SELECT 22 AS '
         "s_nationkey, 2 AS s_suppkey), src AS (SELECT COALESCE(TRIM(s_acctbal_t), '') "
@@ -114,7 +115,7 @@ def test_build_query_for_oracle_src(mock_spark, table_conf_mock, table_schema, c
         Schema("s_comment", "nchar"),
     ]
 
-    src_actual = SamplingQueryBuilder(conf, sch, "source", "oracle").build_query(df)
+    src_actual = SamplingQueryBuilder(conf, sch, "source", get_dialect("oracle")).build_query(df)
     src_expected = (
         'WITH recon AS (SELECT 11 AS s_nationkey, 1 AS s_suppkey UNION SELECT 22 AS '
         's_nationkey, 2 AS s_suppkey UNION SELECT 33 AS s_nationkey, 3 AS s_suppkey), '
@@ -128,7 +129,7 @@ def test_build_query_for_oracle_src(mock_spark, table_conf_mock, table_schema, c
         's_suppkey FROM src INNER JOIN recon USING (s_nationkey, s_suppkey)'
     )
 
-    tgt_actual = SamplingQueryBuilder(conf, sch_with_alias, "target", "databricks").build_query(df)
+    tgt_actual = SamplingQueryBuilder(conf, sch_with_alias, "target", get_dialect("databricks")).build_query(df)
     tgt_expected = (
         'WITH recon AS (SELECT 11 AS s_nationkey, 1 AS s_suppkey UNION SELECT 22 AS '
         's_nationkey, 2 AS s_suppkey UNION SELECT 33 AS s_nationkey, 3 AS s_suppkey), '
@@ -172,7 +173,7 @@ def test_build_query_for_databricks_src(mock_spark, table_conf_mock):
 
     conf = table_conf_mock(join_columns=["s_suppkey", "s_nationkey"])
 
-    src_actual = SamplingQueryBuilder(conf, schema, "source", "databricks").build_query(df)
+    src_actual = SamplingQueryBuilder(conf, schema, "source", get_dialect("databricks")).build_query(df)
     src_expected = (
         'WITH recon AS (SELECT 11 AS s_nationkey, 1 AS s_suppkey), src AS (SELECT '
         "COALESCE(TRIM(s_acctbal), '') AS s_acctbal, COALESCE(TRIM(s_address), '') AS "

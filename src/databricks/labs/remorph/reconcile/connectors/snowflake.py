@@ -1,6 +1,7 @@
 import logging
 import re
 
+from pyspark.errors import PySparkException
 from pyspark.sql import DataFrame, DataFrameReader, SparkSession
 from pyspark.sql.functions import col
 from sqlglot import Dialect
@@ -45,12 +46,12 @@ class SnowflakeDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
 
     def read_data(
         self,
-        catalog: str,
+        catalog: str | None,
         schema: str,
         table: str,
         query: str,
         options: JdbcReaderOptions | None,
-    ) -> DataFrame | None:
+    ) -> DataFrame:
         table_query = query.replace(":tbl", f"{catalog}.{schema}.{table}")
         try:
             if options is None:
@@ -63,15 +64,15 @@ class SnowflakeDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
                     .load()
                 )
             return df.select([col(column).alias(column.lower()) for column in df.columns])
-        except RuntimeError as e:
+        except (RuntimeError, PySparkException) as e:
             return self.log_and_throw_exception(e, "data", table_query)
 
     def get_schema(
         self,
-        catalog: str,
+        catalog: str | None,
         schema: str,
         table: str,
-    ) -> list[Schema] | None:
+    ) -> list[Schema]:
         schema_query = re.sub(
             r'\s+',
             ' ',
@@ -80,7 +81,7 @@ class SnowflakeDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
         try:
             schema_df = self.reader(schema_query).load()
             return [Schema(field.column_name.lower(), field.data_type.lower()) for field in schema_df.collect()]
-        except RuntimeError as e:
+        except (RuntimeError, PySparkException) as e:
             return self.log_and_throw_exception(e, "schema", schema_query)
 
     def reader(self, query: str) -> DataFrameReader:
