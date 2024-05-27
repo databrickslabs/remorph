@@ -47,7 +47,9 @@ _SAMPLE_ROWS = 50
 
 def validate_input(input_value: str, list_of_value: set, message: str):
     if input_value not in list_of_value:
-        raise InvalidInputException(f"{message} --> {input_value} is not one of {list_of_value}")
+        error_message = f"{message} --> {input_value} is not one of {list_of_value}"
+        logger.error(error_message)
+        raise InvalidInputException(error_message)
 
 
 def recon(
@@ -95,7 +97,7 @@ def recon(
 
     for table_conf in table_recon.tables:
         recon_process_duration = ReconcileProcessDuration(start_ts=str(datetime.now()), end_ts=None)
-        schema_reconcile_output = SchemaReconcileOutput(is_valid=False)
+        schema_reconcile_output = SchemaReconcileOutput(is_valid=True)
         data_reconcile_output = DataReconcileOutput()
         try:
             src_schema, tgt_schema = _get_schema(
