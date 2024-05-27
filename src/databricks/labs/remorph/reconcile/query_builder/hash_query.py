@@ -1,3 +1,5 @@
+import logging
+
 import sqlglot.expressions as exp
 from sqlglot import Dialect
 
@@ -9,6 +11,8 @@ from databricks.labs.remorph.reconcile.query_builder.expression_generator import
     lower,
     transform_expression,
 )
+
+logger = logging.getLogger(__name__)
 
 
 def _hash_transform(
@@ -54,6 +58,7 @@ class HashQueryBuilder(QueryBuilder):
             .sql(dialect=self.source)
         )
 
+        logger.info(f"Hash Query for {self.layer}: {res}")
         return res
 
     def _generate_hash_algorithm(

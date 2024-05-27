@@ -1,3 +1,5 @@
+import logging
+
 import sqlglot.expressions as exp
 from pyspark.sql import DataFrame
 from sqlglot import select
@@ -9,6 +11,8 @@ from databricks.labs.remorph.reconcile.query_builder.expression_generator import
 )
 
 _SAMPLE_ROWS = 50
+
+logger = logging.getLogger(__name__)
 
 
 def _union_concat(
@@ -44,13 +48,15 @@ class SamplingQueryBuilder(QueryBuilder):
         query_sql = select(*sql_with_transforms).from_(":tbl").where(self.filter)
         with_select = sorted(self.table_conf.get_tgt_to_src_col_mapping(cols, self.layer))
 
-        return (
+        query = (
             with_clause.with_(alias="src", as_=query_sql)
             .select(*with_select)
             .from_("src")
             .join(expression="recon", join_type="inner", using=key_cols)
             .sql(dialect=self.source)
         )
+        logger.info(f"Sampling Query for {self.layer}: {query}")
+        return query
 
     @staticmethod
     def _get_with_clause(df: DataFrame) -> exp.Select:
