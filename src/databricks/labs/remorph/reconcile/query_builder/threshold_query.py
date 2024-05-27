@@ -216,6 +216,6 @@ class ThresholdQueryBuilder(QueryBuilder):
         if self.user_transformations:
             thresholds_expr = self._apply_user_transformation(threshold_alias)
 
-        query = select(*keys_expr + thresholds_expr).from_(":tbl").where(self.filter)
-        logger.info(f"{self.source} Threshold query: {query}")
-        return query.sql(dialect=self.source)
+        query = (select(*keys_expr + thresholds_expr).from_(":tbl").where(self.filter)).sql(dialect=self.source)
+        logger.info(f"Threshold Query for {self.layer}: {query}")
+        return query

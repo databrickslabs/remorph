@@ -15,7 +15,7 @@ from databricks.labs.remorph.reconcile.connectors.data_source import DataSource
 from databricks.labs.remorph.reconcile.connectors.source_adapter import create_adapter
 from databricks.labs.remorph.reconcile.exception import (
     DataSourceRuntimeException,
-    InvalidReportTypeException,
+    InvalidInputException,
 )
 from databricks.labs.remorph.reconcile.query_builder.hash_query import HashQueryBuilder
 from databricks.labs.remorph.reconcile.query_builder.sampling_query import (
@@ -45,6 +45,11 @@ logger = logging.getLogger(__name__)
 _SAMPLE_ROWS = 50
 
 
+def validate_input(input_value: str, list_of_value: set, message: str):
+    if input_value not in list_of_value:
+        raise InvalidInputException(f"{message} --> {input_value} is not one of {list_of_value}")
+
+
 def recon(
     ws: WorkspaceClient,
     spark: SparkSession,
@@ -58,7 +63,11 @@ def recon(
     #  verify_workspace_client from transpile/execute.py file. Later verify_workspace_client function has to be
     #  refactored
     ws: WorkspaceClient = verify_workspace_client(ws)
+
+    # validate the report type
+    report_type = report_type.lower()
     logger.info(report_type)
+    validate_input(report_type, {"schema", "data", "row", "all"}, "Invalid report type")
 
     database_config = DatabaseConfig(
         source_catalog=table_recon.source_catalog,
@@ -72,7 +81,7 @@ def recon(
 
     recon_id = str(uuid4())
     # initialise the Reconciliation
-    reconciler = Reconciliation(source, target, database_config, report_type.lower(), schema_comparator, source_dialect)
+    reconciler = Reconciliation(source, target, database_config, report_type, schema_comparator, source_dialect)
 
     # initialise the recon capture class
     recon_capture = ReconCapture(
@@ -86,25 +95,21 @@ def recon(
 
     for table_conf in table_recon.tables:
         recon_process_duration = ReconcileProcessDuration(start_ts=str(datetime.now()), end_ts=None)
-        schema_reconcile_output = SchemaReconcileOutput()
+        schema_reconcile_output = SchemaReconcileOutput(is_valid=False)
         data_reconcile_output = DataReconcileOutput()
         try:
             src_schema, tgt_schema = _get_schema(
                 source=source, target=target, table_conf=table_conf, database_config=database_config
             )
         except DataSourceRuntimeException as e:
-            schema_reconcile_output = SchemaReconcileOutput(exception=str(e))
+            schema_reconcile_output = SchemaReconcileOutput(is_valid=False, exception=str(e))
         else:
-            if report_type.lower() not in {"all", "data", "row", "schema"}:
-                raise InvalidReportTypeException(
-                    f"Invalid report type: {report_type} is not one of 'all', 'data', 'row', 'schema'"
-                )
-            if report_type.lower() in {"schema", "all"}:
+            if report_type in {"schema", "all"}:
                 schema_reconcile_output = _run_reconcile_schema(
                     reconciler=reconciler, table_conf=table_conf, src_schema=src_schema, tgt_schema=tgt_schema
                 )
 
-            if report_type.lower() in {"data", "row", "all"}:
+            if report_type in {"data", "row", "all"}:
                 data_reconcile_output = _run_reconcile_data(
                     reconciler=reconciler, table_conf=table_conf, src_schema=src_schema, tgt_schema=tgt_schema
                 )

@@ -5,7 +5,7 @@ from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.functions import col, collect_list, create_map, lit
 from sqlglot import Dialect
 
-from databricks.labs.remorph.config import DatabaseConfig, Table
+from databricks.labs.remorph.config import DatabaseConfig, Table, get_key_for_dialect
 from databricks.labs.remorph.reconcile.exception import WriteToTableException
 from databricks.labs.remorph.reconcile.recon_config import (
     DataReconcileOutput,
@@ -95,8 +95,9 @@ def generate_final_reconcile_output(recon_id: str, spark: SparkSession) -> Recon
                     exception_message=row.EXCEPTION_MESSAGE,
                 )
             )
-
-    return ReconcileOutput(recon_id=recon_id, results=table_output)
+    final_reconcile_output = ReconcileOutput(recon_id=recon_id, results=table_output)
+    logger.info(f"Final reconcile output: {final_reconcile_output}")
+    return final_reconcile_output
 
 
 class ReconCapture:
@@ -137,15 +138,16 @@ class ReconCapture:
         table_conf: Table,
         recon_process_duration: ReconcileProcessDuration,
     ) -> None:
+        source_dialect_key = get_key_for_dialect(self.source_dialect)
         df = self.spark.sql(
             f"""
                 select {recon_table_id} as recon_table_id,
                 '{self.recon_id}' as recon_id,
                 case 
-                    when '{str(self.source_dialect)}' like '%Snow%' then 'Snowflake' 
-                    when '{str(self.source_dialect)}' like '%Oracle%' then 'Oracle'
-                    when '{str(self.source_dialect)}' like '%Databricks%' then 'Databricks'
-                    else '{str(self.source_dialect)}' 
+                    when '{source_dialect_key}' = 'databricks' then 'Databricks'
+                    when '{source_dialect_key}' = 'snowflake' then 'Snowflake'
+                    when '{source_dialect_key}' = 'oracle' then 'Oracle'
+                    else '{source_dialect_key}'
                 end as source_type,
                 named_struct(
                     'catalog', case when '{self.database_config.source_catalog}' = 'None' then null else '{self.database_config.source_catalog}' end, 

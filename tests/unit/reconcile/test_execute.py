@@ -13,7 +13,7 @@ from databricks.labs.remorph.reconcile.connectors.databricks import DatabricksDa
 from databricks.labs.remorph.reconcile.connectors.snowflake import SnowflakeDataSource
 from databricks.labs.remorph.reconcile.exception import (
     DataSourceRuntimeException,
-    InvalidReportTypeException,
+    InvalidInputException,
 )
 from databricks.labs.remorph.reconcile.execute import (
     Reconciliation,
@@ -1601,7 +1601,7 @@ def test_recon_for_wrong_report_type(mock_workspace_client, mock_spark, mock_for
         patch(
             "databricks.labs.remorph.reconcile.recon_capture.ReconCapture._generate_recon_main_id", return_value=33333
         ),
-        pytest.raises(InvalidReportTypeException),
+        pytest.raises(InvalidInputException),
     ):
         mock_datetime.now.return_value = datetime(2024, 5, 23, 9, 21, 25, 122185)
         recon_datetime.now.return_value = datetime(2024, 5, 23, 9, 21, 25, 122185)

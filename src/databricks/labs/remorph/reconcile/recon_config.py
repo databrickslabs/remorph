@@ -200,7 +200,7 @@ class SchemaMatchResult:
 
 @dataclass
 class SchemaReconcileOutput:
-    is_valid: bool = False
+    is_valid: bool
     compare_df: DataFrame | None = None
     exception: str | None = None
 
