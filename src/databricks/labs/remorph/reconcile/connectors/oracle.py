@@ -53,13 +53,13 @@ class OracleDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
         table: str,
         query: str,
         options: JdbcReaderOptions | None,
-    ) -> DataFrame | None:
+    ) -> DataFrame:
         table_query = query.replace(":tbl", f"{schema}.{table}")
         try:
             if options is None:
                 return self.reader(table_query).options(**self._get_timestamp_options()).load()
-            options = self._get_jdbc_reader_options(options) | self._get_timestamp_options()
-            return self.reader(table_query).options(**options).load()
+            reader_options = self._get_jdbc_reader_options(options) | self._get_timestamp_options()
+            return self.reader(table_query).options(**reader_options).load()
         except (RuntimeError, PySparkException) as e:
             return self.log_and_throw_exception(e, "data", table_query)
 
@@ -68,7 +68,7 @@ class OracleDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
         catalog: str | None,
         schema: str,
         table: str,
-    ) -> list[Schema] | None:
+    ) -> list[Schema]:
         schema_query = re.sub(
             r'\s+',
             ' ',

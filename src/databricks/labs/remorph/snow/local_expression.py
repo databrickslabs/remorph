@@ -1,24 +1,23 @@
 from dataclasses import dataclass
-from typing import ClassVar
 
 from sqlglot import expressions as exp
 from sqlglot.expressions import AggFunc, Condition, Expression, Func
 
 
 class NthValue(AggFunc):
-    arg_types: ClassVar[dict] = {"this": True, "offset": False}
+    arg_types = {"this": True, "offset": False}
 
 
 class Parameter(Expression):
-    arg_types: ClassVar[dict] = {"this": True, "wrapped": False, "suffix": False}
+    arg_types = {"this": True, "wrapped": False, "suffix": False}
 
 
 class Collate(Func):
-    arg_types: ClassVar[dict] = {"this": True, "expressions": True}
+    arg_types = {"this": True, "expressions": True}
 
 
 class Bracket(Condition):
-    arg_types: ClassVar[dict] = {"this": True, "expressions": True}
+    arg_types = {"this": True, "expressions": True}
 
 
 class Split(Func):
@@ -27,36 +26,37 @@ class Split(Func):
     Please refer the test case `test_strtok_to_array` -> `select STRTOK_TO_ARRAY('my text is divided')`
     """
 
-    arg_types: ClassVar[dict] = {"this": True, "expression": False, "limit": False}
+    arg_types = {"this": True, "expression": False, "limit": False}
 
 
 class MakeDate(Func):
-    arg_types: ClassVar[dict] = {"this": True, "expression": False, "zone": False}
+    arg_types = {"this": True, "expression": False, "zone": False}
 
 
 class ConvertTimeZone(Func):
-    arg_types: ClassVar[dict] = {"srcTZ": True, "tgtTZ": True, "this": False}
+    arg_types = {"srcTZ": True, "tgtTZ": True, "this": False}
 
 
 class TryToDate(Func):
-    arg_types: ClassVar[dict] = {"this": True, "format": False}
+    arg_types = {"this": True, "format": False}
 
 
 class SplitPart(Func):
-    arg_types: ClassVar[dict] = {"this": True, "expression": False, "partNum": False}
+    arg_types = {"this": True, "expression": False, "partNum": False}
 
 
 class StrTok(Func):
-    arg_types: ClassVar[dict] = {"this": True, "expression": False, "partNum": False}
+    arg_types = {"this": True, "expression": False, "partNum": False}
 
 
 class TryToNumber(Func):
-    arg_types: ClassVar[dict] = {"this": True, "expression": False, "precision": False, "scale": False}
-    _sql_names: ClassVar[dict] = ["TRY_TO_DECIMAL", "TRY_TO_NUMBER", "TRY_TO_NUMERIC"]
+    arg_types = {"this": True, "expression": False, "precision": False, "scale": False}
+
+    _sql_names = ["TRY_TO_DECIMAL", "TRY_TO_NUMBER", "TRY_TO_NUMERIC"]
 
 
 class DateFormat(Func):
-    arg_types: ClassVar[dict] = {"this": True, "expression": False}
+    arg_types = {"this": True, "expression": False}
 
 
 class IsInteger(Func):
@@ -64,7 +64,7 @@ class IsInteger(Func):
 
 
 class JsonExtractPathText(Func):
-    arg_types: ClassVar[dict] = {"this": True, "path_name": True}
+    arg_types = {"this": True, "path_name": True}
 
 
 class BitOr(AggFunc):
@@ -72,24 +72,25 @@ class BitOr(AggFunc):
 
 
 class ArrayConstructCompact(Func):
-    arg_types: ClassVar[dict] = {"expressions": False}
+    arg_types = {"expressions": False}
+
     is_var_len_args = True
 
 
 class ArrayIntersection(Func):
-    arg_types: ClassVar[dict] = {"this": True, "expression": True}
+    arg_types = {"this": True, "expression": True}
 
 
 class ArraySlice(Func):
-    arg_types: ClassVar[dict] = {"this": True, "from": True, "to": True}
+    arg_types = {"this": True, "from": True, "to": True}
 
 
 class ObjectKeys(Func):
-    arg_types: ClassVar[dict] = {"this": True}
+    arg_types = {"this": True}
 
 
 class ToBoolean(Func):
-    arg_types: ClassVar[dict] = {"this": True, "raise_error": False}
+    arg_types = {"this": True, "raise_error": False}
 
 
 class ToDouble(Func):
@@ -101,12 +102,13 @@ class ToObject(Func):
 
 
 class ToNumber(Func):
-    arg_types: ClassVar[dict] = {"this": True, "expression": False, "precision": False, "scale": False}
-    _sql_names: ClassVar[list] = ["TO_DECIMAL", "TO_NUMBER", "TO_NUMERIC"]
+    arg_types = {"this": True, "expression": False, "precision": False, "scale": False}
+
+    _sql_names = ["TO_DECIMAL", "TO_NUMBER", "TO_NUMERIC"]
 
 
 class TimestampFromParts(Func):
-    arg_types: ClassVar[dict] = {
+    arg_types = {
         "this": True,
         "expression": True,
         "day": True,
@@ -123,15 +125,15 @@ class ToVariant(Func):
 
 
 class UUID(Func):
-    arg_types: ClassVar[dict] = {"this": False, "name": False}
+    arg_types = {"this": False, "name": False}
 
 
 class DateTrunc(Func):
-    arg_types: ClassVar[dict] = {"unit": False, "this": True, "zone": False}
+    arg_types = {"unit": False, "this": True, "zone": False}
 
 
 class Median(Func):
-    arg_types: ClassVar[dict] = {"this": True}
+    arg_types = {"this": True}
 
 
 @dataclass

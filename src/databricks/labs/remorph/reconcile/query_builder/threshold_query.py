@@ -32,8 +32,8 @@ class ThresholdQueryBuilder(QueryBuilder):
         logger.info(f"Threshold Comparison query: {query}")
         return query
 
-    def _generate_select_where_clause(self) -> tuple[list[exp.Alias], exp.Or]:
-        thresholds = self.table_conf.thresholds
+    def _generate_select_where_clause(self) -> tuple[list[exp.Expression], exp.Expression]:
+        thresholds = self.table_conf.thresholds if self.table_conf.thresholds else []
         select_clause = []
         where_clause = []
 
@@ -64,7 +64,7 @@ class ThresholdQueryBuilder(QueryBuilder):
         cls,
         threshold: Thresholds,
         base: exp.Expression,
-    ) -> tuple[list[exp.Alias], exp.Expression]:
+    ) -> tuple[list[exp.Expression], exp.Expression]:
         select_clause = []
         column = threshold.column_name
         select_clause.append(
@@ -80,7 +80,7 @@ class ThresholdQueryBuilder(QueryBuilder):
         self,
         threshold: Thresholds,
         base: exp.Expression,
-    ) -> tuple[list[exp.Alias], exp.Expression]:
+    ) -> tuple[list[exp.Expression], exp.Expression]:
         column = threshold.column_name
         # default expressions
         select_clause, where_clause = self._build_expression_alias_components(threshold, base)
@@ -203,13 +203,14 @@ class ThresholdQueryBuilder(QueryBuilder):
         # key column expression
         keys: list[str] = sorted(self.partition_column.union(self.join_columns))
         keys_select_alias = [
-            build_column(this=col, alias=self.table_conf.get_tgt_to_src_col_mapping(col, self.layer)) for col in keys
+            build_column(this=col, alias=self.table_conf.get_layer_tgt_to_src_col_mapping(col, self.layer))
+            for col in keys
         ]
         keys_expr = self.add_transformations(keys_select_alias, self.source)
 
         # threshold column expression
         threshold_alias = [
-            build_column(this=col, alias=self.table_conf.get_tgt_to_src_col_mapping(col, self.layer))
+            build_column(this=col, alias=self.table_conf.get_layer_tgt_to_src_col_mapping(col, self.layer))
             for col in sorted(self.threshold_columns)
         ]
         thresholds_expr = threshold_alias

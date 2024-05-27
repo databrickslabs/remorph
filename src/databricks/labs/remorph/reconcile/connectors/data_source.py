@@ -13,12 +13,22 @@ class DataSource(ABC):
 
     @abstractmethod
     def read_data(
-        self, catalog: str, schema: str, table: str, query: str, options: JdbcReaderOptions | None
+        self,
+        catalog: str | None,
+        schema: str,
+        table: str,
+        query: str,
+        options: JdbcReaderOptions | None,
     ) -> DataFrame:
         return NotImplemented
 
     @abstractmethod
-    def get_schema(self, catalog: str, schema: str, table: str) -> list[Schema]:
+    def get_schema(
+        self,
+        catalog: str | None,
+        schema: str,
+        table: str,
+    ) -> list[Schema]:
         return NotImplemented
 
     @classmethod
@@ -32,24 +42,31 @@ class MockDataSource(DataSource):
 
     def __init__(
         self,
-        dataframe_repository: dict[(str, str, str), DataFrame],
-        schema_repository: dict[(str, str, str), list[Schema]],
+        dataframe_repository: dict[tuple[str, str, str], DataFrame],
+        schema_repository: dict[tuple[str, str, str], list[Schema]],
         exception: Exception = RuntimeError("Mock Exception"),
     ):
-        self._dataframe_repository: dict[(str, str, str), DataFrame] = dataframe_repository
-        self._schema_repository: dict[(str, str, str), list[Schema]] = schema_repository
+        self._dataframe_repository: dict[tuple[str, str, str], DataFrame] = dataframe_repository
+        self._schema_repository: dict[tuple[str, str, str], list[Schema]] = schema_repository
         self._exception = exception
 
     def read_data(
-        self, catalog: str, schema: str, table: str, query: str, options: JdbcReaderOptions | None
-    ) -> DataFrame | None:
-        mock_df = self._dataframe_repository.get((catalog, schema, query))
+        self,
+        catalog: str | None,
+        schema: str,
+        table: str,
+        query: str,
+        options: JdbcReaderOptions | None,
+    ) -> DataFrame:
+        catalog_str = catalog if catalog else ""
+        mock_df = self._dataframe_repository.get((catalog_str, schema, query))
         if not mock_df:
             return self.log_and_throw_exception(self._exception, "data", f"({catalog}, {schema}, {query})")
         return mock_df
 
-    def get_schema(self, catalog: str, schema: str, table: str) -> list[Schema] | None:
-        mock_schema = self._schema_repository.get((catalog, schema, table))
+    def get_schema(self, catalog: str | None, schema: str, table: str) -> list[Schema]:
+        catalog_str = catalog if catalog else ""
+        mock_schema = self._schema_repository.get((catalog_str, schema, table))
         if not mock_schema:
             return self.log_and_throw_exception(self._exception, "schema", f"({catalog}, {schema}, {table})")
         return mock_schema

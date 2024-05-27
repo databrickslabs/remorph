@@ -1,5 +1,6 @@
 import re
 from pathlib import Path
+from collections.abc import Sequence
 from unittest.mock import create_autospec
 
 import pytest
@@ -16,6 +17,7 @@ from pyspark.sql.types import (
     TimestampType,
 )
 from sqlglot import ErrorLevel, UnsupportedError
+from sqlglot.errors import SqlglotError, ParseError
 from sqlglot import parse_one as sqlglot_parse_one
 from sqlglot import transpile
 
@@ -166,7 +168,7 @@ def dialect_context():
 
 
 def parse_sql_files(input_dir: Path, source: str, target: str, is_expected_exception):
-    suite = []
+    suite: list[FunctionalTestFile | FunctionalTestFileWithExpectedException] = []
     for filenames in input_dir.rglob("*.sql"):
         with open(filenames, 'r', encoding="utf-8") as file_content:
             content = file_content.read()
@@ -183,11 +185,11 @@ def parse_sql_files(input_dir: Path, source: str, target: str, is_expected_excep
                 # when multiple sqls are present below target
                 test_name = filenames.name.replace(".sql", "")
                 if is_expected_exception:
-                    suite.append(
-                        FunctionalTestFileWithExpectedException(
-                            target_sql, source_sql, test_name, expected_exceptions[test_name]
-                        )
-                    )
+                    exception_type = expected_exceptions.get(test_name, SqlglotError)
+                    exception = SqlglotError(test_name)
+                    if exception_type in {ParseError, UnsupportedError}:
+                        exception = exception_type(test_name)
+                    suite.append(FunctionalTestFileWithExpectedException(target_sql, source_sql, test_name, exception))
                 else:
                     suite.append(FunctionalTestFile(target_sql, source_sql, test_name))
     return suite
@@ -195,7 +197,7 @@ def parse_sql_files(input_dir: Path, source: str, target: str, is_expected_excep
 
 def get_functional_test_files_from_directory(
     input_dir: Path, source: str, target: str, is_expected_exception=False
-) -> list[FunctionalTestFile] | list[FunctionalTestFileWithExpectedException]:
+) -> Sequence[FunctionalTestFileWithExpectedException]:
     """Get all functional tests in the input_dir."""
     suite = parse_sql_files(input_dir, source, target, is_expected_exception)
     return suite

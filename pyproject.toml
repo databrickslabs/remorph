@@ -49,21 +49,24 @@ dependencies = [
   "pytest-cov>=4.0.0,<5.0.0",
   "black>=23.1.0",
   "ruff>=0.0.243",
-  "isort>=2.5.0",
-  "databricks-connect"
+  "databricks-connect",
+  "types-pyYAML",
+  "types-pytz",
+  "databricks-labs-pylint~=0.4.0",
+  "mypy~=1.10.0",
 ]
 
 [tool.hatch.envs.default.scripts]
 test        = "pytest --cov src --cov-report=xml tests/unit"
 coverage    = "pytest --cov src tests/unit --cov-report=html"
 integration = "pytest --cov src tests/integration --durations 20"
-fmt         = ["isort .",
-               "black .",
+fmt         = ["black .",
                "ruff  check . --fix",
+               "mypy --disable-error-code 'annotation-unchecked' .",
                "pylint --output-format=colorized -j 0 src tests"]
 verify      = ["black --check .",
-               "isort . --check-only",
                "ruff check .",
+               "mypy --disable-error-code 'annotation-unchecked' .",
                "pylint --output-format=colorized -j 0 src tests"]
 
 [tool.hatch.envs.sqlglot-latest]
@@ -73,10 +76,6 @@ dependencies = [
   "sqlglot",
 ]
 
-[tool.isort]
-skip_glob = ["notebooks/*.py"]
-profile = "black"
-known_first_party = ["databricks"]
 
 [tool.pytest.ini_options]
 addopts = "-s -p no:warnings -vv --cache-clear"
@@ -116,8 +115,6 @@ extend-exclude = [
   "notebooks/*.py"
 ]
 
-[tool.ruff.lint.isort]
-known-first-party = ["databricks.labs.remorph"]
 
 [tool.ruff.lint.flake8-tidy-imports]
 ban-relative-imports = "all"
@@ -654,7 +651,7 @@ max-spelling-suggestions = 2
 
 # List of comma separated words that should be considered directives if they
 # appear at the beginning of a comment and should not be checked.
-spelling-ignore-comment-directives = "fmt: on,fmt: off,noqa:,noqa,nosec,isort:skip,mypy:,pragma:,# noinspection"
+spelling-ignore-comment-directives = "fmt: on,fmt: off,noqa:,noqa,nosec,mypy:,pragma:,# noinspection"
 
 # List of comma separated words that should not be checked.
 # spelling-ignore-words =

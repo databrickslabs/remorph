@@ -22,5 +22,9 @@ class SecretsMixin:
             raise NotFound(f'Secret does not exist with scope: {self._secret_scope} and key: {secret_key} : {e}') from e
         except UnicodeDecodeError as e:
             raise UnicodeDecodeError(
-                f"Secret {self._secret_scope}/{secret_key} has Base64 bytes that cannot be decoded to utf-8 string: {e}."
+                "utf-8",
+                secret_key.encode(),
+                0,
+                1,
+                f"Secret {self._secret_scope}/{secret_key} has Base64 bytes that cannot be decoded to utf-8 string: {e}.",
             ) from e

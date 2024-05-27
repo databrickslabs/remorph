@@ -38,7 +38,7 @@ def lower(expr: exp.Expression, is_expr: bool = False) -> exp.Expression:
     return _apply_func_expr(expr, exp.Lower)
 
 
-def coalesce(expr: exp.Expression, default="0", is_string=False) -> exp.Coalesce | exp.Expression:
+def coalesce(expr: exp.Expression, default="0", is_string=False) -> exp.Expression:
     expressions = [exp.Literal(this=default, is_string=is_string)]
     return _apply_func_expr(expr, exp.Coalesce, expressions=expressions)
 
@@ -47,15 +47,15 @@ def trim(expr: exp.Expression) -> exp.Trim | exp.Expression:
     return _apply_func_expr(expr, exp.Trim)
 
 
-def json_format(expr: exp.Expression, options: dict[str, str] | None = None) -> exp.JSONFormat | exp.Expression:
+def json_format(expr: exp.Expression, options: dict[str, str] | None = None) -> exp.Expression:
     return _apply_func_expr(expr, exp.JSONFormat, options=options)
 
 
-def sort_array(expr: exp.Expression, asc=True):
+def sort_array(expr: exp.Expression, asc=True) -> exp.Expression:
     return _apply_func_expr(expr, exp.SortArray, asc=exp.Boolean(this=asc))
 
 
-def to_char(expr: exp.Expression, to_format=None, nls_param=None):
+def to_char(expr: exp.Expression, to_format=None, nls_param=None) -> exp.Expression:
     if to_format:
         return _apply_func_expr(
             expr, exp.ToChar, format=exp.Literal(this=to_format, is_string=True), nls_param=nls_param
@@ -69,7 +69,7 @@ def array_to_string(
     is_string=True,
     null_replacement: str | None = None,
     is_null_replace=True,
-):
+) -> exp.Expression:
     if null_replacement:
         return _apply_func_expr(
             expr,
@@ -80,11 +80,11 @@ def array_to_string(
     return _apply_func_expr(expr, exp.ArrayToString, expression=[exp.Literal(this=delimiter, is_string=is_string)])
 
 
-def array_sort(expr: exp.Expression, asc=True):
+def array_sort(expr: exp.Expression, asc=True) -> exp.Expression:
     return _apply_func_expr(expr, exp.ArraySort, expression=exp.Boolean(this=asc))
 
 
-def anonymous(expr: exp.Column, func: str, is_expr: bool = False) -> exp.Anonymous | exp.Expression:
+def anonymous(expr: exp.Column, func: str, is_expr: bool = False) -> exp.Expression:
     """
 
     This function used in cases where the sql functions are not available in sqlGlot expressions
@@ -116,7 +116,7 @@ def anonymous(expr: exp.Column, func: str, is_expr: bool = False) -> exp.Anonymo
     return new_expr
 
 
-def build_column(this: exp.ExpOrStr, table_name="", quoted=False, alias=None) -> exp.Alias | exp.Column:
+def build_column(this: exp.ExpOrStr, table_name="", quoted=False, alias=None) -> exp.Expression:
     if alias:
         if isinstance(this, str):
             return exp.Alias(
@@ -126,7 +126,7 @@ def build_column(this: exp.ExpOrStr, table_name="", quoted=False, alias=None) ->
     return exp.Column(this=exp.Identifier(this=this, quoted=quoted), table=table_name)
 
 
-def build_literal(this: exp.ExpOrStr, alias=None, quoted=False, is_string=True) -> exp.Alias | exp.Literal:
+def build_literal(this: exp.ExpOrStr, alias=None, quoted=False, is_string=True) -> exp.Expression:
     if alias:
         return exp.Alias(
             this=exp.Literal(this=this, is_string=is_string), alias=exp.Identifier(this=alias, quoted=quoted)
@@ -173,7 +173,7 @@ def build_join_clause(
         join_conditions.append(join_condition)
 
     # Combine all join conditions with AND
-    on_condition = join_conditions[0]
+    on_condition: exp.NullSafeEQ | exp.And = join_conditions[0]
     for condition in join_conditions[1:]:
         on_condition = exp.And(this=on_condition, expression=condition)
 
@@ -194,10 +194,10 @@ def build_sub(
     )
 
 
-def build_where_clause(where_clause=list[exp.Expression], condition_type: str = "or") -> exp.Or:
+def build_where_clause(where_clause: list[exp.Expression], condition_type: str = "or") -> exp.Expression:
     func = exp.Or if condition_type == "or" else exp.And
     # Start with a default
-    combined_expression = exp.Paren(this=func(this='1 = 1', expression='1 = 1'))
+    combined_expression: exp.Expression = exp.Paren(this=func(this='1 = 1', expression='1 = 1'))
 
     # Loop through the expressions and combine them with OR
     for expression in where_clause:
@@ -214,10 +214,9 @@ def build_between(this: exp.Expression, low: exp.Expression, high: exp.Expressio
     return exp.Between(this=this, low=low, high=high)
 
 
-# [TODO] NEED TO UPDATE THE KEY TO HANDLE DIALECT TYPE
-DataType_transform_mapping = {
-    "default": [partial(coalesce, default='', is_string=True), trim],
-    "snowflake": {exp.DataType.Type.ARRAY.value: [array_to_string, array_sort]},
+DataType_transform_mapping: dict[str, dict[str, list[partial[exp.Expression]]]] = {
+    "universal": {"default": [partial(coalesce, default='', is_string=True), partial(trim)]},
+    "snowflake": {exp.DataType.Type.ARRAY.value: [partial(array_to_string), partial(array_sort)]},
     "oracle": {
         exp.DataType.Type.NCHAR.value: [partial(anonymous, func="NVL(TRIM(TO_CHAR({})),'_null_recon_')")],
         exp.DataType.Type.NVARCHAR.value: [partial(anonymous, func="NVL(TRIM(TO_CHAR({})),'_null_recon_')")],

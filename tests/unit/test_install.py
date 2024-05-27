@@ -67,7 +67,11 @@ def test_install_dbr(ws, mock_installation, monkeypatch):
         install.run()
 
 
-def test_save_config(ws, mock_installation):
+def test_save_config(ws, mock_installation, monkeypatch):
+    def mock_open(url):
+        print(f"Opening URL: {url}")
+
+    monkeypatch.setattr("webbrowser.open", mock_open)
     prompts = MockPrompts(
         {
             r"Select the source": "10",
@@ -76,7 +80,7 @@ def test_save_config(ws, mock_installation):
         }
     )
     install = WorkspaceInstaller(prompts, mock_installation, ws)
-    webbrowser.open = lambda x: x
+    webbrowser.open('https://localhost/#workspace~/mock/config.yml')
     install.configure()
 
     mock_installation.assert_file_written(

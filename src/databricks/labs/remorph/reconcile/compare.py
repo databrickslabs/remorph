@@ -25,7 +25,7 @@ def reconcile_data(
     source_alias = "src"
     target_alias = "tgt"
     if report_type not in {"data", "all"}:
-        key_columns = _HASH_COLUMN_NAME
+        key_columns = [_HASH_COLUMN_NAME]
     df = source.alias(source_alias).join(other=target.alias(target_alias), on=key_columns, how="full")
 
     mismatch = (
@@ -100,7 +100,8 @@ def _get_mismatch_df(source: DataFrame, target: DataFrame, key_columns: list[str
     target_aliased = [col('compare.' + column).alias(column + '_compare') for column in column_list]
 
     match_expr = [expr(f"{column}_base=={column}_compare").alias(column + "_match") for column in column_list]
-    select_expr = key_columns + source_aliased + target_aliased + match_expr
+    key_cols = [col(column) for column in key_columns]
+    select_expr = key_cols + source_aliased + target_aliased + match_expr
 
     filter_columns = " and ".join([column + "_match" for column in column_list])
     filter_expr = ~expr(filter_columns)
@@ -108,7 +109,7 @@ def _get_mismatch_df(source: DataFrame, target: DataFrame, key_columns: list[str
     mismatch_df = (
         source.alias('base')
         .join(other=target.alias('compare'), on=key_columns, how="inner")
-        .select(select_expr)
+        .select(*select_expr)
         .filter(filter_expr)
     )
     compare_columns = [column for column in mismatch_df.columns if column not in key_columns]

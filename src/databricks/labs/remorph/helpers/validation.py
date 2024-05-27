@@ -38,12 +38,12 @@ class Validator:
                 exception_msg = f"[{exception_type.upper()}]: {exception_msg}"
         else:
             query = ""
-            if "[UNRESOLVED_ROUTINE]" in exception_msg:
+            if "[UNRESOLVED_ROUTINE]" in str(exception_msg):
                 query = input_sql
             buffer = StringIO()
             buffer.write("-------------- Exception Start-------------------\n")
             buffer.write("/* \n")
-            buffer.write(exception_msg)
+            buffer.write(str(exception_msg))
             buffer.write("\n */ \n")
             buffer.write(query)
             buffer.write("\n ---------------Exception End --------------------\n")

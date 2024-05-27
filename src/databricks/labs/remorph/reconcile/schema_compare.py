@@ -49,7 +49,7 @@ class SchemaCompare:
             master_schema = [sschema for sschema in master_schema if sschema.column_name not in table_conf.drop_columns]
 
         target_column_map = table_conf.to_src_col_map or {}
-        master_schema = [
+        master_schema_match_res = [
             SchemaMatchResult(
                 source_column=s.column_name,
                 databricks_column=target_column_map.get(s.column_name, s.column_name),
@@ -65,7 +65,7 @@ class SchemaCompare:
             )
             for s in master_schema
         ]
-        return master_schema
+        return master_schema_match_res
 
     def _create_dataframe(self, data: list, schema: StructType) -> DataFrame:
         """

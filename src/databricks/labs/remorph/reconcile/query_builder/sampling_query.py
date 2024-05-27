@@ -34,19 +34,23 @@ class SamplingQueryBuilder(QueryBuilder):
         if self.layer == "source":
             key_cols = sorted(self.join_columns)
         else:
-            key_cols = sorted(self.table_conf.get_tgt_to_src_col_mapping(self.join_columns, self.layer))
+            key_cols = sorted(self.table_conf.get_tgt_to_src_col_mapping_list(self.join_columns))
         keys_df = df.select(*key_cols)
         with_clause = self._get_with_clause(keys_df)
 
         cols = sorted((self.join_columns | self.select_columns) - self.threshold_columns - self.drop_columns)
 
         cols_with_alias = [
-            build_column(this=col, alias=self.table_conf.get_tgt_to_src_col_mapping(col, self.layer)) for col in cols
+            build_column(this=col, alias=self.table_conf.get_layer_tgt_to_src_col_mapping(col, self.layer))
+            for col in cols
         ]
 
         sql_with_transforms = self.add_transformations(cols_with_alias, self.source)
         query_sql = select(*sql_with_transforms).from_(":tbl").where(self.filter)
-        with_select = sorted(self.table_conf.get_tgt_to_src_col_mapping(cols, self.layer))
+        if self.layer == "source":
+            with_select = sorted(cols)
+        else:
+            with_select = sorted(self.table_conf.get_tgt_to_src_col_mapping_list(cols))
 
         query = (
             with_clause.with_(alias="src", as_=query_sql)
