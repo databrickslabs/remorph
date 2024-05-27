@@ -1601,7 +1601,7 @@ def test_reconcile_data_with_threshold_and_row_report_type(
         (
             CATALOG,
             SCHEMA,
-            query_store.source_hash_query,
+            query_store.source_row_query,
         ): mock_spark.createDataFrame(
             [
                 Row(hash_value_recon="a1b", s_nationkey=11, s_suppkey=1),
@@ -1618,7 +1618,7 @@ def test_reconcile_data_with_threshold_and_row_report_type(
         (
             CATALOG,
             SCHEMA,
-            query_store.target_hash_query,
+            query_store.target_row_query,
         ): mock_spark.createDataFrame(
             [
                 Row(hash_value_recon="a1b", s_nationkey=11, s_suppkey=1),
@@ -1655,13 +1655,8 @@ def test_reconcile_data_with_threshold_and_row_report_type(
         source, target, database_config, "row", schema_comparator, get_dialect("databricks")
     ).reconcile_data(table_conf_with_opts, src_schema, tgt_schema)
 
-    print(actual)
-
-    # assert actual.mismatch_count == 0
-    # assert actual.missing_in_src_count == 0
-    # assert actual.missing_in_tgt_count == 0
-    # assert actual.mismatch is None
-    # assert actual.missing_in_src is None
-    # assert actual.missing_in_tgt is None
-    # assert actual.threshold_output.threshold_df is None
-    # assert actual.threshold_output.threshold_mismatch_count == 0
+    assert actual.mismatch_count == 0
+    assert actual.missing_in_src_count == 0
+    assert actual.missing_in_tgt_count == 0
+    assert actual.threshold_output.threshold_df is None
+    assert actual.threshold_output.threshold_mismatch_count == 0
