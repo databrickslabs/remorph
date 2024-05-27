@@ -37,7 +37,8 @@ class HashQueryBuilder(QueryBuilder):
         # in case if we have column mapping, we need to sort the target columns in the order of source columns to get
         # same hash value
         hash_cols_with_alias = [
-            {"this": col, "alias": self.table_conf.get_tgt_to_src_col_mapping(col, self.layer)} for col in hash_cols
+            {"this": col, "alias": self.table_conf.get_layer_tgt_to_src_col_mapping(col, self.layer)}
+            for col in hash_cols
         ]
         sorted_hash_cols_with_alias = sorted(hash_cols_with_alias, key=lambda column: column["alias"])
         hashcols_sorted_as_src_seq = [column["this"] for column in sorted_hash_cols_with_alias]

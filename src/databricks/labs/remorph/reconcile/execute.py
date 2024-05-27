@@ -50,7 +50,7 @@ def recon(
     # TODO For now we are utilising the
     #  verify_workspace_client from transpile/execute.py file. Later verify_workspace_client function has to be
     #  refactored
-    ws: WorkspaceClient = verify_workspace_client(ws)
+    ws_client: WorkspaceClient = verify_workspace_client(ws)
     logger.info(report_type)
 
     database_config = DatabaseConfig(
@@ -60,7 +60,12 @@ def recon(
         target_schema=table_recon.target_schema,
     )
 
-    source, target = initialise_data_source(engine=source_dialect, spark=spark, ws=ws, secret_scope="secret_scope")
+    source, target = initialise_data_source(
+        engine=source_dialect,
+        spark=spark,
+        ws=ws_client,
+        secret_scope="secret_scope",
+    )
     schema_comparator = SchemaCompare(spark=spark)
 
     recon_id = str(uuid4())
@@ -73,7 +78,7 @@ def recon(
         recon_id=recon_id,
         report_type=report_type,
         source_dialect=source_dialect,
-        ws=ws,
+        ws=ws_client,
         spark=spark,
     )
 
@@ -377,6 +382,7 @@ def _get_schema(
     table_conf: Table,
     database_config: DatabaseConfig,
 ) -> tuple[list[Schema], list[Schema]]:
+
     src_schema = source.get_schema(
         catalog=database_config.source_catalog,
         schema=database_config.source_schema,

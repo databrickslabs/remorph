@@ -53,7 +53,7 @@ class OracleDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
         table: str,
         query: str,
         options: JdbcReaderOptions | None,
-    ) -> DataFrame | None:
+    ) -> DataFrame:
         table_query = query.replace(":tbl", f"{schema}.{table}")
         try:
             if options is None:
@@ -68,7 +68,7 @@ class OracleDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
         catalog: str | None,
         schema: str,
         table: str,
-    ) -> list[Schema] | None:
+    ) -> list[Schema]:
         schema_query = re.sub(
             r'\s+',
             ' ',

@@ -25,7 +25,7 @@ class DataSource(ABC):
     @abstractmethod
     def get_schema(
         self,
-        catalog: str,
+        catalog: str | None,
         schema: str,
         table: str,
     ) -> list[Schema]:
@@ -57,15 +57,16 @@ class MockDataSource(DataSource):
         table: str,
         query: str,
         options: JdbcReaderOptions | None,
-    ) -> DataFrame | None:
+    ) -> DataFrame:
         catalog_str = catalog if catalog else ""
         mock_df = self._dataframe_repository.get((catalog_str, schema, query))
         if not mock_df:
             return self.log_and_throw_exception(self._exception, "data", f"({catalog}, {schema}, {query})")
         return mock_df
 
-    def get_schema(self, catalog: str, schema: str, table: str) -> list[Schema] | None:
-        mock_schema = self._schema_repository.get((catalog, schema, table))
+    def get_schema(self, catalog: str | None, schema: str, table: str) -> list[Schema]:
+        catalog_str = catalog if catalog else ""
+        mock_schema = self._schema_repository.get((catalog_str, schema, table))
         if not mock_schema:
             return self.log_and_throw_exception(self._exception, "schema", f"({catalog}, {schema}, {table})")
         return mock_schema

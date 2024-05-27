@@ -257,7 +257,7 @@ def morph_sql(
     sql: str,
 ) -> tuple[TranspilationResult, ValidationResult | None]:
     """[Experimental] Transpile a single SQL query from one dialect to another."""
-    workspace_client: WorkspaceClient = verify_workspace_client(workspace_client)
+    ws_client: WorkspaceClient = verify_workspace_client(workspace_client)
 
     read_dialect: Dialect = config.get_read_dialect()
     write_dialect: Dialect = config.get_write_dialect()
@@ -266,7 +266,7 @@ def morph_sql(
     transpiler_result = _parse(transpiler, write_dialect, sql, "inline_sql", [])
 
     if not config.skip_validation:
-        validator = Validator(db_sql.get_sql_backend(workspace_client, config))
+        validator = Validator(db_sql.get_sql_backend(ws_client, config))
         return transpiler_result, _validation(validator, config, transpiler_result.transpiled_sql[0])
 
     return transpiler_result, None

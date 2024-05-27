@@ -94,14 +94,6 @@ class Table:
         if layer == "source":
             return cols
         return self.to_src_col_map.get(cols, cols)
-        if self.to_src_col_map:
-            if isinstance(cols, list | set):
-                columns = set()
-                for col in cols:
-                    columns.add(self.to_src_col_map.get(col, col))
-                return columns
-            return self.to_src_col_map.get(cols, cols)
-        return cols
 
     def get_tgt_to_src_col_mapping_list(self, cols: list[str] | set[str]) -> set[str]:
         return {self.to_tgt_col_map.get(col, col) for col in cols}
@@ -110,14 +102,6 @@ class Table:
         if layer == "source":
             return cols
         return self.to_tgt_col_map.get(cols, cols)
-        if self.to_tgt_col_map:
-            if isinstance(cols, list | set):
-                columns = set()
-                for col in cols:
-                    columns.add(self.to_tgt_col_map.get(col, col))
-                return columns
-            return self.to_tgt_col_map.get(cols, cols)
-        return cols
 
     def get_select_columns(self, schema: list[Schema], layer: str) -> set[str]:
         if self.select_columns is None:
