@@ -5,7 +5,7 @@ from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.functions import col, collect_list, create_map, lit
 from sqlglot import Dialect
 
-from databricks.labs.remorph.config import DatabaseConfig, Table, get_key_for_dialect
+from databricks.labs.remorph.config import DatabaseConfig, Table, get_key_form_dialect
 from databricks.labs.remorph.reconcile.exception import WriteToTableException
 from databricks.labs.remorph.reconcile.recon_config import (
     DataReconcileOutput,
@@ -138,7 +138,7 @@ class ReconCapture:
         table_conf: Table,
         recon_process_duration: ReconcileProcessDuration,
     ) -> None:
-        source_dialect_key = get_key_for_dialect(self.source_dialect)
+        source_dialect_key = get_key_form_dialect(self.source_dialect)
         df = self.spark.sql(
             f"""
                 select {recon_table_id} as recon_table_id,
