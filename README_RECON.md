@@ -19,13 +19,12 @@ title: Reconciliation Report Types with available features
       A --> C[SCHEMA]
       A --> D[ROW]
       A --> E[ALL]
-      B --> MISMATCH ROWS
-      B --> MISSING IN SOURCE
-      B --> MISSING IN TARGET
-      B --> THRESHOLD VALIDATION
-      C --> SCHEMA VALIDATION
-      D --> MISSING IN SOURCE
-      D --> MISSING IN TARGET
+      B --> MISMATCH_ROWS
+      B --> ROW
+      B --> THRESHOLD_VALIDATION
+      C --> SCHEMA_VALIDATION
+      D --> MISSING_IN_SOURCE
+      D --> MISSING_IN_TARGET
       E --> DATA
       E --> SCHEMA       
 ```
