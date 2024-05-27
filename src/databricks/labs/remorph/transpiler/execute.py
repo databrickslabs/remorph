@@ -3,10 +3,10 @@ import os
 from pathlib import Path
 
 from sqlglot.dialects.dialect import Dialect
-
 from databricks.labs.remorph.__about__ import __version__
 from databricks.labs.remorph.config import (
     MorphConfig,
+    get_dialect,
     TranspilationResult,
     ValidationResult,
 )
@@ -35,7 +35,7 @@ logger = logging.getLogger(__name__)
 
 def _process_file(
     config: MorphConfig,
-    validator: Validator,
+    validator: Validator | None,
     transpiler: SqlglotEngine,
     input_file: str | Path,
     output_file: str | Path,
@@ -50,7 +50,7 @@ def _process_file(
     with input_file.open("r") as f:
         sql = remove_bom(f.read())
 
-    lca_error = lca_utils.check_for_unsupported_lca(config.source, sql, str(input_file))
+    lca_error = lca_utils.check_for_unsupported_lca(get_dialect(config.source.lower()), sql, str(input_file))
 
     if lca_error:
         validate_error_list.append(lca_error)
@@ -66,7 +66,7 @@ def _process_file(
                 if config.skip_validation:
                     w.write(output)
                     w.write("\n;\n")
-                else:
+                elif validator:
                     validation_result: ValidationResult = _validation(validator, config, output)
                     w.write(validation_result.validated_sql)
                     if validation_result.exception_msg is not None:
@@ -83,7 +83,7 @@ def _process_file(
 
 def _process_directory(
     config: MorphConfig,
-    validator: Validator,
+    validator: Validator | None,
     transpiler: SqlglotEngine,
     root: str | Path,
     base_root: str,
@@ -100,9 +100,9 @@ def _process_directory(
         logger.info(f"Processing file :{file}")
         if is_sql_file(file):
             if output_folder in {None, "None"}:
-                output_folder_base = root / "transpiled"
+                output_folder_base = f"{root.name}/transpiled"
             else:
-                output_folder_base = f'{output_folder.rstrip("/")}/{base_root}'
+                output_folder_base = f'{str(output_folder).rstrip("/")}/{base_root}'
 
             output_file_name = Path(output_folder_base) / Path(file).name
             make_dir(output_folder_base)
@@ -120,8 +120,10 @@ def _process_directory(
     return counter, parse_error_list, validate_error_list
 
 
-def _process_recursive_dirs(config: MorphConfig, validator: Validator, transpiler: SqlglotEngine):
-    input_sql = Path(config.input_sql)
+def _process_recursive_dirs(
+    config: MorphConfig, input_sql_path: Path, validator: Validator | None, transpiler: SqlglotEngine
+):
+    input_sql = input_sql_path
     parse_error_list = []
     validate_error_list = []
 
@@ -153,6 +155,10 @@ def morph(workspace_client: WorkspaceClient, config: MorphConfig):
     :param config: The configuration for the morph operation.
     :param workspace_client: The WorkspaceClient object.
     """
+    if not config.input_sql:
+        logger.error("Input SQL path is not provided.")
+        raise ValueError("Input SQL path is not provided.")
+
     input_sql = Path(config.input_sql)
     status = []
     result = MorphStatus([], 0, 0, 0, [])
@@ -170,7 +176,7 @@ def morph(workspace_client: WorkspaceClient, config: MorphConfig):
             if config.output_folder in {None, "None"}:
                 output_folder = input_sql.parent / "transpiled"
             else:
-                output_folder = Path(config.output_folder.rstrip("/"))
+                output_folder = Path(str(config.output_folder).rstrip("/"))
 
             make_dir(output_folder)
             output_file = output_folder / input_sql.name
@@ -183,7 +189,7 @@ def morph(workspace_client: WorkspaceClient, config: MorphConfig):
             msg = f"{input_sql} is not a SQL file."
             logger.warning(msg)
     elif input_sql.is_dir():
-        result = _process_recursive_dirs(config, validator, transpiler)
+        result = _process_recursive_dirs(config, input_sql, validator, transpiler)
     else:
         msg = f"{input_sql} does not exist."
         logger.error(msg)
@@ -195,9 +201,10 @@ def morph(workspace_client: WorkspaceClient, config: MorphConfig):
 
     error_log_file = "None"
     if error_list_count > 0:
-        error_log_file = Path.cwd() / f"err_{os.getpid()}.lst"
-        with error_log_file.open("a") as e:
-            e.writelines(f"{err}\n" for err in result.error_log_list)
+        error_log_file = str(Path.cwd().joinpath(f"err_{os.getpid()}.lst"))
+        if result.error_log_list:
+            with Path(error_log_file).open("a") as e:
+                e.writelines(f"{err}\n" for err in result.error_log_list)
 
     status.append(
         {
@@ -250,7 +257,7 @@ def morph_sql(
     sql: str,
 ) -> tuple[TranspilationResult, ValidationResult | None]:
     """[Experimental] Transpile a single SQL query from one dialect to another."""
-    workspace_client: WorkspaceClient = verify_workspace_client(workspace_client)
+    ws_client: WorkspaceClient = verify_workspace_client(workspace_client)
 
     read_dialect: Dialect = config.get_read_dialect()
     write_dialect: Dialect = config.get_write_dialect()
@@ -259,7 +266,7 @@ def morph_sql(
     transpiler_result = _parse(transpiler, write_dialect, sql, "inline_sql", [])
 
     if not config.skip_validation:
-        validator = Validator(db_sql.get_sql_backend(workspace_client, config))
+        validator = Validator(db_sql.get_sql_backend(ws_client, config))
         return transpiler_result, _validation(validator, config, transpiler_result.transpiled_sql[0])
 
     return transpiler_result, None

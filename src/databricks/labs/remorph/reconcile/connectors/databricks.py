@@ -43,12 +43,12 @@ class DatabricksDataSource(DataSource, SecretsMixin):
 
     def read_data(
         self,
-        catalog: str,
+        catalog: str | None,
         schema: str,
         table: str,
         query: str,
         options: JdbcReaderOptions | None,
-    ) -> DataFrame | None:
+    ) -> DataFrame:
         table_with_namespace = f"{catalog}.{schema}.{table}"
         table_query = query.replace(":tbl", table_with_namespace)
         try:
@@ -59,11 +59,12 @@ class DatabricksDataSource(DataSource, SecretsMixin):
 
     def get_schema(
         self,
-        catalog: str,
+        catalog: str | None,
         schema: str,
         table: str,
-    ) -> list[Schema] | None:
-        schema_query = _get_schema_query(catalog, schema, table)
+    ) -> list[Schema]:
+        catalog_str = catalog if catalog else "hive_metastore"
+        schema_query = _get_schema_query(catalog_str, schema, table)
         try:
             schema_df = self._spark.sql(schema_query).where("col_name not like '#%'").distinct()
             return [Schema(field.col_name.lower(), field.data_type.lower()) for field in schema_df.collect()]

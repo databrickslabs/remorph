@@ -189,7 +189,9 @@ class ReconCapture:
             exception_msg = data_reconcile_output.exception
 
         insertion_time = str(datetime.now())
-        mismatch_columns = data_reconcile_output.mismatch.mismatch_columns if data_reconcile_output.mismatch else []
+        mismatch_columns = []
+        if data_reconcile_output.mismatch and data_reconcile_output.mismatch.mismatch_columns:
+            mismatch_columns = data_reconcile_output.mismatch.mismatch_columns
 
         df = self.spark.sql(
             f"""
@@ -262,7 +264,7 @@ class ReconCapture:
         reconcile_output: DataReconcileOutput,
         schema_output: SchemaReconcileOutput,
     ):
-        if reconcile_output.mismatch_count > 0:
+        if reconcile_output.mismatch_count > 0 and reconcile_output.mismatch.mismatch_df:
             self._create_map_column_and_insert(
                 recon_table_id,
                 reconcile_output.mismatch.mismatch_df,
@@ -270,7 +272,7 @@ class ReconCapture:
                 False,
             )
 
-        if reconcile_output.missing_in_src_count > 0:
+        if reconcile_output.missing_in_src_count > 0 and reconcile_output.missing_in_src:
             self._create_map_column_and_insert(
                 recon_table_id,
                 reconcile_output.missing_in_src,
@@ -278,7 +280,7 @@ class ReconCapture:
                 False,
             )
 
-        if reconcile_output.missing_in_tgt_count > 0:
+        if reconcile_output.missing_in_tgt_count > 0 and reconcile_output.missing_in_tgt:
             self._create_map_column_and_insert(
                 recon_table_id,
                 reconcile_output.missing_in_tgt,
@@ -286,7 +288,10 @@ class ReconCapture:
                 False,
             )
 
-        if reconcile_output.threshold_output.threshold_mismatch_count > 0:
+        if (
+            reconcile_output.threshold_output.threshold_mismatch_count > 0
+            and reconcile_output.threshold_output.threshold_df
+        ):
             self._create_map_column_and_insert(
                 recon_table_id,
                 reconcile_output.threshold_output.threshold_df,

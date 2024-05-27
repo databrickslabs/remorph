@@ -64,7 +64,8 @@ def recon(
     # TODO For now we are utilising the
     #  verify_workspace_client from transpile/execute.py file. Later verify_workspace_client function has to be
     #  refactored
-    ws: WorkspaceClient = verify_workspace_client(ws)
+
+    ws_client: WorkspaceClient = verify_workspace_client(ws)
 
     # validate the report type
     report_type = report_type.lower()
@@ -78,12 +79,23 @@ def recon(
         target_schema=table_recon.target_schema,
     )
 
-    source, target = initialise_data_source(engine=source_dialect, spark=spark, ws=ws, secret_scope="secret_scope")
-    schema_comparator = SchemaCompare(spark=spark)
+    source, target = initialise_data_source(
+        engine=source_dialect,
+        spark=spark,
+        ws=ws_client,
+        secret_scope="secret_scope",
+    )
 
     recon_id = str(uuid4())
     # initialise the Reconciliation
-    reconciler = Reconciliation(source, target, database_config, report_type, schema_comparator, source_dialect)
+    reconciler = Reconciliation(
+        source,
+        target,
+        database_config,
+        report_type,
+        SchemaCompare(spark=spark),
+        source_dialect,
+    )
 
     # initialise the recon capture class
     recon_capture = ReconCapture(
@@ -91,7 +103,7 @@ def recon(
         recon_id=recon_id,
         report_type=report_type,
         source_dialect=source_dialect,
-        ws=ws,
+        ws=ws_client,
         spark=spark,
     )
 
@@ -399,6 +411,7 @@ def _get_schema(
     table_conf: Table,
     database_config: DatabaseConfig,
 ) -> tuple[list[Schema], list[Schema]]:
+
     src_schema = source.get_schema(
         catalog=database_config.source_catalog,
         schema=database_config.source_schema,

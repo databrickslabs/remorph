@@ -1,6 +1,6 @@
 from databricks.labs.remorph.config import get_dialect
 from databricks.labs.remorph.reconcile.query_builder.hash_query import HashQueryBuilder
-from databricks.labs.remorph.reconcile.recon_config import Filters
+from databricks.labs.remorph.reconcile.recon_config import Filters, ColumnMapping
 
 
 def test_hash_query_builder_for_snowflake_src(table_conf_with_opts, table_schema):
@@ -32,6 +32,7 @@ def test_hash_query_builder_for_oracle_src(table_conf_mock, table_schema, column
     table_conf = table_conf_mock(
         join_columns=["s_suppkey", "s_nationkey"],
         filters=Filters(source="s_nationkey=1"),
+        column_mapping=[ColumnMapping(source_name="s_nationkey", target_name="s_nationkey")],
     )
     src_actual = HashQueryBuilder(table_conf, schema, "source", get_dialect("oracle")).build_query(report_type="all")
     src_expected = (

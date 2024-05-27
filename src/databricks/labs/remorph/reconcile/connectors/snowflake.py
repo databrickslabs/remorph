@@ -46,12 +46,12 @@ class SnowflakeDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
 
     def read_data(
         self,
-        catalog: str,
+        catalog: str | None,
         schema: str,
         table: str,
         query: str,
         options: JdbcReaderOptions | None,
-    ) -> DataFrame | None:
+    ) -> DataFrame:
         table_query = query.replace(":tbl", f"{catalog}.{schema}.{table}")
         try:
             if options is None:
@@ -69,10 +69,10 @@ class SnowflakeDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
 
     def get_schema(
         self,
-        catalog: str,
+        catalog: str | None,
         schema: str,
         table: str,
-    ) -> list[Schema] | None:
+    ) -> list[Schema]:
         schema_query = re.sub(
             r'\s+',
             ' ',

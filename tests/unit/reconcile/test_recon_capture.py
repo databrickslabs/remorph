@@ -50,19 +50,45 @@ def data_prep(spark: SparkSession):
             StructField("is_valid", BooleanType(), True),
         ]
     )
-    data = [
-        ("source_column1", "source_datatype1", "databricks_column1", "databricks_datatype1", True),
-        ("source_column2", "source_datatype2", "databricks_column2", "databricks_datatype2", True),
-        ("source_column3", "source_datatype3", "databricks_column3", "databricks_datatype3", True),
-        ("source_column4", "source_datatype4", "databricks_column4", "databricks_datatype4", True),
-    ]
-    schema_df = spark.createDataFrame(data, schema)
 
     data = [
+        Row(
+            source_column="source_column1",
+            source_datatype="source_datatype1",
+            databricks_column="databricks_column1",
+            databricks_datatype="databricks_datatype1",
+            is_valid=True,
+        ),
+        Row(
+            source_column="source_column2",
+            source_datatype="source_datatype2",
+            databricks_column="databricks_column2",
+            databricks_datatype="databricks_datatype2",
+            is_valid=True,
+        ),
+        Row(
+            source_column="source_column3",
+            source_datatype="source_datatype3",
+            databricks_column="databricks_column3",
+            databricks_datatype="databricks_datatype3",
+            is_valid=True,
+        ),
+        Row(
+            source_column="source_column4",
+            source_datatype="source_datatype4",
+            databricks_column="databricks_column4",
+            databricks_datatype="databricks_datatype4",
+            is_valid=True,
+        ),
+    ]
+
+    schema_df = spark.createDataFrame(data, schema)
+
+    data_rows = [
         Row(id=1, sal_source=1000, sal_target=1100, sal_match=True),
         Row(id=2, sal_source=2000, sal_target=2100, sal_match=False),
     ]
-    threshold_df = spark.createDataFrame(data)
+    threshold_df = spark.createDataFrame(data_rows)
 
     # Prepare output dataclasses
     mismatch = MismatchOutput(mismatch_df=mismatch_df, mismatch_columns=["name"])

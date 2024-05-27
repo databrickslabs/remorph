@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 from pyspark.sql import DataFrame
 from sqlglot import Dialect
@@ -85,60 +85,54 @@ class Table:
             return {c.target_name: c.source_name for c in self.column_mapping}
         return None
 
-    def get_src_to_tgt_col_mapping(self, cols: list[str] | set[str] | str, layer: str) -> set[str] | str:
+    def get_src_to_tgt_col_mapping_list(self, cols: list[str], layer: str) -> set[str]:
         if layer == "source":
-            if isinstance(cols, str):
-                return cols
             return set(cols)
-        if self.to_src_col_map:
-            if isinstance(cols, list | set):
-                columns = set()
-                for col in cols:
-                    columns.add(self.to_src_col_map.get(col, col))
-                return columns
-            return self.to_src_col_map.get(cols, cols)
-        return cols
+        return {self.to_src_col_map.get(col, col) for col in cols}
 
-    def get_tgt_to_src_col_mapping(self, cols: list[str] | set[str] | str, layer: str) -> set[str] | str:
+    def get_layer_src_to_tgt_col_mapping(self, cols: str, layer: str) -> str:
         if layer == "source":
             return cols
-        if self.to_tgt_col_map:
-            if isinstance(cols, list | set):
-                columns = set()
-                for col in cols:
-                    columns.add(self.to_tgt_col_map.get(col, col))
-                return columns
-            return self.to_tgt_col_map.get(cols, cols)
-        return cols
+        return self.to_src_col_map.get(cols, cols)
+
+    def get_tgt_to_src_col_mapping_list(self, cols: list[str] | set[str]) -> set[str]:
+        return {self.to_tgt_col_map.get(col, col) for col in cols}
+
+    def get_layer_tgt_to_src_col_mapping(self, cols: str, layer: str) -> str:
+        if layer == "source":
+            return cols
+        return self.to_tgt_col_map.get(cols, cols)
 
     def get_select_columns(self, schema: list[Schema], layer: str) -> set[str]:
         if self.select_columns is None:
             return {sch.column_name for sch in schema}
         if self.to_src_col_map:
-            return self.get_src_to_tgt_col_mapping(self.select_columns, layer)
+            return self.get_src_to_tgt_col_mapping_list(self.select_columns, layer)
         return set(self.select_columns)
 
     def get_threshold_columns(self, layer: str) -> set[str]:
         if self.thresholds is None:
             return set()
-        return {self.get_src_to_tgt_col_mapping(thresh.column_name, layer) for thresh in self.thresholds}
+        return {self.get_layer_src_to_tgt_col_mapping(thresh.column_name, layer) for thresh in self.thresholds}
 
     def get_join_columns(self, layer: str) -> set[str]:
         if self.join_columns is None:
             return set()
-        return {self.get_src_to_tgt_col_mapping(col, layer) for col in self.join_columns}
+        return {self.get_layer_src_to_tgt_col_mapping(col, layer) for col in self.join_columns}
 
     def get_drop_columns(self, layer: str) -> set[str]:
         if self.drop_columns is None:
             return set()
-        return {self.get_src_to_tgt_col_mapping(col, layer) for col in self.drop_columns}
+        return {self.get_layer_src_to_tgt_col_mapping(col, layer) for col in self.drop_columns}
 
-    def get_transformation_dict(self, layer: str) -> dict[str, str] | None:
+    def get_transformation_dict(self, layer: str) -> dict[str, str]:
         if self.transformations:
             if layer == "source":
                 return {t.column_name: t.source for t in self.transformations}
-            return {self.get_src_to_tgt_col_mapping(t.column_name, layer): t.target for t in self.transformations}
-        return None
+            return {
+                self.get_layer_src_to_tgt_col_mapping(t.column_name, layer): str(t.target) for t in self.transformations
+            }
+        return {}
 
     def get_partition_column(self, layer: str) -> set[str]:
         if self.jdbc_reader_options and layer == "source":
@@ -162,7 +156,7 @@ class Schema:
 @dataclass
 class MismatchOutput:
     mismatch_df: DataFrame | None = None
-    mismatch_columns: list[str] = field(default_factory=list)
+    mismatch_columns: list[str] | None = None
 
 
 @dataclass

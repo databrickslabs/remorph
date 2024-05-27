@@ -12,6 +12,11 @@ if __name__ == "__main__":
     sqlglot_version = sqlglot.__version__
     SQLGLOT_COMMIT_HASH = ""  # C0103 pylint
 
+    if not input_dir:
+        raise ValueError("Environment variable `INPUT_DIR` is required")
+    if not output_dir:
+        raise ValueError("Environment variable `OUTPUT_DIR` is required")
+
     commons.collect_transpilation_stats(
         "SQLGlot",
         SQLGLOT_COMMIT_HASH,

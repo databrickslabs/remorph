@@ -6,12 +6,12 @@ import os
 import subprocess
 import time
 from collections.abc import Generator
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import TextIO
 
 import sqlglot
-from sqlglot import Expression
+from sqlglot.expressions import Expression
 from sqlglot.dialects.dialect import Dialect
 from sqlglot.errors import ErrorLevel
 
@@ -44,7 +44,7 @@ def write_json_line(file: TextIO, content: ReportEntry):
     file.write("\n")
 
 
-def get_env_var(env_var: str, *, required: bool = False) -> str:
+def get_env_var(env_var: str, *, required: bool = False) -> str | None:
     """
     Get the value of an environment variable.
 
@@ -75,7 +75,7 @@ def get_current_commit_hash() -> str | None:
 
 
 def get_current_time_utc() -> datetime:
-    return datetime.utcnow()
+    return datetime.now(timezone.utc)
 
 
 def parse_sql(sql: str, dialect: type[Dialect]) -> list[Expression]:

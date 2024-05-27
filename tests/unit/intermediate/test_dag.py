@@ -19,7 +19,7 @@ def test_add_edge(dag):
     dag.add_edge("edge_node", "node")
     assert "edge_node" in dag.nodes
     assert "node" in dag.nodes
-    assert dag.nodes["node"] in dag.nodes["edge_node"].children
+    assert dag.nodes["node"].name in dag.nodes["edge_node"].children
 
 
 def test_identify_immediate_parents(dag):
