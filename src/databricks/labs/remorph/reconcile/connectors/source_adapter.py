@@ -11,13 +11,16 @@ from databricks.labs.remorph.snow.snowflake import Snow
 from databricks.sdk import WorkspaceClient
 
 
-class DataSourceAdapter:
-    @staticmethod
-    def create_adapter(engine: Dialect, spark: SparkSession, ws: WorkspaceClient, secret_scope: str) -> DataSource:
-        if isinstance(engine, Snow):
-            return SnowflakeDataSource(engine, spark, ws, secret_scope)
-        if isinstance(engine, Oracle):
-            return OracleDataSource(engine, spark, ws, secret_scope)
-        if isinstance(engine, Databricks):
-            return DatabricksDataSource(engine, spark, ws, secret_scope)
-        raise ValueError(f"Unsupported source type --> {engine}")
+def create_adapter(
+    engine: Dialect,
+    spark: SparkSession,
+    ws: WorkspaceClient,
+    secret_scope: str,
+) -> DataSource:
+    if isinstance(engine, Snow):
+        return SnowflakeDataSource(engine, spark, ws, secret_scope)
+    if isinstance(engine, Oracle):
+        return OracleDataSource(engine, spark, ws, secret_scope)
+    if isinstance(engine, Databricks):
+        return DatabricksDataSource(engine, spark, ws, secret_scope)
+    raise ValueError(f"Unsupported source type --> {engine}")

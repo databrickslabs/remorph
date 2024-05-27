@@ -1,6 +1,7 @@
 import logging
 import re
 
+from pyspark.errors import PySparkException
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.functions import col
 from sqlglot import Dialect
@@ -53,7 +54,7 @@ class DatabricksDataSource(DataSource, SecretsMixin):
         try:
             df = self._spark.sql(table_query)
             return df.select([col(column).alias(column.lower()) for column in df.columns])
-        except RuntimeError as e:
+        except (RuntimeError, PySparkException) as e:
             return self.log_and_throw_exception(e, "data", table_query)
 
     def get_schema(
@@ -66,5 +67,5 @@ class DatabricksDataSource(DataSource, SecretsMixin):
         try:
             schema_df = self._spark.sql(schema_query).where("col_name not like '#%'").distinct()
             return [Schema(field.col_name.lower(), field.data_type.lower()) for field in schema_df.collect()]
-        except RuntimeError as e:
+        except (RuntimeError, PySparkException) as e:
             return self.log_and_throw_exception(e, "schema", schema_query)
