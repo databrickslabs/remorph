@@ -64,14 +64,11 @@ def recon(
     # TODO For now we are utilising the
     #  verify_workspace_client from transpile/execute.py file. Later verify_workspace_client function has to be
     #  refactored
-<<<<<<< feature/update-project-configuration
+
     ws_client: WorkspaceClient = verify_workspace_client(ws)
-=======
-    ws: WorkspaceClient = verify_workspace_client(ws)
 
     # validate the report type
     report_type = report_type.lower()
->>>>>>> main
     logger.info(report_type)
     validate_input(report_type, {"schema", "data", "row", "all"}, "Invalid report type")
 
@@ -92,7 +89,12 @@ def recon(
     recon_id = str(uuid4())
     # initialise the Reconciliation
     reconciler = Reconciliation(
-        source, target, database_config, report_type, SchemaCompare(spark=spark), source_dialect
+        source,
+        target,
+        database_config,
+        report_type,
+        SchemaCompare(spark=spark),
+        source_dialect,
     )
 
     # initialise the recon capture class
