@@ -142,3 +142,8 @@ jobs:
       - name: Run Acceptance Tests with Maven
         run: mvn -X --update-snapshots -B test -pl acceptance --file pom.xml --fail-at-end
         continue-on-error: true
+
+      - name: Publish JUnit report
+        uses: mikepenz/action-junit-report@v4
+        with:
+          report_paths: '**/TEST-com.databricks.labs.remorph.acceptance*.xml'
