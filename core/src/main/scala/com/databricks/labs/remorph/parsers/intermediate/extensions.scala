@@ -36,6 +36,8 @@ case class WithCTE(ctes: Seq[Relation], query: Relation) extends RelationCommon 
 case class CTEDefinition(tableName: String, columns: Seq[Expression], cte: Relation) extends RelationCommon {}
 
 case class Star(objectName: Option[String]) extends Expression {}
+case class Inserted(selection: Expression) extends Expression()
+case class Deleted(selection: Expression) extends Expression()
 
 case class WhenBranch(condition: Expression, expression: Expression) extends Expression
 case class Case(expression: Option[Expression], branches: Seq[WhenBranch], otherwise: Option[Expression])
@@ -51,8 +53,6 @@ case class Like(expression: Expression, patterns: Seq[Expression], escape: Optio
 case class RLike(expression: Expression, pattern: Expression) extends Expression {}
 
 case class IsNull(expression: Expression) extends Expression {}
-
-case class UnresolvedOperator(unparsed_target: String) extends Expression {}
 
 // TODO: TSQL grammar has a number of operators not yet supported - add them here, if not already supported
 
@@ -81,9 +81,16 @@ case class BitwiseXor(left: Expression, right: Expression) extends Binary(left, 
 // Other binary expressions
 case class Concat(left: Expression, right: Expression) extends Binary(left, right) {}
 
+// Assignment operators
+case class Assign(left: Expression, right: Expression) extends Binary(left, right) {}
+
 // Some statements, such as SELECT, do not require a table specification
+case object NoTable extends Relation {}
+
+// It was not clear whether the NamedTable options should be used for the alias. I'm assuming it is not what
 case class NoTable() extends Relation {}
-// It was not clear to me the NamedTable options should be used for the alias. I'm assuming it is not what
+
+// It was not clear whether the NamedTable options should be used for the alias. I'm assuming it is not what
 // they are for.
 case class TableAlias(relation: Relation, alias: String) extends Relation {}
 
@@ -146,10 +153,17 @@ case class AlterTableCommand(tableName: String, alterations: Seq[TableAlteration
 // Used for raw expressions that have no context
 case class Dot(left: Expression, right: Expression) extends Binary(left, right) {}
 
+// Specialized function calls, such as XML functions that usually apply to columns
+case class XmlFunction(function: CallFunction, column: Expression) extends Expression {}
+
 case class NextValue(sequenceName: String) extends Expression {}
 case class ArrayAccess(array: Expression, index: Expression) extends Expression {}
 case class JsonAccess(json: Expression, path: Seq[String]) extends Expression {}
 case class Collate(string: Expression, specification: String) extends Expression {}
 case class Iff(condition: Expression, thenBranch: Expression, elseBranch: Expression) extends Expression {}
 
+case class ScalarSubquery(relation: Relation) extends Expression {}
+
 case class Timezone(expression: Expression, timeZone: Expression) extends Expression {}
+
+case class Money(value: Literal) extends Expression {}

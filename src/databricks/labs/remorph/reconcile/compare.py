@@ -3,8 +3,8 @@ from pyspark.sql.functions import col, expr, lit
 
 from databricks.labs.remorph.reconcile.exception import ColumnMismatchException
 from databricks.labs.remorph.reconcile.recon_config import (
+    DataReconcileOutput,
     MismatchOutput,
-    ReconcileOutput,
 )
 
 _HASH_COLUMN_NAME = "hash_value_recon"
@@ -19,7 +19,9 @@ def raise_column_mismatch_exception(msg: str, source_missing: list[str], target_
     return ColumnMismatchException(error_msg)
 
 
-def reconcile_data(source: DataFrame, target: DataFrame, key_columns: list[str], report_type: str) -> ReconcileOutput:
+def reconcile_data(
+    source: DataFrame, target: DataFrame, key_columns: list[str], report_type: str
+) -> DataReconcileOutput:
     source_alias = "src"
     target_alias = "tgt"
     if report_type not in {"data", "all"}:
@@ -43,7 +45,7 @@ def reconcile_data(source: DataFrame, target: DataFrame, key_columns: list[str],
     if mismatch:
         mismatch_count = mismatch.count()
 
-    return ReconcileOutput(
+    return DataReconcileOutput(
         mismatch_count=mismatch_count,
         missing_in_src_count=missing_in_src.count(),
         missing_in_tgt_count=missing_in_tgt.count(),

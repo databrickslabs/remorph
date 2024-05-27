@@ -4,16 +4,31 @@ import com.databricks.labs.remorph.parsers.{intermediate => ir}
 
 import java.util.Locale
 
-sealed trait FunctionArity
-case class FixedArity(arity: Int, convertible: Boolean = true) extends FunctionArity
-case class VariableArity(argMin: Int, argMax: Int, convertible: Boolean = true) extends FunctionArity
+sealed trait FunctionType
+case object StandardFunction extends FunctionType
+case object XmlFunction extends FunctionType
+case object UnknownFunction extends FunctionType
 
-class FunctionBuilder
+sealed trait FunctionArity {
+  def isConvertible: Boolean
+}
+
+case class FixedArity(arity: Int, functionType: FunctionType = StandardFunction, convertible: Boolean = true)
+    extends FunctionArity {
+  override def isConvertible: Boolean = convertible
+}
+
+case class VariableArity(
+    argMin: Int,
+    argMax: Int,
+    functionType: FunctionType = StandardFunction,
+    convertible: Boolean = true)
+    extends FunctionArity {
+  override def isConvertible: Boolean = convertible
+}
 
 object FunctionBuilder {
 
-  // TODO: Add more functions as we find them
-  // GCOVR_EXCL_START
   def functionArity(functionName: String): Option[FunctionArity] = functionName match {
     case "ABS" => Some(FixedArity(1))
     case "ACOS" => Some(FixedArity(1))
@@ -25,12 +40,14 @@ object FunctionBuilder {
     case "ASSEMBLYPROPERTY" => Some(FixedArity(2))
     case "ATAN" => Some(FixedArity(1))
     case "ATN2" => Some(FixedArity(2))
+    case "AVG" => Some(FixedArity(1))
     case "CEILING" => Some(FixedArity(1))
     case "CERT_ID" => Some(FixedArity(1))
     case "CERTENCODED" => Some(FixedArity(1))
     case "CERTPRIVATEKEY" => Some(VariableArity(2, 3))
     case "CHAR" => Some(FixedArity(1))
     case "CHARINDEX" => Some(VariableArity(2, 3))
+    case "CHECKSUM_AGG" => Some(FixedArity(1))
     case "COALESCE" => Some(VariableArity(1, Int.MaxValue))
     case "COL_LENGTH" => Some(FixedArity(2))
     case "COL_NAME" => Some(FixedArity(2))
@@ -43,6 +60,8 @@ object FunctionBuilder {
     case "CONVERT" => Some(VariableArity(2, 3))
     case "COS" => Some(FixedArity(1))
     case "COT" => Some(FixedArity(1))
+    case "COUNT" => Some(FixedArity(1))
+    case "COUNT_BIG" => Some(FixedArity(1))
     case "CURRENT_DATE" => Some(FixedArity(0))
     case "CURRENT_REQUEST_ID" => Some(FixedArity(0))
     case "CURRENT_TIMESTAMP" => Some(FixedArity(0))
@@ -71,6 +90,7 @@ object FunctionBuilder {
     case "DB_NAME" => Some(VariableArity(0, 1))
     case "DECOMPRESS" => Some(FixedArity(1))
     case "DEGREES" => Some(FixedArity(1))
+    case "DENSE_RANK" => Some(FixedArity(0))
     case "DIFFERENCE" => Some(FixedArity(2))
     case "EOMONTH" => Some(VariableArity(1, 2))
     case "ERROR_LINE" => Some(FixedArity(0))
@@ -79,6 +99,7 @@ object FunctionBuilder {
     case "ERROR_PROCEDURE" => Some(FixedArity(0))
     case "ERROR_SEVERITY" => Some(FixedArity(0))
     case "ERROR_STATE" => Some(FixedArity(0))
+    case "EXIST" => Some(FixedArity(1, XmlFunction))
     case "EXP" => Some(FixedArity(1))
     case "FILE_ID" => Some(FixedArity(1))
     case "FILE_IDEX" => Some(FixedArity(1))
@@ -102,6 +123,8 @@ object FunctionBuilder {
     case "GETREPARENTEDVALUE" => Some(FixedArity(2))
     case "GETUTCDATE" => Some(FixedArity(0))
     case "GREATEST" => Some(VariableArity(1, Int.MaxValue))
+    case "GROUPING" => Some(FixedArity(1))
+    case "GROUPING_ID" => Some(VariableArity(0, Int.MaxValue))
     case "HAS_DBACCESS" => Some(FixedArity(1))
     case "HAS_PERMS_BY_NAME" => Some(VariableArity(4, 5))
     case "HOST_ID" => Some(FixedArity(0))
@@ -133,11 +156,16 @@ object FunctionBuilder {
     case "LOGINPROPERTY" => Some(FixedArity(2))
     case "LOWER" => Some(FixedArity(1))
     case "LTRIM" => Some(FixedArity(1))
+    case "MAX" => Some(FixedArity(1))
+    case "MIN" => Some(FixedArity(1))
     case "MIN_ACTIVE_ROWVERSION" => Some(FixedArity(0))
+    case "MODIFY" => Some(FixedArity(1, XmlFunction))
     case "MONTH" => Some(FixedArity(1))
     case "NCHAR" => Some(FixedArity(1))
     case "NEWID" => Some(FixedArity(0))
     case "NEWSEQUENTIALID" => Some(FixedArity(0))
+    case "NODES" => Some(FixedArity(1, XmlFunction))
+    case "NTILE" => Some(FixedArity(1))
     case "NULLIF" => Some(FixedArity(2))
     case "OBJECT_DEFINITION" => Some(FixedArity(1))
     case "OBJECT_ID" => Some(VariableArity(1, 2))
@@ -147,22 +175,25 @@ object FunctionBuilder {
     case "OBJECTPROPERTYEX" => Some(FixedArity(2))
     case "ORIGINAL_DB_NAME" => Some(FixedArity(0))
     case "ORIGINAL_LOGIN" => Some(FixedArity(0))
-    case "PARSE" => Some(VariableArity(2, 3))
+    case "PARSE" => Some(VariableArity(2, 3, convertible = false)) // Not in DBSQL
     case "PARSENAME" => Some(FixedArity(2))
     case "PATINDEX" => Some(FixedArity(2))
-    case "PERMISSIONS" => Some(VariableArity(0, 2))
+    case "PERMISSIONS" => Some(VariableArity(0, 2, convertible = false)) // not in DBSQL
     case "PI" => Some(FixedArity(0))
     case "POWER" => Some(FixedArity(2))
     case "PWDCOMPARE" => Some(VariableArity(2, 3))
     case "PWDENCRYPT" => Some(FixedArity(1))
+    case "QUERY" => Some(FixedArity(1, XmlFunction))
     case "QUOTENAME" => Some(VariableArity(1, 2))
     case "RADIANS" => Some(FixedArity(1))
     case "RAND" => Some(VariableArity(0, 1))
+    case "RANK" => Some(FixedArity(0))
     case "REPLACE" => Some(FixedArity(3))
     case "REPLICATE" => Some(FixedArity(2))
     case "REVERSE" => Some(FixedArity(1))
     case "RIGHT" => Some(FixedArity(2))
     case "ROUND" => Some(VariableArity(2, 3))
+    case "ROW_NUMBER" => Some(FixedArity(0))
     case "ROWCOUNT_BIG" => Some(FixedArity(0))
     case "RTRIM" => Some(FixedArity(1))
     case "SCHEMA_ID" => Some(VariableArity(0, 1))
@@ -180,11 +211,14 @@ object FunctionBuilder {
     case "SQRT" => Some(FixedArity(1))
     case "SQUARE" => Some(FixedArity(1))
     case "STATS_DATE" => Some(FixedArity(2))
+    case "STDEV" => Some(FixedArity(1))
+    case "STDEVP" => Some(FixedArity(1))
     case "STR" => Some(VariableArity(1, 3))
     case "STRING_AGG" => Some(VariableArity(2, 3))
     case "STRING_ESCAPE" => Some(FixedArity(2))
     case "STUFF" => Some(FixedArity(4))
     case "SUBSTRING" => Some(VariableArity(2, 3))
+    case "SUM" => Some(FixedArity(1))
     case "SUSER_ID" => Some(VariableArity(0, 1))
     case "SUSER_NAME" => Some(VariableArity(0, 1))
     case "SUSER_SID" => Some(VariableArity(0, 2))
@@ -206,33 +240,50 @@ object FunctionBuilder {
     case "UPPER" => Some(FixedArity(1))
     case "USER_ID" => Some(VariableArity(0, 1))
     case "USER_NAME" => Some(VariableArity(0, 1))
+    case "VALUE" => Some(FixedArity(2, XmlFunction))
+    case "VAR" => Some(FixedArity(1))
+    case "VARP" => Some(FixedArity(1))
     case "XACT_STATE" => Some(FixedArity(0))
     case "YEAR" => Some(FixedArity(1))
     case _ => None
   }
-  // GCOVR_EXCL_STOP
+
+  def functionType(name: String): FunctionType = {
+    val uName = name.toUpperCase(Locale.getDefault())
+    val defnOption = functionArity(uName)
+    defnOption match {
+      case Some(fixedArity: FixedArity) => fixedArity.functionType
+      case Some(variableArity: VariableArity) => variableArity.functionType
+      case _ => UnknownFunction
+    }
+  }
 
   def buildFunction(name: String, args: Seq[ir.Expression]): ir.Expression = {
     val uName = name.toUpperCase(Locale.getDefault())
     val defnOption = functionArity(uName)
 
     defnOption match {
-      case Some(FixedArity(_, false)) | Some(VariableArity(_, _, false)) =>
-        // Should raise a warning/lint error here
+      case Some(functionArity) if !functionArity.isConvertible =>
         ir.UnresolvedFunction(name, args, is_distinct = false, is_user_defined_function = false)
 
-      case Some(FixedArity(arity, true)) if args.length == arity =>
+      case Some(fixedArity: FixedArity) if args.length == fixedArity.arity =>
         ir.CallFunction(name, args)
 
-      case Some(VariableArity(argMin, argMax, true)) if args.length >= argMin && args.length <= argMax =>
+      case Some(variableArity: VariableArity)
+          if args.length >= variableArity.argMin && args.length <= variableArity.argMax =>
         ir.CallFunction(name, args)
 
+      // Found the function but the arg count is incorrect
       case Some(_) =>
-        // Should raise a warning/lint error here about mismatched argument count
-        ir.UnresolvedFunction(name, args, is_distinct = false, is_user_defined_function = false)
+        ir.UnresolvedFunction(
+          name,
+          args,
+          is_distinct = false,
+          is_user_defined_function = false,
+          has_incorrect_argc = true)
 
+      // Unsupported function
       case None =>
-        // Should raise a warning/lint error here about unknown function
         ir.UnresolvedFunction(name, args, is_distinct = false, is_user_defined_function = false)
     }
   }

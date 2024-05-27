@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from pyspark.sql import DataFrame
 from sqlglot import Dialect
@@ -94,6 +94,14 @@ class Table:
         if layer == "source":
             return cols
         return self.to_src_col_map.get(cols, cols)
+        if self.to_src_col_map:
+            if isinstance(cols, list | set):
+                columns = set()
+                for col in cols:
+                    columns.add(self.to_src_col_map.get(col, col))
+                return columns
+            return self.to_src_col_map.get(cols, cols)
+        return cols
 
     def get_tgt_to_src_col_mapping_list(self, cols: list[str] | set[str]) -> set[str]:
         return {self.to_tgt_col_map.get(col, col) for col in cols}
@@ -102,6 +110,14 @@ class Table:
         if layer == "source":
             return cols
         return self.to_tgt_col_map.get(cols, cols)
+        if self.to_tgt_col_map:
+            if isinstance(cols, list | set):
+                columns = set()
+                for col in cols:
+                    columns.add(self.to_tgt_col_map.get(col, col))
+                return columns
+            return self.to_tgt_col_map.get(cols, cols)
+        return cols
 
     def get_select_columns(self, schema: list[Schema], layer: str) -> set[str]:
         if self.select_columns is None:
@@ -156,7 +172,7 @@ class Schema:
 @dataclass
 class MismatchOutput:
     mismatch_df: DataFrame | None = None
-    mismatch_columns: list[str] | None = None
+    mismatch_columns: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -166,14 +182,15 @@ class ThresholdOutput:
 
 
 @dataclass
-class ReconcileOutput:
+class DataReconcileOutput:
     mismatch_count: int = 0
     missing_in_src_count: int = 0
     missing_in_tgt_count: int = 0
-    mismatch: MismatchOutput = MismatchOutput(mismatch_columns=[])
+    mismatch: MismatchOutput = MismatchOutput()
     missing_in_src: DataFrame | None = None
     missing_in_tgt: DataFrame | None = None
     threshold_output: ThresholdOutput = ThresholdOutput()
+    exception: str | None = None
 
 
 @dataclass
@@ -192,9 +209,10 @@ class SchemaMatchResult:
 
 
 @dataclass
-class SchemaCompareOutput:
+class SchemaReconcileOutput:
     is_valid: bool = True
     compare_df: DataFrame | None = None
+    exception: str | None = None
 
 
 @dataclass

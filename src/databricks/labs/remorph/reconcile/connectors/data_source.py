@@ -1,9 +1,12 @@
+import logging
 from abc import ABC, abstractmethod
 
 from pyspark.sql import DataFrame
 
 from databricks.labs.remorph.reconcile.exception import DataSourceRuntimeException
 from databricks.labs.remorph.reconcile.recon_config import JdbcReaderOptions, Schema
+
+logger = logging.getLogger(__name__)
 
 
 class DataSource(ABC):
@@ -28,14 +31,11 @@ class DataSource(ABC):
     ) -> list[Schema]:
         return NotImplemented
 
-    @staticmethod
-    def _raise_runtime_exception(
-        exception: Exception,
-        fetch_type: str,
-        query: str,
-    ) -> DataSourceRuntimeException:
+    @classmethod
+    def log_and_throw_exception(cls, exception: Exception, fetch_type: str, query: str):
         error_msg = f"Runtime exception occurred while fetching {fetch_type} using {query} : {exception}"
-        return DataSourceRuntimeException(error_msg)
+        logger.warning(error_msg)
+        raise DataSourceRuntimeException(error_msg)
 
 
 class MockDataSource(DataSource):
@@ -57,15 +57,15 @@ class MockDataSource(DataSource):
         table: str,
         query: str,
         options: JdbcReaderOptions | None,
-    ) -> DataFrame:
+    ) -> DataFrame | None:
         catalog_str = catalog if catalog else ""
         mock_df = self._dataframe_repository.get((catalog_str, schema, query))
         if not mock_df:
-            raise self._raise_runtime_exception(self._exception, "data", f"({catalog}, {schema}, {query})")
+            return self.log_and_throw_exception(self._exception, "data", f"({catalog}, {schema}, {query})")
         return mock_df
 
-    def get_schema(self, catalog: str, schema: str, table: str) -> list[Schema]:
+    def get_schema(self, catalog: str, schema: str, table: str) -> list[Schema] | None:
         mock_schema = self._schema_repository.get((catalog, schema, table))
         if not mock_schema:
-            raise self._raise_runtime_exception(self._exception, "schema", f"({catalog}, {schema}, {table})")
+            return self.log_and_throw_exception(self._exception, "schema", f"({catalog}, {schema}, {table})")
         return mock_schema
