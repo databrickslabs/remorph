@@ -42,7 +42,7 @@ def test_get_schema():
 
     # hive_metastore as catalog
     dd.get_schema("hive_metastore", "schema", "supplier")
-    spark.sql.assert_called_with(re.sub(r'\s+', ' ', """describe table schema.supplier"""))
+    spark.sql.assert_called_with(re.sub(r'\s+', ' ', """describe table hive_metastore.schema.supplier"""))
     spark.sql().where.assert_called_with("col_name not like '#%'")
 
 
@@ -67,7 +67,7 @@ def test_read_data_from_hive():
 
     # Test with query
     dd.read_data("hive_metastore", "data", "employee", "select id as id, name as name from :tbl", None)
-    spark.sql.assert_called_with("select id as id, name as name from data.employee")
+    spark.sql.assert_called_with("select id as id, name as name from hive_metastore.data.employee")
 
 
 def test_read_data_exception_handling():
@@ -75,8 +75,7 @@ def test_read_data_exception_handling():
     spark, ws, scope = initial_setup()
 
     # create object for DatabricksDataSource
-    dd = DatabricksDataSource(spark, ws, scope, SQLGLOT_DIALECTS.get("databricks"))
-
+    dd = DatabricksDataSource(engine, spark, ws, scope)
     spark.sql.side_effect = RuntimeError("Test Exception")
 
     with pytest.raises(

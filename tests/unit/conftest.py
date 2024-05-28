@@ -1,10 +1,23 @@
 import re
 from pathlib import Path
+from collections.abc import Sequence
 from unittest.mock import create_autospec
 
 import pytest
 from pyspark.sql import SparkSession
+from pyspark.sql.types import (
+    ArrayType,
+    BooleanType,
+    IntegerType,
+    LongType,
+    MapType,
+    StringType,
+    StructField,
+    StructType,
+    TimestampType,
+)
 from sqlglot import ErrorLevel, UnsupportedError
+from sqlglot.errors import SqlglotError, ParseError
 from sqlglot import parse_one as sqlglot_parse_one
 from sqlglot import transpile
 
@@ -155,7 +168,7 @@ def dialect_context():
 
 
 def parse_sql_files(input_dir: Path, source: str, target: str, is_expected_exception):
-    suite = []
+    suite: list[FunctionalTestFile | FunctionalTestFileWithExpectedException] = []
     for filenames in input_dir.rglob("*.sql"):
         with open(filenames, 'r', encoding="utf-8") as file_content:
             content = file_content.read()
@@ -172,11 +185,11 @@ def parse_sql_files(input_dir: Path, source: str, target: str, is_expected_excep
                 # when multiple sqls are present below target
                 test_name = filenames.name.replace(".sql", "")
                 if is_expected_exception:
-                    suite.append(
-                        FunctionalTestFileWithExpectedException(
-                            target_sql, source_sql, test_name, expected_exceptions[test_name]
-                        )
-                    )
+                    exception_type = expected_exceptions.get(test_name, SqlglotError)
+                    exception = SqlglotError(test_name)
+                    if exception_type in {ParseError, UnsupportedError}:
+                        exception = exception_type(test_name)
+                    suite.append(FunctionalTestFileWithExpectedException(target_sql, source_sql, test_name, exception))
                 else:
                     suite.append(FunctionalTestFile(target_sql, source_sql, test_name))
     return suite
@@ -184,7 +197,7 @@ def parse_sql_files(input_dir: Path, source: str, target: str, is_expected_excep
 
 def get_functional_test_files_from_directory(
     input_dir: Path, source: str, target: str, is_expected_exception=False
-) -> list[FunctionalTestFile] | list[FunctionalTestFileWithExpectedException]:
+) -> Sequence[FunctionalTestFileWithExpectedException]:
     """Get all functional tests in the input_dir."""
     suite = parse_sql_files(input_dir, source, target, is_expected_exception)
     return suite
@@ -271,3 +284,95 @@ def table_schema():
 @pytest.fixture
 def expr():
     return parse_one("SELECT col1 FROM DUAL")
+
+
+@pytest.fixture
+def report_tables_schema():
+    recon_schema = StructType(
+        [
+            StructField("recon_table_id", LongType(), nullable=False),
+            StructField("recon_id", StringType(), nullable=False),
+            StructField("source_type", StringType(), nullable=False),
+            StructField(
+                "source_table",
+                StructType(
+                    [
+                        StructField('catalog', StringType(), nullable=False),
+                        StructField('schema', StringType(), nullable=False),
+                        StructField('table_name', StringType(), nullable=False),
+                    ]
+                ),
+                nullable=False,
+            ),
+            StructField(
+                "target_table",
+                StructType(
+                    [
+                        StructField('catalog', StringType(), nullable=False),
+                        StructField('schema', StringType(), nullable=False),
+                        StructField('table_name', StringType(), nullable=False),
+                    ]
+                ),
+                nullable=False,
+            ),
+            StructField("report_type", StringType(), nullable=False),
+            StructField("start_ts", TimestampType()),
+            StructField("end_ts", TimestampType()),
+        ]
+    )
+
+    metrics_schema = StructType(
+        [
+            StructField("recon_table_id", LongType(), nullable=False),
+            StructField(
+                "recon_metrics",
+                StructType(
+                    [
+                        StructField(
+                            "row_comparison",
+                            StructType(
+                                [
+                                    StructField("missing_in_source", IntegerType()),
+                                    StructField("missing_in_target", IntegerType()),
+                                ]
+                            ),
+                        ),
+                        StructField(
+                            "column_comparison",
+                            StructType(
+                                [
+                                    StructField("absolute_mismatch", IntegerType()),
+                                    StructField("threshold_mismatch", IntegerType()),
+                                    StructField("mismatch_columns", StringType()),
+                                ]
+                            ),
+                        ),
+                        StructField("schema_comparison", BooleanType()),
+                    ]
+                ),
+            ),
+            StructField(
+                "run_metrics",
+                StructType(
+                    [
+                        StructField("status", BooleanType(), nullable=False),
+                        StructField("run_by_user", StringType(), nullable=False),
+                        StructField("exception_message", StringType()),
+                    ]
+                ),
+            ),
+            StructField("inserted_ts", TimestampType(), nullable=False),
+        ]
+    )
+
+    details_schema = StructType(
+        [
+            StructField("recon_table_id", LongType(), nullable=False),
+            StructField("recon_type", StringType(), nullable=False),
+            StructField("status", BooleanType(), nullable=False),
+            StructField("data", ArrayType(MapType(StringType(), StringType())), nullable=False),
+            StructField("inserted_ts", TimestampType(), nullable=False),
+        ]
+    )
+
+    return recon_schema, metrics_schema, details_schema

@@ -3,8 +3,8 @@ from pyspark.sql.functions import col, expr, lit
 
 from databricks.labs.remorph.reconcile.exception import ColumnMismatchException
 from databricks.labs.remorph.reconcile.recon_config import (
+    DataReconcileOutput,
     MismatchOutput,
-    ReconcileOutput,
 )
 
 _HASH_COLUMN_NAME = "hash_value_recon"
@@ -19,11 +19,13 @@ def raise_column_mismatch_exception(msg: str, source_missing: list[str], target_
     return ColumnMismatchException(error_msg)
 
 
-def reconcile_data(source: DataFrame, target: DataFrame, key_columns: list[str], report_type: str) -> ReconcileOutput:
+def reconcile_data(
+    source: DataFrame, target: DataFrame, key_columns: list[str], report_type: str
+) -> DataReconcileOutput:
     source_alias = "src"
     target_alias = "tgt"
     if report_type not in {"data", "all"}:
-        key_columns = _HASH_COLUMN_NAME
+        key_columns = [_HASH_COLUMN_NAME]
     df = source.alias(source_alias).join(other=target.alias(target_alias), on=key_columns, how="full")
 
     mismatch = (
@@ -43,7 +45,7 @@ def reconcile_data(source: DataFrame, target: DataFrame, key_columns: list[str],
     if mismatch:
         mismatch_count = mismatch.count()
 
-    return ReconcileOutput(
+    return DataReconcileOutput(
         mismatch_count=mismatch_count,
         missing_in_src_count=missing_in_src.count(),
         missing_in_tgt_count=missing_in_tgt.count(),
@@ -98,7 +100,8 @@ def _get_mismatch_df(source: DataFrame, target: DataFrame, key_columns: list[str
     target_aliased = [col('compare.' + column).alias(column + '_compare') for column in column_list]
 
     match_expr = [expr(f"{column}_base=={column}_compare").alias(column + "_match") for column in column_list]
-    select_expr = key_columns + source_aliased + target_aliased + match_expr
+    key_cols = [col(column) for column in key_columns]
+    select_expr = key_cols + source_aliased + target_aliased + match_expr
 
     filter_columns = " and ".join([column + "_match" for column in column_list])
     filter_expr = ~expr(filter_columns)
@@ -106,7 +109,7 @@ def _get_mismatch_df(source: DataFrame, target: DataFrame, key_columns: list[str
     mismatch_df = (
         source.alias('base')
         .join(other=target.alias('compare'), on=key_columns, how="inner")
-        .select(select_expr)
+        .select(*select_expr)
         .filter(filter_expr)
     )
     compare_columns = [column for column in mismatch_df.columns if column not in key_columns]

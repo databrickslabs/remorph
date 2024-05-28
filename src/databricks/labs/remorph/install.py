@@ -61,7 +61,7 @@ class WorkspaceInstaller:
         schema_name = "convertor_test"
         ws_config = None
 
-        source_prompt = self._prompts.choice("Select the source", SQLGLOT_DIALECTS.keys())
+        source_prompt = self._prompts.choice("Select the source", list(SQLGLOT_DIALECTS.keys()))
         source = source_prompt.lower()
 
         skip_validation = self._prompts.confirm("Do you want to Skip Validation")
@@ -90,7 +90,8 @@ class WorkspaceInstaller:
             mode="current",  # mode will not have a prompt as this is hidden flag
         )
 
-        ws_file_url = self._installation.save(config)
+        self._installation.save(config)
+        ws_file_url = self._installation.workspace_link(config.__file__)
         if self._prompts.confirm("Open config file in the browser and continue installing?"):
             webbrowser.open(ws_file_url)
         return config

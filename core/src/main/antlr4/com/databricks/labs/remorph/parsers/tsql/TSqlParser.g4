@@ -2050,7 +2050,7 @@ createPartitionScheme
     ;
 
 createQueue
-    : CREATE QUEUE (fullTableName | queueName = id) queueSettings? (
+    : CREATE QUEUE (tableName | queueName = id) queueSettings? (
         ON filegroup = id
         | DEFAULT
     )?
@@ -2072,7 +2072,7 @@ queueSettings
     ;
 
 alterQueue
-    : ALTER QUEUE (fullTableName | queueName = id) (queueSettings | queueAction)
+    : ALTER QUEUE (tableName | queueName = id) (queueSettings | queueAction)
     ;
 
 queueAction
@@ -2164,7 +2164,7 @@ insertStatementValue
     ;
 
 receiveStatement
-    : LPAREN? RECEIVE (ALL | DISTINCT | topClause | STAR) (LOCAL_ID EQ expression COMMA?)* FROM fullTableName (
+    : LPAREN? RECEIVE (ALL | DISTINCT | topClause | STAR) (LOCAL_ID EQ expression COMMA?)* FROM tableName (
         INTO tableVariable = id (WHERE where = searchCondition)
     )? RPAREN?
     ;
@@ -2487,7 +2487,7 @@ createStatistics
     ;
 
 updateStatistics
-    : UPDATE STATISTICS fullTableName (id | LPAREN id ( COMMA id)* RPAREN)? updateStatisticsOptions?
+    : UPDATE STATISTICS tableName (id | LPAREN id ( COMMA id)* RPAREN)? updateStatisticsOptions?
     ;
 
 updateStatisticsOptions
@@ -2893,7 +2893,7 @@ dropIndex
     ;
 
 dropRelationalOrXmlOrSpatialIndex
-    : indexName = id ON fullTableName
+    : indexName = id ON tableName
     ;
 
 dropBackwardCompatibleIndex
@@ -3852,7 +3852,7 @@ setSpecial
     // https://msdn.microsoft.com/en-us/library/ms188059.aspx
     | SET IDENTITY_INSERT tableName onOff SEMI?
     | SET specialList (COMMA specialList)* onOff
-    | SET modifyMethod
+    // TODO: Rework when it is time to implement SET modifyMethod
     ;
 
 specialList
@@ -3903,16 +3903,15 @@ expression
     | expression COLLATE id                                     #exprCollate
     | caseExpression                                            #exprCase
     | expression timeZone                                       #exprTz
-    | overClause                                                #exprOver
-    | hierarchyidCall                                           #exprHierarchyId
+    | expression overClause                                     #exprOver
     | valueCall                                                 #exprValue
-    | queryCall                                                 #expryQuery
-    | existCall                                                 #exprExist
-    | modifyCall                                                #exprModiy
     | id                                                        #exprId
     | DOLLAR_ACTION                                             #exprDollar
     | <assoc=right> expression DOT expression                   #exprDot
     | LPAREN subquery RPAREN                                    #exprSubquery
+    | ALL expression                                            #exprAll
+    | DISTINCT expression                                       #exprDistinct
+    | STAR                                                      #exprStar
     ;
 
 // TODO: Implement this
@@ -3928,13 +3927,12 @@ primitiveExpression
     : DEFAULT
     | NULL_
     | LOCAL_ID
-    | primitiveConstant
+    | constant
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/language-elements/case-transact-sql
 caseExpression
-    : CASE caseExpr = expression switchSection+ (ELSE elseExpr = expression)? END
-    | CASE switchSearchConditionSection+ (ELSE elseExpr = expression)? END
+    : CASE caseExpr=expression? switchSection+ (ELSE elseExpr = expression)? END
     ;
 
 subquery
@@ -3982,6 +3980,7 @@ predicate
     | expression NOT* IN LPAREN (subquery | expressionList) RPAREN
     | expression NOT* LIKE expression (ESCAPE expression)?
     | expression IS nullNotnull
+    | expression
     ;
 
 queryExpression
@@ -4030,7 +4029,7 @@ topCount
 
 // https://docs.microsoft.com/en-us/sql/t-sql/queries/select-over-clause-transact-sql?view=sql-server-ver16
 orderByClause
-    : ORDER BY orderBys += orderByExpression (COMMA orderBys += orderByExpression)*
+    : ORDER BY orderByExpression (COMMA orderByExpression)*
     ;
 
 // https://msdn.microsoft.com/en-us/library/ms188385.aspx
@@ -4060,7 +4059,7 @@ xmlCommonDirectives
     ;
 
 orderByExpression
-    : orderBy = expression (ascending = ASC | descending = DESC)?
+    : expression (ASC | DESC)?
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/queries/select-group-by-transact-sql?view=sql-server-ver15
@@ -4117,8 +4116,8 @@ udtMethodArguments
 
 // https://docs.microsoft.com/ru-ru/sql/t-sql/queries/select-clause-transact-sql
 asterisk
-    : (tableName DOT)? STAR
-    | (INSERTED | DELETED) DOT STAR
+    : (INSERTED | DELETED) DOT STAR
+    | (tableName DOT)? STAR
     ;
 
 udtElem
@@ -4127,15 +4126,15 @@ udtElem
     ;
 
 expressionElem
-    : leftAlias = columnAlias eq = EQ leftAssignment = expression
-    | expressionAs = expression asColumnAlias?
+    : columnAlias EQ expression
+    | expression asColumnAlias?
     ;
 
 selectListElem
     : asterisk
-    | udtElem
-    | LOCAL_ID (assignmentOperator | EQ) expression
+    | LOCAL_ID op=(PE | ME | SE | DE | MEA | AND_ASSIGN | XOR_ASSIGN | OR_ASSIGN | EQ) expression
     | expressionElem
+    | udtElem  // TODO: May not be needed as expressionElem can handle this?
     ;
 
 tableSources
@@ -4154,8 +4153,8 @@ tableSource
     ;
 
 tableSourceItem
-    : fullTableName deprecatedTableHint asTableAlias // this is currently allowed
-    | fullTableName asTableAlias? (
+    : tableName deprecatedTableHint asTableAlias // this is currently allowed
+    | tableName asTableAlias? (
         withTableHints
         | deprecatedTableHint
         | sybaseLegacyHints
@@ -4253,7 +4252,7 @@ unpivot
     ;
 
 pivotClause
-    : LPAREN aggregateWindowedFunction FOR fullColumnName IN columnAliasList RPAREN
+    : LPAREN expression FOR fullColumnName IN columnAliasList RPAREN
     ;
 
 unpivotClause
@@ -4285,19 +4284,17 @@ derivedTable
     ;
 
 functionCall
-    : rankingWindowedFunction
-    | aggregateWindowedFunction
-    | analyticWindowedFunction
+    : analyticWindowedFunction
     | builtInFunctions
     | standardFunction
     | freetextFunction
     | partitionFunction
     | hierarchyidStaticMethod
-    // TODO: This is broken and highly ambiguous - will need to be reworked
-    | scalarFunctionName LPAREN expressionList? RPAREN
+    // TODO: This is broken and highly ambiguous - will need to be reworked so the expression allows the primitives
+    // | scalarFunctionName LPAREN expressionList? RPAREN
     ;
 
-// Standard functions are built in but take standarad syntax, or are
+// Standard functions are built in but take standard syntax, or are
 // some user function etc
 standardFunction
     : funcId LPAREN (expression (COMMA expression)*)? RPAREN
@@ -4368,7 +4365,6 @@ builtInFunctions
       // https://learn.microsoft.com/en-us/sql/t-sql/functions/cursor-rows-transact-sql?view=sql-server-ver16
     | FETCH_STATUS # FETCH_STATUS
     | PARSE LPAREN str = expression AS dataType (USING culture = expression)? RPAREN # PARSE
-    | xmlDataTypeMethods # XML_DATA_TYPE_FUNC
     | JSON_ARRAY LPAREN expressionList? jsonNullClause? RPAREN # JSON_ARRAY
     | JSON_OBJECT LPAREN (keyValue = jsonKeyValue (COMMA keyValue = jsonKeyValue)*)? jsonNullClause? RPAREN # JSON_OBJECT
       // https://msdn.microsoft.com/en-us/library/ms177587.aspx
@@ -4379,58 +4375,17 @@ builtInFunctions
     | USER # USER
     ;
 
-xmlDataTypeMethods
-    : valueMethod
-    | queryMethod
-    | existMethod
-    | modifyMethod
-    ;
-
 valueMethod
     : (
         locId = LOCAL_ID
         | valueId = fullColumnName
         | eventdata = EVENTDATA LPAREN RPAREN
-        | query = queryMethod
         | LPAREN subquery RPAREN
     ) DOT call = valueCall
     ;
 
 valueCall
     : (VALUE | VALUE_SQUARE_BRACKET) LPAREN xquery = STRING COMMA sqltype = STRING RPAREN
-    ;
-
-queryMethod
-    : (locId = LOCAL_ID | valueId = fullColumnName | LPAREN subquery RPAREN) DOT call = queryCall
-    ;
-
-queryCall
-    : (QUERY | QUERY_SQUARE_BRACKET) LPAREN xquery = STRING RPAREN
-    ;
-
-existMethod
-    : (locId = LOCAL_ID | valueId = fullColumnName | LPAREN subquery RPAREN) DOT call = existCall
-    ;
-
-existCall
-    : (EXIST | EXIST_SQUARE_BRACKET) LPAREN xquery = STRING RPAREN
-    ;
-
-modifyMethod
-    : (locId = LOCAL_ID | valueId = fullColumnName | LPAREN subquery RPAREN) DOT call = modifyCall
-    ;
-
-modifyCall
-    : (MODIFY | MODIFY_SQUARE_BRACKET) LPAREN xmlDml = STRING RPAREN
-    ;
-
-hierarchyidCall
-    : GETANCESTOR LPAREN n = expression RPAREN
-    | GETDESCENDANT LPAREN child1 = expression COMMA child2 = expression RPAREN
-    | GETLEVEL LPAREN RPAREN
-    | ISDESCENDANTOF LPAREN parent_ = expression RPAREN
-    | GETREPARENTEDVALUE LPAREN oldroot = expression COMMA newroot = expression RPAREN
-    | TOSTRING LPAREN RPAREN
     ;
 
 hierarchyidStaticMethod
@@ -4442,10 +4397,7 @@ nodesMethod
     ;
 
 switchSection
-    : WHEN expression THEN expression
-    ;
-
-switchSearchConditionSection
+    // Nore that searchCondition includes an expression only but allows too much for case expression.. on purpose
     : WHEN searchCondition THEN expression
     ;
 
@@ -4538,38 +4490,19 @@ expressionList
     : exp += expression (COMMA exp += expression)*
     ;
 
-// https://msdn.microsoft.com/en-us/library/ms189798.aspx
-rankingWindowedFunction
-    : (RANK | DENSE_RANK | ROW_NUMBER) LPAREN RPAREN overClause
-    | NTILE LPAREN expression RPAREN overClause
-    ;
-
-// https://msdn.microsoft.com/en-us/library/ms173454.aspx
-aggregateWindowedFunction
-    : aggFunc = (AVG | MAX | MIN | SUM | STDEV | STDEVP | VAR | VARP) LPAREN allDistinctExpression RPAREN overClause?
-    | cnt = (COUNT | COUNT_BIG) LPAREN (STAR | allDistinctExpression) RPAREN overClause?
-    | CHECKSUM_AGG LPAREN allDistinctExpression RPAREN
-    | GROUPING LPAREN expression RPAREN
-    | GROUPING_ID LPAREN expressionList RPAREN
-    ;
-
 // https://docs.microsoft.com/en-us/sql/t-sql/functions/analytic-functions-transact-sql
 analyticWindowedFunction
-    : (FIRST_VALUE | LAST_VALUE) LPAREN expression RPAREN overClause
-    | (LAG | LEAD) LPAREN expression (COMMA expression (COMMA expression)?)? RPAREN overClause
+    : (FIRST_VALUE | LAST_VALUE) LPAREN expression RPAREN
+    | (LAG | LEAD) LPAREN expression (COMMA expression (COMMA expression)?)? RPAREN
     | (CUME_DIST | PERCENT_RANK) LPAREN RPAREN OVER LPAREN (PARTITION BY expressionList)? orderByClause RPAREN
     | (PERCENTILE_CONT | PERCENTILE_DISC) LPAREN expression RPAREN WITHIN GROUP LPAREN orderByClause RPAREN OVER LPAREN (
         PARTITION BY expressionList
     )? RPAREN
     ;
 
-allDistinctExpression
-    : (ALL | DISTINCT)? expression
-    ;
-
 // https://msdn.microsoft.com/en-us/library/ms189461.aspx
 overClause
-    : OVER LPAREN (PARTITION BY expressionList)? orderByClause? rowOrRangeClause? RPAREN
+    : OVER LPAREN (PARTITION BY expression (COMMA expression)*)? orderByClause? rowOrRangeClause? RPAREN
     ;
 
 rowOrRangeClause
@@ -4577,24 +4510,14 @@ rowOrRangeClause
     ;
 
 windowFrameExtent
-    : windowFramePreceding
+    : windowFrameBound
     | BETWEEN windowFrameBound AND windowFrameBound
     ;
 
 windowFrameBound
-    : windowFramePreceding
-    | windowFrameFollowing
-    ;
-
-windowFramePreceding
-    : UNBOUNDED PRECEDING
-    | INT PRECEDING
+    : UNBOUNDED (PRECEDING | FOLLOWING)
+    | INT (PRECEDING | FOLLOWING)
     | CURRENT ROW
-    ;
-
-windowFrameFollowing
-    : UNBOUNDED FOLLOWING
-    | INT FOLLOWING
     ;
 
 createDatabaseOption
@@ -4651,20 +4574,8 @@ entityNameForParallelDw
     | schema = id DOT objectName = id
     ;
 
-fullTableName
-    : (
-        linkedServer = id DOT DOT schema = id DOT
-        | server = id DOT database = id DOT schema = id DOT
-        | database = id DOT schema = id? DOT
-        | schema = id DOT
-    )? table = id
-    ;
-
 tableName
-    : (database = id DOT schema = id? DOT | schema = id DOT)? (
-        table = id
-        | blockingHierarchy = BLOCKING_HIERARCHY
-    )
+    : (linkedServer = id DOT DOT)? ids+=id (DOT ids +=id)*
     ;
 
 simpleName
@@ -4686,12 +4597,12 @@ funcProcNameServerDatabaseSchema
     ;
 
 ddlObject
-    : fullTableName
+    : tableName
     | LOCAL_ID
     ;
 
 fullColumnName
-    : ((DELETED | INSERTED | fullTableName) DOT)? (
+    : ((DELETED | INSERTED | tableName) DOT)? (
           id
         | (DOLLAR (IDENTITY | ROWGUID))
     )
@@ -4806,23 +4717,14 @@ dataType
 
 // https://msdn.microsoft.com/en-us/library/ms179899.aspx
 constant
-    : STRING // string, datetime or uniqueidentifier
-    | HEX
-    | MINUS? (INT | REAL | FLOAT)                    // float or decimal
-    | MINUS? DOLLAR (MINUS | PLUS)? (INT | FLOAT) // money
-    | parameter
-    ;
-
-// To reduce ambiguity, -X is considered as an application of unary operator
-primitiveConstant
     : con = (
-              STRING // string, datetime or uniqueidentifier
-            | HEX
-            | INT
-            | REAL
-            | FLOAT
-            )
-    | DOLLAR (MINUS | PLUS)? (INT | FLOAT) // money
+          STRING
+        | HEX
+        | INT
+        | REAL
+        | FLOAT
+        | MONEY
+        )
     | parameter
     ;
 
@@ -4879,7 +4781,6 @@ keyword
     | AUTOGROW_ALL_FILES
     | AUTOGROW_SINGLE_FILE
     | AVAILABILITY
-    | AVG
     | BACKUP_CLONEDB
     | BACKUP_PRIORITY
     | BASE64
@@ -4907,7 +4808,6 @@ keyword
     | CHECKDB
     | CHECKFILEGROUP
     | CHECKSUM
-    | CHECKSUM_AGG
     | CHECKTABLE
     | CLEANTABLE
     | CLEANUP
@@ -4927,8 +4827,6 @@ keyword
     | CONTENT
     | CONTROL
     | COOKIE
-    | COUNT
-    | COUNT_BIG
     | COUNTER
     | CPU
     | CREATE_NEW
@@ -4954,7 +4852,6 @@ keyword
     | DELAY
     | DELAYED_DURABILITY
     | DELETED
-    | DENSE_RANK
     | DEPENDENTS
     | DES
     | DESCRIPTION
@@ -4984,8 +4881,6 @@ keyword
     | ESTIMATEONLY
     | EXCLUSIVE
     | EXECUTABLE
-    | EXIST
-    | EXIST_SQUARE_BRACKET
     | EXPAND
     | EXPIRY_DATE
     | EXPLICIT
@@ -5022,7 +4917,6 @@ keyword
     | GO
     | GROUP_MAX_REQUESTS
     | GROUPING
-    | GROUPING_ID
     | HADR
     | HASH
     | HEALTH_CHECK_TIMEOUT
@@ -5097,7 +4991,6 @@ keyword
     | MEDIUM
     | MEMORY_OPTIMIZED_DATA
     | MESSAGE
-    | MIN
     | MIN_CPU_PERCENT
     | MIN_IOPS_PER_VOLUME
     | MIN_MEMORY_PERCENT
@@ -5106,7 +4999,6 @@ keyword
     | MIXED_PAGE_ALLOCATION
     | MODE
     | MODIFY
-    | MODIFY_SQUARE_BRACKET
     | MOVE
     | MULTI_USER
     | NAME
@@ -5188,13 +5080,11 @@ keyword
     | PROVIDER
     | PROVIDER_KEY_NAME
     | QUERY
-    | QUERY_SQUARE_BRACKET
     | QUEUE
     | QUEUE_DELAY
     | QUOTED_IDENTIFIER
     | RANDOMIZED
     | RANGE
-    | RANK
     | RC2
     | RC4
     | RC4_128
@@ -5241,7 +5131,6 @@ keyword
     | ROOT
     | ROUTE
     | ROW
-    | ROW_NUMBER
     | ROWGUID
     | ROWLOCK
     | ROWS
@@ -5294,13 +5183,10 @@ keyword
     | STATS_STREAM
     | STATUS
     | STATUSONLY
-    | STDEV
-    | STDEVP
     | STOPLIST
     | SUBJECT
     | SUBSCRIBE
     | SUBSCRIPTION
-    | SUM
     | SUSPEND
     | SYMMETRIC
     | SYNCHRONOUS_COMMIT
@@ -5343,9 +5229,7 @@ keyword
     | VALIDATION
     | VALUE
     | VALUE_SQUARE_BRACKET
-    | VAR
     | VARBINARY_KEYWORD
-    | VARP
     | VERIFY_CLONEDB
     | VERSION
     | VIEW_METADATA
@@ -5385,7 +5269,6 @@ keyword
     | BLOCK
     | BLOCKERS
     | BLOCKSIZE
-    | BLOCKING_HIERARCHY
     | BUFFER
     | BUFFERCOUNT
     | CACHE
@@ -5437,10 +5320,6 @@ keyword
     | FORCESEEK
     | FORCE_SERVICE_ALLOW_DATA_LOSS
     | GET
-    | GETANCESTOR
-    | GETDESCENDANT
-    | GETLEVEL
-    | GETREPARENTEDVALUE
     | GETROOT
     | GOVERNOR
     | HASHED
@@ -5454,7 +5333,6 @@ keyword
     | INFINITE
     | INIT
     | INSTEAD
-    | ISDESCENDANTOF
     | KERBEROS
     | KEY_PATH
     | KEY_STORE_PROVIDER_NAME

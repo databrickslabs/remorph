@@ -1,5 +1,6 @@
 import re
 
+from pyspark.errors import PySparkException
 from pyspark.sql import DataFrame, DataFrameReader, SparkSession
 from sqlglot import Dialect
 
@@ -58,10 +59,10 @@ class OracleDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
         try:
             if options is None:
                 return self.reader(table_query).options(**self._get_timestamp_options()).load()
-            options = self._get_jdbc_reader_options(options) | self._get_timestamp_options()
-            return self.reader(table_query).options(**options).load()
-        except RuntimeError as e:
-            raise self._raise_runtime_exception(e, "data", table_query)
+            reader_options = self._get_jdbc_reader_options(options) | self._get_timestamp_options()
+            return self.reader(table_query).options(**reader_options).load()
+        except (RuntimeError, PySparkException) as e:
+            return self.log_and_throw_exception(e, "data", table_query)
 
     def get_schema(
         self,
@@ -77,8 +78,8 @@ class OracleDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
         try:
             schema_df = self.reader(schema_query).load()
             return [Schema(field.column_name.lower(), field.data_type.lower()) for field in schema_df.collect()]
-        except RuntimeError as e:
-            raise self._raise_runtime_exception(e, "schema", schema_query)
+        except (RuntimeError, PySparkException) as e:
+            return self.log_and_throw_exception(e, "schema", schema_query)
 
     @staticmethod
     def _get_timestamp_options() -> dict[str, str]:

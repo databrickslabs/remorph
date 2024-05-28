@@ -56,7 +56,7 @@ def test_parse_invalid_query(transpiler):
     result, error_list = transpiler.parse("invalid sql query", "file.sql")
     assert result is None
     assert error_list.file_name == "file.sql"
-    assert "Invalid expression / Unexpected token." in error_list.exception.args[0]
+    assert "Invalid expression / Unexpected token." in error_list.exception
 
 
 def test_tokenizer_exception(transpiler, write_dialect):

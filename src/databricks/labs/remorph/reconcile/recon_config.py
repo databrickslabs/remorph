@@ -85,56 +85,54 @@ class Table:
             return {c.target_name: c.source_name for c in self.column_mapping}
         return None
 
-    def get_src_to_tgt_col_mapping(self, cols: list[str] | set[str] | str, layer: str) -> set[str] | str:
+    def get_src_to_tgt_col_mapping_list(self, cols: list[str], layer: str) -> set[str]:
         if layer == "source":
-            if isinstance(cols, str):
-                return cols
             return set(cols)
-        if isinstance(cols, list | set):
-            columns = set()
-            for col in cols:
-                columns.add(self.to_src_col_map.get(col, col))
-            return columns
-        return self.to_src_col_map.get(cols, cols)
+        return {self.to_src_col_map.get(col, col) for col in cols}
 
-    def get_tgt_to_src_col_mapping(self, cols: list[str] | set[str] | str, layer: str) -> set[str] | str:
+    def get_layer_src_to_tgt_col_mapping(self, cols: str, layer: str) -> str:
         if layer == "source":
             return cols
-        if isinstance(cols, list | set):
-            columns = set()
-            for col in cols:
-                columns.add(self.to_tgt_col_map.get(col, col))
-            return columns
+        return self.to_src_col_map.get(cols, cols)
+
+    def get_tgt_to_src_col_mapping_list(self, cols: list[str] | set[str]) -> set[str]:
+        return {self.to_tgt_col_map.get(col, col) for col in cols}
+
+    def get_layer_tgt_to_src_col_mapping(self, cols: str, layer: str) -> str:
+        if layer == "source":
+            return cols
         return self.to_tgt_col_map.get(cols, cols)
 
     def get_select_columns(self, schema: list[Schema], layer: str) -> set[str]:
         if self.select_columns is None:
             return {sch.column_name for sch in schema}
         if self.to_src_col_map:
-            return self.get_src_to_tgt_col_mapping(self.select_columns, layer)
+            return self.get_src_to_tgt_col_mapping_list(self.select_columns, layer)
         return set(self.select_columns)
 
     def get_threshold_columns(self, layer: str) -> set[str]:
         if self.thresholds is None:
             return set()
-        return {self.get_src_to_tgt_col_mapping(thresh.column_name, layer) for thresh in self.thresholds}
+        return {self.get_layer_src_to_tgt_col_mapping(thresh.column_name, layer) for thresh in self.thresholds}
 
     def get_join_columns(self, layer: str) -> set[str]:
         if self.join_columns is None:
             return set()
-        return {self.get_src_to_tgt_col_mapping(col, layer) for col in self.join_columns}
+        return {self.get_layer_src_to_tgt_col_mapping(col, layer) for col in self.join_columns}
 
     def get_drop_columns(self, layer: str) -> set[str]:
         if self.drop_columns is None:
             return set()
-        return {self.get_src_to_tgt_col_mapping(col, layer) for col in self.drop_columns}
+        return {self.get_layer_src_to_tgt_col_mapping(col, layer) for col in self.drop_columns}
 
-    def get_transformation_dict(self, layer: str) -> dict[str, str] | None:
+    def get_transformation_dict(self, layer: str) -> dict[str, str]:
         if self.transformations:
             if layer == "source":
                 return {t.column_name: t.source for t in self.transformations}
-            return {self.get_src_to_tgt_col_mapping(t.column_name, layer): t.target for t in self.transformations}
-        return None
+            return {
+                self.get_layer_src_to_tgt_col_mapping(t.column_name, layer): str(t.target) for t in self.transformations
+            }
+        return {}
 
     def get_partition_column(self, layer: str) -> set[str]:
         if self.jdbc_reader_options and layer == "source":
@@ -168,14 +166,15 @@ class ThresholdOutput:
 
 
 @dataclass
-class ReconcileOutput:
+class DataReconcileOutput:
     mismatch_count: int = 0
     missing_in_src_count: int = 0
     missing_in_tgt_count: int = 0
-    mismatch: MismatchOutput = MismatchOutput(mismatch_columns=[])
+    mismatch: MismatchOutput = MismatchOutput()
     missing_in_src: DataFrame | None = None
     missing_in_tgt: DataFrame | None = None
     threshold_output: ThresholdOutput = ThresholdOutput()
+    exception: str | None = None
 
 
 @dataclass
@@ -194,12 +193,34 @@ class SchemaMatchResult:
 
 
 @dataclass
-class SchemaCompareOutput:
-    is_valid: bool = True
+class SchemaReconcileOutput:
+    is_valid: bool
     compare_df: DataFrame | None = None
+    exception: str | None = None
 
 
 @dataclass
 class ReconcileProcessDuration:
     start_ts: str
     end_ts: str | None
+
+
+@dataclass
+class StatusOutput:
+    row: bool | None = None
+    column: bool | None = None
+    schema: bool | None = None
+
+
+@dataclass
+class ReconcileTableOutput:
+    target_table_name: str
+    source_table_name: str
+    status: StatusOutput = StatusOutput()
+    exception_message: str | None = None
+
+
+@dataclass
+class ReconcileOutput:
+    recon_id: str
+    results: list[ReconcileTableOutput]

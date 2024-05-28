@@ -28,7 +28,7 @@ def transpile(
     w: WorkspaceClient,
     source: str,
     input_sql: str,
-    output_folder: str,
+    output_folder: str | None,
     skip_validation: str,
     catalog_name: str,
     schema_name: str,
@@ -44,7 +44,7 @@ def transpile(
         raise_validation_exception(f"Error: Invalid value for '--source': '{source}' is not one of {DIALECTS}. ")
     if not os.path.exists(input_sql) or input_sql in {None, ""}:
         raise_validation_exception(f"Error: Invalid value for '--input_sql': Path '{input_sql}' does not exist.")
-    if output_folder == "":
+    if not output_folder:
         output_folder = default_config.output_folder if default_config.output_folder else None
     if skip_validation.lower() not in {"true", "false"}:
         raise_validation_exception(

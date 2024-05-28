@@ -1,7 +1,7 @@
 import logging
 from dataclasses import dataclass
 
-from sqlglot.dialects.dialect import Dialect, Dialects
+from sqlglot.dialects.dialect import Dialect, Dialects, DialectType
 
 from databricks.labs.remorph.helpers.morph_status import ParserError
 from databricks.labs.remorph.reconcile.recon_config import Table
@@ -9,7 +9,7 @@ from databricks.labs.remorph.snow import databricks, experimental, oracle, snowf
 
 logger = logging.getLogger(__name__)
 
-SQLGLOT_DIALECTS = {
+SQLGLOT_DIALECTS: dict[str, DialectType] = {
     "bigquery": Dialects.BIGQUERY,
     "databricks": databricks.Databricks,
     "experimental": experimental.DatabricksExperimental,
@@ -30,6 +30,10 @@ SQLGLOT_DIALECTS = {
 
 def get_dialect(engine: str) -> Dialect:
     return Dialect.get_or_raise(SQLGLOT_DIALECTS.get(engine))
+
+
+def get_key_form_dialect(input_dialect: Dialect) -> str:
+    return [source_key for source_key, dialect in SQLGLOT_DIALECTS.items() if dialect == input_dialect][0]
 
 
 @dataclass

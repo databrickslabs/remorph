@@ -1,6 +1,7 @@
-from sqlglot import ErrorLevel, Expression, exp, parse, transpile
+from sqlglot import expressions as exp, parse, transpile
 from sqlglot.dialects.dialect import Dialect
-from sqlglot.errors import ParseError, TokenError, UnsupportedError
+from sqlglot.errors import ErrorLevel, ParseError, TokenError, UnsupportedError
+from sqlglot.expressions import Expression
 
 from databricks.labs.remorph.config import TranspilationResult
 from databricks.labs.remorph.helpers.file_utils import refactor_hexadecimal_chars
@@ -22,13 +23,13 @@ class SqlglotEngine:
 
         return TranspilationResult(transpiled_sql, error_list)
 
-    def parse(self, sql: str, file_name: str) -> (list[Expression] | None, ParserError | None):
+    def parse(self, sql: str, file_name: str) -> tuple[list[Expression | None] | None, ParserError | None]:
         expression = None
         error = None
         try:
             expression = parse(sql, read=self.read_dialect, error_level=ErrorLevel.IMMEDIATE)
         except (ParseError, TokenError, UnsupportedError) as e:
-            error = ParserError(file_name, e)
+            error = ParserError(file_name, str(e))
 
         return expression, error
 
@@ -45,6 +46,7 @@ class SqlglotEngine:
                         yield self._find_root_tables(select), child
 
     @staticmethod
-    def _find_root_tables(expression) -> str:
+    def _find_root_tables(expression) -> str | None:
         for table in expression.find_all(exp.Table, bfs=False):
             return table.name
+        return None

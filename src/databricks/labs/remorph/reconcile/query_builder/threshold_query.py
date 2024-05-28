@@ -32,8 +32,8 @@ class ThresholdQueryBuilder(QueryBuilder):
         logger.info(f"Threshold Comparison query: {query}")
         return query
 
-    def _generate_select_where_clause(self) -> tuple[list[exp.Alias], exp.Or]:
-        thresholds = self.table_conf.thresholds
+    def _generate_select_where_clause(self) -> tuple[list[exp.Expression], exp.Expression]:
+        thresholds = self.table_conf.thresholds if self.table_conf.thresholds else []
         select_clause = []
         where_clause = []
 
@@ -64,7 +64,7 @@ class ThresholdQueryBuilder(QueryBuilder):
         cls,
         threshold: Thresholds,
         base: exp.Expression,
-    ) -> tuple[list[exp.Alias], exp.Expression]:
+    ) -> tuple[list[exp.Expression], exp.Expression]:
         select_clause = []
         column = threshold.column_name
         select_clause.append(
@@ -80,7 +80,7 @@ class ThresholdQueryBuilder(QueryBuilder):
         self,
         threshold: Thresholds,
         base: exp.Expression,
-    ) -> tuple[list[exp.Alias], exp.Expression]:
+    ) -> tuple[list[exp.Expression], exp.Expression]:
         column = threshold.column_name
         # default expressions
         select_clause, where_clause = self._build_expression_alias_components(threshold, base)
@@ -129,7 +129,7 @@ class ThresholdQueryBuilder(QueryBuilder):
     ) -> exp.Case:
         eq_if = build_if(
             this=exp.EQ(this=base, expression=build_literal(this="0", is_string=False)),
-            true=exp.Identifier(this="Match", quoted=True),
+            true=exp.Literal(this="Match", is_string=True),
         )
 
         between_base = build_between(
@@ -140,9 +140,9 @@ class ThresholdQueryBuilder(QueryBuilder):
 
         between_if = build_if(
             this=between_base,
-            true=exp.Identifier(this="Warning", quoted=True),
+            true=exp.Literal(this="Warning", is_string=True),
         )
-        return exp.Case(ifs=[eq_if, between_if], default=exp.Identifier(this="Failed", quoted=True))
+        return exp.Case(ifs=[eq_if, between_if], default=exp.Literal(this="Failed", is_string=True))
 
     @classmethod
     def _build_threshold_percentage_case(
@@ -152,7 +152,7 @@ class ThresholdQueryBuilder(QueryBuilder):
     ) -> exp.Case:
         eq_if = exp.If(
             this=exp.EQ(this=base, expression=build_literal(this="0", is_string=False)),
-            true=exp.Identifier(this="Match", quoted=True),
+            true=exp.Literal(this="Match", is_string=True),
         )
 
         denominator = build_if(
@@ -183,9 +183,9 @@ class ThresholdQueryBuilder(QueryBuilder):
 
         between_if = build_if(
             this=between_base,
-            true=exp.Identifier(this="Warning", quoted=True),
+            true=exp.Literal(this="Warning", is_string=True),
         )
-        return exp.Case(ifs=[eq_if, between_if], default=exp.Identifier(this="Failed", quoted=True))
+        return exp.Case(ifs=[eq_if, between_if], default=exp.Literal(this="Failed", is_string=True))
 
     def build_threshold_query(self) -> str:
         """
@@ -203,19 +203,20 @@ class ThresholdQueryBuilder(QueryBuilder):
         # key column expression
         keys: list[str] = sorted(self.partition_column.union(self.join_columns))
         keys_select_alias = [
-            build_column(this=col, alias=self.table_conf.get_tgt_to_src_col_mapping(col, self.layer)) for col in keys
+            build_column(this=col, alias=self.table_conf.get_layer_tgt_to_src_col_mapping(col, self.layer))
+            for col in keys
         ]
         keys_expr = self.add_transformations(keys_select_alias, self.source)
 
         # threshold column expression
         threshold_alias = [
-            build_column(this=col, alias=self.table_conf.get_tgt_to_src_col_mapping(col, self.layer))
+            build_column(this=col, alias=self.table_conf.get_layer_tgt_to_src_col_mapping(col, self.layer))
             for col in sorted(self.threshold_columns)
         ]
         thresholds_expr = threshold_alias
         if self.user_transformations:
             thresholds_expr = self._apply_user_transformation(threshold_alias)
 
-        query = select(*keys_expr + thresholds_expr).from_(":tbl").where(self.filter)
-        logger.info(f"{self.source} Threshold query: {query}")
-        return query.sql(dialect=self.source)
+        query = (select(*keys_expr + thresholds_expr).from_(":tbl").where(self.filter)).sql(dialect=self.source)
+        logger.info(f"Threshold Query for {self.layer}: {query}")
+        return query

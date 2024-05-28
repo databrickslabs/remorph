@@ -1,11 +1,10 @@
 import copy
 import logging
 import re
-from typing import ClassVar
 
-from sqlglot import exp
-from sqlglot.dialects.dialect import build_date_delta as parse_date_delta
-from sqlglot.dialects.snowflake import Snowflake, build_formatted_time
+from sqlglot import expressions as exp
+from sqlglot.dialects.dialect import build_date_delta as parse_date_delta, build_formatted_time
+from sqlglot.dialects.snowflake import Snowflake
 from sqlglot.errors import ParseError
 from sqlglot.helper import is_int, seq_get
 from sqlglot.optimizer.simplify import simplify_literals
@@ -219,18 +218,17 @@ class Snow(Snowflake):
     # Instantiate Snowflake Dialect
     snowflake = Snowflake()
 
-    class Tokenizer(snowflake.Tokenizer):
-        IDENTIFIERS: ClassVar[list[str]] = ['"']
+    class Tokenizer(Snowflake.Tokenizer):
 
-        COMMENTS: ClassVar[list[str]] = ["--", "//", ("/*", "*/")]
-        STRING_ESCAPES: ClassVar[list[str]] = ["\\", "'"]
+        COMMENTS = ["--", "//", ("/*", "*/")]
+        STRING_ESCAPES = ["\\", "'"]
 
-        CUSTOM_TOKEN_MAP: ClassVar[dict] = {
+        CUSTOM_TOKEN_MAP = {
             r"(?i)CREATE\s+OR\s+REPLACE\s+PROCEDURE": TokenType.PROCEDURE,
             r"(?i)var\s+\w+\s+=\s+\w+?": TokenType.VAR,
         }
 
-        KEYWORDS: ClassVar[dict] = {**Snowflake.Tokenizer.KEYWORDS}
+        KEYWORDS = {**Snowflake.Tokenizer.KEYWORDS}
         # DEC is not a reserved keyword in Snowflake it can be used as table alias
         KEYWORDS.pop("DEC")
 
@@ -300,7 +298,7 @@ class Snow(Snowflake):
                 f"based on {self.CUSTOM_TOKEN_MAP}, is \n\n {custom_trie}"
             )
             self.update_keyword_trie(custom_trie)
-            logger.debug(f"Updated New Trie is {self.KEYWORD_TRIE}")
+            logger.debug(f"Updated New Trie is {custom_trie}")
             # Parent Code
             self.size = len(sql)
             try:
@@ -315,8 +313,8 @@ class Snow(Snowflake):
                 raise ParseError(msg) from e
             return self.tokens
 
-    class Parser(snowflake.Parser):
-        FUNCTIONS: ClassVar[dict] = {
+    class Parser(Snowflake.Parser):
+        FUNCTIONS = {
             **Snowflake.Parser.FUNCTIONS,
             "ARRAY_AGG": exp.ArrayAgg.from_arg_list,
             "STRTOK_TO_ARRAY": local_expression.Split.from_arg_list,
@@ -369,36 +367,34 @@ class Snow(Snowflake):
             "MEDIAN": local_expression.Median.from_arg_list,
         }
 
-        FUNCTION_PARSERS: ClassVar[dict] = {
+        FUNCTION_PARSERS = {
             **Snowflake.Parser.FUNCTION_PARSERS,
             "LISTAGG": lambda self: self._parse_list_agg(),
         }
 
-        PLACEHOLDER_PARSERS: ClassVar[dict] = {
+        PLACEHOLDER_PARSERS = {
             **Snowflake.Parser.PLACEHOLDER_PARSERS,
             TokenType.PARAMETER: lambda self: self._parse_parameter(),
         }
 
-        FUNC_TOKENS: ClassVar[dict] = {*Snowflake.Parser.FUNC_TOKENS, TokenType.COLLATE}
+        FUNC_TOKENS = {*Snowflake.Parser.FUNC_TOKENS, TokenType.COLLATE}
 
-        COLUMN_OPERATORS: ClassVar[dict] = {
+        COLUMN_OPERATORS = {
             **Snowflake.Parser.COLUMN_OPERATORS,
             TokenType.COLON: lambda self, this, path: self._json_column_op(this, path),
         }
 
-        TIMESTAMPS: ClassVar[dict] = Snowflake.Parser.TIMESTAMPS.copy() - {TokenType.TIME}
+        TIMESTAMPS: set[TokenType] = Snowflake.Parser.TIMESTAMPS.copy() - {TokenType.TIME}
 
-        RANGE_PARSERS: ClassVar[dict] = {
+        RANGE_PARSERS = {
             **Snowflake.Parser.RANGE_PARSERS,
         }
 
-        ALTER_PARSERS: ClassVar[dict] = {**Snowflake.Parser.ALTER_PARSERS}
+        ALTER_PARSERS = {**Snowflake.Parser.ALTER_PARSERS}
 
         def _parse_list_agg(self) -> exp.GroupConcat:
             if self._match(TokenType.DISTINCT):
-                args: list[exp.Expression | None] = [
-                    self.expression(exp.Distinct, expressions=[self._parse_conjunction()])
-                ]
+                args: list[exp.Expression] = [self.expression(exp.Distinct, expressions=[self._parse_conjunction()])]
                 if self._match(TokenType.COMMA):
                     args.extend(self._parse_csv(self._parse_conjunction))
             else:
@@ -419,17 +415,17 @@ class Snow(Snowflake):
                 return exp.DataType.build("DECIMAL(38,0)")
             return this
 
-        def _parse_parameter(self) -> local_expression.Parameter:
+        def _parse_parameter(self):
             wrapped = self._match(TokenType.L_BRACE)
             this = self._parse_var() or self._parse_identifier() or self._parse_primary()
             self._match(TokenType.R_BRACE)
-            suffix = ""
+            suffix: exp.Expression | None = None
             if not self._match(TokenType.SPACE) or self._match(TokenType.DOT):
                 suffix = self._parse_var() or self._parse_identifier() or self._parse_primary()
 
             return self.expression(local_expression.Parameter, this=this, wrapped=wrapped, suffix=suffix)
 
-        def _get_table_alias(self) -> str | None:
+        def _get_table_alias(self) -> exp.TableAlias | None:
             """
             :returns the `table alias` by looping through all the tokens until it finds the `From` token.
             Example:
@@ -455,7 +451,7 @@ class Snow(Snowflake):
                         break
                     self_copy._parse_table_parts()  # parse the table parts
                     table_alias = self_copy._parse_table_alias()  # get to table alias
-                    return str(table_alias)
+                    return table_alias
 
             return table_alias
 
@@ -466,7 +462,7 @@ class Snow(Snowflake):
             to `Lateral View` alias.
             :return: the expression based on the alias.
             """
-            table_alias = self._get_table_alias()
+            table_alias = str(self._get_table_alias()) if self._get_table_alias() else None
             is_name_value = this.name.upper() == "VALUE"
             is_path_value = path.alias_or_name.upper() == "VALUE"
 

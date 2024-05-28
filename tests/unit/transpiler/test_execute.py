@@ -478,3 +478,16 @@ def test_with_file_with_success(initial_setup, mock_workspace_client):
                 stat["no_of_sql_failed_while_validating"] == 0
             ), "no_of_sql_failed_while_validating does not match expected value"
             assert stat["error_log_file"] == "None", "error_log_file does not match expected value"
+
+
+def test_with_input_sql_none(initial_setup, mock_workspace_client):
+    config = MorphConfig(
+        input_sql=None,
+        output_folder="None",
+        sdk_config=None,
+        source="snowflake",
+        skip_validation=True,
+    )
+
+    with pytest.raises(ValueError, match="Input SQL path is not provided"):
+        morph(mock_workspace_client, config)

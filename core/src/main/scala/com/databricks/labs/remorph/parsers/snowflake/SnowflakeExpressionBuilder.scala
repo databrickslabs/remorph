@@ -89,38 +89,68 @@ class SnowflakeExpressionBuilder
     case _ => ir.Literal(decimal = Some(ir.Decimal(decimal, None, None)))
   }
 
-  override def visitExpr(ctx: ExprContext): ir.Expression = ctx match {
-    case c if c.NEXTVAL() != null => ir.NextValue(c.object_name().getText)
-    case c if c.LSB() != null && c.RSB() != null => ir.ArrayAccess(c.expr(0).accept(this), c.expr(1).accept(this))
-    case c if c.COLON() != null =>
-      val jsonPath = buildJsonPath(c.json_path())
-      ir.JsonAccess(c.expr(0).accept(this), jsonPath)
-    case c if c.COLLATE() != null => ir.Collate(c.expr(0).accept(this), removeQuotes(c.string().getText))
-    case c if c.op != null => buildOp(c)
-    case c if c.AND() != null =>
-      val left = ctx.expr(0).accept(this)
-      val right = ctx.expr(1).accept(this)
-      ir.And(left, right)
-    case c if c.OR() != null =>
-      val left = ctx.expr(0).accept(this)
-      val right = ctx.expr(1).accept(this)
-      ir.Or(left, right)
-    case c if c.predicate_partial() != null =>
-      val expression = c.expr(0).accept(this)
-      buildPredicatePartial(c.predicate_partial(), expression)
-    case c if c.comparison_operator() != null =>
-      val left = ctx.expr(0).accept(this)
-      val right = ctx.expr(1).accept(this)
-      buildComparisonExpression(ctx.comparison_operator(), left, right)
-    case c if c.over_clause() != null =>
-      val windowFunction = c.expr(0).accept(this)
-      buildWindow(c.over_clause(), windowFunction)
-    case c if c.COLON_COLON() != null =>
-      val expression = c.expr(0).accept(this)
-      val dataType = DataTypeBuilder.buildDataType(c.data_type())
-      ir.Cast(expression, dataType)
-    case c => visitChildren(c)
+  override def visitExprNextval(ctx: ExprNextvalContext): ir.Expression = {
+    ir.NextValue(ctx.object_name().getText)
+  }
 
+  override def visitExprArrayAccess(ctx: ExprArrayAccessContext): ir.Expression = {
+    ir.ArrayAccess(ctx.expr(0).accept(this), ctx.expr(1).accept(this))
+  }
+
+  override def visitExprJsonAccess(ctx: ExprJsonAccessContext): ir.Expression = {
+    val jsonPath = buildJsonPath(ctx.json_path())
+    ir.JsonAccess(ctx.expr().accept(this), jsonPath)
+  }
+
+  override def visitExprCollate(ctx: ExprCollateContext): ir.Expression = {
+    ir.Collate(ctx.expr().accept(this), removeQuotes(ctx.string().getText))
+  }
+
+  override def visitExprNot(ctx: ExprNotContext): ir.Expression = {
+    ctx.NOT().asScala.foldLeft(ctx.expr().accept(this)) { case (e, _) => ir.Not(e) }
+  }
+
+  override def visitExprAnd(ctx: ExprAndContext): ir.Expression = {
+    val left = ctx.expr(0).accept(this)
+    val right = ctx.expr(1).accept(this)
+    ir.And(left, right)
+  }
+
+  override def visitExprOr(ctx: ExprOrContext): ir.Expression = {
+    val left = ctx.expr(0).accept(this)
+    val right = ctx.expr(1).accept(this)
+    ir.Or(left, right)
+  }
+
+  override def visitExprPredicate(ctx: ExprPredicateContext): ir.Expression = {
+    buildPredicatePartial(ctx.predicate_partial(), ctx.expr().accept(this))
+  }
+
+  override def visitExprComparison(ctx: ExprComparisonContext): ir.Expression = {
+    val left = ctx.expr(0).accept(this)
+    val right = ctx.expr(1).accept(this)
+    buildComparisonExpression(ctx.comparison_operator(), left, right)
+  }
+
+  override def visitExprOver(ctx: ExprOverContext): ir.Expression = {
+    buildWindow(ctx.over_clause(), ctx.expr().accept(this))
+  }
+
+  override def visitExprAscribe(ctx: ExprAscribeContext): ir.Expression = {
+    ir.Cast(ctx.expr().accept(this), DataTypeBuilder.buildDataType(ctx.data_type()))
+  }
+
+  override def visitExprSign(ctx: ExprSignContext): ir.Expression = ctx.sign() match {
+    case c if c.PLUS() != null => ir.UPlus(ctx.expr().accept(this))
+    case c if c.MINUS() != null => ir.UMinus(ctx.expr().accept(this))
+  }
+
+  override def visitExprPrecedence0(ctx: ExprPrecedence0Context): ir.Expression = {
+    buildBinaryOperation(ctx.op, ctx.expr(0).accept(this), ctx.expr(1).accept(this))
+  }
+
+  override def visitExprPrecedence1(ctx: ExprPrecedence1Context): ir.Expression = {
+    buildBinaryOperation(ctx.op, ctx.expr(0).accept(this), ctx.expr(1).accept(this))
   }
 
   private def buildJsonPath(ctx: Json_pathContext): Seq[String] =
@@ -129,22 +159,6 @@ class SnowflakeExpressionBuilder
       case elem if elem.DOUBLE_QUOTE_ID() != null =>
         elem.DOUBLE_QUOTE_ID().getText.stripPrefix("\"").stripSuffix("\"")
     }
-
-  private[snowflake] def buildOp(ctx: ExprContext): ir.Expression = {
-    val operands = ctx.expr().asScala.map(_.accept(this))
-    operands match {
-      case Seq(unary) => buildUnaryOperation(ctx.op, unary)
-      case Seq(left, right) => buildBinaryOperation(ctx.op, left, right)
-      case _ => ir.UnresolvedExpression(ctx.getText)
-    }
-  }
-
-  private def buildUnaryOperation(operator: Token, expression: ir.Expression): ir.Expression = operator.getType match {
-    case PLUS => ir.UPlus(expression)
-    case MINUS => ir.UMinus(expression)
-    case NOT => ir.Not(expression)
-
-  }
 
   private def buildBinaryOperation(operator: Token, left: ir.Expression, right: ir.Expression): ir.Expression =
     operator.getType match {
