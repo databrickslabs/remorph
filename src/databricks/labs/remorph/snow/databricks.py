@@ -7,6 +7,7 @@ from sqlglot.dialects import databricks as org_databricks
 from sqlglot.dialects.dialect import rename_func
 from sqlglot.errors import ParseError, UnsupportedError
 from sqlglot.helper import apply_index_offset, csv
+from sqlglot.dialects.dialect import if_sql
 
 from databricks.labs.remorph.snow import lca_utils, local_expression
 
@@ -386,6 +387,7 @@ class Databricks(org_databricks.Databricks):  #
             exp.TimestampTrunc: timestamptrunc_sql,
             exp.Mod: rename_func("MOD"),
             exp.NullSafeEQ: lambda self, e: self.binary(e, "<=>"),
+            exp.If: if_sql(false_value="NULL"),
         }
 
         def preprocess(self, expression: exp.Expression) -> exp.Expression:
