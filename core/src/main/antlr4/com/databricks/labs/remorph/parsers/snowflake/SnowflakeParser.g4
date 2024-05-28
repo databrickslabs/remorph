@@ -3863,11 +3863,11 @@ ranking_windowed_function
     ;
 
 aggregate_function
-    : id_ L_PAREN DISTINCT? expr_list R_PAREN
-    | id_ L_PAREN STAR R_PAREN
-    | (LISTAGG | ARRAY_AGG) L_PAREN DISTINCT? expr (COMMA string)? R_PAREN (
-        WITHIN GROUP L_PAREN order_by_clause R_PAREN
-    )?
+    : op = (LISTAGG | ARRAY_AGG) L_PAREN DISTINCT? expr (COMMA string)? R_PAREN (
+              WITHIN GROUP L_PAREN order_by_clause R_PAREN
+          )?                                   #aggFuncList
+    | id_ L_PAREN DISTINCT? expr_list R_PAREN  #aggFuncExprList
+    | id_ L_PAREN STAR R_PAREN                 #aggFuncStar
     ;
 
 //rows_range

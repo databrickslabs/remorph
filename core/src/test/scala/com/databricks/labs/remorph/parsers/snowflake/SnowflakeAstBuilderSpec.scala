@@ -171,7 +171,7 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
               group_type = GroupBy,
               grouping_expressions = Seq(Column("a")),
               pivot = None),
-            GreaterThan(Count(Column("b")), Literal(integer = Some(1)))),
+            GreaterThan(Count(Column("b")), Literal(short = Some(1)))),
           Seq(Column("a"), Count(Column("b")))))
     }
 
@@ -288,12 +288,12 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
           Filter(
             Filter(
               Aggregate(
-                input = Filter(namedTable("t1"), LesserThan(Column("c3"), Literal(integer = Some(4)))),
+                input = Filter(namedTable("t1"), LesserThan(Column("c3"), Literal(short = Some(4)))),
                 group_type = GroupBy,
                 grouping_expressions = Seq(Column("c2"), Column("c3")),
                 pivot = None),
-              GreaterThanOrEqual(Avg(Column("c1")), Literal(integer = Some(5)))),
-            GreaterThan(Min(Column("r")), Literal(integer = Some(6)))),
+              GreaterThanOrEqual(Avg(Column("c1")), Literal(short = Some(5)))),
+            GreaterThan(Min(Column("r")), Literal(short = Some(6)))),
           Seq(
             Column("c2"),
             Alias(Window(Sum(Column("c3")), Seq(Column("c2")), Seq(), DummyWindowFrame), Seq("r"), None))))
@@ -382,7 +382,8 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
           Seq(
             CreateTableCommand("t1", Seq(ColumnDeclaration("x", VarCharType(None)))),
             Project(namedTable("t1"), Seq(Column("x"))),
-            Project(namedTable("t3"), Seq(Literal(integer = Some(3)))))))
+            Project(namedTable("t3"), Seq(Literal(short = Some(3)))))))
     }
   }
+
 }

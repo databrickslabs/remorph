@@ -25,7 +25,7 @@ class SnowflakeRelationBuilderSpec extends AnyWordSpec with SnowflakeParserTestC
       example(
         "FROM some_table WHERE 1=1",
         _.select_optional_clauses(),
-        Filter(namedTable("some_table"), Equals(Literal(integer = Some(1)), Literal(integer = Some(1)))))
+        Filter(namedTable("some_table"), Equals(Literal(short = Some(1)), Literal(short = Some(1)))))
     }
 
     "translate GROUP BY clauses" in {
@@ -117,7 +117,7 @@ class SnowflakeRelationBuilderSpec extends AnyWordSpec with SnowflakeParserTestC
         "FROM some_table WHERE 1=1 GROUP BY some_column",
         _.select_optional_clauses(),
         Aggregate(
-          input = Filter(namedTable("some_table"), Equals(Literal(integer = Some(1)), Literal(integer = Some(1)))),
+          input = Filter(namedTable("some_table"), Equals(Literal(short = Some(1)), Literal(short = Some(1)))),
           group_type = GroupBy,
           grouping_expressions = Seq(Column("some_column")),
           pivot = None))
@@ -127,7 +127,7 @@ class SnowflakeRelationBuilderSpec extends AnyWordSpec with SnowflakeParserTestC
         _.select_optional_clauses(),
         Sort(
           Aggregate(
-            input = Filter(namedTable("some_table"), Equals(Literal(integer = Some(1)), Literal(integer = Some(1)))),
+            input = Filter(namedTable("some_table"), Equals(Literal(short = Some(1)), Literal(short = Some(1)))),
             group_type = GroupBy,
             grouping_expressions = Seq(Column("some_column")),
             pivot = None),
@@ -138,7 +138,7 @@ class SnowflakeRelationBuilderSpec extends AnyWordSpec with SnowflakeParserTestC
         "FROM some_table WHERE 1=1 ORDER BY some_column NULLS FIRST",
         _.select_optional_clauses(),
         Sort(
-          Filter(namedTable("some_table"), Equals(Literal(integer = Some(1)), Literal(integer = Some(1)))),
+          Filter(namedTable("some_table"), Equals(Literal(short = Some(1)), Literal(short = Some(1)))),
           Seq(SortOrder(Column("some_column"), AscendingSortDirection, SortNullsFirst)),
           is_global = false))
     }
@@ -162,7 +162,7 @@ class SnowflakeRelationBuilderSpec extends AnyWordSpec with SnowflakeParserTestC
               partition_spec = Seq(Column("p")),
               sort_order = Seq(SortOrder(Column("o"), AscendingSortDirection, SortNullsLast)),
               frame_spec = DummyWindowFrame),
-            Literal(integer = Some(1)))))
+            Literal(short = Some(1)))))
     }
 
     "translate SELECT DISTINCT clauses" in {
