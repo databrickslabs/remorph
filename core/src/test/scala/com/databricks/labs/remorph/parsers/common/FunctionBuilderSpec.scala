@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.parsers.common
 
-import com.databricks.labs.remorph.parsers.{FixedArity, FunctionArity, FunctionBuilder, FunctionType, StandardFunction, UnknownFunction, VariableArity, XmlFunction}
+import com.databricks.labs.remorph.parsers._
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.prop.TableDrivenPropertyChecks
@@ -13,7 +13,6 @@ class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenProp
     val functions = Table(
       ("functionName", "expectedArity"), // Header
 
-      ("MODIFY", Some(FixedArity(1, XmlFunction))),
       ("ABS", Some(FixedArity(1))),
       ("ACOS", Some(FixedArity(1))),
       ("APP_NAME", Some(FixedArity(0))),
@@ -45,6 +44,7 @@ class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenProp
       ("COT", Some(FixedArity(1))),
       ("COUNT", Some(FixedArity(1))),
       ("COUNT_BIG", Some(FixedArity(1))),
+      ("CUME_DIST", Some(FixedArity(0))),
       ("CURRENT_DATE", Some(FixedArity(0))),
       ("CURRENT_REQUEST_ID", Some(FixedArity(0))),
       ("CURRENT_TIMESTAMP", Some(FixedArity(0))),
@@ -92,6 +92,7 @@ class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenProp
       ("FILEGROUPPROPERTY", Some(FixedArity(2))),
       ("FILEPROPERTY", Some(FixedArity(2))),
       ("FILEPROPERTYEX", Some(FixedArity(2))),
+      ("FIRST_VALUE", Some(FixedArity(1))),
       ("FLOOR", Some(FixedArity(1))),
       ("FORMAT", Some(VariableArity(2, 3))),
       ("FORMATMESSAGE", Some(VariableArity(2, Int.MaxValue))),
@@ -131,6 +132,9 @@ class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenProp
       ("JSON_PATH_EXISTS", Some(FixedArity(2))),
       ("JSON_QUERY", Some(FixedArity(2))),
       ("JSON_VALUE", Some(FixedArity(2))),
+      ("LAG", Some(VariableArity(1, 3))),
+      ("LAST_VALUE", Some(FixedArity(1))),
+      ("LEAD", Some(VariableArity(1, 3))),
       ("LEAST", Some(VariableArity(1, Int.MaxValue))),
       ("LEFT", Some(FixedArity(2))),
       ("LEN", Some(FixedArity(1))),
@@ -142,6 +146,7 @@ class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenProp
       ("MAX", Some(FixedArity(1))),
       ("MIN", Some(FixedArity(1))),
       ("MIN_ACTIVE_ROWVERSION", Some(FixedArity(0))),
+      ("MODIFY", Some(FixedArity(1, XmlFunction))),
       ("MONTH", Some(FixedArity(1))),
       ("NCHAR", Some(FixedArity(1))),
       ("NEWID", Some(FixedArity(0))),
@@ -160,6 +165,9 @@ class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenProp
       ("PARSE", Some(VariableArity(2, 3, convertible = false))),
       ("PARSENAME", Some(FixedArity(2))),
       ("PATINDEX", Some(FixedArity(2))),
+      ("PERCENT_RANK", Some(FixedArity(0))),
+      ("PERCENTILE_CONT", Some(FixedArity(1))),
+      ("PERCENTILE_DISC", Some(FixedArity(1))),
       ("PERMISSIONS", Some(VariableArity(0, 2, convertible = false))),
       ("PI", Some(FixedArity(0))),
       ("POWER", Some(FixedArity(2))),

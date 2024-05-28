@@ -205,20 +205,60 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
 
   }
 
-  // TODO: Analytic functions are next
-  "translate analytic windowing functions in all forms" ignore {
+  "translate analytic windowing functions in all forms" in {
+
     example(
-      query = """
-    LEAD(salary, 1) OVER (PARTITION BY department_id ORDER BY employee_id DESC)
-  """,
+      query = "FIRST_VALUE(Salary) OVER (PARTITION BY DepartmentID ORDER BY Salary DESC)",
       _.expression(),
       ir.Window(
-        ir.CallFunction("LEAD", Seq(ir.Column("salary"), ir.Literal(integer = Some(1)))),
+        ir.CallFunction("FIRST_VALUE", Seq(ir.Column("Salary"))),
+        Seq(ir.Column("DepartmentID")),
+        Seq(ir.SortOrder(ir.Column("Salary"), ir.DescendingSortDirection, ir.SortNullsUnspecified)),
+        ir.WindowFrame(
+          ir.UndefinedFrame,
+          ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop),
+          ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop))))
+
+    example(
+      query = """
+        LAST_VALUE(salary) OVER (PARTITION BY department_id ORDER BY employee_id DESC)
+    """,
+      _.expression(),
+      ir.Window(
+        ir.CallFunction("LAST_VALUE", Seq(ir.Column("salary"))),
         Seq(ir.Column("department_id")),
         Seq(ir.SortOrder(ir.Column("employee_id"), ir.DescendingSortDirection, ir.SortNullsUnspecified)),
         ir.WindowFrame(
           ir.UndefinedFrame,
           ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop),
           ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop))))
+
+    example(
+      query = "PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY Salary) OVER (PARTITION BY DepartmentID)",
+      _.expression(),
+      ir.Window(
+        ir.WithinGroup(
+          ir.CallFunction("PERCENTILE_CONT", Seq(ir.Literal(float = Some(0.5f)))),
+          Seq(ir.SortOrder(ir.Column("Salary"), ir.AscendingSortDirection, ir.SortNullsUnspecified))),
+        Seq(ir.Column("DepartmentID")),
+        List(),
+        ir.WindowFrame(
+          ir.UndefinedFrame,
+          ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop),
+          ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop))))
+//
+//    example(
+//      query = """
+//    LEAD(salary, 1) OVER (PARTITION BY department_id ORDER BY employee_id DESC)
+//  """,
+//      _.expression(),
+//      ir.Window(
+//        ir.CallFunction("LEAD", Seq(ir.Column("salary"), ir.Literal(integer = Some(1)))),
+//        Seq(ir.Column("department_id")),
+//        Seq(ir.SortOrder(ir.Column("employee_id"), ir.DescendingSortDirection, ir.SortNullsUnspecified)),
+//        ir.WindowFrame(
+//          ir.UndefinedFrame,
+//          ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop),
+//          ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop))))
   }
 }
