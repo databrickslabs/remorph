@@ -98,6 +98,6 @@ class ReconcileConfig:
 
     data_source: str
     report_type: str
-    tables: dict[str, list[str]]
+    tables: dict[str, list[str]]  # stores tables in the format {"all/include/exclude": [table1, table2]}
     secret_scope: str
     databaseConfig: DatabaseConfig

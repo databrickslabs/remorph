@@ -85,10 +85,8 @@ class WorkspaceInstaller:
         Prompts for the new Installation and returns the configuration
         :return: MorphConfig
         """
-        logger.info("Please answer a couple of questions to configure Remorph")
-
         module_prompt = self._prompts.choice(
-            "Which module(s) you would like to configure", ["transpile", "reconcile", "both"]
+            "Which module(s) you would like to configure:", ["transpile", "reconcile", "both"]
         )
 
         morph_config, reconcile_config = None, None
@@ -187,6 +185,7 @@ class WorkspaceInstaller:
         return self._prompt_for_transpile_setup(), self._prompt_for_reconcile_setup()
 
     def _prompt_for_transpile_setup(self) -> MorphConfig:
+        logger.info("\nPlease answer a couple of questions to configure Remorph: Transpile")
 
         # default params
         catalog_name = "transpiler_test"
@@ -234,11 +233,11 @@ class WorkspaceInstaller:
 
         source_catalog = None
         if source == SourceType.SNOWFLAKE.value:
-            source_catalog = self._prompts.question(f"Enter {source} Catalog name:")
+            source_catalog = self._prompts.question(f"Enter `{source.capitalize()}` Catalog name:")
 
-        schema_prompt = f"Enter {source} Schema name:"
+        schema_prompt = f"Enter `{source.capitalize()}` Schema name"
         if source == SourceType.ORACLE.value:
-            schema_prompt = f"Enter {source} Database name:"
+            schema_prompt = f"Enter `{source.capitalize()}` Database name"
 
         source_schema = self._prompts.question(schema_prompt)
 
@@ -246,7 +245,19 @@ class WorkspaceInstaller:
 
         target_schema = self._prompts.question("Enter Target Schema name:")
 
-        return DatabaseConfig(
+        only_subset = self._prompts.confirm("Do you want to include/exclude a set of tables?")
+
+        tables = {"all": ["all"]}
+
+        if only_subset:
+            # Prompt for filter
+            filter_type = self._prompts.choice("Select the filter type:", ["include", "exclude"])
+            subset_tables = self._prompts.question(f"Enter the tables(separated by comma) to `{filter_type}`:")
+            logger.debug(f"Filter Type: {filter_type}, Tables: {subset_tables}")
+            subset_tables = [f"'{table.strip().upper()}'" for table in subset_tables.split(",")]
+            tables = {filter_type: subset_tables}
+
+        return tables, DatabaseConfig(
             source_schema=source_schema,
             target_catalog=target_catalog,
             target_schema=target_schema,
@@ -254,23 +265,25 @@ class WorkspaceInstaller:
         )
 
     def _prompt_for_reconcile_setup(self) -> ReconcileConfig:
+        logger.info("\nPlease answer a couple of questions to configure Remorph: Reconcile")
 
         data_source = self._prompts.choice(
-            "Select the Data Source :",
+            "Select the Data Source:",
             [SourceType.DATABRICKS.value, SourceType.SNOWFLAKE.value, SourceType.ORACLE.value],
         )
-        report_type = self._prompts.choice("Select the Report Type :", ["data", "schema", "all", "row"])
+        report_type = self._prompts.choice("Select the Report Type:", ["data", "schema", "all", "row"])
 
         scope_name = self._prompts.question(
-            "Enter Secret Scope name to store connection details / secrets", default=f"remorph_{data_source}"
+            f"Enter Secret Scope name to store `{data_source.capitalize()}` connection details / secrets",
+            default=f"remorph_{data_source}",
         )
 
-        db_config = self._prompt_for_reconcile_source_details(data_source)
+        tables, db_config = self._prompt_for_reconcile_source_details(data_source)
 
         return ReconcileConfig(
             data_source=data_source,
             report_type=report_type,
-            tables={},
+            tables=tables,
             secret_scope=scope_name,
             databaseConfig=db_config,
         )
