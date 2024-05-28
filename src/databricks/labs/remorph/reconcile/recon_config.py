@@ -29,7 +29,7 @@ class ColumnMapping:
 @dataclass
 class Transformation:
     column_name: str
-    source: str
+    source: str | None = None
     target: str | None = None
 
 
@@ -88,20 +88,28 @@ class Table:
     def get_src_to_tgt_col_mapping_list(self, cols: list[str], layer: str) -> set[str]:
         if layer == "source":
             return set(cols)
-        return {self.to_src_col_map.get(col, col) for col in cols}
+        if self.to_src_col_map:
+            return {self.to_src_col_map.get(col, col) for col in cols}
+        return set(cols)
 
-    def get_layer_src_to_tgt_col_mapping(self, cols: str, layer: str) -> str:
+    def get_layer_src_to_tgt_col_mapping(self, column_name: str, layer: str) -> str:
         if layer == "source":
-            return cols
-        return self.to_src_col_map.get(cols, cols)
+            return column_name
+        if self.to_src_col_map:
+            return self.to_src_col_map.get(column_name, column_name)
+        return column_name
 
     def get_tgt_to_src_col_mapping_list(self, cols: list[str] | set[str]) -> set[str]:
-        return {self.to_tgt_col_map.get(col, col) for col in cols}
+        if self.to_tgt_col_map:
+            return {self.to_tgt_col_map.get(col, col) for col in cols}
+        return set(cols)
 
-    def get_layer_tgt_to_src_col_mapping(self, cols: str, layer: str) -> str:
+    def get_layer_tgt_to_src_col_mapping(self, column_name: str, layer: str) -> str:
         if layer == "source":
-            return cols
-        return self.to_tgt_col_map.get(cols, cols)
+            return column_name
+        if self.to_tgt_col_map:
+            return self.to_tgt_col_map.get(column_name, column_name)
+        return column_name
 
     def get_select_columns(self, schema: list[Schema], layer: str) -> set[str]:
         if self.select_columns is None:
@@ -128,9 +136,15 @@ class Table:
     def get_transformation_dict(self, layer: str) -> dict[str, str]:
         if self.transformations:
             if layer == "source":
-                return {t.column_name: t.source for t in self.transformations}
+                return {
+                    trans.column_name: (trans.source if trans.source else trans.column_name)
+                    for trans in self.transformations
+                }
             return {
-                self.get_layer_src_to_tgt_col_mapping(t.column_name, layer): str(t.target) for t in self.transformations
+                self.get_layer_src_to_tgt_col_mapping(trans.column_name, layer): (
+                    trans.target if trans.target else self.get_layer_src_to_tgt_col_mapping(trans.column_name, layer)
+                )
+                for trans in self.transformations
             }
         return {}
 
