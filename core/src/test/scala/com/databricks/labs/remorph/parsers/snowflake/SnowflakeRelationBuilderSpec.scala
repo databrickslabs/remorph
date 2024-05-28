@@ -189,6 +189,16 @@ class SnowflakeRelationBuilderSpec extends AnyWordSpec with SnowflakeParserTestC
           Limit(Deduplicate(namedTable("t"), Seq("a"), all_columns_as_keys = false, within_watermark = false), 42),
           Seq(Column("a"))))
     }
+
+    "translate VALUES clauses as object references" in {
+      example(
+        "VALUES ('a', 1), ('b', 2)",
+        _.object_ref(),
+        Values(
+          Seq(
+            Seq(Literal(string = Some("a")), Literal(short = Some(1))),
+            Seq(Literal(string = Some("b")), Literal(short = Some(2))))))
+    }
   }
 
   "Unparsed input" should {
