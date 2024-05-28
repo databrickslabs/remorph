@@ -121,6 +121,7 @@ class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenProp
       ("IDENT_CURRENT", Some(FixedArity(1))),
       ("IDENT_INCR", Some(FixedArity(1))),
       ("IDENT_SEED", Some(FixedArity(1))),
+      ("IDENTITY", Some(VariableArity(1, 3))),
       ("IFF", Some(FixedArity(3))),
       ("INDEX_COL", Some(FixedArity(3))),
       ("INDEXKEY_PROPERTY", Some(FixedArity(3))),
