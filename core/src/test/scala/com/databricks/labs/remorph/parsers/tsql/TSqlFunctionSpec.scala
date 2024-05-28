@@ -220,5 +220,9 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
           ir.UndefinedFrame,
           ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop),
           ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop))))
+
+    "translate functions with DISTINCT arguments" ignore {
+      example("COUNT(DISTINCT salary)", _.expression(), ir.CallFunction("COUNT", Seq(ir.Distinct(ir.Column("salary")))))
+    }
   }
 }
