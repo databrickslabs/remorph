@@ -93,11 +93,11 @@ class ValidationResult:
 
 @dataclass
 class ReconcileConfig:
-    __file__ = "recon_config.yml"
+    __file__ = "reconcile_config.yml"
     __version__ = 1
 
     data_source: str
     report_type: str
-    tables: dict[str, list[str]]  # stores tables in the format {"all/include/exclude": [table1, table2]}
+    tables: dict[str, list[str]]  # stores tables in the format {"all/include/exclude": [*, table1, table2]}
     secret_scope: str
-    databaseConfig: DatabaseConfig
+    config: DatabaseConfig

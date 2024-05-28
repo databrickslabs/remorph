@@ -264,9 +264,9 @@ class WorkspaceInstaller:
         if only_subset:
             # Prompt for filter
             filter_type = self._prompts.choice("Select the filter type:", ["include", "exclude"])
-            subset_tables = self._prompts.question(f"Enter the tables(separated by comma) to `{filter_type}`:")
+            subset_tables = self._prompts.question(f"Enter the tables(separated by comma) to `{filter_type}`")
             logger.debug(f"Filter Type: {filter_type}, Tables: {subset_tables}")
-            subset_tables = [f"'{table.strip().upper()}'" for table in subset_tables.split(",")]
+            subset_tables = [table.strip().upper() for table in subset_tables.split(",")]
             tables = {filter_type: subset_tables}
 
         return tables, DatabaseConfig(
@@ -292,13 +292,16 @@ class WorkspaceInstaller:
 
         tables, db_config = self._prompt_for_reconcile_source_details(data_source)
 
-        return ReconcileConfig(
+        recon_config = ReconcileConfig(
             data_source=data_source,
             report_type=report_type,
             tables=tables,
             secret_scope=scope_name,
-            databaseConfig=db_config,
+            config=db_config,
         )
+
+        recon_config.__file__ = f"reconcile_config_{data_source}.yml"
+        return recon_config
 
 
 class WorkspaceInstallation:
