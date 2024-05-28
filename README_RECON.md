@@ -1,10 +1,9 @@
 # Remorph Reconciliation
 
-Remorph Reconciliation is a tool that helps to reconcile the data post data migration or during the data migration   
+Remorph Reconciliation is a library that helps to reconcile the data, post data migration or during the data migration   
 between the source system and databricks system.It supports multiple types of reconciliation depending upon the user   
-requirements and data in the source system.It makes the migration work simpler by removing the complex part of
-validating   
-the data from one system to another.
+requirements and data in the source system.It makes the migration process simpler by removing the complex part of
+validating the data from one system to another and enabling the team with more insights on the data migrated.
 
 ## Installation
 
@@ -13,9 +12,9 @@ the data from one system to another.
 ```mermaid
 flowchart TD
     REPORT_TYPE --> DATA
-    A --> SCHEMA
-    A --> ROW
-    A --> ALL
+    REPORT_TYPE --> SCHEMA
+    REPORT_TYPE --> ROW
+    REPORT_TYPE --> ALL
 ```
 
 ```mermaid
@@ -145,3 +144,12 @@ TBD
 For more Reconciliation Config examples ,please refer to [sample_notebook][link].
 
 [link]: ./docs/reconciliation-configs-examples.py
+
+## Note:
+**In Reconciliation** 
+1. Databricks with UC is the only target
+2. Duplicates are not covered
+3. User Transformations are not applied for Schema Validation.Only select_columns,drop_columns and column_mapping is valid for schema  
+validation
+4. Aggregate transformations or multi-column transformations are not supported
+5. Not all complex data types are supported
