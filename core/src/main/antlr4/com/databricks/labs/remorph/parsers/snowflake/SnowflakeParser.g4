@@ -4049,12 +4049,13 @@ table_source_item_joined
     ;
 
 object_ref
-    : object_name at_before? changes? match_recognize? pivot_unpivot? as_alias? column_list_in_parentheses? sample?
-    | object_name START WITH predicate CONNECT BY prior_list?
-    | TABLE L_PAREN function_call R_PAREN pivot_unpivot? as_alias? sample?
-    | values_table sample?
-    | LATERAL? L_PAREN subquery R_PAREN pivot_unpivot? as_alias? column_list_in_parentheses?
-    | LATERAL (flatten_table | splited_table) as_alias?
+    : TABLE L_PAREN function_call R_PAREN pivot_unpivot? as_alias? sample?                   #objRefTable
+    | LATERAL (flatten_table | splited_table) as_alias?                                      #objRefLateral
+    | LATERAL? L_PAREN subquery R_PAREN pivot_unpivot? as_alias? column_list_in_parentheses? #objRefSubquery
+    | values_table sample?                                                                   #objRefValues
+    | object_name START WITH predicate CONNECT BY prior_list?                                #objRefStartWith
+    | object_name at_before? changes? match_recognize? pivot_unpivot? as_alias?
+        column_list_in_parentheses? sample?                                                  #objRefDefault
     //| AT id_ PATH?
     //    (L_PAREN FILE_FORMAT ASSOC id_ COMMA pattern_assoc R_PAREN)?
     //    as_alias?

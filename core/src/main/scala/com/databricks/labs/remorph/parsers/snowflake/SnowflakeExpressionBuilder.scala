@@ -7,7 +7,7 @@ import org.antlr.v4.runtime.Token
 import scala.collection.JavaConverters._
 class SnowflakeExpressionBuilder
     extends SnowflakeParserBaseVisitor[ir.Expression]
-    with ParserCommon
+    with ParserCommon[ir.Expression]
     with IncompleteParser[ir.Expression] {
 
   protected override def wrapUnresolvedInput(unparsedInput: String): ir.UnresolvedExpression =
