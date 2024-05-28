@@ -89,3 +89,15 @@ class TranspilationResult:
 class ValidationResult:
     validated_sql: str
     exception_msg: str | None
+
+
+@dataclass
+class ReconcileConfig:
+    __file__ = "recon_config.yml"
+    __version__ = 1
+
+    data_source: str
+    report_type: str
+    tables: dict[str, list[str]]
+    secret_scope: str
+    databaseConfig: DatabaseConfig
