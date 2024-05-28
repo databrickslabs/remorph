@@ -66,6 +66,7 @@ class WorkspaceInstaller:
         #     if len(err.errs) == 1:
         #         raise err.errs[0] from None
         #     raise err
+        logger.info("Installation completed successfully! Please refer to the documentation for the next steps.")
         return config
 
     def configure(self) -> tuple[MorphConfig | None, ReconcileConfig | None]:
@@ -74,10 +75,21 @@ class WorkspaceInstaller:
          else prompts for the new Installation
         :return:
         """
+        morph_config = None
         try:
-            return self._installation.load(MorphConfig)
+            morph_config = self._installation.load(MorphConfig)
         except NotFound as err:
-            logger.debug(f"Cannot find previous installation: {err}")
+            logger.debug(f"Cannot find previous `transpile` installation: {err}")
+
+        reconcile_config = None
+        try:
+            reconcile_config = self._installation.load(ReconcileConfig)
+        except NotFound as err:
+            logger.debug(f"Cannot find previous `reconcile` installation: {err}")
+
+        if morph_config or reconcile_config:
+            return morph_config, reconcile_config
+        else:
             return self._configure_new_installation()
 
     def _prompt_for_new_installation(self):
@@ -101,7 +113,7 @@ class WorkspaceInstaller:
         return morph_config, reconcile_config
 
     def _save_and_open_config(self, module: str, config: MorphConfig | ReconcileConfig):
-        logger.info(f"Saving the {module} configuration in Databricks Workspace")
+        logger.info(f"Saving the ** {module} ** configuration in Databricks Workspace")
         self._installation.save(config)
         ws_file_url = self._installation.workspace_link(config.__file__)
         if self._prompts.confirm(f"Open `{config.__file__}` in the browser and continue installing?"):
@@ -113,10 +125,10 @@ class WorkspaceInstaller:
         :return: MorphConfig
         """
         morph_config, reconcile_config = self._prompt_for_new_installation()
-        if reconcile_config:
-            self._save_and_open_config("reconcile", reconcile_config)
         if morph_config:
             self._save_and_open_config("transpile", morph_config)
+        if reconcile_config:
+            self._save_and_open_config("reconcile", reconcile_config)
 
         return morph_config, reconcile_config
 
@@ -185,7 +197,7 @@ class WorkspaceInstaller:
         return self._prompt_for_transpile_setup(), self._prompt_for_reconcile_setup()
 
     def _prompt_for_transpile_setup(self) -> MorphConfig:
-        logger.info("\nPlease answer a couple of questions to configure Remorph: Transpile")
+        logger.info("\nPlease answer a couple of questions to configure Remorph: ** Transpile **")
 
         # default params
         catalog_name = "transpiler_test"
@@ -195,12 +207,12 @@ class WorkspaceInstaller:
         source = self._prompts.choice("Select the source:", list(SQLGLOT_DIALECTS.keys()))
 
         # validate input_sql path exists for 3 times
-        input_sql = self._prompts.question("Enter Input SQL path (directory/file): ")
+        input_sql = self._prompts.question("Enter Input SQL path (directory/file)")
 
-        output_folder = self._prompts.question("Enter Output directory:", default="transpiled")
+        output_folder = self._prompts.question("Enter Output directory", default="transpiled")
 
         run_validation = self._prompts.confirm(
-            "Would you like to validate the Syntax, Semantics of the transpiled " "queries?"
+            "Would you like to validate the Syntax, Semantics of the transpiled queries?"
         )
 
         if run_validation:
@@ -233,7 +245,7 @@ class WorkspaceInstaller:
 
         source_catalog = None
         if source == SourceType.SNOWFLAKE.value:
-            source_catalog = self._prompts.question(f"Enter `{source.capitalize()}` Catalog name:")
+            source_catalog = self._prompts.question(f"Enter `{source.capitalize()}` Catalog name")
 
         schema_prompt = f"Enter `{source.capitalize()}` Schema name"
         if source == SourceType.ORACLE.value:
@@ -241,13 +253,13 @@ class WorkspaceInstaller:
 
         source_schema = self._prompts.question(schema_prompt)
 
-        target_catalog = self._prompts.question("Enter Target Catalog name:")
+        target_catalog = self._prompts.question("Enter Target Catalog name")
 
-        target_schema = self._prompts.question("Enter Target Schema name:")
+        target_schema = self._prompts.question("Enter Target Schema name")
 
         only_subset = self._prompts.confirm("Do you want to include/exclude a set of tables?")
 
-        tables = {"all": ["all"]}
+        tables = {"all": ["*"]}
 
         if only_subset:
             # Prompt for filter
@@ -265,7 +277,7 @@ class WorkspaceInstaller:
         )
 
     def _prompt_for_reconcile_setup(self) -> ReconcileConfig:
-        logger.info("\nPlease answer a couple of questions to configure Remorph: Reconcile")
+        logger.info("\nPlease answer a couple of questions to configure Remorph: ** Reconcile **")
 
         data_source = self._prompts.choice(
             "Select the Data Source:",
