@@ -209,6 +209,24 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
     example("COUNT(DISTINCT salary)", _.expression(), ir.CallFunction("COUNT", Seq(ir.Distinct(ir.Column("salary")))))
   }
 
+  "translate special keyword functions" in {
+    example(
+      // TODO: Returns UnresolvedFunction as it is not convertible - create UnsupportedFunction
+      "@@CURSOR_ROWS",
+      _.expression(),
+      ir.UnresolvedFunction("@@CURSOR_ROWS", List(), is_distinct = false, is_user_defined_function = false))
+
+    example(
+      // TODO: Returns UnresolvedFunction as it is not convertible - create UnsupportedFunction
+      "@@FETCH_STATUS",
+      _.expression(),
+      ir.UnresolvedFunction("@@FETCH_STATUS", List(), is_distinct = false, is_user_defined_function = false))
+
+    example("SESSION_USER", _.expression(), ir.CallFunction("SESSION_USER", List()))
+
+    example("USER", _.expression(), ir.CallFunction("USER", List()))
+  }
+
   // TODO: Analytic functions are next
   "translate analytic windowing functions in all forms" ignore {
     example(

@@ -3900,17 +3900,17 @@ expression
     | expression op=DOUBLE_BAR expression                       #exprOpPrec4
     | primitiveExpression                                       #exprPrimitive
     | functionCall                                              #exprFunc
+    | functionValues                                            #exprFuncVal
     | expression COLLATE id                                     #exprCollate
     | caseExpression                                            #exprCase
     | expression timeZone                                       #exprTz
     | expression overClause                                     #exprOver
-    | id                                                        #exprId
     | <assoc=right> expression DOT expression                   #exprDot
     | LPAREN subquery RPAREN                                    #exprSubquery
     | DISTINCT expression                                       #exprDistinct
     | DOLLAR_ACTION                                             #exprDollar
     | STAR                                                      #exprStar
-    | functionvalues                                            #exprFuncVal
+    | id                                                        #exprId
     ;
 
 // TODO: Implement this
@@ -4294,7 +4294,7 @@ functionCall
     ;
 
 // Things that are just special values and not really functions, but are documented as such
-functionvalues
+functionValues
     : f=(CURSOR_ROWS | FETCH_STATUS | SESSION_USER | SYSTEM_USER | USER)
     ;
 
