@@ -11,22 +11,37 @@ the data from one system to another.
 ## Flow Chart for supported Report Type and Reconciliation Logics
 
 ```mermaid
----
-title: Reconciliation Report Types with available features
----
-  flowchart TD
-      A[REPORT TYPE] --> B[DATA]
-      A --> C[SCHEMA]
-      A --> D[ROW]
-      A --> E[ALL]
-      B --> MISMATCH_ROWS
-      B --> ROW
-      B --> THRESHOLD_VALIDATION
-      C --> SCHEMA_VALIDATION
-      D --> MISSING_IN_SOURCE
-      D --> MISSING_IN_TARGET
-      E --> DATA
-      E --> SCHEMA       
+flowchart TD
+    REPORT_TYPE --> DATA
+    A --> SCHEMA
+    A --> ROW
+    A --> ALL
+```
+
+```mermaid
+flowchart TD
+    SCHEMA --> SCHEMA_VALIDATION
+```
+
+```mermaid
+flowchart TD
+    ROW --> MISSING_IN_SRC
+    ROW --> MISSING_IN_TGT
+```
+
+```mermaid
+flowchart TD
+   DATA --> MISMATCH_ROWS
+   DATA --> MISSING_IN_SRC
+   DATA --> MISSING_IN_TGT
+```
+
+```mermaid
+flowchart TD
+    ALL --> MISMATCH_ROWS
+    ALL --> MISSING_IN_SRC
+    ALL --> MISSING_IN_TGT
+    ALL --> SCHEMA_VALIDATION
 ```
 
 ## Supported Source System and Report Types
@@ -39,7 +54,11 @@ title: Reconciliation Report Types with available features
 
 ## Dependency CLI commands
 
+TBD
+
 ## Environment Setup
+
+TBD
 
 ## TABLE Config Elements:
 
@@ -121,7 +140,8 @@ title: Reconciliation Report Types with available features
 | snowflake   | array         | array_to_string(array_sort(array_compact(<col_name>),true,true),',') | concat_ws(',', <col_name>)                      |                      |                      | in case of removing "undefined" during migration and want to sort the array                 |
 | snowflake   | timestamp_ntz | date_part(epoch_second,<col_name>)                                   | unix_timestamp(<col_name>)                      |                      |                      | convert timestamp_ntz to epoch for getting a match b/w snowflake and databricks             | 
 
+## Data Reconciliation Examples:
 
+For more Reconciliation Config examples ,please refer to [sample_notebook][link].
 
-
-
+[link]: ./docs/reconciliation-configs-examples.py
