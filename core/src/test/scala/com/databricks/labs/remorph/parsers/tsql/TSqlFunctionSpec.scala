@@ -246,19 +246,19 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
           ir.UndefinedFrame,
           ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop),
           ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop))))
-//
-//    example(
-//      query = """
-//    LEAD(salary, 1) OVER (PARTITION BY department_id ORDER BY employee_id DESC)
-//  """,
-//      _.expression(),
-//      ir.Window(
-//        ir.CallFunction("LEAD", Seq(ir.Column("salary"), ir.Literal(integer = Some(1)))),
-//        Seq(ir.Column("department_id")),
-//        Seq(ir.SortOrder(ir.Column("employee_id"), ir.DescendingSortDirection, ir.SortNullsUnspecified)),
-//        ir.WindowFrame(
-//          ir.UndefinedFrame,
-//          ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop),
-//          ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop))))
+
+    example(
+      query = """
+    LEAD(salary, 1) OVER (PARTITION BY department_id ORDER BY employee_id DESC)
+  """,
+      _.expression(),
+      ir.Window(
+        ir.CallFunction("LEAD", Seq(ir.Column("salary"), ir.Literal(integer = Some(1)))),
+        Seq(ir.Column("department_id")),
+        Seq(ir.SortOrder(ir.Column("employee_id"), ir.DescendingSortDirection, ir.SortNullsUnspecified)),
+        ir.WindowFrame(
+          ir.UndefinedFrame,
+          ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop),
+          ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop))))
   }
 }
