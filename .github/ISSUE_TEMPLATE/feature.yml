@@ -14,6 +14,17 @@ body:
       options:
         - label: I have searched the existing issues
           required: true
+  - type: dropdown
+    id: category
+    attributes:
+      label: Category of feature request
+      description: Please select the category that best describes the feature you are requesting for.
+      options:
+        - Transpile
+        - Reconcile
+        - Other
+    validations:
+      required: true
   - type: textarea
     attributes:
       label: Problem statement
