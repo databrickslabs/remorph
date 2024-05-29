@@ -16,8 +16,19 @@ object Main {
       @arg(short = 'i', doc = "Source path of test queries")
       sourceDir: os.Path,
       @arg(short = 'o', doc = "Report output path")
-      outputPath: os.Path): Unit = {
+      outputPath: os.Path,
+      @arg(short = 's', doc = "Start comment")
+      startComment: Option[String],
+      @arg(short = 'e', doc = "End comment")
+      endComment: Option[String],
+      @arg(short = 'd', doc = "Source dialect")
+      sourceDialect: Option[String],
+      @arg(short = 't', doc = "Target dialect")
+      targetDialect: Option[String]): Unit = {
     val testSource = new NestedFiles(sourceDir.toNIO)
+    val CommentBasedQueryExtractor = new CommentBasedQueryExtractor(
+      startComment.getOrElse("-- snowflake sql:"),
+      endComment.getOrElse("-- databricks sql:"))
     testSource.listTests.foreach { test =>
       val q = CommentBasedQueryExtractor.extractQuery(test.inputFile)
       val runner = new IsResolvedAsSnowflakeQueryRunner(new SnowflakeAstBuilder)
@@ -26,14 +37,13 @@ object Main {
         commit_hash = None,
         version = "latest",
         timestamp = Instant.now.toString,
-        source_dialect = "snowflake",
-        target_dialect = "databricks",
+        source_dialect = sourceDialect.getOrElse("snowflake"),
+        target_dialect = targetDialect.getOrElse("databricks"),
         file = test.inputFile.toString)
       val report = runner.runQuery(q)
       val reportEntryJson = ReportEntry(header, report).asJson
       os.write.append(outputPath, ujson.write(reportEntryJson, indent = -1) + "\n")
     }
-
   }
 
   def main(args: Array[String]): Unit = ParserForMethods(this).runOrExit(args)
