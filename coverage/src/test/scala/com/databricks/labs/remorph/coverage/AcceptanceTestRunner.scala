@@ -1,6 +1,7 @@
 package com.databricks.labs.remorph.coverage
 
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeAstBuilder
+import com.databricks.labs.remorph.parsers.tsql.TSqlAstBuilder
 import org.scalatest.flatspec.AnyFlatSpec
 
 import java.nio.file.Paths
@@ -26,14 +27,21 @@ abstract class AcceptanceTestRunner(config: AcceptanceTestConfig) extends AnyFla
         fail(report.errorMessage.getOrElse(""))
       }
     }
-
   }
-
 }
 
 class SnowflakeAcceptanceSuite
     extends AcceptanceTestRunner(
       AcceptanceTestConfig(
-        new NestedFiles(Paths.get("../tests/resources/functional/snowflake")),
-        CommentBasedQueryExtractor,
+        new NestedFiles(Paths.get(Option(System.getProperty("snowflake.test.resources.path"))
+          .getOrElse("../tests/resources/functional/snowflake"))),
+        new CommentBasedQueryExtractor("-- snowflake sql:", "-- databricks sql:"),
         new IsResolvedAsSnowflakeQueryRunner(new SnowflakeAstBuilder)))
+
+class TSqlAcceptanceSuite
+    extends AcceptanceTestRunner(
+      AcceptanceTestConfig(
+        new NestedFiles(Paths.get(Option(System.getProperty("tsql.test.resources.path"))
+          .getOrElse("../tests/resources/functional/tsql"))),
+        new CommentBasedQueryExtractor("-- tsql sql:", "-- databricks sql:"),
+        new IsResolvedAsTSqlQueryRunner(new TSqlAstBuilder)))
