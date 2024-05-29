@@ -119,7 +119,7 @@ jobs:
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
 
-  acceptance-tests:
+  coverage-tests:
     needs: test-core
     runs-on: ubuntu-latest
     steps:
@@ -141,7 +141,7 @@ jobs:
           name: remorph-core-jars
           path: ~/.m2/repository/com/databricks/labs/
 
-      - name: Run Acceptance Tests with Maven
+      - name: Run Coverage Tests with Maven
         run: mvn --update-snapshots -B test exec:java -pl coverage --file pom.xml --fail-at-end
         continue-on-error: true
 
@@ -150,9 +150,9 @@ jobs:
         if: always()
         with:
           files: |
-            **/TEST-com.databricks.labs.remorph.acceptance*.xml
-          comment_title: 'Acceptance tests results'
-          check_name: 'Acceptance Tests Results'
+            **/TEST-com.databricks.labs.remorph.coverage*.xml
+          comment_title: 'Coverage tests results'
+          check_name: 'Coverage Tests Results'
           fail_on: 'nothing'
         continue-on-error: true
 
