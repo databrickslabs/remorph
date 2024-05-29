@@ -1,6 +1,7 @@
 from collections.abc import Callable
 from functools import partial
 
+from pyspark.sql.types import DataType, NumericType
 from sqlglot import Dialect
 from sqlglot import expressions as exp
 
@@ -212,6 +213,12 @@ def build_if(this: exp.Expression, true: exp.Expression, false: exp.Expression |
 
 def build_between(this: exp.Expression, low: exp.Expression, high: exp.Expression) -> exp.Between:
     return exp.Between(this=this, low=low, high=high)
+
+
+def _get_is_string(column_types_dict: dict[str, DataType], column_name: str) -> bool:
+    if isinstance(column_types_dict.get(column_name), NumericType):
+        return False
+    return True
 
 
 DataType_transform_mapping: dict[str, dict[str, list[partial[exp.Expression]]]] = {

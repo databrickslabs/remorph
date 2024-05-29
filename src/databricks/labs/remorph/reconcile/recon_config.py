@@ -19,11 +19,18 @@ class JdbcReaderOptions:
     upper_bound: str
     fetch_size: int = 100
 
+    def __post_init__(self):
+        self.partition_column = self.partition_column.lower()
+
 
 @dataclass
 class ColumnMapping:
     source_name: str
     target_name: str
+
+    def __post_init__(self):
+        self.source_name = self.source_name.lower()
+        self.target_name = self.target_name.lower()
 
 
 @dataclass
@@ -32,6 +39,9 @@ class Transformation:
     source: str | None = None
     target: str | None = None
 
+    def __post_init__(self):
+        self.column_name = self.column_name.lower()
+
 
 @dataclass
 class Thresholds:
@@ -39,6 +49,10 @@ class Thresholds:
     lower_bound: str
     upper_bound: str
     type: str
+
+    def __post_init__(self):
+        self.column_name = self.column_name.lower()
+        self.type = self.type.lower()
 
     def get_mode(self):
         return "percentage" if "%" in self.lower_bound or "%" in self.upper_bound else "absolute"
@@ -60,6 +74,10 @@ class Filters:
     target: str | None = None
 
 
+def to_lower_case(input_list: list[str]) -> list[str]:
+    return [element.lower() for element in input_list]
+
+
 @dataclass
 class Table:
     source_name: str
@@ -72,6 +90,13 @@ class Table:
     transformations: list[Transformation] | None = None
     thresholds: list[Thresholds] | None = None
     filters: Filters | None = None
+
+    def __post_init__(self):
+        self.source_name = self.source_name.lower()
+        self.target_name = self.target_name.lower()
+        self.select_columns = to_lower_case(self.select_columns) if self.select_columns else None
+        self.drop_columns = to_lower_case(self.drop_columns) if self.drop_columns else None
+        self.join_columns = to_lower_case(self.join_columns) if self.join_columns else None
 
     @property
     def to_src_col_map(self):

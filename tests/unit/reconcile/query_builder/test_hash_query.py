@@ -168,3 +168,37 @@ def test_hash_query_builder_for_report_type_is_row(table_conf_with_opts, table_s
 
     assert src_actual == src_expected
     assert tgt_actual == tgt_expected
+
+
+def test_config_case_sensitivity(table_conf_mock, table_schema, column_mapping):
+    table_conf = table_conf_mock(
+        select_columns=["S_SUPPKEY", "S_name", "S_ADDRESS", "S_NATIOnKEY", "S_PhONE", "S_acctbal"],
+        drop_columns=["s_Comment"],
+        join_columns=["S_SUPPKEY"],
+        transformations=[
+            Transformation(column_name="S_ADDRESS", source=None, target="trim(s_address_t)"),
+            Transformation(column_name="S_NAME", source="trim(s_name)", target=None),
+            Transformation(column_name="s_suppKey", source="trim(s_suppkey)", target=None),
+        ],
+        column_mapping=column_mapping,
+        filters=Filters(target="s_nationkey_t=1"),
+    )
+    sch, tgt_sch = table_schema
+    src_actual = HashQueryBuilder(table_conf, sch, "source", get_dialect("databricks")).build_query(report_type="data")
+    src_expected = (
+        "SELECT LOWER(SHA2(CONCAT(COALESCE(TRIM(s_acctbal), ''), s_address, "
+        "TRIM(s_name), COALESCE(TRIM(s_nationkey), ''), COALESCE(TRIM("
+        "s_phone), ''), TRIM(s_suppkey)), 256)) AS hash_value_recon, TRIM(s_suppkey) AS s_suppkey FROM :tbl"
+    )
+
+    tgt_actual = HashQueryBuilder(table_conf, tgt_sch, "target", get_dialect("databricks")).build_query(
+        report_type="data"
+    )
+    tgt_expected = (
+        "SELECT LOWER(SHA2(CONCAT(COALESCE(TRIM(s_acctbal_t), ''), TRIM(s_address_t), s_name, COALESCE(TRIM("
+        "s_nationkey_t), ''), COALESCE(TRIM(s_phone_t), ''), s_suppkey_t), 256)) AS hash_value_recon, s_suppkey_t AS "
+        "s_suppkey FROM :tbl WHERE s_nationkey_t = 1"
+    )
+
+    assert src_actual == src_expected
+    assert tgt_actual == tgt_expected

@@ -8,6 +8,7 @@ from databricks.labs.remorph.reconcile.query_builder.base import QueryBuilder
 from databricks.labs.remorph.reconcile.query_builder.expression_generator import (
     build_column,
     build_literal,
+    _get_is_string,
 )
 
 _SAMPLE_ROWS = 50
@@ -66,7 +67,12 @@ class SamplingQueryBuilder(QueryBuilder):
     def _get_with_clause(df: DataFrame) -> exp.Select:
         union_res = []
         for row in df.take(_SAMPLE_ROWS):
-            row_select = [build_literal(this=value, alias=col, is_string=False) for col, value in zip(df.columns, row)]
+            column_types = [(str(f.name).lower(), f.dataType) for f in df.schema.fields]
+            column_types_dict = dict(column_types)
+            row_select = [
+                build_literal(this=value, alias=col, is_string=_get_is_string(column_types_dict, col))
+                for col, value in zip(df.columns, row)
+            ]
             union_res.append(select(*row_select))
         union_statements = _union_concat(union_res, union_res[0], 0)
         return exp.Select().with_(alias='recon', as_=union_statements)

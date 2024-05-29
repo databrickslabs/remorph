@@ -253,3 +253,53 @@ def test_build_query_for_snowflake_without_transformations(mock_spark, table_con
 
     assert src_expected == src_actual
     assert tgt_expected == tgt_actual
+
+
+def test_build_query_for_snowflake_src_for_non_integer_primary_keys(mock_spark, table_conf_mock):
+    spark = mock_spark
+    sch = [Schema("s_suppkey", "varchar"), Schema("s_name", "varchar"), Schema("s_nationkey", "number")]
+
+    sch_with_alias = [Schema("s_suppkey_t", "varchar"), Schema("s_name", "varchar"), Schema("s_nationkey_t", "number")]
+    df_schema = StructType(
+        [
+            StructField('s_suppkey', StringType()),
+            StructField('s_name', StringType()),
+            StructField('s_nationkey', IntegerType()),
+        ]
+    )
+    df = spark.createDataFrame(
+        [
+            ('a', 'name-1', 11),
+            ('b', 'name-2', 22),
+        ],
+        schema=df_schema,
+    )
+
+    conf = table_conf_mock(
+        join_columns=["s_suppkey", "s_nationkey"],
+        column_mapping=[
+            ColumnMapping(source_name="s_suppkey", target_name="s_suppkey_t"),
+            ColumnMapping(source_name="s_nationkey", target_name='s_nationkey_t'),
+        ],
+        transformations=[Transformation(column_name="s_address", source="trim(s_address)", target="trim(s_address_t)")],
+    )
+
+    src_actual = SamplingQueryBuilder(conf, sch, "source", get_dialect("snowflake")).build_query(df)
+    src_expected = (
+        "WITH recon AS (SELECT 11 AS s_nationkey, 'a' AS s_suppkey UNION SELECT 22 AS "
+        "s_nationkey, 'b' AS s_suppkey), src AS (SELECT COALESCE(TRIM(s_name), '') AS s_name, COALESCE(TRIM("
+        "s_nationkey), '') AS s_nationkey, COALESCE(TRIM(s_suppkey), '') AS s_suppkey FROM :tbl) "
+        "SELECT s_name, s_nationkey, s_suppkey FROM src INNER JOIN recon USING (s_nationkey, s_suppkey)"
+    )
+
+    tgt_actual = SamplingQueryBuilder(conf, sch_with_alias, "target", get_dialect("databricks")).build_query(df)
+    tgt_expected = (
+        "WITH recon AS (SELECT 11 AS s_nationkey, 'a' AS s_suppkey UNION SELECT 22 AS "
+        "s_nationkey, 'b' AS s_suppkey), src AS (SELECT COALESCE(TRIM(s_name), '') AS s_name, "
+        "COALESCE(TRIM(s_nationkey_t), '') AS s_nationkey, COALESCE(TRIM(s_suppkey_t), '') AS s_suppkey FROM :tbl) "
+        "SELECT s_name, s_nationkey, "
+        "s_suppkey FROM src INNER JOIN recon USING (s_nationkey, s_suppkey)"
+    )
+
+    assert src_expected == src_actual
+    assert tgt_expected == tgt_actual
