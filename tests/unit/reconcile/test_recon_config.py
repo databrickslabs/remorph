@@ -25,3 +25,14 @@ def test_table_with_all_options(table_conf_with_opts):
     assert table_conf_with_opts.get_partition_column("target") == set()
     assert table_conf_with_opts.get_filter("target") == "s_name='t' and s_address_t='a'"
     assert table_conf_with_opts.get_threshold_columns("target") == {"s_acctbal_t"}
+
+
+def test_table_without_column_mapping(table_conf_mock, column_mapping):
+    table_conf = table_conf_mock()
+
+    assert table_conf.get_tgt_to_src_col_mapping_list(["s_address", "s_name"]) == {"s_address", "s_name"}
+    assert table_conf.get_layer_tgt_to_src_col_mapping("s_address_t", "target") == "s_address_t"
+    assert table_conf.get_layer_tgt_to_src_col_mapping("s_address", "source") == "s_address"
+    assert table_conf.get_src_to_tgt_col_mapping_list(["s_address", "s_name"], "source") == {"s_address", "s_name"}
+    assert table_conf.get_src_to_tgt_col_mapping_list(["s_address", "s_name"], "target") == {"s_address", "s_name"}
+    assert table_conf.get_layer_src_to_tgt_col_mapping("s_address", "source") == "s_address"
