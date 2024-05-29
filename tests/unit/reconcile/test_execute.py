@@ -51,14 +51,10 @@ class QueryStore:
 @pytest.fixture
 def setup_metadata_table(mock_spark, report_tables_schema):
     recon_schema, metrics_schema, details_schema = report_tables_schema
-    mode = "append"
+    mode = "overwrite"
     mock_spark.createDataFrame(data=[], schema=recon_schema).write.mode(mode).saveAsTable("DEFAULT.MAIN")
     mock_spark.createDataFrame(data=[], schema=metrics_schema).write.mode(mode).saveAsTable("DEFAULT.METRICS")
     mock_spark.createDataFrame(data=[], schema=details_schema).write.mode(mode).saveAsTable("DEFAULT.DETAILS")
-    yield
-    mock_spark.sql("TRUNCATE TABLE DEFAULT.MAIN")
-    mock_spark.sql("TRUNCATE TABLE DEFAULT.METRICS")
-    mock_spark.sql("TRUNCATE TABLE DEFAULT.DETAILS")
 
 
 @pytest.fixture
