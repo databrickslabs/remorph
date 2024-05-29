@@ -1,5 +1,3 @@
-
-
 def test_table_without_join_column(table_conf_mock):
     table_conf = table_conf_mock()
     assert table_conf.get_join_columns("source") == set()
