@@ -108,9 +108,19 @@ TBD
 | upper_bound | string    | the upper bound of the difference between the source value and the target value                                                                                              | optional(default 0)                | 5%                 |            
 | type        | string    | user must specify the type of the column. integer is selected for columns of type integer or double, while timestamp is chosen for columns of either date or timestamp types | required("integer" or "timestamp") | "integer"          |
 
+### Key Considerations on Table Config:
+1. The column names are always converted to lower case and considered for reconciliation.
+2. Currently it doesn't support case sensitive column names
+3. Table Transformation internally consider the default value as the column value. It doesn't apply any default transformations
+if not provided.
+```eg:Transformation(column_name="address",source_name=None,target_name="trim(s_address)")```
+For the given example,
+the source transformation is None,so the raw value in the source is considered for reconciliation.
+
+
 ### Do's and Don't's on Table Config:
 
-1. Always the column reference to be source column names in all the configs,except Transformations and Filters as these
+1. Always the column reference to be source column names in all the configs,except **Transformations** and **Filters** as these
    are expressions ,that are applied directly in the sql.
 
 # Guidance for Oracle as source
