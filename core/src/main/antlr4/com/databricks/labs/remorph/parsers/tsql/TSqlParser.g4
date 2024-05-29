@@ -3904,7 +3904,6 @@ expression
     | caseExpression                                            #exprCase
     | expression timeZone                                       #exprTz
     | expression overClause                                     #exprOver
-    | valueCall                                                 #exprValue
     | id                                                        #exprId
     | DOLLAR_ACTION                                             #exprDollar
     | <assoc=right> expression DOT expression                   #exprDot
@@ -4381,11 +4380,7 @@ valueMethod
         | valueId = fullColumnName
         | eventdata = EVENTDATA LPAREN RPAREN
         | LPAREN subquery RPAREN
-    ) DOT call = valueCall
-    ;
-
-valueCall
-    : (VALUE | VALUE_SQUARE_BRACKET) LPAREN xquery = STRING COMMA sqltype = STRING RPAREN
+    ) DOT standardFunction
     ;
 
 hierarchyidStaticMethod
@@ -5228,7 +5223,7 @@ keyword
     | VALID_XML
     | VALIDATION
     | VALUE
-    | VALUE_SQUARE_BRACKET
+    | VAR
     | VARBINARY_KEYWORD
     | VERIFY_CLONEDB
     | VERSION
