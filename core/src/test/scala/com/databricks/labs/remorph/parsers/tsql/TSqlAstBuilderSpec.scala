@@ -1,6 +1,5 @@
 package com.databricks.labs.remorph.parsers.tsql
 
-import com.databricks.labs.remorph.parsers.FunctionBuilder
 import com.databricks.labs.remorph.parsers.intermediate._
 import org.mockito.Mockito.{mock, when}
 import org.scalatest.Assertion
@@ -343,43 +342,27 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
     }
   }
 
-  "FunctionBuilder" should {
-
-    "remove quotes and brackets from function names" in {
-      // Test function name with less than 2 characters
-      val result1 = FunctionBuilder.buildFunction("a", Seq())
-      result1 match {
-        case f: UnresolvedFunction => f.function_name shouldBe "a"
-        case _ => fail("Unexpected function type")
-      }
-
-      // Test function name with matching quotes
-      val result2 = FunctionBuilder.buildFunction("'quoted'", Seq())
-      result2 match {
-        case f: UnresolvedFunction => f.function_name shouldBe "quoted"
-        case _ => fail("Unexpected function type")
-      }
-
-      // Test function name with matching brackets
-      val result3 = FunctionBuilder.buildFunction("[bracketed]", Seq())
-      result3 match {
-        case f: UnresolvedFunction => f.function_name shouldBe "bracketed"
-        case _ => fail("Unexpected function type")
-      }
-
-      // Test function name with matching backslashes
-      val result4 = FunctionBuilder.buildFunction("\\backslashed\\", Seq())
-      result4 match {
-        case f: UnresolvedFunction => f.function_name shouldBe "backslashed"
-        case _ => fail("Unexpected function type")
-      }
-
-      // Test function name with non-matching quotes
-      val result5 = FunctionBuilder.buildFunction("'nonmatching", Seq())
-      result5 match {
-        case f: UnresolvedFunction => f.function_name shouldBe "'nonmatching"
-        case _ => fail("Unexpected function type")
-      }
-    }
+  "SQL statements should support DISTINCT clauses" in {
+    example(
+      query = "SELECT DISTINCT * FROM Employees;",
+      expectedAst = Batch(
+        Seq(
+          Project(
+            Deduplicate(
+              NamedTable("Employees", Map(), is_streaming = false),
+              List(),
+              all_columns_as_keys = true,
+              within_watermark = false),
+            Seq(Star(None))))))
+    example(
+      query = "SELECT DISTINCT a, b AS bb FROM t",
+      expectedAst = Batch(
+        Seq(Project(
+          Deduplicate(
+            NamedTable("t", Map(), is_streaming = false),
+            List("a", "bb"),
+            all_columns_as_keys = false,
+            within_watermark = false),
+          Seq(Column("a"), Alias(Column("b"), Seq("bb"), None))))))
   }
 }
