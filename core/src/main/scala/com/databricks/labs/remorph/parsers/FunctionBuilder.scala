@@ -317,7 +317,7 @@ object FunctionBuilder {
     }
   }
 
-  def applyConversionStrategy(
+  private def applyConversionStrategy(
       functionArity: FunctionArity,
       args: Seq[ir.Expression],
       irName: String,
