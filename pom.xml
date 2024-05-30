@@ -4,7 +4,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.databricks.labs</groupId>
   <artifactId>remorph</artifactId>
-  <version>0.2.0</version>
+  <version>0.2.0-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>Databricks Labs Remorph</name>
   <description>Remorph stands as a comprehensive toolkit meticulously crafted to
@@ -25,6 +25,7 @@
   <modules>
     <module>core</module>
     <module>py</module>
+    <module>coverage</module>
   </modules>
   <scm>
     <connection>scm:git:https://github.com/databrickslabs/remorph.git</connection>

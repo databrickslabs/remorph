@@ -205,6 +205,10 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
 
   }
 
+  "translate functions with DISTINCT arguments" in {
+    example("COUNT(DISTINCT salary)", _.expression(), ir.CallFunction("COUNT", Seq(ir.Distinct(ir.Column("salary")))))
+  }
+
   // TODO: Analytic functions are next
   "translate analytic windowing functions in all forms" ignore {
     example(
