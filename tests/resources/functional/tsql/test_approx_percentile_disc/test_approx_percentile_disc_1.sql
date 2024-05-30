@@ -4,7 +4,7 @@
 -- Approximations are generally faster then exact calculations, so performance may be something to explore.
 
 -- tsql sql:
-SELECT APPROX_PERCENTILE_DISC(col1) AS approx_count_distinct_col1 FROM tabl;
+SELECT APPROX_PERCENTILE_DISC(0.5) WITHIN GROUP(ORDER BY col1) AS percent50 FROM tabl;
 
 -- databricks sql:
-SELECT PERCENTILE(col1, 0.5) AS approx_count_distinct_col1 FROM tabl;
+SELECT PERCENTILE(col1, 0.5) AS percent50 FROM tabl;
