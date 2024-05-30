@@ -2,7 +2,6 @@ import logging
 from datetime import datetime
 from uuid import uuid4
 
-from databricks.sdk import WorkspaceClient
 from pyspark.errors import PySparkException
 from pyspark.sql import DataFrame, SparkSession
 from sqlglot import Dialect
@@ -41,6 +40,7 @@ from databricks.labs.remorph.reconcile.recon_config import (
 )
 from databricks.labs.remorph.reconcile.schema_compare import SchemaCompare
 from databricks.labs.remorph.transpiler.execute import verify_workspace_client
+from databricks.sdk import WorkspaceClient
 
 logger = logging.getLogger(__name__)
 _SAMPLE_ROWS = 50
@@ -138,12 +138,15 @@ def recon(
             recon_process_duration=recon_process_duration,
         )
 
-    reconcile_output = generate_final_reconcile_output(recon_id=recon_id, spark=spark)
-    _verify_successful_reconciliation(reconcile_output)
-    return reconcile_output
+    return _verify_successful_reconciliation(
+        generate_final_reconcile_output(
+            recon_id=recon_id,
+            spark=spark,
+        )
+    )
 
 
-def _verify_successful_reconciliation(reconcile_output: ReconcileOutput):
+def _verify_successful_reconciliation(reconcile_output: ReconcileOutput) -> ReconcileOutput:
     for table_output in reconcile_output.results:
         if (
             table_output.status.column is False
@@ -156,6 +159,7 @@ def _verify_successful_reconciliation(reconcile_output: ReconcileOutput):
             )
 
     logger.info("Reconciliation completed successfully.")
+    return reconcile_output
 
 
 def initialise_data_source(
