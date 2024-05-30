@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 
 import pytest
 from pyspark import Row
@@ -25,6 +25,9 @@ from databricks.labs.remorph.reconcile.recon_config import (
     DataReconcileOutput,
     MismatchOutput,
     ThresholdOutput,
+    ReconcileOutput,
+    ReconcileTableOutput,
+    StatusOutput,
 )
 from databricks.labs.remorph.reconcile.schema_compare import SchemaCompare
 
@@ -1672,3 +1675,32 @@ def test_reconcile_data_with_threshold_and_row_report_type(
     assert actual.missing_in_tgt_count == 0
     assert actual.threshold_output.threshold_df is None
     assert actual.threshold_output.threshold_mismatch_count == 0
+
+
+@patch('databricks.labs.remorph.reconcile.execute.generate_final_reconcile_output')
+def test_recon_output_without_exception(mock_gen_final_recon_output):
+    mock_workspace_client = MagicMock()
+    mock_spark = MagicMock()
+    mock_table_recon = MagicMock()
+    source_dialect = get_dialect("snowflake")
+    mock_gen_final_recon_output.return_value = ReconcileOutput(
+        recon_id="00112233-4455-6677-8899-aabbccddeeff",
+        results=[
+            ReconcileTableOutput(
+                target_table_name="supplier",
+                source_table_name="target_supplier",
+                status=StatusOutput(
+                    row=True,
+                    column=True,
+                    schema=True,
+                ),
+                exception_message=None,
+            )
+        ],
+    )
+
+    try:
+        recon(mock_workspace_client, mock_spark, mock_table_recon, source_dialect, "all")
+    except ReconciliationException as e:
+        msg = f"An exception {e} was raised when it should not have been"
+        pytest.fail(msg)
