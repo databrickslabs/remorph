@@ -1,7 +1,7 @@
 package com.databricks.labs.remorph.parsers.tsql
 
 import com.databricks.labs.remorph.parsers.tsql.TSqlParser._
-import com.databricks.labs.remorph.parsers.{FunctionBuilder, ParserCommon, StandardFunction, UnknownFunction, XmlFunction, intermediate => ir}
+import com.databricks.labs.remorph.parsers.{FunctionBuilder, ParserCommon, StandardFunction, TSql, UnknownFunction, XmlFunction, intermediate => ir}
 import org.antlr.v4.runtime.Token
 import org.antlr.v4.runtime.tree.{TerminalNode, Trees}
 
@@ -281,7 +281,7 @@ class TSqlExpressionBuilder extends TSqlParserBaseVisitor[ir.Expression] with Pa
   override def visitStandardFunction(ctx: StandardFunctionContext): ir.Expression = {
     val name = ctx.funcId.getText
     val args = Option(ctx.expression()).map(_.asScala.map(_.accept(this))).getOrElse(Seq.empty)
-    FunctionBuilder.buildFunction(name, args)
+    FunctionBuilder.buildFunction(name, args, TSql)
   }
 
   // Note that this visitor is made complicated and difficult because the built in ir does not use options

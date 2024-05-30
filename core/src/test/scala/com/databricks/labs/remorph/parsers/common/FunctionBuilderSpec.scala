@@ -1,7 +1,6 @@
 package com.databricks.labs.remorph.parsers.common
 
-import com.databricks.labs.remorph.parsers.intermediate.UnresolvedFunction
-import com.databricks.labs.remorph.parsers.{FixedArity, FunctionArity, FunctionBuilder, FunctionType, StandardFunction, UnknownFunction, VariableArity, XmlFunction}
+import com.databricks.labs.remorph.parsers.{intermediate => ir, _}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.prop.TableDrivenPropertyChecks
@@ -126,7 +125,7 @@ class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenProp
       ("ISDATE", Some(FixedArity(1))),
       ("ISDESCENDANTOF", Some(FixedArity(1))),
       ("ISJSON", Some(VariableArity(1, 2))),
-      ("ISNULL", Some(FixedArity(2))),
+      ("ISNULL", Some(VariableArity(1, 2, conversionStrategy = Some(FunctionConverters.FunctionRename)))),
       ("ISNUMERIC", Some(FixedArity(1))),
       ("JSON_MODIFY", Some(FixedArity(3))),
       ("JSON_PATH_EXISTS", Some(FixedArity(2))),
@@ -283,39 +282,71 @@ class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenProp
 
   "buildFunction" should "remove quotes and brackets from function names" in {
     // Test function name with less than 2 characters
-    val result1 = FunctionBuilder.buildFunction("a", Seq())
+    val result1 = FunctionBuilder.buildFunction("a", List.empty, TSql)
     result1 match {
-      case f: UnresolvedFunction => f.function_name shouldBe "a"
+      case f: ir.UnresolvedFunction => f.function_name shouldBe "a"
       case _ => fail("Unexpected function type")
     }
 
     // Test function name with matching quotes
-    val result2 = FunctionBuilder.buildFunction("'quoted'", Seq())
+    val result2 = FunctionBuilder.buildFunction("'quoted'", List.empty, TSql)
     result2 match {
-      case f: UnresolvedFunction => f.function_name shouldBe "quoted"
+      case f: ir.UnresolvedFunction => f.function_name shouldBe "quoted"
       case _ => fail("Unexpected function type")
     }
 
     // Test function name with matching brackets
-    val result3 = FunctionBuilder.buildFunction("[bracketed]", Seq())
+    val result3 = FunctionBuilder.buildFunction("[bracketed]", List.empty, TSql)
     result3 match {
-      case f: UnresolvedFunction => f.function_name shouldBe "bracketed"
+      case f: ir.UnresolvedFunction => f.function_name shouldBe "bracketed"
       case _ => fail("Unexpected function type")
     }
 
     // Test function name with matching backslashes
-    val result4 = FunctionBuilder.buildFunction("\\backslashed\\", Seq())
+    val result4 = FunctionBuilder.buildFunction("\\backslashed\\", List.empty, TSql)
     result4 match {
-      case f: UnresolvedFunction => f.function_name shouldBe "backslashed"
+      case f: ir.UnresolvedFunction => f.function_name shouldBe "backslashed"
       case _ => fail("Unexpected function type")
     }
 
     // Test function name with non-matching quotes
-    val result5 = FunctionBuilder.buildFunction("'nonmatching", Seq())
+    val result5 = FunctionBuilder.buildFunction("'nonmatching", List.empty, TSql)
     result5 match {
-      case f: UnresolvedFunction => f.function_name shouldBe "'nonmatching"
+      case f: ir.UnresolvedFunction => f.function_name shouldBe "'nonmatching"
       case _ => fail("Unexpected function type")
     }
   }
 
+  "buildFunction" should "Apply known TSQL conversion strategies" in {
+    val result1 = FunctionBuilder.buildFunction("ISNULL", Seq(ir.Column("x"), ir.Literal(integer = Some(0))), TSql)
+    result1 match {
+      case f: ir.CallFunction => f.function_name shouldBe "IFNULL"
+      case _ => fail("ISNULL TSql conversion failed")
+    }
+  }
+
+  "buildFunction" should "Ignore TSQL conversion strategies in Snowflake dialect" in {
+    val result1 = FunctionBuilder.buildFunction("ISNULL", Seq(ir.Column("x"), ir.Literal(integer = Some(0))), Snowflake)
+    result1 match {
+      case f: ir.CallFunction => f.function_name shouldBe "ISNULL"
+      case _ => fail("ISNULL Snowflake conversion failed")
+    }
+  }
+
+  "buildFunction" should "Should preserve case if it can" in {
+    val result1 = FunctionBuilder.buildFunction("isnull", Seq(ir.Column("x"), ir.Literal(integer = Some(0))), TSql)
+    result1 match {
+      case f: ir.CallFunction => f.function_name shouldBe "ifnull"
+      case _ => fail("ifnull conversion failed")
+    }
+  }
+
+  "FunctionRename strategy" should "preserve original function if no match is found" in {
+    val result1 =
+      FunctionConverters.FunctionRename.convert("Abs", Seq(ir.Literal(integer = Some(66))), TSql)
+    result1 match {
+      case f: ir.CallFunction => f.function_name shouldBe "Abs"
+      case _ => fail("UNKNOWN_FUNCTION conversion failed")
+    }
+  }
 }

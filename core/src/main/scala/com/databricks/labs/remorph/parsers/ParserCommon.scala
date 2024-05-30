@@ -7,3 +7,7 @@ trait ParserCommon {
     a != null && b != null && a.getSourceInterval.startsBeforeDisjoint(b.getSourceInterval)
   }
 }
+
+sealed trait SqlDialect
+case object TSql extends SqlDialect
+case object Snowflake extends SqlDialect
