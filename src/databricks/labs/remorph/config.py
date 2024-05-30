@@ -1,5 +1,6 @@
+import collections
 import logging
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from sqlglot.dialects.dialect import Dialect, Dialects, DialectType
 
@@ -98,6 +99,7 @@ class ReconcileConfig:
 
     data_source: str
     report_type: str
-    tables: dict[str, list[str]]  # stores tables in the format {"all/include/exclude": [*, table1, table2]}
     secret_scope: str
     config: DatabaseConfig
+    # stores tables in the format {"all/include/exclude": [*, table1, table2]}
+    tables: dict[str, list[str]] = field(default_factory=collections.defaultdict)
