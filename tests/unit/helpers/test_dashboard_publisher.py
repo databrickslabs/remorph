@@ -1,4 +1,4 @@
-from importlib.resources import files, as_file
+from pathlib import Path
 from unittest.mock import create_autospec
 
 from databricks.labs.blueprint.installation import MockInstallation
@@ -11,7 +11,7 @@ from databricks.labs.remorph.helpers.dashboard_publisher import DashboardPublish
 def test_create_dashboard():
     installation = MockInstallation(is_global=False)
     workspace_client = create_autospec(WorkspaceClient)
-    dashboard_file = files("resources").joinpath("Remorph-Reconciliation.lvdash.json")
+    dashboard_file = Path(__file__).parent / Path('../../resources/Remorph-Reconciliation.lvdash.json')
     expected_dashboard_metadata = ObjectInfo(
         object_type=ObjectType.DASHBOARD,
         path="/Users/first.last@example.com/folder/Remorph-Reconciliation.lvdash.json",
@@ -22,8 +22,7 @@ def test_create_dashboard():
     workspace_client.workspace.get_status.return_value = expected_dashboard_metadata
 
     dashboard_publisher = DashboardPublisher(workspace_client, installation)
-    with as_file(dashboard_file) as dashboard_file:
-        dashboard_metadata = dashboard_publisher.create(dashboard_file)
+    dashboard_metadata = dashboard_publisher.create(dashboard_file)
     installation.assert_file_uploaded(dashboard_file.name, dashboard_file.read_bytes())
     assert dashboard_metadata == expected_dashboard_metadata
 
@@ -36,11 +35,11 @@ def test_create_dashboard_with_params():
         "schema": "reconcile1",
     }
 
-    dashboard_file = files("resources").joinpath("Remorph-Reconciliation.lvdash.json")
-    with as_file(files("resources").joinpath("Remorph-Reconciliation-Substituted.lvdash.json")) as f:
-        substituted_dashboard_data = f.read_bytes()
+    dashboard_file = Path(__file__).parent / Path('../../resources/Remorph-Reconciliation.lvdash.json')
+    substituted_dashboard_file = Path(__file__).parent / Path(
+        '../../resources/Remorph-Reconciliation-Substituted.lvdash.json'
+    )
 
     dashboard_publisher = DashboardPublisher(workspace_client, installation)
-    with as_file(dashboard_file) as dashboard_file:
-        dashboard_publisher.create(dashboard_file, parameters=dashboard_params)
-    installation.assert_file_uploaded(dashboard_file.name, substituted_dashboard_data)
+    dashboard_publisher.create(dashboard_file, parameters=dashboard_params)
+    installation.assert_file_uploaded(dashboard_file.name, substituted_dashboard_file.read_bytes())
