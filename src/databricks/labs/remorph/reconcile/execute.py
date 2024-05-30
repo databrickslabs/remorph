@@ -2,6 +2,7 @@ import logging
 from datetime import datetime
 from uuid import uuid4
 
+from databricks.sdk import WorkspaceClient
 from pyspark.errors import PySparkException
 from pyspark.sql import DataFrame, SparkSession
 from sqlglot import Dialect
@@ -16,6 +17,7 @@ from databricks.labs.remorph.reconcile.connectors.source_adapter import create_a
 from databricks.labs.remorph.reconcile.exception import (
     DataSourceRuntimeException,
     InvalidInputException,
+    ReconciliationException,
 )
 from databricks.labs.remorph.reconcile.query_builder.hash_query import HashQueryBuilder
 from databricks.labs.remorph.reconcile.query_builder.sampling_query import (
@@ -39,7 +41,6 @@ from databricks.labs.remorph.reconcile.recon_config import (
 )
 from databricks.labs.remorph.reconcile.schema_compare import SchemaCompare
 from databricks.labs.remorph.transpiler.execute import verify_workspace_client
-from databricks.sdk import WorkspaceClient
 
 logger = logging.getLogger(__name__)
 _SAMPLE_ROWS = 50
@@ -137,7 +138,24 @@ def recon(
             recon_process_duration=recon_process_duration,
         )
 
-    return generate_final_reconcile_output(recon_id=recon_id, spark=spark)
+    reconcile_output = generate_final_reconcile_output(recon_id=recon_id, spark=spark)
+    _verify_successful_reconciliation(reconcile_output)
+    return reconcile_output
+
+
+def _verify_successful_reconciliation(reconcile_output: ReconcileOutput):
+    for table_output in reconcile_output.results:
+        if (
+            table_output.status.column is False
+            or table_output.status.row is False
+            or table_output.status.schema is False
+        ):
+            raise ReconciliationException(
+                "Reconciliation failed for one or more tables. Please check the recon metrics for more details.",
+                reconcile_output=reconcile_output,
+            )
+
+    logger.info("Reconciliation completed successfully.")
 
 
 def initialise_data_source(
