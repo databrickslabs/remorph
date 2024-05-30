@@ -8,6 +8,7 @@ from databricks.labs.remorph.reconcile.recon_config import (
 )
 
 _HASH_COLUMN_NAME = "hash_value_recon"
+_SAMPLE_ROWS = 50
 
 
 def raise_column_mismatch_exception(msg: str, source_missing: list[str], target_missing: list[str]) -> Exception:
@@ -49,8 +50,8 @@ def reconcile_data(
         mismatch_count=mismatch_count,
         missing_in_src_count=missing_in_src.count(),
         missing_in_tgt_count=missing_in_tgt.count(),
-        missing_in_src=missing_in_src,
-        missing_in_tgt=missing_in_tgt,
+        missing_in_src=missing_in_src.limit(_SAMPLE_ROWS),
+        missing_in_tgt=missing_in_tgt.limit(_SAMPLE_ROWS),
         mismatch=MismatchOutput(mismatch_df=mismatch),
     )
 
