@@ -11,9 +11,14 @@ case object UnknownFunction extends FunctionType
 
 sealed trait FunctionArity {
   def isConvertible: Boolean
+  def conversionStrategy: Option[ConversionStrategy]
 }
 
-case class FixedArity(arity: Int, functionType: FunctionType = StandardFunction, convertible: Boolean = true)
+case class FixedArity(
+    arity: Int,
+    functionType: FunctionType = StandardFunction,
+    convertible: Boolean = true,
+    override val conversionStrategy: Option[ConversionStrategy] = None)
     extends FunctionArity {
   override def isConvertible: Boolean = convertible
 }
@@ -22,7 +27,8 @@ case class VariableArity(
     argMin: Int,
     argMax: Int,
     functionType: FunctionType = StandardFunction,
-    convertible: Boolean = true)
+    convertible: Boolean = true,
+    override val conversionStrategy: Option[ConversionStrategy] = None)
     extends FunctionArity {
   override def isConvertible: Boolean = convertible
 }
@@ -152,7 +158,9 @@ object FunctionBuilder {
     case "ISDATE" => Some(FixedArity(1))
     case "ISDESCENDANTOF" => Some(FixedArity(1))
     case "ISJSON" => Some(VariableArity(1, 2))
-    case "ISNULL" => Some(FixedArity(2))
+    // Though ISNULL is FixedArity, it is one argument in Snowflake (and others) but two arguments in TSql
+    // The ConversionStrategy is used to rename ISNULL to IFNULL in TSql
+    case "ISNULL" => Some(VariableArity(1, 2, conversionStrategy = Some(FunctionConverters.FunctionRename)))
     case "ISNUMERIC" => Some(FixedArity(1))
     case "JSON_MODIFY" => Some(FixedArity(3))
     case "JSON_PATH_EXISTS" => Some(FixedArity(2))
@@ -278,7 +286,7 @@ object FunctionBuilder {
     }
   }
 
-  def buildFunction(name: String, args: Seq[ir.Expression]): ir.Expression = {
+  def buildFunction(name: String, args: Seq[ir.Expression], dialect: SqlDialect): ir.Expression = {
     val irName = removeQuotesAndBrackets(name)
     val uName = irName.toUpperCase(Locale.getDefault())
     val defnOption = functionArity(uName)
@@ -288,11 +296,11 @@ object FunctionBuilder {
         ir.UnresolvedFunction(name, args, is_distinct = false, is_user_defined_function = false)
 
       case Some(fixedArity: FixedArity) if args.length == fixedArity.arity =>
-        ir.CallFunction(irName, args)
+        applyConversionStrategy(fixedArity, args, irName, dialect)
 
       case Some(variableArity: VariableArity)
           if args.length >= variableArity.argMin && args.length <= variableArity.argMax =>
-        ir.CallFunction(irName, args)
+        applyConversionStrategy(variableArity, args, irName, dialect)
 
       // Found the function but the arg count is incorrect
       case Some(_) =>
@@ -306,6 +314,17 @@ object FunctionBuilder {
       // Unsupported function
       case None =>
         ir.UnresolvedFunction(irName, args, is_distinct = false, is_user_defined_function = false)
+    }
+  }
+
+  def applyConversionStrategy(
+      functionArity: FunctionArity,
+      args: Seq[ir.Expression],
+      irName: String,
+      dialect: SqlDialect): ir.Expression = {
+    functionArity.conversionStrategy match {
+      case Some(strategy) => strategy.convert(irName, args, dialect)
+      case _ => ir.CallFunction(irName, args)
     }
   }
 

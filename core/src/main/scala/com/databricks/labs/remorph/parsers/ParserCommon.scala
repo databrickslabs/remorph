@@ -10,3 +10,7 @@ trait ParserCommon[A] { self: AbstractParseTreeVisitor[A] =>
 
   def visitSeq(contexts: Seq[RuleContext]): Seq[A] = contexts.map(_.accept(self))
 }
+
+sealed trait SqlDialect
+case object TSql extends SqlDialect
+case object Snowflake extends SqlDialect
