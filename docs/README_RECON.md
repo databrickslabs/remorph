@@ -1,9 +1,21 @@
 # Remorph Reconciliation
 
-Remorph Reconciliation is a library that helps to reconcile the data, post data migration or during the data migration   
+Remorph Reconciliation is a library that helps to reconcile the data, post data migration or during the data
+migration   
 between the source system and databricks system.It supports multiple types of reconciliation depending upon the user   
 requirements and data in the source system.It makes the migration process simpler by removing the complex part of
 validating the data from one system to another and enabling the team with more insights on the data migrated.
+
+## Types of Report Supported:
+
+| report type | description                                                                                                                     | key outputs                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+|-------------|---------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **schema**  | reconcile the schema of source and target.<br> - are same if the source is same <br> - its compatible if the source is different | - **schema_comparison**<br>- **schema_difference**                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
+| **row**     | reconcile the data only at row level(hash value of the source row is matched with the hash value of the target)                 | - **missing_in_src**(sample rows in target that are not available in source + sample rows in target that doesn't match with source)<br> - **missing_in_tgt**(sample rows in target that are not available in target + sample rows in source that doesn't match with target)<br>  **NOTE**: the report won't differentiate the mismatch and missing here.                                                                                                                                              |
+| **data**    | reconcile the data at row and column level- ```primary_keys``` will play the key role here                                      | - **mismatch_data**(the sample data with mismatches captured at each column and row level )<br> - **missing_in_src**(sample rows that are available in target but missing in src)<br> - **missing_in_tgt**(sample rows that are available in source but are missing in target)<br> - **threshold_mismatch**(configured column will be reconciled based on percentile or threshold boundary or date boundary)<br> - **mismatch_columns**(consolidated list of columns that has mismatches in them)<br> |
+| **all**     | this is a combination of data + schema                                                                                          | - **data + schema outputs**                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+
+For detailed information please refer to the sample examples here.
 
 ## Installation
 
@@ -52,10 +64,6 @@ flowchart TD
 | Databricks | Yes    | Yes | Yes  | Yes |
 
 ## Dependency CLI commands
-
-TBD
-
-## Environment Setup
 
 TBD
 
@@ -109,19 +117,27 @@ TBD
 | type        | string    | user must specify the type of the column. integer is selected for columns of type integer or double, while timestamp is chosen for columns of either date or timestamp types | required("integer" or "timestamp") | "integer"          |
 
 ### Key Considerations on Table Config:
+
 1. The column names are always converted to lower case and considered for reconciliation.
-2. Currently it doesn't support case sensitive column names
-3. Table Transformation internally consider the default value as the column value. It doesn't apply any default transformations
-if not provided.
-```eg:Transformation(column_name="address",source_name=None,target_name="trim(s_address)")```
-For the given example,
-the source transformation is None,so the raw value in the source is considered for reconciliation.
+2. Currently it doesn't support case insensitivity and doesn't have collation support
+3. Table Transformation internally consider the default value as the column value. It doesn't apply any default
+   transformations
+   if not provided.
+   ```eg:Transformation(column_name="address",source_name=None,target_name="trim(s_address)")```
+   For the given example,
+   the source transformation is None,so the raw value in the source is considered for reconciliation.
+4. If no user transformation is provided for a given column in the configuration,by default depending on the source data type our reconciler will apply  
+default transformation on both source and target to get the matching hash value in source and target.Please find the detailed default transformations here.
+
+**Note:**
+The user can override the default behaviour with the user transformations using the configurations if needed.
 
 
 ### Do's and Don't's on Table Config:
 
-1. Always the column reference to be source column names in all the configs,except **Transformations** and **Filters** as these
-   are expressions ,that are applied directly in the sql.
+1. Always the column reference to be source column names in all the configs,except **Transformations** and **Filters**
+   as these
+   are sql expressions ,that are applied directly in the sql.
 
 # Guidance for Oracle as source
 
@@ -147,19 +163,27 @@ the source transformation is None,so the raw value in the source is considered f
 | oracle      | number(10,5)  | trim(to_char(coalesce(<col_name>,0.0), '99990.99999'))               | cast(coalesce(<col_name>,0.0) as decimal(10,5)) | 1.00                 | 1.00000              | this can be used for any precision and scale by adjusting accordingly in the transformation |
 | snowflake   | array         | array_to_string(array_compact(<col_name>),',')                       | concat_ws(',', <col_name>)                      |                      |                      | in case of removing "undefined" during migration(converts sparse array to dense array)      |
 | snowflake   | array         | array_to_string(array_sort(array_compact(<col_name>),true,true),',') | concat_ws(',', <col_name>)                      |                      |                      | in case of removing "undefined" during migration and want to sort the array                 |
-| snowflake   | timestamp_ntz | date_part(epoch_second,<col_name>)                                   | unix_timestamp(<col_name>)                      |                      |                      | convert timestamp_ntz to epoch for getting a match b/w snowflake and databricks             | 
+| snowflake   | timestamp_ntz | date_part(epoch_second,<col_name>)                                   | unix_timestamp(<col_name>)                      |                      |                      | convert timestamp_ntz to epoch for getting a match b/w snowflake and databricks             |
+
 
 ## Data Reconciliation Examples:
 
 For more Reconciliation Config examples ,please refer to [sample_notebook][link].
 
-[link]: ./docs/reconciliation-configs-examples.py
+[link]: reconciliation-configs-examples.py
 
-## Note:
-**In Reconciliation** 
+## FAQS:
+
+**In Reconciliation**
+
 1. Databricks with UC is the only target
 2. Duplicates are not covered
-3. User Transformations are not applied for Schema Validation.Only select_columns,drop_columns and column_mapping is valid for schema  
-validation
+3. User Transformations are not applied for Schema Validation.Only select_columns,drop_columns and column_mapping is
+   valid for schema  
+   validation
 4. Aggregate transformations or multi-column transformations are not supported
 5. Not all complex data types are supported
+
+## Common Error Codes:
+
+TBD
