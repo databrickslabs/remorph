@@ -8,12 +8,12 @@ validating the data from one system to another and enabling the team with more i
 
 ## Types of Report Supported:
 
-| report type | description                                                                                                                     | key outputs                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
-|-------------|---------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| report type | description                                                                                                                      | key outputs                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+|-------------|----------------------------------------------------------------------------------------------------------------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | **schema**  | reconcile the schema of source and target.<br> - are same if the source is same <br> - its compatible if the source is different | - **schema_comparison**<br>- **schema_difference**                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
-| **row**     | reconcile the data only at row level(hash value of the source row is matched with the hash value of the target)                 | - **missing_in_src**(sample rows in target that are not available in source + sample rows in target that doesn't match with source)<br> - **missing_in_tgt**(sample rows in target that are not available in target + sample rows in source that doesn't match with target)<br>  **NOTE**: the report won't differentiate the mismatch and missing here.                                                                                                                                              |
-| **data**    | reconcile the data at row and column level- ```primary_keys``` will play the key role here                                      | - **mismatch_data**(the sample data with mismatches captured at each column and row level )<br> - **missing_in_src**(sample rows that are available in target but missing in src)<br> - **missing_in_tgt**(sample rows that are available in source but are missing in target)<br> - **threshold_mismatch**(configured column will be reconciled based on percentile or threshold boundary or date boundary)<br> - **mismatch_columns**(consolidated list of columns that has mismatches in them)<br> |
-| **all**     | this is a combination of data + schema                                                                                          | - **data + schema outputs**                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| **row**     | reconcile the data only at row level(hash value of the source row is matched with the hash value of the target)                  | - **missing_in_src**(sample rows in target that are not available in source + sample rows in target that doesn't match with source)<br> - **missing_in_tgt**(sample rows in target that are not available in target + sample rows in source that doesn't match with target)<br>  **NOTE**: the report won't differentiate the mismatch and missing here.                                                                                                                                              |
+| **data**    | reconcile the data at row and column level- ```primary_keys``` will play the key role here                                       | - **mismatch_data**(the sample data with mismatches captured at each column and row level )<br> - **missing_in_src**(sample rows that are available in target but missing in src)<br> - **missing_in_tgt**(sample rows that are available in source but are missing in target)<br> - **threshold_mismatch**(configured column will be reconciled based on percentile or threshold boundary or date boundary)<br> - **mismatch_columns**(consolidated list of columns that has mismatches in them)<br> |
+| **all**     | this is a combination of data + schema                                                                                           | - **data + schema outputs**                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 
 For detailed information please refer to the sample examples here.
 
@@ -69,30 +69,62 @@ TBD
 
 ## TABLE Config Elements:
 
-| config_name         | data_type    | description                                                                                                                                                                                                                      | required/optional | example_value                                                                                                                  |
-|---------------------|--------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------|--------------------------------------------------------------------------------------------------------------------------------|
-| source_name         | string       | name of the source table                                                                                                                                                                                                         | required          | product                                                                                                                        |
-| target_name         | string       | name of the target table                                                                                                                                                                                                         | required          | product                                                                                                                        |
-| join_columns        | list[string] | list of column names or column name which acts as primary key to the table                                                                                                                                                       | optional          | ["product_id"] or ["product_id","order_id"]                                                                                    |
-| jdbc_reader_options | string       | jdbc_reader_option,that helps to parallelize the data read from jdbc sources based on the given configuration.For more info [jdbc_reader_options](#jdbc_reader_options)                                                          | optional          | "jdbc_reader_options": {"number_partitions": 10,"partition_column": "s_suppkey","upper_bound": "10000000","lower_bound": "10"} |
-| select_columns      | list[string] | list of columns to be considered for the reconciliation process                                                                                                                                                                  | optional          | ["id","name","address"]                                                                                                        |
-| drop_columns        | list[string] | list of columns to be eliminated from the reconciliation process                                                                                                                                                                 | optional          | ["comment"]                                                                                                                    |
-| column_mapping      | list         | list of column_mapping,that helps in resolving column name mismatch b/w src and tgt eg: "id" in src  and "emp_id" in tgt.For more info [column_mapping](#column_mapping)                                                         | optional          | "column_mapping": [{"source_name": "id","target_name": "emp_id"}]                                                              |
-| transformations     | list         | list of user-defined transformations ,that can be applied on src and tgt columns in case of any incompatibility data types or explicit transformation applied during migration.For more info [transformations](#transformations) | optional          | "transformations": [{"column_name": "s_address","source": "trim(s_address)","target": "trim(s_address)"}]                      |
-| thresholds          | list         | list of threshold conditions, that can be applied on tgt columns to match the minor exceptions in data.It supports percentile,absolute, and date fields.For more info [thresholds](#thresholds)                                  | optional          | "thresholds": [{"column_name": "sal","lower_bound": "-5%","upper_bound": "5%","type": "integer"}]                              |
-| filters             | string       | filter expr that can be used to filter the data on src and tgt based on respective expressions                                                                                                                                   | optional          | "filters" : {"source":"lower(dept_name)>'it'" ,"target" : "lower(department_name)>'it'"}                                       |
+```
+@dataclass
+class Table:
+    source_name: str
+    target_name: str
+    join_columns: list[str] | None = None
+    jdbc_reader_options: JdbcReaderOptions | None = None
+    select_columns: list[str] | None = None
+    drop_columns: list[str] | None = None
+    column_mapping: list[ColumnMapping] | None = None
+    transformations: list[Transformation] | None = None
+    thresholds: list[Thresholds] | None = None
+    filters: Filters | None = None
+```
+
+| config_name         | data_type             | description                                                                                                                                                                                                                      | required/optional      | example_value                                                                                                                  |
+|---------------------|-----------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------|--------------------------------------------------------------------------------------------------------------------------------|
+| source_name         | string                | name of the source table                                                                                                                                                                                                         | required               | product                                                                                                                        |
+| target_name         | string                | name of the target table                                                                                                                                                                                                         | required               | product                                                                                                                        |
+| join_columns        | list[string]          | list of column names or column name which acts as primary key to the table                                                                                                                                                       | optional(default=None) | ["product_id"] or ["product_id","order_id"]                                                                                    |
+| jdbc_reader_options | string                | jdbc_reader_option,that helps to parallelize the data read from jdbc sources based on the given configuration.For more info [jdbc_reader_options](#jdbc_reader_options)                                                          | optional(default=None) | "jdbc_reader_options": {"number_partitions": 10,"partition_column": "s_suppkey","upper_bound": "10000000","lower_bound": "10"} |
+| select_columns      | list[string]          | list of columns to be considered for the reconciliation process                                                                                                                                                                  | optional(default=None) | ["id","name","address"]                                                                                                        |
+| drop_columns        | list[string]          | list of columns to be eliminated from the reconciliation process                                                                                                                                                                 | optional(default=None) | ["comment"]                                                                                                                    |
+| column_mapping      | list[ColumnMapping]   | list of column_mapping,that helps in resolving column name mismatch b/w src and tgt eg: "id" in src  and "emp_id" in tgt.For more info [column_mapping](#column_mapping)                                                         | optional(default=None) | "column_mapping": [{"source_name": "id","target_name": "emp_id"}]                                                              |
+| transformations     | list[Transformations] | list of user-defined transformations ,that can be applied on src and tgt columns in case of any incompatibility data types or explicit transformation applied during migration.For more info [transformations](#transformations) | optional(default=None) | "transformations": [{"column_name": "s_address","source": "trim(s_address)","target": "trim(s_address)"}]                      |
+| thresholds          | list[Thresholds]      | list of threshold conditions, that can be applied on tgt columns to match the minor exceptions in data.It supports percentile,absolute, and date fields.For more info [thresholds](#thresholds)                                  | optional(default=None) | "thresholds": [{"column_name": "sal","lower_bound": "-5%","upper_bound": "5%","type": "integer"}]                              |
+| filters             | Filters               | filter expr that can be used to filter the data on src and tgt based on respective expressions                                                                                                                                   | optional(default=None) | "filters" : {"source":"lower(dept_name)>'it'" ,"target" : "lower(department_name)>'it'"}                                       |
 
 ### jdbc_reader_options
 
-| field_name        | data_type | description                                                                                                                                                                                                                                                                                                                                                                                                                                                            | required/optional | example_value |
-|-------------------|-----------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------|---------------|
-| number_partitions | string    | the number of partitions for reading input data in parallel                                                                                                                                                                                                                                                                                                                                                                                                            | required          | "200"         |
-| partition_column  | string    | Int/date/timestamp parameter defining the column used for partitioning, typically the primary key of the source table. Note that this parameter accepts only one column, especially crucial when dealing with a composite primary key. In such cases, provide the column with higher cardinality.                                                                                                                                                                      | required          | "employee_id  |
-| upper_bound       | string    | integer or date or timestamp without time zone value as string), that should be set appropriately (usually the maximum value in case of non-skew data) so the data read from the source should be approximately equally distributed                                                                                                                                                                                                                                    | required          | "1"           |
-| lower_bound       | string    | integer or date or timestamp without time zone value as string), that should be set appropriately (usually the minimum value in case of non-skew data) so the data read from the source should be approximately equally distributed                                                                                                                                                                                                                                    | required          | "100000"      |
-| fetch_size        | string    | This parameter influences the number of rows fetched per round-trip between Spark and the JDBC database, optimizing data retrieval performance. Adjusting this option significantly impacts the efficiency of data extraction, controlling the volume of data retrieved in each fetch operation. More details on configuring fetchSize can be found [here](https://docs.databricks.com/en/connect/external-systems/jdbc.html#control-number-of-rows-fetched-per-query) | optional          | "10000"       |
+```
+@dataclass
+class JdbcReaderOptions:
+    number_partitions: int
+    partition_column: str
+    lower_bound: str
+    upper_bound: str
+    fetch_size: int = 100
+```
+
+| field_name        | data_type | description                                                                                                                                                                                                                                                                                                                                                                                                                                                            | required/optional       | example_value |
+|-------------------|-----------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------|---------------|
+| number_partitions | string    | the number of partitions for reading input data in parallel                                                                                                                                                                                                                                                                                                                                                                                                            | required                | "200"         |
+| partition_column  | string    | Int/date/timestamp parameter defining the column used for partitioning, typically the primary key of the source table. Note that this parameter accepts only one column, especially crucial when dealing with a composite primary key. In such cases, provide the column with higher cardinality.                                                                                                                                                                      | required                | "employee_id  |
+| upper_bound       | string    | integer or date or timestamp without time zone value as string), that should be set appropriately (usually the maximum value in case of non-skew data) so the data read from the source should be approximately equally distributed                                                                                                                                                                                                                                    | required                | "1"           |
+| lower_bound       | string    | integer or date or timestamp without time zone value as string), that should be set appropriately (usually the minimum value in case of non-skew data) so the data read from the source should be approximately equally distributed                                                                                                                                                                                                                                    | required                | "100000"      |
+| fetch_size        | string    | This parameter influences the number of rows fetched per round-trip between Spark and the JDBC database, optimizing data retrieval performance. Adjusting this option significantly impacts the efficiency of data extraction, controlling the volume of data retrieved in each fetch operation. More details on configuring fetchSize can be found [here](https://docs.databricks.com/en/connect/external-systems/jdbc.html#control-number-of-rows-fetched-per-query) | optional(default="100") | "10000"       |
 
 ### column_mapping
+
+```
+@dataclass
+class ColumnMapping:
+    source_name: str
+    target_name: str
+```
 
 | field_name  | data_type | description        | required/optional | example_value   |
 |-------------|-----------|--------------------|-------------------|-----------------|
@@ -100,6 +132,14 @@ TBD
 | target_name | string    | target column name | required          | "department_id" |
 
 ### transformations
+
+```
+@dataclass
+class Transformation:
+    column_name: str
+    source: str
+    target: str | None = None
+```
 
 | field_name  | data_type | description                                                | required/optional | example_value                    |
 |-------------|-----------|------------------------------------------------------------|-------------------|----------------------------------|
@@ -109,12 +149,35 @@ TBD
 
 ### thresholds
 
+```
+@dataclass
+class Thresholds:
+    column_name: str
+    lower_bound: str
+    upper_bound: str
+    type: str
+```
+
 | field_name  | data_type | description                                                                                                                                                                  | required/optional                  | example_value      |
 |-------------|-----------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------|--------------------|
 | column_name | string    | the column that should be considered for threshold reconciliation                                                                                                            | required                           | "product_discount" |
-| lower_bound | string    | the lower bound of the difference between the source value and the target value                                                                                              | optional(default 0)                | -5%                | 
-| upper_bound | string    | the upper bound of the difference between the source value and the target value                                                                                              | optional(default 0)                | 5%                 |            
+| lower_bound | string    | the lower bound of the difference between the source value and the target value                                                                                              | optional(default=0)                | -5%                | 
+| upper_bound | string    | the upper bound of the difference between the source value and the target value                                                                                              | optional(default=0)                | 5%                 |            
 | type        | string    | user must specify the type of the column. integer is selected for columns of type integer or double, while timestamp is chosen for columns of either date or timestamp types | required("integer" or "timestamp") | "integer"          |
+
+### filters
+
+```
+@dataclass
+class Filters:
+    source: str | None = None
+    target: str | None = None
+```
+
+| field_name | data_type | description                                       | required/optional      | example_value                |
+|------------|-----------|---------------------------------------------------|------------------------|------------------------------|
+| source     | string    | the sql expression to filter the data from source | optional(default=None) | "lower(dept_name)='finance'" |
+| target     | string    | the sql expression to filter the data from target | optional(default=None) | "lower(dept_name)='finance'" |
 
 ### Key Considerations on Table Config:
 
@@ -126,12 +189,13 @@ TBD
    ```eg:Transformation(column_name="address",source_name=None,target_name="trim(s_address)")```
    For the given example,
    the source transformation is None,so the raw value in the source is considered for reconciliation.
-4. If no user transformation is provided for a given column in the configuration,by default depending on the source data type our reconciler will apply  
-default transformation on both source and target to get the matching hash value in source and target.Please find the detailed default transformations here.
+4. If no user transformation is provided for a given column in the configuration,by default depending on the source data
+   type our reconciler will apply  
+   default transformation on both source and target to get the matching hash value in source and target.Please find the
+   detailed default transformations here.
 
 **Note:**
 The user can override the default behaviour with the user transformations using the configurations if needed.
-
 
 ### Do's and Don't's on Table Config:
 
@@ -165,24 +229,34 @@ The user can override the default behaviour with the user transformations using 
 | snowflake   | array         | array_to_string(array_sort(array_compact(<col_name>),true,true),',') | concat_ws(',', <col_name>)                      |                      |                      | in case of removing "undefined" during migration and want to sort the array                 |
 | snowflake   | timestamp_ntz | date_part(epoch_second,<col_name>)                                   | unix_timestamp(<col_name>)                      |                      |                      | convert timestamp_ntz to epoch for getting a match b/w snowflake and databricks             |
 
-
 ## Data Reconciliation Examples:
 
 For more Reconciliation Config examples ,please refer to [sample_notebook][link].
 
 [link]: reconciliation-configs-examples.py
 
-## FAQS:
+# Frequently Asked Questions(FAQS)
 
-**In Reconciliation**
+## Reconciler Questions
 
-1. Databricks with UC is the only target
-2. Duplicates are not covered
-3. User Transformations are not applied for Schema Validation.Only select_columns,drop_columns and column_mapping is
-   valid for schema  
-   validation
-4. Aggregate transformations or multi-column transformations are not supported
-5. Not all complex data types are supported
+### Does Reconciler support NON-UC Databricks as target?
+No.Only UC enabled Databricks is accepted as Target.
+
+### Does Reconciler handle the duplicates in the record?
+No.Duplicates are not handled.If ran with duplicates,it would n*n matches and inconsistent output.
+
+### Does User Transformations are applicable for Schema Validations?
+No.User Transformations are not applied for Schema Validation.Only select_columns,drop_columns and column_mapping is
+valid for schema validation
+
+### Can we apply Aggregate or multi-column transformations as user transformation?
+No.Aggregate transformations or multi-column transformations are not supported
+
+### Does Reconciler supports all complex data types?
+Not all complex data types are supported
+
+### Does Reconciler support `Threshold Validation` for report type as `row`?
+No.Threshold Validation is supported only for report type as `data` or `all`.Generally tables with primary keys.
 
 ## Common Error Codes:
 

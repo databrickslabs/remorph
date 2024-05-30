@@ -485,17 +485,17 @@
 # MAGIC %md
 # MAGIC ### Target Data
 # MAGIC
-# MAGIC | p_id | array_col  | map_col  | struct_col         | array_of_map            | 
-# MAGIC |------|------------|----------|--------------------|-------------------------| 
-# MAGIC | 1    | [1,2,3]    | {"a":1}  | {"f1":"a","f2":1}  | [{"aa":"1"},{"ab":"2"}] | 
-# MAGIC | 2    | [4,5,6]    | {"b":2}  | {"f1":"bb","f2":2} | [{"bb":"1"},{"ba":"2"}] | 
-# MAGIC | 3    | [7,8,9]    | {"c":34} | {"f1":"c","f2":3}  | [{"ca":"1"},{"cb":"2"}] | 
-# MAGIC | 4    | [47,48,49] | {"d":4}  | {"f1":"d","f2":4}  | [{"da":"1"},{"db":"2"}] | 
+# MAGIC | p_id | array_col  | map_col  | struct_col         | array_of_map            |
+# MAGIC |------|------------|----------|--------------------|-------------------------|
+# MAGIC | 1    | [1,2,3]    | {"a":1}  | {"f1":"a","f2":1}  | [{"aa":"1"},{"ab":"2"}] |
+# MAGIC | 2    | [4,5,6]    | {"b":2}  | {"f1":"bb","f2":2} | [{"bb":"1"},{"ba":"2"}] |
+# MAGIC | 3    | [7,8,9]    | {"c":34} | {"f1":"c","f2":3}  | [{"ca":"1"},{"cb":"2"}] |
+# MAGIC | 4    | [47,48,49] | {"d":4}  | {"f1":"d","f2":4}  | [{"da":"1"},{"db":"2"}] |
 
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ### Run with Complex Data Types 
+# MAGIC ### Run with Complex Data Types
 # MAGIC
 # MAGIC ```
 # MAGIC
@@ -549,7 +549,7 @@
 # MAGIC %md
 # MAGIC ## UDF Support
 # MAGIC
-# MAGIC ### Note: sort_array_of_map_string_int is a user-defined function.You can create your own user-defined function for complex transformations and use it in the same way as below: 
+# MAGIC ### Note: sort_array_of_map_string_int is a user-defined function.You can create your own user-defined function for complex transformations and use it in the same way as below:
 # MAGIC
 # MAGIC ```
 # MAGIC
