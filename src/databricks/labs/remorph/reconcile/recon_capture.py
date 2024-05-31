@@ -184,9 +184,9 @@ class ReconCapture:
 
         exception_msg = ""
         if schema_reconcile_output.exception is not None:
-            exception_msg = schema_reconcile_output.exception
+            exception_msg = schema_reconcile_output.exception.replace("'", '').replace('"', '')
         if data_reconcile_output.exception is not None:
-            exception_msg = data_reconcile_output.exception
+            exception_msg = data_reconcile_output.exception.replace("'", '').replace('"', '')
 
         insertion_time = str(datetime.now())
         mismatch_columns = []
@@ -197,18 +197,21 @@ class ReconCapture:
             f"""
                 select {recon_table_id} as recon_table_id,
                 named_struct(
-                    'row_comparison', case when '{self.report_type.lower()}' in ('all', 'row', 'data') then
+                    'row_comparison', case when '{self.report_type.lower()}' in ('all', 'row', 'data') 
+                        and '{exception_msg}' = '' then
                      named_struct(
                         'missing_in_source', {data_reconcile_output.missing_in_src_count},
                         'missing_in_target', {data_reconcile_output.missing_in_tgt_count}
                     ) else null end,
-                    'column_comparison', case when '{self.report_type.lower()}' in ('all', 'data') then
+                    'column_comparison', case when '{self.report_type.lower()}' in ('all', 'data') 
+                        and '{exception_msg}' = '' then
                     named_struct(
                         'absolute_mismatch', {data_reconcile_output.mismatch_count},
                         'threshold_mismatch', {data_reconcile_output.threshold_output.threshold_mismatch_count},
                         'mismatch_columns', '{",".join(mismatch_columns)}'
                     ) else null end,
-                    'schema_comparison', case when '{self.report_type.lower()}' in ('all', 'schema') then
+                    'schema_comparison', case when '{self.report_type.lower()}' in ('all', 'schema') 
+                        and '{exception_msg}' = '' then
                         {schema_reconcile_output.is_valid} else null end
                 ) as recon_metrics,
                 named_struct(
