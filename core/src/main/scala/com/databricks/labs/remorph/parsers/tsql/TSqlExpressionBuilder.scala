@@ -1,7 +1,7 @@
 package com.databricks.labs.remorph.parsers.tsql
 
 import com.databricks.labs.remorph.parsers.tsql.TSqlParser._
-import com.databricks.labs.remorph.parsers.{FunctionBuilder, ParserCommon, StandardFunction, TSql, UnknownFunction, XmlFunction, intermediate => ir}
+import com.databricks.labs.remorph.parsers.{FunctionBuilder, ParserCommon, TSql, XmlFunction, intermediate => ir}
 import org.antlr.v4.runtime.Token
 import org.antlr.v4.runtime.tree.{TerminalNode, Trees}
 
@@ -145,9 +145,8 @@ class TSqlExpressionBuilder extends TSqlParserBaseVisitor[ir.Expression] with Pa
         ir.Column(c1.name + "." + c2.name)
       case (_: ir.Column, c2: ir.CallFunction) =>
         FunctionBuilder.functionType(TSql, c2.function_name) match {
-          case StandardFunction => ir.Dot(left, right)
           case XmlFunction => ir.XmlFunction(c2, left)
-          case UnknownFunction => ir.Dot(left, right)
+          case _ => ir.Dot(left, right)
         }
       // Other cases
       case _ => ir.Dot(left, right)
