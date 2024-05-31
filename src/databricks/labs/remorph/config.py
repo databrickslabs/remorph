@@ -5,7 +5,7 @@ from sqlglot.dialects.dialect import Dialect, Dialects, DialectType
 
 from databricks.labs.remorph.helpers.morph_status import ParserError
 from databricks.labs.remorph.reconcile.recon_config import Table
-from databricks.labs.remorph.snow import databricks, experimental, oracle, snowflake
+from databricks.labs.remorph.snow import databricks, experimental, oracle, snowflake, presto
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +18,7 @@ SQLGLOT_DIALECTS: dict[str, DialectType] = {
     "netezza": Dialects.POSTGRES,
     "oracle": oracle.Oracle,
     "postgresql": Dialects.POSTGRES,
-    "presto": Dialects.PRESTO,
+    "presto": presto.Presto,
     "redshift": Dialects.REDSHIFT,
     "snowflake": snowflake.Snow,
     "sqlite": Dialects.SQLITE,
