@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from datetime import datetime
-from unittest.mock import patch
+from unittest.mock import patch, MagicMock
 
 import pytest
 from pyspark import Row
@@ -14,6 +14,7 @@ from databricks.labs.remorph.reconcile.connectors.snowflake import SnowflakeData
 from databricks.labs.remorph.reconcile.exception import (
     DataSourceRuntimeException,
     InvalidInputException,
+    ReconciliationException,
 )
 from databricks.labs.remorph.reconcile.execute import (
     Reconciliation,
@@ -24,6 +25,9 @@ from databricks.labs.remorph.reconcile.recon_config import (
     DataReconcileOutput,
     MismatchOutput,
     ThresholdOutput,
+    ReconcileOutput,
+    ReconcileTableOutput,
+    StatusOutput,
 )
 from databricks.labs.remorph.reconcile.schema_compare import SchemaCompare
 
@@ -604,10 +608,9 @@ def test_recon_for_report_type_is_data(
     ):
         mock_datetime.now.return_value = datetime(2024, 5, 23, 9, 21, 25, 122185)
         recon_datetime.now.return_value = datetime(2024, 5, 23, 9, 21, 25, 122185)
-        final_reconcile_output = recon(
-            mock_workspace_client, mock_spark, table_recon, get_dialect("databricks"), "data"
-        )
-
+        with pytest.raises(ReconciliationException) as exc_info:
+            recon(mock_workspace_client, mock_spark, table_recon, get_dialect("databricks"), "data")
+        assert exc_info.value.reconcile_output.recon_id == "00112233-4455-6677-8899-aabbccddeeff"
     actual_remorph_recon = mock_spark.sql("SELECT * FROM DEFAULT.MAIN")
     actual_remorph_recon_metrics = mock_spark.sql("SELECT * FROM DEFAULT.METRICS")
     actual_remorph_recon_details = mock_spark.sql("SELECT * FROM DEFAULT.DETAILS")
@@ -698,8 +701,6 @@ def test_recon_for_report_type_is_data(
     assertDataFrameEqual(actual_remorph_recon, expected_remorph_recon, ignoreNullable=True)
     assertDataFrameEqual(actual_remorph_recon_metrics, expected_remorph_recon_metrics, ignoreNullable=True)
     assertDataFrameEqual(actual_remorph_recon_details, expected_remorph_recon_details, ignoreNullable=True)
-
-    assert final_reconcile_output.recon_id == "00112233-4455-6677-8899-aabbccddeeff"
 
 
 @pytest.fixture
@@ -949,7 +950,9 @@ def test_recon_for_report_type_all(mock_workspace_client, mock_spark, report_tab
     ):
         mock_datetime.now.return_value = datetime(2024, 5, 23, 9, 21, 25, 122185)
         recon_datetime.now.return_value = datetime(2024, 5, 23, 9, 21, 25, 122185)
-        final_reconcile_output = recon(mock_workspace_client, mock_spark, table_recon, get_dialect("snowflake"), "all")
+        with pytest.raises(ReconciliationException) as exc_info:
+            recon(mock_workspace_client, mock_spark, table_recon, get_dialect("snowflake"), "all")
+        assert exc_info.value.reconcile_output.recon_id == "00112233-4455-6677-8899-aabbccddeeff"
 
     actual_remorph_recon = mock_spark.sql("SELECT * FROM DEFAULT.MAIN")
     actual_remorph_recon_metrics = mock_spark.sql("SELECT * FROM DEFAULT.METRICS")
@@ -1085,8 +1088,6 @@ def test_recon_for_report_type_all(mock_workspace_client, mock_spark, report_tab
     assertDataFrameEqual(actual_remorph_recon_metrics, expected_remorph_recon_metrics, ignoreNullable=True)
     assertDataFrameEqual(actual_remorph_recon_details, expected_remorph_recon_details, ignoreNullable=True)
 
-    assert final_reconcile_output.recon_id == "00112233-4455-6677-8899-aabbccddeeff"
-
 
 @pytest.fixture
 def mock_for_report_type_row(table_conf_with_opts, table_schema, mock_spark, query_store, setup_metadata_table):
@@ -1198,7 +1199,9 @@ def test_recon_for_report_type_is_row(
     ):
         mock_datetime.now.return_value = datetime(2024, 5, 23, 9, 21, 25, 122185)
         recon_datetime.now.return_value = datetime(2024, 5, 23, 9, 21, 25, 122185)
-        final_reconcile_output = recon(mock_workspace_client, mock_spark, table_recon, get_dialect("snowflake"), "row")
+        with pytest.raises(ReconciliationException) as exc_info:
+            recon(mock_workspace_client, mock_spark, table_recon, get_dialect("snowflake"), "row")
+        assert exc_info.value.reconcile_output.recon_id == "00112233-4455-6677-8899-aabbccddeeff"
 
     actual_remorph_recon = mock_spark.sql("SELECT * FROM DEFAULT.MAIN")
     actual_remorph_recon_metrics = mock_spark.sql("SELECT * FROM DEFAULT.METRICS")
@@ -1283,8 +1286,6 @@ def test_recon_for_report_type_is_row(
     assertDataFrameEqual(actual_remorph_recon, expected_remorph_recon, ignoreNullable=True)
     assertDataFrameEqual(actual_remorph_recon_metrics, expected_remorph_recon_metrics, ignoreNullable=True)
     assertDataFrameEqual(actual_remorph_recon_details, expected_remorph_recon_details, ignoreNullable=True)
-
-    assert final_reconcile_output.recon_id == "00112233-4455-6677-8899-aabbccddeeff"
 
 
 @pytest.fixture
@@ -1395,7 +1396,6 @@ def test_schema_recon_with_general_exception(
         final_reconcile_output = recon(
             mock_workspace_client, mock_spark, table_recon, get_dialect("snowflake"), "schema"
         )
-    print(final_reconcile_output)
     expected_remorph_recon = mock_spark.createDataFrame(
         data=[
             (
@@ -1674,3 +1674,32 @@ def test_reconcile_data_with_threshold_and_row_report_type(
     assert actual.missing_in_tgt_count == 0
     assert actual.threshold_output.threshold_df is None
     assert actual.threshold_output.threshold_mismatch_count == 0
+
+
+@patch('databricks.labs.remorph.reconcile.execute.generate_final_reconcile_output')
+def test_recon_output_without_exception(mock_gen_final_recon_output):
+    mock_workspace_client = MagicMock()
+    mock_spark = MagicMock()
+    mock_table_recon = MagicMock()
+    source_dialect = get_dialect("snowflake")
+    mock_gen_final_recon_output.return_value = ReconcileOutput(
+        recon_id="00112233-4455-6677-8899-aabbccddeeff",
+        results=[
+            ReconcileTableOutput(
+                target_table_name="supplier",
+                source_table_name="target_supplier",
+                status=StatusOutput(
+                    row=True,
+                    column=True,
+                    schema=True,
+                ),
+                exception_message=None,
+            )
+        ],
+    )
+
+    try:
+        recon(mock_workspace_client, mock_spark, mock_table_recon, source_dialect, "all")
+    except ReconciliationException as e:
+        msg = f"An exception {e} was raised when it should not have been"
+        pytest.fail(msg)
