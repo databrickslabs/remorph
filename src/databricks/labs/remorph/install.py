@@ -280,6 +280,8 @@ class InstallPrompts:
             except NotFound:
                 self.setup_schema(catalog_name, schema_name)
 
+        logger.info(f" Captured ** Transpile **  configuration details !!!")
+
         return MorphConfig(
             source=source,
             skip_validation=not run_validation,
@@ -336,6 +338,8 @@ class InstallPrompts:
             secret_scope=scope_name,
             config=db_config,
         )
+
+        logger.info(f" Captured ** Reconcile **  configuration details !!!")
 
         reconcile_config.__file__ = f"reconcile_config_{data_source}.yml"
         return reconcile_config
