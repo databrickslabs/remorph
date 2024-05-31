@@ -13,6 +13,46 @@ from databricks.sdk.errors.platform import ResourceDoesNotExist, NotFound, Permi
 
 logger = logging.getLogger(__name__)
 
+README_RECON_CONFIG_NOTEBOOK = """# Databricks notebook source
+# MAGIC %md
+# MAGIC # Recon Config setup instructions (see [README](readme_link))
+# MAGIC
+# MAGIC Production runs are supposed to be triggered through the following jobs: job_links
+# MAGIC
+# MAGIC **This notebook is overwritten with each `remorph` generate-recon-config.**
+
+# COMMAND ----------
+
+# MAGIC %pip install remorph_VERSION-py3-none-any.whl
+dbutils.library.restartPython()
+
+# COMMAND ----------
+
+from databricks.labs.remorph.config import get_dialect
+from databricks.labs.remorph.reconcile.recon_config import ColumnMapping, Schema, Table
+from databricks.labs.remorph.reconcile.schema_compare import SchemaCompare
+
+src_schema, tgt_schema = schemas["snowflake_databricks_schema"]
+    spark = mock_spark
+    table_conf = Table(
+        source_name="supplier",
+        target_name="supplier",
+        drop_columns=["dummy"],
+        column_mapping=[
+            ColumnMapping(source_name="col_char", target_name="char"),
+            ColumnMapping(source_name="col_array", target_name="array_col"),
+        ],
+    )
+
+schema_compare_output = SchemaCompare(spark).compare(
+    src_schema,
+    tgt_schema,
+    get_dialect("snowflake"),
+    table_conf,
+)
+df = schema_compare_output.compare_df
+"""
+
 
 class ReconcileConfigUtils:
     def __init__(self, ws: WorkspaceClient, installation: Installation = None, prompts: Prompts = Prompts()):
@@ -113,6 +153,11 @@ class ReconcileConfigUtils:
                 f"\nUse `remorph configure-secrets` to setup Scope and Secrets."
             )
 
+    def _create_recon_config_readme(self):
+        content = README_RECON_CONFIG_NOTEBOOK.encode("utf8")
+        self._installation.upload('README_RECON_CONFIG.py', content)
+        return self._installation.workspace_link('README_RECON_CONFIG')
+
     def _save_recon_config_details(self, details: tuple[TableRecon, str]):
         """
         Save the config details in a file on Databricks Workspace
@@ -132,12 +177,35 @@ class ReconcileConfigUtils:
         if self._prompts.confirm(f"Open `{file_name}` config file in the browser?"):
             webbrowser.open(ws_file_url)
         logger.info(f"Config `{file_name}` is saved at path: `{ws_file_url}` ")
+
+        reconcile_readme_url = self._create_recon_config_readme()
+        if self._prompts.confirm("Open `README_RECON_CONFIG` setup instructions in your browser? "):
+            webbrowser.open(reconcile_readme_url)
+        logger.info(
+            f"Recon Config generated successfully! Please refer to the {reconcile_readme_url} for the next steps."
+        )
+
         return ws_file_url
 
-    def _prompt_for_tables_subset(self) -> dict[str, list[str]]:
+    def _confirm_or_prompt_for_tables_subset(self) -> tuple[bool, dict[str, list[str]]]:
+        tables_updated = False
+        if self._ws_reconcile_config.tables:
+            filter_type, subset_tables_list = self._ws_reconcile_config.tables.popitem()
+
+            proceed_run_prompt = "Would you like to run reconciliation for `all` tables?"
+            if filter_type != "all":
+                proceed_run_prompt = (
+                    f"Would you like to run reconciliation `{filter_type[:-1]}ing` "
+                    f" {','.join(subset_tables_list)} tables? "
+                )
+
+            proceed_run = self._prompts.confirm(proceed_run_prompt)
+            if proceed_run:
+                return tables_updated, {filter_type: subset_tables_list}
+
         filter_type = self._prompts.choice(
             "Would you like to run reconciliation on `all` tables OR on a `subset of tables`? "
-            "Please Choose the `subset type` or select `all`:",
+            "Please choose the `subset type` or select `all`:",
             ["include", "exclude", "all"],
         )
 
@@ -149,7 +217,11 @@ class ReconcileConfigUtils:
             subset_tables_list = [table.strip().upper() for table in subset_tables.split(",")]
             tables = {filter_type: subset_tables_list}
 
-        return tables
+        return True, tables
+
+    def _save_reconcile_config(self, config: ReconcileConfig):
+        logger.info("Saving the ** reconcile ** configuration in Databricks Workspace")
+        self._installation.save(config)
 
     def _generate_table_recon(self) -> tuple[TableRecon, str]:
 
@@ -163,7 +235,13 @@ class ReconcileConfigUtils:
         exclude_list = []
         spark = DatabricksSession.builder.getOrCreate()
 
-        filter_type, subset_tables_raw = self._prompt_for_tables_subset().popitem()
+        tables_updated, tables = self._confirm_or_prompt_for_tables_subset()
+        filter_type, subset_tables_raw = tables.popitem()
+        if tables_updated:
+            self._ws_reconcile_config.tables = {filter_type: subset_tables_raw}
+            # Save Reconcile Config details on Databricks workspace with `tables` field
+            self._save_reconcile_config(self._ws_reconcile_config)
+
         if filter_type != "all":
             subset_tables = [f"'{table}'" for table in subset_tables_raw]
             include_list = subset_tables if filter_type == "include" else None
@@ -217,7 +295,7 @@ class ReconcileConfigUtils:
         # * when there is no `reconcile_config.yml` on Databricks workspace OR
         # * when there is `reconcile_config.yml` and user wants to overwrite it
         if not reconcile_config:
-            logger.info(f"`reconcile_config.yml` not found on Databricks Workspace.\n{reconfigure_msg}")
+            logger.info(f"`reconcile_config` not found on Databricks Workspace.\n{reconfigure_msg}")
             return
         elif reconcile_config and self._prompts.confirm(
             f"Would you like to overwrite workspace `reconcile_config` values:\n" f" {reconcile_config.__dict__}?"
@@ -226,9 +304,9 @@ class ReconcileConfigUtils:
             return
 
         self._ws_reconcile_config = reconcile_config
-        # check for Secrets Scope and ensure it exists
-        self._confirm_secret_scope()
+        # Check for Scope and ensure Secrets are set up
         self._ensure_scope_exists()
+        self._confirm_secret_scope()
 
         self._save_recon_config_details(self._generate_table_recon())
 

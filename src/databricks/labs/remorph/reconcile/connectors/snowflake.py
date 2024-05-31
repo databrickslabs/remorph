@@ -114,7 +114,8 @@ class SnowflakeDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
             filter_list = exclude_list
             in_clause = "NOT IN"
 
-        subset_tables = ", ".join(filter_list)
+        if filter_list:
+            subset_tables = ", ".join(filter_list)
 
         where_cond = f"AND TABLE_NAME {in_clause} ({subset_tables})" if filter_list else ""
 

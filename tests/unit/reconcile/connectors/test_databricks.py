@@ -17,7 +17,7 @@ def initial_setup():
     engine = get_dialect("databricks")
     ws = create_autospec(WorkspaceClient)
     scope = "scope"
-    return spark, ws, scope
+    return engine, spark, ws, scope
 
 
 def test_get_schema():
@@ -25,7 +25,7 @@ def test_get_schema():
     spark, ws, scope = initial_setup()
 
     # catalog as catalog
-    dd = DatabricksDataSource(spark, ws, scope, SQLGLOT_DIALECTS.get("databricks"))
+    dd = DatabricksDataSource(get_dialect("databricks"), spark, ws, scope)
 
     dd.get_schema("catalog", "schema", "supplier")
     spark.sql.assert_called_with(
@@ -51,7 +51,7 @@ def test_read_data_from_uc():
     spark, ws, scope = initial_setup()
 
     # create object for DatabricksDataSource
-    dd = DatabricksDataSource(spark, ws, scope, SQLGLOT_DIALECTS.get("databricks"))
+    dd = DatabricksDataSource(get_dialect("databricks"), spark, ws, scope)
 
     # Test with query
     dd.read_data("org", "data", "employee", "select id as id, name as name from :tbl", None)
@@ -72,7 +72,7 @@ def test_read_data_from_hive():
 
 def test_read_data_exception_handling():
     # initial setup
-    spark, ws, scope = initial_setup()
+    engine, spark, ws, scope = initial_setup()
 
     # create object for DatabricksDataSource
     dd = DatabricksDataSource(engine, spark, ws, scope)
@@ -88,7 +88,7 @@ def test_read_data_exception_handling():
 
 def test_get_schema_exception_handling():
     # initial setup
-    spark, ws, scope = initial_setup()
+    engine, spark, ws, scope = initial_setup()
 
     # create object for DatabricksDataSource
     dd = DatabricksDataSource(engine, spark, ws, scope)

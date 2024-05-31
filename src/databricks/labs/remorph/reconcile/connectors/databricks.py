@@ -73,7 +73,7 @@ class DatabricksDataSource(DataSource, SecretsMixin):
             return self.log_and_throw_exception(e, "schema", schema_query)
 
     def list_tables(
-            self, catalog: str, schema: str, include_list: list[str] | None, exclude_list: list[str] | None
+        self, catalog: str, schema: str, include_list: list[str] | None, exclude_list: list[str] | None
     ) -> TableRecon:
         # TODO: Implement list_tables in the DatabricksDataSource
         pass
