@@ -144,7 +144,7 @@ class TSqlExpressionBuilder extends TSqlParserBaseVisitor[ir.Expression] with Pa
       case (c1: ir.Column, c2: ir.Column) =>
         ir.Column(c1.name + "." + c2.name)
       case (_: ir.Column, c2: ir.CallFunction) =>
-        FunctionBuilder.functionType(c2.function_name) match {
+        FunctionBuilder.functionType(TSql, c2.function_name) match {
           case StandardFunction => ir.Dot(left, right)
           case XmlFunction => ir.XmlFunction(c2, left)
           case UnknownFunction => ir.Dot(left, right)
