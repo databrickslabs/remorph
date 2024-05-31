@@ -8,7 +8,7 @@ from databricks.labs.blueprint.cli import App
 from databricks.labs.blueprint.entrypoint import get_logger
 from databricks.labs.blueprint.installation import Installation
 from databricks.labs.remorph.config import SQLGLOT_DIALECTS, MorphConfig
-from databricks.labs.remorph.helpers.recon_config_utils import ReconConfigPrompts
+from databricks.labs.remorph.helpers.reconcile_config_utils import ReconcileConfigUtils
 from databricks.labs.remorph.lineage import lineage_generator
 from databricks.labs.remorph.transpiler.execute import morph
 from databricks.sdk import WorkspaceClient
@@ -98,20 +98,17 @@ def _get_spark_session(ws: WorkspaceClient) -> SparkSession:
 
 @remorph.command
 def generate_recon_config(w: WorkspaceClient):
-    """generates config file for reconciliation"""
+    """generates recon_config file for reconciliation"""
     logger.info(f"User: {w.current_user.me()}")
-    logger.info("Generating config file for reconcile")
+    logger.info("Generating recon_config file for reconcile")
 
     # Create Installation object
-    installation = Installation(w, "remorph")
+    # installation = Installation(w, "remorph")
+    folder_path = f"/Users/{w.current_user.me().user_name}/.remorph_demo"
+    installation = Installation(w, "remorph", install_folder=folder_path)
 
-    recon_conf = ReconConfigPrompts(w, installation)
-
-    # Prompt for source
-    recon_conf.prompt_source()
-
-    # Prompt for connection details and save the config
-    recon_conf.prompt_and_save_config_details()
+    utils = ReconcileConfigUtils(w, installation)
+    utils.generate_recon_config()
 
 
 @remorph.command
@@ -134,7 +131,7 @@ def generate_lineage(w: WorkspaceClient, source: str, input_sql: str, output_fol
 def configure_secrets(w: WorkspaceClient):
     """Setup reconciliation connection profile details as Secrets on Databricks Workspace"""
     logger.info(f"User: {w.current_user.me()}")
-    recon_conf = ReconConfigPrompts(w)
+    recon_conf = ReconcileConfigUtils(w)
 
     # Prompt for source
     source = recon_conf.prompt_source()

@@ -8,8 +8,8 @@ from databricks.connect.session import DatabricksSession
 from databricks.labs.blueprint.installation import MockInstallation
 from databricks.labs.blueprint.tui import MockPrompts
 from databricks.labs.remorph.config import TableRecon
-from databricks.labs.remorph.helpers.recon_config_utils import (
-    ReconConfigPrompts,
+from databricks.labs.remorph.helpers.reconcile_config_utils import (
+    ReconcileConfigUtils,
     get_data_source,
 )
 from databricks.labs.remorph.reconcile.constants import SourceType
@@ -38,7 +38,7 @@ def test_configure_secrets_snowflake_overwrite(mock_workspace_client):
         }
     )
     mock_workspace_client.secrets.list_scopes.side_effect = [[SecretScope(name=SCOPE_NAME)]]
-    recon_conf = ReconConfigPrompts(mock_workspace_client, prompts=prompts)
+    recon_conf = ReconcileConfigUtils(mock_workspace_client, prompts=prompts)
     recon_conf.prompt_source()
 
     recon_conf.prompt_and_save_connection_details()
@@ -65,7 +65,7 @@ def test_configure_secrets_oracle_insert(mock_workspace_client):
         "databricks.labs.remorph.helpers.recon_config_utils.ReconConfigPrompts._secret_key_exists",
         return_value=False,
     ):
-        recon_conf = ReconConfigPrompts(mock_workspace_client, prompts=prompts)
+        recon_conf = ReconcileConfigUtils(mock_workspace_client, prompts=prompts)
         recon_conf.prompt_source()
 
         recon_conf.prompt_and_save_connection_details()
@@ -83,7 +83,7 @@ def test_configure_secrets_invalid_source(mock_workspace_client):
         "databricks.labs.remorph.helpers.recon_config_utils.ReconConfigPrompts._scope_exists",
         return_value=True,
     ):
-        recon_conf = ReconConfigPrompts(mock_workspace_client, prompts=prompts)
+        recon_conf = ReconcileConfigUtils(mock_workspace_client, prompts=prompts)
         with pytest.raises(ValueError, match="cannot get answer within 10 attempt"):
             recon_conf.prompt_source()
 
@@ -98,7 +98,7 @@ def test_store_connection_secrets_exception(mock_workspace_client):
     mock_workspace_client.secrets.get_secret.side_effect = ResourceDoesNotExist("Not Found")
     mock_workspace_client.secrets.put_secret.side_effect = Exception("Timed out")
 
-    recon_conf = ReconConfigPrompts(mock_workspace_client, prompts=prompts)
+    recon_conf = ReconcileConfigUtils(mock_workspace_client, prompts=prompts)
 
     with pytest.raises(Exception, match="Timed out"):
         recon_conf.store_connection_secrets("scope_name", ("source", {"key": "value"}))
@@ -115,7 +115,7 @@ def test_configure_secrets_no_scope(mock_workspace_client):
 
     mock_workspace_client.secrets.list_scopes.side_effect = [[SecretScope(name="scope_name")]]
 
-    recon_conf = ReconConfigPrompts(mock_workspace_client, prompts=prompts)
+    recon_conf = ReconcileConfigUtils(mock_workspace_client, prompts=prompts)
     recon_conf.prompt_source()
 
     with pytest.raises(SystemExit, match="Scope is needed to store Secrets in Databricks Workspace"):
@@ -134,7 +134,7 @@ def test_configure_secrets_create_scope_exception(mock_workspace_client):
     mock_workspace_client.secrets.list_scopes.side_effect = [[SecretScope(name="scope_name")]]
     mock_workspace_client.secrets.create_scope.side_effect = Exception("Network Error")
 
-    recon_conf = ReconConfigPrompts(mock_workspace_client, prompts=prompts)
+    recon_conf = ReconcileConfigUtils(mock_workspace_client, prompts=prompts)
     recon_conf.prompt_source()
 
     with pytest.raises(Exception, match="Network Error"):
@@ -151,7 +151,7 @@ def test_store_connection_secrets_overwrite(mock_workspace_client):
     with patch(
         "databricks.labs.remorph.helpers.recon_config_utils.ReconConfigPrompts._secret_key_exists", return_value=True
     ):
-        recon_conf = ReconConfigPrompts(mock_workspace_client, prompts=prompts)
+        recon_conf = ReconcileConfigUtils(mock_workspace_client, prompts=prompts)
         recon_conf.store_connection_secrets("scope_name", ("source", {"key": "value"}))
 
 
@@ -163,7 +163,7 @@ def test_generate_recon_config_no_secrets_configured(mock_workspace_client):
         }
     )
 
-    recon_conf = ReconConfigPrompts(mock_workspace_client, prompts=prompts)
+    recon_conf = ReconcileConfigUtils(mock_workspace_client, prompts=prompts)
     recon_conf.prompt_source()
 
     error_msg = (
@@ -172,7 +172,7 @@ def test_generate_recon_config_no_secrets_configured(mock_workspace_client):
     )
 
     with pytest.raises(ValueError, match=error_msg):
-        recon_conf.prompt_and_save_config_details()
+        recon_conf.generate_recon_config()
 
 
 def test_generate_recon_config_create_scope_no(mock_workspace_client):
@@ -185,13 +185,13 @@ def test_generate_recon_config_create_scope_no(mock_workspace_client):
         }
     )
 
-    recon_conf = ReconConfigPrompts(mock_workspace_client, prompts=prompts)
+    recon_conf = ReconcileConfigUtils(mock_workspace_client, prompts=prompts)
     recon_conf.prompt_source()
 
     error_msg = "Scope is needed to store Secrets in Databricks Workspace"
 
     with pytest.raises(SystemExit, match=error_msg):
-        recon_conf.prompt_and_save_config_details()
+        recon_conf.generate_recon_config()
 
 
 def test_recon_config_prompt_and_save_config_details(mock_workspace_client):
@@ -231,10 +231,10 @@ def test_recon_config_prompt_and_save_config_details(mock_workspace_client):
         # mock WorkspaceClient and Installation in _save_config_details
         with patch("databricks.labs.remorph.helpers.recon_config_utils.WorkspaceClient", mock_workspace_client):
             with patch("databricks.labs.remorph.helpers.recon_config_utils.Installation", MagicMock()):
-                recon_conf = ReconConfigPrompts(mock_workspace_client, installation=installation, prompts=prompts)
+                recon_conf = ReconcileConfigUtils(mock_workspace_client, installation=installation, prompts=prompts)
                 recon_conf.prompt_source()
 
-                recon_conf.prompt_and_save_config_details()
+                recon_conf.generate_recon_config()
 
     raw = json.dumps(recon_confing, default=vars, indent=2, sort_keys=True).encode("utf-8")
 

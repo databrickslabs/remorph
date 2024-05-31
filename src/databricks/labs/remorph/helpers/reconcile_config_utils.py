@@ -3,29 +3,24 @@ import logging
 import webbrowser
 
 from databricks.connect import DatabricksSession
-from databricks.labs.blueprint.installation import Installation
+from databricks.labs.blueprint.installation import Installation, SerdeError
 from databricks.labs.blueprint.tui import Prompts
-from databricks.labs.remorph.config import TableRecon
-from databricks.labs.remorph.reconcile.connectors.client import get_data_source
+from databricks.labs.remorph.config import TableRecon, ReconcileConfig, get_dialect
+from databricks.labs.remorph.reconcile.connectors.source_adapter import create_adapter
 from databricks.labs.remorph.reconcile.constants import SourceType
 from databricks.sdk import WorkspaceClient
-from databricks.sdk.errors.platform import ResourceDoesNotExist
+from databricks.sdk.errors.platform import ResourceDoesNotExist, NotFound, PermissionDenied
 
 logger = logging.getLogger(__name__)
 
-recon_source_choices = [
-    SourceType.SNOWFLAKE.value,
-    SourceType.ORACLE.value,
-    SourceType.DATABRICKS.value,
-]
 
-
-class ReconConfigPrompts:
+class ReconcileConfigUtils:
     def __init__(self, ws: WorkspaceClient, installation: Installation = None, prompts: Prompts = Prompts()):
         self._source = None
         self._prompts = prompts
         self._ws = ws
         self._installation = installation
+        self._ws_reconcile_config: ReconcileConfig | None = None
 
     def _scope_exists(self, scope_name: str) -> bool:
         scope_exists = scope_name in [scope.name for scope in self._ws.secrets.list_scopes()]
@@ -39,16 +34,16 @@ class ReconConfigPrompts:
         logger.debug(f"Found Scope: `{scope_name}` in Databricks Workspace")
         return True
 
-    def _ensure_scope_exists(self, scope_name: str):
+    def _ensure_scope_exists(self):
         """
         Get or Create a new Scope in Databricks Workspace
-        :param scope_name:
         """
+        scope_name = self._ws_reconcile_config.secret_scope
         scope_exists = self._scope_exists(scope_name)
         if not scope_exists:
             allow_scope_creation = self._prompts.confirm("Do you want to create a new one?")
             if not allow_scope_creation:
-                msg = "Scope is needed to store Secrets in Databricks Workspace"
+                msg = f" `{scope_name}` Scope is needed to store Secrets in Databricks Workspace"
                 raise SystemExit(msg)
 
             try:
@@ -101,101 +96,37 @@ class ReconConfigPrompts:
             logger.info(f"{info_op} Secret: *{secret_key}* in Scope: `{scope_name}`")
 
     def prompt_source(self):
-        source = self._prompts.choice("Select the source", recon_source_choices)
-        self._source = source
-        return source
-
-    def _prompt_catalog_schema(self) -> dict[str, str]:
-        """
-        Prompt for source, target catalog and schema names
-        :return:
-        """
-        src_catalog_name = None
-        src_schema_prompt = f"Enter `{self._source}` schema_name"
-
-        # Prompt for `catalog_name` only if source is snowflake
-        if self._source in {SourceType.SNOWFLAKE.value}:
-            logger.debug(f"Prompting for `catalog_name` `database_name` for `{self._source}`")
-            src_catalog_name = self._prompts.question(f"Enter `{self._source}` catalog_name")
-            src_schema_prompt = f"Enter `{self._source}` database_name"
-
-        src_schema_name = self._prompts.question(src_schema_prompt)
-
-        tgt_catalog_name = self._prompts.question("Enter target catalog_name")
-        tgt_schema_name = self._prompts.question("Enter target schema_name")
-
-        return {
-            "src_catalog": src_catalog_name,
-            "src_schema": src_schema_name,
-            "tgt_catalog": tgt_catalog_name,
-            "tgt_schema": tgt_schema_name,
-        }
+        data_source = self._prompts.choice(
+            "Select the Data Source:",
+            [SourceType.DATABRICKS.value, SourceType.SNOWFLAKE.value, SourceType.ORACLE.value],
+        )
+        self._source = data_source
+        return data_source
 
     def _confirm_secret_scope(self):
-        if not self._prompts.confirm(f"Did you setup the secrets for the `{self._source}` connection?"):
+        if not self._prompts.confirm(
+            f"Did you setup the secrets for the `{self._ws_reconcile_config.data_source.capitalize()}` connection "
+            f"in `{self._ws_reconcile_config.secret_scope}` Scope?"
+        ):
             raise ValueError(
-                f"Error: Secrets are needed for `{self._source}` reconciliation."
+                f"Error: Secrets are needed for `{self._ws_reconcile_config.data_source}` reconciliation."
                 f"\nUse `remorph configure-secrets` to setup Scope and Secrets."
             )
 
-    def _prompt_config_details(self) -> tuple[TableRecon, str]:
-        """
-        Prompt for Scope, source, target catalog and schema names. Get the table list and return the TableRecon config
-        :return: TableRecon
-        """
-        # Prompt for secret scope
-        secret_scope = self._prompts.question("Enter Secret Scope name")
-
-        self._ensure_scope_exists(secret_scope)
-
-        # Prompt for catalog and schema
-        catalog_schema_dict = self._prompt_catalog_schema()
-        spark = DatabricksSession.builder.getOrCreate()
-
-        only_subset = self._prompts.confirm("Do you want to include/exclude a set of tables?")
-        include_list = []
-        exclude_list = []
-
-        if only_subset:
-            # Prompt for filter
-            filter_types = ["include", "exclude"]
-            filter_type = self._prompts.choice("Select the filter type", filter_types)
-            subset_tables = self._prompts.question(f"Enter the tables(separated by comma) to `{filter_type}`")
-            logger.debug(f"Filter Type: {filter_type}, Tables: {subset_tables}")
-            subset_tables = [f"'{table.strip().upper()}'" for table in subset_tables.split(",")]
-
-            include_list = subset_tables if filter_type == "include" else None
-            exclude_list = subset_tables if filter_type == "exclude" else None
-
-        # Get DataSource
-        data_source = get_data_source(self._source, spark, self._ws, secret_scope)
-        logger.debug(f"Listing tables for `{self._source}` using DataSource")
-        # Get TableRecon config
-        recon_config = data_source.list_tables(
-            catalog_schema_dict.get("src_catalog"), catalog_schema_dict.get("src_schema"), include_list, exclude_list
-        )
-
-        logger.debug(f"Fetched Tables `{', '.join([table.source_name for table in recon_config.tables])}` ")
-
-        # Update the target catalog and schema
-        recon_config.target_catalog = catalog_schema_dict.get("tgt_catalog")
-        recon_config.target_schema = catalog_schema_dict.get("tgt_schema")
-
-        logger.info("Recon Config details are fetched successfully...")
-        logger.debug(f"Recon Config : {recon_config}")
-
-        file_name = f"recon_config_{self._source}_{catalog_schema_dict.get('src_catalog')}.json"
-
-        return recon_config, file_name
-
-    def _save_config_details(self, recon_config_json: str, file_name: str):
+    def _save_recon_config_details(self, details: tuple[TableRecon, str]):
         """
         Save the config details in a file on Databricks Workspace
         """
+        recon_config, file_name = details
+        recon_config_json = json.dumps(recon_config, default=vars, indent=2, sort_keys=True)
+        logger.debug(f"recon_config_json : {recon_config_json}")
 
-        logger.debug(f"Saving the config details for `{self._source}` in `{file_name}` on Databricks Workspace ")
+        logger.debug(
+            f"Saving the reconcile_config details for `{self._ws_reconcile_config.data_source}` "
+            f"in `{file_name}` on Databricks Workspace "
+        )
         self._installation.upload(filename=file_name, raw=recon_config_json.encode("utf-8"))
-        ws_file_url = f"{self._installation.install_folder()}/{file_name}"
+        ws_file_url = self._installation.workspace_link(file_name)
         logger.debug(f"Written `{file_name}` on Databricks Workspace ")
 
         if self._prompts.confirm(f"Open `{file_name}` config file in the browser?"):
@@ -203,16 +134,103 @@ class ReconConfigPrompts:
         logger.info(f"Config `{file_name}` is saved at path: `{ws_file_url}` ")
         return ws_file_url
 
-    def prompt_and_save_config_details(self):
+    def _prompt_for_tables_subset(self) -> dict[str, list[str]]:
+        filter_type = self._prompts.choice(
+            "Would you like to run reconciliation on `all` tables OR on a `subset of tables`? "
+            "Please Choose the `subset type` or select `all`:",
+            ["include", "exclude", "all"],
+        )
+
+        tables = {"all": ["*"]}
+
+        if filter_type != "all":
+            subset_tables = self._prompts.question(f"Comma-separated list of tables to `{filter_type}`")
+            logger.debug(f"Filter Type: `{filter_type}`, Tables: `{subset_tables}`")
+            subset_tables_list = [table.strip().upper() for table in subset_tables.split(",")]
+            tables = {filter_type: subset_tables_list}
+
+        return tables
+
+    def _generate_table_recon(self) -> tuple[TableRecon, str]:
+
+        source = None
+        if self._ws_reconcile_config.data_source:
+            source = self._ws_reconcile_config.data_source
+
+        assert source, "Data Source is not set in `reconcile_config`"
+
+        include_list = []
+        exclude_list = []
+        spark = DatabricksSession.builder.getOrCreate()
+
+        filter_type, subset_tables_raw = self._prompt_for_tables_subset().popitem()
+        if filter_type != "all":
+            subset_tables = [f"'{table}'" for table in subset_tables_raw]
+            include_list = subset_tables if filter_type == "include" else None
+            exclude_list = subset_tables if filter_type == "exclude" else None
+
+        # Get DataSource
+        data_source = create_adapter(get_dialect(source), spark, self._ws, self._ws_reconcile_config.secret_scope)
+        logger.info(f"Listing tables for `{source.capitalize()}` using DataSource")
+
+        # Get TableRecon config
+        recon_config = data_source.list_tables(
+            self._ws_reconcile_config.config.source_catalog,
+            self._ws_reconcile_config.config.source_schema,
+            include_list,
+            exclude_list,
+        )
+
+        logger.debug(f"Fetched Tables `{', '.join([table.source_name for table in recon_config.tables])}` ")
+
+        # Update the target catalog and schema
+        recon_config.target_catalog = self._ws_reconcile_config.config.target_catalog
+        recon_config.target_schema = self._ws_reconcile_config.config.target_schema
+
+        logger.info("Recon Config details are fetched successfully...")
+        logger.debug(f"Recon Config : {recon_config}")
+
+        file_name = (
+            f"recon_config_{source}" f"_{self._ws_reconcile_config.config.source_catalog}" f"_{filter_type}.json"
+        )
+
+        return recon_config, file_name
+
+    def generate_recon_config(self):
         """
         Prompt for source, target catalog and schema names. Get the table list and save the config details
         """
-        # Check for Secrets Scope
+
+        reconcile_config = None
+        try:
+            reconcile_config = self._installation.load(ReconcileConfig)
+        except NotFound as err:
+            logger.debug(f"Cannot find previous `reconcile` installation: {err}")
+        except (PermissionDenied, SerdeError, ValueError, AttributeError) as ex:
+            logger.warning(
+                f"Existing installation at {self._installation.install_folder()} is corrupted. Skipping... \n"
+                f"Exception: {ex}"
+            )
+
+        reconfigure_msg = "Please use `remorph install` to re-configure ** reconcile ** module"
+        # Reconfigure `reconcile` module:
+        # * when there is no `reconcile_config.yml` on Databricks workspace OR
+        # * when there is `reconcile_config.yml` and user wants to overwrite it
+        if not reconcile_config:
+            logger.info(f"`reconcile_config.yml` not found on Databricks Workspace.\n{reconfigure_msg}")
+            return
+        elif reconcile_config and self._prompts.confirm(
+            f"Would you like to overwrite workspace `reconcile_config` values:\n" f" {reconcile_config.__dict__}?"
+        ):
+            logger.info(reconfigure_msg)
+            return
+
+        self._ws_reconcile_config = reconcile_config
+        # check for Secrets Scope and ensure it exists
         self._confirm_secret_scope()
-        recon_config, recon_config_file = self._prompt_config_details()
-        recon_config_json = json.dumps(recon_config, default=vars, indent=2, sort_keys=True)
-        logger.debug(f"recon_config_json : {recon_config_json}")
-        self._save_config_details(recon_config_json, recon_config_file)
+        self._ensure_scope_exists()
+
+        self._save_recon_config_details(self._generate_table_recon())
 
     def _prompt_snowflake_connection_details(self) -> tuple[str, dict[str, str]]:
         """
@@ -286,7 +304,7 @@ class ReconConfigPrompts:
 
         # Prompt for secret scope
         scope_name = self._prompts.question("Enter Secret Scope name")
-        self._ensure_scope_exists(scope_name)
+        self._ensure_scope_exists()
 
         # Prompt for connection details
         connection_details = self._connection_details()

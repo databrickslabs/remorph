@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 
 from pyspark.sql import DataFrame
 
+from databricks.labs.remorph.config import TableRecon
 from databricks.labs.remorph.reconcile.exception import DataSourceRuntimeException
 from databricks.labs.remorph.reconcile.recon_config import JdbcReaderOptions, Schema
 
@@ -28,6 +29,16 @@ class DataSource(ABC):
         schema: str,
         table: str,
     ) -> list[Schema]:
+        return NotImplemented
+
+    @abstractmethod
+    def list_tables(
+        self,
+        catalog: str,
+        schema: str,
+        include_list: list[str] | None,
+        exclude_list: list[str] | None,
+    ) -> TableRecon:
         return NotImplemented
 
     @classmethod

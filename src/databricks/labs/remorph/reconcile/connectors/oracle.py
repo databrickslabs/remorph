@@ -91,11 +91,10 @@ class OracleDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
         }
 
     def reader(self, query: str) -> DataFrameReader:
-      return self._get_jdbc_reader(query, self.get_jdbc_url, OracleDataSource._DRIVER)
+        return self._get_jdbc_reader(query, self.get_jdbc_url, OracleDataSource._DRIVER)
 
     def list_tables(
         self, catalog: str, schema: str, include_list: list[str] | None, exclude_list: list[str] | None
     ) -> TableRecon:
         # TODO: Implement list_tables in the OracleDataSource
         pass
-      

@@ -27,7 +27,7 @@ def _get_schema_query(catalog: str, schema: str, table: str):
                 col_name"""
     return re.sub(r'\s+', ' ', query)
 
-  
+
 class DatabricksDataSource(DataSource, SecretsMixin):
 
     def __init__(
@@ -71,3 +71,9 @@ class DatabricksDataSource(DataSource, SecretsMixin):
             return [Schema(field.col_name.lower(), field.data_type.lower()) for field in schema_df.collect()]
         except (RuntimeError, PySparkException) as e:
             return self.log_and_throw_exception(e, "schema", schema_query)
+
+    def list_tables(
+            self, catalog: str, schema: str, include_list: list[str] | None, exclude_list: list[str] | None
+    ) -> TableRecon:
+        # TODO: Implement list_tables in the DatabricksDataSource
+        pass

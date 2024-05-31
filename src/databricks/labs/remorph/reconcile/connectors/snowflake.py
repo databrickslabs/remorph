@@ -10,7 +10,7 @@ from databricks.labs.remorph.config import TableRecon
 from databricks.labs.remorph.reconcile.connectors.data_source import DataSource
 from databricks.labs.remorph.reconcile.connectors.jdbc_reader import JDBCReaderMixin
 from databricks.labs.remorph.reconcile.connectors.secrets import SecretsMixin
-from databricks.labs.remorph.reconcile.recon_config import JdbcReaderOptions, Schema
+from databricks.labs.remorph.reconcile.recon_config import JdbcReaderOptions, Schema, Table
 from databricks.sdk import WorkspaceClient
 
 logger = logging.getLogger(__name__)
@@ -89,13 +89,13 @@ class SnowflakeDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
 
     def reader(self, query: str) -> DataFrameReader:
         options = {
-            "sfUrl": self._get_secret('sfUrl'),
-            "sfUser": self._get_secret('sfUser'),
-            "sfPassword": self._get_secret('sfPassword'),
-            "sfDatabase": self._get_secret('sfDatabase'),
-            "sfSchema": self._get_secret('sfSchema'),
-            "sfWarehouse": self._get_secret('sfWarehouse'),
-            "sfRole": self._get_secret('sfRole'),
+            "sfUrl": self._get_secret('snowflake_sfUrl'),
+            "sfUser": self._get_secret('snowflake_sfUser'),
+            "sfPassword": self._get_secret('snowflake_sfPassword'),
+            "sfDatabase": self._get_secret('snowflake_sfDatabase'),
+            "sfSchema": self._get_secret('snowflake_sfSchema'),
+            "sfWarehouse": self._get_secret('snowflake_sfWarehouse'),
+            "sfRole": self._get_secret('snowflake_sfRole'),
         }
         logger.debug(f"Reading data from Snowflake using the options {options.keys()} ")
         return self._spark.read.format("snowflake").option("dbtable", f"({query}) as tmp").options(**options)
@@ -125,7 +125,7 @@ class SnowflakeDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
                                WHERE TABLE_SCHEMA = '{schema.upper()}' {where_cond}"""
 
             logger.info(f" Executing query: {tables_query}")
-            tables_df = self.reader(tables_query)
+            tables_df = self.reader(tables_query).load()
 
             tables_list = [
                 Table(source_name=field.TABLE_NAME.lower(), target_name=field.TABLE_NAME.lower())
@@ -148,5 +148,4 @@ class SnowflakeDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
             )
             raise PySparkException(error_msg) from e
 
-    snowflake_datatype_mapper = {}  
-      
+    snowflake_datatype_mapper = {}

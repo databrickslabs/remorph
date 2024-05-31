@@ -8,7 +8,7 @@ import yaml
 from databricks.labs.blueprint.tui import MockPrompts
 from databricks.labs.remorph import cli
 from databricks.labs.remorph.config import MorphConfig
-from databricks.labs.remorph.helpers.recon_config_utils import ReconConfigPrompts
+from databricks.labs.remorph.helpers.reconcile_config_utils import ReconcileConfigUtils
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.errors import NotFound
 
@@ -257,6 +257,7 @@ def test_transpile_with_incorrect_input_source(mock_workspace_client_cli):
             mode,
         )
 
+
 def test_generate_lineage_valid_input(temp_dirs_for_lineage, mock_workspace_client_cli):
     input_dir, output_dir = temp_dirs_for_lineage
     cli.generate_lineage(
@@ -313,7 +314,7 @@ def test_configure_secrets_databricks(mock_workspace_client):
         }
     )
 
-    recon_conf = ReconConfigPrompts(mock_workspace_client, prompts=prompts)
+    recon_conf = ReconcileConfigUtils(mock_workspace_client, prompts=prompts)
     recon_conf.prompt_source()
 
     recon_conf.prompt_and_save_connection_details()

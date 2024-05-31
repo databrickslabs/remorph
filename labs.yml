@@ -43,8 +43,6 @@ commands:
         description: Source Type, Accepted Values [snowflake, databricks, oracle]
       - name: report
         default: all
-        description: Report type
-  - name: generate-recon-config
         description: Report type, Accepted Values [all, data, schema, row]
     table_template: |-
       recon_id
@@ -61,3 +59,5 @@ commands:
         description: Directory to store the generated lineage file
   - name: configure-secrets
     description: Utility to setup Scope and Secrets on Databricks Workspace
+  - name: generate-recon-config
+    description: Utility to generate Recon config file from Catalog and Schema
