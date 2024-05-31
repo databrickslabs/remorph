@@ -11,14 +11,15 @@ case object UnknownFunction extends FunctionType
 sealed trait FunctionArity
 
 case class FixedArity(arity: Int) extends FunctionArity
-
 case class VariableArity(argMin: Int, argMax: Int) extends FunctionArity
+
 object FunctionArity {
   def verifyArgNumber(arity: FunctionArity, args: Seq[ir.Expression]): Boolean = arity match {
     case FixedArity(n) => args.size == n
     case VariableArity(argMin, argMax) => argMin <= args.size && args.size <= argMax
   }
 }
+
 case class FunctionDefinition(
     arity: FunctionArity,
     functionType: FunctionType,
@@ -26,6 +27,7 @@ case class FunctionDefinition(
   def withConversionStrategy(strategy: ConversionStrategy): FunctionDefinition =
     copy(conversionStrategy = Some(strategy))
 }
+
 object FunctionDefinition {
   def standard(fixedArgNumber: Int): FunctionDefinition =
     FunctionDefinition(FixedArity(fixedArgNumber), StandardFunction)
