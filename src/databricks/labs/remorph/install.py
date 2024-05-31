@@ -248,7 +248,7 @@ class InstallPrompts:
         return self._prompt_for_transpile_setup(), self._prompt_for_reconcile_setup()
 
     def _prompt_for_transpile_setup(self) -> MorphConfig:
-        logger.info("\nPlease answer a few questions to configure Remorph: ** Transpile **")
+        logger.info("\nPlease answer a few questions to configure remorph: ** transpile **")
 
         # default params
         catalog_name = "transpiler_test"
@@ -280,7 +280,7 @@ class InstallPrompts:
             except NotFound:
                 self.setup_schema(catalog_name, schema_name)
 
-        logger.info(f" Captured ** Transpile **  configuration details !!!")
+        logger.info(f" Captured ** transpile **  configuration details !!!")
 
         return MorphConfig(
             source=source,
@@ -317,7 +317,7 @@ class InstallPrompts:
         )
 
     def _prompt_for_reconcile_setup(self) -> ReconcileConfig:
-        logger.info("\nPlease answer a few questions to configure Remorph: ** Reconcile **")
+        logger.info("\nPlease answer a few questions to configure remorph: ** reconcile **")
 
         data_source = self._prompts.choice(
             "Select the Data Source:",
@@ -339,9 +339,9 @@ class InstallPrompts:
             config=db_config,
         )
 
-        logger.info(f" Captured ** Reconcile **  configuration details !!!")
+        logger.info(f" Captured ** reconcile **  configuration details !!!")
 
-        reconcile_config.__file__ = f"reconcile_config_{data_source}.yml"
+        reconcile_config.__file__ = f"reconcile_config.yml"
         return reconcile_config
 
 
