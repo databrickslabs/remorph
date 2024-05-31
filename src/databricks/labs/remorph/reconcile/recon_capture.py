@@ -25,6 +25,7 @@ _DB_PREFIX = f"{_REMORPH_CATALOG}.{_RECONCILE_SCHEMA}"
 _RECON_TABLE_NAME = "main"
 _RECON_METRICS_TABLE_NAME = "metrics"
 _RECON_DETAILS_TABLE_NAME = "details"
+_SAMPLE_ROWS = 50
 
 
 def _write_df_to_delta(df: DataFrame, table_name: str, mode="append"):
@@ -238,7 +239,7 @@ class ReconCapture:
         for column in columns:
             map_args.extend([lit(column).alias(column + "_key"), col(column).cast("string").alias(column + "_value")])
         # Create a new DataFrame with a map column
-        df = df.select(create_map(*map_args).alias("data"))
+        df = df.limit(_SAMPLE_ROWS).select(create_map(*map_args).alias("data"))
         df = (
             df.withColumn("recon_table_id", lit(recon_table_id))
             .withColumn("recon_type", lit(recon_type))

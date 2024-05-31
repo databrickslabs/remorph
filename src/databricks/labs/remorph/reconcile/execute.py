@@ -337,8 +337,9 @@ class Reconciliation:
         src_table: str,
         tgt_table: str,
     ):
-        src_mismatch_sample_query = src_sampler.build_query(mismatch)
-        tgt_mismatch_sample_query = tgt_sampler.build_query(mismatch)
+        df = mismatch.limit(_SAMPLE_ROWS).cache()
+        src_mismatch_sample_query = src_sampler.build_query(df)
+        tgt_mismatch_sample_query = tgt_sampler.build_query(df)
 
         src_data = self._source.read_data(
             catalog=self._source_catalog,
