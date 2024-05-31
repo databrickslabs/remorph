@@ -10,11 +10,11 @@ from databricks.labs.remorph.snow import databricks, experimental, oracle, snowf
 logger = logging.getLogger(__name__)
 
 SQLGLOT_DIALECTS: dict[str, DialectType] = {
+    "athena": Dialects.ATHENA,
     "bigquery": Dialects.BIGQUERY,
     "databricks": databricks.Databricks,
     "experimental": experimental.DatabricksExperimental,
-    "drill": Dialects.DRILL,
-    "mssql": Dialects.TSQL,
+    "mysql": Dialects.MYSQL,
     "netezza": Dialects.POSTGRES,
     "oracle": oracle.Oracle,
     "postgresql": Dialects.POSTGRES,
@@ -24,6 +24,7 @@ SQLGLOT_DIALECTS: dict[str, DialectType] = {
     "sqlite": Dialects.SQLITE,
     "teradata": Dialects.TERADATA,
     "trino": Dialects.TRINO,
+    "tsql": Dialects.TSQL,
     "vertica": Dialects.POSTGRES,
 }
 
