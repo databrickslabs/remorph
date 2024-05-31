@@ -15,6 +15,7 @@ from databricks.labs.remorph.install import (
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.errors import NotFound
 from databricks.sdk.service.catalog import CatalogInfo
+from databricks.labs.blueprint.wheels import ProductInfo
 
 
 @pytest.fixture
@@ -45,7 +46,7 @@ def test_install(ws, mock_installation):
             r".*": "",
         }
     )
-    install = WorkspaceInstaller(prompts, mock_installation, ws)
+    install = WorkspaceInstaller(ws, prompts)
 
     # Assert that the `install` is an instance of WorkspaceInstaller
     assert isinstance(install, WorkspaceInstaller)
@@ -63,7 +64,7 @@ def test_install_dbr(ws, mock_installation, monkeypatch):
         }
     )
     with pytest.raises(SystemExit):
-        install = WorkspaceInstaller(prompts, mock_installation, ws)
+        install = WorkspaceInstaller(ws, prompts)
         install.run()
 
 
@@ -79,7 +80,7 @@ def test_save_config(ws, mock_installation, monkeypatch):
             r".*": "",
         }
     )
-    install = WorkspaceInstaller(prompts, mock_installation, ws)
+    install = WorkspaceInstaller(ws, prompts)
     webbrowser.open('https://localhost/#workspace~/mock/config.yml')
     install.configure()
 
@@ -111,12 +112,12 @@ def test_create_sql_warehouse(ws, mock_installation):
         }
     )
 
-    install = WorkspaceInstaller(prompts, mock_installation, ws)
+    install = WorkspaceInstaller(ws, prompts)
 
     # Assert that the `install` is an instance of WorkspaceInstaller
     assert isinstance(install, WorkspaceInstaller)
 
-    config = install.configure()
+    config, _ = install.configure()
 
     # Assert that the `config` is an instance of MorphConfig
     assert isinstance(config, MorphConfig)
@@ -142,12 +143,12 @@ def test_create_catalog_schema(ws, mock_installation):
         }
     )
 
-    install = WorkspaceInstaller(prompts, mock_installation, ws)
+    install = WorkspaceInstaller(ws, prompts)
 
     # Assert that the `install` is an instance of WorkspaceInstaller
     assert isinstance(install, WorkspaceInstaller)
 
-    config = install.configure()
+    config, _ = install.configure()
 
     # Assert that the `config` is an instance of MorphConfig
     assert isinstance(config, MorphConfig)
@@ -176,12 +177,12 @@ def test_get_cluster_id(ws, mock_installation):
     )
     ws.config.cluster_id = None  # setting this to None when cluster_id is not set in default configuration.
 
-    install = WorkspaceInstaller(prompts, mock_installation, ws)
+    install = WorkspaceInstaller(ws, prompts)
 
     # Assert that the `install` is an instance of WorkspaceInstaller
     assert isinstance(install, WorkspaceInstaller)
 
-    config = install.configure()
+    config, _ = install.configure()
 
     # Assert that the `config` is an instance of MorphConfig
     assert isinstance(config, MorphConfig)
@@ -204,7 +205,7 @@ def test_create_catalog_no(ws, mock_installation):
             r".*": "",
         }
     )
-    install = WorkspaceInstaller(prompts, mock_installation, ws)
+    install = WorkspaceInstaller(ws, prompts)
     with pytest.raises(SystemExit):
         install.configure()
 
@@ -221,7 +222,7 @@ def test_create_schema_no(ws, mock_installation):
             r".*": "",
         }
     )
-    install = WorkspaceInstaller(prompts, mock_installation, ws)
+    install = WorkspaceInstaller(ws, prompts)
     with pytest.raises(SystemExit):
         install.configure()
 
@@ -233,8 +234,10 @@ def test_workspace_installation(ws, mock_installation, monkeypatch):
     # Create a mock for the config
     config = create_autospec(MorphConfig)
 
+    product_info = create_autospec(ProductInfo)
+
     # Call the current function
-    result = WorkspaceInstallation(config, mock_install, ws, Prompts(), timedelta(minutes=2))
+    result = WorkspaceInstallation(config, mock_install, ws, Prompts(), timedelta(minutes=2), product_info)
 
     # Assert that the result is an instance of WorkspaceInstallation
     assert isinstance(result, WorkspaceInstallation)

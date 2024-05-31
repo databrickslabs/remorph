@@ -9,6 +9,7 @@ from pathlib import Path
 from databricks.labs.blueprint.entrypoint import get_logger, is_in_debug
 from databricks.labs.blueprint.installation import Installation
 from databricks.labs.blueprint.installer import InstallState
+from databricks.labs.blueprint.parallel import ManyError
 from databricks.labs.blueprint.tui import Prompts
 from databricks.labs.blueprint.wheels import ProductInfo
 from databricks.sdk import WorkspaceClient
@@ -53,21 +54,20 @@ class WorkspaceInstaller:
     def run(self):
         logger.info(f"Installing Remorph v{self._product_info.version()}")
         config = self.configure()
-        # workspace_installation = WorkspaceInstallation(
-        #     config,
-        #     self._installation,
-        #     self._ws,
-        #     self._prompts,
-        #     verify_timeout=timedelta(minutes=2),
-        #     product_info=self._product_info,
-        # )
-        # try:
-        #     workspace_installation.run()
-        # except ManyError as err:
-        #     if len(err.errs) == 1:
-        #         raise err.errs[0] from None
-        #     raise err
-        logger.info("Installation completed successfully! Please refer to the documentation for the next steps.")
+        workspace_installation = WorkspaceInstallation(
+            config,
+            self._installation,
+            self._ws,
+            self._prompts,
+            verify_timeout=timedelta(minutes=2),
+            product_info=self._product_info,
+        )
+        try:
+            workspace_installation.run()
+        except ManyError as err:
+            if len(err.errs) == 1:
+                raise err.errs[0] from None
+            raise err
         return config
 
     def configure(self) -> tuple[MorphConfig | None, ReconcileConfig | None]:
@@ -83,11 +83,15 @@ class WorkspaceInstaller:
             morph_config = self._installation.load(MorphConfig)
         except NotFound as err:
             logger.debug(f"Cannot find previous `transpile` installation: {err}")
+        # except (PermissionDenied, SerdeError, ValueError, AttributeError): logger.warning(f"Existing installation
+        # at {self._installation.install_folder()} is corrupted. Skipping...")
 
         try:
             reconcile_config = self._installation.load(ReconcileConfig)
         except NotFound as err:
             logger.debug(f"Cannot find previous `reconcile` installation: {err}")
+        # except (PermissionDenied, SerdeError, ValueError, AttributeError): logger.warning(f"Existing installation
+        # at {self._installation.install_folder()} is corrupted. Skipping...")
 
         if morph_config or reconcile_config:
             return morph_config, reconcile_config
@@ -98,7 +102,7 @@ class WorkspaceInstaller:
         logger.info(f"Saving the ** {module} ** configuration in Databricks Workspace")
         self._installation.save(config)
         ws_file_url = self._installation.workspace_link(config.__file__)
-        if self._prompts.confirm(f"Open `{config.__file__}` in the browser and continue installing?"):
+        if self._prompts.confirm(f"Open `{config.__file__}` in the browser and continue...?"):
             webbrowser.open(ws_file_url)
 
     def _configure_new_installation(self) -> tuple[MorphConfig | None, ReconcileConfig | None]:
@@ -120,32 +124,32 @@ class CatalogSetup:
         self._ws = ws
 
     def create(self, name: str):
-        logger.debug(f"Creating Catalog {name}")
+        logger.debug(f"Creating Catalog `{name}`")
         catalog_info = self._ws.catalogs.create(name, comment="Created as part of Remorph installation")
-        logger.info(f"Catalog {name} created")
+        logger.info(f"Catalog `{name}` created")
         return catalog_info
 
     def get(self, name: str):
         try:
-            logger.debug(f"Searching for Catalog {name}")
+            logger.debug(f"Searching for Catalog `{name}`")
             catalog_info = self._ws.catalogs.get(name)
-            logger.info(f"Catalog {name} found")
+            logger.info(f"Catalog `{name}` found")
             return catalog_info.name
         except NotFound as err:
             logger.error(f"Cannot find Catalog: {err}")
             raise err
 
     def create_schema(self, name: str, catalog_name: str):
-        logger.debug(f"Creating Schema {name} in Catalog {catalog_name}")
+        logger.debug(f"Creating Schema `{name}` in Catalog `{catalog_name}`")
         schema_info = self._ws.schemas.create(name, catalog_name, comment="Created as part of Remorph installation")
-        logger.info(f"Created Schema {name} in Catalog {catalog_name}")
+        logger.info(f"Created Schema `{name}` in Catalog `{catalog_name}`")
         return schema_info
 
     def get_schema(self, name: str):
         try:
-            logger.debug(f"Searching for Schema {name}")
+            logger.debug(f"Searching for Schema `{name}`")
             schema_info = self._ws.schemas.get(name)
-            logger.info(f"Schema {name} found")
+            logger.info(f"Schema `{name}` found")
             return schema_info.name
         except NotFound as err:
             logger.error(f"Cannot find Schema: {err}")
@@ -204,7 +208,7 @@ class InstallPrompts:
             msg = "Catalog is needed to setup Remorph"
             raise SystemExit(msg)
 
-        logger.info(f" Creating new Catalog {catalog_name}")
+        logger.info(f" Creating new Catalog `{catalog_name}`")
         self._catalog_setup.create(catalog_name)
 
     @retried(on=[NotFound], timeout=timedelta(minutes=5))
@@ -340,7 +344,7 @@ class InstallPrompts:
 class WorkspaceInstallation:
     def __init__(
             self,
-            config: MorphConfig,
+            config: tuple[MorphConfig | None, ReconcileConfig | None],
             installation: Installation,
             ws: WorkspaceClient,
             prompts: Prompts,
@@ -357,8 +361,8 @@ class WorkspaceInstallation:
         self._product_info = product_info
 
     def run(self):
-        logger.info(f"Installing Remorph v{self._product_info.version()}")
-        self._installation.save(self._config)
+        logger.info(f"Installing Remorph v{self._product_info.version()} ")
+        # self._installation.save(self._config)
         logger.info("Installation completed successfully! Please refer to the documentation for the next steps.")
 
 
@@ -368,5 +372,6 @@ if __name__ == "__main__":
     if is_in_debug():
         logging.getLogger('databricks').setLevel(logging.DEBUG)
 
+    # TODO force_install
     installer = WorkspaceInstaller(WorkspaceClient(product="remorph", product_version=__version__))
     installer.run()
