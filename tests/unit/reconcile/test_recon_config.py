@@ -1,6 +1,6 @@
 def test_table_without_join_column(table_conf_mock):
     table_conf = table_conf_mock()
-    assert table_conf.get_join_columns("source") == set()
+    assert table_conf.get_join_columns("source") is None
     assert table_conf.get_drop_columns("source") == set()
     assert table_conf.get_partition_column("source") == set()
     assert table_conf.get_partition_column("target") == set()
