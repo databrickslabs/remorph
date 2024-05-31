@@ -1,3 +1,6 @@
+from databricks.labs.remorph.reconcile.recon_config import ReconcileOutput
+
+
 class ColumnMismatchException(Exception):
     """Raise the error when there is a mismatch in source and target column names"""
 
@@ -12,3 +15,15 @@ class WriteToTableException(Exception):
 
 class InvalidInputException(ValueError):
     """Raise the error when the input is invalid"""
+
+
+class ReconciliationException(Exception):
+    """Raise the error when there is an error occurred during reconciliation"""
+
+    def __init__(self, message: str, reconcile_output: ReconcileOutput | None = None):
+        self._reconcile_output = reconcile_output
+        super().__init__(message, reconcile_output)
+
+    @property
+    def reconcile_output(self) -> ReconcileOutput | None:
+        return self._reconcile_output
