@@ -13,7 +13,7 @@ sealed trait ConversionStrategy {
 
 object FunctionConverters {
 
-  // Preserves case if the original name was all lower case. Otherwise, converts to lower case.
+  // Preserves case if the original name was all lower case. Otherwise, converts to upper case.
   // All bets are off if the original name was mixed case, but that is rarely seen in SQL and we are
   // just making reasonable efforts here.
   private def convertString(irName: String, newName: String): String = {
