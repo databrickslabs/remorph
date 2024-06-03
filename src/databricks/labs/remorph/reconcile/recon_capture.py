@@ -25,6 +25,7 @@ _DB_PREFIX = f"{_REMORPH_CATALOG}.{_RECONCILE_SCHEMA}"
 _RECON_TABLE_NAME = "main"
 _RECON_METRICS_TABLE_NAME = "metrics"
 _RECON_DETAILS_TABLE_NAME = "details"
+_SAMPLE_ROWS = 50
 
 
 def _write_df_to_delta(df: DataFrame, table_name: str, mode="append"):
@@ -184,9 +185,9 @@ class ReconCapture:
 
         exception_msg = ""
         if schema_reconcile_output.exception is not None:
-            exception_msg = schema_reconcile_output.exception
+            exception_msg = schema_reconcile_output.exception.replace("'", '').replace('"', '')
         if data_reconcile_output.exception is not None:
-            exception_msg = data_reconcile_output.exception
+            exception_msg = data_reconcile_output.exception.replace("'", '').replace('"', '')
 
         insertion_time = str(datetime.now())
         mismatch_columns = []
@@ -197,18 +198,21 @@ class ReconCapture:
             f"""
                 select {recon_table_id} as recon_table_id,
                 named_struct(
-                    'row_comparison', case when '{self.report_type.lower()}' in ('all', 'row', 'data') then
+                    'row_comparison', case when '{self.report_type.lower()}' in ('all', 'row', 'data') 
+                        and '{exception_msg}' = '' then
                      named_struct(
                         'missing_in_source', {data_reconcile_output.missing_in_src_count},
                         'missing_in_target', {data_reconcile_output.missing_in_tgt_count}
                     ) else null end,
-                    'column_comparison', case when '{self.report_type.lower()}' in ('all', 'data') then
+                    'column_comparison', case when '{self.report_type.lower()}' in ('all', 'data') 
+                        and '{exception_msg}' = '' then
                     named_struct(
                         'absolute_mismatch', {data_reconcile_output.mismatch_count},
                         'threshold_mismatch', {data_reconcile_output.threshold_output.threshold_mismatch_count},
                         'mismatch_columns', '{",".join(mismatch_columns)}'
                     ) else null end,
-                    'schema_comparison', case when '{self.report_type.lower()}' in ('all', 'schema') then
+                    'schema_comparison', case when '{self.report_type.lower()}' in ('all', 'schema') 
+                        and '{exception_msg}' = '' then
                         {schema_reconcile_output.is_valid} else null end
                 ) as recon_metrics,
                 named_struct(
@@ -235,7 +239,7 @@ class ReconCapture:
         for column in columns:
             map_args.extend([lit(column).alias(column + "_key"), col(column).cast("string").alias(column + "_value")])
         # Create a new DataFrame with a map column
-        df = df.select(create_map(*map_args).alias("data"))
+        df = df.limit(_SAMPLE_ROWS).select(create_map(*map_args).alias("data"))
         df = (
             df.withColumn("recon_table_id", lit(recon_table_id))
             .withColumn("recon_type", lit(recon_type))

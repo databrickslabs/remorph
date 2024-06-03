@@ -3908,7 +3908,6 @@ expression
     | DOLLAR_ACTION                                             #exprDollar
     | <assoc=right> expression DOT expression                   #exprDot
     | LPAREN subquery RPAREN                                    #exprSubquery
-    | ALL expression                                            #exprAll
     | DISTINCT expression                                       #exprDistinct
     | STAR                                                      #exprStar
     ;
@@ -3997,9 +3996,9 @@ sqlUnion
 // https://msdn.microsoft.com/en-us/library/ms176104.aspx
 // TODO: This is too much for one rule and it still misses things - rewrite
 querySpecification
-    : SELECT ad=(ALL | DISTINCT)? topClause? selectListElem (COMMA selectListElem)*
+    : SELECT (ALL | DISTINCT)? topClause? selectListElem (COMMA selectListElem)*
     // https://msdn.microsoft.com/en-us/library/ms188029.aspx
-    (INTO into =tableName)? (FROM tableSources)? (WHERE where = searchCondition)?
+    (INTO tableName)? (FROM tableSources)? (WHERE where=searchCondition)?
     // https://msdn.microsoft.com/en-us/library/ms177673.aspx
     (
         GROUP BY (
@@ -4008,7 +4007,7 @@ querySpecification
                 COMMA groupSets += groupingSetsItem
             )* RPAREN
         )
-    )? (HAVING having = searchCondition)?
+    )? (HAVING having=searchCondition)?
     ;
 
 // https://msdn.microsoft.com/en-us/library/ms189463.aspx

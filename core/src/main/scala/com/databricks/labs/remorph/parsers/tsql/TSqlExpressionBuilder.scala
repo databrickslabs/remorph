@@ -362,4 +362,9 @@ class TSqlExpressionBuilder extends TSqlParserBaseVisitor[ir.Expression] with Pa
       case _ => columnDef
     }
   }
+
+  override def visitExprDistinct(ctx: ExprDistinctContext): ir.Expression = {
+    // Support for functions such as COUNT(DISTINCT column), which is an expression not a relation
+    ir.Distinct(ctx.expression().accept(this))
+  }
 }

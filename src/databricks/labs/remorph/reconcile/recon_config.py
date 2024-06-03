@@ -148,9 +148,9 @@ class Table:
             return set()
         return {self.get_layer_src_to_tgt_col_mapping(thresh.column_name, layer) for thresh in self.thresholds}
 
-    def get_join_columns(self, layer: str) -> set[str]:
+    def get_join_columns(self, layer: str) -> set[str] | None:
         if self.join_columns is None:
-            return set()
+            return None
         return {self.get_layer_src_to_tgt_col_mapping(col, layer) for col in self.join_columns}
 
     def get_drop_columns(self, layer: str) -> set[str]:

@@ -1,5 +1,6 @@
 package com.databricks.labs.remorph.parsers.common
 
+import com.databricks.labs.remorph.parsers.intermediate.UnresolvedFunction
 import com.databricks.labs.remorph.parsers.{FixedArity, FunctionArity, FunctionBuilder, FunctionType, StandardFunction, UnknownFunction, VariableArity, XmlFunction}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -278,6 +279,43 @@ class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenProp
     val variableArity = VariableArity(argMin = 1, argMax = 2)
     variableArity.isConvertible should be(true)
 
+  }
+
+  "buildFunction" should "remove quotes and brackets from function names" in {
+    // Test function name with less than 2 characters
+    val result1 = FunctionBuilder.buildFunction("a", Seq())
+    result1 match {
+      case f: UnresolvedFunction => f.function_name shouldBe "a"
+      case _ => fail("Unexpected function type")
+    }
+
+    // Test function name with matching quotes
+    val result2 = FunctionBuilder.buildFunction("'quoted'", Seq())
+    result2 match {
+      case f: UnresolvedFunction => f.function_name shouldBe "quoted"
+      case _ => fail("Unexpected function type")
+    }
+
+    // Test function name with matching brackets
+    val result3 = FunctionBuilder.buildFunction("[bracketed]", Seq())
+    result3 match {
+      case f: UnresolvedFunction => f.function_name shouldBe "bracketed"
+      case _ => fail("Unexpected function type")
+    }
+
+    // Test function name with matching backslashes
+    val result4 = FunctionBuilder.buildFunction("\\backslashed\\", Seq())
+    result4 match {
+      case f: UnresolvedFunction => f.function_name shouldBe "backslashed"
+      case _ => fail("Unexpected function type")
+    }
+
+    // Test function name with non-matching quotes
+    val result5 = FunctionBuilder.buildFunction("'nonmatching", Seq())
+    result5 match {
+      case f: UnresolvedFunction => f.function_name shouldBe "'nonmatching"
+      case _ => fail("Unexpected function type")
+    }
   }
 
 }
