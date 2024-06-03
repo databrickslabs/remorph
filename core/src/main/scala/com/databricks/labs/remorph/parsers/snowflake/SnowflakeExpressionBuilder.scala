@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
-import com.databricks.labs.remorph.parsers.{FunctionBuilder, IncompleteParser, ParserCommon, intermediate => ir}
+import com.databricks.labs.remorph.parsers.{FunctionBuilder, IncompleteParser, ParserCommon, Snowflake, intermediate => ir}
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser._
 import org.antlr.v4.runtime.Token
 
@@ -302,8 +302,8 @@ class SnowflakeExpressionBuilder
     val param = ctx.expr().accept(this)
     val separator = Option(ctx.string()).map(s => ir.Literal(string = Some(removeQuotes(s.getText))))
     ctx.op.getType match {
-      case LISTAGG => FunctionBuilder.buildFunction("LISTAGG", param +: separator.toSeq)
-      case ARRAY_AGG => FunctionBuilder.buildFunction("ARRAYAGG", Seq(param))
+      case LISTAGG => FunctionBuilder.buildFunction("LISTAGG", param +: separator.toSeq, Snowflake)
+      case ARRAY_AGG => FunctionBuilder.buildFunction("ARRAYAGG", Seq(param), Snowflake)
     }
 
   }
