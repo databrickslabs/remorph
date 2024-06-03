@@ -443,3 +443,31 @@ def test_workspace_installation_run(ws, mock_installation_state, monkeypatch):
         mock_run.side_effect = ManyError([NotFound("test1"), NotFound("test2")])
         with pytest.raises(ManyError):
             install.run()
+
+
+def test_workspace_installation_run_single_error(ws, mock_installation_state, monkeypatch):
+    def mock_open(url):
+        print(f"Opening URL: {url}")
+
+    monkeypatch.setattr("webbrowser.open", mock_open)
+    prompts = MockPrompts(
+        {
+            r"Which module.* would you like to configure:": MODULES.index("reconcile"),
+            r"Select the Data Source:": 2,
+            r"Select the Report Type:": 0,
+            r"Enter Secret Scope name to store .* connection details / secrets": "remorph_snowflake",
+            r"Enter .* Catalog name": "snowflake_sample_data",
+            r"Enter .* Database name": "tpch_sf1000",
+            r"Enter Databricks Catalog name": "tpch",
+            r"Enter Databricks Schema name": "1000gb",
+            r"Open .* in the browser and continue...?": "yes",
+        }
+    )
+    install = WorkspaceInstaller(ws, mock_installation_state, prompts)
+
+    webbrowser.open('https://localhost/#workspace~/mock/config.yml')
+
+    with patch.object(WorkspaceInstallation, "run", return_value=None) as mock_run:
+        mock_run.side_effect = ManyError([NotFound("test1")])
+        with pytest.raises(NotFound):
+            install.run()
