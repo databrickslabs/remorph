@@ -435,21 +435,8 @@ def test_workspace_installation_run(ws, mock_installation_state, monkeypatch):
     install = WorkspaceInstaller(ws, prompts)
     install.__dict__["_installation"] = mock_installation_state
     webbrowser.open('https://localhost/#workspace~/mock/config.yml')
-    config = install.configure()
 
     with patch.object(WorkspaceInstallation, "run", return_value=None) as mock_run:
         mock_run.side_effect = ManyError([NotFound("test1"), NotFound("test2")])
-        verify_timeout = timedelta(minutes=2)
-        product_info = create_autospec(ProductInfo)
-
-        workspace_installation = WorkspaceInstallation(
-            config,
-            mock_installation_state,
-            ws,
-            prompts,
-            verify_timeout,
-            product_info,
-        )
-
         with pytest.raises(ManyError):
-            workspace_installation.run()
+            install.run()
