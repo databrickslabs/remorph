@@ -227,8 +227,6 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
     example("USER", _.expression(), ir.CallFunction("USER", List()))
   }
 
-  // TODO: Analytic functions are next
-  "translate analytic windowing functions in all forms" ignore {
   "translate analytic windowing functions in all forms" in {
 
     example(
