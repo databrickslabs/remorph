@@ -1,6 +1,5 @@
-import collections
 import logging
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 from sqlglot.dialects.dialect import Dialect, Dialects, DialectType
 
@@ -100,6 +99,12 @@ class ValidationResult:
 
 
 @dataclass
+class ReconcileTablesConfig:
+    filter_type: str  # all/include/exclude
+    tables_list: list[str]  # [*, table1, table2]
+
+
+@dataclass
 class ReconcileConfig:
     __file__ = "reconcile_config.yml"
     __version__ = 1
@@ -108,5 +113,10 @@ class ReconcileConfig:
     report_type: str
     secret_scope: str
     config: DatabaseConfig
-    # stores tables in the format {"all/include/exclude": [*, table1, table2]}
-    tables: dict[str, list[str]] = field(default_factory=collections.defaultdict)
+    tables: ReconcileTablesConfig | None = None
+
+
+@dataclass
+class RemorphConfigs:
+    config: MorphConfig | None
+    reconcile_config: ReconcileConfig | None

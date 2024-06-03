@@ -1,5 +1,4 @@
 import webbrowser
-from collections import defaultdict
 from datetime import timedelta
 from unittest.mock import create_autospec, patch
 
@@ -96,7 +95,10 @@ def mock_installation():
                 },
                 "report_type": "all",
                 "secret_scope": "remorph_snowflake",
-                "tables": {"exclude": ["SUPPLIER", "FRIENDS", "ORDERS", "PART"]},
+                "tables": {
+                    "filter_type": "exclude",
+                    "tables_list": ["SUPPLIER", "FRIENDS", "ORDERS", "PART"],
+                },
                 "version": 1,
             },
         }
@@ -132,13 +134,15 @@ def test_install(ws, mock_installation_state):
             r"Enter Databricks Schema name": "1000gb",
         }
     )
-    install = WorkspaceInstaller(ws, prompts=prompts)
-    install.__dict__["_installation"] = mock_installation_state
+    install = WorkspaceInstaller(ws, mock_installation_state, prompts=prompts)
 
     # Assert that the `install` is an instance of WorkspaceInstaller
     assert isinstance(install, WorkspaceInstaller)
 
-    config, reconcile_config = install.run()
+    configs = install.run()
+    config = configs.config
+    reconcile_config = configs.reconcile_config
+
     assert config.source == "bigquery"
     assert config.sdk_config is None
     assert config.input_sql == "data/queries/bigquery"
@@ -155,7 +159,7 @@ def test_install(ws, mock_installation_state):
     assert reconcile_config.config.target_schema == "1000gb"
     assert reconcile_config.report_type == "all"
     assert reconcile_config.secret_scope == "remorph_snowflake"
-    assert isinstance(reconcile_config.tables, defaultdict)
+    assert reconcile_config.tables is None
 
 
 def test_install_dbr(ws, mock_installation, monkeypatch):
@@ -185,8 +189,7 @@ def test_save_config(ws, mock_installation, monkeypatch):
             r"Open .* in the browser and continue...?": "yes",
         }
     )
-    install = WorkspaceInstaller(ws, prompts)
-    install.__dict__["_installation"] = mock_installation
+    install = WorkspaceInstaller(ws, mock_installation, prompts)
     webbrowser.open('https://localhost/#workspace~/mock/config.yml')
     install.configure()
 
@@ -227,13 +230,14 @@ def test_create_sql_warehouse(ws_no_catalog_schema, mock_installation_state):
         }
     )
 
-    install = WorkspaceInstaller(ws_client, prompts)
-    install.__dict__["_installation"] = mock_installation_state
+    install = WorkspaceInstaller(ws_client, mock_installation_state, prompts)
 
     # Assert that the `install` is an instance of WorkspaceInstaller
     assert isinstance(install, WorkspaceInstaller)
 
-    config, _ = install.configure()
+    configs = install.configure()
+
+    config = configs.config
 
     # Assert that the `config` is an instance of MorphConfig
     assert isinstance(config, MorphConfig)
@@ -264,14 +268,14 @@ def test_get_cluster_id(ws, mock_installation_state):
     )
     ws.config.cluster_id = None  # setting this to None when cluster_id is not set in default configuration.
 
-    install = WorkspaceInstaller(ws, prompts)
-    install.__dict__["_installation"] = mock_installation_state
+    install = WorkspaceInstaller(ws, mock_installation_state, prompts)
 
     # Assert that the `install` is an instance of WorkspaceInstaller
     assert isinstance(install, WorkspaceInstaller)
 
-    config, _ = install.configure()
+    configs = install.configure()
 
+    config = configs.config
     # Assert that the `config` is an instance of MorphConfig
     assert isinstance(config, MorphConfig)
 
@@ -297,8 +301,7 @@ def test_create_catalog_no(ws_no_catalog_schema, mock_installation_state):
             r".*Do you want to create a new one?": "no",
         }
     )
-    install = WorkspaceInstaller(ws_no_catalog_schema, prompts)
-    install.__dict__["_installation"] = mock_installation_state
+    install = WorkspaceInstaller(ws_no_catalog_schema, mock_installation_state, prompts)
 
     with pytest.raises(SystemExit):
         install.configure()
@@ -321,8 +324,8 @@ def test_create_schema_no(ws_no_catalog_schema, mock_installation_state):
             r".*": "",
         }
     )
-    install = WorkspaceInstaller(ws_no_catalog_schema, prompts)
-    install.__dict__["_installation"] = mock_installation_state
+    install = WorkspaceInstaller(ws_no_catalog_schema, mock_installation_state, prompts)
+
     with pytest.raises(SystemExit):
         install.configure()
 
@@ -392,8 +395,8 @@ def test_save_reconcile_config(ws, mock_installation_state, monkeypatch):
             r"Open .* in the browser and continue...?": "yes",
         }
     )
-    install = WorkspaceInstaller(ws, prompts)
-    install.__dict__["_installation"] = mock_installation_state
+    install = WorkspaceInstaller(ws, mock_installation_state, prompts)
+
     webbrowser.open('https://localhost/#workspace~/mock/config.yml')
     install.configure()
 
@@ -432,8 +435,8 @@ def test_workspace_installation_run(ws, mock_installation_state, monkeypatch):
             r"Open .* in the browser and continue...?": "yes",
         }
     )
-    install = WorkspaceInstaller(ws, prompts)
-    install.__dict__["_installation"] = mock_installation_state
+    install = WorkspaceInstaller(ws, mock_installation_state, prompts)
+
     webbrowser.open('https://localhost/#workspace~/mock/config.yml')
 
     with patch.object(WorkspaceInstallation, "run", return_value=None) as mock_run:

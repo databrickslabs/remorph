@@ -3,7 +3,6 @@ import os
 import time
 import webbrowser
 from datetime import timedelta
-from functools import cached_property
 from pathlib import Path
 
 from databricks.labs.blueprint.entrypoint import get_logger, is_in_debug
@@ -22,7 +21,13 @@ from databricks.sdk.service.sql import (
 )
 
 from databricks.labs.remorph.__about__ import __version__
-from databricks.labs.remorph.config import MorphConfig, ReconcileConfig, SQLGLOT_DIALECTS, DatabaseConfig
+from databricks.labs.remorph.config import (
+    MorphConfig,
+    ReconcileConfig,
+    SQLGLOT_DIALECTS,
+    DatabaseConfig,
+    RemorphConfigs,
+)
 from databricks.labs.remorph.reconcile.constants import SourceType
 
 logger = logging.getLogger(__name__)
@@ -32,7 +37,7 @@ WAREHOUSE_PREFIX = "Remorph Transpiler Validation"
 
 
 class WorkspaceInstaller:
-    def __init__(self, ws: WorkspaceClient, prompts: Prompts = Prompts()):
+    def __init__(self, ws: WorkspaceClient, installation: Installation, prompts: Prompts = Prompts()):
         if "DATABRICKS_RUNTIME_VERSION" in os.environ:
             msg = "WorkspaceInstaller is not supposed to be executed in Databricks Runtime"
             raise SystemExit(msg)
@@ -41,19 +46,13 @@ class WorkspaceInstaller:
         self._catalog_setup = CatalogSetup(ws)
         self._product_info = ProductInfo.from_class(MorphConfig)
         self._install = InstallPrompts(ws, prompts)
-
-    @cached_property
-    def _installation(self):
-        try:
-            return Installation.assume_user_home(self._ws, self._product_info.product_name())
-        except RuntimeError:
-            return Installation.assume_global(self._ws, self._product_info.product_name())
+        self._installation = installation
 
     def run(self):
         logger.info(f"Installing Remorph v{self._product_info.version()}")
-        config = self.configure()
+        configs = self.configure()
         workspace_installation = WorkspaceInstallation(
-            config,
+            configs,
             self._installation,
             self._ws,
             self._prompts,
@@ -66,9 +65,9 @@ class WorkspaceInstaller:
             if len(err.errs) == 1:
                 raise err.errs[0] from None
             raise err
-        return config
+        return configs
 
-    def configure(self) -> tuple[MorphConfig | None, ReconcileConfig | None]:
+    def configure(self) -> RemorphConfigs:
         """
         Returns the MorphConfig If it exists on the Databricks Workspace,
          else prompts for the new Installation
@@ -92,7 +91,7 @@ class WorkspaceInstaller:
         # at {self._installation.install_folder()} is corrupted. Skipping...")
 
         if morph_config or reconcile_config:
-            return morph_config, reconcile_config
+            return RemorphConfigs(morph_config, reconcile_config)
 
         return self._configure_new_installation()
 
@@ -103,7 +102,7 @@ class WorkspaceInstaller:
         if self._prompts.confirm(f"Open `{config.__file__}` in the browser and continue...?"):
             webbrowser.open(ws_file_url)
 
-    def _configure_new_installation(self) -> tuple[MorphConfig | None, ReconcileConfig | None]:
+    def _configure_new_installation(self) -> RemorphConfigs:
         """
         Prompts for the new Installation and saves the configuration
         :return: MorphConfig
@@ -114,7 +113,7 @@ class WorkspaceInstaller:
         if reconcile_config:
             self._save_and_open_config("reconcile", reconcile_config)
 
-        return morph_config, reconcile_config
+        return RemorphConfigs(morph_config, reconcile_config)
 
 
 class CatalogSetup:
@@ -345,7 +344,7 @@ class InstallPrompts:
 class WorkspaceInstallation:
     def __init__(
         self,
-        config: tuple[MorphConfig | None, ReconcileConfig | None],
+        config: RemorphConfigs,
         installation: Installation,
         ws: WorkspaceClient,
         prompts: Prompts,
@@ -373,6 +372,9 @@ if __name__ == "__main__":
     if is_in_debug():
         logging.getLogger('databricks').setLevel(logging.DEBUG)
 
+    w = WorkspaceClient(product="remorph", product_version=__version__)
+    current = Installation.assume_user_home(w, PRODUCT_INFO.product_name())
+
     # TODO force_install
-    installer = WorkspaceInstaller(WorkspaceClient(product="remorph", product_version=__version__))
+    installer = WorkspaceInstaller(w, current)
     installer.run()
