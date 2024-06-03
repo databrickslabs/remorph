@@ -7,7 +7,7 @@ import org.antlr.v4.runtime.tree.{TerminalNode, Trees}
 
 import scala.collection.JavaConverters._
 
-class TSqlExpressionBuilder extends TSqlParserBaseVisitor[ir.Expression] with ParserCommon {
+class TSqlExpressionBuilder extends TSqlParserBaseVisitor[ir.Expression] with ParserCommon[ir.Expression] {
 
   override def visitSelectListElem(ctx: TSqlParser.SelectListElemContext): ir.Expression = {
     ctx match {

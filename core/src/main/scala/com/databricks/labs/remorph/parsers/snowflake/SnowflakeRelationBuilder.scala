@@ -64,7 +64,7 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.Relation] w
     }
 
   override def visitSelect_optional_clauses(ctx: Select_optional_clausesContext): ir.Relation = {
-    val from = ctx.from_clause().accept(this)
+    val from = Option(ctx.from_clause()).map(_.accept(this)).getOrElse(ir.NoTable())
     buildOrderBy(
       ctx.order_by_clause(),
       buildQualify(
@@ -116,7 +116,18 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.Relation] w
     }
   }
 
-  override def visitObject_ref(ctx: Object_refContext): ir.Relation = {
+  override def visitObjRefValues(ctx: ObjRefValuesContext): ir.Relation = {
+    ctx.values_table().values_table_body().accept(this)
+  }
+
+  override def visitValues_table_body(ctx: Values_table_bodyContext): ir.Relation = {
+    val expressionBuilder = new SnowflakeExpressionBuilder
+    val expressions =
+      ctx.expr_list_in_parentheses().asScala.map(l => expressionBuilder.visitSeq(l.expr_list().expr().asScala))
+    ir.Values(expressions)
+  }
+
+  override def visitObjRefDefault(ctx: ObjRefDefaultContext): ir.Relation = {
     val tableName = ctx.object_name().id_(0).getText
     val table = ir.NamedTable(tableName, Map.empty, is_streaming = false)
     buildPivotOrUnpivot(ctx.pivot_unpivot(), table)
