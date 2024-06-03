@@ -3,6 +3,7 @@ import re
 import pytest
 
 from databricks.labs.remorph.config import get_dialect
+from databricks.labs.remorph.reconcile.exception import InvalidInputException
 from databricks.labs.remorph.reconcile.query_builder.threshold_query import (
     ThresholdQueryBuilder,
 )
@@ -133,4 +134,15 @@ def test_build_expression_type_raises_value_error(table_conf_with_opts, table_sc
     tgt_schema.append(Schema("s_suppdate", "timestamp"))
 
     with pytest.raises(ValueError):
+        ThresholdQueryBuilder(table_conf, src_schema, "source", get_dialect("oracle")).build_comparison_query()
+
+
+def test_test_no_join_columns_raise_exception(table_conf_with_opts, table_schema):
+    table_conf = table_conf_with_opts
+    table_conf.join_columns = None
+    src_schema, tgt_schema = table_schema
+    src_schema.append(Schema("s_suppdate", "timestamp"))
+    tgt_schema.append(Schema("s_suppdate", "timestamp"))
+
+    with pytest.raises(InvalidInputException):
         ThresholdQueryBuilder(table_conf, src_schema, "source", get_dialect("oracle")).build_comparison_query()

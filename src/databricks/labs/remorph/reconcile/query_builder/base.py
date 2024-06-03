@@ -1,14 +1,18 @@
+import logging
 from abc import ABC
 
 import sqlglot.expressions as exp
 from sqlglot import Dialect, parse_one
 
 from databricks.labs.remorph.config import SQLGLOT_DIALECTS
+from databricks.labs.remorph.reconcile.exception import InvalidInputException
 from databricks.labs.remorph.reconcile.query_builder.expression_generator import (
     DataType_transform_mapping,
     transform_expression,
 )
 from databricks.labs.remorph.reconcile.recon_config import Schema, Table
+
+logger = logging.getLogger(__name__)
 
 
 class QueryBuilder(ABC):
@@ -49,7 +53,7 @@ class QueryBuilder(ABC):
         return self.table_conf.get_threshold_columns(self._layer)
 
     @property
-    def join_columns(self) -> set[str]:
+    def join_columns(self) -> set[str] | None:
         return self.table_conf.get_join_columns(self._layer)
 
     @property
@@ -122,3 +126,12 @@ class QueryBuilder(ABC):
                 transform = _get_transform(schema_dict.get(column_name, column_name))
                 return transform_expression(node, transform)
         return node
+
+    def _validate(self, field: set[str] | list[str] | None, message: str):
+        if field is None:
+            logger.error(
+                f"Exception for {self.table_conf.target_name} target table in {self.layer} layer --> {message}"
+            )
+            raise InvalidInputException(
+                f"Exception for {self.table_conf.target_name} target table in {self.layer} layer --> {message}"
+            )
