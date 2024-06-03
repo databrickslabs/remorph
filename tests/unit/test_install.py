@@ -28,11 +28,11 @@ from databricks.sdk.service.sql import (
 MODULES = ["all", "reconcile", "transpile"]
 
 SOURCES = [
+    "athena",
     "bigquery",
     "databricks",
-    "drill",
     "experimental",
-    "mssql",
+    "mysql",
     "netezza",
     "oracle",
     "postgresql",
@@ -42,6 +42,7 @@ SOURCES = [
     "sqlite",
     "teradata",
     "trino",
+    "tsql",
     "vertica",
 ]
 
@@ -116,8 +117,8 @@ def test_install(ws, mock_installation_state):
     prompts = MockPrompts(
         {
             r"Which module.* would you like to configure:": MODULES.index("all"),
-            r"Select the source": SOURCES.index("drill"),
-            r"Enter Input SQL path.*": "data/queries/drill",
+            r"Select the source": SOURCES.index("bigquery"),
+            r"Enter Input SQL path.*": "data/queries/bigquery",
             r"Enter Output directory.*": "transpiled",
             r"Would you like to validate the Syntax, Semantics of the transpiled queries?": "no",
             r"Open .* in the browser and continue...?": "no",
@@ -137,9 +138,9 @@ def test_install(ws, mock_installation_state):
     assert isinstance(install, WorkspaceInstaller)
 
     config, reconcile_config = install.run()
-    assert config.source == "drill"
+    assert config.source == "bigquery"
     assert config.sdk_config is None
-    assert config.input_sql == "data/queries/drill"
+    assert config.input_sql == "data/queries/bigquery"
     assert config.output_folder == "transpiled"
     assert config.skip_validation is True
     assert config.catalog_name == "transpiler_test"
