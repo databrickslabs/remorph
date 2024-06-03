@@ -3900,16 +3900,17 @@ expression
     | expression op=DOUBLE_BAR expression                       #exprOpPrec4
     | primitiveExpression                                       #exprPrimitive
     | functionCall                                              #exprFunc
+    | functionValues                                            #exprFuncVal
     | expression COLLATE id                                     #exprCollate
     | caseExpression                                            #exprCase
     | expression timeZone                                       #exprTz
     | expression overClause                                     #exprOver
-    | id                                                        #exprId
-    | DOLLAR_ACTION                                             #exprDollar
     | <assoc=right> expression DOT expression                   #exprDot
     | LPAREN subquery RPAREN                                    #exprSubquery
     | DISTINCT expression                                       #exprDistinct
+    | DOLLAR_ACTION                                             #exprDollar
     | STAR                                                      #exprStar
+    | id                                                        #exprId
     ;
 
 // TODO: Implement this
@@ -4292,6 +4293,11 @@ functionCall
     // | scalarFunctionName LPAREN expressionList? RPAREN
     ;
 
+// Things that are just special values and not really functions, but are documented as such
+functionValues
+    : f=(CURSOR_ROWS | FETCH_STATUS | SESSION_USER | SYSTEM_USER | USER)
+    ;
+
 // Standard functions are built in but take standard syntax, or are
 // some user function etc
 standardFunction
@@ -4349,28 +4355,16 @@ jsonNullClause
     ;
 
 builtInFunctions
-    : NEXT VALUE FOR sequenceName = tableName (OVER LPAREN orderByClause RPAREN)? # NEXT_VALUE_FOR
-      // https://msdn.microsoft.com/en-us/library/ms173784.aspx
-    | BINARY_CHECKSUM LPAREN (star = STAR | expression (COMMA expression)*) RPAREN # BINARY_CHECKSUM
-      // https://msdn.microsoft.com/en-us/library/ms189788.aspx
-    | CHECKSUM LPAREN (star = STAR | expression (COMMA expression)*) RPAREN # CHECKSUM
-      // https://docs.microsoft.com/en-us/sql/t-sql/functions/compress-transact-sql?view=sql-server-ver16
-    | CAST LPAREN expression AS dataType RPAREN     # CAST
-    | TRY_CAST LPAREN expression AS dataType RPAREN # TRY_CAST
-      // https://learn.microsoft.com/en-us/sql/t-sql/functions/ident-seed-transact-sql?view=sql-server-ver16
-    | IDENTITY LPAREN datatype = dataType (COMMA seed = INT COMMA increment = INT)? RPAREN # IDENTITY
-    | CURSOR_ROWS # CURSOR_ROWS
-      // https://learn.microsoft.com/en-us/sql/t-sql/functions/cursor-rows-transact-sql?view=sql-server-ver16
-    | FETCH_STATUS # FETCH_STATUS
-    | PARSE LPAREN str = expression AS dataType (USING culture = expression)? RPAREN # PARSE
-    | JSON_ARRAY LPAREN expressionList? jsonNullClause? RPAREN # JSON_ARRAY
-    | JSON_OBJECT LPAREN (keyValue = jsonKeyValue (COMMA keyValue = jsonKeyValue)*)? jsonNullClause? RPAREN # JSON_OBJECT
-      // https://msdn.microsoft.com/en-us/library/ms177587.aspx
-    | SESSION_USER # SESSION_USER
-      // https://msdn.microsoft.com/en-us/library/ms179930.aspx
-    | SYSTEM_USER # SYSTEM_USER
-      // https://learn.microsoft.com/en-us/sql/t-sql/functions/user-transact-sql?view=sql-server-ver16
-    | USER # USER
+    : NEXT VALUE FOR tableName (OVER LPAREN orderByClause RPAREN)?                          #nextValueFor
+    | CAST LPAREN expression AS dataType RPAREN                                             #cast
+    | TRY_CAST LPAREN expression AS dataType RPAREN                                         #tryCast
+    | PARSE LPAREN str = expression AS dataType (USING culture = expression)? RPAREN        #parse
+    | JSON_ARRAY LPAREN expressionList? jsonNullClause? RPAREN                              #jsonArray
+    | JSON_OBJECT
+        LPAREN
+            (jsonKeyValue (COMMA keyValue = jsonKeyValue)* )?
+            jsonNullClause?
+        RPAREN                                                                              #jsonObject
     ;
 
 valueMethod
@@ -4642,8 +4636,6 @@ scalarFunctionName
     : funcProcNameServerDatabaseSchema
     | RIGHT
     | LEFT
-    | BINARY_CHECKSUM
-    | CHECKSUM
     ;
 
 beginConversationTimer
@@ -4781,7 +4773,6 @@ keyword
     | BEGIN_DIALOG
     | BIGINT
     | BINARY_KEYWORD
-    | BINARY_CHECKSUM
     | BINDING
     | BLOB_STORAGE
     | BROKER
