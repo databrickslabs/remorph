@@ -45,9 +45,7 @@ class WorkspaceInstaller:
     @cached_property
     def _installation(self):
         try:
-            # Installation.assume_user_home(self._ws, self._product_info.product_name())
-            folder_path = f"/Users/{self._ws.current_user.me().user_name}/.remorph_demo"
-            return Installation(self._ws, self._product_info.product_name(), install_folder=folder_path)
+            return Installation.assume_user_home(self._ws, self._product_info.product_name())
         except RuntimeError:
             return Installation.assume_global(self._ws, self._product_info.product_name())
 
@@ -273,18 +271,18 @@ class InstallPrompts:
             except NotFound:
                 self.setup_catalog(catalog_name)
 
-            schema_name = self._prompts.question("Enter schema_name")
+            schema_name = self._prompts.question("Enter Schema for Validation")
 
             try:
                 self._catalog_setup.get_schema(f"{catalog_name}.{schema_name}")
             except NotFound:
                 self.setup_schema(catalog_name, schema_name)
 
-        logger.info(f" Captured ** transpile **  configuration details !!!")
+        logger.info(" Captured ** transpile **  configuration details !!!")
 
         return MorphConfig(
             source=source,
-            skip_validation=not run_validation,
+            skip_validation=(not run_validation),
             catalog_name=catalog_name,
             schema_name=schema_name,
             sdk_config=ws_config,
@@ -339,21 +337,20 @@ class InstallPrompts:
             config=db_config,
         )
 
-        logger.info(f" Captured ** reconcile **  configuration details !!!")
+        logger.info("Captured ** reconcile **  configuration details !!!")
 
-        reconcile_config.__file__ = f"reconcile_config.yml"
         return reconcile_config
 
 
 class WorkspaceInstallation:
     def __init__(
-            self,
-            config: tuple[MorphConfig | None, ReconcileConfig | None],
-            installation: Installation,
-            ws: WorkspaceClient,
-            prompts: Prompts,
-            verify_timeout: timedelta,
-            product_info: ProductInfo,
+        self,
+        config: tuple[MorphConfig | None, ReconcileConfig | None],
+        installation: Installation,
+        ws: WorkspaceClient,
+        prompts: Prompts,
+        verify_timeout: timedelta,
+        product_info: ProductInfo,
     ):
         self._config = config
         self._installation = installation
@@ -366,7 +363,7 @@ class WorkspaceInstallation:
 
     def run(self):
         logger.info(f"Installing Remorph v{self._product_info.version()} ")
-        # self._installation.save(self._config)
+        # TODO: Store Recon Metadata Tables, Lakeview Dashboards
         logger.info("Installation completed successfully! Please refer to the documentation for the next steps.")
 
 
