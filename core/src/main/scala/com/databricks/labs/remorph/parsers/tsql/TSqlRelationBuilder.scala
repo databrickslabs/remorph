@@ -26,7 +26,7 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.Relation] {
     // TODO: Process all the other elements of a query specification
 
     val columns =
-      ctx.selectListElem().asScala.map(_.accept(new TSqlExpressionBuilder()))
+      ctx.selectListElem().asScala.map(_.accept(new TSqlExpressionBuilder(new TSqlFunctionBuilder)))
     val from = Option(ctx.tableSources()).map(_.accept(new TSqlRelationBuilder)).getOrElse(ir.NoTable)
     // Note that ALL is the default so we don't need to check for it
     ctx match {
@@ -100,7 +100,7 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.Relation] {
   private def buildJoin(left: ir.Relation, right: JoinPartContext): ir.Join = {
     val joinExpression = right.joinOn()
     val rightRelation = joinExpression.tableSource().accept(this)
-    val joinCondition = joinExpression.searchCondition().accept(new TSqlExpressionBuilder)
+    val joinCondition = joinExpression.searchCondition().accept(new TSqlExpressionBuilder(new TSqlFunctionBuilder))
 
     ir.Join(
       left,

@@ -2,13 +2,14 @@ package com.databricks.labs.remorph.parsers.snowflake
 
 import com.databricks.labs.remorph.parsers.intermediate._
 import org.scalatest.Assertion
+import org.scalatest.Checkpoints.Checkpoint
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import org.scalatest.Checkpoints.Checkpoint
 
 class SnowflakeExprSpec extends AnyWordSpec with SnowflakeParserTestCommon with Matchers {
 
-  override protected def astBuilder: SnowflakeExpressionBuilder = new SnowflakeExpressionBuilder
+  override protected def astBuilder: SnowflakeExpressionBuilder = new SnowflakeExpressionBuilder(
+    new SnowflakeFunctionBuilder)
 
   private def example(input: String, expectedAst: Expression): Assertion = example(input, _.expr(), expectedAst)
 
