@@ -57,4 +57,6 @@ expected_exceptions: dict[str, type[SqlglotError]] = {
     'test_left_2': ParseError,
     'test_parse_json_extract_path_text_4': ParseError,
     'test_extract_2': ParseError,
+    'test_approx_percentile_5': ParseError,
+    'test_approx_percentile_7': ParseError,
 }

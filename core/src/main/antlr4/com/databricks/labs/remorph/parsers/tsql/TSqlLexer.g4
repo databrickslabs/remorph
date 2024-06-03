@@ -923,7 +923,7 @@ VALIDATION                                  : 'VALIDATION';
 VALID_XML                                   : 'VALID_XML';
 VALUE                                       : 'VALUE';
 VALUES                                      : 'VALUES';
-VALUE_SQUARE_BRACKET                        : '[VALUE]';
+VAR                                         : 'VAR';
 VARBINARY_KEYWORD                           : 'VARBINARY';
 VARYING                                     : 'VARYING';
 VERBOSELOGGING                              : 'VERBOSELOGGING';

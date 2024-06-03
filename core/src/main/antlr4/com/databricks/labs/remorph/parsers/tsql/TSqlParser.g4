@@ -3904,12 +3904,10 @@ expression
     | caseExpression                                            #exprCase
     | expression timeZone                                       #exprTz
     | expression overClause                                     #exprOver
-    | valueCall                                                 #exprValue
     | id                                                        #exprId
     | DOLLAR_ACTION                                             #exprDollar
     | <assoc=right> expression DOT expression                   #exprDot
     | LPAREN subquery RPAREN                                    #exprSubquery
-    | ALL expression                                            #exprAll
     | DISTINCT expression                                       #exprDistinct
     | STAR                                                      #exprStar
     ;
@@ -3998,9 +3996,9 @@ sqlUnion
 // https://msdn.microsoft.com/en-us/library/ms176104.aspx
 // TODO: This is too much for one rule and it still misses things - rewrite
 querySpecification
-    : SELECT ad=(ALL | DISTINCT)? topClause? selectListElem (COMMA selectListElem)*
+    : SELECT (ALL | DISTINCT)? topClause? selectListElem (COMMA selectListElem)*
     // https://msdn.microsoft.com/en-us/library/ms188029.aspx
-    (INTO into =tableName)? (FROM tableSources)? (WHERE where = searchCondition)?
+    (INTO tableName)? (FROM tableSources)? (WHERE where=searchCondition)?
     // https://msdn.microsoft.com/en-us/library/ms177673.aspx
     (
         GROUP BY (
@@ -4009,7 +4007,7 @@ querySpecification
                 COMMA groupSets += groupingSetsItem
             )* RPAREN
         )
-    )? (HAVING having = searchCondition)?
+    )? (HAVING having=searchCondition)?
     ;
 
 // https://msdn.microsoft.com/en-us/library/ms189463.aspx
@@ -4381,11 +4379,7 @@ valueMethod
         | valueId = fullColumnName
         | eventdata = EVENTDATA LPAREN RPAREN
         | LPAREN subquery RPAREN
-    ) DOT call = valueCall
-    ;
-
-valueCall
-    : (VALUE | VALUE_SQUARE_BRACKET) LPAREN xquery = STRING COMMA sqltype = STRING RPAREN
+    ) DOT standardFunction
     ;
 
 hierarchyidStaticMethod
@@ -5228,7 +5222,7 @@ keyword
     | VALID_XML
     | VALIDATION
     | VALUE
-    | VALUE_SQUARE_BRACKET
+    | VAR
     | VARBINARY_KEYWORD
     | VERIFY_CLONEDB
     | VERSION

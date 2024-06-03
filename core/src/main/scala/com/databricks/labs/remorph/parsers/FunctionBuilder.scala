@@ -259,7 +259,8 @@ object FunctionBuilder {
   }
 
   def buildFunction(name: String, args: Seq[ir.Expression]): ir.Expression = {
-    val uName = name.toUpperCase(Locale.getDefault())
+    val irName = removeQuotesAndBrackets(name)
+    val uName = irName.toUpperCase(Locale.getDefault())
     val defnOption = functionArity(uName)
 
     defnOption match {
@@ -267,16 +268,16 @@ object FunctionBuilder {
         ir.UnresolvedFunction(name, args, is_distinct = false, is_user_defined_function = false)
 
       case Some(fixedArity: FixedArity) if args.length == fixedArity.arity =>
-        ir.CallFunction(name, args)
+        ir.CallFunction(irName, args)
 
       case Some(variableArity: VariableArity)
           if args.length >= variableArity.argMin && args.length <= variableArity.argMax =>
-        ir.CallFunction(name, args)
+        ir.CallFunction(irName, args)
 
       // Found the function but the arg count is incorrect
       case Some(_) =>
         ir.UnresolvedFunction(
-          name,
+          irName,
           args,
           is_distinct = false,
           is_user_defined_function = false,
@@ -284,7 +285,29 @@ object FunctionBuilder {
 
       // Unsupported function
       case None =>
-        ir.UnresolvedFunction(name, args, is_distinct = false, is_user_defined_function = false)
+        ir.UnresolvedFunction(irName, args, is_distinct = false, is_user_defined_function = false)
+    }
+  }
+
+  /**
+   * Functions can be called even if they are quoted or bracketed. This function removes the quotes and brackets.
+   * @param str
+   *   the possibly quoted function name
+   * @return
+   *   function name for use in lookup/matching
+   */
+  private def removeQuotesAndBrackets(str: String): String = {
+    val quotations = Map('\'' -> "'", '"' -> "\"", '[' -> "]", '\\' -> "\\")
+    str match {
+      case s if s.length < 2 => s
+      case s =>
+        quotations.get(s.head).fold(s) { closingQuote =>
+          if (s.endsWith(closingQuote)) {
+            s.substring(1, s.length - 1)
+          } else {
+            s
+          }
+        }
     }
   }
 }

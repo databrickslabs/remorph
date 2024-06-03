@@ -20,9 +20,10 @@ body:
       label: Category of Bug / Issue
       description: Please select the category that best describes the bug / issue you are reporting.
       options:
-        - ParserError
-        - ValidationError
-        - LateralColumnAliasError
+        - TranspileParserError
+        - TranspileValidationError
+        - TranspileLateralColumnAliasError
+        - ReconcileError
         - Other
     validations:
       required: true

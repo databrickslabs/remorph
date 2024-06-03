@@ -341,4 +341,28 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
       result shouldBe NoTable
     }
   }
+
+  "SQL statements should support DISTINCT clauses" in {
+    example(
+      query = "SELECT DISTINCT * FROM Employees;",
+      expectedAst = Batch(
+        Seq(
+          Project(
+            Deduplicate(
+              NamedTable("Employees", Map(), is_streaming = false),
+              List(),
+              all_columns_as_keys = true,
+              within_watermark = false),
+            Seq(Star(None))))))
+    example(
+      query = "SELECT DISTINCT a, b AS bb FROM t",
+      expectedAst = Batch(
+        Seq(Project(
+          Deduplicate(
+            NamedTable("t", Map(), is_streaming = false),
+            List("a", "bb"),
+            all_columns_as_keys = false,
+            within_watermark = false),
+          Seq(Column("a"), Alias(Column("b"), Seq("bb"), None))))))
+  }
 }
