@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.parsers.tsql
 
-import com.databricks.labs.remorph.parsers.{ConversionStrategy, FunctionBuilder, FunctionDefinition, intermediate => ir}
+import com.databricks.labs.remorph.parsers.{ConversionStrategy, FunctionBuilder, FunctionDefinition, StringConverter, intermediate => ir}
 
 class TSqlFunctionBuilder extends FunctionBuilder {
 
@@ -27,10 +27,14 @@ class TSqlFunctionBuilder extends FunctionBuilder {
   }
 }
 
+// TSQL specific function converters
+//
 // Note that these are left as objects, though we will possibly have a class per function in the future
+// Each function can specify its own ConversionStrategy, and some will need to be very specific,
+// hence perhaps moving to a class per function may be a better idea.
 object TSqlFunctionConverters {
 
-  object FunctionRename extends ConversionStrategy {
+  object FunctionRename extends ConversionStrategy with StringConverter {
     override def convert(irName: String, args: Seq[ir.Expression]): ir.Expression = {
       irName.toUpperCase() match {
         case "ISNULL" => ir.CallFunction(convertString(irName, "IFNULL"), args)
