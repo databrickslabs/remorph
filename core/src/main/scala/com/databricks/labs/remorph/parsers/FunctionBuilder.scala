@@ -59,17 +59,16 @@ object FunctionBuilder {
     case (_, "ATAN") => FunctionDefinition.standard(1)
     case (_, "ATN2") => FunctionDefinition.standard(2)
     case (_, "AVG") => FunctionDefinition.standard(1)
+    case (_, "BINARY_CHECKSUM") => FunctionDefinition.standard(1, Int.MaxValue)
     case (_, "CEILING") => FunctionDefinition.standard(1)
     case (_, "CERT_ID") => FunctionDefinition.standard(1)
     case (_, "CERTENCODED") => FunctionDefinition.standard(1)
     case (_, "CERTPRIVATEKEY") => FunctionDefinition.standard(2, 3)
     case (_, "CHAR") => FunctionDefinition.standard(1)
     case (_, "CHARINDEX") => FunctionDefinition.standard(2, 3)
+    case (_, "CHECKSUM") => FunctionDefinition.standard(2, Int.MaxValue)
     case (_, "CHECKSUM_AGG") => FunctionDefinition.standard(1)
     case (_, "COALESCE") => FunctionDefinition.standard(1, Int.MaxValue)
-    case (_, "CHECKSUM") => FunctionDefinition.standard(1, Int.MaxValue)
-    case (_, "COALESCE") => FunctionDefinition.standard(1, Int.MaxValue)
-    case (_, "BINARY_CHECKSUM") => FunctionDefinition.standard(1, Int.MaxValue)
     case (_, "COL_LENGTH") => FunctionDefinition.standard(2)
     case (_, "COL_NAME") => FunctionDefinition.standard(2)
     case (_, "COLUMNPROPERTY") => FunctionDefinition.standard(3)
@@ -157,7 +156,6 @@ object FunctionBuilder {
     case (_, "IDENT_INCR") => FunctionDefinition.standard(1)
     case (_, "IDENT_SEED") => FunctionDefinition.standard(1)
     case (_, "IDENTITY") => FunctionDefinition.standard(1, 3)
-    case (Snowflake, "IFNULL") => FunctionDefinition.standard(2)
     case (_, "IFF") => FunctionDefinition.standard(3)
     case (_, "INDEX_COL") => FunctionDefinition.standard(3)
     case (_, "INDEXKEY_PROPERTY") => FunctionDefinition.standard(3)
@@ -168,9 +166,6 @@ object FunctionBuilder {
     case (_, "ISDATE") => FunctionDefinition.standard(1)
     case (_, "ISDESCENDANTOF") => FunctionDefinition.standard(1)
     case (_, "ISJSON") => FunctionDefinition.standard(1, 2)
-    // The ConversionStrategy is used to rename ISNULL to IFNULL in TSql
-    case (TSql, "ISNULL") =>
-      FunctionDefinition.standard(1, 2).withConversionStrategy(FunctionConverters.FunctionRename)
     case (_, "ISNUMERIC") => FunctionDefinition.standard(1)
     case (_, "JSON_MODIFY") => FunctionDefinition.standard(3)
     case (_, "JSON_PATH_EXISTS") => FunctionDefinition.standard(2)
@@ -234,9 +229,9 @@ object FunctionBuilder {
     case (_, "SCHEMA_ID") => FunctionDefinition.standard(0, 1)
     case (_, "SCHEMA_NAME") => FunctionDefinition.standard(0, 1)
     case (_, "SCOPE_IDENTITY") => FunctionDefinition.standard(0)
-    case (_, "SESSION_USER") => FunctionDefinition.standard(0)
     case (_, "SERVERPROPERTY") => FunctionDefinition.standard(1)
     case (_, "SESSION_CONTEXT") => FunctionDefinition.standard(1, 2)
+    case (_, "SESSION_USER") => FunctionDefinition.standard(0)
     case (_, "SESSIONPROPERTY") => FunctionDefinition.standard(1)
     case (_, "SIGN") => FunctionDefinition.standard(1)
     case (_, "SIN") => FunctionDefinition.standard(1)
@@ -261,14 +256,13 @@ object FunctionBuilder {
     case (_, "SUSER_SNAME") => FunctionDefinition.standard(0, 1)
     case (_, "SWITCHOFFSET") => FunctionDefinition.standard(2)
     case (_, "SYSDATETIME") => FunctionDefinition.standard(0)
-    case (_, "SYSTEM_USER") => FunctionDefinition.standard(0)
     case (_, "SYSDATETIMEOFFSET") => FunctionDefinition.standard(0)
+    case (_, "SYSTEM_USER") => FunctionDefinition.standard(0)
     case (_, "SYSUTCDATETIME") => FunctionDefinition.standard(0)
     case (_, "TAN") => FunctionDefinition.standard(1)
     case (_, "TIMEFROMPARTS") => FunctionDefinition.standard(5)
     case (_, "TODATETIMEOFFSET") => FunctionDefinition.standard(2)
     case (_, "TOSTRING") => FunctionDefinition.standard(0)
-    case (_, "USER") => FunctionDefinition.standard(0)
     case (_, "TRANSLATE") => FunctionDefinition.standard(3)
     case (_, "TRIM") => FunctionDefinition.standard(1, 2)
     case (_, "TYPE_ID") => FunctionDefinition.standard(1)
@@ -276,6 +270,7 @@ object FunctionBuilder {
     case (_, "TYPEPROPERTY") => FunctionDefinition.standard(2)
     case (_, "UNICODE") => FunctionDefinition.standard(1)
     case (_, "UPPER") => FunctionDefinition.standard(1)
+    case (_, "USER") => FunctionDefinition.standard(0)
     case (_, "USER_ID") => FunctionDefinition.standard(0, 1)
     case (_, "USER_NAME") => FunctionDefinition.standard(0, 1)
     case (_, "VALUE") => FunctionDefinition.xml(2)
@@ -283,6 +278,17 @@ object FunctionBuilder {
     case (_, "VARP") => FunctionDefinition.standard(1)
     case (_, "XACT_STATE") => FunctionDefinition.standard(0)
     case (_, "YEAR") => FunctionDefinition.standard(1)
+
+    // Snowflake specific
+    case (Snowflake, "IFNULL") => FunctionDefinition.standard(2)
+    case (Snowflake, "ISNULL") => FunctionDefinition.standard(1)
+
+    // TSql specific
+
+    // The ConversionStrategy is used to rename ISNULL to IFNULL in TSql
+    case (TSql, "@@CURSOR_STATUS") => FunctionDefinition.notConvertible(0)
+    case (TSql, "@@FETCH_STATUS") => FunctionDefinition.notConvertible(0)
+    case (TSql, "ISNULL") => FunctionDefinition.standard(2).withConversionStrategy(FunctionConverters.FunctionRename)
   }
 
   def functionDefinition(dialect: SqlDialect, name: String): Option[FunctionDefinition] =

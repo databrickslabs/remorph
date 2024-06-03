@@ -176,7 +176,7 @@ class TSqlExpressionBuilder extends TSqlParserBaseVisitor[ir.Expression] with Pa
   override def visitExprDollar(ctx: ExprDollarContext): ir.Expression = ir.DollarAction()
 
   override def visitExprFuncVal(ctx: ExprFuncValContext): ir.Expression = {
-    FunctionBuilder.buildFunction(ctx.getText, Seq.empty)
+    FunctionBuilder.buildFunction(ctx.getText, Seq.empty, TSql)
   }
 
   override def visitExprCollate(ctx: ExprCollateContext): ir.Expression =
