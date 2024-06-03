@@ -1,7 +1,7 @@
 import webbrowser
 from collections import defaultdict
 from datetime import timedelta
-from unittest.mock import create_autospec
+from unittest.mock import create_autospec, patch
 
 import pytest
 
@@ -24,6 +24,7 @@ from databricks.sdk.service.sql import (
     EndpointInfo,
     EndpointInfoWarehouseType,
 )
+from databricks.labs.blueprint.parallel import ManyError
 
 MODULES = ["all", "reconcile", "transpile"]
 
@@ -411,3 +412,44 @@ def test_save_reconcile_config(ws, mock_installation_state, monkeypatch):
             "version": 1,
         },
     )
+
+
+def test_workspace_installation_run(ws, mock_installation_state, monkeypatch):
+    def mock_open(url):
+        print(f"Opening URL: {url}")
+
+    monkeypatch.setattr("webbrowser.open", mock_open)
+    prompts = MockPrompts(
+        {
+            r"Which module.* would you like to configure:": MODULES.index("reconcile"),
+            r"Select the Data Source:": 2,
+            r"Select the Report Type:": 0,
+            r"Enter Secret Scope name to store .* connection details / secrets": "remorph_snowflake",
+            r"Enter .* Catalog name": "snowflake_sample_data",
+            r"Enter .* Database name": "tpch_sf1000",
+            r"Enter Databricks Catalog name": "tpch",
+            r"Enter Databricks Schema name": "1000gb",
+            r"Open .* in the browser and continue...?": "yes",
+        }
+    )
+    install = WorkspaceInstaller(ws, prompts)
+    install.__dict__["_installation"] = mock_installation_state
+    webbrowser.open('https://localhost/#workspace~/mock/config.yml')
+    config = install.configure()
+
+    with patch.object(WorkspaceInstallation, "run", return_value=None) as mock_run:
+        mock_run.side_effect = ManyError([NotFound("test1"), NotFound("test2")])
+        verify_timeout = timedelta(minutes=2)
+        product_info = create_autospec(ProductInfo)
+
+        workspace_installation = WorkspaceInstallation(
+            config,
+            mock_installation_state,
+            ws,
+            prompts,
+            verify_timeout,
+            product_info,
+        )
+
+        with pytest.raises(ManyError):
+            workspace_installation.run()
