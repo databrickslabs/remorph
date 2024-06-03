@@ -168,3 +168,5 @@ case class ScalarSubquery(relation: Relation) extends Expression {}
 case class Timezone(expression: Expression, timeZone: Expression) extends Expression {}
 
 case class Money(value: Literal) extends Expression {}
+
+case class WithinGroup(expression: Expression, order: Seq[SortOrder]) extends Expression {}

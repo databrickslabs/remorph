@@ -3905,6 +3905,8 @@ expression
     | caseExpression                                            #exprCase
     | expression timeZone                                       #exprTz
     | expression overClause                                     #exprOver
+    | expression withinGroup                                    #exprWithinGroup
+    | DOLLAR_ACTION                                             #exprDollar
     | <assoc=right> expression DOT expression                   #exprDot
     | LPAREN subquery RPAREN                                    #exprSubquery
     | DISTINCT expression                                       #exprDistinct
@@ -4283,14 +4285,11 @@ derivedTable
     ;
 
 functionCall
-    : analyticWindowedFunction
-    | builtInFunctions
+    : builtInFunctions
     | standardFunction
     | freetextFunction
     | partitionFunction
     | hierarchyidStaticMethod
-    // TODO: This is broken and highly ambiguous - will need to be reworked so the expression allows the primitives
-    // | scalarFunctionName LPAREN expressionList? RPAREN
     ;
 
 // Things that are just special values and not really functions, but are documented as such
@@ -4479,13 +4478,8 @@ expressionList
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/functions/analytic-functions-transact-sql
-analyticWindowedFunction
-    : (FIRST_VALUE | LAST_VALUE) LPAREN expression RPAREN
-    | (LAG | LEAD) LPAREN expression (COMMA expression (COMMA expression)?)? RPAREN
-    | (CUME_DIST | PERCENT_RANK) LPAREN RPAREN OVER LPAREN (PARTITION BY expressionList)? orderByClause RPAREN
-    | (PERCENTILE_CONT | PERCENTILE_DISC) LPAREN expression RPAREN WITHIN GROUP LPAREN orderByClause RPAREN OVER LPAREN (
-        PARTITION BY expressionList
-    )? RPAREN
+withinGroup
+    :  WITHIN GROUP LPAREN orderByClause RPAREN
     ;
 
 // https://msdn.microsoft.com/en-us/library/ms189461.aspx
@@ -4632,6 +4626,7 @@ nullNotnull
     : NOT? NULL_
     ;
 
+// TODO: Get rid of this after checking
 scalarFunctionName
     : funcProcNameServerDatabaseSchema
     | RIGHT
@@ -4818,7 +4813,6 @@ keyword
     | CREATION_DISPOSITION
     | CREDENTIAL
     | CRYPTOGRAPHIC
-    | CUME_DIST
     | CURSOR_CLOSE_ON_COMMIT
     | CURSOR_DEFAULT
     | DATA
@@ -4883,7 +4877,6 @@ keyword
     | FILESTREAM
     | FILTER
     | FIRST
-    | FIRST_VALUE
     | FMTONLY
     | FOLLOWING
     | FORCE
@@ -4940,10 +4933,7 @@ keyword
     | KEY_SOURCE
     | KEYS
     | KEYSET
-    | LAG
     | LAST
-    | LAST_VALUE
-    | LEAD
     | LEVEL
     | LIST
     | LISTENER
@@ -5043,9 +5033,6 @@ keyword
     | PATH
     | PAUSE
     | PDW_SHOWSPACEUSED
-    | PERCENT_RANK
-    | PERCENTILE_CONT
-    | PERCENTILE_DISC
     | PERSIST_SAMPLE_PERCENT
     | PHYSICAL_ONLY
     | POISON_MESSAGE_HANDLING
