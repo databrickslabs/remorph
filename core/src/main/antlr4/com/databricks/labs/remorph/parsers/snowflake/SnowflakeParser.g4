@@ -3423,7 +3423,7 @@ id_
     | non_reserved_words
     | object_type_plural
     | data_type
-    | builtin_function
+    | builtin_function_name
     | unary_or_binary_builtin_function
     | binary_builtin_function
     | binary_or_ternary_builtin_function
@@ -3559,7 +3559,7 @@ non_reserved_words
     | MODE
     ;
 
-builtin_function
+builtin_function_name
     // If there is a lexer entry for a function we also need to add the token here
     // as it otherwise will not be picked up by the id_ rule (See also derived rule below)
     : SUM

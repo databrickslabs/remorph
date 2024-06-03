@@ -291,11 +291,11 @@ class SnowflakeExpressionBuilder(functionBuilder: FunctionBuilder)
 
   override def visitAggFuncExprList(ctx: AggFuncExprListContext): ir.Expression = {
     val param = ctx.expr_list().expr(0).accept(this)
-    buildBuiltinFunction(ctx.id_().builtin_function(), param)
+    buildBuiltinFunction(ctx.id_().builtin_function_name(), param)
   }
 
   override def visitAggFuncStar(ctx: AggFuncStarContext): ir.Expression = {
-    buildBuiltinFunction(ctx.id_().builtin_function(), ir.Star(None))
+    buildBuiltinFunction(ctx.id_().builtin_function_name(), ir.Star(None))
   }
 
   override def visitAggFuncList(ctx: AggFuncListContext): ir.Expression = {
@@ -306,7 +306,7 @@ class SnowflakeExpressionBuilder(functionBuilder: FunctionBuilder)
       case ARRAY_AGG => functionBuilder.buildFunction("ARRAYAGG", Seq(param))
     }
   }
-  private def buildBuiltinFunction(ctx: Builtin_functionContext, param: ir.Expression): ir.Expression =
+  private def buildBuiltinFunction(ctx: Builtin_function_nameContext, param: ir.Expression): ir.Expression =
     Option(ctx)
       .collect {
         case c if c.AVG() != null => ir.Avg(param)
