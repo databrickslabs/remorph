@@ -45,8 +45,6 @@ object FunctionDefinition {
 object FunctionBuilder {
 
   private val functionDefinitionPf: PartialFunction[(SqlDialect, String), FunctionDefinition] = {
-    case (_, "@@CURSOR_STATUS") => FunctionDefinition.notConvertible(0)
-    case (_, "@@FETCH_STATUS") => FunctionDefinition.notConvertible(0)
     case (_, "ABS") => FunctionDefinition.standard(1)
     case (_, "ACOS") => FunctionDefinition.standard(1)
     case (_, "APP_NAME") => FunctionDefinition.standard(0)
@@ -82,6 +80,7 @@ object FunctionBuilder {
     case (_, "COT") => FunctionDefinition.standard(1)
     case (_, "COUNT") => FunctionDefinition.standard(1)
     case (_, "COUNT_BIG") => FunctionDefinition.standard(1)
+    case (_, "CUME_DIST") => FunctionDefinition.standard(0)
     case (_, "CURRENT_DATE") => FunctionDefinition.standard(0)
     case (_, "CURRENT_REQUEST_ID") => FunctionDefinition.standard(0)
     case (_, "CURRENT_TIMESTAMP") => FunctionDefinition.standard(0)
@@ -90,7 +89,6 @@ object FunctionBuilder {
     case (_, "CURRENT_TRANSACTION_ID") => FunctionDefinition.standard(0)
     case (_, "CURRENT_USER") => FunctionDefinition.standard(0)
     case (_, "CURSOR_ROWS") => FunctionDefinition.standard(0)
-    case (_, "CUME_DIST") => FunctionDefinition.standard(0)
     case (_, "CURSOR_STATUS") => FunctionDefinition.standard(2)
     case (_, "DATABASE_PRINCIPAL_ID") => FunctionDefinition.standard(0, 1)
     case (_, "DATABASEPROPERTY") => FunctionDefinition.standard(2)
@@ -131,8 +129,8 @@ object FunctionBuilder {
     case (_, "FILEGROUPPROPERTY") => FunctionDefinition.standard(2)
     case (_, "FILEPROPERTY") => FunctionDefinition.standard(2)
     case (_, "FILEPROPERTYEX") => FunctionDefinition.standard(2)
-    case (_, "FLOOR") => FunctionDefinition.standard(1)
     case (_, "FIRST_VALUE") => FunctionDefinition.standard(1)
+    case (_, "FLOOR") => FunctionDefinition.standard(1)
     case (_, "FORMAT") => FunctionDefinition.standard(2, 3)
     case (_, "FORMATMESSAGE") => FunctionDefinition.standard(2, Int.MaxValue)
     case (_, "FULLTEXTCATALOGPROPERTY") => FunctionDefinition.standard(2)
@@ -173,7 +171,7 @@ object FunctionBuilder {
     case (_, "JSON_VALUE") => FunctionDefinition.standard(2)
     case (_, "LAG") => FunctionDefinition.standard(1, 3)
     case (_, "LAST_VALUE") => FunctionDefinition.standard(1)
-    case (_, "LEAD") => FunctionDefinition.standard(1)
+    case (_, "LEAD") => FunctionDefinition.standard(1, 3)
     case (_, "LEAST") => FunctionDefinition.standard(1, Int.MaxValue)
     case (_, "LEFT") => FunctionDefinition.standard(2)
     case (_, "LEN") => FunctionDefinition.standard(1)
@@ -205,10 +203,10 @@ object FunctionBuilder {
     case (_, "PARSE") => FunctionDefinition.notConvertible(2, 3) // Not in DBSQL
     case (_, "PARSENAME") => FunctionDefinition.standard(2)
     case (_, "PATINDEX") => FunctionDefinition.standard(2)
-    case (_, "PERMISSIONS") => FunctionDefinition.notConvertible(0, 2) // not in DBSQL
-    case (_, "PERCENTILE_CONT") => FunctionDefinition.standard(1)
     case (_, "PERCENT_RANK") => FunctionDefinition.standard(0)
-    case (_, "PERCENT_DISC") => FunctionDefinition.standard(0)
+    case (_, "PERCENTILE_CONT") => FunctionDefinition.standard(1)
+    case (_, "PERCENTILE_DISC") => FunctionDefinition.standard(1)
+    case (_, "PERMISSIONS") => FunctionDefinition.notConvertible(0, 2) // not in DBSQL
     case (_, "PI") => FunctionDefinition.standard(0)
     case (_, "POWER") => FunctionDefinition.standard(2)
     case (_, "PWDCOMPARE") => FunctionDefinition.standard(2, 3)
