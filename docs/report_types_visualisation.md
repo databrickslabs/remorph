@@ -156,7 +156,7 @@ flowchart TB
     
     subgraph reconcile
         direction TB
-        L["report type: <b>data</b> or <b>all</b>(with <b>id</b> as join columns)"]
+        L["report type: <b>all</b>(with <b>id</b> as join columns)"]
     end
     
     source --> reconcile
