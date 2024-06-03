@@ -380,7 +380,7 @@ def test_recon_capture_start_oracle_with_exception(mock_workspace_client, mock_s
     # assert metrics
     remorph_recon_metrics_df = spark.sql("select * from DEFAULT.metrics")
     row = remorph_recon_metrics_df.collect()[0]
-    assert row.recon_metrics.schema_comparison is True
+    assert row.recon_metrics.schema_comparison is None
     assert row.run_metrics.status is False
     assert row.run_metrics.exception_message == "Test exception"
 

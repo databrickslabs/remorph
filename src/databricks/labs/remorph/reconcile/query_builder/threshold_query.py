@@ -25,14 +25,20 @@ logger = logging.getLogger(__name__)
 class ThresholdQueryBuilder(QueryBuilder):
     # Comparison query
     def build_comparison_query(self) -> str:
-        select_clause, where = self._generate_select_where_clause()
-        from_clause, join_clause = self._generate_from_and_join_clause()
+        self._validate(
+            self.table_conf.get_join_columns("source"), "Join Columns are compulsory for threshold comparison query"
+        )
+        join_columns = (
+            self.table_conf.get_join_columns("source") if self.table_conf.get_join_columns("source") else set()
+        )
+        select_clause, where = self._generate_select_where_clause(join_columns)
+        from_clause, join_clause = self._generate_from_and_join_clause(join_columns)
         # for threshold comparison query the dialect is always Databricks
         query = select(*select_clause).from_(from_clause).join(join_clause).where(where).sql(dialect=Databricks)
         logger.info(f"Threshold Comparison query: {query}")
         return query
 
-    def _generate_select_where_clause(self) -> tuple[list[exp.Expression], exp.Expression]:
+    def _generate_select_where_clause(self, join_columns) -> tuple[list[exp.Expression], exp.Expression]:
         thresholds = self.table_conf.thresholds if self.table_conf.thresholds else []
         select_clause = []
         where_clause = []
@@ -53,7 +59,7 @@ class ThresholdQueryBuilder(QueryBuilder):
             select_clause.extend(select_exp)
             where_clause.append(where)
         # join columns
-        for column in sorted(self.table_conf.get_join_columns("source")):
+        for column in sorted(join_columns):
             select_clause.append(build_column(this=column, alias=f"{column}_source", table_name="source"))
         where = build_where_clause(where_clause)
 
@@ -106,8 +112,7 @@ class ThresholdQueryBuilder(QueryBuilder):
 
         return select_clause, where_clause
 
-    def _generate_from_and_join_clause(self) -> tuple[exp.From, exp.Join]:
-        join_columns = sorted(self.table_conf.get_join_columns("source"))
+    def _generate_from_and_join_clause(self, join_columns) -> tuple[exp.From, exp.Join]:
         source_view = f"source_{self.table_conf.source_name}_df_threshold_vw"
         target_view = f"target_{self.table_conf.target_name}_df_threshold_vw"
 
@@ -116,7 +121,7 @@ class ThresholdQueryBuilder(QueryBuilder):
             table_name=target_view,
             source_table_alias="source",
             target_table_alias="databricks",
-            join_columns=join_columns,
+            join_columns=sorted(join_columns),
         )
 
         return from_clause, join_clause
@@ -201,7 +206,9 @@ class ThresholdQueryBuilder(QueryBuilder):
             str: The SQL string representation of the threshold query.
         """
         # key column expression
-        keys: list[str] = sorted(self.partition_column.union(self.join_columns))
+        self._validate(self.join_columns, "Join Columns are compulsory for threshold query")
+        join_columns = self.join_columns if self.join_columns else set()
+        keys: list[str] = sorted(self.partition_column.union(join_columns))
         keys_select_alias = [
             build_column(this=col, alias=self.table_conf.get_layer_tgt_to_src_col_mapping(col, self.layer))
             for col in keys
