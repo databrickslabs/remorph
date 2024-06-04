@@ -6,13 +6,14 @@ from datetime import timedelta
 from pathlib import Path
 
 from databricks.labs.blueprint.entrypoint import get_logger, is_in_debug
-from databricks.labs.blueprint.installation import Installation
+from databricks.labs.blueprint.installation import Installation, SerdeError
 from databricks.labs.blueprint.installer import InstallState
 from databricks.labs.blueprint.parallel import ManyError
 from databricks.labs.blueprint.tui import Prompts
 from databricks.labs.blueprint.wheels import ProductInfo
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.errors import NotFound
+from databricks.sdk.errors import PermissionDenied
 from databricks.sdk.retries import retried
 from databricks.sdk.service.sql import (
     CreateWarehouseRequestWarehouseType,
@@ -80,15 +81,15 @@ class WorkspaceInstaller:
             morph_config = self._installation.load(MorphConfig)
         except NotFound as err:
             logger.debug(f"Cannot find previous `transpile` installation: {err}")
-        # except (PermissionDenied, SerdeError, ValueError, AttributeError): logger.warning(f"Existing installation
-        # at {self._installation.install_folder()} is corrupted. Skipping...")
+        except (PermissionDenied, SerdeError, ValueError, AttributeError):
+            logger.warning(f"Existing installation at {self._installation.install_folder()} is corrupted. Skipping...")
 
         try:
             reconcile_config = self._installation.load(ReconcileConfig)
         except NotFound as err:
             logger.debug(f"Cannot find previous `reconcile` installation: {err}")
-        # except (PermissionDenied, SerdeError, ValueError, AttributeError): logger.warning(f"Existing installation
-        # at {self._installation.install_folder()} is corrupted. Skipping...")
+        except (PermissionDenied, SerdeError, ValueError, AttributeError):
+            logger.warning(f"Existing installation at {self._installation.install_folder()} is corrupted. Skipping...")
 
         if morph_config or reconcile_config:
             return RemorphConfigs(morph_config, reconcile_config)

@@ -445,7 +445,28 @@ def test_workspace_installation_run(ws, mock_installation_state, monkeypatch):
             install.run()
 
 
-def test_workspace_installation_run_single_error(ws, mock_installation_state, monkeypatch):
+def test_workspace_installation_run_single_error(ws, monkeypatch):
+
+    mock_installation_reconcile = MockInstallation(
+        {
+            "reconcile.yml": {
+                "config": {
+                    "source_catalog": "snowflake_sample_data",
+                    "source_schema": "tpch_sf1000",
+                    "target_catalog": "tpch",
+                    "target_schema": "1000gb",
+                },
+                "report_type": "all",
+                "secret_scope": "remorph_snowflake",
+                "tables": {
+                    "filter_type": "exclude",
+                    "tables_list": ["SUPPLIER", "FRIENDS", "ORDERS", "PART"],
+                },
+                "version": 1,
+            }
+        }
+    )
+
     def mock_open(url):
         print(f"Opening URL: {url}")
 
@@ -463,7 +484,7 @@ def test_workspace_installation_run_single_error(ws, mock_installation_state, mo
             r"Open .* in the browser and continue...?": "yes",
         }
     )
-    install = WorkspaceInstaller(ws, mock_installation_state, prompts)
+    install = WorkspaceInstaller(ws, mock_installation_reconcile, prompts)
 
     webbrowser.open('https://localhost/#workspace~/mock/config.yml')
 
@@ -471,3 +492,48 @@ def test_workspace_installation_run_single_error(ws, mock_installation_state, mo
         mock_run.side_effect = ManyError([NotFound("test1")])
         with pytest.raises(NotFound):
             install.run()
+
+
+def test_morph_config_error(ws, monkeypatch):
+    mock_installation_config = MockInstallation(
+        {
+            "config.yml": {
+                "catalog_name": "transpiler_test",
+                "input_sql": "sf_queries",
+                "mode": "current",
+                "output_folder": "out_dir",
+                "skip_validation": False,
+                "schema_name": "convertor_test",
+                "sdk_config": {
+                    "warehouse_id": "abc",
+                },
+                "version": 1,
+            }
+        }
+    )
+
+    def mock_open(url):
+        print(f"Opening URL: {url}")
+
+    monkeypatch.setattr("webbrowser.open", mock_open)
+
+    prompts = MockPrompts(
+        {
+            r"Select a module to configure:": MODULES.index("transpile"),
+            r"Select the source": SOURCES.index("snowflake"),
+            r"Enter Input SQL path.*": "sf_queries",
+            r"Enter Output directory.*": "out_dir",
+            r"Would you like to validate the Syntax, Semantics of the transpiled queries?": "yes",
+            r"Do you want to use SQL Warehouse for validation?": "no",
+            r"Enter a valid cluster_id to proceed": "test_cluster",
+            r"Enter Catalog for Validation": "test",
+            r".*Do you want to create a new one?": "yes",
+            r"Enter schema_name": "schema",
+            r".*Do you want to create a new Schema?": "no",
+            r".*": "",
+        }
+    )
+
+    install = WorkspaceInstaller(ws, mock_installation_config, prompts)
+    webbrowser.open('https://localhost/#workspace~/mock/config.yml')
+    install.configure()
