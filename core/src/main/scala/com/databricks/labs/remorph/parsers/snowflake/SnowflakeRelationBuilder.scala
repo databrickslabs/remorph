@@ -1,7 +1,7 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
-import com.databricks.labs.remorph.parsers.{IncompleteParser, intermediate => ir}
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser._
+import com.databricks.labs.remorph.parsers.{IncompleteParser, intermediate => ir}
 import org.antlr.v4.runtime.ParserRuleContext
 
 import scala.collection.JavaConverters._
@@ -24,7 +24,7 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.Relation] w
           c.select_top_clause().select_list_top().all_distinct(),
           c.select_top_clause().select_list_top().select_list().select_list_elem().asScala)
     }
-    val expressions = selectListElements.map(_.accept(new SnowflakeExpressionBuilder))
+    val expressions = selectListElements.map(_.accept(new SnowflakeExpressionBuilder(new SnowflakeFunctionBuilder)))
     ir.Project(buildTop(top, buildDistinct(allOrDistinct, relation, expressions)), expressions)
 
   }
@@ -74,7 +74,7 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.Relation] w
 
   private def buildFilter[A](ctx: A, conditionRule: A => ParserRuleContext, input: ir.Relation): ir.Relation =
     Option(ctx).fold(input) { c =>
-      ir.Filter(input, conditionRule(c).accept(new SnowflakeExpressionBuilder))
+      ir.Filter(input, conditionRule(c).accept(new SnowflakeExpressionBuilder(new SnowflakeFunctionBuilder)))
     }
   private def buildHaving(ctx: Having_clauseContext, input: ir.Relation): ir.Relation =
     buildFilter[Having_clauseContext](ctx, _.search_condition(), input)
@@ -87,7 +87,10 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.Relation] w
   private def buildGroupBy(ctx: Group_by_clauseContext, input: ir.Relation): ir.Relation = {
     Option(ctx).fold(input) { c =>
       val groupingExpressions =
-        c.group_by_list().group_by_elem().asScala.map(_.accept(new SnowflakeExpressionBuilder))
+        c.group_by_list()
+          .group_by_elem()
+          .asScala
+          .map(_.accept(new SnowflakeExpressionBuilder(new SnowflakeFunctionBuilder)))
       val aggregate =
         ir.Aggregate(input = input, group_type = ir.GroupBy, grouping_expressions = groupingExpressions, pivot = None)
       buildHaving(c.having_clause(), aggregate)
@@ -97,7 +100,7 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.Relation] w
   private def buildOrderBy(ctx: Order_by_clauseContext, input: ir.Relation): ir.Relation = {
     Option(ctx).fold(input) { c =>
       val sortOrders = c.order_item().asScala.map { orderItem =>
-        val expression = orderItem.accept(new SnowflakeExpressionBuilder)
+        val expression = orderItem.accept(new SnowflakeExpressionBuilder(new SnowflakeFunctionBuilder))
         if (orderItem.DESC() == null) {
           if (orderItem.NULLS() != null && orderItem.FIRST() != null) {
             ir.SortOrder(expression, ir.AscendingSortDirection, ir.SortNullsFirst)
@@ -121,7 +124,7 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.Relation] w
   }
 
   override def visitValues_table_body(ctx: Values_table_bodyContext): ir.Relation = {
-    val expressionBuilder = new SnowflakeExpressionBuilder
+    val expressionBuilder = new SnowflakeExpressionBuilder(new SnowflakeFunctionBuilder)
     val expressions =
       ctx.expr_list_in_parentheses().asScala.map(l => expressionBuilder.visitSeq(l.expr_list().expr().asScala))
     ir.Values(expressions)
@@ -144,9 +147,10 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.Relation] w
   }
 
   private def buildPivot(ctx: Pivot_unpivotContext, relation: ir.Relation): ir.Relation = {
-    val pivotValues: Seq[ir.Literal] = ctx.literal().asScala.map(_.accept(new SnowflakeExpressionBuilder)).collect {
-      case lit: ir.Literal => lit
-    }
+    val pivotValues: Seq[ir.Literal] =
+      ctx.literal().asScala.map(_.accept(new SnowflakeExpressionBuilder(new SnowflakeFunctionBuilder))).collect {
+        case lit: ir.Literal => lit
+      }
     val pivotColumn = ir.Column(ctx.id_(2).getText)
     val aggregateFunction = translateAggregateFunction(ctx.id_(0), ctx.id_(1))
     ir.Aggregate(
@@ -157,7 +161,11 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.Relation] w
   }
 
   private def buildUnpivot(ctx: Pivot_unpivotContext, relation: ir.Relation): ir.Relation = {
-    val unpivotColumns = ctx.column_list().column_name().asScala.map(_.accept(new SnowflakeExpressionBuilder))
+    val unpivotColumns = ctx
+      .column_list()
+      .column_name()
+      .asScala
+      .map(_.accept(new SnowflakeExpressionBuilder(new SnowflakeFunctionBuilder)))
     val variableColumnName = ctx.id_(0).getText
     val valueColumnName = ctx.column_name().id_(0).getText
     ir.Unpivot(
@@ -210,7 +218,11 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.Relation] w
 
   override def visitCommon_table_expression(ctx: Common_table_expressionContext): ir.Relation = {
     val tableName = ctx.id_().getText
-    val columns = ctx.column_list().column_name().asScala.map(_.accept(new SnowflakeExpressionBuilder))
+    val columns = ctx
+      .column_list()
+      .column_name()
+      .asScala
+      .map(_.accept(new SnowflakeExpressionBuilder(new SnowflakeFunctionBuilder)))
     val query = ctx.select_statement().accept(this)
     ir.CTEDefinition(tableName, columns, query)
   }

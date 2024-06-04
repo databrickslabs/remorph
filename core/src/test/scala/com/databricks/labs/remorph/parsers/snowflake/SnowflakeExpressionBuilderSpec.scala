@@ -2,9 +2,9 @@ package com.databricks.labs.remorph.parsers.snowflake
 
 import com.databricks.labs.remorph.parsers.intermediate._
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser.{Comparison_operatorContext, LiteralContext, Ranking_windowed_functionContext}
+import org.mockito.Mockito._
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import org.mockito.Mockito._
 import org.scalatestplus.mockito.MockitoSugar
 
 class SnowflakeExpressionBuilderSpec
@@ -13,7 +13,8 @@ class SnowflakeExpressionBuilderSpec
     with Matchers
     with MockitoSugar {
 
-  override protected def astBuilder: SnowflakeExpressionBuilder = new SnowflakeExpressionBuilder
+  override protected def astBuilder: SnowflakeExpressionBuilder =
+    new SnowflakeExpressionBuilder(new SnowflakeFunctionBuilder())
 
   "SnowflakeExpressionBuilder" should {
     "translate literals" in {
@@ -125,39 +126,36 @@ class SnowflakeExpressionBuilderSpec
 
     "translate ORDER BY a" in {
       val tree = parseString("ORDER BY a", _.order_by_expr())
-      (new SnowflakeExpressionBuilder).buildSortOrder(tree) shouldBe Seq(
-        SortOrder(Column("a"), AscendingSortDirection, SortNullsLast))
+      astBuilder.buildSortOrder(tree) shouldBe Seq(SortOrder(Column("a"), AscendingSortDirection, SortNullsLast))
     }
 
     "translate ORDER BY a ASC" in {
       val tree = parseString("ORDER BY a ASC", _.order_by_expr())
-      (new SnowflakeExpressionBuilder).buildSortOrder(tree) shouldBe Seq(
-        SortOrder(Column("a"), AscendingSortDirection, SortNullsLast))
+      astBuilder.buildSortOrder(tree) shouldBe Seq(SortOrder(Column("a"), AscendingSortDirection, SortNullsLast))
     }
 
     "translate ORDER BY a DESC" in {
       val tree = parseString("ORDER BY a DESC", _.order_by_expr())
-      (new SnowflakeExpressionBuilder).buildSortOrder(tree) shouldBe Seq(
-        SortOrder(Column("a"), DescendingSortDirection, SortNullsLast))
+      astBuilder.buildSortOrder(tree) shouldBe Seq(SortOrder(Column("a"), DescendingSortDirection, SortNullsLast))
     }
 
     "translate ORDER BY a, b DESC" in {
       val tree = parseString("ORDER BY a, b DESC", _.order_by_expr())
-      (new SnowflakeExpressionBuilder).buildSortOrder(tree) shouldBe Seq(
+      astBuilder.buildSortOrder(tree) shouldBe Seq(
         SortOrder(Column("a"), AscendingSortDirection, SortNullsLast),
         SortOrder(Column("b"), DescendingSortDirection, SortNullsLast))
     }
 
     "translate ORDER BY a DESC, b" in {
       val tree = parseString("ORDER BY a DESC, b", _.order_by_expr())
-      (new SnowflakeExpressionBuilder).buildSortOrder(tree) shouldBe Seq(
+      astBuilder.buildSortOrder(tree) shouldBe Seq(
         SortOrder(Column("a"), DescendingSortDirection, SortNullsLast),
         SortOrder(Column("b"), AscendingSortDirection, SortNullsLast))
     }
 
     "translate ORDER BY with many expressions" in {
       val tree = parseString("ORDER BY a DESC, b, c ASC, d DESC, e", _.order_by_expr())
-      (new SnowflakeExpressionBuilder).buildSortOrder(tree) shouldBe Seq(
+      astBuilder.buildSortOrder(tree) shouldBe Seq(
         SortOrder(Column("a"), DescendingSortDirection, SortNullsLast),
         SortOrder(Column("b"), AscendingSortDirection, SortNullsLast),
         SortOrder(Column("c"), AscendingSortDirection, SortNullsLast),
