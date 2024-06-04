@@ -114,3 +114,9 @@ class ReconcileConfig:
     secret_scope: str
     config: DatabaseConfig
     tables: ReconcileTablesConfig | None = None
+
+
+@dataclass
+class RemorphConfigs:
+    morph: MorphConfig | None
+    reconcile: ReconcileConfig | None
