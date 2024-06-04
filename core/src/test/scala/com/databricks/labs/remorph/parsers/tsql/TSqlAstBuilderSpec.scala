@@ -369,4 +369,12 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
             within_watermark = false),
           Seq(Column("a"), Alias(Column("b"), Seq("bb"), None))))))
   }
+
+  "Columns specified with dedicated syntax" in {
+    example(
+      query = "SELECT NEXT VALUE FOR mySequence As nextVal",
+      expectedAst = Batch(
+        Seq(
+          Project(NoTable, Seq(Alias(CallFunction("MONOTONICALLY_INCREASING_ID", List.empty), Seq("nextVal"), None))))))
+  }
 }

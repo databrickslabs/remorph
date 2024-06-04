@@ -289,5 +289,6 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
       query = "NEXT VALUE FOR mySequence",
       _.expression(),
       ir.CallFunction("MONOTONICALLY_INCREASING_ID", List.empty))
+
   }
 }
