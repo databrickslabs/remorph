@@ -5,21 +5,31 @@ import webbrowser
 from datetime import timedelta
 from pathlib import Path
 
-from databricks.labs.blueprint.entrypoint import get_logger
-from databricks.labs.blueprint.installation import Installation
+from databricks.labs.blueprint.entrypoint import get_logger, is_in_debug
+from databricks.labs.blueprint.installation import Installation, SerdeError
 from databricks.labs.blueprint.installer import InstallState
+from databricks.labs.blueprint.parallel import ManyError
 from databricks.labs.blueprint.tui import Prompts
 from databricks.labs.blueprint.wheels import ProductInfo
-from databricks.labs.remorph.__about__ import __version__
-from databricks.labs.remorph.config import SQLGLOT_DIALECTS, MorphConfig
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.errors import NotFound
+from databricks.sdk.errors import PermissionDenied
 from databricks.sdk.retries import retried
 from databricks.sdk.service.sql import (
     CreateWarehouseRequestWarehouseType,
     EndpointInfoWarehouseType,
     SpotInstancePolicy,
 )
+
+from databricks.labs.remorph.__about__ import __version__
+from databricks.labs.remorph.config import (
+    MorphConfig,
+    ReconcileConfig,
+    SQLGLOT_DIALECTS,
+    DatabaseConfig,
+    RemorphConfigs,
+)
+from databricks.labs.remorph.reconcile.constants import SourceType
 
 logger = logging.getLogger(__name__)
 
@@ -28,73 +38,139 @@ WAREHOUSE_PREFIX = "Remorph Transpiler Validation"
 
 
 class WorkspaceInstaller:
-    def __init__(self, prompts: Prompts, installation: Installation, ws: WorkspaceClient):
+    def __init__(self, ws: WorkspaceClient, installation: Installation, prompts: Prompts = Prompts()):
         if "DATABRICKS_RUNTIME_VERSION" in os.environ:
             msg = "WorkspaceInstaller is not supposed to be executed in Databricks Runtime"
             raise SystemExit(msg)
         self._ws = ws
-        self._installation = installation
         self._prompts = prompts
         self._catalog_setup = CatalogSetup(ws)
+        self._product_info = ProductInfo.from_class(MorphConfig)
+        self._install = InstallPrompts(ws, prompts)
+        self._installation = installation
 
     def run(self):
-        logger.info(f"Installing Remorph v{PRODUCT_INFO.version()}")
-        config = self.configure()
+        logger.info(f"Installing Remorph v{self._product_info.version()}")
+        configs = self.configure()
         workspace_installation = WorkspaceInstallation(
-            config,
+            configs,
             self._installation,
             self._ws,
             self._prompts,
             verify_timeout=timedelta(minutes=2),
+            product_info=self._product_info,
         )
-        workspace_installation.run()
-
-    def configure(self) -> MorphConfig:
         try:
-            return self._installation.load(MorphConfig)
+            workspace_installation.run()
+        except ManyError as err:
+            if len(err.errs) == 1:
+                raise err.errs[0] from None
+            raise err
+        return configs
+
+    def configure(self) -> RemorphConfigs:
+        """
+        Returns the MorphConfig or ReconcileConfig If those are present on the Databricks Workspace,
+         else prompts for the new Installation
+        :return: RemorphConfigs
+        """
+        morph_config = None
+        reconcile_config = None
+
+        try:
+            morph_config = self._installation.load(MorphConfig)
         except NotFound as err:
-            logger.debug(f"Cannot find previous installation: {err}")
-        logger.info("Please answer a couple of questions to configure Remorph")
+            logger.debug(f"Cannot find previous `transpile` installation: {err}")
+        except (PermissionDenied, SerdeError, ValueError, AttributeError):
+            logger.warning(f"Existing installation at {self._installation.install_folder()} is corrupted. Skipping...")
 
-        # default params
-        catalog_name = "transpiler_test"
-        schema_name = "convertor_test"
-        ws_config = None
+        try:
+            reconcile_config = self._installation.load(ReconcileConfig)
+        except NotFound as err:
+            logger.debug(f"Cannot find previous `reconcile` installation: {err}")
+        except (PermissionDenied, SerdeError, ValueError, AttributeError):
+            logger.warning(f"Existing installation at {self._installation.install_folder()} is corrupted. Skipping...")
 
-        source_prompt = self._prompts.choice("Select the source", list(SQLGLOT_DIALECTS.keys()))
-        source = source_prompt.lower()
+        if morph_config or reconcile_config:
+            return RemorphConfigs(morph_config, reconcile_config)
 
-        skip_validation = self._prompts.confirm("Do you want to Skip Validation")
+        return self._configure_new_installation()
 
-        if not skip_validation:
-            ws_config = self._configure_runtime()
-            catalog_name = self._prompts.question("Enter catalog_name")
-            try:
-                self._catalog_setup.get(catalog_name)
-            except NotFound:
-                self.setup_catalog(catalog_name)
+    def _save_configs(self, configs: RemorphConfigs):
+        if configs.morph:
+            self._save_and_open_config("transpile", configs.morph)
+        if configs.reconcile:
+            self._save_and_open_config("reconcile", configs.reconcile)
 
-            schema_name = self._prompts.question("Enter schema_name")
-
-            try:
-                self._catalog_setup.get_schema(f"{catalog_name}.{schema_name}")
-            except NotFound:
-                self.setup_schema(catalog_name, schema_name)
-
-        config = MorphConfig(
-            source=source,
-            skip_validation=skip_validation,
-            catalog_name=catalog_name,
-            schema_name=schema_name,
-            sdk_config=ws_config,
-            mode="current",  # mode will not have a prompt as this is hidden flag
-        )
-
+    def _save_and_open_config(self, module: str, config: MorphConfig | ReconcileConfig):
+        logger.info(f"Saving the ** {module} ** configuration in Databricks Workspace")
         self._installation.save(config)
         ws_file_url = self._installation.workspace_link(config.__file__)
-        if self._prompts.confirm("Open config file in the browser and continue installing?"):
+        if self._prompts.confirm(f"Open `{config.__file__}` in the browser and continue...?"):
             webbrowser.open(ws_file_url)
-        return config
+
+    def _configure_new_installation(self) -> RemorphConfigs:
+        """
+        Prompts for the new Installation and saves the configuration on the Databricks Workspace
+        :return: RemorphConfigs
+        """
+        function_to_call = self._prompts.choice_from_dict(
+            'Select a module to configure:',
+            {
+                'reconcile': self._install.reconcile_setup_prompts,
+                'transpile': self._install.transpile_setup_prompts,
+                'all': self._install.remorph_setup_prompts,
+            },
+        )
+        configs = function_to_call()
+        self._save_configs(configs)
+
+        return configs
+
+
+class CatalogSetup:
+    def __init__(self, ws: WorkspaceClient):
+        self._ws = ws
+
+    def create(self, name: str):
+        logger.debug(f"Creating Catalog `{name}`")
+        catalog_info = self._ws.catalogs.create(name, comment="Created as part of Remorph installation")
+        logger.info(f"Catalog `{name}` created")
+        return catalog_info
+
+    def get(self, name: str):
+        try:
+            logger.debug(f"Searching for Catalog `{name}`")
+            catalog_info = self._ws.catalogs.get(name)
+            logger.info(f"Catalog `{name}` found")
+            return catalog_info.name
+        except NotFound as err:
+            logger.error(f"Cannot find Catalog: {err}")
+            raise err
+
+    def create_schema(self, name: str, catalog_name: str):
+        logger.debug(f"Creating Schema `{name}` in Catalog `{catalog_name}`")
+        schema_info = self._ws.schemas.create(name, catalog_name, comment="Created as part of Remorph installation")
+        logger.info(f"Created Schema `{name}` in Catalog `{catalog_name}`")
+        return schema_info
+
+    def get_schema(self, name: str):
+        try:
+            logger.debug(f"Searching for Schema `{name}`")
+            schema_info = self._ws.schemas.get(name)
+            logger.info(f"Schema `{name}` found")
+            return schema_info.name
+        except NotFound as err:
+            logger.error(f"Cannot find Schema: {err}")
+            raise err
+
+
+class InstallPrompts:
+    def __init__(self, ws: WorkspaceClient, prompts: Prompts = Prompts()):
+        self._source = None
+        self._prompts = prompts
+        self._ws = ws
+        self._catalog_setup = CatalogSetup(ws)
 
     def _configure_runtime(self) -> dict[str, str]:
         if self._prompts.confirm("Do you want to use SQL Warehouse for validation?"):
@@ -134,38 +210,140 @@ class WorkspaceInstaller:
     @retried(on=[NotFound], timeout=timedelta(minutes=5))
     def setup_catalog(self, catalog_name: str):
         allow_catalog_creation = self._prompts.confirm(
-            f"""Catalog {catalog_name} not found.\
+            f"""Catalog `{catalog_name}` not found.\
                     \nDo you want to create a new one?"""
         )
         if not allow_catalog_creation:
             msg = "Catalog is needed to setup Remorph"
             raise SystemExit(msg)
 
-        logger.info(f" Creating new Catalog {catalog_name}")
+        logger.info(f"Creating new Catalog `{catalog_name}`")
         self._catalog_setup.create(catalog_name)
 
     @retried(on=[NotFound], timeout=timedelta(minutes=5))
     def setup_schema(self, catalog_name: str, schema_name: str):
         allow_schema_creation = self._prompts.confirm(
-            f"""Schema {schema_name} not found in Catalog {catalog_name}\
+            f"""Schema `{schema_name}` not found in Catalog `{catalog_name}`\
                     \nDo you want to create a new Schema?"""
         )
         if not allow_schema_creation:
             msg = "Schema is needed to setup Remorph"
             raise SystemExit(msg)
 
-        logger.info(f" Creating new Schema {catalog_name}.{schema_name}")
+        logger.info(f"Creating new Schema `{catalog_name}.{schema_name}`")
         self._catalog_setup.create_schema(schema_name, catalog_name)
+
+    def remorph_setup_prompts(self) -> RemorphConfigs:
+        return RemorphConfigs(self.transpile_setup_prompts().morph, self.reconcile_setup_prompts().reconcile)
+
+    def transpile_setup_prompts(self) -> RemorphConfigs:
+        logger.info("\nPlease answer a few questions to configure remorph: ** transpile **")
+
+        # default params
+        catalog_name = "transpiler_test"
+        schema_name = "convertor_test"
+        ws_config = None
+
+        source = self._prompts.choice("Select the source:", list(SQLGLOT_DIALECTS.keys()))
+
+        input_sql = self._prompts.question("Enter Input SQL path (directory/file)")
+
+        output_folder = self._prompts.question("Enter Output directory", default="transpiled")
+
+        run_validation = self._prompts.confirm(
+            "Would you like to validate the Syntax, Semantics of the transpiled queries?"
+        )
+
+        if run_validation:
+            ws_config = self._configure_runtime()
+            catalog_name = self._prompts.question("Enter Catalog for Validation")
+            try:
+                self._catalog_setup.get(catalog_name)
+            except NotFound:
+                self.setup_catalog(catalog_name)
+
+            schema_name = self._prompts.question("Enter Schema for Validation")
+
+            try:
+                self._catalog_setup.get_schema(f"{catalog_name}.{schema_name}")
+            except NotFound:
+                self.setup_schema(catalog_name, schema_name)
+
+        config = MorphConfig(
+            source=source,
+            skip_validation=(not run_validation),
+            catalog_name=catalog_name,
+            schema_name=schema_name,
+            sdk_config=ws_config,
+            mode="current",  # mode will not have a prompt as this is hidden flag
+            input_sql=input_sql,
+            output_folder=output_folder,
+        )
+
+        logger.info("Captured ** transpile **  configuration details !!!")
+
+        return RemorphConfigs(config, None)
+
+    def _prompt_for_reconcile_source_target_details(self, source):
+
+        source_catalog = None
+        if source == SourceType.SNOWFLAKE.value:
+            source_catalog = self._prompts.question(f"Enter `{source.capitalize()}` Catalog name")
+
+        schema_prompt = f"Enter `{source.capitalize()}` Schema name"
+        if source in {SourceType.ORACLE.value, SourceType.SNOWFLAKE.value}:
+            schema_prompt = f"Enter `{source.capitalize()}` Database name"
+
+        source_schema = self._prompts.question(schema_prompt)
+
+        target_catalog = self._prompts.question("Enter Databricks Catalog name")
+
+        target_schema = self._prompts.question("Enter Databricks Schema name")
+
+        return DatabaseConfig(
+            source_schema=source_schema,
+            target_catalog=target_catalog,
+            target_schema=target_schema,
+            source_catalog=source_catalog,
+        )
+
+    def reconcile_setup_prompts(self) -> RemorphConfigs:
+        logger.info("\nPlease answer a few questions to configure remorph: ** reconcile **")
+
+        data_source = self._prompts.choice(
+            "Select the Data Source:",
+            [SourceType.DATABRICKS.value, SourceType.SNOWFLAKE.value, SourceType.ORACLE.value],
+        )
+        report_type = self._prompts.choice("Select the Report Type:", ["data", "schema", "all", "row"])
+
+        scope_name = self._prompts.question(
+            f"Enter Secret Scope name to store `{data_source.capitalize()}` connection details / secrets",
+            default=f"remorph_{data_source}",
+        )
+
+        db_config = self._prompt_for_reconcile_source_target_details(data_source)
+
+        reconcile_config = ReconcileConfig(
+            data_source=data_source,
+            report_type=report_type,
+            secret_scope=scope_name,
+            config=db_config,
+        )
+
+        logger.info("Captured ** reconcile **  configuration details !!!")
+
+        return RemorphConfigs(None, reconcile_config)
 
 
 class WorkspaceInstallation:
     def __init__(
         self,
-        config: MorphConfig,
+        config: RemorphConfigs,
         installation: Installation,
         ws: WorkspaceClient,
         prompts: Prompts,
         verify_timeout: timedelta,
+        product_info: ProductInfo,
     ):
         self._config = config
         self._installation = installation
@@ -174,55 +352,23 @@ class WorkspaceInstallation:
         self._verify_timeout = verify_timeout
         self._state = InstallState.from_installation(installation)
         self._this_file = Path(__file__)
+        self._product_info = product_info
 
     def run(self):
-        logger.info(f"Installing Remorph v{PRODUCT_INFO.version()}")
-        self._installation.save(self._config)
+        logger.info(f"Installing Remorph v{self._product_info.version()}")
+        # TODO: Store Recon Metadata Tables, Lakeview Dashboards
         logger.info("Installation completed successfully! Please refer to the documentation for the next steps.")
-
-
-class CatalogSetup:
-    def __init__(self, ws: WorkspaceClient):
-        self._ws = ws
-
-    def create(self, name: str):
-        logger.debug(f"Creating Catalog {name}")
-        catalog_info = self._ws.catalogs.create(name, comment="Created as part of Remorph setup")
-        logger.info(f"Catalog {name} created")
-        return catalog_info
-
-    def get(self, name: str):
-        try:
-            logger.debug(f"Searching for Catalog {name}")
-            catalog_info = self._ws.catalogs.get(name)
-            logger.info(f"Catalog {name} found")
-            return catalog_info.name
-        except NotFound as err:
-            logger.error(f"Cannot find Catalog: {err}")
-            raise err
-
-    def create_schema(self, name: str, catalog_name: str):
-        logger.debug(f"Creating Schema {name} in Catalog {catalog_name}")
-        schema_info = self._ws.schemas.create(name, catalog_name, comment="Created as part of Remorph setup")
-        logger.info(f"Created Schema {name} in Catalog {catalog_name}")
-        return schema_info
-
-    def get_schema(self, name: str):
-        try:
-            logger.debug(f"Searching for Schema {name}")
-            schema_info = self._ws.schemas.get(name)
-            logger.info(f"Schema {name} found")
-            return schema_info.name
-        except NotFound as err:
-            logger.error(f"Cannot find Schema: {err}")
-            raise err
 
 
 if __name__ == "__main__":
     logger = get_logger(__file__)
     logger.setLevel("INFO")
+    if is_in_debug():
+        logging.getLogger('databricks').setLevel(logging.DEBUG)
 
-    workspace_client = WorkspaceClient(product="remorph", product_version=__version__)
-    current = Installation(workspace_client, PRODUCT_INFO.product_name())
-    installer = WorkspaceInstaller(Prompts(), current, workspace_client)
+    w = WorkspaceClient(product="remorph", product_version=__version__)
+    current = Installation.assume_user_home(w, PRODUCT_INFO.product_name())
+
+    # TODO force_install
+    installer = WorkspaceInstaller(w, current)
     installer.run()
