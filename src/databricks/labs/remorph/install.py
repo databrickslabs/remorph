@@ -70,9 +70,9 @@ class WorkspaceInstaller:
 
     def configure(self) -> RemorphConfigs:
         """
-        Returns the MorphConfig If it exists on the Databricks Workspace,
+        Returns the MorphConfig or ReconcileConfig If those are present on the Databricks Workspace,
          else prompts for the new Installation
-        :return:
+        :return: RemorphConfigs
         """
         morph_config = None
         reconcile_config = None
@@ -111,8 +111,8 @@ class WorkspaceInstaller:
 
     def _configure_new_installation(self) -> RemorphConfigs:
         """
-        Prompts for the new Installation and saves the configuration
-        :return: MorphConfig
+        Prompts for the new Installation and saves the configuration on the Databricks Workspace
+        :return: RemorphConfigs
         """
         function_to_call = self._prompts.choice_from_dict(
             'Select a module to configure:',
@@ -217,7 +217,7 @@ class InstallPrompts:
             msg = "Catalog is needed to setup Remorph"
             raise SystemExit(msg)
 
-        logger.info(f" Creating new Catalog `{catalog_name}`")
+        logger.info(f"Creating new Catalog `{catalog_name}`")
         self._catalog_setup.create(catalog_name)
 
     @retried(on=[NotFound], timeout=timedelta(minutes=5))
@@ -230,7 +230,7 @@ class InstallPrompts:
             msg = "Schema is needed to setup Remorph"
             raise SystemExit(msg)
 
-        logger.info(f" Creating new Schema `{catalog_name}.{schema_name}`")
+        logger.info(f"Creating new Schema `{catalog_name}.{schema_name}`")
         self._catalog_setup.create_schema(schema_name, catalog_name)
 
     def remorph_setup_prompts(self) -> RemorphConfigs:
@@ -355,7 +355,7 @@ class WorkspaceInstallation:
         self._product_info = product_info
 
     def run(self):
-        logger.info(f"Installing Remorph v{self._product_info.version()} ")
+        logger.info(f"Installing Remorph v{self._product_info.version()}")
         # TODO: Store Recon Metadata Tables, Lakeview Dashboards
         logger.info("Installation completed successfully! Please refer to the documentation for the next steps.")
 
