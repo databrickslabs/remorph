@@ -52,10 +52,20 @@ object TSqlFunctionConverters {
       // with external procedures or functions in Java/Scala, or even python.
       // For instance a SequenceHandler supplied by the user.
       //
-      // TODO: MONOTONICALLY_INCREASING_ID is not a windowing function in Databricks SQL, hence this will
-      //  not work with OVER clauses.
-      //  In that case a better translation is possibly ROW_NUMBER() OVER (ORDER BY ...)
+      // Given this, then we use this converter rather than just the simple Rename converter.
+      // TODO: Implement external SequenceHandler?
       ir.CallFunction("MONOTONICALLY_INCREASING_ID", List.empty)
+    }
+  }
+
+  object WindowingFunctions extends ConversionStrategy {
+    override def convert(irName: String, args: Seq[ir.Expression]): ir.Expression = irName match {
+      // MONOTONICALLY_INCREASING_ID is not a windowing function in Databricks SQL, hence this will
+      // not work with OVER clauses. In that case a better translation is
+      // ROW_NUMBER() OVER (ORDER BY ...)
+      case "MONOTONICALLY_INCREASING_ID" =>
+        ir.CallFunction("ROW_NUMBER", args)
+      case _ => ir.CallFunction(irName, args)
     }
   }
 

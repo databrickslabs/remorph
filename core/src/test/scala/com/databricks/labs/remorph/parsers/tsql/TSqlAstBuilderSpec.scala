@@ -390,7 +390,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
           NoTable,
           Seq(Alias(
             Window(
-              CallFunction("MONOTONICALLY_INCREASING_ID", List.empty),
+              CallFunction("ROW_NUMBER", List.empty),
               List.empty,
               List(SortOrder(Column("myColumn"), AscendingSortDirection, SortNullsUnspecified)),
               WindowFrame(

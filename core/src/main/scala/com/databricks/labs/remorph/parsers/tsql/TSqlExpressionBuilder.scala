@@ -294,7 +294,7 @@ class TSqlExpressionBuilder(functionBuilder: FunctionBuilder)
   // so we can't build them logically with visit and accept. Maybe replace them with
   // extensions that do do this?
   override def visitExprOver(ctx: ExprOverContext): ir.Window = {
-    val windowFunction = ctx.expression().accept(this)
+    val windowFunction = buildWindowingFunction(ctx.expression().accept(this))
     val partitionByExpressions =
       Option(ctx.overClause().expression()).map(_.asScala.toList.map(_.accept(this))).getOrElse(List.empty)
     val orderByExpressions = Option(ctx.overClause().orderByClause())
@@ -305,6 +305,12 @@ class TSqlExpressionBuilder(functionBuilder: FunctionBuilder)
       .getOrElse(noWindowFrame)
 
     ir.Window(windowFunction, partitionByExpressions, orderByExpressions, rowRange)
+  }
+
+  // Some functions need to be converted to Databricks equivalent Windowing functions for the OVER clause
+  private def buildWindowingFunction(expression: ir.Expression): ir.Expression = expression match {
+    case ir.CallFunction(name, args) => TSqlFunctionConverters.WindowingFunctions.convert(name, args)
+    case _ => expression
   }
 
   private def buildOrderBy(ctx: OrderByClauseContext): Seq[ir.SortOrder] =
