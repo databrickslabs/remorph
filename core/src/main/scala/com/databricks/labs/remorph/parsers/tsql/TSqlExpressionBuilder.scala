@@ -11,6 +11,8 @@ class TSqlExpressionBuilder(functionBuilder: FunctionBuilder)
     extends TSqlParserBaseVisitor[ir.Expression]
     with ParserCommon[ir.Expression] {
 
+  private val dataTypeBuilder: DataTypeBuilder = new DataTypeBuilder
+
   override def visitSelectListElem(ctx: TSqlParser.SelectListElemContext): ir.Expression = {
     ctx match {
       // TODO: asterisk not fully handled
@@ -397,6 +399,12 @@ class TSqlExpressionBuilder(functionBuilder: FunctionBuilder)
   override def visitNextValueFor(ctx: NextValueForContext): ir.Expression = {
     val sequenceName = ir.Literal(string = Some(buildTableName(ctx.tableName())))
     functionBuilder.buildFunction("NEXTVALUEFOR", Seq(sequenceName))
+  }
+
+  override def visitCast(ctx: CastContext): ir.Expression = {
+    val expression = ctx.expression().accept(this)
+    val dataType = dataTypeBuilder.build(ctx.dataType())
+    ir.Cast(expression, dataType)
   }
 
 }

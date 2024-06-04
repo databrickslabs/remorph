@@ -2960,15 +2960,15 @@ executeVarString
     ;
 
 securityStatement
-    
+
     : executeClause SEMI?
-    
+
     | GRANT (ALL PRIVILEGES? | grantPermission (LPAREN columnNameList RPAREN)?) (
         ON (classTypeForGrant COLON COLON)? onId = tableName
     )? TO toPrincipal += principalId (COMMA toPrincipal += principalId)* (WITH GRANT OPTION)? (
         AS asPrincipal = principalId
     )? SEMI?
-    
+
     | REVERT (WITH COOKIE EQ LOCAL_ID)? SEMI?
     | openKey
     | closeKey
@@ -3177,28 +3177,28 @@ setStatement
     | SET LOCAL_ID EQ CURSOR declareSetCursorCommon (
         FOR (READ ONLY | UPDATE (OF columnNameList)?)
     )?
-    
+
     | setSpecial
     ;
 
 transactionStatement
-    
+
     : BEGIN DISTRIBUTED (TRAN | TRANSACTION) (id | LOCAL_ID)?
-    
+
     | BEGIN (TRAN | TRANSACTION) ((id | LOCAL_ID) (WITH MARK STRING)?)?
-    
+
     | COMMIT (TRAN | TRANSACTION) (
         (id | LOCAL_ID) (WITH LPAREN DELAYED_DURABILITY EQ (OFF | ON) RPAREN)?
     )?
-    
+
     | COMMIT WORK?
     | COMMIT id
     | ROLLBACK id
-    
+
     | ROLLBACK (TRAN | TRANSACTION) (id | LOCAL_ID)?
-    
+
     | ROLLBACK WORK?
-    
+
     | SAVE (TRAN | TRANSACTION) (id | LOCAL_ID)?
     ;
 
@@ -4370,12 +4370,12 @@ sendConversation
     ;
 
 dataType
-    : scaled = (VARCHAR | NVARCHAR | BINARY_KEYWORD | VARBINARY_KEYWORD | SQUARE_BRACKET_ID) LPAREN MAX RPAREN
-    | extType = id LPAREN scale = INT COMMA prec = INT RPAREN
-    | extType = id LPAREN scale = INT RPAREN
-    | extType = id IDENTITY (LPAREN seed = INT COMMA inc = INT RPAREN)?
-    | doublePrec = DOUBLE PRECISION?
-    | unscaledType = id
+    : dataTypeIdentity
+    | id (LPAREN (INT | MAX) (COMMA INT)? RPAREN)?
+    ;
+
+dataTypeIdentity
+    : id IDENTITY (LPAREN INT COMMA INT RPAREN)?
     ;
 
 constant
@@ -5096,8 +5096,6 @@ keyword
     | VALIDATION
     | VALUE
     | VAR
-    | VARBINARY_KEYWORD
-    | VARCHAR
     | VERBOSELOGGING
     | VERIFY_CLONEDB
     | VERSION
