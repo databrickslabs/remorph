@@ -131,7 +131,9 @@ def generate_lineage(w: WorkspaceClient, source: str, input_sql: str, output_fol
 def configure_secrets(w: WorkspaceClient):
     """Setup reconciliation connection profile details as Secrets on Databricks Workspace"""
     logger.info(f"User: {w.current_user.me()}")
-    recon_conf = ReconcileConfigUtils(w)
+
+    installation = Installation.current(w, 'remorph')
+    recon_conf = ReconcileConfigUtils(w, installation)
 
     # Prompt for source
     source = recon_conf.prompt_source()

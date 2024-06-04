@@ -306,7 +306,7 @@ def test_generate_lineage_invalid_input_sql(mock_workspace_client_cli):
         )
 
 
-def test_configure_secrets_databricks(mock_workspace_client):
+def test_configure_secrets_databricks(mock_workspace_client, mock_installation):
     source_dict = {"databricks": "0", "netezza": "1", "oracle": "2", "snowflake": "3"}
     prompts = MockPrompts(
         {
@@ -314,7 +314,7 @@ def test_configure_secrets_databricks(mock_workspace_client):
         }
     )
 
-    recon_conf = ReconcileConfigUtils(mock_workspace_client, prompts=prompts)
+    recon_conf = ReconcileConfigUtils(mock_workspace_client, mock_installation, prompts=prompts)
     recon_conf.prompt_source()
 
     recon_conf.prompt_and_save_connection_details()

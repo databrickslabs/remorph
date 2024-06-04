@@ -7,11 +7,11 @@ from pyspark.sql.session import SparkSession
 from databricks.connect.session import DatabricksSession
 from databricks.labs.blueprint.installation import MockInstallation
 from databricks.labs.blueprint.tui import MockPrompts
-from databricks.labs.remorph.config import TableRecon
+from databricks.labs.remorph.config import TableRecon, get_dialect
 from databricks.labs.remorph.helpers.reconcile_config_utils import (
     ReconcileConfigUtils,
-    get_data_source,
 )
+from databricks.labs.remorph.reconcile.connectors.source_adapter import create_adapter
 from databricks.labs.remorph.reconcile.constants import SourceType
 from databricks.labs.remorph.reconcile.recon_config import Table
 from databricks.sdk.errors.platform import ResourceDoesNotExist
@@ -21,7 +21,31 @@ SOURCE_DICT = {"databricks": "0", "oracle": "1", "snowflake": "2"}
 SCOPE_NAME = "dummy_scope"
 
 
-def test_configure_secrets_snowflake_overwrite(mock_workspace_client):
+@pytest.fixture
+def mock_installation():
+    return MockInstallation(
+        {
+            "reconcile.yml": {
+                "data_source": "snowflake",
+                "config": {
+                    "source_catalog": "snowflake_sample_data",
+                    "source_schema": "tpch_sf1000",
+                    "target_catalog": "tpch",
+                    "target_schema": "1000gb",
+                },
+                "report_type": "all",
+                "secret_scope": "remorph_snowflake",
+                "tables": {
+                    "filter_type": "exclude",
+                    "tables_list": ["SUPPLIER", "FRIENDS", "ORDERS", "PART"],
+                },
+                "version": 1,
+            },
+        }
+    )
+
+
+def test_configure_secrets_snowflake_overwrite(mock_workspace_client, mock_installation):
     prompts = MockPrompts(
         {
             r"Select the source": SOURCE_DICT["snowflake"],
@@ -38,13 +62,13 @@ def test_configure_secrets_snowflake_overwrite(mock_workspace_client):
         }
     )
     mock_workspace_client.secrets.list_scopes.side_effect = [[SecretScope(name=SCOPE_NAME)]]
-    recon_conf = ReconcileConfigUtils(mock_workspace_client, prompts=prompts)
+    recon_conf = ReconcileConfigUtils(mock_workspace_client, mock_installation, prompts=prompts)
     recon_conf.prompt_source()
 
     recon_conf.prompt_and_save_connection_details()
 
 
-def test_configure_secrets_oracle_insert(mock_workspace_client):
+def test_configure_secrets_oracle_insert(mock_workspace_client, mock_installation):
     # mock prompts for Oracle
     prompts = MockPrompts(
         {
@@ -65,13 +89,13 @@ def test_configure_secrets_oracle_insert(mock_workspace_client):
         "databricks.labs.remorph.helpers.recon_config_utils.ReconConfigPrompts._secret_key_exists",
         return_value=False,
     ):
-        recon_conf = ReconcileConfigUtils(mock_workspace_client, prompts=prompts)
+        recon_conf = ReconcileConfigUtils(mock_workspace_client, mock_installation, prompts=prompts)
         recon_conf.prompt_source()
 
         recon_conf.prompt_and_save_connection_details()
 
 
-def test_configure_secrets_invalid_source(mock_workspace_client):
+def test_configure_secrets_invalid_source(mock_workspace_client, mock_installation):
     prompts = MockPrompts(
         {
             r"Select the source": "3",
@@ -83,12 +107,12 @@ def test_configure_secrets_invalid_source(mock_workspace_client):
         "databricks.labs.remorph.helpers.recon_config_utils.ReconConfigPrompts._scope_exists",
         return_value=True,
     ):
-        recon_conf = ReconcileConfigUtils(mock_workspace_client, prompts=prompts)
+        recon_conf = ReconcileConfigUtils(mock_workspace_client, mock_installation, prompts=prompts)
         with pytest.raises(ValueError, match="cannot get answer within 10 attempt"):
             recon_conf.prompt_source()
 
 
-def test_store_connection_secrets_exception(mock_workspace_client):
+def test_store_connection_secrets_exception(mock_workspace_client, mock_installation):
     prompts = MockPrompts(
         {
             r"Do you want to overwrite `source_key`?": "no",
@@ -98,13 +122,13 @@ def test_store_connection_secrets_exception(mock_workspace_client):
     mock_workspace_client.secrets.get_secret.side_effect = ResourceDoesNotExist("Not Found")
     mock_workspace_client.secrets.put_secret.side_effect = Exception("Timed out")
 
-    recon_conf = ReconcileConfigUtils(mock_workspace_client, prompts=prompts)
+    recon_conf = ReconcileConfigUtils(mock_workspace_client, mock_installation, prompts=prompts)
 
     with pytest.raises(Exception, match="Timed out"):
         recon_conf.store_connection_secrets("scope_name", ("source", {"key": "value"}))
 
 
-def test_configure_secrets_no_scope(mock_workspace_client):
+def test_configure_secrets_no_scope(mock_workspace_client, mock_installation):
     prompts = MockPrompts(
         {
             r"Select the source": SOURCE_DICT["snowflake"],
@@ -115,14 +139,14 @@ def test_configure_secrets_no_scope(mock_workspace_client):
 
     mock_workspace_client.secrets.list_scopes.side_effect = [[SecretScope(name="scope_name")]]
 
-    recon_conf = ReconcileConfigUtils(mock_workspace_client, prompts=prompts)
+    recon_conf = ReconcileConfigUtils(mock_workspace_client, mock_installation, prompts=prompts)
     recon_conf.prompt_source()
 
     with pytest.raises(SystemExit, match="Scope is needed to store Secrets in Databricks Workspace"):
         recon_conf.prompt_and_save_connection_details()
 
 
-def test_configure_secrets_create_scope_exception(mock_workspace_client):
+def test_configure_secrets_create_scope_exception(mock_workspace_client, mock_installation):
     prompts = MockPrompts(
         {
             r"Select the source": SOURCE_DICT["snowflake"],
@@ -134,14 +158,14 @@ def test_configure_secrets_create_scope_exception(mock_workspace_client):
     mock_workspace_client.secrets.list_scopes.side_effect = [[SecretScope(name="scope_name")]]
     mock_workspace_client.secrets.create_scope.side_effect = Exception("Network Error")
 
-    recon_conf = ReconcileConfigUtils(mock_workspace_client, prompts=prompts)
+    recon_conf = ReconcileConfigUtils(mock_workspace_client, mock_installation, prompts=prompts)
     recon_conf.prompt_source()
 
     with pytest.raises(Exception, match="Network Error"):
         recon_conf.prompt_and_save_connection_details()
 
 
-def test_store_connection_secrets_overwrite(mock_workspace_client):
+def test_store_connection_secrets_overwrite(mock_workspace_client, mock_installation):
     prompts = MockPrompts(
         {
             r"Do you want to overwrite `source_key`?": "no",
@@ -151,11 +175,11 @@ def test_store_connection_secrets_overwrite(mock_workspace_client):
     with patch(
         "databricks.labs.remorph.helpers.recon_config_utils.ReconConfigPrompts._secret_key_exists", return_value=True
     ):
-        recon_conf = ReconcileConfigUtils(mock_workspace_client, prompts=prompts)
+        recon_conf = ReconcileConfigUtils(mock_workspace_client, mock_installation, prompts=prompts)
         recon_conf.store_connection_secrets("scope_name", ("source", {"key": "value"}))
 
 
-def test_generate_recon_config_no_secrets_configured(mock_workspace_client):
+def test_generate_recon_config_no_secrets_configured(mock_workspace_client, mock_installation):
     prompts = MockPrompts(
         {
             r"Select the source": SOURCE_DICT["snowflake"],
@@ -163,7 +187,7 @@ def test_generate_recon_config_no_secrets_configured(mock_workspace_client):
         }
     )
 
-    recon_conf = ReconcileConfigUtils(mock_workspace_client, prompts=prompts)
+    recon_conf = ReconcileConfigUtils(mock_workspace_client, mock_installation, prompts=prompts)
     recon_conf.prompt_source()
 
     error_msg = (
@@ -175,7 +199,7 @@ def test_generate_recon_config_no_secrets_configured(mock_workspace_client):
         recon_conf.generate_recon_config()
 
 
-def test_generate_recon_config_create_scope_no(mock_workspace_client):
+def test_generate_recon_config_create_scope_no(mock_workspace_client, mock_installation):
     prompts = MockPrompts(
         {
             r"Select the source": SOURCE_DICT["snowflake"],
@@ -185,7 +209,7 @@ def test_generate_recon_config_create_scope_no(mock_workspace_client):
         }
     )
 
-    recon_conf = ReconcileConfigUtils(mock_workspace_client, prompts=prompts)
+    recon_conf = ReconcileConfigUtils(mock_workspace_client, mock_installation, prompts=prompts)
     recon_conf.prompt_source()
 
     error_msg = "Scope is needed to store Secrets in Databricks Workspace"
@@ -194,7 +218,7 @@ def test_generate_recon_config_create_scope_no(mock_workspace_client):
         recon_conf.generate_recon_config()
 
 
-def test_recon_config_prompt_and_save_config_details(mock_workspace_client):
+def test_recon_config_prompt_and_save_config_details(mock_workspace_client, mock_installation):
     filter_dict = {"exclude": "0", "include": "1"}
 
     prompts = MockPrompts(
@@ -245,18 +269,24 @@ def test_recon_config_prompt_and_save_config_details(mock_workspace_client):
     installation.assert_file_uploaded(filename)
 
 
-def test_get_data_source(mock_workspace_client):
+def test_create_adapter(mock_workspace_client):
     pyspark_sql_session = MagicMock()
     spark = pyspark_sql_session.SparkSession.builder.getOrCreate()
 
-    with pytest.raises(ValueError, match="Unsupported engine: teradata"):
-        get_data_source("teradata", spark, mock_workspace_client, "dummy_scope")
+    with pytest.raises(ValueError, match="Unsupported source type -->"):
+        create_adapter(get_dialect("teradata"), spark, mock_workspace_client, "dummy_scope")
 
-    snowflake_datasource = get_data_source(SourceType.SNOWFLAKE.value, spark, mock_workspace_client, "dummy_scope")
+    snowflake_datasource = create_adapter(
+        get_dialect(SourceType.SNOWFLAKE.value), spark, mock_workspace_client, "dummy_scope"
+    )
 
-    oracle_datasource = get_data_source(SourceType.ORACLE.value, spark, mock_workspace_client, "dummy_scope")
+    oracle_datasource = create_adapter(
+        get_dialect(SourceType.ORACLE.value), spark, mock_workspace_client, "dummy_scope"
+    )
 
-    databricks_datasource = get_data_source(SourceType.DATABRICKS.value, spark, mock_workspace_client, "dummy_scope")
+    databricks_datasource = create_adapter(
+        get_dialect(SourceType.DATABRICKS.value), spark, mock_workspace_client, "dummy_scope"
+    )
 
     assert snowflake_datasource and type(snowflake_datasource).__name__ == "SnowflakeDataSource"
 

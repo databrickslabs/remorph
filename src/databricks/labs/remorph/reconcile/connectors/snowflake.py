@@ -102,23 +102,29 @@ class SnowflakeDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
 
     def list_tables(
         self,
-        catalog: str,
+        catalog: str | None,
         schema: str,
         include_list: list[str] | None,
         exclude_list: list[str] | None,
     ) -> TableRecon:
 
-        filter_list = include_list
-        in_clause = "IN"
+        filter_list = None
+        in_clause = None
+
+        if include_list:
+            filter_list = include_list
+            in_clause = "IN"
+
         if exclude_list:
             filter_list = exclude_list
             in_clause = "NOT IN"
 
+        where_cond = ""
         if filter_list:
             subset_tables = ", ".join(filter_list)
+            where_cond = f"AND TABLE_NAME {in_clause} ({subset_tables})"
 
-        where_cond = f"AND TABLE_NAME {in_clause} ({subset_tables})" if filter_list else ""
-
+        assert catalog, "Catalog must be specified for Snowflake DataSource"
         try:
             logger.debug(f"Fetching Snowflake Table list for `{catalog}.{schema}`")
             tables_query = f"""SELECT TABLE_NAME, CLUSTERING_KEY, ROW_COUNT\n 
@@ -148,5 +154,3 @@ class SnowflakeDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
                 f"SnowflakeDataSource: {e!s}"
             )
             raise PySparkException(error_msg) from e
-
-    snowflake_datatype_mapper = {}

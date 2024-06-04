@@ -34,7 +34,7 @@ class DataSource(ABC):
     @abstractmethod
     def list_tables(
         self,
-        catalog: str,
+        catalog: str | None,
         schema: str,
         include_list: list[str] | None,
         exclude_list: list[str] | None,

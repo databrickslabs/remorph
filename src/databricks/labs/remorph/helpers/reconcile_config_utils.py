@@ -5,7 +5,7 @@ import webbrowser
 from databricks.connect import DatabricksSession
 from databricks.labs.blueprint.installation import Installation, SerdeError
 from databricks.labs.blueprint.tui import Prompts
-from databricks.labs.remorph.config import TableRecon, ReconcileConfig, get_dialect
+from databricks.labs.remorph.config import TableRecon, ReconcileConfig, get_dialect, ReconcileTablesConfig
 from databricks.labs.remorph.reconcile.connectors.source_adapter import create_adapter
 from databricks.labs.remorph.reconcile.constants import SourceType
 from databricks.sdk import WorkspaceClient
@@ -55,12 +55,12 @@ df = schema_compare_output.compare_df
 
 
 class ReconcileConfigUtils:
-    def __init__(self, ws: WorkspaceClient, installation: Installation = None, prompts: Prompts = Prompts()):
+    def __init__(self, ws: WorkspaceClient, installation: Installation, prompts: Prompts = Prompts()):
         self._source = None
         self._prompts = prompts
         self._ws = ws
         self._installation = installation
-        self._ws_reconcile_config: ReconcileConfig | None = None
+        self._reconcile_config: ReconcileConfig | None = None
 
     def _scope_exists(self, scope_name: str) -> bool:
         scope_exists = scope_name in [scope.name for scope in self._ws.secrets.list_scopes()]
@@ -78,7 +78,7 @@ class ReconcileConfigUtils:
         """
         Get or Create a new Scope in Databricks Workspace
         """
-        scope_name = self._ws_reconcile_config.secret_scope
+        scope_name = self._reconcile_config.secret_scope
         scope_exists = self._scope_exists(scope_name)
         if not scope_exists:
             allow_scope_creation = self._prompts.confirm("Do you want to create a new one?")
@@ -89,7 +89,7 @@ class ReconcileConfigUtils:
             try:
                 logger.debug(f" Creating a new Scope: `{scope_name}`")
                 self._ws.secrets.create_scope(scope_name)
-            except Exception as ex:
+            except RuntimeError as ex:
                 logger.error(f"Exception while creating Scope `{scope_name}`: {ex}")
                 raise ex
 
@@ -109,7 +109,7 @@ class ReconcileConfigUtils:
         try:
             logger.debug(f"Storing Secret: *{secret_key}* in Scope: `{scope_name}`")
             self._ws.secrets.put_secret(scope=scope_name, key=secret_key, string_value=secret_value)
-        except Exception as ex:
+        except RuntimeError as ex:
             logger.error(f"Exception while storing Secret `{secret_key}`: {ex}")
             raise ex
 
@@ -145,11 +145,11 @@ class ReconcileConfigUtils:
 
     def _confirm_secret_scope(self):
         if not self._prompts.confirm(
-            f"Did you setup the secrets for the `{self._ws_reconcile_config.data_source.capitalize()}` connection "
-            f"in `{self._ws_reconcile_config.secret_scope}` Scope?"
+            f"Did you setup the secrets for the `{self._reconcile_config.data_source.capitalize()}` connection "
+            f"in `{self._reconcile_config.secret_scope}` Scope?"
         ):
             raise ValueError(
-                f"Error: Secrets are needed for `{self._ws_reconcile_config.data_source}` reconciliation."
+                f"Error: Secrets are needed for `{self._reconcile_config.data_source}` reconciliation."
                 f"\nUse `remorph configure-secrets` to setup Scope and Secrets."
             )
 
@@ -162,12 +162,14 @@ class ReconcileConfigUtils:
         """
         Save the config details in a file on Databricks Workspace
         """
+        assert self._reconcile_config, "Reconcile Config is not set"
+
         recon_config, file_name = details
         recon_config_json = json.dumps(recon_config, default=vars, indent=2, sort_keys=True)
         logger.debug(f"recon_config_json : {recon_config_json}")
 
         logger.debug(
-            f"Saving the reconcile_config details for `{self._ws_reconcile_config.data_source}` "
+            f"Saving the reconcile_config details for `{self._reconcile_config.data_source}` "
             f"in `{file_name}` on Databricks Workspace "
         )
         self._installation.upload(filename=file_name, raw=recon_config_json.encode("utf-8"))
@@ -187,10 +189,13 @@ class ReconcileConfigUtils:
 
         return ws_file_url
 
-    def _confirm_or_prompt_for_tables_subset(self) -> tuple[bool, dict[str, list[str]]]:
+    def _confirm_or_prompt_for_tables_subset(self) -> tuple[bool, ReconcileTablesConfig]:
         tables_updated = False
-        if self._ws_reconcile_config.tables:
-            filter_type, subset_tables_list = self._ws_reconcile_config.tables.popitem()
+        assert self._reconcile_config, "Reconcile Config is not set"
+
+        if self._reconcile_config.tables:
+            tables_config = self._reconcile_config.tables
+            filter_type, subset_tables_list = tables_config.filter_type, tables_config.tables_list
 
             proceed_run_prompt = "Would you like to run reconciliation for `all` tables?"
             if filter_type != "all":
@@ -201,7 +206,7 @@ class ReconcileConfigUtils:
 
             proceed_run = self._prompts.confirm(proceed_run_prompt)
             if proceed_run:
-                return tables_updated, {filter_type: subset_tables_list}
+                return tables_updated, tables_config
 
         filter_type = self._prompts.choice(
             "Would you like to run reconciliation on `all` tables OR on a `subset of tables`? "
@@ -209,15 +214,15 @@ class ReconcileConfigUtils:
             ["include", "exclude", "all"],
         )
 
-        tables = {"all": ["*"]}
+        tables_config = ReconcileTablesConfig(filter_type="all", tables_list=["*"])
 
         if filter_type != "all":
             subset_tables = self._prompts.question(f"Comma-separated list of tables to `{filter_type}`")
             logger.debug(f"Filter Type: `{filter_type}`, Tables: `{subset_tables}`")
             subset_tables_list = [table.strip().upper() for table in subset_tables.split(",")]
-            tables = {filter_type: subset_tables_list}
+            tables_config = ReconcileTablesConfig(filter_type=filter_type, tables_list=subset_tables_list)
 
-        return True, tables
+        return True, tables_config
 
     def _save_reconcile_config(self, config: ReconcileConfig):
         logger.info("Saving the ** reconcile ** configuration in Databricks Workspace")
@@ -225,22 +230,23 @@ class ReconcileConfigUtils:
 
     def _generate_table_recon(self) -> tuple[TableRecon, str]:
 
+        assert self._reconcile_config, "Reconcile Config is not set"
         source = None
-        if self._ws_reconcile_config.data_source:
-            source = self._ws_reconcile_config.data_source
+        if self._reconcile_config.data_source:
+            source = self._reconcile_config.data_source
 
         assert source, "Data Source is not set in `reconcile_config`"
 
-        include_list = []
-        exclude_list = []
+        include_list: list[str] | None = None
+        exclude_list: list[str] | None = None
         spark = DatabricksSession.builder.getOrCreate()
 
         tables_updated, tables = self._confirm_or_prompt_for_tables_subset()
-        filter_type, subset_tables_raw = tables.popitem()
+        filter_type, subset_tables_raw = tables.filter_type, tables.tables_list
         if tables_updated:
-            self._ws_reconcile_config.tables = {filter_type: subset_tables_raw}
+            self._reconcile_config.tables = ReconcileTablesConfig(filter_type, subset_tables_raw)
             # Save Reconcile Config details on Databricks workspace with `tables` field
-            self._save_reconcile_config(self._ws_reconcile_config)
+            self._save_reconcile_config(self._reconcile_config)
 
         if filter_type != "all":
             subset_tables = [f"'{table}'" for table in subset_tables_raw]
@@ -248,13 +254,13 @@ class ReconcileConfigUtils:
             exclude_list = subset_tables if filter_type == "exclude" else None
 
         # Get DataSource
-        data_source = create_adapter(get_dialect(source), spark, self._ws, self._ws_reconcile_config.secret_scope)
+        data_source = create_adapter(get_dialect(source), spark, self._ws, self._reconcile_config.secret_scope)
         logger.info(f"Listing tables for `{source.capitalize()}` using DataSource")
 
         # Get TableRecon config
         recon_config = data_source.list_tables(
-            self._ws_reconcile_config.config.source_catalog,
-            self._ws_reconcile_config.config.source_schema,
+            self._reconcile_config.config.source_catalog,
+            self._reconcile_config.config.source_schema,
             include_list,
             exclude_list,
         )
@@ -262,15 +268,13 @@ class ReconcileConfigUtils:
         logger.debug(f"Fetched Tables `{', '.join([table.source_name for table in recon_config.tables])}` ")
 
         # Update the target catalog and schema
-        recon_config.target_catalog = self._ws_reconcile_config.config.target_catalog
-        recon_config.target_schema = self._ws_reconcile_config.config.target_schema
+        recon_config.target_catalog = self._reconcile_config.config.target_catalog
+        recon_config.target_schema = self._reconcile_config.config.target_schema
 
         logger.info("Recon Config details are fetched successfully...")
         logger.debug(f"Recon Config : {recon_config}")
 
-        file_name = (
-            f"recon_config_{source}" f"_{self._ws_reconcile_config.config.source_catalog}" f"_{filter_type}.json"
-        )
+        file_name = f"recon_config_{source}" f"_{self._reconcile_config.config.source_catalog}" f"_{filter_type}.json"
 
         return recon_config, file_name
 
@@ -297,13 +301,13 @@ class ReconcileConfigUtils:
         if not reconcile_config:
             logger.info(f"`reconcile_config` not found on Databricks Workspace.\n{reconfigure_msg}")
             return
-        elif reconcile_config and self._prompts.confirm(
+        if self._prompts.confirm(
             f"Would you like to overwrite workspace `reconcile_config` values:\n" f" {reconcile_config.__dict__}?"
         ):
             logger.info(reconfigure_msg)
             return
 
-        self._ws_reconcile_config = reconcile_config
+        self._reconcile_config = reconcile_config
         # Check for Scope and ensure Secrets are set up
         self._ensure_scope_exists()
         self._confirm_secret_scope()
