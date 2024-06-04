@@ -1,6 +1,7 @@
 package com.databricks.labs.remorph.parsers.common
 
-import com.databricks.labs.remorph.parsers.{FixedArity, FunctionArity, FunctionBuilder, FunctionType, StandardFunction, UnknownFunction, VariableArity, XmlFunction}
+import com.databricks.labs.remorph.parsers.intermediate.UnresolvedFunction
+import com.databricks.labs.remorph.parsers._
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.prop.TableDrivenPropertyChecks
@@ -13,7 +14,8 @@ class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenProp
     val functions = Table(
       ("functionName", "expectedArity"), // Header
 
-      ("MODIFY", Some(FixedArity(1, XmlFunction))),
+      ("@@CURSOR_STATUS", Some(FixedArity(0, convertible = false))),
+      ("@@FETCH_STATUS", Some(FixedArity(0, convertible = false))),
       ("ABS", Some(FixedArity(1))),
       ("ACOS", Some(FixedArity(1))),
       ("APP_NAME", Some(FixedArity(0))),
@@ -24,12 +26,15 @@ class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenProp
       ("ASSEMBLYPROPERTY", Some(FixedArity(2))),
       ("ATAN", Some(FixedArity(1))),
       ("ATN2", Some(FixedArity(2))),
+      ("AVG", Some(FixedArity(1))),
+      ("BINARY_CHECKSUM", Some(VariableArity(1, Int.MaxValue))),
       ("CEILING", Some(FixedArity(1))),
       ("CERT_ID", Some(FixedArity(1))),
       ("CERTENCODED", Some(FixedArity(1))),
       ("CERTPRIVATEKEY", Some(VariableArity(2, 3))),
       ("CHAR", Some(FixedArity(1))),
       ("CHARINDEX", Some(VariableArity(2, 3))),
+      ("CHECKSUM", Some(VariableArity(1, Int.MaxValue))),
       ("CHECKSUM_AGG", Some(FixedArity(1))),
       ("COALESCE", Some(VariableArity(1, Int.MaxValue))),
       ("COL_LENGTH", Some(FixedArity(2))),
@@ -45,6 +50,7 @@ class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenProp
       ("COT", Some(FixedArity(1))),
       ("COUNT", Some(FixedArity(1))),
       ("COUNT_BIG", Some(FixedArity(1))),
+      ("CUME_DIST", Some(FixedArity(0))),
       ("CURRENT_DATE", Some(FixedArity(0))),
       ("CURRENT_REQUEST_ID", Some(FixedArity(0))),
       ("CURRENT_TIMESTAMP", Some(FixedArity(0))),
@@ -52,7 +58,8 @@ class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenProp
       ("CURRENT_TIMEZONE_ID", Some(FixedArity(0))),
       ("CURRENT_TRANSACTION_ID", Some(FixedArity(0))),
       ("CURRENT_USER", Some(FixedArity(0))),
-      ("CURSOR_STATUS", Some(FixedArity(2))),
+      ("CURSOR_ROWS", Some(FixedArity(0))),
+      ("CURSOR_STATUS", Some(FixedArity(2, convertible = false))),
       ("DATABASE_PRINCIPAL_ID", Some(VariableArity(0, 1))),
       ("DATABASEPROPERTY", Some(FixedArity(2))),
       ("DATABASEPROPERTYEX", Some(FixedArity(2))),
@@ -92,6 +99,7 @@ class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenProp
       ("FILEGROUPPROPERTY", Some(FixedArity(2))),
       ("FILEPROPERTY", Some(FixedArity(2))),
       ("FILEPROPERTYEX", Some(FixedArity(2))),
+      ("FIRST_VALUE", Some(FixedArity(1))),
       ("FLOOR", Some(FixedArity(1))),
       ("FORMAT", Some(VariableArity(2, 3))),
       ("FORMATMESSAGE", Some(VariableArity(2, Int.MaxValue))),
@@ -115,6 +123,7 @@ class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenProp
       ("IDENT_CURRENT", Some(FixedArity(1))),
       ("IDENT_INCR", Some(FixedArity(1))),
       ("IDENT_SEED", Some(FixedArity(1))),
+      ("IDENTITY", Some(VariableArity(1, 3))),
       ("IFF", Some(FixedArity(3))),
       ("INDEX_COL", Some(FixedArity(3))),
       ("INDEXKEY_PROPERTY", Some(FixedArity(3))),
@@ -131,6 +140,9 @@ class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenProp
       ("JSON_PATH_EXISTS", Some(FixedArity(2))),
       ("JSON_QUERY", Some(FixedArity(2))),
       ("JSON_VALUE", Some(FixedArity(2))),
+      ("LAG", Some(VariableArity(1, 3))),
+      ("LAST_VALUE", Some(FixedArity(1))),
+      ("LEAD", Some(VariableArity(1, 3))),
       ("LEAST", Some(VariableArity(1, Int.MaxValue))),
       ("LEFT", Some(FixedArity(2))),
       ("LEN", Some(FixedArity(1))),
@@ -142,6 +154,7 @@ class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenProp
       ("MAX", Some(FixedArity(1))),
       ("MIN", Some(FixedArity(1))),
       ("MIN_ACTIVE_ROWVERSION", Some(FixedArity(0))),
+      ("MODIFY", Some(FixedArity(1, XmlFunction))),
       ("MONTH", Some(FixedArity(1))),
       ("NCHAR", Some(FixedArity(1))),
       ("NEWID", Some(FixedArity(0))),
@@ -160,6 +173,9 @@ class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenProp
       ("PARSE", Some(VariableArity(2, 3, convertible = false))),
       ("PARSENAME", Some(FixedArity(2))),
       ("PATINDEX", Some(FixedArity(2))),
+      ("PERCENT_RANK", Some(FixedArity(0))),
+      ("PERCENTILE_CONT", Some(FixedArity(1))),
+      ("PERCENTILE_DISC", Some(FixedArity(1))),
       ("PERMISSIONS", Some(VariableArity(0, 2, convertible = false))),
       ("PI", Some(FixedArity(0))),
       ("POWER", Some(FixedArity(2))),
@@ -175,6 +191,7 @@ class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenProp
       ("REVERSE", Some(FixedArity(1))),
       ("RIGHT", Some(FixedArity(2))),
       ("ROUND", Some(VariableArity(2, 3))),
+      ("ROW_NUMBER", Some(FixedArity(0))),
       ("ROWCOUNT_BIG", Some(FixedArity(0))),
       ("RTRIM", Some(FixedArity(1))),
       ("SCHEMA_ID", Some(VariableArity(0, 1))),
@@ -182,6 +199,7 @@ class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenProp
       ("SCOPE_IDENTITY", Some(FixedArity(0))),
       ("SERVERPROPERTY", Some(FixedArity(1))),
       ("SESSION_CONTEXT", Some(VariableArity(1, 2))),
+      ("SESSION_USER", Some(FixedArity(0))),
       ("SESSIONPROPERTY", Some(FixedArity(1))),
       ("SIGN", Some(FixedArity(1))),
       ("SIN", Some(FixedArity(1))),
@@ -199,6 +217,7 @@ class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenProp
       ("STRING_ESCAPE", Some(FixedArity(2))),
       ("STUFF", Some(FixedArity(4))),
       ("SUBSTRING", Some(VariableArity(2, 3))),
+      ("SUM", Some(FixedArity(1))),
       ("SUSER_ID", Some(VariableArity(0, 1))),
       ("SUSER_NAME", Some(VariableArity(0, 1))),
       ("SUSER_SID", Some(VariableArity(0, 2))),
@@ -206,6 +225,7 @@ class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenProp
       ("SWITCHOFFSET", Some(FixedArity(2))),
       ("SYSDATETIME", Some(FixedArity(0))),
       ("SYSDATETIMEOFFSET", Some(FixedArity(0))),
+      ("SYSTEM_USER", Some(FixedArity(0))),
       ("SYSUTCDATETIME", Some(FixedArity(0))),
       ("TAN", Some(FixedArity(1))),
       ("TIMEFROMPARTS", Some(FixedArity(5))),
@@ -218,8 +238,10 @@ class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenProp
       ("TYPEPROPERTY", Some(FixedArity(2))),
       ("UNICODE", Some(FixedArity(1))),
       ("UPPER", Some(FixedArity(1))),
+      ("USER", Some(FixedArity(0))),
       ("USER_ID", Some(VariableArity(0, 1))),
       ("USER_NAME", Some(VariableArity(0, 1))),
+      ("VALUE", Some(FixedArity(2, XmlFunction))),
       ("VAR", Some(FixedArity(1))),
       ("VARP", Some(FixedArity(1))),
       ("XACT_STATE", Some(FixedArity(0))),
@@ -278,6 +300,43 @@ class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenProp
     val variableArity = VariableArity(argMin = 1, argMax = 2)
     variableArity.isConvertible should be(true)
 
+  }
+
+  "buildFunction" should "remove quotes and brackets from function names" in {
+    // Test function name with less than 2 characters
+    val result1 = FunctionBuilder.buildFunction("a", Seq())
+    result1 match {
+      case f: UnresolvedFunction => f.function_name shouldBe "a"
+      case _ => fail("Unexpected function type")
+    }
+
+    // Test function name with matching quotes
+    val result2 = FunctionBuilder.buildFunction("'quoted'", Seq())
+    result2 match {
+      case f: UnresolvedFunction => f.function_name shouldBe "quoted"
+      case _ => fail("Unexpected function type")
+    }
+
+    // Test function name with matching brackets
+    val result3 = FunctionBuilder.buildFunction("[bracketed]", Seq())
+    result3 match {
+      case f: UnresolvedFunction => f.function_name shouldBe "bracketed"
+      case _ => fail("Unexpected function type")
+    }
+
+    // Test function name with matching backslashes
+    val result4 = FunctionBuilder.buildFunction("\\backslashed\\", Seq())
+    result4 match {
+      case f: UnresolvedFunction => f.function_name shouldBe "backslashed"
+      case _ => fail("Unexpected function type")
+    }
+
+    // Test function name with non-matching quotes
+    val result5 = FunctionBuilder.buildFunction("'nonmatching", Seq())
+    result5 match {
+      case f: UnresolvedFunction => f.function_name shouldBe "'nonmatching"
+      case _ => fail("Unexpected function type")
+    }
   }
 
 }

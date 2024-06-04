@@ -17,7 +17,7 @@ class SnowflakeExprSpec extends AnyWordSpec with SnowflakeParserTestCommon with 
       example("d.s.sequence_1.NEXTVAL", NextValue("d.s.sequence_1"))
       example(
         "d.s.t.column_1[41 + 1]",
-        ArrayAccess(Column("d.s.t.column_1"), Add(Literal(integer = Some(41)), Literal(integer = Some(1)))))
+        ArrayAccess(Column("d.s.t.column_1"), Add(Literal(short = Some(41)), Literal(short = Some(1)))))
       example(
         "d.s.t.column_1:field_1.\"inner field\"",
         JsonAccess(Column("d.s.t.column_1"), Seq("field_1", "inner field")))
@@ -26,19 +26,19 @@ class SnowflakeExprSpec extends AnyWordSpec with SnowflakeParserTestCommon with 
 
     "translate unary arithmetic operators" in {
       example("+column_1", UPlus(Column("column_1")))
-      example("+42", UPlus(Literal(integer = Some(42))))
+      example("+42", UPlus(Literal(short = Some(42))))
       example("-column_1", UMinus(Column("column_1")))
-      example("-42", UMinus(Literal(integer = Some(42))))
+      example("-42", UMinus(Literal(short = Some(42))))
       example("NOT true", Not(Literal(boolean = Some(true))))
       example("NOT column_2", Not(Column("column_2")))
     }
 
     "translate binary arithmetic operators" in {
-      example("1+1", Add(Literal(integer = Some(1)), Literal(integer = Some(1))))
-      example("2 * column_1", Multiply(Literal(integer = Some(2)), Column("column_1")))
-      example("column_1 - 1", Subtract(Column("column_1"), Literal(integer = Some(1))))
+      example("1+1", Add(Literal(short = Some(1)), Literal(short = Some(1))))
+      example("2 * column_1", Multiply(Literal(short = Some(2)), Column("column_1")))
+      example("column_1 - 1", Subtract(Column("column_1"), Literal(short = Some(1))))
       example("column_1/column_2", Divide(Column("column_1"), Column("column_2")))
-      example("42 % 2", Mod(Literal(integer = Some(42)), Literal(integer = Some(2))))
+      example("42 % 2", Mod(Literal(short = Some(42)), Literal(short = Some(2))))
       example("'foo' || column_1", Concat(Literal(string = Some("foo")), Column("column_1")))
     }
 
@@ -51,8 +51,8 @@ class SnowflakeExprSpec extends AnyWordSpec with SnowflakeParserTestCommon with 
     "translate array literals" in {
       example(
         "[1, 2, 3]",
-        Literal(array = Some(
-          ArrayExpr(None, Seq(Literal(integer = Some(1)), Literal(integer = Some(2)), Literal(integer = Some(3)))))))
+        Literal(array =
+          Some(ArrayExpr(None, Seq(Literal(short = Some(1)), Literal(short = Some(2)), Literal(short = Some(3)))))))
       example("[1,column_1,2]", UnresolvedExpression("[1,column_1,2]"))
     }
 
@@ -65,7 +65,7 @@ class SnowflakeExprSpec extends AnyWordSpec with SnowflakeParserTestCommon with 
       example("DATE(column_1)", Cast(Column("column_1"), DateType()))
       example("TO_DATE('2024-05-15')", Cast(Literal(string = Some("2024-05-15")), DateType()))
       example("INTERVAL '1 hour'", Cast(Literal(string = Some("1 hour")), IntervalType()))
-      example("42::FLOAT", Cast(Literal(integer = Some(42)), DoubleType()))
+      example("42::FLOAT", Cast(Literal(short = Some(42)), DoubleType()))
     }
 
     def exprAndPredicateExample(query: String, expectedAst: Expression): Unit = {
@@ -89,13 +89,13 @@ class SnowflakeExprSpec extends AnyWordSpec with SnowflakeParserTestCommon with 
         "col1 BETWEEN 3.14 AND 42",
         And(
           GreaterThanOrEqual(Column("col1"), Literal(float = Some(3.14f))),
-          LesserThanOrEqual(Column("col1"), Literal(integer = Some(42)))))
+          LesserThanOrEqual(Column("col1"), Literal(short = Some(42)))))
       exprAndPredicateExample(
         "col1 NOT BETWEEN 3.14 AND 42",
         Not(
           And(
             GreaterThanOrEqual(Column("col1"), Literal(float = Some(3.14f))),
-            LesserThanOrEqual(Column("col1"), Literal(integer = Some(42))))))
+            LesserThanOrEqual(Column("col1"), Literal(short = Some(42))))))
     }
 
     "translate LIKE expressions" in {

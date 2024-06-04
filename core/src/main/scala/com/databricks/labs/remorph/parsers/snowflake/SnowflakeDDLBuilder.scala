@@ -7,7 +7,7 @@ import com.databricks.labs.remorph.parsers.intermediate.AddColumn
 import scala.collection.JavaConverters._
 class SnowflakeDDLBuilder
     extends SnowflakeParserBaseVisitor[ir.Catalog]
-    with ParserCommon
+    with ParserCommon[ir.Catalog]
     with IncompleteParser[ir.Catalog] {
   override protected def wrapUnresolvedInput(unparsedInput: String): ir.Catalog = ir.UnresolvedCatalog(unparsedInput)
 

@@ -3900,17 +3900,19 @@ expression
     | expression op=DOUBLE_BAR expression                       #exprOpPrec4
     | primitiveExpression                                       #exprPrimitive
     | functionCall                                              #exprFunc
+    | functionValues                                            #exprFuncVal
     | expression COLLATE id                                     #exprCollate
     | caseExpression                                            #exprCase
     | expression timeZone                                       #exprTz
     | expression overClause                                     #exprOver
-    | id                                                        #exprId
+    | expression withinGroup                                    #exprWithinGroup
     | DOLLAR_ACTION                                             #exprDollar
     | <assoc=right> expression DOT expression                   #exprDot
     | LPAREN subquery RPAREN                                    #exprSubquery
-    | ALL expression                                            #exprAll
     | DISTINCT expression                                       #exprDistinct
+    | DOLLAR_ACTION                                             #exprDollar
     | STAR                                                      #exprStar
+    | id                                                        #exprId
     ;
 
 // TODO: Implement this
@@ -3997,9 +3999,9 @@ sqlUnion
 // https://msdn.microsoft.com/en-us/library/ms176104.aspx
 // TODO: This is too much for one rule and it still misses things - rewrite
 querySpecification
-    : SELECT ad=(ALL | DISTINCT)? topClause? selectListElem (COMMA selectListElem)*
+    : SELECT (ALL | DISTINCT)? topClause? selectListElem (COMMA selectListElem)*
     // https://msdn.microsoft.com/en-us/library/ms188029.aspx
-    (INTO into =tableName)? (FROM tableSources)? (WHERE where = searchCondition)?
+    (INTO tableName)? (FROM tableSources)? (WHERE where=searchCondition)?
     // https://msdn.microsoft.com/en-us/library/ms177673.aspx
     (
         GROUP BY (
@@ -4008,7 +4010,7 @@ querySpecification
                 COMMA groupSets += groupingSetsItem
             )* RPAREN
         )
-    )? (HAVING having = searchCondition)?
+    )? (HAVING having=searchCondition)?
     ;
 
 // https://msdn.microsoft.com/en-us/library/ms189463.aspx
@@ -4283,14 +4285,16 @@ derivedTable
     ;
 
 functionCall
-    : analyticWindowedFunction
-    | builtInFunctions
+    : builtInFunctions
     | standardFunction
     | freetextFunction
     | partitionFunction
     | hierarchyidStaticMethod
-    // TODO: This is broken and highly ambiguous - will need to be reworked so the expression allows the primitives
-    // | scalarFunctionName LPAREN expressionList? RPAREN
+    ;
+
+// Things that are just special values and not really functions, but are documented as such
+functionValues
+    : f=(CURSOR_ROWS | FETCH_STATUS | SESSION_USER | SYSTEM_USER | USER)
     ;
 
 // Standard functions are built in but take standard syntax, or are
@@ -4350,28 +4354,16 @@ jsonNullClause
     ;
 
 builtInFunctions
-    : NEXT VALUE FOR sequenceName = tableName (OVER LPAREN orderByClause RPAREN)? # NEXT_VALUE_FOR
-      // https://msdn.microsoft.com/en-us/library/ms173784.aspx
-    | BINARY_CHECKSUM LPAREN (star = STAR | expression (COMMA expression)*) RPAREN # BINARY_CHECKSUM
-      // https://msdn.microsoft.com/en-us/library/ms189788.aspx
-    | CHECKSUM LPAREN (star = STAR | expression (COMMA expression)*) RPAREN # CHECKSUM
-      // https://docs.microsoft.com/en-us/sql/t-sql/functions/compress-transact-sql?view=sql-server-ver16
-    | CAST LPAREN expression AS dataType RPAREN     # CAST
-    | TRY_CAST LPAREN expression AS dataType RPAREN # TRY_CAST
-      // https://learn.microsoft.com/en-us/sql/t-sql/functions/ident-seed-transact-sql?view=sql-server-ver16
-    | IDENTITY LPAREN datatype = dataType (COMMA seed = INT COMMA increment = INT)? RPAREN # IDENTITY
-    | CURSOR_ROWS # CURSOR_ROWS
-      // https://learn.microsoft.com/en-us/sql/t-sql/functions/cursor-rows-transact-sql?view=sql-server-ver16
-    | FETCH_STATUS # FETCH_STATUS
-    | PARSE LPAREN str = expression AS dataType (USING culture = expression)? RPAREN # PARSE
-    | JSON_ARRAY LPAREN expressionList? jsonNullClause? RPAREN # JSON_ARRAY
-    | JSON_OBJECT LPAREN (keyValue = jsonKeyValue (COMMA keyValue = jsonKeyValue)*)? jsonNullClause? RPAREN # JSON_OBJECT
-      // https://msdn.microsoft.com/en-us/library/ms177587.aspx
-    | SESSION_USER # SESSION_USER
-      // https://msdn.microsoft.com/en-us/library/ms179930.aspx
-    | SYSTEM_USER # SYSTEM_USER
-      // https://learn.microsoft.com/en-us/sql/t-sql/functions/user-transact-sql?view=sql-server-ver16
-    | USER # USER
+    : NEXT VALUE FOR tableName (OVER LPAREN orderByClause RPAREN)?                          #nextValueFor
+    | CAST LPAREN expression AS dataType RPAREN                                             #cast
+    | TRY_CAST LPAREN expression AS dataType RPAREN                                         #tryCast
+    | PARSE LPAREN str = expression AS dataType (USING culture = expression)? RPAREN        #parse
+    | JSON_ARRAY LPAREN expressionList? jsonNullClause? RPAREN                              #jsonArray
+    | JSON_OBJECT
+        LPAREN
+            (jsonKeyValue (COMMA keyValue = jsonKeyValue)* )?
+            jsonNullClause?
+        RPAREN                                                                              #jsonObject
     ;
 
 valueMethod
@@ -4486,13 +4478,8 @@ expressionList
     ;
 
 // https://docs.microsoft.com/en-us/sql/t-sql/functions/analytic-functions-transact-sql
-analyticWindowedFunction
-    : (FIRST_VALUE | LAST_VALUE) LPAREN expression RPAREN
-    | (LAG | LEAD) LPAREN expression (COMMA expression (COMMA expression)?)? RPAREN
-    | (CUME_DIST | PERCENT_RANK) LPAREN RPAREN OVER LPAREN (PARTITION BY expressionList)? orderByClause RPAREN
-    | (PERCENTILE_CONT | PERCENTILE_DISC) LPAREN expression RPAREN WITHIN GROUP LPAREN orderByClause RPAREN OVER LPAREN (
-        PARTITION BY expressionList
-    )? RPAREN
+withinGroup
+    :  WITHIN GROUP LPAREN orderByClause RPAREN
     ;
 
 // https://msdn.microsoft.com/en-us/library/ms189461.aspx
@@ -4639,12 +4626,11 @@ nullNotnull
     : NOT? NULL_
     ;
 
+// TODO: Get rid of this after checking
 scalarFunctionName
     : funcProcNameServerDatabaseSchema
     | RIGHT
     | LEFT
-    | BINARY_CHECKSUM
-    | CHECKSUM
     ;
 
 beginConversationTimer
@@ -4782,7 +4768,6 @@ keyword
     | BEGIN_DIALOG
     | BIGINT
     | BINARY_KEYWORD
-    | BINARY_CHECKSUM
     | BINDING
     | BLOB_STORAGE
     | BROKER
@@ -4828,7 +4813,6 @@ keyword
     | CREATION_DISPOSITION
     | CREDENTIAL
     | CRYPTOGRAPHIC
-    | CUME_DIST
     | CURSOR_CLOSE_ON_COMMIT
     | CURSOR_DEFAULT
     | DATA
@@ -4893,7 +4877,6 @@ keyword
     | FILESTREAM
     | FILTER
     | FIRST
-    | FIRST_VALUE
     | FMTONLY
     | FOLLOWING
     | FORCE
@@ -4950,10 +4933,7 @@ keyword
     | KEY_SOURCE
     | KEYS
     | KEYSET
-    | LAG
     | LAST
-    | LAST_VALUE
-    | LEAD
     | LEVEL
     | LIST
     | LISTENER
@@ -5053,9 +5033,6 @@ keyword
     | PATH
     | PAUSE
     | PDW_SHOWSPACEUSED
-    | PERCENT_RANK
-    | PERCENTILE_CONT
-    | PERCENTILE_DISC
     | PERSIST_SAMPLE_PERCENT
     | PHYSICAL_ONLY
     | POISON_MESSAGE_HANDLING

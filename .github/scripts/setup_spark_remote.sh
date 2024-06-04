@@ -5,7 +5,7 @@ set -xv
 mkdir -p $HOME/spark
 cd $HOME/spark
 
-version=$(wget -O - https://dlcdn.apache.org/spark/ | grep 'href="spark' | sed 's:</a>:\n:g' | sed -n 's/.*>//p' | tr -d spark- | tr -d / | sort -r --version-sort | head -1)
+version=$(wget -O - https://dlcdn.apache.org/spark/ | grep 'href="spark' | grep -v 'preview' | sed 's:</a>:\n:g' | sed -n 's/.*>//p' | tr -d spark- | tr -d / | sort -r --version-sort | head -1)
 spark=spark-${version}-bin-hadoop3
 spark_connect=spark-connect_2.12
 
