@@ -7,7 +7,7 @@ import org.antlr.v4.runtime.tree.{TerminalNode, Trees}
 
 import scala.collection.JavaConverters._
 
-class TSqlExpressionBuilder extends TSqlParserBaseVisitor[ir.Expression] with ParserCommon {
+class TSqlExpressionBuilder extends TSqlParserBaseVisitor[ir.Expression] with ParserCommon[ir.Expression] {
 
   override def visitSelectListElem(ctx: TSqlParser.SelectListElemContext): ir.Expression = {
     ctx match {
@@ -176,6 +176,10 @@ class TSqlExpressionBuilder extends TSqlParserBaseVisitor[ir.Expression] with Pa
 
   override def visitExprDollar(ctx: ExprDollarContext): ir.Expression = ir.DollarAction()
 
+  override def visitExprFuncVal(ctx: ExprFuncValContext): ir.Expression = {
+    FunctionBuilder.buildFunction(ctx.getText, Seq.empty)
+  }
+
   override def visitExprCollate(ctx: ExprCollateContext): ir.Expression =
     ir.Collate(ctx.expression.accept(this), removeQuotes(ctx.id.getText))
 
@@ -293,21 +297,23 @@ class TSqlExpressionBuilder extends TSqlParserBaseVisitor[ir.Expression] with Pa
     val partitionByExpressions =
       Option(ctx.overClause().expression()).map(_.asScala.toList.map(_.accept(this))).getOrElse(List.empty)
     val orderByExpressions = Option(ctx.overClause().orderByClause())
-      .map(_.orderByExpression().asScala.toList.map { orderByExpr =>
-        val expression = orderByExpr.expression().accept(this)
-        val sortOrder =
-          if (Option(orderByExpr.DESC()).isDefined) ir.DescendingSortDirection
-          else ir.AscendingSortDirection
-        ir.SortOrder(expression, sortOrder, ir.SortNullsUnspecified)
-      })
+      .map(buildOrderBy)
       .getOrElse(List.empty)
-
     val rowRange = Option(ctx.overClause().rowOrRangeClause())
       .map(buildWindowFrame)
       .getOrElse(noWindowFrame)
 
     ir.Window(windowFunction, partitionByExpressions, orderByExpressions, rowRange)
   }
+
+  private def buildOrderBy(ctx: OrderByClauseContext): Seq[ir.SortOrder] =
+    ctx.orderByExpression().asScala.map { orderByExpr =>
+      val expression = orderByExpr.expression().accept(this)
+      val sortOrder =
+        if (Option(orderByExpr.DESC()).isDefined) ir.DescendingSortDirection
+        else ir.AscendingSortDirection
+      ir.SortOrder(expression, sortOrder, ir.SortNullsUnspecified)
+    }
 
   private def noWindowFrame: ir.WindowFrame =
     ir.WindowFrame(
@@ -361,6 +367,12 @@ class TSqlExpressionBuilder extends TSqlParserBaseVisitor[ir.Expression] with Pa
       case Some(alias) => ir.Alias(columnDef, Seq(alias.getText), None)
       case _ => columnDef
     }
+  }
+
+  override def visitExprWithinGroup(ctx: ExprWithinGroupContext): ir.Expression = {
+    val expression = ctx.expression().accept(this)
+    val orderByExpressions = buildOrderBy(ctx.withinGroup().orderByClause())
+    ir.WithinGroup(expression, orderByExpressions)
   }
 
   override def visitExprDistinct(ctx: ExprDistinctContext): ir.Expression = {

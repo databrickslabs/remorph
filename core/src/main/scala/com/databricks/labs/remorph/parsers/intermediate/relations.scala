@@ -157,7 +157,7 @@ case class WithWatermark(input: Relation, event_time: String, delay_threshold: S
 
 case class Hint(input: Relation, name: String, parameters: Seq[Expression]) extends RelationCommon {}
 
-case class Values(values: Seq[Expression])
+case class Values(values: Seq[Seq[Expression]]) extends RelationCommon {}
 
 case class Unpivot(
     input: Relation,
