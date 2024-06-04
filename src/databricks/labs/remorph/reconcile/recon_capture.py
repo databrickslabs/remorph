@@ -3,10 +3,16 @@ from datetime import datetime
 
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.functions import col, collect_list, create_map, lit
+from pyspark.errors import PySparkException
 from sqlglot import Dialect
 
 from databricks.labs.remorph.config import DatabaseConfig, Table, get_key_form_dialect
-from databricks.labs.remorph.reconcile.exception import WriteToTableException
+from databricks.labs.remorph.reconcile.exception import (
+    WriteToTableException,
+    WriteToVolumeException,
+    ReadFromVolumeException,
+    CleanFromVolumeException,
+)
 from databricks.labs.remorph.reconcile.recon_config import (
     DataReconcileOutput,
     ReconcileOutput,
@@ -26,6 +32,48 @@ _RECON_TABLE_NAME = "main"
 _RECON_METRICS_TABLE_NAME = "metrics"
 _RECON_DETAILS_TABLE_NAME = "details"
 _SAMPLE_ROWS = 50
+
+
+def _write_unmatched_df_to_volumes(
+    unmatched_df: DataFrame,
+    path: str,
+) -> None:
+    try:
+        (unmatched_df.write.format("parquet").mode("overwrite").save(path))
+    except PySparkException as e:
+        message = f"Exception in writing unmatched DF to volumes --> {e}"
+        logger.error(message)
+        raise WriteToVolumeException(message) from e
+
+
+def _read_unmatched_df_from_volumes(
+    spark: SparkSession,
+    path: str,
+) -> DataFrame:
+    try:
+        return spark.read.format("parquet").load(path)
+    except PySparkException as e:
+        message = f"Exception in reading unmatched DF from volumes --> {e}"
+        logger.error(message)
+        raise ReadFromVolumeException(message) from e
+
+
+def clean_unmatched_df_from_volume(workspace_client: WorkspaceClient, path: str):
+    try:
+        workspace_client.dbfs.delete(path, recursive=True)
+    except PySparkException as e:
+        message = f"Error cleaning up unmatched DF from volumes --> {e}"
+        logger.error(message)
+        raise CleanFromVolumeException(message) from e
+
+
+def write_and_read_unmatched_df_with_volumes(
+    unmatched_df: DataFrame,
+    spark: SparkSession,
+    path: str,
+) -> DataFrame:
+    _write_unmatched_df_to_volumes(unmatched_df, path)
+    return _read_unmatched_df_from_volumes(spark, path)
 
 
 def _write_df_to_delta(df: DataFrame, table_name: str, mode="append"):

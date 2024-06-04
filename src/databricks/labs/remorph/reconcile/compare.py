@@ -1,7 +1,8 @@
-from pyspark.sql import DataFrame
+from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.functions import col, expr, lit
 
 from databricks.labs.remorph.reconcile.exception import ColumnMismatchException
+from databricks.labs.remorph.reconcile.recon_capture import write_and_read_unmatched_df_with_volumes
 from databricks.labs.remorph.reconcile.recon_config import (
     DataReconcileOutput,
     MismatchOutput,
@@ -21,26 +22,53 @@ def raise_column_mismatch_exception(msg: str, source_missing: list[str], target_
 
 
 def reconcile_data(
-    source: DataFrame, target: DataFrame, key_columns: list[str], report_type: str
+    source: DataFrame,
+    target: DataFrame,
+    key_columns: list[str],
+    report_type: str,
+    spark: SparkSession | None = None,
+    path: str | None = None,
 ) -> DataReconcileOutput:
     source_alias = "src"
     target_alias = "tgt"
     if report_type not in {"data", "all"}:
         key_columns = [_HASH_COLUMN_NAME]
-    df = source.alias(source_alias).join(other=target.alias(target_alias), on=key_columns, how="full")
+    df = (
+        source.alias(source_alias)
+        .join(other=target.alias(target_alias), on=key_columns, how="full")
+        .selectExpr(
+            *[f'{source_alias}.{col_name} as {source_alias}_{col_name}' for col_name in source.columns],
+            *[f'{target_alias}.{col_name} as {target_alias}_{col_name}' for col_name in target.columns],
+        )
+    )
 
-    mismatch = (
-        _get_mismatch_data(df, source_alias, target_alias, source.columns) if report_type in {"all", "data"} else None
-    )
+    if spark and path:
+        df = write_and_read_unmatched_df_with_volumes(df, spark, path)
+
+    mismatch = _get_mismatch_data(df, source_alias, target_alias) if report_type in {"all", "data"} else None
+
     missing_in_src = (
-        df.filter(col(f"{source_alias}.{_HASH_COLUMN_NAME}").isNull())
-        .select((key_columns if report_type == "all" else alias_column_str(target_alias, target.columns)))
-        .drop(_HASH_COLUMN_NAME)
+        df.filter(col(f"{source_alias}_{_HASH_COLUMN_NAME}").isNull())
+        .select(
+            *[
+                col(col_name).alias(col_name.replace(f'{target_alias}_', '').lower())
+                for col_name in df.columns
+                if col_name.startswith(f'{target_alias}_')
+            ]
+        )
+        .drop(f"{_HASH_COLUMN_NAME}")
     )
+
     missing_in_tgt = (
-        df.filter(col(f"{target_alias}.{_HASH_COLUMN_NAME}").isNull())
-        .select((key_columns if report_type == "all" else alias_column_str(source_alias, source.columns)))
-        .drop(_HASH_COLUMN_NAME)
+        df.filter(col(f"{target_alias}_{_HASH_COLUMN_NAME}").isNull())
+        .select(
+            *[
+                col(col_name).alias(col_name.replace(f'{source_alias}_', '').lower())
+                for col_name in df.columns
+                if col_name.startswith(f'{source_alias}_')
+            ]
+        )
+        .drop(f"{_HASH_COLUMN_NAME}")
     )
     mismatch_count = 0
     if mismatch:
@@ -56,19 +84,25 @@ def reconcile_data(
     )
 
 
-def _get_mismatch_data(df: DataFrame, src_alias: str, tgt_alias: str, select_columns) -> DataFrame:
+def _get_mismatch_data(df: DataFrame, src_alias: str, tgt_alias: str) -> DataFrame:
     return (
         df.filter(
-            (col(f"{src_alias}.{_HASH_COLUMN_NAME}").isNotNull())
-            & (col(f"{tgt_alias}.{_HASH_COLUMN_NAME}").isNotNull())
+            (col(f"{src_alias}_{_HASH_COLUMN_NAME}").isNotNull())
+            & (col(f"{tgt_alias}_{_HASH_COLUMN_NAME}").isNotNull())
         )
         .withColumn(
             "hash_match",
-            col(f"{src_alias}.{_HASH_COLUMN_NAME}") == col(f"{tgt_alias}.{_HASH_COLUMN_NAME}"),
+            col(f"{src_alias}_{_HASH_COLUMN_NAME}") == col(f"{tgt_alias}_{_HASH_COLUMN_NAME}"),
         )
         .filter(col("hash_match") == lit(False))
-        .select(alias_column_str(src_alias, select_columns))
-        .drop(_HASH_COLUMN_NAME)
+        .select(
+            *[
+                col(col_name).alias(col_name.replace(f'{src_alias}_', '').lower())
+                for col_name in df.columns
+                if col_name.startswith(f'{src_alias}_')
+            ]
+        )
+        .drop(f"{_HASH_COLUMN_NAME}")
     )
 
 

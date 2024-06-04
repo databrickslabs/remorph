@@ -1,3 +1,4 @@
+from pathlib import Path
 import pytest
 from pyspark import Row
 from pyspark.testing import assertDataFrameEqual
@@ -14,7 +15,10 @@ from databricks.labs.remorph.reconcile.recon_config import (
 )
 
 
-def test_compare_data_for_report_all(mock_spark):
+def test_compare_data_for_report_all(
+    mock_spark,
+    tmp_path: Path,
+):
     source = mock_spark.createDataFrame(
         [
             Row(s_suppkey=1, s_nationkey=11, hash_value_recon='1a1'),
@@ -36,7 +40,14 @@ def test_compare_data_for_report_all(mock_spark):
     missing_in_src = mock_spark.createDataFrame([Row(s_suppkey=4, s_nationkey=44), Row(s_suppkey=5, s_nationkey=56)])
     missing_in_tgt = mock_spark.createDataFrame([Row(s_suppkey=3, s_nationkey=33), Row(s_suppkey=5, s_nationkey=55)])
 
-    actual = reconcile_data(source=source, target=target, key_columns=["s_suppkey", "s_nationkey"], report_type="all")
+    actual = reconcile_data(
+        source=source,
+        target=target,
+        key_columns=["s_suppkey", "s_nationkey"],
+        report_type="all",
+        spark=mock_spark,
+        path=str(tmp_path),
+    )
     expected = DataReconcileOutput(
         mismatch_count=1,
         missing_in_src_count=1,
@@ -51,7 +62,7 @@ def test_compare_data_for_report_all(mock_spark):
     assertDataFrameEqual(actual.missing_in_tgt, expected.missing_in_tgt)
 
 
-def test_compare_data_for_report_hash(mock_spark):
+def test_compare_data_for_report_hash(mock_spark, tmp_path: Path):
     source = mock_spark.createDataFrame(
         [
             Row(s_suppkey=1, s_nationkey=11, hash_value_recon='1a1'),
@@ -76,11 +87,18 @@ def test_compare_data_for_report_hash(mock_spark):
         [Row(s_suppkey=2, s_nationkey=22), Row(s_suppkey=3, s_nationkey=33), Row(s_suppkey=5, s_nationkey=55)]
     )
 
-    actual = reconcile_data(source=source, target=target, key_columns=["s_suppkey", "s_nationkey"], report_type="hash")
+    actual = reconcile_data(
+        source=source,
+        target=target,
+        key_columns=["s_suppkey", "s_nationkey"],
+        report_type="hash",
+        spark=mock_spark,
+        path=str(tmp_path),
+    )
     expected = DataReconcileOutput(
         missing_in_src=missing_in_src,
         missing_in_tgt=missing_in_tgt,
-        mismatch=None,
+        mismatch=MismatchOutput(),
         mismatch_count=0,
         missing_in_src_count=1,
         missing_in_tgt_count=1,

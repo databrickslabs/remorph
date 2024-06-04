@@ -62,7 +62,7 @@ class SamplingQueryBuilder(QueryBuilder):
             .join(expression="recon", join_type="inner", using=key_cols)
             .sql(dialect=self.source)
         )
-        logger.info(f"Sampling Query for {self.layer}: {query}")
+        logger.warning(f"Sampling Query for {self.layer}: {query}")
         return query
 
     @staticmethod
