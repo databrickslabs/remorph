@@ -14,7 +14,7 @@ import org.scalatest.wordspec.AnyWordSpec
 
 class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matchers {
 
-  override protected def astBuilder: TSqlParserBaseVisitor[_] = new TSqlExpressionBuilder
+  override protected def astBuilder: TSqlParserBaseVisitor[_] = new TSqlExpressionBuilder(new TSqlFunctionBuilder)
 
   "TSqlExpressionBuilder" should {
     "translate literals" in {
@@ -259,7 +259,7 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
     }
 
     "return ir.Dot for otherwise unhandled DotExpr" in {
-      val builder = new TSqlExpressionBuilder
+      val builder = new TSqlExpressionBuilder(new TSqlFunctionBuilder)
       val mockDotExprCtx = mock(classOf[TSqlParser.ExprDotContext])
       val mockExpressionCtx = mock(classOf[TSqlParser.ExpressionContext])
       val mockVisitor = mock(classOf[TSqlExpressionBuilder])
@@ -279,7 +279,7 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
       when(mockCtx.CURRENT()).thenReturn(null)
       when(mockCtx.INT()).thenReturn(null)
 
-      val builder = new TSqlExpressionBuilder
+      val builder = new TSqlExpressionBuilder(new TSqlFunctionBuilder)
       val result = builder.buildFrame(mockCtx)
 
       // Verify the result
@@ -353,7 +353,8 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
     }
 
     "cover case that cannot happen with dot" in {
-      val builder = new TSqlExpressionBuilder
+      val builder = new TSqlExpressionBuilder(new TSqlFunctionBuilder)
+
       val mockCtx = mock(classOf[TSqlParser.ExprDotContext])
       val expressionMockColumn = mock(classOf[TSqlParser.ExpressionContext])
       when(mockCtx.expression(0)).thenReturn(expressionMockColumn)
@@ -424,7 +425,8 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
     }
 
     "return UnresolvedExpression for unsupported SelectListElem" in {
-      val builder = new TSqlExpressionBuilder
+      val builder = new TSqlExpressionBuilder(new TSqlFunctionBuilder)
+
       val mockCtx = mock(classOf[TSqlParser.SelectListElemContext])
 
       // Ensure that both asterisk() and expressionElem() methods return null
@@ -451,7 +453,7 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
       when(expressionContextMock.accept(any())).thenReturn(null)
       when(selectListElemContextMock.expression()).thenReturn(expressionContextMock)
 
-      val builder = new TSqlExpressionBuilder
+      val builder = new TSqlExpressionBuilder(new TSqlFunctionBuilder)
       val result = builder.visitSelectListElem(selectListElemContextMock)
 
       result shouldBe a[ir.UnresolvedExpression]
