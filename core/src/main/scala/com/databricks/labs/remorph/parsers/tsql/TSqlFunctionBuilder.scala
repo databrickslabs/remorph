@@ -51,6 +51,10 @@ object TSqlFunctionConverters {
       // We may run across instances where this is not the case, and will have to handle that as a special case, perhaps
       // with external procedures or functions in Java/Scala, or even python.
       // For instance a SequenceHandler supplied by the user.
+      //
+      // TODO: MONOTONICALLY_INCREASING_ID is not a windowing function in Databricks SQL, hence this will
+      //  not work with OVER clauses.
+      //  In that case a better translation is possibly ROW_NUMBER() OVER (ORDER BY ...)
       ir.CallFunction("MONOTONICALLY_INCREASING_ID", List.empty)
     }
   }
