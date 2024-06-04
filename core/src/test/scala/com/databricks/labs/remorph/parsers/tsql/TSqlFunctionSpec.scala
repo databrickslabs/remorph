@@ -283,4 +283,11 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
           ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop),
           ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop))))
   }
+
+  "translate 'functions' with non-standard syntax" in {
+    example(
+      query = "NEXT VALUE FOR mySequence",
+      _.expression(),
+      ir.CallFunction("MONOTONICALLY_INCREASING_ID", List.empty))
+  }
 }

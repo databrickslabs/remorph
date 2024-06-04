@@ -4068,7 +4068,7 @@ jsonNullClause
     ;
 
 builtInFunctions
-    : NEXT VALUE FOR tableName (OVER LPAREN orderByClause RPAREN)?                          #nextValueFor
+    : NEXT VALUE FOR tableName                                                              #nextValueFor
     | CAST LPAREN expression AS dataType RPAREN                                             #cast
     | TRY_CAST LPAREN expression AS dataType RPAREN                                         #tryCast
     | PARSE LPAREN str = expression AS dataType (USING culture = expression)? RPAREN        #parse

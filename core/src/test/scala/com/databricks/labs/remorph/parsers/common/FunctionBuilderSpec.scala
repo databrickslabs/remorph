@@ -32,7 +32,7 @@ class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenProp
       // TSql specific
       ("@@CURSOR_STATUS", Some(FunctionDefinition.notConvertible(0))),
       ("@@FETCH_STATUS", Some(FunctionDefinition.notConvertible(0))),
-      ("ISNULL", Some(FunctionDefinition.standard(2).withConversionStrategy(TSqlFunctionConverters.FunctionRename))),
+      ("ISNULL", Some(FunctionDefinition.standard(2).withConversionStrategy(TSqlFunctionConverters.Rename))),
       ("MODIFY", Some(FunctionDefinition.xml(1))))
     val functionBuilder = new TSqlFunctionBuilder
 
@@ -393,7 +393,7 @@ class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenProp
 
   "FunctionRename strategy" should "preserve original function if no match is found" in {
     val result1 =
-      TSqlFunctionConverters.FunctionRename.convert("Abs", Seq(ir.Literal(integer = Some(66))))
+      TSqlFunctionConverters.Rename.convert("Abs", Seq(ir.Literal(integer = Some(66))))
     result1 match {
       case f: ir.CallFunction => f.function_name shouldBe "Abs"
       case _ => fail("UNKNOWN_FUNCTION conversion failed")

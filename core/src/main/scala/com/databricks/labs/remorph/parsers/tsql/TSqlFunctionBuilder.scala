@@ -8,8 +8,10 @@ class TSqlFunctionBuilder extends FunctionBuilder {
     case "@@CURSOR_STATUS" => FunctionDefinition.notConvertible(0)
     case "@@FETCH_STATUS" => FunctionDefinition.notConvertible(0)
     // The ConversionStrategy is used to rename ISNULL to IFNULL
-    case "ISNULL" => FunctionDefinition.standard(2).withConversionStrategy(TSqlFunctionConverters.FunctionRename)
+    case "ISNULL" => FunctionDefinition.standard(2).withConversionStrategy(TSqlFunctionConverters.Rename)
     case "MODIFY" => FunctionDefinition.xml(1)
+    case "NEXTVALUEFOR" =>
+      FunctionDefinition.standard(1).withConversionStrategy(TSqlFunctionConverters.NextValueFor)
   }
 
   override def functionDefinition(name: String): Option[FunctionDefinition] =
@@ -34,12 +36,22 @@ class TSqlFunctionBuilder extends FunctionBuilder {
 // hence perhaps moving to a class per function may be a better idea.
 object TSqlFunctionConverters {
 
-  object FunctionRename extends ConversionStrategy with StringConverter {
+  object Rename extends ConversionStrategy with StringConverter {
     override def convert(irName: String, args: Seq[ir.Expression]): ir.Expression = {
       irName.toUpperCase() match {
         case "ISNULL" => ir.CallFunction(convertString(irName, "IFNULL"), args)
         case _ => ir.CallFunction(irName, args)
       }
+    }
+  }
+
+  object NextValueFor extends ConversionStrategy {
+    override def convert(irName: String, args: Seq[ir.Expression]): ir.Expression = {
+      // Note that this conversion assumes that the CREATE SEQUENCE it references was an increment in ascending order.
+      // We may run across instances where this is not the case, and will have to handle that as a special case, perhaps
+      // with external procedures or functions in Java/Scala, or even python.
+      // For instance a SequenceHandler supplied by the user.
+      ir.CallFunction("MONOTONICALLY_INCREASING_ID", List.empty)
     }
   }
 

@@ -381,4 +381,16 @@ class TSqlExpressionBuilder(functionBuilder: FunctionBuilder)
     // Support for functions such as COUNT(DISTINCT column), which is an expression not a relation
     ir.Distinct(ctx.expression().accept(this))
   }
+
+  /**
+   * Handles the NEXT VALUE FOR function in SQL Server, which has a special syntax.
+   *
+   * @param ctx
+   *   the parse tree
+   */
+  override def visitNextValueFor(ctx: NextValueForContext): ir.Expression = {
+    val sequenceName = ir.Literal(string = Some(buildTableName(ctx.tableName())))
+    functionBuilder.buildFunction("NEXTVALUEFOR", Seq(sequenceName))
+  }
+
 }
