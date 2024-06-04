@@ -10,9 +10,19 @@ class TSqlFunctionBuilder extends FunctionBuilder {
     // The ConversionStrategy is used to rename ISNULL to IFNULL
     case "ISNULL" => FunctionDefinition.standard(2).withConversionStrategy(TSqlFunctionConverters.Rename)
     case "MODIFY" => FunctionDefinition.xml(1)
-    case "NEXTVALUEFOR" =>
-      FunctionDefinition.standard(1).withConversionStrategy(TSqlFunctionConverters.NextValueFor)
+    case "NEXTVALUEFOR" => FunctionDefinition.standard(1).withConversionStrategy(nextValueFor)
   }
+  
+  private def nextValueFor(irName: String, args: Seq[ir.Expression]): ir.Expression = {
+      // Note that this conversion assumes that the CREATE SEQUENCE it references was an increment in ascending order.
+      // We may run across instances where this is not the case, and will have to handle that as a special case, perhaps
+      // with external procedures or functions in Java/Scala, or even python.
+      // For instance a SequenceHandler supplied by the user.
+      //
+      // Given this, then we use this converter rather than just the simple Rename converter.
+      // TODO: Implement external SequenceHandler?
+      ir.CallFunction("MONOTONICALLY_INCREASING_ID", List.empty)
+    }
 
   override def functionDefinition(name: String): Option[FunctionDefinition] =
     // If not found, check common functions
