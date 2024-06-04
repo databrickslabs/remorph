@@ -96,3 +96,27 @@ class TranspilationResult:
 class ValidationResult:
     validated_sql: str
     exception_msg: str | None
+
+
+@dataclass
+class ReconcileTablesConfig:
+    filter_type: str  # all/include/exclude
+    tables_list: list[str]  # [*, table1, table2]
+
+
+@dataclass
+class ReconcileConfig:
+    __file__ = "reconcile.yml"
+    __version__ = 1
+
+    data_source: str
+    report_type: str
+    secret_scope: str
+    config: DatabaseConfig
+    tables: ReconcileTablesConfig | None = None
+
+
+@dataclass
+class RemorphConfigs:
+    morph: MorphConfig | None
+    reconcile: ReconcileConfig | None
