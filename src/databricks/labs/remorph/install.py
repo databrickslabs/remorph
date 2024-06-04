@@ -95,6 +95,12 @@ class WorkspaceInstaller:
 
         return self._configure_new_installation()
 
+    def _save_configs(self, configs: RemorphConfigs):
+        if configs.morph:
+            self._save_and_open_config("transpile", configs.morph)
+        if configs.reconcile:
+            self._save_and_open_config("reconcile", configs.reconcile)
+
     def _save_and_open_config(self, module: str, config: MorphConfig | ReconcileConfig):
         logger.info(f"Saving the ** {module} ** configuration in Databricks Workspace")
         self._installation.save(config)
@@ -107,13 +113,18 @@ class WorkspaceInstaller:
         Prompts for the new Installation and saves the configuration
         :return: MorphConfig
         """
-        morph_config, reconcile_config = self._install.prompt_for_new_installation()
-        if morph_config:
-            self._save_and_open_config("transpile", morph_config)
-        if reconcile_config:
-            self._save_and_open_config("reconcile", reconcile_config)
+        function_to_call = self._prompts.choice_from_dict(
+            'Select a module to configure:',
+            {
+                'reconcile': self._install.reconcile_setup_prompts,
+                'transpile': self._install.transpile_setup_prompts,
+                'all': self._install.remorph_setup_prompts,
+            },
+        )
+        configs = function_to_call()
+        self._save_configs(configs)
 
-        return RemorphConfigs(morph_config, reconcile_config)
+        return configs
 
 
 class CatalogSetup:
@@ -221,30 +232,10 @@ class InstallPrompts:
         logger.info(f" Creating new Schema `{catalog_name}.{schema_name}`")
         self._catalog_setup.create_schema(schema_name, catalog_name)
 
-    def prompt_for_new_installation(self):
-        """
-        Prompts for the new Installation and returns the configuration
-        :return: MorphConfig
-        """
-        module_prompt = self._prompts.choice(
-            "Which module(s) would you like to configure:", ["transpile", "reconcile", "all"]
-        )
+    def remorph_setup_prompts(self) -> RemorphConfigs:
+        return RemorphConfigs(self.transpile_setup_prompts().morph, self.reconcile_setup_prompts().reconcile)
 
-        morph_config, reconcile_config = None, None
-        match module_prompt:
-            case "transpile":
-                morph_config = self._prompt_for_transpile_setup()
-            case "reconcile":
-                reconcile_config = self._prompt_for_reconcile_setup()
-            case "all":
-                morph_config, reconcile_config = self._prompt_for_all()
-
-        return morph_config, reconcile_config
-
-    def _prompt_for_all(self) -> tuple[MorphConfig, ReconcileConfig]:
-        return self._prompt_for_transpile_setup(), self._prompt_for_reconcile_setup()
-
-    def _prompt_for_transpile_setup(self) -> MorphConfig:
+    def transpile_setup_prompts(self) -> RemorphConfigs:
         logger.info("\nPlease answer a few questions to configure remorph: ** transpile **")
 
         # default params
@@ -277,9 +268,7 @@ class InstallPrompts:
             except NotFound:
                 self.setup_schema(catalog_name, schema_name)
 
-        logger.info(" Captured ** transpile **  configuration details !!!")
-
-        return MorphConfig(
+        config = MorphConfig(
             source=source,
             skip_validation=(not run_validation),
             catalog_name=catalog_name,
@@ -289,6 +278,10 @@ class InstallPrompts:
             input_sql=input_sql,
             output_folder=output_folder,
         )
+
+        logger.info("Captured ** transpile **  configuration details !!!")
+
+        return RemorphConfigs(config, None)
 
     def _prompt_for_reconcile_source_target_details(self, source):
 
@@ -313,7 +306,7 @@ class InstallPrompts:
             source_catalog=source_catalog,
         )
 
-    def _prompt_for_reconcile_setup(self) -> ReconcileConfig:
+    def reconcile_setup_prompts(self) -> RemorphConfigs:
         logger.info("\nPlease answer a few questions to configure remorph: ** reconcile **")
 
         data_source = self._prompts.choice(
@@ -338,7 +331,7 @@ class InstallPrompts:
 
         logger.info("Captured ** reconcile **  configuration details !!!")
 
-        return reconcile_config
+        return RemorphConfigs(None, reconcile_config)
 
 
 class WorkspaceInstallation:

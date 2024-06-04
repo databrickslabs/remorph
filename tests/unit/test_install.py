@@ -85,7 +85,7 @@ def mock_installation():
                 },
                 "version": 1,
             },
-            "reconcile_config.yml": {
+            "reconcile.yml": {
                 "data_source": "snowflake",
                 "config": {
                     "source_catalog": "snowflake_sample_data",
@@ -119,7 +119,7 @@ def mock_installation_state():
 def test_install(ws, mock_installation_state):
     prompts = MockPrompts(
         {
-            r"Which module.* would you like to configure:": MODULES.index("all"),
+            r"Select a module to configure:": MODULES.index("all"),
             r"Select the source": SOURCES.index("bigquery"),
             r"Enter Input SQL path.*": "data/queries/bigquery",
             r"Enter Output directory.*": "transpiled",
@@ -140,8 +140,8 @@ def test_install(ws, mock_installation_state):
     assert isinstance(install, WorkspaceInstaller)
 
     configs = install.run()
-    config = configs.config
-    reconcile_config = configs.reconcile_config
+    config = configs.morph
+    reconcile_config = configs.reconcile
 
     assert config.source == "bigquery"
     assert config.sdk_config is None
@@ -177,7 +177,7 @@ def test_save_config(ws, mock_installation, monkeypatch):
     monkeypatch.setattr("webbrowser.open", mock_open)
     prompts = MockPrompts(
         {
-            r"Which module.* would you like to configure:": MODULES.index("transpile"),
+            r"Select a module to configure:": MODULES.index("transpile"),
             r"Select the source": SOURCES.index("snowflake"),
             r"Enter Input SQL path.*": "sf_queries",
             r"Enter Output directory.*": "out_dir",
@@ -215,7 +215,7 @@ def test_create_sql_warehouse(ws_no_catalog_schema, mock_installation_state):
 
     prompts = MockPrompts(
         {
-            r"Which module.* would you like to configure:": MODULES.index("transpile"),
+            r"Select a module to configure:": MODULES.index("transpile"),
             r"Select the source": SOURCES.index("snowflake"),
             r"Enter Input SQL path.*": "sf_queries",
             r"Enter Output directory.*": "out_dir",
@@ -237,7 +237,7 @@ def test_create_sql_warehouse(ws_no_catalog_schema, mock_installation_state):
 
     configs = install.configure()
 
-    config = configs.config
+    config = configs.morph
 
     # Assert that the `config` is an instance of MorphConfig
     assert isinstance(config, MorphConfig)
@@ -252,7 +252,7 @@ def test_create_sql_warehouse(ws_no_catalog_schema, mock_installation_state):
 def test_get_cluster_id(ws, mock_installation_state):
     prompts = MockPrompts(
         {
-            r"Which module.* would you like to configure:": MODULES.index("transpile"),
+            r"Select a module to configure:": MODULES.index("transpile"),
             r"Select the source": SOURCES.index("snowflake"),
             r"Enter Input SQL path.*": "sf_queries",
             r"Enter Output directory.*": "out_dir",
@@ -275,7 +275,7 @@ def test_get_cluster_id(ws, mock_installation_state):
 
     configs = install.configure()
 
-    config = configs.config
+    config = configs.morph
     # Assert that the `config` is an instance of MorphConfig
     assert isinstance(config, MorphConfig)
 
@@ -290,7 +290,7 @@ def test_get_cluster_id(ws, mock_installation_state):
 def test_create_catalog_no(ws_no_catalog_schema, mock_installation_state):
     prompts = MockPrompts(
         {
-            r"Which module.* would you like to configure:": MODULES.index("transpile"),
+            r"Select a module to configure:": MODULES.index("transpile"),
             r"Select the source": SOURCES.index("snowflake"),
             r"Enter Input SQL path.*": "sf_queries",
             r"Enter Output directory.*": "out_dir",
@@ -310,7 +310,7 @@ def test_create_catalog_no(ws_no_catalog_schema, mock_installation_state):
 def test_create_schema_no(ws_no_catalog_schema, mock_installation_state):
     prompts = MockPrompts(
         {
-            r"Which module.* would you like to configure:": MODULES.index("transpile"),
+            r"Select a module to configure:": MODULES.index("transpile"),
             r"Select the source": SOURCES.index("snowflake"),
             r"Enter Input SQL path.*": "sf_queries",
             r"Enter Output directory.*": "out_dir",
@@ -384,7 +384,7 @@ def test_save_reconcile_config(ws, mock_installation_state, monkeypatch):
     monkeypatch.setattr("webbrowser.open", mock_open)
     prompts = MockPrompts(
         {
-            r"Which module.* would you like to configure:": MODULES.index("reconcile"),
+            r"Select a module to configure:": MODULES.index("reconcile"),
             r"Select the Data Source:": 2,
             r"Select the Report Type:": 0,
             r"Enter Secret Scope name to store .* connection details / secrets": "remorph_snowflake",
@@ -401,7 +401,7 @@ def test_save_reconcile_config(ws, mock_installation_state, monkeypatch):
     install.configure()
 
     mock_installation_state.assert_file_written(
-        "reconcile_config.yml",
+        "reconcile.yml",
         {
             "data_source": "snowflake",
             "config": {
@@ -424,7 +424,7 @@ def test_workspace_installation_run(ws, mock_installation_state, monkeypatch):
     monkeypatch.setattr("webbrowser.open", mock_open)
     prompts = MockPrompts(
         {
-            r"Which module.* would you like to configure:": MODULES.index("reconcile"),
+            r"Select a module to configure:": MODULES.index("reconcile"),
             r"Select the Data Source:": 2,
             r"Select the Report Type:": 0,
             r"Enter Secret Scope name to store .* connection details / secrets": "remorph_snowflake",
@@ -452,7 +452,7 @@ def test_workspace_installation_run_single_error(ws, mock_installation_state, mo
     monkeypatch.setattr("webbrowser.open", mock_open)
     prompts = MockPrompts(
         {
-            r"Which module.* would you like to configure:": MODULES.index("reconcile"),
+            r"Select a module to configure:": MODULES.index("reconcile"),
             r"Select the Data Source:": 2,
             r"Select the Report Type:": 0,
             r"Enter Secret Scope name to store .* connection details / secrets": "remorph_snowflake",

@@ -106,7 +106,7 @@ class ReconcileTablesConfig:
 
 @dataclass
 class ReconcileConfig:
-    __file__ = "reconcile_config.yml"
+    __file__ = "reconcile.yml"
     __version__ = 1
 
     data_source: str
@@ -118,5 +118,5 @@ class ReconcileConfig:
 
 @dataclass
 class RemorphConfigs:
-    config: MorphConfig | None
-    reconcile_config: ReconcileConfig | None
+    morph: MorphConfig | None
+    reconcile: ReconcileConfig | None
