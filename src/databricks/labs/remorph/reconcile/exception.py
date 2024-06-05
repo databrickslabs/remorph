@@ -30,12 +30,8 @@ class ReconciliationException(Exception):
         return self._reconcile_output
 
 
-class WriteToVolumeException(PySparkException):
+class ReadAndWriteWithVolumeException(PySparkException):
     """Raise the error when there is a runtime exception thrown while writing data to volume"""
-
-
-class ReadFromVolumeException(PySparkException):
-    """Raise the error when there is a runtime exception thrown while reading data from volume"""
 
 
 class CleanFromVolumeException(PySparkException):

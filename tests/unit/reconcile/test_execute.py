@@ -22,6 +22,7 @@ from databricks.labs.remorph.reconcile.execute import (
     Reconciliation,
     initialise_data_source,
     recon,
+    generate_volume_path,
 )
 from databricks.labs.remorph.reconcile.recon_config import (
     DataReconcileOutput,
@@ -1791,3 +1792,11 @@ def test_recon_output_without_exception(mock_gen_final_recon_output):
     except ReconciliationException as e:
         msg = f"An exception {e} was raised when it should not have been"
         pytest.fail(msg)
+
+
+def test_generate_volume_path(table_conf_with_opts):
+    volume_path = generate_volume_path(table_conf_with_opts)
+    assert (
+        volume_path
+        == f"/Volumes/remorph/reconcile/recon_volume/{table_conf_with_opts.source_name}_{table_conf_with_opts.target_name}/"
+    )

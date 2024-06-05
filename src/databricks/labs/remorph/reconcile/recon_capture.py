@@ -9,8 +9,7 @@ from sqlglot import Dialect
 from databricks.labs.remorph.config import DatabaseConfig, Table, get_key_form_dialect
 from databricks.labs.remorph.reconcile.exception import (
     WriteToTableException,
-    WriteToVolumeException,
-    ReadFromVolumeException,
+    ReadAndWriteWithVolumeException,
     CleanFromVolumeException,
 )
 from databricks.labs.remorph.reconcile.recon_config import (
@@ -38,30 +37,20 @@ def _write_unmatched_df_to_volumes(
     unmatched_df: DataFrame,
     path: str,
 ) -> None:
-    try:
-        (unmatched_df.write.format("parquet").mode("overwrite").save(path))
-    except PySparkException as e:
-        message = f"Exception in writing unmatched DF to volumes --> {e}"
-        logger.error(message)
-        raise WriteToVolumeException(message) from e
+    unmatched_df.write.format("parquet").mode("overwrite").save(path)
 
 
 def _read_unmatched_df_from_volumes(
     spark: SparkSession,
     path: str,
 ) -> DataFrame:
-    try:
-        return spark.read.format("parquet").load(path)
-    except PySparkException as e:
-        message = f"Exception in reading unmatched DF from volumes --> {e}"
-        logger.error(message)
-        raise ReadFromVolumeException(message) from e
+    return spark.read.format("parquet").load(path)
 
 
 def clean_unmatched_df_from_volume(workspace_client: WorkspaceClient, path: str):
     try:
         workspace_client.dbfs.delete(path, recursive=True)
-    except PySparkException as e:
+    except Exception as e:
         message = f"Error cleaning up unmatched DF from volumes --> {e}"
         logger.error(message)
         raise CleanFromVolumeException(message) from e
@@ -72,8 +61,13 @@ def write_and_read_unmatched_df_with_volumes(
     spark: SparkSession,
     path: str,
 ) -> DataFrame:
-    _write_unmatched_df_to_volumes(unmatched_df, path)
-    return _read_unmatched_df_from_volumes(spark, path)
+    try:
+        _write_unmatched_df_to_volumes(unmatched_df, path)
+        return _read_unmatched_df_from_volumes(spark, path)
+    except PySparkException as e:
+        message = f"Exception in reading or writing unmatched DF with volumes {path} --> {e}"
+        logger.error(message)
+        raise ReadAndWriteWithVolumeException(message) from e
 
 
 def _write_df_to_delta(df: DataFrame, table_name: str, mode="append"):

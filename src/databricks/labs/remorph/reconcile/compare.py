@@ -26,8 +26,8 @@ def reconcile_data(
     target: DataFrame,
     key_columns: list[str],
     report_type: str,
-    spark: SparkSession | None = None,
-    path: str | None = None,
+    spark: SparkSession,
+    path: str,
 ) -> DataReconcileOutput:
     source_alias = "src"
     target_alias = "tgt"
@@ -42,8 +42,8 @@ def reconcile_data(
         )
     )
 
-    if spark and path:
-        df = write_and_read_unmatched_df_with_volumes(df, spark, path)
+    # Write unmatched df to volume
+    df = write_and_read_unmatched_df_with_volumes(df, spark, path)
 
     mismatch = _get_mismatch_data(df, source_alias, target_alias) if report_type in {"all", "data"} else None
 
