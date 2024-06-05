@@ -56,7 +56,7 @@ def reconcile_data(
                 if col_name.startswith(f'{target_alias}_')
             ]
         )
-        .drop(f"{_HASH_COLUMN_NAME}")
+        .drop(_HASH_COLUMN_NAME)
     )
 
     missing_in_tgt = (
@@ -68,7 +68,7 @@ def reconcile_data(
                 if col_name.startswith(f'{source_alias}_')
             ]
         )
-        .drop(f"{_HASH_COLUMN_NAME}")
+        .drop(_HASH_COLUMN_NAME)
     )
     mismatch_count = 0
     if mismatch:
@@ -102,7 +102,7 @@ def _get_mismatch_data(df: DataFrame, src_alias: str, tgt_alias: str) -> DataFra
                 if col_name.startswith(f'{src_alias}_')
             ]
         )
-        .drop(f"{_HASH_COLUMN_NAME}")
+        .drop(_HASH_COLUMN_NAME)
     )
 
 
