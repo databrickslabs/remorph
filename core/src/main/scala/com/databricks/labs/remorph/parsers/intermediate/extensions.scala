@@ -170,3 +170,8 @@ case class Timezone(expression: Expression, timeZone: Expression) extends Expres
 case class Money(value: Literal) extends Expression {}
 
 case class WithinGroup(expression: Expression, order: Seq[SortOrder]) extends Expression {}
+
+// Note that Databricks SQL supports FILTER() used as an expression, though we only have it as a
+// Relation right now.
+case class FilterExpr(input: Seq[Expression], lambdaFunction: LambdaFunction) extends Expression {}
+case class ValueArray(expresssions: Seq[Expression]) extends Expression {}

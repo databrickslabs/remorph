@@ -1,13 +1,13 @@
 package com.databricks.labs.remorph.parsers.tsql
 
 import com.databricks.labs.remorph.parsers.tsql.TSqlParser._
-import com.databricks.labs.remorph.parsers.{FunctionBuilder, ParserCommon, XmlFunction, intermediate => ir}
+import com.databricks.labs.remorph.parsers.{ParserCommon, XmlFunction, intermediate => ir}
 import org.antlr.v4.runtime.Token
 import org.antlr.v4.runtime.tree.{TerminalNode, Trees}
 
 import scala.collection.JavaConverters._
 
-class TSqlExpressionBuilder(functionBuilder: FunctionBuilder)
+class TSqlExpressionBuilder(functionBuilder: TSqlFunctionBuilder)
     extends TSqlParserBaseVisitor[ir.Expression]
     with ParserCommon[ir.Expression] {
 
@@ -405,5 +405,19 @@ class TSqlExpressionBuilder(functionBuilder: FunctionBuilder)
     val expression = ctx.expression().accept(this)
     val dataType = dataTypeBuilder.build(ctx.dataType())
     ir.Cast(expression, dataType, returnNullOnError = ctx.TRY_CAST() != null)
+  }
+
+  override def visitJsonArray(ctx: JsonArrayContext): ir.Expression = {
+    val elements = buildExpressionList(Option(ctx.expressionList()))
+    val absentOnNull = ctx.jsonNullClause() match {
+      case null => true
+      case clause if clause.ABSENT() == null => false
+      case _ => true
+    }
+    functionBuilder.buildJsonArray(elements, absentOnNull)
+  }
+
+  private def buildExpressionList(ctx: Option[ExpressionListContext]): Seq[ir.Expression] = {
+    ctx.map(_.expression().asScala.map(_.accept(this))).getOrElse(Seq.empty)
   }
 }

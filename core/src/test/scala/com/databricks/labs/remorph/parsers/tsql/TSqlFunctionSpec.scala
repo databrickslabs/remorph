@@ -289,6 +289,48 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
       query = "NEXT VALUE FOR mySequence",
       _.expression(),
       ir.CallFunction("MONOTONICALLY_INCREASING_ID", List.empty))
+  }
+
+  "translate JSON_ARRAY in various forms" in {
+    example(
+      query = "JSON_ARRAY(1, 2, 3 ABSENT ON NULL)",
+      _.expression(),
+      ir.CallFunction(
+        "TO_JSON",
+        Seq(
+          ir.ValueArray(Seq(ir.FilterExpr(
+            Seq(ir.Literal(integer = Some(1)), ir.Literal(integer = Some(2)), ir.Literal(integer = Some(3))),
+            ir.LambdaFunction(
+              ir.Not(ir.IsNull(ir.UnresolvedNamedLambdaVariable(Seq("x")))),
+              Seq(ir.UnresolvedNamedLambdaVariable(Seq("x"))))))))))
+
+    example(
+      query = "JSON_ARRAY(1, 2, 3)",
+      _.expression(),
+      ir.CallFunction(
+        "TO_JSON",
+        Seq(
+          ir.ValueArray(Seq(ir.FilterExpr(
+            Seq(ir.Literal(integer = Some(1)), ir.Literal(integer = Some(2)), ir.Literal(integer = Some(3))),
+            ir.LambdaFunction(
+              ir.Not(ir.IsNull(ir.UnresolvedNamedLambdaVariable(Seq("x")))),
+              Seq(ir.UnresolvedNamedLambdaVariable(Seq("x"))))))))))
+
+    example(
+      query = "JSON_ARRAY(1, 2, 3 NULL ON NULL)",
+      _.expression(),
+      ir.CallFunction(
+        "TO_JSON",
+        Seq(
+          ir.ValueArray(
+            Seq(ir.Literal(integer = Some(1)), ir.Literal(integer = Some(2)), ir.Literal(integer = Some(3)))))))
+
+    example(
+      query = "JSON_ARRAY(1, col1, x.col2 NULL ON NULL)",
+      _.expression(),
+      ir.CallFunction(
+        "TO_JSON",
+        Seq(ir.ValueArray(Seq(ir.Literal(integer = Some(1)), ir.Column("col1"), ir.Column("x.col2"))))))
 
   }
 }
