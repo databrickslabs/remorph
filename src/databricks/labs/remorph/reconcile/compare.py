@@ -1,3 +1,4 @@
+import logging
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.functions import col, expr, lit
 
@@ -7,6 +8,8 @@ from databricks.labs.remorph.reconcile.recon_config import (
     DataReconcileOutput,
     MismatchOutput,
 )
+
+logger = logging.getLogger(__name__)
 
 _HASH_COLUMN_NAME = "hash_value_recon"
 _SAMPLE_ROWS = 50
@@ -44,6 +47,7 @@ def reconcile_data(
 
     # Write unmatched df to volume
     df = write_and_read_unmatched_df_with_volumes(df, spark, path)
+    logger.warning(f"Unmatched data is written to {path} Successfully")
 
     mismatch = _get_mismatch_data(df, source_alias, target_alias) if report_type in {"all", "data"} else None
 
@@ -74,10 +78,13 @@ def reconcile_data(
     if mismatch:
         mismatch_count = mismatch.count()
 
+    missing_in_src_count = missing_in_src.count()
+    missing_in_tgt_count = missing_in_tgt.count()
+
     return DataReconcileOutput(
         mismatch_count=mismatch_count,
-        missing_in_src_count=missing_in_src.count(),
-        missing_in_tgt_count=missing_in_tgt.count(),
+        missing_in_src_count=missing_in_src_count,
+        missing_in_tgt_count=missing_in_tgt_count,
         missing_in_src=missing_in_src.limit(_SAMPLE_ROWS),
         missing_in_tgt=missing_in_tgt.limit(_SAMPLE_ROWS),
         mismatch=MismatchOutput(mismatch_df=mismatch),
@@ -123,9 +130,12 @@ def capture_mismatch_data_and_columns(source: DataFrame, target: DataFrame, key_
 
 
 def _get_mismatch_columns(df: DataFrame, columns: list[str]):
+    # Collect the DataFrame to a local variable
+    local_df = df.collect()
     mismatch_columns = []
     for column in columns:
-        if df.where(~col(column + "_match")).take(1):
+        # Check if any row has False in the column
+        if any(not row[column + "_match"] for row in local_df):
             mismatch_columns.append(column)
     return mismatch_columns
 

@@ -64,7 +64,7 @@ class HashQueryBuilder(QueryBuilder):
             .sql(dialect=self.source)
         )
 
-        logger.warning(f"Hash Query for {self.layer}: {res}")
+        logger.info(f"Hash Query for {self.layer}: {res}")
         return res
 
     def _generate_hash_algorithm(

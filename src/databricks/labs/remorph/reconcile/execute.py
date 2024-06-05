@@ -245,6 +245,7 @@ class Reconciliation:
         if self._report_type == "row" and table_conf.get_threshold_columns("source"):
             logger.warning("Threshold comparison is ignored for 'row' report type")
 
+        logger.warning(f"Reconciliation for {self._report_type} completed successfully.")
         return reconcile_output
 
     def reconcile_schema(

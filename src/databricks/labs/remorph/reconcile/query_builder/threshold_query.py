@@ -35,7 +35,7 @@ class ThresholdQueryBuilder(QueryBuilder):
         from_clause, join_clause = self._generate_from_and_join_clause(join_columns)
         # for threshold comparison query the dialect is always Databricks
         query = select(*select_clause).from_(from_clause).join(join_clause).where(where).sql(dialect=Databricks)
-        logger.warning(f"Threshold Comparison query: {query}")
+        logger.info(f"Threshold Comparison query: {query}")
         return query
 
     def _generate_select_where_clause(self, join_columns) -> tuple[list[exp.Expression], exp.Expression]:
@@ -225,5 +225,5 @@ class ThresholdQueryBuilder(QueryBuilder):
             thresholds_expr = self._apply_user_transformation(threshold_alias)
 
         query = (select(*keys_expr + thresholds_expr).from_(":tbl").where(self.filter)).sql(dialect=self.source)
-        logger.warning(f"Threshold Query for {self.layer}: {query}")
+        logger.info(f"Threshold Query for {self.layer}: {query}")
         return query

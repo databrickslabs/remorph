@@ -127,4 +127,5 @@ class SchemaCompare:
 
         df = self._create_dataframe(master_schema, self._schema_compare_schema)
         final_result = self._table_schema_status(master_schema)
+        logger.warning("Schema comparison is done successfully.")
         return SchemaReconcileOutput(final_result, df)
