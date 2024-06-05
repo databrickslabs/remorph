@@ -6,7 +6,7 @@ import org.scalatest.wordspec.AnyWordSpec
 
 class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matchers {
 
-  override protected def astBuilder: TSqlParserBaseVisitor[_] = new TSqlExpressionBuilder
+  override protected def astBuilder: TSqlParserBaseVisitor[_] = new TSqlExpressionBuilder(new TSqlFunctionBuilder)
 
   "translate functions with no parameters" in {
     example("APP_NAME()", _.expression(), ir.CallFunction("APP_NAME", List()))
