@@ -311,7 +311,7 @@ class TSqlExpressionBuilder(functionBuilder: FunctionBuilder)
 
   // Some functions need to be converted to Databricks equivalent Windowing functions for the OVER clause
   private def buildWindowingFunction(expression: ir.Expression): ir.Expression = expression match {
-    case ir.CallFunction(name, args) => TSqlFunctionConverters.WindowingFunctions.convert(name, args)
+    case ir.CallFunction("MONOTONICALLY_INCREASING_ID", args) => ir.CallFunction("ROW_NUMBER", args)
     case _ => expression
   }
 
