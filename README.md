@@ -11,9 +11,12 @@ Databricks Labs Remorph
 1. [Introduction](#introduction)
    - [Remorph](#remorph)
    - [Transpile](#transpile)
+   - [Reconcile](#reconcile)
 2. [Environment Setup](#environment-setup)
-3. [How to use Transpile](#how-to-use-transpile)
-4. [Project Support](#project-support)
+3. [Installation](#installation)
+4. [How to use Transpile](#how-to-use-transpile)
+5. [How to use Reconcile](#how-to-use-reconcile)
+6. [Project Support](#project-support)
 
 ----
 # Introduction
@@ -27,6 +30,9 @@ the migration experience becomes not only efficient but also well-managed, setti
 Transpile is a self-contained SQL parser, transpiler, and validator designed to interpret a diverse range of SQL inputs and generate syntactically and semantically correct SQL in the Databricks SQL dialect. This tool serves as an automated solution, named Transpile, specifically crafted for migrating and translating SQL scripts from various sources to the Databricks SQL format. Currently, it exclusively supports Snowflake as a source platform, leveraging the open-source SQLglot.
 
 Transpile stands out as a comprehensive and versatile SQL transpiler, boasting a robust test suite to ensure reliability. Developed entirely in Python, it not only demonstrates high performance but also highlights syntax errors and provides warnings or raises alerts for dialect incompatibilities based on configurations.
+
+## Reconcile
+Data Recon Harness is an advanced Python project designed to streamline the reconciliation process between source data and target data residing on Databricks. Currently, the platform exclusively offers support for Snowflake, Oracle, and Databricks as the primary data source. This innovative tool empowers users to efficiently identify discrepancies and variations in data when comparing the source with the Databricks target.
 
 #### Design Flow:
 ```mermaid
@@ -66,17 +72,22 @@ flowchart TD
 
 ![check-python-version](docs/check-python-version.gif)
 
+[[back to top](#table-of-contents)]
+
 ----
 
-# How to Use Transpile
-
-## Step 1 : Installation
+# Installation
 
 Upon completing the environment setup, install Remorph by executing the following command:
 ```bash
 databricks labs install remorph
 ```
+[[back to top](#table-of-contents)]
 
+----
+# How to Use Transpile
+
+## Step 1 : Verify Installation
 Verify the successful installation by executing the provided command; confirmation of a successful installation is indicated when the displayed output aligns with the example screenshot provided:
 ```bash
  databricks labs remorph transpile --help
@@ -98,8 +109,30 @@ Below is the detailed explanation on the arguments required for Transpile.
 ## Step 3 : Execution
 Execute the below command to intialize the transpile process.
 ```bash
- databricks labs  remorph transpile --input-sql <absolute-path> --source <snowflake> --output-folder <absolute-path> --skip-validation <True|False> --catalog-name <catalog name> --schema-name <schema name>
+ databricks labs remorph transpile --input-sql <absolute-path> --source <snowflake> --output-folder <absolute-path> --skip-validation <True|False> --catalog-name <catalog name> --schema-name <schema name>
 ```
+[[back to top](#table-of-contents)]
+
+----
+# How to Use Reconcile
+## Step 1 : Verify Installation
+Verify the successful installation by executing the provided command; confirmation of a successful installation is indicated when the displayed output aligns with the example screenshot provided:
+```bash
+ databricks labs remorph reconcile --help
+ ```
+![reconcile-help](docs/reconcile-help.png)
+
+## Step 2 : Set Up The Config
+Please refer to the [Reconcile Configuration Guide][def] for detailed instructions on how to set up the configuration.
+
+[def]: docs/README_RECON.md
+
+## Step 3 : Execution
+Execute the below command to initialize the reconcile process.
+```bash
+ databricks labs remorph reconcile --report <report-type> --source <source-type>
+```
+[[back to top](#table-of-contents)]
 
 ----
 
