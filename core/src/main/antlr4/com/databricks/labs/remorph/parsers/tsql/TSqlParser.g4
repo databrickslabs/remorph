@@ -4070,7 +4070,6 @@ jsonNullClause
 builtInFunctions
     : NEXT VALUE FOR tableName                                                              #nextValueFor
     | (CAST | TRY_CAST) LPAREN expression AS dataType RPAREN                                #cast
-    | TRY_CAST LPAREN expression AS dataType RPAREN                                         #tryCast
     | JSON_ARRAY LPAREN expressionList? jsonNullClause? RPAREN                              #jsonArray
     | JSON_OBJECT
         LPAREN
