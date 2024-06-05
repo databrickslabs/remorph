@@ -404,7 +404,6 @@ class TSqlExpressionBuilder(functionBuilder: FunctionBuilder)
   override def visitCast(ctx: CastContext): ir.Expression = {
     val expression = ctx.expression().accept(this)
     val dataType = dataTypeBuilder.build(ctx.dataType())
-    ir.Cast(expression, dataType)
+    ir.Cast(expression, dataType, returnNullOnError = ctx.TRY_CAST() != null)
   }
-
 }

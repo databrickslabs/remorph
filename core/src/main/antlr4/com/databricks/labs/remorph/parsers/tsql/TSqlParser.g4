@@ -4069,9 +4069,8 @@ jsonNullClause
 
 builtInFunctions
     : NEXT VALUE FOR tableName                                                              #nextValueFor
-    | CAST LPAREN expression AS dataType RPAREN                                             #cast
+    | (CAST | TRY_CAST) LPAREN expression AS dataType RPAREN                                #cast
     | TRY_CAST LPAREN expression AS dataType RPAREN                                         #tryCast
-    | PARSE LPAREN str = expression AS dataType (USING culture = expression)? RPAREN        #parse
     | JSON_ARRAY LPAREN expressionList? jsonNullClause? RPAREN                              #jsonArray
     | JSON_OBJECT
         LPAREN
