@@ -27,33 +27,6 @@ class TSqlFunctionBuilder extends FunctionBuilder with StringConverter {
     }
   }
 
-  // TSql specific function builders
-  //
-
-  /**
-   * Databricks SQL does not have a native JSON_ARRAY function, so we use a Lambda filter and TO_JSON instead, but have
-   * to cater for the case where an expression is NULL and the TSql option ABSENT ON NULL is set. When ABSENT ON NULL is
-   * set, then any NULL expressions are left out of the JSON array.
-   *
-   * @param args
-   *   the list of expressions yield JSON values
-   * @param absentOnNull
-   *   whether we should remove NULL values from the JSON array
-   * @return
-   *   IR for the JSON_ARRAY function
-   */
-  private[tsql] def buildJsonArray(args: Seq[ir.Expression], absentOnNull: Boolean): ir.Expression = {
-    if (absentOnNull) {
-      val lambdaVariable = ir.UnresolvedNamedLambdaVariable(Seq("x"))
-      val lambdaBody = ir.Not(ir.IsNull(lambdaVariable))
-      val lambdaFunction = ir.LambdaFunction(lambdaBody, Seq(lambdaVariable))
-      val filter = ir.FilterExpr(args, lambdaFunction)
-      ir.CallFunction("TO_JSON", Seq(ir.ValueArray(Seq(filter))))
-    } else {
-      ir.CallFunction("TO_JSON", Seq(ir.ValueArray(args)))
-    }
-  }
-
   // TSql specific function converters
   //
   private[tsql] def nextValueFor(irName: String, args: Seq[ir.Expression]): ir.Expression = {

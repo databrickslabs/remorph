@@ -4059,23 +4059,23 @@ freetextPredicate
     ) COMMA expression (COMMA LANGUAGE expression)? RPAREN
     ;
 
-jsonKeyValue
-    : jsonKeyName = expression COLON valueExpression = expression
-    ;
-
-jsonNullClause
-    : (ABSENT | NULL_) ON NULL_
-    ;
-
 builtInFunctions
     : NEXT VALUE FOR tableName                                                              #nextValueFor
     | (CAST | TRY_CAST) LPAREN expression AS dataType RPAREN                                #cast
     | JSON_ARRAY LPAREN expressionList? jsonNullClause? RPAREN                              #jsonArray
     | JSON_OBJECT
         LPAREN
-            (jsonKeyValue (COMMA keyValue = jsonKeyValue)* )?
+            (jsonKeyValue (COMMA jsonKeyValue)* )?
             jsonNullClause?
         RPAREN                                                                              #jsonObject
+    ;
+
+jsonKeyValue
+    : expression COLON expression
+    ;
+
+jsonNullClause
+    : (ABSENT | NULL_) ON NULL_
     ;
 
 hierarchyidStaticMethod

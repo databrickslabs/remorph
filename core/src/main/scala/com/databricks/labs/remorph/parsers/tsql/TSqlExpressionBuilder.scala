@@ -409,15 +409,87 @@ class TSqlExpressionBuilder(functionBuilder: TSqlFunctionBuilder)
 
   override def visitJsonArray(ctx: JsonArrayContext): ir.Expression = {
     val elements = buildExpressionList(Option(ctx.expressionList()))
-    val absentOnNull = ctx.jsonNullClause() match {
+    val absentOnNull = checkAbsentNull(ctx.jsonNullClause())
+    buildJsonArray(elements, absentOnNull)
+  }
+
+  override def visitJsonObject(ctx: JsonObjectContext): ir.Expression = {
+    val namedStruct = buildNamedStruct(Option(ctx.jsonKeyValue().asScala.toList))
+    val absentOnNull = checkAbsentNull(ctx.jsonNullClause())
+    buildJsonObject(namedStruct, absentOnNull)
+  }
+
+  private def checkAbsentNull(ctx: JsonNullClauseContext): Boolean = {
+    ctx match {
       case null => true
       case clause if clause.ABSENT() == null => false
       case _ => true
     }
-    functionBuilder.buildJsonArray(elements, absentOnNull)
+  }
+
+  private def buildNamedStruct(ctx: Option[List[JsonKeyValueContext]]): ir.NamedStruct = {
+    val (keys, values) = ctx
+      .getOrElse(List.empty)
+      .map { keyValueContext =>
+        val expressions = keyValueContext.expression().asScala.toList
+        (expressions.head.accept(this), expressions(1).accept(this))
+      }
+      .unzip
+
+    ir.NamedStruct(keys, values)
   }
 
   private def buildExpressionList(ctx: Option[ExpressionListContext]): Seq[ir.Expression] = {
     ctx.map(_.expression().asScala.map(_.accept(this))).getOrElse(Seq.empty)
+  }
+
+  /**
+   * Databricks SQL does not have a native JSON_ARRAY function, so we use a Lambda filter and TO_JSON instead, but have
+   * to cater for the case where an expression is NULL and the TSql option ABSENT ON NULL is set. When ABSENT ON NULL is
+   * set, then any NULL expressions are left out of the JSON array.
+   *
+   * @param args
+   *   the list of expressions yield JSON values
+   * @param absentOnNull
+   *   whether we should remove NULL values from the JSON array
+   * @return
+   *   IR for the JSON_ARRAY function
+   */
+  private[tsql] def buildJsonArray(args: Seq[ir.Expression], absentOnNull: Boolean): ir.Expression = {
+    if (absentOnNull) {
+      val lambdaVariable = ir.UnresolvedNamedLambdaVariable(Seq("x"))
+      val lambdaBody = ir.Not(ir.IsNull(lambdaVariable))
+      val lambdaFunction = ir.LambdaFunction(lambdaBody, Seq(lambdaVariable))
+      val filter = ir.FilterExpr(args, lambdaFunction)
+      ir.CallFunction("TO_JSON", Seq(ir.ValueArray(Seq(filter))))
+    } else {
+      ir.CallFunction("TO_JSON", Seq(ir.ValueArray(args)))
+    }
+  }
+
+  /**
+   * Databricks SQL does not have a native JSON_OBJECT function, so we use a Lambda filter and TO_JSON instead, but have
+   * to cater for the case where an expression is NULL and the TSql option ABSENT ON NULL is set. When ABSENT ON NULL is
+   * set, then any NULL expressions are left out of the JSON object.
+   *
+   * @param namedStruct
+   *   the named struct of key-value pairs
+   * @param absentOnNull
+   *   whether we should remove NULL values from the JSON object
+   * @return
+   *   IR for the JSON_OBJECT function
+   */
+  // TODO: This is not likely the correct way to handle this, but it is a start - maybe needs external function
+  private[tsql] def buildJsonObject(namedStruct: ir.NamedStruct, absentOnNull: Boolean): ir.Expression = {
+    if (absentOnNull) {
+      val lambdaVariables = ir.UnresolvedNamedLambdaVariable(Seq("k", "v"))
+      val valueVariable = ir.UnresolvedNamedLambdaVariable(Seq("v"))
+      val lambdaBody = ir.Not(ir.IsNull(valueVariable))
+      val lambdaFunction = ir.LambdaFunction(lambdaBody, Seq(lambdaVariables))
+      val filter = ir.FilterStruct(namedStruct, lambdaFunction)
+      ir.CallFunction("TO_JSON", Seq(filter))
+    } else {
+      ir.CallFunction("TO_JSON", Seq(namedStruct))
+    }
   }
 }

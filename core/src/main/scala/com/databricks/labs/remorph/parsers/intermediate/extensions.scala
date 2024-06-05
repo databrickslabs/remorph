@@ -171,7 +171,9 @@ case class Money(value: Literal) extends Expression {}
 
 case class WithinGroup(expression: Expression, order: Seq[SortOrder]) extends Expression {}
 
-// Note that Databricks SQL supports FILTER() used as an expression, though we only have it as a
-// Relation right now.
+// Note that Databricks SQL supports FILTER() used as an expression.
 case class FilterExpr(input: Seq[Expression], lambdaFunction: LambdaFunction) extends Expression {}
 case class ValueArray(expresssions: Seq[Expression]) extends Expression {}
+
+case class NamedStruct(keys: Seq[Expression], values: Seq[Expression]) extends Expression {}
+case class FilterStruct(input: NamedStruct, lambdaFunction: LambdaFunction) extends Expression {}
