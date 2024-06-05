@@ -143,7 +143,8 @@ def recon(
             table_conf=table_conf,
             recon_process_duration=recon_process_duration,
         )
-        clean_unmatched_df_from_volume(workspace_client=ws, path=generate_volume_path(table_conf))
+        if report_type != "schema":
+            clean_unmatched_df_from_volume(workspace_client=ws, path=generate_volume_path(table_conf))
 
     return _verify_successful_reconciliation(
         generate_final_reconcile_output(

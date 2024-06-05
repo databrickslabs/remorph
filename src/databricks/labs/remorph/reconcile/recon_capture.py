@@ -51,7 +51,7 @@ def clean_unmatched_df_from_volume(workspace_client: WorkspaceClient, path: str)
     try:
         workspace_client.dbfs.delete(path, recursive=True)
     except Exception as e:
-        message = f"Error cleaning up unmatched DF from volumes --> {e}"
+        message = f"Error cleaning up unmatched DF from {path} volumes --> {e}"
         logger.error(message)
         raise CleanFromVolumeException(message) from e
 
