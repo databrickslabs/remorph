@@ -5,7 +5,28 @@ migration between the source system and Databricks. Supports multiple types of r
 requirements and data in the source system. It simplifies the migration process by removing the complex part of validating 
 the data from one system to another and enabling the team to have more insights into the migrated data.
 
-## Types of Report Supported:
+* [Remorph Reconciliation](#remorph-reconciliation)
+* [Installation](#installation)
+* [Types of Report Supported](#types-of-report-supported)
+* [Report Type-Flow Chart](#report-type-flow-chart)
+* [Supported Source System](#supported-source-system)
+* [Dependency CLI commands](#dependency-cli-commands)
+* [TABLE Config Elements](#table-config-elements)
+   * [jdbc_reader_options](#jdbc_reader_options)
+   * [column_mapping](#column_mapping)
+   * [transformations](#transformations)
+   * [thresholds](#thresholds)
+   * [filters](#filters)
+   * [Key Considerations](#key-considerations)
+* [Reconciliation Examples](#reconciliation-examples)
+* [Frequently Asked Questions](#frequently-asked-questions)
+   * [Reconciler Questions](#reconciler-questions)
+* [Common Error Codes](#common-error-codes)
+
+## Installation
+TBD
+
+## Types of Report Supported
 
 | report type | sample visualisation                           | description                                                                                                                                                                                    | key outputs  captured in the recon metrics tables                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 |-------------|------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -14,9 +35,9 @@ the data from one system to another and enabling the team to have more insights 
 | **data**    | [data](report_types_visualisation.md#data)     | reconcile the data at row and column level- ```join_columns``` will help us to identify mismatches at each row and column level                                                                | - **mismatch_data**(the sample data with mismatches captured at each column and row level )<br> - **missing_in_src**(sample rows that are available in target but missing in source)<br> - **missing_in_tgt**(sample rows that are available in source but are missing in target)<br> - **threshold_mismatch**(configured column will be reconciled based on percentile or threshold boundary or date boundary)<br> - **mismatch_columns**(consolidated list of columns that has mismatches in them)<br> |
 | **all**     | [all](report_types_visualisation.md#all)       | this is a combination of data + schema                                                                                                                                                         | - **data + schema outputs**                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 
-## Installation
+[[back to top](#remorph-reconciliation)]
 
-## Flow Chart for supported Report Type and Reconciliation Logic
+## Report Type-Flow Chart
 
 ```mermaid
 flowchart TD
@@ -51,14 +72,17 @@ flowchart TD
     ALL --> MISSING_IN_TGT
     ALL --> SCHEMA_VALIDATION
 ```
+[[back to top](#remorph-reconciliation)]
 
-## Supported Source System and Report Types
+## Supported Source System
 
 | Source     | Schema | Row | Data | All |
 |------------|--------|-----|------|-----|
 | Oracle     | Yes    | Yes | Yes  | Yes |
 | Snowflake  | Yes    | Yes | Yes  | Yes |
 | Databricks | Yes    | Yes | Yes  | Yes |
+
+[[back to top](#remorph-reconciliation)]
 
 ## Dependency CLI commands
 
@@ -176,7 +200,7 @@ class Filters:
 | source     | string    | the sql expression to filter the data from source | optional(default=None) | "lower(dept_name)='finance'" |
 | target     | string    | the sql expression to filter the data from target | optional(default=None) | "lower(dept_name)='finance'" |
 
-### Key Considerations on Table Config:
+### Key Considerations:
 
 1. The column names are always converted to lowercase and considered for reconciliation.
 2. Currently, it doesn't support case insensitivity and doesn't have collation support
@@ -197,6 +221,8 @@ class Filters:
    reconciler will not apply any logic
    on top of this.
 
+[[back to top](#remorph-reconciliation)]
+
 # Guidance for Oracle as a source
 
 ## Driver
@@ -215,35 +241,43 @@ class Filters:
 3. This installation is a necessary step to enable seamless comparison between Oracle and Databricks, ensuring that the
    required Oracle JDBC functionality is readily available within the Databricks environment.
 
+[[back to top](#remorph-reconciliation)]
+
 ## Commonly Used Custom Transformations
 
-| source_type | data_type     | source_transformation                                                  | target_transformation                           | source_value_example | target_value_example | comments                                                                                    |
-|-------------|---------------|------------------------------------------------------------------------|-------------------------------------------------|----------------------|----------------------|---------------------------------------------------------------------------------------------|
-| Oracle      | number(10,5)  | trim(to_char(coalesce(<col_name>,0.0), ’99990.99999’))                 | cast(coalesce(<col_name>,0.0) as decimal(10,5)) | 1.00                 | 1.00000              | this can be used for any precision and scale by adjusting accordingly in the transformation |
-| Snowflake   | array         | array_to_string(array_compact(<col_name>),’,’)                         | concat_ws(’,’, <col_name>)                      |                      |                      | in case of removing "undefined" during migration(converts sparse array to dense array)      |
-| Snowflake   | array         | array_to_string(array_sort(array_compact(<col_name>), true, true),’,’) | concat_ws(’,’, <col_name>)                      |                      |                      | in case of removing "undefined" during migration and want to sort the array                 |
-| Snowflake   | timestamp_ntz | date_part(epoch_second,<col_name>)                                     | unix_timestamp(<col_name>)                      |                      |                      | convert timestamp_ntz to epoch for getting a match between Snowflake and data bricks        |
+| source_type | data_type     | source_transformation                                                  | target_transformation                           | source_value_example    | target_value_example    | comments                                                                                    |
+|-------------|---------------|------------------------------------------------------------------------|-------------------------------------------------|-------------------------|-------------------------|---------------------------------------------------------------------------------------------|
+| Oracle      | number(10,5)  | trim(to_char(coalesce(<col_name>,0.0), ’99990.99999’))                 | cast(coalesce(<col_name>,0.0) as decimal(10,5)) | 1.00                    | 1.00000                 | this can be used for any precision and scale by adjusting accordingly in the transformation |
+| Snowflake   | array         | array_to_string(array_compact(<col_name>),’,’)                         | concat_ws(’,’, <col_name>)                      | [1,undefined,2]         | [1,2]                   | in case of removing "undefined" during migration(converts sparse array to dense array)      |
+| Snowflake   | array         | array_to_string(array_sort(array_compact(<col_name>), true, true),’,’) | concat_ws(’,’, <col_name>)                      | [2,undefined,1]         | [1,2]                   | in case of removing "undefined" during migration and want to sort the array                 |
+| Snowflake   | timestamp_ntz | date_part(epoch_second,<col_name>)                                     | unix_timestamp(<col_name>)                      | 2020-01-01 00:00:00.000 | 2020-01-01 00:00:00.000 | convert timestamp_ntz to epoch for getting a match between Snowflake and data bricks        |
 
-## Data Reconciliation Examples:
+[[back to top](#remorph-reconciliation)]
+
+## Reconciliation Examples:
 
 For more Reconciliation Config examples, please refer to [sample_notebook][link].
 
 [link]: reconciliation-configs-examples.py
 
-# Frequently Asked Questions(FAQS)
+[[back to top](#remorph-reconciliation)]
+
+# Frequently Asked Questions
 
 ## Reconciler Questions
 
 <details>
 <summary>Can we reconcile for Databricks without UC as a target?</summary>
 
-***The reconciliation target is always Databricks with UC enabled. Reconciler supports non-uc Databricks only as a source.***
+***The reconciliation target is always Databricks with UC enabled. Reconciler supports non-uc Databricks only as a
+source.***
 </details>
 
 <details>
 <summary>What would happen if my dataset had duplicate records?</summary>
 
-***Duplicates are not handled in the reconciler. If run with duplicates, it would result in inconsistent output. We can implement
+***Duplicates are not handled in the reconciler. If run with duplicates, it would result in inconsistent output. We can
+implement
 some workarounds to handle the duplicates, and the solution varies from dataset to dataset.***
 </details>
 
@@ -271,8 +305,11 @@ for examples.***
 <details>
 <summary>Does Reconciler support `Threshold Validation` for report type as `row`?</summary>
 
-***No. Threshold Validation is supported only for reports with the report type `data` or `all`, generally tables with primary keys.***
+***No. Threshold Validation is supported only for reports with the report type `data` or `all`, generally tables with
+primary keys.***
 </details>
+
+[[back to top](#remorph-reconciliation)]
 
 ## Common Error Codes:
 
