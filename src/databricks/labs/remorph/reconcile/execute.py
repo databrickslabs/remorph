@@ -6,7 +6,7 @@ from pyspark.errors import PySparkException
 from pyspark.sql import DataFrame, SparkSession
 from sqlglot import Dialect
 
-from databricks.labs.remorph.config import DatabaseConfig, TableRecon, get_dialect
+from databricks.labs.remorph.config import DatabaseConfig, TableRecon, get_dialect, get_key_form_dialect
 from databricks.labs.remorph.reconcile.compare import (
     capture_mismatch_data_and_columns,
     reconcile_data,
@@ -84,7 +84,7 @@ def recon(
         engine=source_dialect,
         spark=spark,
         ws=ws_client,
-        secret_scope="secret_scope",
+        secret_scope=f"remorph_{get_key_form_dialect(source_dialect)}",
     )
 
     recon_id = str(uuid4())
