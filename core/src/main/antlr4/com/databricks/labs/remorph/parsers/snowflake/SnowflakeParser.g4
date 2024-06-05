@@ -3700,7 +3700,6 @@ expr
     | cast_expr                                     #exprCast
     | expr COLON_COLON data_type                    #exprAscribe
     | json_literal                                  #exprJsonLit
-    | trim_expression                               #exprTrim
     | function_call                                 #exprFuncCall
     // Probably wrong
     | subquery                                      #exprSubquery
@@ -3793,14 +3792,12 @@ data_type
     ;
 
 primitive_expression
-    : DEFAULT //?
-    | NULL_
-    | id_ (DOT id_)* // json field access
-    | full_column_name
-    | literal
-    | BOTH_Q
-    | ARRAY_Q
-    | OBJECT_Q
+    : DEFAULT          # primExprDefault//?
+    | full_column_name # primExprColumn
+    | literal          # primExprLiteral
+    | BOTH_Q           # primExprBoth
+    | ARRAY_Q          # primExprArray
+    | OBJECT_Q         # primExprObject
     //| json_literal
     //| arr_literal
     ;
@@ -3828,19 +3825,23 @@ over_clause
     ;
 
 function_call
-    : unary_or_binary_builtin_function L_PAREN expr (COMMA expr)* R_PAREN
-    | binary_builtin_function L_PAREN expr COMMA expr R_PAREN
-    | binary_or_ternary_builtin_function L_PAREN expr COMMA expr (COMMA expr)* R_PAREN
-    | ternary_builtin_function L_PAREN expr COMMA expr COMMA expr R_PAREN
+    : builtin_function
+    | standard_function
     | ranking_windowed_function
     | aggregate_function
     //    | aggregate_windowed_function
-    | object_name L_PAREN expr_list? R_PAREN
-    | object_name L_PAREN param_assoc_list R_PAREN
-    | list_function L_PAREN expr_list R_PAREN
-    | to_date = ( TO_DATE | DATE) L_PAREN expr R_PAREN
-    | length = ( LENGTH | LEN) L_PAREN expr R_PAREN
-    | TO_BOOLEAN L_PAREN expr R_PAREN
+    ;
+
+builtin_function
+    : trim = (TRIM | LTRIM | RTRIM) L_PAREN expr (COMMA string)? R_PAREN #builtinTrim
+//    : unary_or_binary_builtin_function L_PAREN expr (COMMA expr)* R_PAREN
+//    | binary_builtin_function L_PAREN expr COMMA expr R_PAREN
+//    | binary_or_ternary_builtin_function L_PAREN expr COMMA expr (COMMA expr)* R_PAREN
+//    | ternary_builtin_function L_PAREN expr COMMA expr COMMA expr R_PAREN
+    ;
+
+standard_function
+    : id_ L_PAREN expr_list? R_PAREN
     ;
 
 param_assoc_list

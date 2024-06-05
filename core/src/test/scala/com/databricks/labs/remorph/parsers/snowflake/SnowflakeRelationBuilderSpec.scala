@@ -158,7 +158,7 @@ class SnowflakeRelationBuilderSpec extends AnyWordSpec with SnowflakeParserTestC
           input = namedTable("qt"),
           condition = Equals(
             Window(
-              window_function = RowNumber,
+              window_function = CallFunction("ROW_NUMBER", Seq()),
               partition_spec = Seq(Column("p")),
               sort_order = Seq(SortOrder(Column("o"), AscendingSortDirection, SortNullsLast)),
               frame_spec = DummyWindowFrame),
