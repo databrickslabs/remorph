@@ -1,11 +1,15 @@
-from pyspark.sql import DataFrame
+import logging
+from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.functions import col, expr, lit
 
 from databricks.labs.remorph.reconcile.exception import ColumnMismatchException
+from databricks.labs.remorph.reconcile.recon_capture import write_and_read_unmatched_df_with_volumes
 from databricks.labs.remorph.reconcile.recon_config import (
     DataReconcileOutput,
     MismatchOutput,
 )
+
+logger = logging.getLogger(__name__)
 
 _HASH_COLUMN_NAME = "hash_value_recon"
 _SAMPLE_ROWS = 50
@@ -21,53 +25,90 @@ def raise_column_mismatch_exception(msg: str, source_missing: list[str], target_
 
 
 def reconcile_data(
-    source: DataFrame, target: DataFrame, key_columns: list[str], report_type: str
+    source: DataFrame,
+    target: DataFrame,
+    key_columns: list[str],
+    report_type: str,
+    spark: SparkSession,
+    path: str,
 ) -> DataReconcileOutput:
     source_alias = "src"
     target_alias = "tgt"
     if report_type not in {"data", "all"}:
         key_columns = [_HASH_COLUMN_NAME]
-    df = source.alias(source_alias).join(other=target.alias(target_alias), on=key_columns, how="full")
-
-    mismatch = (
-        _get_mismatch_data(df, source_alias, target_alias, source.columns) if report_type in {"all", "data"} else None
+    df = (
+        source.alias(source_alias)
+        .join(other=target.alias(target_alias), on=key_columns, how="full")
+        .selectExpr(
+            *[f'{source_alias}.{col_name} as {source_alias}_{col_name}' for col_name in source.columns],
+            *[f'{target_alias}.{col_name} as {target_alias}_{col_name}' for col_name in target.columns],
+        )
     )
+
+    # Write unmatched df to volume
+    df = write_and_read_unmatched_df_with_volumes(df, spark, path)
+    logger.warning(f"Unmatched data is written to {path} Successfully")
+
+    mismatch = _get_mismatch_data(df, source_alias, target_alias) if report_type in {"all", "data"} else None
+
     missing_in_src = (
-        df.filter(col(f"{source_alias}.{_HASH_COLUMN_NAME}").isNull())
-        .select((key_columns if report_type == "all" else alias_column_str(target_alias, target.columns)))
+        df.filter(col(f"{source_alias}_{_HASH_COLUMN_NAME}").isNull())
+        .select(
+            *[
+                col(col_name).alias(col_name.replace(f'{target_alias}_', '').lower())
+                for col_name in df.columns
+                if col_name.startswith(f'{target_alias}_')
+            ]
+        )
         .drop(_HASH_COLUMN_NAME)
     )
+
     missing_in_tgt = (
-        df.filter(col(f"{target_alias}.{_HASH_COLUMN_NAME}").isNull())
-        .select((key_columns if report_type == "all" else alias_column_str(source_alias, source.columns)))
+        df.filter(col(f"{target_alias}_{_HASH_COLUMN_NAME}").isNull())
+        .select(
+            *[
+                col(col_name).alias(col_name.replace(f'{source_alias}_', '').lower())
+                for col_name in df.columns
+                if col_name.startswith(f'{source_alias}_')
+            ]
+        )
         .drop(_HASH_COLUMN_NAME)
     )
     mismatch_count = 0
     if mismatch:
         mismatch_count = mismatch.count()
 
+    missing_in_src_count = missing_in_src.count()
+    missing_in_tgt_count = missing_in_tgt.count()
+
     return DataReconcileOutput(
         mismatch_count=mismatch_count,
-        missing_in_src_count=missing_in_src.count(),
-        missing_in_tgt_count=missing_in_tgt.count(),
+        missing_in_src_count=missing_in_src_count,
+        missing_in_tgt_count=missing_in_tgt_count,
         missing_in_src=missing_in_src.limit(_SAMPLE_ROWS),
         missing_in_tgt=missing_in_tgt.limit(_SAMPLE_ROWS),
         mismatch=MismatchOutput(mismatch_df=mismatch),
     )
 
 
-def _get_mismatch_data(df: DataFrame, src_alias: str, tgt_alias: str, select_columns) -> DataFrame:
+def _get_mismatch_data(df: DataFrame, src_alias: str, tgt_alias: str) -> DataFrame:
     return (
         df.filter(
-            (col(f"{src_alias}.{_HASH_COLUMN_NAME}").isNotNull())
-            & (col(f"{tgt_alias}.{_HASH_COLUMN_NAME}").isNotNull())
+            (col(f"{src_alias}_{_HASH_COLUMN_NAME}").isNotNull())
+            & (col(f"{tgt_alias}_{_HASH_COLUMN_NAME}").isNotNull())
         )
         .withColumn(
             "hash_match",
-            col(f"{src_alias}.{_HASH_COLUMN_NAME}") == col(f"{tgt_alias}.{_HASH_COLUMN_NAME}"),
+            col(f"{src_alias}_{_HASH_COLUMN_NAME}") == col(f"{tgt_alias}_{_HASH_COLUMN_NAME}"),
         )
         .filter(col("hash_match") == lit(False))
-        .select(alias_column_str(src_alias, select_columns))
+        .select(
+            *[
+                col(col_name).alias(col_name.replace(f'{src_alias}_', '').lower())
+                for col_name in df.columns
+                if col_name.startswith(f'{src_alias}_')
+            ]
+        )
         .drop(_HASH_COLUMN_NAME)
     )
 
@@ -89,9 +130,12 @@ def capture_mismatch_data_and_columns(source: DataFrame, target: DataFrame, key_
 
 
 def _get_mismatch_columns(df: DataFrame, columns: list[str]):
+    # Collect the DataFrame to a local variable
+    local_df = df.collect()
     mismatch_columns = []
     for column in columns:
-        if df.where(~col(column + "_match")).take(1):
+        # Check if any row has False in the column
+        if any(not row[column + "_match"] for row in local_df):
             mismatch_columns.append(column)
     return mismatch_columns
 
