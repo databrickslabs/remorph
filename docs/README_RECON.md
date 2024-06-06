@@ -218,11 +218,13 @@ class Filters:
 
 2. **Install the JAR file on Databricks:**
    Upon completing the download, install the JAR file onto your Databricks cluster. Refer
-   to [this page](https://docs.databricks.com/en/libraries/workspace-libraries.html#upload-a-jar-python-egg-or-python-wheel)
-   For comprehensive instructions on uploading a JAR file, Python egg, or Python wheel to your Databricks workspace,
-   click here.
+   to [this page](https://docs.databricks.com/en/libraries/cluster-libraries.html)
+   For comprehensive instructions on uploading a JAR file, Python egg, or Python wheel to your Databricks workspace.
 
-3. This installation is a necessary step to enable seamless comparison between Oracle and Databricks, ensuring that the
+3. **Install ojdbc8 library from Maven:** 
+   Follow [this guide](https://docs.databricks.com/en/libraries/package-repositories.html#maven-or-spark-package) to install the Maven library on a cluster. Refer to [this document](https://mvnrepository.com/artifact/com.oracle.database.jdbc/ojdbc8) for obtaining the Maven coordinates.  
+
+4. This installation is a necessary step to enable seamless comparison between Oracle and Databricks, ensuring that the
    required Oracle JDBC functionality is readily available within the Databricks environment.
 
 [[back to top](#remorph-reconciliation)]
