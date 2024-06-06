@@ -8,15 +8,19 @@ Databricks Labs Remorph
 
 # Table of Contents
 
-1. [Introduction](#introduction)
-   - [Remorph](#remorph)
-   - [Transpile](#transpile)
-   - [Reconcile](#reconcile)
-2. [Environment Setup](#environment-setup)
-3. [Installation](#installation)
-4. [How to use Transpile](#how-to-use-transpile)
-5. [How to use Reconcile](#how-to-use-reconcile)
-6. [Project Support](#project-support)
+* [Introduction](#introduction)
+  * [Remorph](#remorph)
+  * [Transpile](#transpile)
+  * [Reconcile](#reconcile)
+* [Environment Setup](#environment-setup)
+* [Installation](#installation)
+* [How to use Transpile](#how-to-use-transpile)
+* [How to use Reconcile](#how-to-use-reconcile)
+* [Project Support](#project-support)
+* [Frequently Asked Questions](#frequently-asked-questions)
+  * [Transpile](#Transpiler)
+  * [Reconcile](#Reconciler)
+* [Common Error Codes](#common-error-codes)
 
 ----
 # Introduction
@@ -32,7 +36,7 @@ Transpile is a self-contained SQL parser, transpiler, and validator designed to 
 Transpile stands out as a comprehensive and versatile SQL transpiler, boasting a robust test suite to ensure reliability. Developed entirely in Python, it not only demonstrates high performance but also highlights syntax errors and provides warnings or raises alerts for dialect incompatibilities based on configurations.
 
 ## Reconcile
-Data Recon Harness is an advanced Python project designed to streamline the reconciliation process between source data and target data residing on Databricks. Currently, the platform exclusively offers support for Snowflake, Oracle, and Databricks as the primary data source. This innovative tool empowers users to efficiently identify discrepancies and variations in data when comparing the source with the Databricks target.
+Reconcile is an automated tool designed to streamline the reconciliation process between source data and target data residing on Databricks. Currently, the platform exclusively offers support for Snowflake, Oracle and other  Databricks tables as the primary data source. This tool empowers users to efficiently identify discrepancies and variations in data when comparing the source with the Databricks target.
 
 #### Design Flow:
 ```mermaid
@@ -133,6 +137,66 @@ Execute the below command to initialize the reconcile process.
  databricks labs remorph reconcile --report <report-type> --source <source-type>
 ```
 [[back to top](#table-of-contents)]
+
+----
+
+# Frequently Asked Questions
+
+## Transpiler
+TBD
+
+## Reconciler
+
+<details>
+<summary>Can we reconcile for Databricks without UC as a target?</summary>
+
+***The reconciliation target is always Databricks with UC enabled. Reconciler supports non-uc Databricks only as a
+source.***
+</details>
+
+<details>
+<summary>What would happen if my dataset had duplicate records?</summary>
+
+***Duplicates are not handled in the reconciler. If run with duplicates, it would result in inconsistent output. We can
+implement
+some workarounds to handle the duplicates, and the solution varies from dataset to dataset.***
+</details>
+
+<details>
+<summary>Are User Transformations applicable for Schema Validations?</summary>
+
+***No. User Transformations are not applied for Schema Validation.Only select_columns,drop_columns and column_mapping is
+valid for schema validation.***
+</details>
+
+<details>
+<summary>Can we apply Aggregate or multi-column transformations as user transformations?</summary>
+
+***No. Aggregate transformations or multi-column transformations are not supported.***
+</details>
+
+<details>
+<summary>Does Reconciler support all complex data types?</summary>
+
+***Not all complex data types are supported currently.Reconciler do support UDFs for complex datatypes.Please refer here
+for examples.***
+</details>
+
+
+<details>
+<summary>Does Reconciler support `Threshold Validation` for report type as `row`?</summary>
+
+***No. Threshold Validation is supported only for reports with the report type `data` or `all`, generally tables with
+primary keys.***
+</details>
+
+[[back to top](#remorph-reconciliation)]
+
+----
+
+## Common Error Codes:
+
+TBD
 
 ----
 

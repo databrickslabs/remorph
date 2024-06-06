@@ -1,16 +1,10 @@
 # Remorph Reconciliation
 
-Remorph Reconciliation is a library that helps to reconcile the data post-data migration or during the data
-migration between the source system and Databricks. Supports multiple types of reconciliation depending on the user
-requirements and data in the source system. It simplifies the migration process by removing the complex part of validating 
-the data from one system to another and enabling the team to have more insights into the migrated data.
+Reconcile is an automated tool designed to streamline the reconciliation process between source data and target data residing on Databricks. Currently, the platform exclusively offers support for Snowflake, Oracle and other Databricks tables as the primary data source. This tool empowers users to efficiently identify discrepancies and variations in data when comparing the source with the Databricks target.
 
-* [Remorph Reconciliation](#remorph-reconciliation)
-* [Installation](#installation)
 * [Types of Report Supported](#types-of-report-supported)
 * [Report Type-Flow Chart](#report-type-flow-chart)
 * [Supported Source System](#supported-source-system)
-* [Dependency CLI commands](#dependency-cli-commands)
 * [TABLE Config Elements](#table-config-elements)
    * [jdbc_reader_options](#jdbc_reader_options)
    * [column_mapping](#column_mapping)
@@ -19,12 +13,6 @@ the data from one system to another and enabling the team to have more insights 
    * [filters](#filters)
    * [Key Considerations](#key-considerations)
 * [Reconciliation Examples](#reconciliation-examples)
-* [Frequently Asked Questions](#frequently-asked-questions)
-   * [Reconciler Questions](#reconciler-questions)
-* [Common Error Codes](#common-error-codes)
-
-## Installation
-TBD
 
 ## Types of Report Supported
 
@@ -83,10 +71,6 @@ flowchart TD
 | Databricks | Yes    | Yes | Yes  | Yes |
 
 [[back to top](#remorph-reconciliation)]
-
-## Dependency CLI commands
-
-TBD
 
 ## TABLE Config Elements:
 
@@ -261,56 +245,3 @@ For more Reconciliation Config examples, please refer to [sample_notebook][link]
 [link]: reconciliation-configs-examples.py
 
 [[back to top](#remorph-reconciliation)]
-
-# Frequently Asked Questions
-
-## Reconciler Questions
-
-<details>
-<summary>Can we reconcile for Databricks without UC as a target?</summary>
-
-***The reconciliation target is always Databricks with UC enabled. Reconciler supports non-uc Databricks only as a
-source.***
-</details>
-
-<details>
-<summary>What would happen if my dataset had duplicate records?</summary>
-
-***Duplicates are not handled in the reconciler. If run with duplicates, it would result in inconsistent output. We can
-implement
-some workarounds to handle the duplicates, and the solution varies from dataset to dataset.***
-</details>
-
-<details>
-<summary>Are User Transformations applicable for Schema Validations?</summary>
-
-***No. User Transformations are not applied for Schema Validation.Only select_columns,drop_columns and column_mapping is
-valid for schema validation.***
-</details>
-
-<details>
-<summary>Can we apply Aggregate or multi-column transformations as user transformations?</summary>
-
-***No. Aggregate transformations or multi-column transformations are not supported.***
-</details>
-
-<details>
-<summary>Does Reconciler support all complex data types?</summary>
-
-***Not all complex data types are supported currently.Reconciler do support UDFs for complex datatypes.Please refer here
-for examples.***
-</details>
-
-
-<details>
-<summary>Does Reconciler support `Threshold Validation` for report type as `row`?</summary>
-
-***No. Threshold Validation is supported only for reports with the report type `data` or `all`, generally tables with
-primary keys.***
-</details>
-
-[[back to top](#remorph-reconciliation)]
-
-## Common Error Codes:
-
-TBD
