@@ -1,13 +1,13 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
-import com.databricks.labs.remorph.parsers.{IncompleteParser, ParserCommon, intermediate => ir}
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser._
+import com.databricks.labs.remorph.parsers.{FunctionBuilder, IncompleteParser, ParserCommon, intermediate => ir}
 import org.antlr.v4.runtime.Token
 
 import scala.collection.JavaConverters._
-class SnowflakeExpressionBuilder
+class SnowflakeExpressionBuilder(functionBuilder: FunctionBuilder)
     extends SnowflakeParserBaseVisitor[ir.Expression]
-    with ParserCommon
+    with ParserCommon[ir.Expression]
     with IncompleteParser[ir.Expression] {
 
   protected override def wrapUnresolvedInput(unparsedInput: String): ir.UnresolvedExpression =
@@ -81,9 +81,9 @@ class SnowflakeExpressionBuilder
   }
 
   private def visitDecimal(decimal: String) = BigDecimal(decimal) match {
+    case d if d.isValidShort => ir.Literal(short = Some(d.toShort))
     case d if d.isValidInt => ir.Literal(integer = Some(d.toInt))
     case d if d.isValidLong => ir.Literal(long = Some(d.toLong))
-    case d if d.isValidShort => ir.Literal(short = Some(d.toShort))
     case d if d.isDecimalFloat || d.isExactFloat => ir.Literal(float = Some(d.toFloat))
     case d if d.isDecimalDouble || d.isExactDouble => ir.Literal(double = Some(d.toDouble))
     case _ => ir.Literal(decimal = Some(ir.Decimal(decimal, None, None)))
@@ -289,11 +289,23 @@ class SnowflakeExpressionBuilder
     }
   }
 
-  override def visitAggregate_function(ctx: Aggregate_functionContext): ir.Expression = {
+  override def visitAggFuncExprList(ctx: AggFuncExprListContext): ir.Expression = {
     val param = ctx.expr_list().expr(0).accept(this)
     buildBuiltinFunction(ctx.id_().builtin_function(), param)
   }
 
+  override def visitAggFuncStar(ctx: AggFuncStarContext): ir.Expression = {
+    buildBuiltinFunction(ctx.id_().builtin_function(), ir.Star(None))
+  }
+
+  override def visitAggFuncList(ctx: AggFuncListContext): ir.Expression = {
+    val param = ctx.expr().accept(this)
+    val separator = Option(ctx.string()).map(s => ir.Literal(string = Some(removeQuotes(s.getText))))
+    ctx.op.getType match {
+      case LISTAGG => functionBuilder.buildFunction("LISTAGG", param +: separator.toSeq)
+      case ARRAY_AGG => functionBuilder.buildFunction("ARRAYAGG", Seq(param))
+    }
+  }
   private def buildBuiltinFunction(ctx: Builtin_functionContext, param: ir.Expression): ir.Expression =
     Option(ctx)
       .collect {

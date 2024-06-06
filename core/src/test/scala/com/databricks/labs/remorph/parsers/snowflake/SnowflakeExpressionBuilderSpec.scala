@@ -2,9 +2,9 @@ package com.databricks.labs.remorph.parsers.snowflake
 
 import com.databricks.labs.remorph.parsers.intermediate._
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser.{Comparison_operatorContext, LiteralContext, Ranking_windowed_functionContext}
+import org.mockito.Mockito._
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import org.mockito.Mockito._
 import org.scalatestplus.mockito.MockitoSugar
 
 class SnowflakeExpressionBuilderSpec
@@ -13,17 +13,20 @@ class SnowflakeExpressionBuilderSpec
     with Matchers
     with MockitoSugar {
 
-  override protected def astBuilder: SnowflakeExpressionBuilder = new SnowflakeExpressionBuilder
+  override protected def astBuilder: SnowflakeExpressionBuilder =
+    new SnowflakeExpressionBuilder(new SnowflakeFunctionBuilder())
 
   "SnowflakeExpressionBuilder" should {
     "translate literals" in {
       example("null", _.literal(), Literal(nullType = Some(NullType())))
       example("true", _.literal(), Literal(boolean = Some(true)))
       example("false", _.literal(), Literal(boolean = Some(false)))
-      example("1", _.literal(), Literal(integer = Some(1)))
-      example("-1", _.literal(), Literal(integer = Some(-1)))
+      example("1", _.literal(), Literal(short = Some(1)))
+      example(Int.MaxValue.toString, _.literal(), Literal(integer = Some(Int.MaxValue)))
+      example("-1", _.literal(), Literal(short = Some(-1)))
       example("1.1", _.literal(), Literal(float = Some(1.1f)))
-      example("1.1e2", _.literal(), Literal(integer = Some(110)))
+      example("1.1e2", _.literal(), Literal(short = Some(110)))
+      example(Long.MaxValue.toString, _.literal(), Literal(long = Some(Long.MaxValue)))
       example("1.1e-2", _.literal(), Literal(float = Some(0.011f)))
       example("0.123456789", _.literal(), Literal(double = Some(0.123456789)))
       example("0.123456789e-1234", _.literal(), Literal(decimal = Some(Decimal("0.123456789e-1234", None, None))))
@@ -36,6 +39,17 @@ class SnowflakeExpressionBuilderSpec
 
     "translate aggregation functions" in {
       example("COUNT(x)", _.aggregate_function(), Count(Column("x")))
+      example("AVG(x)", _.aggregate_function(), Avg(Column("x")))
+      example("SUM(x)", _.aggregate_function(), Sum(Column("x")))
+      example("MIN(x)", _.aggregate_function(), Min(Column("x")))
+
+      example("COUNT(*)", _.aggregate_function(), Count(Star(None)))
+
+      example(
+        "LISTAGG(x, ',')",
+        _.aggregate_function(),
+        CallFunction("LISTAGG", Seq(Column("x"), Literal(string = Some(",")))))
+      example("ARRAY_AGG(x)", _.aggregate_function(), CallFunction("ARRAYAGG", Seq(Column("x"))))
     }
 
     "translate a query with a window function" in {
@@ -67,7 +81,7 @@ class SnowflakeExpressionBuilderSpec
         query = "NTILE(42) OVER (PARTITION BY a ORDER BY b, c DESC, d)",
         rule = _.ranking_windowed_function(),
         expectedAst = Window(
-          window_function = NTile(Literal(integer = Some(42))),
+          window_function = NTile(Literal(short = Some(42))),
           partition_spec = Seq(Column("a")),
           sort_order = Seq(
             SortOrder(Column("b"), AscendingSortDirection, SortNullsLast),
@@ -112,39 +126,36 @@ class SnowflakeExpressionBuilderSpec
 
     "translate ORDER BY a" in {
       val tree = parseString("ORDER BY a", _.order_by_expr())
-      (new SnowflakeExpressionBuilder).buildSortOrder(tree) shouldBe Seq(
-        SortOrder(Column("a"), AscendingSortDirection, SortNullsLast))
+      astBuilder.buildSortOrder(tree) shouldBe Seq(SortOrder(Column("a"), AscendingSortDirection, SortNullsLast))
     }
 
     "translate ORDER BY a ASC" in {
       val tree = parseString("ORDER BY a ASC", _.order_by_expr())
-      (new SnowflakeExpressionBuilder).buildSortOrder(tree) shouldBe Seq(
-        SortOrder(Column("a"), AscendingSortDirection, SortNullsLast))
+      astBuilder.buildSortOrder(tree) shouldBe Seq(SortOrder(Column("a"), AscendingSortDirection, SortNullsLast))
     }
 
     "translate ORDER BY a DESC" in {
       val tree = parseString("ORDER BY a DESC", _.order_by_expr())
-      (new SnowflakeExpressionBuilder).buildSortOrder(tree) shouldBe Seq(
-        SortOrder(Column("a"), DescendingSortDirection, SortNullsLast))
+      astBuilder.buildSortOrder(tree) shouldBe Seq(SortOrder(Column("a"), DescendingSortDirection, SortNullsLast))
     }
 
     "translate ORDER BY a, b DESC" in {
       val tree = parseString("ORDER BY a, b DESC", _.order_by_expr())
-      (new SnowflakeExpressionBuilder).buildSortOrder(tree) shouldBe Seq(
+      astBuilder.buildSortOrder(tree) shouldBe Seq(
         SortOrder(Column("a"), AscendingSortDirection, SortNullsLast),
         SortOrder(Column("b"), DescendingSortDirection, SortNullsLast))
     }
 
     "translate ORDER BY a DESC, b" in {
       val tree = parseString("ORDER BY a DESC, b", _.order_by_expr())
-      (new SnowflakeExpressionBuilder).buildSortOrder(tree) shouldBe Seq(
+      astBuilder.buildSortOrder(tree) shouldBe Seq(
         SortOrder(Column("a"), DescendingSortDirection, SortNullsLast),
         SortOrder(Column("b"), AscendingSortDirection, SortNullsLast))
     }
 
     "translate ORDER BY with many expressions" in {
       val tree = parseString("ORDER BY a DESC, b, c ASC, d DESC, e", _.order_by_expr())
-      (new SnowflakeExpressionBuilder).buildSortOrder(tree) shouldBe Seq(
+      astBuilder.buildSortOrder(tree) shouldBe Seq(
         SortOrder(Column("a"), DescendingSortDirection, SortNullsLast),
         SortOrder(Column("b"), AscendingSortDirection, SortNullsLast),
         SortOrder(Column("c"), AscendingSortDirection, SortNullsLast),
@@ -170,8 +181,8 @@ class SnowflakeExpressionBuilderSpec
       Case(
         expression = None,
         branches = scala.collection.immutable.Seq(
-          WhenBranch(Equals(Column("col1"), Literal(integer = Some(1))), Literal(string = Some("one"))),
-          WhenBranch(Equals(Column("col2"), Literal(integer = Some(2))), Literal(string = Some("two")))),
+          WhenBranch(Equals(Column("col1"), Literal(short = Some(1))), Literal(string = Some("one"))),
+          WhenBranch(Equals(Column("col2"), Literal(short = Some(2))), Literal(string = Some("two")))),
         otherwise = None))
 
     example(
@@ -180,8 +191,8 @@ class SnowflakeExpressionBuilderSpec
       Case(
         expression = Some(Literal(string = Some("foo"))),
         branches = scala.collection.immutable.Seq(
-          WhenBranch(Equals(Column("col1"), Literal(integer = Some(1))), Literal(string = Some("one"))),
-          WhenBranch(Equals(Column("col2"), Literal(integer = Some(2))), Literal(string = Some("two")))),
+          WhenBranch(Equals(Column("col1"), Literal(short = Some(1))), Literal(string = Some("one"))),
+          WhenBranch(Equals(Column("col2"), Literal(short = Some(2))), Literal(string = Some("two")))),
         otherwise = None))
 
     example(
@@ -190,8 +201,8 @@ class SnowflakeExpressionBuilderSpec
       Case(
         expression = None,
         branches = scala.collection.immutable.Seq(
-          WhenBranch(Equals(Column("col1"), Literal(integer = Some(1))), Literal(string = Some("one"))),
-          WhenBranch(Equals(Column("col2"), Literal(integer = Some(2))), Literal(string = Some("two")))),
+          WhenBranch(Equals(Column("col1"), Literal(short = Some(1))), Literal(string = Some("one"))),
+          WhenBranch(Equals(Column("col2"), Literal(short = Some(2))), Literal(string = Some("two")))),
         otherwise = Some(Literal(string = Some("other")))))
 
     example(
@@ -200,8 +211,8 @@ class SnowflakeExpressionBuilderSpec
       Case(
         expression = Some(Literal(string = Some("foo"))),
         branches = scala.collection.immutable.Seq(
-          WhenBranch(Equals(Column("col1"), Literal(integer = Some(1))), Literal(string = Some("one"))),
-          WhenBranch(Equals(Column("col2"), Literal(integer = Some(2))), Literal(string = Some("two")))),
+          WhenBranch(Equals(Column("col1"), Literal(short = Some(1))), Literal(string = Some("one"))),
+          WhenBranch(Equals(Column("col2"), Literal(short = Some(2))), Literal(string = Some("two")))),
         otherwise = Some(Literal(string = Some("other")))))
 
   }

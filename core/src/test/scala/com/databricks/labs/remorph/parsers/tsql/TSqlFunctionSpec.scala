@@ -6,7 +6,7 @@ import org.scalatest.wordspec.AnyWordSpec
 
 class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matchers {
 
-  override protected def astBuilder: TSqlParserBaseVisitor[_] = new TSqlExpressionBuilder
+  override protected def astBuilder: TSqlParserBaseVisitor[_] = new TSqlExpressionBuilder(new TSqlFunctionBuilder)
 
   "translate functions with no parameters" in {
     example("APP_NAME()", _.expression(), ir.CallFunction("APP_NAME", List()))
@@ -205,8 +205,70 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
 
   }
 
-  // TODO: Analytic functions are next
-  "translate analytic windowing functions in all forms" ignore {
+  "translate functions with DISTINCT arguments" in {
+    example("COUNT(DISTINCT salary)", _.expression(), ir.CallFunction("COUNT", Seq(ir.Distinct(ir.Column("salary")))))
+  }
+
+  "translate special keyword functions" in {
+    example(
+      // TODO: Returns UnresolvedFunction as it is not convertible - create UnsupportedFunction
+      "@@CURSOR_ROWS",
+      _.expression(),
+      ir.UnresolvedFunction("@@CURSOR_ROWS", List(), is_distinct = false, is_user_defined_function = false))
+
+    example(
+      // TODO: Returns UnresolvedFunction as it is not convertible - create UnsupportedFunction
+      "@@FETCH_STATUS",
+      _.expression(),
+      ir.UnresolvedFunction("@@FETCH_STATUS", List(), is_distinct = false, is_user_defined_function = false))
+
+    example("SESSION_USER", _.expression(), ir.CallFunction("SESSION_USER", List()))
+
+    example("USER", _.expression(), ir.CallFunction("USER", List()))
+  }
+
+  "translate analytic windowing functions in all forms" in {
+
+    example(
+      query = "FIRST_VALUE(Salary) OVER (PARTITION BY DepartmentID ORDER BY Salary DESC)",
+      _.expression(),
+      ir.Window(
+        ir.CallFunction("FIRST_VALUE", Seq(ir.Column("Salary"))),
+        Seq(ir.Column("DepartmentID")),
+        Seq(ir.SortOrder(ir.Column("Salary"), ir.DescendingSortDirection, ir.SortNullsUnspecified)),
+        ir.WindowFrame(
+          ir.UndefinedFrame,
+          ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop),
+          ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop))))
+
+    example(
+      query = """
+        LAST_VALUE(salary) OVER (PARTITION BY department_id ORDER BY employee_id DESC)
+    """,
+      _.expression(),
+      ir.Window(
+        ir.CallFunction("LAST_VALUE", Seq(ir.Column("salary"))),
+        Seq(ir.Column("department_id")),
+        Seq(ir.SortOrder(ir.Column("employee_id"), ir.DescendingSortDirection, ir.SortNullsUnspecified)),
+        ir.WindowFrame(
+          ir.UndefinedFrame,
+          ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop),
+          ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop))))
+
+    example(
+      query = "PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY Salary) OVER (PARTITION BY DepartmentID)",
+      _.expression(),
+      ir.Window(
+        ir.WithinGroup(
+          ir.CallFunction("PERCENTILE_CONT", Seq(ir.Literal(float = Some(0.5f)))),
+          Seq(ir.SortOrder(ir.Column("Salary"), ir.AscendingSortDirection, ir.SortNullsUnspecified))),
+        Seq(ir.Column("DepartmentID")),
+        List(),
+        ir.WindowFrame(
+          ir.UndefinedFrame,
+          ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop),
+          ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop))))
+
     example(
       query = """
     LEAD(salary, 1) OVER (PARTITION BY department_id ORDER BY employee_id DESC)

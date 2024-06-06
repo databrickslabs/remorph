@@ -1,13 +1,13 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
-import com.databricks.labs.remorph.parsers.{IncompleteParser, ParserCommon, intermediate => ir}
-import SnowflakeParser.{StringContext => StrContext, _}
 import com.databricks.labs.remorph.parsers.intermediate.AddColumn
+import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser.{StringContext => StrContext, _}
+import com.databricks.labs.remorph.parsers.{IncompleteParser, ParserCommon, intermediate => ir}
 
 import scala.collection.JavaConverters._
 class SnowflakeDDLBuilder
     extends SnowflakeParserBaseVisitor[ir.Catalog]
-    with ParserCommon
+    with ParserCommon[ir.Catalog]
     with IncompleteParser[ir.Catalog] {
   override protected def wrapUnresolvedInput(unparsedInput: String): ir.Catalog = ir.UnresolvedCatalog(unparsedInput)
 
@@ -36,7 +36,8 @@ class SnowflakeDDLBuilder
     ir.FunctionParameter(
       name = ctx.arg_name().getText,
       dataType = DataTypeBuilder.buildDataType(ctx.arg_data_type().id_().data_type()),
-      defaultValue = Option(ctx.arg_default_value_clause()).map(_.expr().accept(new SnowflakeExpressionBuilder)))
+      defaultValue = Option(ctx.arg_default_value_clause())
+        .map(_.expr().accept(new SnowflakeExpressionBuilder(new SnowflakeFunctionBuilder))))
   }
 
   private def buildFunctionBody(ctx: Function_definitionContext): String = (ctx match {

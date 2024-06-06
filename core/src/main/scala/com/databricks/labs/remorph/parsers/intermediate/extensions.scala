@@ -5,6 +5,7 @@ trait AstExtension
 case class Column(name: String) extends Expression with AstExtension {}
 case class Identifier(name: String, isQuoted: Boolean) extends Expression with AstExtension {}
 case class DollarAction() extends Expression with AstExtension {}
+case class Distinct(expression: Expression) extends Expression
 
 abstract class Unary(pred: Expression) extends Expression {}
 abstract class Binary(left: Expression, right: Expression) extends Expression {}
@@ -167,3 +168,5 @@ case class ScalarSubquery(relation: Relation) extends Expression {}
 case class Timezone(expression: Expression, timeZone: Expression) extends Expression {}
 
 case class Money(value: Literal) extends Expression {}
+
+case class WithinGroup(expression: Expression, order: Seq[SortOrder]) extends Expression {}

@@ -26,10 +26,26 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.Relation] {
     // TODO: Process all the other elements of a query specification
 
     val columns =
-      ctx.selectListElem().asScala.map(_.accept(new TSqlExpressionBuilder()))
+      ctx.selectListElem().asScala.map(_.accept(new TSqlExpressionBuilder(new TSqlFunctionBuilder)))
     val from = Option(ctx.tableSources()).map(_.accept(new TSqlRelationBuilder)).getOrElse(ir.NoTable)
+    // Note that ALL is the default so we don't need to check for it
+    ctx match {
+      case c if c.DISTINCT() != null =>
+        buildDistinct(from, columns)
+      case _ =>
+        ir.Project(from, columns)
+    }
+  }
 
-    ir.Project(from, columns)
+  private def buildDistinct(from: ir.Relation, columns: Seq[ir.Expression]): ir.Relation = {
+    val columnNames = columns.collect {
+      case ir.Column(c) => Seq(c)
+      case ir.Alias(_, a, _) => a
+      // Note that the ir.Star(None) is not matched so that we set all_columns_as_keys to true
+    }.flatten
+    ir.Project(
+      ir.Deduplicate(from, columnNames, all_columns_as_keys = columnNames.isEmpty, within_watermark = false),
+      columns)
   }
 
   override def visitTableName(ctx: TableNameContext): ir.NamedTable = {
@@ -84,7 +100,7 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.Relation] {
   private def buildJoin(left: ir.Relation, right: JoinPartContext): ir.Join = {
     val joinExpression = right.joinOn()
     val rightRelation = joinExpression.tableSource().accept(this)
-    val joinCondition = joinExpression.searchCondition().accept(new TSqlExpressionBuilder)
+    val joinCondition = joinExpression.searchCondition().accept(new TSqlExpressionBuilder(new TSqlFunctionBuilder))
 
     ir.Join(
       left,

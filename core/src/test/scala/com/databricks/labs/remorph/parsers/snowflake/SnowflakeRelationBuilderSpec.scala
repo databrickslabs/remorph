@@ -13,6 +13,10 @@ class SnowflakeRelationBuilderSpec extends AnyWordSpec with SnowflakeParserTestC
 
   "SnowflakeRelationBuilder" should {
 
+    "translate query with no FROM clause" in {
+      example("", _.select_optional_clauses(), NoTable())
+    }
+
     "translate FROM clauses" in {
       example("FROM some_table", _.from_clause(), namedTable("some_table"))
     }
@@ -21,7 +25,7 @@ class SnowflakeRelationBuilderSpec extends AnyWordSpec with SnowflakeParserTestC
       example(
         "FROM some_table WHERE 1=1",
         _.select_optional_clauses(),
-        Filter(namedTable("some_table"), Equals(Literal(integer = Some(1)), Literal(integer = Some(1)))))
+        Filter(namedTable("some_table"), Equals(Literal(short = Some(1)), Literal(short = Some(1)))))
     }
 
     "translate GROUP BY clauses" in {
@@ -113,7 +117,7 @@ class SnowflakeRelationBuilderSpec extends AnyWordSpec with SnowflakeParserTestC
         "FROM some_table WHERE 1=1 GROUP BY some_column",
         _.select_optional_clauses(),
         Aggregate(
-          input = Filter(namedTable("some_table"), Equals(Literal(integer = Some(1)), Literal(integer = Some(1)))),
+          input = Filter(namedTable("some_table"), Equals(Literal(short = Some(1)), Literal(short = Some(1)))),
           group_type = GroupBy,
           grouping_expressions = Seq(Column("some_column")),
           pivot = None))
@@ -123,7 +127,7 @@ class SnowflakeRelationBuilderSpec extends AnyWordSpec with SnowflakeParserTestC
         _.select_optional_clauses(),
         Sort(
           Aggregate(
-            input = Filter(namedTable("some_table"), Equals(Literal(integer = Some(1)), Literal(integer = Some(1)))),
+            input = Filter(namedTable("some_table"), Equals(Literal(short = Some(1)), Literal(short = Some(1)))),
             group_type = GroupBy,
             grouping_expressions = Seq(Column("some_column")),
             pivot = None),
@@ -134,7 +138,7 @@ class SnowflakeRelationBuilderSpec extends AnyWordSpec with SnowflakeParserTestC
         "FROM some_table WHERE 1=1 ORDER BY some_column NULLS FIRST",
         _.select_optional_clauses(),
         Sort(
-          Filter(namedTable("some_table"), Equals(Literal(integer = Some(1)), Literal(integer = Some(1)))),
+          Filter(namedTable("some_table"), Equals(Literal(short = Some(1)), Literal(short = Some(1)))),
           Seq(SortOrder(Column("some_column"), AscendingSortDirection, SortNullsFirst)),
           is_global = false))
     }
@@ -158,7 +162,7 @@ class SnowflakeRelationBuilderSpec extends AnyWordSpec with SnowflakeParserTestC
               partition_spec = Seq(Column("p")),
               sort_order = Seq(SortOrder(Column("o"), AscendingSortDirection, SortNullsLast)),
               frame_spec = DummyWindowFrame),
-            Literal(integer = Some(1)))))
+            Literal(short = Some(1)))))
     }
 
     "translate SELECT DISTINCT clauses" in {
@@ -184,6 +188,16 @@ class SnowflakeRelationBuilderSpec extends AnyWordSpec with SnowflakeParserTestC
         Project(
           Limit(Deduplicate(namedTable("t"), Seq("a"), all_columns_as_keys = false, within_watermark = false), 42),
           Seq(Column("a"))))
+    }
+
+    "translate VALUES clauses as object references" in {
+      example(
+        "VALUES ('a', 1), ('b', 2)",
+        _.object_ref(),
+        Values(
+          Seq(
+            Seq(Literal(string = Some("a")), Literal(short = Some(1))),
+            Seq(Literal(string = Some("b")), Literal(short = Some(2))))))
     }
   }
 

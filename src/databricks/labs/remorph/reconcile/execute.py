@@ -6,7 +6,7 @@ from pyspark.errors import PySparkException
 from pyspark.sql import DataFrame, SparkSession
 from sqlglot import Dialect
 
-from databricks.labs.remorph.config import DatabaseConfig, TableRecon, get_dialect
+from databricks.labs.remorph.config import DatabaseConfig, TableRecon, get_dialect, get_key_form_dialect
 from databricks.labs.remorph.reconcile.compare import (
     capture_mismatch_data_and_columns,
     reconcile_data,
@@ -16,6 +16,7 @@ from databricks.labs.remorph.reconcile.connectors.source_adapter import create_a
 from databricks.labs.remorph.reconcile.exception import (
     DataSourceRuntimeException,
     InvalidInputException,
+    ReconciliationException,
 )
 from databricks.labs.remorph.reconcile.query_builder.hash_query import HashQueryBuilder
 from databricks.labs.remorph.reconcile.query_builder.sampling_query import (
@@ -83,7 +84,7 @@ def recon(
         engine=source_dialect,
         spark=spark,
         ws=ws_client,
-        secret_scope="secret_scope",
+        secret_scope=f"remorph_{get_key_form_dialect(source_dialect)}",
     )
 
     recon_id = str(uuid4())
@@ -137,7 +138,28 @@ def recon(
             recon_process_duration=recon_process_duration,
         )
 
-    return generate_final_reconcile_output(recon_id=recon_id, spark=spark)
+    return _verify_successful_reconciliation(
+        generate_final_reconcile_output(
+            recon_id=recon_id,
+            spark=spark,
+        )
+    )
+
+
+def _verify_successful_reconciliation(reconcile_output: ReconcileOutput) -> ReconcileOutput:
+    for table_output in reconcile_output.results:
+        if (
+            table_output.status.column is False
+            or table_output.status.row is False
+            or table_output.status.schema is False
+        ):
+            raise ReconciliationException(
+                "Reconciliation failed for one or more tables. Please check the recon metrics for more details.",
+                reconcile_output=reconcile_output,
+            )
+
+    logger.info("Reconciliation completed successfully.")
+    return reconcile_output
 
 
 def initialise_data_source(
@@ -315,8 +337,9 @@ class Reconciliation:
         src_table: str,
         tgt_table: str,
     ):
-        src_mismatch_sample_query = src_sampler.build_query(mismatch)
-        tgt_mismatch_sample_query = tgt_sampler.build_query(mismatch)
+        df = mismatch.limit(_SAMPLE_ROWS).cache()
+        src_mismatch_sample_query = src_sampler.build_query(df)
+        tgt_mismatch_sample_query = tgt_sampler.build_query(df)
 
         src_data = self._source.read_data(
             catalog=self._source_catalog,

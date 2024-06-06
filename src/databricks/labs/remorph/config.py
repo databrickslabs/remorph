@@ -5,25 +5,26 @@ from sqlglot.dialects.dialect import Dialect, Dialects, DialectType
 
 from databricks.labs.remorph.helpers.morph_status import ParserError
 from databricks.labs.remorph.reconcile.recon_config import Table
-from databricks.labs.remorph.snow import databricks, experimental, oracle, snowflake
+from databricks.labs.remorph.snow import databricks, experimental, oracle, snowflake, presto
 
 logger = logging.getLogger(__name__)
 
 SQLGLOT_DIALECTS: dict[str, DialectType] = {
+    "athena": Dialects.ATHENA,
     "bigquery": Dialects.BIGQUERY,
     "databricks": databricks.Databricks,
     "experimental": experimental.DatabricksExperimental,
-    "drill": Dialects.DRILL,
-    "mssql": Dialects.TSQL,
+    "mysql": Dialects.MYSQL,
     "netezza": Dialects.POSTGRES,
     "oracle": oracle.Oracle,
     "postgresql": Dialects.POSTGRES,
-    "presto": Dialects.PRESTO,
+    "presto": presto.Presto,
     "redshift": Dialects.REDSHIFT,
     "snowflake": snowflake.Snow,
     "sqlite": Dialects.SQLITE,
     "teradata": Dialects.TERADATA,
     "trino": Dialects.TRINO,
+    "tsql": Dialects.TSQL,
     "vertica": Dialects.POSTGRES,
 }
 
@@ -70,6 +71,12 @@ class TableRecon:
     tables: list[Table]
     source_catalog: str | None = None
 
+    def __post_init__(self):
+        self.source_schema = self.source_schema.lower()
+        self.target_schema = self.target_schema.lower()
+        self.target_catalog = self.target_catalog.lower()
+        self.source_catalog = self.source_catalog.lower() if self.source_catalog else self.source_catalog
+
 
 @dataclass
 class DatabaseConfig:
@@ -89,3 +96,27 @@ class TranspilationResult:
 class ValidationResult:
     validated_sql: str
     exception_msg: str | None
+
+
+@dataclass
+class ReconcileTablesConfig:
+    filter_type: str  # all/include/exclude
+    tables_list: list[str]  # [*, table1, table2]
+
+
+@dataclass
+class ReconcileConfig:
+    __file__ = "reconcile.yml"
+    __version__ = 1
+
+    data_source: str
+    report_type: str
+    secret_scope: str
+    config: DatabaseConfig
+    tables: ReconcileTablesConfig | None = None
+
+
+@dataclass
+class RemorphConfigs:
+    morph: MorphConfig | None
+    reconcile: ReconcileConfig | None
