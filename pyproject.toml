@@ -205,6 +205,10 @@ limit-inference-results = 100
 # List of plugins (as comma separated values of python module names) to load,
 # usually to register additional checkers.
 load-plugins = [
+  "databricks.labs.pylint.mocking",
+  "databricks.labs.pylint.eradicate",
+  "databricks.labs.pylint.spark",
+  "databricks.labs.pylint.legacy",
   "pylint_pytest",
   "pylint.extensions.bad_builtin",
   "pylint.extensions.broad_try_clause",
