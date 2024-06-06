@@ -305,13 +305,13 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
               Seq(ir.UnresolvedNamedLambdaVariable(Seq("x"))))))))))
 
     example(
-      query = "JSON_ARRAY(1, 2, 3)",
+      query = "JSON_ARRAY(4, 5, 6)",
       _.expression(),
       ir.CallFunction(
         "TO_JSON",
         Seq(
           ir.ValueArray(Seq(ir.FilterExpr(
-            Seq(ir.Literal(integer = Some(1)), ir.Literal(integer = Some(2)), ir.Literal(integer = Some(3))),
+            Seq(ir.Literal(integer = Some(4)), ir.Literal(integer = Some(5)), ir.Literal(integer = Some(6))),
             ir.LambdaFunction(
               ir.Not(ir.IsNull(ir.UnresolvedNamedLambdaVariable(Seq("x")))),
               Seq(ir.UnresolvedNamedLambdaVariable(Seq("x"))))))))))
