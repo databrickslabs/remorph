@@ -3,10 +3,15 @@ from datetime import datetime
 
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.functions import col, collect_list, create_map, lit
+from pyspark.errors import PySparkException
 from sqlglot import Dialect
 
 from databricks.labs.remorph.config import DatabaseConfig, Table, get_key_form_dialect
-from databricks.labs.remorph.reconcile.exception import WriteToTableException
+from databricks.labs.remorph.reconcile.exception import (
+    WriteToTableException,
+    ReadAndWriteWithVolumeException,
+    CleanFromVolumeException,
+)
 from databricks.labs.remorph.reconcile.recon_config import (
     DataReconcileOutput,
     ReconcileOutput,
@@ -26,6 +31,43 @@ _RECON_TABLE_NAME = "main"
 _RECON_METRICS_TABLE_NAME = "metrics"
 _RECON_DETAILS_TABLE_NAME = "details"
 _SAMPLE_ROWS = 50
+
+
+def _write_unmatched_df_to_volumes(
+    unmatched_df: DataFrame,
+    path: str,
+) -> None:
+    unmatched_df.write.format("parquet").mode("overwrite").save(path)
+
+
+def _read_unmatched_df_from_volumes(
+    spark: SparkSession,
+    path: str,
+) -> DataFrame:
+    return spark.read.format("parquet").load(path)
+
+
+def clean_unmatched_df_from_volume(workspace_client: WorkspaceClient, path: str):
+    try:
+        workspace_client.dbfs.delete(path, recursive=True)
+    except Exception as e:
+        message = f"Error cleaning up unmatched DF from {path} volumes --> {e}"
+        logger.error(message)
+        raise CleanFromVolumeException(message) from e
+
+
+def write_and_read_unmatched_df_with_volumes(
+    unmatched_df: DataFrame,
+    spark: SparkSession,
+    path: str,
+) -> DataFrame:
+    try:
+        _write_unmatched_df_to_volumes(unmatched_df, path)
+        return _read_unmatched_df_from_volumes(spark, path)
+    except PySparkException as e:
+        message = f"Exception in reading or writing unmatched DF with volumes {path} --> {e}"
+        logger.error(message)
+        raise ReadAndWriteWithVolumeException(message) from e
 
 
 def _write_df_to_delta(df: DataFrame, table_name: str, mode="append"):
