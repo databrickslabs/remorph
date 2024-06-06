@@ -1,4 +1,4 @@
--- DATEADD with the WW keyword
+-- ## DATEADD with the WW keyword
 --
 -- Databricks SQl does not directly support `DATEADD`, so it is translated to the equivalent
 -- DATE_ADD with the number of weeks multiplied by 7.

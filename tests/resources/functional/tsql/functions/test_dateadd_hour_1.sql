@@ -1,4 +1,4 @@
--- DATEADD with the HOUR keyword
+-- ## DATEADD with the HOUR keyword
 --
 -- Databricks SQl does not directly support `DATEADD`, so it is translated to the equivalent
 -- INTERVAL increment HOUR

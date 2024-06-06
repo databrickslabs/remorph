@@ -1,4 +1,4 @@
--- APPROX_COUNT_DISTINCT
+-- ##APPROX_COUNT_DISTINCT
 --
 -- This function is identical to the APPROX_COUNT_DISTINCT function in Databricks. Though
 -- the syntax is the same, the results may differ slightly due to the difference in the implementations

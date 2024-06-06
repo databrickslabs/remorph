@@ -1,4 +1,4 @@
--- DATEADD with the SS keyword
+-- ## DATEADD with the SS keyword
 --
 -- Databricks SQl does not directly support `DATEADD`, so it is translated to the equivalent
 -- INTERVAL increment SECOND

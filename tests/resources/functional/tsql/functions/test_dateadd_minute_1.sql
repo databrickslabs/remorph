@@ -1,4 +1,4 @@
--- DATEADD with the MINUTE keyword
+-- ## DATEADD with the MINUTE keyword
 --
 -- Databricks SQl does not directly support `DATEADD`, so it is translated to the equivalent
 -- INTERVAL increment MINUTE

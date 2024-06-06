@@ -1,4 +1,4 @@
--- DATEADD with the YEAR keyword
+-- ## DATEADD with the YEAR keyword
 --
 -- Databricks SQl does not directly support DATEADD, so it is translated to the equivalent
 -- ADD_MONTHS function with the number of months multiplied by 12.

@@ -1,4 +1,4 @@
--- AVG with DISTINCT clause
+-- ## AVG with DISTINCT clause
 --
 -- This function is directly equivalent in Databricks.
 

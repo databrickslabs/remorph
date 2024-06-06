@@ -1,4 +1,4 @@
--- DATEADD with the DY keyword
+-- ## DATEADD with the DY keyword
 --
 -- Databricks SQl does not directly support `DATEADD`, so it is translated to the equivalent
 -- DATE_ADD as in the context of `DATEADD`, `day`, `dayofyear` and `weekday` are equivalent.

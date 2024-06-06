@@ -1,4 +1,4 @@
--- DATEADD with the MS keyword
+-- ## DATEADD with the MS keyword
 --
 -- Databricks SQl does not directly support `DATEADD`, so it is translated to the equivalent
 -- INTERVAL increment MILLISECOND

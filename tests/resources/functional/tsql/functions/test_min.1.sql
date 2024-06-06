@@ -1,7 +1,6 @@
-## MIN
-
-The MIN function is identical in Databricks SQL and T-SQL.
-
+-- ## MIN
+--
+-- The MIN function is identical in Databricks SQL and T-SQL.
 
 -- tsql sql:
 SELECT MIN(col1) FROM t1;

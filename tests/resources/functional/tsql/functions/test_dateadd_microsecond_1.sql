@@ -1,6 +1,6 @@
--- DATEADD with the MICROSECOND keyword
+-- ## DATEADD with the MICROSECOND keyword
 --
--- Databricks SQl does not directly support `DATEADD`, so it is translated to the equivalent
+-- Databricks SQL does not directly support `DATEADD`, so it is translated to the equivalent
 -- INTERVAL increment MICROSECOND
 
 -- tsql sql:
