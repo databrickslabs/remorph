@@ -1,20 +1,27 @@
+import functools
 import logging
 import os
 import time
 import webbrowser
 from datetime import timedelta
+from importlib.resources import files, as_file
 from pathlib import Path
 
 from databricks.labs.blueprint.entrypoint import get_logger, is_in_debug
 from databricks.labs.blueprint.installation import Installation, SerdeError
 from databricks.labs.blueprint.installer import InstallState
+from databricks.labs.blueprint.parallel import Threads
 from databricks.labs.blueprint.parallel import ManyError
 from databricks.labs.blueprint.tui import Prompts
 from databricks.labs.blueprint.wheels import ProductInfo
+
+from databricks.labs.remorph.helpers import db_sql
+from databricks.labs.remorph.helpers.deployment import TableDeployer
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.errors import NotFound
 from databricks.sdk.errors import PermissionDenied
 from databricks.sdk.retries import retried
+from databricks.sdk.service.catalog import VolumeType
 from databricks.sdk.service.sql import (
     CreateWarehouseRequestWarehouseType,
     EndpointInfoWarehouseType,
@@ -28,8 +35,10 @@ from databricks.labs.remorph.config import (
     SQLGLOT_DIALECTS,
     DatabaseConfig,
     RemorphConfigs,
+    ReconMetricsConfig,
 )
 from databricks.labs.remorph.reconcile.constants import SourceType
+from databricks.labs.remorph.helpers.dashboard_publisher import DashboardPublisher
 
 logger = logging.getLogger(__name__)
 
@@ -307,6 +316,12 @@ class InstallPrompts:
             source_catalog=source_catalog,
         )
 
+    def _prompt_for_recon_metrics_config(self) -> ReconMetricsConfig:
+        catalog = self._prompts.question("Enter Recon metrics catalog name", default="remorph")
+        schema = self._prompts.question("Enter Recon metrics schema Name", default="reconcile")
+        metrics_config = ReconMetricsConfig(catalog=catalog, schema=schema)
+        return metrics_config
+
     def reconcile_setup_prompts(self) -> RemorphConfigs:
         logger.info("\nPlease answer a few questions to configure remorph: ** reconcile **")
 
@@ -322,17 +337,69 @@ class InstallPrompts:
         )
 
         db_config = self._prompt_for_reconcile_source_target_details(data_source)
+        recon_metrics_config = self._prompt_for_recon_metrics_config()
 
         reconcile_config = ReconcileConfig(
             data_source=data_source,
             report_type=report_type,
             secret_scope=scope_name,
             config=db_config,
+            metrics=recon_metrics_config,
         )
 
         logger.info("Captured ** reconcile **  configuration details !!!")
 
         return RemorphConfigs(None, reconcile_config)
+
+
+class ReconMetadataSetup:
+
+    def __init__(self, ws: WorkspaceClient, reconcile_config: ReconcileConfig):
+        self._ws = ws
+        self._catalog_setup = CatalogSetup(ws)
+        self._reconcile_config = reconcile_config
+        self._recon_catalog_name = reconcile_config.metrics.catalog
+        self._recon_schema_name = reconcile_config.metrics.schema
+
+    def configure_catalog(self):
+        try:
+            return self._catalog_setup.get(self._recon_catalog_name)
+        except NotFound:
+            logger.info(f"Creating new catalog {self._recon_catalog_name}")
+            self._catalog_setup.create(self._recon_catalog_name)
+        return self._recon_catalog_name
+
+    def configure_schema(self):
+        try:
+            return self._catalog_setup.get_schema(f"{self._recon_catalog_name}.{self._recon_schema_name}")
+        except NotFound:
+            logger.info(f"Creating new schema {self._recon_catalog_name}.{self._recon_schema_name}")
+            self._catalog_setup.create_schema(self._recon_schema_name, self._recon_catalog_name)
+        return self._recon_schema_name
+
+    def deploy_tables(self):
+        config = MorphConfig(
+            source=self._reconcile_config.data_source,
+            catalog_name=self._recon_catalog_name,
+            schema_name=self._recon_schema_name,
+        )
+        sql_backend = db_sql.get_sql_backend(self._ws, config)
+        deployer = TableDeployer(sql_backend, config)
+
+        table = functools.partial(deployer.deploy_table)
+        Threads.strict(
+            "deploy tables",
+            [
+                functools.partial(table, "main", "queries/tables/reconcile/main.sql"),
+                functools.partial(table, "metrics", "queries/tables/reconcile/metrics.sql"),
+                functools.partial(table, "details", "queries/tables/reconcile/details.sql"),
+            ],
+        )
+
+    def run(self):
+        self.configure_catalog()
+        self.configure_schema()
+        self.deploy_tables()
 
 
 class WorkspaceInstallation:
@@ -354,9 +421,39 @@ class WorkspaceInstallation:
         self._this_file = Path(__file__)
         self._product_info = product_info
 
+    def _create_recon_volume(self):
+        self._ws.volumes.create(
+            self._config.reconcile.metrics.catalog,
+            self._config.reconcile.metrics.schema,
+            self._config.reconcile.metrics.volume,
+            VolumeType.MANAGED,
+        )
+
+    def _create_recon_dashboard(self):
+        dashboard_params = {
+            "catalog": self._config.reconcile.metrics.catalog,
+            "schema": self._config.reconcile.metrics.schema,
+        }
+
+        dashboard_resource = files("databricks.labs.remorph.resources").joinpath("Remorph-Reconciliation.lvdash.json")
+        dashboard_publisher = DashboardPublisher(self._ws, self._installation)
+        logger.info("Creating Reconciliation Dashboard.")
+        with as_file(dashboard_resource) as dashboard_file:
+            dashboard_publisher.create(dashboard_file, parameters=dashboard_params)
+
+    def _configure_recon_metadata(self):
+        setup = ReconMetadataSetup(self._ws, self._config.reconcile)
+        setup.run()
+
     def run(self):
         logger.info(f"Installing Remorph v{self._product_info.version()}")
-        # TODO: Store Recon Metadata Tables, Lakeview Dashboards
+        if self._config.reconcile:
+            recon_install_tasks = [
+                self._configure_recon_metadata,
+                self._create_recon_volume,
+                self._create_recon_dashboard,
+            ]
+            Threads.strict("Installing Recon components", recon_install_tasks)
         logger.info("Installation completed successfully! Please refer to the documentation for the next steps.")
 
 

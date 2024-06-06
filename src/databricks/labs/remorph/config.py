@@ -105,6 +105,13 @@ class ReconcileTablesConfig:
 
 
 @dataclass
+class ReconMetricsConfig:
+    catalog: str
+    schema: str
+    volume: str = "RECONCILE_VOLUME"
+
+
+@dataclass
 class ReconcileConfig:
     __file__ = "reconcile.yml"
     __version__ = 1
@@ -113,6 +120,7 @@ class ReconcileConfig:
     report_type: str
     secret_scope: str
     config: DatabaseConfig
+    metrics: ReconMetricsConfig
     tables: ReconcileTablesConfig | None = None
 
 
