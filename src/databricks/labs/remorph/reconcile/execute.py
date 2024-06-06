@@ -129,11 +129,13 @@ def recon(
                 schema_reconcile_output = _run_reconcile_schema(
                     reconciler=reconciler, table_conf=table_conf, src_schema=src_schema, tgt_schema=tgt_schema
                 )
+                logger.warning("Schema comparison is completed successfully.")
 
             if report_type in {"data", "row", "all"}:
                 data_reconcile_output = _run_reconcile_data(
                     reconciler=reconciler, table_conf=table_conf, src_schema=src_schema, tgt_schema=tgt_schema
                 )
+                logger.warning(f"Reconciliation for '{report_type}' report completed successfully.")
 
         recon_process_duration.end_ts = str(datetime.now())
         # Persist the data to the delta tables
@@ -246,7 +248,6 @@ class Reconciliation:
         if self._report_type == "row" and table_conf.get_threshold_columns("source"):
             logger.warning("Threshold comparison is ignored for 'row' report type")
 
-        logger.warning(f"Reconciliation for {self._report_type} completed successfully.")
         return reconcile_output
 
     def reconcile_schema(
