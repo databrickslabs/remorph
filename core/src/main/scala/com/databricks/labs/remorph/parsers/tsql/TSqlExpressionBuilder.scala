@@ -414,22 +414,18 @@ class TSqlExpressionBuilder(functionBuilder: TSqlFunctionBuilder)
   }
 
   override def visitJsonObject(ctx: JsonObjectContext): ir.Expression = {
-    val namedStruct = buildNamedStruct(Option(ctx.jsonKeyValue().asScala.toList))
+    val jsonKeyValues = Option(ctx.jsonKeyValue()).map(_.asScala).getOrElse(Nil)
+    val namedStruct = buildNamedStruct(jsonKeyValues)
     val absentOnNull = checkAbsentNull(ctx.jsonNullClause())
     buildJsonObject(namedStruct, absentOnNull)
   }
 
   private def checkAbsentNull(ctx: JsonNullClauseContext): Boolean = {
-    ctx match {
-      case null => true
-      case clause if clause.ABSENT() == null => false
-      case _ => true
-    }
+    ! Option(ctx).exists(_.ABSENT() != null)
   }
 
-  private def buildNamedStruct(ctx: Option[List[JsonKeyValueContext]]): ir.NamedStruct = {
+  private def buildNamedStruct(ctx: Seq[JsonKeyValueContext]): ir.NamedStruct = {
     val (keys, values) = ctx
-      .getOrElse(List.empty)
       .map { keyValueContext =>
         val expressions = keyValueContext.expression().asScala.toList
         (expressions.head.accept(this), expressions(1).accept(this))
