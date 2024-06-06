@@ -89,13 +89,13 @@ class SnowflakeDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
 
     def reader(self, query: str) -> DataFrameReader:
         options = {
-            "sfUrl": self._get_secret('snowflake_sfUrl'),
-            "sfUser": self._get_secret('snowflake_sfUser'),
-            "sfPassword": self._get_secret('snowflake_sfPassword'),
-            "sfDatabase": self._get_secret('snowflake_sfDatabase'),
-            "sfSchema": self._get_secret('snowflake_sfSchema'),
-            "sfWarehouse": self._get_secret('snowflake_sfWarehouse'),
-            "sfRole": self._get_secret('snowflake_sfRole'),
+            "sfUrl": self._get_secret('sfUrl'),
+            "sfUser": self._get_secret('sfUser'),
+            "sfPassword": self._get_secret('sfPassword'),
+            "sfDatabase": self._get_secret('sfDatabase'),
+            "sfSchema": self._get_secret('sfSchema'),
+            "sfWarehouse": self._get_secret('sfWarehouse'),
+            "sfRole": self._get_secret('sfRole'),
         }
         logger.debug(f"Reading data from Snowflake using the options {options.keys()} ")
         return self._spark.read.format("snowflake").option("dbtable", f"({query}) as tmp").options(**options)

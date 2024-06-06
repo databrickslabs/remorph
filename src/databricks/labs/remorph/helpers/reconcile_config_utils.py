@@ -73,11 +73,13 @@ class ReconcileConfigUtils:
         logger.debug(f"Found Scope: `{scope_name}` in Databricks Workspace")
         return True
 
-    def _ensure_scope_exists(self, scope_name: str = None):
+    def _ensure_scope_exists(self, scope_name: str | None = None):
         """
         Get or Create a new Scope in Databricks Workspace
         """
         scope_name = self._reconcile_config.secret_scope if self._reconcile_config else scope_name
+        assert scope_name, "Secret Scope is not set"
+
         scope_exists = self._scope_exists(scope_name)
         if not scope_exists:
             allow_scope_creation = self._prompts.confirm("Do you want to create a new one?")
@@ -180,7 +182,7 @@ class ReconcileConfigUtils:
         logger.info(f"Config `{file_name}` is saved at path: `{ws_file_url}` ")
 
         reconcile_readme_url = self._create_recon_config_readme()
-        if self._prompts.confirm("Open `README_RECON_CONFIG` setup instructions in your browser? "):
+        if self._prompts.confirm("Open `README_RECON_CONFIG` setup instructions in your browser?"):
             webbrowser.open(reconcile_readme_url)
         logger.info(
             f"Recon Config generated successfully! Please refer to the {reconcile_readme_url} for the next steps."
@@ -318,9 +320,7 @@ class ReconcileConfigUtils:
         Prompt for Snowflake connection details
         :return: tuple[str, dict[str, str]]
         """
-        logger.info(
-            f"Please answer a few questions to configure `{SourceType.SNOWFLAKE.value}` Connection profile"
-        )
+        logger.info(f"Please answer a few questions to configure `{SourceType.SNOWFLAKE.value}` Connection profile")
 
         sf_url = self._prompts.question("Enter Snowflake URL")
         account = self._prompts.question("Enter Account Name")
@@ -350,7 +350,7 @@ class ReconcileConfigUtils:
         Prompt for Oracle connection details
         :return: tuple[str, dict[str, str]]
         """
-        logger.info(f"Please answer a couple of questions to configure `{SourceType.ORACLE.value}` Connection profile")
+        logger.info(f"Please answer a few questions to configure `{SourceType.ORACLE.value}` Connection profile")
         user = self._prompts.question("Enter User")
         password = self._prompts.question("Enter Password")
         host = self._prompts.question("Enter host")

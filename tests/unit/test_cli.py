@@ -12,6 +12,8 @@ from databricks.labs.remorph.helpers.reconcile_config_utils import ReconcileConf
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.errors import NotFound
 
+from databricks.labs.blueprint.installation import MockInstallation
+
 
 @pytest.fixture
 def mock_workspace_client_cli():
@@ -79,6 +81,11 @@ def temp_dirs_for_lineage(tmpdir):
     sample_sql_file.write(sample_sql_content)
 
     return input_dir, output_dir
+
+
+@pytest.fixture
+def mock_installation():
+    return MockInstallation()
 
 
 def test_transpile_with_invalid_dialect(mock_workspace_client_cli):
@@ -310,17 +317,18 @@ def test_configure_secrets_databricks(mock_workspace_client, mock_installation):
     source_dict = {"databricks": "0", "netezza": "1", "oracle": "2", "snowflake": "3"}
     prompts = MockPrompts(
         {
-            r"Select the source": source_dict["databricks"],
+            r"Select the Data Source": source_dict["databricks"],
         }
     )
 
     recon_conf = ReconcileConfigUtils(mock_workspace_client, mock_installation, prompts=prompts)
     recon_conf.prompt_source()
 
-    recon_conf.prompt_and_save_connection_details()
+    assert recon_conf.prompt_and_save_connection_details() is None
 
 
-def test_cli_configure_secrets_config(mock_workspace_client):
-    with patch("databricks.labs.remorph.cli.ReconConfigPrompts") as mock_recon_config:
-        cli.configure_secrets(mock_workspace_client)
-        mock_recon_config.assert_called_once_with(mock_workspace_client)
+def test_cli_configure_secrets_config(mock_workspace_client, mock_installation):
+    with patch.object(mock_installation, "install_folder", return_value="/Users/remorph/.remorph"):
+        with patch("databricks.labs.remorph.cli.ReconcileConfigUtils") as mock_reconcile_config:
+            cli.configure_secrets(mock_workspace_client)
+            mock_reconcile_config.assert_called_once_with(mock_workspace_client, mock_installation)

@@ -22,7 +22,7 @@ def initial_setup():
 
 def test_get_schema():
     # initial setup
-    spark, ws, scope = initial_setup()
+    engine, spark, ws, scope = initial_setup()
 
     # catalog as catalog
     dd = DatabricksDataSource(get_dialect("databricks"), spark, ws, scope)
@@ -48,7 +48,7 @@ def test_get_schema():
 
 def test_read_data_from_uc():
     # initial setup
-    spark, ws, scope = initial_setup()
+    engine, spark, ws, scope = initial_setup()
 
     # create object for DatabricksDataSource
     dd = DatabricksDataSource(get_dialect("databricks"), spark, ws, scope)

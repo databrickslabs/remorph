@@ -7,19 +7,19 @@ from pyspark.sql.session import SparkSession
 from databricks.connect.session import DatabricksSession
 from databricks.labs.blueprint.installation import MockInstallation
 from databricks.labs.blueprint.tui import MockPrompts
-from databricks.labs.remorph.config import TableRecon, get_dialect
+from databricks.labs.remorph.config import TableRecon
 from databricks.labs.remorph.helpers.reconcile_config_utils import (
     ReconcileConfigUtils,
 )
-from databricks.labs.remorph.reconcile.connectors.source_adapter import create_adapter
-from databricks.labs.remorph.reconcile.constants import SourceType
 from databricks.labs.remorph.reconcile.recon_config import Table
 from databricks.sdk.errors.platform import ResourceDoesNotExist
 from databricks.sdk.service.workspace import SecretScope
 
+from ..reconcile.connectors.test_snowflake import mock_secret
+
 SOURCE_DICT = {"databricks": "0", "oracle": "1", "snowflake": "2"}
 
-SCOPE_NAME = "dummy_scope"
+SCOPE_NAME = "scope"
 
 
 @pytest.fixture
@@ -27,6 +27,7 @@ def mock_installation():
     return MockInstallation(
         {
             "reconcile.yml": {
+                "data_source": "snowflake",
                 "config": {
                     "source_catalog": "sf_catalog",
                     "source_schema": "sf_schema",
@@ -88,8 +89,8 @@ def test_configure_secrets_oracle_insert(mock_workspace_client, mock_installatio
     mock_workspace_client.secrets.list_scopes.side_effect = [[SecretScope(name="other_scope")]]
 
     with patch(
-            "databricks.labs.remorph.helpers.reconcile_config_utils.ReconcileConfigUtils._secret_key_exists",
-            return_value=False,
+        "databricks.labs.remorph.helpers.reconcile_config_utils.ReconcileConfigUtils._secret_key_exists",
+        return_value=False,
     ):
         reconcile_utils = ReconcileConfigUtils(mock_workspace_client, mock_installation, prompts=prompts)
         reconcile_utils.prompt_source()
@@ -171,8 +172,8 @@ def test_store_connection_secrets_overwrite_no(mock_workspace_client, mock_insta
     )
 
     with patch(
-            "databricks.labs.remorph.helpers.reconcile_config_utils.ReconcileConfigUtils._secret_key_exists",
-            return_value=True
+        "databricks.labs.remorph.helpers.reconcile_config_utils.ReconcileConfigUtils._secret_key_exists",
+        return_value=True,
     ):
         reconcile_utils = ReconcileConfigUtils(mock_workspace_client, mock_installation, prompts=prompts)
         reconcile_utils.store_connection_secrets("scope_name", ("source", {"key": "value"}))
@@ -218,20 +219,21 @@ def test_recon_config_prompt_and_save_config_details(mock_workspace_client, mock
     prompts = MockPrompts(
         {
             r"Would you like to overwrite workspace.*": "no",
-            r"Select the source": SOURCE_DICT["snowflake"],
             r".*Did you setup the secrets for the": "yes",
-            r"Open.* config file in the browser?": "yes",
+            r"Would you like to run reconciliation.*": "yes",
+            r"Open.* config file in the browser?": "no",
+            r"Open `README_RECON_CONFIG` setup instructions in your browser?": "no",
         }
     )
 
     filename = "recon_conf_snowflake.json"
+    mock_workspace_client.secrets.get_secret.side_effect = mock_secret
     recon_confing = TableRecon(
         source_schema="src_schema",
         source_catalog="src_catalog",
         target_catalog="tgt_catalog",
         target_schema="tgt_schema",
-        tables=[Table(source_name="table1", target_name="table1"),
-                Table(source_name="table2", target_name="table2")],
+        tables=[Table(source_name="table1", target_name="table1"), Table(source_name="table2", target_name="table2")],
     )
 
     # Patch the scope_exists method to return True
@@ -249,3 +251,32 @@ def test_recon_config_prompt_and_save_config_details(mock_workspace_client, mock
     assert target == f"~/mock/{filename}"
 
     mock_installation.assert_file_uploaded(filename)
+
+
+def test_generate_recon_config_no_reconcile(mock_workspace_client):
+    corrupted_reconcile_config = MockInstallation(
+        {
+            "reconcile.yml": {
+                "config": {
+                    "source_catalog": "sf_catalog",
+                    "source_schema": "sf_schema",
+                    "target_catalog": "db_catalog",
+                    "target_schema": "db_schema",
+                },
+                "report_type": "schema",
+                "secret_scope": SCOPE_NAME,
+                "tables": {
+                    "filter_type": "include",
+                    "tables_list": ["orders"],
+                },
+                "version": 1,
+            },
+        }
+    )
+
+    reconcile_utils = ReconcileConfigUtils(mock_workspace_client,
+                                           installation=corrupted_reconcile_config,
+                                           prompts=MockPrompts({}))
+
+    assert reconcile_utils.generate_recon_config() is None
+
