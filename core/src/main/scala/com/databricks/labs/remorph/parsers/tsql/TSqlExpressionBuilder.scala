@@ -420,22 +420,24 @@ class TSqlExpressionBuilder(functionBuilder: TSqlFunctionBuilder)
     buildJsonObject(namedStruct, absentOnNull)
   }
 
+  // format: off
   /**
-   * Check if the ABSENT ON NULL clause is present in the JSON clause - it is assumed as default
+   * Check if the ABSENT ON NULL clause is present in the JSON clause. The behavior is as follows:
+   * <ul>
+   *   <li>If the clause does not exist, the ABSENT ON NULL is assumed - so true</li>
+   * <li>If the clause exists and ABSENT ON NULL - true</li>
+   * <li>If the clause exists and NULL ON NULL - false</li>
+   * </ul>
+   *
    * @param ctx
    *   null clause parser context
    * @return
    */
+  // format on
   private def checkAbsentNull(ctx: JsonNullClauseContext): Boolean = {
-    ctx match {
-      // If the clause does not exist, the ABSENT ON NULL is assumed - so true (case null prevents null access)
-      case null => true
-      // If the clause exists and ABSENT == null then the clause was NULL ON NULL - so false
-      case clause if clause.ABSENT() == null => false
-      // If the clause exists and ABSENT != null then the clause was ABSENT ON NULL - so true
-      case _ => true
-    }
+    Option(ctx).forall(_.loseNulls != null)
   }
+
   private def buildNamedStruct(ctx: Seq[JsonKeyValueContext]): ir.NamedStruct = {
     val (keys, values) = ctx.map { keyValueContext =>
       val expressions = keyValueContext.expression().asScala.toList

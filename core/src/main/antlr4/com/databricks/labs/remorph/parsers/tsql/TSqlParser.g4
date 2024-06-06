@@ -4075,7 +4075,7 @@ jsonKeyValue
     ;
 
 jsonNullClause
-    : (ABSENT | NULL_) ON NULL_
+    : (loseNulls=ABSENT | NULL_) ON NULL_
     ;
 
 hierarchyidStaticMethod
