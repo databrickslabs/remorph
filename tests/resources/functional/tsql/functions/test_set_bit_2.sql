@@ -5,5 +5,5 @@
 -- tsql sql:
 SELECT SET_BIT(42, 7, 0);
 
--- GET_BIT sql:
+-- databricks sql:
 SELECT SET_BIT(42, 7, 0);
