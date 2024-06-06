@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from pyspark.sql import DataFrame
 from sqlglot import Dialect
@@ -209,10 +209,10 @@ class DataReconcileOutput:
     mismatch_count: int = 0
     missing_in_src_count: int = 0
     missing_in_tgt_count: int = 0
-    mismatch: MismatchOutput = MismatchOutput()
+    mismatch: MismatchOutput = field(default_factory=MismatchOutput)
     missing_in_src: DataFrame | None = None
     missing_in_tgt: DataFrame | None = None
-    threshold_output: ThresholdOutput = ThresholdOutput()
+    threshold_output: ThresholdOutput = field(default_factory=ThresholdOutput)
     exception: str | None = None
 
 
@@ -255,7 +255,7 @@ class StatusOutput:
 class ReconcileTableOutput:
     target_table_name: str
     source_table_name: str
-    status: StatusOutput = StatusOutput()
+    status: StatusOutput = field(default_factory=StatusOutput)
     exception_message: str | None = None
 
 
