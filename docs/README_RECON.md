@@ -211,20 +211,23 @@ class Filters:
 
 ## Driver
 
-1. **Download `ojdbc8.jar` from Oracle:**
+### Option 1
+
+* **Download `ojdbc8.jar` from Oracle:**
    Visit the [official Oracle website](https://www.oracle.com/database/technologies/appdev/jdbc-downloads.html) to
    acquire the `ojdbc8.jar` JAR file. This file is crucial for establishing connectivity between Databricks and Oracle
    databases.
 
-2. **Install the JAR file on Databricks:**
+* **Install the JAR file on Databricks:**
    Upon completing the download, install the JAR file onto your Databricks cluster. Refer
    to [this page](https://docs.databricks.com/en/libraries/cluster-libraries.html)
    For comprehensive instructions on uploading a JAR file, Python egg, or Python wheel to your Databricks workspace.
+### Option 2
 
-3. **Install ojdbc8 library from Maven:** 
+* **Install ojdbc8 library from Maven:** 
    Follow [this guide](https://docs.databricks.com/en/libraries/package-repositories.html#maven-or-spark-package) to install the Maven library on a cluster. Refer to [this document](https://mvnrepository.com/artifact/com.oracle.database.jdbc/ojdbc8) for obtaining the Maven coordinates.  
 
-4. This installation is a necessary step to enable seamless comparison between Oracle and Databricks, ensuring that the
+This installation is a necessary step to enable seamless comparison between Oracle and Databricks, ensuring that the
    required Oracle JDBC functionality is readily available within the Databricks environment.
 
 [[back to top](#remorph-reconciliation)]
