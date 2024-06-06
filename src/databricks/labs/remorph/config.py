@@ -113,6 +113,7 @@ class ReconcileConfig:
     report_type: str
     secret_scope: str
     config: DatabaseConfig
+    job_id: int = 0
     tables: ReconcileTablesConfig | None = None
 
 

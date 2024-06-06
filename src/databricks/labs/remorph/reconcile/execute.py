@@ -6,7 +6,13 @@ from pyspark.errors import PySparkException
 from pyspark.sql import DataFrame, SparkSession
 from sqlglot import Dialect
 
-from databricks.labs.remorph.config import DatabaseConfig, TableRecon, get_dialect, get_key_form_dialect
+from databricks.labs.remorph.config import (
+    DatabaseConfig,
+    TableRecon,
+    get_dialect,
+    get_key_form_dialect,
+    ReconcileConfig,
+)
 from databricks.labs.remorph.reconcile.compare import (
     capture_mismatch_data_and_columns,
     reconcile_data,
@@ -41,6 +47,8 @@ from databricks.labs.remorph.reconcile.recon_config import (
 from databricks.labs.remorph.reconcile.schema_compare import SchemaCompare
 from databricks.labs.remorph.transpiler.execute import verify_workspace_client
 from databricks.sdk import WorkspaceClient
+from databricks.connect import DatabricksSession
+from databricks.labs.blueprint.installation import Installation
 
 logger = logging.getLogger(__name__)
 _SAMPLE_ROWS = 50
@@ -51,6 +59,38 @@ def validate_input(input_value: str, list_of_value: set, message: str):
         error_message = f"{message} --> {input_value} is not one of {list_of_value}"
         logger.error(error_message)
         raise InvalidInputException(error_message)
+
+
+def trigger_recon() -> None:
+    w = WorkspaceClient()
+
+    installation = Installation.assume_user_home(w, "remorph")
+
+    reconcile_config = installation.load(ReconcileConfig)
+
+    catalog_or_schema = (
+        reconcile_config.config.source_catalog
+        if reconcile_config.config.source_catalog
+        else reconcile_config.config.source_schema
+    )
+    filename = f"recon_config_{reconcile_config.data_source}_{catalog_or_schema}_{reconcile_config.report_type}.json"
+
+    print(filename)
+
+    table_recon = installation.load(type_ref=TableRecon, filename=filename)
+
+    try:
+        recon_output = recon(
+            ws=w,
+            spark=DatabricksSession.builder.getOrCreate(),
+            table_recon=table_recon,
+            source_dialect=get_dialect(reconcile_config.data_source),
+            report_type=reconcile_config.report_type,
+        )
+        print(recon_output)
+        print(recon_output.recon_id)
+    except RuntimeError as e:
+        print(e)
 
 
 def recon(
@@ -434,7 +474,6 @@ def _get_schema(
     table_conf: Table,
     database_config: DatabaseConfig,
 ) -> tuple[list[Schema], list[Schema]]:
-
     src_schema = source.get_schema(
         catalog=database_config.source_catalog,
         schema=database_config.source_schema,

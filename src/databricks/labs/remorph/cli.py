@@ -1,17 +1,22 @@
 import json
 import os
+import webbrowser
 
 from pyspark.sql import SparkSession
 
 from databricks.connect import DatabricksSession
 from databricks.labs.blueprint.cli import App
 from databricks.labs.blueprint.entrypoint import get_logger
-from databricks.labs.blueprint.installation import Installation
-from databricks.labs.remorph.config import SQLGLOT_DIALECTS, MorphConfig
+from databricks.labs.blueprint.installation import Installation, SerdeError
+from databricks.labs.remorph.config import SQLGLOT_DIALECTS, MorphConfig, ReconcileConfig, TableRecon
 from databricks.labs.remorph.helpers.recon_config_utils import ReconConfigPrompts
 from databricks.labs.remorph.lineage import lineage_generator
 from databricks.labs.remorph.transpiler.execute import morph
 from databricks.sdk import WorkspaceClient
+from databricks.sdk.errors import NotFound
+from databricks.sdk.errors import PermissionDenied
+from databricks.labs.blueprint.tui import Prompts
+
 
 remorph = App(__file__)
 logger = get_logger(__file__)
@@ -76,20 +81,71 @@ def transpile(
 
 
 @remorph.command
-def reconcile(w: WorkspaceClient, source: str, report: str):
+def reconcile(w: WorkspaceClient):
     """[EXPERIMENTAL] reconciles source to databricks datasets"""
     logger.info(f"user: {w.current_user.me()}")
 
-    if source.lower() not in {"databricks", "snowflake", "oracle"}:
-        raise_validation_exception(
-            f"Error: Invalid value for '--source': '{source}' is not one of 'databricks', 'snowflake', 'oracle'. "
-        )
-    if report.lower() not in {"data", "schema", "all", "row"}:
-        raise_validation_exception(
-            f"Error: Invalid value for '--report': '{report}' is not one of 'data', 'schema', 'all' , 'row'"
-        )
+    installation = Installation.assume_user_home(w, "remorph")
+    _prompts = Prompts()
 
-    raise NotImplementedError
+    reconcile_config = None
+    try:
+        logger.debug("Loading ReconcileConfig `reconcile.yml` from Databricks Workspace...")
+        reconcile_config = installation.load(ReconcileConfig)
+    except NotFound as err:
+        logger.warning(f"Cannot find previous `reconcile` installation: {err}")
+    except (PermissionDenied, SerdeError, ValueError, AttributeError):
+        logger.warning(f"Existing installation at {installation.install_folder()} is corrupted. Skipping...")
+
+    reconfigure_msg = "Please use `remorph install` to re-configure ** reconcile ** module"
+    # Re-configure `reconcile` module:
+    # * when there is no `reconcile.yml` config on Databricks workspace OR
+    # * when there is a `reconcile.yml` config and user wants to overwrite it
+    if not reconcile_config:
+        logger.error(f"`reconcile_config` not found / corrupted on Databricks Workspace.\n{reconfigure_msg}")
+        return
+    if _prompts.confirm(
+        f"Would you like to overwrite workspace `reconcile_config` values:\n" f" {reconcile_config.__dict__}?"
+    ):
+        logger.info(reconfigure_msg)
+        return
+
+    catalog_or_schema = (
+        reconcile_config.config.source_catalog
+        if reconcile_config.config.source_catalog
+        else reconcile_config.config.source_schema
+    )
+
+    # Creates the filename in the format of : `recon_config_<SOURCE>_<CATALOG_OR_SCHEMA>_<FILTER_TYPE>.json`
+    # Ex: recon_config_snowflake_sample_data_all.json
+    filename = f"recon_config_{reconcile_config.data_source}_{catalog_or_schema}_{reconcile_config.report_type}.json"
+
+    try:
+        logger.debug(f"Loading TableRecon `{filename}` from Databricks Workspace...")
+        table_recon = installation.load(type_ref=TableRecon, filename=filename)
+    except NotFound as err:
+        logger.error(f"Cannot find previous `reconcile` installation: {err}")
+        raise err
+    except (PermissionDenied, SerdeError, ValueError, AttributeError) as ex:
+        logger.error(f"Existing installation at {installation.install_folder()}/{filename} is corrupted. Skipping...")
+        raise ex
+
+    assert table_recon, (
+        f"Error: Cannot load `recon_config` from {installation.install_folder()}/{filename}. "
+        f"Please re-generate using `remorph generate-recon-config` "
+    )
+
+    logger.debug(f"Triggering the Job with job_id `{reconcile_config.job_id}` ...")
+
+    wait = w.jobs.run_now(job_id=reconcile_config.job_id)
+    assert wait.run_id, (
+        f"Error: Job {reconcile_config.job_id} execution failed." f" Please check the job logs for more details."
+    )
+
+    job_run_url = f"{w.config.host}/jobs/{reconcile_config.job_id}/runs/{wait.run_id}"
+    if _prompts.confirm(f"Open Run `{job_run_url}` in the browser?"):
+        webbrowser.open(job_run_url)
+    logger.info(f"Reconcile job started. Please check the job_url `{job_run_url}` for the current status.")
 
 
 def _get_spark_session(ws: WorkspaceClient) -> SparkSession:
