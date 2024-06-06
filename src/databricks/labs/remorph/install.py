@@ -291,7 +291,7 @@ class InstallPrompts:
             source_catalog = self._prompts.question(f"Enter `{source.capitalize()}` Catalog name")
 
         schema_prompt = f"Enter `{source.capitalize()}` Schema name"
-        if source in {SourceType.ORACLE.value, SourceType.SNOWFLAKE.value}:
+        if source in {SourceType.ORACLE.value}:
             schema_prompt = f"Enter `{source.capitalize()}` Database name"
 
         source_schema = self._prompts.question(schema_prompt)

@@ -80,3 +80,12 @@ class MockDataSource(DataSource):
         if not mock_schema:
             return self.log_and_throw_exception(self._exception, "schema", f"({catalog}, {schema}, {table})")
         return mock_schema
+
+    def list_tables(
+        self,
+        catalog: str | None,
+        schema: str,
+        include_list: list[str] | None,
+        exclude_list: list[str] | None,
+    ) -> TableRecon:
+        return NotImplemented

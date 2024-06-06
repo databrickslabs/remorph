@@ -32,25 +32,24 @@ from databricks.labs.remorph.config import get_dialect
 from databricks.labs.remorph.reconcile.recon_config import ColumnMapping, Schema, Table
 from databricks.labs.remorph.reconcile.schema_compare import SchemaCompare
 
-src_schema, tgt_schema = schemas["snowflake_databricks_schema"]
-    spark = mock_spark
+    sparkSession = SparkSession.builder.getOrCreate() 
     table_conf = Table(
-        source_name="supplier",
-        target_name="supplier",
-        drop_columns=["dummy"],
+        source_name="src_table",
+        target_name="tgt_table",
         column_mapping=[
-            ColumnMapping(source_name="col_char", target_name="char"),
-            ColumnMapping(source_name="col_array", target_name="array_col"),
+            ColumnMapping(source_name="col_1", target_name="col1"),
+            ColumnMapping(source_name="col_2", target_name="col2"),
         ],
     )
+snowflake_dialect = get_dialect("snowflake")
 
-schema_compare_output = SchemaCompare(spark).compare(
-    src_schema,
-    tgt_schema,
-    get_dialect("snowflake"),
+output = SchemaCompare(sparkSession).compare(
+    source_schema,
+    target_schema,
+    snowflake_dialect,
     table_conf,
 )
-df = schema_compare_output.compare_df
+compared_df = output.compare_df
 """
 
 
@@ -74,11 +73,11 @@ class ReconcileConfigUtils:
         logger.debug(f"Found Scope: `{scope_name}` in Databricks Workspace")
         return True
 
-    def _ensure_scope_exists(self):
+    def _ensure_scope_exists(self, scope_name: str = None):
         """
         Get or Create a new Scope in Databricks Workspace
         """
-        scope_name = self._reconcile_config.secret_scope
+        scope_name = self._reconcile_config.secret_scope if self._reconcile_config else scope_name
         scope_exists = self._scope_exists(scope_name)
         if not scope_exists:
             allow_scope_creation = self._prompts.confirm("Do you want to create a new one?")
@@ -149,7 +148,7 @@ class ReconcileConfigUtils:
             f"in `{self._reconcile_config.secret_scope}` Scope?"
         ):
             raise ValueError(
-                f"Error: Secrets are needed for `{self._reconcile_config.data_source}` reconciliation."
+                f"Error: Secrets are needed for `{self._reconcile_config.data_source.capitalize()}` reconciliation."
                 f"\nUse `remorph configure-secrets` to setup Scope and Secrets."
             )
 
@@ -296,8 +295,8 @@ class ReconcileConfigUtils:
 
         reconfigure_msg = "Please use `remorph install` to re-configure ** reconcile ** module"
         # Reconfigure `reconcile` module:
-        # * when there is no `reconcile_config.yml` on Databricks workspace OR
-        # * when there is `reconcile_config.yml` and user wants to overwrite it
+        # * when there is no `reconcile.yml` config on Databricks workspace OR
+        # * when there is `reconcile.yml` and user wants to overwrite it
         if not reconcile_config:
             logger.info(f"`reconcile_config` not found on Databricks Workspace.\n{reconfigure_msg}")
             return
@@ -320,14 +319,14 @@ class ReconcileConfigUtils:
         :return: tuple[str, dict[str, str]]
         """
         logger.info(
-            f"Please answer a couple of questions to configure `{SourceType.SNOWFLAKE.value}` Connection profile"
+            f"Please answer a few questions to configure `{SourceType.SNOWFLAKE.value}` Connection profile"
         )
 
         sf_url = self._prompts.question("Enter Snowflake URL")
         account = self._prompts.question("Enter Account Name")
         sf_user = self._prompts.question("Enter User")
         sf_password = self._prompts.question("Enter Password")
-        sf_db = self._prompts.question("Enter Database")
+        sf_db = self._prompts.question("Enter Catalog")
         sf_schema = self._prompts.question("Enter Schema")
         sf_warehouse = self._prompts.question("Enter Snowflake Warehouse")
         sf_role = self._prompts.question("Enter Role", default=" ")
@@ -386,7 +385,7 @@ class ReconcileConfigUtils:
 
         # Prompt for secret scope
         scope_name = self._prompts.question("Enter Secret Scope name")
-        self._ensure_scope_exists()
+        self._ensure_scope_exists(scope_name)
 
         # Prompt for connection details
         connection_details = self._connection_details()
