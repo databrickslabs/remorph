@@ -342,6 +342,7 @@ class TSqlExpressionBuilder(functionBuilder: FunctionBuilder)
     else ir.RangeFrame
   }
 
+  // TODO: We are not dealing with PRECEDING and FOLLOWING yet!
   private[tsql] def buildFrame(ctx: WindowFrameBoundContext): ir.FrameBoundary =
     ctx match {
       case c if c.UNBOUNDED() != null => ir.FrameBoundary(current_row = false, unbounded = true, value = ir.Noop)
