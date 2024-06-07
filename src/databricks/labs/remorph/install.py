@@ -37,7 +37,7 @@ from databricks.labs.remorph.config import (
     SQLGLOT_DIALECTS,
     DatabaseConfig,
     RemorphConfigs,
-    ReconMetricsConfig,
+    ReconcileMetadataConfig,
 )
 from databricks.labs.remorph.reconcile.constants import SourceType
 from databricks.labs.remorph.helpers.dashboard_publisher import DashboardPublisher
@@ -318,10 +318,10 @@ class InstallPrompts:
             source_catalog=source_catalog,
         )
 
-    def _prompt_for_recon_metrics_config(self) -> ReconMetricsConfig:
+    def _prompt_for_reconcile_metadata_config(self) -> ReconcileMetadataConfig:
         catalog = self._prompts.question("Enter Recon metrics catalog name", default="remorph")
         schema = self._prompts.question("Enter Recon metrics schema Name", default="reconcile")
-        metrics_config = ReconMetricsConfig(catalog=catalog, schema=schema)
+        metrics_config = ReconcileMetadataConfig(catalog=catalog, schema=schema)
         return metrics_config
 
     def reconcile_setup_prompts(self) -> RemorphConfigs:
@@ -339,14 +339,14 @@ class InstallPrompts:
         )
 
         db_config = self._prompt_for_reconcile_source_target_details(data_source)
-        recon_metrics_config = self._prompt_for_recon_metrics_config()
+        metadata_config = self._prompt_for_reconcile_metadata_config()
 
         reconcile_config = ReconcileConfig(
             data_source=data_source,
             report_type=report_type,
             secret_scope=scope_name,
-            config=db_config,
-            metrics=recon_metrics_config,
+            database_config=db_config,
+            metadata_config=metadata_config,
         )
 
         logger.info("Captured ** reconcile **  configuration details !!!")
@@ -360,8 +360,8 @@ class ReconciliationMetadataSetup:
         self._ws = ws
         self._catalog_setup = CatalogSetup(ws)
         self._reconcile_config = reconcile_config
-        self._recon_catalog = reconcile_config.metrics.catalog
-        self._recon_schema = reconcile_config.metrics.schema
+        self._recon_catalog = reconcile_config.metadata_config.catalog
+        self._recon_schema = reconcile_config.metadata_config.schema
 
     def configure_catalog(self):
         try:
@@ -422,29 +422,29 @@ class WorkspaceInstallation:
 
     def _create_recon_volume(self):
         all_volumes = self._ws.volumes.list(
-            self._config.reconcile.metrics.catalog,
-            self._config.reconcile.metrics.schema,
+            self._config.reconcile.metadata_config.catalog,
+            self._config.reconcile.metadata_config.schema,
         )
 
         recon_volume_exists = False
         for volume in all_volumes:
-            if volume.name == self._config.reconcile.metrics.volume:
+            if volume.name == self._config.reconcile.metadata_config.volume:
                 recon_volume_exists = True
                 break
 
         if not recon_volume_exists:
             logger.info("Creating Reconciliation Volume")
             self._ws.volumes.create(
-                self._config.reconcile.metrics.catalog,
-                self._config.reconcile.metrics.schema,
-                self._config.reconcile.metrics.volume,
+                self._config.reconcile.metadata_config.catalog,
+                self._config.reconcile.metadata_config.schema,
+                self._config.reconcile.metadata_config.volume,
                 VolumeType.MANAGED,
             )
 
     def _create_recon_dashboard(self):
         dashboard_params = {
-            "catalog": self._config.reconcile.metrics.catalog,
-            "schema": self._config.reconcile.metrics.schema,
+            "catalog": self._config.reconcile.metadata_config.catalog,
+            "schema": self._config.reconcile.metadata_config.schema,
         }
 
         recon_dashboard_path = "dashboards/Remorph-Reconciliation.lvdash.json"

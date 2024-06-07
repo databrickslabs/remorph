@@ -5,7 +5,7 @@ from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.functions import col, collect_list, create_map, lit
 from sqlglot import Dialect
 
-from databricks.labs.remorph.config import DatabaseConfig, Table, get_key_form_dialect
+from databricks.labs.remorph.config import DatabaseConfig, Table, get_key_form_dialect, ReconcileMetadataConfig
 from databricks.labs.remorph.reconcile.exception import WriteToTableException
 from databricks.labs.remorph.reconcile.recon_config import (
     DataReconcileOutput,
@@ -19,9 +19,9 @@ from databricks.sdk import WorkspaceClient
 
 logger = logging.getLogger(__name__)
 
-_REMORPH_CATALOG = "remorph"
-_RECONCILE_SCHEMA = "reconcile"
-_DB_PREFIX = f"{_REMORPH_CATALOG}.{_RECONCILE_SCHEMA}"
+# _REMORPH_CATALOG = "remorph"
+# _RECONCILE_SCHEMA = "reconcile"
+# _DB_PREFIX = f"{_REMORPH_CATALOG}.{_RECONCILE_SCHEMA}"
 _RECON_TABLE_NAME = "main"
 _RECON_METRICS_TABLE_NAME = "metrics"
 _RECON_DETAILS_TABLE_NAME = "details"
@@ -38,7 +38,14 @@ def _write_df_to_delta(df: DataFrame, table_name: str, mode="append"):
         raise WriteToTableException(message) from e
 
 
-def generate_final_reconcile_output(recon_id: str, spark: SparkSession) -> ReconcileOutput:
+def _get_db_prefix(metrics: ReconcileMetadataConfig) -> str:
+    return f"{metrics.catalog}.{metrics.schema}"
+
+
+def generate_final_reconcile_output(
+    recon_id: str, spark: SparkSession, metadata_config: ReconcileMetadataConfig
+) -> ReconcileOutput:
+    _db_prefix = _get_db_prefix(metadata_config)
     recon_df = spark.sql(
         f"""
     SELECT 
@@ -67,9 +74,9 @@ def generate_final_reconcile_output(recon_id: str, spark: SparkSession) -> Recon
     ELSE NULL END AS SCHEMA,
     METRICS.run_metrics.exception_message AS EXCEPTION_MESSAGE 
     FROM 
-        {_DB_PREFIX}.{_RECON_TABLE_NAME} MAIN 
+        {_db_prefix}.{_RECON_TABLE_NAME} MAIN 
     INNER JOIN 
-        {_DB_PREFIX}.{_RECON_METRICS_TABLE_NAME} METRICS 
+        {_db_prefix}.{_RECON_METRICS_TABLE_NAME} METRICS 
     ON 
         (MAIN.recon_table_id = METRICS.recon_table_id) 
     WHERE 
@@ -111,6 +118,7 @@ class ReconCapture:
         source_dialect: Dialect,
         ws: WorkspaceClient,
         spark: SparkSession,
+        metadata_config=ReconcileMetadataConfig(),
     ):
         self.database_config = database_config
         self.recon_id = recon_id
@@ -118,6 +126,7 @@ class ReconCapture:
         self.source_dialect = source_dialect
         self.ws = ws
         self.spark = spark
+        self._db_prefix = _get_db_prefix(metadata_config)
 
     def _generate_recon_main_id(
         self,
@@ -165,7 +174,7 @@ class ReconCapture:
                 cast('{recon_process_duration.end_ts}' as timestamp) as end_ts
             """
         )
-        _write_df_to_delta(df, f"{_DB_PREFIX}.{_RECON_TABLE_NAME}")
+        _write_df_to_delta(df, f"{self._db_prefix}.{_RECON_TABLE_NAME}")
 
     def _insert_into_metrics_table(
         self,
@@ -223,7 +232,7 @@ class ReconCapture:
                 cast('{insertion_time}' as timestamp) as inserted_ts
             """
         )
-        _write_df_to_delta(df, f"{_DB_PREFIX}.{_RECON_METRICS_TABLE_NAME}")
+        _write_df_to_delta(df, f"{self._db_prefix}.{_RECON_METRICS_TABLE_NAME}")
 
     @classmethod
     def _create_map_column(
@@ -260,7 +269,7 @@ class ReconCapture:
         status: bool,
     ) -> None:
         df = self._create_map_column(recon_table_id, df, recon_type, status)
-        _write_df_to_delta(df, f"{_DB_PREFIX}.{_RECON_DETAILS_TABLE_NAME}")
+        _write_df_to_delta(df, f"{self._db_prefix}.{_RECON_DETAILS_TABLE_NAME}")
 
     def _insert_into_details_table(
         self,

@@ -153,10 +153,10 @@ def test_install(ws, mock_installation_state):
     assert config.mode == "current"
 
     assert reconcile_config.data_source == "snowflake"
-    assert reconcile_config.config.source_catalog == "snowflake_sample_data"
-    assert reconcile_config.config.source_schema == "tpch_sf1000"
-    assert reconcile_config.config.target_catalog == "tpch"
-    assert reconcile_config.config.target_schema == "1000gb"
+    assert reconcile_config.database_config.source_catalog == "snowflake_sample_data"
+    assert reconcile_config.database_config.source_schema == "tpch_sf1000"
+    assert reconcile_config.database_config.target_catalog == "tpch"
+    assert reconcile_config.database_config.target_schema == "1000gb"
     assert reconcile_config.report_type == "all"
     assert reconcile_config.secret_scope == "remorph_snowflake"
     assert reconcile_config.tables is None
