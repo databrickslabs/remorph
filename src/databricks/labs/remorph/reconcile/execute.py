@@ -88,7 +88,7 @@ def trigger_recon() -> None:
         logger.info(f"recon_output: {recon_output}")
         logger.info(f"recon_id: {recon_output.recon_id}")
     except ReconciliationException as e:
-        logger.error(f"Error while running recon: {e}")
+        logger.error(f"Error while running recon: {e.reconcile_output}")
         raise e
 
 
