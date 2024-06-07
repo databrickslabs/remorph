@@ -1,14 +1,16 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser._
-import com.databricks.labs.remorph.parsers.{FunctionBuilder, IncompleteParser, ParserCommon, intermediate => ir}
+import com.databricks.labs.remorph.parsers.{IncompleteParser, ParserCommon, intermediate => ir}
 import org.antlr.v4.runtime.Token
 
 import scala.collection.JavaConverters._
-class SnowflakeExpressionBuilder(functionBuilder: FunctionBuilder)
+class SnowflakeExpressionBuilder()
     extends SnowflakeParserBaseVisitor[ir.Expression]
     with ParserCommon[ir.Expression]
     with IncompleteParser[ir.Expression] {
+
+  private val functionBuilder = new SnowflakeFunctionBuilder
 
   protected override def wrapUnresolvedInput(unparsedInput: String): ir.UnresolvedExpression =
     ir.UnresolvedExpression(unparsedInput)

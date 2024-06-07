@@ -3687,11 +3687,11 @@ subquery
     ;
 
 withExpression
-    : WITH ctes += commonTableExpression (COMMA ctes += commonTableExpression)*
+    : WITH commonTableExpression (COMMA commonTableExpression)*
     ;
 
 commonTableExpression
-    : expressionName = id (LPAREN columns = columnNameList RPAREN)? AS LPAREN cteQuery = selectStatement RPAREN
+    : id (LPAREN columnNameList RPAREN)? AS LPAREN selectStatement RPAREN
     ;
 
 updateElem
@@ -4294,7 +4294,7 @@ insertColumnId
     ;
 
 columnNameList
-    : col += id (COMMA col += id)*
+    : id (COMMA id)*
     ;
 
 cursorName

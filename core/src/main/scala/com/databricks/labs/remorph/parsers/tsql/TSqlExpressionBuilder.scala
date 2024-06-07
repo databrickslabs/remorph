@@ -7,9 +7,9 @@ import org.antlr.v4.runtime.tree.{TerminalNode, Trees}
 
 import scala.collection.JavaConverters._
 
-class TSqlExpressionBuilder(functionBuilder: TSqlFunctionBuilder)
-    extends TSqlParserBaseVisitor[ir.Expression]
-    with ParserCommon[ir.Expression] {
+class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with ParserCommon[ir.Expression] {
+
+  private val functionBuilder = new TSqlFunctionBuilder
 
   private val dataTypeBuilder: DataTypeBuilder = new DataTypeBuilder
 

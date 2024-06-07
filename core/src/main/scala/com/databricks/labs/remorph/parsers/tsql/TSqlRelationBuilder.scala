@@ -1,5 +1,6 @@
 package com.databricks.labs.remorph.parsers.tsql
 
+import com.databricks.labs.remorph.parsers.intermediate.Relation
 import com.databricks.labs.remorph.parsers.tsql.TSqlParser._
 import com.databricks.labs.remorph.parsers.{intermediate => ir}
 
@@ -7,10 +8,25 @@ import scala.collection.JavaConverters.asScalaBufferConverter
 
 class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.Relation] {
 
-  override def visitSelectStatementStandalone(ctx: TSqlParser.SelectStatementStandaloneContext): ir.Relation = {
+  private val expressionBuilder = new TSqlExpressionBuilder
 
-    // TODO: Process ctx.WithExpression
-    ctx.selectStatement().accept(this)
+  override def visitCommonTableExpression(ctx: CommonTableExpressionContext): Relation = {
+    val tableName = ctx.id().getText
+    // Column list can be empty if the select specifies distinct column names
+    val columns =
+      Option(ctx.columnNameList()).map(_.id().asScala.map(id => ir.Column(id.getText))).getOrElse(List.empty)
+    val query = ctx.selectStatement().accept(this)
+    ir.CTEDefinition(tableName, columns, query)
+  }
+
+  override def visitSelectStatementStandalone(ctx: TSqlParser.SelectStatementStandaloneContext): ir.Relation = {
+    val query = ctx.selectStatement().accept(this)
+    Option(ctx.withExpression())
+      .map { withExpression =>
+        val ctes = withExpression.commonTableExpression().asScala.map(_.accept(this))
+        ir.WithCTE(ctes, query)
+      }
+      .getOrElse(query)
   }
 
   override def visitSelectStatement(ctx: TSqlParser.SelectStatementContext): ir.Relation = {
@@ -26,8 +42,8 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.Relation] {
     // TODO: Process all the other elements of a query specification
 
     val columns =
-      ctx.selectListElem().asScala.map(_.accept(new TSqlExpressionBuilder(new TSqlFunctionBuilder)))
-    val from = Option(ctx.tableSources()).map(_.accept(new TSqlRelationBuilder)).getOrElse(ir.NoTable)
+      ctx.selectListElem().asScala.map(_.accept(expressionBuilder))
+    val from = Option(ctx.tableSources()).map(_.accept(this)).getOrElse(ir.NoTable)
     // Note that ALL is the default so we don't need to check for it
     ctx match {
       case c if c.DISTINCT() != null =>
@@ -100,7 +116,7 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.Relation] {
   private def buildJoin(left: ir.Relation, right: JoinPartContext): ir.Join = {
     val joinExpression = right.joinOn()
     val rightRelation = joinExpression.tableSource().accept(this)
-    val joinCondition = joinExpression.searchCondition().accept(new TSqlExpressionBuilder(new TSqlFunctionBuilder))
+    val joinCondition = joinExpression.searchCondition().accept(expressionBuilder)
 
     ir.Join(
       left,
