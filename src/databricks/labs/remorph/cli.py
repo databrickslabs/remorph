@@ -90,7 +90,7 @@ def reconcile(w: WorkspaceClient):
 
     reconcile_config = None
     try:
-        logger.debug("Loading ReconcileConfig `reconcile.yml` from Databricks Workspace...")
+        logger.info("Loading ReconcileConfig `reconcile.yml` from Databricks Workspace...")
         reconcile_config = installation.load(ReconcileConfig)
     except NotFound as err:
         logger.warning(f"Cannot find previous `reconcile` installation: {err}")
@@ -121,7 +121,7 @@ def reconcile(w: WorkspaceClient):
     filename = f"recon_config_{reconcile_config.data_source}_{catalog_or_schema}_{reconcile_config.report_type}.json"
 
     try:
-        logger.debug(f"Loading TableRecon `{filename}` from Databricks Workspace...")
+        logger.info(f"Loading TableRecon `{filename}` from Databricks Workspace...")
         table_recon = installation.load(type_ref=TableRecon, filename=filename)
     except NotFound as err:
         logger.error(f"Cannot find previous `reconcile` installation: {err}")

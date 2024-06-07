@@ -5,7 +5,7 @@ from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.functions import col, collect_list, create_map, lit
 from sqlglot import Dialect
 
-from databricks.labs.remorph.config import DatabaseConfig, Table, get_key_form_dialect
+from databricks.labs.remorph.config import DatabaseConfig, Table, get_key_form_dialect, ReconcileMetricsConfig
 from databricks.labs.remorph.reconcile.exception import WriteToTableException
 from databricks.labs.remorph.reconcile.recon_config import (
     DataReconcileOutput,
@@ -19,9 +19,6 @@ from databricks.sdk import WorkspaceClient
 
 logger = logging.getLogger(__name__)
 
-_REMORPH_CATALOG = "remorph"
-_RECONCILE_SCHEMA = "reconcile"
-_DB_PREFIX = f"{_REMORPH_CATALOG}.{_RECONCILE_SCHEMA}"
 _RECON_TABLE_NAME = "main"
 _RECON_METRICS_TABLE_NAME = "metrics"
 _RECON_DETAILS_TABLE_NAME = "details"
@@ -38,24 +35,37 @@ def _write_df_to_delta(df: DataFrame, table_name: str, mode="append"):
         raise WriteToTableException(message) from e
 
 
-def generate_final_reconcile_output(recon_id: str, spark: SparkSession) -> ReconcileOutput:
+def _get_db_prefix(metrics: ReconcileMetricsConfig) -> str:
+    return f"{metrics.catalog}.{metrics.schema}"
+
+
+def generate_final_reconcile_output(
+    recon_id: str, spark: SparkSession, metrics: ReconcileMetricsConfig = ReconcileMetricsConfig()
+) -> ReconcileOutput:
+    db_prefix = _get_db_prefix(metrics)
     recon_df = spark.sql(
         f"""
     SELECT 
     CASE 
-        WHEN COALESCE(MAIN.SOURCE_TABLE.CATALOG, '') <> '' THEN CONCAT(MAIN.SOURCE_TABLE.CATALOG, '.', MAIN.SOURCE_TABLE.SCHEMA, '.', MAIN.SOURCE_TABLE.TABLE_NAME) 
+        WHEN COALESCE(MAIN.SOURCE_TABLE.CATALOG, '') <> '' THEN 
+        CONCAT(MAIN.SOURCE_TABLE.CATALOG, '.', MAIN.SOURCE_TABLE.SCHEMA, '.', MAIN.SOURCE_TABLE.TABLE_NAME) 
         ELSE CONCAT(MAIN.SOURCE_TABLE.SCHEMA, '.', MAIN.SOURCE_TABLE.TABLE_NAME) 
     END AS SOURCE_TABLE, 
     CONCAT(MAIN.TARGET_TABLE.CATALOG, '.', MAIN.TARGET_TABLE.SCHEMA, '.', MAIN.TARGET_TABLE.TABLE_NAME) AS TARGET_TABLE, 
     CASE WHEN lower(MAIN.report_type) in ('all', 'row', 'data') THEN
     CASE 
-        WHEN METRICS.recon_metrics.row_comparison.missing_in_source = 0 AND METRICS.recon_metrics.row_comparison.missing_in_target = 0 THEN TRUE 
+        WHEN METRICS.recon_metrics.row_comparison.missing_in_source = 0 AND
+         METRICS.recon_metrics.row_comparison.missing_in_target = 0 
+         THEN TRUE 
         ELSE FALSE 
     END 
     ELSE NULL END AS ROW, 
     CASE WHEN lower(MAIN.report_type) in ('all', 'data') THEN
     CASE 
-        WHEN METRICS.recon_metrics.column_comparison.absolute_mismatch = 0 AND METRICS.recon_metrics.column_comparison.threshold_mismatch = 0 AND METRICS.recon_metrics.column_comparison.mismatch_columns = '' THEN TRUE 
+        WHEN METRICS.recon_metrics.column_comparison.absolute_mismatch = 0 AND
+         METRICS.recon_metrics.column_comparison.threshold_mismatch = 0 AND
+          METRICS.recon_metrics.column_comparison.mismatch_columns = '' 
+          THEN TRUE 
         ELSE FALSE 
     END 
     ELSE NULL END AS COLUMN, 
@@ -67,9 +77,9 @@ def generate_final_reconcile_output(recon_id: str, spark: SparkSession) -> Recon
     ELSE NULL END AS SCHEMA,
     METRICS.run_metrics.exception_message AS EXCEPTION_MESSAGE 
     FROM 
-        {_DB_PREFIX}.{_RECON_TABLE_NAME} MAIN 
+        {db_prefix}.{_RECON_TABLE_NAME} MAIN 
     INNER JOIN 
-        {_DB_PREFIX}.{_RECON_METRICS_TABLE_NAME} METRICS 
+        {db_prefix}.{_RECON_METRICS_TABLE_NAME} METRICS 
     ON 
         (MAIN.recon_table_id = METRICS.recon_table_id) 
     WHERE 
@@ -111,6 +121,7 @@ class ReconCapture:
         source_dialect: Dialect,
         ws: WorkspaceClient,
         spark: SparkSession,
+        metrics_config=ReconcileMetricsConfig(),
     ):
         self.database_config = database_config
         self.recon_id = recon_id
@@ -118,6 +129,7 @@ class ReconCapture:
         self.source_dialect = source_dialect
         self.ws = ws
         self.spark = spark
+        self._db_prefix = _get_db_prefix(metrics_config)
 
     def _generate_recon_main_id(
         self,
@@ -151,7 +163,9 @@ class ReconCapture:
                     else '{source_dialect_key}'
                 end as source_type,
                 named_struct(
-                    'catalog', case when '{self.database_config.source_catalog}' = 'None' then null else '{self.database_config.source_catalog}' end, 
+                    'catalog', case when '{self.database_config.source_catalog}' = 'None' 
+                    then null
+                     else '{self.database_config.source_catalog}' end, 
                     'schema', '{self.database_config.source_schema}', 
                     'table_name', '{table_conf.source_name}'
                 ) as source_table,
@@ -165,7 +179,7 @@ class ReconCapture:
                 cast('{recon_process_duration.end_ts}' as timestamp) as end_ts
             """
         )
-        _write_df_to_delta(df, f"{_DB_PREFIX}.{_RECON_TABLE_NAME}")
+        _write_df_to_delta(df, f"{self._db_prefix}.{_RECON_TABLE_NAME}")
 
     def _insert_into_metrics_table(
         self,
@@ -223,7 +237,7 @@ class ReconCapture:
                 cast('{insertion_time}' as timestamp) as inserted_ts
             """
         )
-        _write_df_to_delta(df, f"{_DB_PREFIX}.{_RECON_METRICS_TABLE_NAME}")
+        _write_df_to_delta(df, f"{self._db_prefix}.{_RECON_METRICS_TABLE_NAME}")
 
     @classmethod
     def _create_map_column(
@@ -260,7 +274,7 @@ class ReconCapture:
         status: bool,
     ) -> None:
         df = self._create_map_column(recon_table_id, df, recon_type, status)
-        _write_df_to_delta(df, f"{_DB_PREFIX}.{_RECON_DETAILS_TABLE_NAME}")
+        _write_df_to_delta(df, f"{self._db_prefix}.{_RECON_DETAILS_TABLE_NAME}")
 
     def _insert_into_details_table(
         self,

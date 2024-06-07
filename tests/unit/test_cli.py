@@ -11,6 +11,7 @@ from databricks.labs.remorph.config import MorphConfig
 from databricks.labs.remorph.helpers.recon_config_utils import ReconConfigPrompts
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.errors import NotFound
+from databricks.labs.blueprint.installation import MockInstallation
 
 
 @pytest.fixture
@@ -79,6 +80,59 @@ def temp_dirs_for_lineage(tmpdir):
     sample_sql_file.write(sample_sql_content)
 
     return input_dir, output_dir
+
+
+@pytest.fixture
+def mock_installation_reconcile():
+    return MockInstallation(
+        {
+            "reconcile.yml": {
+                "data_source": "snowflake",
+                "config": {
+                    "source_catalog": "sf_functions_test",
+                    "source_schema": "mock",
+                    "target_catalog": "hive_metastore",
+                    "target_schema": "default",
+                },
+                "report_type": "all",
+                "secret_scope": "remorph_snowflake",
+                "tables": {
+                    "filter_type": "include",
+                    "tables_list": ["product"],
+                },
+                "version": 1,
+            },
+            "recon_config_snowflake_sf_functions_test_include.json": {
+                "source_catalog": "sf_functions_test",
+                "source_schema": "mock",
+                "tables": [
+                    {
+                        "column_mapping": [
+                            {"source_name": "p_id", "target_name": "product_id"},
+                            {"source_name": "p_name", "target_name": "product_name"},
+                        ],
+                        "drop_columns": None,
+                        "filters": None,
+                        "jdbc_reader_options": None,
+                        "join_columns": ["p_id"],
+                        "select_columns": ["p_id", "p_name"],
+                        "source_name": "product",
+                        "target_name": "product_delta",
+                        "thresholds": None,
+                        "transformations": [
+                            {
+                                "column_name": "creation_date",
+                                "source": "creation_date",
+                                "target": "to_date(creation_date,'yyyy-mm-dd')",
+                            }
+                        ],
+                    }
+                ],
+                "target_catalog": "hive_metastore",
+                "target_schema": "default",
+            },
+        }
+    )
 
 
 def test_transpile_with_invalid_dialect(mock_workspace_client_cli):

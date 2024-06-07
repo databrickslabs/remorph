@@ -413,6 +413,7 @@ def test_save_reconcile_config(ws, mock_installation_state, monkeypatch):
             "report_type": "all",
             "secret_scope": "remorph_snowflake",
             "version": 1,
+            "metrics": {"catalog": "remorph", "schema": "reconcile", "volume": "recon_volume"},
         },
     )
 

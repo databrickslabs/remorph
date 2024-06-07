@@ -10,7 +10,6 @@ from databricks.labs.remorph.config import (
     DatabaseConfig,
     TableRecon,
     get_dialect,
-    get_key_form_dialect,
     ReconcileConfig,
 )
 from databricks.labs.remorph.reconcile.compare import (
@@ -84,8 +83,7 @@ def trigger_recon() -> None:
             ws=w,
             spark=DatabricksSession.builder.getOrCreate(),
             table_recon=table_recon,
-            source_dialect=get_dialect(reconcile_config.data_source),
-            report_type=reconcile_config.report_type,
+            reconcile_config=reconcile_config,
         )
         print(recon_output)
         print(recon_output.recon_id)
@@ -97,8 +95,7 @@ def recon(
     ws: WorkspaceClient,
     spark: SparkSession,
     table_recon: TableRecon,
-    source_dialect: Dialect,
-    report_type: str,
+    reconcile_config: ReconcileConfig,
 ) -> ReconcileOutput:
     """[EXPERIMENTAL] Reconcile the data between the source and target tables."""
     # verify the workspace client and add proper product and version details
@@ -108,23 +105,18 @@ def recon(
 
     ws_client: WorkspaceClient = verify_workspace_client(ws)
 
+    source_dialect = get_dialect(reconcile_config.data_source)
+
     # validate the report type
-    report_type = report_type.lower()
+    report_type = reconcile_config.report_type
     logger.info(report_type)
     validate_input(report_type, {"schema", "data", "row", "all"}, "Invalid report type")
-
-    database_config = DatabaseConfig(
-        source_catalog=table_recon.source_catalog,
-        source_schema=table_recon.source_schema,
-        target_catalog=table_recon.target_catalog,
-        target_schema=table_recon.target_schema,
-    )
 
     source, target = initialise_data_source(
         engine=source_dialect,
         spark=spark,
         ws=ws_client,
-        secret_scope=f"remorph_{get_key_form_dialect(source_dialect)}",
+        secret_scope=reconcile_config.secret_scope,
     )
 
     recon_id = str(uuid4())
@@ -132,7 +124,7 @@ def recon(
     reconciler = Reconciliation(
         source,
         target,
-        database_config,
+        reconcile_config.config,
         report_type,
         SchemaCompare(spark=spark),
         source_dialect,
@@ -140,12 +132,13 @@ def recon(
 
     # initialise the recon capture class
     recon_capture = ReconCapture(
-        database_config=database_config,
+        database_config=reconcile_config.config,
         recon_id=recon_id,
         report_type=report_type,
         source_dialect=source_dialect,
         ws=ws_client,
         spark=spark,
+        metrics_config=reconcile_config.metrics,
     )
 
     for table_conf in table_recon.tables:
@@ -154,7 +147,7 @@ def recon(
         data_reconcile_output = DataReconcileOutput()
         try:
             src_schema, tgt_schema = _get_schema(
-                source=source, target=target, table_conf=table_conf, database_config=database_config
+                source=source, target=target, table_conf=table_conf, database_config=reconcile_config.config
             )
         except DataSourceRuntimeException as e:
             schema_reconcile_output = SchemaReconcileOutput(is_valid=False, exception=str(e))
@@ -182,6 +175,7 @@ def recon(
         generate_final_reconcile_output(
             recon_id=recon_id,
             spark=spark,
+            metrics=reconcile_config.metrics,
         )
     )
 
