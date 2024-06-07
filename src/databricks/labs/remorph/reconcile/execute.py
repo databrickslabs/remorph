@@ -28,6 +28,7 @@ from databricks.labs.remorph.reconcile.query_builder.threshold_query import (
 from databricks.labs.remorph.reconcile.recon_capture import (
     ReconCapture,
     generate_final_reconcile_output,
+    clean_unmatched_df_from_volume,
 )
 from databricks.labs.remorph.reconcile.recon_config import (
     DataReconcileOutput,
@@ -44,6 +45,10 @@ from databricks.sdk import WorkspaceClient
 
 logger = logging.getLogger(__name__)
 _SAMPLE_ROWS = 50
+_REMORPH_CATALOG = "remorph"
+_RECONCILE_SCHEMA = "reconcile"
+_RECONCILE_VOLUME = "recon_volume"
+_DB_PREFIX = f"{_REMORPH_CATALOG}.{_RECONCILE_SCHEMA}"
 
 
 def validate_input(input_value: str, list_of_value: set, message: str):
@@ -96,6 +101,7 @@ def recon(
         report_type,
         SchemaCompare(spark=spark),
         source_dialect,
+        spark,
     )
 
     # initialise the recon capture class
@@ -123,11 +129,13 @@ def recon(
                 schema_reconcile_output = _run_reconcile_schema(
                     reconciler=reconciler, table_conf=table_conf, src_schema=src_schema, tgt_schema=tgt_schema
                 )
+                logger.warning("Schema comparison is completed successfully.")
 
             if report_type in {"data", "row", "all"}:
                 data_reconcile_output = _run_reconcile_data(
                     reconciler=reconciler, table_conf=table_conf, src_schema=src_schema, tgt_schema=tgt_schema
                 )
+                logger.warning(f"Reconciliation for '{report_type}' report completed successfully.")
 
         recon_process_duration.end_ts = str(datetime.now())
         # Persist the data to the delta tables
@@ -137,6 +145,8 @@ def recon(
             table_conf=table_conf,
             recon_process_duration=recon_process_duration,
         )
+        if report_type != "schema":
+            clean_unmatched_df_from_volume(workspace_client=ws, path=generate_volume_path(table_conf))
 
     return _verify_successful_reconciliation(
         generate_final_reconcile_output(
@@ -160,6 +170,12 @@ def _verify_successful_reconciliation(reconcile_output: ReconcileOutput) -> Reco
 
     logger.info("Reconciliation completed successfully.")
     return reconcile_output
+
+
+def generate_volume_path(table_conf: Table):
+    catalog = _DB_PREFIX.split(".")[0]
+    schema = _DB_PREFIX.split(".")[1]
+    return f"/Volumes/{catalog}/{schema}/{_RECONCILE_VOLUME}/{table_conf.source_name}_{table_conf.target_name}/"
 
 
 def initialise_data_source(
@@ -202,6 +218,7 @@ class Reconciliation:
         report_type: str,
         schema_comparator: SchemaCompare,
         source_engine: Dialect,
+        spark: SparkSession,
     ):
         self._source = source
         self._target = target
@@ -213,6 +230,7 @@ class Reconciliation:
         self._schema_comparator = schema_comparator
         self._target_engine = get_dialect("databricks")
         self._source_engine = source_engine
+        self._spark = spark
 
     def reconcile_data(
         self,
@@ -267,8 +285,14 @@ class Reconciliation:
             options=table_conf.jdbc_reader_options,
         )
 
+        volume_path = generate_volume_path(table_conf)
         return reconcile_data(
-            source=src_data, target=tgt_data, key_columns=table_conf.join_columns, report_type=self._report_type
+            source=src_data,
+            target=tgt_data,
+            key_columns=table_conf.join_columns,
+            report_type=self._report_type,
+            spark=self._spark,
+            path=volume_path,
         )
 
     def _get_sample_data(
@@ -434,7 +458,6 @@ def _get_schema(
     table_conf: Table,
     database_config: DatabaseConfig,
 ) -> tuple[list[Schema], list[Schema]]:
-
     src_schema = source.get_schema(
         catalog=database_config.source_catalog,
         schema=database_config.source_schema,

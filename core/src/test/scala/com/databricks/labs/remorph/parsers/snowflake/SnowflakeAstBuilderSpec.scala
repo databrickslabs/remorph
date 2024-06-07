@@ -15,8 +15,8 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
   "SnowflakeVisitor" should {
     "translate a simple SELECT query" in {
       singleQueryExample(
-        query = "SELECT a FROM b",
-        expectedAst = Project(NamedTable("b", Map.empty, is_streaming = false), Seq(Column("a"))))
+        query = "SELECT a FROM TABLE",
+        expectedAst = Project(NamedTable("TABLE", Map.empty, is_streaming = false), Seq(Column("a"))))
     }
 
     "translate a simple SELECT query with an aliased column" in {
