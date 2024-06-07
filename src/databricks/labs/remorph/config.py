@@ -121,7 +121,7 @@ class ReconcileConfig:
     secret_scope: str
     database_config: DatabaseConfig
     metadata_config: ReconcileMetadataConfig
-    job_id: int = 0
+    job_id: str | None = None
     tables: ReconcileTablesConfig | None = None
 
 

@@ -56,6 +56,9 @@ dependencies = [
   "mypy~=1.10.0",
 ]
 
+[project.entry-points.databricks]
+trigger_recon = "databricks.labs.remorph.reconcile.execute:trigger_recon"
+
 [tool.hatch.envs.default.scripts]
 test        = "pytest --cov src --cov-report=xml tests/unit"
 coverage    = "pytest --cov src tests/unit --cov-report=html"

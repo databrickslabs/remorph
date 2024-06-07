@@ -18,7 +18,7 @@ from databricks.labs.blueprint.tui import Prompts
 from databricks.labs.blueprint.wheels import ProductInfo
 
 from databricks.labs.remorph.helpers import db_sql
-from databricks.labs.remorph.helpers.deployment import TableDeployer
+from databricks.labs.remorph.helpers.deployment import TableDeployer, JobDeployer
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.errors import NotFound
 from databricks.sdk.errors import PermissionDenied
@@ -73,6 +73,7 @@ class WorkspaceInstaller:
         )
         try:
             workspace_installation.run()
+            self._save_configs(configs)
         except ManyError as err:
             if len(err.errs) == 1:
                 raise err.errs[0] from None
@@ -134,8 +135,6 @@ class WorkspaceInstaller:
             },
         )
         configs = function_to_call()
-        self._save_configs(configs)
-
         return configs
 
 
@@ -430,10 +429,11 @@ class WorkspaceInstallation:
         for volume in all_volumes:
             if volume.name == self._config.reconcile.metadata_config.volume:
                 recon_volume_exists = True
+                logger.info("Reconciliation Volume already exists.")
                 break
 
         if not recon_volume_exists:
-            logger.info("Creating Reconciliation Volume")
+            logger.info("Creating Reconciliation Volume.")
             self._ws.volumes.create(
                 self._config.reconcile.metadata_config.catalog,
                 self._config.reconcile.metadata_config.schema,
@@ -458,15 +458,20 @@ class WorkspaceInstallation:
         setup = ReconciliationMetadataSetup(self._ws, self._config.reconcile)
         setup.run()
 
+    def _deploy_recon_job(self):
+        job_deployer = JobDeployer(self._ws, self._product_info)
+        job_id = job_deployer.deploy_job()
+        self._config.reconcile.job_id = job_id
+
     def run(self):
         logger.info(f"Installing Remorph v{self._product_info.version()}")
         if self._config.reconcile:
-            recon_install_tasks = [
-                self._configure_recon_metadata,
-                self._create_recon_volume,
-                self._create_recon_dashboard,
-            ]
-            Threads.strict("Installing Recon components", recon_install_tasks)
+            logger.info("Installing Reconcile components.")
+            self._configure_recon_metadata()
+            self._create_recon_volume()
+            self._create_recon_dashboard()
+            self._deploy_recon_job()
+
         logger.info("Installation completed successfully! Please refer to the documentation for the next steps.")
 
 
