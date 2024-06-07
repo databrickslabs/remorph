@@ -36,6 +36,7 @@ tSqlFile
     : batch? EOF
     ;
 
+// TODO: Simplify this
 batch
     : goStatement
     | executeBodyBatch? (goStatement | sqlClauses+) goStatement*
@@ -59,7 +60,6 @@ sqlClauses
     | SEMI
     ;
 
-// Data Manipulation Language: https://msdn.microsoft.com/en-us/library/ff848766(v=sql.120).aspx
 dmlClause
     : mergeStatement
     | deleteStatement
@@ -68,7 +68,6 @@ dmlClause
     | updateStatement
     ;
 
-// Data Definition Language: https://msdn.microsoft.com/en-us/library/ff848799.aspx)
 ddlClause
     : alterApplicationRole
     | alterAssembly
@@ -245,7 +244,6 @@ backupStatement
     | backupServiceMasterKey
     ;
 
-// Control-of-Flow Language: https://docs.microsoft.com/en-us/sql/t-sql/language-elements/control-of-flow
 cflStatement
     : blockStatement
     | breakStatement
@@ -261,38 +259,31 @@ cflStatement
     | whileStatement
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/language-elements/begin-end-transact-sql
 blockStatement
     : BEGIN SEMI? sqlClauses* END SEMI?
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/language-elements/break-transact-sql
 breakStatement
     : BREAK SEMI?
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/language-elements/continue-transact-sql
 continueStatement
     : CONTINUE SEMI?
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/language-elements/goto-transact-sql
 gotoStatement
     : GOTO id SEMI?
     | id COLON SEMI?
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/language-elements/return-transact-sql
 returnStatement
     : RETURN expression? SEMI?
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/language-elements/if-else-transact-sql
 ifStatement
     : IF searchCondition sqlClauses (ELSE sqlClauses)? SEMI?
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/language-elements/throw-transact-sql
 throwStatement
     : THROW (throwErrorNumber COMMA throwMessage COMMA throwState)? SEMI?
     ;
@@ -312,27 +303,22 @@ throwState
     | LOCAL_ID
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/language-elements/try-catch-transact-sql
 tryCatchStatement
     : BEGIN TRY SEMI? tryClauses = sqlClauses+ END TRY SEMI? BEGIN CATCH SEMI? catchClauses = sqlClauses* END CATCH SEMI?
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/language-elements/waitfor-transact-sql
 waitforStatement
     : WAITFOR receiveStatement? COMMA? ((DELAY | TIME | TIMEOUT) time)? expression? SEMI?
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/language-elements/while-transact-sql
 whileStatement
     : WHILE searchCondition (sqlClauses | BREAK SEMI? | CONTINUE SEMI?)
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/language-elements/print-transact-sql
 printStatement
     : PRINT (expression | DOUBLE_QUOTE_ID) (COMMA LOCAL_ID)* SEMI?
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/language-elements/raiserror-transact-sql
 raiseerrorStatement
     : RAISERROR LPAREN msg = (INT | STRING | LOCAL_ID) COMMA severity = constant_LOCAL_ID COMMA state = constant_LOCAL_ID (
         COMMA (constant_LOCAL_ID | NULL_)
@@ -340,10 +326,6 @@ raiseerrorStatement
     | RAISERROR INT formatstring = (STRING | LOCAL_ID | DOUBLE_QUOTE_ID) (
         COMMA argument = (INT | STRING | LOCAL_ID)
     )*
-    ;
-
-emptyStatement
-    : SEMI
     ;
 
 anotherStatement
@@ -366,7 +348,6 @@ anotherStatement
     | useStatement
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-application-role-transact-sql
 alterApplicationRole
     : ALTER APPLICATION ROLE applictionRole = id WITH (
         COMMA? NAME EQ newApplicationRoleName = id
@@ -375,7 +356,6 @@ alterApplicationRole
     )?
     ;
 
-// https://learn.microsoft.com/en-us/sql/t-sql/statements/alter-xml-schema-collection-transact-sql?view=sql-server-ver16
 alterXmlSchemaCollection
     : ALTER XML SCHEMA COLLECTION (id DOT)? id ADD STRING
     ;
@@ -386,13 +366,10 @@ createApplicationRole
     )? (COMMA? DEFAULT_SCHEMA EQ appRoleDefaultSchema = id)?
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-aggregate-transact-sql
-
 dropAggregate
     : DROP AGGREGATE (IF EXISTS)? (schemaName = id DOT)? aggregateName = id
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-application-role-transact-sql
 dropApplicationRole
     : DROP APPLICATION ROLE rolename = id
     ;
@@ -438,7 +415,6 @@ alterAsssemblyAddClauseStart
     : ADD FILE FROM
     ;
 
-// need to implement
 alterAssemblyClientFileClause
     : alterAssemblyFileName (alterAssemblyAs id)?
     ;
@@ -447,7 +423,6 @@ alterAssemblyFileName
     : STRING
     ;
 
-//need to implement
 alterAssemblyFileBits
     : alterAssemblyAs id
     ;
@@ -507,19 +482,15 @@ multipleLocalFileStart
     : SINGLE_QUOTE
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/create-assembly-transact-sql
 createAssembly
     : CREATE ASSEMBLY assemblyName = id (AUTHORIZATION ownerName = id)? FROM (
         COMMA? (STRING | HEX)
     )+ (WITH PERMISSION_SET EQ (SAFE | EXTERNAL_ACCESS | UNSAFE))?
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-assembly-transact-sql
 dropAssembly
     : DROP ASSEMBLY (IF EXISTS)? (COMMA? assemblyName = id)+ (WITH NO DEPENDENTS)?
     ;
-
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-asymmetric-key-transact-sql
 
 alterAsymmetricKey
     : alterAsymmetricKeyStart Asym_Key_Name = id (asymmetricKeyOption | REMOVE PRIVATE KEY)
@@ -544,8 +515,6 @@ asymmetricKeyPasswordChangeOption
     | ENCRYPTION BY PASSWORD EQ STRING
     ;
 
-//https://docs.microsoft.com/en-us/sql/t-sql/statements/create-asymmetric-key-transact-sql
-
 createAsymmetricKey
     : CREATE ASYMMETRIC KEY Asym_Key_Nam = id (AUTHORIZATION databasePrincipalName = id)? (
         FROM (
@@ -563,12 +532,9 @@ createAsymmetricKey
     )? (ENCRYPTION BY PASSWORD EQ asymmetricKeyPassword = STRING)?
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-asymmetric-key-transact-sql
 dropAsymmetricKey
     : DROP ASYMMETRIC KEY keyName = id (REMOVE PROVIDER KEY)?
     ;
-
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-authorization-transact-sql
 
 alterAuthorization
     : alterAuthorizationStart (classType colonColon)? entity = entityName entityTo authorizationGrantee
@@ -654,10 +620,6 @@ classTypeForParallelDw
     | OBJECT
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/grant-transact-sql?view=sql-server-ver15
-// SELECT DISTINCT '| ' + CLASS_DESC
-// FROM sys.dmAuditActions
-// ORDER BY 1
 classTypeForGrant
     : APPLICATION ROLE
     | ASSEMBLY
@@ -701,12 +663,10 @@ classTypeForGrant
     | XML SCHEMA COLLECTION
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-availability-group-transact-sql
 dropAvailabilityGroup
     : DROP AVAILABILITY GROUP groupName = id
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-availability-group-transact-sql
 alterAvailabilityGroup
     : alterAvailabilityGroupStart alterAvailabilityGroupOptions
     ;
@@ -814,8 +774,7 @@ ipV6_failover
     : STRING
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-broker-priority-transact-sql
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/create-broker-priority-transact-sql
+
 createOrAlterBrokerPriority
     : (CREATE | ALTER) BROKER PRIORITY ConversationPriorityName = id FOR CONVERSATION SET LPAREN (
         CONTRACT_NAME EQ ( ( id) | ANY) COMMA?
@@ -824,12 +783,10 @@ createOrAlterBrokerPriority
     )? (PRIORITY_LEVEL EQ ( PriorityValue = INT | DEFAULT))? RPAREN
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-broker-priority-transact-sql
 dropBrokerPriority
     : DROP BROKER PRIORITY ConversationPriorityName = id
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-certificate-transact-sql
 alterCertificate
     : ALTER CERTIFICATE certificateName = id (
         REMOVE PRIVATE_KEY
@@ -842,14 +799,12 @@ alterCertificate
     )
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-column-encryption-key-transact-sql
 alterColumnEncryptionKey
     : ALTER COLUMN ENCRYPTION KEY columnEncryptionKey = id (ADD | DROP) VALUE LPAREN COLUMN_MASTER_KEY EQ columnMasterKeyName = id (
         COMMA ALGORITHM EQ algorithmName = STRING COMMA ENCRYPTED_VALUE EQ HEX
     )? RPAREN
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/create-column-encryption-key-transact-sql
 createColumnEncryptionKey
     : CREATE COLUMN ENCRYPTION KEY columnEncryptionKey = id WITH VALUES (
         LPAREN COMMA? COLUMN_MASTER_KEY EQ columnMasterKeyName = id COMMA ALGORITHM EQ algorithmName = STRING COMMA ENCRYPTED_VALUE
@@ -857,92 +812,74 @@ createColumnEncryptionKey
     )+
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-certificate-transact-sql
 dropCertificate
     : DROP CERTIFICATE certificateName = id
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-column-encryption-key-transact-sql
 dropColumnEncryptionKey
     : DROP COLUMN ENCRYPTION KEY keyName = id
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-column-master-key-transact-sql
 dropColumnMasterKey
     : DROP COLUMN MASTER KEY keyName = id
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-contract-transact-sql
 dropContract
     : DROP CONTRACT droppedContractName = id
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-credential-transact-sql
 dropCredential
     : DROP CREDENTIAL credentialName = id
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-cryptographic-provider-transact-sql
 dropCryptograhicProvider
     : DROP CRYPTOGRAPHIC PROVIDER providerName = id
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-database-transact-sql
 dropDatabase
     : DROP DATABASE (IF EXISTS)? (COMMA? databaseNameOrDatabaseSnapshotName = id)+
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-database-audit-specification-transact-sql
 dropDatabaseAuditSpecification
     : DROP DATABASE AUDIT SPECIFICATION auditSpecificationName = id
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-database-encryption-key-transact-sql?view=sql-server-ver15
 dropDatabaseEncryptionKey
     : DROP DATABASE ENCRYPTION KEY
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-database-scoped-credential-transact-sql
 dropDatabaseScopedCredential
     : DROP DATABASE SCOPED CREDENTIAL credentialName = id
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-default-transact-sql
 dropDefault
     : DROP DEFAULT (IF EXISTS)? (COMMA? (schemaName = id DOT)? defaultName = id)
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-endpoint-transact-sql
 dropEndpoint
     : DROP ENDPOINT endPointName = id
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-external-data-source-transact-sql
 dropExternalDataSource
     : DROP EXTERNAL DATA SOURCE externalDataSourceName = id
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-external-file-format-transact-sql
 dropExternalFileFormat
     : DROP EXTERNAL FILE FORMAT externalFileFormatName = id
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-external-library-transact-sql
 dropExternalLibrary
     : DROP EXTERNAL LIBRARY libraryName = id (AUTHORIZATION ownerName = id)?
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-external-resource-pool-transact-sql
 dropExternalResourcePool
     : DROP EXTERNAL RESOURCE POOL poolName = id
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-external-table-transact-sql
 dropExternalTable
     : DROP EXTERNAL TABLE (databaseName = id DOT)? (schemaName = id DOT)? table = id
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-event-notification-transact-sql
 dropEventNotifications
     : DROP EVENT NOTIFICATION (COMMA? notificationName = id)+ ON (
         SERVER
@@ -951,124 +888,100 @@ dropEventNotifications
     )
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-event-session-transact-sql
 dropEventSession
     : DROP EVENT SESSION eventSessionName = id ON SERVER
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-fulltext-catalog-transact-sql
 dropFulltextCatalog
     : DROP FULLTEXT CATALOG catalogName = id
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-fulltext-index-transact-sql
 dropFulltextIndex
     : DROP FULLTEXT INDEX ON (schema = id DOT)? table = id
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-fulltext-stoplist-transact-sql
 dropFulltextStoplist
     : DROP FULLTEXT STOPLIST stoplistName = id
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-login-transact-sql
 dropLogin
     : DROP LOGIN loginName = id
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-master-key-transact-sql
 dropMasterKey
     : DROP MASTER KEY
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-message-type-transact-sql
 dropMessageType
     : DROP MESSAGE TYPE messageTypeName = id
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-partition-function-transact-sql
 dropPartitionFunction
     : DROP PARTITION FUNCTION partitionFunctionName = id
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-partition-scheme-transact-sql
 dropPartitionScheme
     : DROP PARTITION SCHEME partitionSchemeName = id
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-queue-transact-sql
 dropQueue
     : DROP QUEUE (databaseName = id DOT)? (schemaName = id DOT)? queueName = id
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-remote-service-binding-transact-sql
 dropRemoteServiceBinding
     : DROP REMOTE SERVICE BINDING bindingName = id
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-resource-pool-transact-sql
 dropResourcePool
     : DROP RESOURCE POOL poolName = id
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-role-transact-sql
 dropDbRole
     : DROP ROLE (IF EXISTS)? roleName = id
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-route-transact-sql
 dropRoute
     : DROP ROUTE routeName = id
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-rule-transact-sql
 dropRule
     : DROP RULE (IF EXISTS)? (COMMA? (schemaName = id DOT)? ruleName = id)?
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-schema-transact-sql
 dropSchema
     : DROP SCHEMA (IF EXISTS)? schemaName = id
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-search-property-list-transact-sql
 dropSearchPropertyList
     : DROP SEARCH PROPERTY LIST propertyListName = id
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-security-policy-transact-sql
 dropSecurityPolicy
     : DROP SECURITY POLICY (IF EXISTS)? (schemaName = id DOT)? securityPolicyName = id
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-sequence-transact-sql
 dropSequence
     : DROP SEQUENCE (IF EXISTS)? (
         COMMA? (databaseName = id DOT)? (schemaName = id DOT)? sequenceName = id
     )?
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-server-audit-transact-sql
 dropServerAudit
     : DROP SERVER AUDIT auditName = id
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-server-audit-specification-transact-sql
 dropServerAuditSpecification
     : DROP SERVER AUDIT SPECIFICATION auditSpecificationName = id
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-server-role-transact-sql
 dropServerRole
     : DROP SERVER ROLE roleName = id
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-service-transact-sql
 dropService
     : DROP SERVICE droppedServiceName = id
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-signature-transact-sql
 dropSignature
     : DROP (COUNTER)? SIGNATURE FROM (schemaName = id DOT)? moduleName = id BY (
         COMMA? CERTIFICATE certName = id
@@ -1080,32 +993,26 @@ dropStatisticsNameAzureDwAndPdw
     : DROP STATISTICS (schemaName = id DOT)? objectName = id DOT statisticsName = id
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-symmetric-key-transact-sql
 dropSymmetricKey
     : DROP SYMMETRIC KEY symmetricKeyName = id (REMOVE PROVIDER KEY)?
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-synonym-transact-sql
 dropSynonym
     : DROP SYNONYM (IF EXISTS)? (schema = id DOT)? synonymName = id
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-user-transact-sql
 dropUser
     : DROP USER (IF EXISTS)? userName = id
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-workload-group-transact-sql
 dropWorkloadGroup
     : DROP WORKLOAD GROUP groupName = id
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-xml-schema-collection-transact-sql
 dropXmlSchemaCollection
     : DROP XML SCHEMA COLLECTION (relationalSchema = id DOT)? sqlIdentifier = id
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/disable-trigger-transact-sql
 disableTrigger
     : DISABLE TRIGGER (( COMMA? (schemaName = id DOT)? triggerName = id)+ | ALL) ON (
         (schemaId = id DOT)? objectName = id
@@ -1114,7 +1021,6 @@ disableTrigger
     )
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/enable-trigger-transact-sql
 enableTrigger
     : ENABLE TRIGGER (( COMMA? (schemaName = id DOT)? triggerName = id)+ | ALL) ON (
         (schemaId = id DOT)? objectName = id
@@ -1127,46 +1033,39 @@ lockTable
     : LOCK TABLE tableName IN (SHARE | EXCLUSIVE) MODE (WAIT seconds = INT | NOWAIT)? SEMI?
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/truncate-table-transact-sql
 truncateTable
     : TRUNCATE TABLE tableName (
         WITH LPAREN PARTITIONS LPAREN (COMMA? (INT | INT TO INT))+ RPAREN RPAREN
     )?
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/create-column-master-key-transact-sql
 createColumnMasterKey
     : CREATE COLUMN MASTER KEY keyName = id WITH LPAREN KEY_STORE_PROVIDER_NAME EQ keyStoreProviderName = STRING COMMA KEY_PATH EQ
         keyPath = STRING RPAREN
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-credential-transact-sql
 alterCredential
     : ALTER CREDENTIAL credentialName = id WITH IDENTITY EQ identityName = STRING (
         COMMA SECRET EQ secret = STRING
     )?
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/create-credential-transact-sql
 createCredential
     : CREATE CREDENTIAL credentialName = id WITH IDENTITY EQ identityName = STRING (
         COMMA SECRET EQ secret = STRING
     )? (FOR CRYPTOGRAPHIC PROVIDER cryptographicProviderName = id)?
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-cryptographic-provider-transact-sql
 alterCryptographicProvider
     : ALTER CRYPTOGRAPHIC PROVIDER providerName = id (
         FROM FILE EQ cryptoProviderDdlFile = STRING
     )? (ENABLE | DISABLE)?
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/create-cryptographic-provider-transact-sql
 createCryptographicProvider
     : CREATE CRYPTOGRAPHIC PROVIDER providerName = id FROM FILE EQ pathOf_DLL = STRING
     ;
 
-// https://learn.microsoft.com/en-us/sql/t-sql/statements/create-endpoint-transact-sql?view=sql-server-ver16
 createEndpoint
     : CREATE ENDPOINT endpointname = id (AUTHORIZATION login = id)? (
         STATE EQ state = (STARTED | STOPPED | DISABLED)
@@ -1200,7 +1099,6 @@ endpointListenerClause
     )?
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/create-event-notification-transact-sql
 createEventNotification
     : CREATE EVENT NOTIFICATION eventNotificationName = id ON (
         SERVER
@@ -1210,9 +1108,7 @@ createEventNotification
         STRING
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-event-session-transact-sql
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/create-event-session-transact-sql
-// todo: not implemented
+
 createOrAlterEventSession
     : (CREATE | ALTER) EVENT SESSION eventSessionName = id ON SERVER (
         COMMA? ADD EVENT (
@@ -1291,7 +1187,6 @@ eventSessionPredicateLeaf
     ) RPAREN
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-external-data-source-transact-sql
 alterExternalDataSource
     : ALTER EXTERNAL DATA SOURCE dataSourceName = id SET (
         LOCATION EQ location = STRING COMMA?
@@ -1303,7 +1198,6 @@ alterExternalDataSource
     )? RPAREN
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-external-library-transact-sql
 alterExternalLibrary
     : ALTER EXTERNAL LIBRARY libraryName = id (AUTHORIZATION ownerName = id)? (SET | ADD) (
         LPAREN CONTENT EQ (clientLibrary = STRING | HEX | NONE) (
@@ -1315,7 +1209,6 @@ alterExternalLibrary
     )
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/create-external-library-transact-sql
 createExternalLibrary
     : CREATE EXTERNAL LIBRARY libraryName = id (AUTHORIZATION ownerName = id)? FROM (
         COMMA? LPAREN? (CONTENT EQ)? (clientLibrary = STRING | HEX | NONE) (
@@ -1329,7 +1222,6 @@ createExternalLibrary
     )?
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-external-resource-pool-transact-sql
 alterExternalResourcePool
     : ALTER EXTERNAL RESOURCE POOL (poolName = id | DEFAULT_DOUBLE_QUOTE) WITH LPAREN MAX_CPU_PERCENT EQ maxCpuPercent = INT (
         COMMA? AFFINITY CPU EQ (AUTO | (COMMA? INT TO INT | COMMA INT)+)
@@ -1339,7 +1231,6 @@ alterExternalResourcePool
     )? RPAREN
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/create-external-resource-pool-transact-sql
 createExternalResourcePool
     : CREATE EXTERNAL RESOURCE POOL poolName = id WITH LPAREN MAX_CPU_PERCENT EQ maxCpuPercent = INT (
         COMMA? AFFINITY CPU EQ (AUTO | (COMMA? INT TO INT | COMMA INT)+)
@@ -1349,7 +1240,6 @@ createExternalResourcePool
     )? RPAREN
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-fulltext-catalog-transact-sql
 alterFulltextCatalog
     : ALTER FULLTEXT CATALOG catalogName = id (
         REBUILD (WITH ACCENT_SENSITIVITY EQ (ON | OFF))?
@@ -1358,14 +1248,12 @@ alterFulltextCatalog
     )
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/create-fulltext-catalog-transact-sql
 createFulltextCatalog
     : CREATE FULLTEXT CATALOG catalogName = id (ON FILEGROUP filegroup = id)? (
         IN PATH rootpath = STRING
     )? (WITH ACCENT_SENSITIVITY EQ (ON | OFF))? (AS DEFAULT)? (AUTHORIZATION ownerName = id)?
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-fulltext-stoplist-transact-sql
 alterFulltextStoplist
     : ALTER FULLTEXT STOPLIST stoplistName = id (
         ADD stopword = STRING LANGUAGE (STRING | INT | HEX)
@@ -1377,14 +1265,12 @@ alterFulltextStoplist
     )
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/create-fulltext-stoplist-transact-sql
 createFulltextStoplist
     : CREATE FULLTEXT STOPLIST stoplistName = id (
         FROM ((databaseName = id DOT)? sourceStoplistName = id | SYSTEM STOPLIST)
     )? (AUTHORIZATION ownerName = id)?
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-login-transact-sql
 alterLoginSqlServer
     : ALTER LOGIN loginName = id (
         (ENABLE | DISABLE)?
@@ -1404,7 +1290,6 @@ alterLoginSqlServer
     )
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/create-login-transact-sql
 createLoginSqlServer
     : CREATE LOGIN loginName = id (
         WITH (
@@ -1464,7 +1349,6 @@ createLoginPdw
     )
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-master-key-transact-sql
 alterMasterKeySqlServer
     : ALTER MASTER KEY (
         (FORCE)? REGENERATE WITH ENCRYPTION BY PASSWORD EQ password = STRING
@@ -1475,7 +1359,6 @@ alterMasterKeySqlServer
     )
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/create-master-key-transact-sql
 createMasterKeySqlServer
     : CREATE MASTER KEY ENCRYPTION BY PASSWORD EQ password = STRING
     ;
@@ -1492,7 +1375,6 @@ createMasterKeyAzureSql
     : CREATE MASTER KEY (ENCRYPTION BY PASSWORD EQ password = STRING)?
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-message-type-transact-sql
 alterMessageType
     : ALTER MESSAGE TYPE messageTypeName = id VALIDATION EQ (
         NONE
@@ -1502,31 +1384,26 @@ alterMessageType
     )
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-partition-function-transact-sql
 alterPartitionFunction
     : ALTER PARTITION FUNCTION partitionFunctionName = id LPAREN RPAREN (SPLIT | MERGE) RANGE LPAREN INT RPAREN
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-partition-scheme-transact-sql
 alterPartitionScheme
     : ALTER PARTITION SCHEME partitionSchemeName = id NEXT USED (fileGroupName = id)?
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-remote-service-binding-transact-sql
 alterRemoteServiceBinding
     : ALTER REMOTE SERVICE BINDING bindingName = id WITH (USER EQ userName = id)? (
         COMMA ANONYMOUS EQ (ON | OFF)
     )?
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/create-remote-service-binding-transact-sql
 createRemoteServiceBinding
     : CREATE REMOTE SERVICE BINDING bindingName = id (AUTHORIZATION ownerName = id)? TO SERVICE remoteServiceName = STRING WITH (
         USER EQ userName = id
     )? (COMMA ANONYMOUS EQ (ON | OFF))?
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/create-resource-pool-transact-sql
 createResourcePool
     : CREATE RESOURCE POOL poolName = id (
         WITH LPAREN (COMMA? MIN_CPU_PERCENT EQ INT)? (
@@ -1543,7 +1420,6 @@ createResourcePool
     )?
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-resource-governor-transact-sql
 alterResourceGovernor
     : ALTER RESOURCE GOVERNOR (
         (DISABLE | RECONFIGURE)
@@ -1556,7 +1432,6 @@ alterResourceGovernor
     )
     ;
 
-// https://learn.microsoft.com/en-us/sql/t-sql/statements/alter-database-audit-specification-transact-sql?view=sql-server-ver16
 alterDatabaseAuditSpecification
     : ALTER DATABASE AUDIT SPECIFICATION auditSpecificationName = id (
         FOR SERVER AUDIT auditName = id
@@ -1595,7 +1470,6 @@ auditSecurable
     : ((id DOT)? id DOT)? id
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-role-transact-sql
 alterDbRole
     : ALTER ROLE roleName = id (
         (ADD | DROP) MEMBER databasePrincipal = id
@@ -1603,7 +1477,6 @@ alterDbRole
     )
     ;
 
-// https://learn.microsoft.com/en-us/sql/t-sql/statements/create-database-audit-specification-transact-sql?view=sql-server-ver16
 createDatabaseAuditSpecification
     : CREATE DATABASE AUDIT SPECIFICATION auditSpecificationName = id (
         FOR SERVER AUDIT auditName = id
@@ -1612,12 +1485,10 @@ createDatabaseAuditSpecification
     )?
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/create-role-transact-sql
 createDbRole
     : CREATE ROLE roleName = id (AUTHORIZATION ownerName = id)?
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/create-route-transact-sql
 createRoute
     : CREATE ROUTE routeName = id (AUTHORIZATION ownerName = id)? WITH (
         COMMA? SERVICE_NAME EQ routeServiceName = STRING
@@ -1626,19 +1497,16 @@ createRoute
     )? COMMA? ADDRESS EQ STRING (COMMA MIRROR_ADDRESS EQ STRING)?
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/create-rule-transact-sql
 createRule
     : CREATE RULE (schemaName = id DOT)? ruleName = id AS searchCondition
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-schema-transact-sql
 alterSchemaSql
     : ALTER SCHEMA schemaName = id TRANSFER (
         (OBJECT | TYPE | XML SCHEMA COLLECTION) DOUBLE_COLON
     )? id (DOT id)?
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/create-schema-transact-sql
 createSchema
     : CREATE SCHEMA (
         schemaName = id
@@ -1660,14 +1528,12 @@ alterSchemaAzureSqlDwAndPdw
     : ALTER SCHEMA schemaName = id TRANSFER (OBJECT DOUBLE_COLON)? id (DOT ID)?
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/create-search-property-list-transact-sql
 createSearchPropertyList
     : CREATE SEARCH PROPERTY LIST newListName = id (
         FROM (databaseName = id DOT)? sourceListName = id
     )? (AUTHORIZATION ownerName = id)?
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/create-security-policy-transact-sql
 createSecurityPolicy
     : CREATE SECURITY POLICY (schemaName = id DOT)? securityPolicyName = id (
         COMMA? ADD (FILTER | BLOCK)? PREDICATE tvfSchemaName = id DOT securityPredicateFunctionName = id LPAREN (
@@ -1681,7 +1547,6 @@ createSecurityPolicy
     )?
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-sequence-transact-sql
 alterSequence
     : ALTER SEQUENCE (schemaName = id DOT)? sequenceName = id (RESTART (WITH INT)?)? (
         INCREMENT BY sequnceIncrement = INT
@@ -1691,7 +1556,6 @@ alterSequence
     )?
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/create-sequence-transact-sql
 createSequence
     : CREATE SEQUENCE (schemaName = id DOT)? sequenceName = id (AS dataType)? (
         START WITH INT
@@ -1701,7 +1565,6 @@ createSequence
     )? (CYCLE | NO CYCLE)? (CACHE INT? | NO CACHE)?
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-server-audit-transact-sql
 alterServerAudit
     : ALTER SERVER AUDIT auditName = id (
         (
@@ -1751,7 +1614,6 @@ alterServerAudit
     )
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/create-server-audit-transact-sql
 createServerAudit
     : CREATE SERVER AUDIT auditName = id (
         (
@@ -1802,8 +1664,6 @@ createServerAudit
     )
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-server-audit-specification-transact-sql
-
 alterServerAuditSpecification
     : ALTER SERVER AUDIT SPECIFICATION auditSpecificationName = id (
         FOR SERVER AUDIT auditName = id
@@ -1812,7 +1672,6 @@ alterServerAuditSpecification
     )?
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/create-server-audit-specification-transact-sql
 createServerAuditSpecification
     : CREATE SERVER AUDIT SPECIFICATION auditSpecificationName = id (
         FOR SERVER AUDIT auditName = id
@@ -1820,8 +1679,6 @@ createServerAuditSpecification
         WITH LPAREN STATE EQ (ON | OFF) RPAREN
     )?
     ;
-
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-server-configuration-transact-sql
 
 alterServerConfiguration
     : ALTER SERVER CONFIGURATION SET (
@@ -1855,15 +1712,14 @@ alterServerConfiguration
     )
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-server-role-transact-sql
 alterServerRole
-    : ALTER SERVER ROLE serverRoleName = id (
-        (ADD | DROP) MEMBER serverPrincipal = id
-        | WITH NAME EQ newServerRoleName = id
-    )
+    : ALTER SERVER ROLE id
+        (
+              (ADD | DROP) MEMBER id
+            | WITH NAME EQ id
+        )
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/create-server-role-transact-sql
 createServerRole
     : CREATE SERVER ROLE serverRole = id (AUTHORIZATION serverPrincipal = id)?
     ;
@@ -1872,7 +1728,6 @@ alterServerRolePdw
     : ALTER SERVER ROLE serverRoleName = id (ADD | DROP) MEMBER login = id
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-service-transact-sql
 alterService
     : ALTER SERVICE modifiedServiceName = id (
         ON QUEUE (schemaName = id DOT)? queueName = id
@@ -1883,14 +1738,12 @@ optArgClause
     : (ADD | DROP) CONTRACT modifiedContractName = id
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/create-service-transact-sql
 createService
     : CREATE SERVICE createServiceName = id (AUTHORIZATION ownerName = id)? ON QUEUE (
         schemaName = id DOT
     )? queueName = id (LPAREN (COMMA? (id | DEFAULT))+ RPAREN)?
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-service-master-key-transact-sql
 
 alterServiceMasterKey
     : ALTER SERVICE MASTER KEY (
@@ -1904,7 +1757,6 @@ alterServiceMasterKey
     )
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-symmetric-key-transact-sql
 
 alterSymmetricKey
     : ALTER SYMMETRIC KEY keyName = id (
@@ -1917,7 +1769,6 @@ alterSymmetricKey
     )
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/create-synonym-transact-sql
 createSynonym
     : CREATE SYNONYM (schemaName_1 = id DOT)? synonymName = id FOR (
         (serverName = id DOT)? (databaseName = id DOT)? (schemaName_2 = id DOT)? objectName = id
@@ -1925,7 +1776,6 @@ createSynonym
     )
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-user-transact-sql
 alterUser
     : ALTER USER username = id WITH (
         COMMA? NAME EQ newusername = id
@@ -1937,7 +1787,6 @@ alterUser
     )+
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/create-user-transact-sql
 createUser
     : CREATE USER userName = id ((FOR | FROM) LOGIN loginName = id)? (
         WITH (
@@ -1991,7 +1840,6 @@ alterUserAzureSql
     )+
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-workload-group-transact-sql
 
 alterWorkloadGroup
     : ALTER WORKLOAD GROUP (workloadGroupGroupName = id | DEFAULT_DOUBLE_QUOTE) (
@@ -2006,7 +1854,6 @@ alterWorkloadGroup
     )? (USING (workloadGroupPoolName = id | DEFAULT_DOUBLE_QUOTE))?
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/create-workload-group-transact-sql
 createWorkloadGroup
     : CREATE WORKLOAD GROUP workloadGroupGroupName = id (
         WITH LPAREN (
@@ -2025,7 +1872,6 @@ createWorkloadGroup
     )?
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/create-xml-schema-collection-transact-sql
 createXmlSchemaCollection
     : CREATE XML SCHEMA COLLECTION (relationalSchema = id DOT)? sqlIdentifier = id AS (
         STRING
@@ -2034,7 +1880,6 @@ createXmlSchemaCollection
     )
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/create-partition-function-transact-sql?view=sql-server-ver15
 createPartitionFunction
     : CREATE PARTITION FUNCTION partitionFunctionName = id LPAREN inputParameterType = dataType RPAREN AS RANGE (
         LEFT
@@ -2042,7 +1887,6 @@ createPartitionFunction
     )? FOR VALUES LPAREN boundaryValues = expressionList RPAREN
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/create-partition-scheme-transact-sql?view=sql-server-ver15
 createPartitionScheme
     : CREATE PARTITION SCHEME partitionSchemeName = id AS PARTITION partitionFunctionName = id ALL? TO LPAREN fileGroupNames += id (
         COMMA fileGroupNames += id
@@ -2086,9 +1930,10 @@ queueRebuildOptions
     ;
 
 createContract
-    : CREATE CONTRACT contractName (AUTHORIZATION ownerName = id)? LPAREN (
-        (messageTypeName = id | DEFAULT) SENT BY (INITIATOR | TARGET | ANY) COMMA?
-    )+ RPAREN
+    : CREATE CONTRACT contractName (AUTHORIZATION ownerName = id)?
+        LPAREN (
+            (messageTypeName = id | DEFAULT) SENT BY (INITIATOR | TARGET | ANY) COMMA? )+
+        RPAREN
     ;
 
 conversationStatement
@@ -2111,13 +1956,14 @@ messageStatement
     )
     ;
 
-// DML
-
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/merge-transact-sql
-// note that there's a limit on number of whenMatches but it has to be done runtime due to different ordering of statements allowed
 mergeStatement
-    : withExpression? MERGE (TOP LPAREN expression RPAREN PERCENT?)? INTO? ddlObject withTableHints? asTableAlias? USING tableSources ON
-        searchCondition whenMatches+ outputClause? optionClause? SEMI
+    : withExpression?
+        MERGE (TOP LPAREN expression RPAREN PERCENT?)?
+        INTO? ddlObject withTableHints? asTableAlias?
+        USING tableSources
+        ON
+            searchCondition whenMatches+ outputClause? optionClause?
+        SEMI
     ;
 
 whenMatches
@@ -2135,7 +1981,6 @@ mergeNotMatched
     : INSERT (LPAREN columnNameList RPAREN)? (tableValueConstructor | DEFAULT VALUES)
     ;
 
-// https://msdn.microsoft.com/en-us/library/ms189835.aspx
 deleteStatement
     : withExpression? DELETE (TOP LPAREN expression RPAREN PERCENT? | TOP INT)? FROM? deleteStatementFrom withTableHints? outputClause? (
         FROM tableSources
@@ -2148,7 +1993,6 @@ deleteStatementFrom
     | tableVar = LOCAL_ID
     ;
 
-// https://msdn.microsoft.com/en-us/library/ms174335.aspx
 insertStatement
     : withExpression? INSERT (TOP LPAREN expression RPAREN PERCENT?)? INTO? (
         ddlObject
@@ -2169,7 +2013,6 @@ receiveStatement
     )? RPAREN?
     ;
 
-// https://msdn.microsoft.com/en-us/library/ms189499.aspx
 selectStatementStandalone
     : withExpression? selectStatement
     ;
@@ -2182,7 +2025,6 @@ time
     : (LOCAL_ID | constant)
     ;
 
-// https://msdn.microsoft.com/en-us/library/ms177523.aspx
 updateStatement
     : withExpression? UPDATE (TOP LPAREN expression RPAREN PERCENT?)? (
         ddlObject
@@ -2192,7 +2034,6 @@ updateStatement
     )? forClause? optionClause? SEMI?
     ;
 
-// https://msdn.microsoft.com/en-us/library/ms177564.aspx
 outputClause
     : OUTPUT outputDmlListElem (COMMA outputDmlListElem)* (
         INTO (LOCAL_ID | tableName) (LPAREN columnNameList RPAREN)?
@@ -2203,9 +2044,6 @@ outputDmlListElem
     : (expression | asterisk) asColumnAlias?
     ;
 
-// DDL
-
-// https://msdn.microsoft.com/en-ie/library/ms176061.aspx
 createDatabase
     : CREATE DATABASE (database = id) (CONTAINMENT EQ ( NONE | PARTIAL))? (
         ON PRIMARY? databaseFileSpec ( COMMA databaseFileSpec)*
@@ -2214,7 +2052,6 @@ createDatabase
     )?
     ;
 
-// https://msdn.microsoft.com/en-us/library/ms188783.aspx
 createIndex
     : CREATE UNIQUE? clustered? INDEX id ON tableName LPAREN columnNameListWithOrder RPAREN (
         INCLUDE LPAREN columnNameList RPAREN
@@ -2231,7 +2068,6 @@ relationalIndexOption
     | OPTIMIZE_FOR_SEQUENTIAL_KEY EQ onOff
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-index-transact-sql
 alterIndex
     : ALTER INDEX (id | ALL) ON tableName (
         DISABLE
@@ -2325,7 +2161,6 @@ onPartitions
     )* RPAREN
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/create-columnstore-index-transact-sql?view=sql-server-ver15
 createColumnstoreIndex
     : CREATE CLUSTERED COLUMNSTORE INDEX id ON tableName createColumnstoreIndexOptions? (
         ON id
@@ -2344,7 +2179,6 @@ columnstoreIndexOption
     | DATA_COMPRESSION EQ (COLUMNSTORE | COLUMNSTORE_ARCHIVE) onPartitions?
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/create-columnstore-index-transact-sql?view=sql-server-ver15
 createNonclusteredColumnstoreIndex
     : CREATE NONCLUSTERED? COLUMNSTORE INDEX id ON tableName LPAREN columnNameListWithOrder RPAREN (
         WHERE searchCondition
@@ -2374,7 +2208,6 @@ xmlIndexOption
     | XML_COMPRESSION EQ onOff
     ;
 
-// https://msdn.microsoft.com/en-us/library/ms187926(v=sql.120).aspx
 createOrAlterProcedure
     : ((CREATE (OR (ALTER | REPLACE))?) | ALTER) proc = (PROC | PROCEDURE) procName = funcProcNameSchema (
         SEMI INT
@@ -2387,7 +2220,6 @@ asExternalName
     : EXTERNAL NAME assemblyName = id DOT className = id DOT methodName = id
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/create-trigger-transact-sql
 createOrAlterTrigger
     : createOrAlterDmlTrigger
     | createOrAlterDdlTrigger
@@ -2420,7 +2252,6 @@ ddlTriggerOperation
     : simpleId
     ;
 
-// https://msdn.microsoft.com/en-us/library/ms186755.aspx
 createOrAlterFunction
     : ((CREATE (OR ALTER)?) | ALTER) FUNCTION funcName = funcProcNameSchema (
         (LPAREN procedureParam (COMMA procedureParam)* RPAREN)
@@ -2477,7 +2308,6 @@ functionOption
     | executeClause
     ;
 
-// https://msdn.microsoft.com/en-us/library/ms188038.aspx
 createStatistics
     : CREATE STATISTICS id ON tableName LPAREN columnNameList RPAREN (
         WITH (FULLSCAN | SAMPLE INT (PERCENT | ROWS) | STATS_STREAM) (COMMA NORECOMPUTE)? (
@@ -2510,7 +2340,6 @@ updateStatisticsOption
     | AUTO_DROP EQ onOff
     ;
 
-// https://msdn.microsoft.com/en-us/library/ms174979.aspx
 createTable
     : CREATE TABLE tableName LPAREN columnDefTableConstraints (COMMA? tableIndices)* COMMA? RPAREN (
         LOCK simpleId
@@ -2557,7 +2386,6 @@ createTableIndexOption
     | XML_COMPRESSION EQ onOff onPartitions?
     ;
 
-// https://msdn.microsoft.com/en-us/library/ms187956.aspx
 createView
     : (CREATE (OR (ALTER | REPLACE))? | ALTER) VIEW simpleName (LPAREN columnNameList RPAREN)? (
         WITH viewAttribute (COMMA viewAttribute)*
@@ -2570,7 +2398,6 @@ viewAttribute
     | VIEW_METADATA
     ;
 
-// https://msdn.microsoft.com/en-us/library/ms190273.aspx
 alterTable
     : ALTER TABLE tableName (
         SET LPAREN LOCK_ESCALATION EQ (AUTO | TABLE | DISABLE) RPAREN
@@ -2605,7 +2432,6 @@ lowPriorityLockWait
     ) RPAREN
     ;
 
-// https://msdn.microsoft.com/en-us/library/ms174269.aspx
 alterDatabase
     : ALTER DATABASE (database = id | CURRENT) (
         MODIFY NAME EQ newName = id
@@ -2616,7 +2442,6 @@ alterDatabase
     ) SEMI?
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-database-transact-sql-file-and-filegroup-options?view=sql-server-ver15
 addOrModifyFiles
     : ADD FILE fileSpec (COMMA fileSpec)* (TO FILEGROUP filegroupName = id)?
     | ADD LOG FILE fileSpec (COMMA fileSpec)*
@@ -2651,8 +2476,6 @@ filegroupUpdatabilityOption
     | READ_WRITE
     ;
 
-// https://msdn.microsoft.com/en-us/library/bb522682.aspx
-// Runtime check.
 databaseOptionspec
     : autoOption
     | changeTrackingOption
@@ -2670,9 +2493,7 @@ databaseOptionspec
     | hadrOptions
     | mixedPageAllocationOption
     | parameterizationOption
-    //  | queryStoreOptions
     | recoveryOption
-    //  | remoteDataArchiveOption
     | serviceBrokerOption
     | snapshotOption
     | sqlOption
@@ -2710,7 +2531,6 @@ cursorOption
     | CURSOR_DEFAULT ( LOCAL | GLOBAL)
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/alter-endpoint-transact-sql
 alterEndpoint
     : ALTER ENDPOINT endpointname = id (AUTHORIZATION login = id)? (
         STATE EQ state = (STARTED | STOPPED | DISABLED)
@@ -2727,8 +2547,6 @@ alterEndpoint
     )
     ;
 
-/* Will visit later
-*/
 databaseMirroringOption
     : mirroringSetOption
     ;
@@ -2884,7 +2702,6 @@ termination
     | NO_WAIT
     ;
 
-// https://msdn.microsoft.com/en-us/library/ms176118.aspx
 dropIndex
     : DROP INDEX (IF EXISTS)? (
         dropRelationalOrXmlOrSpatialIndex (COMMA dropRelationalOrXmlOrSpatialIndex)*
@@ -2900,12 +2717,10 @@ dropBackwardCompatibleIndex
     : (ownerName = id DOT)? tableOrViewName = id DOT indexName = id
     ;
 
-// https://msdn.microsoft.com/en-us/library/ms174969.aspx
 dropProcedure
     : DROP proc = (PROC | PROCEDURE) (IF EXISTS)? funcProcNameSchema (COMMA funcProcNameSchema)* SEMI?
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/drop-trigger-transact-sql
 dropTrigger
     : dropDmlTrigger
     | dropDdlTrigger
@@ -2919,22 +2734,18 @@ dropDdlTrigger
     : DROP TRIGGER (IF EXISTS)? simpleName (COMMA simpleName)* ON (DATABASE | ALL SERVER) SEMI?
     ;
 
-// https://msdn.microsoft.com/en-us/library/ms190290.aspx
 dropFunction
     : DROP FUNCTION (IF EXISTS)? funcProcNameSchema (COMMA funcProcNameSchema)* SEMI?
     ;
 
-// https://msdn.microsoft.com/en-us/library/ms175075.aspx
 dropStatistics
     : DROP STATISTICS (COMMA? (tableName DOT)? name = id)+ SEMI
     ;
 
-// https://msdn.microsoft.com/en-us/library/ms173790.aspx
 dropTable
     : DROP TABLE (IF EXISTS)? tableName (COMMA tableName)* SEMI?
     ;
 
-// https://msdn.microsoft.com/en-us/library/ms173492.aspx
 dropView
     : DROP VIEW (IF EXISTS)? simpleName (COMMA simpleName)* SEMI?
     ;
@@ -2954,21 +2765,16 @@ rowsetFunctionLimited
     | opendatasource
     ;
 
-// https://msdn.microsoft.com/en-us/library/ms188427(v=sql.120).aspx
 openquery
     : OPENQUERY LPAREN linkedServer = id COMMA query = STRING RPAREN
     ;
 
-// https://msdn.microsoft.com/en-us/library/ms179856.aspx
 opendatasource
     : OPENDATASOURCE LPAREN provider = STRING COMMA init = STRING RPAREN DOT (database = id)? DOT (
         scheme = id
     )? DOT (table = id)
     ;
 
-// Other statements.
-
-// https://msdn.microsoft.com/en-us/library/ms188927.aspx
 declareStatement
     : DECLARE LOCAL_ID AS? (dataType | tableTypeDefinition | tableName)
     | DECLARE loc += declareLocal (COMMA loc += declareLocal)*
@@ -2981,21 +2787,14 @@ xmlDeclaration
     | DEFAULT STRING
     ;
 
-// https://msdn.microsoft.com/en-us/library/ms181441(v=sql.120).aspx
 cursorStatement
-    // https://msdn.microsoft.com/en-us/library/ms175035(v=sql.120).aspx
     : CLOSE GLOBAL? cursorName SEMI?
-    // https://msdn.microsoft.com/en-us/library/ms188782(v=sql.120).aspx
     | DEALLOCATE GLOBAL? CURSOR? cursorName SEMI?
-    // https://msdn.microsoft.com/en-us/library/ms180169(v=sql.120).aspx
     | declareCursor
-    // https://msdn.microsoft.com/en-us/library/ms180152(v=sql.120).aspx
     | fetchCursor
-    // https://msdn.microsoft.com/en-us/library/ms190500(v=sql.120).aspx
     | OPEN GLOBAL? cursorName SEMI?
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/backup-transact-sql
 backupDatabase
     : BACKUP DATABASE (databaseName = id) (
         READ_WRITE_FILEGROUPS (COMMA? (FILE | FILEGROUP) EQ fileOrFilegroup = STRING)*
@@ -3088,7 +2887,6 @@ backupLog
     )?
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/backup-certificate-transact-sql
 backupCertificate
     : BACKUP CERTIFICATE certname = id TO FILE EQ certFile = STRING (
         WITH PRIVATE KEY LPAREN (
@@ -3099,12 +2897,10 @@ backupCertificate
     )?
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/backup-master-key-transact-sql
 backupMasterKey
     : BACKUP MASTER KEY TO FILE EQ masterKeyBackupFile = STRING ENCRYPTION BY PASSWORD EQ encryptionPassword = STRING
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/statements/backup-service-master-key-transact-sql
 backupServiceMasterKey
     : BACKUP SERVICE MASTER KEY TO FILE EQ serviceMasterKeyBackupFile = STRING ENCRYPTION BY PASSWORD EQ encryptionPassword = STRING
     ;
@@ -3113,22 +2909,18 @@ killStatement
     : KILL (killProcess | killQueryNotification | killStatsJob)
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/language-elements/kill-transact-sql
 killProcess
     : (sessionId = (INT | STRING) | UOW) (WITH STATUSONLY)?
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/language-elements/kill-query-notification-subscription-transact-sql
 killQueryNotification
     : QUERY NOTIFICATION SUBSCRIPTION (ALL | subscriptionId = INT)
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/language-elements/kill-stats-job-transact-sql
 killStatsJob
     : STATS JOB jobId = INT
     ;
 
-// https://msdn.microsoft.com/en-us/library/ms188332.aspx
 executeStatement
     : EXECUTE executeBody SEMI?
     ;
@@ -3137,7 +2929,6 @@ executeBodyBatch
     : funcProcNameServerDatabaseSchema (executeStatementArg (COMMA executeStatementArg)*)? SEMI?
     ;
 
-//https://docs.microsoft.com/it-it/sql/t-sql/language-elements/execute-transact-sql?view=sql-server-ver15
 executeBody
     : (returnStatus = LOCAL_ID EQ)? (funcProcNameServerDatabaseSchema | executeVarString) executeStatementArg?
     | LPAREN executeVarString (COMMA executeVarString)* RPAREN (AS (LOGIN | USER) EQ STRING)? (
@@ -3147,8 +2938,8 @@ executeBody
     ;
 
 executeStatementArg
-    : executeStatementArgUnnamed (COMMA executeStatementArg)*     //Unnamed params can continue unnamed
-    | executeStatementArgNamed (COMMA executeStatementArgNamed)* //Named can only be continued by unnamed
+    : executeStatementArgUnnamed (COMMA executeStatementArg)*
+    | executeStatementArgNamed (COMMA executeStatementArgNamed)*
     ;
 
 executeStatementArgNamed
@@ -3168,17 +2959,16 @@ executeVarString
     | STRING (PLUS LOCAL_ID (PLUS executeVarString)?)?
     ;
 
-// https://msdn.microsoft.com/en-us/library/ff848791.aspx
 securityStatement
-    // https://msdn.microsoft.com/en-us/library/ms188354.aspx
+
     : executeClause SEMI?
-    // https://msdn.microsoft.com/en-us/library/ms187965.aspx
+
     | GRANT (ALL PRIVILEGES? | grantPermission (LPAREN columnNameList RPAREN)?) (
         ON (classTypeForGrant COLON COLON)? onId = tableName
     )? TO toPrincipal += principalId (COMMA toPrincipal += principalId)* (WITH GRANT OPTION)? (
         AS asPrincipal = principalId
     )? SEMI?
-    // https://msdn.microsoft.com/en-us/library/ms178632.aspx
+
     | REVERT (WITH COOKIE EQ LOCAL_ID)? SEMI?
     | openKey
     | closeKey
@@ -3272,10 +3062,6 @@ decryptionMechanism
     | PASSWORD EQ STRING
     ;
 
-// https://docs.microsoft.com/en-us/sql/relational-databases/system-functions/sys-fn-builtin-permissions-transact-sql?view=sql-server-ver15
-// SELECT DISTINCT '| ' + permissionName
-// FROM sys.fnBuiltinPermissions (DEFAULT)
-// ORDER BY 1
 grantPermission
     : ADMINISTER (BULK OPERATIONS | DATABASE BULK OPERATIONS)
     | ALTER (
@@ -3384,46 +3170,42 @@ grantPermission
     )
     ;
 
-// https://msdn.microsoft.com/en-us/library/ms190356.aspx
-// https://msdn.microsoft.com/en-us/library/ms189484.aspx
+
 setStatement
     : SET LOCAL_ID (DOT memberName = id)? EQ expression
     | SET LOCAL_ID assignmentOperator expression
     | SET LOCAL_ID EQ CURSOR declareSetCursorCommon (
         FOR (READ ONLY | UPDATE (OF columnNameList)?)
     )?
-    // https://msdn.microsoft.com/en-us/library/ms189837.aspx
+
     | setSpecial
     ;
 
-// https://msdn.microsoft.com/en-us/library/ms174377.aspx
 transactionStatement
-    // https://msdn.microsoft.com/en-us/library/ms188386.aspx
+
     : BEGIN DISTRIBUTED (TRAN | TRANSACTION) (id | LOCAL_ID)?
-    // https://msdn.microsoft.com/en-us/library/ms188929.aspx
+
     | BEGIN (TRAN | TRANSACTION) ((id | LOCAL_ID) (WITH MARK STRING)?)?
-    // https://msdn.microsoft.com/en-us/library/ms190295.aspx
+
     | COMMIT (TRAN | TRANSACTION) (
         (id | LOCAL_ID) (WITH LPAREN DELAYED_DURABILITY EQ (OFF | ON) RPAREN)?
     )?
-    // https://msdn.microsoft.com/en-us/library/ms178628.aspx
+
     | COMMIT WORK?
     | COMMIT id
     | ROLLBACK id
-    // https://msdn.microsoft.com/en-us/library/ms181299.aspx
+
     | ROLLBACK (TRAN | TRANSACTION) (id | LOCAL_ID)?
-    // https://msdn.microsoft.com/en-us/library/ms174973.aspx
+
     | ROLLBACK WORK?
-    // https://msdn.microsoft.com/en-us/library/ms188378.aspx
+
     | SAVE (TRAN | TRANSACTION) (id | LOCAL_ID)?
     ;
 
-// https://msdn.microsoft.com/en-us/library/ms188037.aspx
 goStatement
     : GO (count = INT)?
     ;
 
-// https://msdn.microsoft.com/en-us/library/ms188366.aspx
 useStatement
     : USE database = id
     ;
@@ -3432,12 +3214,10 @@ setuserStatement
     : SETUSER user = STRING?
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/language-elements/reconfigure-transact-sql
 reconfigureStatement
     : RECONFIGURE (WITH OVERRIDE)?
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/language-elements/shutdown-transact-sql
 shutdownStatement
     : SHUTDOWN (WITH NOWAIT)?
     ;
@@ -3453,7 +3233,6 @@ dbccCheckallocOption
     | ESTIMATEONLY
     ;
 
-// https://learn.microsoft.com/en-us/sql/t-sql/database-console-commands/dbcc-checkalloc-transact-sql?view=sql-server-ver16
 dbccCheckalloc
     : name = CHECKALLOC (
         LPAREN (database = id | databaseid = STRING | INT) (
@@ -3465,7 +3244,6 @@ dbccCheckalloc
     )?
     ;
 
-// https://learn.microsoft.com/en-us/sql/t-sql/database-console-commands/dbcc-checkcatalog-transact-sql?view=sql-server-ver16
 dbccCheckcatalog
     : name = CHECKCATALOG (LPAREN ( database = id | databasename = STRING | INT) RPAREN)? (
         WITH dbccOption = NO_INFOMSGS
@@ -3478,7 +3256,6 @@ dbccCheckconstraintsOption
     | NO_INFOMSGS
     ;
 
-// https://learn.microsoft.com/en-us/sql/t-sql/database-console-commands/dbcc-checkconstraints-transact-sql?view=sql-server-ver16
 dbccCheckconstraints
     : name = CHECKCONSTRAINTS (
         LPAREN (tableOrConstraint = id | tableOrConstraintName = STRING) RPAREN
@@ -3500,7 +3277,6 @@ dbccCheckdbTableOption
     | MAXDOP EQ maxDregreeOfParallelism = INT
     ;
 
-// https://learn.microsoft.com/en-us/sql/t-sql/database-console-commands/dbcc-checkdb-transact-sql?view=sql-server-ver16
 dbccCheckdb
     : name = CHECKDB (
         LPAREN (database = id | databasename = STRING | INT) (
@@ -3520,8 +3296,6 @@ dbccCheckfilegroupOption
     | MAXDOP EQ maxDregreeOfParallelism = INT
     ;
 
-// https://learn.microsoft.com/en-us/sql/t-sql/database-console-commands/dbcc-checkfilegroup-transact-sql?view=sql-server-ver16
-// Additional parameters: https://dbtut.com/index.php/2019/01/01/dbcc-checkfilegroup-command-on-sql-server/
 dbccCheckfilegroup
     : name = CHECKFILEGROUP (
         LPAREN (filegroupId = INT | filegroupName = STRING) (
@@ -3534,7 +3308,6 @@ dbccCheckfilegroup
     )?
     ;
 
-// https://learn.microsoft.com/en-us/sql/t-sql/database-console-commands/dbcc-checktable-transact-sql?view=sql-server-ver16
 dbccChecktable
     : name = CHECKTABLE LPAREN tableOrViewName = STRING (
         COMMA (
@@ -3549,7 +3322,6 @@ dbccChecktable
     )?
     ;
 
-// https://learn.microsoft.com/en-us/sql/t-sql/database-console-commands/dbcc-cleantable-transact-sql?view=sql-server-ver16
 dbccCleantable
     : name = CLEANTABLE LPAREN (database = id | databasename = STRING | INT) COMMA (
         tableOrView = id
@@ -3565,21 +3337,18 @@ dbccClonedatabaseOption
     | BACKUP_CLONEDB
     ;
 
-// https://learn.microsoft.com/en-us/sql/t-sql/database-console-commands/dbcc-clonedatabase-transact-sql?view=sql-server-ver16
 dbccClonedatabase
     : name = CLONEDATABASE LPAREN sourceDatabase = id COMMA targetDatabase = id RPAREN (
         WITH dbccOption = dbccClonedatabaseOption (COMMA dbccOption = dbccClonedatabaseOption)*
     )?
     ;
 
-// https://learn.microsoft.com/en-us/sql/t-sql/database-console-commands/dbcc-pdw-showspaceused-transact-sql?view=aps-pdw-2016-au7
 dbccPdwShowspaceused
     : name = PDW_SHOWSPACEUSED (LPAREN tablename = id RPAREN)? (
         WITH dbccOption = IGNORE_REPLICATED_TABLE_CACHE
     )?
     ;
 
-// https://learn.microsoft.com/en-us/sql/t-sql/database-console-commands/dbcc-proccache-transact-sql?view=sql-server-ver16
 dbccProccache
     : name = PROCCACHE (WITH dbccOption = NO_INFOMSGS)?
     ;
@@ -3592,55 +3361,50 @@ dbccShowcontigOption
     | NO_INFOMSGS
     ;
 
-// https://learn.microsoft.com/en-us/sql/t-sql/database-console-commands/dbcc-showcontig-transact-sql?view=sql-server-ver16
 dbccShowcontig
     : name = SHOWCONTIG (LPAREN tableOrView = expression ( COMMA index = expression)? RPAREN)? (
         WITH dbccOption = dbccShowcontigOption (COMMA dbccShowcontigOption)*
     )?
     ;
 
-// https://learn.microsoft.com/en-us/sql/t-sql/database-console-commands/dbcc-shrinklog-azure-sql-data-warehouse?view=aps-pdw-2016-au7
 dbccShrinklog
     : name = SHRINKLOG (LPAREN SIZE EQ ( (INT ( MB | GB | TB)) | DEFAULT) RPAREN)? (
         WITH dbccOption = NO_INFOMSGS
     )?
     ;
 
-// https://learn.microsoft.com/en-us/sql/t-sql/database-console-commands/dbcc-dbreindex-transact-sql?view=sql-server-ver16
 dbccDbreindex
     : name = DBREINDEX LPAREN table = idOrString (
         COMMA indexName = idOrString ( COMMA fillfactor = expression)?
     )? RPAREN (WITH dbccOption = NO_INFOMSGS)?
     ;
 
-// https://learn.microsoft.com/en-us/sql/t-sql/database-console-commands/dbcc-dllname-free-transact-sql?view=sql-server-ver16
 dbccDllFree
     : dllname = id LPAREN name = FREE RPAREN (WITH dbccOption = NO_INFOMSGS)?
     ;
 
-// https://learn.microsoft.com/en-us/sql/t-sql/database-console-commands/dbcc-dropcleanbuffers-transact-sql?view=sql-server-ver16
 dbccDropcleanbuffers
     : name = DROPCLEANBUFFERS (LPAREN COMPUTE | ALL RPAREN)? (WITH dbccOption = NO_INFOMSGS)?
     ;
 
 dbccClause
     : DBCC (
-        dbccCheckalloc
-        | dbccCheckcatalog
-        | dbccCheckconstraints
-        | dbccCheckdb
-        | dbccCheckfilegroup
-        | dbccChecktable
-        | dbccCleantable
-        | dbccClonedatabase
-        | dbccDbreindex
-        | dbccDllFree
-        | dbccDropcleanbuffers
-        | dbccPdwShowspaceused
-        | dbccProccache
-        | dbccShowcontig
-        | dbccShrinklog
-    )
+                  dbccCheckalloc
+                | dbccCheckcatalog
+                | dbccCheckconstraints
+                | dbccCheckdb
+                | dbccCheckfilegroup
+                | dbccChecktable
+                | dbccCleantable
+                | dbccClonedatabase
+                | dbccDbreindex
+                | dbccDllFree
+                | dbccDropcleanbuffers
+                | dbccPdwShowspaceused
+                | dbccProccache
+                | dbccShowcontig
+                | dbccShrinklog
+        )
     ;
 
 executeClause
@@ -3678,9 +3442,6 @@ columnDefTableConstraint
     | tableConstraint
     ;
 
-// https://msdn.microsoft.com/en-us/library/ms187742.aspx
-// There is a documentation error: column definition elements can be given in
-// any order
 columnDefinition
     : id (dataType | AS expression PERSISTED?) columnDefinitionElement* columnIndex?
     ;
@@ -3694,7 +3455,6 @@ columnDefinitionElement
     | IDENTITY (LPAREN seed = INT COMMA increment = INT RPAREN)?
     | NOT FOR REPLICATION
     | GENERATED ALWAYS AS (ROW | TRANSACTION_ID | SEQUENCE_NUMBER) (START | END) HIDDEN_KEYWORD?
-    // NULL / NOT NULL is a constraint
     | ROWGUIDCOL
     | ENCRYPTED WITH LPAREN COLUMN_ENCRYPTION_KEY EQ keyName = STRING COMMA ENCRYPTION_TYPE EQ (
         DETERMINISTIC
@@ -3718,9 +3478,6 @@ materializedColumnDefinition
     : id (COMPUTE | AS) expression (MATERIALIZED | NOT MATERIALIZED)?
     ;
 
-// https://msdn.microsoft.com/en-us/library/ms186712.aspx
-// There is a documentation error: NOT NULL is a constraint
-// and therefore can be given a name.
 columnConstraint
     : (CONSTRAINT constraint = id)? (
         nullNotnull
@@ -3744,15 +3501,15 @@ onPartitionOrFilegroup
     )
     ;
 
-// https://msdn.microsoft.com/en-us/library/ms188066.aspx
 tableConstraint
-    : (CONSTRAINT constraint = id)? (
-        ((PRIMARY KEY | UNIQUE) clustered? LPAREN columnNameListWithOrder RPAREN primaryKeyOptions)
-        | ( FOREIGN KEY LPAREN fk = columnNameList RPAREN foreignKeyOptions)
-        | ( CONNECTION LPAREN connectionNode ( COMMA connectionNode)* RPAREN)
-        | ( DEFAULT constantExpr = expression FOR column = id (WITH VALUES)?)
-        | checkConstraint
-    )
+    : (CONSTRAINT constraint = id)?
+        (
+              ( (PRIMARY KEY | UNIQUE) clustered? LPAREN columnNameListWithOrder RPAREN primaryKeyOptions)
+            | ( FOREIGN KEY LPAREN fk = columnNameList RPAREN foreignKeyOptions)
+            | ( CONNECTION LPAREN connectionNode ( COMMA connectionNode)* RPAREN)
+            | ( DEFAULT constantExpr = expression FOR column = id (WITH VALUES)?)
+            | checkConstraint
+        )
     ;
 
 connectionNode
@@ -3785,7 +3542,6 @@ alterTableIndexOptions
     : WITH LPAREN alterTableIndexOption (COMMA alterTableIndexOption)* RPAREN
     ;
 
-// https://msdn.microsoft.com/en-us/library/ms186869.aspx
 alterTableIndexOption
     : PAD_INDEX EQ onOff
     | FILLFACTOR EQ INT
@@ -3805,7 +3561,6 @@ alterTableIndexOption
     | MAX_DURATION EQ times = INT MINUTES?
     ;
 
-// https://msdn.microsoft.com/en-us/library/ms180169.aspx
 declareCursor
     : DECLARE cursorName (
         CURSOR (declareSetCursorCommon (FOR UPDATE (OF columnNameList)?)?)?
@@ -3833,14 +3588,11 @@ fetchCursor
     )? SEMI?
     ;
 
-// https://msdn.microsoft.com/en-us/library/ms190356.aspx
-// Runtime check.
 setSpecial
     : SET id (id | constant_LOCAL_ID | onOff) SEMI?
     | SET STATISTICS (IO | TIME | XML | PROFILE) onOff SEMI?
     | SET ROWCOUNT (LOCAL_ID | INT) SEMI?
     | SET TEXTSIZE INT SEMI?
-    // https://msdn.microsoft.com/en-us/library/ms173763.aspx
     | SET TRANSACTION ISOLATION LEVEL (
         READ UNCOMMITTED
         | READ COMMITTED
@@ -3849,7 +3601,6 @@ setSpecial
         | SERIALIZABLE
         | INT
     ) SEMI?
-    // https://msdn.microsoft.com/en-us/library/ms188059.aspx
     | SET IDENTITY_INSERT tableName onOff SEMI?
     | SET specialList (COMMA specialList)* onOff
     // TODO: Rework when it is time to implement SET modifyMethod
@@ -3886,10 +3637,6 @@ constant_LOCAL_ID
     | LOCAL_ID
     ;
 
-// Expression.
-
-// https://docs.microsoft.com/en-us/sql/t-sql/language-elements/expressions-transact-sql
-// Operator precendence: https://docs.microsoft.com/en-us/sql/t-sql/language-elements/operator-precedence-transact-sql
 expression
     : LPAREN expression RPAREN                                  #exprPrecedence
     | <assoc=right> op=BIT_NOT expression                       #exprBitNot
@@ -3915,7 +3662,7 @@ expression
     | id                                                        #exprId
     ;
 
-// TODO: Implement this
+// TODO: Implement this ?
 parameter
     : PLACEHOLDER
     ;
@@ -3931,7 +3678,6 @@ primitiveExpression
     | constant
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/language-elements/case-transact-sql
 caseExpression
     : CASE caseExpr=expression? switchSection+ (ELSE elseExpr = expression)? END
     ;
@@ -3940,7 +3686,6 @@ subquery
     : selectStatement
     ;
 
-// https://msdn.microsoft.com/en-us/library/ms175972.aspx
 withExpression
     : WITH ctes += commonTableExpression (COMMA ctes += commonTableExpression)*
     ;
@@ -3950,19 +3695,16 @@ commonTableExpression
     ;
 
 updateElem
-    : LOCAL_ID EQ fullColumnName (EQ | assignmentOperator) expression //Combined variable and column update
+    : LOCAL_ID EQ fullColumnName (EQ | assignmentOperator) expression
     | (fullColumnName | LOCAL_ID) (EQ | assignmentOperator) expression
     | udtColumnName = id DOT methodName = id LPAREN expressionList RPAREN
-    //| fullColumnName DOT WRITE (expression, )
     ;
 
 updateElemMerge
     : (fullColumnName | LOCAL_ID) (EQ | assignmentOperator) expression
     | udtColumnName = id DOT methodName = id LPAREN expressionList RPAREN
-    //| fullColumnName DOT WRITE (expression, )
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/queries/search-condition-transact-sql
 searchCondition
     : LPAREN searchCondition RPAREN         #scPrec
     | NOT searchCondition                   #scNot
@@ -3975,7 +3717,7 @@ predicate
     : EXISTS LPAREN subquery RPAREN
     | freetextPredicate
     | expression comparisonOperator expression
-    | expression ME expression ////SQL-82 syntax for left outer joins; PE. See https://stackoverflow.com/questions/40665/in-sybase-sql
+    | expression ME expression
     | expression comparisonOperator (ALL | SOME | ANY) LPAREN subquery RPAREN
     | expression NOT* BETWEEN expression AND expression
     | expression NOT* IN LPAREN (subquery | expressionList) RPAREN
@@ -3985,7 +3727,7 @@ predicate
     ;
 
 queryExpression
-    : querySpecification selectOrderByClause? unions += sqlUnion* //if using top, order by can be on the "top" side of union :/
+    : querySpecification selectOrderByClause? unions += sqlUnion*
     | LPAREN queryExpression RPAREN (UNION ALL? queryExpression)?
     ;
 
@@ -3996,13 +3738,10 @@ sqlUnion
     )
     ;
 
-// https://msdn.microsoft.com/en-us/library/ms176104.aspx
 // TODO: This is too much for one rule and it still misses things - rewrite
 querySpecification
     : SELECT (ALL | DISTINCT)? topClause? selectListElem (COMMA selectListElem)*
-    // https://msdn.microsoft.com/en-us/library/ms188029.aspx
     (INTO tableName)? (FROM tableSources)? (WHERE where=searchCondition)?
-    // https://msdn.microsoft.com/en-us/library/ms177673.aspx
     (
         GROUP BY (
             (groupByAll = ALL? groupBys += groupByItem (COMMA groupBys += groupByItem)*)
@@ -4013,7 +3752,6 @@ querySpecification
     )? (HAVING having=searchCondition)?
     ;
 
-// https://msdn.microsoft.com/en-us/library/ms189463.aspx
 topClause
     : TOP (topPercent | topCount) (WITH TIES)?
     ;
@@ -4028,12 +3766,10 @@ topCount
     | LPAREN topcountExpression = expression RPAREN
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/queries/select-over-clause-transact-sql?view=sql-server-ver16
 orderByClause
     : ORDER BY orderByExpression (COMMA orderByExpression)*
     ;
 
-// https://msdn.microsoft.com/en-us/library/ms188385.aspx
 selectOrderByClause
     : orderByClause (
         OFFSET offsetExp = expression offsetRows = (ROW | ROWS) (
@@ -4042,17 +3778,17 @@ selectOrderByClause
     )?
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/queries/select-for-clause-transact-sql
 forClause
     : FOR BROWSE
-    | FOR XML (RAW (LPAREN STRING RPAREN)? | AUTO) xmlCommonDirectives* (
-        COMMA (XMLDATA | XMLSCHEMA (LPAREN STRING RPAREN)?)
-    )? (COMMA ELEMENTS (XSINIL | ABSENT)?)?
+    | FOR XML (RAW (LPAREN STRING RPAREN)? | AUTO) xmlCommonDirectives*
+        (COMMA (XMLDATA | XMLSCHEMA (LPAREN STRING RPAREN)? ) )?
+        (COMMA ELEMENTS (XSINIL | ABSENT) ? )?
     | FOR XML EXPLICIT xmlCommonDirectives* (COMMA XMLDATA)?
-    | FOR XML PATH (LPAREN STRING RPAREN)? xmlCommonDirectives* (COMMA ELEMENTS (XSINIL | ABSENT)?)?
-    | FOR JSON (AUTO | PATH) (
-        COMMA (ROOT (LPAREN STRING RPAREN) | INCLUDE_NULL_VALUES | WITHOUT_ARRAY_WRAPPER)
-    )*
+    | FOR XML PATH (LPAREN STRING RPAREN)? xmlCommonDirectives* (COMMA ELEMENTS (XSINIL | ABSENT)? )?
+    | FOR JSON (AUTO | PATH)
+        (
+            COMMA (ROOT (LPAREN STRING RPAREN) | INCLUDE_NULL_VALUES | WITHOUT_ARRAY_WRAPPER)
+        )*
     ;
 
 xmlCommonDirectives
@@ -4063,7 +3799,6 @@ orderByExpression
     : expression (ASC | DESC)?
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/queries/select-group-by-transact-sql?view=sql-server-ver15
 groupingSetsItem
     : LPAREN? groupSetItems += groupByItem (COMMA groupSetItems += groupByItem)* RPAREN?
     | LPAREN RPAREN
@@ -4071,14 +3806,9 @@ groupingSetsItem
 
 groupByItem
     : expression
-    /*| rollupSpec
-    | cubeSpec
-    | groupingSetsSpec
-    | grandTotal*/
     ;
 
 optionClause
-    // https://msdn.microsoft.com/en-us/library/ms181714.aspx
     : OPTION LPAREN options_ += option (COMMA options_ += option)* RPAREN
     ;
 
@@ -4106,7 +3836,6 @@ optimizeForArg
     : LOCAL_ID (UNKNOWN | EQ (constant | NULL_))
     ;
 
-// https://msdn.microsoft.com/en-us/library/ms176104.aspx
 selectList
     : selectElement += selectListElem (COMMA selectElement += selectListElem)*
     ;
@@ -4115,7 +3844,6 @@ udtMethodArguments
     : LPAREN argument += executeVarString (COMMA argument += executeVarString)* RPAREN
     ;
 
-// https://docs.microsoft.com/ru-ru/sql/t-sql/queries/select-clause-transact-sql
 asterisk
     : (INSERTED | DELETED) DOT STAR
     | (tableName DOT)? STAR
@@ -4135,26 +3863,19 @@ selectListElem
     : asterisk
     | LOCAL_ID op=(PE | ME | SE | DE | MEA | AND_ASSIGN | XOR_ASSIGN | OR_ASSIGN | EQ) expression
     | expressionElem
-    | udtElem  // TODO: May not be needed as expressionElem can handle this?
+    | udtElem  // TODO: May not be needed as expressionElem could handle this?
     ;
 
 tableSources
     : source += tableSource (COMMA source += tableSource)*
     ;
 
-// https://sqlenlight.com/support/help/sa0006/
-// TODO: This is exactly the same as tableSources alt 2 - investigate
-nonAnsiJoin
-    : source += tableSource (COMMA source += tableSource)+
-    ;
-
-// https://docs.microsoft.com/en-us/sql/t-sql/queries/from-transact-sql
 tableSource
     : tableSourceItem joinPart*
     ;
 
 tableSourceItem
-    : tableName deprecatedTableHint asTableAlias // this is currently allowed
+    : tableName deprecatedTableHint asTableAlias
     | tableName asTableAlias? (
         withTableHints
         | deprecatedTableHint
@@ -4169,11 +3890,10 @@ tableSourceItem
     | locIdCall = LOCAL_ID DOT locFcall = functionCall (asTableAlias columnAliasList?)?
     | openXml
     | openJson
-    | DOUBLE_COLON oldstyleFcall = functionCall asTableAlias? // Build-in function (old syntax)
+    | DOUBLE_COLON oldstyleFcall = functionCall asTableAlias?
     | LPAREN tableSource RPAREN
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/functions/openxml-transact-sql
 openXml
     : OPENXML LPAREN expression COMMA expression (COMMA expression)? RPAREN (WITH LPAREN schemaDeclaration RPAREN)? asTableAlias?
     ;
@@ -4211,9 +3931,7 @@ changeTableVersion
     : CHANGETABLE LPAREN VERSION versiontable = tableName COMMA pkColumns = fullColumnNameList COMMA pkValues = selectList RPAREN
     ;
 
-// https://msdn.microsoft.com/en-us/library/ms191472.aspx
 joinPart
-    // https://msdn.microsoft.com/en-us/library/ms173815(v=sql.120).aspx
     : joinOn
     | crossJoin
     | apply_
@@ -4264,15 +3982,11 @@ fullColumnNameList
     : column += fullColumnName (COMMA column += fullColumnName)*
     ;
 
-// https://msdn.microsoft.com/en-us/library/ms190312.aspx
 rowsetFunction
-    : (
-        OPENROWSET LPAREN providerName = STRING COMMA connectionString = STRING COMMA sql = STRING RPAREN
-    )
+    : (OPENROWSET LPAREN providerName = STRING COMMA connectionString = STRING COMMA sql = STRING RPAREN)
     | (OPENROWSET LPAREN BULK dataFile = STRING COMMA (bulkOption (COMMA bulkOption)* | id) RPAREN)
     ;
 
-// runtime check.
 bulkOption
     : id EQ bulkOptionValue = (INT | STRING)
     ;
@@ -4297,7 +4011,7 @@ functionValues
     : f=(CURSOR_ROWS | FETCH_STATUS | SESSION_USER | SYSTEM_USER | USER)
     ;
 
-// Standard functions are built in but take standard syntax, or are
+// Standard functions that are built in but take standard syntax, or are
 // some user function etc
 standardFunction
     : funcId LPAREN (expression (COMMA expression)*)? RPAREN
@@ -4345,34 +4059,23 @@ freetextPredicate
     ) COMMA expression (COMMA LANGUAGE expression)? RPAREN
     ;
 
-jsonKeyValue
-    : jsonKeyName = expression COLON valueExpression = expression
-    ;
-
-jsonNullClause
-    : (ABSENT | NULL_) ON NULL_
-    ;
-
 builtInFunctions
-    : NEXT VALUE FOR tableName (OVER LPAREN orderByClause RPAREN)?                          #nextValueFor
-    | CAST LPAREN expression AS dataType RPAREN                                             #cast
-    | TRY_CAST LPAREN expression AS dataType RPAREN                                         #tryCast
-    | PARSE LPAREN str = expression AS dataType (USING culture = expression)? RPAREN        #parse
+    : NEXT VALUE FOR tableName                                                              #nextValueFor
+    | (CAST | TRY_CAST) LPAREN expression AS dataType RPAREN                                #cast
     | JSON_ARRAY LPAREN expressionList? jsonNullClause? RPAREN                              #jsonArray
     | JSON_OBJECT
         LPAREN
-            (jsonKeyValue (COMMA keyValue = jsonKeyValue)* )?
+            (jsonKeyValue (COMMA jsonKeyValue)* )?
             jsonNullClause?
         RPAREN                                                                              #jsonObject
     ;
 
-valueMethod
-    : (
-        locId = LOCAL_ID
-        | valueId = fullColumnName
-        | eventdata = EVENTDATA LPAREN RPAREN
-        | LPAREN subquery RPAREN
-    ) DOT standardFunction
+jsonKeyValue
+    : expression COLON expression
+    ;
+
+jsonNullClause
+    : (loseNulls=ABSENT | NULL_) ON NULL_
     ;
 
 hierarchyidStaticMethod
@@ -4384,7 +4087,6 @@ nodesMethod
     ;
 
 switchSection
-    // Nore that searchCondition includes an expression only but allows too much for case expression.. on purpose
     : WHEN searchCondition THEN expression
     ;
 
@@ -4396,7 +4098,6 @@ asTableAlias
     : AS? (id | DOUBLE_QUOTE_ID)
     ;
 
-// https://msdn.microsoft.com/en-us/library/ms187373.aspx
 withTableHints
     : WITH LPAREN hint += tableHint (COMMA? hint += tableHint)* RPAREN
     ;
@@ -4405,11 +4106,6 @@ deprecatedTableHint
     : LPAREN tableHint RPAREN
     ;
 
-// https://infocenter-archive.sybase.com/help/index.jsp?topic=/com.sybase.infocenter.dc00938.1502/html/locking/locking103.htm
-// https://infocenter-archive.sybase.com/help/index.jsp?topic=/com.sybase.dc32300_1250/html/sqlug/sqlug792.htm
-// https://infocenter-archive.sybase.com/help/index.jsp?topic=/com.sybase.dc36271_36272_36273_36274_1250/html/refman/X35229.htm
-// Legacy hint with no parenthesis and no WITH keyword. Actually conflicts with table alias name except for holdlock which is
-// a reserved keyword in this grammar. We might want a separate sybase grammar variant.
 sybaseLegacyHints
     : sybaseLegacyHint+
     ;
@@ -4421,14 +4117,12 @@ sybaseLegacyHint
     | SHARED
     ;
 
-// For simplicity, we don't build subsets for INSERT/UPDATE/DELETE/SELECT/MERGE
-// which means the grammar accept slightly more than the what the specification (documentation) says.
 tableHint
     : NOEXPAND
     | INDEX (
         LPAREN indexValue (COMMA indexValue)* RPAREN
         | EQ LPAREN indexValue RPAREN
-        | EQ indexValue // examples in the doc include this syntax
+        | EQ indexValue
     )
     | FORCESEEK ( LPAREN indexValue LPAREN columnNameList RPAREN RPAREN)?
     | FORCESCAN
@@ -4477,12 +4171,10 @@ expressionList
     : exp += expression (COMMA exp += expression)*
     ;
 
-// https://docs.microsoft.com/en-us/sql/t-sql/functions/analytic-functions-transact-sql
 withinGroup
     :  WITHIN GROUP LPAREN orderByClause RPAREN
     ;
 
-// https://msdn.microsoft.com/en-us/library/ms189461.aspx
 overClause
     : OVER LPAREN (PARTITION BY expression (COMMA expression)*)? orderByClause? rowOrRangeClause? RPAREN
     ;
@@ -4537,7 +4229,6 @@ fileSpecification
     )? (MAXSIZE EQ (fileSize | UNLIMITED) COMMA?)? (FILEGROWTH EQ fileSize COMMA?)? RPAREN
     ;
 
-// Primitive.
 entityName
     : (
         server = id DOT database = id DOT schema = id DOT
@@ -4594,7 +4285,6 @@ columnNameListWithOrder
     : id (ASC | DESC)? (COMMA id (ASC | DESC)?)*
     ;
 
-//For some reason, sql server allows any number of prefixes:  Here, h is the column: a.b.c.d.e.f.g.h
 insertColumnNameList
     : col += insertColumnId (COMMA col += insertColumnId)*
     ;
@@ -4624,13 +4314,6 @@ clustered
 
 nullNotnull
     : NOT? NULL_
-    ;
-
-// TODO: Get rid of this after checking
-scalarFunctionName
-    : funcProcNameServerDatabaseSchema
-    | RIGHT
-    | LEFT
     ;
 
 beginConversationTimer
@@ -4684,19 +4367,15 @@ sendConversation
     )? SEMI?
     ;
 
-// https://msdn.microsoft.com/en-us/library/ms187752.aspx
-// TODO: implement runtime check or add new tokens.
-
 dataType
-    : scaled = (VARCHAR | NVARCHAR | BINARY_KEYWORD | VARBINARY_KEYWORD | SQUARE_BRACKET_ID) LPAREN MAX RPAREN
-    | extType = id LPAREN scale = INT COMMA prec = INT RPAREN
-    | extType = id LPAREN scale = INT RPAREN
-    | extType = id IDENTITY (LPAREN seed = INT COMMA inc = INT RPAREN)?
-    | doublePrec = DOUBLE PRECISION?
-    | unscaledType = id
+    : dataTypeIdentity
+    | id (LPAREN (INT | MAX) (COMMA INT)? RPAREN)?
     ;
 
-// https://msdn.microsoft.com/en-us/library/ms179899.aspx
+dataTypeIdentity
+    : id IDENTITY (LPAREN INT COMMA INT RPAREN)?
+    ;
+
 constant
     : con = (
           STRING
@@ -4711,6 +4390,8 @@ constant
 
 keyword
     : ABORT
+    | ABORT_AFTER_WAIT
+    | ABSENT
     | ABSOLUTE
     | ACCENT_SENSITIVITY
     | ACCESS
@@ -4719,6 +4400,8 @@ keyword
     | ACTIVE
     | ADD // ?
     | ADDRESS
+    | ADMINISTER
+    | AES
     | AES_128
     | AES_192
     | AES_256
@@ -4730,12 +4413,16 @@ keyword
     | ALL_ERRORMSGS
     | ALL_INDEXES
     | ALL_LEVELS
+    | ALLOW_CONNECTIONS
     | ALLOW_ENCRYPTED_VALUE_MODIFICATIONS
+    | ALLOW_MULTIPLE_EVENT_LOSS
     | ALLOW_PAGE_LOCKS
     | ALLOW_ROW_LOCKS
+    | ALLOW_SINGLE_EVENT_LOSS
     | ALLOW_SNAPSHOT_ISOLATION
     | ALLOWED
     | ALWAYS
+    | ANONYMOUS
     | ANSI_DEFAULTS
     | ANSI_NULL_DEFAULT
     | ANSI_NULL_DFLT_OFF
@@ -4743,14 +4430,20 @@ keyword
     | ANSI_NULLS
     | ANSI_PADDING
     | ANSI_WARNINGS
+    | APPEND
+    | APPLICATION
     | APPLICATION_LOG
     | APPLY
     | ARITHABORT
     | ARITHIGNORE
     | ASSEMBLY
+    | ASYMMETRIC
+    | ASYNCHRONOUS_COMMIT
     | AT_KEYWORD
     | AUDIT
     | AUDIT_GUID
+    | AUTHENTICATE
+    | AUTHENTICATION
     | AUTO
     | AUTO_CLEANUP
     | AUTO_CLOSE
@@ -4761,27 +4454,42 @@ keyword
     | AUTO_UPDATE_STATISTICS_ASYNC
     | AUTOGROW_ALL_FILES
     | AUTOGROW_SINGLE_FILE
+    | AUTOMATED_BACKUP_PREFERENCE
+    | AUTOMATIC
     | AVAILABILITY
+    | AVAILABILITY_MODE
     | BACKUP_CLONEDB
     | BACKUP_PRIORITY
     | BASE64
+    | BEFORE
     | BEGIN_DIALOG
     | BIGINT
     | BINARY_KEYWORD
     | BINDING
     | BLOB_STORAGE
+    | BLOCK
+    | BLOCKERS
+    | BLOCKSIZE
     | BROKER
     | BROKER_INSTANCE
+    | BUFFER
+    | BUFFERCOUNT
     | BULK_LOGGED
+    | CACHE
+    | CALLED
     | CALLER
     | CAP_CPU_PERCENT
     | CAST
-    | TRY_CAST
     | CATALOG
     | CATCH
+    | CERTIFICATE
     | CHANGE
     | CHANGE_RETENTION
     | CHANGE_TRACKING
+    | CHANGES
+    | CHANGETABLE
+    | CHECK_EXPIRATION
+    | CHECK_POLICY
     | CHECKALLOC
     | CHECKCATALOG
     | CHECKCONSTRAINTS
@@ -4789,9 +4497,11 @@ keyword
     | CHECKFILEGROUP
     | CHECKSUM
     | CHECKTABLE
+    | CLASSIFIER_FUNCTION
     | CLEANTABLE
     | CLEANUP
     | CLONEDATABASE
+    | CLUSTER
     | COLLECTION
     | COLUMN_ENCRYPTION_KEY
     | COLUMN_MASTER_KEY
@@ -4801,12 +4511,23 @@ keyword
     | COMMITTED
     | COMPATIBILITY_LEVEL
     | COMPRESS_ALL_ROW_GROUPS
+    | COMPRESSION
     | COMPRESSION_DELAY
     | CONCAT
     | CONCAT_NULL_YIELDS_NULL
+    | CONFIGURATION
+    | CONNECT
+    | CONNECTION
+    | CONTAINMENT
     | CONTENT
+    | CONTEXT
+    | CONTINUE_AFTER_ERROR
+    | CONTRACT
+    | CONTRACT_NAME
     | CONTROL
+    | CONVERSATION
     | COOKIE
+    | COPY_ONLY
     | COUNTER
     | CPU
     | CREATE_NEW
@@ -4815,18 +4536,26 @@ keyword
     | CRYPTOGRAPHIC
     | CURSOR_CLOSE_ON_COMMIT
     | CURSOR_DEFAULT
+    | CYCLE
     | DATA
+    | DATA_COMPRESSION
     | DATA_PURITY
+    | DATA_SOURCE
+    | DATABASE_MIRRORING
+    | DATASPACE
     | DATE_CORRELATION_OPTIMIZATION
     | DAYS
     | DB_CHAINING
     | DB_FAILOVER
     | DBCC
     | DBREINDEX
+    | DDL
     | DECRYPTION
+    | DEFAULT_DATABASE
     | DEFAULT_DOUBLE_QUOTE
     | DEFAULT_FULLTEXT_LANGUAGE
     | DEFAULT_LANGUAGE
+    | DEFAULT_SCHEMA
     | DEFINITION
     | DELAY
     | DELAYED_DURABILITY
@@ -4837,53 +4566,73 @@ keyword
     | DESX
     | DETERMINISTIC
     | DHCP
+    | DIAGNOSTICS
     | DIALOG
+    | DIFFERENTIAL
     | DIRECTORY_NAME
     | DISABLE
     | DISABLE_BROKER
     | DISABLED
+    | DISTRIBUTION
     | DOCUMENT
     | DROP_EXISTING
     | DROPCLEANBUFFERS
+    | DTC_SUPPORT
     | DYNAMIC
     | ELEMENTS
     | EMERGENCY
     | EMPTY
     | ENABLE
     | ENABLE_BROKER
+    | ENABLED
     | ENCRYPTED
     | ENCRYPTED_VALUE
     | ENCRYPTION
     | ENCRYPTION_TYPE
+    | ENDPOINT
     | ENDPOINT_URL
+    | ERROR
     | ERROR_BROKER_CONVERSATIONS
     | ESTIMATEONLY
+    | EVENT
+    | EVENT_RETENTION_MODE
     | EXCLUSIVE
     | EXECUTABLE
+    | EXECUTABLE_FILE
     | EXPAND
+    | EXPIREDATE
     | EXPIRY_DATE
     | EXPLICIT
     | EXTENDED_LOGICAL_CHECKS
+    | EXTENSION
+    | EXTERNAL_ACCESS
     | FAIL_OPERATION
+    | FAILOVER
     | FAILOVER_MODE
     | FAILURE
     | FAILURE_CONDITION_LEVEL
+    | FAILURECONDITIONLEVEL
+    | FAN_IN
     | FAST
     | FAST_FORWARD
+    | FILE_SNAPSHOT
     | FILEGROUP
     | FILEGROWTH
     | FILENAME
     | FILEPATH
     | FILESTREAM
+    | FILESTREAM_ON
     | FILTER
     | FIRST
     | FMTONLY
     | FOLLOWING
     | FORCE
     | FORCE_FAILOVER_ALLOW_DATA_LOSS
+    | FORCE_SERVICE_ALLOW_DATA_LOSS
     | FORCED
     | FORCEPLAN
     | FORCESCAN
+    | FORCESEEK
     | FORMAT
     | FORWARD_ONLY
     | FREE
@@ -4891,14 +4640,21 @@ keyword
     | FULLTEXT
     | GB
     | GENERATED
+    | GET
+    | GETROOT
     | GLOBAL
     | GO
+    | GOVERNOR
     | GROUP_MAX_REQUESTS
     | GROUPING
     | HADR
     | HASH
+    | HASHED
     | HEALTH_CHECK_TIMEOUT
+    | HEALTHCHECKTIMEOUT
+    | HEAP
     | HIDDEN_KEYWORD
+    | HIERARCHYID
     | HIGH
     | HONOR_BROKER_PRIORITY
     | HOURS
@@ -4908,74 +4664,113 @@ keyword
     | IGNORE_NONCLUSTERED_COLUMNSTORE_INDEX
     | IGNORE_REPLICATED_TABLE_CACHE
     | IGNORE_TRIGGERS
+    | IIF
     | IMMEDIATE
     | IMPERSONATE
     | IMPLICIT_TRANSACTIONS
     | IMPORTANCE
+    | INCLUDE
     | INCLUDE_NULL_VALUES
+    | INCREMENT
     | INCREMENTAL
+    | INFINITE
+    | INIT
     | INITIATOR
     | INPUT
     | INSENSITIVE
     | INSERTED
-    | KWINT
+    | INSTEAD
+    | IO
     | IP
     | ISOLATION
     | JOB
     | JSON
-    | JSON_OBJECT
     | JSON_ARRAY
+    | JSON_OBJECT
     | KB
     | KEEP
     | KEEPDEFAULTS
     | KEEPFIXED
     | KEEPIDENTITY
+    | KERBEROS
+    | KEY_PATH
     | KEY_SOURCE
+    | KEY_STORE_PROVIDER_NAME
     | KEYS
     | KEYSET
+    | KWINT
+    | LANGUAGE
     | LAST
     | LEVEL
+    | LIBRARY
+    | LIFETIME
+    | LINKED
+    | LINUX
     | LIST
     | LISTENER
+    | LISTENER_IP
+    | LISTENER_PORT
     | LISTENER_URL
     | LOB_COMPACTION
     | LOCAL
+    | LOCAL_SERVICE_NAME
     | LOCATION
     | LOCK
     | LOCK_ESCALATION
+    | LOG
     | LOGIN
     | LOOP
     | LOW
     | MANUAL
     | MARK
+    | MASK
     | MASKED
+    | MASTER
+    | MATCHED
     | MATERIALIZED
     | MAX
     | MAX_CPU_PERCENT
+    | MAX_DISPATCH_LATENCY
     | MAX_DOP
+    | MAX_DURATION
+    | MAX_EVENT_SIZE
     | MAX_FILES
     | MAX_IOPS_PER_VOLUME
+    | MAX_MEMORY
     | MAX_MEMORY_PERCENT
+    | MAX_OUTSTANDING_IO_PER_VOLUME
     | MAX_PROCESSES
     | MAX_QUEUE_READERS
     | MAX_ROLLOVER_FILES
+    | MAX_SIZE
     | MAXDOP
     | MAXRECURSION
     | MAXSIZE
+    | MAXTRANSFER
+    | MAXVALUE
     | MB
+    | MEDIADESCRIPTION
+    | MEDIANAME
     | MEDIUM
+    | MEMBER
     | MEMORY_OPTIMIZED_DATA
+    | MEMORY_PARTITION_MODE
     | MESSAGE
+    | MESSAGE_FORWARD_SIZE
+    | MESSAGE_FORWARDING
     | MIN_CPU_PERCENT
     | MIN_IOPS_PER_VOLUME
     | MIN_MEMORY_PERCENT
     | MINUTES
+    | MINVALUE
+    | MIRROR
     | MIRROR_ADDRESS
     | MIXED_PAGE_ALLOCATION
     | MODE
     | MODIFY
     | MOVE
     | MULTI_USER
+    | MUST_CHANGE
     | NAME
     | NESTED_TRIGGERS
     | NEW_ACCOUNT
@@ -4984,6 +4779,9 @@ keyword
     | NEWNAME
     | NEXT
     | NO
+    | NO_CHECKSUM
+    | NO_COMPRESSION
+    | NO_EVENT_LOSS
     | NO_INFOMSGS
     | NO_QUERYSTORE
     | NO_STATISTICS
@@ -4993,14 +4791,22 @@ keyword
     | NODES
     | NOEXEC
     | NOEXPAND
+    | NOFORMAT
     | NOINDEX
+    | NOINIT
     | NOLOCK
     | NON_TRANSACTED_ACCESS
+    | NONE
     | NORECOMPUTE
     | NORECOVERY
+    | NOREWIND
+    | NOSKIP
+    | NOTIFICATION
     | NOTIFICATIONS
+    | NOUNLOAD
     | NOWAIT
     | NTILE
+    | NTLM
     | NULL_DOUBLE_QUOTE
     | NUMANODE
     | NUMBER
@@ -5009,10 +4815,13 @@ keyword
     | OFFLINE
     | OFFSET
     | OLD_ACCOUNT
+    | OLD_PASSWORD
+    | ON_FAILURE
     | ONLINE
     | ONLY
     | OPEN_EXISTING
     | OPENJSON
+    | OPERATIONS
     | OPTIMISTIC
     | OPTIMIZE
     | OPTIMIZE_FOR_SEQUENTIAL_KEY
@@ -5022,23 +4831,36 @@ keyword
     | OWNER
     | OWNERSHIP
     | PAD_INDEX
+    | PAGE
     | PAGE_VERIFY
     | PAGECOUNT
     | PAGLOCK
+    | PARAM_NODE
     | PARAMETERIZATION
     | PARSEONLY
+    | PARTIAL
     | PARTITION
     | PARTITIONS
     | PARTNER
+    | PASSWORD
     | PATH
     | PAUSE
     | PDW_SHOWSPACEUSED
+    | PER_CPU
+    | PER_DB
+    | PER_NODE
+    | PERMISSION_SET
     | PERSIST_SAMPLE_PERCENT
+    | PERSISTED
     | PHYSICAL_ONLY
+    | PLATFORM
     | POISON_MESSAGE_HANDLING
+    | POLICY
     | POOL
     | PORT
     | PRECEDING
+    | PRECISION
+    | PREDICATE
     | PRIMARY_ROLE
     | PRIOR
     | PRIORITY
@@ -5048,13 +4870,17 @@ keyword
     | PRIVILEGES
     | PROCCACHE
     | PROCEDURE_NAME
+    | PROCESS
+    | PROFILE
     | PROPERTY
     | PROVIDER
     | PROVIDER_KEY_NAME
+    | PYTHON
     | QUERY
     | QUEUE
     | QUEUE_DELAY
     | QUOTED_IDENTIFIER
+    | R
     | RANDOMIZED
     | RANGE
     | RC2
@@ -5064,6 +4890,7 @@ keyword
     | READ_ONLY
     | READ_ONLY_ROUTING_LIST
     | READ_WRITE
+    | READ_WRITE_FILEGROUPS
     | READCOMMITTED
     | READCOMMITTEDLOCK
     | READONLY
@@ -5075,6 +4902,9 @@ keyword
     | RECOMPILE
     | RECOVERY
     | RECURSIVE_TRIGGERS
+    | REGENERATE
+    | RELATED_CONVERSATION
+    | RELATED_CONVERSATION_GROUP
     | RELATIVE
     | REMOTE
     | REMOTE_PROC_TRANSACTIONS
@@ -5091,24 +4921,44 @@ keyword
     | REQUEST_MAX_CPU_TIME_SEC
     | REQUEST_MAX_MEMORY_GRANT_PERCENT
     | REQUEST_MEMORY_GRANT_TIMEOUT_SEC
+    | REQUIRED
     | REQUIRED_SYNCHRONIZED_SECONDARIES_TO_COMMIT
     | RESAMPLE
     | RESERVE_DISK_SPACE
+    | RESET
     | RESOURCE
     | RESOURCE_MANAGER_LOCATION
+    | RESOURCES
+    | RESTART
     | RESTRICTED_USER
     | RESUMABLE
+    | RESUME
+    | RETAINDAYS
     | RETENTION
+    | RETURNS
+    | REWIND
     | ROBUST
+    | ROLE
     | ROOT
+    | ROUND_ROBIN
     | ROUTE
     | ROW
     | ROWGUID
     | ROWLOCK
     | ROWS
+    | RSA_512
+    | RSA_1024
+    | RSA_2048
+    | RSA_3072
+    | RSA_4096
+    | SAFE
+    | SAFETY
     | SAMPLE
+    | SCHEDULER
     | SCHEMABINDING
+    | SCHEME
     | SCOPED
+    | SCRIPT
     | SCROLL
     | SCROLL_LOCKS
     | SEARCH
@@ -5128,9 +4978,15 @@ keyword
     | SEQUENCE
     | SEQUENCE_NUMBER
     | SERIALIZABLE
+    | SERVER
+    | SERVICE
+    | SERVICE_BROKER
+    | SERVICE_NAME
     | SERVICEBROKER
+    | SESSION
     | SESSION_TIMEOUT
     | SETERROR
+    | SETTINGS
     | SHARE
     | SHARED
     | SHOWCONTIG
@@ -5138,38 +4994,64 @@ keyword
     | SHOWPLAN_ALL
     | SHOWPLAN_TEXT
     | SHOWPLAN_XML
+    | SHRINKLOG
+    | SID
     | SIGNATURE
     | SIMPLE
     | SINGLE_USER
     | SIZE
+    | SKIP_KEYWORD
     | SMALLINT
     | SNAPSHOT
+    | SOFTNUMA
     | SORT_IN_TEMPDB
+    | SOURCE
+    | SP_EXECUTESQL
     | SPARSE
     | SPATIAL_WINDOW_MAX_CELLS
+    | SPECIFICATION
+    | SPLIT
+    | SQL
+    | SQLDUMPERFLAGS
+    | SQLDUMPERPATH
+    | SQLDUMPERTIMEOUT
     | STANDBY
+    | START
     | START_DATE
+    | STARTED
+    | STARTUP_STATE
+    | STATE
     | STATIC
     | STATISTICS_INCREMENTAL
     | STATISTICS_NORECOMPUTE
+    | STATS
     | STATS_STREAM
     | STATUS
     | STATUSONLY
+    | STOP
+    | STOP_ON_ERROR
     | STOPLIST
+    | STOPPED
     | SUBJECT
     | SUBSCRIBE
     | SUBSCRIPTION
+    | SUPPORTED
     | SUSPEND
+    | SWITCH
     | SYMMETRIC
     | SYNCHRONOUS_COMMIT
     | SYNONYM
     | SYSTEM
+    | TABLE
     | TABLERESULTS
     | TABLOCK
     | TABLOCKX
     | TAKE
+    | TAPE
+    | TARGET
     | TARGET_RECOVERY_TIME
     | TB
+    | TCP
     | TEXTIMAGE_ON
     | THROW
     | TIES
@@ -5178,39 +5060,55 @@ keyword
     | TIMER
     | TINYINT
     | TORN_PAGE_DETECTION
+    | TOSTRING
+    | TRACE
+    | TRACK_CAUSALITY
     | TRACKING
     | TRANSACTION_ID
+    | TRANSFER
     | TRANSFORM_NOISE_WORDS
     | TRIPLE_DES
     | TRIPLE_DES_3KEY
     | TRUSTWORTHY
     | TRY
+    | TRY_CAST
     | TSQL
     | TWO_DIGIT_YEAR_CUTOFF
     | TYPE
     | TYPE_WARNING
     | UNBOUNDED
+    | UNCHECKED
     | UNCOMMITTED
     | UNKNOWN
     | UNLIMITED
+    | UNLOCK
     | UNMASK
+    | UNSAFE
     | UOW
     | UPDLOCK
+    | URL
+    | USED
     | USING
     | VALID_XML
     | VALIDATION
     | VALUE
     | VAR
-    | VARBINARY_KEYWORD
+    | VERBOSELOGGING
     | VERIFY_CLONEDB
     | VERSION
     | VIEW_METADATA
     | VIEWS
+    | VISIBILITY
     | WAIT
+    | WAIT_AT_LOW_PRIORITY
     | WELL_FORMED_XML
+    | WINDOWS
+    | WITHOUT
     | WITHOUT_ARRAY_WRAPPER
+    | WITNESS
     | WORK
     | WORKLOAD
+    | XACT_ABORT
     | XLOCK
     | XML
     | XML_COMPRESSION
@@ -5219,239 +5117,12 @@ keyword
     | XMLSCHEMA
     | XSINIL
     | ZONE
-    //More keywords that can also be used as IDs
-    | ABORT_AFTER_WAIT
-    | ABSENT
-    | ADMINISTER
-    | AES
-    | ALLOW_CONNECTIONS
-    | ALLOW_MULTIPLE_EVENT_LOSS
-    | ALLOW_SINGLE_EVENT_LOSS
-    | ANONYMOUS
-    | APPEND
-    | APPLICATION
-    | ASYMMETRIC
-    | ASYNCHRONOUS_COMMIT
-    | AUTHENTICATE
-    | AUTHENTICATION
-    | AUTOMATED_BACKUP_PREFERENCE
-    | AUTOMATIC
-    | AVAILABILITY_MODE
-    | BEFORE
-    | BLOCK
-    | BLOCKERS
-    | BLOCKSIZE
-    | BUFFER
-    | BUFFERCOUNT
-    | CACHE
-    | CALLED
-    | CERTIFICATE
-    | CHANGETABLE
-    | CHANGES
-    | CHECK_POLICY
-    | CHECK_EXPIRATION
-    | CLASSIFIER_FUNCTION
-    | CLUSTER
-    | COMPRESSION
-    | CONNECT
-    | CONNECTION
-    | CONFIGURATION
-    | CONTAINMENT
-    | CONTEXT
-    | CONTINUE_AFTER_ERROR
-    | CONTRACT
-    | CONTRACT_NAME
-    | CONVERSATION
-    | COPY_ONLY
-    | CYCLE
-    | DATA_COMPRESSION
-    | DATA_SOURCE
-    | DATABASE_MIRRORING
-    | DATASPACE
-    | DDL
-    | DEFAULT_DATABASE
-    | DEFAULT_SCHEMA
-    | DIAGNOSTICS
-    | DIFFERENTIAL
-    | DISTRIBUTION
-    | DTC_SUPPORT
-    | ENABLED
-    | ENDPOINT
-    | ERROR
-    | EVENT
-    | EVENTDATA
-    | EVENT_RETENTION_MODE
-    | EXECUTABLE_FILE
-    | EXPIREDATE
-    | EXTENSION
-    | EXTERNAL_ACCESS
-    | FAILOVER
-    | FAILURECONDITIONLEVEL
-    | FAN_IN
-    | FILE_SNAPSHOT
-    | FORCESEEK
-    | FORCE_SERVICE_ALLOW_DATA_LOSS
-    | GET
-    | GETROOT
-    | GOVERNOR
-    | HASHED
-    | HEALTHCHECKTIMEOUT
-    | HEAP
-    | HIERARCHYID
-    | IIF
-    | IO
-    | INCLUDE
-    | INCREMENT
-    | INFINITE
-    | INIT
-    | INSTEAD
-    | KERBEROS
-    | KEY_PATH
-    | KEY_STORE_PROVIDER_NAME
-    | LANGUAGE
-    | LIBRARY
-    | LIFETIME
-    | LINKED
-    | LINUX
-    | LISTENER_IP
-    | LISTENER_PORT
-    | LOCAL_SERVICE_NAME
-    | LOG
-    | MASK
-    | MATCHED
-    | MASTER
-    | MAX_MEMORY
-    | MAXTRANSFER
-    | MAXVALUE
-    | MAX_DISPATCH_LATENCY
-    | MAX_DURATION
-    | MAX_EVENT_SIZE
-    | MAX_SIZE
-    | MAX_OUTSTANDING_IO_PER_VOLUME
-    | MEDIADESCRIPTION
-    | MEDIANAME
-    | MEMBER
-    | MEMORY_PARTITION_MODE
-    | MESSAGE_FORWARDING
-    | MESSAGE_FORWARD_SIZE
-    | MINVALUE
-    | MIRROR
-    | MUST_CHANGE
-    | NOFORMAT
-    | NOINIT
-    | NONE
-    | NOREWIND
-    | NOSKIP
-    | NOUNLOAD
-    | NO_CHECKSUM
-    | NO_COMPRESSION
-    | NO_EVENT_LOSS
-    | NOTIFICATION
-    | NTLM
-    | OLD_PASSWORD
-    | ON_FAILURE
-    | OPERATIONS
-    | PAGE
-    | PARAM_NODE
-    | PARTIAL
-    | PASSWORD
-    | PERMISSION_SET
-    | PER_CPU
-    | PER_DB
-    | PER_NODE
-    | PERSISTED
-    | PLATFORM
-    | POLICY
-    | PREDICATE
-    | PROCESS
-    | PROFILE
-    | PYTHON
-    | R
-    | READ_WRITE_FILEGROUPS
-    | REGENERATE
-    | RELATED_CONVERSATION
-    | RELATED_CONVERSATION_GROUP
-    | REQUIRED
-    | RESET
-    | RESOURCES
-    | RESTART
-    | RESUME
-    | RETAINDAYS
-    | RETURNS
-    | REWIND
-    | ROLE
-    | ROUND_ROBIN
-    | RSA_512
-    | RSA_1024
-    | RSA_2048
-    | RSA_3072
-    | RSA_4096
-    | SAFETY
-    | SAFE
-    | SCHEDULER
-    | SCHEME
-    | SCRIPT
-    | SERVER
-    | SERVICE
-    | SERVICE_BROKER
-    | SERVICE_NAME
-    | SESSION
-    | SETTINGS
-    | SHRINKLOG
-    | SID
-    | SKIP_KEYWORD
-    | SOFTNUMA
-    | SOURCE
-    | SPECIFICATION
-    | SPLIT
-    | SQL
-    | SQLDUMPERFLAGS
-    | SQLDUMPERPATH
-    | SQLDUMPERTIMEOUT
-    | STATE
-    | STATS
-    | START
-    | STARTED
-    | STARTUP_STATE
-    | STOP
-    | STOPPED
-    | STOP_ON_ERROR
-    | SUPPORTED
-    | SWITCH
-    | TAPE
-    | TARGET
-    | TCP
-    | TOSTRING
-    | TRACE
-    | TRACK_CAUSALITY
-    | TRANSFER
-    | UNCHECKED
-    | UNLOCK
-    | UNSAFE
-    | URL
-    | USED
-    | VERBOSELOGGING
-    | VISIBILITY
-    | WAIT_AT_LOW_PRIORITY
-    | WINDOWS
-    | WITHOUT
-    | WITNESS
-    | XACT_ABORT
-    //
-    | SP_EXECUTESQL
-    //Built-ins:
-    | VARCHAR
-    | NVARCHAR
-    | PRECISION //For some reason this is possible to use as ID
-    | FILESTREAM_ON
     ;
 
-// https://msdn.microsoft.com/en-us/library/ms175874.aspx
 id
     : ID
     | TEMP_ID
     | DOUBLE_QUOTE_ID
-    | DOUBLE_QUOTE_BLANK // TODO: This is unnecessary I think - remove
     | SQUARE_BRACKET_ID
     | keyword
     | RAW
@@ -5466,7 +5137,6 @@ idOrString
     | STRING
     ;
 
-// https://msdn.microsoft.com/en-us/library/ms188074.aspx
 // Spaces are allowed for comparison operators.
 comparisonOperator
     : EQ

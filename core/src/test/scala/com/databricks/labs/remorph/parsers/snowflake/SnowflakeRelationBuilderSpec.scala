@@ -19,6 +19,20 @@ class SnowflakeRelationBuilderSpec extends AnyWordSpec with SnowflakeParserTestC
 
     "translate FROM clauses" in {
       example("FROM some_table", _.from_clause(), namedTable("some_table"))
+      example(
+        "FROM t1, t2, t3",
+        _.from_clause(),
+        Join(
+          Join(namedTable("t1"), namedTable("t2"), None, InnerJoin, Seq(), JoinDataType(false, false)),
+          namedTable("t3"),
+          None,
+          InnerJoin,
+          Seq(),
+          JoinDataType(false, false)))
+      example(
+        "FROM (SELECT * FROM t1) t2",
+        _.from_clause(),
+        SubqueryAlias(Project(namedTable("t1"), Seq(Star(None))), "t2", ""))
     }
 
     "translate WHERE clauses" in {

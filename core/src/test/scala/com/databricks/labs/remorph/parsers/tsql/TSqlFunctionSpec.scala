@@ -283,4 +283,83 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
           ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop),
           ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop))))
   }
+
+  "translate 'functions' with non-standard syntax" in {
+    example(
+      query = "NEXT VALUE FOR mySequence",
+      _.expression(),
+      ir.CallFunction("MONOTONICALLY_INCREASING_ID", List.empty))
+  }
+
+  "translate JSON_ARRAY in various forms" in {
+    example(
+      query = "JSON_ARRAY(1, 2, 3 ABSENT ON NULL)",
+      _.expression(),
+      ir.CallFunction(
+        "TO_JSON",
+        Seq(
+          ir.ValueArray(Seq(ir.FilterExpr(
+            Seq(ir.Literal(integer = Some(1)), ir.Literal(integer = Some(2)), ir.Literal(integer = Some(3))),
+            ir.LambdaFunction(
+              ir.Not(ir.IsNull(ir.UnresolvedNamedLambdaVariable(Seq("x")))),
+              Seq(ir.UnresolvedNamedLambdaVariable(Seq("x"))))))))))
+
+    example(
+      query = "JSON_ARRAY(4, 5, 6)",
+      _.expression(),
+      ir.CallFunction(
+        "TO_JSON",
+        Seq(
+          ir.ValueArray(Seq(ir.FilterExpr(
+            Seq(ir.Literal(integer = Some(4)), ir.Literal(integer = Some(5)), ir.Literal(integer = Some(6))),
+            ir.LambdaFunction(
+              ir.Not(ir.IsNull(ir.UnresolvedNamedLambdaVariable(Seq("x")))),
+              Seq(ir.UnresolvedNamedLambdaVariable(Seq("x"))))))))))
+
+    example(
+      query = "JSON_ARRAY(1, 2, 3 NULL ON NULL)",
+      _.expression(),
+      ir.CallFunction(
+        "TO_JSON",
+        Seq(
+          ir.ValueArray(
+            Seq(ir.Literal(integer = Some(1)), ir.Literal(integer = Some(2)), ir.Literal(integer = Some(3)))))))
+
+    example(
+      query = "JSON_ARRAY(1, col1, x.col2 NULL ON NULL)",
+      _.expression(),
+      ir.CallFunction(
+        "TO_JSON",
+        Seq(ir.ValueArray(Seq(ir.Literal(integer = Some(1)), ir.Column("col1"), ir.Column("x.col2"))))))
+  }
+
+  "translate JSON_OBJECT in various forms" in {
+    example(
+      query = "JSON_OBJECT('one': 1, 'two': 2, 'three': 3 ABSENT ON NULL)",
+      _.expression(),
+      ir.CallFunction(
+        "TO_JSON",
+        Seq(
+          ir.FilterStruct(
+            ir.NamedStruct(
+              keys = Seq(
+                ir.Literal(string = Some("one")),
+                ir.Literal(string = Some("two")),
+                ir.Literal(string = Some("three"))),
+              values =
+                Seq(ir.Literal(integer = Some(1)), ir.Literal(integer = Some(2)), ir.Literal(integer = Some(3)))),
+            ir.LambdaFunction(
+              ir.Not(ir.IsNull(ir.UnresolvedNamedLambdaVariable(Seq("v")))),
+              Seq(ir.UnresolvedNamedLambdaVariable(Seq("k", "v"))))))))
+
+    example(
+      query = "JSON_OBJECT('a': a, 'b': b, 'c': c NULL ON NULL)",
+      _.expression(),
+      ir.CallFunction(
+        "TO_JSON",
+        Seq(
+          ir.NamedStruct(
+            Seq(ir.Literal(string = Some("a")), ir.Literal(string = Some("b")), ir.Literal(string = Some("c"))),
+            Seq(ir.Column("a"), ir.Column("b"), ir.Column("c"))))))
+  }
 }

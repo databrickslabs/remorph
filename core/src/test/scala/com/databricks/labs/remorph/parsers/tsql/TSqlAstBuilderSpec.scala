@@ -25,6 +25,10 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
       example(
         query = "SELECT a FROM dbo.table_x",
         expectedAst = Batch(Seq(Project(NamedTable("dbo.table_x", Map.empty, is_streaming = false), Seq(Column("a"))))))
+
+      example(
+        query = "SELECT a FROM TABLE",
+        expectedAst = Batch(Seq(Project(NamedTable("TABLE", Map.empty, is_streaming = false), Seq(Column("a"))))))
     }
 
     "translate column aliases" in {
@@ -364,5 +368,37 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
             all_columns_as_keys = false,
             within_watermark = false),
           Seq(Column("a"), Alias(Column("b"), Seq("bb"), None))))))
+  }
+
+  "Columns specified with dedicated syntax" in {
+    example(
+      query = "SELECT NEXT VALUE FOR mySequence As nextVal",
+      expectedAst = Batch(
+        Seq(
+          Project(NoTable, Seq(Alias(CallFunction("MONOTONICALLY_INCREASING_ID", List.empty), Seq("nextVal"), None))))))
+
+    example(
+      query = "SELECT NEXT VALUE FOR var.mySequence As nextVal",
+      expectedAst = Batch(
+        Seq(
+          Project(NoTable, Seq(Alias(CallFunction("MONOTONICALLY_INCREASING_ID", List.empty), Seq("nextVal"), None))))))
+
+    example(
+      query = "SELECT NEXT VALUE FOR var.mySequence OVER (ORDER BY myColumn) As nextVal ",
+      expectedAst = Batch(
+        Seq(Project(
+          NoTable,
+          Seq(Alias(
+            Window(
+              CallFunction("ROW_NUMBER", List.empty),
+              List.empty,
+              List(SortOrder(Column("myColumn"), AscendingSortDirection, SortNullsUnspecified)),
+              WindowFrame(
+                UndefinedFrame,
+                FrameBoundary(current_row = false, unbounded = false, Noop),
+                FrameBoundary(current_row = false, unbounded = false, Noop))),
+            Seq("nextVal"),
+            None))))))
+
   }
 }

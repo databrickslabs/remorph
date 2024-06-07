@@ -1,3 +1,4 @@
+from pyspark.errors import PySparkException
 from databricks.labs.remorph.reconcile.recon_config import ReconcileOutput
 
 
@@ -27,3 +28,11 @@ class ReconciliationException(Exception):
     @property
     def reconcile_output(self) -> ReconcileOutput | None:
         return self._reconcile_output
+
+
+class ReadAndWriteWithVolumeException(PySparkException):
+    """Raise the error when there is a runtime exception thrown while writing data to volume"""
+
+
+class CleanFromVolumeException(PySparkException):
+    """Raise the error when there is a runtime exception thrown while cleaning data from volume"""

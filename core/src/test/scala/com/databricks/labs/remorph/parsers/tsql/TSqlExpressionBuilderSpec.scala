@@ -5,9 +5,7 @@ import com.databricks.labs.remorph.parsers.tsql.TSqlParser.WindowFrameBoundConte
 import com.databricks.labs.remorph.parsers.{intermediate => ir}
 import org.antlr.v4.runtime.tree.TerminalNodeImpl
 import org.antlr.v4.runtime.{CommonToken, Token}
-import org.mockito.ArgumentMatchers.any
-import org.mockito.ArgumentMatchers.anyInt
-import org.mockito.Mockito.{mock, when}
+import org.mockito.ArgumentMatchers.{any, anyInt}
 import org.mockito.Mockito.{mock, when}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -457,6 +455,200 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
       val result = builder.visitSelectListElem(selectListElemContextMock)
 
       result shouldBe a[ir.UnresolvedExpression]
+    }
+
+    "translate CAST pseudo function calls with simple scalars" in {
+      example("CAST(a AS tinyint)", _.expression(), ir.Cast(ir.Column("a"), ir.ByteType(size = Some(1))))
+      example("CAST(a AS smallint)", _.expression(), ir.Cast(ir.Column("a"), ir.ShortType()))
+      example("CAST(a AS INT)", _.expression(), ir.Cast(ir.Column("a"), ir.IntegerType()))
+      example("CAST(a AS bigint)", _.expression(), ir.Cast(ir.Column("a"), ir.LongType()))
+      example("CAST(a AS bit)", _.expression(), ir.Cast(ir.Column("a"), ir.BooleanType()))
+      example("CAST(a AS money)", _.expression(), ir.Cast(ir.Column("a"), ir.DecimalType(Some(19), Some(4))))
+      example("CAST(a AS smallmoney)", _.expression(), ir.Cast(ir.Column("a"), ir.DecimalType(Some(10), Some(4))))
+      example("CAST(a AS float)", _.expression(), ir.Cast(ir.Column("a"), ir.FloatType()))
+      example("CAST(a AS real)", _.expression(), ir.Cast(ir.Column("a"), ir.DoubleType()))
+      example("CAST(a AS date)", _.expression(), ir.Cast(ir.Column("a"), ir.DateType()))
+      example("CAST(a AS time)", _.expression(), ir.Cast(ir.Column("a"), ir.TimeType()))
+      example("CAST(a AS datetime)", _.expression(), ir.Cast(ir.Column("a"), ir.TimestampType()))
+      example("CAST(a AS datetime2)", _.expression(), ir.Cast(ir.Column("a"), ir.TimestampType()))
+      example("CAST(a AS datetimeoffset)", _.expression(), ir.Cast(ir.Column("a"), ir.StringType()))
+      example("CAST(a AS smalldatetime)", _.expression(), ir.Cast(ir.Column("a"), ir.TimestampType()))
+      example("CAST(a AS char)", _.expression(), ir.Cast(ir.Column("a"), ir.CharType(size = None)))
+      example("CAST(a AS varchar)", _.expression(), ir.Cast(ir.Column("a"), ir.VarCharType(size = None)))
+      example("CAST(a AS nchar)", _.expression(), ir.Cast(ir.Column("a"), ir.CharType(size = None)))
+      example("CAST(a AS nvarchar)", _.expression(), ir.Cast(ir.Column("a"), ir.VarCharType(size = None)))
+      example("CAST(a AS text)", _.expression(), ir.Cast(ir.Column("a"), ir.VarCharType(None)))
+      example("CAST(a AS ntext)", _.expression(), ir.Cast(ir.Column("a"), ir.VarCharType(None)))
+      example("CAST(a AS image)", _.expression(), ir.Cast(ir.Column("a"), ir.BinaryType()))
+      example("CAST(a AS decimal)", _.expression(), ir.Cast(ir.Column("a"), ir.DecimalType(None, None)))
+      example("CAST(a AS numeric)", _.expression(), ir.Cast(ir.Column("a"), ir.DecimalType(None, None)))
+      example("CAST(a AS binary)", _.expression(), ir.Cast(ir.Column("a"), ir.BinaryType()))
+      example("CAST(a AS varbinary)", _.expression(), ir.Cast(ir.Column("a"), ir.BinaryType()))
+      example("CAST(a AS json)", _.expression(), ir.Cast(ir.Column("a"), ir.VarCharType(None)))
+      example("CAST(a AS uniqueidentifier)", _.expression(), ir.Cast(ir.Column("a"), ir.VarCharType(size = Some(16))))
+    }
+
+    "translate CAST pseudo function calls with length arguments" in {
+      example("CAST(a AS char(10))", _.expression(), ir.Cast(ir.Column("a"), ir.CharType(size = Some(10))))
+      example("CAST(a AS varchar(10))", _.expression(), ir.Cast(ir.Column("a"), ir.VarCharType(size = Some(10))))
+      example("CAST(a AS nchar(10))", _.expression(), ir.Cast(ir.Column("a"), ir.CharType(size = Some(10))))
+      example("CAST(a AS nvarchar(10))", _.expression(), ir.Cast(ir.Column("a"), ir.VarCharType(size = Some(10))))
+    }
+
+    "translate CAST pseudo function calls with scale arguments" in {
+      example("CAST(a AS decimal(10))", _.expression(), ir.Cast(ir.Column("a"), ir.DecimalType(Some(10), None)))
+      example("CAST(a AS numeric(10))", _.expression(), ir.Cast(ir.Column("a"), ir.DecimalType(Some(10), None)))
+    }
+
+    "translate CAST pseudo function calls with precision and scale arguments" in {
+      example("CAST(a AS decimal(10, 2))", _.expression(), ir.Cast(ir.Column("a"), ir.DecimalType(Some(10), Some(2))))
+      example("CAST(a AS numeric(10, 2))", _.expression(), ir.Cast(ir.Column("a"), ir.DecimalType(Some(10), Some(2))))
+    }
+
+    "translate TRY_CAST pseudo function calls with simple scalars" in {
+      example(
+        "TRY_CAST(a AS tinyint)",
+        _.expression(),
+        ir.Cast(ir.Column("a"), ir.ByteType(size = Some(1)), returnNullOnError = true))
+      example(
+        "TRY_CAST(a AS smallint)",
+        _.expression(),
+        ir.Cast(ir.Column("a"), ir.ShortType(), returnNullOnError = true))
+      example("TRY_CAST(a AS INT)", _.expression(), ir.Cast(ir.Column("a"), ir.IntegerType(), returnNullOnError = true))
+      example("TRY_CAST(a AS bigint)", _.expression(), ir.Cast(ir.Column("a"), ir.LongType(), returnNullOnError = true))
+      example("TRY_CAST(a AS bit)", _.expression(), ir.Cast(ir.Column("a"), ir.BooleanType(), returnNullOnError = true))
+      example(
+        "TRY_CAST(a AS money)",
+        _.expression(),
+        ir.Cast(ir.Column("a"), ir.DecimalType(Some(19), Some(4)), returnNullOnError = true))
+      example(
+        "TRY_CAST(a AS smallmoney)",
+        _.expression(),
+        ir.Cast(ir.Column("a"), ir.DecimalType(Some(10), Some(4)), returnNullOnError = true))
+      example("TRY_CAST(a AS float)", _.expression(), ir.Cast(ir.Column("a"), ir.FloatType(), returnNullOnError = true))
+      example("TRY_CAST(a AS real)", _.expression(), ir.Cast(ir.Column("a"), ir.DoubleType(), returnNullOnError = true))
+      example("TRY_CAST(a AS date)", _.expression(), ir.Cast(ir.Column("a"), ir.DateType(), returnNullOnError = true))
+      example("TRY_CAST(a AS time)", _.expression(), ir.Cast(ir.Column("a"), ir.TimeType(), returnNullOnError = true))
+      example(
+        "TRY_CAST(a AS datetime)",
+        _.expression(),
+        ir.Cast(ir.Column("a"), ir.TimestampType(), returnNullOnError = true))
+      example(
+        "TRY_CAST(a AS datetime2)",
+        _.expression(),
+        ir.Cast(ir.Column("a"), ir.TimestampType(), returnNullOnError = true))
+      example(
+        "TRY_CAST(a AS datetimeoffset)",
+        _.expression(),
+        ir.Cast(ir.Column("a"), ir.StringType(), returnNullOnError = true))
+      example(
+        "TRY_CAST(a AS smalldatetime)",
+        _.expression(),
+        ir.Cast(ir.Column("a"), ir.TimestampType(), returnNullOnError = true))
+      example(
+        "TRY_CAST(a AS char)",
+        _.expression(),
+        ir.Cast(ir.Column("a"), ir.CharType(size = None), returnNullOnError = true))
+      example(
+        "TRY_CAST(a AS varchar)",
+        _.expression(),
+        ir.Cast(ir.Column("a"), ir.VarCharType(size = None), returnNullOnError = true))
+      example(
+        "TRY_CAST(a AS nchar)",
+        _.expression(),
+        ir.Cast(ir.Column("a"), ir.CharType(size = None), returnNullOnError = true))
+      example(
+        "TRY_CAST(a AS nvarchar)",
+        _.expression(),
+        ir.Cast(ir.Column("a"), ir.VarCharType(size = None), returnNullOnError = true))
+      example(
+        "TRY_CAST(a AS text)",
+        _.expression(),
+        ir.Cast(ir.Column("a"), ir.VarCharType(None), returnNullOnError = true))
+      example(
+        "TRY_CAST(a AS ntext)",
+        _.expression(),
+        ir.Cast(ir.Column("a"), ir.VarCharType(None), returnNullOnError = true))
+      example(
+        "TRY_CAST(a AS image)",
+        _.expression(),
+        ir.Cast(ir.Column("a"), ir.BinaryType(), returnNullOnError = true))
+      example(
+        "TRY_CAST(a AS decimal)",
+        _.expression(),
+        ir.Cast(ir.Column("a"), ir.DecimalType(None, None), returnNullOnError = true))
+      example(
+        "TRY_CAST(a AS numeric)",
+        _.expression(),
+        ir.Cast(ir.Column("a"), ir.DecimalType(None, None), returnNullOnError = true))
+      example(
+        "TRY_CAST(a AS binary)",
+        _.expression(),
+        ir.Cast(ir.Column("a"), ir.BinaryType(), returnNullOnError = true))
+      example(
+        "TRY_CAST(a AS varbinary)",
+        _.expression(),
+        ir.Cast(ir.Column("a"), ir.BinaryType(), returnNullOnError = true))
+      example(
+        "TRY_CAST(a AS json)",
+        _.expression(),
+        ir.Cast(ir.Column("a"), ir.VarCharType(None), returnNullOnError = true))
+      example(
+        "TRY_CAST(a AS uniqueidentifier)",
+        _.expression(),
+        ir.Cast(ir.Column("a"), ir.VarCharType(size = Some(16)), returnNullOnError = true))
+    }
+
+    "translate TRY_CAST pseudo function calls with length arguments" in {
+      example(
+        "TRY_CAST(a AS char(10))",
+        _.expression(),
+        ir.Cast(ir.Column("a"), ir.CharType(size = Some(10)), returnNullOnError = true))
+      example(
+        "TRY_CAST(a AS varchar(10))",
+        _.expression(),
+        ir.Cast(ir.Column("a"), ir.VarCharType(size = Some(10)), returnNullOnError = true))
+      example(
+        "TRY_CAST(a AS nchar(10))",
+        _.expression(),
+        ir.Cast(ir.Column("a"), ir.CharType(size = Some(10)), returnNullOnError = true))
+      example(
+        "TRY_CAST(a AS nvarchar(10))",
+        _.expression(),
+        ir.Cast(ir.Column("a"), ir.VarCharType(size = Some(10)), returnNullOnError = true))
+    }
+
+    "translate TRY_CAST pseudo function calls with scale arguments" in {
+      example(
+        "TRY_CAST(a AS decimal(10))",
+        _.expression(),
+        ir.Cast(ir.Column("a"), ir.DecimalType(Some(10), None), returnNullOnError = true))
+      example(
+        "TRY_CAST(a AS numeric(10))",
+        _.expression(),
+        ir.Cast(ir.Column("a"), ir.DecimalType(Some(10), None), returnNullOnError = true))
+    }
+
+    "translate TRY_CAST pseudo function calls with precision and scale arguments" in {
+      example(
+        "TRY_CAST(a AS decimal(10, 2))",
+        _.expression(),
+        ir.Cast(ir.Column("a"), ir.DecimalType(Some(10), Some(2)), returnNullOnError = true))
+      example(
+        "TRY_CAST(a AS numeric(10, 2))",
+        _.expression(),
+        ir.Cast(ir.Column("a"), ir.DecimalType(Some(10), Some(2)), returnNullOnError = true))
+    }
+
+    "translate identity to UnparsedType" in {
+      // TODO: Resolve what to do with IDENTITY
+      // IDENTITY it isn't actually castable but we have not implemented CREATE TABLE yet, so cover here for now
+      // then examine what happens in snowflake
+      example("CAST(a AS col1 IDENTITY(10, 2))", _.expression(), ir.Cast(ir.Column("a"), ir.UnparsedType()))
+    }
+
+    "translate unknown types to UnParsedType" in {
+      example("CAST(a AS sometype)", _.expression(), ir.Cast(ir.Column("a"), ir.UnparsedType()))
     }
   }
 }
