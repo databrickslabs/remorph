@@ -17,11 +17,9 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
     ctx match {
       // TODO: asterisk not fully handled
       case c if c.asterisk() != null => c.asterisk().accept(this)
-      // TODO: UDT elements seem broken in the grammar
-      case c if c.udtElem() != null => c.udtElem().accept(this)
       case c if c.LOCAL_ID() != null => buildLocalAssign(ctx)
       case c if c.expressionElem() != null => ctx.expressionElem().accept(this)
-      // $COVERAGE-OFF$ all four possible alts in the grammar are covered
+      // $COVERAGE-OFF$ all three possible alts in the grammar are covered
       case _ => ir.UnresolvedExpression("Unsupported SelectListElem")
       // $COVERAGE-ON$
     }
