@@ -105,7 +105,7 @@ class ReconcileTablesConfig:
 
 
 @dataclass
-class ReconcileMetricsConfig:
+class ReconcileMetadataConfig:
     catalog: str = "remorph"
     schema: str = "reconcile"
     volume: str = "recon_volume"
@@ -119,8 +119,8 @@ class ReconcileConfig:
     data_source: str
     report_type: str
     secret_scope: str
-    config: DatabaseConfig
-    metrics: ReconcileMetricsConfig
+    database_config: DatabaseConfig
+    metadata_config: ReconcileMetadataConfig
     job_id: int = 0
     tables: ReconcileTablesConfig | None = None
 

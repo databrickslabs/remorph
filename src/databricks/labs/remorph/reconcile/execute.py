@@ -73,9 +73,9 @@ def trigger_recon() -> None:
     reconcile_config = installation.load(ReconcileConfig)
 
     catalog_or_schema = (
-        reconcile_config.config.source_catalog
-        if reconcile_config.config.source_catalog
-        else reconcile_config.config.source_schema
+        reconcile_config.database_config.source_catalog
+        if reconcile_config.database_config.source_catalog
+        else reconcile_config.database_config.source_schema
     )
     filename = f"recon_config_{reconcile_config.data_source}_{catalog_or_schema}_{reconcile_config.report_type}.json"
 
@@ -90,10 +90,10 @@ def trigger_recon() -> None:
             table_recon=table_recon,
             reconcile_config=reconcile_config,
         )
-        print(recon_output)
-        print(recon_output.recon_id)
+        logger.info(f"recon_output: {recon_output}")
+        logger.info(f"recon_id: {recon_output.recon_id}")
     except RuntimeError as e:
-        print(e)
+        logger.error(f"Error while running recon: {e}")
 
 
 def recon(
@@ -113,8 +113,8 @@ def recon(
     source_dialect = get_dialect(reconcile_config.data_source)
 
     # validate the report type
-    report_type = reconcile_config.report_type
-    logger.info(report_type)
+    report_type = reconcile_config.report_type.lower()
+    logger.info(f"report_type: {report_type}, data_source: {reconcile_config.data_source}")
     validate_input(report_type, {"schema", "data", "row", "all"}, "Invalid report type")
 
     source, target = initialise_data_source(
@@ -129,7 +129,7 @@ def recon(
     reconciler = Reconciliation(
         source,
         target,
-        reconcile_config.config,
+        reconcile_config.database_config,
         report_type,
         SchemaCompare(spark=spark),
         source_dialect,
@@ -138,13 +138,13 @@ def recon(
 
     # initialise the recon capture class
     recon_capture = ReconCapture(
-        database_config=reconcile_config.config,
+        database_config=reconcile_config.database_config,
         recon_id=recon_id,
         report_type=report_type,
         source_dialect=source_dialect,
         ws=ws_client,
         spark=spark,
-        metrics_config=reconcile_config.metrics,
+        metrics_config=reconcile_config.metadata_config,
     )
 
     for table_conf in table_recon.tables:
@@ -153,7 +153,7 @@ def recon(
         data_reconcile_output = DataReconcileOutput()
         try:
             src_schema, tgt_schema = _get_schema(
-                source=source, target=target, table_conf=table_conf, database_config=reconcile_config.config
+                source=source, target=target, table_conf=table_conf, database_config=reconcile_config.database_config
             )
         except DataSourceRuntimeException as e:
             schema_reconcile_output = SchemaReconcileOutput(is_valid=False, exception=str(e))
@@ -185,7 +185,7 @@ def recon(
         generate_final_reconcile_output(
             recon_id=recon_id,
             spark=spark,
-            metrics=reconcile_config.metrics,
+            metrics=reconcile_config.metadata_config,
         )
     )
 

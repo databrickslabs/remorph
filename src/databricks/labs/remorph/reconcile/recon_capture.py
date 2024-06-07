@@ -6,7 +6,7 @@ from pyspark.sql.functions import col, collect_list, create_map, lit
 from pyspark.errors import PySparkException
 from sqlglot import Dialect
 
-from databricks.labs.remorph.config import DatabaseConfig, Table, get_key_form_dialect, ReconcileMetricsConfig
+from databricks.labs.remorph.config import DatabaseConfig, Table, get_key_form_dialect, ReconcileMetadataConfig
 from databricks.labs.remorph.reconcile.exception import (
     WriteToTableException,
     ReadAndWriteWithVolumeException,
@@ -77,12 +77,12 @@ def _write_df_to_delta(df: DataFrame, table_name: str, mode="append"):
         raise WriteToTableException(message) from e
 
 
-def _get_db_prefix(metrics: ReconcileMetricsConfig) -> str:
+def _get_db_prefix(metrics: ReconcileMetadataConfig) -> str:
     return f"{metrics.catalog}.{metrics.schema}"
 
 
 def generate_final_reconcile_output(
-    recon_id: str, spark: SparkSession, metrics: ReconcileMetricsConfig = ReconcileMetricsConfig()
+    recon_id: str, spark: SparkSession, metrics: ReconcileMetadataConfig = ReconcileMetadataConfig()
 ) -> ReconcileOutput:
     db_prefix = _get_db_prefix(metrics)
     recon_df = spark.sql(
@@ -163,7 +163,7 @@ class ReconCapture:
         source_dialect: Dialect,
         ws: WorkspaceClient,
         spark: SparkSession,
-        metrics_config=ReconcileMetricsConfig(),
+        metrics_config=ReconcileMetadataConfig(),
     ):
         self.database_config = database_config
         self.recon_id = recon_id

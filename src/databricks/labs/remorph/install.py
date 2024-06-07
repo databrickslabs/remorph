@@ -28,7 +28,7 @@ from databricks.labs.remorph.config import (
     SQLGLOT_DIALECTS,
     DatabaseConfig,
     RemorphConfigs,
-    ReconcileMetricsConfig,
+    ReconcileMetadataConfig,
 )
 from databricks.labs.remorph.reconcile.constants import SourceType
 
@@ -328,8 +328,8 @@ class InstallPrompts:
             data_source=data_source,
             report_type=report_type,
             secret_scope=scope_name,
-            config=db_config,
-            metrics=ReconcileMetricsConfig(),
+            database_config=db_config,
+            metadata_config=ReconcileMetadataConfig(),
         )
 
         logger.info("Captured ** reconcile **  configuration details !!!")

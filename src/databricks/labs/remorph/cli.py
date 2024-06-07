@@ -130,10 +130,7 @@ def reconcile(w: WorkspaceClient):
         logger.error(f"Existing installation at {installation.install_folder()}/{filename} is corrupted. Skipping...")
         raise ex
 
-    assert table_recon, (
-        f"Error: Cannot load `recon_config` from {installation.install_folder()}/{filename}. "
-        f"Please re-generate using `remorph generate-recon-config` "
-    )
+    assert table_recon, f"Error: Cannot load `recon_config` from {installation.install_folder()}/{filename}. "
 
     logger.debug(f"Triggering the Job with job_id `{reconcile_config.job_id}` ...")
 

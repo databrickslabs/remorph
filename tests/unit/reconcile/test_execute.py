@@ -14,7 +14,7 @@ from databricks.labs.remorph.config import (
     TableRecon,
     get_dialect,
     ReconcileConfig,
-    ReconcileMetricsConfig,
+    ReconcileMetadataConfig,
 )
 from databricks.labs.remorph.reconcile.connectors.data_source import MockDataSource
 from databricks.labs.remorph.reconcile.connectors.databricks import DatabricksDataSource
@@ -588,8 +588,10 @@ def get_reconcile_config(data_source, report_type):
         data_source=data_source,
         report_type=report_type,
         secret_scope="secret_scope",
-        config=DatabaseConfig(source_schema="data", target_schema="data", source_catalog="org", target_catalog="org"),
-        metrics=ReconcileMetricsConfig(),
+        database_config=DatabaseConfig(
+            source_schema="data", target_schema="data", source_catalog="org", target_catalog="org"
+        ),
+        metadata_config=ReconcileMetadataConfig(),
     )
 
 
@@ -674,7 +676,7 @@ def test_recon_for_report_type_is_data(
         patch("databricks.labs.remorph.reconcile.recon_capture.datetime") as recon_datetime,
         patch("databricks.labs.remorph.reconcile.execute.initialise_data_source", return_value=(source, target)),
         patch("databricks.labs.remorph.reconcile.execute.uuid4", return_value="00112233-4455-6677-8899-aabbccddeeff"),
-        patch('databricks.labs.remorph.reconcile.recon_capture._get_db_prefix', return_value='default'),
+        patch("databricks.labs.remorph.reconcile.recon_capture._get_db_prefix", return_value="default"),
         patch(
             "databricks.labs.remorph.reconcile.recon_capture.ReconCapture._generate_recon_main_id", return_value=11111
         ),
@@ -852,7 +854,7 @@ def test_recon_for_report_type_schema(
         patch("databricks.labs.remorph.reconcile.recon_capture.datetime") as recon_datetime,
         patch("databricks.labs.remorph.reconcile.execute.initialise_data_source", return_value=(source, target)),
         patch("databricks.labs.remorph.reconcile.execute.uuid4", return_value="00112233-4455-6677-8899-aabbccddeeff"),
-        patch('databricks.labs.remorph.reconcile.recon_capture._get_db_prefix', return_value='default'),
+        patch("databricks.labs.remorph.reconcile.recon_capture._get_db_prefix", return_value="default"),
         patch(
             "databricks.labs.remorph.reconcile.recon_capture.ReconCapture._generate_recon_main_id", return_value=22222
         ),
@@ -1031,7 +1033,7 @@ def test_recon_for_report_type_all(
         patch("databricks.labs.remorph.reconcile.recon_capture.datetime") as recon_datetime,
         patch("databricks.labs.remorph.reconcile.execute.initialise_data_source", return_value=(source, target)),
         patch("databricks.labs.remorph.reconcile.execute.uuid4", return_value="00112233-4455-6677-8899-aabbccddeeff"),
-        patch('databricks.labs.remorph.reconcile.recon_capture._get_db_prefix', return_value='default'),
+        patch("databricks.labs.remorph.reconcile.recon_capture._get_db_prefix", return_value="default"),
         patch(
             "databricks.labs.remorph.reconcile.recon_capture.ReconCapture._generate_recon_main_id", return_value=33333
         ),
@@ -1280,7 +1282,7 @@ def test_recon_for_report_type_is_row(
         patch("databricks.labs.remorph.reconcile.recon_capture.datetime") as recon_datetime,
         patch("databricks.labs.remorph.reconcile.execute.initialise_data_source", return_value=(source, target)),
         patch("databricks.labs.remorph.reconcile.execute.uuid4", return_value="00112233-4455-6677-8899-aabbccddeeff"),
-        patch('databricks.labs.remorph.reconcile.recon_capture._get_db_prefix', return_value='default'),
+        patch("databricks.labs.remorph.reconcile.recon_capture._get_db_prefix", return_value="default"),
         patch(
             "databricks.labs.remorph.reconcile.recon_capture.ReconCapture._generate_recon_main_id", return_value=33333
         ),
@@ -1412,7 +1414,7 @@ def test_schema_recon_with_data_source_exception(
         patch("databricks.labs.remorph.reconcile.recon_capture.datetime") as recon_datetime,
         patch("databricks.labs.remorph.reconcile.execute.initialise_data_source", return_value=(source, target)),
         patch("databricks.labs.remorph.reconcile.execute.uuid4", return_value="00112233-4455-6677-8899-aabbccddeeff"),
-        patch('databricks.labs.remorph.reconcile.recon_capture._get_db_prefix', return_value='default'),
+        patch("databricks.labs.remorph.reconcile.recon_capture._get_db_prefix", return_value="default"),
         patch(
             "databricks.labs.remorph.reconcile.recon_capture.ReconCapture._generate_recon_main_id", return_value=33333
         ),
@@ -1482,7 +1484,7 @@ def test_schema_recon_with_general_exception(
         patch("databricks.labs.remorph.reconcile.recon_capture.datetime") as recon_datetime,
         patch("databricks.labs.remorph.reconcile.execute.initialise_data_source", return_value=(source, target)),
         patch("databricks.labs.remorph.reconcile.execute.uuid4", return_value="00112233-4455-6677-8899-aabbccddeeff"),
-        patch('databricks.labs.remorph.reconcile.recon_capture._get_db_prefix', return_value='default'),
+        patch("databricks.labs.remorph.reconcile.recon_capture._get_db_prefix", return_value="default"),
         patch(
             "databricks.labs.remorph.reconcile.recon_capture.ReconCapture._generate_recon_main_id", return_value=33333
         ),
@@ -1553,7 +1555,7 @@ def test_data_recon_with_general_exception(
         patch("databricks.labs.remorph.reconcile.recon_capture.datetime") as recon_datetime,
         patch("databricks.labs.remorph.reconcile.execute.initialise_data_source", return_value=(source, target)),
         patch("databricks.labs.remorph.reconcile.execute.uuid4", return_value="00112233-4455-6677-8899-aabbccddeeff"),
-        patch('databricks.labs.remorph.reconcile.recon_capture._get_db_prefix', return_value='default'),
+        patch("databricks.labs.remorph.reconcile.recon_capture._get_db_prefix", return_value="default"),
         patch(
             "databricks.labs.remorph.reconcile.recon_capture.ReconCapture._generate_recon_main_id", return_value=33333
         ),
@@ -1564,7 +1566,10 @@ def test_data_recon_with_general_exception(
         mock_datetime.now.return_value = datetime(2024, 5, 23, 9, 21, 25, 122185)
         recon_datetime.now.return_value = datetime(2024, 5, 23, 9, 21, 25, 122185)
         final_reconcile_output = recon(
-            mock_workspace_client, mock_spark, table_recon, get_reconcile_config("snowflake", "data")
+            mock_workspace_client,
+            mock_spark,
+            table_recon,
+            get_reconcile_config("snowflake", "data"),
         )
 
     expected_remorph_recon = mock_spark.createDataFrame(
@@ -1625,7 +1630,7 @@ def test_data_recon_with_source_exception(
         patch("databricks.labs.remorph.reconcile.recon_capture.datetime") as recon_datetime,
         patch("databricks.labs.remorph.reconcile.execute.initialise_data_source", return_value=(source, target)),
         patch("databricks.labs.remorph.reconcile.execute.uuid4", return_value="00112233-4455-6677-8899-aabbccddeeff"),
-        patch('databricks.labs.remorph.reconcile.recon_capture._get_db_prefix', return_value='default'),
+        patch("databricks.labs.remorph.reconcile.recon_capture._get_db_prefix", return_value="default"),
         patch(
             "databricks.labs.remorph.reconcile.recon_capture.ReconCapture._generate_recon_main_id", return_value=33333
         ),
@@ -1703,7 +1708,7 @@ def test_recon_for_wrong_report_type(mock_workspace_client, mock_spark, mock_for
         patch("databricks.labs.remorph.reconcile.recon_capture.datetime") as recon_datetime,
         patch("databricks.labs.remorph.reconcile.execute.initialise_data_source", return_value=(source, target)),
         patch("databricks.labs.remorph.reconcile.execute.uuid4", return_value="00112233-4455-6677-8899-aabbccddeeff"),
-        patch('databricks.labs.remorph.reconcile.recon_capture._get_db_prefix', return_value='default'),
+        patch("databricks.labs.remorph.reconcile.recon_capture._get_db_prefix", return_value="default"),
         patch(
             "databricks.labs.remorph.reconcile.recon_capture.ReconCapture._generate_recon_main_id", return_value=33333
         ),
@@ -1795,7 +1800,7 @@ def test_reconcile_data_with_threshold_and_row_report_type(
     assert actual.threshold_output.threshold_mismatch_count == 0
 
 
-@patch('databricks.labs.remorph.reconcile.execute.generate_final_reconcile_output')
+@patch("databricks.labs.remorph.reconcile.execute.generate_final_reconcile_output")
 def test_recon_output_without_exception(mock_gen_final_recon_output):
     mock_workspace_client = MagicMock()
     mock_spark = MagicMock()
