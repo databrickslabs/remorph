@@ -72,6 +72,17 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.Relation] w
         buildHaving(ctx.having_clause(), buildGroupBy(ctx.group_by_clause(), buildWhere(ctx.where_clause(), from)))))
   }
 
+  override def visitFrom_clause(ctx: From_clauseContext): ir.Relation = {
+    val tableSources = ctx.table_sources().table_source().asScala.map(_.accept(this))
+    // The tableSources seq cannot be empty (as empty FROM clauses are not allowed
+    tableSources match {
+      case Seq(tableSource) => tableSource
+      case sources =>
+        sources.reduce(
+          ir.Join(_, _, None, ir.InnerJoin, Seq(), ir.JoinDataType(is_left_struct = false, is_right_struct = false)))
+    }
+  }
+
   private def buildFilter[A](ctx: A, conditionRule: A => ParserRuleContext, input: ir.Relation): ir.Relation =
     Option(ctx).fold(input) { c =>
       ir.Filter(input, conditionRule(c).accept(new SnowflakeExpressionBuilder(new SnowflakeFunctionBuilder)))
@@ -123,6 +134,10 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.Relation] w
     ctx.values_table().values_table_body().accept(this)
   }
 
+  override def visitObjRefSubquery(ctx: ObjRefSubqueryContext): ir.Relation = {
+    val subquery = ctx.subquery().accept(this)
+    Option(ctx.as_alias()).map(a => ir.SubqueryAlias(subquery, a.alias().getText, "")).getOrElse(subquery)
+  }
   override def visitValues_table_body(ctx: Values_table_bodyContext): ir.Relation = {
     val expressionBuilder = new SnowflakeExpressionBuilder(new SnowflakeFunctionBuilder)
     val expressions =
