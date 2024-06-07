@@ -3,10 +3,15 @@ from datetime import datetime
 
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.functions import col, collect_list, create_map, lit
+from pyspark.errors import PySparkException
 from sqlglot import Dialect
 
 from databricks.labs.remorph.config import DatabaseConfig, Table, get_key_form_dialect, ReconcileMetadataConfig
-from databricks.labs.remorph.reconcile.exception import WriteToTableException
+from databricks.labs.remorph.reconcile.exception import (
+    WriteToTableException,
+    ReadAndWriteWithVolumeException,
+    CleanFromVolumeException,
+)
 from databricks.labs.remorph.reconcile.recon_config import (
     DataReconcileOutput,
     ReconcileOutput,
@@ -19,13 +24,47 @@ from databricks.sdk import WorkspaceClient
 
 logger = logging.getLogger(__name__)
 
-# _REMORPH_CATALOG = "remorph"
-# _RECONCILE_SCHEMA = "reconcile"
-# _DB_PREFIX = f"{_REMORPH_CATALOG}.{_RECONCILE_SCHEMA}"
 _RECON_TABLE_NAME = "main"
 _RECON_METRICS_TABLE_NAME = "metrics"
 _RECON_DETAILS_TABLE_NAME = "details"
 _SAMPLE_ROWS = 50
+
+
+def _write_unmatched_df_to_volumes(
+    unmatched_df: DataFrame,
+    path: str,
+) -> None:
+    unmatched_df.write.format("parquet").mode("overwrite").save(path)
+
+
+def _read_unmatched_df_from_volumes(
+    spark: SparkSession,
+    path: str,
+) -> DataFrame:
+    return spark.read.format("parquet").load(path)
+
+
+def clean_unmatched_df_from_volume(workspace_client: WorkspaceClient, path: str):
+    try:
+        workspace_client.dbfs.delete(path, recursive=True)
+    except Exception as e:
+        message = f"Error cleaning up unmatched DF from {path} volumes --> {e}"
+        logger.error(message)
+        raise CleanFromVolumeException(message) from e
+
+
+def write_and_read_unmatched_df_with_volumes(
+    unmatched_df: DataFrame,
+    spark: SparkSession,
+    path: str,
+) -> DataFrame:
+    try:
+        _write_unmatched_df_to_volumes(unmatched_df, path)
+        return _read_unmatched_df_from_volumes(spark, path)
+    except PySparkException as e:
+        message = f"Exception in reading or writing unmatched DF with volumes {path} --> {e}"
+        logger.error(message)
+        raise ReadAndWriteWithVolumeException(message) from e
 
 
 def _write_df_to_delta(df: DataFrame, table_name: str, mode="append"):
@@ -43,7 +82,9 @@ def _get_db_prefix(metrics: ReconcileMetadataConfig) -> str:
 
 
 def generate_final_reconcile_output(
-    recon_id: str, spark: SparkSession, metadata_config: ReconcileMetadataConfig
+    recon_id: str,
+    spark: SparkSession,
+    metadata_config: ReconcileMetadataConfig,
 ) -> ReconcileOutput:
     _db_prefix = _get_db_prefix(metadata_config)
     recon_df = spark.sql(
@@ -118,7 +159,7 @@ class ReconCapture:
         source_dialect: Dialect,
         ws: WorkspaceClient,
         spark: SparkSession,
-        metadata_config=ReconcileMetadataConfig(),
+        metadata_config: ReconcileMetadataConfig,
     ):
         self.database_config = database_config
         self.recon_id = recon_id
