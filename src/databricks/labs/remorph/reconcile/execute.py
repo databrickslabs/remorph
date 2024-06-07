@@ -79,7 +79,7 @@ def trigger_recon() -> None:
     )
     filename = f"recon_config_{reconcile_config.data_source}_{catalog_or_schema}_{reconcile_config.report_type}.json"
 
-    print(filename)
+    logger.info(f"Loading {filename} from Databricks Workspace...")
 
     table_recon = installation.load(type_ref=TableRecon, filename=filename)
 
