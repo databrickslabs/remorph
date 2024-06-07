@@ -24,9 +24,6 @@ from databricks.sdk import WorkspaceClient
 
 logger = logging.getLogger(__name__)
 
-# _REMORPH_CATALOG = "remorph"
-# _RECONCILE_SCHEMA = "reconcile"
-# _DB_PREFIX = f"{_REMORPH_CATALOG}.{_RECONCILE_SCHEMA}"
 _RECON_TABLE_NAME = "main"
 _RECON_METRICS_TABLE_NAME = "metrics"
 _RECON_DETAILS_TABLE_NAME = "details"

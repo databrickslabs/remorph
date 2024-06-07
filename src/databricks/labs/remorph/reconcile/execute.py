@@ -11,6 +11,7 @@ from databricks.labs.remorph.config import (
     TableRecon,
     get_dialect,
     ReconcileConfig,
+    ReconcileMetadataConfig,
 )
 from databricks.labs.remorph.reconcile.compare import (
     capture_mismatch_data_and_columns,
@@ -52,10 +53,6 @@ from databricks.connect import DatabricksSession
 
 logger = logging.getLogger(__name__)
 _SAMPLE_ROWS = 50
-_REMORPH_CATALOG = "remorph"
-_RECONCILE_SCHEMA = "reconcile"
-_RECONCILE_VOLUME = "recon_volume"
-_DB_PREFIX = f"{_REMORPH_CATALOG}.{_RECONCILE_SCHEMA}"
 
 
 def validate_input(input_value: str, list_of_value: set, message: str):
@@ -135,6 +132,7 @@ def recon(
         SchemaCompare(spark=spark),
         source_dialect,
         spark,
+        metadata_config=reconcile_config.metadata_config,
     )
 
     # initialise the recon capture class
@@ -180,7 +178,9 @@ def recon(
             recon_process_duration=recon_process_duration,
         )
         if report_type != "schema":
-            clean_unmatched_df_from_volume(workspace_client=ws, path=generate_volume_path(table_conf))
+            clean_unmatched_df_from_volume(
+                workspace_client=ws, path=generate_volume_path(table_conf, reconcile_config.metadata_config)
+            )
 
     return _verify_successful_reconciliation(
         generate_final_reconcile_output(
@@ -207,10 +207,10 @@ def _verify_successful_reconciliation(reconcile_output: ReconcileOutput) -> Reco
     return reconcile_output
 
 
-def generate_volume_path(table_conf: Table):
-    catalog = _DB_PREFIX.split(".")[0]
-    schema = _DB_PREFIX.split(".")[1]
-    return f"/Volumes/{catalog}/{schema}/{_RECONCILE_VOLUME}/{table_conf.source_name}_{table_conf.target_name}/"
+def generate_volume_path(table_conf: Table, metadata_config: ReconcileMetadataConfig):
+    catalog = metadata_config.catalog
+    schema = metadata_config.schema
+    return f"/Volumes/{catalog}/{schema}/{metadata_config.volume}/{table_conf.source_name}_{table_conf.target_name}/"
 
 
 def initialise_data_source(
@@ -254,6 +254,7 @@ class Reconciliation:
         schema_comparator: SchemaCompare,
         source_engine: Dialect,
         spark: SparkSession,
+        metadata_config: ReconcileMetadataConfig,
     ):
         self._source = source
         self._target = target
@@ -266,6 +267,7 @@ class Reconciliation:
         self._target_engine = get_dialect("databricks")
         self._source_engine = source_engine
         self._spark = spark
+        self._metadata_config = metadata_config
 
     def reconcile_data(
         self,
@@ -320,7 +322,7 @@ class Reconciliation:
             options=table_conf.jdbc_reader_options,
         )
 
-        volume_path = generate_volume_path(table_conf)
+        volume_path = generate_volume_path(table_conf, self._metadata_config)
         return reconcile_data(
             source=src_data,
             target=tgt_data,
