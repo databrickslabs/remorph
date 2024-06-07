@@ -3863,7 +3863,6 @@ selectListElem
     : asterisk
     | LOCAL_ID op=(PE | ME | SE | DE | MEA | AND_ASSIGN | XOR_ASSIGN | OR_ASSIGN | EQ) expression
     | expressionElem
-    | udtElem  // TODO: May not be needed as expressionElem could handle this?
     ;
 
 tableSources

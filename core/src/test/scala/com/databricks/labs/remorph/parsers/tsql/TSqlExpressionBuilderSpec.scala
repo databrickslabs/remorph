@@ -444,7 +444,6 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
       selectListElemContextMock.op = eofToken
       when(selectListElemContextMock.LOCAL_ID()).thenReturn(new TerminalNodeImpl(eofToken))
       when(selectListElemContextMock.asterisk()).thenReturn(null)
-      when(selectListElemContextMock.udtElem()).thenReturn(null)
       when(selectListElemContextMock.getText).thenReturn("")
 
       val expressionContextMock = mock(classOf[TSqlParser.ExpressionContext])
