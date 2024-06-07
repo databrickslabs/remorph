@@ -4811,7 +4811,6 @@ keyword
     | NUMANODE
     | NUMBER
     | NUMERIC_ROUNDABORT
-    | NVARCHAR
     | OBJECT
     | OFFLINE
     | OFFSET
