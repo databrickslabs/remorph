@@ -43,7 +43,9 @@ def _get_db_prefix(metrics: ReconcileMetadataConfig) -> str:
 
 
 def generate_final_reconcile_output(
-    recon_id: str, spark: SparkSession, metadata_config: ReconcileMetadataConfig
+    recon_id: str,
+    spark: SparkSession,
+    metadata_config: ReconcileMetadataConfig,
 ) -> ReconcileOutput:
     _db_prefix = _get_db_prefix(metadata_config)
     recon_df = spark.sql(
@@ -118,7 +120,7 @@ class ReconCapture:
         source_dialect: Dialect,
         ws: WorkspaceClient,
         spark: SparkSession,
-        metadata_config=ReconcileMetadataConfig(),
+        metadata_config: ReconcileMetadataConfig,
     ):
         self.database_config = database_config
         self.recon_id = recon_id

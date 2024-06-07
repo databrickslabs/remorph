@@ -111,9 +111,9 @@ def reconcile(w: WorkspaceClient):
         return
 
     catalog_or_schema = (
-        reconcile_config.config.source_catalog
-        if reconcile_config.config.source_catalog
-        else reconcile_config.config.source_schema
+        reconcile_config.database_config.source_catalog
+        if reconcile_config.database_config.source_catalog
+        else reconcile_config.database_config.source_schema
     )
 
     # Creates the filename in the format of : `recon_config_<SOURCE>_<CATALOG_OR_SCHEMA>_<FILTER_TYPE>.json`
@@ -132,7 +132,7 @@ def reconcile(w: WorkspaceClient):
 
     assert table_recon, f"Error: Cannot load `recon_config` from {installation.install_folder()}/{filename}. "
 
-    logger.debug(f"Triggering the Job with job_id `{reconcile_config.job_id}` ...")
+    logger.info(f"Triggering the Job with job_id: `{reconcile_config.job_id}` ...")
 
     wait = w.jobs.run_now(job_id=reconcile_config.job_id)
     assert wait.run_id, (
@@ -140,9 +140,9 @@ def reconcile(w: WorkspaceClient):
     )
 
     job_run_url = f"{w.config.host}/jobs/{reconcile_config.job_id}/runs/{wait.run_id}"
-    if _prompts.confirm(f"Open Run `{job_run_url}` in the browser?"):
+    if _prompts.confirm(f"Open Job Run URL `{job_run_url}` in the browser?"):
         webbrowser.open(job_run_url)
-    logger.info(f"Reconcile job started. Please check the job_url `{job_run_url}` for the current status.")
+    logger.info(f"\nReconcile job started. Please check the job_url `{job_run_url}` for the current status.")
 
 
 def _get_spark_session(ws: WorkspaceClient) -> SparkSession:

@@ -49,7 +49,6 @@ from databricks.sdk import WorkspaceClient
 from databricks.labs.blueprint.installation import Installation
 from databricks.connect import DatabricksSession
 
-
 logger = logging.getLogger(__name__)
 _SAMPLE_ROWS = 50
 
@@ -88,8 +87,9 @@ def trigger_recon() -> None:
         )
         logger.info(f"recon_output: {recon_output}")
         logger.info(f"recon_id: {recon_output.recon_id}")
-    except RuntimeError as e:
+    except ReconciliationException as e:
         logger.error(f"Error while running recon: {e}")
+        raise e
 
 
 def recon(
@@ -139,6 +139,7 @@ def recon(
         source_dialect=source_dialect,
         ws=ws_client,
         spark=spark,
+        metadata_config=reconcile_config.metadata_config,
     )
 
     for table_conf in table_recon.tables:
