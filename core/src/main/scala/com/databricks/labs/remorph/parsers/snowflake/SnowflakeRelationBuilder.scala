@@ -195,10 +195,10 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.Relation] w
   private[snowflake] def translateAggregateFunction(aggFunc: Id_Context, parameter: Id_Context): ir.Expression = {
     val column = ir.Column(parameter.getText)
     aggFunc match {
-      case f if f.builtin_function() != null && f.builtin_function().SUM() != null => ir.Sum(column)
-      case f if f.builtin_function() != null && f.builtin_function().AVG() != null => ir.Avg(column)
-      case f if f.builtin_function() != null && f.builtin_function().COUNT() != null => ir.Count(column)
-      case f if f.builtin_function() != null && f.builtin_function().MIN() != null => ir.Min(column)
+      case f if f.builtin_function_name() != null && f.builtin_function_name().SUM() != null => ir.Sum(column)
+      case f if f.builtin_function_name() != null && f.builtin_function_name().AVG() != null => ir.Avg(column)
+      case f if f.builtin_function_name() != null && f.builtin_function_name().COUNT() != null => ir.Count(column)
+      case f if f.builtin_function_name() != null && f.builtin_function_name().MIN() != null => ir.Min(column)
       case _ => ir.UnresolvedExpression(aggFunc.getText)
     }
   }

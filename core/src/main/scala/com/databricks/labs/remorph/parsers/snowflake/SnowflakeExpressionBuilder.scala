@@ -40,13 +40,9 @@ class SnowflakeExpressionBuilder()
     ir.Column(ctx.id_(0).getText)
   }
 
-  override def visitPrimitive_expression(ctx: Primitive_expressionContext): ir.Expression = {
-    if (!ctx.id_().isEmpty) {
-      val columnName = ctx.id_().asScala.map(_.getText).mkString(".")
-      ir.Column(columnName)
-    } else {
-      super.visitPrimitive_expression(ctx)
-    }
+  override def visitPrimExprColumn(ctx: PrimExprColumnContext): ir.Expression = {
+    val columnName = ctx.full_column_name().id_().asScala.map(_.getText).mkString(".")
+    ir.Column(columnName)
   }
 
   override def visitOrder_item(ctx: Order_itemContext): ir.Expression = {
@@ -291,13 +287,21 @@ class SnowflakeExpressionBuilder()
     }
   }
 
+  override def visitStandard_function(ctx: Standard_functionContext): ir.Expression = {
+    val functionName = ctx.id_().getText
+    val arguments = Option(ctx.expr_list()).map(_.expr().asScala.map(_.accept(this))).getOrElse(Seq())
+    functionBuilder.buildFunction(functionName, arguments)
+  }
+
+  // aggregate_function
+
   override def visitAggFuncExprList(ctx: AggFuncExprListContext): ir.Expression = {
     val param = ctx.expr_list().expr(0).accept(this)
-    buildBuiltinFunction(ctx.id_().builtin_function(), param)
+    buildBuiltinFunction(ctx.id_().builtin_function_name(), param)
   }
 
   override def visitAggFuncStar(ctx: AggFuncStarContext): ir.Expression = {
-    buildBuiltinFunction(ctx.id_().builtin_function(), ir.Star(None))
+    buildBuiltinFunction(ctx.id_().builtin_function_name(), ir.Star(None))
   }
 
   override def visitAggFuncList(ctx: AggFuncListContext): ir.Expression = {
@@ -308,7 +312,9 @@ class SnowflakeExpressionBuilder()
       case ARRAY_AGG => functionBuilder.buildFunction("ARRAYAGG", Seq(param))
     }
   }
-  private def buildBuiltinFunction(ctx: Builtin_functionContext, param: ir.Expression): ir.Expression =
+  // end aggregate_function
+
+  private def buildBuiltinFunction(ctx: Builtin_function_nameContext, param: ir.Expression): ir.Expression =
     Option(ctx)
       .collect {
         case c if c.AVG() != null => ir.Avg(param)
@@ -318,6 +324,11 @@ class SnowflakeExpressionBuilder()
       }
       .getOrElse(param)
 
+  override def visitBuiltinTrim(ctx: BuiltinTrimContext): ir.Expression = {
+    val expression = ctx.expr().accept(this)
+    val characters = Option(ctx.string()).map(_.accept(this)).toList
+    functionBuilder.buildFunction(ctx.trim.getText, expression :: characters)
+  }
   override def visitCase_expression(ctx: Case_expressionContext): ir.Expression = {
     val exprs = ctx.expr().asScala
     val otherwise = Option(ctx.ELSE()).flatMap(els => exprs.find(occursBefore(els, _)).map(_.accept(this)))
