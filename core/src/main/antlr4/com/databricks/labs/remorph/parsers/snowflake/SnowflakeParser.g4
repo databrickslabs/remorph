@@ -3433,7 +3433,8 @@ id_
 keyword
     //List here keyword (SnowSQL meaning) allowed as object name
     // Name of builtin function should be included in specifique section (ie builtin_function)
-    : STAGE
+    : TABLE
+    | STAGE
     | USER
     | TYPE
     | CLUSTER

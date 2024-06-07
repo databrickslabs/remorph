@@ -1,3 +1,4 @@
+from pathlib import Path
 import datetime
 import json
 from unittest.mock import patch
@@ -8,10 +9,12 @@ from pyspark.sql.functions import countDistinct
 from pyspark.sql.types import BooleanType, StringType, StructField, StructType
 
 from databricks.labs.remorph.config import DatabaseConfig, get_dialect
-from databricks.labs.remorph.reconcile.exception import WriteToTableException
+from databricks.labs.remorph.reconcile.exception import WriteToTableException, ReadAndWriteWithVolumeException
 from databricks.labs.remorph.reconcile.recon_capture import (
     ReconCapture,
     generate_final_reconcile_output,
+    write_and_read_unmatched_df_with_volumes,
+    clean_unmatched_df_from_volume,
 )
 from databricks.labs.remorph.reconcile.recon_config import (
     DataReconcileOutput,
@@ -621,3 +624,23 @@ def test_generate_final_reconcile_output_exception(mock_workspace_client, mock_s
             )
         ],
     )
+
+
+def test_write_and_read_unmatched_df_with_volumes_with_exception(tmp_path: Path, mock_spark, mock_workspace_client):
+    data = [Row(id=1, name='John', sal=5000), Row(id=2, name='Jane', sal=6000), Row(id=3, name='Doe', sal=7000)]
+    df = mock_spark.createDataFrame(data)
+
+    path = str(tmp_path)
+    df = write_and_read_unmatched_df_with_volumes(df, mock_spark, path)
+    assert df.count() == 3
+
+    path = "/path/that/does/not/exist"
+    with pytest.raises(ReadAndWriteWithVolumeException):
+        write_and_read_unmatched_df_with_volumes(df, mock_spark, path)
+
+
+def test_clean_unmatched_df_from_volume_with_exception(mock_workspace_client):
+    mock_workspace_client.dbfs.delete.side_effect = Exception("Test exception")
+    path = "/path/that/does/not/exist"
+    with pytest.raises(Exception):
+        clean_unmatched_df_from_volume(mock_workspace_client, path)
