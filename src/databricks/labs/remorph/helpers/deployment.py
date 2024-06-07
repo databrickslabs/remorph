@@ -35,8 +35,6 @@ class TableDeployer:
 
 
 class JobDeployer:
-    SPARK_VERSION = "14.3.x-scala2.12"
-
     def __init__(self, workspace_client: WorkspaceClient, product_info: ProductInfo):
         self._ws = workspace_client
         self._product_info = product_info
@@ -55,6 +53,7 @@ class JobDeployer:
         logger.info("Deploying reconciliation job.")
         version = self._product_info.version()
         tags = {"version": f"v{version}"}
+        latest_lts_spark = self._ws.clusters.select_spark_version(latest=True, long_term_support=True)
 
         response = self._ws.jobs.create(
             name=job_name,
@@ -67,7 +66,7 @@ class JobDeployer:
                         spark_conf={},
                         node_type_id=self._get_default_node_type_id(),
                         autoscale=compute.AutoScale(min_workers=2, max_workers=10),
-                        spark_version=self.SPARK_VERSION,
+                        spark_version=latest_lts_spark,
                     ),
                 )
             ],
