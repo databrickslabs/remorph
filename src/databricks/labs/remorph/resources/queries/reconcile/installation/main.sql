@@ -1,4 +1,4 @@
-CREATE OR REPLACE TABLE main (
+CREATE TABLE IF NOT EXISTS main (
     recon_table_id BIGINT NOT NULL,
     recon_id STRING NOT NULL,
     source_type STRING NOT NULL,

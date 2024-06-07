@@ -1,4 +1,4 @@
-CREATE OR REPLACE TABLE metrics (
+CREATE TABLE IF NOT EXISTS metrics (
     recon_table_id BIGINT NOT NULL,
     recon_metrics STRUCT<
                         row_comparison: STRUCT<

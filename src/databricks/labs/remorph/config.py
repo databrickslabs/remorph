@@ -106,9 +106,9 @@ class ReconcileTablesConfig:
 
 @dataclass
 class ReconMetricsConfig:
-    catalog: str
-    schema: str
-    volume: str = "RECONCILE_VOLUME"
+    catalog: str = "remorph"
+    schema: str = "reconcile"
+    volume: str = "reconcile_volume"
 
 
 @dataclass

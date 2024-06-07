@@ -7,6 +7,8 @@ from datetime import timedelta
 from importlib.resources import files, as_file
 from pathlib import Path
 
+import databricks.labs.remorph.resources
+
 from databricks.labs.blueprint.entrypoint import get_logger, is_in_debug
 from databricks.labs.blueprint.installation import Installation, SerdeError
 from databricks.labs.blueprint.installer import InstallState
@@ -352,47 +354,44 @@ class InstallPrompts:
         return RemorphConfigs(None, reconcile_config)
 
 
-class ReconMetadataSetup:
+class ReconciliationMetadataSetup:
 
     def __init__(self, ws: WorkspaceClient, reconcile_config: ReconcileConfig):
         self._ws = ws
         self._catalog_setup = CatalogSetup(ws)
         self._reconcile_config = reconcile_config
-        self._recon_catalog_name = reconcile_config.metrics.catalog
-        self._recon_schema_name = reconcile_config.metrics.schema
+        self._recon_catalog = reconcile_config.metrics.catalog
+        self._recon_schema = reconcile_config.metrics.schema
 
     def configure_catalog(self):
         try:
-            return self._catalog_setup.get(self._recon_catalog_name)
+            self._catalog_setup.get(self._recon_catalog)
         except NotFound:
-            logger.info(f"Creating new catalog {self._recon_catalog_name}")
-            self._catalog_setup.create(self._recon_catalog_name)
-        return self._recon_catalog_name
+            logger.info(f"Creating new catalog {self._recon_catalog}")
+            self._catalog_setup.create(self._recon_catalog)
 
     def configure_schema(self):
         try:
-            return self._catalog_setup.get_schema(f"{self._recon_catalog_name}.{self._recon_schema_name}")
+            self._catalog_setup.get_schema(f"{self._recon_catalog}.{self._recon_schema}")
         except NotFound:
-            logger.info(f"Creating new schema {self._recon_catalog_name}.{self._recon_schema_name}")
-            self._catalog_setup.create_schema(self._recon_schema_name, self._recon_catalog_name)
-        return self._recon_schema_name
+            logger.info(f"Creating new schema {self._recon_catalog}.{self._recon_schema}")
+            self._catalog_setup.create_schema(self._recon_schema, self._recon_catalog)
 
     def deploy_tables(self):
-        config = MorphConfig(
+        morph_config = MorphConfig(
             source=self._reconcile_config.data_source,
-            catalog_name=self._recon_catalog_name,
-            schema_name=self._recon_schema_name,
+            catalog_name=self._recon_catalog,
+            schema_name=self._recon_schema,
         )
-        sql_backend = db_sql.get_sql_backend(self._ws, config)
-        deployer = TableDeployer(sql_backend, config)
-
-        table = functools.partial(deployer.deploy_table)
+        sql_backend = db_sql.get_sql_backend(self._ws, morph_config)
+        deployer = TableDeployer(sql_backend, self._recon_catalog, self._recon_schema)
+        deploy_table = functools.partial(deployer.deploy_table)
         Threads.strict(
-            "deploy tables",
+            "Deploy reconciliation metadata tables",
             [
-                functools.partial(table, "main", "queries/tables/reconcile/main.sql"),
-                functools.partial(table, "metrics", "queries/tables/reconcile/metrics.sql"),
-                functools.partial(table, "details", "queries/tables/reconcile/details.sql"),
+                functools.partial(deploy_table, "main", "queries/reconcile/installation/main.sql"),
+                functools.partial(deploy_table, "metrics", "queries/reconcile/installation/metrics.sql"),
+                functools.partial(deploy_table, "details", "queries/reconcile/installation/details.sql"),
             ],
         )
 
@@ -422,12 +421,25 @@ class WorkspaceInstallation:
         self._product_info = product_info
 
     def _create_recon_volume(self):
-        self._ws.volumes.create(
+        all_volumes = self._ws.volumes.list(
             self._config.reconcile.metrics.catalog,
             self._config.reconcile.metrics.schema,
-            self._config.reconcile.metrics.volume,
-            VolumeType.MANAGED,
         )
+
+        recon_volume_exists = False
+        for volume in all_volumes:
+            if volume.name == self._config.reconcile.metrics.volume:
+                recon_volume_exists = True
+                break
+
+        if not recon_volume_exists:
+            logger.info("Creating Reconciliation Volume")
+            self._ws.volumes.create(
+                self._config.reconcile.metrics.catalog,
+                self._config.reconcile.metrics.schema,
+                self._config.reconcile.metrics.volume,
+                VolumeType.MANAGED,
+            )
 
     def _create_recon_dashboard(self):
         dashboard_params = {
@@ -435,14 +447,15 @@ class WorkspaceInstallation:
             "schema": self._config.reconcile.metrics.schema,
         }
 
-        dashboard_resource = files("databricks.labs.remorph.resources").joinpath("Remorph-Reconciliation.lvdash.json")
+        recon_dashboard_path = "dashboards/Remorph-Reconciliation.lvdash.json"
+        dashboard_resource = files(databricks.labs.remorph.resources).joinpath(recon_dashboard_path)
         dashboard_publisher = DashboardPublisher(self._ws, self._installation)
         logger.info("Creating Reconciliation Dashboard.")
         with as_file(dashboard_resource) as dashboard_file:
             dashboard_publisher.create(dashboard_file, parameters=dashboard_params)
 
     def _configure_recon_metadata(self):
-        setup = ReconMetadataSetup(self._ws, self._config.reconcile)
+        setup = ReconciliationMetadataSetup(self._ws, self._config.reconcile)
         setup.run()
 
     def run(self):
