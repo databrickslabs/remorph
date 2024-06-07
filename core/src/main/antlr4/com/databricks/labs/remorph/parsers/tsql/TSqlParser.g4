@@ -2960,15 +2960,15 @@ executeVarString
     ;
 
 securityStatement
-    
+
     : executeClause SEMI?
-    
+
     | GRANT (ALL PRIVILEGES? | grantPermission (LPAREN columnNameList RPAREN)?) (
         ON (classTypeForGrant COLON COLON)? onId = tableName
     )? TO toPrincipal += principalId (COMMA toPrincipal += principalId)* (WITH GRANT OPTION)? (
         AS asPrincipal = principalId
     )? SEMI?
-    
+
     | REVERT (WITH COOKIE EQ LOCAL_ID)? SEMI?
     | openKey
     | closeKey
@@ -3177,28 +3177,28 @@ setStatement
     | SET LOCAL_ID EQ CURSOR declareSetCursorCommon (
         FOR (READ ONLY | UPDATE (OF columnNameList)?)
     )?
-    
+
     | setSpecial
     ;
 
 transactionStatement
-    
+
     : BEGIN DISTRIBUTED (TRAN | TRANSACTION) (id | LOCAL_ID)?
-    
+
     | BEGIN (TRAN | TRANSACTION) ((id | LOCAL_ID) (WITH MARK STRING)?)?
-    
+
     | COMMIT (TRAN | TRANSACTION) (
         (id | LOCAL_ID) (WITH LPAREN DELAYED_DURABILITY EQ (OFF | ON) RPAREN)?
     )?
-    
+
     | COMMIT WORK?
     | COMMIT id
     | ROLLBACK id
-    
+
     | ROLLBACK (TRAN | TRANSACTION) (id | LOCAL_ID)?
-    
+
     | ROLLBACK WORK?
-    
+
     | SAVE (TRAN | TRANSACTION) (id | LOCAL_ID)?
     ;
 
@@ -4059,25 +4059,23 @@ freetextPredicate
     ) COMMA expression (COMMA LANGUAGE expression)? RPAREN
     ;
 
-jsonKeyValue
-    : jsonKeyName = expression COLON valueExpression = expression
-    ;
-
-jsonNullClause
-    : (ABSENT | NULL_) ON NULL_
-    ;
-
 builtInFunctions
-    : NEXT VALUE FOR tableName (OVER LPAREN orderByClause RPAREN)?                          #nextValueFor
-    | CAST LPAREN expression AS dataType RPAREN                                             #cast
-    | TRY_CAST LPAREN expression AS dataType RPAREN                                         #tryCast
-    | PARSE LPAREN str = expression AS dataType (USING culture = expression)? RPAREN        #parse
+    : NEXT VALUE FOR tableName                                                              #nextValueFor
+    | (CAST | TRY_CAST) LPAREN expression AS dataType RPAREN                                #cast
     | JSON_ARRAY LPAREN expressionList? jsonNullClause? RPAREN                              #jsonArray
     | JSON_OBJECT
         LPAREN
-            (jsonKeyValue (COMMA keyValue = jsonKeyValue)* )?
+            (jsonKeyValue (COMMA jsonKeyValue)* )?
             jsonNullClause?
         RPAREN                                                                              #jsonObject
+    ;
+
+jsonKeyValue
+    : expression COLON expression
+    ;
+
+jsonNullClause
+    : (loseNulls=ABSENT | NULL_) ON NULL_
     ;
 
 hierarchyidStaticMethod
@@ -4370,12 +4368,12 @@ sendConversation
     ;
 
 dataType
-    : scaled = (VARCHAR | NVARCHAR | BINARY_KEYWORD | VARBINARY_KEYWORD | SQUARE_BRACKET_ID) LPAREN MAX RPAREN
-    | extType = id LPAREN scale = INT COMMA prec = INT RPAREN
-    | extType = id LPAREN scale = INT RPAREN
-    | extType = id IDENTITY (LPAREN seed = INT COMMA inc = INT RPAREN)?
-    | doublePrec = DOUBLE PRECISION?
-    | unscaledType = id
+    : dataTypeIdentity
+    | id (LPAREN (INT | MAX) (COMMA INT)? RPAREN)?
+    ;
+
+dataTypeIdentity
+    : id IDENTITY (LPAREN INT COMMA INT RPAREN)?
     ;
 
 constant
@@ -4813,7 +4811,6 @@ keyword
     | NUMANODE
     | NUMBER
     | NUMERIC_ROUNDABORT
-    | NVARCHAR
     | OBJECT
     | OFFLINE
     | OFFSET
@@ -5096,8 +5093,6 @@ keyword
     | VALIDATION
     | VALUE
     | VAR
-    | VARBINARY_KEYWORD
-    | VARCHAR
     | VERBOSELOGGING
     | VERIFY_CLONEDB
     | VERSION

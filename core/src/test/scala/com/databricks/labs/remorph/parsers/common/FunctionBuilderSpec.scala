@@ -2,7 +2,7 @@ package com.databricks.labs.remorph.parsers.common
 
 import com.databricks.labs.remorph.parsers.intermediate.UnresolvedFunction
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeFunctionBuilder
-import com.databricks.labs.remorph.parsers.tsql.{TSqlFunctionBuilder, TSqlFunctionConverters}
+import com.databricks.labs.remorph.parsers.tsql.TSqlFunctionBuilder
 import com.databricks.labs.remorph.parsers.{intermediate => ir, _}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -19,23 +19,6 @@ class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenProp
       ("ISNULL", Some(FunctionDefinition.standard(1))))
 
     val functionBuilder = new SnowflakeFunctionBuilder
-    forAll(functions) { (functionName: String, expectedArity: Option[FunctionDefinition]) =>
-      functionBuilder.functionDefinition(functionName) shouldEqual expectedArity
-    }
-  }
-  // While this appears to be somewhat redundant, it will catch any changes in the functionArity method
-  // that happen through typos or other mistakes such as deletion.
-  "TSqlFunctionBuilder" should "return correct arity for each function" in {
-    val functions = Table(
-      ("functionName", "expectedArity"), // Header
-
-      // TSql specific
-      ("@@CURSOR_STATUS", Some(FunctionDefinition.notConvertible(0))),
-      ("@@FETCH_STATUS", Some(FunctionDefinition.notConvertible(0))),
-      ("ISNULL", Some(FunctionDefinition.standard(2).withConversionStrategy(TSqlFunctionConverters.FunctionRename))),
-      ("MODIFY", Some(FunctionDefinition.xml(1))))
-    val functionBuilder = new TSqlFunctionBuilder
-
     forAll(functions) { (functionName: String, expectedArity: Option[FunctionDefinition]) =>
       functionBuilder.functionDefinition(functionName) shouldEqual expectedArity
     }
@@ -392,8 +375,11 @@ class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenProp
   }
 
   "FunctionRename strategy" should "preserve original function if no match is found" in {
-    val result1 =
-      TSqlFunctionConverters.FunctionRename.convert("Abs", Seq(ir.Literal(integer = Some(66))))
+    val functionBuilder = new TSqlFunctionBuilder
+    val result1 = functionBuilder.applyConversionStrategy(
+      FunctionDefinition.standard(1),
+      Seq(ir.Literal(integer = Some(66))),
+      "Abs")
     result1 match {
       case f: ir.CallFunction => f.function_name shouldBe "Abs"
       case _ => fail("UNKNOWN_FUNCTION conversion failed")

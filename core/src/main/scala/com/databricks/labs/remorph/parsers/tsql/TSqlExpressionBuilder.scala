@@ -1,15 +1,17 @@
 package com.databricks.labs.remorph.parsers.tsql
 
 import com.databricks.labs.remorph.parsers.tsql.TSqlParser._
-import com.databricks.labs.remorph.parsers.{FunctionBuilder, ParserCommon, XmlFunction, intermediate => ir}
+import com.databricks.labs.remorph.parsers.{ParserCommon, XmlFunction, intermediate => ir}
 import org.antlr.v4.runtime.Token
 import org.antlr.v4.runtime.tree.{TerminalNode, Trees}
 
 import scala.collection.JavaConverters._
 
-class TSqlExpressionBuilder(functionBuilder: FunctionBuilder)
+class TSqlExpressionBuilder(functionBuilder: TSqlFunctionBuilder)
     extends TSqlParserBaseVisitor[ir.Expression]
     with ParserCommon[ir.Expression] {
+
+  private val dataTypeBuilder: DataTypeBuilder = new DataTypeBuilder
 
   override def visitSelectListElem(ctx: TSqlParser.SelectListElemContext): ir.Expression = {
     ctx match {
@@ -294,7 +296,7 @@ class TSqlExpressionBuilder(functionBuilder: FunctionBuilder)
   // so we can't build them logically with visit and accept. Maybe replace them with
   // extensions that do do this?
   override def visitExprOver(ctx: ExprOverContext): ir.Window = {
-    val windowFunction = ctx.expression().accept(this)
+    val windowFunction = buildWindowingFunction(ctx.expression().accept(this))
     val partitionByExpressions =
       Option(ctx.overClause().expression()).map(_.asScala.toList.map(_.accept(this))).getOrElse(List.empty)
     val orderByExpressions = Option(ctx.overClause().orderByClause())
@@ -305,6 +307,12 @@ class TSqlExpressionBuilder(functionBuilder: FunctionBuilder)
       .getOrElse(noWindowFrame)
 
     ir.Window(windowFunction, partitionByExpressions, orderByExpressions, rowRange)
+  }
+
+  // Some functions need to be converted to Databricks equivalent Windowing functions for the OVER clause
+  private def buildWindowingFunction(expression: ir.Expression): ir.Expression = expression match {
+    case ir.CallFunction("MONOTONICALLY_INCREASING_ID", args) => ir.CallFunction("ROW_NUMBER", args)
+    case _ => expression
   }
 
   private def buildOrderBy(ctx: OrderByClauseContext): Seq[ir.SortOrder] =
@@ -380,5 +388,116 @@ class TSqlExpressionBuilder(functionBuilder: FunctionBuilder)
   override def visitExprDistinct(ctx: ExprDistinctContext): ir.Expression = {
     // Support for functions such as COUNT(DISTINCT column), which is an expression not a relation
     ir.Distinct(ctx.expression().accept(this))
+  }
+
+  /**
+   * Handles the NEXT VALUE FOR function in SQL Server, which has a special syntax.
+   *
+   * @param ctx
+   *   the parse tree
+   */
+  override def visitNextValueFor(ctx: NextValueForContext): ir.Expression = {
+    val sequenceName = ir.Literal(string = Some(buildTableName(ctx.tableName())))
+    functionBuilder.buildFunction("NEXTVALUEFOR", Seq(sequenceName))
+  }
+
+  override def visitCast(ctx: CastContext): ir.Expression = {
+    val expression = ctx.expression().accept(this)
+    val dataType = dataTypeBuilder.build(ctx.dataType())
+    ir.Cast(expression, dataType, returnNullOnError = ctx.TRY_CAST() != null)
+  }
+
+  override def visitJsonArray(ctx: JsonArrayContext): ir.Expression = {
+    val elements = buildExpressionList(Option(ctx.expressionList()))
+    val absentOnNull = checkAbsentNull(ctx.jsonNullClause())
+    buildJsonArray(elements, absentOnNull)
+  }
+
+  override def visitJsonObject(ctx: JsonObjectContext): ir.Expression = {
+    val jsonKeyValues = Option(ctx.jsonKeyValue()).map(_.asScala).getOrElse(Nil)
+    val namedStruct = buildNamedStruct(jsonKeyValues)
+    val absentOnNull = checkAbsentNull(ctx.jsonNullClause())
+    buildJsonObject(namedStruct, absentOnNull)
+  }
+
+  // format: off
+  /**
+   * Check if the ABSENT ON NULL clause is present in the JSON clause. The behavior is as follows:
+   * <ul>
+   *   <li>If the clause does not exist, the ABSENT ON NULL is assumed - so true</li>
+   * <li>If the clause exists and ABSENT ON NULL - true</li>
+   * <li>If the clause exists and NULL ON NULL - false</li>
+   * </ul>
+   *
+   * @param ctx
+   *   null clause parser context
+   * @return
+   */
+  // format on
+  private def checkAbsentNull(ctx: JsonNullClauseContext): Boolean = {
+    Option(ctx).forall(_.loseNulls != null)
+  }
+
+  private def buildNamedStruct(ctx: Seq[JsonKeyValueContext]): ir.NamedStruct = {
+    val (keys, values) = ctx.map { keyValueContext =>
+      val expressions = keyValueContext.expression().asScala.toList
+      (expressions.head.accept(this), expressions(1).accept(this))
+    }.unzip
+
+    ir.NamedStruct(keys, values)
+  }
+
+  private def buildExpressionList(ctx: Option[ExpressionListContext]): Seq[ir.Expression] = {
+    ctx.map(_.expression().asScala.map(_.accept(this))).getOrElse(Seq.empty)
+  }
+
+  /**
+   * Databricks SQL does not have a native JSON_ARRAY function, so we use a Lambda filter and TO_JSON instead, but have
+   * to cater for the case where an expression is NULL and the TSql option ABSENT ON NULL is set. When ABSENT ON NULL is
+   * set, then any NULL expressions are left out of the JSON array.
+   *
+   * @param args
+   *   the list of expressions yield JSON values
+   * @param absentOnNull
+   *   whether we should remove NULL values from the JSON array
+   * @return
+   *   IR for the JSON_ARRAY function
+   */
+  private[tsql] def buildJsonArray(args: Seq[ir.Expression], absentOnNull: Boolean): ir.Expression = {
+    if (absentOnNull) {
+      val lambdaVariable = ir.UnresolvedNamedLambdaVariable(Seq("x"))
+      val lambdaBody = ir.Not(ir.IsNull(lambdaVariable))
+      val lambdaFunction = ir.LambdaFunction(lambdaBody, Seq(lambdaVariable))
+      val filter = ir.FilterExpr(args, lambdaFunction)
+      ir.CallFunction("TO_JSON", Seq(ir.ValueArray(Seq(filter))))
+    } else {
+      ir.CallFunction("TO_JSON", Seq(ir.ValueArray(args)))
+    }
+  }
+
+  /**
+   * Databricks SQL does not have a native JSON_OBJECT function, so we use a Lambda filter and TO_JSON instead, but have
+   * to cater for the case where an expression is NULL and the TSql option ABSENT ON NULL is set. When ABSENT ON NULL is
+   * set, then any NULL expressions are left out of the JSON object.
+   *
+   * @param namedStruct
+   *   the named struct of key-value pairs
+   * @param absentOnNull
+   *   whether we should remove NULL values from the JSON object
+   * @return
+   *   IR for the JSON_OBJECT function
+   */
+  // TODO: This is not likely the correct way to handle this, but it is a start - maybe needs external function
+  private[tsql] def buildJsonObject(namedStruct: ir.NamedStruct, absentOnNull: Boolean): ir.Expression = {
+    if (absentOnNull) {
+      val lambdaVariables = ir.UnresolvedNamedLambdaVariable(Seq("k", "v"))
+      val valueVariable = ir.UnresolvedNamedLambdaVariable(Seq("v"))
+      val lambdaBody = ir.Not(ir.IsNull(valueVariable))
+      val lambdaFunction = ir.LambdaFunction(lambdaBody, Seq(lambdaVariables))
+      val filter = ir.FilterStruct(namedStruct, lambdaFunction)
+      ir.CallFunction("TO_JSON", Seq(filter))
+    } else {
+      ir.CallFunction("TO_JSON", Seq(namedStruct))
+    }
   }
 }
