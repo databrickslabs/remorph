@@ -4036,7 +4036,7 @@ from_clause
     ;
 
 table_sources
-    : table_source (COLON table_source)*
+    : table_source (COMMA table_source)*
     ;
 
 table_source
