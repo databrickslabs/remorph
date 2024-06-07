@@ -183,7 +183,7 @@ def recon(
 
 def _verify_successful_reconciliation(reconcile_output: ReconcileOutput) -> ReconcileOutput:
     for table_output in reconcile_output.results:
-        if (
+        if table_output.exception_message or (
             table_output.status.column is False
             or table_output.status.row is False
             or table_output.status.schema is False
