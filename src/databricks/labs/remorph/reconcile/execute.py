@@ -1,4 +1,6 @@
 import logging
+import sys
+import os
 from datetime import datetime
 from uuid import uuid4
 
@@ -62,7 +64,9 @@ def validate_input(input_value: str, list_of_value: set, message: str):
         raise InvalidInputException(error_message)
 
 
-def trigger_recon() -> None:
+def main(*argv) -> None:
+    if len(argv) == 0:
+        argv = sys.argv
     w = WorkspaceClient()
 
     installation = Installation.assume_user_home(w, "remorph")
@@ -531,3 +535,9 @@ def _run_reconcile_schema(
         return reconciler.reconcile_schema(table_conf=table_conf, src_schema=src_schema, tgt_schema=tgt_schema)
     except PySparkException as e:
         return SchemaReconcileOutput(is_valid=False, exception=str(e))
+
+
+if __name__ == "__main__":
+    if "DATABRICKS_RUNTIME_VERSION" not in os.environ:
+        raise SystemExit("Only intended to run in Databricks Runtime")
+    main(*sys.argv)

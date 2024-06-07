@@ -21,6 +21,7 @@ from databricks.labs.remorph.reconcile.recon_config import (
     StatusOutput,
 )
 from databricks.sdk import WorkspaceClient
+from databricks.sdk.errors import ResourceDoesNotExist
 
 logger = logging.getLogger(__name__)
 
@@ -46,7 +47,10 @@ def _read_unmatched_df_from_volumes(
 
 def clean_unmatched_df_from_volume(workspace_client: WorkspaceClient, path: str):
     try:
+        workspace_client.dbfs.get_status(path)
         workspace_client.dbfs.delete(path, recursive=True)
+    except ResourceDoesNotExist:
+        logger.info(f"Path {path} does not exist")
     except Exception as e:
         message = f"Error cleaning up unmatched DF from {path} volumes --> {e}"
         logger.error(message)
