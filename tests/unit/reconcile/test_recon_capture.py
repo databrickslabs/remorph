@@ -12,8 +12,7 @@ from databricks.labs.remorph.reconcile.exception import WriteToTableException, R
 from databricks.labs.remorph.reconcile.recon_capture import (
     ReconCapture,
     generate_final_reconcile_output,
-    write_and_read_unmatched_df_with_volumes,
-    clean_unmatched_df_from_volume,
+    ReconIntermediatePersist,
 )
 from databricks.labs.remorph.reconcile.recon_config import (
     DataReconcileOutput,
@@ -664,15 +663,15 @@ def test_write_and_read_unmatched_df_with_volumes_with_exception(tmp_path: Path,
     df = mock_spark.createDataFrame(data)
 
     path = str(tmp_path)
-    df = write_and_read_unmatched_df_with_volumes(df, mock_spark, path)
+    df = ReconIntermediatePersist(mock_spark, path).write_and_read_unmatched_df_with_volumes(df)
     assert df.count() == 3
 
     path = "/path/that/does/not/exist"
     with pytest.raises(ReadAndWriteWithVolumeException):
-        write_and_read_unmatched_df_with_volumes(df, mock_spark, path)
+        ReconIntermediatePersist(mock_spark, path).write_and_read_unmatched_df_with_volumes(df)
 
 
 def test_clean_unmatched_df_from_volume_with_exception(mock_spark):
     path = "/path/that/does/not/exist"
     with pytest.raises(Exception):
-        clean_unmatched_df_from_volume(mock_spark, path)
+        ReconIntermediatePersist(mock_spark, path).clean_unmatched_df_from_volume()
