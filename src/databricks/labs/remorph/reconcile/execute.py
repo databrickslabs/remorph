@@ -36,7 +36,7 @@ from databricks.labs.remorph.reconcile.query_builder.threshold_query import (
 from databricks.labs.remorph.reconcile.recon_capture import (
     ReconCapture,
     generate_final_reconcile_output,
-    clean_unmatched_df_from_volume,
+    ReconIntermediatePersist,
 )
 from databricks.labs.remorph.reconcile.recon_config import (
     DataReconcileOutput,
@@ -182,9 +182,9 @@ def recon(
             recon_process_duration=recon_process_duration,
         )
         if report_type != "schema":
-            clean_unmatched_df_from_volume(
+            ReconIntermediatePersist(
                 spark=spark, path=generate_volume_path(table_conf, reconcile_config.metadata_config)
-            )
+            ).clean_unmatched_df_from_volume()
 
     return _verify_successful_reconciliation(
         generate_final_reconcile_output(
