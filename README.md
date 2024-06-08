@@ -119,6 +119,16 @@ Execute the below command to intialize the transpile process.
 
 ----
 # How to Use Reconcile
+## Step 1: Install Remorph-Reconcile
+
+Install Reconciliation with databricks labs cli.
+
+```commandline
+databricks labs install remorph
+```
+
+![reconcile install](docs/recon-install.gif)
+
 ## Step 1 : Verify Installation
 Verify the successful installation by executing the provided command; confirmation of a successful installation is indicated when the displayed output aligns with the example screenshot provided:
 ```bash
@@ -134,8 +144,10 @@ Please refer to the [Reconcile Configuration Guide][def] for detailed instructio
 ## Step 3 : Execution
 Execute the below command to initialize the reconcile process.
 ```bash
- databricks labs remorph reconcile --report <report-type> --source <source-type>
+ databricks labs remorph reconcile
 ```
+![reconcile-run](docs/recon-run.gif)
+
 [[back to top](#table-of-contents)]
 
 ----
