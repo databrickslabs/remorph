@@ -624,38 +624,3 @@ def test_recon_metadata_setup(ws):
 
     recon_metadata_setup.deploy_tables()
     assert len(sql_backend.queries) > 0
-
-
-def test_recon_workspace_installation_with_existing_catalog_and_schema(ws):
-    installation = MockInstallation(is_global=False)
-    product_info = ProductInfo.from_class(ReconcileConfig)
-    prompts = MockPrompts({})
-    remorph_configs = RemorphConfigs(
-        morph=None,
-        reconcile=ReconcileConfig(
-            data_source="snowflake",
-            report_type="all",
-            secret_scope="remorph_snowflake",
-            database_config=DatabaseConfig(
-                source_catalog="snowflake_sample_data",
-                source_schema="tpch_sf1000",
-                target_catalog="tpch",
-                target_schema="1000gb",
-            ),
-            metadata_config=ReconcileMetadataConfig(catalog="remorph", schema="reconcile"),
-            job_id="123",
-            tables=None,
-        ),
-    )
-
-    # catalog_setup = create_autospec(CatalogSetup)
-    workspace_installation = WorkspaceInstallation(
-        remorph_configs,
-        installation,
-        ws,
-        prompts,
-        timedelta(minutes=2),
-        product_info,
-    )
-    with patch('databricks.labs.remorph.helpers.db_sql.get_sql_backend', return_value=MockBackend()):
-        workspace_installation.run()

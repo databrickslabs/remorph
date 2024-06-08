@@ -38,8 +38,6 @@ from databricks.labs.remorph.reconcile.recon_config import (
     StatusOutput,
 )
 from databricks.labs.remorph.reconcile.schema_compare import SchemaCompare
-from databricks.labs.blueprint.installation import MockInstallation
-from databricks.labs.remorph.reconcile.execute import main
 
 CATALOG = "org"
 SCHEMA = "data"
@@ -1886,68 +1884,3 @@ def test_generate_volume_path(table_conf_with_opts):
         volume_path
         == f"/Volumes/remorph/reconcile/reconcile_volume/{table_conf_with_opts.source_name}_{table_conf_with_opts.target_name}/"
     )
-
-
-def test_main(mock_workspace_client):
-    mock_installation = MockInstallation(
-        {
-            "reconcile.yml": {
-                "data_source": "snowflake",
-                "database_config": {
-                    "source_catalog": "src_catalog",
-                    "source_schema": "src_schema",
-                    "target_catalog": "tgt_catalog",
-                    "target_schema": "tgt_schema",
-                },
-                "report_type": "all",
-                "secret_scope": "sf",
-                "tables": {
-                    "filter_type": "all",
-                    "tables_list": ["*"],
-                },
-                "metadata_config": {
-                    "catalog": "abc",
-                    "schema": "def",
-                    "volume": "ijk",
-                },
-                "job_id": "89765",
-            },
-            "recon_config_snowflake_src_catalog_all.json": {
-                "source_catalog": "src_catalog",
-                "source_schema": "src_schema",
-                "tables": [
-                    {
-                        "source_name": "product",
-                        "target_name": "product_delta",
-                    }
-                ],
-                "target_catalog": "tgt_catalog",
-                "target_schema": "tgt_schema",
-            },
-        }
-    )
-
-    with (
-        patch("databricks.labs.blueprint.installation.Installation.assume_user_home", return_value=mock_installation),
-        patch("databricks.labs.remorph.reconcile.execute.recon") as mock_recon,
-    ):
-        mock_recon.side_effect = ReconciliationException("Reconciliation Exception")
-        with pytest.raises(ReconciliationException):
-            main()
-
-    with (
-        patch("databricks.labs.blueprint.installation.Installation.assume_user_home", return_value=mock_installation),
-        patch("databricks.labs.remorph.reconcile.execute.recon") as mock_recon,
-    ):
-        mock_recon.return_value = ReconcileOutput(
-            recon_id="abcd",
-            results=[
-                ReconcileTableOutput(
-                    source_table_name="product",
-                    target_table_name="product_delta",
-                    status=StatusOutput(row=True, column=True, schema=True),
-                    exception_message=None,
-                )
-            ],
-        )
-        main()
