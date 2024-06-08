@@ -1,20 +1,21 @@
 from importlib.resources import files
 from unittest.mock import create_autospec
 
-import databricks.labs.remorph.resources
 import pytest
 from databricks.labs.blueprint.installation import MockInstallation
 from databricks.labs.blueprint.installer import InstallState
 from databricks.labs.blueprint.wheels import ProductInfo
 from databricks.labs.lsql.backends import MockBackend
-from databricks.labs.remorph.config import ReconcileConfig
-from databricks.labs.remorph.helpers.deployment import TableDeployer, JobDeployer
 from databricks.sdk import WorkspaceClient
-from databricks.sdk.errors import (  # pylint: disable=redefined-builtin
+from databricks.sdk.errors import (
     InvalidParameterValue,
 )
 from databricks.sdk.service import jobs
 from databricks.sdk.service.workspace import ObjectInfo
+
+import databricks.labs.remorph.resources
+from databricks.labs.remorph.config import ReconcileConfig
+from databricks.labs.remorph.helpers.deployment import TableDeployer, JobDeployer
 
 PRODUCT_INFO = ProductInfo.from_class(ReconcileConfig)
 
