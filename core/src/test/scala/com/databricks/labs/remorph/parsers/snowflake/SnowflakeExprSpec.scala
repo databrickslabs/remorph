@@ -8,8 +8,7 @@ import org.scalatest.wordspec.AnyWordSpec
 
 class SnowflakeExprSpec extends AnyWordSpec with SnowflakeParserTestCommon with Matchers {
 
-  override protected def astBuilder: SnowflakeExpressionBuilder = new SnowflakeExpressionBuilder(
-    new SnowflakeFunctionBuilder)
+  override protected def astBuilder: SnowflakeExpressionBuilder = new SnowflakeExpressionBuilder
 
   private def example(input: String, expectedAst: Expression): Assertion = example(input, _.expr(), expectedAst)
 

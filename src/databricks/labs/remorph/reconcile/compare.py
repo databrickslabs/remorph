@@ -3,7 +3,9 @@ from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.functions import col, expr, lit
 
 from databricks.labs.remorph.reconcile.exception import ColumnMismatchException
-from databricks.labs.remorph.reconcile.recon_capture import write_and_read_unmatched_df_with_volumes
+from databricks.labs.remorph.reconcile.recon_capture import (
+    ReconIntermediatePersist,
+)
 from databricks.labs.remorph.reconcile.recon_config import (
     DataReconcileOutput,
     MismatchOutput,
@@ -46,7 +48,7 @@ def reconcile_data(
     )
 
     # Write unmatched df to volume
-    df = write_and_read_unmatched_df_with_volumes(df, spark, path)
+    df = ReconIntermediatePersist(spark, path).write_and_read_unmatched_df_with_volumes(df)
     logger.warning(f"Unmatched data is written to {path} Successfully")
 
     mismatch = _get_mismatch_data(df, source_alias, target_alias) if report_type in {"all", "data"} else None

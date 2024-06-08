@@ -143,7 +143,7 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
             group_type = GroupBy,
             grouping_expressions = Seq(Column("a")),
             pivot = None),
-          Seq(Column("a"), Count(Column("b")))))
+          Seq(Column("a"), CallFunction("COUNT", Seq(Column("b"))))))
     }
 
     "translate a query with a GROUP BY and ORDER BY clauses" in {
@@ -158,7 +158,7 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
               pivot = None),
             Seq(SortOrder(Column("a"), AscendingSortDirection, SortNullsLast)),
             is_global = false),
-          Seq(Column("a"), Count(Column("b")))))
+          Seq(Column("a"), CallFunction("COUNT", Seq(Column("b"))))))
     }
 
     "translate a query with GROUP BY HAVING clause" in {
@@ -171,8 +171,8 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
               group_type = GroupBy,
               grouping_expressions = Seq(Column("a")),
               pivot = None),
-            GreaterThan(Count(Column("b")), Literal(short = Some(1)))),
-          Seq(Column("a"), Count(Column("b")))))
+            GreaterThan(CallFunction("COUNT", Seq(Column("b"))), Literal(short = Some(1)))),
+          Seq(Column("a"), CallFunction("COUNT", Seq(Column("b"))))))
     }
 
     "translate a query with ORDER BY" in {
@@ -292,11 +292,14 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
                 group_type = GroupBy,
                 grouping_expressions = Seq(Column("c2"), Column("c3")),
                 pivot = None),
-              GreaterThanOrEqual(Avg(Column("c1")), Literal(short = Some(5)))),
-            GreaterThan(Min(Column("r")), Literal(short = Some(6)))),
+              GreaterThanOrEqual(CallFunction("AVG", Seq(Column("c1"))), Literal(short = Some(5)))),
+            GreaterThan(CallFunction("MIN", Seq(Column("r"))), Literal(short = Some(6)))),
           Seq(
             Column("c2"),
-            Alias(Window(Sum(Column("c3")), Seq(Column("c2")), Seq(), DummyWindowFrame), Seq("r"), None))))
+            Alias(
+              Window(CallFunction("SUM", Seq(Column("c3"))), Seq(Column("c2")), Seq(), DummyWindowFrame),
+              Seq("r"),
+              None))))
     }
 
     "translate a query with set operators" in {

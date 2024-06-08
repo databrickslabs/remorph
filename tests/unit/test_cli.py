@@ -11,6 +11,7 @@ from databricks.labs.remorph.config import MorphConfig
 from databricks.labs.remorph.helpers.recon_config_utils import ReconConfigPrompts
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.errors import NotFound
+from databricks.labs.blueprint.installation import MockInstallation
 
 
 @pytest.fixture
@@ -62,6 +63,65 @@ def mock_workspace_client_cli():
     workspace_client.workspace.download = download
     workspace_client.config = None
     return workspace_client
+
+
+@pytest.fixture
+def mock_installation_reconcile():
+    return MockInstallation(
+        {
+            "reconcile.yml": {
+                "data_source": "snowflake",
+                "database_config": {
+                    "source_catalog": "sf_test",
+                    "source_schema": "mock",
+                    "target_catalog": "hive_metastore",
+                    "target_schema": "default",
+                },
+                "report_type": "include",
+                "secret_scope": "remorph_snowflake",
+                "tables": {
+                    "filter_type": "include",
+                    "tables_list": ["product"],
+                },
+                "metadata_config": {
+                    "catalog": "remorph",
+                    "schema": "reconcile",
+                    "volume": "reconcile_volume",
+                },
+                "job_id": "54321",
+                "version": 1,
+            },
+            "recon_config_snowflake_sf_test_include.json": {
+                "source_catalog": "sf_functions_test",
+                "source_schema": "mock",
+                "tables": [
+                    {
+                        "column_mapping": [
+                            {"source_name": "p_id", "target_name": "product_id"},
+                            {"source_name": "p_name", "target_name": "product_name"},
+                        ],
+                        "drop_columns": None,
+                        "filters": None,
+                        "jdbc_reader_options": None,
+                        "join_columns": ["p_id"],
+                        "select_columns": ["p_id", "p_name"],
+                        "source_name": "product",
+                        "target_name": "product_delta",
+                        "thresholds": None,
+                        "transformations": [
+                            {
+                                "column_name": "creation_date",
+                                "source": "creation_date",
+                                "target": "to_date(creation_date,'yyyy-mm-dd')",
+                            }
+                        ],
+                    }
+                ],
+                "target_catalog": "hive_metastore",
+                "target_schema": "default",
+            },
+        }
+    )
 
 
 @pytest.fixture
@@ -324,3 +384,11 @@ def test_cli_configure_secrets_config(mock_workspace_client):
     with patch("databricks.labs.remorph.cli.ReconConfigPrompts") as mock_recon_config:
         cli.configure_secrets(mock_workspace_client)
         mock_recon_config.assert_called_once_with(mock_workspace_client)
+
+
+def test_cli_reconcile(mock_workspace_client, mock_installation_reconcile, monkeypatch):
+    with patch(
+        "databricks.labs.blueprint.installation.Installation.assume_user_home", return_value=mock_installation_reconcile
+    ):
+        with patch("databricks.labs.remorph.helpers.reconcile_utils.ReconcileUtils.run", return_value=True):
+            cli.reconcile(mock_workspace_client)

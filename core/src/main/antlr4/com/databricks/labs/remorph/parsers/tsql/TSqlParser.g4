@@ -3687,11 +3687,11 @@ subquery
     ;
 
 withExpression
-    : WITH ctes += commonTableExpression (COMMA ctes += commonTableExpression)*
+    : WITH commonTableExpression (COMMA commonTableExpression)*
     ;
 
 commonTableExpression
-    : expressionName = id (LPAREN columns = columnNameList RPAREN)? AS LPAREN cteQuery = selectStatement RPAREN
+    : id (LPAREN columnNameList RPAREN)? AS LPAREN selectStatement RPAREN
     ;
 
 updateElem
@@ -3863,7 +3863,6 @@ selectListElem
     : asterisk
     | LOCAL_ID op=(PE | ME | SE | DE | MEA | AND_ASSIGN | XOR_ASSIGN | OR_ASSIGN | EQ) expression
     | expressionElem
-    | udtElem  // TODO: May not be needed as expressionElem could handle this?
     ;
 
 tableSources
@@ -4294,7 +4293,7 @@ insertColumnId
     ;
 
 columnNameList
-    : col += id (COMMA col += id)*
+    : id (COMMA id)*
     ;
 
 cursorName

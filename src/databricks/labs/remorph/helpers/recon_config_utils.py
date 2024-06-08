@@ -78,7 +78,7 @@ class ReconConfigPrompts:
         logger.debug(f"Storing `{engine}` Connection Secrets in Scope: `{scope_name}`")
 
         for key, value in secrets.items():
-            secret_key = engine + '_' + key
+            secret_key = key
             logger.debug(f"Processing Secret: *{secret_key}*")
             debug_op = "Storing"
             info_op = "Stored"

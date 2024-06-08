@@ -9,6 +9,7 @@ from databricks.labs.blueprint.entrypoint import get_logger
 from databricks.labs.blueprint.installation import Installation
 from databricks.labs.remorph.config import SQLGLOT_DIALECTS, MorphConfig
 from databricks.labs.remorph.helpers.recon_config_utils import ReconConfigPrompts
+from databricks.labs.remorph.helpers.reconcile_utils import ReconcileUtils
 from databricks.labs.remorph.lineage import lineage_generator
 from databricks.labs.remorph.transpiler.execute import morph
 from databricks.sdk import WorkspaceClient
@@ -76,20 +77,14 @@ def transpile(
 
 
 @remorph.command
-def reconcile(w: WorkspaceClient, source: str, report: str):
+def reconcile(w: WorkspaceClient):
     """[EXPERIMENTAL] reconciles source to databricks datasets"""
     logger.info(f"user: {w.current_user.me()}")
 
-    if source.lower() not in {"databricks", "snowflake", "oracle"}:
-        raise_validation_exception(
-            f"Error: Invalid value for '--source': '{source}' is not one of 'databricks', 'snowflake', 'oracle'. "
-        )
-    if report.lower() not in {"data", "schema", "all", "row"}:
-        raise_validation_exception(
-            f"Error: Invalid value for '--report': '{report}' is not one of 'data', 'schema', 'all' , 'row'"
-        )
+    installation = Installation.assume_user_home(w, "remorph")
 
-    raise NotImplementedError
+    utils = ReconcileUtils(w, installation)
+    utils.run()
 
 
 def _get_spark_session(ws: WorkspaceClient) -> SparkSession:

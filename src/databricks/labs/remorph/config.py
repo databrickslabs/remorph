@@ -105,6 +105,13 @@ class ReconcileTablesConfig:
 
 
 @dataclass
+class ReconcileMetadataConfig:
+    catalog: str = "remorph"
+    schema: str = "reconcile"
+    volume: str = "reconcile_volume"
+
+
+@dataclass
 class ReconcileConfig:
     __file__ = "reconcile.yml"
     __version__ = 1
@@ -112,7 +119,9 @@ class ReconcileConfig:
     data_source: str
     report_type: str
     secret_scope: str
-    config: DatabaseConfig
+    database_config: DatabaseConfig
+    metadata_config: ReconcileMetadataConfig
+    job_id: str | None = None
     tables: ReconcileTablesConfig | None = None
 
 

@@ -12,7 +12,8 @@ import org.scalatest.wordspec.AnyWordSpec
 
 class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matchers {
 
-  override protected def astBuilder: TSqlParserBaseVisitor[_] = new TSqlExpressionBuilder(new TSqlFunctionBuilder)
+  override protected def astBuilder: TSqlParserBaseVisitor[_] = new TSqlExpressionBuilder
+  private val exprBuilder = new TSqlExpressionBuilder
 
   "TSqlExpressionBuilder" should {
     "translate literals" in {
@@ -257,14 +258,13 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
     }
 
     "return ir.Dot for otherwise unhandled DotExpr" in {
-      val builder = new TSqlExpressionBuilder(new TSqlFunctionBuilder)
       val mockDotExprCtx = mock(classOf[TSqlParser.ExprDotContext])
       val mockExpressionCtx = mock(classOf[TSqlParser.ExpressionContext])
       val mockVisitor = mock(classOf[TSqlExpressionBuilder])
 
       when(mockDotExprCtx.expression(anyInt())).thenReturn(mockExpressionCtx)
       when(mockExpressionCtx.accept(mockVisitor)).thenReturn(ir.Literal(string = Some("a")))
-      val result = builder.visitExprDot(mockDotExprCtx)
+      val result = astBuilder.visitExprDot(mockDotExprCtx)
 
       result shouldBe a[ir.Dot]
     }
@@ -277,8 +277,7 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
       when(mockCtx.CURRENT()).thenReturn(null)
       when(mockCtx.INT()).thenReturn(null)
 
-      val builder = new TSqlExpressionBuilder(new TSqlFunctionBuilder)
-      val result = builder.buildFrame(mockCtx)
+      val result = exprBuilder.buildFrame(mockCtx)
 
       // Verify the result
       result shouldBe a[FrameBoundary]
@@ -351,7 +350,6 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
     }
 
     "cover case that cannot happen with dot" in {
-      val builder = new TSqlExpressionBuilder(new TSqlFunctionBuilder)
 
       val mockCtx = mock(classOf[TSqlParser.ExprDotContext])
       val expressionMockColumn = mock(classOf[TSqlParser.ExpressionContext])
@@ -360,7 +358,7 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
       val expressionMockFunc = mock(classOf[TSqlParser.ExpressionContext])
       when(mockCtx.expression(1)).thenReturn(expressionMockFunc)
       when(expressionMockFunc.accept(any())).thenReturn(ir.CallFunction("UNKNOWN_FUNCTION", List()))
-      val result = builder.visitExprDot(mockCtx)
+      val result = exprBuilder.visitExprDot(mockCtx)
       result shouldBe a[ir.Dot]
     }
 
@@ -423,7 +421,6 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
     }
 
     "return UnresolvedExpression for unsupported SelectListElem" in {
-      val builder = new TSqlExpressionBuilder(new TSqlFunctionBuilder)
 
       val mockCtx = mock(classOf[TSqlParser.SelectListElemContext])
 
@@ -432,7 +429,7 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
       when(mockCtx.expressionElem()).thenReturn(null)
 
       // Call the method with the mock instance
-      val result = builder.visitSelectListElem(mockCtx)
+      val result = exprBuilder.visitSelectListElem(mockCtx)
 
       // Verify the result
       result shouldBe a[ir.UnresolvedExpression]
@@ -444,15 +441,13 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
       selectListElemContextMock.op = eofToken
       when(selectListElemContextMock.LOCAL_ID()).thenReturn(new TerminalNodeImpl(eofToken))
       when(selectListElemContextMock.asterisk()).thenReturn(null)
-      when(selectListElemContextMock.udtElem()).thenReturn(null)
       when(selectListElemContextMock.getText).thenReturn("")
 
       val expressionContextMock = mock(classOf[TSqlParser.ExpressionContext])
       when(expressionContextMock.accept(any())).thenReturn(null)
       when(selectListElemContextMock.expression()).thenReturn(expressionContextMock)
 
-      val builder = new TSqlExpressionBuilder(new TSqlFunctionBuilder)
-      val result = builder.visitSelectListElem(selectListElemContextMock)
+      val result = exprBuilder.visitSelectListElem(selectListElemContextMock)
 
       result shouldBe a[ir.UnresolvedExpression]
     }
