@@ -672,8 +672,7 @@ def test_write_and_read_unmatched_df_with_volumes_with_exception(tmp_path: Path,
         write_and_read_unmatched_df_with_volumes(df, mock_spark, path)
 
 
-def test_clean_unmatched_df_from_volume_with_exception(mock_workspace_client):
-    mock_workspace_client.dbfs.delete.side_effect = Exception("Test exception")
+def test_clean_unmatched_df_from_volume_with_exception(mock_spark):
     path = "/path/that/does/not/exist"
     with pytest.raises(Exception):
-        clean_unmatched_df_from_volume(mock_workspace_client, path)
+        clean_unmatched_df_from_volume(mock_spark, path)

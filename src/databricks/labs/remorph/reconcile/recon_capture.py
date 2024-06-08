@@ -3,6 +3,7 @@ from datetime import datetime
 
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.functions import col, collect_list, create_map, lit
+from pyspark.sql.types import StringType, StructField, StructType
 from pyspark.errors import PySparkException
 from sqlglot import Dialect
 
@@ -21,7 +22,6 @@ from databricks.labs.remorph.reconcile.recon_config import (
     StatusOutput,
 )
 from databricks.sdk import WorkspaceClient
-from databricks.sdk.errors import ResourceDoesNotExist
 
 logger = logging.getLogger(__name__)
 
@@ -45,13 +45,13 @@ def _read_unmatched_df_from_volumes(
     return spark.read.format("parquet").load(path)
 
 
-def clean_unmatched_df_from_volume(workspace_client: WorkspaceClient, path: str):
+def clean_unmatched_df_from_volume(spark: SparkSession, path: str):
     try:
-        workspace_client.dbfs.get_status(path)
-        workspace_client.dbfs.delete(path, recursive=True)
-    except ResourceDoesNotExist:
-        logger.info(f"Path {path} does not exist")
-    except Exception as e:
+        # workspace_client.dbfs.get_status(path)
+        # workspace_client.dbfs.delete(path, recursive=True)
+        empty_df = spark.createDataFrame([], schema=StructType([StructField("empty", StringType(), True)]))
+        empty_df.write.format("parquet").mode("overwrite").save(path)
+    except PySparkException as e:
         message = f"Error cleaning up unmatched DF from {path} volumes --> {e}"
         logger.error(message)
         raise CleanFromVolumeException(message) from e
@@ -87,7 +87,7 @@ def generate_final_reconcile_output(
     metadata_config: ReconcileMetadataConfig = ReconcileMetadataConfig(),
     local_test_run: bool = False,
 ) -> ReconcileOutput:
-    _db_prefix = metadata_config.schema if local_test_run else f"{metadata_config.catalog}.{metadata_config.schema}"
+    _db_prefix = "default" if local_test_run else f"{metadata_config.catalog}.{metadata_config.schema}"
     recon_df = spark.sql(
         f"""
     SELECT 
@@ -170,7 +170,7 @@ class ReconCapture:
         self.ws = ws
         self.spark = spark
         self._db_prefix = (
-            metadata_config.schema if local_test_run else f"{metadata_config.catalog}.{metadata_config.schema}"
+            "default" if local_test_run else f"{metadata_config.catalog}.{metadata_config.schema}"
         )
 
     def _generate_recon_main_id(

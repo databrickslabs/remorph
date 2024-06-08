@@ -185,7 +185,7 @@ def recon(
         )
         if report_type != "schema":
             clean_unmatched_df_from_volume(
-                workspace_client=ws, path=generate_volume_path(table_conf, reconcile_config.metadata_config)
+                spark=spark, path=generate_volume_path(table_conf, reconcile_config.metadata_config)
             )
 
     return _verify_successful_reconciliation(
