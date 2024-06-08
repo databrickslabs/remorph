@@ -632,8 +632,7 @@ def test_recon_metadata_setup(ws):
 @mock.patch.object(DashboardPublisher, 'create', autospec=True)
 @mock.patch.object(ReconciliationMetadataSetup, 'run', autospec=True)
 @mock.patch.object(JobDeployer, 'deploy_job', autospec=True)
-@patch("databricks.labs.remorph.helpers.db_sql.get_sql_backend", return_value=MockBackend())
-def test_recon_workspace_installation(mock_backend, deploy_job, metadata_setup_run, create_dashboard, ws):
+def test_recon_workspace_installation(deploy_job, metadata_setup_run, create_dashboard, ws):
     installation = MockInstallation(is_global=False)
     product_info = ProductInfo.from_class(ReconcileConfig)
     prompts = MockPrompts({})
@@ -664,7 +663,8 @@ def test_recon_workspace_installation(mock_backend, deploy_job, metadata_setup_r
         product_info,
     )
 
-    workspace_installation.run()
+    with patch("databricks.labs.remorph.helpers.db_sql.get_sql_backend", return_value=MockBackend()):
+        workspace_installation.run()
 
     ws.volumes.create.assert_called_once()
     create_dashboard.assert_called_once()
@@ -672,8 +672,7 @@ def test_recon_workspace_installation(mock_backend, deploy_job, metadata_setup_r
     deploy_job.assert_called_once()
 
 
-@patch("databricks.labs.remorph.helpers.db_sql.get_sql_backend", return_value=MockBackend())
-def test_recon_workspace_installation_with_existing_volume(mock_backend, ws):
+def test_recon_workspace_installation_with_existing_volume(ws):
     installation = MockInstallation(is_global=False)
     product_info = ProductInfo.from_class(ReconcileConfig)
     prompts = MockPrompts({})
@@ -708,5 +707,8 @@ def test_recon_workspace_installation_with_existing_volume(mock_backend, ws):
         VolumeInfo(volume_id="122", name="volume1"),
         VolumeInfo(volume_id="123", name="reconcile_volume"),
     ]
-    workspace_installation.run()
+
+    with patch("databricks.labs.remorph.helpers.db_sql.get_sql_backend", return_value=MockBackend()):
+        workspace_installation.run()
+
     ws.volumes.create.assert_not_called()
