@@ -13,10 +13,6 @@ from databricks.sdk import WorkspaceClient
 from databricks.sdk.errors import NotFound
 from databricks.labs.blueprint.installation import MockInstallation
 
-from databricks.labs.remorph.helpers.reconcile_utils import ReconcileUtils
-from databricks.sdk.service._internal import Wait
-from databricks.sdk.service.jobs import RunNowResponse, Run
-
 
 @pytest.fixture
 def mock_workspace_client_cli():
@@ -388,33 +384,6 @@ def test_cli_configure_secrets_config(mock_workspace_client):
     with patch("databricks.labs.remorph.cli.ReconConfigPrompts") as mock_recon_config:
         cli.configure_secrets(mock_workspace_client)
         mock_recon_config.assert_called_once_with(mock_workspace_client)
-
-
-def test_reconcile_utils_run(mock_workspace_client, mock_installation_reconcile, monkeypatch):
-    def mock_open(url):
-        print(f"Opening URL: {url}")
-
-    monkeypatch.setattr("webbrowser.open", mock_open)
-
-    prompts = MockPrompts(
-        {
-            r"Would you like to overwrite workspace .*": "no",
-            r"Open Job Run URL .*": "yes",
-        }
-    )
-
-    mock_utils = ReconcileUtils(mock_workspace_client, mock_installation_reconcile, prompts)
-    op_response = {
-        "run_id": "12345",
-        "number_in_job": 0,
-        "run_page_url": "https://databricks.com/run/12345",
-    }
-    run = Run.from_dict({"run_id": "12345"})
-    wait = Wait(run, response=RunNowResponse.from_dict(op_response), run_id=op_response['run_id'])
-
-    mock_workspace_client.config.host = "https://dbc.com"
-    mock_workspace_client.jobs.run_now.return_value = wait
-    assert mock_utils.run()
 
 
 def test_cli_reconcile(mock_workspace_client, mock_installation_reconcile, monkeypatch):

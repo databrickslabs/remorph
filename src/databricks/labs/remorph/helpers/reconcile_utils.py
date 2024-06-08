@@ -69,10 +69,14 @@ class ReconcileUtils:
 
     def run(self):
 
-        reconcile_config, table_recon = self._load_configs()
+        reconcile_config = None
+        table_recon = None
 
-        assert reconcile_config
-        assert table_recon
+        if self._load_configs():
+            reconcile_config, table_recon = self._load_configs()
+
+        assert reconcile_config, "Error: Cannot load `reconcile_config`"
+        assert table_recon, "Error: Cannot load `recon_config`"
 
         logger.info(f"Triggering the Job with job_id: `{reconcile_config.job_id}` ...")
 
