@@ -38,8 +38,8 @@ class ReconIntermediatePersist:
         self.path = path
 
     def _write_unmatched_df_to_volumes(
-            self,
-            unmatched_df: DataFrame,
+        self,
+        unmatched_df: DataFrame,
     ) -> None:
         unmatched_df.write.format("parquet").mode("overwrite").save(self.path)
 
@@ -59,8 +59,8 @@ class ReconIntermediatePersist:
             raise CleanFromVolumeException(message) from e
 
     def write_and_read_unmatched_df_with_volumes(
-            self,
-            unmatched_df: DataFrame,
+        self,
+        unmatched_df: DataFrame,
     ) -> DataFrame:
         try:
             self._write_unmatched_df_to_volumes(unmatched_df)
@@ -82,10 +82,10 @@ def _write_df_to_delta(df: DataFrame, table_name: str, mode="append"):
 
 
 def generate_final_reconcile_output(
-        recon_id: str,
-        spark: SparkSession,
-        metadata_config: ReconcileMetadataConfig = ReconcileMetadataConfig(),
-        local_test_run: bool = False,
+    recon_id: str,
+    spark: SparkSession,
+    metadata_config: ReconcileMetadataConfig = ReconcileMetadataConfig(),
+    local_test_run: bool = False,
 ) -> ReconcileOutput:
     _db_prefix = "default" if local_test_run else f"{metadata_config.catalog}.{metadata_config.schema}"
     recon_df = spark.sql(
@@ -153,15 +153,15 @@ def generate_final_reconcile_output(
 class ReconCapture:
 
     def __init__(
-            self,
-            database_config: DatabaseConfig,
-            recon_id: str,
-            report_type: str,
-            source_dialect: Dialect,
-            ws: WorkspaceClient,
-            spark: SparkSession,
-            metadata_config: ReconcileMetadataConfig = ReconcileMetadataConfig(),
-            local_test_run: bool = False,
+        self,
+        database_config: DatabaseConfig,
+        recon_id: str,
+        report_type: str,
+        source_dialect: Dialect,
+        ws: WorkspaceClient,
+        spark: SparkSession,
+        metadata_config: ReconcileMetadataConfig = ReconcileMetadataConfig(),
+        local_test_run: bool = False,
     ):
         self.database_config = database_config
         self.recon_id = recon_id
@@ -172,8 +172,8 @@ class ReconCapture:
         self._db_prefix = "default" if local_test_run else f"{metadata_config.catalog}.{metadata_config.schema}"
 
     def _generate_recon_main_id(
-            self,
-            table_conf: Table,
+        self,
+        table_conf: Table,
     ) -> int:
         full_source_table = (
             f"{self.database_config.source_schema}.{table_conf.source_name}"
@@ -186,10 +186,10 @@ class ReconCapture:
         return hash(f"{self.recon_id}{full_source_table}{full_target_table}")
 
     def _insert_into_main_table(
-            self,
-            recon_table_id: int,
-            table_conf: Table,
-            recon_process_duration: ReconcileProcessDuration,
+        self,
+        recon_table_id: int,
+        table_conf: Table,
+        recon_process_duration: ReconcileProcessDuration,
     ) -> None:
         source_dialect_key = get_key_form_dialect(self.source_dialect)
         df = self.spark.sql(
@@ -220,19 +220,19 @@ class ReconCapture:
         _write_df_to_delta(df, f"{self._db_prefix}.{_RECON_TABLE_NAME}")
 
     def _insert_into_metrics_table(
-            self,
-            recon_table_id: int,
-            data_reconcile_output: DataReconcileOutput,
-            schema_reconcile_output: SchemaReconcileOutput,
+        self,
+        recon_table_id: int,
+        data_reconcile_output: DataReconcileOutput,
+        schema_reconcile_output: SchemaReconcileOutput,
     ) -> None:
         status = False
         if data_reconcile_output.exception in {None, ''} and schema_reconcile_output.exception in {None, ''}:
             status = not (
-                    data_reconcile_output.mismatch_count > 0
-                    or data_reconcile_output.missing_in_src_count > 0
-                    or data_reconcile_output.missing_in_tgt_count > 0
-                    or not schema_reconcile_output.is_valid
-                    or data_reconcile_output.threshold_output.threshold_mismatch_count > 0
+                data_reconcile_output.mismatch_count > 0
+                or data_reconcile_output.missing_in_src_count > 0
+                or data_reconcile_output.missing_in_tgt_count > 0
+                or not schema_reconcile_output.is_valid
+                or data_reconcile_output.threshold_output.threshold_mismatch_count > 0
             )
 
         exception_msg = ""
@@ -279,11 +279,11 @@ class ReconCapture:
 
     @classmethod
     def _create_map_column(
-            cls,
-            recon_table_id: int,
-            df: DataFrame,
-            recon_type: str,
-            status: bool,
+        cls,
+        recon_table_id: int,
+        df: DataFrame,
+        recon_type: str,
+        status: bool,
     ) -> DataFrame:
         columns = df.columns
         # Create a list of column names and their corresponding column values
@@ -305,20 +305,20 @@ class ReconCapture:
         )
 
     def _create_map_column_and_insert(
-            self,
-            recon_table_id: int,
-            df: DataFrame,
-            recon_type: str,
-            status: bool,
+        self,
+        recon_table_id: int,
+        df: DataFrame,
+        recon_type: str,
+        status: bool,
     ) -> None:
         df = self._create_map_column(recon_table_id, df, recon_type, status)
         _write_df_to_delta(df, f"{self._db_prefix}.{_RECON_DETAILS_TABLE_NAME}")
 
     def _insert_into_details_table(
-            self,
-            recon_table_id: int,
-            reconcile_output: DataReconcileOutput,
-            schema_output: SchemaReconcileOutput,
+        self,
+        recon_table_id: int,
+        reconcile_output: DataReconcileOutput,
+        schema_output: SchemaReconcileOutput,
     ):
         if reconcile_output.mismatch_count > 0 and reconcile_output.mismatch.mismatch_df:
             self._create_map_column_and_insert(
@@ -345,8 +345,8 @@ class ReconCapture:
             )
 
         if (
-                reconcile_output.threshold_output.threshold_mismatch_count > 0
-                and reconcile_output.threshold_output.threshold_df
+            reconcile_output.threshold_output.threshold_mismatch_count > 0
+            and reconcile_output.threshold_output.threshold_df
         ):
             self._create_map_column_and_insert(
                 recon_table_id,
@@ -361,11 +361,11 @@ class ReconCapture:
             )
 
     def start(
-            self,
-            data_reconcile_output: DataReconcileOutput,
-            schema_reconcile_output: SchemaReconcileOutput,
-            table_conf: Table,
-            recon_process_duration: ReconcileProcessDuration,
+        self,
+        data_reconcile_output: DataReconcileOutput,
+        schema_reconcile_output: SchemaReconcileOutput,
+        table_conf: Table,
+        recon_process_duration: ReconcileProcessDuration,
     ) -> None:
         recon_table_id = self._generate_recon_main_id(table_conf)
         self._insert_into_main_table(recon_table_id, table_conf, recon_process_duration)
