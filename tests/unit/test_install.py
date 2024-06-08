@@ -133,6 +133,7 @@ def mock_installation_state():
     )
 
 
+@patch("webbrowser.open")
 def test_install(ws, mock_installation_state):
     prompts = MockPrompts(
         {
@@ -141,7 +142,7 @@ def test_install(ws, mock_installation_state):
             r"Enter Input SQL path.*": "data/queries/bigquery",
             r"Enter Output directory.*": "transpiled",
             r"Would you like to validate the Syntax, Semantics of the transpiled queries?": "no",
-            r"Open .* in the browser and continue...?": "no",
+            r"Open .* in the browser and continue...?": "yes",
             r"Select the Data Source:": 2,
             r"Select the Report Type:": 0,
             r"Enter Secret Scope name to store .* connection details / secrets": "remorph_snowflake",
@@ -158,24 +159,7 @@ def test_install(ws, mock_installation_state):
     # Assert that the `install` is an instance of WorkspaceInstaller
     assert isinstance(install, WorkspaceInstaller)
 
-    morph = MorphConfig(
-        source="bigquery", input_sql="data/queries/bigquery", output_folder="transpiled", skip_validation=True
-    )
-    reconcile = ReconcileConfig(
-        data_source="snowflake",
-        database_config=DatabaseConfig(
-            source_catalog="snowflake_sample_data",
-            source_schema="tpch_sf1000",
-            target_catalog="tpch",
-            target_schema="1000gb",
-        ),
-        report_type="all",
-        secret_scope="remorph_snowflake",
-        tables=None,
-        metadata_config=ReconcileMetadataConfig(catalog="remorph", schema="reconcile"),
-    )
-
-    with patch.object(WorkspaceInstaller, "run", return_value=RemorphConfigs(morph, reconcile)):
+    with patch.object(WorkspaceInstallation, "run", autospec=True):
         configs = install.run()
         config = configs.morph
         reconcile_config = configs.reconcile
