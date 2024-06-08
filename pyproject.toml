@@ -57,7 +57,7 @@ dependencies = [
 ]
 
 [project.entry-points.databricks]
-trigger_recon = "databricks.labs.remorph.reconcile.execute:main"
+reconcile = "databricks.labs.remorph.reconcile.execute:main"
 
 [tool.hatch.envs.default.scripts]
 test        = "pytest --cov src --cov-report=xml tests/unit"

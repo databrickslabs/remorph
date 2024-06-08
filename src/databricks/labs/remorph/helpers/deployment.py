@@ -90,7 +90,7 @@ class JobDeployer:
             libraries=libraries,
             python_wheel_task=PythonWheelTask(
                 package_name="databricks-labs-remorph",
-                entry_point="trigger_recon",
+                entry_point="reconcile",
             ),
         )
 
