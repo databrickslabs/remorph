@@ -81,16 +81,17 @@ def _write_df_to_delta(df: DataFrame, table_name: str, mode="append"):
         raise WriteToTableException(message) from e
 
 
-def _get_db_prefix(metrics: ReconcileMetadataConfig) -> str:
-    return f"{metrics.catalog}.{metrics.schema}"
+def _get_db_prefix(metadata_config: ReconcileMetadataConfig) -> str:
+    return f"{metadata_config.catalog}.{metadata_config.schema}"
 
 
 def generate_final_reconcile_output(
     recon_id: str,
     spark: SparkSession,
-    metadata_config: ReconcileMetadataConfig,
+    metadata_config: ReconcileMetadataConfig = ReconcileMetadataConfig(),
+    local_test_run: bool = False,
 ) -> ReconcileOutput:
-    _db_prefix = _get_db_prefix(metadata_config)
+    _db_prefix = metadata_config.schema if local_test_run else f"{metadata_config.catalog}.{metadata_config.schema}"
     recon_df = spark.sql(
         f"""
     SELECT 
@@ -163,7 +164,8 @@ class ReconCapture:
         source_dialect: Dialect,
         ws: WorkspaceClient,
         spark: SparkSession,
-        metadata_config: ReconcileMetadataConfig,
+        metadata_config: ReconcileMetadataConfig = ReconcileMetadataConfig(),
+        local_test_run: bool = False,
     ):
         self.database_config = database_config
         self.recon_id = recon_id
@@ -171,7 +173,9 @@ class ReconCapture:
         self.source_dialect = source_dialect
         self.ws = ws
         self.spark = spark
-        self._db_prefix = _get_db_prefix(metadata_config)
+        self._db_prefix = (
+            metadata_config.schema if local_test_run else f"{metadata_config.catalog}.{metadata_config.schema}"
+        )
 
     def _generate_recon_main_id(
         self,

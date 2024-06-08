@@ -132,6 +132,8 @@ def test_install(ws, mock_installation_state):
             r"Enter .* Database name": "tpch_sf1000",
             r"Enter Databricks Catalog name": "tpch",
             r"Enter Databricks Schema name": "1000gb",
+            r"Enter Catalog name to store reconcile metadata": "remorph",
+            r"Enter Schema name to store reconcile metadata": "reconcile",
         }
     )
     install = WorkspaceInstaller(ws, mock_installation_state, prompts=prompts)

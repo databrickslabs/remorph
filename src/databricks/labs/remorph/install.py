@@ -318,8 +318,8 @@ class InstallPrompts:
         )
 
     def _prompt_for_reconcile_metadata_config(self) -> ReconcileMetadataConfig:
-        catalog = self._prompts.question("Enter reconciliation metadata catalog name", default="remorph")
-        schema = self._prompts.question("Enter reconciliation metadata schema Name", default="reconcile")
+        catalog = self._prompts.question("Enter Catalog name to store reconcile metadata", default="remorph")
+        schema = self._prompts.question("Enter Schema name to store reconcile metadata", default="reconcile")
         metrics_config = ReconcileMetadataConfig(catalog=catalog, schema=schema)
         return metrics_config
 

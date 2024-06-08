@@ -65,8 +65,8 @@ def validate_input(input_value: str, list_of_value: set, message: str):
 
 
 def main(*argv) -> None:
-    if len(argv) == 0:
-        argv = sys.argv
+    logger.info(len(argv))
+
     w = WorkspaceClient()
 
     installation = Installation.assume_user_home(w, "remorph")
