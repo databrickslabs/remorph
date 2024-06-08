@@ -355,9 +355,16 @@ class InstallPrompts:
 
 class ReconciliationMetadataSetup:
 
-    def __init__(self, ws: WorkspaceClient, reconcile_config: ReconcileConfig):
+    def __init__(
+        self,
+        ws: WorkspaceClient,
+        reconcile_config: ReconcileConfig,
+        catalog_setup: CatalogSetup,
+        table_deployer: TableDeployer,
+    ):
         self._ws = ws
-        self._catalog_setup = CatalogSetup(ws)
+        self._catalog_setup = catalog_setup
+        self._table_deployer = table_deployer
         self._reconcile_config = reconcile_config
         self._reconcile_catalog = reconcile_config.metadata_config.catalog
         self._reconcile_schema = reconcile_config.metadata_config.schema
@@ -377,14 +384,7 @@ class ReconciliationMetadataSetup:
             self._catalog_setup.create_schema(self._reconcile_schema, self._reconcile_catalog)
 
     def deploy_tables(self):
-        morph_config = MorphConfig(
-            source=self._reconcile_config.data_source,
-            catalog_name=self._reconcile_catalog,
-            schema_name=self._reconcile_schema,
-        )
-        sql_backend = db_sql.get_sql_backend(self._ws, morph_config)
-        deployer = TableDeployer(sql_backend, self._reconcile_catalog, self._reconcile_schema)
-        deploy_table = functools.partial(deployer.deploy_table)
+        deploy_table = functools.partial(self._table_deployer.deploy_table)
         Threads.strict(
             "Deploy reconciliation metadata tables",
             [
@@ -455,7 +455,18 @@ class WorkspaceInstallation:
             dashboard_publisher.create(dashboard_file, parameters=dashboard_params)
 
     def _configure_reconcile_metadata(self):
-        setup = ReconciliationMetadataSetup(self._ws, self._config.reconcile)
+        morph_config = MorphConfig(
+            source=self._config.reconcile.data_source,
+            catalog_name=self._config.reconcile.metadata_config.catalog,
+            schema_name=self._config.reconcile.metadata_config.schema,
+        )
+        sql_backend = db_sql.get_sql_backend(self._ws, morph_config)
+        deployer = TableDeployer(
+            sql_backend,
+            self._config.reconcile.metadata_config.catalog,
+            self._config.reconcile.metadata_config.schema,
+        )
+        setup = ReconciliationMetadataSetup(self._ws, self._config.reconcile, CatalogSetup(self._ws), deployer)
         setup.run()
 
     def _deploy_reconcile_job(self):

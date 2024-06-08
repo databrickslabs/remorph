@@ -6,7 +6,7 @@ import pytest
 
 from databricks.labs.blueprint.installation import Installation, MockInstallation
 from databricks.labs.blueprint.tui import MockPrompts, Prompts
-
+from databricks.labs.lsql.backends import MockBackend
 from databricks.labs.remorph.config import (
     MorphConfig,
     RemorphConfigs,
@@ -14,10 +14,12 @@ from databricks.labs.remorph.config import (
     DatabaseConfig,
     ReconcileMetadataConfig,
 )
+from databricks.labs.remorph.helpers.deployment import TableDeployer
 from databricks.labs.remorph.install import (
     CatalogSetup,
     WorkspaceInstallation,
     WorkspaceInstaller,
+    ReconciliationMetadataSetup,
 )
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.errors import NotFound
@@ -56,6 +58,7 @@ SOURCES = [
 @pytest.fixture
 def ws():
     w = create_autospec(WorkspaceClient)
+    w.config.host = "https://foo"
     w.config.return_value = {"warehouse_id", "test_warehouse"}
     w.data_sources.list = lambda: [DataSource(id="bcd", warehouse_id="abc")]
     w.warehouses.list = lambda **_: [
@@ -582,3 +585,77 @@ def test_morph_config_error(ws, monkeypatch):
     install = WorkspaceInstaller(ws, mock_installation_config, prompts)
     webbrowser.open('https://localhost/#workspace~/mock/config.yml')
     install.configure()
+
+
+def test_recon_metadata_setup(ws):
+    recon_config = ReconcileConfig(
+        data_source="snowflake",
+        report_type="all",
+        secret_scope="remorph_snowflake",
+        database_config=DatabaseConfig(
+            source_catalog="snowflake_sample_data",
+            source_schema="tpch_sf1000",
+            target_catalog="tpch",
+            target_schema="1000gb",
+        ),
+        metadata_config=ReconcileMetadataConfig(catalog="remorph", schema="reconcile"),
+        job_id="123",
+        tables=None,
+    )
+
+    catalog_setup = create_autospec(CatalogSetup)
+    sql_backend = MockBackend()
+    table_deployer = TableDeployer(sql_backend, "remorph", "reconcile")
+
+    recon_metadata_setup = ReconciliationMetadataSetup(ws, recon_config, catalog_setup, table_deployer)
+    recon_metadata_setup.configure_catalog()
+    catalog_setup.get.assert_called_with("remorph")
+
+    recon_metadata_setup.configure_schema()
+    catalog_setup.get_schema.assert_called_with("remorph.reconcile")
+
+    catalog_setup.get.side_effect = NotFound("Not found")
+    recon_metadata_setup.configure_catalog()
+    catalog_setup.create.assert_called_with("remorph")
+
+    catalog_setup.get_schema.side_effect = NotFound("Not found")
+    recon_metadata_setup.configure_schema()
+    catalog_setup.create_schema.assert_called_with("reconcile", "remorph")
+
+    recon_metadata_setup.deploy_tables()
+    assert len(sql_backend.queries) > 0
+
+
+def test_recon_workspace_installation_with_existing_catalog_and_schema(ws):
+    installation = MockInstallation(is_global=False)
+    product_info = ProductInfo.from_class(ReconcileConfig)
+    prompts = MockPrompts({})
+    remorph_configs = RemorphConfigs(
+        morph=None,
+        reconcile=ReconcileConfig(
+            data_source="snowflake",
+            report_type="all",
+            secret_scope="remorph_snowflake",
+            database_config=DatabaseConfig(
+                source_catalog="snowflake_sample_data",
+                source_schema="tpch_sf1000",
+                target_catalog="tpch",
+                target_schema="1000gb",
+            ),
+            metadata_config=ReconcileMetadataConfig(catalog="remorph", schema="reconcile"),
+            job_id="123",
+            tables=None,
+        ),
+    )
+
+    # catalog_setup = create_autospec(CatalogSetup)
+    workspace_installation = WorkspaceInstallation(
+        remorph_configs,
+        installation,
+        ws,
+        prompts,
+        timedelta(minutes=2),
+        product_info,
+    )
+    with patch('databricks.labs.remorph.helpers.db_sql.get_sql_backend', return_value=MockBackend()):
+        workspace_installation.run()
