@@ -134,7 +134,7 @@ def test_configure_secrets_create_scope_exception(mock_workspace_client):
 def test_store_connection_secrets_overwrite(mock_workspace_client):
     prompts = MockPrompts(
         {
-            r"Do you want to overwrite `source_key`?": "no",
+            r"Do you want to overwrite `key`?": "no",
         }
     )
 

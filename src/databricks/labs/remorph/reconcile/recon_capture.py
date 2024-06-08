@@ -3,10 +3,11 @@ from datetime import datetime
 
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.functions import col, collect_list, create_map, lit
+from pyspark.sql.types import StringType, StructField, StructType
 from pyspark.errors import PySparkException
 from sqlglot import Dialect
 
-from databricks.labs.remorph.config import DatabaseConfig, Table, get_key_form_dialect
+from databricks.labs.remorph.config import DatabaseConfig, Table, get_key_form_dialect, ReconcileMetadataConfig
 from databricks.labs.remorph.reconcile.exception import (
     WriteToTableException,
     ReadAndWriteWithVolumeException,
@@ -24,50 +25,50 @@ from databricks.sdk import WorkspaceClient
 
 logger = logging.getLogger(__name__)
 
-_REMORPH_CATALOG = "remorph"
-_RECONCILE_SCHEMA = "reconcile"
-_DB_PREFIX = f"{_REMORPH_CATALOG}.{_RECONCILE_SCHEMA}"
 _RECON_TABLE_NAME = "main"
 _RECON_METRICS_TABLE_NAME = "metrics"
 _RECON_DETAILS_TABLE_NAME = "details"
 _SAMPLE_ROWS = 50
 
 
-def _write_unmatched_df_to_volumes(
-    unmatched_df: DataFrame,
-    path: str,
-) -> None:
-    unmatched_df.write.format("parquet").mode("overwrite").save(path)
+class ReconIntermediatePersist:
 
+    def __init__(self, spark: SparkSession, path: str):
+        self.spark = spark
+        self.path = path
 
-def _read_unmatched_df_from_volumes(
-    spark: SparkSession,
-    path: str,
-) -> DataFrame:
-    return spark.read.format("parquet").load(path)
+    def _write_unmatched_df_to_volumes(
+        self,
+        unmatched_df: DataFrame,
+    ) -> None:
+        unmatched_df.write.format("parquet").mode("overwrite").save(self.path)
 
+    def _read_unmatched_df_from_volumes(self) -> DataFrame:
+        return self.spark.read.format("parquet").load(self.path)
 
-def clean_unmatched_df_from_volume(workspace_client: WorkspaceClient, path: str):
-    try:
-        workspace_client.dbfs.delete(path, recursive=True)
-    except Exception as e:
-        message = f"Error cleaning up unmatched DF from {path} volumes --> {e}"
-        logger.error(message)
-        raise CleanFromVolumeException(message) from e
+    def clean_unmatched_df_from_volume(self):
+        try:
+            # TODO: for now we are overwriting the intermediate cache path. We should delete the volume in future
+            # workspace_client.dbfs.get_status(path)
+            # workspace_client.dbfs.delete(path, recursive=True)
+            empty_df = self.spark.createDataFrame([], schema=StructType([StructField("empty", StringType(), True)]))
+            empty_df.write.format("parquet").mode("overwrite").save(self.path)
+        except PySparkException as e:
+            message = f"Error cleaning up unmatched DF from {self.path} volumes --> {e}"
+            logger.error(message)
+            raise CleanFromVolumeException(message) from e
 
-
-def write_and_read_unmatched_df_with_volumes(
-    unmatched_df: DataFrame,
-    spark: SparkSession,
-    path: str,
-) -> DataFrame:
-    try:
-        _write_unmatched_df_to_volumes(unmatched_df, path)
-        return _read_unmatched_df_from_volumes(spark, path)
-    except PySparkException as e:
-        message = f"Exception in reading or writing unmatched DF with volumes {path} --> {e}"
-        logger.error(message)
-        raise ReadAndWriteWithVolumeException(message) from e
+    def write_and_read_unmatched_df_with_volumes(
+        self,
+        unmatched_df: DataFrame,
+    ) -> DataFrame:
+        try:
+            self._write_unmatched_df_to_volumes(unmatched_df)
+            return self._read_unmatched_df_from_volumes()
+        except PySparkException as e:
+            message = f"Exception in reading or writing unmatched DF with volumes {self.path} --> {e}"
+            logger.error(message)
+            raise ReadAndWriteWithVolumeException(message) from e
 
 
 def _write_df_to_delta(df: DataFrame, table_name: str, mode="append"):
@@ -80,7 +81,13 @@ def _write_df_to_delta(df: DataFrame, table_name: str, mode="append"):
         raise WriteToTableException(message) from e
 
 
-def generate_final_reconcile_output(recon_id: str, spark: SparkSession) -> ReconcileOutput:
+def generate_final_reconcile_output(
+    recon_id: str,
+    spark: SparkSession,
+    metadata_config: ReconcileMetadataConfig = ReconcileMetadataConfig(),
+    local_test_run: bool = False,
+) -> ReconcileOutput:
+    _db_prefix = "default" if local_test_run else f"{metadata_config.catalog}.{metadata_config.schema}"
     recon_df = spark.sql(
         f"""
     SELECT 
@@ -109,9 +116,9 @@ def generate_final_reconcile_output(recon_id: str, spark: SparkSession) -> Recon
     ELSE NULL END AS SCHEMA,
     METRICS.run_metrics.exception_message AS EXCEPTION_MESSAGE 
     FROM 
-        {_DB_PREFIX}.{_RECON_TABLE_NAME} MAIN 
+        {_db_prefix}.{_RECON_TABLE_NAME} MAIN 
     INNER JOIN 
-        {_DB_PREFIX}.{_RECON_METRICS_TABLE_NAME} METRICS 
+        {_db_prefix}.{_RECON_METRICS_TABLE_NAME} METRICS 
     ON 
         (MAIN.recon_table_id = METRICS.recon_table_id) 
     WHERE 
@@ -153,6 +160,8 @@ class ReconCapture:
         source_dialect: Dialect,
         ws: WorkspaceClient,
         spark: SparkSession,
+        metadata_config: ReconcileMetadataConfig = ReconcileMetadataConfig(),
+        local_test_run: bool = False,
     ):
         self.database_config = database_config
         self.recon_id = recon_id
@@ -160,6 +169,7 @@ class ReconCapture:
         self.source_dialect = source_dialect
         self.ws = ws
         self.spark = spark
+        self._db_prefix = "default" if local_test_run else f"{metadata_config.catalog}.{metadata_config.schema}"
 
     def _generate_recon_main_id(
         self,
@@ -207,7 +217,7 @@ class ReconCapture:
                 cast('{recon_process_duration.end_ts}' as timestamp) as end_ts
             """
         )
-        _write_df_to_delta(df, f"{_DB_PREFIX}.{_RECON_TABLE_NAME}")
+        _write_df_to_delta(df, f"{self._db_prefix}.{_RECON_TABLE_NAME}")
 
     def _insert_into_metrics_table(
         self,
@@ -265,7 +275,7 @@ class ReconCapture:
                 cast('{insertion_time}' as timestamp) as inserted_ts
             """
         )
-        _write_df_to_delta(df, f"{_DB_PREFIX}.{_RECON_METRICS_TABLE_NAME}")
+        _write_df_to_delta(df, f"{self._db_prefix}.{_RECON_METRICS_TABLE_NAME}")
 
     @classmethod
     def _create_map_column(
@@ -302,7 +312,7 @@ class ReconCapture:
         status: bool,
     ) -> None:
         df = self._create_map_column(recon_table_id, df, recon_type, status)
-        _write_df_to_delta(df, f"{_DB_PREFIX}.{_RECON_DETAILS_TABLE_NAME}")
+        _write_df_to_delta(df, f"{self._db_prefix}.{_RECON_DETAILS_TABLE_NAME}")
 
     def _insert_into_details_table(
         self,
