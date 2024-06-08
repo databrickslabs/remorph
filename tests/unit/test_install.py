@@ -1,8 +1,11 @@
 import webbrowser
 from datetime import timedelta
+from unittest import mock
 from unittest.mock import create_autospec, patch
 
 import pytest
+
+from databricks.labs.remorph.helpers.dashboard_publisher import DashboardPublisher
 
 from databricks.labs.blueprint.installation import Installation, MockInstallation
 from databricks.labs.blueprint.tui import MockPrompts, Prompts
@@ -14,7 +17,7 @@ from databricks.labs.remorph.config import (
     DatabaseConfig,
     ReconcileMetadataConfig,
 )
-from databricks.labs.remorph.helpers.deployment import TableDeployer
+from databricks.labs.remorph.helpers.deployment import TableDeployer, JobDeployer
 from databricks.labs.remorph.install import (
     CatalogSetup,
     WorkspaceInstallation,
@@ -23,7 +26,7 @@ from databricks.labs.remorph.install import (
 )
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.errors import NotFound
-from databricks.sdk.service.catalog import CatalogInfo, SchemaInfo
+from databricks.sdk.service.catalog import CatalogInfo, SchemaInfo, VolumeInfo
 from databricks.labs.blueprint.wheels import ProductInfo
 from databricks.sdk.service.compute import State
 from databricks.sdk.service.sql import (
@@ -626,8 +629,11 @@ def test_recon_metadata_setup(ws):
     assert len(sql_backend.queries) > 0
 
 
+@mock.patch.object(DashboardPublisher, 'create', autospec=True)
+@mock.patch.object(ReconciliationMetadataSetup, 'run', autospec=True)
+@mock.patch.object(JobDeployer, 'deploy_job', autospec=True)
 @patch("databricks.labs.remorph.helpers.db_sql.get_sql_backend", return_value=MockBackend())
-def test_recon_workspace_installation_with_existing_catalog_and_schema(ws):
+def test_recon_workspace_installation(mock_backend, deploy_job, metadata_setup_run, create_dashboard, ws):
     installation = MockInstallation(is_global=False)
     product_info = ProductInfo.from_class(ReconcileConfig)
     prompts = MockPrompts({})
@@ -658,5 +664,49 @@ def test_recon_workspace_installation_with_existing_catalog_and_schema(ws):
         product_info,
     )
 
-    # TODO add more checks
     workspace_installation.run()
+
+    ws.volumes.create.assert_called_once()
+    create_dashboard.assert_called_once()
+    metadata_setup_run.assert_called_once()
+    deploy_job.assert_called_once()
+
+
+@patch("databricks.labs.remorph.helpers.db_sql.get_sql_backend", return_value=MockBackend())
+def test_recon_workspace_installation_with_existing_volume(mock_backend, ws):
+    installation = MockInstallation(is_global=False)
+    product_info = ProductInfo.from_class(ReconcileConfig)
+    prompts = MockPrompts({})
+    remorph_configs = RemorphConfigs(
+        morph=None,
+        reconcile=ReconcileConfig(
+            data_source="snowflake",
+            report_type="all",
+            secret_scope="remorph_snowflake",
+            database_config=DatabaseConfig(
+                source_catalog="snowflake_sample_data",
+                source_schema="tpch_sf1000",
+                target_catalog="tpch",
+                target_schema="1000gb",
+            ),
+            metadata_config=ReconcileMetadataConfig(catalog="remorph", schema="reconcile"),
+            job_id="123",
+            tables=None,
+        ),
+    )
+
+    workspace_installation = WorkspaceInstallation(
+        remorph_configs,
+        installation,
+        ws,
+        prompts,
+        timedelta(minutes=2),
+        product_info,
+    )
+
+    ws.volumes.list.return_value = [
+        VolumeInfo(volume_id="122", name="volume1"),
+        VolumeInfo(volume_id="123", name="reconcile_volume"),
+    ]
+    workspace_installation.run()
+    ws.volumes.create.assert_not_called()
