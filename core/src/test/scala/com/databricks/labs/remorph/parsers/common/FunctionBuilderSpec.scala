@@ -2,7 +2,7 @@ package com.databricks.labs.remorph.parsers.common
 
 import com.databricks.labs.remorph.parsers.intermediate.UnresolvedFunction
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeFunctionBuilder
-import com.databricks.labs.remorph.parsers.tsql.{TSqlFunctionBuilder, TSqlFunctionConverters}
+import com.databricks.labs.remorph.parsers.tsql.TSqlFunctionBuilder
 import com.databricks.labs.remorph.parsers.{intermediate => ir, _}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
@@ -15,27 +15,142 @@ class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenProp
       ("functionName", "expectedArity"), // Header
 
       // Snowflake specific
-      ("IFNULL", Some(FunctionDefinition.standard(2))),
-      ("ISNULL", Some(FunctionDefinition.standard(1))))
+      ("ADD_MONTHS", Some(FunctionDefinition.standard(2))),
+      ("ANY_VALUE", Some(FunctionDefinition.standard(1))),
+      ("APPROX_COUNT_DISTINCT", Some(FunctionDefinition.standard(1))),
+      ("APPROX_PERCENTILE", Some(FunctionDefinition.standard(2))),
+      ("APPROX_PERCENTILE_CONT", Some(FunctionDefinition.standard(1))),
+      ("APPROX_PERCENTILE_DISC", Some(FunctionDefinition.standard(1))),
+      ("APPROX_TOP_K", Some(FunctionDefinition.standard(1, 3))),
+      ("ARRAYS_OVERLAP", Some(FunctionDefinition.standard(2))),
+      ("ARRAY_AGG", Some(FunctionDefinition.standard(1))),
+      ("ARRAY_APPEND", Some(FunctionDefinition.standard(2))),
+      ("ARRAY_CAT", Some(FunctionDefinition.standard(2))),
+      ("ARRAY_COMPACT", Some(FunctionDefinition.standard(1))),
+      ("ARRAY_CONSTRUCT", Some(FunctionDefinition.standard(0, Int.MaxValue))),
+      ("ARRAY_CONSTRUCT_COMPACT", Some(FunctionDefinition.standard(0, Int.MaxValue))),
+      ("ARRAY_CONTAINS", Some(FunctionDefinition.standard(2))),
+      ("ARRAY_DISTINCT", Some(FunctionDefinition.standard(1))),
+      ("ARRAY_EXCEPT", Some(FunctionDefinition.standard(2))),
+      ("ARRAY_INSERT", Some(FunctionDefinition.standard(3))),
+      ("ARRAY_INTERSECTION", Some(FunctionDefinition.standard(2))),
+      ("ARRAY_POSITION", Some(FunctionDefinition.standard(2))),
+      ("ARRAY_PREPEND", Some(FunctionDefinition.standard(2))),
+      ("ARRAY_REMOVE", Some(FunctionDefinition.standard(2))),
+      ("ARRAY_SIZE", Some(FunctionDefinition.standard(1))),
+      ("ARRAY_SLICE", Some(FunctionDefinition.standard(3))),
+      ("ARRAY_TO_STRING", Some(FunctionDefinition.standard(2))),
+      ("ATAN2", Some(FunctionDefinition.standard(2))),
+      ("BASE64_DECODE_STRING", Some(FunctionDefinition.standard(1, 2))),
+      ("BASE64_ENCODE", Some(FunctionDefinition.standard(1, 3))),
+      ("BITOR_AGG", Some(FunctionDefinition.standard(1))),
+      ("BOOLAND_AGG", Some(FunctionDefinition.standard(1))),
+      ("CEIL", Some(FunctionDefinition.standard(1, 2))),
+      ("COLLATE", Some(FunctionDefinition.standard(2))),
+      ("COLLATION", Some(FunctionDefinition.standard(1))),
+      ("CONTAINS", Some(FunctionDefinition.standard(2))),
+      ("CONVERT_TIMEZONE", Some(FunctionDefinition.standard(2, 3))),
+      ("CORR", Some(FunctionDefinition.standard(2))),
+      ("COUNT_IF", Some(FunctionDefinition.standard(1))),
+      ("CURRENT_DATABASE", Some(FunctionDefinition.standard(0))),
+      ("CURRENT_TIMESTAMP", Some(FunctionDefinition.standard(0, 1))),
+      ("DATEDIFF", Some(FunctionDefinition.standard(3))),
+      ("DATE_FROM_PARTS", Some(FunctionDefinition.standard(3))),
+      ("DATE_PART", Some(FunctionDefinition.standard(2))),
+      ("DATE_TRUNC", Some(FunctionDefinition.standard(2))),
+      ("DAYNAME", Some(FunctionDefinition.standard(1))),
+      ("DECODE", Some(FunctionDefinition.standard(3, Int.MaxValue))),
+      ("DIV0", Some(FunctionDefinition.standard(2))),
+      ("DIV0NULL", Some(FunctionDefinition.standard(2))),
+      ("ENDSWITH", Some(FunctionDefinition.standard(2))),
+      ("EQUAL_NULL", Some(FunctionDefinition.standard(2))),
+      ("GET", Some(FunctionDefinition.standard(2))),
+      ("IFNULL", Some(FunctionDefinition.standard(1, 2))),
+      ("INITCAP", Some(FunctionDefinition.standard(1, 2))),
+      ("ISNULL", Some(FunctionDefinition.standard(1))),
+      ("IS_INTEGER", Some(FunctionDefinition.standard(1))),
+      ("JSON_EXTRACT_PATH_TEXT", Some(FunctionDefinition.standard(2))),
+      ("LAST_DAY", Some(FunctionDefinition.standard(1, 2))),
+      ("LPAD", Some(FunctionDefinition.standard(2, 3))),
+      ("LTRIM", Some(FunctionDefinition.standard(1, 2))),
+      ("MEDIAN", Some(FunctionDefinition.standard(1))),
+      ("MOD", Some(FunctionDefinition.standard(2))),
+      ("MODE", Some(FunctionDefinition.standard(1))),
+      ("MONTHNAME", Some(FunctionDefinition.standard(1))),
+      ("NEXT_DAY", Some(FunctionDefinition.standard(2))),
+      ("NULLIFZERO", Some(FunctionDefinition.standard(1))),
+      ("NVL", Some(FunctionDefinition.standard(2))),
+      ("NVL2", Some(FunctionDefinition.standard(3))),
+      ("OBJECT_CONSTRUCT", Some(FunctionDefinition.standard(1, Int.MaxValue))),
+      ("OBJECT_KEYS", Some(FunctionDefinition.standard(1))),
+      ("PARSE_JSON", Some(FunctionDefinition.standard(1))),
+      ("PARSE_URL", Some(FunctionDefinition.standard(1, 2))),
+      ("POSITION", Some(FunctionDefinition.standard(2, 3))),
+      ("RANDOM", Some(FunctionDefinition.standard(0, 1))),
+      ("RANK", Some(FunctionDefinition.standard(0))),
+      ("REGEXP_COUNT", Some(FunctionDefinition.standard(2, 4))),
+      ("REGEXP_INSTR", Some(FunctionDefinition.standard(2, 7))),
+      ("REGEXP_LIKE", Some(FunctionDefinition.standard(2, 3))),
+      ("REGEXP_REPLACE", Some(FunctionDefinition.standard(2, 6))),
+      ("REGEXP_SUBSTR", Some(FunctionDefinition.standard(2, 6))),
+      ("REGR_INTERCEPT", Some(FunctionDefinition.standard(2))),
+      ("REGR_R2", Some(FunctionDefinition.standard(2))),
+      ("REGR_SLOPE", Some(FunctionDefinition.standard(2))),
+      ("REPEAT", Some(FunctionDefinition.standard(2))),
+      ("ROUND", Some(FunctionDefinition.standard(1, 3))),
+      ("RPAD", Some(FunctionDefinition.standard(2, 3))),
+      ("RTRIM", Some(FunctionDefinition.standard(1, 2))),
+      ("SPLIT_PART", Some(FunctionDefinition.standard(3))),
+      ("SQUARE", Some(FunctionDefinition.standard(1))),
+      ("STARTSWITH", Some(FunctionDefinition.standard(2))),
+      ("STDDEV", Some(FunctionDefinition.standard(1))),
+      ("STDDEV_POP", Some(FunctionDefinition.standard(1))),
+      ("STDDEV_SAMP", Some(FunctionDefinition.standard(1))),
+      ("STRIP_NULL_VALUE", Some(FunctionDefinition.standard(1))),
+      ("STRTOK", Some(FunctionDefinition.standard(1, 3))),
+      ("STRTOK_TO_ARRAY", Some(FunctionDefinition.standard(1, 2))),
+      ("SYSDATE", Some(FunctionDefinition.standard(0))),
+      ("TIMEADD", Some(FunctionDefinition.standard(3))),
+      ("TIMESTAMPADD", Some(FunctionDefinition.standard(3))),
+      ("TIMESTAMPDIFF", Some(FunctionDefinition.standard(3))),
+      ("TIMESTAMP_FROM_PARTS", Some(FunctionDefinition.standard(2, 8))),
+      ("TO_ARRAY", Some(FunctionDefinition.standard(1))),
+      ("TO_BOOLEAN", Some(FunctionDefinition.standard(1))),
+      ("TO_CHAR", Some(FunctionDefinition.standard(1, 2))),
+      ("TO_DATE", Some(FunctionDefinition.standard(1, 2))),
+      ("TO_DECIMAL", Some(FunctionDefinition.standard(1, 4))),
+      ("TO_DOUBLE", Some(FunctionDefinition.standard(1, 2))),
+      ("TO_JSON", Some(FunctionDefinition.standard(1))),
+      ("TO_NUMBER", Some(FunctionDefinition.standard(1, 4))),
+      ("TO_NUMERIC", Some(FunctionDefinition.standard(1, 4))),
+      ("TO_OBJECT", Some(FunctionDefinition.standard(1))),
+      ("TO_TIME", Some(FunctionDefinition.standard(1, 2))),
+      ("TO_TIMESTAMP", Some(FunctionDefinition.standard(1, 2))),
+      ("TO_TIMESTAMP_LTZ", Some(FunctionDefinition.standard(1, 2))),
+      ("TO_TIMESTAMP_NTZ", Some(FunctionDefinition.standard(1, 2))),
+      ("TO_TIMESTAMP_TZ", Some(FunctionDefinition.standard(1, 2))),
+      ("TO_VARCHAR", Some(FunctionDefinition.standard(1, 2))),
+      ("TRIM", Some(FunctionDefinition.standard(1, 2))),
+      ("TRUNC", Some(FunctionDefinition.standard(2))),
+      ("TRY_BASE64_DECODE_STRING", Some(FunctionDefinition.standard(1, 2))),
+      ("TRY_PARSE_JSON", Some(FunctionDefinition.standard(1))),
+      ("TRY_TO_BINARY", Some(FunctionDefinition.standard(1, 2))),
+      ("TRY_TO_BOOLEAN", Some(FunctionDefinition.standard(1))),
+      ("TRY_TO_DATE", Some(FunctionDefinition.standard(1, 2))),
+      ("TRY_TO_DECIMAL", Some(FunctionDefinition.standard(1, 4))),
+      ("TRY_TO_DOUBLE", Some(FunctionDefinition.standard(1, 2))),
+      ("TRY_TO_NUMBER", Some(FunctionDefinition.standard(1, 4))),
+      ("TRY_TO_NUMERIC", Some(FunctionDefinition.standard(1, 4))),
+      ("TRY_TO_TIME", Some(FunctionDefinition.standard(1, 2))),
+      ("TRY_TO_TIMESTAMP", Some(FunctionDefinition.standard(1, 2))),
+      ("TRY_TO_TIMESTAMP_LTZ", Some(FunctionDefinition.standard(1, 2))),
+      ("TRY_TO_TIMESTAMP_NTZ", Some(FunctionDefinition.standard(1, 2))),
+      ("TRY_TO_TIMESTAMP_TZ", Some(FunctionDefinition.standard(1, 2))),
+      ("TYPEOF", Some(FunctionDefinition.standard(1))),
+      ("UUID_STRING", Some(FunctionDefinition.standard(0, 2))),
+      ("ZEROIFNULL", Some(FunctionDefinition.standard(1))))
 
     val functionBuilder = new SnowflakeFunctionBuilder
-    forAll(functions) { (functionName: String, expectedArity: Option[FunctionDefinition]) =>
-      functionBuilder.functionDefinition(functionName) shouldEqual expectedArity
-    }
-  }
-  // While this appears to be somewhat redundant, it will catch any changes in the functionArity method
-  // that happen through typos or other mistakes such as deletion.
-  "TSqlFunctionBuilder" should "return correct arity for each function" in {
-    val functions = Table(
-      ("functionName", "expectedArity"), // Header
-
-      // TSql specific
-      ("@@CURSOR_STATUS", Some(FunctionDefinition.notConvertible(0))),
-      ("@@FETCH_STATUS", Some(FunctionDefinition.notConvertible(0))),
-      ("ISNULL", Some(FunctionDefinition.standard(2).withConversionStrategy(TSqlFunctionConverters.FunctionRename))),
-      ("MODIFY", Some(FunctionDefinition.xml(1))))
-    val functionBuilder = new TSqlFunctionBuilder
-
     forAll(functions) { (functionName: String, expectedArity: Option[FunctionDefinition]) =>
       functionBuilder.functionDefinition(functionName) shouldEqual expectedArity
     }
@@ -392,8 +507,11 @@ class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenProp
   }
 
   "FunctionRename strategy" should "preserve original function if no match is found" in {
-    val result1 =
-      TSqlFunctionConverters.FunctionRename.convert("Abs", Seq(ir.Literal(integer = Some(66))))
+    val functionBuilder = new TSqlFunctionBuilder
+    val result1 = functionBuilder.applyConversionStrategy(
+      FunctionDefinition.standard(1),
+      Seq(ir.Literal(integer = Some(66))),
+      "Abs")
     result1 match {
       case f: ir.CallFunction => f.function_name shouldBe "Abs"
       case _ => fail("UNKNOWN_FUNCTION conversion failed")
