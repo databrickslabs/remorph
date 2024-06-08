@@ -113,15 +113,13 @@ def recon(
 
     ws_client: WorkspaceClient = verify_workspace_client(ws)
 
-    source_dialect = get_dialect(reconcile_config.data_source)
-
     # validate the report type
     report_type = reconcile_config.report_type.lower()
     logger.info(f"report_type: {report_type}, data_source: {reconcile_config.data_source}")
     validate_input(report_type, {"schema", "data", "row", "all"}, "Invalid report type")
 
     source, target = initialise_data_source(
-        engine=source_dialect,
+        engine=get_dialect(reconcile_config.data_source),
         spark=spark,
         ws=ws_client,
         secret_scope=reconcile_config.secret_scope,
@@ -135,7 +133,7 @@ def recon(
         reconcile_config.database_config,
         report_type,
         SchemaCompare(spark=spark),
-        source_dialect,
+        get_dialect(reconcile_config.data_source),
         spark,
         metadata_config=reconcile_config.metadata_config,
     )
@@ -145,7 +143,7 @@ def recon(
         database_config=reconcile_config.database_config,
         recon_id=recon_id,
         report_type=report_type,
-        source_dialect=source_dialect,
+        source_dialect=get_dialect(reconcile_config.data_source),
         ws=ws_client,
         spark=spark,
         metadata_config=reconcile_config.metadata_config,

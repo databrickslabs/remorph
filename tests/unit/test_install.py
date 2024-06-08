@@ -93,7 +93,7 @@ def mock_installation():
             },
             "reconcile.yml": {
                 "data_source": "snowflake",
-                "config": {
+                "database_config": {
                     "source_catalog": "snowflake_sample_data",
                     "source_schema": "tpch_sf1000",
                     "target_catalog": "tpch",
@@ -104,6 +104,11 @@ def mock_installation():
                 "tables": {
                     "filter_type": "exclude",
                     "tables_list": ["SUPPLIER", "FRIENDS", "ORDERS", "PART"],
+                },
+                "metadata_config": {
+                    "catalog": "remorph",
+                    "schema": "reconcile",
+                    "volume": "reconcile_volume",
                 },
                 "version": 1,
             },
@@ -403,7 +408,7 @@ def test_config(ws):
     assert isinstance(config, MorphConfig)
 
 
-def test_save_reconcile_config(ws, mock_installation_state, monkeypatch):
+def test_save_reconcile_config(ws, mock_installation, monkeypatch):
     def mock_open(url):
         print(f"Opening URL: {url}")
 
@@ -423,24 +428,32 @@ def test_save_reconcile_config(ws, mock_installation_state, monkeypatch):
             r"Open .* in the browser and continue...?": "yes",
         }
     )
-    install = WorkspaceInstaller(ws, mock_installation_state, prompts)
+    install = WorkspaceInstaller(ws, mock_installation, prompts)
 
     webbrowser.open('https://localhost/#workspace~/mock/config.yml')
     install.configure()
 
-    mock_installation_state.assert_file_written(
+    mock_installation.assert_file_written(
         "reconcile.yml",
         {
             "data_source": "snowflake",
-            "config": {
+            "database_config": {
                 "source_catalog": "snowflake_sample_data",
                 "source_schema": "tpch_sf1000",
                 "target_catalog": "tpch",
                 "target_schema": "1000gb",
             },
+            "metadata_config": {
+                "catalog": "remorph",
+                "schema": "reconcile",
+                "volume": "reconcile_volume",
+            },
             "report_type": "all",
             "secret_scope": "remorph_snowflake",
-            "version": 1,
+            "tables": {
+                "filter_type": "exclude",
+                "tables_list": ["SUPPLIER", "FRIENDS", "ORDERS", "PART"],
+            },
         },
     )
 
