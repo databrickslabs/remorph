@@ -7,7 +7,13 @@ import pytest
 from databricks.labs.blueprint.installation import Installation, MockInstallation
 from databricks.labs.blueprint.tui import MockPrompts, Prompts
 
-from databricks.labs.remorph.config import MorphConfig
+from databricks.labs.remorph.config import (
+    MorphConfig,
+    RemorphConfigs,
+    ReconcileConfig,
+    DatabaseConfig,
+    ReconcileMetadataConfig,
+)
 from databricks.labs.remorph.install import (
     CatalogSetup,
     WorkspaceInstallation,
@@ -141,27 +147,45 @@ def test_install(ws, mock_installation_state):
     # Assert that the `install` is an instance of WorkspaceInstaller
     assert isinstance(install, WorkspaceInstaller)
 
-    configs = install.run()
-    config = configs.morph
-    reconcile_config = configs.reconcile
+    morph = MorphConfig(
+        source="bigquery", input_sql="data/queries/bigquery", output_folder="transpiled", skip_validation=True
+    )
+    reconcile = ReconcileConfig(
+        data_source="snowflake",
+        database_config=DatabaseConfig(
+            source_catalog="snowflake_sample_data",
+            source_schema="tpch_sf1000",
+            target_catalog="tpch",
+            target_schema="1000gb",
+        ),
+        report_type="all",
+        secret_scope="remorph_snowflake",
+        tables=None,
+        metadata_config=ReconcileMetadataConfig(catalog="remorph", schema="reconcile"),
+    )
 
-    assert config.source == "bigquery"
-    assert config.sdk_config is None
-    assert config.input_sql == "data/queries/bigquery"
-    assert config.output_folder == "transpiled"
-    assert config.skip_validation is True
-    assert config.catalog_name == "transpiler_test"
-    assert config.schema_name == "convertor_test"
-    assert config.mode == "current"
+    with patch.object(WorkspaceInstaller, "run", return_value=RemorphConfigs(morph, reconcile)):
+        configs = install.run()
+        config = configs.morph
+        reconcile_config = configs.reconcile
 
-    assert reconcile_config.data_source == "snowflake"
-    assert reconcile_config.database_config.source_catalog == "snowflake_sample_data"
-    assert reconcile_config.database_config.source_schema == "tpch_sf1000"
-    assert reconcile_config.database_config.target_catalog == "tpch"
-    assert reconcile_config.database_config.target_schema == "1000gb"
-    assert reconcile_config.report_type == "all"
-    assert reconcile_config.secret_scope == "remorph_snowflake"
-    assert reconcile_config.tables is None
+        assert config.source == "bigquery"
+        assert config.sdk_config is None
+        assert config.input_sql == "data/queries/bigquery"
+        assert config.output_folder == "transpiled"
+        assert config.skip_validation is True
+        assert config.catalog_name == "transpiler_test"
+        assert config.schema_name == "convertor_test"
+        assert config.mode == "current"
+
+        assert reconcile_config.data_source == "snowflake"
+        assert reconcile_config.database_config.source_catalog == "snowflake_sample_data"
+        assert reconcile_config.database_config.source_schema == "tpch_sf1000"
+        assert reconcile_config.database_config.target_catalog == "tpch"
+        assert reconcile_config.database_config.target_schema == "1000gb"
+        assert reconcile_config.report_type == "all"
+        assert reconcile_config.secret_scope == "remorph_snowflake"
+        assert reconcile_config.tables is None
 
 
 def test_install_dbr(ws, mock_installation, monkeypatch):
@@ -394,6 +418,8 @@ def test_save_reconcile_config(ws, mock_installation_state, monkeypatch):
             r"Enter .* Database name": "tpch_sf1000",
             r"Enter Databricks Catalog name": "tpch",
             r"Enter Databricks Schema name": "1000gb",
+            r"Enter Catalog name to store reconcile metadata": "remorph",
+            r"Enter Schema name to store reconcile metadata": "reconcile",
             r"Open .* in the browser and continue...?": "yes",
         }
     )
@@ -434,6 +460,8 @@ def test_workspace_installation_run(ws, mock_installation_state, monkeypatch):
             r"Enter .* Database name": "tpch_sf1000",
             r"Enter Databricks Catalog name": "tpch",
             r"Enter Databricks Schema name": "1000gb",
+            r"Enter Catalog name to store reconcile metadata": "remorph",
+            r"Enter Schema name to store reconcile metadata": "reconcile",
             r"Open .* in the browser and continue...?": "yes",
         }
     )
@@ -483,6 +511,8 @@ def test_workspace_installation_run_single_error(ws, monkeypatch):
             r"Enter .* Database name": "tpch_sf1000",
             r"Enter Databricks Catalog name": "tpch",
             r"Enter Databricks Schema name": "1000gb",
+            r"Enter Catalog name to store reconcile metadata": "remorph",
+            r"Enter Schema name to store reconcile metadata": "reconcile",
             r"Open .* in the browser and continue...?": "yes",
         }
     )

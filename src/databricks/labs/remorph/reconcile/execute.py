@@ -103,6 +103,7 @@ def recon(
     spark: SparkSession,
     table_recon: TableRecon,
     reconcile_config: ReconcileConfig,
+    local_test_run: bool = False,
 ) -> ReconcileOutput:
     """[EXPERIMENTAL] Reconcile the data between the source and target tables."""
     # verify the workspace client and add proper product and version details
@@ -148,6 +149,7 @@ def recon(
         ws=ws_client,
         spark=spark,
         metadata_config=reconcile_config.metadata_config,
+        local_test_run=local_test_run,
     )
 
     for table_conf in table_recon.tables:
@@ -191,6 +193,7 @@ def recon(
             recon_id=recon_id,
             spark=spark,
             metadata_config=reconcile_config.metadata_config,
+            local_test_run=local_test_run,
         )
     )
 
