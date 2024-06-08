@@ -5,6 +5,7 @@ from datetime import datetime, timedelta, timezone
 from importlib.resources import files
 from typing import Any
 
+import databricks.labs.remorph.resources
 from databricks.labs.blueprint.installation import Installation
 from databricks.labs.blueprint.installer import InstallState
 from databricks.labs.blueprint.wheels import ProductInfo
@@ -13,8 +14,6 @@ from databricks.sdk import WorkspaceClient
 from databricks.sdk.errors import InvalidParameterValue
 from databricks.sdk.service import compute
 from databricks.sdk.service.jobs import Task, PythonWheelTask, JobCluster, JobSettings
-
-import databricks.labs.remorph.resources
 
 logger = logging.getLogger(__name__)
 
@@ -145,10 +144,4 @@ class JobDeployer:
         )
 
     def _get_default_node_type_id(self) -> str:
-        if self._ws.config.is_azure:
-            return "Standard_D8_v3"
-        if self._ws.config.is_aws:
-            return "i3.xlarge"
-        if self._ws.config.is_gcp:
-            return "n1-standard-8"
-        raise ValueError("Unknown cloud provider.")
+        return self._ws.clusters.select_node_type(local_disk=True, min_memory_gb=16)
