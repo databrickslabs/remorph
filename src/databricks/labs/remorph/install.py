@@ -459,7 +459,12 @@ class WorkspaceInstallation:
         setup.run()
 
     def _deploy_reconcile_job(self):
-        job_deployer = JobDeployer(self._ws, self._product_info)
+        job_deployer = JobDeployer(
+            self._ws,
+            self._installation,
+            self._state,
+            self._product_info,
+        )
         job_id = job_deployer.deploy_job()
         self._config.reconcile.job_id = job_id
 

@@ -65,7 +65,7 @@ def validate_input(input_value: str, list_of_value: set, message: str):
 
 
 def main(*argv) -> None:
-    logger.info(len(argv))
+    logger.debug(f"Arguments received: {argv}")
 
     w = WorkspaceClient()
 
