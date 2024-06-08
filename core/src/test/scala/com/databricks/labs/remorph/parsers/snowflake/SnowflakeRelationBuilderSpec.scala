@@ -1,7 +1,7 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
 import com.databricks.labs.remorph.parsers.intermediate._
-import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser.{Builtin_functionContext, Id_Context, Join_typeContext, Outer_joinContext}
+import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser.{Builtin_function_nameContext, Id_Context, Join_typeContext, Outer_joinContext}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.mockito.Mockito._
@@ -19,6 +19,20 @@ class SnowflakeRelationBuilderSpec extends AnyWordSpec with SnowflakeParserTestC
 
     "translate FROM clauses" in {
       example("FROM some_table", _.from_clause(), namedTable("some_table"))
+      example(
+        "FROM t1, t2, t3",
+        _.from_clause(),
+        Join(
+          Join(namedTable("t1"), namedTable("t2"), None, InnerJoin, Seq(), JoinDataType(false, false)),
+          namedTable("t3"),
+          None,
+          InnerJoin,
+          Seq(),
+          JoinDataType(false, false)))
+      example(
+        "FROM (SELECT * FROM t1) t2",
+        _.from_clause(),
+        SubqueryAlias(Project(namedTable("t1"), Seq(Star(None))), "t2", ""))
     }
 
     "translate WHERE clauses" in {
@@ -158,7 +172,7 @@ class SnowflakeRelationBuilderSpec extends AnyWordSpec with SnowflakeParserTestC
           input = namedTable("qt"),
           condition = Equals(
             Window(
-              window_function = RowNumber,
+              window_function = CallFunction("ROW_NUMBER", Seq()),
               partition_spec = Seq(Column("p")),
               sort_order = Seq(SortOrder(Column("o"), AscendingSortDirection, SortNullsLast)),
               frame_spec = DummyWindowFrame),
@@ -223,13 +237,13 @@ class SnowflakeRelationBuilderSpec extends AnyWordSpec with SnowflakeParserTestC
   "SnowflakeRelationBuilder.translateAggregateFunction" should {
     "handler unresolved input" in {
       val param = parseString("x", _.id_())
-      val builtinFunc = mock[Builtin_functionContext]
+      val builtinFunc = mock[Builtin_function_nameContext]
       val aggFunc = mock[Id_Context]
-      when(aggFunc.builtin_function()).thenReturn(builtinFunc)
+      when(aggFunc.builtin_function_name()).thenReturn(builtinFunc)
       val dummyTextForAggFunc = "dummy"
       when(aggFunc.getText).thenReturn(dummyTextForAggFunc)
       astBuilder.translateAggregateFunction(aggFunc, param) shouldBe UnresolvedExpression(dummyTextForAggFunc)
-      verify(aggFunc, times(8)).builtin_function()
+      verify(aggFunc, times(8)).builtin_function_name()
       verify(aggFunc).getText
       verifyNoMoreInteractions(aggFunc)
       verify(builtinFunc).AVG()

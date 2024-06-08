@@ -915,7 +915,6 @@ VALID_XML                                   : 'VALID_XML';
 VALUE                                       : 'VALUE';
 VALUES                                      : 'VALUES';
 VAR                                         : 'VAR';
-VARBINARY_KEYWORD                           : 'VARBINARY';
 VARYING                                     : 'VARYING';
 VERBOSELOGGING                              : 'VERBOSELOGGING';
 VERIFY_CLONEDB                              : 'VERIFY_CLONEDB';
@@ -952,10 +951,6 @@ ZONE                                        : 'ZONE';
 
 
 SP_EXECUTESQL: 'SP_EXECUTESQL';
-
-//Build-ins:
-VARCHAR  : 'VARCHAR';
-NVARCHAR : 'NVARCHAR';
 
 //Combinations that cannot be used as IDs
 DISK_DRIVE    : [A-Z][:];

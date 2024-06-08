@@ -14,7 +14,7 @@ class SnowflakeExpressionBuilderSpec
     with MockitoSugar {
 
   override protected def astBuilder: SnowflakeExpressionBuilder =
-    new SnowflakeExpressionBuilder(new SnowflakeFunctionBuilder())
+    new SnowflakeExpressionBuilder
 
   "SnowflakeExpressionBuilder" should {
     "translate literals" in {
@@ -268,4 +268,5 @@ class SnowflakeExpressionBuilderSpec
       verifyNoMoreInteractions(windowedFunction)
     }
   }
+
 }
