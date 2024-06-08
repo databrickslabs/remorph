@@ -681,7 +681,6 @@ def test_recon_for_report_type_is_data(
         patch("databricks.labs.remorph.reconcile.recon_capture.datetime") as recon_datetime,
         patch("databricks.labs.remorph.reconcile.execute.initialise_data_source", return_value=(source, target)),
         patch("databricks.labs.remorph.reconcile.execute.uuid4", return_value="00112233-4455-6677-8899-aabbccddeeff"),
-        patch("databricks.labs.remorph.reconcile.recon_capture._get_db_prefix") as mock_get_db_prefix,
         patch(
             "databricks.labs.remorph.reconcile.recon_capture.ReconCapture._generate_recon_main_id", return_value=11111
         ),
@@ -689,7 +688,6 @@ def test_recon_for_report_type_is_data(
     ):
         mock_datetime.now.return_value = datetime(2024, 5, 23, 9, 21, 25, 122185)
         recon_datetime.now.return_value = datetime(2024, 5, 23, 9, 21, 25, 122185)
-        mock_get_db_prefix.return_value = "default"
         with pytest.raises(ReconciliationException) as exc_info:
             recon(mock_workspace_client, mock_spark, table_recon, reconcile_config_data)
         if exc_info.value.reconcile_output is not None:

@@ -81,10 +81,6 @@ def _write_df_to_delta(df: DataFrame, table_name: str, mode="append"):
         raise WriteToTableException(message) from e
 
 
-def _get_db_prefix(metadata_config: ReconcileMetadataConfig) -> str:
-    return f"{metadata_config.catalog}.{metadata_config.schema}"
-
-
 def generate_final_reconcile_output(
     recon_id: str,
     spark: SparkSession,

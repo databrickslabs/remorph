@@ -97,9 +97,8 @@ class JobDeployer:
     def _get_default_node_type_id(self) -> str:
         if self._ws.config.is_azure:
             return "Standard_D8_v3"
-        elif self._ws.config.is_aws:
+        if self._ws.config.is_aws:
             return "i3.xlarge"
-        elif self._ws.config.is_gcp:
+        if self._ws.config.is_gcp:
             return "n1-standard-8"
-        else:
-            raise ValueError("Unknown cloud provider.")
+        raise ValueError("Unknown cloud provider.")

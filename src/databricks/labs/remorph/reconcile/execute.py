@@ -263,10 +263,7 @@ class Reconciliation:
         self._source = source
         self._target = target
         self._report_type = report_type
-        self._source_catalog = database_config.source_catalog
-        self._source_schema = database_config.source_schema
-        self._target_catalog = database_config.target_catalog
-        self._target_schema = database_config.target_schema
+        self._database_config = database_config
         self._schema_comparator = schema_comparator
         self._target_engine = get_dialect("databricks")
         self._source_engine = source_engine
@@ -312,15 +309,15 @@ class Reconciliation:
             report_type=self._report_type
         )
         src_data = self._source.read_data(
-            catalog=self._source_catalog,
-            schema=self._source_schema,
+            catalog=self._database_config.source_catalog,
+            schema=self._database_config.source_schema,
             table=table_conf.source_name,
             query=src_hash_query,
             options=table_conf.jdbc_reader_options,
         )
         tgt_data = self._target.read_data(
-            catalog=self._target_catalog,
-            schema=self._target_schema,
+            catalog=self._database_config.target_catalog,
+            schema=self._database_config.target_schema,
             table=table_conf.target_name,
             query=tgt_hash_query,
             options=table_conf.jdbc_reader_options,
@@ -369,8 +366,8 @@ class Reconciliation:
                     self._target,
                     tgt_sampler,
                     reconcile_output.missing_in_src,
-                    self._target_catalog,
-                    self._target_schema,
+                    self._database_config.target_catalog,
+                    self._database_config.target_schema,
                     table_conf.target_name,
                 )
 
@@ -379,8 +376,8 @@ class Reconciliation:
                     self._source,
                     src_sampler,
                     reconcile_output.missing_in_tgt,
-                    self._source_catalog,
-                    self._source_schema,
+                    self._database_config.source_catalog,
+                    self._database_config.source_schema,
                     table_conf.source_name,
                 )
 
@@ -407,15 +404,15 @@ class Reconciliation:
         tgt_mismatch_sample_query = tgt_sampler.build_query(df)
 
         src_data = self._source.read_data(
-            catalog=self._source_catalog,
-            schema=self._source_schema,
+            catalog=self._database_config.source_catalog,
+            schema=self._database_config.source_schema,
             table=src_table,
             query=src_mismatch_sample_query,
             options=None,
         )
         tgt_data = self._target.read_data(
-            catalog=self._target_catalog,
-            schema=self._target_schema,
+            catalog=self._database_config.target_catalog,
+            schema=self._database_config.target_schema,
             table=tgt_table,
             query=tgt_mismatch_sample_query,
             options=None,
@@ -454,15 +451,15 @@ class Reconciliation:
         ).build_threshold_query()
 
         src_data = self._source.read_data(
-            catalog=self._source_catalog,
-            schema=self._source_schema,
+            catalog=self._database_config.source_catalog,
+            schema=self._database_config.source_schema,
             table=table_conf.source_name,
             query=src_threshold_query,
             options=table_conf.jdbc_reader_options,
         )
         tgt_data = self._target.read_data(
-            catalog=self._target_catalog,
-            schema=self._target_schema,
+            catalog=self._database_config.target_catalog,
+            schema=self._database_config.target_schema,
             table=table_conf.target_name,
             query=tgt_threshold_query,
             options=table_conf.jdbc_reader_options,
@@ -476,8 +473,8 @@ class Reconciliation:
         ).build_comparison_query()
 
         threshold_result = self._target.read_data(
-            catalog=self._target_catalog,
-            schema=self._target_schema,
+            catalog=self._database_config.target_catalog,
+            schema=self._database_config.target_schema,
             table=table_conf.target_name,
             query=threshold_comparison_query,
             options=table_conf.jdbc_reader_options,
