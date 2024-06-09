@@ -8,12 +8,26 @@ Databricks Labs Remorph
 
 # Table of Contents
 
-1. [Introduction](#introduction)
-   - [Remorph](#remorph)
-   - [Transpile](#transpile)
-2. [Environment Setup](#environment-setup)
-3. [How to use Transpile](#how-to-use-transpile)
-4. [Project Support](#project-support)
+* [Introduction](#introduction)
+  * [Remorph](#remorph)
+  * [Transpile](#transpile)
+  * [Reconcile](#reconcile)
+* [Environment Setup](#environment-setup)
+* [How to use Transpile](#how-to-use-transpile)
+    * [Installation](#installation)
+    * [Verify Installation](#verify-installation)
+    * [Execution Pre-Set Up](#execution-pre-set-up)
+    * [Execution](#execution)
+* [How to use Reconcile](#how-to-use-reconcile)
+    * [Installation](#installation-1)
+    * [Verify Installation](#verify-installation-1)
+    * [Execution Pre-Set Up](#execution-pre-set-up-1)
+    * [Execution](#execution-1)
+* [Frequently Asked Questions](#frequently-asked-questions)
+  * [Transpile](#Transpiler)
+  * [Reconcile](#Reconciler)
+* [Common Error Codes](#common-error-codes)
+* [Project Support](#project-support)
 
 ----
 # Introduction
@@ -28,7 +42,7 @@ Transpile is a self-contained SQL parser, transpiler, and validator designed to 
 
 Transpile stands out as a comprehensive and versatile SQL transpiler, boasting a robust test suite to ensure reliability. Developed entirely in Python, it not only demonstrates high performance but also highlights syntax errors and provides warnings or raises alerts for dialect incompatibilities based on configurations.
 
-#### Design Flow:
+### Transpiler Design Flow:
 ```mermaid
 flowchart TD
     A(Transpile CLI) --> |Directory| B[Transpile All Files In Directory];
@@ -44,6 +58,9 @@ flowchart TD
     I --> |Fail| J(Flag, Capture)
     J --> H
 ```
+
+## Reconcile
+Reconcile is an automated tool designed to streamline the reconciliation process between source data and target data residing on Databricks. Currently, the platform exclusively offers support for Snowflake, Oracle and other  Databricks tables as the primary data source. This tool empowers users to efficiently identify discrepancies and variations in data when comparing the source with the Databricks target.
 
 ----
 
@@ -66,24 +83,33 @@ flowchart TD
 
 ![check-python-version](docs/check-python-version.gif)
 
+[[back to top](#table-of-contents)]
+
 ----
+
 
 # How to Use Transpile
 
-## Step 1 : Installation
+### Installation
 
 Upon completing the environment setup, install Remorph by executing the following command:
 ```bash
 databricks labs install remorph
 ```
+![transpile install](docs/transpile-install.gif)
 
+[[back to top](#table-of-contents)]
+
+----
+
+### Verify Installation
 Verify the successful installation by executing the provided command; confirmation of a successful installation is indicated when the displayed output aligns with the example screenshot provided:
 ```bash
  databricks labs remorph transpile --help
  ```
 ![transpile-help](docs/transpile-help.png)
 
-## Step 2 : Set Up Prerequisite File
+### Execution Pre-Set Up
 1. Transpile necessitates input in the form of either a directory containing SQL files or a single SQL file. 
 2. The SQL file should encompass scripts intended for migration to Databricks SQL.
 
@@ -95,11 +121,109 @@ Below is the detailed explanation on the arguments required for Transpile.
 - `catalog-name [Optional]` - The name of the catalog in Databricks. If not specified, the default catalog `transpiler_test` will be used.
 - `schema-name [Optional]` - The name of the schema in Databricks. If not specified, the default schema `convertor_test` will be used.
 
-## Step 3 : Execution
+### Execution
 Execute the below command to intialize the transpile process.
 ```bash
- databricks labs  remorph transpile --input-sql <absolute-path> --source <snowflake> --output-folder <absolute-path> --skip-validation <True|False> --catalog-name <catalog name> --schema-name <schema name>
+ databricks labs remorph transpile --input-sql <absolute-path> --source <snowflake> --output-folder <absolute-path> --skip-validation <True|False> --catalog-name <catalog name> --schema-name <schema name>
 ```
+
+![transpile run](docs/transpile-run.gif)
+
+[[back to top](#table-of-contents)]
+
+----
+# How to Use Reconcile
+
+### Installation
+
+Install Reconciliation with databricks labs cli.
+
+```commandline
+databricks labs install remorph
+```
+
+![reconcile install](docs/recon-install.gif)
+
+### Verify Installation
+Verify the successful installation by executing the provided command; confirmation of a successful installation is indicated when the displayed output aligns with the example screenshot provided:
+```bash
+ databricks labs remorph reconcile --help
+ ```
+![reconcile-help](docs/reconcile-help.png)
+
+### Execution Pre-Set Up
+Please refer to the [Reconcile Configuration Guide][def] for detailed instructions on how to set up the configuration.
+
+[def]: docs/README_RECON.md
+
+### Execution
+Execute the below command to initialize the reconcile process.
+```bash
+ databricks labs remorph reconcile
+```
+![reconcile-run](docs/recon-run.gif)
+
+[[back to top](#table-of-contents)]
+
+----
+
+# Frequently Asked Questions
+
+## Transpiler
+TBD
+
+## Reconciler
+
+<details>
+<summary>Can we reconcile for Databricks without UC as a target?</summary>
+
+***The reconciliation target is always Databricks with UC enabled. Reconciler supports non-uc Databricks only as a
+source.***
+</details>
+
+<details>
+<summary>What would happen if my dataset had duplicate records?</summary>
+
+***Duplicates are not handled in the reconciler. If run with duplicates, it would result in inconsistent output. We can
+implement
+some workarounds to handle the duplicates, and the solution varies from dataset to dataset.***
+</details>
+
+<details>
+<summary>Are User Transformations applicable for Schema Validations?</summary>
+
+***No. User Transformations are not applied for Schema Validation.Only select_columns,drop_columns and column_mapping is
+valid for schema validation.***
+</details>
+
+<details>
+<summary>Can we apply Aggregate or multi-column transformations as user transformations?</summary>
+
+***No. Aggregate transformations or multi-column transformations are not supported.***
+</details>
+
+<details>
+<summary>Does Reconciler support all complex data types?</summary>
+
+***Not all complex data types are supported currently.Reconciler do support UDFs for complex datatypes.Please refer here
+for examples.***
+</details>
+
+
+<details>
+<summary>Does Reconciler support `Threshold Validation` for report type as `row`?</summary>
+
+***No. Threshold Validation is supported only for reports with the report type `data` or `all`, generally tables with
+primary keys.***
+</details>
+
+[[back to top](#remorph-reconciliation)]
+
+----
+
+## Common Error Codes:
+
+TBD
 
 ----
 
