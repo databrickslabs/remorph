@@ -315,7 +315,7 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
 
   private def buildOrderBy(ctx: OrderByClauseContext): Seq[ir.SortOrder] =
     ctx.orderByExpression().asScala.map { orderByExpr =>
-      val expression = orderByExpr.expression().accept(this)
+      val expression = orderByExpr.expression(0).accept(this)
       val sortOrder =
         if (Option(orderByExpr.DESC()).isDefined) ir.DescendingSortDirection
         else ir.AscendingSortDirection

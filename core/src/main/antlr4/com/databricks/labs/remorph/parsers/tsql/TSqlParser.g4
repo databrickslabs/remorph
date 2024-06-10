@@ -2018,7 +2018,7 @@ selectStatementStandalone
     ;
 
 selectStatement
-    : queryExpression selectOrderByClause? forClause? optionClause? SEMI?
+    : queryExpression forClause? optionClause? SEMI?
     ;
 
 time
@@ -3727,7 +3727,7 @@ predicate
     ;
 
 queryExpression
-    : querySpecification selectOrderByClause? unions += sqlUnion*
+    : querySpecification unions += sqlUnion*
     | LPAREN queryExpression RPAREN (UNION ALL? queryExpression)?
     ;
 
@@ -3738,18 +3738,43 @@ sqlUnion
     )
     ;
 
-// TODO: This is too much for one rule and it still misses things - rewrite
 querySpecification
     : SELECT (ALL | DISTINCT)? topClause? selectListElem (COMMA selectListElem)*
-    (INTO tableName)? (FROM tableSources)? (WHERE where=searchCondition)?
-    (
-        GROUP BY (
-            (groupByAll = ALL? groupBys += groupByItem (COMMA groupBys += groupByItem)*)
-            | GROUPING SETS LPAREN groupSets += groupingSetsItem (
-                COMMA groupSets += groupingSetsItem
-            )* RPAREN
+        selectOptionalClauses
+    ;
+
+selectOptionalClauses
+    : intoClause? fromClause? whereClause? groupByClause? havingClause? selectOrderByClause?
+    ;
+
+groupByClause
+    :  GROUP BY
+        (
+            (ALL? expression (COMMA expression)*)
+          | GROUPING SETS LPAREN groupingSetsItem (COMMA groupingSetsItem)* RPAREN
         )
-    )? (HAVING having=searchCondition)?
+    ;
+
+groupingSetsItem
+    : LPAREN? expression (COMMA expression)* RPAREN?
+    | LPAREN RPAREN
+    ;
+
+
+intoClause
+    : INTO tableName
+    ;
+
+fromClause
+    : FROM tableSources
+    ;
+
+whereClause
+    : WHERE searchCondition
+    ;
+
+havingClause:
+    HAVING searchCondition
     ;
 
 topClause
@@ -3772,8 +3797,8 @@ orderByClause
 
 selectOrderByClause
     : orderByClause (
-        OFFSET offsetExp = expression offsetRows = (ROW | ROWS) (
-            FETCH fetchOffset = (FIRST | NEXT) fetchExp = expression fetchRows = (ROW | ROWS) ONLY
+        OFFSET expression or=(ROW | ROWS) (
+            FETCH (FIRST | NEXT) expression fr=(ROW | ROWS) ONLY
         )?
     )?
     ;
@@ -3796,17 +3821,9 @@ xmlCommonDirectives
     ;
 
 orderByExpression
-    : expression (ASC | DESC)?
+    : expression (COLLATE expression)? (ASC | DESC)?
     ;
 
-groupingSetsItem
-    : LPAREN? groupSetItems += groupByItem (COMMA groupSetItems += groupByItem)* RPAREN?
-    | LPAREN RPAREN
-    ;
-
-groupByItem
-    : expression
-    ;
 
 optionClause
     : OPTION LPAREN options_ += option (COMMA options_ += option)* RPAREN

@@ -46,7 +46,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
         query = "SELECT 42, 6.4, 0x5A, 2.7E9, 4.24523534425245E10, $40",
         expectedAst = Batch(
           Seq(Project(
-            NoTable,
+            NoTable(),
             Seq(
               Literal(integer = Some(42)),
               Literal(float = Some(6.4f)),
@@ -78,15 +78,15 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
         query = "SELECT * FROM dbo.table_x",
         expectedAst = Batch(Seq(Project(NamedTable("dbo.table_x", Map.empty, is_streaming = false), Seq(Star(None))))))
 
-      example(query = "SELECT t.*", expectedAst = Batch(Seq(Project(NoTable, Seq(Star(objectName = Some("t")))))))
+      example(query = "SELECT t.*", expectedAst = Batch(Seq(Project(NoTable(), Seq(Star(objectName = Some("t")))))))
 
       example(
         query = "SELECT x..b.y.*",
-        expectedAst = Batch(Seq(Project(NoTable, Seq(Star(objectName = Some("x..b.y")))))))
+        expectedAst = Batch(Seq(Project(NoTable(), Seq(Star(objectName = Some("x..b.y")))))))
 
       // TODO: Add tests for OUTPUT clause once implemented - invalid semantics here to force coverage
-      example(query = "SELECT INSERTED.*", expectedAst = Batch(Seq(Project(NoTable, Seq(Inserted(Star(None)))))))
-      example(query = "SELECT DELETED.*", expectedAst = Batch(Seq(Project(NoTable, Seq(Deleted(Star(None)))))))
+      example(query = "SELECT INSERTED.*", expectedAst = Batch(Seq(Project(NoTable(), Seq(Inserted(Star(None)))))))
+      example(query = "SELECT DELETED.*", expectedAst = Batch(Seq(Project(NoTable(), Seq(Deleted(Star(None)))))))
     }
 
     "infer a cross join" in {
@@ -245,7 +245,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
         query = "SELECT @a = 1, @b = 2, @c = 3",
         expectedAst = Batch(
           Seq(Project(
-            NoTable,
+            NoTable(),
             Seq(
               Assign(Identifier("@a", isQuoted = false), Literal(integer = Some(1))),
               Assign(Identifier("@b", isQuoted = false), Literal(integer = Some(2))),
@@ -255,7 +255,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
         query = "SELECT @a += 1, @b -= 2",
         expectedAst = Batch(
           Seq(Project(
-            NoTable,
+            NoTable(),
             Seq(
               Assign(
                 Identifier("@a", isQuoted = false),
@@ -268,7 +268,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
         query = "SELECT @a *= 1, @b /= 2",
         expectedAst = Batch(
           Seq(Project(
-            NoTable,
+            NoTable(),
             Seq(
               Assign(
                 Identifier("@a", isQuoted = false),
@@ -280,7 +280,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
       example(
         query = "SELECT @a %= myColumn",
         expectedAst = Batch(Seq(Project(
-          NoTable,
+          NoTable(),
           Seq(
             Assign(Identifier("@a", isQuoted = false), Mod(Identifier("@a", isQuoted = false), Column("myColumn"))))))))
 
@@ -289,7 +289,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
         expectedAst = Batch(
           Seq(
             Project(
-              NoTable,
+              NoTable(),
               Seq(Assign(
                 Identifier("@a", isQuoted = false),
                 BitwiseAnd(Identifier("@a", isQuoted = false), Column("myColumn"))))))))
@@ -299,7 +299,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
         expectedAst = Batch(
           Seq(
             Project(
-              NoTable,
+              NoTable(),
               Seq(Assign(
                 Identifier("@a", isQuoted = false),
                 BitwiseXor(Identifier("@a", isQuoted = false), Column("myColumn"))))))))
@@ -309,7 +309,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
         expectedAst = Batch(
           Seq(
             Project(
-              NoTable,
+              NoTable(),
               Seq(Assign(
                 Identifier("@a", isQuoted = false),
                 BitwiseOr(Identifier("@a", isQuoted = false), Column("myColumn"))))))))
@@ -376,21 +376,19 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
   "Columns specified with dedicated syntax" in {
     example(
       query = "SELECT NEXT VALUE FOR mySequence As nextVal",
-      expectedAst = Batch(
-        Seq(
-          Project(NoTable, Seq(Alias(CallFunction("MONOTONICALLY_INCREASING_ID", List.empty), Seq("nextVal"), None))))))
+      expectedAst = Batch(Seq(
+        Project(NoTable(), Seq(Alias(CallFunction("MONOTONICALLY_INCREASING_ID", List.empty), Seq("nextVal"), None))))))
 
     example(
       query = "SELECT NEXT VALUE FOR var.mySequence As nextVal",
-      expectedAst = Batch(
-        Seq(
-          Project(NoTable, Seq(Alias(CallFunction("MONOTONICALLY_INCREASING_ID", List.empty), Seq("nextVal"), None))))))
+      expectedAst = Batch(Seq(
+        Project(NoTable(), Seq(Alias(CallFunction("MONOTONICALLY_INCREASING_ID", List.empty), Seq("nextVal"), None))))))
 
     example(
       query = "SELECT NEXT VALUE FOR var.mySequence OVER (ORDER BY myColumn) As nextVal ",
       expectedAst = Batch(
         Seq(Project(
-          NoTable,
+          NoTable(),
           Seq(Alias(
             Window(
               CallFunction("ROW_NUMBER", List.empty),
