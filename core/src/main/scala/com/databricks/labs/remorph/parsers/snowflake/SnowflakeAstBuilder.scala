@@ -21,29 +21,29 @@ class SnowflakeAstBuilder extends SnowflakeParserBaseVisitor[ir.TreeNode] {
   }
 
   override def visitBatch(ctx: BatchContext): ir.TreeNode = {
-    ir.Batch(ctx.sql_command().asScala.map(_.accept(this)).collect { case p: ir.Plan => p })
+    ir.Batch(ctx.sqlCommand().asScala.map(_.accept(this)).collect { case p: ir.Plan => p })
   }
 
-  override def visitQuery_statement(ctx: Query_statementContext): ir.TreeNode = {
-    val select = ctx.select_statement().accept(new SnowflakeRelationBuilder)
-    val withCTE = buildCTE(ctx.with_expression(), select)
-    ctx.set_operators().asScala.foldLeft(withCTE)(buildSetOperator)
+  override def visitQueryStatement(ctx: QueryStatementContext): ir.TreeNode = {
+    val select = ctx.selectStatement().accept(new SnowflakeRelationBuilder)
+    val withCTE = buildCTE(ctx.withExpression(), select)
+    ctx.setOperators().asScala.foldLeft(withCTE)(buildSetOperator)
 
   }
 
-  override def visitDdl_command(ctx: Ddl_commandContext): ir.TreeNode =
+  override def visitDdlCommand(ctx: DdlCommandContext): ir.TreeNode =
     ctx.accept(new SnowflakeDDLBuilder)
 
-  private def buildCTE(ctx: With_expressionContext, relation: ir.Relation): ir.Relation = {
+  private def buildCTE(ctx: WithExpressionContext, relation: ir.Relation): ir.Relation = {
     if (ctx == null) {
       return relation
     }
-    val ctes = ctx.common_table_expression().asScala.map(_.accept(new SnowflakeRelationBuilder))
+    val ctes = ctx.commonTableExpression().asScala.map(_.accept(new SnowflakeRelationBuilder))
     ir.WithCTE(ctes, relation)
   }
 
-  private def buildSetOperator(left: ir.Relation, ctx: Set_operatorsContext): ir.Relation = {
-    val right = ctx.select_statement().accept(new SnowflakeRelationBuilder)
+  private def buildSetOperator(left: ir.Relation, ctx: SetOperatorsContext): ir.Relation = {
+    val right = ctx.selectStatement().accept(new SnowflakeRelationBuilder)
     val (isAll, setOp) = ctx match {
       case c if c.UNION() != null =>
         (c.ALL() != null, ir.UnionSetOp)

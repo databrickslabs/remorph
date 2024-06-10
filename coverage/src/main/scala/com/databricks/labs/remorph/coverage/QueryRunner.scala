@@ -28,7 +28,7 @@ class IsResolvedAsSnowflakeQueryRunner(astBuilder: SnowflakeAstBuilder) extends 
     parser.addErrorListener(errHandler)
     val report = ReportEntryReport()
     try {
-      val result = astBuilder.visit(parser.snowflake_file())
+      val result = astBuilder.visit(parser.snowflakeFile())
 
       if (result.toString.contains("Unresolved")) {
         report.copy(
