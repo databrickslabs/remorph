@@ -3489,6 +3489,7 @@ non_reserved_words
     | DATA
     | DEFINITION
     | DELTA
+    | DUMMY
     | EDITION
     | EVENT
     | EXPIRY_DATE
