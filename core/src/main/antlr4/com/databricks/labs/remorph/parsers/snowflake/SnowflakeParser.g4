@@ -4041,7 +4041,7 @@ table_sources
     ;
 
 table_source
-    : table_source_item_joined
+    : table_source_item_joined sample?
     //| L_PAREN table_source R_PAREN
     ;
 
@@ -4051,13 +4051,13 @@ table_source_item_joined
     ;
 
 object_ref
-    : TABLE L_PAREN function_call R_PAREN pivot_unpivot? as_alias? sample?                   #objRefTable
+    : TABLE L_PAREN function_call R_PAREN pivot_unpivot? as_alias?                           #objRefTable
     | LATERAL (flatten_table | splited_table) as_alias?                                      #objRefLateral
     | LATERAL? L_PAREN subquery R_PAREN pivot_unpivot? as_alias? column_list_in_parentheses? #objRefSubquery
-    | values_table sample?                                                                   #objRefValues
+    | values_table                                                                           #objRefValues
     | object_name START WITH predicate CONNECT BY prior_list?                                #objRefStartWith
     | object_name at_before? changes? match_recognize? pivot_unpivot? as_alias?
-        column_list_in_parentheses? sample?                                                  #objRefDefault
+        column_list_in_parentheses?                                                          #objRefDefault
     //| AT id_ PATH?
     //    (L_PAREN FILE_FORMAT ASSOC id_ COMMA pattern_assoc R_PAREN)?
     //    as_alias?
@@ -4201,20 +4201,17 @@ values_table_body
     ;
 
 sample_method
-    : row_sampling = (BERNOULLI | ROW)
-    | block_sampling = ( SYSTEM | BLOCK)
-    ;
-
-repeatable_seed
-    : (REPEATABLE | SEED) L_PAREN num R_PAREN
-    ;
-
-sample_opts
-    : L_PAREN num ROWS? R_PAREN repeatable_seed?
+    : (SYSTEM | BLOCK) L_PAREN num R_PAREN # sampleMethodBlock
+    | (BERNOULLI | ROW)? L_PAREN num ROWS R_PAREN # sampleMethodRowFixed
+    | (BERNOULLI | ROW)? L_PAREN num R_PAREN # sampleMethodRowProba
     ;
 
 sample
-    : (SAMPLE | TABLESAMPLE) sample_method? sample_opts
+    : (SAMPLE | TABLESAMPLE) sample_method sample_seed?
+    ;
+
+sample_seed
+    : (REPEATABLE | SEED) L_PAREN num R_PAREN
     ;
 
 search_condition
