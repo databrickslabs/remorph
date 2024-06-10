@@ -86,7 +86,7 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.Relation] {
   private def buildOrderBy(ctx: SelectOrderByClauseContext, input: ir.Relation): ir.Relation = {
     Option(ctx).fold(input) { c =>
       val sortOrders = c.orderByClause().orderByExpression().asScala.map { orderItem =>
-        val expression = orderItem.accept(expressionBuilder)
+        val expression = orderItem.expression(0).accept(expressionBuilder) // expression(1) is COLLATE
         if (orderItem.DESC() == null) {
           ir.SortOrder(expression, ir.AscendingSortDirection, ir.SortNullsUnspecified)
         } else {
@@ -126,27 +126,6 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.Relation] {
     ir.NamedTable(fullName, Map.empty, is_streaming = false)
   }
 
-  /**
-   * Note that SELECT a, b, c FROM x, y, z is equivalent to SELECT a, b, c FROM x CROSS JOIN y CROSS JOIN z
-   * @param ctx
-   *   the parse tree
-   */
-  override def visitTableSources(ctx: TSqlParser.TableSourcesContext): ir.Relation = {
-    val relations = ctx.tableSource().asScala.toList.map(_.accept(this)).collect { case r: ir.Relation => r }
-    relations match {
-      case head :: tail =>
-        tail.foldLeft(head)((acc, relation) =>
-          ir.Join(
-            acc,
-            relation,
-            None,
-            ir.CrossJoin,
-            Seq.empty,
-            ir.JoinDataType(is_left_struct = false, is_right_struct = false)))
-      case _ => ir.NoTable
-    }
-  }
-
   override def visitTableSource(ctx: TableSourceContext): ir.Relation = {
     val left = ctx.tableSourceItem().accept(this)
     ctx match {
@@ -154,7 +133,7 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.Relation] {
     }
   }
 
-  // TODO: note that not all table source items have fullTableName
+  // TODO: note that not all table source items have tableName
   override def visitTableSourceItem(ctx: TableSourceItemContext): ir.Relation =
     Option(ctx.asTableAlias())
       .map(alias => ir.TableAlias(ctx.tableName().accept(this), alias.id.getText))
