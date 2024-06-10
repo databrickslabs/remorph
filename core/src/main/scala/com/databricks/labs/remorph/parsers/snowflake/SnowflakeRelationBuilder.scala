@@ -132,17 +132,18 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.Relation] w
     }
   }
 
-  override def visitObjRefValues(ctx: ObjRefValuesContext): ir.Relation = {
-    ctx.values_table().values_table_body().accept(this)
-  }
-
   override def visitObjRefSubquery(ctx: ObjRefSubqueryContext): ir.Relation = {
     val subquery = ctx.subquery().accept(this)
     Option(ctx.as_alias()).map(a => ir.SubqueryAlias(subquery, a.alias().getText, "")).getOrElse(subquery)
   }
-  override def visitValues_table_body(ctx: Values_table_bodyContext): ir.Relation = {
+  override def visitObjRefValues(ctx: ObjRefValuesContext): ir.Relation = {
     val expressions =
-      ctx.expr_list_in_parentheses().asScala.map(l => expressionBuilder.visitSeq(l.expr_list().expr().asScala))
+      ctx
+        .values_table()
+        .values_table_body()
+        .expr_list_in_parentheses()
+        .asScala
+        .map(l => expressionBuilder.visitSeq(l.expr_list().expr().asScala))
     ir.Values(expressions)
   }
 
@@ -202,6 +203,12 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.Relation] w
       case _ => ir.UnresolvedExpression(aggFunc.getText)
     }
   }
+
+  override def visitTable_source(ctx: Table_sourceContext): ir.Relation = {
+    val tableSource = ctx.table_source_item_joined().accept(this)
+    buildSample(ctx.sample(), tableSource)
+  }
+
   override def visitTable_source_item_joined(ctx: Table_source_item_joinedContext): ir.Relation = {
 
     def buildJoin(left: ir.Relation, right: Join_clauseContext): ir.Join = {
@@ -241,5 +248,25 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.Relation] w
       .map(_.accept(expressionBuilder))
     val query = ctx.select_statement().accept(this)
     ir.CTEDefinition(tableName, columns, query)
+  }
+
+  private def buildNum(ctx: NumContext): BigDecimal = {
+    BigDecimal(ctx.getText)
+  }
+
+  private def buildSampleMethod(ctx: Sample_methodContext): ir.SamplingMethod = ctx match {
+    case c: SampleMethodRowFixedContext => ir.RowSamplingFixedAmount(buildNum(c.num()))
+    case c: SampleMethodRowProbaContext => ir.RowSamplingProbabilistic(buildNum(c.num()))
+    case c: SampleMethodBlockContext => ir.BlockSampling(buildNum(c.num()))
+  }
+
+  private def buildSample(ctx: SampleContext, input: ir.Relation): ir.Relation = {
+    Option(ctx)
+      .map { sampleCtx =>
+        val seed = Option(sampleCtx.sample_seed()).map(s => buildNum(s.num()))
+        val sampleMethod = buildSampleMethod(sampleCtx.sample_method())
+        ir.TableSample(input, sampleMethod, seed)
+      }
+      .getOrElse(input)
   }
 }

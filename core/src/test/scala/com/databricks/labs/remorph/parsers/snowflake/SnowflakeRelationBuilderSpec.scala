@@ -2,14 +2,27 @@ package com.databricks.labs.remorph.parsers.snowflake
 
 import com.databricks.labs.remorph.parsers.intermediate._
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser.{Builtin_function_nameContext, Id_Context, Join_typeContext, Outer_joinContext}
+import org.antlr.v4.runtime.RuleContext
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.mockito.Mockito._
+import org.scalatest.Assertion
+import org.scalatest.Checkpoints.Checkpoint
 import org.scalatestplus.mockito.MockitoSugar
 
 class SnowflakeRelationBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon with Matchers with MockitoSugar {
 
   override protected def astBuilder: SnowflakeRelationBuilder = new SnowflakeRelationBuilder
+
+  private def examples[R <: RuleContext](
+      queries: Seq[String],
+      rule: SnowflakeParser => R,
+      expectedAst: Relation): Assertion = {
+    val cp = new Checkpoint()
+    queries.foreach(q => cp(example(q, rule, expectedAst)))
+    cp.reportAll()
+    succeed
+  }
 
   "SnowflakeRelationBuilder" should {
 
@@ -124,6 +137,32 @@ class SnowflakeRelationBuilderSpec extends AnyWordSpec with SnowflakeParserTestC
           Seq(SortOrder(Column("some_column"), DescendingSortDirection, SortNullsFirst)),
           is_global = false))
 
+    }
+
+    "translate SAMPLE clauses" in {
+      examples(
+        Seq("t1 SAMPLE (1)", "t1 TABLESAMPLE (1)", "t1 SAMPLE BERNOULLI (1)", "t1 TABLESAMPLE BERNOULLI (1)"),
+        _.table_source(),
+        TableSample(namedTable("t1"), RowSamplingProbabilistic(BigDecimal(1)), None))
+
+      examples(
+        Seq(
+          "t1 SAMPLE (1 ROWS)",
+          "t1 TABLESAMPLE (1 ROWS)",
+          "t1 SAMPLE BERNOULLI (1 ROWS)",
+          "t1 TABLESAMPLE BERNOULLI (1 ROWS)"),
+        _.table_source(),
+        TableSample(namedTable("t1"), RowSamplingFixedAmount(BigDecimal(1)), None))
+
+      examples(
+        Seq("t1 SAMPLE BLOCK (1)", "t1 TABLESAMPLE BLOCK (1)", "t1 SAMPLE SYSTEM (1)", "t1 TABLESAMPLE SYSTEM (1)"),
+        _.table_source(),
+        TableSample(namedTable("t1"), BlockSampling(BigDecimal(1)), None))
+
+      examples(
+        Seq("t1 SAMPLE (1) SEED (1234)", "t1 SAMPLE (1) REPEATABLE (1234)"),
+        _.table_source(),
+        TableSample(namedTable("t1"), RowSamplingProbabilistic(BigDecimal(1)), Some(BigDecimal(1234))))
     }
 
     "translate combinations of the above" in {
