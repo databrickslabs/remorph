@@ -10,7 +10,7 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
   override protected def astBuilder: SnowflakeParserBaseVisitor[_] = new SnowflakeAstBuilder
 
   private def singleQueryExample(query: String, expectedAst: Relation): Assertion =
-    example(query, _.snowflake_file(), Batch(Seq(expectedAst)))
+    example(query, _.snowflakeFile(), Batch(Seq(expectedAst)))
 
   "SnowflakeVisitor" should {
     "translate a simple SELECT query" in {
@@ -380,7 +380,7 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
           |SELECT x FROM t1;
           |SELECT 3 FROM t3;
           |""".stripMargin,
-        _.snowflake_file(),
+        _.snowflakeFile(),
         Batch(
           Seq(
             CreateTableCommand("t1", Seq(ColumnDeclaration("x", VarCharType(None)))),

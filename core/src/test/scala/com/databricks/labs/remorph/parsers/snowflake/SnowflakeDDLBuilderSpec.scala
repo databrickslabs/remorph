@@ -16,7 +16,7 @@ class SnowflakeDDLBuilderSpec
 
   override protected def astBuilder: SnowflakeDDLBuilder = new SnowflakeDDLBuilder
 
-  private def example(query: String, expectedAst: Catalog): Assertion = example(query, _.ddl_command(), expectedAst)
+  private def example(query: String, expectedAst: Catalog): Assertion = example(query, _.ddlCommand(), expectedAst)
 
   "SnowflakeCommandBuilder" should {
     "translate Java UDF create command" in {
@@ -260,16 +260,16 @@ class SnowflakeDDLBuilderSpec
     }
 
     "wrap unknown AST in UnresolvedCatalog" in {
-      astBuilder.visit(parseString("CREATE USER homer", _.create_command())) shouldBe a[UnresolvedCatalog]
+      astBuilder.visit(parseString("CREATE USER homer", _.createCommand())) shouldBe a[UnresolvedCatalog]
     }
   }
 
   "SnowflakeDDLBuilder.buildOutOfLineConstraint" should {
 
     "handle unexpected input" in {
-      val columnList = parseString("(a, b, c)", _.column_list_in_parentheses())
-      val outOfLineConstraint = mock[Out_of_line_constraintContext]
-      when(outOfLineConstraint.column_list_in_parentheses(0)).thenReturn(columnList)
+      val columnList = parseString("(a, b, c)", _.columnListInParentheses())
+      val outOfLineConstraint = mock[OutOfLineConstraintContext]
+      when(outOfLineConstraint.columnListInParentheses(0)).thenReturn(columnList)
       val dummyInputTextForOutOfLineConstraint = "dummy"
       when(outOfLineConstraint.getText).thenReturn(dummyInputTextForOutOfLineConstraint)
       val result = astBuilder.buildOutOfLineConstraints(outOfLineConstraint)
@@ -277,10 +277,10 @@ class SnowflakeDDLBuilderSpec
         "a" -> UnresolvedConstraint(dummyInputTextForOutOfLineConstraint),
         "b" -> UnresolvedConstraint(dummyInputTextForOutOfLineConstraint),
         "c" -> UnresolvedConstraint(dummyInputTextForOutOfLineConstraint))
-      verify(outOfLineConstraint).column_list_in_parentheses(0)
+      verify(outOfLineConstraint).columnListInParentheses(0)
       verify(outOfLineConstraint).UNIQUE()
-      verify(outOfLineConstraint).primary_key()
-      verify(outOfLineConstraint).foreign_key()
+      verify(outOfLineConstraint).primaryKey()
+      verify(outOfLineConstraint).foreignKey()
       verify(outOfLineConstraint).id_()
       verify(outOfLineConstraint, times(3)).getText
       verifyNoMoreInteractions(outOfLineConstraint)
@@ -291,14 +291,14 @@ class SnowflakeDDLBuilderSpec
   "SnowflakeDDLBuilder.buildInlineConstraint" should {
 
     "handle unexpected input" in {
-      val inlineConstraint = mock[Inline_constraintContext]
+      val inlineConstraint = mock[InlineConstraintContext]
       val dummyInputTextForInlineConstraint = "dummy"
       when(inlineConstraint.getText).thenReturn(dummyInputTextForInlineConstraint)
       val result = astBuilder.buildInlineConstraint(inlineConstraint)
       result shouldBe UnresolvedConstraint(dummyInputTextForInlineConstraint)
       verify(inlineConstraint).UNIQUE()
-      verify(inlineConstraint).primary_key()
-      verify(inlineConstraint).foreign_key()
+      verify(inlineConstraint).primaryKey()
+      verify(inlineConstraint).foreignKey()
       verify(inlineConstraint).getText
       verifyNoMoreInteractions(inlineConstraint)
 
@@ -307,16 +307,16 @@ class SnowflakeDDLBuilderSpec
 
   "SnowflakeDDLBuilder.visitAlter_table" should {
     "handle unexpected input" in {
-      val tableName = parseString("s.t1", _.object_name())
-      val alterTable = mock[Alter_tableContext]
-      when(alterTable.object_name(0)).thenReturn(tableName)
+      val tableName = parseString("s.t1", _.objectName())
+      val alterTable = mock[AlterTableContext]
+      when(alterTable.objectName(0)).thenReturn(tableName)
       val dummyTextForAlterTable = "dummy"
       when(alterTable.getText).thenReturn(dummyTextForAlterTable)
-      val result = astBuilder.visitAlter_table(alterTable)
+      val result = astBuilder.visitAlterTable(alterTable)
       result shouldBe UnresolvedCatalog(dummyTextForAlterTable)
-      verify(alterTable).object_name(0)
-      verify(alterTable).table_column_action()
-      verify(alterTable).constraint_action()
+      verify(alterTable).objectName(0)
+      verify(alterTable).tableColumnAction()
+      verify(alterTable).constraintAction()
       verify(alterTable).getText
       verifyNoMoreInteractions(alterTable)
 
@@ -325,16 +325,16 @@ class SnowflakeDDLBuilderSpec
 
   "SnowflakeDDLBuilder.buildColumnActions" should {
     "handle unexpected input" in {
-      val tableColumnAction = mock[Table_column_actionContext]
-      when(tableColumnAction.alter_column_clause())
-        .thenReturn(java.util.Collections.emptyList[Alter_column_clauseContext]())
+      val tableColumnAction = mock[TableColumnActionContext]
+      when(tableColumnAction.alterColumnClause())
+        .thenReturn(java.util.Collections.emptyList[AlterColumnClauseContext]())
       val dummyTextForTableColumnAction = "dummy"
       when(tableColumnAction.getText).thenReturn(dummyTextForTableColumnAction)
       val result = astBuilder.buildColumnActions(tableColumnAction)
       result shouldBe Seq(UnresolvedTableAlteration(dummyTextForTableColumnAction))
-      verify(tableColumnAction).alter_column_clause()
+      verify(tableColumnAction).alterColumnClause()
       verify(tableColumnAction).ADD()
-      verify(tableColumnAction).alter_column_clause()
+      verify(tableColumnAction).alterColumnClause()
       verify(tableColumnAction).DROP()
       verify(tableColumnAction).RENAME()
       verify(tableColumnAction).getText
@@ -344,15 +344,15 @@ class SnowflakeDDLBuilderSpec
 
   "SnowflakeDDLBuilder.buildColumnAlterations" should {
     "handle unexpected input" in {
-      val columnName = parseString("a", _.column_name())
-      val alterColumnClause = mock[Alter_column_clauseContext]
-      when(alterColumnClause.column_name()).thenReturn(columnName)
+      val columnName = parseString("a", _.columnName())
+      val alterColumnClause = mock[AlterColumnClauseContext]
+      when(alterColumnClause.columnName()).thenReturn(columnName)
       val dummyTextForAlterColumnClause = "dummy"
       when(alterColumnClause.getText).thenReturn(dummyTextForAlterColumnClause)
       val result = astBuilder.buildColumnAlterations(alterColumnClause)
       result shouldBe UnresolvedTableAlteration(dummyTextForAlterColumnClause)
-      verify(alterColumnClause).column_name()
-      verify(alterColumnClause).data_type()
+      verify(alterColumnClause).columnName()
+      verify(alterColumnClause).dataType()
       verify(alterColumnClause).DROP()
       verify(alterColumnClause).NULL_()
       verify(alterColumnClause).getText
@@ -362,7 +362,7 @@ class SnowflakeDDLBuilderSpec
 
   "SnowflakeDDLBuilder.buildConstraintActions" should {
     "handle unexpected input" in {
-      val constraintAction = mock[Constraint_actionContext]
+      val constraintAction = mock[ConstraintActionContext]
       val dummyTextForConstraintAction = "dummy"
       when(constraintAction.getText).thenReturn(dummyTextForConstraintAction)
       val result = astBuilder.buildConstraintActions(constraintAction)
@@ -377,14 +377,14 @@ class SnowflakeDDLBuilderSpec
 
   "SnowflakeDDLBuilder.buildDropConstraints" should {
     "handle unexpected input" in {
-      val constraintAction = mock[Constraint_actionContext]
+      val constraintAction = mock[ConstraintActionContext]
       when(constraintAction.id_()).thenReturn(java.util.Collections.emptyList[Id_Context])
       val dummyTextForConstraintAction = "dummy"
       when(constraintAction.getText).thenReturn(dummyTextForConstraintAction)
       val result = astBuilder.buildDropConstraints(constraintAction)
       result shouldBe Seq(UnresolvedTableAlteration(dummyTextForConstraintAction))
-      verify(constraintAction).column_list_in_parentheses()
-      verify(constraintAction).primary_key()
+      verify(constraintAction).columnListInParentheses()
+      verify(constraintAction).primaryKey()
       verify(constraintAction).UNIQUE()
       verify(constraintAction).id_()
       verify(constraintAction).getText
