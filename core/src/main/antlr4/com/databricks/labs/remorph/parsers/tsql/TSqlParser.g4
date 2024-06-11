@@ -3687,7 +3687,9 @@ subquery
     ;
 
 withExpression
-    : WITH commonTableExpression (COMMA commonTableExpression)*
+    : WITH (   XMLNAMESPACES
+             | commonTableExpression (COMMA commonTableExpression)*
+           )
     ;
 
 commonTableExpression
