@@ -8,6 +8,9 @@ trait QueryExtractor {
 }
 
 class CommentBasedQueryExtractor(startComment: String, endComment: String) extends QueryExtractor {
+
+  def this(dialect: String) = this(s"-- $dialect sql:", "-- databricks sql:")
+
   override def extractQuery(file: File): String = {
     val source = Source.fromFile(file)
     val indexedLines = source.getLines().zipWithIndex.toSeq
