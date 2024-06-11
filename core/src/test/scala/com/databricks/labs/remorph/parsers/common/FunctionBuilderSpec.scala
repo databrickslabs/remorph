@@ -10,6 +10,21 @@ import org.scalatest.prop.TableDrivenPropertyChecks
 
 class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenPropertyChecks {
 
+  "TSqlFunctionBuilder" should "return correct arity for each function" in {
+    val functions = Table(
+      ("functionName", "expectedArity"), // Header
+
+      // TSQL specific
+    ("@@CURSOR_STATUS", Some(FunctionDefinition.notConvertible(0))),
+    ("@@FETCH_STATUS", Some(FunctionDefinition.notConvertible(0))),
+    ("MODIFY", Some(FunctionDefinition.xml(1))))
+
+    val functionBuilder = new TSqlFunctionBuilder
+    forAll(functions) { (functionName: String, expectedArity: Option[FunctionDefinition]) =>
+      functionBuilder.functionDefinition(functionName) shouldEqual expectedArity
+    }
+  }
+
   "SnowFlakeFunctionBuilder" should "return correct arity for each function" in {
     val functions = Table(
       ("functionName", "expectedArity"), // Header
@@ -17,10 +32,6 @@ class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenProp
       // Snowflake specific
       ("ADD_MONTHS", Some(FunctionDefinition.standard(2))),
       ("ANY_VALUE", Some(FunctionDefinition.standard(1))),
-      ("APPROX_COUNT_DISTINCT", Some(FunctionDefinition.standard(1))),
-      ("APPROX_PERCENTILE", Some(FunctionDefinition.standard(2))),
-      ("APPROX_PERCENTILE_CONT", Some(FunctionDefinition.standard(1))),
-      ("APPROX_PERCENTILE_DISC", Some(FunctionDefinition.standard(1))),
       ("APPROX_TOP_K", Some(FunctionDefinition.standard(1, 3))),
       ("ARRAYS_OVERLAP", Some(FunctionDefinition.standard(2))),
       ("ARRAY_AGG", Some(FunctionDefinition.standard(1))),
@@ -163,6 +174,10 @@ class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenProp
 
       ("ABS", Some(FunctionDefinition.standard(1))),
       ("ACOS", Some(FunctionDefinition.standard(1))),
+      ("APPROX_COUNT_DISTINCT", Some(FunctionDefinition.standard(1))),
+      ("APPROX_PERCENTILE", Some(FunctionDefinition.standard(2))),
+      ("APPROX_PERCENTILE_CONT", Some(FunctionDefinition.standard(1))),
+      ("APPROX_PERCENTILE_DISC", Some(FunctionDefinition.standard(1))),
       ("APP_NAME", Some(FunctionDefinition.standard(0))),
       ("APPLOCK_MODE", Some(FunctionDefinition.standard(3))),
       ("APPLOCK_TEST", Some(FunctionDefinition.standard(4))),
