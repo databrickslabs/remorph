@@ -58,7 +58,7 @@ def mock_workspace_client_cli():
             return io.BytesIO(state[path].encode('utf-8'))
         return io.StringIO(state[path])
 
-    workspace_client = create_autospec(WorkspaceClient)
+    workspace_client = create_autospec(WorkspaceClient)  # pylint: disable=mock-no-usage
     workspace_client.current_user.me().user_name = "foo"
     workspace_client.workspace.download = download
     workspace_client.config = None

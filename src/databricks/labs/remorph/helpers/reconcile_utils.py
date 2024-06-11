@@ -46,7 +46,7 @@ class ReconcileUtils:
         )
 
         # Creates the filename in the format of : `recon_config_<SOURCE>_<CATALOG_OR_SCHEMA>_<FILTER_TYPE>.json`
-        # Ex: recon_config_snowflake_sample_data_all.json
+        # Ex: `recon_config_snowflake_sample_data_all.json`
         filename = (
             f"recon_config_{reconcile_config.data_source}_{catalog_or_schema}_" f"{reconcile_config.report_type}.json"
         )

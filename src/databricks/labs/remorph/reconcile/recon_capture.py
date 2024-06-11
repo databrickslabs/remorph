@@ -49,8 +49,7 @@ class ReconIntermediatePersist:
     def clean_unmatched_df_from_volume(self):
         try:
             # TODO: for now we are overwriting the intermediate cache path. We should delete the volume in future
-            # workspace_client.dbfs.get_status(path)
-            # workspace_client.dbfs.delete(path, recursive=True)
+
             empty_df = self.spark.createDataFrame([], schema=StructType([StructField("empty", StringType(), True)]))
             empty_df.write.format("parquet").mode("overwrite").save(self.path)
         except PySparkException as e:
