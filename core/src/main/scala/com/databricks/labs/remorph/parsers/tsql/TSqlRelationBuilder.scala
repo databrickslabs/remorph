@@ -3,6 +3,7 @@ package com.databricks.labs.remorph.parsers.tsql
 import com.databricks.labs.remorph.parsers.intermediate.Relation
 import com.databricks.labs.remorph.parsers.tsql.TSqlParser._
 import com.databricks.labs.remorph.parsers.{intermediate => ir}
+import org.antlr.v4.runtime.ParserRuleContext
 
 import scala.collection.JavaConverters.asScalaBufferConverter
 
@@ -30,7 +31,6 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.Relation] {
   }
 
   override def visitSelectStatement(ctx: TSqlParser.SelectStatementContext): ir.Relation = {
-    // TODO: val orderByClause = Option(ctx.selectOrderByClause).map(_.accept(this))
     // TODO: val forClause = Option(ctx.forClause).map(_.accept(this))
     // TODO: val optionClause = Option(ctx.optionClause).map(_.accept(this))
 
@@ -39,17 +39,72 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.Relation] {
 
   override def visitQuerySpecification(ctx: TSqlParser.QuerySpecificationContext): ir.Relation = {
 
-    // TODO: Process all the other elements of a query specification
+    // TODO: Check the logic here for all the elements of a query specification
+    val select = ctx.selectOptionalClauses().accept(this)
 
     val columns =
       ctx.selectListElem().asScala.map(_.accept(expressionBuilder))
-    val from = Option(ctx.tableSources()).map(_.accept(this)).getOrElse(ir.NoTable)
     // Note that ALL is the default so we don't need to check for it
     ctx match {
       case c if c.DISTINCT() != null =>
-        buildDistinct(from, columns)
+        buildDistinct(select, columns)
       case _ =>
-        ir.Project(from, columns)
+        ir.Project(select, columns)
+    }
+  }
+
+  override def visitSelectOptionalClauses(ctx: SelectOptionalClausesContext): ir.Relation = {
+    val from = Option(ctx.fromClause()).map(_.accept(this)).getOrElse(ir.NoTable())
+    buildOrderBy(
+      ctx.selectOrderByClause(),
+      buildHaving(ctx.havingClause(), buildGroupBy(ctx.groupByClause(), buildWhere(ctx.whereClause(), from))))
+  }
+
+  private def buildFilter[A](ctx: A, conditionRule: A => ParserRuleContext, input: ir.Relation): ir.Relation =
+    Option(ctx).fold(input) { c =>
+      ir.Filter(input, conditionRule(c).accept(expressionBuilder))
+    }
+  private def buildHaving(ctx: HavingClauseContext, input: ir.Relation): ir.Relation =
+    buildFilter[HavingClauseContext](ctx, _.searchCondition(), input)
+
+  private def buildWhere(ctx: WhereClauseContext, from: ir.Relation): ir.Relation =
+    buildFilter[WhereClauseContext](ctx, _.searchCondition(), from)
+
+  // TODO: We are not catering for GROUPING SETS here, or in Snowflake
+  private def buildGroupBy(ctx: GroupByClauseContext, input: ir.Relation): ir.Relation = {
+    Option(ctx).fold(input) { c =>
+      val groupingExpressions =
+        c.expression()
+          .asScala
+          .map(_.accept(expressionBuilder))
+      ir.Aggregate(input = input, group_type = ir.GroupBy, grouping_expressions = groupingExpressions, pivot = None)
+    }
+  }
+
+  // TODO: COLLATE in OrderBy expression
+  // TODO: OFFSET and FETCH in selectOrderByClause
+  private def buildOrderBy(ctx: SelectOrderByClauseContext, input: ir.Relation): ir.Relation = {
+    Option(ctx).fold(input) { c =>
+      val sortOrders = c.orderByClause().orderByExpression().asScala.map { orderItem =>
+        val expression = orderItem.expression(0).accept(expressionBuilder) // expression(1) is COLLATE
+        if (orderItem.DESC() == null) {
+          ir.SortOrder(expression, ir.AscendingSortDirection, ir.SortNullsUnspecified)
+        } else {
+          ir.SortOrder(expression, ir.DescendingSortDirection, ir.SortNullsUnspecified)
+        }
+      }
+      ir.Sort(input = input, order = sortOrders, is_global = false)
+    }
+  }
+
+  override def visitFromClause(ctx: FromClauseContext): ir.Relation = {
+    val tableSources = ctx.tableSources().tableSource().asScala.map(_.accept(this))
+    // The tableSources seq cannot be empty (as empty FROM clauses are not allowed
+    tableSources match {
+      case Seq(tableSource) => tableSource
+      case sources =>
+        sources.reduce(
+          ir.Join(_, _, None, ir.CrossJoin, Seq(), ir.JoinDataType(is_left_struct = false, is_right_struct = false)))
     }
   }
 
@@ -71,27 +126,6 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.Relation] {
     ir.NamedTable(fullName, Map.empty, is_streaming = false)
   }
 
-  /**
-   * Note that SELECT a, b, c FROM x, y, z is equivalent to SELECT a, b, c FROM x CROSS JOIN y CROSS JOIN z
-   * @param ctx
-   *   the parse tree
-   */
-  override def visitTableSources(ctx: TSqlParser.TableSourcesContext): ir.Relation = {
-    val relations = ctx.tableSource().asScala.toList.map(_.accept(this)).collect { case r: ir.Relation => r }
-    relations match {
-      case head :: tail =>
-        tail.foldLeft(head)((acc, relation) =>
-          ir.Join(
-            acc,
-            relation,
-            None,
-            ir.CrossJoin,
-            Seq.empty,
-            ir.JoinDataType(is_left_struct = false, is_right_struct = false)))
-      case _ => ir.NoTable
-    }
-  }
-
   override def visitTableSource(ctx: TableSourceContext): ir.Relation = {
     val left = ctx.tableSourceItem().accept(this)
     ctx match {
@@ -99,7 +133,7 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.Relation] {
     }
   }
 
-  // TODO: note that not all table source items have fullTableName
+  // TODO: note that not all table source items have tableName
   override def visitTableSourceItem(ctx: TableSourceItemContext): ir.Relation =
     Option(ctx.asTableAlias())
       .map(alias => ir.TableAlias(ctx.tableName().accept(this), alias.id.getText))

@@ -3,11 +3,11 @@ package com.databricks.labs.remorph.parsers.snowflake
 import com.databricks.labs.remorph.parsers.intermediate._
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser.{BuiltinFunctionNameContext, Id_Context, JoinTypeContext, OuterJoinContext}
 import org.antlr.v4.runtime.RuleContext
-import org.scalatest.matchers.should.Matchers
-import org.scalatest.wordspec.AnyWordSpec
 import org.mockito.Mockito._
 import org.scalatest.Assertion
 import org.scalatest.Checkpoints.Checkpoint
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.mockito.MockitoSugar
 
 class SnowflakeRelationBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon with Matchers with MockitoSugar {
@@ -36,12 +36,18 @@ class SnowflakeRelationBuilderSpec extends AnyWordSpec with SnowflakeParserTestC
         "FROM t1, t2, t3",
         _.fromClause(),
         Join(
-          Join(namedTable("t1"), namedTable("t2"), None, InnerJoin, Seq(), JoinDataType(false, false)),
+          Join(
+            namedTable("t1"),
+            namedTable("t2"),
+            None,
+            InnerJoin,
+            Seq(),
+            JoinDataType(is_left_struct = false, is_right_struct = false)),
           namedTable("t3"),
           None,
           InnerJoin,
           Seq(),
-          JoinDataType(false, false)))
+          JoinDataType(is_left_struct = false, is_right_struct = false)))
       example(
         "FROM (SELECT * FROM t1) t2",
         _.fromClause(),
