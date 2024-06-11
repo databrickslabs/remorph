@@ -14,38 +14,38 @@ class SnowflakeExpressionBuilder()
 
   protected override def wrapUnresolvedInput(unparsedInput: String): ir.UnresolvedExpression =
     ir.UnresolvedExpression(unparsedInput)
-  override def visitSelect_list_elem(ctx: Select_list_elemContext): ir.Expression = {
+  override def visitSelectListElem(ctx: SelectListElemContext): ir.Expression = {
     val rawExpression = ctx match {
-      case c if c.column_elem() != null => c.column_elem().accept(this)
-      case c if c.expression_elem() != null => c.expression_elem().accept(this)
-      case c if c.column_elem_star() != null => c.column_elem_star().accept(this)
+      case c if c.columnElem() != null => c.columnElem().accept(this)
+      case c if c.expressionElem() != null => c.expressionElem().accept(this)
+      case c if c.columnElemStar() != null => c.columnElemStar().accept(this)
     }
-    buildAlias(ctx.as_alias(), rawExpression)
+    buildAlias(ctx.asAlias(), rawExpression)
   }
 
-  override def visitColumn_elem_star(ctx: Column_elem_starContext): ir.Expression = {
-    ir.Star(Option(ctx.object_name_or_alias()).map {
-      case c if c.object_name() != null => c.object_name().getText
+  override def visitColumnElemStar(ctx: ColumnElemStarContext): ir.Expression = {
+    ir.Star(Option(ctx.objectNameOrAlias()).map {
+      case c if c.objectName() != null => c.objectName().getText
       case c if c.alias() != null => c.alias().id_().getText
     })
   }
 
-  private def buildAlias(ctx: As_aliasContext, input: ir.Expression): ir.Expression =
+  private def buildAlias(ctx: AsAliasContext, input: ir.Expression): ir.Expression =
     Option(ctx).fold(input) { c =>
       val alias = c.alias().id_().getText
       ir.Alias(input, Seq(alias), None)
     }
-  override def visitColumn_name(ctx: Column_nameContext): ir.Expression = {
+  override def visitColumnName(ctx: ColumnNameContext): ir.Expression = {
     // TODO: Build table as per TSQl
     ir.Column(ctx.id_(0).getText)
   }
 
   override def visitPrimExprColumn(ctx: PrimExprColumnContext): ir.Expression = {
-    val columnName = ctx.full_column_name().id_().asScala.map(_.getText).mkString(".")
+    val columnName = ctx.fullColumnName().id_().asScala.map(_.getText).mkString(".")
     ir.Column(columnName)
   }
 
-  override def visitOrder_item(ctx: Order_itemContext): ir.Expression = {
+  override def visitOrderItem(ctx: OrderItemContext): ir.Expression = {
     val columnName = ctx.id_().getText
     ir.Column(columnName)
   }
@@ -60,8 +60,8 @@ class SnowflakeExpressionBuilder()
       visitDecimal(sign + ctx.FLOAT().getText)
     } else if (ctx.REAL() != null) {
       visitDecimal(sign + ctx.REAL().getText)
-    } else if (ctx.true_false() != null) {
-      visitTrue_false(ctx.true_false())
+    } else if (ctx.trueFalse() != null) {
+      visitTrueFalse(ctx.trueFalse())
     } else if (ctx.NULL_() != null) {
       ir.Literal(nullType = Some(ir.NullType()))
     } else {
@@ -73,7 +73,7 @@ class SnowflakeExpressionBuilder()
     str.stripPrefix("'").stripSuffix("'")
   }
 
-  override def visitTrue_false(ctx: True_falseContext): ir.Literal = ctx.TRUE() match {
+  override def visitTrueFalse(ctx: TrueFalseContext): ir.Literal = ctx.TRUE() match {
     case null => ir.Literal(boolean = Some(false))
     case _ => ir.Literal(boolean = Some(true))
   }
@@ -88,7 +88,7 @@ class SnowflakeExpressionBuilder()
   }
 
   override def visitExprNextval(ctx: ExprNextvalContext): ir.Expression = {
-    ir.NextValue(ctx.object_name().getText)
+    ir.NextValue(ctx.objectName().getText)
   }
 
   override def visitExprArrayAccess(ctx: ExprArrayAccessContext): ir.Expression = {
@@ -96,7 +96,7 @@ class SnowflakeExpressionBuilder()
   }
 
   override def visitExprJsonAccess(ctx: ExprJsonAccessContext): ir.Expression = {
-    val jsonPath = buildJsonPath(ctx.json_path())
+    val jsonPath = buildJsonPath(ctx.jsonPath())
     ir.JsonAccess(ctx.expr().accept(this), jsonPath)
   }
 
@@ -121,21 +121,21 @@ class SnowflakeExpressionBuilder()
   }
 
   override def visitExprPredicate(ctx: ExprPredicateContext): ir.Expression = {
-    buildPredicatePartial(ctx.predicate_partial(), ctx.expr().accept(this))
+    buildPredicatePartial(ctx.predicatePartial(), ctx.expr().accept(this))
   }
 
   override def visitExprComparison(ctx: ExprComparisonContext): ir.Expression = {
     val left = ctx.expr(0).accept(this)
     val right = ctx.expr(1).accept(this)
-    buildComparisonExpression(ctx.comparison_operator(), left, right)
+    buildComparisonExpression(ctx.comparisonOperator(), left, right)
   }
 
   override def visitExprOver(ctx: ExprOverContext): ir.Expression = {
-    buildWindow(ctx.over_clause(), ctx.expr().accept(this))
+    buildWindow(ctx.overClause(), ctx.expr().accept(this))
   }
 
   override def visitExprAscribe(ctx: ExprAscribeContext): ir.Expression = {
-    ir.Cast(ctx.expr().accept(this), DataTypeBuilder.buildDataType(ctx.data_type()))
+    ir.Cast(ctx.expr().accept(this), DataTypeBuilder.buildDataType(ctx.dataType()))
   }
 
   override def visitExprSign(ctx: ExprSignContext): ir.Expression = ctx.sign() match {
@@ -151,8 +151,8 @@ class SnowflakeExpressionBuilder()
     buildBinaryOperation(ctx.op, ctx.expr(0).accept(this), ctx.expr(1).accept(this))
   }
 
-  private def buildJsonPath(ctx: Json_pathContext): Seq[String] =
-    ctx.json_path_elem().asScala.map {
+  private def buildJsonPath(ctx: JsonPathContext): Seq[String] =
+    ctx.jsonPathElem().asScala.map {
       case elem if elem.ID() != null => elem.ID().getText
       case elem if elem.DOUBLE_QUOTE_ID() != null =>
         elem.DOUBLE_QUOTE_ID().getText.stripPrefix("\"").stripSuffix("\"")
@@ -169,7 +169,7 @@ class SnowflakeExpressionBuilder()
     }
 
   private[snowflake] def buildComparisonExpression(
-      op: Comparison_operatorContext,
+      op: ComparisonOperatorContext,
       left: ir.Expression,
       right: ir.Expression): ir.Expression = {
     if (op.EQ() != null) {
@@ -189,14 +189,14 @@ class SnowflakeExpressionBuilder()
     }
   }
 
-  override def visitIff_expr(ctx: Iff_exprContext): ir.Expression = {
-    val condition = ctx.search_condition().accept(this)
+  override def visitIffExpr(ctx: IffExprContext): ir.Expression = {
+    val condition = ctx.searchCondition().accept(this)
     val thenBranch = ctx.expr(0).accept(this)
     val elseBranch = ctx.expr(1).accept(this)
     ir.Iff(condition, thenBranch, elseBranch)
   }
 
-  override def visitSearch_condition(ctx: Search_conditionContext): ir.Expression = {
+  override def visitSearchCondition(ctx: SearchConditionContext): ir.Expression = {
     val pred = ctx.predicate().accept(this)
     if (ctx.NOT().size() % 2 == 1) {
       ir.Not(pred)
@@ -205,7 +205,7 @@ class SnowflakeExpressionBuilder()
     }
   }
 
-  override def visitArr_literal(ctx: Arr_literalContext): ir.Expression = {
+  override def visitArrLiteral(ctx: ArrLiteralContext): ir.Expression = {
     val elementsExpressions = ctx.value().asScala.map(_.accept(this))
     val elements = elementsExpressions.collect { case lit: ir.Literal => lit }
     if (elementsExpressions.size != elements.size) {
@@ -215,10 +215,10 @@ class SnowflakeExpressionBuilder()
     }
   }
 
-  override def visitCast_expr(ctx: Cast_exprContext): ir.Expression = ctx match {
-    case c if c.cast_op != null =>
+  override def visitCastExpr(ctx: CastExprContext): ir.Expression = ctx match {
+    case c if c.castOp != null =>
       val expression = c.expr().accept(this)
-      val dataType = DataTypeBuilder.buildDataType(c.data_type())
+      val dataType = DataTypeBuilder.buildDataType(c.dataType())
       ir.Cast(expression, dataType, returnNullOnError = c.TRY_CAST() != null)
     case c if c.conversion != null =>
       ir.Cast(c.expr().accept(this), extractDateTimeType(c.conversion))
@@ -233,17 +233,17 @@ class SnowflakeExpressionBuilder()
     case TO_DATE | DATE => ir.DateType()
   }
 
-  override def visitRanking_windowed_function(ctx: Ranking_windowed_functionContext): ir.Expression = {
+  override def visitRankingWindowedFunction(ctx: RankingWindowedFunctionContext): ir.Expression = {
     val windowFunction = buildWindowFunction(ctx)
-    buildWindow(ctx.over_clause(), windowFunction)
+    buildWindow(ctx.overClause(), windowFunction)
   }
 
-  private def buildWindow(ctx: Over_clauseContext, windowFunction: ir.Expression): ir.Expression = {
+  private def buildWindow(ctx: OverClauseContext, windowFunction: ir.Expression): ir.Expression = {
     val overClause = Option(ctx)
     val partitionSpec =
-      overClause.flatMap(o => Option(o.partition_by())).map(buildPartitionSpec).getOrElse(Seq())
+      overClause.flatMap(o => Option(o.partitionBy())).map(buildPartitionSpec).getOrElse(Seq())
     val sortOrder =
-      overClause.flatMap(o => Option(o.order_by_expr())).map(buildSortOrder).getOrElse(Seq())
+      overClause.flatMap(o => Option(o.orderByExpr())).map(buildSortOrder).getOrElse(Seq())
 
     ir.Window(
       window_function = windowFunction,
@@ -252,7 +252,7 @@ class SnowflakeExpressionBuilder()
       frame_spec = DummyWindowFrame)
   }
 
-  private[snowflake] def buildWindowFunction(ctx: Ranking_windowed_functionContext): ir.Expression = ctx match {
+  private[snowflake] def buildWindowFunction(ctx: RankingWindowedFunctionContext): ir.Expression = ctx match {
     case c if c.ROW_NUMBER() != null => ir.RowNumber
     case c if c.NTILE() != null =>
       val parameter = ctx.expr(0).accept(this)
@@ -260,20 +260,20 @@ class SnowflakeExpressionBuilder()
     case c => ir.UnresolvedExpression(c.getText)
   }
 
-  private def buildPartitionSpec(ctx: Partition_byContext): Seq[ir.Expression] = {
-    ctx.expr_list().expr().asScala.map(_.accept(this))
+  private def buildPartitionSpec(ctx: PartitionByContext): Seq[ir.Expression] = {
+    ctx.exprList().expr().asScala.map(_.accept(this))
   }
 
-  private[snowflake] def buildSortOrder(ctx: Order_by_exprContext): Seq[ir.SortOrder] = {
-    val exprList = ctx.expr_list_sorted()
+  private[snowflake] def buildSortOrder(ctx: OrderByExprContext): Seq[ir.SortOrder] = {
+    val exprList = ctx.exprListSorted()
     val exprs = exprList.expr().asScala
     val commas = exprList.COMMA().asScala.map(_.getSymbol.getStopIndex) :+ exprList.getStop.getStopIndex
-    val descs = exprList.asc_desc().asScala.filter(_.DESC() != null).map(_.getStop.getStopIndex)
+    val descs = exprList.ascDesc().asScala.filter(_.DESC() != null).map(_.getStop.getStopIndex)
 
-    // Lists returned by expr() and asc_desc() above may have different sizes
-    // for example with `ORDER BY a, b DESC, c` (3 expr but only 1 asc_desc).
-    // So we use the position of the asc_desc elements relative to the position of
-    // commas in the ORDER BY expression to determine which expr is affected by each asc_desc
+    // Lists returned by expr() and ascDesc() above may have different sizes
+    // for example with `ORDER BY a, b DESC, c` (3 expr but only 1 ascDesc).
+    // So we use the position of the ascDesc elements relative to the position of
+    // commas in the ORDER BY expression to determine which expr is affected by each ascDesc
     exprs.zip(commas).map { case (expr, upperBound) =>
       val direction =
         descs
@@ -287,21 +287,21 @@ class SnowflakeExpressionBuilder()
     }
   }
 
-  override def visitStandard_function(ctx: Standard_functionContext): ir.Expression = {
+  override def visitStandardFunction(ctx: StandardFunctionContext): ir.Expression = {
     val functionName = ctx.id_().getText
-    val arguments = Option(ctx.expr_list()).map(_.expr().asScala.map(_.accept(this))).getOrElse(Seq())
+    val arguments = Option(ctx.exprList()).map(_.expr().asScala.map(_.accept(this))).getOrElse(Seq())
     functionBuilder.buildFunction(functionName, arguments)
   }
 
-  // aggregate_function
+  // aggregateFunction
 
   override def visitAggFuncExprList(ctx: AggFuncExprListContext): ir.Expression = {
-    val param = ctx.expr_list().expr(0).accept(this)
-    buildBuiltinFunction(ctx.id_().builtin_function_name(), param)
+    val param = ctx.exprList().expr(0).accept(this)
+    buildBuiltinFunction(ctx.id_().builtinFunctionName(), param)
   }
 
   override def visitAggFuncStar(ctx: AggFuncStarContext): ir.Expression = {
-    buildBuiltinFunction(ctx.id_().builtin_function_name(), ir.Star(None))
+    buildBuiltinFunction(ctx.id_().builtinFunctionName(), ir.Star(None))
   }
 
   override def visitAggFuncList(ctx: AggFuncListContext): ir.Expression = {
@@ -312,9 +312,9 @@ class SnowflakeExpressionBuilder()
       case ARRAY_AGG => functionBuilder.buildFunction("ARRAYAGG", Seq(param))
     }
   }
-  // end aggregate_function
+  // end aggregateFunction
 
-  private def buildBuiltinFunction(ctx: Builtin_function_nameContext, param: ir.Expression): ir.Expression =
+  private def buildBuiltinFunction(ctx: BuiltinFunctionNameContext, param: ir.Expression): ir.Expression =
     Option(ctx)
       .collect {
         case c if c.AVG() != null => ir.Avg(param)
@@ -329,19 +329,19 @@ class SnowflakeExpressionBuilder()
     val characters = Option(ctx.string()).map(_.accept(this)).toList
     functionBuilder.buildFunction(ctx.trim.getText, expression :: characters)
   }
-  override def visitCase_expression(ctx: Case_expressionContext): ir.Expression = {
+  override def visitCaseExpression(ctx: CaseExpressionContext): ir.Expression = {
     val exprs = ctx.expr().asScala
     val otherwise = Option(ctx.ELSE()).flatMap(els => exprs.find(occursBefore(els, _)).map(_.accept(this)))
     ctx match {
-      case c if c.switch_section().size() > 0 =>
-        val expression = exprs.find(occursBefore(_, ctx.switch_section(0))).map(_.accept(this))
-        val branches = c.switch_section().asScala.map { branch =>
+      case c if c.switchSection().size() > 0 =>
+        val expression = exprs.find(occursBefore(_, ctx.switchSection(0))).map(_.accept(this))
+        val branches = c.switchSection().asScala.map { branch =>
           ir.WhenBranch(branch.expr(0).accept(this), branch.expr(1).accept(this))
         }
         ir.Case(expression, branches, otherwise)
-      case c if c.switch_search_condition_section().size() > 0 =>
-        val branches = c.switch_search_condition_section().asScala.map { branch =>
-          ir.WhenBranch(branch.search_condition().accept(this), branch.expr().accept(this))
+      case c if c.switchSearchConditionSection().size() > 0 =>
+        val branches = c.switchSearchConditionSection().asScala.map { branch =>
+          ir.WhenBranch(branch.searchCondition().accept(this), branch.expr().accept(this))
         }
         ir.Case(None, branches, otherwise)
     }
@@ -349,13 +349,13 @@ class SnowflakeExpressionBuilder()
   override def visitPredicate(ctx: PredicateContext): ir.Expression = ctx match {
     case c if c.EXISTS() != null =>
       ir.Exists(c.subquery().accept(new SnowflakeRelationBuilder))
-    case c if c.predicate_partial() != null =>
+    case c if c.predicatePartial() != null =>
       val expr = c.expr().accept(this)
-      buildPredicatePartial(c.predicate_partial(), expr)
+      buildPredicatePartial(c.predicatePartial(), expr)
     case c => visitChildren(c)
   }
 
-  private def buildPredicatePartial(ctx: Predicate_partialContext, expression: ir.Expression): ir.Expression = {
+  private def buildPredicatePartial(ctx: PredicatePartialContext, expression: ir.Expression): ir.Expression = {
     val predicate = ctx match {
 
       case c if c.IN() != null =>
@@ -385,7 +385,7 @@ class SnowflakeExpressionBuilder()
         ir.RLike(expression, pattern)
       case c if c.IS() != null =>
         val isNull: ir.Expression = ir.IsNull(expression)
-        Option(c.null_not_null().NOT()).fold(isNull)(_ => ir.Not(isNull))
+        Option(c.nullNotNull().NOT()).fold(isNull)(_ => ir.Not(isNull))
     }
     Option(ctx.NOT()).fold(predicate)(_ => ir.Not(predicate))
   }
