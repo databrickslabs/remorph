@@ -63,6 +63,7 @@ abstract class FunctionBuilder {
     case "ATN2" => FunctionDefinition.standard(2)
     case "AVG" => FunctionDefinition.standard(1)
     case "BINARY_CHECKSUM" => FunctionDefinition.standard(1, Int.MaxValue)
+    case "BIT_COUNT" => FunctionDefinition.standard(1)
     case "CEILING" => FunctionDefinition.standard(1)
     case "CERT_ID" => FunctionDefinition.standard(1)
     case "CERTENCODED" => FunctionDefinition.standard(1)

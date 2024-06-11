@@ -3488,8 +3488,8 @@ columnConstraint
     ;
 
 columnIndex
-    : INDEX indexName = id clustered? createTableIndexOptions? onPartitionOrFilegroup? (
-        FILESTREAM_ON (filestreamFilegroupOrPartitionSchemaName = id | NULL_DOUBLE_QUOTE)
+    : INDEX id clustered? createTableIndexOptions? onPartitionOrFilegroup? (
+        FILESTREAM_ON id // CHeck for quoted "NULL"
     )?
     ;
 
@@ -3656,6 +3656,7 @@ expression
     | DOLLAR_ACTION                                             #exprDollar
     | <assoc=right> expression DOT expression                   #exprDot
     | LPAREN subquery RPAREN                                    #exprSubquery
+    | ALL expression                                            #exprAll
     | DISTINCT expression                                       #exprDistinct
     | DOLLAR_ACTION                                             #exprDollar
     | STAR                                                      #exprStar
@@ -3739,7 +3740,8 @@ sqlUnion
     ;
 
 querySpecification
-    : SELECT (ALL | DISTINCT)? topClause? selectListElem (COMMA selectListElem)*
+    : SELECT (ALL | DISTINCT)? topClause?
+        selectListElem (COMMA selectListElem)*
         selectOptionalClauses
     ;
 
@@ -3751,6 +3753,8 @@ groupByClause
     :  GROUP BY
         (
             (ALL? expression (COMMA expression)*)
+                (WITH id)? // Note that id should be checked for CUBE or ROLLUP
+
           | GROUPING SETS LPAREN groupingSetsItem (COMMA groupingSetsItem)* RPAREN
         )
     ;
@@ -3877,9 +3881,11 @@ expressionElem
     ;
 
 selectListElem
-    : asterisk
-    | LOCAL_ID op=(PE | ME | SE | DE | MEA | AND_ASSIGN | XOR_ASSIGN | OR_ASSIGN | EQ) expression
-    | expressionElem
+    : (
+          asterisk
+        | LOCAL_ID op=(PE | ME | SE | DE | MEA | AND_ASSIGN | XOR_ASSIGN | OR_ASSIGN | EQ) expression
+        | expressionElem
+      ) ((IGNORE | RESPECT) NULLS)?
     ;
 
 tableSources
@@ -4823,7 +4829,6 @@ keyword
     | NOWAIT
     | NTILE
     | NTLM
-    | NULL_DOUBLE_QUOTE
     | NUMANODE
     | NUMBER
     | NUMERIC_ROUNDABORT

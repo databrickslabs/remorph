@@ -15,9 +15,11 @@ class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenProp
       ("functionName", "expectedArity"), // Header
 
       // TSQL specific
-    ("@@CURSOR_STATUS", Some(FunctionDefinition.notConvertible(0))),
-    ("@@FETCH_STATUS", Some(FunctionDefinition.notConvertible(0))),
-    ("MODIFY", Some(FunctionDefinition.xml(1))))
+      ("@@CURSOR_STATUS", Some(FunctionDefinition.notConvertible(0))),
+      ("@@FETCH_STATUS", Some(FunctionDefinition.notConvertible(0))),
+      ("CUBE", Some(FunctionDefinition.standard(1, Int.MaxValue))),
+      ("MODIFY", Some(FunctionDefinition.xml(1))),
+      ("ROLLUP", Some(FunctionDefinition.standard(1, Int.MaxValue))))
 
     val functionBuilder = new TSqlFunctionBuilder
     forAll(functions) { (functionName: String, expectedArity: Option[FunctionDefinition]) =>
@@ -188,6 +190,7 @@ class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenProp
       ("ATN2", Some(FunctionDefinition.standard(2))),
       ("AVG", Some(FunctionDefinition.standard(1))),
       ("BINARY_CHECKSUM", Some(FunctionDefinition.standard(1, Int.MaxValue))),
+      ("BIT_COUNT", Some(FunctionDefinition.standard(1))),
       ("CEILING", Some(FunctionDefinition.standard(1))),
       ("CERT_ID", Some(FunctionDefinition.standard(1))),
       ("CERTENCODED", Some(FunctionDefinition.standard(1))),
@@ -491,10 +494,30 @@ class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenProp
   "buildFunction" should "Apply known TSql conversion strategies" in {
     val functionBuilder = new TSqlFunctionBuilder
 
-    val result1 = functionBuilder.buildFunction("ISNULL", Seq(ir.Column("x"), ir.Literal(integer = Some(0))))
-    result1 match {
+    var result = functionBuilder.buildFunction("ISNULL", Seq(ir.Column("x"), ir.Literal(integer = Some(0))))
+    result match {
       case f: ir.CallFunction => f.function_name shouldBe "IFNULL"
       case _ => fail("ISNULL TSql conversion failed")
+    }
+    result = functionBuilder.buildFunction("GET_BIT", Seq(ir.Column("x"), ir.Literal(integer = Some(0))))
+    result match {
+      case f: ir.CallFunction => f.function_name shouldBe "GETBIT"
+      case _ => fail("GET_BIT TSql conversion failed")
+    }
+    result = functionBuilder.buildFunction("SET_BIT", Seq(ir.Column("x"), ir.Literal(integer = Some(0))))
+    result match {
+      case f: ir.CallFunction => f.function_name shouldBe "SETBIT"
+      case _ => fail("SET_BIT TSql conversion failed")
+    }
+    result = functionBuilder.buildFunction("left_SHIFT", Seq(ir.Column("x"), ir.Literal(integer = Some(0))))
+    result match {
+      case f: ir.CallFunction => f.function_name shouldBe "LEFTSHIFT"
+      case _ => fail("LEFT_SHIFT TSql conversion failed")
+    }
+    result = functionBuilder.buildFunction("right_shift", Seq(ir.Column("x"), ir.Literal(integer = Some(0))))
+    result match {
+      case f: ir.CallFunction => f.function_name shouldBe "rightshift"
+      case _ => fail("RIGHT_SHIT TSql conversion failed")
     }
   }
 
