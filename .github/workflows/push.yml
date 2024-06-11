@@ -142,7 +142,16 @@ jobs:
           path: ~/.m2/repository/com/databricks/labs/
 
       - name: Run Coverage Tests with Maven
-        run: mvn --update-snapshots -B test exec:java -pl coverage --file pom.xml --fail-at-end
+        run: mvn --update-snapshots -B test -pl coverage --file pom.xml --fail-at-end
+        continue-on-error: true
+
+
+      - name: Run TSQL Coverage Tests with Maven
+        run: mvn --update-snapshots -B exec:java -pl coverage --file pom.xml --fail-at-end -Dexec.args="-i tests/resources/functional/tsql -o coverage-result.json -s '-- tsql sql:'"
+        continue-on-error: true
+
+      - name: Run Snowflake Coverage Tests with Maven
+        run: mvn --update-snapshots -B exec:java -pl coverage --file pom.xml --fail-at-end -Dexec.args="-i tests/resources/functional/snowflake -o coverage-result.json"
         continue-on-error: true
 
       - name: Publish JUnit report
