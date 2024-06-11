@@ -9,6 +9,9 @@ class SnowflakeDDLBuilder
     extends SnowflakeParserBaseVisitor[ir.Catalog]
     with ParserCommon[ir.Catalog]
     with IncompleteParser[ir.Catalog] {
+
+  private val expressionBuilder = new SnowflakeExpressionBuilder
+
   override protected def wrapUnresolvedInput(unparsedInput: String): ir.Catalog = ir.UnresolvedCatalog(unparsedInput)
 
   private def extractString(ctx: StrContext): String = {
@@ -37,7 +40,7 @@ class SnowflakeDDLBuilder
       name = ctx.arg_name().getText,
       dataType = DataTypeBuilder.buildDataType(ctx.arg_data_type().id_().data_type()),
       defaultValue = Option(ctx.arg_default_value_clause())
-        .map(_.expr().accept(new SnowflakeExpressionBuilder(new SnowflakeFunctionBuilder))))
+        .map(_.expr().accept(expressionBuilder)))
   }
 
   private def buildFunctionBody(ctx: Function_definitionContext): String = (ctx match {

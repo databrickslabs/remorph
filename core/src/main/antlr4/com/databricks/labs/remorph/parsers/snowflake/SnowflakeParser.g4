@@ -3423,7 +3423,7 @@ id_
     | non_reserved_words
     | object_type_plural
     | data_type
-    | builtin_function
+    | builtin_function_name
     | unary_or_binary_builtin_function
     | binary_builtin_function
     | binary_or_ternary_builtin_function
@@ -3433,7 +3433,8 @@ id_
 keyword
     //List here keyword (SnowSQL meaning) allowed as object name
     // Name of builtin function should be included in specifique section (ie builtin_function)
-    : STAGE
+    : TABLE
+    | STAGE
     | USER
     | TYPE
     | CLUSTER
@@ -3488,6 +3489,7 @@ non_reserved_words
     | DATA
     | DEFINITION
     | DELTA
+    | DUMMY
     | EDITION
     | EVENT
     | EXPIRY_DATE
@@ -3559,7 +3561,7 @@ non_reserved_words
     | MODE
     ;
 
-builtin_function
+builtin_function_name
     // If there is a lexer entry for a function we also need to add the token here
     // as it otherwise will not be picked up by the id_ rule (See also derived rule below)
     : SUM
@@ -3700,7 +3702,6 @@ expr
     | cast_expr                                     #exprCast
     | expr COLON_COLON data_type                    #exprAscribe
     | json_literal                                  #exprJsonLit
-    | trim_expression                               #exprTrim
     | function_call                                 #exprFuncCall
     // Probably wrong
     | subquery                                      #exprSubquery
@@ -3793,14 +3794,12 @@ data_type
     ;
 
 primitive_expression
-    : DEFAULT //?
-    | NULL_
-    | id_ (DOT id_)* // json field access
-    | full_column_name
-    | literal
-    | BOTH_Q
-    | ARRAY_Q
-    | OBJECT_Q
+    : DEFAULT          # primExprDefault//?
+    | full_column_name # primExprColumn
+    | literal          # primExprLiteral
+    | BOTH_Q           # primExprBoth
+    | ARRAY_Q          # primExprArray
+    | OBJECT_Q         # primExprObject
     //| json_literal
     //| arr_literal
     ;
@@ -3828,19 +3827,23 @@ over_clause
     ;
 
 function_call
-    : unary_or_binary_builtin_function L_PAREN expr (COMMA expr)* R_PAREN
-    | binary_builtin_function L_PAREN expr COMMA expr R_PAREN
-    | binary_or_ternary_builtin_function L_PAREN expr COMMA expr (COMMA expr)* R_PAREN
-    | ternary_builtin_function L_PAREN expr COMMA expr COMMA expr R_PAREN
+    : builtin_function
+    | standard_function
     | ranking_windowed_function
     | aggregate_function
     //    | aggregate_windowed_function
-    | object_name L_PAREN expr_list? R_PAREN
-    | object_name L_PAREN param_assoc_list R_PAREN
-    | list_function L_PAREN expr_list R_PAREN
-    | to_date = ( TO_DATE | DATE) L_PAREN expr R_PAREN
-    | length = ( LENGTH | LEN) L_PAREN expr R_PAREN
-    | TO_BOOLEAN L_PAREN expr R_PAREN
+    ;
+
+builtin_function
+    : trim = (TRIM | LTRIM | RTRIM) L_PAREN expr (COMMA string)? R_PAREN #builtinTrim
+//    : unary_or_binary_builtin_function L_PAREN expr (COMMA expr)* R_PAREN
+//    | binary_builtin_function L_PAREN expr COMMA expr R_PAREN
+//    | binary_or_ternary_builtin_function L_PAREN expr COMMA expr (COMMA expr)* R_PAREN
+//    | ternary_builtin_function L_PAREN expr COMMA expr COMMA expr R_PAREN
+    ;
+
+standard_function
+    : id_ L_PAREN expr_list? R_PAREN
     ;
 
 param_assoc_list
@@ -4035,11 +4038,11 @@ from_clause
     ;
 
 table_sources
-    : table_source (COLON table_source)*
+    : table_source (COMMA table_source)*
     ;
 
 table_source
-    : table_source_item_joined
+    : table_source_item_joined sample?
     //| L_PAREN table_source R_PAREN
     ;
 
@@ -4049,13 +4052,13 @@ table_source_item_joined
     ;
 
 object_ref
-    : TABLE L_PAREN function_call R_PAREN pivot_unpivot? as_alias? sample?                   #objRefTable
+    : TABLE L_PAREN function_call R_PAREN pivot_unpivot? as_alias?                           #objRefTable
     | LATERAL (flatten_table | splited_table) as_alias?                                      #objRefLateral
     | LATERAL? L_PAREN subquery R_PAREN pivot_unpivot? as_alias? column_list_in_parentheses? #objRefSubquery
-    | values_table sample?                                                                   #objRefValues
+    | values_table                                                                           #objRefValues
     | object_name START WITH predicate CONNECT BY prior_list?                                #objRefStartWith
     | object_name at_before? changes? match_recognize? pivot_unpivot? as_alias?
-        column_list_in_parentheses? sample?                                                  #objRefDefault
+        column_list_in_parentheses?                                                          #objRefDefault
     //| AT id_ PATH?
     //    (L_PAREN FILE_FORMAT ASSOC id_ COMMA pattern_assoc R_PAREN)?
     //    as_alias?
@@ -4199,20 +4202,17 @@ values_table_body
     ;
 
 sample_method
-    : row_sampling = (BERNOULLI | ROW)
-    | block_sampling = ( SYSTEM | BLOCK)
-    ;
-
-repeatable_seed
-    : (REPEATABLE | SEED) L_PAREN num R_PAREN
-    ;
-
-sample_opts
-    : L_PAREN num ROWS? R_PAREN repeatable_seed?
+    : (SYSTEM | BLOCK) L_PAREN num R_PAREN # sampleMethodBlock
+    | (BERNOULLI | ROW)? L_PAREN num ROWS R_PAREN # sampleMethodRowFixed
+    | (BERNOULLI | ROW)? L_PAREN num R_PAREN # sampleMethodRowProba
     ;
 
 sample
-    : (SAMPLE | TABLESAMPLE) sample_method? sample_opts
+    : (SAMPLE | TABLESAMPLE) sample_method sample_seed?
+    ;
+
+sample_seed
+    : (REPEATABLE | SEED) L_PAREN num R_PAREN
     ;
 
 search_condition

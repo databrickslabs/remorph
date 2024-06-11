@@ -8,6 +8,8 @@ import scala.collection.JavaConverters._
 
 class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.Relation] with IncompleteParser[ir.Relation] {
 
+  private val expressionBuilder = new SnowflakeExpressionBuilder
+
   protected override def wrapUnresolvedInput(unparsedInput: String): ir.Relation = ir.UnresolvedRelation(unparsedInput)
   override def visitSelect_statement(ctx: Select_statementContext): ir.Relation = {
     val select = ctx.select_optional_clauses().accept(this)
@@ -24,7 +26,7 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.Relation] w
           c.select_top_clause().select_list_top().all_distinct(),
           c.select_top_clause().select_list_top().select_list().select_list_elem().asScala)
     }
-    val expressions = selectListElements.map(_.accept(new SnowflakeExpressionBuilder(new SnowflakeFunctionBuilder)))
+    val expressions = selectListElements.map(_.accept(expressionBuilder))
     ir.Project(buildTop(top, buildDistinct(allOrDistinct, relation, expressions)), expressions)
 
   }
@@ -72,9 +74,20 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.Relation] w
         buildHaving(ctx.having_clause(), buildGroupBy(ctx.group_by_clause(), buildWhere(ctx.where_clause(), from)))))
   }
 
+  override def visitFrom_clause(ctx: From_clauseContext): ir.Relation = {
+    val tableSources = ctx.table_sources().table_source().asScala.map(_.accept(this))
+    // The tableSources seq cannot be empty (as empty FROM clauses are not allowed
+    tableSources match {
+      case Seq(tableSource) => tableSource
+      case sources =>
+        sources.reduce(
+          ir.Join(_, _, None, ir.InnerJoin, Seq(), ir.JoinDataType(is_left_struct = false, is_right_struct = false)))
+    }
+  }
+
   private def buildFilter[A](ctx: A, conditionRule: A => ParserRuleContext, input: ir.Relation): ir.Relation =
     Option(ctx).fold(input) { c =>
-      ir.Filter(input, conditionRule(c).accept(new SnowflakeExpressionBuilder(new SnowflakeFunctionBuilder)))
+      ir.Filter(input, conditionRule(c).accept(expressionBuilder))
     }
   private def buildHaving(ctx: Having_clauseContext, input: ir.Relation): ir.Relation =
     buildFilter[Having_clauseContext](ctx, _.search_condition(), input)
@@ -90,7 +103,7 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.Relation] w
         c.group_by_list()
           .group_by_elem()
           .asScala
-          .map(_.accept(new SnowflakeExpressionBuilder(new SnowflakeFunctionBuilder)))
+          .map(_.accept(expressionBuilder))
       val aggregate =
         ir.Aggregate(input = input, group_type = ir.GroupBy, grouping_expressions = groupingExpressions, pivot = None)
       buildHaving(c.having_clause(), aggregate)
@@ -100,7 +113,7 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.Relation] w
   private def buildOrderBy(ctx: Order_by_clauseContext, input: ir.Relation): ir.Relation = {
     Option(ctx).fold(input) { c =>
       val sortOrders = c.order_item().asScala.map { orderItem =>
-        val expression = orderItem.accept(new SnowflakeExpressionBuilder(new SnowflakeFunctionBuilder))
+        val expression = orderItem.accept(expressionBuilder)
         if (orderItem.DESC() == null) {
           if (orderItem.NULLS() != null && orderItem.FIRST() != null) {
             ir.SortOrder(expression, ir.AscendingSortDirection, ir.SortNullsFirst)
@@ -119,14 +132,18 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.Relation] w
     }
   }
 
-  override def visitObjRefValues(ctx: ObjRefValuesContext): ir.Relation = {
-    ctx.values_table().values_table_body().accept(this)
+  override def visitObjRefSubquery(ctx: ObjRefSubqueryContext): ir.Relation = {
+    val subquery = ctx.subquery().accept(this)
+    Option(ctx.as_alias()).map(a => ir.SubqueryAlias(subquery, a.alias().getText, "")).getOrElse(subquery)
   }
-
-  override def visitValues_table_body(ctx: Values_table_bodyContext): ir.Relation = {
-    val expressionBuilder = new SnowflakeExpressionBuilder(new SnowflakeFunctionBuilder)
+  override def visitObjRefValues(ctx: ObjRefValuesContext): ir.Relation = {
     val expressions =
-      ctx.expr_list_in_parentheses().asScala.map(l => expressionBuilder.visitSeq(l.expr_list().expr().asScala))
+      ctx
+        .values_table()
+        .values_table_body()
+        .expr_list_in_parentheses()
+        .asScala
+        .map(l => expressionBuilder.visitSeq(l.expr_list().expr().asScala))
     ir.Values(expressions)
   }
 
@@ -148,8 +165,8 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.Relation] w
 
   private def buildPivot(ctx: Pivot_unpivotContext, relation: ir.Relation): ir.Relation = {
     val pivotValues: Seq[ir.Literal] =
-      ctx.literal().asScala.map(_.accept(new SnowflakeExpressionBuilder(new SnowflakeFunctionBuilder))).collect {
-        case lit: ir.Literal => lit
+      ctx.literal().asScala.map(_.accept(expressionBuilder)).collect { case lit: ir.Literal =>
+        lit
       }
     val pivotColumn = ir.Column(ctx.id_(2).getText)
     val aggregateFunction = translateAggregateFunction(ctx.id_(0), ctx.id_(1))
@@ -165,7 +182,7 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.Relation] w
       .column_list()
       .column_name()
       .asScala
-      .map(_.accept(new SnowflakeExpressionBuilder(new SnowflakeFunctionBuilder)))
+      .map(_.accept(expressionBuilder))
     val variableColumnName = ctx.id_(0).getText
     val valueColumnName = ctx.column_name().id_(0).getText
     ir.Unpivot(
@@ -179,13 +196,19 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.Relation] w
   private[snowflake] def translateAggregateFunction(aggFunc: Id_Context, parameter: Id_Context): ir.Expression = {
     val column = ir.Column(parameter.getText)
     aggFunc match {
-      case f if f.builtin_function() != null && f.builtin_function().SUM() != null => ir.Sum(column)
-      case f if f.builtin_function() != null && f.builtin_function().AVG() != null => ir.Avg(column)
-      case f if f.builtin_function() != null && f.builtin_function().COUNT() != null => ir.Count(column)
-      case f if f.builtin_function() != null && f.builtin_function().MIN() != null => ir.Min(column)
+      case f if f.builtin_function_name() != null && f.builtin_function_name().SUM() != null => ir.Sum(column)
+      case f if f.builtin_function_name() != null && f.builtin_function_name().AVG() != null => ir.Avg(column)
+      case f if f.builtin_function_name() != null && f.builtin_function_name().COUNT() != null => ir.Count(column)
+      case f if f.builtin_function_name() != null && f.builtin_function_name().MIN() != null => ir.Min(column)
       case _ => ir.UnresolvedExpression(aggFunc.getText)
     }
   }
+
+  override def visitTable_source(ctx: Table_sourceContext): ir.Relation = {
+    val tableSource = ctx.table_source_item_joined().accept(this)
+    buildSample(ctx.sample(), tableSource)
+  }
+
   override def visitTable_source_item_joined(ctx: Table_source_item_joinedContext): ir.Relation = {
 
     def buildJoin(left: ir.Relation, right: Join_clauseContext): ir.Join = {
@@ -222,8 +245,28 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.Relation] w
       .column_list()
       .column_name()
       .asScala
-      .map(_.accept(new SnowflakeExpressionBuilder(new SnowflakeFunctionBuilder)))
+      .map(_.accept(expressionBuilder))
     val query = ctx.select_statement().accept(this)
     ir.CTEDefinition(tableName, columns, query)
+  }
+
+  private def buildNum(ctx: NumContext): BigDecimal = {
+    BigDecimal(ctx.getText)
+  }
+
+  private def buildSampleMethod(ctx: Sample_methodContext): ir.SamplingMethod = ctx match {
+    case c: SampleMethodRowFixedContext => ir.RowSamplingFixedAmount(buildNum(c.num()))
+    case c: SampleMethodRowProbaContext => ir.RowSamplingProbabilistic(buildNum(c.num()))
+    case c: SampleMethodBlockContext => ir.BlockSampling(buildNum(c.num()))
+  }
+
+  private def buildSample(ctx: SampleContext, input: ir.Relation): ir.Relation = {
+    Option(ctx)
+      .map { sampleCtx =>
+        val seed = Option(sampleCtx.sample_seed()).map(s => buildNum(s.num()))
+        val sampleMethod = buildSampleMethod(sampleCtx.sample_method())
+        ir.TableSample(input, sampleMethod, seed)
+      }
+      .getOrElse(input)
   }
 }

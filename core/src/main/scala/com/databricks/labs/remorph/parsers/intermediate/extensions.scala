@@ -170,3 +170,17 @@ case class Timezone(expression: Expression, timeZone: Expression) extends Expres
 case class Money(value: Literal) extends Expression {}
 
 case class WithinGroup(expression: Expression, order: Seq[SortOrder]) extends Expression {}
+
+sealed trait SamplingMethod
+case class RowSamplingProbabilistic(probability: BigDecimal) extends SamplingMethod
+case class RowSamplingFixedAmount(amount: BigDecimal) extends SamplingMethod
+case class BlockSampling(probability: BigDecimal) extends SamplingMethod
+
+case class TableSample(input: Relation, samplingMethod: SamplingMethod, seed: Option[BigDecimal]) extends Relation {}
+
+// Note that Databricks SQL supports FILTER() used as an expression.
+case class FilterExpr(input: Seq[Expression], lambdaFunction: LambdaFunction) extends Expression {}
+case class ValueArray(expressions: Seq[Expression]) extends Expression {}
+
+case class NamedStruct(keys: Seq[Expression], values: Seq[Expression]) extends Expression {}
+case class FilterStruct(input: NamedStruct, lambdaFunction: LambdaFunction) extends Expression {}

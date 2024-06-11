@@ -915,7 +915,6 @@ VALID_XML                                   : 'VALID_XML';
 VALUE                                       : 'VALUE';
 VALUES                                      : 'VALUES';
 VAR                                         : 'VAR';
-VARBINARY_KEYWORD                           : 'VARBINARY';
 VARYING                                     : 'VARYING';
 VERBOSELOGGING                              : 'VERBOSELOGGING';
 VERIFY_CLONEDB                              : 'VERIFY_CLONEDB';
@@ -953,10 +952,6 @@ ZONE                                        : 'ZONE';
 
 SP_EXECUTESQL: 'SP_EXECUTESQL';
 
-//Build-ins:
-VARCHAR  : 'VARCHAR';
-NVARCHAR : 'NVARCHAR';
-
 //Combinations that cannot be used as IDs
 DISK_DRIVE    : [A-Z][:];
 DOLLAR_ACTION : '$ACTION';
@@ -975,7 +970,6 @@ LINE_COMMENT : '--' ~[\r\n]*             -> channel(HIDDEN);
 
 // TODO: ID can be not only Latin.
 DOUBLE_QUOTE_ID    : '"' ~'"'+ '"';
-DOUBLE_QUOTE_BLANK : '""';
 SINGLE_QUOTE       : '\'';
 SQUARE_BRACKET_ID  : '[' (~']' | ']' ']')* ']';
 LOCAL_ID           : '@' ([A-Z_$@#0-9] | FullWidthLetter)*;
