@@ -5148,7 +5148,7 @@ openXml
     ;
 
 xmlNamespaces
-    : WITH XMLNAMESPACES LPAREN xmlDeclaration (COMMA xmlDeclaration)* RPAREN
+    : XMLNAMESPACES LPAREN xmlDeclaration (COMMA xmlDeclaration)* RPAREN
     ;
 
 xmlDeclaration
