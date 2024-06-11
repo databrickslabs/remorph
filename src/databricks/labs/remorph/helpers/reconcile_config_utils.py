@@ -260,8 +260,8 @@ class ReconcileConfigUtils:
 
         # Get TableRecon config
         recon_config = data_source.list_tables(
-            self._reconcile_config.config.source_catalog,
-            self._reconcile_config.config.source_schema,
+            self._reconcile_config.database_config.source_catalog,
+            self._reconcile_config.database_config.source_schema,
             include_list,
             exclude_list,
         )
@@ -269,13 +269,15 @@ class ReconcileConfigUtils:
         logger.debug(f"Fetched Tables `{', '.join([table.source_name for table in recon_config.tables])}` ")
 
         # Update the target catalog and schema
-        recon_config.target_catalog = self._reconcile_config.config.target_catalog
-        recon_config.target_schema = self._reconcile_config.config.target_schema
+        recon_config.target_catalog = self._reconcile_config.database_config.target_catalog
+        recon_config.target_schema = self._reconcile_config.database_config.target_schema
 
         logger.info("Recon Config details are fetched successfully...")
         logger.debug(f"Recon Config : {recon_config}")
 
-        file_name = f"recon_config_{source}" f"_{self._reconcile_config.config.source_catalog}" f"_{filter_type}.json"
+        file_name = (
+            f"recon_config_{source}" f"_{self._reconcile_config.database_config.source_catalog}" f"_{filter_type}.json"
+        )
 
         return recon_config, file_name
 

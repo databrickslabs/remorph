@@ -83,7 +83,7 @@ class SnowflakeDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
         try:
             schema_df = self.reader(schema_query).load()
             logger.info(f"Fetching Snowflake Schema using the following {table} in SnowflakeDataSource")
-            return [Schema(field.column_name.lower(), field.data_type.lower()) for field in schema_df.collect()]
+            return [Schema(field.COLUMN_NAME.lower(), field.DATA_TYPE.lower()) for field in schema_df.collect()]
         except (RuntimeError, PySparkException) as e:
             return self.log_and_throw_exception(e, "schema", schema_query)
 

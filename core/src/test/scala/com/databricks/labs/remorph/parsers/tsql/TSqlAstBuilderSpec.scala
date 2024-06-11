@@ -25,6 +25,10 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
       example(
         query = "SELECT a FROM dbo.table_x",
         expectedAst = Batch(Seq(Project(NamedTable("dbo.table_x", Map.empty, is_streaming = false), Seq(Column("a"))))))
+
+      example(
+        query = "SELECT a FROM TABLE",
+        expectedAst = Batch(Seq(Project(NamedTable("TABLE", Map.empty, is_streaming = false), Seq(Column("a"))))))
     }
 
     "translate column aliases" in {
@@ -73,10 +77,13 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
       example(
         query = "SELECT * FROM dbo.table_x",
         expectedAst = Batch(Seq(Project(NamedTable("dbo.table_x", Map.empty, is_streaming = false), Seq(Star(None))))))
+
       example(query = "SELECT t.*", expectedAst = Batch(Seq(Project(NoTable, Seq(Star(objectName = Some("t")))))))
+
       example(
         query = "SELECT x..b.y.*",
         expectedAst = Batch(Seq(Project(NoTable, Seq(Star(objectName = Some("x..b.y")))))))
+
       // TODO: Add tests for OUTPUT clause once implemented - invalid semantics here to force coverage
       example(query = "SELECT INSERTED.*", expectedAst = Batch(Seq(Project(NoTable, Seq(Inserted(Star(None)))))))
       example(query = "SELECT DELETED.*", expectedAst = Batch(Seq(Project(NoTable, Seq(Deleted(Star(None)))))))
@@ -364,5 +371,92 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
             all_columns_as_keys = false,
             within_watermark = false),
           Seq(Column("a"), Alias(Column("b"), Seq("bb"), None))))))
+  }
+
+  "Columns specified with dedicated syntax" in {
+    example(
+      query = "SELECT NEXT VALUE FOR mySequence As nextVal",
+      expectedAst = Batch(
+        Seq(
+          Project(NoTable, Seq(Alias(CallFunction("MONOTONICALLY_INCREASING_ID", List.empty), Seq("nextVal"), None))))))
+
+    example(
+      query = "SELECT NEXT VALUE FOR var.mySequence As nextVal",
+      expectedAst = Batch(
+        Seq(
+          Project(NoTable, Seq(Alias(CallFunction("MONOTONICALLY_INCREASING_ID", List.empty), Seq("nextVal"), None))))))
+
+    example(
+      query = "SELECT NEXT VALUE FOR var.mySequence OVER (ORDER BY myColumn) As nextVal ",
+      expectedAst = Batch(
+        Seq(Project(
+          NoTable,
+          Seq(Alias(
+            Window(
+              CallFunction("ROW_NUMBER", List.empty),
+              List.empty,
+              List(SortOrder(Column("myColumn"), AscendingSortDirection, SortNullsUnspecified)),
+              WindowFrame(
+                UndefinedFrame,
+                FrameBoundary(current_row = false, unbounded = false, Noop),
+                FrameBoundary(current_row = false, unbounded = false, Noop))),
+            Seq("nextVal"),
+            None))))))
+
+  }
+
+  "translate CTE select statements" in {
+    example(
+      query = "WITH cte AS (SELECT * FROM t) SELECT * FROM cte",
+      expectedAst = Batch(
+        Seq(WithCTE(
+          Seq(CTEDefinition("cte", List.empty, Project(NamedTable("t", Map(), is_streaming = false), Seq(Star(None))))),
+          Project(NamedTable("cte", Map(), is_streaming = false), Seq(Star(None)))))))
+
+    example(
+      query = """WITH cteTable1 (col1, col2, col3count)
+                AS
+                (
+                    SELECT col1, fred, COUNT(OrderDate) AS counter
+                    FROM Table1
+                ),
+                cteTable2 (colx, coly, colxcount)
+                AS
+                (
+                    SELECT col1, fred, COUNT(OrderDate) AS counter
+                    FROM Table2
+                )
+                SELECT col2, col1, col3count, colx, coly, colxcount
+                FROM cteTable""",
+      expectedAst = Batch(
+        Seq(WithCTE(
+          Seq(
+            CTEDefinition(
+              "cteTable1",
+              Seq(Column("col1"), Column("col2"), Column("col3count")),
+              Project(
+                NamedTable("Table1", Map(), is_streaming = false),
+                Seq(
+                  Column("col1"),
+                  Column("fred"),
+                  Alias(CallFunction("COUNT", Seq(Column("OrderDate"))), Seq("counter"), None)))),
+            CTEDefinition(
+              "cteTable2",
+              Seq(Column("colx"), Column("coly"), Column("colxcount")),
+              Project(
+                NamedTable("Table2", Map(), is_streaming = false),
+                Seq(
+                  Column("col1"),
+                  Column("fred"),
+                  Alias(CallFunction("COUNT", Seq(Column("OrderDate"))), Seq("counter"), None))))),
+          Project(
+            NamedTable("cteTable", Map(), is_streaming = false),
+            Seq(
+              Column("col2"),
+              Column("col1"),
+              Column("col3count"),
+              Column("colx"),
+              Column("coly"),
+              Column("colxcount")))))))
   }
 }

@@ -45,7 +45,7 @@ object FunctionDefinition {
 
 abstract class FunctionBuilder {
 
-  private val functionDefinitionPf: PartialFunction[String, FunctionDefinition] = {
+  protected val commonFunctionsPf: PartialFunction[String, FunctionDefinition] = {
     case "ABS" => FunctionDefinition.standard(1)
     case "ACOS" => FunctionDefinition.standard(1)
     case "APP_NAME" => FunctionDefinition.standard(0)
@@ -177,6 +177,7 @@ abstract class FunctionBuilder {
     case "LEFT" => FunctionDefinition.standard(2)
     case "LEN" => FunctionDefinition.standard(1)
     case "LISTAGG" => FunctionDefinition.standard(1, 2)
+    case "LN" => FunctionDefinition.standard(1)
     case "LOG" => FunctionDefinition.standard(1, 2)
     case "LOG10" => FunctionDefinition.standard(1)
     case "LOGINPROPERTY" => FunctionDefinition.standard(2)
@@ -279,7 +280,7 @@ abstract class FunctionBuilder {
   }
 
   def functionDefinition(name: String): Option[FunctionDefinition] =
-    functionDefinitionPf.lift(name.toUpperCase())
+    commonFunctionsPf.lift(name.toUpperCase())
 
   def functionType(name: String): FunctionType = {
     functionDefinition(name).map(_.functionType).getOrElse(UnknownFunction)

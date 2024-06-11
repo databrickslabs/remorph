@@ -1,20 +1,29 @@
+import functools
 import logging
 import os
 import time
 import webbrowser
 from datetime import timedelta
+from importlib.resources import files, as_file
 from pathlib import Path
+
+import databricks.labs.remorph.resources
 
 from databricks.labs.blueprint.entrypoint import get_logger, is_in_debug
 from databricks.labs.blueprint.installation import Installation, SerdeError
 from databricks.labs.blueprint.installer import InstallState
+from databricks.labs.blueprint.parallel import Threads
 from databricks.labs.blueprint.parallel import ManyError
 from databricks.labs.blueprint.tui import Prompts
 from databricks.labs.blueprint.wheels import ProductInfo
+
+from databricks.labs.remorph.helpers import db_sql
+from databricks.labs.remorph.helpers.deployment import TableDeployer, JobDeployer
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.errors import NotFound
 from databricks.sdk.errors import PermissionDenied
 from databricks.sdk.retries import retried
+from databricks.sdk.service.catalog import VolumeType
 from databricks.sdk.service.sql import (
     CreateWarehouseRequestWarehouseType,
     EndpointInfoWarehouseType,
@@ -28,8 +37,10 @@ from databricks.labs.remorph.config import (
     SQLGLOT_DIALECTS,
     DatabaseConfig,
     RemorphConfigs,
+    ReconcileMetadataConfig,
 )
 from databricks.labs.remorph.reconcile.constants import SourceType
+from databricks.labs.remorph.helpers.dashboard_publisher import DashboardPublisher
 
 logger = logging.getLogger(__name__)
 
@@ -62,6 +73,7 @@ class WorkspaceInstaller:
         )
         try:
             workspace_installation.run()
+            self._save_configs(configs)
         except ManyError as err:
             if len(err.errs) == 1:
                 raise err.errs[0] from None
@@ -123,8 +135,6 @@ class WorkspaceInstaller:
             },
         )
         configs = function_to_call()
-        self._save_configs(configs)
-
         return configs
 
 
@@ -307,6 +317,12 @@ class InstallPrompts:
             source_catalog=source_catalog,
         )
 
+    def _prompt_for_reconcile_metadata_config(self) -> ReconcileMetadataConfig:
+        catalog = self._prompts.question("Enter Catalog name to store reconcile metadata", default="remorph")
+        schema = self._prompts.question("Enter Schema name to store reconcile metadata", default="reconcile")
+        metrics_config = ReconcileMetadataConfig(catalog=catalog, schema=schema)
+        return metrics_config
+
     def reconcile_setup_prompts(self) -> RemorphConfigs:
         logger.info("\nPlease answer a few questions to configure remorph: ** reconcile **")
 
@@ -322,17 +338,66 @@ class InstallPrompts:
         )
 
         db_config = self._prompt_for_reconcile_source_target_details(data_source)
+        metadata_config = self._prompt_for_reconcile_metadata_config()
 
         reconcile_config = ReconcileConfig(
             data_source=data_source,
             report_type=report_type,
             secret_scope=scope_name,
-            config=db_config,
+            database_config=db_config,
+            metadata_config=metadata_config,
         )
 
         logger.info("Captured ** reconcile **  configuration details !!!")
 
         return RemorphConfigs(None, reconcile_config)
+
+
+class ReconciliationMetadataSetup:
+
+    def __init__(
+        self,
+        ws: WorkspaceClient,
+        reconcile_config: ReconcileConfig,
+        catalog_setup: CatalogSetup,
+        table_deployer: TableDeployer,
+    ):
+        self._ws = ws
+        self._catalog_setup = catalog_setup
+        self._table_deployer = table_deployer
+        self._reconcile_config = reconcile_config
+        self._reconcile_catalog = reconcile_config.metadata_config.catalog
+        self._reconcile_schema = reconcile_config.metadata_config.schema
+
+    def configure_catalog(self):
+        try:
+            self._catalog_setup.get(self._reconcile_catalog)
+        except NotFound:
+            logger.info(f"Creating new catalog {self._reconcile_catalog}")
+            self._catalog_setup.create(self._reconcile_catalog)
+
+    def configure_schema(self):
+        try:
+            self._catalog_setup.get_schema(f"{self._reconcile_catalog}.{self._reconcile_schema}")
+        except NotFound:
+            logger.info(f"Creating new schema {self._reconcile_catalog}.{self._reconcile_schema}")
+            self._catalog_setup.create_schema(self._reconcile_schema, self._reconcile_catalog)
+
+    def deploy_tables(self):
+        deploy_table = functools.partial(self._table_deployer.deploy_table)
+        Threads.strict(
+            "Deploy reconciliation metadata tables",
+            [
+                functools.partial(deploy_table, "main", "queries/reconcile/installation/main.sql"),
+                functools.partial(deploy_table, "metrics", "queries/reconcile/installation/metrics.sql"),
+                functools.partial(deploy_table, "details", "queries/reconcile/installation/details.sql"),
+            ],
+        )
+
+    def run(self):
+        self.configure_catalog()
+        self.configure_schema()
+        self.deploy_tables()
 
 
 class WorkspaceInstallation:
@@ -354,9 +419,75 @@ class WorkspaceInstallation:
         self._this_file = Path(__file__)
         self._product_info = product_info
 
+    def _create_reconcile_volume(self):
+        all_volumes = self._ws.volumes.list(
+            self._config.reconcile.metadata_config.catalog,
+            self._config.reconcile.metadata_config.schema,
+        )
+
+        reconcile_volume_exists = False
+        for volume in all_volumes:
+            if volume.name == self._config.reconcile.metadata_config.volume:
+                reconcile_volume_exists = True
+                logger.info("Reconciliation Volume already exists.")
+                break
+
+        if not reconcile_volume_exists:
+            logger.info("Creating Reconciliation Volume.")
+            self._ws.volumes.create(
+                self._config.reconcile.metadata_config.catalog,
+                self._config.reconcile.metadata_config.schema,
+                self._config.reconcile.metadata_config.volume,
+                VolumeType.MANAGED,
+            )
+
+    def _create_reconcile_dashboard(self):
+        dashboard_params = {
+            "catalog": self._config.reconcile.metadata_config.catalog,
+            "schema": self._config.reconcile.metadata_config.schema,
+        }
+
+        reconcile_dashboard_path = "dashboards/Remorph-Reconciliation.lvdash.json"
+        dashboard_resource = files(databricks.labs.remorph.resources).joinpath(reconcile_dashboard_path)
+        dashboard_publisher = DashboardPublisher(self._ws, self._installation)
+        logger.info("Creating Reconciliation Dashboard.")
+        with as_file(dashboard_resource) as dashboard_file:
+            dashboard_publisher.create(dashboard_file, parameters=dashboard_params)
+
+    def _configure_reconcile_metadata(self):
+        morph_config = MorphConfig(
+            source=self._config.reconcile.data_source,
+            catalog_name=self._config.reconcile.metadata_config.catalog,
+            schema_name=self._config.reconcile.metadata_config.schema,
+        )
+        sql_backend = db_sql.get_sql_backend(self._ws, morph_config)
+        deployer = TableDeployer(
+            sql_backend,
+            self._config.reconcile.metadata_config.catalog,
+            self._config.reconcile.metadata_config.schema,
+        )
+        setup = ReconciliationMetadataSetup(self._ws, self._config.reconcile, CatalogSetup(self._ws), deployer)
+        setup.run()
+
+    def _deploy_reconcile_job(self):
+        job_deployer = JobDeployer(
+            self._ws,
+            self._installation,
+            self._state,
+            self._product_info,
+        )
+        job_id = job_deployer.deploy_job()
+        self._config.reconcile.job_id = job_id
+
     def run(self):
         logger.info(f"Installing Remorph v{self._product_info.version()}")
-        # TODO: Store Recon Metadata Tables, Lakeview Dashboards
+        if self._config.reconcile:
+            logger.info("Installing Reconcile components.")
+            self._configure_reconcile_metadata()
+            self._create_reconcile_volume()
+            self._create_reconcile_dashboard()
+            self._deploy_reconcile_job()
+
         logger.info("Installation completed successfully! Please refer to the documentation for the next steps.")
 
 

@@ -274,9 +274,8 @@ def test_generate_recon_config_no_reconcile(mock_workspace_client):
         }
     )
 
-    reconcile_utils = ReconcileConfigUtils(mock_workspace_client,
-                                           installation=corrupted_reconcile_config,
-                                           prompts=MockPrompts({}))
+    reconcile_utils = ReconcileConfigUtils(
+        mock_workspace_client, installation=corrupted_reconcile_config, prompts=MockPrompts({})
+    )
 
     assert reconcile_utils.generate_recon_config() is None
-

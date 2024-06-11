@@ -56,6 +56,9 @@ dependencies = [
   "mypy~=1.10.0",
 ]
 
+[project.entry-points.databricks]
+reconcile = "databricks.labs.remorph.reconcile.execute:main"
+
 [tool.hatch.envs.default.scripts]
 test        = "pytest --cov src --cov-report=xml tests/unit"
 coverage    = "pytest --cov src tests/unit --cov-report=html"
@@ -138,6 +141,7 @@ exclude_lines = [
   "no cov",
   "if __name__ == .__main__.:",
   "if TYPE_CHECKING:",
+  "def main()",
 ]
 
 [tool.pylint.main]
