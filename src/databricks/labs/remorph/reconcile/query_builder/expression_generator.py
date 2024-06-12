@@ -164,10 +164,11 @@ def build_join_clause(
     source_table_alias: str | None = None,
     target_table_alias: str | None = None,
     kind: str = "inner",
+    func: Callable = exp.NullSafeEQ,
 ) -> exp.Join:
     join_conditions = []
     for column in join_columns:
-        join_condition = exp.NullSafeEQ(
+        join_condition = func(
             this=exp.Column(this=column, table=source_table_alias),
             expression=exp.Column(this=column, table=target_table_alias),
         )
@@ -222,7 +223,7 @@ def _get_is_string(column_types_dict: dict[str, DataType], column_name: str) -> 
 
 
 DataType_transform_mapping: dict[str, dict[str, list[partial[exp.Expression]]]] = {
-    "universal": {"default": [partial(coalesce, default='', is_string=True), partial(trim)]},
+    "universal": {"default": [partial(coalesce, default='_null_recon_', is_string=True), partial(trim)]},
     "snowflake": {exp.DataType.Type.ARRAY.value: [partial(array_to_string), partial(array_sort)]},
     "oracle": {
         exp.DataType.Type.NCHAR.value: [partial(anonymous, func="NVL(TRIM(TO_CHAR({})),'_null_recon_')")],

@@ -35,7 +35,7 @@ class DataSource(ABC):
     def log_and_throw_exception(cls, exception: Exception, fetch_type: str, query: str):
         error_msg = f"Runtime exception occurred while fetching {fetch_type} using {query} : {exception}"
         logger.warning(error_msg)
-        raise DataSourceRuntimeException(error_msg)
+        raise DataSourceRuntimeException(error_msg) from exception
 
 
 class MockDataSource(DataSource):

@@ -129,9 +129,6 @@ class QueryBuilder(ABC):
 
     def _validate(self, field: set[str] | list[str] | None, message: str):
         if field is None:
-            logger.error(
-                f"Exception for {self.table_conf.target_name} target table in {self.layer} layer --> {message}"
-            )
-            raise InvalidInputException(
-                f"Exception for {self.table_conf.target_name} target table in {self.layer} layer --> {message}"
-            )
+            message = f"Exception for {self.table_conf.target_name} target table in {self.layer} layer --> {message}"
+            logger.error(message)
+            raise InvalidInputException(message)
