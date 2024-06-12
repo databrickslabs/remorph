@@ -13,18 +13,17 @@ case class AcceptanceTestConfig(
 
 abstract class AcceptanceTestRunner(config: AcceptanceTestConfig) extends AnyFlatSpec {
 
-  private def runAcceptanceTest(acceptanceTest: AcceptanceTest) = {
-    val q = config.queryExtractor.extractQuery(acceptanceTest.inputFile)
-    config.queryRunner.runQuery(q)
+  private def runAcceptanceTest(acceptanceTest: AcceptanceTest): Option[ReportEntryReport] = {
+    config.queryExtractor.extractQuery(acceptanceTest.inputFile).map(config.queryRunner.runQuery)
   }
 
   config.testFileSource.listTests.foreach { test =>
     registerTest(test.testName) {
       val report = runAcceptanceTest(test)
-      if (report.isSuccess) {
+      if (report.exists(_.isSuccess)) {
         succeed
       } else {
-        fail(report.errorMessage.getOrElse(""))
+        fail(report.flatMap(_.errorMessage).getOrElse(""))
       }
     }
   }
@@ -35,7 +34,7 @@ class SnowflakeAcceptanceSuite
       AcceptanceTestConfig(
         new NestedFiles(Paths.get(Option(System.getProperty("snowflake.test.resources.path"))
           .getOrElse("../tests/resources/functional/snowflake"))),
-        new CommentBasedQueryExtractor("snowflake"),
+        new DialectNameCommentBasedQueryExtractor("snowflake", "databricks"),
         new IsResolvedAsSnowflakeQueryRunner(new SnowflakeAstBuilder)))
 
 class TSqlAcceptanceSuite
@@ -43,5 +42,5 @@ class TSqlAcceptanceSuite
       AcceptanceTestConfig(
         new NestedFiles(Paths.get(Option(System.getProperty("tsql.test.resources.path"))
           .getOrElse("../tests/resources/functional/tsql"))),
-        new CommentBasedQueryExtractor("tsql"),
+        new DialectNameCommentBasedQueryExtractor("tsql", "databricks"),
         new IsResolvedAsTSqlQueryRunner(new TSqlAstBuilder)))

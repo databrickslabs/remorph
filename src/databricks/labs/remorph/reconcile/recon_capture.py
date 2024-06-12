@@ -53,6 +53,7 @@ class ReconIntermediatePersist:
             # workspace_client.dbfs.delete(path, recursive=True)
             empty_df = self.spark.createDataFrame([], schema=StructType([StructField("empty", StringType(), True)]))
             empty_df.write.format("parquet").mode("overwrite").save(self.path)
+            logger.warning(f"Unmatched DF cleaned up from {self.path} successfully.")
         except PySparkException as e:
             message = f"Error cleaning up unmatched DF from {self.path} volumes --> {e}"
             logger.error(message)
@@ -74,7 +75,7 @@ class ReconIntermediatePersist:
 def _write_df_to_delta(df: DataFrame, table_name: str, mode="append"):
     try:
         df.write.mode(mode).saveAsTable(table_name)
-        logger.info(f"Data written to {table_name}")
+        logger.info(f"Data written to {table_name} successfully.")
     except Exception as e:
         message = f"Error writing data to {table_name}: {e}"
         logger.error(message)

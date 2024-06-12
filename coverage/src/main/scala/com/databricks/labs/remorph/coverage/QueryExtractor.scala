@@ -4,19 +4,28 @@ import java.io.File
 import scala.io.Source
 
 trait QueryExtractor {
-  def extractQuery(file: File): String
+  def extractQuery(file: File): Option[String]
 }
 
 class CommentBasedQueryExtractor(startComment: String, endComment: String) extends QueryExtractor {
 
-  def this(dialect: String) = this(s"-- $dialect sql:", "-- databricks sql:")
-
-  override def extractQuery(file: File): String = {
+  override def extractQuery(file: File): Option[String] = {
     val source = Source.fromFile(file)
     val indexedLines = source.getLines().zipWithIndex.toSeq
     source.close()
-    val startIndex = indexedLines.find(_._1 == startComment).map(_._2).get
-    val endIndex = indexedLines.find(_._1 == endComment).map(_._2).get
-    indexedLines.map(_._1).slice(startIndex + 1, endIndex).mkString("\n")
+    val startIndexOpt = indexedLines.find(_._1 == startComment).map(_._2)
+    val endIndexOpt = indexedLines.find(_._1 == endComment).map(_._2)
+    (startIndexOpt, endIndexOpt) match {
+      case (Some(startIndex), Some(endIndex)) =>
+        Some(indexedLines.map(_._1).slice(startIndex + 1, endIndex).mkString("\n"))
+      case _ =>
+        // scalastyle: off
+        println(s"Couldn't find either '$startComment' or '$endComment' in $file")
+        // scalastyle: on
+        None
+    }
   }
 }
+
+class DialectNameCommentBasedQueryExtractor(sourceDialect: String, targetDialect: String)
+    extends CommentBasedQueryExtractor(s"-- $sourceDialect sql:", s"-- $targetDialect sql:")

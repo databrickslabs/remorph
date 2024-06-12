@@ -388,6 +388,13 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
     ir.Distinct(ctx.expression().accept(this))
   }
 
+  override def visitExprAll(ctx: ExprAllContext): ir.Expression = {
+    // Support for functions such as COUNT(ALL column), which is an expression not a relation.
+    // ALL has no actual effect on the result so we just pass the expression as is. If we wish to
+    // reproduce exsting annotations like this, then we woudl need to add IR.
+    ctx.expression().accept(this)
+  }
+
   /**
    * Handles the NEXT VALUE FOR function in SQL Server, which has a special syntax.
    *

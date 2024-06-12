@@ -7,10 +7,6 @@ class SnowflakeFunctionBuilder extends FunctionBuilder {
   private val SnowflakeFunctionDefinitionPf: PartialFunction[String, FunctionDefinition] = {
     case "ADD_MONTHS" => FunctionDefinition.standard(2)
     case "ANY_VALUE" => FunctionDefinition.standard(1)
-    case "APPROX_COUNT_DISTINCT" => FunctionDefinition.standard(1)
-    case "APPROX_PERCENTILE" => FunctionDefinition.standard(2)
-    case "APPROX_PERCENTILE_CONT" => FunctionDefinition.standard(1)
-    case "APPROX_PERCENTILE_DISC" => FunctionDefinition.standard(1)
     case "APPROX_TOP_K" => FunctionDefinition.standard(1, 3)
 //    case "ARRAY" => ???
     case "ARRAYS_OVERLAP" => FunctionDefinition.standard(2)
