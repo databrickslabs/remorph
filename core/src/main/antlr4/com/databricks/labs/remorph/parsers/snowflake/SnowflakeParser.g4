@@ -2105,17 +2105,17 @@ awsCredentialOrStorageIntegration
 
 externalStageParams
     //(for Amazon S3)
-    : URL EQ s3Url = (S3_PATH | S3GOV_PATH) (
+    : URL EQ s3Url = STRING (
         awsCredentialOrStorageIntegration? stageEncryptionOptsAws
         | stageEncryptionOptsAws? awsCredentialOrStorageIntegration
     )?
     //(for Google Cloud Storage)
-    | URL EQ gcUrl = GCS_PATH (
+    | URL EQ STRING (
         storageIntegrationEqId? stageEncryptionOptsGcp
         | stageEncryptionOptsGcp? storageIntegrationEqId
     )?
     //(for Microsoft Azure)
-    | URL EQ azureUrl = AZURE_PATH (
+    | URL EQ STRING (
         azCredentialOrStorageIntegration? stageEncryptionOptsAz
         | stageEncryptionOptsAz? azCredentialOrStorageIntegration
     )?
