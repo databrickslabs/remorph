@@ -13,7 +13,8 @@ from databricks.sdk.errors import NotFound
 
 @pytest.fixture
 def ws():
-    w = create_autospec(WorkspaceClient)  # pylint: disable=mock-no-usage
+    w = create_autospec(WorkspaceClient)
+    w.config.return_value = {"warehouse_id", "test_warehouse"}
     return w
 
 
@@ -23,7 +24,8 @@ def test_uninstall(ws):
             r"Do you want to uninstall remorph.*": "yes",
         }
     )
-    installation = create_autospec(Installation)  # pylint: disable=mock-no-usage
+    installation = create_autospec(Installation)
+    installation.product.return_value = "remorph"
     config = MorphConfig(source="snowflake", sdk_config=None, skip_validation=True, catalog_name="remorph_test")
     timeout = timedelta(seconds=1)
 
@@ -60,7 +62,8 @@ def test_uninstall_no(ws):
             r"Do you want to uninstall remorph.*": "no",
         }
     )
-    installation = create_autospec(Installation)  # pylint: disable=mock-no-usage
+    installation = create_autospec(Installation)
+    installation.product.return_value = "remorph"
     config = MorphConfig(source="snowflake", sdk_config=None, skip_validation=True, catalog_name="remorph_test")
     timeout = timedelta(seconds=1)
 

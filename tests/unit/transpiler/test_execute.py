@@ -446,7 +446,9 @@ def test_morph_column_exp(mock_workspace_client):
 
 def test_with_file_with_success(initial_setup, mock_workspace_client, mock_spark_session):
     input_dir = initial_setup
-    sdk_config = create_autospec(Config)  # pylint: disable=mock-no-usage
+    sdk_config = create_autospec(Config)
+    sdk_config.as_dict.return_value = {}
+
     config = MorphConfig(
         input_sql=str(input_dir / "query1.sql"),
         output_folder="None",

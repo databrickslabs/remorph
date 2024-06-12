@@ -353,12 +353,15 @@ def test_create_schema_no(ws_no_catalog_schema, mock_installation_state):
 
 def test_workspace_installation(ws, mock_installation, monkeypatch):
     # Create a mock for the Installation
-    mock_install = create_autospec(Installation)  # pylint: disable=mock-no-usage
+    mock_install = create_autospec(Installation)
+    mock_install.product.return_value = "remorph"
 
     # Create a mock for the config
-    config = create_autospec(MorphConfig)  # pylint: disable=mock-no-usage
+    config = create_autospec(MorphConfig)
+    config.get_write_dialect.return_value = "databricks"
 
-    product_info = create_autospec(ProductInfo)  # pylint: disable=mock-no-usage
+    product_info = create_autospec(ProductInfo)
+    product_info.version.return_value = "1"
 
     # Call the current function
     result = WorkspaceInstallation(config, mock_install, ws, Prompts(), timedelta(minutes=2), product_info)
@@ -479,7 +482,6 @@ def test_workspace_installation_run(ws, mock_installation_state, monkeypatch):
 
 
 def test_workspace_installation_run_single_error(ws, monkeypatch):
-
     mock_installation_reconcile = MockInstallation(
         {
             "reconcile.yml": {

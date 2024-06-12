@@ -58,19 +58,22 @@ def mock_spark() -> SparkSession:
 
 @pytest.fixture(scope="session")
 def mock_databricks_config():
-    config = create_autospec(Config)  # pylint: disable=mock-no-usage
+    config = create_autospec(Config)
+    config.as_dict.return_value = {}
     yield config
 
 
 @pytest.fixture(scope="session")
 def mock_spark_session():
-    spark_session = create_autospec(DatabricksSession)  # pylint: disable=mock-no-usage
+    spark_session = create_autospec(DatabricksSession)
+    spark_session.builder.clusterId.return_value = "test123"
     return spark_session
 
 
 @pytest.fixture()
 def mock_workspace_client():
-    client = create_autospec(WorkspaceClient)  # pylint: disable=mock-no-usage
+    client = create_autospec(WorkspaceClient)
+    client.config.return_value = {"warehouse_id", "test_warehouse"}
     client.current_user.me = lambda: iam.User(user_name="remorph", groups=[iam.ComplexValue(display="admins")])
     yield client
 
