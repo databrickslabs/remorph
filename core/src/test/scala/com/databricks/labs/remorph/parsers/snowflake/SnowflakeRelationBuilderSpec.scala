@@ -1,7 +1,7 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
 import com.databricks.labs.remorph.parsers.intermediate._
-import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser.{BuiltinFunctionNameContext, Id_Context, JoinTypeContext, OuterJoinContext}
+import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser.{BuiltinFunctionNameContext, IdContext, JoinTypeContext, OuterJoinContext}
 import org.antlr.v4.runtime.RuleContext
 import org.mockito.Mockito._
 import org.scalatest.Assertion
@@ -281,9 +281,9 @@ class SnowflakeRelationBuilderSpec extends AnyWordSpec with SnowflakeParserTestC
 
   "SnowflakeRelationBuilder.translateAggregateFunction" should {
     "handler unresolved input" in {
-      val param = parseString("x", _.id_())
+      val param = parseString("x", _.id())
       val builtinFunc = mock[BuiltinFunctionNameContext]
-      val aggFunc = mock[Id_Context]
+      val aggFunc = mock[IdContext]
       when(aggFunc.builtinFunctionName()).thenReturn(builtinFunc)
       val dummyTextForAggFunc = "dummy"
       when(aggFunc.getText).thenReturn(dummyTextForAggFunc)

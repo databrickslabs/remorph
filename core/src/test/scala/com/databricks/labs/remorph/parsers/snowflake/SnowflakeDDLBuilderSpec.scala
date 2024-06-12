@@ -281,7 +281,7 @@ class SnowflakeDDLBuilderSpec
       verify(outOfLineConstraint).UNIQUE()
       verify(outOfLineConstraint).primaryKey()
       verify(outOfLineConstraint).foreignKey()
-      verify(outOfLineConstraint).id_()
+      verify(outOfLineConstraint).id()
       verify(outOfLineConstraint, times(3)).getText
       verifyNoMoreInteractions(outOfLineConstraint)
 
@@ -378,7 +378,7 @@ class SnowflakeDDLBuilderSpec
   "SnowflakeDDLBuilder.buildDropConstraints" should {
     "handle unexpected input" in {
       val constraintAction = mock[ConstraintActionContext]
-      when(constraintAction.id_()).thenReturn(java.util.Collections.emptyList[Id_Context])
+      when(constraintAction.id()).thenReturn(java.util.Collections.emptyList[IdContext])
       val dummyTextForConstraintAction = "dummy"
       when(constraintAction.getText).thenReturn(dummyTextForConstraintAction)
       val result = astBuilder.buildDropConstraints(constraintAction)
@@ -386,7 +386,7 @@ class SnowflakeDDLBuilderSpec
       verify(constraintAction).columnListInParentheses()
       verify(constraintAction).primaryKey()
       verify(constraintAction).UNIQUE()
-      verify(constraintAction).id_()
+      verify(constraintAction).id()
       verify(constraintAction).getText
       verifyNoMoreInteractions(constraintAction)
     }

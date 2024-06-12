@@ -26,27 +26,27 @@ class SnowflakeExpressionBuilder()
   override def visitColumnElemStar(ctx: ColumnElemStarContext): ir.Expression = {
     ir.Star(Option(ctx.objectNameOrAlias()).map {
       case c if c.objectName() != null => c.objectName().getText
-      case c if c.alias() != null => c.alias().id_().getText
+      case c if c.alias() != null => c.alias().id().getText
     })
   }
 
   private def buildAlias(ctx: AsAliasContext, input: ir.Expression): ir.Expression =
     Option(ctx).fold(input) { c =>
-      val alias = c.alias().id_().getText
+      val alias = c.alias().id().getText
       ir.Alias(input, Seq(alias), None)
     }
   override def visitColumnName(ctx: ColumnNameContext): ir.Expression = {
     // TODO: Build table as per TSQl
-    ir.Column(ctx.id_(0).getText)
+    ir.Column(ctx.id(0).getText)
   }
 
   override def visitPrimExprColumn(ctx: PrimExprColumnContext): ir.Expression = {
-    val columnName = ctx.fullColumnName().id_().asScala.map(_.getText).mkString(".")
+    val columnName = ctx.fullColumnName().id().asScala.map(_.getText).mkString(".")
     ir.Column(columnName)
   }
 
   override def visitOrderItem(ctx: OrderItemContext): ir.Expression = {
-    val columnName = ctx.id_().getText
+    val columnName = ctx.id().getText
     ir.Column(columnName)
   }
 
@@ -288,7 +288,7 @@ class SnowflakeExpressionBuilder()
   }
 
   override def visitStandardFunction(ctx: StandardFunctionContext): ir.Expression = {
-    val functionName = ctx.id_().getText
+    val functionName = ctx.id().getText
     val arguments = Option(ctx.exprList()).map(_.expr().asScala.map(_.accept(this))).getOrElse(Seq())
     functionBuilder.buildFunction(functionName, arguments)
   }
@@ -297,11 +297,11 @@ class SnowflakeExpressionBuilder()
 
   override def visitAggFuncExprList(ctx: AggFuncExprListContext): ir.Expression = {
     val param = ctx.exprList().expr(0).accept(this)
-    buildBuiltinFunction(ctx.id_().builtinFunctionName(), param)
+    buildBuiltinFunction(ctx.id().builtinFunctionName(), param)
   }
 
   override def visitAggFuncStar(ctx: AggFuncStarContext): ir.Expression = {
-    buildBuiltinFunction(ctx.id_().builtinFunctionName(), ir.Star(None))
+    buildBuiltinFunction(ctx.id().builtinFunctionName(), ir.Star(None))
   }
 
   override def visitAggFuncList(ctx: AggFuncListContext): ir.Expression = {
