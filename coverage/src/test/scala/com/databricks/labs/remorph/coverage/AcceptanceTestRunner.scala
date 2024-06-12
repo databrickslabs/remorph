@@ -35,7 +35,7 @@ class SnowflakeAcceptanceSuite
       AcceptanceTestConfig(
         new NestedFiles(Paths.get(Option(System.getProperty("snowflake.test.resources.path"))
           .getOrElse("../tests/resources/functional/snowflake"))),
-        new CommentBasedQueryExtractor("-- snowflake sql:", "-- databricks sql:"),
+        new CommentBasedQueryExtractor("snowflake"),
         new IsResolvedAsSnowflakeQueryRunner(new SnowflakeAstBuilder)))
 
 class TSqlAcceptanceSuite
@@ -43,5 +43,5 @@ class TSqlAcceptanceSuite
       AcceptanceTestConfig(
         new NestedFiles(Paths.get(Option(System.getProperty("tsql.test.resources.path"))
           .getOrElse("../tests/resources/functional/tsql"))),
-        new CommentBasedQueryExtractor("-- tsql sql:", "-- databricks sql:"),
+        new CommentBasedQueryExtractor("tsql"),
         new IsResolvedAsTSqlQueryRunner(new TSqlAstBuilder)))

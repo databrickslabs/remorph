@@ -1,13 +1,13 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
 import com.databricks.labs.remorph.parsers.intermediate._
-import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser.{Builtin_function_nameContext, Id_Context, Join_typeContext, Outer_joinContext}
+import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser.{BuiltinFunctionNameContext, Id_Context, JoinTypeContext, OuterJoinContext}
 import org.antlr.v4.runtime.RuleContext
-import org.scalatest.matchers.should.Matchers
-import org.scalatest.wordspec.AnyWordSpec
 import org.mockito.Mockito._
 import org.scalatest.Assertion
 import org.scalatest.Checkpoints.Checkpoint
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.mockito.MockitoSugar
 
 class SnowflakeRelationBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon with Matchers with MockitoSugar {
@@ -27,38 +27,44 @@ class SnowflakeRelationBuilderSpec extends AnyWordSpec with SnowflakeParserTestC
   "SnowflakeRelationBuilder" should {
 
     "translate query with no FROM clause" in {
-      example("", _.select_optional_clauses(), NoTable())
+      example("", _.selectOptionalClauses(), NoTable())
     }
 
     "translate FROM clauses" in {
-      example("FROM some_table", _.from_clause(), namedTable("some_table"))
+      example("FROM some_table", _.fromClause(), namedTable("some_table"))
       example(
         "FROM t1, t2, t3",
-        _.from_clause(),
+        _.fromClause(),
         Join(
-          Join(namedTable("t1"), namedTable("t2"), None, InnerJoin, Seq(), JoinDataType(false, false)),
+          Join(
+            namedTable("t1"),
+            namedTable("t2"),
+            None,
+            InnerJoin,
+            Seq(),
+            JoinDataType(is_left_struct = false, is_right_struct = false)),
           namedTable("t3"),
           None,
           InnerJoin,
           Seq(),
-          JoinDataType(false, false)))
+          JoinDataType(is_left_struct = false, is_right_struct = false)))
       example(
         "FROM (SELECT * FROM t1) t2",
-        _.from_clause(),
+        _.fromClause(),
         SubqueryAlias(Project(namedTable("t1"), Seq(Star(None))), "t2", ""))
     }
 
     "translate WHERE clauses" in {
       example(
         "FROM some_table WHERE 1=1",
-        _.select_optional_clauses(),
+        _.selectOptionalClauses(),
         Filter(namedTable("some_table"), Equals(Literal(short = Some(1)), Literal(short = Some(1)))))
     }
 
     "translate GROUP BY clauses" in {
       example(
         "FROM some_table GROUP BY some_column",
-        _.select_optional_clauses(),
+        _.selectOptionalClauses(),
         Aggregate(
           input = namedTable("some_table"),
           group_type = GroupBy,
@@ -67,7 +73,7 @@ class SnowflakeRelationBuilderSpec extends AnyWordSpec with SnowflakeParserTestC
 
       example(
         query = "FROM t1 PIVOT (AVG(a) FOR d IN('x', 'y'))",
-        rule = _.select_optional_clauses(),
+        rule = _.selectOptionalClauses(),
         Aggregate(
           input = namedTable("t1"),
           group_type = Pivot,
@@ -76,7 +82,7 @@ class SnowflakeRelationBuilderSpec extends AnyWordSpec with SnowflakeParserTestC
 
       example(
         query = "FROM t1 PIVOT (COUNT(a) FOR d IN('x', 'y'))",
-        rule = _.select_optional_clauses(),
+        rule = _.selectOptionalClauses(),
         Aggregate(
           input = namedTable("t1"),
           group_type = Pivot,
@@ -85,7 +91,7 @@ class SnowflakeRelationBuilderSpec extends AnyWordSpec with SnowflakeParserTestC
 
       example(
         query = "FROM t1 PIVOT (MIN(a) FOR d IN('x', 'y'))",
-        rule = _.select_optional_clauses(),
+        rule = _.selectOptionalClauses(),
         Aggregate(
           input = namedTable("t1"),
           group_type = Pivot,
@@ -96,42 +102,42 @@ class SnowflakeRelationBuilderSpec extends AnyWordSpec with SnowflakeParserTestC
     "translate ORDER BY clauses" in {
       example(
         "FROM some_table ORDER BY some_column",
-        _.select_optional_clauses(),
+        _.selectOptionalClauses(),
         Sort(
           namedTable("some_table"),
           Seq(SortOrder(Column("some_column"), AscendingSortDirection, SortNullsLast)),
           is_global = false))
       example(
         "FROM some_table ORDER BY some_column ASC",
-        _.select_optional_clauses(),
+        _.selectOptionalClauses(),
         Sort(
           namedTable("some_table"),
           Seq(SortOrder(Column("some_column"), AscendingSortDirection, SortNullsLast)),
           is_global = false))
       example(
         "FROM some_table ORDER BY some_column ASC NULLS LAST",
-        _.select_optional_clauses(),
+        _.selectOptionalClauses(),
         Sort(
           namedTable("some_table"),
           Seq(SortOrder(Column("some_column"), AscendingSortDirection, SortNullsLast)),
           is_global = false))
       example(
         "FROM some_table ORDER BY some_column DESC",
-        _.select_optional_clauses(),
+        _.selectOptionalClauses(),
         Sort(
           namedTable("some_table"),
           Seq(SortOrder(Column("some_column"), DescendingSortDirection, SortNullsLast)),
           is_global = false))
       example(
         "FROM some_table ORDER BY some_column DESC NULLS LAST",
-        _.select_optional_clauses(),
+        _.selectOptionalClauses(),
         Sort(
           namedTable("some_table"),
           Seq(SortOrder(Column("some_column"), DescendingSortDirection, SortNullsLast)),
           is_global = false))
       example(
         "FROM some_table ORDER BY some_column DESC NULLS FIRST",
-        _.select_optional_clauses(),
+        _.selectOptionalClauses(),
         Sort(
           namedTable("some_table"),
           Seq(SortOrder(Column("some_column"), DescendingSortDirection, SortNullsFirst)),
@@ -142,7 +148,7 @@ class SnowflakeRelationBuilderSpec extends AnyWordSpec with SnowflakeParserTestC
     "translate SAMPLE clauses" in {
       examples(
         Seq("t1 SAMPLE (1)", "t1 TABLESAMPLE (1)", "t1 SAMPLE BERNOULLI (1)", "t1 TABLESAMPLE BERNOULLI (1)"),
-        _.table_source(),
+        _.tableSource(),
         TableSample(namedTable("t1"), RowSamplingProbabilistic(BigDecimal(1)), None))
 
       examples(
@@ -151,24 +157,24 @@ class SnowflakeRelationBuilderSpec extends AnyWordSpec with SnowflakeParserTestC
           "t1 TABLESAMPLE (1 ROWS)",
           "t1 SAMPLE BERNOULLI (1 ROWS)",
           "t1 TABLESAMPLE BERNOULLI (1 ROWS)"),
-        _.table_source(),
+        _.tableSource(),
         TableSample(namedTable("t1"), RowSamplingFixedAmount(BigDecimal(1)), None))
 
       examples(
         Seq("t1 SAMPLE BLOCK (1)", "t1 TABLESAMPLE BLOCK (1)", "t1 SAMPLE SYSTEM (1)", "t1 TABLESAMPLE SYSTEM (1)"),
-        _.table_source(),
+        _.tableSource(),
         TableSample(namedTable("t1"), BlockSampling(BigDecimal(1)), None))
 
       examples(
         Seq("t1 SAMPLE (1) SEED (1234)", "t1 SAMPLE (1) REPEATABLE (1234)"),
-        _.table_source(),
+        _.tableSource(),
         TableSample(namedTable("t1"), RowSamplingProbabilistic(BigDecimal(1)), Some(BigDecimal(1234))))
     }
 
     "translate combinations of the above" in {
       example(
         "FROM some_table WHERE 1=1 GROUP BY some_column",
-        _.select_optional_clauses(),
+        _.selectOptionalClauses(),
         Aggregate(
           input = Filter(namedTable("some_table"), Equals(Literal(short = Some(1)), Literal(short = Some(1)))),
           group_type = GroupBy,
@@ -177,7 +183,7 @@ class SnowflakeRelationBuilderSpec extends AnyWordSpec with SnowflakeParserTestC
 
       example(
         "FROM some_table WHERE 1=1 GROUP BY some_column ORDER BY some_column NULLS FIRST",
-        _.select_optional_clauses(),
+        _.selectOptionalClauses(),
         Sort(
           Aggregate(
             input = Filter(namedTable("some_table"), Equals(Literal(short = Some(1)), Literal(short = Some(1)))),
@@ -189,7 +195,7 @@ class SnowflakeRelationBuilderSpec extends AnyWordSpec with SnowflakeParserTestC
 
       example(
         "FROM some_table WHERE 1=1 ORDER BY some_column NULLS FIRST",
-        _.select_optional_clauses(),
+        _.selectOptionalClauses(),
         Sort(
           Filter(namedTable("some_table"), Equals(Literal(short = Some(1)), Literal(short = Some(1)))),
           Seq(SortOrder(Column("some_column"), AscendingSortDirection, SortNullsFirst)),
@@ -199,14 +205,14 @@ class SnowflakeRelationBuilderSpec extends AnyWordSpec with SnowflakeParserTestC
     "translate CTE definitions" in {
       example(
         "WITH a (b, c) AS (SELECT x, y FROM d)",
-        _.with_expression(),
+        _.withExpression(),
         CTEDefinition("a", Seq(Column("b"), Column("c")), Project(namedTable("d"), Seq(Column("x"), Column("y")))))
     }
 
     "translate QUALIFY clauses" in {
       example(
         "FROM qt QUALIFY ROW_NUMBER() OVER (PARTITION BY p ORDER BY o) = 1",
-        _.select_optional_clauses(),
+        _.selectOptionalClauses(),
         Filter(
           input = namedTable("qt"),
           condition = Equals(
@@ -221,7 +227,7 @@ class SnowflakeRelationBuilderSpec extends AnyWordSpec with SnowflakeParserTestC
     "translate SELECT DISTINCT clauses" in {
       example(
         "SELECT DISTINCT a, b AS bb FROM t",
-        _.select_statement(),
+        _.selectStatement(),
         Project(
           Deduplicate(
             input = namedTable("t"),
@@ -233,11 +239,11 @@ class SnowflakeRelationBuilderSpec extends AnyWordSpec with SnowflakeParserTestC
     }
 
     "translate SELECT TOP clauses" in {
-      example("SELECT TOP 42 a FROM t", _.select_statement(), Project(Limit(namedTable("t"), 42), Seq(Column("a"))))
+      example("SELECT TOP 42 a FROM t", _.selectStatement(), Project(Limit(namedTable("t"), 42), Seq(Column("a"))))
 
       example(
         "SELECT DISTINCT TOP 42 a FROM t",
-        _.select_statement(),
+        _.selectStatement(),
         Project(
           Limit(Deduplicate(namedTable("t"), Seq("a"), all_columns_as_keys = false, within_watermark = false), 42),
           Seq(Column("a"))))
@@ -246,7 +252,7 @@ class SnowflakeRelationBuilderSpec extends AnyWordSpec with SnowflakeParserTestC
     "translate VALUES clauses as object references" in {
       example(
         "VALUES ('a', 1), ('b', 2)",
-        _.object_ref(),
+        _.objectRef(),
         Values(
           Seq(
             Seq(Literal(string = Some("a")), Literal(short = Some(1))),
@@ -256,33 +262,33 @@ class SnowflakeRelationBuilderSpec extends AnyWordSpec with SnowflakeParserTestC
 
   "Unparsed input" should {
     "be reported as UnresolvedRelation" in {
-      example("MATCH_RECOGNIZE()", _.match_recognize(), UnresolvedRelation("MATCH_RECOGNIZE()"))
+      example("MATCH_RECOGNIZE()", _.matchRecognize(), UnresolvedRelation("MATCH_RECOGNIZE()"))
     }
   }
 
   "SnowflakeRelationBuilder.translateJoinType" should {
     "handle unresolved join type" in {
-      val outerJoin = mock[Outer_joinContext]
-      val joinType = mock[Join_typeContext]
-      when(joinType.outer_join()).thenReturn(outerJoin)
+      val outerJoin = mock[OuterJoinContext]
+      val joinType = mock[JoinTypeContext]
+      when(joinType.outerJoin()).thenReturn(outerJoin)
       astBuilder.translateJoinType(joinType) shouldBe UnspecifiedJoin
       verify(outerJoin).LEFT()
       verify(outerJoin).RIGHT()
       verify(outerJoin).FULL()
-      verify(joinType, times(4)).outer_join()
+      verify(joinType, times(4)).outerJoin()
     }
   }
 
   "SnowflakeRelationBuilder.translateAggregateFunction" should {
     "handler unresolved input" in {
       val param = parseString("x", _.id_())
-      val builtinFunc = mock[Builtin_function_nameContext]
+      val builtinFunc = mock[BuiltinFunctionNameContext]
       val aggFunc = mock[Id_Context]
-      when(aggFunc.builtin_function_name()).thenReturn(builtinFunc)
+      when(aggFunc.builtinFunctionName()).thenReturn(builtinFunc)
       val dummyTextForAggFunc = "dummy"
       when(aggFunc.getText).thenReturn(dummyTextForAggFunc)
       astBuilder.translateAggregateFunction(aggFunc, param) shouldBe UnresolvedExpression(dummyTextForAggFunc)
-      verify(aggFunc, times(8)).builtin_function_name()
+      verify(aggFunc, times(8)).builtinFunctionName()
       verify(aggFunc).getText
       verifyNoMoreInteractions(aggFunc)
       verify(builtinFunc).AVG()

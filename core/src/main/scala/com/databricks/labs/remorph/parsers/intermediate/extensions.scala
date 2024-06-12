@@ -86,9 +86,6 @@ case class Concat(left: Expression, right: Expression) extends Binary(left, righ
 case class Assign(left: Expression, right: Expression) extends Binary(left, right) {}
 
 // Some statements, such as SELECT, do not require a table specification
-case object NoTable extends Relation {}
-
-// It was not clear whether the NamedTable options should be used for the alias. I'm assuming it is not what
 case class NoTable() extends Relation {}
 
 // It was not clear whether the NamedTable options should be used for the alias. I'm assuming it is not what

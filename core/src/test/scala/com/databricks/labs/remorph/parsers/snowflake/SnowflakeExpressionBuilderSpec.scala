@@ -1,7 +1,7 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
 import com.databricks.labs.remorph.parsers.intermediate._
-import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser.{Comparison_operatorContext, LiteralContext, Ranking_windowed_functionContext}
+import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser.{ComparisonOperatorContext, LiteralContext, RankingWindowedFunctionContext}
 import org.mockito.Mockito._
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -34,29 +34,29 @@ class SnowflakeExpressionBuilderSpec
     }
 
     "translate column names" in {
-      example("x", _.column_name(), Column("x"))
+      example("x", _.columnName(), Column("x"))
     }
 
     "translate aggregation functions" in {
-      example("COUNT(x)", _.aggregate_function(), Count(Column("x")))
-      example("AVG(x)", _.aggregate_function(), Avg(Column("x")))
-      example("SUM(x)", _.aggregate_function(), Sum(Column("x")))
-      example("MIN(x)", _.aggregate_function(), Min(Column("x")))
+      example("COUNT(x)", _.aggregateFunction(), Count(Column("x")))
+      example("AVG(x)", _.aggregateFunction(), Avg(Column("x")))
+      example("SUM(x)", _.aggregateFunction(), Sum(Column("x")))
+      example("MIN(x)", _.aggregateFunction(), Min(Column("x")))
 
-      example("COUNT(*)", _.aggregate_function(), Count(Star(None)))
+      example("COUNT(*)", _.aggregateFunction(), Count(Star(None)))
 
       example(
         "LISTAGG(x, ',')",
-        _.aggregate_function(),
+        _.aggregateFunction(),
         CallFunction("LISTAGG", Seq(Column("x"), Literal(string = Some(",")))))
-      example("ARRAY_AGG(x)", _.aggregate_function(), CallFunction("ARRAYAGG", Seq(Column("x"))))
+      example("ARRAY_AGG(x)", _.aggregateFunction(), CallFunction("ARRAYAGG", Seq(Column("x"))))
     }
 
     "translate a query with a window function" in {
 
       example(
         query = "ROW_NUMBER() OVER (ORDER BY a DESC)",
-        rule = _.ranking_windowed_function(),
+        rule = _.rankingWindowedFunction(),
         expectedAst = Window(
           window_function = RowNumber,
           partition_spec = Seq(),
@@ -68,7 +68,7 @@ class SnowflakeExpressionBuilderSpec
 
       example(
         query = "ROW_NUMBER() OVER (PARTITION BY a)",
-        rule = _.ranking_windowed_function(),
+        rule = _.rankingWindowedFunction(),
         expectedAst = Window(
           window_function = RowNumber,
           partition_spec = Seq(Column("a")),
@@ -79,7 +79,7 @@ class SnowflakeExpressionBuilderSpec
             upper = FrameBoundary(current_row = true, unbounded = false, value = Noop))))
       example(
         query = "NTILE(42) OVER (PARTITION BY a ORDER BY b, c DESC, d)",
-        rule = _.ranking_windowed_function(),
+        rule = _.rankingWindowedFunction(),
         expectedAst = Window(
           window_function = NTile(Literal(short = Some(42))),
           partition_spec = Seq(Column("a")),
@@ -99,7 +99,7 @@ class SnowflakeExpressionBuilderSpec
       // line 1:35 mismatched input 'NULLS' expecting {')', ','}
       example(
         query = "ROW_NUMBER() OVER (ORDER BY a DESC NULLS FIRST)",
-        rule = _.ranking_windowed_function(),
+        rule = _.rankingWindowedFunction(),
         expectedAst = Window(
           window_function = RowNumber,
           partition_spec = Seq(),
@@ -112,49 +112,49 @@ class SnowflakeExpressionBuilderSpec
       // line 1:33 no viable alternative at input 'a ROWS'
       example(
         query = "ROW_NUMBER() OVER(PARTITION BY a ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)",
-        rule = _.ranking_windowed_function(),
+        rule = _.rankingWindowedFunction(),
         expectedAst = null)
     }
 
     "translate star-expressions" in {
-      example("*", _.column_elem_star(), Star(None))
-      example("t.*", _.column_elem_star(), Star(Some("t")))
+      example("*", _.columnElemStar(), Star(None))
+      example("t.*", _.columnElemStar(), Star(Some("t")))
     }
   }
 
   "SnowflakeExpressionBuilder.buildSortOrder" should {
 
     "translate ORDER BY a" in {
-      val tree = parseString("ORDER BY a", _.order_by_expr())
+      val tree = parseString("ORDER BY a", _.orderByExpr())
       astBuilder.buildSortOrder(tree) shouldBe Seq(SortOrder(Column("a"), AscendingSortDirection, SortNullsLast))
     }
 
     "translate ORDER BY a ASC" in {
-      val tree = parseString("ORDER BY a ASC", _.order_by_expr())
+      val tree = parseString("ORDER BY a ASC", _.orderByExpr())
       astBuilder.buildSortOrder(tree) shouldBe Seq(SortOrder(Column("a"), AscendingSortDirection, SortNullsLast))
     }
 
     "translate ORDER BY a DESC" in {
-      val tree = parseString("ORDER BY a DESC", _.order_by_expr())
+      val tree = parseString("ORDER BY a DESC", _.orderByExpr())
       astBuilder.buildSortOrder(tree) shouldBe Seq(SortOrder(Column("a"), DescendingSortDirection, SortNullsLast))
     }
 
     "translate ORDER BY a, b DESC" in {
-      val tree = parseString("ORDER BY a, b DESC", _.order_by_expr())
+      val tree = parseString("ORDER BY a, b DESC", _.orderByExpr())
       astBuilder.buildSortOrder(tree) shouldBe Seq(
         SortOrder(Column("a"), AscendingSortDirection, SortNullsLast),
         SortOrder(Column("b"), DescendingSortDirection, SortNullsLast))
     }
 
     "translate ORDER BY a DESC, b" in {
-      val tree = parseString("ORDER BY a DESC, b", _.order_by_expr())
+      val tree = parseString("ORDER BY a DESC, b", _.orderByExpr())
       astBuilder.buildSortOrder(tree) shouldBe Seq(
         SortOrder(Column("a"), DescendingSortDirection, SortNullsLast),
         SortOrder(Column("b"), AscendingSortDirection, SortNullsLast))
     }
 
     "translate ORDER BY with many expressions" in {
-      val tree = parseString("ORDER BY a DESC, b, c ASC, d DESC, e", _.order_by_expr())
+      val tree = parseString("ORDER BY a DESC, b, c ASC, d DESC, e", _.orderByExpr())
       astBuilder.buildSortOrder(tree) shouldBe Seq(
         SortOrder(Column("a"), DescendingSortDirection, SortNullsLast),
         SortOrder(Column("b"), AscendingSortDirection, SortNullsLast),
@@ -177,7 +177,7 @@ class SnowflakeExpressionBuilderSpec
   "translate CASE expressions" in {
     example(
       "CASE WHEN col1 = 1 THEN 'one' WHEN col2 = 2 THEN 'two' END",
-      _.case_expression(),
+      _.caseExpression(),
       Case(
         expression = None,
         branches = scala.collection.immutable.Seq(
@@ -187,7 +187,7 @@ class SnowflakeExpressionBuilderSpec
 
     example(
       "CASE 'foo' WHEN col1 = 1 THEN 'one' WHEN col2 = 2 THEN 'two' END",
-      _.case_expression(),
+      _.caseExpression(),
       Case(
         expression = Some(Literal(string = Some("foo"))),
         branches = scala.collection.immutable.Seq(
@@ -197,7 +197,7 @@ class SnowflakeExpressionBuilderSpec
 
     example(
       "CASE WHEN col1 = 1 THEN 'one' WHEN col2 = 2 THEN 'two' ELSE 'other' END",
-      _.case_expression(),
+      _.caseExpression(),
       Case(
         expression = None,
         branches = scala.collection.immutable.Seq(
@@ -207,7 +207,7 @@ class SnowflakeExpressionBuilderSpec
 
     example(
       "CASE 'foo' WHEN col1 = 1 THEN 'one' WHEN col2 = 2 THEN 'two' ELSE 'other' END",
-      _.case_expression(),
+      _.caseExpression(),
       Case(
         expression = Some(Literal(string = Some("foo"))),
         branches = scala.collection.immutable.Seq(
@@ -219,7 +219,7 @@ class SnowflakeExpressionBuilderSpec
 
   "Unparsed input" should {
     "be reported as UnresolvedExpression" in {
-      example("{'name':'Homer Simpson'}", _.json_literal(), UnresolvedExpression("{'name':'Homer Simpson'}"))
+      example("{'name':'Homer Simpson'}", _.jsonLiteral(), UnresolvedExpression("{'name':'Homer Simpson'}"))
     }
   }
 
@@ -232,7 +232,7 @@ class SnowflakeExpressionBuilderSpec
       verify(literal).DECIMAL()
       verify(literal).FLOAT()
       verify(literal).REAL()
-      verify(literal).true_false()
+      verify(literal).trueFalse()
       verify(literal).NULL_()
       verifyNoMoreInteractions(literal)
     }
@@ -240,7 +240,7 @@ class SnowflakeExpressionBuilderSpec
 
   "SnowflakeExpressionBuilder.buildComparisonExpression" should {
     "handle unresolved input" in {
-      val operator = mock[Comparison_operatorContext]
+      val operator = mock[ComparisonOperatorContext]
       val dummyTextForOperator = "dummy"
       when(operator.getText).thenReturn(dummyTextForOperator)
       astBuilder.buildComparisonExpression(operator, null, null) shouldBe UnresolvedExpression(dummyTextForOperator)
@@ -258,7 +258,7 @@ class SnowflakeExpressionBuilderSpec
 
   "SnowflakeExpressionBuilder.buildWindowFunction" should {
     "handle unresolved input" in {
-      val windowedFunction = mock[Ranking_windowed_functionContext]
+      val windowedFunction = mock[RankingWindowedFunctionContext]
       val dummyTextForWindowedFunction = "dummy"
       when(windowedFunction.getText).thenReturn(dummyTextForWindowedFunction)
       astBuilder.buildWindowFunction(windowedFunction) shouldBe UnresolvedExpression(dummyTextForWindowedFunction)

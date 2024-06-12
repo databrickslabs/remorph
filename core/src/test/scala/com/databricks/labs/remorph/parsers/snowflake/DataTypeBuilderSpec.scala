@@ -9,7 +9,7 @@ import org.scalatest.wordspec.AnyWordSpec
 class DataTypeBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon with should.Matchers {
 
   private def example(query: String, expectedDataType: DataType): Assertion = {
-    assert(DataTypeBuilder.buildDataType(parseString(query, _.data_type())) === expectedDataType)
+    assert(DataTypeBuilder.buildDataType(parseString(query, _.dataType())) === expectedDataType)
   }
   "DataTypeBuilder" should {
     "translate most of Snowflake datatypes" in {
