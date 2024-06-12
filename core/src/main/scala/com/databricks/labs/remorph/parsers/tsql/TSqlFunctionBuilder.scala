@@ -7,10 +7,15 @@ class TSqlFunctionBuilder extends FunctionBuilder with StringConverter {
   private val tSqlFunctionDefinitionPf: PartialFunction[String, FunctionDefinition] = {
     case "@@CURSOR_STATUS" => FunctionDefinition.notConvertible(0)
     case "@@FETCH_STATUS" => FunctionDefinition.notConvertible(0)
-    // The ConversionStrategy is used to rename ISNULL to IFNULL
+    case "CUBE" => FunctionDefinition.standard(1, Int.MaxValue) // Snowflake hard codes this
+    case "ROLLUP" => FunctionDefinition.standard(1, Int.MaxValue) // Snowflake hard codes this
+    case "GET_BIT" => FunctionDefinition.standard(2).withConversionStrategy(rename)
     case "ISNULL" => FunctionDefinition.standard(2).withConversionStrategy(rename)
+    case "LEFT_SHIFT" => FunctionDefinition.standard(2).withConversionStrategy(rename)
     case "MODIFY" => FunctionDefinition.xml(1)
     case "NEXTVALUEFOR" => FunctionDefinition.standard(1).withConversionStrategy(nextValueFor)
+    case "RIGHT_SHIFT" => FunctionDefinition.standard(2).withConversionStrategy(rename)
+    case "SET_BIT" => FunctionDefinition.standard(2, 3).withConversionStrategy(rename)
   }
 
   override def functionDefinition(name: String): Option[FunctionDefinition] =
@@ -43,6 +48,10 @@ class TSqlFunctionBuilder extends FunctionBuilder with StringConverter {
   private[tsql] def rename(irName: String, args: Seq[ir.Expression]): ir.Expression = {
     irName.toUpperCase() match {
       case "ISNULL" => ir.CallFunction(convertString(irName, "IFNULL"), args)
+      case "GET_BIT" => ir.CallFunction(convertString(irName, "GETBIT"), args)
+      case "SET_BIT" => ir.CallFunction(convertString(irName, "SETBIT"), args)
+      case "LEFT_SHIFT" => ir.CallFunction(convertString(irName, "LEFTSHIFT"), args)
+      case "RIGHT_SHIFT" => ir.CallFunction(convertString(irName, "RIGHTSHIFT"), args)
       case _ => ir.CallFunction(irName, args)
     }
   }
