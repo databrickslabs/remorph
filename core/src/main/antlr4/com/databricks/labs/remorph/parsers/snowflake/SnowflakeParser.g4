@@ -2057,7 +2057,7 @@ parenStringOptions
     ;
 
 stringOption
-    : id_ EQ STRING
+    : id EQ STRING
     ;
 
 externalStageParams
@@ -3543,9 +3543,7 @@ ternaryBuiltinFunction
 listFunction
     // lexer entry of function name which admit a list of comma separated expr
     // expr rule use this
-    : CONCAT
-    | CONCAT_WS
-    | COALESCE
+    : COALESCE
     | HASH
     // To complete as needed
     ;
