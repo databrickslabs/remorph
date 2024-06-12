@@ -9,8 +9,9 @@ class SnowLexerSpec extends AnyWordSpec with Matchers with TableDrivenPropertyCh
 
   private val lexer = new SnowflakeLexer(null)
 
+  // TODO: Expand this test to cover all token types, and maybe all tokens
   "Snowflake Lexer" should {
-    "parse string literals" in {
+    "parse string literals and ids" in {
 
       val testInput = Table(
         ("input", "expected"), // Headers

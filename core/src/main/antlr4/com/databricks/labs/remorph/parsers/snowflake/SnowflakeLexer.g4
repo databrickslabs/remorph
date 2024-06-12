@@ -1117,7 +1117,7 @@ VARIANT          : 'VARIANT';
 
 LISTAGG: 'LISTAGG';
 
-DUMMY: 'DUMMY'; //Dummy is not a keyword but rules reference it. As to be cleaned.
+DUMMY: 'DUMMY'; //Dummy is not a keyword but rules reference it in unfinished grammar - need to get rid
 
 SPACE: [ \t\r\n]+ -> skip;
 
@@ -1128,14 +1128,13 @@ LINE_COMMENT_2 : '//' ~[\r\n]*                 -> channel(HIDDEN);
 // TODO: ID can be not only Latin.
 DOUBLE_QUOTE_ID    : '"' ~[\r\n"]+ '"';
 DOUBLE_QUOTE_BLANK : '""';
-SINGLE_QUOTE       : '\'';
 
 ID  : [A-Z_] [A-Z0-9_@$]*;
 ID2 : DOLLAR [A-Z_] [A-Z0-9_]*;
 
 DBL_DOLLAR: '$$' (~'$' | '\\$' | '$' ~'$')*? '$$';
 
-STRING: '\'' ('\\' . | '\'\'' | ~('\'' | '\\'))* '\'';
+STRING: '\'' (~['] | '\\' .) * '\'';
 
 DECIMAL : DEC_DIGIT+;
 FLOAT   : DEC_DOT_DEC;
@@ -1150,12 +1149,7 @@ fragment EscapeSequence:
 ;
 
 fragment HexDigit: [0-9a-f];
-
 fragment HexString: [A-Z0-9|.] [A-Z0-9+\-|.]*;
-
-fragment Uri: HexString (DIVIDE HexString)* DIVIDE?;
-
-fragment WindowsPath: [A-Z] COLON '\\' HexString ('\\' HexString)* '\\'?;
 
 ARROW : '->';
 ASSOC : '=>';

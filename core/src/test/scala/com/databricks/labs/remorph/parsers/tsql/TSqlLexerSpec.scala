@@ -9,8 +9,9 @@ class TSqlLexerSpec extends AnyWordSpec with Matchers with TableDrivenPropertyCh
 
   private val lexer = new TSqlLexer(null)
 
+  // TODO: Expand this test to cover all token types, and maybe all tokens
   "TSqlLexer" should {
-    "parse string literals" in {
+    "parse string literals and ids" in {
 
       val testInput = Table(
         ("input", "expected"), // Headers

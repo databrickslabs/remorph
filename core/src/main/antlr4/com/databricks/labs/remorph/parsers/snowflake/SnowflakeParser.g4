@@ -179,22 +179,25 @@ copyIntoTable
     ;
 
 externalLocation
+    : STRING
     //(for Amazon S3)
-    : S3_PATH //'s3://<bucket>[/<path>]'
-    //        ( ( STORAGE_INTEGRATION EQ id )?
+    //'s3://<bucket>[/<path>]'
+    //        ( ( STORAGE_INTEGRATION EQ id_ )?
     //        | ( CREDENTIALS EQ L_PAREN ( AWS_KEY_ID EQ string AWS_SECRET_KEY EQ string ( AWS_TOKEN EQ string )? ) R_PAREN )?
     //        )?
     //        [ ENCRYPTION = ( [ TYPE = 'AWS_CSE' ] [ MASTER_KEY = '<string>' ] |
     //                   [ TYPE = 'AWS_SSE_S3' ] |
     //                   [ TYPE = 'AWS_SSE_KMS' [ KMS_KEY_ID = '<string>' ] ] |
     //                   [ TYPE = 'NONE' ] ) ]
+    //
     // (for Google Cloud Storage)
-    | GCS_PATH //'gcs://<bucket>[/<path>]'
-    //        ( STORAGE_INTEGRATION EQ id )?
+    //'gcs://<bucket>[/<path>]'
+    //        ( STORAGE_INTEGRATION EQ id_ )?
     //[ ENCRYPTION = ( [ TYPE = 'GCS_SSE_KMS' ] [ KMS_KEY_ID = '<string>' ] | [ TYPE = 'NONE' ] ) ]
+    //
     // (for Microsoft Azure)
-    | AZURE_PATH //'azure://<account>.blob.core.windows.net/<container>[/<path>]'
-    //        (   ( STORAGE_INTEGRATION EQ id )?
+    //'azure://<account>.blob.core.windows.net/<container>[/<path>]'
+    //        (   ( STORAGE_INTEGRATION EQ id_ )?
     //            | ( CREDENTIALS EQ L_PAREN ( AZURE_SAS_TOKEN EQ string ) R_PAREN )
     //        )?
     //[ ENCRYPTION = ( [ TYPE = { 'AZURE_CSE' | 'NONE' } ] [ MASTER_KEY = '<string>' ] ) ]
@@ -259,7 +262,7 @@ parallel
     ;
 
 getDml
-    : GET (namedStage | userStage | tableStage) FILE_PATH parallel? pattern?
+    : GET (namedStage | userStage | tableStage) STRING parallel? pattern?
     ;
 
 grantOwnership
@@ -449,7 +452,7 @@ stagePath
     ;
 
 put
-    : PUT FILE_PATH (tableStage | userStage | namedStage) (PARALLEL EQ num)? (
+    : PUT STRING (tableStage | userStage | namedStage) (PARALLEL EQ num)? (
         AUTO_COMPRESS EQ trueFalse
     )? (
         SOURCE_COMPRESSION EQ (
@@ -1964,7 +1967,7 @@ formatTypeOptions
     | ESCAPE EQ (character | NONE | NONE_Q)
     | ESCAPE_UNENCLOSED_FIELD EQ (string | NONE | NONE_Q)
     | TRIM_SPACE EQ trueFalse
-    | FIELD_OPTIONALLY_ENCLOSED_BY EQ (string | NONE | NONE_Q | SINGLE_QUOTE)
+    | FIELD_OPTIONALLY_ENCLOSED_BY EQ (string | NONE | NONE_Q)
     | NULL_IF EQ L_PAREN stringList R_PAREN
     | ERROR_ON_COLUMN_COUNT_MISMATCH EQ trueFalse
     | REPLACE_INVALID_CHARACTERS EQ trueFalse
@@ -2037,88 +2040,31 @@ stageEncryptionOptsInternal
     : ENCRYPTION EQ L_PAREN TYPE EQ (SNOWFLAKE_FULL | SNOWFLAKE_SSE) R_PAREN
     ;
 
-stageType
-    : TYPE EQ string
-    ;
-
-stageMasterKey
-    : MASTER_KEY EQ string
-    ;
-
-stageKmsKey
-    : KMS_KEY_ID EQ string
-    ;
-
-stageEncryptionOptsAws
-    : ENCRYPTION EQ L_PAREN (stageType? stageMasterKey | stageType stageKmsKey?) R_PAREN
-    ;
-
-awsToken
-    : AWS_TOKEN EQ string
-    ;
-
-awsKeyId
-    : AWS_KEY_ID EQ string
-    ;
-
-awsSecretKey
-    : AWS_SECRET_KEY EQ string
-    ;
-
-awsRole
-    : AWS_ROLE EQ string
-    ;
-
-azureEncryptionValue
-    : (TYPE EQ AZURE_CSE_Q)? MASTER_KEY EQ string
-    | MASTER_KEY EQ string TYPE EQ AZURE_CSE_Q
-    | TYPE EQ NONE_Q
-    ;
-
-stageEncryptionOptsAz
-    : ENCRYPTION EQ L_PAREN azureEncryptionValue R_PAREN
-    ;
-
 storageIntegrationEqId
     : STORAGE_INTEGRATION EQ id
     ;
 
-azCredentialOrStorageIntegration
-    : storageIntegrationEqId
-    | CREDENTIALS EQ L_PAREN AZURE_SAS_TOKEN EQ string R_PAREN
+storageCredentials
+    : CREDENTIALS EQ parenStringOptions
     ;
 
-gcpEncryptionValue
-    : (TYPE EQ GCS_SSE_KMS_Q)? KMS_KEY_ID EQ string
-    | KMS_KEY_ID EQ string TYPE EQ GCS_SSE_KMS_Q
-    | TYPE EQ NONE_Q
+storageEncryption
+    : ENCRYPTION EQ parenStringOptions
     ;
 
-stageEncryptionOptsGcp
-    : ENCRYPTION EQ L_PAREN gcpEncryptionValue R_PAREN
+parenStringOptions
+    : L_PAREN stringOption* R_PAREN
     ;
 
-awsCredentialOrStorageIntegration
-    : storageIntegrationEqId
-    | CREDENTIALS EQ L_PAREN (awsKeyId awsSecretKey awsToken? | awsRole) R_PAREN
+stringOption
+    : id_ EQ STRING
     ;
 
 externalStageParams
-    //(for Amazon S3)
-    : URL EQ s3Url = STRING (
-        awsCredentialOrStorageIntegration? stageEncryptionOptsAws
-        | stageEncryptionOptsAws? awsCredentialOrStorageIntegration
-    )?
-    //(for Google Cloud Storage)
-    | URL EQ STRING (
-        storageIntegrationEqId? stageEncryptionOptsGcp
-        | stageEncryptionOptsGcp? storageIntegrationEqId
-    )?
-    //(for Microsoft Azure)
-    | URL EQ STRING (
-        azCredentialOrStorageIntegration? stageEncryptionOptsAz
-        | stageEncryptionOptsAz? azCredentialOrStorageIntegration
-    )?
+    : URL EQ STRING
+        storageIntegrationEqId?
+        storageCredentials?
+        storageEncryption?
     ;
 
 trueFalse
@@ -4125,6 +4071,7 @@ firstLast
     | LAST
     ;
 
+// TODO: This syntax is unfinished and needs to be completed - DUMMY is just a placeholder from the original author
 symbol
     : DUMMY
     ;
