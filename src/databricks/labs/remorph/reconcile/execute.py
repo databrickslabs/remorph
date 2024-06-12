@@ -165,13 +165,13 @@ def recon(
                 schema_reconcile_output = _run_reconcile_schema(
                     reconciler=reconciler, table_conf=table_conf, src_schema=src_schema, tgt_schema=tgt_schema
                 )
-                logger.warning("Schema comparison is completed successfully.")
+                logger.warning("Schema comparison is completed.")
 
             if report_type in {"data", "row", "all"}:
                 data_reconcile_output = _run_reconcile_data(
                     reconciler=reconciler, table_conf=table_conf, src_schema=src_schema, tgt_schema=tgt_schema
                 )
-                logger.warning(f"Reconciliation for '{report_type}' report completed successfully.")
+                logger.warning(f"Reconciliation for '{report_type}' report completed.")
 
         recon_process_duration.end_ts = str(datetime.now())
         # Persist the data to the delta tables
