@@ -38,7 +38,7 @@ class SnowflakeDDLBuilder
   private def buildParameter(ctx: ArgDeclContext): ir.FunctionParameter = {
     ir.FunctionParameter(
       name = ctx.argName().getText,
-      dataType = DataTypeBuilder.buildDataType(ctx.argDataType().id_().dataType()),
+      dataType = DataTypeBuilder.buildDataType(ctx.argDataType().dataType()),
       defaultValue = Option(ctx.argDefaultValueClause())
         .map(_.expr().accept(expressionBuilder)))
   }
@@ -139,7 +139,7 @@ class SnowflakeDDLBuilder
         references.map(ir.ForeignKey.apply)
       case c => repeatForEveryColumnName(ir.UnresolvedConstraint(c.getText))
     }
-    val constraintNameOpt = Option(ctx.id_()).map(_.getText)
+    val constraintNameOpt = Option(ctx.id()).map(_.getText)
     val constraints = constraintNameOpt.fold[Seq[ir.Constraint]](unnamedConstraints) { name =>
       unnamedConstraints.map(ir.NamedConstraint(name, _))
     }
@@ -197,7 +197,7 @@ class SnowflakeDDLBuilder
     case c if c.DROP() != null =>
       buildDropConstraints(c)
     case c if c.RENAME() != null =>
-      Seq(ir.RenameConstraint(c.id_(0).getText, c.id_(1).getText))
+      Seq(ir.RenameConstraint(c.id(0).getText, c.id(1).getText))
     case c => Seq(ir.UnresolvedTableAlteration(c.getText))
   }
 
@@ -207,7 +207,7 @@ class SnowflakeDDLBuilder
     ctx match {
       case c if c.primaryKey() != null => dropConstraints(affectedColumns, ir.PrimaryKey)
       case c if c.UNIQUE() != null => dropConstraints(affectedColumns, ir.Unique)
-      case c if c.id_.size() > 0 => Seq(ir.DropConstraintByName(c.id_(0).getText))
+      case c if c.id.size() > 0 => Seq(ir.DropConstraintByName(c.id(0).getText))
       case c => Seq(ir.UnresolvedTableAlteration(ctx.getText))
     }
   }

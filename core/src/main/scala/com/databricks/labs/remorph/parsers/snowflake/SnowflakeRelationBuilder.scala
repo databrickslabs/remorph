@@ -9,6 +9,7 @@ import scala.collection.JavaConverters._
 class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.Relation] with IncompleteParser[ir.Relation] {
 
   private val expressionBuilder = new SnowflakeExpressionBuilder
+  private val functionBuilder = new SnowflakeFunctionBuilder
 
   protected override def wrapUnresolvedInput(unparsedInput: String): ir.Relation = ir.UnresolvedRelation(unparsedInput)
   override def visitSelectStatement(ctx: SelectStatementContext): ir.Relation = {
@@ -148,7 +149,7 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.Relation] w
   }
 
   override def visitObjRefDefault(ctx: ObjRefDefaultContext): ir.Relation = {
-    val tableName = ctx.objectName().id_(0).getText
+    val tableName = ctx.objectName().id(0).getText
     val table = ir.NamedTable(tableName, Map.empty, is_streaming = false)
     buildPivotOrUnpivot(ctx.pivotUnpivot(), table)
   }
@@ -168,8 +169,8 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.Relation] w
       ctx.literal().asScala.map(_.accept(expressionBuilder)).collect { case lit: ir.Literal =>
         lit
       }
-    val pivotColumn = ir.Column(ctx.id_(2).getText)
-    val aggregateFunction = translateAggregateFunction(ctx.id_(0), ctx.id_(1))
+    val pivotColumn = ir.Column(ctx.id(2).getText)
+    val aggregateFunction = translateAggregateFunction(ctx.id(0), ctx.id(1))
     ir.Aggregate(
       input = relation,
       group_type = ir.Pivot,
@@ -183,8 +184,8 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.Relation] w
       .columnName()
       .asScala
       .map(_.accept(expressionBuilder))
-    val variableColumnName = ctx.id_(0).getText
-    val valueColumnName = ctx.columnName().id_(0).getText
+    val variableColumnName = ctx.id(0).getText
+    val valueColumnName = ctx.columnName().id(0).getText
     ir.Unpivot(
       input = relation,
       ids = unpivotColumns,
@@ -193,15 +194,9 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.Relation] w
       value_column_name = valueColumnName)
   }
 
-  private[snowflake] def translateAggregateFunction(aggFunc: Id_Context, parameter: Id_Context): ir.Expression = {
-    val column = ir.Column(parameter.getText)
-    aggFunc match {
-      case f if f.builtinFunctionName() != null && f.builtinFunctionName().SUM() != null => ir.Sum(column)
-      case f if f.builtinFunctionName() != null && f.builtinFunctionName().AVG() != null => ir.Avg(column)
-      case f if f.builtinFunctionName() != null && f.builtinFunctionName().COUNT() != null => ir.Count(column)
-      case f if f.builtinFunctionName() != null && f.builtinFunctionName().MIN() != null => ir.Min(column)
-      case _ => ir.UnresolvedExpression(aggFunc.getText)
-    }
+  private[snowflake] def translateAggregateFunction(aggFunc: IdContext, parameter: IdContext): ir.Expression = {
+    val column = ir.Column(getIdText(parameter))
+    functionBuilder.buildFunction(getIdText(aggFunc), Seq(column))
   }
 
   override def visitTableSource(ctx: TableSourceContext): ir.Relation = {
@@ -240,7 +235,7 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.Relation] w
   }
 
   override def visitCommonTableExpression(ctx: CommonTableExpressionContext): ir.Relation = {
-    val tableName = ctx.id_().getText
+    val tableName = ctx.id().getText
     val columns = ctx
       .columnList()
       .columnName()

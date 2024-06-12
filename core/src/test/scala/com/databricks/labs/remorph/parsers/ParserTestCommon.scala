@@ -32,7 +32,7 @@ trait ParserTestCommon[P <: Parser] { self: Assertions =>
     val sfTree = parseString(query, rule)
     if (errHandler != null && errHandler.errorCount != 0) {
       errHandler.logErrors()
-      assert(1 == 2, s"${errHandler.errorCount} errors found in the input string")
+      fail(s"${errHandler.errorCount} errors found in the input string")
     }
 
     val result = astBuilder.visit(sfTree)

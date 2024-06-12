@@ -161,8 +161,8 @@ otherCommand
     ;
 
 beginTxn
-    : BEGIN (WORK | TRANSACTION)? (NAME id_)?
-    | START TRANSACTION ( NAME id_)?
+    : BEGIN (WORK | TRANSACTION)? (NAME id)?
+    | START TRANSACTION ( NAME id)?
     ;
 
 copyIntoTable
@@ -181,7 +181,7 @@ copyIntoTable
 externalLocation
     //(for Amazon S3)
     : S3_PATH //'s3://<bucket>[/<path>]'
-    //        ( ( STORAGE_INTEGRATION EQ id_ )?
+    //        ( ( STORAGE_INTEGRATION EQ id )?
     //        | ( CREDENTIALS EQ L_PAREN ( AWS_KEY_ID EQ string AWS_SECRET_KEY EQ string ( AWS_TOKEN EQ string )? ) R_PAREN )?
     //        )?
     //        [ ENCRYPTION = ( [ TYPE = 'AWS_CSE' ] [ MASTER_KEY = '<string>' ] |
@@ -190,11 +190,11 @@ externalLocation
     //                   [ TYPE = 'NONE' ] ) ]
     // (for Google Cloud Storage)
     | GCS_PATH //'gcs://<bucket>[/<path>]'
-    //        ( STORAGE_INTEGRATION EQ id_ )?
+    //        ( STORAGE_INTEGRATION EQ id )?
     //[ ENCRYPTION = ( [ TYPE = 'GCS_SSE_KMS' ] [ KMS_KEY_ID = '<string>' ] | [ TYPE = 'NONE' ] ) ]
     // (for Microsoft Azure)
     | AZURE_PATH //'azure://<account>.blob.core.windows.net/<container>[/<path>]'
-    //        (   ( STORAGE_INTEGRATION EQ id_ )?
+    //        (   ( STORAGE_INTEGRATION EQ id )?
     //            | ( CREDENTIALS EQ L_PAREN ( AZURE_SAS_TOKEN EQ string ) R_PAREN )
     //        )?
     //[ ENCRYPTION = ( [ TYPE = { 'AZURE_CSE' | 'NONE' } ] [ MASTER_KEY = '<string>' ] ) ]
@@ -242,7 +242,7 @@ commit
     ;
 
 executeImmediate
-    : EXECUTE IMMEDIATE (string | id_ | ID2) (USING L_PAREN id_ (COMMA id_)* R_PAREN)?
+    : EXECUTE IMMEDIATE (string | id | ID2) (USING L_PAREN id (COMMA id)* R_PAREN)?
     | EXECUTE IMMEDIATE DBL_DOLLAR
     ;
 
@@ -266,10 +266,10 @@ grantOwnership
     : GRANT OWNERSHIP (
         ON (
             objectTypeName objectName
-            | ALL objectTypePlural IN ( DATABASE id_ | SCHEMA schemaName)
+            | ALL objectTypePlural IN ( DATABASE id | SCHEMA schemaName)
         )
-        | ON FUTURE objectTypePlural IN ( DATABASE id_ | SCHEMA schemaName)
-    ) TO ROLE id_ (( REVOKE | COPY) CURRENT GRANTS)?
+        | ON FUTURE objectTypePlural IN ( DATABASE id | SCHEMA schemaName)
+    ) TO ROLE id (( REVOKE | COPY) CURRENT GRANTS)?
     ;
 
 grantToRole
@@ -284,18 +284,18 @@ grantToRole
         ) objectName
         | (schemaPrivileges | ALL PRIVILEGES?) ON (
             SCHEMA schemaName
-            | ALL SCHEMAS IN DATABASE id_
+            | ALL SCHEMAS IN DATABASE id
         )
-        | ( schemaPrivileges | ALL PRIVILEGES?) ON FUTURE SCHEMAS IN DATABASE id_
+        | ( schemaPrivileges | ALL PRIVILEGES?) ON FUTURE SCHEMAS IN DATABASE id
         | (schemaObjectPrivileges | ALL PRIVILEGES?) ON (
             objectType objectName
-            | ALL objectTypePlural IN ( DATABASE id_ | SCHEMA schemaName)
+            | ALL objectTypePlural IN ( DATABASE id | SCHEMA schemaName)
         )
         | (schemaObjectPrivileges | ALL PRIVILEGES?) ON FUTURE objectTypePlural IN (
-            DATABASE id_
+            DATABASE id
             | SCHEMA schemaName
         )
-    ) TO ROLE? id_ (WITH GRANT OPTION)?
+    ) TO ROLE? id (WITH GRANT OPTION)?
     ;
 
 globalPrivileges
@@ -393,12 +393,12 @@ schemaObjectPrivilege
 
 grantToShare
     : GRANT objectPrivilege ON (
-        DATABASE id_
-        | SCHEMA id_
-        | FUNCTION id_
+        DATABASE id
+        | SCHEMA id
+        | FUNCTION id
         | ( TABLE objectName | ALL TABLES IN SCHEMA schemaName)
-        | VIEW id_
-    ) TO SHARE id_
+        | VIEW id
+    ) TO SHARE id
     ;
 
 objectPrivilege
@@ -408,12 +408,12 @@ objectPrivilege
     ;
 
 grantRole
-    : GRANT ROLE roleName TO (ROLE roleName | USER id_)
+    : GRANT ROLE roleName TO (ROLE roleName | USER id)
     ;
 
 roleName
     : systemDefinedRole
-    | id_
+    | id
     ;
 
 systemDefinedRole
@@ -436,7 +436,7 @@ userStage
 
 //  @[<namespace>.]%<tableName>[/<path>]
 tableStage
-    : AT schemaName? MODULE id_ stagePath?
+    : AT schemaName? MODULE id stagePath?
     ;
 
 //  @[<namespace>.]<extStageName>[/<path>]
@@ -480,7 +480,7 @@ revokeFromRole
         ) objectName
         | (schemaPrivileges | ALL PRIVILEGES?) ON (
             SCHEMA schemaName
-            | ALL SCHEMAS IN DATABASE id_
+            | ALL SCHEMAS IN DATABASE id
         )
         | (schemaPrivileges | ALL PRIVILEGES?) ON (FUTURE SCHEMAS IN DATABASE <dbName>)
         | (schemaObjectPrivileges | ALL PRIVILEGES?) ON (
@@ -488,23 +488,23 @@ revokeFromRole
             | ALL objectTypePlural IN SCHEMA schemaName
         )
         | (schemaObjectPrivileges | ALL PRIVILEGES?) ON FUTURE objectTypePlural IN (
-            DATABASE id_
+            DATABASE id
             | SCHEMA schemaName
         )
-    ) FROM ROLE? id_ cascadeRestrict?
+    ) FROM ROLE? id cascadeRestrict?
     ;
 
 revokeFromShare
     : REVOKE objectPrivilege ON (
-        DATABASE id_
+        DATABASE id
         | SCHEMA schemaName
         | ( TABLE objectName | ALL TABLES IN SCHEMA schemaName)
         | ( VIEW objectName | ALL VIEWS IN SCHEMA schemaName)
-    ) FROM SHARE id_
+    ) FROM SHARE id
     ;
 
 revokeRole
-    : REVOKE ROLE roleName FROM (ROLE roleName | USER id_)
+    : REVOKE ROLE roleName FROM (ROLE roleName | USER id)
     ;
 
 rollback
@@ -512,8 +512,8 @@ rollback
     ;
 
 set
-    : SET id_ EQ expr
-    | SET L_PAREN id_ (COMMA id_)* R_PAREN EQ L_PAREN expr (COMMA expr)* R_PAREN
+    : SET id EQ expr
+    | SET L_PAREN id (COMMA id)* R_PAREN EQ L_PAREN expr (COMMA expr)* R_PAREN
     ;
 
 truncateMaterializedView
@@ -525,8 +525,8 @@ truncateTable
     ;
 
 unset
-    : UNSET id_
-    | UNSET L_PAREN id_ (COMMA id_)* R_PAREN
+    : UNSET id
+    | UNSET L_PAREN id (COMMA id)* R_PAREN
     ;
 
 // alter commands
@@ -671,7 +671,7 @@ enabledTrueFalse
     ;
 
 alterAlert
-    : ALTER ALERT ifExists? id_ (
+    : ALTER ALERT ifExists? id (
         resumeSuspend
         | SET alertSetClause+
         | UNSET alertUnsetClause+
@@ -686,7 +686,7 @@ resumeSuspend
     ;
 
 alertSetClause
-    : WAREHOUSE EQ id_
+    : WAREHOUSE EQ id
     | SCHEDULE EQ string
     | commentClause
     ;
@@ -698,14 +698,14 @@ alertUnsetClause
     ;
 
 alterApiIntegration
-    : ALTER API? INTEGRATION ifExists? id_ SET (API_AWS_ROLE_ARN EQ string)? (
+    : ALTER API? INTEGRATION ifExists? id SET (API_AWS_ROLE_ARN EQ string)? (
         AZURE_AD_APPLICATION_ID EQ string
     )? (API_KEY EQ string)? enabledTrueFalse? (API_ALLOWED_PREFIXES EQ L_PAREN string R_PAREN)? (
         API_BLOCKED_PREFIXES EQ L_PAREN string R_PAREN
     )? commentClause?
-    | ALTER API? INTEGRATION id_ setTags
-    | ALTER API? INTEGRATION id_ unsetTags
-    | ALTER API? INTEGRATION ifExists? id_ UNSET apiIntegrationProperty (
+    | ALTER API? INTEGRATION id setTags
+    | ALTER API? INTEGRATION id unsetTags
+    | ALTER API? INTEGRATION ifExists? id UNSET apiIntegrationProperty (
         COMMA apiIntegrationProperty
     )*
     ;
@@ -722,21 +722,21 @@ alterConnection
     ;
 
 alterDatabase
-    : ALTER DATABASE ifExists? id_ RENAME TO id_
-    | ALTER DATABASE ifExists? id_ SWAP WITH id_
-    | ALTER DATABASE ifExists? id_ SET (DATA_RETENTION_TIME_IN_DAYS EQ num)? (
+    : ALTER DATABASE ifExists? id RENAME TO id
+    | ALTER DATABASE ifExists? id SWAP WITH id
+    | ALTER DATABASE ifExists? id SET (DATA_RETENTION_TIME_IN_DAYS EQ num)? (
         MAX_DATA_EXTENSION_TIME_IN_DAYS EQ num
     )? defaultDdlCollation? commentClause?
-    | ALTER DATABASE id_ setTags
-    | ALTER DATABASE id_ unsetTags
-    | ALTER DATABASE ifExists? id_ UNSET databaseProperty (COMMA databaseProperty)*
-    | ALTER DATABASE id_ ENABLE REPLICATION TO ACCOUNTS accountIdList (IGNORE EDITION CHECK)?
-    | ALTER DATABASE id_ DISABLE REPLICATION ( TO ACCOUNTS accountIdList)?
-    | ALTER DATABASE id_ REFRESH
+    | ALTER DATABASE id setTags
+    | ALTER DATABASE id unsetTags
+    | ALTER DATABASE ifExists? id UNSET databaseProperty (COMMA databaseProperty)*
+    | ALTER DATABASE id ENABLE REPLICATION TO ACCOUNTS accountIdList (IGNORE EDITION CHECK)?
+    | ALTER DATABASE id DISABLE REPLICATION ( TO ACCOUNTS accountIdList)?
+    | ALTER DATABASE id REFRESH
     // Database Failover
-    | ALTER DATABASE id_ ENABLE FAILOVER TO ACCOUNTS accountIdList
-    | ALTER DATABASE id_ DISABLE FAILOVER ( TO ACCOUNTS accountIdList)?
-    | ALTER DATABASE id_ PRIMARY
+    | ALTER DATABASE id ENABLE FAILOVER TO ACCOUNTS accountIdList
+    | ALTER DATABASE id DISABLE FAILOVER ( TO ACCOUNTS accountIdList)?
+    | ALTER DATABASE id PRIMARY
     ;
 
 databaseProperty
@@ -751,7 +751,7 @@ accountIdList
     ;
 
 alterDynamicTable
-    : ALTER DYNAMIC TABLE id_ (resumeSuspend | REFRESH | SET WAREHOUSE EQ id_)
+    : ALTER DYNAMIC TABLE id (resumeSuspend | REFRESH | SET WAREHOUSE EQ id)
     ;
 
 alterExternalTable
@@ -776,11 +776,11 @@ replicationSchedule
     ;
 
 dbNameList
-    : id_ (COMMA id_)*
+    : id (COMMA id)*
     ;
 
 shareNameList
-    : id_ (COMMA id_)*
+    : id (COMMA id)*
     ;
 
 fullAcctList
@@ -789,40 +789,40 @@ fullAcctList
 
 alterFailoverGroup
     //Source Account
-    : ALTER FAILOVER GROUP ifExists? id_ RENAME TO id_
-    | ALTER FAILOVER GROUP ifExists? id_ SET (OBJECT_TYPES EQ objectTypeList)? replicationSchedule?
-    | ALTER FAILOVER GROUP ifExists? id_ SET OBJECT_TYPES EQ objectTypeList
+    : ALTER FAILOVER GROUP ifExists? id RENAME TO id
+    | ALTER FAILOVER GROUP ifExists? id SET (OBJECT_TYPES EQ objectTypeList)? replicationSchedule?
+    | ALTER FAILOVER GROUP ifExists? id SET OBJECT_TYPES EQ objectTypeList
     //        ALLOWED_INTEGRATION_TYPES EQ <integrationTypeName> [ , <integrationTypeName> ... ] ]
     replicationSchedule?
-    | ALTER FAILOVER GROUP ifExists? id_ ADD dbNameList TO ALLOWED_DATABASES
-    | ALTER FAILOVER GROUP ifExists? id_ MOVE DATABASES dbNameList TO FAILOVER GROUP id_
-    | ALTER FAILOVER GROUP ifExists? id_ REMOVE dbNameList FROM ALLOWED_DATABASES
-    | ALTER FAILOVER GROUP ifExists? id_ ADD shareNameList TO ALLOWED_SHARES
-    | ALTER FAILOVER GROUP ifExists? id_ MOVE SHARES shareNameList TO FAILOVER GROUP id_
-    | ALTER FAILOVER GROUP ifExists? id_ REMOVE shareNameList FROM ALLOWED_SHARES
-    | ALTER FAILOVER GROUP ifExists? id_ ADD fullAcctList TO ALLOWED_ACCOUNTS ignoreEditionCheck?
-    | ALTER FAILOVER GROUP ifExists? id_ REMOVE fullAcctList FROM ALLOWED_ACCOUNTS
+    | ALTER FAILOVER GROUP ifExists? id ADD dbNameList TO ALLOWED_DATABASES
+    | ALTER FAILOVER GROUP ifExists? id MOVE DATABASES dbNameList TO FAILOVER GROUP id
+    | ALTER FAILOVER GROUP ifExists? id REMOVE dbNameList FROM ALLOWED_DATABASES
+    | ALTER FAILOVER GROUP ifExists? id ADD shareNameList TO ALLOWED_SHARES
+    | ALTER FAILOVER GROUP ifExists? id MOVE SHARES shareNameList TO FAILOVER GROUP id
+    | ALTER FAILOVER GROUP ifExists? id REMOVE shareNameList FROM ALLOWED_SHARES
+    | ALTER FAILOVER GROUP ifExists? id ADD fullAcctList TO ALLOWED_ACCOUNTS ignoreEditionCheck?
+    | ALTER FAILOVER GROUP ifExists? id REMOVE fullAcctList FROM ALLOWED_ACCOUNTS
     //Target Account
-    | ALTER FAILOVER GROUP ifExists? id_ ( REFRESH | PRIMARY | SUSPEND | RESUME)
+    | ALTER FAILOVER GROUP ifExists? id ( REFRESH | PRIMARY | SUSPEND | RESUME)
     ;
 
 alterFileFormat
-    : ALTER FILE FORMAT ifExists? id_ RENAME TO id_
-    | ALTER FILE FORMAT ifExists? id_ SET (formatTypeOptions* commentClause?)
+    : ALTER FILE FORMAT ifExists? id RENAME TO id
+    | ALTER FILE FORMAT ifExists? id SET (formatTypeOptions* commentClause?)
     ;
 
 alterFunction
-    : alterFunctionSignature RENAME TO id_
+    : alterFunctionSignature RENAME TO id
     | alterFunctionSignature SET commentClause
     | alterFunctionSignature SET SECURE
     | alterFunctionSignature UNSET (SECURE | COMMENT)
     // External Functions
-    | alterFunctionSignature SET API_INTEGRATION EQ id_
+    | alterFunctionSignature SET API_INTEGRATION EQ id
     | alterFunctionSignature SET HEADERS EQ L_PAREN headerDecl* R_PAREN
-    | alterFunctionSignature SET CONTEXT_HEADERS EQ L_PAREN id_* R_PAREN
+    | alterFunctionSignature SET CONTEXT_HEADERS EQ L_PAREN id* R_PAREN
     | alterFunctionSignature SET MAX_BATCH_ROWS EQ num
     | alterFunctionSignature SET COMPRESSION EQ compressionType
-    | alterFunctionSignature SET (REQUEST_TRANSLATOR | RESPONSE_TRANSLATOR) EQ id_
+    | alterFunctionSignature SET (REQUEST_TRANSLATOR | RESPONSE_TRANSLATOR) EQ id
     | alterFunctionSignature UNSET (
         COMMENT
         | HEADERS
@@ -836,7 +836,7 @@ alterFunction
     ;
 
 alterFunctionSignature
-    : ALTER FUNCTION ifExists? id_ L_PAREN dataTypeList? R_PAREN
+    : ALTER FUNCTION ifExists? id L_PAREN dataTypeList? R_PAREN
     ;
 
 dataTypeList
@@ -844,14 +844,14 @@ dataTypeList
     ;
 
 alterMaskingPolicy
-    : ALTER MASKING POLICY ifExists? id_ SET BODY ARROW expr
-    | ALTER MASKING POLICY ifExists? id_ RENAME TO id_
-    | ALTER MASKING POLICY ifExists? id_ SET commentClause
+    : ALTER MASKING POLICY ifExists? id SET BODY ARROW expr
+    | ALTER MASKING POLICY ifExists? id RENAME TO id
+    | ALTER MASKING POLICY ifExists? id SET commentClause
     ;
 
 alterMaterializedView
-    : ALTER MATERIALIZED VIEW id_ (
-        RENAME TO id_
+    : ALTER MATERIALIZED VIEW id (
+        RENAME TO id
         | CLUSTER BY L_PAREN exprList R_PAREN
         | DROP CLUSTERING KEY
         | resumeSuspend RECLUSTER?
@@ -865,51 +865,51 @@ alterNetworkPolicy
     ;
 
 alterNotificationIntegration
-    : ALTER NOTIFICATION? INTEGRATION ifExists? id_ SET enabledTrueFalse? cloudProviderParamsAuto commentClause?
+    : ALTER NOTIFICATION? INTEGRATION ifExists? id SET enabledTrueFalse? cloudProviderParamsAuto commentClause?
     // Push notifications
-    | ALTER NOTIFICATION? INTEGRATION ifExists? id_ SET enabledTrueFalse? cloudProviderParamsPush commentClause?
-    | ALTER NOTIFICATION? INTEGRATION id_ setTags
-    | ALTER NOTIFICATION? INTEGRATION id_ unsetTags
-    | ALTER NOTIFICATION? INTEGRATION ifExists id_ UNSET (ENABLED | COMMENT)
+    | ALTER NOTIFICATION? INTEGRATION ifExists? id SET enabledTrueFalse? cloudProviderParamsPush commentClause?
+    | ALTER NOTIFICATION? INTEGRATION id setTags
+    | ALTER NOTIFICATION? INTEGRATION id unsetTags
+    | ALTER NOTIFICATION? INTEGRATION ifExists id UNSET (ENABLED | COMMENT)
     ;
 
 alterPipe
-    : ALTER PIPE ifExists? id_ SET (objectProperties? commentClause?)
-    | ALTER PIPE id_ setTags
-    | ALTER PIPE id_ unsetTags
-    | ALTER PIPE ifExists? id_ UNSET PIPE_EXECUTION_PAUSED EQ trueFalse
-    | ALTER PIPE ifExists? id_ UNSET COMMENT
-    | ALTER PIPE ifExists? id_ REFRESH (PREFIX EQ string)? (MODIFIED_AFTER EQ string)?
+    : ALTER PIPE ifExists? id SET (objectProperties? commentClause?)
+    | ALTER PIPE id setTags
+    | ALTER PIPE id unsetTags
+    | ALTER PIPE ifExists? id UNSET PIPE_EXECUTION_PAUSED EQ trueFalse
+    | ALTER PIPE ifExists? id UNSET COMMENT
+    | ALTER PIPE ifExists? id REFRESH (PREFIX EQ string)? (MODIFIED_AFTER EQ string)?
     ;
 
 alterProcedure
-    : ALTER PROCEDURE ifExists? id_ L_PAREN dataTypeList? R_PAREN RENAME TO id_
-    | ALTER PROCEDURE ifExists? id_ L_PAREN dataTypeList? R_PAREN SET commentClause
-    | ALTER PROCEDURE ifExists? id_ L_PAREN dataTypeList? R_PAREN UNSET COMMENT
-    | ALTER PROCEDURE ifExists? id_ L_PAREN dataTypeList? R_PAREN EXECUTE AS callerOwner
+    : ALTER PROCEDURE ifExists? id L_PAREN dataTypeList? R_PAREN RENAME TO id
+    | ALTER PROCEDURE ifExists? id L_PAREN dataTypeList? R_PAREN SET commentClause
+    | ALTER PROCEDURE ifExists? id L_PAREN dataTypeList? R_PAREN UNSET COMMENT
+    | ALTER PROCEDURE ifExists? id L_PAREN dataTypeList? R_PAREN EXECUTE AS callerOwner
     ;
 
 alterReplicationGroup
     //Source Account
-    : ALTER REPLICATION GROUP ifExists? id_ RENAME TO id_
-    | ALTER REPLICATION GROUP ifExists? id_ SET (OBJECT_TYPES EQ objectTypeList)? (
+    : ALTER REPLICATION GROUP ifExists? id RENAME TO id
+    | ALTER REPLICATION GROUP ifExists? id SET (OBJECT_TYPES EQ objectTypeList)? (
         REPLICATION_SCHEDULE EQ string
     )?
-    | ALTER REPLICATION GROUP ifExists? id_ SET OBJECT_TYPES EQ objectTypeList ALLOWED_INTEGRATION_TYPES EQ integrationTypeName (
+    | ALTER REPLICATION GROUP ifExists? id SET OBJECT_TYPES EQ objectTypeList ALLOWED_INTEGRATION_TYPES EQ integrationTypeName (
         COMMA integrationTypeName
     )* (REPLICATION_SCHEDULE EQ string)?
-    | ALTER REPLICATION GROUP ifExists? id_ ADD dbNameList TO ALLOWED_DATABASES
-    | ALTER REPLICATION GROUP ifExists? id_ MOVE DATABASES dbNameList TO REPLICATION GROUP id_
-    | ALTER REPLICATION GROUP ifExists? id_ REMOVE dbNameList FROM ALLOWED_DATABASES
-    | ALTER REPLICATION GROUP ifExists? id_ ADD shareNameList TO ALLOWED_SHARES
-    | ALTER REPLICATION GROUP ifExists? id_ MOVE SHARES shareNameList TO REPLICATION GROUP id_
-    | ALTER REPLICATION GROUP ifExists? id_ REMOVE shareNameList FROM ALLOWED_SHARES
-    | ALTER REPLICATION GROUP ifExists? id_ ADD accountIdList TO ALLOWED_ACCOUNTS ignoreEditionCheck?
-    | ALTER REPLICATION GROUP ifExists? id_ REMOVE accountIdList FROM ALLOWED_ACCOUNTS
+    | ALTER REPLICATION GROUP ifExists? id ADD dbNameList TO ALLOWED_DATABASES
+    | ALTER REPLICATION GROUP ifExists? id MOVE DATABASES dbNameList TO REPLICATION GROUP id
+    | ALTER REPLICATION GROUP ifExists? id REMOVE dbNameList FROM ALLOWED_DATABASES
+    | ALTER REPLICATION GROUP ifExists? id ADD shareNameList TO ALLOWED_SHARES
+    | ALTER REPLICATION GROUP ifExists? id MOVE SHARES shareNameList TO REPLICATION GROUP id
+    | ALTER REPLICATION GROUP ifExists? id REMOVE shareNameList FROM ALLOWED_SHARES
+    | ALTER REPLICATION GROUP ifExists? id ADD accountIdList TO ALLOWED_ACCOUNTS ignoreEditionCheck?
+    | ALTER REPLICATION GROUP ifExists? id REMOVE accountIdList FROM ALLOWED_ACCOUNTS
     //Target Account
-    | ALTER REPLICATION GROUP ifExists? id_ REFRESH
-    | ALTER REPLICATION GROUP ifExists? id_ SUSPEND
-    | ALTER REPLICATION GROUP ifExists? id_ RESUME
+    | ALTER REPLICATION GROUP ifExists? id REFRESH
+    | ALTER REPLICATION GROUP ifExists? id SUSPEND
+    | ALTER REPLICATION GROUP ifExists? id RESUME
     ;
 
 creditQuota
@@ -921,7 +921,7 @@ frequency
     ;
 
 notifyUsers
-    : NOTIFY_USERS EQ L_PAREN id_ (COMMA id_)* R_PAREN
+    : NOTIFY_USERS EQ L_PAREN id (COMMA id)* R_PAREN
     ;
 
 triggerDefinition
@@ -929,7 +929,7 @@ triggerDefinition
     ;
 
 alterResourceMonitor
-    : ALTER RESOURCE MONITOR ifExists? id_ (
+    : ALTER RESOURCE MONITOR ifExists? id (
         SET creditQuota? frequency? (
             START_TIMESTAMP EQ L_PAREN string
             | IMMEDIATELY R_PAREN
@@ -938,17 +938,17 @@ alterResourceMonitor
     ;
 
 alterRole
-    : ALTER ROLE ifExists? id_ RENAME TO id_
-    | ALTER ROLE ifExists? id_ SET commentClause
-    | ALTER ROLE ifExists? id_ UNSET COMMENT
-    | ALTER ROLE ifExists? id_ setTags
-    | ALTER ROLE ifExists? id_ unsetTags
+    : ALTER ROLE ifExists? id RENAME TO id
+    | ALTER ROLE ifExists? id SET commentClause
+    | ALTER ROLE ifExists? id UNSET COMMENT
+    | ALTER ROLE ifExists? id setTags
+    | ALTER ROLE ifExists? id unsetTags
     ;
 
 alterRowAccessPolicy
-    : ALTER ROW ACCESS POLICY ifExists? id_ SET BODY ARROW expr
-    | ALTER ROW ACCESS POLICY ifExists? id_ RENAME TO id_
-    | ALTER ROW ACCESS POLICY ifExists? id_ SET commentClause
+    : ALTER ROW ACCESS POLICY ifExists? id SET BODY ARROW expr
+    | ALTER ROW ACCESS POLICY ifExists? id RENAME TO id
+    | ALTER ROW ACCESS POLICY ifExists? id SET commentClause
     ;
 
 alterSchema
@@ -978,7 +978,7 @@ alterSequence
     ;
 
 alterSecurityIntegrationExternalOauth
-    : ALTER SECURITY? INTEGRATION ifExists id_ SET (TYPE EQ EXTERNAL_OAUTH)? (
+    : ALTER SECURITY? INTEGRATION ifExists id SET (TYPE EQ EXTERNAL_OAUTH)? (
         ENABLED EQ trueFalse
     )? (EXTERNAL_OAUTH_TYPE EQ ( OKTA | AZURE | PING_FEDERATE | CUSTOM))? (
         EXTERNAL_OAUTH_ISSUER EQ string
@@ -993,11 +993,11 @@ alterSecurityIntegrationExternalOauth
     )? (EXTERNAL_OAUTH_ANY_ROLE_MODE EQ (DISABLE | ENABLE | ENABLE_FOR_PRIVILEGE))? (
         EXTERNAL_OAUTH_ANY_ROLE_MODE EQ string
     )? // Only for EXTERNAL_OAUTH_TYPE EQ CUSTOM
-    | ALTER SECURITY? INTEGRATION ifExists? id_ UNSET securityIntegrationExternalOauthProperty (
+    | ALTER SECURITY? INTEGRATION ifExists? id UNSET securityIntegrationExternalOauthProperty (
         COMMA securityIntegrationExternalOauthProperty
     )*
-    | ALTER SECURITY? INTEGRATION id_ setTags
-    | ALTER SECURITY? INTEGRATION id_ unsetTags
+    | ALTER SECURITY? INTEGRATION id setTags
+    | ALTER SECURITY? INTEGRATION id unsetTags
     ;
 
 securityIntegrationExternalOauthProperty
@@ -1010,7 +1010,7 @@ securityIntegrationExternalOauthProperty
     ;
 
 alterSecurityIntegrationSnowflakeOauth
-    : ALTER SECURITY? INTEGRATION ifExists? id_ SET (TYPE EQ EXTERNAL_OAUTH)? enabledTrueFalse? (
+    : ALTER SECURITY? INTEGRATION ifExists? id SET (TYPE EQ EXTERNAL_OAUTH)? enabledTrueFalse? (
         EXTERNAL_OAUTH_TYPE EQ ( OKTA | AZURE | PING_FEDERATE | CUSTOM)
     )? (EXTERNAL_OAUTH_ISSUER EQ string)? (
         EXTERNAL_OAUTH_TOKEN_USER_MAPPING_CLAIM EQ (string | L_PAREN stringList R_PAREN)
@@ -1025,11 +1025,11 @@ alterSecurityIntegrationSnowflakeOauth
     )? (EXTERNAL_OAUTH_ANY_ROLE_MODE EQ DISABLE | ENABLE | ENABLE_FOR_PRIVILEGE)? (
         EXTERNAL_OAUTH_SCOPE_DELIMITER EQ string
     ) // Only for EXTERNAL_OAUTH_TYPE EQ CUSTOM
-    | ALTER SECURITY? INTEGRATION ifExists? id_ UNSET securityIntegrationSnowflakeOauthProperty (
+    | ALTER SECURITY? INTEGRATION ifExists? id UNSET securityIntegrationSnowflakeOauthProperty (
         COMMA securityIntegrationSnowflakeOauthProperty
     )*
-    | ALTER SECURITY? INTEGRATION id_ setTags
-    | ALTER SECURITY? INTEGRATION id_ unsetTags
+    | ALTER SECURITY? INTEGRATION id setTags
+    | ALTER SECURITY? INTEGRATION id unsetTags
     ;
 
 securityIntegrationSnowflakeOauthProperty
@@ -1038,7 +1038,7 @@ securityIntegrationSnowflakeOauthProperty
     ;
 
 alterSecurityIntegrationSaml2
-    : ALTER SECURITY? INTEGRATION ifExists? id_ SET (TYPE EQ SAML2)? enabledTrueFalse? (
+    : ALTER SECURITY? INTEGRATION ifExists? id SET (TYPE EQ SAML2)? enabledTrueFalse? (
         SAML2_ISSUER EQ string
     )? (SAML2_SSO_URL EQ string)? (SAML2_PROVIDER EQ string)? (SAML2_X509_CERT EQ string)? (
         SAML2_SP_INITIATED_LOGIN_PAGE_LABEL EQ string
@@ -1047,20 +1047,20 @@ alterSecurityIntegrationSaml2
     )? (SAML2_REQUESTED_NAMEID_FORMAT EQ string)? (SAML2_POST_LOGOUT_REDIRECT_URL EQ string)? (
         SAML2_FORCE_AUTHN EQ trueFalse
     )? (SAML2_SNOWFLAKE_ISSUER_URL EQ string)? (SAML2_SNOWFLAKE_ACS_URL EQ string)?
-    | ALTER SECURITY? INTEGRATION ifExists? id_ UNSET ENABLED
-    | ALTER SECURITY? INTEGRATION id_ setTags
-    | ALTER SECURITY? INTEGRATION id_ unsetTags
+    | ALTER SECURITY? INTEGRATION ifExists? id UNSET ENABLED
+    | ALTER SECURITY? INTEGRATION id setTags
+    | ALTER SECURITY? INTEGRATION id unsetTags
     ;
 
 alterSecurityIntegrationScim
-    : ALTER SECURITY? INTEGRATION ifExists? id_ SET (NETWORK_POLICY EQ string)? (
+    : ALTER SECURITY? INTEGRATION ifExists? id SET (NETWORK_POLICY EQ string)? (
         SYNC_PASSWORD EQ trueFalse
     )? commentClause?
-    | ALTER SECURITY? INTEGRATION ifExists? id_ UNSET securityIntegrationScimProperty (
+    | ALTER SECURITY? INTEGRATION ifExists? id UNSET securityIntegrationScimProperty (
         COMMA securityIntegrationScimProperty
     )*
-    | ALTER SECURITY? INTEGRATION id_ setTags
-    | ALTER SECURITY? INTEGRATION id_ unsetTags
+    | ALTER SECURITY? INTEGRATION id setTags
+    | ALTER SECURITY? INTEGRATION id unsetTags
     ;
 
 securityIntegrationScimProperty
@@ -1075,32 +1075,32 @@ alterSession
     ;
 
 alterSessionPolicy
-    : ALTER SESSION POLICY ifExists? id_ (UNSET | SET) (SESSION_IDLE_TIMEOUT_MINS EQ num)? (
+    : ALTER SESSION POLICY ifExists? id (UNSET | SET) (SESSION_IDLE_TIMEOUT_MINS EQ num)? (
         SESSION_UI_IDLE_TIMEOUT_MINS EQ num
     )? commentClause?
-    | ALTER SESSION POLICY ifExists? id_ RENAME TO id_
+    | ALTER SESSION POLICY ifExists? id RENAME TO id
     ;
 
 alterShare
-    : ALTER SHARE ifExists? id_ (ADD | REMOVE) ACCOUNTS EQ id_ (COMMA id_)* (
+    : ALTER SHARE ifExists? id (ADD | REMOVE) ACCOUNTS EQ id (COMMA id)* (
         SHARE_RESTRICTIONS EQ trueFalse
     )?
-    | ALTER SHARE ifExists? id_ ADD ACCOUNTS EQ id_ (COMMA id_)* (
+    | ALTER SHARE ifExists? id ADD ACCOUNTS EQ id (COMMA id)* (
         SHARE_RESTRICTIONS EQ trueFalse
     )?
-    | ALTER SHARE ifExists? id_ SET (ACCOUNTS EQ id_ (COMMA id_)*)? commentClause?
-    | ALTER SHARE ifExists? id_ setTags
-    | ALTER SHARE id_ unsetTags
-    | ALTER SHARE ifExists? id_ UNSET COMMENT
+    | ALTER SHARE ifExists? id SET (ACCOUNTS EQ id (COMMA id)*)? commentClause?
+    | ALTER SHARE ifExists? id setTags
+    | ALTER SHARE id unsetTags
+    | ALTER SHARE ifExists? id UNSET COMMENT
     ;
 
 alterStorageIntegration
-    : ALTER STORAGE? INTEGRATION ifExists? id_ SET cloudProviderParams2? enabledTrueFalse? (
+    : ALTER STORAGE? INTEGRATION ifExists? id SET cloudProviderParams2? enabledTrueFalse? (
         STORAGE_ALLOWED_LOCATIONS EQ L_PAREN stringList R_PAREN
     )? (STORAGE_BLOCKED_LOCATIONS EQ L_PAREN stringList R_PAREN)? commentClause?
-    | ALTER STORAGE? INTEGRATION ifExists? id_ setTags
-    | ALTER STORAGE? INTEGRATION id_ unsetTags
-    | ALTER STORAGE? INTEGRATION ifExists? id_ UNSET (
+    | ALTER STORAGE? INTEGRATION ifExists? id setTags
+    | ALTER STORAGE? INTEGRATION id unsetTags
+    | ALTER STORAGE? INTEGRATION ifExists? id UNSET (
         ENABLED
         | STORAGE_BLOCKED_LOCATIONS
         | COMMENT
@@ -1109,10 +1109,10 @@ alterStorageIntegration
     ;
 
 alterStream
-    : ALTER STREAM ifExists? id_ SET tagDeclList? commentClause?
-    | ALTER STREAM ifExists? id_ setTags
-    | ALTER STREAM id_ unsetTags
-    | ALTER STREAM ifExists? id_ UNSET COMMENT
+    : ALTER STREAM ifExists? id SET tagDeclList? commentClause?
+    | ALTER STREAM ifExists? id setTags
+    | ALTER STREAM id unsetTags
+    | ALTER STREAM ifExists? id UNSET COMMENT
     ;
 
 alterTable
@@ -1141,9 +1141,9 @@ alterTable
         |
     )
     //[ , ... ]
-    | ALTER TABLE ifExists? objectName ADD ROW ACCESS POLICY id_ ON columnListInParentheses
-    | ALTER TABLE ifExists? objectName DROP ROW ACCESS POLICY id_
-    | ALTER TABLE ifExists? objectName DROP ROW ACCESS POLICY id_ COMMA ADD ROW ACCESS POLICY id_ ON columnListInParentheses
+    | ALTER TABLE ifExists? objectName ADD ROW ACCESS POLICY id ON columnListInParentheses
+    | ALTER TABLE ifExists? objectName DROP ROW ACCESS POLICY id
+    | ALTER TABLE ifExists? objectName DROP ROW ACCESS POLICY id COMMA ADD ROW ACCESS POLICY id ON columnListInParentheses
     | ALTER TABLE ifExists? objectName DROP ALL ROW ACCESS POLICIES
     ;
 
@@ -1161,7 +1161,7 @@ tableColumnAction
         L_PAREN alterColumnClause (COLON alterColumnClause)* R_PAREN
         | alterColumnClause (COLON alterColumnClause)*
     )
-    | alterModify COLUMN columnName SET MASKING POLICY id_ (
+    | alterModify COLUMN columnName SET MASKING POLICY id (
         USING L_PAREN columnName COMMA columnList R_PAREN
     )? FORCE?
     | alterModify COLUMN columnName UNSET MASKING POLICY
@@ -1183,7 +1183,7 @@ alterColumnClause
     ;
 
 inlineConstraint
-    : (CONSTRAINT id_)? (
+    : (CONSTRAINT id)? (
         (UNIQUE | primaryKey) commonConstraintProperties*
         | foreignKey REFERENCES objectName (L_PAREN columnName R_PAREN)? constraintProperties
     )
@@ -1245,12 +1245,12 @@ extTableColumnAction
 
 constraintAction
     : ADD outOfLineConstraint
-    | RENAME CONSTRAINT id_ TO id_
-    | alterModify (CONSTRAINT id_ | primaryKey | UNIQUE | foreignKey) columnListInParentheses enforcedNotEnforced? (
+    | RENAME CONSTRAINT id TO id
+    | alterModify (CONSTRAINT id | primaryKey | UNIQUE | foreignKey) columnListInParentheses enforcedNotEnforced? (
         VALIDATE
         | NOVALIDATE
     ) (RELY | NORELY)
-    | DROP (CONSTRAINT id_ | primaryKey | UNIQUE | foreignKey) columnListInParentheses? cascadeRestrict?
+    | DROP (CONSTRAINT id | primaryKey | UNIQUE | foreignKey) columnListInParentheses? cascadeRestrict?
     | DROP PRIMARY KEY
     ;
 
@@ -1268,7 +1268,7 @@ alterTableAlterColumn
         L_PAREN alterColumnDeclList R_PAREN
         | alterColumnDeclList
     )
-    | ALTER TABLE objectName alterModify COLUMN columnName SET MASKING POLICY id_ (
+    | ALTER TABLE objectName alterModify COLUMN columnName SET MASKING POLICY id (
         USING L_PAREN columnName COMMA columnList R_PAREN
     )? FORCE?
     | ALTER TABLE objectName alterModify COLUMN columnName UNSET MASKING POLICY
@@ -1310,7 +1310,7 @@ alterTask
     | ALTER TASK ifExists? objectName ( REMOVE | ADD) AFTER stringList
     | ALTER TASK ifExists? objectName SET
     // TODO : Check and review if element's order binded or not
-    (WAREHOUSE EQ id_)? taskSchedule? taskOverlap? taskTimeout? taskSuspendAfterFailureNumber? commentClause? sessionParamsList?
+    (WAREHOUSE EQ id)? taskSchedule? taskOverlap? taskTimeout? taskSuspendAfterFailureNumber? commentClause? sessionParamsList?
     | ALTER TASK ifExists? objectName UNSET
     // TODO : Check and review if element's order binded or not
     WAREHOUSE? SCHEDULE? ALLOW_OVERLAPPING_EXECUTION? USER_TASK_TIMEOUT_MS? SUSPEND_TASK_AFTER_NUM_FAILURES? COMMENT? sessionParameterList?
@@ -1322,7 +1322,7 @@ alterTask
     ;
 
 alterUser
-    : ALTER USER ifExists? id_ alterUserOpts
+    : ALTER USER ifExists? id alterUserOpts
     ;
 
 alterView
@@ -1333,16 +1333,16 @@ alterView
     | ALTER VIEW objectName UNSET SECURE
     | ALTER VIEW ifExists? objectName setTags
     | ALTER VIEW ifExists? objectName unsetTags
-    | ALTER VIEW ifExists? objectName ADD ROW ACCESS POLICY id_ ON columnListInParentheses
-    | ALTER VIEW ifExists? objectName DROP ROW ACCESS POLICY id_
-    | ALTER VIEW ifExists? objectName ADD ROW ACCESS POLICY id_ ON columnListInParentheses COMMA DROP ROW ACCESS POLICY id_
+    | ALTER VIEW ifExists? objectName ADD ROW ACCESS POLICY id ON columnListInParentheses
+    | ALTER VIEW ifExists? objectName DROP ROW ACCESS POLICY id
+    | ALTER VIEW ifExists? objectName ADD ROW ACCESS POLICY id ON columnListInParentheses COMMA DROP ROW ACCESS POLICY id
     | ALTER VIEW ifExists? objectName DROP ALL ROW ACCESS POLICIES
-    | ALTER VIEW objectName alterModify COLUMN? id_ SET MASKING POLICY id_ (
+    | ALTER VIEW objectName alterModify COLUMN? id SET MASKING POLICY id (
         USING L_PAREN columnName COMMA columnList R_PAREN
     )? FORCE?
-    | ALTER VIEW objectName alterModify COLUMN? id_ UNSET MASKING POLICY
-    | ALTER VIEW objectName alterModify COLUMN? id_ setTags
-    | ALTER VIEW objectName alterModify COLUMN id_ unsetTags
+    | ALTER VIEW objectName alterModify COLUMN? id UNSET MASKING POLICY
+    | ALTER VIEW objectName alterModify COLUMN? id setTags
+    | ALTER VIEW objectName alterModify COLUMN id unsetTags
     ;
 
 alterModify
@@ -1355,19 +1355,19 @@ alterWarehouse
     ;
 
 alterConnectionOpts
-    : id_ ENABLE FAILOVER TO ACCOUNTS id_ DOT id_ (COMMA id_ DOT id_)* ignoreEditionCheck?
-    | id_ DISABLE FAILOVER ( TO ACCOUNTS id_ DOT id_ (COMMA id_ DOT id_))?
-    | id_ PRIMARY
-    | ifExists? id_ SET commentClause
-    | ifExists? id_ UNSET COMMENT
+    : id ENABLE FAILOVER TO ACCOUNTS id DOT id (COMMA id DOT id)* ignoreEditionCheck?
+    | id DISABLE FAILOVER ( TO ACCOUNTS id DOT id (COMMA id DOT id))?
+    | id PRIMARY
+    | ifExists? id SET commentClause
+    | ifExists? id UNSET COMMENT
     ;
 
 alterUserOpts
-    : RENAME TO id_
+    : RENAME TO id
     | RESET PASSWORD
     | ABORT ALL QUERIES
-    | ADD DELEGATED AUTHORIZATION OF ROLE id_ TO SECURITY INTEGRATION id_
-    | REMOVE DELEGATED (AUTHORIZATION OF ROLE id_ | AUTHORIZATIONS) FROM SECURITY INTEGRATION id_
+    | ADD DELEGATED AUTHORIZATION OF ROLE id TO SECURITY INTEGRATION id
+    | REMOVE DELEGATED (AUTHORIZATION OF ROLE id | AUTHORIZATIONS) FROM SECURITY INTEGRATION id
     | setTags
     | unsetTags
     //    | SET objectProperties? objectParams? sessionParams?
@@ -1378,39 +1378,39 @@ alterTagOpts
     : RENAME TO objectName
     | ( ADD | DROP) tagAllowedValues
     | UNSET ALLOWED_VALUES
-    | SET MASKING POLICY id_ (COMMA MASKING POLICY id_)*
-    | UNSET MASKING POLICY id_ (COMMA MASKING POLICY id_)*
+    | SET MASKING POLICY id (COMMA MASKING POLICY id)*
+    | UNSET MASKING POLICY id (COMMA MASKING POLICY id)*
     | SET commentClause
     | UNSET COMMENT
     ;
 
 alterNetworkPolicyOpts
-    : ifExists? id_ SET (ALLOWED_IP_LIST EQ L_PAREN stringList R_PAREN)? (
+    : ifExists? id SET (ALLOWED_IP_LIST EQ L_PAREN stringList R_PAREN)? (
         BLOCKED_IP_LIST EQ L_PAREN stringList R_PAREN
     )? commentClause?
-    | ifExists? id_ UNSET COMMENT
-    | id_ RENAME TO id_
+    | ifExists? id UNSET COMMENT
+    | id RENAME TO id
     ;
 
 alterWarehouseOpts
     : idFn? (SUSPEND | RESUME ifSuspended?)
     | idFn? ABORT ALL QUERIES
-    | idFn RENAME TO id_
-    //    | id_ SET [ objectProperties ]
+    | idFn RENAME TO id
+    //    | id SET [ objectProperties ]
     | idFn setTags
     | idFn unsetTags
-    | idFn UNSET id_ (COMMA id_)*
-    | id_ SET whProperties (COLON whProperties)*
+    | idFn UNSET id (COMMA id)*
+    | id SET whProperties (COLON whProperties)*
     ;
 
 alterAccountOpts
     : SET accountParams? objectParams? sessionParams?
     | UNSET paramName (COMMA paramName)?
-    | SET RESOURCE_MONITOR EQ id_
+    | SET RESOURCE_MONITOR EQ id
     | setTags
     | unsetTags
-    | id_ RENAME TO id_ ( SAVE_OLD_URL EQ trueFalse)?
-    | id_ DROP OLD URL
+    | id RENAME TO id ( SAVE_OLD_URL EQ trueFalse)?
+    | id DROP OLD URL
     ;
 
 setTags
@@ -1475,8 +1475,8 @@ createCommand
     ;
 
 createAccount
-    : CREATE ACCOUNT id_ ADMIN_NAME EQ id_ ADMIN_PASSWORD EQ string (FIRST_NAME EQ id_)? (
-        LAST_NAME EQ id_
+    : CREATE ACCOUNT id ADMIN_NAME EQ id ADMIN_PASSWORD EQ string (FIRST_NAME EQ id)? (
+        LAST_NAME EQ id
     )? EMAIL EQ string (MUST_CHANGE_PASSWORD EQ trueFalse)? EDITION EQ (
         STANDARD
         | ENTERPRISE
@@ -1485,7 +1485,7 @@ createAccount
     ;
 
 createAlert
-    : CREATE orReplace? ALERT ifNotExists? id_ WAREHOUSE EQ id_ SCHEDULE EQ string IF L_PAREN EXISTS L_PAREN alertCondition R_PAREN R_PAREN THEN alertAction
+    : CREATE orReplace? ALERT ifNotExists? id WAREHOUSE EQ id SCHEDULE EQ string IF L_PAREN EXISTS L_PAREN alertCondition R_PAREN R_PAREN THEN alertAction
     ;
 
 alertCondition
@@ -1499,42 +1499,42 @@ alertAction
     ;
 
 createApiIntegration
-    : CREATE orReplace? API INTEGRATION ifNotExists? id_ API_PROVIDER EQ (id_) API_AWS_ROLE_ARN EQ string (
+    : CREATE orReplace? API INTEGRATION ifNotExists? id API_PROVIDER EQ (id) API_AWS_ROLE_ARN EQ string (
         API_KEY EQ string
     )? API_ALLOWED_PREFIXES EQ L_PAREN string R_PAREN (
         API_BLOCKED_PREFIXES EQ L_PAREN string R_PAREN
     )? ENABLED EQ trueFalse commentClause?
-    | CREATE orReplace? API INTEGRATION ifNotExists? id_ API_PROVIDER EQ id_ AZURE_TENANT_ID EQ string AZURE_AD_APPLICATION_ID EQ string (
+    | CREATE orReplace? API INTEGRATION ifNotExists? id API_PROVIDER EQ id AZURE_TENANT_ID EQ string AZURE_AD_APPLICATION_ID EQ string (
         API_KEY EQ string
     )? API_ALLOWED_PREFIXES EQ L_PAREN string R_PAREN (API_BLOCKED_PREFIXES EQ L_PAREN string R_PAREN)? ENABLED EQ trueFalse commentClause?
-    | CREATE orReplace API INTEGRATION ifNotExists id_ API_PROVIDER EQ id_ GOOGLE_AUDIENCE EQ string API_ALLOWED_PREFIXES EQ L_PAREN string R_PAREN (
+    | CREATE orReplace API INTEGRATION ifNotExists id API_PROVIDER EQ id GOOGLE_AUDIENCE EQ string API_ALLOWED_PREFIXES EQ L_PAREN string R_PAREN (
         API_BLOCKED_PREFIXES EQ L_PAREN string R_PAREN
     )? ENABLED EQ trueFalse commentClause?
     ;
 
 createObjectClone
-    : CREATE orReplace? (DATABASE | SCHEMA | TABLE) ifNotExists? id_ CLONE objectName (
-        atBefore1 L_PAREN (TIMESTAMP ASSOC string | OFFSET ASSOC string | STATEMENT ASSOC id_) R_PAREN
+    : CREATE orReplace? (DATABASE | SCHEMA | TABLE) ifNotExists? id CLONE objectName (
+        atBefore1 L_PAREN (TIMESTAMP ASSOC string | OFFSET ASSOC string | STATEMENT ASSOC id) R_PAREN
     )?
     | CREATE orReplace? (STAGE | FILE FORMAT | SEQUENCE | STREAM | TASK) ifNotExists? objectName CLONE objectName
     ;
 
 createConnection
-    : CREATE CONNECTION ifNotExists? id_ (
+    : CREATE CONNECTION ifNotExists? id (
         commentClause?
-        | (AS REPLICA OF id_ DOT id_ DOT id_ commentClause?)
+        | (AS REPLICA OF id DOT id DOT id commentClause?)
     )
     ;
 
 createDatabase
-    : CREATE orReplace? TRANSIENT? DATABASE ifNotExists? id_ cloneAtBefore? (
+    : CREATE orReplace? TRANSIENT? DATABASE ifNotExists? id cloneAtBefore? (
         DATA_RETENTION_TIME_IN_DAYS EQ num
     )? (MAX_DATA_EXTENSION_TIME_IN_DAYS EQ num)? defaultDdlCollation? withTags? commentClause?
     ;
 
 cloneAtBefore
-    : CLONE id_ (
-        atBefore1 L_PAREN (TIMESTAMP ASSOC string | OFFSET ASSOC string | STATEMENT ASSOC id_) R_PAREN
+    : CLONE id (
+        atBefore1 L_PAREN (TIMESTAMP ASSOC string | OFFSET ASSOC string | STATEMENT ASSOC id) R_PAREN
     )?
     ;
 
@@ -1559,11 +1559,11 @@ compression
     ;
 
 createDynamicTable
-    : CREATE orReplace? DYNAMIC TABLE id_ TARGET_LAG EQ (string | DOWNSTREAM) WAREHOUSE EQ wh = id_ AS queryStatement
+    : CREATE orReplace? DYNAMIC TABLE id TARGET_LAG EQ (string | DOWNSTREAM) WAREHOUSE EQ wh = id AS queryStatement
     ;
 
 createEventTable
-    : CREATE orReplace? EVENT TABLE ifNotExists? id_ clusterBy? (
+    : CREATE orReplace? EVENT TABLE ifNotExists? id clusterBy? (
         DATA_RETENTION_TIME_IN_DAYS EQ num
     )? (MAX_DATA_EXTENSION_TIME_IN_DAYS EQ num)? changeTracking? (
         DEFAULT_DDL_COLLATION_ EQ string
@@ -1576,11 +1576,11 @@ createExternalFunction
     )? R_PAREN RETURNS dataType nullNotNull? (
         ( CALLED ON NULL_ INPUT)
         | ((RETURNS NULL_ ON NULL_ INPUT) | STRICT)
-    )? (VOLATILE | IMMUTABLE)? commentClause? API_INTEGRATION EQ id_ (
+    )? (VOLATILE | IMMUTABLE)? commentClause? API_INTEGRATION EQ id (
         HEADERS EQ L_PAREN headerDecl (COMMA headerDecl)* R_PAREN
-    )? (CONTEXT_HEADERS EQ L_PAREN id_ (COMMA id_)* R_PAREN)? (MAX_BATCH_ROWS EQ num)? compression? (
-        REQUEST_TRANSLATOR EQ id_
-    )? (RESPONSE_TRANSLATOR EQ id_)? AS string
+    )? (CONTEXT_HEADERS EQ L_PAREN id (COMMA id)* R_PAREN)? (MAX_BATCH_ROWS EQ num)? compression? (
+        REQUEST_TRANSLATOR EQ id
+    )? (RESPONSE_TRANSLATOR EQ id)? AS string
     ;
 
 createExternalTable
@@ -1600,7 +1600,7 @@ createExternalTable
     ;
 
 externalTableColumnDecl
-    : columnName dataType AS (expr | id_) inlineConstraint?
+    : columnName dataType AS (expr | id) inlineConstraint?
     ;
 
 externalTableColumnDeclList
@@ -1608,7 +1608,7 @@ externalTableColumnDeclList
     ;
 
 fullAcct
-    : id_ DOT id_
+    : id DOT id
     ;
 
 integrationTypeName
@@ -1617,15 +1617,15 @@ integrationTypeName
     ;
 
 createFailoverGroup
-    : CREATE FAILOVER GROUP ifNotExists? id_ OBJECT_TYPES EQ objectType (COMMA objectType)* (
-        ALLOWED_DATABASES EQ id_ (COMMA id_)*
-    )? (ALLOWED_SHARES EQ id_ (COMMA id_)*)? (
+    : CREATE FAILOVER GROUP ifNotExists? id OBJECT_TYPES EQ objectType (COMMA objectType)* (
+        ALLOWED_DATABASES EQ id (COMMA id)*
+    )? (ALLOWED_SHARES EQ id (COMMA id)*)? (
         ALLOWED_INTEGRATION_TYPES EQ integrationTypeName (COMMA integrationTypeName)*
     )? ALLOWED_ACCOUNTS EQ fullAcct (COMMA fullAcct)* (IGNORE EDITION CHECK)? (
         REPLICATION_SCHEDULE EQ string
     )?
     //      Secondary Replication Group
-    | CREATE FAILOVER GROUP ifNotExists? id_ AS REPLICA OF id_ DOT id_ DOT id_
+    | CREATE FAILOVER GROUP ifNotExists? id AS REPLICA OF id DOT id DOT id
     ;
 
 typeFileformat
@@ -1688,7 +1688,7 @@ createFunction
     ;
 
 createManagedAccount
-    : CREATE MANAGED ACCOUNT id_ ADMIN_NAME EQ id_ COMMA ADMIN_PASSWORD EQ string COMMA TYPE EQ READER (
+    : CREATE MANAGED ACCOUNT id ADMIN_NAME EQ id COMMA ADMIN_PASSWORD EQ string COMMA TYPE EQ READER (
         COMMA commentClause
     )?
     ;
@@ -1715,7 +1715,7 @@ createMaterializedView
     ;
 
 createNetworkPolicy
-    : CREATE orReplace? NETWORK POLICY id_ ALLOWED_IP_LIST EQ L_PAREN stringList? R_PAREN (
+    : CREATE orReplace? NETWORK POLICY id ALLOWED_IP_LIST EQ L_PAREN stringList? R_PAREN (
         BLOCKED_IP_LIST EQ L_PAREN stringList? R_PAREN
     )? commentClause?
     ;
@@ -1737,14 +1737,14 @@ cloudProviderParamsPush
     ;
 
 createNotificationIntegration
-    : CREATE orReplace? NOTIFICATION INTEGRATION ifNotExists? id_ ENABLED EQ trueFalse TYPE EQ QUEUE cloudProviderParamsAuto commentClause?
-    | CREATE orReplace? NOTIFICATION INTEGRATION ifNotExists? id_ ENABLED EQ trueFalse DIRECTION EQ OUTBOUND TYPE EQ QUEUE
+    : CREATE orReplace? NOTIFICATION INTEGRATION ifNotExists? id ENABLED EQ trueFalse TYPE EQ QUEUE cloudProviderParamsAuto commentClause?
+    | CREATE orReplace? NOTIFICATION INTEGRATION ifNotExists? id ENABLED EQ trueFalse DIRECTION EQ OUTBOUND TYPE EQ QUEUE
         cloudProviderParamsPush commentClause?
     ;
 
 createPipe
     : CREATE orReplace? PIPE ifNotExists? objectName (AUTO_INGEST EQ trueFalse)? (
-        ERROR_INTEGRATION EQ id_
+        ERROR_INTEGRATION EQ id
     )? (AWS_SNS_TOPIC EQ string)? (INTEGRATION EQ string)? commentClause? AS copyIntoTable
     ;
 
@@ -1791,29 +1791,29 @@ createProcedure
     ;
 
 createReplicationGroup
-    : CREATE REPLICATION GROUP ifNotExists? id_ OBJECT_TYPES EQ objectType (COMMA objectType)* (
-        ALLOWED_DATABASES EQ id_ (COMMA id_)*
-    )? (ALLOWED_SHARES EQ id_ (COMMA id_)*)? (
+    : CREATE REPLICATION GROUP ifNotExists? id OBJECT_TYPES EQ objectType (COMMA objectType)* (
+        ALLOWED_DATABASES EQ id (COMMA id)*
+    )? (ALLOWED_SHARES EQ id (COMMA id)*)? (
         ALLOWED_INTEGRATION_TYPES EQ integrationTypeName (COMMA integrationTypeName)*
     )? ALLOWED_ACCOUNTS EQ fullAcct (COMMA fullAcct)* (IGNORE EDITION CHECK)? (
         REPLICATION_SCHEDULE EQ string
     )?
     //Secondary Replication Group
-    | CREATE REPLICATION GROUP ifNotExists? id_ AS REPLICA OF id_ DOT id_ DOT id_
+    | CREATE REPLICATION GROUP ifNotExists? id AS REPLICA OF id DOT id DOT id
     ;
 
 createResourceMonitor
-    : CREATE orReplace? RESOURCE MONITOR id_ WITH creditQuota? frequency? (
+    : CREATE orReplace? RESOURCE MONITOR id WITH creditQuota? frequency? (
         START_TIMESTAMP EQ ( string | IMMEDIATELY)
     )? (END_TIMESTAMP EQ string)? notifyUsers? (TRIGGERS triggerDefinition+)?
     ;
 
 createRole
-    : CREATE orReplace? ROLE ifNotExists? id_ withTags? commentClause?
+    : CREATE orReplace? ROLE ifNotExists? id withTags? commentClause?
     ;
 
 createRowAccessPolicy
-    : CREATE orReplace? ROW ACCESS POLICY ifNotExists? id_ AS L_PAREN argDecl (
+    : CREATE orReplace? ROW ACCESS POLICY ifNotExists? id AS L_PAREN argDecl (
         COMMA argDecl
     )* R_PAREN RETURNS BOOLEAN ARROW expr commentClause?
     ;
@@ -1825,7 +1825,7 @@ createSchema
     ;
 
 createSecurityIntegrationExternalOauth
-    : CREATE orReplace? SECURITY INTEGRATION ifNotExists? id_ TYPE EQ EXTERNAL_OAUTH ENABLED EQ trueFalse EXTERNAL_OAUTH_TYPE EQ (
+    : CREATE orReplace? SECURITY INTEGRATION ifNotExists? id TYPE EQ EXTERNAL_OAUTH ENABLED EQ trueFalse EXTERNAL_OAUTH_TYPE EQ (
         OKTA
         | AZURE
         | PING_FEDERATE
@@ -1852,13 +1852,13 @@ implicitNone
     ;
 
 createSecurityIntegrationSnowflakeOauth
-    : CREATE orReplace? SECURITY INTEGRATION ifNotExists? id_ TYPE EQ OAUTH OAUTH_CLIENT EQ partnerApplication OAUTH_REDIRECT_URI EQ string
+    : CREATE orReplace? SECURITY INTEGRATION ifNotExists? id TYPE EQ OAUTH OAUTH_CLIENT EQ partnerApplication OAUTH_REDIRECT_URI EQ string
     //Required when OAUTH_CLIENTEQLOOKER
     enabledTrueFalse? (OAUTH_ISSUE_REFRESH_TOKENS EQ trueFalse)? (
         OAUTH_REFRESH_TOKEN_VALIDITY EQ num
     )? (OAUTH_USE_SECONDARY_ROLES EQ implicitNone)? (BLOCKED_ROLES_LIST EQ L_PAREN stringList R_PAREN)? commentClause?
     // Snowflake OAuth for custom clients
-    | CREATE orReplace? SECURITY INTEGRATION ifNotExists? id_ TYPE EQ OAUTH OAUTH_CLIENT EQ CUSTOM
+    | CREATE orReplace? SECURITY INTEGRATION ifNotExists? id TYPE EQ OAUTH OAUTH_CLIENT EQ CUSTOM
     //OAUTH_CLIENT_TYPE EQ 'CONFIDENTIAL' | 'PUBLIC'
     OAUTH_REDIRECT_URI EQ string enabledTrueFalse? (
         OAUTH_ALLOW_NON_TLS_REDIRECT_URI EQ trueFalse
@@ -1883,7 +1883,7 @@ createSecurityIntegrationSaml2
     ;
 
 createSecurityIntegrationScim
-    : CREATE orReplace? SECURITY INTEGRATION ifNotExists? id_ TYPE EQ SCIM SCIM_CLIENT EQ (
+    : CREATE orReplace? SECURITY INTEGRATION ifNotExists? id TYPE EQ SCIM SCIM_CLIENT EQ (
         OKTA_Q
         | AZURE_Q
         | GENERIC_Q
@@ -1915,13 +1915,13 @@ createSequence
     ;
 
 createSessionPolicy
-    : CREATE orReplace? SESSION POLICY ifExists? id_ (SESSION_IDLE_TIMEOUT_MINS EQ num)? (
+    : CREATE orReplace? SESSION POLICY ifExists? id (SESSION_IDLE_TIMEOUT_MINS EQ num)? (
         SESSION_UI_IDLE_TIMEOUT_MINS EQ num
     )? commentClause?
     ;
 
 createShare
-    : CREATE orReplace? SHARE id_ commentClause?
+    : CREATE orReplace? SHARE id commentClause?
     ;
 
 character
@@ -2080,7 +2080,7 @@ stageEncryptionOptsAz
     ;
 
 storageIntegrationEqId
-    : STORAGE_INTEGRATION EQ id_
+    : STORAGE_INTEGRATION EQ id
     ;
 
 azCredentialOrStorageIntegration
@@ -2219,7 +2219,7 @@ cloudProviderParams3
     ;
 
 createStorageIntegration
-    : CREATE orReplace? STORAGE INTEGRATION ifNotExists? id_ TYPE EQ EXTERNAL_STAGE cloudProviderParams ENABLED EQ trueFalse
+    : CREATE orReplace? STORAGE INTEGRATION ifNotExists? id TYPE EQ EXTERNAL_STAGE cloudProviderParams ENABLED EQ trueFalse
         STORAGE_ALLOWED_LOCATIONS EQ L_PAREN stringList R_PAREN (
         STORAGE_BLOCKED_LOCATIONS EQ L_PAREN stringList R_PAREN
     )? commentClause?
@@ -2245,7 +2245,7 @@ streamTime
     : atBefore1 L_PAREN (
         TIMESTAMP ASSOC string
         | OFFSET ASSOC string
-        | STATEMENT ASSOC id_
+        | STATEMENT ASSOC id
         | STREAM ASSOC string
     ) R_PAREN
     ;
@@ -2278,7 +2278,7 @@ withTags
     ;
 
 withRowAccessPolicy
-    : WITH? ROW ACCESS POLICY id_ ON L_PAREN columnName (COMMA columnName)* R_PAREN
+    : WITH? ROW ACCESS POLICY id ON L_PAREN columnName (COMMA columnName)* R_PAREN
     ;
 
 clusterBy
@@ -2290,7 +2290,7 @@ changeTracking
     ;
 
 withMaskingPolicy
-    : WITH? MASKING POLICY id_ (USING columnListInParentheses)?
+    : WITH? MASKING POLICY id (USING columnListInParentheses)?
     ;
 
 collate
@@ -2321,7 +2321,7 @@ primaryKey
     ;
 
 outOfLineConstraint
-    : (CONSTRAINT id_)? (
+    : (CONSTRAINT id)? (
         (UNIQUE | primaryKey) columnListInParentheses commonConstraintProperties*
         | foreignKey columnListInParentheses REFERENCES objectName columnListInParentheses constraintProperties
     )
@@ -2488,7 +2488,7 @@ taskParameters
     ;
 
 taskCompute
-    : WAREHOUSE EQ id_
+    : WAREHOUSE EQ id
     | USER_TASK_MANAGED_INITIAL_WAREHOUSE_SIZE EQ (
         whCommonSize
         | string
@@ -2508,7 +2508,7 @@ taskSuspendAfterFailureNumber
     ;
 
 taskErrorIntegration
-    : ERROR_INTEGRATION EQ id_
+    : ERROR_INTEGRATION EQ id
     ;
 
 taskOverlap
@@ -2526,7 +2526,7 @@ call
     ;
 
 createUser
-    : CREATE orReplace? USER ifNotExists? id_ objectProperties? objectParams? sessionParams?
+    : CREATE orReplace? USER ifNotExists? id objectProperties? objectParams? sessionParams?
     ;
 
 viewCol
@@ -2568,7 +2568,7 @@ whProperties
     | AUTO_SUSPEND (EQ num | NULL_)
     | AUTO_RESUME EQ trueFalse
     | INITIALLY_SUSPENDED EQ trueFalse
-    | RESOURCE_MONITOR EQ id_
+    | RESOURCE_MONITOR EQ id
     | commentClause
     | ENABLE_QUERY_ACCELERATION EQ trueFalse
     | QUERY_ACCELERATION_MAX_SCALE_FACTOR EQ num
@@ -2658,23 +2658,23 @@ dropCommand
     ;
 
 dropObject
-    : DROP objectType ifExists id_ cascadeRestrict?
+    : DROP objectType ifExists id cascadeRestrict?
     ;
 
 dropAlert
-    : DROP ALERT id_
+    : DROP ALERT id
     ;
 
 dropConnection
-    : DROP CONNECTION ifExists? id_
+    : DROP CONNECTION ifExists? id
     ;
 
 dropDatabase
-    : DROP DATABASE ifExists? id_ cascadeRestrict?
+    : DROP DATABASE ifExists? id cascadeRestrict?
     ;
 
 dropDynamicTable
-    : DROP DYNAMIC TABLE id_
+    : DROP DYNAMIC TABLE id
     ;
 
 dropExternalTable
@@ -2682,11 +2682,11 @@ dropExternalTable
     ;
 
 dropFailoverGroup
-    : DROP FAILOVER GROUP ifExists? id_
+    : DROP FAILOVER GROUP ifExists? id
     ;
 
 dropFileFormat
-    : DROP FILE FORMAT ifExists? id_
+    : DROP FILE FORMAT ifExists? id
     ;
 
 dropFunction
@@ -2694,15 +2694,15 @@ dropFunction
     ;
 
 dropIntegration
-    : DROP (API | NOTIFICATION | SECURITY | STORAGE)? INTEGRATION ifExists? id_
+    : DROP (API | NOTIFICATION | SECURITY | STORAGE)? INTEGRATION ifExists? id
     ;
 
 dropManagedAccount
-    : DROP MANAGED ACCOUNT id_
+    : DROP MANAGED ACCOUNT id
     ;
 
 dropMaskingPolicy
-    : DROP MASKING POLICY id_
+    : DROP MASKING POLICY id
     ;
 
 dropMaterializedView
@@ -2710,7 +2710,7 @@ dropMaterializedView
     ;
 
 dropNetworkPolicy
-    : DROP NETWORK POLICY ifExists? id_
+    : DROP NETWORK POLICY ifExists? id
     ;
 
 dropPipe
@@ -2722,19 +2722,19 @@ dropProcedure
     ;
 
 dropReplicationGroup
-    : DROP REPLICATION GROUP ifExists? id_
+    : DROP REPLICATION GROUP ifExists? id
     ;
 
 dropResourceMonitor
-    : DROP RESOURCE MONITOR id_
+    : DROP RESOURCE MONITOR id
     ;
 
 dropRole
-    : DROP ROLE ifExists? id_
+    : DROP ROLE ifExists? id
     ;
 
 dropRowAccessPolicy
-    : DROP ROW ACCESS POLICY ifExists? id_
+    : DROP ROW ACCESS POLICY ifExists? id
     ;
 
 dropSchema
@@ -2746,11 +2746,11 @@ dropSequence
     ;
 
 dropSessionPolicy
-    : DROP SESSION POLICY ifExists? id_
+    : DROP SESSION POLICY ifExists? id
     ;
 
 dropShare
-    : DROP SHARE id_
+    : DROP SHARE id
     ;
 
 dropStream
@@ -2770,7 +2770,7 @@ dropTask
     ;
 
 dropUser
-    : DROP USER ifExists? id_
+    : DROP USER ifExists? id
     ;
 
 dropView
@@ -2800,7 +2800,7 @@ undropCommand
     ;
 
 undropDatabase
-    : UNDROP DATABASE id_
+    : UNDROP DATABASE id
     ;
 
 undropSchema
@@ -2825,15 +2825,15 @@ useCommand
     ;
 
 useDatabase
-    : USE DATABASE id_
+    : USE DATABASE id
     ;
 
 useRole
-    : USE ROLE id_
+    : USE ROLE id
     ;
 
 useSchema
-    : USE SCHEMA? (id_ DOT)? id_
+    : USE SCHEMA? (id DOT)? id
     ;
 
 useSecondaryRoles
@@ -2903,19 +2903,19 @@ describeCommand
     ;
 
 describeAlert
-    : describe ALERT id_
+    : describe ALERT id
     ;
 
 describeDatabase
-    : describe DATABASE id_
+    : describe DATABASE id
     ;
 
 describeDynamicTable
-    : describe DYNAMIC TABLE id_
+    : describe DYNAMIC TABLE id
     ;
 
 describeEventTable
-    : describe EVENT TABLE id_
+    : describe EVENT TABLE id
     ;
 
 describeExternalTable
@@ -2923,7 +2923,7 @@ describeExternalTable
     ;
 
 describeFileFormat
-    : describe FILE FORMAT id_
+    : describe FILE FORMAT id
     ;
 
 describeFunction
@@ -2931,11 +2931,11 @@ describeFunction
     ;
 
 describeIntegration
-    : describe (API | NOTIFICATION | SECURITY | STORAGE)? INTEGRATION id_
+    : describe (API | NOTIFICATION | SECURITY | STORAGE)? INTEGRATION id
     ;
 
 describeMaskingPolicy
-    : describe MASKING POLICY id_
+    : describe MASKING POLICY id
     ;
 
 describeMaterializedView
@@ -2943,7 +2943,7 @@ describeMaterializedView
     ;
 
 describeNetworkPolicy
-    : describe NETWORK POLICY id_
+    : describe NETWORK POLICY id
     ;
 
 describePipe
@@ -2959,7 +2959,7 @@ describeResult
     ;
 
 describeRowAccessPolicy
-    : describe ROW ACCESS POLICY id_
+    : describe ROW ACCESS POLICY id
     ;
 
 describeSchema
@@ -2975,11 +2975,11 @@ describeSequence
     ;
 
 describeSessionPolicy
-    : describe SESSION POLICY id_
+    : describe SESSION POLICY id
     ;
 
 describeShare
-    : describe SHARE id_
+    : describe SHARE id
     ;
 
 describeStream
@@ -2999,7 +2999,7 @@ describeTransaction
     ;
 
 describeUser
-    : describe USER id_
+    : describe USER id
     ;
 
 describeView
@@ -3007,7 +3007,7 @@ describeView
     ;
 
 describeWarehouse
-    : describe WAREHOUSE id_
+    : describe WAREHOUSE id
     ;
 
 // show commands
@@ -3068,12 +3068,12 @@ showCommand
     ;
 
 showAlerts
-    : SHOW TERSE? ALERTS likePattern? (IN ( ACCOUNT | DATABASE id_? | SCHEMA schemaName?))? startsWith? limitRows?
+    : SHOW TERSE? ALERTS likePattern? (IN ( ACCOUNT | DATABASE id? | SCHEMA schemaName?))? startsWith? limitRows?
     ;
 
 showChannels
     : SHOW CHANNELS likePattern? (
-        IN (ACCOUNT | DATABASE id_? | SCHEMA schemaName? | TABLE | TABLE? objectName)
+        IN (ACCOUNT | DATABASE id? | SCHEMA schemaName? | TABLE | TABLE? objectName)
     )?
     ;
 
@@ -3081,7 +3081,7 @@ showColumns
     : SHOW COLUMNS likePattern? (
         IN (
             ACCOUNT
-            | DATABASE id_?
+            | DATABASE id?
             | SCHEMA schemaName?
             | TABLE
             | TABLE? objectName
@@ -3108,25 +3108,25 @@ showDatabases
     ;
 
 showDatabasesInFailoverGroup
-    : SHOW DATABASES IN FAILOVER GROUP id_
+    : SHOW DATABASES IN FAILOVER GROUP id
     ;
 
 showDatabasesInReplicationGroup
-    : SHOW DATABASES IN REPLICATION GROUP id_
+    : SHOW DATABASES IN REPLICATION GROUP id
     ;
 
 showDelegatedAuthorizations
     : SHOW DELEGATED AUTHORIZATIONS
-    | SHOW DELEGATED AUTHORIZATIONS BY USER id_
-    | SHOW DELEGATED AUTHORIZATIONS TO SECURITY INTEGRATION id_
+    | SHOW DELEGATED AUTHORIZATIONS BY USER id
+    | SHOW DELEGATED AUTHORIZATIONS TO SECURITY INTEGRATION id
     ;
 
 showDynamicTables
-    : SHOW DYNAMIC TABLES likePattern? (IN ( ACCOUNT | DATABASE id_? | SCHEMA? schemaName?))? startsWith? limitRows?
+    : SHOW DYNAMIC TABLES likePattern? (IN ( ACCOUNT | DATABASE id? | SCHEMA? schemaName?))? startsWith? limitRows?
     ;
 
 showEventTables
-    : SHOW TERSE? EVENT TABLES likePattern? (IN ( ACCOUNT | DATABASE id_? | SCHEMA? schemaName?))? startsWith? limitRows?
+    : SHOW TERSE? EVENT TABLES likePattern? (IN ( ACCOUNT | DATABASE id? | SCHEMA? schemaName?))? startsWith? limitRows?
     ;
 
 showExternalFunctions
@@ -3135,23 +3135,23 @@ showExternalFunctions
 
 showExternalTables
     : SHOW TERSE? EXTERNAL TABLES likePattern? (
-        IN ( ACCOUNT | DATABASE id_? | SCHEMA? schemaName?)
+        IN ( ACCOUNT | DATABASE id? | SCHEMA? schemaName?)
     )? startsWith? limitRows?
     ;
 
 showFailoverGroups
-    : SHOW FAILOVER GROUPS (IN ACCOUNT id_)?
+    : SHOW FAILOVER GROUPS (IN ACCOUNT id)?
     ;
 
 showFileFormats
     : SHOW FILE FORMATS likePattern? (
-        IN (ACCOUNT | DATABASE | DATABASE id_ | SCHEMA | SCHEMA schemaName | schemaName)
+        IN (ACCOUNT | DATABASE | DATABASE id | SCHEMA | SCHEMA schemaName | schemaName)
     )?
     ;
 
 showFunctions
     : SHOW FUNCTIONS likePattern? (
-        IN ( ACCOUNT | DATABASE | DATABASE id_ | SCHEMA | SCHEMA id_ | id_)
+        IN ( ACCOUNT | DATABASE | DATABASE id | SCHEMA | SCHEMA id | id)
     )?
     ;
 
@@ -3162,15 +3162,15 @@ showGlobalAccounts
 showGrants
     : SHOW GRANTS showGrantsOpts?
     | SHOW FUTURE GRANTS IN SCHEMA schemaName
-    | SHOW FUTURE GRANTS IN DATABASE id_
+    | SHOW FUTURE GRANTS IN DATABASE id
     ;
 
 showGrantsOpts
     : ON ACCOUNT
     | ON objectType objectName
-    | TO (ROLE id_ | USER id_ | SHARE id_)
-    | OF ROLE id_
-    | OF SHARE id_
+    | TO (ROLE id | USER id | SHARE id)
+    | OF ROLE id
+    | OF SHARE id
     ;
 
 showIntegrations
@@ -3190,11 +3190,11 @@ showMaskingPolicies
     ;
 
 inObj
-    : IN (ACCOUNT | DATABASE | DATABASE id_ | SCHEMA | SCHEMA schemaName | schemaName)
+    : IN (ACCOUNT | DATABASE | DATABASE id | SCHEMA | SCHEMA schemaName | schemaName)
     ;
 
 inObj2
-    : IN (ACCOUNT | DATABASE id_? | SCHEMA schemaName? | TABLE | TABLE objectName)
+    : IN (ACCOUNT | DATABASE id? | SCHEMA schemaName? | TABLE | TABLE objectName)
     ;
 
 showMaterializedViews
@@ -3223,8 +3223,8 @@ showParameters
         inFor (
             SESSION
             | ACCOUNT
-            | USER id_?
-            | ( WAREHOUSE | DATABASE | SCHEMA | TASK) id_?
+            | USER id?
+            | ( WAREHOUSE | DATABASE | SCHEMA | TASK) id?
             | TABLE objectName
         )
     )?
@@ -3251,11 +3251,11 @@ showReplicationAccounts
     ;
 
 showReplicationDatabases
-    : SHOW REPLICATION DATABASES likePattern? (WITH PRIMARY accountIdentifier DOT id_)?
+    : SHOW REPLICATION DATABASES likePattern? (WITH PRIMARY accountIdentifier DOT id)?
     ;
 
 showReplicationGroups
-    : SHOW REPLICATION GROUPS (IN ACCOUNT id_)?
+    : SHOW REPLICATION GROUPS (IN ACCOUNT id)?
     ;
 
 showResourceMonitors
@@ -3271,7 +3271,7 @@ showRowAccessPolicies
     ;
 
 showSchemas
-    : SHOW TERSE? SCHEMAS HISTORY? likePattern? (IN ( ACCOUNT | DATABASE id_?))? startsWith? limitRows?
+    : SHOW TERSE? SCHEMAS HISTORY? likePattern? (IN ( ACCOUNT | DATABASE id?))? startsWith? limitRows?
     ;
 
 showSequences
@@ -3287,11 +3287,11 @@ showShares
     ;
 
 showSharesInFailoverGroup
-    : SHOW SHARES IN FAILOVER GROUP id_
+    : SHOW SHARES IN FAILOVER GROUP id
     ;
 
 showSharesInReplicationGroup
-    : SHOW SHARES IN REPLICATION GROUP id_
+    : SHOW SHARES IN REPLICATION GROUP id
     ;
 
 showStreams
@@ -3306,7 +3306,7 @@ showTags
     : SHOW TAGS likePattern? (
         IN ACCOUNT
         | DATABASE
-        | DATABASE id_
+        | DATABASE id
         | SCHEMA
         | SCHEMA schemaName
         | schemaName
@@ -3314,7 +3314,7 @@ showTags
     ;
 
 showTasks
-    : SHOW TERSE? TASKS likePattern? (IN ( ACCOUNT | DATABASE id_? | SCHEMA? schemaName?))? startsWith? limitRows?
+    : SHOW TERSE? TASKS likePattern? (IN ( ACCOUNT | DATABASE id? | SCHEMA? schemaName?))? startsWith? limitRows?
     ;
 
 showTransactions
@@ -3334,7 +3334,7 @@ showVariables
     ;
 
 showViews
-    : SHOW TERSE? VIEWS likePattern? (IN ( ACCOUNT | DATABASE id_? | SCHEMA? schemaName?))? startsWith? limitRows?
+    : SHOW TERSE? VIEWS likePattern? (IN ( ACCOUNT | DATABASE id? | SCHEMA? schemaName?))? startsWith? limitRows?
     ;
 
 showWarehouses
@@ -3347,12 +3347,12 @@ likePattern
 
 //names
 accountIdentifier
-    : id_
+    : id
     ;
 
 schemaName
-    : d = id_ DOT s = id_
-    | s = id_
+    : d = id DOT s = id
+    | s = id
     ;
 
 objectType
@@ -3376,23 +3376,23 @@ tagValue
     ;
 
 argDataType
-    : id_
+    : dataType
     ;
 
 argName
-    : id_
+    : id
     ;
 
 paramName
-    : id_
+    : id
     ;
 
 regionGroupId
-    : id_
+    : id
     ;
 
 snowflakeRegionId
-    : id_
+    : id
     ;
 
 string
@@ -3404,26 +3404,18 @@ stringList
     ;
 
 idFn
-    : id_
-    | IDENTIFIER L_PAREN id_ R_PAREN
+    : id
+    | IDENTIFIER L_PAREN id R_PAREN
     ;
 
-id_
-    //id_ is used for object name. Snowflake is very permissive
+id
+    //id is used for object name. Snowflake is very permissive
     //so we could use nearly all keyword as object name (table, column etc..)
     : ID
     | ID2
     | DOUBLE_QUOTE_ID
     | DOUBLE_QUOTE_BLANK
     | keyword
-    | nonReservedWords
-    | objectTypePlural
-    | dataType
-    | builtinFunctionName
-    | unaryOrBinaryBuiltinFunction
-    | binaryBuiltinFunction
-    | binaryOrTernaryBuiltinFunction
-    | ternaryBuiltinFunction
     ;
 
 keyword
@@ -3557,26 +3549,6 @@ nonReservedWords
     | MODE
     ;
 
-builtinFunctionName
-    // If there is a lexer entry for a function we also need to add the token here
-    // as it otherwise will not be picked up by the id_ rule (See also derived rule below)
-    : SUM
-    | AVG
-    | MIN
-    | COUNT
-    | CURRENT_TIMESTAMP
-    | CURRENT_DATE
-    | UPPER
-    | LOWER
-    | TO_BOOLEAN
-    | IDENTIFIER
-    | FLATTEN
-    | SPLIT_TO_TABLE
-    | CAST
-    | TRY_CAST
-    | ANY_VALUE
-    | GETDATE
-    ;
 
 //TODO : Split builtin between NoParam func,specialBuiltinFunc (like CAST), unaryBuiltinFunction and unaryOrBinaryBuiltinFunction for better AST
 unaryOrBinaryBuiltinFunction
@@ -3641,7 +3613,7 @@ pattern
 //    ;
 
 columnName
-    : (id_ DOT)? id_
+    : (id DOT)? id
     ;
 
 columnList
@@ -3653,9 +3625,9 @@ columnListWithComment
     ;
 
 objectName
-    : d = id_ DOT s = id_ DOT o = id_
-    | s = id_ DOT o = id_
-    | o = id_
+    : d = id DOT s = id DOT o = id
+    | s = id DOT o = id
+    | o = id
     ;
 
 objectNameOrIdentifier
@@ -3839,7 +3811,7 @@ builtinFunction
     ;
 
 standardFunction
-    : id_ L_PAREN exprList? R_PAREN
+    : id L_PAREN exprList? R_PAREN
     ;
 
 paramAssocList
@@ -3847,7 +3819,7 @@ paramAssocList
     ;
 
 paramAssoc
-    : id_ ASSOC expr
+    : id ASSOC expr
     ;
 
 ignoreOrRepectNulls
@@ -3865,8 +3837,8 @@ aggregateFunction
     : op = (LISTAGG | ARRAY_AGG) L_PAREN DISTINCT? expr (COMMA string)? R_PAREN (
               WITHIN GROUP L_PAREN orderByClause R_PAREN
           )?                                   #aggFuncList
-    | id_ L_PAREN DISTINCT? exprList R_PAREN  #aggFuncExprList
-    | id_ L_PAREN STAR R_PAREN                 #aggFuncStar
+    | id L_PAREN DISTINCT? exprList R_PAREN    #aggFuncExprList
+    | id L_PAREN STAR R_PAREN                  #aggFuncStar
     ;
 
 //rowsRange
@@ -3903,10 +3875,10 @@ sign
     ;
 
 fullColumnName
-    : dbName = id_? DOT schema = id_? DOT tabName = id_? DOT colName = id_
-    | schema = id_? DOT tabName = id_? DOT colName = id_
-    | tabName = id_? DOT colName = id_
-    | colName = id_
+    : dbName = id? DOT schema = id? DOT tabName = id? DOT colName = id
+    | schema = id? DOT tabName = id? DOT colName = id
+    | tabName = id? DOT colName = id
+    | colName = id
     ;
 
 bracketExpression
@@ -3937,7 +3909,7 @@ withExpression
     ;
 
 commonTableExpression
-    : id_ (L_PAREN columns = columnList R_PAREN)? AS L_PAREN selectStatement setOperators* R_PAREN
+    : id (L_PAREN columns = columnList R_PAREN)? AS L_PAREN selectStatement setOperators* R_PAREN
     ;
 
 selectStatement
@@ -4026,7 +3998,7 @@ varList
     ;
 
 var
-    : COLON id_
+    : COLON id
     ;
 
 fromClause
@@ -4048,15 +4020,15 @@ tableSourceItemJoined
     ;
 
 objectRef
-    : TABLE L_PAREN functionCall R_PAREN pivotUnpivot? asAlias?                           #objRefTable
-    | LATERAL (flattenTable | splitedTable) asAlias?                                      #objRefLateral
-    | LATERAL? L_PAREN subquery R_PAREN pivotUnpivot? asAlias? columnListInParentheses? #objRefSubquery
-    | valuesTable                                                                           #objRefValues
-    | objectName START WITH predicate CONNECT BY priorList?                                #objRefStartWith
-    | objectName atBefore? changes? matchRecognize? pivotUnpivot? asAlias?
-        columnListInParentheses?                                                          #objRefDefault
-    //| AT id_ PATH?
-    //    (L_PAREN FILE_FORMAT ASSOC id_ COMMA patternAssoc R_PAREN)?
+    : objectName atBefore? changes? matchRecognize? pivotUnpivot? asAlias?
+        columnListInParentheses?                                                        # objRefDefault
+    | TABLE L_PAREN functionCall R_PAREN pivotUnpivot? asAlias?                         # objRefTable
+    | LATERAL (flattenTable | splitedTable) asAlias?                                    # objRefLateral
+    | LATERAL? L_PAREN subquery R_PAREN pivotUnpivot? asAlias? columnListInParentheses? # objRefSubquery
+    | valuesTable                                                                       # objRefValues
+    | objectName START WITH predicate CONNECT BY priorList?                             # objRefStartWith
+    //| AT id PATH?
+    //    (L_PAREN FILE_FORMAT ASSOC id COMMA patternAssoc R_PAREN)?
     //    asAlias?
     ;
 
@@ -4080,7 +4052,7 @@ priorList
     ;
 
 priorItem
-    : PRIOR? id_ EQ PRIOR? id_
+    : PRIOR? id EQ PRIOR? id
     ;
 
 outerJoin
@@ -4127,7 +4099,7 @@ partitionBy
     ;
 
 alias
-    : id_
+    : id
     ;
 
 exprAliasList
@@ -4174,14 +4146,14 @@ matchRecognize
     ;
 
 pivotUnpivot
-    : PIVOT L_PAREN id_ L_PAREN id_ R_PAREN FOR id_ IN L_PAREN literal (COMMA literal)* R_PAREN R_PAREN (
+    : PIVOT L_PAREN id L_PAREN id R_PAREN FOR id IN L_PAREN literal (COMMA literal)* R_PAREN R_PAREN (
         asAlias columnAliasListInBrackets?
     )?
-    | UNPIVOT L_PAREN id_ FOR columnName IN L_PAREN columnList R_PAREN R_PAREN
+    | UNPIVOT L_PAREN id FOR columnName IN L_PAREN columnList R_PAREN R_PAREN
     ;
 
 columnAliasListInBrackets
-    : L_PAREN id_ (COMMA id_)* R_PAREN
+    : L_PAREN id (COMMA id)* R_PAREN
     ;
 
 exprListInParentheses
@@ -4271,7 +4243,7 @@ qualifyClause
     ;
 
 orderItem
-    : (id_ | num | expr) (ASC | DESC)? (NULLS ( FIRST | LAST))?
+    : (id | num | expr) (ASC | DESC)? (NULLS ( FIRST | LAST))?
     ;
 
 orderByClause

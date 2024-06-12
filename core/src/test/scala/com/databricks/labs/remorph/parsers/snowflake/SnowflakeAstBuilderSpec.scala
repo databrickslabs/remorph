@@ -12,7 +12,7 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
   private def singleQueryExample(query: String, expectedAst: Relation): Assertion =
     example(query, _.snowflakeFile(), Batch(Seq(expectedAst)))
 
-  "SnowflakeVisitor" should {
+  "SnowflakeAstBuilder" should {
     "translate a simple SELECT query" in {
       singleQueryExample(
         query = "SELECT a FROM TABLE",
@@ -231,7 +231,7 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
           Aggregate(
             input = NamedTable("b", Map.empty, is_streaming = false),
             group_type = Pivot,
-            grouping_expressions = Seq(Sum(Column("a"))),
+            grouping_expressions = Seq(CallFunction("SUM", Seq(Column("a")))),
             pivot = Some(Pivot(Column("c"), Seq(Literal(string = Some("foo")), Literal(string = Some("bar")))))),
           Seq(Column("a"))))
     }
