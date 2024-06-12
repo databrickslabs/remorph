@@ -5,5 +5,5 @@
 -- tsql sql:
 SELECT GET_BIT(42, 7);
 
--- GET_BIT sql:
+-- databricks sql:
 SELECT BIT_COUNT(42);

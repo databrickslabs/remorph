@@ -1009,10 +1009,6 @@ dropWorkloadGroup
     : DROP WORKLOAD GROUP groupName = id
     ;
 
-dropXmlSchemaCollection
-    : DROP XML SCHEMA COLLECTION (relationalSchema = id DOT)? sqlIdentifier = id
-    ;
-
 disableTrigger
     : DISABLE TRIGGER (( COMMA? (schemaName = id DOT)? triggerName = id)+ | ALL) ON (
         (schemaId = id DOT)? objectName = id
@@ -1872,14 +1868,6 @@ createWorkloadGroup
     )?
     ;
 
-createXmlSchemaCollection
-    : CREATE XML SCHEMA COLLECTION (relationalSchema = id DOT)? sqlIdentifier = id AS (
-        STRING
-        | id
-        | LOCAL_ID
-    )
-    ;
-
 createPartitionFunction
     : CREATE PARTITION FUNCTION partitionFunctionName = id LPAREN inputParameterType = dataType RPAREN AS RANGE (
         LEFT
@@ -2185,28 +2173,6 @@ createNonclusteredColumnstoreIndex
     )? createColumnstoreIndexOptions? (ON id)? SEMI?
     ;
 
-createXmlIndex
-    : CREATE PRIMARY? XML INDEX id ON tableName LPAREN id RPAREN (
-        USING XML INDEX id (FOR (VALUE | PATH | PROPERTY)?)?
-    )? xmlIndexOptions? SEMI?
-    ;
-
-xmlIndexOptions
-    : WITH LPAREN xmlIndexOption (COMMA xmlIndexOption)* RPAREN
-    ;
-
-xmlIndexOption
-    : PAD_INDEX EQ onOff
-    | FILLFACTOR EQ INT
-    | SORT_IN_TEMPDB EQ onOff
-    | IGNORE_DUP_KEY EQ onOff
-    | DROP_EXISTING EQ onOff
-    | ONLINE EQ (ON (LPAREN lowPriorityLockWait RPAREN)? | OFF)
-    | ALLOW_ROW_LOCKS EQ onOff
-    | ALLOW_PAGE_LOCKS EQ onOff
-    | MAXDOP EQ maxDegreeOfParallelism = INT
-    | XML_COMPRESSION EQ onOff
-    ;
 
 createOrAlterProcedure
     : ((CREATE (OR (ALTER | REPLACE))?) | ALTER) proc = (PROC | PROCEDURE) procName = funcProcNameSchema (
@@ -2779,13 +2745,9 @@ declareStatement
     : DECLARE LOCAL_ID AS? (dataType | tableTypeDefinition | tableName)
     | DECLARE loc += declareLocal (COMMA loc += declareLocal)*
     | DECLARE LOCAL_ID AS? xmlTypeDefinition
-    | WITH XMLNAMESPACES LPAREN xmlDec += xmlDeclaration (COMMA xmlDec += xmlDeclaration)* RPAREN
+    | WITH xmlNamespaces
     ;
 
-xmlDeclaration
-    : xmlNamespaceUri = STRING AS id
-    | DEFAULT STRING
-    ;
 
 cursorStatement
     : CLOSE GLOBAL? cursorName SEMI?
@@ -3424,14 +3386,6 @@ tableTypeIndices
     | CHECK LPAREN searchCondition RPAREN
     ;
 
-xmlTypeDefinition
-    : XML LPAREN (CONTENT | DOCUMENT)? xmlSchemaCollection RPAREN
-    ;
-
-xmlSchemaCollection
-    : ID DOT ID
-    ;
-
 columnDefTableConstraints
     : columnDefTableConstraint (COMMA? columnDefTableConstraint)*
     ;
@@ -3687,7 +3641,8 @@ subquery
     ;
 
 withExpression
-    : WITH commonTableExpression (COMMA commonTableExpression)*
+    : WITH xmlNamespaces?
+           commonTableExpression (COMMA commonTableExpression)*
     ;
 
 commonTableExpression
@@ -3816,10 +3771,6 @@ forClause
         )*
     ;
 
-xmlCommonDirectives
-    : COMMA (BINARY_KEYWORD BASE64 | TYPE | ROOT (LPAREN STRING RPAREN)?)
-    ;
-
 orderByExpression
     : expression (COLLATE expression)? (ASC | DESC)?
     ;
@@ -3910,10 +3861,6 @@ tableSourceItem
     | LPAREN tableSource RPAREN
     ;
 
-openXml
-    : OPENXML LPAREN expression COMMA expression (COMMA expression)? RPAREN (WITH LPAREN schemaDeclaration RPAREN)? asTableAlias?
-    ;
-
 openJson
     : OPENJSON LPAREN expression (COMMA expression)? RPAREN (WITH LPAREN jsonDeclaration RPAREN)? asTableAlias?
     ;
@@ -3926,9 +3873,6 @@ jsonColumnDeclaration
     : columnDeclaration (AS JSON)?
     ;
 
-schemaDeclaration
-    : xmlCol += columnDeclaration (COMMA xmlCol += columnDeclaration)*
-    ;
 
 columnDeclaration
     : id dataType STRING?
@@ -5179,4 +5123,70 @@ assignmentOperator
 
 fileSize
     : INT (KB | MB | GB | TB | MOD)?
+;
+
+// XML stuff
+
+dropXmlSchemaCollection
+    : DROP XML SCHEMA COLLECTION (relationalSchema = id DOT)? sqlIdentifier = id
+    ;
+
+schemaDeclaration
+    : columnDeclaration (COMMA columnDeclaration)*
+    ;
+
+createXmlSchemaCollection
+    : CREATE XML SCHEMA COLLECTION (relationalSchema = id DOT)? sqlIdentifier = id AS (
+        STRING
+        | id
+        | LOCAL_ID
+    )
+    ;
+
+openXml
+    : OPENXML LPAREN expression COMMA expression (COMMA expression)? RPAREN (WITH LPAREN schemaDeclaration RPAREN)? asTableAlias?
+    ;
+
+xmlNamespaces
+    : XMLNAMESPACES LPAREN xmlDeclaration (COMMA xmlDeclaration)* RPAREN
+    ;
+
+xmlDeclaration
+    : STRING AS id
+    | DEFAULT STRING
+    ;
+
+xmlTypeDefinition
+    : XML LPAREN (CONTENT | DOCUMENT)? xmlSchemaCollection RPAREN
+    ;
+
+xmlSchemaCollection
+    : ID DOT ID
+    ;
+
+createXmlIndex
+    : CREATE PRIMARY? XML INDEX id ON tableName LPAREN id RPAREN (
+        USING XML INDEX id (FOR (VALUE | PATH | PROPERTY)?)?
+    )? xmlIndexOptions? SEMI?
+    ;
+
+xmlIndexOptions
+    : WITH LPAREN xmlIndexOption (COMMA xmlIndexOption)* RPAREN
+    ;
+
+xmlIndexOption
+    : PAD_INDEX EQ onOff
+    | FILLFACTOR EQ INT
+    | SORT_IN_TEMPDB EQ onOff
+    | IGNORE_DUP_KEY EQ onOff
+    | DROP_EXISTING EQ onOff
+    | ONLINE EQ (ON (LPAREN lowPriorityLockWait RPAREN)? | OFF)
+    | ALLOW_ROW_LOCKS EQ onOff
+    | ALLOW_PAGE_LOCKS EQ onOff
+    | MAXDOP EQ maxDegreeOfParallelism = INT
+    | XML_COMPRESSION EQ onOff
+    ;
+
+xmlCommonDirectives
+    : COMMA (BINARY_KEYWORD BASE64 | TYPE | ROOT (LPAREN STRING RPAREN)?)
     ;
