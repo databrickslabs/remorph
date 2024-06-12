@@ -88,4 +88,4 @@ class MockDataSource(DataSource):
         include_list: list[str] | None,
         exclude_list: list[str] | None,
     ) -> TableRecon:
-        return NotImplemented
+        raise NotImplementedError("list_tables method is not implemented for DataSource")

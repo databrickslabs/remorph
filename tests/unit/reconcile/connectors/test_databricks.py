@@ -102,3 +102,12 @@ def test_get_schema_exception_handling():
         "where lower(table_catalog)='org' and lower(table_schema)='data' and lower("
         "table_name) ='employee' order by col_name : Test Exception"
     )
+
+
+def test_list_tables_exception_handling():
+    # initial setup
+    engine, spark, ws, scope = initial_setup()
+    ds = DatabricksDataSource(engine, spark, ws, scope)
+
+    with pytest.raises(NotImplementedError, match="list_tables method is not implemented"):
+        ds.list_tables(catalog=None, schema="dummy", include_list=None, exclude_list=None)

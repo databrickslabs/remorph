@@ -175,3 +175,12 @@ def test_get_schema_exception_handling():
                                 WHERE lower(TABLE_NAME) = 'employee' and lower(owner) = 'data' """,
     ):
         ds.get_schema(None, "data", "employee")
+
+
+def test_list_tables_exception_handling():
+    # initial setup
+    engine, spark, ws, scope = initial_setup()
+    ds = OracleDataSource(engine, spark, ws, scope)
+
+    with pytest.raises(NotImplementedError, match="list_tables method is not implemented"):
+        ds.list_tables(catalog=None, schema="dummy", include_list=None, exclude_list=None)

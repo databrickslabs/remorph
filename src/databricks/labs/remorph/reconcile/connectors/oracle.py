@@ -101,4 +101,4 @@ class OracleDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
         exclude_list: list[str] | None,
     ) -> TableRecon:
         # TODO: Implement list_tables in the OracleDataSource
-        return NotImplemented
+        raise NotImplementedError("list_tables method is not implemented for OracleDataSource yet...")

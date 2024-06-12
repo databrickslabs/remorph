@@ -80,4 +80,4 @@ class DatabricksDataSource(DataSource, SecretsMixin):
         exclude_list: list[str] | None,
     ) -> TableRecon:
         # TODO: Implement list_tables in the DatabricksDataSource
-        return NotImplemented
+        raise NotImplementedError("list_tables method is not implemented for DatabricksDataSource yet...")

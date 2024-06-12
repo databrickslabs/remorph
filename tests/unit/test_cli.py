@@ -393,3 +393,10 @@ def test_cli_reconcile(mock_workspace_client, mock_installation_reconcile, monke
     ):
         with patch("databricks.labs.remorph.helpers.reconcile_utils.ReconcileUtils.run", return_value=True):
             cli.reconcile(mock_workspace_client)
+
+
+def test_cli_generate_recon_config(mock_workspace_client, mock_installation_reconcile):
+    with patch.object(mock_installation_reconcile, "install_folder", return_value="/Users/remorph/.remorph"):
+        with patch("databricks.labs.remorph.cli.ReconcileConfigUtils") as mock_reconcile_config:
+            cli.generate_recon_config(mock_workspace_client)
+            mock_reconcile_config.assert_called_once_with(mock_workspace_client, mock_installation_reconcile)

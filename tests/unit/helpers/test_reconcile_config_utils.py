@@ -184,8 +184,8 @@ def test_store_connection_secrets_overwrite_no(mock_workspace_client, mock_insta
     )
 
     with patch(
-            "databricks.labs.remorph.helpers.reconcile_utils.ReconcileConfigUtils._secret_key_exists",
-            return_value=True,
+        "databricks.labs.remorph.helpers.reconcile_utils.ReconcileConfigUtils._secret_key_exists",
+        return_value=True,
     ):
         reconcile_utils = ReconcileConfigUtils(mock_workspace_client, mock_installation, prompts=prompts)
         reconcile_utils.store_connection_secrets("scope_name", ("source", {"key": "value"}))
