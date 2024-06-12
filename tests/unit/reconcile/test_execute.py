@@ -1834,9 +1834,7 @@ def test_reconcile_data_with_threshold_and_row_report_type(
 
 
 @patch('databricks.labs.remorph.reconcile.execute.generate_final_reconcile_output')
-def test_recon_output_without_exception(mock_gen_final_recon_output):
-    mock_workspace_client = MagicMock()
-    mock_spark = MagicMock()
+def test_recon_output_without_exception(mock_gen_final_recon_output, mock_spark_session, mock_workspace_client):
     mock_table_recon = MagicMock()
     mock_gen_final_recon_output.return_value = ReconcileOutput(
         recon_id="00112233-4455-6677-8899-aabbccddeeff",
@@ -1869,7 +1867,7 @@ def test_recon_output_without_exception(mock_gen_final_recon_output):
     try:
         recon(
             mock_workspace_client,
-            mock_spark,
+            mock_spark_session,
             mock_table_recon,
             reconcile_config,
         )

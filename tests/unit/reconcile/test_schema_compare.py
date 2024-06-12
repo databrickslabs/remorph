@@ -227,7 +227,6 @@ def test_databricks_schema_compare(schemas, mock_spark):
 
 def test_oracle_schema_compare(schemas, mock_spark):
     src_schema, tgt_schema = schemas["oracle_databricks_schema"]
-    spark = mock_spark
     table_conf = Table(
         source_name="supplier",
         target_name="supplier",
@@ -237,7 +236,7 @@ def test_oracle_schema_compare(schemas, mock_spark):
             ColumnMapping(source_name="col_array", target_name="array_col"),
         ],
     )
-    schema_compare_output = SchemaCompare(spark).compare(
+    schema_compare_output = SchemaCompare(mock_spark).compare(
         src_schema,
         tgt_schema,
         get_dialect("oracle"),

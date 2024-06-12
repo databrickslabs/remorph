@@ -69,13 +69,9 @@ def test_configure_secrets_invalid_source(mock_workspace_client):
         }
     )
 
-    with patch(
-        "databricks.labs.remorph.helpers.recon_config_utils.ReconConfigPrompts._scope_exists",
-        return_value=True,
-    ):
-        recon_conf = ReconConfigPrompts(mock_workspace_client, prompts)
-        with pytest.raises(ValueError, match="cannot get answer within 10 attempt"):
-            recon_conf.prompt_source()
+    recon_conf = ReconConfigPrompts(mock_workspace_client, prompts)
+    with pytest.raises(ValueError, match="cannot get answer within 10 attempt"):
+        recon_conf.prompt_source()
 
 
 def test_store_connection_secrets_exception(mock_workspace_client):
