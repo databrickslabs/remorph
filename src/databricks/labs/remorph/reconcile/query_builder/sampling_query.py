@@ -9,6 +9,9 @@ from databricks.labs.remorph.reconcile.query_builder.expression_generator import
     build_column,
     build_literal,
     _get_is_string,
+    build_join_clause,
+    trim,
+    coalesce,
 )
 
 _SAMPLE_ROWS = 50
@@ -39,7 +42,7 @@ class SamplingQueryBuilder(QueryBuilder):
         else:
             key_cols = sorted(self.table_conf.get_tgt_to_src_col_mapping_list(join_columns))
         keys_df = df.select(*key_cols)
-        with_clause = self._get_with_clause(keys_df)
+        with_clause = SamplingQueryBuilder._get_with_clause(keys_df)
 
         cols = sorted((join_columns | self.select_columns) - self.threshold_columns - self.drop_columns)
 
@@ -51,28 +54,47 @@ class SamplingQueryBuilder(QueryBuilder):
         sql_with_transforms = self.add_transformations(cols_with_alias, self.source)
         query_sql = select(*sql_with_transforms).from_(":tbl").where(self.filter)
         if self.layer == "source":
-            with_select = sorted(cols)
+            with_select = [build_column(this=col, table_name="src") for col in sorted(cols)]
         else:
-            with_select = sorted(self.table_conf.get_tgt_to_src_col_mapping_list(cols))
+            with_select = [
+                build_column(this=col, table_name="src")
+                for col in sorted(self.table_conf.get_tgt_to_src_col_mapping_list(cols))
+            ]
+
+        join_clause = SamplingQueryBuilder._get_join_clause(key_cols)
 
         query = (
             with_clause.with_(alias="src", as_=query_sql)
             .select(*with_select)
             .from_("src")
-            .join(expression="recon", join_type="inner", using=key_cols)
+            .join(join_clause)
             .sql(dialect=self.source)
         )
         logger.info(f"Sampling Query for {self.layer}: {query}")
         return query
 
-    @staticmethod
-    def _get_with_clause(df: DataFrame) -> exp.Select:
+    @classmethod
+    def _get_join_clause(cls, key_cols: list):
+        return (
+            build_join_clause(
+                "recon", key_cols, source_table_alias="src", target_table_alias="recon", kind="inner", func=exp.EQ
+            )
+            .transform(coalesce, default="_null_recon_", is_string=True)
+            .transform(trim)
+        )
+
+    @classmethod
+    def _get_with_clause(cls, df: DataFrame) -> exp.Select:
         union_res = []
         for row in df.take(_SAMPLE_ROWS):
             column_types = [(str(f.name).lower(), f.dataType) for f in df.schema.fields]
             column_types_dict = dict(column_types)
             row_select = [
-                build_literal(this=value, alias=col, is_string=_get_is_string(column_types_dict, col))
+                (
+                    build_literal(this=str(value), alias=col, is_string=_get_is_string(column_types_dict, col))
+                    if value is not None
+                    else exp.Alias(this=exp.Null(), alias=col)
+                )
                 for col, value in zip(df.columns, row)
             ]
             union_res.append(select(*row_select))
