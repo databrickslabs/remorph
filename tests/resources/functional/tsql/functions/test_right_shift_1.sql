@@ -6,4 +6,4 @@
 SELECT RIGHT_SHIFT(42, 7);
 
 -- databricks sql:
-SELECT RIGHT_SHIFT(42, 7);
+SELECT rightshift(42, 7);
