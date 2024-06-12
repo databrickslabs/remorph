@@ -5,7 +5,6 @@ from unittest.mock import create_autospec, patch
 
 import pytest
 
-from databricks.connect import DatabricksSession
 from databricks.labs.lsql.backends import MockBackend
 from databricks.labs.lsql.core import Row
 from databricks.labs.remorph.config import MorphConfig, ValidationResult
@@ -17,6 +16,7 @@ from databricks.labs.remorph.transpiler.execute import (
     morph_sql,
 )
 from databricks.sdk.core import Config
+
 
 # pylint: disable=unspecified-encoding
 
@@ -246,19 +246,22 @@ def test_with_dir_with_output_folder_skip_validation(initial_setup, mock_workspa
     safe_remove_file(Path(status[0]["error_log_file"]))
 
 
-def test_with_file(initial_setup, mock_workspace_client):
+def test_with_file(
+    initial_setup,
+    mock_workspace_client,
+    mock_databricks_config,
+    mock_spark_session,
+):
     input_dir = initial_setup
-    sdk_config = create_autospec(Config)
-    spark = create_autospec(DatabricksSession)
     config = MorphConfig(
         input_sql=str(input_dir / "query1.sql"),
         output_folder="None",
-        sdk_config=sdk_config,
+        sdk_config=mock_databricks_config,
         source="snowflake",
         skip_validation=False,
     )
     mock_validate = create_autospec(Validator)
-    mock_validate.spark = spark
+    mock_validate.spark = mock_spark_session
     mock_validate.validate_format_result.return_value = ValidationResult(
         """ Mock validated query """, "Mock validation error"
     )
@@ -441,10 +444,9 @@ def test_morph_column_exp(mock_workspace_client):
         assert result[2][1] is None
 
 
-def test_with_file_with_success(initial_setup, mock_workspace_client):
+def test_with_file_with_success(initial_setup, mock_workspace_client, mock_spark_session):
     input_dir = initial_setup
-    sdk_config = create_autospec(Config)
-    spark = create_autospec(DatabricksSession)
+    sdk_config = create_autospec(Config)  # pylint: disable=mock-no-usage
     config = MorphConfig(
         input_sql=str(input_dir / "query1.sql"),
         output_folder="None",
@@ -453,7 +455,7 @@ def test_with_file_with_success(initial_setup, mock_workspace_client):
         skip_validation=False,
     )
     mock_validate = create_autospec(Validator)
-    mock_validate.spark = spark
+    mock_validate.spark = mock_spark_session
     mock_validate.validate_format_result.return_value = ValidationResult(""" Mock validated query """, None)
 
     with (

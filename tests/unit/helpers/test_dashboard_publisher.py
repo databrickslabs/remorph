@@ -27,9 +27,8 @@ def test_create_dashboard():
     assert dashboard_metadata == expected_dashboard_metadata
 
 
-def test_create_dashboard_with_params():
+def test_create_dashboard_with_params(mock_workspace_client):
     installation = MockInstallation(is_global=False)
-    workspace_client = create_autospec(WorkspaceClient)
     dashboard_params = {
         "catalog": "remorph1",
         "schema": "reconcile1",
@@ -40,6 +39,6 @@ def test_create_dashboard_with_params():
         '../../resources/Remorph-Reconciliation-Substituted.lvdash.json'
     )
 
-    dashboard_publisher = DashboardPublisher(workspace_client, installation)
+    dashboard_publisher = DashboardPublisher(mock_workspace_client, installation)
     dashboard_publisher.create(dashboard_file, parameters=dashboard_params)
     installation.assert_file_uploaded(dashboard_file.name, substituted_dashboard_file.read_bytes())

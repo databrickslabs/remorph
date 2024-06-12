@@ -13,7 +13,6 @@ from databricks.labs.remorph.reconcile.recon_config import (
 
 
 def test_build_query_for_snowflake_src(mock_spark, table_conf_mock, table_schema):
-    spark = mock_spark
     sch, sch_with_alias = table_schema
     df_schema = StructType(
         [
@@ -26,7 +25,7 @@ def test_build_query_for_snowflake_src(mock_spark, table_conf_mock, table_schema
             StructField('s_comment', StringType()),
         ]
     )
-    df = spark.createDataFrame(
+    df = mock_spark.createDataFrame(
         [
             (1, 'name-1', 'add-1', 11, '1-1', 100, 'c-1'),
             (2, 'name-2', 'add-2', 22, '2-2', 200, 'c-2'),
@@ -77,7 +76,6 @@ def test_build_query_for_snowflake_src(mock_spark, table_conf_mock, table_schema
 
 
 def test_build_query_for_oracle_src(mock_spark, table_conf_mock, table_schema, column_mapping):
-    spark = mock_spark
     _, sch_with_alias = table_schema
     df_schema = StructType(
         [
@@ -90,7 +88,7 @@ def test_build_query_for_oracle_src(mock_spark, table_conf_mock, table_schema, c
             StructField('s_comment', StringType()),
         ]
     )
-    df = spark.createDataFrame(
+    df = mock_spark.createDataFrame(
         [
             (1, 'name-1', 'add-1', 11, '1-1', 100, 'c-1'),
             (2, 'name-2', 'add-2', 22, '2-2', 200, 'c-2'),
@@ -147,7 +145,6 @@ def test_build_query_for_oracle_src(mock_spark, table_conf_mock, table_schema, c
 
 
 def test_build_query_for_databricks_src(mock_spark, table_conf_mock):
-    spark = mock_spark
     df_schema = StructType(
         [
             StructField('s_suppkey', IntegerType()),
@@ -159,7 +156,7 @@ def test_build_query_for_databricks_src(mock_spark, table_conf_mock):
             StructField('s_comment', StringType()),
         ]
     )
-    df = spark.createDataFrame([(1, 'name-1', 'add-1', 11, '1-1', 100, 'c-1')], schema=df_schema)
+    df = mock_spark.createDataFrame([(1, 'name-1', 'add-1', 11, '1-1', 100, 'c-1')], schema=df_schema)
 
     schema = [
         Schema("s_suppkey", "bigint"),
@@ -188,7 +185,6 @@ def test_build_query_for_databricks_src(mock_spark, table_conf_mock):
 
 
 def test_build_query_for_snowflake_without_transformations(mock_spark, table_conf_mock, table_schema):
-    spark = mock_spark
     sch, sch_with_alias = table_schema
     df_schema = StructType(
         [
@@ -201,7 +197,7 @@ def test_build_query_for_snowflake_without_transformations(mock_spark, table_con
             StructField('s_comment', StringType()),
         ]
     )
-    df = spark.createDataFrame(
+    df = mock_spark.createDataFrame(
         [
             (1, 'name-1', 'add-1', 11, '1-1', 100, 'c-1'),
             (2, 'name-2', 'add-2', 22, '2-2', 200, 'c-2'),
@@ -256,7 +252,6 @@ def test_build_query_for_snowflake_without_transformations(mock_spark, table_con
 
 
 def test_build_query_for_snowflake_src_for_non_integer_primary_keys(mock_spark, table_conf_mock):
-    spark = mock_spark
     sch = [Schema("s_suppkey", "varchar"), Schema("s_name", "varchar"), Schema("s_nationkey", "number")]
 
     sch_with_alias = [Schema("s_suppkey_t", "varchar"), Schema("s_name", "varchar"), Schema("s_nationkey_t", "number")]
@@ -267,7 +262,7 @@ def test_build_query_for_snowflake_src_for_non_integer_primary_keys(mock_spark, 
             StructField('s_nationkey', IntegerType()),
         ]
     )
-    df = spark.createDataFrame(
+    df = mock_spark.createDataFrame(
         [
             ('a', 'name-1', 11),
             ('b', 'name-2', 22),

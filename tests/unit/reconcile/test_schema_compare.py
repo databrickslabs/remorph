@@ -167,7 +167,6 @@ def schemas():
 
 def test_snowflake_schema_compare(schemas, mock_spark):
     src_schema, tgt_schema = schemas["snowflake_databricks_schema"]
-    spark = mock_spark
     table_conf = Table(
         source_name="supplier",
         target_name="supplier",
@@ -178,7 +177,7 @@ def test_snowflake_schema_compare(schemas, mock_spark):
         ],
     )
 
-    schema_compare_output = SchemaCompare(spark).compare(
+    schema_compare_output = SchemaCompare(mock_spark).compare(
         src_schema,
         tgt_schema,
         get_dialect("snowflake"),
@@ -194,7 +193,6 @@ def test_snowflake_schema_compare(schemas, mock_spark):
 
 def test_databricks_schema_compare(schemas, mock_spark):
     src_schema, tgt_schema = schemas["databricks_databricks_schema"]
-    spark = mock_spark
     table_conf = Table(
         source_name="supplier",
         target_name="supplier",
@@ -213,7 +211,7 @@ def test_databricks_schema_compare(schemas, mock_spark):
             ColumnMapping(source_name="col_array", target_name="array_col"),
         ],
     )
-    schema_compare_output = SchemaCompare(spark).compare(
+    schema_compare_output = SchemaCompare(mock_spark).compare(
         src_schema,
         tgt_schema,
         get_dialect("databricks"),
@@ -262,7 +260,6 @@ def test_schema_compare(mock_spark):
         Schema("col1", "int"),
         Schema("col2", "string"),
     ]
-    spark = mock_spark
     table_conf = Table(
         source_name="supplier",
         target_name="supplier",
@@ -273,7 +270,7 @@ def test_schema_compare(mock_spark):
         ],
     )
 
-    schema_compare_output = SchemaCompare(spark).compare(
+    schema_compare_output = SchemaCompare(mock_spark).compare(
         src_schema,
         tgt_schema,
         get_dialect("databricks"),

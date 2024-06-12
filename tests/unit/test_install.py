@@ -353,12 +353,12 @@ def test_create_schema_no(ws_no_catalog_schema, mock_installation_state):
 
 def test_workspace_installation(ws, mock_installation, monkeypatch):
     # Create a mock for the Installation
-    mock_install = create_autospec(Installation)
+    mock_install = create_autospec(Installation)  # pylint: disable=mock-no-usage
 
     # Create a mock for the config
-    config = create_autospec(MorphConfig)
+    config = create_autospec(MorphConfig)  # pylint: disable=mock-no-usage
 
-    product_info = create_autospec(ProductInfo)
+    product_info = create_autospec(ProductInfo)  # pylint: disable=mock-no-usage
 
     # Call the current function
     result = WorkspaceInstallation(config, mock_install, ws, Prompts(), timedelta(minutes=2), product_info)

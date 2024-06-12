@@ -21,6 +21,7 @@ from sqlglot.errors import SqlglotError, ParseError
 from sqlglot import parse_one as sqlglot_parse_one
 from sqlglot import transpile
 
+from databricks.connect import DatabricksSession
 from databricks.labs.remorph.config import SQLGLOT_DIALECTS, MorphConfig
 from databricks.labs.remorph.reconcile.recon_config import (
     ColumnMapping,
@@ -59,6 +60,12 @@ def mock_spark() -> SparkSession:
 def mock_databricks_config():
     config = create_autospec(Config)  # pylint: disable=mock-no-usage
     yield config
+
+
+@pytest.fixture(scope="session")
+def mock_spark_session():
+    spark_session = create_autospec(DatabricksSession)  # pylint: disable=mock-no-usage
+    return spark_session
 
 
 @pytest.fixture()
