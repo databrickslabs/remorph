@@ -388,9 +388,9 @@ class ReconciliationMetadataSetup:
         Threads.strict(
             "Deploy reconciliation metadata tables",
             [
-                functools.partial(deploy_table, "main", "queries/reconcile/installation/main.sql"),
-                functools.partial(deploy_table, "metrics", "queries/reconcile/installation/metrics.sql"),
-                functools.partial(deploy_table, "details", "queries/reconcile/installation/details.sql"),
+                functools.partial(deploy_table, "main", "reconcile/queries/installation/main.sql"),
+                functools.partial(deploy_table, "metrics", "reconcile/queries/installation/metrics.sql"),
+                functools.partial(deploy_table, "details", "reconcile/queries/installation/details.sql"),
             ],
         )
 
@@ -447,7 +447,7 @@ class WorkspaceInstallation:
             "schema": self._config.reconcile.metadata_config.schema,
         }
 
-        reconcile_dashboard_path = "dashboards/Remorph-Reconciliation.lvdash.json"
+        reconcile_dashboard_path = "reconcile/dashboards/Remorph-Reconciliation.lvdash.json"
         dashboard_resource = files(databricks.labs.remorph.resources).joinpath(reconcile_dashboard_path)
         dashboard_publisher = DashboardPublisher(self._ws, self._installation)
         logger.info("Creating Reconciliation Dashboard.")

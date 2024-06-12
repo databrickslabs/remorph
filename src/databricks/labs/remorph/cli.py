@@ -8,8 +8,7 @@ from databricks.labs.blueprint.cli import App
 from databricks.labs.blueprint.entrypoint import get_logger
 from databricks.labs.blueprint.installation import Installation
 from databricks.labs.remorph.config import SQLGLOT_DIALECTS, MorphConfig
-from databricks.labs.remorph.helpers.reconcile_config_utils import ReconcileConfigUtils
-from databricks.labs.remorph.helpers.reconcile_utils import ReconcileUtils
+from databricks.labs.remorph.helpers.reconcile_utils import ReconcileUtils, ReconcileConfigUtils
 from databricks.labs.remorph.lineage import lineage_generator
 from databricks.labs.remorph.transpiler.execute import morph
 from databricks.sdk import WorkspaceClient
@@ -95,12 +94,10 @@ def _get_spark_session(ws: WorkspaceClient) -> SparkSession:
 def generate_recon_config(w: WorkspaceClient):
     """generates recon_config file for reconciliation"""
     logger.info(f"User: {w.current_user.me()}")
-    logger.info("Generating recon_config file for reconcile")
+    logger.info("Generating `recon_config` file for Data Reconciliation")
 
     # Create Installation object
-    # installation = Installation(w, "remorph")
-    folder_path = f"/Users/{w.current_user.me().user_name}/.remorph_demo"
-    installation = Installation(w, "remorph", install_folder=folder_path)
+    installation = Installation.assume_user_home(w, "remorph")
 
     utils = ReconcileConfigUtils(w, installation)
     utils.generate_recon_config()

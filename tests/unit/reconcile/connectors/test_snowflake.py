@@ -182,7 +182,7 @@ def test_get_schema():
         concat(data_type, '(', numeric_precision, ',' , numeric_scale, ')') when lower(data_type) = 'text' then
         concat('varchar', '(', CHARACTER_MAXIMUM_LENGTH, ')')  else data_type end as data_type from
         catalog.INFORMATION_SCHEMA.COLUMNS where lower(table_name)='supplier' and lower(table_schema) = 'schema' 
-        order by ordinal_position)""",
+        order by ordinal_position) as tmp""",
         ),
     )
     spark.read.format().option().options.assert_called_with(

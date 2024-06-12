@@ -8,7 +8,7 @@ import yaml
 from databricks.labs.blueprint.tui import MockPrompts
 from databricks.labs.remorph import cli
 from databricks.labs.remorph.config import MorphConfig
-from databricks.labs.remorph.helpers.reconcile_config_utils import ReconcileConfigUtils
+from databricks.labs.remorph.helpers.reconcile_utils import ReconcileConfigUtils
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.errors import NotFound
 from databricks.labs.blueprint.installation import MockInstallation
@@ -366,7 +366,7 @@ def test_generate_lineage_invalid_input_sql(mock_workspace_client_cli):
         )
 
 
-def test_configure_secrets_databricks(mock_workspace_client, mock_installation):
+def test_configure_secrets_databricks(mock_workspace_client, mock_installation_reconcile):
     source_dict = {"databricks": "0", "netezza": "1", "oracle": "2", "snowflake": "3"}
     prompts = MockPrompts(
         {
@@ -374,17 +374,17 @@ def test_configure_secrets_databricks(mock_workspace_client, mock_installation):
         }
     )
 
-    recon_conf = ReconcileConfigUtils(mock_workspace_client, mock_installation, prompts=prompts)
+    recon_conf = ReconcileConfigUtils(mock_workspace_client, mock_installation_reconcile, prompts=prompts)
     recon_conf.prompt_source()
 
     assert recon_conf.prompt_and_save_connection_details() is None
 
 
-def test_cli_configure_secrets_config(mock_workspace_client, mock_installation):
-    with patch.object(mock_installation, "install_folder", return_value="/Users/remorph/.remorph"):
+def test_cli_configure_secrets_config(mock_workspace_client, mock_installation_reconcile):
+    with patch.object(mock_installation_reconcile, "install_folder", return_value="/Users/remorph/.remorph"):
         with patch("databricks.labs.remorph.cli.ReconcileConfigUtils") as mock_reconcile_config:
             cli.configure_secrets(mock_workspace_client)
-            mock_reconcile_config.assert_called_once_with(mock_workspace_client, mock_installation)
+            mock_reconcile_config.assert_called_once_with(mock_workspace_client, mock_installation_reconcile)
 
 
 def test_cli_reconcile(mock_workspace_client, mock_installation_reconcile, monkeypatch):

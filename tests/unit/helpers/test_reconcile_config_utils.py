@@ -8,12 +8,12 @@ from databricks.connect.session import DatabricksSession
 from databricks.labs.blueprint.installation import MockInstallation
 from databricks.labs.blueprint.tui import MockPrompts
 from databricks.labs.remorph.config import TableRecon
-from databricks.labs.remorph.helpers.reconcile_config_utils import (
+from databricks.labs.remorph.helpers.reconcile_utils import (
     ReconcileConfigUtils,
 )
 from databricks.labs.remorph.reconcile.recon_config import Table
 from databricks.sdk.errors.platform import ResourceDoesNotExist
-from databricks.sdk.service.workspace import SecretScope
+from databricks.sdk.service.workspace import SecretScope, GetSecretResponse
 
 from ..reconcile.connectors.test_snowflake import mock_secret
 
@@ -28,19 +28,33 @@ def mock_installation():
         {
             "reconcile.yml": {
                 "data_source": "snowflake",
-                "config": {
-                    "source_catalog": "sf_catalog",
-                    "source_schema": "sf_schema",
-                    "target_catalog": "db_catalog",
-                    "target_schema": "db_schema",
+                "database_config": {
+                    "source_catalog": "sfc",
+                    "source_schema": "sfs",
+                    "target_catalog": "dbc",
+                    "target_schema": "dbs",
                 },
-                "report_type": "schema",
+                "report_type": "row",
                 "secret_scope": SCOPE_NAME,
                 "tables": {
                     "filter_type": "include",
-                    "tables_list": ["orders"],
+                    "tables_list": ["odc"],
+                },
+                "metadata_config": {
+                    "catalog": "ct",
+                    "schema": "sc",
+                    "volume": "vl",
                 },
                 "version": 1,
+            },
+            "recon_conf_snowflake.json": {
+                "source_schema": "sfs",
+                "source_catalog": "sfc",
+                "target_catalog": "dbc",
+                "target_schema": "dbs",
+                "tables": [
+                    {"source_name": "odc", "target_name": "odc"},
+                ],
             },
         }
     )
@@ -83,20 +97,18 @@ def test_configure_secrets_oracle_insert(mock_workspace_client, mock_installatio
             r"Enter host": "dummy",
             r"Enter port": "dummy",
             r"Enter database/SID": "dummy",
+            r"Do you want to overwrite.*": "yes",
         }
     )
 
-    mock_workspace_client.secrets.list_scopes.side_effect = [[SecretScope(name="other_scope")]]
+    mock_workspace_client.secrets.list_scopes.side_effect = [[SecretScope(name=SCOPE_NAME)]]
+    mock_workspace_client.secrets.get_secret.return_value = [[GetSecretResponse(key="source", value="dummy")]]
 
-    with patch(
-        "databricks.labs.remorph.helpers.reconcile_config_utils.ReconcileConfigUtils._secret_key_exists",
-        return_value=False,
-    ):
-        reconcile_utils = ReconcileConfigUtils(mock_workspace_client, mock_installation, prompts=prompts)
-        reconcile_utils.prompt_source()
+    reconcile_utils = ReconcileConfigUtils(mock_workspace_client, mock_installation, prompts=prompts)
+    reconcile_utils.prompt_source()
 
-        reconcile_utils.prompt_and_save_connection_details()
-        mock_workspace_client.secrets.put_secret.assert_called()
+    reconcile_utils.prompt_and_save_connection_details()
+    mock_workspace_client.secrets.put_secret.assert_called()
 
 
 def test_configure_secrets_invalid_source(mock_workspace_client, mock_installation):
@@ -167,13 +179,13 @@ def test_configure_secrets_create_scope_exception(mock_workspace_client, mock_in
 def test_store_connection_secrets_overwrite_no(mock_workspace_client, mock_installation):
     prompts = MockPrompts(
         {
-            r"Do you want to overwrite `source_key`?": "no",
+            r"Do you want to overwrite `key`?": "no",
         }
     )
 
     with patch(
-        "databricks.labs.remorph.helpers.reconcile_config_utils.ReconcileConfigUtils._secret_key_exists",
-        return_value=True,
+            "databricks.labs.remorph.helpers.reconcile_utils.ReconcileConfigUtils._secret_key_exists",
+            return_value=True,
     ):
         reconcile_utils = ReconcileConfigUtils(mock_workspace_client, mock_installation, prompts=prompts)
         reconcile_utils.store_connection_secrets("scope_name", ("source", {"key": "value"}))
