@@ -296,12 +296,12 @@ class SnowflakeExpressionBuilder()
   // aggregateFunction
 
   override def visitAggFuncExprList(ctx: AggFuncExprListContext): ir.Expression = {
-    val param = ctx.exprList().expr(0).accept(this)
-    buildBuiltinFunction(ctx.id().builtinFunctionName(), param)
+    val param = ctx.exprList().expr().asScala.map(_.accept(this))
+    functionBuilder.buildFunction(getIdText(ctx.id()), param)
   }
 
   override def visitAggFuncStar(ctx: AggFuncStarContext): ir.Expression = {
-    buildBuiltinFunction(ctx.id().builtinFunctionName(), ir.Star(None))
+    functionBuilder.buildFunction(getIdText(ctx.id()), Seq(ir.Star(None)))
   }
 
   override def visitAggFuncList(ctx: AggFuncListContext): ir.Expression = {
@@ -313,16 +313,6 @@ class SnowflakeExpressionBuilder()
     }
   }
   // end aggregateFunction
-
-  private def buildBuiltinFunction(ctx: BuiltinFunctionNameContext, param: ir.Expression): ir.Expression =
-    Option(ctx)
-      .collect {
-        case c if c.AVG() != null => ir.Avg(param)
-        case c if c.SUM() != null => ir.Sum(param)
-        case c if c.MIN() != null => ir.Min(param)
-        case c if c.COUNT() != null => ir.Count(param)
-      }
-      .getOrElse(param)
 
   override def visitBuiltinTrim(ctx: BuiltinTrimContext): ir.Expression = {
     val expression = ctx.expr().accept(this)

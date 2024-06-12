@@ -23,12 +23,6 @@ case class LesserThan(left: Expression, right: Expression) extends Binary(left, 
 case class GreaterThanOrEqual(left: Expression, right: Expression) extends Binary(left, right) with Predicate {}
 case class LesserThanOrEqual(left: Expression, right: Expression) extends Binary(left, right) with Predicate {}
 
-case class Count(expression: Expression) extends Expression {}
-case class Sum(expression: Expression) extends Expression {}
-case class Avg(expression: Expression) extends Expression {}
-case class Max(expression: Expression) extends Expression {}
-case class Min(expression: Expression) extends Expression {}
-
 case object Noop extends Expression
 case object RowNumber extends Expression {}
 case class NTile(expression: Expression) extends Expression {}

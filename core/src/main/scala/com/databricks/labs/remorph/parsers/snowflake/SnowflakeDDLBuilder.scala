@@ -38,7 +38,7 @@ class SnowflakeDDLBuilder
   private def buildParameter(ctx: ArgDeclContext): ir.FunctionParameter = {
     ir.FunctionParameter(
       name = ctx.argName().getText,
-      dataType = DataTypeBuilder.buildDataType(ctx.argDataType().id().dataType()),
+      dataType = DataTypeBuilder.buildDataType(ctx.argDataType().dataType()),
       defaultValue = Option(ctx.argDefaultValueClause())
         .map(_.expr().accept(expressionBuilder)))
   }

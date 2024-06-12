@@ -3376,7 +3376,7 @@ tagValue
     ;
 
 argDataType
-    : id
+    : dataType
     ;
 
 argName
@@ -3416,14 +3416,6 @@ id
     | DOUBLE_QUOTE_ID
     | DOUBLE_QUOTE_BLANK
     | keyword
-    | nonReservedWords
-    | objectTypePlural
-    | dataType
-    | builtinFunctionName
-    | unaryOrBinaryBuiltinFunction
-    | binaryBuiltinFunction
-    | binaryOrTernaryBuiltinFunction
-    | ternaryBuiltinFunction
     ;
 
 keyword
@@ -3557,26 +3549,6 @@ nonReservedWords
     | MODE
     ;
 
-builtinFunctionName
-    // If there is a lexer entry for a function we also need to add the token here
-    // as it otherwise will not be picked up by the id rule (See also derived rule below)
-    : SUM
-    | AVG
-    | MIN
-    | COUNT
-    | CURRENT_TIMESTAMP
-    | CURRENT_DATE
-    | UPPER
-    | LOWER
-    | TO_BOOLEAN
-    | IDENTIFIER
-    | FLATTEN
-    | SPLIT_TO_TABLE
-    | CAST
-    | TRY_CAST
-    | ANY_VALUE
-    | GETDATE
-    ;
 
 //TODO : Split builtin between NoParam func,specialBuiltinFunc (like CAST), unaryBuiltinFunction and unaryOrBinaryBuiltinFunction for better AST
 unaryOrBinaryBuiltinFunction
@@ -3865,8 +3837,8 @@ aggregateFunction
     : op = (LISTAGG | ARRAY_AGG) L_PAREN DISTINCT? expr (COMMA string)? R_PAREN (
               WITHIN GROUP L_PAREN orderByClause R_PAREN
           )?                                   #aggFuncList
-    | id L_PAREN DISTINCT? exprList R_PAREN  #aggFuncExprList
-    | id L_PAREN STAR R_PAREN                 #aggFuncStar
+    | id L_PAREN DISTINCT? exprList R_PAREN    #aggFuncExprList
+    | id L_PAREN STAR R_PAREN                  #aggFuncStar
     ;
 
 //rowsRange
@@ -4048,13 +4020,13 @@ tableSourceItemJoined
     ;
 
 objectRef
-    : TABLE L_PAREN functionCall R_PAREN pivotUnpivot? asAlias?                           #objRefTable
-    | LATERAL (flattenTable | splitedTable) asAlias?                                      #objRefLateral
-    | LATERAL? L_PAREN subquery R_PAREN pivotUnpivot? asAlias? columnListInParentheses? #objRefSubquery
-    | valuesTable                                                                           #objRefValues
-    | objectName START WITH predicate CONNECT BY priorList?                                #objRefStartWith
-    | objectName atBefore? changes? matchRecognize? pivotUnpivot? asAlias?
-        columnListInParentheses?                                                          #objRefDefault
+    : objectName atBefore? changes? matchRecognize? pivotUnpivot? asAlias?
+        columnListInParentheses?                                                        # objRefDefault
+    | TABLE L_PAREN functionCall R_PAREN pivotUnpivot? asAlias?                         # objRefTable
+    | LATERAL (flattenTable | splitedTable) asAlias?                                    # objRefLateral
+    | LATERAL? L_PAREN subquery R_PAREN pivotUnpivot? asAlias? columnListInParentheses? # objRefSubquery
+    | valuesTable                                                                       # objRefValues
+    | objectName START WITH predicate CONNECT BY priorList?                             # objRefStartWith
     //| AT id PATH?
     //    (L_PAREN FILE_FORMAT ASSOC id COMMA patternAssoc R_PAREN)?
     //    asAlias?

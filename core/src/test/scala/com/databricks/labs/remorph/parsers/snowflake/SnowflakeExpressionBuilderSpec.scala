@@ -38,12 +38,12 @@ class SnowflakeExpressionBuilderSpec
     }
 
     "translate aggregation functions" in {
-      example("COUNT(x)", _.aggregateFunction(), Count(Column("x")))
-      example("AVG(x)", _.aggregateFunction(), Avg(Column("x")))
-      example("SUM(x)", _.aggregateFunction(), Sum(Column("x")))
-      example("MIN(x)", _.aggregateFunction(), Min(Column("x")))
+      example("COUNT(x)", _.aggregateFunction(), CallFunction("COUNT", Seq(Column("x"))))
+      example("AVG(x)", _.aggregateFunction(), CallFunction("AVG", Seq(Column("x"))))
+      example("SUM(x)", _.aggregateFunction(), CallFunction("SUM", Seq(Column("x"))))
+      example("MIN(x)", _.aggregateFunction(), CallFunction("MIN", Seq(Column("x"))))
 
-      example("COUNT(*)", _.aggregateFunction(), Count(Star(None)))
+      example("COUNT(*)", _.aggregateFunction(), CallFunction("COUNT", Seq(Star(None))))
 
       example(
         "LISTAGG(x, ',')",
