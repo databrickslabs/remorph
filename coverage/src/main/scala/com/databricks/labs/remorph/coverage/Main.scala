@@ -22,27 +22,26 @@ object Main {
       @arg(short = 'e', doc = "End comment")
       endComment: Option[String],
       @arg(short = 'd', doc = "Source dialect")
-      sourceDialect: Option[String],
+      sourceDialect: String,
       @arg(short = 't', doc = "Target dialect")
-      targetDialect: Option[String]): Unit = {
+      targetDialect: String = "databricks"): Unit = {
     val testSource = new NestedFiles(sourceDir.toNIO)
-    val CommentBasedQueryExtractor = new CommentBasedQueryExtractor(
-      startComment.getOrElse("-- snowflake sql:"),
-      endComment.getOrElse("-- databricks sql:"))
+    val queryExtractor = new DialectNameCommentBasedQueryExtractor(sourceDialect, targetDialect)
     testSource.listTests.foreach { test =>
-      val q = CommentBasedQueryExtractor.extractQuery(test.inputFile)
-      val runner = new IsResolvedAsSnowflakeQueryRunner(new SnowflakeAstBuilder)
-      val header = ReportEntryHeader(
-        project = "remorph-core",
-        commit_hash = None,
-        version = "latest",
-        timestamp = Instant.now.toString,
-        source_dialect = sourceDialect.getOrElse("snowflake"),
-        target_dialect = targetDialect.getOrElse("databricks"),
-        file = test.inputFile.toString)
-      val report = runner.runQuery(q)
-      val reportEntryJson = ReportEntry(header, report).asJson
-      os.write.append(outputPath, ujson.write(reportEntryJson, indent = -1) + "\n")
+      queryExtractor.extractQuery(test.inputFile).foreach { q =>
+        val runner = new IsResolvedAsSnowflakeQueryRunner(new SnowflakeAstBuilder)
+        val header = ReportEntryHeader(
+          project = "remorph-core",
+          commit_hash = None,
+          version = "latest",
+          timestamp = Instant.now.toString,
+          source_dialect = sourceDialect,
+          target_dialect = targetDialect,
+          file = test.inputFile.toString)
+        val report = runner.runQuery(q)
+        val reportEntryJson = ReportEntry(header, report).asJson
+        os.write.append(outputPath, ujson.write(reportEntryJson, indent = -1) + "\n")
+      }
     }
   }
 
