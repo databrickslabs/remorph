@@ -362,4 +362,8 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
             Seq(ir.Literal(string = Some("a")), ir.Literal(string = Some("b")), ir.Literal(string = Some("c"))),
             Seq(ir.Column("a"), ir.Column("b"), ir.Column("c"))))))
   }
+
+  "translate functions using ALL" in {
+    example(query = "COUNT(ALL goals)", _.expression(), ir.CallFunction("COUNT", Seq(ir.Column("goals"))))
+  }
 }
