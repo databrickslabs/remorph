@@ -308,7 +308,7 @@ tryCatchStatement
     ;
 
 waitforStatement
-    : WAITFOR receiveStatement? COMMA? ((DELAY | TIME | TIMEOUT) time)? expression? SEMI?
+    : WAITFOR receiveStatement? COMMA? ((DELAY | TIME | TIMEOUT) t=expression)? expression? SEMI?
     ;
 
 whileStatement
