@@ -479,9 +479,9 @@ class Snow(Snowflake):
                 if table_alias and this.table != table_alias:
                     return self.expression(local_expression.Bracket, this=this.table, expressions=[path])
 
-                    # if it is referring to `table_alias`, we need to keep `.value`. See below example:
-                    # - SELECT f.first, p.c.value.first, p.value FROM persons_struct AS p
-                    #    LATERAL VIEW EXPLODE($p.$c.contact) AS f
+                    # If it is referring to `table_alias`, we need to keep `.value`. See below example:
+                    # ```SELECT f.first, p.c.value.first, p.value FROM persons_struct AS p
+                    # LATERAL VIEW EXPLODE($p.$c.contact) AS f```
 
                 return self.expression(local_expression.Bracket, this=this, expressions=[path])
             if isinstance(this, local_expression.Bracket) and (is_name_value or is_table_alias):

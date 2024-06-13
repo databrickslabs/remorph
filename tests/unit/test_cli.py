@@ -59,6 +59,7 @@ def mock_workspace_client_cli():
         return io.StringIO(state[path])
 
     workspace_client = create_autospec(WorkspaceClient)
+    workspace_client.config.return_value = {"warehouse_id", "test_warehouse"}
     workspace_client.current_user.me().user_name = "foo"
     workspace_client.workspace.download = download
     workspace_client.config = None

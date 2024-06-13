@@ -56,8 +56,8 @@ def _lateral_bracket_sql(self, expression: local_expression.Bracket) -> str:
     """
     expressions = apply_index_offset(expression.this, expression.expressions, self.dialect.INDEX_OFFSET)
     expressions = [self.sql(e.alias_or_name.strip("'")) for e in expressions]
-    # If expression contains space in between encode it in backticks(``):
-    # e.g. ref."ID Number" -> ref.`ID Number`.
+    # If expression contains space in between encode it in backticks ``:
+    # E.g. ref."ID Number" -> ref.`ID Number`.
     expressions_sql = ", ".join(f"`{e}`" if " " in e else e for e in expressions)
     return f"{self.sql(expression, 'this')}.{expressions_sql}"
 

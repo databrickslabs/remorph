@@ -9,9 +9,7 @@ def test_table_without_join_column(table_conf_mock):
     assert table_conf.get_threshold_columns("source") == set()
 
 
-def test_table_with_all_options(table_conf_with_opts):
-    ## layer == source
-
+def test_table_with_all_options_for_layer_is_source(table_conf_with_opts):
     assert table_conf_with_opts.get_join_columns("source") == {"s_nationkey", "s_suppkey"}
     assert table_conf_with_opts.get_drop_columns("source") == {"s_comment"}
     assert table_conf_with_opts.get_partition_column("source") == {"s_nationkey"}
@@ -19,7 +17,8 @@ def test_table_with_all_options(table_conf_with_opts):
     assert table_conf_with_opts.get_filter("source") == "s_name='t' and s_address='a'"
     assert table_conf_with_opts.get_threshold_columns("source") == {"s_acctbal"}
 
-    ## layer == target
+
+def test_table_with_all_options_for_layer_is_target(table_conf_with_opts):
     assert table_conf_with_opts.get_join_columns("target") == {"s_nationkey_t", "s_suppkey_t"}
     assert table_conf_with_opts.get_drop_columns("target") == {"s_comment_t"}
     assert table_conf_with_opts.get_partition_column("target") == set()
