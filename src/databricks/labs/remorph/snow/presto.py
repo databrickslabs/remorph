@@ -2,6 +2,7 @@ from sqlglot.dialects.presto import Presto as presto
 from sqlglot import exp
 from sqlglot.helper import seq_get
 from sqlglot.errors import ParseError
+from sqlglot.dialects.dialect import locate_to_strposition
 
 
 def _build_approx_percentile(args: list) -> exp.Expression:
@@ -38,4 +39,5 @@ class Presto(presto):
 
         FUNCTIONS = {
             "APPROX_PERCENTILE": _build_approx_percentile,
+            "STRPOS": locate_to_strposition,
         }
