@@ -971,7 +971,7 @@ COMMENT      : '/*' (COMMENT | .)*? '*/' -> channel(HIDDEN);
 LINE_COMMENT : '--' ~[\r\n]*             -> channel(HIDDEN);
 
 // TODO: ID can be not only Latin.
-DOUBLE_QUOTE_ID    : '"' (~[\r\n"] | '"''"')+ '"';
+DOUBLE_QUOTE_ID    : '"' ('""' | ~[\r\n"] )* '"';
 SQUARE_BRACKET_ID  : '[' (~']' | ']' ']')* ']';
 LOCAL_ID           : '@' ([A-Z_$@#0-9] | FullWidthLetter)*;
 TEMP_ID            : '#' ([A-Z_$@#0-9] | FullWidthLetter)*;

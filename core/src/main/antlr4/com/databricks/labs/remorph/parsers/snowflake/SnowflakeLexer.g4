@@ -1126,7 +1126,7 @@ LINE_COMMENT   : '--' ~[\r\n]*                 -> channel(HIDDEN);
 LINE_COMMENT_2 : '//' ~[\r\n]*                 -> channel(HIDDEN);
 
 // TODO: ID can be not only Latin.
-DOUBLE_QUOTE_ID    : '"' (~[\r\n"] | '"''"')+ '"';
+DOUBLE_QUOTE_ID    :  '"' ('""' | ~[\r\n"] )* '"';
 DOUBLE_QUOTE_BLANK : '""';
 
 ID  : [A-Z_] [A-Z0-9_@$]*;
