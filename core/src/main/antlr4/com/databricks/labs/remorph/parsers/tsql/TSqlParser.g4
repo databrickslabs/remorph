@@ -308,7 +308,7 @@ tryCatchStatement
     ;
 
 waitforStatement
-    : WAITFOR receiveStatement? COMMA? ((DELAY | TIME | TIMEOUT) t=expression)? expression? SEMI?
+    : WAITFOR receiveStatement? COMMA? (id t=expression)? expression? SEMI?
     ;
 
 whileStatement
@@ -1973,10 +1973,6 @@ selectStatement
     : queryExpression forClause? optionClause? SEMI?
     ;
 
-time
-    : (LOCAL_ID | constant)
-    ;
-
 updateStatement
     : withExpression? UPDATE (TOP LPAREN expression RPAREN PERCENT?)? (
         ddlObject
@@ -2355,7 +2351,7 @@ switchPartition
     ;
 
 lowPriorityLockWait
-    : WAIT_AT_LOW_PRIORITY LPAREN MAX_DURATION EQ maxDuration = time MINUTES? COMMA ABORT_AFTER_WAIT EQ abortAfterWait = (
+    : WAIT_AT_LOW_PRIORITY LPAREN MAX_DURATION EQ expression MINUTES? COMMA ABORT_AFTER_WAIT EQ abortAfterWait = (
         NONE
         | SELF
         | BLOCKERS
@@ -3508,7 +3504,7 @@ fetchCursor
 
 setSpecial
     : SET id (id | constant_LOCAL_ID | onOff) SEMI?
-    | SET STATISTICS (IO | TIME | XML | PROFILE) onOff SEMI?
+    | SET STATISTICS expression onOff // TODO: Extract these keywords (IO | TIME | XML | PROFILE) onOff SEMI?
     | SET ROWCOUNT (LOCAL_ID | INT) SEMI?
     | SET TEXTSIZE INT SEMI?
     | SET TRANSACTION ISOLATION LEVEL (
@@ -3587,7 +3583,7 @@ parameter
     ;
 
 timeZone
-    : AT_KEYWORD TIME ZONE expression
+    : AT_KEYWORD id ZONE expression  // AT TIME ZONE
     ;
 
 primitiveExpression
@@ -3783,11 +3779,6 @@ udtMethodArguments
 asterisk
     : (INSERTED | DELETED) DOT STAR
     | (tableName DOT)? STAR
-    ;
-
-udtElem
-    : udtColumnName = id DOT nonStaticAttr = id udtMethodArguments asColumnAlias?
-    | udtColumnName = id DOUBLE_COLON staticAttr = id udtMethodArguments? asColumnAlias?
     ;
 
 expressionElem
@@ -4247,7 +4238,7 @@ nullNotnull
     ;
 
 beginConversationTimer
-    : BEGIN CONVERSATION TIMER LPAREN LOCAL_ID RPAREN TIMEOUT EQ time SEMI?
+    : BEGIN CONVERSATION TIMER LPAREN LOCAL_ID RPAREN TIMEOUT EQ expression SEMI?
     ;
 
 beginConversationDialog
@@ -4279,7 +4270,7 @@ endConversation
     ;
 
 waitforConversation
-    : WAITFOR? LPAREN getConversation RPAREN (COMMA? TIMEOUT timeout = time)? SEMI?
+    : WAITFOR? LPAREN getConversation RPAREN (COMMA? TIMEOUT timeout = expression)? SEMI?
     ;
 
 getConversation
@@ -4984,7 +4975,6 @@ keyword
     | TEXTIMAGE_ON
     | THROW
     | TIES
-    | TIME
     | TIMEOUT
     | TIMER
     | TINYINT

@@ -851,7 +851,6 @@ TEXTSIZE                                    : 'TEXTSIZE';
 THEN                                        : 'THEN';
 THROW                                       : 'THROW';
 TIES                                        : 'TIES';
-TIME                                        : 'TIME';
 TIMEOUT                                     : 'TIMEOUT';
 TIMER                                       : 'TIMER';
 TINYINT                                     : 'TINYINT';

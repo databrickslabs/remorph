@@ -19,9 +19,9 @@ sealed trait OptionType
 case object BooleanOption extends OptionType
 
 /**
- * An option that requires some value to be present. Note that the value will be
- * accepted from an expression. The actual value could be checked to see that it yields
- * the correct type, but in this transpiler we assume valid input in the first place.
+ * An option that requires some value to be present. Note that the value will be accepted from an expression. The actual
+ * value could be checked to see that it yields the correct type, but in this transpiler we assume valid input in the
+ * first place.
  */
 case object ExpressionOption extends OptionType
 
@@ -62,9 +62,10 @@ case class Keyword(
 abstract class KeywordResolver {
 
   protected val commonKeywordsPf: PartialFunction[String, Keyword] = {
-    case "OPTION" => Keyword(Reserved, OptionKeyword, BooleanOption)
-    case "FUNCTION" => Keyword(Reserved, FunctionKeyword, BooleanOption)
-    case "XMLOPTION" => Keyword(Reserved, XMLOption, BooleanOption)
+    case "TIME" => Keyword(NonReserved, OptionKeyword, ExpressionOption, IntegerOption)
+    case "DELAY" => Keyword(NonReserved, OptionKeyword, ExpressionOption, IntegerOption)
+    case "TIMEOUT" => Keyword(NonReserved, OptionKeyword, ExpressionOption, IntegerOption)
+
     // etc...
   }
 
