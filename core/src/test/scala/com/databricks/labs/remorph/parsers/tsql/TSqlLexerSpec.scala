@@ -15,7 +15,7 @@ class TSqlLexerSpec extends AnyWordSpec with Matchers with TableDrivenPropertyCh
 
       val testInput = Table(
         ("input", "expected"), // Headers
-        (""""quoted""id""", TSqlLexer.DOUBLE_QUOTE_ID),
+        (""""quoted""id"""", TSqlLexer.DOUBLE_QUOTE_ID),
         (" \"quote\"\"andunquote\"\"\"", TSqlLexer.DOUBLE_QUOTE_ID),
         ("\"quote\"\"andunquote\"\"\"", TSqlLexer.DOUBLE_QUOTE_ID),
         ("'hello'", TSqlLexer.STRING))
@@ -25,7 +25,8 @@ class TSqlLexerSpec extends AnyWordSpec with Matchers with TableDrivenPropertyCh
 
         lexer.setInputStream(inputString)
         val tok: Token = lexer.nextToken()
-        tok.getType should be(expected)
+        tok.getType shouldBe expected
+        tok.getText shouldBe input
       }
     }
 

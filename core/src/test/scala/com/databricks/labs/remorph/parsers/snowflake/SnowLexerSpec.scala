@@ -15,16 +15,17 @@ class SnowLexerSpec extends AnyWordSpec with Matchers with TableDrivenPropertyCh
 
       val testInput = Table(
         ("input", "expected"), // Headers
-        (""""quoted""id""", SnowflakeLexer.DOUBLE_QUOTE_ID),
+        (""""quoted""id"""", SnowflakeLexer.DOUBLE_QUOTE_ID),
         ("\"quote\"\"andunquote\"\"\"", SnowflakeLexer.DOUBLE_QUOTE_ID),
         ("'hello'", SnowflakeLexer.STRING))
 
-      forAll(testInput) { (input: String, expected: Int) =>
+      forAll(testInput) { (input: String, expectedType: Int) =>
         val inputString = CharStreams.fromString(input)
 
         lexer.setInputStream(inputString)
         val tok: Token = lexer.nextToken()
-        tok.getType should be(expected)
+        tok.getType shouldBe expectedType
+        tok.getText shouldBe input
       }
     }
 
