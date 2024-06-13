@@ -291,3 +291,43 @@ def test_generate_recon_config_no_reconcile(mock_workspace_client):
     )
 
     assert reconcile_utils.generate_recon_config() is None
+
+
+def test_recon_config_prompt_tables_list_save_config_details(mock_workspace_client, mock_installation):
+    prompts = MockPrompts(
+        {
+            r"Would you like to overwrite workspace.*": "no",
+            r".*Did you setup the secrets for the": "yes",
+            r"Would you like to run reconciliation.*": "no",
+            r"Would you like to run reconciliation on `all` tables.*": 2,
+            r"Comma-separated list of tables to `include`": "table1, table2",
+            r"Open.* config file in the browser?": "no",
+            r"Open `README_RECON_CONFIG` setup instructions in your browser?": "no",
+        }
+    )
+
+    filename = "recon_conf_snowflake.json"
+    mock_workspace_client.secrets.get_secret.side_effect = mock_secret
+    recon_confing = TableRecon(
+        source_schema="src_schema",
+        source_catalog="src_catalog",
+        target_catalog="tgt_catalog",
+        target_schema="tgt_schema",
+        tables=[Table(source_name="table1", target_name="table1"), Table(source_name="table2", target_name="table2")],
+    )
+
+    # Patch the scope_exists method to return True
+    mock_workspace_client.secrets.list_scopes.side_effect = [[SecretScope(name=SCOPE_NAME)]]
+    # Patch the builder method to return a SparkSession
+    with patch.object(DatabricksSession, "builder", MagicMock(return_value=SparkSession.builder)):
+        reconcile_utils = ReconcileConfigUtils(mock_workspace_client, installation=mock_installation, prompts=prompts)
+
+        reconcile_utils.generate_recon_config()
+
+    raw = json.dumps(recon_confing, default=vars, indent=2, sort_keys=True).encode("utf-8")
+
+    target = mock_installation.upload(filename, raw)
+
+    assert target == f"~/mock/{filename}"
+
+    mock_installation.assert_file_uploaded(filename)
