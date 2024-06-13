@@ -148,12 +148,12 @@ def _process_recursive_dirs(
 
 
 @timeit
-def morph(workspace_client: WorkspaceClient, config: MorphConfig):
+def morph(config: MorphConfig, validator: Validator | None = None):
     """
     [Experimental] Transpiles the SQL queries from one dialect to another.
 
     :param config: The configuration for the morph operation.
-    :param workspace_client: The WorkspaceClient object.
+    :param validator: The Validator object.
     """
     if not config.input_sql:
         logger.error("Input SQL path is not provided.")
@@ -165,9 +165,6 @@ def morph(workspace_client: WorkspaceClient, config: MorphConfig):
 
     read_dialect = config.get_read_dialect()
     transpiler = SqlglotEngine(read_dialect)
-    validator = None
-    if not config.skip_validation:
-        validator = Validator(db_sql.get_sql_backend(workspace_client, config))
 
     if input_sql.is_file():
         if is_sql_file(input_sql):

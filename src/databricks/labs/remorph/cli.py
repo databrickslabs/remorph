@@ -8,8 +8,10 @@ from databricks.labs.blueprint.cli import App
 from databricks.labs.blueprint.entrypoint import get_logger
 from databricks.labs.blueprint.installation import Installation
 from databricks.labs.remorph.config import SQLGLOT_DIALECTS, MorphConfig
+from databricks.labs.remorph.helpers import db_sql
 from databricks.labs.remorph.helpers.recon_config_utils import ReconConfigPrompts
 from databricks.labs.remorph.helpers.reconcile_utils import ReconcileUtils
+from databricks.labs.remorph.helpers.validation import Validator
 from databricks.labs.remorph.lineage import lineage_generator
 from databricks.labs.remorph.transpiler.execute import morph
 from databricks.sdk import WorkspaceClient
@@ -71,7 +73,9 @@ def transpile(
         sdk_config=sdk_config,
     )
 
-    status = morph(w, config)
+    validator = Validator(db_sql.get_sql_backend(w, config)) if not config.skip_validation else None
+
+    status = morph(config, validator)
 
     print(json.dumps(status))
 

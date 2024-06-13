@@ -215,7 +215,6 @@ def test_transpile_with_valid_input(mock_workspace_client_cli):
             mode,
         )
         mock_morph.assert_called_once_with(
-            mock_workspace_client_cli,
             MorphConfig(
                 sdk_config=sdk_config,
                 source=source,
@@ -226,6 +225,7 @@ def test_transpile_with_valid_input(mock_workspace_client_cli):
                 schema_name=schema_name,
                 mode=mode,
             ),
+            None,
         )
 
 
@@ -233,10 +233,9 @@ def test_transpile_empty_output_folder(mock_workspace_client_cli):
     source = "snowflake"
     input_sql = "/path/to/sql/file2.sql"
     output_folder = ""
-    skip_validation = "false"
+    skip_validation = "true"
     catalog_name = "my_catalog"
     schema_name = "my_schema"
-
     mode = "current"
     sdk_config = {'cluster_id': 'test_cluster'}
 
@@ -255,17 +254,17 @@ def test_transpile_empty_output_folder(mock_workspace_client_cli):
             mode,
         )
         mock_morph.assert_called_once_with(
-            mock_workspace_client_cli,
             MorphConfig(
                 sdk_config=sdk_config,
                 source=source,
                 input_sql=input_sql,
                 output_folder=None,
-                skip_validation=False,
+                skip_validation=True,
                 catalog_name=catalog_name,
                 schema_name=schema_name,
                 mode=mode,
             ),
+            None,
         )
 
 

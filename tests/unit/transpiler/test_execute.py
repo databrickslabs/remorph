@@ -146,8 +146,9 @@ def test_with_dir_skip_validation(initial_setup, mock_workspace_client):
     )
 
     # call morph
-    with patch('databricks.labs.remorph.helpers.db_sql.get_sql_backend', return_value=MockBackend()):
-        status = morph(mock_workspace_client, config)
+    mock_validate = create_autospec(Validator)
+    mock_validate.validate_format_result.return_value = None
+    status = morph(config, mock_validate)
     # assert the status
     assert status is not None, "Status returned by morph function is None"
     assert isinstance(status, list), "Status returned by morph function is not a list"
@@ -200,8 +201,10 @@ def test_with_dir_with_output_folder_skip_validation(initial_setup, mock_workspa
         source="snowflake",
         skip_validation=True,
     )
-    with patch('databricks.labs.remorph.helpers.db_sql.get_sql_backend', return_value=MockBackend()):
-        status = morph(mock_workspace_client, config)
+    mock_validate = create_autospec(Validator)
+    mock_validate.validate_format_result.return_value = None
+    status = morph(config, mock_validate)
+
     # assert the status
     assert status is not None, "Status returned by morph function is None"
     assert isinstance(status, list), "Status returned by morph function is not a list"
@@ -266,14 +269,7 @@ def test_with_file(
         """ Mock validated query """, "Mock validation error"
     )
 
-    with (
-        patch(
-            'databricks.labs.remorph.helpers.db_sql.get_sql_backend',
-            return_value=MockBackend(),
-        ),
-        patch("databricks.labs.remorph.transpiler.execute.Validator", return_value=mock_validate),
-    ):
-        status = morph(mock_workspace_client, config)
+    status = morph(config, mock_validate)
 
     # assert the status
     assert status is not None, "Status returned by morph function is None"
@@ -314,11 +310,9 @@ def test_with_file_with_output_folder_skip_validation(initial_setup, mock_worksp
         skip_validation=True,
     )
 
-    with patch(
-        'databricks.labs.remorph.helpers.db_sql.get_sql_backend',
-        return_value=MockBackend(),
-    ):
-        status = morph(mock_workspace_client, config)
+    mock_validate = create_autospec(Validator)
+    mock_validate.validate_format_result.return_value = None
+    status = morph(config, mock_validate)
 
     # assert the status
     assert status is not None, "Status returned by morph function is None"
@@ -348,11 +342,9 @@ def test_with_not_a_sql_file_skip_validation(initial_setup, mock_workspace_clien
         skip_validation=True,
     )
 
-    with patch(
-        'databricks.labs.remorph.helpers.db_sql.get_sql_backend',
-        return_value=MockBackend(),
-    ):
-        status = morph(mock_workspace_client, config)
+    mock_validate = create_autospec(Validator)
+    mock_validate.validate_format_result.return_value = None
+    status = morph(config, mock_validate)
 
     # assert the status
     assert status is not None, "Status returned by morph function is None"
@@ -382,11 +374,9 @@ def test_with_not_existing_file_skip_validation(initial_setup, mock_workspace_cl
         skip_validation=True,
     )
     with pytest.raises(FileNotFoundError):
-        with patch(
-            'databricks.labs.remorph.helpers.db_sql.get_sql_backend',
-            return_value=MockBackend(),
-        ):
-            morph(mock_workspace_client, config)
+        mock_validate = create_autospec(Validator)
+        mock_validate.validate_format_result.return_value = None
+        morph(config, mock_validate)
 
     # cleanup
     safe_remove_dir(input_dir)
@@ -460,28 +450,21 @@ def test_with_file_with_success(initial_setup, mock_workspace_client, mock_spark
     mock_validate.spark = mock_spark_session
     mock_validate.validate_format_result.return_value = ValidationResult(""" Mock validated query """, None)
 
-    with (
-        patch(
-            'databricks.labs.remorph.helpers.db_sql.get_sql_backend',
-            return_value=MockBackend(),
-        ),
-        patch("databricks.labs.remorph.transpiler.execute.Validator", return_value=mock_validate),
-    ):
-        status = morph(mock_workspace_client, config)
-        # assert the status
-        assert status is not None, "Status returned by morph function is None"
-        assert isinstance(status, list), "Status returned by morph function is not a list"
-        assert len(status) > 0, "Status returned by morph function is an empty list"
-        for stat in status:
-            assert stat["total_files_processed"] == 1, "total_files_processed does not match expected value"
-            assert stat["total_queries_processed"] == 1, "total_queries_processed does not match expected value"
-            assert (
-                stat["no_of_sql_failed_while_parsing"] == 0
-            ), "no_of_sql_failed_while_parsing does not match expected value"
-            assert (
-                stat["no_of_sql_failed_while_validating"] == 0
-            ), "no_of_sql_failed_while_validating does not match expected value"
-            assert stat["error_log_file"] == "None", "error_log_file does not match expected value"
+    status = morph(config, mock_validate)
+    # assert the status
+    assert status is not None, "Status returned by morph function is None"
+    assert isinstance(status, list), "Status returned by morph function is not a list"
+    assert len(status) > 0, "Status returned by morph function is an empty list"
+    for stat in status:
+        assert stat["total_files_processed"] == 1, "total_files_processed does not match expected value"
+        assert stat["total_queries_processed"] == 1, "total_queries_processed does not match expected value"
+        assert (
+            stat["no_of_sql_failed_while_parsing"] == 0
+        ), "no_of_sql_failed_while_parsing does not match expected value"
+        assert (
+            stat["no_of_sql_failed_while_validating"] == 0
+        ), "no_of_sql_failed_while_validating does not match expected value"
+        assert stat["error_log_file"] == "None", "error_log_file does not match expected value"
 
 
 def test_with_input_sql_none(initial_setup, mock_workspace_client):
@@ -494,4 +477,6 @@ def test_with_input_sql_none(initial_setup, mock_workspace_client):
     )
 
     with pytest.raises(ValueError, match="Input SQL path is not provided"):
-        morph(mock_workspace_client, config)
+        mock_validate = create_autospec(Validator)
+        mock_validate.validate_format_result.return_value = None
+        morph(config, mock_validate)
