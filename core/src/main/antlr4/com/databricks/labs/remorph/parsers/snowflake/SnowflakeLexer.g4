@@ -1126,7 +1126,7 @@ LINE_COMMENT   : '--' ~[\r\n]*                 -> channel(HIDDEN);
 LINE_COMMENT_2 : '//' ~[\r\n]*                 -> channel(HIDDEN);
 
 // TODO: ID can be not only Latin.
-DOUBLE_QUOTE_ID    : '"' (~[\r\n"] | '"''"')+ '"';
+DOUBLE_QUOTE_ID    :  '"' ('""' | ~[\r\n"] )* '"';
 DOUBLE_QUOTE_BLANK : '""';
 
 ID  : [A-Z_] [A-Z0-9_@$]*;
@@ -1134,7 +1134,7 @@ ID2 : DOLLAR [A-Z_] [A-Z0-9_]*;
 
 DBL_DOLLAR: '$$' (~'$' | '\\$' | '$' ~'$')*? '$$';
 
-STRING: '\'' (~['] | '\\' .) * '\'';
+STRING: '\'' ('\\' . | '\'\'' | ~['])* '\'';
 
 DECIMAL : DEC_DIGIT+;
 FLOAT   : DEC_DOT_DEC;
