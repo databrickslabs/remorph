@@ -979,7 +979,7 @@ TEMP_ID            : '#' ([A-Z_$@#0-9] | FullWidthLetter)*;
 ID                 : ( [A-Z_#] | FullWidthLetter) ( [A-Z_#$@0-9] | FullWidthLetter)*;
 STRING options {
     caseInsensitive = false;
-}      : 'N'? '\'' (~['] | '\\' .)* '\'';
+}      : 'N'? '\'' ('\\' . | '\'\'' | ~['])* '\'';
 
 fragment SIGN: [+-];
 

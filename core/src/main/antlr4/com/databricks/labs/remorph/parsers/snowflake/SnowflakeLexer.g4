@@ -1134,7 +1134,7 @@ ID2 : DOLLAR [A-Z_] [A-Z0-9_]*;
 
 DBL_DOLLAR: '$$' (~'$' | '\\$' | '$' ~'$')*? '$$';
 
-STRING: '\'' (~['] | '\\' .) * '\'';
+STRING: '\'' ('\\' . | '\'\'' | ~['])* '\'';
 
 DECIMAL : DEC_DIGIT+;
 FLOAT   : DEC_DOT_DEC;
