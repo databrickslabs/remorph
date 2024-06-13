@@ -131,11 +131,11 @@ def test_store_connection_secrets_exception(mock_workspace_client, mock_installa
     )
 
     mock_workspace_client.secrets.get_secret.side_effect = ResourceDoesNotExist("Not Found")
-    mock_workspace_client.secrets.put_secret.side_effect = Exception("Timed out")
+    mock_workspace_client.secrets.put_secret.side_effect = RuntimeError("Timed out")
 
     reconcile_utils = ReconcileConfigUtils(mock_workspace_client, mock_installation, prompts=prompts)
 
-    with pytest.raises(Exception, match="Timed out"):
+    with pytest.raises(RuntimeError, match="Timed out"):
         reconcile_utils.store_connection_secrets("scope_name", ("source", {"key": "value"}))
 
 

@@ -385,7 +385,6 @@ class ReconciliationMetadataSetup:
         self._table_deployer.deploy_table("metrics", "reconcile/queries/installation/metrics.sql")
         self._table_deployer.deploy_table("details", "reconcile/queries/installation/details.sql")
 
-
     def run(self):
         self.configure_catalog()
         self.configure_schema()

@@ -696,3 +696,44 @@ def test_recon_workspace_installation_with_existing_volume(ws):
         workspace_installation.run()
 
     ws.volumes.create.assert_not_called()
+
+
+def test_save_reconcile_config_oracle(ws, mock_installation_state, monkeypatch):
+    def mock_open(url):
+        print(f"Opening URL: {url}")
+
+    monkeypatch.setattr("webbrowser.open", mock_open)
+    prompts = MockPrompts(
+        {
+            r"Select a module to configure:": MODULES.index("reconcile"),
+            r"Select the Data Source:": 1,
+            r"Select the Report Type:": 1,
+            r"Enter Secret Scope name to store .* connection details / secrets": "remorph_oracle",
+            r"Enter .* Database name": "oracle_db",
+            r"Enter Databricks Catalog name": "test",
+            r"Enter Databricks Schema name": "orc",
+            r"Enter Catalog name to store reconcile metadata": "remorph",
+            r"Enter Schema name to store reconcile metadata": "reconcile",
+            r"Open .* in the browser and continue...?": "yes",
+        }
+    )
+
+    with patch.object(mock_installation_state, "install_folder", return_value="/Users/remorph/.remorph"):
+        install = WorkspaceInstaller(ws, mock_installation_state, prompts)
+
+    webbrowser.open('https://localhost/#workspace~/mock/config.yml')
+    configs = install.configure()
+    assert configs.morph is None
+    assert configs.reconcile
+    assert configs.reconcile.data_source == "oracle"
+    assert configs.reconcile.database_config.source_catalog is None
+    assert configs.reconcile.database_config.source_schema == "oracle_db"
+    assert configs.reconcile.database_config.target_catalog == "test"
+    assert configs.reconcile.database_config.target_schema == "orc"
+    assert configs.reconcile.metadata_config.catalog == "remorph"
+    assert configs.reconcile.metadata_config.schema == "reconcile"
+    assert configs.reconcile.metadata_config.volume == "reconcile_volume"
+    assert configs.reconcile.secret_scope == "remorph_oracle"
+    assert configs.reconcile.report_type == "data"
+    assert configs.reconcile.tables is None
+    assert configs.reconcile.job_id is None
