@@ -10,6 +10,23 @@ import org.scalatest.prop.TableDrivenPropertyChecks
 
 class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenPropertyChecks {
 
+  "TSqlFunctionBuilder" should "return correct arity for each function" in {
+    val functions = Table(
+      ("functionName", "expectedArity"), // Header
+
+      // TSQL specific
+      ("@@CURSOR_STATUS", Some(FunctionDefinition.notConvertible(0))),
+      ("@@FETCH_STATUS", Some(FunctionDefinition.notConvertible(0))),
+      ("CUBE", Some(FunctionDefinition.standard(1, Int.MaxValue))),
+      ("MODIFY", Some(FunctionDefinition.xml(1))),
+      ("ROLLUP", Some(FunctionDefinition.standard(1, Int.MaxValue))))
+
+    val functionBuilder = new TSqlFunctionBuilder
+    forAll(functions) { (functionName: String, expectedArity: Option[FunctionDefinition]) =>
+      functionBuilder.functionDefinition(functionName) shouldEqual expectedArity
+    }
+  }
+
   "SnowFlakeFunctionBuilder" should "return correct arity for each function" in {
     val functions = Table(
       ("functionName", "expectedArity"), // Header
@@ -17,10 +34,6 @@ class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenProp
       // Snowflake specific
       ("ADD_MONTHS", Some(FunctionDefinition.standard(2))),
       ("ANY_VALUE", Some(FunctionDefinition.standard(1))),
-      ("APPROX_COUNT_DISTINCT", Some(FunctionDefinition.standard(1))),
-      ("APPROX_PERCENTILE", Some(FunctionDefinition.standard(2))),
-      ("APPROX_PERCENTILE_CONT", Some(FunctionDefinition.standard(1))),
-      ("APPROX_PERCENTILE_DISC", Some(FunctionDefinition.standard(1))),
       ("APPROX_TOP_K", Some(FunctionDefinition.standard(1, 3))),
       ("ARRAYS_OVERLAP", Some(FunctionDefinition.standard(2))),
       ("ARRAY_AGG", Some(FunctionDefinition.standard(1))),
@@ -163,6 +176,10 @@ class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenProp
 
       ("ABS", Some(FunctionDefinition.standard(1))),
       ("ACOS", Some(FunctionDefinition.standard(1))),
+      ("APPROX_COUNT_DISTINCT", Some(FunctionDefinition.standard(1))),
+      ("APPROX_PERCENTILE", Some(FunctionDefinition.standard(2))),
+      ("APPROX_PERCENTILE_CONT", Some(FunctionDefinition.standard(1))),
+      ("APPROX_PERCENTILE_DISC", Some(FunctionDefinition.standard(1))),
       ("APP_NAME", Some(FunctionDefinition.standard(0))),
       ("APPLOCK_MODE", Some(FunctionDefinition.standard(3))),
       ("APPLOCK_TEST", Some(FunctionDefinition.standard(4))),
@@ -173,6 +190,7 @@ class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenProp
       ("ATN2", Some(FunctionDefinition.standard(2))),
       ("AVG", Some(FunctionDefinition.standard(1))),
       ("BINARY_CHECKSUM", Some(FunctionDefinition.standard(1, Int.MaxValue))),
+      ("BIT_COUNT", Some(FunctionDefinition.standard(1))),
       ("CEILING", Some(FunctionDefinition.standard(1))),
       ("CERT_ID", Some(FunctionDefinition.standard(1))),
       ("CERTENCODED", Some(FunctionDefinition.standard(1))),
@@ -437,49 +455,46 @@ class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenProp
   "buildFunction" should "remove quotes and brackets from function names" in {
     val functionBuilder = new TSqlFunctionBuilder
 
-    // Test function name with less than 2 characters
-    val result1 = functionBuilder.buildFunction("a", List.empty)
-    result1 match {
-      case f: ir.UnresolvedFunction => f.function_name shouldBe "a"
-      case _ => fail("Unexpected function type")
-    }
+    val quoteTable = Table(
+      ("functionName", "expectedFunctionName"), // Header
 
-    // Test function name with matching quotes
-    val result2 = functionBuilder.buildFunction("'quoted'", List.empty)
-    result2 match {
-      case f: ir.UnresolvedFunction => f.function_name shouldBe "quoted"
-      case _ => fail("Unexpected function type")
-    }
-
-    // Test function name with matching brackets
-    val result3 = functionBuilder.buildFunction("[bracketed]", List.empty)
-    result3 match {
-      case f: ir.UnresolvedFunction => f.function_name shouldBe "bracketed"
-      case _ => fail("Unexpected function type")
-    }
-
-    // Test function name with matching backslashes
-    val result4 = functionBuilder.buildFunction("\\backslashed\\", List.empty)
-    result4 match {
-      case f: ir.UnresolvedFunction => f.function_name shouldBe "backslashed"
-      case _ => fail("Unexpected function type")
-    }
-
-    // Test function name with non-matching quotes
-    val result5 = functionBuilder.buildFunction("'nonmatching", List.empty)
-    result5 match {
-      case f: ir.UnresolvedFunction => f.function_name shouldBe "'nonmatching"
-      case _ => fail("Unexpected function type")
+      ("a", "a"), // Test function name with less than 2 characters
+      ("'quoted'", "quoted"), // Test function name with matching quotes
+      ("[bracketed]", "bracketed"), // Test function name with matching brackets
+      ("\\backslashed\\", "backslashed"), // Test function name with matching backslashes
+      ("\"doublequoted\"", "doublequoted") // Test function name with non-matching quotes
+    )
+    forAll(quoteTable) { (functionName: String, expectedFunctionName: String) =>
+      {
+        val r = functionBuilder.buildFunction(functionName, List.empty)
+        r match {
+          case f: ir.UnresolvedFunction => f.function_name shouldBe expectedFunctionName
+          case _ => fail("Unexpected function type")
+        }
+      }
     }
   }
 
   "buildFunction" should "Apply known TSql conversion strategies" in {
     val functionBuilder = new TSqlFunctionBuilder
 
-    val result1 = functionBuilder.buildFunction("ISNULL", Seq(ir.Column("x"), ir.Literal(integer = Some(0))))
-    result1 match {
-      case f: ir.CallFunction => f.function_name shouldBe "IFNULL"
-      case _ => fail("ISNULL TSql conversion failed")
+    val renameTable = Table(
+      ("functionName", "params", "expectedFunctionName"), // Header
+
+      ("ISNULL", Seq(ir.Column("x"), ir.Literal(integer = Some(1))), "IFNULL"),
+      ("GET_BIT", Seq(ir.Column("x"), ir.Literal(integer = Some(1))), "GETBIT"),
+      ("SET_BIT", Seq(ir.Column("x"), ir.Literal(integer = Some(1))), "SETBIT"),
+      ("left_SHIFT", Seq(ir.Column("x"), ir.Literal(integer = Some(1))), "LEFTSHIFT"),
+      ("RIGHT_SHIFT", Seq(ir.Column("x"), ir.Literal(integer = Some(1))), "RIGHTSHIFT"))
+
+    forAll(renameTable) { (functionName: String, params: Seq[ir.Expression], expectedFunctionName: String) =>
+      {
+        val r = functionBuilder.buildFunction(functionName, params)
+        r match {
+          case f: ir.CallFunction => f.function_name shouldBe expectedFunctionName
+          case _ => fail("Unexpected function type")
+        }
+      }
     }
   }
 

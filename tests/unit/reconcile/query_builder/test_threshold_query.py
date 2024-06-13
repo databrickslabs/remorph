@@ -87,11 +87,13 @@ def test_build_threshold_query_with_single_threshold(table_conf_with_opts, table
         table_conf, tgt_schema, "target", get_dialect("databricks")
     ).build_threshold_query()
     assert src_query == (
-        "SELECT COALESCE(TRIM(s_nationkey), '') AS s_nationkey, COALESCE(TRIM(s_suppkey), '') AS s_suppkey, "
+        "SELECT COALESCE(TRIM(s_nationkey), '_null_recon_') AS s_nationkey, COALESCE(TRIM(s_suppkey), '_null_recon_') "
+        "AS s_suppkey, "
         "CAST(s_acctbal AS NUMBER) AS s_acctbal FROM :tbl WHERE s_name = 't' AND s_address = 'a'"
     )
     assert target_query == (
-        "SELECT COALESCE(TRIM(s_nationkey_t), '') AS s_nationkey, COALESCE(TRIM(s_suppkey_t), '') AS s_suppkey, "
+        "SELECT COALESCE(TRIM(s_nationkey_t), '_null_recon_') AS s_nationkey, COALESCE(TRIM(s_suppkey_t), "
+        "'_null_recon_') AS s_suppkey, "
         "CAST(s_acctbal_t AS INT) AS s_acctbal FROM :tbl WHERE s_name = 't' AND s_address_t = 'a'"
     )
 
@@ -114,11 +116,13 @@ def test_build_threshold_query_with_multiple_threshold(table_conf_with_opts, tab
         table_conf, tgt_schema, "target", get_dialect("databricks")
     ).build_threshold_query()
     assert src_query == (
-        "SELECT COALESCE(TRIM(s_nationkey), '') AS s_nationkey, TRIM(s_phone) AS s_phone, COALESCE(TRIM(s_suppkey), "
-        "'') AS s_suppkey, s_acctbal AS s_acctbal, s_suppdate AS s_suppdate FROM :tbl"
+        "SELECT COALESCE(TRIM(s_nationkey), '_null_recon_') AS s_nationkey, TRIM(s_phone) AS s_phone, COALESCE(TRIM("
+        "s_suppkey), "
+        "'_null_recon_') AS s_suppkey, s_acctbal AS s_acctbal, s_suppdate AS s_suppdate FROM :tbl"
     )
     assert target_query == (
-        "SELECT COALESCE(TRIM(s_nationkey_t), '') AS s_nationkey, COALESCE(TRIM(s_suppkey_t), '') AS s_suppkey, "
+        "SELECT COALESCE(TRIM(s_nationkey_t), '_null_recon_') AS s_nationkey, COALESCE(TRIM(s_suppkey_t), "
+        "'_null_recon_') AS s_suppkey, "
         "s_acctbal_t AS s_acctbal, s_suppdate AS s_suppdate FROM :tbl"
     )
 

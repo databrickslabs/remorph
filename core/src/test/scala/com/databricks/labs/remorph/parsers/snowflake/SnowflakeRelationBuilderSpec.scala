@@ -1,7 +1,7 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
 import com.databricks.labs.remorph.parsers.intermediate._
-import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser.{BuiltinFunctionNameContext, Id_Context, JoinTypeContext, OuterJoinContext}
+import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser.{JoinTypeContext, OuterJoinContext}
 import org.antlr.v4.runtime.RuleContext
 import org.mockito.Mockito._
 import org.scalatest.Assertion
@@ -77,7 +77,7 @@ class SnowflakeRelationBuilderSpec extends AnyWordSpec with SnowflakeParserTestC
         Aggregate(
           input = namedTable("t1"),
           group_type = Pivot,
-          grouping_expressions = Seq(Avg(Column("a"))),
+          grouping_expressions = Seq(CallFunction("AVG", Seq(Column("a")))),
           pivot = Some(Pivot(Column("d"), Seq(Literal(string = Some("x")), Literal(string = Some("y")))))))
 
       example(
@@ -86,7 +86,7 @@ class SnowflakeRelationBuilderSpec extends AnyWordSpec with SnowflakeParserTestC
         Aggregate(
           input = namedTable("t1"),
           group_type = Pivot,
-          grouping_expressions = Seq(Count(Column("a"))),
+          grouping_expressions = Seq(CallFunction("COUNT", Seq(Column("a")))),
           pivot = Some(Pivot(Column("d"), Seq(Literal(string = Some("x")), Literal(string = Some("y")))))))
 
       example(
@@ -95,7 +95,7 @@ class SnowflakeRelationBuilderSpec extends AnyWordSpec with SnowflakeParserTestC
         Aggregate(
           input = namedTable("t1"),
           group_type = Pivot,
-          grouping_expressions = Seq(Min(Column("a"))),
+          grouping_expressions = Seq(CallFunction("MIN", Seq(Column("a")))),
           pivot = Some(Pivot(Column("d"), Seq(Literal(string = Some("x")), Literal(string = Some("y")))))))
     }
 
@@ -276,26 +276,6 @@ class SnowflakeRelationBuilderSpec extends AnyWordSpec with SnowflakeParserTestC
       verify(outerJoin).RIGHT()
       verify(outerJoin).FULL()
       verify(joinType, times(4)).outerJoin()
-    }
-  }
-
-  "SnowflakeRelationBuilder.translateAggregateFunction" should {
-    "handler unresolved input" in {
-      val param = parseString("x", _.id_())
-      val builtinFunc = mock[BuiltinFunctionNameContext]
-      val aggFunc = mock[Id_Context]
-      when(aggFunc.builtinFunctionName()).thenReturn(builtinFunc)
-      val dummyTextForAggFunc = "dummy"
-      when(aggFunc.getText).thenReturn(dummyTextForAggFunc)
-      astBuilder.translateAggregateFunction(aggFunc, param) shouldBe UnresolvedExpression(dummyTextForAggFunc)
-      verify(aggFunc, times(8)).builtinFunctionName()
-      verify(aggFunc).getText
-      verifyNoMoreInteractions(aggFunc)
-      verify(builtinFunc).AVG()
-      verify(builtinFunc).SUM()
-      verify(builtinFunc).COUNT()
-      verify(builtinFunc).MIN()
-      verifyNoMoreInteractions(builtinFunc)
     }
   }
 }
