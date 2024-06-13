@@ -10,6 +10,7 @@ from databricks.labs.remorph.reconcile.exception import DataSourceRuntimeExcepti
 from databricks.labs.remorph.reconcile.recon_config import JdbcReaderOptions, Table
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.service.workspace import GetSecretResponse
+from pyspark.errors import PySparkException
 
 
 def mock_secret(scope, key):
@@ -245,3 +246,15 @@ def test_get_schema_exception_handling():
         "Exception",
     ):
         ds.get_schema("catalog", "schema", "supplier")
+
+
+def test_list_tables_exception_handling():
+    # initial setup
+    engine, spark, ws, scope = initial_setup()
+
+    ds = SnowflakeDataSource(engine, spark, ws, scope)
+
+    spark.read.format().option().options().load.side_effect = PySparkException("Test Exception")
+
+    with pytest.raises(PySparkException, match="An error occurred while fetching Snowflake Table list for"):
+        ds.list_tables("catalog", "schema", None, exclude_list=["table1", "table2"])
