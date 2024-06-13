@@ -387,7 +387,7 @@ alterAssemblyClause
     ;
 
 alterAssemblyFromClause
-    : alterAssemblyFromClauseStart (clientAssemblySpecifier | alterAssemblyFileBits)
+    : alterAssemblyFromClauseStart (STRING | alterAssemblyFileBits)
     ;
 
 alterAssemblyFromClauseStart
@@ -400,7 +400,7 @@ alterAssemblyDropClause
 
 alterAssemblyDropMultipleFiles
     : ALL
-    | multipleLocalFiles
+    | STRING (COMMA STRING)*
     ;
 
 alterAssemblyDrop
@@ -439,47 +439,11 @@ alterAssemblyWith
     : WITH
     ;
 
-clientAssemblySpecifier
-    : networkFileShare
-    | localFile
-    | STRING
-    ;
-
 assemblyOption
     : PERMISSION_SET EQ (SAFE | EXTERNAL_ACCESS | UNSAFE)
     | VISIBILITY EQ onOff
     | UNCHECKED DATA
     | assemblyOption COMMA
-    ;
-
-networkFileShare
-    : BACKSLASH BACKSLASH networkComputer filePath
-    ;
-
-networkComputer
-    : computerName = id
-    ;
-
-filePath
-    : BACKSLASH filePath
-    | id
-    ;
-
-localFile
-    : localDrive filePath
-    ;
-
-localDrive
-    : DISK_DRIVE
-    ;
-
-multipleLocalFiles
-    : multipleLocalFileStart localFile SINGLE_QUOTE COMMA
-    | localFile
-    ;
-
-multipleLocalFileStart
-    : SINGLE_QUOTE
     ;
 
 createAssembly
