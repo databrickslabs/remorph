@@ -1117,31 +1117,24 @@ VARIANT          : 'VARIANT';
 
 LISTAGG: 'LISTAGG';
 
-DUMMY: 'DUMMY'; //Dummy is not a keyword but rules reference it. As to be cleaned.
+DUMMY: 'DUMMY'; //Dummy is not a keyword but rules reference it in unfinished grammar - need to get rid
 
-SPACE: [ \t\r\n]+ -> channel(HIDDEN);
+SPACE: [ \t\r\n]+ -> skip;
 
 SQL_COMMENT    : '/*' (SQL_COMMENT | .)*? '*/' -> channel(HIDDEN);
 LINE_COMMENT   : '--' ~[\r\n]*                 -> channel(HIDDEN);
 LINE_COMMENT_2 : '//' ~[\r\n]*                 -> channel(HIDDEN);
 
 // TODO: ID can be not only Latin.
-DOUBLE_QUOTE_ID    : '"' ~'"'+ '"';
+DOUBLE_QUOTE_ID    : '"' (~[\r\n"] | '"''"')+ '"';
 DOUBLE_QUOTE_BLANK : '""';
-SINGLE_QUOTE       : '\'';
 
 ID  : [A-Z_] [A-Z0-9_@$]*;
 ID2 : DOLLAR [A-Z_] [A-Z0-9_]*;
 
-S3_PATH    : SINGLE_QUOTE 's3://' Uri SINGLE_QUOTE;
-S3GOV_PATH : SINGLE_QUOTE 's3gov://' Uri SINGLE_QUOTE;
-GCS_PATH   : SINGLE_QUOTE 'gcs://' Uri SINGLE_QUOTE;
-AZURE_PATH : SINGLE_QUOTE 'azure://' Uri SINGLE_QUOTE;
-FILE_PATH  : 'file://' ( DIVIDE Uri | WindowsPath); //file://<path_to_file>/<filename>
-
 DBL_DOLLAR: '$$' (~'$' | '\\$' | '$' ~'$')*? '$$';
 
-STRING: '\'' ('\\' . | '\'\'' | ~('\'' | '\\'))* '\'';
+STRING: '\'' (~['] | '\\' .) * '\'';
 
 DECIMAL : DEC_DIGIT+;
 FLOAT   : DEC_DOT_DEC;
@@ -1156,12 +1149,7 @@ fragment EscapeSequence:
 ;
 
 fragment HexDigit: [0-9a-f];
-
 fragment HexString: [A-Z0-9|.] [A-Z0-9+\-|.]*;
-
-fragment Uri: HexString (DIVIDE HexString)* DIVIDE?;
-
-fragment WindowsPath: [A-Z] COLON '\\' HexString ('\\' HexString)* '\\'?;
 
 ARROW : '->';
 ASSOC : '=>';

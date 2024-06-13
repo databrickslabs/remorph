@@ -134,7 +134,9 @@
         </executions>
         <configuration>
           <visitor>true</visitor>
+          <listener>false</listener>
           <sourceDirectory>src/main/antlr4</sourceDirectory>
+          <treatWarningsAsErrors>true</treatWarningsAsErrors>
         </configuration>
       </plugin>
       <plugin>
