@@ -1,4 +1,3 @@
-import functools
 import logging
 import os
 import time
@@ -7,18 +6,12 @@ from datetime import timedelta
 from importlib.resources import files, as_file
 from pathlib import Path
 
-import databricks.labs.remorph.resources
-
 from databricks.labs.blueprint.entrypoint import get_logger, is_in_debug
 from databricks.labs.blueprint.installation import Installation, SerdeError
 from databricks.labs.blueprint.installer import InstallState
-from databricks.labs.blueprint.parallel import Threads
 from databricks.labs.blueprint.parallel import ManyError
 from databricks.labs.blueprint.tui import Prompts
 from databricks.labs.blueprint.wheels import ProductInfo
-
-from databricks.labs.remorph.helpers import db_sql
-from databricks.labs.remorph.helpers.deployment import TableDeployer, JobDeployer
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.errors import NotFound
 from databricks.sdk.errors import PermissionDenied
@@ -30,6 +23,7 @@ from databricks.sdk.service.sql import (
     SpotInstancePolicy,
 )
 
+import databricks.labs.remorph.resources
 from databricks.labs.remorph.__about__ import __version__
 from databricks.labs.remorph.config import (
     MorphConfig,
@@ -39,8 +33,10 @@ from databricks.labs.remorph.config import (
     RemorphConfigs,
     ReconcileMetadataConfig,
 )
-from databricks.labs.remorph.reconcile.constants import SourceType
+from databricks.labs.remorph.helpers import db_sql
 from databricks.labs.remorph.helpers.dashboard_publisher import DashboardPublisher
+from databricks.labs.remorph.helpers.deployment import TableDeployer, JobDeployer
+from databricks.labs.remorph.reconcile.constants import SourceType
 
 logger = logging.getLogger(__name__)
 
@@ -384,15 +380,10 @@ class ReconciliationMetadataSetup:
             self._catalog_setup.create_schema(self._reconcile_schema, self._reconcile_catalog)
 
     def deploy_tables(self):
-        deploy_table = functools.partial(self._table_deployer.deploy_table)
-        Threads.strict(
-            "Deploy reconciliation metadata tables",
-            [
-                functools.partial(deploy_table, "main", "queries/reconcile/installation/main.sql"),
-                functools.partial(deploy_table, "metrics", "queries/reconcile/installation/metrics.sql"),
-                functools.partial(deploy_table, "details", "queries/reconcile/installation/details.sql"),
-            ],
-        )
+        logger.info("Deploying reconciliation metadata tables.")
+        self._table_deployer.deploy_table("main", "queries/reconcile/installation/main.sql")
+        self._table_deployer.deploy_table("metrics", "queries/reconcile/installation/metrics.sql")
+        self._table_deployer.deploy_table("details", "queries/reconcile/installation/details.sql")
 
     def run(self):
         self.configure_catalog()

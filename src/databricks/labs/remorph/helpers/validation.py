@@ -31,7 +31,12 @@ class Validator:
         - tuple: A tuple containing the result of the validation and the exception message (if any).
         """
         logger.debug(f"Validating query with catalog {config.catalog_name} and schema {config.schema_name}")
-        (is_valid, exception_type, exception_msg) = self._query(self._sql_backend, input_sql)
+        (is_valid, exception_type, exception_msg) = self._query(
+            self._sql_backend,
+            input_sql,
+            config.catalog_name,
+            config.schema_name,
+        )
         if is_valid:
             result = input_sql + "\n;\n"
             if exception_type is not None:
@@ -52,7 +57,9 @@ class Validator:
 
         return ValidationResult(result, exception_msg)
 
-    def _query(self, sql_backend: SqlBackend, query: str) -> tuple[bool, str | None, str | None]:
+    def _query(
+        self, sql_backend: SqlBackend, query: str, catalog: str, schema: str
+    ) -> tuple[bool, str | None, str | None]:
         """
         Validate a given SQL query using the provided SQL backend
 
@@ -67,7 +74,7 @@ class Validator:
         # When variables is mentioned Explain fails we need way to replace them before explain is executed.
         explain_query = f'EXPLAIN {query.replace("${", "`{").replace("}", "}`").replace("``", "`")}'
         try:
-            rows = list(sql_backend.fetch(explain_query))
+            rows = list(sql_backend.fetch(explain_query, catalog=catalog, schema=schema))
             if not rows:
                 return False, "error", "No results returned from explain query."
 
