@@ -293,7 +293,12 @@ def test_generate_recon_config_no_reconcile(mock_workspace_client):
     assert reconcile_utils.generate_recon_config() is None
 
 
-def test_recon_config_prompt_tables_list_save_config_details(mock_workspace_client, mock_installation):
+def test_recon_config_prompt_tables_list_save_config_details(mock_workspace_client, mock_installation, monkeypatch):
+    def mock_open(url):
+        print(f"Opening URL: {url}")
+
+    monkeypatch.setattr("webbrowser.open", mock_open)
+
     prompts = MockPrompts(
         {
             r"Would you like to overwrite workspace.*": "no",
@@ -301,8 +306,8 @@ def test_recon_config_prompt_tables_list_save_config_details(mock_workspace_clie
             r"Would you like to run reconciliation.*": "no",
             r"Would you like to run reconciliation on `all` tables.*": 2,
             r"Comma-separated list of tables to `include`": "table1, table2",
-            r"Open.* config file in the browser?": "no",
-            r"Open `README_RECON_CONFIG` setup instructions in your browser?": "no",
+            r"Open.* config file in the browser?": "yes",
+            r"Open `README_RECON_CONFIG` setup instructions in your browser?": "yes",
         }
     )
 
@@ -331,3 +336,27 @@ def test_recon_config_prompt_tables_list_save_config_details(mock_workspace_clie
     assert target == f"~/mock/{filename}"
 
     mock_installation.assert_file_uploaded(filename)
+
+
+def test_generate_recon_config_not_found(mock_workspace_client):
+    mock_installation_state = MockInstallation(
+        {
+            "state.json": {
+                "version": 1,
+            },
+        }
+    )
+
+    reconcile_utils = ReconcileConfigUtils(mock_workspace_client, mock_installation_state, prompts=MockPrompts({}))
+    assert reconcile_utils.generate_recon_config() is None
+
+
+def test_generate_recon_config_overwrite_workspace_values(mock_workspace_client, mock_installation):
+    prompts = MockPrompts(
+        {
+            r"Would you like to overwrite workspace.*": "yes",
+        }
+    )
+
+    reconcile_utils = ReconcileConfigUtils(mock_workspace_client, mock_installation, prompts=prompts)
+    assert reconcile_utils.generate_recon_config() is None

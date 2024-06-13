@@ -215,3 +215,15 @@ def test_reconcile_utils_recon_config_value_error(mock_workspace_client):
     mock_utils = ReconcileUtils(mock_workspace_client, mock_installation, prompts)
     with pytest.raises(SerdeError, match="target_catalog: not a str: value is missing"):
         mock_utils.run()
+
+
+def test_reconcile_utils_overwrite_workspace(mock_workspace_client, mock_installation_reconcile):
+    prompts = MockPrompts(
+        {
+            r"Would you like to overwrite workspace .*": "yes",
+        }
+    )
+
+    mock_utils = ReconcileUtils(mock_workspace_client, mock_installation_reconcile, prompts)
+    with pytest.raises(AssertionError, match="Error: Cannot load `reconcile_config`"):
+        mock_utils.run()
