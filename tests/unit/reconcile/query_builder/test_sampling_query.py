@@ -121,8 +121,8 @@ def test_build_query_for_oracle_src(mock_spark, table_conf_mock, table_schema, c
 
     src_actual = SamplingQueryBuilder(conf, sch, "source", get_dialect("oracle")).build_query(df)
     src_expected = (
-        'WITH recon AS (SELECT 11 AS s_nationkey, 1 AS s_suppkey UNION SELECT 22 AS '
-        's_nationkey, 2 AS s_suppkey UNION SELECT 33 AS s_nationkey, 3 AS s_suppkey), '
+        'WITH recon AS (SELECT 11 AS s_nationkey, 1 AS s_suppkey FROM dual UNION SELECT 22 AS '
+        's_nationkey, 2 AS s_suppkey FROM dual UNION SELECT 33 AS s_nationkey, 3 AS s_suppkey FROM dual), '
         "src AS (SELECT COALESCE(TRIM(s_acctbal), '_null_recon_') AS s_acctbal, "
         "COALESCE(TRIM(s_address), '_null_recon_') AS s_address, "
         "NVL(TRIM(TO_CHAR(s_comment)),'_null_recon_') AS s_comment, "
