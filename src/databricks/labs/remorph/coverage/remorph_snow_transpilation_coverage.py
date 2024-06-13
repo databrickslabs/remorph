@@ -13,6 +13,11 @@ if __name__ == "__main__":
     product_info = ProductInfo(__file__)
     remorph_version = product_info.unreleased_version()
 
+    if not input_dir:
+        raise ValueError("Environment variable `INPUT_DIR` is required")
+    if not output_dir:
+        raise ValueError("Environment variable `OUTPUT_DIR` is required")
+
     commons.collect_transpilation_stats(
         "Remorph",
         REMORPH_COMMIT_HASH,

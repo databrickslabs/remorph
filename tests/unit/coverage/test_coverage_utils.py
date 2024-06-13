@@ -78,7 +78,7 @@ def test_get_current_commit_hash():
 @mock.patch("databricks.labs.remorph.coverage.commons.datetime")
 def test_get_current_time_utc(mock_datetime):
     fixed_timestamp = datetime(2022, 1, 1, 0, 0, 0, tzinfo=pytz.UTC)
-    mock_datetime.utcnow = mock.Mock(return_value=fixed_timestamp)
+    mock_datetime.now = mock.Mock(return_value=fixed_timestamp)
     assert get_current_time_utc() == fixed_timestamp
 
 

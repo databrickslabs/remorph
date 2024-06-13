@@ -25,10 +25,10 @@ commands:
         default: true
         description: Validate Transpiled Code, default True validation skipped, False validate
       - name: catalog-name
-        default: transpiler_test
+        default: None
         description: Catalog Name Applicable only when Validation Mode is DATABRICKS
       - name: schema-name
-        default: convertor_test
+        default: None
         description: Schema Name Applicable only when Validation Mode is DATABRICKS
       - name: mode
         default: current
@@ -40,16 +40,6 @@ commands:
       {{end}}
   - name: reconcile
     description: Reconcile is an utility to streamline the reconciliation process between source data and target data residing on Databricks.
-    flags:
-      - name: recon_conf
-        description: Path of the data-recon config
-      - name: conn_profile
-        description: Path of the source connection config
-      - name: source
-        description: Source Type, Accepted Values [snowflake]
-      - name: report
-        default: all
-        description: Report type
   - name: validate-recon-config
     description: Utility to validate Recon Config file.
     flags:

@@ -1,13 +1,13 @@
 import logging
 import re
-from typing import ClassVar
 
 from sqlglot import expressions as exp
 from sqlglot.dialects import hive
-from sqlglot.dialects.databricks import Databricks
+from sqlglot.dialects import databricks as org_databricks
 from sqlglot.dialects.dialect import rename_func
 from sqlglot.errors import ParseError, UnsupportedError
 from sqlglot.helper import apply_index_offset, csv
+from sqlglot.dialects.dialect import if_sql
 
 from databricks.labs.remorph.snow import lca_utils, local_expression
 
@@ -79,37 +79,44 @@ def _curr_time():
     return "date_format(current_timestamp(), 'HH:mm:ss')"
 
 
-def _lateral_view(self, expression: exp.Lateral) -> str:
-    str_lateral_view = "LATERAL VIEW"
-    str_outer = "OUTER"
-    str_explode = "EXPLODE("
-    str_pfx = f"{str_lateral_view} {str_explode}"
-    str_alias = ")"
+def _select_contains_index(expression: exp.Select) -> bool:
+    for expr in expression.expressions:
+        column = expr.unalias() if isinstance(expr, exp.Alias) else expr
+        if column.name == "index":
+            return True
+    return False
 
+
+def _lateral_view(self: org_databricks.Databricks.Generator, expression: exp.Lateral) -> str:
     this = expression.args['this']
     alias = expression.args['alias']
-    # [TODO]: Implement for options: RECURSIVE and MODE
-    # view = expression.args['view']
-    # outer = expression.args['outer']
-    # cross_apply = expression.args['cross_apply']
+    alias_str = f" AS {alias.name}" if isinstance(alias, exp.TableAlias) else ""
+    generator_function_str = self.sql(this)
+    is_outer = False
+
     if isinstance(this, exp.Explode):
         explode_expr = this
+        parent_select = explode_expr.parent_select
+        select_contains_index = _select_contains_index(parent_select) if parent_select else False
+        generator_expr = ""
         if isinstance(explode_expr.this, exp.Kwarg):
-            str_pfx = str_pfx + self.sql(explode_expr.this, 'expression')
+            generator_expr = self.sql(explode_expr.this, 'expression')
             if not isinstance(explode_expr.this.expression, exp.ParseJSON):
-                str_pfx = str_pfx.replace("{", "").replace("}", "")
-
+                generator_expr = generator_expr.replace("{", "").replace("}", "")
         for expr in explode_expr.expressions:
             node = str(expr.this).upper()
             if node == "PATH":
-                str_pfx = str_pfx + "." + self.sql(expr, 'expression').replace("'", "")
+                generator_expr += "." + self.sql(expr, 'expression').replace("'", "")
             if node == "OUTER":
-                str_pfx = str_pfx.replace(str_lateral_view, f"{str_lateral_view} {str_outer}")
+                is_outer = True
 
-        if isinstance(alias, exp.TableAlias):
-            str_alias = str_alias + f" AS {alias.name}"
+        if select_contains_index:
+            generator_function_str = f"POSEXPLODE({generator_expr})"
+            alias_str = f"{' ' + alias.name if isinstance(alias, exp.TableAlias) else ''} AS index, value"
+        else:
+            generator_function_str = f"EXPLODE({generator_expr})"
 
-    return self.sql(str_pfx + str_alias)
+    return self.sql(f"LATERAL VIEW {'OUTER ' if is_outer else ''}{generator_function_str}{alias_str}")
 
 
 # [TODO] Add more datatype coverage https://docs.databricks.com/sql/language-manual/sql-ref-datatypes.html
@@ -118,6 +125,10 @@ def _datatype_map(self, expression) -> str:
         return "STRING"
     if expression.this in [exp.DataType.Type.TIMESTAMP, exp.DataType.Type.TIMESTAMPLTZ]:
         return "TIMESTAMP"
+    if expression.this == exp.DataType.Type.BINARY:
+        return "BINARY"
+    if expression.this == exp.DataType.Type.NCHAR:
+        return "STRING"
     return self.datatype_sql(expression)
 
 
@@ -151,7 +162,7 @@ def try_to_number(self, expression: local_expression.TryToNumber):
     return f"CAST({func_expr} AS DECIMAL({precision}, {scale}))"
 
 
-def _to_boolean(self: Databricks.Generator, expression: local_expression.ToBoolean) -> str:
+def _to_boolean(self: org_databricks.Databricks.Generator, expression: local_expression.ToBoolean) -> str:
     this = self.sql(expression, "this")
     logger.debug(f"Converting {this} to Boolean")
     raise_error = self.sql(expression, "raise_error")
@@ -178,7 +189,7 @@ def _to_boolean(self: Databricks.Generator, expression: local_expression.ToBoole
     return transformed
 
 
-def _is_integer(self: Databricks.Generator, expression: local_expression.IsInteger) -> str:
+def _is_integer(self: org_databricks.Databricks.Generator, expression: local_expression.IsInteger) -> str:
     this = self.sql(expression, "this")
     transformed = f"""
     CASE
@@ -190,7 +201,9 @@ def _is_integer(self: Databricks.Generator, expression: local_expression.IsInteg
     return transformed
 
 
-def _parse_json_extract_path_text(self: Databricks.Generator, expression: local_expression.JsonExtractPathText) -> str:
+def _parse_json_extract_path_text(
+    self: org_databricks.Databricks.Generator, expression: local_expression.JsonExtractPathText
+) -> str:
     this = self.sql(expression, "this")
     path_name = expression.args["path_name"]
     if path_name.is_string:
@@ -200,16 +213,18 @@ def _parse_json_extract_path_text(self: Databricks.Generator, expression: local_
     return f"GET_JSON_OBJECT({this}, {path})"
 
 
-def _array_construct_compact(self: Databricks.Generator, expression: local_expression.ArrayConstructCompact) -> str:
+def _array_construct_compact(
+    self: org_databricks.Databricks.Generator, expression: local_expression.ArrayConstructCompact
+) -> str:
     exclude = "ARRAY(NULL)"
     array_expr = f"ARRAY({self.expressions(expression, flat=True)})"
     return f"ARRAY_EXCEPT({array_expr}, {exclude})"
 
 
-def _array_slice(self: Databricks.Generator, expression: local_expression.ArraySlice) -> str:
+def _array_slice(self: org_databricks.Databricks.Generator, expression: local_expression.ArraySlice) -> str:
     from_expr = self.sql(expression, "from")
     # In Databricks: array indices start at 1 in function `slice(array, start, length)`
-    from_expr = 1 if from_expr == "0" else from_expr
+    parsed_from_expr = 1 if from_expr == "0" else from_expr
 
     to_expr = self.sql(expression, "to")
     # Convert string expression to number and check if it is negative number
@@ -218,7 +233,7 @@ def _array_slice(self: Databricks.Generator, expression: local_expression.ArrayS
         raise UnsupportedError(err_message)
 
     func = "SLICE"
-    func_expr = self.func(func, expression.this, exp.Literal.number(from_expr), expression.args["to"])
+    func_expr = self.func(func, expression.this, exp.Literal.number(parsed_from_expr), expression.args["to"])
     return func_expr
 
 
@@ -264,7 +279,7 @@ def _to_number(self, expression: local_expression.ToNumber):
     return f"CAST({func_expr} AS DECIMAL({precision}, {scale}))"
 
 
-def _uuid(self: Databricks.Generator, expression: local_expression.UUID) -> str:
+def _uuid(self: org_databricks.Databricks.Generator, expression: local_expression.UUID) -> str:
     namespace = self.sql(expression, "this")
     name = self.sql(expression, "name")
 
@@ -275,7 +290,7 @@ def _uuid(self: Databricks.Generator, expression: local_expression.UUID) -> str:
     return "UUID()"
 
 
-def _parse_date_trunc(self: Databricks.Generator, expression: local_expression.DateTrunc) -> str:
+def _parse_date_trunc(self: org_databricks.Databricks.Generator, expression: local_expression.DateTrunc) -> str:
     if not expression.args.get("unit"):
         error_message = f"Required keyword: 'unit' missing for {exp.DateTrunc}"
         raise UnsupportedError(error_message)
@@ -317,16 +332,15 @@ def _create_named_struct_for_cmp(agg_col, order_col) -> exp.Expression:
     return named_struct_func
 
 
-# pylint: disable=function-redefined
-class Databricks(Databricks):  #
+class Databricks(org_databricks.Databricks):  #
     # Instantiate Databricks Dialect
-    databricks = Databricks()
+    databricks = org_databricks.Databricks()
 
-    class Generator(databricks.Generator):
+    class Generator(org_databricks.Databricks.Generator):
         COLLATE_IS_FUNC = True
         # [TODO]: Variant needs to be transformed better, for now parsing to string was deemed as the choice.
-        TYPE_MAPPING: ClassVar[dict] = {
-            **Databricks.Generator.TYPE_MAPPING,
+        TYPE_MAPPING = {
+            **org_databricks.Databricks.Generator.TYPE_MAPPING,
             exp.DataType.Type.TINYINT: "TINYINT",
             exp.DataType.Type.SMALLINT: "SMALLINT",
             exp.DataType.Type.INT: "INT",
@@ -335,10 +349,12 @@ class Databricks(Databricks):  #
             exp.DataType.Type.VARCHAR: "STRING",
             exp.DataType.Type.VARIANT: "STRING",
             exp.DataType.Type.FLOAT: "DOUBLE",
+            exp.DataType.Type.OBJECT: "STRING",
+            exp.DataType.Type.GEOGRAPHY: "STRING",
         }
 
-        TRANSFORMS: ClassVar[dict] = {
-            **Databricks.Generator.TRANSFORMS,
+        TRANSFORMS = {
+            **org_databricks.Databricks.Generator.TRANSFORMS,
             exp.Create: _format_create_sql,
             exp.DataType: _datatype_map,
             exp.CurrentTime: _curr_time(),
@@ -371,6 +387,7 @@ class Databricks(Databricks):  #
             exp.TimestampTrunc: timestamptrunc_sql,
             exp.Mod: rename_func("MOD"),
             exp.NullSafeEQ: lambda self, e: self.binary(e, "<=>"),
+            exp.If: if_sql(false_value="NULL"),
         }
 
         def preprocess(self, expression: exp.Expression) -> exp.Expression:
@@ -414,13 +431,13 @@ class Databricks(Databricks):  #
             op_sql = f"{op_sql} JOIN" if op_sql else "JOIN"
             return f"{self.seg(op_sql)} {this_sql}{on_sql}"
 
-        def arrayagg_sql(self, expr: exp.ArrayAgg) -> str:
-            sql = self.func("ARRAY_AGG", expr.this)
-            within_group = expr.parent if isinstance(expr.parent, exp.WithinGroup) else None
+        def arrayagg_sql(self, expression: exp.ArrayAgg) -> str:
+            sql = self.func("ARRAY_AGG", expression.this)
+            within_group = expression.parent if isinstance(expression.parent, exp.WithinGroup) else None
             if not within_group:
                 return sql
 
-            wg_params = _get_within_group_params(expr, within_group)
+            wg_params = _get_within_group_params(expression, within_group)
             if wg_params.agg_col == wg_params.order_col:
                 return f"SORT_ARRAY({sql}{'' if wg_params.is_order_asc else ', FALSE'})"
 
@@ -546,7 +563,7 @@ class Databricks(Databricks):  #
             part_num = self.sql(expression.args["partNum"])
             return f"SPLIT_PART({expr_name}, {delimiter}, {part_num})"
 
-        def transaction_sql(self, expression: exp.Transaction) -> str:  # noqa: ARG002 pylint: disable=unused-argument
+        def transaction_sql(self, expression: exp.Transaction) -> str:
             """
             Skip begin command
             :param expression:
@@ -554,7 +571,7 @@ class Databricks(Databricks):  #
             """
             return ""
 
-        def rollback_sql(self, expression: exp.Rollback) -> str:  # noqa: ARG002 pylint: disable=unused-argument
+        def rollback_sql(self, expression: exp.Rollback) -> str:
             """
             Skip rollback command
             :param expression:
@@ -562,7 +579,7 @@ class Databricks(Databricks):  #
             """
             return ""
 
-        def commit_sql(self, expression: exp.Rollback) -> str:  # noqa: ARG002 pylint: disable=unused-argument
+        def commit_sql(self, expression: exp.Commit) -> str:
             """
             Skip commit command
             :param expression:
@@ -626,3 +643,20 @@ class Databricks(Databricks):  #
                 sql = f"UPDATE {this} SET {set_sql}{expression_sql}{order}{limit}"
 
             return self.prepend_ctes(expression, sql)
+
+        def struct_sql(self, expression: exp.Struct) -> str:
+            expression.set(
+                "expressions",
+                [
+                    (
+                        exp.alias_(
+                            e.expression, e.name if hasattr(e.this, "is_string") and e.this.is_string else e.this
+                        )
+                        if isinstance(e, exp.PropertyEQ)
+                        else e
+                    )
+                    for e in expression.expressions
+                ],
+            )
+
+            return self.function_fallback_sql(expression)

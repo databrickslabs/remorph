@@ -106,7 +106,6 @@ AUTO_INGEST                     : 'AUTO_INGEST';
 AUTO_REFRESH                    : 'AUTO_REFRESH';
 AUTO_RESUME                     : 'AUTO_RESUME';
 AUTO_SUSPEND                    : 'AUTO_SUSPEND';
-AVG                             : 'AVG';
 AVRO                            : 'AVRO';
 AVRO_Q                          : '\'AVRO\'';
 AWS_KEY_ID                      : 'AWS_KEY_ID';
@@ -198,9 +197,7 @@ COMMIT     : 'COMMIT';
 //COMMITTED:                                             'COMMITTED';
 //COMPRESS:                                              'COMPRESS';
 COMPRESSION : 'COMPRESSION';
-CONCAT      : 'CONCAT';
 // CONCAT_NULL_YIELDS_NULL:                               'CONCAT_NULL_YIELDS_NULL';
-CONCAT_WS     : 'CONCAT_WS';
 CONDITION     : 'CONDITION';
 CONFIGURATION : 'CONFIGURATION';
 CONNECT       : 'CONNECT';
@@ -220,7 +217,6 @@ CONTINUE: 'CONTINUE';
 COPY: 'COPY';
 // COPY_ONLY:                                             'COPY_ONLY';
 COPY_OPTIONS_ : 'COPY_OPTIONS';
-COUNT         : 'COUNT';
 CREATE        : 'CREATE';
 CREDENTIALS   : 'CREDENTIALS';
 CREDIT_QUOTA  : 'CREDIT_QUOTA';
@@ -447,6 +443,7 @@ IS           : 'IS';
 // ISOLATION:                                             'ISOLATION';
 JAVA                            : 'JAVA';
 JAVASCRIPT                      : 'JAVASCRIPT';
+SCALA                           : 'SCALA';
 JDBC_TREAT_DECIMAL_AS_INT       : 'JDBC_TREAT_DECIMAL_AS_INT';
 JDBC_TREAT_TIMESTAMP_NTZ_AS_UTC : 'JDBC_TREAT_TIMESTAMP_NTZ_AS_UTC';
 JDBC_USE_SESSION_TIMEZONE       : 'JDBC_USE_SESSION_TIMEZONE';
@@ -519,7 +516,6 @@ MEDIUM                          : 'MEDIUM';
 MEMOIZABLE                      : 'MEMOIZABLE';
 MERGE                           : 'MERGE';
 MIDDLE_NAME                     : 'MIDDLE_NAME';
-MIN                             : 'MIN';
 MINS_TO_BYPASS_MFA              : 'MINS_TO_BYPASS_MFA';
 MINS_TO_UNLOCK                  : 'MINS_TO_UNLOCK';
 MINUS_                          : 'MINUS';
@@ -916,7 +912,6 @@ STRIP_OUTER_ARRAY   : 'STRIP_OUTER_ARRAY';
 STRIP_OUTER_ELEMENT : 'STRIP_OUTER_ELEMENT';
 SUBSTR              : 'SUBSTR';
 SUBSTRING           : 'SUBSTRING';
-SUM                 : 'SUM';
 // SUPPORTED:                                             'SUPPORTED';
 SUSPEND                         : 'SUSPEND';
 SUSPENDED                       : 'SUSPENDED';
@@ -973,6 +968,7 @@ TIME_OUTPUT_FORMAT          : 'TIME_OUTPUT_FORMAT';
 TO                          : 'TO';
 TO_BOOLEAN                  : 'TO_BOOLEAN';
 TO_DATE                     : 'TO_DATE';
+TO_TIME                     : 'TO_TIME';
 TO_TIMESTAMP                : 'TO_TIMESTAMP';
 TOP                         : 'TOP';
 // TRACKING:                                              'TRACKING';
@@ -1121,31 +1117,24 @@ VARIANT          : 'VARIANT';
 
 LISTAGG: 'LISTAGG';
 
-DUMMY: 'DUMMY'; //Dummy is not a keyword but rules reference it. As to be cleaned.
+DUMMY: 'DUMMY'; //Dummy is not a keyword but rules reference it in unfinished grammar - need to get rid
 
-SPACE: [ \t\r\n]+ -> channel(HIDDEN);
+SPACE: [ \t\r\n]+ -> skip;
 
 SQL_COMMENT    : '/*' (SQL_COMMENT | .)*? '*/' -> channel(HIDDEN);
 LINE_COMMENT   : '--' ~[\r\n]*                 -> channel(HIDDEN);
 LINE_COMMENT_2 : '//' ~[\r\n]*                 -> channel(HIDDEN);
 
 // TODO: ID can be not only Latin.
-DOUBLE_QUOTE_ID    : '"' ~'"'+ '"';
+DOUBLE_QUOTE_ID    : '"' (~[\r\n"] | '"''"')+ '"';
 DOUBLE_QUOTE_BLANK : '""';
-SINGLE_QUOTE       : '\'';
 
 ID  : [A-Z_] [A-Z0-9_@$]*;
 ID2 : DOLLAR [A-Z_] [A-Z0-9_]*;
 
-S3_PATH    : SINGLE_QUOTE 's3://' Uri SINGLE_QUOTE;
-S3GOV_PATH : SINGLE_QUOTE 's3gov://' Uri SINGLE_QUOTE;
-GCS_PATH   : SINGLE_QUOTE 'gcs://' Uri SINGLE_QUOTE;
-AZURE_PATH : SINGLE_QUOTE 'azure://' Uri SINGLE_QUOTE;
-FILE_PATH  : 'file://' ( DIVIDE Uri | WindowsPath); //file://<path_to_file>/<filename>
-
 DBL_DOLLAR: '$$' (~'$' | '\\$' | '$' ~'$')*? '$$';
 
-STRING: '\'' ('\\' . | '\'\'' | ~('\'' | '\\'))* '\'';
+STRING: '\'' (~['] | '\\' .) * '\'';
 
 DECIMAL : DEC_DIGIT+;
 FLOAT   : DEC_DOT_DEC;
@@ -1160,12 +1149,7 @@ fragment EscapeSequence:
 ;
 
 fragment HexDigit: [0-9a-f];
-
 fragment HexString: [A-Z0-9|.] [A-Z0-9+\-|.]*;
-
-fragment Uri: HexString (DIVIDE HexString)* DIVIDE?;
-
-fragment WindowsPath: [A-Z] COLON '\\' HexString ('\\' HexString)* '\\'?;
 
 ARROW : '->';
 ASSOC : '=>';
@@ -1186,8 +1170,8 @@ AT   : '@';
 AT_Q : '\'@\'';
 //HASH:                '#';
 DOLLAR      : '$';
-LR_BRACKET  : '(';
-RR_BRACKET  : ')';
+L_PAREN     : '(';
+R_PAREN     : ')';
 LSB         : '[';
 RSB         : ']';
 LCB         : '{';

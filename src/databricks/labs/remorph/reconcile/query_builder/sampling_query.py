@@ -1,68 +1,102 @@
+import logging
+
+import sqlglot.expressions as exp
 from pyspark.sql import DataFrame
 from sqlglot import select
-from sqlglot.expressions import Alias, Select, union
 
-from databricks.labs.remorph.reconcile.constants import SampleConfig
 from databricks.labs.remorph.reconcile.query_builder.base import QueryBuilder
 from databricks.labs.remorph.reconcile.query_builder.expression_generator import (
     build_column,
     build_literal,
+    _get_is_string,
+    build_join_clause,
+    trim,
+    coalesce,
 )
-from databricks.labs.remorph.reconcile.recon_config import Schema
+
+_SAMPLE_ROWS = 50
+
+logger = logging.getLogger(__name__)
 
 
-def _union_concat(unions, result, cnt=0):
+def _union_concat(
+    unions: list[exp.Select],
+    result: exp.Union | exp.Select,
+    cnt=0,
+) -> exp.Select | exp.Union:
     if len(unions) == 1:
         return result
     if cnt == len(unions) - 2:
-        return union(result, unions[cnt + 1])
+        return exp.union(result, unions[cnt + 1])
     cnt = cnt + 1
-    res = union(result, unions[cnt])
+    res = exp.union(result, unions[cnt])
     return _union_concat(unions, res, cnt)
 
 
 class SamplingQueryBuilder(QueryBuilder):
-
     def build_query(self, df: DataFrame):
+        self._validate(self.join_columns, "Join Columns are compulsory for sampling query")
+        join_columns = self.join_columns if self.join_columns else set()
         if self.layer == "source":
-            key_cols = sorted(self.join_columns)
+            key_cols = sorted(join_columns)
         else:
-            key_cols = sorted(self.table_conf.get_tgt_to_src_col_mapping(self.join_columns, self.layer))
+            key_cols = sorted(self.table_conf.get_tgt_to_src_col_mapping_list(join_columns))
         keys_df = df.select(*key_cols)
-        with_clause = self._get_with_clause(keys_df)
+        with_clause = SamplingQueryBuilder._get_with_clause(keys_df)
 
-        cols = sorted((self.join_columns | self.select_columns) - self.threshold_columns - self.drop_columns)
+        cols = sorted((join_columns | self.select_columns) - self.threshold_columns - self.drop_columns)
 
         cols_with_alias = [
-            build_column(this=col, alias=self.table_conf.get_tgt_to_src_col_mapping(col, self.layer)) for col in cols
+            build_column(this=col, alias=self.table_conf.get_layer_tgt_to_src_col_mapping(col, self.layer))
+            for col in cols
         ]
 
-        sql_with_transforms = self._add_transformations(cols_with_alias, self.source)
+        sql_with_transforms = self.add_transformations(cols_with_alias, self.source)
         query_sql = select(*sql_with_transforms).from_(":tbl").where(self.filter)
-        with_select = sorted(self.table_conf.get_tgt_to_src_col_mapping(cols, self.layer))
+        if self.layer == "source":
+            with_select = [build_column(this=col, table_name="src") for col in sorted(cols)]
+        else:
+            with_select = [
+                build_column(this=col, table_name="src")
+                for col in sorted(self.table_conf.get_tgt_to_src_col_mapping_list(cols))
+            ]
 
-        return (
+        join_clause = SamplingQueryBuilder._get_join_clause(key_cols)
+
+        query = (
             with_clause.with_(alias="src", as_=query_sql)
             .select(*with_select)
             .from_("src")
-            .join(expression="recon", join_type="inner", using=key_cols)
+            .join(join_clause)
             .sql(dialect=self.source)
         )
+        logger.info(f"Sampling Query for {self.layer}: {query}")
+        return query
 
-    @staticmethod
-    def _get_with_clause(df: DataFrame) -> Select:
+    @classmethod
+    def _get_join_clause(cls, key_cols: list):
+        return (
+            build_join_clause(
+                "recon", key_cols, source_table_alias="src", target_table_alias="recon", kind="inner", func=exp.EQ
+            )
+            .transform(coalesce, default="_null_recon_", is_string=True)
+            .transform(trim)
+        )
+
+    @classmethod
+    def _get_with_clause(cls, df: DataFrame) -> exp.Select:
         union_res = []
-        for row in df.take(SampleConfig.SAMPLE_ROWS):
-            row_select = [build_literal(this=value, alias=col, is_string=False) for col, value in zip(df.columns, row)]
+        for row in df.take(_SAMPLE_ROWS):
+            column_types = [(str(f.name).lower(), f.dataType) for f in df.schema.fields]
+            column_types_dict = dict(column_types)
+            row_select = [
+                (
+                    build_literal(this=str(value), alias=col, is_string=_get_is_string(column_types_dict, col))
+                    if value is not None
+                    else exp.Alias(this=exp.Null(), alias=col)
+                )
+                for col, value in zip(df.columns, row)
+            ]
             union_res.append(select(*row_select))
         union_statements = _union_concat(union_res, union_res[0], 0)
-        return Select().with_(alias='recon', as_=union_statements)
-
-    def _add_transformations(self, aliases: list[Alias], source: str) -> list[Alias]:
-        if self.user_transformations:
-            alias_with_user_transforms = self.apply_user_transformation(aliases)
-            default_transform_schema: list[Schema] = list(
-                filter(lambda sch: sch.column_name not in self.user_transformations.keys(), self.schema)
-            )
-            return self.apply_default_transformation(alias_with_user_transforms, default_transform_schema, source)
-        return self.apply_default_transformation(aliases, self.schema, source)
+        return exp.Select().with_(alias='recon', as_=union_statements)

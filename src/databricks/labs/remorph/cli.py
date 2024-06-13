@@ -2,19 +2,24 @@ import json
 import os
 from json import JSONDecodeError
 
+from pyspark.sql import SparkSession
+
+from databricks.connect import DatabricksSession
 from databricks.labs.blueprint.cli import App
 from databricks.labs.blueprint.entrypoint import get_logger
 from databricks.labs.blueprint.installation import Installation, SerdeError
 from databricks.labs.remorph.config import SQLGLOT_DIALECTS, MorphConfig, TableRecon
 from databricks.labs.remorph.helpers.recon_config_utils import ReconConfigPrompts
+from databricks.labs.remorph.helpers.reconcile_utils import ReconcileUtils
 from databricks.labs.remorph.lineage import lineage_generator
-from databricks.labs.remorph.reconcile.execute import recon
 from databricks.labs.remorph.transpiler.execute import morph
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.errors import ResourceDoesNotExist
 
 remorph = App(__file__)
 logger = get_logger(__file__)
+
+DIALECTS = {name for name, dialect in SQLGLOT_DIALECTS.items()}
 
 
 def raise_validation_exception(msg: str) -> Exception:
@@ -26,7 +31,7 @@ def transpile(
     w: WorkspaceClient,
     source: str,
     input_sql: str,
-    output_folder: str,
+    output_folder: str | None,
     skip_validation: str,
     catalog_name: str,
     schema_name: str,
@@ -37,14 +42,12 @@ def transpile(
     installation = Installation.current(w, 'remorph')
     default_config = installation.load(MorphConfig)
     mode = mode if mode else "current"  # not checking for default config as it will always be current
-    dialects = SQLGLOT_DIALECTS.keys()
-    if source.lower() not in dialects:
-        raise_validation_exception(
-            f"Error: Invalid value for '--source': '{source}' is not one of 'snowflake', 'tsql'. "
-        )
+
+    if source.lower() not in SQLGLOT_DIALECTS:
+        raise_validation_exception(f"Error: Invalid value for '--source': '{source}' is not one of {DIALECTS}. ")
     if not os.path.exists(input_sql) or input_sql in {None, ""}:
         raise_validation_exception(f"Error: Invalid value for '--input_sql': Path '{input_sql}' does not exist.")
-    if output_folder == "":
+    if not output_folder:
         output_folder = default_config.output_folder if default_config.output_folder else None
     if skip_validation.lower() not in {"true", "false"}:
         raise_validation_exception(
@@ -56,6 +59,9 @@ def transpile(
         )
 
     sdk_config = default_config.sdk_config if default_config.sdk_config else None
+    catalog_name = catalog_name if catalog_name else default_config.catalog_name
+    schema_name = schema_name if schema_name else default_config.schema_name
+
     config = MorphConfig(
         source=source.lower(),
         input_sql=input_sql,
@@ -73,21 +79,18 @@ def transpile(
 
 
 @remorph.command
-def reconcile(w: WorkspaceClient, recon_conf: str, conn_profile: str, source: str, report: str):
-    """reconciles source to databricks datasets"""
+def reconcile(w: WorkspaceClient):
+    """[EXPERIMENTAL] reconciles source to databricks datasets"""
     logger.info(f"user: {w.current_user.me()}")
-    if not os.path.exists(recon_conf) or recon_conf in {None, ""}:
-        raise_validation_exception(f"Error: Invalid value for '--recon_conf': Path '{recon_conf}' does not exist.")
-    if not os.path.exists(conn_profile) or conn_profile in {None, ""}:
-        raise_validation_exception(f"Error: Invalid value for '--conn_profile': Path '{conn_profile}' does not exist.")
-    if source.lower() not in "snowflake":
-        raise_validation_exception(f"Error: Invalid value for '--source': '{source}' is not one of 'snowflake'. ")
-    if report.lower() not in {"data", "schema", "all"}:
-        raise_validation_exception(
-            f"Error: Invalid value for '--report': '{report}' is not one of 'data', 'schema', 'all' "
-        )
 
-    recon(recon_conf, conn_profile, source, report)
+    installation = Installation.assume_user_home(w, "remorph")
+
+    utils = ReconcileUtils(w, installation)
+    utils.run()
+
+
+def _get_spark_session(ws: WorkspaceClient) -> SparkSession:
+    return DatabricksSession.builder.sdkConfig(ws.config).getOrCreate()
 
 
 @remorph.command
@@ -107,11 +110,10 @@ def validate_recon_config(w: WorkspaceClient, recon_conf: str):
 
 @remorph.command
 def generate_lineage(w: WorkspaceClient, source: str, input_sql: str, output_folder: str):
-    """Generates a lineage of source SQL files or folder"""
+    """[Experimental] Generates a lineage of source SQL files or folder"""
     logger.info(f"User: {w.current_user.me()}")
-    dialects = SQLGLOT_DIALECTS.keys()
-    if source.lower() not in dialects:
-        raise_validation_exception(f"Error: Invalid value for '--source': '{source}' is not one of {dialects}. ")
+    if source.lower() not in SQLGLOT_DIALECTS:
+        raise_validation_exception(f"Error: Invalid value for '--source': '{source}' is not one of {DIALECTS}. ")
     if not os.path.exists(input_sql) or input_sql in {None, ""}:
         raise_validation_exception(f"Error: Invalid value for '--input_sql': Path '{input_sql}' does not exist.")
     if not os.path.exists(output_folder) or output_folder in {None, ""}:
