@@ -4,6 +4,7 @@ import sqlglot.expressions as exp
 from pyspark.sql import DataFrame
 from sqlglot import select
 
+from databricks.labs.remorph.config import get_key_from_dialect
 from databricks.labs.remorph.reconcile.query_builder.base import QueryBuilder
 from databricks.labs.remorph.reconcile.query_builder.expression_generator import (
     build_column,
@@ -42,7 +43,7 @@ class SamplingQueryBuilder(QueryBuilder):
         else:
             key_cols = sorted(self.table_conf.get_tgt_to_src_col_mapping_list(join_columns))
         keys_df = df.select(*key_cols)
-        with_clause = SamplingQueryBuilder._get_with_clause(keys_df)
+        with_clause = self._get_with_clause(keys_df)
 
         cols = sorted((join_columns | self.select_columns) - self.threshold_columns - self.drop_columns)
 
@@ -83,8 +84,7 @@ class SamplingQueryBuilder(QueryBuilder):
             .transform(trim)
         )
 
-    @classmethod
-    def _get_with_clause(cls, df: DataFrame) -> exp.Select:
+    def _get_with_clause(self, df: DataFrame) -> exp.Select:
         union_res = []
         for row in df.take(_SAMPLE_ROWS):
             column_types = [(str(f.name).lower(), f.dataType) for f in df.schema.fields]
@@ -97,6 +97,9 @@ class SamplingQueryBuilder(QueryBuilder):
                 )
                 for col, value in zip(df.columns, row)
             ]
-            union_res.append(select(*row_select))
+            if get_key_from_dialect(self.source) == "oracle":
+                union_res.append(select(*row_select).from_("dual"))
+            else:
+                union_res.append(select(*row_select))
         union_statements = _union_concat(union_res, union_res[0], 0)
         return exp.Select().with_(alias='recon', as_=union_statements)
