@@ -33,7 +33,7 @@ def get_dialect(engine: str) -> Dialect:
     return Dialect.get_or_raise(SQLGLOT_DIALECTS.get(engine))
 
 
-def get_key_form_dialect(input_dialect: Dialect) -> str:
+def get_key_from_dialect(input_dialect: Dialect) -> str:
     return [source_key for source_key, dialect in SQLGLOT_DIALECTS.items() if dialect == input_dialect][0]
 
 
