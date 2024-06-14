@@ -2573,47 +2573,19 @@ cursorStatement
     ;
 
 backupDatabase
-    : BACKUP DATABASE (databaseName = id) (
-        READ_WRITE_FILEGROUPS (COMMA? (FILE | FILEGROUP) EQ fileOrFilegroup = STRING)*
-    )? (COMMA? (FILE | FILEGROUP) EQ fileOrFilegroup = STRING)* (
-        TO ( COMMA? logicalDeviceName = id)+
-        | TO ( COMMA? (DISK | TAPE | URL) EQ (STRING | id))+
-    ) (
-        (MIRROR TO ( COMMA? logicalDeviceName = id)+)+
-        | ( MIRROR TO ( COMMA? (DISK | TAPE | URL) EQ (STRING | id))+)+
-    )? (
+    : BACKUP DATABASE id (
+        READ_WRITE_FILEGROUPS optionList
+    )?
+    genericOption (
+          TO optionList
+        | TO optionList
+    )
+    (MIRROR TO optionList)+
+    (
         WITH (
-            COMMA? DIFFERENTIAL
-            | COMMA? COPY_ONLY
-            | COMMA? (COMPRESSION | NO_COMPRESSION)
-            | COMMA? DESCRIPTION EQ (STRING | id)
-            | COMMA? NAME EQ backupSetName = id
-            | COMMA? CREDENTIAL
-            | COMMA? FILE_SNAPSHOT
-            | COMMA? (EXPIREDATE EQ (STRING | id) | RETAINDAYS EQ (INT | id))
-            | COMMA? (NOINIT | INIT)
-            | COMMA? (NOSKIP | SKIP_KEYWORD)
-            | COMMA? (NOFORMAT | FORMAT)
-            | COMMA? MEDIADESCRIPTION EQ (STRING | id)
-            | COMMA? MEDIANAME EQ (medianame = STRING)
-            | COMMA? BLOCKSIZE EQ (INT | id)
-            | COMMA? BUFFERCOUNT EQ (INT | id)
-            | COMMA? MAXTRANSFER EQ (INT | id)
-            | COMMA? (NO_CHECKSUM | CHECKSUM)
-            | COMMA? (STOP_ON_ERROR | CONTINUE_AFTER_ERROR)
-            | COMMA? RESTART
-            | COMMA? STATS (EQ statsPercent = INT)?
-            | COMMA? (REWIND | NOREWIND)
-            | COMMA? (LOAD | NOUNLOAD)
-            | COMMA? ENCRYPTION LPAREN ALGORITHM EQ (
-                AES_128
-                | AES_192
-                | AES_256
-                | TRIPLE_DES_3KEY
-            ) COMMA SERVER CERTIFICATE EQ (
-                encryptorName = id
-                | SERVER ASYMMETRIC KEY EQ encryptorName = id
-            )
+              genericOption
+            | ENCRYPTION
+              LPAREN ALGORITHM EQ genericOption COMMA SERVER CERTIFICATE EQ genericOption RPAREN
         )*
     )?
     ;
