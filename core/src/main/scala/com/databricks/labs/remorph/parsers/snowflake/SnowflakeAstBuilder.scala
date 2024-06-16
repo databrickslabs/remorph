@@ -39,7 +39,7 @@ class SnowflakeAstBuilder extends SnowflakeParserBaseVisitor[ir.TreeNode] {
       return relation
     }
     val ctes = ctx.commonTableExpression().asScala.map(_.accept(new SnowflakeRelationBuilder))
-    ir.WithCTE(ctes, relation)
+    ir.With(ctes, relation)
   }
 
   private def buildSetOperator(left: ir.Relation, ctx: SetOperatorsContext): ir.Relation = {

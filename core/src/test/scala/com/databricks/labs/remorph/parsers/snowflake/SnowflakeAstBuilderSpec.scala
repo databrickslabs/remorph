@@ -252,7 +252,7 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
     "translate queries with WITH clauses" in {
       singleQueryExample(
         query = "WITH a (b, c, d) AS (SELECT x, y, z FROM e) SELECT b, c, d FROM a",
-        expectedAst = WithCTE(
+        expectedAst = With(
           Seq(
             CTEDefinition(
               tableName = "a",
@@ -263,7 +263,7 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
       singleQueryExample(
         query =
           "WITH a (b, c, d) AS (SELECT x, y, z FROM e), aa (bb, cc) AS (SELECT xx, yy FROM f) SELECT b, c, d FROM a",
-        expectedAst = WithCTE(
+        expectedAst = With(
           Seq(
             CTEDefinition(
               tableName = "a",

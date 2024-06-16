@@ -25,7 +25,7 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.Relation] {
     Option(ctx.withExpression())
       .map { withExpression =>
         val ctes = withExpression.commonTableExpression().asScala.map(_.accept(this))
-        ir.WithCTE(ctes, query)
+        ir.With(ctes, query)
       }
       .getOrElse(query)
   }

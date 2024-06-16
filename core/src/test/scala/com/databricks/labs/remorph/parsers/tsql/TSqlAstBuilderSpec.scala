@@ -391,7 +391,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
     example(
       query = "WITH cte AS (SELECT * FROM t) SELECT * FROM cte",
       expectedAst = Batch(
-        Seq(WithCTE(
+        Seq(With(
           Seq(CTEDefinition("cte", List.empty, Project(NamedTable("t", Map(), is_streaming = false), Seq(Star(None))))),
           Project(NamedTable("cte", Map(), is_streaming = false), Seq(Star(None)))))))
 
@@ -411,7 +411,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
                 SELECT col2, col1, col3count, colx, coly, colxcount
                 FROM cteTable""",
       expectedAst = Batch(
-        Seq(WithCTE(
+        Seq(With(
           Seq(
             CTEDefinition(
               "cteTable1",
