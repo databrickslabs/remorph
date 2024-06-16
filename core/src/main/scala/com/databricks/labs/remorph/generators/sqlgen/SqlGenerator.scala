@@ -1,7 +1,7 @@
 package com.databricks.labs.remorph.generators.sqlgen
 
 import com.databricks.labs.remorph.generators.GeneratorContext
-import com.databricks.labs.remorph.parsers.intermediate.{Aggregate, And, Cast, Expression, Filter, Join, Limit, Plan, Project, Sort, SubqueryAlias, UnresolvedRelation, With}
+import com.databricks.labs.remorph.parsers.intermediate.{Aggregate, And, Cast, Expression, Filter, Join, JoinType, Limit, LocalRelation, Plan, Project, Sort, SortOrder, SubqueryAlias, UnresolvedAttribute, UnresolvedRelation, With}
 
 import scala.util.matching.Regex
 
@@ -48,10 +48,10 @@ object SqlGenerator {
   }
 
   private def subqueryPlan(ctx: GeneratorContext, sa: SubqueryAlias): String = sa match {
-    case SubqueryAlias(identifier, _: LocalRelation) =>
+    case SubqueryAlias(identifier, alias, _) if alias == null =>
       s"SELECT * FROM $identifier"
-    case SubqueryAlias(identifier, nr: NamedRelation) =>
-      s"SELECT * FROM $identifier AS ${nr.name}"
+    case SubqueryAlias(identifier, alias, _) if alias != null && alias.nonEmpty =>
+      s"SELECT * FROM $identifier AS ${alias}"
     case _ =>
       throw new NotImplementedError(s"not yet: $sa")
   }
@@ -94,7 +94,7 @@ object SqlGenerator {
 
   private def aggregatePlan(ctx: GeneratorContext, a: Aggregate) = {
     // matching against class name, as not all Spark implementations have compatible ABI
-    val grpExprsRev = a.groupingExpressions.map(_.toString)
+    val grpExprsRev = a.grouping_expressions.map(_.toString)
     // Removing col used for grouping from the agg expression
     val aggExprRev = a.aggregateExpressions.filter(item => !grpExprsRev.contains(item.toString))
     val aggs = SqlExpressions.smartDelimiters(ctx, aggExprRev.map(x => exprSql(ctx, x)))
@@ -104,14 +104,14 @@ object SqlGenerator {
   }
 
   private def relationPlan(relation: UnresolvedRelation) = {
-    relation.name
+    s"__UNRESOLVED__ /* ${relation.inputText} */"
   }
 
   private def sortPlan(ctx: GeneratorContext, order: Seq[SortOrder], child: Plan) = {
     val orderBy = order.map(item => {
       val dirStr = if (item.direction == Ascending) {
-        "asc()"
-      } else "desc()"
+        "ASC"
+      } else "DESC"
       item.child match {
         case Cast(colExpr, dataType, _) =>
           s"F.col(${q(SqlExpressions.exprSql(ctx, colExpr))})" +

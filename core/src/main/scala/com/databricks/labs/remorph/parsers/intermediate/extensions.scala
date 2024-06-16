@@ -8,20 +8,20 @@ case class DollarAction() extends Expression with AstExtension {}
 case class Distinct(expression: Expression) extends Expression
 
 abstract class Unary(pred: Expression) extends Expression {}
-abstract class Binary(left: Expression, right: Expression) extends Expression {}
+abstract class BinaryOperator(left: Expression, right: Expression) extends Expression {}
 
 trait Predicate extends AstExtension
 
-case class And(left: Expression, right: Expression) extends Binary(left, right) with Predicate {}
-case class Or(left: Expression, right: Expression) extends Binary(left, right) with Predicate {}
+case class And(left: Expression, right: Expression) extends BinaryOperator(left, right) with Predicate {}
+case class Or(left: Expression, right: Expression) extends BinaryOperator(left, right) with Predicate {}
 case class Not(pred: Expression) extends Unary(pred) with Predicate {}
 
-case class Equals(left: Expression, right: Expression) extends Binary(left, right) with Predicate {}
-case class NotEquals(left: Expression, right: Expression) extends Binary(left, right) with Predicate {}
-case class GreaterThan(left: Expression, right: Expression) extends Binary(left, right) with Predicate {}
-case class LesserThan(left: Expression, right: Expression) extends Binary(left, right) with Predicate {}
-case class GreaterThanOrEqual(left: Expression, right: Expression) extends Binary(left, right) with Predicate {}
-case class LesserThanOrEqual(left: Expression, right: Expression) extends Binary(left, right) with Predicate {}
+case class Equals(left: Expression, right: Expression) extends BinaryOperator(left, right) with Predicate {}
+case class NotEquals(left: Expression, right: Expression) extends BinaryOperator(left, right) with Predicate {}
+case class GreaterThan(left: Expression, right: Expression) extends BinaryOperator(left, right) with Predicate {}
+case class LesserThan(left: Expression, right: Expression) extends BinaryOperator(left, right) with Predicate {}
+case class GreaterThanOrEqual(left: Expression, right: Expression) extends BinaryOperator(left, right) with Predicate {}
+case class LesserThanOrEqual(left: Expression, right: Expression) extends BinaryOperator(left, right) with Predicate {}
 
 case object Noop extends Expression
 case object RowNumber extends Expression {}
@@ -60,24 +60,24 @@ case class BitwiseNot(expression: Expression) extends Unary(expression) {}
 case class UMinus(expression: Expression) extends Unary(expression) {}
 case class UPlus(expression: Expression) extends Unary(expression) {}
 
-// Binary Arithmetic expressions
-case class Multiply(left: Expression, right: Expression) extends Binary(left, right) {}
-case class Divide(left: Expression, right: Expression) extends Binary(left, right) {}
-case class Mod(left: Expression, right: Expression) extends Binary(left, right) {}
+// BinaryOperator Arithmetic expressions
+case class Multiply(left: Expression, right: Expression) extends BinaryOperator(left, right) {}
+case class Divide(left: Expression, right: Expression) extends BinaryOperator(left, right) {}
+case class Mod(left: Expression, right: Expression) extends BinaryOperator(left, right) {}
 
-case class Add(left: Expression, right: Expression) extends Binary(left, right) {}
-case class Subtract(left: Expression, right: Expression) extends Binary(left, right) {}
+case class Add(left: Expression, right: Expression) extends BinaryOperator(left, right) {}
+case class Subtract(left: Expression, right: Expression) extends BinaryOperator(left, right) {}
 
-// Binary bitwise expressions
-case class BitwiseAnd(left: Expression, right: Expression) extends Binary(left, right) {}
-case class BitwiseOr(left: Expression, right: Expression) extends Binary(left, right) {}
-case class BitwiseXor(left: Expression, right: Expression) extends Binary(left, right) {}
+// BinaryOperator bitwise expressions
+case class BitwiseAnd(left: Expression, right: Expression) extends BinaryOperator(left, right) {}
+case class BitwiseOr(left: Expression, right: Expression) extends BinaryOperator(left, right) {}
+case class BitwiseXor(left: Expression, right: Expression) extends BinaryOperator(left, right) {}
 
 // Other binary expressions
-case class Concat(left: Expression, right: Expression) extends Binary(left, right) {}
+case class Concat(left: Expression, right: Expression) extends BinaryOperator(left, right) {}
 
 // Assignment operators
-case class Assign(left: Expression, right: Expression) extends Binary(left, right) {}
+case class Assign(left: Expression, right: Expression) extends BinaryOperator(left, right) {}
 
 // Some statements, such as SELECT, do not require a table specification
 case class NoTable() extends Relation {}
@@ -143,7 +143,7 @@ case class RenameColumn(oldName: String, newName: String) extends TableAlteratio
 case class AlterTableCommand(tableName: String, alterations: Seq[TableAlteration]) extends Catalog {}
 
 // Used for raw expressions that have no context
-case class Dot(left: Expression, right: Expression) extends Binary(left, right) {}
+case class Dot(left: Expression, right: Expression) extends BinaryOperator(left, right) {}
 
 // Specialized function calls, such as XML functions that usually apply to columns
 case class XmlFunction(function: CallFunction, column: Expression) extends Expression {}
