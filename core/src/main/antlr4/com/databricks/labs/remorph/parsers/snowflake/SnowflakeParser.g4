@@ -3569,9 +3569,7 @@ columnListWithComment
     ;
 
 objectName
-    : d = id DOT s = id DOT o = id
-    | s = id DOT o = id
-    | o = id
+    : ids += id (DOT ids += id)*
     ;
 
 objectNameOrIdentifier
@@ -3707,7 +3705,7 @@ dataType
 
 primitiveExpression
     : DEFAULT          # primExprDefault//?
-    | fullColumnName # primExprColumn
+    | fullColumnName   # primExprColumn
     | literal          # primExprLiteral
     | BOTH_Q           # primExprBoth
     | ARRAY_Q          # primExprArray
@@ -3819,10 +3817,7 @@ sign
     ;
 
 fullColumnName
-    : dbName = id? DOT schema = id? DOT tabName = id? DOT colName = id
-    | schema = id? DOT tabName = id? DOT colName = id
-    | tabName = id? DOT colName = id
-    | colName = id
+    : (tableName += id DOT)* colName = id
     ;
 
 bracketExpression
@@ -4091,10 +4086,10 @@ matchRecognize
     ;
 
 pivotUnpivot
-    : PIVOT L_PAREN id L_PAREN id R_PAREN FOR id IN L_PAREN literal (COMMA literal)* R_PAREN R_PAREN (
+    : PIVOT L_PAREN aggregateFunc = id L_PAREN pivotColumn = id R_PAREN FOR valueColumn = id IN L_PAREN values += literal (COMMA values += literal)* R_PAREN R_PAREN (
         asAlias columnAliasListInBrackets?
     )?
-    | UNPIVOT L_PAREN id FOR columnName IN L_PAREN columnList R_PAREN R_PAREN
+    | UNPIVOT L_PAREN valueColumn = id FOR nameColumn = id IN L_PAREN columnList R_PAREN R_PAREN
     ;
 
 columnAliasListInBrackets
@@ -4188,7 +4183,7 @@ qualifyClause
     ;
 
 orderItem
-    : (id | num | expr) (ASC | DESC)? (NULLS ( FIRST | LAST))?
+    : expr (ASC | DESC)? (NULLS ( FIRST | LAST))?
     ;
 
 orderByClause

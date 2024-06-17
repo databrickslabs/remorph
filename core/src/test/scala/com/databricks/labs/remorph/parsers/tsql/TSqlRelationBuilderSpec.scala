@@ -1,11 +1,16 @@
 package com.databricks.labs.remorph.parsers.tsql
 
-import com.databricks.labs.remorph.parsers.{intermediate => ir}
+import com.databricks.labs.remorph.parsers.{IRHelpers, intermediate => ir}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.mockito.MockitoSugar
 
-class TSqlRelationBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matchers with MockitoSugar {
+class TSqlRelationBuilderSpec
+    extends AnyWordSpec
+    with TSqlParserTestCommon
+    with Matchers
+    with MockitoSugar
+    with IRHelpers {
 
   override protected def astBuilder: TSqlRelationBuilder = new TSqlRelationBuilder
 
@@ -50,7 +55,7 @@ class TSqlRelationBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with
         ir.Aggregate(
           input = namedTable("some_table"),
           group_type = ir.GroupBy,
-          grouping_expressions = Seq(ir.Column("some_column")),
+          grouping_expressions = Seq(simplyNamedColumn("some_column")),
           pivot = None))
 
     }
@@ -61,21 +66,21 @@ class TSqlRelationBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with
         _.selectOptionalClauses(),
         ir.Sort(
           namedTable("some_table"),
-          Seq(ir.SortOrder(ir.Column("some_column"), ir.AscendingSortDirection, ir.SortNullsUnspecified)),
+          Seq(ir.SortOrder(simplyNamedColumn("some_column"), ir.AscendingSortDirection, ir.SortNullsUnspecified)),
           is_global = false))
       example(
         "FROM some_table ORDER BY some_column ASC",
         _.selectOptionalClauses(),
         ir.Sort(
           namedTable("some_table"),
-          Seq(ir.SortOrder(ir.Column("some_column"), ir.AscendingSortDirection, ir.SortNullsUnspecified)),
+          Seq(ir.SortOrder(simplyNamedColumn("some_column"), ir.AscendingSortDirection, ir.SortNullsUnspecified)),
           is_global = false))
       example(
         "FROM some_table ORDER BY some_column DESC",
         _.selectOptionalClauses(),
         ir.Sort(
           namedTable("some_table"),
-          Seq(ir.SortOrder(ir.Column("some_column"), ir.DescendingSortDirection, ir.SortNullsUnspecified)),
+          Seq(ir.SortOrder(simplyNamedColumn("some_column"), ir.DescendingSortDirection, ir.SortNullsUnspecified)),
           is_global = false))
     }
 
@@ -88,7 +93,7 @@ class TSqlRelationBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with
             namedTable("some_table"),
             ir.Equals(ir.Literal(integer = Some(1)), ir.Literal(integer = Some(1)))),
           group_type = ir.GroupBy,
-          grouping_expressions = Seq(ir.Column("some_column")),
+          grouping_expressions = Seq(simplyNamedColumn("some_column")),
           pivot = None))
 
       example(
@@ -100,9 +105,9 @@ class TSqlRelationBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with
               namedTable("some_table"),
               ir.Equals(ir.Literal(integer = Some(1)), ir.Literal(integer = Some(1)))),
             group_type = ir.GroupBy,
-            grouping_expressions = Seq(ir.Column("some_column")),
+            grouping_expressions = Seq(simplyNamedColumn("some_column")),
             pivot = None),
-          Seq(ir.SortOrder(ir.Column("some_column"), ir.AscendingSortDirection, ir.SortNullsUnspecified)),
+          Seq(ir.SortOrder(simplyNamedColumn("some_column"), ir.AscendingSortDirection, ir.SortNullsUnspecified)),
           is_global = false))
 
     }
@@ -113,8 +118,8 @@ class TSqlRelationBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with
         _.withExpression(),
         ir.CTEDefinition(
           "a",
-          Seq(ir.Column("b"), ir.Column("c")),
-          ir.Project(namedTable("d"), Seq(ir.Column("x"), ir.Column("y")))))
+          Seq(simplyNamedColumn("b"), simplyNamedColumn("c")),
+          ir.Project(namedTable("d"), Seq(simplyNamedColumn("x"), simplyNamedColumn("y")))))
     }
 
     "translate SELECT DISTINCT clauses" in {
@@ -124,10 +129,10 @@ class TSqlRelationBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with
         ir.Project(
           ir.Deduplicate(
             input = namedTable("t"),
-            column_names = Seq("a", "bb"),
+            column_names = Seq(ir.Id("a"), ir.Id("bb")),
             all_columns_as_keys = false,
             within_watermark = false),
-          Seq(ir.Column("a"), ir.Alias(ir.Column("b"), Seq("bb"), None))))
+          Seq(simplyNamedColumn("a"), ir.Alias(simplyNamedColumn("b"), Seq(ir.Id("bb")), None))))
     }
   }
 }

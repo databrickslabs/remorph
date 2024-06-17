@@ -8,7 +8,7 @@ import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.prop.TableDrivenPropertyChecks
 
-class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenPropertyChecks {
+class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenPropertyChecks with IRHelpers {
 
   "TSqlFunctionBuilder" should "return correct arity for each function" in {
     val functions = Table(
@@ -481,11 +481,11 @@ class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenProp
     val renameTable = Table(
       ("functionName", "params", "expectedFunctionName"), // Header
 
-      ("ISNULL", Seq(ir.Column("x"), ir.Literal(integer = Some(1))), "IFNULL"),
-      ("GET_BIT", Seq(ir.Column("x"), ir.Literal(integer = Some(1))), "GETBIT"),
-      ("SET_BIT", Seq(ir.Column("x"), ir.Literal(integer = Some(1))), "SETBIT"),
-      ("left_SHIFT", Seq(ir.Column("x"), ir.Literal(integer = Some(1))), "LEFTSHIFT"),
-      ("RIGHT_SHIFT", Seq(ir.Column("x"), ir.Literal(integer = Some(1))), "RIGHTSHIFT"))
+      ("ISNULL", Seq(simplyNamedColumn("x"), ir.Literal(integer = Some(1))), "IFNULL"),
+      ("GET_BIT", Seq(simplyNamedColumn("x"), ir.Literal(integer = Some(1))), "GETBIT"),
+      ("SET_BIT", Seq(simplyNamedColumn("x"), ir.Literal(integer = Some(1))), "SETBIT"),
+      ("left_SHIFT", Seq(simplyNamedColumn("x"), ir.Literal(integer = Some(1))), "LEFTSHIFT"),
+      ("RIGHT_SHIFT", Seq(simplyNamedColumn("x"), ir.Literal(integer = Some(1))), "RIGHTSHIFT"))
 
     forAll(renameTable) { (functionName: String, params: Seq[ir.Expression], expectedFunctionName: String) =>
       {
@@ -501,20 +501,20 @@ class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenProp
   "buildFunction" should "not resolve IFNULL when input dialect isn't TSql" in {
     val functionBuilder = new SnowflakeFunctionBuilder
 
-    val result1 = functionBuilder.buildFunction("ISNULL", Seq(ir.Column("x"), ir.Literal(integer = Some(0))))
+    val result1 = functionBuilder.buildFunction("ISNULL", Seq(simplyNamedColumn("x"), ir.Literal(integer = Some(0))))
     result1 shouldBe a[UnresolvedFunction]
   }
 
   "buildFunction" should "not resolve IFNULL when input dialect isn't Snowflake" in {
     val functionBuilder = new TSqlFunctionBuilder
 
-    val result1 = functionBuilder.buildFunction("IFNULL", Seq(ir.Column("x"), ir.Literal(integer = Some(0))))
+    val result1 = functionBuilder.buildFunction("IFNULL", Seq(simplyNamedColumn("x"), ir.Literal(integer = Some(0))))
     result1 shouldBe a[UnresolvedFunction]
   }
 
   "buildFunction" should "Should preserve case if it can" in {
     val functionBuilder = new TSqlFunctionBuilder
-    val result1 = functionBuilder.buildFunction("isnull", Seq(ir.Column("x"), ir.Literal(integer = Some(0))))
+    val result1 = functionBuilder.buildFunction("isnull", Seq(simplyNamedColumn("x"), ir.Literal(integer = Some(0))))
     result1 match {
       case f: ir.CallFunction => f.function_name shouldBe "ifnull"
       case _ => fail("ifnull conversion failed")

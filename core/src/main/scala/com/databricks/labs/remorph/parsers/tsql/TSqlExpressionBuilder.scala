@@ -49,19 +49,21 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
     }
   }
 
-  private def buildTableName(ctx: TableNameContext): String = {
-    val linkedServer = Option(ctx.linkedServer).map(_.getText)
-    val ids = ctx.ids.asScala.map(_.getText).mkString(".")
-    linkedServer.fold(ids)(ls => s"$ls..$ids")
+  private def buildTableName(ctx: TableNameContext): ir.ObjectReference = {
+    val linkedServer = Option(ctx.linkedServer).map(visitId)
+    val ids = ctx.ids.asScala.map(visitId)
+    val allIds = linkedServer.fold(ids)(ser => ser +: ids)
+    ir.ObjectReference(allIds.head, allIds.tail: _*)
+  }
+
+  override def visitExprId(ctx: ExprIdContext): ir.Expression = {
+    ir.Column(None, visitId(ctx.id()))
   }
 
   override def visitFullColumnName(ctx: FullColumnNameContext): ir.Column = {
-    val columnName = ctx.id.getText
-    val fullColumnName = Option(ctx.tableName())
-      .map(buildTableName)
-      .map(_ + "." + columnName)
-      .getOrElse(columnName)
-    ir.Column(fullColumnName)
+    val columnName = visitId(ctx.id)
+    val tableName = Option(ctx.tableName()).map(buildTableName)
+    ir.Column(tableName, columnName)
   }
 
   /**
@@ -144,7 +146,8 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
     val right = ctx.expression(1).accept(this)
     (left, right) match {
       case (c1: ir.Column, c2: ir.Column) =>
-        ir.Column(c1.name + "." + c2.name)
+        val path = c1.columnName +: c2.tableNameOrAlias.map(ref => ref.head +: ref.tail).getOrElse(Nil)
+        ir.Column(Some(ir.ObjectReference(path.head, path.tail: _*)), c2.columnName)
       case (_: ir.Column, c2: ir.CallFunction) =>
         functionBuilder.functionType(c2.function_name) match {
           case XmlFunction => ir.XmlFunction(c2, left)
@@ -238,13 +241,15 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
    * @param ctx
    *   the parse tree
    */
-  override def visitId(ctx: IdContext): ir.Expression = ctx match {
-    case c if c.ID() != null => ir.Column(ctx.getText)
-    case c if c.TEMP_ID() != null => ir.Column(ctx.getText)
-    case c if c.DOUBLE_QUOTE_ID() != null => ir.Column(ctx.getText)
-    case c if c.SQUARE_BRACKET_ID() != null => ir.Column(ctx.getText)
-    case c if c.RAW() != null => ir.Column(ctx.getText)
-    case _ => ir.Column(ctx.getText)
+  override def visitId(ctx: IdContext): ir.Id = ctx match {
+    case c if c.ID() != null => ir.Id(ctx.getText, caseSensitive = false)
+    case c if c.TEMP_ID() != null => ir.Id(ctx.getText, caseSensitive = false)
+    case c if c.DOUBLE_QUOTE_ID() != null =>
+      ir.Id(ctx.getText.trim.stripPrefix("\"").stripSuffix("\""), caseSensitive = true)
+    case c if c.SQUARE_BRACKET_ID() != null =>
+      ir.Id(ctx.getText.trim.stripPrefix("[").stripSuffix("]"), caseSensitive = true)
+    case c if c.RAW() != null => ir.Id(ctx.getText, caseSensitive = false)
+    case _ => ir.Id(ctx.getText, caseSensitive = false)
   }
 
   override def visitTerminal(node: TerminalNode): ir.Expression = buildConstant(node.getSymbol)
@@ -370,11 +375,12 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
    */
   override def visitExpressionElem(ctx: ExpressionElemContext): ir.Expression = {
     val columnDef = ctx.expression().accept(this)
-    val aliasOption = Trees.findAllRuleNodes(ctx, TSqlParser.RULE_columnAlias).asScala.headOption
-    aliasOption match {
-      case Some(alias) => ir.Alias(columnDef, Seq(alias.getText), None)
-      case _ => columnDef
+    val aliasOption = Option(ctx.columnAlias()).orElse(Option(ctx.asColumnAlias()).map(_.columnAlias())).map { alias =>
+      val name = Option(alias.id()).map(visitId).getOrElse(ir.Id(alias.STRING().getText))
+      ir.Alias(columnDef, Seq(name), None)
     }
+    aliasOption.getOrElse(columnDef)
+
   }
 
   override def visitExprWithinGroup(ctx: ExprWithinGroupContext): ir.Expression = {
@@ -402,7 +408,7 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
    *   the parse tree
    */
   override def visitNextValueFor(ctx: NextValueForContext): ir.Expression = {
-    val sequenceName = ir.Literal(string = Some(buildTableName(ctx.tableName())))
+    val sequenceName = buildTableName(ctx.tableName())
     functionBuilder.buildFunction("NEXTVALUEFOR", Seq(sequenceName))
   }
 

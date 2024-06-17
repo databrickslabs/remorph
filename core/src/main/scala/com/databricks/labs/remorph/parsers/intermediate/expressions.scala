@@ -91,7 +91,7 @@ case class UnresolvedExtractValue(child: Expression, extraction: Expression) ext
 case class UpdateFields(struct_expression: Expression, field_name: String, value_expression: Option[Expression])
     extends Expression {}
 
-case class Alias(expr: Expression, name: Seq[String], metadata: Option[String]) extends Expression {}
+case class Alias(expr: Expression, name: Seq[Id], metadata: Option[String]) extends Expression {}
 
 case class LambdaFunction(function: Expression, arguments: Seq[UnresolvedNamedLambdaVariable]) extends Expression {}
 

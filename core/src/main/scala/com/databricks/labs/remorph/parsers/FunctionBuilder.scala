@@ -291,6 +291,11 @@ abstract class FunctionBuilder {
     functionDefinition(name).map(_.functionType).getOrElse(UnknownFunction)
   }
 
+  def buildFunction(id: ir.Id, args: Seq[ir.Expression]): ir.Expression = {
+    val name = if (id.caseSensitive) id.id else id.id.toUpperCase()
+    buildFunction(name, args)
+  }
+
   def buildFunction(name: String, args: Seq[ir.Expression]): ir.Expression = {
     val irName = removeQuotesAndBrackets(name)
     val defnOption = functionDefinition(irName)

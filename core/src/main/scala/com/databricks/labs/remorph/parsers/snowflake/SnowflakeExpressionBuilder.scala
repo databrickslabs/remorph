@@ -14,6 +14,14 @@ class SnowflakeExpressionBuilder()
 
   protected override def wrapUnresolvedInput(unparsedInput: String): ir.UnresolvedExpression =
     ir.UnresolvedExpression(unparsedInput)
+
+  override def visitId(ctx: IdContext): ir.Id = ctx match {
+    case c if c.DOUBLE_QUOTE_ID() != null =>
+      val idValue = c.getText.trim.stripPrefix("\"").stripSuffix("\"").replaceAll("\"\"", "\"")
+      ir.Id(idValue, caseSensitive = true)
+    case id => ir.Id(id.getText, caseSensitive = false)
+  }
+
   override def visitSelectListElem(ctx: SelectListElemContext): ir.Expression = {
     val rawExpression = ctx match {
       case c if c.columnElem() != null => c.columnElem().accept(this)
@@ -25,29 +33,35 @@ class SnowflakeExpressionBuilder()
 
   override def visitColumnElemStar(ctx: ColumnElemStarContext): ir.Expression = {
     ir.Star(Option(ctx.objectNameOrAlias()).map {
-      case c if c.objectName() != null => c.objectName().getText
-      case c if c.alias() != null => c.alias().id().getText
+      case c if c.objectName() != null =>
+        val objectNameIds = c.objectName().ids.asScala.map(visitId)
+        ir.ObjectReference(objectNameIds.head, objectNameIds.tail: _*)
+      case c if c.alias() != null => ir.ObjectReference(visitId(c.alias().id()))
     })
   }
 
   private def buildAlias(ctx: AsAliasContext, input: ir.Expression): ir.Expression =
     Option(ctx).fold(input) { c =>
-      val alias = c.alias().id().getText
+      val alias = visitId(c.alias().id())
       ir.Alias(input, Seq(alias), None)
     }
   override def visitColumnName(ctx: ColumnNameContext): ir.Expression = {
-    // TODO: Build table as per TSQl
-    ir.Column(ctx.id(0).getText)
+    ctx.id().asScala match {
+      case Seq(columnName) => ir.Column(None, visitId(columnName))
+      case Seq(tableNameOrAlias, columnName) =>
+        ir.Column(Some(ir.ObjectReference(visitId(tableNameOrAlias))), visitId(columnName))
+    }
   }
 
-  override def visitPrimExprColumn(ctx: PrimExprColumnContext): ir.Expression = {
-    val columnName = ctx.fullColumnName().id().asScala.map(_.getText).mkString(".")
-    ir.Column(columnName)
-  }
-
-  override def visitOrderItem(ctx: OrderItemContext): ir.Expression = {
-    val columnName = ctx.id().getText
-    ir.Column(columnName)
+  override def visitFullColumnName(ctx: FullColumnNameContext): ir.Expression = {
+    val colName = visitId(ctx.colName)
+    val objectNameIds = ctx.tableName.asScala.map(visitId)
+    val tableName = if (objectNameIds.isEmpty) {
+      None
+    } else {
+      Some(ir.ObjectReference(objectNameIds.head, objectNameIds.tail: _*))
+    }
+    ir.Column(tableName, colName)
   }
 
   override def visitLiteral(ctx: LiteralContext): ir.Expression = {
@@ -297,11 +311,11 @@ class SnowflakeExpressionBuilder()
 
   override def visitAggFuncExprList(ctx: AggFuncExprListContext): ir.Expression = {
     val param = ctx.exprList().expr().asScala.map(_.accept(this))
-    functionBuilder.buildFunction(getIdText(ctx.id()), param)
+    functionBuilder.buildFunction(visitId(ctx.id()), param)
   }
 
   override def visitAggFuncStar(ctx: AggFuncStarContext): ir.Expression = {
-    functionBuilder.buildFunction(getIdText(ctx.id()), Seq(ir.Star(None)))
+    functionBuilder.buildFunction(visitId(ctx.id()), Seq(ir.Star(None)))
   }
 
   override def visitAggFuncList(ctx: AggFuncListContext): ir.Expression = {
