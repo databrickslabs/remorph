@@ -1,6 +1,7 @@
 import logging
 import json
 import webbrowser
+import re
 
 from importlib.resources import files
 
@@ -202,13 +203,30 @@ class ReconcileConfigUtils:
                 f"\nUse `remorph configure-secrets` to setup Scope and Secrets."
             )
 
+    @staticmethod
+    def _format_readme_recon(readme_recon_content: str):
+        patterns = [r"\(\w*.md#\w*", r"\(#\w*"]  # md_links, subsection_links
+        repo_prefix = "(https://github.com/databrickslabs/remorph/blob/main/docs/"
+        repo_readme = "README_RECON.md"
+        readme_recon_content = readme_recon_content.replace("[[back to top](#remorph-reconciliation)]", "")
+        for pattern in patterns:
+            matches = re.findall(pattern, readme_recon_content)
+            for match in matches:
+                replace_str = (
+                    repo_prefix + match.lstrip("(")
+                    if ".md" in pattern
+                    else repo_prefix + repo_readme + match.lstrip("(")
+                )
+                readme_recon_content = readme_recon_content.replace(match, replace_str)
+        return readme_recon_content
+
     def _create_recon_config_readme(self):
         readme_recon = "reconcile/readme/README_RECON.md"
         reconcile_examples = "reconcile/readme/reconcile_examples.py"
 
-        readme_recon_content = (
-            files(databricks.labs.remorph.resources).joinpath(readme_recon).read_text().encode("utf8")
-        )
+        readme_recon_content = ReconcileConfigUtils._format_readme_recon(
+            files(databricks.labs.remorph.resources).joinpath(readme_recon).read_text()
+        ).encode("utf8")
         readme_recon_filename = readme_recon[readme_recon.rfind("/") + 1 :]
         self._installation.upload(readme_recon_filename, readme_recon_content)
 

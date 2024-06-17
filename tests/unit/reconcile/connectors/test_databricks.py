@@ -25,7 +25,7 @@ def test_get_schema():
     engine, spark, ws, scope = initial_setup()
 
     # catalog as catalog
-    dd = DatabricksDataSource(get_dialect("databricks"), spark, ws, scope)
+    dd = DatabricksDataSource(engine, spark, ws, scope)
 
     dd.get_schema("catalog", "schema", "supplier")
     spark.sql.assert_called_with(
@@ -51,7 +51,7 @@ def test_read_data_from_uc():
     engine, spark, ws, scope = initial_setup()
 
     # create object for DatabricksDataSource
-    dd = DatabricksDataSource(get_dialect("databricks"), spark, ws, scope)
+    dd = DatabricksDataSource(engine, spark, ws, scope)
 
     # Test with query
     dd.read_data("org", "data", "employee", "select id as id, name as name from :tbl", None)

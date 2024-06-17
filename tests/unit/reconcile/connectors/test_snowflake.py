@@ -76,7 +76,7 @@ def test_get_jdbc_url_fail():
     engine, spark, ws, scope = initial_setup()
     ws.secrets.get_secret.side_effect = mock_secret
     # create object for SnowflakeDataSource
-    ds = SnowflakeDataSource(get_dialect("snowflake"), spark, ws, scope)
+    ds = SnowflakeDataSource(engine, spark, ws, scope)
     url = ds.get_jdbc_url
     # Assert that the URL is generated correctly
     assert url == (
@@ -92,7 +92,7 @@ def test_read_data_with_out_options():
     engine, spark, ws, scope = initial_setup()
 
     # create object for SnowflakeDataSource
-    ds = SnowflakeDataSource(get_dialect("snowflake"), spark, ws, scope)
+    ds = SnowflakeDataSource(engine, spark, ws, scope)
     # Create a Tables configuration object with no JDBC reader options
     table_conf = Table(
         source_name="supplier",
@@ -130,7 +130,7 @@ def test_read_data_with_options():
     engine, spark, ws, scope = initial_setup()
 
     # create object for SnowflakeDataSource
-    ds = SnowflakeDataSource(get_dialect("snowflake"), spark, ws, scope)
+    ds = SnowflakeDataSource(engine, spark, ws, scope)
     # Create a Tables configuration object with JDBC reader options
     table_conf = Table(
         source_name="supplier",
@@ -167,9 +167,10 @@ def test_read_data_with_options():
 
 def test_get_schema():
     # initial setup
-    engine, spark, ws, init_scope = initial_setup()
+    engine, spark, ws, scope = initial_setup()
+    # Mocking get secret method to return the required values
     # create object for SnowflakeDataSource
-    ds = SnowflakeDataSource(get_dialect("snowflake"), spark, ws, init_scope)
+    ds = SnowflakeDataSource(engine, spark, ws, scope)
     # call test method
     ds.get_schema("catalog", "schema", "supplier")
     # spark assertions
@@ -201,7 +202,7 @@ def test_get_schema():
 def test_read_data_exception_handling():
     # initial setup
     engine, spark, ws, scope = initial_setup()
-    ds = SnowflakeDataSource(get_dialect("snowflake"), spark, ws, scope)
+    ds = SnowflakeDataSource(engine, spark, ws, scope)
     # Create a Tables configuration object
     table_conf = Table(
         source_name="supplier",

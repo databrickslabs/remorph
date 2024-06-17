@@ -125,13 +125,13 @@ def configure_secrets(w: WorkspaceClient):
     logger.info(f"User: {w.current_user.me()}")
 
     installation = Installation.current(w, 'remorph')
-    recon_conf = ReconcileConfigUtils(w, installation)
+    utils = ReconcileConfigUtils(w, installation)
 
     # Prompt for source
-    source = recon_conf.prompt_source()
+    source = utils.prompt_source()
 
     logger.info(f"Setting up Scope, Secrets for `{source}` reconciliation")
-    recon_conf.prompt_and_save_connection_details()
+    utils.prompt_and_save_connection_details()
 
 
 if __name__ == "__main__":
