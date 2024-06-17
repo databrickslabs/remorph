@@ -109,5 +109,15 @@ def test_list_tables_exception_handling():
     engine, spark, ws, scope = initial_setup()
     ds = DatabricksDataSource(engine, spark, ws, scope)
 
-    with pytest.raises(NotImplementedError, match="list_tables method is not implemented"):
+    spark.sql.side_effect = RuntimeError("Test Exception")
+    with pytest.raises(DataSourceRuntimeException, match="Runtime exception occurred while fetching list_tables"):
         ds.list_tables(catalog=None, schema="dummy", include_list=None, exclude_list=None)
+
+
+def test_list_tables_databricks():
+    # initial setup
+    engine, spark, ws, scope = initial_setup()
+    ds = DatabricksDataSource(engine, spark, ws, scope)
+    spark.sql.side_effect = spark.createDataFrame([{"table_name": "table1"}, {"table_name": "table2"}])
+    table_recon = ds.list_tables(catalog=None, schema="db", include_list=None, exclude_list=None)
+    assert table_recon.source_schema == "db"

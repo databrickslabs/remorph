@@ -7,9 +7,9 @@ from pyspark.sql.functions import col
 from sqlglot import Dialect
 
 from databricks.labs.remorph.config import TableRecon
-from databricks.labs.remorph.reconcile.connectors.data_source import DataSource
+from databricks.labs.remorph.reconcile.connectors.data_source import DataSource, get_where_condition, build_table_recon
 from databricks.labs.remorph.reconcile.connectors.secrets import SecretsMixin
-from databricks.labs.remorph.reconcile.recon_config import JdbcReaderOptions, Schema
+from databricks.labs.remorph.reconcile.recon_config import JdbcReaderOptions, Schema, Table
 from databricks.sdk import WorkspaceClient
 
 logger = logging.getLogger(__name__)
@@ -79,5 +79,24 @@ class DatabricksDataSource(DataSource, SecretsMixin):
         include_list: list[str] | None,
         exclude_list: list[str] | None,
     ) -> TableRecon:
-        # TODO: Implement list_tables in the DatabricksDataSource
-        raise NotImplementedError("list_tables method is not implemented for DatabricksDataSource yet...")
+
+        where_cond = get_where_condition(include_list, exclude_list)
+
+        assert catalog is None, f"Invalid parameter {catalog}"
+
+        logger.debug(f"Fetching Databricks Table list for `{schema}`")
+
+        tables_query = f"SHOW TABLES IN {catalog}.{schema}"
+        try:
+            logger.info(f" Executing query: {tables_query}")
+
+            all_tables_df = self._spark.sql(tables_query)
+            tables_df = all_tables_df.where(where_cond) if where_cond else all_tables_df
+
+            tables_list = [
+                Table(source_name=row.tableName.lower(), target_name=row.tableName.lower())
+                for row in tables_df.collect()
+            ]
+            return build_table_recon(catalog, schema, tables_list)
+        except (RuntimeError, PySparkException) as e:
+            return self.log_and_throw_exception(e, "list_tables", tables_query)
