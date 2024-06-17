@@ -94,9 +94,9 @@ def test_configure_secrets_oracle_insert(mock_workspace_client, mock_installatio
             r"Do you want to create a new one?": "yes",
             r"Enter User": "dummy",
             r"Enter Password": "dummy",
-            r"Enter host": "dummy",
-            r"Enter port": "dummy",
-            r"Enter database/SID": "dummy",
+            r"Enter Host": "dummy",
+            r"Enter Port": "dummy",
+            r"Enter Database/SID": "dummy",
             r"Do you want to overwrite.*": "yes",
         }
     )

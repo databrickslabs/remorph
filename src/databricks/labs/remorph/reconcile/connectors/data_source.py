@@ -5,9 +5,48 @@ from pyspark.sql import DataFrame
 
 from databricks.labs.remorph.config import TableRecon
 from databricks.labs.remorph.reconcile.exception import DataSourceRuntimeException
-from databricks.labs.remorph.reconcile.recon_config import JdbcReaderOptions, Schema
+from databricks.labs.remorph.reconcile.recon_config import JdbcReaderOptions, Schema, Table
 
 logger = logging.getLogger(__name__)
+
+
+def get_where_condition(
+    include_list: list[str] | None,
+    exclude_list: list[str] | None,
+    source_snowflake: bool = False,
+) -> str:
+    filter_list = None
+    in_clause = None
+
+    if include_list:
+        filter_list = include_list
+        in_clause = "IN"
+
+    if exclude_list:
+        filter_list = exclude_list
+        in_clause = "NOT IN"
+
+    where_cond = ""
+    if filter_list:
+        subset_tables = ", ".join(filter_list)
+        table_column = "TABLE_NAME" if source_snowflake else "table_name"
+        where_cond = f"AND {table_column} {in_clause} ({subset_tables})"
+
+    return where_cond
+
+
+def build_table_recon(
+    catalog: str | None,
+    schema: str,
+    tables_list: list[Table],
+) -> TableRecon:
+    return TableRecon(
+        source_catalog=catalog,
+        source_schema=schema,
+        target_catalog="",
+        target_schema="",
+        tables=tables_list,
+    )
 
 
 class DataSource(ABC):

@@ -7,7 +7,7 @@ from pyspark.sql.functions import col
 from sqlglot import Dialect
 
 from databricks.labs.remorph.config import TableRecon
-from databricks.labs.remorph.reconcile.connectors.data_source import DataSource
+from databricks.labs.remorph.reconcile.connectors.data_source import DataSource, get_where_condition, build_table_recon
 from databricks.labs.remorph.reconcile.connectors.jdbc_reader import JDBCReaderMixin
 from databricks.labs.remorph.reconcile.connectors.secrets import SecretsMixin
 from databricks.labs.remorph.reconcile.recon_config import JdbcReaderOptions, Schema, Table
@@ -107,22 +107,7 @@ class SnowflakeDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
         include_list: list[str] | None,
         exclude_list: list[str] | None,
     ) -> TableRecon:
-
-        filter_list = None
-        in_clause = None
-
-        if include_list:
-            filter_list = include_list
-            in_clause = "IN"
-
-        if exclude_list:
-            filter_list = exclude_list
-            in_clause = "NOT IN"
-
-        where_cond = ""
-        if filter_list:
-            subset_tables = ", ".join(filter_list)
-            where_cond = f"AND TABLE_NAME {in_clause} ({subset_tables})"
+        where_cond = get_where_condition(include_list, exclude_list, True)
 
         assert catalog, "Catalog must be specified for Snowflake DataSource"
         try:
@@ -138,16 +123,7 @@ class SnowflakeDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
                 Table(source_name=field.TABLE_NAME.lower(), target_name=field.TABLE_NAME.lower())
                 for field in tables_df.collect()
             ]
-
-            table_recon = TableRecon(
-                source_catalog=catalog,
-                source_schema=schema,
-                target_catalog="",
-                target_schema="",
-                tables=tables_list,
-            )
-
-            return table_recon
+            return build_table_recon(catalog, schema, tables_list)
         except PySparkException as e:
             error_msg = (
                 f"An error occurred while fetching Snowflake Table list for `{catalog}.{schema}`  in "

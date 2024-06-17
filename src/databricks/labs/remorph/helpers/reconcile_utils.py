@@ -263,7 +263,7 @@ class ReconcileConfigUtils:
             if filter_type != "all":
                 proceed_run_prompt = (
                     f"Would you like to run reconciliation `{filter_type[:-1]}ing` "
-                    f" {','.join(subset_tables_list)} tables? "
+                    f" ({', '.join(subset_tables_list)}) tables? "
                 )
 
             proceed_run = self._prompts.confirm(proceed_run_prompt)
@@ -281,7 +281,7 @@ class ReconcileConfigUtils:
         if filter_type != "all":
             subset_tables = self._prompts.question(f"Comma-separated list of tables to `{filter_type}`")
             logger.debug(f"Filter Type: `{filter_type}`, Tables: `{subset_tables}`")
-            subset_tables_list = [table.strip().upper() for table in subset_tables.split(",")]
+            subset_tables_list = [table.strip().upper() for table in subset_tables.split(",") if table]
             tables_config = ReconcileTablesConfig(filter_type=filter_type, tables_list=subset_tables_list)
 
         return True, tables_config
@@ -336,9 +336,12 @@ class ReconcileConfigUtils:
         logger.info("Recon Config details are fetched successfully...")
         logger.debug(f"Recon Config : {recon_config}")
 
-        file_name = (
-            f"recon_config_{source}" f"_{self._reconcile_config.database_config.source_catalog}" f"_{filter_type}.json"
-        ).lower()
+        catalog_or_schema = self._reconcile_config.database_config.source_catalog
+
+        if self._reconcile_config.database_config.source_catalog is None:
+            catalog_or_schema = self._reconcile_config.database_config.source_schema
+
+        file_name = (f"recon_config_{source}" f"_{catalog_or_schema}" f"_{filter_type}.json").lower()
 
         return recon_config, file_name
 
@@ -377,9 +380,10 @@ class ReconcileConfigUtils:
             return
 
         self._reconcile_config = reconcile_config
-        # Check for Scope and ensure Secrets are set up
-        self._ensure_scope_exists()
-        self._confirm_secret_scope()
+        if self._reconcile_config.data_source != "databricks":
+            # Check for Scope and ensure Secrets are set up
+            self._ensure_scope_exists()
+            self._confirm_secret_scope()
 
         self._save_recon_config_details(self._generate_table_recon())
 
@@ -421,9 +425,9 @@ class ReconcileConfigUtils:
         logger.info(f"Please answer a few questions to configure `{SourceType.ORACLE.value}` Connection profile")
         user = self._prompts.question("Enter User")
         password = self._prompts.question("Enter Password")
-        host = self._prompts.question("Enter host")
-        port = self._prompts.question("Enter port")
-        database = self._prompts.question("Enter database/SID")
+        host = self._prompts.question("Enter Host")
+        port = self._prompts.question("Enter Port")
+        database = self._prompts.question("Enter Database/SID")
 
         oracle_conn_details = {"user": user, "password": password, "host": host, "port": port, "database": database}
 
@@ -452,7 +456,7 @@ class ReconcileConfigUtils:
             return
 
         # Prompt for secret scope
-        scope_name = self._prompts.question("Enter Secret Scope name")
+        scope_name = self._prompts.question("Enter Secret Scope name", default=f"remorph_{self._source}")
         self._ensure_scope_exists(scope_name)
 
         # Prompt for connection details
