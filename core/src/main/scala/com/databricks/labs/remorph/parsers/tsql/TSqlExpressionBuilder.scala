@@ -1,7 +1,7 @@
 package com.databricks.labs.remorph.parsers.tsql
 
 import com.databricks.labs.remorph.parsers.tsql.TSqlParser._
-import com.databricks.labs.remorph.parsers.{ParserCommon, XmlFunction, intermediate => ir}
+import com.databricks.labs.remorph.parsers.{GenericOption, OptionAuto, OptionDefault, OptionExpression, OptionList, OptionOff, OptionOn, OptionValue, ParserCommon, XmlFunction, intermediate => ir}
 import org.antlr.v4.runtime.Token
 import org.antlr.v4.runtime.tree.{TerminalNode, Trees}
 
@@ -492,7 +492,7 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
    * @return
    *   IR for the JSON_OBJECT function
    */
-  // TODO: This is not likely the correct way to handle this, but it is a start - maybe needs external function
+  // TODO: This is not likely the correct way to handle this, but it is a start - maybe needs external function at runtime
   private[tsql] def buildJsonObject(namedStruct: ir.NamedStruct, absentOnNull: Boolean): ir.Expression = {
     if (absentOnNull) {
       val lambdaVariables = ir.UnresolvedNamedLambdaVariable(Seq("k", "v"))
@@ -503,6 +503,30 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
       ir.CallFunction("TO_JSON", Seq(filter))
     } else {
       ir.CallFunction("TO_JSON", Seq(namedStruct))
+    }
+  }
+
+  private[tsql] def buildOption(ctx: TSqlParser.GenericOptionContext): GenericOption = {
+    val id = ctx.id(0).getText.toUpperCase()
+    id match {
+      case "DEFAULT" => GenericOption(id, Some(OptionDefault))
+      case "ON" => GenericOption(id, Some(OptionOn))
+      case "OFF" => GenericOption(id, Some(OptionOff))
+      case "AUTO" => GenericOption(id, Some(OptionAuto))
+
+      // The other options are more complicated and can be lists of other options
+      case _ =>
+        val options: Option[OptionList] = Option(ctx.optionList())
+          .map(optList => OptionList(optList.genericOption().asScala.toList.map(buildOption)))
+        val expression: Option[OptionValue] = Option(ctx.expression())
+          .map(expr => OptionExpression(expr.accept(this), Option(ctx.id(1)).map(_.getText).getOrElse("")))
+        val onOff: Option[OptionValue] = Option(ctx.onOff()).map {
+          case onOff if onOff.ON() != null => OptionOn
+          case _ => OptionOff
+        }
+        val default: Option[OptionValue] = Option(ctx.DEFAULT()).map(_ => OptionDefault)
+
+        GenericOption(id, options orElse expression orElse onOff orElse default)
     }
   }
 }

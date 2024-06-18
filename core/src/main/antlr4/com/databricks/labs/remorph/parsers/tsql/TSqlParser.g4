@@ -4786,7 +4786,7 @@ optionList
  * Generic options have a few different formats, but otherwise they can almost all be
  * parsed generically rather than creating potentially hundreds of keywords and rules
  * that obfusctate the grammar and make maintenance difficult as TSQL evolves. SQL is,
- * or has become a very verbose language with strange syntactical elements bolted in
+ * or has become, a very verbose language with strange syntactical elements bolted in
  * becuase they could not fit otherwise. So, as many options as possible are parsed
  * here and the AST builders can decide what to do with them as they have context.
  *
@@ -4800,7 +4800,7 @@ optionList
  * KEYWORD = VALUE KB        - Some sort of size value, where KB can be various things so is parsed as any id()
  * KEYWORD (=)? DEFAULT      - A fairly redundant option, but sometimes people want to be explicit
  * KEYWORD (=)? AUTO         - The option is set to AUTO, which occurs in a few places
- * KEYWORD = optoinList      - The option is set to a list of options
+ * KEYWORD = optionList      - The option is set to a list of options
  * DEFAULT                   - The option is set to the default value but is not named
  * ON                        - The option is on but is not named (will get just id)
  * OFF                       - The option is off but is not named (will get just id)
