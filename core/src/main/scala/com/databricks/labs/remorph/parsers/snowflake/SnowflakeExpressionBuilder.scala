@@ -32,11 +32,9 @@ class SnowflakeExpressionBuilder()
   }
 
   override def visitColumnElemStar(ctx: ColumnElemStarContext): ir.Expression = {
-    ir.Star(Option(ctx.objectNameOrAlias()).map {
-      case c if c.objectName() != null =>
-        val objectNameIds = c.objectName().ids.asScala.map(visitId)
-        ir.ObjectReference(objectNameIds.head, objectNameIds.tail: _*)
-      case c if c.alias() != null => ir.ObjectReference(visitId(c.alias().id()))
+    ir.Star(Option(ctx.objectName()).map { on =>
+      val objectNameIds = on.ids.asScala.map(visitId)
+      ir.ObjectReference(objectNameIds.head, objectNameIds.tail: _*)
     })
   }
 

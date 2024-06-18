@@ -22,6 +22,8 @@ class TSqlRelationBuilderSpec
 
     "translate FROM clauses" in {
       example("FROM some_table", _.fromClause(), namedTable("some_table"))
+      example("FROM some_schema.some_table", _.fromClause(), namedTable("some_schema.some_table"))
+      example("FROM some_server..some_table", _.fromClause(), namedTable("some_server..some_table"))
 
       example(
         "FROM t1, t2, t3",

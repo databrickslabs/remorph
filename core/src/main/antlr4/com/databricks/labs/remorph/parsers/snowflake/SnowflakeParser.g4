@@ -3893,17 +3893,12 @@ selectListElem
     ;
 
 columnElemStar
-    : objectNameOrAlias? STAR
+    : (objectName DOT)? STAR
     ;
 
 columnElem
-    : objectNameOrAlias? columnName
-    | objectNameOrAlias? DOLLAR columnPosition
-    ;
-
-objectNameOrAlias
-    : objectName
-    | alias DOT
+    : (objectName DOT)? columnName
+    | (objectName DOT)? DOLLAR columnPosition
     ;
 
 asAlias

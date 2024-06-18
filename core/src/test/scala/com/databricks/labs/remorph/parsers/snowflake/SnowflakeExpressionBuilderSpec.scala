@@ -35,8 +35,18 @@ class SnowflakeExpressionBuilderSpec
       example("'foo'", _.literal(), Literal(string = Some("foo")))
     }
 
+    "translate ids (quoted or not)" in {
+      example("foo", _.id(), Id("foo"))
+      example("\"foo\"", _.id(), Id("foo", caseSensitive = true))
+      example("\"foo \"\"quoted bar\"\"\"", _.id(), Id("foo \"quoted bar\"", caseSensitive = true))
+    }
+
     "translate column names" in {
       example("x", _.columnName(), simplyNamedColumn("x"))
+      example(
+        "\"My Table\".x",
+        _.columnName(),
+        Column(Some(ObjectReference(Id("My Table", caseSensitive = true))), Id("x")))
     }
 
     "translate aggregation functions" in {
@@ -121,6 +131,10 @@ class SnowflakeExpressionBuilderSpec
     "translate star-expressions" in {
       example("*", _.columnElemStar(), Star(None))
       example("t.*", _.columnElemStar(), Star(Some(ObjectReference(Id("t")))))
+      example(
+        "db1.schema1.table1.*",
+        _.columnElemStar(),
+        Star(Some(ObjectReference(Id("db1"), Id("schema1"), Id("table1")))))
     }
   }
 
