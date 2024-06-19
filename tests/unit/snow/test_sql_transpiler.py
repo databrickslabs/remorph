@@ -36,7 +36,10 @@ def test_parse_query(transpiler):
     expected_result = [
         local_expression.TryToNumber(
             this=expressions.Column(this=expressions.Identifier(this="COLUMN", quoted=False)),
-            expression=expressions.Parameter(this=expressions.Literal(this=99.99, is_string=False)),
+            expression=expressions.Parameter(
+                this=expressions.Literal(this=99, is_string=False),
+                suffix=expressions.Literal(this=0.99, is_string=False),
+            ),
             precision=expressions.Literal(this=27, is_string=False),
             scale=expressions.Literal(this=2, is_string=False),
         )
@@ -70,10 +73,7 @@ def test_tokenizer_exception(transpiler, write_dialect):
 def test_procedure_conversion(transpiler, write_dialect):
     procedure_sql = "CREATE OR REPLACE PROCEDURE my_procedure() AS BEGIN SELECT * FROM my_table; END;"
     transpiler_result = transpiler.transpile(write_dialect, procedure_sql, "file.sql", [])
-    assert (
-        transpiler_result.transpiled_sql[0]
-        == "CREATE PROCEDURE my_procedure(\n  \n) AS BEGIN\nSELECT\n  *\nFROM my_table"
-    )
+    assert transpiler_result.transpiled_sql[0] == "CREATE PROCEDURE my_procedure() AS BEGIN\nSELECT\n  *\nFROM my_table"
 
 
 def test_find_root_tables(transpiler):
