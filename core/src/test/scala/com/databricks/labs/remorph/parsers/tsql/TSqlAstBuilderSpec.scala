@@ -451,7 +451,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
 
     example(
       query = "BACKUP DATABASE mydb TO DISK = 'disk1', DISK = 'disk2' WITH mount = auto, verbose = default",
-      expectedAst = Batch(Seq(BackupDatabase("mydb", Seq("disk1", "disk2"), Map.empty, Seq("MOUNT"), Map.empty))))
+      expectedAst = Batch(Seq(BackupDatabase("mydb", Seq("disk2", "disk1"), Map.empty, Seq("MOUNT"), Map.empty))))
 
     example(
       query = "BACKUP DATABASE mydb TO DISK = 'disk1' WITH audit = ON, desCription = 'backup1', FILE_SNAPSHOT OFF",

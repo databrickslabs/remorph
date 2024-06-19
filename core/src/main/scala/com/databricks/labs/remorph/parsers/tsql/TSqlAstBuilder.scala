@@ -55,24 +55,19 @@ class TSqlAstBuilder extends TSqlParserBaseVisitor[ir.TreeNode] {
     val database = ctx.id().getText
     val opts = ctx.optionList()
     val options = opts.asScala.flatMap(_.genericOption().asScala).toList.map(buildOption)
-
-    val disks = options.collect { case OptionString("DISK", value) =>
-      value.stripPrefix("'").stripSuffix("'")
+    val (disks, boolFlags, autoFlags, values) = options.foldLeft(
+      (List.empty[String], Map.empty[String, Boolean], List.empty[String], Map.empty[String, ir.Expression])) {
+      case ((disks, boolFlags, autoFlags, values), option) =>
+        option match {
+          case OptionString("DISK", value) =>
+            (value.stripPrefix("'").stripSuffix("'") :: disks, boolFlags, autoFlags, values)
+          case OptionOn(id) => (disks, boolFlags + (id -> true), autoFlags, values)
+          case OptionOff(id) => (disks, boolFlags + (id -> false), autoFlags, values)
+          case OptionAuto(id) => (disks, boolFlags, id :: autoFlags, values)
+          case OptionExpression(id, expr, _) => (disks, boolFlags, autoFlags, values + (id -> expr))
+          case _ => (disks, boolFlags, autoFlags, values)
+        }
     }
-
-    val boolFlags = options.collect {
-      case OptionOn(id) => (id, true)
-      case OptionOff(id) => (id, false)
-    }.toMap
-
-    val autoFlags = options.collect { case OptionAuto(id) =>
-      id
-    }
-
-    val values = options.collect { case OptionExpression(id, expr, _) =>
-      (id, expr)
-    }.toMap
-
     // Default flags generally don't need to be specified as they are by definition, the default
 
     ir.BackupDatabase(database, disks, boolFlags, autoFlags, values)
