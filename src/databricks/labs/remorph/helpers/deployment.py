@@ -133,7 +133,11 @@ class JobDeployer:
         }
 
     def _job_recon_task(self, jobs_task: Task) -> Task:
-        libraries = [compute.Library(pypi=compute.PythonPyPiLibrary("databricks-labs-remorph"))]
+        # TODO: fetch a version list for `ojdbc8` and use the second latest version instead of hardcoding
+        libraries = [
+            compute.Library(pypi=compute.PythonPyPiLibrary("databricks-labs-remorph")),
+            compute.Library(maven=compute.MavenLibrary("com.oracle.database.jdbc:ojdbc8:23.4.0.24.05")),
+        ]
         return dataclasses.replace(
             jobs_task,
             libraries=libraries,
