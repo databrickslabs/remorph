@@ -4417,6 +4417,8 @@ keyword
     | OLD_ACCOUNT
     | OLD_PASSWORD
     | ON_FAILURE
+    | ON
+    | OFF
     | ONLINE
     | ONLY
     | OPEN_EXISTING
