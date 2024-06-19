@@ -263,7 +263,6 @@ DIRECTORY_NAME                              : 'DIRECTORY_NAME';
 DISABLE                                     : 'DISABLE';
 DISABLED                                    : 'DISABLED';
 DISABLE_BROKER                              : 'DISABLE_BROKER';
-DISK                                        : 'DISK';
 DISTINCT                                    : 'DISTINCT';
 DISTRIBUTED                                 : 'DISTRIBUTED';
 DISTRIBUTION                                : 'DISTRIBUTION';

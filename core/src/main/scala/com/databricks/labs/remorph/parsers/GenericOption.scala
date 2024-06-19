@@ -2,12 +2,13 @@ package com.databricks.labs.remorph.parsers
 
 import com.databricks.labs.remorph.parsers.{intermediate => ir}
 
-sealed trait OptionValue
-case class OptionList(options: List[GenericOption]) extends OptionValue
-case class OptionExpression(expression: ir.Expression, supplement: String) extends OptionValue
-case object OptionOn extends OptionValue
-case object OptionOff extends OptionValue
-case object OptionAuto extends OptionValue
-case object OptionDefault extends OptionValue
+trait GenericOption {
+  def id: String
+}
 
-case class GenericOption(id: String, value: Option[OptionValue])
+case class OptionExpression(id: String, value: ir.Expression, supplement: Option[String]) extends GenericOption
+case class OptionString(id: String, value: String) extends GenericOption
+case class OptionOn(id: String) extends GenericOption
+case class OptionOff(id: String) extends GenericOption
+case class OptionAuto(id: String) extends GenericOption
+case class OptionDefault(id: String) extends GenericOption

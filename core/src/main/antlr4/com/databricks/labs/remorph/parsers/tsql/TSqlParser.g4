@@ -2576,17 +2576,12 @@ backupDatabase
     : BACKUP DATABASE id (
         READ_WRITE_FILEGROUPS optionList
     )?
-    genericOption (
-          TO optionList
-        | TO optionList
-    )
-    (MIRROR TO optionList)+
-    (
-        WITH (
-              genericOption
-            | ENCRYPTION
-              LPAREN ALGORITHM EQ genericOption COMMA SERVER CERTIFICATE EQ genericOption RPAREN
-        )*
+    (TO optionList)+
+    (MIRROR TO optionList)*
+    WITH (
+          optionList
+        | ENCRYPTION
+          LPAREN ALGORITHM EQ genericOption COMMA SERVER CERTIFICATE EQ genericOption RPAREN
     )?
     ;
 
@@ -4159,6 +4154,7 @@ keyword
     | DBREINDEX
     | DDL
     | DECRYPTION
+    | DEFAULT
     | DEFAULT_DATABASE
     | DEFAULT_DOUBLE_QUOTE
     | DEFAULT_FULLTEXT_LANGUAGE
@@ -4779,7 +4775,7 @@ lparenOptionList
  * The generic option list is used in many places, so it is defined here.
  */
 optionList
-    : COMMA? genericOption (COMMA genericOption)*
+    : genericOption (COMMA genericOption)*
     ;
 
 /**
@@ -4800,7 +4796,6 @@ optionList
  * KEYWORD = VALUE KB        - Some sort of size value, where KB can be various things so is parsed as any id()
  * KEYWORD (=)? DEFAULT      - A fairly redundant option, but sometimes people want to be explicit
  * KEYWORD (=)? AUTO         - The option is set to AUTO, which occurs in a few places
- * KEYWORD = optionList      - The option is set to a list of options
  * DEFAULT                   - The option is set to the default value but is not named
  * ON                        - The option is on but is not named (will get just id)
  * OFF                       - The option is off but is not named (will get just id)
@@ -4808,11 +4803,13 @@ optionList
  * ALL                       - The option is set to ALL but is not named (will get just id)
  */
 genericOption
-    : id (
-              optionList
-            | EQ? expression id?
-            | EQ? onOff
-            | EQ? DEFAULT
+    : id  EQ? (
+              DEFAULT         // Default value  - don't resolve with expression
+            | ON              // Simple ON      - don't resolve with expression
+            | OFF             // Simple OFF     - don't resolve with expression
+            | AUTO            // Simple AUTO    - don't resolve with expression
+            | STRING          // String value   - don't resolve with expression
+            | expression id?  // Catch all for less explicit options, sometimes with extra keywords
          )?
     ;
 

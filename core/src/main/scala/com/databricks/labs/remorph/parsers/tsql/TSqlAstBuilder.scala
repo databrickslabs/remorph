@@ -1,7 +1,8 @@
 package com.databricks.labs.remorph.parsers.tsql
 
+import com.databricks.labs.remorph.parsers.intermediate.TreeNode
 import com.databricks.labs.remorph.parsers.tsql.TSqlParser.{DmlClauseContext, SelectStatementStandaloneContext}
-import com.databricks.labs.remorph.parsers.{intermediate => ir}
+import com.databricks.labs.remorph.parsers.{GenericOption, OptionAuto, OptionDefault, OptionExpression, OptionOff, OptionOn, OptionString, intermediate => ir}
 
 import scala.collection.JavaConverters.asScalaBufferConverter
 
@@ -10,6 +11,8 @@ import scala.collection.JavaConverters.asScalaBufferConverter
  *   org.apache.spark.sql.catalyst.parser.AstBuilder
  */
 class TSqlAstBuilder extends TSqlParserBaseVisitor[ir.TreeNode] {
+
+  private val expressionBuilder = new TSqlExpressionBuilder
 
   override def visitTSqlFile(ctx: TSqlParser.TSqlFileContext): ir.TreeNode = {
     Option(ctx.batch()).map(_.accept(this)).getOrElse(ir.Batch(List()))
@@ -21,8 +24,14 @@ class TSqlAstBuilder extends TSqlParserBaseVisitor[ir.TreeNode] {
   }
 
   override def visitSqlClauses(ctx: TSqlParser.SqlClausesContext): ir.TreeNode = {
-    // TODO: Implement the rest of the SQL clauses
-    ctx.dmlClause().accept(this)
+    ctx match {
+      case dml if dml.dmlClause() != null => dml.dmlClause().accept(this)
+      case cfl if cfl.cflStatement() != null => cfl.cflStatement().accept(this)
+      case another if another.anotherStatement() != null => another.anotherStatement().accept(this)
+      case ddl if ddl.ddlClause() != null => ddl.ddlClause().accept(this)
+      case dbcc if dbcc.dbccClause() != null => dbcc.dbccClause().accept(this)
+      case backup if backup.backupStatement() != null => backup.backupStatement().accept(this)
+    }
   }
 
   override def visitDmlClause(ctx: DmlClauseContext): ir.TreeNode = {
@@ -37,4 +46,56 @@ class TSqlAstBuilder extends TSqlParserBaseVisitor[ir.TreeNode] {
    */
   override def visitSelectStatementStandalone(ctx: SelectStatementStandaloneContext): ir.TreeNode =
     ctx.accept(new TSqlRelationBuilder)
+
+  override def visitBackupStatement(ctx: TSqlParser.BackupStatementContext): TreeNode = {
+    ctx.backupDatabase().accept(this)
+  }
+
+  override def visitBackupDatabase(ctx: TSqlParser.BackupDatabaseContext): ir.TreeNode = {
+    val database = ctx.id().getText
+    val opts = ctx.optionList()
+    val options = opts.asScala.flatMap(_.genericOption().asScala).toList.map(buildOption)
+
+    val disks = options.collect { case OptionString("DISK", value) =>
+      value.stripPrefix("'").stripSuffix("'")
+    }
+
+    val boolFlags = options.collect {
+      case OptionOn(id) => (id, true)
+      case OptionOff(id) => (id, false)
+    }.toMap
+
+    val autoFlags = options.collect { case OptionAuto(id) =>
+      id
+    }
+
+    val values = options.collect { case OptionExpression(id, expr, _) =>
+      (id, expr)
+    }.toMap
+
+    // Default flags generally don't need to be specified as they are by definition, the default
+
+    ir.BackupDatabase(database, disks, boolFlags, autoFlags, values)
+  }
+
+  private[tsql] def buildOption(ctx: TSqlParser.GenericOptionContext): GenericOption = {
+    val id = ctx.id(0).getText.toUpperCase()
+    id match {
+      case "DEFAULT" => OptionDefault(id)
+      case "ON" => OptionOn(id)
+      case "OFF" => OptionOff(id)
+      case "AUTO" => OptionAuto(id)
+      case _ if ctx.DEFAULT() != null => OptionDefault(id)
+      case _ if ctx.ON() != null => OptionOn(id)
+      case _ if ctx.OFF() != null => OptionOff(id)
+      case _ if ctx.AUTO() != null => OptionAuto(id)
+      case _ if ctx.STRING() != null => OptionString(id, ctx.STRING().getText)
+      case _ if ctx.expression() != null =>
+        val supplement = if (ctx.id(1) != null) Some(ctx.id(1).getText) else None
+        OptionExpression(id, ctx.expression().accept(expressionBuilder), supplement)
+
+      // All other cases being OptionOn as it is a single keyword representing true
+      case _ => OptionOn(id)
+    }
+  }
 }

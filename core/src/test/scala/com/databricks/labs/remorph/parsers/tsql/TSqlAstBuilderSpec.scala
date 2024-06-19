@@ -441,4 +441,33 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
               Column("coly"),
               Column("colxcount")))))))
   }
+
+  "parse genericOptions correctly" in {
+    // NOTE that we are using the BACKUP DATABASE command to test the generic options as it is the
+    // simplest command that has generic options.
+    example(
+      query = "BACKUP DATABASE mydb TO DISK = 'disk' WITH mount = auto, verbose = default",
+      expectedAst = Batch(Seq(BackupDatabase("mydb", Seq("disk"), Map.empty, Seq("MOUNT"), Map.empty))))
+
+    example(
+      query = "BACKUP DATABASE mydb TO DISK = 'disk1', DISK = 'disk2' WITH mount = auto, verbose = default",
+      expectedAst = Batch(Seq(BackupDatabase("mydb", Seq("disk1", "disk2"), Map.empty, Seq("MOUNT"), Map.empty))))
+
+    example(
+      query = "BACKUP DATABASE mydb TO DISK = 'disk1' WITH audit = ON, desCription = 'backup1', FILE_SNAPSHOT OFF",
+      expectedAst = Batch(
+        Seq(
+          BackupDatabase("mydb", Seq("disk1"), Map("AUDIT" -> true, "FILE_SNAPSHOT" -> false), List.empty, Map.empty))))
+
+    example(
+      query = "BACKUP DATABASE mydb TO DISK 'd1' WITH COPY_ONLY, limit = 77 KB",
+      expectedAst = Batch(
+        Seq(
+          BackupDatabase(
+            "mydb",
+            Seq("d1"),
+            Map("COPY_ONLY" -> true),
+            List.empty,
+            Map("LIMIT" -> Literal(integer = Some(77)))))))
+  }
 }
