@@ -3732,8 +3732,22 @@ ascDesc
     ;
 
 overClause
-    : OVER L_PAREN partitionBy orderByExpr? R_PAREN
-    | OVER L_PAREN orderByExpr R_PAREN
+    : OVER L_PAREN (PARTITION BY expr (COMMA expr)*)? orderByClause? rowOrRangeClause? R_PAREN
+    ;
+
+rowOrRangeClause
+    : (ROWS | RANGE) windowFrameExtent
+    ;
+
+windowFrameExtent
+    : windowFrameBound
+    | BETWEEN windowFrameBound AND windowFrameBound
+    ;
+
+windowFrameBound
+    : UNBOUNDED (PRECEDING | FOLLOWING)
+    | INT (PRECEDING | FOLLOWING)
+    | CURRENT ROW
     ;
 
 functionCall
@@ -3782,25 +3796,6 @@ aggregateFunction
     | id L_PAREN DISTINCT? exprList R_PAREN    #aggFuncExprList
     | id L_PAREN STAR R_PAREN                  #aggFuncStar
     ;
-
-//rowsRange
-//    : ROWS | RANGE
-//    ;
-
-//cumulativeFrame
-//    : rowsRange BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
-//    | rowsRange BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING
-//    ;
-
-//precedingFollowing
-//    : PRECEDING | FOLLOWING
-//    ;
-
-//slidingFrame
-//    : ROWS BETWEEN num precedingFollowing AND num precedingFollowing
-//    | ROWS BETWEEN UNBOUNDED PRECEDING AND num precedingFollowing
-//    | ROWS BETWEEN num precedingFollowing AND UNBOUNDED FOLLOWING
-//    ;
 
 literal
     : STRING // string, date, time, timestamp
