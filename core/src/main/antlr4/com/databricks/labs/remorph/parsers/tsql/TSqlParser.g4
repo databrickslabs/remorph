@@ -73,9 +73,6 @@ ddlClause
     | alterAssembly
     | alterAsymmetricKey
     | alterAuthorization
-    | alterAuthorizationForAzureDw
-    | alterAuthorizationForParallelDw
-    | alterAuthorizationForSqlDatabase
     | alterAvailabilityGroup
     | alterCertificate
     | alterColumnEncryptionKey
@@ -308,7 +305,7 @@ tryCatchStatement
     ;
 
 waitforStatement
-    : WAITFOR receiveStatement? COMMA? ((DELAY | TIME | TIMEOUT) time)? expression? SEMI?
+    : WAITFOR receiveStatement? COMMA? (id t=expression)? expression? SEMI?
     ;
 
 whileStatement
@@ -322,9 +319,9 @@ printStatement
 raiseerrorStatement
     : RAISERROR LPAREN msg = (INT | STRING | LOCAL_ID) COMMA severity = constant_LOCAL_ID COMMA state = constant_LOCAL_ID (
         COMMA (constant_LOCAL_ID | NULL_)
-    )* RPAREN (WITH (LOG | SETERROR | NOWAIT))? SEMI?
+    )* RPAREN (WITH genericOption)? SEMI?
     | RAISERROR INT formatstring = (STRING | LOCAL_ID | DOUBLE_QUOTE_ID) (
-        COMMA argument = (INT | STRING | LOCAL_ID)
+        COMMA argument += (INT | STRING | LOCAL_ID)
     )*
     ;
 
@@ -357,17 +354,15 @@ alterApplicationRole
     ;
 
 alterXmlSchemaCollection
-    : ALTER XML SCHEMA COLLECTION (id DOT)? id ADD STRING
+    : ALTER XML SCHEMA COLLECTION id (DOT id)? ADD STRING
     ;
 
 createApplicationRole
-    : CREATE APPLICATION ROLE applictionRole = id WITH (
-        COMMA? PASSWORD EQ applicationRolePassword = STRING
-    )? (COMMA? DEFAULT_SCHEMA EQ appRoleDefaultSchema = id)?
+    : CREATE APPLICATION ROLE id WITH optionList
     ;
 
 dropAggregate
-    : DROP AGGREGATE (IF EXISTS)? (schemaName = id DOT)? aggregateName = id
+    : DROP AGGREGATE (IF EXISTS)? id (DOT id)?
     ;
 
 dropApplicationRole
@@ -375,11 +370,7 @@ dropApplicationRole
     ;
 
 alterAssembly
-    : alterAssemblyStart assemblyName = id alterAssemblyClause
-    ;
-
-alterAssemblyStart
-    : ALTER ASSEMBLY
+    : ALTER ASSEMBLY id alterAssemblyClause
     ;
 
 alterAssemblyClause
@@ -387,201 +378,68 @@ alterAssemblyClause
     ;
 
 alterAssemblyFromClause
-    : alterAssemblyFromClauseStart (STRING | alterAssemblyFileBits)
-    ;
-
-alterAssemblyFromClauseStart
-    : FROM
+    : FROM (STRING | AS id)
     ;
 
 alterAssemblyDropClause
-    : alterAssemblyDrop alterAssemblyDropMultipleFiles
-    ;
-
-alterAssemblyDropMultipleFiles
-    : ALL
-    | STRING (COMMA STRING)*
-    ;
-
-alterAssemblyDrop
-    : DROP
+    : DROP optionList
     ;
 
 alterAssemblyAddClause
-    : alterAsssemblyAddClauseStart alterAssemblyClientFileClause
-    ;
-
-alterAsssemblyAddClauseStart
-    : ADD FILE FROM
+    : ADD FILE FROM alterAssemblyClientFileClause
     ;
 
 alterAssemblyClientFileClause
-    : alterAssemblyFileName (alterAssemblyAs id)?
-    ;
-
-alterAssemblyFileName
-    : STRING
-    ;
-
-alterAssemblyFileBits
-    : alterAssemblyAs id
-    ;
-
-alterAssemblyAs
-    : AS
+    : STRING (AS id)?
     ;
 
 alterAssemblyWithClause
-    : alterAssemblyWith assemblyOption
-    ;
-
-alterAssemblyWith
-    : WITH
-    ;
-
-assemblyOption
-    : PERMISSION_SET EQ (SAFE | EXTERNAL_ACCESS | UNSAFE)
-    | VISIBILITY EQ onOff
-    | UNCHECKED DATA
-    | assemblyOption COMMA
+    : WITH optionList
     ;
 
 createAssembly
-    : CREATE ASSEMBLY assemblyName = id (AUTHORIZATION ownerName = id)? FROM (
+    : CREATE ASSEMBLY id genericOption? FROM (
         COMMA? (STRING | HEX)
-    )+ (WITH PERMISSION_SET EQ (SAFE | EXTERNAL_ACCESS | UNSAFE))?
+    )+ (WITH genericOption)?
     ;
 
 dropAssembly
-    : DROP ASSEMBLY (IF EXISTS)? (COMMA? assemblyName = id)+ (WITH NO DEPENDENTS)?
+    : DROP ASSEMBLY (IF EXISTS)? (COMMA? id)+ (WITH genericOption)?
     ;
 
 alterAsymmetricKey
-    : alterAsymmetricKeyStart Asym_Key_Name = id (asymmetricKeyOption | REMOVE PRIVATE KEY)
-    ;
-
-alterAsymmetricKeyStart
-    : ALTER ASYMMETRIC KEY
+    : ALTER ASYMMETRIC KEY id (asymmetricKeyOption | REMOVE PRIVATE KEY)
     ;
 
 asymmetricKeyOption
-    : asymmetricKeyOptionStart asymmetricKeyPasswordChangeOption (
+    : WITH PRIVATE KEY LPAREN asymmetricKeyPasswordChangeOption (
         COMMA asymmetricKeyPasswordChangeOption
     )? RPAREN
     ;
 
-asymmetricKeyOptionStart
-    : WITH PRIVATE KEY LPAREN
-    ;
-
 asymmetricKeyPasswordChangeOption
-    : DECRYPTION BY PASSWORD EQ STRING
-    | ENCRYPTION BY PASSWORD EQ STRING
+    : DECRYPTION BY genericOption
+    | ENCRYPTION BY genericOption
     ;
 
 createAsymmetricKey
-    : CREATE ASYMMETRIC KEY Asym_Key_Nam = id (AUTHORIZATION databasePrincipalName = id)? (
-        FROM (
-            FILE EQ STRING
-            | EXECUTABLE_FILE EQ STRING
-            | ASSEMBLY Assembly_Name = id
-            | PROVIDER Provider_Name = id
-        )
+    : CREATE ASYMMETRIC KEY id genericOption? (
+        FROM genericOption
     )? (
-        WITH (
-            ALGORITHM EQ (RSA_4096 | RSA_3072 | RSA_2048 | RSA_1024 | RSA_512)
-            | PROVIDER_KEY_NAME EQ providerKeyName = STRING
-            | CREATION_DISPOSITION EQ (CREATE_NEW | OPEN_EXISTING)
-        )
-    )? (ENCRYPTION BY PASSWORD EQ asymmetricKeyPassword = STRING)?
+        WITH genericOption
+    )? (ENCRYPTION BY genericOption)?
     ;
 
 dropAsymmetricKey
-    : DROP ASYMMETRIC KEY keyName = id (REMOVE PROVIDER KEY)?
+    : DROP ASYMMETRIC KEY id (REMOVE PROVIDER KEY)?
     ;
 
 alterAuthorization
-    : alterAuthorizationStart (classType colonColon)? entity = entityName entityTo authorizationGrantee
-    ;
-
-authorizationGrantee
-    : principalName = id
-    | SCHEMA OWNER
-    ;
-
-entityTo
-    : TO
-    ;
-
-colonColon
-    : DOUBLE_COLON
-    ;
-
-alterAuthorizationStart
-    : ALTER AUTHORIZATION ON
-    ;
-
-alterAuthorizationForSqlDatabase
-    : alterAuthorizationStart (classTypeForSqlDatabase colonColon)? entity = entityName entityTo authorizationGrantee
-    ;
-
-alterAuthorizationForAzureDw
-    : alterAuthorizationStart (classTypeForAzureDw colonColon)? entity = entityNameForAzureDw entityTo authorizationGrantee
-    ;
-
-alterAuthorizationForParallelDw
-    : alterAuthorizationStart (classTypeForParallelDw colonColon)? entity = entityNameForParallelDw entityTo authorizationGrantee
+    :  ALTER AUTHORIZATION ON (classType DOUBLE_COLON)? entityName TO genericOption
     ;
 
 classType
-    : OBJECT
-    | ASSEMBLY
-    | ASYMMETRIC KEY
-    | AVAILABILITY GROUP
-    | CERTIFICATE
-    | CONTRACT
-    | TYPE
-    | DATABASE
-    | ENDPOINT
-    | FULLTEXT CATALOG
-    | FULLTEXT STOPLIST
-    | MESSAGE TYPE
-    | REMOTE SERVICE BINDING
-    | ROLE
-    | ROUTE
-    | SCHEMA
-    | SEARCH PROPERTY LIST
-    | SERVER ROLE
-    | SERVICE
-    | SYMMETRIC KEY
-    | XML SCHEMA COLLECTION
-    ;
-
-classTypeForSqlDatabase
-    : OBJECT
-    | ASSEMBLY
-    | ASYMMETRIC KEY
-    | CERTIFICATE
-    | TYPE
-    | DATABASE
-    | FULLTEXT CATALOG
-    | FULLTEXT STOPLIST
-    | ROLE
-    | SCHEMA
-    | SEARCH PROPERTY LIST
-    | SYMMETRIC KEY
-    | XML SCHEMA COLLECTION
-    ;
-
-classTypeForAzureDw
-    : SCHEMA
-    | OBJECT
-    ;
-
-classTypeForParallelDw
-    : DATABASE
-    | SCHEMA
-    | OBJECT
+    : id id? id?
     ;
 
 classTypeForGrant
@@ -990,7 +848,7 @@ enableTrigger
     ;
 
 lockTable
-    : LOCK TABLE tableName IN (SHARE | EXCLUSIVE) MODE (WAIT seconds = INT | NOWAIT)? SEMI?
+    : LOCK TABLE tableName IN (SHARE | EXCLUSIVE) MODE (id /* WAIT INT | NOWAIT */ INT)? SEMI?
     ;
 
 truncateTable
@@ -1647,9 +1505,8 @@ alterServerConfiguration
                 CPU EQ (AUTO | (COMMA? INT | COMMA? INT TO INT)+)
                 | NUMANODE EQ ( COMMA? INT | COMMA? INT TO INT)+
             )
-            | DIAGNOSTICS LOG (
-                ON
-                | OFF
+            | DIAGNOSTICS id /* LOG */ (
+                onOff
                 | PATH EQ (STRING | DEFAULT)
                 | MAX_SIZE EQ (INT MB | DEFAULT)
                 | MAX_FILES EQ (INT | DEFAULT)
@@ -1973,10 +1830,6 @@ selectStatement
     : queryExpression forClause? optionClause? SEMI?
     ;
 
-time
-    : (LOCAL_ID | constant)
-    ;
-
 updateStatement
     : withExpression? UPDATE (TOP LPAREN expression RPAREN PERCENT?)? (
         ddlObject
@@ -1999,7 +1852,7 @@ outputDmlListElem
 createDatabase
     : CREATE DATABASE (database = id) (CONTAINMENT EQ ( NONE | PARTIAL))? (
         ON PRIMARY? databaseFileSpec ( COMMA databaseFileSpec)*
-    )? (LOG ON databaseFileSpec ( COMMA databaseFileSpec)*)? (COLLATE collationName = id)? (
+    )? (id /* LOG */ ON databaseFileSpec ( COMMA databaseFileSpec)*)? (COLLATE collationName = id)? (
         WITH createDatabaseOption ( COMMA createDatabaseOption)*
     )?
     ;
@@ -2355,7 +2208,7 @@ switchPartition
     ;
 
 lowPriorityLockWait
-    : WAIT_AT_LOW_PRIORITY LPAREN MAX_DURATION EQ maxDuration = time MINUTES? COMMA ABORT_AFTER_WAIT EQ abortAfterWait = (
+    : WAIT_AT_LOW_PRIORITY LPAREN MAX_DURATION EQ expression MINUTES? COMMA ABORT_AFTER_WAIT EQ abortAfterWait = (
         NONE
         | SELF
         | BLOCKERS
@@ -2373,10 +2226,8 @@ alterDatabase
     ;
 
 addOrModifyFiles
-    : ADD FILE fileSpec (COMMA fileSpec)* (TO FILEGROUP filegroupName = id)?
-    | ADD LOG FILE fileSpec (COMMA fileSpec)*
-    | REMOVE FILE logicalFileName = id
-    | MODIFY FILE fileSpec
+    : ADD id? /* LOG */ FILE fileSpec (COMMA fileSpec)* (TO FILEGROUP filegroupName = id)?
+    | REMOVE FILE (id | fileSpec)
     ;
 
 fileSpec
@@ -2722,94 +2573,25 @@ cursorStatement
     ;
 
 backupDatabase
-    : BACKUP DATABASE (databaseName = id) (
-        READ_WRITE_FILEGROUPS (COMMA? (FILE | FILEGROUP) EQ fileOrFilegroup = STRING)*
-    )? (COMMA? (FILE | FILEGROUP) EQ fileOrFilegroup = STRING)* (
-        TO ( COMMA? logicalDeviceName = id)+
-        | TO ( COMMA? (DISK | TAPE | URL) EQ (STRING | id))+
-    ) (
-        (MIRROR TO ( COMMA? logicalDeviceName = id)+)+
-        | ( MIRROR TO ( COMMA? (DISK | TAPE | URL) EQ (STRING | id))+)+
-    )? (
-        WITH (
-            COMMA? DIFFERENTIAL
-            | COMMA? COPY_ONLY
-            | COMMA? (COMPRESSION | NO_COMPRESSION)
-            | COMMA? DESCRIPTION EQ (STRING | id)
-            | COMMA? NAME EQ backupSetName = id
-            | COMMA? CREDENTIAL
-            | COMMA? FILE_SNAPSHOT
-            | COMMA? (EXPIREDATE EQ (STRING | id) | RETAINDAYS EQ (INT | id))
-            | COMMA? (NOINIT | INIT)
-            | COMMA? (NOSKIP | SKIP_KEYWORD)
-            | COMMA? (NOFORMAT | FORMAT)
-            | COMMA? MEDIADESCRIPTION EQ (STRING | id)
-            | COMMA? MEDIANAME EQ (medianame = STRING)
-            | COMMA? BLOCKSIZE EQ (INT | id)
-            | COMMA? BUFFERCOUNT EQ (INT | id)
-            | COMMA? MAXTRANSFER EQ (INT | id)
-            | COMMA? (NO_CHECKSUM | CHECKSUM)
-            | COMMA? (STOP_ON_ERROR | CONTINUE_AFTER_ERROR)
-            | COMMA? RESTART
-            | COMMA? STATS (EQ statsPercent = INT)?
-            | COMMA? (REWIND | NOREWIND)
-            | COMMA? (LOAD | NOUNLOAD)
-            | COMMA? ENCRYPTION LPAREN ALGORITHM EQ (
-                AES_128
-                | AES_192
-                | AES_256
-                | TRIPLE_DES_3KEY
-            ) COMMA SERVER CERTIFICATE EQ (
-                encryptorName = id
-                | SERVER ASYMMETRIC KEY EQ encryptorName = id
-            )
-        )*
+    : BACKUP DATABASE id (
+        READ_WRITE_FILEGROUPS optionList
+    )?
+    (TO optionList)+
+    (MIRROR TO optionList)*
+    WITH (
+          optionList
+        | ENCRYPTION
+          LPAREN ALGORITHM EQ genericOption COMMA SERVER CERTIFICATE EQ genericOption RPAREN
     )?
     ;
 
 backupLog
-    : BACKUP LOG (databaseName = id) (
-        TO ( COMMA? logicalDeviceName = id)+
-        | TO ( COMMA? (DISK | TAPE | URL) EQ (STRING | id))+
-    ) (
-        (MIRROR TO ( COMMA? logicalDeviceName = id)+)+
-        | ( MIRROR TO ( COMMA? (DISK | TAPE | URL) EQ (STRING | id))+)+
-    )? (
-        WITH (
-            COMMA? DIFFERENTIAL
-            | COMMA? COPY_ONLY
-            | COMMA? (COMPRESSION | NO_COMPRESSION)
-            | COMMA? DESCRIPTION EQ (STRING | id)
-            | COMMA? NAME EQ backupSetName = id
-            | COMMA? CREDENTIAL
-            | COMMA? FILE_SNAPSHOT
-            | COMMA? (EXPIREDATE EQ (STRING | id) | RETAINDAYS EQ (INT | id))
-            | COMMA? (NOINIT | INIT)
-            | COMMA? (NOSKIP | SKIP_KEYWORD)
-            | COMMA? (NOFORMAT | FORMAT)
-            | COMMA? MEDIADESCRIPTION EQ (STRING | id)
-            | COMMA? MEDIANAME EQ (medianame = STRING)
-            | COMMA? BLOCKSIZE EQ (INT | id)
-            | COMMA? BUFFERCOUNT EQ (INT | id)
-            | COMMA? MAXTRANSFER EQ (INT | id)
-            | COMMA? (NO_CHECKSUM | CHECKSUM)
-            | COMMA? (STOP_ON_ERROR | CONTINUE_AFTER_ERROR)
-            | COMMA? RESTART
-            | COMMA? STATS (EQ statsPercent = INT)?
-            | COMMA? (REWIND | NOREWIND)
-            | COMMA? (LOAD | NOUNLOAD)
-            | COMMA? (NORECOVERY | STANDBY EQ undoFileName = STRING)
-            | COMMA? NO_TRUNCATE
-            | COMMA? ENCRYPTION LPAREN ALGORITHM EQ (
-                AES_128
-                | AES_192
-                | AES_256
-                | TRIPLE_DES_3KEY
-            ) COMMA SERVER CERTIFICATE EQ (
-                encryptorName = id
-                | SERVER ASYMMETRIC KEY EQ encryptorName = id
-            )
-        )*
+    : BACKUP id /* LOG */ id TO optionList
+    (
+        MIRROR TO optionList
+    )?
+    (
+        WITH optionList
     )?
     ;
 
@@ -2989,96 +2771,25 @@ decryptionMechanism
     ;
 
 grantPermission
-    : ADMINISTER (BULK OPERATIONS | DATABASE BULK OPERATIONS)
+    : ADMINISTER genericOption
     | ALTER (
-        ANY (
-            APPLICATION ROLE
-            | ASSEMBLY
-            | ASYMMETRIC KEY
-            | AVAILABILITY GROUP
-            | CERTIFICATE
-            | COLUMN ( ENCRYPTION KEY | MASTER KEY)
-            | CONNECTION
-            | CONTRACT
-            | CREDENTIAL
-            | DATABASE (
-                AUDIT
-                | DDL TRIGGER
-                | EVENT ( NOTIFICATION | SESSION)
-                | SCOPED CONFIGURATION
-            )?
-            | DATASPACE
-            | ENDPOINT
-            | EVENT ( NOTIFICATION | SESSION)
-            | EXTERNAL ( DATA SOURCE | FILE FORMAT | LIBRARY)
-            | FULLTEXT CATALOG
-            | LINKED SERVER
-            | LOGIN
-            | MASK
-            | MESSAGE TYPE
-            | REMOTE SERVICE BINDING
-            | ROLE
-            | ROUTE
-            | SCHEMA
-            | SECURITY POLICY
-            | SERVER ( AUDIT | ROLE)
-            | SERVICE
-            | SYMMETRIC KEY
-            | USER
-        )
-        | RESOURCES
-        | SERVER STATE
-        | SETTINGS
-        | TRACE
+        ANY? genericOption
     )?
     | AUTHENTICATE SERVER?
-    | BACKUP ( DATABASE | LOG)
+    | BACKUP genericOption
     | CHECKPOINT
-    | CONNECT ( ANY DATABASE | REPLICATION | SQL)?
+    | CONNECT genericOption?
     | CONTROL SERVER?
-    | CREATE (
-        AGGREGATE
-        | ANY DATABASE
-        | ASSEMBLY
-        | ASYMMETRIC KEY
-        | AVAILABILITY GROUP
-        | CERTIFICATE
-        | CONTRACT
-        | DATABASE (DDL EVENT NOTIFICATION)?
-        | DDL EVENT NOTIFICATION
-        | DEFAULT
-        | ENDPOINT
-        | EXTERNAL LIBRARY
-        | FULLTEXT CATALOG
-        | FUNCTION
-        | MESSAGE TYPE
-        | PROCEDURE
-        | QUEUE
-        | REMOTE SERVICE BINDING
-        | ROLE
-        | ROUTE
-        | RULE
-        | SCHEMA
-        | SEQUENCE
-        | SERVER ROLE
-        | SERVICE
-        | SYMMETRIC KEY
-        | SYNONYM
-        | TABLE
-        | TRACE EVENT NOTIFICATION
-        | TYPE
-        | VIEW
-        | XML SCHEMA COLLECTION
-    )
+    | CREATE genericOption
     | DELETE
-    | EXECUTE ( ANY EXTERNAL SCRIPT)?
-    | EXTERNAL ACCESS ASSEMBLY
-    | IMPERSONATE ( ANY LOGIN)?
+    | EXECUTE genericOption?
+    | EXTERNAL genericOption
+    | IMPERSONATE genericOption?
     | INSERT
-    | KILL DATABASE CONNECTION
+    | KILL genericOption
     | RECEIVE
     | REFERENCES
-    | SELECT ( ALL USER SECURABLES)?
+    | SELECT genericOption?
     | SEND
     | SHOWPLAN
     | SHUTDOWN
@@ -3088,48 +2799,37 @@ grantPermission
     | UNSAFE ASSEMBLY
     | UPDATE
     | VIEW (
-        ANY (DATABASE | DEFINITION | COLUMN ( ENCRYPTION | MASTER) KEY DEFINITION)
-        | CHANGE TRACKING
-        | DATABASE STATE
-        | DEFINITION
-        | SERVER STATE
+          ANY genericOption
+        | genericOption
     )
     ;
 
 
 setStatement
-    : SET LOCAL_ID (DOT memberName = id)? EQ expression
+    : SET LOCAL_ID (DOT id)? EQ expression
     | SET LOCAL_ID assignmentOperator expression
     | SET LOCAL_ID EQ CURSOR declareSetCursorCommon (
         FOR (READ ONLY | UPDATE (OF columnNameList)?)
     )?
-
     | setSpecial
     ;
 
 transactionStatement
-
     : BEGIN DISTRIBUTED (TRAN | TRANSACTION) (id | LOCAL_ID)?
-
     | BEGIN (TRAN | TRANSACTION) ((id | LOCAL_ID) (WITH MARK STRING)?)?
-
     | COMMIT (TRAN | TRANSACTION) (
         (id | LOCAL_ID) (WITH LPAREN DELAYED_DURABILITY EQ (OFF | ON) RPAREN)?
     )?
-
     | COMMIT WORK?
     | COMMIT id
     | ROLLBACK id
-
     | ROLLBACK (TRAN | TRANSACTION) (id | LOCAL_ID)?
-
     | ROLLBACK WORK?
-
     | SAVE (TRAN | TRANSACTION) (id | LOCAL_ID)?
     ;
 
 goStatement
-    : GO (count = INT)?
+    : GO INT?
     ;
 
 useStatement
@@ -3145,7 +2845,7 @@ reconfigureStatement
     ;
 
 shutdownStatement
-    : SHUTDOWN (WITH NOWAIT)?
+    : SHUTDOWN (WITH genericOption)?
     ;
 
 checkpointStatement
@@ -3508,7 +3208,7 @@ fetchCursor
 
 setSpecial
     : SET id (id | constant_LOCAL_ID | onOff) SEMI?
-    | SET STATISTICS (IO | TIME | XML | PROFILE) onOff SEMI?
+    | SET STATISTICS expression onOff // TODO: Extract these keywords (IO | TIME | XML | PROFILE) onOff SEMI?
     | SET ROWCOUNT (LOCAL_ID | INT) SEMI?
     | SET TEXTSIZE INT SEMI?
     | SET TRANSACTION ISOLATION LEVEL (
@@ -3587,7 +3287,7 @@ parameter
     ;
 
 timeZone
-    : AT_KEYWORD TIME ZONE expression
+    : AT_KEYWORD id ZONE expression  // AT TIME ZONE
     ;
 
 primitiveExpression
@@ -3785,11 +3485,6 @@ asterisk
     | (tableName DOT)? STAR
     ;
 
-udtElem
-    : udtColumnName = id DOT nonStaticAttr = id udtMethodArguments asColumnAlias?
-    | udtColumnName = id DOUBLE_COLON staticAttr = id udtMethodArguments? asColumnAlias?
-    ;
-
 expressionElem
     : columnAlias EQ expression
     | expression asColumnAlias?
@@ -3949,7 +3644,6 @@ standardFunction
 
 funcId
     : id
-    | LOG
     | FORMAT
     | LEFT
     | RIGHT
@@ -4055,28 +3749,7 @@ tableHint
         | EQ indexValue
     )
     | FORCESEEK ( LPAREN indexValue LPAREN columnNameList RPAREN RPAREN)?
-    | FORCESCAN
-    | HOLDLOCK
-    | NOLOCK
-    | NOWAIT
-    | PAGLOCK
-    | READCOMMITTED
-    | READCOMMITTEDLOCK
-    | READPAST
-    | READUNCOMMITTED
-    | REPEATABLEREAD
-    | ROWLOCK
-    | SERIALIZABLE
-    | SNAPSHOT
-    | SPATIAL_WINDOW_MAX_CELLS EQ INT
-    | TABLOCK
-    | TABLOCKX
-    | UPDLOCK
-    | XLOCK
-    | KEEPIDENTITY
-    | KEEPDEFAULTS
-    | IGNORE_CONSTRAINTS
-    | IGNORE_TRIGGERS
+    | genericOption
     ;
 
 indexValue
@@ -4247,7 +3920,7 @@ nullNotnull
     ;
 
 beginConversationTimer
-    : BEGIN CONVERSATION TIMER LPAREN LOCAL_ID RPAREN TIMEOUT EQ time SEMI?
+    : BEGIN CONVERSATION TIMER LPAREN LOCAL_ID RPAREN TIMEOUT EQ expression SEMI?
     ;
 
 beginConversationDialog
@@ -4279,7 +3952,7 @@ endConversation
     ;
 
 waitforConversation
-    : WAITFOR? LPAREN getConversation RPAREN (COMMA? TIMEOUT timeout = time)? SEMI?
+    : WAITFOR? LPAREN getConversation RPAREN (COMMA? TIMEOUT timeout = expression)? SEMI?
     ;
 
 getConversation
@@ -4481,6 +4154,7 @@ keyword
     | DBREINDEX
     | DDL
     | DECRYPTION
+    | DEFAULT
     | DEFAULT_DATABASE
     | DEFAULT_DOUBLE_QUOTE
     | DEFAULT_FULLTEXT_LANGUAGE
@@ -4647,7 +4321,6 @@ keyword
     | LOCATION
     | LOCK
     | LOCK_ESCALATION
-    | LOG
     | LOGIN
     | LOOP
     | LOW
@@ -4716,7 +4389,6 @@ keyword
     | NO_QUERYSTORE
     | NO_STATISTICS
     | NO_TRUNCATE
-    | NO_WAIT
     | NOCOUNT
     | NODES
     | NOEXEC
@@ -4734,7 +4406,6 @@ keyword
     | NOTIFICATION
     | NOTIFICATIONS
     | NOUNLOAD
-    | NOWAIT
     | NTILE
     | NTLM
     | NUMANODE
@@ -4746,6 +4417,8 @@ keyword
     | OLD_ACCOUNT
     | OLD_PASSWORD
     | ON_FAILURE
+    | ON
+    | OFF
     | ONLINE
     | ONLY
     | OPEN_EXISTING
@@ -4914,7 +4587,6 @@ keyword
     | SERVICEBROKER
     | SESSION
     | SESSION_TIMEOUT
-    | SETERROR
     | SETTINGS
     | SHARE
     | SHARED
@@ -4984,7 +4656,6 @@ keyword
     | TEXTIMAGE_ON
     | THROW
     | TIES
-    | TIME
     | TIMEOUT
     | TIMER
     | TINYINT
@@ -5093,6 +4764,56 @@ assignmentOperator
 fileSize
     : INT (KB | MB | GB | TB | MOD)?
 ;
+
+
+/**
+ * The parenthesised option list is used in many places, so it is defined here.
+ */
+lparenOptionList
+    : LPAREN optionList RPAREN
+    ;
+
+/**
+ * The generic option list is used in many places, so it is defined here.
+ */
+optionList
+    : genericOption (COMMA genericOption)*
+    ;
+
+/**
+ * Generic options have a few different formats, but otherwise they can almost all be
+ * parsed generically rather than creating potentially hundreds of keywords and rules
+ * that obfusctate the grammar and make maintenance difficult as TSQL evolves. SQL is,
+ * or has become, a very verbose language with strange syntactical elements bolted in
+ * becuase they could not fit otherwise. So, as many options as possible are parsed
+ * here and the AST builders can decide what to do with them as they have context.
+ *
+ * Here are the various formats:
+ *
+ * KEYWORD                   - Just means the option is ON if it is present, OFF if NOT (but check semenatics)
+ * KEYWORD ON|OFF            - The option is on or off (no consitency here)
+ * KEYWORD = VALUE           - The option is set to a value - we accept any expression and assume
+ *                             the AST builder will check the type and range, OR that we require valid
+ *                             TSQL in the first place.
+ * KEYWORD = VALUE KB        - Some sort of size value, where KB can be various things so is parsed as any id()
+ * KEYWORD (=)? DEFAULT      - A fairly redundant option, but sometimes people want to be explicit
+ * KEYWORD (=)? AUTO         - The option is set to AUTO, which occurs in a few places
+ * DEFAULT                   - The option is set to the default value but is not named
+ * ON                        - The option is on but is not named (will get just id)
+ * OFF                       - The option is off but is not named (will get just id)
+ * AUTO                      - The option is set to AUTO but is not named (will get just id)
+ * ALL                       - The option is set to ALL but is not named (will get just id)
+ */
+genericOption
+    : id  EQ? (
+              DEFAULT         // Default value  - don't resolve with expression
+            | ON              // Simple ON      - don't resolve with expression
+            | OFF             // Simple OFF     - don't resolve with expression
+            | AUTO            // Simple AUTO    - don't resolve with expression
+            | STRING          // String value   - don't resolve with expression
+            | expression id?  // Catch all for less explicit options, sometimes with extra keywords
+         )?
+    ;
 
 // XML stuff
 
