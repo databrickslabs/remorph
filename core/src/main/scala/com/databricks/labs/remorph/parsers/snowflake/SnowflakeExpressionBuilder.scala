@@ -19,7 +19,7 @@ class SnowflakeExpressionBuilder()
     case c if c.DOUBLE_QUOTE_ID() != null =>
       val idValue = c.getText.trim.stripPrefix("\"").stripSuffix("\"").replaceAll("\"\"", "\"")
       ir.Id(idValue, caseSensitive = true)
-    case id => ir.Id(id.getText, caseSensitive = false)
+    case id => ir.Id(id.getText)
   }
 
   override def visitSelectListElem(ctx: SelectListElemContext): ir.Expression = {
@@ -33,7 +33,7 @@ class SnowflakeExpressionBuilder()
 
   override def visitColumnElemStar(ctx: ColumnElemStarContext): ir.Expression = {
     ir.Star(Option(ctx.objectName()).map { on =>
-      val objectNameIds = on.ids.asScala.map(visitId)
+      val objectNameIds = on.id().asScala.map(visitId)
       ir.ObjectReference(objectNameIds.head, objectNameIds.tail: _*)
     })
   }
@@ -52,8 +52,9 @@ class SnowflakeExpressionBuilder()
   }
 
   override def visitFullColumnName(ctx: FullColumnNameContext): ir.Expression = {
-    val colName = visitId(ctx.colName)
-    val objectNameIds = ctx.tableName.asScala.map(visitId)
+    val ids = ctx.id().asScala.map(visitId)
+    val colName = ids.last
+    val objectNameIds = ids.take(ids.size - 1)
     val tableName = if (objectNameIds.isEmpty) {
       None
     } else {

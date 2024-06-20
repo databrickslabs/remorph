@@ -3569,7 +3569,7 @@ columnListWithComment
     ;
 
 objectName
-    : ids += id (DOT ids += id)*
+    : id (DOT id)*
     ;
 
 objectNameOrIdentifier
@@ -3817,7 +3817,7 @@ sign
     ;
 
 fullColumnName
-    : (tableName += id DOT)* colName = id
+    : id (DOT id)*
     ;
 
 bracketExpression
