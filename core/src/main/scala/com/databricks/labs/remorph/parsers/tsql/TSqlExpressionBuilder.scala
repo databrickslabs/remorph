@@ -492,7 +492,8 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
    * @return
    *   IR for the JSON_OBJECT function
    */
-  // TODO: This is not likely the correct way to handle this, but it is a start - maybe needs external function
+  // TODO: This is not likely the correct way to handle this, but it is a start
+  //       maybe needs external function at runtime
   private[tsql] def buildJsonObject(namedStruct: ir.NamedStruct, absentOnNull: Boolean): ir.Expression = {
     if (absentOnNull) {
       val lambdaVariables = ir.UnresolvedNamedLambdaVariable(Seq("k", "v"))
@@ -505,4 +506,6 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
       ir.CallFunction("TO_JSON", Seq(namedStruct))
     }
   }
+
+
 }

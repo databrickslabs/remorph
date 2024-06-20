@@ -645,5 +645,6 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
     "translate unknown types to UnParsedType" in {
       example("CAST(a AS sometype)", _.expression(), ir.Cast(ir.Column("a"), ir.UnparsedType()))
     }
+
   }
 }
