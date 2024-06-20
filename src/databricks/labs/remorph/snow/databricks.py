@@ -4,11 +4,10 @@ import re
 from sqlglot import expressions as exp
 from sqlglot.dialects import hive
 from sqlglot.dialects import databricks as org_databricks
-from sqlglot.dialects.dialect import rename_func, is_parse_json
+from sqlglot.dialects.dialect import rename_func
 from sqlglot.errors import ParseError, UnsupportedError
 from sqlglot.helper import apply_index_offset, csv
 from sqlglot.dialects.dialect import if_sql
-from sqlglot.dialects.hive import Hive
 
 from databricks.labs.remorph.snow import lca_utils, local_expression
 
@@ -661,15 +660,3 @@ class Databricks(org_databricks.Databricks):  #
             )
 
             return self.function_fallback_sql(expression)
-
-        def cast_sql(self, expression: exp.Cast, safe_prefix: str | None = None) -> str:
-            arg = expression.this
-
-            if is_parse_json(arg):
-                schema = f"'{self.sql(expression, 'to')}'"
-                return self.func("FROM_JSON", arg.this, schema)
-
-            if is_parse_json(expression):
-                return self.func("TO_JSON", arg)
-
-            return super(Hive.Generator, self).cast_sql(expression, safe_prefix=safe_prefix)
