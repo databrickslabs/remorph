@@ -7,12 +7,6 @@ from databricks.sdk.errors.platform import ResourceDoesNotExist
 
 logger = logging.getLogger(__name__)
 
-recon_source_choices = [
-    SourceType.SNOWFLAKE.value,
-    SourceType.ORACLE.value,
-    SourceType.DATABRICKS.value,
-]
-
 
 class ReconConfigPrompts:
     def __init__(self, ws: WorkspaceClient, prompts: Prompts = Prompts()):
@@ -94,7 +88,7 @@ class ReconConfigPrompts:
             logger.info(f"{info_op} Secret: *{secret_key}* in Scope: `{scope_name}`")
 
     def prompt_source(self):
-        source = self._prompts.choice("Select the source", recon_source_choices)
+        source = self._prompts.choice("Select the source", [source_type.value for source_type in SourceType])
         self._source = source
         return source
 

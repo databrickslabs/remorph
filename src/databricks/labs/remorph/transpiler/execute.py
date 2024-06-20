@@ -167,7 +167,9 @@ def morph(workspace_client: WorkspaceClient, config: MorphConfig):
     transpiler = SqlglotEngine(read_dialect)
     validator = None
     if not config.skip_validation:
-        validator = Validator(db_sql.get_sql_backend(workspace_client, config))
+        sql_backend = db_sql.get_sql_backend(workspace_client)
+        logger.info(f"SQL Backend used for query validation: {type(sql_backend).__name__}")
+        validator = Validator(sql_backend)
 
     if input_sql.is_file():
         if is_sql_file(input_sql):
@@ -266,7 +268,9 @@ def morph_sql(
     transpiler_result = _parse(transpiler, write_dialect, sql, "inline_sql", [])
 
     if not config.skip_validation:
-        validator = Validator(db_sql.get_sql_backend(ws_client, config))
+        sql_backend = db_sql.get_sql_backend(ws_client)
+        logger.info(f"SQL Backend used for query validation: {type(sql_backend).__name__}")
+        validator = Validator(sql_backend)
         return transpiler_result, _validation(validator, config, transpiler_result.transpiled_sql[0])
 
     return transpiler_result, None

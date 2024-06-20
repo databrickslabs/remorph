@@ -1,0 +1,376 @@
+from unittest.mock import create_autospec, Mock
+import pytest
+from databricks.labs.blueprint.installation import MockInstallation
+from databricks.labs.blueprint.tui import MockPrompts
+from databricks.sdk import WorkspaceClient
+from databricks.labs.remorph.contexts.application import CliContext
+from databricks.labs.remorph.reconcile.runner import ReconcileRunner
+from databricks.labs.remorph.deployment.recon import RECON_JOB_NAME
+
+
+def test_run_with_missing_recon_config():
+    ws = create_autospec(WorkspaceClient)
+    ctx = CliContext(ws)
+    installation = MockInstallation()
+    ctx.replace(installation=installation)
+    recon_runner = ReconcileRunner(ctx)
+    with pytest.raises(SystemExit):
+        recon_runner.run()
+
+
+def test_run_with_corrupt_recon_config():
+    ws = create_autospec(WorkspaceClient)
+    ctx = CliContext(ws)
+    installation = MockInstallation(
+        {
+            "reconcile.yml": {
+                "source": "oracle",  # Invalid key
+                "report_type": "all",
+                "secret_scope": "remorph_oracle",
+                "database_config": {
+                    "source_schema": "tpch_sf1000",
+                    "target_catalog": "tpch",
+                    "target_schema": "1000gb",
+                },
+                "metadata_config": {
+                    "catalog": "remorph",
+                    "schema": "reconcile",
+                    "volume": "reconcile_volume",
+                },
+                "version": 1,
+            }
+        }
+    )
+    ctx.replace(installation=installation)
+    recon_runner = ReconcileRunner(ctx)
+    with pytest.raises(SystemExit):
+        recon_runner.run()
+
+
+def test_run_with_missing_table_config():
+    ws = create_autospec(WorkspaceClient)
+    ctx = CliContext(ws)
+    installation = MockInstallation(
+        {
+            "reconcile.yml": {
+                "data_source": "snowflake",
+                "database_config": {
+                    "source_catalog": "abc",
+                    "source_schema": "def",
+                    "target_catalog": "tgt",
+                    "target_schema": "sch",
+                },
+                "report_type": "all",
+                "secret_scope": "remorph",
+                "tables": {
+                    "filter_type": "all",
+                    "tables_list": ["*"],
+                },
+                "metadata_config": {
+                    "catalog": "remorph",
+                    "schema": "reconcile",
+                    "volume": "reconcile_volume",
+                },
+                "job_id": "45t34wer32",
+                "version": 1,
+            }
+        }
+    )
+    ctx.replace(installation=installation)
+    recon_runner = ReconcileRunner(ctx)
+    with pytest.raises(SystemExit):
+        recon_runner.run()
+
+
+def test_run_with_corrupt_table_config():
+    ws = create_autospec(WorkspaceClient)
+    ctx = CliContext(ws)
+    installation = MockInstallation(
+        {
+            "reconcile.yml": {
+                "data_source": "snowflake",
+                "database_config": {
+                    "source_catalog": "abc",
+                    "source_schema": "def",
+                    "target_catalog": "tgt",
+                    "target_schema": "sch",
+                },
+                "report_type": "all",
+                "secret_scope": "remorph",
+                "tables": {
+                    "filter_type": "all",
+                    "tables_list": ["*"],
+                },
+                "metadata_config": {
+                    "catalog": "remorph",
+                    "schema": "reconcile",
+                    "volume": "reconcile_volume",
+                },
+                "job_id": "45t34wer32",
+                "version": 1,
+            },
+            "recon_config_snowflake_abc_all.json": {
+                "source_catalog": "abc",
+                "source": "def",  # Invalid key
+                "tables": [
+                    {
+                        "column_mapping": [
+                            {"source_name": "p_id", "target_name": "product_id"},
+                            {"source_name": "p_name", "target_name": "product_name"},
+                        ],
+                        "join_columns": ["p_id"],
+                        "select_columns": ["p_id", "p_name"],
+                        "source_name": "product",
+                        "target_name": "product_delta",
+                    }
+                ],
+                "target_catalog": "tgt",
+                "target_schema": "sch",
+            },
+        }
+    )
+    ctx.replace(installation=installation)
+    recon_runner = ReconcileRunner(ctx)
+    with pytest.raises(SystemExit):
+        recon_runner.run()
+
+
+def test_run_with_missing_job_id():
+    ws = create_autospec(WorkspaceClient)
+    ctx = CliContext(ws)
+    installation = MockInstallation(
+        {
+            "reconcile.yml": {
+                "data_source": "snowflake",
+                "database_config": {
+                    "source_catalog": "abc",
+                    "source_schema": "def",
+                    "target_catalog": "tgt",
+                    "target_schema": "sch",
+                },
+                "report_type": "all",
+                "secret_scope": "remorph",
+                "tables": {
+                    "filter_type": "all",
+                    "tables_list": ["*"],
+                },
+                "metadata_config": {
+                    "catalog": "remorph",
+                    "schema": "reconcile",
+                    "volume": "reconcile_volume",
+                },
+                "version": 1,
+            },
+            "recon_config_snowflake_abc_all.json": {
+                "source_catalog": "abc",
+                "source_schema": "def",
+                "tables": [
+                    {
+                        "column_mapping": [
+                            {"source_name": "p_id", "target_name": "product_id"},
+                            {"source_name": "p_name", "target_name": "product_name"},
+                        ],
+                        "join_columns": ["p_id"],
+                        "select_columns": ["p_id", "p_name"],
+                        "source_name": "product",
+                        "target_name": "product_delta",
+                    }
+                ],
+                "target_catalog": "tgt",
+                "target_schema": "sch",
+            },
+        }
+    )
+    ctx.replace(installation=installation)
+    recon_runner = ReconcileRunner(ctx)
+    with pytest.raises(SystemExit):
+        recon_runner.run()
+
+
+def test_run_with_job_id_in_config():
+    ws = create_autospec(WorkspaceClient)
+    ctx = CliContext(ws)
+    prompts = MockPrompts(
+        {
+            r"Would you like to open the job run URL .*": "no",
+        }
+    )
+    installation = MockInstallation(
+        {
+            "reconcile.yml": {
+                "data_source": "snowflake",
+                "database_config": {
+                    "source_catalog": "abc",
+                    "source_schema": "def",
+                    "target_catalog": "tgt",
+                    "target_schema": "sch",
+                },
+                "report_type": "all",
+                "secret_scope": "remorph",
+                "tables": {
+                    "filter_type": "all",
+                    "tables_list": ["*"],
+                },
+                "metadata_config": {
+                    "catalog": "remorph",
+                    "schema": "reconcile",
+                    "volume": "reconcile_volume",
+                },
+                "job_id": "1234",
+                "version": 1,
+            },
+            "recon_config_snowflake_abc_all.json": {
+                "source_catalog": "abc",
+                "source_schema": "def",
+                "tables": [
+                    {
+                        "column_mapping": [
+                            {"source_name": "p_id", "target_name": "product_id"},
+                            {"source_name": "p_name", "target_name": "product_name"},
+                        ],
+                        "join_columns": ["p_id"],
+                        "select_columns": ["p_id", "p_name"],
+                        "source_name": "product",
+                        "target_name": "product_delta",
+                    }
+                ],
+                "target_catalog": "tgt",
+                "target_schema": "sch",
+            },
+        }
+    )
+    ctx.replace(installation=installation, prompts=prompts)
+    wait = Mock()
+    wait.run_id = "rid"
+    ws.jobs.run_now.return_value = wait
+
+    recon_runner = ReconcileRunner(ctx)
+    recon_runner.run()
+    ws.jobs.run_now.assert_called_once_with(1234)
+
+
+def test_run_with_job_id_in_state(monkeypatch):
+    monkeypatch.setattr("webbrowser.open", lambda url: None)
+    ws = create_autospec(WorkspaceClient)
+    ctx = CliContext(ws)
+    prompts = MockPrompts(
+        {
+            r"Would you like to open the job run URL .*": "yes",
+        }
+    )
+    installation = MockInstallation(
+        {
+            "state.json": {
+                "resources": {"jobs": {RECON_JOB_NAME: "1234"}},
+                "version": 1,
+            },
+            "reconcile.yml": {
+                "data_source": "snowflake",
+                "database_config": {
+                    "source_catalog": "abc",
+                    "source_schema": "def",
+                    "target_catalog": "tgt",
+                    "target_schema": "sch",
+                },
+                "report_type": "all",
+                "secret_scope": "remorph",
+                "tables": {
+                    "filter_type": "all",
+                    "tables_list": ["*"],
+                },
+                "metadata_config": {
+                    "catalog": "remorph",
+                    "schema": "reconcile",
+                    "volume": "reconcile_volume",
+                },
+                "version": 1,
+            },
+            "recon_config_snowflake_abc_all.json": {
+                "source_catalog": "abc",
+                "source_schema": "def",
+                "tables": [
+                    {
+                        "column_mapping": [
+                            {"source_name": "p_id", "target_name": "product_id"},
+                            {"source_name": "p_name", "target_name": "product_name"},
+                        ],
+                        "join_columns": ["p_id"],
+                        "select_columns": ["p_id", "p_name"],
+                        "source_name": "product",
+                        "target_name": "product_delta",
+                    }
+                ],
+                "target_catalog": "tgt",
+                "target_schema": "sch",
+            },
+        }
+    )
+    ctx.replace(installation=installation, prompts=prompts)
+    wait = Mock()
+    wait.run_id = "rid"
+    ws.jobs.run_now.return_value = wait
+
+    recon_runner = ReconcileRunner(ctx)
+    recon_runner.run()
+    ws.jobs.run_now.assert_called_once_with(1234)
+
+
+def test_run_with_failed_execution():
+    ws = create_autospec(WorkspaceClient)
+    ctx = CliContext(ws)
+    installation = MockInstallation(
+        {
+            "state.json": {
+                "resources": {"jobs": {RECON_JOB_NAME: "1234"}},
+                "version": 1,
+            },
+            "reconcile.yml": {
+                "data_source": "snowflake",
+                "database_config": {
+                    "source_catalog": "abc",
+                    "source_schema": "def",
+                    "target_catalog": "tgt",
+                    "target_schema": "sch",
+                },
+                "report_type": "all",
+                "secret_scope": "remorph",
+                "tables": {
+                    "filter_type": "all",
+                    "tables_list": ["*"],
+                },
+                "metadata_config": {
+                    "catalog": "remorph",
+                    "schema": "reconcile",
+                    "volume": "reconcile_volume",
+                },
+                "version": 1,
+            },
+            "recon_config_snowflake_abc_all.json": {
+                "source_catalog": "abc",
+                "source_schema": "def",
+                "tables": [
+                    {
+                        "column_mapping": [
+                            {"source_name": "p_id", "target_name": "product_id"},
+                            {"source_name": "p_name", "target_name": "product_name"},
+                        ],
+                        "join_columns": ["p_id"],
+                        "select_columns": ["p_id", "p_name"],
+                        "source_name": "product",
+                        "target_name": "product_delta",
+                    }
+                ],
+                "target_catalog": "tgt",
+                "target_schema": "sch",
+            },
+        }
+    )
+    ctx.replace(installation=installation)
+    wait = Mock()
+    wait.run_id = None
+    ws.jobs.run_now.return_value = wait
+
+    recon_runner = ReconcileRunner(ctx)
+    with pytest.raises(SystemExit):
+        recon_runner.run()
+    ws.jobs.run_now.assert_called_once_with(1234)
