@@ -1,14 +1,21 @@
 from datetime import timedelta
-from unittest.mock import create_autospec
+from unittest.mock import create_autospec, patch
 
 import pytest
 
-from databricks.labs.blueprint.installation import Installation
+from databricks.labs.blueprint.installation import Installation, MockInstallation
 from databricks.labs.blueprint.tui import MockPrompts
-from databricks.labs.remorph.config import MorphConfig
-from databricks.labs.remorph.uninstall import WorkspaceUnInstallation
+from databricks.labs.remorph.config import (
+    MorphConfig,
+    RemorphConfigs,
+    ReconcileConfig,
+    DatabaseConfig,
+    ReconcileMetadataConfig,
+)
+from databricks.labs.remorph.uninstall import WorkspaceUnInstallation, WorkspaceUnInstaller
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.errors import NotFound
+from databricks.sdk.errors.platform import PermissionDenied
 
 
 @pytest.fixture
@@ -16,18 +23,69 @@ def ws():
     return create_autospec(WorkspaceClient)
 
 
-def test_uninstall(ws):
-    prompts = MockPrompts(
+@pytest.fixture
+def mock_installation():
+    return MockInstallation(
         {
-            r"Do you want to uninstall remorph.*": "yes",
+            "config.yml": {
+                "source": "oracle",
+                "version": 1,
+            },
+            "reconcile.yml": {
+                "data_source": "oracle",
+                "database_config": {
+                    "source_schema": "tpch",
+                    "target_catalog": "test",
+                    "target_schema": "uninstall",
+                },
+                "report_type": "row",
+                "secret_scope": "rmp_oracle",
+                "tables": {
+                    "filter_type": "exclude",
+                    "tables_list": ["SUPPLIER", "FRIENDS", "ORDERS", "PART"],
+                },
+                "metadata_config": {
+                    "catalog": "rmp",
+                    "schema": "rcn",
+                    "volume": "test_volume",
+                },
+                "version": 1,
+            },
         }
     )
-    installation = create_autospec(Installation)
-    config = MorphConfig(source="snowflake", sdk_config=None, skip_validation=True, catalog_name="remorph_test")
-    timeout = timedelta(seconds=1)
 
-    uninstaller = WorkspaceUnInstallation(config, installation, ws, prompts, timeout)
-    uninstaller.uninstall()
+
+def test_ws_uninstall(ws):
+    prompts = MockPrompts(
+        {
+            r"Do you want to uninstall .*": "yes",
+        }
+    )
+    ws.jobs.delete.return_value = None
+    installation = create_autospec(Installation)
+
+    morph = MorphConfig(source="snowflake")
+    db_config = DatabaseConfig(
+        source_schema="source_schema",
+        target_catalog="target_catalog",
+        target_schema="target_schema",
+        source_catalog=None,
+    )
+
+    reconcile = ReconcileConfig(
+        data_source="snowflake",
+        report_type="reconcile",
+        secret_scope="remorph_test",
+        database_config=db_config,
+        metadata_config=ReconcileMetadataConfig(),
+        job_id="123",
+        tables=None,
+    )
+
+    configs = RemorphConfigs(morph, reconcile)
+
+    uninstaller = WorkspaceUnInstallation(configs, installation, ws, prompts, timedelta(seconds=1))
+    assert uninstaller.uninstall()
 
     # Assert that the `uninstaller` is an instance of WorkspaceUnInstallation
     assert isinstance(uninstaller, WorkspaceUnInstallation)
@@ -36,36 +94,84 @@ def test_uninstall(ws):
 def test_uninstall_no_remorph_dir(ws):
     prompts = MockPrompts(
         {
-            r"Do you want to uninstall remorph.*": "yes",
+            r"Do you want to uninstall .*": "yes",
         }
     )
-    installation = create_autospec(Installation)
-    installation.files.side_effect = NotFound()
+    mock_installation_reconcile = MockInstallation(
+        {
+            "reconcile.yml": {
+                "data_source": "oracle",
+                "database_config": {
+                    "source_schema": "tpch",
+                    "target_catalog": "test",
+                    "target_schema": "uninstall",
+                },
+                "report_type": "row",
+                "secret_scope": "rmp_oracle",
+                "tables": {
+                    "filter_type": "exclude",
+                    "tables_list": ["SUPPLIER", "FRIENDS", "ORDERS", "PART"],
+                },
+                "metadata_config": {
+                    "catalog": "rmp",
+                    "schema": "rcn",
+                    "volume": "test_volume",
+                },
+                "version": 1,
+            },
+        }
+    )
+    with patch.object(mock_installation_reconcile, "files", side_effect=NotFound):
+        uninstaller = WorkspaceUnInstaller(mock_installation_reconcile, ws, prompts, timedelta(seconds=1))
 
-    config = MorphConfig(source="snowflake", sdk_config=None, skip_validation=True, catalog_name="remorph_test")
-    timeout = timedelta(seconds=1)
+        assert uninstaller.uninstall() is False
 
-    uninstaller = WorkspaceUnInstallation(config, installation, ws, prompts, timeout)
-
-    uninstaller.uninstall()
-
-    # Assert that the `uninstaller` is an instance of WorkspaceUnInstallation
-    assert isinstance(uninstaller, WorkspaceUnInstallation)
+        # Assert that the `uninstaller` is an instance of WorkspaceUnInstaller
+        assert isinstance(uninstaller, WorkspaceUnInstaller)
 
 
 def test_uninstall_no(ws):
     prompts = MockPrompts(
         {
-            r"Do you want to uninstall remorph.*": "no",
+            r"Do you want to uninstall .*": "no",
         }
     )
-    installation = create_autospec(Installation)
-    config = MorphConfig(source="snowflake", sdk_config=None, skip_validation=True, catalog_name="remorph_test")
-    timeout = timedelta(seconds=1)
+    mock_installation_morph = MockInstallation(
+        {
+            "config.yml": {
+                "source": "oracle",
+                "version": 1,
+            },
+        }
+    )
+    uninstaller = WorkspaceUnInstaller(mock_installation_morph, ws, prompts, timedelta(seconds=1))
 
-    uninstaller = WorkspaceUnInstallation(config, installation, ws, prompts, timeout)
+    assert uninstaller.uninstall() is False
 
-    uninstaller.uninstall()
+
+def test_uninstall_no_permissions(ws):
+    prompts = MockPrompts(
+        {
+            r"Do you want to uninstall .*": "no",
+        }
+    )
+    empty_installation = MockInstallation({})
+    with patch.object(empty_installation, "load", side_effect=PermissionDenied):
+        uninstaller = WorkspaceUnInstaller(empty_installation, ws, prompts, timedelta(seconds=1))
+
+        assert uninstaller.uninstall() is False
+
+
+def test_uninstall(ws, mock_installation):
+    prompts = MockPrompts(
+        {
+            r"Do you want to uninstall .*": "yes",
+        }
+    )
+
+    uninstaller = WorkspaceUnInstaller(mock_installation, ws, prompts, timedelta(seconds=1))
+
+    assert uninstaller.uninstall()
 
     # Assert that the `uninstaller` is an instance of WorkspaceUnInstallation
-    assert isinstance(uninstaller, WorkspaceUnInstallation)
+    assert isinstance(uninstaller, WorkspaceUnInstaller)
