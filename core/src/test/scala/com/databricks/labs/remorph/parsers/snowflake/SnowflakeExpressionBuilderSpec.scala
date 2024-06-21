@@ -78,8 +78,11 @@ class SnowflakeExpressionBuilderSpec
       example(
         query = "ROW_NUMBER() OVER (PARTITION BY a)",
         rule = _.rankingWindowedFunction(),
-        expectedAst =
-          Window(window_function = RowNumber, partition_spec = Seq(simplyNamedColumn("a")), sort_order = Seq(), frame_spec = None))
+        expectedAst = Window(
+          window_function = RowNumber,
+          partition_spec = Seq(simplyNamedColumn("a")),
+          sort_order = Seq(),
+          frame_spec = None))
       example(
         query = "NTILE(42) OVER (PARTITION BY a ORDER BY b, c DESC, d)",
         rule = _.rankingWindowedFunction(),
@@ -100,8 +103,8 @@ class SnowflakeExpressionBuilderSpec
         rule = _.rankingWindowedFunction(),
         expectedAst = Window(
           window_function = RowNumber,
-          partition_spec = Seq(Column("a")),
-          sort_order = Seq(SortOrder(Column("a"), AscendingSortDirection, SortNullsLast)),
+          partition_spec = Seq(simplyNamedColumn("a")),
+          sort_order = Seq(SortOrder(simplyNamedColumn("a"), AscendingSortDirection, SortNullsLast)),
           frame_spec = Some(WindowFrame(RowsFrame, UnboundedPreceding, CurrentRow))))
 
       example(
@@ -109,7 +112,7 @@ class SnowflakeExpressionBuilderSpec
         rule = _.rankingWindowedFunction(),
         expectedAst = Window(
           window_function = RowNumber,
-          partition_spec = Seq(Column("a")),
+          partition_spec = Seq(simplyNamedColumn("a")),
           sort_order = Seq(SortOrder(simplyNamedColumn("a"), AscendingSortDirection, SortNullsLast)),
           frame_spec = Some(WindowFrame(RowsFrame, UnboundedPreceding, UnboundedFollowing))))
 
@@ -118,8 +121,8 @@ class SnowflakeExpressionBuilderSpec
         rule = _.rankingWindowedFunction(),
         expectedAst = Window(
           window_function = RowNumber,
-          partition_spec = Seq(Column("a")),
-          sort_order = Seq(SortOrder(Column("a"), AscendingSortDirection, SortNullsLast)),
+          partition_spec = Seq(simplyNamedColumn("a")),
+          sort_order = Seq(SortOrder(simplyNamedColumn("a"), AscendingSortDirection, SortNullsLast)),
           frame_spec = Some(WindowFrame(RowsFrame, PrecedingN(Literal(short = Some(42))), CurrentRow))))
 
       example(
@@ -127,8 +130,8 @@ class SnowflakeExpressionBuilderSpec
         rule = _.rankingWindowedFunction(),
         expectedAst = Window(
           window_function = RowNumber,
-          partition_spec = Seq(Column("a")),
-          sort_order = Seq(SortOrder(Column("a"), AscendingSortDirection, SortNullsLast)),
+          partition_spec = Seq(simplyNamedColumn("a")),
+          sort_order = Seq(SortOrder(simplyNamedColumn("a"), AscendingSortDirection, SortNullsLast)),
           frame_spec = Some(WindowFrame(RowsFrame, CurrentRow, FollowingN(Literal(short = Some(42)))))))
     }
 
@@ -146,12 +149,14 @@ class SnowflakeExpressionBuilderSpec
 
     "translate ORDER BY a" in {
       val tree = parseString("ORDER BY a", _.orderByClause())
-      astBuilder.buildSortOrder(tree) shouldBe Seq(SortOrder(Column("a"), AscendingSortDirection, SortNullsLast))
+      astBuilder.buildSortOrder(tree) shouldBe Seq(
+        SortOrder(simplyNamedColumn("a"), AscendingSortDirection, SortNullsLast))
     }
 
     "translate ORDER BY a ASC NULLS FIRST" in {
       val tree = parseString("ORDER BY a ASC NULLS FIRST", _.orderByClause())
-      astBuilder.buildSortOrder(tree) shouldBe Seq(SortOrder(Column("a"), AscendingSortDirection, SortNullsFirst))
+      astBuilder.buildSortOrder(tree) shouldBe Seq(
+        SortOrder(simplyNamedColumn("a"), AscendingSortDirection, SortNullsFirst))
     }
 
     "translate ORDER BY a DESC" in {

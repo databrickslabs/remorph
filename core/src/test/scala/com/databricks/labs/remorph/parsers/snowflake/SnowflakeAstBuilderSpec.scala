@@ -310,10 +310,10 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
             GreaterThan(CallFunction("MIN", Seq(simplyNamedColumn("r"))), Literal(short = Some(6)))),
           Seq(
             simplyNamedColumn("c2"),
-            Alias(Window(CallFunction("SUM", Seq(simplyNamedColumn("c3"))),
-                Seq(simplyNamedColumn("c2")),
-                Seq(),
-                None), Seq(Id("r")), None))))
+            Alias(
+              Window(CallFunction("SUM", Seq(simplyNamedColumn("c3"))), Seq(simplyNamedColumn("c2")), Seq(), None),
+              Seq(Id("r")),
+              None))))
     }
 
     "translate a query with set operators" in {
