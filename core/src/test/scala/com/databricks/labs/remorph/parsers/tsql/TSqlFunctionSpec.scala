@@ -123,10 +123,7 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
         ir.CallFunction("SUM", Seq(simplyNamedColumn("salary"))),
         Seq(simplyNamedColumn("department")),
         Seq(ir.SortOrder(simplyNamedColumn("employee_id"), ir.AscendingSortDirection, ir.SortNullsUnspecified)),
-        ir.WindowFrame(
-          ir.RangeFrame,
-          ir.FrameBoundary(current_row = false, unbounded = true, ir.Noop),
-          ir.FrameBoundary(current_row = true, unbounded = false, ir.Noop))))
+        Some(ir.WindowFrame(ir.RangeFrame, ir.UnboundedPreceding, ir.CurrentRow))))
     example(
       "SUM(salary) OVER (PARTITION BY department ORDER BY employee_id ROWS UNBOUNDED PRECEDING)",
       _.expression(),
@@ -134,10 +131,7 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
         ir.CallFunction("SUM", Seq(simplyNamedColumn("salary"))),
         Seq(simplyNamedColumn("department")),
         Seq(ir.SortOrder(simplyNamedColumn("employee_id"), ir.AscendingSortDirection, ir.SortNullsUnspecified)),
-        ir.WindowFrame(
-          ir.RowsFrame,
-          ir.FrameBoundary(current_row = false, unbounded = true, ir.Noop),
-          ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop))))
+        Some(ir.WindowFrame(ir.RowsFrame, ir.UnboundedPreceding, ir.NoBoundary))))
 
     example(
       "SUM(salary) OVER (PARTITION BY department ORDER BY employee_id ROWS 66 PRECEDING)",
@@ -146,10 +140,7 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
         ir.CallFunction("SUM", Seq(simplyNamedColumn("salary"))),
         Seq(simplyNamedColumn("department")),
         Seq(ir.SortOrder(simplyNamedColumn("employee_id"), ir.AscendingSortDirection, ir.SortNullsUnspecified)),
-        ir.WindowFrame(
-          ir.RowsFrame,
-          ir.FrameBoundary(current_row = false, unbounded = false, ir.Literal(integer = Some(66))),
-          ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop))))
+        Some(ir.WindowFrame(ir.RowsFrame, ir.PrecedingN(ir.Literal(integer = Some(66))), ir.NoBoundary))))
 
     example(
       query = """
@@ -160,10 +151,7 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
         ir.CallFunction("AVG", Seq(simplyNamedColumn("salary"))),
         Seq(simplyNamedColumn("department_id")),
         Seq(ir.SortOrder(simplyNamedColumn("employee_id"), ir.AscendingSortDirection, ir.SortNullsUnspecified)),
-        ir.WindowFrame(
-          ir.RowsFrame,
-          ir.FrameBoundary(current_row = false, unbounded = true, ir.Noop),
-          ir.FrameBoundary(current_row = true, unbounded = false, ir.Noop))))
+        Some(ir.WindowFrame(ir.RowsFrame, ir.UnboundedPreceding, ir.CurrentRow))))
 
     example(
       query = """
@@ -174,10 +162,7 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
         ir.CallFunction("SUM", Seq(simplyNamedColumn("sales"))),
         List(),
         Seq(ir.SortOrder(simplyNamedColumn("month"), ir.AscendingSortDirection, ir.SortNullsUnspecified)),
-        ir.WindowFrame(
-          ir.RowsFrame,
-          ir.FrameBoundary(current_row = true, unbounded = false, ir.Noop),
-          ir.FrameBoundary(current_row = false, unbounded = false, ir.Literal(integer = Some(2))))))
+        Some(ir.WindowFrame(ir.RowsFrame, ir.CurrentRow, ir.FollowingN(ir.Literal(integer = Some(2)))))))
 
     example(
       "ROW_NUMBER() OVER (PARTITION BY department ORDER BY salary DESC)",
@@ -186,22 +171,12 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
         ir.CallFunction("ROW_NUMBER", Seq.empty),
         Seq(simplyNamedColumn("department")),
         Seq(ir.SortOrder(simplyNamedColumn("salary"), ir.DescendingSortDirection, ir.SortNullsUnspecified)),
-        ir.WindowFrame(
-          ir.UndefinedFrame,
-          ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop),
-          ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop))))
+        None))
 
     example(
       "ROW_NUMBER() OVER (PARTITION BY department)",
       _.selectListElem(),
-      ir.Window(
-        ir.CallFunction("ROW_NUMBER", Seq.empty),
-        Seq(simplyNamedColumn("department")),
-        List(),
-        ir.WindowFrame(
-          ir.UndefinedFrame,
-          ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop),
-          ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop))))
+      ir.Window(ir.CallFunction("ROW_NUMBER", Seq.empty), Seq(simplyNamedColumn("department")), List(), None))
 
   }
 
@@ -239,10 +214,7 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
         ir.CallFunction("FIRST_VALUE", Seq(simplyNamedColumn("Salary"))),
         Seq(simplyNamedColumn("DepartmentID")),
         Seq(ir.SortOrder(simplyNamedColumn("Salary"), ir.DescendingSortDirection, ir.SortNullsUnspecified)),
-        ir.WindowFrame(
-          ir.UndefinedFrame,
-          ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop),
-          ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop))))
+        None))
 
     example(
       query = """
@@ -253,10 +225,7 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
         ir.CallFunction("LAST_VALUE", Seq(simplyNamedColumn("salary"))),
         Seq(simplyNamedColumn("department_id")),
         Seq(ir.SortOrder(simplyNamedColumn("employee_id"), ir.DescendingSortDirection, ir.SortNullsUnspecified)),
-        ir.WindowFrame(
-          ir.UndefinedFrame,
-          ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop),
-          ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop))))
+        None))
 
     example(
       query = "PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY Salary) OVER (PARTITION BY DepartmentID)",
@@ -267,10 +236,7 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
           Seq(ir.SortOrder(simplyNamedColumn("Salary"), ir.AscendingSortDirection, ir.SortNullsUnspecified))),
         Seq(simplyNamedColumn("DepartmentID")),
         List(),
-        ir.WindowFrame(
-          ir.UndefinedFrame,
-          ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop),
-          ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop))))
+        None))
 
     example(
       query = """
@@ -281,10 +247,7 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
         ir.CallFunction("LEAD", Seq(simplyNamedColumn("salary"), ir.Literal(integer = Some(1)))),
         Seq(simplyNamedColumn("department_id")),
         Seq(ir.SortOrder(simplyNamedColumn("employee_id"), ir.DescendingSortDirection, ir.SortNullsUnspecified)),
-        ir.WindowFrame(
-          ir.UndefinedFrame,
-          ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop),
-          ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop))))
+        None))
   }
 
   "translate 'functions' with non-standard syntax" in {

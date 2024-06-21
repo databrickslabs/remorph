@@ -410,10 +410,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
               CallFunction("ROW_NUMBER", List.empty),
               List.empty,
               List(SortOrder(simplyNamedColumn("myColumn"), AscendingSortDirection, SortNullsUnspecified)),
-              WindowFrame(
-                UndefinedFrame,
-                FrameBoundary(current_row = false, unbounded = false, Noop),
-                FrameBoundary(current_row = false, unbounded = false, Noop))),
+              None),
             Seq(Id("nextVal")),
             None))))))
 

@@ -113,22 +113,7 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.Relation] w
 
   private def buildOrderBy(ctx: OrderByClauseContext, input: ir.Relation): ir.Relation = {
     Option(ctx).fold(input) { c =>
-      val sortOrders = c.orderItem().asScala.map { orderItem =>
-        val expression = orderItem.expr().accept(expressionBuilder)
-        if (orderItem.DESC() == null) {
-          if (orderItem.NULLS() != null && orderItem.FIRST() != null) {
-            ir.SortOrder(expression, ir.AscendingSortDirection, ir.SortNullsFirst)
-          } else {
-            ir.SortOrder(expression, ir.AscendingSortDirection, ir.SortNullsLast)
-          }
-        } else {
-          if (orderItem.NULLS() != null && orderItem.FIRST() != null) {
-            ir.SortOrder(expression, ir.DescendingSortDirection, ir.SortNullsFirst)
-          } else {
-            ir.SortOrder(expression, ir.DescendingSortDirection, ir.SortNullsLast)
-          }
-        }
-      }
+      val sortOrders = c.orderItem().asScala.map(expressionBuilder.visitOrderItem)
       ir.Sort(input = input, order = sortOrders, is_global = false)
     }
   }

@@ -121,18 +121,18 @@ class SnowflakeRelationBuilderSpec
           Seq(SortOrder(simplyNamedColumn("some_column"), AscendingSortDirection, SortNullsLast)),
           is_global = false))
       example(
-        "FROM some_table ORDER BY some_column ASC NULLS LAST",
+        "FROM some_table ORDER BY some_column ASC NULLS FIRST",
         _.selectOptionalClauses(),
         Sort(
           namedTable("some_table"),
-          Seq(SortOrder(simplyNamedColumn("some_column"), AscendingSortDirection, SortNullsLast)),
+          Seq(SortOrder(simplyNamedColumn("some_column"), AscendingSortDirection, SortNullsFirst)),
           is_global = false))
       example(
         "FROM some_table ORDER BY some_column DESC",
         _.selectOptionalClauses(),
         Sort(
           namedTable("some_table"),
-          Seq(SortOrder(simplyNamedColumn("some_column"), DescendingSortDirection, SortNullsLast)),
+          Seq(SortOrder(simplyNamedColumn("some_column"), DescendingSortDirection, SortNullsFirst)),
           is_global = false))
       example(
         "FROM some_table ORDER BY some_column DESC NULLS LAST",
@@ -229,7 +229,7 @@ class SnowflakeRelationBuilderSpec
               window_function = CallFunction("ROW_NUMBER", Seq()),
               partition_spec = Seq(simplyNamedColumn("p")),
               sort_order = Seq(SortOrder(simplyNamedColumn("o"), AscendingSortDirection, SortNullsLast)),
-              frame_spec = DummyWindowFrame),
+              frame_spec = None),
             Literal(short = Some(1)))))
     }
 

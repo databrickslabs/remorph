@@ -3586,10 +3586,6 @@ exprList
     : expr (COMMA expr)*
     ;
 
-exprListSorted
-    : expr ascDesc? (COMMA expr ascDesc?)*
-    ;
-
 expr
     : objectName DOT NEXTVAL                       #exprNextval
     | expr LSB expr RSB                             #exprArrayAccess
@@ -3714,26 +3710,26 @@ primitiveExpression
     //| arrLiteral
     ;
 
-orderByExpr
-    : ORDER BY exprListSorted
-    ;
-
-//orderByExprList
-//    : ORDER BY exprList
-//    ;
-
-//overClauseWindow
-//    : OVER L_PAREN partitionBy? orderByExpr (cumulativeFrame | slidingFrame)? R_PAREN
-//    ;
-
-ascDesc
-    : ASC
-    | DESC
-    ;
-
 overClause
-    : OVER L_PAREN partitionBy orderByExpr? R_PAREN
-    | OVER L_PAREN orderByExpr R_PAREN
+    : OVER L_PAREN (PARTITION BY expr (COMMA expr)*)? windowOrderingAndFrame? R_PAREN
+    ;
+
+windowOrderingAndFrame
+    : orderByClause rowOrRangeClause?
+    ;
+
+rowOrRangeClause
+    : (ROWS | RANGE) windowFrameExtent
+    ;
+
+windowFrameExtent
+    : BETWEEN windowFrameBound AND windowFrameBound
+    ;
+
+windowFrameBound
+    : UNBOUNDED (PRECEDING | FOLLOWING)
+    | num (PRECEDING | FOLLOWING)
+    | CURRENT ROW
     ;
 
 functionCall
@@ -3782,25 +3778,6 @@ aggregateFunction
     | id L_PAREN DISTINCT? exprList R_PAREN    #aggFuncExprList
     | id L_PAREN STAR R_PAREN                  #aggFuncStar
     ;
-
-//rowsRange
-//    : ROWS | RANGE
-//    ;
-
-//cumulativeFrame
-//    : rowsRange BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
-//    | rowsRange BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING
-//    ;
-
-//precedingFollowing
-//    : PRECEDING | FOLLOWING
-//    ;
-
-//slidingFrame
-//    : ROWS BETWEEN num precedingFollowing AND num precedingFollowing
-//    | ROWS BETWEEN UNBOUNDED PRECEDING AND num precedingFollowing
-//    | ROWS BETWEEN num precedingFollowing AND UNBOUNDED FOLLOWING
-//    ;
 
 literal
     : STRING // string, date, time, timestamp

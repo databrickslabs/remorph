@@ -305,11 +305,10 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
     val orderByExpressions = Option(ctx.overClause().orderByClause())
       .map(buildOrderBy)
       .getOrElse(List.empty)
-    val rowRange = Option(ctx.overClause().rowOrRangeClause())
+    val windowFrame = Option(ctx.overClause().rowOrRangeClause())
       .map(buildWindowFrame)
-      .getOrElse(noWindowFrame)
 
-    ir.Window(windowFunction, partitionByExpressions, orderByExpressions, rowRange)
+    ir.Window(windowFunction, partitionByExpressions, orderByExpressions, windowFrame)
   }
 
   // Some functions need to be converted to Databricks equivalent Windowing functions for the OVER clause
@@ -327,12 +326,6 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
       ir.SortOrder(expression, sortOrder, ir.SortNullsUnspecified)
     }
 
-  private def noWindowFrame: ir.WindowFrame =
-    ir.WindowFrame(
-      ir.UndefinedFrame,
-      ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop),
-      ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop))
-
   private def buildWindowFrame(ctx: RowOrRangeClauseContext): ir.WindowFrame = {
     val frameType = buildFrameType(ctx)
     val bounds = Trees
@@ -343,7 +336,7 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
 
     val frameStart = bounds.head // Safe due to the nature of window frames always having at least a start bound
     val frameEnd =
-      bounds.tail.headOption.getOrElse(ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop))
+      bounds.tail.headOption.getOrElse(ir.NoBoundary)
 
     ir.WindowFrame(frameType, frameStart, frameEnd)
   }
@@ -353,17 +346,15 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
     else ir.RangeFrame
   }
 
-  // TODO: We are not dealing with PRECEDING and FOLLOWING yet!
   private[tsql] def buildFrame(ctx: WindowFrameBoundContext): ir.FrameBoundary =
     ctx match {
-      case c if c.UNBOUNDED() != null => ir.FrameBoundary(current_row = false, unbounded = true, value = ir.Noop)
-      case c if c.CURRENT() != null => ir.FrameBoundary(current_row = true, unbounded = false, ir.Noop)
-      case c if c.INT() != null =>
-        ir.FrameBoundary(
-          current_row = false,
-          unbounded = false,
-          value = ir.Literal(integer = Some(c.INT().getText.toInt)))
-      case _ => ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop)
+      case c if c.UNBOUNDED() != null && c.PRECEDING() != null => ir.UnboundedPreceding
+      case c if c.UNBOUNDED() != null && c.FOLLOWING() != null => ir.UnboundedFollowing
+      case c if c.CURRENT() != null => ir.CurrentRow
+      case c if c.INT() != null && c.PRECEDING() != null =>
+        ir.PrecedingN(ir.Literal(integer = Some(c.INT().getText.toInt)))
+      case c if c.INT() != null && c.FOLLOWING() != null =>
+        ir.FollowingN(ir.Literal(integer = Some(c.INT().getText.toInt)))
     }
 
   /**
