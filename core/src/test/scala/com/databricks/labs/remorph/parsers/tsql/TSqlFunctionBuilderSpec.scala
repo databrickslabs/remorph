@@ -18,8 +18,23 @@ class TSqlFunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDriven
       ("functionName", "expectedArity"), // Header
 
       // TSql specific
-      ("@@CURSOR_STATUS", Some(FunctionDefinition.notConvertible(0))),
+      ("@@CURSOR_ROWS", Some(FunctionDefinition.notConvertible(0))),
+      ("@@DBTS", Some(FunctionDefinition.notConvertible(0))),
       ("@@FETCH_STATUS", Some(FunctionDefinition.notConvertible(0))),
+      ("@@LANGID", Some(FunctionDefinition.notConvertible(0))),
+      ("@@LANGUAGE", Some(FunctionDefinition.notConvertible(0))),
+      ("@@LOCKTIMEOUT", Some(FunctionDefinition.notConvertible(0))),
+      ("@@MAX_CONNECTIONS", Some(FunctionDefinition.notConvertible(0))),
+      ("@@MAX_PRECISION", Some(FunctionDefinition.notConvertible(0))),
+      ("@@NESTLEVEL", Some(FunctionDefinition.notConvertible(0))),
+      ("@@OPTIONS", Some(FunctionDefinition.notConvertible(0))),
+      ("@@REMSERVER", Some(FunctionDefinition.notConvertible(0))),
+      ("@@SERVERNAME", Some(FunctionDefinition.notConvertible(0))),
+      ("@@SERVICENAME", Some(FunctionDefinition.notConvertible(0))),
+      ("@@SPID", Some(FunctionDefinition.notConvertible(0))),
+      ("@@TEXTSIZE", Some(FunctionDefinition.notConvertible(0))),
+      ("@@VERSION", Some(FunctionDefinition.notConvertible(0))),
+      ("COLLATIONPROPERTY", Some(FunctionDefinition.notConvertible(2))),
       ("MODIFY", Some(FunctionDefinition.xml(1))))
 
     forAll(functions) { (functionName: String, expectedArity: Option[FunctionDefinition]) =>
