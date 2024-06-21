@@ -2,7 +2,11 @@ package com.databricks.labs.remorph.parsers.intermediate
 
 trait AstExtension
 
-case class Column(name: String) extends Expression with AstExtension {}
+case class Id(id: String, caseSensitive: Boolean = false) extends Expression {}
+
+case class ObjectReference(head: Id, tail: Id*) extends Expression {}
+
+case class Column(tableNameOrAlias: Option[ObjectReference], columnName: Id) extends Expression with AstExtension {}
 case class Identifier(name: String, isQuoted: Boolean) extends Expression with AstExtension {}
 case class DollarAction() extends Expression with AstExtension {}
 case class Distinct(expression: Expression) extends Expression
@@ -30,7 +34,7 @@ case class NTile(expression: Expression) extends Expression {}
 case class WithCTE(ctes: Seq[Relation], query: Relation) extends RelationCommon {}
 case class CTEDefinition(tableName: String, columns: Seq[Expression], cte: Relation) extends RelationCommon {}
 
-case class Star(objectName: Option[String]) extends Expression {}
+case class Star(objectName: Option[ObjectReference]) extends Expression {}
 case class Inserted(selection: Expression) extends Expression()
 case class Deleted(selection: Expression) extends Expression()
 

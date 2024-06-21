@@ -1,5 +1,6 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
+import com.databricks.labs.remorph.parsers.IRHelpers
 import com.databricks.labs.remorph.parsers.intermediate._
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser.{JoinTypeContext, OuterJoinContext}
 import org.antlr.v4.runtime.RuleContext
@@ -10,7 +11,12 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.mockito.MockitoSugar
 
-class SnowflakeRelationBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon with Matchers with MockitoSugar {
+class SnowflakeRelationBuilderSpec
+    extends AnyWordSpec
+    with SnowflakeParserTestCommon
+    with Matchers
+    with MockitoSugar
+    with IRHelpers {
 
   override protected def astBuilder: SnowflakeRelationBuilder = new SnowflakeRelationBuilder
 
@@ -51,7 +57,7 @@ class SnowflakeRelationBuilderSpec extends AnyWordSpec with SnowflakeParserTestC
       example(
         "FROM (SELECT * FROM t1) t2",
         _.fromClause(),
-        SubqueryAlias(Project(namedTable("t1"), Seq(Star(None))), "t2", ""))
+        SubqueryAlias(Project(namedTable("t1"), Seq(Star(None))), Id("t2"), ""))
     }
 
     "translate WHERE clauses" in {
@@ -68,7 +74,7 @@ class SnowflakeRelationBuilderSpec extends AnyWordSpec with SnowflakeParserTestC
         Aggregate(
           input = namedTable("some_table"),
           group_type = GroupBy,
-          grouping_expressions = Seq(Column("some_column")),
+          grouping_expressions = Seq(simplyNamedColumn("some_column")),
           pivot = None))
 
       example(
@@ -77,8 +83,8 @@ class SnowflakeRelationBuilderSpec extends AnyWordSpec with SnowflakeParserTestC
         Aggregate(
           input = namedTable("t1"),
           group_type = Pivot,
-          grouping_expressions = Seq(CallFunction("AVG", Seq(Column("a")))),
-          pivot = Some(Pivot(Column("d"), Seq(Literal(string = Some("x")), Literal(string = Some("y")))))))
+          grouping_expressions = Seq(CallFunction("AVG", Seq(simplyNamedColumn("a")))),
+          pivot = Some(Pivot(simplyNamedColumn("d"), Seq(Literal(string = Some("x")), Literal(string = Some("y")))))))
 
       example(
         query = "FROM t1 PIVOT (COUNT(a) FOR d IN('x', 'y'))",
@@ -86,8 +92,8 @@ class SnowflakeRelationBuilderSpec extends AnyWordSpec with SnowflakeParserTestC
         Aggregate(
           input = namedTable("t1"),
           group_type = Pivot,
-          grouping_expressions = Seq(CallFunction("COUNT", Seq(Column("a")))),
-          pivot = Some(Pivot(Column("d"), Seq(Literal(string = Some("x")), Literal(string = Some("y")))))))
+          grouping_expressions = Seq(CallFunction("COUNT", Seq(simplyNamedColumn("a")))),
+          pivot = Some(Pivot(simplyNamedColumn("d"), Seq(Literal(string = Some("x")), Literal(string = Some("y")))))))
 
       example(
         query = "FROM t1 PIVOT (MIN(a) FOR d IN('x', 'y'))",
@@ -95,8 +101,8 @@ class SnowflakeRelationBuilderSpec extends AnyWordSpec with SnowflakeParserTestC
         Aggregate(
           input = namedTable("t1"),
           group_type = Pivot,
-          grouping_expressions = Seq(CallFunction("MIN", Seq(Column("a")))),
-          pivot = Some(Pivot(Column("d"), Seq(Literal(string = Some("x")), Literal(string = Some("y")))))))
+          grouping_expressions = Seq(CallFunction("MIN", Seq(simplyNamedColumn("a")))),
+          pivot = Some(Pivot(simplyNamedColumn("d"), Seq(Literal(string = Some("x")), Literal(string = Some("y")))))))
     }
 
     "translate ORDER BY clauses" in {
@@ -105,42 +111,42 @@ class SnowflakeRelationBuilderSpec extends AnyWordSpec with SnowflakeParserTestC
         _.selectOptionalClauses(),
         Sort(
           namedTable("some_table"),
-          Seq(SortOrder(Column("some_column"), AscendingSortDirection, SortNullsLast)),
+          Seq(SortOrder(simplyNamedColumn("some_column"), AscendingSortDirection, SortNullsLast)),
           is_global = false))
       example(
         "FROM some_table ORDER BY some_column ASC",
         _.selectOptionalClauses(),
         Sort(
           namedTable("some_table"),
-          Seq(SortOrder(Column("some_column"), AscendingSortDirection, SortNullsLast)),
+          Seq(SortOrder(simplyNamedColumn("some_column"), AscendingSortDirection, SortNullsLast)),
           is_global = false))
       example(
         "FROM some_table ORDER BY some_column ASC NULLS LAST",
         _.selectOptionalClauses(),
         Sort(
           namedTable("some_table"),
-          Seq(SortOrder(Column("some_column"), AscendingSortDirection, SortNullsLast)),
+          Seq(SortOrder(simplyNamedColumn("some_column"), AscendingSortDirection, SortNullsLast)),
           is_global = false))
       example(
         "FROM some_table ORDER BY some_column DESC",
         _.selectOptionalClauses(),
         Sort(
           namedTable("some_table"),
-          Seq(SortOrder(Column("some_column"), DescendingSortDirection, SortNullsLast)),
+          Seq(SortOrder(simplyNamedColumn("some_column"), DescendingSortDirection, SortNullsLast)),
           is_global = false))
       example(
         "FROM some_table ORDER BY some_column DESC NULLS LAST",
         _.selectOptionalClauses(),
         Sort(
           namedTable("some_table"),
-          Seq(SortOrder(Column("some_column"), DescendingSortDirection, SortNullsLast)),
+          Seq(SortOrder(simplyNamedColumn("some_column"), DescendingSortDirection, SortNullsLast)),
           is_global = false))
       example(
         "FROM some_table ORDER BY some_column DESC NULLS FIRST",
         _.selectOptionalClauses(),
         Sort(
           namedTable("some_table"),
-          Seq(SortOrder(Column("some_column"), DescendingSortDirection, SortNullsFirst)),
+          Seq(SortOrder(simplyNamedColumn("some_column"), DescendingSortDirection, SortNullsFirst)),
           is_global = false))
 
     }
@@ -178,7 +184,7 @@ class SnowflakeRelationBuilderSpec extends AnyWordSpec with SnowflakeParserTestC
         Aggregate(
           input = Filter(namedTable("some_table"), Equals(Literal(short = Some(1)), Literal(short = Some(1)))),
           group_type = GroupBy,
-          grouping_expressions = Seq(Column("some_column")),
+          grouping_expressions = Seq(simplyNamedColumn("some_column")),
           pivot = None))
 
       example(
@@ -188,9 +194,9 @@ class SnowflakeRelationBuilderSpec extends AnyWordSpec with SnowflakeParserTestC
           Aggregate(
             input = Filter(namedTable("some_table"), Equals(Literal(short = Some(1)), Literal(short = Some(1)))),
             group_type = GroupBy,
-            grouping_expressions = Seq(Column("some_column")),
+            grouping_expressions = Seq(simplyNamedColumn("some_column")),
             pivot = None),
-          Seq(SortOrder(Column("some_column"), AscendingSortDirection, SortNullsFirst)),
+          Seq(SortOrder(simplyNamedColumn("some_column"), AscendingSortDirection, SortNullsFirst)),
           is_global = false))
 
       example(
@@ -198,7 +204,7 @@ class SnowflakeRelationBuilderSpec extends AnyWordSpec with SnowflakeParserTestC
         _.selectOptionalClauses(),
         Sort(
           Filter(namedTable("some_table"), Equals(Literal(short = Some(1)), Literal(short = Some(1)))),
-          Seq(SortOrder(Column("some_column"), AscendingSortDirection, SortNullsFirst)),
+          Seq(SortOrder(simplyNamedColumn("some_column"), AscendingSortDirection, SortNullsFirst)),
           is_global = false))
     }
 
@@ -206,7 +212,10 @@ class SnowflakeRelationBuilderSpec extends AnyWordSpec with SnowflakeParserTestC
       example(
         "WITH a (b, c) AS (SELECT x, y FROM d)",
         _.withExpression(),
-        CTEDefinition("a", Seq(Column("b"), Column("c")), Project(namedTable("d"), Seq(Column("x"), Column("y")))))
+        CTEDefinition(
+          "a",
+          Seq(simplyNamedColumn("b"), simplyNamedColumn("c")),
+          Project(namedTable("d"), Seq(simplyNamedColumn("x"), simplyNamedColumn("y")))))
     }
 
     "translate QUALIFY clauses" in {
@@ -218,8 +227,8 @@ class SnowflakeRelationBuilderSpec extends AnyWordSpec with SnowflakeParserTestC
           condition = Equals(
             Window(
               window_function = CallFunction("ROW_NUMBER", Seq()),
-              partition_spec = Seq(Column("p")),
-              sort_order = Seq(SortOrder(Column("o"), AscendingSortDirection, SortNullsLast)),
+              partition_spec = Seq(simplyNamedColumn("p")),
+              sort_order = Seq(SortOrder(simplyNamedColumn("o"), AscendingSortDirection, SortNullsLast)),
               frame_spec = DummyWindowFrame),
             Literal(short = Some(1)))))
     }
@@ -231,22 +240,25 @@ class SnowflakeRelationBuilderSpec extends AnyWordSpec with SnowflakeParserTestC
         Project(
           Deduplicate(
             input = namedTable("t"),
-            column_names = Seq("a", "bb"),
+            column_names = Seq(Id("a"), Id("bb")),
             all_columns_as_keys = false,
             within_watermark = false),
-          Seq(Column("a"), Alias(Column("b"), Seq("bb"), None))))
+          Seq(simplyNamedColumn("a"), Alias(simplyNamedColumn("b"), Seq(Id("bb")), None))))
 
     }
 
     "translate SELECT TOP clauses" in {
-      example("SELECT TOP 42 a FROM t", _.selectStatement(), Project(Limit(namedTable("t"), 42), Seq(Column("a"))))
+      example(
+        "SELECT TOP 42 a FROM t",
+        _.selectStatement(),
+        Project(Limit(namedTable("t"), 42), Seq(simplyNamedColumn("a"))))
 
       example(
         "SELECT DISTINCT TOP 42 a FROM t",
         _.selectStatement(),
         Project(
-          Limit(Deduplicate(namedTable("t"), Seq("a"), all_columns_as_keys = false, within_watermark = false), 42),
-          Seq(Column("a"))))
+          Limit(Deduplicate(namedTable("t"), Seq(Id("a")), all_columns_as_keys = false, within_watermark = false), 42),
+          Seq(simplyNamedColumn("a"))))
     }
 
     "translate VALUES clauses as object references" in {

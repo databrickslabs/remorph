@@ -1,11 +1,12 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
+import com.databricks.labs.remorph.parsers.IRHelpers
 import com.databricks.labs.remorph.parsers.intermediate._
 import org.scalatest.Assertion
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon with Matchers {
+class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon with Matchers with IRHelpers {
 
   override protected def astBuilder: SnowflakeParserBaseVisitor[_] = new SnowflakeAstBuilder
 
@@ -16,23 +17,25 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
     "translate a simple SELECT query" in {
       singleQueryExample(
         query = "SELECT a FROM TABLE",
-        expectedAst = Project(NamedTable("TABLE", Map.empty, is_streaming = false), Seq(Column("a"))))
+        expectedAst = Project(NamedTable("TABLE", Map.empty, is_streaming = false), Seq(simplyNamedColumn("a"))))
     }
 
     "translate a simple SELECT query with an aliased column" in {
 
       singleQueryExample(
         query = "SELECT a AS aa FROM b",
-        expectedAst =
-          Project(NamedTable("b", Map.empty, is_streaming = false), Seq(Alias(Column("a"), Seq("aa"), None))))
+        expectedAst = Project(
+          NamedTable("b", Map.empty, is_streaming = false),
+          Seq(Alias(simplyNamedColumn("a"), Seq(Id("aa")), None))))
     }
 
     "translate a simple SELECT query involving multiple columns" in {
 
       singleQueryExample(
         query = "SELECT a, b, c FROM table_x",
-        expectedAst =
-          Project(NamedTable("table_x", Map.empty, is_streaming = false), Seq(Column("a"), Column("b"), Column("c"))))
+        expectedAst = Project(
+          NamedTable("table_x", Map.empty, is_streaming = false),
+          Seq(simplyNamedColumn("a"), simplyNamedColumn("b"), simplyNamedColumn("c"))))
     }
 
     "translate a SELECT query involving multiple columns and aliases" in {
@@ -41,7 +44,7 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
         query = "SELECT a, b AS bb, c FROM table_x",
         expectedAst = Project(
           NamedTable("table_x", Map.empty, is_streaming = false),
-          Seq(Column("a"), Alias(Column("b"), Seq("bb"), None), Column("c"))))
+          Seq(simplyNamedColumn("a"), Alias(simplyNamedColumn("b"), Seq(Id("bb")), None), simplyNamedColumn("c"))))
     }
 
     val simpleJoinAst =
@@ -56,57 +59,57 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
     "translate a query with a JOIN" in {
       singleQueryExample(
         query = "SELECT a FROM table_x JOIN table_y",
-        expectedAst = Project(simpleJoinAst, Seq(Column("a"))))
+        expectedAst = Project(simpleJoinAst, Seq(simplyNamedColumn("a"))))
     }
 
     // TODO: fix the grammar (LEFT gets parsed as an alias rather than a join_type)
     "translate a query with a LEFT JOIN" ignore {
       singleQueryExample(
         query = "SELECT a FROM table_x LEFT JOIN table_y",
-        expectedAst = Project(simpleJoinAst.copy(join_type = LeftOuterJoin), Seq(Column("a"))))
+        expectedAst = Project(simpleJoinAst.copy(join_type = LeftOuterJoin), Seq(simplyNamedColumn("a"))))
     }
 
     "translate a query with a LEFT OUTER JOIN" in {
       singleQueryExample(
         query = "SELECT a FROM table_x LEFT OUTER JOIN table_y",
-        expectedAst = Project(simpleJoinAst.copy(join_type = LeftOuterJoin), Seq(Column("a"))))
+        expectedAst = Project(simpleJoinAst.copy(join_type = LeftOuterJoin), Seq(simplyNamedColumn("a"))))
     }
 
     // TODO: fix the grammar (RIGHT gets parsed as an alias rather than a join_type)
     "translate a query with a RIGHT JOIN" ignore {
       singleQueryExample(
         query = "SELECT a FROM table_x RIGHT JOIN table_y",
-        expectedAst = Project(simpleJoinAst.copy(join_type = RightOuterJoin), Seq(Column("a"))))
+        expectedAst = Project(simpleJoinAst.copy(join_type = RightOuterJoin), Seq(simplyNamedColumn("a"))))
     }
 
     "translate a query with a RIGHT OUTER JOIN" in {
       singleQueryExample(
         query = "SELECT a FROM table_x RIGHT OUTER JOIN table_y",
-        expectedAst = Project(simpleJoinAst.copy(join_type = RightOuterJoin), Seq(Column("a"))))
+        expectedAst = Project(simpleJoinAst.copy(join_type = RightOuterJoin), Seq(simplyNamedColumn("a"))))
     }
 
     "translate a query with a FULL JOIN" in {
       singleQueryExample(
         query = "SELECT a FROM table_x FULL JOIN table_y",
-        expectedAst = Project(simpleJoinAst.copy(join_type = FullOuterJoin), Seq(Column("a"))))
+        expectedAst = Project(simpleJoinAst.copy(join_type = FullOuterJoin), Seq(simplyNamedColumn("a"))))
     }
 
     "translate a query with a simple WHERE clause" in {
       val expectedOperatorTranslations = List(
-        "=" -> Equals(Column("a"), Column("b")),
-        "!=" -> NotEquals(Column("a"), Column("b")),
-        "<>" -> NotEquals(Column("a"), Column("b")),
-        ">" -> GreaterThan(Column("a"), Column("b")),
-        "<" -> LesserThan(Column("a"), Column("b")),
-        ">=" -> GreaterThanOrEqual(Column("a"), Column("b")),
-        "<=" -> LesserThanOrEqual(Column("a"), Column("b")))
+        "=" -> Equals(simplyNamedColumn("a"), simplyNamedColumn("b")),
+        "!=" -> NotEquals(simplyNamedColumn("a"), simplyNamedColumn("b")),
+        "<>" -> NotEquals(simplyNamedColumn("a"), simplyNamedColumn("b")),
+        ">" -> GreaterThan(simplyNamedColumn("a"), simplyNamedColumn("b")),
+        "<" -> LesserThan(simplyNamedColumn("a"), simplyNamedColumn("b")),
+        ">=" -> GreaterThanOrEqual(simplyNamedColumn("a"), simplyNamedColumn("b")),
+        "<=" -> LesserThanOrEqual(simplyNamedColumn("a"), simplyNamedColumn("b")))
 
       expectedOperatorTranslations.foreach { case (op, expectedPredicate) =>
         singleQueryExample(
           query = s"SELECT a, b FROM c WHERE a $op b",
           expectedAst = Project(
             Filter(NamedTable("c", Map.empty, is_streaming = false), expectedPredicate),
-            Seq(Column("a"), Column("b"))))
+            Seq(simplyNamedColumn("a"), simplyNamedColumn("b"))))
       }
     }
 
@@ -116,22 +119,28 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
         expectedAst = Project(
           Filter(
             NamedTable("c", Map.empty, is_streaming = false),
-            And(Equals(Column("a"), Column("b")), Equals(Column("b"), Column("a")))),
-          Seq(Column("a"), Column("b"))))
+            And(
+              Equals(simplyNamedColumn("a"), simplyNamedColumn("b")),
+              Equals(simplyNamedColumn("b"), simplyNamedColumn("a")))),
+          Seq(simplyNamedColumn("a"), simplyNamedColumn("b"))))
 
       singleQueryExample(
         query = "SELECT a, b FROM c WHERE a = b OR b = a",
         expectedAst = Project(
           Filter(
             NamedTable("c", Map.empty, is_streaming = false),
-            Or(Equals(Column("a"), Column("b")), Equals(Column("b"), Column("a")))),
-          Seq(Column("a"), Column("b"))))
+            Or(
+              Equals(simplyNamedColumn("a"), simplyNamedColumn("b")),
+              Equals(simplyNamedColumn("b"), simplyNamedColumn("a")))),
+          Seq(simplyNamedColumn("a"), simplyNamedColumn("b"))))
 
       singleQueryExample(
         query = "SELECT a, b FROM c WHERE NOT a = b",
         expectedAst = Project(
-          Filter(NamedTable("c", Map.empty, is_streaming = false), Not(Equals(Column("a"), Column("b")))),
-          Seq(Column("a"), Column("b"))))
+          Filter(
+            NamedTable("c", Map.empty, is_streaming = false),
+            Not(Equals(simplyNamedColumn("a"), simplyNamedColumn("b")))),
+          Seq(simplyNamedColumn("a"), simplyNamedColumn("b"))))
     }
 
     "translate a query with a GROUP BY clause" in {
@@ -141,9 +150,9 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
           Aggregate(
             input = NamedTable("c", Map.empty, is_streaming = false),
             group_type = GroupBy,
-            grouping_expressions = Seq(Column("a")),
+            grouping_expressions = Seq(simplyNamedColumn("a")),
             pivot = None),
-          Seq(Column("a"), CallFunction("COUNT", Seq(Column("b"))))))
+          Seq(simplyNamedColumn("a"), CallFunction("COUNT", Seq(simplyNamedColumn("b"))))))
     }
 
     "translate a query with a GROUP BY and ORDER BY clauses" in {
@@ -154,11 +163,11 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
             Aggregate(
               input = NamedTable("c", Map.empty, is_streaming = false),
               group_type = GroupBy,
-              grouping_expressions = Seq(Column("a")),
+              grouping_expressions = Seq(simplyNamedColumn("a")),
               pivot = None),
-            Seq(SortOrder(Column("a"), AscendingSortDirection, SortNullsLast)),
+            Seq(SortOrder(simplyNamedColumn("a"), AscendingSortDirection, SortNullsLast)),
             is_global = false),
-          Seq(Column("a"), CallFunction("COUNT", Seq(Column("b"))))))
+          Seq(simplyNamedColumn("a"), CallFunction("COUNT", Seq(simplyNamedColumn("b"))))))
     }
 
     "translate a query with GROUP BY HAVING clause" in {
@@ -169,10 +178,10 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
             Aggregate(
               input = NamedTable("c", Map.empty, is_streaming = false),
               group_type = GroupBy,
-              grouping_expressions = Seq(Column("a")),
+              grouping_expressions = Seq(simplyNamedColumn("a")),
               pivot = None),
-            GreaterThan(CallFunction("COUNT", Seq(Column("b"))), Literal(short = Some(1)))),
-          Seq(Column("a"), CallFunction("COUNT", Seq(Column("b"))))))
+            GreaterThan(CallFunction("COUNT", Seq(simplyNamedColumn("b"))), Literal(short = Some(1)))),
+          Seq(simplyNamedColumn("a"), CallFunction("COUNT", Seq(simplyNamedColumn("b"))))))
     }
 
     "translate a query with ORDER BY" in {
@@ -181,48 +190,50 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
         expectedAst = Project(
           Sort(
             input = NamedTable("b", Map.empty, is_streaming = false),
-            order = Seq(SortOrder(Column("a"), AscendingSortDirection, SortNullsLast)),
+            order = Seq(SortOrder(simplyNamedColumn("a"), AscendingSortDirection, SortNullsLast)),
             is_global = false),
-          Seq(Column("a"))))
+          Seq(simplyNamedColumn("a"))))
 
       singleQueryExample(
         query = "SELECT a FROM b ORDER BY a DESC",
         expectedAst = Project(
           Sort(
             input = NamedTable("b", Map.empty, is_streaming = false),
-            order = Seq(SortOrder(Column("a"), DescendingSortDirection, SortNullsLast)),
+            order = Seq(SortOrder(simplyNamedColumn("a"), DescendingSortDirection, SortNullsLast)),
             is_global = false),
-          Seq(Column("a"))))
+          Seq(simplyNamedColumn("a"))))
 
       singleQueryExample(
         query = "SELECT a FROM b ORDER BY a NULLS FIRST",
         expectedAst = Project(
           Sort(
             input = NamedTable("b", Map.empty, is_streaming = false),
-            order = Seq(SortOrder(Column("a"), AscendingSortDirection, SortNullsFirst)),
+            order = Seq(SortOrder(simplyNamedColumn("a"), AscendingSortDirection, SortNullsFirst)),
             is_global = false),
-          Seq(Column("a"))))
+          Seq(simplyNamedColumn("a"))))
 
       singleQueryExample(
         query = "SELECT a FROM b ORDER BY a DESC NULLS FIRST",
         expectedAst = Project(
           Sort(
             input = NamedTable("b", Map.empty, is_streaming = false),
-            order = Seq(SortOrder(Column("a"), DescendingSortDirection, SortNullsFirst)),
+            order = Seq(SortOrder(simplyNamedColumn("a"), DescendingSortDirection, SortNullsFirst)),
             is_global = false),
-          Seq(Column("a"))))
+          Seq(simplyNamedColumn("a"))))
     }
 
     "translate queries with LIMIT and OFFSET" in {
       singleQueryExample(
         query = "SELECT a FROM b LIMIT 5",
-        expectedAst = Project(Limit(NamedTable("b", Map.empty, is_streaming = false), 5), Seq(Column("a"))))
+        expectedAst = Project(Limit(NamedTable("b", Map.empty, is_streaming = false), 5), Seq(simplyNamedColumn("a"))))
       singleQueryExample(
         query = "SELECT a FROM b LIMIT 5 OFFSET 10",
-        expectedAst = Project(Offset(Limit(NamedTable("b", Map.empty, is_streaming = false), 5), 10), Seq(Column("a"))))
+        expectedAst =
+          Project(Offset(Limit(NamedTable("b", Map.empty, is_streaming = false), 5), 10), Seq(simplyNamedColumn("a"))))
       singleQueryExample(
         query = "SELECT a FROM b OFFSET 10 FETCH FIRST 42",
-        expectedAst = Project(Offset(NamedTable("b", Map.empty, is_streaming = false), 10), Seq(Column("a"))))
+        expectedAst =
+          Project(Offset(NamedTable("b", Map.empty, is_streaming = false), 10), Seq(simplyNamedColumn("a"))))
     }
     "translate a query with PIVOT" in {
       singleQueryExample(
@@ -231,9 +242,10 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
           Aggregate(
             input = NamedTable("b", Map.empty, is_streaming = false),
             group_type = Pivot,
-            grouping_expressions = Seq(CallFunction("SUM", Seq(Column("a")))),
-            pivot = Some(Pivot(Column("c"), Seq(Literal(string = Some("foo")), Literal(string = Some("bar")))))),
-          Seq(Column("a"))))
+            grouping_expressions = Seq(CallFunction("SUM", Seq(simplyNamedColumn("a")))),
+            pivot =
+              Some(Pivot(simplyNamedColumn("c"), Seq(Literal(string = Some("foo")), Literal(string = Some("bar")))))),
+          Seq(simplyNamedColumn("a"))))
     }
 
     "translate a query with UNPIVOT" in {
@@ -242,11 +254,11 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
         expectedAst = Project(
           Unpivot(
             input = NamedTable("b", Map.empty, is_streaming = false),
-            ids = Seq(Column("e"), Column("f")),
+            ids = Seq(simplyNamedColumn("e"), simplyNamedColumn("f")),
             values = None,
-            variable_column_name = "c",
-            value_column_name = "d"),
-          Seq(Column("a"))))
+            variable_column_name = Id("c"),
+            value_column_name = Id("d")),
+          Seq(simplyNamedColumn("a"))))
     }
 
     "translate queries with WITH clauses" in {
@@ -256,9 +268,10 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
           Seq(
             CTEDefinition(
               tableName = "a",
-              columns = Seq(Column("b"), Column("c"), Column("d")),
-              cte = Project(namedTable("e"), Seq(Column("x"), Column("y"), Column("z"))))),
-          Project(namedTable("a"), Seq(Column("b"), Column("c"), Column("d")))))
+              columns = Seq(simplyNamedColumn("b"), simplyNamedColumn("c"), simplyNamedColumn("d")),
+              cte =
+                Project(namedTable("e"), Seq(simplyNamedColumn("x"), simplyNamedColumn("y"), simplyNamedColumn("z"))))),
+          Project(namedTable("a"), Seq(simplyNamedColumn("b"), simplyNamedColumn("c"), simplyNamedColumn("d")))))
 
       singleQueryExample(
         query =
@@ -267,13 +280,14 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
           Seq(
             CTEDefinition(
               tableName = "a",
-              columns = Seq(Column("b"), Column("c"), Column("d")),
-              cte = Project(namedTable("e"), Seq(Column("x"), Column("y"), Column("z")))),
+              columns = Seq(simplyNamedColumn("b"), simplyNamedColumn("c"), simplyNamedColumn("d")),
+              cte =
+                Project(namedTable("e"), Seq(simplyNamedColumn("x"), simplyNamedColumn("y"), simplyNamedColumn("z")))),
             CTEDefinition(
               tableName = "aa",
-              columns = Seq(Column("bb"), Column("cc")),
-              cte = Project(namedTable("f"), Seq(Column("xx"), Column("yy"))))),
-          Project(namedTable("a"), Seq(Column("b"), Column("c"), Column("d")))))
+              columns = Seq(simplyNamedColumn("bb"), simplyNamedColumn("cc")),
+              cte = Project(namedTable("f"), Seq(simplyNamedColumn("xx"), simplyNamedColumn("yy"))))),
+          Project(namedTable("a"), Seq(simplyNamedColumn("b"), simplyNamedColumn("c"), simplyNamedColumn("d")))))
     }
 
     "translate a query with WHERE, GROUP BY, HAVING, QUALIFY" in {
@@ -288,17 +302,21 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
           Filter(
             Filter(
               Aggregate(
-                input = Filter(namedTable("t1"), LesserThan(Column("c3"), Literal(short = Some(4)))),
+                input = Filter(namedTable("t1"), LesserThan(simplyNamedColumn("c3"), Literal(short = Some(4)))),
                 group_type = GroupBy,
-                grouping_expressions = Seq(Column("c2"), Column("c3")),
+                grouping_expressions = Seq(simplyNamedColumn("c2"), simplyNamedColumn("c3")),
                 pivot = None),
-              GreaterThanOrEqual(CallFunction("AVG", Seq(Column("c1"))), Literal(short = Some(5)))),
-            GreaterThan(CallFunction("MIN", Seq(Column("r"))), Literal(short = Some(6)))),
+              GreaterThanOrEqual(CallFunction("AVG", Seq(simplyNamedColumn("c1"))), Literal(short = Some(5)))),
+            GreaterThan(CallFunction("MIN", Seq(simplyNamedColumn("r"))), Literal(short = Some(6)))),
           Seq(
-            Column("c2"),
+            simplyNamedColumn("c2"),
             Alias(
-              Window(CallFunction("SUM", Seq(Column("c3"))), Seq(Column("c2")), Seq(), DummyWindowFrame),
-              Seq("r"),
+              Window(
+                CallFunction("SUM", Seq(simplyNamedColumn("c3"))),
+                Seq(simplyNamedColumn("c2")),
+                Seq(),
+                DummyWindowFrame),
+              Seq(Id("r")),
               None))))
     }
 
@@ -306,8 +324,8 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
       singleQueryExample(
         "SELECT a FROM t1 UNION SELECT b FROM t2",
         SetOperation(
-          Project(namedTable("t1"), Seq(Column("a"))),
-          Project(namedTable("t2"), Seq(Column("b"))),
+          Project(namedTable("t1"), Seq(simplyNamedColumn("a"))),
+          Project(namedTable("t2"), Seq(simplyNamedColumn("b"))),
           UnionSetOp,
           is_all = false,
           by_name = false,
@@ -315,8 +333,8 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
       singleQueryExample(
         "SELECT a FROM t1 UNION ALL SELECT b FROM t2",
         SetOperation(
-          Project(namedTable("t1"), Seq(Column("a"))),
-          Project(namedTable("t2"), Seq(Column("b"))),
+          Project(namedTable("t1"), Seq(simplyNamedColumn("a"))),
+          Project(namedTable("t2"), Seq(simplyNamedColumn("b"))),
           UnionSetOp,
           is_all = true,
           by_name = false,
@@ -324,8 +342,8 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
       singleQueryExample(
         "SELECT a FROM t1 MINUS SELECT b FROM t2",
         SetOperation(
-          Project(namedTable("t1"), Seq(Column("a"))),
-          Project(namedTable("t2"), Seq(Column("b"))),
+          Project(namedTable("t1"), Seq(simplyNamedColumn("a"))),
+          Project(namedTable("t2"), Seq(simplyNamedColumn("b"))),
           ExceptSetOp,
           is_all = false,
           by_name = false,
@@ -333,8 +351,8 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
       singleQueryExample(
         "SELECT a FROM t1 EXCEPT SELECT b FROM t2",
         SetOperation(
-          Project(namedTable("t1"), Seq(Column("a"))),
-          Project(namedTable("t2"), Seq(Column("b"))),
+          Project(namedTable("t1"), Seq(simplyNamedColumn("a"))),
+          Project(namedTable("t2"), Seq(simplyNamedColumn("b"))),
           ExceptSetOp,
           is_all = false,
           by_name = false,
@@ -343,8 +361,8 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
       singleQueryExample(
         "SELECT a FROM t1 INTERSECT SELECT b FROM t2",
         SetOperation(
-          Project(namedTable("t1"), Seq(Column("a"))),
-          Project(namedTable("t2"), Seq(Column("b"))),
+          Project(namedTable("t1"), Seq(simplyNamedColumn("a"))),
+          Project(namedTable("t2"), Seq(simplyNamedColumn("b"))),
           IntersectSetOp,
           is_all = false,
           by_name = false,
@@ -355,18 +373,18 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
         SetOperation(
           SetOperation(
             SetOperation(
-              Project(namedTable("t1"), Seq(Column("a"))),
-              Project(namedTable("t2"), Seq(Column("b"))),
+              Project(namedTable("t1"), Seq(simplyNamedColumn("a"))),
+              Project(namedTable("t2"), Seq(simplyNamedColumn("b"))),
               IntersectSetOp,
               is_all = false,
               by_name = false,
               allow_missing_columns = false),
-            Project(namedTable("t3"), Seq(Column("c"))),
+            Project(namedTable("t3"), Seq(simplyNamedColumn("c"))),
             ExceptSetOp,
             is_all = false,
             by_name = false,
             allow_missing_columns = false),
-          Project(namedTable("t4"), Seq(Column("d"))),
+          Project(namedTable("t4"), Seq(simplyNamedColumn("d"))),
           UnionSetOp,
           is_all = false,
           by_name = false,
@@ -384,7 +402,7 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
         Batch(
           Seq(
             CreateTableCommand("t1", Seq(ColumnDeclaration("x", VarCharType(None)))),
-            Project(namedTable("t1"), Seq(Column("x"))),
+            Project(namedTable("t1"), Seq(simplyNamedColumn("x"))),
             Project(namedTable("t3"), Seq(Literal(short = Some(3)))))))
     }
   }

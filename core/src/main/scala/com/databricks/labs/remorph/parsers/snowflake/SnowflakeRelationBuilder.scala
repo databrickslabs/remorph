@@ -53,7 +53,7 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.Relation] w
       projectExpressions: Seq[ir.Expression]): ir.Relation =
     if (Option(ctx).exists(_.DISTINCT() != null)) {
       val columnNames = projectExpressions.collect {
-        case ir.Column(c) => Seq(c)
+        case ir.Column(_, c) => Seq(c)
         case ir.Alias(_, a, _) => a
       }.flatten
       ir.Deduplicate(input, columnNames, columnNames.isEmpty, within_watermark = false)
@@ -114,7 +114,7 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.Relation] w
   private def buildOrderBy(ctx: OrderByClauseContext, input: ir.Relation): ir.Relation = {
     Option(ctx).fold(input) { c =>
       val sortOrders = c.orderItem().asScala.map { orderItem =>
-        val expression = orderItem.accept(expressionBuilder)
+        val expression = orderItem.expr().accept(expressionBuilder)
         if (orderItem.DESC() == null) {
           if (orderItem.NULLS() != null && orderItem.FIRST() != null) {
             ir.SortOrder(expression, ir.AscendingSortDirection, ir.SortNullsFirst)
@@ -135,7 +135,9 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.Relation] w
 
   override def visitObjRefSubquery(ctx: ObjRefSubqueryContext): ir.Relation = {
     val subquery = ctx.subquery().accept(this)
-    Option(ctx.asAlias()).map(a => ir.SubqueryAlias(subquery, a.alias().getText, "")).getOrElse(subquery)
+    Option(ctx.asAlias())
+      .map(a => ir.SubqueryAlias(subquery, expressionBuilder.visitId(a.alias().id()), ""))
+      .getOrElse(subquery)
   }
   override def visitObjRefValues(ctx: ObjRefValuesContext): ir.Relation = {
     val expressions =
@@ -166,16 +168,18 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.Relation] w
 
   private def buildPivot(ctx: PivotUnpivotContext, relation: ir.Relation): ir.Relation = {
     val pivotValues: Seq[ir.Literal] =
-      ctx.literal().asScala.map(_.accept(expressionBuilder)).collect { case lit: ir.Literal =>
+      ctx.values.asScala.map(_.accept(expressionBuilder)).collect { case lit: ir.Literal =>
         lit
       }
-    val pivotColumn = ir.Column(ctx.id(2).getText)
-    val aggregateFunction = translateAggregateFunction(ctx.id(0), ctx.id(1))
+    val argument = ir.Column(None, expressionBuilder.visitId(ctx.pivotColumn))
+    val column = ir.Column(None, expressionBuilder.visitId(ctx.valueColumn))
+    val aggFunc = expressionBuilder.visitId(ctx.aggregateFunc)
+    val aggregateFunction = functionBuilder.buildFunction(aggFunc, Seq(argument))
     ir.Aggregate(
       input = relation,
       group_type = ir.Pivot,
       grouping_expressions = Seq(aggregateFunction),
-      pivot = Some(ir.Pivot(pivotColumn, pivotValues)))
+      pivot = Some(ir.Pivot(column, pivotValues)))
   }
 
   private def buildUnpivot(ctx: PivotUnpivotContext, relation: ir.Relation): ir.Relation = {
@@ -184,19 +188,14 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.Relation] w
       .columnName()
       .asScala
       .map(_.accept(expressionBuilder))
-    val variableColumnName = ctx.id(0).getText
-    val valueColumnName = ctx.columnName().id(0).getText
+    val variableColumnName = expressionBuilder.visitId(ctx.valueColumn)
+    val valueColumnName = expressionBuilder.visitId(ctx.nameColumn)
     ir.Unpivot(
       input = relation,
       ids = unpivotColumns,
       values = None,
       variable_column_name = variableColumnName,
       value_column_name = valueColumnName)
-  }
-
-  private[snowflake] def translateAggregateFunction(aggFunc: IdContext, parameter: IdContext): ir.Expression = {
-    val column = ir.Column(getIdText(parameter))
-    functionBuilder.buildFunction(getIdText(aggFunc), Seq(column))
   }
 
   override def visitTableSource(ctx: TableSourceContext): ir.Relation = {

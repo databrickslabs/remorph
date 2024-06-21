@@ -1,12 +1,13 @@
 package com.databricks.labs.remorph.parsers.tsql
 
+import com.databricks.labs.remorph.parsers.IRHelpers
 import com.databricks.labs.remorph.parsers.intermediate._
 import org.mockito.Mockito.{mock, when}
 import org.scalatest.Assertion
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matchers {
+class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matchers with IRHelpers {
 
   override protected def astBuilder: TSqlParserBaseVisitor[_] = new TSqlAstBuilder
 
@@ -22,21 +23,24 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
     "translate a simple SELECT query" in {
       example(
         query = "SELECT a FROM dbo.table_x",
-        expectedAst = Batch(Seq(Project(NamedTable("dbo.table_x", Map.empty, is_streaming = false), Seq(Column("a"))))))
+        expectedAst =
+          Batch(Seq(Project(NamedTable("dbo.table_x", Map.empty, is_streaming = false), Seq(simplyNamedColumn("a"))))))
 
       example(
         query = "SELECT a FROM TABLE",
-        expectedAst = Batch(Seq(Project(NamedTable("TABLE", Map.empty, is_streaming = false), Seq(Column("a"))))))
+        expectedAst =
+          Batch(Seq(Project(NamedTable("TABLE", Map.empty, is_streaming = false), Seq(simplyNamedColumn("a"))))))
     }
 
     "translate column aliases" in {
       example(
         query = "SELECT a AS b, J = BigCol FROM dbo.table_x",
         expectedAst = Batch(
-          Seq(
-            Project(
-              NamedTable("dbo.table_x", Map.empty, is_streaming = false),
-              Seq(Alias(Column("a"), Seq("b"), None), Alias(Column("BigCol"), Seq("J"), None))))))
+          Seq(Project(
+            NamedTable("dbo.table_x", Map.empty, is_streaming = false),
+            Seq(
+              Alias(simplyNamedColumn("a"), Seq(Id("b")), None),
+              Alias(simplyNamedColumn("BigCol"), Seq(Id("J")), None))))))
     }
 
     "accept constants in selects" in {
@@ -61,14 +65,17 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
           Seq(
             Project(
               NamedTable("dbo.table_x", Map.empty, is_streaming = false),
-              Seq(Collate(Column("a"), "Latin1_General_BIN"))))))
+              Seq(Collate(simplyNamedColumn("a"), "Latin1_General_BIN"))))))
     }
 
     "translate table source items with aliases" in {
       example(
         query = "SELECT a FROM dbo.table_x AS t",
         expectedAst = Batch(
-          Seq(Project(TableAlias(NamedTable("dbo.table_x", Map.empty, is_streaming = false), "t"), Seq(Column("a"))))))
+          Seq(
+            Project(
+              TableAlias(NamedTable("dbo.table_x", Map.empty, is_streaming = false), "t"),
+              Seq(simplyNamedColumn("a"))))))
     }
 
     "translate table sources involving *" in {
@@ -76,11 +83,14 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
         query = "SELECT * FROM dbo.table_x",
         expectedAst = Batch(Seq(Project(NamedTable("dbo.table_x", Map.empty, is_streaming = false), Seq(Star(None))))))
 
-      example(query = "SELECT t.*", expectedAst = Batch(Seq(Project(NoTable(), Seq(Star(objectName = Some("t")))))))
+      example(
+        query = "SELECT t.*",
+        expectedAst = Batch(Seq(Project(NoTable(), Seq(Star(objectName = Some(ObjectReference(Id("t")))))))))
 
       example(
         query = "SELECT x..b.y.*",
-        expectedAst = Batch(Seq(Project(NoTable(), Seq(Star(objectName = Some("x..b.y")))))))
+        expectedAst =
+          Batch(Seq(Project(NoTable(), Seq(Star(objectName = Some(ObjectReference(Id("x"), Id("b"), Id("y")))))))))
 
       // TODO: Add tests for OUTPUT clause once implemented - invalid semantics here to force coverage
       example(query = "SELECT INSERTED.*", expectedAst = Batch(Seq(Project(NoTable(), Seq(Inserted(Star(None)))))))
@@ -99,9 +109,18 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
               CrossJoin,
               Seq.empty,
               JoinDataType(is_left_struct = false, is_right_struct = false)),
-            Seq(Column("a"), Column("b"), Column("c"))))))
+            Seq(simplyNamedColumn("a"), simplyNamedColumn("b"), simplyNamedColumn("c"))))))
     }
+
+    val t1aCol = Column(Some(ObjectReference(Id("T1"))), Id("A"))
+    val t2aCol = Column(Some(ObjectReference(Id("T2"))), Id("A"))
+    val t3aCol = Column(Some(ObjectReference(Id("T3"))), Id("A"))
+    val t1bCol = Column(Some(ObjectReference(Id("T1"))), Id("B"))
+    val t2bCol = Column(Some(ObjectReference(Id("T2"))), Id("B"))
+    val t3bCol = Column(Some(ObjectReference(Id("T3"))), Id("B"))
+
     "translate a query with a JOIN" in {
+
       example(
         query = "SELECT T1.A, T2.B FROM DBO.TABLE_X AS T1 INNER JOIN DBO.TABLE_Y AS T2 ON T1.A = T2.A AND T1.B = T2.B",
         expectedAst = Batch(
@@ -109,13 +128,14 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
             Join(
               TableAlias(NamedTable("DBO.TABLE_X", Map(), is_streaming = false), "T1"),
               TableAlias(NamedTable("DBO.TABLE_Y", Map(), is_streaming = false), "T2"),
-              Some(And(Equals(Column("T1.A"), Column("T2.A")), Equals(Column("T1.B"), Column("T2.B")))),
+              Some(And(Equals(t1aCol, t2aCol), Equals(t1bCol, t2bCol))),
               InnerJoin,
               List(),
               JoinDataType(is_left_struct = false, is_right_struct = false)),
-            List(Column("T1.A"), Column("T2.B"))))))
+            List(t1aCol, t2bCol)))))
     }
     "translate a query with Multiple JOIN AND Condition" in {
+
       example(
         query = "SELECT T1.A, T2.B FROM DBO.TABLE_X AS T1 INNER JOIN DBO.TABLE_Y AS T2 ON T1.A = T2.A " +
           "LEFT JOIN DBO.TABLE_Z AS T3 ON T1.A = T3.A AND T1.B = T3.B",
@@ -125,16 +145,16 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
               Join(
                 TableAlias(NamedTable("DBO.TABLE_X", Map(), is_streaming = false), "T1"),
                 TableAlias(NamedTable("DBO.TABLE_Y", Map(), is_streaming = false), "T2"),
-                Some(Equals(Column("T1.A"), Column("T2.A"))),
+                Some(Equals(t1aCol, t2aCol)),
                 InnerJoin,
                 List(),
                 JoinDataType(is_left_struct = false, is_right_struct = false)),
               TableAlias(NamedTable("DBO.TABLE_Z", Map(), is_streaming = false), "T3"),
-              Some(And(Equals(Column("T1.A"), Column("T3.A")), Equals(Column("T1.B"), Column("T3.B")))),
+              Some(And(Equals(t1aCol, t3aCol), Equals(t1bCol, t3bCol))),
               LeftOuterJoin,
               List(),
               JoinDataType(is_left_struct = false, is_right_struct = false)),
-            List(Column("T1.A"), Column("T2.B"))))))
+            List(t1aCol, t2bCol)))))
     }
     "translate a query with Multiple JOIN OR Conditions" in {
       example(
@@ -146,16 +166,16 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
               Join(
                 TableAlias(NamedTable("DBO.TABLE_X", Map(), is_streaming = false), "T1"),
                 TableAlias(NamedTable("DBO.TABLE_Y", Map(), is_streaming = false), "T2"),
-                Some(Equals(Column("T1.A"), Column("T2.A"))),
+                Some(Equals(t1aCol, t2aCol)),
                 InnerJoin,
                 List(),
                 JoinDataType(is_left_struct = false, is_right_struct = false)),
               TableAlias(NamedTable("DBO.TABLE_Z", Map(), is_streaming = false), "T3"),
-              Some(Or(Equals(Column("T1.A"), Column("T3.A")), Equals(Column("T1.B"), Column("T3.B")))),
+              Some(Or(Equals(t1aCol, t3aCol), Equals(t1bCol, t3bCol))),
               LeftOuterJoin,
               List(),
               JoinDataType(is_left_struct = false, is_right_struct = false)),
-            List(Column("T1.A"), Column("T2.B"))))))
+            List(t1aCol, t2bCol)))))
     }
     "translate a query with a RIGHT OUTER JOIN" in {
       example(
@@ -165,11 +185,11 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
             Join(
               TableAlias(NamedTable("DBO.TABLE_X", Map(), is_streaming = false), "T1"),
               TableAlias(NamedTable("DBO.TABLE_Y", Map(), is_streaming = false), "T2"),
-              Some(Equals(Column("T1.A"), Column("T2.A"))),
+              Some(Equals(t1aCol, t2aCol)),
               RightOuterJoin,
               List(),
               JoinDataType(is_left_struct = false, is_right_struct = false)),
-            List(Column("T1.A"))))))
+            List(t1aCol)))))
     }
     "translate a query with a FULL OUTER JOIN" in {
       example(
@@ -179,11 +199,11 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
             Join(
               TableAlias(NamedTable("DBO.TABLE_X", Map(), is_streaming = false), "T1"),
               TableAlias(NamedTable("DBO.TABLE_Y", Map(), is_streaming = false), "T2"),
-              Some(Equals(Column("T1.A"), Column("T2.A"))),
+              Some(Equals(t1aCol, t2aCol)),
               FullOuterJoin,
               List(),
               JoinDataType(is_left_struct = false, is_right_struct = false)),
-            List(Column("T1.A"))))))
+            List(t1aCol)))))
     }
 
     "cover default case in translateJoinType" in {
@@ -214,7 +234,9 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
         expectedAst = Batch(
           Seq(Project(
             NamedTable("tab", Map(), is_streaming = false),
-            Seq(XmlFunction(CallFunction("query", Seq(Literal(string = Some("/root/child")))), Column("xmlcolumn")))))))
+            Seq(XmlFunction(
+              CallFunction("query", Seq(Literal(string = Some("/root/child")))),
+              simplyNamedColumn("xmlcolumn")))))))
 
       example(
         "SELECT xmlcolumn.value('path', 'type') FROM tab",
@@ -223,7 +245,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
             NamedTable("tab", Map(), is_streaming = false),
             Seq(XmlFunction(
               CallFunction("value", Seq(Literal(string = Some("path")), Literal(string = Some("type")))),
-              Column("xmlcolumn")))))))
+              simplyNamedColumn("xmlcolumn")))))))
 
       example(
         "SELECT xmlcolumn.exist('/root/child[text()=\"Some Value\"]') FROM xmltable;",
@@ -232,7 +254,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
             NamedTable("xmltable", Map(), is_streaming = false),
             Seq(XmlFunction(
               CallFunction("exist", Seq(Literal(string = Some("/root/child[text()=\"Some Value\"]")))),
-              Column("xmlcolumn")))))))
+              simplyNamedColumn("xmlcolumn")))))))
 
       // TODO: Add nodes(), modify(), when we complete UPDATE and CROSS APPLY
     }
@@ -277,10 +299,13 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
 
       example(
         query = "SELECT @a %= myColumn",
-        expectedAst = Batch(Seq(Project(
-          NoTable(),
+        expectedAst = Batch(
           Seq(
-            Assign(Identifier("@a", isQuoted = false), Mod(Identifier("@a", isQuoted = false), Column("myColumn"))))))))
+            Project(
+              NoTable(),
+              Seq(Assign(
+                Identifier("@a", isQuoted = false),
+                Mod(Identifier("@a", isQuoted = false), simplyNamedColumn("myColumn"))))))))
 
       example(
         query = "SELECT @a &= myColumn",
@@ -290,7 +315,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
               NoTable(),
               Seq(Assign(
                 Identifier("@a", isQuoted = false),
-                BitwiseAnd(Identifier("@a", isQuoted = false), Column("myColumn"))))))))
+                BitwiseAnd(Identifier("@a", isQuoted = false), simplyNamedColumn("myColumn"))))))))
 
       example(
         query = "SELECT @a ^= myColumn",
@@ -300,7 +325,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
               NoTable(),
               Seq(Assign(
                 Identifier("@a", isQuoted = false),
-                BitwiseXor(Identifier("@a", isQuoted = false), Column("myColumn"))))))))
+                BitwiseXor(Identifier("@a", isQuoted = false), simplyNamedColumn("myColumn"))))))))
 
       example(
         query = "SELECT @a |= myColumn",
@@ -310,7 +335,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
               NoTable(),
               Seq(Assign(
                 Identifier("@a", isQuoted = false),
-                BitwiseOr(Identifier("@a", isQuoted = false), Column("myColumn"))))))))
+                BitwiseOr(Identifier("@a", isQuoted = false), simplyNamedColumn("myColumn"))))))))
     }
     "translate scalar subqueries as expressions in select list" in {
       example(
@@ -324,11 +349,12 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
           Seq(Project(
             NamedTable("Employees", Map(), is_streaming = false),
             Seq(
-              Column("EmployeeID"),
-              Column("Name"),
+              simplyNamedColumn("EmployeeID"),
+              simplyNamedColumn("Name"),
               Alias(
-                ScalarSubquery(Project(NamedTable("Employees", Map(), is_streaming = false), Seq(Column("AvgSalary")))),
-                Seq("AverageSalary"),
+                ScalarSubquery(
+                  Project(NamedTable("Employees", Map(), is_streaming = false), Seq(simplyNamedColumn("AvgSalary")))),
+                Seq(Id("AverageSalary")),
                 None))))))
     }
   }
@@ -351,22 +377,28 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
         Seq(Project(
           Deduplicate(
             NamedTable("t", Map(), is_streaming = false),
-            List("a", "bb"),
+            List(Id("a"), Id("bb")),
             all_columns_as_keys = false,
             within_watermark = false),
-          Seq(Column("a"), Alias(Column("b"), Seq("bb"), None))))))
+          Seq(simplyNamedColumn("a"), Alias(simplyNamedColumn("b"), Seq(Id("bb")), None))))))
   }
 
   "Columns specified with dedicated syntax" in {
     example(
       query = "SELECT NEXT VALUE FOR mySequence As nextVal",
-      expectedAst = Batch(Seq(
-        Project(NoTable(), Seq(Alias(CallFunction("MONOTONICALLY_INCREASING_ID", List.empty), Seq("nextVal"), None))))))
+      expectedAst = Batch(
+        Seq(
+          Project(
+            NoTable(),
+            Seq(Alias(CallFunction("MONOTONICALLY_INCREASING_ID", List.empty), Seq(Id("nextVal")), None))))))
 
     example(
       query = "SELECT NEXT VALUE FOR var.mySequence As nextVal",
-      expectedAst = Batch(Seq(
-        Project(NoTable(), Seq(Alias(CallFunction("MONOTONICALLY_INCREASING_ID", List.empty), Seq("nextVal"), None))))))
+      expectedAst = Batch(
+        Seq(
+          Project(
+            NoTable(),
+            Seq(Alias(CallFunction("MONOTONICALLY_INCREASING_ID", List.empty), Seq(Id("nextVal")), None))))))
 
     example(
       query = "SELECT NEXT VALUE FOR var.mySequence OVER (ORDER BY myColumn) As nextVal ",
@@ -377,12 +409,12 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
             Window(
               CallFunction("ROW_NUMBER", List.empty),
               List.empty,
-              List(SortOrder(Column("myColumn"), AscendingSortDirection, SortNullsUnspecified)),
+              List(SortOrder(simplyNamedColumn("myColumn"), AscendingSortDirection, SortNullsUnspecified)),
               WindowFrame(
                 UndefinedFrame,
                 FrameBoundary(current_row = false, unbounded = false, Noop),
                 FrameBoundary(current_row = false, unbounded = false, Noop))),
-            Seq("nextVal"),
+            Seq(Id("nextVal")),
             None))))))
 
   }
@@ -415,31 +447,31 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
           Seq(
             CTEDefinition(
               "cteTable1",
-              Seq(Column("col1"), Column("col2"), Column("col3count")),
+              Seq(simplyNamedColumn("col1"), simplyNamedColumn("col2"), simplyNamedColumn("col3count")),
               Project(
                 NamedTable("Table1", Map(), is_streaming = false),
                 Seq(
-                  Column("col1"),
-                  Column("fred"),
-                  Alias(CallFunction("COUNT", Seq(Column("OrderDate"))), Seq("counter"), None)))),
+                  simplyNamedColumn("col1"),
+                  simplyNamedColumn("fred"),
+                  Alias(CallFunction("COUNT", Seq(simplyNamedColumn("OrderDate"))), Seq(Id("counter")), None)))),
             CTEDefinition(
               "cteTable2",
-              Seq(Column("colx"), Column("coly"), Column("colxcount")),
+              Seq(simplyNamedColumn("colx"), simplyNamedColumn("coly"), simplyNamedColumn("colxcount")),
               Project(
                 NamedTable("Table2", Map(), is_streaming = false),
                 Seq(
-                  Column("col1"),
-                  Column("fred"),
-                  Alias(CallFunction("COUNT", Seq(Column("OrderDate"))), Seq("counter"), None))))),
+                  simplyNamedColumn("col1"),
+                  simplyNamedColumn("fred"),
+                  Alias(CallFunction("COUNT", Seq(simplyNamedColumn("OrderDate"))), Seq(Id("counter")), None))))),
           Project(
             NamedTable("cteTable", Map(), is_streaming = false),
             Seq(
-              Column("col2"),
-              Column("col1"),
-              Column("col3count"),
-              Column("colx"),
-              Column("coly"),
-              Column("colxcount")))))))
+              simplyNamedColumn("col2"),
+              simplyNamedColumn("col1"),
+              simplyNamedColumn("col3count"),
+              simplyNamedColumn("colx"),
+              simplyNamedColumn("coly"),
+              simplyNamedColumn("colxcount")))))))
   }
 
   "parse genericOptions correctly" in {
