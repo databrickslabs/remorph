@@ -3586,10 +3586,6 @@ exprList
     : expr (COMMA expr)*
     ;
 
-exprListSorted
-    : expr ascDesc? (COMMA expr ascDesc?)*
-    ;
-
 expr
     : objectName DOT NEXTVAL                       #exprNextval
     | expr LSB expr RSB                             #exprArrayAccess
@@ -3712,23 +3708,6 @@ primitiveExpression
     | OBJECT_Q         # primExprObject
     //| jsonLiteral
     //| arrLiteral
-    ;
-
-orderByExpr
-    : ORDER BY exprListSorted
-    ;
-
-//orderByExprList
-//    : ORDER BY exprList
-//    ;
-
-//overClauseWindow
-//    : OVER L_PAREN partitionBy? orderByExpr (cumulativeFrame | slidingFrame)? R_PAREN
-//    ;
-
-ascDesc
-    : ASC
-    | DESC
     ;
 
 overClause
