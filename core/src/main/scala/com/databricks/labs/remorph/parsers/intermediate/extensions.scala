@@ -175,3 +175,11 @@ case class ValueArray(expressions: Seq[Expression]) extends Expression {}
 
 case class NamedStruct(keys: Seq[Expression], values: Seq[Expression]) extends Expression {}
 case class FilterStruct(input: NamedStruct, lambdaFunction: LambdaFunction) extends Expression {}
+
+case class BackupDatabase(
+    databaseName: String,
+    disks: Seq[String],
+    flags: Map[String, Boolean],
+    autoFlags: Seq[String],
+    values: Map[String, Expression])
+    extends Command {}

@@ -23,9 +23,12 @@ Databricks Labs Remorph
     * [Verify Installation](#verify-installation-1)
     * [Execution Pre-Set Up](#execution-pre-set-up-1)
     * [Execution](#execution-1)
+* [Benchmarks](#benchmarks)
+  * [Transpile](#Transpile-benchmarks)
+  * [Reconcile](#Reconcile-benchmarks)
 * [Frequently Asked Questions](#frequently-asked-questions)
-  * [Transpile](#Transpiler)
-  * [Reconcile](#Reconciler)
+  * [Transpile](#Transpile-faq)
+  * [Reconcile](#Reconcile-faq)
 * [Common Error Codes](#common-error-codes)
 * [Project Support](#project-support)
 
@@ -167,12 +170,140 @@ Execute the below command to initialize the reconcile process.
 
 ----
 
-# Frequently Asked Questions
+# Benchmarks
 
-## Transpiler
+## Transpile-benchmarks
 TBD
 
-## Reconciler
+## Reconcile-benchmarks
+
+### tpch `1000GB` data details
+
+<table>
+
+<tr>
+<th>Table name</th>
+<th>No of rows</th>
+<th>Data Size</th>
+<th>Set </th>
+</tr>
+
+<tr>
+<td>supplier</td>
+<td>10M</td>
+<td>754.7 MiB</td>
+<td>Set 1</td>
+</tr>
+
+<tr>
+<td>customer</td>
+<td>150M</td>
+<td>11.5 GiB</td>
+<td>Set 1</td>
+</tr>
+
+<tr>
+<td>part</td>
+<td>200M</td>
+<td>5.8 GiB</td>
+<td>Set 1</td>
+</tr>
+
+<tr>
+<td>partsupp</td>
+<td>800M</td>
+<td>39.9 GiB</td>
+<td>Set 1</td>
+</tr>
+
+<tr>
+<td>orders</td>
+<td>1.5B</td>
+<td>62.4 GiB</td>
+<td>Set 1</td>
+</tr>
+
+<tr>
+<td>lineitem</td>
+<td>6B</td>
+<td>217.6 GiB</td>
+<td>Set 2</td>
+</tr>
+
+
+</table>
+
+## Databricks to Databricks Recon
+
+The following benchmarks were conducted on various Databricks clusters. Please note that the reconciliation times listed below do not include cluster startup time.
+
+>Cluster1 -- 14.3 LTS (includes Apache Spark 3.5.0, Scala 2.12) `Photon Enabled`
+<table>
+  <tr>
+    <td></td>
+    <td>VM</td>
+    <td>Quantity</td>
+    <td>Total Cores</td>
+    <td>Total RAM</td>
+  </tr>
+  <tr>
+    <td>Driver:</td>
+    <td>**i3.xlarge**</td>
+    <td>**1**</td>
+    <td>**4 cores**</td>
+    <td>**30.5 GB**</td>
+  </tr>
+  <tr>
+    <td>Workers:</td>
+    <td>**i3.xlarge**</td>
+    <td>**10**</td>
+    <td>**40 cores**</td>
+    <td>**305 GB**</td>
+  </tr>
+</table>
+
+>Cluster2 -- 14.3 LTS (includes Apache Spark 3.5.0, Scala 2.12) `Photon Enabled`
+<table>
+  <tr>
+    <td></td>
+    <td>VM</td>
+    <td>Quantity</td>
+    <td>Total Cores</td>
+    <td>Total RAM</td>
+  </tr>
+  <tr>
+    <td>Driver:</td>
+    <td>**i3.2xlarge**</td>
+    <td>**1**</td>
+    <td>**8 cores**</td>
+    <td>**61 GB**</td>
+  </tr>
+  <tr>
+    <td>Workers:</td>
+    <td>**i3.2xlarge**</td>
+    <td>**10**</td>
+    <td>**80 cores**</td>
+    <td>**610 GB**</td>
+  </tr>
+</table>
+
+>Benchmark
+
+| Type           | Data                   | Cluster1 | Cluster2 |
+|----------------|------------------------| --- | --- |
+| With Threshold | tpch (set 1 and set 2)  | 1.46 hours | 50.12 minutes |
+| Without Threshold | tpch (set 1 and set 2)  | 1.34 hours | 45.58 minutes |
+
+[[back to top](#table-of-contents)]
+
+----
+
+# Frequently Asked Questions
+
+## Transpile-faq
+TBD
+
+## Reconcile-faq
 
 <details>
 <summary>Can we reconcile for Databricks without UC as a target?</summary>
@@ -217,7 +348,7 @@ for examples.***
 primary keys.***
 </details>
 
-[[back to top](#remorph-reconciliation)]
+[[back to top](#table-of-contents)]
 
 ----
 
