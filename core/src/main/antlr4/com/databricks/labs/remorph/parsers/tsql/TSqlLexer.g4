@@ -27,6 +27,21 @@ THE SOFTWARE.
 // $antlr-format allowShortRulesOnASingleLine true, allowShortBlocksOnASingleLine true, minEmptyLines 0, alignSemicolons ownLine
 // $antlr-format alignColons trailing, singleLineOverrulesHangingColon true, alignLexerCommands true, alignLabels true, alignTrailers true
 
+// $antlr-format alignTrailingComments true
+// $antlr-format columnLimit 150
+// $antlr-format maxEmptyLinesToKeep 1
+// $antlr-format reflowComments false
+// $antlr-format useTab false
+// $antlr-format allowShortRulesOnASingleLine true
+// $antlr-format allowShortBlocksOnASingleLine true
+// $antlr-format minEmptyLines 0
+// $antlr-format alignSemicolons ownLine
+// $antlr-format alignColons trailing
+// $antlr-format singleLineOverrulesHangingColon true
+// $antlr-format alignLexerCommands true
+// $antlr-format alignLabels true
+// $antlr-format alignTrailers true
+//
 lexer grammar TSqlLexer;
 
 // Basic keywords (from https://msdn.microsoft.com/en-us/library/ms189822.aspx)
