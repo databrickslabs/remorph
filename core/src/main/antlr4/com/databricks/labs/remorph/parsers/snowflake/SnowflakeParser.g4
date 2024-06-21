@@ -3277,26 +3277,19 @@ primitiveExpression
     //| arrLiteral
     ;
 
-overClause
-    : OVER L_PAREN (PARTITION BY expr (COMMA expr)*)? windowOrderingAndFrame? R_PAREN
+overClause: OVER L_PAREN (PARTITION BY expr (COMMA expr)*)? windowOrderingAndFrame? R_PAREN
     ;
 
-windowOrderingAndFrame
-    : orderByClause rowOrRangeClause?
+windowOrderingAndFrame: orderByClause rowOrRangeClause?
     ;
 
-rowOrRangeClause
-    : (ROWS | RANGE) windowFrameExtent
+rowOrRangeClause: (ROWS | RANGE) windowFrameExtent
     ;
 
-windowFrameExtent
-    : BETWEEN windowFrameBound AND windowFrameBound
+windowFrameExtent: BETWEEN windowFrameBound AND windowFrameBound
     ;
 
-windowFrameBound
-    : UNBOUNDED (PRECEDING | FOLLOWING)
-    | num (PRECEDING | FOLLOWING)
-    | CURRENT ROW
+windowFrameBound: UNBOUNDED (PRECEDING | FOLLOWING) | num (PRECEDING | FOLLOWING) | CURRENT ROW
     ;
 
 functionCall
