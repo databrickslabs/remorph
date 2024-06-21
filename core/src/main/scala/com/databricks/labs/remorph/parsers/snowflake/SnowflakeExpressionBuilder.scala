@@ -51,6 +51,24 @@ class SnowflakeExpressionBuilder()
     }
   }
 
+  override def visitOrderItem(ctx: OrderItemContext): ir.SortOrder = {
+    val direction = if (ctx.DESC() != null) ir.DescendingSortDirection else ir.AscendingSortDirection
+    val nullOrdering = if (direction == ir.DescendingSortDirection) {
+      if (ctx.LAST() != null) {
+        ir.SortNullsLast
+      } else {
+        ir.SortNullsFirst
+      }
+    } else {
+      if (ctx.FIRST() != null) {
+        ir.SortNullsFirst
+      } else {
+        ir.SortNullsLast
+      }
+    }
+    ir.SortOrder(ctx.expr().accept(this), direction, nullOrdering)
+  }
+
   override def visitFullColumnName(ctx: FullColumnNameContext): ir.Expression = {
     val ids = ctx.id().asScala.map(visitId)
     val colName = ids.last
@@ -68,11 +86,11 @@ class SnowflakeExpressionBuilder()
     if (ctx.STRING() != null) {
       ir.Literal(string = Some(removeQuotes(ctx.STRING().getText)))
     } else if (ctx.DECIMAL() != null) {
-      visitDecimal(sign + ctx.DECIMAL().getText)
+      buildLiteralNumber(sign + ctx.DECIMAL().getText)
     } else if (ctx.FLOAT() != null) {
-      visitDecimal(sign + ctx.FLOAT().getText)
+      buildLiteralNumber(sign + ctx.FLOAT().getText)
     } else if (ctx.REAL() != null) {
-      visitDecimal(sign + ctx.REAL().getText)
+      buildLiteralNumber(sign + ctx.REAL().getText)
     } else if (ctx.trueFalse() != null) {
       visitTrueFalse(ctx.trueFalse())
     } else if (ctx.NULL_() != null) {
@@ -81,6 +99,8 @@ class SnowflakeExpressionBuilder()
       ir.Literal(nullType = Some(ir.NullType()))
     }
   }
+
+  override def visitNum(ctx: NumContext): ir.Literal = buildLiteralNumber(ctx.getText)
 
   private def removeQuotes(str: String): String = {
     str.stripPrefix("'").stripSuffix("'")
@@ -91,7 +111,7 @@ class SnowflakeExpressionBuilder()
     case _ => ir.Literal(boolean = Some(true))
   }
 
-  private def visitDecimal(decimal: String) = BigDecimal(decimal) match {
+  private def buildLiteralNumber(decimal: String): ir.Literal = BigDecimal(decimal) match {
     case d if d.isValidShort => ir.Literal(short = Some(d.toShort))
     case d if d.isValidInt => ir.Literal(integer = Some(d.toInt))
     case d if d.isValidLong => ir.Literal(long = Some(d.toLong))
@@ -252,17 +272,21 @@ class SnowflakeExpressionBuilder()
   }
 
   private def buildWindow(ctx: OverClauseContext, windowFunction: ir.Expression): ir.Expression = {
-    val overClause = Option(ctx)
     val partitionSpec =
-      overClause.flatMap(o => Option(o.partitionBy())).map(buildPartitionSpec).getOrElse(Seq())
+      ctx.expr().asScala.map(_.accept(this))
     val sortOrder =
-      overClause.flatMap(o => Option(o.orderByExpr())).map(buildSortOrder).getOrElse(Seq())
+      Option(ctx.windowOrderingAndFrame()).map(c => buildSortOrder(c.orderByClause())).getOrElse(Seq())
+
+    val frameSpec =
+      Option(ctx.windowOrderingAndFrame())
+        .flatMap(c => Option(c.rowOrRangeClause()))
+        .map(buildWindowFrame)
 
     ir.Window(
       window_function = windowFunction,
       partition_spec = partitionSpec,
       sort_order = sortOrder,
-      frame_spec = DummyWindowFrame)
+      frame_spec = frameSpec)
   }
 
   private[snowflake] def buildWindowFunction(ctx: RankingWindowedFunctionContext): ir.Expression = ctx match {
@@ -273,31 +297,23 @@ class SnowflakeExpressionBuilder()
     case c => ir.UnresolvedExpression(c.getText)
   }
 
-  private def buildPartitionSpec(ctx: PartitionByContext): Seq[ir.Expression] = {
-    ctx.exprList().expr().asScala.map(_.accept(this))
+  private[snowflake] def buildSortOrder(ctx: OrderByClauseContext): Seq[ir.SortOrder] = {
+    ctx.orderItem().asScala.map(visitOrderItem)
   }
 
-  private[snowflake] def buildSortOrder(ctx: OrderByExprContext): Seq[ir.SortOrder] = {
-    val exprList = ctx.exprListSorted()
-    val exprs = exprList.expr().asScala
-    val commas = exprList.COMMA().asScala.map(_.getSymbol.getStopIndex) :+ exprList.getStop.getStopIndex
-    val descs = exprList.ascDesc().asScala.filter(_.DESC() != null).map(_.getStop.getStopIndex)
+  private def buildWindowFrame(ctx: RowOrRangeClauseContext): ir.WindowFrame = {
+    val frameType = if (ctx.ROWS() != null) ir.RowsFrame else ir.RangeFrame
+    val lower = buildFrameBound(ctx.windowFrameExtent().windowFrameBound(0))
+    val upper = buildFrameBound(ctx.windowFrameExtent().windowFrameBound(1))
+    ir.WindowFrame(frameType, lower, upper)
+  }
 
-    // Lists returned by expr() and ascDesc() above may have different sizes
-    // for example with `ORDER BY a, b DESC, c` (3 expr but only 1 ascDesc).
-    // So we use the position of the ascDesc elements relative to the position of
-    // commas in the ORDER BY expression to determine which expr is affected by each ascDesc
-    exprs.zip(commas).map { case (expr, upperBound) =>
-      val direction =
-        descs
-          .find(pos => pos > expr.getStop.getStopIndex && pos <= upperBound)
-          .map(_ => ir.DescendingSortDirection)
-          .getOrElse(ir.AscendingSortDirection)
-
-      // no specification is available for nulls ordering, so defaulting to nulls last
-      // see https://github.com/databrickslabs/remorph/issues/258
-      ir.SortOrder(expr.accept(this), direction, ir.SortNullsLast)
-    }
+  private def buildFrameBound(ctx: WindowFrameBoundContext): ir.FrameBoundary = ctx match {
+    case c if c.UNBOUNDED() != null && c.PRECEDING != null => ir.UnboundedPreceding
+    case c if c.UNBOUNDED() != null && c.FOLLOWING() != null => ir.UnboundedFollowing
+    case c if c.num() != null && c.PRECEDING() != null => ir.PrecedingN(c.num().accept(this))
+    case c if c.num() != null && c.FOLLOWING() != null => ir.FollowingN(c.num().accept(this))
+    case c if c.CURRENT() != null => ir.CurrentRow
   }
 
   override def visitStandardFunction(ctx: StandardFunctionContext): ir.Expression = {

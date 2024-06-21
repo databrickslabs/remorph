@@ -1,7 +1,5 @@
 package com.databricks.labs.remorph.parsers.tsql
 
-import com.databricks.labs.remorph.parsers.intermediate.FrameBoundary
-import com.databricks.labs.remorph.parsers.tsql.TSqlParser.WindowFrameBoundContext
 import com.databricks.labs.remorph.parsers.{IRHelpers, intermediate => ir}
 import org.antlr.v4.runtime.tree.TerminalNodeImpl
 import org.antlr.v4.runtime.{CommonToken, Token}
@@ -290,22 +288,6 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
       val result = astBuilder.visitExprDot(mockDotExprCtx)
 
       result shouldBe a[ir.Dot]
-    }
-
-    "cover the unreachable default case in buildFrame" in {
-      val mockCtx = mock(classOf[WindowFrameBoundContext])
-
-      // Ensure that UNBOUNDED(), CURRENT() and INT() methods return null
-      when(mockCtx.UNBOUNDED()).thenReturn(null)
-      when(mockCtx.CURRENT()).thenReturn(null)
-      when(mockCtx.INT()).thenReturn(null)
-
-      val result = exprBuilder.buildFrame(mockCtx)
-
-      // Verify the result
-      result shouldBe a[FrameBoundary]
-      result.current_row shouldBe false
-      result.unbounded shouldBe false
     }
 
     "translate search conditions" in {

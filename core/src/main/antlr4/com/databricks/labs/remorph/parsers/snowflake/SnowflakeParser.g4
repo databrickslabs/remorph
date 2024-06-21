@@ -3732,7 +3732,11 @@ ascDesc
     ;
 
 overClause
-    : OVER L_PAREN (PARTITION BY expr (COMMA expr)*)? orderByClause? rowOrRangeClause? R_PAREN
+    : OVER L_PAREN (PARTITION BY expr (COMMA expr)*)? windowOrderingAndFrame? R_PAREN
+    ;
+
+windowOrderingAndFrame
+    : orderByClause rowOrRangeClause?
     ;
 
 rowOrRangeClause
@@ -3740,13 +3744,12 @@ rowOrRangeClause
     ;
 
 windowFrameExtent
-    : windowFrameBound
-    | BETWEEN windowFrameBound AND windowFrameBound
+    : BETWEEN windowFrameBound AND windowFrameBound
     ;
 
 windowFrameBound
     : UNBOUNDED (PRECEDING | FOLLOWING)
-    | INT (PRECEDING | FOLLOWING)
+    | num (PRECEDING | FOLLOWING)
     | CURRENT ROW
     ;
 

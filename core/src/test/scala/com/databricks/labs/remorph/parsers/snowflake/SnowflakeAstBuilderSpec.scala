@@ -199,7 +199,7 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
         expectedAst = Project(
           Sort(
             input = NamedTable("b", Map.empty, is_streaming = false),
-            order = Seq(SortOrder(simplyNamedColumn("a"), DescendingSortDirection, SortNullsLast)),
+            order = Seq(SortOrder(simplyNamedColumn("a"), DescendingSortDirection, SortNullsFirst)),
             is_global = false),
           Seq(simplyNamedColumn("a"))))
 
@@ -213,11 +213,11 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
           Seq(simplyNamedColumn("a"))))
 
       singleQueryExample(
-        query = "SELECT a FROM b ORDER BY a DESC NULLS FIRST",
+        query = "SELECT a FROM b ORDER BY a DESC NULLS LAST",
         expectedAst = Project(
           Sort(
             input = NamedTable("b", Map.empty, is_streaming = false),
-            order = Seq(SortOrder(simplyNamedColumn("a"), DescendingSortDirection, SortNullsFirst)),
+            order = Seq(SortOrder(simplyNamedColumn("a"), DescendingSortDirection, SortNullsLast)),
             is_global = false),
           Seq(simplyNamedColumn("a"))))
     }
@@ -310,14 +310,10 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
             GreaterThan(CallFunction("MIN", Seq(simplyNamedColumn("r"))), Literal(short = Some(6)))),
           Seq(
             simplyNamedColumn("c2"),
-            Alias(
-              Window(
-                CallFunction("SUM", Seq(simplyNamedColumn("c3"))),
+            Alias(Window(CallFunction("SUM", Seq(simplyNamedColumn("c3"))),
                 Seq(simplyNamedColumn("c2")),
                 Seq(),
-                DummyWindowFrame),
-              Seq(Id("r")),
-              None))))
+                None), Seq(Id("r")), None))))
     }
 
     "translate a query with set operators" in {
