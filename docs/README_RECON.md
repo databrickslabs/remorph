@@ -1,17 +1,20 @@
 # Remorph Reconciliation
 
-Reconcile is an automated tool designed to streamline the reconciliation process between source data and target data residing on Databricks. Currently, the platform exclusively offers support for Snowflake, Oracle and other Databricks tables as the primary data source. This tool empowers users to efficiently identify discrepancies and variations in data when comparing the source with the Databricks target.
+Reconcile is an automated tool designed to streamline the reconciliation process between source data and target data
+residing on Databricks. Currently, the platform exclusively offers support for Snowflake, Oracle and other Databricks
+tables as the primary data source. This tool empowers users to efficiently identify discrepancies and variations in data
+when comparing the source with the Databricks target.
 
 * [Types of Report Supported](#types-of-report-supported)
 * [Report Type-Flow Chart](#report-type-flow-chart)
 * [Supported Source System](#supported-source-system)
 * [TABLE Config Elements](#table-config-elements)
-   * [jdbc_reader_options](#jdbc_reader_options)
-   * [column_mapping](#column_mapping)
-   * [transformations](#transformations)
-   * [thresholds](#thresholds)
-   * [filters](#filters)
-   * [Key Considerations](#key-considerations)
+    * [jdbc_reader_options](#jdbc_reader_options)
+    * [column_mapping](#column_mapping)
+    * [transformations](#transformations)
+    * [thresholds](#thresholds)
+    * [filters](#filters)
+    * [Key Considerations](#key-considerations)
 * [Reconciliation Examples](#reconciliation-examples)
 
 ## Types of Report Supported
@@ -60,6 +63,7 @@ flowchart TD
     ALL --> MISSING_IN_TGT
     ALL --> SCHEMA_VALIDATION
 ```
+
 [[back to top](#remorph-reconciliation)]
 
 ## Supported Source System
@@ -72,9 +76,16 @@ flowchart TD
 
 [[back to top](#remorph-reconciliation)]
 
-## TABLE Config Elements:
+### TABLE Config Elements:
 
-```python
+<table>
+<tr>
+<th>python</th>
+<th>json</th>
+</tr>
+<tr>
+<td>
+<pre lang="python">
 @dataclass
 class Table:
     source_name: str
@@ -87,7 +98,28 @@ class Table:
     transformations: list[Transformation] | None = None
     thresholds: list[Thresholds] | None = None
     filters: Filters | None = None
-```
+</pre>
+</td>
+<td>
+<pre lang="json">
+{
+  "source_name": "product",
+  "target_name": "product",
+  "join_columns": ["p_id"],
+  "jdbc_reader_options": null,
+  "select_columns": null,
+  "drop_columns": null,
+  "column_mapping": null,
+  "transformation": null,
+  "thresholds": null,
+  "filters": null
+}
+</pre>
+</td>
+</tr>
+</table>
+
+
 
 | config_name         | data_type             | description                                                                                                                                                                                                                        | required/optional      | example_value                                                                                                                                     |
 |---------------------|-----------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -104,7 +136,14 @@ class Table:
 
 ### jdbc_reader_options
 
-```python
+<table>
+<tr>
+<th>python</th>
+<th>json</th>
+</tr>
+<tr>
+<td>
+<pre lang="python">
 @dataclass
 class JdbcReaderOptions:
     number_partitions: int
@@ -112,7 +151,21 @@ class JdbcReaderOptions:
     lower_bound: str
     upper_bound: str
     fetch_size: int = 100
-```
+</pre>
+</td>
+<td>
+<pre lang="json">
+jdbc_reader_options:{
+  "number_partitions": 10,
+  "partition_column": "p_id",
+  "lower_bound": "1",
+  "upper_bound": "10000000",
+  "fetch_size": 100
+}
+</pre>
+</td>
+</tr>
+</table>
 
 | field_name        | data_type | description                                                                                                                                                                                                                                                                                                                                                                                                                                                             | required/optional       | example_value |
 |-------------------|-----------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------|---------------|
@@ -124,12 +177,33 @@ class JdbcReaderOptions:
 
 ### column_mapping
 
-```python
+<table>
+<tr>
+<th>python</th>
+<th>json</th>
+</tr>
+<tr>
+<td>
+<pre lang="python">
+
 @dataclass
 class ColumnMapping:
     source_name: str
     target_name: str
-```
+</pre>
+</td>
+<td>
+<pre lang="json">
+"column_mapping":[
+  {
+    "source_name": "p_id",
+    "target_name": "product_id"
+  }
+]
+</pre>
+</td>
+</tr>
+</table>
 
 | field_name  | data_type | description        | required/optional | example_value   |
 |-------------|-----------|--------------------|-------------------|-----------------|
@@ -138,13 +212,37 @@ class ColumnMapping:
 
 ### transformations
 
-```python
+<table>
+<tr>
+<th>python</th>
+<th>json</th>
+</tr>
+<tr>
+<td>
+<pre lang="python">
+
 @dataclass
 class Transformation:
     column_name: str
     source: str
     target: str | None = None
-```
+
+</pre>
+</td>
+<td>
+<pre lang="json">
+"transformations":[
+    {
+      "column_name": "product_price",
+      "source": "CAST(product_price AS DECIMAL(18, 2))",
+      "target": "CAST(p_price AS DECIMAL(18, 2))"
+    }
+]
+</pre>
+</td>
+</tr>
+</table>
+
 
 | field_name  | data_type | description                                                | required/optional | example_value                    |
 |-------------|-----------|------------------------------------------------------------|-------------------|----------------------------------|
@@ -152,16 +250,41 @@ class Transformation:
 | source      | string    | the transformation sql expr to be applied on source column | required          | "trim(s_address)" or "s_address" |
 | target      | string    | the transformation sql expr to be applied on source column | required          | "trim(s_address)" or "s_address" |
 
-### thresholds
+## thresholds
 
-```python
+<table>
+<tr>
+<th>python</th>
+<th>json</th>
+</tr>
+<tr>
+<td>
+<pre lang="python">
+
 @dataclass
 class Thresholds:
     column_name: str
     lower_bound: str
     upper_bound: str
     type: str
-```
+
+</pre>
+</td>
+<td>
+<pre lang="json">
+"thresholds":[
+  {
+    "column_name": "p_price",
+    "lower_bound": "-10%",
+    "upper_bound": "10%",
+    "type": "decimal"
+  }
+]
+</pre>
+</td>
+</tr>
+</table>
+
 
 | field_name  | data_type | description                                                                                                 | required/optional   | example_value      |
 |-------------|-----------|-------------------------------------------------------------------------------------------------------------|---------------------|--------------------|
@@ -172,12 +295,31 @@ class Thresholds:
 
 ### filters
 
-```python
+<table>
+<tr>
+<th>python</th>
+<th>json</th>
+</tr>
+<tr>
+<td>
+<pre lang="python">
 @dataclass
 class Filters:
     source: str | None = None
     target: str | None = None
-```
+</pre>
+</td>
+<td>
+<pre lang="json">
+"filters":{
+  "source": "p_price > 1000",
+  "target": "product_price > 1000"
+}
+</pre>
+</td>
+</tr>
+</table>
+
 
 | field_name | data_type | description                                       | required/optional      | example_value                |
 |------------|-----------|---------------------------------------------------|------------------------|------------------------------|
@@ -214,21 +356,25 @@ class Filters:
 ### Option 1
 
 * **Download `ojdbc8.jar` from Oracle:**
-   Visit the [official Oracle website](https://www.oracle.com/database/technologies/appdev/jdbc-downloads.html) to
-   acquire the `ojdbc8.jar` JAR file. This file is crucial for establishing connectivity between Databricks and Oracle
-   databases.
+  Visit the [official Oracle website](https://www.oracle.com/database/technologies/appdev/jdbc-downloads.html) to
+  acquire the `ojdbc8.jar` JAR file. This file is crucial for establishing connectivity between Databricks and Oracle
+  databases.
 
 * **Install the JAR file on Databricks:**
-   Upon completing the download, install the JAR file onto your Databricks cluster. Refer
-   to [this page](https://docs.databricks.com/en/libraries/cluster-libraries.html)
-   For comprehensive instructions on uploading a JAR file, Python egg, or Python wheel to your Databricks workspace.
+  Upon completing the download, install the JAR file onto your Databricks cluster. Refer
+  to [this page](https://docs.databricks.com/en/libraries/cluster-libraries.html)
+  For comprehensive instructions on uploading a JAR file, Python egg, or Python wheel to your Databricks workspace.
+
 ### Option 2
 
-* **Install ojdbc8 library from Maven:** 
-   Follow [this guide](https://docs.databricks.com/en/libraries/package-repositories.html#maven-or-spark-package) to install the Maven library on a cluster. Refer to [this document](https://mvnrepository.com/artifact/com.oracle.database.jdbc/ojdbc8) for obtaining the Maven coordinates.  
+* **Install ojdbc8 library from Maven:**
+  Follow [this guide](https://docs.databricks.com/en/libraries/package-repositories.html#maven-or-spark-package) to
+  install the Maven library on a cluster. Refer
+  to [this document](https://mvnrepository.com/artifact/com.oracle.database.jdbc/ojdbc8) for obtaining the Maven
+  coordinates.
 
 This installation is a necessary step to enable seamless comparison between Oracle and Databricks, ensuring that the
-   required Oracle JDBC functionality is readily available within the Databricks environment.
+required Oracle JDBC functionality is readily available within the Databricks environment.
 
 [[back to top](#remorph-reconciliation)]
 
