@@ -2947,15 +2947,8 @@ idFn: id | IDENTIFIER L_PAREN id R_PAREN
     ;
 
 id
-    //id is used for object name. Snowflake is very permissive
-    : ID
-    | ID2
-    | DOUBLE_QUOTE_ID
-    | DOUBLE_QUOTE_BLANK
-    | nonReservedWords
+    : ID | ID2 | DOUBLE_QUOTE_ID | DOUBLE_QUOTE_BLANK | nonReservedWords //id is used for object name. Snowflake is very permissive
     ;
-
-
 
 nonReservedWords
     //List here lexer token referenced by rules which is not a keyword (SnowSQL Meaning) and allowed as object name
@@ -3067,7 +3060,6 @@ nonReservedWords
     | WAREHOUSE
     | WAREHOUSE_TYPE
     ;
-
 
 pattern: PATTERN EQ string
     ;
