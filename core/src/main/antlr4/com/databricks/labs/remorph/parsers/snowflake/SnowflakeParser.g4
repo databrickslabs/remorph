@@ -2947,193 +2947,118 @@ idFn: id | IDENTIFIER L_PAREN id R_PAREN
     ;
 
 id
-    //id is used for object name. Snowflake is very permissive
-    : ID
-    | ID2
-    | DOUBLE_QUOTE_ID
-    | DOUBLE_QUOTE_BLANK
-    | keyword //so we could use nearly all keyword as object name (table, column etc..)
-    ;
-
-keyword
-    //List here keyword (SnowSQL meaning) allowed as object name
-    // Name of builtin function should be included in specifique section (ie builtinFunction)
-    : TABLE
-    | STAGE
-    | USER
-    | TYPE
-    | CLUSTER
-    | TEMP
-    | FUNCTION
-    | REGION
-    | ROLLUP
-    | AT_KEYWORD
-    | TIMESTAMP
-    | IF
-    | COPY_OPTIONS_
-    | COMMENT
-    | ORDER
-    | NOORDER
-    | DIRECTION
-    | LENGTH
-    | LANGUAGE
-    | KEY
-    | ALERT
-    | CONDITION
-    | ROLE
-    | ROW_NUMBER
-    | VALUE
-    | FIRST_VALUE
-    | VALUES
-    | TARGET_LAG
-    | EMAIL
-    | MAX_CONCURRENCY_LEVEL
-    | WAREHOUSE_TYPE
-    | TAG
-    | WAREHOUSE
-    | MODE
-    | ACTION
-    // etc
+    : ID | ID2 | DOUBLE_QUOTE_ID | DOUBLE_QUOTE_BLANK | nonReservedWords //id is used for object name. Snowflake is very permissive
     ;
 
 nonReservedWords
-    //List here lexer token referenced by rules which is not a keyword (SnowSQL Meaning) and allowed has object name
-    : ORGADMIN
-    | ACCOUNTADMIN
-    | SECURITYADMIN
-    | USERADMIN
-    | SYSADMIN
-    | PUBLIC
+    //List here lexer token referenced by rules which is not a keyword (SnowSQL Meaning) and allowed as object name
+    : ACCOUNTADMIN
+    | ACTION
     | ACTION
     | AES
+    | ALERT
     | ARRAY_AGG
+    | AT_KEYWORD
     | CHECKSUM
+    | CLUSTER
+    | COLLATE
     | COLLECTION
     | COMMENT
+    | CONDITION
     | CONFIGURATION
+    | COPY_OPTIONS_
     | DATA
+    | DATE_FORMAT
     | DEFINITION
     | DELTA
+    | DENSE_RANK
+    | DIRECTION
+    | DOWNSTREAM
     | DUMMY
+    | DYNAMIC
     | EDITION
+    | END
+    | EMAIL
     | EVENT
     | EXPIRY_DATE
     | FIRST_NAME
     | FIRST_VALUE
     | FLATTEN
+    | FLOOR
+    | FUNCTION
+    | GET
     | GLOBAL
     | IDENTIFIER
     | IDENTITY
-    | INTERVAL
+    | IF
     | INDEX
+    | INPUT
+    | INTERVAL
     | JAVASCRIPT
+    | KEY
+    | LANGUAGE
     | LAST_NAME
     | LAST_QUERY_ID
     | LEAD
+    | LEFT
+    | LENGTH
     | LOCAL
     | MAX_CONCURRENCY_LEVEL
+    | MODE
     | NAME
+    | NETWORK
+    | NOORDER
     | OFFSET
     | OPTION
+    | ORDER
+    | ORGADMIN
+    | OUTBOUND
+    | OUTER
     | PARTITION
+    | PATH_
     | PATTERN
     | PORT
     | PROCEDURE_NAME
     | PROPERTY
     | PROVIDER
+    | PUBLIC
     | RANK
-    | RESPECT
+    | RECURSIVE
+    | REGION
+    | REPLACE
     | RESOURCE
     | RESOURCES
+    | RESPECT
     | RESTRICT
     | RESULT
+    | RIGHT
+    | RLIKE
     | ROLE
+    | ROLLUP
     | ROW_NUMBER
-    | INDEX
+    | SECURITYADMIN
     | SOURCE
-    | PROCEDURE_NAME
+    | STAGE
+    | START
     | STATE
     | STATS
+    | SYSADMIN
+    | TABLE
     | TAG
     | TAGS
-    | ROLE
-    | DEFINITION
+    | TARGET_LAG
+    | TEMP
+    | TIMESTAMP
     | TIMEZONE
+    | TYPE
     | URL
-    | LOCAL
-    | ROW_NUMBER
+    | USER
+    | USERADMIN
     | VALUE
     | VALUES
     | VERSION
-    | NAME
-    | VERSION
-    | OPTION
-    | RESPECT
-    | RESTRICT
-    | EVENT
-    | DOWNSTREAM
-    | DYNAMIC
-    | TARGET_LAG
-    | EMAIL
-    | MAX_CONCURRENCY_LEVEL
+    | WAREHOUSE
     | WAREHOUSE_TYPE
-    | NETWORK
-    | OUTBOUND
-    | INPUT
-    | PATH_
-    | OUTER
-    | RECURSIVE
-    | MODE
-    ;
-
-//TODO : Split builtin between NoParam func,specialBuiltinFunc (like CAST), unaryBuiltinFunction and unaryOrBinaryBuiltinFunction for better AST
-unaryOrBinaryBuiltinFunction
-    // lexer entry of function name which admit 1 or 2 parameters
-    : FLOOR // expr rule use this
-    ;
-
-binaryBuiltinFunction
-    // lexer entry of function name which admit 2 parameters
-    // expr rule use this
-    : ifnull = (IFNULL | NVL)
-    | GET
-    | LEFT
-    | RIGHT
-    | DATE_PART
-    | toDate = (TO_DATE | DATE)
-    | SPLIT
-    | NULLIF
-    | EQUAL_NULL
-    | CONTAINS
-    | COLLATE
-    | TO_TIMESTAMP
-    ;
-
-binaryOrTernaryBuiltinFunction
-    // lexer entry of function name which admit 2 or 3 parameters
-    : CHARINDEX
-    | REPLACE
-    | substring = ( SUBSTRING | SUBSTR)
-    | LIKE
-    | ILIKE // expr rule use this
-    ;
-
-ternaryBuiltinFunction
-    // lexer entry of function name which admit 3 parameters
-    // expr rule use this
-    : dateadd = (DATEADD | TIMEADD | TIMESTAMPADD)
-    | datefiff = (DATEDIFF | TIMEDIFF | TIMESTAMPDIFF)
-    | SPLIT_PART
-    | NVL2
-    | IFF
-    ;
-
-listFunction
-    // lexer entry of function name which admit a list of comma separated expr
-    // expr rule use this
-    : COALESCE
-    | HASH
-    // To complete as needed
     ;
 
 pattern: PATTERN EQ string
