@@ -155,7 +155,7 @@ class JdbcReaderOptions:
 </td>
 <td>
 <pre lang="json">
-jdbc_reader_options:{
+"jdbc_reader_options":{
   "number_partitions": 10,
   "partition_column": "p_id",
   "lower_bound": "1",
