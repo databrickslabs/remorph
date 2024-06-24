@@ -27,6 +27,7 @@ THE SOFTWARE.
 // $antlr-format alignColons hanging
 // $antlr-format columnLimit 150
 // $antlr-format alignSemicolons hanging
+// $antlr-format alignTrailingComments true
 
 parser grammar TSqlParser;
 
@@ -4286,11 +4287,11 @@ optionList: genericOption (COMMA genericOption)*
  */
 genericOption
     : id EQ? (
-        DEFAULT // Default value  - don't resolve with expression
-        | ON // Simple ON      - don't resolve with expression
-        | OFF // Simple OFF     - don't resolve with expression
-        | AUTO // Simple AUTO    - don't resolve with expression
-        | STRING // String value   - don't resolve with expression
+        DEFAULT          // Default value  - don't resolve with expression
+        | ON             // Simple ON      - don't resolve with expression
+        | OFF            // Simple OFF     - don't resolve with expression
+        | AUTO           // Simple AUTO    - don't resolve with expression
+        | STRING         // String value   - don't resolve with expression
         | expression id? // Catch all for less explicit options, sometimes with extra keywords
     )?
     ;

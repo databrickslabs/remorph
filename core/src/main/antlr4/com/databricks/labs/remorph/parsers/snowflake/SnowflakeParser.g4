@@ -25,6 +25,7 @@ THE SOFTWARE.
 // $antlr-format alignColons hanging
 // $antlr-format columnLimit 150
 // $antlr-format alignSemicolons hanging
+// $antlr-format alignTrailingComments true
 
 parser grammar SnowflakeParser;
 
@@ -879,7 +880,7 @@ alterSecurityIntegrationExternalOauth
         EXTERNAL_OAUTH_TOKEN_USER_MAPPING_CLAIM EQ (string | L_PAREN stringList R_PAREN)
     )? (EXTERNAL_OAUTH_SNOWFLAKE_USER_MAPPING_ATTRIBUTE EQ string)? (
         EXTERNAL_OAUTH_JWS_KEYS_URL EQ string
-    )? // For OKTA | PING_FEDERATE | CUSTOM
+    )?                                                                      // For OKTA | PING_FEDERATE | CUSTOM
     (EXTERNAL_OAUTH_JWS_KEYS_URL EQ (string | L_PAREN stringList R_PAREN))? // For Azure
     (EXTERNAL_OAUTH_RSA_PUBLIC_KEY EQ string)? (EXTERNAL_OAUTH_RSA_PUBLIC_KEY_2 EQ string)? (
         EXTERNAL_OAUTH_BLOCKED_ROLES_LIST EQ L_PAREN stringList R_PAREN
@@ -911,7 +912,7 @@ alterSecurityIntegrationSnowflakeOauth
         EXTERNAL_OAUTH_TOKEN_USER_MAPPING_CLAIM EQ (string | L_PAREN stringList R_PAREN)
     )? (EXTERNAL_OAUTH_SNOWFLAKE_USER_MAPPING_ATTRIBUTE EQ string)? (
         EXTERNAL_OAUTH_JWS_KEYS_URL EQ string
-    )? // For OKTA | PING_FEDERATE | CUSTOM
+    )?                                                                       // For OKTA | PING_FEDERATE | CUSTOM
     (EXTERNAL_OAUTH_JWS_KEYS_URL EQ ( string | L_PAREN stringList R_PAREN))? // For Azure
     (EXTERNAL_OAUTH_RSA_PUBLIC_KEY EQ string)? (EXTERNAL_OAUTH_RSA_PUBLIC_KEY_2 EQ string)? (
         EXTERNAL_OAUTH_BLOCKED_ROLES_LIST EQ L_PAREN stringList R_PAREN
@@ -1661,7 +1662,7 @@ createSecurityIntegrationExternalOauth
         | L_PAREN stringList R_PAREN
     ) EXTERNAL_OAUTH_SNOWFLAKE_USER_MAPPING_ATTRIBUTE EQ string (
         EXTERNAL_OAUTH_JWS_KEYS_URL EQ string
-    )? // For OKTA | PING_FEDERATE | CUSTOM
+    )?                                                                      // For OKTA | PING_FEDERATE | CUSTOM
     (EXTERNAL_OAUTH_JWS_KEYS_URL EQ (string | L_PAREN stringList R_PAREN))? // For Azure
     (EXTERNAL_OAUTH_BLOCKED_ROLES_LIST EQ L_PAREN stringList R_PAREN)? (
         EXTERNAL_OAUTH_ALLOWED_ROLES_LIST EQ L_PAREN stringList R_PAREN
