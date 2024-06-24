@@ -36,7 +36,7 @@ class ReconcileUtils:
         except (PermissionDenied, SerdeError, ValueError, AttributeError):
             logger.warning(f"Existing installation at {self._installation.install_folder()} is corrupted. Skipping...")
 
-        reconfigure_msg = "Please use `remorph install` to re-configure ** reconcile ** module"
+        reconfigure_msg = "Please use `remorph install` to configure ** reconcile ** module"
         # Re-configure `reconcile` module:
         # * when there is no `reconcile.yml` config on Databricks workspace OR
         # * when there is a `reconcile.yml` config and user wants to overwrite it
@@ -65,11 +65,12 @@ class ReconcileUtils:
             logger.info(f"Loading TableRecon `{filename}` from Databricks Workspace...")
             table_recon = self._installation.load(type_ref=TableRecon, filename=filename)
         except NotFound as err:
-            logger.error(f"Cannot find previous `reconcile` installation: {err}")
+            logger.error(f"Cannot find `{filename}`, Please generate recon_config.json : {err}")
             raise err
         except (PermissionDenied, SerdeError, ValueError, AttributeError) as ex:
             logger.error(
-                f"Existing installation at {self._installation.install_folder()}/{filename} is corrupted. Skipping..."
+                f"Existing  `{self._installation.install_folder()}/{filename}` seems corrupted... "
+                f"Please check the attributes."
             )
             raise ex
 
