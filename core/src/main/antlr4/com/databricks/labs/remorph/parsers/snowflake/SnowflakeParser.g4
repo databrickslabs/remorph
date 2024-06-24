@@ -3569,9 +3569,7 @@ columnListWithComment
     ;
 
 objectName
-    : d = id DOT s = id DOT o = id
-    | s = id DOT o = id
-    | o = id
+    : id (DOT id)*
     ;
 
 objectNameOrIdentifier
@@ -3586,10 +3584,6 @@ num
 /*** expressions ***/
 exprList
     : expr (COMMA expr)*
-    ;
-
-exprListSorted
-    : expr ascDesc? (COMMA expr ascDesc?)*
     ;
 
 expr
@@ -3707,7 +3701,7 @@ dataType
 
 primitiveExpression
     : DEFAULT          # primExprDefault//?
-    | fullColumnName # primExprColumn
+    | fullColumnName   # primExprColumn
     | literal          # primExprLiteral
     | BOTH_Q           # primExprBoth
     | ARRAY_Q          # primExprArray
@@ -3716,26 +3710,26 @@ primitiveExpression
     //| arrLiteral
     ;
 
-orderByExpr
-    : ORDER BY exprListSorted
-    ;
-
-//orderByExprList
-//    : ORDER BY exprList
-//    ;
-
-//overClauseWindow
-//    : OVER L_PAREN partitionBy? orderByExpr (cumulativeFrame | slidingFrame)? R_PAREN
-//    ;
-
-ascDesc
-    : ASC
-    | DESC
-    ;
-
 overClause
-    : OVER L_PAREN partitionBy orderByExpr? R_PAREN
-    | OVER L_PAREN orderByExpr R_PAREN
+    : OVER L_PAREN (PARTITION BY expr (COMMA expr)*)? windowOrderingAndFrame? R_PAREN
+    ;
+
+windowOrderingAndFrame
+    : orderByClause rowOrRangeClause?
+    ;
+
+rowOrRangeClause
+    : (ROWS | RANGE) windowFrameExtent
+    ;
+
+windowFrameExtent
+    : BETWEEN windowFrameBound AND windowFrameBound
+    ;
+
+windowFrameBound
+    : UNBOUNDED (PRECEDING | FOLLOWING)
+    | num (PRECEDING | FOLLOWING)
+    | CURRENT ROW
     ;
 
 functionCall
@@ -3785,25 +3779,6 @@ aggregateFunction
     | id L_PAREN STAR R_PAREN                  #aggFuncStar
     ;
 
-//rowsRange
-//    : ROWS | RANGE
-//    ;
-
-//cumulativeFrame
-//    : rowsRange BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
-//    | rowsRange BETWEEN CURRENT ROW AND UNBOUNDED FOLLOWING
-//    ;
-
-//precedingFollowing
-//    : PRECEDING | FOLLOWING
-//    ;
-
-//slidingFrame
-//    : ROWS BETWEEN num precedingFollowing AND num precedingFollowing
-//    | ROWS BETWEEN UNBOUNDED PRECEDING AND num precedingFollowing
-//    | ROWS BETWEEN num precedingFollowing AND UNBOUNDED FOLLOWING
-//    ;
-
 literal
     : STRING // string, date, time, timestamp
     | sign? DECIMAL
@@ -3819,10 +3794,7 @@ sign
     ;
 
 fullColumnName
-    : dbName = id? DOT schema = id? DOT tabName = id? DOT colName = id
-    | schema = id? DOT tabName = id? DOT colName = id
-    | tabName = id? DOT colName = id
-    | colName = id
+    : id (DOT id)*
     ;
 
 bracketExpression
@@ -3898,17 +3870,12 @@ selectListElem
     ;
 
 columnElemStar
-    : objectNameOrAlias? STAR
+    : (objectName DOT)? STAR
     ;
 
 columnElem
-    : objectNameOrAlias? columnName
-    | objectNameOrAlias? DOLLAR columnPosition
-    ;
-
-objectNameOrAlias
-    : objectName
-    | alias DOT
+    : (objectName DOT)? columnName
+    | (objectName DOT)? DOLLAR columnPosition
     ;
 
 asAlias
@@ -4091,10 +4058,10 @@ matchRecognize
     ;
 
 pivotUnpivot
-    : PIVOT L_PAREN id L_PAREN id R_PAREN FOR id IN L_PAREN literal (COMMA literal)* R_PAREN R_PAREN (
+    : PIVOT L_PAREN aggregateFunc = id L_PAREN pivotColumn = id R_PAREN FOR valueColumn = id IN L_PAREN values += literal (COMMA values += literal)* R_PAREN R_PAREN (
         asAlias columnAliasListInBrackets?
     )?
-    | UNPIVOT L_PAREN id FOR columnName IN L_PAREN columnList R_PAREN R_PAREN
+    | UNPIVOT L_PAREN valueColumn = id FOR nameColumn = id IN L_PAREN columnList R_PAREN R_PAREN
     ;
 
 columnAliasListInBrackets
@@ -4188,7 +4155,7 @@ qualifyClause
     ;
 
 orderItem
-    : (id | num | expr) (ASC | DESC)? (NULLS ( FIRST | LAST))?
+    : expr (ASC | DESC)? (NULLS ( FIRST | LAST))?
     ;
 
 orderByClause

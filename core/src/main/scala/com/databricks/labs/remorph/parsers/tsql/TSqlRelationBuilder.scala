@@ -15,7 +15,9 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.Relation] {
     val tableName = ctx.id().getText
     // Column list can be empty if the select specifies distinct column names
     val columns =
-      Option(ctx.columnNameList()).map(_.id().asScala.map(id => ir.Column(id.getText))).getOrElse(List.empty)
+      Option(ctx.columnNameList())
+        .map(_.id().asScala.map(id => ir.Column(None, expressionBuilder.visitId(id))))
+        .getOrElse(List.empty)
     val query = ctx.selectStatement().accept(this)
     ir.CTEDefinition(tableName, columns, query)
   }
@@ -110,7 +112,7 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.Relation] {
 
   private def buildDistinct(from: ir.Relation, columns: Seq[ir.Expression]): ir.Relation = {
     val columnNames = columns.collect {
-      case ir.Column(c) => Seq(c)
+      case ir.Column(_, c) => Seq(c)
       case ir.Alias(_, a, _) => a
       // Note that the ir.Star(None) is not matched so that we set all_columns_as_keys to true
     }.flatten

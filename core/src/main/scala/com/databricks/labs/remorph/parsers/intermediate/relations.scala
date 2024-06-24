@@ -87,11 +87,7 @@ case class Sort(input: Relation, order: Seq[SortOrder], is_global: Boolean) exte
 
 case class Drop(input: Relation, columns: Seq[Expression], column_names: Seq[String]) extends RelationCommon {}
 
-case class Deduplicate(
-    input: Relation,
-    column_names: Seq[String],
-    all_columns_as_keys: Boolean,
-    within_watermark: Boolean)
+case class Deduplicate(input: Relation, column_names: Seq[Id], all_columns_as_keys: Boolean, within_watermark: Boolean)
     extends RelationCommon {}
 
 case class LocalRelation(input: Relation, data: Array[Byte], schema: String) extends RelationCommon {}
@@ -111,7 +107,7 @@ case class Sample(
 
 case class Range(start: Long, end: Long, step: Long, num_partitions: Int) extends RelationCommon {}
 
-case class SubqueryAlias(input: Relation, alias: String, qualifier: String) extends RelationCommon {}
+case class SubqueryAlias(input: Relation, alias: Id, qualifier: String) extends RelationCommon {}
 
 case class Repartition(input: Relation, num_partitions: Int, shuffle: Boolean) extends RelationCommon {}
 
@@ -163,8 +159,8 @@ case class Unpivot(
     input: Relation,
     ids: Seq[Expression],
     values: Option[Values],
-    variable_column_name: String,
-    value_column_name: String)
+    variable_column_name: Id,
+    value_column_name: Id)
     extends RelationCommon {}
 
 case class ToSchema(input: Relation, schema: DataType) extends RelationCommon {}
