@@ -305,7 +305,7 @@ tryCatchStatement
     ;
 
 waitforStatement
-    : WAITFOR receiveStatement? COMMA? (id t=expression)? expression? SEMI?
+    : WAITFOR receiveStatement? COMMA? (id t = expression)? expression? SEMI?
     ;
 
 whileStatement
@@ -346,11 +346,9 @@ anotherStatement
     ;
 
 alterApplicationRole
-    : ALTER APPLICATION ROLE applictionRole = id WITH (
-        COMMA? NAME EQ newApplicationRoleName = id
-    )? (COMMA? PASSWORD EQ applicationRolePassword = STRING)? (
-        COMMA? DEFAULT_SCHEMA EQ appRoleDefaultSchema = id
-    )?
+    : ALTER APPLICATION ROLE applictionRole = id WITH (COMMA? NAME EQ newApplicationRoleName = id)? (
+        COMMA? PASSWORD EQ applicationRolePassword = STRING
+    )? (COMMA? DEFAULT_SCHEMA EQ appRoleDefaultSchema = id)?
     ;
 
 alterXmlSchemaCollection
@@ -398,9 +396,7 @@ alterAssemblyWithClause
     ;
 
 createAssembly
-    : CREATE ASSEMBLY id genericOption? FROM (
-        COMMA? (STRING | HEX)
-    )+ (WITH genericOption)?
+    : CREATE ASSEMBLY id genericOption? FROM (COMMA? (STRING | HEX))+ (WITH genericOption)?
     ;
 
 dropAssembly
@@ -423,11 +419,9 @@ asymmetricKeyPasswordChangeOption
     ;
 
 createAsymmetricKey
-    : CREATE ASYMMETRIC KEY id genericOption? (
-        FROM genericOption
-    )? (
-        WITH genericOption
-    )? (ENCRYPTION BY genericOption)?
+    : CREATE ASYMMETRIC KEY id genericOption? (FROM genericOption)? (WITH genericOption)? (
+        ENCRYPTION BY genericOption
+    )?
     ;
 
 dropAsymmetricKey
@@ -435,7 +429,7 @@ dropAsymmetricKey
     ;
 
 alterAuthorization
-    :  ALTER AUTHORIZATION ON (classType DOUBLE_COLON)? entityName TO genericOption
+    : ALTER AUTHORIZATION ON (classType DOUBLE_COLON)? entityName TO genericOption
     ;
 
 classType
@@ -561,9 +555,7 @@ alterAvailabilityGroupOptions
         COMMA? agNameModified = STRING WITH LPAREN (
             LISTENER_URL EQ STRING (
                 COMMA? AVAILABILITY_MODE EQ (SYNCHRONOUS_COMMIT | ASYNCHRONOUS_COMMIT)
-            )? (COMMA? FAILOVER_MODE EQ MANUAL)? (
-                COMMA? SEEDING_MODE EQ (AUTOMATIC | MANUAL)
-            )? RPAREN
+            )? (COMMA? FAILOVER_MODE EQ MANUAL)? (COMMA? SEEDING_MODE EQ (AUTOMATIC | MANUAL))? RPAREN
         )
     )+
     | GRANT CREATE ANY DATABASE
@@ -595,7 +587,6 @@ ipV4_failover
 ipV6_failover
     : STRING
     ;
-
 
 createOrAlterBrokerPriority
     : (CREATE | ALTER) BROKER PRIORITY ConversationPriorityName = id FOR CONVERSATION SET LPAREN (
@@ -629,8 +620,8 @@ alterColumnEncryptionKey
 
 createColumnEncryptionKey
     : CREATE COLUMN ENCRYPTION KEY columnEncryptionKey = id WITH VALUES (
-        LPAREN COMMA? COLUMN_MASTER_KEY EQ columnMasterKeyName = id COMMA ALGORITHM EQ algorithmName = STRING COMMA ENCRYPTED_VALUE
-            EQ encryptedValue = HEX RPAREN COMMA?
+        LPAREN COMMA? COLUMN_MASTER_KEY EQ columnMasterKeyName = id COMMA ALGORITHM EQ algorithmName = STRING COMMA ENCRYPTED_VALUE EQ encryptedValue
+            = HEX RPAREN COMMA?
     )+
     ;
 
@@ -858,8 +849,8 @@ truncateTable
     ;
 
 createColumnMasterKey
-    : CREATE COLUMN MASTER KEY keyName = id WITH LPAREN KEY_STORE_PROVIDER_NAME EQ keyStoreProviderName = STRING COMMA KEY_PATH EQ
-        keyPath = STRING RPAREN
+    : CREATE COLUMN MASTER KEY keyName = id WITH LPAREN KEY_STORE_PROVIDER_NAME EQ keyStoreProviderName = STRING COMMA KEY_PATH EQ keyPath = STRING
+        RPAREN
     ;
 
 alterCredential
@@ -875,9 +866,10 @@ createCredential
     ;
 
 alterCryptographicProvider
-    : ALTER CRYPTOGRAPHIC PROVIDER providerName = id (
-        FROM FILE EQ cryptoProviderDdlFile = STRING
-    )? (ENABLE | DISABLE)?
+    : ALTER CRYPTOGRAPHIC PROVIDER providerName = id (FROM FILE EQ cryptoProviderDdlFile = STRING)? (
+        ENABLE
+        | DISABLE
+    )?
     ;
 
 createCryptographicProvider
@@ -922,29 +914,21 @@ createEventNotification
         SERVER
         | DATABASE
         | QUEUE queueName = id
-    ) (WITH FAN_IN)? FOR (COMMA? eventTypeOrGroup = id)+ TO SERVICE brokerService = STRING COMMA brokerServiceSpecifierOrCurrentDatabase =
-        STRING
+    ) (WITH FAN_IN)? FOR (COMMA? eventTypeOrGroup = id)+ TO SERVICE brokerService = STRING COMMA brokerServiceSpecifierOrCurrentDatabase = STRING
     ;
-
 
 createOrAlterEventSession
     : (CREATE | ALTER) EVENT SESSION eventSessionName = id ON SERVER (
-        COMMA? ADD EVENT (
-            (eventModuleGuid = id DOT)? eventPackageName = id DOT eventName = id
-        ) (
+        COMMA? ADD EVENT ((eventModuleGuid = id DOT)? eventPackageName = id DOT eventName = id) (
             LPAREN (SET ( COMMA? eventCustomizableAttributue = id EQ (INT | STRING))*)? (
                 ACTION LPAREN (
                     COMMA? (eventModuleGuid = id DOT)? eventPackageName = id DOT actionName = id
                 )+ RPAREN
             )+ (WHERE eventSessionPredicateExpression)? RPAREN
         )*
-    )* (
-        COMMA? DROP EVENT (eventModuleGuid = id DOT)? eventPackageName = id DOT eventName = id
-    )* (
+    )* (COMMA? DROP EVENT (eventModuleGuid = id DOT)? eventPackageName = id DOT eventName = id)* (
         (ADD TARGET (eventModuleGuid = id DOT)? eventPackageName = id DOT targetName = id) (
-            LPAREN SET (
-                COMMA? targetParameterName = id EQ (LPAREN? INT RPAREN? | STRING)
-            )+ RPAREN
+            LPAREN SET (COMMA? targetParameterName = id EQ (LPAREN? INT RPAREN? | STRING))+ RPAREN
         )*
     )* (DROP TARGET (eventModuleGuid = id DOT)? eventPackageName = id DOT targetName = id)* (
         WITH LPAREN (COMMA? MAX_MEMORY EQ maxMemory = INT (KB | MB))? (
@@ -953,14 +937,11 @@ createOrAlterEventSession
                 | ALLOW_MULTIPLE_EVENT_LOSS
                 | NO_EVENT_LOSS
             )
-        )? (
-            COMMA? MAX_DISPATCH_LATENCY EQ (
-                maxDispatchLatencySeconds = INT SECONDS
-                | INFINITE
-            )
-        )? (COMMA? MAX_EVENT_SIZE EQ maxEventSize = INT (KB | MB))? (
-            COMMA? MEMORY_PARTITION_MODE EQ (NONE | PER_NODE | PER_CPU)
-        )? (COMMA? TRACK_CAUSALITY EQ (ON | OFF))? (COMMA? STARTUP_STATE EQ (ON | OFF))? RPAREN
+        )? (COMMA? MAX_DISPATCH_LATENCY EQ ( maxDispatchLatencySeconds = INT SECONDS | INFINITE))? (
+            COMMA? MAX_EVENT_SIZE EQ maxEventSize = INT (KB | MB)
+        )? (COMMA? MEMORY_PARTITION_MODE EQ (NONE | PER_NODE | PER_CPU))? (
+            COMMA? TRACK_CAUSALITY EQ (ON | OFF)
+        )? (COMMA? STARTUP_STATE EQ (ON | OFF))? RPAREN
     )? (STATE EQ (START | STOP))?
     ;
 
@@ -983,18 +964,8 @@ eventSessionPredicateLeaf
         eventFieldName = id
         | (
             eventFieldName = id
-            | (
-                (eventModuleGuid = id DOT)? eventPackageName = id DOT predicateSourceName = id
-            )
-        ) (
-            EQ
-            | (LT GT)
-            | (BANG EQ)
-            | GT
-            | (GT EQ)
-            | LT
-            | LT EQ
-        ) (INT | STRING)
+            | ((eventModuleGuid = id DOT)? eventPackageName = id DOT predicateSourceName = id)
+        ) (EQ | (LT GT) | (BANG EQ) | GT | (GT EQ) | LT | LT EQ) (INT | STRING)
     )
     | (eventModuleGuid = id DOT)? eventPackageName = id DOT predicateCompareName = id LPAREN (
         eventFieldName = id
@@ -1020,10 +991,7 @@ alterExternalLibrary
     : ALTER EXTERNAL LIBRARY libraryName = id (AUTHORIZATION ownerName = id)? (SET | ADD) (
         LPAREN CONTENT EQ (clientLibrary = STRING | HEX | NONE) (
             COMMA PLATFORM EQ (WINDOWS | LINUX)? RPAREN
-        ) WITH (
-            COMMA? LANGUAGE EQ (R | PYTHON)
-            | DATA_SOURCE EQ externalDataSourceName = id
-        )+ RPAREN
+        ) WITH (COMMA? LANGUAGE EQ (R | PYTHON) | DATA_SOURCE EQ externalDataSourceName = id)+ RPAREN
     )
     ;
 
@@ -1032,12 +1000,7 @@ createExternalLibrary
         COMMA? LPAREN? (CONTENT EQ)? (clientLibrary = STRING | HEX | NONE) (
             COMMA PLATFORM EQ (WINDOWS | LINUX)? RPAREN
         )?
-    ) (
-        WITH (
-            COMMA? LANGUAGE EQ (R | PYTHON)
-            | DATA_SOURCE EQ externalDataSourceName = id
-        )+ RPAREN
-    )?
+    ) (WITH ( COMMA? LANGUAGE EQ (R | PYTHON) | DATA_SOURCE EQ externalDataSourceName = id)+ RPAREN)?
     ;
 
 alterExternalResourcePool
@@ -1075,11 +1038,7 @@ createFulltextCatalog
 alterFulltextStoplist
     : ALTER FULLTEXT STOPLIST stoplistName = id (
         ADD stopword = STRING LANGUAGE (STRING | INT | HEX)
-        | DROP (
-            stopword = STRING LANGUAGE (STRING | INT | HEX)
-            | ALL (STRING | INT | HEX)
-            | ALL
-        )
+        | DROP (stopword = STRING LANGUAGE (STRING | INT | HEX) | ALL (STRING | INT | HEX) | ALL)
     )
     ;
 
@@ -1093,17 +1052,12 @@ alterLoginSqlServer
     : ALTER LOGIN loginName = id (
         (ENABLE | DISABLE)?
         | WITH (
-            (PASSWORD EQ ( password = STRING | passwordHash = HEX HASHED)) (
-                MUST_CHANGE
-                | UNLOCK
-            )*
+            (PASSWORD EQ ( password = STRING | passwordHash = HEX HASHED)) (MUST_CHANGE | UNLOCK)*
         )? (OLD_PASSWORD EQ oldPassword = STRING (MUST_CHANGE | UNLOCK)*)? (
             DEFAULT_DATABASE EQ defaultDatabase = id
         )? (DEFAULT_LANGUAGE EQ defaultLaguage = id)? (NAME EQ loginName = id)? (
             CHECK_POLICY EQ (ON | OFF)
-        )? (CHECK_EXPIRATION EQ (ON | OFF))? (CREDENTIAL EQ credentialName = id)? (
-            NO CREDENTIAL
-        )?
+        )? (CHECK_EXPIRATION EQ (ON | OFF))? (CREDENTIAL EQ credentialName = id)? (NO CREDENTIAL)?
         | (ADD | DROP) CREDENTIAL credentialName = id
     )
     ;
@@ -1111,10 +1065,7 @@ alterLoginSqlServer
 createLoginSqlServer
     : CREATE LOGIN loginName = id (
         WITH (
-            (PASSWORD EQ ( password = STRING | passwordHash = HEX HASHED)) (
-                MUST_CHANGE
-                | UNLOCK
-            )*
+            (PASSWORD EQ ( password = STRING | passwordHash = HEX HASHED)) (MUST_CHANGE | UNLOCK)*
         )? (COMMA? SID EQ sid = HEX)? (COMMA? DEFAULT_DATABASE EQ defaultDatabase = id)? (
             COMMA? DEFAULT_LANGUAGE EQ defaultLaguage = id
         )? (COMMA? CHECK_EXPIRATION EQ (ON | OFF))? (COMMA? CHECK_POLICY EQ (ON | OFF))? (
@@ -1170,10 +1121,7 @@ createLoginPdw
 alterMasterKeySqlServer
     : ALTER MASTER KEY (
         (FORCE)? REGENERATE WITH ENCRYPTION BY PASSWORD EQ password = STRING
-        | (ADD | DROP) ENCRYPTION BY (
-            SERVICE MASTER KEY
-            | PASSWORD EQ encryptionPassword = STRING
-        )
+        | (ADD | DROP) ENCRYPTION BY (SERVICE MASTER KEY | PASSWORD EQ encryptionPassword = STRING)
     )
     ;
 
@@ -1224,9 +1172,9 @@ createRemoteServiceBinding
 
 createResourcePool
     : CREATE RESOURCE POOL poolName = id (
-        WITH LPAREN (COMMA? MIN_CPU_PERCENT EQ INT)? (
-            COMMA? MAX_CPU_PERCENT EQ INT
-        )? (COMMA? CAP_CPU_PERCENT EQ INT)? (
+        WITH LPAREN (COMMA? MIN_CPU_PERCENT EQ INT)? (COMMA? MAX_CPU_PERCENT EQ INT)? (
+            COMMA? CAP_CPU_PERCENT EQ INT
+        )? (
             COMMA? AFFINITY SCHEDULER EQ (
                 AUTO
                 | LPAREN (COMMA? (INT | INT TO INT))+ RPAREN
@@ -1241,10 +1189,7 @@ createResourcePool
 alterResourceGovernor
     : ALTER RESOURCE GOVERNOR (
         (DISABLE | RECONFIGURE)
-        | WITH LPAREN CLASSIFIER_FUNCTION EQ (
-            schemaName = id DOT functionName = id
-            | NULL_
-        ) RPAREN
+        | WITH LPAREN CLASSIFIER_FUNCTION EQ (schemaName = id DOT functionName = id | NULL_) RPAREN
         | RESET STATISTICS
         | WITH LPAREN MAX_OUTSTANDING_IO_PER_VOLUME EQ maxOutstandingIoPerVolume = INT RPAREN
     )
@@ -1310,9 +1255,9 @@ createDbRole
 createRoute
     : CREATE ROUTE routeName = id (AUTHORIZATION ownerName = id)? WITH (
         COMMA? SERVICE_NAME EQ routeServiceName = STRING
-    )? (COMMA? BROKER_INSTANCE EQ brokerInstanceIdentifier = STRING)? (
-        COMMA? LIFETIME EQ INT
-    )? COMMA? ADDRESS EQ STRING (COMMA MIRROR_ADDRESS EQ STRING)?
+    )? (COMMA? BROKER_INSTANCE EQ brokerInstanceIdentifier = STRING)? (COMMA? LIFETIME EQ INT)? COMMA? ADDRESS EQ STRING (
+        COMMA MIRROR_ADDRESS EQ STRING
+    )?
     ;
 
 createRule
@@ -1320,9 +1265,9 @@ createRule
     ;
 
 alterSchemaSql
-    : ALTER SCHEMA schemaName = id TRANSFER (
-        (OBJECT | TYPE | XML SCHEMA COLLECTION) DOUBLE_COLON
-    )? id (DOT id)?
+    : ALTER SCHEMA schemaName = id TRANSFER ((OBJECT | TYPE | XML SCHEMA COLLECTION) DOUBLE_COLON)? id (
+        DOT id
+    )?
     ;
 
 createSchema
@@ -1360,9 +1305,7 @@ createSecurityPolicy
             COMMA? AFTER (INSERT | UPDATE)
             | COMMA? BEFORE (UPDATE | DELETE)
         )*
-    )+ (WITH LPAREN STATE EQ (ON | OFF) (SCHEMABINDING (ON | OFF))? RPAREN)? (
-        NOT FOR REPLICATION
-    )?
+    )+ (WITH LPAREN STATE EQ (ON | OFF) (SCHEMABINDING (ON | OFF))? RPAREN)? (NOT FOR REPLICATION)?
     ;
 
 alterSequence
@@ -1375,12 +1318,12 @@ alterSequence
     ;
 
 createSequence
-    : CREATE SEQUENCE (schemaName = id DOT)? sequenceName = id (AS dataType)? (
-        START WITH INT
-    )? (INCREMENT BY MINUS? INT)? (MINVALUE (MINUS? INT)? | NO MINVALUE)? (
-        MAXVALUE (MINUS? INT)?
-        | NO MAXVALUE
-    )? (CYCLE | NO CYCLE)? (CACHE INT? | NO CACHE)?
+    : CREATE SEQUENCE (schemaName = id DOT)? sequenceName = id (AS dataType)? (START WITH INT)? (
+        INCREMENT BY MINUS? INT
+    )? (MINVALUE (MINUS? INT)? | NO MINVALUE)? (MAXVALUE (MINUS? INT)? | NO MAXVALUE)? (
+        CYCLE
+        | NO CYCLE
+    )? (CACHE INT? | NO CACHE)?
     ;
 
 alterServerAudit
@@ -1416,15 +1359,10 @@ alterServerAudit
                     | LT
                     | LT EQ
                 ) (INT | STRING)
-                | COMMA? (AND | OR) NOT? (
-                    EQ
-                    | (LT GT)
-                    | (BANG EQ)
-                    | GT
-                    | (GT EQ)
-                    | LT
-                    | LT EQ
-                ) (INT | STRING)
+                | COMMA? (AND | OR) NOT? (EQ | (LT GT) | (BANG EQ) | GT | (GT EQ) | LT | LT EQ) (
+                    INT
+                    | STRING
+                )
             )
         )?
         | REMOVE WHERE
@@ -1466,15 +1404,10 @@ createServerAudit
                     | LT
                     | LT EQ
                 ) (INT | STRING)
-                | COMMA? (AND | OR) NOT? (
-                    EQ
-                    | (LT GT)
-                    | (BANG EQ)
-                    | GT
-                    | (GT EQ)
-                    | LT
-                    | LT EQ
-                ) (INT | STRING)
+                | COMMA? (AND | OR) NOT? (EQ | (LT GT) | (BANG EQ) | GT | (GT EQ) | LT | LT EQ) (
+                    INT
+                    | STRING
+                )
             )
         )?
         | REMOVE WHERE
@@ -1493,9 +1426,7 @@ alterServerAuditSpecification
 createServerAuditSpecification
     : CREATE SERVER AUDIT SPECIFICATION auditSpecificationName = id (
         FOR SERVER AUDIT auditName = id
-    )? (ADD LPAREN auditActionGroupName = id RPAREN)* (
-        WITH LPAREN STATE EQ (ON | OFF) RPAREN
-    )?
+    )? (ADD LPAREN auditActionGroupName = id RPAREN)* (WITH LPAREN STATE EQ (ON | OFF) RPAREN)?
     ;
 
 alterServerConfiguration
@@ -1530,11 +1461,7 @@ alterServerConfiguration
     ;
 
 alterServerRole
-    : ALTER SERVER ROLE id
-        (
-              (ADD | DROP) MEMBER id
-            | WITH NAME EQ id
-        )
+    : ALTER SERVER ROLE id ((ADD | DROP) MEMBER id | WITH NAME EQ id)
     ;
 
 createServerRole
@@ -1546,9 +1473,9 @@ alterServerRolePdw
     ;
 
 alterService
-    : ALTER SERVICE modifiedServiceName = id (
-        ON QUEUE (schemaName = id DOT)? queueName = id
-    )? (LPAREN optArgClause (COMMA optArgClause)* RPAREN)?
+    : ALTER SERVICE modifiedServiceName = id (ON QUEUE (schemaName = id DOT)? queueName = id)? (
+        LPAREN optArgClause (COMMA optArgClause)* RPAREN
+    )?
     ;
 
 optArgClause
@@ -1561,7 +1488,6 @@ createService
     )? queueName = id (LPAREN (COMMA? (id | DEFAULT))+ RPAREN)?
     ;
 
-
 alterServiceMasterKey
     : ALTER SERVICE MASTER KEY (
         FORCE? REGENERATE
@@ -1573,7 +1499,6 @@ alterServiceMasterKey
         )
     )
     ;
-
 
 alterSymmetricKey
     : ALTER SYMMETRIC KEY keyName = id (
@@ -1657,7 +1582,6 @@ alterUserAzureSql
     )+
     ;
 
-
 alterWorkloadGroup
     : ALTER WORKLOAD GROUP (workloadGroupGroupName = id | DEFAULT_DOUBLE_QUOTE) (
         WITH LPAREN (
@@ -1703,21 +1627,16 @@ createPartitionScheme
     ;
 
 createQueue
-    : CREATE QUEUE (tableName | queueName = id) queueSettings? (
-        ON filegroup = id
-        | DEFAULT
-    )?
+    : CREATE QUEUE (tableName | queueName = id) queueSettings? (ON filegroup = id | DEFAULT)?
     ;
 
 queueSettings
     : WITH (STATUS EQ onOff COMMA?)? (RETENTION EQ onOff COMMA?)? (
         ACTIVATION LPAREN (
             (
-                (STATUS EQ onOff COMMA?)? (
-                    PROCEDURE_NAME EQ funcProcNameDatabaseSchema COMMA?
-                )? (MAX_QUEUE_READERS EQ maxReaders = INT COMMA?)? (
-                    EXECUTE AS (SELF | userName = STRING | OWNER) COMMA?
-                )?
+                (STATUS EQ onOff COMMA?)? (PROCEDURE_NAME EQ funcProcNameDatabaseSchema COMMA?)? (
+                    MAX_QUEUE_READERS EQ maxReaders = INT COMMA?
+                )? (EXECUTE AS (SELF | userName = STRING | OWNER) COMMA?)?
             )
             | DROP
         ) RPAREN COMMA?
@@ -1739,10 +1658,9 @@ queueRebuildOptions
     ;
 
 createContract
-    : CREATE CONTRACT contractName (AUTHORIZATION ownerName = id)?
-        LPAREN (
-            (messageTypeName = id | DEFAULT) SENT BY (INITIATOR | TARGET | ANY) COMMA? )+
-        RPAREN
+    : CREATE CONTRACT contractName (AUTHORIZATION ownerName = id)? LPAREN (
+        (messageTypeName = id | DEFAULT) SENT BY (INITIATOR | TARGET | ANY) COMMA?
+    )+ RPAREN
     ;
 
 conversationStatement
@@ -1766,13 +1684,8 @@ messageStatement
     ;
 
 mergeStatement
-    : withExpression?
-        MERGE (TOP LPAREN expression RPAREN PERCENT?)?
-        INTO? ddlObject withTableHints? asTableAlias?
-        USING tableSources
-        ON
-            searchCondition whenMatches+ outputClause? optionClause?
-        SEMI
+    : withExpression? MERGE (TOP LPAREN expression RPAREN PERCENT?)? INTO? ddlObject withTableHints? asTableAlias? USING tableSources ON
+        searchCondition whenMatches+ outputClause? optionClause? SEMI
     ;
 
 whenMatches
@@ -1967,9 +1880,7 @@ onPartitions
     ;
 
 createColumnstoreIndex
-    : CREATE CLUSTERED COLUMNSTORE INDEX id ON tableName createColumnstoreIndexOptions? (
-        ON id
-    )? SEMI?
+    : CREATE CLUSTERED COLUMNSTORE INDEX id ON tableName createColumnstoreIndexOptions? (ON id)? SEMI?
     ;
 
 createColumnstoreIndexOptions
@@ -1989,7 +1900,6 @@ createNonclusteredColumnstoreIndex
         WHERE searchCondition
     )? createColumnstoreIndexOptions? (ON id)? SEMI?
     ;
-
 
 createOrAlterProcedure
     : ((CREATE (OR (ALTER | REPLACE))?) | ALTER) proc = (PROC | PROCEDURE) procName = funcProcNameSchema (
@@ -2563,7 +2473,6 @@ declareStatement
     | WITH xmlNamespaces
     ;
 
-
 cursorStatement
     : CLOSE GLOBAL? cursorName SEMI?
     | DEALLOCATE GLOBAL? CURSOR? cursorName SEMI?
@@ -2573,26 +2482,16 @@ cursorStatement
     ;
 
 backupDatabase
-    : BACKUP DATABASE id (
-        READ_WRITE_FILEGROUPS optionList
-    )?
-    (TO optionList)+
-    (MIRROR TO optionList)*
-    WITH (
-          optionList
-        | ENCRYPTION
-          LPAREN ALGORITHM EQ genericOption COMMA SERVER CERTIFICATE EQ genericOption RPAREN
+    : BACKUP DATABASE id (READ_WRITE_FILEGROUPS optionList)? (TO optionList)+ (
+        MIRROR TO optionList
+    )* WITH (
+        optionList
+        | ENCRYPTION LPAREN ALGORITHM EQ genericOption COMMA SERVER CERTIFICATE EQ genericOption RPAREN
     )?
     ;
 
 backupLog
-    : BACKUP id /* LOG */ id TO optionList
-    (
-        MIRROR TO optionList
-    )?
-    (
-        WITH optionList
-    )?
+    : BACKUP id /* LOG */ id TO optionList (MIRROR TO optionList)? (WITH optionList)?
     ;
 
 backupCertificate
@@ -2668,15 +2567,12 @@ executeVarString
     ;
 
 securityStatement
-
     : executeClause SEMI?
-
     | GRANT (ALL PRIVILEGES? | grantPermission (LPAREN columnNameList RPAREN)?) (
         ON (classTypeForGrant COLON COLON)? onId = tableName
     )? TO toPrincipal += principalId (COMMA toPrincipal += principalId)* (WITH GRANT OPTION)? (
         AS asPrincipal = principalId
     )? SEMI?
-
     | REVERT (WITH COOKIE EQ LOCAL_ID)? SEMI?
     | openKey
     | closeKey
@@ -2772,9 +2668,7 @@ decryptionMechanism
 
 grantPermission
     : ADMINISTER genericOption
-    | ALTER (
-        ANY? genericOption
-    )?
+    | ALTER ( ANY? genericOption)?
     | AUTHENTICATE SERVER?
     | BACKUP genericOption
     | CHECKPOINT
@@ -2798,19 +2692,13 @@ grantPermission
     | UNMASK
     | UNSAFE ASSEMBLY
     | UPDATE
-    | VIEW (
-          ANY genericOption
-        | genericOption
-    )
+    | VIEW ( ANY genericOption | genericOption)
     ;
-
 
 setStatement
     : SET LOCAL_ID (DOT id)? EQ expression
     | SET LOCAL_ID assignmentOperator expression
-    | SET LOCAL_ID EQ CURSOR declareSetCursorCommon (
-        FOR (READ ONLY | UPDATE (OF columnNameList)?)
-    )?
+    | SET LOCAL_ID EQ CURSOR declareSetCursorCommon (FOR (READ ONLY | UPDATE (OF columnNameList)?))?
     | setSpecial
     ;
 
@@ -2908,9 +2796,7 @@ dbccCheckdb
         LPAREN (database = id | databasename = STRING | INT) (
             COMMA (NOINDEX | REPAIR_ALLOW_DATA_LOSS | REPAIR_FAST | REPAIR_REBUILD)
         )? RPAREN
-    )? (
-        WITH dbccOption = dbccCheckdbTableOption (COMMA dbccOption = dbccCheckdbTableOption)*
-    )?
+    )? (WITH dbccOption = dbccCheckdbTableOption (COMMA dbccOption = dbccCheckdbTableOption)*)?
     ;
 
 dbccCheckfilegroupOption
@@ -2927,11 +2813,7 @@ dbccCheckfilegroup
         LPAREN (filegroupId = INT | filegroupName = STRING) (
             COMMA (NOINDEX | REPAIR_ALLOW_DATA_LOSS | REPAIR_FAST | REPAIR_REBUILD)
         )? RPAREN
-    )? (
-        WITH dbccOption = dbccCheckfilegroupOption (
-            COMMA dbccOption = dbccCheckfilegroupOption
-        )*
-    )?
+    )? (WITH dbccOption = dbccCheckfilegroupOption ( COMMA dbccOption = dbccCheckfilegroupOption)*)?
     ;
 
 dbccChecktable
@@ -3015,22 +2897,22 @@ dbccDropcleanbuffers
 
 dbccClause
     : DBCC (
-                  dbccCheckalloc
-                | dbccCheckcatalog
-                | dbccCheckconstraints
-                | dbccCheckdb
-                | dbccCheckfilegroup
-                | dbccChecktable
-                | dbccCleantable
-                | dbccClonedatabase
-                | dbccDbreindex
-                | dbccDllFree
-                | dbccDropcleanbuffers
-                | dbccPdwShowspaceused
-                | dbccProccache
-                | dbccShowcontig
-                | dbccShrinklog
-        )
+        dbccCheckalloc
+        | dbccCheckcatalog
+        | dbccCheckconstraints
+        | dbccCheckdb
+        | dbccCheckfilegroup
+        | dbccChecktable
+        | dbccCleantable
+        | dbccClonedatabase
+        | dbccDbreindex
+        | dbccDllFree
+        | dbccDropcleanbuffers
+        | dbccPdwShowspaceused
+        | dbccProccache
+        | dbccShowcontig
+        | dbccShrinklog
+    )
     ;
 
 executeClause
@@ -3120,14 +3002,13 @@ onPartitionOrFilegroup
     ;
 
 tableConstraint
-    : (CONSTRAINT constraint = id)?
-        (
-              ( (PRIMARY KEY | UNIQUE) clustered? LPAREN columnNameListWithOrder RPAREN primaryKeyOptions)
-            | ( FOREIGN KEY LPAREN fk = columnNameList RPAREN foreignKeyOptions)
-            | ( CONNECTION LPAREN connectionNode ( COMMA connectionNode)* RPAREN)
-            | ( DEFAULT constantExpr = expression FOR column = id (WITH VALUES)?)
-            | checkConstraint
-        )
+    : (CONSTRAINT constraint = id)? (
+        ((PRIMARY KEY | UNIQUE) clustered? LPAREN columnNameListWithOrder RPAREN primaryKeyOptions)
+        | ( FOREIGN KEY LPAREN fk = columnNameList RPAREN foreignKeyOptions)
+        | ( CONNECTION LPAREN connectionNode ( COMMA connectionNode)* RPAREN)
+        | ( DEFAULT constantExpr = expression FOR column = id (WITH VALUES)?)
+        | checkConstraint
+    )
     ;
 
 connectionNode
@@ -3256,29 +3137,29 @@ constant_LOCAL_ID
     ;
 
 expression
-    : LPAREN expression RPAREN                                  #exprPrecedence
-    | <assoc=right> op=BIT_NOT expression                       #exprBitNot
-    | <assoc=right> op=(PLUS | MINUS) expression                #exprUnary
-    | expression op=(STAR | DIV | MOD) expression               #exprOpPrec1
-    | expression op=(PLUS | MINUS) expression                   #exprOpPrec2
-    | expression op=(BIT_AND | BIT_XOR | BIT_OR) expression     #exprOpPrec3
-    | expression op=DOUBLE_BAR expression                       #exprOpPrec4
-    | primitiveExpression                                       #exprPrimitive
-    | functionCall                                              #exprFunc
-    | functionValues                                            #exprFuncVal
-    | expression COLLATE id                                     #exprCollate
-    | caseExpression                                            #exprCase
-    | expression timeZone                                       #exprTz
-    | expression overClause                                     #exprOver
-    | expression withinGroup                                    #exprWithinGroup
-    | DOLLAR_ACTION                                             #exprDollar
-    | <assoc=right> expression DOT expression                   #exprDot
-    | LPAREN subquery RPAREN                                    #exprSubquery
-    | ALL expression                                            #exprAll
-    | DISTINCT expression                                       #exprDistinct
-    | DOLLAR_ACTION                                             #exprDollar
-    | STAR                                                      #exprStar
-    | id                                                        #exprId
+    : LPAREN expression RPAREN                                # exprPrecedence
+    | <assoc = right> op = BIT_NOT expression                 # exprBitNot
+    | <assoc = right> op = (PLUS | MINUS) expression          # exprUnary
+    | expression op = (STAR | DIV | MOD) expression           # exprOpPrec1
+    | expression op = (PLUS | MINUS) expression               # exprOpPrec2
+    | expression op = (BIT_AND | BIT_XOR | BIT_OR) expression # exprOpPrec3
+    | expression op = DOUBLE_BAR expression                   # exprOpPrec4
+    | primitiveExpression                                     # exprPrimitive
+    | functionCall                                            # exprFunc
+    | functionValues                                          # exprFuncVal
+    | expression COLLATE id                                   # exprCollate
+    | caseExpression                                          # exprCase
+    | expression timeZone                                     # exprTz
+    | expression overClause                                   # exprOver
+    | expression withinGroup                                  # exprWithinGroup
+    | DOLLAR_ACTION                                           # exprDollar
+    | <assoc = right> expression DOT expression               # exprDot
+    | LPAREN subquery RPAREN                                  # exprSubquery
+    | ALL expression                                          # exprAll
+    | DISTINCT expression                                     # exprDistinct
+    | DOLLAR_ACTION                                           # exprDollar
+    | STAR                                                    # exprStar
+    | id                                                      # exprId
     ;
 
 // TODO: Implement this ?
@@ -3287,7 +3168,7 @@ parameter
     ;
 
 timeZone
-    : AT_KEYWORD id ZONE expression  // AT TIME ZONE
+    : AT_KEYWORD id ZONE expression // AT TIME ZONE
     ;
 
 primitiveExpression
@@ -3298,7 +3179,7 @@ primitiveExpression
     ;
 
 caseExpression
-    : CASE caseExpr=expression? switchSection+ (ELSE elseExpr = expression)? END
+    : CASE caseExpr = expression? switchSection+ (ELSE elseExpr = expression)? END
     ;
 
 subquery
@@ -3306,8 +3187,7 @@ subquery
     ;
 
 withExpression
-    : WITH xmlNamespaces?
-           commonTableExpression (COMMA commonTableExpression)*
+    : WITH xmlNamespaces? commonTableExpression (COMMA commonTableExpression)*
     ;
 
 commonTableExpression
@@ -3326,11 +3206,11 @@ updateElemMerge
     ;
 
 searchCondition
-    : LPAREN searchCondition RPAREN         #scPrec
-    | NOT searchCondition                   #scNot
-    | searchCondition AND searchCondition   #scAnd
-    | searchCondition OR searchCondition    #scOr
-    | predicate                             #scPred
+    : LPAREN searchCondition RPAREN       # scPrec
+    | NOT searchCondition                 # scNot
+    | searchCondition AND searchCondition # scAnd
+    | searchCondition OR searchCondition  # scOr
+    | predicate                           # scPred
     ;
 
 predicate
@@ -3359,9 +3239,7 @@ sqlUnion
     ;
 
 querySpecification
-    : SELECT (ALL | DISTINCT)? topClause?
-        selectListElem (COMMA selectListElem)*
-        selectOptionalClauses
+    : SELECT (ALL | DISTINCT)? topClause? selectListElem (COMMA selectListElem)* selectOptionalClauses
     ;
 
 selectOptionalClauses
@@ -3369,20 +3247,16 @@ selectOptionalClauses
     ;
 
 groupByClause
-    :  GROUP BY
-        (
-            (ALL? expression (COMMA expression)*)
-                (WITH id)? // Note that id should be checked for CUBE or ROLLUP
-
-          | GROUPING SETS LPAREN groupingSetsItem (COMMA groupingSetsItem)* RPAREN
-        )
+    : GROUP BY (
+        (ALL? expression (COMMA expression)*) (WITH id)? // Note that id should be checked for CUBE or ROLLUP
+        | GROUPING SETS LPAREN groupingSetsItem (COMMA groupingSetsItem)* RPAREN
+    )
     ;
 
 groupingSetsItem
     : LPAREN? expression (COMMA expression)* RPAREN?
     | LPAREN RPAREN
     ;
-
 
 intoClause
     : INTO tableName
@@ -3396,8 +3270,8 @@ whereClause
     : WHERE searchCondition
     ;
 
-havingClause:
-    HAVING searchCondition
+havingClause
+    : HAVING searchCondition
     ;
 
 topClause
@@ -3420,29 +3294,27 @@ orderByClause
 
 selectOrderByClause
     : orderByClause (
-        OFFSET expression or=(ROW | ROWS) (
-            FETCH (FIRST | NEXT) expression fr=(ROW | ROWS) ONLY
+        OFFSET expression or = (ROW | ROWS) (
+            FETCH (FIRST | NEXT) expression fr = (ROW | ROWS) ONLY
         )?
     )?
     ;
 
 forClause
     : FOR BROWSE
-    | FOR XML (RAW (LPAREN STRING RPAREN)? | AUTO) xmlCommonDirectives*
-        (COMMA (XMLDATA | XMLSCHEMA (LPAREN STRING RPAREN)? ) )?
-        (COMMA ELEMENTS (XSINIL | ABSENT) ? )?
+    | FOR XML (RAW (LPAREN STRING RPAREN)? | AUTO) xmlCommonDirectives* (
+        COMMA (XMLDATA | XMLSCHEMA (LPAREN STRING RPAREN)?)
+    )? (COMMA ELEMENTS (XSINIL | ABSENT)?)?
     | FOR XML EXPLICIT xmlCommonDirectives* (COMMA XMLDATA)?
-    | FOR XML PATH (LPAREN STRING RPAREN)? xmlCommonDirectives* (COMMA ELEMENTS (XSINIL | ABSENT)? )?
-    | FOR JSON (AUTO | PATH)
-        (
-            COMMA (ROOT (LPAREN STRING RPAREN) | INCLUDE_NULL_VALUES | WITHOUT_ARRAY_WRAPPER)
-        )*
+    | FOR XML PATH (LPAREN STRING RPAREN)? xmlCommonDirectives* (COMMA ELEMENTS (XSINIL | ABSENT)?)?
+    | FOR JSON (AUTO | PATH) (
+        COMMA (ROOT (LPAREN STRING RPAREN) | INCLUDE_NULL_VALUES | WITHOUT_ARRAY_WRAPPER)
+    )*
     ;
 
 orderByExpression
     : expression (COLLATE expression)? (ASC | DESC)?
     ;
-
 
 optionClause
     : OPTION LPAREN options_ += option (COMMA options_ += option)* RPAREN
@@ -3492,10 +3364,10 @@ expressionElem
 
 selectListElem
     : (
-          asterisk
-        | LOCAL_ID op=(PE | ME | SE | DE | MEA | AND_ASSIGN | XOR_ASSIGN | OR_ASSIGN | EQ) expression
+        asterisk
+        | LOCAL_ID op = (PE | ME | SE | DE | MEA | AND_ASSIGN | XOR_ASSIGN | OR_ASSIGN | EQ) expression
         | expressionElem
-      ) ((IGNORE | RESPECT) NULLS)?
+    ) ((IGNORE | RESPECT) NULLS)?
     ;
 
 tableSources
@@ -3508,11 +3380,7 @@ tableSource
 
 tableSourceItem
     : tableName deprecatedTableHint asTableAlias
-    | tableName asTableAlias? (
-        withTableHints
-        | deprecatedTableHint
-        | sybaseLegacyHints
-    )?
+    | tableName asTableAlias? (withTableHints | deprecatedTableHint | sybaseLegacyHints)?
     | rowsetFunction asTableAlias?
     | LPAREN derivedTable RPAREN (asTableAlias columnAliasList?)?
     | changeTable asTableAlias?
@@ -3537,7 +3405,6 @@ jsonDeclaration
 jsonColumnDeclaration
     : columnDeclaration (AS JSON)?
     ;
-
 
 columnDeclaration
     : id dataType STRING?
@@ -3574,9 +3441,7 @@ joinType
     ;
 
 joinOn
-    : joinType? (
-        joinHint = (LOOP | HASH | MERGE | REMOTE)
-    )? JOIN source = tableSource ON cond = searchCondition
+    : joinType? (joinHint = (LOOP | HASH | MERGE | REMOTE))? JOIN source = tableSource ON cond = searchCondition
     ;
 
 crossJoin
@@ -3608,7 +3473,9 @@ fullColumnNameList
     ;
 
 rowsetFunction
-    : (OPENROWSET LPAREN providerName = STRING COMMA connectionString = STRING COMMA sql = STRING RPAREN)
+    : (
+        OPENROWSET LPAREN providerName = STRING COMMA connectionString = STRING COMMA sql = STRING RPAREN
+    )
     | (OPENROWSET LPAREN BULK dataFile = STRING COMMA (bulkOption (COMMA bulkOption)* | id) RPAREN)
     ;
 
@@ -3633,7 +3500,26 @@ functionCall
 
 // Things that are just special values and not really functions, but are documented as such
 functionValues
-    : f=(CURSOR_ROWS | FETCH_STATUS | SESSION_USER | SYSTEM_USER | USER)
+    : f = (: AACURSOR_ROWS
+        | AADBTS
+        | AAFETCH_STATUS
+        | AALANGID
+        | AALANGUAGE
+        | AALOCKTIMEOUT
+        | AAMAX_CONNECTIONS
+        | AAMAX_PRECISION
+        | AANESTLEVEL
+        | AAOPTIONS
+        | AAREMSERVER
+        | AASERVERNAME
+        | AASERVICENAME
+        | AASPID
+        | AATEXTSIZE
+        | AAVERSION
+        | SESSION_USER
+        | SYSTEM_USER
+        | USER
+    )
     ;
 
 // Standard functions that are built in but take standard syntax, or are
@@ -3684,14 +3570,10 @@ freetextPredicate
     ;
 
 builtInFunctions
-    : NEXT VALUE FOR tableName                                                              #nextValueFor
-    | (CAST | TRY_CAST) LPAREN expression AS dataType RPAREN                                #cast
-    | JSON_ARRAY LPAREN expressionList? jsonNullClause? RPAREN                              #jsonArray
-    | JSON_OBJECT
-        LPAREN
-            (jsonKeyValue (COMMA jsonKeyValue)* )?
-            jsonNullClause?
-        RPAREN                                                                              #jsonObject
+    : NEXT VALUE FOR tableName                                                        # nextValueFor
+    | (CAST | TRY_CAST) LPAREN expression AS dataType RPAREN                          # cast
+    | JSON_ARRAY LPAREN expressionList? jsonNullClause? RPAREN                        # jsonArray
+    | JSON_OBJECT LPAREN (jsonKeyValue (COMMA jsonKeyValue)*)? jsonNullClause? RPAREN # jsonObject
     ;
 
 jsonKeyValue
@@ -3699,7 +3581,7 @@ jsonKeyValue
     ;
 
 jsonNullClause
-    : (loseNulls=ABSENT | NULL_) ON NULL_
+    : (loseNulls = ABSENT | NULL_) ON NULL_
     ;
 
 hierarchyidStaticMethod
@@ -3775,7 +3657,7 @@ expressionList
     ;
 
 withinGroup
-    :  WITHIN GROUP LPAREN orderByClause RPAREN
+    : WITHIN GROUP LPAREN orderByClause RPAREN
     ;
 
 overClause
@@ -3809,10 +3691,7 @@ createDatabaseOption
     ;
 
 databaseFilestreamOption
-    : LPAREN (
-        ( NON_TRANSACTED_ACCESS EQ ( OFF | READ_ONLY | FULL))
-        | ( DIRECTORY_NAME EQ STRING)
-    ) RPAREN
+    : LPAREN (( NON_TRANSACTED_ACCESS EQ ( OFF | READ_ONLY | FULL)) | ( DIRECTORY_NAME EQ STRING)) RPAREN
     ;
 
 databaseFileSpec
@@ -3851,7 +3730,7 @@ entityNameForParallelDw
     ;
 
 tableName
-    : (linkedServer = id DOT DOT)? ids+=id (DOT ids +=id)*
+    : (linkedServer = id DOT DOT)? ids += id (DOT ids += id)*
     ;
 
 simpleName
@@ -3878,10 +3757,7 @@ ddlObject
     ;
 
 fullColumnName
-    : ((DELETED | INSERTED | tableName) DOT)? (
-          id
-        | (DOLLAR (IDENTITY | ROWGUID))
-    )
+    : ((DELETED | INSERTED | tableName) DOT)? (id | (DOLLAR (IDENTITY | ROWGUID)))
     ;
 
 columnNameListWithOrder
@@ -3924,8 +3800,10 @@ beginConversationTimer
     ;
 
 beginConversationDialog
-    : BEGIN DIALOG (CONVERSATION)? dialogHandle = LOCAL_ID FROM SERVICE initiatorServiceName = serviceName TO SERVICE targetServiceName =
-        serviceName (COMMA serviceBrokerGuid = STRING)? ON CONTRACT contractName (
+    : BEGIN DIALOG (CONVERSATION)? dialogHandle = LOCAL_ID FROM SERVICE initiatorServiceName = serviceName TO SERVICE targetServiceName = serviceName
+        (
+        COMMA serviceBrokerGuid = STRING
+    )? ON CONTRACT contractName (
         WITH ((RELATED_CONVERSATION | RELATED_CONVERSATION_GROUP) EQ LOCAL_ID COMMA?)? (
             LIFETIME EQ (INT | LOCAL_ID) COMMA?
         )? (ENCRYPTION EQ onOff)?
@@ -3980,14 +3858,7 @@ dataTypeIdentity
     ;
 
 constant
-    : con = (
-          STRING
-        | HEX
-        | INT
-        | REAL
-        | FLOAT
-        | MONEY
-        )
+    : con = (STRING | HEX | INT | REAL | FLOAT | MONEY)
     | parameter
     ;
 
@@ -4763,8 +4634,7 @@ assignmentOperator
 
 fileSize
     : INT (KB | MB | GB | TB | MOD)?
-;
-
+    ;
 
 /**
  * The parenthesised option list is used in many places, so it is defined here.
@@ -4805,14 +4675,14 @@ optionList
  * ALL                       - The option is set to ALL but is not named (will get just id)
  */
 genericOption
-    : id  EQ? (
-              DEFAULT         // Default value  - don't resolve with expression
-            | ON              // Simple ON      - don't resolve with expression
-            | OFF             // Simple OFF     - don't resolve with expression
-            | AUTO            // Simple AUTO    - don't resolve with expression
-            | STRING          // String value   - don't resolve with expression
-            | expression id?  // Catch all for less explicit options, sometimes with extra keywords
-         )?
+    : id EQ? (
+        DEFAULT          // Default value  - don't resolve with expression
+        | ON             // Simple ON      - don't resolve with expression
+        | OFF            // Simple OFF     - don't resolve with expression
+        | AUTO           // Simple AUTO    - don't resolve with expression
+        | STRING         // String value   - don't resolve with expression
+        | expression id? // Catch all for less explicit options, sometimes with extra keywords
+    )?
     ;
 
 // XML stuff
@@ -4834,7 +4704,9 @@ createXmlSchemaCollection
     ;
 
 openXml
-    : OPENXML LPAREN expression COMMA expression (COMMA expression)? RPAREN (WITH LPAREN schemaDeclaration RPAREN)? asTableAlias?
+    : OPENXML LPAREN expression COMMA expression (COMMA expression)? RPAREN (
+        WITH LPAREN schemaDeclaration RPAREN
+    )? asTableAlias?
     ;
 
 xmlNamespaces

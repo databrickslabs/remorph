@@ -15,7 +15,7 @@ class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenProp
       ("functionName", "expectedArity"), // Header
 
       // TSQL specific
-      ("@@CURSOR_STATUS", Some(FunctionDefinition.notConvertible(0))),
+      ("@@CURSOR_ROWS", Some(FunctionDefinition.notConvertible(0))),
       ("@@FETCH_STATUS", Some(FunctionDefinition.notConvertible(0))),
       ("CUBE", Some(FunctionDefinition.standard(1, Int.MaxValue))),
       ("MODIFY", Some(FunctionDefinition.xml(1))),
