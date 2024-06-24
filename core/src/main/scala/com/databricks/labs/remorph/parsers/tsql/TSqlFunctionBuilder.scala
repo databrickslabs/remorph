@@ -22,7 +22,9 @@ class TSqlFunctionBuilder extends FunctionBuilder with StringConverter {
     case "@@TEXTSIZE" => FunctionDefinition.notConvertible(0)
     case "@@VERSION" => FunctionDefinition.notConvertible(0)
     case "COLLATIONPROPERTY" => FunctionDefinition.notConvertible(2)
+    case "CONTAINSTABLE" => FunctionDefinition.notConvertible(0)
     case "CUBE" => FunctionDefinition.standard(1, Int.MaxValue) // Snowflake hard codes this
+    case "FREETEXTTABLE" => FunctionDefinition.notConvertible(0)
     case "GET_BIT" => FunctionDefinition.standard(2).withConversionStrategy(rename)
     case "ISNULL" => FunctionDefinition.standard(2).withConversionStrategy(rename)
     case "LEFT_SHIFT" => FunctionDefinition.standard(2).withConversionStrategy(rename)
@@ -30,6 +32,9 @@ class TSqlFunctionBuilder extends FunctionBuilder with StringConverter {
     case "NEXTVALUEFOR" => FunctionDefinition.standard(1).withConversionStrategy(nextValueFor)
     case "RIGHT_SHIFT" => FunctionDefinition.standard(2).withConversionStrategy(rename)
     case "ROLLUP" => FunctionDefinition.standard(1, Int.MaxValue) // Snowflake hard codes this
+    case "SEMANTICKEYPHRASETABLE" => FunctionDefinition.notConvertible(0)
+    case "SEMANTICSIMILARITYDETAILSTABLE" => FunctionDefinition.notConvertible(0)
+    case "SEMANTICSSIMILARITYTABLE" => FunctionDefinition.notConvertible(0)
     case "SET_BIT" => FunctionDefinition.standard(2, 3).withConversionStrategy(rename)
   }
 

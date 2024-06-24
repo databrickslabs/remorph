@@ -337,4 +337,11 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
   "translate functions using ALL" in {
     example(query = "COUNT(ALL goals)", _.expression(), ir.CallFunction("COUNT", Seq(simplyNamedColumn("goals"))))
   }
+
+  "translate freetext functions as unconvertible" in {
+    example(
+      query = "FREETEXTTABLE(table, col, 'search')",
+      _.expression(),
+      ir.UnresolvedFunction("FREETEXTTABLE", List.empty, is_distinct = false, is_user_defined_function = false))
+  }
 }

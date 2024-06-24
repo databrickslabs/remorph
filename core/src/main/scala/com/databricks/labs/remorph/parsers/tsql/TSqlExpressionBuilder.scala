@@ -422,6 +422,12 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
     buildJsonObject(namedStruct, absentOnNull)
   }
 
+  override def visitFreetextFunction(ctx: FreetextFunctionContext): ir.Expression = {
+    // Databricks SQL does not support FREETEXT functions, so there is no point in trying to convert these
+    // functions. We do need to generate IR that indicates that this is a function that is not supported.
+    functionBuilder.buildFunction(ctx.f.getText, List.empty)
+  }
+
   // format: off
   /**
    * Check if the ABSENT ON NULL clause is present in the JSON clause. The behavior is as follows:
