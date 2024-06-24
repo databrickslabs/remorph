@@ -9,15 +9,20 @@ case object UndefinedFrame extends FrameType
 case object RangeFrame extends FrameType
 case object RowsFrame extends FrameType
 
-case class FrameBoundary(current_row: Boolean, unbounded: Boolean, value: Expression)
-
+sealed trait FrameBoundary
+case object CurrentRow extends FrameBoundary
+case object UnboundedPreceding extends FrameBoundary
+case object UnboundedFollowing extends FrameBoundary
+case class PrecedingN(n: Expression) extends FrameBoundary
+case class FollowingN(n: Expression) extends FrameBoundary
+case object NoBoundary extends FrameBoundary
 case class WindowFrame(frame_type: FrameType, lower: FrameBoundary, upper: FrameBoundary)
 
 case class Window(
     window_function: Expression,
     partition_spec: Seq[Expression],
     sort_order: Seq[SortOrder],
-    frame_spec: WindowFrame)
+    frame_spec: Option[WindowFrame])
     extends Expression {}
 
 abstract class SortDirection
@@ -91,7 +96,7 @@ case class UnresolvedExtractValue(child: Expression, extraction: Expression) ext
 case class UpdateFields(struct_expression: Expression, field_name: String, value_expression: Option[Expression])
     extends Expression {}
 
-case class Alias(expr: Expression, name: Seq[String], metadata: Option[String]) extends Expression {}
+case class Alias(expr: Expression, name: Seq[Id], metadata: Option[String]) extends Expression {}
 
 case class LambdaFunction(function: Expression, arguments: Seq[UnresolvedNamedLambdaVariable]) extends Expression {}
 

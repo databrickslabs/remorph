@@ -931,7 +931,6 @@ XML_COMPRESSION                             : 'XML_COMPRESSION';
 XSINIL                                      : 'XSINIL';
 ZONE                                        : 'ZONE';
 
-
 SP_EXECUTESQL: 'SP_EXECUTESQL';
 
 //Combinations that cannot be used as IDs
@@ -939,48 +938,60 @@ DISK_DRIVE    : [A-Z][:];
 DOLLAR_ACTION : '$ACTION';
 
 // Functions starting with double at signs
-// https://learn.microsoft.com/en-us/sql/t-sql/language-elements/variables-transact-sql?view=sql-server-ver16
-CURSOR_ROWS  : '@@CURSOR_ROWS';
-FETCH_STATUS : '@@FETCH_STATUS';
+AACURSOR_ROWS     : '@@CURSOR_ROWS';
+AADBTS            : '@@DBTS';
+AAFETCH_STATUS    : '@@FETCH_STATUS';
+AALANGID          : '@@LANGID';
+AALANGUAGE        : '@@LANGUAGE';
+AALOCKTIMEOUT     : '@@LOCKTIMEOUT';
+AAMAX_CONNECTIONS : '@@MAX_CONNECTIONS';
+AAMAX_PRECISION   : '@@MAX_PRECISION';
+AANESTLEVEL       : '@@NESTLEVEL';
+AAOPTIONS         : '@@OPTIONS';
+AAREMSERVER       : '@@REMSERVER';
+AASERVERNAME      : '@@SERVERNAME';
+AASERVICENAME     : '@@SERVICENAME';
+AASPID            : '@@SPID';
+AATEXTSIZE        : '@@TEXTSIZE';
+AAVERSION         : '@@VERSION';
 
 IPV4_ADDR: DEC_DIGIT+ '.' DEC_DIGIT+ '.' DEC_DIGIT+ '.' DEC_DIGIT+;
 
-SPACE: [ \t\r\n]+ -> skip;
-// https://docs.microsoft.com/en-us/sql/t-sql/language-elements/slash-star-comment-transact-sql
+SPACE        : [ \t\r\n]+                -> skip;
 COMMENT      : '/*' (COMMENT | .)*? '*/' -> channel(HIDDEN);
 LINE_COMMENT : '--' ~[\r\n]*             -> channel(HIDDEN);
 
 // TODO: ID can be not only Latin.
-DOUBLE_QUOTE_ID    : '"' ('""' | ~[\r\n"] )* '"';
-SQUARE_BRACKET_ID  : '[' (~']' | ']' ']')* ']';
-LOCAL_ID           : '@' ([A-Z_$@#0-9] | FullWidthLetter)*;
-TEMP_ID            : '#' ([A-Z_$@#0-9] | FullWidthLetter)*;
+DOUBLE_QUOTE_ID   : '"' ('""' | ~[\r\n"])* '"';
+SQUARE_BRACKET_ID : '[' (~']' | ']' ']')* ']';
+LOCAL_ID          : '@' ([A-Z_$@#0-9] | FullWidthLetter)*;
+TEMP_ID           : '#' ([A-Z_$@#0-9] | FullWidthLetter)*;
 
-ID                 : ( [A-Z_#] | FullWidthLetter) ( [A-Z_#$@0-9] | FullWidthLetter)*;
+ID: ( [A-Z_#] | FullWidthLetter) ( [A-Z_#$@0-9] | FullWidthLetter)*;
 STRING options {
     caseInsensitive = false;
-}      : 'N'? '\'' ('\\' . | '\'\'' | ~['])* '\'';
+}: 'N'? '\'' ('\\' . | '\'\'' | ~['])* '\'';
 
 fragment SIGN: [+-];
 
-INT         : SIGN? DEC_DIGIT+;
-HEX         : SIGN? '0' 'X' HEX_DIGIT*;
-FLOAT       : SIGN? DEC_DOT_DEC;
-REAL        : SIGN? (INT | DEC_DOT_DEC) ('E' [+-]? DEC_DIGIT+);
-MONEY       : SIGN? '$' (INT | FLOAT);
+INT   : SIGN? DEC_DIGIT+;
+HEX   : SIGN? '0' 'X' HEX_DIGIT*;
+FLOAT : SIGN? DEC_DOT_DEC;
+REAL  : SIGN? (INT | DEC_DOT_DEC) ('E' [+-]? DEC_DIGIT+);
+MONEY : SIGN? '$' (INT | FLOAT);
 
-EQ          : '=';
-GT          : '>';
-LT          : '<';
-BANG        : '!';
-PE          : '+=';
-ME          : '-=';
-SE          : '*=';
-DE          : '/=';
-MEA         : '%=';
-AND_ASSIGN  : '&=';
-XOR_ASSIGN  : '^=';
-OR_ASSIGN   : '|=';
+EQ         : '=';
+GT         : '>';
+LT         : '<';
+BANG       : '!';
+PE         : '+=';
+ME         : '-=';
+SE         : '*=';
+DE         : '/=';
+MEA        : '%=';
+AND_ASSIGN : '&=';
+XOR_ASSIGN : '^=';
+OR_ASSIGN  : '|=';
 
 DOUBLE_BAR   : '||';
 DOT          : '.';
@@ -1007,7 +1018,7 @@ PLACEHOLDER: '?';
 // If the lexer choses this rule it has discovered a character that it cannot match
 // and this is an error. But lexer errors mean nothing to users, so we pass it up to the
 // parser as a token, which will raise a syntx error.
-BADC         : . ;
+BADC: .;
 
 fragment LETTER      : [A-Z_];
 fragment DEC_DOT_DEC : (DEC_DIGIT+ '.' DEC_DIGIT+ | DEC_DIGIT+ '.' | '.' DEC_DIGIT+);
