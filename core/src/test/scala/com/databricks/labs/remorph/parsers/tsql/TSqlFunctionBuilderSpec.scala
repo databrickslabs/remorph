@@ -17,6 +17,7 @@ class TSqlFunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDriven
       ("functionName", "expectedArity"), // Header
 
       // TSql specific
+      (s"$$PARTITION", Some(FunctionDefinition.notConvertible(0))),
       ("@@CURSOR_ROWS", Some(FunctionDefinition.notConvertible(0))),
       ("@@DBTS", Some(FunctionDefinition.notConvertible(0))),
       ("@@FETCH_STATUS", Some(FunctionDefinition.notConvertible(0))),

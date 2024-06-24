@@ -5,6 +5,7 @@ import com.databricks.labs.remorph.parsers.{FunctionBuilder, FunctionDefinition,
 class TSqlFunctionBuilder extends FunctionBuilder with StringConverter {
 
   private val tSqlFunctionDefinitionPf: PartialFunction[String, FunctionDefinition] = {
+    case """$PARTITION""" => FunctionDefinition.notConvertible(0)
     case "@@CURSOR_ROWS" => FunctionDefinition.notConvertible(0)
     case "@@DBTS" => FunctionDefinition.notConvertible(0)
     case "@@FETCH_STATUS" => FunctionDefinition.notConvertible(0)

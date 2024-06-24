@@ -3235,7 +3235,7 @@ funcId: id | FORMAT | LEFT | RIGHT | REPLACE | CONCAT
     ;
 
 partitionFunction
-    : (database = id DOT)? DOLLAR_PARTITION DOT funcName = id LPAREN expression RPAREN
+    : (id DOT)? DOLLAR_PARTITION DOT id LPAREN expression RPAREN
     ;
 
 freetextFunction

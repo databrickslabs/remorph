@@ -392,6 +392,11 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
     ctx.expression().accept(this)
   }
 
+  override def visitPartitionFunction(ctx: PartitionFunctionContext): ir.Expression = {
+    // $$PARTITION is not supported in Databricks SQL, so we will report it is not supported
+    functionBuilder.buildFunction(s"$$PARTITION", List.empty)
+  }
+
   /**
    * Handles the NEXT VALUE FOR function in SQL Server, which has a special syntax.
    *

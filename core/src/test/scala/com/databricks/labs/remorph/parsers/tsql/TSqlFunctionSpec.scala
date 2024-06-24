@@ -344,4 +344,11 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
       _.expression(),
       ir.UnresolvedFunction("FREETEXTTABLE", List.empty, is_distinct = false, is_user_defined_function = false))
   }
+
+  "translate $PARTITION functions as unconvertible" in {
+    example(
+      query = "$PARTITION.partitionFunction(col)",
+      _.expression(),
+      ir.UnresolvedFunction("$PARTITION", List.empty, is_distinct = false, is_user_defined_function = false))
+  }
 }
