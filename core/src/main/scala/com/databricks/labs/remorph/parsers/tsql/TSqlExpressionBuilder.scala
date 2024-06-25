@@ -392,6 +392,11 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
     ctx.expression().accept(this)
   }
 
+  override def visitPartitionFunction(ctx: PartitionFunctionContext): ir.Expression = {
+    // $$PARTITION is not supported in Databricks SQL, so we will report it is not supported
+    functionBuilder.buildFunction(s"$$PARTITION", List.empty)
+  }
+
   /**
    * Handles the NEXT VALUE FOR function in SQL Server, which has a special syntax.
    *
@@ -420,6 +425,18 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
     val namedStruct = buildNamedStruct(jsonKeyValues)
     val absentOnNull = checkAbsentNull(ctx.jsonNullClause())
     buildJsonObject(namedStruct, absentOnNull)
+  }
+
+  override def visitFreetextFunction(ctx: FreetextFunctionContext): ir.Expression = {
+    // Databricks SQL does not support FREETEXT functions, so there is no point in trying to convert these
+    // functions. We do need to generate IR that indicates that this is a function that is not supported.
+    functionBuilder.buildFunction(ctx.f.getText, List.empty)
+  }
+
+  override def visitHierarchyidStaticMethod(ctx: HierarchyidStaticMethodContext): ir.Expression = {
+    // Databricks SQL does not support HIERARCHYID functions, so there is no point in trying to convert these
+    // functions. We do need to generate IR that indicates that this is a function that is not supported.
+    functionBuilder.buildFunction("HIERARCHYID", List.empty)
   }
 
   // format: off
