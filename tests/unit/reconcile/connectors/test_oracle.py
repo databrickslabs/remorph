@@ -175,3 +175,30 @@ def test_get_schema_exception_handling():
                                 WHERE lower(TABLE_NAME) = 'employee' and lower(owner) = 'data' """,
     ):
         ds.get_schema(None, "data", "employee")
+
+
+def test_list_tables_exception_handling():
+    # initial setup
+    engine, spark, ws, scope = initial_setup()
+    ds = OracleDataSource(engine, spark, ws, scope)
+
+    spark.read.format().option().option().option().load.side_effect = RuntimeError("Network Error")
+
+    with pytest.raises(DataSourceRuntimeException, match="Runtime exception occurred while fetching list_tables"):
+        ds.list_tables(catalog=None, schema="dummy", include_list=None, exclude_list=None)
+
+
+def test_list_tables_oracle():
+
+    # initial setup
+    engine, spark, ws, scope = initial_setup()
+
+    spark.read.format().option().option().option().load.return_value = spark.createDataFrame(
+        [{"table_name": "table1"}, {"table_name": "table2"}]
+    )
+
+    ds = OracleDataSource(engine, spark, ws, scope)
+
+    table_recon = ds.list_tables(catalog=None, schema="dummy", include_list=None, exclude_list=None)
+
+    assert table_recon.source_schema == "dummy"

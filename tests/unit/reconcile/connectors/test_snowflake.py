@@ -10,6 +10,7 @@ from databricks.labs.remorph.reconcile.exception import DataSourceRuntimeExcepti
 from databricks.labs.remorph.reconcile.recon_config import JdbcReaderOptions, Table
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.service.workspace import GetSecretResponse
+from pyspark.errors import PySparkException
 
 
 def mock_secret(scope, key):
@@ -75,7 +76,7 @@ def test_get_jdbc_url_fail():
     engine, spark, ws, scope = initial_setup()
     ws.secrets.get_secret.side_effect = mock_secret
     # create object for SnowflakeDataSource
-    ds = SnowflakeDataSource(engine, spark, ws, scope)
+    ds = SnowflakeDataSource(get_dialect("snowflake"), spark, ws, scope)
     url = ds.get_jdbc_url
     # Assert that the URL is generated correctly
     assert url == (
@@ -91,7 +92,7 @@ def test_read_data_with_out_options():
     engine, spark, ws, scope = initial_setup()
 
     # create object for SnowflakeDataSource
-    ds = SnowflakeDataSource(engine, spark, ws, scope)
+    ds = SnowflakeDataSource(get_dialect("snowflake"), spark, ws, scope)
     # Create a Tables configuration object with no JDBC reader options
     table_conf = Table(
         source_name="supplier",
@@ -129,7 +130,7 @@ def test_read_data_with_options():
     engine, spark, ws, scope = initial_setup()
 
     # create object for SnowflakeDataSource
-    ds = SnowflakeDataSource(engine, spark, ws, scope)
+    ds = SnowflakeDataSource(get_dialect("snowflake"), spark, ws, scope)
     # Create a Tables configuration object with JDBC reader options
     table_conf = Table(
         source_name="supplier",
@@ -166,10 +167,9 @@ def test_read_data_with_options():
 
 def test_get_schema():
     # initial setup
-    engine, spark, ws, scope = initial_setup()
-    # Mocking get secret method to return the required values
+    engine, spark, ws, init_scope = initial_setup()
     # create object for SnowflakeDataSource
-    ds = SnowflakeDataSource(engine, spark, ws, scope)
+    ds = SnowflakeDataSource(get_dialect("snowflake"), spark, ws, init_scope)
     # call test method
     ds.get_schema("catalog", "schema", "supplier")
     # spark assertions
@@ -182,7 +182,8 @@ def test_get_schema():
             """(select column_name, case when numeric_precision is not null and numeric_scale is not null then
         concat(data_type, '(', numeric_precision, ',' , numeric_scale, ')') when lower(data_type) = 'text' then
         concat('varchar', '(', CHARACTER_MAXIMUM_LENGTH, ')')  else data_type end as data_type from
-        catalog.INFORMATION_SCHEMA.COLUMNS where lower(table_name)='supplier' and lower(table_schema) = 'schema' order by ordinal_position) as tmp""",
+        catalog.INFORMATION_SCHEMA.COLUMNS where lower(table_name)='supplier' and lower(table_schema) = 'schema' 
+        order by ordinal_position) as tmp""",
         ),
     )
     spark.read.format().option().options.assert_called_with(
@@ -200,7 +201,7 @@ def test_get_schema():
 def test_read_data_exception_handling():
     # initial setup
     engine, spark, ws, scope = initial_setup()
-    ds = SnowflakeDataSource(engine, spark, ws, scope)
+    ds = SnowflakeDataSource(get_dialect("snowflake"), spark, ws, scope)
     # Create a Tables configuration object
     table_conf = Table(
         source_name="supplier",
@@ -245,3 +246,15 @@ def test_get_schema_exception_handling():
         "Exception",
     ):
         ds.get_schema("catalog", "schema", "supplier")
+
+
+def test_list_tables_exception_handling():
+    # initial setup
+    engine, spark, ws, scope = initial_setup()
+
+    ds = SnowflakeDataSource(engine, spark, ws, scope)
+
+    spark.read.format().option().options().load.side_effect = PySparkException("Test Exception")
+
+    with pytest.raises(PySparkException, match="An error occurred while fetching Snowflake Table list for"):
+        ds.list_tables("catalog", "schema", None, exclude_list=["table1", "table2"])
