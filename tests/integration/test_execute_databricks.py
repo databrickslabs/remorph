@@ -1,5 +1,5 @@
 import pytest
-from pyspark.sql.functions import col, expr
+from pyspark.sql.functions import col, explode
 from pyspark.sql.types import (
     StructType,
     StructField,
@@ -14,6 +14,8 @@ from pyspark.sql import Row
 from datetime import datetime
 import decimal
 
+from pyspark.testing import assertDataFrameEqual
+
 from databricks.labs.remorph.config import TableRecon
 from databricks.labs.remorph.reconcile.exception import ReconciliationException
 from databricks.labs.remorph.reconcile.execute import recon
@@ -25,6 +27,35 @@ from databricks.labs.remorph.reconcile.recon_config import (
     Transformation,
     Thresholds,
 )
+
+
+def get_reconcile_report_data(spark, test_config):
+    return spark.sql(
+        f"""SELECT main.start_ts,recon_id,source_type,source_table,target_table,recon_type,status,recon_metrics,
+        run_metrics,data as sample_data FROM (SELECT * FROM 
+        {test_config.db_mock_catalog}.{test_config.db_mock_schema}.main WHERE main.start_ts = 
+        (SELECT MAX(start_ts) FROM {test_config.db_mock_catalog}.{test_config.db_mock_schema}.main)) AS main 
+        JOIN {test_config.db_mock_catalog}.{test_config.db_mock_schema}.metrics as metrics ON main.recon_table_id = 
+        metrics.recon_table_id LEFT JOIN {test_config.db_mock_catalog}.{test_config.db_mock_schema}.details ON 
+        main.recon_table_id = details.recon_table_id ORDER BY main.start_ts desc,
+        main.recon_id,main.recon_table_id"""
+    )
+
+
+def get_reconcile_metrics(report_data):
+    return report_data.select(col("recon_metrics"), col("status")).distinct()
+
+
+def get_reconcile_details(report_data):
+    return report_data.select(col("recon_type"), col("sample_data"))
+
+
+def get_reconcile_sample_data(recon_type, details, key_columns):
+    return (
+        details.where(col("recon_type") == recon_type)
+        .select(explode(col("sample_data")).alias("sample_data_exploded"))
+        .select(*[col(f"sample_data_exploded.{c}") for c in key_columns])
+    )
 
 
 @pytest.fixture
@@ -235,7 +266,7 @@ def setup_databricks_src(setup_teardown, spark, test_config):
     )
 
 
-def test_execute_databricks_src_data_match(setup_databricks_src, spark, ws, test_config, reconcile_config):
+def test_execute_report_type_is_all_with_all_match(setup_databricks_src, spark, ws, test_config, reconcile_config):
     table_recon = TableRecon(
         source_schema=test_config.db_mock_schema,
         source_catalog=test_config.db_mock_catalog,
@@ -277,7 +308,8 @@ def test_execute_databricks_src_data_match(setup_databricks_src, spark, ws, test
     )
 
 
-def test_execute_databricks_src(ws, spark, setup_databricks_src, test_config, reconcile_config):
+def test_execute_report_type_is_all(ws, spark, setup_databricks_src, test_config, reconcile_config):
+    key_columns = ["l_orderkey", "l_linenumber"]
     table_recon = TableRecon(
         source_schema=test_config.db_mock_schema,
         source_catalog=test_config.db_mock_catalog,
@@ -290,7 +322,7 @@ def test_execute_databricks_src(ws, spark, setup_databricks_src, test_config, re
                 jdbc_reader_options=None,
                 select_columns=None,
                 drop_columns=None,
-                join_columns=["l_orderkey", "l_linenumber"],
+                join_columns=key_columns,
                 column_mapping=[
                     ColumnMapping(source_name="l_orderkey", target_name="l_orderkey_t"),
                     ColumnMapping(source_name="l_partkey", target_name="l_partkey_t"),
@@ -312,86 +344,21 @@ def test_execute_databricks_src(ws, spark, setup_databricks_src, test_config, re
         excinfo.value
     )
 
-    validation_df = spark.sql(
-        f"""SELECT main.start_ts,recon_id,source_type,source_table,target_table,recon_type,status,recon_metrics,
-        run_metrics,data as sample_data FROM (SELECT * FROM 
-        {test_config.db_mock_catalog}.{test_config.db_mock_schema}.main WHERE main.start_ts = 
-        (SELECT MAX(start_ts) FROM {test_config.db_mock_catalog}.{test_config.db_mock_schema}.main)) AS main 
-        JOIN {test_config.db_mock_catalog}.{test_config.db_mock_schema}.metrics as metrics ON main.recon_table_id = 
-        metrics.recon_table_id LEFT JOIN {test_config.db_mock_catalog}.{test_config.db_mock_schema}.details ON 
-        main.recon_table_id = details.recon_table_id ORDER BY main.start_ts desc,
-        main.recon_id,main.recon_table_id"""
+    validation_df = get_reconcile_report_data(spark, test_config)
+    details_df = get_reconcile_details(validation_df)
+    missing_in_source = get_reconcile_sample_data("missing_in_source", details_df, key_columns)
+    missing_in_target = get_reconcile_sample_data("missing_in_target", details_df, key_columns)
+    mismatch = get_reconcile_sample_data("mismatch", details_df, key_columns)
+    threshold_mismatch = get_reconcile_sample_data(
+        "threshold_mismatch", details_df, map(lambda c: f"{c}_source", key_columns)
     )
 
-    schema_validation = (
-        validation_df.filter(col('recon_type') == 'schema')
-        .select(
-            col('status'), expr("filter(sample_data, sch -> sch.source_column = 'l_tax')" "[0] as schema_mismatch")
-        )
-        .select(
-            col('status'),
-            col('schema_mismatch.source_column').alias('column_name'),
-            col('schema_mismatch.source_datatype').alias('source_datatype'),
-            col('schema_mismatch.databricks_datatype').alias('target_datatype'),
-            col('schema_mismatch.is_valid').alias('is_valid'),
-        )
-        .collect()
+    assertDataFrameEqual(missing_in_source, spark.createDataFrame([('5', '5')], ['l_orderkey', 'l_linenumber']))
+    assertDataFrameEqual(missing_in_target, spark.createDataFrame([('4', '4')], ['l_orderkey', 'l_linenumber']))
+    assertDataFrameEqual(mismatch, spark.createDataFrame([('3', '3')], ['l_orderkey', 'l_linenumber']))
+    assertDataFrameEqual(
+        threshold_mismatch, spark.createDataFrame([('3', '3')], ['l_orderkey_source', 'l_linenumber_source'])
     )
-
-    missing_in_source = (
-        validation_df.filter(col('recon_type') == 'missing_in_source')
-        .select(
-            col('recon_metrics.row_comparison.missing_in_source').alias('missing_count'),
-            col('sample_data').getItem(0).getField('l_linenumber').alias('l_linenumber'),
-            col('sample_data').getItem(0).getField('l_orderkey').alias('l_orderkey'),
-        )
-        .collect()
-    )
-
-    missing_in_target = (
-        validation_df.filter(col('recon_type') == 'missing_in_target')
-        .select(
-            col('recon_metrics.row_comparison.missing_in_target').alias('missing_count'),
-            col('sample_data').getItem(0).getField('l_linenumber').alias('l_linenumber'),
-            col('sample_data').getItem(0).getField('l_orderkey').alias('l_orderkey'),
-        )
-        .collect()
-    )
-    mismatch = (
-        validation_df.filter(col('recon_type') == 'mismatch')
-        .select(
-            col('recon_metrics.column_comparison.absolute_mismatch').alias('mismatch_count'),
-            col('recon_metrics.column_comparison.mismatch_columns').alias('mismatch_columns'),
-            col('sample_data').getItem(0).getField('l_linenumber').alias('l_linenumber'),
-            col('sample_data').getItem(0).getField('l_orderkey').alias('l_orderkey'),
-        )
-        .collect()
-    )
-    threshold_mismatch = (
-        validation_df.filter(col('recon_type') == 'threshold_mismatch')
-        .select(
-            col('recon_metrics.column_comparison.threshold_mismatch').alias('threshold_mismatch_count'),
-            col('sample_data').getItem(0).getField('l_linenumber_source').alias('l_linenumber'),
-            col('sample_data').getItem(0).getField('l_orderkey_source').alias('l_orderkey'),
-        )
-        .collect()
-    )
-
-    assert missing_in_source == [Row(missing_count=1, l_linenumber='5', l_orderkey='5')]
-    assert missing_in_target == [Row(missing_count=1, l_linenumber='4', l_orderkey='4')]
-    assert schema_validation == [
-        Row(
-            status=False,
-            column_name='l_tax',
-            source_datatype='double',
-            target_datatype='decimal(18,2)',
-            is_valid='false',
-        )
-    ]
-    assert mismatch == [
-        Row(mismatch_count=1, mismatch_columns="l_quantity,l_receiptdate", l_line_number='3', l_orderkey='3')
-    ]
-    assert threshold_mismatch == [Row(threshold_mismatch_count=1, l_linenumber='3', l_orderkey='3')]
 
 
 def test_execute_fail_for_tables_not_available(ws, spark, setup_databricks_src, test_config, reconcile_config):
