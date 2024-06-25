@@ -52,7 +52,8 @@ class SnowflakeFunctionBuilder extends FunctionBuilder {
     case "DIV0NULL" => FunctionDefinition.standard(2)
     case "ENDSWITH" => FunctionDefinition.standard(2)
     case "EQUAL_NULL" => FunctionDefinition.standard(2)
-    // TODO: support named arguments
+    case "EXTRACT" => FunctionDefinition.standard(2)
+// TODO: support named arguments
     case "FLATTEN" => FunctionDefinition.standard(1, 5)
     case "GET" => FunctionDefinition.standard(2)
     case "HASH" => FunctionDefinition.standard(1, Int.MaxValue)
@@ -70,7 +71,7 @@ class SnowflakeFunctionBuilder extends FunctionBuilder {
     case "MONTHNAME" => FunctionDefinition.standard(1)
 //    case "MONTH_NAME" => ???
     case "NEXT_DAY" => FunctionDefinition.standard(2)
-//    case "NTH_VALUE" =>
+    case "NTH_VALUE" => FunctionDefinition.standard(2)
     case "NULLIFZERO" => FunctionDefinition.standard(1)
     case "NVL" => FunctionDefinition.standard(2)
     case "NVL2" => FunctionDefinition.standard(3)

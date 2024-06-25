@@ -86,7 +86,7 @@ API_PROVIDER                                  : 'API_PROVIDER';
 APPEND                                        : 'APPEND';
 APPEND_ONLY                                   : 'APPEND_ONLY';
 APPLY                                         : 'APPLY';
-ARRAY_AGG                                     : 'ARRAY_AGG';
+ARRAY_AGG                                     : 'ARRAY_AGG' | 'ARRAYAGG';
 AS                                            : 'AS';
 ASC                                           : 'ASC';
 ATTACH                                        : 'ATTACH';
@@ -289,6 +289,7 @@ EXTERNAL_OAUTH_SNOWFLAKE_USER_MAPPING_ATTRIBUTE:
 EXTERNAL_OAUTH_TOKEN_USER_MAPPING_CLAIM        : 'EXTERNAL_OAUTH_TOKEN_USER_MAPPING_CLAIM';
 EXTERNAL_OAUTH_TYPE                            : 'EXTERNAL_OAUTH_TYPE';
 EXTERNAL_STAGE                                 : 'EXTERNAL_STAGE';
+EXTRACT                                        : 'EXTRACT';
 FAILOVER                                       : 'FAILOVER';
 FALSE                                          : 'FALSE';
 FETCH                                          : 'FETCH';

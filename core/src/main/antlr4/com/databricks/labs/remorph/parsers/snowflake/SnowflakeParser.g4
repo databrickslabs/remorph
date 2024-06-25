@@ -36,7 +36,7 @@ options {
 snowflakeFile: batch? EOF
     ;
 
-batch: sqlCommand (SEMI sqlCommand)* SEMI?
+batch: sqlCommand (SEMI* sqlCommand)* SEMI*
     ;
 
 sqlCommand: ddlCommand | dmlCommand | showCommand | useCommand | describeCommand | otherCommand
@@ -2957,6 +2957,7 @@ nonReservedWords
     | ACTION
     | AES
     | ALERT
+    | ARRAY
     | ARRAY_AGG
     | AT_KEYWORD
     | CHECKSUM
@@ -2996,6 +2997,7 @@ nonReservedWords
     | INTERVAL
     | JAVASCRIPT
     | KEY
+    | KEYS
     | LANGUAGE
     | LAST_NAME
     | LAST_QUERY_ID
@@ -3227,7 +3229,9 @@ functionCall
     ;
 
 builtinFunction
-    : trim = (TRIM | LTRIM | RTRIM) L_PAREN expr (COMMA string)? R_PAREN # builtinTrim
+    : trim = (TRIM | LTRIM | RTRIM) L_PAREN expr (COMMA string)? R_PAREN                # builtinTrim
+    | EXTRACT L_PAREN expr FROM expr R_PAREN                                            # builtinExtract
+    | ARRAY_AGG L_PAREN DISTINCT? expr R_PAREN (WITHIN GROUP orderByClause)? overClause? # builtinArrayAgg
     //    : unaryOrBinaryBuiltinFunction L_PAREN expr (COMMA expr)* R_PAREN
     //    | binaryBuiltinFunction L_PAREN expr COMMA expr R_PAREN
     //    | binaryOrTernaryBuiltinFunction L_PAREN expr COMMA expr (COMMA expr)* R_PAREN
@@ -3298,7 +3302,7 @@ withExpression: WITH commonTableExpression (COMMA commonTableExpression)*
     ;
 
 commonTableExpression
-    : id (L_PAREN columns = columnList R_PAREN)? AS L_PAREN selectStatement setOperators* R_PAREN
+    : id (L_PAREN columnList R_PAREN)? AS L_PAREN selectStatement setOperators* R_PAREN
     ;
 
 selectStatement

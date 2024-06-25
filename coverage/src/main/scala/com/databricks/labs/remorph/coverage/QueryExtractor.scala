@@ -11,18 +11,14 @@ class CommentBasedQueryExtractor(startComment: String, endComment: String) exten
 
   override def extractQuery(file: File): Option[String] = {
     val source = Source.fromFile(file)
-    val indexedLines = source.getLines().zipWithIndex.toSeq
+    val indexedLines = source.getLines().zipWithIndex.toVector
     source.close()
     val startIndexOpt = indexedLines.find(_._1 == startComment).map(_._2)
     val endIndexOpt = indexedLines.find(_._1 == endComment).map(_._2)
     (startIndexOpt, endIndexOpt) match {
       case (Some(startIndex), Some(endIndex)) =>
         Some(indexedLines.map(_._1).slice(startIndex + 1, endIndex).mkString("\n"))
-      case _ =>
-        // scalastyle: off
-        println(s"Couldn't find either '$startComment' or '$endComment' in $file")
-        // scalastyle: on
-        None
+      case _ => None
     }
   }
 }

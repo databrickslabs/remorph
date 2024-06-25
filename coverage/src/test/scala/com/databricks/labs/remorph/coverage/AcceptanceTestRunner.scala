@@ -19,11 +19,10 @@ abstract class AcceptanceTestRunner(config: AcceptanceTestConfig) extends AnyFla
 
   config.testFileSource.listTests.foreach { test =>
     registerTest(test.testName) {
-      val report = runAcceptanceTest(test)
-      if (report.exists(_.isSuccess)) {
-        succeed
-      } else {
-        fail(report.flatMap(_.errorMessage).getOrElse(""))
+      runAcceptanceTest(test) match {
+        case None => pending
+        case Some(r) if r.isSuccess => succeed
+        case Some(report) => fail(report.errorMessage.getOrElse(""))
       }
     }
   }

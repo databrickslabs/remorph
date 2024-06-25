@@ -187,3 +187,5 @@ case class BackupDatabase(
     autoFlags: Seq[String],
     values: Map[String, Expression])
     extends Command {}
+
+case class ArrayAgg(values: Expression, sort: Seq[SortOrder]) extends Expression {}

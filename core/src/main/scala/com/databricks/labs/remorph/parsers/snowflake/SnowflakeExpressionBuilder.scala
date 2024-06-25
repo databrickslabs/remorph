@@ -348,6 +348,19 @@ class SnowflakeExpressionBuilder()
     val characters = Option(ctx.string()).map(_.accept(this)).toList
     functionBuilder.buildFunction(ctx.trim.getText, expression :: characters)
   }
+
+  override def visitBuiltinExtract(ctx: BuiltinExtractContext): ir.Expression = {
+    val parameters = ctx.expr().asScala.map(_.accept(this))
+    functionBuilder.buildFunction(ctx.EXTRACT().getText, parameters)
+  }
+
+  override def visitBuiltinArrayAgg(ctx: BuiltinArrayAggContext): ir.Expression = {
+    val expr = ctx.expr().accept(this)
+    val values = Option(ctx.DISTINCT()).fold(expr)(_ => ir.Distinct(expr))
+    val sort = Option(ctx.orderByClause()).map(buildSortOrder).getOrElse(Seq())
+    ir.ArrayAgg(values, sort)
+  }
+
   override def visitCaseExpression(ctx: CaseExpressionContext): ir.Expression = {
     val exprs = ctx.expr().asScala
     val otherwise = Option(ctx.ELSE()).flatMap(els => exprs.find(occursBefore(els, _)).map(_.accept(this)))
