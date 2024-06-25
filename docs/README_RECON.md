@@ -85,7 +85,7 @@ flowchart TD
 </tr>
 <tr>
 <td>
-<pre lang="python">
+<pre lang="Python">
 @dataclass
 class Table:
     source_name: str
@@ -101,11 +101,11 @@ class Table:
 </pre>
 </td>
 <td>
-<pre lang="json">
+<pre lang="JSON">
 {
-  "source_name": "product",
-  "target_name": "product",
-  "join_columns": ["p_id"],
+  "source_name": "&lt;SOURCE_NAME&gt",
+  "target_name": "&lt;TARGET_NAME&gt",
+  "join_columns": ["&lt;COLUMN_NAME_1&gt","&lt;COLUMN_NAME_2&gt"],
   "jdbc_reader_options": null,
   "select_columns": null,
   "drop_columns": null,
@@ -143,7 +143,7 @@ class Table:
 </tr>
 <tr>
 <td>
-<pre lang="python">
+<pre lang="Python">
 @dataclass
 class JdbcReaderOptions:
     number_partitions: int
@@ -154,13 +154,13 @@ class JdbcReaderOptions:
 </pre>
 </td>
 <td>
-<pre lang="json">
+<pre lang="JSON">
 "jdbc_reader_options":{
-  "number_partitions": 10,
-  "partition_column": "p_id",
-  "lower_bound": "1",
-  "upper_bound": "10000000",
-  "fetch_size": 100
+  "number_partitions": &lt;NUMBER_PARTITIONS&gt,
+  "partition_column": "&lt;PARTITION_COLUMN&gt",
+  "lower_bound": "&lt;LOWER_BOUND&gt",
+  "upper_bound": "&lt;UPPER_BOUND&gt",
+  "fetch_size": &lt;FETCH_SIZE&gt
 }
 </pre>
 </td>
@@ -184,7 +184,7 @@ class JdbcReaderOptions:
 </tr>
 <tr>
 <td>
-<pre lang="python">
+<pre lang="Python">
 
 @dataclass
 class ColumnMapping:
@@ -193,11 +193,11 @@ class ColumnMapping:
 </pre>
 </td>
 <td>
-<pre lang="json">
+<pre lang="JSON">
 "column_mapping":[
   {
-    "source_name": "p_id",
-    "target_name": "product_id"
+    "source_name": "&lt;SOURCE_COLUMN_NAME&gt",
+    "target_name": "&lt;TARGET_COLUMN_NAME&gt"
   }
 ]
 </pre>
@@ -219,7 +219,7 @@ class ColumnMapping:
 </tr>
 <tr>
 <td>
-<pre lang="python">
+<pre lang="Python">
 
 @dataclass
 class Transformation:
@@ -230,12 +230,12 @@ class Transformation:
 </pre>
 </td>
 <td>
-<pre lang="json">
+<pre lang="JSON">
 "transformations":[
     {
-      "column_name": "product_price",
-      "source": "CAST(product_price AS DECIMAL(18, 2))",
-      "target": "CAST(p_price AS DECIMAL(18, 2))"
+      "column_name": "&lt;COLUMN_NAME&gt",
+      "source": "&lt;TRANSFORMATION_EXPRESSION&gt",
+      "target": "&lt;TRANSFORMATION_EXPRESSION&gt"
     }
 ]
 </pre>
@@ -259,7 +259,7 @@ class Transformation:
 </tr>
 <tr>
 <td>
-<pre lang="python">
+<pre lang="Python">
 
 @dataclass
 class Thresholds:
@@ -271,13 +271,13 @@ class Thresholds:
 </pre>
 </td>
 <td>
-<pre lang="json">
+<pre lang="JSON">
 "thresholds":[
   {
-    "column_name": "p_price",
-    "lower_bound": "-10%",
-    "upper_bound": "10%",
-    "type": "decimal"
+    "column_name": "&lt;COLUMN_NAME&gt",
+    "lower_bound": "&lt;LOWER_BOUND&gt",
+    "upper_bound": "&lt;UPPER_BOUND&gt",
+    "type": "&lt;DATA_TYPE&gt"
   }
 ]
 </pre>
@@ -302,7 +302,7 @@ class Thresholds:
 </tr>
 <tr>
 <td>
-<pre lang="python">
+<pre lang="Python">
 @dataclass
 class Filters:
     source: str | None = None
@@ -310,10 +310,10 @@ class Filters:
 </pre>
 </td>
 <td>
-<pre lang="json">
+<pre lang="JSON">
 "filters":{
-  "source": "p_price > 1000",
-  "target": "product_price > 1000"
+  "source": "&lt;FILTER_EXPRESSION&gt",
+  "target": "&lt;FILTER_EXPRESSION&gt"
 }
 </pre>
 </td>
