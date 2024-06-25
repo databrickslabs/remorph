@@ -3229,8 +3229,8 @@ functionCall
     ;
 
 builtinFunction
-    : trim = (TRIM | LTRIM | RTRIM) L_PAREN expr (COMMA string)? R_PAREN                # builtinTrim
-    | EXTRACT L_PAREN expr FROM expr R_PAREN                                            # builtinExtract
+    : trim = (TRIM | LTRIM | RTRIM) L_PAREN expr (COMMA string)? R_PAREN                 # builtinTrim
+    | EXTRACT L_PAREN part = (STRING | ID) FROM expr R_PAREN                             # builtinExtract
     | ARRAY_AGG L_PAREN DISTINCT? expr R_PAREN (WITHIN GROUP orderByClause)? overClause? # builtinArrayAgg
     //    : unaryOrBinaryBuiltinFunction L_PAREN expr (COMMA expr)* R_PAREN
     //    | binaryBuiltinFunction L_PAREN expr COMMA expr R_PAREN

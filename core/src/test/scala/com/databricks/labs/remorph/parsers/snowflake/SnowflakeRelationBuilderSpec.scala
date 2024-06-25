@@ -209,6 +209,12 @@ class SnowflakeRelationBuilderSpec
     }
 
     "translate CTE definitions" in {
+
+      example(
+        "WITH a AS (SELECT x, y FROM d)",
+        _.withExpression(),
+        CTEDefinition("a", Seq(), Project(namedTable("d"), Seq(simplyNamedColumn("x"), simplyNamedColumn("y")))))
+
       example(
         "WITH a (b, c) AS (SELECT x, y FROM d)",
         _.withExpression(),

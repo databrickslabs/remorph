@@ -49,6 +49,48 @@ class SnowflakeExpressionBuilderSpec
         Column(Some(ObjectReference(Id("My Table", caseSensitive = true))), Id("x")))
     }
 
+    "translate functions with special syntax" in {
+      example("TRIM(col1)", _.builtinFunction(), CallFunction("TRIM", Seq(simplyNamedColumn("col1"))))
+      example("LTRIM(col1)", _.builtinFunction(), CallFunction("LTRIM", Seq(simplyNamedColumn("col1"))))
+      example("RTRIM(col1)", _.builtinFunction(), CallFunction("RTRIM", Seq(simplyNamedColumn("col1"))))
+      example(
+        "TRIM(col1, 'foo')",
+        _.builtinFunction(),
+        CallFunction("TRIM", Seq(simplyNamedColumn("col1"), Literal(string = Some("foo")))))
+      example(
+        "LTRIM(col1, 'foo')",
+        _.builtinFunction(),
+        CallFunction("LTRIM", Seq(simplyNamedColumn("col1"), Literal(string = Some("foo")))))
+      example(
+        "RTRIM(col1, 'foo')",
+        _.builtinFunction(),
+        CallFunction("RTRIM", Seq(simplyNamedColumn("col1"), Literal(string = Some("foo")))))
+
+      example(
+        "EXTRACT(day FROM date1)",
+        _.builtinFunction(),
+        CallFunction("EXTRACT", Seq(Id("day"), simplyNamedColumn("date1"))))
+
+      example(
+        "EXTRACT('day' FROM date1)",
+        _.builtinFunction(),
+        CallFunction("EXTRACT", Seq(Id("day"), simplyNamedColumn("date1"))))
+
+      example(
+        "ARRAYAGG(DISTINCT foo) WITHIN GROUP ORDER BY bar",
+        _.builtinFunction(),
+        ArrayAgg(
+          Distinct(simplyNamedColumn("foo")),
+          Seq(SortOrder(simplyNamedColumn("bar"), AscendingSortDirection, SortNullsLast))))
+
+      example(
+        "ARRAY_AGG(DISTINCT foo) WITHIN GROUP ORDER BY bar",
+        _.builtinFunction(),
+        ArrayAgg(
+          Distinct(simplyNamedColumn("foo")),
+          Seq(SortOrder(simplyNamedColumn("bar"), AscendingSortDirection, SortNullsLast))))
+    }
+
     "translate aggregation functions" in {
       example("COUNT(x)", _.aggregateFunction(), CallFunction("COUNT", Seq(simplyNamedColumn("x"))))
       example("AVG(x)", _.aggregateFunction(), CallFunction("AVG", Seq(simplyNamedColumn("x"))))
