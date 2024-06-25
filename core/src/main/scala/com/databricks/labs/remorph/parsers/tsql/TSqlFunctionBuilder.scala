@@ -5,6 +5,7 @@ import com.databricks.labs.remorph.parsers.{FunctionBuilder, FunctionDefinition,
 class TSqlFunctionBuilder extends FunctionBuilder with StringConverter {
 
   private val tSqlFunctionDefinitionPf: PartialFunction[String, FunctionDefinition] = {
+    case """$PARTITION""" => FunctionDefinition.notConvertible(0)
     case "@@CURSOR_ROWS" => FunctionDefinition.notConvertible(0)
     case "@@DBTS" => FunctionDefinition.notConvertible(0)
     case "@@FETCH_STATUS" => FunctionDefinition.notConvertible(0)
@@ -22,14 +23,20 @@ class TSqlFunctionBuilder extends FunctionBuilder with StringConverter {
     case "@@TEXTSIZE" => FunctionDefinition.notConvertible(0)
     case "@@VERSION" => FunctionDefinition.notConvertible(0)
     case "COLLATIONPROPERTY" => FunctionDefinition.notConvertible(2)
+    case "CONTAINSTABLE" => FunctionDefinition.notConvertible(0)
     case "CUBE" => FunctionDefinition.standard(1, Int.MaxValue) // Snowflake hard codes this
+    case "FREETEXTTABLE" => FunctionDefinition.notConvertible(0)
     case "GET_BIT" => FunctionDefinition.standard(2).withConversionStrategy(rename)
+    case "HIERARCHYID" => FunctionDefinition.notConvertible(0)
     case "ISNULL" => FunctionDefinition.standard(2).withConversionStrategy(rename)
     case "LEFT_SHIFT" => FunctionDefinition.standard(2).withConversionStrategy(rename)
     case "MODIFY" => FunctionDefinition.xml(1)
     case "NEXTVALUEFOR" => FunctionDefinition.standard(1).withConversionStrategy(nextValueFor)
     case "RIGHT_SHIFT" => FunctionDefinition.standard(2).withConversionStrategy(rename)
     case "ROLLUP" => FunctionDefinition.standard(1, Int.MaxValue) // Snowflake hard codes this
+    case "SEMANTICKEYPHRASETABLE" => FunctionDefinition.notConvertible(0)
+    case "SEMANTICSIMILARITYDETAILSTABLE" => FunctionDefinition.notConvertible(0)
+    case "SEMANTICSSIMILARITYTABLE" => FunctionDefinition.notConvertible(0)
     case "SET_BIT" => FunctionDefinition.standard(2, 3).withConversionStrategy(rename)
   }
 
