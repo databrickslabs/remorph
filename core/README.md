@@ -30,6 +30,9 @@ in each of the dialects we support under `src/main/antlr4/../parsers`
 
 ### Installing antlr-format
 
+The antlr-format tool will run as part of the maven build process and so there is no need to install it locally.
+But you can do so using the instructions below.
+
 In order to run the tool, you have to install Node.js. You can download it from [here](https://nodejs.org/en/download/),
 or more simply install it with `brew install node` if you are on a Mac.
 
