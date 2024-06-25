@@ -338,17 +338,24 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
     example(query = "COUNT(ALL goals)", _.expression(), ir.CallFunction("COUNT", Seq(simplyNamedColumn("goals"))))
   }
 
-  "translate freetext functions as unconvertible" in {
+  "translate freetext functions as inconvertible" in {
     example(
       query = "FREETEXTTABLE(table, col, 'search')",
       _.expression(),
       ir.UnresolvedFunction("FREETEXTTABLE", List.empty, is_distinct = false, is_user_defined_function = false))
   }
 
-  "translate $PARTITION functions as unconvertible" in {
+  "translate $PARTITION functions as inconvertible" in {
     example(
       query = "$PARTITION.partitionFunction(col)",
       _.expression(),
       ir.UnresolvedFunction("$PARTITION", List.empty, is_distinct = false, is_user_defined_function = false))
+  }
+
+  "translate HIERARCHYID static method as inconvertible" in {
+    example(
+      query = "HIERARCHYID::Parse('1/2/3')",
+      _.expression(),
+      ir.UnresolvedFunction("HIERARCHYID", List.empty, is_distinct = false, is_user_defined_function = false))
   }
 }

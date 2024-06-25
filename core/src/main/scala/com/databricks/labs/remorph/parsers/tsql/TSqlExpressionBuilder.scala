@@ -433,6 +433,12 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
     functionBuilder.buildFunction(ctx.f.getText, List.empty)
   }
 
+  override def visitHierarchyidStaticMethod(ctx: HierarchyidStaticMethodContext): ir.Expression = {
+    // Databricks SQL does not support HIERARCHYID functions, so there is no point in trying to convert these
+    // functions. We do need to generate IR that indicates that this is a function that is not supported.
+    functionBuilder.buildFunction("HIERARCHYID", List.empty)
+  }
+
   // format: off
   /**
    * Check if the ABSENT ON NULL clause is present in the JSON clause. The behavior is as follows:

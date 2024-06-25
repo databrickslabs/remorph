@@ -27,6 +27,7 @@ class TSqlFunctionBuilder extends FunctionBuilder with StringConverter {
     case "CUBE" => FunctionDefinition.standard(1, Int.MaxValue) // Snowflake hard codes this
     case "FREETEXTTABLE" => FunctionDefinition.notConvertible(0)
     case "GET_BIT" => FunctionDefinition.standard(2).withConversionStrategy(rename)
+    case "HIERARCHYID" => FunctionDefinition.notConvertible(0)
     case "ISNULL" => FunctionDefinition.standard(2).withConversionStrategy(rename)
     case "LEFT_SHIFT" => FunctionDefinition.standard(2).withConversionStrategy(rename)
     case "MODIFY" => FunctionDefinition.xml(1)

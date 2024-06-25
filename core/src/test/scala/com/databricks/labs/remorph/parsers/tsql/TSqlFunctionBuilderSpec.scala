@@ -37,6 +37,7 @@ class TSqlFunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDriven
       ("COLLATIONPROPERTY", Some(FunctionDefinition.notConvertible(2))),
       ("CONTAINSTABLE", Some(FunctionDefinition.notConvertible(0))),
       ("FREETEXTTABLE", Some(FunctionDefinition.notConvertible(0))),
+      ("HIERARCHYID", Some(FunctionDefinition.notConvertible(0))),
       ("MODIFY", Some(FunctionDefinition.xml(1))),
       ("SEMANTICKEYPHRASETABLE", Some(FunctionDefinition.notConvertible(0))),
       ("SEMANTICSIMILARITYDETAILSTABLE", Some(FunctionDefinition.notConvertible(0))),
