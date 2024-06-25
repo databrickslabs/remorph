@@ -23,8 +23,11 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-// $antlr-format alignTrailingComments true, columnLimit 150, minEmptyLines 1, maxEmptyLinesToKeep 1, reflowComments false, useTab false
-// $antlr-format allowShortRulesOnASingleLine false, allowShortBlocksOnASingleLine true, alignSemicolons hanging, alignColons hanging
+// For formatting, see: https://github.com/mike-lischke/antlr-format/blob/main/doc/formatting.md
+// $antlr-format alignColons hanging
+// $antlr-format columnLimit 150
+// $antlr-format alignSemicolons hanging
+// $antlr-format alignTrailingComments true
 
 parser grammar TSqlParser;
 
@@ -32,8 +35,7 @@ options {
     tokenVocab = TSqlLexer;
 }
 
-tSqlFile
-    : batch? EOF
+tSqlFile: batch? EOF
     ;
 
 // TODO: Simplify this
@@ -256,64 +258,47 @@ cflStatement
     | whileStatement
     ;
 
-blockStatement
-    : BEGIN SEMI? sqlClauses* END SEMI?
+blockStatement: BEGIN SEMI? sqlClauses* END SEMI?
     ;
 
-breakStatement
-    : BREAK SEMI?
+breakStatement: BREAK SEMI?
     ;
 
-continueStatement
-    : CONTINUE SEMI?
+continueStatement: CONTINUE SEMI?
     ;
 
-gotoStatement
-    : GOTO id SEMI?
-    | id COLON SEMI?
+gotoStatement: GOTO id SEMI? | id COLON SEMI?
     ;
 
-returnStatement
-    : RETURN expression? SEMI?
+returnStatement: RETURN expression? SEMI?
     ;
 
-ifStatement
-    : IF searchCondition sqlClauses (ELSE sqlClauses)? SEMI?
+ifStatement: IF searchCondition sqlClauses (ELSE sqlClauses)? SEMI?
     ;
 
-throwStatement
-    : THROW (throwErrorNumber COMMA throwMessage COMMA throwState)? SEMI?
+throwStatement: THROW ( throwErrorNumber COMMA throwMessage COMMA throwState)? SEMI?
     ;
 
-throwErrorNumber
-    : INT
-    | LOCAL_ID
+throwErrorNumber: INT | LOCAL_ID
     ;
 
-throwMessage
-    : STRING
-    | LOCAL_ID
+throwMessage: STRING | LOCAL_ID
     ;
 
-throwState
-    : INT
-    | LOCAL_ID
+throwState: INT | LOCAL_ID
     ;
 
 tryCatchStatement
     : BEGIN TRY SEMI? tryClauses = sqlClauses+ END TRY SEMI? BEGIN CATCH SEMI? catchClauses = sqlClauses* END CATCH SEMI?
     ;
 
-waitforStatement
-    : WAITFOR receiveStatement? COMMA? (id t = expression)? expression? SEMI?
+waitforStatement: WAITFOR receiveStatement? COMMA? (id t = expression)? expression? SEMI?
     ;
 
-whileStatement
-    : WHILE searchCondition (sqlClauses | BREAK SEMI? | CONTINUE SEMI?)
+whileStatement: WHILE searchCondition ( sqlClauses | BREAK SEMI? | CONTINUE SEMI?)
     ;
 
-printStatement
-    : PRINT (expression | DOUBLE_QUOTE_ID) (COMMA LOCAL_ID)* SEMI?
+printStatement: PRINT (expression | DOUBLE_QUOTE_ID) (COMMA LOCAL_ID)* SEMI?
     ;
 
 raiseerrorStatement
@@ -351,60 +336,48 @@ alterApplicationRole
     )? (COMMA? DEFAULT_SCHEMA EQ appRoleDefaultSchema = id)?
     ;
 
-alterXmlSchemaCollection
-    : ALTER XML SCHEMA COLLECTION id (DOT id)? ADD STRING
+alterXmlSchemaCollection: ALTER XML SCHEMA COLLECTION id (DOT id)? ADD STRING
     ;
 
-createApplicationRole
-    : CREATE APPLICATION ROLE id WITH optionList
+createApplicationRole: CREATE APPLICATION ROLE id WITH optionList
     ;
 
-dropAggregate
-    : DROP AGGREGATE (IF EXISTS)? id (DOT id)?
+dropAggregate: DROP AGGREGATE (IF EXISTS)? id (DOT id)?
     ;
 
-dropApplicationRole
-    : DROP APPLICATION ROLE rolename = id
+dropApplicationRole: DROP APPLICATION ROLE rolename = id
     ;
 
-alterAssembly
-    : ALTER ASSEMBLY id alterAssemblyClause
+alterAssembly: ALTER ASSEMBLY id alterAssemblyClause
     ;
 
 alterAssemblyClause
     : alterAssemblyFromClause? alterAssemblyWithClause? alterAssemblyDropClause? alterAssemblyAddClause?
     ;
 
-alterAssemblyFromClause
-    : FROM (STRING | AS id)
+alterAssemblyFromClause: FROM (STRING | AS id)
     ;
 
-alterAssemblyDropClause
-    : DROP optionList
+alterAssemblyDropClause: DROP optionList
     ;
 
-alterAssemblyAddClause
-    : ADD FILE FROM alterAssemblyClientFileClause
+alterAssemblyAddClause: ADD FILE FROM alterAssemblyClientFileClause
     ;
 
-alterAssemblyClientFileClause
-    : STRING (AS id)?
+alterAssemblyClientFileClause: STRING (AS id)?
     ;
 
-alterAssemblyWithClause
-    : WITH optionList
+alterAssemblyWithClause: WITH optionList
     ;
 
 createAssembly
     : CREATE ASSEMBLY id genericOption? FROM (COMMA? (STRING | HEX))+ (WITH genericOption)?
     ;
 
-dropAssembly
-    : DROP ASSEMBLY (IF EXISTS)? (COMMA? id)+ (WITH genericOption)?
+dropAssembly: DROP ASSEMBLY (IF EXISTS)? (COMMA? id)+ ( WITH genericOption)?
     ;
 
-alterAsymmetricKey
-    : ALTER ASYMMETRIC KEY id (asymmetricKeyOption | REMOVE PRIVATE KEY)
+alterAsymmetricKey: ALTER ASYMMETRIC KEY id ( asymmetricKeyOption | REMOVE PRIVATE KEY)
     ;
 
 asymmetricKeyOption
@@ -413,9 +386,7 @@ asymmetricKeyOption
     )? RPAREN
     ;
 
-asymmetricKeyPasswordChangeOption
-    : DECRYPTION BY genericOption
-    | ENCRYPTION BY genericOption
+asymmetricKeyPasswordChangeOption: DECRYPTION BY genericOption | ENCRYPTION BY genericOption
     ;
 
 createAsymmetricKey
@@ -424,16 +395,13 @@ createAsymmetricKey
     )?
     ;
 
-dropAsymmetricKey
-    : DROP ASYMMETRIC KEY id (REMOVE PROVIDER KEY)?
+dropAsymmetricKey: DROP ASYMMETRIC KEY id (REMOVE PROVIDER KEY)?
     ;
 
-alterAuthorization
-    : ALTER AUTHORIZATION ON (classType DOUBLE_COLON)? entityName TO genericOption
+alterAuthorization: ALTER AUTHORIZATION ON (classType DOUBLE_COLON)? entityName TO genericOption
     ;
 
-classType
-    : id id? id?
+classType: id id? id?
     ;
 
 classTypeForGrant
@@ -452,7 +420,7 @@ classTypeForGrant
         AUDIT SPECIFICATION
         | ENCRYPTION KEY
         | EVENT SESSION
-        | SCOPED ( CONFIGURATION | CREDENTIAL | RESOURCE GOVERNOR)
+        | SCOPED (CONFIGURATION | CREDENTIAL | RESOURCE GOVERNOR)
     )?
     | ENDPOINT
     | EVENT SESSION
@@ -479,16 +447,13 @@ classTypeForGrant
     | XML SCHEMA COLLECTION
     ;
 
-dropAvailabilityGroup
-    : DROP AVAILABILITY GROUP groupName = id
+dropAvailabilityGroup: DROP AVAILABILITY GROUP groupName = id
     ;
 
-alterAvailabilityGroup
-    : alterAvailabilityGroupStart alterAvailabilityGroupOptions
+alterAvailabilityGroup: alterAvailabilityGroupStart alterAvailabilityGroupOptions
     ;
 
-alterAvailabilityGroupStart
-    : ALTER AVAILABILITY GROUP groupName = id
+alterAvailabilityGroupStart: ALTER AVAILABILITY GROUP groupName = id
     ;
 
 alterAvailabilityGroupOptions
@@ -516,17 +481,17 @@ alterAvailabilityGroupOptions
     ) RPAREN
     | SECONDARY_ROLE LPAREN (
         ALLOW_CONNECTIONS EQ (NO | READ_ONLY | ALL)
-        | READ_ONLY_ROUTING_LIST EQ ( LPAREN ( ( STRING)) RPAREN)
+        | READ_ONLY_ROUTING_LIST EQ (LPAREN ( ( STRING)) RPAREN)
     )
     | PRIMARY_ROLE LPAREN (
         ALLOW_CONNECTIONS EQ (NO | READ_ONLY | ALL)
-        | READ_ONLY_ROUTING_LIST EQ (LPAREN ( (COMMA? STRING)* | NONE) RPAREN)
+        | READ_ONLY_ROUTING_LIST EQ ( LPAREN ((COMMA? STRING)* | NONE) RPAREN)
         | SESSION_TIMEOUT EQ sessionTimeout = INT
     )
     | MODIFY REPLICA ON serverInstance = STRING (
         WITH LPAREN (
             ENDPOINT_URL EQ STRING
-            | AVAILABILITY_MODE EQ (SYNCHRONOUS_COMMIT | ASYNCHRONOUS_COMMIT)
+            | AVAILABILITY_MODE EQ ( SYNCHRONOUS_COMMIT | ASYNCHRONOUS_COMMIT)
             | FAILOVER_MODE EQ (AUTOMATIC | MANUAL)
             | SEEDING_MODE EQ (AUTOMATIC | MANUAL)
             | BACKUP_PRIORITY EQ INT
@@ -537,7 +502,7 @@ alterAvailabilityGroupOptions
         )
         | PRIMARY_ROLE LPAREN (
             ALLOW_CONNECTIONS EQ (NO | READ_ONLY | ALL)
-            | READ_ONLY_ROUTING_LIST EQ (LPAREN ( (COMMA? STRING)* | NONE) RPAREN)
+            | READ_ONLY_ROUTING_LIST EQ ( LPAREN ((COMMA? STRING)* | NONE) RPAREN)
             | SESSION_TIMEOUT EQ sessionTimeout = INT
         )
     ) RPAREN
@@ -571,7 +536,7 @@ alterAvailabilityGroupOptions
         )
     ) RPAREN
     | MODIFY LISTENER (
-        ADD IP LPAREN (ipV4_failover ipV4_failover | ipV6_failover) RPAREN
+        ADD IP LPAREN ( ipV4_failover ipV4_failover | ipV6_failover) RPAREN
         | PORT EQ INT
     )
     | RESTART LISTENER STRING
@@ -580,12 +545,10 @@ alterAvailabilityGroupOptions
     | WITH LPAREN DTC_SUPPORT EQ PER_DB RPAREN
     ;
 
-ipV4_failover
-    : STRING
+ipV4_failover: STRING
     ;
 
-ipV6_failover
-    : STRING
+ipV6_failover: STRING
     ;
 
 createOrAlterBrokerPriority
@@ -596,8 +559,7 @@ createOrAlterBrokerPriority
     )? (PRIORITY_LEVEL EQ ( PriorityValue = INT | DEFAULT))? RPAREN
     ;
 
-dropBrokerPriority
-    : DROP BROKER PRIORITY ConversationPriorityName = id
+dropBrokerPriority: DROP BROKER PRIORITY ConversationPriorityName = id
     ;
 
 alterCertificate
@@ -625,72 +587,55 @@ createColumnEncryptionKey
     )+
     ;
 
-dropCertificate
-    : DROP CERTIFICATE certificateName = id
+dropCertificate: DROP CERTIFICATE certificateName = id
     ;
 
-dropColumnEncryptionKey
-    : DROP COLUMN ENCRYPTION KEY keyName = id
+dropColumnEncryptionKey: DROP COLUMN ENCRYPTION KEY keyName = id
     ;
 
-dropColumnMasterKey
-    : DROP COLUMN MASTER KEY keyName = id
+dropColumnMasterKey: DROP COLUMN MASTER KEY keyName = id
     ;
 
-dropContract
-    : DROP CONTRACT droppedContractName = id
+dropContract: DROP CONTRACT droppedContractName = id
     ;
 
-dropCredential
-    : DROP CREDENTIAL credentialName = id
+dropCredential: DROP CREDENTIAL credentialName = id
     ;
 
-dropCryptograhicProvider
-    : DROP CRYPTOGRAPHIC PROVIDER providerName = id
+dropCryptograhicProvider: DROP CRYPTOGRAPHIC PROVIDER providerName = id
     ;
 
-dropDatabase
-    : DROP DATABASE (IF EXISTS)? (COMMA? databaseNameOrDatabaseSnapshotName = id)+
+dropDatabase: DROP DATABASE (IF EXISTS)? ( COMMA? databaseNameOrDatabaseSnapshotName = id)+
     ;
 
-dropDatabaseAuditSpecification
-    : DROP DATABASE AUDIT SPECIFICATION auditSpecificationName = id
+dropDatabaseAuditSpecification: DROP DATABASE AUDIT SPECIFICATION auditSpecificationName = id
     ;
 
-dropDatabaseEncryptionKey
-    : DROP DATABASE ENCRYPTION KEY
+dropDatabaseEncryptionKey: DROP DATABASE ENCRYPTION KEY
     ;
 
-dropDatabaseScopedCredential
-    : DROP DATABASE SCOPED CREDENTIAL credentialName = id
+dropDatabaseScopedCredential: DROP DATABASE SCOPED CREDENTIAL credentialName = id
     ;
 
-dropDefault
-    : DROP DEFAULT (IF EXISTS)? (COMMA? (schemaName = id DOT)? defaultName = id)
+dropDefault: DROP DEFAULT (IF EXISTS)? ( COMMA? (schemaName = id DOT)? defaultName = id)
     ;
 
-dropEndpoint
-    : DROP ENDPOINT endPointName = id
+dropEndpoint: DROP ENDPOINT endPointName = id
     ;
 
-dropExternalDataSource
-    : DROP EXTERNAL DATA SOURCE externalDataSourceName = id
+dropExternalDataSource: DROP EXTERNAL DATA SOURCE externalDataSourceName = id
     ;
 
-dropExternalFileFormat
-    : DROP EXTERNAL FILE FORMAT externalFileFormatName = id
+dropExternalFileFormat: DROP EXTERNAL FILE FORMAT externalFileFormatName = id
     ;
 
-dropExternalLibrary
-    : DROP EXTERNAL LIBRARY libraryName = id (AUTHORIZATION ownerName = id)?
+dropExternalLibrary: DROP EXTERNAL LIBRARY libraryName = id ( AUTHORIZATION ownerName = id)?
     ;
 
-dropExternalResourcePool
-    : DROP EXTERNAL RESOURCE POOL poolName = id
+dropExternalResourcePool: DROP EXTERNAL RESOURCE POOL poolName = id
     ;
 
-dropExternalTable
-    : DROP EXTERNAL TABLE (databaseName = id DOT)? (schemaName = id DOT)? table = id
+dropExternalTable: DROP EXTERNAL TABLE (databaseName = id DOT)? ( schemaName = id DOT)? table = id
     ;
 
 dropEventNotifications
@@ -701,72 +646,55 @@ dropEventNotifications
     )
     ;
 
-dropEventSession
-    : DROP EVENT SESSION eventSessionName = id ON SERVER
+dropEventSession: DROP EVENT SESSION eventSessionName = id ON SERVER
     ;
 
-dropFulltextCatalog
-    : DROP FULLTEXT CATALOG catalogName = id
+dropFulltextCatalog: DROP FULLTEXT CATALOG catalogName = id
     ;
 
-dropFulltextIndex
-    : DROP FULLTEXT INDEX ON (schema = id DOT)? table = id
+dropFulltextIndex: DROP FULLTEXT INDEX ON (schema = id DOT)? table = id
     ;
 
-dropFulltextStoplist
-    : DROP FULLTEXT STOPLIST stoplistName = id
+dropFulltextStoplist: DROP FULLTEXT STOPLIST stoplistName = id
     ;
 
-dropLogin
-    : DROP LOGIN loginName = id
+dropLogin: DROP LOGIN loginName = id
     ;
 
-dropMasterKey
-    : DROP MASTER KEY
+dropMasterKey: DROP MASTER KEY
     ;
 
-dropMessageType
-    : DROP MESSAGE TYPE messageTypeName = id
+dropMessageType: DROP MESSAGE TYPE messageTypeName = id
     ;
 
-dropPartitionFunction
-    : DROP PARTITION FUNCTION partitionFunctionName = id
+dropPartitionFunction: DROP PARTITION FUNCTION partitionFunctionName = id
     ;
 
-dropPartitionScheme
-    : DROP PARTITION SCHEME partitionSchemeName = id
+dropPartitionScheme: DROP PARTITION SCHEME partitionSchemeName = id
     ;
 
-dropQueue
-    : DROP QUEUE (databaseName = id DOT)? (schemaName = id DOT)? queueName = id
+dropQueue: DROP QUEUE (databaseName = id DOT)? (schemaName = id DOT)? queueName = id
     ;
 
-dropRemoteServiceBinding
-    : DROP REMOTE SERVICE BINDING bindingName = id
+dropRemoteServiceBinding: DROP REMOTE SERVICE BINDING bindingName = id
     ;
 
-dropResourcePool
-    : DROP RESOURCE POOL poolName = id
+dropResourcePool: DROP RESOURCE POOL poolName = id
     ;
 
-dropDbRole
-    : DROP ROLE (IF EXISTS)? roleName = id
+dropDbRole: DROP ROLE (IF EXISTS)? roleName = id
     ;
 
-dropRoute
-    : DROP ROUTE routeName = id
+dropRoute: DROP ROUTE routeName = id
     ;
 
-dropRule
-    : DROP RULE (IF EXISTS)? (COMMA? (schemaName = id DOT)? ruleName = id)?
+dropRule: DROP RULE (IF EXISTS)? ( COMMA? (schemaName = id DOT)? ruleName = id)?
     ;
 
-dropSchema
-    : DROP SCHEMA (IF EXISTS)? schemaName = id
+dropSchema: DROP SCHEMA (IF EXISTS)? schemaName = id
     ;
 
-dropSearchPropertyList
-    : DROP SEARCH PROPERTY LIST propertyListName = id
+dropSearchPropertyList: DROP SEARCH PROPERTY LIST propertyListName = id
     ;
 
 dropSecurityPolicy
@@ -779,20 +707,16 @@ dropSequence
     )?
     ;
 
-dropServerAudit
-    : DROP SERVER AUDIT auditName = id
+dropServerAudit: DROP SERVER AUDIT auditName = id
     ;
 
-dropServerAuditSpecification
-    : DROP SERVER AUDIT SPECIFICATION auditSpecificationName = id
+dropServerAuditSpecification: DROP SERVER AUDIT SPECIFICATION auditSpecificationName = id
     ;
 
-dropServerRole
-    : DROP SERVER ROLE roleName = id
+dropServerRole: DROP SERVER ROLE roleName = id
     ;
 
-dropService
-    : DROP SERVICE droppedServiceName = id
+dropService: DROP SERVICE droppedServiceName = id
     ;
 
 dropSignature
@@ -806,24 +730,20 @@ dropStatisticsNameAzureDwAndPdw
     : DROP STATISTICS (schemaName = id DOT)? objectName = id DOT statisticsName = id
     ;
 
-dropSymmetricKey
-    : DROP SYMMETRIC KEY symmetricKeyName = id (REMOVE PROVIDER KEY)?
+dropSymmetricKey: DROP SYMMETRIC KEY symmetricKeyName = id ( REMOVE PROVIDER KEY)?
     ;
 
-dropSynonym
-    : DROP SYNONYM (IF EXISTS)? (schema = id DOT)? synonymName = id
+dropSynonym: DROP SYNONYM (IF EXISTS)? (schema = id DOT)? synonymName = id
     ;
 
-dropUser
-    : DROP USER (IF EXISTS)? userName = id
+dropUser: DROP USER (IF EXISTS)? userName = id
     ;
 
-dropWorkloadGroup
-    : DROP WORKLOAD GROUP groupName = id
+dropWorkloadGroup: DROP WORKLOAD GROUP groupName = id
     ;
 
 disableTrigger
-    : DISABLE TRIGGER (( COMMA? (schemaName = id DOT)? triggerName = id)+ | ALL) ON (
+    : DISABLE TRIGGER ((COMMA? (schemaName = id DOT)? triggerName = id)+ | ALL) ON (
         (schemaId = id DOT)? objectName = id
         | DATABASE
         | ALL SERVER
@@ -831,7 +751,7 @@ disableTrigger
     ;
 
 enableTrigger
-    : ENABLE TRIGGER (( COMMA? (schemaName = id DOT)? triggerName = id)+ | ALL) ON (
+    : ENABLE TRIGGER ((COMMA? (schemaName = id DOT)? triggerName = id)+ | ALL) ON (
         (schemaId = id DOT)? objectName = id
         | DATABASE
         | ALL SERVER
@@ -898,8 +818,8 @@ endpointEncryptionAlogorithmClause
 
 endpointAuthenticationClause
     : AUTHENTICATION EQ (
-        WINDOWS (NTLM | KERBEROS | NEGOTIATE)? (CERTIFICATE certName = id)?
-        | CERTIFICATE certName = id WINDOWS? (NTLM | KERBEROS | NEGOTIATE)?
+        WINDOWS (NTLM | KERBEROS | NEGOTIATE)? ( CERTIFICATE certName = id)?
+        | CERTIFICATE certName = id WINDOWS? ( NTLM | KERBEROS | NEGOTIATE)?
     )
     ;
 
@@ -920,7 +840,7 @@ createEventNotification
 createOrAlterEventSession
     : (CREATE | ALTER) EVENT SESSION eventSessionName = id ON SERVER (
         COMMA? ADD EVENT ((eventModuleGuid = id DOT)? eventPackageName = id DOT eventName = id) (
-            LPAREN (SET ( COMMA? eventCustomizableAttributue = id EQ (INT | STRING))*)? (
+            LPAREN (SET ( COMMA? eventCustomizableAttributue = id EQ ( INT | STRING))*)? (
                 ACTION LPAREN (
                     COMMA? (eventModuleGuid = id DOT)? eventPackageName = id DOT actionName = id
                 )+ RPAREN
@@ -928,7 +848,7 @@ createOrAlterEventSession
         )*
     )* (COMMA? DROP EVENT (eventModuleGuid = id DOT)? eventPackageName = id DOT eventName = id)* (
         (ADD TARGET (eventModuleGuid = id DOT)? eventPackageName = id DOT targetName = id) (
-            LPAREN SET (COMMA? targetParameterName = id EQ (LPAREN? INT RPAREN? | STRING))+ RPAREN
+            LPAREN SET (COMMA? targetParameterName = id EQ ( LPAREN? INT RPAREN? | STRING))+ RPAREN
         )*
     )* (DROP TARGET (eventModuleGuid = id DOT)? eventPackageName = id DOT targetName = id)* (
         WITH LPAREN (COMMA? MAX_MEMORY EQ maxMemory = INT (KB | MB))? (
@@ -939,7 +859,7 @@ createOrAlterEventSession
             )
         )? (COMMA? MAX_DISPATCH_LATENCY EQ ( maxDispatchLatencySeconds = INT SECONDS | INFINITE))? (
             COMMA? MAX_EVENT_SIZE EQ maxEventSize = INT (KB | MB)
-        )? (COMMA? MEMORY_PARTITION_MODE EQ (NONE | PER_NODE | PER_CPU))? (
+        )? (COMMA? MEMORY_PARTITION_MODE EQ ( NONE | PER_NODE | PER_CPU))? (
             COMMA? TRACK_CAUSALITY EQ (ON | OFF)
         )? (COMMA? STARTUP_STATE EQ (ON | OFF))? RPAREN
     )? (STATE EQ (START | STOP))?
@@ -1005,7 +925,7 @@ createExternalLibrary
 
 alterExternalResourcePool
     : ALTER EXTERNAL RESOURCE POOL (poolName = id | DEFAULT_DOUBLE_QUOTE) WITH LPAREN MAX_CPU_PERCENT EQ maxCpuPercent = INT (
-        COMMA? AFFINITY CPU EQ (AUTO | (COMMA? INT TO INT | COMMA INT)+)
+        COMMA? AFFINITY CPU EQ ( AUTO | (COMMA? INT TO INT | COMMA INT)+)
         | NUMANODE EQ (COMMA? INT TO INT | COMMA? INT)+
     ) (COMMA? MAX_MEMORY_PERCENT EQ maxMemoryPercent = INT)? (
         COMMA? MAX_PROCESSES EQ maxProcesses = INT
@@ -1014,7 +934,7 @@ alterExternalResourcePool
 
 createExternalResourcePool
     : CREATE EXTERNAL RESOURCE POOL poolName = id WITH LPAREN MAX_CPU_PERCENT EQ maxCpuPercent = INT (
-        COMMA? AFFINITY CPU EQ (AUTO | (COMMA? INT TO INT | COMMA INT)+)
+        COMMA? AFFINITY CPU EQ ( AUTO | (COMMA? INT TO INT | COMMA INT)+)
         | NUMANODE EQ (COMMA? INT TO INT | COMMA? INT)+
     ) (COMMA? MAX_MEMORY_PERCENT EQ maxMemoryPercent = INT)? (
         COMMA? MAX_PROCESSES EQ maxProcesses = INT
@@ -1053,7 +973,7 @@ alterLoginSqlServer
         (ENABLE | DISABLE)?
         | WITH (
             (PASSWORD EQ ( password = STRING | passwordHash = HEX HASHED)) (MUST_CHANGE | UNLOCK)*
-        )? (OLD_PASSWORD EQ oldPassword = STRING (MUST_CHANGE | UNLOCK)*)? (
+        )? (OLD_PASSWORD EQ oldPassword = STRING ( MUST_CHANGE | UNLOCK)*)? (
             DEFAULT_DATABASE EQ defaultDatabase = id
         )? (DEFAULT_LANGUAGE EQ defaultLaguage = id)? (NAME EQ loginName = id)? (
             CHECK_POLICY EQ (ON | OFF)
@@ -1095,8 +1015,7 @@ alterLoginAzureSql
     )
     ;
 
-createLoginAzureSql
-    : CREATE LOGIN loginName = id WITH PASSWORD EQ STRING (SID EQ sid = HEX)?
+createLoginAzureSql: CREATE LOGIN loginName = id WITH PASSWORD EQ STRING ( SID EQ sid = HEX)?
     ;
 
 alterLoginAzureSqlDwAndPdw
@@ -1113,7 +1032,7 @@ alterLoginAzureSqlDwAndPdw
 
 createLoginPdw
     : CREATE LOGIN loginName = id (
-        WITH (PASSWORD EQ password = STRING (MUST_CHANGE)? (CHECK_POLICY EQ (ON | OFF)?)?)
+        WITH (PASSWORD EQ password = STRING (MUST_CHANGE)? ( CHECK_POLICY EQ (ON | OFF)?)?)
         | FROM WINDOWS
     )
     ;
@@ -1125,8 +1044,7 @@ alterMasterKeySqlServer
     )
     ;
 
-createMasterKeySqlServer
-    : CREATE MASTER KEY ENCRYPTION BY PASSWORD EQ password = STRING
+createMasterKeySqlServer: CREATE MASTER KEY ENCRYPTION BY PASSWORD EQ password = STRING
     ;
 
 alterMasterKeyAzureSql
@@ -1137,8 +1055,7 @@ alterMasterKeyAzureSql
     )
     ;
 
-createMasterKeyAzureSql
-    : CREATE MASTER KEY (ENCRYPTION BY PASSWORD EQ password = STRING)?
+createMasterKeyAzureSql: CREATE MASTER KEY ( ENCRYPTION BY PASSWORD EQ password = STRING)?
     ;
 
 alterMessageType
@@ -1213,24 +1130,13 @@ auditActionSpecification
     )*
     ;
 
-actionSpecification
-    : SELECT
-    | INSERT
-    | UPDATE
-    | DELETE
-    | EXECUTE
-    | RECEIVE
-    | REFERENCES
+actionSpecification: SELECT | INSERT | UPDATE | DELETE | EXECUTE | RECEIVE | REFERENCES
     ;
 
-auditClassName
-    : OBJECT
-    | SCHEMA
-    | TABLE
+auditClassName: OBJECT | SCHEMA | TABLE
     ;
 
-auditSecurable
-    : ((id DOT)? id DOT)? id
+auditSecurable: ((id DOT)? id DOT)? id
     ;
 
 alterDbRole
@@ -1248,8 +1154,7 @@ createDatabaseAuditSpecification
     )?
     ;
 
-createDbRole
-    : CREATE ROLE roleName = id (AUTHORIZATION ownerName = id)?
+createDbRole: CREATE ROLE roleName = id (AUTHORIZATION ownerName = id)?
     ;
 
 createRoute
@@ -1260,8 +1165,7 @@ createRoute
     )?
     ;
 
-createRule
-    : CREATE RULE (schemaName = id DOT)? ruleName = id AS searchCondition
+createRule: CREATE RULE (schemaName = id DOT)? ruleName = id AS searchCondition
     ;
 
 alterSchemaSql
@@ -1283,8 +1187,7 @@ createSchema
     )*
     ;
 
-createSchemaAzureSqlDwAndPdw
-    : CREATE SCHEMA schemaName = id (AUTHORIZATION ownerName = id)?
+createSchemaAzureSqlDwAndPdw: CREATE SCHEMA schemaName = id ( AUTHORIZATION ownerName = id)?
     ;
 
 alterSchemaAzureSqlDwAndPdw
@@ -1305,7 +1208,7 @@ createSecurityPolicy
             COMMA? AFTER (INSERT | UPDATE)
             | COMMA? BEFORE (UPDATE | DELETE)
         )*
-    )+ (WITH LPAREN STATE EQ (ON | OFF) (SCHEMABINDING (ON | OFF))? RPAREN)? (NOT FOR REPLICATION)?
+    )+ (WITH LPAREN STATE EQ (ON | OFF) ( SCHEMABINDING (ON | OFF))? RPAREN)? (NOT FOR REPLICATION)?
     ;
 
 alterSequence
@@ -1334,7 +1237,7 @@ alterServerAudit
                     LPAREN (
                         COMMA? FILEPATH EQ filepath = STRING
                         | COMMA? MAXSIZE EQ ( INT (MB | GB | TB) | UNLIMITED)
-                        | COMMA? MAX_ROLLOVER_FILES EQ maxRolloverFiles = (INT | UNLIMITED)
+                        | COMMA? MAX_ROLLOVER_FILES EQ maxRolloverFiles = ( INT | UNLIMITED)
                         | COMMA? MAX_FILES EQ maxFiles = INT
                         | COMMA? RESERVE_DISK_SPACE EQ (ON | OFF)
                     )* RPAREN
@@ -1345,7 +1248,7 @@ alterServerAudit
         )? (
             WITH LPAREN (
                 COMMA? QUEUE_DELAY EQ queueDelay = INT
-                | COMMA? ON_FAILURE EQ (CONTINUE | SHUTDOWN | FAIL_OPERATION)
+                | COMMA? ON_FAILURE EQ ( CONTINUE | SHUTDOWN | FAIL_OPERATION)
                 | COMMA? STATE EQ (ON | OFF)
             )* RPAREN
         )? (
@@ -1378,7 +1281,7 @@ createServerAudit
                     LPAREN (
                         COMMA? FILEPATH EQ filepath = STRING
                         | COMMA? MAXSIZE EQ ( INT (MB | GB | TB) | UNLIMITED)
-                        | COMMA? MAX_ROLLOVER_FILES EQ maxRolloverFiles = (INT | UNLIMITED)
+                        | COMMA? MAX_ROLLOVER_FILES EQ maxRolloverFiles = ( INT | UNLIMITED)
                         | COMMA? MAX_FILES EQ maxFiles = INT
                         | COMMA? RESERVE_DISK_SPACE EQ (ON | OFF)
                     )* RPAREN
@@ -1389,7 +1292,7 @@ createServerAudit
         )? (
             WITH LPAREN (
                 COMMA? QUEUE_DELAY EQ queueDelay = INT
-                | COMMA? ON_FAILURE EQ (CONTINUE | SHUTDOWN | FAIL_OPERATION)
+                | COMMA? ON_FAILURE EQ ( CONTINUE | SHUTDOWN | FAIL_OPERATION)
                 | COMMA? STATE EQ (ON | OFF)
                 | COMMA? AUDIT_GUID EQ auditGuid = id
             )* RPAREN
@@ -1460,16 +1363,13 @@ alterServerConfiguration
     )
     ;
 
-alterServerRole
-    : ALTER SERVER ROLE id ((ADD | DROP) MEMBER id | WITH NAME EQ id)
+alterServerRole: ALTER SERVER ROLE id ( (ADD | DROP) MEMBER id | WITH NAME EQ id)
     ;
 
-createServerRole
-    : CREATE SERVER ROLE serverRole = id (AUTHORIZATION serverPrincipal = id)?
+createServerRole: CREATE SERVER ROLE serverRole = id ( AUTHORIZATION serverPrincipal = id)?
     ;
 
-alterServerRolePdw
-    : ALTER SERVER ROLE serverRoleName = id (ADD | DROP) MEMBER login = id
+alterServerRolePdw: ALTER SERVER ROLE serverRoleName = id (ADD | DROP) MEMBER login = id
     ;
 
 alterService
@@ -1478,8 +1378,7 @@ alterService
     )?
     ;
 
-optArgClause
-    : (ADD | DROP) CONTRACT modifiedContractName = id
+optArgClause: (ADD | DROP) CONTRACT modifiedContractName = id
     ;
 
 createService
@@ -1514,7 +1413,7 @@ alterSymmetricKey
 createSynonym
     : CREATE SYNONYM (schemaName_1 = id DOT)? synonymName = id FOR (
         (serverName = id DOT)? (databaseName = id DOT)? (schemaName_2 = id DOT)? objectName = id
-        | (databaseOrSchema2 = id DOT)? (schemaId2_orObjectName = id DOT)?
+        | (databaseOrSchema2 = id DOT)? ( schemaId2_orObjectName = id DOT)?
     )
     ;
 
@@ -1524,8 +1423,8 @@ alterUser
         | COMMA? DEFAULT_SCHEMA EQ ( schemaName = id | NULL_)
         | COMMA? LOGIN EQ loginame = id
         | COMMA? PASSWORD EQ STRING (OLD_PASSWORD EQ STRING)+
-        | COMMA? DEFAULT_LANGUAGE EQ (NONE | lcid = INT | languageNameOrAlias = id)
-        | COMMA? ALLOW_ENCRYPTED_VALUE_MODIFICATIONS EQ (ON | OFF)
+        | COMMA? DEFAULT_LANGUAGE EQ ( NONE | lcid = INT | languageNameOrAlias = id)
+        | COMMA? ALLOW_ENCRYPTED_VALUE_MODIFICATIONS EQ ( ON | OFF)
     )+
     ;
 
@@ -1533,30 +1432,30 @@ createUser
     : CREATE USER userName = id ((FOR | FROM) LOGIN loginName = id)? (
         WITH (
             COMMA? DEFAULT_SCHEMA EQ schemaName = id
-            | COMMA? ALLOW_ENCRYPTED_VALUE_MODIFICATIONS EQ (ON | OFF)
+            | COMMA? ALLOW_ENCRYPTED_VALUE_MODIFICATIONS EQ ( ON | OFF)
         )*
     )?
     | CREATE USER (
         windowsPrincipal = id (
             WITH (
                 COMMA? DEFAULT_SCHEMA EQ schemaName = id
-                | COMMA? DEFAULT_LANGUAGE EQ (NONE | INT | languageNameOrAlias = id)
+                | COMMA? DEFAULT_LANGUAGE EQ ( NONE | INT | languageNameOrAlias = id)
                 | COMMA? SID EQ HEX
-                | COMMA? ALLOW_ENCRYPTED_VALUE_MODIFICATIONS EQ (ON | OFF)
+                | COMMA? ALLOW_ENCRYPTED_VALUE_MODIFICATIONS EQ ( ON | OFF)
             )*
         )?
         | userName = id WITH PASSWORD EQ password = STRING (
             COMMA? DEFAULT_SCHEMA EQ schemaName = id
-            | COMMA? DEFAULT_LANGUAGE EQ (NONE | INT | languageNameOrAlias = id)
+            | COMMA? DEFAULT_LANGUAGE EQ ( NONE | INT | languageNameOrAlias = id)
             | COMMA? SID EQ HEX
-            | COMMA? ALLOW_ENCRYPTED_VALUE_MODIFICATIONS EQ (ON | OFF)
+            | COMMA? ALLOW_ENCRYPTED_VALUE_MODIFICATIONS EQ ( ON | OFF)
         )*
         | Azure_Active_DirectoryPrincipal = id FROM EXTERNAL PROVIDER
     )
     | CREATE USER userName = id (
         WITHOUT LOGIN (
             COMMA? DEFAULT_SCHEMA EQ schemaName = id
-            | COMMA? ALLOW_ENCRYPTED_VALUE_MODIFICATIONS EQ (ON | OFF)
+            | COMMA? ALLOW_ENCRYPTED_VALUE_MODIFICATIONS EQ ( ON | OFF)
         )*
         | (FOR | FROM) CERTIFICATE certName = id
         | (FOR | FROM) ASYMMETRIC KEY asymKeyName = id
@@ -1578,7 +1477,7 @@ alterUserAzureSql
         COMMA? NAME EQ newusername = id
         | COMMA? DEFAULT_SCHEMA EQ schemaName = id
         | COMMA? LOGIN EQ loginame = id
-        | COMMA? ALLOW_ENCRYPTED_VALUE_MODIFICATIONS EQ (ON | OFF)
+        | COMMA? ALLOW_ENCRYPTED_VALUE_MODIFICATIONS EQ ( ON | OFF)
     )+
     ;
 
@@ -1643,8 +1542,7 @@ queueSettings
     )? (POISON_MESSAGE_HANDLING LPAREN (STATUS EQ onOff) RPAREN)?
     ;
 
-alterQueue
-    : ALTER QUEUE (tableName | queueName = id) (queueSettings | queueAction)
+alterQueue: ALTER QUEUE (tableName | queueName = id) ( queueSettings | queueAction)
     ;
 
 queueAction
@@ -1653,8 +1551,7 @@ queueAction
     | MOVE TO (id | DEFAULT)
     ;
 
-queueRebuildOptions
-    : MAXDOP EQ INT
+queueRebuildOptions: MAXDOP EQ INT
     ;
 
 createContract
@@ -1690,29 +1587,23 @@ mergeStatement
 
 whenMatches
     : (WHEN MATCHED (AND searchCondition)? THEN mergeMatched)+
-    | (WHEN NOT MATCHED (BY TARGET)? (AND searchCondition)? THEN mergeNotMatched)
-    | (WHEN NOT MATCHED BY SOURCE (AND searchCondition)? THEN mergeMatched)+
+    | ( WHEN NOT MATCHED (BY TARGET)? (AND searchCondition)? THEN mergeNotMatched)
+    | ( WHEN NOT MATCHED BY SOURCE (AND searchCondition)? THEN mergeMatched)+
     ;
 
-mergeMatched
-    : UPDATE SET updateElemMerge (COMMA updateElemMerge)*
-    | DELETE
+mergeMatched: UPDATE SET updateElemMerge (COMMA updateElemMerge)* | DELETE
     ;
 
-mergeNotMatched
-    : INSERT (LPAREN columnNameList RPAREN)? (tableValueConstructor | DEFAULT VALUES)
+mergeNotMatched: INSERT (LPAREN columnNameList RPAREN)? ( tableValueConstructor | DEFAULT VALUES)
     ;
 
 deleteStatement
     : withExpression? DELETE (TOP LPAREN expression RPAREN PERCENT? | TOP INT)? FROM? deleteStatementFrom withTableHints? outputClause? (
         FROM tableSources
-    )? (WHERE (searchCondition | CURRENT OF (GLOBAL? cursorName | cursorVar = LOCAL_ID)))? forClause? optionClause? SEMI?
+    )? (WHERE ( searchCondition | CURRENT OF ( GLOBAL? cursorName | cursorVar = LOCAL_ID)))? forClause? optionClause? SEMI?
     ;
 
-deleteStatementFrom
-    : ddlObject
-    | rowsetFunctionLimited
-    | tableVar = LOCAL_ID
+deleteStatementFrom: ddlObject | rowsetFunctionLimited | tableVar = LOCAL_ID
     ;
 
 insertStatement
@@ -1722,11 +1613,7 @@ insertStatement
     ) withTableHints? (LPAREN insertColumnNameList RPAREN)? outputClause? insertStatementValue forClause? optionClause? SEMI?
     ;
 
-insertStatementValue
-    : tableValueConstructor
-    | derivedTable
-    | executeStatement
-    | DEFAULT VALUES
+insertStatementValue: tableValueConstructor | derivedTable | executeStatement | DEFAULT VALUES
     ;
 
 receiveStatement
@@ -1735,12 +1622,10 @@ receiveStatement
     )? RPAREN?
     ;
 
-selectStatementStandalone
-    : withExpression? selectStatement
+selectStatementStandalone: withExpression? selectStatement
     ;
 
-selectStatement
-    : queryExpression forClause? optionClause? SEMI?
+selectStatement: queryExpression forClause? optionClause? SEMI?
     ;
 
 updateStatement
@@ -1748,25 +1633,24 @@ updateStatement
         ddlObject
         | rowsetFunctionLimited
     ) withTableHints? SET updateElem (COMMA updateElem)* outputClause? (FROM tableSources)? (
-        WHERE (searchCondition | CURRENT OF (GLOBAL? cursorName | cursorVar = LOCAL_ID))
+        WHERE (searchCondition | CURRENT OF ( GLOBAL? cursorName | cursorVar = LOCAL_ID))
     )? forClause? optionClause? SEMI?
     ;
 
 outputClause
     : OUTPUT outputDmlListElem (COMMA outputDmlListElem)* (
-        INTO (LOCAL_ID | tableName) (LPAREN columnNameList RPAREN)?
+        INTO (LOCAL_ID | tableName) ( LPAREN columnNameList RPAREN)?
     )?
     ;
 
-outputDmlListElem
-    : (expression | asterisk) asColumnAlias?
+outputDmlListElem: (expression | asterisk) asColumnAlias?
     ;
 
 createDatabase
     : CREATE DATABASE (database = id) (CONTAINMENT EQ ( NONE | PARTIAL))? (
         ON PRIMARY? databaseFileSpec ( COMMA databaseFileSpec)*
-    )? (id /* LOG */ ON databaseFileSpec ( COMMA databaseFileSpec)*)? (COLLATE collationName = id)? (
-        WITH createDatabaseOption ( COMMA createDatabaseOption)*
+    )? (id /* LOG */ ON databaseFileSpec (COMMA databaseFileSpec)*)? (COLLATE collationName = id)? (
+        WITH createDatabaseOption (COMMA createDatabaseOption)*
     )?
     ;
 
@@ -1776,8 +1660,7 @@ createIndex
     )? (WHERE where = searchCondition)? (createIndexOptions)? (ON id)? SEMI?
     ;
 
-createIndexOptions
-    : WITH LPAREN relationalIndexOption (COMMA relationalIndexOption)* RPAREN
+createIndexOptions: WITH LPAREN relationalIndexOption ( COMMA relationalIndexOption)* RPAREN
     ;
 
 relationalIndexOption
@@ -1798,8 +1681,7 @@ alterIndex
     )
     ;
 
-resumableIndexOptions
-    : WITH LPAREN (resumableIndexOption (COMMA resumableIndexOption)*) RPAREN
+resumableIndexOptions: WITH LPAREN ( resumableIndexOption (COMMA resumableIndexOption)*) RPAREN
     ;
 
 resumableIndexOption
@@ -1808,21 +1690,16 @@ resumableIndexOption
     | lowPriorityLockWait
     ;
 
-reorganizePartition
-    : REORGANIZE (PARTITION EQ INT)? reorganizeOptions?
+reorganizePartition: REORGANIZE (PARTITION EQ INT)? reorganizeOptions?
     ;
 
-reorganizeOptions
-    : WITH LPAREN (reorganizeOption (COMMA reorganizeOption)*) RPAREN
+reorganizeOptions: WITH LPAREN (reorganizeOption (COMMA reorganizeOption)*) RPAREN
     ;
 
-reorganizeOption
-    : LOB_COMPACTION EQ onOff
-    | COMPRESS_ALL_ROW_GROUPS EQ onOff
+reorganizeOption: LOB_COMPACTION EQ onOff | COMPRESS_ALL_ROW_GROUPS EQ onOff
     ;
 
-setIndexOptions
-    : SET LPAREN setIndexOption (COMMA setIndexOption)* RPAREN
+setIndexOptions: SET LPAREN setIndexOption (COMMA setIndexOption)* RPAREN
     ;
 
 setIndexOption
@@ -1839,8 +1716,7 @@ rebuildPartition
     | REBUILD PARTITION EQ INT singlePartitionRebuildIndexOptions?
     ;
 
-rebuildIndexOptions
-    : WITH LPAREN rebuildIndexOption (COMMA rebuildIndexOption)* RPAREN
+rebuildIndexOptions: WITH LPAREN rebuildIndexOption (COMMA rebuildIndexOption)* RPAREN
     ;
 
 rebuildIndexOption
@@ -1909,13 +1785,10 @@ createOrAlterProcedure
     )? (FOR REPLICATION)? AS (asExternalName | sqlClauses*)
     ;
 
-asExternalName
-    : EXTERNAL NAME assemblyName = id DOT className = id DOT methodName = id
+asExternalName: EXTERNAL NAME assemblyName = id DOT className = id DOT methodName = id
     ;
 
-createOrAlterTrigger
-    : createOrAlterDmlTrigger
-    | createOrAlterDdlTrigger
+createOrAlterTrigger: createOrAlterDmlTrigger | createOrAlterDdlTrigger
     ;
 
 createOrAlterDmlTrigger
@@ -1926,13 +1799,10 @@ createOrAlterDmlTrigger
     )? AS sqlClauses+
     ;
 
-dmlTriggerOption
-    : ENCRYPTION
-    | executeClause
+dmlTriggerOption: ENCRYPTION | executeClause
     ;
 
-dmlTriggerOperation
-    : (INSERT | UPDATE | DELETE)
+dmlTriggerOperation: (INSERT | UPDATE | DELETE)
     ;
 
 createOrAlterDdlTrigger
@@ -1941,8 +1811,7 @@ createOrAlterDdlTrigger
     )? (FOR | AFTER) ddlTriggerOperation (COMMA ddlTriggerOperation)* AS sqlClauses+
     ;
 
-ddlTriggerOperation
-    : simpleId
+ddlTriggerOperation: simpleId
     ;
 
 createOrAlterFunction
@@ -1974,11 +1843,7 @@ funcBodyReturnsScalar
     )
     ;
 
-procedureParamDefaultValue
-    : NULL_
-    | DEFAULT
-    | constant
-    | LOCAL_ID
+procedureParamDefaultValue: NULL_ | DEFAULT | constant | LOCAL_ID
     ;
 
 procedureParam
@@ -1987,10 +1852,7 @@ procedureParam
     )? (OUT | OUTPUT | READONLY)?
     ;
 
-procedureOption
-    : ENCRYPTION
-    | RECOMPILE
-    | executeClause
+procedureOption: ENCRYPTION | RECOMPILE | executeClause
     ;
 
 functionOption
@@ -2013,13 +1875,12 @@ updateStatistics
     : UPDATE STATISTICS tableName (id | LPAREN id ( COMMA id)* RPAREN)? updateStatisticsOptions?
     ;
 
-updateStatisticsOptions
-    : WITH updateStatisticsOption (COMMA updateStatisticsOption)*
+updateStatisticsOptions: WITH updateStatisticsOption (COMMA updateStatisticsOption)*
     ;
 
 updateStatisticsOption
     : (FULLSCAN (COMMA? PERSIST_SAMPLE_PERCENT EQ onOff)?)
-    | (SAMPLE number = INT (PERCENT | ROWS) (COMMA? PERSIST_SAMPLE_PERCENT EQ onOff)?)
+    | (SAMPLE number = INT (PERCENT | ROWS) ( COMMA? PERSIST_SAMPLE_PERCENT EQ onOff)?)
     | RESAMPLE onPartitions?
     | STATS_STREAM EQ statsStream_ = expression
     | ROWCOUNT EQ INT
@@ -2057,7 +1918,7 @@ tableOption
     | HEAP
     | FILLFACTOR EQ INT
     | DISTRIBUTION EQ HASH LPAREN id RPAREN
-    | CLUSTERED INDEX LPAREN id (ASC | DESC)? (COMMA id (ASC | DESC)?)* RPAREN
+    | CLUSTERED INDEX LPAREN id (ASC | DESC)? ( COMMA id (ASC | DESC)?)* RPAREN
     | DATA_COMPRESSION EQ (NONE | ROW | PAGE) onPartitions?
     | XML_COMPRESSION EQ onOff onPartitions?
     ;
@@ -2085,10 +1946,7 @@ createView
     )? AS selectStatementStandalone (WITH CHECK OPTION)? SEMI?
     ;
 
-viewAttribute
-    : ENCRYPTION
-    | SCHEMABINDING
-    | VIEW_METADATA
+viewAttribute: ENCRYPTION | SCHEMABINDING | VIEW_METADATA
     ;
 
 alterTable
@@ -2160,11 +2018,7 @@ addOrModifyFilegroups
     )
     ;
 
-filegroupUpdatabilityOption
-    : READONLY
-    | READWRITE
-    | READ_ONLY
-    | READ_WRITE
+filegroupUpdatabilityOption: READONLY | READWRITE | READ_ONLY | READ_WRITE
     ;
 
 databaseOptionspec
@@ -2204,7 +2058,7 @@ autoOption
 changeTrackingOption
     : CHANGE_TRACKING EQ (
         OFF
-        | ON LPAREN (changeTrackingOptionList (COMMA changeTrackingOptionList)*)* RPAREN
+        | ON LPAREN (changeTrackingOptionList ( COMMA changeTrackingOptionList)*)* RPAREN
     )
     ;
 
@@ -2213,13 +2067,10 @@ changeTrackingOptionList
     | CHANGE_RETENTION EQ INT ( DAYS | HOURS | MINUTES)
     ;
 
-containmentOption
-    : CONTAINMENT EQ (NONE | PARTIAL)
+containmentOption: CONTAINMENT EQ (NONE | PARTIAL)
     ;
 
-cursorOption
-    : CURSOR_CLOSE_ON_COMMIT onOff
-    | CURSOR_DEFAULT ( LOCAL | GLOBAL)
+cursorOption: CURSOR_CLOSE_ON_COMMIT onOff | CURSOR_DEFAULT ( LOCAL | GLOBAL)
     ;
 
 alterEndpoint
@@ -2238,25 +2089,19 @@ alterEndpoint
     )
     ;
 
-databaseMirroringOption
-    : mirroringSetOption
+databaseMirroringOption: mirroringSetOption
     ;
 
-mirroringSetOption
-    : mirroringPartner partnerOption
-    | mirroringWitness witnessOption
+mirroringSetOption: mirroringPartner partnerOption | mirroringWitness witnessOption
     ;
 
-mirroringPartner
-    : PARTNER
+mirroringPartner: PARTNER
     ;
 
-mirroringWitness
-    : WITNESS
+mirroringWitness: WITNESS
     ;
 
-witnessPartnerEqual
-    : EQ
+witnessPartnerEqual: EQ
     ;
 
 partnerOption
@@ -2270,61 +2115,43 @@ partnerOption
     | TIMEOUT INT
     ;
 
-witnessOption
-    : witnessPartnerEqual witnessServer
-    | OFF
+witnessOption: witnessPartnerEqual witnessServer | OFF
     ;
 
-witnessServer
-    : partnerServer
+witnessServer: partnerServer
     ;
 
-partnerServer
-    : partnerServerTcpPrefix host mirroringHostPortSeperator portNumber
+partnerServer: partnerServerTcpPrefix host mirroringHostPortSeperator portNumber
     ;
 
-mirroringHostPortSeperator
-    : COLON
+mirroringHostPortSeperator: COLON
     ;
 
-partnerServerTcpPrefix
-    : TCP COLON DOUBLE_FORWARD_SLASH
+partnerServerTcpPrefix: TCP COLON DOUBLE_FORWARD_SLASH
     ;
 
-portNumber
-    : port = INT
+portNumber: port = INT
     ;
 
-host
-    : id DOT host
-    | (id DOT | id)
+host: id DOT host | (id DOT | id)
     ;
 
-dateCorrelationOptimizationOption
-    : DATE_CORRELATION_OPTIMIZATION onOff
+dateCorrelationOptimizationOption: DATE_CORRELATION_OPTIMIZATION onOff
     ;
 
-dbEncryptionOption
-    : ENCRYPTION onOff
+dbEncryptionOption: ENCRYPTION onOff
     ;
 
-dbStateOption
-    : (ONLINE | OFFLINE | EMERGENCY)
+dbStateOption: (ONLINE | OFFLINE | EMERGENCY)
     ;
 
-dbUpdateOption
-    : READ_ONLY
-    | READ_WRITE
+dbUpdateOption: READ_ONLY | READ_WRITE
     ;
 
-dbUserAccessOption
-    : SINGLE_USER
-    | RESTRICTED_USER
-    | MULTI_USER
+dbUserAccessOption: SINGLE_USER | RESTRICTED_USER | MULTI_USER
     ;
 
-delayedDurabilityOption
-    : DELAYED_DURABILITY EQ (DISABLED | ALLOWED | FORCED)
+delayedDurabilityOption: DELAYED_DURABILITY EQ (DISABLED | ALLOWED | FORCED)
     ;
 
 externalAccessOption
@@ -2337,23 +2164,20 @@ externalAccessOption
     | TWO_DIGIT_YEAR_CUTOFF EQ INT
     ;
 
-hadrOptions
-    : HADR (( AVAILABILITY GROUP EQ availabilityGroupName = id | OFF) | (SUSPEND | RESUME))
+hadrOptions: HADR ( (AVAILABILITY GROUP EQ availabilityGroupName = id | OFF) | (SUSPEND | RESUME))
     ;
 
-mixedPageAllocationOption
-    : MIXED_PAGE_ALLOCATION (OFF | ON)
+mixedPageAllocationOption: MIXED_PAGE_ALLOCATION (OFF | ON)
     ;
 
-parameterizationOption
-    : PARAMETERIZATION (SIMPLE | FORCED)
+parameterizationOption: PARAMETERIZATION (SIMPLE | FORCED)
     ;
 
 recoveryOption
     : RECOVERY (FULL | BULK_LOGGED | SIMPLE)
     | TORN_PAGE_DETECTION onOff
     | ACCELERATED_DATABASE_RECOVERY EQ onOff
-    | PAGE_VERIFY ( CHECKSUM | TORN_PAGE_DETECTION | NONE)
+    | PAGE_VERIFY (CHECKSUM | TORN_PAGE_DETECTION | NONE)
     ;
 
 serviceBrokerOption
@@ -2383,62 +2207,49 @@ sqlOption
     | RECURSIVE_TRIGGERS onOff
     ;
 
-targetRecoveryTimeOption
-    : TARGET_RECOVERY_TIME EQ INT (SECONDS | MINUTES)
+targetRecoveryTimeOption: TARGET_RECOVERY_TIME EQ INT (SECONDS | MINUTES)
     ;
 
-termination
-    : ROLLBACK AFTER seconds = INT
-    | ROLLBACK IMMEDIATE
-    | NO_WAIT
+termination: ROLLBACK AFTER seconds = INT | ROLLBACK IMMEDIATE | NO_WAIT
     ;
 
 dropIndex
     : DROP INDEX (IF EXISTS)? (
         dropRelationalOrXmlOrSpatialIndex (COMMA dropRelationalOrXmlOrSpatialIndex)*
-        | dropBackwardCompatibleIndex (COMMA dropBackwardCompatibleIndex)*
+        | dropBackwardCompatibleIndex ( COMMA dropBackwardCompatibleIndex)*
     ) SEMI?
     ;
 
-dropRelationalOrXmlOrSpatialIndex
-    : indexName = id ON tableName
+dropRelationalOrXmlOrSpatialIndex: indexName = id ON tableName
     ;
 
-dropBackwardCompatibleIndex
-    : (ownerName = id DOT)? tableOrViewName = id DOT indexName = id
+dropBackwardCompatibleIndex: (ownerName = id DOT)? tableOrViewName = id DOT indexName = id
     ;
 
 dropProcedure
     : DROP proc = (PROC | PROCEDURE) (IF EXISTS)? funcProcNameSchema (COMMA funcProcNameSchema)* SEMI?
     ;
 
-dropTrigger
-    : dropDmlTrigger
-    | dropDdlTrigger
+dropTrigger: dropDmlTrigger | dropDdlTrigger
     ;
 
-dropDmlTrigger
-    : DROP TRIGGER (IF EXISTS)? simpleName (COMMA simpleName)* SEMI?
+dropDmlTrigger: DROP TRIGGER (IF EXISTS)? simpleName (COMMA simpleName)* SEMI?
     ;
 
 dropDdlTrigger
     : DROP TRIGGER (IF EXISTS)? simpleName (COMMA simpleName)* ON (DATABASE | ALL SERVER) SEMI?
     ;
 
-dropFunction
-    : DROP FUNCTION (IF EXISTS)? funcProcNameSchema (COMMA funcProcNameSchema)* SEMI?
+dropFunction: DROP FUNCTION (IF EXISTS)? funcProcNameSchema ( COMMA funcProcNameSchema)* SEMI?
     ;
 
-dropStatistics
-    : DROP STATISTICS (COMMA? (tableName DOT)? name = id)+ SEMI
+dropStatistics: DROP STATISTICS (COMMA? (tableName DOT)? name = id)+ SEMI
     ;
 
-dropTable
-    : DROP TABLE (IF EXISTS)? tableName (COMMA tableName)* SEMI?
+dropTable: DROP TABLE (IF EXISTS)? tableName (COMMA tableName)* SEMI?
     ;
 
-dropView
-    : DROP VIEW (IF EXISTS)? simpleName (COMMA simpleName)* SEMI?
+dropView: DROP VIEW (IF EXISTS)? simpleName (COMMA simpleName)* SEMI?
     ;
 
 createType
@@ -2447,17 +2258,13 @@ createType
     )?
     ;
 
-dropType
-    : DROP TYPE (IF EXISTS)? name = simpleName
+dropType: DROP TYPE (IF EXISTS)? name = simpleName
     ;
 
-rowsetFunctionLimited
-    : openquery
-    | opendatasource
+rowsetFunctionLimited: openquery | opendatasource
     ;
 
-openquery
-    : OPENQUERY LPAREN linkedServer = id COMMA query = STRING RPAREN
+openquery: OPENQUERY LPAREN linkedServer = id COMMA query = STRING RPAREN
     ;
 
 opendatasource
@@ -2490,8 +2297,7 @@ backupDatabase
     )?
     ;
 
-backupLog
-    : BACKUP id /* LOG */ id TO optionList (MIRROR TO optionList)? (WITH optionList)?
+backupLog: BACKUP id /* LOG */ id TO optionList (MIRROR TO optionList)? ( WITH optionList)?
     ;
 
 backupCertificate
@@ -2512,24 +2318,19 @@ backupServiceMasterKey
     : BACKUP SERVICE MASTER KEY TO FILE EQ serviceMasterKeyBackupFile = STRING ENCRYPTION BY PASSWORD EQ encryptionPassword = STRING
     ;
 
-killStatement
-    : KILL (killProcess | killQueryNotification | killStatsJob)
+killStatement: KILL (killProcess | killQueryNotification | killStatsJob)
     ;
 
-killProcess
-    : (sessionId = (INT | STRING) | UOW) (WITH STATUSONLY)?
+killProcess: (sessionId = (INT | STRING) | UOW) (WITH STATUSONLY)?
     ;
 
-killQueryNotification
-    : QUERY NOTIFICATION SUBSCRIPTION (ALL | subscriptionId = INT)
+killQueryNotification: QUERY NOTIFICATION SUBSCRIPTION ( ALL | subscriptionId = INT)
     ;
 
-killStatsJob
-    : STATS JOB jobId = INT
+killStatsJob: STATS JOB jobId = INT
     ;
 
-executeStatement
-    : EXECUTE executeBody SEMI?
+executeStatement: EXECUTE executeBody SEMI?
     ;
 
 executeBodyBatch
@@ -2549,16 +2350,13 @@ executeStatementArg
     | executeStatementArgNamed (COMMA executeStatementArgNamed)*
     ;
 
-executeStatementArgNamed
-    : name = LOCAL_ID EQ value = executeParameter
+executeStatementArgNamed: name = LOCAL_ID EQ value = executeParameter
     ;
 
-executeStatementArgUnnamed
-    : value = executeParameter
+executeStatementArgUnnamed: value = executeParameter
     ;
 
-executeParameter
-    : (constant | LOCAL_ID (OUTPUT | OUT)? | id | DEFAULT | NULL_)
+executeParameter: ( constant | LOCAL_ID (OUTPUT | OUT)? | id | DEFAULT | NULL_)
     ;
 
 executeVarString
@@ -2580,9 +2378,7 @@ securityStatement
     | createCertificate
     ;
 
-principalId
-    : id
-    | PUBLIC
+principalId: id | PUBLIC
     ;
 
 createCertificate
@@ -2609,8 +2405,7 @@ generateNewKeys
     )*
     ;
 
-dateOptions
-    : (START_DATE | EXPIRY_DATE) EQ STRING
+dateOptions: (START_DATE | EXPIRY_DATE) EQ STRING
     ;
 
 openKey
@@ -2618,10 +2413,7 @@ openKey
     | OPEN MASTER KEY DECRYPTION BY PASSWORD EQ password = STRING
     ;
 
-closeKey
-    : CLOSE SYMMETRIC KEY keyName = id
-    | CLOSE ALL SYMMETRIC KEYS
-    | CLOSE MASTER KEY
+closeKey: CLOSE SYMMETRIC KEY keyName = id | CLOSE ALL SYMMETRIC KEYS | CLOSE MASTER KEY
     ;
 
 createKey
@@ -2704,7 +2496,7 @@ setStatement
 
 transactionStatement
     : BEGIN DISTRIBUTED (TRAN | TRANSACTION) (id | LOCAL_ID)?
-    | BEGIN (TRAN | TRANSACTION) ((id | LOCAL_ID) (WITH MARK STRING)?)?
+    | BEGIN (TRAN | TRANSACTION) ( (id | LOCAL_ID) (WITH MARK STRING)?)?
     | COMMIT (TRAN | TRANSACTION) (
         (id | LOCAL_ID) (WITH LPAREN DELAYED_DURABILITY EQ (OFF | ON) RPAREN)?
     )?
@@ -2716,35 +2508,25 @@ transactionStatement
     | SAVE (TRAN | TRANSACTION) (id | LOCAL_ID)?
     ;
 
-goStatement
-    : GO INT?
+goStatement: GO INT?
     ;
 
-useStatement
-    : USE database = id
+useStatement: USE database = id
     ;
 
-setuserStatement
-    : SETUSER user = STRING?
+setuserStatement: SETUSER user = STRING?
     ;
 
-reconfigureStatement
-    : RECONFIGURE (WITH OVERRIDE)?
+reconfigureStatement: RECONFIGURE (WITH OVERRIDE)?
     ;
 
-shutdownStatement
-    : SHUTDOWN (WITH genericOption)?
+shutdownStatement: SHUTDOWN (WITH genericOption)?
     ;
 
-checkpointStatement
-    : CHECKPOINT (checkPointDuration = INT)?
+checkpointStatement: CHECKPOINT (checkPointDuration = INT)?
     ;
 
-dbccCheckallocOption
-    : ALL_ERRORMSGS
-    | NO_INFOMSGS
-    | TABLOCK
-    | ESTIMATEONLY
+dbccCheckallocOption: ALL_ERRORMSGS | NO_INFOMSGS | TABLOCK | ESTIMATEONLY
     ;
 
 dbccCheckalloc
@@ -2759,15 +2541,12 @@ dbccCheckalloc
     ;
 
 dbccCheckcatalog
-    : name = CHECKCATALOG (LPAREN ( database = id | databasename = STRING | INT) RPAREN)? (
+    : name = CHECKCATALOG (LPAREN (database = id | databasename = STRING | INT) RPAREN)? (
         WITH dbccOption = NO_INFOMSGS
     )?
     ;
 
-dbccCheckconstraintsOption
-    : ALL_CONSTRAINTS
-    | ALL_ERRORMSGS
-    | NO_INFOMSGS
+dbccCheckconstraintsOption: ALL_CONSTRAINTS | ALL_ERRORMSGS | NO_INFOMSGS
     ;
 
 dbccCheckconstraints
@@ -2796,7 +2575,7 @@ dbccCheckdb
         LPAREN (database = id | databasename = STRING | INT) (
             COMMA (NOINDEX | REPAIR_ALLOW_DATA_LOSS | REPAIR_FAST | REPAIR_REBUILD)
         )? RPAREN
-    )? (WITH dbccOption = dbccCheckdbTableOption (COMMA dbccOption = dbccCheckdbTableOption)*)?
+    )? (WITH dbccOption = dbccCheckdbTableOption ( COMMA dbccOption = dbccCheckdbTableOption)*)?
     ;
 
 dbccCheckfilegroupOption
@@ -2857,16 +2636,10 @@ dbccPdwShowspaceused
     )?
     ;
 
-dbccProccache
-    : name = PROCCACHE (WITH dbccOption = NO_INFOMSGS)?
+dbccProccache: name = PROCCACHE (WITH dbccOption = NO_INFOMSGS)?
     ;
 
-dbccShowcontigOption
-    : ALL_INDEXES
-    | TABLERESULTS
-    | FAST
-    | ALL_LEVELS
-    | NO_INFOMSGS
+dbccShowcontigOption: ALL_INDEXES | TABLERESULTS | FAST | ALL_LEVELS | NO_INFOMSGS
     ;
 
 dbccShowcontig
@@ -2876,7 +2649,7 @@ dbccShowcontig
     ;
 
 dbccShrinklog
-    : name = SHRINKLOG (LPAREN SIZE EQ ( (INT ( MB | GB | TB)) | DEFAULT) RPAREN)? (
+    : name = SHRINKLOG (LPAREN SIZE EQ ((INT ( MB | GB | TB)) | DEFAULT) RPAREN)? (
         WITH dbccOption = NO_INFOMSGS
     )?
     ;
@@ -2887,8 +2660,7 @@ dbccDbreindex
     )? RPAREN (WITH dbccOption = NO_INFOMSGS)?
     ;
 
-dbccDllFree
-    : dllname = id LPAREN name = FREE RPAREN (WITH dbccOption = NO_INFOMSGS)?
+dbccDllFree: dllname = id LPAREN name = FREE RPAREN ( WITH dbccOption = NO_INFOMSGS)?
     ;
 
 dbccDropcleanbuffers
@@ -2915,16 +2687,13 @@ dbccClause
     )
     ;
 
-executeClause
-    : EXECUTE AS clause = (CALLER | SELF | OWNER | STRING)
+executeClause: EXECUTE AS clause = (CALLER | SELF | OWNER | STRING)
     ;
 
-declareLocal
-    : LOCAL_ID AS? dataType (EQ expression)?
+declareLocal: LOCAL_ID AS? dataType (EQ expression)?
     ;
 
-tableTypeDefinition
-    : TABLE LPAREN columnDefTableConstraints (COMMA? tableTypeIndices)* RPAREN
+tableTypeDefinition: TABLE LPAREN columnDefTableConstraints ( COMMA? tableTypeIndices)* RPAREN
     ;
 
 tableTypeIndices
@@ -2932,18 +2701,13 @@ tableTypeIndices
     | CHECK LPAREN searchCondition RPAREN
     ;
 
-columnDefTableConstraints
-    : columnDefTableConstraint (COMMA? columnDefTableConstraint)*
+columnDefTableConstraints: columnDefTableConstraint (COMMA? columnDefTableConstraint)*
     ;
 
-columnDefTableConstraint
-    : columnDefinition
-    | materializedColumnDefinition
-    | tableConstraint
+columnDefTableConstraint: columnDefinition | materializedColumnDefinition | tableConstraint
     ;
 
-columnDefinition
-    : id (dataType | AS expression PERSISTED?) columnDefinitionElement* columnIndex?
+columnDefinition: id (dataType | AS expression PERSISTED?) columnDefinitionElement* columnIndex?
     ;
 
 columnDefinitionElement
@@ -2970,18 +2734,17 @@ columnModifier
         | NOT FOR REPLICATION
         | SPARSE
         | HIDDEN_KEYWORD
-        | MASKED (WITH (FUNCTION EQ STRING | LPAREN FUNCTION EQ STRING RPAREN))?
+        | MASKED ( WITH ( FUNCTION EQ STRING | LPAREN FUNCTION EQ STRING RPAREN))?
     )
     ;
 
-materializedColumnDefinition
-    : id (COMPUTE | AS) expression (MATERIALIZED | NOT MATERIALIZED)?
+materializedColumnDefinition: id (COMPUTE | AS) expression ( MATERIALIZED | NOT MATERIALIZED)?
     ;
 
 columnConstraint
     : (CONSTRAINT constraint = id)? (
         nullNotnull
-        | ( (PRIMARY KEY | UNIQUE) clustered? primaryKeyOptions)
+        | ((PRIMARY KEY | UNIQUE) clustered? primaryKeyOptions)
         | ( (FOREIGN KEY)? foreignKeyOptions)
         | checkConstraint
     )
@@ -2995,7 +2758,7 @@ columnIndex
 
 onPartitionOrFilegroup
     : ON (
-        (partitionSchemeName = id LPAREN partitionColumnName = id RPAREN)
+        ( partitionSchemeName = id LPAREN partitionColumnName = id RPAREN)
         | filegroup = id
         | DEFAULT_DOUBLE_QUOTE
     )
@@ -3006,17 +2769,15 @@ tableConstraint
         ((PRIMARY KEY | UNIQUE) clustered? LPAREN columnNameListWithOrder RPAREN primaryKeyOptions)
         | ( FOREIGN KEY LPAREN fk = columnNameList RPAREN foreignKeyOptions)
         | ( CONNECTION LPAREN connectionNode ( COMMA connectionNode)* RPAREN)
-        | ( DEFAULT constantExpr = expression FOR column = id (WITH VALUES)?)
+        | ( DEFAULT constantExpr = expression FOR column = id ( WITH VALUES)?)
         | checkConstraint
     )
     ;
 
-connectionNode
-    : fromNodeTable = id TO toNodeTable = id
+connectionNode: fromNodeTable = id TO toNodeTable = id
     ;
 
-primaryKeyOptions
-    : (WITH FILLFACTOR EQ INT)? alterTableIndexOptions? onPartitionOrFilegroup?
+primaryKeyOptions: (WITH FILLFACTOR EQ INT)? alterTableIndexOptions? onPartitionOrFilegroup?
     ;
 
 foreignKeyOptions
@@ -3025,20 +2786,16 @@ foreignKeyOptions
     )?
     ;
 
-checkConstraint
-    : CHECK (NOT FOR REPLICATION)? LPAREN searchCondition RPAREN
+checkConstraint: CHECK (NOT FOR REPLICATION)? LPAREN searchCondition RPAREN
     ;
 
-onDelete
-    : ON DELETE (NO ACTION | CASCADE | SET NULL_ | SET DEFAULT)
+onDelete: ON DELETE (NO ACTION | CASCADE | SET NULL_ | SET DEFAULT)
     ;
 
-onUpdate
-    : ON UPDATE (NO ACTION | CASCADE | SET NULL_ | SET DEFAULT)
+onUpdate: ON UPDATE (NO ACTION | CASCADE | SET NULL_ | SET DEFAULT)
     ;
 
-alterTableIndexOptions
-    : WITH LPAREN alterTableIndexOption (COMMA alterTableIndexOption)* RPAREN
+alterTableIndexOptions: WITH LPAREN alterTableIndexOption ( COMMA alterTableIndexOption)* RPAREN
     ;
 
 alterTableIndexOption
@@ -3054,7 +2811,7 @@ alterTableIndexOption
     | DATA_COMPRESSION EQ (NONE | ROW | PAGE | COLUMNSTORE | COLUMNSTORE_ARCHIVE) onPartitions?
     | XML_COMPRESSION EQ onOff onPartitions?
     | DISTRIBUTION EQ HASH LPAREN id RPAREN
-    | CLUSTERED INDEX LPAREN id (ASC | DESC)? (COMMA id (ASC | DESC)?)* RPAREN
+    | CLUSTERED INDEX LPAREN id (ASC | DESC)? ( COMMA id (ASC | DESC)?)* RPAREN
     | ONLINE EQ (ON (LPAREN lowPriorityLockWait RPAREN)? | OFF)
     | RESUMABLE EQ onOff
     | MAX_DURATION EQ times = INT MINUTES?
@@ -3062,15 +2819,14 @@ alterTableIndexOption
 
 declareCursor
     : DECLARE cursorName (
-        CURSOR (declareSetCursorCommon (FOR UPDATE (OF columnNameList)?)?)?
+        CURSOR ( declareSetCursorCommon ( FOR UPDATE (OF columnNameList)?)?)?
         | (SEMI_SENSITIVE | INSENSITIVE)? SCROLL? CURSOR FOR selectStatementStandalone (
             FOR (READ ONLY | UPDATE | (OF columnNameList))
         )?
     ) SEMI?
     ;
 
-declareSetCursorCommon
-    : declareSetCursorCommonPartial* FOR selectStatementStandalone
+declareSetCursorCommon: declareSetCursorCommonPartial* FOR selectStatementStandalone
     ;
 
 declareSetCursorCommonPartial
@@ -3082,14 +2838,15 @@ declareSetCursorCommonPartial
     ;
 
 fetchCursor
-    : FETCH ((NEXT | PRIOR | FIRST | LAST | (ABSOLUTE | RELATIVE) expression)? FROM)? GLOBAL? cursorName (
+    : FETCH (( NEXT | PRIOR | FIRST | LAST | (ABSOLUTE | RELATIVE) expression)? FROM)? GLOBAL? cursorName (
         INTO LOCAL_ID (COMMA LOCAL_ID)*
     )? SEMI?
     ;
 
 setSpecial
     : SET id (id | constant_LOCAL_ID | onOff) SEMI?
-    | SET STATISTICS expression onOff // TODO: Extract these keywords (IO | TIME | XML | PROFILE) onOff SEMI?
+    | SET STATISTICS expression onOff
+    // TODO: Extract these keywords (IO | TIME | XML | PROFILE) onOff SEMI?
     | SET ROWCOUNT (LOCAL_ID | INT) SEMI?
     | SET TEXTSIZE INT SEMI?
     | SET TRANSACTION ISOLATION LEVEL (
@@ -3131,9 +2888,7 @@ specialList
     | XACT_ABORT
     ;
 
-constant_LOCAL_ID
-    : constant
-    | LOCAL_ID
+constant_LOCAL_ID: constant | LOCAL_ID
     ;
 
 expression
@@ -3163,35 +2918,26 @@ expression
     ;
 
 // TODO: Implement this ?
-parameter
-    : PLACEHOLDER
+parameter: PLACEHOLDER
     ;
 
 timeZone
     : AT_KEYWORD id ZONE expression // AT TIME ZONE
     ;
 
-primitiveExpression
-    : DEFAULT
-    | NULL_
-    | LOCAL_ID
-    | constant
+primitiveExpression: DEFAULT | NULL_ | LOCAL_ID | constant
     ;
 
-caseExpression
-    : CASE caseExpr = expression? switchSection+ (ELSE elseExpr = expression)? END
+caseExpression: CASE caseExpr = expression? switchSection+ ( ELSE elseExpr = expression)? END
     ;
 
-subquery
-    : selectStatement
+subquery: selectStatement
     ;
 
-withExpression
-    : WITH xmlNamespaces? commonTableExpression (COMMA commonTableExpression)*
+withExpression: WITH xmlNamespaces? commonTableExpression ( COMMA commonTableExpression)*
     ;
 
-commonTableExpression
-    : id (LPAREN columnNameList RPAREN)? AS LPAREN selectStatement RPAREN
+commonTableExpression: id (LPAREN columnNameList RPAREN)? AS LPAREN selectStatement RPAREN
     ;
 
 updateElem
@@ -3232,10 +2978,7 @@ queryExpression
     ;
 
 sqlUnion
-    : (UNION ALL? | EXCEPT | INTERSECT) (
-        spec = querySpecification
-        | (LPAREN op = queryExpression RPAREN)
-    )
+    : (UNION ALL? | EXCEPT | INTERSECT) (querySpecification | (LPAREN queryExpression RPAREN))
     ;
 
 querySpecification
@@ -3248,34 +2991,28 @@ selectOptionalClauses
 
 groupByClause
     : GROUP BY (
-        (ALL? expression (COMMA expression)*) (WITH id)? // Note that id should be checked for CUBE or ROLLUP
-        | GROUPING SETS LPAREN groupingSetsItem (COMMA groupingSetsItem)* RPAREN
+        (ALL? expression (COMMA expression)*) (WITH id)?
+        // Note that id should be checked for CUBE or ROLLUP
+        | GROUPING SETS LPAREN groupingSetsItem ( COMMA groupingSetsItem)* RPAREN
     )
     ;
 
-groupingSetsItem
-    : LPAREN? expression (COMMA expression)* RPAREN?
-    | LPAREN RPAREN
+groupingSetsItem: LPAREN? expression (COMMA expression)* RPAREN? | LPAREN RPAREN
     ;
 
-intoClause
-    : INTO tableName
+intoClause: INTO tableName
     ;
 
-fromClause
-    : FROM tableSources
+fromClause: FROM tableSources
     ;
 
-whereClause
-    : WHERE searchCondition
+whereClause: WHERE searchCondition
     ;
 
-havingClause
-    : HAVING searchCondition
+havingClause: HAVING searchCondition
     ;
 
-topClause
-    : TOP (topPercent | topCount) (WITH TIES)?
+topClause: TOP (topPercent | topCount) (WITH TIES)?
     ;
 
 topPercent
@@ -3283,13 +3020,10 @@ topPercent
     | LPAREN topperExpression = expression RPAREN PERCENT
     ;
 
-topCount
-    : countConstant = INT
-    | LPAREN topcountExpression = expression RPAREN
+topCount: countConstant = INT | LPAREN topcountExpression = expression RPAREN
     ;
 
-orderByClause
-    : ORDER BY orderByExpression (COMMA orderByExpression)*
+orderByClause: ORDER BY orderByExpression (COMMA orderByExpression)*
     ;
 
 selectOrderByClause
@@ -3312,12 +3046,10 @@ forClause
     )*
     ;
 
-orderByExpression
-    : expression (COLLATE expression)? (ASC | DESC)?
+orderByExpression: expression (COLLATE expression)? (ASC | DESC)?
     ;
 
-optionClause
-    : OPTION LPAREN options_ += option (COMMA options_ += option)* RPAREN
+optionClause: OPTION LPAREN options_ += option (COMMA options_ += option)* RPAREN
     ;
 
 option
@@ -3340,26 +3072,20 @@ option
     | USE PLAN STRING
     ;
 
-optimizeForArg
-    : LOCAL_ID (UNKNOWN | EQ (constant | NULL_))
+optimizeForArg: LOCAL_ID (UNKNOWN | EQ (constant | NULL_))
     ;
 
-selectList
-    : selectElement += selectListElem (COMMA selectElement += selectListElem)*
+selectList: selectElement += selectListElem ( COMMA selectElement += selectListElem)*
     ;
 
 udtMethodArguments
     : LPAREN argument += executeVarString (COMMA argument += executeVarString)* RPAREN
     ;
 
-asterisk
-    : (INSERTED | DELETED) DOT STAR
-    | (tableName DOT)? STAR
+asterisk: (INSERTED | DELETED) DOT STAR | (tableName DOT)? STAR
     ;
 
-expressionElem
-    : columnAlias EQ expression
-    | expression asColumnAlias?
+expressionElem: columnAlias EQ expression | expression asColumnAlias?
     ;
 
 selectListElem
@@ -3370,12 +3096,10 @@ selectListElem
     ) ((IGNORE | RESPECT) NULLS)?
     ;
 
-tableSources
-    : source += tableSource (COMMA source += tableSource)*
+tableSources: source += tableSource (COMMA source += tableSource)*
     ;
 
-tableSource
-    : tableSourceItem joinPart*
+tableSource: tableSourceItem joinPart*
     ;
 
 tableSourceItem
@@ -3398,21 +3122,16 @@ openJson
     : OPENJSON LPAREN expression (COMMA expression)? RPAREN (WITH LPAREN jsonDeclaration RPAREN)? asTableAlias?
     ;
 
-jsonDeclaration
-    : jsonCol += jsonColumnDeclaration (COMMA jsonCol += jsonColumnDeclaration)*
+jsonDeclaration: jsonCol += jsonColumnDeclaration ( COMMA jsonCol += jsonColumnDeclaration)*
     ;
 
-jsonColumnDeclaration
-    : columnDeclaration (AS JSON)?
+jsonColumnDeclaration: columnDeclaration (AS JSON)?
     ;
 
-columnDeclaration
-    : id dataType STRING?
+columnDeclaration: id dataType STRING?
     ;
 
-changeTable
-    : changeTableChanges
-    | changeTableVersion
+changeTable: changeTableChanges | changeTableVersion
     ;
 
 changeTableChanges
@@ -3423,64 +3142,49 @@ changeTableVersion
     : CHANGETABLE LPAREN VERSION versiontable = tableName COMMA pkColumns = fullColumnNameList COMMA pkValues = selectList RPAREN
     ;
 
-joinPart
-    : joinOn
-    | crossJoin
-    | apply_
-    | pivot
-    | unpivot
+joinPart: joinOn | crossJoin | apply_ | pivot | unpivot
     ;
 
-outerJoin
-    : (LEFT | RIGHT | FULL) OUTER?
+outerJoin: (LEFT | RIGHT | FULL) OUTER?
     ;
 
-joinType
-    : INNER
-    | outerJoin
+joinType: INNER | outerJoin
     ;
 
 joinOn
     : joinType? (joinHint = (LOOP | HASH | MERGE | REMOTE))? JOIN source = tableSource ON cond = searchCondition
     ;
 
-crossJoin
-    : CROSS JOIN tableSourceItem
+crossJoin: CROSS JOIN tableSourceItem
     ;
 
-apply_
-    : applyStyle = (CROSS | OUTER) APPLY source = tableSourceItem
+apply_: applyStyle = (CROSS | OUTER) APPLY source = tableSourceItem
     ;
 
-pivot
-    : PIVOT pivotClause asTableAlias
+pivot: PIVOT pivotClause asTableAlias
     ;
 
-unpivot
-    : UNPIVOT unpivotClause asTableAlias
+unpivot: UNPIVOT unpivotClause asTableAlias
     ;
 
-pivotClause
-    : LPAREN expression FOR fullColumnName IN columnAliasList RPAREN
+pivotClause: LPAREN expression FOR fullColumnName IN columnAliasList RPAREN
     ;
 
 unpivotClause
     : LPAREN unpivotExp = expression FOR fullColumnName IN LPAREN fullColumnNameList RPAREN RPAREN
     ;
 
-fullColumnNameList
-    : column += fullColumnName (COMMA column += fullColumnName)*
+fullColumnNameList: column += fullColumnName (COMMA column += fullColumnName)*
     ;
 
 rowsetFunction
     : (
         OPENROWSET LPAREN providerName = STRING COMMA connectionString = STRING COMMA sql = STRING RPAREN
     )
-    | (OPENROWSET LPAREN BULK dataFile = STRING COMMA (bulkOption (COMMA bulkOption)* | id) RPAREN)
+    | (OPENROWSET LPAREN BULK dataFile = STRING COMMA ( bulkOption (COMMA bulkOption)* | id) RPAREN)
     ;
 
-bulkOption
-    : id EQ bulkOptionValue = (INT | STRING)
+bulkOption: id EQ bulkOptionValue = (INT | STRING)
     ;
 
 derivedTable
@@ -3524,17 +3228,10 @@ functionValues
 
 // Standard functions that are built in but take standard syntax, or are
 // some user function etc
-standardFunction
-    : funcId LPAREN (expression (COMMA expression)*)? RPAREN
+standardFunction: funcId LPAREN (expression (COMMA expression)*)? RPAREN
     ;
 
-funcId
-    : id
-    | FORMAT
-    | LEFT
-    | RIGHT
-    | REPLACE
-    | CONCAT
+funcId: id | FORMAT | LEFT | RIGHT | REPLACE | CONCAT
     ;
 
 partitionFunction
@@ -3576,12 +3273,10 @@ builtInFunctions
     | JSON_OBJECT LPAREN (jsonKeyValue (COMMA jsonKeyValue)*)? jsonNullClause? RPAREN # jsonObject
     ;
 
-jsonKeyValue
-    : expression COLON expression
+jsonKeyValue: expression COLON expression
     ;
 
-jsonNullClause
-    : (loseNulls = ABSENT | NULL_) ON NULL_
+jsonNullClause: (loseNulls = ABSENT | NULL_) ON NULL_
     ;
 
 hierarchyidStaticMethod
@@ -3592,35 +3287,25 @@ nodesMethod
     : (locId = LOCAL_ID | valueId = fullColumnName | LPAREN subquery RPAREN) DOT NODES LPAREN xquery = STRING RPAREN
     ;
 
-switchSection
-    : WHEN searchCondition THEN expression
+switchSection: WHEN searchCondition THEN expression
     ;
 
-asColumnAlias
-    : AS? columnAlias
+asColumnAlias: AS? columnAlias
     ;
 
-asTableAlias
-    : AS? (id | DOUBLE_QUOTE_ID)
+asTableAlias: AS? (id | DOUBLE_QUOTE_ID)
     ;
 
-withTableHints
-    : WITH LPAREN hint += tableHint (COMMA? hint += tableHint)* RPAREN
+withTableHints: WITH LPAREN hint += tableHint (COMMA? hint += tableHint)* RPAREN
     ;
 
-deprecatedTableHint
-    : LPAREN tableHint RPAREN
+deprecatedTableHint: LPAREN tableHint RPAREN
     ;
 
-sybaseLegacyHints
-    : sybaseLegacyHint+
+sybaseLegacyHints: sybaseLegacyHint+
     ;
 
-sybaseLegacyHint
-    : HOLDLOCK
-    | NOHOLDLOCK
-    | READPAST
-    | SHARED
+sybaseLegacyHint: HOLDLOCK | NOHOLDLOCK | READPAST | SHARED
     ;
 
 tableHint
@@ -3634,49 +3319,36 @@ tableHint
     | genericOption
     ;
 
-indexValue
-    : id
-    | INT
+indexValue: id | INT
     ;
 
-columnAliasList
-    : LPAREN columnAlias (COMMA columnAlias)* RPAREN
+columnAliasList: LPAREN columnAlias (COMMA columnAlias)* RPAREN
     ;
 
-columnAlias
-    : id
-    | STRING
+columnAlias: id | STRING
     ;
 
 tableValueConstructor
     : VALUES LPAREN exps += expressionList RPAREN (COMMA LPAREN exps += expressionList RPAREN)*
     ;
 
-expressionList
-    : exp += expression (COMMA exp += expression)*
+expressionList: exp += expression (COMMA exp += expression)*
     ;
 
-withinGroup
-    : WITHIN GROUP LPAREN orderByClause RPAREN
+withinGroup: WITHIN GROUP LPAREN orderByClause RPAREN
     ;
 
 overClause
     : OVER LPAREN (PARTITION BY expression (COMMA expression)*)? orderByClause? rowOrRangeClause? RPAREN
     ;
 
-rowOrRangeClause
-    : (ROWS | RANGE) windowFrameExtent
+rowOrRangeClause: (ROWS | RANGE) windowFrameExtent
     ;
 
-windowFrameExtent
-    : windowFrameBound
-    | BETWEEN windowFrameBound AND windowFrameBound
+windowFrameExtent: windowFrameBound | BETWEEN windowFrameBound AND windowFrameBound
     ;
 
-windowFrameBound
-    : UNBOUNDED (PRECEDING | FOLLOWING)
-    | INT (PRECEDING | FOLLOWING)
-    | CURRENT ROW
+windowFrameBound: UNBOUNDED (PRECEDING | FOLLOWING) | INT (PRECEDING | FOLLOWING) | CURRENT ROW
     ;
 
 createDatabaseOption
@@ -3691,12 +3363,10 @@ createDatabaseOption
     ;
 
 databaseFilestreamOption
-    : LPAREN (( NON_TRANSACTED_ACCESS EQ ( OFF | READ_ONLY | FULL)) | ( DIRECTORY_NAME EQ STRING)) RPAREN
+    : LPAREN ((NON_TRANSACTED_ACCESS EQ ( OFF | READ_ONLY | FULL)) | ( DIRECTORY_NAME EQ STRING)) RPAREN
     ;
 
-databaseFileSpec
-    : fileGroup
-    | fileSpecification
+databaseFileSpec: fileGroup | fileSpecification
     ;
 
 fileGroup
@@ -3719,26 +3389,19 @@ entityName
     )? table = id
     ;
 
-entityNameForAzureDw
-    : schema = id
-    | schema = id DOT objectName = id
+entityNameForAzureDw: schema = id | schema = id DOT objectName = id
     ;
 
-entityNameForParallelDw
-    : schemaDatabase = id
-    | schema = id DOT objectName = id
+entityNameForParallelDw: schemaDatabase = id | schema = id DOT objectName = id
     ;
 
-tableName
-    : (linkedServer = id DOT DOT)? ids += id (DOT ids += id)*
+tableName: (linkedServer = id DOT DOT)? ids += id (DOT ids += id)*
     ;
 
-simpleName
-    : (schema = id DOT)? name = id
+simpleName: (schema = id DOT)? name = id
     ;
 
-funcProcNameSchema
-    : ((schema = id) DOT)? procedure = id
+funcProcNameSchema: ((schema = id) DOT)? procedure = id
     ;
 
 funcProcNameDatabaseSchema
@@ -3751,48 +3414,34 @@ funcProcNameServerDatabaseSchema
     | funcProcNameDatabaseSchema
     ;
 
-ddlObject
-    : tableName
-    | LOCAL_ID
+ddlObject: tableName | LOCAL_ID
     ;
 
-fullColumnName
-    : ((DELETED | INSERTED | tableName) DOT)? (id | (DOLLAR (IDENTITY | ROWGUID)))
+fullColumnName: ((DELETED | INSERTED | tableName) DOT)? ( id | (DOLLAR (IDENTITY | ROWGUID)))
     ;
 
-columnNameListWithOrder
-    : id (ASC | DESC)? (COMMA id (ASC | DESC)?)*
+columnNameListWithOrder: id (ASC | DESC)? (COMMA id (ASC | DESC)?)*
     ;
 
-insertColumnNameList
-    : col += insertColumnId (COMMA col += insertColumnId)*
+insertColumnNameList: col += insertColumnId (COMMA col += insertColumnId)*
     ;
 
-insertColumnId
-    : (ignore += id? DOT)* id
+insertColumnId: (ignore += id? DOT)* id
     ;
 
-columnNameList
-    : id (COMMA id)*
+columnNameList: id (COMMA id)*
     ;
 
-cursorName
-    : id
-    | LOCAL_ID
+cursorName: id | LOCAL_ID
     ;
 
-onOff
-    : ON
-    | OFF
+onOff: ON | OFF
     ;
 
-clustered
-    : CLUSTERED
-    | NONCLUSTERED
+clustered: CLUSTERED | NONCLUSTERED
     ;
 
-nullNotnull
-    : NOT? NULL_
+nullNotnull: NOT? NULL_
     ;
 
 beginConversationTimer
@@ -3810,12 +3459,10 @@ beginConversationDialog
     )? SEMI?
     ;
 
-contractName
-    : (id | expression)
+contractName: (id | expression)
     ;
 
-serviceName
-    : (id | expression)
+serviceName: (id | expression)
     ;
 
 endConversation
@@ -3837,9 +3484,7 @@ getConversation
     : GET CONVERSATION GROUP conversationGroupId = (STRING | LOCAL_ID) FROM queue = queueId SEMI?
     ;
 
-queueId
-    : (databaseName = id DOT schemaName = id DOT name = id)
-    | id
+queueId: (databaseName = id DOT schemaName = id DOT name = id) | id
     ;
 
 sendConversation
@@ -3848,18 +3493,13 @@ sendConversation
     )? SEMI?
     ;
 
-dataType
-    : dataTypeIdentity
-    | id (LPAREN (INT | MAX) (COMMA INT)? RPAREN)?
+dataType: dataTypeIdentity | id (LPAREN (INT | MAX) (COMMA INT)? RPAREN)?
     ;
 
-dataTypeIdentity
-    : id IDENTITY (LPAREN INT COMMA INT RPAREN)?
+dataTypeIdentity: id IDENTITY (LPAREN INT COMMA INT RPAREN)?
     ;
 
-constant
-    : con = (STRING | HEX | INT | REAL | FLOAT | MONEY)
-    | parameter
+constant: con = (STRING | HEX | INT | REAL | FLOAT | MONEY) | parameter
     ;
 
 keyword
@@ -4590,64 +4230,35 @@ keyword
     | ZONE
     ;
 
-id
-    : ID
-    | TEMP_ID
-    | DOUBLE_QUOTE_ID
-    | SQUARE_BRACKET_ID
-    | keyword
-    | RAW
+id: ID | TEMP_ID | DOUBLE_QUOTE_ID | SQUARE_BRACKET_ID | keyword | RAW
     ;
 
-simpleId
-    : ID
+simpleId: ID
     ;
 
-idOrString
-    : id
-    | STRING
+idOrString: id | STRING
     ;
 
 // Spaces are allowed for comparison operators.
-comparisonOperator
-    : EQ
-    | GT
-    | LT
-    | LT EQ
-    | GT EQ
-    | LT GT
-    | EQ
-    | GT
-    | LT
+comparisonOperator: EQ | GT | LT | LT EQ | GT EQ | LT GT | EQ | GT | LT
     ;
 
-assignmentOperator
-    : PE
-    | ME
-    | SE
-    | DE
-    | MEA
-    | AND_ASSIGN
-    | XOR_ASSIGN
-    | OR_ASSIGN
+assignmentOperator: PE | ME | SE | DE | MEA | AND_ASSIGN | XOR_ASSIGN | OR_ASSIGN
     ;
 
-fileSize
-    : INT (KB | MB | GB | TB | MOD)?
+fileSize: INT (KB | MB | GB | TB | MOD)?
     ;
 
 /**
  * The parenthesised option list is used in many places, so it is defined here.
  */
-lparenOptionList
-    : LPAREN optionList RPAREN
+lparenOptionList: LPAREN optionList RPAREN
     ;
 
 /**
  * The generic option list is used in many places, so it is defined here.
  */
-optionList
-    : genericOption (COMMA genericOption)*
+optionList: genericOption (COMMA genericOption)*
     ;
 
 /**
@@ -4691,8 +4302,7 @@ dropXmlSchemaCollection
     : DROP XML SCHEMA COLLECTION (relationalSchema = id DOT)? sqlIdentifier = id
     ;
 
-schemaDeclaration
-    : columnDeclaration (COMMA columnDeclaration)*
+schemaDeclaration: columnDeclaration (COMMA columnDeclaration)*
     ;
 
 createXmlSchemaCollection
@@ -4709,21 +4319,16 @@ openXml
     )? asTableAlias?
     ;
 
-xmlNamespaces
-    : XMLNAMESPACES LPAREN xmlDeclaration (COMMA xmlDeclaration)* RPAREN
+xmlNamespaces: XMLNAMESPACES LPAREN xmlDeclaration (COMMA xmlDeclaration)* RPAREN
     ;
 
-xmlDeclaration
-    : STRING AS id
-    | DEFAULT STRING
+xmlDeclaration: STRING AS id | DEFAULT STRING
     ;
 
-xmlTypeDefinition
-    : XML LPAREN (CONTENT | DOCUMENT)? xmlSchemaCollection RPAREN
+xmlTypeDefinition: XML LPAREN (CONTENT | DOCUMENT)? xmlSchemaCollection RPAREN
     ;
 
-xmlSchemaCollection
-    : ID DOT ID
+xmlSchemaCollection: ID DOT ID
     ;
 
 createXmlIndex
@@ -4732,8 +4337,7 @@ createXmlIndex
     )? xmlIndexOptions? SEMI?
     ;
 
-xmlIndexOptions
-    : WITH LPAREN xmlIndexOption (COMMA xmlIndexOption)* RPAREN
+xmlIndexOptions: WITH LPAREN xmlIndexOption (COMMA xmlIndexOption)* RPAREN
     ;
 
 xmlIndexOption
@@ -4749,6 +4353,5 @@ xmlIndexOption
     | XML_COMPRESSION EQ onOff
     ;
 
-xmlCommonDirectives
-    : COMMA (BINARY_KEYWORD BASE64 | TYPE | ROOT (LPAREN STRING RPAREN)?)
+xmlCommonDirectives: COMMA ( BINARY_KEYWORD BASE64 | TYPE | ROOT (LPAREN STRING RPAREN)?)
     ;
