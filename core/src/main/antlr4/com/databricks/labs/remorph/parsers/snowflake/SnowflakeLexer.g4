@@ -86,7 +86,7 @@ API_PROVIDER                                  : 'API_PROVIDER';
 APPEND                                        : 'APPEND';
 APPEND_ONLY                                   : 'APPEND_ONLY';
 APPLY                                         : 'APPLY';
-ARRAY_AGG                                     : 'ARRAY_AGG' | 'ARRAYAGG';
+ARRAY_AGG                                     : 'ARRAY' '_'? 'AGG';
 AS                                            : 'AS';
 ASC                                           : 'ASC';
 ATTACH                                        : 'ATTACH';
