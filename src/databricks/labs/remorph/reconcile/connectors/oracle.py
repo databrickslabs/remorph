@@ -110,14 +110,14 @@ class OracleDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
 
         logger.debug(f"Fetching Oracle Table list for `{schema}`")
 
-        tables_query = f"SELECT table_name  FROM all_tables WHERE owner = '{schema.upper()}' {where_cond}"
+        tables_query = f"SELECT TABLE_NAME  FROM all_tables WHERE OWNER = '{schema.upper()}' {where_cond}"
 
         try:
             logger.info(f" Executing query: {tables_query}")
             tables_df = self.reader(tables_query).load()
 
             tables_list = [
-                Table(source_name=row.table_name.lower(), target_name=row.table_name.lower())
+                Table(source_name=row.TABLE_NAME.lower(), target_name=row.TABLE_NAME.lower())
                 for row in tables_df.collect()
             ]
             return build_table_recon(catalog, schema, tables_list)

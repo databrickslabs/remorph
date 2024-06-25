@@ -426,7 +426,7 @@ class ReconcileConfigUtils:
         user = self._prompts.question("Enter User")
         password = self._prompts.question("Enter Password")
         host = self._prompts.question("Enter Host")
-        port = self._prompts.question("Enter Port")
+        port = self._prompts.question("Enter Port", default="1521")
         database = self._prompts.question("Enter Database/SID")
 
         oracle_conn_details = {"user": user, "password": password, "host": host, "port": port, "database": database}

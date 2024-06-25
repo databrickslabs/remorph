@@ -107,7 +107,7 @@ class SnowflakeDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
         include_list: list[str] | None,
         exclude_list: list[str] | None,
     ) -> TableRecon:
-        where_cond = get_where_condition(include_list, exclude_list, True)
+        where_cond = get_where_condition(include_list, exclude_list)
 
         assert catalog, "Catalog must be specified for Snowflake DataSource"
         try:

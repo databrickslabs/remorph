@@ -13,7 +13,6 @@ logger = logging.getLogger(__name__)
 def get_where_condition(
     include_list: list[str] | None,
     exclude_list: list[str] | None,
-    source_snowflake: bool = False,
 ) -> str:
     filter_list = None
     in_clause = None
@@ -29,8 +28,7 @@ def get_where_condition(
     where_cond = ""
     if filter_list:
         subset_tables = ", ".join(filter_list)
-        table_column = "TABLE_NAME" if source_snowflake else "table_name"
-        where_cond = f"AND {table_column} {in_clause} ({subset_tables})"
+        where_cond = f"AND TABLE_NAME {in_clause} ({subset_tables})"
 
     return where_cond
 
