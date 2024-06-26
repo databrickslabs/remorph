@@ -21,9 +21,9 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-// $antlr-format alignTrailingComments true, columnLimit 150, maxEmptyLinesToKeep 1, reflowComments false, useTab false
-// $antlr-format allowShortRulesOnASingleLine true, allowShortBlocksOnASingleLine true, minEmptyLines 0, alignSemicolons ownLine
-// $antlr-format alignColons trailing, singleLineOverrulesHangingColon true, alignLexerCommands true, alignLabels true, alignTrailers true
+// =================================================================================
+// Please reformat the grammr file before a change commit. See remorph/core/README.md
+// For formatting, see: https://github.com/mike-lischke/antlr-format/blob/main/doc/formatting.md
 
 // $antlr-format alignTrailingComments true
 // $antlr-format columnLimit 150
@@ -39,7 +39,7 @@ THE SOFTWARE.
 // $antlr-format alignLexerCommands true
 // $antlr-format alignLabels true
 // $antlr-format alignTrailers true
-
+// =================================================================================
 lexer grammar SnowflakeLexer;
 
 options {

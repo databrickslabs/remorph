@@ -23,11 +23,15 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
+// =================================================================================
+// Please reformat the grammr file before a change commit. See remorph/core/README.md
 // For formatting, see: https://github.com/mike-lischke/antlr-format/blob/main/doc/formatting.md
+
 // $antlr-format alignColons hanging
 // $antlr-format columnLimit 150
 // $antlr-format alignSemicolons hanging
 // $antlr-format alignTrailingComments true
+// =================================================================================
 
 parser grammar TSqlParser;
 
@@ -3234,19 +3238,19 @@ standardFunction: funcId LPAREN (expression (COMMA expression)*)? RPAREN
 funcId: id | FORMAT | LEFT | RIGHT | REPLACE | CONCAT
     ;
 
-partitionFunction
-    : (id DOT)? DOLLAR_PARTITION DOT id LPAREN expression RPAREN
+partitionFunction: (id DOT)? DOLLAR_PARTITION DOT id LPAREN expression RPAREN
     ;
 
 freetextFunction
-    : f=(SEMANTICSIMILARITYDETAILSTABLE | SEMANTICSIMILARITYTABLE | SEMANTICKEYPHRASETABLE | CONTAINSTABLE | FREETEXTTABLE)
-    LPAREN expression
-         COMMA (
-            expression
-            | LPAREN expressionList RPAREN
-            | STAR
-        ) COMMA expression (COMMA LANGUAGE expression)? (COMMA expression)?
-    RPAREN
+    : f = (
+        SEMANTICSIMILARITYDETAILSTABLE
+        | SEMANTICSIMILARITYTABLE
+        | SEMANTICKEYPHRASETABLE
+        | CONTAINSTABLE
+        | FREETEXTTABLE
+    ) LPAREN expression COMMA (expression | LPAREN expressionList RPAREN | STAR) COMMA expression (
+        COMMA LANGUAGE expression
+    )? (COMMA expression)? RPAREN
     ;
 
 freetextPredicate

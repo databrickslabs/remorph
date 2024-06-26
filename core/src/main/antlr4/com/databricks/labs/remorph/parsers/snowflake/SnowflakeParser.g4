@@ -21,12 +21,14 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
+// =================================================================================
+// Please reformat the grammr file before a change commit. See remorph/core/README.md
 // For formatting, see: https://github.com/mike-lischke/antlr-format/blob/main/doc/formatting.md
 // $antlr-format alignColons hanging
 // $antlr-format columnLimit 150
 // $antlr-format alignSemicolons hanging
 // $antlr-format alignTrailingComments true
-
+// =================================================================================
 parser grammar SnowflakeParser;
 
 options {
@@ -2947,7 +2949,11 @@ idFn: id | IDENTIFIER L_PAREN id R_PAREN
     ;
 
 id
-    : ID | ID2 | DOUBLE_QUOTE_ID | DOUBLE_QUOTE_BLANK | nonReservedWords //id is used for object name. Snowflake is very permissive
+    : ID
+    | ID2
+    | DOUBLE_QUOTE_ID
+    | DOUBLE_QUOTE_BLANK
+    | nonReservedWords //id is used for object name. Snowflake is very permissive
     ;
 
 nonReservedWords
