@@ -89,13 +89,13 @@ def metrics_deployer(ws, reconcile_config):
 @pytest.fixture(scope="module")
 def setup_teardown(ws, spark, test_config, reconcile_config, metrics_deployer):
     ReconciliationMetadataSetup(ws, reconcile_config, CatalogSetup(ws), metrics_deployer).run()
-    _create_reconcile_volume(ws=ws, reconcile=reconcile_config)
+    _create_reconcile_volume(w=ws, reconcile=reconcile_config)
     yield
     ws.catalogs.delete(name=test_config.db_mock_catalog, force=True)
 
 
-def _create_reconcile_volume(ws, reconcile):
-    all_volumes = ws.volumes.list(
+def _create_reconcile_volume(w, reconcile):
+    all_volumes = w.volumes.list(
         reconcile.metadata_config.catalog,
         reconcile.metadata_config.schema,
     )
@@ -109,7 +109,7 @@ def _create_reconcile_volume(ws, reconcile):
 
     if not reconcile_volume_exists:
         print("Creating Reconciliation Volume.")
-        ws.volumes.create(
+        w.volumes.create(
             reconcile.metadata_config.catalog,
             reconcile.metadata_config.schema,
             reconcile.metadata_config.volume,

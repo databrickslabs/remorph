@@ -1,5 +1,6 @@
+from datetime import datetime
+import decimal
 import pytest
-from pyspark.sql.functions import col, explode
 from pyspark.sql.types import (
     StructType,
     StructField,
@@ -11,8 +12,6 @@ from pyspark.sql.types import (
     DoubleType,
 )
 from pyspark.sql import Row
-from datetime import datetime
-import decimal
 
 from pyspark.testing import assertDataFrameEqual
 
@@ -27,35 +26,7 @@ from databricks.labs.remorph.reconcile.recon_config import (
     Transformation,
     Thresholds,
 )
-
-
-def get_reconcile_report_data(spark, test_config):
-    return spark.sql(
-        f"""SELECT main.start_ts,recon_id,source_type,source_table,target_table,recon_type,status,recon_metrics,
-        run_metrics,data as sample_data FROM (SELECT * FROM 
-        {test_config.db_mock_catalog}.{test_config.db_mock_schema}.main WHERE main.start_ts = 
-        (SELECT MAX(start_ts) FROM {test_config.db_mock_catalog}.{test_config.db_mock_schema}.main)) AS main 
-        JOIN {test_config.db_mock_catalog}.{test_config.db_mock_schema}.metrics as metrics ON main.recon_table_id = 
-        metrics.recon_table_id LEFT JOIN {test_config.db_mock_catalog}.{test_config.db_mock_schema}.details ON 
-        main.recon_table_id = details.recon_table_id ORDER BY main.start_ts desc,
-        main.recon_id,main.recon_table_id"""
-    )
-
-
-def get_reconcile_metrics(report_data):
-    return report_data.select(col("recon_metrics"), col("status")).distinct()
-
-
-def get_reconcile_details(report_data):
-    return report_data.select(col("recon_type"), col("sample_data"))
-
-
-def get_reconcile_sample_data(recon_type, details, key_columns):
-    return (
-        details.where(col("recon_type") == recon_type)
-        .select(explode(col("sample_data")).alias("sample_data_exploded"))
-        .select(*[col(f"sample_data_exploded.{c}") for c in key_columns])
-    )
+from tests.integration.test_utils import get_reports
 
 
 @pytest.fixture
@@ -344,20 +315,13 @@ def test_execute_report_type_is_all(ws, spark, setup_databricks_src, test_config
         excinfo.value
     )
 
-    validation_df = get_reconcile_report_data(spark, test_config)
-    details_df = get_reconcile_details(validation_df)
-    missing_in_source = get_reconcile_sample_data("missing_in_source", details_df, key_columns)
-    missing_in_target = get_reconcile_sample_data("missing_in_target", details_df, key_columns)
-    mismatch = get_reconcile_sample_data("mismatch", details_df, key_columns)
-    threshold_mismatch = get_reconcile_sample_data(
-        "threshold_mismatch", details_df, map(lambda c: f"{c}_source", key_columns)
-    )
+    reports = get_reports(spark, test_config, key_columns)
 
-    assertDataFrameEqual(missing_in_source, spark.createDataFrame([('5', '5')], ['l_orderkey', 'l_linenumber']))
-    assertDataFrameEqual(missing_in_target, spark.createDataFrame([('4', '4')], ['l_orderkey', 'l_linenumber']))
-    assertDataFrameEqual(mismatch, spark.createDataFrame([('3', '3')], ['l_orderkey', 'l_linenumber']))
+    assertDataFrameEqual(reports.missing_in_src, spark.createDataFrame([('5', '5')], ['l_orderkey', 'l_linenumber']))
+    assertDataFrameEqual(reports.missing_in_tgt, spark.createDataFrame([('4', '4')], ['l_orderkey', 'l_linenumber']))
+    assertDataFrameEqual(reports.mismatch, spark.createDataFrame([('3', '3')], ['l_orderkey', 'l_linenumber']))
     assertDataFrameEqual(
-        threshold_mismatch, spark.createDataFrame([('3', '3')], ['l_orderkey_source', 'l_linenumber_source'])
+        reports.threshold_mismatch, spark.createDataFrame([('3', '3')], ['l_orderkey_source', 'l_linenumber_source'])
     )
 
 
