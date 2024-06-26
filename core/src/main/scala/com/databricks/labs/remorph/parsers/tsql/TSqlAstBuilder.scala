@@ -13,7 +13,7 @@ import scala.collection.JavaConverters.asScalaBufferConverter
 class TSqlAstBuilder extends TSqlParserBaseVisitor[ir.TreeNode] {
 
   private val relationBuilder = new TSqlRelationBuilder
-  private val optionBuilder = new OptionBuilder
+  private val optionBuilder = new OptionBuilder(new TSqlExpressionBuilder)
 
   override def visitTSqlFile(ctx: TSqlParser.TSqlFileContext): ir.TreeNode = {
     Option(ctx.batch()).map(_.accept(this)).getOrElse(ir.Batch(List()))

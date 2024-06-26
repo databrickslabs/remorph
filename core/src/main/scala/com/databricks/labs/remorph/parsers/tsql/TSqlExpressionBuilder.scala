@@ -10,7 +10,7 @@ import scala.collection.JavaConverters._
 class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with ParserCommon[ir.Expression] {
 
   private val functionBuilder = new TSqlFunctionBuilder
-  private val optionBuilder = new OptionBuilder
+  private val optionBuilder = new OptionBuilder(this)
   private val dataTypeBuilder: DataTypeBuilder = new DataTypeBuilder
 
   override def visitSelectListElem(ctx: TSqlParser.SelectListElemContext): ir.Expression = {

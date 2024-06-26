@@ -575,4 +575,23 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
           JoinDataType(is_left_struct = false, is_right_struct = false)),
         Seq(simplyNamedColumn("a"))))
   }
+
+  "parse and ignore IR for the FOR clause in a SELECT statement" in {
+    example(
+      query = "SELECT * FROM t FOR XML RAW",
+      expectedAst = Batch(Seq(Project(NamedTable("t", Map(), is_streaming = false), Seq(Star(None))))))
+  }
+
+  "parse and collect the options in the OPTION clause in a SELECT statement" in {
+    example(
+      query = """SELECT * FROM t FOR XML RAW
+            OPTION (
+            MAXRECURSION 10,
+            OPTIMIZE FOR UNKNOWN,
+            SOMETHING ON,
+            SOMETHINGELSE OFF,
+            SOMEOTHER AUTO,
+            SOMEstrOpt = 'STRINGOPTION')""",
+      expectedAst = Batch(Seq(Project(NamedTable("t", Map(), is_streaming = false), Seq(Star(None))))))
+  }
 }

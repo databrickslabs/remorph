@@ -4,9 +4,7 @@ import com.databricks.labs.remorph.parsers._
 import com.databricks.labs.remorph.parsers.{intermediate => ir}
 import com.databricks.labs.remorph.parsers.tsql.TSqlParser.GenericOptionContext
 
-class OptionBuilder {
-
-  private val expressionBuilder = new TSqlExpressionBuilder
+class OptionBuilder(expressionBuilder: TSqlExpressionBuilder) {
 
   private[tsql] def buildOptionList(opts: Seq[GenericOptionContext]): OptionLists = {
     val options = opts.map(this.buildOption)
