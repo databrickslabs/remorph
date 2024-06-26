@@ -48,12 +48,13 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
 
     "accept constants in selects" in {
       example(
-        query = "SELECT 42, 6.4, 0x5A, 2.7E9, 4.24523534425245E10, $40",
+        query = "SELECT 42, 65535, 6.4, 0x5A, 2.7E9, 4.24523534425245E10, $40",
         expectedAst = Batch(
           Seq(Project(
             NoTable(),
             Seq(
-              Literal(integer = Some(42)),
+              Literal(short = Some(42)),
+              Literal(integer = Some(65535)),
               Literal(float = Some(6.4f)),
               Literal(string = Some("0x5A")),
               Literal(long = Some(2700000000L)),
@@ -270,9 +271,9 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
           Seq(Project(
             NoTable(),
             Seq(
-              Assign(Identifier("@a", isQuoted = false), Literal(integer = Some(1))),
-              Assign(Identifier("@b", isQuoted = false), Literal(integer = Some(2))),
-              Assign(Identifier("@c", isQuoted = false), Literal(integer = Some(3))))))))
+              Assign(Identifier("@a", isQuoted = false), Literal(short = Some(1))),
+              Assign(Identifier("@b", isQuoted = false), Literal(short = Some(2))),
+              Assign(Identifier("@c", isQuoted = false), Literal(short = Some(3))))))))
 
       example(
         query = "SELECT @a += 1, @b -= 2",
@@ -282,10 +283,10 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
             Seq(
               Assign(
                 Identifier("@a", isQuoted = false),
-                Add(Identifier("@a", isQuoted = false), Literal(integer = Some(1)))),
+                Add(Identifier("@a", isQuoted = false), Literal(short = Some(1)))),
               Assign(
                 Identifier("@b", isQuoted = false),
-                Subtract(Identifier("@b", isQuoted = false), Literal(integer = Some(2)))))))))
+                Subtract(Identifier("@b", isQuoted = false), Literal(short = Some(2)))))))))
 
       example(
         query = "SELECT @a *= 1, @b /= 2",
@@ -295,10 +296,10 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
             Seq(
               Assign(
                 Identifier("@a", isQuoted = false),
-                Multiply(Identifier("@a", isQuoted = false), Literal(integer = Some(1)))),
+                Multiply(Identifier("@a", isQuoted = false), Literal(short = Some(1)))),
               Assign(
                 Identifier("@b", isQuoted = false),
-                Divide(Identifier("@b", isQuoted = false), Literal(integer = Some(2)))))))))
+                Divide(Identifier("@b", isQuoted = false), Literal(short = Some(2)))))))))
 
       example(
         query = "SELECT @a %= myColumn",
@@ -505,7 +506,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
             Seq("d1"),
             Map("COPY_ONLY" -> true),
             List.empty,
-            Map("LIMIT" -> Literal(integer = Some(77)))))))
+            Map("LIMIT" -> Literal(short = Some(77)))))))
   }
 
   "translate a query with PIVOT" in {
