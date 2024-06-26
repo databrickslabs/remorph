@@ -26,6 +26,7 @@ from databricks.labs.remorph.install import (
 )
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.errors import NotFound
+from databricks.sdk.errors.platform import PermissionDenied
 from databricks.sdk.service.catalog import CatalogInfo, SchemaInfo, VolumeInfo
 from databricks.labs.blueprint.wheels import ProductInfo
 from databricks.sdk.service.compute import State
@@ -377,6 +378,17 @@ def test_get_catalog():
     assert catalog_setup.get("test_catalog") == "test_catalog"
 
 
+def test_get_catalog_permission_denied():
+    mock_ws = create_autospec(WorkspaceClient)
+    mock_ws.catalogs.get.side_effect = PermissionDenied("test_catalog")
+
+    # Create a mock for the Catalog Setup
+    catalog_setup = CatalogSetup(mock_ws)
+
+    with pytest.raises(PermissionDenied):
+        catalog_setup.get("test_catalog")
+
+
 def test_get_schema(ws):
     mock_ws = create_autospec(WorkspaceClient)
     mock_ws.schemas.get.return_value = SchemaInfo.from_dict({"name": "test.schema"})
@@ -385,6 +397,17 @@ def test_get_schema(ws):
     catalog_setup = CatalogSetup(mock_ws)
 
     assert catalog_setup.get_schema("test.schema") == "test.schema"
+
+
+def test_get_schema_permission_denied(ws):
+    mock_ws = create_autospec(WorkspaceClient)
+    mock_ws.schemas.get.side_effect = PermissionDenied("test.schema")
+
+    # Create a mock for the Catalog Setup
+    catalog_setup = CatalogSetup(mock_ws)
+
+    with pytest.raises(PermissionDenied):
+        catalog_setup.get_schema("test.schema")
 
 
 def test_config(ws):

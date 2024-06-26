@@ -2,12 +2,10 @@ import pytest
 
 from databricks.labs.blueprint.tui import MockPrompts
 from databricks.labs.blueprint.installation import MockInstallation
-from databricks.sdk.errors.platform import NotFound
 
 from databricks.labs.remorph.helpers.reconcile_utils import ReconcileUtils
 from databricks.sdk.service._internal import Wait
 from databricks.sdk.service.jobs import RunNowResponse, Run
-from databricks.labs.blueprint.installation import SerdeError
 
 
 @pytest.fixture
@@ -161,7 +159,7 @@ def test_reconcile_utils_no_recon_config(mock_workspace_client):
     )
 
     mock_utils = ReconcileUtils(mock_workspace_client, mock_installation, prompts)
-    with pytest.raises(NotFound, match="recon_config_snowflake_sf_exclude.json"):
+    with pytest.raises(AssertionError, match="Cannot load `reconcile_config`"):
         mock_utils.run()
 
 
@@ -213,5 +211,5 @@ def test_reconcile_utils_recon_config_value_error(mock_workspace_client):
     )
 
     mock_utils = ReconcileUtils(mock_workspace_client, mock_installation, prompts)
-    with pytest.raises(SerdeError, match="target_catalog: not a str: value is missing"):
+    with pytest.raises(AssertionError, match="Cannot load `reconcile_config`"):
         mock_utils.run()
