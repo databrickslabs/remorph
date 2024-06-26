@@ -156,11 +156,11 @@ class JdbcReaderOptions:
 <td>
 <pre lang="json">
 "jdbc_reader_options":{
-  "number_partitions": &lt;NUMBER_PARTITIONS&gt,
+  "number_partitions": "&lt;NUMBER_PARTITIONS&gt",
   "partition_column": "&lt;PARTITION_COLUMN&gt",
   "lower_bound": "&lt;LOWER_BOUND&gt",
   "upper_bound": "&lt;UPPER_BOUND&gt",
-  "fetch_size": &lt;FETCH_SIZE&gt
+  "fetch_size": "&lt;FETCH_SIZE&gt"
 }
 </pre>
 </td>
