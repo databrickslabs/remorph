@@ -2968,6 +2968,7 @@ nonReservedWords
     | CONFIGURATION
     | COPY_OPTIONS_
     | DATA
+    | DATE
     | DATE_FORMAT
     | DEFINITION
     | DELTA
@@ -3048,6 +3049,7 @@ nonReservedWords
     | TAGS
     | TARGET_LAG
     | TEMP
+    | TIME
     | TIMESTAMP
     | TIMEZONE
     | TYPE
@@ -3143,7 +3145,6 @@ trimExpression: (TRIM | LTRIM | RTRIM) L_PAREN expr (COMMA string)* R_PAREN
 
 castExpr
     : castOp = (TRY_CAST | CAST) L_PAREN expr AS dataType R_PAREN
-    | conversion = (TO_TIMESTAMP | TO_DATE | DATE | TO_TIME | TIME) L_PAREN expr R_PAREN
     | INTERVAL expr
     ;
 

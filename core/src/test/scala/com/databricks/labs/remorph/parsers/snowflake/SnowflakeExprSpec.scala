@@ -60,13 +60,14 @@ class SnowflakeExprSpec extends AnyWordSpec with SnowflakeParserTestCommon with 
       example(
         "TRY_CAST (column_1 AS BOOLEAN)",
         Cast(simplyNamedColumn("column_1"), BooleanType(), returnNullOnError = true))
-      example("TO_TIMESTAMP(1234567890)", Cast(Literal(integer = Some(1234567890)), TimestampNTZType()))
-      example("TIME('00:00:00')", Cast(Literal(string = Some("00:00:00")), TimeType()))
-      example("TO_TIME(column_1)", Cast(simplyNamedColumn("column_1"), TimeType()))
-      example("DATE(column_1)", Cast(simplyNamedColumn("column_1"), DateType()))
-      example("TO_DATE('2024-05-15')", Cast(Literal(string = Some("2024-05-15")), DateType()))
+      example("TO_TIMESTAMP(1234567890)", CallFunction("TO_TIMESTAMP", Seq(Literal(integer = Some(1234567890)))))
+      example("TIME('00:00:00')", CallFunction("TO_TIME", Seq(Literal(string = Some("00:00:00")))))
+      example("TO_TIME(column_1)", CallFunction("TO_TIME", Seq(simplyNamedColumn("column_1"))))
+      example("DATE(column_1)", CallFunction("TO_DATE", Seq(simplyNamedColumn("column_1"))))
+      example("TO_DATE('2024-05-15')", CallFunction("TO_DATE", Seq(Literal(string = Some("2024-05-15")))))
       example("INTERVAL '1 hour'", Cast(Literal(string = Some("1 hour")), IntervalType()))
       example("42::FLOAT", Cast(Literal(short = Some(42)), DoubleType()))
+      example("TO_CHAR(42)", CallFunction("TO_VARCHAR", Seq(Literal(short = Some(42)))))
     }
 
     def exprAndPredicateExample(query: String, expectedAst: Expression): Unit = {
