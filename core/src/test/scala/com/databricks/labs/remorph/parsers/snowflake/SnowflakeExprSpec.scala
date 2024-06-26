@@ -172,6 +172,18 @@ class SnowflakeExprSpec extends AnyWordSpec with SnowflakeParserTestCommon with 
       exprAndPredicateExample("col1 IS NULL", IsNull(simplyNamedColumn("col1")))
       exprAndPredicateExample("col1 IS NOT NULL", Not(IsNull(simplyNamedColumn("col1"))))
     }
+
+    "translate DISTINCT expressions" in {
+      exprAndPredicateExample("DISTINCT col1", Distinct(simplyNamedColumn("col1")))
+    }
+
+    "translate WITHIN GROUP expressions" in {
+      exprAndPredicateExample(
+        "ARRAY_AGG(col1) WITHIN GROUP (ORDER BY col2)",
+        WithinGroup(
+          CallFunction("ARRAY_AGG", Seq(simplyNamedColumn("col1"))),
+          Seq(SortOrder(simplyNamedColumn("col2"), AscendingSortDirection, SortNullsLast))))
+    }
   }
 
 }

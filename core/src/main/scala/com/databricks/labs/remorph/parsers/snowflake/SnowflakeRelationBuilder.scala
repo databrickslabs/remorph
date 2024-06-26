@@ -220,10 +220,9 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.Relation] w
 
   override def visitCommonTableExpression(ctx: CommonTableExpressionContext): ir.Relation = {
     val tableName = ctx.id().getText
-    val columns = ctx
-      .columnList()
-      .columnName()
-      .asScala
+    val columns = Option(ctx.columnList())
+      .map(_.columnName().asScala)
+      .getOrElse(Seq())
       .map(_.accept(expressionBuilder))
     val query = ctx.selectStatement().accept(this)
     ir.CTEDefinition(tableName, columns, query)

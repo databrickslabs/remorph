@@ -38,7 +38,7 @@ options {
 snowflakeFile: batch? EOF
     ;
 
-batch: sqlCommand (SEMI sqlCommand)* SEMI?
+batch: sqlCommand (SEMI* sqlCommand)* SEMI*
     ;
 
 sqlCommand: ddlCommand | dmlCommand | showCommand | useCommand | describeCommand | otherCommand
@@ -2963,6 +2963,7 @@ nonReservedWords
     | ACTION
     | AES
     | ALERT
+    | ARRAY
     | ARRAY_AGG
     | AT_KEYWORD
     | CHECKSUM
@@ -3002,6 +3003,7 @@ nonReservedWords
     | INTERVAL
     | JAVASCRIPT
     | KEY
+    | KEYS
     | LANGUAGE
     | LAST_NAME
     | LAST_QUERY_ID
@@ -3113,17 +3115,20 @@ expr
     | expr AND expr                             # exprAnd
     | expr OR expr                              # exprOr
     | arrLiteral                                # exprArrayLit
-    //    | expr timeZone
-    | expr overClause           # exprOver
-    | castExpr                  # exprCast
-    | expr COLON_COLON dataType # exprAscribe
-    | jsonLiteral               # exprJsonLit
-    | functionCall              # exprFuncCall
-    // Probably wrong
-    | subquery              # exprSubquery
-    | expr predicatePartial # exprPredicate
+    | expr withinGroup                          # exprWithinGroup
+    | expr overClause                           # exprOver
+    | castExpr                                  # exprCast
+    | expr COLON_COLON dataType                 # exprAscribe
+    | jsonLiteral                               # exprJsonLit
+    | functionCall                              # exprFuncCall
+    | subquery                                  # exprSubquery
+    | expr predicatePartial                     # exprPredicate
+    | DISTINCT expr                             # exprDistinct
     //Should be latest rule as it's nearly a catch all
-    | primitiveExpression # exprPrimitive
+    | primitiveExpression                       # exprPrimitive
+    ;
+
+withinGroup: WITHIN GROUP L_PAREN orderByClause R_PAREN
     ;
 
 predicatePartial
@@ -3142,9 +3147,6 @@ jsonPathElem: ID | DOUBLE_QUOTE_ID
     ;
 
 iffExpr: IFF L_PAREN searchCondition COMMA expr COMMA expr R_PAREN
-    ;
-
-trimExpression: (TRIM | LTRIM | RTRIM) L_PAREN expr (COMMA string)* R_PAREN
     ;
 
 castExpr
@@ -3229,15 +3231,10 @@ functionCall
     | standardFunction
     | rankingWindowedFunction
     | aggregateFunction
-    //    | aggregateWindowedFunction
     ;
 
 builtinFunction
-    : trim = (TRIM | LTRIM | RTRIM) L_PAREN expr (COMMA string)? R_PAREN # builtinTrim
-    //    : unaryOrBinaryBuiltinFunction L_PAREN expr (COMMA expr)* R_PAREN
-    //    | binaryBuiltinFunction L_PAREN expr COMMA expr R_PAREN
-    //    | binaryOrTernaryBuiltinFunction L_PAREN expr COMMA expr (COMMA expr)* R_PAREN
-    //    | ternaryBuiltinFunction L_PAREN expr COMMA expr COMMA expr R_PAREN
+    : EXTRACT L_PAREN part = (STRING | ID) FROM expr R_PAREN  # builtinExtract
     ;
 
 standardFunction: id L_PAREN exprList? R_PAREN
@@ -3304,7 +3301,7 @@ withExpression: WITH commonTableExpression (COMMA commonTableExpression)*
     ;
 
 commonTableExpression
-    : id (L_PAREN columns = columnList R_PAREN)? AS L_PAREN selectStatement setOperators* R_PAREN
+    : id (L_PAREN columnList R_PAREN)? AS L_PAREN selectStatement setOperators* R_PAREN
     ;
 
 selectStatement
