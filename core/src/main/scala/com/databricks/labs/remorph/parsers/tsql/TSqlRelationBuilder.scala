@@ -33,8 +33,12 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.Relation] {
   }
 
   override def visitSelectStatement(ctx: TSqlParser.SelectStatementContext): ir.Relation = {
-    // TODO: val forClause = Option(ctx.forClause).map(_.accept(this))
-    // TODO: val optionClause = Option(ctx.optionClause).map(_.accept(this))
+    // TODO: The FOR clause of TSQL is not supported in Databricks SQL as XML and JSON are not supported
+    //       in the same way. We probably need to raise an error here that can be used by some sort of linter
+
+    // We visit the OptionClause because in the future, we may be able to glean information from it
+    // as an aid to migration, however the clause is not used in the AST or translation.
+    Option(ctx.optionClause).map(_.accept(expressionBuilder))
 
     ctx.queryExpression.accept(this)
   }

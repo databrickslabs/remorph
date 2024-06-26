@@ -10,7 +10,7 @@ import scala.collection.JavaConverters._
 class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with ParserCommon[ir.Expression] {
 
   private val functionBuilder = new TSqlFunctionBuilder
-
+  private val optionBuilder = new OptionBuilder
   private val dataTypeBuilder: DataTypeBuilder = new DataTypeBuilder
 
   override def visitSelectListElem(ctx: TSqlParser.SelectListElemContext): ir.Expression = {
@@ -22,6 +22,13 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
       case _ => ir.UnresolvedExpression("Unsupported SelectListElem")
       // $COVERAGE-ON$
     }
+  }
+
+  override def visitOptionClause(ctx: TSqlParser.OptionClauseContext): ir.Expression = {
+    // we gather the options given to use by the original query, though at the moment, we do nothing
+    // with them.
+    val opts = optionBuilder.buildOptionList(ctx.lparenOptionList().optionList().genericOption().asScala)
+    ir.Options(opts.expressionOpts, opts.stringOpts, opts.boolFlags, opts.autoFlags)
   }
 
   /**

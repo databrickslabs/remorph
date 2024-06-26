@@ -3038,6 +3038,7 @@ selectOrderByClause
     )?
     ;
 
+// Unsupported in Databricks SQL
 forClause
     : FOR BROWSE
     | FOR XML (RAW (LPAREN STRING RPAREN)? | AUTO) xmlCommonDirectives* (
@@ -3053,7 +3054,7 @@ forClause
 orderByExpression: expression (COLLATE expression)? (ASC | DESC)?
     ;
 
-optionClause: OPTION LPAREN options_ += option (COMMA options_ += option)* RPAREN
+optionClause: OPTION lparenOptionList
     ;
 
 option
