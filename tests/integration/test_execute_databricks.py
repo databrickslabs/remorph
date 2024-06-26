@@ -309,10 +309,10 @@ def test_execute_report_type_is_all(ws, spark, setup_databricks_src, test_config
         ],
     )
 
-    with pytest.raises(ReconciliationException) as excinfo:
+    with pytest.raises(ReconciliationException) as exc_info:
         recon(ws=ws, spark=spark, table_recon=table_recon, reconcile_config=reconcile_config)
     assert "Reconciliation failed for one or more tables. Please check the recon metrics for more details." in str(
-        excinfo.value
+        exc_info.value
     )
 
     reports = get_reports(spark, test_config, key_columns)
@@ -322,6 +322,50 @@ def test_execute_report_type_is_all(ws, spark, setup_databricks_src, test_config
     assertDataFrameEqual(reports.mismatch, spark.createDataFrame([('3', '3')], ['l_orderkey', 'l_linenumber']))
     assertDataFrameEqual(
         reports.threshold_mismatch, spark.createDataFrame([('3', '3')], ['l_orderkey_source', 'l_linenumber_source'])
+    )
+    assertDataFrameEqual(
+        reports.metrics,
+        spark.createDataFrame(
+            [('1', '1', '1', '1', 'l_quantity,l_receiptdate', 'false')],
+            ['missing_in_src', 'missing_in_tgt', 'mismatch', 'threshold_mismatch', 'mismatch_columns', 'schema_valid'],
+        ),
+    )
+
+
+def test_execute_report_type_is_schema(ws, spark, setup_databricks_src, test_config, reconcile_config):
+    reconcile_config.report_type = 'schema'
+    table_recon = TableRecon(
+        source_schema=test_config.db_mock_schema,
+        source_catalog=test_config.db_mock_catalog,
+        target_schema=test_config.db_mock_schema,
+        target_catalog=test_config.db_mock_catalog,
+        tables=[
+            Table(
+                source_name=test_config.db_mock_src,
+                target_name=test_config.db_mock_tgt,
+                jdbc_reader_options=None,
+                select_columns=None,
+                drop_columns=None,
+                join_columns=None,
+                column_mapping=[
+                    ColumnMapping(source_name="l_orderkey", target_name="l_orderkey_t"),
+                    ColumnMapping(source_name="l_partkey", target_name="l_partkey_t"),
+                    ColumnMapping(source_name="l_suppkey", target_name="l_suppkey_t"),
+                    ColumnMapping(source_name="l_linenumber", target_name="l_linenumber_t"),
+                    ColumnMapping(source_name="l_shipmode", target_name="l_shipmode_t"),
+                    ColumnMapping(source_name="l_comment", target_name="l_comment_t"),
+                ],
+                transformations=[Transformation(column_name='l_tax', source='CAST(l_tax AS DECIMAL(18, 2))')],
+                thresholds=[Thresholds(column_name="l_discount", lower_bound='-10%', upper_bound='10%', type='int')],
+                filters=None,
+            )
+        ],
+    )
+
+    with pytest.raises(ReconciliationException) as exc_info:
+        recon(ws=ws, spark=spark, table_recon=table_recon, reconcile_config=reconcile_config)
+    assert "Reconciliation failed for one or more tables. Please check the recon metrics for more details." in str(
+        exc_info.value
     )
 
 
@@ -347,9 +391,9 @@ def test_execute_fail_for_tables_not_available(ws, spark, setup_databricks_src, 
         ],
     )
 
-    with pytest.raises(ReconciliationException) as excinfo:
+    with pytest.raises(ReconciliationException) as exc_info:
         recon(ws=ws, spark=spark, table_recon=table_recon, reconcile_config=reconcile_config)
     assert (
         "[TABLE_OR_VIEW_NOT_FOUND] The table or view `remorph_integration_test`.`test`.`remorph_src_unknown` "
         "cannot be found"
-    ) in str(excinfo.value)
+    ) in str(exc_info.value)

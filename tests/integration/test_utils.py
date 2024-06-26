@@ -1,7 +1,8 @@
 from dataclasses import dataclass
 
 from pyspark.sql import DataFrame
-from pyspark.sql.functions import col, explode
+from pyspark.sql.functions import col, explode, udf, lit
+from pyspark.sql.types import StringType
 
 
 @dataclass
@@ -27,7 +28,18 @@ def _get_reconcile_report_data(spark, test_config):
 
 
 def _get_reconcile_metrics(report_data):
-    return report_data.select(col("recon_metrics"), col("status")).distinct()
+    return (
+        report_data.select("recon_metrics")
+        .distinct()
+        .select(
+            safe_struct_field("recon_metrics.row_comparison", lit("missing_in_source")).alias("missing_in_src"),
+            safe_struct_field("recon_metrics.row_comparison", lit("missing_in_target")).alias("missing_in_tgt"),
+            safe_struct_field("recon_metrics.column_comparison", lit("absolute_mismatch")).alias("mismatch"),
+            safe_struct_field("recon_metrics.column_comparison", lit("threshold_mismatch")).alias("threshold_mismatch"),
+            safe_struct_field("recon_metrics.column_comparison", lit("mismatch_columns")).alias("mismatch_columns"),
+            safe_struct_field("recon_metrics", lit("schema_comparison")).alias("schema_valid"),
+        )
+    )
 
 
 def _get_reconcile_details(report_data):
@@ -60,3 +72,12 @@ def get_reports(spark, test_config, key_columns):
         mismatch=mismatch,
         threshold_mismatch=threshold_mismatch,
     )
+
+
+def get_safe_struct_field(input_struct, field_name: str):
+    if input_struct is not None and hasattr(input_struct, field_name):
+        return getattr(input_struct, field_name)
+    return None
+
+
+safe_struct_field = udf(get_safe_struct_field, StringType())
