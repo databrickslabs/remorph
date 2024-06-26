@@ -4,6 +4,7 @@ from pyspark.errors import PySparkException
 from pyspark.sql import DataFrame, DataFrameReader, SparkSession
 from sqlglot import Dialect
 
+from databricks.labs.remorph.config import TableRecon
 from databricks.labs.remorph.reconcile.connectors.data_source import DataSource
 from databricks.labs.remorph.reconcile.connectors.jdbc_reader import JDBCReaderMixin
 from databricks.labs.remorph.reconcile.connectors.secrets import SecretsMixin
@@ -91,3 +92,13 @@ class OracleDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
 
     def reader(self, query: str) -> DataFrameReader:
         return self._get_jdbc_reader(query, self.get_jdbc_url, OracleDataSource._DRIVER)
+
+    def list_tables(
+        self,
+        catalog: str | None,
+        schema: str,
+        include_list: list[str] | None,
+        exclude_list: list[str] | None,
+    ) -> TableRecon:
+        # TODO: Implement list_tables in the OracleDataSource
+        raise NotImplementedError("list_tables method is not implemented for OracleDataSource yet...")

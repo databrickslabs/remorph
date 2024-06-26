@@ -6,10 +6,11 @@ from pyspark.sql import DataFrame, DataFrameReader, SparkSession
 from pyspark.sql.functions import col
 from sqlglot import Dialect
 
+from databricks.labs.remorph.config import TableRecon
 from databricks.labs.remorph.reconcile.connectors.data_source import DataSource
 from databricks.labs.remorph.reconcile.connectors.jdbc_reader import JDBCReaderMixin
 from databricks.labs.remorph.reconcile.connectors.secrets import SecretsMixin
-from databricks.labs.remorph.reconcile.recon_config import JdbcReaderOptions, Schema
+from databricks.labs.remorph.reconcile.recon_config import JdbcReaderOptions, Schema, Table
 from databricks.sdk import WorkspaceClient
 
 logger = logging.getLogger(__name__)
@@ -58,6 +59,7 @@ class SnowflakeDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
                 df = self.reader(table_query).load()
             else:
                 options = self._get_jdbc_reader_options(options)
+                logger.debug(f"JDBC URL: {self.get_jdbc_url}")
                 df = (
                     self._get_jdbc_reader(table_query, self.get_jdbc_url, SnowflakeDataSource._DRIVER)
                     .options(**options)
@@ -80,6 +82,7 @@ class SnowflakeDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
         )
         try:
             schema_df = self.reader(schema_query).load()
+            logger.info(f"Fetching Snowflake Schema using the following {table} in SnowflakeDataSource")
             return [Schema(field.COLUMN_NAME.lower(), field.DATA_TYPE.lower()) for field in schema_df.collect()]
         except (RuntimeError, PySparkException) as e:
             return self.log_and_throw_exception(e, "schema", schema_query)
@@ -94,4 +97,60 @@ class SnowflakeDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
             "sfWarehouse": self._get_secret('sfWarehouse'),
             "sfRole": self._get_secret('sfRole'),
         }
+        logger.debug(f"Reading data from Snowflake using the options {options.keys()} ")
         return self._spark.read.format("snowflake").option("dbtable", f"({query}) as tmp").options(**options)
+
+    def list_tables(
+        self,
+        catalog: str | None,
+        schema: str,
+        include_list: list[str] | None,
+        exclude_list: list[str] | None,
+    ) -> TableRecon:
+
+        filter_list = None
+        in_clause = None
+
+        if include_list:
+            filter_list = include_list
+            in_clause = "IN"
+
+        if exclude_list:
+            filter_list = exclude_list
+            in_clause = "NOT IN"
+
+        where_cond = ""
+        if filter_list:
+            subset_tables = ", ".join(filter_list)
+            where_cond = f"AND TABLE_NAME {in_clause} ({subset_tables})"
+
+        assert catalog, "Catalog must be specified for Snowflake DataSource"
+        try:
+            logger.debug(f"Fetching Snowflake Table list for `{catalog}.{schema}`")
+            tables_query = f"""SELECT TABLE_NAME, CLUSTERING_KEY, ROW_COUNT\n 
+                               FROM {catalog.upper()}.INFORMATION_SCHEMA.TABLES\n 
+                               WHERE TABLE_SCHEMA = '{schema.upper()}' {where_cond}"""
+
+            logger.info(f" Executing query: {tables_query}")
+            tables_df = self.reader(tables_query).load()
+
+            tables_list = [
+                Table(source_name=field.TABLE_NAME.lower(), target_name=field.TABLE_NAME.lower())
+                for field in tables_df.collect()
+            ]
+
+            table_recon = TableRecon(
+                source_catalog=catalog,
+                source_schema=schema,
+                target_catalog="",
+                target_schema="",
+                tables=tables_list,
+            )
+
+            return table_recon
+        except PySparkException as e:
+            error_msg = (
+                f"An error occurred while fetching Snowflake Table list for `{catalog}.{schema}`  in "
+                f"SnowflakeDataSource: {e!s}"
+            )
+            raise PySparkException(error_msg) from e

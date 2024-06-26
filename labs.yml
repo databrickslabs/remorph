@@ -51,3 +51,5 @@ commands:
         description: Directory to store the generated lineage file
   - name: configure-secrets
     description: Utility to setup Scope and Secrets on Databricks Workspace
+  - name: generate-recon-config
+    description: Utility to generate Recon config file from Source Catalog [if applicable] and Schema

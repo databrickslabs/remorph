@@ -8,8 +8,7 @@ from databricks.labs.blueprint.cli import App
 from databricks.labs.blueprint.entrypoint import get_logger
 from databricks.labs.blueprint.installation import Installation
 from databricks.labs.remorph.config import SQLGLOT_DIALECTS, MorphConfig
-from databricks.labs.remorph.helpers.recon_config_utils import ReconConfigPrompts
-from databricks.labs.remorph.helpers.reconcile_utils import ReconcileUtils
+from databricks.labs.remorph.helpers.reconcile_utils import ReconcileUtils, ReconcileConfigUtils
 from databricks.labs.remorph.lineage import lineage_generator
 from databricks.labs.remorph.transpiler.execute import morph
 from databricks.sdk import WorkspaceClient
@@ -92,6 +91,19 @@ def _get_spark_session(ws: WorkspaceClient) -> SparkSession:
 
 
 @remorph.command
+def generate_recon_config(w: WorkspaceClient):
+    """generates recon_config file for reconciliation"""
+    logger.info(f"User: {w.current_user.me()}")
+    logger.info("Generating `recon_config` file for Data Reconciliation")
+
+    # Create Installation object
+    installation = Installation.assume_user_home(w, "remorph")
+
+    utils = ReconcileConfigUtils(w, installation)
+    utils.generate_recon_config()
+
+
+@remorph.command
 def generate_lineage(w: WorkspaceClient, source: str, input_sql: str, output_folder: str):
     """[Experimental] Generates a lineage of source SQL files or folder"""
     logger.info(f"User: {w.current_user.me()}")
@@ -110,13 +122,16 @@ def generate_lineage(w: WorkspaceClient, source: str, input_sql: str, output_fol
 @remorph.command
 def configure_secrets(w: WorkspaceClient):
     """Setup reconciliation connection profile details as Secrets on Databricks Workspace"""
-    recon_conf = ReconConfigPrompts(w)
+    logger.info(f"User: {w.current_user.me()}")
+
+    installation = Installation.current(w, 'remorph')
+    utils = ReconcileConfigUtils(w, installation)
 
     # Prompt for source
-    source = recon_conf.prompt_source()
+    source = utils.prompt_source()
 
     logger.info(f"Setting up Scope, Secrets for `{source}` reconciliation")
-    recon_conf.prompt_and_save_connection_details()
+    utils.prompt_and_save_connection_details()
 
 
 if __name__ == "__main__":

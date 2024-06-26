@@ -57,7 +57,7 @@ def test_deploy_recon_table():
     sql_backend = MockBackend()
     table_deployer = TableDeployer(sql_backend, "test_catalog", "test_schema")
     table_name = "main"
-    relative_filepath = "queries/reconcile/installation/main.sql"
+    relative_filepath = "reconcile/queries/installation/main.sql"
     expected_query = files(databricks.labs.remorph.resources).joinpath(relative_filepath).read_text()
     table_deployer.deploy_table(table_name, relative_filepath)
     assert expected_query in sql_backend.queries
