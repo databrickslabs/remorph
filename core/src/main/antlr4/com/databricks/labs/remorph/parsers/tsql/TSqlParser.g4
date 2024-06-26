@@ -2929,7 +2929,7 @@ timeZone
     : AT_KEYWORD id ZONE expression // AT TIME ZONE
     ;
 
-primitiveExpression: DEFAULT | NULL_ | LOCAL_ID | constant
+primitiveExpression: op = (DEFAULT | NULL_ | LOCAL_ID) | constant
     ;
 
 caseExpression: CASE caseExpr = expression? switchSection+ ( ELSE elseExpr = expression)? END

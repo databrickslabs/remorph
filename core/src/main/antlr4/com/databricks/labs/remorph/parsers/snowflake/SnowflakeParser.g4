@@ -3127,7 +3127,7 @@ expr
     | expr predicatePartial                     # exprPredicate
     | DISTINCT expr                             # exprDistinct
     //Should be latest rule as it's nearly a catch all
-    | primitiveExpression                       # exprPrimitive
+    | primitiveExpression # exprPrimitive
     ;
 
 withinGroup: WITHIN GROUP L_PAREN orderByClause R_PAREN
@@ -3227,15 +3227,10 @@ windowFrameExtent: BETWEEN windowFrameBound AND windowFrameBound
 windowFrameBound: UNBOUNDED (PRECEDING | FOLLOWING) | num (PRECEDING | FOLLOWING) | CURRENT ROW
     ;
 
-functionCall
-    : builtinFunction
-    | standardFunction
-    | rankingWindowedFunction
-    | aggregateFunction
+functionCall: builtinFunction | standardFunction | rankingWindowedFunction | aggregateFunction
     ;
 
-builtinFunction
-    : EXTRACT L_PAREN part = (STRING | ID) FROM expr R_PAREN  # builtinExtract
+builtinFunction: EXTRACT L_PAREN part = (STRING | ID) FROM expr R_PAREN # builtinExtract
     ;
 
 standardFunction: id L_PAREN exprList? R_PAREN

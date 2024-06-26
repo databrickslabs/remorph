@@ -188,4 +188,5 @@ case class BackupDatabase(
     values: Map[String, Expression])
     extends Command {}
 
-case class ArrayAgg(values: Expression, sort: Seq[SortOrder]) extends Expression {}
+// The default case for the expression parser needs to be explicitly defined to distinguish [DEFAULT]
+case class Default() extends Expression {}
