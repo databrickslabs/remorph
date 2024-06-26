@@ -153,6 +153,9 @@ class CatalogSetup:
         except NotFound as err:
             logger.error(f"Cannot find Catalog: {err}")
             raise err
+        except PermissionDenied as ex:
+            logger.error(f"Permission Denied: {ex}")
+            raise ex
 
     def create_schema(self, name: str, catalog_name: str):
         logger.debug(f"Creating Schema `{name}` in Catalog `{catalog_name}`")
@@ -169,6 +172,9 @@ class CatalogSetup:
         except NotFound as err:
             logger.error(f"Cannot find Schema: {err}")
             raise err
+        except PermissionDenied as ex:
+            logger.error(f"Permission Denied: {ex}")
+            raise ex
 
 
 class InstallPrompts:
