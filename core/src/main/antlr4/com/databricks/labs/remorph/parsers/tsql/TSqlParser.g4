@@ -3235,21 +3235,18 @@ funcId: id | FORMAT | LEFT | RIGHT | REPLACE | CONCAT
     ;
 
 partitionFunction
-    : (database = id DOT)? DOLLAR_PARTITION DOT funcName = id LPAREN expression RPAREN
+    : (id DOT)? DOLLAR_PARTITION DOT id LPAREN expression RPAREN
     ;
 
 freetextFunction
-    : (CONTAINSTABLE | FREETEXTTABLE) LPAREN tableName COMMA (
-        fullColumnName
-        | LPAREN fullColumnName (COMMA fullColumnName)* RPAREN
-        | STAR
-    ) COMMA expression (COMMA LANGUAGE expression)? (COMMA expression)? RPAREN
-    | (SEMANTICSIMILARITYTABLE | SEMANTICKEYPHRASETABLE) LPAREN tableName COMMA (
-        fullColumnName
-        | LPAREN fullColumnName (COMMA fullColumnName)* RPAREN
-        | STAR
-    ) COMMA expression RPAREN
-    | SEMANTICSIMILARITYDETAILSTABLE LPAREN tableName COMMA fullColumnName COMMA expression COMMA fullColumnName COMMA expression RPAREN
+    : f=(SEMANTICSIMILARITYDETAILSTABLE | SEMANTICSIMILARITYTABLE | SEMANTICKEYPHRASETABLE | CONTAINSTABLE | FREETEXTTABLE)
+    LPAREN expression
+         COMMA (
+            expression
+            | LPAREN expressionList RPAREN
+            | STAR
+        ) COMMA expression (COMMA LANGUAGE expression)? (COMMA expression)?
+    RPAREN
     ;
 
 freetextPredicate

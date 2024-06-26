@@ -233,7 +233,7 @@ TBD
 
 </table>
 
-## Databricks to Databricks Recon
+### Databricks to Databricks Recon
 
 The following benchmarks were conducted on various Databricks clusters. Please note that the reconciliation times listed below do not include cluster startup time.
 
@@ -293,6 +293,55 @@ The following benchmarks were conducted on various Databricks clusters. Please n
 |----------------|------------------------| --- | --- |
 | With Threshold | tpch (set 1 and set 2)  | 1.46 hours | 50.12 minutes |
 | Without Threshold | tpch (set 1 and set 2)  | 1.34 hours | 45.58 minutes |
+
+
+### Snowflake to Databricks Recon
+
+The following benchmarks were conducted on various Databricks clusters. Please note that the reconciliation times listed below do not include cluster startup time.
+
+>Snowflake cluster details
+
+<b>Type</b>: Standard
+
+<b>Size</b>: Large Cluster (8 nodes, 64 cores)
+
+>Cluster1 -- 13.3 LTS (includes Apache Spark 3.4.1, Scala 2.12)
+<table>
+  <tr>
+    <td></td>
+    <td>VM</td>
+    <td>Quantity</td>
+    <td>Total Cores</td>
+    <td>Total RAM</td>
+  </tr>
+  <tr>
+    <td>Driver:</td>
+    <td>**i3.xlarge**</td>
+    <td>**1**</td>
+    <td>**4 cores**</td>
+    <td>**30.5 GB**</td>
+  </tr>
+  <tr>
+    <td>Workers:</td>
+    <td>**i3.xlarge**</td>
+    <td>**16**</td>
+    <td>**64 cores**</td>
+    <td>**488 GB**</td>
+  </tr>
+</table>
+
+>Benchmark
+
+| Method          | Configuration | Set         | Time |
+|-----------------| ------------- |-------------| ---- |
+| Spark (deafult) | -             | tpch - Set 1 | 32.01 minutes |
+| Spark (deafult) | -             | tpch - Set 2 | 1.01 hours |
+| JDBC            | number_partitions - 10 | tpch - Set 1 | 43.39 minutes |
+| JDBC            | number_partitions - 10 | tpch - Set 2 | 1.17 hours |
+| JDBC            | number_partitions - 64 | tpch - Set 1 | 25.95 minutes |
+| JDBC            | number_partitions - 64 | tpch - Set 2 | 40.30 minutes |
+| JDBC            | number_partitions - 100 | tpch - Set 2| 1.02 hours |
+
 
 [[back to top](#table-of-contents)]
 
