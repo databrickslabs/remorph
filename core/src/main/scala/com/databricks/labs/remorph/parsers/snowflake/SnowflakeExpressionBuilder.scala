@@ -263,17 +263,8 @@ class SnowflakeExpressionBuilder()
       val expression = c.expr().accept(this)
       val dataType = DataTypeBuilder.buildDataType(c.dataType())
       ir.Cast(expression, dataType, returnNullOnError = c.TRY_CAST() != null)
-    case c if c.conversion != null =>
-      ir.Cast(c.expr().accept(this), extractDateTimeType(c.conversion))
     case c if c.INTERVAL() != null =>
       ir.Cast(c.expr().accept(this), ir.IntervalType())
-  }
-
-  private def extractDateTimeType(t: Token): ir.DataType = t.getType match {
-    // default timestamp type is TIMESTAMP_NZT
-    case TO_TIMESTAMP => ir.TimestampNTZType()
-    case TO_TIME | TIME => ir.TimeType()
-    case TO_DATE | DATE => ir.DateType()
   }
 
   override def visitRankingWindowedFunction(ctx: RankingWindowedFunctionContext): ir.Expression = {
