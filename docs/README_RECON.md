@@ -80,12 +80,12 @@ flowchart TD
 
 <table>
 <tr>
-<th>python</th>
-<th>json</th>
+<th>Python</th>
+<th>JSON</th>
 </tr>
 <tr>
 <td>
-<pre lang="Python">
+<pre lang="python">
 @dataclass
 class Table:
     source_name: str
@@ -101,7 +101,7 @@ class Table:
 </pre>
 </td>
 <td>
-<pre lang="JSON">
+<pre lang="json">
 {
   "source_name": "&lt;SOURCE_NAME&gt",
   "target_name": "&lt;TARGET_NAME&gt",
@@ -138,12 +138,12 @@ class Table:
 
 <table>
 <tr>
-<th>python</th>
-<th>json</th>
+<th>Python</th>
+<th>JSON</th>
 </tr>
 <tr>
 <td>
-<pre lang="Python">
+<pre lang="python">
 @dataclass
 class JdbcReaderOptions:
     number_partitions: int
@@ -154,7 +154,7 @@ class JdbcReaderOptions:
 </pre>
 </td>
 <td>
-<pre lang="JSON">
+<pre lang="json">
 "jdbc_reader_options":{
   "number_partitions": &lt;NUMBER_PARTITIONS&gt,
   "partition_column": "&lt;PARTITION_COLUMN&gt",
@@ -179,12 +179,12 @@ class JdbcReaderOptions:
 
 <table>
 <tr>
-<th>python</th>
-<th>json</th>
+<th>Python</th>
+<th>JSON</th>
 </tr>
 <tr>
 <td>
-<pre lang="Python">
+<pre lang="python">
 
 @dataclass
 class ColumnMapping:
@@ -193,7 +193,7 @@ class ColumnMapping:
 </pre>
 </td>
 <td>
-<pre lang="JSON">
+<pre lang="json">
 "column_mapping":[
   {
     "source_name": "&lt;SOURCE_COLUMN_NAME&gt",
@@ -214,12 +214,12 @@ class ColumnMapping:
 
 <table>
 <tr>
-<th>python</th>
-<th>json</th>
+<th>Python</th>
+<th>JSON</th>
 </tr>
 <tr>
 <td>
-<pre lang="Python">
+<pre lang="python">
 
 @dataclass
 class Transformation:
@@ -230,7 +230,7 @@ class Transformation:
 </pre>
 </td>
 <td>
-<pre lang="JSON">
+<pre lang="json">
 "transformations":[
     {
       "column_name": "&lt;COLUMN_NAME&gt",
@@ -254,12 +254,12 @@ class Transformation:
 
 <table>
 <tr>
-<th>python</th>
-<th>json</th>
+<th>Python</th>
+<th>JSON</th>
 </tr>
 <tr>
 <td>
-<pre lang="Python">
+<pre lang="python">
 
 @dataclass
 class Thresholds:
@@ -271,7 +271,7 @@ class Thresholds:
 </pre>
 </td>
 <td>
-<pre lang="JSON">
+<pre lang="json">
 "thresholds":[
   {
     "column_name": "&lt;COLUMN_NAME&gt",
@@ -297,12 +297,12 @@ class Thresholds:
 
 <table>
 <tr>
-<th>python</th>
-<th>json</th>
+<th>Python</th>
+<th>JSON</th>
 </tr>
 <tr>
 <td>
-<pre lang="Python">
+<pre lang="python">
 @dataclass
 class Filters:
     source: str | None = None
@@ -310,7 +310,7 @@ class Filters:
 </pre>
 </td>
 <td>
-<pre lang="JSON">
+<pre lang="json">
 "filters":{
   "source": "&lt;FILTER_EXPRESSION&gt",
   "target": "&lt;FILTER_EXPRESSION&gt"
