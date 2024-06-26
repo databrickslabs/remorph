@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
-import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser.{StringContext => StrContext, _}
+import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser._
 import com.databricks.labs.remorph.parsers.{IncompleteParser, ParserCommon, intermediate => ir}
 import org.antlr.v4.runtime.Token
 
@@ -102,9 +102,6 @@ class SnowflakeExpressionBuilder()
 
   override def visitNum(ctx: NumContext): ir.Literal = buildLiteralNumber(ctx.getText)
 
-  override def visitString(ctx: StrContext): ir.Literal = {
-    ir.Literal(string = Some(removeQuotes(ctx.getText)))
-  }
   private def removeQuotes(str: String): String = {
     str.stripPrefix("'").stripSuffix("'")
   }
