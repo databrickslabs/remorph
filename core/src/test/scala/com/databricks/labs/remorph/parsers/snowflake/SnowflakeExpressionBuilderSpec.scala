@@ -256,12 +256,6 @@ class SnowflakeExpressionBuilderSpec
 
   }
 
-  "Unparsed input" should {
-    "be reported as UnresolvedExpression" in {
-      example("{'name':'Homer Simpson'}", _.jsonLiteral(), UnresolvedExpression("{'name':'Homer Simpson'}"))
-    }
-  }
-
   "SnowflakeExpressionBuilder.visit_Literal" should {
     "handle unresolved input" in {
       val literal = mock[LiteralContext]
@@ -273,6 +267,8 @@ class SnowflakeExpressionBuilderSpec
       verify(literal).REAL()
       verify(literal).trueFalse()
       verify(literal).NULL_()
+      verify(literal).jsonLiteral()
+      verify(literal).arrayLiteral()
       verifyNoMoreInteractions(literal)
     }
   }

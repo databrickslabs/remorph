@@ -3116,12 +3116,10 @@ expr
     | op = NOT+ expr                            # exprNot
     | expr AND expr                             # exprAnd
     | expr OR expr                              # exprOr
-    | arrLiteral                                # exprArrayLit
     | expr withinGroup                          # exprWithinGroup
     | expr overClause                           # exprOver
     | castExpr                                  # exprCast
     | expr COLON_COLON dataType                 # exprAscribe
-    | jsonLiteral                               # exprJsonLit
     | functionCall                              # exprFuncCall
     | subquery                                  # exprSubquery
     | expr predicatePartial                     # exprPredicate
@@ -3159,13 +3157,10 @@ castExpr
 jsonLiteral: LCB kvPair (COMMA kvPair)* RCB | LCB RCB
     ;
 
-kvPair: key = STRING COLON value
+kvPair: key = STRING COLON literal
     ;
 
-value: expr
-    ;
-
-arrLiteral: LSB value (COMMA value)* RSB | LSB RSB
+arrayLiteral: LSB literal (COMMA literal)* RSB | LSB RSB
     ;
 
 dataTypeSize: L_PAREN num R_PAREN
@@ -3270,6 +3265,8 @@ literal
     | sign? DECIMAL
     | sign? (REAL | FLOAT)
     | trueFalse
+    | jsonLiteral
+    | arrayLiteral
     | NULL_
     | AT_Q
     ;
