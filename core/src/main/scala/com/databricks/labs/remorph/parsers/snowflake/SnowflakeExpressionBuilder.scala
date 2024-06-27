@@ -163,6 +163,16 @@ class SnowflakeExpressionBuilder()
     buildComparisonExpression(ctx.comparisonOperator(), left, right)
   }
 
+  override def visitExprDistinct(ctx: ExprDistinctContext): ir.Expression = {
+    ir.Distinct(ctx.expr().accept(this))
+  }
+
+  override def visitExprWithinGroup(ctx: ExprWithinGroupContext): ir.Expression = {
+    val expr = ctx.expr().accept(this)
+    val sortOrders = buildSortOrder(ctx.withinGroup().orderByClause())
+    ir.WithinGroup(expr, sortOrders)
+  }
+
   override def visitExprOver(ctx: ExprOverContext): ir.Expression = {
     buildWindow(ctx.overClause(), ctx.expr().accept(this))
   }
@@ -253,17 +263,8 @@ class SnowflakeExpressionBuilder()
       val expression = c.expr().accept(this)
       val dataType = DataTypeBuilder.buildDataType(c.dataType())
       ir.Cast(expression, dataType, returnNullOnError = c.TRY_CAST() != null)
-    case c if c.conversion != null =>
-      ir.Cast(c.expr().accept(this), extractDateTimeType(c.conversion))
     case c if c.INTERVAL() != null =>
       ir.Cast(c.expr().accept(this), ir.IntervalType())
-  }
-
-  private def extractDateTimeType(t: Token): ir.DataType = t.getType match {
-    // default timestamp type is TIMESTAMP_NZT
-    case TO_TIMESTAMP => ir.TimestampNTZType()
-    case TO_TIME | TIME => ir.TimeType()
-    case TO_DATE | DATE => ir.DateType()
   }
 
   override def visitRankingWindowedFunction(ctx: RankingWindowedFunctionContext): ir.Expression = {
@@ -343,11 +344,12 @@ class SnowflakeExpressionBuilder()
   }
   // end aggregateFunction
 
-  override def visitBuiltinTrim(ctx: BuiltinTrimContext): ir.Expression = {
-    val expression = ctx.expr().accept(this)
-    val characters = Option(ctx.string()).map(_.accept(this)).toList
-    functionBuilder.buildFunction(ctx.trim.getText, expression :: characters)
+  override def visitBuiltinExtract(ctx: BuiltinExtractContext): ir.Expression = {
+    val part = ir.Id(removeQuotes(ctx.part.getText))
+    val date = ctx.expr().accept(this)
+    functionBuilder.buildFunction(ctx.EXTRACT().getText, Seq(part, date))
   }
+
   override def visitCaseExpression(ctx: CaseExpressionContext): ir.Expression = {
     val exprs = ctx.expr().asScala
     val otherwise = Option(ctx.ELSE()).flatMap(els => exprs.find(occursBefore(els, _)).map(_.accept(this)))

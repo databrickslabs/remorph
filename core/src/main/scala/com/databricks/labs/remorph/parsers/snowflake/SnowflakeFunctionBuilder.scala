@@ -1,5 +1,6 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
+import com.databricks.labs.remorph.parsers.snowflake.SnowflakeFunctionConverters.SnowflakeSynonyms
 import com.databricks.labs.remorph.parsers.{ConversionStrategy, FunctionBuilder, FunctionDefinition, intermediate => ir}
 
 class SnowflakeFunctionBuilder extends FunctionBuilder {
@@ -41,6 +42,7 @@ class SnowflakeFunctionBuilder extends FunctionBuilder {
     case "COUNT_IF" => FunctionDefinition.standard(1)
     case "CURRENT_DATABASE" => FunctionDefinition.standard(0)
     case "CURRENT_TIMESTAMP" => FunctionDefinition.standard(0, 1)
+    case "DATE" => FunctionDefinition.standard(1, 2).withConversionStrategy(SnowflakeSynonyms)
     case "DATEDIFF" => FunctionDefinition.standard(3)
     case "DATE_FROM_PARTS" => FunctionDefinition.standard(3)
     case "DATE_PART" => FunctionDefinition.standard(2)
@@ -52,7 +54,8 @@ class SnowflakeFunctionBuilder extends FunctionBuilder {
     case "DIV0NULL" => FunctionDefinition.standard(2)
     case "ENDSWITH" => FunctionDefinition.standard(2)
     case "EQUAL_NULL" => FunctionDefinition.standard(2)
-    // TODO: support named arguments
+    case "EXTRACT" => FunctionDefinition.standard(2)
+// TODO: support named arguments
     case "FLATTEN" => FunctionDefinition.standard(1, 5)
     case "GET" => FunctionDefinition.standard(2)
     case "HASH" => FunctionDefinition.standard(1, Int.MaxValue)
@@ -70,7 +73,7 @@ class SnowflakeFunctionBuilder extends FunctionBuilder {
     case "MONTHNAME" => FunctionDefinition.standard(1)
 //    case "MONTH_NAME" => ???
     case "NEXT_DAY" => FunctionDefinition.standard(2)
-//    case "NTH_VALUE" =>
+    case "NTH_VALUE" => FunctionDefinition.standard(2)
     case "NULLIFZERO" => FunctionDefinition.standard(1)
     case "NVL" => FunctionDefinition.standard(2)
     case "NVL2" => FunctionDefinition.standard(3)
@@ -104,13 +107,14 @@ class SnowflakeFunctionBuilder extends FunctionBuilder {
     case "STRTOK" => FunctionDefinition.standard(1, 3)
     case "STRTOK_TO_ARRAY" => FunctionDefinition.standard(1, 2)
     case "SYSDATE" => FunctionDefinition.standard(0)
+    case "TIME" => FunctionDefinition.standard(1, 2).withConversionStrategy(SnowflakeSynonyms)
     case "TIMEADD" => FunctionDefinition.standard(3)
     case "TIMESTAMPADD" => FunctionDefinition.standard(3)
     case "TIMESTAMPDIFF" => FunctionDefinition.standard(3)
     case "TIMESTAMP_FROM_PARTS" => FunctionDefinition.standard(2, 8)
     case "TO_ARRAY" => FunctionDefinition.standard(1)
     case "TO_BOOLEAN" => FunctionDefinition.standard(1)
-    case "TO_CHAR" => FunctionDefinition.standard(1, 2)
+    case "TO_CHAR" => FunctionDefinition.standard(1, 2).withConversionStrategy(SnowflakeSynonyms)
     case "TO_DATE" => FunctionDefinition.standard(1, 2)
     case "TO_DECIMAL" => FunctionDefinition.standard(1, 4)
     case "TO_DOUBLE" => FunctionDefinition.standard(1, 2)
@@ -164,9 +168,12 @@ class SnowflakeFunctionBuilder extends FunctionBuilder {
 
 object SnowflakeFunctionConverters {
 
-  object FunctionRename extends ConversionStrategy {
+  object SnowflakeSynonyms extends ConversionStrategy {
     override def convert(irName: String, args: Seq[ir.Expression]): ir.Expression = {
       irName.toUpperCase() match {
+        case "DATE" => ir.CallFunction("TO_DATE", args)
+        case "TIME" => ir.CallFunction("TO_TIME", args)
+        case "TO_CHAR" => ir.CallFunction("TO_VARCHAR", args)
         case _ => ir.CallFunction(irName, args)
       }
     }

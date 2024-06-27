@@ -21,9 +21,9 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-// $antlr-format alignTrailingComments true, columnLimit 150, maxEmptyLinesToKeep 1, reflowComments false, useTab false
-// $antlr-format allowShortRulesOnASingleLine true, allowShortBlocksOnASingleLine true, minEmptyLines 0, alignSemicolons ownLine
-// $antlr-format alignColons trailing, singleLineOverrulesHangingColon true, alignLexerCommands true, alignLabels true, alignTrailers true
+// =================================================================================
+// Please reformat the grammr file before a change commit. See remorph/core/README.md
+// For formatting, see: https://github.com/mike-lischke/antlr-format/blob/main/doc/formatting.md
 
 // $antlr-format alignTrailingComments true
 // $antlr-format columnLimit 150
@@ -39,7 +39,7 @@ THE SOFTWARE.
 // $antlr-format alignLexerCommands true
 // $antlr-format alignLabels true
 // $antlr-format alignTrailers true
-
+// =================================================================================
 lexer grammar SnowflakeLexer;
 
 options {
@@ -86,7 +86,7 @@ API_PROVIDER                                  : 'API_PROVIDER';
 APPEND                                        : 'APPEND';
 APPEND_ONLY                                   : 'APPEND_ONLY';
 APPLY                                         : 'APPLY';
-ARRAY_AGG                                     : 'ARRAY_AGG';
+ARRAY_AGG                                     : 'ARRAY' '_'? 'AGG';
 AS                                            : 'AS';
 ASC                                           : 'ASC';
 ATTACH                                        : 'ATTACH';
@@ -289,6 +289,7 @@ EXTERNAL_OAUTH_SNOWFLAKE_USER_MAPPING_ATTRIBUTE:
 EXTERNAL_OAUTH_TOKEN_USER_MAPPING_CLAIM        : 'EXTERNAL_OAUTH_TOKEN_USER_MAPPING_CLAIM';
 EXTERNAL_OAUTH_TYPE                            : 'EXTERNAL_OAUTH_TYPE';
 EXTERNAL_STAGE                                 : 'EXTERNAL_STAGE';
+EXTRACT                                        : 'EXTRACT';
 FAILOVER                                       : 'FAILOVER';
 FALSE                                          : 'FALSE';
 FETCH                                          : 'FETCH';
@@ -408,7 +409,6 @@ LOCKS                                          : 'LOCKS';
 LOCK_TIMEOUT                                   : 'LOCK_TIMEOUT';
 LOGIN_NAME                                     : 'LOGIN_NAME';
 LOOKER                                         : 'LOOKER';
-LTRIM                                          : 'LTRIM';
 LZO                                            : 'LZO';
 MANAGE                                         : 'MANAGE';
 MANAGED                                        : 'MANAGED';
@@ -614,7 +614,6 @@ ROWS_PER_RESULTSET                       : 'ROWS_PER_RESULTSET';
 ROW_NUMBER                               : 'ROW_NUMBER';
 RSA_PUBLIC_KEY                           : 'RSA_PUBLIC_KEY';
 RSA_PUBLIC_KEY_2                         : 'RSA_PUBLIC_KEY_2';
-RTRIM                                    : 'RTRIM';
 RUN_AS_ROLE                              : 'RUN_AS_ROLE';
 RUNTIME_VERSION                          : 'RUNTIME_VERSION';
 S3                                       : '\'S3\'';
@@ -755,9 +754,6 @@ TIME_FORMAT                              : 'TIME_FORMAT';
 TIME_INPUT_FORMAT                        : 'TIME_INPUT_FORMAT';
 TIME_OUTPUT_FORMAT                       : 'TIME_OUTPUT_FORMAT';
 TO                                       : 'TO';
-TO_DATE                                  : 'TO_DATE';
-TO_TIME                                  : 'TO_TIME';
-TO_TIMESTAMP                             : 'TO_TIMESTAMP';
 TOP                                      : 'TOP';
 TRANSACTION                              : 'TRANSACTION';
 TRANSACTIONS                             : 'TRANSACTIONS';
@@ -765,7 +761,6 @@ TRANSACTION_ABORT_ON_ERROR               : 'TRANSACTION_ABORT_ON_ERROR';
 TRANSACTION_DEFAULT_ISOLATION_LEVEL      : 'TRANSACTION_DEFAULT_ISOLATION_LEVEL';
 TRANSIENT                                : 'TRANSIENT';
 TRIGGERS                                 : 'TRIGGERS';
-TRIM                                     : 'TRIM';
 TRIM_SPACE                               : 'TRIM_SPACE';
 TRUE                                     : 'TRUE';
 TRUNCATE                                 : 'TRUNCATE';

@@ -21,12 +21,14 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
+// =================================================================================
+// Please reformat the grammr file before a change commit. See remorph/core/README.md
 // For formatting, see: https://github.com/mike-lischke/antlr-format/blob/main/doc/formatting.md
 // $antlr-format alignColons hanging
 // $antlr-format columnLimit 150
 // $antlr-format alignSemicolons hanging
 // $antlr-format alignTrailingComments true
-
+// =================================================================================
 parser grammar SnowflakeParser;
 
 options {
@@ -36,7 +38,7 @@ options {
 snowflakeFile: batch? EOF
     ;
 
-batch: sqlCommand (SEMI sqlCommand)* SEMI?
+batch: sqlCommand (SEMI* sqlCommand)* SEMI*
     ;
 
 sqlCommand: ddlCommand | dmlCommand | showCommand | useCommand | describeCommand | otherCommand
@@ -2947,7 +2949,11 @@ idFn: id | IDENTIFIER L_PAREN id R_PAREN
     ;
 
 id
-    : ID | ID2 | DOUBLE_QUOTE_ID | DOUBLE_QUOTE_BLANK | nonReservedWords //id is used for object name. Snowflake is very permissive
+    : ID
+    | ID2
+    | DOUBLE_QUOTE_ID
+    | DOUBLE_QUOTE_BLANK
+    | nonReservedWords //id is used for object name. Snowflake is very permissive
     ;
 
 nonReservedWords
@@ -2957,6 +2963,7 @@ nonReservedWords
     | ACTION
     | AES
     | ALERT
+    | ARRAY
     | ARRAY_AGG
     | AT_KEYWORD
     | CHECKSUM
@@ -2968,6 +2975,7 @@ nonReservedWords
     | CONFIGURATION
     | COPY_OPTIONS_
     | DATA
+    | DATE
     | DATE_FORMAT
     | DEFINITION
     | DELTA
@@ -2996,6 +3004,7 @@ nonReservedWords
     | INTERVAL
     | JAVASCRIPT
     | KEY
+    | KEYS
     | LANGUAGE
     | LAST_NAME
     | LAST_QUERY_ID
@@ -3048,6 +3057,7 @@ nonReservedWords
     | TAGS
     | TARGET_LAG
     | TEMP
+    | TIME
     | TIMESTAMP
     | TIMEZONE
     | TYPE
@@ -3107,17 +3117,20 @@ expr
     | expr AND expr                             # exprAnd
     | expr OR expr                              # exprOr
     | arrLiteral                                # exprArrayLit
-    //    | expr timeZone
-    | expr overClause           # exprOver
-    | castExpr                  # exprCast
-    | expr COLON_COLON dataType # exprAscribe
-    | jsonLiteral               # exprJsonLit
-    | functionCall              # exprFuncCall
-    // Probably wrong
-    | subquery              # exprSubquery
-    | expr predicatePartial # exprPredicate
+    | expr withinGroup                          # exprWithinGroup
+    | expr overClause                           # exprOver
+    | castExpr                                  # exprCast
+    | expr COLON_COLON dataType                 # exprAscribe
+    | jsonLiteral                               # exprJsonLit
+    | functionCall                              # exprFuncCall
+    | subquery                                  # exprSubquery
+    | expr predicatePartial                     # exprPredicate
+    | DISTINCT expr                             # exprDistinct
     //Should be latest rule as it's nearly a catch all
-    | primitiveExpression # exprPrimitive
+    | primitiveExpression                       # exprPrimitive
+    ;
+
+withinGroup: WITHIN GROUP L_PAREN orderByClause R_PAREN
     ;
 
 predicatePartial
@@ -3138,12 +3151,8 @@ jsonPathElem: ID | DOUBLE_QUOTE_ID
 iffExpr: IFF L_PAREN searchCondition COMMA expr COMMA expr R_PAREN
     ;
 
-trimExpression: (TRIM | LTRIM | RTRIM) L_PAREN expr (COMMA string)* R_PAREN
-    ;
-
 castExpr
     : castOp = (TRY_CAST | CAST) L_PAREN expr AS dataType R_PAREN
-    | conversion = (TO_TIMESTAMP | TO_DATE | DATE | TO_TIME | TIME) L_PAREN expr R_PAREN
     | INTERVAL expr
     ;
 
@@ -3223,15 +3232,10 @@ functionCall
     | standardFunction
     | rankingWindowedFunction
     | aggregateFunction
-    //    | aggregateWindowedFunction
     ;
 
 builtinFunction
-    : trim = (TRIM | LTRIM | RTRIM) L_PAREN expr (COMMA string)? R_PAREN # builtinTrim
-    //    : unaryOrBinaryBuiltinFunction L_PAREN expr (COMMA expr)* R_PAREN
-    //    | binaryBuiltinFunction L_PAREN expr COMMA expr R_PAREN
-    //    | binaryOrTernaryBuiltinFunction L_PAREN expr COMMA expr (COMMA expr)* R_PAREN
-    //    | ternaryBuiltinFunction L_PAREN expr COMMA expr COMMA expr R_PAREN
+    : EXTRACT L_PAREN part = (STRING | ID) FROM expr R_PAREN  # builtinExtract
     ;
 
 standardFunction: id L_PAREN exprList? R_PAREN
@@ -3298,7 +3302,7 @@ withExpression: WITH commonTableExpression (COMMA commonTableExpression)*
     ;
 
 commonTableExpression
-    : id (L_PAREN columns = columnList R_PAREN)? AS L_PAREN selectStatement setOperators* R_PAREN
+    : id (L_PAREN columnList R_PAREN)? AS L_PAREN selectStatement setOperators* R_PAREN
     ;
 
 selectStatement

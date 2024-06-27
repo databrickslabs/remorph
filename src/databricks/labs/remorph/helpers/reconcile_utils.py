@@ -9,6 +9,8 @@ from databricks.sdk import WorkspaceClient
 
 logger = logging.getLogger(__name__)
 
+README_RECON_REPO = "https://github.com/databrickslabs/remorph/blob/main/docs/README_RECON.md"
+
 
 class ReconcileUtils:
     def __init__(self, w: WorkspaceClient, installation: Installation, prompts: Prompts = Prompts()):
@@ -55,13 +57,17 @@ class ReconcileUtils:
             logger.info(f"Loading TableRecon `{filename}` from Databricks Workspace...")
             table_recon = self._installation.load(type_ref=TableRecon, filename=filename)
         except NotFound as err:
-            logger.error(f"Cannot find previous `reconcile` installation: {err}")
-            raise err
+            logger.error(
+                f"Cannot find recon_config file : {err}. \nPlease refer this "
+                f"{README_RECON_REPO} to create the recon_config file."
+            )
+            return None
         except (PermissionDenied, SerdeError, ValueError, AttributeError) as ex:
             logger.error(
-                f"Existing installation at {self._installation.install_folder()}/{filename} is corrupted. Skipping..."
+                f"Existing recon_config file at `{self._installation.install_folder()}/{filename}` is corrupted. `{ex}`"
+                f"\nPlease validate the file, verify it using {README_RECON_REPO}"
             )
-            raise ex
+            return None
 
         assert table_recon, f"Error: Cannot load `recon_config` from {self._installation.install_folder()}/{filename}. "
 

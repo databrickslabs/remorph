@@ -2,6 +2,7 @@ package com.databricks.labs.remorph.parsers.common
 
 import com.databricks.labs.remorph.parsers.intermediate.UnresolvedFunction
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeFunctionBuilder
+import com.databricks.labs.remorph.parsers.snowflake.SnowflakeFunctionConverters.SnowflakeSynonyms
 import com.databricks.labs.remorph.parsers.tsql.TSqlFunctionBuilder
 import com.databricks.labs.remorph.parsers.{intermediate => ir, _}
 import org.scalatest.flatspec.AnyFlatSpec
@@ -68,6 +69,7 @@ class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenProp
       ("CURRENT_DATABASE", Some(FunctionDefinition.standard(0))),
       ("CURRENT_TIMESTAMP", Some(FunctionDefinition.standard(0, 1))),
       ("DATEDIFF", Some(FunctionDefinition.standard(3))),
+      ("DATE", Some(FunctionDefinition.standard(1, 2).withConversionStrategy(SnowflakeSynonyms))),
       ("DATE_FROM_PARTS", Some(FunctionDefinition.standard(3))),
       ("DATE_PART", Some(FunctionDefinition.standard(2))),
       ("DATE_TRUNC", Some(FunctionDefinition.standard(2))),
@@ -78,6 +80,7 @@ class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenProp
       ("DIV0NULL", Some(FunctionDefinition.standard(2))),
       ("ENDSWITH", Some(FunctionDefinition.standard(2))),
       ("EQUAL_NULL", Some(FunctionDefinition.standard(2))),
+      ("EXTRACT", Some(FunctionDefinition.standard(2))),
       ("FLATTEN", Some(FunctionDefinition.standard(1, 5))),
       ("GET", Some(FunctionDefinition.standard(2))),
       ("HASH", Some(FunctionDefinition.standard(1, Int.MaxValue))),
@@ -95,6 +98,7 @@ class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenProp
       ("MONTHNAME", Some(FunctionDefinition.standard(1))),
       ("NEXT_DAY", Some(FunctionDefinition.standard(2))),
       ("NULLIFZERO", Some(FunctionDefinition.standard(1))),
+      ("NTH_VAlUE", Some(FunctionDefinition.standard(2))),
       ("NVL", Some(FunctionDefinition.standard(2))),
       ("NVL2", Some(FunctionDefinition.standard(3))),
       ("OBJECT_CONSTRUCT", Some(FunctionDefinition.standard(1, Int.MaxValue))),
@@ -127,13 +131,14 @@ class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenProp
       ("STRTOK", Some(FunctionDefinition.standard(1, 3))),
       ("STRTOK_TO_ARRAY", Some(FunctionDefinition.standard(1, 2))),
       ("SYSDATE", Some(FunctionDefinition.standard(0))),
+      ("TIME", Some(FunctionDefinition.standard(1, 2).withConversionStrategy(SnowflakeSynonyms))),
       ("TIMEADD", Some(FunctionDefinition.standard(3))),
       ("TIMESTAMPADD", Some(FunctionDefinition.standard(3))),
       ("TIMESTAMPDIFF", Some(FunctionDefinition.standard(3))),
       ("TIMESTAMP_FROM_PARTS", Some(FunctionDefinition.standard(2, 8))),
       ("TO_ARRAY", Some(FunctionDefinition.standard(1))),
       ("TO_BOOLEAN", Some(FunctionDefinition.standard(1))),
-      ("TO_CHAR", Some(FunctionDefinition.standard(1, 2))),
+      ("TO_CHAR", Some(FunctionDefinition.standard(1, 2).withConversionStrategy(SnowflakeSynonyms))),
       ("TO_DATE", Some(FunctionDefinition.standard(1, 2))),
       ("TO_DECIMAL", Some(FunctionDefinition.standard(1, 4))),
       ("TO_DOUBLE", Some(FunctionDefinition.standard(1, 2))),

@@ -49,6 +49,19 @@ class SnowflakeExpressionBuilderSpec
         Column(Some(ObjectReference(Id("My Table", caseSensitive = true))), Id("x")))
     }
 
+    "translate functions with special syntax" in {
+
+      example(
+        "EXTRACT(day FROM date1)",
+        _.builtinFunction(),
+        CallFunction("EXTRACT", Seq(Id("day"), simplyNamedColumn("date1"))))
+
+      example(
+        "EXTRACT('day' FROM date1)",
+        _.builtinFunction(),
+        CallFunction("EXTRACT", Seq(Id("day"), simplyNamedColumn("date1"))))
+    }
+
     "translate aggregation functions" in {
       example("COUNT(x)", _.aggregateFunction(), CallFunction("COUNT", Seq(simplyNamedColumn("x"))))
       example("AVG(x)", _.aggregateFunction(), CallFunction("AVG", Seq(simplyNamedColumn("x"))))
