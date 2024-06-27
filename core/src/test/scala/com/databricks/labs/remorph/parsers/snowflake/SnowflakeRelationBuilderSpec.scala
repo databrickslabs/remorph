@@ -257,13 +257,15 @@ class SnowflakeRelationBuilderSpec
       example(
         "SELECT TOP 42 a FROM t",
         _.selectStatement(),
-        Project(Limit(namedTable("t"), 42), Seq(simplyNamedColumn("a"))))
+        Project(Limit(namedTable("t"), Literal(short = Some(42))), Seq(simplyNamedColumn("a"))))
 
       example(
         "SELECT DISTINCT TOP 42 a FROM t",
         _.selectStatement(),
         Project(
-          Limit(Deduplicate(namedTable("t"), Seq(Id("a")), all_columns_as_keys = false, within_watermark = false), 42),
+          Limit(
+            Deduplicate(namedTable("t"), Seq(Id("a")), all_columns_as_keys = false, within_watermark = false),
+            Literal(short = Some(42))),
           Seq(simplyNamedColumn("a"))))
     }
 
