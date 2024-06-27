@@ -26,20 +26,19 @@ class OptionBuilder(expressionBuilder: TSqlExpressionBuilder) {
 
   private[tsql] def buildOption(ctx: TSqlParser.GenericOptionContext): GenericOption = {
     val id = ctx.id(0).getText.toUpperCase()
-    id match {
-      case "DEFAULT" => OptionDefault(id)
-      case "ON" => OptionOn(id)
-      case "OFF" => OptionOff(id)
-      case "AUTO" => OptionAuto(id)
-      case _ if ctx.DEFAULT() != null => OptionDefault(id)
-      case _ if ctx.ON() != null => OptionOn(id)
-      case _ if ctx.OFF() != null => OptionOff(id)
-      case _ if ctx.AUTO() != null => OptionAuto(id)
-      case _ if ctx.STRING() != null => OptionString(id, ctx.STRING().getText)
-      case _ if ctx.expression() != null =>
-        val supplement = if (ctx.id(1) != null) Some(ctx.id(1).getText) else None
-        OptionExpression(id, ctx.expression().accept(expressionBuilder), supplement)
-
+    ctx match {
+      case c if c.DEFAULT() != null => OptionDefault(id)
+      case c if c.ON() != null => OptionOn(id)
+      case c if c.OFF() != null => OptionOff(id)
+      case c if c.AUTO() != null => OptionAuto(id)
+      case c if c.STRING() != null => OptionString(id, c.STRING().getText)
+      case c if c.expression() != null =>
+        val supplement = if (c.id(1) != null) Some(ctx.id(1).getText) else None
+        OptionExpression(id, c.expression().accept(expressionBuilder), supplement)
+      case _ if id == "DEFAULT" => OptionDefault(id)
+      case _ if id == "ON" => OptionOn(id)
+      case _ if id == "OFF" => OptionOff(id)
+      case _ if id == "AUTO" => OptionAuto(id)
       // All other cases being OptionOn as it is a single keyword representing true
       case _ => OptionOn(id)
     }
