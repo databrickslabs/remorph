@@ -3,6 +3,7 @@ from sqlglot import exp
 from sqlglot.helper import seq_get
 from sqlglot.errors import ParseError
 from sqlglot.dialects.dialect import locate_to_strposition
+from sqlglot.tokens import TokenType
 
 
 def _build_approx_percentile(args: list) -> exp.Expression:
@@ -38,6 +39,13 @@ class Presto(presto):
         VALUES_FOLLOWED_BY_PAREN = False
 
         FUNCTIONS = {
+            **presto.Parser.FUNCTIONS,
             "APPROX_PERCENTILE": _build_approx_percentile,
             "STRPOS": locate_to_strposition,
+        }
+
+    class Tokenizer(presto.Tokenizer):
+        KEYWORDS = {
+            **presto.Tokenizer.KEYWORDS,
+            "JSON": TokenType.TEXT,
         }
