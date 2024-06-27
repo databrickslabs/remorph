@@ -238,6 +238,7 @@ def setup_databricks_src(setup_teardown, spark, test_config):
 
 
 def test_execute_report_type_is_all_with_all_match(setup_databricks_src, spark, ws, test_config, reconcile_config):
+    reconcile_config.report_type = 'all'
     table_recon = TableRecon(
         source_schema=test_config.db_mock_schema,
         source_catalog=test_config.db_mock_catalog,
@@ -270,16 +271,17 @@ def test_execute_report_type_is_all_with_all_match(setup_databricks_src, spark, 
     assert recon_result.results[0].status == StatusOutput(row=True, column=True, schema=True)
     assert recon_result.results[0].exception_message == ''
     assert (
-        recon_result.results[0].source_table_name
-        == f"{test_config.db_mock_catalog}.{test_config.db_mock_schema}.lineitem_src"
+            recon_result.results[0].source_table_name
+            == f"{test_config.db_mock_catalog}.{test_config.db_mock_schema}.lineitem_src"
     )
     assert (
-        recon_result.results[0].target_table_name
-        == f"{test_config.db_mock_catalog}.{test_config.db_mock_schema}.lineitem_tgt"
+            recon_result.results[0].target_table_name
+            == f"{test_config.db_mock_catalog}.{test_config.db_mock_schema}.lineitem_tgt"
     )
 
 
 def test_execute_report_type_is_all(ws, spark, setup_databricks_src, test_config, reconcile_config):
+    reconcile_config.report_type = 'all'
     key_columns = ["l_orderkey", "l_linenumber"]
     table_recon = TableRecon(
         source_schema=test_config.db_mock_schema,
@@ -323,13 +325,10 @@ def test_execute_report_type_is_all(ws, spark, setup_databricks_src, test_config
     assertDataFrameEqual(
         reports.threshold_mismatch, spark.createDataFrame([('3', '3')], ['l_orderkey_source', 'l_linenumber_source'])
     )
-    assertDataFrameEqual(
-        reports.metrics,
-        spark.createDataFrame(
-            [('1', '1', '1', '1', 'l_quantity,l_receiptdate', 'false')],
-            ['missing_in_src', 'missing_in_tgt', 'mismatch', 'threshold_mismatch', 'mismatch_columns', 'schema_valid'],
-        ),
-    )
+    assert reports.metrics == Row(recon_metrics=Row(
+        row_comparison=Row(missing_in_source=1, missing_in_target=1),
+        column_comparison=Row(absolute_mismatch=1, threshold_mismatch=1, mismatch_columns='l_quantity,l_receiptdate'),
+        schema_comparison=False))
 
 
 def test_execute_report_type_is_schema(ws, spark, setup_databricks_src, test_config, reconcile_config):
@@ -370,6 +369,7 @@ def test_execute_report_type_is_schema(ws, spark, setup_databricks_src, test_con
 
 
 def test_execute_fail_for_tables_not_available(ws, spark, setup_databricks_src, test_config, reconcile_config):
+    reconcile_config.report_type = 'all'
     table_recon = TableRecon(
         source_schema=test_config.db_mock_schema,
         source_catalog=test_config.db_mock_catalog,
@@ -393,7 +393,8 @@ def test_execute_fail_for_tables_not_available(ws, spark, setup_databricks_src, 
 
     with pytest.raises(ReconciliationException) as exc_info:
         recon(ws=ws, spark=spark, table_recon=table_recon, reconcile_config=reconcile_config)
+
     assert (
-        "[TABLE_OR_VIEW_NOT_FOUND] The table or view `remorph_integration_test`.`test`.`remorph_src_unknown` "
-        "cannot be found"
-    ) in str(exc_info.value)
+               "[TABLE_OR_VIEW_NOT_FOUND] The table or view `remorph_integration_test`.`test`.`remorph_src_unknown` "
+               "cannot be found"
+           ) in str(exc_info.value)
