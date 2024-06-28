@@ -660,3 +660,8 @@ class Databricks(org_databricks.Databricks):  #
             )
 
             return self.function_fallback_sql(expression)
+
+        def anonymous_sql(self: org_databricks.Databricks.Generator, expression: exp.Anonymous) -> str:
+            if expression.this == "EDITDISTANCE":
+                return self.func("LEVENSHTEIN", *expression.expressions)
+            return self.func(self.sql(expression, "this"), *expression.expressions)
