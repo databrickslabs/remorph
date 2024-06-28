@@ -131,7 +131,7 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.Relation] {
   override def visitTableSource(ctx: TableSourceContext): ir.Relation = {
     val left = ctx.tableSourceItem().accept(this)
     ctx match {
-      case c if c.joinPart() != null => c.joinPart().asScala.foldLeft(left)(buildJoin)
+      case c if c.joinPart() != null => c.joinPart().asScala.foldLeft(left)(buildJoinPart)
     }
   }
 
@@ -141,6 +141,84 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.Relation] {
       .map(alias => ir.TableAlias(ctx.tableName().accept(this), alias.id.getText))
       .getOrElse(ctx.tableName().accept(this))
 
+  private def buildJoinPart(left: ir.Relation, ctx: JoinPartContext): ir.Relation = {
+    ctx match {
+      case c if c.joinOn() != null => buildJoinOn(left, c.joinOn())
+      case c if c.crossJoin() != null => buildCrossJoin(left, c.crossJoin())
+      case c if c.apply() != null => buildApply(left, c.apply())
+      case c if c.pivot() != null => buildPivot(left, c.pivot())
+      case _ => buildUnpivot(left, ctx.unpivot()) // Only case left
+    }
+  }
+
+  private def buildUnpivot(left: Relation, ctx: UnpivotContext): ir.Relation = {
+    val unpivotColumns = ctx
+      .unpivotClause()
+      .fullColumnNameList()
+      .fullColumnName()
+      .asScala
+      .map(_.accept(expressionBuilder))
+    val variableColumnName = expressionBuilder.visitId(ctx.unpivotClause().id(0))
+    val valueColumnName = expressionBuilder.visitId(ctx.unpivotClause().id(1))
+    ir.Unpivot(
+      input = left,
+      ids = unpivotColumns,
+      values = None,
+      variable_column_name = variableColumnName,
+      value_column_name = valueColumnName)
+  }
+
+  private def buildPivot(left: Relation, ctx: PivotContext): ir.Relation = {
+    // Though the pivotClause allows expression, it must be a function call and we require
+    // correct source code to be given to remorph.
+    val aggregateFunction = ctx.pivotClause().expression().accept(expressionBuilder)
+    val column = ctx.pivotClause().fullColumnName().accept(expressionBuilder)
+    val values = ctx.pivotClause().columnAliasList().columnAlias().asScala.map(c => buildLiteral(c.getText))
+    ir.Aggregate(
+      input = left,
+      group_type = ir.Pivot,
+      grouping_expressions = Seq(aggregateFunction),
+      pivot = Some(ir.Pivot(column, values)))
+  }
+
+  private def buildLiteral(str: String): ir.Literal =
+    ir.Literal(string = Some(removeQuotesAndBrackets(str)))
+
+  private def buildApply(left: Relation, ctx: ApplyContext): ir.Relation = {
+    val rightRelation = ctx.tableSourceItem().accept(this)
+    ir.Join(
+      left,
+      rightRelation,
+      None,
+      if (ctx.CROSS() != null) ir.CrossApply else ir.OuterApply,
+      Seq.empty,
+      ir.JoinDataType(is_left_struct = false, is_right_struct = false))
+  }
+
+  private def buildCrossJoin(left: Relation, ctx: CrossJoinContext): ir.Relation = {
+    val rightRelation = ctx.tableSourceItem().accept(this)
+    ir.Join(
+      left,
+      rightRelation,
+      None,
+      ir.CrossJoin,
+      Seq.empty,
+      ir.JoinDataType(is_left_struct = false, is_right_struct = false))
+  }
+
+  private def buildJoinOn(left: ir.Relation, ctx: JoinOnContext): ir.Join = {
+    val rightRelation = ctx.tableSource().accept(this)
+    val joinCondition = ctx.searchCondition().accept(expressionBuilder)
+
+    ir.Join(
+      left,
+      rightRelation,
+      Some(joinCondition),
+      translateJoinType(ctx),
+      Seq.empty,
+      ir.JoinDataType(is_left_struct = false, is_right_struct = false))
+  }
+
   private[tsql] def translateJoinType(ctx: JoinOnContext): ir.JoinType = ctx.joinType() match {
     case jt if jt == null || jt.outerJoin() == null || jt.INNER() != null => ir.InnerJoin
     case jt if jt.outerJoin().LEFT() != null => ir.LeftOuterJoin
@@ -149,17 +227,18 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.Relation] {
     case _ => ir.UnspecifiedJoin
   }
 
-  private def buildJoin(left: ir.Relation, right: JoinPartContext): ir.Join = {
-    val joinExpression = right.joinOn()
-    val rightRelation = joinExpression.tableSource().accept(this)
-    val joinCondition = joinExpression.searchCondition().accept(expressionBuilder)
-
-    ir.Join(
-      left,
-      rightRelation,
-      Some(joinCondition),
-      translateJoinType(joinExpression),
-      Seq.empty,
-      ir.JoinDataType(is_left_struct = false, is_right_struct = false))
+  private def removeQuotesAndBrackets(str: String): String = {
+    val quotations = Map('\'' -> "'", '"' -> "\"", '[' -> "]", '\\' -> "\\")
+    str match {
+      case s if s.length < 2 => s
+      case s =>
+        quotations.get(s.head).fold(s) { closingQuote =>
+          if (s.endsWith(closingQuote)) {
+            s.substring(1, s.length - 1)
+          } else {
+            s
+          }
+        }
+    }
   }
 }
