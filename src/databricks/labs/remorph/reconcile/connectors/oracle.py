@@ -1,14 +1,18 @@
+import logging
 import re
 
 from pyspark.errors import PySparkException
 from pyspark.sql import DataFrame, DataFrameReader, SparkSession
 from sqlglot import Dialect
 
-from databricks.labs.remorph.reconcile.connectors.data_source import DataSource
+from databricks.labs.remorph.config import TableRecon
+from databricks.labs.remorph.reconcile.connectors.data_source import DataSource, get_where_condition, build_table_recon
 from databricks.labs.remorph.reconcile.connectors.jdbc_reader import JDBCReaderMixin
 from databricks.labs.remorph.reconcile.connectors.secrets import SecretsMixin
-from databricks.labs.remorph.reconcile.recon_config import JdbcReaderOptions, Schema
+from databricks.labs.remorph.reconcile.recon_config import JdbcReaderOptions, Schema, Table
 from databricks.sdk import WorkspaceClient
+
+logger = logging.getLogger(__name__)
 
 
 class OracleDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
@@ -91,3 +95,31 @@ class OracleDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
 
     def reader(self, query: str) -> DataFrameReader:
         return self._get_jdbc_reader(query, self.get_jdbc_url, OracleDataSource._DRIVER)
+
+    def list_tables(
+        self,
+        catalog: str | None,
+        schema: str,
+        include_list: list[str] | None,
+        exclude_list: list[str] | None,
+    ) -> TableRecon:
+
+        where_cond = get_where_condition(include_list, exclude_list)
+
+        assert catalog is None, f"Invalid parameter {catalog}"
+
+        logger.debug(f"Fetching Oracle Table list for `{schema}`")
+
+        tables_query = f"SELECT table_name  FROM all_tables WHERE owner = '{schema.upper()}' {where_cond}"
+
+        try:
+            logger.info(f" Executing query: {tables_query}")
+            tables_df = self.reader(tables_query).load()
+
+            tables_list = [
+                Table(source_name=row.table_name.lower(), target_name=row.table_name.lower())
+                for row in tables_df.collect()
+            ]
+            return build_table_recon(catalog, schema, tables_list)
+        except (RuntimeError, PySparkException) as e:
+            return self.log_and_throw_exception(e, "list_tables", tables_query)

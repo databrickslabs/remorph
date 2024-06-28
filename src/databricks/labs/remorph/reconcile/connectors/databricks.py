@@ -6,6 +6,7 @@ from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.functions import col
 from sqlglot import Dialect
 
+from databricks.labs.remorph.config import TableRecon
 from databricks.labs.remorph.reconcile.connectors.data_source import DataSource
 from databricks.labs.remorph.reconcile.connectors.secrets import SecretsMixin
 from databricks.labs.remorph.reconcile.recon_config import JdbcReaderOptions, Schema
@@ -70,3 +71,13 @@ class DatabricksDataSource(DataSource, SecretsMixin):
             return [Schema(field.col_name.lower(), field.data_type.lower()) for field in schema_df.collect()]
         except (RuntimeError, PySparkException) as e:
             return self.log_and_throw_exception(e, "schema", schema_query)
+
+    def list_tables(
+        self,
+        catalog: str | None,
+        schema: str,
+        include_list: list[str] | None,
+        exclude_list: list[str] | None,
+    ) -> TableRecon:
+        # TODO: Implement list_tables in the DatabricksDataSource
+        raise NotImplementedError("list_tables method is not implemented for DatabricksDataSource yet...")

@@ -25,7 +25,8 @@ def test_get_schema():
     engine, spark, ws, scope = initial_setup()
 
     # catalog as catalog
-    dd = DatabricksDataSource(engine, spark, ws, scope)
+    dd = DatabricksDataSource(get_dialect("databricks"), spark, ws, scope)
+
     dd.get_schema("catalog", "schema", "supplier")
     spark.sql.assert_called_with(
         re.sub(
@@ -50,7 +51,7 @@ def test_read_data_from_uc():
     engine, spark, ws, scope = initial_setup()
 
     # create object for DatabricksDataSource
-    dd = DatabricksDataSource(engine, spark, ws, scope)
+    dd = DatabricksDataSource(get_dialect("databricks"), spark, ws, scope)
 
     # Test with query
     dd.read_data("org", "data", "employee", "select id as id, name as name from :tbl", None)
@@ -101,3 +102,12 @@ def test_get_schema_exception_handling():
         "where lower(table_catalog)='org' and lower(table_schema)='data' and lower("
         "table_name) ='employee' order by col_name : Test Exception"
     )
+
+
+def test_list_tables_exception_handling():
+    # initial setup
+    engine, spark, ws, scope = initial_setup()
+    ds = DatabricksDataSource(engine, spark, ws, scope)
+
+    with pytest.raises(NotImplementedError, match="list_tables method is not implemented"):
+        ds.list_tables(catalog=None, schema="dummy", include_list=None, exclude_list=None)

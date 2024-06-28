@@ -103,3 +103,31 @@ def test_mock_data_source_no_catalog(mock_spark):
     )
 
     assertDataFrameEqual(actual_data, expected_data)
+
+
+def test_mock_data_source_list_tables_exception(mock_spark):
+    dataframe_repository = {
+        (
+            "",
+            "data",
+            "select * from employee",
+        ): mock_spark.createDataFrame(
+            [
+                Row(emp_id="1", emp_name="name-1", sal=100),
+                Row(emp_id="2", emp_name="name-2", sal=200),
+                Row(emp_id="3", emp_name="name-3", sal=300),
+            ]
+        )
+    }
+    schema_repository = {
+        (catalog, schema, table): [
+            Schema(column_name="emp_id", data_type="int"),
+            Schema(column_name="emp_name", data_type="str"),
+            Schema(column_name="sal", data_type="int"),
+        ]
+    }
+
+    data_source = MockDataSource(dataframe_repository, schema_repository)
+
+    with pytest.raises(NotImplementedError, match="list_tables method is not implemented"):
+        data_source.list_tables(None, schema, None, None)

@@ -303,7 +303,7 @@ class InstallPrompts:
             source_catalog = self._prompts.question(f"Enter `{source.capitalize()}` Catalog name")
 
         schema_prompt = f"Enter `{source.capitalize()}` Schema name"
-        if source in {SourceType.ORACLE.value, SourceType.SNOWFLAKE.value}:
+        if source in {SourceType.ORACLE.value}:
             schema_prompt = f"Enter `{source.capitalize()}` Database name"
 
         source_schema = self._prompts.question(schema_prompt)
@@ -387,9 +387,9 @@ class ReconciliationMetadataSetup:
 
     def deploy_tables(self):
         logger.info("Deploying reconciliation metadata tables.")
-        self._table_deployer.deploy_table("main", "queries/reconcile/installation/main.sql")
-        self._table_deployer.deploy_table("metrics", "queries/reconcile/installation/metrics.sql")
-        self._table_deployer.deploy_table("details", "queries/reconcile/installation/details.sql")
+        self._table_deployer.deploy_table("main", "reconcile/queries/installation/main.sql")
+        self._table_deployer.deploy_table("metrics", "reconcile/queries/installation/metrics.sql")
+        self._table_deployer.deploy_table("details", "reconcile/queries/installation/details.sql")
 
     def run(self):
         self.configure_catalog()
@@ -444,7 +444,7 @@ class WorkspaceInstallation:
             "schema": self._config.reconcile.metadata_config.schema,
         }
 
-        reconcile_dashboard_path = "dashboards/Remorph-Reconciliation.lvdash.json"
+        reconcile_dashboard_path = "reconcile/dashboards/Remorph-Reconciliation.lvdash.json"
         dashboard_resource = files(databricks.labs.remorph.resources).joinpath(reconcile_dashboard_path)
         dashboard_publisher = DashboardPublisher(self._ws, self._installation)
         logger.info("Creating Reconciliation Dashboard.")
