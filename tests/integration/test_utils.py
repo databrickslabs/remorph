@@ -38,7 +38,7 @@ def _get_reconcile_details(report_data: DataFrame) -> DataFrame:
     return report_data.select(col("recon_type"), col("sample_data"))
 
 
-def _get_reconcile_sample_data(recon_type: str, details: DataFrame, key_columns: list[str] | None) -> DataFrame:
+def _get_reconcile_sample_data(recon_type: str, details: DataFrame, key_columns: list[str]) -> DataFrame:
     return (
         details.where(col("recon_type") == recon_type)
         .select(explode(col("sample_data")).alias("sample_data_exploded"))
@@ -46,24 +46,27 @@ def _get_reconcile_sample_data(recon_type: str, details: DataFrame, key_columns:
     )
 
 
-def get_reports(spark: SparkSession, test_config: TestConfig,
-                report_type: str, key_columns: list[str] | None = None, ) -> TestReconReport:
+def get_reports(
+    spark: SparkSession,
+    test_config: TestConfig,
+    report_type: str,
+    key_columns: list[str] | None = None,
+) -> TestReconReport:
     test_report = TestReconReport()
     validation_df = _get_reconcile_report_data(spark, test_config)
     test_report.metrics = _get_reconcile_metrics(validation_df)
     details_df = _get_reconcile_details(validation_df)
-    if report_type in ("data", "all", "row"):
+    if report_type in {"data", "all", "row"} and key_columns is not None:
         test_report.missing_in_src = _get_reconcile_sample_data("missing_in_source", details_df, key_columns)
         test_report.missing_in_tgt = _get_reconcile_sample_data("missing_in_target", details_df, key_columns)
-    if report_type in ("data", "all"):
+    if report_type in {"data", "all"} and key_columns is not None:
         test_report.mismatch = _get_reconcile_sample_data("mismatch", details_df, key_columns)
         test_report.threshold_mismatch = _get_reconcile_sample_data(
             "threshold_mismatch", details_df, [f"{c}_source" for c in key_columns]
         )
 
-    test_report.schema_validation = _get_reconcile_sample_data("schema", details_df,
-                                                               ["source_column", "source_datatype",
-                                                                "databricks_datatype", "is_valid"]).where(
-        col("is_valid") == 'false')
+    test_report.schema_validation = _get_reconcile_sample_data(
+        "schema", details_df, ["source_column", "source_datatype", "databricks_datatype", "is_valid"]
+    ).where(col("is_valid") == 'false')
 
     return test_report
