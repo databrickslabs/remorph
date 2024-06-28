@@ -3254,7 +3254,7 @@ aggregateFunction
     ;
 
 literal
-    : STRING // string, date, time, timestamp
+    : STRING
     | sign? DECIMAL
     | sign? (REAL | FLOAT)
     | trueFalse
