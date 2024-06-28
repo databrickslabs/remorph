@@ -40,6 +40,11 @@ commands:
       {{end}}
   - name: reconcile
     description: Reconcile is an utility to streamline the reconciliation process between source data and target data residing on Databricks.
+  - name: validate-recon-config
+    description: Utility to validate Recon Config file.
+    flags:
+        - name: recon_conf
+          description: Path of the data-recon config
   - name: generate-lineage
     description: Utility to generate a lineage of the SQL files
     flags:

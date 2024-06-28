@@ -1,14 +1,18 @@
 import datetime
 import io
+import json
+from pathlib import Path
 from unittest.mock import create_autospec, patch
 
 import pytest
 import yaml
 
+from databricks.labs.blueprint.installation import SerdeError
 from databricks.labs.blueprint.tui import MockPrompts
 from databricks.labs.remorph import cli
-from databricks.labs.remorph.config import MorphConfig
+from databricks.labs.remorph.config import MorphConfig, TableRecon
 from databricks.labs.remorph.helpers.recon_config_utils import ReconConfigPrompts
+from databricks.labs.remorph.reconcile.recon_config import Table
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.errors import NotFound
 from databricks.labs.blueprint.installation import MockInstallation
@@ -316,6 +320,7 @@ def test_transpile_with_incorrect_input_source(mock_workspace_client_cli):
             schema_name,
             mode,
         )
+
 
 
 def test_generate_lineage_valid_input(temp_dirs_for_lineage, mock_workspace_client_cli):

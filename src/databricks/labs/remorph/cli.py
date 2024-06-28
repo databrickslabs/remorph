@@ -1,18 +1,20 @@
 import json
 import os
+from json import JSONDecodeError
 
 from pyspark.sql import SparkSession
 
 from databricks.connect import DatabricksSession
 from databricks.labs.blueprint.cli import App
 from databricks.labs.blueprint.entrypoint import get_logger
-from databricks.labs.blueprint.installation import Installation
-from databricks.labs.remorph.config import SQLGLOT_DIALECTS, MorphConfig
+from databricks.labs.blueprint.installation import Installation, SerdeError
+from databricks.labs.remorph.config import SQLGLOT_DIALECTS, MorphConfig, TableRecon
 from databricks.labs.remorph.helpers.recon_config_utils import ReconConfigPrompts
 from databricks.labs.remorph.helpers.reconcile_utils import ReconcileUtils
 from databricks.labs.remorph.lineage import lineage_generator
 from databricks.labs.remorph.transpiler.execute import morph
 from databricks.sdk import WorkspaceClient
+from databricks.sdk.errors import ResourceDoesNotExist
 
 remorph = App(__file__)
 logger = get_logger(__file__)
@@ -89,6 +91,21 @@ def reconcile(w: WorkspaceClient):
 
 def _get_spark_session(ws: WorkspaceClient) -> SparkSession:
     return DatabricksSession.builder.sdkConfig(ws.config).getOrCreate()
+
+
+@remorph.command
+def validate_recon_config(w: WorkspaceClient, recon_conf: str):
+    """validates reconciliation config file"""
+    logger.debug(f"user: {w.current_user.me()}")
+    logger.info("Validating reconcile config file")
+
+    try:
+        installation = Installation.current(w, 'remorph')
+        installation.load(type_ref=TableRecon, filename=recon_conf)
+    except (SerdeError, JSONDecodeError, ResourceDoesNotExist) as e:
+        raise_validation_exception(f"Error: Invalid reconciliation config file `{recon_conf}`: {e}")
+
+    logger.info(f"`{recon_conf}` config file is valid")
 
 
 @remorph.command
