@@ -545,8 +545,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
           CrossJoin,
           Seq.empty,
           JoinDataType(is_left_struct = false, is_right_struct = false)),
-        Seq(simplyNamedColumn("a")))
-    )
+        Seq(simplyNamedColumn("a"))))
   }
 
   "translate a query with an explicit OUTER APPLY" in {
@@ -560,8 +559,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
           OuterApply,
           Seq.empty,
           JoinDataType(is_left_struct = false, is_right_struct = false)),
-        Seq(simplyNamedColumn("a")))
-    )
+        Seq(simplyNamedColumn("a"))))
   }
 
   "translate a query with an explicit CROSS APPLY" in {
@@ -575,7 +573,6 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
           CrossApply,
           Seq.empty,
           JoinDataType(is_left_struct = false, is_right_struct = false)),
-        Seq(simplyNamedColumn("a")))
-    )
+        Seq(simplyNamedColumn("a"))))
   }
 }
