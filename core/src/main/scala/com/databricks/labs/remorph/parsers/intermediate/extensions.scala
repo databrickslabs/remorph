@@ -206,3 +206,5 @@ case class Default() extends Expression {}
 // than some simple prescribed action.
 case object CrossApply extends JoinType
 case object OuterApply extends JoinType
+
+case class ColumnAliases(input: Relation, aliases: Seq[Id]) extends RelationCommon {}
