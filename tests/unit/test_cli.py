@@ -62,7 +62,10 @@ def mock_workspace_client_cli():
     workspace_client = create_autospec(WorkspaceClient)
     workspace_client.current_user.me().user_name = "foo"
     workspace_client.workspace.download = download
-    workspace_client.config = Config()
+    config = create_autospec(Config)
+    config.warehouse_id = None
+    config.cluster_id = None
+    workspace_client.config = config
     return workspace_client
 
 
