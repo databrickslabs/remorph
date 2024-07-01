@@ -1613,9 +1613,8 @@ insertStatement: withExpression? insert
     ;
 
 insert
-    : INSERT (TOP LPAREN expression RPAREN PERCENT?)? INTO? (ddlObject | rowsetFunctionLimited) withTableHints? (
-        LPAREN insertColumnNameList RPAREN
-    )? outputClause? insertStatementValue forClause? optionClause? SEMI?
+    : INSERT topClause? INTO? ddlObject withTableHints? (LPAREN expressionList RPAREN)? outputClause? insertStatementValue forClause? optionClause?
+        SEMI?
     ;
 
 insertStatementValue: tableValueConstructor | derivedTable | executeStatement | DEFAULT VALUES
@@ -3283,7 +3282,7 @@ funcProcNameServerDatabaseSchema
     | funcProcNameDatabaseSchema
     ;
 
-ddlObject: tableName | LOCAL_ID
+ddlObject: tableName | rowsetFunctionLimited | LOCAL_ID
     ;
 
 fullColumnName: ((DELETED | INSERTED | tableName) DOT)? ( id | (DOLLAR (IDENTITY | ROWGUID)))

@@ -1,6 +1,8 @@
 package com.databricks.labs.remorph.parsers.tsql
 
 import com.databricks.labs.remorph.parsers.intermediate.TreeNode
+import com.databricks.labs.remorph.parsers.tsql.TSqlParser.DmlClauseContext
+import com.databricks.labs.remorph.parsers.{GenericOption, OptionAuto, OptionDefault, OptionExpression, OptionOff, OptionOn, OptionString, intermediate => ir}
 import com.databricks.labs.remorph.parsers.tsql.TSqlParser.{DmlClauseContext, SelectStatementStandaloneContext}
 import com.databricks.labs.remorph.parsers.{OptionAuto, OptionExpression, OptionOff, OptionOn, OptionString, intermediate => ir}
 
@@ -48,6 +50,13 @@ class TSqlAstBuilder extends TSqlParserBaseVisitor[ir.TreeNode] {
     }
   }
 
+  /**
+   * This is not actually implemented but was a quick way to exercise the genericOption builder before we had other
+   * syntax implemented to test it with.
+   *
+   * @param ctx
+   *   the parse tree
+   */
   override def visitBackupStatement(ctx: TSqlParser.BackupStatementContext): TreeNode = {
     ctx.backupDatabase().accept(this)
   }

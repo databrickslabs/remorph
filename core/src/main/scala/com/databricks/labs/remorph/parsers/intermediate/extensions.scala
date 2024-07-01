@@ -86,6 +86,7 @@ case class Assign(left: Expression, right: Expression) extends Binary(left, righ
 
 // Some statements, such as SELECT, do not require a table specification
 case class NoTable() extends Relation {}
+case class LocalVarTable(id: Id) extends Relation {}
 
 // Table hints are not directly supported in Databricks SQL, but at least some of
 // them will have direct equivalents for the Catalyst optimizer. Hence they are
