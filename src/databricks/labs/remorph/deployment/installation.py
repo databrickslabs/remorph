@@ -6,7 +6,7 @@ from databricks.labs.remorph.config import RemorphConfigs
 from databricks.labs.remorph.contexts.application import CliContext
 from databricks.labs.remorph.deployment.recon import ReconDeployment
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("databricks.labs.remorph.install")
 
 
 class WorkspaceInstallation:
@@ -46,3 +46,4 @@ class WorkspaceInstallation:
             self._recon_deployment.uninstall(self._context.recon_config)
 
         self._context.installation.remove()
+        logger.info("Uninstallation completed successfully.")

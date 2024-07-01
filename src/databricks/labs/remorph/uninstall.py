@@ -25,7 +25,6 @@ def run(context: CliContext):
         ),
     )
     installation.uninstall()
-    logger.info("Uninstallation completed successfully.")
 
 
 if __name__ == "__main__":

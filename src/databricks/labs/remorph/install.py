@@ -3,7 +3,7 @@ import logging
 import os
 import webbrowser
 
-from databricks.labs.blueprint.entrypoint import is_in_debug
+from databricks.labs.blueprint.entrypoint import get_logger, is_in_debug
 from databricks.labs.blueprint.installation import SerdeError
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.errors import PermissionDenied
@@ -286,6 +286,8 @@ class WorkspaceInstaller:
 
 
 if __name__ == "__main__":
+    logger = get_logger(__file__)
+    logger.setLevel("INFO")
     if is_in_debug():
         logging.getLogger("databricks").setLevel(logging.DEBUG)
     app_context = CliContext(WorkspaceClient(product="remorph", product_version=__version__))
