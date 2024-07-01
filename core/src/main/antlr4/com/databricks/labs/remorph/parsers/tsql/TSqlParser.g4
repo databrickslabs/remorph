@@ -3206,28 +3206,8 @@ functionCall
     | hierarchyidStaticMethod
     ;
 
-// Things that are just special values and not really functions, but are documented as such
-functionValues
-    : f = (: AACURSOR_ROWS
-        | AADBTS
-        | AAFETCH_STATUS
-        | AALANGID
-        | AALANGUAGE
-        | AALOCKTIMEOUT
-        | AAMAX_CONNECTIONS
-        | AAMAX_PRECISION
-        | AANESTLEVEL
-        | AAOPTIONS
-        | AAREMSERVER
-        | AASERVERNAME
-        | AASERVICENAME
-        | AASPID
-        | AATEXTSIZE
-        | AAVERSION
-        | SESSION_USER
-        | SYSTEM_USER
-        | USER
-    )
+// Things that are just special values and not really functions, but are documented as if they are functions
+functionValues: f = ( AAPSEUDO | SESSION_USER | SYSTEM_USER | USER)
     ;
 
 // Standard functions that are built in but take standard syntax, or are
