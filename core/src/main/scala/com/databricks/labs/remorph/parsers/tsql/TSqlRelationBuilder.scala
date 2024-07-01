@@ -229,6 +229,16 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.Relation] {
     ctx.derivedTable().subquery(0).selectStatement().accept(this)
   }
 
+  override def visitInsertStatement(ctx: InsertStatementContext): ir.Relation = {
+    val insert = ctx.insert().accept(this)
+    Option(ctx.withExpression())
+      .map { withExpression =>
+        val ctes = withExpression.commonTableExpression().asScala.map(_.accept(this))
+        ir.WithCTE(ctes, insert)
+      }
+      .getOrElse(insert)
+  }
+
   private def buildJoinPart(left: ir.Relation, ctx: JoinPartContext): ir.Relation = {
     ctx match {
       case c if c.joinOn() != null => buildJoinOn(left, c.joinOn())

@@ -1609,11 +1609,13 @@ deleteStatement
 deleteStatementFrom: ddlObject | rowsetFunctionLimited | tableVar = LOCAL_ID
     ;
 
-insertStatement
-    : withExpression? INSERT (TOP LPAREN expression RPAREN PERCENT?)? INTO? (
-        ddlObject
-        | rowsetFunctionLimited
-    ) withTableHints? (LPAREN insertColumnNameList RPAREN)? outputClause? insertStatementValue forClause? optionClause? SEMI?
+insertStatement: withExpression? insert
+    ;
+
+insert
+    : INSERT (TOP LPAREN expression RPAREN PERCENT?)? INTO? (ddlObject | rowsetFunctionLimited) withTableHints? (
+        LPAREN insertColumnNameList RPAREN
+    )? outputClause? insertStatementValue forClause? optionClause? SEMI?
     ;
 
 insertStatementValue: tableValueConstructor | derivedTable | executeStatement | DEFAULT VALUES
