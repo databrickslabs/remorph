@@ -796,8 +796,7 @@ alterCryptographicProvider
     )?
     ;
 
-createCryptographicProvider
-    : CREATE CRYPTOGRAPHIC PROVIDER providerName = id FROM FILE EQ pathOf_DLL = STRING
+createCryptographicProvider: CREATE CRYPTOGRAPHIC PROVIDER id FROM FILE EQ STRING
     ;
 
 createEndpoint
