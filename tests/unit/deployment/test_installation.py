@@ -28,7 +28,7 @@ def ws():
     return w
 
 
-def test_demo(ws):
+def test_install_all(ws):
     prompts = MockPrompts(
         {
             r"Enter catalog name": "remorph",
@@ -39,26 +39,26 @@ def test_demo(ws):
     recon_deployment = create_autospec(ReconDeployment)
     transpile_config = MorphConfig(
         source="snowflake",
-        input_sql="/tmp/queries/snow",
-        output_folder="/tmp/queries/databricks",
+        input_sql="/tmp/queries/snow6",
+        output_folder="/tmp/queries/databricks6",
         skip_validation=True,
-        catalog_name="remorph",
-        schema_name="transpiler",
+        catalog_name="remorph6",
+        schema_name="transpiler6",
         mode="current",
     )
     reconcile_config = ReconcileConfig(
         data_source="oracle",
         report_type="all",
-        secret_scope="remorph_oracle",
+        secret_scope="remorph_oracle6",
         database_config=DatabaseConfig(
-            source_schema="tpch_sf1000",
-            target_catalog="tpch",
-            target_schema="1000gb",
+            source_schema="tpch_sf10006",
+            target_catalog="tpch6",
+            target_schema="1000gb6",
         ),
         metadata_config=ReconcileMetadataConfig(
-            catalog="remorph",
-            schema="reconcile",
-            volume="reconcile_volume",
+            catalog="remorph6",
+            schema="reconcile6",
+            volume="reconcile_volume6",
         ),
     )
     config = RemorphConfigs(morph=transpile_config, reconcile=reconcile_config)
@@ -72,11 +72,11 @@ def test_no_recon_component_installation(ws):
     recon_deployment = create_autospec(ReconDeployment)
     transpile_config = MorphConfig(
         source="snowflake",
-        input_sql="/tmp/queries/snow",
-        output_folder="/tmp/queries/databricks",
+        input_sql="/tmp/queries/snow7",
+        output_folder="/tmp/queries/databricks7",
         skip_validation=True,
-        catalog_name="remorph",
-        schema_name="transpiler",
+        catalog_name="remorph7",
+        schema_name="transpiler7",
         mode="current",
     )
     config = RemorphConfigs(morph=transpile_config)
@@ -92,16 +92,16 @@ def test_recon_component_installation(ws):
     reconcile_config = ReconcileConfig(
         data_source="oracle",
         report_type="all",
-        secret_scope="remorph_oracle",
+        secret_scope="remorph_oracle8",
         database_config=DatabaseConfig(
-            source_schema="tpch_sf1000",
-            target_catalog="tpch",
-            target_schema="1000gb",
+            source_schema="tpch_sf10008",
+            target_catalog="tpch8",
+            target_schema="1000gb8",
         ),
         metadata_config=ReconcileMetadataConfig(
-            catalog="remorph",
-            schema="reconcile",
-            volume="reconcile_volume",
+            catalog="remorph8",
+            schema="reconcile8",
+            volume="reconcile_volume8",
         ),
     )
     config = RemorphConfigs(reconcile=reconcile_config)
@@ -152,10 +152,10 @@ def test_uninstall_configs_exist(ws):
         {
             "config.yml": {
                 "source": "snowflake",
-                "catalog_name": "transpiler_test",
-                "input_sql": "sf_queries",
-                "output_folder": "out_dir",
-                "schema_name": "convertor_test",
+                "catalog_name": "transpiler_test1",
+                "input_sql": "sf_queries1",
+                "output_folder": "out_dir1",
+                "schema_name": "convertor_test1",
                 "sdk_config": {
                     "warehouse_id": "abc",
                 },
@@ -164,17 +164,17 @@ def test_uninstall_configs_exist(ws):
             "reconcile.yml": {
                 "data_source": "snowflake",
                 "report_type": "all",
-                "secret_scope": "remorph_snowflake",
+                "secret_scope": "remorph_snowflake1",
                 "database_config": {
-                    "source_catalog": "snowflake_sample_data",
-                    "source_schema": "tpch_sf1000",
-                    "target_catalog": "tpch",
-                    "target_schema": "1000gb",
+                    "source_catalog": "snowflake_sample_data1",
+                    "source_schema": "tpch_sf10001",
+                    "target_catalog": "tpch1",
+                    "target_schema": "1000gb1",
                 },
                 "metadata_config": {
-                    "catalog": "remorph",
-                    "schema": "reconcile",
-                    "volume": "reconcile_volume",
+                    "catalog": "remorph1",
+                    "schema": "reconcile1",
+                    "volume": "reconcile_volume1",
                 },
                 "version": 1,
             },

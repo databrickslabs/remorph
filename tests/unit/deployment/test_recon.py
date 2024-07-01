@@ -44,17 +44,17 @@ def test_install(ws):
                 "reconcile.yml": {
                     "data_source": "snowflake",
                     "report_type": "all",
-                    "secret_scope": "remorph_snowflake",
+                    "secret_scope": "remorph_snowflake4",
                     "database_config": {
-                        "source_catalog": "snowflake_sample_data",
-                        "source_schema": "tpch_sf1000",
-                        "target_catalog": "tpch",
-                        "target_schema": "1000gb",
+                        "source_catalog": "snowflake_sample_data4",
+                        "source_schema": "tpch_sf10004",
+                        "target_catalog": "tpch4",
+                        "target_schema": "1000gb4",
                     },
                     "metadata_config": {
-                        "catalog": "remorph",
-                        "schema": "reconcile",
-                        "volume": "reconcile_volume",
+                        "catalog": "remorph4",
+                        "schema": "reconcile4",
+                        "volume": "reconcile_volume4",
                     },
                     "version": 1,
                 },
@@ -127,31 +127,31 @@ def test_uninstall(ws):
                 "reconcile.yml": {
                     "data_source": "snowflake",
                     "report_type": "all",
-                    "secret_scope": "remorph_snowflake",
+                    "secret_scope": "remorph_snowflake5",
                     "database_config": {
-                        "source_catalog": "snowflake_sample_data",
-                        "source_schema": "tpch_sf1000",
-                        "target_catalog": "tpch",
-                        "target_schema": "1000gb",
+                        "source_catalog": "snowflake_sample_data5",
+                        "source_schema": "tpch_sf10005",
+                        "target_catalog": "tpch5",
+                        "target_schema": "1000gb5",
                     },
                     "metadata_config": {
-                        "catalog": "remorph",
-                        "schema": "reconcile",
-                        "volume": "reconcile_volume",
+                        "catalog": "remorph5",
+                        "schema": "reconcile5",
+                        "volume": "reconcile_volume5",
                     },
                     "version": 1,
                 },
                 "state.json": {
                     "resources": {
                         "jobs": {
-                            "Reconciliation Runner": "1",
-                            "Reconciliation Another Job": "2",
-                            "Some other Job": "3",
+                            "Reconciliation Runner": "15",
+                            "Reconciliation Another Job": "25",
+                            "Some other Job": "35",
                         },
                         "dashboards": {
-                            "Reconciliation Metrics": "d_id1",
-                            "Reconciliation Another Dashboard": "d_id2",
-                            "Some other Dashboard": "d_id3",
+                            "Reconciliation Metrics": "d_id15",
+                            "Reconciliation Another Dashboard": "d_id25",
+                            "Some other Dashboard": "d_id35",
                         },
                     },
                     "version": 1,
@@ -165,11 +165,11 @@ def test_uninstall(ws):
     recon_deployer = ReconDeployment(ctx, table_deployer, job_deployer, dashboard_deployer)
 
     def raise_invalid_parameter_err_for_dashboard(rid: str):
-        if rid == "d_id2":
+        if rid == "d_id25":
             raise InvalidParameterValue
 
     def raise_invalid_parameter_err_for_job(jid: str):
-        if jid == 2:
+        if jid == 25:
             raise InvalidParameterValue
 
     ws.lakeview.trash.side_effect = raise_invalid_parameter_err_for_dashboard

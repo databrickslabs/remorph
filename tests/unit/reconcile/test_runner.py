@@ -26,16 +26,16 @@ def test_run_with_corrupt_recon_config():
             "reconcile.yml": {
                 "source": "oracle",  # Invalid key
                 "report_type": "all",
-                "secret_scope": "remorph_oracle",
+                "secret_scope": "remorph_oracle2",
                 "database_config": {
-                    "source_schema": "tpch_sf1000",
-                    "target_catalog": "tpch",
-                    "target_schema": "1000gb",
+                    "source_schema": "tpch_sf10002",
+                    "target_catalog": "tpch2",
+                    "target_schema": "1000gb2",
                 },
                 "metadata_config": {
-                    "catalog": "remorph",
-                    "schema": "reconcile",
-                    "volume": "reconcile_volume",
+                    "catalog": "remorph2",
+                    "schema": "reconcile2",
+                    "volume": "reconcile_volume2",
                 },
                 "version": 1,
             }
