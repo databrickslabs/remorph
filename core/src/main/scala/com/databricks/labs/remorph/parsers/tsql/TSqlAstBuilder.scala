@@ -36,20 +36,17 @@ class TSqlAstBuilder extends TSqlParserBaseVisitor[ir.TreeNode] {
     }
   }
 
-  override def visitDmlClause(ctx: DmlClauseContext): ir.TreeNode =
-    // TODO: Implement the rest of the DML clauses
-    ctx.selectStatementStandalone().accept(this)
-
-  override def visitInsertStatement(ctx: TSqlParser.InsertStatementContext): ir.TreeNode =
-    ctx.accept(relationBuilder)
-
-  /**
-   * Build a complete AST for a select statement.
-   * @param ctx
-   *   the parse tree
-   */
-  override def visitSelectStatementStandalone(ctx: SelectStatementStandaloneContext): ir.TreeNode =
-    ctx.accept(relationBuilder)
+  override def visitDmlClause(ctx: DmlClauseContext): ir.TreeNode = {
+    ctx match {
+      case insert if insert.insertStatement() != null => insert.insertStatement().accept(tsqlRelationBuilder)
+      case select if select.selectStatementStandalone() != null =>
+        select.selectStatementStandalone().accept(tsqlRelationBuilder)
+      case delete if delete.deleteStatement() != null => delete.deleteStatement().accept(tsqlRelationBuilder)
+      case merge if merge.mergeStatement() != null => merge.mergeStatement().accept(tsqlRelationBuilder)
+      case update if update.updateStatement() != null => update.updateStatement().accept(tsqlRelationBuilder)
+      case _ => ir.UnresolvedRelation(ctx.getText)
+    }
+  }
 
   override def visitBackupStatement(ctx: TSqlParser.BackupStatementContext): TreeNode = {
     ctx.backupDatabase().accept(this)
