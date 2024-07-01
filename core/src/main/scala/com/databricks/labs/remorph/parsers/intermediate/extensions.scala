@@ -85,6 +85,7 @@ case class Assign(left: Expression, right: Expression) extends Binary(left, righ
 
 // Some statements, such as SELECT, do not require a table specification
 case class NoTable() extends Relation {}
+case class LocalVarTable(id: Id) extends Relation {}
 
 // It was not clear whether the NamedTable options should be used for the alias. I'm assuming it is not what
 // they are for.
