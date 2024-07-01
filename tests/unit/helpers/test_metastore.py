@@ -220,7 +220,7 @@ def test_has_schema_access_owner(ws):
 
 
 def test_has_schema_access_has_all_privileges(ws):
-    schema = SchemaInfo(catalog_name="test_catalog", name="test_schema")
+    schema = SchemaInfo(catalog_name="test_catalog", name="test_schema", full_name="test_catalog.test_schema")
     ws.grants.get_effective.return_value = EffectivePermissionsList.from_dict(
         {
             "privilege_assignments": [
@@ -242,7 +242,7 @@ def test_has_schema_access_has_all_privileges(ws):
 
 
 def test_schema_access_has_no_privileges(ws):
-    schema = SchemaInfo(catalog_name="test_catalog", name="test_schema")
+    schema = SchemaInfo(catalog_name="test_catalog", name="test_schema", full_name="test_catalog.test_schema")
     ws.grants.get_effective.return_value = EffectivePermissionsList.from_dict(
         {
             "privilege_assignments": [
@@ -273,7 +273,12 @@ def test_has_volume_access_owner(ws):
 
 
 def test_has_volume_access_has_all_privileges(ws):
-    volume = VolumeInfo(catalog_name="test_catalog", schema_name="test_schema", name="test_volume")
+    volume = VolumeInfo(
+        catalog_name="test_catalog",
+        schema_name="test_schema",
+        name="test_volume",
+        full_name="test_catalog.test_schema.test_volume",
+    )
     ws.grants.get_effective.return_value = EffectivePermissionsList.from_dict(
         {
             "privilege_assignments": [
@@ -295,7 +300,12 @@ def test_has_volume_access_has_all_privileges(ws):
 
 
 def test_volume_access_has_no_privileges(ws):
-    volume = VolumeInfo(catalog_name="test_catalog", schema_name="test_schema", name="test_volume")
+    volume = VolumeInfo(
+        catalog_name="test_catalog",
+        schema_name="test_schema",
+        name="test_volume",
+        full_name="test_catalog.test_schema.test_volume",
+    )
     ws.grants.get_effective.return_value = EffectivePermissionsList.from_dict(
         {
             "privilege_assignments": [
