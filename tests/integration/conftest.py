@@ -1,7 +1,20 @@
 import os
 from dataclasses import dataclass
+from datetime import datetime
+import decimal
 
 import pytest
+from pyspark.sql.types import (
+    StructType,
+    StructField,
+    StringType,
+    IntegerType,
+    LongType,
+    DecimalType,
+    DateType,
+    DoubleType,
+    Row,
+)
 from databricks.connect import DatabricksSession
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.service.catalog import VolumeType
@@ -115,3 +128,211 @@ def _create_reconcile_volume(w, reconcile):
             reconcile.metadata_config.volume,
             VolumeType.MANAGED,
         )
+
+
+@pytest.fixture
+def setup_databricks_src(setup_teardown, spark, test_config):
+    src_schema = StructType(
+        [
+            StructField("l_orderkey", LongType(), True),
+            StructField("l_partkey", LongType(), True),
+            StructField("l_suppkey", LongType(), True),
+            StructField("l_linenumber", IntegerType(), True),
+            StructField("l_quantity", DecimalType(18, 2), True),
+            StructField("l_extendedprice", DecimalType(18, 2), True),
+            StructField("l_discount", DecimalType(18, 2), True),
+            StructField("l_tax", DoubleType(), True),
+            StructField("l_returnflag", StringType(), True),
+            StructField("l_linestatus", StringType(), True),
+            StructField("l_shipdate", DateType(), True),
+            StructField("l_commitdate", DateType(), True),
+            StructField("l_receiptdate", DateType(), True),
+            StructField("l_shipinstruct", StringType(), True),
+            StructField("l_shipmode", StringType(), True),
+            StructField("l_comment", StringType(), True),
+        ]
+    )
+
+    tgt_schema = StructType(
+        [
+            StructField("l_orderkey_t", LongType(), True),
+            StructField("l_partkey_t", LongType(), True),
+            StructField("l_suppkey_t", LongType(), True),
+            StructField("l_linenumber_t", IntegerType(), True),
+            StructField("l_quantity", DecimalType(18, 2), True),
+            StructField("l_extendedprice", DecimalType(18, 2), True),
+            StructField("l_discount", DecimalType(18, 2), True),
+            StructField("l_tax", DecimalType(18, 2), True),
+            StructField("l_returnflag", StringType(), True),
+            StructField("l_linestatus", StringType(), True),
+            StructField("l_shipdate", DateType(), True),
+            StructField("l_commitdate", DateType(), True),
+            StructField("l_receiptdate", DateType(), True),
+            StructField("l_shipinstruct", StringType(), True),
+            StructField("l_shipmode_t", StringType(), True),
+            StructField("l_comment_t", StringType(), True),
+        ]
+    )
+
+    src_data = spark.createDataFrame(
+        data=[
+            Row(
+                l_orderkey=1,
+                l_partkey=11,
+                l_suppkey=111,
+                l_linenumber=1,
+                l_quantity=decimal.Decimal("1.0"),
+                l_extendedprice=decimal.Decimal("100.0"),
+                l_discount=decimal.Decimal("0.1"),
+                l_tax=1.0,
+                l_returnflag="A",
+                l_linestatus="F",
+                l_shipdate=datetime.strptime("2019-01-01", "%Y-%m-%d").date(),
+                l_commitdate=datetime.strptime("2019-01-05", "%Y-%m-%d").date(),
+                l_receiptdate=datetime.strptime("2019-01-04", "%Y-%m-%d").date(),
+                l_shipinstruct="DELIVER IN PERSON",
+                l_shipmode="MAIL",
+                l_comment="test",
+            ),
+            Row(
+                l_orderkey=2,
+                l_partkey=22,
+                l_suppkey=222,
+                l_linenumber=2,
+                l_quantity=decimal.Decimal("2.0"),
+                l_extendedprice=decimal.Decimal("200.0"),
+                l_discount=decimal.Decimal("0.21"),
+                l_tax=2.0,
+                l_returnflag="A",
+                l_linestatus="F",
+                l_shipdate=datetime.strptime("2019-02-02", "%Y-%m-%d").date(),
+                l_commitdate=datetime.strptime("2019-02-05", "%Y-%m-%d").date(),
+                l_receiptdate=datetime.strptime("2019-02-04", "%Y-%m-%d").date(),
+                l_shipinstruct="DELIVER IN PERSON",
+                l_shipmode="MAIL",
+                l_comment="test",
+            ),
+            Row(
+                l_orderkey=3,
+                l_partkey=33,
+                l_suppkey=333,
+                l_linenumber=3,
+                l_quantity=decimal.Decimal("33.0"),
+                l_extendedprice=decimal.Decimal("300.0"),
+                l_discount=decimal.Decimal("0.3"),
+                l_tax=3.0,
+                l_returnflag="A",
+                l_linestatus="F",
+                l_shipdate=datetime.strptime("2019-03-01", "%Y-%m-%d").date(),
+                l_commitdate=datetime.strptime("2019-03-05", "%Y-%m-%d").date(),
+                l_receiptdate=datetime.strptime("2019-03-04", "%Y-%m-%d").date(),
+                l_shipinstruct="DELIVER IN PERSON",
+                l_shipmode="MAIL",
+                l_comment="test",
+            ),
+            Row(
+                l_orderkey=4,
+                l_partkey=44,
+                l_suppkey=444,
+                l_linenumber=4,
+                l_quantity=decimal.Decimal("4.0"),
+                l_extendedprice=decimal.Decimal("400.0"),
+                l_discount=decimal.Decimal("0.4"),
+                l_tax=4.0,
+                l_returnflag="A",
+                l_linestatus="F",
+                l_shipdate=datetime.strptime("2019-04-01", "%Y-%m-%d").date(),
+                l_commitdate=datetime.strptime("2019-04-05", "%Y-%m-%d").date(),
+                l_receiptdate=datetime.strptime("2019-04-04", "%Y-%m-%d").date(),
+                l_shipinstruct="DELIVER IN PERSON",
+                l_shipmode="MAIL",
+                l_comment="test",
+            ),
+        ],
+        schema=src_schema,
+    )
+
+    tgt_data = spark.createDataFrame(
+        data=[
+            Row(
+                l_orderkey_t=1,
+                l_partkey_t=11,
+                l_suppkey_t=111,
+                l_linenumber_t=1,
+                l_quantity=decimal.Decimal("1.0"),
+                l_extendedprice=decimal.Decimal("100.0"),
+                l_discount=decimal.Decimal("0.1"),
+                l_tax=decimal.Decimal("1.0"),
+                l_returnflag="A",
+                l_linestatus="F",
+                l_shipdate=datetime.strptime("2019-01-01", "%Y-%m-%d").date(),
+                l_commitdate=datetime.strptime("2019-01-05", "%Y-%m-%d").date(),
+                l_receiptdate=datetime.strptime("2019-01-04", "%Y-%m-%d").date(),
+                l_shipinstruct="DELIVER IN PERSON",
+                l_shipmode_t="MAIL",
+                l_comment_t="test",
+            ),
+            Row(
+                l_orderkey_t=2,
+                l_partkey_t=22,
+                l_suppkey_t=222,
+                l_linenumber_t=2,
+                l_quantity_t=decimal.Decimal("2.0"),
+                l_extendedprice=decimal.Decimal("200.0"),
+                l_discount=decimal.Decimal("0.20"),
+                l_tax=decimal.Decimal("2.0"),
+                l_returnflag="A",
+                l_linestatus="F",
+                l_shipdate=datetime.strptime("2019-02-02", "%Y-%m-%d").date(),
+                l_commitdate=datetime.strptime("2019-02-05", "%Y-%m-%d").date(),
+                l_receiptdate=datetime.strptime("2019-02-04", "%Y-%m-%d").date(),
+                l_shipinstruct="DELIVER IN PERSON",
+                l_shipmode_t="MAIL",
+                l_comment_t="test",
+            ),
+            Row(
+                l_orderkey_t=3,
+                l_partkey_t=33,
+                l_suppkey_t=333,
+                l_linenumber_t=3,
+                l_quantity=decimal.Decimal("3.0"),
+                l_extendedprice=decimal.Decimal("300.0"),
+                l_discount=decimal.Decimal("0.35"),
+                l_tax=decimal.Decimal("3.0"),
+                l_returnflag="A",
+                l_linestatus="F",
+                l_shipdate=datetime.strptime("2019-03-01", "%Y-%m-%d").date(),
+                l_commitdate=datetime.strptime("2019-03-05", "%Y-%m-%d").date(),
+                l_receiptdate=datetime.strptime("2019-03-05", "%Y-%m-%d").date(),
+                l_shipinstruct="DELIVER IN PERSON",
+                l_shipmode_t="MAIL",
+                l_comment_t="test",
+            ),
+            Row(
+                l_orderkey_t=5,
+                l_partkey_t=55,
+                l_suppkey_t=555,
+                l_linenumber_t=5,
+                l_quantity=decimal.Decimal("5.0"),
+                l_extendedprice=decimal.Decimal("500.0"),
+                l_discount=decimal.Decimal("0.5"),
+                l_tax=decimal.Decimal("5.0"),
+                l_returnflag="A",
+                l_linestatus="F",
+                l_shipdate=datetime.strptime("2019-04-01", "%Y-%m-%d").date(),
+                l_commitdate=datetime.strptime("2019-05-05", "%Y-%m-%d").date(),
+                l_receiptdate=datetime.strptime("2019-05-04", "%Y-%m-%d").date(),
+                l_shipinstruct="DELIVER IN PERSON",
+                l_shipmode_t="MAIL",
+                l_comment_t="test",
+            ),
+        ],
+        schema=tgt_schema,
+    )
+
+    src_data.write.format("delta").mode("overwrite").saveAsTable(
+        f"{test_config.db_mock_catalog}." f"{test_config.db_mock_schema}.{test_config.db_mock_src}"
+    )
+    tgt_data.write.format("delta").mode("overwrite").saveAsTable(
+        f"{test_config.db_mock_catalog}." f"{test_config.db_mock_schema}.{test_config.db_mock_tgt}"
+    )
