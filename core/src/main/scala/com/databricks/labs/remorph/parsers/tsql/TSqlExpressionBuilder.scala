@@ -258,10 +258,10 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
     case c if c.SQUARE_BRACKET_ID() != null =>
       ir.Id(ctx.getText.trim.stripPrefix("[").stripSuffix("]"), caseSensitive = true)
     case c if c.RAW() != null => ir.Id(ctx.getText, caseSensitive = false)
-    case _ => ir.Id(ctx.getText, caseSensitive = false)
+    case _ => ir.Id(removeQuotes(ctx.getText), caseSensitive = false)
   }
 
-  private def removeQuotes(str: String): String = {
+  private[tsq] def removeQuotes(str: String): String = {
     str.stripPrefix("'").stripSuffix("'")
   }
 

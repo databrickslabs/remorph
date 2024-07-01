@@ -79,6 +79,7 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.Relation] {
     Option(ctx).fold(input) { c =>
       ir.Filter(input, conditionRule(c).accept(expressionBuilder))
     }
+
   private def buildHaving(ctx: HavingClauseContext, input: ir.Relation): ir.Relation =
     buildFilter[HavingClauseContext](ctx, _.searchCondition(), input)
 
@@ -158,11 +159,35 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.Relation] {
     }
   }
 
-  // TODO: note that not all table source items have tableName
-  override def visitTableSourceItem(ctx: TableSourceItemContext): ir.Relation =
+  override def visitTableSourceItem(ctx: TableSourceItemContext): ir.Relation = {
+    val tsiElement = ctx.tsiElement().accept(this)
+
+    // If we have column aliases, they are applied here first
+    val tsiElementWithAliases = Option(ctx.columnAliasList())
+      .map { aliasList =>
+        val aliases = aliasList.columnAlias().asScala.map(id => buildColumnAlias(id))
+        ir.ColumnAliases(tsiElement, aliases)
+      }
+      .getOrElse(tsiElement)
+
+    // Then any table alias is applied to the source
     Option(ctx.asTableAlias())
-      .map(alias => ir.TableAlias(ctx.tableName().accept(this), alias.id.getText))
-      .getOrElse(ctx.tableName().accept(this))
+      .map(alias => ir.TableAlias(tsiElementWithAliases, alias.id.getText))
+      .getOrElse(tsiElementWithAliases)
+  }
+
+  private def buildColumnAlias(ctx: TSqlParser.ColumnAliasContext): ir.Id = {
+    ctx match {
+      case c if c.id() != null => expressionBuilder.visitId(c.id())
+      case _ => ir.Id(expressionBuilder.removeQuotes(ctx.getText), caseSensitive = false)
+    }
+  }
+
+  override def visitTsiNamedTable(ctx: TsiNamedTableContext): ir.Relation =
+    ctx.tableName().accept(this)
+
+  override def visitTsiDerivedTable(ctx: TsiDerivedTableContext): ir.Relation =
+    ctx.derivedTable().subquery(0).selectStatement().accept(this)
 
   private def buildJoinPart(left: ir.Relation, ctx: JoinPartContext): ir.Relation = {
     ctx match {
