@@ -73,7 +73,7 @@ def test_read_data_with_options():
         "url",
         "jdbc:oracle:thin:my_user/my_password@//my_host:777/my_database",
     )
-    spark.read.format().option().option.assert_called_with("driver", "oracle")
+    spark.read.format().option().option.assert_called_with("driver", "oracle.jdbc.driver.OracleDriver")
     spark.read.format().option().option().option.assert_called_with("dbtable", "(select 1 from data.employee) tmp")
     actual_args = spark.read.format().option().option().option().options.call_args.kwargs
     expected_args = {

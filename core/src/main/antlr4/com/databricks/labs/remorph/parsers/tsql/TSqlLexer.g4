@@ -23,10 +23,25 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-// $antlr-format alignTrailingComments true, columnLimit 150, maxEmptyLinesToKeep 1, reflowComments false, useTab false
-// $antlr-format allowShortRulesOnASingleLine true, allowShortBlocksOnASingleLine true, minEmptyLines 0, alignSemicolons ownLine
-// $antlr-format alignColons trailing, singleLineOverrulesHangingColon true, alignLexerCommands true, alignLabels true, alignTrailers true
+// =================================================================================
+// Please reformat the grammr file before a change commit. See remorph/core/README.md
+// For formatting, see: https://github.com/mike-lischke/antlr-format/blob/main/doc/formatting.md
 
+// $antlr-format alignTrailingComments true
+// $antlr-format columnLimit 150
+// $antlr-format maxEmptyLinesToKeep 1
+// $antlr-format reflowComments false
+// $antlr-format useTab false
+// $antlr-format allowShortRulesOnASingleLine true
+// $antlr-format allowShortBlocksOnASingleLine true
+// $antlr-format minEmptyLines 0
+// $antlr-format alignSemicolons ownLine
+// $antlr-format alignColons trailing
+// $antlr-format singleLineOverrulesHangingColon true
+// $antlr-format alignLexerCommands true
+// $antlr-format alignLabels true
+// $antlr-format alignTrailers true
+// =================================================================================
 lexer grammar TSqlLexer;
 
 // Basic keywords (from https://msdn.microsoft.com/en-us/library/ms189822.aspx)
@@ -263,7 +278,6 @@ DIRECTORY_NAME                              : 'DIRECTORY_NAME';
 DISABLE                                     : 'DISABLE';
 DISABLED                                    : 'DISABLED';
 DISABLE_BROKER                              : 'DISABLE_BROKER';
-DISK                                        : 'DISK';
 DISTINCT                                    : 'DISTINCT';
 DISTRIBUTED                                 : 'DISTRIBUTED';
 DISTRIBUTION                                : 'DISTRIBUTION';
@@ -276,7 +290,6 @@ DROP                                        : 'DROP';
 DROPCLEANBUFFERS                            : 'DROPCLEANBUFFERS';
 DROP_EXISTING                               : 'DROP_EXISTING';
 DTC_SUPPORT                                 : 'DTC_SUPPORT';
-DUMP                                        : 'DUMP';
 DYNAMIC                                     : 'DYNAMIC';
 ELEMENTS                                    : 'ELEMENTS';
 ELSE                                        : 'ELSE';
@@ -292,13 +305,11 @@ ENCRYPTION_TYPE                             : 'ENCRYPTION_TYPE';
 END                                         : 'END';
 ENDPOINT                                    : 'ENDPOINT';
 ENDPOINT_URL                                : 'ENDPOINT_URL';
-ERRLVL                                      : 'ERRLVL';
 ERROR                                       : 'ERROR';
 ERROR_BROKER_CONVERSATIONS                  : 'ERROR_BROKER_CONVERSATIONS';
 ESCAPE                                      : 'ESCAPE';
 ESTIMATEONLY                                : 'ESTIMATEONLY';
 EVENT                                       : 'EVENT';
-EVENTDATA                                   : 'EVENTDATA';
 EVENT_RETENTION_MODE                        : 'EVENT_RETENTION_MODE';
 EXCEPT                                      : 'EXCEPT';
 EXCLUSIVE                                   : 'EXCLUSIVE';
@@ -306,7 +317,6 @@ EXECUTABLE                                  : 'EXECUTABLE';
 EXECUTABLE_FILE                             : 'EXECUTABLE_FILE';
 EXECUTE                                     : 'EXEC' 'UTE'?;
 EXISTS                                      : 'EXISTS';
-EXIT                                        : 'EXIT';
 EXPAND                                      : 'EXPAND';
 EXPIREDATE                                  : 'EXPIREDATE';
 EXPIRY_DATE                                 : 'EXPIRY_DATE';
@@ -383,7 +393,6 @@ HOLDLOCK                                    : 'HOLDLOCK';
 HONOR_BROKER_PRIORITY                       : 'HONOR_BROKER_PRIORITY';
 HOURS                                       : 'HOURS';
 IDENTITY                                    : 'IDENTITY';
-IDENTITYCOL                                 : 'IDENTITYCOL';
 IDENTITY_INSERT                             : 'IDENTITY_INSERT';
 IDENTITY_VALUE                              : 'IDENTITY_VALUE';
 IF                                          : 'IF';
@@ -445,7 +454,6 @@ LEVEL                                       : 'LEVEL';
 LIBRARY                                     : 'LIBRARY';
 LIFETIME                                    : 'LIFETIME';
 LIKE                                        : 'LIKE';
-LINENO                                      : 'LINENO';
 LINKED                                      : 'LINKED';
 LINUX                                       : 'LINUX';
 LIST                                        : 'LIST';
@@ -453,7 +461,6 @@ LISTENER                                    : 'LISTENER';
 LISTENER_IP                                 : 'LISTENER_IP';
 LISTENER_PORT                               : 'LISTENER_PORT';
 LISTENER_URL                                : 'LISTENER_URL';
-LOG                                         : 'LOG';
 LOAD                                        : 'LOAD';
 LOB_COMPACTION                              : 'LOB_COMPACTION';
 LOCAL                                       : 'LOCAL';
@@ -516,7 +523,6 @@ MOVE                                        : 'MOVE';
 MULTI_USER                                  : 'MULTI_USER';
 MUST_CHANGE                                 : 'MUST_CHANGE';
 NAME                                        : 'NAME';
-NATIONAL                                    : 'NATIONAL';
 NEGOTIATE                                   : 'NEGOTIATE';
 NESTED_TRIGGERS                             : 'NESTED_TRIGGERS';
 NEWNAME                                     : 'NEWNAME';
@@ -546,7 +552,6 @@ NOT                                         : 'NOT';
 NOTIFICATION                                : 'NOTIFICATION';
 NOTIFICATIONS                               : 'NOTIFICATIONS';
 NOUNLOAD                                    : 'NOUNLOAD';
-NOWAIT                                      : 'NOWAIT';
 NO_CHECKSUM                                 : 'NO_CHECKSUM';
 NO_COMPRESSION                              : 'NO_COMPRESSION';
 NO_EVENT_LOSS                               : 'NO_EVENT_LOSS';
@@ -567,7 +572,6 @@ OF                                          : 'OF';
 OFF                                         : 'OFF';
 OFFLINE                                     : 'OFFLINE';
 OFFSET                                      : 'OFFSET';
-OFFSETS                                     : 'OFFSETS';
 OLD_ACCOUNT                                 : 'OLD_ACCOUNT';
 OLD_PASSWORD                                : 'OLD_PASSWORD';
 ON                                          : 'ON';
@@ -667,7 +671,6 @@ READCOMMITTED                               : 'READCOMMITTED';
 READCOMMITTEDLOCK                           : 'READCOMMITTEDLOCK';
 READONLY                                    : 'READONLY';
 READPAST                                    : 'READPAST';
-READTEXT                                    : 'READTEXT';
 READUNCOMMITTED                             : 'READUNCOMMITTED';
 READWRITE                                   : 'READWRITE';
 READ_COMMITTED_SNAPSHOT                     : 'READ_COMMITTED_SNAPSHOT';
@@ -712,8 +715,6 @@ RESOURCES                                   : 'RESOURCES';
 RESOURCE_MANAGER_LOCATION                   : 'RESOURCE_MANAGER_LOCATION';
 RESPECT                                     : 'RESPECT';
 RESTART                                     : 'RESTART';
-RESTORE                                     : 'RESTORE';
-RESTRICT                                    : 'RESTRICT';
 RESTRICTED_USER                             : 'RESTRICTED_USER';
 RESUMABLE                                   : 'RESUMABLE';
 RESUME                                      : 'RESUME';
@@ -763,7 +764,6 @@ SECONDS                                     : 'SECONDS';
 SECRET                                      : 'SECRET';
 SECURABLES                                  : 'SECURABLES';
 SECURITY                                    : 'SECURITY';
-SECURITYAUDIT                               : 'SECURITYAUDIT';
 SECURITY_LOG                                : 'SECURITY_LOG';
 SEEDING_MODE                                : 'SEEDING_MODE';
 SELECT                                      : 'SELECT';
@@ -786,7 +786,6 @@ SESSION                                     : 'SESSION';
 SESSION_TIMEOUT                             : 'SESSION_TIMEOUT';
 SESSION_USER                                : 'SESSION_USER';
 SET                                         : 'SET';
-SETERROR                                    : 'SETERROR';
 SETS                                        : 'SETS';
 SETTINGS                                    : 'SETTINGS';
 SETUSER                                     : 'SETUSER';
@@ -850,7 +849,6 @@ SYSTEM                                      : 'SYSTEM';
 SYSTEM_USER                                 : 'SYSTEM_USER';
 TABLE                                       : 'TABLE';
 TABLERESULTS                                : 'TABLERESULTS';
-TABLESAMPLE                                 : 'TABLESAMPLE';
 TABLOCK                                     : 'TABLOCK';
 TABLOCKX                                    : 'TABLOCKX';
 TAKE                                        : 'TAKE';
@@ -864,7 +862,6 @@ TEXTSIZE                                    : 'TEXTSIZE';
 THEN                                        : 'THEN';
 THROW                                       : 'THROW';
 TIES                                        : 'TIES';
-TIME                                        : 'TIME';
 TIMEOUT                                     : 'TIMEOUT';
 TIMER                                       : 'TIMER';
 TINYINT                                     : 'TINYINT';
@@ -887,7 +884,6 @@ TRUNCATE                                    : 'TRUNCATE';
 TRUSTWORTHY                                 : 'TRUSTWORTHY';
 TRY                                         : 'TRY';
 TRY_CAST                                    : 'TRY_CAST';
-TSEQUAL                                     : 'TSEQUAL';
 TSQL                                        : 'TSQL';
 TWO_DIGIT_YEAR_CUTOFF                       : 'TWO_DIGIT_YEAR_CUTOFF';
 TYPE                                        : 'TYPE';
@@ -905,7 +901,6 @@ UNPIVOT                                     : 'UNPIVOT';
 UNSAFE                                      : 'UNSAFE';
 UOW                                         : 'UOW';
 UPDATE                                      : 'UPDATE';
-UPDATETEXT                                  : 'UPDATETEXT';
 UPDLOCK                                     : 'UPDLOCK';
 URL                                         : 'URL';
 USE                                         : 'USE';
@@ -951,7 +946,6 @@ XML_COMPRESSION                             : 'XML_COMPRESSION';
 XSINIL                                      : 'XSINIL';
 ZONE                                        : 'ZONE';
 
-
 SP_EXECUTESQL: 'SP_EXECUTESQL';
 
 //Combinations that cannot be used as IDs
@@ -959,54 +953,64 @@ DISK_DRIVE    : [A-Z][:];
 DOLLAR_ACTION : '$ACTION';
 
 // Functions starting with double at signs
-// https://learn.microsoft.com/en-us/sql/t-sql/language-elements/variables-transact-sql?view=sql-server-ver16
-CURSOR_ROWS  : '@@CURSOR_ROWS';
-FETCH_STATUS : '@@FETCH_STATUS';
+AACURSOR_ROWS     : '@@CURSOR_ROWS';
+AADBTS            : '@@DBTS';
+AAFETCH_STATUS    : '@@FETCH_STATUS';
+AALANGID          : '@@LANGID';
+AALANGUAGE        : '@@LANGUAGE';
+AALOCKTIMEOUT     : '@@LOCKTIMEOUT';
+AAMAX_CONNECTIONS : '@@MAX_CONNECTIONS';
+AAMAX_PRECISION   : '@@MAX_PRECISION';
+AANESTLEVEL       : '@@NESTLEVEL';
+AAOPTIONS         : '@@OPTIONS';
+AAREMSERVER       : '@@REMSERVER';
+AASERVERNAME      : '@@SERVERNAME';
+AASERVICENAME     : '@@SERVICENAME';
+AASPID            : '@@SPID';
+AATEXTSIZE        : '@@TEXTSIZE';
+AAVERSION         : '@@VERSION';
 
 IPV4_ADDR: DEC_DIGIT+ '.' DEC_DIGIT+ '.' DEC_DIGIT+ '.' DEC_DIGIT+;
 
-SPACE: [ \t\r\n]+ -> skip;
-// https://docs.microsoft.com/en-us/sql/t-sql/language-elements/slash-star-comment-transact-sql
+SPACE        : [ \t\r\n]+                -> skip;
 COMMENT      : '/*' (COMMENT | .)*? '*/' -> channel(HIDDEN);
 LINE_COMMENT : '--' ~[\r\n]*             -> channel(HIDDEN);
 
 // TODO: ID can be not only Latin.
-DOUBLE_QUOTE_ID    : '"' ('""' | ~[\r\n"] )* '"';
-SQUARE_BRACKET_ID  : '[' (~']' | ']' ']')* ']';
-LOCAL_ID           : '@' ([A-Z_$@#0-9] | FullWidthLetter)*;
-TEMP_ID            : '#' ([A-Z_$@#0-9] | FullWidthLetter)*;
+DOUBLE_QUOTE_ID   : '"' ('""' | ~[\r\n"])* '"';
+SQUARE_BRACKET_ID : '[' (~']' | ']' ']')* ']';
+LOCAL_ID          : '@' ([A-Z_$@#0-9] | FullWidthLetter)*;
+TEMP_ID           : '#' ([A-Z_$@#0-9] | FullWidthLetter)*;
 
-ID                 : ( [A-Z_#] | FullWidthLetter) ( [A-Z_#$@0-9] | FullWidthLetter)*;
+ID: ( [A-Z_#] | FullWidthLetter) ( [A-Z_#$@0-9] | FullWidthLetter)*;
 STRING options {
     caseInsensitive = false;
-}      : 'N'? '\'' ('\\' . | '\'\'' | ~['])* '\'';
+}: 'N'? '\'' ('\\' . | '\'\'' | ~['])* '\'';
 
 fragment SIGN: [+-];
 
-INT         : SIGN? DEC_DIGIT+;
-HEX         : SIGN? '0' 'X' HEX_DIGIT*;
-FLOAT       : SIGN? DEC_DOT_DEC;
-REAL        : SIGN? (INT | DEC_DOT_DEC) ('E' [+-]? DEC_DIGIT+);
-MONEY       : SIGN? '$' (INT | FLOAT);
+INT   : SIGN? DEC_DIGIT+;
+HEX   : SIGN? '0' 'X' HEX_DIGIT*;
+FLOAT : SIGN? DEC_DOT_DEC;
+REAL  : SIGN? (INT | DEC_DOT_DEC) ('E' [+-]? DEC_DIGIT+);
+MONEY : SIGN? '$' (INT | FLOAT);
 
-EQ          : '=';
-GT          : '>';
-LT          : '<';
-BANG        : '!';
-PE          : '+=';
-ME          : '-=';
-SE          : '*=';
-DE          : '/=';
-MEA         : '%=';
-AND_ASSIGN  : '&=';
-XOR_ASSIGN  : '^=';
-OR_ASSIGN   : '|=';
+EQ         : '=';
+GT         : '>';
+LT         : '<';
+BANG       : '!';
+PE         : '+=';
+ME         : '-=';
+SE         : '*=';
+DE         : '/=';
+MEA        : '%=';
+AND_ASSIGN : '&=';
+XOR_ASSIGN : '^=';
+OR_ASSIGN  : '|=';
 
 DOUBLE_BAR   : '||';
 DOT          : '.';
-UNDERLINE    : '_';
 AT           : '@';
-SHARP        : '#';
 DOLLAR       : '$';
 LPAREN       : '(';
 RPAREN       : ')';
@@ -1025,6 +1029,11 @@ BIT_AND      : '&';
 BIT_XOR      : '^';
 
 PLACEHOLDER: '?';
+
+// If the lexer choses this rule it has discovered a character that it cannot match
+// and this is an error. But lexer errors mean nothing to users, so we pass it up to the
+// parser as a token, which will raise a syntx error.
+BADC: .;
 
 fragment LETTER      : [A-Z_];
 fragment DEC_DOT_DEC : (DEC_DIGIT+ '.' DEC_DIGIT+ | DEC_DIGIT+ '.' | '.' DEC_DIGIT+);

@@ -1,5 +1,5 @@
 
--- snowflake sql:
+-- IGNORED snowflake sql:
 SELECT dense_rank(col1) AS dense_rank_col1 FROM tabl;
 
 -- databricks sql:

@@ -1,10 +1,9 @@
 package com.databricks.labs.remorph.parsers.tsql
 
-import com.databricks.labs.remorph.parsers.FunctionDefinition
+import com.databricks.labs.remorph.parsers.{FunctionDefinition, intermediate => ir}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.prop.TableDrivenPropertyChecks
-import com.databricks.labs.remorph.parsers.{intermediate => ir}
 
 class TSqlFunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenPropertyChecks {
 
@@ -18,9 +17,31 @@ class TSqlFunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDriven
       ("functionName", "expectedArity"), // Header
 
       // TSql specific
-      ("@@CURSOR_STATUS", Some(FunctionDefinition.notConvertible(0))),
+      (s"$$PARTITION", Some(FunctionDefinition.notConvertible(0))),
+      ("@@CURSOR_ROWS", Some(FunctionDefinition.notConvertible(0))),
+      ("@@DBTS", Some(FunctionDefinition.notConvertible(0))),
       ("@@FETCH_STATUS", Some(FunctionDefinition.notConvertible(0))),
-      ("MODIFY", Some(FunctionDefinition.xml(1))))
+      ("@@LANGID", Some(FunctionDefinition.notConvertible(0))),
+      ("@@LANGUAGE", Some(FunctionDefinition.notConvertible(0))),
+      ("@@LOCKTIMEOUT", Some(FunctionDefinition.notConvertible(0))),
+      ("@@MAX_CONNECTIONS", Some(FunctionDefinition.notConvertible(0))),
+      ("@@MAX_PRECISION", Some(FunctionDefinition.notConvertible(0))),
+      ("@@NESTLEVEL", Some(FunctionDefinition.notConvertible(0))),
+      ("@@OPTIONS", Some(FunctionDefinition.notConvertible(0))),
+      ("@@REMSERVER", Some(FunctionDefinition.notConvertible(0))),
+      ("@@SERVERNAME", Some(FunctionDefinition.notConvertible(0))),
+      ("@@SERVICENAME", Some(FunctionDefinition.notConvertible(0))),
+      ("@@SPID", Some(FunctionDefinition.notConvertible(0))),
+      ("@@TEXTSIZE", Some(FunctionDefinition.notConvertible(0))),
+      ("@@VERSION", Some(FunctionDefinition.notConvertible(0))),
+      ("COLLATIONPROPERTY", Some(FunctionDefinition.notConvertible(2))),
+      ("CONTAINSTABLE", Some(FunctionDefinition.notConvertible(0))),
+      ("FREETEXTTABLE", Some(FunctionDefinition.notConvertible(0))),
+      ("HIERARCHYID", Some(FunctionDefinition.notConvertible(0))),
+      ("MODIFY", Some(FunctionDefinition.xml(1))),
+      ("SEMANTICKEYPHRASETABLE", Some(FunctionDefinition.notConvertible(0))),
+      ("SEMANTICSIMILARITYDETAILSTABLE", Some(FunctionDefinition.notConvertible(0))),
+      ("SEMANTICSSIMILARITYTABLE", Some(FunctionDefinition.notConvertible(0))))
 
     forAll(functions) { (functionName: String, expectedArity: Option[FunctionDefinition]) =>
       functionBuilder.functionDefinition(functionName) shouldEqual expectedArity

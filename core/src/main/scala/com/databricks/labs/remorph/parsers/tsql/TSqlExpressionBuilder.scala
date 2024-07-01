@@ -49,19 +49,21 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
     }
   }
 
-  private def buildTableName(ctx: TableNameContext): String = {
-    val linkedServer = Option(ctx.linkedServer).map(_.getText)
-    val ids = ctx.ids.asScala.map(_.getText).mkString(".")
-    linkedServer.fold(ids)(ls => s"$ls..$ids")
+  private def buildTableName(ctx: TableNameContext): ir.ObjectReference = {
+    val linkedServer = Option(ctx.linkedServer).map(visitId)
+    val ids = ctx.ids.asScala.map(visitId)
+    val allIds = linkedServer.fold(ids)(ser => ser +: ids)
+    ir.ObjectReference(allIds.head, allIds.tail: _*)
+  }
+
+  override def visitExprId(ctx: ExprIdContext): ir.Expression = {
+    ir.Column(None, visitId(ctx.id()))
   }
 
   override def visitFullColumnName(ctx: FullColumnNameContext): ir.Column = {
-    val columnName = ctx.id.getText
-    val fullColumnName = Option(ctx.tableName())
-      .map(buildTableName)
-      .map(_ + "." + columnName)
-      .getOrElse(columnName)
-    ir.Column(fullColumnName)
+    val columnName = visitId(ctx.id)
+    val tableName = Option(ctx.tableName()).map(buildTableName)
+    ir.Column(tableName, columnName)
   }
 
   /**
@@ -144,7 +146,8 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
     val right = ctx.expression(1).accept(this)
     (left, right) match {
       case (c1: ir.Column, c2: ir.Column) =>
-        ir.Column(c1.name + "." + c2.name)
+        val path = c1.columnName +: c2.tableNameOrAlias.map(ref => ref.head +: ref.tail).getOrElse(Nil)
+        ir.Column(Some(ir.ObjectReference(path.head, path.tail: _*)), c2.columnName)
       case (_: ir.Column, c2: ir.CallFunction) =>
         functionBuilder.functionType(c2.function_name) match {
           case XmlFunction => ir.XmlFunction(c2, left)
@@ -238,13 +241,15 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
    * @param ctx
    *   the parse tree
    */
-  override def visitId(ctx: IdContext): ir.Expression = ctx match {
-    case c if c.ID() != null => ir.Column(ctx.getText)
-    case c if c.TEMP_ID() != null => ir.Column(ctx.getText)
-    case c if c.DOUBLE_QUOTE_ID() != null => ir.Column(ctx.getText)
-    case c if c.SQUARE_BRACKET_ID() != null => ir.Column(ctx.getText)
-    case c if c.RAW() != null => ir.Column(ctx.getText)
-    case _ => ir.Column(ctx.getText)
+  override def visitId(ctx: IdContext): ir.Id = ctx match {
+    case c if c.ID() != null => ir.Id(ctx.getText, caseSensitive = false)
+    case c if c.TEMP_ID() != null => ir.Id(ctx.getText, caseSensitive = false)
+    case c if c.DOUBLE_QUOTE_ID() != null =>
+      ir.Id(ctx.getText.trim.stripPrefix("\"").stripSuffix("\""), caseSensitive = true)
+    case c if c.SQUARE_BRACKET_ID() != null =>
+      ir.Id(ctx.getText.trim.stripPrefix("[").stripSuffix("]"), caseSensitive = true)
+    case c if c.RAW() != null => ir.Id(ctx.getText, caseSensitive = false)
+    case _ => ir.Id(ctx.getText, caseSensitive = false)
   }
 
   override def visitTerminal(node: TerminalNode): ir.Expression = buildConstant(node.getSymbol)
@@ -300,11 +305,10 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
     val orderByExpressions = Option(ctx.overClause().orderByClause())
       .map(buildOrderBy)
       .getOrElse(List.empty)
-    val rowRange = Option(ctx.overClause().rowOrRangeClause())
+    val windowFrame = Option(ctx.overClause().rowOrRangeClause())
       .map(buildWindowFrame)
-      .getOrElse(noWindowFrame)
 
-    ir.Window(windowFunction, partitionByExpressions, orderByExpressions, rowRange)
+    ir.Window(windowFunction, partitionByExpressions, orderByExpressions, windowFrame)
   }
 
   // Some functions need to be converted to Databricks equivalent Windowing functions for the OVER clause
@@ -322,12 +326,6 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
       ir.SortOrder(expression, sortOrder, ir.SortNullsUnspecified)
     }
 
-  private def noWindowFrame: ir.WindowFrame =
-    ir.WindowFrame(
-      ir.UndefinedFrame,
-      ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop),
-      ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop))
-
   private def buildWindowFrame(ctx: RowOrRangeClauseContext): ir.WindowFrame = {
     val frameType = buildFrameType(ctx)
     val bounds = Trees
@@ -338,7 +336,7 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
 
     val frameStart = bounds.head // Safe due to the nature of window frames always having at least a start bound
     val frameEnd =
-      bounds.tail.headOption.getOrElse(ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop))
+      bounds.tail.headOption.getOrElse(ir.NoBoundary)
 
     ir.WindowFrame(frameType, frameStart, frameEnd)
   }
@@ -348,17 +346,15 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
     else ir.RangeFrame
   }
 
-  // TODO: We are not dealing with PRECEDING and FOLLOWING yet!
   private[tsql] def buildFrame(ctx: WindowFrameBoundContext): ir.FrameBoundary =
     ctx match {
-      case c if c.UNBOUNDED() != null => ir.FrameBoundary(current_row = false, unbounded = true, value = ir.Noop)
-      case c if c.CURRENT() != null => ir.FrameBoundary(current_row = true, unbounded = false, ir.Noop)
-      case c if c.INT() != null =>
-        ir.FrameBoundary(
-          current_row = false,
-          unbounded = false,
-          value = ir.Literal(integer = Some(c.INT().getText.toInt)))
-      case _ => ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop)
+      case c if c.UNBOUNDED() != null && c.PRECEDING() != null => ir.UnboundedPreceding
+      case c if c.UNBOUNDED() != null && c.FOLLOWING() != null => ir.UnboundedFollowing
+      case c if c.CURRENT() != null => ir.CurrentRow
+      case c if c.INT() != null && c.PRECEDING() != null =>
+        ir.PrecedingN(ir.Literal(integer = Some(c.INT().getText.toInt)))
+      case c if c.INT() != null && c.FOLLOWING() != null =>
+        ir.FollowingN(ir.Literal(integer = Some(c.INT().getText.toInt)))
     }
 
   /**
@@ -370,11 +366,12 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
    */
   override def visitExpressionElem(ctx: ExpressionElemContext): ir.Expression = {
     val columnDef = ctx.expression().accept(this)
-    val aliasOption = Trees.findAllRuleNodes(ctx, TSqlParser.RULE_columnAlias).asScala.headOption
-    aliasOption match {
-      case Some(alias) => ir.Alias(columnDef, Seq(alias.getText), None)
-      case _ => columnDef
+    val aliasOption = Option(ctx.columnAlias()).orElse(Option(ctx.asColumnAlias()).map(_.columnAlias())).map { alias =>
+      val name = Option(alias.id()).map(visitId).getOrElse(ir.Id(alias.STRING().getText))
+      ir.Alias(columnDef, Seq(name), None)
     }
+    aliasOption.getOrElse(columnDef)
+
   }
 
   override def visitExprWithinGroup(ctx: ExprWithinGroupContext): ir.Expression = {
@@ -395,6 +392,11 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
     ctx.expression().accept(this)
   }
 
+  override def visitPartitionFunction(ctx: PartitionFunctionContext): ir.Expression = {
+    // $$PARTITION is not supported in Databricks SQL, so we will report it is not supported
+    functionBuilder.buildFunction(s"$$PARTITION", List.empty)
+  }
+
   /**
    * Handles the NEXT VALUE FOR function in SQL Server, which has a special syntax.
    *
@@ -402,7 +404,7 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
    *   the parse tree
    */
   override def visitNextValueFor(ctx: NextValueForContext): ir.Expression = {
-    val sequenceName = ir.Literal(string = Some(buildTableName(ctx.tableName())))
+    val sequenceName = buildTableName(ctx.tableName())
     functionBuilder.buildFunction("NEXTVALUEFOR", Seq(sequenceName))
   }
 
@@ -423,6 +425,18 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
     val namedStruct = buildNamedStruct(jsonKeyValues)
     val absentOnNull = checkAbsentNull(ctx.jsonNullClause())
     buildJsonObject(namedStruct, absentOnNull)
+  }
+
+  override def visitFreetextFunction(ctx: FreetextFunctionContext): ir.Expression = {
+    // Databricks SQL does not support FREETEXT functions, so there is no point in trying to convert these
+    // functions. We do need to generate IR that indicates that this is a function that is not supported.
+    functionBuilder.buildFunction(ctx.f.getText, List.empty)
+  }
+
+  override def visitHierarchyidStaticMethod(ctx: HierarchyidStaticMethodContext): ir.Expression = {
+    // Databricks SQL does not support HIERARCHYID functions, so there is no point in trying to convert these
+    // functions. We do need to generate IR that indicates that this is a function that is not supported.
+    functionBuilder.buildFunction("HIERARCHYID", List.empty)
   }
 
   // format: off
@@ -492,7 +506,8 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
    * @return
    *   IR for the JSON_OBJECT function
    */
-  // TODO: This is not likely the correct way to handle this, but it is a start - maybe needs external function
+  // TODO: This is not likely the correct way to handle this, but it is a start
+  //       maybe needs external function at runtime
   private[tsql] def buildJsonObject(namedStruct: ir.NamedStruct, absentOnNull: Boolean): ir.Expression = {
     if (absentOnNull) {
       val lambdaVariables = ir.UnresolvedNamedLambdaVariable(Seq("k", "v"))
@@ -505,4 +520,6 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
       ir.CallFunction("TO_JSON", Seq(namedStruct))
     }
   }
+
+
 }

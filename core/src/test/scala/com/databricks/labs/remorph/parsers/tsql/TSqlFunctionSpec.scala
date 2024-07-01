@@ -1,10 +1,10 @@
 package com.databricks.labs.remorph.parsers.tsql
 
-import com.databricks.labs.remorph.parsers.{intermediate => ir}
+import com.databricks.labs.remorph.parsers.{IRHelpers, intermediate => ir}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matchers {
+class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matchers with IRHelpers {
 
   override protected def astBuilder: TSqlParserBaseVisitor[_] = new TSqlExpressionBuilder
 
@@ -46,7 +46,7 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
               ir.Literal(integer = Some(42)),
               ir.Literal(integer = Some(2)),
               ir.Literal(integer = Some(4)),
-              ir.Column("\"ali\""))),
+              ir.Column(None, ir.Id("ali", caseSensitive = true)))),
           ir.Literal(string = Some("c")))))
   }
 
@@ -65,7 +65,7 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
               ir.Literal(integer = Some(42)),
               ir.Literal(integer = Some(2)),
               ir.Literal(integer = Some(4)),
-              ir.Column("\"ali\""))))))
+              ir.Column(None, ir.Id("ali", caseSensitive = true)))))))
   }
 
   "translate unknown functions as unresolved" in {
@@ -120,36 +120,27 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
          RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)""",
       _.expression(),
       ir.Window(
-        ir.CallFunction("SUM", Seq(ir.Column("salary"))),
-        Seq(ir.Column("department")),
-        Seq(ir.SortOrder(ir.Column("employee_id"), ir.AscendingSortDirection, ir.SortNullsUnspecified)),
-        ir.WindowFrame(
-          ir.RangeFrame,
-          ir.FrameBoundary(current_row = false, unbounded = true, ir.Noop),
-          ir.FrameBoundary(current_row = true, unbounded = false, ir.Noop))))
+        ir.CallFunction("SUM", Seq(simplyNamedColumn("salary"))),
+        Seq(simplyNamedColumn("department")),
+        Seq(ir.SortOrder(simplyNamedColumn("employee_id"), ir.AscendingSortDirection, ir.SortNullsUnspecified)),
+        Some(ir.WindowFrame(ir.RangeFrame, ir.UnboundedPreceding, ir.CurrentRow))))
     example(
       "SUM(salary) OVER (PARTITION BY department ORDER BY employee_id ROWS UNBOUNDED PRECEDING)",
       _.expression(),
       ir.Window(
-        ir.CallFunction("SUM", Seq(ir.Column("salary"))),
-        Seq(ir.Column("department")),
-        Seq(ir.SortOrder(ir.Column("employee_id"), ir.AscendingSortDirection, ir.SortNullsUnspecified)),
-        ir.WindowFrame(
-          ir.RowsFrame,
-          ir.FrameBoundary(current_row = false, unbounded = true, ir.Noop),
-          ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop))))
+        ir.CallFunction("SUM", Seq(simplyNamedColumn("salary"))),
+        Seq(simplyNamedColumn("department")),
+        Seq(ir.SortOrder(simplyNamedColumn("employee_id"), ir.AscendingSortDirection, ir.SortNullsUnspecified)),
+        Some(ir.WindowFrame(ir.RowsFrame, ir.UnboundedPreceding, ir.NoBoundary))))
 
     example(
       "SUM(salary) OVER (PARTITION BY department ORDER BY employee_id ROWS 66 PRECEDING)",
       _.expression(),
       ir.Window(
-        ir.CallFunction("SUM", Seq(ir.Column("salary"))),
-        Seq(ir.Column("department")),
-        Seq(ir.SortOrder(ir.Column("employee_id"), ir.AscendingSortDirection, ir.SortNullsUnspecified)),
-        ir.WindowFrame(
-          ir.RowsFrame,
-          ir.FrameBoundary(current_row = false, unbounded = false, ir.Literal(integer = Some(66))),
-          ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop))))
+        ir.CallFunction("SUM", Seq(simplyNamedColumn("salary"))),
+        Seq(simplyNamedColumn("department")),
+        Seq(ir.SortOrder(simplyNamedColumn("employee_id"), ir.AscendingSortDirection, ir.SortNullsUnspecified)),
+        Some(ir.WindowFrame(ir.RowsFrame, ir.PrecedingN(ir.Literal(integer = Some(66))), ir.NoBoundary))))
 
     example(
       query = """
@@ -157,13 +148,10 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
     """,
       _.expression(),
       ir.Window(
-        ir.CallFunction("AVG", Seq(ir.Column("salary"))),
-        Seq(ir.Column("department_id")),
-        Seq(ir.SortOrder(ir.Column("employee_id"), ir.AscendingSortDirection, ir.SortNullsUnspecified)),
-        ir.WindowFrame(
-          ir.RowsFrame,
-          ir.FrameBoundary(current_row = false, unbounded = true, ir.Noop),
-          ir.FrameBoundary(current_row = true, unbounded = false, ir.Noop))))
+        ir.CallFunction("AVG", Seq(simplyNamedColumn("salary"))),
+        Seq(simplyNamedColumn("department_id")),
+        Seq(ir.SortOrder(simplyNamedColumn("employee_id"), ir.AscendingSortDirection, ir.SortNullsUnspecified)),
+        Some(ir.WindowFrame(ir.RowsFrame, ir.UnboundedPreceding, ir.CurrentRow))))
 
     example(
       query = """
@@ -171,42 +159,32 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
     """,
       _.expression(),
       ir.Window(
-        ir.CallFunction("SUM", Seq(ir.Column("sales"))),
+        ir.CallFunction("SUM", Seq(simplyNamedColumn("sales"))),
         List(),
-        Seq(ir.SortOrder(ir.Column("month"), ir.AscendingSortDirection, ir.SortNullsUnspecified)),
-        ir.WindowFrame(
-          ir.RowsFrame,
-          ir.FrameBoundary(current_row = true, unbounded = false, ir.Noop),
-          ir.FrameBoundary(current_row = false, unbounded = false, ir.Literal(integer = Some(2))))))
+        Seq(ir.SortOrder(simplyNamedColumn("month"), ir.AscendingSortDirection, ir.SortNullsUnspecified)),
+        Some(ir.WindowFrame(ir.RowsFrame, ir.CurrentRow, ir.FollowingN(ir.Literal(integer = Some(2)))))))
 
     example(
       "ROW_NUMBER() OVER (PARTITION BY department ORDER BY salary DESC)",
       _.selectListElem(),
       ir.Window(
         ir.CallFunction("ROW_NUMBER", Seq.empty),
-        Seq(ir.Column("department")),
-        Seq(ir.SortOrder(ir.Column("salary"), ir.DescendingSortDirection, ir.SortNullsUnspecified)),
-        ir.WindowFrame(
-          ir.UndefinedFrame,
-          ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop),
-          ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop))))
+        Seq(simplyNamedColumn("department")),
+        Seq(ir.SortOrder(simplyNamedColumn("salary"), ir.DescendingSortDirection, ir.SortNullsUnspecified)),
+        None))
 
     example(
       "ROW_NUMBER() OVER (PARTITION BY department)",
       _.selectListElem(),
-      ir.Window(
-        ir.CallFunction("ROW_NUMBER", Seq.empty),
-        Seq(ir.Column("department")),
-        List(),
-        ir.WindowFrame(
-          ir.UndefinedFrame,
-          ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop),
-          ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop))))
+      ir.Window(ir.CallFunction("ROW_NUMBER", Seq.empty), Seq(simplyNamedColumn("department")), List(), None))
 
   }
 
   "translate functions with DISTINCT arguments" in {
-    example("COUNT(DISTINCT salary)", _.expression(), ir.CallFunction("COUNT", Seq(ir.Distinct(ir.Column("salary")))))
+    example(
+      "COUNT(DISTINCT salary)",
+      _.expression(),
+      ir.CallFunction("COUNT", Seq(ir.Distinct(simplyNamedColumn("salary")))))
   }
 
   "translate special keyword functions" in {
@@ -233,13 +211,10 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
       query = "FIRST_VALUE(Salary) OVER (PARTITION BY DepartmentID ORDER BY Salary DESC)",
       _.expression(),
       ir.Window(
-        ir.CallFunction("FIRST_VALUE", Seq(ir.Column("Salary"))),
-        Seq(ir.Column("DepartmentID")),
-        Seq(ir.SortOrder(ir.Column("Salary"), ir.DescendingSortDirection, ir.SortNullsUnspecified)),
-        ir.WindowFrame(
-          ir.UndefinedFrame,
-          ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop),
-          ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop))))
+        ir.CallFunction("FIRST_VALUE", Seq(simplyNamedColumn("Salary"))),
+        Seq(simplyNamedColumn("DepartmentID")),
+        Seq(ir.SortOrder(simplyNamedColumn("Salary"), ir.DescendingSortDirection, ir.SortNullsUnspecified)),
+        None))
 
     example(
       query = """
@@ -247,13 +222,10 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
     """,
       _.expression(),
       ir.Window(
-        ir.CallFunction("LAST_VALUE", Seq(ir.Column("salary"))),
-        Seq(ir.Column("department_id")),
-        Seq(ir.SortOrder(ir.Column("employee_id"), ir.DescendingSortDirection, ir.SortNullsUnspecified)),
-        ir.WindowFrame(
-          ir.UndefinedFrame,
-          ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop),
-          ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop))))
+        ir.CallFunction("LAST_VALUE", Seq(simplyNamedColumn("salary"))),
+        Seq(simplyNamedColumn("department_id")),
+        Seq(ir.SortOrder(simplyNamedColumn("employee_id"), ir.DescendingSortDirection, ir.SortNullsUnspecified)),
+        None))
 
     example(
       query = "PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY Salary) OVER (PARTITION BY DepartmentID)",
@@ -261,13 +233,10 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
       ir.Window(
         ir.WithinGroup(
           ir.CallFunction("PERCENTILE_CONT", Seq(ir.Literal(float = Some(0.5f)))),
-          Seq(ir.SortOrder(ir.Column("Salary"), ir.AscendingSortDirection, ir.SortNullsUnspecified))),
-        Seq(ir.Column("DepartmentID")),
+          Seq(ir.SortOrder(simplyNamedColumn("Salary"), ir.AscendingSortDirection, ir.SortNullsUnspecified))),
+        Seq(simplyNamedColumn("DepartmentID")),
         List(),
-        ir.WindowFrame(
-          ir.UndefinedFrame,
-          ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop),
-          ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop))))
+        None))
 
     example(
       query = """
@@ -275,13 +244,10 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
   """,
       _.expression(),
       ir.Window(
-        ir.CallFunction("LEAD", Seq(ir.Column("salary"), ir.Literal(integer = Some(1)))),
-        Seq(ir.Column("department_id")),
-        Seq(ir.SortOrder(ir.Column("employee_id"), ir.DescendingSortDirection, ir.SortNullsUnspecified)),
-        ir.WindowFrame(
-          ir.UndefinedFrame,
-          ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop),
-          ir.FrameBoundary(current_row = false, unbounded = false, ir.Noop))))
+        ir.CallFunction("LEAD", Seq(simplyNamedColumn("salary"), ir.Literal(integer = Some(1)))),
+        Seq(simplyNamedColumn("department_id")),
+        Seq(ir.SortOrder(simplyNamedColumn("employee_id"), ir.DescendingSortDirection, ir.SortNullsUnspecified)),
+        None))
   }
 
   "translate 'functions' with non-standard syntax" in {
@@ -330,7 +296,12 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
       _.expression(),
       ir.CallFunction(
         "TO_JSON",
-        Seq(ir.ValueArray(Seq(ir.Literal(integer = Some(1)), ir.Column("col1"), ir.Column("x.col2"))))))
+        Seq(
+          ir.ValueArray(
+            Seq(
+              ir.Literal(integer = Some(1)),
+              simplyNamedColumn("col1"),
+              ir.Column(Some(ir.ObjectReference(ir.Id("x"))), ir.Id("col2")))))))
   }
 
   "translate JSON_OBJECT in various forms" in {
@@ -360,10 +331,31 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
         Seq(
           ir.NamedStruct(
             Seq(ir.Literal(string = Some("a")), ir.Literal(string = Some("b")), ir.Literal(string = Some("c"))),
-            Seq(ir.Column("a"), ir.Column("b"), ir.Column("c"))))))
+            Seq(simplyNamedColumn("a"), simplyNamedColumn("b"), simplyNamedColumn("c"))))))
   }
 
   "translate functions using ALL" in {
-    example(query = "COUNT(ALL goals)", _.expression(), ir.CallFunction("COUNT", Seq(ir.Column("goals"))))
+    example(query = "COUNT(ALL goals)", _.expression(), ir.CallFunction("COUNT", Seq(simplyNamedColumn("goals"))))
+  }
+
+  "translate freetext functions as inconvertible" in {
+    example(
+      query = "FREETEXTTABLE(table, col, 'search')",
+      _.expression(),
+      ir.UnresolvedFunction("FREETEXTTABLE", List.empty, is_distinct = false, is_user_defined_function = false))
+  }
+
+  "translate $PARTITION functions as inconvertible" in {
+    example(
+      query = "$PARTITION.partitionFunction(col)",
+      _.expression(),
+      ir.UnresolvedFunction("$PARTITION", List.empty, is_distinct = false, is_user_defined_function = false))
+  }
+
+  "translate HIERARCHYID static method as inconvertible" in {
+    example(
+      query = "HIERARCHYID::Parse('1/2/3')",
+      _.expression(),
+      ir.UnresolvedFunction("HIERARCHYID", List.empty, is_distinct = false, is_user_defined_function = false))
   }
 }

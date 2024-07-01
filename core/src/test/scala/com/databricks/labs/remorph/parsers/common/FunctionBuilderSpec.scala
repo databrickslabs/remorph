@@ -2,20 +2,21 @@ package com.databricks.labs.remorph.parsers.common
 
 import com.databricks.labs.remorph.parsers.intermediate.UnresolvedFunction
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeFunctionBuilder
+import com.databricks.labs.remorph.parsers.snowflake.SnowflakeFunctionConverters.SnowflakeSynonyms
 import com.databricks.labs.remorph.parsers.tsql.TSqlFunctionBuilder
 import com.databricks.labs.remorph.parsers.{intermediate => ir, _}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.prop.TableDrivenPropertyChecks
 
-class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenPropertyChecks {
+class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenPropertyChecks with IRHelpers {
 
   "TSqlFunctionBuilder" should "return correct arity for each function" in {
     val functions = Table(
       ("functionName", "expectedArity"), // Header
 
       // TSQL specific
-      ("@@CURSOR_STATUS", Some(FunctionDefinition.notConvertible(0))),
+      ("@@CURSOR_ROWS", Some(FunctionDefinition.notConvertible(0))),
       ("@@FETCH_STATUS", Some(FunctionDefinition.notConvertible(0))),
       ("CUBE", Some(FunctionDefinition.standard(1, Int.MaxValue))),
       ("MODIFY", Some(FunctionDefinition.xml(1))),
@@ -68,16 +69,21 @@ class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenProp
       ("CURRENT_DATABASE", Some(FunctionDefinition.standard(0))),
       ("CURRENT_TIMESTAMP", Some(FunctionDefinition.standard(0, 1))),
       ("DATEDIFF", Some(FunctionDefinition.standard(3))),
+      ("DATE", Some(FunctionDefinition.standard(1, 2).withConversionStrategy(SnowflakeSynonyms))),
       ("DATE_FROM_PARTS", Some(FunctionDefinition.standard(3))),
       ("DATE_PART", Some(FunctionDefinition.standard(2))),
       ("DATE_TRUNC", Some(FunctionDefinition.standard(2))),
       ("DAYNAME", Some(FunctionDefinition.standard(1))),
       ("DECODE", Some(FunctionDefinition.standard(3, Int.MaxValue))),
+      ("DENSE_RANK", Some(FunctionDefinition.standard(0))),
       ("DIV0", Some(FunctionDefinition.standard(2))),
       ("DIV0NULL", Some(FunctionDefinition.standard(2))),
       ("ENDSWITH", Some(FunctionDefinition.standard(2))),
       ("EQUAL_NULL", Some(FunctionDefinition.standard(2))),
+      ("EXTRACT", Some(FunctionDefinition.standard(2))),
+      ("FLATTEN", Some(FunctionDefinition.standard(1, 5))),
       ("GET", Some(FunctionDefinition.standard(2))),
+      ("HASH", Some(FunctionDefinition.standard(1, Int.MaxValue))),
       ("IFNULL", Some(FunctionDefinition.standard(1, 2))),
       ("INITCAP", Some(FunctionDefinition.standard(1, 2))),
       ("ISNULL", Some(FunctionDefinition.standard(1))),
@@ -92,6 +98,7 @@ class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenProp
       ("MONTHNAME", Some(FunctionDefinition.standard(1))),
       ("NEXT_DAY", Some(FunctionDefinition.standard(2))),
       ("NULLIFZERO", Some(FunctionDefinition.standard(1))),
+      ("NTH_VAlUE", Some(FunctionDefinition.standard(2))),
       ("NVL", Some(FunctionDefinition.standard(2))),
       ("NVL2", Some(FunctionDefinition.standard(3))),
       ("OBJECT_CONSTRUCT", Some(FunctionDefinition.standard(1, Int.MaxValue))),
@@ -110,6 +117,7 @@ class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenProp
       ("REGR_R2", Some(FunctionDefinition.standard(2))),
       ("REGR_SLOPE", Some(FunctionDefinition.standard(2))),
       ("REPEAT", Some(FunctionDefinition.standard(2))),
+      ("RLIKE", Some(FunctionDefinition.standard(2, 3))),
       ("ROUND", Some(FunctionDefinition.standard(1, 3))),
       ("RPAD", Some(FunctionDefinition.standard(2, 3))),
       ("RTRIM", Some(FunctionDefinition.standard(1, 2))),
@@ -123,13 +131,14 @@ class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenProp
       ("STRTOK", Some(FunctionDefinition.standard(1, 3))),
       ("STRTOK_TO_ARRAY", Some(FunctionDefinition.standard(1, 2))),
       ("SYSDATE", Some(FunctionDefinition.standard(0))),
+      ("TIME", Some(FunctionDefinition.standard(1, 2).withConversionStrategy(SnowflakeSynonyms))),
       ("TIMEADD", Some(FunctionDefinition.standard(3))),
       ("TIMESTAMPADD", Some(FunctionDefinition.standard(3))),
       ("TIMESTAMPDIFF", Some(FunctionDefinition.standard(3))),
       ("TIMESTAMP_FROM_PARTS", Some(FunctionDefinition.standard(2, 8))),
       ("TO_ARRAY", Some(FunctionDefinition.standard(1))),
       ("TO_BOOLEAN", Some(FunctionDefinition.standard(1))),
-      ("TO_CHAR", Some(FunctionDefinition.standard(1, 2))),
+      ("TO_CHAR", Some(FunctionDefinition.standard(1, 2).withConversionStrategy(SnowflakeSynonyms))),
       ("TO_DATE", Some(FunctionDefinition.standard(1, 2))),
       ("TO_DECIMAL", Some(FunctionDefinition.standard(1, 4))),
       ("TO_DOUBLE", Some(FunctionDefinition.standard(1, 2))),
@@ -143,6 +152,7 @@ class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenProp
       ("TO_TIMESTAMP_NTZ", Some(FunctionDefinition.standard(1, 2))),
       ("TO_TIMESTAMP_TZ", Some(FunctionDefinition.standard(1, 2))),
       ("TO_VARCHAR", Some(FunctionDefinition.standard(1, 2))),
+      ("TO_VARIANT", Some(FunctionDefinition.standard(1))),
       ("TRIM", Some(FunctionDefinition.standard(1, 2))),
       ("TRUNC", Some(FunctionDefinition.standard(2))),
       ("TRY_BASE64_DECODE_STRING", Some(FunctionDefinition.standard(1, 2))),
@@ -481,11 +491,11 @@ class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenProp
     val renameTable = Table(
       ("functionName", "params", "expectedFunctionName"), // Header
 
-      ("ISNULL", Seq(ir.Column("x"), ir.Literal(integer = Some(1))), "IFNULL"),
-      ("GET_BIT", Seq(ir.Column("x"), ir.Literal(integer = Some(1))), "GETBIT"),
-      ("SET_BIT", Seq(ir.Column("x"), ir.Literal(integer = Some(1))), "SETBIT"),
-      ("left_SHIFT", Seq(ir.Column("x"), ir.Literal(integer = Some(1))), "LEFTSHIFT"),
-      ("RIGHT_SHIFT", Seq(ir.Column("x"), ir.Literal(integer = Some(1))), "RIGHTSHIFT"))
+      ("ISNULL", Seq(simplyNamedColumn("x"), ir.Literal(integer = Some(1))), "IFNULL"),
+      ("GET_BIT", Seq(simplyNamedColumn("x"), ir.Literal(integer = Some(1))), "GETBIT"),
+      ("SET_BIT", Seq(simplyNamedColumn("x"), ir.Literal(integer = Some(1))), "SETBIT"),
+      ("left_SHIFT", Seq(simplyNamedColumn("x"), ir.Literal(integer = Some(1))), "LEFTSHIFT"),
+      ("RIGHT_SHIFT", Seq(simplyNamedColumn("x"), ir.Literal(integer = Some(1))), "RIGHTSHIFT"))
 
     forAll(renameTable) { (functionName: String, params: Seq[ir.Expression], expectedFunctionName: String) =>
       {
@@ -501,20 +511,20 @@ class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenProp
   "buildFunction" should "not resolve IFNULL when input dialect isn't TSql" in {
     val functionBuilder = new SnowflakeFunctionBuilder
 
-    val result1 = functionBuilder.buildFunction("ISNULL", Seq(ir.Column("x"), ir.Literal(integer = Some(0))))
+    val result1 = functionBuilder.buildFunction("ISNULL", Seq(simplyNamedColumn("x"), ir.Literal(integer = Some(0))))
     result1 shouldBe a[UnresolvedFunction]
   }
 
   "buildFunction" should "not resolve IFNULL when input dialect isn't Snowflake" in {
     val functionBuilder = new TSqlFunctionBuilder
 
-    val result1 = functionBuilder.buildFunction("IFNULL", Seq(ir.Column("x"), ir.Literal(integer = Some(0))))
+    val result1 = functionBuilder.buildFunction("IFNULL", Seq(simplyNamedColumn("x"), ir.Literal(integer = Some(0))))
     result1 shouldBe a[UnresolvedFunction]
   }
 
   "buildFunction" should "Should preserve case if it can" in {
     val functionBuilder = new TSqlFunctionBuilder
-    val result1 = functionBuilder.buildFunction("isnull", Seq(ir.Column("x"), ir.Literal(integer = Some(0))))
+    val result1 = functionBuilder.buildFunction("isnull", Seq(simplyNamedColumn("x"), ir.Literal(integer = Some(0))))
     result1 match {
       case f: ir.CallFunction => f.function_name shouldBe "ifnull"
       case _ => fail("ifnull conversion failed")
