@@ -151,6 +151,21 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.Relation] {
       .getOrElse(insert)
   }
 
+  override def visitInsert(ctx: InsertContext): ir.Relation = {
+    // val target = ctx.ddlObject().accept(this)
+    // val hints =  ctx.withTableHints().asScala.map(_.accept(expressionBuilder))
+    // val columns = ctx.expressionList().expression().asScala.map(_.accept(expressionBuilder))
+    ir.UnknownRelation
+  }
+
+  override def visitDdlObject(ctx: DdlObjectContext): ir.Relation = {
+    ctx match {
+      case tableName if tableName.tableName() != null => tableName.tableName().accept(this)
+      case localId if localId.LOCAL_ID() != null => ir.LocalVarTable(ir.Id(localId.LOCAL_ID().getText))
+      case _ => ir.UnresolvedRelation(ctx.getText)
+    }
+  }
+
   private[tsql] def translateJoinType(ctx: JoinOnContext): ir.JoinType = ctx.joinType() match {
     case jt if jt == null || jt.outerJoin() == null || jt.INNER() != null => ir.InnerJoin
     case jt if jt.outerJoin().LEFT() != null => ir.LeftOuterJoin
