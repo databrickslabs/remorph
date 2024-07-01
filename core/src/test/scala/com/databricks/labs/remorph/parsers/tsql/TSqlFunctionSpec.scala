@@ -248,6 +248,20 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
         Seq(simplyNamedColumn("department_id")),
         Seq(ir.SortOrder(simplyNamedColumn("employee_id"), ir.DescendingSortDirection, ir.SortNullsUnspecified)),
         None))
+
+    example(
+      query = """
+    LEAD(salary, 1) IGNORE NULLS OVER (PARTITION BY department_id ORDER BY employee_id DESC)
+  """,
+      _.expression(),
+      ir.Window(
+        ir.CallFunction(
+          "LEAD",
+          Seq(simplyNamedColumn("salary"), ir.Literal(integer = Some(1)), ir.Literal(boolean = Some(true)))),
+        Seq(simplyNamedColumn("department_id")),
+        Seq(ir.SortOrder(simplyNamedColumn("employee_id"), ir.DescendingSortDirection, ir.SortNullsUnspecified)),
+        None))
+
   }
 
   "translate 'functions' with non-standard syntax" in {

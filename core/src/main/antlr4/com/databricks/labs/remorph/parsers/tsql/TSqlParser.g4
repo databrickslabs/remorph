@@ -3093,11 +3093,9 @@ expressionElem: columnAlias EQ expression | expression asColumnAlias?
     ;
 
 selectListElem
-    : (
-        asterisk
-        | LOCAL_ID op = (PE | ME | SE | DE | MEA | AND_ASSIGN | XOR_ASSIGN | OR_ASSIGN | EQ) expression
-        | expressionElem
-    ) ((IGNORE | RESPECT) NULLS)?
+    : asterisk
+    | LOCAL_ID op = (PE | ME | SE | DE | MEA | AND_ASSIGN | XOR_ASSIGN | OR_ASSIGN | EQ) expression
+    | expressionElem
     ;
 
 tableSources: source += tableSource (COMMA source += tableSource)*
@@ -3339,8 +3337,11 @@ expressionList: exp += expression (COMMA exp += expression)*
 withinGroup: WITHIN GROUP LPAREN orderByClause RPAREN
     ;
 
+// The ((IGNORE | RESPECT) NULLS)? is strictly speaking, not part of the OVER clause
+// but trails certain windowing functions such as LAG and LEAD. However, all such functions
+// must use the OVER clause, so it is included here to make build the IR simpler.
 overClause
-    : OVER LPAREN (PARTITION BY expression (COMMA expression)*)? orderByClause? rowOrRangeClause? RPAREN
+    : ((IGNORE | RESPECT) NULLS)? OVER LPAREN (PARTITION BY expression (COMMA expression)*)? orderByClause? rowOrRangeClause? RPAREN
     ;
 
 rowOrRangeClause: (ROWS | RANGE) windowFrameExtent

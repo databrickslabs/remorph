@@ -299,7 +299,12 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
   // so we can't build them logically with visit and accept. Maybe replace them with
   // extensions that do do this?
   override def visitExprOver(ctx: ExprOverContext): ir.Window = {
-    val windowFunction = buildWindowingFunction(ctx.expression().accept(this))
+
+    // The OVER clause is used to accept the IGNORE nulls clause that can be specified after certain
+    // windowing functions such as LAG or LEAD, so that the clause is manifest here. The syntax allows
+    // IGNORE NULLS and RESPECT NULLS, but RESPECT NULLS is the default behavior.
+    val windowFunction =
+      buildNullIgnore(buildWindowingFunction(ctx.expression().accept(this)), ctx.overClause().IGNORE() != null)
     val partitionByExpressions =
       Option(ctx.overClause().expression()).map(_.asScala.toList.map(_.accept(this))).getOrElse(List.empty)
     val orderByExpressions = Option(ctx.overClause().orderByClause())
@@ -309,6 +314,17 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
       .map(buildWindowFrame)
 
     ir.Window(windowFunction, partitionByExpressions, orderByExpressions, windowFrame)
+  }
+
+  // Some windowing functions take a final boolean parameter in Databricks SQL, which is the equivalent
+  // of IGNORE NULLS syntax in T-SQL. When true, the Databricks windowing function will ignore nulls in
+  // the window frame. For instance LEAD or LAG functions support this.
+  private def buildNullIgnore(ctx: ir.Expression, ignoreNulls: Boolean): ir.Expression = {
+    ctx match {
+      case callFunction: ir.CallFunction if ignoreNulls =>
+        callFunction.copy(arguments = callFunction.arguments :+ ir.Literal(boolean = Some(true)))
+      case _ => ctx
+    }
   }
 
   // Some functions need to be converted to Databricks equivalent Windowing functions for the OVER clause
