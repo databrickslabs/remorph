@@ -13,6 +13,7 @@ import scala.collection.JavaConverters.asScalaBufferConverter
 class TSqlAstBuilder extends TSqlParserBaseVisitor[ir.TreeNode] {
 
   private val expressionBuilder = new TSqlExpressionBuilder
+  private val tsqlRelationBuilder = new TSqlRelationBuilder
 
   override def visitTSqlFile(ctx: TSqlParser.TSqlFileContext): ir.TreeNode = {
     Option(ctx.batch()).map(_.accept(this)).getOrElse(ir.Batch(List()))
@@ -34,10 +35,12 @@ class TSqlAstBuilder extends TSqlParserBaseVisitor[ir.TreeNode] {
     }
   }
 
-  override def visitDmlClause(ctx: DmlClauseContext): ir.TreeNode = {
+  override def visitDmlClause(ctx: DmlClauseContext): ir.TreeNode =
     // TODO: Implement the rest of the DML clauses
     ctx.selectStatementStandalone().accept(this)
-  }
+
+  override def visitInsertStatement(ctx: TSqlParser.InsertStatementContext): ir.TreeNode =
+    ctx.accept(tsqlRelationBuilder)
 
   /**
    * Build a complete AST for a select statement.
