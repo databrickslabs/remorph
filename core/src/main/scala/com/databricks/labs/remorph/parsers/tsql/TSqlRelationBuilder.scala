@@ -162,6 +162,9 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.Relation] {
   override def visitTableSourceItem(ctx: TableSourceItemContext): ir.Relation = {
     val tsiElement = ctx.tsiElement().accept(this)
 
+    // Assemble any table hints, though we do nothing with them for now
+    buildTableHints(Option(ctx.withTableHints()), Option(ctx.genericOption().asScala.toList))
+
     // If we have column aliases, they are applied here first
     val tsiElementWithAliases = Option(ctx.columnAliasList())
       .map { aliasList =>
@@ -176,18 +179,32 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.Relation] {
       .getOrElse(tsiElementWithAliases)
   }
 
+  // Table hints arrive syntactically as a () delimited list of options and, in the
+  // case of deprecated hint syntax, as a list of generic options without (). Here,
+  // we build a single map from both sources, either or both of which may be empty.
+  // In true TSQL style, some of the hints have non-orthodox syntax, and must be handled
+  // directly.
+  private def buildTableHints(
+      ctx: Option[WithTableHintsContext],
+      generics: Option[List[GenericOptionContext]]): Map[String, String] = {
+    Map.empty // Placeholder waiting for PR https://github.com/databrickslabs/remorph/pull/496
+  }
+
   private def buildColumnAlias(ctx: TSqlParser.ColumnAliasContext): ir.Id = {
     ctx match {
       case c if c.id() != null => expressionBuilder.visitId(c.id())
-      case _ => ir.Id(expressionBuilder.removeQuotes(ctx.getText), caseSensitive = false)
+      case _ => ir.Id(expressionBuilder.removeQuotes(ctx.getText))
     }
   }
 
   override def visitTsiNamedTable(ctx: TsiNamedTableContext): ir.Relation =
     ctx.tableName().accept(this)
 
-  override def visitTsiDerivedTable(ctx: TsiDerivedTableContext): ir.Relation =
+  override def visitTsiDerivedTable(ctx: TsiDerivedTableContext): ir.Relation = {
+
+    // TODO implement other table sources
     ctx.derivedTable().subquery(0).selectStatement().accept(this)
+  }
 
   private def buildJoinPart(left: ir.Relation, ctx: JoinPartContext): ir.Relation = {
     ctx match {
