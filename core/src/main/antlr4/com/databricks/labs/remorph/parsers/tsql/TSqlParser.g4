@@ -2996,7 +2996,7 @@ tableSource: tableSourceItem joinPart*
 // As this parser expects to see valid input anyway, we combine this into a single rule and
 // then visit each possible table source individually, applying alias afterwards. This reduces
 // rule complexity and parser complexity substantially.
-tableSourceItem: tsiElement (asTableAlias columnAliasList?)? (withTableHints | genericOption+)?
+tableSourceItem: tsiElement (asTableAlias columnAliasList?)? withTableHints?
     ;
 
 tsiElement
@@ -3168,7 +3168,7 @@ asColumnAlias: AS? columnAlias
 asTableAlias: AS? (id | DOUBLE_QUOTE_ID)
     ;
 
-withTableHints: WITH? LPAREN hint += tableHint (COMMA? hint += tableHint)* RPAREN
+withTableHints: WITH? LPAREN tableHint (COMMA? tableHint)* RPAREN
     ;
 
 deprecatedTableHint: LPAREN tableHint RPAREN
@@ -3178,8 +3178,8 @@ sybaseLegacyHint: HOLDLOCK | NOHOLDLOCK | READPAST | SHARED
     ;
 
 tableHint
-    : INDEX EQ? (LPAREN (id | INT) (COMMA (id | INT))* RPAREN | id | INT)
-    | FORCESEEK ( LPAREN (id | INT) LPAREN columnNameList RPAREN RPAREN)?
+    : INDEX EQ? LPAREN expressionList RPAREN
+    | FORCESEEK ( LPAREN expression LPAREN columnNameList RPAREN RPAREN)?
     | genericOption
     ;
 

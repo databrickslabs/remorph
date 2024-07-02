@@ -557,7 +557,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
               NamedTable("Employees", Map(), is_streaming = false),
               Seq(SortOrder(simplyNamedColumn("Salary"), AscendingSortDirection, SortNullsUnspecified)),
               is_global = false),
-            Literal(integer = Some(10))),
+            Literal(short = Some(10))),
           Seq(Star(None))))))
 
     example(
@@ -570,8 +570,8 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
                 NamedTable("Employees", Map(), is_streaming = false),
                 Seq(SortOrder(simplyNamedColumn("Salary"), AscendingSortDirection, SortNullsUnspecified)),
                 is_global = false),
-              Literal(integer = Some(10))),
-            Literal(integer = Some(5))),
+              Literal(short = Some(10))),
+            Literal(short = Some(5))),
           Seq(Star(None))))))
   }
 
@@ -586,7 +586,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
                 NamedTable("Employees", Map(), is_streaming = false),
                 Seq(SortOrder(simplyNamedColumn("Salary"), AscendingSortDirection, SortNullsUnspecified)),
                 is_global = false),
-              Literal(integer = Some(10))),
+              Literal(short = Some(10))),
             List(),
             all_columns_as_keys = true,
             within_watermark = false),
@@ -603,8 +603,8 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
                   NamedTable("Employees", Map(), is_streaming = false),
                   List(SortOrder(Column(None, Id("Salary")), AscendingSortDirection, SortNullsUnspecified)),
                   is_global = false),
-                Literal(integer = Some(10))),
-              Literal(integer = Some(5))),
+                Literal(short = Some(10))),
+              Literal(short = Some(5))),
             List(),
             all_columns_as_keys = true,
             within_watermark = false),
@@ -690,7 +690,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
       query = """SELECT * FROM t FOR XML RAW
             OPTION (
             MAXRECURSION 10,
-            OPTIMIZE FOR UNKNOWN,
+            OPTIMIZE [FOR] UNKNOWN,
             SOMETHING ON,
             SOMETHINGELSE OFF,
             SOMEOTHER AUTO,

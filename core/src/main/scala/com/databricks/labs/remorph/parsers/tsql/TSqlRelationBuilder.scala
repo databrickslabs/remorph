@@ -163,7 +163,7 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.Relation] {
     val tsiElement = ctx.tsiElement().accept(this)
 
     // Assemble any table hints, though we do nothing with them for now
-    buildTableHints(Option(ctx.withTableHints()), Option(ctx.genericOption().asScala.toList))
+    val hints = buildTableHints(Option(ctx.withTableHints()))
 
     // If we have column aliases, they are applied here first
     val tsiElementWithAliases = Option(ctx.columnAliasList())
@@ -173,10 +173,16 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.Relation] {
       }
       .getOrElse(tsiElement)
 
+    val relation = if (hints.nonEmpty) {
+      ir.TableWithHints(tsiElementWithAliases, hints)
+    } else {
+      tsiElementWithAliases
+    }
+
     // Then any table alias is applied to the source
     Option(ctx.asTableAlias())
-      .map(alias => ir.TableAlias(tsiElementWithAliases, alias.id.getText))
-      .getOrElse(tsiElementWithAliases)
+      .map(alias => ir.TableAlias(relation, alias.id.getText))
+      .getOrElse(relation)
   }
 
   // Table hints arrive syntactically as a () delimited list of options and, in the
@@ -184,10 +190,22 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.Relation] {
   // we build a single map from both sources, either or both of which may be empty.
   // In true TSQL style, some of the hints have non-orthodox syntax, and must be handled
   // directly.
-  private def buildTableHints(
-      ctx: Option[WithTableHintsContext],
-      generics: Option[List[GenericOptionContext]]): Map[String, String] = {
-    Map.empty // Placeholder waiting for PR https://github.com/databrickslabs/remorph/pull/496
+  private def buildTableHints(ctx: Option[WithTableHintsContext]): Seq[ir.TableHint] = {
+    ctx.map(_.tableHint().asScala.map(buildHint).toList).getOrElse(Seq.empty)
+  }
+
+  private def buildHint(ctx: TableHintContext): ir.TableHint = {
+    ctx match {
+      case index if index.INDEX() != null =>
+        ir.IndexHint(index.expressionList().expression().asScala.map(_.accept(expressionBuilder)))
+      case force if force.FORCESEEK() != null =>
+        val name = Option(force.expression()).map(_.accept(expressionBuilder))
+        val columns = Option(force.columnNameList()).map(_.id().asScala.map(_.accept(expressionBuilder)))
+        ir.ForceSeekHint(name, columns)
+      case _ =>
+        val option = expressionBuilder.optionBuilder.buildOption(ctx.genericOption())
+        ir.FlagHint(option.id)
+    }
   }
 
   private def buildColumnAlias(ctx: TSqlParser.ColumnAliasContext): ir.Id = {
