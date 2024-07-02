@@ -517,7 +517,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
           Project(
             Limit(
               NamedTable("Employees", Map(), is_streaming = false),
-              Literal(integer = Some(10)),
+              Literal(short = Some(10)),
               is_percentage = false,
               with_ties = false),
             Seq(Star(None))))))
@@ -529,7 +529,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
           Project(
             Limit(
               NamedTable("Employees", Map(), is_streaming = false),
-              Literal(integer = Some(10)),
+              Literal(short = Some(10)),
               is_percentage = true,
               with_ties = false),
             Seq(Star(None))))))
@@ -541,7 +541,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
           Project(
             Limit(
               NamedTable("Employees", Map(), is_streaming = false),
-              Literal(integer = Some(10)),
+              Literal(short = Some(10)),
               is_percentage = true,
               with_ties = true),
             Seq(Star(None))))))

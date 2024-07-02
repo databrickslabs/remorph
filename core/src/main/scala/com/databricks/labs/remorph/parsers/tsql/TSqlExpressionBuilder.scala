@@ -261,7 +261,7 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
     case _ => ir.Id(removeQuotes(ctx.getText), caseSensitive = false)
   }
 
-  private[tsq] def removeQuotes(str: String): String = {
+  private[tsql] def removeQuotes(str: String): String = {
     str.stripPrefix("'").stripSuffix("'")
   }
 
