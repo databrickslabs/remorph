@@ -134,5 +134,20 @@ class TSqlRelationBuilderSpec
             within_watermark = false),
           Seq(simplyNamedColumn("a"), ir.Alias(simplyNamedColumn("b"), Seq(ir.Id("bb")), None))))
     }
+
+    "translate derived tables with list of column aliases" in {
+      example(
+        "SELECT a, b AS bb FROM (SELECT x, y FROM d) AS t (aliasA, 'aliasB')",
+        _.selectStatement(),
+        ir.Project(
+          ir.TableAlias(
+            ir.ColumnAliases(
+              ir.Project(
+                ir.NamedTable("d", Map(), is_streaming = false),
+                Seq(ir.Column(None, ir.Id("x")), ir.Column(None, ir.Id("y")))),
+              Seq(ir.Id("aliasA"), ir.Id("aliasB"))),
+            "t"),
+          Seq(ir.Column(None, ir.Id("a")), ir.Alias(ir.Column(None, ir.Id("b")), Seq(ir.Id("bb")), None))))
+    }
   }
 }

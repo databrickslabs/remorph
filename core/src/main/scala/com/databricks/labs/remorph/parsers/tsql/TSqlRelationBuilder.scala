@@ -79,6 +79,7 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.Relation] {
     Option(ctx).fold(input) { c =>
       ir.Filter(input, conditionRule(c).accept(expressionBuilder))
     }
+
   private def buildHaving(ctx: HavingClauseContext, input: ir.Relation): ir.Relation =
     buildFilter[HavingClauseContext](ctx, _.searchCondition(), input)
 
@@ -141,7 +142,7 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.Relation] {
       case ir.Alias(_, a, _) => a
       // Note that the ir.Star(None) is not matched so that we set all_columns_as_keys to true
     }.flatten
-    ir.Deduplicate(from, columnNames, all_columns_as_keys = columnNames.isEmpty, within_watermark = false),
+    ir.Deduplicate(from, columnNames, all_columns_as_keys = columnNames.isEmpty, within_watermark = false)
   }
 
   override def visitTableName(ctx: TableNameContext): ir.NamedTable = {
@@ -158,11 +159,52 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.Relation] {
     }
   }
 
-  // TODO: note that not all table source items have tableName
-  override def visitTableSourceItem(ctx: TableSourceItemContext): ir.Relation =
+  override def visitTableSourceItem(ctx: TableSourceItemContext): ir.Relation = {
+    val tsiElement = ctx.tsiElement().accept(this)
+
+    // Assemble any table hints, though we do nothing with them for now
+    buildTableHints(Option(ctx.withTableHints()), Option(ctx.genericOption().asScala.toList))
+
+    // If we have column aliases, they are applied here first
+    val tsiElementWithAliases = Option(ctx.columnAliasList())
+      .map { aliasList =>
+        val aliases = aliasList.columnAlias().asScala.map(id => buildColumnAlias(id))
+        ir.ColumnAliases(tsiElement, aliases)
+      }
+      .getOrElse(tsiElement)
+
+    // Then any table alias is applied to the source
     Option(ctx.asTableAlias())
-      .map(alias => ir.TableAlias(ctx.tableName().accept(this), alias.id.getText))
-      .getOrElse(ctx.tableName().accept(this))
+      .map(alias => ir.TableAlias(tsiElementWithAliases, alias.id.getText))
+      .getOrElse(tsiElementWithAliases)
+  }
+
+  // Table hints arrive syntactically as a () delimited list of options and, in the
+  // case of deprecated hint syntax, as a list of generic options without (). Here,
+  // we build a single map from both sources, either or both of which may be empty.
+  // In true TSQL style, some of the hints have non-orthodox syntax, and must be handled
+  // directly.
+  private def buildTableHints(
+      ctx: Option[WithTableHintsContext],
+      generics: Option[List[GenericOptionContext]]): Map[String, String] = {
+    Map.empty // Placeholder waiting for PR https://github.com/databrickslabs/remorph/pull/496
+  }
+
+  private def buildColumnAlias(ctx: TSqlParser.ColumnAliasContext): ir.Id = {
+    ctx match {
+      case c if c.id() != null => expressionBuilder.visitId(c.id())
+      case _ => ir.Id(expressionBuilder.removeQuotes(ctx.getText))
+    }
+  }
+
+  override def visitTsiNamedTable(ctx: TsiNamedTableContext): ir.Relation =
+    ctx.tableName().accept(this)
+
+  override def visitTsiDerivedTable(ctx: TsiDerivedTableContext): ir.Relation = {
+
+    // TODO implement other table sources
+    ctx.derivedTable().subquery(0).selectStatement().accept(this)
+  }
 
   private def buildJoinPart(left: ir.Relation, ctx: JoinPartContext): ir.Relation = {
     ctx match {
