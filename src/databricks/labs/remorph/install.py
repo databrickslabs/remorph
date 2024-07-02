@@ -227,15 +227,15 @@ class WorkspaceInstaller:
     def _prompt_for_reconcile_database_config(self, source) -> DatabaseConfig:
         source_catalog = None
         if source == SourceType.SNOWFLAKE.value:
-            source_catalog = self._context.prompts.question(f"Enter `{source.capitalize()}` catalog name")
+            source_catalog = self._context.prompts.question(f"Enter source catalog name for `{source.capitalize()}`")
 
-        schema_prompt = f"Enter `{source.capitalize()}` schema name"
+        schema_prompt = f"Enter source schema name for `{source.capitalize()}`"
         if source in {SourceType.ORACLE.value}:
-            schema_prompt = f"Enter `{source.capitalize()}` database name"
+            schema_prompt = f"Enter source database name for `{source.capitalize()}`"
 
         source_schema = self._context.prompts.question(schema_prompt)
-        target_catalog = self._context.prompts.question("Enter Databricks catalog name")
-        target_schema = self._context.prompts.question("Enter Databricks schema name")
+        target_catalog = self._context.prompts.question("Enter target catalog name for Databricks")
+        target_schema = self._context.prompts.question("Enter target schema name for Databricks")
 
         return DatabaseConfig(
             source_schema=source_schema,

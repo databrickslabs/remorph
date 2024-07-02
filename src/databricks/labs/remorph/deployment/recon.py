@@ -36,7 +36,7 @@ class ReconDeployment:
         logger.info("Installing reconcile components.")
         self._deploy_tables(recon_config)
         self._deploy_dashboards(recon_config)
-        self._deploy_jobs()
+        self._deploy_jobs(recon_config)
         self._context.install_state.save()
         logger.info("Installation of reconcile components completed successfully.")
 
@@ -117,9 +117,9 @@ class ReconDeployment:
                 logger.warning(f"Dashboard `{dashboard_name}` doesn't exist anymore for some reason.")
                 continue
 
-    def _deploy_jobs(self):
+    def _deploy_jobs(self, recon_config: ReconcileConfig):
         logger.info("Deploying reconciliation jobs.")
-        self._job_deployer.deploy_recon_job(RECON_JOB_NAME)
+        self._job_deployer.deploy_recon_job(RECON_JOB_NAME, recon_config)
         for job_name, job_id in self._get_deprecated_jobs():
             try:
                 logger.info(f"Removing job_id={job_id}, as it is no longer needed.")

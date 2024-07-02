@@ -7,8 +7,10 @@ from databricks.sdk.errors import InvalidParameterValue
 from databricks.sdk.service import compute
 from databricks.sdk.service.jobs import Task, PythonWheelTask, JobCluster, JobSettings
 
+from databricks.labs.remorph.config import ReconcileConfig
 from databricks.labs.remorph.contexts.application import WorkspaceContext
 from databricks.labs.remorph.deployment.mixins import DeploymentMixin
+from databricks.labs.remorph.reconcile.constants import SourceType
 
 logger = logging.getLogger(__name__)
 
@@ -20,18 +22,18 @@ class JobDeployment(DeploymentMixin):
     def __init__(self, context: WorkspaceContext):
         self._context = context
 
-    def deploy_recon_job(self, name):
+    def deploy_recon_job(self, name, recon_config: ReconcileConfig):
         logger.info("Deploying reconciliation job.")
-        job_id = self._update_or_create_recon_job(name)
+        job_id = self._update_or_create_recon_job(name, recon_config)
         logger.info(f"Reconciliation job deployed with job_id={job_id}")
         logger.info(f"Job URL: {self._context.workspace_client.config.host}#job/{job_id}")
         self._context.install_state.save()
 
-    def _update_or_create_recon_job(self, name) -> str:
+    def _update_or_create_recon_job(self, name, recon_config: ReconcileConfig) -> str:
         description = "Run the reconciliation process"
         task_key = "run_reconciliation"
 
-        job_settings = self._recon_job_settings(name, task_key, description)
+        job_settings = self._recon_job_settings(name, task_key, description, recon_config)
         if name in self._context.install_state.jobs:
             try:
                 job_id = int(self._context.install_state.jobs[name])
@@ -41,7 +43,7 @@ class JobDeployment(DeploymentMixin):
             except InvalidParameterValue:
                 del self._context.install_state.jobs[name]
                 logger.warning(f"Job `{name}` does not exist anymore for some reason")
-                return self._update_or_create_recon_job(name)
+                return self._update_or_create_recon_job(name, recon_config)
 
         logger.info(f"Creating new job configuration for job `{name}`")
         new_job = self._context.workspace_client.jobs.create(**job_settings)
@@ -49,7 +51,13 @@ class JobDeployment(DeploymentMixin):
         self._context.install_state.jobs[name] = str(new_job.job_id)
         return str(new_job.job_id)
 
-    def _recon_job_settings(self, job_name: str, task_key: str, description: str) -> dict[str, Any]:
+    def _recon_job_settings(
+        self,
+        job_name: str,
+        task_key: str,
+        description: str,
+        recon_config: ReconcileConfig,
+    ) -> dict[str, Any]:
         latest_lts_spark = self._context.workspace_client.clusters.select_spark_version(
             latest=True, long_term_support=True
         )
@@ -83,16 +91,23 @@ class JobDeployment(DeploymentMixin):
                         description=description,
                         job_cluster_key="Remorph_Reconciliation_Cluster",
                     ),
+                    recon_config,
                 ),
             ],
         }
 
-    def _job_recon_task(self, jobs_task: Task) -> Task:
-        # TODO: Automatically fetch a version list for `ojdbc8` and use the second latest version instead of hardcoding
+    def _job_recon_task(self, jobs_task: Task, recon_config: ReconcileConfig) -> Task:
         libraries = [
             compute.Library(pypi=compute.PythonPyPiLibrary("databricks-labs-remorph")),
-            compute.Library(maven=compute.MavenLibrary("com.oracle.database.jdbc:ojdbc8:23.4.0.24.05")),
         ]
+        source = recon_config.data_source
+        if source == SourceType.ORACLE.value:
+            # TODO: Automatically fetch a version list for `ojdbc8` and
+            #  use the second latest version instead of hardcoding
+            libraries.append(
+                compute.Library(maven=compute.MavenLibrary("com.oracle.database.jdbc:ojdbc8:23.4.0.24.05")),
+            )
+
         return dataclasses.replace(
             jobs_task,
             libraries=libraries,

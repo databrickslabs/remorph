@@ -494,9 +494,9 @@ def test_configure_reconcile_installation_config_error_continue_install(ws):
             r"Select the Data Source": RECONCILE_DATA_SOURCES.index("oracle"),
             r"Select the report type": RECONCILE_REPORT_TYPES.index("all"),
             r"Enter Secret scope name to store .* connection details / secrets": "remorph_oracle",
-            r"Enter .* database name": "tpch_sf1000",
-            r"Enter Databricks catalog name": "tpch",
-            r"Enter Databricks schema name": "1000gb",
+            r"Enter source database name for .*": "tpch_sf1000",
+            r"Enter target catalog name for Databricks": "tpch",
+            r"Enter target schema name for Databricks": "1000gb",
             r"Open .* in the browser?": "no",
         }
     )
@@ -579,10 +579,10 @@ def test_configure_reconcile_no_existing_installation(ws):
             r"Select the Data Source": RECONCILE_DATA_SOURCES.index("snowflake"),
             r"Select the report type": RECONCILE_REPORT_TYPES.index("all"),
             r"Enter Secret scope name to store .* connection details / secrets": "remorph_snowflake",
-            r"Enter .* catalog name": "snowflake_sample_data",
-            r"Enter .* schema name": "tpch_sf1000",
-            r"Enter Databricks catalog name": "tpch",
-            r"Enter Databricks schema name": "1000gb",
+            r"Enter source catalog name for .*": "snowflake_sample_data",
+            r"Enter source schema name for .*": "tpch_sf1000",
+            r"Enter target catalog name for Databricks": "tpch",
+            r"Enter target schema name for Databricks": "1000gb",
             r"Open .* in the browser?": "yes",
         }
     )
@@ -653,10 +653,10 @@ def test_configure_all_override_installation(ws):
             r"Select the Data Source": RECONCILE_DATA_SOURCES.index("snowflake"),
             r"Select the report type": RECONCILE_REPORT_TYPES.index("all"),
             r"Enter Secret scope name to store .* connection details / secrets": "remorph_snowflake",
-            r"Enter .* catalog name": "snowflake_sample_data",
-            r"Enter .* schema name": "tpch_sf1000",
-            r"Enter Databricks catalog name": "tpch",
-            r"Enter Databricks schema name": "1000gb",
+            r"Enter source catalog name for .*": "snowflake_sample_data",
+            r"Enter source schema name for .*": "tpch_sf1000",
+            r"Enter target catalog name for Databricks": "tpch",
+            r"Enter target schema name for Databricks": "1000gb",
         }
     )
     installation = MockInstallation(
