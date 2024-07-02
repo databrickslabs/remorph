@@ -1,4 +1,5 @@
 import logging
+from functools import reduce
 from pyspark.sql import DataFrame, SparkSession
 from pyspark.sql.functions import col, expr, lit
 
@@ -26,6 +27,14 @@ def raise_column_mismatch_exception(msg: str, source_missing: list[str], target_
     return ColumnMismatchException(error_msg)
 
 
+def _generate_join_condition(source_alias, target_alias, key_columns):
+    conditions = [
+        col(f"{source_alias}.{key_column}").eqNullSafe(col(f"{target_alias}.{key_column}"))
+        for key_column in key_columns
+    ]
+    return reduce(lambda a, b: a & b, conditions)
+
+
 def reconcile_data(
     source: DataFrame,
     target: DataFrame,
@@ -40,7 +49,11 @@ def reconcile_data(
         key_columns = [_HASH_COLUMN_NAME]
     df = (
         source.alias(source_alias)
-        .join(other=target.alias(target_alias), on=key_columns, how="full")
+        .join(
+            other=target.alias(target_alias),
+            on=_generate_join_condition(source_alias, target_alias, key_columns),
+            how="full",
+        )
         .selectExpr(
             *[f'{source_alias}.{col_name} as {source_alias}_{col_name}' for col_name in source.columns],
             *[f'{target_alias}.{col_name} as {target_alias}_{col_name}' for col_name in target.columns],

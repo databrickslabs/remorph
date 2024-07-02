@@ -8,7 +8,10 @@ class JDBCReaderMixin:
 
     # TODO update the url
     def _get_jdbc_reader(self, query, jdbc_url, driver):
-        driver_class = {"oracle": "oracle.jdbc.driver.OracleDriver"}
+        driver_class = {
+            "oracle": "oracle.jdbc.driver.OracleDriver",
+            "snowflake": "net.snowflake.client.jdbc.SnowflakeDriver",
+        }
         return (
             self._spark.read.format("jdbc")
             .option("url", jdbc_url)

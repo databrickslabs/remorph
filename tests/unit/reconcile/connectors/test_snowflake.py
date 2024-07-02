@@ -156,7 +156,7 @@ def test_read_data_with_options():
         "jdbc:snowflake://my_account.snowflakecomputing.com/?user=my_user&password="
         "my_password&db=my_database&schema=my_schema&warehouse=my_warehouse&role=my_role",
     )
-    spark.read.format().option().option.assert_called_with("driver", "snowflake")
+    spark.read.format().option().option.assert_called_with("driver", "net.snowflake.client.jdbc.SnowflakeDriver")
     spark.read.format().option().option().option.assert_called_with("dbtable", "(select 1 from org.data.employee) tmp")
     spark.read.format().option().option().option().options.assert_called_with(
         numPartitions=100, partitionColumn='s_nationkey', lowerBound='0', upperBound='100', fetchsize=100
