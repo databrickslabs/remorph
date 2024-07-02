@@ -3,7 +3,7 @@ package com.databricks.labs.remorph.parsers.tsql
 import com.databricks.labs.remorph.parsers.tsql.TSqlParser._
 import com.databricks.labs.remorph.parsers.{ParserCommon, XmlFunction, intermediate => ir}
 import org.antlr.v4.runtime.Token
-import org.antlr.v4.runtime.tree.{TerminalNode, Trees}
+import org.antlr.v4.runtime.tree.Trees
 
 import scala.collection.JavaConverters._
 
@@ -193,8 +193,12 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
   override def visitExprCollate(ctx: ExprCollateContext): ir.Expression =
     ir.Collate(ctx.expression.accept(this), removeQuotes(ctx.id.getText))
 
+  override def visitPrimitiveExpression(ctx: PrimitiveExpressionContext): ir.Expression = {
+    Option(ctx.op).map(buildPrimitive).getOrElse(ctx.constant().accept(this))
+  }
+
   override def visitConstant(ctx: TSqlParser.ConstantContext): ir.Expression = {
-    buildConstant(ctx.con)
+    buildPrimitive(ctx.con)
   }
 
   override def visitExprSubquery(ctx: ExprSubqueryContext): ir.Expression = {
@@ -238,9 +242,8 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
   }
 
   /**
-   * For now, we assume that we are dealing with Column names. Later we can add some context by keeping a symbol table
-   * for DECLARE. LOCAL_ID is not catered for as part of an expression in the current grammar, but even that can be an
-   * alias for a column name.
+   * For now, we assume that we are dealing with Column names. LOCAL_ID is catered for as part of an expression in the
+   * current grammar, but even that can be an alias for a column name, though it is not recommended.
    *
    * For now then, they are all seen as columns.
    *
@@ -257,8 +260,6 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
     case c if c.RAW() != null => ir.Id(ctx.getText, caseSensitive = false)
     case _ => ir.Id(ctx.getText, caseSensitive = false)
   }
-
-  override def visitTerminal(node: TerminalNode): ir.Expression = buildConstant(node.getSymbol)
 
   private def removeQuotes(str: String): String = {
     str.stripPrefix("'").stripSuffix("'")
@@ -277,7 +278,9 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
       case DOUBLE_BAR => ir.Concat(left, right)
     }
 
-  private def buildConstant(con: Token): ir.Expression = con.getType match {
+  private def buildPrimitive(con: Token): ir.Expression = con.getType match {
+    case c if c == DEFAULT => ir.Default()
+    case c if c == LOCAL_ID => ir.Identifier(con.getText, isQuoted = false)
     case c if c == STRING => ir.Literal(string = Some(removeQuotes(con.getText)))
     case c if c == NULL_ => ir.Literal(nullType = Some(ir.NullType()))
     case c if c == HEX => ir.Literal(string = Some(con.getText)) // Preserve format
@@ -287,6 +290,7 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
 
   // TODO: Maybe start sharing such things between all the parsers?
   private def convertNumeric(str: String): ir.Literal = BigDecimal(str) match {
+    case d if d.isValidShort => ir.Literal(short = Some(d.toShort))
     case d if d.isValidInt => ir.Literal(integer = Some(d.toInt))
     case d if d.isValidLong => ir.Literal(long = Some(d.toLong))
     case d if d.isDecimalFloat || d.isExactFloat => ir.Literal(float = Some(d.toFloat))

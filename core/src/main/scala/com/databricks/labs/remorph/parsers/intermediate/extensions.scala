@@ -195,7 +195,8 @@ case class BackupDatabase(
     values: Map[String, Expression])
     extends Command {}
 
-case class ArrayAgg(values: Expression, sort: Seq[SortOrder]) extends Expression {}
+// The default case for the expression parser needs to be explicitly defined to distinguish [DEFAULT]
+case class Default() extends Expression {}
 
 // TSQL has some join types that are not natively supported in Databricks SQL, but can possibly be emulated
 // using LATERAL VIEW and an explode function. Some things like functions are translatable at IR production
