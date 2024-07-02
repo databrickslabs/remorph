@@ -6,7 +6,7 @@ CREATE TABLE IF NOT EXISTS main (
                          catalog: STRING,
                          schema: STRING NOT NULL,
                          table_name: STRING NOT NULL
-                        > NOT NULL,
+                        > ,
     target_table STRUCT<
                          catalog: STRING NOT NULL,
                          schema: STRING NOT NULL,
