@@ -3349,7 +3349,7 @@ columnPosition: num
 allDistinct: ALL | DISTINCT
     ;
 
-topClause: TOP num
+topClause: TOP expr
     ;
 
 intoClause: INTO varList
@@ -3559,11 +3559,7 @@ orderItem: expr (ASC | DESC)? (NULLS ( FIRST | LAST))?
 orderByClause: ORDER BY orderItem (COMMA orderItem)*
     ;
 
-rowRows: ROW | ROWS
-    ;
-
-firstNext: FIRST | NEXT
-    ;
-
-limitClause: LIMIT num (OFFSET num)? | (OFFSET num)? rowRows? FETCH firstNext? num rowRows? ONLY?
+limitClause
+    : LIMIT expr (OFFSET expr)?
+    | (OFFSET expr)? (ROW | ROWS)? FETCH (FIRST | NEXT)? expr (ROW | ROWS)? ONLY?
     ;

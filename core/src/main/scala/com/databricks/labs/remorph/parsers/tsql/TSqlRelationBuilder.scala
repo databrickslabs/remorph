@@ -53,11 +53,20 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.Relation] {
     // Note that ALL is the default so we don't need to check for it
     ctx match {
       case c if c.DISTINCT() != null =>
-        buildDistinct(select, columns)
+        ir.Project(buildTop(Option(ctx.topClause()), buildDistinct(select, columns)), columns)
       case _ =>
-        ir.Project(select, columns)
+        ir.Project(buildTop(Option(ctx.topClause()), select), columns)
     }
   }
+
+  private def buildTop(ctxOpt: Option[TSqlParser.TopClauseContext], input: ir.Relation): ir.Relation =
+    ctxOpt.fold(input) { top =>
+      ir.Limit(
+        input,
+        top.expression().accept(expressionBuilder),
+        is_percentage = top.PERCENT() != null,
+        with_ties = top.TIES() != null)
+    }
 
   override def visitSelectOptionalClauses(ctx: SelectOptionalClausesContext): ir.Relation = {
     val from = Option(ctx.fromClause()).map(_.accept(this)).getOrElse(ir.NoTable())
@@ -87,19 +96,31 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.Relation] {
     }
   }
 
-  // TODO: COLLATE in OrderBy expression
-  // TODO: OFFSET and FETCH in selectOrderByClause
   private def buildOrderBy(ctx: SelectOrderByClauseContext, input: ir.Relation): ir.Relation = {
     Option(ctx).fold(input) { c =>
       val sortOrders = c.orderByClause().orderByExpression().asScala.map { orderItem =>
-        val expression = orderItem.expression(0).accept(expressionBuilder) // expression(1) is COLLATE
+        val expression = orderItem.expression(0).accept(expressionBuilder)
+        // orderItem.expression(1) is COLLATE - we will not support that, but should either add a comment in the
+        // translated source or raise some kind of linting alert.
         if (orderItem.DESC() == null) {
           ir.SortOrder(expression, ir.AscendingSortDirection, ir.SortNullsUnspecified)
         } else {
           ir.SortOrder(expression, ir.DescendingSortDirection, ir.SortNullsUnspecified)
         }
       }
-      ir.Sort(input = input, order = sortOrders, is_global = false)
+      val sorted = ir.Sort(input = input, order = sortOrders, is_global = false)
+
+      // Having created the IR for ORDER BY, we now need to apply any OFFSET, and then any FETCH
+      if (ctx.OFFSET() != null) {
+        val offset = ir.Offset(sorted, ctx.expression(0).accept(expressionBuilder))
+        if (ctx.FETCH() != null) {
+          ir.Limit(offset, ctx.expression(1).accept(expressionBuilder))
+        } else {
+          offset
+        }
+      } else {
+        sorted
+      }
     }
   }
 
@@ -120,9 +141,7 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.Relation] {
       case ir.Alias(_, a, _) => a
       // Note that the ir.Star(None) is not matched so that we set all_columns_as_keys to true
     }.flatten
-    ir.Project(
-      ir.Deduplicate(from, columnNames, all_columns_as_keys = columnNames.isEmpty, within_watermark = false),
-      columns)
+    ir.Deduplicate(from, columnNames, all_columns_as_keys = columnNames.isEmpty, within_watermark = false),
   }
 
   override def visitTableName(ctx: TableNameContext): ir.NamedTable = {

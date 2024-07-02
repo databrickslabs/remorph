@@ -225,15 +225,21 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
     "translate queries with LIMIT and OFFSET" in {
       singleQueryExample(
         query = "SELECT a FROM b LIMIT 5",
-        expectedAst = Project(Limit(NamedTable("b", Map.empty, is_streaming = false), 5), Seq(simplyNamedColumn("a"))))
+        expectedAst = Project(
+          Limit(NamedTable("b", Map.empty, is_streaming = false), Literal(short = Some(5))),
+          Seq(simplyNamedColumn("a"))))
       singleQueryExample(
         query = "SELECT a FROM b LIMIT 5 OFFSET 10",
-        expectedAst =
-          Project(Offset(Limit(NamedTable("b", Map.empty, is_streaming = false), 5), 10), Seq(simplyNamedColumn("a"))))
+        expectedAst = Project(
+          Offset(
+            Limit(NamedTable("b", Map.empty, is_streaming = false), Literal(short = Some(5))),
+            Literal(short = Some(10))),
+          Seq(simplyNamedColumn("a"))))
       singleQueryExample(
         query = "SELECT a FROM b OFFSET 10 FETCH FIRST 42",
-        expectedAst =
-          Project(Offset(NamedTable("b", Map.empty, is_streaming = false), 10), Seq(simplyNamedColumn("a"))))
+        expectedAst = Project(
+          Offset(NamedTable("b", Map.empty, is_streaming = false), Literal(short = Some(10))),
+          Seq(simplyNamedColumn("a"))))
     }
     "translate a query with PIVOT" in {
       singleQueryExample(

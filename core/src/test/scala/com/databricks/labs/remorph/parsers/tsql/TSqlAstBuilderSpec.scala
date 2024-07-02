@@ -508,6 +508,108 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
             Map("LIMIT" -> Literal(integer = Some(77)))))))
   }
 
+  "translate a SELECT with a TOP clause" in {
+    example(
+      query = "SELECT TOP 10 * FROM Employees;",
+      expectedAst = Batch(
+        Seq(
+          Project(
+            Limit(
+              NamedTable("Employees", Map(), is_streaming = false),
+              Literal(integer = Some(10)),
+              is_percentage = false,
+              with_ties = false),
+            Seq(Star(None))))))
+
+    example(
+      query = "SELECT TOP 10 PERCENT * FROM Employees;",
+      expectedAst = Batch(
+        Seq(
+          Project(
+            Limit(
+              NamedTable("Employees", Map(), is_streaming = false),
+              Literal(integer = Some(10)),
+              is_percentage = true,
+              with_ties = false),
+            Seq(Star(None))))))
+
+    example(
+      query = "SELECT TOP 10 PERCENT WITH TIES * FROM Employees;",
+      expectedAst = Batch(
+        Seq(
+          Project(
+            Limit(
+              NamedTable("Employees", Map(), is_streaming = false),
+              Literal(integer = Some(10)),
+              is_percentage = true,
+              with_ties = true),
+            Seq(Star(None))))))
+  }
+
+  "translate a SELECT statement with an ORDER BY and OFFSET" in {
+    example(
+      query = "SELECT * FROM Employees ORDER BY Salary OFFSET 10 ROWS",
+      expectedAst = Batch(
+        Seq(Project(
+          Offset(
+            Sort(
+              NamedTable("Employees", Map(), is_streaming = false),
+              Seq(SortOrder(simplyNamedColumn("Salary"), AscendingSortDirection, SortNullsUnspecified)),
+              is_global = false),
+            Literal(integer = Some(10))),
+          Seq(Star(None))))))
+
+    example(
+      query = "SELECT * FROM Employees ORDER BY Salary OFFSET 10 ROWS FETCH NEXT 5 ROWS ONLY",
+      expectedAst = Batch(
+        Seq(Project(
+          Limit(
+            Offset(
+              Sort(
+                NamedTable("Employees", Map(), is_streaming = false),
+                Seq(SortOrder(simplyNamedColumn("Salary"), AscendingSortDirection, SortNullsUnspecified)),
+                is_global = false),
+              Literal(integer = Some(10))),
+            Literal(integer = Some(5))),
+          Seq(Star(None))))))
+  }
+
+  "translate SELECT with a combination of DISTINCT, ORDER BY, and OFFSET" in {
+    example(
+      query = "SELECT DISTINCT * FROM Employees ORDER BY Salary OFFSET 10 ROWS",
+      expectedAst = Batch(
+        Seq(Project(
+          Deduplicate(
+            Offset(
+              Sort(
+                NamedTable("Employees", Map(), is_streaming = false),
+                Seq(SortOrder(simplyNamedColumn("Salary"), AscendingSortDirection, SortNullsUnspecified)),
+                is_global = false),
+              Literal(integer = Some(10))),
+            List(),
+            all_columns_as_keys = true,
+            within_watermark = false),
+          Seq(Star(None))))))
+
+    example(
+      query = "SELECT DISTINCT * FROM Employees ORDER BY Salary OFFSET 10 ROWS FETCH NEXT 5 ROWS ONLY",
+      expectedAst = Batch(
+        List(Project(
+          Deduplicate(
+            Limit(
+              Offset(
+                Sort(
+                  NamedTable("Employees", Map(), is_streaming = false),
+                  List(SortOrder(Column(None, Id("Salary")), AscendingSortDirection, SortNullsUnspecified)),
+                  is_global = false),
+                Literal(integer = Some(10))),
+              Literal(integer = Some(5))),
+            List(),
+            all_columns_as_keys = true,
+            within_watermark = false),
+          List(Star(None))))))
+  }
+
   "translate a query with PIVOT" in {
     singleQueryExample(
       query = "SELECT a FROM b PIVOT (SUM(a) FOR c IN ('foo', 'bar')) AS Source",

@@ -2937,15 +2937,7 @@ whereClause: WHERE searchCondition
 havingClause: HAVING searchCondition
     ;
 
-topClause: TOP (topPercent | topCount) (WITH TIES)?
-    ;
-
-topPercent
-    : percentConstant = (REAL | FLOAT | INT) PERCENT
-    | LPAREN topperExpression = expression RPAREN PERCENT
-    ;
-
-topCount: countConstant = INT | LPAREN topcountExpression = expression RPAREN
+topClause: TOP ( expression | LPAREN expression RPAREN) PERCENT? (WITH TIES)?
     ;
 
 orderByClause: ORDER BY orderByExpression (COMMA orderByExpression)*
@@ -2953,9 +2945,7 @@ orderByClause: ORDER BY orderByExpression (COMMA orderByExpression)*
 
 selectOrderByClause
     : orderByClause (
-        OFFSET expression or = (ROW | ROWS) (
-            FETCH (FIRST | NEXT) expression fr = (ROW | ROWS) ONLY
-        )?
+        OFFSET expression (ROW | ROWS) (FETCH (FIRST | NEXT) expression (ROW | ROWS) ONLY)?
     )?
     ;
 
