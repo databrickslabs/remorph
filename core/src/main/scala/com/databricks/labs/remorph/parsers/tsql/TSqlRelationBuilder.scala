@@ -142,7 +142,7 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.Relation] {
       case ir.Alias(_, a, _) => a
       // Note that the ir.Star(None) is not matched so that we set all_columns_as_keys to true
     }.flatten
-    ir.Deduplicate(from, columnNames, all_columns_as_keys = columnNames.isEmpty, within_watermark = false),
+    ir.Deduplicate(from, columnNames, all_columns_as_keys = columnNames.isEmpty, within_watermark = false)
   }
 
   override def visitTableName(ctx: TableNameContext): ir.NamedTable = {
