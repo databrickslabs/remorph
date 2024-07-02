@@ -1,5 +1,7 @@
 package com.databricks.labs.remorph.parsers.intermediate
 
+import org.apache.spark.sql.catalyst.expressions.ExpressionSetSuite
+
 trait AstExtension
 
 case class Id(id: String, caseSensitive: Boolean = false) extends Expression {}
@@ -53,8 +55,6 @@ case class Like(expression: Expression, patterns: Seq[Expression], escape: Optio
 case class RLike(expression: Expression, pattern: Expression) extends Expression {}
 
 case class IsNull(expression: Expression) extends Expression {}
-
-// TODO: TSQL grammar has a number of operators not yet supported - add them here, if not already supported
 
 // Operators, in order of precedence
 
@@ -208,6 +208,12 @@ case class BackupDatabase(
     values: Map[String, Expression])
     extends Command {}
 
+case class Output() extends Expression
+
+// Used for DML other than SELECT
+abstract class Modification extends Relation
+
+case class InsertIntoTable(tableName: String, columns: Seq[String], query: Relation) extends Modification {}
 // The default case for the expression parser needs to be explicitly defined to distinguish [DEFAULT]
 case class Default() extends Expression {}
 

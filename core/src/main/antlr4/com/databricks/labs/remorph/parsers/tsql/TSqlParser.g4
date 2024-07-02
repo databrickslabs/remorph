@@ -1643,7 +1643,7 @@ updateStatement
 
 outputClause
     : OUTPUT outputDmlListElem (COMMA outputDmlListElem)* (
-        INTO (LOCAL_ID | tableName) ( LPAREN columnNameList RPAREN)?
+        INTO ddlObject ( LPAREN columnNameList RPAREN)?
     )?
     ;
 
