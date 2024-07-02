@@ -197,7 +197,12 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.Relation] {
   private def buildHint(ctx: TableHintContext): ir.TableHint = {
     ctx match {
       case index if index.INDEX() != null =>
-        ir.IndexHint(index.expressionList().expression().asScala.map(_.accept(expressionBuilder)))
+        ir.IndexHint(index.expressionList().expression().asScala.map { expr =>
+          expr.accept(expressionBuilder) match {
+            case column: ir.Column => column.columnName
+            case other => other
+          }
+        })
       case force if force.FORCESEEK() != null =>
         val name = Option(force.expression()).map(_.accept(expressionBuilder))
         val columns = Option(force.columnNameList()).map(_.id().asScala.map(_.accept(expressionBuilder)))

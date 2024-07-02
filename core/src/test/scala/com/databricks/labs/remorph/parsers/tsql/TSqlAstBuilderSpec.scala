@@ -697,4 +697,45 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
             SOMEstrOpt = 'STRINGOPTION')""",
       expectedAst = Batch(Seq(Project(NamedTable("t", Map(), is_streaming = false), Seq(Star(None))))))
   }
+
+  "parse and collect table hints for named table select statements in all variants" in {
+    example(
+      query = "SELECT * FROM t WITH (NOLOCK)",
+      expectedAst = Batch(
+        Seq(
+          Project(
+            TableWithHints(NamedTable("t", Map(), is_streaming = false), Seq(FlagHint("NOLOCK"))),
+            Seq(Star(None))))))
+    example(
+      query = "SELECT * FROM t WITH (FORCESEEK)",
+      expectedAst = Batch(
+        Seq(
+          Project(
+            TableWithHints(NamedTable("t", Map(), is_streaming = false), Seq(ForceSeekHint(None, None))),
+            Seq(Star(None))))))
+    example(
+      query = "SELECT * FROM t WITH (FORCESEEK(1 (Col1, Col2)))",
+      expectedAst = Batch(
+        Seq(Project(
+          TableWithHints(
+            NamedTable("t", Map(), is_streaming = false),
+            Seq(ForceSeekHint(Some(Literal(short = Some(1))), Some(Seq(Id("Col1"), Id("Col2")))))),
+          Seq(Star(None))))))
+    example(
+      query = "SELECT * FROM t WITH (INDEX = (Bill, Ted))",
+      expectedAst = Batch(
+        Seq(
+          Project(
+            TableWithHints(NamedTable("t", Map(), is_streaming = false), Seq(IndexHint(Seq(Id("Bill"), Id("Ted"))))),
+            Seq(Star(None))))))
+    example(
+      query = "SELECT * FROM t WITH (FORCESEEK, INDEX = (Bill, Ted))",
+      expectedAst = Batch(
+        Seq(
+          Project(
+            TableWithHints(
+              NamedTable("t", Map(), is_streaming = false),
+              Seq(ForceSeekHint(None, None), IndexHint(Seq(Id("Bill"), Id("Ted"))))),
+            Seq(Star(None))))))
+  }
 }
