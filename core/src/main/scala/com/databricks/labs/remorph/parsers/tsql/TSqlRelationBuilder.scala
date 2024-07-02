@@ -244,6 +244,10 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.Relation] {
 //    val hints = ctx.withTableHints().accept(expressionBuilder)
 //    val columns = Option(ctx.expressionList())
 //      .map(_.expression().asScala.map(_.accept(expressionBuilder)))
+//    val output = Option(ctx.outputClause()).map(_.accept(this))
+//    val values = ctx.insertStatementValue().accept(expressionBuilder)
+//    val forClause = Option(ctx.forClause()).map(_.accept(expressionBuilder))
+//    val optionClause = Option(ctx.optionClause).map(_.accept(expressionBuilder))
     ir.UnknownRelation
   }
 
