@@ -154,7 +154,9 @@ case class XmlFunction(function: CallFunction, column: Expression) extends Expre
 
 case class NextValue(sequenceName: String) extends Expression {}
 case class ArrayAccess(array: Expression, index: Expression) extends Expression {}
-case class JsonAccess(json: Expression, path: Seq[String]) extends Expression {}
+
+case class JsonAccess(json: Expression, path: Expression) extends Expression {}
+
 case class Collate(string: Expression, specification: String) extends Expression {}
 case class Iff(condition: Expression, thenBranch: Expression, elseBranch: Expression) extends Expression {}
 
