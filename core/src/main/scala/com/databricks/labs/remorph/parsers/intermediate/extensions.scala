@@ -189,3 +189,10 @@ case class BackupDatabase(
     extends Command {}
 
 case class ArrayAgg(values: Expression, sort: Seq[SortOrder]) extends Expression {}
+
+// TSQL has some join types that are not natively supported in Databricks SQL, but can possibly be emulated
+// using LATERAL VIEW and an explode function. Some things like functions are translatable at IR production
+// time, but complex joins are probably/possibly better done at the translation from IR as they are more involved
+// than some simple prescribed action.
+case object CrossApply extends JoinType
+case object OuterApply extends JoinType

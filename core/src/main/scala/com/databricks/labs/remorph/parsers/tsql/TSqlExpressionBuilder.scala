@@ -15,7 +15,6 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
 
   override def visitSelectListElem(ctx: TSqlParser.SelectListElemContext): ir.Expression = {
     ctx match {
-      // TODO: asterisk not fully handled
       case c if c.asterisk() != null => c.asterisk().accept(this)
       case c if c.LOCAL_ID() != null => buildLocalAssign(ctx)
       case c if c.expressionElem() != null => ctx.expressionElem().accept(this)

@@ -3144,7 +3144,7 @@ changeTableVersion
     : CHANGETABLE LPAREN VERSION versiontable = tableName COMMA pkColumns = fullColumnNameList COMMA pkValues = selectList RPAREN
     ;
 
-joinPart: joinOn | crossJoin | apply_ | pivot | unpivot
+joinPart: joinOn | crossJoin | apply | pivot | unpivot
     ;
 
 outerJoin: (LEFT | RIGHT | FULL) OUTER?
@@ -3160,7 +3160,7 @@ joinOn
 crossJoin: CROSS JOIN tableSourceItem
     ;
 
-apply_: applyStyle = (CROSS | OUTER) APPLY source = tableSourceItem
+apply: (CROSS | OUTER) APPLY tableSourceItem
     ;
 
 pivot: PIVOT pivotClause asTableAlias
@@ -3172,8 +3172,7 @@ unpivot: UNPIVOT unpivotClause asTableAlias
 pivotClause: LPAREN expression FOR fullColumnName IN columnAliasList RPAREN
     ;
 
-unpivotClause
-    : LPAREN unpivotExp = expression FOR fullColumnName IN LPAREN fullColumnNameList RPAREN RPAREN
+unpivotClause: LPAREN id FOR id IN LPAREN fullColumnNameList RPAREN RPAREN
     ;
 
 fullColumnNameList: column += fullColumnName (COMMA column += fullColumnName)*
