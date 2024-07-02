@@ -16,6 +16,12 @@ class AutoName(Enum):
 
 class SourceType(AutoName):
     SNOWFLAKE = auto()
-    NETEZZA = auto()
     ORACLE = auto()
     DATABRICKS = auto()
+
+
+class ReportType(AutoName):
+    DATA = auto()
+    SCHEMA = auto()
+    ROW = auto()
+    ALL = auto()
