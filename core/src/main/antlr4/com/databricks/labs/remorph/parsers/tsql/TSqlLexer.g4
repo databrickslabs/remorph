@@ -129,7 +129,6 @@ AUTO_UPDATE_STATISTICS                      : 'AUTO_UPDATE_STATISTICS';
 AUTO_UPDATE_STATISTICS_ASYNC                : 'AUTO_UPDATE_STATISTICS_ASYNC';
 AVAILABILITY                                : 'AVAILABILITY';
 AVAILABILITY_MODE                           : 'AVAILABILITY_MODE';
-BACKSLASH                                   : '\\';
 BACKUP                                      : 'BACKUP';
 BACKUP_CLONEDB                              : 'BACKUP_CLONEDB';
 BACKUP_PRIORITY                             : 'BACKUP_PRIORITY';
@@ -455,7 +454,6 @@ LISTENER                                    : 'LISTENER';
 LISTENER_IP                                 : 'LISTENER_IP';
 LISTENER_PORT                               : 'LISTENER_PORT';
 LISTENER_URL                                : 'LISTENER_URL';
-LOAD                                        : 'LOAD';
 LOB_COMPACTION                              : 'LOB_COMPACTION';
 LOCAL                                       : 'LOCAL';
 LOCAL_SERVICE_NAME                          : 'LOCAL_SERVICE_NAME';
@@ -919,7 +917,6 @@ WITHOUT_ARRAY_WRAPPER                       : 'WITHOUT_ARRAY_WRAPPER';
 WITNESS                                     : 'WITNESS';
 WORK                                        : 'WORK';
 WORKLOAD                                    : 'WORKLOAD';
-WRITETEXT                                   : 'WRITETEXT';
 XACT_ABORT                                  : 'XACT_ABORT';
 XLOCK                                       : 'XLOCK';
 XML                                         : 'XML';
@@ -933,8 +930,7 @@ ZONE                                        : 'ZONE';
 SP_EXECUTESQL: 'SP_EXECUTESQL';
 
 //Combinations that cannot be used as IDs
-DISK_DRIVE    : [A-Z][:];
-DOLLAR_ACTION : '$ACTION';
+DOLLAR_ACTION: '$ACTION';
 
 // Functions starting with double at signs
 AAPSEUDO: '@@' ID;
