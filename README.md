@@ -155,9 +155,18 @@ Verify the successful installation by executing the provided command; confirmati
 ![reconcile-help](docs/reconcile-help.png)
 
 ### Execution Pre-Set Up
-Please refer to the [Reconcile Configuration Guide][def] for detailed instructions on how to set up the configuration.
+Once the installation is done, a folder named **.remorph** will be created in the user workspace's home folder.
+To process the reconciliation for specific table sources, we must create a config file that gives the detailed required configurations for the table-specific ones.
+The file name should be in the format as below and created inside the **.remorph** folder.
+```
+recon_config_<SOURCE>_<CATALOG_OR_SCHEMA>_<REPORT_TYPE>.json
+eg:
+recon_config_databricks_catalog_all.json
+```
+Please refer to the [Reconcile Configuration Guide][def] for detailed instructions on how to set up the configuration and notebook with sample configurations [Sample Configurations][config].
 
 [def]: docs/README_RECON.md
+[config]: docs/reconciliation-configs-examples.py
 
 ### Execution
 Execute the below command to initialize the reconcile process.
