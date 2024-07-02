@@ -46,6 +46,8 @@ case class CalendarInterval(months: Int, days: Int, microseconds: Long) extends 
 
 case class ArrayExpr(dataType: Option[DataType], elements: Seq[Literal]) extends Expression {}
 
+case class JsonExpr(dataType: Option[DataType], fields: Seq[(String, Literal)]) extends Expression {}
+
 case class MapExpr(key_type: DataType, value_type: DataType, keys: Seq[Literal], values: Seq[Literal])
     extends Expression {}
 
@@ -71,7 +73,7 @@ case class Literal(
     day_time_interval: Option[Long] = None,
     array: Option[ArrayExpr] = None,
     map: Option[MapExpr] = None,
-    struct: Option[Struct] = None)
+    json: Option[JsonExpr] = None)
     extends Expression {}
 
 case class UnresolvedAttribute(unparsed_identifier: String, plan_id: Long, is_metadata_column: Boolean)
