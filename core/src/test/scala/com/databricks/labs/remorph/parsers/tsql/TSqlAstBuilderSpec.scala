@@ -14,6 +14,9 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
   private def example(query: String, expectedAst: TreeNode): Assertion =
     example(query, _.tSqlFile(), expectedAst)
 
+  private def singleQueryExample(query: String, expectedAst: Relation): Assertion =
+    example(query, _.tSqlFile(), Batch(Seq(expectedAst)))
+
   "tsql visitor" should {
 
     "accept empty input" in {
@@ -503,5 +506,73 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
             Map("COPY_ONLY" -> true),
             List.empty,
             Map("LIMIT" -> Literal(integer = Some(77)))))))
+  }
+
+  "translate a query with PIVOT" in {
+    singleQueryExample(
+      query = "SELECT a FROM b PIVOT (SUM(a) FOR c IN ('foo', 'bar')) AS Source",
+      expectedAst = Project(
+        Aggregate(
+          input = NamedTable("b", Map.empty, is_streaming = false),
+          group_type = Pivot,
+          grouping_expressions = Seq(CallFunction("SUM", Seq(simplyNamedColumn("a")))),
+          pivot =
+            Some(Pivot(simplyNamedColumn("c"), Seq(Literal(string = Some("foo")), Literal(string = Some("bar")))))),
+        Seq(simplyNamedColumn("a"))))
+  }
+
+  "translate a query with UNPIVOT" in {
+    singleQueryExample(
+      query = "SELECT a FROM b UNPIVOT (c FOR d IN (e, f)) AsSource",
+      expectedAst = Project(
+        Unpivot(
+          input = NamedTable("b", Map.empty, is_streaming = false),
+          ids = Seq(simplyNamedColumn("e"), simplyNamedColumn("f")),
+          values = None,
+          variable_column_name = Id("c"),
+          value_column_name = Id("d")),
+        Seq(simplyNamedColumn("a"))))
+  }
+
+  "translate a query with an explicit CROSS JOIN" in {
+    singleQueryExample(
+      query = "SELECT a FROM b CROSS JOIN c",
+      expectedAst = Project(
+        Join(
+          NamedTable("b", Map.empty, is_streaming = false),
+          NamedTable("c", Map.empty, is_streaming = false),
+          None,
+          CrossJoin,
+          Seq.empty,
+          JoinDataType(is_left_struct = false, is_right_struct = false)),
+        Seq(simplyNamedColumn("a"))))
+  }
+
+  "translate a query with an explicit OUTER APPLY" in {
+    singleQueryExample(
+      query = "SELECT a FROM b OUTER APPLY c",
+      expectedAst = Project(
+        Join(
+          NamedTable("b", Map.empty, is_streaming = false),
+          NamedTable("c", Map.empty, is_streaming = false),
+          None,
+          OuterApply,
+          Seq.empty,
+          JoinDataType(is_left_struct = false, is_right_struct = false)),
+        Seq(simplyNamedColumn("a"))))
+  }
+
+  "translate a query with an explicit CROSS APPLY" in {
+    singleQueryExample(
+      query = "SELECT a FROM b CROSS APPLY c",
+      expectedAst = Project(
+        Join(
+          NamedTable("b", Map.empty, is_streaming = false),
+          NamedTable("c", Map.empty, is_streaming = false),
+          None,
+          CrossApply,
+          Seq.empty,
+          JoinDataType(is_left_struct = false, is_right_struct = false)),
+        Seq(simplyNamedColumn("a"))))
   }
 }

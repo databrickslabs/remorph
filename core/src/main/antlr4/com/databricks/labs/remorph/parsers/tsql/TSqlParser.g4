@@ -3093,11 +3093,9 @@ expressionElem: columnAlias EQ expression | expression asColumnAlias?
     ;
 
 selectListElem
-    : (
-        asterisk
-        | LOCAL_ID op = (PE | ME | SE | DE | MEA | AND_ASSIGN | XOR_ASSIGN | OR_ASSIGN | EQ) expression
-        | expressionElem
-    ) ((IGNORE | RESPECT) NULLS)?
+    : asterisk
+    | LOCAL_ID op = (PE | ME | SE | DE | MEA | AND_ASSIGN | XOR_ASSIGN | OR_ASSIGN | EQ) expression
+    | expressionElem
     ;
 
 tableSources: source += tableSource (COMMA source += tableSource)*
@@ -3146,7 +3144,7 @@ changeTableVersion
     : CHANGETABLE LPAREN VERSION versiontable = tableName COMMA pkColumns = fullColumnNameList COMMA pkValues = selectList RPAREN
     ;
 
-joinPart: joinOn | crossJoin | apply_ | pivot | unpivot
+joinPart: joinOn | crossJoin | apply | pivot | unpivot
     ;
 
 outerJoin: (LEFT | RIGHT | FULL) OUTER?
@@ -3162,7 +3160,7 @@ joinOn
 crossJoin: CROSS JOIN tableSourceItem
     ;
 
-apply_: applyStyle = (CROSS | OUTER) APPLY source = tableSourceItem
+apply: (CROSS | OUTER) APPLY tableSourceItem
     ;
 
 pivot: PIVOT pivotClause asTableAlias
@@ -3174,8 +3172,7 @@ unpivot: UNPIVOT unpivotClause asTableAlias
 pivotClause: LPAREN expression FOR fullColumnName IN columnAliasList RPAREN
     ;
 
-unpivotClause
-    : LPAREN unpivotExp = expression FOR fullColumnName IN LPAREN fullColumnNameList RPAREN RPAREN
+unpivotClause: LPAREN id FOR id IN LPAREN fullColumnNameList RPAREN RPAREN
     ;
 
 fullColumnNameList: column += fullColumnName (COMMA column += fullColumnName)*
@@ -3339,8 +3336,11 @@ expressionList: exp += expression (COMMA exp += expression)*
 withinGroup: WITHIN GROUP LPAREN orderByClause RPAREN
     ;
 
+// The ((IGNORE | RESPECT) NULLS)? is strictly speaking, not part of the OVER clause
+// but trails certain windowing functions such as LAG and LEAD. However, all such functions
+// must use the OVER clause, so it is included here to make build the IR simpler.
 overClause
-    : OVER LPAREN (PARTITION BY expression (COMMA expression)*)? orderByClause? rowOrRangeClause? RPAREN
+    : ((IGNORE | RESPECT) NULLS)? OVER LPAREN (PARTITION BY expression (COMMA expression)*)? orderByClause? rowOrRangeClause? RPAREN
     ;
 
 rowOrRangeClause: (ROWS | RANGE) windowFrameExtent
