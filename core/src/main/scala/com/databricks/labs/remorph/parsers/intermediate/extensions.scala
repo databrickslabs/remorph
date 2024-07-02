@@ -1,7 +1,5 @@
 package com.databricks.labs.remorph.parsers.intermediate
 
-import org.apache.spark.sql.catalyst.expressions.ExpressionSetSuite
-
 trait AstExtension
 
 case class Id(id: String, caseSensitive: Boolean = false) extends Expression {}
@@ -208,7 +206,7 @@ case class BackupDatabase(
     values: Map[String, Expression])
     extends Command {}
 
-case class Output() extends Expression
+case class Output(target: Relation, outputs: Seq[Expression], columns: Option[Seq[Column]]) extends RelationCommon
 
 // Used for DML other than SELECT
 abstract class Modification extends Relation

@@ -241,11 +241,31 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.Relation] {
 
   override def visitInsert(ctx: InsertContext): ir.Relation = {
 //    val target = ctx.ddlObject().accept(this)
-//    val hints = ctx.withTableHints().asScala.map(_.accept(expressionBuilder))
+//    val hints = ctx.withTableHints().accept(expressionBuilder)
 //    val columns = Option(ctx.expressionList())
 //      .map(_.expression().asScala.map(_.accept(expressionBuilder)))
-//      .getOrElse(None)
     ir.UnknownRelation
+  }
+
+  override def visitOutputClause(ctx: OutputClauseContext): ir.Relation = {
+    val outputs = ctx.outputDmlListElem().asScala.map(_.accept(expressionBuilder))
+    val target = ctx.ddlObject().accept(this)
+    val columns =
+      Option(ctx.columnNameList())
+        .map(_.id().asScala.map(id => ir.Column(None, expressionBuilder.visitId(id))))
+
+    // Databricks SQL does not support the OUTPUT clause, but we may be able to translate
+    // the clause to SELECT statements executed before or after the INSERT/DELETE/UPDATE/MERGE
+    // is executed
+    ir.Output(target, outputs, columns)
+  }
+
+  override def visitDdlObject(ctx: DdlObjectContext): ir.Relation = {
+    ctx match {
+      case tableName if tableName.tableName() != null => tableName.tableName().accept(this)
+      case localId if localId.LOCAL_ID() != null => ir.LocalVarTable(ir.Id(localId.LOCAL_ID().getText))
+      case _ => ir.UnresolvedRelation(ctx.getText)
+    }
   }
 
   private def buildJoinPart(left: ir.Relation, ctx: JoinPartContext): ir.Relation = {

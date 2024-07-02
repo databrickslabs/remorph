@@ -2,8 +2,6 @@ package com.databricks.labs.remorph.parsers.tsql
 
 import com.databricks.labs.remorph.parsers.intermediate.TreeNode
 import com.databricks.labs.remorph.parsers.tsql.TSqlParser.DmlClauseContext
-import com.databricks.labs.remorph.parsers.{GenericOption, OptionAuto, OptionDefault, OptionExpression, OptionOff, OptionOn, OptionString, intermediate => ir}
-import com.databricks.labs.remorph.parsers.tsql.TSqlParser.{DmlClauseContext, SelectStatementStandaloneContext}
 import com.databricks.labs.remorph.parsers.{OptionAuto, OptionExpression, OptionOff, OptionOn, OptionString, intermediate => ir}
 
 import scala.collection.JavaConverters.asScalaBufferConverter
@@ -14,7 +12,6 @@ import scala.collection.JavaConverters.asScalaBufferConverter
  */
 class TSqlAstBuilder extends TSqlParserBaseVisitor[ir.TreeNode] {
 
-  private val expressionBuilder = new TSqlExpressionBuilder
   private val relationBuilder = new TSqlRelationBuilder
   private val optionBuilder = new OptionBuilder(new TSqlExpressionBuilder)
 
@@ -40,12 +37,12 @@ class TSqlAstBuilder extends TSqlParserBaseVisitor[ir.TreeNode] {
 
   override def visitDmlClause(ctx: DmlClauseContext): ir.TreeNode = {
     ctx match {
-      case insert if insert.insertStatement() != null => insert.insertStatement().accept(tsqlRelationBuilder)
+      case insert if insert.insertStatement() != null => insert.insertStatement().accept(relationBuilder)
       case select if select.selectStatementStandalone() != null =>
-        select.selectStatementStandalone().accept(tsqlRelationBuilder)
-      case delete if delete.deleteStatement() != null => delete.deleteStatement().accept(tsqlRelationBuilder)
-      case merge if merge.mergeStatement() != null => merge.mergeStatement().accept(tsqlRelationBuilder)
-      case update if update.updateStatement() != null => update.updateStatement().accept(tsqlRelationBuilder)
+        select.selectStatementStandalone().accept(relationBuilder)
+      case delete if delete.deleteStatement() != null => delete.deleteStatement().accept(relationBuilder)
+      case merge if merge.mergeStatement() != null => merge.mergeStatement().accept(relationBuilder)
+      case update if update.updateStatement() != null => update.updateStatement().accept(relationBuilder)
       case _ => ir.UnresolvedRelation(ctx.getText)
     }
   }

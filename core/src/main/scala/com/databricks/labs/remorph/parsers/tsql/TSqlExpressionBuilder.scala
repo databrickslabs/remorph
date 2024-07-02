@@ -465,27 +465,6 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
     functionBuilder.buildFunction("HIERARCHYID", List.empty)
   }
 
-  override def visitOutputClause(ctx: OutputClauseContext): ir.Expression = {
-    val outputs = ctx.outputDmlListElem().asScala.map(_.accept(expressionBuilder))
-    val target = ctx.ddlObject().accept(this)
-    val columns =
-      Option(ctx.columnNameList())
-        .map(_.id().asScala.map(id => ir.Column(None, expressionBuilder.visitId(id))))
-        .getOrElse(List.empty)
-
-    // Databricks SQL does not support OUTPUT clause, but we may be able to translate
-    // the clause to SELECT statements executed before or after the INSERT/DELETE/UPDATE/MERGE
-    // is executed
-  }
-
-  override def visitDdlObject(ctx: DdlObjectContext): ir.Expression = {
-    ctx match {
-      case tableName if tableName.tableName() != null => tableName.tableName().accept(this)
-      case localId if localId.LOCAL_ID() != null => ir.LocalVarTable(ir.Id(localId.LOCAL_ID().getText))
-      case _ => ir.UnresolvedRelation(ctx.getText)
-    }
-  }
-
   override def visitOutputDmlListElem(ctx: OutputDmlListElemContext): ir.Expression = {
     val expression = Option(ctx.expression()).map(_.accept(this)).getOrElse(ctx.asterisk().accept(this))
     val aliasOption = Option(ctx.asColumnAlias()).map(_.columnAlias()).map { alias =>
