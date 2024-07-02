@@ -47,6 +47,8 @@ dependencies = [
   "coverage[toml]>=6.5",
   "pytest",
   "pytest-cov>=4.0.0,<5.0.0",
+  "pytest-timeout~=2.3.1",
+  "pytest-xdist~=3.5.0",
   "black>=23.1.0",
   "ruff>=0.0.243",
   "databricks-connect",
