@@ -32,6 +32,11 @@ class OptionBuilder(expressionBuilder: TSqlExpressionBuilder) {
       case c if c.OFF() != null => OptionOff(id)
       case c if c.AUTO() != null => OptionAuto(id)
       case c if c.STRING() != null => OptionString(id, c.STRING().getText)
+
+      // FOR cannot be allowed as an id as it clashes with the FOR clause in SELECT et al. So
+      // we special case it here and elide the FOR. It handles just a few things such as OPTIMIZE FOR UNKNOWN,
+      // which becomes "OPTIMIZE", Id(UNKNOWN)
+      case c if c.FOR() != null => OptionExpression(id, expressionBuilder.visitId(c.id(1)), None)
       case c if c.expression() != null =>
         val supplement = if (c.id(1) != null) Some(ctx.id(1).getText) else None
         OptionExpression(id, c.expression().accept(expressionBuilder), supplement)
