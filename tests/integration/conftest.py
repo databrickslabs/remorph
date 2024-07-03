@@ -2,8 +2,10 @@ import os
 from dataclasses import dataclass
 from datetime import datetime
 import decimal
+import random
 
 import pytest
+from pyspark.sql import SparkSession
 from pyspark.sql.types import (
     StructType,
     StructField,
@@ -30,62 +32,43 @@ class TestConfig:
     db_table_catalog: str
     db_table_schema: str
     db_table_name: str
-    db_mock_catalog: str
-    db_mock_schema: str
     db_mock_src: str
     db_mock_tgt: str
-    db_mock_volume: str
 
 
-@pytest.fixture(scope="session")
-def ws():
+@dataclass
+class TestMetricsConfig:
+    catalog: str
+    schema: str
+    volume: str
+
+
+def _create_ws() -> WorkspaceClient:
     # Use variables from Unified Auth
     # See https://databricks-sdk-py.readthedocs.io/en/latest/authentication.html
     product_name, product_version = None, None
     return WorkspaceClient(host=os.environ["DATABRICKS_HOST"], product=product_name, product_version=product_version)
 
 
-@pytest.fixture(scope="session")
-def spark(ws):
+def _create_spark_session(ws: WorkspaceClient) -> SparkSession:
     return DatabricksSession.builder.sdkConfig(ws.config).getOrCreate()
 
 
-@pytest.fixture(scope="module")
-def test_config():
+def _get_metrics_config() -> TestMetricsConfig:
+    return TestMetricsConfig(catalog="integration_test", schema="reconcile", volume="test_volume")
+
+
+def _get_test_config() -> TestConfig:
     return TestConfig(
         db_table_catalog="samples",
         db_table_schema="tpch",
         db_table_name="lineitem",
-        db_mock_catalog="remorph_integration_test",
-        db_mock_schema="test",
         db_mock_src="lineitem_src",
         db_mock_tgt="lineitem_tgt",
-        db_mock_volume="test_volume",
     )
 
 
-@pytest.fixture(scope="module")
-def reconcile_config(test_config):
-    return ReconcileConfig(
-        data_source="databricks",
-        report_type="all",
-        secret_scope="scope_databricks",
-        database_config=DatabaseConfig(
-            source_schema=test_config.db_mock_schema,
-            target_catalog=test_config.db_mock_catalog,
-            target_schema=test_config.db_mock_schema,
-            source_catalog=test_config.db_mock_catalog,
-        ),
-        metadata_config=ReconcileMetadataConfig(
-            catalog=test_config.db_mock_catalog, schema=test_config.db_mock_schema, volume=test_config.db_mock_volume
-        ),
-        job_id="1",
-        tables=None,
-    )
-
-
-@pytest.fixture(scope="module")
-def metrics_deployer(ws, reconcile_config):
+def _get_metrics_deployer(ws: WorkspaceClient, reconcile_config: ReconcileConfig) -> TableDeployer:
     morph_config = MorphConfig(
         source=reconcile_config.data_source,
         catalog_name=reconcile_config.metadata_config.catalog,
@@ -99,39 +82,67 @@ def metrics_deployer(ws, reconcile_config):
     )
 
 
-@pytest.fixture(scope="module")
-def setup_teardown(ws, spark, test_config, reconcile_config, metrics_deployer):
-    ReconciliationMetadataSetup(ws, reconcile_config, CatalogSetup(ws), metrics_deployer).run()
-    _create_reconcile_volume(w=ws, reconcile=reconcile_config)
-    yield
-    ws.catalogs.delete(name=test_config.db_mock_catalog, force=True)
-
-
-def _create_reconcile_volume(w, reconcile):
-    all_volumes = w.volumes.list(
-        reconcile.metadata_config.catalog,
-        reconcile.metadata_config.schema,
+def _get_reconcile_config(metrics_conf: TestMetricsConfig) -> ReconcileConfig:
+    return ReconcileConfig(
+        data_source="databricks",
+        report_type="all",
+        secret_scope="scope_databricks",
+        database_config=DatabaseConfig(
+            source_schema=metrics_conf.schema,
+            target_catalog=metrics_conf.catalog,
+            target_schema=metrics_conf.schema,
+            source_catalog=metrics_conf.catalog,
+        ),
+        metadata_config=ReconcileMetadataConfig(
+            catalog=metrics_conf.catalog, schema=metrics_conf.schema, volume=metrics_conf.volume
+        ),
+        job_id="1",
+        tables=None,
     )
 
-    reconcile_volume_exists = False
-    for volume in all_volumes:
-        if volume.name == reconcile.metadata_config.volume:
-            reconcile_volume_exists = True
-            print("Reconciliation Volume already exists.")
-            break
 
-    if not reconcile_volume_exists:
-        print("Creating Reconciliation Volume.")
-        w.volumes.create(
-            reconcile.metadata_config.catalog,
-            reconcile.metadata_config.schema,
-            reconcile.metadata_config.volume,
-            VolumeType.MANAGED,
-        )
+def pytest_configure(config):
+    config.ws = _create_ws()
+    config.test_config = _get_test_config()
+    _metrics_config = _get_metrics_config()
+    config.reconcile_config = _get_reconcile_config(_metrics_config)
+    config.metrics_deployer = _get_metrics_deployer(config.ws, config.reconcile_config)
 
 
-@pytest.fixture
-def setup_databricks_src(setup_teardown, spark, test_config):
+def pytest_sessionstart(session):
+    ReconciliationMetadataSetup(
+        session.config.ws,
+        session.config.reconcile_config,
+        CatalogSetup(session.config.ws),
+        session.config.metrics_deployer,
+    ).run()
+    _create_reconcile_volume(w=session.config.ws, reconcile_config=session.config.reconcile_config)
+
+
+@pytest.fixture(scope="session")
+def config_fixture(request):
+    _create_spark_session(request.config.ws)
+    yield request
+
+
+def pytest_sessionfinish(session):
+    """
+    runs only once at the end once all the test cases are ran
+    """
+    if not hasattr(session.config, 'workerinput'):
+        session.config.ws.catalogs.delete(name=session.config.reconcile_config.metadata_config.catalog, force=True)
+
+
+@pytest.fixture(scope="function", autouse=True)
+def setup_mock_data_for_db_src_and_tgt(request):
+    """
+    the mock tables are created for each test case because the volume is constructed dynamically using the table name
+    and we can't  have the same volume path for two test cases as it runs in parallel
+    """
+    table_id = str(random.randint(1000, 9999))
+    request.config.test_config.db_mock_src = request.config.test_config.db_mock_src + table_id
+    request.config.test_config.db_mock_tgt = request.config.test_config.db_mock_tgt + table_id
+    spark = SparkSession.getActiveSession()
     src_schema = StructType(
         [
             StructField("l_orderkey", LongType(), True),
@@ -331,8 +342,33 @@ def setup_databricks_src(setup_teardown, spark, test_config):
     )
 
     src_data.write.format("delta").mode("overwrite").saveAsTable(
-        f"{test_config.db_mock_catalog}." f"{test_config.db_mock_schema}.{test_config.db_mock_src}"
+        f"{request.config.reconcile_config.metadata_config.catalog}."
+        f"{request.config.reconcile_config.metadata_config.schema}.{request.config.test_config.db_mock_src}"
     )
     tgt_data.write.format("delta").mode("overwrite").saveAsTable(
-        f"{test_config.db_mock_catalog}." f"{test_config.db_mock_schema}.{test_config.db_mock_tgt}"
+        f"{request.config.reconcile_config.metadata_config.catalog}."
+        f"{request.config.reconcile_config.metadata_config.schema}.{request.config.test_config.db_mock_tgt}"
     )
+
+
+def _create_reconcile_volume(w: WorkspaceClient, reconcile_config: ReconcileConfig):
+    all_volumes = w.volumes.list(
+        reconcile_config.metadata_config.catalog,
+        reconcile_config.metadata_config.schema,
+    )
+
+    reconcile_volume_exists = False
+    for volume in all_volumes:
+        if volume.name == reconcile_config.metadata_config.volume:
+            reconcile_volume_exists = True
+            print("Reconciliation Volume already exists.")
+            break
+
+    if not reconcile_volume_exists:
+        print("Creating Reconciliation Volume.")
+        w.volumes.create(
+            reconcile_config.metadata_config.catalog,
+            reconcile_config.metadata_config.schema,
+            reconcile_config.metadata_config.volume,
+            VolumeType.MANAGED,
+        )
