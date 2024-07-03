@@ -160,9 +160,18 @@ To process the reconciliation for specific table sources, we must create a confi
 The file name should be in the format as below and created inside the **.remorph** folder.
 ```
 recon_config_<SOURCE>_<CATALOG_OR_SCHEMA>_<REPORT_TYPE>.json
-eg:
-recon_config_databricks_catalog_all.json
+
+Note: For CATALOG_OR_SCHEMA , if CATALOG exists then CATALOG else SCHEMA
 ```
+
+eg:
+
+| source_type | catalog_or_schema | report_type | file_name                             |
+|-------------|-------------------|-------------|---------------------------------------|
+| databricks  | tpch | all | recon_config_databricks_tpch_all.json |
+| source1     | tpch | row | recon_config_source1_tpch_row.json    |
+| source2     | tpch | schema | recon_config_source2_tpch_schema.json |
+
 Please refer to the [Reconcile Configuration Guide][def] for detailed instructions on how to set up the configuration and notebook with sample configurations [Sample Configurations][config].
 
 [def]: docs/README_RECON.md
