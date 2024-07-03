@@ -3227,7 +3227,7 @@ functionCall: builtinFunction | standardFunction | rankingWindowedFunction | agg
 builtinFunction: EXTRACT L_PAREN part = (STRING | ID) FROM expr R_PAREN # builtinExtract
     ;
 
-standardFunction: id L_PAREN exprList? R_PAREN
+standardFunction: id L_PAREN (exprList | paramAssocList)? R_PAREN
     ;
 
 paramAssocList: paramAssoc (COLON paramAssoc)*

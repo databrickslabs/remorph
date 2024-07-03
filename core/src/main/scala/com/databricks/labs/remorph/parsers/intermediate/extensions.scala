@@ -44,7 +44,8 @@ case class Case(expression: Option[Expression], branches: Seq[WhenBranch], other
 
 case class Exists(relation: Relation) extends Expression {}
 
-case class IsIn(relation: Relation, expression: Expression) extends Expression {}
+case class IsInRelation(relation: Relation, expression: Expression) extends Expression {}
+case class IsInCollection(collection: Seq[Expression], expression: Expression) extends Expression {}
 
 case class Like(expression: Expression, patterns: Seq[Expression], escape: Option[Expression], caseSensitive: Boolean)
     extends Expression {}
