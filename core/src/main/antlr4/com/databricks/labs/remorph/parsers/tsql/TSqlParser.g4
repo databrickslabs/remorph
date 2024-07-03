@@ -796,8 +796,7 @@ alterCryptographicProvider
     )?
     ;
 
-createCryptographicProvider
-    : CREATE CRYPTOGRAPHIC PROVIDER providerName = id FROM FILE EQ pathOf_DLL = STRING
+createCryptographicProvider: CREATE CRYPTOGRAPHIC PROVIDER id FROM FILE EQ STRING
     ;
 
 createEndpoint
@@ -1555,7 +1554,7 @@ queueAction
     | MOVE TO (id | DEFAULT)
     ;
 
-queueRebuildOptions: MAXDOP EQ INT
+queueRebuildOptions: genericOption
     ;
 
 createContract
@@ -1667,10 +1666,7 @@ createIndex
 createIndexOptions: WITH LPAREN relationalIndexOption ( COMMA relationalIndexOption)* RPAREN
     ;
 
-relationalIndexOption
-    : rebuildIndexOption
-    | DROP_EXISTING EQ onOff
-    | OPTIMIZE_FOR_SEQUENTIAL_KEY EQ onOff
+relationalIndexOption: rebuildIndexOption | genericOption
     ;
 
 alterIndex
@@ -1688,10 +1684,7 @@ alterIndex
 resumableIndexOptions: WITH LPAREN ( resumableIndexOption (COMMA resumableIndexOption)*) RPAREN
     ;
 
-resumableIndexOption
-    : MAXDOP EQ maxDegreeOfParallelism = INT
-    | MAX_DURATION EQ maxDuration = INT MINUTES?
-    | lowPriorityLockWait
+resumableIndexOption: genericOption | lowPriorityLockWait
     ;
 
 reorganizePartition: REORGANIZE (PARTITION EQ INT)? reorganizeOptions?
@@ -1706,13 +1699,7 @@ reorganizeOption: LOB_COMPACTION EQ onOff | COMPRESS_ALL_ROW_GROUPS EQ onOff
 setIndexOptions: SET LPAREN setIndexOption (COMMA setIndexOption)* RPAREN
     ;
 
-setIndexOption
-    : ALLOW_ROW_LOCKS EQ onOff
-    | ALLOW_PAGE_LOCKS EQ onOff
-    | OPTIMIZE_FOR_SEQUENTIAL_KEY EQ onOff
-    | IGNORE_DUP_KEY EQ onOff
-    | STATISTICS_NORECOMPUTE EQ onOff
-    | COMPRESSION_DELAY EQ delay = INT MINUTES?
+setIndexOption: genericOption
     ;
 
 rebuildPartition
@@ -1724,20 +1711,9 @@ rebuildIndexOptions: WITH LPAREN rebuildIndexOption (COMMA rebuildIndexOption)* 
     ;
 
 rebuildIndexOption
-    : PAD_INDEX EQ onOff
-    | FILLFACTOR EQ INT
-    | SORT_IN_TEMPDB EQ onOff
-    | IGNORE_DUP_KEY EQ onOff
-    | STATISTICS_NORECOMPUTE EQ onOff
-    | STATISTICS_INCREMENTAL EQ onOff
-    | ONLINE EQ (ON (LPAREN lowPriorityLockWait RPAREN)? | OFF)
-    | RESUMABLE EQ onOff
-    | MAX_DURATION EQ times = INT MINUTES?
-    | ALLOW_ROW_LOCKS EQ onOff
-    | ALLOW_PAGE_LOCKS EQ onOff
-    | MAXDOP EQ maxDegreeOfParallelism = INT
-    | DATA_COMPRESSION EQ (NONE | ROW | PAGE | COLUMNSTORE | COLUMNSTORE_ARCHIVE) onPartitions?
+    : DATA_COMPRESSION EQ (NONE | ROW | PAGE | COLUMNSTORE | COLUMNSTORE_ARCHIVE) onPartitions?
     | XML_COMPRESSION EQ onOff onPartitions?
+    | genericOption
     ;
 
 singlePartitionRebuildIndexOptions
@@ -1745,9 +1721,7 @@ singlePartitionRebuildIndexOptions
     ;
 
 singlePartitionRebuildIndexOption
-    : SORT_IN_TEMPDB EQ onOff
-    | MAXDOP EQ maxDegreeOfParallelism = INT
-    | RESUMABLE EQ onOff
+    : genericOption
     | DATA_COMPRESSION EQ (NONE | ROW | PAGE | COLUMNSTORE | COLUMNSTORE_ARCHIVE) onPartitions?
     | XML_COMPRESSION EQ onOff onPartitions?
     | ONLINE EQ (ON (LPAREN lowPriorityLockWait RPAREN)? | OFF)
@@ -1768,10 +1742,7 @@ createColumnstoreIndexOptions
     ;
 
 columnstoreIndexOption
-    : DROP_EXISTING EQ onOff
-    | MAXDOP EQ maxDegreeOfParallelism = INT
-    | ONLINE EQ onOff
-    | COMPRESSION_DELAY EQ delay = INT MINUTES?
+    : genericOption
     | DATA_COMPRESSION EQ (COLUMNSTORE | COLUMNSTORE_ARCHIVE) onPartitions?
     ;
 
@@ -1856,7 +1827,7 @@ procedureParam
     )? (OUT | OUTPUT | READONLY)?
     ;
 
-procedureOption: ENCRYPTION | RECOMPILE | executeClause
+procedureOption: executeClause | genericOption
     ;
 
 functionOption
@@ -1882,20 +1853,7 @@ updateStatistics
 updateStatisticsOptions: WITH updateStatisticsOption (COMMA updateStatisticsOption)*
     ;
 
-updateStatisticsOption
-    : (FULLSCAN (COMMA? PERSIST_SAMPLE_PERCENT EQ onOff)?)
-    | (SAMPLE number = INT (PERCENT | ROWS) ( COMMA? PERSIST_SAMPLE_PERCENT EQ onOff)?)
-    | RESAMPLE onPartitions?
-    | STATS_STREAM EQ statsStream_ = expression
-    | ROWCOUNT EQ INT
-    | PAGECOUNT EQ INT
-    | ALL
-    | COLUMNS
-    | INDEX
-    | NORECOMPUTE
-    | INCREMENTAL EQ onOff
-    | MAXDOP EQ maxDregreeOfParallelism = INT
-    | AUTO_DROP EQ onOff
+updateStatisticsOption: RESAMPLE onPartitions? | optionList
     ;
 
 createTable
@@ -1932,16 +1890,9 @@ createTableIndexOptions
     ;
 
 createTableIndexOption
-    : PAD_INDEX EQ onOff
-    | FILLFACTOR EQ INT
-    | IGNORE_DUP_KEY EQ onOff
-    | STATISTICS_NORECOMPUTE EQ onOff
-    | STATISTICS_INCREMENTAL EQ onOff
-    | ALLOW_ROW_LOCKS EQ onOff
-    | ALLOW_PAGE_LOCKS EQ onOff
-    | OPTIMIZE_FOR_SEQUENTIAL_KEY EQ onOff
-    | DATA_COMPRESSION EQ (NONE | ROW | PAGE | COLUMNSTORE | COLUMNSTORE_ARCHIVE) onPartitions?
+    : DATA_COMPRESSION EQ (NONE | ROW | PAGE | COLUMNSTORE | COLUMNSTORE_ARCHIVE) onPartitions?
     | XML_COMPRESSION EQ onOff onPartitions?
+    | genericOption
     ;
 
 createView
@@ -2041,13 +1992,13 @@ databaseOptionspec
     | FILESTREAM databaseFilestreamOption
     | hadrOptions
     | mixedPageAllocationOption
-    | parameterizationOption
     | recoveryOption
     | serviceBrokerOption
     | snapshotOption
     | sqlOption
     | targetRecoveryTimeOption
     | termination
+    | genericOption
     ;
 
 autoOption
@@ -2155,7 +2106,7 @@ dbUpdateOption: READ_ONLY | READ_WRITE
 dbUserAccessOption: SINGLE_USER | RESTRICTED_USER | MULTI_USER
     ;
 
-delayedDurabilityOption: DELAYED_DURABILITY EQ (DISABLED | ALLOWED | FORCED)
+delayedDurabilityOption: genericOption
     ;
 
 externalAccessOption
@@ -2174,14 +2125,7 @@ hadrOptions: HADR ( (AVAILABILITY GROUP EQ availabilityGroupName = id | OFF) | (
 mixedPageAllocationOption: MIXED_PAGE_ALLOCATION (OFF | ON)
     ;
 
-parameterizationOption: PARAMETERIZATION (SIMPLE | FORCED)
-    ;
-
-recoveryOption
-    : RECOVERY (FULL | BULK_LOGGED | SIMPLE)
-    | TORN_PAGE_DETECTION onOff
-    | ACCELERATED_DATABASE_RECOVERY EQ onOff
-    | PAGE_VERIFY (CHECKSUM | TORN_PAGE_DETECTION | NONE)
+recoveryOption: genericOption
     ;
 
 serviceBrokerOption
@@ -2563,15 +2507,7 @@ dbccCheckconstraints
     )?
     ;
 
-dbccCheckdbTableOption
-    : ALL_ERRORMSGS
-    | EXTENDED_LOGICAL_CHECKS
-    | NO_INFOMSGS
-    | TABLOCK
-    | ESTIMATEONLY
-    | PHYSICAL_ONLY
-    | DATA_PURITY
-    | MAXDOP EQ maxDregreeOfParallelism = INT
+dbccCheckdbTableOption: genericOption
     ;
 
 dbccCheckdb
@@ -2582,13 +2518,7 @@ dbccCheckdb
     )? (WITH dbccOption = dbccCheckdbTableOption ( COMMA dbccOption = dbccCheckdbTableOption)*)?
     ;
 
-dbccCheckfilegroupOption
-    : ALL_ERRORMSGS
-    | NO_INFOMSGS
-    | TABLOCK
-    | ESTIMATEONLY
-    | PHYSICAL_ONLY
-    | MAXDOP EQ maxDregreeOfParallelism = INT
+dbccCheckfilegroupOption: genericOption
     ;
 
 dbccCheckfilegroup
@@ -2643,7 +2573,7 @@ dbccPdwShowspaceused
 dbccProccache: name = PROCCACHE (WITH dbccOption = NO_INFOMSGS)?
     ;
 
-dbccShowcontigOption: ALL_INDEXES | TABLERESULTS | FAST | ALL_LEVELS | NO_INFOMSGS
+dbccShowcontigOption: genericOption
     ;
 
 dbccShowcontig
@@ -2803,22 +2733,12 @@ alterTableIndexOptions: WITH LPAREN alterTableIndexOption ( COMMA alterTableInde
     ;
 
 alterTableIndexOption
-    : PAD_INDEX EQ onOff
-    | FILLFACTOR EQ INT
-    | IGNORE_DUP_KEY EQ onOff
-    | STATISTICS_NORECOMPUTE EQ onOff
-    | ALLOW_ROW_LOCKS EQ onOff
-    | ALLOW_PAGE_LOCKS EQ onOff
-    | OPTIMIZE_FOR_SEQUENTIAL_KEY EQ onOff
-    | SORT_IN_TEMPDB EQ onOff
-    | MAXDOP EQ maxDegreeOfParallelism = INT
-    | DATA_COMPRESSION EQ (NONE | ROW | PAGE | COLUMNSTORE | COLUMNSTORE_ARCHIVE) onPartitions?
+    : DATA_COMPRESSION EQ (NONE | ROW | PAGE | COLUMNSTORE | COLUMNSTORE_ARCHIVE) onPartitions?
     | XML_COMPRESSION EQ onOff onPartitions?
     | DISTRIBUTION EQ HASH LPAREN id RPAREN
     | CLUSTERED INDEX LPAREN id (ASC | DESC)? ( COMMA id (ASC | DESC)?)* RPAREN
     | ONLINE EQ (ON (LPAREN lowPriorityLockWait RPAREN)? | OFF)
-    | RESUMABLE EQ onOff
-    | MAX_DURATION EQ times = INT MINUTES?
+    | genericOption
     ;
 
 declareCursor
@@ -2929,7 +2849,7 @@ timeZone
     : AT_KEYWORD id ZONE expression // AT TIME ZONE
     ;
 
-primitiveExpression: DEFAULT | NULL_ | LOCAL_ID | constant
+primitiveExpression: op = (DEFAULT | NULL_ | LOCAL_ID) | constant
     ;
 
 caseExpression: CASE caseExpr = expression? switchSection+ ( ELSE elseExpr = expression)? END
@@ -3016,15 +2936,7 @@ whereClause: WHERE searchCondition
 havingClause: HAVING searchCondition
     ;
 
-topClause: TOP (topPercent | topCount) (WITH TIES)?
-    ;
-
-topPercent
-    : percentConstant = (REAL | FLOAT | INT) PERCENT
-    | LPAREN topperExpression = expression RPAREN PERCENT
-    ;
-
-topCount: countConstant = INT | LPAREN topcountExpression = expression RPAREN
+topClause: TOP ( expression | LPAREN expression RPAREN) PERCENT? (WITH TIES)?
     ;
 
 orderByClause: ORDER BY orderByExpression (COMMA orderByExpression)*
@@ -3032,12 +2944,11 @@ orderByClause: ORDER BY orderByExpression (COMMA orderByExpression)*
 
 selectOrderByClause
     : orderByClause (
-        OFFSET expression or = (ROW | ROWS) (
-            FETCH (FIRST | NEXT) expression fr = (ROW | ROWS) ONLY
-        )?
+        OFFSET expression (ROW | ROWS) (FETCH (FIRST | NEXT) expression (ROW | ROWS) ONLY)?
     )?
     ;
 
+// Unsupported in Databricks SQL
 forClause
     : FOR BROWSE
     | FOR XML (RAW (LPAREN STRING RPAREN)? | AUTO) xmlCommonDirectives* (
@@ -3053,30 +2964,7 @@ forClause
 orderByExpression: expression (COLLATE expression)? (ASC | DESC)?
     ;
 
-optionClause: OPTION LPAREN options_ += option (COMMA options_ += option)* RPAREN
-    ;
-
-option
-    : FAST numberRows = INT
-    | (HASH | ORDER) GROUP
-    | (MERGE | HASH | CONCAT) UNION
-    | (LOOP | MERGE | HASH) JOIN
-    | EXPAND VIEWS
-    | FORCE ORDER
-    | IGNORE_NONCLUSTERED_COLUMNSTORE_INDEX
-    | KEEP PLAN
-    | KEEPFIXED PLAN
-    | MAXDOP numberOfProcessors = INT
-    | MAXRECURSION numberRecursion = INT
-    | OPTIMIZE FOR LPAREN optimizeForArg (COMMA optimizeForArg)* RPAREN
-    | OPTIMIZE FOR UNKNOWN
-    | PARAMETERIZATION (SIMPLE | FORCED)
-    | RECOMPILE
-    | ROBUST PLAN
-    | USE PLAN STRING
-    ;
-
-optimizeForArg: LOCAL_ID (UNKNOWN | EQ (constant | NULL_))
+optionClause: OPTION lparenOptionList
     ;
 
 selectList: selectElement += selectListElem ( COMMA selectElement += selectListElem)*
@@ -3093,11 +2981,9 @@ expressionElem: columnAlias EQ expression | expression asColumnAlias?
     ;
 
 selectListElem
-    : (
-        asterisk
-        | LOCAL_ID op = (PE | ME | SE | DE | MEA | AND_ASSIGN | XOR_ASSIGN | OR_ASSIGN | EQ) expression
-        | expressionElem
-    ) ((IGNORE | RESPECT) NULLS)?
+    : asterisk
+    | LOCAL_ID op = (PE | ME | SE | DE | MEA | AND_ASSIGN | XOR_ASSIGN | OR_ASSIGN | EQ) expression
+    | expressionElem
     ;
 
 tableSources: source += tableSource (COMMA source += tableSource)*
@@ -3107,8 +2993,10 @@ tableSource: tableSourceItem joinPart*
     ;
 
 tableSourceItem
-    : tableName deprecatedTableHint asTableAlias
-    | tableName asTableAlias? (withTableHints | deprecatedTableHint | sybaseLegacyHints)?
+    : tableName (
+        deprecatedTableHint asTableAlias
+        | asTableAlias? (withTableHints | deprecatedTableHint | sybaseLegacyHints)?
+    )
     | rowsetFunction asTableAlias?
     | LPAREN derivedTable RPAREN (asTableAlias columnAliasList?)?
     | changeTable asTableAlias?
@@ -3146,7 +3034,7 @@ changeTableVersion
     : CHANGETABLE LPAREN VERSION versiontable = tableName COMMA pkColumns = fullColumnNameList COMMA pkValues = selectList RPAREN
     ;
 
-joinPart: joinOn | crossJoin | apply_ | pivot | unpivot
+joinPart: joinOn | crossJoin | apply | pivot | unpivot
     ;
 
 outerJoin: (LEFT | RIGHT | FULL) OUTER?
@@ -3162,7 +3050,7 @@ joinOn
 crossJoin: CROSS JOIN tableSourceItem
     ;
 
-apply_: applyStyle = (CROSS | OUTER) APPLY source = tableSourceItem
+apply: (CROSS | OUTER) APPLY tableSourceItem
     ;
 
 pivot: PIVOT pivotClause asTableAlias
@@ -3174,8 +3062,7 @@ unpivot: UNPIVOT unpivotClause asTableAlias
 pivotClause: LPAREN expression FOR fullColumnName IN columnAliasList RPAREN
     ;
 
-unpivotClause
-    : LPAREN unpivotExp = expression FOR fullColumnName IN LPAREN fullColumnNameList RPAREN RPAREN
+unpivotClause: LPAREN id FOR id IN LPAREN fullColumnNameList RPAREN RPAREN
     ;
 
 fullColumnNameList: column += fullColumnName (COMMA column += fullColumnName)*
@@ -3206,28 +3093,8 @@ functionCall
     | hierarchyidStaticMethod
     ;
 
-// Things that are just special values and not really functions, but are documented as such
-functionValues
-    : f = (: AACURSOR_ROWS
-        | AADBTS
-        | AAFETCH_STATUS
-        | AALANGID
-        | AALANGUAGE
-        | AALOCKTIMEOUT
-        | AAMAX_CONNECTIONS
-        | AAMAX_PRECISION
-        | AANESTLEVEL
-        | AAOPTIONS
-        | AAREMSERVER
-        | AASERVERNAME
-        | AASERVICENAME
-        | AASPID
-        | AATEXTSIZE
-        | AAVERSION
-        | SESSION_USER
-        | SYSTEM_USER
-        | USER
-    )
+// Things that are just special values and not really functions, but are documented as if they are functions
+functionValues: f = ( AAPSEUDO | SESSION_USER | SYSTEM_USER | USER)
     ;
 
 // Standard functions that are built in but take standard syntax, or are
@@ -3339,8 +3206,11 @@ expressionList: exp += expression (COMMA exp += expression)*
 withinGroup: WITHIN GROUP LPAREN orderByClause RPAREN
     ;
 
+// The ((IGNORE | RESPECT) NULLS)? is strictly speaking, not part of the OVER clause
+// but trails certain windowing functions such as LAG and LEAD. However, all such functions
+// must use the OVER clause, so it is included here to make build the IR simpler.
 overClause
-    : OVER LPAREN (PARTITION BY expression (COMMA expression)*)? orderByClause? rowOrRangeClause? RPAREN
+    : ((IGNORE | RESPECT) NULLS)? OVER LPAREN (PARTITION BY expression (COMMA expression)*)? orderByClause? rowOrRangeClause? RPAREN
     ;
 
 rowOrRangeClause: (ROWS | RANGE) windowFrameExtent
@@ -3715,7 +3585,6 @@ keyword
     | EXCLUSIVE
     | EXECUTABLE
     | EXECUTABLE_FILE
-    | EXPAND
     | EXPIREDATE
     | EXPIRY_DATE
     | EXPLICIT
@@ -3729,7 +3598,6 @@ keyword
     | FAILURE_CONDITION_LEVEL
     | FAILURECONDITIONLEVEL
     | FAN_IN
-    | FAST
     | FAST_FORWARD
     | FILE_SNAPSHOT
     | FILEGROUP
@@ -3742,10 +3610,10 @@ keyword
     | FIRST
     | FMTONLY
     | FOLLOWING
+    | FOR
     | FORCE
     | FORCE_FAILOVER_ALLOW_DATA_LOSS
     | FORCE_SERVICE_ALLOW_DATA_LOSS
-    | FORCED
     | FORCEPLAN
     | FORCESCAN
     | FORCESEEK
@@ -3777,7 +3645,6 @@ keyword
     | IDENTITY_VALUE
     | IGNORE_CONSTRAINTS
     | IGNORE_DUP_KEY
-    | IGNORE_NONCLUSTERED_COLUMNSTORE_INDEX
     | IGNORE_REPLICATED_TABLE_CACHE
     | IGNORE_TRIGGERS
     | IIF
@@ -3804,9 +3671,7 @@ keyword
     | JSON_ARRAY
     | JSON_OBJECT
     | KB
-    | KEEP
     | KEEPDEFAULTS
-    | KEEPFIXED
     | KEEPIDENTITY
     | KERBEROS
     | KEY_PATH
@@ -3858,8 +3723,6 @@ keyword
     | MAX_QUEUE_READERS
     | MAX_ROLLOVER_FILES
     | MAX_SIZE
-    | MAXDOP
-    | MAXRECURSION
     | MAXSIZE
     | MAXTRANSFER
     | MAXVALUE
@@ -3937,8 +3800,6 @@ keyword
     | OPENJSON
     | OPERATIONS
     | OPTIMISTIC
-    | OPTIMIZE
-    | OPTIMIZE_FOR_SEQUENTIAL_KEY
     | OUT
     | OUTPUT
     | OVERRIDE
@@ -4013,7 +3874,6 @@ keyword
     | READWRITE
     | REBUILD
     | RECEIVE
-    | RECOMPILE
     | RECOVERY
     | RECURSIVE_TRIGGERS
     | REGENERATE
@@ -4051,7 +3911,6 @@ keyword
     | RETENTION
     | RETURNS
     | REWIND
-    | ROBUST
     | ROLE
     | ROOT
     | ROUND_ROBIN
@@ -4110,7 +3969,6 @@ keyword
     | SHRINKLOG
     | SID
     | SIGNATURE
-    | SIMPLE
     | SINGLE_USER
     | SIZE
     | SKIP_KEYWORD
@@ -4191,7 +4049,6 @@ keyword
     | UNBOUNDED
     | UNCHECKED
     | UNCOMMITTED
-    | UNKNOWN
     | UNLIMITED
     | UNLOCK
     | UNMASK
@@ -4209,7 +4066,6 @@ keyword
     | VERIFY_CLONEDB
     | VERSION
     | VIEW_METADATA
-    | VIEWS
     | VISIBILITY
     | WAIT
     | WAIT_AT_LOW_PRIORITY
@@ -4341,17 +4197,7 @@ createXmlIndex
 xmlIndexOptions: WITH LPAREN xmlIndexOption (COMMA xmlIndexOption)* RPAREN
     ;
 
-xmlIndexOption
-    : PAD_INDEX EQ onOff
-    | FILLFACTOR EQ INT
-    | SORT_IN_TEMPDB EQ onOff
-    | IGNORE_DUP_KEY EQ onOff
-    | DROP_EXISTING EQ onOff
-    | ONLINE EQ (ON (LPAREN lowPriorityLockWait RPAREN)? | OFF)
-    | ALLOW_ROW_LOCKS EQ onOff
-    | ALLOW_PAGE_LOCKS EQ onOff
-    | MAXDOP EQ maxDegreeOfParallelism = INT
-    | XML_COMPRESSION EQ onOff
+xmlIndexOption: ONLINE EQ (ON (LPAREN lowPriorityLockWait RPAREN)? | OFF) | genericOption
     ;
 
 xmlCommonDirectives: COMMA ( BINARY_KEYWORD BASE64 | TYPE | ROOT (LPAREN STRING RPAREN)?)

@@ -43,9 +43,9 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
           ir.CallFunction(
             "Greatest",
             List(
-              ir.Literal(integer = Some(42)),
-              ir.Literal(integer = Some(2)),
-              ir.Literal(integer = Some(4)),
+              ir.Literal(short = Some(42)),
+              ir.Literal(short = Some(2)),
+              ir.Literal(short = Some(4)),
               ir.Column(None, ir.Id("ali", caseSensitive = true)))),
           ir.Literal(string = Some("c")))))
   }
@@ -62,9 +62,9 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
           ir.CallFunction(
             "Greatest",
             List(
-              ir.Literal(integer = Some(42)),
-              ir.Literal(integer = Some(2)),
-              ir.Literal(integer = Some(4)),
+              ir.Literal(short = Some(42)),
+              ir.Literal(short = Some(2)),
+              ir.Literal(short = Some(4)),
               ir.Column(None, ir.Id("ali", caseSensitive = true)))))))
   }
 
@@ -244,10 +244,24 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
   """,
       _.expression(),
       ir.Window(
-        ir.CallFunction("LEAD", Seq(simplyNamedColumn("salary"), ir.Literal(integer = Some(1)))),
+        ir.CallFunction("LEAD", Seq(simplyNamedColumn("salary"), ir.Literal(short = Some(1)))),
         Seq(simplyNamedColumn("department_id")),
         Seq(ir.SortOrder(simplyNamedColumn("employee_id"), ir.DescendingSortDirection, ir.SortNullsUnspecified)),
         None))
+
+    example(
+      query = """
+    LEAD(salary, 1) IGNORE NULLS OVER (PARTITION BY department_id ORDER BY employee_id DESC)
+  """,
+      _.expression(),
+      ir.Window(
+        ir.CallFunction(
+          "LEAD",
+          Seq(simplyNamedColumn("salary"), ir.Literal(short = Some(1)), ir.Literal(boolean = Some(true)))),
+        Seq(simplyNamedColumn("department_id")),
+        Seq(ir.SortOrder(simplyNamedColumn("employee_id"), ir.DescendingSortDirection, ir.SortNullsUnspecified)),
+        None))
+
   }
 
   "translate 'functions' with non-standard syntax" in {
@@ -265,7 +279,7 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
         "TO_JSON",
         Seq(
           ir.ValueArray(Seq(ir.FilterExpr(
-            Seq(ir.Literal(integer = Some(1)), ir.Literal(integer = Some(2)), ir.Literal(integer = Some(3))),
+            Seq(ir.Literal(short = Some(1)), ir.Literal(short = Some(2)), ir.Literal(short = Some(3))),
             ir.LambdaFunction(
               ir.Not(ir.IsNull(ir.UnresolvedNamedLambdaVariable(Seq("x")))),
               Seq(ir.UnresolvedNamedLambdaVariable(Seq("x"))))))))))
@@ -277,7 +291,7 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
         "TO_JSON",
         Seq(
           ir.ValueArray(Seq(ir.FilterExpr(
-            Seq(ir.Literal(integer = Some(4)), ir.Literal(integer = Some(5)), ir.Literal(integer = Some(6))),
+            Seq(ir.Literal(short = Some(4)), ir.Literal(short = Some(5)), ir.Literal(short = Some(6))),
             ir.LambdaFunction(
               ir.Not(ir.IsNull(ir.UnresolvedNamedLambdaVariable(Seq("x")))),
               Seq(ir.UnresolvedNamedLambdaVariable(Seq("x"))))))))))
@@ -287,9 +301,7 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
       _.expression(),
       ir.CallFunction(
         "TO_JSON",
-        Seq(
-          ir.ValueArray(
-            Seq(ir.Literal(integer = Some(1)), ir.Literal(integer = Some(2)), ir.Literal(integer = Some(3)))))))
+        Seq(ir.ValueArray(Seq(ir.Literal(short = Some(1)), ir.Literal(short = Some(2)), ir.Literal(short = Some(3)))))))
 
     example(
       query = "JSON_ARRAY(1, col1, x.col2 NULL ON NULL)",
@@ -299,7 +311,7 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
         Seq(
           ir.ValueArray(
             Seq(
-              ir.Literal(integer = Some(1)),
+              ir.Literal(short = Some(1)),
               simplyNamedColumn("col1"),
               ir.Column(Some(ir.ObjectReference(ir.Id("x"))), ir.Id("col2")))))))
   }
@@ -317,8 +329,7 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
                 ir.Literal(string = Some("one")),
                 ir.Literal(string = Some("two")),
                 ir.Literal(string = Some("three"))),
-              values =
-                Seq(ir.Literal(integer = Some(1)), ir.Literal(integer = Some(2)), ir.Literal(integer = Some(3)))),
+              values = Seq(ir.Literal(short = Some(1)), ir.Literal(short = Some(2)), ir.Literal(short = Some(3)))),
             ir.LambdaFunction(
               ir.Not(ir.IsNull(ir.UnresolvedNamedLambdaVariable(Seq("v")))),
               Seq(ir.UnresolvedNamedLambdaVariable(Seq("k", "v"))))))))

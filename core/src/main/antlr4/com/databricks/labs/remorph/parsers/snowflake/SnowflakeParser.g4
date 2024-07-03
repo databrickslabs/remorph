@@ -204,7 +204,7 @@ copyIntoLocation
 
 comment
     : COMMENT ifExists? ON objectTypeName objectName functionSignature? IS string
-    | COMMENT ifExists? ON COLUMN fullColumnName IS string
+    | COMMENT ifExists? ON COLUMN objectName IS string
     ;
 
 functionSignature: L_PAREN dataTypeList? R_PAREN
@@ -2988,7 +2988,9 @@ nonReservedWords
     | END
     | EMAIL
     | EVENT
+    | EXCHANGE
     | EXPIRY_DATE
+    | FIRST
     | FIRST_NAME
     | FIRST_VALUE
     | FLATTEN
@@ -3102,9 +3104,8 @@ exprList: expr (COMMA expr)*
 
 expr
     : objectName DOT NEXTVAL                    # exprNextval
-    | expr LSB expr RSB                         # exprArrayAccess
-    | expr COLON jsonPath                       # exprJsonAccess
-    | expr DOT (VALUE | expr)                   # exprDot
+    | expr DOT expr                             # exprDot
+    | expr COLON expr                           # exprColon
     | expr COLLATE string                       # exprCollate
     | caseExpression                            # exprCase
     | iffExpr                                   # exprIff
@@ -3143,7 +3144,7 @@ predicatePartial
 jsonPath: jsonPathElem (DOT jsonPathElem)*
     ;
 
-jsonPathElem: ID | DOUBLE_QUOTE_ID
+jsonPathElem: ID | DOUBLE_QUOTE_ID (LSB (string | num) RSB)?
     ;
 
 iffExpr: IFF L_PAREN searchCondition COMMA expr COMMA expr R_PAREN
@@ -3195,14 +3196,14 @@ dataType
     ;
 
 primitiveExpression
-    : DEFAULT        # primExprDefault //?
-    | fullColumnName # primExprColumn
-    | literal        # primExprLiteral
-    | BOTH_Q         # primExprBoth
-    | ARRAY_Q        # primExprArray
-    | OBJECT_Q       # primExprObject
-    //| jsonLiteral
-    //| arrLiteral
+    : DEFAULT           # primExprDefault //?
+    | id LSB num RSB    # primArrayAccess
+    | id LSB string RSB # primObjectAccess
+    | id                # primExprColumn
+    | literal           # primExprLiteral
+    | BOTH_Q            # primExprBoth
+    | ARRAY_Q           # primExprArray
+    | OBJECT_Q          # primExprObject
     ;
 
 overClause: OVER L_PAREN (PARTITION BY expr (COMMA expr)*)? windowOrderingAndFrame? R_PAREN
@@ -3265,9 +3266,6 @@ literal
     ;
 
 sign: PLUS | MINUS
-    ;
-
-fullColumnName: id (DOT id)*
     ;
 
 bracketExpression: L_PAREN exprList R_PAREN | L_PAREN subquery R_PAREN
@@ -3349,7 +3347,7 @@ columnPosition: num
 allDistinct: ALL | DISTINCT
     ;
 
-topClause: TOP num
+topClause: TOP expr
     ;
 
 intoClause: INTO varList
@@ -3559,11 +3557,7 @@ orderItem: expr (ASC | DESC)? (NULLS ( FIRST | LAST))?
 orderByClause: ORDER BY orderItem (COMMA orderItem)*
     ;
 
-rowRows: ROW | ROWS
-    ;
-
-firstNext: FIRST | NEXT
-    ;
-
-limitClause: LIMIT num (OFFSET num)? | (OFFSET num)? rowRows? FETCH firstNext? num rowRows? ONLY?
+limitClause
+    : LIMIT expr (OFFSET expr)?
+    | (OFFSET expr)? (ROW | ROWS)? FETCH (FIRST | NEXT)? expr (ROW | ROWS)? ONLY?
     ;

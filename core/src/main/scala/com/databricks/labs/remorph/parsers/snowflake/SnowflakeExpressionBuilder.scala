@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
-import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser._
+import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser.{StringContext => _, _}
 import com.databricks.labs.remorph.parsers.{IncompleteParser, ParserCommon, intermediate => ir}
 import org.antlr.v4.runtime.Token
 
@@ -69,18 +69,6 @@ class SnowflakeExpressionBuilder()
     ir.SortOrder(ctx.expr().accept(this), direction, nullOrdering)
   }
 
-  override def visitFullColumnName(ctx: FullColumnNameContext): ir.Expression = {
-    val ids = ctx.id().asScala.map(visitId)
-    val colName = ids.last
-    val objectNameIds = ids.take(ids.size - 1)
-    val tableName = if (objectNameIds.isEmpty) {
-      None
-    } else {
-      Some(ir.ObjectReference(objectNameIds.head, objectNameIds.tail: _*))
-    }
-    ir.Column(tableName, colName)
-  }
-
   override def visitLiteral(ctx: LiteralContext): ir.Literal = {
     val sign = Option(ctx.sign()).map(_ => "-").getOrElse("")
     ctx match {
@@ -120,13 +108,16 @@ class SnowflakeExpressionBuilder()
     ir.NextValue(ctx.objectName().getText)
   }
 
-  override def visitExprArrayAccess(ctx: ExprArrayAccessContext): ir.Expression = {
-    ir.ArrayAccess(ctx.expr(0).accept(this), ctx.expr(1).accept(this))
+  override def visitExprDot(ctx: ExprDotContext): ir.Expression = {
+    val lhs = ctx.expr(0).accept(this)
+    val rhs = ctx.expr(1).accept(this)
+    ir.Dot(lhs, rhs)
   }
 
-  override def visitExprJsonAccess(ctx: ExprJsonAccessContext): ir.Expression = {
-    val jsonPath = buildJsonPath(ctx.jsonPath())
-    ir.JsonAccess(ctx.expr().accept(this), jsonPath)
+  override def visitExprColon(ctx: ExprColonContext): ir.Expression = {
+    val lhs = ctx.expr(0).accept(this)
+    val rhs = ctx.expr(1).accept(this)
+    ir.JsonAccess(lhs, rhs)
   }
 
   override def visitExprCollate(ctx: ExprCollateContext): ir.Expression = {
@@ -203,12 +194,13 @@ class SnowflakeExpressionBuilder()
     ir.Literal(array = Some(ir.ArrayExpr(None, ctx.literal().asScala.map(visitLiteral))))
   }
 
-  private def buildJsonPath(ctx: JsonPathContext): Seq[String] =
-    ctx.jsonPathElem().asScala.map {
-      case elem if elem.ID() != null => elem.ID().getText
-      case elem if elem.DOUBLE_QUOTE_ID() != null =>
-        elem.DOUBLE_QUOTE_ID().getText.stripPrefix("\"").stripSuffix("\"")
-    }
+  override def visitPrimArrayAccess(ctx: PrimArrayAccessContext): ir.Expression = {
+    ir.ArrayAccess(ctx.id().accept(this), ctx.num().accept(this))
+  }
+
+  override def visitPrimObjectAccess(ctx: PrimObjectAccessContext): ir.Expression = {
+    ir.JsonAccess(ctx.id().accept(this), ir.Id(removeQuotes(ctx.string().getText)))
+  }
 
   private def buildBinaryOperation(operator: Token, left: ir.Expression, right: ir.Expression): ir.Expression =
     operator.getType match {
