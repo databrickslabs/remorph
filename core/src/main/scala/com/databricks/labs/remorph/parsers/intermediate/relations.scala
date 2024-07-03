@@ -61,9 +61,10 @@ case class SetOperation(
     allow_missing_columns: Boolean)
     extends RelationCommon {}
 
-case class Limit(input: Relation, limit: Int) extends RelationCommon {}
+case class Limit(input: Relation, limit: Expression, is_percentage: Boolean = false, with_ties: Boolean = false)
+    extends RelationCommon {}
 
-case class Offset(input: Relation, offset: Int) extends RelationCommon {}
+case class Offset(input: Relation, offset: Expression) extends RelationCommon {}
 
 case class Tail(input: Relation, limit: Int) extends RelationCommon {}
 

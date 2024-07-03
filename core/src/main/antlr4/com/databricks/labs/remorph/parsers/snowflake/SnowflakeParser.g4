@@ -204,7 +204,7 @@ copyIntoLocation
 
 comment
     : COMMENT ifExists? ON objectTypeName objectName functionSignature? IS string
-    | COMMENT ifExists? ON COLUMN fullColumnName IS string
+    | COMMENT ifExists? ON COLUMN objectName IS string
     ;
 
 functionSignature: L_PAREN dataTypeList? R_PAREN
@@ -2988,7 +2988,9 @@ nonReservedWords
     | END
     | EMAIL
     | EVENT
+    | EXCHANGE
     | EXPIRY_DATE
+    | FIRST
     | FIRST_NAME
     | FIRST_VALUE
     | FLATTEN
@@ -3102,9 +3104,8 @@ exprList: expr (COMMA expr)*
 
 expr
     : objectName DOT NEXTVAL                    # exprNextval
-    | expr LSB expr RSB                         # exprArrayAccess
-    | expr COLON jsonPath                       # exprJsonAccess
-    | expr DOT (VALUE | expr)                   # exprDot
+    | expr DOT expr                             # exprDot
+    | expr COLON expr                           # exprColon
     | expr COLLATE string                       # exprCollate
     | caseExpression                            # exprCase
     | iffExpr                                   # exprIff
@@ -3116,18 +3117,16 @@ expr
     | op = NOT+ expr                            # exprNot
     | expr AND expr                             # exprAnd
     | expr OR expr                              # exprOr
-    | arrLiteral                                # exprArrayLit
     | expr withinGroup                          # exprWithinGroup
     | expr overClause                           # exprOver
     | castExpr                                  # exprCast
     | expr COLON_COLON dataType                 # exprAscribe
-    | jsonLiteral                               # exprJsonLit
     | functionCall                              # exprFuncCall
     | subquery                                  # exprSubquery
     | expr predicatePartial                     # exprPredicate
     | DISTINCT expr                             # exprDistinct
     //Should be latest rule as it's nearly a catch all
-    | primitiveExpression                       # exprPrimitive
+    | primitiveExpression # exprPrimitive
     ;
 
 withinGroup: WITHIN GROUP L_PAREN orderByClause R_PAREN
@@ -3145,27 +3144,22 @@ predicatePartial
 jsonPath: jsonPathElem (DOT jsonPathElem)*
     ;
 
-jsonPathElem: ID | DOUBLE_QUOTE_ID
+jsonPathElem: ID | DOUBLE_QUOTE_ID (LSB (string | num) RSB)?
     ;
 
 iffExpr: IFF L_PAREN searchCondition COMMA expr COMMA expr R_PAREN
     ;
 
-castExpr
-    : castOp = (TRY_CAST | CAST) L_PAREN expr AS dataType R_PAREN
-    | INTERVAL expr
+castExpr: castOp = (TRY_CAST | CAST) L_PAREN expr AS dataType R_PAREN | INTERVAL expr
     ;
 
 jsonLiteral: LCB kvPair (COMMA kvPair)* RCB | LCB RCB
     ;
 
-kvPair: key = STRING COLON value
+kvPair: key = STRING COLON literal
     ;
 
-value: expr
-    ;
-
-arrLiteral: LSB value (COMMA value)* RSB | LSB RSB
+arrayLiteral: LSB literal (COMMA literal)* RSB | LSB RSB
     ;
 
 dataTypeSize: L_PAREN num R_PAREN
@@ -3202,14 +3196,14 @@ dataType
     ;
 
 primitiveExpression
-    : DEFAULT        # primExprDefault //?
-    | fullColumnName # primExprColumn
-    | literal        # primExprLiteral
-    | BOTH_Q         # primExprBoth
-    | ARRAY_Q        # primExprArray
-    | OBJECT_Q       # primExprObject
-    //| jsonLiteral
-    //| arrLiteral
+    : DEFAULT           # primExprDefault //?
+    | id LSB num RSB    # primArrayAccess
+    | id LSB string RSB # primObjectAccess
+    | id                # primExprColumn
+    | literal           # primExprLiteral
+    | BOTH_Q            # primExprBoth
+    | ARRAY_Q           # primExprArray
+    | OBJECT_Q          # primExprObject
     ;
 
 overClause: OVER L_PAREN (PARTITION BY expr (COMMA expr)*)? windowOrderingAndFrame? R_PAREN
@@ -3227,15 +3221,10 @@ windowFrameExtent: BETWEEN windowFrameBound AND windowFrameBound
 windowFrameBound: UNBOUNDED (PRECEDING | FOLLOWING) | num (PRECEDING | FOLLOWING) | CURRENT ROW
     ;
 
-functionCall
-    : builtinFunction
-    | standardFunction
-    | rankingWindowedFunction
-    | aggregateFunction
+functionCall: builtinFunction | standardFunction | rankingWindowedFunction | aggregateFunction
     ;
 
-builtinFunction
-    : EXTRACT L_PAREN part = (STRING | ID) FROM expr R_PAREN  # builtinExtract
+builtinFunction: EXTRACT L_PAREN part = (STRING | ID) FROM expr R_PAREN # builtinExtract
     ;
 
 standardFunction: id L_PAREN exprList? R_PAREN
@@ -3266,18 +3255,17 @@ aggregateFunction
     ;
 
 literal
-    : STRING // string, date, time, timestamp
+    : STRING
     | sign? DECIMAL
     | sign? (REAL | FLOAT)
     | trueFalse
+    | jsonLiteral
+    | arrayLiteral
     | NULL_
     | AT_Q
     ;
 
 sign: PLUS | MINUS
-    ;
-
-fullColumnName: id (DOT id)*
     ;
 
 bracketExpression: L_PAREN exprList R_PAREN | L_PAREN subquery R_PAREN
@@ -3359,7 +3347,7 @@ columnPosition: num
 allDistinct: ALL | DISTINCT
     ;
 
-topClause: TOP num
+topClause: TOP expr
     ;
 
 intoClause: INTO varList
@@ -3569,11 +3557,7 @@ orderItem: expr (ASC | DESC)? (NULLS ( FIRST | LAST))?
 orderByClause: ORDER BY orderItem (COMMA orderItem)*
     ;
 
-rowRows: ROW | ROWS
-    ;
-
-firstNext: FIRST | NEXT
-    ;
-
-limitClause: LIMIT num (OFFSET num)? | (OFFSET num)? rowRows? FETCH firstNext? num rowRows? ONLY?
+limitClause
+    : LIMIT expr (OFFSET expr)?
+    | (OFFSET expr)? (ROW | ROWS)? FETCH (FIRST | NEXT)? expr (ROW | ROWS)? ONLY?
     ;

@@ -111,42 +111,42 @@ class SnowflakeRelationBuilderSpec
         _.selectOptionalClauses(),
         Sort(
           namedTable("some_table"),
-          Seq(SortOrder(simplyNamedColumn("some_column"), AscendingSortDirection, SortNullsLast)),
+          Seq(SortOrder(Id("some_column"), AscendingSortDirection, SortNullsLast)),
           is_global = false))
       example(
         "FROM some_table ORDER BY some_column ASC",
         _.selectOptionalClauses(),
         Sort(
           namedTable("some_table"),
-          Seq(SortOrder(simplyNamedColumn("some_column"), AscendingSortDirection, SortNullsLast)),
+          Seq(SortOrder(Id("some_column"), AscendingSortDirection, SortNullsLast)),
           is_global = false))
       example(
         "FROM some_table ORDER BY some_column ASC NULLS FIRST",
         _.selectOptionalClauses(),
         Sort(
           namedTable("some_table"),
-          Seq(SortOrder(simplyNamedColumn("some_column"), AscendingSortDirection, SortNullsFirst)),
+          Seq(SortOrder(Id("some_column"), AscendingSortDirection, SortNullsFirst)),
           is_global = false))
       example(
         "FROM some_table ORDER BY some_column DESC",
         _.selectOptionalClauses(),
         Sort(
           namedTable("some_table"),
-          Seq(SortOrder(simplyNamedColumn("some_column"), DescendingSortDirection, SortNullsFirst)),
+          Seq(SortOrder(Id("some_column"), DescendingSortDirection, SortNullsFirst)),
           is_global = false))
       example(
         "FROM some_table ORDER BY some_column DESC NULLS LAST",
         _.selectOptionalClauses(),
         Sort(
           namedTable("some_table"),
-          Seq(SortOrder(simplyNamedColumn("some_column"), DescendingSortDirection, SortNullsLast)),
+          Seq(SortOrder(Id("some_column"), DescendingSortDirection, SortNullsLast)),
           is_global = false))
       example(
         "FROM some_table ORDER BY some_column DESC NULLS FIRST",
         _.selectOptionalClauses(),
         Sort(
           namedTable("some_table"),
-          Seq(SortOrder(simplyNamedColumn("some_column"), DescendingSortDirection, SortNullsFirst)),
+          Seq(SortOrder(Id("some_column"), DescendingSortDirection, SortNullsFirst)),
           is_global = false))
 
     }
@@ -196,7 +196,7 @@ class SnowflakeRelationBuilderSpec
             group_type = GroupBy,
             grouping_expressions = Seq(simplyNamedColumn("some_column")),
             pivot = None),
-          Seq(SortOrder(simplyNamedColumn("some_column"), AscendingSortDirection, SortNullsFirst)),
+          Seq(SortOrder(Id("some_column"), AscendingSortDirection, SortNullsFirst)),
           is_global = false))
 
       example(
@@ -204,7 +204,7 @@ class SnowflakeRelationBuilderSpec
         _.selectOptionalClauses(),
         Sort(
           Filter(namedTable("some_table"), Equals(Literal(short = Some(1)), Literal(short = Some(1)))),
-          Seq(SortOrder(simplyNamedColumn("some_column"), AscendingSortDirection, SortNullsFirst)),
+          Seq(SortOrder(Id("some_column"), AscendingSortDirection, SortNullsFirst)),
           is_global = false))
     }
 
@@ -233,8 +233,8 @@ class SnowflakeRelationBuilderSpec
           condition = Equals(
             Window(
               window_function = CallFunction("ROW_NUMBER", Seq()),
-              partition_spec = Seq(simplyNamedColumn("p")),
-              sort_order = Seq(SortOrder(simplyNamedColumn("o"), AscendingSortDirection, SortNullsLast)),
+              partition_spec = Seq(Id("p")),
+              sort_order = Seq(SortOrder(Id("o"), AscendingSortDirection, SortNullsLast)),
               frame_spec = None),
             Literal(short = Some(1)))))
     }
@@ -257,13 +257,15 @@ class SnowflakeRelationBuilderSpec
       example(
         "SELECT TOP 42 a FROM t",
         _.selectStatement(),
-        Project(Limit(namedTable("t"), 42), Seq(simplyNamedColumn("a"))))
+        Project(Limit(namedTable("t"), Literal(short = Some(42))), Seq(simplyNamedColumn("a"))))
 
       example(
         "SELECT DISTINCT TOP 42 a FROM t",
         _.selectStatement(),
         Project(
-          Limit(Deduplicate(namedTable("t"), Seq(Id("a")), all_columns_as_keys = false, within_watermark = false), 42),
+          Limit(
+            Deduplicate(namedTable("t"), Seq(Id("a")), all_columns_as_keys = false, within_watermark = false),
+            Literal(short = Some(42))),
           Seq(simplyNamedColumn("a"))))
     }
 
