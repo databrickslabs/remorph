@@ -41,27 +41,28 @@ Consider the below tables that we want to reconcile:
           "source_name": "p_name",
           "target_name": "product_name"
         }
-      ]
+      ],
+      "transformations": [
+        {
+          "column_name": "creation_date",
+          "source": "creation_date",
+          "target": "to_date(creation_date,'yyyy-mm-dd')"
+        }
+      ],
+      "threshold": [
+        {
+          "column_name": "price",
+          "upper_bound": "-50",
+          "lower_bound": "50",
+          "type": "float"
+        }
+      ],
+      "filters": {
+        "source": "p_id > 0",
+        "target": "product_id > 0"
+      }
     }
-  ],
-  "transformations": [
-    {
-      "column_name": "creation_date",
-      "source": "creation_date",
-      "target": "to_date(creation_date,'yyyy-mm-dd')"
-    }
-  ],
-  "threshold": [
-    {
-      "column_name": "price",
-      "upper_bound": "-50",
-      "lower_bound": "50",
-      "type": "float"
-    }
-  ],
-  "filters": {
-    "source": "p_id > 0",
-    "target": "product_id > 0"
-  }
-}                                               
+  ]
+}
+
 ```
