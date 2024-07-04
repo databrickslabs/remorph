@@ -172,10 +172,10 @@ eg:
 | source1     | tpch | row | recon_config_source1_tpch_row.json    |
 | source2     | tpch | schema | recon_config_source2_tpch_schema.json |
 
-Please refer to the [Reconcile Configuration Guide][def] for detailed instructions on how to set up the configuration and notebook with sample configurations [Sample Configurations][config].
+Please refer to the [Reconcile Configuration Guide][def] for detailed instructions on how to set up the configuration and notebook with sample configurations [Sample Configuration][config].
 
 [def]: docs/README_RECON.md
-[config]: docs/reconciliation-configs-examples.py
+[config]: docs/reconcile_config_samples.md
 
 ### Execution
 Execute the below command to initialize the reconcile process.
