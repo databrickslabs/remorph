@@ -62,6 +62,7 @@ flowchart TD
     J --> H
 ```
 
+
 ## Reconcile
 Reconcile is an automated tool designed to streamline the reconciliation process between source data and target data residing on Databricks. Currently, the platform exclusively offers support for Snowflake, Oracle and other  Databricks tables as the primary data source. This tool empowers users to efficiently identify discrepancies and variations in data when comparing the source with the Databricks target.
 
