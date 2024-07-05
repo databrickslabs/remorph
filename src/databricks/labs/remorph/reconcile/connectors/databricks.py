@@ -49,7 +49,10 @@ class DatabricksDataSource(DataSource, SecretsMixin):
         query: str,
         options: JdbcReaderOptions | None,
     ) -> DataFrame:
-        table_with_namespace = f"{catalog}.{schema}.{table}"
+        if catalog:
+            table_with_namespace = f"{catalog}.{schema}.{table}"
+        else:
+            table_with_namespace = f"{schema}.{table}"
         table_query = query.replace(":tbl", table_with_namespace)
         try:
             df = self._spark.sql(table_query)
