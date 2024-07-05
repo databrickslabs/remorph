@@ -35,14 +35,14 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.Relation] w
   private def buildLimitOffset(ctx: LimitClauseContext, input: ir.Relation): ir.Relation = {
     Option(ctx).fold(input) { c =>
       if (c.LIMIT() != null) {
-        val limit = ir.Limit(input, ctx.num(0).getText.toInt)
+        val limit = ir.Limit(input, ctx.expr(0).accept(expressionBuilder))
         if (c.OFFSET() != null) {
-          ir.Offset(limit, ctx.num(1).getText.toInt)
+          ir.Offset(limit, ctx.expr(1).accept(expressionBuilder))
         } else {
           limit
         }
       } else {
-        ir.Offset(input, ctx.num(0).getText.toInt)
+        ir.Offset(input, ctx.expr(0).accept(expressionBuilder))
       }
     }
   }
@@ -63,7 +63,7 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.Relation] w
 
   private def buildTop(ctxOpt: Option[TopClauseContext], input: ir.Relation): ir.Relation =
     ctxOpt.fold(input) { top =>
-      ir.Limit(input, top.num().getText.toInt)
+      ir.Limit(input, top.expr().accept(expressionBuilder))
     }
 
   override def visitSelectOptionalClauses(ctx: SelectOptionalClausesContext): ir.Relation = {

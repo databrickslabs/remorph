@@ -12,6 +12,7 @@ from databricks.labs.blueprint.installer import InstallState
 from databricks.labs.blueprint.parallel import ManyError
 from databricks.labs.blueprint.tui import Prompts
 from databricks.labs.blueprint.wheels import ProductInfo
+from databricks.sdk.core import with_user_agent_extra
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.errors import NotFound
 from databricks.sdk.errors import PermissionDenied
@@ -39,6 +40,8 @@ from databricks.labs.remorph.helpers.deployment import TableDeployer, JobDeploye
 from databricks.labs.remorph.reconcile.constants import SourceType
 
 logger = logging.getLogger(__name__)
+with_user_agent_extra("cmd", "install")
+
 
 PRODUCT_INFO = ProductInfo(__file__)
 WAREHOUSE_PREFIX = "Remorph Transpiler Validation"

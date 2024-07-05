@@ -14,6 +14,9 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
   private def example(query: String, expectedAst: TreeNode): Assertion =
     example(query, _.tSqlFile(), expectedAst)
 
+  private def singleQueryExample(query: String, expectedAst: Relation): Assertion =
+    example(query, _.tSqlFile(), Batch(Seq(expectedAst)))
+
   "tsql visitor" should {
 
     "accept empty input" in {
@@ -45,12 +48,13 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
 
     "accept constants in selects" in {
       example(
-        query = "SELECT 42, 6.4, 0x5A, 2.7E9, 4.24523534425245E10, $40",
+        query = "SELECT 42, 65535, 6.4, 0x5A, 2.7E9, 4.24523534425245E10, $40",
         expectedAst = Batch(
           Seq(Project(
             NoTable(),
             Seq(
-              Literal(integer = Some(42)),
+              Literal(short = Some(42)),
+              Literal(integer = Some(65535)),
               Literal(float = Some(6.4f)),
               Literal(string = Some("0x5A")),
               Literal(long = Some(2700000000L)),
@@ -267,9 +271,9 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
           Seq(Project(
             NoTable(),
             Seq(
-              Assign(Identifier("@a", isQuoted = false), Literal(integer = Some(1))),
-              Assign(Identifier("@b", isQuoted = false), Literal(integer = Some(2))),
-              Assign(Identifier("@c", isQuoted = false), Literal(integer = Some(3))))))))
+              Assign(Identifier("@a", isQuoted = false), Literal(short = Some(1))),
+              Assign(Identifier("@b", isQuoted = false), Literal(short = Some(2))),
+              Assign(Identifier("@c", isQuoted = false), Literal(short = Some(3))))))))
 
       example(
         query = "SELECT @a += 1, @b -= 2",
@@ -279,10 +283,10 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
             Seq(
               Assign(
                 Identifier("@a", isQuoted = false),
-                Add(Identifier("@a", isQuoted = false), Literal(integer = Some(1)))),
+                Add(Identifier("@a", isQuoted = false), Literal(short = Some(1)))),
               Assign(
                 Identifier("@b", isQuoted = false),
-                Subtract(Identifier("@b", isQuoted = false), Literal(integer = Some(2)))))))))
+                Subtract(Identifier("@b", isQuoted = false), Literal(short = Some(2)))))))))
 
       example(
         query = "SELECT @a *= 1, @b /= 2",
@@ -292,10 +296,10 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
             Seq(
               Assign(
                 Identifier("@a", isQuoted = false),
-                Multiply(Identifier("@a", isQuoted = false), Literal(integer = Some(1)))),
+                Multiply(Identifier("@a", isQuoted = false), Literal(short = Some(1)))),
               Assign(
                 Identifier("@b", isQuoted = false),
-                Divide(Identifier("@b", isQuoted = false), Literal(integer = Some(2)))))))))
+                Divide(Identifier("@b", isQuoted = false), Literal(short = Some(2)))))))))
 
       example(
         query = "SELECT @a %= myColumn",
@@ -502,6 +506,195 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
             Seq("d1"),
             Map("COPY_ONLY" -> true),
             List.empty,
-            Map("LIMIT" -> Literal(integer = Some(77)))))))
+            Map("LIMIT" -> Literal(short = Some(77)))))))
+  }
+
+  "translate a SELECT with a TOP clause" in {
+    example(
+      query = "SELECT TOP 10 * FROM Employees;",
+      expectedAst = Batch(
+        Seq(
+          Project(
+            Limit(
+              NamedTable("Employees", Map(), is_streaming = false),
+              Literal(short = Some(10)),
+              is_percentage = false,
+              with_ties = false),
+            Seq(Star(None))))))
+
+    example(
+      query = "SELECT TOP 10 PERCENT * FROM Employees;",
+      expectedAst = Batch(
+        Seq(
+          Project(
+            Limit(
+              NamedTable("Employees", Map(), is_streaming = false),
+              Literal(short = Some(10)),
+              is_percentage = true,
+              with_ties = false),
+            Seq(Star(None))))))
+
+    example(
+      query = "SELECT TOP 10 PERCENT WITH TIES * FROM Employees;",
+      expectedAst = Batch(
+        Seq(
+          Project(
+            Limit(
+              NamedTable("Employees", Map(), is_streaming = false),
+              Literal(short = Some(10)),
+              is_percentage = true,
+              with_ties = true),
+            Seq(Star(None))))))
+  }
+
+  "translate a SELECT statement with an ORDER BY and OFFSET" in {
+    example(
+      query = "SELECT * FROM Employees ORDER BY Salary OFFSET 10 ROWS",
+      expectedAst = Batch(
+        Seq(Project(
+          Offset(
+            Sort(
+              NamedTable("Employees", Map(), is_streaming = false),
+              Seq(SortOrder(simplyNamedColumn("Salary"), AscendingSortDirection, SortNullsUnspecified)),
+              is_global = false),
+            Literal(short = Some(10))),
+          Seq(Star(None))))))
+
+    example(
+      query = "SELECT * FROM Employees ORDER BY Salary OFFSET 10 ROWS FETCH NEXT 5 ROWS ONLY",
+      expectedAst = Batch(
+        Seq(Project(
+          Limit(
+            Offset(
+              Sort(
+                NamedTable("Employees", Map(), is_streaming = false),
+                Seq(SortOrder(simplyNamedColumn("Salary"), AscendingSortDirection, SortNullsUnspecified)),
+                is_global = false),
+              Literal(short = Some(10))),
+            Literal(short = Some(5))),
+          Seq(Star(None))))))
+  }
+
+  "translate SELECT with a combination of DISTINCT, ORDER BY, and OFFSET" in {
+    example(
+      query = "SELECT DISTINCT * FROM Employees ORDER BY Salary OFFSET 10 ROWS",
+      expectedAst = Batch(
+        Seq(Project(
+          Deduplicate(
+            Offset(
+              Sort(
+                NamedTable("Employees", Map(), is_streaming = false),
+                Seq(SortOrder(simplyNamedColumn("Salary"), AscendingSortDirection, SortNullsUnspecified)),
+                is_global = false),
+              Literal(short = Some(10))),
+            List(),
+            all_columns_as_keys = true,
+            within_watermark = false),
+          Seq(Star(None))))))
+
+    example(
+      query = "SELECT DISTINCT * FROM Employees ORDER BY Salary OFFSET 10 ROWS FETCH NEXT 5 ROWS ONLY",
+      expectedAst = Batch(
+        List(Project(
+          Deduplicate(
+            Limit(
+              Offset(
+                Sort(
+                  NamedTable("Employees", Map(), is_streaming = false),
+                  List(SortOrder(Column(None, Id("Salary")), AscendingSortDirection, SortNullsUnspecified)),
+                  is_global = false),
+                Literal(short = Some(10))),
+              Literal(short = Some(5))),
+            List(),
+            all_columns_as_keys = true,
+            within_watermark = false),
+          List(Star(None))))))
+  }
+
+  "translate a query with PIVOT" in {
+    singleQueryExample(
+      query = "SELECT a FROM b PIVOT (SUM(a) FOR c IN ('foo', 'bar')) AS Source",
+      expectedAst = Project(
+        Aggregate(
+          input = NamedTable("b", Map.empty, is_streaming = false),
+          group_type = Pivot,
+          grouping_expressions = Seq(CallFunction("SUM", Seq(simplyNamedColumn("a")))),
+          pivot =
+            Some(Pivot(simplyNamedColumn("c"), Seq(Literal(string = Some("foo")), Literal(string = Some("bar")))))),
+        Seq(simplyNamedColumn("a"))))
+  }
+
+  "translate a query with UNPIVOT" in {
+    singleQueryExample(
+      query = "SELECT a FROM b UNPIVOT (c FOR d IN (e, f)) AsSource",
+      expectedAst = Project(
+        Unpivot(
+          input = NamedTable("b", Map.empty, is_streaming = false),
+          ids = Seq(simplyNamedColumn("e"), simplyNamedColumn("f")),
+          values = None,
+          variable_column_name = Id("c"),
+          value_column_name = Id("d")),
+        Seq(simplyNamedColumn("a"))))
+  }
+
+  "translate a query with an explicit CROSS JOIN" in {
+    singleQueryExample(
+      query = "SELECT a FROM b CROSS JOIN c",
+      expectedAst = Project(
+        Join(
+          NamedTable("b", Map.empty, is_streaming = false),
+          NamedTable("c", Map.empty, is_streaming = false),
+          None,
+          CrossJoin,
+          Seq.empty,
+          JoinDataType(is_left_struct = false, is_right_struct = false)),
+        Seq(simplyNamedColumn("a"))))
+  }
+
+  "translate a query with an explicit OUTER APPLY" in {
+    singleQueryExample(
+      query = "SELECT a FROM b OUTER APPLY c",
+      expectedAst = Project(
+        Join(
+          NamedTable("b", Map.empty, is_streaming = false),
+          NamedTable("c", Map.empty, is_streaming = false),
+          None,
+          OuterApply,
+          Seq.empty,
+          JoinDataType(is_left_struct = false, is_right_struct = false)),
+        Seq(simplyNamedColumn("a"))))
+  }
+
+  "translate a query with an explicit CROSS APPLY" in {
+    singleQueryExample(
+      query = "SELECT a FROM b CROSS APPLY c",
+      expectedAst = Project(
+        Join(
+          NamedTable("b", Map.empty, is_streaming = false),
+          NamedTable("c", Map.empty, is_streaming = false),
+          None,
+          CrossApply,
+          Seq.empty,
+          JoinDataType(is_left_struct = false, is_right_struct = false)),
+        Seq(simplyNamedColumn("a"))))
+  }
+
+  "parse and ignore IR for the FOR clause in a SELECT statement" in {
+    example(
+      query = "SELECT * FROM t FOR XML RAW",
+      expectedAst = Batch(Seq(Project(NamedTable("t", Map(), is_streaming = false), Seq(Star(None))))))
+  }
+
+  "parse and collect the options in the OPTION clause in a SELECT statement" in {
+    example(
+      query = """SELECT * FROM t FOR XML RAW
+            OPTION (
+            MAXRECURSION 10,
+            OPTIMIZE FOR UNKNOWN,
+            SOMETHING ON,
+            SOMETHINGELSE OFF,
+            SOMEOTHER AUTO,
+            SOMEstrOpt = 'STRINGOPTION')""",
+      expectedAst = Batch(Seq(Project(NamedTable("t", Map(), is_streaming = false), Seq(Star(None))))))
   }
 }

@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
-import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser._
+import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser.{StringContext => _, _}
 import com.databricks.labs.remorph.parsers.{IncompleteParser, ParserCommon, intermediate => ir}
 import org.antlr.v4.runtime.Token
 
@@ -69,34 +69,18 @@ class SnowflakeExpressionBuilder()
     ir.SortOrder(ctx.expr().accept(this), direction, nullOrdering)
   }
 
-  override def visitFullColumnName(ctx: FullColumnNameContext): ir.Expression = {
-    val ids = ctx.id().asScala.map(visitId)
-    val colName = ids.last
-    val objectNameIds = ids.take(ids.size - 1)
-    val tableName = if (objectNameIds.isEmpty) {
-      None
-    } else {
-      Some(ir.ObjectReference(objectNameIds.head, objectNameIds.tail: _*))
-    }
-    ir.Column(tableName, colName)
-  }
-
-  override def visitLiteral(ctx: LiteralContext): ir.Expression = {
+  override def visitLiteral(ctx: LiteralContext): ir.Literal = {
     val sign = Option(ctx.sign()).map(_ => "-").getOrElse("")
-    if (ctx.STRING() != null) {
-      ir.Literal(string = Some(removeQuotes(ctx.STRING().getText)))
-    } else if (ctx.DECIMAL() != null) {
-      buildLiteralNumber(sign + ctx.DECIMAL().getText)
-    } else if (ctx.FLOAT() != null) {
-      buildLiteralNumber(sign + ctx.FLOAT().getText)
-    } else if (ctx.REAL() != null) {
-      buildLiteralNumber(sign + ctx.REAL().getText)
-    } else if (ctx.trueFalse() != null) {
-      visitTrueFalse(ctx.trueFalse())
-    } else if (ctx.NULL_() != null) {
-      ir.Literal(nullType = Some(ir.NullType()))
-    } else {
-      ir.Literal(nullType = Some(ir.NullType()))
+    ctx match {
+      case c if c.STRING() != null => ir.Literal(string = Some(removeQuotes(c.STRING().getText)))
+      case c if c.DECIMAL() != null => buildLiteralNumber(sign + c.DECIMAL().getText)
+      case c if c.FLOAT() != null => buildLiteralNumber(sign + c.FLOAT().getText)
+      case c if c.REAL() != null => buildLiteralNumber(sign + c.REAL().getText)
+      case c if c.NULL_() != null => ir.Literal(nullType = Some(ir.NullType()))
+      case c if c.trueFalse() != null => visitTrueFalse(c.trueFalse())
+      case c if c.jsonLiteral() != null => visitJsonLiteral(c.jsonLiteral())
+      case c if c.arrayLiteral() != null => visitArrayLiteral(c.arrayLiteral())
+      case _ => ir.Literal(nullType = Some(ir.NullType()))
     }
   }
 
@@ -124,13 +108,16 @@ class SnowflakeExpressionBuilder()
     ir.NextValue(ctx.objectName().getText)
   }
 
-  override def visitExprArrayAccess(ctx: ExprArrayAccessContext): ir.Expression = {
-    ir.ArrayAccess(ctx.expr(0).accept(this), ctx.expr(1).accept(this))
+  override def visitExprDot(ctx: ExprDotContext): ir.Expression = {
+    val lhs = ctx.expr(0).accept(this)
+    val rhs = ctx.expr(1).accept(this)
+    ir.Dot(lhs, rhs)
   }
 
-  override def visitExprJsonAccess(ctx: ExprJsonAccessContext): ir.Expression = {
-    val jsonPath = buildJsonPath(ctx.jsonPath())
-    ir.JsonAccess(ctx.expr().accept(this), jsonPath)
+  override def visitExprColon(ctx: ExprColonContext): ir.Expression = {
+    val lhs = ctx.expr(0).accept(this)
+    val rhs = ctx.expr(1).accept(this)
+    ir.JsonAccess(lhs, rhs)
   }
 
   override def visitExprCollate(ctx: ExprCollateContext): ir.Expression = {
@@ -194,12 +181,26 @@ class SnowflakeExpressionBuilder()
     buildBinaryOperation(ctx.op, ctx.expr(0).accept(this), ctx.expr(1).accept(this))
   }
 
-  private def buildJsonPath(ctx: JsonPathContext): Seq[String] =
-    ctx.jsonPathElem().asScala.map {
-      case elem if elem.ID() != null => elem.ID().getText
-      case elem if elem.DOUBLE_QUOTE_ID() != null =>
-        elem.DOUBLE_QUOTE_ID().getText.stripPrefix("\"").stripSuffix("\"")
+  override def visitJsonLiteral(ctx: JsonLiteralContext): ir.Literal = {
+    val fields = ctx.kvPair().asScala.map { kv =>
+      val fieldName = removeQuotes(kv.key.getText)
+      val fieldValue = visitLiteral(kv.literal())
+      fieldName -> fieldValue
     }
+    ir.Literal(json = Some(ir.JsonExpr(None, fields)))
+  }
+
+  override def visitArrayLiteral(ctx: ArrayLiteralContext): ir.Literal = {
+    ir.Literal(array = Some(ir.ArrayExpr(None, ctx.literal().asScala.map(visitLiteral))))
+  }
+
+  override def visitPrimArrayAccess(ctx: PrimArrayAccessContext): ir.Expression = {
+    ir.ArrayAccess(ctx.id().accept(this), ctx.num().accept(this))
+  }
+
+  override def visitPrimObjectAccess(ctx: PrimObjectAccessContext): ir.Expression = {
+    ir.JsonAccess(ctx.id().accept(this), ir.Id(removeQuotes(ctx.string().getText)))
+  }
 
   private def buildBinaryOperation(operator: Token, left: ir.Expression, right: ir.Expression): ir.Expression =
     operator.getType match {
@@ -245,16 +246,6 @@ class SnowflakeExpressionBuilder()
       ir.Not(pred)
     } else {
       pred
-    }
-  }
-
-  override def visitArrLiteral(ctx: ArrLiteralContext): ir.Expression = {
-    val elementsExpressions = ctx.value().asScala.map(_.accept(this))
-    val elements = elementsExpressions.collect { case lit: ir.Literal => lit }
-    if (elementsExpressions.size != elements.size) {
-      ir.UnresolvedExpression(ctx.getText)
-    } else {
-      ir.Literal(array = Some(ir.ArrayExpr(dataType = None, elements = elements)))
     }
   }
 
