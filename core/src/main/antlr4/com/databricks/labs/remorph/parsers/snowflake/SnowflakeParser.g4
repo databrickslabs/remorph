@@ -3011,7 +3011,6 @@ nonReservedWords
     | LAST_NAME
     | LAST_QUERY_ID
     | LEAD
-    | LEFT
     | LENGTH
     | LOCAL
     | MAX_CONCURRENCY_LEVEL
@@ -3042,7 +3041,6 @@ nonReservedWords
     | RESPECT
     | RESTRICT
     | RESULT
-    | RIGHT
     | RLIKE
     | ROLE
     | ROLLUP
