@@ -52,7 +52,9 @@ class HashQueryBuilder(QueryBuilder):
         sorted_hash_cols_with_alias = sorted(hash_cols_with_alias, key=lambda column: column["alias"])
         hashcols_sorted_as_src_seq = [column["this"] for column in sorted_hash_cols_with_alias]
 
-        key_cols_with_transform = self.add_transformations(cols_with_alias, self.source)
+        key_cols_with_transform = (
+            self._apply_user_transformation(cols_with_alias) if self.user_transformations else cols_with_alias
+        )
         hash_col_with_transform = [self._generate_hash_algorithm(hashcols_sorted_as_src_seq, _HASH_COLUMN_NAME)]
 
         res = (

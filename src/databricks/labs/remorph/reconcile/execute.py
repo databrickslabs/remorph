@@ -115,7 +115,7 @@ def recon(
 
     # validate the report type
     report_type = reconcile_config.report_type.lower()
-    logger.info(f"report_type: {report_type}, data_source: {reconcile_config.data_source}")
+    logger.info(f"report_type: {report_type}, data_source: {reconcile_config.data_source} ")
     validate_input(report_type, {"schema", "data", "row", "all"}, "Invalid report type")
 
     source, target = initialise_data_source(
