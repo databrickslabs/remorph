@@ -4131,6 +4131,7 @@ optionList: genericOption (COMMA genericOption)*
  * KEYWORD = VALUE KB        - Some sort of size value, where KB can be various things so is parsed as any id()
  * KEYWORD (=)? DEFAULT      - A fairly redundant option, but sometimes people want to be explicit
  * KEYWORD (=)? AUTO         - The option is set to AUTO, which occurs in a few places
+ * something FOR something    - The option is a special case such as OPTIMIZE FOR UNKNOWN
  * DEFAULT                   - The option is set to the default value but is not named
  * ON                        - The option is on but is not named (will get just id)
  * OFF                       - The option is off but is not named (will get just id)
@@ -4144,6 +4145,7 @@ genericOption
         | OFF            // Simple OFF     - don't resolve with expression
         | AUTO           // Simple AUTO    - don't resolve with expression
         | STRING         // String value   - don't resolve with expression
+        | FOR id         // FOR id         - don't resolve with expression - special case
         | expression id? // Catch all for less explicit options, sometimes with extra keywords
     )?
     ;
