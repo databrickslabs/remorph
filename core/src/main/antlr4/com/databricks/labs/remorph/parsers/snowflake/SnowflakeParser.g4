@@ -1592,8 +1592,29 @@ callerOwner: CALLER | OWNER
 executaAs: EXECUTE AS callerOwner
     ;
 
-procedureDefinition: string | DBL_DOLLAR
+procedureDefinition: BEGIN procstatement+ END
+DBL_DOLLAR
     ;
+
+procstatement:
+    declarationStatement
+    | ifStatement
+    | returnStatement
+    | dmlCommand
+    ;
+
+declarationStatement
+    : DECLARE id dataType (DEFAULT expr)? SEMI
+    ;
+
+ifStatement
+    : IF L_PAREN expr R_PAREN THEN returnStatement (ELSE returnStatement)? END IF SEMI
+    ;
+
+returnStatement
+    : RETURN expr SEMI
+    ;
+
 
 notNull: NOT NULL_
     ;
