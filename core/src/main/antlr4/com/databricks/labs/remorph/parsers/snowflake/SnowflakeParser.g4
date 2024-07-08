@@ -3253,7 +3253,9 @@ aggregateFunction
     ;
 
 literal
-    : STRING
+    : DATE_LIT
+    | TIMESTAMP_LIT
+    | STRING
     | sign? DECIMAL
     | sign? (REAL | FLOAT)
     | trueFalse
