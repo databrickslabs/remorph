@@ -119,5 +119,16 @@ def configure_secrets(w: WorkspaceClient):
     recon_conf.prompt_and_save_connection_details()
 
 
+@remorph.command
+def reconcile_aggregate(w: WorkspaceClient):
+    """[EXPERIMENTAL] reconciles source to databricks datasets"""
+    logger.info(f"user: {w.current_user.me()}")
+
+    installation = Installation.assume_user_home(w, "remorph")
+
+    utils = ReconcileUtils(w, installation)
+    utils.run()
+
+
 if __name__ == "__main__":
     remorph()

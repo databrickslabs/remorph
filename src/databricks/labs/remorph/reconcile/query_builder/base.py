@@ -10,18 +10,18 @@ from databricks.labs.remorph.reconcile.query_builder.expression_generator import
     DataType_transform_mapping,
     transform_expression,
 )
-from databricks.labs.remorph.reconcile.recon_config import Schema, Table
+from databricks.labs.remorph.reconcile.recon_config import Schema, Table, Aggregate
 
 logger = logging.getLogger(__name__)
 
 
 class QueryBuilder(ABC):
     def __init__(
-        self,
-        table_conf: Table,
-        schema: list[Schema],
-        layer: str,
-        source: Dialect,
+            self,
+            table_conf: Table,
+            schema: list[Schema],
+            layer: str,
+            source: Dialect,
     ):
         self._table_conf = table_conf
         self._schema = schema
@@ -72,6 +72,10 @@ class QueryBuilder(ABC):
     def user_transformations(self) -> dict[str, str]:
         return self._table_conf.get_transformation_dict(self._layer)
 
+    @property
+    def aggregates(self) -> list[Aggregate]:
+        return self.table_conf.columns_aggregations
+
     def add_transformations(self, aliases: list[exp.Expression], source: Dialect) -> list[exp.Expression]:
         if self.user_transformations:
             alias_with_user_transforms = self._apply_user_transformation(aliases)
@@ -96,7 +100,7 @@ class QueryBuilder(ABC):
         return node
 
     def _apply_default_transformation(
-        self, aliases: list[exp.Expression], schema: list[Schema], source: Dialect
+            self, aliases: list[exp.Expression], schema: list[Schema], source: Dialect
     ) -> (list)[exp.Expression]:
         with_transform = []
         for alias in aliases:
