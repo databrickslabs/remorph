@@ -3082,11 +3082,7 @@ rowsetFunction
 bulkOption: id EQ bulkOptionValue = (INT | STRING)
     ;
 
-derivedTable
-    : subquery
-    | LPAREN subquery (UNION ALL subquery)* RPAREN
-    | tableValueConstructor
-    | LPAREN tableValueConstructor RPAREN
+derivedTable: subquery | tableValueConstructor | LPAREN tableValueConstructor RPAREN
     ;
 
 functionCall
@@ -3168,7 +3164,7 @@ asColumnAlias: AS? columnAlias
 asTableAlias: AS? (id | DOUBLE_QUOTE_ID)
     ;
 
-withTableHints: WITH? LPAREN tableHint (COMMA? tableHint)* RPAREN
+withTableHints: WITH LPAREN tableHint (COMMA? tableHint)* RPAREN
     ;
 
 deprecatedTableHint: LPAREN tableHint RPAREN
@@ -3292,10 +3288,10 @@ fullColumnName: ((DELETED | INSERTED | tableName) DOT)? ( id | (DOLLAR (IDENTITY
 columnNameListWithOrder: id (ASC | DESC)? (COMMA id (ASC | DESC)?)*
     ;
 
-insertColumnNameList: col += insertColumnId (COMMA col += insertColumnId)*
+insertColumnNameList: insertColumnId (COMMA insertColumnId)*
     ;
 
-insertColumnId: (ignore += id? DOT)* id
+insertColumnId: (id? DOT)* id
     ;
 
 columnNameList: id (COMMA id)*

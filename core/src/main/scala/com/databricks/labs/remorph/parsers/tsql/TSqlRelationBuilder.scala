@@ -228,17 +228,12 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.Relation] {
   }
 
   override def visitDerivedTable(ctx: DerivedTableContext): ir.Relation = {
-    if (ctx.tableValueConstructor() != null) {
+    val result = if (ctx.tableValueConstructor() != null) {
       ctx.tableValueConstructor().accept(this)
     } else {
-      val subqueries = ctx.subquery().asScala.map(_.accept(this))
-      subqueries match {
-        case Seq(single) => single
-        case multiple =>
-          multiple.reduce((a, b) =>
-            ir.SetOperation(a, b, ir.UnionSetOp, is_all = true, by_name = false, allow_missing_columns = false))
-      }
+      ctx.subquery().accept(this)
     }
+    result
   }
 
   override def visitTableValueConstructor(ctx: TableValueConstructorContext): ir.Relation = {
@@ -269,9 +264,9 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.Relation] {
       target
     }
 
-    val columns = ctx.expressionList().expression().asScala.map(_.accept(expressionBuilder)).collect {
-      case col: ir.Column => col
-    }
+    val columns = Option(ctx.expressionList())
+      .map(_.expression().asScala.map(_.accept(expressionBuilder)).collect { case col: ir.Column => col })
+
     val output = Option(ctx.outputClause()).map(_.accept(this))
     val values = ctx.insertStatementValue().accept(this)
     val optionClause = Option(ctx.optionClause).map(_.accept(expressionBuilder))
@@ -279,10 +274,10 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.Relation] {
   }
 
   override def visitInsertStatementValue(ctx: InsertStatementValueContext): ir.Relation = {
-    if (ctx.derivedTable() != null) {
-      ctx.derivedTable().accept(this)
-    } else {
-      ctx.executeStatement().accept(this)
+    Option(ctx) match {
+      case Some(context) if context.derivedTable() != null => context.derivedTable().accept(this)
+      case Some(context) if context.VALUES() != null => ir.DefaultValues()
+      case Some(context) => context.executeStatement().accept(this)
     }
   }
 

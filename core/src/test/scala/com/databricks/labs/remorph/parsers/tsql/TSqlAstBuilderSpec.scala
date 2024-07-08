@@ -738,4 +738,107 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
               Seq(ForceSeekHint(None, None), IndexHint(Seq(Id("Bill"), Id("Ted"))))),
             Seq(Star(None))))))
   }
+
+  "translate INSERT statements" in {
+    example(
+      query = "INSERT INTO t (a, b) VALUES (1, 2)",
+      expectedAst = Batch(
+        Seq(InsertIntoTable(
+          NamedTable("t", Map(), is_streaming = false),
+          Some(Seq(Column(None, Id("a")), Column(None, Id("b")))),
+          DerivedRows(Seq(Seq(Literal(short = Some(1)), Literal(short = Some(2))))),
+          None,
+          None))))
+
+    example(
+      query = "INSERT INTO @LocalVar (a, b) VALUES (1, 2)",
+      expectedAst = Batch(
+        Seq(InsertIntoTable(
+          LocalVarTable(Id("@LocalVar")),
+          Some(Seq(Column(None, Id("a")), Column(None, Id("b")))),
+          DerivedRows(Seq(Seq(Literal(short = Some(1)), Literal(short = Some(2))))),
+          None,
+          None))))
+
+    example(
+      query = "INSERT INTO t (a, b) VALUES (1, 2), (3, 4)",
+      expectedAst = Batch(
+        Seq(InsertIntoTable(
+          NamedTable("t", Map(), is_streaming = false),
+          Some(Seq(Column(None, Id("a")), Column(None, Id("b")))),
+          DerivedRows(Seq(
+            Seq(Literal(short = Some(1)), Literal(short = Some(2))),
+            Seq(Literal(short = Some(3)), Literal(short = Some(4))))),
+          None,
+          None))))
+
+    example(
+      query = "INSERT INTO t WITH (TABLOCK) (a, b) VALUES (1, 2)",
+      expectedAst = Batch(
+        Seq(InsertIntoTable(
+          TableWithHints(NamedTable("t", Map(), is_streaming = false), List(FlagHint("TABLOCK"))),
+          Some(Seq(Column(None, Id("a")), Column(None, Id("b")))),
+          DerivedRows(Seq(Seq(Literal(short = Some(1)), Literal(short = Some(2))))),
+          None,
+          None))))
+
+    example(
+      query = "INSERT INTO t DEFAULT VALUES",
+      expectedAst =
+        Batch(Seq(InsertIntoTable(NamedTable("t", Map(), is_streaming = false), None, DefaultValues(), None, None))))
+
+    example(
+      query = "INSERT INTO t (a, b) OUTPUT INSERTED.a as a_lias, INSERTED.b INTO Inserted(a, b) VALUES (1, 2)",
+      expectedAst = Batch(
+        List(InsertIntoTable(
+          NamedTable("t", Map(), is_streaming = false),
+          Some(List(Column(None, Id("a")), Column(None, Id("b")))),
+          DerivedRows(List(List(Literal(short = Some(1)), Literal(short = Some(2))))),
+          Some(Output(
+            NamedTable("Inserted", Map(), is_streaming = false),
+            List(
+              Alias(Column(Some(ObjectReference(Id("INSERTED"))), Id("a")), Seq(Id("a_lias")), None),
+              Column(Some(ObjectReference(Id("INSERTED"))), Id("b"))),
+            Some(List(Column(None, Id("a")), Column(None, Id("b")))))),
+          None))))
+
+    example(
+      query = "WITH wtab AS (SELECT * FROM t) INSERT INTO t (a, b) select * from wtab",
+      expectedAst = Batch(
+        Seq(WithCTE(
+          Seq(
+            CTEDefinition("wtab", List.empty, Project(NamedTable("t", Map(), is_streaming = false), Seq(Star(None))))),
+          InsertIntoTable(
+            NamedTable("t", Map(), is_streaming = false),
+            Some(Seq(Column(None, Id("a")), Column(None, Id("b")))),
+            Project(NamedTable("wtab", Map(), is_streaming = false), Seq(Star(None))),
+            None,
+            None)))))
+
+    example(
+      query = """
+           INSERT INTO ConsolidatedRecords (ID, Name)
+              SELECT ID, Name
+              FROM (
+                SELECT ID, Name
+                FROM TableA
+                  UNION
+                SELECT ID, Name
+                FROM TableB)
+              AS DerivedTable;""",
+      expectedAst = Batch(
+        Seq(InsertIntoTable(
+          NamedTable("ConsolidatedRecords", Map(), is_streaming = false),
+          Some(Seq(Column(None, Id("ID")), Column(None, Id("Name")))),
+          Project(
+            TableAlias(
+              Project(
+                NamedTable("TableB", Map(), is_streaming = false),
+                Seq(Column(None, Id("ID")), Column(None, Id("Name")))),
+              "DerivedTable"),
+            Seq(Column(None, Id("ID")), Column(None, Id("Name")))),
+          None,
+          None))))
+
+  }
 }

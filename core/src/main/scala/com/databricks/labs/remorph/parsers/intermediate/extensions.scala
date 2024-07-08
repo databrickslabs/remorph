@@ -213,13 +213,14 @@ abstract class Modification extends Relation
 
 case class InsertIntoTable(
     target: Relation,
-    columns: Seq[Column],
+    columns: Option[Seq[Column]],
     values: Relation,
     output: Option[Relation],
     options: Option[Expression])
     extends Modification {}
 
 case class DerivedRows(rows: Seq[Seq[Expression]]) extends Relation
+case class DefaultValues() extends Relation
 
 // The default case for the expression parser needs to be explicitly defined to distinguish [DEFAULT]
 case class Default() extends Expression {}
