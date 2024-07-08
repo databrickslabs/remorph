@@ -3120,7 +3120,7 @@ expr
     | castExpr                                  # exprCast
     | expr COLON_COLON dataType                 # exprAscribe
     | functionCall                              # exprFuncCall
-    | subquery                                  # exprSubquery
+    | L_PAREN subquery R_PAREN                  # exprSubquery
     | expr predicatePartial                     # exprPredicate
     | DISTINCT expr                             # exprDistinct
     //Should be latest rule as it's nearly a catch all
@@ -3375,28 +3375,14 @@ tableSourceItemJoined: objectRef joinClause* | L_PAREN tableSourceItemJoined R_P
     ;
 
 objectRef
-    : objectName atBefore? changes? matchRecognize? pivotUnpivot? asAlias? columnListInParentheses? # objRefDefault
-    | TABLE L_PAREN functionCall R_PAREN pivotUnpivot? asAlias?                                     # objRefTable
-    | LATERAL (flattenTable | splitedTable) asAlias?                                                # objRefLateral
-    | LATERAL? L_PAREN subquery R_PAREN pivotUnpivot? asAlias? columnListInParentheses?             # objRefSubquery
-    | valuesTable                                                                                   # objRefValues
-    | objectName START WITH predicate CONNECT BY priorList?                                         # objRefStartWith
-    //| AT id PATH?
-    //    (L_PAREN FILE_FORMAT ASSOC id COMMA patternAssoc R_PAREN)?
-    //    asAlias?
+    : objectName atBefore? changes? matchRecognize? pivotUnpivot? tableAlias?        # objRefDefault
+    | TABLE L_PAREN functionCall R_PAREN pivotUnpivot? tableAlias?                   # objRefTableFunc
+    | LATERAL? (functionCall | (L_PAREN subquery R_PAREN)) pivotUnpivot? tableAlias? # objRefSubquery
+    | valuesTable                                                                    # objRefValues
+    | objectName START WITH predicate CONNECT BY priorList?                          # objRefStartWith
     ;
 
-flattenTableOption
-    : PATH_ ASSOC string
-    | OUTER ASSOC trueFalse
-    | RECURSIVE ASSOC trueFalse
-    | MODE ASSOC (ARRAY_Q | OBJECT_Q | BOTH_Q)
-    ;
-
-flattenTable: FLATTEN L_PAREN (INPUT ASSOC)? expr (COMMA flattenTableOption)* R_PAREN
-    ;
-
-splitedTable: SPLIT_TO_TABLE L_PAREN expr COMMA expr R_PAREN
+tableAlias: AS? alias (L_PAREN id (COMMA id)*)?
     ;
 
 priorList: priorItem (COMMA priorItem)*
