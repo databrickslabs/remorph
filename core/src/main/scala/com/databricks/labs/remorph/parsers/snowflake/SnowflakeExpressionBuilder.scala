@@ -310,7 +310,11 @@ class SnowflakeExpressionBuilder()
 
   override def visitStandardFunction(ctx: StandardFunctionContext): ir.Expression = {
     val functionName = ctx.id().getText
-    val arguments = Option(ctx.exprList()).map(_.expr().asScala.map(_.accept(this))).getOrElse(Seq())
+    val arguments = ctx match {
+      case c if c.exprList() != null => c.exprList().expr().asScala.map(_.accept(this))
+      case c if c.paramAssocList() != null => c.paramAssocList().paramAssoc().asScala.map(_.accept(this))
+      case _ => Seq.empty
+    }
     functionBuilder.buildFunction(functionName, arguments)
   }
 
@@ -370,8 +374,11 @@ class SnowflakeExpressionBuilder()
   private def buildPredicatePartial(ctx: PredicatePartialContext, expression: ir.Expression): ir.Expression = {
     val predicate = ctx match {
 
-      case c if c.IN() != null =>
-        ir.IsIn(c.subquery().accept(new SnowflakeRelationBuilder), expression)
+      case c if c.IN() != null && c.subquery() != null =>
+        ir.IsInRelation(c.subquery().accept(new SnowflakeRelationBuilder), expression)
+      case c if c.IN() != null && c.exprList() != null =>
+        val collection = c.exprList().expr().asScala.map(_.accept(this))
+        ir.IsInCollection(collection, expression)
       case c if c.BETWEEN() != null =>
         val lowerBound = c.expr(0).accept(this)
         val upperBound = c.expr(1).accept(this)
@@ -402,4 +409,7 @@ class SnowflakeExpressionBuilder()
     Option(ctx.NOT()).fold(predicate)(_ => ir.Not(predicate))
   }
 
+  override def visitParamAssoc(ctx: ParamAssocContext): ir.Expression = {
+    ir.NamedArgumentExpression(ctx.id().getText.toUpperCase(), ctx.expr().accept(this))
+  }
 }

@@ -10,13 +10,33 @@ case object UnknownFunction extends FunctionType
 
 sealed trait FunctionArity
 
+// For functions with a fixed number of arguments (ie. all arguments are required)
 case class FixedArity(arity: Int) extends FunctionArity
+// For functions with a varying number of arguments (ie. some arguments are optional)
 case class VariableArity(argMin: Int, argMax: Int) extends FunctionArity
+// For functions with named arguments (ie. some arguments are optional and arguments may be provided in any order)
+case class SymbolicArity(requiredArguments: Set[String], optionalArguments: Set[String]) extends FunctionArity
 
 object FunctionArity {
-  def verifyArgNumber(arity: FunctionArity, args: Seq[ir.Expression]): Boolean = arity match {
+  def verifyArguments(arity: FunctionArity, args: Seq[ir.Expression]): Boolean = arity match {
     case FixedArity(n) => args.size == n
     case VariableArity(argMin, argMax) => argMin <= args.size && args.size <= argMax
+    case SymbolicArity(required, optional) =>
+      val namedArguments = args.collect { case n: ir.NamedArgumentExpression => n }
+      // all provided arguments are named
+      if (namedArguments.size == args.size) {
+        // all required arguments are present
+        required.forall(r => namedArguments.exists(_.key.toUpperCase() == r.toUpperCase())) &&
+        // no unexpected argument was provided
+        namedArguments.forall(na => (required ++ optional).map(_.toUpperCase()).contains(na.key.toUpperCase()))
+      } else if (namedArguments.isEmpty) {
+        // arguments were provided positionally
+        args.size >= required.size && args.size <= required.size + optional.size
+      } else {
+        // a mix of named and positional arguments were provided, which isn't supported
+        false
+      }
+
   }
 }
 
@@ -33,6 +53,9 @@ object FunctionDefinition {
     FunctionDefinition(FixedArity(fixedArgNumber), StandardFunction)
   def standard(minArg: Int, maxArg: Int): FunctionDefinition =
     FunctionDefinition(VariableArity(minArg, maxArg), StandardFunction)
+
+  def symbolic(required: Set[String], optional: Set[String]): FunctionDefinition =
+    FunctionDefinition(SymbolicArity(required, optional), StandardFunction)
 
   def xml(fixedArgNumber: Int): FunctionDefinition =
     FunctionDefinition(FixedArity(fixedArgNumber), XmlFunction)
@@ -304,7 +327,7 @@ abstract class FunctionBuilder {
       case Some(functionDef) if functionDef.functionType == NotConvertibleFunction =>
         ir.UnresolvedFunction(name, args, is_distinct = false, is_user_defined_function = false)
 
-      case Some(funDef) if FunctionArity.verifyArgNumber(funDef.arity, args) =>
+      case Some(funDef) if FunctionArity.verifyArguments(funDef.arity, args) =>
         applyConversionStrategy(funDef, args, irName)
 
       // Found the function but the arg count is incorrect
