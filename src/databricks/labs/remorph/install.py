@@ -475,6 +475,7 @@ class WorkspaceInstallation:
             self._installation,
             self._state,
             self._product_info,
+            self._config.reconcile,
         )
         job_id = job_deployer.deploy_job()
         self._config.reconcile.job_id = job_id
