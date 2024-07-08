@@ -224,9 +224,30 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.Relation] {
     ctx.tableName().accept(this)
 
   override def visitTsiDerivedTable(ctx: TsiDerivedTableContext): ir.Relation = {
+    ctx.derivedTable().accept(this)
+  }
 
-    // TODO implement other table sources
-    ctx.derivedTable().subquery(0).selectStatement().accept(this)
+  override def visitDerivedTable(ctx: DerivedTableContext): ir.Relation = {
+    if (ctx.tableValueConstructor() != null) {
+      ctx.tableValueConstructor().accept(this)
+    } else {
+      val subqueries = ctx.subquery().asScala.map(_.accept(this))
+      subqueries match {
+        case Seq(single) => single
+        case multiple =>
+          multiple.reduce((a, b) =>
+            ir.SetOperation(a, b, ir.UnionSetOp, is_all = true, by_name = false, allow_missing_columns = false))
+      }
+    }
+  }
+
+  override def visitTableValueConstructor(ctx: TableValueConstructorContext): ir.Relation = {
+    val rows = ctx.tableValueRow().asScala.map(buildValueRow)
+    ir.DerivedRows(rows)
+  }
+
+  private def buildValueRow(ctx: TableValueRowContext): Seq[ir.Expression] = {
+    ctx.expressionList().expression().asScala.map(_.accept(expressionBuilder))
   }
 
   override def visitInsertStatement(ctx: InsertStatementContext): ir.Relation = {
@@ -240,15 +261,29 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.Relation] {
   }
 
   override def visitInsert(ctx: InsertContext): ir.Relation = {
-//    val target = ctx.ddlObject().accept(this)
-//    val hints = ctx.withTableHints().accept(expressionBuilder)
-//    val columns = Option(ctx.expressionList())
-//      .map(_.expression().asScala.map(_.accept(expressionBuilder)))
-//    val output = Option(ctx.outputClause()).map(_.accept(this))
-//    val values = ctx.insertStatementValue().accept(expressionBuilder)
-//    val forClause = Option(ctx.forClause()).map(_.accept(expressionBuilder))
-//    val optionClause = Option(ctx.optionClause).map(_.accept(expressionBuilder))
-    ir.UnknownRelation
+    val target = ctx.ddlObject().accept(this)
+    val hints = buildTableHints(Option(ctx.withTableHints()))
+    val finalTarget = if (hints.nonEmpty) {
+      ir.TableWithHints(target, hints)
+    } else {
+      target
+    }
+
+    val columns = ctx.expressionList().expression().asScala.map(_.accept(expressionBuilder)).collect {
+      case col: ir.Column => col
+    }
+    val output = Option(ctx.outputClause()).map(_.accept(this))
+    val values = ctx.insertStatementValue().accept(this)
+    val optionClause = Option(ctx.optionClause).map(_.accept(expressionBuilder))
+    ir.InsertIntoTable(finalTarget, columns, values, output, optionClause)
+  }
+
+  override def visitInsertStatementValue(ctx: InsertStatementValueContext): ir.Relation = {
+    if (ctx.derivedTable() != null) {
+      ctx.derivedTable().accept(this)
+    } else {
+      ctx.executeStatement().accept(this)
+    }
   }
 
   override def visitOutputClause(ctx: OutputClauseContext): ir.Relation = {
@@ -268,6 +303,7 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.Relation] {
     ctx match {
       case tableName if tableName.tableName() != null => tableName.tableName().accept(this)
       case localId if localId.LOCAL_ID() != null => ir.LocalVarTable(ir.Id(localId.LOCAL_ID().getText))
+      // TODO: OPENROWSET and OPENQUERY
       case _ => ir.UnresolvedRelation(ctx.getText)
     }
   }

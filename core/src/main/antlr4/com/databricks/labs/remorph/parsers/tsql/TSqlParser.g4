@@ -1613,11 +1613,10 @@ insertStatement: withExpression? insert
     ;
 
 insert
-    : INSERT topClause? INTO? ddlObject withTableHints? (LPAREN expressionList RPAREN)? outputClause? insertStatementValue forClause? optionClause?
-        SEMI?
+    : INSERT topClause? INTO? ddlObject withTableHints? (LPAREN expressionList RPAREN)? outputClause? insertStatementValue optionClause? SEMI?
     ;
 
-insertStatementValue: tableValueConstructor | derivedTable | executeStatement | DEFAULT VALUES
+insertStatementValue: derivedTable | executeStatement | DEFAULT VALUES
     ;
 
 receiveStatement
@@ -3193,8 +3192,10 @@ columnAliasList: LPAREN columnAlias (COMMA columnAlias)* RPAREN
 columnAlias: id | STRING
     ;
 
-tableValueConstructor
-    : VALUES LPAREN exps += expressionList RPAREN (COMMA LPAREN exps += expressionList RPAREN)*
+tableValueConstructor: VALUES tableValueRow (COMMA tableValueRow)*
+    ;
+
+tableValueRow: LPAREN expressionList RPAREN
     ;
 
 expressionList: exp += expression (COMMA exp += expression)*

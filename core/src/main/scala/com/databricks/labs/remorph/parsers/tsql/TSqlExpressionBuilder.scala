@@ -474,6 +474,7 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
     aliasOption.getOrElse(expression)
   }
 
+
   // format: off
   /**
    * Check if the ABSENT ON NULL clause is present in the JSON clause. The behavior is as follows:

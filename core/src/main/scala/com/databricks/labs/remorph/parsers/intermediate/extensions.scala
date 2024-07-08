@@ -211,7 +211,16 @@ case class Output(target: Relation, outputs: Seq[Expression], columns: Option[Se
 // Used for DML other than SELECT
 abstract class Modification extends Relation
 
-case class InsertIntoTable(tableName: String, columns: Seq[String], query: Relation) extends Modification {}
+case class InsertIntoTable(
+    target: Relation,
+    columns: Seq[Column],
+    values: Relation,
+    output: Option[Relation],
+    options: Option[Expression])
+    extends Modification {}
+
+case class DerivedRows(rows: Seq[Seq[Expression]]) extends Relation
+
 // The default case for the expression parser needs to be explicitly defined to distinguish [DEFAULT]
 case class Default() extends Expression {}
 
