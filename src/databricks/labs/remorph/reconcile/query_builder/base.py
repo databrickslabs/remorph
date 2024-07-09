@@ -17,20 +17,20 @@ logger = logging.getLogger(__name__)
 
 class QueryBuilder(ABC):
     def __init__(
-            self,
-            table_conf: Table,
-            schema: list[Schema],
-            layer: str,
-            source: Dialect,
+        self,
+        table_conf: Table,
+        schema: list[Schema],
+        layer: str,
+        engine: Dialect,
     ):
         self._table_conf = table_conf
         self._schema = schema
         self._layer = layer
-        self._source = source
+        self._engine = engine
 
     @property
-    def source(self) -> Dialect:
-        return self._source
+    def engine(self) -> Dialect:
+        return self._engine
 
     @property
     def layer(self) -> str:
@@ -100,8 +100,8 @@ class QueryBuilder(ABC):
         return node
 
     def _apply_default_transformation(
-            self, aliases: list[exp.Expression], schema: list[Schema], source: Dialect
-    ) -> (list)[exp.Expression]:
+        self, aliases: list[exp.Expression], schema: list[Schema], source: Dialect
+    ) -> list[exp.Expression]:
         with_transform = []
         for alias in aliases:
             with_transform.append(alias.transform(self._default_transformer, schema, source))

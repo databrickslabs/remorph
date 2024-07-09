@@ -465,6 +465,16 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
     functionBuilder.buildFunction("HIERARCHYID", List.empty)
   }
 
+  override def visitOutputDmlListElem(ctx: OutputDmlListElemContext): ir.Expression = {
+    val expression = Option(ctx.expression()).map(_.accept(this)).getOrElse(ctx.asterisk().accept(this))
+    val aliasOption = Option(ctx.asColumnAlias()).map(_.columnAlias()).map { alias =>
+      val name = Option(alias.id()).map(visitId).getOrElse(ir.Id(alias.STRING().getText))
+      ir.Alias(expression, Seq(name), None)
+    }
+    aliasOption.getOrElse(expression)
+  }
+
+
   // format: off
   /**
    * Check if the ABSENT ON NULL clause is present in the JSON clause. The behavior is as follows:
