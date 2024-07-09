@@ -103,18 +103,18 @@ case class Batch(statements: Seq[Plan]) extends Plan
 
 case class FunctionParameter(name: String, dataType: DataType, defaultValue: Option[Expression])
 
-sealed trait UDFRuntimeInfo
-case class JavaUDFInfo(runtimeVersion: Option[String], imports: Seq[String], handler: String) extends UDFRuntimeInfo
-case class PythonUDFInfo(runtimeVersion: Option[String], packages: Seq[String], handler: String) extends UDFRuntimeInfo
-case object JavascriptUDFInfo extends UDFRuntimeInfo
-case class ScalaUDFInfo(runtimeVersion: Option[String], imports: Seq[String], handler: String) extends UDFRuntimeInfo
-case class SQLUDFInfo(memoizable: Boolean) extends UDFRuntimeInfo
+sealed trait RuntimeInfo
+case class JavaRuntimeInfo(runtimeVersion: Option[String], imports: Seq[String], handler: String) extends RuntimeInfo
+case class PythonRuntimeInfo(runtimeVersion: Option[String], packages: Seq[String], handler: String) extends RuntimeInfo
+case object JavaScriptRuntimeInfo extends RuntimeInfo
+case class ScalaRuntimeInfo(runtimeVersion: Option[String], imports: Seq[String], handler: String) extends RuntimeInfo
+case class SQLRuntimeInfo(memoizable: Boolean) extends RuntimeInfo
 
 case class CreateInlineUDF(
     name: String,
     returnType: DataType,
     parameters: Seq[FunctionParameter],
-    runtimeInfo: UDFRuntimeInfo,
+    runtimeInfo: RuntimeInfo,
     acceptsNullParameters: Boolean,
     comment: Option[String],
     body: String)
@@ -254,3 +254,50 @@ case class UpdateTable(
     output: Option[Relation],
     options: Option[Expression])
     extends Modification {}
+
+sealed trait ProcedureAction
+
+object ProcedureAction {
+  case object Create extends ProcedureAction
+  case object CreateOrAlter extends ProcedureAction
+  case object CreateOrReplace extends ProcedureAction
+  case object Alter extends ProcedureAction
+}
+
+sealed trait ArgMode
+
+object ArgMode {
+  case object In extends ArgMode
+  case object Out extends ArgMode
+  case object InOut extends ArgMode
+}
+
+case class ProcedureParameter(
+    name: String,
+    dataType: DataType,
+    defaultValue: Option[Expression],
+    mode: ArgMode,
+    nullable: Boolean)
+
+sealed trait ExternalCodeReference
+
+case class ExternalCLRMethodRef(assemblyName: String, className: String, methodName: String)
+    extends ExternalCodeReference
+
+sealed trait ProcedureBody
+
+case class SQLProcedureBody(statements: Seq[Plan]) extends ProcedureBody
+
+case class ExternalProcedureBody(reference: ExternalCodeReference) extends ProcedureBody
+
+case class CreateOrAlterProcedureCommand(
+    action: ProcedureAction,
+    name: FunctionIdentifier,
+    comment: Option[String],
+    parameters: Seq[ProcedureParameter],
+    properties: Option[Options],
+    deterministic: Option[Boolean],
+    runtimeInfo: RuntimeInfo,
+    body: ProcedureBody,
+    returnType: DataType)
+    extends Catalog

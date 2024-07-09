@@ -42,7 +42,7 @@ class SnowflakeDDLBuilderSpec
           name = "echo_varchar",
           returnType = VarCharType(None),
           parameters = Seq(FunctionParameter("x", VarCharType(None), None)),
-          JavaUDFInfo(
+          JavaRuntimeInfo(
             runtimeVersion = None,
             imports = Seq("@~/some-dir/some-lib.jar"),
             handler = "TestFunc.echoVarchar"),
@@ -74,7 +74,7 @@ class SnowflakeDDLBuilderSpec
           name = "py_udf",
           returnType = UnparsedType(),
           parameters = Seq(),
-          runtimeInfo = PythonUDFInfo(
+          runtimeInfo = PythonRuntimeInfo(
             runtimeVersion = Some("3.8"),
             packages = Seq("numpy", "pandas", "xgboost==1.5.0"),
             handler = "udf"),
@@ -106,7 +106,7 @@ class SnowflakeDDLBuilderSpec
           name = "js_factorial",
           returnType = DoubleType(),
           parameters = Seq(FunctionParameter("d", DoubleType(), None)),
-          runtimeInfo = JavascriptUDFInfo,
+          runtimeInfo = JavaScriptRuntimeInfo,
           acceptsNullParameters = false,
           comment = Some("Compute factorial using JavaScript"),
           body = javascriptCode))
@@ -134,7 +134,7 @@ class SnowflakeDDLBuilderSpec
           name = "echo_varchar",
           returnType = VarCharType(None),
           parameters = Seq(FunctionParameter("x", VarCharType(None), Some(Literal(string = Some("foo"))))),
-          runtimeInfo = ScalaUDFInfo(runtimeVersion = Some("2.12"), imports = Seq(), handler = "Echo.echoVarchar"),
+          runtimeInfo = ScalaRuntimeInfo(runtimeVersion = Some("2.12"), imports = Seq(), handler = "Echo.echoVarchar"),
           acceptsNullParameters = true,
           comment = None,
           body = scalaCode))
@@ -152,7 +152,7 @@ class SnowflakeDDLBuilderSpec
           parameters = Seq(
             FunctionParameter("a", DecimalType(None, None), None),
             FunctionParameter("b", DecimalType(None, None), None)),
-          runtimeInfo = SQLUDFInfo(memoizable = false),
+          runtimeInfo = SQLRuntimeInfo(memoizable = false),
           acceptsNullParameters = false,
           comment = Some("multiply two numbers"),
           body = "a * b"))

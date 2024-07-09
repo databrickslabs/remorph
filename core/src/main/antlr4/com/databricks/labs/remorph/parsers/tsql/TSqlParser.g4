@@ -1752,12 +1752,20 @@ createNonclusteredColumnstoreIndex
     )? createColumnstoreIndexOptions? (ON id)? SEMI?
     ;
 
+procedureAtomicOption
+    : TRANSACTION ISOLATION LEVEL EQ (SNAPSHOT | REPEATABLE READ | SERIALIZABLE)
+    | genericOption (COMMA genericOption)*
+    ;
+
 createOrAlterProcedure
     : ((CREATE (OR (ALTER | REPLACE))?) | ALTER) proc = (PROC | PROCEDURE) procName = funcProcNameSchema (
         SEMI INT
     )? (LPAREN? procedureParam (COMMA procedureParam)* RPAREN?)? (
         WITH procedureOption (COMMA procedureOption)*
-    )? (FOR REPLICATION)? AS (asExternalName | sqlClauses*)
+    )? (FOR REPLICATION)? AS (
+        asExternalName
+        | (BEGIN ( ATOMIC WITH LPAREN procedureAtomicOption (COMMA procedureAtomicOption)* RPAREN)?)? sqlClauses* END?
+    ) SEMI?
     ;
 
 asExternalName: EXTERNAL NAME assemblyName = id DOT className = id DOT methodName = id
@@ -1822,7 +1830,7 @@ procedureParamDefaultValue: NULL_ | DEFAULT | constant | LOCAL_ID
     ;
 
 procedureParam
-    : LOCAL_ID AS? (typeSchema = id DOT)? dataType VARYING? (
+    : LOCAL_ID AS? (typeSchema = id DOT)? dataType VARYING? (NULL_ | NOT NULL_)? (
         EQ defaultVal = procedureParamDefaultValue
     )? (OUT | OUTPUT | READONLY)?
     ;

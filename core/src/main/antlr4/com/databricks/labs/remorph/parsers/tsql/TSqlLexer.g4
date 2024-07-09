@@ -110,6 +110,7 @@ ASSEMBLY                                    : 'ASSEMBLY';
 ASYMMETRIC                                  : 'ASYMMETRIC';
 ASYNCHRONOUS_COMMIT                         : 'ASYNCHRONOUS_COMMIT';
 AT_KEYWORD                                  : 'AT';
+ATOMIC                                      : 'ATOMIC';
 AUDIT                                       : 'AUDIT';
 AUDIT_GUID                                  : 'AUDIT_GUID';
 AUTHENTICATE                                : 'AUTHENTICATE';
