@@ -52,7 +52,7 @@ class SamplingQueryBuilder(QueryBuilder):
             for col in cols
         ]
 
-        sql_with_transforms = self.add_transformations(cols_with_alias, self.source)
+        sql_with_transforms = self.add_transformations(cols_with_alias, self.engine)
         query_sql = select(*sql_with_transforms).from_(":tbl").where(self.filter)
         if self.layer == "source":
             with_select = [build_column(this=col, table_name="src") for col in sorted(cols)]
@@ -69,7 +69,7 @@ class SamplingQueryBuilder(QueryBuilder):
             .select(*with_select)
             .from_("src")
             .join(join_clause)
-            .sql(dialect=self.source)
+            .sql(dialect=self.engine)
         )
         logger.info(f"Sampling Query for {self.layer}: {query}")
         return query
@@ -97,7 +97,7 @@ class SamplingQueryBuilder(QueryBuilder):
                 )
                 for col, value in zip(df.columns, row)
             ]
-            if get_key_from_dialect(self.source) == "oracle":
+            if get_key_from_dialect(self.engine) == "oracle":
                 union_res.append(select(*row_select).from_("dual"))
             else:
                 union_res.append(select(*row_select))
