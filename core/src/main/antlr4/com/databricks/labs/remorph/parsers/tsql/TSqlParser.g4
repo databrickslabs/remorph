@@ -2992,22 +2992,26 @@ tableSources: source += tableSource (COMMA source += tableSource)*
 tableSource: tableSourceItem joinPart*
     ;
 
-tableSourceItem
-    : tableName (
-        deprecatedTableHint asTableAlias
-        | asTableAlias? (withTableHints | deprecatedTableHint | sybaseLegacyHints)?
-    )
-    | rowsetFunction asTableAlias?
-    | LPAREN derivedTable RPAREN (asTableAlias columnAliasList?)?
-    | changeTable asTableAlias?
-    | nodesMethod (asTableAlias columnAliasList?)?
-    | functionCall (asTableAlias columnAliasList?)?
-    | locId = LOCAL_ID asTableAlias?
-    | locIdCall = LOCAL_ID DOT locFcall = functionCall (asTableAlias columnAliasList?)?
-    | openXml
-    | openJson
-    | DOUBLE_COLON oldstyleFcall = functionCall asTableAlias?
-    | LPAREN tableSource RPAREN
+// Almost all tableSource elements allow a table alias, and sone allow a list of column aliaes
+// As this parser expects to see valid input anyway, we combine this into a single rule and
+// then visit each possible table source individually, applying alias afterwards. This reduces
+// rule complexity and parser complexity substantially.
+tableSourceItem: tsiElement (asTableAlias columnAliasList?)? withTableHints?
+    ;
+
+tsiElement
+    : tableName                  # tsiNamedTable
+    | rowsetFunction             # tsiRowsetFunction
+    | LPAREN derivedTable RPAREN # tsiDerivedTable
+    | changeTable                # tsiChangeTable
+    | nodesMethod                # tsiNodesMethod
+    | functionCall               # tsiFunctionCall
+    | LOCAL_ID                   # tsiLocalId
+    | LOCAL_ID DOT functionCall  # tsiLocalIdFunctionCall
+    | openXml                    # tsiOpenXml
+    | openJson                   # tsiOpenJson
+    | DOUBLE_COLON functionCall  # tsiDoubleColonFunctionCall
+    | LPAREN tableSource RPAREN  # tsiParenTableSource
     ;
 
 openJson
@@ -3164,26 +3168,18 @@ asColumnAlias: AS? columnAlias
 asTableAlias: AS? (id | DOUBLE_QUOTE_ID)
     ;
 
-withTableHints: WITH LPAREN hint += tableHint (COMMA? hint += tableHint)* RPAREN
+withTableHints: WITH? LPAREN tableHint (COMMA? tableHint)* RPAREN
     ;
 
 deprecatedTableHint: LPAREN tableHint RPAREN
-    ;
-
-sybaseLegacyHints: sybaseLegacyHint+
     ;
 
 sybaseLegacyHint: HOLDLOCK | NOHOLDLOCK | READPAST | SHARED
     ;
 
 tableHint
-    : NOEXPAND
-    | INDEX (
-        LPAREN indexValue (COMMA indexValue)* RPAREN
-        | EQ LPAREN indexValue RPAREN
-        | EQ indexValue
-    )
-    | FORCESEEK ( LPAREN indexValue LPAREN columnNameList RPAREN RPAREN)?
+    : INDEX EQ? LPAREN expressionList RPAREN
+    | FORCESEEK ( LPAREN expression LPAREN columnNameList RPAREN RPAREN)?
     | genericOption
     ;
 
@@ -3610,7 +3606,6 @@ keyword
     | FIRST
     | FMTONLY
     | FOLLOWING
-    | FOR
     | FORCE
     | FORCE_FAILOVER_ALLOW_DATA_LOSS
     | FORCE_SERVICE_ALLOW_DATA_LOSS
@@ -4136,6 +4131,7 @@ optionList: genericOption (COMMA genericOption)*
  * KEYWORD = VALUE KB        - Some sort of size value, where KB can be various things so is parsed as any id()
  * KEYWORD (=)? DEFAULT      - A fairly redundant option, but sometimes people want to be explicit
  * KEYWORD (=)? AUTO         - The option is set to AUTO, which occurs in a few places
+ * something FOR something    - The option is a special case such as OPTIMIZE FOR UNKNOWN
  * DEFAULT                   - The option is set to the default value but is not named
  * ON                        - The option is on but is not named (will get just id)
  * OFF                       - The option is off but is not named (will get just id)
@@ -4149,6 +4145,7 @@ genericOption
         | OFF            // Simple OFF     - don't resolve with expression
         | AUTO           // Simple AUTO    - don't resolve with expression
         | STRING         // String value   - don't resolve with expression
+        | FOR id         // FOR id         - don't resolve with expression - special case
         | expression id? // Catch all for less explicit options, sometimes with extra keywords
     )?
     ;

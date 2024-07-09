@@ -213,7 +213,7 @@ class ThresholdQueryBuilder(QueryBuilder):
             build_column(this=col, alias=self.table_conf.get_layer_tgt_to_src_col_mapping(col, self.layer))
             for col in keys
         ]
-        keys_expr = self.add_transformations(keys_select_alias, self.source)
+        keys_expr = self._apply_user_transformation(keys_select_alias)
 
         # threshold column expression
         threshold_alias = [
@@ -224,6 +224,6 @@ class ThresholdQueryBuilder(QueryBuilder):
         if self.user_transformations:
             thresholds_expr = self._apply_user_transformation(threshold_alias)
 
-        query = (select(*keys_expr + thresholds_expr).from_(":tbl").where(self.filter)).sql(dialect=self.source)
+        query = (select(*keys_expr + thresholds_expr).from_(":tbl").where(self.filter)).sql(dialect=self.engine)
         logger.info(f"Threshold Query for {self.layer}: {query}")
         return query

@@ -81,7 +81,7 @@ class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenProp
       ("ENDSWITH", Some(FunctionDefinition.standard(2))),
       ("EQUAL_NULL", Some(FunctionDefinition.standard(2))),
       ("EXTRACT", Some(FunctionDefinition.standard(2))),
-      ("FLATTEN", Some(FunctionDefinition.standard(1, 5))),
+      ("FLATTEN", Some(FunctionDefinition.symbolic(Set("INPUT"), Set("PATH", "OUTER", "RECURSIVE", "MODE")))),
       ("GET", Some(FunctionDefinition.standard(2))),
       ("HASH", Some(FunctionDefinition.standard(1, Int.MaxValue))),
       ("IFNULL", Some(FunctionDefinition.standard(1, 2))),
@@ -541,5 +541,81 @@ class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenProp
       case f: ir.CallFunction => f.function_name shouldBe "Abs"
       case _ => fail("UNKNOWN_FUNCTION conversion failed")
     }
+  }
+
+  "FunctionArity.verifyArguments" should "return true when arity is fixed and provided number of arguments matches" in {
+    FunctionArity.verifyArguments(FixedArity(0), Seq()) shouldBe true
+    FunctionArity.verifyArguments(FixedArity(1), Seq(ir.Noop)) shouldBe true
+    FunctionArity.verifyArguments(FixedArity(2), Seq(ir.Noop, ir.Noop)) shouldBe true
+  }
+
+  "FunctionArity.verifyArguments" should
+    "return true when arity is varying and provided number of arguments matches" in {
+      FunctionArity.verifyArguments(VariableArity(0, 2), Seq()) shouldBe true
+      FunctionArity.verifyArguments(VariableArity(0, 2), Seq(ir.Noop)) shouldBe true
+      FunctionArity.verifyArguments(VariableArity(0, 2), Seq(ir.Noop, ir.Noop)) shouldBe true
+    }
+
+  "FunctionArity.verifyArguments" should "return true when arity is symbolic and arguments are provided named" in {
+    val arity = SymbolicArity(Set("req1", "REQ2"), Set("opt1", "opt2", "opt3"))
+    FunctionArity.verifyArguments(
+      arity,
+      Seq(ir.NamedArgumentExpression("Req2", ir.Noop), ir.NamedArgumentExpression("REQ1", ir.Noop))) shouldBe true
+
+    FunctionArity.verifyArguments(
+      arity,
+      Seq(
+        ir.NamedArgumentExpression("Req2", ir.Noop),
+        ir.NamedArgumentExpression("OPT1", ir.Noop),
+        ir.NamedArgumentExpression("REQ1", ir.Noop))) shouldBe true
+
+    FunctionArity.verifyArguments(
+      arity,
+      Seq(
+        ir.NamedArgumentExpression("Req2", ir.Noop),
+        ir.NamedArgumentExpression("OPT1", ir.Noop),
+        ir.NamedArgumentExpression("OPT3", ir.Noop),
+        ir.NamedArgumentExpression("OPT2", ir.Noop),
+        ir.NamedArgumentExpression("REQ1", ir.Noop))) shouldBe true
+  }
+
+  "FunctionArity.verifyArguments" should "return true when arity is symbolic and arguments are provided unnamed" in {
+    val arity = SymbolicArity(Set("req1", "REQ2"), Set("opt1", "opt2", "opt3"))
+
+    FunctionArity.verifyArguments(arity, Seq( /*REQ1*/ ir.Noop, /*REQ2*/ ir.Noop)) shouldBe true
+    FunctionArity.verifyArguments(arity, Seq( /*REQ1*/ ir.Noop, /*REQ2*/ ir.Noop, /*OPT1*/ ir.Noop)) shouldBe true
+    FunctionArity.verifyArguments(
+      arity,
+      Seq( /*REQ1*/ ir.Noop, /*REQ2*/ ir.Noop, /*OPT1*/ ir.Noop, /*OPT2*/ ir.Noop)) shouldBe true
+    FunctionArity.verifyArguments(
+      arity,
+      Seq( /*REQ1*/ ir.Noop, /*REQ2*/ ir.Noop, /*OPT1*/ ir.Noop, /*OPT2*/ ir.Noop, /*OPT3*/ ir.Noop)) shouldBe true
+  }
+
+  "FunctionArity.verifyArguments" should "return false otherwise" in {
+    // not enough arguments
+    FunctionArity.verifyArguments(FixedArity(1), Seq.empty) shouldBe false
+    FunctionArity.verifyArguments(VariableArity(2, 3), Seq(ir.Noop)) shouldBe false
+    FunctionArity.verifyArguments(
+      SymbolicArity(Set("req1", "req2"), Set.empty),
+      Seq(ir.NamedArgumentExpression("REQ2", ir.Noop))) shouldBe false
+    FunctionArity.verifyArguments(SymbolicArity(Set("req1", "req2"), Set.empty), Seq(ir.Noop)) shouldBe false
+
+    // too many arguments
+    FunctionArity.verifyArguments(FixedArity(0), Seq(ir.Noop)) shouldBe false
+    FunctionArity.verifyArguments(VariableArity(0, 1), Seq(ir.Noop, ir.Noop)) shouldBe false
+    FunctionArity.verifyArguments(
+      SymbolicArity(Set("req1", "req2"), Set.empty),
+      Seq(ir.Noop, ir.Noop, ir.Noop)) shouldBe false
+
+    // wrongly named arguments
+    FunctionArity.verifyArguments(
+      SymbolicArity(Set("req1"), Set("opt1")),
+      Seq(ir.NamedArgumentExpression("REQ2", ir.Noop), ir.NamedArgumentExpression("REQ1", ir.Noop))) shouldBe false
+
+    // mix of named and unnamed arguments
+    FunctionArity.verifyArguments(
+      SymbolicArity(Set("REQ"), Set("OPT")),
+      Seq(ir.Noop, ir.NamedArgumentExpression("OPT", ir.Noop))) shouldBe false
   }
 }
