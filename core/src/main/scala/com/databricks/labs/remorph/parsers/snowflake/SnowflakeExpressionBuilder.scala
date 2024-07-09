@@ -4,7 +4,10 @@ import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser.{StringCont
 import com.databricks.labs.remorph.parsers.{IncompleteParser, ParserCommon, intermediate => ir}
 import org.antlr.v4.runtime.Token
 
+import java.time.{LocalDateTime, ZoneOffset}
+import java.time.format.DateTimeFormatter
 import scala.collection.JavaConverters._
+import scala.util.Try
 class SnowflakeExpressionBuilder()
     extends SnowflakeParserBaseVisitor[ir.Expression]
     with ParserCommon[ir.Expression]
@@ -72,6 +75,17 @@ class SnowflakeExpressionBuilder()
   override def visitLiteral(ctx: LiteralContext): ir.Literal = {
     val sign = Option(ctx.sign()).map(_ => "-").getOrElse("")
     ctx match {
+      case c if c.DATE_LIT() != null =>
+        val dateStr = c.DATE_LIT().getText.stripPrefix("DATE'").stripSuffix("'")
+        Try(java.time.LocalDate.parse(dateStr))
+          .map(date => ir.Literal(date = Some(date.toEpochDay)))
+          .getOrElse(ir.Literal(nullType = Some(ir.NullType())))
+      case c if c.TIMESTAMP_LIT() != null =>
+        val timestampStr = c.TIMESTAMP_LIT().getText.stripPrefix("TIMESTAMP'").stripSuffix("'")
+        val format = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+        Try(LocalDateTime.parse(timestampStr, format))
+          .map(dt => ir.Literal(timestamp = Some(dt.toEpochSecond(ZoneOffset.UTC))))
+          .getOrElse(ir.Literal(nullType = Some(ir.NullType())))
       case c if c.STRING() != null => ir.Literal(string = Some(removeQuotes(c.STRING().getText)))
       case c if c.DECIMAL() != null => buildLiteralNumber(sign + c.DECIMAL().getText)
       case c if c.FLOAT() != null => buildLiteralNumber(sign + c.FLOAT().getText)
@@ -310,7 +324,11 @@ class SnowflakeExpressionBuilder()
 
   override def visitStandardFunction(ctx: StandardFunctionContext): ir.Expression = {
     val functionName = ctx.id().getText
-    val arguments = Option(ctx.exprList()).map(_.expr().asScala.map(_.accept(this))).getOrElse(Seq())
+    val arguments = ctx match {
+      case c if c.exprList() != null => c.exprList().expr().asScala.map(_.accept(this))
+      case c if c.paramAssocList() != null => c.paramAssocList().paramAssoc().asScala.map(_.accept(this))
+      case _ => Seq.empty
+    }
     functionBuilder.buildFunction(functionName, arguments)
   }
 
@@ -370,8 +388,11 @@ class SnowflakeExpressionBuilder()
   private def buildPredicatePartial(ctx: PredicatePartialContext, expression: ir.Expression): ir.Expression = {
     val predicate = ctx match {
 
-      case c if c.IN() != null =>
-        ir.IsIn(c.subquery().accept(new SnowflakeRelationBuilder), expression)
+      case c if c.IN() != null && c.subquery() != null =>
+        ir.IsInRelation(c.subquery().accept(new SnowflakeRelationBuilder), expression)
+      case c if c.IN() != null && c.exprList() != null =>
+        val collection = c.exprList().expr().asScala.map(_.accept(this))
+        ir.IsInCollection(collection, expression)
       case c if c.BETWEEN() != null =>
         val lowerBound = c.expr(0).accept(this)
         val upperBound = c.expr(1).accept(this)
@@ -402,4 +423,7 @@ class SnowflakeExpressionBuilder()
     Option(ctx.NOT()).fold(predicate)(_ => ir.Not(predicate))
   }
 
+  override def visitParamAssoc(ctx: ParamAssocContext): ir.Expression = {
+    ir.NamedArgumentExpression(ctx.id().getText.toUpperCase(), ctx.expr().accept(this))
+  }
 }

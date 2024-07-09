@@ -65,7 +65,7 @@ case class Literal(
     decimal: Option[Decimal] = None,
     double: Option[Double] = None,
     string: Option[String] = None,
-    date: Option[Int] = None,
+    date: Option[Long] = None,
     timestamp: Option[Long] = None,
     timestamp_ntz: Option[Long] = None,
     calendar_interval: Option[CalendarInterval] = None,
