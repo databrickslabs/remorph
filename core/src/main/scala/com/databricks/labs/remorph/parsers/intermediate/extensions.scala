@@ -404,3 +404,13 @@ case class UpdateTable(
   override def children: Seq[LogicalPlan] = Seq(target, source.getOrElse(NoopNode), outputRelation.getOrElse(NoopNode))
   override def output: Seq[Attribute] = target.output
 }
+
+case class UpdateTable(
+    target: Relation,
+    top: Relation,
+    source: Relation,
+    set: Seq[Expression],
+    where: Option[Expression],
+    output: Option[Relation],
+    options: Option[Expression])
+    extends Modification {}
