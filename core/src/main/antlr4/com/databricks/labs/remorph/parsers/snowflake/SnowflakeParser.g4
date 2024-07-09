@@ -3228,7 +3228,7 @@ builtinFunction: EXTRACT L_PAREN part = (STRING | ID) FROM expr R_PAREN # builti
 standardFunction: id L_PAREN (exprList | paramAssocList)? R_PAREN
     ;
 
-paramAssocList: paramAssoc (COLON paramAssoc)*
+paramAssocList: paramAssoc (COMMA paramAssoc)*
     ;
 
 paramAssoc: id ASSOC expr

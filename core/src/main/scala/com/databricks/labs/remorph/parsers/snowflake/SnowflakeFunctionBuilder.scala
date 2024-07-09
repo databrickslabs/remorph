@@ -55,7 +55,6 @@ class SnowflakeFunctionBuilder extends FunctionBuilder {
     case "ENDSWITH" => FunctionDefinition.standard(2)
     case "EQUAL_NULL" => FunctionDefinition.standard(2)
     case "EXTRACT" => FunctionDefinition.standard(2)
-// TODO: support named arguments
     case "FLATTEN" => FunctionDefinition.symbolic(Set("INPUT"), Set("PATH", "OUTER", "RECURSIVE", "MODE"))
     case "GET" => FunctionDefinition.standard(2)
     case "HASH" => FunctionDefinition.standard(1, Int.MaxValue)

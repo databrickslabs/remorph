@@ -302,16 +302,24 @@ class SnowflakeRelationBuilderSpec
     }
 
     "translate LATERAL FLATTEN object references" in {
-      // TODO change these to named arguments once https://github.com/databrickslabs/remorph/pull/527 is merged
       example(
-        "LATERAL FLATTEN (some_col)",
+        "LATERAL FLATTEN (input => some_col, OUTER => true)",
         _.objectRef(),
-        Lateral(TableFunction(CallFunction("FLATTEN", Seq(Id("some_col"))))))
+        Lateral(
+          TableFunction(
+            CallFunction(
+              "FLATTEN",
+              Seq(
+                NamedArgumentExpression("INPUT", Id("some_col")),
+                NamedArgumentExpression("OUTER", Literal(boolean = Some(true))))))))
 
       example(
-        "LATERAL FLATTEN (some_col) AS t",
+        "LATERAL FLATTEN (input => some_col) AS t",
         _.objectRef(),
-        SubqueryAlias(Lateral(TableFunction(CallFunction("FLATTEN", Seq(Id("some_col"))))), Id("t"), Seq()))
+        SubqueryAlias(
+          Lateral(TableFunction(CallFunction("FLATTEN", Seq(NamedArgumentExpression("INPUT", Id("some_col")))))),
+          Id("t"),
+          Seq()))
     }
   }
 
