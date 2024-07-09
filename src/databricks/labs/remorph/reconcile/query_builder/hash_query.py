@@ -61,7 +61,7 @@ class HashQueryBuilder(QueryBuilder):
             exp.select(*hash_col_with_transform + key_cols_with_transform)
             .from_(":tbl")
             .where(self.filter)
-            .sql(dialect=self.source)
+            .sql(dialect=self.engine)
         )
 
         logger.info(f"Hash Query for {self.layer}: {res}")
@@ -73,10 +73,10 @@ class HashQueryBuilder(QueryBuilder):
         column_alias: str,
     ) -> exp.Expression:
         cols_with_alias = [build_column(this=col, alias=None) for col in cols]
-        cols_with_transform = self.add_transformations(cols_with_alias, self.source)
+        cols_with_transform = self.add_transformations(cols_with_alias, self.engine)
         col_exprs = exp.select(*cols_with_transform).iter_expressions()
         concat_expr = concat(list(col_exprs))
 
-        hash_expr = concat_expr.transform(_hash_transform, self.source).transform(lower, is_expr=True)
+        hash_expr = concat_expr.transform(_hash_transform, self.engine).transform(lower, is_expr=True)
 
         return build_column(hash_expr, alias=column_alias)
