@@ -421,3 +421,11 @@ case class DeleteFromTable(
     output: Option[Relation],
     options: Option[Expression])
     extends Modification {}
+
+case class MergeTables(
+    target: Relation,
+    source: Option[Relation],
+    conditions: Option[Expression],
+    output: Option[Relation],
+    options: Option[Expression])
+    extends Modification {}

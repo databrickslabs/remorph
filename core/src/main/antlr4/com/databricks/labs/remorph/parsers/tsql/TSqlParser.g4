@@ -1583,9 +1583,12 @@ messageStatement
     )
     ;
 
-mergeStatement
-    : withExpression? MERGE (TOP LPAREN expression RPAREN PERCENT?)? INTO? ddlObject withTableHints? asTableAlias? USING tableSources ON
-        searchCondition whenMatches+ outputClause? optionClause? SEMI
+mergeStatement: withExpression? merge
+    ;
+
+merge
+    : MERGE topClause? INTO? ddlObject withTableHints? asTableAlias? USING tableSources ON searchCondition whenMatches+ outputClause? optionClause?
+        SEMI
     ;
 
 whenMatches

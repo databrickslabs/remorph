@@ -244,6 +244,40 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.LogicalPlan] {
     ctx.expressionList().expression().asScala.map(_.accept(expressionBuilder))
   }
 
+  override def visitMergeStatement(ctx: MergeStatementContext): ir.LogicalPlan = {
+    val merge = ctx.merge().accept(this)
+    Option(ctx.withExpression())
+      .map { withExpression =>
+        val ctes = withExpression.commonTableExpression().asScala.map(_.accept(this))
+        ir.WithCTE(ctes, merge)
+      }
+      .getOrElse(merge)
+  }
+
+  override def visitMerge(ctx: MergeContext): ir.LogicalPlan = {
+    // TODO: Ran out of time to implement the rest of the MERGE statement
+
+//    val target = ctx.ddlObject().accept(this)
+//    val hints = buildTableHints(Option(ctx.withTableHints()))
+//    val finalTarget = if (hints.nonEmpty) {
+//      ir.TableWithHints(target, hints)
+//    } else {
+//      target
+//    }
+//
+//    val output = Option(ctx.outputClause()).map(_.accept(this))
+//    val condition = ctx.searchCondition().accept(expressionBuilder)
+//    val tableSourcesOption = Option(ctx.tableSources()).map(_.tableSource().asScala.map(_.accept(this)))
+//    val sourceRelation = tableSourcesOption.map {
+//      case Seq(tableSource) => tableSource
+//      case sources =>
+//        sources.reduce(
+//          ir.Join(_, _, None, ir.CrossJoin, Seq(), ir.JoinDataType(is_left_struct = false, is_right_struct = false)))
+//    }
+
+    ir.UnresolvedRelation(ctx.getText)
+  }
+
   override def visitUpdateStatement(ctx: UpdateStatementContext): ir.LogicalPlan = {
     val update = ctx.update().accept(this)
     Option(ctx.withExpression())

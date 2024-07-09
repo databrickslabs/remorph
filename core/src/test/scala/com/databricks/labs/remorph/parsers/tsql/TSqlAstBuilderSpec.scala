@@ -869,4 +869,47 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
           None,
           Some(Options(Map("KEEP" -> Column(None, Id("PLAN"))), Map.empty, Map.empty, List.empty))))))
   }
+
+  "translate DELETE statements" in {
+    example(
+      query = "DELETE FROM t",
+      expectedAst = Batch(Seq(DeleteFromTable(NamedTable("t", Map(), is_streaming = false), None, None, None, None))))
+
+    example(
+      query = "DELETE FROM t OUTPUT DELETED.a as a_lias, DELETED.b INTO Deleted(a, b)",
+      expectedAst = Batch(
+        Seq(DeleteFromTable(
+          NamedTable("t", Map(), is_streaming = false),
+          None,
+          None,
+          Some(Output(
+            NamedTable("Deleted", Map(), is_streaming = false),
+            Seq(
+              Alias(Column(Some(ObjectReference(Id("DELETED"))), Id("a")), Seq(Id("a_lias")), None),
+              Column(Some(ObjectReference(Id("DELETED"))), Id("b"))),
+            Some(Seq(Column(None, Id("a")), Column(None, Id("b")))))),
+          None))))
+
+    example(
+      query = "DELETE FROM t FROM t1 WHERE t.a = t1.a",
+      expectedAst = Batch(
+        Seq(DeleteFromTable(
+          NamedTable("t", Map(), is_streaming = false),
+          Some(NamedTable("t1", Map(), is_streaming = false)),
+          Some(
+            Equals(Column(Some(ObjectReference(Id("t"))), Id("a")), Column(Some(ObjectReference(Id("t1"))), Id("a")))),
+          None,
+          None))))
+
+    example(
+      query = "DELETE FROM t FROM t1 WHERE t.a = t1.a OPTION (KEEP PLAN)",
+      expectedAst = Batch(
+        Seq(DeleteFromTable(
+          NamedTable("t", Map(), is_streaming = false),
+          Some(NamedTable("t1", Map(), is_streaming = false)),
+          Some(
+            Equals(Column(Some(ObjectReference(Id("t"))), Id("a")), Column(Some(ObjectReference(Id("t1"))), Id("a")))),
+          None,
+          Some(Options(Map("KEEP" -> Column(None, Id("PLAN"))), Map.empty, Map.empty, List.empty))))))
+  }
 }
