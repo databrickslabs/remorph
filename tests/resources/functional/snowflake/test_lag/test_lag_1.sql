@@ -1,6 +1,6 @@
 
 -- snowflake sql:
-SELECT lag(col1) AS lag_col1 FROM tabl;
+SELECT lag(col1) OVER (PARTITION BY col1 ORDER BY col2) AS lag_col1 FROM tabl;
 
 -- databricks sql:
-SELECT LAG(col1) AS lag_col1 FROM tabl;
+SELECT LAG(col1) OVER (PARTITION BY col1 ORDER BY col2 NULLS LAST) AS lag_col1 FROM tabl;
