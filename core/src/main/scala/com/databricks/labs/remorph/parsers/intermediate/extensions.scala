@@ -54,8 +54,6 @@ case class RLike(expression: Expression, pattern: Expression) extends Expression
 
 case class IsNull(expression: Expression) extends Expression {}
 
-// TODO: TSQL grammar has a number of operators not yet supported - add them here, if not already supported
-
 // Operators, in order of precedence
 
 // Bitwise NOT is highest precedence after parens '(' ')'
@@ -86,6 +84,7 @@ case class Assign(left: Expression, right: Expression) extends Binary(left, righ
 
 // Some statements, such as SELECT, do not require a table specification
 case class NoTable() extends Relation {}
+case class LocalVarTable(id: Id) extends Relation {}
 
 // Table hints are not directly supported in Databricks SQL, but at least some of
 // them will have direct equivalents for the Catalyst optimizer. Hence they are
@@ -206,6 +205,22 @@ case class BackupDatabase(
     autoFlags: Seq[String],
     values: Map[String, Expression])
     extends Command {}
+
+case class Output(target: Relation, outputs: Seq[Expression], columns: Option[Seq[Column]]) extends RelationCommon
+
+// Used for DML other than SELECT
+abstract class Modification extends Relation
+
+case class InsertIntoTable(
+    target: Relation,
+    columns: Option[Seq[Column]],
+    values: Relation,
+    output: Option[Relation],
+    options: Option[Expression])
+    extends Modification {}
+
+case class DerivedRows(rows: Seq[Seq[Expression]]) extends Relation
+case class DefaultValues() extends Relation
 
 // The default case for the expression parser needs to be explicitly defined to distinguish [DEFAULT]
 case class Default() extends Expression {}

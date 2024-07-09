@@ -1609,14 +1609,14 @@ deleteStatement
 deleteStatementFrom: ddlObject | rowsetFunctionLimited | tableVar = LOCAL_ID
     ;
 
-insertStatement
-    : withExpression? INSERT (TOP LPAREN expression RPAREN PERCENT?)? INTO? (
-        ddlObject
-        | rowsetFunctionLimited
-    ) withTableHints? (LPAREN insertColumnNameList RPAREN)? outputClause? insertStatementValue forClause? optionClause? SEMI?
+insertStatement: withExpression? insert
     ;
 
-insertStatementValue: tableValueConstructor | derivedTable | executeStatement | DEFAULT VALUES
+insert
+    : INSERT topClause? INTO? ddlObject withTableHints? (LPAREN expressionList RPAREN)? outputClause? insertStatementValue optionClause? SEMI?
+    ;
+
+insertStatementValue: derivedTable | executeStatement | DEFAULT VALUES
     ;
 
 receiveStatement
@@ -1642,7 +1642,7 @@ updateStatement
 
 outputClause
     : OUTPUT outputDmlListElem (COMMA outputDmlListElem)* (
-        INTO (LOCAL_ID | tableName) ( LPAREN columnNameList RPAREN)?
+        INTO ddlObject ( LPAREN columnNameList RPAREN)?
     )?
     ;
 
@@ -3082,11 +3082,7 @@ rowsetFunction
 bulkOption: id EQ bulkOptionValue = (INT | STRING)
     ;
 
-derivedTable
-    : subquery
-    | LPAREN subquery (UNION ALL subquery)* RPAREN
-    | tableValueConstructor
-    | LPAREN tableValueConstructor RPAREN
+derivedTable: subquery | tableValueConstructor | LPAREN tableValueConstructor RPAREN
     ;
 
 functionCall
@@ -3168,7 +3164,7 @@ asColumnAlias: AS? columnAlias
 asTableAlias: AS? (id | DOUBLE_QUOTE_ID)
     ;
 
-withTableHints: WITH? LPAREN tableHint (COMMA? tableHint)* RPAREN
+withTableHints: WITH LPAREN tableHint (COMMA? tableHint)* RPAREN
     ;
 
 deprecatedTableHint: LPAREN tableHint RPAREN
@@ -3192,8 +3188,10 @@ columnAliasList: LPAREN columnAlias (COMMA columnAlias)* RPAREN
 columnAlias: id | STRING
     ;
 
-tableValueConstructor
-    : VALUES LPAREN exps += expressionList RPAREN (COMMA LPAREN exps += expressionList RPAREN)*
+tableValueConstructor: VALUES tableValueRow (COMMA tableValueRow)*
+    ;
+
+tableValueRow: LPAREN expressionList RPAREN
     ;
 
 expressionList: exp += expression (COMMA exp += expression)*
@@ -3281,7 +3279,7 @@ funcProcNameServerDatabaseSchema
     | funcProcNameDatabaseSchema
     ;
 
-ddlObject: tableName | LOCAL_ID
+ddlObject: tableName | rowsetFunctionLimited | LOCAL_ID
     ;
 
 fullColumnName: ((DELETED | INSERTED | tableName) DOT)? ( id | (DOLLAR (IDENTITY | ROWGUID)))
@@ -3290,10 +3288,10 @@ fullColumnName: ((DELETED | INSERTED | tableName) DOT)? ( id | (DOLLAR (IDENTITY
 columnNameListWithOrder: id (ASC | DESC)? (COMMA id (ASC | DESC)?)*
     ;
 
-insertColumnNameList: col += insertColumnId (COMMA col += insertColumnId)*
+insertColumnNameList: insertColumnId (COMMA insertColumnId)*
     ;
 
-insertColumnId: (ignore += id? DOT)* id
+insertColumnId: (id? DOT)* id
     ;
 
 columnNameList: id (COMMA id)*
