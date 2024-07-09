@@ -407,9 +407,16 @@ case class UpdateTable(
 
 case class UpdateTable(
     target: Relation,
-    top: Relation,
-    source: Relation,
+    source: Option[Relation],
     set: Seq[Expression],
+    where: Option[Expression],
+    output: Option[Relation],
+    options: Option[Expression])
+    extends Modification {}
+
+case class DeleteFromTable(
+    target: Relation,
+    source: Option[Relation],
     where: Option[Expression],
     output: Option[Relation],
     options: Option[Expression])

@@ -243,6 +243,15 @@ object TSqlErrorStrategy {
     "joinSubqueryTableSubqueryExpression" -> "JOIN subquery table subquery expression",
     "joinSubqueryTableSubqueryOperator" -> "JOIN subquery table subquery operator",
     "joinSubqueryTableSubqueryTable" -> "JOIN subquery table subquery table",
+    "updateStatement" -> "UPDATE statement",
+    "update" -> "UPDATE statement",
+    "topClause" -> "TOP clause",
+    "ddlObject" -> "TABLE object",
+    "withTableHints" -> "WITH table hints",
+    "updateElem" -> "UPDATE element specification",
+    "outputClause" -> "OUTPUT clause",
+    "updateWhereClause" -> "WHERE clause",
+    "optionClause" -> "OPTION clause",
 
     // Etc
     "tableSource" -> "table source",

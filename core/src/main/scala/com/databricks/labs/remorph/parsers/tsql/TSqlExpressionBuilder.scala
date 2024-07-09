@@ -34,16 +34,22 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
   override def visitUpdateElemCol(ctx: TSqlParser.UpdateElemColContext): ir.Expression = {
     val value = ctx.expression().accept(this)
     val target1 = Option(ctx.l2)
-      .map(_.getText)
-      .getOrElse(ctx.fullColumnName().accept(this).asInstanceOf[ir.Identifier].name)
-    val a1 = buildAssign(ir.Identifier(target1, isQuoted = false), value, ctx.op)
+      .map(l2 => ir.Identifier(l2.getText, isQuoted = false))
+      .getOrElse(ctx.fullColumnName().accept(this))
+    val a1 = buildAssign(target1, value, ctx.op)
     Option(ctx.l1).map(l1 => ir.Assign(ir.Identifier(l1.getText, isQuoted = false), a1)).getOrElse(a1)
   }
 
   override def visitUpdateElemUdt(ctx: TSqlParser.UpdateElemUdtContext): ir.Expression = {
     val args = ctx.expressionList().expression().asScala.map(_.accept(this))
     val fName = ctx.id(0).getText + "." + ctx.id(1).getText
-    functionBuilder.buildFunction(fName, args)
+    val functionResult = functionBuilder.buildFunction(fName, args)
+
+    functionResult match {
+      case unresolvedFunction: ir.UnresolvedFunction =>
+        unresolvedFunction.copy(is_user_defined_function = true)
+      case _ => functionResult
+    }
   }
 
   override def visitUpdateWhereClause(ctx: UpdateWhereClauseContext): ir.Expression = {

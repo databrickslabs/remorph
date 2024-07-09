@@ -804,4 +804,69 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
           None,
           overwrite = false))))
   }
+
+  "should translate UPDATE statements" in {
+    example(
+      query = "UPDATE t SET a = 1, b = 2",
+      expectedAst = Batch(
+        Seq(UpdateTable(
+          NamedTable("t", Map(), is_streaming = false),
+          None,
+          Seq(
+            Assign(Column(None, Id("a")), Literal(short = Some(1))),
+            Assign(Column(None, Id("b")), Literal(short = Some(2)))),
+          None,
+          None,
+          None))))
+
+    example(
+      query = "UPDATE t SET a = 1, b = 2 OUTPUT INSERTED.a as a_lias, INSERTED.b INTO Inserted(a, b)",
+      expectedAst = Batch(
+        Seq(UpdateTable(
+          NamedTable("t", Map(), is_streaming = false),
+          None,
+          Seq(
+            Assign(Column(None, Id("a")), Literal(short = Some(1))),
+            Assign(Column(None, Id("b")), Literal(short = Some(2)))),
+          None,
+          Some(Output(
+            NamedTable("Inserted", Map(), is_streaming = false),
+            Seq(
+              Alias(Column(Some(ObjectReference(Id("INSERTED"))), Id("a")), Seq(Id("a_lias")), None),
+              Column(Some(ObjectReference(Id("INSERTED"))), Id("b"))),
+            Some(Seq(Column(None, Id("a")), Column(None, Id("b")))))),
+          None))))
+
+    example(
+      query = "UPDATE t SET a = 1, b = 2 FROM t1 WHERE t.a = t1.a",
+      expectedAst = Batch(
+        Seq(UpdateTable(
+          NamedTable("t", Map(), is_streaming = false),
+          Some(NamedTable("t1", Map(), is_streaming = false)),
+          Seq(
+            Assign(Column(None, Id("a")), Literal(short = Some(1))),
+            Assign(Column(None, Id("b")), Literal(short = Some(2)))),
+          Some(
+            Equals(Column(Some(ObjectReference(Id("t"))), Id("a")), Column(Some(ObjectReference(Id("t1"))), Id("a")))),
+          None,
+          None))))
+
+    example(
+      query = "UPDATE t SET a = 1, udf.Transform(b) FROM t1 WHERE t.a = t1.a OPTION (KEEP PLAN)",
+      expectedAst = Batch(
+        Seq(UpdateTable(
+          NamedTable("t", Map(), is_streaming = false),
+          Some(NamedTable("t1", Map(), is_streaming = false)),
+          Seq(
+            Assign(Column(None, Id("a")), Literal(short = Some(1))),
+            UnresolvedFunction(
+              "udf.Transform",
+              Seq(Column(None, Id("b"))),
+              is_distinct = false,
+              is_user_defined_function = true)),
+          Some(
+            Equals(Column(Some(ObjectReference(Id("t"))), Id("a")), Column(Some(ObjectReference(Id("t1"))), Id("a")))),
+          None,
+          Some(Options(Map("KEEP" -> Column(None, Id("PLAN"))), Map.empty, Map.empty, List.empty))))))
+  }
 }

@@ -1600,13 +1600,11 @@ mergeMatched: UPDATE SET updateElem (COMMA updateElem)* | DELETE
 mergeNotMatched: INSERT (LPAREN columnNameList RPAREN)? ( tableValueConstructor | DEFAULT VALUES)
     ;
 
-deleteStatement
-    : withExpression? DELETE (TOP LPAREN expression RPAREN PERCENT? | TOP INT)? FROM? deleteStatementFrom withTableHints? outputClause? (
-        FROM tableSources
-    )? (WHERE ( searchCondition | CURRENT OF ( GLOBAL? cursorName | cursorVar = LOCAL_ID)))? forClause? optionClause? SEMI?
+deleteStatement: withExpression? delete
     ;
 
-deleteStatementFrom: ddlObject | rowsetFunctionLimited | tableVar = LOCAL_ID
+delete
+    : DELETE topClause? FROM? ddlObject withTableHints? outputClause? (FROM tableSources)? updateWhereClause? optionClause? SEMI?
     ;
 
 insertStatement: withExpression? insert
