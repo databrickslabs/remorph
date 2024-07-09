@@ -10,7 +10,7 @@ import scala.collection.JavaConverters._
 class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with ParserCommon[ir.Expression] {
 
   private val functionBuilder = new TSqlFunctionBuilder
-  private val optionBuilder = new OptionBuilder(this)
+  private[tsql] val optionBuilder = new OptionBuilder(this)
   private val dataTypeBuilder: DataTypeBuilder = new DataTypeBuilder
 
   override def visitSelectListElem(ctx: TSqlParser.SelectListElemContext): ir.Expression = {
@@ -258,10 +258,10 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
     case c if c.SQUARE_BRACKET_ID() != null =>
       ir.Id(ctx.getText.trim.stripPrefix("[").stripSuffix("]"), caseSensitive = true)
     case c if c.RAW() != null => ir.Id(ctx.getText, caseSensitive = false)
-    case _ => ir.Id(ctx.getText, caseSensitive = false)
+    case _ => ir.Id(removeQuotes(ctx.getText), caseSensitive = false)
   }
 
-  private def removeQuotes(str: String): String = {
+  private[tsql] def removeQuotes(str: String): String = {
     str.stripPrefix("'").stripSuffix("'")
   }
 
