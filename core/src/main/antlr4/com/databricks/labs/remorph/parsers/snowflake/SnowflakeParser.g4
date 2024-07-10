@@ -3226,7 +3226,15 @@ functionCall: builtinFunction | standardFunction | rankingWindowedFunction | agg
 builtinFunction: EXTRACT L_PAREN part = (STRING | ID) FROM expr R_PAREN # builtinExtract
     ;
 
-standardFunction: id L_PAREN (exprList | paramAssocList)? R_PAREN
+standardFunction: functionName L_PAREN (exprList | paramAssocList)? R_PAREN
+    ;
+
+functionName: id | nonReservedFunctionName
+    ;
+
+nonReservedFunctionName
+    : LEFT
+    | RIGHT // keywords that cannot be used as id, but can be used as function names
     ;
 
 paramAssocList: paramAssoc (COMMA paramAssoc)*

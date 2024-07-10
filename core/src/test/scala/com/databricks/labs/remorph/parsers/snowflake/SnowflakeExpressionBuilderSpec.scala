@@ -58,6 +58,10 @@ class SnowflakeExpressionBuilderSpec
       example("EXTRACT('day' FROM date1)", _.builtinFunction(), CallFunction("EXTRACT", Seq(Id("day"), Id("date1"))))
     }
 
+    "translate functions named with a keyword" in {
+      example("LEFT(foo, bar)", _.standardFunction(), CallFunction("LEFT", Seq(Id("foo"), Id("bar"))))
+      example("RIGHT(foo, bar)", _.standardFunction(), CallFunction("RIGHT", Seq(Id("foo"), Id("bar"))))
+    }
     "translate aggregation functions" in {
       example("COUNT(x)", _.aggregateFunction(), CallFunction("COUNT", Seq(Id("x"))))
       example("AVG(x)", _.aggregateFunction(), CallFunction("AVG", Seq(Id("x"))))
