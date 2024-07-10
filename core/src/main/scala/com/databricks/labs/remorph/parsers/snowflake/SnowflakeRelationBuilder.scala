@@ -118,12 +118,34 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.Relation] w
     }
   }
 
-  override def visitObjRefSubquery(ctx: ObjRefSubqueryContext): ir.Relation = {
-    val subquery = ctx.subquery().accept(this)
-    Option(ctx.asAlias())
-      .map(a => ir.SubqueryAlias(subquery, expressionBuilder.visitId(a.alias().id()), ""))
-      .getOrElse(subquery)
+  override def visitObjRefTableFunc(ctx: ObjRefTableFuncContext): ir.Relation = {
+    val tableFunc = ir.TableFunction(ctx.functionCall().accept(expressionBuilder))
+    buildSubqueryAlias(ctx.tableAlias(), buildPivotOrUnpivot(ctx.pivotUnpivot(), tableFunc))
   }
+
+  override def visitObjRefSubquery(ctx: ObjRefSubqueryContext): ir.Relation = {
+    val relation = ctx match {
+      case c if c.subquery() != null => c.subquery().accept(this)
+      case c if c.functionCall() != null => ir.TableFunction(c.functionCall().accept(expressionBuilder))
+    }
+    val maybeLateral = if (ctx.LATERAL() != null) {
+      ir.Lateral(relation)
+    } else {
+      relation
+    }
+    buildSubqueryAlias(ctx.tableAlias(), buildPivotOrUnpivot(ctx.pivotUnpivot(), maybeLateral))
+  }
+
+  private def buildSubqueryAlias(ctx: TableAliasContext, input: ir.Relation): ir.Relation = {
+    Option(ctx)
+      .map(a =>
+        ir.SubqueryAlias(
+          input,
+          expressionBuilder.visitId(a.alias().id()),
+          a.id().asScala.map(expressionBuilder.visitId)))
+      .getOrElse(input)
+  }
+
   override def visitObjRefValues(ctx: ObjRefValuesContext): ir.Relation = {
     val expressions =
       ctx

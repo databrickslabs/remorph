@@ -10,7 +10,7 @@ import scala.collection.JavaConverters._
 class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with ParserCommon[ir.Expression] {
 
   private val functionBuilder = new TSqlFunctionBuilder
-  private val optionBuilder = new OptionBuilder(this)
+  private[tsql] val optionBuilder = new OptionBuilder(this)
   private val dataTypeBuilder: DataTypeBuilder = new DataTypeBuilder
 
   override def visitSelectListElem(ctx: TSqlParser.SelectListElemContext): ir.Expression = {
@@ -258,10 +258,10 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
     case c if c.SQUARE_BRACKET_ID() != null =>
       ir.Id(ctx.getText.trim.stripPrefix("[").stripSuffix("]"), caseSensitive = true)
     case c if c.RAW() != null => ir.Id(ctx.getText, caseSensitive = false)
-    case _ => ir.Id(ctx.getText, caseSensitive = false)
+    case _ => ir.Id(removeQuotes(ctx.getText), caseSensitive = false)
   }
 
-  private def removeQuotes(str: String): String = {
+  private[tsql] def removeQuotes(str: String): String = {
     str.stripPrefix("'").stripSuffix("'")
   }
 
@@ -464,6 +464,16 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
     // functions. We do need to generate IR that indicates that this is a function that is not supported.
     functionBuilder.buildFunction("HIERARCHYID", List.empty)
   }
+
+  override def visitOutputDmlListElem(ctx: OutputDmlListElemContext): ir.Expression = {
+    val expression = Option(ctx.expression()).map(_.accept(this)).getOrElse(ctx.asterisk().accept(this))
+    val aliasOption = Option(ctx.asColumnAlias()).map(_.columnAlias()).map { alias =>
+      val name = Option(alias.id()).map(visitId).getOrElse(ir.Id(alias.STRING().getText))
+      ir.Alias(expression, Seq(name), None)
+    }
+    aliasOption.getOrElse(expression)
+  }
+
 
   // format: off
   /**

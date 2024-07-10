@@ -3,10 +3,10 @@ CREATE TABLE IF NOT EXISTS main (
     recon_id STRING NOT NULL,
     source_type STRING NOT NULL,
     source_table STRUCT<
-                         catalog: STRING NOT NULL,
+                         catalog: STRING,
                          schema: STRING NOT NULL,
                          table_name: STRING NOT NULL
-                        > NOT NULL,
+                        > ,
     target_table STRUCT<
                          catalog: STRING NOT NULL,
                          schema: STRING NOT NULL,

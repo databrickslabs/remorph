@@ -517,7 +517,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
           Project(
             Limit(
               NamedTable("Employees", Map(), is_streaming = false),
-              Literal(integer = Some(10)),
+              Literal(short = Some(10)),
               is_percentage = false,
               with_ties = false),
             Seq(Star(None))))))
@@ -529,7 +529,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
           Project(
             Limit(
               NamedTable("Employees", Map(), is_streaming = false),
-              Literal(integer = Some(10)),
+              Literal(short = Some(10)),
               is_percentage = true,
               with_ties = false),
             Seq(Star(None))))))
@@ -541,7 +541,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
           Project(
             Limit(
               NamedTable("Employees", Map(), is_streaming = false),
-              Literal(integer = Some(10)),
+              Literal(short = Some(10)),
               is_percentage = true,
               with_ties = true),
             Seq(Star(None))))))
@@ -557,7 +557,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
               NamedTable("Employees", Map(), is_streaming = false),
               Seq(SortOrder(simplyNamedColumn("Salary"), AscendingSortDirection, SortNullsUnspecified)),
               is_global = false),
-            Literal(integer = Some(10))),
+            Literal(short = Some(10))),
           Seq(Star(None))))))
 
     example(
@@ -570,8 +570,8 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
                 NamedTable("Employees", Map(), is_streaming = false),
                 Seq(SortOrder(simplyNamedColumn("Salary"), AscendingSortDirection, SortNullsUnspecified)),
                 is_global = false),
-              Literal(integer = Some(10))),
-            Literal(integer = Some(5))),
+              Literal(short = Some(10))),
+            Literal(short = Some(5))),
           Seq(Star(None))))))
   }
 
@@ -586,7 +586,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
                 NamedTable("Employees", Map(), is_streaming = false),
                 Seq(SortOrder(simplyNamedColumn("Salary"), AscendingSortDirection, SortNullsUnspecified)),
                 is_global = false),
-              Literal(integer = Some(10))),
+              Literal(short = Some(10))),
             List(),
             all_columns_as_keys = true,
             within_watermark = false),
@@ -603,8 +603,8 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
                   NamedTable("Employees", Map(), is_streaming = false),
                   List(SortOrder(Column(None, Id("Salary")), AscendingSortDirection, SortNullsUnspecified)),
                   is_global = false),
-                Literal(integer = Some(10))),
-              Literal(integer = Some(5))),
+                Literal(short = Some(10))),
+              Literal(short = Some(5))),
             List(),
             all_columns_as_keys = true,
             within_watermark = false),
@@ -681,8 +681,8 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
 
   "parse and ignore IR for the FOR clause in a SELECT statement" in {
     example(
-      query = "SELECT * FROM t FOR XML RAW",
-      expectedAst = Batch(Seq(Project(NamedTable("t", Map(), is_streaming = false), Seq(Star(None))))))
+      query = "SELECT * FROM DAYS FOR XML RAW",
+      expectedAst = Batch(Seq(Project(NamedTable("DAYS", Map(), is_streaming = false), Seq(Star(None))))))
   }
 
   "parse and collect the options in the OPTION clause in a SELECT statement" in {
@@ -690,11 +690,155 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
       query = """SELECT * FROM t FOR XML RAW
             OPTION (
             MAXRECURSION 10,
-            OPTIMIZE FOR UNKNOWN,
+            OPTIMIZE [FOR] UNKNOWN,
             SOMETHING ON,
             SOMETHINGELSE OFF,
             SOMEOTHER AUTO,
             SOMEstrOpt = 'STRINGOPTION')""",
       expectedAst = Batch(Seq(Project(NamedTable("t", Map(), is_streaming = false), Seq(Star(None))))))
+  }
+
+  "parse and collect table hints for named table select statements in all variants" in {
+    example(
+      query = "SELECT * FROM t WITH (NOLOCK)",
+      expectedAst = Batch(
+        Seq(
+          Project(
+            TableWithHints(NamedTable("t", Map(), is_streaming = false), Seq(FlagHint("NOLOCK"))),
+            Seq(Star(None))))))
+    example(
+      query = "SELECT * FROM t WITH (FORCESEEK)",
+      expectedAst = Batch(
+        Seq(
+          Project(
+            TableWithHints(NamedTable("t", Map(), is_streaming = false), Seq(ForceSeekHint(None, None))),
+            Seq(Star(None))))))
+    example(
+      query = "SELECT * FROM t WITH (FORCESEEK(1 (Col1, Col2)))",
+      expectedAst = Batch(
+        Seq(Project(
+          TableWithHints(
+            NamedTable("t", Map(), is_streaming = false),
+            Seq(ForceSeekHint(Some(Literal(short = Some(1))), Some(Seq(Id("Col1"), Id("Col2")))))),
+          Seq(Star(None))))))
+    example(
+      query = "SELECT * FROM t WITH (INDEX = (Bill, Ted))",
+      expectedAst = Batch(
+        Seq(
+          Project(
+            TableWithHints(NamedTable("t", Map(), is_streaming = false), Seq(IndexHint(Seq(Id("Bill"), Id("Ted"))))),
+            Seq(Star(None))))))
+    example(
+      query = "SELECT * FROM t WITH (FORCESEEK, INDEX = (Bill, Ted))",
+      expectedAst = Batch(
+        Seq(
+          Project(
+            TableWithHints(
+              NamedTable("t", Map(), is_streaming = false),
+              Seq(ForceSeekHint(None, None), IndexHint(Seq(Id("Bill"), Id("Ted"))))),
+            Seq(Star(None))))))
+  }
+
+  "translate INSERT statements" in {
+    example(
+      query = "INSERT INTO t (a, b) VALUES (1, 2)",
+      expectedAst = Batch(
+        Seq(InsertIntoTable(
+          NamedTable("t", Map(), is_streaming = false),
+          Some(Seq(Column(None, Id("a")), Column(None, Id("b")))),
+          DerivedRows(Seq(Seq(Literal(short = Some(1)), Literal(short = Some(2))))),
+          None,
+          None))))
+
+    example(
+      query = "INSERT INTO @LocalVar (a, b) VALUES (1, 2)",
+      expectedAst = Batch(
+        Seq(InsertIntoTable(
+          LocalVarTable(Id("@LocalVar")),
+          Some(Seq(Column(None, Id("a")), Column(None, Id("b")))),
+          DerivedRows(Seq(Seq(Literal(short = Some(1)), Literal(short = Some(2))))),
+          None,
+          None))))
+
+    example(
+      query = "INSERT INTO t (a, b) VALUES (1, 2), (3, 4)",
+      expectedAst = Batch(
+        Seq(InsertIntoTable(
+          NamedTable("t", Map(), is_streaming = false),
+          Some(Seq(Column(None, Id("a")), Column(None, Id("b")))),
+          DerivedRows(Seq(
+            Seq(Literal(short = Some(1)), Literal(short = Some(2))),
+            Seq(Literal(short = Some(3)), Literal(short = Some(4))))),
+          None,
+          None))))
+
+    example(
+      query = "INSERT INTO t WITH (TABLOCK) (a, b) VALUES (1, 2)",
+      expectedAst = Batch(
+        Seq(InsertIntoTable(
+          TableWithHints(NamedTable("t", Map(), is_streaming = false), List(FlagHint("TABLOCK"))),
+          Some(Seq(Column(None, Id("a")), Column(None, Id("b")))),
+          DerivedRows(Seq(Seq(Literal(short = Some(1)), Literal(short = Some(2))))),
+          None,
+          None))))
+
+    example(
+      query = "INSERT INTO t DEFAULT VALUES",
+      expectedAst =
+        Batch(Seq(InsertIntoTable(NamedTable("t", Map(), is_streaming = false), None, DefaultValues(), None, None))))
+
+    example(
+      query = "INSERT INTO t (a, b) OUTPUT INSERTED.a as a_lias, INSERTED.b INTO Inserted(a, b) VALUES (1, 2)",
+      expectedAst = Batch(
+        List(InsertIntoTable(
+          NamedTable("t", Map(), is_streaming = false),
+          Some(List(Column(None, Id("a")), Column(None, Id("b")))),
+          DerivedRows(List(List(Literal(short = Some(1)), Literal(short = Some(2))))),
+          Some(Output(
+            NamedTable("Inserted", Map(), is_streaming = false),
+            List(
+              Alias(Column(Some(ObjectReference(Id("INSERTED"))), Id("a")), Seq(Id("a_lias")), None),
+              Column(Some(ObjectReference(Id("INSERTED"))), Id("b"))),
+            Some(List(Column(None, Id("a")), Column(None, Id("b")))))),
+          None))))
+
+    example(
+      query = "WITH wtab AS (SELECT * FROM t) INSERT INTO t (a, b) select * from wtab",
+      expectedAst = Batch(
+        Seq(WithCTE(
+          Seq(
+            CTEDefinition("wtab", List.empty, Project(NamedTable("t", Map(), is_streaming = false), Seq(Star(None))))),
+          InsertIntoTable(
+            NamedTable("t", Map(), is_streaming = false),
+            Some(Seq(Column(None, Id("a")), Column(None, Id("b")))),
+            Project(NamedTable("wtab", Map(), is_streaming = false), Seq(Star(None))),
+            None,
+            None)))))
+
+    example(
+      query = """
+           INSERT INTO ConsolidatedRecords (ID, Name)
+              SELECT ID, Name
+              FROM (
+                SELECT ID, Name
+                FROM TableA
+                  UNION
+                SELECT ID, Name
+                FROM TableB)
+              AS DerivedTable;""",
+      expectedAst = Batch(
+        Seq(InsertIntoTable(
+          NamedTable("ConsolidatedRecords", Map(), is_streaming = false),
+          Some(Seq(Column(None, Id("ID")), Column(None, Id("Name")))),
+          Project(
+            TableAlias(
+              Project(
+                NamedTable("TableB", Map(), is_streaming = false),
+                Seq(Column(None, Id("ID")), Column(None, Id("Name")))),
+              "DerivedTable"),
+            Seq(Column(None, Id("ID")), Column(None, Id("Name")))),
+          None,
+          None))))
+
   }
 }

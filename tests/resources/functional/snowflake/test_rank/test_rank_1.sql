@@ -1,6 +1,6 @@
 
 -- snowflake sql:
-SELECT rank(col1) AS rank_col1 FROM tabl;
+SELECT rank() over (partition by col1 order by col2)  AS rank_col1 FROM tabl;
 
 -- databricks sql:
-SELECT RANK(col1) AS rank_col1 FROM tabl;
+SELECT RANK() OVER (PARTITION BY col1 ORDER BY col2 NULLS LAST) AS rank_col1 FROM tabl;

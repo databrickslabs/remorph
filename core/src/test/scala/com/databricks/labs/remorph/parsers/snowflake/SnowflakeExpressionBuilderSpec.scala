@@ -33,6 +33,8 @@ class SnowflakeExpressionBuilderSpec
       example("0.123456789", _.literal(), Literal(double = Some(0.123456789)))
       example("0.123456789e-1234", _.literal(), Literal(decimal = Some(Decimal("0.123456789e-1234", None, None))))
       example("'foo'", _.literal(), Literal(string = Some("foo")))
+      example("DATE'1970-01-01'", _.literal(), Literal(date = Some(0)))
+      example("TIMESTAMP'1970-01-01 00:00:00'", _.literal(), Literal(timestamp = Some(0)))
     }
 
     "translate ids (quoted or not)" in {
@@ -249,6 +251,8 @@ class SnowflakeExpressionBuilderSpec
       val literal = mock[LiteralContext]
       astBuilder.visitLiteral(literal) shouldBe Literal(nullType = Some(NullType()))
       verify(literal).sign()
+      verify(literal).DATE_LIT()
+      verify(literal).TIMESTAMP_LIT()
       verify(literal).STRING()
       verify(literal).DECIMAL()
       verify(literal).FLOAT()

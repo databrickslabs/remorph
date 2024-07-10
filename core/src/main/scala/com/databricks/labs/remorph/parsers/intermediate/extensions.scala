@@ -44,7 +44,8 @@ case class Case(expression: Option[Expression], branches: Seq[WhenBranch], other
 
 case class Exists(relation: Relation) extends Expression {}
 
-case class IsIn(relation: Relation, expression: Expression) extends Expression {}
+case class IsInRelation(relation: Relation, expression: Expression) extends Expression {}
+case class IsInCollection(collection: Seq[Expression], expression: Expression) extends Expression {}
 
 case class Like(expression: Expression, patterns: Seq[Expression], escape: Option[Expression], caseSensitive: Boolean)
     extends Expression {}
@@ -52,8 +53,6 @@ case class Like(expression: Expression, patterns: Seq[Expression], escape: Optio
 case class RLike(expression: Expression, pattern: Expression) extends Expression {}
 
 case class IsNull(expression: Expression) extends Expression {}
-
-// TODO: TSQL grammar has a number of operators not yet supported - add them here, if not already supported
 
 // Operators, in order of precedence
 
@@ -85,11 +84,21 @@ case class Assign(left: Expression, right: Expression) extends Binary(left, righ
 
 // Some statements, such as SELECT, do not require a table specification
 case class NoTable() extends Relation {}
+case class LocalVarTable(id: Id) extends Relation {}
+
+// Table hints are not directly supported in Databricks SQL, but at least some of
+// them will have direct equivalents for the Catalyst optimizer. Hence they are
+// included in the AST for the code generator to use them if it can. At worst,
+// a comment can be generated with the hint text to guide the conversion.
+abstract class TableHint
+case class FlagHint(name: String) extends TableHint
+case class IndexHint(indexes: Seq[Expression]) extends TableHint
+case class ForceSeekHint(index: Option[Expression], indexColumns: Option[Seq[Expression]]) extends TableHint
 
 // It was not clear whether the NamedTable options should be used for the alias. I'm assuming it is not what
 // they are for.
 case class TableAlias(relation: Relation, alias: String) extends Relation {}
-
+case class TableWithHints(relation: Relation, hints: Seq[TableHint]) extends Relation {}
 case class Batch(statements: Seq[Plan]) extends Plan
 
 case class FunctionParameter(name: String, dataType: DataType, defaultValue: Option[Expression])
@@ -197,6 +206,22 @@ case class BackupDatabase(
     values: Map[String, Expression])
     extends Command {}
 
+case class Output(target: Relation, outputs: Seq[Expression], columns: Option[Seq[Column]]) extends RelationCommon
+
+// Used for DML other than SELECT
+abstract class Modification extends Relation
+
+case class InsertIntoTable(
+    target: Relation,
+    columns: Option[Seq[Column]],
+    values: Relation,
+    output: Option[Relation],
+    options: Option[Expression])
+    extends Modification {}
+
+case class DerivedRows(rows: Seq[Seq[Expression]]) extends Relation
+case class DefaultValues() extends Relation
+
 // The default case for the expression parser needs to be explicitly defined to distinguish [DEFAULT]
 case class Default() extends Expression {}
 
@@ -206,3 +231,8 @@ case class Default() extends Expression {}
 // than some simple prescribed action.
 case object CrossApply extends JoinType
 case object OuterApply extends JoinType
+
+case class ColumnAliases(input: Relation, aliases: Seq[Id]) extends RelationCommon {}
+
+case class TableFunction(functionCall: Expression) extends Relation {}
+case class Lateral(expr: Relation) extends Relation {}

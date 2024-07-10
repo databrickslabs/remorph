@@ -11,6 +11,9 @@ trait TSqlParserTestCommon extends ParserTestCommon[TSqlParser] { self: Assertio
   override protected def makeErrHandler(chars: String): ErrorCollector =
     new ProductionErrorCollector(chars, "-- test string --")
 
-  override final protected def makeParser(tokenStream: TokenStream): TSqlParser =
-    new TSqlParser(tokenStream)
+  override final protected def makeParser(tokenStream: TokenStream): TSqlParser = {
+    val parser = new TSqlParser(tokenStream)
+    parser.setErrorHandler(new TSqlErrorStrategy)
+    parser
+  }
 }

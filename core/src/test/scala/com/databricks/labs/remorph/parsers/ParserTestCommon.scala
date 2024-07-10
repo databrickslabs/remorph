@@ -1,8 +1,8 @@
 package com.databricks.labs.remorph.parsers
 
 import com.databricks.labs.remorph.parsers.intermediate.TreeNode
-import org.antlr.v4.runtime.tree.ParseTreeVisitor
 import org.antlr.v4.runtime._
+import org.antlr.v4.runtime.tree.ParseTreeVisitor
 import org.scalatest.{Assertion, Assertions}
 
 trait ParserTestCommon[P <: Parser] { self: Assertions =>
@@ -38,6 +38,25 @@ trait ParserTestCommon[P <: Parser] { self: Assertions =>
     val result = astBuilder.visit(sfTree)
 
     assert(result == expectedAst, s"\nFor input string\n$query\nactual result:\n$result\nexpected\n$expectedAst")
+  }
+
+  /**
+   * Used to pass intentionally bad syntax to the parser and check that it fails with an expected error
+   * @param query
+   * @param rule
+   * @tparam R
+   * @return
+   */
+  protected def checkError[R <: RuleContext](query: String, rule: P => R, errContains: String): Assertion = {
+    parseString(query, rule)
+    if (errHandler != null && errHandler.errorCount == 0) {
+      fail(s"Expected an error in the input string\n$query\nbut no errors were found")
+    }
+
+    val errors = errHandler.formatErrors
+    assert(
+      errors.exists(_.contains(errContains)),
+      s"Expected error containing '$errContains' but got:\n${errors.mkString("\n")}")
   }
 
 }

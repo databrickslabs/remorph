@@ -15,6 +15,9 @@ from databricks.sdk.errors import InvalidParameterValue
 from databricks.sdk.service import compute
 from databricks.sdk.service.jobs import Task, PythonWheelTask, JobCluster, JobSettings
 
+from databricks.labs.remorph.config import ReconcileConfig
+from databricks.labs.remorph.reconcile.constants import SourceType
+
 logger = logging.getLogger(__name__)
 
 TEST_JOBS_PURGE_TIMEOUT = timedelta(hours=1, minutes=15)
@@ -48,11 +51,13 @@ class JobDeployer:
         installation: Installation,
         install_state: InstallState,
         product_info: ProductInfo,
+        recon_config: ReconcileConfig,
     ):
         self._ws = workspace_client
         self._installation = installation
         self._install_state = install_state
         self._product_info = product_info
+        self._recon_config = recon_config
 
     def deploy_job(self) -> str:
         logger.info("Deploying reconciliation job.")
@@ -133,11 +138,17 @@ class JobDeployer:
         }
 
     def _job_recon_task(self, jobs_task: Task) -> Task:
-        # TODO: fetch a version list for `ojdbc8` and use the second latest version instead of hardcoding
         libraries = [
             compute.Library(pypi=compute.PythonPyPiLibrary("databricks-labs-remorph")),
-            compute.Library(maven=compute.MavenLibrary("com.oracle.database.jdbc:ojdbc8:23.4.0.24.05")),
         ]
+        source = self._recon_config.data_source
+        if source == SourceType.ORACLE.value:
+            # TODO: Automatically fetch a version list for `ojdbc8` and
+            #  use the second latest version instead of hardcoding
+            libraries.append(
+                compute.Library(maven=compute.MavenLibrary("com.oracle.database.jdbc:ojdbc8:23.4.0.24.05")),
+            )
+
         return dataclasses.replace(
             jobs_task,
             libraries=libraries,

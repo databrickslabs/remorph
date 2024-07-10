@@ -62,8 +62,7 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
         expectedAst = Project(simpleJoinAst, Seq(simplyNamedColumn("a"))))
     }
 
-    // TODO: fix the grammar (LEFT gets parsed as an alias rather than a join_type)
-    "translate a query with a LEFT JOIN" ignore {
+    "translate a query with a LEFT JOIN" in {
       singleQueryExample(
         query = "SELECT a FROM table_x LEFT JOIN table_y",
         expectedAst = Project(simpleJoinAst.copy(join_type = LeftOuterJoin), Seq(simplyNamedColumn("a"))))
@@ -75,8 +74,7 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
         expectedAst = Project(simpleJoinAst.copy(join_type = LeftOuterJoin), Seq(simplyNamedColumn("a"))))
     }
 
-    // TODO: fix the grammar (RIGHT gets parsed as an alias rather than a join_type)
-    "translate a query with a RIGHT JOIN" ignore {
+    "translate a query with a RIGHT JOIN" in {
       singleQueryExample(
         query = "SELECT a FROM table_x RIGHT JOIN table_y",
         expectedAst = Project(simpleJoinAst.copy(join_type = RightOuterJoin), Seq(simplyNamedColumn("a"))))

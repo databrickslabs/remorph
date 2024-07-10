@@ -1,7 +1,7 @@
 package com.databricks.labs.remorph.parsers.tsql
 
 import com.databricks.labs.remorph.parsers.intermediate.TreeNode
-import com.databricks.labs.remorph.parsers.tsql.TSqlParser.{DmlClauseContext, SelectStatementStandaloneContext}
+import com.databricks.labs.remorph.parsers.tsql.TSqlParser.DmlClauseContext
 import com.databricks.labs.remorph.parsers.{OptionAuto, OptionExpression, OptionOff, OptionOn, OptionString, intermediate => ir}
 
 import scala.collection.JavaConverters.asScalaBufferConverter
@@ -36,18 +36,24 @@ class TSqlAstBuilder extends TSqlParserBaseVisitor[ir.TreeNode] {
   }
 
   override def visitDmlClause(ctx: DmlClauseContext): ir.TreeNode = {
-    // TODO: Implement the rest of the DML clauses
-    ctx.selectStatementStandalone().accept(this)
+    ctx match {
+      case insert if insert.insertStatement() != null => insert.insertStatement().accept(relationBuilder)
+      case select if select.selectStatementStandalone() != null =>
+        select.selectStatementStandalone().accept(relationBuilder)
+      case delete if delete.deleteStatement() != null => delete.deleteStatement().accept(relationBuilder)
+      case merge if merge.mergeStatement() != null => merge.mergeStatement().accept(relationBuilder)
+      case update if update.updateStatement() != null => update.updateStatement().accept(relationBuilder)
+      case _ => ir.UnresolvedRelation(ctx.getText)
+    }
   }
 
   /**
-   * Build a complete AST for a select statement.
+   * This is not actually implemented but was a quick way to exercise the genericOption builder before we had other
+   * syntax implemented to test it with.
+   *
    * @param ctx
    *   the parse tree
    */
-  override def visitSelectStatementStandalone(ctx: SelectStatementStandaloneContext): ir.TreeNode =
-    ctx.accept(relationBuilder)
-
   override def visitBackupStatement(ctx: TSqlParser.BackupStatementContext): TreeNode = {
     ctx.backupDatabase().accept(this)
   }
