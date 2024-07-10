@@ -50,9 +50,7 @@ def mock_spark() -> SparkSession:
     Method helps to create spark session
     :return: returns the spark session
     """
-    return (
-        SparkSession.builder.master("local[*]").appName("Remorph Reconcile Test").remote("sc://localhost").getOrCreate()
-    )
+    return SparkSession.builder.appName("Remorph Reconcile Test").remote("sc://localhost").getOrCreate()
 
 
 @pytest.fixture(scope="session")
