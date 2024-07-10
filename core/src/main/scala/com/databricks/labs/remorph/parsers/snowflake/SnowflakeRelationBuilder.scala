@@ -146,11 +146,9 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.Relation] w
       .getOrElse(input)
   }
 
-  override def visitObjRefValues(ctx: ObjRefValuesContext): ir.Relation = {
+  override def visitValuesTableBody(ctx: ValuesTableBodyContext): ir.Relation = {
     val expressions =
       ctx
-        .valuesTable()
-        .valuesTableBody()
         .exprListInParentheses()
         .asScala
         .map(l => expressionBuilder.visitSeq(l.exprList().expr().asScala))

@@ -236,3 +236,5 @@ case class ColumnAliases(input: Relation, aliases: Seq[Id]) extends RelationComm
 
 case class TableFunction(functionCall: Expression) extends Relation {}
 case class Lateral(expr: Relation) extends Relation {}
+
+case class Insert(table: Expression, columns: Seq[Id], values: Relation, overwrite: Boolean) extends Command
