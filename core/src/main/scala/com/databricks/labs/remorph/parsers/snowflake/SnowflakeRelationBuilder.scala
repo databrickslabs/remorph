@@ -91,12 +91,12 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.Relation] w
       ir.Filter(input, conditionRule(c).accept(expressionBuilder))
     }
   private def buildHaving(ctx: HavingClauseContext, input: ir.Relation): ir.Relation =
-    buildFilter[HavingClauseContext](ctx, _.searchCondition(), input)
+    buildFilter[HavingClauseContext](ctx, _.predicate(), input)
 
   private def buildQualify(ctx: QualifyClauseContext, input: ir.Relation): ir.Relation =
     buildFilter[QualifyClauseContext](ctx, _.expr(), input)
   private def buildWhere(ctx: WhereClauseContext, from: ir.Relation): ir.Relation =
-    buildFilter[WhereClauseContext](ctx, _.searchCondition(), from)
+    buildFilter[WhereClauseContext](ctx, _.predicate(), from)
 
   private def buildGroupBy(ctx: GroupByClauseContext, input: ir.Relation): ir.Relation = {
     Option(ctx).fold(input) { c =>

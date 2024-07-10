@@ -248,19 +248,10 @@ class SnowflakeExpressionBuilder()
   }
 
   override def visitIffExpr(ctx: IffExprContext): ir.Expression = {
-    val condition = ctx.searchCondition().accept(this)
+    val condition = ctx.predicate().accept(this)
     val thenBranch = ctx.expr(0).accept(this)
     val elseBranch = ctx.expr(1).accept(this)
     ir.Iff(condition, thenBranch, elseBranch)
-  }
-
-  override def visitSearchCondition(ctx: SearchConditionContext): ir.Expression = {
-    val pred = ctx.predicate().accept(this)
-    if (ctx.NOT().size() % 2 == 1) {
-      ir.Not(pred)
-    } else {
-      pred
-    }
   }
 
   override def visitCastExpr(ctx: CastExprContext): ir.Expression = ctx match {
@@ -366,7 +357,7 @@ class SnowflakeExpressionBuilder()
         ir.Case(expression, branches, otherwise)
       case c if c.switchSearchConditionSection().size() > 0 =>
         val branches = c.switchSearchConditionSection().asScala.map { branch =>
-          ir.WhenBranch(branch.searchCondition().accept(this), branch.expr().accept(this))
+          ir.WhenBranch(branch.predicate().accept(this), branch.expr().accept(this))
         }
         ir.Case(None, branches, otherwise)
     }
