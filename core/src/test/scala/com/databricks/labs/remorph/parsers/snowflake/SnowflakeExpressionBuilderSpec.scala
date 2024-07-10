@@ -2,7 +2,7 @@ package com.databricks.labs.remorph.parsers.snowflake
 
 import com.databricks.labs.remorph.parsers.IRHelpers
 import com.databricks.labs.remorph.parsers.intermediate._
-import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser.{ComparisonOperatorContext, LiteralContext, RankingWindowedFunctionContext}
+import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser.{ComparisonOperatorContext, LiteralContext}
 import org.mockito.Mockito._
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -83,7 +83,7 @@ class SnowflakeExpressionBuilderSpec
         query = "ROW_NUMBER() OVER (ORDER BY a DESC)",
         rule = _.rankingWindowedFunction(),
         expectedAst = Window(
-          window_function = RowNumber,
+          window_function = CallFunction("ROW_NUMBER", Seq()),
           partition_spec = Seq(),
           sort_order = Seq(SortOrder(Id("a"), DescendingSortDirection, SortNullsFirst)),
           frame_spec = None))
@@ -91,13 +91,16 @@ class SnowflakeExpressionBuilderSpec
       example(
         query = "ROW_NUMBER() OVER (PARTITION BY a)",
         rule = _.rankingWindowedFunction(),
-        expectedAst =
-          Window(window_function = RowNumber, partition_spec = Seq(Id("a")), sort_order = Seq(), frame_spec = None))
+        expectedAst = Window(
+          window_function = CallFunction("ROW_NUMBER", Seq()),
+          partition_spec = Seq(Id("a")),
+          sort_order = Seq(),
+          frame_spec = None))
       example(
         query = "NTILE(42) OVER (PARTITION BY a ORDER BY b, c DESC, d)",
         rule = _.rankingWindowedFunction(),
         expectedAst = Window(
-          window_function = NTile(Literal(short = Some(42))),
+          window_function = CallFunction("NTILE", Seq(Literal(short = Some(42)))),
           partition_spec = Seq(Id("a")),
           sort_order = Seq(
             SortOrder(Id("b"), AscendingSortDirection, SortNullsLast),
@@ -112,7 +115,7 @@ class SnowflakeExpressionBuilderSpec
         query = "ROW_NUMBER() OVER(PARTITION BY a ORDER BY a ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)",
         rule = _.rankingWindowedFunction(),
         expectedAst = Window(
-          window_function = RowNumber,
+          window_function = CallFunction("ROW_NUMBER", Seq()),
           partition_spec = Seq(Id("a")),
           sort_order = Seq(SortOrder(Id("a"), AscendingSortDirection, SortNullsLast)),
           frame_spec = Some(WindowFrame(RowsFrame, UnboundedPreceding, CurrentRow))))
@@ -121,7 +124,7 @@ class SnowflakeExpressionBuilderSpec
         query = "ROW_NUMBER() OVER(PARTITION BY a ORDER BY a ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)",
         rule = _.rankingWindowedFunction(),
         expectedAst = Window(
-          window_function = RowNumber,
+          window_function = CallFunction("ROW_NUMBER", Seq()),
           partition_spec = Seq(Id("a")),
           sort_order = Seq(SortOrder(Id("a"), AscendingSortDirection, SortNullsLast)),
           frame_spec = Some(WindowFrame(RowsFrame, UnboundedPreceding, UnboundedFollowing))))
@@ -130,7 +133,7 @@ class SnowflakeExpressionBuilderSpec
         query = "ROW_NUMBER() OVER(PARTITION BY a ORDER BY a ROWS BETWEEN 42 PRECEDING AND CURRENT ROW)",
         rule = _.rankingWindowedFunction(),
         expectedAst = Window(
-          window_function = RowNumber,
+          window_function = CallFunction("ROW_NUMBER", Seq()),
           partition_spec = Seq(Id("a")),
           sort_order = Seq(SortOrder(Id("a"), AscendingSortDirection, SortNullsLast)),
           frame_spec = Some(WindowFrame(RowsFrame, PrecedingN(Literal(short = Some(42))), CurrentRow))))
@@ -139,7 +142,7 @@ class SnowflakeExpressionBuilderSpec
         query = "ROW_NUMBER() OVER(PARTITION BY a ORDER BY a ROWS BETWEEN CURRENT ROW AND 42 FOLLOWING)",
         rule = _.rankingWindowedFunction(),
         expectedAst = Window(
-          window_function = RowNumber,
+          window_function = CallFunction("ROW_NUMBER", Seq()),
           partition_spec = Seq(Id("a")),
           sort_order = Seq(SortOrder(Id("a"), AscendingSortDirection, SortNullsLast)),
           frame_spec = Some(WindowFrame(RowsFrame, CurrentRow, FollowingN(Literal(short = Some(42)))))))
@@ -284,19 +287,6 @@ class SnowflakeExpressionBuilderSpec
       verify(operator).LE()
       verify(operator).getText
       verifyNoMoreInteractions(operator)
-    }
-  }
-
-  "SnowflakeExpressionBuilder.buildWindowFunction" should {
-    "handle unresolved input" in {
-      val windowedFunction = mock[RankingWindowedFunctionContext]
-      val dummyTextForWindowedFunction = "dummy"
-      when(windowedFunction.getText).thenReturn(dummyTextForWindowedFunction)
-      astBuilder.buildWindowFunction(windowedFunction) shouldBe UnresolvedExpression(dummyTextForWindowedFunction)
-      verify(windowedFunction).ROW_NUMBER()
-      verify(windowedFunction).NTILE()
-      verify(windowedFunction).getText
-      verifyNoMoreInteractions(windowedFunction)
     }
   }
 

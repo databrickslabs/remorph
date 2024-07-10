@@ -2992,7 +2992,6 @@ nonReservedWords
     | EXPIRY_DATE
     | FIRST
     | FIRST_NAME
-    | FIRST_VALUE
     | FLATTEN
     | FLOOR
     | FUNCTION
@@ -3044,7 +3043,6 @@ nonReservedWords
     | RLIKE
     | ROLE
     | ROLLUP
-    | ROW_NUMBER
     | SECURITYADMIN
     | SHARES
     | SOURCE
@@ -3246,11 +3244,7 @@ paramAssoc: id ASSOC expr
 ignoreOrRepectNulls: (IGNORE | RESPECT) NULLS
     ;
 
-rankingWindowedFunction
-    : (RANK | DENSE_RANK | ROW_NUMBER) L_PAREN R_PAREN overClause
-    | NTILE L_PAREN expr R_PAREN overClause
-    | (LEAD | LAG) L_PAREN expr (COMMA expr COMMA expr)? R_PAREN ignoreOrRepectNulls? overClause
-    | (FIRST_VALUE | LAST_VALUE) L_PAREN expr R_PAREN ignoreOrRepectNulls? overClause
+rankingWindowedFunction: standardFunction ignoreOrRepectNulls? overClause
     ;
 
 aggregateFunction

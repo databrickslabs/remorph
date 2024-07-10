@@ -273,8 +273,8 @@ class SnowflakeExpressionBuilder()
   }
 
   override def visitRankingWindowedFunction(ctx: RankingWindowedFunctionContext): ir.Expression = {
-    val windowFunction = buildWindowFunction(ctx)
-    buildWindow(ctx.overClause(), windowFunction)
+    // TODO handle ignoreOrRespectNulls
+    buildWindow(ctx.overClause(), ctx.standardFunction().accept(this))
   }
 
   private def buildWindow(ctx: OverClauseContext, windowFunction: ir.Expression): ir.Expression = {
@@ -293,14 +293,6 @@ class SnowflakeExpressionBuilder()
       partition_spec = partitionSpec,
       sort_order = sortOrder,
       frame_spec = frameSpec)
-  }
-
-  private[snowflake] def buildWindowFunction(ctx: RankingWindowedFunctionContext): ir.Expression = ctx match {
-    case c if c.ROW_NUMBER() != null => ir.RowNumber
-    case c if c.NTILE() != null =>
-      val parameter = ctx.expr(0).accept(this)
-      ir.NTile(parameter)
-    case c => ir.UnresolvedExpression(c.getText)
   }
 
   private[snowflake] def buildSortOrder(ctx: OrderByClauseContext): Seq[ir.SortOrder] = {
