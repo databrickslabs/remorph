@@ -52,6 +52,7 @@ class SnowflakeFunctionBuilder extends FunctionBuilder {
     case "DENSE_RANK" => FunctionDefinition.standard(0)
     case "DIV0" => FunctionDefinition.standard(2)
     case "DIV0NULL" => FunctionDefinition.standard(2)
+    case "EDITDISTANCE" => FunctionDefinition.standard(2, 3)
     case "ENDSWITH" => FunctionDefinition.standard(2)
     case "EQUAL_NULL" => FunctionDefinition.standard(2)
     case "EXTRACT" => FunctionDefinition.standard(2)

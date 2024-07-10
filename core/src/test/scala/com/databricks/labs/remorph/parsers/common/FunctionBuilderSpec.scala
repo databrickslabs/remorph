@@ -78,6 +78,7 @@ class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenProp
       ("DENSE_RANK", Some(FunctionDefinition.standard(0))),
       ("DIV0", Some(FunctionDefinition.standard(2))),
       ("DIV0NULL", Some(FunctionDefinition.standard(2))),
+      ("EDITDISTANCE", Some(FunctionDefinition.standard(2, 3))),
       ("ENDSWITH", Some(FunctionDefinition.standard(2))),
       ("EQUAL_NULL", Some(FunctionDefinition.standard(2))),
       ("EXTRACT", Some(FunctionDefinition.standard(2))),
