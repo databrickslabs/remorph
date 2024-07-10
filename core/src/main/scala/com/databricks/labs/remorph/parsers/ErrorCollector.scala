@@ -23,7 +23,7 @@ case class ErrorDetail(line: Int, charPositionInLine: Int, msg: String, offendin
 class DefaultErrorCollector extends ErrorCollector {
 
   var count: Int = 0
-  val antlrErr: ConsoleErrorListener = new ConsoleErrorListener()
+  private val antlrErr: ConsoleErrorListener = new ConsoleErrorListener()
 
   override def syntaxError(
       recognizer: Recognizer[_, _],

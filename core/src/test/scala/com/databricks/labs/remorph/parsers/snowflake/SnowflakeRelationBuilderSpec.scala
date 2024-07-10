@@ -57,7 +57,7 @@ class SnowflakeRelationBuilderSpec
       example(
         "FROM (SELECT * FROM t1) t2",
         _.fromClause(),
-        SubqueryAlias(Project(namedTable("t1"), Seq(Star(None))), Id("t2"), ""))
+        SubqueryAlias(Project(namedTable("t1"), Seq(Star(None))), Id("t2"), Seq()))
     }
 
     "translate WHERE clauses" in {
@@ -277,6 +277,49 @@ class SnowflakeRelationBuilderSpec
           Seq(
             Seq(Literal(string = Some("a")), Literal(short = Some(1))),
             Seq(Literal(string = Some("b")), Literal(short = Some(2))))))
+    }
+
+    "translate table functions as object references" in {
+      example(
+        "TABLE(some_func(some_arg))",
+        _.objectRef(),
+        TableFunction(
+          UnresolvedFunction("some_func", Seq(Id("some_arg")), is_distinct = false, is_user_defined_function = false)))
+
+      example(
+        "TABLE(some_func(some_arg)) t(c1, c2, c3)",
+        _.objectRef(),
+        SubqueryAlias(
+          TableFunction(
+            UnresolvedFunction(
+              "some_func",
+              Seq(Id("some_arg")),
+              is_distinct = false,
+              is_user_defined_function = false)),
+          Id("t"),
+          Seq(Id("c1"), Id("c2"), Id("c3"))))
+
+    }
+
+    "translate LATERAL FLATTEN object references" in {
+      example(
+        "LATERAL FLATTEN (input => some_col, OUTER => true)",
+        _.objectRef(),
+        Lateral(
+          TableFunction(
+            CallFunction(
+              "FLATTEN",
+              Seq(
+                NamedArgumentExpression("INPUT", Id("some_col")),
+                NamedArgumentExpression("OUTER", Literal(boolean = Some(true))))))))
+
+      example(
+        "LATERAL FLATTEN (input => some_col) AS t",
+        _.objectRef(),
+        SubqueryAlias(
+          Lateral(TableFunction(CallFunction("FLATTEN", Seq(NamedArgumentExpression("INPUT", Id("some_col")))))),
+          Id("t"),
+          Seq()))
     }
   }
 

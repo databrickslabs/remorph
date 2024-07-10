@@ -681,8 +681,8 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
 
   "parse and ignore IR for the FOR clause in a SELECT statement" in {
     example(
-      query = "SELECT * FROM t FOR XML RAW",
-      expectedAst = Batch(Seq(Project(NamedTable("t", Map(), is_streaming = false), Seq(Star(None))))))
+      query = "SELECT * FROM DAYS FOR XML RAW",
+      expectedAst = Batch(Seq(Project(NamedTable("DAYS", Map(), is_streaming = false), Seq(Star(None))))))
   }
 
   "parse and collect the options in the OPTION clause in a SELECT statement" in {

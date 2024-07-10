@@ -233,3 +233,6 @@ case object CrossApply extends JoinType
 case object OuterApply extends JoinType
 
 case class ColumnAliases(input: Relation, aliases: Seq[Id]) extends RelationCommon {}
+
+case class TableFunction(functionCall: Expression) extends Relation {}
+case class Lateral(expr: Relation) extends Relation {}
