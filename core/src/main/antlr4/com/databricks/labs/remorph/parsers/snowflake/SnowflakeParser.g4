@@ -3046,6 +3046,7 @@ nonReservedWords
     | ROLLUP
     | ROW_NUMBER
     | SECURITYADMIN
+    | SHARES
     | SOURCE
     | STAGE
     | START
