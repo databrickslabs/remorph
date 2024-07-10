@@ -16,7 +16,7 @@ from databricks.labs.remorph.reconcile.query_builder.expression_generator import
     build_where_clause,
     coalesce,
 )
-from databricks.labs.remorph.reconcile.recon_config import Thresholds
+from databricks.labs.remorph.reconcile.recon_config import Thresholds, ThresholdModel
 from databricks.labs.remorph.snow.databricks import Databricks
 
 logger = logging.getLogger(__name__)
@@ -39,13 +39,21 @@ class ThresholdQueryBuilder(QueryBuilder):
         return query
 
     def _generate_select_where_clause(self, join_columns) -> tuple[list[exp.Expression], exp.Expression]:
-        thresholds = self.table_conf.thresholds if self.table_conf.thresholds else []
+        thresholds: list[Thresholds] = (
+            [
+                threshold
+                for threshold in self.table_conf.thresholds
+                if threshold.column_name is not None and threshold.model == ThresholdModel.COLUMN
+            ]
+            if self.table_conf.thresholds
+            else []
+        )
         select_clause = []
         where_clause = []
 
         # threshold columns
         for threshold in thresholds:
-            column = threshold.column_name
+            column = threshold.column_name if threshold.column_name else ""
             base = exp.Paren(
                 this=build_sub(
                     left_column_name=column,
@@ -72,7 +80,7 @@ class ThresholdQueryBuilder(QueryBuilder):
         base: exp.Expression,
     ) -> tuple[list[exp.Expression], exp.Expression]:
         select_clause = []
-        column = threshold.column_name
+        column = threshold.column_name if threshold.column_name else ""
         select_clause.append(
             build_column(this=column, alias=f"{column}_source", table_name="source").transform(coalesce)
         )

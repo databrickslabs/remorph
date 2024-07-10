@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Callable
 from dataclasses import dataclass, field
+from enum import Enum
 
 from pyspark.sql import DataFrame
 from sqlglot import Dialect
@@ -43,15 +44,21 @@ class Transformation:
         self.column_name = self.column_name.lower()
 
 
+class ThresholdModel(Enum):
+    COLUMN = "column"
+    TABLE = "table"
+
+
 @dataclass
 class Thresholds:
-    column_name: str
+    column_name: str | None
     lower_bound: str
     upper_bound: str
     type: str
+    model: ThresholdModel = ThresholdModel.COLUMN
 
     def __post_init__(self):
-        self.column_name = self.column_name.lower()
+        self.column_name = self.column_name.lower() if self.column_name else ""
         self.type = self.type.lower()
 
     def get_mode(self):
@@ -146,7 +153,11 @@ class Table:
     def get_threshold_columns(self, layer: str) -> set[str]:
         if self.thresholds is None:
             return set()
-        return {self.get_layer_src_to_tgt_col_mapping(thresh.column_name, layer) for thresh in self.thresholds}
+        return {
+            self.get_layer_src_to_tgt_col_mapping(thresh.column_name, layer)
+            for thresh in self.thresholds
+            if thresh.column_name is not None and thresh.model == ThresholdModel.COLUMN
+        }
 
     def get_join_columns(self, layer: str) -> set[str] | None:
         if self.join_columns is None:

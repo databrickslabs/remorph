@@ -30,6 +30,7 @@ from databricks.labs.remorph.reconcile.recon_config import (
     Table,
     Thresholds,
     Transformation,
+    ThresholdModel,
 )
 from databricks.labs.remorph.snow.databricks import Databricks
 from databricks.labs.remorph.snow.snowflake import Snow
@@ -239,7 +240,10 @@ def table_conf_with_opts(column_mapping):
             Transformation(column_name="s_phone", source="trim(s_phone)", target="trim(s_phone_t)"),
             Transformation(column_name="s_name", source="trim(s_name)", target="trim(s_name)"),
         ],
-        thresholds=[Thresholds(column_name="s_acctbal", lower_bound="0", upper_bound="100", type="int")],
+        thresholds=[
+            Thresholds(column_name="s_acctbal", lower_bound="0", upper_bound="100", type="int"),
+            Thresholds(column_name=None, lower_bound="0", upper_bound="100", type="", model=ThresholdModel.TABLE),
+        ],
         filters=Filters(source="s_name='t' and s_address='a'", target="s_name='t' and s_address_t='a'"),
     )
 
