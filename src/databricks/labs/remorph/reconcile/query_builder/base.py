@@ -74,7 +74,7 @@ class QueryBuilder(ABC):
 
     @property
     def aggregates(self) -> list[Aggregate]:
-        return self.table_conf.columns_aggregations
+        return self.table_conf.aggregates
 
     def add_transformations(self, aliases: list[exp.Expression], source: Dialect) -> list[exp.Expression]:
         if self.user_transformations:

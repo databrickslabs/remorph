@@ -79,7 +79,7 @@ class Aggregate:
     agg_cols: list[str]
     type: str
     group_by_cols: list[str] | None = None
-    group_by_cols_as_str: str = None
+    group_by_cols_as_str: str | None = None
 
     def get_agg_type(self):
         return self.type
@@ -96,7 +96,7 @@ def to_lower_case(input_list: list[str]) -> list[str]:
 class Table:
     source_name: str
     target_name: str
-    columns_aggregations: list[Aggregate]
+    aggregates: list[Aggregate] | None = None
     join_columns: list[str] | None = None
     jdbc_reader_options: JdbcReaderOptions | None = None
     select_columns: list[str] | None = None
