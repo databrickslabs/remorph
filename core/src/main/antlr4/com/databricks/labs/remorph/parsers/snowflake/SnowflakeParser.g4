@@ -1592,29 +1592,23 @@ callerOwner: CALLER | OWNER
 executaAs: EXECUTE AS callerOwner
     ;
 
-procedureDefinition: BEGIN procstatement+ END
-DBL_DOLLAR
+procedureDefinition: declarationStatement BEGIN procstatement+ END
     ;
 
-procstatement:
-    declarationStatement
-    | ifStatement
-    | returnStatement
-    | dmlCommand
+procstatement: ifStatement | asignmentStatement | returnStatement | dmlCommand
     ;
 
-declarationStatement
-    : DECLARE id dataType (DEFAULT expr)? SEMI
+asignmentStatement: id ASSIGN L_PAREN? (expr | sqlCommand*) R_PAREN? SEMI
     ;
 
-ifStatement
-    : IF L_PAREN expr R_PAREN THEN returnStatement (ELSE returnStatement)? END IF SEMI
+declarationStatement: DECLARE (id dataType (DEFAULT expr)? SEMI)+
     ;
 
-returnStatement
-    : RETURN expr SEMI
+ifStatement: IF L_PAREN expr R_PAREN THEN returnStatement (ELSE returnStatement)? END IF SEMI
     ;
 
+returnStatement: RETURN expr SEMI
+    ;
 
 notNull: NOT NULL_
     ;
@@ -3214,6 +3208,7 @@ dataType
     | ARRAY
     | GEOGRAPHY
     | GEOMETRY
+    | RESULTSET
     ;
 
 primitiveExpression

@@ -205,6 +205,7 @@ DATE_FORMAT                                   : 'DATE_FORMAT';
 DATE_INPUT_FORMAT                             : 'DATE_INPUT_FORMAT';
 DATE_OUTPUT_FORMAT                            : 'DATE_OUTPUT_FORMAT';
 DAYS_TO_EXPIRY                                : 'DAYS_TO_EXPIRY';
+DECLARE                                       : 'DECLARE';
 DEFAULT                                       : 'DEFAULT';
 DEFAULT_DDL_COLLATION_                        : 'DEFAULT_DDL_COLLATION';
 DEFAULT_NAMESPACE                             : 'DEFAULT_NAMESPACE';
@@ -595,6 +596,7 @@ RESTRICT                                 : 'RESTRICT';
 RESTRICTIONS                             : 'RESTRICTIONS';
 RESULT                                   : 'RESULT';
 RESUME                                   : 'RESUME';
+RETURN                                   : 'RETURN';
 RETURNS                                  : 'RETURNS';
 RETURN_ALL_ERRORS                        : 'RETURN_ALL_ERRORS';
 RETURN_ERRORS                            : 'RETURN_ERRORS';
@@ -857,6 +859,7 @@ TINYINT          : 'TINYINT';
 VARBINARY        : 'VARBINARY';
 VARCHAR          : 'VARCHAR';
 VARIANT          : 'VARIANT';
+RESULTSET        : 'RESULTSET';
 
 LISTAGG: 'LISTAGG';
 
@@ -928,6 +931,7 @@ MODULE      : '%';
 PLUS        : '+';
 MINUS       : '-';
 TILDA       : '~';
+ASSIGN      : ':=';
 
 fragment DEC_DOT_DEC : DEC_DIGIT+ DOT DEC_DIGIT+ | DEC_DIGIT+ DOT | DOT DEC_DIGIT+;
 fragment DEC_DIGIT   : [0-9];
