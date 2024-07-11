@@ -428,18 +428,17 @@ class SnowflakeExpressionBuilder()
   }
 
   override def visitDeclare(ctx: DeclareContext): ir.Expression = {
-    var variables = Seq.empty[ir.CreateVariable]
-    for (id <- ctx.id().asScala; dataType <- ctx.dataType().asScala)
-      variables =
-        variables :+ ir.CreateVariable(id.getText, DataTypeBuilder.buildDataType(dataType), None, replace = false)
+
+    val variables = ctx.id.asScala.zip(ctx.dataType.asScala).map { case (id, dataType) =>
+      val name = id.getText
+      val datatype = DataTypeBuilder.buildDataType(dataType)
+      ir.CreateVariable(name, datatype, None, replace = false)
+    }
 
     ir.CreateVariables(variables)
   }
 
   override def visitLet(ctx: LetContext): ir.Expression = {
-    ir.SetVariable(
-      ctx.id().getText,
-      Some(DataTypeBuilder.buildDataType(ctx.dataType)),
-      ctx.expr().accept(this))
+    ir.SetVariable(ctx.id().getText, Some(DataTypeBuilder.buildDataType(ctx.dataType)), ctx.expr().accept(this))
   }
 }
