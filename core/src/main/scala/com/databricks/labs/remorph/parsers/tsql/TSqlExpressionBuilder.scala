@@ -279,13 +279,13 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
     }
 
   private def buildPrimitive(con: Token): ir.Expression = con.getType match {
-    case c if c == DEFAULT => ir.Default()
-    case c if c == LOCAL_ID => ir.Identifier(con.getText, isQuoted = false)
-    case c if c == STRING => ir.Literal(string = Some(removeQuotes(con.getText)))
-    case c if c == NULL_ => ir.Literal(nullType = Some(ir.NullType()))
-    case c if c == HEX => ir.Literal(string = Some(con.getText)) // Preserve format
-    case c if c == MONEY => ir.Money(ir.Literal(string = Some(con.getText)))
-    case _ => convertNumeric(con.getText)
+    case DEFAULT => ir.Default()
+    case LOCAL_ID => ir.Identifier(con.getText, isQuoted = false)
+    case STRING => ir.Literal(string = Some(removeQuotes(con.getText)))
+    case NULL_ => ir.Literal(nullType = Some(ir.NullType()))
+    case HEX => ir.Literal(string = Some(con.getText)) // Preserve format
+    case MONEY => ir.Money(ir.Literal(string = Some(con.getText)))
+    case INT | REAL | FLOAT => convertNumeric(con.getText)
   }
 
   // TODO: Maybe start sharing such things between all the parsers?

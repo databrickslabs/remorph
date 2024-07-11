@@ -17,8 +17,8 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
     "translate literals" in {
       example("null", _.expression(), ir.Literal(nullType = Some(ir.NullType())))
       example("1", _.expression(), ir.Literal(short = Some(1)))
-      example("-1", _.expression(), ir.Literal(short = Some(-1)))
-      example("+1", _.expression(), ir.Literal(short = Some(1)))
+      example("-1", _.expression(), ir.UMinus(ir.Literal(short = Some(1))))
+      example("+1", _.expression(), ir.UPlus(ir.Literal(short = Some(1))))
       example("1.1", _.expression(), ir.Literal(float = Some(1.1f)))
       example("'foo'", _.expression(), ir.Literal(string = Some("foo")))
     }
@@ -39,7 +39,9 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
 
     "translate simple numeric binary expressions" in {
       example("1 + 2", _.expression(), ir.Add(ir.Literal(short = Some(1)), ir.Literal(short = Some(2))))
+      example("1 +2", _.expression(), ir.Add(ir.Literal(short = Some(1)), ir.Literal(short = Some(2))))
       example("1 - 2", _.expression(), ir.Subtract(ir.Literal(short = Some(1)), ir.Literal(short = Some(2))))
+      example("1 -2", _.expression(), ir.Subtract(ir.Literal(short = Some(1)), ir.Literal(short = Some(2))))
       example("1 * 2", _.expression(), ir.Multiply(ir.Literal(short = Some(1)), ir.Literal(short = Some(2))))
       example("1 / 2", _.expression(), ir.Divide(ir.Literal(short = Some(1)), ir.Literal(short = Some(2))))
       example("1 % 2", _.expression(), ir.Mod(ir.Literal(short = Some(1)), ir.Literal(short = Some(2))))
@@ -96,7 +98,7 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
       example(
         "1 + -++-2",
         _.expression(),
-        ir.Add(ir.Literal(short = Some(1)), ir.UMinus(ir.UPlus(ir.UPlus(ir.Literal(short = Some(-2)))))))
+        ir.Add(ir.Literal(short = Some(1)), ir.UMinus(ir.UPlus(ir.UPlus(ir.UMinus(ir.Literal(short = Some(2))))))))
       example(
         "1 + ~ 2 * 3",
         _.expression(),
@@ -106,13 +108,17 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
       example(
         "1 + -2 * 3",
         _.expression(),
-        ir.Add(ir.Literal(short = Some(1)), ir.Multiply(ir.Literal(short = Some(-2)), ir.Literal(short = Some(3)))))
+        ir.Add(
+          ir.Literal(short = Some(1)),
+          ir.Multiply(ir.UMinus(ir.Literal(short = Some(2))), ir.Literal(short = Some(3)))))
       example(
         "1 + -2 * 3 + 7 & 66",
         _.expression(),
         ir.BitwiseAnd(
           ir.Add(
-            ir.Add(ir.Literal(short = Some(1)), ir.Multiply(ir.Literal(short = Some(-2)), ir.Literal(short = Some(3)))),
+            ir.Add(
+              ir.Literal(short = Some(1)),
+              ir.Multiply(ir.UMinus(ir.Literal(short = Some(2))), ir.Literal(short = Some(3)))),
             ir.Literal(short = Some(7))),
           ir.Literal(short = Some(66))))
       example(
@@ -120,7 +126,9 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
         _.expression(),
         ir.BitwiseXor(
           ir.Add(
-            ir.Add(ir.Literal(short = Some(1)), ir.Multiply(ir.Literal(short = Some(-2)), ir.Literal(short = Some(3)))),
+            ir.Add(
+              ir.Literal(short = Some(1)),
+              ir.Multiply(ir.UMinus(ir.Literal(short = Some(2))), ir.Literal(short = Some(3)))),
             ir.Literal(short = Some(7))),
           ir.Literal(short = Some(66))))
       example(
@@ -128,7 +136,9 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
         _.expression(),
         ir.BitwiseOr(
           ir.Add(
-            ir.Add(ir.Literal(short = Some(1)), ir.Multiply(ir.Literal(short = Some(-2)), ir.Literal(short = Some(3)))),
+            ir.Add(
+              ir.Literal(short = Some(1)),
+              ir.Multiply(ir.UMinus(ir.Literal(short = Some(2))), ir.Literal(short = Some(3)))),
             ir.Literal(short = Some(7))),
           ir.Literal(short = Some(66))))
       example(
@@ -136,7 +146,9 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
         _.expression(),
         ir.Add(
           ir.Add(
-            ir.Add(ir.Literal(short = Some(1)), ir.Multiply(ir.Literal(short = Some(-2)), ir.Literal(short = Some(3)))),
+            ir.Add(
+              ir.Literal(short = Some(1)),
+              ir.Multiply(ir.UMinus(ir.Literal(short = Some(2))), ir.Literal(short = Some(3)))),
             ir.Literal(short = Some(7))),
           ir.BitwiseNot(ir.Literal(short = Some(66)))))
       example(
@@ -149,7 +161,7 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
                 ir.Add(
                   ir.Add(
                     ir.Literal(short = Some(1)),
-                    ir.Multiply(ir.Literal(short = Some(-2)), ir.Literal(short = Some(3)))),
+                    ir.Multiply(ir.UMinus(ir.Literal(short = Some(2))), ir.Literal(short = Some(3)))),
                   ir.Literal(short = Some(7))),
                 ir.Literal(short = Some(1980))),
               ir.Literal(string = Some("leeds1"))),
