@@ -124,3 +124,10 @@ case class CommonInlineUserDefinedFunction(
 case class CallFunction(function_name: String, arguments: Seq[Expression]) extends Expression {}
 
 case class NamedArgumentExpression(key: String, value: Expression) extends Expression {}
+
+case class CreateVariables(variables: Seq[CreateVariable]) extends Expression {}
+
+case class CreateVariable(name: String, dataType: DataType, defaultExpr: Option[Expression], replace: Boolean)
+    extends Expression {}
+
+case class SetVariable(name: String, dataType: Option[DataType], expr: Expression) extends Expression {}

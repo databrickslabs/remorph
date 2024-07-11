@@ -135,6 +135,8 @@ otherCommand
     | unset
     | call
     | beginTxn
+    | declare
+    | let
     ;
 
 beginTxn: BEGIN (WORK | TRANSACTION)? (NAME id)? | START TRANSACTION ( NAME id)?
@@ -151,6 +153,9 @@ copyIntoTable
         | userStage
         | namedStage
     ) R_PAREN files? pattern? fileFormat? copyOptions*
+    ;
+
+declare: DECLARE (id dataType (DEFAULT expr)? SEMI)+
     ;
 
 externalLocation
@@ -188,6 +193,12 @@ formatName: FORMAT_NAME EQ string
     ;
 
 formatType: TYPE EQ typeFileformat formatTypeOptions*
+    ;
+
+let
+    : LET id dataType ASSIGN (expr | literal) SEMI
+    | LET id dataType DEFAULT expr SEMI
+    | id ASSIGN (expr | literal) SEMI
     ;
 
 stageFileFormat

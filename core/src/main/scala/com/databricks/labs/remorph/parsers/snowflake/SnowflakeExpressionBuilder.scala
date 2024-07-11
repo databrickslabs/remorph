@@ -426,4 +426,20 @@ class SnowflakeExpressionBuilder()
   override def visitParamAssoc(ctx: ParamAssocContext): ir.Expression = {
     ir.NamedArgumentExpression(ctx.id().getText.toUpperCase(), ctx.expr().accept(this))
   }
+
+  override def visitDeclare(ctx: DeclareContext): ir.Expression = {
+    var variables = Seq.empty[ir.CreateVariable]
+    for (id <- ctx.id().asScala; dataType <- ctx.dataType().asScala)
+      variables =
+        variables :+ ir.CreateVariable(id.getText, DataTypeBuilder.buildDataType(dataType), None, replace = false)
+
+    ir.CreateVariables(variables)
+  }
+
+  override def visitLet(ctx: LetContext): ir.Expression = {
+    ir.SetVariable(
+      ctx.id().getText,
+      Some(DataTypeBuilder.buildDataType(ctx.dataType)),
+      ctx.expr().accept(this))
+  }
 }
