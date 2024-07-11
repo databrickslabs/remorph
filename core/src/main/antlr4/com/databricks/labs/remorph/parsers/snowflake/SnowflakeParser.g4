@@ -195,10 +195,7 @@ formatName: FORMAT_NAME EQ string
 formatType: TYPE EQ typeFileformat formatTypeOptions*
     ;
 
-let
-    : LET id dataType ASSIGN (expr | literal) SEMI
-    | LET id dataType DEFAULT expr SEMI
-    | id ASSIGN (expr | literal) SEMI
+let: LET id dataType? ASSIGN expr SEMI | LET id dataType? DEFAULT expr SEMI | id ASSIGN expr SEMI
     ;
 
 stageFileFormat

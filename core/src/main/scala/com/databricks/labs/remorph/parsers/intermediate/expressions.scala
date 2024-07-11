@@ -125,8 +125,6 @@ case class CallFunction(function_name: String, arguments: Seq[Expression]) exten
 
 case class NamedArgumentExpression(key: String, value: Expression) extends Expression {}
 
-case class CreateVariables(variables: Seq[CreateVariable]) extends Expression {}
-
 case class CreateVariable(name: String, dataType: DataType, defaultExpr: Option[Expression], replace: Boolean)
     extends Expression {}
 

@@ -427,17 +427,6 @@ class SnowflakeExpressionBuilder()
     ir.NamedArgumentExpression(ctx.id().getText.toUpperCase(), ctx.expr().accept(this))
   }
 
-  override def visitDeclare(ctx: DeclareContext): ir.Expression = {
-
-    val variables = ctx.id.asScala.zip(ctx.dataType.asScala).map { case (id, dataType) =>
-      val name = id.getText
-      val datatype = DataTypeBuilder.buildDataType(dataType)
-      ir.CreateVariable(name, datatype, None, replace = false)
-    }
-
-    ir.CreateVariables(variables)
-  }
-
   override def visitLet(ctx: LetContext): ir.Expression = {
     ir.SetVariable(ctx.id().getText, Some(DataTypeBuilder.buildDataType(ctx.dataType)), ctx.expr().accept(this))
   }
