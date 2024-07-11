@@ -1860,6 +1860,7 @@ createTable
     : CREATE TABLE tableName LPAREN columnDefTableConstraints (COMMA? tableIndices)* COMMA? RPAREN (
         LOCK simpleId
     )? tableOptions* (ON id | DEFAULT | onPartitionOrFilegroup)? (TEXTIMAGE_ON id | DEFAULT)? SEMI?
+    | CREATE TABLE tableName (LPAREN columnNameList RPAREN)? tableOptions? AS selectStatementStandalone SEMI?
     ;
 
 tableIndices
@@ -1874,12 +1875,17 @@ tableOptions
     : WITH (LPAREN tableOption (COMMA tableOption)* RPAREN | tableOption (COMMA tableOption)*)
     ;
 
+distributionType
+    : HASH LPAREN id (COMMA id)* RPAREN
+    | ROUND_ROBIN
+    | REPLICATE;
+
 tableOption
     : (simpleId | keyword) EQ (simpleId | keyword | onOff | INT)
     | CLUSTERED COLUMNSTORE INDEX
     | HEAP
     | FILLFACTOR EQ INT
-    | DISTRIBUTION EQ HASH LPAREN id RPAREN
+    | DISTRIBUTION EQ distributionType
     | CLUSTERED INDEX LPAREN id (ASC | DESC)? ( COMMA id (ASC | DESC)?)* RPAREN
     | DATA_COMPRESSION EQ (NONE | ROW | PAGE) onPartitions?
     | XML_COMPRESSION EQ onOff onPartitions?
