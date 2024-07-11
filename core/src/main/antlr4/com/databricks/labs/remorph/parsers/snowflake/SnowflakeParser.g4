@@ -74,15 +74,15 @@ valuesList: VALUES L_PAREN valueItem (COMMA valueItem)* R_PAREN
 valueItem: columnName | DEFAULT | NULL_
     ;
 
-mergeStatement: MERGE INTO objectName asAlias? USING tableSource ON searchCondition mergeMatches
+mergeStatement: MERGE INTO objectName asAlias? USING tableSource ON predicate mergeMatches
     ;
 
 mergeMatches: mergeCond+
     ;
 
 mergeCond
-    : (WHEN MATCHED (AND searchCondition)? THEN mergeUpdateDelete)+
-    | WHEN NOT MATCHED (AND searchCondition)? THEN mergeInsert
+    : (WHEN MATCHED (AND predicate)? THEN mergeUpdateDelete)+
+    | WHEN NOT MATCHED (AND predicate)? THEN mergeInsert
     ;
 
 mergeUpdateDelete: UPDATE SET columnName EQ expr (COLON columnName EQ expr)* | DELETE
@@ -94,16 +94,14 @@ mergeInsert: INSERT (L_PAREN columnList R_PAREN)? VALUES L_PAREN exprList R_PARE
 updateStatement
     : UPDATE objectName asAlias? SET columnName EQ expr (COMMA columnName EQ expr)* (
         FROM tableSources
-    )? (WHERE searchCondition)?
+    )? (WHERE predicate)?
     ;
 
 tableOrQuery: objectName asAlias? | L_PAREN subquery R_PAREN asAlias?
     ;
 
 deleteStatement
-    : DELETE FROM objectName asAlias? (USING tableOrQuery (COMMA tableOrQuery)?)? (
-        WHERE searchCondition
-    )?
+    : DELETE FROM objectName asAlias? (USING tableOrQuery (COMMA tableOrQuery)?)? (WHERE predicate)?
     ;
 
 valuesBuilder: VALUES L_PAREN exprList R_PAREN (COMMA L_PAREN exprList R_PAREN)?
@@ -2180,7 +2178,7 @@ sessionParamsList: sessionParams (COMMA sessionParams)*
 createTask
     : CREATE orReplace? TASK ifNotExists? objectName taskParameters* commentClause? copyGrants? (
         AFTER objectName (COMMA objectName)*
-    )? (WHEN searchCondition)? AS sql
+    )? (WHEN predicate)? AS sql
     ;
 
 taskParameters
@@ -2992,7 +2990,6 @@ nonReservedWords
     | EXPIRY_DATE
     | FIRST
     | FIRST_NAME
-    | FIRST_VALUE
     | FLATTEN
     | FLOOR
     | FUNCTION
@@ -3044,8 +3041,8 @@ nonReservedWords
     | RLIKE
     | ROLE
     | ROLLUP
-    | ROW_NUMBER
     | SECURITYADMIN
+    | SHARES
     | SOURCE
     | STAGE
     | START
@@ -3145,7 +3142,7 @@ jsonPath: jsonPathElem (DOT jsonPathElem)*
 jsonPathElem: ID | DOUBLE_QUOTE_ID (LSB (string | num) RSB)?
     ;
 
-iffExpr: IFF L_PAREN searchCondition COMMA expr COMMA expr R_PAREN
+iffExpr: IFF L_PAREN predicate COMMA expr COMMA expr R_PAREN
     ;
 
 castExpr: castOp = (TRY_CAST | CAST) L_PAREN expr AS dataType R_PAREN | INTERVAL expr
@@ -3225,7 +3222,15 @@ functionCall: builtinFunction | standardFunction | rankingWindowedFunction | agg
 builtinFunction: EXTRACT L_PAREN part = (STRING | ID) FROM expr R_PAREN # builtinExtract
     ;
 
-standardFunction: id L_PAREN (exprList | paramAssocList)? R_PAREN
+standardFunction: functionName L_PAREN (exprList | paramAssocList)? R_PAREN
+    ;
+
+functionName: id | nonReservedFunctionName
+    ;
+
+nonReservedFunctionName
+    : LEFT
+    | RIGHT // keywords that cannot be used as id, but can be used as function names
     ;
 
 paramAssocList: paramAssoc (COMMA paramAssoc)*
@@ -3237,11 +3242,7 @@ paramAssoc: id ASSOC expr
 ignoreOrRepectNulls: (IGNORE | RESPECT) NULLS
     ;
 
-rankingWindowedFunction
-    : (RANK | DENSE_RANK | ROW_NUMBER) L_PAREN R_PAREN overClause
-    | NTILE L_PAREN expr R_PAREN overClause
-    | (LEAD | LAG) L_PAREN expr (COMMA expr COMMA expr)? R_PAREN ignoreOrRepectNulls? overClause
-    | (FIRST_VALUE | LAST_VALUE) L_PAREN expr R_PAREN ignoreOrRepectNulls? overClause
+rankingWindowedFunction: standardFunction ignoreOrRepectNulls? overClause
     ;
 
 aggregateFunction
@@ -3276,7 +3277,7 @@ caseExpression
     | CASE switchSearchConditionSection+ (ELSE expr)? END
     ;
 
-switchSearchConditionSection: WHEN searchCondition THEN expr
+switchSearchConditionSection: WHEN predicate THEN expr
     ;
 
 switchSection: WHEN expr THEN expr
@@ -3398,7 +3399,7 @@ joinType: INNER | outerJoin
     ;
 
 joinClause
-    : joinType? JOIN objectRef ((ON searchCondition)? | (USING L_PAREN columnList R_PAREN)?)
+    : joinType? JOIN objectRef ((ON predicate)? | (USING L_PAREN columnList R_PAREN)?)
     //| joinType? JOIN objectRef (USING L_PAREN columnList R_PAREN)?
     | NATURAL outerJoin? JOIN objectRef
     | CROSS JOIN objectRef
@@ -3494,12 +3495,6 @@ sample: (SAMPLE | TABLESAMPLE) sampleMethod sampleSeed?
 sampleSeed: (REPEATABLE | SEED) L_PAREN num R_PAREN
     ;
 
-searchCondition
-    : NOT* (predicate | L_PAREN searchCondition R_PAREN)
-    | searchCondition AND searchCondition
-    | searchCondition OR searchCondition
-    ;
-
 comparisonOperator: EQ | GT | LT | LE | GE | LTGT | NE
     ;
 
@@ -3516,7 +3511,7 @@ predicate
     | expr
     ;
 
-whereClause: WHERE searchCondition
+whereClause: WHERE predicate
     ;
 
 groupByElem: columnElem | num | expressionElem
@@ -3531,7 +3526,7 @@ groupByClause
     | GROUP BY ALL
     ;
 
-havingClause: HAVING searchCondition
+havingClause: HAVING predicate
     ;
 
 qualifyClause: QUALIFY expr

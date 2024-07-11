@@ -248,19 +248,10 @@ class SnowflakeExpressionBuilder()
   }
 
   override def visitIffExpr(ctx: IffExprContext): ir.Expression = {
-    val condition = ctx.searchCondition().accept(this)
+    val condition = ctx.predicate().accept(this)
     val thenBranch = ctx.expr(0).accept(this)
     val elseBranch = ctx.expr(1).accept(this)
     ir.Iff(condition, thenBranch, elseBranch)
-  }
-
-  override def visitSearchCondition(ctx: SearchConditionContext): ir.Expression = {
-    val pred = ctx.predicate().accept(this)
-    if (ctx.NOT().size() % 2 == 1) {
-      ir.Not(pred)
-    } else {
-      pred
-    }
   }
 
   override def visitCastExpr(ctx: CastExprContext): ir.Expression = ctx match {
@@ -273,8 +264,8 @@ class SnowflakeExpressionBuilder()
   }
 
   override def visitRankingWindowedFunction(ctx: RankingWindowedFunctionContext): ir.Expression = {
-    val windowFunction = buildWindowFunction(ctx)
-    buildWindow(ctx.overClause(), windowFunction)
+    // TODO handle ignoreOrRespectNulls
+    buildWindow(ctx.overClause(), ctx.standardFunction().accept(this))
   }
 
   private def buildWindow(ctx: OverClauseContext, windowFunction: ir.Expression): ir.Expression = {
@@ -293,14 +284,6 @@ class SnowflakeExpressionBuilder()
       partition_spec = partitionSpec,
       sort_order = sortOrder,
       frame_spec = frameSpec)
-  }
-
-  private[snowflake] def buildWindowFunction(ctx: RankingWindowedFunctionContext): ir.Expression = ctx match {
-    case c if c.ROW_NUMBER() != null => ir.RowNumber
-    case c if c.NTILE() != null =>
-      val parameter = ctx.expr(0).accept(this)
-      ir.NTile(parameter)
-    case c => ir.UnresolvedExpression(c.getText)
   }
 
   private[snowflake] def buildSortOrder(ctx: OrderByClauseContext): Seq[ir.SortOrder] = {
@@ -323,7 +306,10 @@ class SnowflakeExpressionBuilder()
   }
 
   override def visitStandardFunction(ctx: StandardFunctionContext): ir.Expression = {
-    val functionName = ctx.id().getText
+    val functionName = ctx.functionName() match {
+      case c if c.id() != null => visitId(c.id()).id
+      case c if c.nonReservedFunctionName() != null => c.nonReservedFunctionName().getText
+    }
     val arguments = ctx match {
       case c if c.exprList() != null => c.exprList().expr().asScala.map(_.accept(this))
       case c if c.paramAssocList() != null => c.paramAssocList().paramAssoc().asScala.map(_.accept(this))
@@ -371,7 +357,7 @@ class SnowflakeExpressionBuilder()
         ir.Case(expression, branches, otherwise)
       case c if c.switchSearchConditionSection().size() > 0 =>
         val branches = c.switchSearchConditionSection().asScala.map { branch =>
-          ir.WhenBranch(branch.searchCondition().accept(this), branch.expr().accept(this))
+          ir.WhenBranch(branch.predicate().accept(this), branch.expr().accept(this))
         }
         ir.Case(None, branches, otherwise)
     }

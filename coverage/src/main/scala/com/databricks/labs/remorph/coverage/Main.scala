@@ -28,7 +28,7 @@ object Main {
     val testSource = new NestedFiles(sourceDir.toNIO)
     val queryExtractor = new DialectNameCommentBasedQueryExtractor(sourceDialect, targetDialect)
     testSource.listTests.foreach { test =>
-      queryExtractor.extractQuery(test.inputFile).foreach { q =>
+      queryExtractor.extractQuery(test.inputFile).foreach { case (inputQuery, expectedTranslation) =>
         val runner = new IsResolvedAsSnowflakeQueryRunner(new SnowflakeAstBuilder)
         val header = ReportEntryHeader(
           project = "remorph-core",
@@ -38,7 +38,7 @@ object Main {
           source_dialect = sourceDialect,
           target_dialect = targetDialect,
           file = test.inputFile.toString)
-        val report = runner.runQuery(q)
+        val report = runner.runQuery(inputQuery, expectedTranslation)
         val reportEntryJson = ReportEntry(header, report).asJson
         os.write.append(outputPath, ujson.write(reportEntryJson, indent = -1) + "\n")
       }

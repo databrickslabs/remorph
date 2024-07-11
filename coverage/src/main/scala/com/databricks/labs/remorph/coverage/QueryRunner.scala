@@ -1,19 +1,61 @@
 package com.databricks.labs.remorph.coverage
 
 import com.databricks.labs.remorph.parsers.ProductionErrorCollector
+import com.databricks.labs.remorph.parsers.intermediate.TreeNode
 import com.databricks.labs.remorph.parsers.snowflake.{SnowflakeAstBuilder, SnowflakeLexer, SnowflakeParser}
 import com.databricks.labs.remorph.parsers.tsql.{TSqlAstBuilder, TSqlLexer, TSqlParser}
-import org.antlr.v4.runtime.{CharStreams, CommonTokenStream}
+import org.antlr.v4.runtime.{CharStreams, CommonTokenStream, Parser}
 
 import scala.util.control.NonFatal
 
 trait QueryRunner {
-  def runQuery(query: String): ReportEntryReport
+  def runQuery(inputQuery: String, expectedTranslation: String): ReportEntryReport
 }
 
-class IsResolvedAsSnowflakeQueryRunner(astBuilder: SnowflakeAstBuilder) extends QueryRunner {
+abstract class BaseParserQueryRunner[P <: Parser] extends QueryRunner {
+  protected def makeParser(input: String): P
+  protected def translate(parser: P): TreeNode
 
-  private def makeParser(input: String): SnowflakeParser = {
+  override def runQuery(inputQuery: String, expectedTranslation: String): ReportEntryReport = {
+    val parser = makeParser(inputQuery)
+    val errHandler = new ProductionErrorCollector(inputQuery, "")
+    parser.removeErrorListeners()
+    parser.addErrorListener(errHandler)
+    val report = ReportEntryReport()
+    try {
+      val result = translate(parser)
+
+      if (result.toString.contains("Unresolved")) {
+        if (!expectedTranslation.exists(_.isLetter)) {
+          // expected translation is empty, indicating that we expect to have Unresolved bits
+          // in the output
+          report.copy(parsed = 1, transpiled = 1, statements = 1, transpiled_statements = 0)
+        } else {
+          report.copy(
+            parsed = 1,
+            statements = 1,
+            transpilation_error = Some(s"Translated query contains unresolved bits: $result"))
+        }
+      } else {
+        report.copy(parsed = 1, transpiled = 1, statements = 1, transpiled_statements = 1)
+      }
+    } catch {
+      case NonFatal(e) =>
+        val formattedErrors = errHandler.formatErrors
+        val msg = if (formattedErrors.nonEmpty) {
+          formattedErrors.mkString("\n")
+        } else {
+          Option(e.getMessage).getOrElse(s"Unexpected exception of class ${e.getClass} was thrown")
+        }
+        report.copy(parsing_error = Some(msg))
+    }
+  }
+
+}
+
+class IsResolvedAsSnowflakeQueryRunner(astBuilder: SnowflakeAstBuilder) extends BaseParserQueryRunner[SnowflakeParser] {
+
+  override protected def makeParser(input: String): SnowflakeParser = {
     val inputString = CharStreams.fromString(input)
     val lexer = new SnowflakeLexer(inputString)
     val tokenStream = new CommonTokenStream(lexer)
@@ -21,40 +63,13 @@ class IsResolvedAsSnowflakeQueryRunner(astBuilder: SnowflakeAstBuilder) extends 
     parser
   }
 
-  override def runQuery(query: String): ReportEntryReport = {
-    val parser = makeParser(query)
-    val errHandler = new ProductionErrorCollector(query, "")
-    parser.removeErrorListeners()
-    parser.addErrorListener(errHandler)
-    val report = ReportEntryReport()
-    try {
-      val result = astBuilder.visit(parser.snowflakeFile())
-
-      if (result.toString.contains("Unresolved")) {
-        report.copy(
-          parsed = 1,
-          statements = 1,
-          transpilation_error = Some(s"Translated query contains unresolved bits: $result"))
-      } else {
-        report.copy(parsed = 1, transpiled = 1, statements = 1, transpiled_statements = 1)
-      }
-    } catch {
-      case NonFatal(e) =>
-        val formattedErrors = errHandler.formatErrors
-        val msg = if (formattedErrors.nonEmpty) {
-          formattedErrors.mkString("\n")
-        } else {
-          Option(e.getMessage).getOrElse(s"Unexpected exception of class ${e.getClass} was thrown")
-        }
-        report.copy(parsing_error = Some(msg))
-    }
-  }
+  override protected def translate(parser: SnowflakeParser): TreeNode = astBuilder.visit(parser.snowflakeFile())
 
 }
 
-class IsResolvedAsTSqlQueryRunner(astBuilder: TSqlAstBuilder) extends QueryRunner {
+class IsResolvedAsTSqlQueryRunner(astBuilder: TSqlAstBuilder) extends BaseParserQueryRunner[TSqlParser] {
 
-  private def makeParser(input: String): TSqlParser = {
+  override protected def makeParser(input: String): TSqlParser = {
     val inputString = CharStreams.fromString(input)
     val lexer = new TSqlLexer(inputString)
     val tokenStream = new CommonTokenStream(lexer)
@@ -62,33 +77,6 @@ class IsResolvedAsTSqlQueryRunner(astBuilder: TSqlAstBuilder) extends QueryRunne
     parser
   }
 
-  override def runQuery(query: String): ReportEntryReport = {
-    val parser = makeParser(query)
-    val errHandler = new ProductionErrorCollector(query, "")
-    parser.removeErrorListeners()
-    parser.addErrorListener(errHandler)
-    val report = ReportEntryReport()
-    try {
-      val result = astBuilder.visit(parser.tSqlFile())
-
-      if (result.toString.contains("Unresolved")) {
-        report.copy(
-          parsed = 1,
-          statements = 1,
-          transpilation_error = Some(s"Translated query IR has unresolved elements: $result"))
-      } else {
-        report.copy(parsed = 1, transpiled = 1, statements = 1, transpiled_statements = 1)
-      }
-    } catch {
-      case NonFatal(e) =>
-        val formattedErrors = errHandler.formatErrors
-        val msg = if (formattedErrors.nonEmpty) {
-          formattedErrors.mkString("\n")
-        } else {
-          Option(e.getMessage).getOrElse(s"Unexpected exception of class ${e.getClass} was thrown")
-        }
-        report.copy(parsing_error = Some(msg))
-    }
-  }
+  override protected def translate(parser: TSqlParser): TreeNode = astBuilder.visit(parser.tSqlFile())
 
 }
