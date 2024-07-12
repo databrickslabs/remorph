@@ -399,14 +399,16 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
 
     "translate INSERT commands" in {
       singleQueryExample(
-        "INSERT INTO t (c1, c2, c3) VALUES (1,2, 3),  (4, 5, 6)",
-        Insert(
-          Id("t"),
-          Seq(Id("c1"), Id("c2"), Id("c3")),
+        "INSERT INTO t (c1, c2, c3) VALUES (1,2, 3), (4, 5, 6)",
+        InsertIntoTable(
+          namedTable("t"),
+          Some(Seq(Id("c1"), Id("c2"), Id("c3"))),
           Values(
             Seq(
               Seq(Literal(short = Some(1)), Literal(short = Some(2)), Literal(short = Some(3))),
               Seq(Literal(short = Some(4)), Literal(short = Some(5)), Literal(short = Some(6))))),
+          None,
+          None,
           overwrite = false))
     }
   }
