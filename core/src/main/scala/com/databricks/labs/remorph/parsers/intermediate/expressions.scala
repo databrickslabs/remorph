@@ -54,6 +54,7 @@ case class MapExpr(key_type: DataType, value_type: DataType, keys: Seq[Literal],
 case class Struct(struct_type: DataType, elements: Seq[Literal]) extends Expression {}
 
 case class Literal(
+    // TODO enhance to respect the datatype when defined in combination with datatypes.
     nullType: Option[DataType] = None,
     binary: Option[Array[Byte]] = None,
     boolean: Option[Boolean] = None,
