@@ -24,6 +24,7 @@ from databricks.labs.remorph.reconcile.recon_config import (
     StatusOutput,
     Table,
     ThresholdOutput,
+    ReconcileRecordCount,
 )
 
 
@@ -114,7 +115,9 @@ def data_prep(spark: SparkSession):
     spark.sql("DROP TABLE IF EXISTS DEFAULT.metrics")
     spark.sql("DROP TABLE IF EXISTS DEFAULT.details")
 
-    return reconcile_output, schema_output, table_conf, reconcile_process
+    row_count = ReconcileRecordCount(source=5, target=5)
+
+    return reconcile_output, schema_output, table_conf, reconcile_process, row_count
 
 
 def test_recon_capture_start_snowflake_all(mock_workspace_client, mock_spark):
@@ -124,7 +127,7 @@ def test_recon_capture_start_snowflake_all(mock_workspace_client, mock_spark):
     ws = mock_workspace_client
     source_type = get_dialect("snowflake")
     spark = mock_spark
-    reconcile_output, schema_output, table_conf, reconcile_process = data_prep(spark)
+    reconcile_output, schema_output, table_conf, reconcile_process, row_count = data_prep(spark)
     recon_capture = ReconCapture(
         database_config,
         "73b44582-dbb7-489f-bad1-6a7e8f4821b1",
@@ -140,6 +143,7 @@ def test_recon_capture_start_snowflake_all(mock_workspace_client, mock_spark):
         schema_reconcile_output=schema_output,
         table_conf=table_conf,
         recon_process_duration=reconcile_process,
+        record_count=row_count,
     )
 
     # assert main
@@ -216,7 +220,7 @@ def test_test_recon_capture_start_databricks_data(mock_workspace_client, mock_sp
         metadata_config=ReconcileMetadataConfig(schema="default"),
         local_test_run=True,
     )
-    reconcile_output, schema_output, table_conf, reconcile_process = data_prep(spark)
+    reconcile_output, schema_output, table_conf, reconcile_process, row_count = data_prep(spark)
     schema_output.compare_df = None
 
     recon_capture.start(
@@ -224,6 +228,7 @@ def test_test_recon_capture_start_databricks_data(mock_workspace_client, mock_sp
         schema_reconcile_output=schema_output,
         table_conf=table_conf,
         recon_process_duration=reconcile_process,
+        record_count=row_count,
     )
 
     # assert main
@@ -263,7 +268,7 @@ def test_test_recon_capture_start_databricks_row(mock_workspace_client, mock_spa
         metadata_config=ReconcileMetadataConfig(schema="default"),
         local_test_run=True,
     )
-    reconcile_output, schema_output, table_conf, reconcile_process = data_prep(spark)
+    reconcile_output, schema_output, table_conf, reconcile_process, row_count = data_prep(spark)
     reconcile_output.mismatch_count = 0
     reconcile_output.mismatch = MismatchOutput()
     reconcile_output.threshold_output = ThresholdOutput()
@@ -274,6 +279,7 @@ def test_test_recon_capture_start_databricks_row(mock_workspace_client, mock_spa
         schema_reconcile_output=schema_output,
         table_conf=table_conf,
         recon_process_duration=reconcile_process,
+        record_count=row_count,
     )
 
     # assert main
@@ -313,7 +319,7 @@ def test_recon_capture_start_oracle_schema(mock_workspace_client, mock_spark):
         metadata_config=ReconcileMetadataConfig(schema="default"),
         local_test_run=True,
     )
-    reconcile_output, schema_output, table_conf, reconcile_process = data_prep(spark)
+    reconcile_output, schema_output, table_conf, reconcile_process, row_count = data_prep(spark)
     reconcile_output.threshold_output = ThresholdOutput()
     reconcile_output.mismatch_count = 0
     reconcile_output.mismatch = MismatchOutput()
@@ -325,6 +331,7 @@ def test_recon_capture_start_oracle_schema(mock_workspace_client, mock_spark):
         schema_reconcile_output=schema_output,
         table_conf=table_conf,
         recon_process_duration=reconcile_process,
+        record_count=row_count,
     )
 
     # assert main
@@ -365,7 +372,7 @@ def test_recon_capture_start_oracle_with_exception(mock_workspace_client, mock_s
         metadata_config=ReconcileMetadataConfig(schema="default"),
         local_test_run=True,
     )
-    reconcile_output, schema_output, table_conf, reconcile_process = data_prep(spark)
+    reconcile_output, schema_output, table_conf, reconcile_process, row_count = data_prep(spark)
     reconcile_output.threshold_output = ThresholdOutput()
     reconcile_output.mismatch_count = 0
     reconcile_output.mismatch = MismatchOutput()
@@ -378,6 +385,7 @@ def test_recon_capture_start_oracle_with_exception(mock_workspace_client, mock_s
         schema_reconcile_output=schema_output,
         table_conf=table_conf,
         recon_process_duration=reconcile_process,
+        record_count=row_count,
     )
 
     # assert main
@@ -410,13 +418,14 @@ def test_recon_capture_start_with_exception(mock_workspace_client, mock_spark):
         ws,
         spark,
     )
-    reconcile_output, schema_output, table_conf, reconcile_process = data_prep(spark)
+    reconcile_output, schema_output, table_conf, reconcile_process, row_count = data_prep(spark)
     with pytest.raises(WriteToTableException):
         recon_capture.start(
             data_reconcile_output=reconcile_output,
             schema_reconcile_output=schema_output,
             table_conf=table_conf,
             recon_process_duration=reconcile_process,
+            record_count=row_count,
         )
 
 
@@ -439,12 +448,13 @@ def test_generate_final_reconcile_output_row(mock_workspace_client, mock_spark):
         metadata_config=ReconcileMetadataConfig(schema="default"),
         local_test_run=True,
     )
-    reconcile_output, schema_output, table_conf, reconcile_process = data_prep(spark)
+    reconcile_output, schema_output, table_conf, reconcile_process, row_count = data_prep(spark)
     recon_capture.start(
         data_reconcile_output=reconcile_output,
         schema_reconcile_output=schema_output,
         table_conf=table_conf,
         recon_process_duration=reconcile_process,
+        record_count=row_count,
     )
 
     final_output = generate_final_reconcile_output(
@@ -486,12 +496,13 @@ def test_generate_final_reconcile_output_data(mock_workspace_client, mock_spark)
         metadata_config=ReconcileMetadataConfig(schema="default"),
         local_test_run=True,
     )
-    reconcile_output, schema_output, table_conf, reconcile_process = data_prep(spark)
+    reconcile_output, schema_output, table_conf, reconcile_process, row_count = data_prep(spark)
     recon_capture.start(
         data_reconcile_output=reconcile_output,
         schema_reconcile_output=schema_output,
         table_conf=table_conf,
         recon_process_duration=reconcile_process,
+        record_count=row_count,
     )
 
     final_output = generate_final_reconcile_output(
@@ -533,12 +544,13 @@ def test_generate_final_reconcile_output_schema(mock_workspace_client, mock_spar
         metadata_config=ReconcileMetadataConfig(schema="default"),
         local_test_run=True,
     )
-    reconcile_output, schema_output, table_conf, reconcile_process = data_prep(spark)
+    reconcile_output, schema_output, table_conf, reconcile_process, row_count = data_prep(spark)
     recon_capture.start(
         data_reconcile_output=reconcile_output,
         schema_reconcile_output=schema_output,
         table_conf=table_conf,
         recon_process_duration=reconcile_process,
+        record_count=row_count,
     )
 
     final_output = generate_final_reconcile_output(
@@ -580,13 +592,14 @@ def test_generate_final_reconcile_output_all(mock_workspace_client, mock_spark):
         metadata_config=ReconcileMetadataConfig(schema="default"),
         local_test_run=True,
     )
-    reconcile_output, schema_output, table_conf, reconcile_process = data_prep(spark)
+    reconcile_output, schema_output, table_conf, reconcile_process, row_count = data_prep(spark)
 
     recon_capture.start(
         data_reconcile_output=reconcile_output,
         schema_reconcile_output=schema_output,
         table_conf=table_conf,
         recon_process_duration=reconcile_process,
+        record_count=row_count,
     )
 
     final_output = generate_final_reconcile_output(
@@ -628,7 +641,7 @@ def test_generate_final_reconcile_output_exception(mock_workspace_client, mock_s
         metadata_config=ReconcileMetadataConfig(schema="default"),
         local_test_run=True,
     )
-    reconcile_output, schema_output, table_conf, reconcile_process = data_prep(spark)
+    reconcile_output, schema_output, table_conf, reconcile_process, row_count = data_prep(spark)
     reconcile_output.exception = "Test exception"
 
     recon_capture.start(
@@ -636,6 +649,7 @@ def test_generate_final_reconcile_output_exception(mock_workspace_client, mock_s
         schema_reconcile_output=schema_output,
         table_conf=table_conf,
         recon_process_duration=reconcile_process,
+        record_count=row_count,
     )
 
     final_output = generate_final_reconcile_output(

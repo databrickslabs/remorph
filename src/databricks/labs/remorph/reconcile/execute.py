@@ -26,6 +26,7 @@ from databricks.labs.remorph.reconcile.exception import (
     InvalidInputException,
     ReconciliationException,
 )
+from databricks.labs.remorph.reconcile.query_builder.count_query import CountQueryBuilder
 from databricks.labs.remorph.reconcile.query_builder.hash_query import HashQueryBuilder
 from databricks.labs.remorph.reconcile.query_builder.sampling_query import (
     SamplingQueryBuilder,
@@ -46,6 +47,7 @@ from databricks.labs.remorph.reconcile.recon_config import (
     SchemaReconcileOutput,
     Table,
     ThresholdOutput,
+    ReconcileRecordCount,
 )
 from databricks.labs.remorph.reconcile.schema_compare import SchemaCompare
 from databricks.labs.remorph.transpiler.execute import verify_workspace_client
@@ -153,6 +155,7 @@ def recon(
     for table_conf in table_recon.tables:
         recon_process_duration = ReconcileProcessDuration(start_ts=str(datetime.now()), end_ts=None)
         schema_reconcile_output = SchemaReconcileOutput(is_valid=True)
+        record_count_output = ReconcileRecordCount(source=0, target=0)
         data_reconcile_output = DataReconcileOutput()
         try:
             src_schema, tgt_schema = _get_schema(
@@ -171,6 +174,7 @@ def recon(
                 data_reconcile_output = _run_reconcile_data(
                     reconciler=reconciler, table_conf=table_conf, src_schema=src_schema, tgt_schema=tgt_schema
                 )
+                record_count_output = reconciler.get_record_count(table_conf)
                 logger.warning(f"Reconciliation for '{report_type}' report completed.")
 
         recon_process_duration.end_ts = str(datetime.now())
@@ -180,6 +184,7 @@ def recon(
             schema_reconcile_output=schema_reconcile_output,
             table_conf=table_conf,
             recon_process_duration=recon_process_duration,
+            record_count=record_count_output,
         )
         if report_type != "schema":
             ReconIntermediatePersist(
@@ -489,6 +494,26 @@ class Reconciliation:
             threshold_df = mismatched_df.limit(_SAMPLE_ROWS)
 
         return ThresholdOutput(threshold_df=threshold_df, threshold_mismatch_count=mismatched_count)
+
+    def get_record_count(self, table_conf: Table) -> ReconcileRecordCount:
+        source_count_query = CountQueryBuilder(table_conf, "source", self._source_engine).build_query()
+        target_count_query = CountQueryBuilder(table_conf, "target", self._target_engine).build_query()
+        source_count = self._source.read_data(
+            catalog=self._database_config.source_catalog,
+            schema=self._database_config.source_schema,
+            table=table_conf.source_name,
+            query=source_count_query,
+            options=None,
+        ).collect()[0]["count"]
+        target_count = self._target.read_data(
+            catalog=self._database_config.target_catalog,
+            schema=self._database_config.target_schema,
+            table=table_conf.target_name,
+            query=target_count_query,
+            options=None,
+        ).collect()[0]["count"]
+
+        return ReconcileRecordCount(source=int(source_count), target=int(target_count))
 
 
 def _get_schema(

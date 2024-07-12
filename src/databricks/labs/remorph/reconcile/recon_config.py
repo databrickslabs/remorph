@@ -74,6 +74,20 @@ class Thresholds:
             return "datetime"
         return None
 
+    def validate_threshold_bounds(self):
+        if self.model == ThresholdModel.TABLE:
+            lower_bound = int(self.lower_bound.replace("%", ""))
+            upper_bound = int(self.upper_bound.replace("%", ""))
+            if lower_bound < 0 or upper_bound < 0:
+                raise ValueError("Threshold bounds for table cannot be negative.")
+            if lower_bound > upper_bound:
+                raise ValueError("Lower bound cannot be greater than upper bound.")
+        if self.model == ThresholdModel.COLUMN:
+            lower_bound = int(self.lower_bound.replace("%", ""))
+            upper_bound = int(self.upper_bound.replace("%", ""))
+            if lower_bound > upper_bound:
+                raise ValueError("Lower bound cannot be greater than upper bound.")
+
 
 @dataclass
 class Filters:
@@ -274,3 +288,9 @@ class ReconcileTableOutput:
 class ReconcileOutput:
     recon_id: str
     results: list[ReconcileTableOutput]
+
+
+@dataclass
+class ReconcileRecordCount:
+    source: int
+    target: int
