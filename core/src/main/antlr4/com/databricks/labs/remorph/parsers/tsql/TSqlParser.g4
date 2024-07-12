@@ -4096,7 +4096,7 @@ idOrString: id | STRING
     ;
 
 // Spaces are allowed for comparison operators.
-comparisonOperator: EQ | GT | LT | LT EQ | GT EQ | LT GT | EQ | BANG EQ | GT | LT
+comparisonOperator: EQ | GT | LT | LT EQ | GT EQ | LT GT | EQ | BANG EQ | GT | BANG GT | LT | BANG LT
     ;
 
 assignmentOperator: PE | ME | SE | DE | MEA | AND_ASSIGN | XOR_ASSIGN | OR_ASSIGN
