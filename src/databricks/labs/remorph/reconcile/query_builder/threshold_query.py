@@ -47,7 +47,7 @@ class ThresholdQueryBuilder(QueryBuilder):
 
         # threshold columns
         for threshold in thresholds:
-            column = threshold.column_name if threshold.column_name else ""
+            column = threshold.column_name
             base = exp.Paren(
                 this=build_sub(
                     left_column_name=column,
@@ -74,7 +74,7 @@ class ThresholdQueryBuilder(QueryBuilder):
         base: exp.Expression,
     ) -> tuple[list[exp.Expression], exp.Expression]:
         select_clause = []
-        column = threshold.column_name if threshold.column_name else ""
+        column = threshold.column_name
         select_clause.append(
             build_column(this=column, alias=f"{column}_source", table_name="source").transform(coalesce)
         )

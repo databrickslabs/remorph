@@ -56,7 +56,7 @@ class ColumnThresholds:
     type: str
 
     def __post_init__(self):
-        self.column_name = self.column_name.lower() if self.column_name else ""
+        self.column_name = self.column_name.lower()
         self.type = self.type.lower()
 
     def get_mode(self):
