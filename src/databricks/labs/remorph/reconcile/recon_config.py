@@ -12,6 +12,10 @@ from sqlglot import expressions as exp
 logger = logging.getLogger(__name__)
 
 
+class TableThresholdBoundsException(ValueError):
+    """Raise the error when the bounds for table threshold are invalid"""
+
+
 @dataclass
 class JdbcReaderOptions:
     number_partitions: int
@@ -44,18 +48,12 @@ class Transformation:
         self.column_name = self.column_name.lower()
 
 
-class ThresholdModel(Enum):
-    COLUMN = "column"
-    TABLE = "table"
-
-
 @dataclass
-class Thresholds:
-    column_name: str | None
+class ColumnThresholds:
+    column_name: str
     lower_bound: str
     upper_bound: str
     type: str
-    model: ThresholdModel = ThresholdModel.COLUMN
 
     def __post_init__(self):
         self.column_name = self.column_name.lower() if self.column_name else ""
@@ -74,19 +72,33 @@ class Thresholds:
             return "datetime"
         return None
 
+
+@dataclass
+class TableThresholdModel(Enum):
+    MISMATCH = "mismatch"
+    MISSING_IN_SOURCE = "missing_in_source"
+    MISSING_IN_TARGET = "missing_in_target"
+
+
+@dataclass
+class TableThresholds:
+    lower_bound: str
+    upper_bound: str
+    model: TableThresholdModel
+
+    def __post_init__(self):
+        self.validate_threshold_bounds()
+
+    def get_mode(self):
+        return "percentage" if "%" in self.lower_bound or "%" in self.upper_bound else "absolute"
+
     def validate_threshold_bounds(self):
-        if self.model == ThresholdModel.TABLE:
-            lower_bound = int(self.lower_bound.replace("%", ""))
-            upper_bound = int(self.upper_bound.replace("%", ""))
-            if lower_bound < 0 or upper_bound < 0:
-                raise ValueError("Threshold bounds for table cannot be negative.")
-            if lower_bound > upper_bound:
-                raise ValueError("Lower bound cannot be greater than upper bound.")
-        if self.model == ThresholdModel.COLUMN:
-            lower_bound = int(self.lower_bound.replace("%", ""))
-            upper_bound = int(self.upper_bound.replace("%", ""))
-            if lower_bound > upper_bound:
-                raise ValueError("Lower bound cannot be greater than upper bound.")
+        lower_bound = int(self.lower_bound.replace("%", ""))
+        upper_bound = int(self.upper_bound.replace("%", ""))
+        if lower_bound < 0 or upper_bound < 0:
+            raise TableThresholdBoundsException("Threshold bounds for table cannot be negative.")
+        if lower_bound > upper_bound:
+            raise TableThresholdBoundsException("Lower bound cannot be greater than upper bound.")
 
 
 @dataclass
@@ -109,8 +121,9 @@ class Table:
     drop_columns: list[str] | None = None
     column_mapping: list[ColumnMapping] | None = None
     transformations: list[Transformation] | None = None
-    thresholds: list[Thresholds] | None = None
+    column_thresholds: list[ColumnThresholds] | None = None
     filters: Filters | None = None
+    table_thresholds: list[TableThresholds] | None = None
 
     def __post_init__(self):
         self.source_name = self.source_name.lower()
@@ -165,13 +178,9 @@ class Table:
         return set(self.select_columns)
 
     def get_threshold_columns(self, layer: str) -> set[str]:
-        if self.thresholds is None:
+        if self.column_thresholds is None:
             return set()
-        return {
-            self.get_layer_src_to_tgt_col_mapping(thresh.column_name, layer)
-            for thresh in self.thresholds
-            if thresh.column_name is not None and thresh.model == ThresholdModel.COLUMN
-        }
+        return {self.get_layer_src_to_tgt_col_mapping(thresh.column_name, layer) for thresh in self.column_thresholds}
 
     def get_join_columns(self, layer: str) -> set[str] | None:
         if self.join_columns is None:

@@ -461,7 +461,7 @@ def test_reconcile_data_with_mismatch_and_no_missing(
 ):
     src_schema, tgt_schema = table_schema
     table_conf_with_opts.drop_columns = ["s_acctbal"]
-    table_conf_with_opts.thresholds = None
+    table_conf_with_opts.column_thresholds = None
     source_dataframe_repository = {
         (
             CATALOG,
@@ -563,7 +563,7 @@ def test_reconcile_data_missing_and_no_mismatch(
 ):
     src_schema, tgt_schema = table_schema
     table_conf_with_opts.drop_columns = ["s_acctbal"]
-    table_conf_with_opts.thresholds = None
+    table_conf_with_opts.column_thresholds = None
     source_dataframe_repository = {
         (
             CATALOG,
@@ -651,7 +651,7 @@ def mock_for_report_type_data(
     mock_spark,
 ):
     table_conf_with_opts.drop_columns = ["s_acctbal"]
-    table_conf_with_opts.thresholds = None
+    table_conf_with_opts.column_thresholds = None
     table_recon = TableRecon(
         source_catalog="org",
         source_schema="data",
@@ -1043,7 +1043,7 @@ def mock_for_report_type_all(
     setup_metadata_table,
 ):
     table_conf_with_opts.drop_columns = ["s_acctbal"]
-    table_conf_with_opts.thresholds = None
+    table_conf_with_opts.column_thresholds = None
     table_recon = TableRecon(
         source_catalog="org",
         source_schema="data",
@@ -1282,7 +1282,7 @@ def test_recon_for_report_type_all(
 @pytest.fixture
 def mock_for_report_type_row(table_conf_with_opts, table_schema, mock_spark, query_store, setup_metadata_table):
     table_conf_with_opts.drop_columns = ["s_acctbal"]
-    table_conf_with_opts.thresholds = None
+    table_conf_with_opts.column_thresholds = None
     table_recon = TableRecon(
         source_catalog="org",
         source_schema="data",
@@ -1502,7 +1502,7 @@ def test_recon_for_report_type_is_row(
 @pytest.fixture
 def mock_for_recon_exception(table_conf_with_opts, setup_metadata_table):
     table_conf_with_opts.drop_columns = ["s_acctbal"]
-    table_conf_with_opts.thresholds = None
+    table_conf_with_opts.column_thresholds = None
     table_conf_with_opts.join_columns = None
     table_recon = TableRecon(
         source_catalog="org",

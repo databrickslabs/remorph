@@ -20,9 +20,9 @@ from databricks.labs.remorph.reconcile.recon_config import (
     ReconcileTableOutput,
     SchemaReconcileOutput,
     StatusOutput,
-    Thresholds,
-    ThresholdModel,
+    TableThresholds,
     ReconcileRecordCount,
+    TableThresholdModel,
 )
 from databricks.sdk import WorkspaceClient
 
@@ -231,31 +231,26 @@ class ReconCapture:
         if data_reconcile_output.mismatch_count == 0:
             return False
         # pull out table thresholds
-        thresholds: list[Thresholds] = (
-            [
-                threshold
-                for threshold in table_conf.thresholds
-                if threshold.column_name is None and threshold.model == ThresholdModel.TABLE
-            ]
-            if table_conf.thresholds
+        thresholds: list[TableThresholds] = (
+            [threshold for threshold in table_conf.table_thresholds if threshold.model == TableThresholdModel.MISMATCH]
+            if table_conf.table_thresholds
             else []
         )
         res = None
         if thresholds:
             for threshold in thresholds:
-                threshold.validate_threshold_bounds()
                 mode = threshold.get_mode()
                 lower_bound = int(threshold.lower_bound.replace("%", ""))
                 upper_bound = int(threshold.upper_bound.replace("%", ""))
                 if mode == "absolute":
                     res = lower_bound <= data_reconcile_output.mismatch_count <= upper_bound
                 if mode == "percentage":
-                    lower_bound = int(round(lower_bound / 100 * record_count.source))
-                    upper_bound = int(round(upper_bound / 100 * record_count.source))
+                    lower_bound = int(round((lower_bound / 100) * record_count.source))
+                    upper_bound = int(round((upper_bound / 100) * record_count.source))
                     res = lower_bound <= data_reconcile_output.mismatch_count <= upper_bound
         else:
             return True
-        return not res
+        return not res  # we have to return negate bool because the logic for status checks for negate
 
     def _insert_into_metrics_table(
         self,
