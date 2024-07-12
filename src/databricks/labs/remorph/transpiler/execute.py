@@ -229,6 +229,8 @@ def verify_workspace_client(workspace_client: WorkspaceClient) -> WorkspaceClien
         workspace_client.config._product = "remorph"
     if workspace_client.config._product_version != __version__:
         workspace_client.config._product_version = __version__
+
+    logger.info(f"user: {workspace_client.current_user.me().user_name}")
     return workspace_client
 
 
