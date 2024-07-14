@@ -133,8 +133,8 @@ otherCommand
     | unset
     | call
     | beginTxn
+    | returnStatement
     | declare
-    | let
     ;
 
 beginTxn: BEGIN (WORK | TRANSACTION)? (NAME id)? | START TRANSACTION ( NAME id)?
@@ -153,7 +153,7 @@ copyIntoTable
     ) R_PAREN files? pattern? fileFormat? copyOptions*
     ;
 
-declare: DECLARE (id dataType (DEFAULT expr)? SEMI)+
+declare: DECLARE (id dataType (DEFAULT expr | (L_PAREN selectStatement R_PAREN))? SEMI)+
     ;
 
 externalLocation
@@ -194,6 +194,9 @@ formatType: TYPE EQ typeFileformat formatTypeOptions*
     ;
 
 let: LET id dataType? ASSIGN expr SEMI | LET id dataType? DEFAULT expr SEMI | id ASSIGN expr SEMI
+    ;
+
+returnStatement: RETURN expr SEMI
     ;
 
 stageFileFormat
@@ -1598,7 +1601,10 @@ callerOwner: CALLER | OWNER
 executaAs: EXECUTE AS callerOwner
     ;
 
-procedureDefinition: string | DBL_DOLLAR
+procedureBody: string
+    ;
+
+procedureDefinition: declare BEGIN procedureBody? returnStatement END SEMI
     ;
 
 notNull: NOT NULL_
@@ -3130,6 +3136,7 @@ expr
     | DISTINCT expr                             # exprDistinct
     //Should be latest rule as it's nearly a catch all
     | primitiveExpression # exprPrimitive
+    | parameterExpression # exprParameter
     ;
 
 withinGroup: WITHIN GROUP L_PAREN orderByClause R_PAREN
@@ -3196,6 +3203,7 @@ dataType
     | ARRAY
     | GEOGRAPHY
     | GEOMETRY
+    | RESULTSET
     ;
 
 primitiveExpression
@@ -3207,8 +3215,11 @@ primitiveExpression
     | BOTH_Q            # primExprBoth
     | ARRAY_Q           # primExprArray
     | OBJECT_Q          # primExprObject
+    | COLON id          # primVariable
     ;
 
+parameterExpression: COLON id
+    ;
 overClause: OVER L_PAREN (PARTITION BY expr (COMMA expr)*)? windowOrderingAndFrame? R_PAREN
     ;
 
