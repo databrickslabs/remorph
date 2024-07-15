@@ -397,6 +397,9 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
             Project(namedTable("t3"), Seq(Literal(short = Some(3)))))))
     }
 
+    // Tests below are just meant to verify that SnowflakeAstBuilder properly delegates DML commands
+    // (other than SELECT) to SnowflakeDMLBuilder
+
     "translate INSERT commands" in {
       singleQueryExample(
         "INSERT INTO t (c1, c2, c3) VALUES (1,2, 3), (4, 5, 6)",
@@ -410,6 +413,18 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
           None,
           None,
           overwrite = false))
+    }
+
+    "translate DELETE commands" in {
+      singleQueryExample(
+        "DELETE FROM t WHERE t.c1 > 42",
+        DeleteFromTable(
+          namedTable("t"),
+          None,
+          Some(GreaterThan(Dot(Id("t"), Id("c1")), Literal(short = Some(42)))),
+          None,
+          None))
+
     }
   }
 

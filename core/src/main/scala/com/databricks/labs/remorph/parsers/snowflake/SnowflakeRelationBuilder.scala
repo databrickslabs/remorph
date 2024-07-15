@@ -159,6 +159,15 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.Relation] w
     buildTableAlias(ctx.tableAlias(), buildPivotOrUnpivot(ctx.pivotUnpivot(), ctx.objectName().accept(this)))
   }
 
+  override def visitTableRef(ctx: TableRefContext): ir.Relation = {
+    val table = ctx.objectName().accept(this)
+    Option(ctx.asAlias())
+      .map { a =>
+        ir.TableAlias(table, a.alias().getText, Seq())
+      }
+      .getOrElse(table)
+  }
+
   override def visitObjectName(ctx: ObjectNameContext): ir.Relation = {
     val tableName = ctx.id().asScala.map(expressionBuilder.visitId).map(_.id).mkString(".")
     ir.NamedTable(tableName, Map.empty, is_streaming = false)
@@ -278,5 +287,17 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.Relation] w
         ir.TableSample(input, sampleMethod, seed)
       }
       .getOrElse(input)
+  }
+
+  override def visitTableOrQuery(ctx: TableOrQueryContext): ir.Relation = ctx match {
+    case c if c.tableRef() != null => c.tableRef().accept(this)
+    case c if c.subquery() != null =>
+      val subquery = c.subquery().accept(this)
+      Option(c.asAlias())
+        .map { a =>
+          ir.SubqueryAlias(subquery, expressionBuilder.visitId(a.alias().id()), Seq())
+        }
+        .getOrElse(subquery)
+
   }
 }

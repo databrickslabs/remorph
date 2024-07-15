@@ -61,5 +61,52 @@ class SnowflakeDMLBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
           overwrite = true))
 
     }
+
+    "translate DELETE statements" in {
+      example(
+        "DELETE FROM t WHERE t.c1 > 42",
+        _.deleteStatement(),
+        DeleteFromTable(
+          namedTable("t"),
+          None,
+          Some(GreaterThan(Dot(Id("t"), Id("c1")), Literal(short = Some(42)))),
+          None,
+          None))
+
+      example(
+        "DELETE FROM t1 USING t2 WHERE t1.c1 = t2.c2",
+        _.deleteStatement(),
+        DeleteFromTable(
+          namedTable("t1"),
+          Some(
+            Join(
+              namedTable("t1"),
+              namedTable("t2"),
+              None,
+              CrossJoin,
+              Seq(),
+              JoinDataType(is_left_struct = false, is_right_struct = false))),
+          Some(Equals(Dot(Id("t1"), Id("c1")), Dot(Id("t2"), Id("c2")))),
+          None,
+          None))
+
+      example(
+        "DELETE FROM table1 AS t1 USING (SELECT * FROM table2) AS t2 WHERE t1.c1 = t2.c2",
+        _.deleteStatement(),
+        DeleteFromTable(
+          TableAlias(namedTable("table1"), "t1", Seq()),
+          Some(
+            Join(
+              TableAlias(namedTable("table1"), "t1", Seq()),
+              SubqueryAlias(Project(namedTable("table2"), Seq(Star(None))), Id("t2"), Seq()),
+              None,
+              CrossJoin,
+              Seq(),
+              JoinDataType(is_left_struct = false, is_right_struct = false))),
+          Some(Equals(Dot(Id("t1"), Id("c1")), Dot(Id("t2"), Id("c2")))),
+          None,
+          None))
+
+    }
   }
 }
