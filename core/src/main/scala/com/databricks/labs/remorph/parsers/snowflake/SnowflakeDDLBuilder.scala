@@ -1,6 +1,5 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
-import com.databricks.labs.remorph.parsers.intermediate.AddColumn
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser.{StringContext => StrContext, _}
 import com.databricks.labs.remorph.parsers.{IncompleteParser, ParserCommon, intermediate => ir}
 
@@ -168,7 +167,7 @@ class SnowflakeDDLBuilder
 
   private[snowflake] def buildColumnActions(ctx: TableColumnActionContext): Seq[ir.TableAlteration] = ctx match {
     case c if c.ADD() != null =>
-      c.fullColDecl().asScala.map(buildColumnDeclaration).map(AddColumn.apply)
+      c.fullColDecl().asScala.map(buildColumnDeclaration).map(ir.AddColumn.apply)
     case c if !c.alterColumnClause().isEmpty =>
       c.alterColumnClause().asScala.map(buildColumnAlterations)
     case c if c.DROP() != null =>
@@ -218,5 +217,39 @@ class SnowflakeDDLBuilder
     } else {
       affectedColumns.map(col => ir.DropConstraint(Some(col), constraint))
     }
+  }
+
+  private def buildVariables(ctx: DeclareContext): Seq[ir.SetVariable] = {
+    val ids = ctx.id().asScala.map(_.getText)
+    val dataTypes = ctx.dataType().asScala.map(dt => Some(DataTypeBuilder.buildDataType(dt)))
+    val expressions = ctx.expr().asScala.map(_.accept(expressionBuilder)).map(Some(_))
+
+    // Padding the lists to ensure they all have the same size
+    // [TODO]: This is a temporary fix. We need to handle this in a better way
+    val paddedDataTypes = dataTypes ++ Seq.fill(ids.size - dataTypes.size)(None)
+    val paddedExpressions = (expressions ++ Seq.fill(ids.size - expressions.size)(None))
+
+    ids.zip(paddedDataTypes).zip(paddedExpressions).map { case ((name, dataType), expr) =>
+      ir.SetVariable(name, dataType, expr)
+    }
+
+  }
+
+  private def buildReturn(ctx: ReturnStatementContext): ir.Expression = {
+    // [TODO]: implement return statement for TABLE(res)
+    ctx.accept(expressionBuilder)
+  }
+
+  override def visitCreateProcedure(ctx: CreateProcedureContext): ir.Catalog = {
+    val name = ctx.objectName().getText
+    val parameters = ctx.argDecl().asScala.map(buildParameter)
+    val variables = Some(buildVariables(ctx.procedureDefinition().declare()))
+    val returnExpr = buildReturn(ctx.procedureDefinition().returnStatement())
+    // TODO Parse Procedure Body
+    val body = ctx.procedureDefinition() match {
+      case c if c.procedureBody() != null => Some(c.procedureBody().getText)
+      case _ => None
+    }
+    ir.CreateProcedure(name, parameters, variables, body, returnExpr)
   }
 }

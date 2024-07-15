@@ -415,6 +415,6 @@ class SnowflakeExpressionBuilder()
 
   override def visitLet(ctx: LetContext): ir.Expression = {
     val dataType: Option[ir.DataType] = Option(ctx.dataType()).flatMap(dt => Some(DataTypeBuilder.buildDataType(dt)))
-    ir.SetVariable(ctx.id().getText, dataType, ctx.expr().accept(this))
+    ir.SetVariable(ctx.id().getText, dataType, Some(ctx.expr().accept(this)))
   }
 }

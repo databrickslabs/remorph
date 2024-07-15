@@ -236,3 +236,11 @@ case class ColumnAliases(input: Relation, aliases: Seq[Id]) extends RelationComm
 
 case class TableFunction(functionCall: Expression) extends Relation {}
 case class Lateral(expr: Relation) extends Relation {}
+
+case class CreateProcedure(
+    name: String,
+    parameters: Seq[FunctionParameter],
+    variables: Option[Seq[SetVariable]],
+    body: Option[String],
+    returnType: Expression)
+    extends Catalog {}
