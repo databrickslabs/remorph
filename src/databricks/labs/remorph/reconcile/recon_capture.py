@@ -220,6 +220,66 @@ class ReconCapture:
         )
         _write_df_to_delta(df, f"{self._db_prefix}.{_RECON_TABLE_NAME}")
 
+    def _insert_aggregates_into_metrics_table(
+        self,
+        recon_table_id: int,
+        agg_data_reconcile_output: list[DataReconcileOutput],
+    ) -> None:
+
+        agg_df = None
+        for agg_data in agg_data_reconcile_output:
+            status = False
+            if agg_data.exception in {None, ''}:
+                status = not (
+                    agg_data.mismatch_count > 0
+                    or agg_data.missing_in_src_count > 0
+                    or agg_data.missing_in_tgt_count > 0
+                )
+
+            exception_msg = ""
+            if agg_data.exception is not None:
+                exception_msg = agg_data.exception.replace("'", '').replace('"', '')
+
+            insertion_time = str(datetime.now())
+            mismatch_columns = []
+            if agg_data.mismatch and agg_data.mismatch.mismatch_columns:
+                mismatch_columns = agg_data.mismatch.mismatch_columns
+
+            df = self.spark.sql(
+                f"""
+                    select {recon_table_id} as recon_table_id,
+                    named_struct(
+                        'row_comparison', case when '{self.report_type.lower()}' in ('agg') 
+                            and '{exception_msg}' = '' then
+                         named_struct(
+                            'missing_in_source', {agg_data.missing_in_src_count},
+                            'missing_in_target', {agg_data.missing_in_tgt_count}
+                        ) else null end,
+                        'column_comparison', case when '{self.report_type.lower()}' in ('agg') 
+                            and '{exception_msg}' = '' then
+                        named_struct(
+                            'absolute_mismatch', {agg_data.mismatch_count},
+                            'threshold_mismatch', null,
+                            'mismatch_columns', '{",".join(mismatch_columns)}'
+                        ) else null end,
+                        'schema_comparison', null 
+                    ) as recon_metrics,
+                    named_struct(
+                        'status', {status}, 
+                        'run_by_user', '{self.ws.current_user.me().user_name}', 
+                        'exception_message', "{exception_msg}"
+                    ) as run_metrics,
+                    cast('{insertion_time}' as timestamp) as inserted_ts
+                """
+            )
+            if not agg_df:
+                agg_df = df
+            else:
+                agg_df = agg_df.unionByName(df)
+
+        if agg_df:
+            _write_df_to_delta(agg_df, f"{self._db_prefix}.{_RECON_METRICS_TABLE_NAME}")
+
     def _insert_into_metrics_table(
         self,
         recon_table_id: int,
@@ -315,6 +375,62 @@ class ReconCapture:
         df = self._create_map_column(recon_table_id, df, recon_type, status)
         _write_df_to_delta(df, f"{self._db_prefix}.{_RECON_DETAILS_TABLE_NAME}")
 
+    def _get_df(
+        self,
+        recon_table_id: int,
+        agg_data: DataReconcileOutput,
+        recon_type: str,
+    ):
+
+        column_count = agg_data.mismatch_count
+        agg_df = agg_data.mismatch.mismatch_df
+        match recon_type:
+            case "missing_in_source":
+                column_count = agg_data.missing_in_src_count
+                agg_df = agg_data.missing_in_src
+            case "missing_in_target":
+                column_count = agg_data.missing_in_tgt_count
+                agg_df = agg_data.missing_in_tgt
+
+        if column_count > 0 and agg_df:
+            return self._create_map_column(
+                recon_table_id,
+                agg_df,
+                recon_type,
+                False,
+            )
+        return None
+
+    def _insert_aggregates_into_details_table(
+        self,
+        recon_table_id: int,
+        agg_data_reconcile_output: list[DataReconcileOutput],
+    ):
+        agg_data_df = None
+
+        for agg_data in agg_data_reconcile_output:
+            mismatch_df = self._get_df(recon_table_id, agg_data, "mismatch")
+
+            if not agg_data_df and mismatch_df:
+                agg_data_df = mismatch_df
+            elif agg_data_df and mismatch_df:
+                agg_data_df = agg_data_df.unionByName(mismatch_df)
+
+            missing_src_df = self._get_df(recon_table_id, agg_data, "missing_in_source")
+            if not agg_data_df and missing_src_df:
+                agg_data_df = missing_src_df
+            elif agg_data_df and missing_src_df:
+                agg_data_df = agg_data_df.unionByName(missing_src_df)
+
+            missing_tgt_df = self._get_df(recon_table_id, agg_data, "missing_in_target")
+            if not agg_data_df and missing_tgt_df:
+                agg_data_df = missing_tgt_df
+            elif agg_data_df and missing_tgt_df:
+                agg_data_df = agg_data_df.unionByName(missing_tgt_df)
+
+        if agg_data_df:
+            _write_df_to_delta(agg_data_df, f"{self._db_prefix}.{_RECON_DETAILS_TABLE_NAME}")
+
     def _insert_into_details_table(
         self,
         recon_table_id: int,
@@ -367,8 +483,19 @@ class ReconCapture:
         schema_reconcile_output: SchemaReconcileOutput,
         table_conf: Table,
         recon_process_duration: ReconcileProcessDuration,
+        agg_data_reconcile_output: list[DataReconcileOutput] | None = None,
     ) -> None:
         recon_table_id = self._generate_recon_main_id(table_conf)
         self._insert_into_main_table(recon_table_id, table_conf, recon_process_duration)
-        self._insert_into_metrics_table(recon_table_id, data_reconcile_output, schema_reconcile_output)
+        self._insert_into_metrics_table(
+            recon_table_id,
+            data_reconcile_output,
+            schema_reconcile_output,
+        )
         self._insert_into_details_table(recon_table_id, data_reconcile_output, schema_reconcile_output)
+        if agg_data_reconcile_output:
+            self._insert_aggregates_into_metrics_table(recon_table_id, agg_data_reconcile_output)
+            self._insert_aggregates_into_details_table(
+                recon_table_id,
+                agg_data_reconcile_output,
+            )

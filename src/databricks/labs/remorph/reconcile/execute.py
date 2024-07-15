@@ -1,9 +1,11 @@
 import logging
 import sys
-import os
 from datetime import datetime
 from uuid import uuid4
 
+from databricks.connect import DatabricksSession
+from databricks.labs.blueprint.installation import Installation
+from databricks.sdk import WorkspaceClient
 from pyspark.errors import PySparkException
 from pyspark.sql import DataFrame, SparkSession
 from sqlglot import Dialect
@@ -18,6 +20,7 @@ from databricks.labs.remorph.config import (
 from databricks.labs.remorph.reconcile.compare import (
     capture_mismatch_data_and_columns,
     reconcile_data,
+    reconcile_agg_data,
 )
 from databricks.labs.remorph.reconcile.connectors.data_source import DataSource
 from databricks.labs.remorph.reconcile.connectors.source_adapter import create_adapter
@@ -26,6 +29,7 @@ from databricks.labs.remorph.reconcile.exception import (
     InvalidInputException,
     ReconciliationException,
 )
+from databricks.labs.remorph.reconcile.query_builder.aggregate_query import AggregateQueryBuilder
 from databricks.labs.remorph.reconcile.query_builder.hash_query import HashQueryBuilder
 from databricks.labs.remorph.reconcile.query_builder.sampling_query import (
     SamplingQueryBuilder,
@@ -49,9 +53,6 @@ from databricks.labs.remorph.reconcile.recon_config import (
 )
 from databricks.labs.remorph.reconcile.schema_compare import SchemaCompare
 from databricks.labs.remorph.transpiler.execute import verify_workspace_client
-from databricks.sdk import WorkspaceClient
-from databricks.labs.blueprint.installation import Installation
-from databricks.connect import DatabricksSession
 
 logger = logging.getLogger(__name__)
 _SAMPLE_ROWS = 50
@@ -67,7 +68,7 @@ def validate_input(input_value: str, list_of_value: set, message: str):
 def main(*argv) -> None:
     logger.debug(f"Arguments received: {argv}")
 
-    w = WorkspaceClient()
+    w = WorkspaceClient(profile="FE-EAST")
 
     installation = Installation.assume_user_home(w, "remorph")
 
@@ -87,12 +88,12 @@ def main(*argv) -> None:
     try:
         recon_output = recon(
             ws=w,
-            spark=DatabricksSession.builder.getOrCreate(),
+            spark=DatabricksSession.builder.sdkConfig(w.config).getOrCreate(),
             table_recon=table_recon,
             reconcile_config=reconcile_config,
         )
         logger.info(f"recon_output: {recon_output}")
-        logger.info(f"recon_id: {recon_output.recon_id}")
+    #        logger.info(f"recon_id: {recon_output.recon_id}")
     except ReconciliationException as e:
         logger.error(f"Error while running recon: {e.reconcile_output}")
         raise e
@@ -115,8 +116,8 @@ def recon(
 
     # validate the report type
     report_type = reconcile_config.report_type.lower()
-    logger.info(f"report_type: {report_type}, data_source: {reconcile_config.data_source} ")
-    validate_input(report_type, {"schema", "data", "row", "all"}, "Invalid report type")
+    logger.info(f"report_type: {report_type}, data_source: {reconcile_config.data_source}")
+    # validate_input(report_type, {"schema", "data", "row", "all"}, "Invalid report type")
 
     source, target = initialise_data_source(
         engine=get_dialect(reconcile_config.data_source),
@@ -151,39 +152,62 @@ def recon(
     )
 
     for table_conf in table_recon.tables:
+        # if report_type in {"agg"}:
+
         recon_process_duration = ReconcileProcessDuration(start_ts=str(datetime.now()), end_ts=None)
         schema_reconcile_output = SchemaReconcileOutput(is_valid=True)
         data_reconcile_output = DataReconcileOutput()
+        agg_data_reconcile_output = [DataReconcileOutput()]
         try:
             src_schema, tgt_schema = _get_schema(
-                source=source, target=target, table_conf=table_conf, database_config=reconcile_config.database_config
+                source=source,
+                target=target,
+                table_conf=table_conf,
+                database_config=reconcile_config.database_config,
             )
         except DataSourceRuntimeException as e:
             schema_reconcile_output = SchemaReconcileOutput(is_valid=False, exception=str(e))
         else:
             if report_type in {"schema", "all"}:
                 schema_reconcile_output = _run_reconcile_schema(
-                    reconciler=reconciler, table_conf=table_conf, src_schema=src_schema, tgt_schema=tgt_schema
+                    reconciler=reconciler,
+                    table_conf=table_conf,
+                    src_schema=src_schema,
+                    tgt_schema=tgt_schema,
                 )
                 logger.warning("Schema comparison is completed.")
 
             if report_type in {"data", "row", "all"}:
                 data_reconcile_output = _run_reconcile_data(
-                    reconciler=reconciler, table_conf=table_conf, src_schema=src_schema, tgt_schema=tgt_schema
+                    reconciler=reconciler,
+                    table_conf=table_conf,
+                    src_schema=src_schema,
+                    tgt_schema=tgt_schema,
                 )
                 logger.warning(f"Reconciliation for '{report_type}' report completed.")
+
+            if report_type in {"agg"}:
+                agg_reconcile_output = _run_reconcile_aggregates(
+                    reconciler=reconciler,
+                    table_conf=table_conf,
+                    src_schema=src_schema,
+                    tgt_schema=tgt_schema,
+                )
+                print(agg_reconcile_output)
 
         recon_process_duration.end_ts = str(datetime.now())
         # Persist the data to the delta tables
         recon_capture.start(
             data_reconcile_output=data_reconcile_output,
             schema_reconcile_output=schema_reconcile_output,
+            agg_data_reconcile_output=agg_data_reconcile_output,
             table_conf=table_conf,
             recon_process_duration=recon_process_duration,
         )
         if report_type != "schema":
             ReconIntermediatePersist(
-                spark=spark, path=generate_volume_path(table_conf, reconcile_config.metadata_config)
+                spark=spark,
+                path=generate_volume_path(table_conf, reconcile_config.metadata_config),
             ).clean_unmatched_df_from_volume()
 
     return _verify_successful_reconciliation(
@@ -289,6 +313,15 @@ class Reconciliation:
 
         return reconcile_output
 
+    def reconcile_aggregates(
+        self,
+        table_conf: Table,
+        src_schema: list[Schema],
+        tgt_schema: list[Schema],
+    ) -> list[DataReconcileOutput]:
+        # TODO: Add Thresholds comparison & Sample Data for aggregate data
+        return self._get_reconcile_aggregate_output(table_conf, src_schema, tgt_schema)
+
     def reconcile_schema(
         self,
         src_schema: list[Schema],
@@ -333,6 +366,59 @@ class Reconciliation:
             spark=self._spark,
             path=volume_path,
         )
+
+    def _get_reconcile_aggregate_output(
+        self,
+        table_conf,
+        src_schema,
+        tgt_schema,
+    ):
+        src_query_builder = AggregateQueryBuilder(
+            table_conf,
+            src_schema,
+            "source",
+            self._source_engine,
+        )
+
+        src_agg_queries = src_query_builder.build_queries()
+
+        tgt_agg_queries = AggregateQueryBuilder(
+            table_conf,
+            tgt_schema,
+            "target",
+            self._target_engine,
+        ).build_queries()
+
+        print(src_agg_queries)
+        print(tgt_agg_queries)
+
+        # volume_path = generate_volume_path(table_conf, self._metadata_config)
+        reconcile_aggs = []
+
+        for key, group in src_query_builder.grouped_aggregates():
+            src_data = self._source.read_data(
+                catalog=self._database_config.source_catalog,
+                schema=self._database_config.source_schema,
+                table=table_conf.source_name,
+                query=src_agg_queries[f"source_query_{key}"],
+                options=table_conf.jdbc_reader_options,
+            )
+            tgt_data = self._target.read_data(
+                catalog=self._database_config.target_catalog,
+                schema=self._database_config.target_schema,
+                table=table_conf.target_name,
+                query=tgt_agg_queries[f"target_query_{key}"],
+                options=table_conf.jdbc_reader_options,
+            )
+
+            reconcile_aggs.append(
+                reconcile_agg_data(
+                    source=src_data,
+                    target=tgt_data,
+                    group_list=list(group),
+                )
+            )
+        return reconcile_aggs
 
     def _get_sample_data(
         self,
@@ -535,7 +621,19 @@ def _run_reconcile_schema(
         return SchemaReconcileOutput(is_valid=False, exception=str(e))
 
 
+def _run_reconcile_aggregates(
+    reconciler: Reconciliation,
+    table_conf: Table,
+    src_schema: list[Schema],
+    tgt_schema: list[Schema],
+):
+    try:
+        return reconciler.reconcile_aggregates(table_conf, src_schema, tgt_schema)
+    except DataSourceRuntimeException as e:
+        return [DataReconcileOutput(exception=str(e))]
+
+
 if __name__ == "__main__":
-    if "DATABRICKS_RUNTIME_VERSION" not in os.environ:
-        raise SystemExit("Only intended to run in Databricks Runtime")
+    # if "DATABRICKS_RUNTIME_VERSION" not in os.environ:
+    #     raise SystemExit("Only intended to run in Databricks Runtime")
     main(*sys.argv)

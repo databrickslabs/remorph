@@ -86,7 +86,7 @@ class ReconcileUtils:
 
         logger.info(f"Triggering the Job with job_id: `{reconcile_config.job_id}` ...")
 
-        wait = self._ws.jobs.run_now(job_id=reconcile_config.job_id)
+        wait = self._ws.jobs.run_now_and_wait(job_id=reconcile_config.job_id)
         assert wait.run_id, (
             f"Error: Job {reconcile_config.job_id} execution failed." f" Please check the job logs for more details."
         )

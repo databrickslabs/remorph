@@ -73,7 +73,7 @@ class QueryBuilder(ABC):
         return self._table_conf.get_transformation_dict(self._layer)
 
     @property
-    def aggregates(self) -> list[Aggregate]:
+    def aggregates(self) -> list[Aggregate] | None:
         return self.table_conf.aggregates
 
     def add_transformations(self, aliases: list[exp.Expression], source: Dialect) -> list[exp.Expression]:
