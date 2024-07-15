@@ -220,6 +220,7 @@ class SnowflakeDDLBuilder
   }
 
   private def buildVariables(ctx: DeclareContext): Seq[ir.SetVariable] = {
+    // [TODO]: Add Support for Cursor
     val ids = ctx.id().asScala.map(_.getText)
     val dataTypes = ctx.dataType().asScala.map(dt => Some(DataTypeBuilder.buildDataType(dt)))
     val expressions = ctx.expr().asScala.map(_.accept(expressionBuilder)).map(Some(_))
@@ -240,6 +241,10 @@ class SnowflakeDDLBuilder
     ctx.accept(expressionBuilder)
   }
 
+  private def buildProcedureBody(ctx: ProcedureBodyContext): ir.Plan = {
+    ctx.accept(expressionBuilder).asInstanceOf[ir.Plan]
+  }
+
   override def visitCreateProcedure(ctx: CreateProcedureContext): ir.Catalog = {
     val name = ctx.objectName().getText
     val parameters = ctx.argDecl().asScala.map(buildParameter)
@@ -247,7 +252,7 @@ class SnowflakeDDLBuilder
     val returnExpr = buildReturn(ctx.procedureDefinition().returnStatement())
     // TODO Parse Procedure Body
     val body = ctx.procedureDefinition() match {
-      case c if c.procedureBody() != null => Some(c.procedureBody().getText)
+      case c if c.procedureBody() != null => Some(buildProcedureBody(c.procedureBody()))
       case _ => None
     }
     ir.CreateProcedure(name, parameters, variables, body, returnExpr)

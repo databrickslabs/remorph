@@ -241,6 +241,6 @@ case class CreateProcedure(
     name: String,
     parameters: Seq[FunctionParameter],
     variables: Option[Seq[SetVariable]],
-    body: Option[String],
+    body: Option[Plan],
     returnType: Expression)
     extends Catalog {}

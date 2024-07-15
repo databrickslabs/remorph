@@ -134,7 +134,6 @@ otherCommand
     | call
     | beginTxn
     | returnStatement
-    | declare
     ;
 
 beginTxn: BEGIN (WORK | TRANSACTION)? (NAME id)? | START TRANSACTION ( NAME id)?
@@ -1601,10 +1600,10 @@ callerOwner: CALLER | OWNER
 executaAs: EXECUTE AS callerOwner
     ;
 
-procedureBody: string
+procedureBody: (let | call | executeImmediate | string)*
     ;
 
-procedureDefinition: declare BEGIN procedureBody? returnStatement END SEMI
+procedureDefinition: declare? BEGIN procedureBody returnStatement END SEMI
     ;
 
 notNull: NOT NULL_
@@ -2231,7 +2230,7 @@ taskOverlap: ALLOW_OVERLAPPING_EXECUTION EQ trueFalse
 sql: EXECUTE IMMEDIATE DBL_DOLLAR | sqlCommand | call
     ;
 
-call: CALL objectName L_PAREN exprList? R_PAREN
+call: CALL objectName L_PAREN exprList? R_PAREN SEMI
     ;
 
 createUser: CREATE orReplace? USER ifNotExists? id objectProperties? objectParams? sessionParams?
