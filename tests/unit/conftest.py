@@ -28,8 +28,10 @@ from databricks.labs.remorph.reconcile.recon_config import (
     JdbcReaderOptions,
     Schema,
     Table,
-    Thresholds,
+    ColumnThresholds,
     Transformation,
+    TableThresholds,
+    TableThresholdModel,
 )
 from databricks.labs.remorph.snow.databricks import Databricks
 from databricks.labs.remorph.snow.snowflake import Snow
@@ -213,7 +215,7 @@ def table_conf_mock():
             drop_columns=kwargs.get('drop_columns', None),
             column_mapping=kwargs.get('column_mapping', None),
             transformations=kwargs.get('transformations', None),
-            thresholds=kwargs.get('thresholds', None),
+            column_thresholds=kwargs.get('thresholds', None),
             filters=kwargs.get('filters', None),
         )
 
@@ -237,8 +239,13 @@ def table_conf_with_opts(column_mapping):
             Transformation(column_name="s_phone", source="trim(s_phone)", target="trim(s_phone_t)"),
             Transformation(column_name="s_name", source="trim(s_name)", target="trim(s_name)"),
         ],
-        thresholds=[Thresholds(column_name="s_acctbal", lower_bound="0", upper_bound="100", type="int")],
+        column_thresholds=[
+            ColumnThresholds(column_name="s_acctbal", lower_bound="0", upper_bound="100", type="int"),
+        ],
         filters=Filters(source="s_name='t' and s_address='a'", target="s_name='t' and s_address_t='a'"),
+        table_thresholds=[
+            TableThresholds(lower_bound="0", upper_bound="100", model=TableThresholdModel.MISMATCH),
+        ],
     )
 
 
