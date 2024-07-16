@@ -224,7 +224,7 @@ class ReconCapture:
         _write_df_to_delta(df, f"{self._db_prefix}.{_RECON_TABLE_NAME}")
 
     @classmethod
-    def _apply_threshold(
+    def _is_mismatch_within_threshold_limits(
         cls, data_reconcile_output: DataReconcileOutput, table_conf: Table, record_count: ReconcileRecordCount
     ):
         # if the mismatch count is 0 then no need of checking bounds.
@@ -241,17 +241,16 @@ class ReconCapture:
             return True
 
         res = None
-        if thresholds:
-            for threshold in thresholds:
-                mode = threshold.get_mode()
-                lower_bound = int(threshold.lower_bound.replace("%", ""))
-                upper_bound = int(threshold.upper_bound.replace("%", ""))
-                if mode == "absolute":
-                    res = lower_bound <= data_reconcile_output.mismatch_count <= upper_bound
-                if mode == "percentage":
-                    lower_bound = int(round((lower_bound / 100) * record_count.source))
-                    upper_bound = int(round((upper_bound / 100) * record_count.source))
-                    res = lower_bound <= data_reconcile_output.mismatch_count <= upper_bound
+        for threshold in thresholds:
+            mode = threshold.get_mode()
+            lower_bound = int(threshold.lower_bound.replace("%", ""))
+            upper_bound = int(threshold.upper_bound.replace("%", ""))
+            if mode == "absolute":
+                res = lower_bound <= data_reconcile_output.mismatch_count <= upper_bound
+            if mode == "percentage":
+                lower_bound = int(round((lower_bound / 100) * record_count.source))
+                upper_bound = int(round((upper_bound / 100) * record_count.source))
+                res = lower_bound <= data_reconcile_output.mismatch_count <= upper_bound
 
         return not res  # we have to return negate bool because the logic for status checks for negate
 
@@ -266,7 +265,7 @@ class ReconCapture:
         status = False
         if data_reconcile_output.exception in {None, ''} and schema_reconcile_output.exception in {None, ''}:
             status = not (
-                self._apply_threshold(
+                self._is_mismatch_within_threshold_limits(
                     data_reconcile_output=data_reconcile_output, table_conf=table_conf, record_count=record_count
                 )
                 or data_reconcile_output.missing_in_src_count > 0
