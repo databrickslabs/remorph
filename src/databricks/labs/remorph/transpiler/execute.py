@@ -260,6 +260,8 @@ def morph_sql(
     sql: str,
 ) -> tuple[TranspilationResult, ValidationResult | None]:
     """[Experimental] Transpile a single SQL query from one dialect to another."""
+    # Verifies and updates the workspace client configuration.
+    # mypy is not allowing to re-assign the variable, so we are using a new variable.
     ws_client: WorkspaceClient = verify_workspace_client(workspace_client)
 
     read_dialect: Dialect = config.get_read_dialect()
