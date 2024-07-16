@@ -152,8 +152,13 @@ copyIntoTable
     ) R_PAREN files? pattern? fileFormat? copyOptions*
     ;
 
-declare: DECLARE (id dataType (DEFAULT expr | (L_PAREN selectStatement R_PAREN))? SEMI)+
+declareClause: DECLARE declareStatement+
     ;
+
+declareStatement: id dataType SEMI
+| id dataType DEFAULT L_PAREN selectStatement R_PAREN SEMI
+| id dataType DEFAULT expr SEMI
+;
 
 externalLocation
     : STRING
@@ -192,7 +197,7 @@ formatName: FORMAT_NAME EQ string
 formatType: TYPE EQ typeFileformat formatTypeOptions*
     ;
 
-let: LET id dataType? ASSIGN expr SEMI | LET id dataType? DEFAULT expr SEMI | id ASSIGN expr SEMI
+let: LET id dataType? (ASSIGN | DEFAULT) expr SEMI
     ;
 
 returnStatement: RETURN expr SEMI
@@ -1603,34 +1608,20 @@ executaAs: EXECUTE AS callerOwner
 procedureBody: (let | call | executeImmediate | string)*
     ;
 
-procedureDefinition: declare? BEGIN procedureBody returnStatement END SEMI
+procedureDefinition: DBL_DOLLAR | declareClause? BEGIN procedureBody returnStatement END SEMI
     ;
 
 notNull: NOT NULL_
     ;
 
+table_: TABLE (L_PAREN (colDecl (COMMA colDecl)*)? R_PAREN) | (functionCall)
+    ;
+
 createProcedure
     : CREATE orReplace? PROCEDURE objectName L_PAREN (argDecl (COMMA argDecl)*)? R_PAREN RETURNS (
         dataType
-        | TABLE L_PAREN (colDecl (COMMA colDecl)*)? R_PAREN
-    ) notNull? LANGUAGE SQL (CALLED ON NULL_ INPUT | RETURNS NULL_ ON NULL_ INPUT | STRICT)? (
-        VOLATILE
-        | IMMUTABLE
-    )? // Note: VOLATILE and IMMUTABLE are deprecated.
-    commentClause? executaAs? AS procedureDefinition
-    | CREATE orReplace? SECURE? PROCEDURE objectName L_PAREN (argDecl (COMMA argDecl)*)? R_PAREN RETURNS dataType notNull? LANGUAGE JAVASCRIPT (
-        CALLED ON NULL_ INPUT
-        | RETURNS NULL_ ON NULL_ INPUT
-        | STRICT
-    )? (VOLATILE | IMMUTABLE)? // Note: VOLATILE and IMMUTABLE are deprecated.
-    commentClause? executaAs? AS procedureDefinition
-    | CREATE orReplace? SECURE? PROCEDURE objectName L_PAREN (argDecl (COMMA argDecl)*)? R_PAREN RETURNS (
-        dataType notNull?
-        | TABLE L_PAREN (colDecl (COMMA colDecl)*)? R_PAREN
-    ) LANGUAGE PYTHON RUNTIME_VERSION EQ string (IMPORTS EQ L_PAREN stringList R_PAREN)? PACKAGES EQ L_PAREN stringList R_PAREN HANDLER EQ string
-    //            ( CALLED ON NULL_ INPUT | RETURNS NULL_ ON NULL_ INPUT | STRICT )?
-    //            ( VOLATILE | IMMUTABLE )? // Note: VOLATILE and IMMUTABLE are deprecated.
-    commentClause? executaAs? AS procedureDefinition
+        | table_
+    ) notNull? LANGUAGE SQL (CALLED ON NULL_ INPUT | RETURNS NULL_ ON NULL_ INPUT | STRICT)? commentClause? executaAs? AS procedureDefinition
     ;
 
 createReplicationGroup
