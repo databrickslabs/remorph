@@ -1560,7 +1560,7 @@ def test_schema_recon_with_data_source_exception(
                 "Snowflake",
                 ("org", "data", "supplier"),
                 ("org", "data", "target_supplier"),
-                "all",
+                "schema",
                 datetime(2024, 5, 23, 9, 21, 25, 122185),
                 datetime(2024, 5, 23, 9, 21, 25, 122185),
             )
