@@ -155,6 +155,7 @@ def morph(workspace_client: WorkspaceClient, config: MorphConfig):
     :param config: The configuration for the morph operation.
     :param workspace_client: The WorkspaceClient object.
     """
+    ws_client: WorkspaceClient = verify_workspace_client(workspace_client)
     if not config.input_sql:
         logger.error("Input SQL path is not provided.")
         raise ValueError("Input SQL path is not provided.")
@@ -167,7 +168,7 @@ def morph(workspace_client: WorkspaceClient, config: MorphConfig):
     transpiler = SqlglotEngine(read_dialect)
     validator = None
     if not config.skip_validation:
-        validator = Validator(db_sql.get_sql_backend(workspace_client, config))
+        validator = Validator(db_sql.get_sql_backend(ws_client, config))
 
     if input_sql.is_file():
         if is_sql_file(input_sql):
