@@ -1536,6 +1536,7 @@ def test_schema_recon_with_data_source_exception(
 ):
     recon_schema, metrics_schema, details_schema = report_tables_schema
     table_recon, source, target, reconcile_config_exception = mock_for_recon_exception
+    reconcile_config_exception.report_type = "schema"
     with (
         patch("databricks.labs.remorph.reconcile.execute.datetime") as mock_datetime,
         patch("databricks.labs.remorph.reconcile.recon_capture.datetime") as recon_datetime,
