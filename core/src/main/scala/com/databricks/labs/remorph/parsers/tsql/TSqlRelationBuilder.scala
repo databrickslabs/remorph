@@ -265,12 +265,12 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.Relation] {
     }
 
     val columns = Option(ctx.expressionList())
-      .map(_.expression().asScala.map(_.accept(expressionBuilder)).collect { case col: ir.Column => col })
+      .map(_.expression().asScala.map(_.accept(expressionBuilder)).collect { case col: ir.Column => col.columnName })
 
     val output = Option(ctx.outputClause()).map(_.accept(this))
     val values = ctx.insertStatementValue().accept(this)
     val optionClause = Option(ctx.optionClause).map(_.accept(expressionBuilder))
-    ir.InsertIntoTable(finalTarget, columns, values, output, optionClause)
+    ir.InsertIntoTable(finalTarget, columns, values, output, optionClause, overwrite = false)
   }
 
   override def visitInsertStatementValue(ctx: InsertStatementValueContext): ir.Relation = {
