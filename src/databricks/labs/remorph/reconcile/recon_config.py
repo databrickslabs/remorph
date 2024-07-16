@@ -299,5 +299,5 @@ class ReconcileOutput:
 
 @dataclass
 class ReconcileRecordCount:
-    source: int
-    target: int
+    source: int = 0
+    target: int = 0
