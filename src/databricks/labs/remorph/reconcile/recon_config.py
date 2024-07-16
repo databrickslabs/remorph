@@ -76,8 +76,6 @@ class ColumnThresholds:
 @dataclass
 class TableThresholdModel(Enum):
     MISMATCH = "mismatch"
-    MISSING_IN_SOURCE = "missing_in_source"
-    MISSING_IN_TARGET = "missing_in_target"
 
 
 @dataclass

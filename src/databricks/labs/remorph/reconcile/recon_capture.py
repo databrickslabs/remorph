@@ -236,6 +236,10 @@ class ReconCapture:
             if table_conf.table_thresholds
             else []
         )
+        # if not table thresholds are provided return true
+        if not thresholds:
+            return True
+
         res = None
         if thresholds:
             for threshold in thresholds:
@@ -248,8 +252,7 @@ class ReconCapture:
                     lower_bound = int(round((lower_bound / 100) * record_count.source))
                     upper_bound = int(round((upper_bound / 100) * record_count.source))
                     res = lower_bound <= data_reconcile_output.mismatch_count <= upper_bound
-        else:
-            return True
+
         return not res  # we have to return negate bool because the logic for status checks for negate
 
     def _insert_into_metrics_table(
