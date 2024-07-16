@@ -1,6 +1,5 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
-import com.databricks.labs.remorph.parsers.IRHelpers
 import com.databricks.labs.remorph.parsers.intermediate._
 import org.scalatest.Assertion
 import org.scalatest.Checkpoints.Checkpoint

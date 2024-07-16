@@ -1,12 +1,15 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser._
-import com.databricks.labs.remorph.parsers.{IncompleteParser, intermediate => ir}
+import com.databricks.labs.remorph.parsers.{IncompleteParser, ParserCommon, intermediate => ir}
 import org.antlr.v4.runtime.ParserRuleContext
 
 import scala.collection.JavaConverters._
 
-class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.Relation] with IncompleteParser[ir.Relation] {
+class SnowflakeRelationBuilder
+    extends SnowflakeParserBaseVisitor[ir.Relation]
+    with IncompleteParser[ir.Relation]
+    with ParserCommon[ir.Relation] {
 
   private val expressionBuilder = new SnowflakeExpressionBuilder
   private val functionBuilder = new SnowflakeFunctionBuilder
@@ -76,7 +79,7 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.Relation] w
   }
 
   override def visitFromClause(ctx: FromClauseContext): ir.Relation = {
-    val tableSources = ctx.tableSources().tableSource().asScala.map(_.accept(this))
+    val tableSources = visitMany(ctx.tableSources().tableSource())
     // The tableSources seq cannot be empty (as empty FROM clauses are not allowed
     tableSources match {
       case Seq(tableSource) => tableSource
@@ -151,7 +154,7 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.Relation] w
       ctx
         .exprListInParentheses()
         .asScala
-        .map(l => expressionBuilder.visitSeq(l.exprList().expr().asScala))
+        .map(l => expressionBuilder.visitMany(l.exprList().expr()))
     ir.Values(expressions)
   }
 
@@ -194,10 +197,7 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.Relation] w
   }
 
   private def buildPivot(ctx: PivotUnpivotContext, relation: ir.Relation): ir.Relation = {
-    val pivotValues: Seq[ir.Literal] =
-      ctx.values.asScala.map(_.accept(expressionBuilder)).collect { case lit: ir.Literal =>
-        lit
-      }
+    val pivotValues: Seq[ir.Literal] = expressionBuilder.visitMany(ctx.values).collect { case lit: ir.Literal => lit }
     val argument = ir.Column(None, expressionBuilder.visitId(ctx.pivotColumn))
     val column = ir.Column(None, expressionBuilder.visitId(ctx.valueColumn))
     val aggFunc = expressionBuilder.visitId(ctx.aggregateFunc)
