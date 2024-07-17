@@ -97,7 +97,7 @@ case class ForceSeekHint(index: Option[Expression], indexColumns: Option[Seq[Exp
 
 // It was not clear whether the NamedTable options should be used for the alias. I'm assuming it is not what
 // they are for.
-case class TableAlias(relation: Relation, alias: String) extends Relation {}
+case class TableAlias(relation: Relation, alias: String, columns: Seq[Id] = Seq.empty) extends Relation {}
 case class TableWithHints(relation: Relation, hints: Seq[TableHint]) extends Relation {}
 case class Batch(statements: Seq[Plan]) extends Plan
 
@@ -213,10 +213,11 @@ abstract class Modification extends Relation
 
 case class InsertIntoTable(
     target: Relation,
-    columns: Option[Seq[Column]],
+    columns: Option[Seq[Id]],
     values: Relation,
     output: Option[Relation],
-    options: Option[Expression])
+    options: Option[Expression],
+    overwrite: Boolean)
     extends Modification {}
 
 case class DerivedRows(rows: Seq[Seq[Expression]]) extends Relation

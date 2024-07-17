@@ -8,9 +8,9 @@ import org.scalatest.wordspec.AnyWordSpec
 
 class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon with Matchers with IRHelpers {
 
-  override protected def astBuilder: SnowflakeParserBaseVisitor[_] = new SnowflakeAstBuilder
+  override protected def astBuilder = new SnowflakeAstBuilder
 
-  private def singleQueryExample(query: String, expectedAst: Relation): Assertion =
+  private def singleQueryExample(query: String, expectedAst: Plan): Assertion =
     example(query, _.snowflakeFile(), Batch(Seq(expectedAst)))
 
   "SnowflakeAstBuilder" should {
@@ -395,6 +395,21 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
             CreateTableCommand("t1", Seq(ColumnDeclaration("x", VarCharType(None)))),
             Project(namedTable("t1"), Seq(simplyNamedColumn("x"))),
             Project(namedTable("t3"), Seq(Literal(short = Some(3)))))))
+    }
+
+    "translate INSERT commands" in {
+      singleQueryExample(
+        "INSERT INTO t (c1, c2, c3) VALUES (1,2, 3), (4, 5, 6)",
+        InsertIntoTable(
+          namedTable("t"),
+          Some(Seq(Id("c1"), Id("c2"), Id("c3"))),
+          Values(
+            Seq(
+              Seq(Literal(short = Some(1)), Literal(short = Some(2)), Literal(short = Some(3))),
+              Seq(Literal(short = Some(4)), Literal(short = Some(5)), Literal(short = Some(6))))),
+          None,
+          None,
+          overwrite = false))
     }
   }
 

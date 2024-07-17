@@ -57,7 +57,10 @@ dmlCommand
     ;
 
 insertStatement
-    : INSERT OVERWRITE? INTO objectName columnListInParentheses? (valuesBuilder | queryStatement)
+    : INSERT OVERWRITE? INTO objectName (L_PAREN ids += id (COMMA ids += id)* R_PAREN)? (
+        valuesTableBody
+        | queryStatement
+    )
     ;
 
 insertMultiTableStatement

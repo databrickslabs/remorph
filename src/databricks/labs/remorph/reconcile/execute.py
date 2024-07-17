@@ -26,6 +26,7 @@ from databricks.labs.remorph.reconcile.exception import (
     InvalidInputException,
     ReconciliationException,
 )
+from databricks.labs.remorph.reconcile.query_builder.count_query import CountQueryBuilder
 from databricks.labs.remorph.reconcile.query_builder.hash_query import HashQueryBuilder
 from databricks.labs.remorph.reconcile.query_builder.sampling_query import (
     SamplingQueryBuilder,
@@ -46,6 +47,7 @@ from databricks.labs.remorph.reconcile.recon_config import (
     SchemaReconcileOutput,
     Table,
     ThresholdOutput,
+    ReconcileRecordCount,
 )
 from databricks.labs.remorph.reconcile.schema_compare import SchemaCompare
 from databricks.labs.remorph.transpiler.execute import verify_workspace_client
@@ -180,6 +182,7 @@ def recon(
             schema_reconcile_output=schema_reconcile_output,
             table_conf=table_conf,
             recon_process_duration=recon_process_duration,
+            record_count=reconciler.get_record_count(table_conf, report_type),
         )
         if report_type != "schema":
             ReconIntermediatePersist(
@@ -489,6 +492,28 @@ class Reconciliation:
             threshold_df = mismatched_df.limit(_SAMPLE_ROWS)
 
         return ThresholdOutput(threshold_df=threshold_df, threshold_mismatch_count=mismatched_count)
+
+    def get_record_count(self, table_conf: Table, report_type: str) -> ReconcileRecordCount:
+        if report_type != "schema":
+            source_count_query = CountQueryBuilder(table_conf, "source", self._source_engine).build_query()
+            target_count_query = CountQueryBuilder(table_conf, "target", self._target_engine).build_query()
+            source_count = self._source.read_data(
+                catalog=self._database_config.source_catalog,
+                schema=self._database_config.source_schema,
+                table=table_conf.source_name,
+                query=source_count_query,
+                options=None,
+            ).collect()[0]["count"]
+            target_count = self._target.read_data(
+                catalog=self._database_config.target_catalog,
+                schema=self._database_config.target_schema,
+                table=table_conf.target_name,
+                query=target_count_query,
+                options=None,
+            ).collect()[0]["count"]
+
+            return ReconcileRecordCount(source=int(source_count), target=int(target_count))
+        return ReconcileRecordCount()
 
 
 def _get_schema(

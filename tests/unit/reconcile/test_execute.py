@@ -46,18 +46,50 @@ TGT_TABLE = "target_supplier"
 
 
 @dataclass
-class QueryStore:
+class HashQueries:
     source_hash_query: str
     target_hash_query: str
+
+
+@dataclass
+class MismatchQueries:
     source_mismatch_query: str
     target_mismatch_query: str
+
+
+@dataclass
+class MissingQueries:
     source_missing_query: str
     target_missing_query: str
+
+
+@dataclass
+class ThresholdQueries:
     source_threshold_query: str
     target_threshold_query: str
     threshold_comparison_query: str
+
+
+@dataclass
+class RowQueries:
     source_row_query: str
     target_row_query: str
+
+
+@dataclass
+class RecordCountQueries:
+    source_record_count_query: str
+    target_record_count_query: str
+
+
+@dataclass
+class QueryStore:
+    hash_queries: HashQueries
+    mismatch_queries: MismatchQueries
+    missing_queries: MissingQueries
+    threshold_queries: ThresholdQueries
+    row_queries: RowQueries
+    record_count_queries: RecordCountQueries
 
 
 @pytest.fixture
@@ -83,18 +115,39 @@ def query_store(mock_spark):
     source_row_query = "SELECT LOWER(SHA2(CONCAT(TRIM(s_address), TRIM(s_name), COALESCE(TRIM(s_nationkey), '_null_recon_'), TRIM(s_phone), COALESCE(TRIM(s_suppkey), '_null_recon_')), 256)) AS hash_value_recon, TRIM(s_address) AS s_address, TRIM(s_name) AS s_name, s_nationkey AS s_nationkey, TRIM(s_phone) AS s_phone, s_suppkey AS s_suppkey FROM :tbl WHERE s_name = 't' AND s_address = 'a'"
     target_row_query = "SELECT LOWER(SHA2(CONCAT(TRIM(s_address_t), TRIM(s_name), COALESCE(TRIM(s_nationkey_t), '_null_recon_'), TRIM(s_phone_t), COALESCE(TRIM(s_suppkey_t), '_null_recon_')), 256)) AS hash_value_recon, TRIM(s_address_t) AS s_address, TRIM(s_name) AS s_name, s_nationkey_t AS s_nationkey, TRIM(s_phone_t) AS s_phone, s_suppkey_t AS s_suppkey FROM :tbl WHERE s_name = 't' AND s_address_t = 'a'"
 
-    return QueryStore(
+    hash_queries = HashQueries(
         source_hash_query=source_hash_query,
         target_hash_query=target_hash_query,
+    )
+    mismatch_queries = MismatchQueries(
         source_mismatch_query=source_mismatch_query,
         target_mismatch_query=target_mismatch_query,
+    )
+    missing_queries = MissingQueries(
         source_missing_query=source_missing_query,
         target_missing_query=target_missing_query,
+    )
+    threshold_queries = ThresholdQueries(
         source_threshold_query=source_threshold_query,
         target_threshold_query=target_threshold_query,
         threshold_comparison_query=threshold_comparison_query,
+    )
+    row_queries = RowQueries(
         source_row_query=source_row_query,
         target_row_query=target_row_query,
+    )
+    record_count_queries = RecordCountQueries(
+        source_record_count_query="SELECT COUNT(1) AS count FROM :tbl WHERE s_name = 't' AND s_address = 'a'",
+        target_record_count_query="SELECT COUNT(1) AS count FROM :tbl WHERE s_name = 't' AND s_address_t = 'a'",
+    )
+
+    return QueryStore(
+        hash_queries=hash_queries,
+        mismatch_queries=mismatch_queries,
+        missing_queries=missing_queries,
+        threshold_queries=threshold_queries,
+        row_queries=row_queries,
+        record_count_queries=record_count_queries,
     )
 
 
@@ -111,7 +164,7 @@ def test_reconcile_data_with_mismatches_and_missing(
         (
             CATALOG,
             SCHEMA,
-            query_store.source_hash_query,
+            query_store.hash_queries.source_hash_query,
         ): mock_spark.createDataFrame(
             [
                 Row(hash_value_recon="a1b", s_nationkey=11, s_suppkey=1),
@@ -119,13 +172,13 @@ def test_reconcile_data_with_mismatches_and_missing(
                 Row(hash_value_recon="e3g", s_nationkey=33, s_suppkey=3),
             ]
         ),
-        (CATALOG, SCHEMA, query_store.source_mismatch_query): mock_spark.createDataFrame(
+        (CATALOG, SCHEMA, query_store.mismatch_queries.source_mismatch_query): mock_spark.createDataFrame(
             [Row(s_address="address-2", s_name="name-2", s_nationkey=22, s_phone="222-2", s_suppkey=2)]
         ),
-        (CATALOG, SCHEMA, query_store.target_missing_query): mock_spark.createDataFrame(
+        (CATALOG, SCHEMA, query_store.missing_queries.target_missing_query): mock_spark.createDataFrame(
             [Row(s_address="address-3", s_name="name-3", s_nationkey=33, s_phone="333", s_suppkey=3)]
         ),
-        (CATALOG, SCHEMA, query_store.source_threshold_query): mock_spark.createDataFrame(
+        (CATALOG, SCHEMA, query_store.threshold_queries.source_threshold_query): mock_spark.createDataFrame(
             [Row(s_nationkey=11, s_suppkey=1, s_acctbal=100)]
         ),
     }
@@ -135,7 +188,7 @@ def test_reconcile_data_with_mismatches_and_missing(
         (
             CATALOG,
             SCHEMA,
-            query_store.target_hash_query,
+            query_store.hash_queries.target_hash_query,
         ): mock_spark.createDataFrame(
             [
                 Row(hash_value_recon="a1b", s_nationkey=11, s_suppkey=1),
@@ -143,16 +196,16 @@ def test_reconcile_data_with_mismatches_and_missing(
                 Row(hash_value_recon="k4l", s_nationkey=44, s_suppkey=4),
             ]
         ),
-        (CATALOG, SCHEMA, query_store.target_mismatch_query): mock_spark.createDataFrame(
+        (CATALOG, SCHEMA, query_store.mismatch_queries.target_mismatch_query): mock_spark.createDataFrame(
             [Row(s_address="address-22", s_name="name-2", s_nationkey=22, s_phone="222", s_suppkey=2)]
         ),
-        (CATALOG, SCHEMA, query_store.source_missing_query): mock_spark.createDataFrame(
+        (CATALOG, SCHEMA, query_store.missing_queries.source_missing_query): mock_spark.createDataFrame(
             [Row(s_address="address-4", s_name="name-4", s_nationkey=44, s_phone="444", s_suppkey=4)]
         ),
-        (CATALOG, SCHEMA, query_store.target_threshold_query): mock_spark.createDataFrame(
+        (CATALOG, SCHEMA, query_store.threshold_queries.target_threshold_query): mock_spark.createDataFrame(
             [Row(s_nationkey=11, s_suppkey=1, s_acctbal=210)]
         ),
-        (CATALOG, SCHEMA, query_store.threshold_comparison_query): mock_spark.createDataFrame(
+        (CATALOG, SCHEMA, query_store.threshold_queries.threshold_comparison_query): mock_spark.createDataFrame(
             [
                 Row(
                     s_acctbal_source=100,
@@ -329,14 +382,14 @@ def test_reconcile_data_without_mismatches_and_missing(
         (
             CATALOG,
             SCHEMA,
-            query_store.source_hash_query,
+            query_store.hash_queries.source_hash_query,
         ): mock_spark.createDataFrame(
             [
                 Row(hash_value_recon="a1b", s_nationkey=11, s_suppkey=1),
                 Row(hash_value_recon="c2d", s_nationkey=22, s_suppkey=2),
             ]
         ),
-        (CATALOG, SCHEMA, query_store.source_threshold_query): mock_spark.createDataFrame(
+        (CATALOG, SCHEMA, query_store.threshold_queries.source_threshold_query): mock_spark.createDataFrame(
             [Row(s_nationkey=11, s_suppkey=1, s_acctbal=100)]
         ),
     }
@@ -346,17 +399,17 @@ def test_reconcile_data_without_mismatches_and_missing(
         (
             CATALOG,
             SCHEMA,
-            query_store.target_hash_query,
+            query_store.hash_queries.target_hash_query,
         ): mock_spark.createDataFrame(
             [
                 Row(hash_value_recon="a1b", s_nationkey=11, s_suppkey=1),
                 Row(hash_value_recon="c2d", s_nationkey=22, s_suppkey=2),
             ]
         ),
-        (CATALOG, SCHEMA, query_store.target_threshold_query): mock_spark.createDataFrame(
+        (CATALOG, SCHEMA, query_store.threshold_queries.target_threshold_query): mock_spark.createDataFrame(
             [Row(s_nationkey=11, s_suppkey=1, s_acctbal=110)]
         ),
-        (CATALOG, SCHEMA, query_store.threshold_comparison_query): mock_spark.createDataFrame(
+        (CATALOG, SCHEMA, query_store.threshold_queries.threshold_comparison_query): mock_spark.createDataFrame(
             [
                 Row(
                     s_acctbal_source=100,
@@ -406,19 +459,19 @@ def test_reconcile_data_with_mismatch_and_no_missing(
 ):
     src_schema, tgt_schema = table_schema
     table_conf_with_opts.drop_columns = ["s_acctbal"]
-    table_conf_with_opts.thresholds = None
+    table_conf_with_opts.column_thresholds = None
     source_dataframe_repository = {
         (
             CATALOG,
             SCHEMA,
-            query_store.source_hash_query,
+            query_store.hash_queries.source_hash_query,
         ): mock_spark.createDataFrame(
             [
                 Row(hash_value_recon="a1b", s_nationkey=11, s_suppkey=1),
                 Row(hash_value_recon="c2d", s_nationkey=22, s_suppkey=2),
             ]
         ),
-        (CATALOG, SCHEMA, query_store.source_mismatch_query): mock_spark.createDataFrame(
+        (CATALOG, SCHEMA, query_store.mismatch_queries.source_mismatch_query): mock_spark.createDataFrame(
             [Row(s_address="address-2", s_name="name-2", s_nationkey=22, s_phone="222-2", s_suppkey=2)]
         ),
     }
@@ -428,14 +481,14 @@ def test_reconcile_data_with_mismatch_and_no_missing(
         (
             CATALOG,
             SCHEMA,
-            query_store.target_hash_query,
+            query_store.hash_queries.target_hash_query,
         ): mock_spark.createDataFrame(
             [
                 Row(hash_value_recon="a1b", s_nationkey=11, s_suppkey=1),
                 Row(hash_value_recon="c2de", s_nationkey=22, s_suppkey=2),
             ]
         ),
-        (CATALOG, SCHEMA, query_store.target_mismatch_query): mock_spark.createDataFrame(
+        (CATALOG, SCHEMA, query_store.mismatch_queries.target_mismatch_query): mock_spark.createDataFrame(
             [Row(s_address="address-22", s_name="name-2", s_nationkey=22, s_phone="222", s_suppkey=2)]
         ),
     }
@@ -508,12 +561,12 @@ def test_reconcile_data_missing_and_no_mismatch(
 ):
     src_schema, tgt_schema = table_schema
     table_conf_with_opts.drop_columns = ["s_acctbal"]
-    table_conf_with_opts.thresholds = None
+    table_conf_with_opts.column_thresholds = None
     source_dataframe_repository = {
         (
             CATALOG,
             SCHEMA,
-            query_store.source_hash_query,
+            query_store.hash_queries.source_hash_query,
         ): mock_spark.createDataFrame(
             [
                 Row(hash_value_recon="a1b", s_nationkey=11, s_suppkey=1),
@@ -521,7 +574,7 @@ def test_reconcile_data_missing_and_no_mismatch(
                 Row(hash_value_recon="e3g", s_nationkey=33, s_suppkey=3),
             ]
         ),
-        (CATALOG, SCHEMA, query_store.target_missing_query): mock_spark.createDataFrame(
+        (CATALOG, SCHEMA, query_store.missing_queries.target_missing_query): mock_spark.createDataFrame(
             [Row(s_address="address-3", s_name="name-3", s_nationkey=33, s_phone="333", s_suppkey=3)]
         ),
     }
@@ -531,7 +584,7 @@ def test_reconcile_data_missing_and_no_mismatch(
         (
             CATALOG,
             SCHEMA,
-            query_store.target_hash_query,
+            query_store.hash_queries.target_hash_query,
         ): mock_spark.createDataFrame(
             [
                 Row(hash_value_recon="a1b", s_nationkey=11, s_suppkey=1),
@@ -539,7 +592,7 @@ def test_reconcile_data_missing_and_no_mismatch(
                 Row(hash_value_recon="k4l", s_nationkey=44, s_suppkey=4),
             ]
         ),
-        (CATALOG, SCHEMA, query_store.source_missing_query): mock_spark.createDataFrame(
+        (CATALOG, SCHEMA, query_store.missing_queries.source_missing_query): mock_spark.createDataFrame(
             [Row(s_address="address-4", s_name="name-4", s_nationkey=44, s_phone="444", s_suppkey=4)]
         ),
     }
@@ -596,7 +649,7 @@ def mock_for_report_type_data(
     mock_spark,
 ):
     table_conf_with_opts.drop_columns = ["s_acctbal"]
-    table_conf_with_opts.thresholds = None
+    table_conf_with_opts.column_thresholds = None
     table_recon = TableRecon(
         source_catalog="org",
         source_schema="data",
@@ -609,7 +662,7 @@ def mock_for_report_type_data(
         (
             CATALOG,
             SCHEMA,
-            query_store.source_hash_query,
+            query_store.hash_queries.source_hash_query,
         ): mock_spark.createDataFrame(
             [
                 Row(hash_value_recon="a1b", s_nationkey=11, s_suppkey=1),
@@ -617,11 +670,14 @@ def mock_for_report_type_data(
                 Row(hash_value_recon="e3g", s_nationkey=33, s_suppkey=3),
             ]
         ),
-        (CATALOG, SCHEMA, query_store.source_mismatch_query): mock_spark.createDataFrame(
+        (CATALOG, SCHEMA, query_store.mismatch_queries.source_mismatch_query): mock_spark.createDataFrame(
             [Row(s_address="address-2", s_name="name-2", s_nationkey=22, s_phone="222-2", s_suppkey=2)]
         ),
-        (CATALOG, SCHEMA, query_store.target_missing_query): mock_spark.createDataFrame(
+        (CATALOG, SCHEMA, query_store.missing_queries.target_missing_query): mock_spark.createDataFrame(
             [Row(s_address="address-3", s_name="name-3", s_nationkey=33, s_phone="333", s_suppkey=3)]
+        ),
+        (CATALOG, SCHEMA, query_store.record_count_queries.source_record_count_query): mock_spark.createDataFrame(
+            [Row(count=3)]
         ),
     }
     source_schema_repository = {(CATALOG, SCHEMA, SRC_TABLE): src_schema}
@@ -630,7 +686,7 @@ def mock_for_report_type_data(
         (
             CATALOG,
             SCHEMA,
-            query_store.target_hash_query,
+            query_store.hash_queries.target_hash_query,
         ): mock_spark.createDataFrame(
             [
                 Row(hash_value_recon="a1b", s_nationkey=11, s_suppkey=1),
@@ -638,11 +694,14 @@ def mock_for_report_type_data(
                 Row(hash_value_recon="k4l", s_nationkey=44, s_suppkey=4),
             ]
         ),
-        (CATALOG, SCHEMA, query_store.target_mismatch_query): mock_spark.createDataFrame(
+        (CATALOG, SCHEMA, query_store.mismatch_queries.target_mismatch_query): mock_spark.createDataFrame(
             [Row(s_address="address-22", s_name="name-2", s_nationkey=22, s_phone="222", s_suppkey=2)]
         ),
-        (CATALOG, SCHEMA, query_store.source_missing_query): mock_spark.createDataFrame(
+        (CATALOG, SCHEMA, query_store.missing_queries.source_missing_query): mock_spark.createDataFrame(
             [Row(s_address="address-4", s_name="name-4", s_nationkey=44, s_phone="444", s_suppkey=4)]
+        ),
+        (CATALOG, SCHEMA, query_store.record_count_queries.target_record_count_query): mock_spark.createDataFrame(
+            [Row(count=3)]
         ),
     }
 
@@ -798,7 +857,7 @@ def mock_for_report_type_schema(table_conf_with_opts, table_schema, query_store,
         (
             CATALOG,
             SCHEMA,
-            query_store.source_hash_query,
+            query_store.hash_queries.source_hash_query,
         ): mock_spark.createDataFrame(
             [
                 Row(hash_value_recon="a1b", s_nationkey=11, s_suppkey=1),
@@ -806,11 +865,14 @@ def mock_for_report_type_schema(table_conf_with_opts, table_schema, query_store,
                 Row(hash_value_recon="e3g", s_nationkey=33, s_suppkey=3),
             ]
         ),
-        (CATALOG, SCHEMA, query_store.source_mismatch_query): mock_spark.createDataFrame(
+        (CATALOG, SCHEMA, query_store.mismatch_queries.source_mismatch_query): mock_spark.createDataFrame(
             [Row(s_address="address-2", s_name="name-2", s_nationkey=22, s_phone="222-2", s_suppkey=2)]
         ),
-        (CATALOG, SCHEMA, query_store.target_missing_query): mock_spark.createDataFrame(
+        (CATALOG, SCHEMA, query_store.missing_queries.target_missing_query): mock_spark.createDataFrame(
             [Row(s_address="address-3", s_name="name-3", s_nationkey=33, s_phone="333", s_suppkey=3)]
+        ),
+        (CATALOG, SCHEMA, query_store.record_count_queries.source_record_count_query): mock_spark.createDataFrame(
+            [Row(count=3)]
         ),
     }
     source_schema_repository = {(CATALOG, SCHEMA, SRC_TABLE): src_schema}
@@ -819,7 +881,7 @@ def mock_for_report_type_schema(table_conf_with_opts, table_schema, query_store,
         (
             CATALOG,
             SCHEMA,
-            query_store.target_hash_query,
+            query_store.hash_queries.target_hash_query,
         ): mock_spark.createDataFrame(
             [
                 Row(hash_value_recon="a1b", s_nationkey=11, s_suppkey=1),
@@ -827,11 +889,14 @@ def mock_for_report_type_schema(table_conf_with_opts, table_schema, query_store,
                 Row(hash_value_recon="k4l", s_nationkey=44, s_suppkey=4),
             ]
         ),
-        (CATALOG, SCHEMA, query_store.target_mismatch_query): mock_spark.createDataFrame(
+        (CATALOG, SCHEMA, query_store.mismatch_queries.target_mismatch_query): mock_spark.createDataFrame(
             [Row(s_address="address-22", s_name="name-2", s_nationkey=22, s_phone="222", s_suppkey=2)]
         ),
-        (CATALOG, SCHEMA, query_store.source_missing_query): mock_spark.createDataFrame(
+        (CATALOG, SCHEMA, query_store.missing_queries.source_missing_query): mock_spark.createDataFrame(
             [Row(s_address="address-4", s_name="name-4", s_nationkey=44, s_phone="444", s_suppkey=4)]
+        ),
+        (CATALOG, SCHEMA, query_store.record_count_queries.target_record_count_query): mock_spark.createDataFrame(
+            [Row(count=3)]
         ),
     }
 
@@ -976,7 +1041,7 @@ def mock_for_report_type_all(
     setup_metadata_table,
 ):
     table_conf_with_opts.drop_columns = ["s_acctbal"]
-    table_conf_with_opts.thresholds = None
+    table_conf_with_opts.column_thresholds = None
     table_recon = TableRecon(
         source_catalog="org",
         source_schema="data",
@@ -989,7 +1054,7 @@ def mock_for_report_type_all(
         (
             CATALOG,
             SCHEMA,
-            query_store.source_hash_query,
+            query_store.hash_queries.source_hash_query,
         ): mock_spark.createDataFrame(
             [
                 Row(hash_value_recon="a1b", s_nationkey=11, s_suppkey=1),
@@ -997,11 +1062,14 @@ def mock_for_report_type_all(
                 Row(hash_value_recon="e3g", s_nationkey=33, s_suppkey=3),
             ]
         ),
-        (CATALOG, SCHEMA, query_store.source_mismatch_query): mock_spark.createDataFrame(
+        (CATALOG, SCHEMA, query_store.mismatch_queries.source_mismatch_query): mock_spark.createDataFrame(
             [Row(s_address="address-2", s_name="name-2", s_nationkey=22, s_phone="222-2", s_suppkey=2)]
         ),
-        (CATALOG, SCHEMA, query_store.target_missing_query): mock_spark.createDataFrame(
+        (CATALOG, SCHEMA, query_store.missing_queries.target_missing_query): mock_spark.createDataFrame(
             [Row(s_address="address-3", s_name="name-3", s_nationkey=33, s_phone="333", s_suppkey=3)]
+        ),
+        (CATALOG, SCHEMA, query_store.record_count_queries.source_record_count_query): mock_spark.createDataFrame(
+            [Row(count=3)]
         ),
     }
     source_schema_repository = {(CATALOG, SCHEMA, SRC_TABLE): src_schema}
@@ -1010,7 +1078,7 @@ def mock_for_report_type_all(
         (
             CATALOG,
             SCHEMA,
-            query_store.target_hash_query,
+            query_store.hash_queries.target_hash_query,
         ): mock_spark.createDataFrame(
             [
                 Row(hash_value_recon="a1b", s_nationkey=11, s_suppkey=1),
@@ -1018,11 +1086,14 @@ def mock_for_report_type_all(
                 Row(hash_value_recon="k4l", s_nationkey=44, s_suppkey=4),
             ]
         ),
-        (CATALOG, SCHEMA, query_store.target_mismatch_query): mock_spark.createDataFrame(
+        (CATALOG, SCHEMA, query_store.mismatch_queries.target_mismatch_query): mock_spark.createDataFrame(
             [Row(s_address="address-22", s_name="name-2", s_nationkey=22, s_phone="222", s_suppkey=2)]
         ),
-        (CATALOG, SCHEMA, query_store.source_missing_query): mock_spark.createDataFrame(
+        (CATALOG, SCHEMA, query_store.missing_queries.source_missing_query): mock_spark.createDataFrame(
             [Row(s_address="address-4", s_name="name-4", s_nationkey=44, s_phone="444", s_suppkey=4)]
+        ),
+        (CATALOG, SCHEMA, query_store.record_count_queries.target_record_count_query): mock_spark.createDataFrame(
+            [Row(count=3)]
         ),
     }
 
@@ -1209,7 +1280,7 @@ def test_recon_for_report_type_all(
 @pytest.fixture
 def mock_for_report_type_row(table_conf_with_opts, table_schema, mock_spark, query_store, setup_metadata_table):
     table_conf_with_opts.drop_columns = ["s_acctbal"]
-    table_conf_with_opts.thresholds = None
+    table_conf_with_opts.column_thresholds = None
     table_recon = TableRecon(
         source_catalog="org",
         source_schema="data",
@@ -1222,7 +1293,7 @@ def mock_for_report_type_row(table_conf_with_opts, table_schema, mock_spark, que
         (
             CATALOG,
             SCHEMA,
-            query_store.source_row_query,
+            query_store.row_queries.source_row_query,
         ): mock_spark.createDataFrame(
             [
                 Row(
@@ -1251,6 +1322,9 @@ def mock_for_report_type_row(table_conf_with_opts, table_schema, mock_spark, que
                 ),
             ]
         ),
+        (CATALOG, SCHEMA, query_store.record_count_queries.source_record_count_query): mock_spark.createDataFrame(
+            [Row(count=3)]
+        ),
     }
     source_schema_repository = {(CATALOG, SCHEMA, SRC_TABLE): src_schema}
 
@@ -1258,7 +1332,7 @@ def mock_for_report_type_row(table_conf_with_opts, table_schema, mock_spark, que
         (
             CATALOG,
             SCHEMA,
-            query_store.target_row_query,
+            query_store.row_queries.target_row_query,
         ): mock_spark.createDataFrame(
             [
                 Row(
@@ -1286,7 +1360,10 @@ def mock_for_report_type_row(table_conf_with_opts, table_schema, mock_spark, que
                     s_suppkey=4,
                 ),
             ]
-        )
+        ),
+        (CATALOG, SCHEMA, query_store.record_count_queries.target_record_count_query): mock_spark.createDataFrame(
+            [Row(count=3)]
+        ),
     }
 
     target_schema_repository = {(CATALOG, SCHEMA, TGT_TABLE): tgt_schema}
@@ -1309,7 +1386,11 @@ def mock_for_report_type_row(table_conf_with_opts, table_schema, mock_spark, que
 
 
 def test_recon_for_report_type_is_row(
-    mock_workspace_client, mock_spark, mock_for_report_type_row, report_tables_schema, tmp_path: Path
+    mock_workspace_client,
+    mock_spark,
+    mock_for_report_type_row,
+    report_tables_schema,
+    tmp_path: Path,
 ):
     recon_schema, metrics_schema, details_schema = report_tables_schema
     source, target, table_recon, reconcile_config_row = mock_for_report_type_row
@@ -1419,7 +1500,7 @@ def test_recon_for_report_type_is_row(
 @pytest.fixture
 def mock_for_recon_exception(table_conf_with_opts, setup_metadata_table):
     table_conf_with_opts.drop_columns = ["s_acctbal"]
-    table_conf_with_opts.thresholds = None
+    table_conf_with_opts.column_thresholds = None
     table_conf_with_opts.join_columns = None
     table_recon = TableRecon(
         source_catalog="org",
@@ -1455,6 +1536,7 @@ def test_schema_recon_with_data_source_exception(
 ):
     recon_schema, metrics_schema, details_schema = report_tables_schema
     table_recon, source, target, reconcile_config_exception = mock_for_recon_exception
+    reconcile_config_exception.report_type = "schema"
     with (
         patch("databricks.labs.remorph.reconcile.execute.datetime") as mock_datetime,
         patch("databricks.labs.remorph.reconcile.recon_capture.datetime") as recon_datetime,
@@ -1478,7 +1560,7 @@ def test_schema_recon_with_data_source_exception(
                 "Snowflake",
                 ("org", "data", "supplier"),
                 ("org", "data", "target_supplier"),
-                "all",
+                "schema",
                 datetime(2024, 5, 23, 9, 21, 25, 122185),
                 datetime(2024, 5, 23, 9, 21, 25, 122185),
             )
@@ -1763,14 +1845,14 @@ def test_reconcile_data_with_threshold_and_row_report_type(
         (
             CATALOG,
             SCHEMA,
-            query_store.source_row_query,
+            query_store.row_queries.source_row_query,
         ): mock_spark.createDataFrame(
             [
                 Row(hash_value_recon="a1b", s_nationkey=11, s_suppkey=1),
                 Row(hash_value_recon="c2d", s_nationkey=22, s_suppkey=2),
             ]
         ),
-        (CATALOG, SCHEMA, query_store.source_threshold_query): mock_spark.createDataFrame(
+        (CATALOG, SCHEMA, query_store.threshold_queries.source_threshold_query): mock_spark.createDataFrame(
             [Row(s_nationkey=11, s_suppkey=1, s_acctbal=100)]
         ),
     }
@@ -1780,17 +1862,17 @@ def test_reconcile_data_with_threshold_and_row_report_type(
         (
             CATALOG,
             SCHEMA,
-            query_store.target_row_query,
+            query_store.row_queries.target_row_query,
         ): mock_spark.createDataFrame(
             [
                 Row(hash_value_recon="a1b", s_nationkey=11, s_suppkey=1),
                 Row(hash_value_recon="c2d", s_nationkey=22, s_suppkey=2),
             ]
         ),
-        (CATALOG, SCHEMA, query_store.target_threshold_query): mock_spark.createDataFrame(
+        (CATALOG, SCHEMA, query_store.threshold_queries.target_threshold_query): mock_spark.createDataFrame(
             [Row(s_nationkey=11, s_suppkey=1, s_acctbal=110)]
         ),
-        (CATALOG, SCHEMA, query_store.threshold_comparison_query): mock_spark.createDataFrame(
+        (CATALOG, SCHEMA, query_store.threshold_queries.threshold_comparison_query): mock_spark.createDataFrame(
             [
                 Row(
                     s_acctbal_source=100,

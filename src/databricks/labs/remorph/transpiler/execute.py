@@ -155,6 +155,7 @@ def morph(workspace_client: WorkspaceClient, config: MorphConfig):
     :param config: The configuration for the morph operation.
     :param workspace_client: The WorkspaceClient object.
     """
+    ws_client: WorkspaceClient = verify_workspace_client(workspace_client)
     if not config.input_sql:
         logger.error("Input SQL path is not provided.")
         raise ValueError("Input SQL path is not provided.")
@@ -167,7 +168,7 @@ def morph(workspace_client: WorkspaceClient, config: MorphConfig):
     transpiler = SqlglotEngine(read_dialect)
     validator = None
     if not config.skip_validation:
-        validator = Validator(db_sql.get_sql_backend(workspace_client, config))
+        validator = Validator(db_sql.get_sql_backend(ws_client, config))
 
     if input_sql.is_file():
         if is_sql_file(input_sql):
@@ -229,6 +230,8 @@ def verify_workspace_client(workspace_client: WorkspaceClient) -> WorkspaceClien
         workspace_client.config._product = "remorph"
     if workspace_client.config._product_version != __version__:
         workspace_client.config._product_version = __version__
+
+    logger.info(f"user: {workspace_client.current_user.me().user_name}")
     return workspace_client
 
 
@@ -257,6 +260,8 @@ def morph_sql(
     sql: str,
 ) -> tuple[TranspilationResult, ValidationResult | None]:
     """[Experimental] Transpile a single SQL query from one dialect to another."""
+    # Verifies and updates the workspace client configuration.
+    # mypy is not allowing to re-assign the variable, so we are using a new variable.
     ws_client: WorkspaceClient = verify_workspace_client(workspace_client)
 
     read_dialect: Dialect = config.get_read_dialect()
