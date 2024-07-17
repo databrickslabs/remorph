@@ -4,7 +4,6 @@ import com.databricks.labs.remorph.parsers.tsql.TSqlAstBuilder
 import mainargs._
 
 import java.time.Instant
-import scala.concurrent.duration.Duration
 
 object Main {
 
@@ -13,7 +12,14 @@ object Main {
     def read(strs: Seq[String]): Either[String, os.Path] = Right(os.Path(strs.head, os.pwd))
   }
 
-  private def getCurrentCommitHash: Option[String] = None
+  private def getCurrentCommitHash: Option[String] = {
+    val gitRevParse = os.proc("/usr/bin/git", "rev-parse", "--short", "HEAD").call(os.pwd)
+    if (gitRevParse.exitCode == 0) {
+      Some(gitRevParse.out.trim())
+    } else {
+      None
+    }
+  }
 
   private def timeToEpochNanos(instant: Instant) = {
     val epoch = Instant.ofEpochMilli(0)
