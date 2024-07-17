@@ -77,6 +77,7 @@ verify      = ["black --check .",
 detached = true
 python="3.10"
 dependencies = [
+  "databricks-labs-remorph",
   "sqlglot",
 ]
 
