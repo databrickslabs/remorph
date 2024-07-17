@@ -37,7 +37,10 @@ integration:
 coverage:
 	hatch run coverage && open htmlcov/index.html
 
-dialect_coverage_report:
+build_core_jar:
+	mvn --update-snapshots -B install -pl "!com.databricks.labs:remorph-coverage" --file pom.xml
+
+dialect_coverage_report: build_core_jar
 	hatch run python src/databricks/labs/remorph/coverage/remorph_snow_transpilation_coverage.py
 	hatch -e sqlglot-latest run python src/databricks/labs/remorph/coverage/sqlglot_snow_transpilation_coverage.py
-	mvn exec:java -pl coverage --file pom.xml -DsourceDir=${INPUT_DIR} -DoutputPath=${OUTPUT_DIR} -DsourceDialect=Snow
+	mvn exec:java -pl coverage --file pom.xml -DsourceDir=${INPUT_DIR} -DoutputPath=${OUTPUT_DIR} -DsourceDialect=Snow -Dextractor=full

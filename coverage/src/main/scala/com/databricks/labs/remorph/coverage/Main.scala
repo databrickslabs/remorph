@@ -31,6 +31,8 @@ object Main {
       sourceDir: os.Path,
       @arg(short = 'o', doc = "Report output path")
       outputPath: os.Path,
+      @arg(short = 'x', doc = "Query extractor")
+      extractor: String,
       @arg(short = 's', doc = "Start comment")
       startComment: Option[String],
       @arg(short = 'e', doc = "End comment")
@@ -45,8 +47,10 @@ object Main {
     val project = "remorph-core"
     val commitHash = getCurrentCommitHash
     val testSource = new NestedFiles(sourceDir.toNIO)
-    val queryExtractor = new DialectNameCommentBasedQueryExtractor(sourceDialect, targetDialect)
-
+    val queryExtractor = extractor match {
+      case "comment" => new DialectNameCommentBasedQueryExtractor(sourceDialect, targetDialect)
+      case "full" => new WholeFileQueryExtractor
+    }
     val queryRunner = sourceDialect match {
       case "Snow" => new IsResolvedAsSnowflakeQueryRunner(new SnowflakeAstBuilder)
       case "Tsql" => new IsResolvedAsTSqlQueryRunner(new TSqlAstBuilder)
