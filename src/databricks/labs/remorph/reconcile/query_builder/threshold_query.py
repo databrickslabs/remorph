@@ -16,7 +16,7 @@ from databricks.labs.remorph.reconcile.query_builder.expression_generator import
     build_where_clause,
     coalesce,
 )
-from databricks.labs.remorph.reconcile.recon_config import Thresholds
+from databricks.labs.remorph.reconcile.recon_config import ColumnThresholds
 from databricks.labs.remorph.snow.databricks import Databricks
 
 logger = logging.getLogger(__name__)
@@ -39,7 +39,9 @@ class ThresholdQueryBuilder(QueryBuilder):
         return query
 
     def _generate_select_where_clause(self, join_columns) -> tuple[list[exp.Expression], exp.Expression]:
-        thresholds = self.table_conf.thresholds if self.table_conf.thresholds else []
+        thresholds: list[ColumnThresholds] = (
+            self.table_conf.column_thresholds if self.table_conf.column_thresholds else []
+        )
         select_clause = []
         where_clause = []
 
@@ -68,7 +70,7 @@ class ThresholdQueryBuilder(QueryBuilder):
     @classmethod
     def _build_expression_alias_components(
         cls,
-        threshold: Thresholds,
+        threshold: ColumnThresholds,
         base: exp.Expression,
     ) -> tuple[list[exp.Expression], exp.Expression]:
         select_clause = []
@@ -84,7 +86,7 @@ class ThresholdQueryBuilder(QueryBuilder):
 
     def _build_expression_type(
         self,
-        threshold: Thresholds,
+        threshold: ColumnThresholds,
         base: exp.Expression,
     ) -> tuple[list[exp.Expression], exp.Expression]:
         column = threshold.column_name
@@ -130,7 +132,7 @@ class ThresholdQueryBuilder(QueryBuilder):
     def _build_threshold_absolute_case(
         cls,
         base: exp.Expression,
-        threshold: Thresholds,
+        threshold: ColumnThresholds,
     ) -> exp.Case:
         eq_if = build_if(
             this=exp.EQ(this=base, expression=build_literal(this="0", is_string=False)),
@@ -153,7 +155,7 @@ class ThresholdQueryBuilder(QueryBuilder):
     def _build_threshold_percentage_case(
         cls,
         base: exp.Expression,
-        threshold: Thresholds,
+        threshold: ColumnThresholds,
     ) -> exp.Case:
         eq_if = exp.If(
             this=exp.EQ(this=base, expression=build_literal(this="0", is_string=False)),

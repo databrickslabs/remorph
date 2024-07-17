@@ -146,11 +146,9 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.Relation] w
       .getOrElse(input)
   }
 
-  override def visitObjRefValues(ctx: ObjRefValuesContext): ir.Relation = {
+  override def visitValuesTableBody(ctx: ValuesTableBodyContext): ir.Relation = {
     val expressions =
       ctx
-        .valuesTable()
-        .valuesTableBody()
         .exprListInParentheses()
         .asScala
         .map(l => expressionBuilder.visitSeq(l.exprList().expr().asScala))
@@ -158,9 +156,22 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.Relation] w
   }
 
   override def visitObjRefDefault(ctx: ObjRefDefaultContext): ir.Relation = {
-    val tableName = ctx.objectName().id(0).getText
-    val table = ir.NamedTable(tableName, Map.empty, is_streaming = false)
-    buildPivotOrUnpivot(ctx.pivotUnpivot(), table)
+    buildTableAlias(ctx.tableAlias(), buildPivotOrUnpivot(ctx.pivotUnpivot(), ctx.objectName().accept(this)))
+  }
+
+  override def visitObjectName(ctx: ObjectNameContext): ir.Relation = {
+    val tableName = ctx.id().asScala.map(expressionBuilder.visitId).map(_.id).mkString(".")
+    ir.NamedTable(tableName, Map.empty, is_streaming = false)
+  }
+
+  private def buildTableAlias(ctx: TableAliasContext, relation: ir.Relation): ir.Relation = {
+    Option(ctx)
+      .map { c =>
+        val alias = c.alias().getText
+        val columns = Option(c.id()).map(_.asScala.map(expressionBuilder.visitId)).getOrElse(Seq.empty)
+        ir.TableAlias(relation, alias, columns)
+      }
+      .getOrElse(relation)
   }
 
   private def buildPivotOrUnpivot(ctx: PivotUnpivotContext, relation: ir.Relation): ir.Relation = {
@@ -211,19 +222,18 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.Relation] w
   }
 
   override def visitTableSourceItemJoined(ctx: TableSourceItemJoinedContext): ir.Relation = {
-
-    def buildJoin(left: ir.Relation, right: JoinClauseContext): ir.Join = {
-
-      ir.Join(
-        left,
-        right.objectRef().accept(this),
-        None,
-        translateJoinType(right.joinType()),
-        Seq(),
-        ir.JoinDataType(is_left_struct = false, is_right_struct = false))
-    }
     val left = ctx.objectRef().accept(this)
     ctx.joinClause().asScala.foldLeft(left)(buildJoin)
+  }
+
+  private def buildJoin(left: ir.Relation, right: JoinClauseContext): ir.Join = {
+    ir.Join(
+      left,
+      right.objectRef().accept(this),
+      None,
+      translateJoinType(right.joinType()),
+      Seq(),
+      ir.JoinDataType(is_left_struct = false, is_right_struct = false))
   }
 
   private[snowflake] def translateJoinType(joinType: JoinTypeContext): ir.JoinType = {

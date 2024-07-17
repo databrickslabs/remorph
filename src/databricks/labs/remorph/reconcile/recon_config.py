@@ -3,12 +3,17 @@ from __future__ import annotations
 import logging
 from collections.abc import Callable
 from dataclasses import dataclass, field
+from enum import Enum
 
 from pyspark.sql import DataFrame
 from sqlglot import Dialect
 from sqlglot import expressions as exp
 
 logger = logging.getLogger(__name__)
+
+
+class TableThresholdBoundsException(ValueError):
+    """Raise the error when the bounds for table threshold are invalid"""
 
 
 @dataclass
@@ -44,7 +49,7 @@ class Transformation:
 
 
 @dataclass
-class Thresholds:
+class ColumnThresholds:
     column_name: str
     lower_bound: str
     upper_bound: str
@@ -69,6 +74,32 @@ class Thresholds:
 
 
 @dataclass
+class TableThresholdModel(Enum):
+    MISMATCH = "mismatch"
+
+
+@dataclass
+class TableThresholds:
+    lower_bound: str
+    upper_bound: str
+    model: TableThresholdModel
+
+    def __post_init__(self):
+        self.validate_threshold_bounds()
+
+    def get_mode(self):
+        return "percentage" if "%" in self.lower_bound or "%" in self.upper_bound else "absolute"
+
+    def validate_threshold_bounds(self):
+        lower_bound = int(self.lower_bound.replace("%", ""))
+        upper_bound = int(self.upper_bound.replace("%", ""))
+        if lower_bound < 0 or upper_bound < 0:
+            raise TableThresholdBoundsException("Threshold bounds for table cannot be negative.")
+        if lower_bound > upper_bound:
+            raise TableThresholdBoundsException("Lower bound cannot be greater than upper bound.")
+
+
+@dataclass
 class Filters:
     source: str | None = None
     target: str | None = None
@@ -88,8 +119,9 @@ class Table:
     drop_columns: list[str] | None = None
     column_mapping: list[ColumnMapping] | None = None
     transformations: list[Transformation] | None = None
-    thresholds: list[Thresholds] | None = None
+    column_thresholds: list[ColumnThresholds] | None = None
     filters: Filters | None = None
+    table_thresholds: list[TableThresholds] | None = None
 
     def __post_init__(self):
         self.source_name = self.source_name.lower()
@@ -144,9 +176,9 @@ class Table:
         return set(self.select_columns)
 
     def get_threshold_columns(self, layer: str) -> set[str]:
-        if self.thresholds is None:
+        if self.column_thresholds is None:
             return set()
-        return {self.get_layer_src_to_tgt_col_mapping(thresh.column_name, layer) for thresh in self.thresholds}
+        return {self.get_layer_src_to_tgt_col_mapping(thresh.column_name, layer) for thresh in self.column_thresholds}
 
     def get_join_columns(self, layer: str) -> set[str] | None:
         if self.join_columns is None:
@@ -263,3 +295,9 @@ class ReconcileTableOutput:
 class ReconcileOutput:
     recon_id: str
     results: list[ReconcileTableOutput]
+
+
+@dataclass
+class ReconcileRecordCount:
+    source: int = 0
+    target: int = 0

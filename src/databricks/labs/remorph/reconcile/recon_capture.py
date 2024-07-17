@@ -20,6 +20,9 @@ from databricks.labs.remorph.reconcile.recon_config import (
     ReconcileTableOutput,
     SchemaReconcileOutput,
     StatusOutput,
+    TableThresholds,
+    ReconcileRecordCount,
+    TableThresholdModel,
 )
 from databricks.sdk import WorkspaceClient
 
@@ -220,16 +223,51 @@ class ReconCapture:
         )
         _write_df_to_delta(df, f"{self._db_prefix}.{_RECON_TABLE_NAME}")
 
+    @classmethod
+    def _is_mismatch_within_threshold_limits(
+        cls, data_reconcile_output: DataReconcileOutput, table_conf: Table, record_count: ReconcileRecordCount
+    ):
+        # if the mismatch count is 0 then no need of checking bounds.
+        if data_reconcile_output.mismatch_count == 0:
+            return False
+        # pull out table thresholds
+        thresholds: list[TableThresholds] = (
+            [threshold for threshold in table_conf.table_thresholds if threshold.model == TableThresholdModel.MISMATCH]
+            if table_conf.table_thresholds
+            else []
+        )
+        # if not table thresholds are provided return true
+        if not thresholds:
+            return True
+
+        res = None
+        for threshold in thresholds:
+            mode = threshold.get_mode()
+            lower_bound = int(threshold.lower_bound.replace("%", ""))
+            upper_bound = int(threshold.upper_bound.replace("%", ""))
+            if mode == "absolute":
+                res = lower_bound <= data_reconcile_output.mismatch_count <= upper_bound
+            if mode == "percentage":
+                lower_bound = int(round((lower_bound / 100) * record_count.source))
+                upper_bound = int(round((upper_bound / 100) * record_count.source))
+                res = lower_bound <= data_reconcile_output.mismatch_count <= upper_bound
+
+        return not res  # we have to return negate bool because the logic for status checks for negate
+
     def _insert_into_metrics_table(
         self,
         recon_table_id: int,
         data_reconcile_output: DataReconcileOutput,
         schema_reconcile_output: SchemaReconcileOutput,
+        table_conf: Table,
+        record_count: ReconcileRecordCount,
     ) -> None:
         status = False
         if data_reconcile_output.exception in {None, ''} and schema_reconcile_output.exception in {None, ''}:
             status = not (
-                data_reconcile_output.mismatch_count > 0
+                self._is_mismatch_within_threshold_limits(
+                    data_reconcile_output=data_reconcile_output, table_conf=table_conf, record_count=record_count
+                )
                 or data_reconcile_output.missing_in_src_count > 0
                 or data_reconcile_output.missing_in_tgt_count > 0
                 or not schema_reconcile_output.is_valid
@@ -367,8 +405,11 @@ class ReconCapture:
         schema_reconcile_output: SchemaReconcileOutput,
         table_conf: Table,
         recon_process_duration: ReconcileProcessDuration,
+        record_count: ReconcileRecordCount,
     ) -> None:
         recon_table_id = self._generate_recon_main_id(table_conf)
         self._insert_into_main_table(recon_table_id, table_conf, recon_process_duration)
-        self._insert_into_metrics_table(recon_table_id, data_reconcile_output, schema_reconcile_output)
+        self._insert_into_metrics_table(
+            recon_table_id, data_reconcile_output, schema_reconcile_output, table_conf, record_count
+        )
         self._insert_into_details_table(recon_table_id, data_reconcile_output, schema_reconcile_output)

@@ -60,7 +60,7 @@ def test_read_data_with_options():
         drop_columns=None,
         column_mapping=None,
         transformations=None,
-        thresholds=None,
+        column_thresholds=None,
         filters=None,
     )
 
@@ -136,7 +136,7 @@ def test_read_data_exception_handling():
         drop_columns=None,
         column_mapping=None,
         transformations=None,
-        thresholds=None,
+        column_thresholds=None,
         filters=None,
     )
 

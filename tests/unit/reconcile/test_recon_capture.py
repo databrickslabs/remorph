@@ -24,6 +24,10 @@ from databricks.labs.remorph.reconcile.recon_config import (
     StatusOutput,
     Table,
     ThresholdOutput,
+    ReconcileRecordCount,
+    TableThresholds,
+    TableThresholdModel,
+    TableThresholdBoundsException,
 )
 
 
@@ -114,7 +118,9 @@ def data_prep(spark: SparkSession):
     spark.sql("DROP TABLE IF EXISTS DEFAULT.metrics")
     spark.sql("DROP TABLE IF EXISTS DEFAULT.details")
 
-    return reconcile_output, schema_output, table_conf, reconcile_process
+    row_count = ReconcileRecordCount(source=5, target=5)
+
+    return reconcile_output, schema_output, table_conf, reconcile_process, row_count
 
 
 def test_recon_capture_start_snowflake_all(mock_workspace_client, mock_spark):
@@ -124,7 +130,7 @@ def test_recon_capture_start_snowflake_all(mock_workspace_client, mock_spark):
     ws = mock_workspace_client
     source_type = get_dialect("snowflake")
     spark = mock_spark
-    reconcile_output, schema_output, table_conf, reconcile_process = data_prep(spark)
+    reconcile_output, schema_output, table_conf, reconcile_process, row_count = data_prep(spark)
     recon_capture = ReconCapture(
         database_config,
         "73b44582-dbb7-489f-bad1-6a7e8f4821b1",
@@ -140,6 +146,7 @@ def test_recon_capture_start_snowflake_all(mock_workspace_client, mock_spark):
         schema_reconcile_output=schema_output,
         table_conf=table_conf,
         recon_process_duration=reconcile_process,
+        record_count=row_count,
     )
 
     # assert main
@@ -216,7 +223,7 @@ def test_test_recon_capture_start_databricks_data(mock_workspace_client, mock_sp
         metadata_config=ReconcileMetadataConfig(schema="default"),
         local_test_run=True,
     )
-    reconcile_output, schema_output, table_conf, reconcile_process = data_prep(spark)
+    reconcile_output, schema_output, table_conf, reconcile_process, row_count = data_prep(spark)
     schema_output.compare_df = None
 
     recon_capture.start(
@@ -224,6 +231,7 @@ def test_test_recon_capture_start_databricks_data(mock_workspace_client, mock_sp
         schema_reconcile_output=schema_output,
         table_conf=table_conf,
         recon_process_duration=reconcile_process,
+        record_count=row_count,
     )
 
     # assert main
@@ -263,7 +271,7 @@ def test_test_recon_capture_start_databricks_row(mock_workspace_client, mock_spa
         metadata_config=ReconcileMetadataConfig(schema="default"),
         local_test_run=True,
     )
-    reconcile_output, schema_output, table_conf, reconcile_process = data_prep(spark)
+    reconcile_output, schema_output, table_conf, reconcile_process, row_count = data_prep(spark)
     reconcile_output.mismatch_count = 0
     reconcile_output.mismatch = MismatchOutput()
     reconcile_output.threshold_output = ThresholdOutput()
@@ -274,6 +282,7 @@ def test_test_recon_capture_start_databricks_row(mock_workspace_client, mock_spa
         schema_reconcile_output=schema_output,
         table_conf=table_conf,
         recon_process_duration=reconcile_process,
+        record_count=row_count,
     )
 
     # assert main
@@ -313,7 +322,7 @@ def test_recon_capture_start_oracle_schema(mock_workspace_client, mock_spark):
         metadata_config=ReconcileMetadataConfig(schema="default"),
         local_test_run=True,
     )
-    reconcile_output, schema_output, table_conf, reconcile_process = data_prep(spark)
+    reconcile_output, schema_output, table_conf, reconcile_process, row_count = data_prep(spark)
     reconcile_output.threshold_output = ThresholdOutput()
     reconcile_output.mismatch_count = 0
     reconcile_output.mismatch = MismatchOutput()
@@ -325,6 +334,7 @@ def test_recon_capture_start_oracle_schema(mock_workspace_client, mock_spark):
         schema_reconcile_output=schema_output,
         table_conf=table_conf,
         recon_process_duration=reconcile_process,
+        record_count=row_count,
     )
 
     # assert main
@@ -365,7 +375,7 @@ def test_recon_capture_start_oracle_with_exception(mock_workspace_client, mock_s
         metadata_config=ReconcileMetadataConfig(schema="default"),
         local_test_run=True,
     )
-    reconcile_output, schema_output, table_conf, reconcile_process = data_prep(spark)
+    reconcile_output, schema_output, table_conf, reconcile_process, row_count = data_prep(spark)
     reconcile_output.threshold_output = ThresholdOutput()
     reconcile_output.mismatch_count = 0
     reconcile_output.mismatch = MismatchOutput()
@@ -378,6 +388,7 @@ def test_recon_capture_start_oracle_with_exception(mock_workspace_client, mock_s
         schema_reconcile_output=schema_output,
         table_conf=table_conf,
         recon_process_duration=reconcile_process,
+        record_count=row_count,
     )
 
     # assert main
@@ -410,13 +421,14 @@ def test_recon_capture_start_with_exception(mock_workspace_client, mock_spark):
         ws,
         spark,
     )
-    reconcile_output, schema_output, table_conf, reconcile_process = data_prep(spark)
+    reconcile_output, schema_output, table_conf, reconcile_process, row_count = data_prep(spark)
     with pytest.raises(WriteToTableException):
         recon_capture.start(
             data_reconcile_output=reconcile_output,
             schema_reconcile_output=schema_output,
             table_conf=table_conf,
             recon_process_duration=reconcile_process,
+            record_count=row_count,
         )
 
 
@@ -439,12 +451,13 @@ def test_generate_final_reconcile_output_row(mock_workspace_client, mock_spark):
         metadata_config=ReconcileMetadataConfig(schema="default"),
         local_test_run=True,
     )
-    reconcile_output, schema_output, table_conf, reconcile_process = data_prep(spark)
+    reconcile_output, schema_output, table_conf, reconcile_process, row_count = data_prep(spark)
     recon_capture.start(
         data_reconcile_output=reconcile_output,
         schema_reconcile_output=schema_output,
         table_conf=table_conf,
         recon_process_duration=reconcile_process,
+        record_count=row_count,
     )
 
     final_output = generate_final_reconcile_output(
@@ -486,12 +499,13 @@ def test_generate_final_reconcile_output_data(mock_workspace_client, mock_spark)
         metadata_config=ReconcileMetadataConfig(schema="default"),
         local_test_run=True,
     )
-    reconcile_output, schema_output, table_conf, reconcile_process = data_prep(spark)
+    reconcile_output, schema_output, table_conf, reconcile_process, row_count = data_prep(spark)
     recon_capture.start(
         data_reconcile_output=reconcile_output,
         schema_reconcile_output=schema_output,
         table_conf=table_conf,
         recon_process_duration=reconcile_process,
+        record_count=row_count,
     )
 
     final_output = generate_final_reconcile_output(
@@ -533,12 +547,13 @@ def test_generate_final_reconcile_output_schema(mock_workspace_client, mock_spar
         metadata_config=ReconcileMetadataConfig(schema="default"),
         local_test_run=True,
     )
-    reconcile_output, schema_output, table_conf, reconcile_process = data_prep(spark)
+    reconcile_output, schema_output, table_conf, reconcile_process, row_count = data_prep(spark)
     recon_capture.start(
         data_reconcile_output=reconcile_output,
         schema_reconcile_output=schema_output,
         table_conf=table_conf,
         recon_process_duration=reconcile_process,
+        record_count=row_count,
     )
 
     final_output = generate_final_reconcile_output(
@@ -580,13 +595,14 @@ def test_generate_final_reconcile_output_all(mock_workspace_client, mock_spark):
         metadata_config=ReconcileMetadataConfig(schema="default"),
         local_test_run=True,
     )
-    reconcile_output, schema_output, table_conf, reconcile_process = data_prep(spark)
+    reconcile_output, schema_output, table_conf, reconcile_process, row_count = data_prep(spark)
 
     recon_capture.start(
         data_reconcile_output=reconcile_output,
         schema_reconcile_output=schema_output,
         table_conf=table_conf,
         recon_process_duration=reconcile_process,
+        record_count=row_count,
     )
 
     final_output = generate_final_reconcile_output(
@@ -628,7 +644,7 @@ def test_generate_final_reconcile_output_exception(mock_workspace_client, mock_s
         metadata_config=ReconcileMetadataConfig(schema="default"),
         local_test_run=True,
     )
-    reconcile_output, schema_output, table_conf, reconcile_process = data_prep(spark)
+    reconcile_output, schema_output, table_conf, reconcile_process, row_count = data_prep(spark)
     reconcile_output.exception = "Test exception"
 
     recon_capture.start(
@@ -636,6 +652,7 @@ def test_generate_final_reconcile_output_exception(mock_workspace_client, mock_s
         schema_reconcile_output=schema_output,
         table_conf=table_conf,
         recon_process_duration=reconcile_process,
+        record_count=row_count,
     )
 
     final_output = generate_final_reconcile_output(
@@ -675,3 +692,285 @@ def test_clean_unmatched_df_from_volume_with_exception(mock_spark):
     path = "/path/that/does/not/exist"
     with pytest.raises(Exception):
         ReconIntermediatePersist(mock_spark, path).clean_unmatched_df_from_volume()
+
+
+def test_apply_threshold_for_mismatch_with_true_absolute(mock_workspace_client, mock_spark):
+    database_config = DatabaseConfig(
+        "source_test_schema", "target_test_catalog", "target_test_schema", "source_test_catalog"
+    )
+    ws = mock_workspace_client
+    source_type = get_dialect("snowflake")
+    spark = mock_spark
+    reconcile_output, schema_output, table_conf, reconcile_process, row_count = data_prep(spark)
+    reconcile_output.missing_in_src_count = 0
+    reconcile_output.missing_in_tgt_count = 0
+    reconcile_output.threshold_output = ThresholdOutput()
+    reconcile_output.missing_in_src = None
+    reconcile_output.missing_in_tgt = None
+    table_conf.table_thresholds = [
+        TableThresholds(lower_bound="0", upper_bound="2", model=TableThresholdModel.MISMATCH),
+    ]
+    recon_capture = ReconCapture(
+        database_config,
+        "73b44582-dbb7-489f-bad1-6a7e8f4821b1",
+        "all",
+        source_type,
+        ws,
+        spark,
+        metadata_config=ReconcileMetadataConfig(schema="default"),
+        local_test_run=True,
+    )
+    recon_capture.start(
+        data_reconcile_output=reconcile_output,
+        schema_reconcile_output=schema_output,
+        table_conf=table_conf,
+        recon_process_duration=reconcile_process,
+        record_count=row_count,
+    )
+
+    # assert metrics
+    remorph_recon_metrics_df = spark.sql("select * from DEFAULT.metrics")
+    row = remorph_recon_metrics_df.collect()[0]
+    assert row.run_metrics.status is True
+
+
+def test_apply_threshold_for_mismatch_with_missing(mock_workspace_client, mock_spark):
+    database_config = DatabaseConfig(
+        "source_test_schema", "target_test_catalog", "target_test_schema", "source_test_catalog"
+    )
+    ws = mock_workspace_client
+    source_type = get_dialect("snowflake")
+    spark = mock_spark
+    reconcile_output, schema_output, table_conf, reconcile_process, row_count = data_prep(spark)
+    table_conf.table_thresholds = [
+        TableThresholds(lower_bound="0", upper_bound="2", model=TableThresholdModel.MISMATCH),
+    ]
+    recon_capture = ReconCapture(
+        database_config,
+        "73b44582-dbb7-489f-bad1-6a7e8f4821b1",
+        "all",
+        source_type,
+        ws,
+        spark,
+        metadata_config=ReconcileMetadataConfig(schema="default"),
+        local_test_run=True,
+    )
+
+    recon_capture.start(
+        data_reconcile_output=reconcile_output,
+        schema_reconcile_output=schema_output,
+        table_conf=table_conf,
+        recon_process_duration=reconcile_process,
+        record_count=row_count,
+    )
+    # assert metrics
+    remorph_recon_metrics_df = spark.sql("select * from DEFAULT.metrics")
+    row = remorph_recon_metrics_df.collect()[0]
+    assert row.run_metrics.status is False
+
+
+def test_apply_threshold_for_mismatch_with_schema_fail(mock_workspace_client, mock_spark):
+    database_config = DatabaseConfig(
+        "source_test_schema", "target_test_catalog", "target_test_schema", "source_test_catalog"
+    )
+    ws = mock_workspace_client
+    source_type = get_dialect("snowflake")
+    spark = mock_spark
+    reconcile_output, schema_output, table_conf, reconcile_process, row_count = data_prep(spark)
+    table_conf.table_thresholds = [
+        TableThresholds(lower_bound="0", upper_bound="2", model=TableThresholdModel.MISMATCH),
+    ]
+    recon_capture = ReconCapture(
+        database_config,
+        "73b44582-dbb7-489f-bad1-6a7e8f4821b1",
+        "all",
+        source_type,
+        ws,
+        spark,
+        metadata_config=ReconcileMetadataConfig(schema="default"),
+        local_test_run=True,
+    )
+
+    reconcile_output.missing_in_src_count = 0
+    reconcile_output.missing_in_tgt_count = 0
+    schema_output = SchemaReconcileOutput(is_valid=False, compare_df=None)
+
+    recon_capture.start(
+        data_reconcile_output=reconcile_output,
+        schema_reconcile_output=schema_output,
+        table_conf=table_conf,
+        recon_process_duration=reconcile_process,
+        record_count=row_count,
+    )
+    # assert metrics
+    remorph_recon_metrics_df = spark.sql("select * from DEFAULT.metrics")
+    row = remorph_recon_metrics_df.collect()[0]
+    assert row.run_metrics.status is False
+
+
+def test_apply_threshold_for_mismatch_with_wrong_absolute_bound(mock_workspace_client, mock_spark):
+    database_config = DatabaseConfig(
+        "source_test_schema", "target_test_catalog", "target_test_schema", "source_test_catalog"
+    )
+    ws = mock_workspace_client
+    source_type = get_dialect("snowflake")
+    spark = mock_spark
+    reconcile_output, schema_output, table_conf, reconcile_process, row_count = data_prep(spark)
+    table_conf.table_thresholds = [
+        TableThresholds(lower_bound="0", upper_bound="1", model=TableThresholdModel.MISMATCH),
+    ]
+    reconcile_output.missing_in_src_count = 0
+    reconcile_output.missing_in_tgt_count = 0
+    reconcile_output.threshold_output = ThresholdOutput()
+    reconcile_output.missing_in_src = None
+    reconcile_output.missing_in_tgt = None
+    recon_capture = ReconCapture(
+        database_config,
+        "73b44582-dbb7-489f-bad1-6a7e8f4821b1",
+        "all",
+        source_type,
+        ws,
+        spark,
+        metadata_config=ReconcileMetadataConfig(schema="default"),
+        local_test_run=True,
+    )
+    recon_capture.start(
+        data_reconcile_output=reconcile_output,
+        schema_reconcile_output=schema_output,
+        table_conf=table_conf,
+        recon_process_duration=reconcile_process,
+        record_count=row_count,
+    )
+
+    # assert metrics
+    remorph_recon_metrics_df = spark.sql("select * from DEFAULT.metrics")
+    row = remorph_recon_metrics_df.collect()[0]
+    assert row.run_metrics.status is False
+
+
+def test_apply_threshold_for_mismatch_with_wrong_percentage_bound(mock_workspace_client, mock_spark):
+    database_config = DatabaseConfig(
+        "source_test_schema", "target_test_catalog", "target_test_schema", "source_test_catalog"
+    )
+    ws = mock_workspace_client
+    source_type = get_dialect("snowflake")
+    spark = mock_spark
+    reconcile_output, schema_output, table_conf, reconcile_process, row_count = data_prep(spark)
+    table_conf.table_thresholds = [
+        TableThresholds(lower_bound="0%", upper_bound="20%", model=TableThresholdModel.MISMATCH),
+    ]
+    reconcile_output.missing_in_src_count = 0
+    reconcile_output.missing_in_tgt_count = 0
+    reconcile_output.threshold_output = ThresholdOutput()
+    reconcile_output.missing_in_src = None
+    reconcile_output.missing_in_tgt = None
+    recon_capture = ReconCapture(
+        database_config,
+        "73b44582-dbb7-489f-bad1-6a7e8f4821b1",
+        "all",
+        source_type,
+        ws,
+        spark,
+        metadata_config=ReconcileMetadataConfig(schema="default"),
+        local_test_run=True,
+    )
+    recon_capture.start(
+        data_reconcile_output=reconcile_output,
+        schema_reconcile_output=schema_output,
+        table_conf=table_conf,
+        recon_process_duration=reconcile_process,
+        record_count=row_count,
+    )
+
+    # assert metrics
+    remorph_recon_metrics_df = spark.sql("select * from DEFAULT.metrics")
+    row = remorph_recon_metrics_df.collect()[0]
+    assert row.run_metrics.status is False
+
+
+def test_apply_threshold_for_mismatch_with_true_percentage_bound(mock_workspace_client, mock_spark):
+    database_config = DatabaseConfig(
+        "source_test_schema", "target_test_catalog", "target_test_schema", "source_test_catalog"
+    )
+    ws = mock_workspace_client
+    source_type = get_dialect("snowflake")
+    spark = mock_spark
+    reconcile_output, schema_output, table_conf, reconcile_process, row_count = data_prep(spark)
+    table_conf.table_thresholds = [
+        TableThresholds(lower_bound="0%", upper_bound="40%", model=TableThresholdModel.MISMATCH),
+    ]
+    reconcile_output.missing_in_src_count = 0
+    reconcile_output.missing_in_tgt_count = 0
+    reconcile_output.threshold_output = ThresholdOutput()
+    reconcile_output.missing_in_src = None
+    reconcile_output.missing_in_tgt = None
+    recon_capture = ReconCapture(
+        database_config,
+        "73b44582-dbb7-489f-bad1-6a7e8f4821b1",
+        "all",
+        source_type,
+        ws,
+        spark,
+        metadata_config=ReconcileMetadataConfig(schema="default"),
+        local_test_run=True,
+    )
+    recon_capture.start(
+        data_reconcile_output=reconcile_output,
+        schema_reconcile_output=schema_output,
+        table_conf=table_conf,
+        recon_process_duration=reconcile_process,
+        record_count=row_count,
+    )
+
+    # assert metrics
+    remorph_recon_metrics_df = spark.sql("select * from DEFAULT.metrics")
+    row = remorph_recon_metrics_df.collect()[0]
+    assert row.run_metrics.status is True
+
+
+def test_apply_threshold_for_mismatch_with_invalid_bounds(mock_workspace_client, mock_spark):
+    database_config = DatabaseConfig(
+        "source_test_schema", "target_test_catalog", "target_test_schema", "source_test_catalog"
+    )
+    ws = mock_workspace_client
+    source_type = get_dialect("snowflake")
+    spark = mock_spark
+    reconcile_output, schema_output, table_conf, reconcile_process, row_count = data_prep(spark)
+    reconcile_output.missing_in_src_count = 0
+    reconcile_output.missing_in_tgt_count = 0
+    reconcile_output.threshold_output = ThresholdOutput()
+    reconcile_output.missing_in_src = None
+    reconcile_output.missing_in_tgt = None
+    recon_capture = ReconCapture(
+        database_config,
+        "73b44582-dbb7-489f-bad1-6a7e8f4821b1",
+        "all",
+        source_type,
+        ws,
+        spark,
+        metadata_config=ReconcileMetadataConfig(schema="default"),
+        local_test_run=True,
+    )
+    with pytest.raises(TableThresholdBoundsException):
+        table_conf.table_thresholds = [
+            TableThresholds(lower_bound="-0%", upper_bound="-40%", model=TableThresholdModel.MISMATCH),
+        ]
+        recon_capture.start(
+            data_reconcile_output=reconcile_output,
+            schema_reconcile_output=schema_output,
+            table_conf=table_conf,
+            recon_process_duration=reconcile_process,
+            record_count=row_count,
+        )
+
+    with pytest.raises(TableThresholdBoundsException):
+        table_conf.table_thresholds = [
+            TableThresholds(lower_bound="10%", upper_bound="5%", model=TableThresholdModel.MISMATCH),
+        ]
+        recon_capture.start(
+            data_reconcile_output=reconcile_output,
+            schema_reconcile_output=schema_output,
+            table_conf=table_conf,
+            recon_process_duration=reconcile_process,
+            record_count=row_count,
+        )
