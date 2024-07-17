@@ -108,7 +108,8 @@ def generate_final_reconcile_output(
     ELSE NULL END AS ROW, 
     CASE WHEN lower(MAIN.report_type) in ('all', 'data') THEN
     CASE 
-        WHEN METRICS.recon_metrics.column_comparison.absolute_mismatch = 0 AND METRICS.recon_metrics.column_comparison.threshold_mismatch = 0 AND METRICS.recon_metrics.column_comparison.mismatch_columns = '' THEN TRUE 
+        WHEN (METRICS.run_metrics.status = true) or 
+         (METRICS.recon_metrics.column_comparison.absolute_mismatch = 0 AND METRICS.recon_metrics.column_comparison.threshold_mismatch = 0 AND METRICS.recon_metrics.column_comparison.mismatch_columns = '') THEN TRUE 
         ELSE FALSE 
     END 
     ELSE NULL END AS COLUMN, 
