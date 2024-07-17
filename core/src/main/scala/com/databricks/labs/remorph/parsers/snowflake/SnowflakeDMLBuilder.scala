@@ -19,4 +19,18 @@ class SnowflakeDMLBuilder extends SnowflakeParserBaseVisitor[ir.Modification] wi
     val overwrite = ctx.OVERWRITE() != null
     ir.InsertIntoTable(table, columns, values, None, None, overwrite)
   }
+
+  override def visitDeleteStatement(ctx: DeleteStatementContext): ir.Modification = {
+    val target = ctx.tableRef().accept(relationBuilder)
+    val where = Option(ctx.predicate()).map(_.accept(expressionBuilder))
+    val otherSources = ctx.tableOrQuery().asScala.map(_.accept(relationBuilder))
+    val source = if (otherSources.nonEmpty) {
+      Some(
+        otherSources.foldLeft(target)(
+          ir.Join(_, _, None, ir.CrossJoin, Seq(), ir.JoinDataType(is_left_struct = false, is_right_struct = false))))
+    } else {
+      None
+    }
+    ir.DeleteFromTable(target, source, where, None, None)
+  }
 }

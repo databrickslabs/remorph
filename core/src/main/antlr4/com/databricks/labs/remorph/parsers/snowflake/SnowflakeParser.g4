@@ -77,7 +77,7 @@ valuesList: VALUES L_PAREN valueItem (COMMA valueItem)* R_PAREN
 valueItem: columnName | DEFAULT | NULL_
     ;
 
-mergeStatement: MERGE INTO objectName asAlias? USING tableSource ON predicate mergeMatches
+mergeStatement: MERGE INTO tableRef USING tableSource ON predicate mergeMatches
     ;
 
 mergeMatches: mergeCond+
@@ -95,16 +95,19 @@ mergeInsert: INSERT (L_PAREN columnList R_PAREN)? VALUES L_PAREN exprList R_PARE
     ;
 
 updateStatement
-    : UPDATE objectName asAlias? SET columnName EQ expr (COMMA columnName EQ expr)* (
-        FROM tableSources
-    )? (WHERE predicate)?
+    : UPDATE tableRef SET columnName EQ expr (COMMA columnName EQ expr)* (FROM tableSources)? (
+        WHERE predicate
+    )?
     ;
 
-tableOrQuery: objectName asAlias? | L_PAREN subquery R_PAREN asAlias?
+tableRef: objectName asAlias?
+    ;
+
+tableOrQuery: tableRef | L_PAREN subquery R_PAREN asAlias?
     ;
 
 deleteStatement
-    : DELETE FROM objectName asAlias? (USING tableOrQuery (COMMA tableOrQuery)?)? (WHERE predicate)?
+    : DELETE FROM tableRef (USING tableOrQuery (COMMA tableOrQuery)*)? (WHERE predicate)?
     ;
 
 valuesBuilder: VALUES L_PAREN exprList R_PAREN (COMMA L_PAREN exprList R_PAREN)?

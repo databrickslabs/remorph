@@ -237,3 +237,11 @@ case class ColumnAliases(input: Relation, aliases: Seq[Id]) extends RelationComm
 
 case class TableFunction(functionCall: Expression) extends Relation {}
 case class Lateral(expr: Relation) extends Relation {}
+
+case class DeleteFromTable(
+    target: Relation,
+    source: Option[Relation],
+    where: Option[Expression],
+    output: Option[Relation],
+    options: Option[Expression])
+    extends Modification {}
