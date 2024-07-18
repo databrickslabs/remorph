@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.parsers.common
 
-import com.databricks.labs.remorph.parsers.intermediate.UnresolvedFunction
+import com.databricks.labs.remorph.parsers.intermediate.{IRHelpers, UnresolvedFunction}
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeFunctionBuilder
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeFunctionConverters.SnowflakeSynonyms
 import com.databricks.labs.remorph.parsers.tsql.TSqlFunctionBuilder
