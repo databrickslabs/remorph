@@ -47,7 +47,7 @@
     <maven.compiler.target>1.8</maven.compiler.target>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <scala.binary.version>2.12</scala.binary.version>
-    <scala.version>2.12.12</scala.version>
+    <scala.version>2.12.19</scala.version>
     <scoverage.plugin.version>1.4.11</scoverage.plugin.version>
     <spark.version>3.3.0</spark.version>
   </properties>

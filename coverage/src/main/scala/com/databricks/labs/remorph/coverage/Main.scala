@@ -44,6 +44,7 @@ object Main {
 
     val now = Instant.now
 
+    println("Hello!")
     val project = "remorph-core"
     val commitHash = getCurrentCommitHash
     val testSource = new NestedFiles(sourceDir.toNIO)
