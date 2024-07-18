@@ -61,13 +61,17 @@ class TranspileUtils:
         assert transpile_config, "Error: Cannot load Transpile `config.yml` from Databricks Workspace"
 
         if transpile_config.source.lower() not in SQLGLOT_DIALECTS:
-            print(f"Error: Invalid value for '--source': '{transpile_config.source}' is not one of {DIALECTS}. ")
+            raise_validation_exception(
+                f"Error: Invalid value for '--source': '{transpile_config.source}' is not one of {DIALECTS}. "
+            )
 
         if not os.path.exists(transpile_config.input_sql) or transpile_config.input_sql in {None, ""}:
-            print(f"Error: Invalid value for '--input_sql':" f" Path '{transpile_config.input_sql}' does not exist.")
+            raise_validation_exception(
+                f"Error: Invalid value for '--input_sql':" f" Path '{transpile_config.input_sql}' does not exist."
+            )
 
         if transpile_config.mode not in {"current", "experimental"}:
-            print(
+            raise_validation_exception(
                 f"Error: Invalid value for '--mode': '{transpile_config.mode}' "
                 f"is not one of 'current', "
                 f"'experimental'."

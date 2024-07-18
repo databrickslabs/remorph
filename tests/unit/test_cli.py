@@ -13,6 +13,8 @@ from databricks.sdk import WorkspaceClient
 from databricks.sdk.errors import NotFound
 from databricks.labs.blueprint.installation import MockInstallation
 
+from databricks.labs.remorph.helpers.transpile_utils import TranspileUtils
+
 
 @pytest.fixture
 def mock_workspace_client_cli():
@@ -125,6 +127,25 @@ def mock_installation_reconcile():
 
 
 @pytest.fixture
+def mock_transpile_invalid():
+    return MockInstallation(
+        {
+            "config.yml": {
+                'version': 1,
+                'input_sql': '/path/to/sql/file.sql',
+                'output_folder': '/path/to/output',
+                'skip_validation': 'invalid_value',
+                'catalog_name': 'my_catalog',
+                'schema_name': 'my_schema',
+                'source': 'invalid_dialect',
+                'sdk_config': {'cluster_id': 'test_cluster'},
+                'mode': 'current',
+            }
+        }
+    )
+
+
+@pytest.fixture
 def temp_dirs_for_lineage(tmpdir):
     input_dir = tmpdir.mkdir("input")
     output_dir = tmpdir.mkdir("output")
@@ -141,78 +162,84 @@ def temp_dirs_for_lineage(tmpdir):
     return input_dir, output_dir
 
 
-def test_transpile_with_invalid_dialect(mock_workspace_client_cli):
+def test_transpile_with_invalid_dialect(mock_workspace_client, mock_transpile_invalid):
+    prompts = MockPrompts(
+        {
+            r"Would you like to overwrite workspace `Transpile Config` values": "no",
+        }
+    )
+
     with pytest.raises(Exception, match="Error: Invalid value for '--source'"):
-        cli.transpile(
-            mock_workspace_client_cli,
-            "invalid_dialect",
-            "/path/to/sql/file.sql",
-            "/path/to/output",
-            "true",
-            "my_catalog",
-            "my_schema",
-            "current",
-        )
+        utils = TranspileUtils(mock_workspace_client, mock_transpile_invalid, prompts)
+        utils.run()
 
 
-def test_transpile_with_invalid_skip_validation(mock_workspace_client_cli):
-    with (
-        patch("os.path.exists", return_value=True),
-        pytest.raises(Exception, match="Error: Invalid value for '--skip_validation'"),
-    ):
-        cli.transpile(
-            mock_workspace_client_cli,
-            "snowflake",
-            "/path/to/sql/file.sql",
-            "/path/to/output",
-            "invalid_value",
-            "my_catalog",
-            "my_schema",
-            "current",
-        )
-
-
-def test_invalid_input_sql(mock_workspace_client_cli):
+def test_invalid_input_sql(mock_workspace_client_cli, mock_transpile_invalid):
+    prompts = MockPrompts(
+        {
+            r"Would you like to overwrite workspace `Transpile Config` values": "no",
+        }
+    )
+    invalid_input_path = MockInstallation(
+        {
+            "config.yml": {
+                'version': 1,
+                'input_sql': '/path/to/invalid/sql/file.sql',
+                'output_folder': '/path/to/output',
+                'skip_validation': True,
+                'catalog_name': 'my_catalog',
+                'schema_name': 'my_schema',
+                'source': 'snowflake',
+                'sdk_config': {'cluster_id': 'test_cluster'},
+                'mode': 'current',
+            }
+        }
+    )
     with (
         patch("os.path.exists", return_value=False),
         pytest.raises(Exception, match="Error: Invalid value for '--input_sql'"),
     ):
-        cli.transpile(
-            mock_workspace_client_cli,
-            "snowflake",
-            "/path/to/invalid/sql/file.sql",
-            "/path/to/output",
-            "true",
-            "my_catalog",
-            "my_schema",
-            "current",
-        )
+        utils = TranspileUtils(mock_workspace_client_cli, invalid_input_path, prompts)
+        utils.run()
 
 
 def test_transpile_with_valid_input(mock_workspace_client_cli):
     source = "snowflake"
     input_sql = "/path/to/sql/file.sql"
     output_folder = "/path/to/output"
-    skip_validation = "true"
+    skip_validation = True
     catalog_name = "my_catalog"
     schema_name = "my_schema"
     mode = "current"
     sdk_config = {'cluster_id': 'test_cluster'}
 
+    prompts = MockPrompts(
+        {
+            r"Would you like to overwrite workspace `Transpile Config` values": "no",
+        }
+    )
+    invalid_input_path = MockInstallation(
+        {
+            "config.yml": {
+                'version': 1,
+                'input_sql': input_sql,
+                'output_folder': output_folder,
+                'skip_validation': skip_validation,
+                'catalog_name': catalog_name,
+                'schema_name': schema_name,
+                'source': source,
+                'sdk_config': sdk_config,
+                'mode': mode,
+            }
+        }
+    )
     with (
         patch("os.path.exists", return_value=True),
-        patch("databricks.labs.remorph.cli.morph", return_value={}) as mock_morph,
+        patch("databricks.labs.remorph.helpers.transpile_utils.morph", return_value={}) as mock_morph,
     ):
-        cli.transpile(
-            mock_workspace_client_cli,
-            source,
-            input_sql,
-            output_folder,
-            skip_validation,
-            catalog_name,
-            schema_name,
-            mode,
-        )
+        utils = TranspileUtils(mock_workspace_client_cli, invalid_input_path, prompts)
+        utils.run()
+
         mock_morph.assert_called_once_with(
             mock_workspace_client_cli,
             MorphConfig(
@@ -220,7 +247,7 @@ def test_transpile_with_valid_input(mock_workspace_client_cli):
                 source=source,
                 input_sql=input_sql,
                 output_folder=output_folder,
-                skip_validation=True,
+                skip_validation=skip_validation,
                 catalog_name=catalog_name,
                 schema_name=schema_name,
                 mode=mode,
@@ -232,27 +259,41 @@ def test_transpile_empty_output_folder(mock_workspace_client_cli):
     source = "snowflake"
     input_sql = "/path/to/sql/file2.sql"
     output_folder = ""
-    skip_validation = "false"
+    skip_validation = False
     catalog_name = "my_catalog"
     schema_name = "my_schema"
 
     mode = "current"
     sdk_config = {'cluster_id': 'test_cluster'}
 
+    prompts = MockPrompts(
+        {
+            r"Would you like to overwrite workspace `Transpile Config` values": "no",
+        }
+    )
+    invalid_output_folder = MockInstallation(
+        {
+            "config.yml": {
+                'version': 1,
+                'input_sql': input_sql,
+                'output_folder': output_folder,
+                'skip_validation': skip_validation,
+                'catalog_name': catalog_name,
+                'schema_name': schema_name,
+                'source': source,
+                'sdk_config': sdk_config,
+                'mode': mode,
+            }
+        }
+    )
+
     with (
         patch("os.path.exists", return_value=True),
-        patch("databricks.labs.remorph.cli.morph", return_value={}) as mock_morph,
+        patch("databricks.labs.remorph.helpers.transpile_utils.morph", return_value={}) as mock_morph,
     ):
-        cli.transpile(
-            mock_workspace_client_cli,
-            source,
-            input_sql,
-            output_folder,
-            skip_validation,
-            catalog_name,
-            schema_name,
-            mode,
-        )
+        utils = TranspileUtils(mock_workspace_client_cli, invalid_output_folder, prompts)
+        utils.run()
+
         mock_morph.assert_called_once_with(
             mock_workspace_client_cli,
             MorphConfig(
@@ -269,53 +310,102 @@ def test_transpile_empty_output_folder(mock_workspace_client_cli):
 
 
 def test_transpile_with_incorrect_input_mode(mock_workspace_client_cli):
+    prompts = MockPrompts(
+        {
+            r"Would you like to overwrite workspace `Transpile Config` values": "no",
+        }
+    )
+    invalid_mode = MockInstallation(
+        {
+            "config.yml": {
+                'version': 1,
+                'input_sql': "/path/to/sql/file2.sql",
+                'output_folder': "",
+                'skip_validation': False,
+                'catalog_name': "my_catalog",
+                'schema_name': "my_schema",
+                'source': "snowflake",
+                'mode': "preview",
+            }
+        }
+    )
+
     with (
         patch("os.path.exists", return_value=True),
         pytest.raises(Exception, match="Error: Invalid value for '--mode':"),
     ):
-        source = "snowflake"
-        input_sql = "/path/to/sql/file2.sql"
-        output_folder = ""
-        skip_validation = "false"
-        catalog_name = "my_catalog"
-        schema_name = "my_schema"
-        mode = "preview"
-
-        cli.transpile(
-            mock_workspace_client_cli,
-            source,
-            input_sql,
-            output_folder,
-            skip_validation,
-            catalog_name,
-            schema_name,
-            mode,
-        )
+        utils = TranspileUtils(mock_workspace_client_cli, invalid_mode, prompts)
+        utils.run()
 
 
 def test_transpile_with_incorrect_input_source(mock_workspace_client_cli):
+    prompts = MockPrompts(
+        {
+            r"Would you like to overwrite workspace `Transpile Config` values": "no",
+        }
+    )
+    invalid_input_source = MockInstallation(
+        {
+            "config.yml": {
+                'version': 1,
+                'input_sql': "/path/to/sql/file2.sql",
+                'output_folder': "",
+                'skip_validation': False,
+                'catalog_name': "my_catalog",
+                'schema_name': "my_schema",
+                'source': "postgres",
+                'mode': "preview",
+            }
+        }
+    )
+
     with (
         patch("os.path.exists", return_value=True),
         pytest.raises(Exception, match="Error: Invalid value for '--source':"),
     ):
-        source = "postgres"
-        input_sql = "/path/to/sql/file2.sql"
-        output_folder = ""
-        skip_validation = "false"
-        catalog_name = "my_catalog"
-        schema_name = "my_schema"
-        mode = "preview"
+        utils = TranspileUtils(mock_workspace_client_cli, invalid_input_source, prompts)
+        utils.run()
 
-        cli.transpile(
-            mock_workspace_client_cli,
-            source,
-            input_sql,
-            output_folder,
-            skip_validation,
-            catalog_name,
-            schema_name,
-            mode,
-        )
+
+def test_invalid_transpile_config(mock_workspace_client_cli, mock_transpile_invalid):
+
+    invalid_config = MockInstallation(
+        {
+            "config.yml": {
+                'version': 1,
+            }
+        }
+    )
+    with pytest.raises(AssertionError, match="Error: Cannot load Transpile `config.yml` from Databricks Workspace"):
+        utils = TranspileUtils(mock_workspace_client_cli, invalid_config, MockPrompts({}))
+        utils.run()
+
+
+def test_missing_transpile_config(mock_workspace_client_cli, mock_transpile_invalid):
+
+    missing_config = MockInstallation({})
+    with pytest.raises(AssertionError, match="Error: Cannot load Transpile `config.yml` from Databricks Workspace"):
+        utils = TranspileUtils(mock_workspace_client_cli, missing_config, MockPrompts({}))
+        utils.run()
+
+
+def test_cli_transpile(mock_workspace_client, mock_transpile_invalid):
+    with patch(
+        "databricks.labs.blueprint.installation.Installation.assume_user_home", return_value=mock_transpile_invalid
+    ):
+        with patch("databricks.labs.remorph.helpers.transpile_utils.TranspileUtils.run", return_value=None):
+            assert cli.transpile(mock_workspace_client) is None
+
+
+def test_cli_transpile_overwrite_workspace_values(mock_workspace_client, mock_transpile_invalid):
+    prompts = MockPrompts(
+        {
+            r"Would you like to overwrite workspace `Transpile Config` values": "yes",
+        }
+    )
+    utils = TranspileUtils(mock_workspace_client, mock_transpile_invalid, prompts)
+    with pytest.raises(AssertionError, match="Error: Cannot load Transpile `config.yml` from Databricks Workspace"):
+        utils.run()
 
 
 def test_generate_lineage_valid_input(temp_dirs_for_lineage, mock_workspace_client_cli):
