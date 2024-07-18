@@ -13,26 +13,6 @@ min_python: 3.10
 commands:
   - name: transpile
     description: Transpile SQL script to Databricks SQL
-    flags:
-      - name: source
-        description: Input SQL Dialect Type Accepted Values [snowflake, tsql]
-      - name: input-sql
-        description: Input SQL Folder or File
-      - name: output-folder
-        default: None
-        description: Output Location For Storing Transpiled Cod
-      - name: skip-validation
-        default: true
-        description: Validate Transpiled Code, default True validation skipped, False validate
-      - name: catalog-name
-        default: None
-        description: Catalog Name Applicable only when Validation Mode is DATABRICKS
-      - name: schema-name
-        default: None
-        description: Schema Name Applicable only when Validation Mode is DATABRICKS
-      - name: mode
-        default: current
-        description: Run in Current or Experimental Mode, Accepted Values [experimental, current], Default current, experimental mode will execute including any Private Preview features
 
     table_template: |-
       total_files_processed\ttotal_queries_processed\tno_of_sql_failed_while_parsing\tno_of_sql_failed_while_validating\terror_log_file

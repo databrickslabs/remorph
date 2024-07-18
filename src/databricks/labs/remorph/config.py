@@ -28,6 +28,8 @@ SQLGLOT_DIALECTS: dict[str, DialectType] = {
     "vertica": Dialects.POSTGRES,
 }
 
+DIALECTS = {name for name, dialect in SQLGLOT_DIALECTS.items()}
+
 
 def get_dialect(engine: str) -> Dialect:
     return Dialect.get_or_raise(SQLGLOT_DIALECTS.get(engine))
