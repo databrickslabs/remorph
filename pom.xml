@@ -48,7 +48,7 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <scala.binary.version>2.12</scala.binary.version>
     <scala.version>2.12.19</scala.version>
-    <scoverage.plugin.version>1.4.11</scoverage.plugin.version>
+    <scoverage.plugin.version>2.1.1</scoverage.plugin.version>
     <spark.version>3.3.0</spark.version>
   </properties>
   <build>
@@ -188,7 +188,7 @@
       <plugin>
         <groupId>org.scoverage</groupId>
         <artifactId>scoverage-maven-plugin</artifactId>
-        <version>1.4.11</version>
+        <version>${scoverage.plugin.version}</version>
         <configuration>
           <scalaVersion>${scala.version}</scalaVersion>
           <aggregate>true</aggregate>
