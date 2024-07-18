@@ -1,7 +1,7 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser._
-import com.databricks.labs.remorph.parsers.{intermediate => ir}
+import com.databricks.labs.remorph.parsers.{ParserCommon, intermediate => ir}
 
 import scala.collection.JavaConverters._
 
@@ -9,7 +9,7 @@ import scala.collection.JavaConverters._
  * @see
  *   org.apache.spark.sql.catalyst.parser.AstBuilder
  */
-class SnowflakeAstBuilder extends SnowflakeParserBaseVisitor[ir.TreeNode] {
+class SnowflakeAstBuilder extends SnowflakeParserBaseVisitor[ir.TreeNode] with ParserCommon[ir.TreeNode] {
 
   private val relationBuilder = new SnowflakeRelationBuilder
   private val ddlBuilder = new SnowflakeDDLBuilder
@@ -25,7 +25,7 @@ class SnowflakeAstBuilder extends SnowflakeParserBaseVisitor[ir.TreeNode] {
   }
 
   override def visitBatch(ctx: BatchContext): ir.TreeNode = {
-    ir.Batch(ctx.sqlCommand().asScala.map(_.accept(this)).collect { case p: ir.Plan => p })
+    ir.Batch(visitMany(ctx.sqlCommand()).collect { case p: ir.Plan => p })
   }
 
   override def visitQueryStatement(ctx: QueryStatementContext): ir.TreeNode = {
@@ -42,7 +42,7 @@ class SnowflakeAstBuilder extends SnowflakeParserBaseVisitor[ir.TreeNode] {
     if (ctx == null) {
       return relation
     }
-    val ctes = ctx.commonTableExpression().asScala.map(_.accept(relationBuilder))
+    val ctes = relationBuilder.visitMany(ctx.commonTableExpression())
     ir.WithCTE(ctes, relation)
   }
 

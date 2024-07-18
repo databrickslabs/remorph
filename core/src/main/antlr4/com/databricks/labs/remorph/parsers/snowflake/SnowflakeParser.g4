@@ -95,9 +95,12 @@ mergeInsert: INSERT (L_PAREN columnList R_PAREN)? VALUES L_PAREN exprList R_PARE
     ;
 
 updateStatement
-    : UPDATE tableRef SET columnName EQ expr (COMMA columnName EQ expr)* (FROM tableSources)? (
+    : UPDATE tableRef SET setColumnValue (COMMA setColumnValue)* (FROM tableSources)? (
         WHERE predicate
     )?
+    ;
+
+setColumnValue: id EQ expr
     ;
 
 tableRef: objectName asAlias?
@@ -106,8 +109,10 @@ tableRef: objectName asAlias?
 tableOrQuery: tableRef | L_PAREN subquery R_PAREN asAlias?
     ;
 
-deleteStatement
-    : DELETE FROM tableRef (USING tableOrQuery (COMMA tableOrQuery)*)? (WHERE predicate)?
+tablesOrQueries: tableOrQuery (COMMA tableOrQuery)*
+    ;
+
+deleteStatement: DELETE FROM tableRef (USING tablesOrQueries)? (WHERE predicate)?
     ;
 
 valuesBuilder: VALUES L_PAREN exprList R_PAREN (COMMA L_PAREN exprList R_PAREN)?
