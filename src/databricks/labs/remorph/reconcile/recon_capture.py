@@ -235,16 +235,16 @@ class ReconCapture:
         logger.warning(f"reconciled_record_count : {record_count}")
         # if the mismatch count is 0 then no need of checking bounds.
         if total_mismatch_count == 0:
-            return False
+            return True
         # pull out table thresholds
         thresholds: list[TableThresholds] = (
             [threshold for threshold in table_conf.table_thresholds if threshold.model == TableThresholdModel.MISMATCH]
             if table_conf.table_thresholds
             else []
         )
-        # if not table thresholds are provided return true
+        # if not table thresholds are provided return false
         if not thresholds:
-            return True
+            return False
 
         res = None
         for threshold in thresholds:
@@ -258,7 +258,7 @@ class ReconCapture:
                 upper_bound = int(round((upper_bound / 100) * record_count.source))
                 res = lower_bound <= total_mismatch_count <= upper_bound
 
-        return not res  # we have to return negate bool because the logic for status checks for negate
+        return res
 
     def _insert_into_metrics_table(
         self,
@@ -270,14 +270,14 @@ class ReconCapture:
     ) -> None:
         status = False
         if data_reconcile_output.exception in {None, ''} and schema_reconcile_output.exception in {None, ''}:
-            status = not (
+            status = (
                 # validate for both exact mismatch and threshold mismatch
                 self._is_mismatch_within_threshold_limits(
                     data_reconcile_output=data_reconcile_output, table_conf=table_conf, record_count=record_count
                 )
-                or data_reconcile_output.missing_in_src_count > 0
-                or data_reconcile_output.missing_in_tgt_count > 0
-                or not schema_reconcile_output.is_valid
+                and data_reconcile_output.missing_in_src_count == 0
+                and data_reconcile_output.missing_in_tgt_count == 0
+                and schema_reconcile_output.is_valid
             )
 
         exception_msg = ""
