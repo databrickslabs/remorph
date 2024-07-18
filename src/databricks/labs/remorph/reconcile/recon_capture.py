@@ -228,8 +228,13 @@ class ReconCapture:
     def _is_mismatch_within_threshold_limits(
         cls, data_reconcile_output: DataReconcileOutput, table_conf: Table, record_count: ReconcileRecordCount
     ):
+        total_mismatch_count = (
+            data_reconcile_output.mismatch_count + data_reconcile_output.threshold_output.threshold_mismatch_count
+        )
+        logger.info(f"total_mismatch_count : {total_mismatch_count}")
+        logger.warning(f"reconciled_record_count : {record_count}")
         # if the mismatch count is 0 then no need of checking bounds.
-        if data_reconcile_output.mismatch_count == 0:
+        if total_mismatch_count == 0:
             return False
         # pull out table thresholds
         thresholds: list[TableThresholds] = (
@@ -247,11 +252,11 @@ class ReconCapture:
             lower_bound = int(threshold.lower_bound.replace("%", ""))
             upper_bound = int(threshold.upper_bound.replace("%", ""))
             if mode == "absolute":
-                res = lower_bound <= data_reconcile_output.mismatch_count <= upper_bound
+                res = lower_bound <= total_mismatch_count <= upper_bound
             if mode == "percentage":
                 lower_bound = int(round((lower_bound / 100) * record_count.source))
                 upper_bound = int(round((upper_bound / 100) * record_count.source))
-                res = lower_bound <= data_reconcile_output.mismatch_count <= upper_bound
+                res = lower_bound <= total_mismatch_count <= upper_bound
 
         return not res  # we have to return negate bool because the logic for status checks for negate
 
@@ -266,13 +271,13 @@ class ReconCapture:
         status = False
         if data_reconcile_output.exception in {None, ''} and schema_reconcile_output.exception in {None, ''}:
             status = not (
+                # validate for both exact mismatch and threshold mismatch
                 self._is_mismatch_within_threshold_limits(
                     data_reconcile_output=data_reconcile_output, table_conf=table_conf, record_count=record_count
                 )
                 or data_reconcile_output.missing_in_src_count > 0
                 or data_reconcile_output.missing_in_tgt_count > 0
                 or not schema_reconcile_output.is_valid
-                or data_reconcile_output.threshold_output.threshold_mismatch_count > 0
             )
 
         exception_msg = ""
