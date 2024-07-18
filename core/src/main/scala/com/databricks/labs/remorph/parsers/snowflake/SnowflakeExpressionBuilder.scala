@@ -269,8 +269,7 @@ class SnowflakeExpressionBuilder()
   }
 
   private def buildWindow(ctx: OverClauseContext, windowFunction: ir.Expression): ir.Expression = {
-    val partitionSpec =
-      ctx.expr().asScala.map(_.accept(this))
+    val partitionSpec = visitMany(ctx.expr())
     val sortOrder =
       Option(ctx.windowOrderingAndFrame()).map(c => buildSortOrder(c.orderByClause())).getOrElse(Seq())
 
@@ -311,7 +310,7 @@ class SnowflakeExpressionBuilder()
       case c if c.nonReservedFunctionName() != null => c.nonReservedFunctionName().getText
     }
     val arguments = ctx match {
-      case c if c.exprList() != null => c.exprList().expr().asScala.map(_.accept(this))
+      case c if c.exprList() != null => visitMany(c.exprList().expr())
       case c if c.paramAssocList() != null => c.paramAssocList().paramAssoc().asScala.map(_.accept(this))
       case _ => Seq.empty
     }
@@ -321,7 +320,7 @@ class SnowflakeExpressionBuilder()
   // aggregateFunction
 
   override def visitAggFuncExprList(ctx: AggFuncExprListContext): ir.Expression = {
-    val param = ctx.exprList().expr().asScala.map(_.accept(this))
+    val param = visitMany(ctx.exprList().expr())
     functionBuilder.buildFunction(visitId(ctx.id()), param)
   }
 
@@ -377,7 +376,7 @@ class SnowflakeExpressionBuilder()
       case c if c.IN() != null && c.subquery() != null =>
         ir.IsInRelation(c.subquery().accept(new SnowflakeRelationBuilder), expression)
       case c if c.IN() != null && c.exprList() != null =>
-        val collection = c.exprList().expr().asScala.map(_.accept(this))
+        val collection = visitMany(c.exprList().expr())
         ir.IsInCollection(collection, expression)
       case c if c.BETWEEN() != null =>
         val lowerBound = c.expr(0).accept(this)
@@ -413,8 +412,12 @@ class SnowflakeExpressionBuilder()
     ir.NamedArgumentExpression(ctx.id().getText.toUpperCase(), ctx.expr().accept(this))
   }
 
+
   override def visitLet(ctx: LetContext): ir.Expression = {
     val dataType: Option[ir.DataType] = Option(ctx.dataType()).flatMap(dt => Some(DataTypeBuilder.buildDataType(dt)))
     ir.SetVariable(ctx.id().getText, dataType, Some(ctx.expr().accept(this)))
+
+  override def visitSetColumnValue(ctx: SetColumnValueContext): ir.Expression = {
+    ir.Assign(ctx.id().accept(this), ctx.expr().accept(this))
   }
 }

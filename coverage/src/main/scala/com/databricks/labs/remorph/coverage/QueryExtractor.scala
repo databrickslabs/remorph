@@ -7,6 +7,13 @@ trait QueryExtractor {
   def extractQuery(file: File): Option[(String, String)]
 }
 
+class WholeFileQueryExtractor extends QueryExtractor {
+  override def extractQuery(file: File): Option[(String, String)] = {
+    val fileContent = Source.fromFile(file)
+    Some((fileContent.getLines().mkString("\n"), "dummy"))
+  }
+}
+
 class CommentBasedQueryExtractor(startComment: String, endComment: String) extends QueryExtractor {
 
   override def extractQuery(file: File): Option[(String, String)] = {

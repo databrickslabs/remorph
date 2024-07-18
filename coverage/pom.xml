@@ -19,6 +19,7 @@
         <startComment></startComment>
         <endComment>-- databricks sql:</endComment>
         <sourceDialect></sourceDialect>
+        <extractor></extractor>
     </properties>
     <dependencies>
         <dependency>
@@ -85,13 +86,15 @@
                         <argument>-i</argument>
                         <argument>${sourceDir}</argument>
                         <argument>-o</argument>
-                        <argument>${project.build.directory}/${outputPath}</argument>
+                        <argument>${outputPath}</argument>
                         <argument>-s</argument>
                         <argument>${startComment}</argument>
                         <argument>-e</argument>
                         <argument>${endComment}</argument>
                         <argument>-d</argument>
                         <argument>${sourceDialect}</argument>
+                        <argument>-x</argument>
+                        <argument>${extractor}</argument>
                     </arguments>
                 </configuration>
             </plugin>
