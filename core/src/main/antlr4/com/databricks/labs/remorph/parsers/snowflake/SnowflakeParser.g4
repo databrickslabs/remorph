@@ -161,10 +161,11 @@ copyIntoTable
 declareClause: DECLARE declareStatement+
     ;
 
-declareStatement: id dataType SEMI
-| id dataType DEFAULT L_PAREN selectStatement R_PAREN SEMI
-| id dataType DEFAULT expr SEMI
-;
+declareStatement
+    : id dataType SEMI
+    | id dataType DEFAULT L_PAREN selectStatement R_PAREN SEMI
+    | id dataType DEFAULT expr SEMI
+    ;
 
 externalLocation
     : STRING
