@@ -68,12 +68,13 @@ object Main {
           timestamp = now.toString,
           source_dialect = sourceDialect,
           target_dialect = targetDialect,
-          file = test.inputFile.toString)
+          file = os.Path(test.inputFile).relativeTo(sourceDir).toString)
         val report = runner.runQuery(inputQuery, expectedTranslation)
         val reportEntryJson = ReportEntry(header, report).asJson
         os.write.append(outputFilePath, ujson.write(reportEntryJson, indent = -1) + "\n")
       }
     }
+    println(s"Successfully produced coverage report in $outputFilePath")
   }
 
   def main(args: Array[String]): Unit = ParserForMethods(this).runOrExit(args)

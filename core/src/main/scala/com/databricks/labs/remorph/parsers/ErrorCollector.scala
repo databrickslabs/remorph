@@ -87,7 +87,8 @@ class ProductionErrorCollector(sourceCode: String, fileName: String) extends Err
         (errorPosition, errorLine.take(windowWidth - clipMark.length) + clipMark)
       case (true, true) =>
         val start = errorPosition - roomForContext
-        val clippedLineWithoutClipMarks = errorLine.substring(start, start + windowWidth)
+        val clippedLineWithoutClipMarks =
+          errorLine.substring(start, Math.min(start + windowWidth, errorLine.length - 1))
         (
           roomForContext,
           clipMark + clippedLineWithoutClipMarks.substring(
