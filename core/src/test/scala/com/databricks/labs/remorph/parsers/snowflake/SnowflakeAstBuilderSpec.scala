@@ -1,6 +1,5 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
-import com.databricks.labs.remorph.parsers.IRHelpers
 import com.databricks.labs.remorph.parsers.intermediate._
 import org.scalatest.Assertion
 import org.scalatest.matchers.should.Matchers
@@ -424,6 +423,13 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
           Some(GreaterThan(Dot(Id("t"), Id("c1")), Literal(short = Some(42)))),
           None,
           None))
+
+    }
+
+    "translate UPDATE commands" in {
+      singleQueryExample(
+        "UPDATE t1 SET c1 = 42;",
+        UpdateTable(namedTable("t1"), None, Seq(Assign(Id("c1"), Literal(short = Some(42)))), None, None, None))
 
     }
   }

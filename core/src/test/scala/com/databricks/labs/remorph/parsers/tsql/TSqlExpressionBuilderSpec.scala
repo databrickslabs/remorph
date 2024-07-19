@@ -1,6 +1,7 @@
 package com.databricks.labs.remorph.parsers.tsql
 
-import com.databricks.labs.remorph.parsers.{IRHelpers, intermediate => ir}
+import com.databricks.labs.remorph.parsers.intermediate.IRHelpers
+import com.databricks.labs.remorph.parsers.{intermediate => ir}
 import org.antlr.v4.runtime.tree.TerminalNodeImpl
 import org.antlr.v4.runtime.{CommonToken, Token}
 import org.mockito.ArgumentMatchers.{any, anyInt}
