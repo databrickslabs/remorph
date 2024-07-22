@@ -145,6 +145,7 @@ otherCommand
     | call
     | beginTxn
     | returnStatement
+    | let
     ;
 
 beginTxn: BEGIN (WORK | TRANSACTION)? (NAME id)? | START TRANSACTION ( NAME id)?
@@ -209,7 +210,9 @@ formatName: FORMAT_NAME EQ string
 formatType: TYPE EQ typeFileformat formatTypeOptions*
     ;
 
-let: LET id dataType? (ASSIGN | DEFAULT) expr SEMI
+let
+    : LET id dataType? (ASSIGN | DEFAULT) (selectStatement | expr) SEMI
+    | id dataType? (ASSIGN | DEFAULT) (selectStatement | expr) SEMI
     ;
 
 returnStatement: RETURN expr SEMI

@@ -361,6 +361,7 @@ class SnowflakeExpressionBuilder()
         ir.Case(None, branches, otherwise)
     }
   }
+
   override def visitPredicate(ctx: PredicateContext): ir.Expression = ctx match {
     case c if c.EXISTS() != null =>
       ir.Exists(c.subquery().accept(new SnowflakeRelationBuilder))
@@ -411,11 +412,6 @@ class SnowflakeExpressionBuilder()
   override def visitParamAssoc(ctx: ParamAssocContext): ir.Expression = {
     ir.NamedArgumentExpression(ctx.id().getText.toUpperCase(), ctx.expr().accept(this))
   }
-
-
-  override def visitLet(ctx: LetContext): ir.Expression = {
-    val dataType: Option[ir.DataType] = Option(ctx.dataType()).flatMap(dt => Some(DataTypeBuilder.buildDataType(dt)))
-    ir.SetVariable(ctx.id().getText, dataType, Some(ctx.expr().accept(this)))
 
   override def visitSetColumnValue(ctx: SetColumnValueContext): ir.Expression = {
     ir.Assign(ctx.id().accept(this), ctx.expr().accept(this))

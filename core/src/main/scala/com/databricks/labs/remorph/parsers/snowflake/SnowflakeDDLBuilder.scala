@@ -219,7 +219,7 @@ class SnowflakeDDLBuilder
     }
   }
 
-  private def buildVariables(ctx: DeclareContext): Seq[ir.SetVariable] = {
+  /*  private def buildVariables(ctx: DeclareContext): Seq[ir.SetVariable] = {
     // [TODO]: Add Support for Cursor
     val ids = ctx.id().asScala.map(_.getText)
     val dataTypes = ctx.dataType().asScala.map(dt => Some(DataTypeBuilder.buildDataType(dt)))
@@ -234,9 +234,9 @@ class SnowflakeDDLBuilder
       ir.SetVariable(name, dataType, expr)
     }
 
-  }
+  }*/
 
-  private def buildReturn(ctx: ReturnStatementContext): ir.Expression = {
+  /*  private def buildReturn(ctx: ReturnStatementContext): ir.Expression = {
     // [TODO]: implement return statement for TABLE(res)
     ctx.accept(expressionBuilder)
   }
@@ -256,5 +256,5 @@ class SnowflakeDDLBuilder
       case _ => None
     }
     ir.CreateProcedure(name, parameters, variables, body, returnExpr)
-  }
+  }*/
 }
