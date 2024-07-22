@@ -16,6 +16,11 @@ abstract class BaseParserQueryRunner[P <: Parser] extends QueryRunner {
   protected def makeParser(input: String): P
   protected def translate(parser: P): TreeNode
 
+  private def showUnresolvedBits(result: TreeNode): String = {
+    val pattern = "Unresolved[a-zA-Z]+\\([^,)]*".r
+    pattern.findAllIn(result.toString).mkString(",")
+  }
+
   override def runQuery(inputQuery: String, expectedTranslation: String): ReportEntryReport = {
     val parser = makeParser(inputQuery)
     val errHandler = new ProductionErrorCollector(inputQuery, "")
@@ -29,15 +34,15 @@ abstract class BaseParserQueryRunner[P <: Parser] extends QueryRunner {
         if (!expectedTranslation.exists(_.isLetter)) {
           // expected translation is empty, indicating that we expect to have Unresolved bits
           // in the output
-          report.copy(parsed = 1, transpiled = 1, statements = 1, transpiled_statements = 0)
+          report.copy(parsed = 1, statements = 1)
         } else {
           report.copy(
             parsed = 1,
             statements = 1,
-            transpilation_error = Some(s"Translated query contains unresolved bits: $result"))
+            parsing_error = Some(s"Translated query contains unresolved bits: ${showUnresolvedBits(result)}"))
         }
       } else {
-        report.copy(parsed = 1, transpiled = 1, statements = 1, transpiled_statements = 1)
+        report.copy(parsed = 1, statements = 1)
       }
     } catch {
       case NonFatal(e) =>
