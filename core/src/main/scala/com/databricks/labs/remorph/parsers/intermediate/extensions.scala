@@ -25,7 +25,7 @@ abstract class Binary(left: Expression, right: Expression) extends Expression {
 }
 
 trait Predicate extends AstExtension {
-  def dataType: DataType = BooleanType()
+  def dataType: DataType = BooleanType
 }
 
 case class And(left: Expression, right: Expression) extends Binary(left, right) with Predicate {}
@@ -48,7 +48,7 @@ case object NoopNode extends LeafNode {
 }
 
 case object RowNumber extends LeafExpression {
-  override def dataType: DataType = LongType()
+  override def dataType: DataType = LongType
 }
 
 case class NTile(expression: Expression) extends Unary(expression) {
@@ -143,7 +143,7 @@ case class BitwiseXor(left: Expression, right: Expression) extends Binary(left, 
 
 // Other binary expressions
 case class Concat(left: Expression, right: Expression) extends Binary(left, right) {
-  override def dataType: DataType = StringType()
+  override def dataType: DataType = StringType
 }
 
 // Assignment operators
@@ -171,7 +171,7 @@ case class ForceSeekHint(index: Option[Expression], indexColumns: Option[Seq[Exp
 // It was not clear whether the NamedTable options should be used for the alias. I'm assuming it is not what
 // they are for.
 case class TableAlias(child: LogicalPlan, alias: String, columns: Seq[Id] = Seq.empty) extends UnaryNode {
-  override def output: Seq[Attribute] = columns.map(c => AttributeReference(c.id, StringType()))
+  override def output: Seq[Attribute] = columns.map(c => AttributeReference(c.id, StringType))
 }
 
 // TODO: remove this and replace with Hint(Hint(...), ...)
@@ -248,7 +248,7 @@ case class XmlFunction(function: CallFunction, column: Expression) extends Binar
 }
 
 case class NextValue(sequenceName: String) extends LeafExpression {
-  override def dataType: DataType = LongType()
+  override def dataType: DataType = LongType
 }
 case class ArrayAccess(array: Expression, index: Expression) extends Binary(array, index) {
   override def dataType: DataType = array.dataType
@@ -259,7 +259,7 @@ case class JsonAccess(json: Expression, path: Expression) extends Binary(json, p
 }
 
 case class Collate(string: Expression, specification: String) extends Unary(string) {
-  override def dataType: DataType = StringType()
+  override def dataType: DataType = StringType
 }
 case class Iff(condition: Expression, thenBranch: Expression, elseBranch: Expression) extends Expression {
   override def children: Seq[Expression] = Seq(condition, thenBranch, elseBranch)
@@ -370,7 +370,7 @@ case object CrossApply extends JoinType
 case object OuterApply extends JoinType
 
 case class ColumnAliases(input: LogicalPlan, aliases: Seq[Id]) extends RelationCommon {
-  override def output: Seq[Attribute] = aliases.map(a => AttributeReference(a.id, StringType()))
+  override def output: Seq[Attribute] = aliases.map(a => AttributeReference(a.id, StringType))
   override def children: Seq[LogicalPlan] = Seq(input)
 }
 
