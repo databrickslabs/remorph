@@ -22,7 +22,7 @@ class SnowflakeRelationBuilderSpec
   private def examples[R <: RuleContext](
       queries: Seq[String],
       rule: SnowflakeParser => R,
-      expectedAst: Relation): Assertion = {
+      expectedAst: LogicalPlan): Assertion = {
     val cp = new Checkpoint()
     queries.foreach(q => cp(example(q, rule, expectedAst)))
     cp.reportAll()
@@ -244,7 +244,7 @@ class SnowflakeRelationBuilderSpec
         _.selectStatement(),
         Project(
           Deduplicate(
-            input = namedTable("t"),
+            namedTable("t"),
             column_names = Seq(Id("a"), Id("bb")),
             all_columns_as_keys = false,
             within_watermark = false),

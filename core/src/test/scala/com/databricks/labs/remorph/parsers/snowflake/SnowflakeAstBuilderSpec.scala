@@ -9,7 +9,7 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
 
   override protected def astBuilder = new SnowflakeAstBuilder
 
-  private def singleQueryExample(query: String, expectedAst: Plan): Assertion =
+  private def singleQueryExample(query: String, expectedAst: LogicalPlan): Assertion =
     example(query, _.snowflakeFile(), Batch(Seq(expectedAst)))
 
   "SnowflakeAstBuilder" should {
@@ -180,8 +180,8 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
         query = "SELECT a FROM b ORDER BY a",
         expectedAst = Project(
           Sort(
-            input = NamedTable("b", Map.empty, is_streaming = false),
-            order = Seq(SortOrder(Id("a"), AscendingSortDirection, SortNullsLast)),
+            NamedTable("b", Map.empty, is_streaming = false),
+            Seq(SortOrder(Id("a"), AscendingSortDirection, SortNullsLast)),
             is_global = false),
           Seq(simplyNamedColumn("a"))))
 
@@ -189,8 +189,8 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
         query = "SELECT a FROM b ORDER BY a DESC",
         expectedAst = Project(
           Sort(
-            input = NamedTable("b", Map.empty, is_streaming = false),
-            order = Seq(SortOrder(Id("a"), DescendingSortDirection, SortNullsFirst)),
+            NamedTable("b", Map.empty, is_streaming = false),
+            Seq(SortOrder(Id("a"), DescendingSortDirection, SortNullsFirst)),
             is_global = false),
           Seq(simplyNamedColumn("a"))))
 
@@ -198,8 +198,8 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
         query = "SELECT a FROM b ORDER BY a NULLS FIRST",
         expectedAst = Project(
           Sort(
-            input = NamedTable("b", Map.empty, is_streaming = false),
-            order = Seq(SortOrder(Id("a"), AscendingSortDirection, SortNullsFirst)),
+            NamedTable("b", Map.empty, is_streaming = false),
+            Seq(SortOrder(Id("a"), AscendingSortDirection, SortNullsFirst)),
             is_global = false),
           Seq(simplyNamedColumn("a"))))
 
@@ -207,8 +207,8 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
         query = "SELECT a FROM b ORDER BY a DESC NULLS LAST",
         expectedAst = Project(
           Sort(
-            input = NamedTable("b", Map.empty, is_streaming = false),
-            order = Seq(SortOrder(Id("a"), DescendingSortDirection, SortNullsLast)),
+            NamedTable("b", Map.empty, is_streaming = false),
+            Seq(SortOrder(Id("a"), DescendingSortDirection, SortNullsLast)),
             is_global = false),
           Seq(simplyNamedColumn("a"))))
     }

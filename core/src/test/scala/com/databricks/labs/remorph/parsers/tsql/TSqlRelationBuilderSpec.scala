@@ -129,7 +129,7 @@ class TSqlRelationBuilderSpec
         _.selectStatement(),
         ir.Project(
           ir.Deduplicate(
-            input = namedTable("t"),
+            namedTable("t"),
             column_names = Seq(ir.Id("a"), ir.Id("bb")),
             all_columns_as_keys = false,
             within_watermark = false),

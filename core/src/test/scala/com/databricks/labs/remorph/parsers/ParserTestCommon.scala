@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.parsers
 
-import com.databricks.labs.remorph.parsers.intermediate.LogicalPlan
+import com.databricks.labs.remorph.parsers.intermediate.{Expression, LogicalPlan}
 import org.antlr.v4.runtime._
 import org.antlr.v4.runtime.tree.ParseTreeVisitor
 import org.scalatest.{Assertion, Assertions}
@@ -37,6 +37,20 @@ trait ParserTestCommon[P <: Parser] { self: Assertions =>
 
     val result = astBuilder.visit(sfTree)
 
+    // TODO: sideBySide
+    assert(result == expectedAst, s"\nFor child string\n$query\nactual result:\n$result\nexpected\n$expectedAst")
+  }
+
+  protected def exampleExpr[R <: RuleContext](query: String, rule: P => R, expectedAst: Expression): Assertion = {
+    val sfTree = parseString(query, rule)
+    if (errHandler != null && errHandler.errorCount != 0) {
+      errHandler.logErrors()
+      fail(s"${errHandler.errorCount} errors found in the child string")
+    }
+
+    val result = astBuilder.visit(sfTree)
+
+    // TODO: sideBySide
     assert(result == expectedAst, s"\nFor child string\n$query\nactual result:\n$result\nexpected\n$expectedAst")
   }
 

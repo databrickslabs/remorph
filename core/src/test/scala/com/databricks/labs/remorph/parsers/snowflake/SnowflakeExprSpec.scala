@@ -10,7 +10,7 @@ class SnowflakeExprSpec extends AnyWordSpec with SnowflakeParserTestCommon with 
 
   override protected def astBuilder: SnowflakeExpressionBuilder = new SnowflakeExpressionBuilder
 
-  private def example(input: String, expectedAst: Expression): Assertion = example(input, _.expr(), expectedAst)
+  private def example(input: String, expectedAst: Expression): Assertion = exampleExpr(input, _.expr(), expectedAst)
 
   "SnowflakeExpressionBuilder" should {
     "" in {
@@ -79,8 +79,8 @@ class SnowflakeExprSpec extends AnyWordSpec with SnowflakeParserTestCommon with 
 
     def exprAndPredicateExample(query: String, expectedAst: Expression): Unit = {
       val cp = new Checkpoint()
-      cp(example(query, _.expr(), expectedAst))
-      cp(example(query, _.predicate(), expectedAst))
+      cp(exampleExpr(query, _.expr(), expectedAst))
+      cp(exampleExpr(query, _.predicate(), expectedAst))
       cp.reportAll()
     }
 
@@ -204,7 +204,8 @@ class SnowflakeExprSpec extends AnyWordSpec with SnowflakeParserTestCommon with 
     "translate JSON literals" in {
       example(
         "{'a': 1, 'b': 2}",
-        Literal(json = Some(JsonExpr(None, Seq("a" -> Literal(short = Some(1)), "b" -> Literal(short = Some(2)))))))
+        Literal(json =
+          Some(JsonExpr(UnresolvedType, Seq("a" -> Literal(short = Some(1)), "b" -> Literal(short = Some(2)))))))
     }
 
   }
