@@ -1,6 +1,7 @@
 package com.databricks.labs.remorph.parsers
 
-import com.databricks.labs.remorph.parsers.intermediate.{Expression, LogicalPlan}
+import com.databricks.labs.remorph.parsers.{intermediate => ir}
+import com.databricks.labs.remorph.utils.Strings
 import org.antlr.v4.runtime._
 import org.antlr.v4.runtime.tree.ParseTreeVisitor
 import org.scalatest.{Assertion, Assertions}
@@ -28,20 +29,29 @@ trait ParserTestCommon[P <: Parser] { self: Assertions =>
     tree
   }
 
-  protected def example[R <: RuleContext](query: String, rule: P => R, expectedAst: LogicalPlan): Assertion = {
-    val sfTree = parseString(query, rule)
-    if (errHandler != null && errHandler.errorCount != 0) {
-      errHandler.logErrors()
-      fail(s"${errHandler.errorCount} errors found in the child string")
+  protected def comparePlans(a: ir.LogicalPlan, b: ir.LogicalPlan): Unit = {
+    val expected = reorderComparisons(a)
+    val actual = reorderComparisons(b)
+    if (expected != actual) {
+      fail(
+        s"""
+           |== FAIL: Plans do not match ===
+           |${Strings.sideBySide(expected.treeString, actual.treeString).mkString("\n")}
+         """.stripMargin)
     }
-
-    val result = astBuilder.visit(sfTree)
-
-    // TODO: sideBySide
-    assert(result == expectedAst, s"\nFor child string\n$query\nactual result:\n$result\nexpected\n$expectedAst")
   }
 
-  protected def exampleExpr[R <: RuleContext](query: String, rule: P => R, expectedAst: Expression): Assertion = {
+  protected def reorderComparisons(plan: ir.LogicalPlan): ir.LogicalPlan = {
+    plan transformAllExpressions {
+      case ir.Equals(l, r) if l.hashCode() > r.hashCode() => ir.Equals(r, l)
+      case ir.GreaterThan(l, r) if l.hashCode() > r.hashCode() => ir.LesserThan(r, l)
+      case ir.GreaterThanOrEqual(l, r) if l.hashCode() > r.hashCode() => ir.LesserThanOrEqual(r, l)
+      case ir.LesserThan(l, r) if l.hashCode() > r.hashCode() => ir.GreaterThan(r, l)
+      case ir.LesserThanOrEqual(l, r) if l.hashCode() > r.hashCode() => ir.GreaterThanOrEqual(r, l)
+    }
+  }
+
+  protected def example[R <: RuleContext](query: String, rule: P => R, expectedAst: ir.LogicalPlan) = {
     val sfTree = parseString(query, rule)
     if (errHandler != null && errHandler.errorCount != 0) {
       errHandler.logErrors()
@@ -49,9 +59,18 @@ trait ParserTestCommon[P <: Parser] { self: Assertions =>
     }
 
     val result = astBuilder.visit(sfTree)
+    comparePlans(expectedAst, result.asInstanceOf[ir.LogicalPlan])
+  }
 
-    // TODO: sideBySide
-    assert(result == expectedAst, s"\nFor child string\n$query\nactual result:\n$result\nexpected\n$expectedAst")
+  protected def exampleExpr[R <: RuleContext](query: String, rule: P => R, expectedAst: ir.Expression) = {
+    val sfTree = parseString(query, rule)
+    if (errHandler != null && errHandler.errorCount != 0) {
+      errHandler.logErrors()
+      fail(s"${errHandler.errorCount} errors found in the child string")
+    }
+    val result = astBuilder.visit(sfTree)
+    val wrapExpr = (expr: ir.Expression) => ir.Filter(ir.NoopNode, expr)
+    comparePlans(wrapExpr(expectedAst), wrapExpr(result.asInstanceOf[ir.Expression]))
   }
 
   /**

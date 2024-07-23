@@ -2,7 +2,6 @@ package com.databricks.labs.remorph.parsers.tsql
 
 import com.databricks.labs.remorph.parsers.intermediate._
 import org.mockito.Mockito.{mock, when}
-import org.scalatest.Assertion
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
@@ -10,10 +9,10 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
 
   override protected def astBuilder: TSqlParserBaseVisitor[_] = new TSqlAstBuilder
 
-  private def example(query: String, expectedAst: LogicalPlan): Assertion =
+  private def example(query: String, expectedAst: LogicalPlan): Unit =
     example(query, _.tSqlFile(), expectedAst)
 
-  private def singleQueryExample(query: String, expectedAst: LogicalPlan): Assertion =
+  private def singleQueryExample(query: String, expectedAst: LogicalPlan): Unit =
     example(query, _.tSqlFile(), Batch(Seq(expectedAst)))
 
   "tsql visitor" should {

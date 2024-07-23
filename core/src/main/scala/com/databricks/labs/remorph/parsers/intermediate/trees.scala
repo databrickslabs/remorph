@@ -55,6 +55,7 @@ class TreeNodeException[TreeType <: TreeNode[_]](@transient val tree: TreeType, 
   }
 }
 
+// scalastyle:off
 abstract class TreeNode[BaseType <: TreeNode[BaseType]] extends Product {
   // scalastyle:on
   self: BaseType =>
@@ -71,8 +72,6 @@ abstract class TreeNode[BaseType <: TreeNode[BaseType]] extends Product {
   def children: Seq[BaseType]
 
   override def hashCode(): Int = _hashCode
-
-  override def equals(obj: Any): Boolean = super.equals(obj)
 
   /**
    * Faster version of equality which short-circuits when two treeNodes are the same instance. We don't just override

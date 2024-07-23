@@ -1,7 +1,6 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
 import com.databricks.labs.remorph.parsers.intermediate._
-import org.scalatest.Assertion
 import org.scalatest.Checkpoints.Checkpoint
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -10,7 +9,7 @@ class SnowflakeExprSpec extends AnyWordSpec with SnowflakeParserTestCommon with 
 
   override protected def astBuilder: SnowflakeExpressionBuilder = new SnowflakeExpressionBuilder
 
-  private def example(input: String, expectedAst: Expression): Assertion = exampleExpr(input, _.expr(), expectedAst)
+  private def example(input: String, expectedAst: Expression): Unit = exampleExpr(input, _.expr(), expectedAst)
 
   "SnowflakeExpressionBuilder" should {
     "" in {

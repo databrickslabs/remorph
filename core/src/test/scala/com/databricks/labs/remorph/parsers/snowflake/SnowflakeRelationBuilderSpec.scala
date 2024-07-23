@@ -71,7 +71,7 @@ class SnowflakeRelationBuilderSpec
         "FROM some_table GROUP BY some_column",
         _.selectOptionalClauses(),
         Aggregate(
-          child = namedTable("some_table"),
+          namedTable("some_table"),
           group_type = GroupBy,
           grouping_expressions = Seq(simplyNamedColumn("some_column")),
           pivot = None))
@@ -80,7 +80,7 @@ class SnowflakeRelationBuilderSpec
         query = "FROM t1 PIVOT (AVG(a) FOR d IN('x', 'y'))",
         rule = _.selectOptionalClauses(),
         Aggregate(
-          child = namedTable("t1"),
+          namedTable("t1"),
           group_type = Pivot,
           grouping_expressions = Seq(CallFunction("AVG", Seq(simplyNamedColumn("a")))),
           pivot = Some(Pivot(simplyNamedColumn("d"), Seq(Literal(string = Some("x")), Literal(string = Some("y")))))))
@@ -89,7 +89,7 @@ class SnowflakeRelationBuilderSpec
         query = "FROM t1 PIVOT (COUNT(a) FOR d IN('x', 'y'))",
         rule = _.selectOptionalClauses(),
         Aggregate(
-          child = namedTable("t1"),
+          namedTable("t1"),
           group_type = Pivot,
           grouping_expressions = Seq(CallFunction("COUNT", Seq(simplyNamedColumn("a")))),
           pivot = Some(Pivot(simplyNamedColumn("d"), Seq(Literal(string = Some("x")), Literal(string = Some("y")))))))
@@ -98,7 +98,7 @@ class SnowflakeRelationBuilderSpec
         query = "FROM t1 PIVOT (MIN(a) FOR d IN('x', 'y'))",
         rule = _.selectOptionalClauses(),
         Aggregate(
-          child = namedTable("t1"),
+          namedTable("t1"),
           group_type = Pivot,
           grouping_expressions = Seq(CallFunction("MIN", Seq(simplyNamedColumn("a")))),
           pivot = Some(Pivot(simplyNamedColumn("d"), Seq(Literal(string = Some("x")), Literal(string = Some("y")))))))
@@ -302,7 +302,7 @@ class SnowflakeRelationBuilderSpec
 
     "translate LATERAL FLATTEN object references" in {
       example(
-        "LATERAL FLATTEN (child => some_col, OUTER => true)",
+        "LATERAL FLATTEN (input => some_col, OUTER => true)",
         _.objectRef(),
         Lateral(
           TableFunction(
@@ -313,7 +313,7 @@ class SnowflakeRelationBuilderSpec
                 NamedArgumentExpression("OUTER", Literal(boolean = Some(true))))))))
 
       example(
-        "LATERAL FLATTEN (child => some_col) AS t",
+        "LATERAL FLATTEN (input => some_col) AS t",
         _.objectRef(),
         SubqueryAlias(
           Lateral(TableFunction(CallFunction("FLATTEN", Seq(NamedArgumentExpression("INPUT", Id("some_col")))))),
@@ -322,7 +322,7 @@ class SnowflakeRelationBuilderSpec
     }
   }
 
-  "Unparsed child" should {
+  "Unparsed input" should {
     "be reported as UnresolvedRelation" in {
       example("MATCH_RECOGNIZE()", _.matchRecognize(), UnresolvedRelation("MATCH_RECOGNIZE()"))
     }
