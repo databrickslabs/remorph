@@ -33,8 +33,7 @@ trait ParserTestCommon[P <: Parser] { self: Assertions =>
     val expected = reorderComparisons(a)
     val actual = reorderComparisons(b)
     if (expected != actual) {
-      fail(
-        s"""
+      fail(s"""
            |== FAIL: Plans do not match ===
            |${Strings.sideBySide(expected.treeString, actual.treeString).mkString("\n")}
          """.stripMargin)
