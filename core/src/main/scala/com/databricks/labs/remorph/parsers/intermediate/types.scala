@@ -42,3 +42,5 @@ case class UDTType() extends DataType
 
 // UnparsedDataType
 case class UnparsedType() extends DataType
+
+case object UnresolvedType extends DataType

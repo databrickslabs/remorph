@@ -2,19 +2,31 @@ package com.databricks.labs.remorph.parsers.intermediate
 
 trait AstExtension
 
-case class Id(id: String, caseSensitive: Boolean = false) extends Expression {}
+abstract class ToRefactor extends LeafExpression {
+  override def dataType: DataType = UnresolvedType
+}
 
-case class ObjectReference(head: Id, tail: Id*) extends Expression {}
+case class Id(id: String, caseSensitive: Boolean = false) extends ToRefactor
 
-case class Column(tableNameOrAlias: Option[ObjectReference], columnName: Id) extends Expression with AstExtension {}
-case class Identifier(name: String, isQuoted: Boolean) extends Expression with AstExtension {}
-case class DollarAction() extends Expression with AstExtension {}
-case class Distinct(expression: Expression) extends Expression
+case class ObjectReference(head: Id, tail: Id*) extends ToRefactor
 
-abstract class Unary(pred: Expression) extends Expression {}
-abstract class Binary(left: Expression, right: Expression) extends Expression {}
+case class Column(tableNameOrAlias: Option[ObjectReference], columnName: Id) extends ToRefactor with AstExtension {}
+case class Identifier(name: String, isQuoted: Boolean) extends ToRefactor with AstExtension {}
+case class DollarAction() extends ToRefactor with AstExtension {}
+case class Distinct(expression: Expression) extends ToRefactor
 
-trait Predicate extends AstExtension
+abstract class Unary(child: Expression) extends Expression {
+  override def children: Seq[Expression] = Seq(child)
+}
+
+abstract class Binary(left: Expression, right: Expression) extends Expression {
+  override def children: Seq[Expression] = Seq(left, right)
+
+}
+
+trait Predicate extends AstExtension {
+  def dataType: DataType = BooleanType()
+}
 
 case class And(left: Expression, right: Expression) extends Binary(left, right) with Predicate {}
 case class Or(left: Expression, right: Expression) extends Binary(left, right) with Predicate {}
@@ -27,64 +39,125 @@ case class LesserThan(left: Expression, right: Expression) extends Binary(left, 
 case class GreaterThanOrEqual(left: Expression, right: Expression) extends Binary(left, right) with Predicate {}
 case class LesserThanOrEqual(left: Expression, right: Expression) extends Binary(left, right) with Predicate {}
 
-case object Noop extends Expression
-case object RowNumber extends Expression {}
-case class NTile(expression: Expression) extends Expression {}
+case object Noop extends LeafExpression {
+  override def dataType: DataType = UnresolvedType
+}
 
-case class WithCTE(ctes: Seq[Relation], query: Relation) extends RelationCommon {}
-case class CTEDefinition(tableName: String, columns: Seq[Expression], cte: Relation) extends RelationCommon {}
+case object NoopNode extends LeafNode {
+  override def output: Seq[Attribute] = Seq.empty
+}
 
-case class Star(objectName: Option[ObjectReference]) extends Expression {}
-case class Inserted(selection: Expression) extends Expression()
-case class Deleted(selection: Expression) extends Expression()
+case object RowNumber extends LeafExpression {
+  override def dataType: DataType = LongType()
+}
 
-case class WhenBranch(condition: Expression, expression: Expression) extends Expression
+case class NTile(expression: Expression) extends Unary(expression) {
+  override def dataType: DataType = expression.dataType
+}
+
+case class WithCTE(ctes: Seq[LogicalPlan], query: LogicalPlan) extends RelationCommon {
+  override def output: Seq[Attribute] = query.output
+  override def children: Seq[LogicalPlan] = ctes :+ query
+}
+
+case class CTEDefinition(tableName: String, columns: Seq[Expression], cte: LogicalPlan) extends RelationCommon {
+  override def output: Seq[Attribute] = columns.map(c => AttributeReference(c.toString, c.dataType))
+  override def children: Seq[LogicalPlan] = Seq(cte)
+}
+
+case class Star(objectName: Option[ObjectReference]) extends LeafExpression {
+  override def dataType: DataType = UnresolvedType
+}
+case class Inserted(selection: Expression) extends Unary(selection) {
+  override def dataType: DataType = selection.dataType
+}
+case class Deleted(selection: Expression) extends Unary(selection) {
+  override def dataType: DataType = selection.dataType
+}
+
+case class WhenBranch(condition: Expression, expression: Expression) extends Binary(condition, expression) {
+  override def dataType: DataType = expression.dataType
+}
+
 case class Case(expression: Option[Expression], branches: Seq[WhenBranch], otherwise: Option[Expression])
-    extends Expression {}
+    extends Expression {
+  override def children: Seq[Expression] = expression.toSeq ++
+    branches.flatMap(b => Seq(b.condition, b.expression)) ++ otherwise
+  override def dataType: DataType = branches.head.dataType
+}
 
-case class Exists(relation: Relation) extends Expression {}
+case class Exists(relation: LogicalPlan) extends ToRefactor
 
-case class IsInRelation(relation: Relation, expression: Expression) extends Expression {}
-case class IsInCollection(collection: Seq[Expression], expression: Expression) extends Expression {}
+case class IsInRelation(relation: LogicalPlan, expression: Expression) extends ToRefactor
+case class IsInCollection(collection: Seq[Expression], expression: Expression) extends ToRefactor
 
 case class Like(expression: Expression, patterns: Seq[Expression], escape: Option[Expression], caseSensitive: Boolean)
-    extends Expression {}
+    extends ToRefactor
 
-case class RLike(expression: Expression, pattern: Expression) extends Expression {}
+case class RLike(expression: Expression, pattern: Expression) extends ToRefactor
 
-case class IsNull(expression: Expression) extends Expression {}
+case class IsNull(expression: Expression) extends ToRefactor
 
 // Operators, in order of precedence
 
 // Bitwise NOT is highest precedence after parens '(' ')'
-case class BitwiseNot(expression: Expression) extends Unary(expression) {}
+case class BitwiseNot(expression: Expression) extends Unary(expression) {
+  override def dataType: DataType = expression.dataType
+}
 
 // Unary arithmetic expressions
-case class UMinus(expression: Expression) extends Unary(expression) {}
-case class UPlus(expression: Expression) extends Unary(expression) {}
+case class UMinus(expression: Expression) extends Unary(expression) {
+  override def dataType: DataType = expression.dataType
+}
+case class UPlus(expression: Expression) extends Unary(expression) {
+  override def dataType: DataType = expression.dataType
+}
 
 // Binary Arithmetic expressions
-case class Multiply(left: Expression, right: Expression) extends Binary(left, right) {}
-case class Divide(left: Expression, right: Expression) extends Binary(left, right) {}
-case class Mod(left: Expression, right: Expression) extends Binary(left, right) {}
-
-case class Add(left: Expression, right: Expression) extends Binary(left, right) {}
-case class Subtract(left: Expression, right: Expression) extends Binary(left, right) {}
+case class Multiply(left: Expression, right: Expression) extends Binary(left, right) {
+  override def dataType: DataType = left.dataType
+}
+case class Divide(left: Expression, right: Expression) extends Binary(left, right) {
+  override def dataType: DataType = left.dataType
+}
+case class Mod(left: Expression, right: Expression) extends Binary(left, right) {
+  override def dataType: DataType = left.dataType
+}
+case class Add(left: Expression, right: Expression) extends Binary(left, right) {
+  override def dataType: DataType = left.dataType
+}
+case class Subtract(left: Expression, right: Expression) extends Binary(left, right) {
+  override def dataType: DataType = left.dataType
+}
 
 // Binary bitwise expressions
-case class BitwiseAnd(left: Expression, right: Expression) extends Binary(left, right) {}
-case class BitwiseOr(left: Expression, right: Expression) extends Binary(left, right) {}
-case class BitwiseXor(left: Expression, right: Expression) extends Binary(left, right) {}
+case class BitwiseAnd(left: Expression, right: Expression) extends Binary(left, right) {
+  override def dataType: DataType = left.dataType
+}
+case class BitwiseOr(left: Expression, right: Expression) extends Binary(left, right) {
+  override def dataType: DataType = left.dataType
+}
+case class BitwiseXor(left: Expression, right: Expression) extends Binary(left, right) {
+  override def dataType: DataType = left.dataType
+}
 
 // Other binary expressions
-case class Concat(left: Expression, right: Expression) extends Binary(left, right) {}
+case class Concat(left: Expression, right: Expression) extends Binary(left, right) {
+  override def dataType: DataType = StringType()
+}
 
 // Assignment operators
-case class Assign(left: Expression, right: Expression) extends Binary(left, right) {}
+case class Assign(left: Expression, right: Expression) extends Binary(left, right) {
+  override def dataType: DataType = UnresolvedType
+}
 
 // Some statements, such as SELECT, do not require a table specification
-case class NoTable() extends Relation {}
-case class LocalVarTable(id: Id) extends Relation {}
+case class NoTable() extends LeafNode {
+  override def output: Seq[Attribute] = Seq.empty
+}
+case class LocalVarTable(id: Id) extends LeafNode {
+  override def output: Seq[Attribute] = Seq.empty
+}
 
 // Table hints are not directly supported in Databricks SQL, but at least some of
 // them will have direct equivalents for the Catalyst optimizer. Hence they are
@@ -97,9 +170,18 @@ case class ForceSeekHint(index: Option[Expression], indexColumns: Option[Seq[Exp
 
 // It was not clear whether the NamedTable options should be used for the alias. I'm assuming it is not what
 // they are for.
-case class TableAlias(relation: Relation, alias: String, columns: Seq[Id] = Seq.empty) extends Relation {}
-case class TableWithHints(relation: Relation, hints: Seq[TableHint]) extends Relation {}
-case class Batch(statements: Seq[Plan]) extends Plan
+case class TableAlias(child: LogicalPlan, alias: String, columns: Seq[Id] = Seq.empty) extends UnaryNode {
+  override def output: Seq[Attribute] = columns.map(c => AttributeReference(c.id, StringType()))
+}
+
+// TODO: remove this and replace with Hint(Hint(...), ...)
+case class TableWithHints(child: LogicalPlan, hints: Seq[TableHint]) extends UnaryNode {
+  override def output: Seq[Attribute] = child.output
+}
+
+case class Batch(children: Seq[LogicalPlan]) extends LogicalPlan {
+  override def output: Seq[Attribute] = Seq.empty
+}
 
 case class FunctionParameter(name: String, dataType: DataType, defaultValue: Option[Expression])
 
@@ -156,47 +238,88 @@ case class RenameColumn(oldName: String, newName: String) extends TableAlteratio
 case class AlterTableCommand(tableName: String, alterations: Seq[TableAlteration]) extends Catalog {}
 
 // Used for raw expressions that have no context
-case class Dot(left: Expression, right: Expression) extends Binary(left, right) {}
+case class Dot(left: Expression, right: Expression) extends Binary(left, right) {
+  override def dataType: DataType = UnresolvedType
+}
 
 // Specialized function calls, such as XML functions that usually apply to columns
-case class XmlFunction(function: CallFunction, column: Expression) extends Expression {}
+case class XmlFunction(function: CallFunction, column: Expression) extends Binary(function, column) {
+  override def dataType: DataType = UnresolvedType
+}
 
-case class NextValue(sequenceName: String) extends Expression {}
-case class ArrayAccess(array: Expression, index: Expression) extends Expression {}
+case class NextValue(sequenceName: String) extends LeafExpression {
+  override def dataType: DataType = LongType()
+}
+case class ArrayAccess(array: Expression, index: Expression) extends Binary(array, index) {
+  override def dataType: DataType = array.dataType
+}
 
-case class JsonAccess(json: Expression, path: Expression) extends Expression {}
+case class JsonAccess(json: Expression, path: Expression) extends Binary(json, path) {
+  override def dataType: DataType = UnresolvedType
+}
 
-case class Collate(string: Expression, specification: String) extends Expression {}
-case class Iff(condition: Expression, thenBranch: Expression, elseBranch: Expression) extends Expression {}
+case class Collate(string: Expression, specification: String) extends Unary(string) {
+  override def dataType: DataType = StringType()
+}
+case class Iff(condition: Expression, thenBranch: Expression, elseBranch: Expression) extends Expression {
+  override def children: Seq[Expression] = Seq(condition, thenBranch, elseBranch)
+  override def dataType: DataType = thenBranch.dataType
+}
 
-case class ScalarSubquery(relation: Relation) extends Expression {}
+case class ScalarSubquery(relation: LogicalPlan) extends ToRefactor
 
-case class Timezone(expression: Expression, timeZone: Expression) extends Expression {}
+case class Timezone(expression: Expression, timeZone: Expression) extends Binary(expression, timeZone) {
+  override def dataType: DataType = expression.dataType
+}
 
-case class Money(value: Literal) extends Expression {}
+case class Money(value: Literal) extends Unary(value) {
+  override def dataType: DataType = UnresolvedType
+}
 
-case class WithinGroup(expression: Expression, order: Seq[SortOrder]) extends Expression {}
+case class WithinGroup(expression: Expression, order: Seq[SortOrder]) extends Unary(expression) {
+  override def dataType: DataType = expression.dataType
+}
 
 sealed trait SamplingMethod
 case class RowSamplingProbabilistic(probability: BigDecimal) extends SamplingMethod
 case class RowSamplingFixedAmount(amount: BigDecimal) extends SamplingMethod
 case class BlockSampling(probability: BigDecimal) extends SamplingMethod
 
-case class TableSample(input: Relation, samplingMethod: SamplingMethod, seed: Option[BigDecimal]) extends Relation {}
+case class TableSample(input: LogicalPlan, samplingMethod: SamplingMethod, seed: Option[BigDecimal]) extends UnaryNode {
+  override def child: LogicalPlan = input
+  override def output: Seq[Attribute] = input.output
+}
 
 // Note that Databricks SQL supports FILTER() used as an expression.
-case class FilterExpr(input: Seq[Expression], lambdaFunction: LambdaFunction) extends Expression {}
-case class ValueArray(expressions: Seq[Expression]) extends Expression {}
+case class FilterExpr(input: Seq[Expression], lambdaFunction: LambdaFunction) extends Expression {
+  override def children: Seq[Expression] = input :+ lambdaFunction
+  override def dataType: DataType = UnresolvedType
+}
 
-case class NamedStruct(keys: Seq[Expression], values: Seq[Expression]) extends Expression {}
-case class FilterStruct(input: NamedStruct, lambdaFunction: LambdaFunction) extends Expression {}
+case class ValueArray(expressions: Seq[Expression]) extends Expression {
+  override def children: Seq[Expression] = expressions
+  override def dataType: DataType = UnresolvedType
+}
+
+case class NamedStruct(keys: Seq[Expression], values: Seq[Expression]) extends Expression {
+  override def children: Seq[Expression] = keys ++ values
+  override def dataType: DataType = UnresolvedType
+}
+
+case class FilterStruct(input: NamedStruct, lambdaFunction: LambdaFunction) extends Expression {
+  override def children: Seq[Expression] = Seq(input, lambdaFunction)
+  override def dataType: DataType = UnresolvedType
+}
 
 case class Options(
     expressionOpts: Map[String, Expression],
     stringOpts: Map[String, String],
     boolFlags: Map[String, Boolean],
     autoFlags: List[String])
-    extends Expression {}
+    extends Expression {
+  override def children: Seq[Expression] = expressionOpts.values.toSeq
+  override def dataType: DataType = UnresolvedType
+}
 
 case class BackupDatabase(
     databaseName: String,
@@ -204,27 +327,40 @@ case class BackupDatabase(
     flags: Map[String, Boolean],
     autoFlags: Seq[String],
     values: Map[String, Expression])
-    extends Command {}
+    extends LeafNode
+    with Command {}
 
-case class Output(target: Relation, outputs: Seq[Expression], columns: Option[Seq[Column]]) extends RelationCommon
+case class Output(target: LogicalPlan, outputs: Seq[Expression], columns: Option[Seq[Column]]) extends RelationCommon {
+  override def output: Seq[Attribute] = outputs.map(e => AttributeReference(e.toString, e.dataType))
+  override def children: Seq[LogicalPlan] = Seq(target)
+}
 
 // Used for DML other than SELECT
-abstract class Modification extends Relation
+abstract class Modification extends LogicalPlan
 
-case class InsertIntoTable(
-    target: Relation,
+case class InsertIntoTable( // TODO: fix it
+    target: LogicalPlan,
     columns: Option[Seq[Id]],
-    values: Relation,
-    output: Option[Relation],
+    values: LogicalPlan,
+    outputRelation: Option[LogicalPlan],
     options: Option[Expression],
     overwrite: Boolean)
-    extends Modification {}
+    extends Modification {
+  override def children: Seq[LogicalPlan] = Seq(target, values, outputRelation.getOrElse(NoopNode))
+  override def output: Seq[Attribute] = target.output
+}
 
-case class DerivedRows(rows: Seq[Seq[Expression]]) extends Relation
-case class DefaultValues() extends Relation
+case class DerivedRows(rows: Seq[Seq[Expression]]) extends LeafNode {
+  override def output: Seq[Attribute] = rows.flatten.map(e => AttributeReference(e.toString, e.dataType))
+}
+case class DefaultValues() extends LeafNode {
+  override def output: Seq[Attribute] = Seq.empty
+}
 
 // The default case for the expression parser needs to be explicitly defined to distinguish [DEFAULT]
-case class Default() extends Expression {}
+case class Default() extends LeafExpression {
+  override def dataType: DataType = UnresolvedType
+}
 
 // TSQL has some join types that are not natively supported in Databricks SQL, but can possibly be emulated
 // using LATERAL VIEW and an explode function. Some things like functions are translatable at IR production
@@ -233,24 +369,38 @@ case class Default() extends Expression {}
 case object CrossApply extends JoinType
 case object OuterApply extends JoinType
 
-case class ColumnAliases(input: Relation, aliases: Seq[Id]) extends RelationCommon {}
+case class ColumnAliases(input: LogicalPlan, aliases: Seq[Id]) extends RelationCommon {
+  override def output: Seq[Attribute] = aliases.map(a => AttributeReference(a.id, StringType()))
+  override def children: Seq[LogicalPlan] = Seq(input)
+}
 
-case class TableFunction(functionCall: Expression) extends Relation {}
-case class Lateral(expr: Relation) extends Relation {}
+case class TableFunction(functionCall: Expression) extends LeafNode {
+  override def output: Seq[Attribute] = Seq.empty
+}
+case class Lateral(expr: LogicalPlan) extends UnaryNode {
+  override def child: LogicalPlan = expr
+  override def output: Seq[Attribute] = expr.output
+}
 
 case class DeleteFromTable(
-    target: Relation,
-    source: Option[Relation],
+    target: LogicalPlan,
+    source: Option[LogicalPlan],
     where: Option[Expression],
-    output: Option[Relation],
+    outputRelation: Option[LogicalPlan],
     options: Option[Expression])
-    extends Modification {}
+    extends Modification {
+  override def children: Seq[LogicalPlan] = Seq(target, source.getOrElse(NoopNode), outputRelation.getOrElse(NoopNode))
+  override def output: Seq[Attribute] = target.output
+}
 
 case class UpdateTable(
-    target: Relation,
-    source: Option[Relation],
+    target: LogicalPlan,
+    source: Option[LogicalPlan],
     set: Seq[Expression],
     where: Option[Expression],
-    output: Option[Relation],
+    outputRelation: Option[LogicalPlan],
     options: Option[Expression])
-    extends Modification {}
+    extends Modification {
+  override def children: Seq[LogicalPlan] = Seq(target, source.getOrElse(NoopNode), outputRelation.getOrElse(NoopNode))
+  override def output: Seq[Attribute] = target.output
+}

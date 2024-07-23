@@ -19,32 +19,32 @@ class SnowflakeExpressionBuilderSpec
 
   "SnowflakeExpressionBuilder" should {
     "translate literals" in {
-      example("null", _.literal(), Literal(nullType = Some(NullType())))
-      example("true", _.literal(), Literal(boolean = Some(true)))
-      example("false", _.literal(), Literal(boolean = Some(false)))
-      example("1", _.literal(), Literal(short = Some(1)))
-      example(Int.MaxValue.toString, _.literal(), Literal(integer = Some(Int.MaxValue)))
-      example("-1", _.literal(), Literal(short = Some(-1)))
-      example("1.1", _.literal(), Literal(float = Some(1.1f)))
-      example("1.1e2", _.literal(), Literal(short = Some(110)))
-      example(Long.MaxValue.toString, _.literal(), Literal(long = Some(Long.MaxValue)))
-      example("1.1e-2", _.literal(), Literal(float = Some(0.011f)))
-      example("0.123456789", _.literal(), Literal(double = Some(0.123456789)))
-      example("0.123456789e-1234", _.literal(), Literal(decimal = Some(Decimal("0.123456789e-1234", None, None))))
-      example("'foo'", _.literal(), Literal(string = Some("foo")))
-      example("DATE'1970-01-01'", _.literal(), Literal(date = Some(0)))
-      example("TIMESTAMP'1970-01-01 00:00:00'", _.literal(), Literal(timestamp = Some(0)))
+      exampleExpr("null", _.literal(), Literal(nullType = Some(NullType())))
+      exampleExpr("true", _.literal(), Literal(boolean = Some(true)))
+      exampleExpr("false", _.literal(), Literal(boolean = Some(false)))
+      exampleExpr("1", _.literal(), Literal(short = Some(1)))
+      exampleExpr(Int.MaxValue.toString, _.literal(), Literal(integer = Some(Int.MaxValue)))
+      exampleExpr("-1", _.literal(), Literal(short = Some(-1)))
+      exampleExpr("1.1", _.literal(), Literal(float = Some(1.1f)))
+      exampleExpr("1.1e2", _.literal(), Literal(short = Some(110)))
+      exampleExpr(Long.MaxValue.toString, _.literal(), Literal(long = Some(Long.MaxValue)))
+      exampleExpr("1.1e-2", _.literal(), Literal(float = Some(0.011f)))
+      exampleExpr("0.123456789", _.literal(), Literal(double = Some(0.123456789)))
+      exampleExpr("0.123456789e-1234", _.literal(), Literal(decimal = Some(Decimal("0.123456789e-1234", None, None))))
+      exampleExpr("'foo'", _.literal(), Literal(string = Some("foo")))
+      exampleExpr("DATE'1970-01-01'", _.literal(), Literal(date = Some(0)))
+      exampleExpr("TIMESTAMP'1970-01-01 00:00:00'", _.literal(), Literal(timestamp = Some(0)))
     }
 
     "translate ids (quoted or not)" in {
-      example("foo", _.id(), Id("foo"))
-      example("\"foo\"", _.id(), Id("foo", caseSensitive = true))
-      example("\"foo \"\"quoted bar\"\"\"", _.id(), Id("foo \"quoted bar\"", caseSensitive = true))
+      exampleExpr("foo", _.id(), Id("foo"))
+      exampleExpr("\"foo\"", _.id(), Id("foo", caseSensitive = true))
+      exampleExpr("\"foo \"\"quoted bar\"\"\"", _.id(), Id("foo \"quoted bar\"", caseSensitive = true))
     }
 
     "translate column names" in {
-      example("x", _.columnName(), simplyNamedColumn("x"))
-      example(
+      exampleExpr("x", _.columnName(), simplyNamedColumn("x"))
+      exampleExpr(
         "\"My Table\".x",
         _.columnName(),
         Column(Some(ObjectReference(Id("My Table", caseSensitive = true))), Id("x")))
@@ -52,33 +52,36 @@ class SnowflakeExpressionBuilderSpec
 
     "translate functions with special syntax" in {
 
-      example("EXTRACT(day FROM date1)", _.builtinFunction(), CallFunction("EXTRACT", Seq(Id("day"), Id("date1"))))
+      exampleExpr("EXTRACT(day FROM date1)", _.builtinFunction(), CallFunction("EXTRACT", Seq(Id("day"), Id("date1"))))
 
-      example("EXTRACT('day' FROM date1)", _.builtinFunction(), CallFunction("EXTRACT", Seq(Id("day"), Id("date1"))))
+      exampleExpr(
+        "EXTRACT('day' FROM date1)",
+        _.builtinFunction(),
+        CallFunction("EXTRACT", Seq(Id("day"), Id("date1"))))
     }
 
     "translate functions named with a keyword" in {
-      example("LEFT(foo, bar)", _.standardFunction(), CallFunction("LEFT", Seq(Id("foo"), Id("bar"))))
-      example("RIGHT(foo, bar)", _.standardFunction(), CallFunction("RIGHT", Seq(Id("foo"), Id("bar"))))
+      exampleExpr("LEFT(foo, bar)", _.standardFunction(), CallFunction("LEFT", Seq(Id("foo"), Id("bar"))))
+      exampleExpr("RIGHT(foo, bar)", _.standardFunction(), CallFunction("RIGHT", Seq(Id("foo"), Id("bar"))))
     }
     "translate aggregation functions" in {
-      example("COUNT(x)", _.aggregateFunction(), CallFunction("COUNT", Seq(Id("x"))))
-      example("AVG(x)", _.aggregateFunction(), CallFunction("AVG", Seq(Id("x"))))
-      example("SUM(x)", _.aggregateFunction(), CallFunction("SUM", Seq(Id("x"))))
-      example("MIN(x)", _.aggregateFunction(), CallFunction("MIN", Seq(Id("x"))))
+      exampleExpr("COUNT(x)", _.aggregateFunction(), CallFunction("COUNT", Seq(Id("x"))))
+      exampleExpr("AVG(x)", _.aggregateFunction(), CallFunction("AVG", Seq(Id("x"))))
+      exampleExpr("SUM(x)", _.aggregateFunction(), CallFunction("SUM", Seq(Id("x"))))
+      exampleExpr("MIN(x)", _.aggregateFunction(), CallFunction("MIN", Seq(Id("x"))))
 
-      example("COUNT(*)", _.aggregateFunction(), CallFunction("COUNT", Seq(Star(None))))
+      exampleExpr("COUNT(*)", _.aggregateFunction(), CallFunction("COUNT", Seq(Star(None))))
 
-      example(
+      exampleExpr(
         "LISTAGG(x, ',')",
         _.aggregateFunction(),
         CallFunction("LISTAGG", Seq(Id("x"), Literal(string = Some(",")))))
-      example("ARRAY_AGG(x)", _.aggregateFunction(), CallFunction("ARRAYAGG", Seq(Id("x"))))
+      exampleExpr("ARRAY_AGG(x)", _.aggregateFunction(), CallFunction("ARRAYAGG", Seq(Id("x"))))
     }
 
     "translate a query with a window function" in {
 
-      example(
+      exampleExpr(
         query = "ROW_NUMBER() OVER (ORDER BY a DESC)",
         rule = _.rankingWindowedFunction(),
         expectedAst = Window(
@@ -87,7 +90,7 @@ class SnowflakeExpressionBuilderSpec
           sort_order = Seq(SortOrder(Id("a"), DescendingSortDirection, SortNullsFirst)),
           frame_spec = None))
 
-      example(
+      exampleExpr(
         query = "ROW_NUMBER() OVER (PARTITION BY a)",
         rule = _.rankingWindowedFunction(),
         expectedAst = Window(
@@ -95,7 +98,7 @@ class SnowflakeExpressionBuilderSpec
           partition_spec = Seq(Id("a")),
           sort_order = Seq(),
           frame_spec = None))
-      example(
+      exampleExpr(
         query = "NTILE(42) OVER (PARTITION BY a ORDER BY b, c DESC, d)",
         rule = _.rankingWindowedFunction(),
         expectedAst = Window(
@@ -110,7 +113,7 @@ class SnowflakeExpressionBuilderSpec
 
     "translate window frame specifications" in {
 
-      example(
+      exampleExpr(
         query = "ROW_NUMBER() OVER(PARTITION BY a ORDER BY a ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)",
         rule = _.rankingWindowedFunction(),
         expectedAst = Window(
@@ -119,7 +122,7 @@ class SnowflakeExpressionBuilderSpec
           sort_order = Seq(SortOrder(Id("a"), AscendingSortDirection, SortNullsLast)),
           frame_spec = Some(WindowFrame(RowsFrame, UnboundedPreceding, CurrentRow))))
 
-      example(
+      exampleExpr(
         query = "ROW_NUMBER() OVER(PARTITION BY a ORDER BY a ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)",
         rule = _.rankingWindowedFunction(),
         expectedAst = Window(
@@ -128,7 +131,7 @@ class SnowflakeExpressionBuilderSpec
           sort_order = Seq(SortOrder(Id("a"), AscendingSortDirection, SortNullsLast)),
           frame_spec = Some(WindowFrame(RowsFrame, UnboundedPreceding, UnboundedFollowing))))
 
-      example(
+      exampleExpr(
         query = "ROW_NUMBER() OVER(PARTITION BY a ORDER BY a ROWS BETWEEN 42 PRECEDING AND CURRENT ROW)",
         rule = _.rankingWindowedFunction(),
         expectedAst = Window(
@@ -137,7 +140,7 @@ class SnowflakeExpressionBuilderSpec
           sort_order = Seq(SortOrder(Id("a"), AscendingSortDirection, SortNullsLast)),
           frame_spec = Some(WindowFrame(RowsFrame, PrecedingN(Literal(short = Some(42))), CurrentRow))))
 
-      example(
+      exampleExpr(
         query = "ROW_NUMBER() OVER(PARTITION BY a ORDER BY a ROWS BETWEEN CURRENT ROW AND 42 FOLLOWING)",
         rule = _.rankingWindowedFunction(),
         expectedAst = Window(
@@ -148,9 +151,9 @@ class SnowflakeExpressionBuilderSpec
     }
 
     "translate star-expressions" in {
-      example("*", _.columnElemStar(), Star(None))
-      example("t.*", _.columnElemStar(), Star(Some(ObjectReference(Id("t")))))
-      example(
+      exampleExpr("*", _.columnElemStar(), Star(None))
+      exampleExpr("t.*", _.columnElemStar(), Star(Some(ObjectReference(Id("t")))))
+      exampleExpr(
         "db1.schema1.table1.*",
         _.columnElemStar(),
         Star(Some(ObjectReference(Id("db1"), Id("schema1"), Id("table1")))))
@@ -199,18 +202,18 @@ class SnowflakeExpressionBuilderSpec
     }
 
     "translate EXISTS expressions" in {
-      example("EXISTS (SELECT * FROM t)", _.predicate, Exists(Project(namedTable("t"), Seq(Star(None)))))
+      exampleExpr("EXISTS (SELECT * FROM t)", _.predicate, Exists(Project(namedTable("t"), Seq(Star(None)))))
     }
 
     // see https://github.com/databrickslabs/remorph/issues/273
     "translate NOT EXISTS expressions" ignore {
-      example("NOT EXISTS (SELECT * FROM t)", _.expr(), Not(Exists(Project(namedTable("t"), Seq(Star(None))))))
+      exampleExpr("NOT EXISTS (SELECT * FROM t)", _.expr(), Not(Exists(Project(namedTable("t"), Seq(Star(None))))))
     }
 
   }
 
   "translate CASE expressions" in {
-    example(
+    exampleExpr(
       "CASE WHEN col1 = 1 THEN 'one' WHEN col2 = 2 THEN 'two' END",
       _.caseExpression(),
       Case(
@@ -220,7 +223,7 @@ class SnowflakeExpressionBuilderSpec
           WhenBranch(Equals(Id("col2"), Literal(short = Some(2))), Literal(string = Some("two")))),
         otherwise = None))
 
-    example(
+    exampleExpr(
       "CASE 'foo' WHEN col1 = 1 THEN 'one' WHEN col2 = 2 THEN 'two' END",
       _.caseExpression(),
       Case(
@@ -230,7 +233,7 @@ class SnowflakeExpressionBuilderSpec
           WhenBranch(Equals(Id("col2"), Literal(short = Some(2))), Literal(string = Some("two")))),
         otherwise = None))
 
-    example(
+    exampleExpr(
       "CASE WHEN col1 = 1 THEN 'one' WHEN col2 = 2 THEN 'two' ELSE 'other' END",
       _.caseExpression(),
       Case(
@@ -240,7 +243,7 @@ class SnowflakeExpressionBuilderSpec
           WhenBranch(Equals(Id("col2"), Literal(short = Some(2))), Literal(string = Some("two")))),
         otherwise = Some(Literal(string = Some("other")))))
 
-    example(
+    exampleExpr(
       "CASE 'foo' WHEN col1 = 1 THEN 'one' WHEN col2 = 2 THEN 'two' ELSE 'other' END",
       _.caseExpression(),
       Case(
@@ -253,7 +256,7 @@ class SnowflakeExpressionBuilderSpec
   }
 
   "SnowflakeExpressionBuilder.visit_Literal" should {
-    "handle unresolved input" in {
+    "handle unresolved child" in {
       val literal = mock[LiteralContext]
       astBuilder.visitLiteral(literal) shouldBe Literal(nullType = Some(NullType()))
       verify(literal).sign()
@@ -272,7 +275,7 @@ class SnowflakeExpressionBuilderSpec
   }
 
   "SnowflakeExpressionBuilder.buildComparisonExpression" should {
-    "handle unresolved input" in {
+    "handle unresolved child" in {
       val operator = mock[ComparisonOperatorContext]
       val dummyTextForOperator = "dummy"
       when(operator.getText).thenReturn(dummyTextForOperator)

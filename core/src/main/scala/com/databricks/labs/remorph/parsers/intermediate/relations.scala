@@ -1,16 +1,20 @@
 package com.databricks.labs.remorph.parsers.intermediate
 
-class Relation extends Plan {}
+abstract class Relation extends LogicalPlan
 
 abstract class RelationCommon extends Relation {}
 
 case class SQL(query: String, named_arguments: Map[String, Expression], pos_arguments: Seq[Expression])
-    extends RelationCommon {}
+    extends LeafNode {
+  override def output: Seq[Attribute] = Seq.empty
+}
 
-abstract class Read(is_streaming: Boolean) extends RelationCommon {}
+abstract class Read(is_streaming: Boolean) extends LeafNode
 
 case class NamedTable(unparsed_identifier: String, options: Map[String, String], is_streaming: Boolean)
-    extends Read(is_streaming) {}
+    extends Read(is_streaming) {
+  override def output: Seq[Attribute] = Seq.empty
+}
 
 case class DataSource(
     format: String,
@@ -19,190 +23,274 @@ case class DataSource(
     paths: Seq[String],
     predicates: Seq[String],
     is_streaming: Boolean)
-    extends Read(is_streaming) {}
+    extends Read(is_streaming) {
+  override def output: Seq[Attribute] = Seq.empty
+}
 
-case class Project(input: Relation, expressions: Seq[Expression]) extends RelationCommon {}
+case class Project(input: LogicalPlan, override val expressions: Seq[Expression]) extends UnaryNode {
+  override def child: LogicalPlan = input
+  override def output: Seq[Attribute] = expressions.map(_.asInstanceOf[Attribute])
+}
 
-case class Filter(input: Relation, condition: Expression) extends RelationCommon {}
+case class Filter(input: LogicalPlan, condition: Expression) extends UnaryNode {
+  override def child: LogicalPlan = input
+  override def output: Seq[Attribute] = input.output
+}
 
 abstract class JoinType
-case object UnspecifiedJoin extends JoinType
-case object InnerJoin extends JoinType
-case object FullOuterJoin extends JoinType
-case object LeftOuterJoin extends JoinType
-case object RightOuterJoin extends JoinType
-case object LeftAntiJoin extends JoinType
-case object LeftSemiJoin extends JoinType
-case object CrossJoin extends JoinType
+
+abstract class SetOpType
+
+abstract class GroupType
+
+abstract class ParseFormat
 
 case class JoinDataType(is_left_struct: Boolean, is_right_struct: Boolean)
 
 case class Join(
-    left: Relation,
-    right: Relation,
+    left: LogicalPlan,
+    right: LogicalPlan,
     join_condition: Option[Expression],
     join_type: JoinType,
     using_columns: Seq[String],
     join_data_type: JoinDataType)
-    extends RelationCommon {}
-
-abstract class SetOpType
-case object UnspecifiedSetOp extends SetOpType
-case object IntersectSetOp extends SetOpType
-case object UnionSetOp extends SetOpType
-case object ExceptSetOp extends SetOpType
+    extends BinaryNode {
+  override def output: Seq[Attribute] = left.output ++ right.output
+  override def expressions: Seq[Expression] = super.expressions ++ join_condition.toSeq
+}
 
 case class SetOperation(
-    left_input: Relation,
-    right_input: Relation,
+    left: LogicalPlan,
+    right: LogicalPlan,
     set_op_type: SetOpType,
     is_all: Boolean,
     by_name: Boolean,
     allow_missing_columns: Boolean)
-    extends RelationCommon {}
+    extends BinaryNode {
+  override def output: Seq[Attribute] = left.output ++ right.output
+}
 
-case class Limit(input: Relation, limit: Expression, is_percentage: Boolean = false, with_ties: Boolean = false)
-    extends RelationCommon {}
+case class Limit(input: LogicalPlan, limit: Expression, is_percentage: Boolean = false, with_ties: Boolean = false)
+    extends UnaryNode {
+  override def child: LogicalPlan = input
+  override def output: Seq[Attribute] = input.output
+}
 
-case class Offset(input: Relation, offset: Expression) extends RelationCommon {}
+case class Offset(child: LogicalPlan, offset: Expression) extends UnaryNode {
+  override def output: Seq[Attribute] = child.output
+}
 
-case class Tail(input: Relation, limit: Int) extends RelationCommon {}
-
-abstract class GroupType
-case object UnspecifiedGroupType extends GroupType
-case object GroupBy extends GroupType
-case object Rollup extends GroupType
-case object Cube extends GroupType
-case object Pivot extends GroupType
+case class Tail(child: LogicalPlan, limit: Int) extends UnaryNode {
+  override def output: Seq[Attribute] = child.output
+}
 
 case class Pivot(col: Expression, values: Seq[Literal])
 
 case class Aggregate(
-    input: Relation,
+    child: LogicalPlan,
     group_type: GroupType,
     grouping_expressions: Seq[Expression],
     pivot: Option[Pivot])
-    extends RelationCommon {}
+    extends UnaryNode {
+  override def output: Seq[Attribute] = child.output ++ grouping_expressions.map(_.asInstanceOf[Attribute])
+}
 
-case class Sort(input: Relation, order: Seq[SortOrder], is_global: Boolean) extends RelationCommon {}
+case class Sort(child: LogicalPlan, order: Seq[SortOrder], is_global: Boolean) extends UnaryNode {
+  override def output: Seq[Attribute] = child.output
+}
 
-case class Drop(input: Relation, columns: Seq[Expression], column_names: Seq[String]) extends RelationCommon {}
+case class Drop(child: LogicalPlan, columns: Seq[Expression], column_names: Seq[String]) extends UnaryNode {
+  override def output: Seq[Attribute] = child.output diff columns.map(_.asInstanceOf[Attribute])
+}
 
-case class Deduplicate(input: Relation, column_names: Seq[Id], all_columns_as_keys: Boolean, within_watermark: Boolean)
-    extends RelationCommon {}
+case class Deduplicate(
+    child: LogicalPlan,
+    column_names: Seq[Id],
+    all_columns_as_keys: Boolean,
+    within_watermark: Boolean)
+    extends UnaryNode {
+  override def output: Seq[Attribute] = child.output
+  override def expressions: Seq[Expression] = super.expressions ++ column_names
+}
 
-case class LocalRelation(input: Relation, data: Array[Byte], schema: String) extends RelationCommon {}
+case class LocalRelation(child: LogicalPlan, data: Array[Byte], schema: String) extends UnaryNode {
+  override def output: Seq[Attribute] = child.output
+}
 
-case class CachedLocalRelation(hash: String) extends RelationCommon {}
+case class CachedLocalRelation(hash: String) extends LeafNode {
+  override def output: Seq[Attribute] = Seq.empty
+}
 
-case class CachedRemoteRelation(relation_id: String) extends RelationCommon {}
+case class CachedRemoteRelation(relation_id: String) extends LeafNode {
+  override def output: Seq[Attribute] = Seq.empty
+}
 
 case class Sample(
-    input: Relation,
+    child: LogicalPlan,
     lower_bound: Double,
     upper_bound: Double,
     with_replacement: Boolean,
     seed: Long,
     deterministic_order: Boolean)
-    extends RelationCommon {}
+    extends UnaryNode {
+  override def output: Seq[Attribute] = child.output
+}
 
-case class Range(start: Long, end: Long, step: Long, num_partitions: Int) extends RelationCommon {}
+case class Range(start: Long, end: Long, step: Long, num_partitions: Int) extends LeafNode {
+  override def output: Seq[Attribute] = Seq(AttributeReference("id", LongType()))
+}
 
-case class SubqueryAlias(input: Relation, alias: Id, columnNames: Seq[Id]) extends RelationCommon {}
+case class SubqueryAlias(child: LogicalPlan, alias: Id, columnNames: Seq[Id]) extends UnaryNode {
+  override def output: Seq[Attribute] = child.output
+}
 
-case class Repartition(input: Relation, num_partitions: Int, shuffle: Boolean) extends RelationCommon {}
+case class Repartition(child: LogicalPlan, num_partitions: Int, shuffle: Boolean) extends UnaryNode {
+  override def output: Seq[Attribute] = child.output
+}
 
-case class ShowString(input: Relation, num_rows: Int, truncate: Int, vertical: Boolean) extends RelationCommon {}
+case class ShowString(child: LogicalPlan, num_rows: Int, truncate: Int, vertical: Boolean) extends UnaryNode {
+  override def output: Seq[Attribute] = child.output
+}
 
-case class HtmlString(input: Relation, num_rows: Int, truncate: Int) extends RelationCommon {}
+case class HtmlString(child: LogicalPlan, num_rows: Int, truncate: Int) extends UnaryNode {
+  override def output: Seq[Attribute] = child.output
+}
 
-case class StatSummary(input: Relation, statistics: Seq[String]) extends RelationCommon {}
+case class StatSummary(child: LogicalPlan, statistics: Seq[String]) extends UnaryNode {
+  override def output: Seq[Attribute] = child.output
+}
 
-case class StatDescribe(input: Relation, cols: Seq[String]) extends RelationCommon {}
+case class StatDescribe(child: LogicalPlan, cols: Seq[String]) extends UnaryNode {
+  override def output: Seq[Attribute] = child.output
+}
 
-case class StatCrosstab(input: Relation, col1: String, col2: String) extends RelationCommon {}
+case class StatCrosstab(child: LogicalPlan, col1: String, col2: String) extends UnaryNode {
+  override def output: Seq[Attribute] = child.output
+}
 
-case class StatCov(input: Relation, col1: String, col2: String) extends RelationCommon {}
+case class StatCov(child: LogicalPlan, col1: String, col2: String) extends UnaryNode {
+  override def output: Seq[Attribute] = child.output
+}
 
-case class StatCorr(input: Relation, col1: String, col2: String, method: String) extends RelationCommon {}
+case class StatCorr(child: LogicalPlan, col1: String, col2: String, method: String) extends UnaryNode {
+  override def output: Seq[Attribute] = child.output
+}
 
-case class StatApproxQuantile(input: Relation, cols: Seq[String], probabilities: Seq[Double], relative_error: Double)
-    extends RelationCommon {}
+case class StatApproxQuantile(child: LogicalPlan, cols: Seq[String], probabilities: Seq[Double], relative_error: Double)
+    extends UnaryNode {
+  override def output: Seq[Attribute] = child.output
+}
 
-case class StatFreqItems(input: Relation, cols: Seq[String], support: Double) extends RelationCommon {}
+case class StatFreqItems(child: LogicalPlan, cols: Seq[String], support: Double) extends UnaryNode {
+  override def output: Seq[Attribute] = child.output
+}
 
 case class Fraction(stratum: Literal, fraction: Double)
 
-case class StatSampleBy(input: Relation, col: Expression, fractions: Seq[Fraction], seed: Long)
-    extends RelationCommon {}
+case class StatSampleBy(child: LogicalPlan, col: Expression, fractions: Seq[Fraction], seed: Long) extends UnaryNode {
+  override def output: Seq[Attribute] = child.output
+}
 
-case class NAFill(input: Relation, cols: Seq[String], values: Seq[Literal]) extends RelationCommon {}
+case class NAFill(child: LogicalPlan, cols: Seq[String], values: Seq[Literal]) extends UnaryNode {
+  override def output: Seq[Attribute] = child.output
+}
 
-case class NADrop(input: Relation, cols: Seq[String], min_non_nulls: Int) extends RelationCommon {}
+case class NADrop(child: LogicalPlan, cols: Seq[String], min_non_nulls: Int) extends UnaryNode {
+  override def output: Seq[Attribute] = child.output
+}
 
 case class Replacement(old_value: Literal, new_value: Literal)
 
-case class NAReplace(input: Relation, cols: Seq[String], replacements: Seq[Replacement]) extends RelationCommon {}
+case class NAReplace(child: LogicalPlan, cols: Seq[String], replacements: Seq[Replacement]) extends UnaryNode {
+  override def output: Seq[Attribute] = child.output
+}
 
-case class ToDF(input: Relation, column_names: Seq[String]) extends RelationCommon {}
+case class ToDF(child: LogicalPlan, column_names: Seq[String]) extends UnaryNode {
+  override def output: Seq[Attribute] = child.output
+}
 
-case class WithColumnsRenamed(input: Relation, rename_columns_map: Map[String, String]) extends RelationCommon {}
+case class WithColumnsRenamed(child: LogicalPlan, rename_columns_map: Map[String, String]) extends UnaryNode {
+  override def output: Seq[Attribute] = child.output
+}
 
-case class WithColumns(input: Relation, aliases: Seq[Alias]) extends RelationCommon {}
+case class WithColumns(child: LogicalPlan, aliases: Seq[Alias]) extends UnaryNode {
+  override def output: Seq[Attribute] = child.output
+}
 
-case class WithWatermark(input: Relation, event_time: String, delay_threshold: String) extends RelationCommon {}
+case class WithWatermark(child: LogicalPlan, event_time: String, delay_threshold: String) extends UnaryNode {
+  override def output: Seq[Attribute] = child.output
+}
 
-case class Hint(input: Relation, name: String, parameters: Seq[Expression]) extends RelationCommon {}
+case class Hint(child: LogicalPlan, name: String, parameters: Seq[Expression]) extends UnaryNode {
+  override def output: Seq[Attribute] = child.output
+  override def expressions: Seq[Expression] = super.expressions ++ parameters
+}
 
-case class Values(values: Seq[Seq[Expression]]) extends RelationCommon {}
+case class Values(values: Seq[Seq[Expression]]) extends LeafNode { // TODO: fix it
+  override def output: Seq[Attribute] = Seq.empty
+}
 
 case class Unpivot(
-    input: Relation,
+    child: LogicalPlan,
     ids: Seq[Expression],
     values: Option[Values],
     variable_column_name: Id,
     value_column_name: Id)
-    extends RelationCommon {}
+    extends UnaryNode {
+  override def output: Seq[Attribute] = child.output
+}
 
-case class ToSchema(input: Relation, schema: DataType) extends RelationCommon {}
+case class ToSchema(child: LogicalPlan, dataType: DataType) extends UnaryNode {
+  override def output: Seq[Attribute] = child.output
+}
 
-case class RepartitionByExpression(input: Relation, partition_exprs: Seq[Expression], num_partitions: Int)
-    extends RelationCommon {}
+case class RepartitionByExpression(child: LogicalPlan, partition_exprs: Seq[Expression], num_partitions: Int)
+    extends UnaryNode {
+  override def output: Seq[Attribute] = child.output
+}
 
-case class MapPartitions(input: Relation, func: CommonInlineUserDefinedTableFunction, is_barrier: Boolean)
-    extends RelationCommon {}
+case class MapPartitions(child: LogicalPlan, func: CommonInlineUserDefinedTableFunction, is_barrier: Boolean)
+    extends UnaryNode {
+  override def output: Seq[Attribute] = child.output
+}
 
 case class GroupMap(
-    input: Relation,
+    child: LogicalPlan,
     grouping_expressions: Seq[Expression],
     func: CommonInlineUserDefinedFunction,
     sorting_expressions: Seq[Expression],
-    initial_input: Relation,
+    initial_input: LogicalPlan,
     initial_grouping_expressions: Seq[Expression],
     is_map_groups_with_state: Boolean,
     output_mode: String,
     timeout_conf: String)
-    extends RelationCommon {}
+    extends UnaryNode {
+  override def output: Seq[Attribute] = child.output
+}
 
 case class CoGroupMap(
-    input: Relation,
+    left: LogicalPlan,
     input_grouping_expressions: Seq[Expression],
-    other: Relation,
+    right: LogicalPlan,
     other_grouping_expressions: Seq[Expression],
     func: CommonInlineUserDefinedFunction,
     input_sorting_expressions: Seq[Expression],
     other_sorting_expressions: Seq[Expression])
-    extends RelationCommon {}
+    extends BinaryNode {
+  override def output: Seq[Attribute] = left.output ++ right.output
+}
 
 case class ApplyInPandasWithState(
-    input: Relation,
+    child: LogicalPlan,
     grouping_expressions: Seq[Expression],
     func: CommonInlineUserDefinedFunction,
     output_schema: String,
     state_schema: String,
     output_mode: String,
     timeout_conf: String)
-    extends RelationCommon {}
+    extends UnaryNode {
+  override def output: Seq[Attribute] = child.output
+}
 
 case class PythonUDTF(return_type: DataType, eval_type: Int, command: Array[Byte], python_ver: String)
 
@@ -211,21 +299,23 @@ case class CommonInlineUserDefinedTableFunction(
     deterministic: Boolean,
     arguments: Seq[Expression],
     python_udtf: Option[PythonUDTF])
-    extends RelationCommon {}
+    extends LeafNode {
+  override def output: Seq[Attribute] = Seq.empty
+}
 
-case class CollectMetrics(input: Relation, name: String, metrics: Seq[Expression]) extends RelationCommon {}
+case class CollectMetrics(child: LogicalPlan, name: String, metrics: Seq[Expression]) extends UnaryNode {
+  override def output: Seq[Attribute] = child.output
 
-abstract class ParseFormat
-case object UnspecifiedFormat extends ParseFormat
-case object JsonFormat extends ParseFormat
-case object CsvFormat extends ParseFormat
+}
 
-case class Parse(input: Relation, format: ParseFormat, schema: Option[DataType], options: Map[String, String])
-    extends RelationCommon {}
+case class Parse(child: LogicalPlan, format: ParseFormat, dataType: DataType, options: Map[String, String])
+    extends UnaryNode {
+  override def output: Seq[Attribute] = child.output
+}
 
 case class AsOfJoin(
-    left: Relation,
-    right: Relation,
+    left: LogicalPlan,
+    right: LogicalPlan,
     left_as_of: Expression,
     right_as_of: Expression,
     join_expr: Option[Expression],
@@ -234,6 +324,50 @@ case class AsOfJoin(
     tolerance: Option[Expression],
     allow_exact_matches: Boolean,
     direction: String)
-    extends RelationCommon {}
+    extends BinaryNode {
+  override def output: Seq[Attribute] = left.output ++ right.output
+}
 
-case class Unknown() extends RelationCommon {}
+case class Unknown() extends LeafNode {
+  override def output: Seq[Attribute] = Seq.empty
+}
+
+case object UnspecifiedJoin extends JoinType
+
+case object InnerJoin extends JoinType
+
+case object FullOuterJoin extends JoinType
+
+case object LeftOuterJoin extends JoinType
+
+case object RightOuterJoin extends JoinType
+
+case object LeftAntiJoin extends JoinType
+
+case object LeftSemiJoin extends JoinType
+
+case object CrossJoin extends JoinType
+
+case object UnspecifiedSetOp extends SetOpType
+
+case object IntersectSetOp extends SetOpType
+
+case object UnionSetOp extends SetOpType
+
+case object ExceptSetOp extends SetOpType
+
+case object UnspecifiedGroupType extends GroupType
+
+case object GroupBy extends GroupType
+
+case object Rollup extends GroupType
+
+case object Cube extends GroupType
+
+case object Pivot extends GroupType
+
+case object UnspecifiedFormat extends ParseFormat
+
+case object JsonFormat extends ParseFormat
+
+case object CsvFormat extends ParseFormat

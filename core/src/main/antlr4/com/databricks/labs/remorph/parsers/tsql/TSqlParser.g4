@@ -2993,7 +2993,7 @@ tableSource: tableSourceItem joinPart*
     ;
 
 // Almost all tableSource elements allow a table alias, and sone allow a list of column aliaes
-// As this parser expects to see valid input anyway, we combine this into a single rule and
+// As this parser expects to see valid child anyway, we combine this into a single rule and
 // then visit each possible table source individually, applying alias afterwards. This reduces
 // rule complexity and parser complexity substantially.
 tableSourceItem: tsiElement (asTableAlias columnAliasList?)? withTableHints?
