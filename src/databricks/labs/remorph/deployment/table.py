@@ -1,15 +1,14 @@
 import logging
 from importlib.abc import Traversable
 
-from databricks.labs.remorph.contexts.application import CliContext
+from databricks.labs.lsql.backends import SqlBackend
 
 logger = logging.getLogger(__name__)
 
 
 class TableDeployment:
-    def __init__(self, context: CliContext):
-        self._context = context
-        self._sql_backend = context.sql_backend
+    def __init__(self, sql_backend: SqlBackend):
+        self._sql_backend = sql_backend
 
     def deploy_table_from_ddl_file(
         self,

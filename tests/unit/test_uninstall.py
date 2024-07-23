@@ -1,11 +1,12 @@
-from unittest.mock import create_autospec, patch
+from unittest.mock import create_autospec
 
 import pytest
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.service import iam
 
 from databricks.labs.remorph import uninstall
-from databricks.labs.remorph.contexts.application import CliContext
+from databricks.labs.remorph.config import RemorphConfigs
+from databricks.labs.remorph.contexts.application import ApplicationContext
 from databricks.labs.remorph.deployment.installation import WorkspaceInstallation
 
 
@@ -19,8 +20,11 @@ def ws():
 
 
 def test_uninstaller_run(ws):
-    ctx = CliContext(ws)
-    installation = create_autospec(WorkspaceInstallation)
-    with patch("databricks.labs.remorph.uninstall.WorkspaceInstallation", return_value=installation):
-        uninstall.run(ctx)
-        installation.uninstall.assert_called_once()
+    ws_installation = create_autospec(WorkspaceInstallation)
+    ctx = ApplicationContext(ws)
+    ctx.replace(
+        workspace_installation=ws_installation,
+        remorph_config=RemorphConfigs(),
+    )
+    uninstall.run(ctx)
+    ws_installation.uninstall.assert_called_once()

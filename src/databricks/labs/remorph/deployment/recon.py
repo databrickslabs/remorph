@@ -1,11 +1,14 @@
 import logging
 from importlib.resources import files
 
+from databricks.labs.blueprint.installation import Installation
+from databricks.labs.blueprint.installer import InstallState
+from databricks.labs.blueprint.wheels import ProductInfo
+from databricks.sdk import WorkspaceClient
 from databricks.sdk.errors import InvalidParameterValue, NotFound
 
 import databricks.labs.remorph.resources
 from databricks.labs.remorph.config import ReconcileConfig
-from databricks.labs.remorph.contexts.application import CliContext
 from databricks.labs.remorph.deployment.dashboard import DashboardDeployment
 from databricks.labs.remorph.deployment.job import JobDeployment
 from databricks.labs.remorph.deployment.table import TableDeployment
@@ -20,12 +23,18 @@ RECON_METRICS_DASHBOARD_NAME = f"{_RECON_PREFIX} Metrics"
 class ReconDeployment:
     def __init__(
         self,
-        context: CliContext,
+        ws: WorkspaceClient,
+        installation: Installation,
+        install_state: InstallState,
+        product_info: ProductInfo,
         table_deployer: TableDeployment,
         job_deployer: JobDeployment,
         dashboard_deployer: DashboardDeployment,
     ):
-        self._context = context
+        self._ws = ws
+        self._installation = installation
+        self._install_state = install_state
+        self._product_info = product_info
         self._table_deployer = table_deployer
         self._job_deployer = job_deployer
         self._dashboard_deployer = dashboard_deployer
@@ -37,7 +46,7 @@ class ReconDeployment:
         self._deploy_tables(recon_config)
         self._deploy_dashboards(recon_config)
         self._deploy_jobs(recon_config)
-        self._context.install_state.save()
+        self._install_state.save()
         logger.info("Installation of reconcile components completed successfully.")
 
     def uninstall(self, recon_config: ReconcileConfig | None):
@@ -75,8 +84,8 @@ class ReconDeployment:
         for dashboard_name, dashboard_id in self._get_deprecated_dashboards():
             try:
                 logger.info(f"Removing dashboard_id={dashboard_id}, as it is no longer needed.")
-                del self._context.install_state.dashboards[dashboard_name]
-                self._context.workspace_client.lakeview.trash(dashboard_id)
+                del self._install_state.dashboards[dashboard_name]
+                self._ws.lakeview.trash(dashboard_id)
             except (InvalidParameterValue, NotFound):
                 logger.warning(f"Dashboard `{dashboard_name}` doesn't exist anymore for some reason.")
                 continue
@@ -95,14 +104,14 @@ class ReconDeployment:
     def _get_dashboards(self) -> list[tuple[str, str]]:
         return [
             (dashboard_name, dashboard_id)
-            for dashboard_name, dashboard_id in self._context.install_state.dashboards.items()
+            for dashboard_name, dashboard_id in self._install_state.dashboards.items()
             if dashboard_name.startswith(_RECON_PREFIX)
         ]
 
     def _get_deprecated_dashboards(self) -> list[tuple[str, str]]:
         return [
             (dashboard_name, dashboard_id)
-            for dashboard_name, dashboard_id in self._context.install_state.dashboards.items()
+            for dashboard_name, dashboard_id in self._install_state.dashboards.items()
             if dashboard_name.startswith(_RECON_PREFIX) and dashboard_name != RECON_METRICS_DASHBOARD_NAME
         ]
 
@@ -111,8 +120,8 @@ class ReconDeployment:
         for dashboard_name, dashboard_id in self._get_dashboards():
             try:
                 logger.info(f"Removing dashboard {dashboard_name} with dashboard_id={dashboard_id}.")
-                del self._context.install_state.dashboards[dashboard_name]
-                self._context.workspace_client.lakeview.trash(dashboard_id)
+                del self._install_state.dashboards[dashboard_name]
+                self._ws.lakeview.trash(dashboard_id)
             except (InvalidParameterValue, NotFound):
                 logger.warning(f"Dashboard `{dashboard_name}` doesn't exist anymore for some reason.")
                 continue
@@ -123,8 +132,8 @@ class ReconDeployment:
         for job_name, job_id in self._get_deprecated_jobs():
             try:
                 logger.info(f"Removing job_id={job_id}, as it is no longer needed.")
-                del self._context.install_state.jobs[job_name]
-                self._context.workspace_client.jobs.delete(job_id)
+                del self._install_state.jobs[job_name]
+                self._ws.jobs.delete(job_id)
             except (InvalidParameterValue, NotFound):
                 logger.warning(f"{job_name} doesn't exist anymore for some reason.")
                 continue
@@ -132,14 +141,14 @@ class ReconDeployment:
     def _get_jobs(self) -> list[tuple[str, int]]:
         return [
             (job_name, int(job_id))
-            for job_name, job_id in self._context.install_state.jobs.items()
+            for job_name, job_id in self._install_state.jobs.items()
             if job_name.startswith(_RECON_PREFIX)
         ]
 
     def _get_deprecated_jobs(self) -> list[tuple[str, int]]:
         return [
             (job_name, int(job_id))
-            for job_name, job_id in self._context.install_state.jobs.items()
+            for job_name, job_id in self._install_state.jobs.items()
             if job_name.startswith(_RECON_PREFIX) and job_name != RECON_JOB_NAME
         ]
 
@@ -148,8 +157,8 @@ class ReconDeployment:
         for job_name, job_id in self._get_jobs():
             try:
                 logger.info(f"Removing job {job_name} with job_id={job_id}.")
-                del self._context.install_state.jobs[job_name]
-                self._context.workspace_client.jobs.delete(int(job_id))
+                del self._install_state.jobs[job_name]
+                self._ws.jobs.delete(int(job_id))
             except (InvalidParameterValue, NotFound):
                 logger.warning(f"{job_name} doesn't exist anymore for some reason.")
                 continue

@@ -1,4 +1,3 @@
-import abc
 import logging
 from functools import cached_property
 
@@ -13,13 +12,20 @@ from databricks.sdk.errors import NotFound
 from databricks.sdk.service.iam import User
 
 from databricks.labs.remorph.config import MorphConfig, ReconcileConfig, RemorphConfigs
+from databricks.labs.remorph.deployment.configurator import ResourceConfigurator
+from databricks.labs.remorph.deployment.dashboard import DashboardDeployment
+from databricks.labs.remorph.deployment.installation import WorkspaceInstallation
+from databricks.labs.remorph.deployment.recon import TableDeployment, JobDeployment, ReconDeployment
 from databricks.labs.remorph.helpers import db_sql
 from databricks.labs.remorph.helpers.metastore import CatalogOperations
 
 logger = logging.getLogger(__name__)
 
 
-class GlobalContext(abc.ABC):
+class ApplicationContext:
+    def __init__(self, ws: WorkspaceClient):
+        self._ws = ws
+
     def replace(self, **kwargs):
         """Replace cached properties for unit testing purposes."""
         for key, value in kwargs.items():
@@ -27,9 +33,8 @@ class GlobalContext(abc.ABC):
         return self
 
     @cached_property
-    @abc.abstractmethod
     def workspace_client(self) -> WorkspaceClient:
-        pass
+        return self._ws
 
     @cached_property
     def current_user(self) -> User:
@@ -79,18 +84,43 @@ class GlobalContext(abc.ABC):
     def catalog_operations(self) -> CatalogOperations:
         return CatalogOperations(self.workspace_client)
 
-
-class WorkspaceContext(GlobalContext):
-    def __init__(self, ws: WorkspaceClient):
-        self._ws = ws
-
-    @cached_property
-    def workspace_client(self) -> WorkspaceClient:
-        return self._ws
-
-
-class CliContext(WorkspaceContext):
-
     @cached_property
     def prompts(self) -> Prompts:
         return Prompts()
+
+    @cached_property
+    def resource_configurator(self) -> ResourceConfigurator:
+        return ResourceConfigurator(self.workspace_client, self.prompts, self.catalog_operations)
+
+    @cached_property
+    def table_deployment(self) -> TableDeployment:
+        return TableDeployment(self.sql_backend)
+
+    @cached_property
+    def job_deployment(self) -> JobDeployment:
+        return JobDeployment(self.workspace_client, self.installation, self.install_state, self.product_info)
+
+    @cached_property
+    def dashboard_deployment(self) -> DashboardDeployment:
+        return DashboardDeployment(self.workspace_client, self.installation, self.install_state)
+
+    @cached_property
+    def recon_deployment(self) -> ReconDeployment:
+        return ReconDeployment(
+            self.workspace_client,
+            self.installation,
+            self.install_state,
+            self.product_info,
+            self.table_deployment,
+            self.job_deployment,
+            self.dashboard_deployment,
+        )
+
+    @cached_property
+    def workspace_installation(self) -> WorkspaceInstallation:
+        return WorkspaceInstallation(
+            self.workspace_client,
+            self.prompts,
+            self.installation,
+            self.recon_deployment,
+        )

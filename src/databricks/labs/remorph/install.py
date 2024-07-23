@@ -4,9 +4,13 @@ import os
 import webbrowser
 
 from databricks.labs.blueprint.entrypoint import get_logger, is_in_debug
+from databricks.labs.blueprint.installation import Installation
 from databricks.labs.blueprint.installation import SerdeError
+from databricks.labs.blueprint.installer import InstallState
+from databricks.labs.blueprint.tui import Prompts
+from databricks.labs.blueprint.wheels import ProductInfo
 from databricks.sdk import WorkspaceClient
-from databricks.sdk.errors import PermissionDenied
+from databricks.sdk.errors import NotFound, PermissionDenied
 from databricks.sdk.service.catalog import Privilege
 
 from databricks.labs.remorph.__about__ import __version__
@@ -18,12 +22,10 @@ from databricks.labs.remorph.config import (
     RemorphConfigs,
     ReconcileMetadataConfig,
 )
-from databricks.labs.remorph.contexts.application import CliContext
+from databricks.labs.remorph.contexts.application import ApplicationContext
 from databricks.labs.remorph.deployment.configurator import ResourceConfigurator
-from databricks.labs.remorph.deployment.dashboard import DashboardDeployment
 from databricks.labs.remorph.deployment.installation import WorkspaceInstallation
-from databricks.labs.remorph.deployment.recon import TableDeployment, JobDeployment, ReconDeployment
-from databricks.labs.remorph.reconcile.constants import ReportType, SourceType
+from databricks.labs.remorph.reconcile.constants import ReconReportType, ReconSourceType
 
 logger = logging.getLogger(__name__)
 
@@ -34,12 +36,20 @@ MODULES = sorted({"transpile", "reconcile", "all"})
 class WorkspaceInstaller:
     def __init__(
         self,
-        context: CliContext,
+        ws: WorkspaceClient,
+        prompts: Prompts,
+        installation: Installation,
+        install_state: InstallState,
+        product_info: ProductInfo,
         resource_configurator: ResourceConfigurator,
         workspace_installation: WorkspaceInstallation,
         environ: dict[str, str] | None = None,
     ):
-        self._context = context
+        self._ws = ws
+        self._prompts = prompts
+        self._installation = installation
+        self._install_state = install_state
+        self._product_info = product_info
         self._resource_configurator = resource_configurator
         self._ws_installation = workspace_installation
 
@@ -54,7 +64,7 @@ class WorkspaceInstaller:
         self,
         config: RemorphConfigs | None = None,
     ) -> RemorphConfigs:
-        logger.info(f"Installing Remorph v{self._context.product_info.version()}")
+        logger.info(f"Installing Remorph v{self._product_info.version()}")
         if not config:
             config = self.configure()
         if self._is_testing():
@@ -64,7 +74,7 @@ class WorkspaceInstaller:
         return config
 
     def configure(self, module: str | None = None) -> RemorphConfigs:
-        selected_module = module or self._context.prompts.choice("Select a module to configure:", MODULES)
+        selected_module = module or self._prompts.choice("Select a module to configure:", MODULES)
         match selected_module:
             case "transpile":
                 logger.info("Configuring remorph `transpile`.")
@@ -82,18 +92,20 @@ class WorkspaceInstaller:
                 raise ValueError(f"Invalid input: {selected_module}")
 
     def _is_testing(self):
-        return self._context.product_info.product_name() != "remorph"
+        return self._product_info.product_name() != "remorph"
 
     def _configure_transpile(self) -> MorphConfig:
         try:
-            if self._context.transpile_config:
-                logger.info("Remorph `transpile` is already installed on this workspace.")
-                if not self._context.prompts.confirm("Do you want to override the existing installation?"):
-                    raise SystemExit(
-                        "Remorph `transpile` is already installed and no override has been requested. Exiting..."
-                    )
+            self._installation.load(MorphConfig)
+            logger.info("Remorph `transpile` is already installed on this workspace.")
+            if not self._prompts.confirm("Do you want to override the existing installation?"):
+                raise SystemExit(
+                    "Remorph `transpile` is already installed and no override has been requested. Exiting..."
+                )
+        except NotFound:
+            logger.info("Couldn't find existing `transpile` installation")
         except (PermissionDenied, SerdeError, ValueError, AttributeError):
-            install_dir = self._context.installation.install_folder()
+            install_dir = self._installation.install_folder()
             logger.warning(
                 f"Existing `transpile` installation at {install_dir} is corrupted. Continuing new installation..."
             )
@@ -123,10 +135,10 @@ class WorkspaceInstaller:
 
     def _prompt_for_new_transpile_installation(self) -> MorphConfig:
         logger.info("Please answer a few questions to configure remorph `transpile`")
-        source = self._context.prompts.choice("Select the source:", list(SQLGLOT_DIALECTS.keys()))
-        input_sql = self._context.prompts.question("Enter input SQL path (directory/file)")
-        output_folder = self._context.prompts.question("Enter output directory", default="transpiled")
-        run_validation = self._context.prompts.confirm(
+        source = self._prompts.choice("Select the source:", list(SQLGLOT_DIALECTS.keys()))
+        input_sql = self._prompts.question("Enter input SQL path (directory/file)")
+        output_folder = self._prompts.question("Enter output directory", default="transpiled")
+        run_validation = self._prompts.confirm(
             "Would you like to validate the syntax and semantics of the transpiled queries?"
         )
 
@@ -166,27 +178,29 @@ class WorkspaceInstaller:
         )
 
     def _configure_runtime(self) -> dict[str, str]:
-        if self._context.prompts.confirm("Do you want to use SQL Warehouse for validation?"):
+        if self._prompts.confirm("Do you want to use SQL Warehouse for validation?"):
             warehouse_id = self._resource_configurator.prompt_for_warehouse_setup(TRANSPILER_WAREHOUSE_PREFIX)
             return {"warehouse_id": warehouse_id}
 
-        if self._context.workspace_client.config.cluster_id:
-            logger.info(f"Using cluster {self._context.workspace_client.config.cluster_id} for validation")
-            return {"cluster_id": self._context.workspace_client.config.cluster_id}
+        if self._ws.config.cluster_id:
+            logger.info(f"Using cluster {self._ws.config.cluster_id} for validation")
+            return {"cluster_id": self._ws.config.cluster_id}
 
-        cluster_id = self._context.prompts.question("Enter a valid cluster_id to proceed")
+        cluster_id = self._prompts.question("Enter a valid cluster_id to proceed")
         return {"cluster_id": cluster_id}
 
     def _configure_reconcile(self) -> ReconcileConfig:
         try:
-            if self._context.recon_config:
-                logger.info("Remorph `reconcile` is already installed on this workspace.")
-                if not self._context.prompts.confirm("Do you want to override the existing installation?"):
-                    raise SystemExit(
-                        "Remorph `reconcile` is already installed and no override has been requested. Exiting..."
-                    )
+            self._installation.load(ReconcileConfig)
+            logger.info("Remorph `reconcile` is already installed on this workspace.")
+            if not self._prompts.confirm("Do you want to override the existing installation?"):
+                raise SystemExit(
+                    "Remorph `reconcile` is already installed and no override has been requested. Exiting..."
+                )
+        except NotFound:
+            logger.info("Couldn't find existing `reconcile` installation")
         except (PermissionDenied, SerdeError, ValueError, AttributeError):
-            install_dir = self._context.installation.install_folder()
+            install_dir = self._installation.install_folder()
             logger.warning(
                 f"Existing `reconcile` installation at {install_dir} is corrupted. Continuing new installation..."
             )
@@ -202,13 +216,13 @@ class WorkspaceInstaller:
 
     def _prompt_for_new_reconcile_installation(self) -> ReconcileConfig:
         logger.info("Please answer a few questions to configure remorph `reconcile`")
-        data_source = self._context.prompts.choice(
-            "Select the Data Source:", [source_type.value for source_type in SourceType]
+        data_source = self._prompts.choice(
+            "Select the Data Source:", [source_type.value for source_type in ReconSourceType]
         )
-        report_type = self._context.prompts.choice(
-            "Select the report type:", [report_type.value for report_type in ReportType]
+        report_type = self._prompts.choice(
+            "Select the report type:", [report_type.value for report_type in ReconReportType]
         )
-        scope_name = self._context.prompts.question(
+        scope_name = self._prompts.question(
             f"Enter Secret scope name to store `{data_source.capitalize()}` connection details / secrets",
             default=f"remorph_{data_source}",
         )
@@ -226,16 +240,16 @@ class WorkspaceInstaller:
 
     def _prompt_for_reconcile_database_config(self, source) -> DatabaseConfig:
         source_catalog = None
-        if source == SourceType.SNOWFLAKE.value:
-            source_catalog = self._context.prompts.question(f"Enter source catalog name for `{source.capitalize()}`")
+        if source == ReconSourceType.SNOWFLAKE.value:
+            source_catalog = self._prompts.question(f"Enter source catalog name for `{source.capitalize()}`")
 
         schema_prompt = f"Enter source schema name for `{source.capitalize()}`"
-        if source in {SourceType.ORACLE.value}:
+        if source in {ReconSourceType.ORACLE.value}:
             schema_prompt = f"Enter source database name for `{source.capitalize()}`"
 
-        source_schema = self._context.prompts.question(schema_prompt)
-        target_catalog = self._context.prompts.question("Enter target catalog name for Databricks")
-        target_schema = self._context.prompts.question("Enter target schema name for Databricks")
+        source_schema = self._prompts.question(schema_prompt)
+        target_catalog = self._prompts.question("Enter target catalog name for Databricks")
+        target_schema = self._prompts.question("Enter target schema name for Databricks")
 
         return DatabaseConfig(
             source_schema=source_schema,
@@ -279,9 +293,9 @@ class WorkspaceInstaller:
 
     def _save_config(self, config: MorphConfig | ReconcileConfig):
         logger.info(f"Saving configuration file {config.__file__}")
-        self._context.installation.save(config)
-        ws_file_url = self._context.installation.workspace_link(config.__file__)
-        if self._context.prompts.confirm(f"Open config file {ws_file_url} in the browser?"):
+        self._installation.save(config)
+        ws_file_url = self._installation.workspace_link(config.__file__)
+        if self._prompts.confirm(f"Open config file {ws_file_url} in the browser?"):
             webbrowser.open(ws_file_url)
 
 
@@ -290,18 +304,15 @@ if __name__ == "__main__":
     logger.setLevel("INFO")
     if is_in_debug():
         logging.getLogger("databricks").setLevel(logging.DEBUG)
-    app_context = CliContext(WorkspaceClient(product="remorph", product_version=__version__))
+
+    app_context = ApplicationContext(WorkspaceClient(product="remorph", product_version=__version__))
     installer = WorkspaceInstaller(
-        app_context,
-        ResourceConfigurator(app_context),
-        WorkspaceInstallation(
-            app_context,
-            ReconDeployment(
-                app_context,
-                TableDeployment(app_context),
-                JobDeployment(app_context),
-                DashboardDeployment(app_context),
-            ),
-        ),
+        app_context.workspace_client,
+        app_context.prompts,
+        app_context.installation,
+        app_context.install_state,
+        app_context.product_info,
+        app_context.resource_configurator,
+        app_context.workspace_installation,
     )
     installer.run()

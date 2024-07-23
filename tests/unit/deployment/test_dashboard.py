@@ -2,11 +2,11 @@ from pathlib import Path
 from unittest.mock import create_autospec
 
 from databricks.labs.blueprint.installation import MockInstallation
+from databricks.labs.blueprint.installer import InstallState
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.errors import InvalidParameterValue
 from databricks.sdk.service.dashboards import Dashboard
 
-from databricks.labs.remorph.contexts.application import CliContext
 from databricks.labs.remorph.deployment.dashboard import DashboardDeployment
 
 
@@ -18,18 +18,14 @@ def test_deploy_new_dashboard():
         display_name="Remorph-Reconciliation",
     )
     ws.lakeview.create.return_value = dashboard
-
-    ctx = CliContext(ws)
     installation = MockInstallation(is_global=False)
-    ctx.replace(
-        installation=installation,
-    )
+    install_state = InstallState.from_installation(installation)
     name = "Remorph-Reconciliation"
-    dashboard_publisher = DashboardDeployment(ctx)
+    dashboard_publisher = DashboardDeployment(ws, installation, install_state)
     dashboard_publisher.deploy(name, dashboard_file)
     _, kwargs = ws.lakeview.create.call_args
     assert kwargs["serialized_dashboard"] == dashboard_file.read_text()
-    assert ctx.install_state.dashboards[name] == dashboard.dashboard_id
+    assert install_state.dashboards[name] == dashboard.dashboard_id
 
 
 def test_deploy_new_dashboard_with_params():
@@ -45,13 +41,10 @@ def test_deploy_new_dashboard_with_params():
     )
     ws.lakeview.create.return_value = dashboard
 
-    ctx = CliContext(ws)
     installation = MockInstallation(is_global=False)
-    ctx.replace(
-        installation=installation,
-    )
+    install_state = InstallState.from_installation(installation)
     name = "Remorph-Reconciliation"
-    dashboard_publisher = DashboardDeployment(ctx)
+    dashboard_publisher = DashboardDeployment(ws, installation, install_state)
     dashboard_params = {
         "catalog": "remorph1",
         "schema": "reconcile1",
@@ -59,7 +52,7 @@ def test_deploy_new_dashboard_with_params():
     dashboard_publisher.deploy(name, dashboard_file, parameters=dashboard_params)
     _, kwargs = ws.lakeview.create.call_args
     assert kwargs["serialized_dashboard"] == substituted_dashboard_file.read_text()
-    assert ctx.install_state.dashboards[name] == dashboard.dashboard_id
+    assert install_state.dashboards[name] == dashboard.dashboard_id
 
 
 def test_deploy_new_parameterless_dashboard_with_user_params():
@@ -71,19 +64,16 @@ def test_deploy_new_parameterless_dashboard_with_user_params():
     )
     ws.lakeview.create.return_value = dashboard
 
-    ctx = CliContext(ws)
     installation = MockInstallation(is_global=False)
-    ctx.replace(
-        installation=installation,
-    )
+    install_state = InstallState.from_installation(installation)
     name = "Test_Dashboard_No_Param"
-    dashboard_publisher = DashboardDeployment(ctx)
+    dashboard_publisher = DashboardDeployment(ws, installation, install_state)
     dashboard_params = {
         "catalog": "remorph1",
         "schema": "reconcile1",
     }
     dashboard_publisher.deploy(name, dashboard_file, parameters=dashboard_params)
-    assert ctx.install_state.dashboards[name] == dashboard.dashboard_id
+    assert install_state.dashboards[name] == dashboard.dashboard_id
 
 
 def test_deploy_existing_dashboard():
@@ -96,16 +86,13 @@ def test_deploy_existing_dashboard():
     )
     ws.lakeview.update.return_value = dashboard
     name = "Remorph-Reconciliation"
-    ctx = CliContext(ws)
     installation = MockInstallation({"state.json": {"resources": {"dashboards": {name: dashboard_id}}, "version": 1}})
-    ctx.replace(
-        installation=installation,
-    )
-    dashboard_publisher = DashboardDeployment(ctx)
+    install_state = InstallState.from_installation(installation)
+    dashboard_publisher = DashboardDeployment(ws, installation, install_state)
     dashboard_publisher.deploy(name, dashboard_file)
     _, kwargs = ws.lakeview.update.call_args
     assert kwargs["serialized_dashboard"] == dashboard_file.read_text()
-    assert ctx.install_state.dashboards[name] == dashboard.dashboard_id
+    assert install_state.dashboards[name] == dashboard.dashboard_id
 
 
 def test_deploy_missing_dashboard():
@@ -119,7 +106,6 @@ def test_deploy_missing_dashboard():
     ws.lakeview.create.return_value = dashboard
     ws.lakeview.update.side_effect = InvalidParameterValue("Dashboard not found")
     name = "Remorph-Reconciliation"
-    ctx = CliContext(ws)
     installation = MockInstallation(
         {
             "state.json": {
@@ -128,11 +114,9 @@ def test_deploy_missing_dashboard():
             },
         }
     )
-    ctx.replace(
-        installation=installation,
-    )
-    dashboard_publisher = DashboardDeployment(ctx)
+    install_state = InstallState.from_installation(installation)
+    dashboard_publisher = DashboardDeployment(ws, installation, install_state)
     dashboard_publisher.deploy(name, dashboard_file)
     _, kwargs = ws.lakeview.create.call_args
     assert kwargs["serialized_dashboard"] == dashboard_file.read_text()
-    assert ctx.install_state.dashboards[name] == dashboard.dashboard_id
+    assert install_state.dashboards[name] == dashboard.dashboard_id

@@ -5,7 +5,7 @@ import os
 from databricks.labs.blueprint.cli import App
 from databricks.labs.blueprint.entrypoint import get_logger
 from databricks.labs.remorph.config import SQLGLOT_DIALECTS, MorphConfig
-from databricks.labs.remorph.contexts.application import CliContext, WorkspaceContext
+from databricks.labs.remorph.contexts.application import ApplicationContext
 from databricks.labs.remorph.helpers.recon_config_utils import ReconConfigPrompts
 from databricks.labs.remorph.reconcile.runner import ReconcileRunner
 from databricks.labs.remorph.lineage import lineage_generator
@@ -34,7 +34,7 @@ def transpile(
     mode: str,
 ):
     """Transpiles source dialect to databricks dialect"""
-    ctx = CliContext(w)
+    ctx = ApplicationContext(w)
     logger.info(f"User: {ctx.current_user}")
     default_config = ctx.transpile_config
     if not default_config:
@@ -76,7 +76,7 @@ def transpile(
     print(json.dumps(status))
 
 
-def _override_workspace_client_config(ctx: WorkspaceContext, overrides: dict[str, str] | None):
+def _override_workspace_client_config(ctx: ApplicationContext, overrides: dict[str, str] | None):
     """
     Override the Workspace client's SDK config with the user provided SDK config.
     Users can provide the cluster_id and warehouse_id during the installation.
@@ -97,16 +97,21 @@ def _override_workspace_client_config(ctx: WorkspaceContext, overrides: dict[str
 @remorph.command
 def reconcile(w: WorkspaceClient):
     """[EXPERIMENTAL] Reconciles source to Databricks datasets"""
-    ctx = CliContext(w)
+    ctx = ApplicationContext(w)
     logger.info(f"User: {ctx.current_user}")
-    recon_runner = ReconcileRunner(ctx)
+    recon_runner = ReconcileRunner(
+        ctx.workspace_client,
+        ctx.installation,
+        ctx.install_state,
+        ctx.prompts,
+    )
     recon_runner.run()
 
 
 @remorph.command
 def generate_lineage(w: WorkspaceClient, source: str, input_sql: str, output_folder: str):
     """[Experimental] Generates a lineage of source SQL files or folder"""
-    ctx = CliContext(w)
+    ctx = ApplicationContext(w)
     logger.info(f"User: {ctx.current_user}")
     if source.lower() not in SQLGLOT_DIALECTS:
         raise_validation_exception(f"Error: Invalid value for '--source': '{source}' is not one of {DIALECTS}.")

@@ -11,7 +11,6 @@ from databricks.sdk.service.catalog import (
 )
 from databricks.sdk.service.sql import EndpointInfo, EndpointInfoWarehouseType, GetWarehouseResponse, State
 
-from databricks.labs.remorph.contexts.application import CliContext
 from databricks.labs.remorph.deployment.configurator import ResourceConfigurator
 from databricks.labs.remorph.helpers.metastore import CatalogOperations
 
@@ -34,12 +33,7 @@ def test_prompt_for_catalog_setup_existing_catalog(ws):
     catalog_operations = create_autospec(CatalogOperations)
     catalog_operations.get_catalog.return_value = CatalogInfo(name="remorph")
     catalog_operations.has_catalog_access.return_value = True
-    ctx = CliContext(ws)
-    ctx.replace(
-        prompts=prompts,
-        catalog_operations=catalog_operations,
-    )
-    configurator = ResourceConfigurator(ctx)
+    configurator = ResourceConfigurator(ws, prompts, catalog_operations)
     assert configurator.prompt_for_catalog_setup() == "remorph"
 
 
@@ -53,12 +47,7 @@ def test_prompt_for_catalog_setup_existing_catalog_no_access_abort(ws):
     catalog_operations = create_autospec(CatalogOperations)
     catalog_operations.get_catalog.return_value = CatalogInfo(name="remorph")
     catalog_operations.has_catalog_access.return_value = False
-    ctx = CliContext(ws)
-    ctx.replace(
-        prompts=prompts,
-        catalog_operations=catalog_operations,
-    )
-    configurator = ResourceConfigurator(ctx)
+    configurator = ResourceConfigurator(ws, prompts, catalog_operations)
     with pytest.raises(SystemExit):
         configurator.prompt_for_catalog_setup()
 
@@ -73,12 +62,7 @@ def test_prompt_for_catalog_setup_existing_catalog_no_access_retry_exhaust_attem
     catalog_operations = create_autospec(CatalogOperations)
     catalog_operations.get_catalog.return_value = CatalogInfo(name="remorph")
     catalog_operations.has_catalog_access.return_value = False
-    ctx = CliContext(ws)
-    ctx.replace(
-        prompts=prompts,
-        catalog_operations=catalog_operations,
-    )
-    configurator = ResourceConfigurator(ctx)
+    configurator = ResourceConfigurator(ws, prompts, catalog_operations)
     with pytest.raises(SystemExit):
         configurator.prompt_for_catalog_setup(max_attempts=2)
 
@@ -93,12 +77,7 @@ def test_prompt_for_catalog_setup_new_catalog(ws):
     catalog_operations = create_autospec(CatalogOperations)
     catalog_operations.get_catalog.return_value = None
     catalog_operations.create_catalog.return_value = CatalogInfo(name="remorph")
-    ctx = CliContext(ws)
-    ctx.replace(
-        prompts=prompts,
-        catalog_operations=catalog_operations,
-    )
-    configurator = ResourceConfigurator(ctx)
+    configurator = ResourceConfigurator(ws, prompts, catalog_operations)
     assert configurator.prompt_for_catalog_setup() == "remorph"
 
 
@@ -111,12 +90,7 @@ def test_prompt_for_catalog_setup_new_catalog_abort(ws):
     )
     catalog_operations = create_autospec(CatalogOperations)
     catalog_operations.get_catalog.return_value = None
-    ctx = CliContext(ws)
-    ctx.replace(
-        prompts=prompts,
-        catalog_operations=catalog_operations,
-    )
-    configurator = ResourceConfigurator(ctx)
+    configurator = ResourceConfigurator(ws, prompts, catalog_operations)
     with pytest.raises(SystemExit):
         configurator.prompt_for_catalog_setup()
 
@@ -134,13 +108,7 @@ def test_prompt_for_schema_setup_existing_schema(ws):
         full_name="remorph.reconcile",
     )
     catalog_ops.has_schema_access.return_value = True
-
-    ctx = CliContext(ws)
-    ctx.replace(
-        prompts=prompts,
-        catalog_operations=catalog_ops,
-    )
-    configurator = ResourceConfigurator(ctx)
+    configurator = ResourceConfigurator(ws, prompts, catalog_ops)
     assert configurator.prompt_for_schema_setup("remorph", "reconcile") == "reconcile"
 
 
@@ -154,12 +122,7 @@ def test_prompt_for_schema_setup_existing_schema_no_access_abort(ws):
     catalog_operations = create_autospec(CatalogOperations)
     catalog_operations.get_schema.return_value = SchemaInfo(catalog_name="remorph", name="reconcile")
     catalog_operations.has_schema_access.return_value = False
-    ctx = CliContext(ws)
-    ctx.replace(
-        prompts=prompts,
-        catalog_operations=catalog_operations,
-    )
-    configurator = ResourceConfigurator(ctx)
+    configurator = ResourceConfigurator(ws, prompts, catalog_operations)
     with pytest.raises(SystemExit):
         configurator.prompt_for_schema_setup("remorph", "reconcile")
 
@@ -174,12 +137,7 @@ def test_prompt_for_schema_setup_existing_schema_no_access_retry_exhaust_attempt
     catalog_operations = create_autospec(CatalogOperations)
     catalog_operations.get_schema.return_value = SchemaInfo(catalog_name="remorph", name="reconcile")
     catalog_operations.has_schema_access.return_value = False
-    ctx = CliContext(ws)
-    ctx.replace(
-        prompts=prompts,
-        catalog_operations=catalog_operations,
-    )
-    configurator = ResourceConfigurator(ctx)
+    configurator = ResourceConfigurator(ws, prompts, catalog_operations)
     with pytest.raises(SystemExit):
         configurator.prompt_for_schema_setup("remorph", "reconcile", max_attempts=2)
 
@@ -194,12 +152,7 @@ def test_prompt_for_schema_setup_new_schema(ws):
     catalog_operations = create_autospec(CatalogOperations)
     catalog_operations.get_schema.return_value = None
     catalog_operations.create_schema.return_value = SchemaInfo(catalog_name="remorph", name="reconcile")
-    ctx = CliContext(ws)
-    ctx.replace(
-        prompts=prompts,
-        catalog_operations=catalog_operations,
-    )
-    configurator = ResourceConfigurator(ctx)
+    configurator = ResourceConfigurator(ws, prompts, catalog_operations)
     assert configurator.prompt_for_schema_setup("remorph", "reconcile") == "reconcile"
 
 
@@ -212,12 +165,7 @@ def test_prompt_for_schema_setup_new_schema_abort(ws):
     )
     catalog_operations = create_autospec(CatalogOperations)
     catalog_operations.get_schema.return_value = None
-    ctx = CliContext(ws)
-    ctx.replace(
-        prompts=prompts,
-        catalog_operations=catalog_operations,
-    )
-    configurator = ResourceConfigurator(ctx)
+    configurator = ResourceConfigurator(ws, prompts, catalog_operations)
     with pytest.raises(SystemExit):
         configurator.prompt_for_schema_setup("remorph", "reconcile")
 
@@ -235,12 +183,7 @@ def test_prompt_for_volume_setup_existing_volume(ws):
         name="recon_volume",
     )
     catalog_operations.has_volume_access.return_value = True
-    ctx = CliContext(ws)
-    ctx.replace(
-        prompts=prompts,
-        catalog_operations=catalog_operations,
-    )
-    configurator = ResourceConfigurator(ctx)
+    configurator = ResourceConfigurator(ws, prompts, catalog_operations)
     assert (
         configurator.prompt_for_volume_setup(
             "remorph",
@@ -265,12 +208,7 @@ def test_prompt_for_volume_setup_existing_volume_no_access_abort(ws):
         name="recon_volume",
     )
     catalog_operations.has_volume_access.return_value = False
-    ctx = CliContext(ws)
-    ctx.replace(
-        prompts=prompts,
-        catalog_operations=catalog_operations,
-    )
-    configurator = ResourceConfigurator(ctx)
+    configurator = ResourceConfigurator(ws, prompts, catalog_operations)
     with pytest.raises(SystemExit):
         configurator.prompt_for_volume_setup(
             "remorph",
@@ -293,12 +231,7 @@ def test_prompt_for_volume_setup_existing_volume_no_access_retry_exhaust_attempt
         name="recon_volume",
     )
     catalog_operations.has_volume_access.return_value = False
-    ctx = CliContext(ws)
-    ctx.replace(
-        prompts=prompts,
-        catalog_operations=catalog_operations,
-    )
-    configurator = ResourceConfigurator(ctx)
+    configurator = ResourceConfigurator(ws, prompts, catalog_operations)
     with pytest.raises(SystemExit):
         configurator.prompt_for_volume_setup(
             "remorph",
@@ -322,12 +255,7 @@ def test_prompt_for_volume_setup_new_volume(ws):
         schema_name="reconcile",
         name="recon_volume",
     )
-    ctx = CliContext(ws)
-    ctx.replace(
-        prompts=prompts,
-        catalog_operations=catalog_operations,
-    )
-    configurator = ResourceConfigurator(ctx)
+    configurator = ResourceConfigurator(ws, prompts, catalog_operations)
     assert (
         configurator.prompt_for_volume_setup(
             "remorph",
@@ -347,12 +275,7 @@ def test_prompt_for_volume_setup_new_volume_abort(ws):
     )
     catalog_operations = create_autospec(CatalogOperations)
     catalog_operations.get_volume.return_value = None
-    ctx = CliContext(ws)
-    ctx.replace(
-        prompts=prompts,
-        catalog_operations=catalog_operations,
-    )
-    configurator = ResourceConfigurator(ctx)
+    configurator = ResourceConfigurator(ws, prompts, catalog_operations)
     with pytest.raises(SystemExit):
         configurator.prompt_for_volume_setup(
             "remorph",
@@ -371,9 +294,8 @@ def test_prompt_for_warehouse_setup_from_existing_warehouses(ws):
         )
     ]
     prompts = MockPrompts({r"Select PRO or SERVERLESS SQL warehouse": "1"})
-    ctx = CliContext(ws)
-    ctx.replace(prompts=prompts)
-    configurator = ResourceConfigurator(ctx)
+    catalog_operations = create_autospec(CatalogOperations)
+    configurator = ResourceConfigurator(ws, prompts, catalog_operations)
     assert configurator.prompt_for_warehouse_setup("Test") == "w_id"
 
 
@@ -388,7 +310,6 @@ def test_prompt_for_warehouse_setup_new(ws):
     ]
     ws.warehouses.create.return_value = GetWarehouseResponse(id="new_w_id")
     prompts = MockPrompts({r"Select PRO or SERVERLESS SQL warehouse": "0"})
-    ctx = CliContext(ws)
-    ctx.replace(prompts=prompts)
-    configurator = ResourceConfigurator(ctx)
+    catalog_operations = create_autospec(CatalogOperations)
+    configurator = ResourceConfigurator(ws, prompts, catalog_operations)
     assert configurator.prompt_for_warehouse_setup("Test") == "new_w_id"

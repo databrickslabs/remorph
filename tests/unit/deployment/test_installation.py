@@ -14,7 +14,6 @@ from databricks.labs.remorph.config import (
     DatabaseConfig,
     ReconcileMetadataConfig,
 )
-from databricks.labs.remorph.contexts.application import CliContext
 from databricks.labs.remorph.deployment.installation import WorkspaceInstallation
 from databricks.labs.remorph.deployment.recon import ReconDeployment
 
@@ -34,9 +33,8 @@ def test_install_all(ws):
             r"Enter catalog name": "remorph",
         }
     )
-    ctx = CliContext(ws)
-    ctx.replace(prompts=prompts)
     recon_deployment = create_autospec(ReconDeployment)
+    installation = create_autospec(Installation)
     transpile_config = MorphConfig(
         source="snowflake",
         input_sql="/tmp/queries/snow6",
@@ -62,14 +60,14 @@ def test_install_all(ws):
         ),
     )
     config = RemorphConfigs(morph=transpile_config, reconcile=reconcile_config)
-    installation = WorkspaceInstallation(ctx, recon_deployment)
+    installation = WorkspaceInstallation(ws, prompts, installation, recon_deployment)
     installation.install(config)
 
 
 def test_no_recon_component_installation(ws):
-    ctx = CliContext(ws)
-    ctx.replace()
+    prompts = MockPrompts({})
     recon_deployment = create_autospec(ReconDeployment)
+    installation = create_autospec(Installation)
     transpile_config = MorphConfig(
         source="snowflake",
         input_sql="/tmp/queries/snow7",
@@ -80,15 +78,15 @@ def test_no_recon_component_installation(ws):
         mode="current",
     )
     config = RemorphConfigs(morph=transpile_config)
-    installation = WorkspaceInstallation(ctx, recon_deployment)
+    installation = WorkspaceInstallation(ws, prompts, installation, recon_deployment)
     installation.install(config)
     recon_deployment.install.assert_not_called()
 
 
 def test_recon_component_installation(ws):
-    ctx = CliContext(ws)
-    ctx.replace()
     recon_deployment = create_autospec(ReconDeployment)
+    installation = create_autospec(Installation)
+    prompts = MockPrompts({})
     reconcile_config = ReconcileConfig(
         data_source="oracle",
         report_type="all",
@@ -105,7 +103,7 @@ def test_recon_component_installation(ws):
         ),
     )
     config = RemorphConfigs(reconcile=reconcile_config)
-    installation = WorkspaceInstallation(ctx, recon_deployment)
+    installation = WorkspaceInstallation(ws, prompts, installation, recon_deployment)
     installation.install(config)
     recon_deployment.install.assert_called()
 
@@ -117,11 +115,10 @@ def test_negative_uninstall_confirmation(ws):
         }
     )
     installation = create_autospec(Installation)
-    ctx = CliContext(ws)
-    ctx.replace(prompts=prompts, installation=installation)
     recon_deployment = create_autospec(ReconDeployment)
-    ws_installation = WorkspaceInstallation(ctx, recon_deployment)
-    ws_installation.uninstall()
+    ws_installation = WorkspaceInstallation(ws, prompts, installation, recon_deployment)
+    config = RemorphConfigs()
+    ws_installation.uninstall(config)
     installation.remove.assert_not_called()
 
 
@@ -134,11 +131,10 @@ def test_missing_installation(ws):
     installation = create_autospec(Installation)
     installation.files.side_effect = NotFound("Installation not found")
     installation.install_folder.return_value = "~/mock"
-    ctx = CliContext(ws)
-    ctx.replace(prompts=prompts, installation=installation)
     recon_deployment = create_autospec(ReconDeployment)
-    ws_installation = WorkspaceInstallation(ctx, recon_deployment)
-    ws_installation.uninstall()
+    ws_installation = WorkspaceInstallation(ws, prompts, installation, recon_deployment)
+    config = RemorphConfigs()
+    ws_installation.uninstall(config)
     installation.remove.assert_not_called()
 
 
@@ -148,43 +144,39 @@ def test_uninstall_configs_exist(ws):
             r"Do you want to uninstall Remorph .*": "yes",
         }
     )
-    installation = MockInstallation(
-        {
-            "config.yml": {
-                "source": "snowflake",
-                "catalog_name": "transpiler_test1",
-                "input_sql": "sf_queries1",
-                "output_folder": "out_dir1",
-                "schema_name": "convertor_test1",
-                "sdk_config": {
-                    "warehouse_id": "abc",
-                },
-                "version": 1,
-            },
-            "reconcile.yml": {
-                "data_source": "snowflake",
-                "report_type": "all",
-                "secret_scope": "remorph_snowflake1",
-                "database_config": {
-                    "source_catalog": "snowflake_sample_data1",
-                    "source_schema": "tpch_sf10001",
-                    "target_catalog": "tpch1",
-                    "target_schema": "1000gb1",
-                },
-                "metadata_config": {
-                    "catalog": "remorph1",
-                    "schema": "reconcile1",
-                    "volume": "reconcile_volume1",
-                },
-                "version": 1,
-            },
-        }
+
+    transpile_config = MorphConfig(
+        source="snowflake",
+        input_sql="sf_queries1",
+        output_folder="out_dir1",
+        skip_validation=True,
+        catalog_name="transpiler_test1",
+        schema_name="convertor_test1",
+        mode="current",
+        sdk_config={"warehouse_id": "abc"},
     )
-    ctx = CliContext(ws)
-    ctx.replace(prompts=prompts, installation=installation)
+
+    reconcile_config = ReconcileConfig(
+        data_source="snowflake",
+        report_type="all",
+        secret_scope="remorph_snowflake1",
+        database_config=DatabaseConfig(
+            source_catalog="snowflake_sample_data1",
+            source_schema="tpch_sf10001",
+            target_catalog="tpch1",
+            target_schema="1000gb1",
+        ),
+        metadata_config=ReconcileMetadataConfig(
+            catalog="remorph1",
+            schema="reconcile1",
+            volume="reconcile_volume1",
+        ),
+    )
+    config = RemorphConfigs(morph=transpile_config, reconcile=reconcile_config)
+    installation = MockInstallation({})
     recon_deployment = create_autospec(ReconDeployment)
-    ws_installation = WorkspaceInstallation(ctx, recon_deployment)
-    ws_installation.uninstall()
+    ws_installation = WorkspaceInstallation(ws, prompts, installation, recon_deployment)
+    ws_installation.uninstall(config)
     recon_deployment.uninstall.assert_called()
     installation.assert_removed()
 
@@ -196,10 +188,9 @@ def test_uninstall_configs_missing(ws):
         }
     )
     installation = MockInstallation()
-    ctx = CliContext(ws)
-    ctx.replace(prompts=prompts, installation=installation)
     recon_deployment = create_autospec(ReconDeployment)
-    ws_installation = WorkspaceInstallation(ctx, recon_deployment)
-    ws_installation.uninstall()
+    ws_installation = WorkspaceInstallation(ws, prompts, installation, recon_deployment)
+    config = RemorphConfigs()
+    ws_installation.uninstall(config)
     recon_deployment.uninstall.assert_not_called()
     installation.assert_removed()

@@ -148,11 +148,11 @@ def temp_dirs_for_lineage(tmpdir):
 def test_transpile_with_missing_installation():
     workspace_client = create_autospec(WorkspaceClient)
     with (
-        patch("databricks.labs.remorph.cli.CliContext", autospec=True) as mock_cli_context,
+        patch("databricks.labs.remorph.cli.ApplicationContext", autospec=True) as mock_app_context,
         pytest.raises(SystemExit),
     ):
-        mock_cli_context.return_value.workspace_client = workspace_client
-        mock_cli_context.return_value.transpile_config = None
+        mock_app_context.return_value.workspace_client = workspace_client
+        mock_app_context.return_value.transpile_config = None
         cli.transpile(
             workspace_client,
             "snowflake",
@@ -168,7 +168,7 @@ def test_transpile_with_missing_installation():
 def test_transpile_with_no_sdk_config():
     workspace_client = create_autospec(WorkspaceClient)
     with (
-        patch("databricks.labs.remorph.cli.CliContext", autospec=True) as mock_cli_context,
+        patch("databricks.labs.remorph.cli.ApplicationContext", autospec=True) as mock_app_context,
         patch("databricks.labs.remorph.cli.morph", return_value={}) as mock_morph,
         patch("os.path.exists", return_value=True),
     ):
@@ -182,8 +182,8 @@ def test_transpile_with_no_sdk_config():
             schema_name="my_schema",
             mode="current",
         )
-        mock_cli_context.return_value.transpile_config = default_config
-        mock_cli_context.return_value.workspace_client = workspace_client
+        mock_app_context.return_value.transpile_config = default_config
+        mock_app_context.return_value.workspace_client = workspace_client
         cli.transpile(
             workspace_client,
             "snowflake",
@@ -212,7 +212,7 @@ def test_transpile_with_no_sdk_config():
 def test_transpile_with_warehouse_id_in_sdk_config():
     workspace_client = create_autospec(WorkspaceClient)
     with (
-        patch("databricks.labs.remorph.cli.CliContext", autospec=True) as mock_cli_context,
+        patch("databricks.labs.remorph.cli.ApplicationContext", autospec=True) as mock_app_context,
         patch("os.path.exists", return_value=True),
         patch("databricks.labs.remorph.cli.morph", return_value={}) as mock_morph,
     ):
@@ -227,8 +227,8 @@ def test_transpile_with_warehouse_id_in_sdk_config():
             schema_name="my_schema",
             mode="current",
         )
-        mock_cli_context.return_value.workspace_client = workspace_client
-        mock_cli_context.return_value.transpile_config = default_config
+        mock_app_context.return_value.workspace_client = workspace_client
+        mock_app_context.return_value.transpile_config = default_config
         cli.transpile(
             workspace_client,
             "snowflake",
@@ -257,7 +257,7 @@ def test_transpile_with_warehouse_id_in_sdk_config():
 def test_transpile_with_cluster_id_in_sdk_config():
     workspace_client = create_autospec(WorkspaceClient)
     with (
-        patch("databricks.labs.remorph.cli.CliContext", autospec=True) as mock_cli_context,
+        patch("databricks.labs.remorph.cli.ApplicationContext", autospec=True) as mock_app_context,
         patch("os.path.exists", return_value=True),
         patch("databricks.labs.remorph.cli.morph", return_value={}) as mock_morph,
     ):
@@ -272,8 +272,8 @@ def test_transpile_with_cluster_id_in_sdk_config():
             schema_name="my_schema",
             mode="current",
         )
-        mock_cli_context.return_value.workspace_client = workspace_client
-        mock_cli_context.return_value.transpile_config = default_config
+        mock_app_context.return_value.workspace_client = workspace_client
+        mock_app_context.return_value.transpile_config = default_config
         cli.transpile(
             workspace_client,
             "snowflake",

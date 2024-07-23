@@ -5,7 +5,7 @@ from databricks.labs.blueprint.installation import MockInstallation
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.service import iam
 
-from databricks.labs.remorph.contexts.application import CliContext
+from databricks.labs.remorph.contexts.application import ApplicationContext
 
 
 @pytest.fixture
@@ -19,7 +19,7 @@ def ws():
 
 
 def test_workspace_context_attributes_not_none(ws):
-    ctx = CliContext(ws)
+    ctx = ApplicationContext(ws)
     assert hasattr(ctx, "workspace_client")
     assert ctx.workspace_client is not None
     assert hasattr(ctx, "current_user")
@@ -94,9 +94,22 @@ def test_workspace_context_attributes_not_none(ws):
     assert hasattr(ctx, "install_state")
     assert ctx.install_state is not None
 
+    assert hasattr(ctx, "resource_configurator")
+    assert ctx.resource_configurator is not None
+    assert hasattr(ctx, "table_deployment")
+    assert ctx.table_deployment is not None
+    assert hasattr(ctx, "job_deployment")
+    assert ctx.job_deployment is not None
+    assert hasattr(ctx, "dashboard_deployment")
+    assert ctx.dashboard_deployment is not None
+    assert hasattr(ctx, "recon_deployment")
+    assert ctx.recon_deployment is not None
+    assert hasattr(ctx, "workspace_installation")
+    assert ctx.workspace_installation is not None
+
 
 def test_workspace_context_missing_configs(ws):
-    ctx = CliContext(ws)
+    ctx = ApplicationContext(ws)
     ctx.replace(installation=MockInstallation({}))
     assert hasattr(ctx, "transpile_config")
     assert ctx.transpile_config is None

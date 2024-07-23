@@ -1,32 +1,28 @@
 import logging
 
+from databricks.labs.blueprint.entrypoint import is_in_debug
 from databricks.sdk import WorkspaceClient
 
 from databricks.labs.remorph.__about__ import __version__
-from databricks.labs.remorph.contexts.application import CliContext
-from databricks.labs.remorph.deployment.dashboard import DashboardDeployment
-from databricks.labs.remorph.deployment.installation import WorkspaceInstallation
-from databricks.labs.remorph.deployment.job import JobDeployment
-from databricks.labs.remorph.deployment.recon import ReconDeployment
-from databricks.labs.remorph.deployment.table import TableDeployment
+from databricks.labs.remorph.contexts.application import ApplicationContext
 
 logger = logging.getLogger("databricks.labs.remorph.install")
 
 
-def run(context: CliContext):
-    logger.setLevel("INFO")
-    installation = WorkspaceInstallation(
-        context,
-        ReconDeployment(
-            context,
-            TableDeployment(context),
-            JobDeployment(context),
-            DashboardDeployment(context),
-        ),
-    )
-    installation.uninstall()
+def run(context: ApplicationContext):
+    context.workspace_installation.uninstall(context.remorph_config)
 
 
 if __name__ == "__main__":
-    app_context = CliContext(WorkspaceClient(product="remorph", product_version=__version__))
-    run(app_context)
+    logger.setLevel("INFO")
+    if is_in_debug():
+        logging.getLogger("databricks").setLevel(logging.DEBUG)
+
+    run(
+        ApplicationContext(
+            WorkspaceClient(
+                product="remorph",
+                product_version=__version__,
+            )
+        )
+    )

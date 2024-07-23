@@ -6,17 +6,17 @@ from databricks.sdk import WorkspaceClient
 from databricks.sdk.service import iam
 from databricks.labs.blueprint.tui import MockPrompts
 from databricks.labs.remorph.config import RemorphConfigs, ReconcileConfig, DatabaseConfig, ReconcileMetadataConfig
-from databricks.labs.remorph.contexts.application import CliContext
+from databricks.labs.remorph.contexts.application import ApplicationContext
 from databricks.labs.remorph.deployment.configurator import ResourceConfigurator
 from databricks.labs.remorph.deployment.installation import WorkspaceInstallation
 from databricks.labs.remorph.install import WorkspaceInstaller, MODULES
 from databricks.labs.remorph.config import MorphConfig
 from databricks.labs.blueprint.wheels import ProductInfo
 from databricks.labs.remorph.config import SQLGLOT_DIALECTS
-from databricks.labs.remorph.reconcile.constants import SourceType, ReportType
+from databricks.labs.remorph.reconcile.constants import ReconSourceType, ReconReportType
 
-RECONCILE_DATA_SOURCES = sorted([source_type.value for source_type in SourceType])
-RECONCILE_REPORT_TYPES = sorted([report_type.value for report_type in ReportType])
+RECONCILE_DATA_SOURCES = sorted([source_type.value for source_type in ReconSourceType])
+RECONCILE_REPORT_TYPES = sorted([report_type.value for report_type in ReconReportType])
 
 
 @pytest.fixture
@@ -29,42 +29,83 @@ def ws():
 
 
 def test_workspace_installer_run_raise_error_in_dbr(ws):
-    ctx = CliContext(ws)
-    resource_configurator = create_autospec(ResourceConfigurator)
-    ws_installation = create_autospec(WorkspaceInstallation)
+    ctx = ApplicationContext(ws)
     environ = {"DATABRICKS_RUNTIME_VERSION": "8.3.x-scala2.12"}
     with pytest.raises(SystemExit):
-        WorkspaceInstaller(ctx, resource_configurator, ws_installation, environ=environ)
+        WorkspaceInstaller(
+            ctx.workspace_client,
+            ctx.prompts,
+            ctx.installation,
+            ctx.install_state,
+            ctx.product_info,
+            ctx.resource_configurator,
+            ctx.workspace_installation,
+            environ=environ,
+        )
 
 
 def test_workspace_installer_run_install_not_called_in_test(ws):
-    ctx = CliContext(ws)
-    ctx.replace(product_info=ProductInfo.for_testing(RemorphConfigs))
-    resource_configurator = create_autospec(ResourceConfigurator)
     ws_installation = create_autospec(WorkspaceInstallation)
+    ctx = ApplicationContext(ws)
+    ctx.replace(
+        product_info=ProductInfo.for_testing(RemorphConfigs),
+        resource_configurator=create_autospec(ResourceConfigurator),
+        workspace_installation=ws_installation,
+    )
+
     provided_config = RemorphConfigs()
-    workspace_installer = WorkspaceInstaller(ctx, resource_configurator, ws_installation)
+    workspace_installer = WorkspaceInstaller(
+        ctx.workspace_client,
+        ctx.prompts,
+        ctx.installation,
+        ctx.install_state,
+        ctx.product_info,
+        ctx.resource_configurator,
+        ctx.workspace_installation,
+    )
     returned_config = workspace_installer.run(config=provided_config)
     assert returned_config == provided_config
     ws_installation.install.assert_not_called()
 
 
 def test_workspace_installer_run_install_called_with_provided_config(ws):
-    ctx = CliContext(ws)
-    resource_configurator = create_autospec(ResourceConfigurator)
     ws_installation = create_autospec(WorkspaceInstallation)
+    ctx = ApplicationContext(ws)
+    ctx.replace(
+        resource_configurator=create_autospec(ResourceConfigurator),
+        workspace_installation=ws_installation,
+    )
     provided_config = RemorphConfigs()
-    workspace_installer = WorkspaceInstaller(ctx, resource_configurator, ws_installation)
+    workspace_installer = WorkspaceInstaller(
+        ctx.workspace_client,
+        ctx.prompts,
+        ctx.installation,
+        ctx.install_state,
+        ctx.product_info,
+        ctx.resource_configurator,
+        ctx.workspace_installation,
+    )
     returned_config = workspace_installer.run(config=provided_config)
     assert returned_config == provided_config
     ws_installation.install.assert_called_once_with(provided_config)
 
 
 def test_configure_error_if_invalid_module_selected(ws):
-    ctx = CliContext(ws)
-    resource_configurator = create_autospec(ResourceConfigurator)
-    ws_installation = create_autospec(WorkspaceInstallation)
-    workspace_installer = WorkspaceInstaller(ctx, resource_configurator, ws_installation)
+    ctx = ApplicationContext(ws)
+    ctx.replace(
+        resource_configurator=create_autospec(ResourceConfigurator),
+        workspace_installation=create_autospec(WorkspaceInstallation),
+    )
+    workspace_installer = WorkspaceInstaller(
+        ctx.workspace_client,
+        ctx.prompts,
+        ctx.installation,
+        ctx.install_state,
+        ctx.product_info,
+        ctx.resource_configurator,
+        ctx.workspace_installation,
+    )
+
     with pytest.raises(ValueError):
         workspace_installer.configure(module="invalid_module")
 
@@ -82,11 +123,23 @@ def test_workspace_installer_run_install_called_with_generated_config(ws):
         }
     )
     installation = MockInstallation()
-    ctx = CliContext(ws)
-    ctx.replace(prompts=prompts, installation=installation)
-    resource_configurator = create_autospec(ResourceConfigurator)
-    ws_installation = create_autospec(WorkspaceInstallation)
-    workspace_installer = WorkspaceInstaller(ctx, resource_configurator, ws_installation)
+    ctx = ApplicationContext(ws)
+    ctx.replace(
+        prompts=prompts,
+        installation=installation,
+        resource_configurator=create_autospec(ResourceConfigurator),
+        workspace_installation=create_autospec(WorkspaceInstallation),
+    )
+
+    workspace_installer = WorkspaceInstaller(
+        ctx.workspace_client,
+        ctx.prompts,
+        ctx.installation,
+        ctx.install_state,
+        ctx.product_info,
+        ctx.resource_configurator,
+        ctx.workspace_installation,
+    )
     workspace_installer.run()
     installation.assert_file_written(
         "config.yml",
@@ -116,11 +169,22 @@ def test_configure_transpile_no_existing_installation(ws):
         }
     )
     installation = MockInstallation()
-    ctx = CliContext(ws)
-    ctx.replace(prompts=prompts, installation=installation)
-    resource_configurator = create_autospec(ResourceConfigurator)
-    ws_installation = create_autospec(WorkspaceInstallation)
-    workspace_installer = WorkspaceInstaller(ctx, resource_configurator, ws_installation)
+    ctx = ApplicationContext(ws)
+    ctx.replace(
+        prompts=prompts,
+        installation=installation,
+        resource_configurator=create_autospec(ResourceConfigurator),
+        workspace_installation=create_autospec(WorkspaceInstallation),
+    )
+    workspace_installer = WorkspaceInstaller(
+        ctx.workspace_client,
+        ctx.prompts,
+        ctx.installation,
+        ctx.install_state,
+        ctx.product_info,
+        ctx.resource_configurator,
+        ctx.workspace_installation,
+    )
     config = workspace_installer.configure()
     expected_morph_config = MorphConfig(
         source="snowflake",
@@ -155,9 +219,11 @@ def test_configure_transpile_installation_no_override(ws):
             r"Do you want to override the existing installation?": "no",
         }
     )
-    ctx = CliContext(ws)
+    ctx = ApplicationContext(ws)
     ctx.replace(
         prompts=prompts,
+        resource_configurator=create_autospec(ResourceConfigurator),
+        workspace_installation=create_autospec(WorkspaceInstallation),
         installation=MockInstallation(
             {
                 "config.yml": {
@@ -174,9 +240,16 @@ def test_configure_transpile_installation_no_override(ws):
             }
         ),
     )
-    resource_configurator = create_autospec(ResourceConfigurator)
-    ws_installation = create_autospec(WorkspaceInstallation)
-    workspace_installer = WorkspaceInstaller(ctx, resource_configurator, ws_installation)
+
+    workspace_installer = WorkspaceInstaller(
+        ctx.workspace_client,
+        ctx.prompts,
+        ctx.installation,
+        ctx.install_state,
+        ctx.product_info,
+        ctx.resource_configurator,
+        ctx.workspace_installation,
+    )
     with pytest.raises(SystemExit):
         workspace_installer.configure()
 
@@ -208,14 +281,22 @@ def test_configure_transpile_installation_config_error_continue_install(ws):
             }
         }
     )
-    ctx = CliContext(ws)
+    ctx = ApplicationContext(ws)
     ctx.replace(
         prompts=prompts,
         installation=installation,
+        resource_configurator=create_autospec(ResourceConfigurator),
+        workspace_installation=create_autospec(WorkspaceInstallation),
     )
-    resource_configurator = create_autospec(ResourceConfigurator)
-    ws_installation = create_autospec(WorkspaceInstallation)
-    workspace_installer = WorkspaceInstaller(ctx, resource_configurator, ws_installation)
+    workspace_installer = WorkspaceInstaller(
+        ctx.workspace_client,
+        ctx.prompts,
+        ctx.installation,
+        ctx.install_state,
+        ctx.product_info,
+        ctx.resource_configurator,
+        ctx.workspace_installation,
+    )
     config = workspace_installer.configure()
     expected_morph_config = MorphConfig(
         source="snowflake",
@@ -256,14 +337,23 @@ def test_configure_transpile_installation_with_no_validation(ws):
         }
     )
     installation = MockInstallation()
-    ctx = CliContext(ws)
+    ctx = ApplicationContext(ws)
     ctx.replace(
         prompts=prompts,
         installation=installation,
+        resource_configurator=create_autospec(ResourceConfigurator),
+        workspace_installation=create_autospec(WorkspaceInstallation),
     )
-    resource_configurator = create_autospec(ResourceConfigurator)
-    ws_installation = create_autospec(WorkspaceInstallation)
-    workspace_installer = WorkspaceInstaller(ctx, resource_configurator, ws_installation)
+
+    workspace_installer = WorkspaceInstaller(
+        ctx.workspace_client,
+        ctx.prompts,
+        ctx.installation,
+        ctx.install_state,
+        ctx.product_info,
+        ctx.resource_configurator,
+        ctx.workspace_installation,
+    )
     config = workspace_installer.configure()
     expected_morph_config = MorphConfig(
         source="snowflake",
@@ -305,16 +395,28 @@ def test_configure_transpile_installation_with_validation_and_cluster_id_in_conf
     )
     installation = MockInstallation()
     ws.config.cluster_id = "1234"
-    ctx = CliContext(ws)
-    ctx.replace(
-        prompts=prompts,
-        installation=installation,
-    )
+
     resource_configurator = create_autospec(ResourceConfigurator)
     resource_configurator.prompt_for_catalog_setup.return_value = "remorph_test"
     resource_configurator.prompt_for_schema_setup.return_value = "transpiler_test"
-    ws_installation = create_autospec(WorkspaceInstallation)
-    workspace_installer = WorkspaceInstaller(ctx, resource_configurator, ws_installation)
+
+    ctx = ApplicationContext(ws)
+    ctx.replace(
+        prompts=prompts,
+        installation=installation,
+        resource_configurator=resource_configurator,
+        workspace_installation=create_autospec(WorkspaceInstallation),
+    )
+
+    workspace_installer = WorkspaceInstaller(
+        ctx.workspace_client,
+        ctx.prompts,
+        ctx.installation,
+        ctx.install_state,
+        ctx.product_info,
+        ctx.resource_configurator,
+        ctx.workspace_installation,
+    )
     config = workspace_installer.configure()
     expected_config = RemorphConfigs(
         morph=MorphConfig(
@@ -358,16 +460,28 @@ def test_configure_transpile_installation_with_validation_and_cluster_id_from_pr
     )
     installation = MockInstallation()
     ws.config.cluster_id = None
-    ctx = CliContext(ws)
-    ctx.replace(
-        prompts=prompts,
-        installation=installation,
-    )
+
     resource_configurator = create_autospec(ResourceConfigurator)
     resource_configurator.prompt_for_catalog_setup.return_value = "remorph_test"
     resource_configurator.prompt_for_schema_setup.return_value = "transpiler_test"
-    ws_installation = create_autospec(WorkspaceInstallation)
-    workspace_installer = WorkspaceInstaller(ctx, resource_configurator, ws_installation)
+
+    ctx = ApplicationContext(ws)
+    ctx.replace(
+        prompts=prompts,
+        installation=installation,
+        resource_configurator=resource_configurator,
+        workspace_installation=create_autospec(WorkspaceInstallation),
+    )
+
+    workspace_installer = WorkspaceInstaller(
+        ctx.workspace_client,
+        ctx.prompts,
+        ctx.installation,
+        ctx.install_state,
+        ctx.product_info,
+        ctx.resource_configurator,
+        ctx.workspace_installation,
+    )
     config = workspace_installer.configure()
     expected_config = RemorphConfigs(
         morph=MorphConfig(
@@ -409,17 +523,28 @@ def test_configure_transpile_installation_with_validation_and_warehouse_id_from_
         }
     )
     installation = MockInstallation()
-    ctx = CliContext(ws)
-    ctx.replace(
-        prompts=prompts,
-        installation=installation,
-    )
     resource_configurator = create_autospec(ResourceConfigurator)
     resource_configurator.prompt_for_catalog_setup.return_value = "remorph_test"
     resource_configurator.prompt_for_schema_setup.return_value = "transpiler_test"
     resource_configurator.prompt_for_warehouse_setup.return_value = "w_id"
-    ws_installation = create_autospec(WorkspaceInstallation)
-    workspace_installer = WorkspaceInstaller(ctx, resource_configurator, ws_installation)
+
+    ctx = ApplicationContext(ws)
+    ctx.replace(
+        prompts=prompts,
+        installation=installation,
+        resource_configurator=resource_configurator,
+        workspace_installation=create_autospec(WorkspaceInstallation),
+    )
+
+    workspace_installer = WorkspaceInstaller(
+        ctx.workspace_client,
+        ctx.prompts,
+        ctx.installation,
+        ctx.install_state,
+        ctx.product_info,
+        ctx.resource_configurator,
+        ctx.workspace_installation,
+    )
     config = workspace_installer.configure()
     expected_config = RemorphConfigs(
         morph=MorphConfig(
@@ -455,9 +580,11 @@ def test_configure_reconcile_installation_no_override(ws):
             r"Do you want to override the existing installation?": "no",
         }
     )
-    ctx = CliContext(ws)
+    ctx = ApplicationContext(ws)
     ctx.replace(
         prompts=prompts,
+        resource_configurator=create_autospec(ResourceConfigurator),
+        workspace_installation=create_autospec(WorkspaceInstallation),
         installation=MockInstallation(
             {
                 "reconcile.yml": {
@@ -480,9 +607,15 @@ def test_configure_reconcile_installation_no_override(ws):
             }
         ),
     )
-    resource_configurator = create_autospec(ResourceConfigurator)
-    ws_installation = create_autospec(WorkspaceInstallation)
-    workspace_installer = WorkspaceInstaller(ctx, resource_configurator, ws_installation)
+    workspace_installer = WorkspaceInstaller(
+        ctx.workspace_client,
+        ctx.prompts,
+        ctx.installation,
+        ctx.install_state,
+        ctx.product_info,
+        ctx.resource_configurator,
+        ctx.workspace_installation,
+    )
     with pytest.raises(SystemExit):
         workspace_installer.configure()
 
@@ -520,17 +653,29 @@ def test_configure_reconcile_installation_config_error_continue_install(ws):
             }
         }
     )
-    ctx = CliContext(ws)
-    ctx.replace(
-        prompts=prompts,
-        installation=installation,
-    )
+
     resource_configurator = create_autospec(ResourceConfigurator)
     resource_configurator.prompt_for_catalog_setup.return_value = "remorph"
     resource_configurator.prompt_for_schema_setup.return_value = "reconcile"
     resource_configurator.prompt_for_volume_setup.return_value = "reconcile_volume"
-    ws_installation = create_autospec(WorkspaceInstallation)
-    workspace_installer = WorkspaceInstaller(ctx, resource_configurator, ws_installation)
+
+    ctx = ApplicationContext(ws)
+    ctx.replace(
+        prompts=prompts,
+        installation=installation,
+        resource_configurator=resource_configurator,
+        workspace_installation=create_autospec(WorkspaceInstallation),
+    )
+
+    workspace_installer = WorkspaceInstaller(
+        ctx.workspace_client,
+        ctx.prompts,
+        ctx.installation,
+        ctx.install_state,
+        ctx.product_info,
+        ctx.resource_configurator,
+        ctx.workspace_installation,
+    )
     config = workspace_installer.configure()
     expected_config = RemorphConfigs(
         reconcile=ReconcileConfig(
@@ -587,17 +732,28 @@ def test_configure_reconcile_no_existing_installation(ws):
         }
     )
     installation = MockInstallation()
-    ctx = CliContext(ws)
-    ctx.replace(
-        prompts=prompts,
-        installation=installation,
-    )
     resource_configurator = create_autospec(ResourceConfigurator)
     resource_configurator.prompt_for_catalog_setup.return_value = "remorph"
     resource_configurator.prompt_for_schema_setup.return_value = "reconcile"
     resource_configurator.prompt_for_volume_setup.return_value = "reconcile_volume"
-    ws_installation = create_autospec(WorkspaceInstallation)
-    workspace_installer = WorkspaceInstaller(ctx, resource_configurator, ws_installation)
+
+    ctx = ApplicationContext(ws)
+    ctx.replace(
+        prompts=prompts,
+        installation=installation,
+        resource_configurator=resource_configurator,
+        workspace_installation=create_autospec(WorkspaceInstallation),
+    )
+
+    workspace_installer = WorkspaceInstaller(
+        ctx.workspace_client,
+        ctx.prompts,
+        ctx.installation,
+        ctx.install_state,
+        ctx.product_info,
+        ctx.resource_configurator,
+        ctx.workspace_installation,
+    )
     config = workspace_installer.configure()
     expected_config = RemorphConfigs(
         reconcile=ReconcileConfig(
@@ -691,17 +847,29 @@ def test_configure_all_override_installation(ws):
             },
         }
     )
-    ctx = CliContext(ws)
-    ctx.replace(
-        prompts=prompts,
-        installation=installation,
-    )
+
     resource_configurator = create_autospec(ResourceConfigurator)
     resource_configurator.prompt_for_catalog_setup.return_value = "remorph"
     resource_configurator.prompt_for_schema_setup.return_value = "reconcile"
     resource_configurator.prompt_for_volume_setup.return_value = "reconcile_volume"
-    ws_installation = create_autospec(WorkspaceInstallation)
-    workspace_installer = WorkspaceInstaller(ctx, resource_configurator, ws_installation)
+
+    ctx = ApplicationContext(ws)
+    ctx.replace(
+        prompts=prompts,
+        installation=installation,
+        resource_configurator=resource_configurator,
+        workspace_installation=create_autospec(WorkspaceInstallation),
+    )
+
+    workspace_installer = WorkspaceInstaller(
+        ctx.workspace_client,
+        ctx.prompts,
+        ctx.installation,
+        ctx.install_state,
+        ctx.product_info,
+        ctx.resource_configurator,
+        ctx.workspace_installation,
+    )
     config = workspace_installer.configure()
     expected_morph_config = MorphConfig(
         source="snowflake",
