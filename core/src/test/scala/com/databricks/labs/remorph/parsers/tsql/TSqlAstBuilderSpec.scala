@@ -2,7 +2,6 @@ package com.databricks.labs.remorph.parsers.tsql
 
 import com.databricks.labs.remorph.parsers.intermediate._
 import org.mockito.Mockito.{mock, when}
-import org.scalatest.Assertion
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
@@ -10,15 +9,15 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
 
   override protected def astBuilder: TSqlParserBaseVisitor[_] = new TSqlAstBuilder
 
-  private def example(query: String, expectedAst: TreeNode): Assertion =
+  private def example(query: String, expectedAst: LogicalPlan): Unit =
     example(query, _.tSqlFile(), expectedAst)
 
-  private def singleQueryExample(query: String, expectedAst: Relation): Assertion =
+  private def singleQueryExample(query: String, expectedAst: LogicalPlan): Unit =
     example(query, _.tSqlFile(), Batch(Seq(expectedAst)))
 
   "tsql visitor" should {
 
-    "accept empty input" in {
+    "accept empty child" in {
       example(query = "", expectedAst = Batch(Seq.empty))
     }
 
@@ -588,7 +587,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
       query = "SELECT a FROM b PIVOT (SUM(a) FOR c IN ('foo', 'bar')) AS Source",
       expectedAst = Project(
         Aggregate(
-          input = namedTable("b"),
+          child = namedTable("b"),
           group_type = Pivot,
           grouping_expressions = Seq(CallFunction("SUM", Seq(simplyNamedColumn("a")))),
           pivot =
@@ -601,7 +600,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
       query = "SELECT a FROM b UNPIVOT (c FOR d IN (e, f)) AsSource",
       expectedAst = Project(
         Unpivot(
-          input = namedTable("b"),
+          child = namedTable("b"),
           ids = Seq(simplyNamedColumn("e"), simplyNamedColumn("f")),
           values = None,
           variable_column_name = Id("c"),

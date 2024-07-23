@@ -1,5 +1,6 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
+import com.databricks.labs.remorph.parsers.intermediate.UnresolvedType
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser.{StringContext => _, _}
 import com.databricks.labs.remorph.parsers.{IncompleteParser, ParserCommon, intermediate => ir}
 import org.antlr.v4.runtime.Token
@@ -201,11 +202,11 @@ class SnowflakeExpressionBuilder()
       val fieldValue = visitLiteral(kv.literal())
       fieldName -> fieldValue
     }
-    ir.Literal(json = Some(ir.JsonExpr(None, fields)))
+    ir.Literal(json = Some(ir.JsonExpr(UnresolvedType, fields)))
   }
 
   override def visitArrayLiteral(ctx: ArrayLiteralContext): ir.Literal = {
-    ir.Literal(array = Some(ir.ArrayExpr(None, ctx.literal().asScala.map(visitLiteral))))
+    ir.Literal(array = Some(ir.ArrayExpr(UnresolvedType, ctx.literal().asScala.map(visitLiteral))))
   }
 
   override def visitPrimArrayAccess(ctx: PrimArrayAccessContext): ir.Expression = {

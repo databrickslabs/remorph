@@ -1,7 +1,7 @@
 package com.databricks.labs.remorph.coverage
 
 import com.databricks.labs.remorph.parsers.ProductionErrorCollector
-import com.databricks.labs.remorph.parsers.intermediate.TreeNode
+import com.databricks.labs.remorph.parsers.intermediate.LogicalPlan
 import com.databricks.labs.remorph.parsers.snowflake.{SnowflakeAstBuilder, SnowflakeLexer, SnowflakeParser}
 import com.databricks.labs.remorph.parsers.tsql.{TSqlAstBuilder, TSqlLexer, TSqlParser}
 import org.antlr.v4.runtime.{CharStreams, CommonTokenStream, Parser}
@@ -14,9 +14,9 @@ trait QueryRunner {
 
 abstract class BaseParserQueryRunner[P <: Parser] extends QueryRunner {
   protected def makeParser(input: String): P
-  protected def translate(parser: P): TreeNode
+  protected def translate(parser: P): LogicalPlan
 
-  private def showUnresolvedBits(result: TreeNode): String = {
+  private def showUnresolvedBits(result: LogicalPlan): String = {
     val pattern = "Unresolved[a-zA-Z]+\\([^,)]*".r
     pattern.findAllIn(result.toString).mkString(",")
   }
@@ -68,7 +68,7 @@ class IsResolvedAsSnowflakeQueryRunner(astBuilder: SnowflakeAstBuilder) extends 
     parser
   }
 
-  override protected def translate(parser: SnowflakeParser): TreeNode = astBuilder.visit(parser.snowflakeFile())
+  override protected def translate(parser: SnowflakeParser): LogicalPlan = astBuilder.visit(parser.snowflakeFile())
 
 }
 
@@ -82,6 +82,6 @@ class IsResolvedAsTSqlQueryRunner(astBuilder: TSqlAstBuilder) extends BaseParser
     parser
   }
 
-  override protected def translate(parser: TSqlParser): TreeNode = astBuilder.visit(parser.tSqlFile())
+  override protected def translate(parser: TSqlParser): LogicalPlan = astBuilder.visit(parser.tSqlFile())
 
 }

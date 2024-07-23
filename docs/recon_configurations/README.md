@@ -15,7 +15,8 @@ when comparing the source with the Databricks target.
     * [thresholds](#thresholds)
     * [filters](#filters)
     * [Key Considerations](#key-considerations)
-* [Reconciliation Examples](#reconciliation-examples)
+* [Reconciliation Example](#reconciliation-example)
+* [DataFlow Example](#dataflow-example)
 
 ## Types of Report Supported
 
@@ -397,9 +398,14 @@ required Oracle JDBC functionality is readily available within the Databricks en
 [[back to top](#remorph-reconciliation)]
 
 ## Reconciliation Example:
-
 For more Reconciliation Config example, please refer to [sample config][link].
 
 [link]: reconcile_config_samples.md
+
+[[back to top](#remorph-reconciliation)]
+
+## DataFlow Example
+
+Report Types Data [Visualisation](report_types_visualisation.md)
 
 [[back to top](#remorph-reconciliation)]

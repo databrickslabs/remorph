@@ -23,7 +23,7 @@ object Main {
 
   private def timeToEpochNanos(instant: Instant) = {
     val epoch = Instant.ofEpochMilli(0)
-    java.time.Duration.between(instant, epoch).toNanos
+    java.time.Duration.between(epoch, instant).toNanos
   }
   @main
   def run(

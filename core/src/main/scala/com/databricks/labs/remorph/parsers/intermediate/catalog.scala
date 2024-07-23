@@ -1,7 +1,10 @@
 package com.databricks.labs.remorph.parsers.intermediate
 
 // Catalog API (experimental / unstable)
-abstract class Catalog extends RelationCommon
+abstract class Catalog extends LeafNode {
+  override def output: Seq[Attribute] = Seq.empty
+}
+
 case class CurrentDatabase() extends Catalog {}
 case class SetCurrentDatabase(db_name: String) extends Catalog {}
 case class ListDatabases(pattern: Option[String]) extends Catalog {}
@@ -41,3 +44,12 @@ case class RefreshByPath(path: String) extends Catalog {}
 case class CurrentCatalog() extends Catalog {}
 case class SetCurrentCatalog(catalog_name: String) extends Catalog {}
 case class ListCatalogs(pattern: Option[String]) extends Catalog {}
+
+case class TableIdentifier(table: String, database: Option[String])
+case class CatalogTable(
+    identifier: TableIdentifier,
+    schema: StructType,
+    partitionColumnNames: Seq[String],
+    viewText: Option[String],
+    comment: Option[String],
+    unsupportedFeatures: Seq[String])
