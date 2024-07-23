@@ -1,8 +1,8 @@
 package com.databricks.labs.remorph.parsers.tsql
 
 import com.databricks.labs.remorph.parsers.intermediate.TreeNode
-import com.databricks.labs.remorph.parsers.tsql.TSqlParser.{DmlClauseContext, SelectStatementStandaloneContext}
-import com.databricks.labs.remorph.parsers.{GenericOption, OptionAuto, OptionDefault, OptionExpression, OptionOff, OptionOn, OptionString, intermediate => ir}
+import com.databricks.labs.remorph.parsers.tsql.TSqlParser.DmlClauseContext
+import com.databricks.labs.remorph.parsers.{OptionAuto, OptionExpression, OptionOff, OptionOn, OptionString, intermediate => ir}
 
 import scala.collection.JavaConverters.asScalaBufferConverter
 
@@ -12,7 +12,8 @@ import scala.collection.JavaConverters.asScalaBufferConverter
  */
 class TSqlAstBuilder extends TSqlParserBaseVisitor[ir.TreeNode] {
 
-  private val expressionBuilder = new TSqlExpressionBuilder
+  private val relationBuilder = new TSqlRelationBuilder
+  private val optionBuilder = new OptionBuilder(new TSqlExpressionBuilder)
 
   override def visitTSqlFile(ctx: TSqlParser.TSqlFileContext): ir.TreeNode = {
     Option(ctx.batch()).map(_.accept(this)).getOrElse(ir.Batch(List()))
@@ -35,18 +36,24 @@ class TSqlAstBuilder extends TSqlParserBaseVisitor[ir.TreeNode] {
   }
 
   override def visitDmlClause(ctx: DmlClauseContext): ir.TreeNode = {
-    // TODO: Implement the rest of the DML clauses
-    ctx.selectStatementStandalone().accept(this)
+    ctx match {
+      case insert if insert.insertStatement() != null => insert.insertStatement().accept(relationBuilder)
+      case select if select.selectStatementStandalone() != null =>
+        select.selectStatementStandalone().accept(relationBuilder)
+      case delete if delete.deleteStatement() != null => delete.deleteStatement().accept(relationBuilder)
+      case merge if merge.mergeStatement() != null => merge.mergeStatement().accept(relationBuilder)
+      case update if update.updateStatement() != null => update.updateStatement().accept(relationBuilder)
+      case _ => ir.UnresolvedRelation(ctx.getText)
+    }
   }
 
   /**
-   * Build a complete AST for a select statement.
+   * This is not actually implemented but was a quick way to exercise the genericOption builder before we had other
+   * syntax implemented to test it with.
+   *
    * @param ctx
    *   the parse tree
    */
-  override def visitSelectStatementStandalone(ctx: SelectStatementStandaloneContext): ir.TreeNode =
-    ctx.accept(new TSqlRelationBuilder)
-
   override def visitBackupStatement(ctx: TSqlParser.BackupStatementContext): TreeNode = {
     ctx.backupDatabase().accept(this)
   }
@@ -54,7 +61,7 @@ class TSqlAstBuilder extends TSqlParserBaseVisitor[ir.TreeNode] {
   override def visitBackupDatabase(ctx: TSqlParser.BackupDatabaseContext): ir.TreeNode = {
     val database = ctx.id().getText
     val opts = ctx.optionList()
-    val options = opts.asScala.flatMap(_.genericOption().asScala).toList.map(buildOption)
+    val options = opts.asScala.flatMap(_.genericOption().asScala).toList.map(optionBuilder.buildOption)
     val (disks, boolFlags, autoFlags, values) = options.foldLeft(
       (List.empty[String], Map.empty[String, Boolean], List.empty[String], Map.empty[String, ir.Expression])) {
       case ((disks, boolFlags, autoFlags, values), option) =>
@@ -71,26 +78,5 @@ class TSqlAstBuilder extends TSqlParserBaseVisitor[ir.TreeNode] {
     // Default flags generally don't need to be specified as they are by definition, the default
 
     ir.BackupDatabase(database, disks, boolFlags, autoFlags, values)
-  }
-
-  private[tsql] def buildOption(ctx: TSqlParser.GenericOptionContext): GenericOption = {
-    val id = ctx.id(0).getText.toUpperCase()
-    id match {
-      case "DEFAULT" => OptionDefault(id)
-      case "ON" => OptionOn(id)
-      case "OFF" => OptionOff(id)
-      case "AUTO" => OptionAuto(id)
-      case _ if ctx.DEFAULT() != null => OptionDefault(id)
-      case _ if ctx.ON() != null => OptionOn(id)
-      case _ if ctx.OFF() != null => OptionOff(id)
-      case _ if ctx.AUTO() != null => OptionAuto(id)
-      case _ if ctx.STRING() != null => OptionString(id, ctx.STRING().getText)
-      case _ if ctx.expression() != null =>
-        val supplement = if (ctx.id(1) != null) Some(ctx.id(1).getText) else None
-        OptionExpression(id, ctx.expression().accept(expressionBuilder), supplement)
-
-      // All other cases being OptionOn as it is a single keyword representing true
-      case _ => OptionOn(id)
-    }
   }
 }

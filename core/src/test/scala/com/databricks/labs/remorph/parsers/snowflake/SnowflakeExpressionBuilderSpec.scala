@@ -1,8 +1,7 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
-import com.databricks.labs.remorph.parsers.IRHelpers
 import com.databricks.labs.remorph.parsers.intermediate._
-import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser.{ComparisonOperatorContext, LiteralContext, RankingWindowedFunctionContext}
+import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser.{ComparisonOperatorContext, LiteralContext}
 import org.mockito.Mockito._
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -33,6 +32,8 @@ class SnowflakeExpressionBuilderSpec
       example("0.123456789", _.literal(), Literal(double = Some(0.123456789)))
       example("0.123456789e-1234", _.literal(), Literal(decimal = Some(Decimal("0.123456789e-1234", None, None))))
       example("'foo'", _.literal(), Literal(string = Some("foo")))
+      example("DATE'1970-01-01'", _.literal(), Literal(date = Some(0)))
+      example("TIMESTAMP'1970-01-01 00:00:00'", _.literal(), Literal(timestamp = Some(0)))
     }
 
     "translate ids (quoted or not)" in {
@@ -51,30 +52,28 @@ class SnowflakeExpressionBuilderSpec
 
     "translate functions with special syntax" in {
 
-      example(
-        "EXTRACT(day FROM date1)",
-        _.builtinFunction(),
-        CallFunction("EXTRACT", Seq(Id("day"), simplyNamedColumn("date1"))))
+      example("EXTRACT(day FROM date1)", _.builtinFunction(), CallFunction("EXTRACT", Seq(Id("day"), Id("date1"))))
 
-      example(
-        "EXTRACT('day' FROM date1)",
-        _.builtinFunction(),
-        CallFunction("EXTRACT", Seq(Id("day"), simplyNamedColumn("date1"))))
+      example("EXTRACT('day' FROM date1)", _.builtinFunction(), CallFunction("EXTRACT", Seq(Id("day"), Id("date1"))))
     }
 
+    "translate functions named with a keyword" in {
+      example("LEFT(foo, bar)", _.standardFunction(), CallFunction("LEFT", Seq(Id("foo"), Id("bar"))))
+      example("RIGHT(foo, bar)", _.standardFunction(), CallFunction("RIGHT", Seq(Id("foo"), Id("bar"))))
+    }
     "translate aggregation functions" in {
-      example("COUNT(x)", _.aggregateFunction(), CallFunction("COUNT", Seq(simplyNamedColumn("x"))))
-      example("AVG(x)", _.aggregateFunction(), CallFunction("AVG", Seq(simplyNamedColumn("x"))))
-      example("SUM(x)", _.aggregateFunction(), CallFunction("SUM", Seq(simplyNamedColumn("x"))))
-      example("MIN(x)", _.aggregateFunction(), CallFunction("MIN", Seq(simplyNamedColumn("x"))))
+      example("COUNT(x)", _.aggregateFunction(), CallFunction("COUNT", Seq(Id("x"))))
+      example("AVG(x)", _.aggregateFunction(), CallFunction("AVG", Seq(Id("x"))))
+      example("SUM(x)", _.aggregateFunction(), CallFunction("SUM", Seq(Id("x"))))
+      example("MIN(x)", _.aggregateFunction(), CallFunction("MIN", Seq(Id("x"))))
 
       example("COUNT(*)", _.aggregateFunction(), CallFunction("COUNT", Seq(Star(None))))
 
       example(
         "LISTAGG(x, ',')",
         _.aggregateFunction(),
-        CallFunction("LISTAGG", Seq(simplyNamedColumn("x"), Literal(string = Some(",")))))
-      example("ARRAY_AGG(x)", _.aggregateFunction(), CallFunction("ARRAYAGG", Seq(simplyNamedColumn("x"))))
+        CallFunction("LISTAGG", Seq(Id("x"), Literal(string = Some(",")))))
+      example("ARRAY_AGG(x)", _.aggregateFunction(), CallFunction("ARRAYAGG", Seq(Id("x"))))
     }
 
     "translate a query with a window function" in {
@@ -83,29 +82,29 @@ class SnowflakeExpressionBuilderSpec
         query = "ROW_NUMBER() OVER (ORDER BY a DESC)",
         rule = _.rankingWindowedFunction(),
         expectedAst = Window(
-          window_function = RowNumber,
+          window_function = CallFunction("ROW_NUMBER", Seq()),
           partition_spec = Seq(),
-          sort_order = Seq(SortOrder(simplyNamedColumn("a"), DescendingSortDirection, SortNullsFirst)),
+          sort_order = Seq(SortOrder(Id("a"), DescendingSortDirection, SortNullsFirst)),
           frame_spec = None))
 
       example(
         query = "ROW_NUMBER() OVER (PARTITION BY a)",
         rule = _.rankingWindowedFunction(),
         expectedAst = Window(
-          window_function = RowNumber,
-          partition_spec = Seq(simplyNamedColumn("a")),
+          window_function = CallFunction("ROW_NUMBER", Seq()),
+          partition_spec = Seq(Id("a")),
           sort_order = Seq(),
           frame_spec = None))
       example(
         query = "NTILE(42) OVER (PARTITION BY a ORDER BY b, c DESC, d)",
         rule = _.rankingWindowedFunction(),
         expectedAst = Window(
-          window_function = NTile(Literal(short = Some(42))),
-          partition_spec = Seq(simplyNamedColumn("a")),
+          window_function = CallFunction("NTILE", Seq(Literal(short = Some(42)))),
+          partition_spec = Seq(Id("a")),
           sort_order = Seq(
-            SortOrder(simplyNamedColumn("b"), AscendingSortDirection, SortNullsLast),
-            SortOrder(simplyNamedColumn("c"), DescendingSortDirection, SortNullsFirst),
-            SortOrder(simplyNamedColumn("d"), AscendingSortDirection, SortNullsLast)),
+            SortOrder(Id("b"), AscendingSortDirection, SortNullsLast),
+            SortOrder(Id("c"), DescendingSortDirection, SortNullsFirst),
+            SortOrder(Id("d"), AscendingSortDirection, SortNullsLast)),
           frame_spec = None))
     }
 
@@ -115,36 +114,36 @@ class SnowflakeExpressionBuilderSpec
         query = "ROW_NUMBER() OVER(PARTITION BY a ORDER BY a ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)",
         rule = _.rankingWindowedFunction(),
         expectedAst = Window(
-          window_function = RowNumber,
-          partition_spec = Seq(simplyNamedColumn("a")),
-          sort_order = Seq(SortOrder(simplyNamedColumn("a"), AscendingSortDirection, SortNullsLast)),
+          window_function = CallFunction("ROW_NUMBER", Seq()),
+          partition_spec = Seq(Id("a")),
+          sort_order = Seq(SortOrder(Id("a"), AscendingSortDirection, SortNullsLast)),
           frame_spec = Some(WindowFrame(RowsFrame, UnboundedPreceding, CurrentRow))))
 
       example(
         query = "ROW_NUMBER() OVER(PARTITION BY a ORDER BY a ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)",
         rule = _.rankingWindowedFunction(),
         expectedAst = Window(
-          window_function = RowNumber,
-          partition_spec = Seq(simplyNamedColumn("a")),
-          sort_order = Seq(SortOrder(simplyNamedColumn("a"), AscendingSortDirection, SortNullsLast)),
+          window_function = CallFunction("ROW_NUMBER", Seq()),
+          partition_spec = Seq(Id("a")),
+          sort_order = Seq(SortOrder(Id("a"), AscendingSortDirection, SortNullsLast)),
           frame_spec = Some(WindowFrame(RowsFrame, UnboundedPreceding, UnboundedFollowing))))
 
       example(
         query = "ROW_NUMBER() OVER(PARTITION BY a ORDER BY a ROWS BETWEEN 42 PRECEDING AND CURRENT ROW)",
         rule = _.rankingWindowedFunction(),
         expectedAst = Window(
-          window_function = RowNumber,
-          partition_spec = Seq(simplyNamedColumn("a")),
-          sort_order = Seq(SortOrder(simplyNamedColumn("a"), AscendingSortDirection, SortNullsLast)),
+          window_function = CallFunction("ROW_NUMBER", Seq()),
+          partition_spec = Seq(Id("a")),
+          sort_order = Seq(SortOrder(Id("a"), AscendingSortDirection, SortNullsLast)),
           frame_spec = Some(WindowFrame(RowsFrame, PrecedingN(Literal(short = Some(42))), CurrentRow))))
 
       example(
         query = "ROW_NUMBER() OVER(PARTITION BY a ORDER BY a ROWS BETWEEN CURRENT ROW AND 42 FOLLOWING)",
         rule = _.rankingWindowedFunction(),
         expectedAst = Window(
-          window_function = RowNumber,
-          partition_spec = Seq(simplyNamedColumn("a")),
-          sort_order = Seq(SortOrder(simplyNamedColumn("a"), AscendingSortDirection, SortNullsLast)),
+          window_function = CallFunction("ROW_NUMBER", Seq()),
+          partition_spec = Seq(Id("a")),
+          sort_order = Seq(SortOrder(Id("a"), AscendingSortDirection, SortNullsLast)),
           frame_spec = Some(WindowFrame(RowsFrame, CurrentRow, FollowingN(Literal(short = Some(42)))))))
     }
 
@@ -162,44 +161,41 @@ class SnowflakeExpressionBuilderSpec
 
     "translate ORDER BY a" in {
       val tree = parseString("ORDER BY a", _.orderByClause())
-      astBuilder.buildSortOrder(tree) shouldBe Seq(
-        SortOrder(simplyNamedColumn("a"), AscendingSortDirection, SortNullsLast))
+      astBuilder.buildSortOrder(tree) shouldBe Seq(SortOrder(Id("a"), AscendingSortDirection, SortNullsLast))
     }
 
     "translate ORDER BY a ASC NULLS FIRST" in {
       val tree = parseString("ORDER BY a ASC NULLS FIRST", _.orderByClause())
-      astBuilder.buildSortOrder(tree) shouldBe Seq(
-        SortOrder(simplyNamedColumn("a"), AscendingSortDirection, SortNullsFirst))
+      astBuilder.buildSortOrder(tree) shouldBe Seq(SortOrder(Id("a"), AscendingSortDirection, SortNullsFirst))
     }
 
     "translate ORDER BY a DESC" in {
       val tree = parseString("ORDER BY a DESC", _.orderByClause())
-      astBuilder.buildSortOrder(tree) shouldBe Seq(
-        SortOrder(simplyNamedColumn("a"), DescendingSortDirection, SortNullsFirst))
+      astBuilder.buildSortOrder(tree) shouldBe Seq(SortOrder(Id("a"), DescendingSortDirection, SortNullsFirst))
     }
 
     "translate ORDER BY a, b DESC" in {
       val tree = parseString("ORDER BY a, b DESC", _.orderByClause())
       astBuilder.buildSortOrder(tree) shouldBe Seq(
-        SortOrder(simplyNamedColumn("a"), AscendingSortDirection, SortNullsLast),
-        SortOrder(simplyNamedColumn("b"), DescendingSortDirection, SortNullsFirst))
+        SortOrder(Id("a"), AscendingSortDirection, SortNullsLast),
+        SortOrder(Id("b"), DescendingSortDirection, SortNullsFirst))
     }
 
     "translate ORDER BY a DESC NULLS LAST, b" in {
       val tree = parseString("ORDER BY a DESC NULLS LAST, b", _.orderByClause())
       astBuilder.buildSortOrder(tree) shouldBe Seq(
-        SortOrder(simplyNamedColumn("a"), DescendingSortDirection, SortNullsLast),
-        SortOrder(simplyNamedColumn("b"), AscendingSortDirection, SortNullsLast))
+        SortOrder(Id("a"), DescendingSortDirection, SortNullsLast),
+        SortOrder(Id("b"), AscendingSortDirection, SortNullsLast))
     }
 
     "translate ORDER BY with many expressions" in {
       val tree = parseString("ORDER BY a DESC, b, c ASC, d DESC NULLS LAST, e", _.orderByClause())
       astBuilder.buildSortOrder(tree) shouldBe Seq(
-        SortOrder(simplyNamedColumn("a"), DescendingSortDirection, SortNullsFirst),
-        SortOrder(simplyNamedColumn("b"), AscendingSortDirection, SortNullsLast),
-        SortOrder(simplyNamedColumn("c"), AscendingSortDirection, SortNullsLast),
-        SortOrder(simplyNamedColumn("d"), DescendingSortDirection, SortNullsLast),
-        SortOrder(simplyNamedColumn("e"), AscendingSortDirection, SortNullsLast))
+        SortOrder(Id("a"), DescendingSortDirection, SortNullsFirst),
+        SortOrder(Id("b"), AscendingSortDirection, SortNullsLast),
+        SortOrder(Id("c"), AscendingSortDirection, SortNullsLast),
+        SortOrder(Id("d"), DescendingSortDirection, SortNullsLast),
+        SortOrder(Id("e"), AscendingSortDirection, SortNullsLast))
     }
 
     "translate EXISTS expressions" in {
@@ -220,8 +216,8 @@ class SnowflakeExpressionBuilderSpec
       Case(
         expression = None,
         branches = scala.collection.immutable.Seq(
-          WhenBranch(Equals(simplyNamedColumn("col1"), Literal(short = Some(1))), Literal(string = Some("one"))),
-          WhenBranch(Equals(simplyNamedColumn("col2"), Literal(short = Some(2))), Literal(string = Some("two")))),
+          WhenBranch(Equals(Id("col1"), Literal(short = Some(1))), Literal(string = Some("one"))),
+          WhenBranch(Equals(Id("col2"), Literal(short = Some(2))), Literal(string = Some("two")))),
         otherwise = None))
 
     example(
@@ -230,8 +226,8 @@ class SnowflakeExpressionBuilderSpec
       Case(
         expression = Some(Literal(string = Some("foo"))),
         branches = scala.collection.immutable.Seq(
-          WhenBranch(Equals(simplyNamedColumn("col1"), Literal(short = Some(1))), Literal(string = Some("one"))),
-          WhenBranch(Equals(simplyNamedColumn("col2"), Literal(short = Some(2))), Literal(string = Some("two")))),
+          WhenBranch(Equals(Id("col1"), Literal(short = Some(1))), Literal(string = Some("one"))),
+          WhenBranch(Equals(Id("col2"), Literal(short = Some(2))), Literal(string = Some("two")))),
         otherwise = None))
 
     example(
@@ -240,8 +236,8 @@ class SnowflakeExpressionBuilderSpec
       Case(
         expression = None,
         branches = scala.collection.immutable.Seq(
-          WhenBranch(Equals(simplyNamedColumn("col1"), Literal(short = Some(1))), Literal(string = Some("one"))),
-          WhenBranch(Equals(simplyNamedColumn("col2"), Literal(short = Some(2))), Literal(string = Some("two")))),
+          WhenBranch(Equals(Id("col1"), Literal(short = Some(1))), Literal(string = Some("one"))),
+          WhenBranch(Equals(Id("col2"), Literal(short = Some(2))), Literal(string = Some("two")))),
         otherwise = Some(Literal(string = Some("other")))))
 
     example(
@@ -250,8 +246,8 @@ class SnowflakeExpressionBuilderSpec
       Case(
         expression = Some(Literal(string = Some("foo"))),
         branches = scala.collection.immutable.Seq(
-          WhenBranch(Equals(simplyNamedColumn("col1"), Literal(short = Some(1))), Literal(string = Some("one"))),
-          WhenBranch(Equals(simplyNamedColumn("col2"), Literal(short = Some(2))), Literal(string = Some("two")))),
+          WhenBranch(Equals(Id("col1"), Literal(short = Some(1))), Literal(string = Some("one"))),
+          WhenBranch(Equals(Id("col2"), Literal(short = Some(2))), Literal(string = Some("two")))),
         otherwise = Some(Literal(string = Some("other")))))
 
   }
@@ -261,6 +257,8 @@ class SnowflakeExpressionBuilderSpec
       val literal = mock[LiteralContext]
       astBuilder.visitLiteral(literal) shouldBe Literal(nullType = Some(NullType()))
       verify(literal).sign()
+      verify(literal).DATE_LIT()
+      verify(literal).TIMESTAMP_LIT()
       verify(literal).STRING()
       verify(literal).DECIMAL()
       verify(literal).FLOAT()
@@ -288,19 +286,6 @@ class SnowflakeExpressionBuilderSpec
       verify(operator).LE()
       verify(operator).getText
       verifyNoMoreInteractions(operator)
-    }
-  }
-
-  "SnowflakeExpressionBuilder.buildWindowFunction" should {
-    "handle unresolved input" in {
-      val windowedFunction = mock[RankingWindowedFunctionContext]
-      val dummyTextForWindowedFunction = "dummy"
-      when(windowedFunction.getText).thenReturn(dummyTextForWindowedFunction)
-      astBuilder.buildWindowFunction(windowedFunction) shouldBe UnresolvedExpression(dummyTextForWindowedFunction)
-      verify(windowedFunction).ROW_NUMBER()
-      verify(windowedFunction).NTILE()
-      verify(windowedFunction).getText
-      verifyNoMoreInteractions(windowedFunction)
     }
   }
 

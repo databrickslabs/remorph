@@ -1,6 +1,7 @@
 package com.databricks.labs.remorph.parsers.tsql
 
-import com.databricks.labs.remorph.parsers.{IRHelpers, intermediate => ir}
+import com.databricks.labs.remorph.parsers.intermediate.IRHelpers
+import com.databricks.labs.remorph.parsers.{intermediate => ir}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.mockito.MockitoSugar
@@ -47,7 +48,7 @@ class TSqlRelationBuilderSpec
       example(
         "FROM some_table WHERE 1=1",
         _.selectOptionalClauses(),
-        ir.Filter(namedTable("some_table"), ir.Equals(ir.Literal(integer = Some(1)), ir.Literal(integer = Some(1)))))
+        ir.Filter(namedTable("some_table"), ir.Equals(ir.Literal(short = Some(1)), ir.Literal(short = Some(1)))))
     }
 
     "translate GROUP BY clauses" in {
@@ -91,9 +92,8 @@ class TSqlRelationBuilderSpec
         "FROM some_table WHERE 1=1 GROUP BY some_column",
         _.selectOptionalClauses(),
         ir.Aggregate(
-          input = ir.Filter(
-            namedTable("some_table"),
-            ir.Equals(ir.Literal(integer = Some(1)), ir.Literal(integer = Some(1)))),
+          input =
+            ir.Filter(namedTable("some_table"), ir.Equals(ir.Literal(short = Some(1)), ir.Literal(short = Some(1)))),
           group_type = ir.GroupBy,
           grouping_expressions = Seq(simplyNamedColumn("some_column")),
           pivot = None))
@@ -103,9 +103,8 @@ class TSqlRelationBuilderSpec
         _.selectOptionalClauses(),
         ir.Sort(
           ir.Aggregate(
-            input = ir.Filter(
-              namedTable("some_table"),
-              ir.Equals(ir.Literal(integer = Some(1)), ir.Literal(integer = Some(1)))),
+            input =
+              ir.Filter(namedTable("some_table"), ir.Equals(ir.Literal(short = Some(1)), ir.Literal(short = Some(1)))),
             group_type = ir.GroupBy,
             grouping_expressions = Seq(simplyNamedColumn("some_column")),
             pivot = None),
@@ -135,6 +134,21 @@ class TSqlRelationBuilderSpec
             all_columns_as_keys = false,
             within_watermark = false),
           Seq(simplyNamedColumn("a"), ir.Alias(simplyNamedColumn("b"), Seq(ir.Id("bb")), None))))
+    }
+
+    "translate derived tables with list of column aliases" in {
+      example(
+        "SELECT a, b AS bb FROM (SELECT x, y FROM d) AS t (aliasA, 'aliasB')",
+        _.selectStatement(),
+        ir.Project(
+          ir.TableAlias(
+            ir.ColumnAliases(
+              ir.Project(
+                ir.NamedTable("d", Map(), is_streaming = false),
+                Seq(ir.Column(None, ir.Id("x")), ir.Column(None, ir.Id("y")))),
+              Seq(ir.Id("aliasA"), ir.Id("aliasB"))),
+            "t"),
+          Seq(ir.Column(None, ir.Id("a")), ir.Alias(ir.Column(None, ir.Id("b")), Seq(ir.Id("bb")), None))))
     }
   }
 }

@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.parsers.common
 
-import com.databricks.labs.remorph.parsers.intermediate.UnresolvedFunction
+import com.databricks.labs.remorph.parsers.intermediate.{IRHelpers, UnresolvedFunction}
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeFunctionBuilder
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeFunctionConverters.SnowflakeSynonyms
 import com.databricks.labs.remorph.parsers.tsql.TSqlFunctionBuilder
@@ -78,21 +78,25 @@ class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenProp
       ("DENSE_RANK", Some(FunctionDefinition.standard(0))),
       ("DIV0", Some(FunctionDefinition.standard(2))),
       ("DIV0NULL", Some(FunctionDefinition.standard(2))),
+      ("EDITDISTANCE", Some(FunctionDefinition.standard(2, 3))),
       ("ENDSWITH", Some(FunctionDefinition.standard(2))),
       ("EQUAL_NULL", Some(FunctionDefinition.standard(2))),
       ("EXTRACT", Some(FunctionDefinition.standard(2))),
-      ("FLATTEN", Some(FunctionDefinition.standard(1, 5))),
+      ("FLATTEN", Some(FunctionDefinition.symbolic(Set("INPUT"), Set("PATH", "OUTER", "RECURSIVE", "MODE")))),
       ("GET", Some(FunctionDefinition.standard(2))),
       ("HASH", Some(FunctionDefinition.standard(1, Int.MaxValue))),
+      ("HOUR", Some(FunctionDefinition.standard(1))),
       ("IFNULL", Some(FunctionDefinition.standard(1, 2))),
       ("INITCAP", Some(FunctionDefinition.standard(1, 2))),
       ("ISNULL", Some(FunctionDefinition.standard(1))),
       ("IS_INTEGER", Some(FunctionDefinition.standard(1))),
       ("JSON_EXTRACT_PATH_TEXT", Some(FunctionDefinition.standard(2))),
       ("LAST_DAY", Some(FunctionDefinition.standard(1, 2))),
+      ("LEFT", Some(FunctionDefinition.standard(2))),
       ("LPAD", Some(FunctionDefinition.standard(2, 3))),
       ("LTRIM", Some(FunctionDefinition.standard(1, 2))),
       ("MEDIAN", Some(FunctionDefinition.standard(1))),
+      ("MINUTE", Some(FunctionDefinition.standard(1))),
       ("MOD", Some(FunctionDefinition.standard(2))),
       ("MODE", Some(FunctionDefinition.standard(1))),
       ("MONTHNAME", Some(FunctionDefinition.standard(1))),
@@ -101,7 +105,7 @@ class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenProp
       ("NTH_VAlUE", Some(FunctionDefinition.standard(2))),
       ("NVL", Some(FunctionDefinition.standard(2))),
       ("NVL2", Some(FunctionDefinition.standard(3))),
-      ("OBJECT_CONSTRUCT", Some(FunctionDefinition.standard(1, Int.MaxValue))),
+      ("OBJECT_CONSTRUCT", Some(FunctionDefinition.standard(0, Int.MaxValue))),
       ("OBJECT_KEYS", Some(FunctionDefinition.standard(1))),
       ("PARSE_JSON", Some(FunctionDefinition.standard(1))),
       ("PARSE_URL", Some(FunctionDefinition.standard(1, 2))),
@@ -117,10 +121,12 @@ class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenProp
       ("REGR_R2", Some(FunctionDefinition.standard(2))),
       ("REGR_SLOPE", Some(FunctionDefinition.standard(2))),
       ("REPEAT", Some(FunctionDefinition.standard(2))),
+      ("RIGHT", Some(FunctionDefinition.standard(2))),
       ("RLIKE", Some(FunctionDefinition.standard(2, 3))),
       ("ROUND", Some(FunctionDefinition.standard(1, 3))),
       ("RPAD", Some(FunctionDefinition.standard(2, 3))),
       ("RTRIM", Some(FunctionDefinition.standard(1, 2))),
+      ("SECOND", Some(FunctionDefinition.standard(1))),
       ("SPLIT_PART", Some(FunctionDefinition.standard(3))),
       ("SQUARE", Some(FunctionDefinition.standard(1))),
       ("STARTSWITH", Some(FunctionDefinition.standard(2))),
@@ -541,5 +547,81 @@ class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenProp
       case f: ir.CallFunction => f.function_name shouldBe "Abs"
       case _ => fail("UNKNOWN_FUNCTION conversion failed")
     }
+  }
+
+  "FunctionArity.verifyArguments" should "return true when arity is fixed and provided number of arguments matches" in {
+    FunctionArity.verifyArguments(FixedArity(0), Seq()) shouldBe true
+    FunctionArity.verifyArguments(FixedArity(1), Seq(ir.Noop)) shouldBe true
+    FunctionArity.verifyArguments(FixedArity(2), Seq(ir.Noop, ir.Noop)) shouldBe true
+  }
+
+  "FunctionArity.verifyArguments" should
+    "return true when arity is varying and provided number of arguments matches" in {
+      FunctionArity.verifyArguments(VariableArity(0, 2), Seq()) shouldBe true
+      FunctionArity.verifyArguments(VariableArity(0, 2), Seq(ir.Noop)) shouldBe true
+      FunctionArity.verifyArguments(VariableArity(0, 2), Seq(ir.Noop, ir.Noop)) shouldBe true
+    }
+
+  "FunctionArity.verifyArguments" should "return true when arity is symbolic and arguments are provided named" in {
+    val arity = SymbolicArity(Set("req1", "REQ2"), Set("opt1", "opt2", "opt3"))
+    FunctionArity.verifyArguments(
+      arity,
+      Seq(ir.NamedArgumentExpression("Req2", ir.Noop), ir.NamedArgumentExpression("REQ1", ir.Noop))) shouldBe true
+
+    FunctionArity.verifyArguments(
+      arity,
+      Seq(
+        ir.NamedArgumentExpression("Req2", ir.Noop),
+        ir.NamedArgumentExpression("OPT1", ir.Noop),
+        ir.NamedArgumentExpression("REQ1", ir.Noop))) shouldBe true
+
+    FunctionArity.verifyArguments(
+      arity,
+      Seq(
+        ir.NamedArgumentExpression("Req2", ir.Noop),
+        ir.NamedArgumentExpression("OPT1", ir.Noop),
+        ir.NamedArgumentExpression("OPT3", ir.Noop),
+        ir.NamedArgumentExpression("OPT2", ir.Noop),
+        ir.NamedArgumentExpression("REQ1", ir.Noop))) shouldBe true
+  }
+
+  "FunctionArity.verifyArguments" should "return true when arity is symbolic and arguments are provided unnamed" in {
+    val arity = SymbolicArity(Set("req1", "REQ2"), Set("opt1", "opt2", "opt3"))
+
+    FunctionArity.verifyArguments(arity, Seq( /*REQ1*/ ir.Noop, /*REQ2*/ ir.Noop)) shouldBe true
+    FunctionArity.verifyArguments(arity, Seq( /*REQ1*/ ir.Noop, /*REQ2*/ ir.Noop, /*OPT1*/ ir.Noop)) shouldBe true
+    FunctionArity.verifyArguments(
+      arity,
+      Seq( /*REQ1*/ ir.Noop, /*REQ2*/ ir.Noop, /*OPT1*/ ir.Noop, /*OPT2*/ ir.Noop)) shouldBe true
+    FunctionArity.verifyArguments(
+      arity,
+      Seq( /*REQ1*/ ir.Noop, /*REQ2*/ ir.Noop, /*OPT1*/ ir.Noop, /*OPT2*/ ir.Noop, /*OPT3*/ ir.Noop)) shouldBe true
+  }
+
+  "FunctionArity.verifyArguments" should "return false otherwise" in {
+    // not enough arguments
+    FunctionArity.verifyArguments(FixedArity(1), Seq.empty) shouldBe false
+    FunctionArity.verifyArguments(VariableArity(2, 3), Seq(ir.Noop)) shouldBe false
+    FunctionArity.verifyArguments(
+      SymbolicArity(Set("req1", "req2"), Set.empty),
+      Seq(ir.NamedArgumentExpression("REQ2", ir.Noop))) shouldBe false
+    FunctionArity.verifyArguments(SymbolicArity(Set("req1", "req2"), Set.empty), Seq(ir.Noop)) shouldBe false
+
+    // too many arguments
+    FunctionArity.verifyArguments(FixedArity(0), Seq(ir.Noop)) shouldBe false
+    FunctionArity.verifyArguments(VariableArity(0, 1), Seq(ir.Noop, ir.Noop)) shouldBe false
+    FunctionArity.verifyArguments(
+      SymbolicArity(Set("req1", "req2"), Set.empty),
+      Seq(ir.Noop, ir.Noop, ir.Noop)) shouldBe false
+
+    // wrongly named arguments
+    FunctionArity.verifyArguments(
+      SymbolicArity(Set("req1"), Set("opt1")),
+      Seq(ir.NamedArgumentExpression("REQ2", ir.Noop), ir.NamedArgumentExpression("REQ1", ir.Noop))) shouldBe false
+
+    // mix of named and unnamed arguments
+    FunctionArity.verifyArguments(
+      SymbolicArity(Set("REQ"), Set("OPT")),
+      Seq(ir.Noop, ir.NamedArgumentExpression("OPT", ir.Noop))) shouldBe false
   }
 }

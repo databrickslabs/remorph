@@ -14,7 +14,7 @@ case class AcceptanceTestConfig(
 abstract class AcceptanceTestRunner(config: AcceptanceTestConfig) extends AnyFlatSpec {
 
   private def runAcceptanceTest(acceptanceTest: AcceptanceTest): Option[ReportEntryReport] = {
-    config.queryExtractor.extractQuery(acceptanceTest.inputFile).map(config.queryRunner.runQuery)
+    config.queryExtractor.extractQuery(acceptanceTest.inputFile).map((config.queryRunner.runQuery _).tupled)
   }
 
   config.testFileSource.listTests.foreach { test =>

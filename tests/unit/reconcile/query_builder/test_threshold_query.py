@@ -10,7 +10,7 @@ from databricks.labs.remorph.reconcile.query_builder.threshold_query import (
 from databricks.labs.remorph.reconcile.recon_config import (
     JdbcReaderOptions,
     Schema,
-    Thresholds,
+    ColumnThresholds,
     Transformation,
 )
 
@@ -42,9 +42,9 @@ def test_threshold_comparison_query_with_dual_threshold(table_conf_with_opts, ta
     # table conf
     table_conf = table_conf_with_opts
     table_conf.join_columns = ["s_suppkey", "s_suppdate"]
-    table_conf.thresholds = [
-        Thresholds(column_name="s_acctbal", lower_bound="5%", upper_bound="-5%", type="float"),
-        Thresholds(column_name="s_suppdate", lower_bound="-86400", upper_bound="86400", type="timestamp"),
+    table_conf.column_thresholds = [
+        ColumnThresholds(column_name="s_acctbal", lower_bound="5%", upper_bound="-5%", type="float"),
+        ColumnThresholds(column_name="s_suppdate", lower_bound="-86400", upper_bound="86400", type="timestamp"),
     ]
 
     # schema
@@ -87,13 +87,11 @@ def test_build_threshold_query_with_single_threshold(table_conf_with_opts, table
         table_conf, tgt_schema, "target", get_dialect("databricks")
     ).build_threshold_query()
     assert src_query == (
-        "SELECT COALESCE(TRIM(s_nationkey), '_null_recon_') AS s_nationkey, COALESCE(TRIM(s_suppkey), '_null_recon_') "
-        "AS s_suppkey, "
+        "SELECT s_nationkey AS s_nationkey, s_suppkey AS s_suppkey, "
         "CAST(s_acctbal AS NUMBER) AS s_acctbal FROM :tbl WHERE s_name = 't' AND s_address = 'a'"
     )
     assert target_query == (
-        "SELECT COALESCE(TRIM(s_nationkey_t), '_null_recon_') AS s_nationkey, COALESCE(TRIM(s_suppkey_t), "
-        "'_null_recon_') AS s_suppkey, "
+        "SELECT s_nationkey_t AS s_nationkey, s_suppkey_t AS s_suppkey, "
         "CAST(s_acctbal_t AS INT) AS s_acctbal FROM :tbl WHERE s_name = 't' AND s_address_t = 'a'"
     )
 
@@ -103,9 +101,9 @@ def test_build_threshold_query_with_multiple_threshold(table_conf_with_opts, tab
     table_conf.jdbc_reader_options = JdbcReaderOptions(
         number_partitions=100, partition_column="s_phone", lower_bound="0", upper_bound="100"
     )
-    table_conf.thresholds = [
-        Thresholds(column_name="s_acctbal", lower_bound="5%", upper_bound="-5%", type="float"),
-        Thresholds(column_name="s_suppdate", lower_bound="-86400", upper_bound="86400", type="timestamp"),
+    table_conf.column_thresholds = [
+        ColumnThresholds(column_name="s_acctbal", lower_bound="5%", upper_bound="-5%", type="float"),
+        ColumnThresholds(column_name="s_suppdate", lower_bound="-86400", upper_bound="86400", type="timestamp"),
     ]
     table_conf.filters = None
     src_schema, tgt_schema = table_schema
@@ -116,21 +114,19 @@ def test_build_threshold_query_with_multiple_threshold(table_conf_with_opts, tab
         table_conf, tgt_schema, "target", get_dialect("databricks")
     ).build_threshold_query()
     assert src_query == (
-        "SELECT COALESCE(TRIM(s_nationkey), '_null_recon_') AS s_nationkey, TRIM(s_phone) AS s_phone, COALESCE(TRIM("
-        "s_suppkey), "
-        "'_null_recon_') AS s_suppkey, s_acctbal AS s_acctbal, s_suppdate AS s_suppdate FROM :tbl"
+        "SELECT s_nationkey AS s_nationkey, TRIM(s_phone) AS s_phone, s_suppkey "
+        "AS s_suppkey, s_acctbal AS s_acctbal, s_suppdate AS s_suppdate FROM :tbl"
     )
     assert target_query == (
-        "SELECT COALESCE(TRIM(s_nationkey_t), '_null_recon_') AS s_nationkey, COALESCE(TRIM(s_suppkey_t), "
-        "'_null_recon_') AS s_suppkey, "
+        "SELECT s_nationkey_t AS s_nationkey, s_suppkey_t AS s_suppkey, "
         "s_acctbal_t AS s_acctbal, s_suppdate AS s_suppdate FROM :tbl"
     )
 
 
 def test_build_expression_type_raises_value_error(table_conf_with_opts, table_schema):
     table_conf = table_conf_with_opts
-    table_conf.thresholds = [
-        Thresholds(column_name="s_acctbal", lower_bound="5%", upper_bound="-5%", type="unknown"),
+    table_conf.column_thresholds = [
+        ColumnThresholds(column_name="s_acctbal", lower_bound="5%", upper_bound="-5%", type="unknown"),
     ]
     table_conf.filters = None
     src_schema, tgt_schema = table_schema

@@ -57,7 +57,10 @@ dmlCommand
     ;
 
 insertStatement
-    : INSERT OVERWRITE? INTO objectName columnListInParentheses? (valuesBuilder | queryStatement)
+    : INSERT OVERWRITE? INTO objectName (L_PAREN ids += id (COMMA ids += id)* R_PAREN)? (
+        valuesTableBody
+        | queryStatement
+    )
     ;
 
 insertMultiTableStatement
@@ -74,15 +77,15 @@ valuesList: VALUES L_PAREN valueItem (COMMA valueItem)* R_PAREN
 valueItem: columnName | DEFAULT | NULL_
     ;
 
-mergeStatement: MERGE INTO objectName asAlias? USING tableSource ON searchCondition mergeMatches
+mergeStatement: MERGE INTO tableRef USING tableSource ON predicate mergeMatches
     ;
 
 mergeMatches: mergeCond+
     ;
 
 mergeCond
-    : (WHEN MATCHED (AND searchCondition)? THEN mergeUpdateDelete)+
-    | WHEN NOT MATCHED (AND searchCondition)? THEN mergeInsert
+    : (WHEN MATCHED (AND predicate)? THEN mergeUpdateDelete)+
+    | WHEN NOT MATCHED (AND predicate)? THEN mergeInsert
     ;
 
 mergeUpdateDelete: UPDATE SET columnName EQ expr (COLON columnName EQ expr)* | DELETE
@@ -92,18 +95,24 @@ mergeInsert: INSERT (L_PAREN columnList R_PAREN)? VALUES L_PAREN exprList R_PARE
     ;
 
 updateStatement
-    : UPDATE objectName asAlias? SET columnName EQ expr (COMMA columnName EQ expr)* (
-        FROM tableSources
-    )? (WHERE searchCondition)?
-    ;
-
-tableOrQuery: objectName asAlias? | L_PAREN subquery R_PAREN asAlias?
-    ;
-
-deleteStatement
-    : DELETE FROM objectName asAlias? (USING tableOrQuery (COMMA tableOrQuery)?)? (
-        WHERE searchCondition
+    : UPDATE tableRef SET setColumnValue (COMMA setColumnValue)* (FROM tableSources)? (
+        WHERE predicate
     )?
+    ;
+
+setColumnValue: id EQ expr
+    ;
+
+tableRef: objectName asAlias?
+    ;
+
+tableOrQuery: tableRef | L_PAREN subquery R_PAREN asAlias?
+    ;
+
+tablesOrQueries: tableOrQuery (COMMA tableOrQuery)*
+    ;
+
+deleteStatement: DELETE FROM tableRef (USING tablesOrQueries)? (WHERE predicate)?
     ;
 
 valuesBuilder: VALUES L_PAREN exprList R_PAREN (COMMA L_PAREN exprList R_PAREN)?
@@ -204,7 +213,7 @@ copyIntoLocation
 
 comment
     : COMMENT ifExists? ON objectTypeName objectName functionSignature? IS string
-    | COMMENT ifExists? ON COLUMN fullColumnName IS string
+    | COMMENT ifExists? ON COLUMN objectName IS string
     ;
 
 functionSignature: L_PAREN dataTypeList? R_PAREN
@@ -2180,7 +2189,7 @@ sessionParamsList: sessionParams (COMMA sessionParams)*
 createTask
     : CREATE orReplace? TASK ifNotExists? objectName taskParameters* commentClause? copyGrants? (
         AFTER objectName (COMMA objectName)*
-    )? (WHEN searchCondition)? AS sql
+    )? (WHEN predicate)? AS sql
     ;
 
 taskParameters
@@ -2988,9 +2997,10 @@ nonReservedWords
     | END
     | EMAIL
     | EVENT
+    | EXCHANGE
     | EXPIRY_DATE
+    | FIRST
     | FIRST_NAME
-    | FIRST_VALUE
     | FLATTEN
     | FLOOR
     | FUNCTION
@@ -3009,7 +3019,6 @@ nonReservedWords
     | LAST_NAME
     | LAST_QUERY_ID
     | LEAD
-    | LEFT
     | LENGTH
     | LOCAL
     | MAX_CONCURRENCY_LEVEL
@@ -3040,12 +3049,11 @@ nonReservedWords
     | RESPECT
     | RESTRICT
     | RESULT
-    | RIGHT
     | RLIKE
     | ROLE
     | ROLLUP
-    | ROW_NUMBER
     | SECURITYADMIN
+    | SHARES
     | SOURCE
     | STAGE
     | START
@@ -3102,9 +3110,8 @@ exprList: expr (COMMA expr)*
 
 expr
     : objectName DOT NEXTVAL                    # exprNextval
-    | expr LSB expr RSB                         # exprArrayAccess
-    | expr COLON jsonPath                       # exprJsonAccess
-    | expr DOT (VALUE | expr)                   # exprDot
+    | expr DOT expr                             # exprDot
+    | expr COLON expr                           # exprColon
     | expr COLLATE string                       # exprCollate
     | caseExpression                            # exprCase
     | iffExpr                                   # exprIff
@@ -3121,7 +3128,7 @@ expr
     | castExpr                                  # exprCast
     | expr COLON_COLON dataType                 # exprAscribe
     | functionCall                              # exprFuncCall
-    | subquery                                  # exprSubquery
+    | L_PAREN subquery R_PAREN                  # exprSubquery
     | expr predicatePartial                     # exprPredicate
     | DISTINCT expr                             # exprDistinct
     //Should be latest rule as it's nearly a catch all
@@ -3143,10 +3150,10 @@ predicatePartial
 jsonPath: jsonPathElem (DOT jsonPathElem)*
     ;
 
-jsonPathElem: ID | DOUBLE_QUOTE_ID
+jsonPathElem: ID | DOUBLE_QUOTE_ID (LSB (string | num) RSB)?
     ;
 
-iffExpr: IFF L_PAREN searchCondition COMMA expr COMMA expr R_PAREN
+iffExpr: IFF L_PAREN predicate COMMA expr COMMA expr R_PAREN
     ;
 
 castExpr: castOp = (TRY_CAST | CAST) L_PAREN expr AS dataType R_PAREN | INTERVAL expr
@@ -3195,14 +3202,14 @@ dataType
     ;
 
 primitiveExpression
-    : DEFAULT        # primExprDefault //?
-    | fullColumnName # primExprColumn
-    | literal        # primExprLiteral
-    | BOTH_Q         # primExprBoth
-    | ARRAY_Q        # primExprArray
-    | OBJECT_Q       # primExprObject
-    //| jsonLiteral
-    //| arrLiteral
+    : DEFAULT           # primExprDefault //?
+    | id LSB num RSB    # primArrayAccess
+    | id LSB string RSB # primObjectAccess
+    | id                # primExprColumn
+    | literal           # primExprLiteral
+    | BOTH_Q            # primExprBoth
+    | ARRAY_Q           # primExprArray
+    | OBJECT_Q          # primExprObject
     ;
 
 overClause: OVER L_PAREN (PARTITION BY expr (COMMA expr)*)? windowOrderingAndFrame? R_PAREN
@@ -3226,10 +3233,18 @@ functionCall: builtinFunction | standardFunction | rankingWindowedFunction | agg
 builtinFunction: EXTRACT L_PAREN part = (STRING | ID) FROM expr R_PAREN # builtinExtract
     ;
 
-standardFunction: id L_PAREN exprList? R_PAREN
+standardFunction: functionName L_PAREN (exprList | paramAssocList)? R_PAREN
     ;
 
-paramAssocList: paramAssoc (COLON paramAssoc)*
+functionName: id | nonReservedFunctionName
+    ;
+
+nonReservedFunctionName
+    : LEFT
+    | RIGHT // keywords that cannot be used as id, but can be used as function names
+    ;
+
+paramAssocList: paramAssoc (COMMA paramAssoc)*
     ;
 
 paramAssoc: id ASSOC expr
@@ -3238,11 +3253,7 @@ paramAssoc: id ASSOC expr
 ignoreOrRepectNulls: (IGNORE | RESPECT) NULLS
     ;
 
-rankingWindowedFunction
-    : (RANK | DENSE_RANK | ROW_NUMBER) L_PAREN R_PAREN overClause
-    | NTILE L_PAREN expr R_PAREN overClause
-    | (LEAD | LAG) L_PAREN expr (COMMA expr COMMA expr)? R_PAREN ignoreOrRepectNulls? overClause
-    | (FIRST_VALUE | LAST_VALUE) L_PAREN expr R_PAREN ignoreOrRepectNulls? overClause
+rankingWindowedFunction: standardFunction ignoreOrRepectNulls? overClause
     ;
 
 aggregateFunction
@@ -3254,7 +3265,9 @@ aggregateFunction
     ;
 
 literal
-    : STRING
+    : DATE_LIT
+    | TIMESTAMP_LIT
+    | STRING
     | sign? DECIMAL
     | sign? (REAL | FLOAT)
     | trueFalse
@@ -3267,9 +3280,6 @@ literal
 sign: PLUS | MINUS
     ;
 
-fullColumnName: id (DOT id)*
-    ;
-
 bracketExpression: L_PAREN exprList R_PAREN | L_PAREN subquery R_PAREN
     ;
 
@@ -3278,7 +3288,7 @@ caseExpression
     | CASE switchSearchConditionSection+ (ELSE expr)? END
     ;
 
-switchSearchConditionSection: WHEN searchCondition THEN expr
+switchSearchConditionSection: WHEN predicate THEN expr
     ;
 
 switchSection: WHEN expr THEN expr
@@ -3349,7 +3359,7 @@ columnPosition: num
 allDistinct: ALL | DISTINCT
     ;
 
-topClause: TOP num
+topClause: TOP expr
     ;
 
 intoClause: INTO varList
@@ -3377,28 +3387,14 @@ tableSourceItemJoined: objectRef joinClause* | L_PAREN tableSourceItemJoined R_P
     ;
 
 objectRef
-    : objectName atBefore? changes? matchRecognize? pivotUnpivot? asAlias? columnListInParentheses? # objRefDefault
-    | TABLE L_PAREN functionCall R_PAREN pivotUnpivot? asAlias?                                     # objRefTable
-    | LATERAL (flattenTable | splitedTable) asAlias?                                                # objRefLateral
-    | LATERAL? L_PAREN subquery R_PAREN pivotUnpivot? asAlias? columnListInParentheses?             # objRefSubquery
-    | valuesTable                                                                                   # objRefValues
-    | objectName START WITH predicate CONNECT BY priorList?                                         # objRefStartWith
-    //| AT id PATH?
-    //    (L_PAREN FILE_FORMAT ASSOC id COMMA patternAssoc R_PAREN)?
-    //    asAlias?
+    : objectName atBefore? changes? matchRecognize? pivotUnpivot? tableAlias?        # objRefDefault
+    | TABLE L_PAREN functionCall R_PAREN pivotUnpivot? tableAlias?                   # objRefTableFunc
+    | LATERAL? (functionCall | (L_PAREN subquery R_PAREN)) pivotUnpivot? tableAlias? # objRefSubquery
+    | valuesTable                                                                    # objRefValues
+    | objectName START WITH predicate CONNECT BY priorList?                          # objRefStartWith
     ;
 
-flattenTableOption
-    : PATH_ ASSOC string
-    | OUTER ASSOC trueFalse
-    | RECURSIVE ASSOC trueFalse
-    | MODE ASSOC (ARRAY_Q | OBJECT_Q | BOTH_Q)
-    ;
-
-flattenTable: FLATTEN L_PAREN (INPUT ASSOC)? expr (COMMA flattenTableOption)* R_PAREN
-    ;
-
-splitedTable: SPLIT_TO_TABLE L_PAREN expr COMMA expr R_PAREN
+tableAlias: AS? alias (L_PAREN id (COMMA id)*)?
     ;
 
 priorList: priorItem (COMMA priorItem)*
@@ -3414,7 +3410,7 @@ joinType: INNER | outerJoin
     ;
 
 joinClause
-    : joinType? JOIN objectRef ((ON searchCondition)? | (USING L_PAREN columnList R_PAREN)?)
+    : joinType? JOIN objectRef ((ON predicate)? | (USING L_PAREN columnList R_PAREN)?)
     //| joinType? JOIN objectRef (USING L_PAREN columnList R_PAREN)?
     | NATURAL outerJoin? JOIN objectRef
     | CROSS JOIN objectRef
@@ -3510,12 +3506,6 @@ sample: (SAMPLE | TABLESAMPLE) sampleMethod sampleSeed?
 sampleSeed: (REPEATABLE | SEED) L_PAREN num R_PAREN
     ;
 
-searchCondition
-    : NOT* (predicate | L_PAREN searchCondition R_PAREN)
-    | searchCondition AND searchCondition
-    | searchCondition OR searchCondition
-    ;
-
 comparisonOperator: EQ | GT | LT | LE | GE | LTGT | NE
     ;
 
@@ -3532,7 +3522,7 @@ predicate
     | expr
     ;
 
-whereClause: WHERE searchCondition
+whereClause: WHERE predicate
     ;
 
 groupByElem: columnElem | num | expressionElem
@@ -3547,7 +3537,7 @@ groupByClause
     | GROUP BY ALL
     ;
 
-havingClause: HAVING searchCondition
+havingClause: HAVING predicate
     ;
 
 qualifyClause: QUALIFY expr
@@ -3559,11 +3549,7 @@ orderItem: expr (ASC | DESC)? (NULLS ( FIRST | LAST))?
 orderByClause: ORDER BY orderItem (COMMA orderItem)*
     ;
 
-rowRows: ROW | ROWS
-    ;
-
-firstNext: FIRST | NEXT
-    ;
-
-limitClause: LIMIT num (OFFSET num)? | (OFFSET num)? rowRows? FETCH firstNext? num rowRows? ONLY?
+limitClause
+    : LIMIT expr (OFFSET expr)?
+    | (OFFSET expr)? (ROW | ROWS)? FETCH (FIRST | NEXT)? expr (ROW | ROWS)? ONLY?
     ;

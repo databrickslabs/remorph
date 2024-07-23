@@ -1,12 +1,15 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser._
-import com.databricks.labs.remorph.parsers.{IncompleteParser, intermediate => ir}
+import com.databricks.labs.remorph.parsers.{IncompleteParser, ParserCommon, intermediate => ir}
 import org.antlr.v4.runtime.ParserRuleContext
 
 import scala.collection.JavaConverters._
 
-class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.Relation] with IncompleteParser[ir.Relation] {
+class SnowflakeRelationBuilder
+    extends SnowflakeParserBaseVisitor[ir.Relation]
+    with IncompleteParser[ir.Relation]
+    with ParserCommon[ir.Relation] {
 
   private val expressionBuilder = new SnowflakeExpressionBuilder
   private val functionBuilder = new SnowflakeFunctionBuilder
@@ -35,14 +38,14 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.Relation] w
   private def buildLimitOffset(ctx: LimitClauseContext, input: ir.Relation): ir.Relation = {
     Option(ctx).fold(input) { c =>
       if (c.LIMIT() != null) {
-        val limit = ir.Limit(input, ctx.num(0).getText.toInt)
+        val limit = ir.Limit(input, ctx.expr(0).accept(expressionBuilder))
         if (c.OFFSET() != null) {
-          ir.Offset(limit, ctx.num(1).getText.toInt)
+          ir.Offset(limit, ctx.expr(1).accept(expressionBuilder))
         } else {
           limit
         }
       } else {
-        ir.Offset(input, ctx.num(0).getText.toInt)
+        ir.Offset(input, ctx.expr(0).accept(expressionBuilder))
       }
     }
   }
@@ -63,7 +66,7 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.Relation] w
 
   private def buildTop(ctxOpt: Option[TopClauseContext], input: ir.Relation): ir.Relation =
     ctxOpt.fold(input) { top =>
-      ir.Limit(input, top.num().getText.toInt)
+      ir.Limit(input, top.expr().accept(expressionBuilder))
     }
 
   override def visitSelectOptionalClauses(ctx: SelectOptionalClausesContext): ir.Relation = {
@@ -76,7 +79,7 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.Relation] w
   }
 
   override def visitFromClause(ctx: FromClauseContext): ir.Relation = {
-    val tableSources = ctx.tableSources().tableSource().asScala.map(_.accept(this))
+    val tableSources = visitMany(ctx.tableSources().tableSource())
     // The tableSources seq cannot be empty (as empty FROM clauses are not allowed
     tableSources match {
       case Seq(tableSource) => tableSource
@@ -91,12 +94,12 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.Relation] w
       ir.Filter(input, conditionRule(c).accept(expressionBuilder))
     }
   private def buildHaving(ctx: HavingClauseContext, input: ir.Relation): ir.Relation =
-    buildFilter[HavingClauseContext](ctx, _.searchCondition(), input)
+    buildFilter[HavingClauseContext](ctx, _.predicate(), input)
 
   private def buildQualify(ctx: QualifyClauseContext, input: ir.Relation): ir.Relation =
     buildFilter[QualifyClauseContext](ctx, _.expr(), input)
   private def buildWhere(ctx: WhereClauseContext, from: ir.Relation): ir.Relation =
-    buildFilter[WhereClauseContext](ctx, _.searchCondition(), from)
+    buildFilter[WhereClauseContext](ctx, _.predicate(), from)
 
   private def buildGroupBy(ctx: GroupByClauseContext, input: ir.Relation): ir.Relation = {
     Option(ctx).fold(input) { c =>
@@ -118,27 +121,69 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.Relation] w
     }
   }
 
-  override def visitObjRefSubquery(ctx: ObjRefSubqueryContext): ir.Relation = {
-    val subquery = ctx.subquery().accept(this)
-    Option(ctx.asAlias())
-      .map(a => ir.SubqueryAlias(subquery, expressionBuilder.visitId(a.alias().id()), ""))
-      .getOrElse(subquery)
+  override def visitObjRefTableFunc(ctx: ObjRefTableFuncContext): ir.Relation = {
+    val tableFunc = ir.TableFunction(ctx.functionCall().accept(expressionBuilder))
+    buildSubqueryAlias(ctx.tableAlias(), buildPivotOrUnpivot(ctx.pivotUnpivot(), tableFunc))
   }
-  override def visitObjRefValues(ctx: ObjRefValuesContext): ir.Relation = {
+
+  override def visitObjRefSubquery(ctx: ObjRefSubqueryContext): ir.Relation = {
+    val relation = ctx match {
+      case c if c.subquery() != null => c.subquery().accept(this)
+      case c if c.functionCall() != null => ir.TableFunction(c.functionCall().accept(expressionBuilder))
+    }
+    val maybeLateral = if (ctx.LATERAL() != null) {
+      ir.Lateral(relation)
+    } else {
+      relation
+    }
+    buildSubqueryAlias(ctx.tableAlias(), buildPivotOrUnpivot(ctx.pivotUnpivot(), maybeLateral))
+  }
+
+  private def buildSubqueryAlias(ctx: TableAliasContext, input: ir.Relation): ir.Relation = {
+    Option(ctx)
+      .map(a =>
+        ir.SubqueryAlias(
+          input,
+          expressionBuilder.visitId(a.alias().id()),
+          a.id().asScala.map(expressionBuilder.visitId)))
+      .getOrElse(input)
+  }
+
+  override def visitValuesTableBody(ctx: ValuesTableBodyContext): ir.Relation = {
     val expressions =
       ctx
-        .valuesTable()
-        .valuesTableBody()
         .exprListInParentheses()
         .asScala
-        .map(l => expressionBuilder.visitSeq(l.exprList().expr().asScala))
+        .map(l => expressionBuilder.visitMany(l.exprList().expr()))
     ir.Values(expressions)
   }
 
   override def visitObjRefDefault(ctx: ObjRefDefaultContext): ir.Relation = {
-    val tableName = ctx.objectName().id(0).getText
-    val table = ir.NamedTable(tableName, Map.empty, is_streaming = false)
-    buildPivotOrUnpivot(ctx.pivotUnpivot(), table)
+    buildTableAlias(ctx.tableAlias(), buildPivotOrUnpivot(ctx.pivotUnpivot(), ctx.objectName().accept(this)))
+  }
+
+  override def visitTableRef(ctx: TableRefContext): ir.Relation = {
+    val table = ctx.objectName().accept(this)
+    Option(ctx.asAlias())
+      .map { a =>
+        ir.TableAlias(table, a.alias().getText, Seq())
+      }
+      .getOrElse(table)
+  }
+
+  override def visitObjectName(ctx: ObjectNameContext): ir.Relation = {
+    val tableName = ctx.id().asScala.map(expressionBuilder.visitId).map(_.id).mkString(".")
+    ir.NamedTable(tableName, Map.empty, is_streaming = false)
+  }
+
+  private def buildTableAlias(ctx: TableAliasContext, relation: ir.Relation): ir.Relation = {
+    Option(ctx)
+      .map { c =>
+        val alias = c.alias().getText
+        val columns = Option(c.id()).map(_.asScala.map(expressionBuilder.visitId)).getOrElse(Seq.empty)
+        ir.TableAlias(relation, alias, columns)
+      }
+      .getOrElse(relation)
   }
 
   private def buildPivotOrUnpivot(ctx: PivotUnpivotContext, relation: ir.Relation): ir.Relation = {
@@ -152,10 +197,7 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.Relation] w
   }
 
   private def buildPivot(ctx: PivotUnpivotContext, relation: ir.Relation): ir.Relation = {
-    val pivotValues: Seq[ir.Literal] =
-      ctx.values.asScala.map(_.accept(expressionBuilder)).collect { case lit: ir.Literal =>
-        lit
-      }
+    val pivotValues: Seq[ir.Literal] = expressionBuilder.visitMany(ctx.values).collect { case lit: ir.Literal => lit }
     val argument = ir.Column(None, expressionBuilder.visitId(ctx.pivotColumn))
     val column = ir.Column(None, expressionBuilder.visitId(ctx.valueColumn))
     val aggFunc = expressionBuilder.visitId(ctx.aggregateFunc)
@@ -189,19 +231,18 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.Relation] w
   }
 
   override def visitTableSourceItemJoined(ctx: TableSourceItemJoinedContext): ir.Relation = {
-
-    def buildJoin(left: ir.Relation, right: JoinClauseContext): ir.Join = {
-
-      ir.Join(
-        left,
-        right.objectRef().accept(this),
-        None,
-        translateJoinType(right.joinType()),
-        Seq(),
-        ir.JoinDataType(is_left_struct = false, is_right_struct = false))
-    }
     val left = ctx.objectRef().accept(this)
     ctx.joinClause().asScala.foldLeft(left)(buildJoin)
+  }
+
+  private def buildJoin(left: ir.Relation, right: JoinClauseContext): ir.Join = {
+    ir.Join(
+      left,
+      right.objectRef().accept(this),
+      None,
+      translateJoinType(right.joinType()),
+      Seq(),
+      ir.JoinDataType(is_left_struct = false, is_right_struct = false))
   }
 
   private[snowflake] def translateJoinType(joinType: JoinTypeContext): ir.JoinType = {
@@ -246,5 +287,17 @@ class SnowflakeRelationBuilder extends SnowflakeParserBaseVisitor[ir.Relation] w
         ir.TableSample(input, sampleMethod, seed)
       }
       .getOrElse(input)
+  }
+
+  override def visitTableOrQuery(ctx: TableOrQueryContext): ir.Relation = ctx match {
+    case c if c.tableRef() != null => c.tableRef().accept(this)
+    case c if c.subquery() != null =>
+      val subquery = c.subquery().accept(this)
+      Option(c.asAlias())
+        .map { a =>
+          ir.SubqueryAlias(subquery, expressionBuilder.visitId(a.alias().id()), Seq())
+        }
+        .getOrElse(subquery)
+
   }
 }

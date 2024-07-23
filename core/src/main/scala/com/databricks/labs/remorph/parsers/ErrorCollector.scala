@@ -23,7 +23,7 @@ case class ErrorDetail(line: Int, charPositionInLine: Int, msg: String, offendin
 class DefaultErrorCollector extends ErrorCollector {
 
   var count: Int = 0
-  val antlrErr: ConsoleErrorListener = new ConsoleErrorListener()
+  private val antlrErr: ConsoleErrorListener = new ConsoleErrorListener()
 
   override def syntaxError(
       recognizer: Recognizer[_, _],
@@ -87,7 +87,8 @@ class ProductionErrorCollector(sourceCode: String, fileName: String) extends Err
         (errorPosition, errorLine.take(windowWidth - clipMark.length) + clipMark)
       case (true, true) =>
         val start = errorPosition - roomForContext
-        val clippedLineWithoutClipMarks = errorLine.substring(start, start + windowWidth)
+        val clippedLineWithoutClipMarks =
+          errorLine.substring(start, Math.min(start + windowWidth, errorLine.length - 1))
         (
           roomForContext,
           clipMark + clippedLineWithoutClipMarks.substring(
