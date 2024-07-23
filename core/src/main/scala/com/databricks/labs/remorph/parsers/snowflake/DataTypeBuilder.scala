@@ -24,7 +24,7 @@ object DataTypeBuilder {
       case c if c.charAlias != null => ir.CharType(sizeOpt)
       case c if c.varcharAlias != null => ir.VarCharType(sizeOpt)
       case c if c.binaryAlias != null => ir.BinaryType
-      case c if c.ARRAY() != null => ir.ArrayType()
+      case c if c.ARRAY() != null => ir.ArrayType(ir.UnresolvedType)
       case _ => ir.UnparsedType()
     }
   }
