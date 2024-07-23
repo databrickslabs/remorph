@@ -125,4 +125,3 @@ case class CommonInlineUserDefinedFunction(
 case class CallFunction(function_name: String, arguments: Seq[Expression]) extends Expression {}
 
 case class NamedArgumentExpression(key: String, value: Expression) extends Expression {}
-
