@@ -19,7 +19,7 @@ class SnowflakeExpressionBuilderSpec
 
   "SnowflakeExpressionBuilder" should {
     "translate literals" in {
-      exampleExpr("null", _.literal(), Literal(nullType = Some(NullType())))
+      exampleExpr("null", _.literal(), Literal(nullType = Some(NullType)))
       exampleExpr("true", _.literal(), Literal(boolean = Some(true)))
       exampleExpr("false", _.literal(), Literal(boolean = Some(false)))
       exampleExpr("1", _.literal(), Literal(short = Some(1)))
@@ -258,7 +258,7 @@ class SnowflakeExpressionBuilderSpec
   "SnowflakeExpressionBuilder.visit_Literal" should {
     "handle unresolved child" in {
       val literal = mock[LiteralContext]
-      astBuilder.visitLiteral(literal) shouldBe Literal(nullType = Some(NullType()))
+      astBuilder.visitLiteral(literal) shouldBe Literal(nullType = Some(NullType))
       verify(literal).sign()
       verify(literal).DATE_LIT()
       verify(literal).TIMESTAMP_LIT()
