@@ -178,12 +178,14 @@ object Literal {
   def apply(value: String): Literal = Literal(string = Some(value))
   def apply(value: java.sql.Date): Literal = Literal(date = Some(value.getTime))
   def apply(value: java.sql.Timestamp): Literal = Literal(timestamp = Some(value.getTime))
-  def apply(value: Map[String, Expression]): Literal = Literal(map = Some(MapExpr(StringType,
-    value.values.head.dataType,
-    value.keys.map(key => Literal(string = Some(key))).toSeq,
-    value.values.toSeq)))
-  def apply(values: Seq[Expression]): Literal = Literal(array = Some(ArrayExpr(
-    values.headOption.map(_.dataType).getOrElse(UnresolvedType), values)))
+  def apply(value: Map[String, Expression]): Literal = Literal(map = Some(
+    MapExpr(
+      StringType,
+      value.values.head.dataType,
+      value.keys.map(key => Literal(string = Some(key))).toSeq,
+      value.values.toSeq)))
+  def apply(values: Seq[Expression]): Literal =
+    Literal(array = Some(ArrayExpr(values.headOption.map(_.dataType).getOrElse(UnresolvedType), values)))
 }
 
 case class Literal(
@@ -228,10 +230,8 @@ case class Literal(
       case _ if year_month_interval.isDefined => YearMonthIntervalType
       case _ if day_time_interval.isDefined => DayTimeIntervalType
       case _ if array.isDefined => ArrayType(array.map(_.dataType).getOrElse(UnresolvedType))
-      case _ if map.isDefined => MapType(
-        map.map(_.key_type).getOrElse(UnresolvedType),
-        map.map(_.value_type).getOrElse(UnresolvedType)
-      )
+      case _ if map.isDefined =>
+        MapType(map.map(_.key_type).getOrElse(UnresolvedType), map.map(_.value_type).getOrElse(UnresolvedType))
       case _ if json.isDefined => UDTType()
       case _ => NullType
     }

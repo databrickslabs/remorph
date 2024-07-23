@@ -29,14 +29,16 @@ class ExpressionGenerator {
       case ir.FloatType => orNull(l.float.map(_.toString))
       case ir.DoubleType => orNull(l.double.map(_.toString))
       case ir.StringType => orNull(l.string.map(doubleQuote))
-      case ir.DateType => l.date match {
-        case Some(date) => doubleQuote(dateFormat.format(date))
-        case None => "NULL"
-      }
-      case ir.TimestampType => l.timestamp match {
-        case Some(timestamp) => doubleQuote(timeFormat.format(timestamp))
-        case None => "NULL"
-      }
+      case ir.DateType =>
+        l.date match {
+          case Some(date) => doubleQuote(dateFormat.format(date))
+          case None => "NULL"
+        }
+      case ir.TimestampType =>
+        l.timestamp match {
+          case Some(timestamp) => doubleQuote(timeFormat.format(timestamp))
+          case None => "NULL"
+        }
       case ir.ArrayType(_) => orNull(l.array.map(arrayExpr(ctx)))
       case ir.MapType(_, _) => orNull(l.map.map(mapExpr(ctx)))
       case _ => throw new IllegalArgumentException(s"Unsupported expression: ${l.dataType}")
@@ -44,16 +46,16 @@ class ExpressionGenerator {
   }
 
   private def mapExpr(ctx: GeneratorContext)(map: ir.MapExpr): String = {
-    val entries = map.keys.zip(map.values).map {
-      case (key, value) => s"${literal(ctx, key)}, ${expression(ctx, value)}"
+    val entries = map.keys.zip(map.values).map { case (key, value) =>
+      s"${literal(ctx, key)}, ${expression(ctx, value)}"
     }
     // TODO: line-width formatting
     s"MAP(${entries.mkString(", ")})"
   }
 
   private def arrayExpr(ctx: GeneratorContext)(array: ir.ArrayExpr): String = {
-    val elements = array.elements.map {
-      element => expression(ctx, element)
+    val elements = array.elements.map { element =>
+      expression(ctx, element)
     }
     // TODO: line-width formatting
     s"ARRAY(${elements.mkString(", ")})"
