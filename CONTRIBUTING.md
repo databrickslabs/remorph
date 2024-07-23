@@ -66,7 +66,7 @@ hatch run python -c "import sys; print(sys.executable)"
 ```
 
 Configure your IDE to use this Python path so that you work within the virtual environment when developing the project:
-![IDE Setup](docs/remorph_intellij.gif)
+![IDE Setup](docs/img/remorph_intellij.gif)
 
 Before every commit, apply the consistent formatting of the code, as we want our codebase look consistent:
 ```shell

@@ -402,4 +402,7 @@ For more Reconciliation Config example, please refer to [sample config][link].
 
 [link]: reconcile_config_samples.md
 
+## DataFlow Example
+[report_types_visualisation.md](report_types_visualisation.md)
+
 [[back to top](#remorph-reconciliation)]
