@@ -71,7 +71,7 @@ class SnowflakeRelationBuilderSpec
         "FROM some_table GROUP BY some_column",
         _.selectOptionalClauses(),
         Aggregate(
-          input = namedTable("some_table"),
+          child = namedTable("some_table"),
           group_type = GroupBy,
           grouping_expressions = Seq(simplyNamedColumn("some_column")),
           pivot = None))
@@ -80,7 +80,7 @@ class SnowflakeRelationBuilderSpec
         query = "FROM t1 PIVOT (AVG(a) FOR d IN('x', 'y'))",
         rule = _.selectOptionalClauses(),
         Aggregate(
-          input = namedTable("t1"),
+          child = namedTable("t1"),
           group_type = Pivot,
           grouping_expressions = Seq(CallFunction("AVG", Seq(simplyNamedColumn("a")))),
           pivot = Some(Pivot(simplyNamedColumn("d"), Seq(Literal(string = Some("x")), Literal(string = Some("y")))))))
@@ -89,7 +89,7 @@ class SnowflakeRelationBuilderSpec
         query = "FROM t1 PIVOT (COUNT(a) FOR d IN('x', 'y'))",
         rule = _.selectOptionalClauses(),
         Aggregate(
-          input = namedTable("t1"),
+          child = namedTable("t1"),
           group_type = Pivot,
           grouping_expressions = Seq(CallFunction("COUNT", Seq(simplyNamedColumn("a")))),
           pivot = Some(Pivot(simplyNamedColumn("d"), Seq(Literal(string = Some("x")), Literal(string = Some("y")))))))
@@ -98,7 +98,7 @@ class SnowflakeRelationBuilderSpec
         query = "FROM t1 PIVOT (MIN(a) FOR d IN('x', 'y'))",
         rule = _.selectOptionalClauses(),
         Aggregate(
-          input = namedTable("t1"),
+          child = namedTable("t1"),
           group_type = Pivot,
           grouping_expressions = Seq(CallFunction("MIN", Seq(simplyNamedColumn("a")))),
           pivot = Some(Pivot(simplyNamedColumn("d"), Seq(Literal(string = Some("x")), Literal(string = Some("y")))))))
@@ -181,7 +181,7 @@ class SnowflakeRelationBuilderSpec
         "FROM some_table WHERE 1=1 GROUP BY some_column",
         _.selectOptionalClauses(),
         Aggregate(
-          input = Filter(namedTable("some_table"), Equals(Literal(short = Some(1)), Literal(short = Some(1)))),
+          child = Filter(namedTable("some_table"), Equals(Literal(short = Some(1)), Literal(short = Some(1)))),
           group_type = GroupBy,
           grouping_expressions = Seq(simplyNamedColumn("some_column")),
           pivot = None))
@@ -191,7 +191,7 @@ class SnowflakeRelationBuilderSpec
         _.selectOptionalClauses(),
         Sort(
           Aggregate(
-            input = Filter(namedTable("some_table"), Equals(Literal(short = Some(1)), Literal(short = Some(1)))),
+            child = Filter(namedTable("some_table"), Equals(Literal(short = Some(1)), Literal(short = Some(1)))),
             group_type = GroupBy,
             grouping_expressions = Seq(simplyNamedColumn("some_column")),
             pivot = None),
@@ -302,7 +302,7 @@ class SnowflakeRelationBuilderSpec
 
     "translate LATERAL FLATTEN object references" in {
       example(
-        "LATERAL FLATTEN (input => some_col, OUTER => true)",
+        "LATERAL FLATTEN (child => some_col, OUTER => true)",
         _.objectRef(),
         Lateral(
           TableFunction(
@@ -313,7 +313,7 @@ class SnowflakeRelationBuilderSpec
                 NamedArgumentExpression("OUTER", Literal(boolean = Some(true))))))))
 
       example(
-        "LATERAL FLATTEN (input => some_col) AS t",
+        "LATERAL FLATTEN (child => some_col) AS t",
         _.objectRef(),
         SubqueryAlias(
           Lateral(TableFunction(CallFunction("FLATTEN", Seq(NamedArgumentExpression("INPUT", Id("some_col")))))),
@@ -322,7 +322,7 @@ class SnowflakeRelationBuilderSpec
     }
   }
 
-  "Unparsed input" should {
+  "Unparsed child" should {
     "be reported as UnresolvedRelation" in {
       example("MATCH_RECOGNIZE()", _.matchRecognize(), UnresolvedRelation("MATCH_RECOGNIZE()"))
     }

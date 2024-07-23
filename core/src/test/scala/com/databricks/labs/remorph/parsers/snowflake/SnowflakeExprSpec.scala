@@ -51,13 +51,17 @@ class SnowflakeExprSpec extends AnyWordSpec with SnowflakeParserTestCommon with 
     "translate array literals" in {
       example(
         "[1, 2, 3]",
-        Literal(array =
-          Some(ArrayExpr(None, Seq(Literal(short = Some(1)), Literal(short = Some(2)), Literal(short = Some(3)))))))
+        Literal(array = Some(
+          ArrayExpr(
+            UnresolvedType,
+            Seq(Literal(short = Some(1)), Literal(short = Some(2)), Literal(short = Some(3)))))))
 
       example(
         "[1, 2, 'three']",
         Literal(array = Some(
-          ArrayExpr(None, Seq(Literal(short = Some(1)), Literal(short = Some(2)), Literal(string = Some("three")))))))
+          ArrayExpr(
+            UnresolvedType,
+            Seq(Literal(short = Some(1)), Literal(short = Some(2)), Literal(string = Some("three")))))))
     }
 
     "translate cast expressions" in {

@@ -15,10 +15,10 @@ class TSqlErrorStategySpec extends AnyWordSpec with TSqlParserTestCommon with Ma
     "process an invalid match parser exception" in {
       checkError(query = "SELECT * FROM", errContains = "was unexpected")
     }
-    "process an extraneous input exception" in {
-      checkError(query = "*", errContains = "unexpected extra input")
+    "process an extraneous child exception" in {
+      checkError(query = "*", errContains = "unexpected extra child")
     }
-    "process a missing input exception" in {
+    "process a missing child exception" in {
       checkError(query = "SELECT * FROM FRED As X Y ", errContains = "missing")
     }
   }
@@ -32,7 +32,7 @@ class TSqlErrorStategySpec extends AnyWordSpec with TSqlParserTestCommon with Ma
 
       checkError(
         query = "*",
-        errContains = "unexpected extra input '*' while parsing a T-SQL batch\n" +
+        errContains = "unexpected extra child '*' while parsing a T-SQL batch\n" +
           "expecting one of: End of batch, Identifier, Select Statement, Statement, '(', '.', ';', 'RAW', 'WITH'\n" +
           "File: -- test string --, Line: 1, Token: *\n*\n^")
 

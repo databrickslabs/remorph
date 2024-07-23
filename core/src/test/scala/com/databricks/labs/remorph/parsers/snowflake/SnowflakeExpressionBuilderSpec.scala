@@ -253,7 +253,7 @@ class SnowflakeExpressionBuilderSpec
   }
 
   "SnowflakeExpressionBuilder.visit_Literal" should {
-    "handle unresolved input" in {
+    "handle unresolved child" in {
       val literal = mock[LiteralContext]
       astBuilder.visitLiteral(literal) shouldBe Literal(nullType = Some(NullType()))
       verify(literal).sign()
@@ -272,7 +272,7 @@ class SnowflakeExpressionBuilderSpec
   }
 
   "SnowflakeExpressionBuilder.buildComparisonExpression" should {
-    "handle unresolved input" in {
+    "handle unresolved child" in {
       val operator = mock[ComparisonOperatorContext]
       val dummyTextForOperator = "dummy"
       when(operator.getText).thenReturn(dummyTextForOperator)

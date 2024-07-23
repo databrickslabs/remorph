@@ -511,14 +511,14 @@ class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenProp
     }
   }
 
-  "buildFunction" should "not resolve IFNULL when input dialect isn't TSql" in {
+  "buildFunction" should "not resolve IFNULL when child dialect isn't TSql" in {
     val functionBuilder = new SnowflakeFunctionBuilder
 
     val result1 = functionBuilder.buildFunction("ISNULL", Seq(simplyNamedColumn("x"), ir.Literal(integer = Some(0))))
     result1 shouldBe a[UnresolvedFunction]
   }
 
-  "buildFunction" should "not resolve IFNULL when input dialect isn't Snowflake" in {
+  "buildFunction" should "not resolve IFNULL when child dialect isn't Snowflake" in {
     val functionBuilder = new TSqlFunctionBuilder
 
     val result1 = functionBuilder.buildFunction("IFNULL", Seq(simplyNamedColumn("x"), ir.Literal(integer = Some(0))))

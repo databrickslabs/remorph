@@ -266,7 +266,7 @@ class SnowflakeDDLBuilderSpec
 
   "SnowflakeDDLBuilder.buildOutOfLineConstraint" should {
 
-    "handle unexpected input" in {
+    "handle unexpected child" in {
       val columnList = parseString("(a, b, c)", _.columnListInParentheses())
       val outOfLineConstraint = mock[OutOfLineConstraintContext]
       when(outOfLineConstraint.columnListInParentheses(0)).thenReturn(columnList)
@@ -290,7 +290,7 @@ class SnowflakeDDLBuilderSpec
 
   "SnowflakeDDLBuilder.buildInlineConstraint" should {
 
-    "handle unexpected input" in {
+    "handle unexpected child" in {
       val inlineConstraint = mock[InlineConstraintContext]
       val dummyInputTextForInlineConstraint = "dummy"
       when(inlineConstraint.getText).thenReturn(dummyInputTextForInlineConstraint)
@@ -306,7 +306,7 @@ class SnowflakeDDLBuilderSpec
   }
 
   "SnowflakeDDLBuilder.visitAlter_table" should {
-    "handle unexpected input" in {
+    "handle unexpected child" in {
       val tableName = parseString("s.t1", _.objectName())
       val alterTable = mock[AlterTableContext]
       when(alterTable.objectName(0)).thenReturn(tableName)
@@ -324,7 +324,7 @@ class SnowflakeDDLBuilderSpec
   }
 
   "SnowflakeDDLBuilder.buildColumnActions" should {
-    "handle unexpected input" in {
+    "handle unexpected child" in {
       val tableColumnAction = mock[TableColumnActionContext]
       when(tableColumnAction.alterColumnClause())
         .thenReturn(java.util.Collections.emptyList[AlterColumnClauseContext]())
@@ -343,7 +343,7 @@ class SnowflakeDDLBuilderSpec
   }
 
   "SnowflakeDDLBuilder.buildColumnAlterations" should {
-    "handle unexpected input" in {
+    "handle unexpected child" in {
       val columnName = parseString("a", _.columnName())
       val alterColumnClause = mock[AlterColumnClauseContext]
       when(alterColumnClause.columnName()).thenReturn(columnName)
@@ -361,7 +361,7 @@ class SnowflakeDDLBuilderSpec
   }
 
   "SnowflakeDDLBuilder.buildConstraintActions" should {
-    "handle unexpected input" in {
+    "handle unexpected child" in {
       val constraintAction = mock[ConstraintActionContext]
       val dummyTextForConstraintAction = "dummy"
       when(constraintAction.getText).thenReturn(dummyTextForConstraintAction)
@@ -376,7 +376,7 @@ class SnowflakeDDLBuilderSpec
   }
 
   "SnowflakeDDLBuilder.buildDropConstraints" should {
-    "handle unexpected input" in {
+    "handle unexpected child" in {
       val constraintAction = mock[ConstraintActionContext]
       when(constraintAction.id()).thenReturn(java.util.Collections.emptyList[IdContext])
       val dummyTextForConstraintAction = "dummy"
