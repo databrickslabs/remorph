@@ -137,7 +137,7 @@ case class Sample(
 }
 
 case class Range(start: Long, end: Long, step: Long, num_partitions: Int) extends LeafNode {
-  override def output: Seq[Attribute] = Seq(AttributeReference("id", LongType()))
+  override def output: Seq[Attribute] = Seq(AttributeReference("id", LongType))
 }
 
 case class SubqueryAlias(child: LogicalPlan, alias: Id, columnNames: Seq[Id]) extends UnaryNode {

@@ -282,7 +282,7 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
     case DEFAULT => ir.Default()
     case LOCAL_ID => ir.Identifier(con.getText, isQuoted = false)
     case STRING => ir.Literal(string = Some(removeQuotes(con.getText)))
-    case NULL_ => ir.Literal(nullType = Some(ir.NullType()))
+    case NULL_ => ir.Literal(nullType = Some(ir.NullType))
     case HEX => ir.Literal(string = Some(con.getText)) // Preserve format
     case MONEY => ir.Money(ir.Literal(string = Some(con.getText)))
     case INT | REAL | FLOAT => convertNumeric(con.getText)

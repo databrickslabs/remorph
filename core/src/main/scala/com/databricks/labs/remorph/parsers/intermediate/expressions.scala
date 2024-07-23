@@ -144,7 +144,7 @@ case class Decimal(value: String, precision: Option[Int], scale: Option[Int]) ex
 }
 
 case class CalendarInterval(months: Int, days: Int, microseconds: Long) extends LeafExpression {
-  override def dataType: DataType = CalendarIntervalType()
+  override def dataType: DataType = CalendarIntervalType
 }
 
 case class ArrayExpr(dataType: DataType, elements: Seq[Literal]) extends Expression {
@@ -189,37 +189,37 @@ case class Literal(
     extends LeafExpression {
   override def dataType: DataType = {
     if (binary.isDefined) {
-      BinaryType()
+      BinaryType
     } else if (boolean.isDefined) {
-      BooleanType()
+      BooleanType
     } else if (byte.isDefined) {
       ByteType(byte)
     } else if (short.isDefined) {
-      ShortType()
+      ShortType
     } else if (integer.isDefined) {
-      IntegerType()
+      IntegerType
     } else if (long.isDefined) {
-      LongType()
+      LongType
     } else if (float.isDefined) {
-      FloatType()
+      FloatType
     } else if (decimal.isDefined) {
       DecimalType(decimal.get.precision, decimal.get.scale)
     } else if (double.isDefined) {
-      DoubleType()
+      DoubleType
     } else if (string.isDefined) {
-      StringType()
+      StringType
     } else if (date.isDefined) {
-      DateType()
+      DateType
     } else if (timestamp.isDefined) {
-      TimestampType()
+      TimestampType
     } else if (timestamp_ntz.isDefined) {
-      TimestampNTZType()
+      TimestampNTZType
     } else if (calendar_interval.isDefined) {
-      CalendarIntervalType()
+      CalendarIntervalType
     } else if (year_month_interval.isDefined) {
-      YearMonthIntervalType()
+      YearMonthIntervalType
     } else if (day_time_interval.isDefined) {
-      DayTimeIntervalType()
+      DayTimeIntervalType
     } else if (array.isDefined) {
       ArrayType()
     } else if (map.isDefined) {
@@ -227,7 +227,7 @@ case class Literal(
     } else if (json.isDefined) {
       UDTType()
     } else {
-      NullType()
+      NullType
     }
   }
 }
@@ -250,7 +250,7 @@ case class UnresolvedFunction(
 
 // TODO: remove this type
 case class ExpressionString(expression: String) extends LeafExpression {
-  override def dataType: DataType = StringType()
+  override def dataType: DataType = StringType
 }
 
 case class UnresolvedStar(unparsed_target: String) extends LeafExpression {

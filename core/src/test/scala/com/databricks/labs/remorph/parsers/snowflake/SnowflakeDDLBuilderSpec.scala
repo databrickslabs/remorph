@@ -103,8 +103,8 @@ class SnowflakeDDLBuilderSpec
                   |  ';""".stripMargin,
         expectedAst = CreateInlineUDF(
           name = "js_factorial",
-          returnType = DoubleType(),
-          parameters = Seq(FunctionParameter("d", DoubleType(), None)),
+          returnType = DoubleType,
+          parameters = Seq(FunctionParameter("d", DoubleType, None)),
           runtimeInfo = JavascriptUDFInfo,
           acceptsNullParameters = false,
           comment = Some("Compute factorial using JavaScript"),

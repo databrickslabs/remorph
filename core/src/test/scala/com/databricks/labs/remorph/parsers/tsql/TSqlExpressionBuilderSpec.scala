@@ -16,7 +16,7 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
 
   "TSqlExpressionBuilder" should {
     "translate literals" in {
-      exampleExpr("null", _.expression(), ir.Literal(nullType = Some(ir.NullType())))
+      exampleExpr("null", _.expression(), ir.Literal(nullType = Some(ir.NullType)))
       exampleExpr("1", _.expression(), ir.Literal(short = Some(1)))
       exampleExpr("-1", _.expression(), ir.UMinus(ir.Literal(short = Some(1))))
       exampleExpr("+1", _.expression(), ir.UPlus(ir.Literal(short = Some(1))))
@@ -477,10 +477,10 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
 
     "translate CAST pseudo function calls with simple scalars" in {
       exampleExpr("CAST(a AS tinyint)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.ByteType(size = Some(1))))
-      exampleExpr("CAST(a AS smallint)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.ShortType()))
-      exampleExpr("CAST(a AS INT)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.IntegerType()))
-      exampleExpr("CAST(a AS bigint)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.LongType()))
-      exampleExpr("CAST(a AS bit)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.BooleanType()))
+      exampleExpr("CAST(a AS smallint)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.ShortType))
+      exampleExpr("CAST(a AS INT)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.IntegerType))
+      exampleExpr("CAST(a AS bigint)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.LongType))
+      exampleExpr("CAST(a AS bit)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.BooleanType))
       exampleExpr(
         "CAST(a AS money)",
         _.expression(),
@@ -489,25 +489,25 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
         "CAST(a AS smallmoney)",
         _.expression(),
         ir.Cast(simplyNamedColumn("a"), ir.DecimalType(Some(10), Some(4))))
-      exampleExpr("CAST(a AS float)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.FloatType()))
-      exampleExpr("CAST(a AS real)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.DoubleType()))
-      exampleExpr("CAST(a AS date)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.DateType()))
-      exampleExpr("CAST(a AS time)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.TimeType()))
-      exampleExpr("CAST(a AS datetime)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.TimestampType()))
-      exampleExpr("CAST(a AS datetime2)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.TimestampType()))
-      exampleExpr("CAST(a AS datetimeoffset)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.StringType()))
-      exampleExpr("CAST(a AS smalldatetime)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.TimestampType()))
+      exampleExpr("CAST(a AS float)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.FloatType))
+      exampleExpr("CAST(a AS real)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.DoubleType))
+      exampleExpr("CAST(a AS date)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.DateType))
+      exampleExpr("CAST(a AS time)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.TimeType))
+      exampleExpr("CAST(a AS datetime)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.TimestampType))
+      exampleExpr("CAST(a AS datetime2)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.TimestampType))
+      exampleExpr("CAST(a AS datetimeoffset)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.StringType))
+      exampleExpr("CAST(a AS smalldatetime)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.TimestampType))
       exampleExpr("CAST(a AS char)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.CharType(size = None)))
       exampleExpr("CAST(a AS varchar)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.VarCharType(size = None)))
       exampleExpr("CAST(a AS nchar)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.CharType(size = None)))
       exampleExpr("CAST(a AS nvarchar)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.VarCharType(size = None)))
       exampleExpr("CAST(a AS text)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.VarCharType(None)))
       exampleExpr("CAST(a AS ntext)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.VarCharType(None)))
-      exampleExpr("CAST(a AS image)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.BinaryType()))
+      exampleExpr("CAST(a AS image)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.BinaryType))
       exampleExpr("CAST(a AS decimal)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.DecimalType(None, None)))
       exampleExpr("CAST(a AS numeric)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.DecimalType(None, None)))
-      exampleExpr("CAST(a AS binary)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.BinaryType()))
-      exampleExpr("CAST(a AS varbinary)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.BinaryType()))
+      exampleExpr("CAST(a AS binary)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.BinaryType))
+      exampleExpr("CAST(a AS varbinary)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.BinaryType))
       exampleExpr("CAST(a AS json)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.VarCharType(None)))
       exampleExpr(
         "CAST(a AS uniqueidentifier)",
@@ -558,19 +558,19 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
       exampleExpr(
         "TRY_CAST(a AS smallint)",
         _.expression(),
-        ir.Cast(simplyNamedColumn("a"), ir.ShortType(), returnNullOnError = true))
+        ir.Cast(simplyNamedColumn("a"), ir.ShortType, returnNullOnError = true))
       exampleExpr(
         "TRY_CAST(a AS INT)",
         _.expression(),
-        ir.Cast(simplyNamedColumn("a"), ir.IntegerType(), returnNullOnError = true))
+        ir.Cast(simplyNamedColumn("a"), ir.IntegerType, returnNullOnError = true))
       exampleExpr(
         "TRY_CAST(a AS bigint)",
         _.expression(),
-        ir.Cast(simplyNamedColumn("a"), ir.LongType(), returnNullOnError = true))
+        ir.Cast(simplyNamedColumn("a"), ir.LongType, returnNullOnError = true))
       exampleExpr(
         "TRY_CAST(a AS bit)",
         _.expression(),
-        ir.Cast(simplyNamedColumn("a"), ir.BooleanType(), returnNullOnError = true))
+        ir.Cast(simplyNamedColumn("a"), ir.BooleanType, returnNullOnError = true))
       exampleExpr(
         "TRY_CAST(a AS money)",
         _.expression(),
@@ -582,35 +582,35 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
       exampleExpr(
         "TRY_CAST(a AS float)",
         _.expression(),
-        ir.Cast(simplyNamedColumn("a"), ir.FloatType(), returnNullOnError = true))
+        ir.Cast(simplyNamedColumn("a"), ir.FloatType, returnNullOnError = true))
       exampleExpr(
         "TRY_CAST(a AS real)",
         _.expression(),
-        ir.Cast(simplyNamedColumn("a"), ir.DoubleType(), returnNullOnError = true))
+        ir.Cast(simplyNamedColumn("a"), ir.DoubleType, returnNullOnError = true))
       exampleExpr(
         "TRY_CAST(a AS date)",
         _.expression(),
-        ir.Cast(simplyNamedColumn("a"), ir.DateType(), returnNullOnError = true))
+        ir.Cast(simplyNamedColumn("a"), ir.DateType, returnNullOnError = true))
       exampleExpr(
         "TRY_CAST(a AS time)",
         _.expression(),
-        ir.Cast(simplyNamedColumn("a"), ir.TimeType(), returnNullOnError = true))
+        ir.Cast(simplyNamedColumn("a"), ir.TimeType, returnNullOnError = true))
       exampleExpr(
         "TRY_CAST(a AS datetime)",
         _.expression(),
-        ir.Cast(simplyNamedColumn("a"), ir.TimestampType(), returnNullOnError = true))
+        ir.Cast(simplyNamedColumn("a"), ir.TimestampType, returnNullOnError = true))
       exampleExpr(
         "TRY_CAST(a AS datetime2)",
         _.expression(),
-        ir.Cast(simplyNamedColumn("a"), ir.TimestampType(), returnNullOnError = true))
+        ir.Cast(simplyNamedColumn("a"), ir.TimestampType, returnNullOnError = true))
       exampleExpr(
         "TRY_CAST(a AS datetimeoffset)",
         _.expression(),
-        ir.Cast(simplyNamedColumn("a"), ir.StringType(), returnNullOnError = true))
+        ir.Cast(simplyNamedColumn("a"), ir.StringType, returnNullOnError = true))
       exampleExpr(
         "TRY_CAST(a AS smalldatetime)",
         _.expression(),
-        ir.Cast(simplyNamedColumn("a"), ir.TimestampType(), returnNullOnError = true))
+        ir.Cast(simplyNamedColumn("a"), ir.TimestampType, returnNullOnError = true))
       exampleExpr(
         "TRY_CAST(a AS char)",
         _.expression(),
@@ -638,7 +638,7 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
       exampleExpr(
         "TRY_CAST(a AS image)",
         _.expression(),
-        ir.Cast(simplyNamedColumn("a"), ir.BinaryType(), returnNullOnError = true))
+        ir.Cast(simplyNamedColumn("a"), ir.BinaryType, returnNullOnError = true))
       exampleExpr(
         "TRY_CAST(a AS decimal)",
         _.expression(),
@@ -650,11 +650,11 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
       exampleExpr(
         "TRY_CAST(a AS binary)",
         _.expression(),
-        ir.Cast(simplyNamedColumn("a"), ir.BinaryType(), returnNullOnError = true))
+        ir.Cast(simplyNamedColumn("a"), ir.BinaryType, returnNullOnError = true))
       exampleExpr(
         "TRY_CAST(a AS varbinary)",
         _.expression(),
-        ir.Cast(simplyNamedColumn("a"), ir.BinaryType(), returnNullOnError = true))
+        ir.Cast(simplyNamedColumn("a"), ir.BinaryType, returnNullOnError = true))
       exampleExpr(
         "TRY_CAST(a AS json)",
         _.expression(),
