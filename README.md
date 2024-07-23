@@ -172,7 +172,7 @@ eg:
 | source1     | tpch | row | recon_config_source1_tpch_row.json    |
 | source2     | tpch | schema | recon_config_source2_tpch_schema.json |
 
-Please refer to the [Reconcile Configuration Guide][def] for detailed instructions on how to set up the configuration and notebook with sample configurations [Sample Configuration][config].
+#### Refer to [Reconcile Configuration Guide][def] for detailed instructions and [example configurations][config]
 
 [def]: docs/recon_configurations/README
 [config]: docs/recon_configurations/reconcile_config_samples.md
