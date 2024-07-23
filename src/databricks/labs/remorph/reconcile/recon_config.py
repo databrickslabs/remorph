@@ -79,13 +79,13 @@ class Aggregate:
     agg_cols: list[str]
     type: str
     group_by_cols: list[str] | None = None
-    group_by_cols_as_str: str | None = None
 
     def get_agg_type(self):
         return self.type
 
-    def __post_init__(self):
-        self.group_by_cols_as_str = "_".join(sorted(to_lower_case(self.group_by_cols))) if self.group_by_cols else "NA"
+    @property
+    def group_by_cols_as_str(self):
+        return "_".join(sorted(to_lower_case(self.group_by_cols))) if self.group_by_cols else "NA"
 
 
 def to_lower_case(input_list: list[str]) -> list[str]:
@@ -278,3 +278,22 @@ class ReconcileTableOutput:
 class ReconcileOutput:
     recon_id: str
     results: list[ReconcileTableOutput]
+
+
+@dataclass
+class AggregateRule:
+    rule_id: int
+    rule_column: str
+    rule_query: str
+
+
+@dataclass
+class AggregateQueryRules:
+    query: str
+    rules: list[AggregateRule]
+
+
+@dataclass
+class AggregateQueryOutput:
+    reconcile_agg_output: DataReconcileOutput
+    rules_list: list[AggregateRule] | None = None

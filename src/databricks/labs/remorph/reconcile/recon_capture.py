@@ -2,7 +2,7 @@ import logging
 from datetime import datetime
 
 from pyspark.sql import DataFrame, SparkSession
-from pyspark.sql.functions import col, collect_list, create_map, lit
+from pyspark.sql.functions import col, collect_list, create_map, lit, expr
 from pyspark.sql.types import StringType, StructField, StructType
 from pyspark.errors import PySparkException
 from sqlglot import Dialect
@@ -20,6 +20,8 @@ from databricks.labs.remorph.reconcile.recon_config import (
     ReconcileTableOutput,
     SchemaReconcileOutput,
     StatusOutput,
+    AggregateQueryOutput,
+    AggregateRule,
 )
 from databricks.sdk import WorkspaceClient
 
@@ -28,6 +30,9 @@ logger = logging.getLogger(__name__)
 _RECON_TABLE_NAME = "main"
 _RECON_METRICS_TABLE_NAME = "metrics"
 _RECON_DETAILS_TABLE_NAME = "details"
+_RECON_AGGREGATE_RULES_TABLE_NAME = "agg_rules"
+_RECON_AGGREGATE_METRICS_TABLE_NAME = "agg_metrics"
+_RECON_AGGREGATE_DETAILS_TABLE_NAME = "agg_details"
 _SAMPLE_ROWS = 50
 
 
@@ -220,14 +225,29 @@ class ReconCapture:
         )
         _write_df_to_delta(df, f"{self._db_prefix}.{_RECON_TABLE_NAME}")
 
+    def _union_dataframes(self, agg_df: DataFrame | None, df: DataFrame) -> DataFrame:
+        if not agg_df:
+            return df
+        if not df:
+            return agg_df
+        return agg_df.unionByName(df)
+
+    def _rule_ids_column(self, rules: list[AggregateRule] | None) -> str:
+        rule_ids = ["NULL"]
+        if rules:
+            rule_ids = [str(agg_rule.rule_id) for agg_rule in rules]
+        return f"array({', '.join(rule_ids)})"
+
     def _insert_aggregates_into_metrics_table(
         self,
         recon_table_id: int,
-        agg_data_reconcile_output: list[DataReconcileOutput],
+        reconcile_agg_output_list: list[AggregateQueryOutput],
     ) -> None:
-
         agg_df = None
-        for agg_data in agg_data_reconcile_output:
+
+        for agg_reconcile_output in reconcile_agg_output_list:
+            agg_data = agg_reconcile_output.reconcile_agg_output
+
             status = False
             if agg_data.exception in {None, ''}:
                 status = not (
@@ -248,21 +268,13 @@ class ReconCapture:
             df = self.spark.sql(
                 f"""
                     select {recon_table_id} as recon_table_id,
+                    {self._rule_ids_column(agg_reconcile_output.rules_list)}  as rule_ids,
                     named_struct(
-                        'row_comparison', case when '{self.report_type.lower()}' in ('agg') 
-                            and '{exception_msg}' = '' then
-                         named_struct(
                             'missing_in_source', {agg_data.missing_in_src_count},
-                            'missing_in_target', {agg_data.missing_in_tgt_count}
-                        ) else null end,
-                        'column_comparison', case when '{self.report_type.lower()}' in ('agg') 
-                            and '{exception_msg}' = '' then
-                        named_struct(
+                            'missing_in_target', {agg_data.missing_in_tgt_count},
                             'absolute_mismatch', {agg_data.mismatch_count},
                             'threshold_mismatch', null,
                             'mismatch_columns', '{",".join(mismatch_columns)}'
-                        ) else null end,
-                        'schema_comparison', null 
                     ) as recon_metrics,
                     named_struct(
                         'status', {status}, 
@@ -272,13 +284,10 @@ class ReconCapture:
                     cast('{insertion_time}' as timestamp) as inserted_ts
                 """
             )
-            if not agg_df:
-                agg_df = df
-            else:
-                agg_df = agg_df.unionByName(df)
+            agg_df = self._union_dataframes(agg_df, df)
 
         if agg_df:
-            _write_df_to_delta(agg_df, f"{self._db_prefix}.{_RECON_METRICS_TABLE_NAME}")
+            _write_df_to_delta(agg_df, f"{self._db_prefix}.{_RECON_AGGREGATE_METRICS_TABLE_NAME}")
 
     def _insert_into_metrics_table(
         self,
@@ -402,34 +411,28 @@ class ReconCapture:
         return None
 
     def _insert_aggregates_into_details_table(
-        self,
-        recon_table_id: int,
-        agg_data_reconcile_output: list[DataReconcileOutput],
+        self, recon_table_id: int, reconcile_agg_output_list: list[AggregateQueryOutput]
     ):
-        agg_data_df = None
 
-        for agg_data in agg_data_reconcile_output:
-            mismatch_df = self._get_df(recon_table_id, agg_data, "mismatch")
+        for reconcile_agg in reconcile_agg_output_list:
+            agg_final_df = None
+            agg_df = reconcile_agg.reconcile_agg_output
 
-            if not agg_data_df and mismatch_df:
-                agg_data_df = mismatch_df
-            elif agg_data_df and mismatch_df:
-                agg_data_df = agg_data_df.unionByName(mismatch_df)
+            mismatch_df = self._get_df(recon_table_id, agg_df, "mismatch")
+            agg_final_df = self._union_dataframes(agg_final_df, mismatch_df)
 
-            missing_src_df = self._get_df(recon_table_id, agg_data, "missing_in_source")
-            if not agg_data_df and missing_src_df:
-                agg_data_df = missing_src_df
-            elif agg_data_df and missing_src_df:
-                agg_data_df = agg_data_df.unionByName(missing_src_df)
+            missing_src_df = self._get_df(recon_table_id, agg_df, "missing_in_source")
+            agg_final_df = self._union_dataframes(agg_final_df, missing_src_df)
 
-            missing_tgt_df = self._get_df(recon_table_id, agg_data, "missing_in_target")
-            if not agg_data_df and missing_tgt_df:
-                agg_data_df = missing_tgt_df
-            elif agg_data_df and missing_tgt_df:
-                agg_data_df = agg_data_df.unionByName(missing_tgt_df)
+            missing_tgt_df = self._get_df(recon_table_id, agg_df, "missing_in_target")
+            agg_final_df = self._union_dataframes(agg_final_df, missing_tgt_df)
 
-        if agg_data_df:
-            _write_df_to_delta(agg_data_df, f"{self._db_prefix}.{_RECON_DETAILS_TABLE_NAME}")
+            if agg_final_df:
+                rule_ids_column = self._rule_ids_column(reconcile_agg.rules_list)
+                agg_data_rules_df = agg_final_df.withColumn("rule_ids", expr(rule_ids_column)).select(
+                    "recon_table_id", "rule_ids", "recon_type", "data", "inserted_ts"
+                )
+                _write_df_to_delta(agg_data_rules_df, f"{self._db_prefix}.{_RECON_AGGREGATE_DETAILS_TABLE_NAME}")
 
     def _insert_into_details_table(
         self,
@@ -483,7 +486,6 @@ class ReconCapture:
         schema_reconcile_output: SchemaReconcileOutput,
         table_conf: Table,
         recon_process_duration: ReconcileProcessDuration,
-        agg_data_reconcile_output: list[DataReconcileOutput] | None = None,
     ) -> None:
         recon_table_id = self._generate_recon_main_id(table_conf)
         self._insert_into_main_table(recon_table_id, table_conf, recon_process_duration)
@@ -493,9 +495,28 @@ class ReconCapture:
             schema_reconcile_output,
         )
         self._insert_into_details_table(recon_table_id, data_reconcile_output, schema_reconcile_output)
-        if agg_data_reconcile_output:
-            self._insert_aggregates_into_metrics_table(recon_table_id, agg_data_reconcile_output)
-            self._insert_aggregates_into_details_table(
-                recon_table_id,
-                agg_data_reconcile_output,
-            )
+
+    def store_aggregates_metrics(
+        self,
+        table_conf: Table,
+        recon_process_duration: ReconcileProcessDuration,
+        reconcile_agg_output_list: list[AggregateQueryOutput],
+    ) -> None:
+        recon_table_id = self._generate_recon_main_id(table_conf)
+        self._insert_into_main_table(recon_table_id, table_conf, recon_process_duration)
+        self._insert_into_rules_table(reconcile_agg_output_list)
+        self._insert_aggregates_into_metrics_table(recon_table_id, reconcile_agg_output_list)
+        self._insert_aggregates_into_details_table(
+            recon_table_id,
+            reconcile_agg_output_list,
+        )
+
+    def _insert_into_rules_table(self, reconcile_agg_output_list: list[AggregateQueryOutput]):
+        rules_df = None
+        for agg_output in reconcile_agg_output_list:
+            if agg_output.rules_list:
+                rules_query = "\nUNION\n".join([agg_rule.rule_query for agg_rule in agg_output.rules_list])
+                rules_query_df = self.spark.sql(rules_query)
+                rules_df = self._union_dataframes(rules_df, rules_query_df)
+        if rules_df:
+            _write_df_to_delta(rules_df, f"{self._db_prefix}.{_RECON_AGGREGATE_RULES_TABLE_NAME}")
