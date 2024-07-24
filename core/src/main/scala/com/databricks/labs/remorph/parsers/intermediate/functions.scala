@@ -1317,21 +1317,6 @@ case class HyperLogLogPlusPlus(left: Expression, right: Expression) extends Bina
   override def dataType: DataType = UnresolvedType
 }
 
-/**
- * approx_percentile(col, percentage [, accuracy]) - Returns the approximate `percentile` of the numeric column `col`
- * which is the smallest value in the ordered `col` values (sorted from least to greatest) such that no more than
- * `percentage` of `col` values is less than the value or equal to that value. The value of percentage must be between
- * 0.0 and 1.0. The `accuracy` parameter (default: 10000) is a positive numeric literal which controls approximation
- * accuracy at the cost of memory. Higher value of `accuracy` yields better accuracy, `1.0/accuracy` is the relative
- * error of the approximation. When `percentage` is an array, each value of the percentage array must be between 0.0 and
- * 1.0. In this case, returns the approximate percentile array of column `col` at the given percentage array.
- */
-case class ApproximatePercentile(left: Expression, right: Expression, c: Expression) extends Expression with Fn {
-  override def prettyName: String = "APPROX_PERCENTILE"
-  override def children: Seq[Expression] = Seq(left, right, c)
-  override def dataType: DataType = UnresolvedType
-}
-
 /** avg(expr) - Returns the mean calculated from values of a group. */
 case class Average(left: Expression) extends Unary(left) with Fn {
   override def prettyName: String = "AVG"
@@ -1412,29 +1397,10 @@ case class CountMinSketchAgg(left: Expression, right: Expression, c: Expression,
   override def dataType: DataType = UnresolvedType
 }
 
-/**
- * count_min_sketch(col, eps, confidence, seed) - Returns a count-min sketch of a column with the given esp, confidence
- * and seed. The result is an array of bytes, which can be deserialized to a `CountMinSketch` before usage. Count-min
- * sketch is a probabilistic data structure used for cardinality estimation using sub-linear space.
- */
-case class CountMinSketchAgg(left: Expression, right: Expression, c: Expression, d: Expression, e: e, f: f)
-    extends Expression
-    with Fn {
-  override def prettyName: String = "COUNT_MIN_SKETCH"
-  override def children: Seq[Expression] = Seq(left, right, c, d, e, f)
-  override def dataType: DataType = UnresolvedType
-}
 
 /** covar_pop(expr1, expr2) - Returns the population covariance of a set of number pairs. */
 case class CovPopulation(left: Expression, right: Expression) extends Binary(left, right) with Fn {
   override def prettyName: String = "COVAR_POP"
-  override def dataType: DataType = UnresolvedType
-}
-
-/** covar_pop(expr1, expr2) - Returns the population covariance of a set of number pairs. */
-case class CovPopulation(left: Expression, right: Expression, c: c) extends Expression with Fn {
-  override def prettyName: String = "COVAR_POP"
-  override def children: Seq[Expression] = Seq(left, right, c)
   override def dataType: DataType = UnresolvedType
 }
 
@@ -1444,72 +1410,12 @@ case class CovSample(left: Expression, right: Expression) extends Binary(left, r
   override def dataType: DataType = UnresolvedType
 }
 
-/** covar_samp(expr1, expr2) - Returns the sample covariance of a set of number pairs. */
-case class CovSample(left: Expression, right: Expression, c: c) extends Expression with Fn {
-  override def prettyName: String = "COVAR_SAMP"
-  override def children: Seq[Expression] = Seq(left, right, c)
-  override def dataType: DataType = UnresolvedType
-}
-
-/** every(expr) - Returns true if all values of `expr` are true. */
-case class BoolAnd(left: Expression) extends Unary(left) with Fn {
-  override def prettyName: String = "EVERY"
-  override def dataType: DataType = UnresolvedType
-}
-
-/**
- * first(expr[, isIgnoreNull]) - Returns the first value of `expr` for a group of rows. If `isIgnoreNull` is true,
- * returns only non-null values.
- */
-case class First(left: Expression, right: right) extends Expression with Fn {
-  override def prettyName: String = "FIRST"
-  override def children: Seq[Expression] = Seq(left, right)
-  override def dataType: DataType = UnresolvedType
-}
-
-/**
- * first(expr[, isIgnoreNull]) - Returns the first value of `expr` for a group of rows. If `isIgnoreNull` is true,
- * returns only non-null values.
- */
-case class First(left: Expression) extends Unary(left) with Fn {
-  override def prettyName: String = "FIRST"
-  override def dataType: DataType = UnresolvedType
-}
-
 /**
  * first(expr[, isIgnoreNull]) - Returns the first value of `expr` for a group of rows. If `isIgnoreNull` is true,
  * returns only non-null values.
  */
 case class First(left: Expression, right: Expression) extends Binary(left, right) with Fn {
   override def prettyName: String = "FIRST"
-  override def dataType: DataType = UnresolvedType
-}
-
-/**
- * first_value(expr[, isIgnoreNull]) - Returns the first value of `expr` for a group of rows. If `isIgnoreNull` is true,
- * returns only non-null values.
- */
-case class First(left: Expression, right: right) extends Expression with Fn {
-  override def prettyName: String = "FIRST_VALUE"
-  override def children: Seq[Expression] = Seq(left, right)
-  override def dataType: DataType = UnresolvedType
-}
-
-/**
- * first_value(expr[, isIgnoreNull]) - Returns the first value of `expr` for a group of rows. If `isIgnoreNull` is true,
- * returns only non-null values.
- */
-case class First(left: Expression) extends Unary(left) with Fn {
-  override def prettyName: String = "FIRST_VALUE"
-  override def dataType: DataType = UnresolvedType
-}
-
-/**
- * first_value(expr[, isIgnoreNull]) - Returns the first value of `expr` for a group of rows. If `isIgnoreNull` is true,
- * returns only non-null values.
- */
-case class First(left: Expression, right: Expression) extends Binary(left, right) with Fn {
-  override def prettyName: String = "FIRST_VALUE"
   override def dataType: DataType = UnresolvedType
 }
 
@@ -1518,67 +1424,12 @@ case class Kurtosis(left: Expression) extends Unary(left) with Fn {
   override def prettyName: String = "KURTOSIS"
   override def dataType: DataType = UnresolvedType
 }
-
-/** kurtosis(expr) - Returns the kurtosis value calculated from values of a group. */
-case class Kurtosis(left: Expression, right: right) extends Expression with Fn {
-  override def prettyName: String = "KURTOSIS"
-  override def children: Seq[Expression] = Seq(left, right)
-  override def dataType: DataType = UnresolvedType
-}
-
-/**
- * last(expr[, isIgnoreNull]) - Returns the last value of `expr` for a group of rows. If `isIgnoreNull` is true, returns
- * only non-null values
- */
-case class Last(left: Expression, right: right) extends Expression with Fn {
-  override def prettyName: String = "LAST"
-  override def children: Seq[Expression] = Seq(left, right)
-  override def dataType: DataType = UnresolvedType
-}
-
-/**
- * last(expr[, isIgnoreNull]) - Returns the last value of `expr` for a group of rows. If `isIgnoreNull` is true, returns
- * only non-null values
- */
-case class Last(left: Expression) extends Unary(left) with Fn {
-  override def prettyName: String = "LAST"
-  override def dataType: DataType = UnresolvedType
-}
-
 /**
  * last(expr[, isIgnoreNull]) - Returns the last value of `expr` for a group of rows. If `isIgnoreNull` is true, returns
  * only non-null values
  */
 case class Last(left: Expression, right: Expression) extends Binary(left, right) with Fn {
   override def prettyName: String = "LAST"
-  override def dataType: DataType = UnresolvedType
-}
-
-/**
- * last_value(expr[, isIgnoreNull]) - Returns the last value of `expr` for a group of rows. If `isIgnoreNull` is true,
- * returns only non-null values
- */
-case class Last(left: Expression, right: right) extends Expression with Fn {
-  override def prettyName: String = "LAST_VALUE"
-  override def children: Seq[Expression] = Seq(left, right)
-  override def dataType: DataType = UnresolvedType
-}
-
-/**
- * last_value(expr[, isIgnoreNull]) - Returns the last value of `expr` for a group of rows. If `isIgnoreNull` is true,
- * returns only non-null values
- */
-case class Last(left: Expression) extends Unary(left) with Fn {
-  override def prettyName: String = "LAST_VALUE"
-  override def dataType: DataType = UnresolvedType
-}
-
-/**
- * last_value(expr[, isIgnoreNull]) - Returns the last value of `expr` for a group of rows. If `isIgnoreNull` is true,
- * returns only non-null values
- */
-case class Last(left: Expression, right: Expression) extends Binary(left, right) with Fn {
-  override def prettyName: String = "LAST_VALUE"
   override def dataType: DataType = UnresolvedType
 }
 
@@ -1621,47 +1472,6 @@ case class Percentile(left: Expression, right: Expression, c: Expression) extend
 }
 
 /**
- * percentile(col, percentage [, frequency]) - Returns the exact percentile value of numeric column `col` at the given
- * percentage. The value of percentage must be between 0.0 and 1.0. The value of frequency should be positive integral
- *
- * percentile(col, array(percentage1 [, percentage2]...) [, frequency]) - Returns the exact percentile value array of
- * numeric column `col` at the given percentage(s). Each value of the percentage array must be between 0.0 and 1.0. The
- * value of frequency should be positive integral
- */
-case class Percentile(left: Expression, right: Expression, c: Expression, d: d, e: e) extends Expression with Fn {
-  override def prettyName: String = "PERCENTILE"
-  override def children: Seq[Expression] = Seq(left, right, c, d, e)
-  override def dataType: DataType = UnresolvedType
-}
-
-/**
- * percentile(col, percentage [, frequency]) - Returns the exact percentile value of numeric column `col` at the given
- * percentage. The value of percentage must be between 0.0 and 1.0. The value of frequency should be positive integral
- *
- * percentile(col, array(percentage1 [, percentage2]...) [, frequency]) - Returns the exact percentile value array of
- * numeric column `col` at the given percentage(s). Each value of the percentage array must be between 0.0 and 1.0. The
- * value of frequency should be positive integral
- */
-case class Percentile(left: Expression, right: Expression) extends Binary(left, right) with Fn {
-  override def prettyName: String = "PERCENTILE"
-  override def dataType: DataType = UnresolvedType
-}
-
-/**
- * percentile_approx(col, percentage [, accuracy]) - Returns the approximate `percentile` of the numeric column `col`
- * which is the smallest value in the ordered `col` values (sorted from least to greatest) such that no more than
- * `percentage` of `col` values is less than the value or equal to that value. The value of percentage must be between
- * 0.0 and 1.0. The `accuracy` parameter (default: 10000) is a positive numeric literal which controls approximation
- * accuracy at the cost of memory. Higher value of `accuracy` yields better accuracy, `1.0/accuracy` is the relative
- * error of the approximation. When `percentage` is an array, each value of the percentage array must be between 0.0 and
- * 1.0. In this case, returns the approximate percentile array of column `col` at the given percentage array.
- */
-case class ApproximatePercentile(left: Expression, right: Expression) extends Binary(left, right) with Fn {
-  override def prettyName: String = "PERCENTILE_APPROX"
-  override def dataType: DataType = UnresolvedType
-}
-
-/**
  * percentile_approx(col, percentage [, accuracy]) - Returns the approximate `percentile` of the numeric column `col`
  * which is the smallest value in the ordered `col` values (sorted from least to greatest) such that no more than
  * `percentage` of `col` values is less than the value or equal to that value. The value of percentage must be between
@@ -1673,23 +1483,6 @@ case class ApproximatePercentile(left: Expression, right: Expression) extends Bi
 case class ApproximatePercentile(left: Expression, right: Expression, c: Expression) extends Expression with Fn {
   override def prettyName: String = "PERCENTILE_APPROX"
   override def children: Seq[Expression] = Seq(left, right, c)
-  override def dataType: DataType = UnresolvedType
-}
-
-/**
- * percentile_approx(col, percentage [, accuracy]) - Returns the approximate `percentile` of the numeric column `col`
- * which is the smallest value in the ordered `col` values (sorted from least to greatest) such that no more than
- * `percentage` of `col` values is less than the value or equal to that value. The value of percentage must be between
- * 0.0 and 1.0. The `accuracy` parameter (default: 10000) is a positive numeric literal which controls approximation
- * accuracy at the cost of memory. Higher value of `accuracy` yields better accuracy, `1.0/accuracy` is the relative
- * error of the approximation. When `percentage` is an array, each value of the percentage array must be between 0.0 and
- * 1.0. In this case, returns the approximate percentile array of column `col` at the given percentage array.
- */
-case class ApproximatePercentile(left: Expression, right: Expression, c: Expression, d: d, e: e)
-    extends Expression
-    with Fn {
-  override def prettyName: String = "PERCENTILE_APPROX"
-  override def children: Seq[Expression] = Seq(left, right, c, d, e)
   override def dataType: DataType = UnresolvedType
 }
 
@@ -1730,9 +1523,8 @@ case class VariancePop(left: Expression) extends Unary(left) with Fn {
 }
 
 /** var_samp(expr) - Returns the sample variance calculated from values of a group. */
-case class VarianceSamp(left: Expression, right: right) extends Expression with Fn {
+case class VarianceSamp(left: Expression) extends Unary(left) with Fn {
   override def prettyName: String = "VAR_SAMP"
-  override def children: Seq[Expression] = Seq(left, right)
   override def dataType: DataType = UnresolvedType
 }
 
