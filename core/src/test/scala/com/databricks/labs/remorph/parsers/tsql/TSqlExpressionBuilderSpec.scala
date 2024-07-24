@@ -16,73 +16,76 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
 
   "TSqlExpressionBuilder" should {
     "translate literals" in {
-      example("null", _.expression(), ir.Literal(nullType = Some(ir.NullType())))
-      example("1", _.expression(), ir.Literal(short = Some(1)))
-      example("-1", _.expression(), ir.UMinus(ir.Literal(short = Some(1))))
-      example("+1", _.expression(), ir.UPlus(ir.Literal(short = Some(1))))
-      example("1.1", _.expression(), ir.Literal(float = Some(1.1f)))
-      example("'foo'", _.expression(), ir.Literal(string = Some("foo")))
+      exampleExpr("null", _.expression(), ir.Literal(nullType = Some(ir.NullType)))
+      exampleExpr("1", _.expression(), ir.Literal(short = Some(1)))
+      exampleExpr("-1", _.expression(), ir.UMinus(ir.Literal(short = Some(1))))
+      exampleExpr("+1", _.expression(), ir.UPlus(ir.Literal(short = Some(1))))
+      exampleExpr("1.1", _.expression(), ir.Literal(float = Some(1.1f)))
+      exampleExpr("'foo'", _.expression(), ir.Literal(string = Some("foo")))
     }
     "translate scientific notation" in {
-      example("1.1e2", _.expression(), ir.Literal(short = Some(110)))
-      example("1.1e-2", _.expression(), ir.Literal(float = Some(0.011f)))
-      example("1e2", _.expression(), ir.Literal(short = Some(100)))
-      example("0.123456789", _.expression(), ir.Literal(double = Some(0.123456789)))
-      example(
+      exampleExpr("1.1e2", _.expression(), ir.Literal(short = Some(110)))
+      exampleExpr("1.1e-2", _.expression(), ir.Literal(float = Some(0.011f)))
+      exampleExpr("1e2", _.expression(), ir.Literal(short = Some(100)))
+      exampleExpr("0.123456789", _.expression(), ir.Literal(double = Some(0.123456789)))
+      exampleExpr(
         "0.123456789e-1234",
         _.expression(),
         ir.Literal(decimal = Some(ir.Decimal("0.123456789e-1234", None, None))))
     }
     "translate simple primitives" in {
-      example("DEFAULT", _.expression(), ir.Default())
-      example("@LocalId", _.expression(), ir.Identifier("@LocalId", isQuoted = false))
+      exampleExpr("DEFAULT", _.expression(), ir.Default())
+      exampleExpr("@LocalId", _.expression(), ir.Identifier("@LocalId", isQuoted = false))
     }
 
     "translate simple numeric binary expressions" in {
-      example("1 + 2", _.expression(), ir.Add(ir.Literal(short = Some(1)), ir.Literal(short = Some(2))))
-      example("1 +2", _.expression(), ir.Add(ir.Literal(short = Some(1)), ir.Literal(short = Some(2))))
-      example("1 - 2", _.expression(), ir.Subtract(ir.Literal(short = Some(1)), ir.Literal(short = Some(2))))
-      example("1 -2", _.expression(), ir.Subtract(ir.Literal(short = Some(1)), ir.Literal(short = Some(2))))
-      example("1 * 2", _.expression(), ir.Multiply(ir.Literal(short = Some(1)), ir.Literal(short = Some(2))))
-      example("1 / 2", _.expression(), ir.Divide(ir.Literal(short = Some(1)), ir.Literal(short = Some(2))))
-      example("1 % 2", _.expression(), ir.Mod(ir.Literal(short = Some(1)), ir.Literal(short = Some(2))))
-      example("'A' || 'B'", _.expression(), ir.Concat(ir.Literal(string = Some("A")), ir.Literal(string = Some("B"))))
-      example("4 ^ 2", _.expression(), ir.BitwiseXor(ir.Literal(short = Some(4)), ir.Literal(short = Some(2))))
+      exampleExpr("1 + 2", _.expression(), ir.Add(ir.Literal(short = Some(1)), ir.Literal(short = Some(2))))
+      exampleExpr("1 +2", _.expression(), ir.Add(ir.Literal(short = Some(1)), ir.Literal(short = Some(2))))
+      exampleExpr("1 - 2", _.expression(), ir.Subtract(ir.Literal(short = Some(1)), ir.Literal(short = Some(2))))
+      exampleExpr("1 -2", _.expression(), ir.Subtract(ir.Literal(short = Some(1)), ir.Literal(short = Some(2))))
+      exampleExpr("1 * 2", _.expression(), ir.Multiply(ir.Literal(short = Some(1)), ir.Literal(short = Some(2))))
+      exampleExpr("1 / 2", _.expression(), ir.Divide(ir.Literal(short = Some(1)), ir.Literal(short = Some(2))))
+      exampleExpr("1 % 2", _.expression(), ir.Mod(ir.Literal(short = Some(1)), ir.Literal(short = Some(2))))
+      exampleExpr(
+        "'A' || 'B'",
+        _.expression(),
+        ir.Concat(ir.Literal(string = Some("A")), ir.Literal(string = Some("B"))))
+      exampleExpr("4 ^ 2", _.expression(), ir.BitwiseXor(ir.Literal(short = Some(4)), ir.Literal(short = Some(2))))
     }
     "translate complex binary expressions" in {
-      example(
+      exampleExpr(
         "a + b * 2",
         _.expression(),
         ir.Add(simplyNamedColumn("a"), ir.Multiply(simplyNamedColumn("b"), ir.Literal(short = Some(2)))))
-      example(
+      exampleExpr(
         "(a + b) * 2",
         _.expression(),
         ir.Multiply(ir.Add(simplyNamedColumn("a"), simplyNamedColumn("b")), ir.Literal(short = Some(2))))
-      example(
+      exampleExpr(
         "a & b | c",
         _.expression(),
         ir.BitwiseOr(ir.BitwiseAnd(simplyNamedColumn("a"), simplyNamedColumn("b")), simplyNamedColumn("c")))
-      example(
+      exampleExpr(
         "(a & b) | c",
         _.expression(),
         ir.BitwiseOr(ir.BitwiseAnd(simplyNamedColumn("a"), simplyNamedColumn("b")), simplyNamedColumn("c")))
-      example(
+      exampleExpr(
         "a + b * 2",
         _.expression(),
         ir.Add(simplyNamedColumn("a"), ir.Multiply(simplyNamedColumn("b"), ir.Literal(short = Some(2)))))
-      example(
+      exampleExpr(
         "(a + b) * 2",
         _.expression(),
         ir.Multiply(ir.Add(simplyNamedColumn("a"), simplyNamedColumn("b")), ir.Literal(short = Some(2))))
-      example(
+      exampleExpr(
         "a & b | c",
         _.expression(),
         ir.BitwiseOr(ir.BitwiseAnd(simplyNamedColumn("a"), simplyNamedColumn("b")), simplyNamedColumn("c")))
-      example(
+      exampleExpr(
         "(a & b) | c",
         _.expression(),
         ir.BitwiseOr(ir.BitwiseAnd(simplyNamedColumn("a"), simplyNamedColumn("b")), simplyNamedColumn("c")))
-      example(
+      exampleExpr(
         "a % 3 + b * 2 - c / 5",
         _.expression(),
         ir.Subtract(
@@ -90,29 +93,29 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
             ir.Mod(simplyNamedColumn("a"), ir.Literal(short = Some(3))),
             ir.Multiply(simplyNamedColumn("b"), ir.Literal(short = Some(2)))),
           ir.Divide(simplyNamedColumn("c"), ir.Literal(short = Some(5)))))
-      example(
+      exampleExpr(
         query = "a || b || c",
         _.expression(),
         ir.Concat(ir.Concat(simplyNamedColumn("a"), simplyNamedColumn("b")), simplyNamedColumn("c")))
     }
     "correctly apply operator precedence and associativity" in {
-      example(
+      exampleExpr(
         "1 + -++-2",
         _.expression(),
         ir.Add(ir.Literal(short = Some(1)), ir.UMinus(ir.UPlus(ir.UPlus(ir.UMinus(ir.Literal(short = Some(2))))))))
-      example(
+      exampleExpr(
         "1 + ~ 2 * 3",
         _.expression(),
         ir.Add(
           ir.Literal(short = Some(1)),
           ir.Multiply(ir.BitwiseNot(ir.Literal(short = Some(2))), ir.Literal(short = Some(3)))))
-      example(
+      exampleExpr(
         "1 + -2 * 3",
         _.expression(),
         ir.Add(
           ir.Literal(short = Some(1)),
           ir.Multiply(ir.UMinus(ir.Literal(short = Some(2))), ir.Literal(short = Some(3)))))
-      example(
+      exampleExpr(
         "1 + -2 * 3 + 7 & 66",
         _.expression(),
         ir.BitwiseAnd(
@@ -122,7 +125,7 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
               ir.Multiply(ir.UMinus(ir.Literal(short = Some(2))), ir.Literal(short = Some(3)))),
             ir.Literal(short = Some(7))),
           ir.Literal(short = Some(66))))
-      example(
+      exampleExpr(
         "1 + -2 * 3 + 7 ^ 66",
         _.expression(),
         ir.BitwiseXor(
@@ -132,7 +135,7 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
               ir.Multiply(ir.UMinus(ir.Literal(short = Some(2))), ir.Literal(short = Some(3)))),
             ir.Literal(short = Some(7))),
           ir.Literal(short = Some(66))))
-      example(
+      exampleExpr(
         "1 + -2 * 3 + 7 | 66",
         _.expression(),
         ir.BitwiseOr(
@@ -142,7 +145,7 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
               ir.Multiply(ir.UMinus(ir.Literal(short = Some(2))), ir.Literal(short = Some(3)))),
             ir.Literal(short = Some(7))),
           ir.Literal(short = Some(66))))
-      example(
+      exampleExpr(
         "1 + -2 * 3 + 7 + ~66",
         _.expression(),
         ir.Add(
@@ -152,7 +155,7 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
               ir.Multiply(ir.UMinus(ir.Literal(short = Some(2))), ir.Literal(short = Some(3)))),
             ir.Literal(short = Some(7))),
           ir.BitwiseNot(ir.Literal(short = Some(66)))))
-      example(
+      exampleExpr(
         "1 + -2 * 3 + 7 | 1980 || 'leeds1' || 'leeds2' || 'leeds3'",
         _.expression(),
         ir.Concat(
@@ -170,39 +173,39 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
           ir.Literal(string = Some("leeds3"))))
     }
     "correctly respect explicit precedence with parentheses" in {
-      example(
+      exampleExpr(
         "(1 + 2) * 3",
         _.expression(),
         ir.Multiply(ir.Add(ir.Literal(short = Some(1)), ir.Literal(short = Some(2))), ir.Literal(short = Some(3))))
-      example(
+      exampleExpr(
         "1 + (2 * 3)",
         _.expression(),
         ir.Add(ir.Literal(short = Some(1)), ir.Multiply(ir.Literal(short = Some(2)), ir.Literal(short = Some(3)))))
-      example(
+      exampleExpr(
         "(1 + 2) * (3 + 4)",
         _.expression(),
         ir.Multiply(
           ir.Add(ir.Literal(short = Some(1)), ir.Literal(short = Some(2))),
           ir.Add(ir.Literal(short = Some(3)), ir.Literal(short = Some(4)))))
-      example(
+      exampleExpr(
         "1 + (2 * 3) + 4",
         _.expression(),
         ir.Add(
           ir.Add(ir.Literal(short = Some(1)), ir.Multiply(ir.Literal(short = Some(2)), ir.Literal(short = Some(3)))),
           ir.Literal(short = Some(4))))
-      example(
+      exampleExpr(
         "1 + (2 * 3 + 4)",
         _.expression(),
         ir.Add(
           ir.Literal(short = Some(1)),
           ir.Add(ir.Multiply(ir.Literal(short = Some(2)), ir.Literal(short = Some(3))), ir.Literal(short = Some(4)))))
-      example(
+      exampleExpr(
         "1 + (2 * (3 + 4))",
         _.expression(),
         ir.Add(
           ir.Literal(short = Some(1)),
           ir.Multiply(ir.Literal(short = Some(2)), ir.Add(ir.Literal(short = Some(3)), ir.Literal(short = Some(4))))))
-      example(
+      exampleExpr(
         "(1 + (2 * (3 + 4)))",
         _.expression(),
         ir.Add(
@@ -211,21 +214,21 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
     }
 
     "correctly resolve dot delimited plain references" in {
-      example("a", _.expression(), simplyNamedColumn("a"))
-      example("a.b", _.expression(), ir.Column(Some(ir.ObjectReference(ir.Id("a"))), ir.Id("b")))
-      example("a.b.c", _.expression(), ir.Column(Some(ir.ObjectReference(ir.Id("a"), ir.Id("b"))), ir.Id("c")))
+      exampleExpr("a", _.expression(), simplyNamedColumn("a"))
+      exampleExpr("a.b", _.expression(), ir.Column(Some(ir.ObjectReference(ir.Id("a"))), ir.Id("b")))
+      exampleExpr("a.b.c", _.expression(), ir.Column(Some(ir.ObjectReference(ir.Id("a"), ir.Id("b"))), ir.Id("c")))
     }
 
     "correctly resolve quoted identifiers" in {
-      example("RAW", _.expression(), simplyNamedColumn("RAW"))
-      example("#RAW", _.expression(), simplyNamedColumn("#RAW"))
-      example("\"a\"", _.expression(), ir.Column(None, ir.Id("a", caseSensitive = true)))
-      example("[a]", _.expression(), ir.Column(None, ir.Id("a", caseSensitive = true)))
-      example(
+      exampleExpr("RAW", _.expression(), simplyNamedColumn("RAW"))
+      exampleExpr("#RAW", _.expression(), simplyNamedColumn("#RAW"))
+      exampleExpr("\"a\"", _.expression(), ir.Column(None, ir.Id("a", caseSensitive = true)))
+      exampleExpr("[a]", _.expression(), ir.Column(None, ir.Id("a", caseSensitive = true)))
+      exampleExpr(
         "[a].[b]",
         _.expression(),
         ir.Column(Some(ir.ObjectReference(ir.Id("a", caseSensitive = true))), ir.Id("b", caseSensitive = true)))
-      example(
+      exampleExpr(
         "[a].[b].[c]",
         _.expression(),
         ir.Column(
@@ -234,44 +237,44 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
     }
 
     "correctly resolve keywords used as identifiers" in {
-      example("ABORT", _.expression(), simplyNamedColumn("ABORT"))
+      exampleExpr("ABORT", _.expression(), simplyNamedColumn("ABORT"))
     }
 
     "translate a simple column" in {
-      example("a", _.selectListElem(), simplyNamedColumn("a"))
-      example("#a", _.selectListElem(), simplyNamedColumn("#a"))
-      example("[a]", _.selectListElem(), ir.Column(None, ir.Id("a", caseSensitive = true)))
-      example("\"a\"", _.selectListElem(), ir.Column(None, ir.Id("a", caseSensitive = true)))
-      example("RAW", _.selectListElem(), simplyNamedColumn("RAW"))
+      exampleExpr("a", _.selectListElem(), simplyNamedColumn("a"))
+      exampleExpr("#a", _.selectListElem(), simplyNamedColumn("#a"))
+      exampleExpr("[a]", _.selectListElem(), ir.Column(None, ir.Id("a", caseSensitive = true)))
+      exampleExpr("\"a\"", _.selectListElem(), ir.Column(None, ir.Id("a", caseSensitive = true)))
+      exampleExpr("RAW", _.selectListElem(), simplyNamedColumn("RAW"))
     }
 
     "translate a column with a table" in {
-      example("table_x.a", _.selectListElem(), ir.Column(Some(ir.ObjectReference(ir.Id("table_x"))), ir.Id("a")))
+      exampleExpr("table_x.a", _.selectListElem(), ir.Column(Some(ir.ObjectReference(ir.Id("table_x"))), ir.Id("a")))
     }
 
     "translate a column with a schema" in {
-      example(
+      exampleExpr(
         "schema1.table_x.a",
         _.selectListElem(),
         ir.Column(Some(ir.ObjectReference(ir.Id("schema1"), ir.Id("table_x"))), ir.Id("a")))
     }
 
     "translate a column with a database" in {
-      example(
+      exampleExpr(
         "database1.schema1.table_x.a",
         _.selectListElem(),
         ir.Column(Some(ir.ObjectReference(ir.Id("database1"), ir.Id("schema1"), ir.Id("table_x"))), ir.Id("a")))
     }
 
     "translate a column with a server" in {
-      example(
+      exampleExpr(
         "server1..schema1.table_x.a",
         _.fullColumnName(),
         ir.Column(Some(ir.ObjectReference(ir.Id("server1"), ir.Id("schema1"), ir.Id("table_x"))), ir.Id("a")))
     }
 
     "translate a column without a table reference" in {
-      example("a", _.fullColumnName(), simplyNamedColumn("a"))
+      exampleExpr("a", _.fullColumnName(), simplyNamedColumn("a"))
     }
 
     "return ir.Dot for otherwise unhandled DotExpr" in {
@@ -287,28 +290,28 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
     }
 
     "translate search conditions" in {
-      example("a = b", _.searchCondition(), ir.Equals(simplyNamedColumn("a"), simplyNamedColumn("b")))
-      example("a > b", _.searchCondition(), ir.GreaterThan(simplyNamedColumn("a"), simplyNamedColumn("b")))
-      example("a < b", _.searchCondition(), ir.LesserThan(simplyNamedColumn("a"), simplyNamedColumn("b")))
-      example("a >= b", _.searchCondition(), ir.GreaterThanOrEqual(simplyNamedColumn("a"), simplyNamedColumn("b")))
-      example("a <= b", _.searchCondition(), ir.LesserThanOrEqual(simplyNamedColumn("a"), simplyNamedColumn("b")))
-      example("a > = b", _.searchCondition(), ir.GreaterThanOrEqual(simplyNamedColumn("a"), simplyNamedColumn("b")))
-      example("a <  = b", _.searchCondition(), ir.LesserThanOrEqual(simplyNamedColumn("a"), simplyNamedColumn("b")))
-      example("a <> b", _.searchCondition(), ir.NotEquals(simplyNamedColumn("a"), simplyNamedColumn("b")))
-      example("NOT a = b", _.searchCondition(), ir.Not(ir.Equals(simplyNamedColumn("a"), simplyNamedColumn("b"))))
-      example(
+      exampleExpr("a = b", _.searchCondition(), ir.Equals(simplyNamedColumn("a"), simplyNamedColumn("b")))
+      exampleExpr("a > b", _.searchCondition(), ir.GreaterThan(simplyNamedColumn("a"), simplyNamedColumn("b")))
+      exampleExpr("a < b", _.searchCondition(), ir.LesserThan(simplyNamedColumn("a"), simplyNamedColumn("b")))
+      exampleExpr("a >= b", _.searchCondition(), ir.GreaterThanOrEqual(simplyNamedColumn("a"), simplyNamedColumn("b")))
+      exampleExpr("a <= b", _.searchCondition(), ir.LesserThanOrEqual(simplyNamedColumn("a"), simplyNamedColumn("b")))
+      exampleExpr("a > = b", _.searchCondition(), ir.GreaterThanOrEqual(simplyNamedColumn("a"), simplyNamedColumn("b")))
+      exampleExpr("a <  = b", _.searchCondition(), ir.LesserThanOrEqual(simplyNamedColumn("a"), simplyNamedColumn("b")))
+      exampleExpr("a <> b", _.searchCondition(), ir.NotEquals(simplyNamedColumn("a"), simplyNamedColumn("b")))
+      exampleExpr("NOT a = b", _.searchCondition(), ir.Not(ir.Equals(simplyNamedColumn("a"), simplyNamedColumn("b"))))
+      exampleExpr(
         "a = b AND c = e",
         _.searchCondition(),
         ir.And(
           ir.Equals(simplyNamedColumn("a"), simplyNamedColumn("b")),
           ir.Equals(simplyNamedColumn("c"), simplyNamedColumn("e"))))
-      example(
+      exampleExpr(
         "a = b OR c = e",
         _.searchCondition(),
         ir.Or(
           ir.Equals(simplyNamedColumn("a"), simplyNamedColumn("b")),
           ir.Equals(simplyNamedColumn("c"), simplyNamedColumn("e"))))
-      example(
+      exampleExpr(
         "a = b AND c = x OR e = f",
         _.searchCondition(),
         ir.Or(
@@ -316,7 +319,7 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
             ir.Equals(simplyNamedColumn("a"), simplyNamedColumn("b")),
             ir.Equals(simplyNamedColumn("c"), simplyNamedColumn("x"))),
           ir.Equals(simplyNamedColumn("e"), simplyNamedColumn("f"))))
-      example(
+      exampleExpr(
         "a = b AND (c = x OR e = f)",
         _.searchCondition(),
         ir.And(
@@ -327,13 +330,13 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
     }
 
     "handle non special functions used in dot operators" in {
-      example(
+      exampleExpr(
         "a.b()",
         _.expression(),
         ir.Dot(
           simplyNamedColumn("a"),
           ir.UnresolvedFunction("b", List(), is_distinct = false, is_user_defined_function = false)))
-      example(
+      exampleExpr(
         "a.b.c()",
         _.expression(),
         ir.Dot(
@@ -341,7 +344,7 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
           ir.Dot(
             simplyNamedColumn("b"),
             ir.UnresolvedFunction("c", List(), is_distinct = false, is_user_defined_function = false))))
-      example(
+      exampleExpr(
         "a.b.c.FLOOR(c)",
         _.expression(),
         ir.Dot(
@@ -352,7 +355,7 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
     }
 
     "handle unknown functions used with dots" in {
-      example(
+      exampleExpr(
         "a.UNKNOWN_FUNCTION()",
         _.expression(),
         ir.Dot(
@@ -375,7 +378,7 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
 
     "translate case/when/else expressions" in {
       // Case with an initial expression and an else clause
-      example(
+      exampleExpr(
         "CASE a WHEN 1 THEN 'one' WHEN 2 THEN 'two' ELSE 'other' END",
         _.expression(),
         ir.Case(
@@ -386,7 +389,7 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
           Some(ir.Literal(string = Some("other")))))
 
       // Case without an initial expression and with an else clause
-      example(
+      exampleExpr(
         "CASE WHEN a = 1 THEN 'one' WHEN a = 2 THEN 'two' ELSE 'other' END",
         _.expression(),
         ir.Case(
@@ -401,7 +404,7 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
           Some(ir.Literal(string = Some("other")))))
 
       // Case with an initial expression and without an else clause
-      example(
+      exampleExpr(
         "CASE a WHEN 1 THEN 'one' WHEN 2 THEN 'two' END",
         _.expression(),
         ir.Case(
@@ -412,7 +415,7 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
           None))
 
       // Case without an initial expression and without an else clause
-      example(
+      exampleExpr(
         "CASE WHEN a = 1 AND b < 7 THEN 'one' WHEN a = 2 THEN 'two' END",
         _.expression(),
         ir.Case(
@@ -430,11 +433,11 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
     }
 
     "translate the $ACTION special column reference" in {
-      example("$ACTION", _.expression(), ir.DollarAction())
+      exampleExpr("$ACTION", _.expression(), ir.DollarAction())
     }
 
     "translate a timezone reference" in {
-      example(
+      exampleExpr(
         "a AT TIME ZONE 'UTC'",
         _.expression(),
         ir.Timezone(simplyNamedColumn("a"), ir.Literal(string = Some("UTC"))))
@@ -473,222 +476,231 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
     }
 
     "translate CAST pseudo function calls with simple scalars" in {
-      example("CAST(a AS tinyint)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.ByteType(size = Some(1))))
-      example("CAST(a AS smallint)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.ShortType()))
-      example("CAST(a AS INT)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.IntegerType()))
-      example("CAST(a AS bigint)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.LongType()))
-      example("CAST(a AS bit)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.BooleanType()))
-      example("CAST(a AS money)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.DecimalType(Some(19), Some(4))))
-      example(
+      exampleExpr("CAST(a AS tinyint)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.ByteType(size = Some(1))))
+      exampleExpr("CAST(a AS smallint)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.ShortType))
+      exampleExpr("CAST(a AS INT)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.IntegerType))
+      exampleExpr("CAST(a AS bigint)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.LongType))
+      exampleExpr("CAST(a AS bit)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.BooleanType))
+      exampleExpr(
+        "CAST(a AS money)",
+        _.expression(),
+        ir.Cast(simplyNamedColumn("a"), ir.DecimalType(Some(19), Some(4))))
+      exampleExpr(
         "CAST(a AS smallmoney)",
         _.expression(),
         ir.Cast(simplyNamedColumn("a"), ir.DecimalType(Some(10), Some(4))))
-      example("CAST(a AS float)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.FloatType()))
-      example("CAST(a AS real)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.DoubleType()))
-      example("CAST(a AS date)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.DateType()))
-      example("CAST(a AS time)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.TimeType()))
-      example("CAST(a AS datetime)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.TimestampType()))
-      example("CAST(a AS datetime2)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.TimestampType()))
-      example("CAST(a AS datetimeoffset)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.StringType()))
-      example("CAST(a AS smalldatetime)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.TimestampType()))
-      example("CAST(a AS char)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.CharType(size = None)))
-      example("CAST(a AS varchar)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.VarCharType(size = None)))
-      example("CAST(a AS nchar)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.CharType(size = None)))
-      example("CAST(a AS nvarchar)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.VarCharType(size = None)))
-      example("CAST(a AS text)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.VarCharType(None)))
-      example("CAST(a AS ntext)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.VarCharType(None)))
-      example("CAST(a AS image)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.BinaryType()))
-      example("CAST(a AS decimal)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.DecimalType(None, None)))
-      example("CAST(a AS numeric)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.DecimalType(None, None)))
-      example("CAST(a AS binary)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.BinaryType()))
-      example("CAST(a AS varbinary)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.BinaryType()))
-      example("CAST(a AS json)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.VarCharType(None)))
-      example(
+      exampleExpr("CAST(a AS float)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.FloatType))
+      exampleExpr("CAST(a AS real)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.DoubleType))
+      exampleExpr("CAST(a AS date)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.DateType))
+      exampleExpr("CAST(a AS time)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.TimeType))
+      exampleExpr("CAST(a AS datetime)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.TimestampType))
+      exampleExpr("CAST(a AS datetime2)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.TimestampType))
+      exampleExpr("CAST(a AS datetimeoffset)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.StringType))
+      exampleExpr("CAST(a AS smalldatetime)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.TimestampType))
+      exampleExpr("CAST(a AS char)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.CharType(size = None)))
+      exampleExpr("CAST(a AS varchar)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.VarCharType(size = None)))
+      exampleExpr("CAST(a AS nchar)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.CharType(size = None)))
+      exampleExpr("CAST(a AS nvarchar)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.VarCharType(size = None)))
+      exampleExpr("CAST(a AS text)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.VarCharType(None)))
+      exampleExpr("CAST(a AS ntext)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.VarCharType(None)))
+      exampleExpr("CAST(a AS image)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.BinaryType))
+      exampleExpr("CAST(a AS decimal)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.DecimalType(None, None)))
+      exampleExpr("CAST(a AS numeric)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.DecimalType(None, None)))
+      exampleExpr("CAST(a AS binary)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.BinaryType))
+      exampleExpr("CAST(a AS varbinary)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.BinaryType))
+      exampleExpr("CAST(a AS json)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.VarCharType(None)))
+      exampleExpr(
         "CAST(a AS uniqueidentifier)",
         _.expression(),
         ir.Cast(simplyNamedColumn("a"), ir.VarCharType(size = Some(16))))
     }
 
     "translate CAST pseudo function calls with length arguments" in {
-      example("CAST(a AS char(10))", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.CharType(size = Some(10))))
-      example(
+      exampleExpr("CAST(a AS char(10))", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.CharType(size = Some(10))))
+      exampleExpr(
         "CAST(a AS varchar(10))",
         _.expression(),
         ir.Cast(simplyNamedColumn("a"), ir.VarCharType(size = Some(10))))
-      example("CAST(a AS nchar(10))", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.CharType(size = Some(10))))
-      example(
+      exampleExpr("CAST(a AS nchar(10))", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.CharType(size = Some(10))))
+      exampleExpr(
         "CAST(a AS nvarchar(10))",
         _.expression(),
         ir.Cast(simplyNamedColumn("a"), ir.VarCharType(size = Some(10))))
     }
 
     "translate CAST pseudo function calls with scale arguments" in {
-      example("CAST(a AS decimal(10))", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.DecimalType(Some(10), None)))
-      example("CAST(a AS numeric(10))", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.DecimalType(Some(10), None)))
+      exampleExpr(
+        "CAST(a AS decimal(10))",
+        _.expression(),
+        ir.Cast(simplyNamedColumn("a"), ir.DecimalType(Some(10), None)))
+      exampleExpr(
+        "CAST(a AS numeric(10))",
+        _.expression(),
+        ir.Cast(simplyNamedColumn("a"), ir.DecimalType(Some(10), None)))
     }
 
     "translate CAST pseudo function calls with precision and scale arguments" in {
-      example(
+      exampleExpr(
         "CAST(a AS decimal(10, 2))",
         _.expression(),
         ir.Cast(simplyNamedColumn("a"), ir.DecimalType(Some(10), Some(2))))
-      example(
+      exampleExpr(
         "CAST(a AS numeric(10, 2))",
         _.expression(),
         ir.Cast(simplyNamedColumn("a"), ir.DecimalType(Some(10), Some(2))))
     }
 
     "translate TRY_CAST pseudo function calls with simple scalars" in {
-      example(
+      exampleExpr(
         "TRY_CAST(a AS tinyint)",
         _.expression(),
         ir.Cast(simplyNamedColumn("a"), ir.ByteType(size = Some(1)), returnNullOnError = true))
-      example(
+      exampleExpr(
         "TRY_CAST(a AS smallint)",
         _.expression(),
-        ir.Cast(simplyNamedColumn("a"), ir.ShortType(), returnNullOnError = true))
-      example(
+        ir.Cast(simplyNamedColumn("a"), ir.ShortType, returnNullOnError = true))
+      exampleExpr(
         "TRY_CAST(a AS INT)",
         _.expression(),
-        ir.Cast(simplyNamedColumn("a"), ir.IntegerType(), returnNullOnError = true))
-      example(
+        ir.Cast(simplyNamedColumn("a"), ir.IntegerType, returnNullOnError = true))
+      exampleExpr(
         "TRY_CAST(a AS bigint)",
         _.expression(),
-        ir.Cast(simplyNamedColumn("a"), ir.LongType(), returnNullOnError = true))
-      example(
+        ir.Cast(simplyNamedColumn("a"), ir.LongType, returnNullOnError = true))
+      exampleExpr(
         "TRY_CAST(a AS bit)",
         _.expression(),
-        ir.Cast(simplyNamedColumn("a"), ir.BooleanType(), returnNullOnError = true))
-      example(
+        ir.Cast(simplyNamedColumn("a"), ir.BooleanType, returnNullOnError = true))
+      exampleExpr(
         "TRY_CAST(a AS money)",
         _.expression(),
         ir.Cast(simplyNamedColumn("a"), ir.DecimalType(Some(19), Some(4)), returnNullOnError = true))
-      example(
+      exampleExpr(
         "TRY_CAST(a AS smallmoney)",
         _.expression(),
         ir.Cast(simplyNamedColumn("a"), ir.DecimalType(Some(10), Some(4)), returnNullOnError = true))
-      example(
+      exampleExpr(
         "TRY_CAST(a AS float)",
         _.expression(),
-        ir.Cast(simplyNamedColumn("a"), ir.FloatType(), returnNullOnError = true))
-      example(
+        ir.Cast(simplyNamedColumn("a"), ir.FloatType, returnNullOnError = true))
+      exampleExpr(
         "TRY_CAST(a AS real)",
         _.expression(),
-        ir.Cast(simplyNamedColumn("a"), ir.DoubleType(), returnNullOnError = true))
-      example(
+        ir.Cast(simplyNamedColumn("a"), ir.DoubleType, returnNullOnError = true))
+      exampleExpr(
         "TRY_CAST(a AS date)",
         _.expression(),
-        ir.Cast(simplyNamedColumn("a"), ir.DateType(), returnNullOnError = true))
-      example(
+        ir.Cast(simplyNamedColumn("a"), ir.DateType, returnNullOnError = true))
+      exampleExpr(
         "TRY_CAST(a AS time)",
         _.expression(),
-        ir.Cast(simplyNamedColumn("a"), ir.TimeType(), returnNullOnError = true))
-      example(
+        ir.Cast(simplyNamedColumn("a"), ir.TimeType, returnNullOnError = true))
+      exampleExpr(
         "TRY_CAST(a AS datetime)",
         _.expression(),
-        ir.Cast(simplyNamedColumn("a"), ir.TimestampType(), returnNullOnError = true))
-      example(
+        ir.Cast(simplyNamedColumn("a"), ir.TimestampType, returnNullOnError = true))
+      exampleExpr(
         "TRY_CAST(a AS datetime2)",
         _.expression(),
-        ir.Cast(simplyNamedColumn("a"), ir.TimestampType(), returnNullOnError = true))
-      example(
+        ir.Cast(simplyNamedColumn("a"), ir.TimestampType, returnNullOnError = true))
+      exampleExpr(
         "TRY_CAST(a AS datetimeoffset)",
         _.expression(),
-        ir.Cast(simplyNamedColumn("a"), ir.StringType(), returnNullOnError = true))
-      example(
+        ir.Cast(simplyNamedColumn("a"), ir.StringType, returnNullOnError = true))
+      exampleExpr(
         "TRY_CAST(a AS smalldatetime)",
         _.expression(),
-        ir.Cast(simplyNamedColumn("a"), ir.TimestampType(), returnNullOnError = true))
-      example(
+        ir.Cast(simplyNamedColumn("a"), ir.TimestampType, returnNullOnError = true))
+      exampleExpr(
         "TRY_CAST(a AS char)",
         _.expression(),
         ir.Cast(simplyNamedColumn("a"), ir.CharType(size = None), returnNullOnError = true))
-      example(
+      exampleExpr(
         "TRY_CAST(a AS varchar)",
         _.expression(),
         ir.Cast(simplyNamedColumn("a"), ir.VarCharType(size = None), returnNullOnError = true))
-      example(
+      exampleExpr(
         "TRY_CAST(a AS nchar)",
         _.expression(),
         ir.Cast(simplyNamedColumn("a"), ir.CharType(size = None), returnNullOnError = true))
-      example(
+      exampleExpr(
         "TRY_CAST(a AS nvarchar)",
         _.expression(),
         ir.Cast(simplyNamedColumn("a"), ir.VarCharType(size = None), returnNullOnError = true))
-      example(
+      exampleExpr(
         "TRY_CAST(a AS text)",
         _.expression(),
         ir.Cast(simplyNamedColumn("a"), ir.VarCharType(None), returnNullOnError = true))
-      example(
+      exampleExpr(
         "TRY_CAST(a AS ntext)",
         _.expression(),
         ir.Cast(simplyNamedColumn("a"), ir.VarCharType(None), returnNullOnError = true))
-      example(
+      exampleExpr(
         "TRY_CAST(a AS image)",
         _.expression(),
-        ir.Cast(simplyNamedColumn("a"), ir.BinaryType(), returnNullOnError = true))
-      example(
+        ir.Cast(simplyNamedColumn("a"), ir.BinaryType, returnNullOnError = true))
+      exampleExpr(
         "TRY_CAST(a AS decimal)",
         _.expression(),
         ir.Cast(simplyNamedColumn("a"), ir.DecimalType(None, None), returnNullOnError = true))
-      example(
+      exampleExpr(
         "TRY_CAST(a AS numeric)",
         _.expression(),
         ir.Cast(simplyNamedColumn("a"), ir.DecimalType(None, None), returnNullOnError = true))
-      example(
+      exampleExpr(
         "TRY_CAST(a AS binary)",
         _.expression(),
-        ir.Cast(simplyNamedColumn("a"), ir.BinaryType(), returnNullOnError = true))
-      example(
+        ir.Cast(simplyNamedColumn("a"), ir.BinaryType, returnNullOnError = true))
+      exampleExpr(
         "TRY_CAST(a AS varbinary)",
         _.expression(),
-        ir.Cast(simplyNamedColumn("a"), ir.BinaryType(), returnNullOnError = true))
-      example(
+        ir.Cast(simplyNamedColumn("a"), ir.BinaryType, returnNullOnError = true))
+      exampleExpr(
         "TRY_CAST(a AS json)",
         _.expression(),
         ir.Cast(simplyNamedColumn("a"), ir.VarCharType(None), returnNullOnError = true))
-      example(
+      exampleExpr(
         "TRY_CAST(a AS uniqueidentifier)",
         _.expression(),
         ir.Cast(simplyNamedColumn("a"), ir.VarCharType(size = Some(16)), returnNullOnError = true))
     }
 
     "translate TRY_CAST pseudo function calls with length arguments" in {
-      example(
+      exampleExpr(
         "TRY_CAST(a AS char(10))",
         _.expression(),
         ir.Cast(simplyNamedColumn("a"), ir.CharType(size = Some(10)), returnNullOnError = true))
-      example(
+      exampleExpr(
         "TRY_CAST(a AS varchar(10))",
         _.expression(),
         ir.Cast(simplyNamedColumn("a"), ir.VarCharType(size = Some(10)), returnNullOnError = true))
-      example(
+      exampleExpr(
         "TRY_CAST(a AS nchar(10))",
         _.expression(),
         ir.Cast(simplyNamedColumn("a"), ir.CharType(size = Some(10)), returnNullOnError = true))
-      example(
+      exampleExpr(
         "TRY_CAST(a AS nvarchar(10))",
         _.expression(),
         ir.Cast(simplyNamedColumn("a"), ir.VarCharType(size = Some(10)), returnNullOnError = true))
     }
 
     "translate TRY_CAST pseudo function calls with scale arguments" in {
-      example(
+      exampleExpr(
         "TRY_CAST(a AS decimal(10))",
         _.expression(),
         ir.Cast(simplyNamedColumn("a"), ir.DecimalType(Some(10), None), returnNullOnError = true))
-      example(
+      exampleExpr(
         "TRY_CAST(a AS numeric(10))",
         _.expression(),
         ir.Cast(simplyNamedColumn("a"), ir.DecimalType(Some(10), None), returnNullOnError = true))
     }
 
     "translate TRY_CAST pseudo function calls with precision and scale arguments" in {
-      example(
+      exampleExpr(
         "TRY_CAST(a AS decimal(10, 2))",
         _.expression(),
         ir.Cast(simplyNamedColumn("a"), ir.DecimalType(Some(10), Some(2)), returnNullOnError = true))
-      example(
+      exampleExpr(
         "TRY_CAST(a AS numeric(10, 2))",
         _.expression(),
         ir.Cast(simplyNamedColumn("a"), ir.DecimalType(Some(10), Some(2)), returnNullOnError = true))
@@ -698,11 +710,11 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
       // TODO: Resolve what to do with IDENTITY
       // IDENTITY it isn't actually castable but we have not implemented CREATE TABLE yet, so cover here for now
       // then examine what happens in snowflake
-      example("CAST(a AS col1 IDENTITY(10, 2))", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.UnparsedType()))
+      exampleExpr("CAST(a AS col1 IDENTITY(10, 2))", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.UnparsedType()))
     }
 
     "translate unknown types to UnParsedType" in {
-      example("CAST(a AS sometype)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.UnparsedType()))
+      exampleExpr("CAST(a AS sometype)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.UnparsedType()))
     }
 
   }

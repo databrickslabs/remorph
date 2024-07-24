@@ -1,5 +1,6 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
+import com.databricks.labs.remorph.parsers.intermediate.UnresolvedType
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser.{StringContext => _, _}
 import com.databricks.labs.remorph.parsers.{IncompleteParser, ParserCommon, intermediate => ir}
 import org.antlr.v4.runtime.Token
@@ -79,22 +80,22 @@ class SnowflakeExpressionBuilder()
         val dateStr = c.DATE_LIT().getText.stripPrefix("DATE'").stripSuffix("'")
         Try(java.time.LocalDate.parse(dateStr))
           .map(date => ir.Literal(date = Some(date.toEpochDay)))
-          .getOrElse(ir.Literal(nullType = Some(ir.NullType())))
+          .getOrElse(ir.Literal(nullType = Some(ir.NullType)))
       case c if c.TIMESTAMP_LIT() != null =>
         val timestampStr = c.TIMESTAMP_LIT().getText.stripPrefix("TIMESTAMP'").stripSuffix("'")
         val format = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
         Try(LocalDateTime.parse(timestampStr, format))
           .map(dt => ir.Literal(timestamp = Some(dt.toEpochSecond(ZoneOffset.UTC))))
-          .getOrElse(ir.Literal(nullType = Some(ir.NullType())))
+          .getOrElse(ir.Literal(nullType = Some(ir.NullType)))
       case c if c.STRING() != null => ir.Literal(string = Some(removeQuotes(c.STRING().getText)))
       case c if c.DECIMAL() != null => buildLiteralNumber(sign + c.DECIMAL().getText)
       case c if c.FLOAT() != null => buildLiteralNumber(sign + c.FLOAT().getText)
       case c if c.REAL() != null => buildLiteralNumber(sign + c.REAL().getText)
-      case c if c.NULL_() != null => ir.Literal(nullType = Some(ir.NullType()))
+      case c if c.NULL_() != null => ir.Literal(nullType = Some(ir.NullType))
       case c if c.trueFalse() != null => visitTrueFalse(c.trueFalse())
       case c if c.jsonLiteral() != null => visitJsonLiteral(c.jsonLiteral())
       case c if c.arrayLiteral() != null => visitArrayLiteral(c.arrayLiteral())
-      case _ => ir.Literal(nullType = Some(ir.NullType()))
+      case _ => ir.Literal(nullType = Some(ir.NullType))
     }
   }
 
@@ -201,11 +202,11 @@ class SnowflakeExpressionBuilder()
       val fieldValue = visitLiteral(kv.literal())
       fieldName -> fieldValue
     }
-    ir.Literal(json = Some(ir.JsonExpr(None, fields)))
+    ir.Literal(json = Some(ir.JsonExpr(UnresolvedType, fields)))
   }
 
   override def visitArrayLiteral(ctx: ArrayLiteralContext): ir.Literal = {
-    ir.Literal(array = Some(ir.ArrayExpr(None, ctx.literal().asScala.map(visitLiteral))))
+    ir.Literal(array = Some(ir.ArrayExpr(UnresolvedType, ctx.literal().asScala.map(visitLiteral))))
   }
 
   override def visitPrimArrayAccess(ctx: PrimArrayAccessContext): ir.Expression = {
@@ -260,7 +261,7 @@ class SnowflakeExpressionBuilder()
       val dataType = DataTypeBuilder.buildDataType(c.dataType())
       ir.Cast(expression, dataType, returnNullOnError = c.TRY_CAST() != null)
     case c if c.INTERVAL() != null =>
-      ir.Cast(c.expr().accept(this), ir.IntervalType())
+      ir.Cast(c.expr().accept(this), ir.IntervalType)
   }
 
   override def visitRankingWindowedFunction(ctx: RankingWindowedFunctionContext): ir.Expression = {

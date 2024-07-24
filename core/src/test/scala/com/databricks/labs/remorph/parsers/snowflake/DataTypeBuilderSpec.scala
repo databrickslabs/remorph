@@ -21,12 +21,12 @@ class DataTypeBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon wit
       example("NUMBER(12, 5)", DecimalType(Some(12), Some(5)))
       example("CHAR", CharType(None))
       example("CHAR(8)", CharType(Some(8)))
-      example("FLOAT", DoubleType())
-      example("DOUBLE", DoubleType())
-      example("BOOLEAN", BooleanType())
-      example("DATE", DateType())
-      example("BINARY", BinaryType())
-      example("ARRAY", ArrayType())
+      example("FLOAT", DoubleType)
+      example("DOUBLE", DoubleType)
+      example("BOOLEAN", BooleanType)
+      example("DATE", DateType)
+      example("BINARY", BinaryType)
+      example("ARRAY", ArrayType(UnresolvedType))
     }
 
     "translate the rest to UnparsedType" in {

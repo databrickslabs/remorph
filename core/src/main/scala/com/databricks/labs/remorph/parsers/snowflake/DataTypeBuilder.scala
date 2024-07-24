@@ -18,13 +18,13 @@ object DataTypeBuilder {
         val precision = nums.headOption.map(_.getText.toInt)
         val scale = nums.drop(1).headOption.map(_.getText.toInt)
         ir.DecimalType(precision, scale)
-      case c if c.floatAlias != null => ir.DoubleType()
-      case c if c.BOOLEAN() != null => ir.BooleanType()
-      case c if c.DATE() != null => ir.DateType()
+      case c if c.floatAlias != null => ir.DoubleType
+      case c if c.BOOLEAN() != null => ir.BooleanType
+      case c if c.DATE() != null => ir.DateType
       case c if c.charAlias != null => ir.CharType(sizeOpt)
       case c if c.varcharAlias != null => ir.VarCharType(sizeOpt)
-      case c if c.binaryAlias != null => ir.BinaryType()
-      case c if c.ARRAY() != null => ir.ArrayType()
+      case c if c.binaryAlias != null => ir.BinaryType
+      case c if c.ARRAY() != null => ir.ArrayType(ir.UnresolvedType)
       case _ => ir.UnparsedType()
     }
   }
