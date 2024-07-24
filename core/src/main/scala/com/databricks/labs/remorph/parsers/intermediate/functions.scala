@@ -1397,7 +1397,6 @@ case class CountMinSketchAgg(left: Expression, right: Expression, c: Expression,
   override def dataType: DataType = UnresolvedType
 }
 
-
 /** covar_pop(expr1, expr2) - Returns the population covariance of a set of number pairs. */
 case class CovPopulation(left: Expression, right: Expression) extends Binary(left, right) with Fn {
   override def prettyName: String = "COVAR_POP"
@@ -1424,6 +1423,7 @@ case class Kurtosis(left: Expression) extends Unary(left) with Fn {
   override def prettyName: String = "KURTOSIS"
   override def dataType: DataType = UnresolvedType
 }
+
 /**
  * last(expr[, isIgnoreNull]) - Returns the last value of `expr` for a group of rows. If `isIgnoreNull` is true, returns
  * only non-null values
@@ -1971,26 +1971,7 @@ case class UnixSeconds(left: Expression) extends Unary(left) with Fn {
 }
 
 /** unix_timestamp([timeExp[, fmt]]) - Returns the UNIX timestamp of current or specified time. */
-case class UnixTimestamp(left: Expression, right: Expression, c: c, d: d) extends Expression with Fn {
-  override def prettyName: String = "UNIX_TIMESTAMP"
-  override def children: Seq[Expression] = Seq(left, right, c, d)
-  override def dataType: DataType = UnresolvedType
-}
-
-/** unix_timestamp([timeExp[, fmt]]) - Returns the UNIX timestamp of current or specified time. */
 case class UnixTimestamp(left: Expression, right: Expression) extends Binary(left, right) with Fn {
-  override def prettyName: String = "UNIX_TIMESTAMP"
-  override def dataType: DataType = UnresolvedType
-}
-
-/** unix_timestamp([timeExp[, fmt]]) - Returns the UNIX timestamp of current or specified time. */
-case class UnixTimestamp(left: Expression) extends Unary(left) with Fn {
-  override def prettyName: String = "UNIX_TIMESTAMP"
-  override def dataType: DataType = UnresolvedType
-}
-
-/** unix_timestamp([timeExp[, fmt]]) - Returns the UNIX timestamp of current or specified time. */
-case class UnixTimestamp() extends LeafExpression with Fn {
   override def prettyName: String = "UNIX_TIMESTAMP"
   override def dataType: DataType = UnresolvedType
 }
@@ -2017,29 +1998,9 @@ case class Year(left: Expression) extends Unary(left) with Fn {
 }
 
 /** from_json(jsonStr, schema[, options]) - Returns a struct value with the given `jsonStr` and `schema`. */
-case class JsonToStructs(left: Expression, right: Expression, c: c) extends Expression with Fn {
-  override def prettyName: String = "FROM_JSON"
-  override def children: Seq[Expression] = Seq(left, right, c)
-  override def dataType: DataType = UnresolvedType
-}
-
-/** from_json(jsonStr, schema[, options]) - Returns a struct value with the given `jsonStr` and `schema`. */
-case class JsonToStructs(left: Expression, right: Expression) extends Binary(left, right) with Fn {
-  override def prettyName: String = "FROM_JSON"
-  override def dataType: DataType = UnresolvedType
-}
-
-/** from_json(jsonStr, schema[, options]) - Returns a struct value with the given `jsonStr` and `schema`. */
 case class JsonToStructs(left: Expression, right: Expression, c: Expression) extends Expression with Fn {
   override def prettyName: String = "FROM_JSON"
   override def children: Seq[Expression] = Seq(left, right, c)
-  override def dataType: DataType = UnresolvedType
-}
-
-/** from_json(jsonStr, schema[, options]) - Returns a struct value with the given `jsonStr` and `schema`. */
-case class JsonToStructs(left: left, right: right, c: Expression, d: d) extends Expression with Fn {
-  override def prettyName: String = "FROM_JSON"
-  override def children: Seq[Expression] = Seq(left, right, c, d)
   override def dataType: DataType = UnresolvedType
 }
 
@@ -2071,47 +2032,14 @@ case class JsonTuple(children: Seq[Expression]) extends Expression with Fn {
 }
 
 /** schema_of_json(json[, options]) - Returns schema in the DDL format of JSON string. */
-case class SchemaOfJson(left: Expression) extends Unary(left) with Fn {
-  override def prettyName: String = "SCHEMA_OF_JSON"
-  override def dataType: DataType = UnresolvedType
-}
-
-/** schema_of_json(json[, options]) - Returns schema in the DDL format of JSON string. */
 case class SchemaOfJson(left: Expression, right: Expression) extends Binary(left, right) with Fn {
   override def prettyName: String = "SCHEMA_OF_JSON"
-  override def dataType: DataType = UnresolvedType
-}
-
-/** schema_of_json(json[, options]) - Returns schema in the DDL format of JSON string. */
-case class SchemaOfJson(left: Expression, right: right) extends Expression with Fn {
-  override def prettyName: String = "SCHEMA_OF_JSON"
-  override def children: Seq[Expression] = Seq(left, right)
-  override def dataType: DataType = UnresolvedType
-}
-
-/** to_json(expr[, options]) - Returns a JSON string with a given struct value */
-case class StructsToJson(left: left, right: Expression) extends Expression with Fn {
-  override def prettyName: String = "TO_JSON"
-  override def children: Seq[Expression] = Seq(left, right)
-  override def dataType: DataType = UnresolvedType
-}
-
-/** to_json(expr[, options]) - Returns a JSON string with a given struct value */
-case class StructsToJson(left: Expression) extends Unary(left) with Fn {
-  override def prettyName: String = "TO_JSON"
   override def dataType: DataType = UnresolvedType
 }
 
 /** to_json(expr[, options]) - Returns a JSON string with a given struct value */
 case class StructsToJson(left: Expression, right: Expression) extends Binary(left, right) with Fn {
   override def prettyName: String = "TO_JSON"
-  override def dataType: DataType = UnresolvedType
-}
-
-/** to_json(expr[, options]) - Returns a JSON string with a given struct value */
-case class StructsToJson(left: left, right: Expression, c: c) extends Expression with Fn {
-  override def prettyName: String = "TO_JSON"
-  override def children: Seq[Expression] = Seq(left, right, c)
   override def dataType: DataType = UnresolvedType
 }
 
@@ -2155,15 +2083,6 @@ case class CumeDist() extends LeafExpression with Fn {
  * dense_rank() - Computes the rank of a value in a group of values. The result is one plus the previously assigned rank
  * value. Unlike the function rank, dense_rank will not produce gaps in the ranking sequence.
  */
-case class DenseRank() extends LeafExpression with Fn {
-  override def prettyName: String = "DENSE_RANK"
-  override def dataType: DataType = UnresolvedType
-}
-
-/**
- * dense_rank() - Computes the rank of a value in a group of values. The result is one plus the previously assigned rank
- * value. Unlike the function rank, dense_rank will not produce gaps in the ranking sequence.
- */
 case class DenseRank(children: Seq[Expression]) extends Expression with Fn {
   override def prettyName: String = "DENSE_RANK"
   override def dataType: DataType = UnresolvedType
@@ -2182,39 +2101,6 @@ case class Lag(left: Expression, right: Expression, c: Expression) extends Expre
 }
 
 /**
- * lag(input[, offset[, default]]) - Returns the value of `input` at the `offset`th row before the current row in the
- * window. The default value of `offset` is 1 and the default value of `default` is null. If the value of `input` at the
- * `offset`th row is null, null is returned. If there is no such offset row (e.g., when the offset is 1, the first row
- * of the window does not have any previous row), `default` is returned.
- */
-case class Lag(left: Expression, right: Expression) extends Binary(left, right) with Fn {
-  override def prettyName: String = "LAG"
-  override def dataType: DataType = UnresolvedType
-}
-
-/**
- * lag(input[, offset[, default]]) - Returns the value of `input` at the `offset`th row before the current row in the
- * window. The default value of `offset` is 1 and the default value of `default` is null. If the value of `input` at the
- * `offset`th row is null, null is returned. If there is no such offset row (e.g., when the offset is 1, the first row
- * of the window does not have any previous row), `default` is returned.
- */
-case class Lag(left: Expression) extends Unary(left) with Fn {
-  override def prettyName: String = "LAG"
-  override def dataType: DataType = UnresolvedType
-}
-
-/**
- * lag(input[, offset[, default]]) - Returns the value of `input` at the `offset`th row before the current row in the
- * window. The default value of `offset` is 1 and the default value of `default` is null. If the value of `input` at the
- * `offset`th row is null, null is returned. If there is no such offset row (e.g., when the offset is 1, the first row
- * of the window does not have any previous row), `default` is returned.
- */
-case class Lag() extends LeafExpression with Fn {
-  override def prettyName: String = "LAG"
-  override def dataType: DataType = UnresolvedType
-}
-
-/**
  * lead(input[, offset[, default]]) - Returns the value of `input` at the `offset`th row after the current row in the
  * window. The default value of `offset` is 1 and the default value of `default` is null. If the value of `input` at the
  * `offset`th row is null, null is returned. If there is no such an offset row (e.g., when the offset is 1, the last row
@@ -2227,39 +2113,6 @@ case class Lead(left: Expression, right: Expression, c: Expression) extends Expr
 }
 
 /**
- * lead(input[, offset[, default]]) - Returns the value of `input` at the `offset`th row after the current row in the
- * window. The default value of `offset` is 1 and the default value of `default` is null. If the value of `input` at the
- * `offset`th row is null, null is returned. If there is no such an offset row (e.g., when the offset is 1, the last row
- * of the window does not have any subsequent row), `default` is returned.
- */
-case class Lead(left: Expression, right: Expression) extends Binary(left, right) with Fn {
-  override def prettyName: String = "LEAD"
-  override def dataType: DataType = UnresolvedType
-}
-
-/**
- * lead(input[, offset[, default]]) - Returns the value of `input` at the `offset`th row after the current row in the
- * window. The default value of `offset` is 1 and the default value of `default` is null. If the value of `input` at the
- * `offset`th row is null, null is returned. If there is no such an offset row (e.g., when the offset is 1, the last row
- * of the window does not have any subsequent row), `default` is returned.
- */
-case class Lead(left: Expression) extends Unary(left) with Fn {
-  override def prettyName: String = "LEAD"
-  override def dataType: DataType = UnresolvedType
-}
-
-/**
- * lead(input[, offset[, default]]) - Returns the value of `input` at the `offset`th row after the current row in the
- * window. The default value of `offset` is 1 and the default value of `default` is null. If the value of `input` at the
- * `offset`th row is null, null is returned. If there is no such an offset row (e.g., when the offset is 1, the last row
- * of the window does not have any subsequent row), `default` is returned.
- */
-case class Lead() extends LeafExpression with Fn {
-  override def prettyName: String = "LEAD"
-  override def dataType: DataType = UnresolvedType
-}
-
-/**
  * nth_value(input[, offset]) - Returns the value of `input` at the row that is the `offset`th row from beginning of the
  * window frame. Offset starts at 1. If ignoreNulls=true, we will skip nulls when finding the `offset`th row. Otherwise,
  * every row counts for the `offset`. If there is no such an `offset`th row (e.g., when the offset is 10, size of the
@@ -2267,26 +2120,6 @@ case class Lead() extends LeafExpression with Fn {
  */
 case class NthValue(left: Expression, right: Expression) extends Binary(left, right) with Fn {
   override def prettyName: String = "NTH_VALUE"
-  override def dataType: DataType = UnresolvedType
-}
-
-/**
- * nth_value(input[, offset]) - Returns the value of `input` at the row that is the `offset`th row from beginning of the
- * window frame. Offset starts at 1. If ignoreNulls=true, we will skip nulls when finding the `offset`th row. Otherwise,
- * every row counts for the `offset`. If there is no such an `offset`th row (e.g., when the offset is 10, size of the
- * window frame is less than 10), null is returned.
- */
-case class NthValue(left: Expression, right: Expression, c: c) extends Expression with Fn {
-  override def prettyName: String = "NTH_VALUE"
-  override def children: Seq[Expression] = Seq(left, right, c)
-  override def dataType: DataType = UnresolvedType
-}
-
-/**
- * ntile(n) - Divides the rows for each window partition into `n` buckets ranging from 1 to at most `n`.
- */
-case class NTile() extends LeafExpression with Fn {
-  override def prettyName: String = "NTILE"
   override def dataType: DataType = UnresolvedType
 }
 
@@ -2304,26 +2137,11 @@ case class PercentRank(children: Seq[Expression]) extends Expression with Fn {
   override def dataType: DataType = UnresolvedType
 }
 
-/** percent_rank() - Computes the percentage ranking of a value in a group of values. */
-case class PercentRank() extends LeafExpression with Fn {
-  override def prettyName: String = "PERCENT_RANK"
-  override def dataType: DataType = UnresolvedType
-}
-
 /**
  * rank() - Computes the rank of a value in a group of values. The result is one plus the number of rows preceding or
  * equal to the current row in the ordering of the partition. The values will produce gaps in the sequence.
  */
 case class Rank(children: Seq[Expression]) extends Expression with Fn {
-  override def prettyName: String = "RANK"
-  override def dataType: DataType = UnresolvedType
-}
-
-/**
- * rank() - Computes the rank of a value in a group of values. The result is one plus the number of rows preceding or
- * equal to the current row in the ordering of the partition. The values will produce gaps in the sequence.
- */
-case class Rank() extends LeafExpression with Fn {
   override def prettyName: String = "RANK"
   override def dataType: DataType = UnresolvedType
 }
