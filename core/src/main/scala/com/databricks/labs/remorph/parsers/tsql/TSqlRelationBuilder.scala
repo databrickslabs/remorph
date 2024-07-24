@@ -314,7 +314,7 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.LogicalPlan] {
     ir.UpdateTable(finalTarget, sourceRelation, setElements, where, output, optionClause)
   }
 
-  override def visitDeleteStatement(ctx: DeleteStatementContext): ir.Relation = {
+  override def visitDeleteStatement(ctx: DeleteStatementContext): ir.LogicalPlan = {
     val delete = ctx.delete().accept(this)
     Option(ctx.withExpression())
       .map { withExpression =>
@@ -324,7 +324,7 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.LogicalPlan] {
       .getOrElse(delete)
   }
 
-  override def visitDelete(ctx: DeleteContext): ir.Relation = {
+  override def visitDelete(ctx: DeleteContext): ir.LogicalPlan = {
     val target = ctx.ddlObject().accept(this)
     val hints = buildTableHints(Option(ctx.withTableHints()))
     val finalTarget = if (hints.nonEmpty) {
@@ -335,11 +335,9 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.LogicalPlan] {
 
     val output = Option(ctx.outputClause()).map(_.accept(this))
     val tableSourcesOption = Option(ctx.tableSources()).map(_.tableSource().asScala.map(_.accept(this)))
-    val sourceRelation = tableSourcesOption.map {
-      case Seq(tableSource) => tableSource
-      case sources =>
-        sources.reduce(
-          ir.Join(_, _, None, ir.CrossJoin, Seq(), ir.JoinDataType(is_left_struct = false, is_right_struct = false)))
+    val sourceRelation = tableSourcesOption.map { tableSources =>
+      tableSources.tail.foldLeft(tableSources.head)(
+        ir.Join(_, _, None, ir.CrossJoin, Seq(), ir.JoinDataType(is_left_struct = false, is_right_struct = false)))
     }
 
     val where = Option(ctx.updateWhereClause()) map (_.accept(expressionBuilder))

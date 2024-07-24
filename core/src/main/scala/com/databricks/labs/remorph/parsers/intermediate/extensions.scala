@@ -405,27 +405,13 @@ case class UpdateTable(
   override def output: Seq[Attribute] = target.output
 }
 
-case class UpdateTable(
-    target: Relation,
-    source: Option[Relation],
-    set: Seq[Expression],
-    where: Option[Expression],
-    output: Option[Relation],
-    options: Option[Expression])
-    extends Modification {}
-
-case class DeleteFromTable(
-    target: Relation,
-    source: Option[Relation],
-    where: Option[Expression],
-    output: Option[Relation],
-    options: Option[Expression])
-    extends Modification {}
-
 case class MergeTables(
-    target: Relation,
-    source: Option[Relation],
+    target: LogicalPlan,
+    source: Option[LogicalPlan],
     conditions: Option[Expression],
-    output: Option[Relation],
+    outputRelation: Option[LogicalPlan],
     options: Option[Expression])
-    extends Modification {}
+    extends Modification {
+  override def children: Seq[LogicalPlan] = Seq(target, source.getOrElse(NoopNode), outputRelation.getOrElse(NoopNode))
+  override def output: Seq[Attribute] = target.output
+}
