@@ -1312,41 +1312,8 @@ case class BoolOr(left: Expression) extends Unary(left) with Fn {
  * approx_count_distinct(expr[, relativeSD]) - Returns the estimated cardinality by HyperLogLog++. `relativeSD` defines
  * the maximum relative standard deviation allowed.
  */
-case class HyperLogLogPlusPlus(left: Expression) extends Unary(left) with Fn {
-  override def prettyName: String = "APPROX_COUNT_DISTINCT"
-  override def dataType: DataType = UnresolvedType
-}
-
-/**
- * approx_count_distinct(expr[, relativeSD]) - Returns the estimated cardinality by HyperLogLog++. `relativeSD` defines
- * the maximum relative standard deviation allowed.
- */
-case class HyperLogLogPlusPlus(left: Expression, right: right, c: c, d: d) extends Expression with Fn {
-  override def prettyName: String = "APPROX_COUNT_DISTINCT"
-  override def children: Seq[Expression] = Seq(left, right, c, d)
-  override def dataType: DataType = UnresolvedType
-}
-
-/**
- * approx_count_distinct(expr[, relativeSD]) - Returns the estimated cardinality by HyperLogLog++. `relativeSD` defines
- * the maximum relative standard deviation allowed.
- */
 case class HyperLogLogPlusPlus(left: Expression, right: Expression) extends Binary(left, right) with Fn {
   override def prettyName: String = "APPROX_COUNT_DISTINCT"
-  override def dataType: DataType = UnresolvedType
-}
-
-/**
- * approx_percentile(col, percentage [, accuracy]) - Returns the approximate `percentile` of the numeric column `col`
- * which is the smallest value in the ordered `col` values (sorted from least to greatest) such that no more than
- * `percentage` of `col` values is less than the value or equal to that value. The value of percentage must be between
- * 0.0 and 1.0. The `accuracy` parameter (default: 10000) is a positive numeric literal which controls approximation
- * accuracy at the cost of memory. Higher value of `accuracy` yields better accuracy, `1.0/accuracy` is the relative
- * error of the approximation. When `percentage` is an array, each value of the percentage array must be between 0.0 and
- * 1.0. In this case, returns the approximate percentile array of column `col` at the given percentage array.
- */
-case class ApproximatePercentile(left: Expression, right: Expression) extends Binary(left, right) with Fn {
-  override def prettyName: String = "APPROX_PERCENTILE"
   override def dataType: DataType = UnresolvedType
 }
 
@@ -1362,23 +1329,6 @@ case class ApproximatePercentile(left: Expression, right: Expression) extends Bi
 case class ApproximatePercentile(left: Expression, right: Expression, c: Expression) extends Expression with Fn {
   override def prettyName: String = "APPROX_PERCENTILE"
   override def children: Seq[Expression] = Seq(left, right, c)
-  override def dataType: DataType = UnresolvedType
-}
-
-/**
- * approx_percentile(col, percentage [, accuracy]) - Returns the approximate `percentile` of the numeric column `col`
- * which is the smallest value in the ordered `col` values (sorted from least to greatest) such that no more than
- * `percentage` of `col` values is less than the value or equal to that value. The value of percentage must be between
- * 0.0 and 1.0. The `accuracy` parameter (default: 10000) is a positive numeric literal which controls approximation
- * accuracy at the cost of memory. Higher value of `accuracy` yields better accuracy, `1.0/accuracy` is the relative
- * error of the approximation. When `percentage` is an array, each value of the percentage array must be between 0.0 and
- * 1.0. In this case, returns the approximate percentile array of column `col` at the given percentage array.
- */
-case class ApproximatePercentile(left: Expression, right: Expression, c: Expression, d: d, e: e)
-    extends Expression
-    with Fn {
-  override def prettyName: String = "APPROX_PERCENTILE"
-  override def children: Seq[Expression] = Seq(left, right, c, d, e)
   override def dataType: DataType = UnresolvedType
 }
 
@@ -1641,12 +1591,6 @@ case class Max(left: Expression) extends Unary(left) with Fn {
 /** max_by(x, y) - Returns the value of `x` associated with the maximum value of `y`. */
 case class MaxBy(left: Expression, right: Expression) extends Binary(left, right) with Fn {
   override def prettyName: String = "MAX_BY"
-  override def dataType: DataType = UnresolvedType
-}
-
-/** mean(expr) - Returns the mean calculated from values of a group. */
-case class Average(left: Expression) extends Unary(left) with Fn {
-  override def prettyName: String = "MEAN"
   override def dataType: DataType = UnresolvedType
 }
 
