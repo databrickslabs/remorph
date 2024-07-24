@@ -66,8 +66,9 @@ class TSqlErrorStrategy extends SqlErrorStrategy {
     } else ""
   }
 
+  private val vowels = Set('a', 'e', 'i', 'o', 'u')
+
   def articleFor(word: String): String = {
-    val vowels = Set('a', 'e', 'i', 'o', 'u')
     if (word.nonEmpty && vowels.contains(word.head.toLower)) "an" else "a"
   }
 
