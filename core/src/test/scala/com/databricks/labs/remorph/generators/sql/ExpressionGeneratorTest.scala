@@ -33,7 +33,7 @@ class ExpressionGeneratorTest extends AnyWordSpec with Matchers with MockitoSuga
 
       generate(ir.Literal(date = Some(1721757801000L))) shouldBe "\"2024-07-23\""
 
-      generate(ir.Literal(timestamp = Some(1721757801000L))) shouldBe "\"2024-07-23 12:03:21.000\""
+      generate(ir.Literal(timestamp = Some(1721757801000L))) shouldBe "\"2024-07-23 18:03:21.000\""
     }
 
     "arrays" in {
