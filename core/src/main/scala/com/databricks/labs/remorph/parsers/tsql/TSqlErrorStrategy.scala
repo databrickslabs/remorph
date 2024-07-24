@@ -14,7 +14,7 @@ import scala.collection.mutable.ListBuffer
  * and don't allow us to create an error message in context. Additionally, we can now implement i18n, should that ever
  * become necessary.</p>
  *
- * <p>At the moment, we require valid SQL as input to the conversion process, but if we ever change that strategy, then
+ * <p>At the moment, we require valid SQL as child to the conversion process, but if we ever change that strategy, then
  * we can implement custom recovery steps here based upon context, though there is no improvement on the sync()
  * method.</p>
  */
@@ -24,7 +24,7 @@ class TSqlErrorStrategy extends SqlErrorStrategy {
    * Generate a message for the error.
    *
    * The exception contains a stack trace, from which we can construct a more informative error message than just
-   * mismatched input and a huge list of things we were looking for.
+   * mismatched child and a huge list of things we were looking for.
    *
    * @param e
    *   the RecognitionException

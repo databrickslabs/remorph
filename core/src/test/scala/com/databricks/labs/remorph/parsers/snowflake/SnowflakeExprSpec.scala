@@ -1,7 +1,6 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
 import com.databricks.labs.remorph.parsers.intermediate._
-import org.scalatest.Assertion
 import org.scalatest.Checkpoints.Checkpoint
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -10,7 +9,7 @@ class SnowflakeExprSpec extends AnyWordSpec with SnowflakeParserTestCommon with 
 
   override protected def astBuilder: SnowflakeExpressionBuilder = new SnowflakeExpressionBuilder
 
-  private def example(input: String, expectedAst: Expression): Assertion = example(input, _.expr(), expectedAst)
+  private def example(input: String, expectedAst: Expression): Unit = exampleExpr(input, _.expr(), expectedAst)
 
   "SnowflakeExpressionBuilder" should {
     "" in {
@@ -51,32 +50,36 @@ class SnowflakeExprSpec extends AnyWordSpec with SnowflakeParserTestCommon with 
     "translate array literals" in {
       example(
         "[1, 2, 3]",
-        Literal(array =
-          Some(ArrayExpr(None, Seq(Literal(short = Some(1)), Literal(short = Some(2)), Literal(short = Some(3)))))))
+        Literal(array = Some(
+          ArrayExpr(
+            UnresolvedType,
+            Seq(Literal(short = Some(1)), Literal(short = Some(2)), Literal(short = Some(3)))))))
 
       example(
         "[1, 2, 'three']",
         Literal(array = Some(
-          ArrayExpr(None, Seq(Literal(short = Some(1)), Literal(short = Some(2)), Literal(string = Some("three")))))))
+          ArrayExpr(
+            UnresolvedType,
+            Seq(Literal(short = Some(1)), Literal(short = Some(2)), Literal(string = Some("three")))))))
     }
 
     "translate cast expressions" in {
-      example("CAST (column_1 AS BOOLEAN)", Cast(Id("column_1"), BooleanType()))
-      example("TRY_CAST (column_1 AS BOOLEAN)", Cast(Id("column_1"), BooleanType(), returnNullOnError = true))
+      example("CAST (column_1 AS BOOLEAN)", Cast(Id("column_1"), BooleanType))
+      example("TRY_CAST (column_1 AS BOOLEAN)", Cast(Id("column_1"), BooleanType, returnNullOnError = true))
       example("TO_TIMESTAMP(1234567890)", CallFunction("TO_TIMESTAMP", Seq(Literal(integer = Some(1234567890)))))
       example("TIME('00:00:00')", CallFunction("TO_TIME", Seq(Literal(string = Some("00:00:00")))))
       example("TO_TIME(column_1)", CallFunction("TO_TIME", Seq(Id("column_1"))))
       example("DATE(column_1)", CallFunction("TO_DATE", Seq(Id("column_1"))))
       example("TO_DATE('2024-05-15')", CallFunction("TO_DATE", Seq(Literal(string = Some("2024-05-15")))))
-      example("INTERVAL '1 hour'", Cast(Literal(string = Some("1 hour")), IntervalType()))
-      example("42::FLOAT", Cast(Literal(short = Some(42)), DoubleType()))
+      example("INTERVAL '1 hour'", Cast(Literal(string = Some("1 hour")), IntervalType))
+      example("42::FLOAT", Cast(Literal(short = Some(42)), DoubleType))
       example("TO_CHAR(42)", CallFunction("TO_VARCHAR", Seq(Literal(short = Some(42)))))
     }
 
     def exprAndPredicateExample(query: String, expectedAst: Expression): Unit = {
       val cp = new Checkpoint()
-      cp(example(query, _.expr(), expectedAst))
-      cp(example(query, _.predicate(), expectedAst))
+      cp(exampleExpr(query, _.expr(), expectedAst))
+      cp(exampleExpr(query, _.predicate(), expectedAst))
       cp.reportAll()
     }
 
@@ -200,7 +203,8 @@ class SnowflakeExprSpec extends AnyWordSpec with SnowflakeParserTestCommon with 
     "translate JSON literals" in {
       example(
         "{'a': 1, 'b': 2}",
-        Literal(json = Some(JsonExpr(None, Seq("a" -> Literal(short = Some(1)), "b" -> Literal(short = Some(2)))))))
+        Literal(json =
+          Some(JsonExpr(UnresolvedType, Seq("a" -> Literal(short = Some(1)), "b" -> Literal(short = Some(2)))))))
     }
 
   }

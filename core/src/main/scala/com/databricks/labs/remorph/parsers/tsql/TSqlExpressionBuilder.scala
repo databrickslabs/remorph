@@ -282,7 +282,7 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
     case DEFAULT => ir.Default()
     case LOCAL_ID => ir.Identifier(con.getText, isQuoted = false)
     case STRING => ir.Literal(string = Some(removeQuotes(con.getText)))
-    case NULL_ => ir.Literal(nullType = Some(ir.NullType()))
+    case NULL_ => ir.Literal(nullType = Some(ir.NullType))
     case HEX => ir.Literal(string = Some(con.getText)) // Preserve format
     case MONEY => ir.Money(ir.Literal(string = Some(con.getText)))
     case INT | REAL | FLOAT => convertNumeric(con.getText)
@@ -407,12 +407,12 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
   }
 
   override def visitExprDistinct(ctx: ExprDistinctContext): ir.Expression = {
-    // Support for functions such as COUNT(DISTINCT column), which is an expression not a relation
+    // Support for functions such as COUNT(DISTINCT column), which is an expression not a child
     ir.Distinct(ctx.expression().accept(this))
   }
 
   override def visitExprAll(ctx: ExprAllContext): ir.Expression = {
-    // Support for functions such as COUNT(ALL column), which is an expression not a relation.
+    // Support for functions such as COUNT(ALL column), which is an expression not a child.
     // ALL has no actual effect on the result so we just pass the expression as is. If we wish to
     // reproduce exsting annotations like this, then we woudl need to add IR.
     ctx.expression().accept(this)

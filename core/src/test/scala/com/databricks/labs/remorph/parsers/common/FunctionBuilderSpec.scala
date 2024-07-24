@@ -85,6 +85,7 @@ class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenProp
       ("FLATTEN", Some(FunctionDefinition.symbolic(Set("INPUT"), Set("PATH", "OUTER", "RECURSIVE", "MODE")))),
       ("GET", Some(FunctionDefinition.standard(2))),
       ("HASH", Some(FunctionDefinition.standard(1, Int.MaxValue))),
+      ("HOUR", Some(FunctionDefinition.standard(1))),
       ("IFNULL", Some(FunctionDefinition.standard(1, 2))),
       ("INITCAP", Some(FunctionDefinition.standard(1, 2))),
       ("ISNULL", Some(FunctionDefinition.standard(1))),
@@ -95,6 +96,7 @@ class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenProp
       ("LPAD", Some(FunctionDefinition.standard(2, 3))),
       ("LTRIM", Some(FunctionDefinition.standard(1, 2))),
       ("MEDIAN", Some(FunctionDefinition.standard(1))),
+      ("MINUTE", Some(FunctionDefinition.standard(1))),
       ("MOD", Some(FunctionDefinition.standard(2))),
       ("MODE", Some(FunctionDefinition.standard(1))),
       ("MONTHNAME", Some(FunctionDefinition.standard(1))),
@@ -103,7 +105,7 @@ class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenProp
       ("NTH_VAlUE", Some(FunctionDefinition.standard(2))),
       ("NVL", Some(FunctionDefinition.standard(2))),
       ("NVL2", Some(FunctionDefinition.standard(3))),
-      ("OBJECT_CONSTRUCT", Some(FunctionDefinition.standard(1, Int.MaxValue))),
+      ("OBJECT_CONSTRUCT", Some(FunctionDefinition.standard(0, Int.MaxValue))),
       ("OBJECT_KEYS", Some(FunctionDefinition.standard(1))),
       ("PARSE_JSON", Some(FunctionDefinition.standard(1))),
       ("PARSE_URL", Some(FunctionDefinition.standard(1, 2))),
@@ -124,6 +126,7 @@ class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenProp
       ("ROUND", Some(FunctionDefinition.standard(1, 3))),
       ("RPAD", Some(FunctionDefinition.standard(2, 3))),
       ("RTRIM", Some(FunctionDefinition.standard(1, 2))),
+      ("SECOND", Some(FunctionDefinition.standard(1))),
       ("SPLIT_PART", Some(FunctionDefinition.standard(3))),
       ("SQUARE", Some(FunctionDefinition.standard(1))),
       ("STARTSWITH", Some(FunctionDefinition.standard(2))),
@@ -511,14 +514,14 @@ class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenProp
     }
   }
 
-  "buildFunction" should "not resolve IFNULL when input dialect isn't TSql" in {
+  "buildFunction" should "not resolve IFNULL when child dialect isn't TSql" in {
     val functionBuilder = new SnowflakeFunctionBuilder
 
     val result1 = functionBuilder.buildFunction("ISNULL", Seq(simplyNamedColumn("x"), ir.Literal(integer = Some(0))))
     result1 shouldBe a[UnresolvedFunction]
   }
 
-  "buildFunction" should "not resolve IFNULL when input dialect isn't Snowflake" in {
+  "buildFunction" should "not resolve IFNULL when child dialect isn't Snowflake" in {
     val functionBuilder = new TSqlFunctionBuilder
 
     val result1 = functionBuilder.buildFunction("IFNULL", Seq(simplyNamedColumn("x"), ir.Literal(integer = Some(0))))

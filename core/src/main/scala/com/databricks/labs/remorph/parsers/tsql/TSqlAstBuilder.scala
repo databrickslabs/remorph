@@ -1,6 +1,5 @@
 package com.databricks.labs.remorph.parsers.tsql
 
-import com.databricks.labs.remorph.parsers.intermediate.TreeNode
 import com.databricks.labs.remorph.parsers.tsql.TSqlParser.DmlClauseContext
 import com.databricks.labs.remorph.parsers.{OptionAuto, OptionExpression, OptionOff, OptionOn, OptionString, intermediate => ir}
 
@@ -10,21 +9,21 @@ import scala.collection.JavaConverters.asScalaBufferConverter
  * @see
  *   org.apache.spark.sql.catalyst.parser.AstBuilder
  */
-class TSqlAstBuilder extends TSqlParserBaseVisitor[ir.TreeNode] {
+class TSqlAstBuilder extends TSqlParserBaseVisitor[ir.LogicalPlan] {
 
   private val relationBuilder = new TSqlRelationBuilder
   private val optionBuilder = new OptionBuilder(new TSqlExpressionBuilder)
 
-  override def visitTSqlFile(ctx: TSqlParser.TSqlFileContext): ir.TreeNode = {
+  override def visitTSqlFile(ctx: TSqlParser.TSqlFileContext): ir.LogicalPlan = {
     Option(ctx.batch()).map(_.accept(this)).getOrElse(ir.Batch(List()))
   }
 
-  override def visitBatch(ctx: TSqlParser.BatchContext): ir.TreeNode = {
+  override def visitBatch(ctx: TSqlParser.BatchContext): ir.LogicalPlan = {
     // TODO: Rework the tsqlFile rule
-    ir.Batch(ctx.sqlClauses().asScala.map(_.accept(this)).collect { case p: ir.Plan => p })
+    ir.Batch(ctx.sqlClauses().asScala.map(_.accept(this)).collect { case p: ir.LogicalPlan => p })
   }
 
-  override def visitSqlClauses(ctx: TSqlParser.SqlClausesContext): ir.TreeNode = {
+  override def visitSqlClauses(ctx: TSqlParser.SqlClausesContext): ir.LogicalPlan = {
     ctx match {
       case dml if dml.dmlClause() != null => dml.dmlClause().accept(this)
       case cfl if cfl.cflStatement() != null => cfl.cflStatement().accept(this)
@@ -35,7 +34,7 @@ class TSqlAstBuilder extends TSqlParserBaseVisitor[ir.TreeNode] {
     }
   }
 
-  override def visitDmlClause(ctx: DmlClauseContext): ir.TreeNode = {
+  override def visitDmlClause(ctx: DmlClauseContext): ir.LogicalPlan = {
     ctx match {
       case insert if insert.insertStatement() != null => insert.insertStatement().accept(relationBuilder)
       case select if select.selectStatementStandalone() != null =>
@@ -54,11 +53,11 @@ class TSqlAstBuilder extends TSqlParserBaseVisitor[ir.TreeNode] {
    * @param ctx
    *   the parse tree
    */
-  override def visitBackupStatement(ctx: TSqlParser.BackupStatementContext): TreeNode = {
+  override def visitBackupStatement(ctx: TSqlParser.BackupStatementContext): ir.LogicalPlan = {
     ctx.backupDatabase().accept(this)
   }
 
-  override def visitBackupDatabase(ctx: TSqlParser.BackupDatabaseContext): ir.TreeNode = {
+  override def visitBackupDatabase(ctx: TSqlParser.BackupDatabaseContext): ir.LogicalPlan = {
     val database = ctx.id().getText
     val opts = ctx.optionList()
     val options = opts.asScala.flatMap(_.genericOption().asScala).toList.map(optionBuilder.buildOption)
@@ -76,7 +75,6 @@ class TSqlAstBuilder extends TSqlParserBaseVisitor[ir.TreeNode] {
         }
     }
     // Default flags generally don't need to be specified as they are by definition, the default
-
     ir.BackupDatabase(database, disks, boolFlags, autoFlags, values)
   }
 }
