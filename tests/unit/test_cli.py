@@ -13,7 +13,7 @@ from databricks.sdk import WorkspaceClient
 from databricks.sdk.errors import NotFound
 from databricks.labs.blueprint.installation import MockInstallation
 
-from databricks.labs.remorph.helpers.transpile_utils import TranspileUtils
+from databricks.labs.remorph.context.transpile_context import TranspileContext
 
 
 @pytest.fixture
@@ -170,7 +170,7 @@ def test_transpile_with_invalid_dialect(mock_workspace_client, mock_transpile_in
     )
 
     with pytest.raises(Exception, match="Error: Invalid value for '--source'"):
-        utils = TranspileUtils(mock_workspace_client, mock_transpile_invalid, prompts)
+        utils = TranspileContext(mock_workspace_client, mock_transpile_invalid, prompts)
         utils.run()
 
 
@@ -199,7 +199,7 @@ def test_invalid_input_sql(mock_workspace_client_cli, mock_transpile_invalid):
         patch("os.path.exists", return_value=False),
         pytest.raises(Exception, match="Error: Invalid value for '--input_sql'"),
     ):
-        utils = TranspileUtils(mock_workspace_client_cli, invalid_input_path, prompts)
+        utils = TranspileContext(mock_workspace_client_cli, invalid_input_path, prompts)
         utils.run()
 
 
@@ -235,9 +235,9 @@ def test_transpile_with_valid_input(mock_workspace_client_cli):
     )
     with (
         patch("os.path.exists", return_value=True),
-        patch("databricks.labs.remorph.helpers.transpile_utils.morph", return_value={}) as mock_morph,
+        patch("databricks.labs.remorph.context.transpile_context.morph", return_value={}) as mock_morph,
     ):
-        utils = TranspileUtils(mock_workspace_client_cli, invalid_input_path, prompts)
+        utils = TranspileContext(mock_workspace_client_cli, invalid_input_path, prompts)
         utils.run()
 
         mock_morph.assert_called_once_with(
@@ -289,9 +289,9 @@ def test_transpile_empty_output_folder(mock_workspace_client_cli):
 
     with (
         patch("os.path.exists", return_value=True),
-        patch("databricks.labs.remorph.helpers.transpile_utils.morph", return_value={}) as mock_morph,
+        patch("databricks.labs.remorph.context.transpile_context.morph", return_value={}) as mock_morph,
     ):
-        utils = TranspileUtils(mock_workspace_client_cli, invalid_output_folder, prompts)
+        utils = TranspileContext(mock_workspace_client_cli, invalid_output_folder, prompts)
         utils.run()
 
         mock_morph.assert_called_once_with(
@@ -334,7 +334,7 @@ def test_transpile_with_incorrect_input_mode(mock_workspace_client_cli):
         patch("os.path.exists", return_value=True),
         pytest.raises(Exception, match="Error: Invalid value for '--mode':"),
     ):
-        utils = TranspileUtils(mock_workspace_client_cli, invalid_mode, prompts)
+        utils = TranspileContext(mock_workspace_client_cli, invalid_mode, prompts)
         utils.run()
 
 
@@ -363,7 +363,7 @@ def test_transpile_with_incorrect_input_source(mock_workspace_client_cli):
         patch("os.path.exists", return_value=True),
         pytest.raises(Exception, match="Error: Invalid value for '--source':"),
     ):
-        utils = TranspileUtils(mock_workspace_client_cli, invalid_input_source, prompts)
+        utils = TranspileContext(mock_workspace_client_cli, invalid_input_source, prompts)
         utils.run()
 
 
@@ -377,7 +377,7 @@ def test_invalid_transpile_config(mock_workspace_client_cli, mock_transpile_inva
         }
     )
     with pytest.raises(AssertionError, match="Error: Cannot load Transpile `config.yml` from Databricks Workspace"):
-        utils = TranspileUtils(mock_workspace_client_cli, invalid_config, MockPrompts({}))
+        utils = TranspileContext(mock_workspace_client_cli, invalid_config, MockPrompts({}))
         utils.run()
 
 
@@ -385,7 +385,7 @@ def test_missing_transpile_config(mock_workspace_client_cli, mock_transpile_inva
 
     missing_config = MockInstallation({})
     with pytest.raises(AssertionError, match="Error: Cannot load Transpile `config.yml` from Databricks Workspace"):
-        utils = TranspileUtils(mock_workspace_client_cli, missing_config, MockPrompts({}))
+        utils = TranspileContext(mock_workspace_client_cli, missing_config, MockPrompts({}))
         utils.run()
 
 
@@ -393,7 +393,7 @@ def test_cli_transpile(mock_workspace_client, mock_transpile_invalid):
     with patch(
         "databricks.labs.blueprint.installation.Installation.assume_user_home", return_value=mock_transpile_invalid
     ):
-        with patch("databricks.labs.remorph.helpers.transpile_utils.TranspileUtils.run", return_value=None):
+        with patch("databricks.labs.remorph.context.transpile_context.TranspileContext.run", return_value=None):
             assert cli.transpile(mock_workspace_client) is None
 
 
@@ -403,7 +403,7 @@ def test_cli_transpile_overwrite_workspace_values(mock_workspace_client, mock_tr
             r"Would you like to overwrite workspace `Transpile Config` values": "yes",
         }
     )
-    utils = TranspileUtils(mock_workspace_client, mock_transpile_invalid, prompts)
+    utils = TranspileContext(mock_workspace_client, mock_transpile_invalid, prompts)
     with pytest.raises(AssertionError, match="Error: Cannot load Transpile `config.yml` from Databricks Workspace"):
         utils.run()
 

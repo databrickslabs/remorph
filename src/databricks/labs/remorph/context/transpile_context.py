@@ -17,7 +17,7 @@ def raise_validation_exception(msg: str) -> Exception:
     raise ValueError(msg)
 
 
-class TranspileUtils:
+class TranspileContext:
     def __init__(
         self,
         w: WorkspaceClient,

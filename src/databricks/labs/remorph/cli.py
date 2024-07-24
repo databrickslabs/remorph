@@ -9,7 +9,7 @@ from databricks.labs.blueprint.installation import Installation
 from databricks.labs.remorph.config import SQLGLOT_DIALECTS, DIALECTS
 from databricks.labs.remorph.helpers.recon_config_utils import ReconConfigPrompts
 from databricks.labs.remorph.helpers.reconcile_utils import ReconcileUtils
-from databricks.labs.remorph.helpers.transpile_utils import TranspileUtils, raise_validation_exception
+from databricks.labs.remorph.context.transpile_context import TranspileContext, raise_validation_exception
 from databricks.labs.remorph.lineage import lineage_generator
 from databricks.sdk import WorkspaceClient
 
@@ -24,8 +24,8 @@ def transpile(w: WorkspaceClient):
 
     installation = Installation.assume_user_home(w, "remorph")
 
-    utils = TranspileUtils(w, installation)
-    utils.run()
+    context = TranspileContext(w, installation)
+    context.run()
 
 
 @remorph.command
