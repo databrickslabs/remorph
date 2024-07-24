@@ -11,6 +11,12 @@ class ExpressionGeneratorTest extends AnyWordSpec with Matchers with MockitoSuga
     new ExpressionGenerator().expression(new GeneratorContext(), expr)
   }
 
+  "functions" should {
+    "be generated" in {
+      generate(ir.CallFunction("MAX", Seq(ir.Literal(1), ir.Literal(2)))) shouldBe "MAX(1, 2)"
+    }
+  }
+
   "literal" should {
     "be generated" in {
       generate(ir.Literal()) shouldBe "NULL"

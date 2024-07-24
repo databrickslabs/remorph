@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.parsers.intermediate
 
-trait Fn {
+trait Fn extends Expression {
   def prettyName: String
   def aliases: Seq[String] = Seq.empty
 }
