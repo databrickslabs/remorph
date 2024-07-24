@@ -567,17 +567,7 @@ case class Levenshtein(left: Expression, right: Expression) extends Binary(left,
  * str like pattern[ ESCAPE escape] - Returns true if str matches `pattern` with `escape`, null if any arguments are
  * null, false otherwise.
  */
-case class Like(left: Expression, right: Expression, c: c) extends Expression with Fn {
-  override def prettyName: String = "LIKE"
-  override def children: Seq[Expression] = Seq(left, right, c)
-  override def dataType: DataType = UnresolvedType
-}
-
-/**
- * str like pattern[ ESCAPE escape] - Returns true if str matches `pattern` with `escape`, null if any arguments are
- * null, false otherwise.
- */
-case class Like(left: Expression, right: Expression) extends Binary(left, right) with Fn {
+case class Like(left: Expression, right: Expression, escapeChar: Char = '\\') extends Binary(left, right) with Fn {
   override def prettyName: String = "LIKE"
   override def dataType: DataType = UnresolvedType
 }
@@ -592,29 +582,14 @@ case class Log(left: Expression) extends Unary(left) with Fn {
  * locate(substr, str[, pos]) - Returns the position of the first occurrence of `substr` in `str` after position `pos`.
  * The given `pos` and return value are 1-based.
  */
-case class StringLocate(left: Expression, right: Expression, c: Expression) extends Expression with Fn {
-  override def prettyName: String = "LOCATE"
+case class StringLocate(left: Expression, right: Expression, c: Expression = Literal(1)) extends Expression with Fn {
+  override def prettyName: String = "POSITION"
   override def children: Seq[Expression] = Seq(left, right, c)
-  override def dataType: DataType = UnresolvedType
-}
-
-/**
- * locate(substr, str[, pos]) - Returns the position of the first occurrence of `substr` in `str` after position `pos`.
- * The given `pos` and return value are 1-based.
- */
-case class StringLocate(left: Expression, right: Expression) extends Binary(left, right) with Fn {
-  override def prettyName: String = "LOCATE"
   override def dataType: DataType = UnresolvedType
 }
 
 /** log(base, expr) - Returns the logarithm of `expr` with `base`. */
 case class Logarithm(left: Expression, right: Expression) extends Binary(left, right) with Fn {
-  override def prettyName: String = "LOG"
-  override def dataType: DataType = UnresolvedType
-}
-
-/** log(base, expr) - Returns the logarithm of `expr` with `base`. */
-case class Logarithm(left: Expression) extends Unary(left) with Fn {
   override def prettyName: String = "LOG"
   override def dataType: DataType = UnresolvedType
 }
@@ -642,19 +617,9 @@ case class Log2(left: Expression) extends Unary(left) with Fn {
  * the return value is shortened to `len` characters. If `pad` is not specified, `str` will be padded to the left with
  * space characters.
  */
-case class StringLPad(left: Expression, right: Expression, c: Expression) extends Expression with Fn {
+case class StringLPad(left: Expression, right: Expression, pad: Expression = Literal(" ")) extends Expression with Fn {
   override def prettyName: String = "LPAD"
-  override def children: Seq[Expression] = Seq(left, right, c)
-  override def dataType: DataType = UnresolvedType
-}
-
-/**
- * lpad(str, len[, pad]) - Returns `str`, left-padded with `pad` to a length of `len`. If `str` is longer than `len`,
- * the return value is shortened to `len` characters. If `pad` is not specified, `str` will be padded to the left with
- * space characters.
- */
-case class StringLPad(left: Expression, right: Expression) extends Binary(left, right) with Fn {
-  override def prettyName: String = "LPAD"
+  override def children: Seq[Expression] = Seq(left, right, pad)
   override def dataType: DataType = UnresolvedType
 }
 
@@ -664,138 +629,27 @@ case class StringTrimLeft(left: Expression, right: Expression) extends Binary(le
   override def dataType: DataType = UnresolvedType
 }
 
-/** ltrim(str) - Removes the leading space characters from `str`. */
-case class StringTrimLeft(left: Expression) extends Unary(left) with Fn {
-  override def prettyName: String = "LTRIM"
-  override def dataType: DataType = UnresolvedType
-}
-
-/** ltrim(str) - Removes the leading space characters from `str`. */
-case class StringTrimLeft(left: Expression, right: right) extends Expression with Fn {
-  override def prettyName: String = "LTRIM"
-  override def children: Seq[Expression] = Seq(left, right)
-  override def dataType: DataType = UnresolvedType
-}
-
-/**
- * make_interval(years, months, weeks, days, hours, mins, secs) - Make interval from years, months, weeks, days, hours,
- * mins and secs.
- */
-case class MakeInterval(left: Expression, right: Expression, c: Expression, d: Expression, e: Expression)
-    extends Expression
-    with Fn {
-  override def prettyName: String = "MAKE_INTERVAL"
-  override def children: Seq[Expression] = Seq(left, right, c, d, e)
-  override def dataType: DataType = UnresolvedType
-}
-
-/**
- * make_interval(years, months, weeks, days, hours, mins, secs) - Make interval from years, months, weeks, days, hours,
- * mins and secs.
- */
-case class MakeInterval(left: Expression, right: Expression, c: Expression, d: Expression, e: Expression, f: Expression)
-    extends Expression
-    with Fn {
-  override def prettyName: String = "MAKE_INTERVAL"
-  override def children: Seq[Expression] = Seq(left, right, c, d, e, f)
-  override def dataType: DataType = UnresolvedType
-}
-
 /**
  * make_interval(years, months, weeks, days, hours, mins, secs) - Make interval from years, months, weeks, days, hours,
  * mins and secs.
  */
 case class MakeInterval(
-    left: Expression,
-    right: Expression,
-    c: Expression,
-    d: Expression,
-    e: Expression,
-    f: Expression,
-    g: Expression)
+    years: Expression,
+    months: Expression,
+    weeks: Expression,
+    hours: Expression,
+    mins: Expression,
+    secs: Expression)
     extends Expression
     with Fn {
   override def prettyName: String = "MAKE_INTERVAL"
-  override def children: Seq[Expression] = Seq(left, right, c, d, e, f, g)
-  override def dataType: DataType = UnresolvedType
-}
-
-/**
- * make_interval(years, months, weeks, days, hours, mins, secs) - Make interval from years, months, weeks, days, hours,
- * mins and secs.
- */
-case class MakeInterval(
-    left: Expression,
-    right: Expression,
-    c: Expression,
-    d: Expression,
-    e: Expression,
-    f: Expression,
-    g: Expression)
-    extends Expression
-    with Fn {
-  override def prettyName: String = "MAKE_INTERVAL"
-  override def children: Seq[Expression] = Seq(left, right, c, d, e, f, g)
-  override def dataType: DataType = UnresolvedType
-}
-
-/**
- * make_interval(years, months, weeks, days, hours, mins, secs) - Make interval from years, months, weeks, days, hours,
- * mins and secs.
- */
-case class MakeInterval() extends LeafExpression with Fn {
-  override def prettyName: String = "MAKE_INTERVAL"
-  override def dataType: DataType = UnresolvedType
-}
-
-/**
- * make_interval(years, months, weeks, days, hours, mins, secs) - Make interval from years, months, weeks, days, hours,
- * mins and secs.
- */
-case class MakeInterval(left: Expression) extends Unary(left) with Fn {
-  override def prettyName: String = "MAKE_INTERVAL"
-  override def dataType: DataType = UnresolvedType
-}
-
-/**
- * make_interval(years, months, weeks, days, hours, mins, secs) - Make interval from years, months, weeks, days, hours,
- * mins and secs.
- */
-case class MakeInterval(left: Expression, right: Expression) extends Binary(left, right) with Fn {
-  override def prettyName: String = "MAKE_INTERVAL"
-  override def dataType: DataType = UnresolvedType
-}
-
-/**
- * make_interval(years, months, weeks, days, hours, mins, secs) - Make interval from years, months, weeks, days, hours,
- * mins and secs.
- */
-case class MakeInterval(left: Expression, right: Expression, c: Expression) extends Expression with Fn {
-  override def prettyName: String = "MAKE_INTERVAL"
-  override def children: Seq[Expression] = Seq(left, right, c)
-  override def dataType: DataType = UnresolvedType
-}
-
-/**
- * make_interval(years, months, weeks, days, hours, mins, secs) - Make interval from years, months, weeks, days, hours,
- * mins and secs.
- */
-case class MakeInterval(left: Expression, right: Expression, c: Expression, d: Expression) extends Expression with Fn {
-  override def prettyName: String = "MAKE_INTERVAL"
-  override def children: Seq[Expression] = Seq(left, right, c, d)
+  override def children: Seq[Expression] = Seq(years, months, weeks, hours, mins, secs)
   override def dataType: DataType = UnresolvedType
 }
 
 /** map(key0, value0, key1, value1, ...) - Creates a map with the given key/value pairs. */
-case class CreateMap(children: Seq[Expression]) extends Expression with Fn {
+case class CreateMap(children: Seq[Expression], useStringTypeWhenEmpty: Boolean) extends Expression with Fn {
   override def prettyName: String = "MAP"
-  override def dataType: DataType = UnresolvedType
-}
-
-/** map(key0, value0, key1, value1, ...) - Creates a map with the given key/value pairs. */
-case class CreateMap(children: Seq[Expression], right: right) extends Expression with Fn {
-  override def prettyName: String = "MAP"
-  override def children: Seq[Expression] = Seq(children, right)
   override def dataType: DataType = UnresolvedType
 }
 
@@ -863,21 +717,8 @@ case class NaNvl(left: Expression, right: Expression) extends Binary(left, right
 }
 
 /** negative(expr) - Returns the negated value of `expr`. */
-case class UnaryMinus(left: Expression, right: right) extends Expression with Fn {
-  override def prettyName: String = "NEGATIVE"
-  override def children: Seq[Expression] = Seq(left, right)
-  override def dataType: DataType = UnresolvedType
-}
-
-/** negative(expr) - Returns the negated value of `expr`. */
 case class UnaryMinus(left: Expression) extends Unary(left) with Fn {
   override def prettyName: String = "NEGATIVE"
-  override def dataType: DataType = UnresolvedType
-}
-
-/** not expr - Logical not. */
-case class Not(left: Expression) extends Unary(left) with Fn {
-  override def prettyName: String = "NOT"
   override def dataType: DataType = UnresolvedType
 }
 
@@ -913,23 +754,9 @@ case class Or(left: Expression, right: Expression) extends Binary(left, right) w
 }
 
 /** overlay(input, replace, pos[, len]) - Replace `input` with `replace` that starts at `pos` and is of length `len`. */
-case class Overlay(left: Expression, right: Expression, c: Expression) extends Expression with Fn {
-  override def prettyName: String = "OVERLAY"
-  override def children: Seq[Expression] = Seq(left, right, c)
-  override def dataType: DataType = UnresolvedType
-}
-
-/** overlay(input, replace, pos[, len]) - Replace `input` with `replace` that starts at `pos` and is of length `len`. */
 case class Overlay(left: Expression, right: Expression, c: Expression, d: Expression) extends Expression with Fn {
   override def prettyName: String = "OVERLAY"
   override def children: Seq[Expression] = Seq(left, right, c, d)
-  override def dataType: DataType = UnresolvedType
-}
-
-/** parse_url(url, partToExtract[, key]) - Extracts a part from a URL. */
-case class ParseUrl(children: Seq[Expression], right: right) extends Expression with Fn {
-  override def prettyName: String = "PARSE_URL"
-  override def children: Seq[Expression] = Seq(children, right)
   override def dataType: DataType = UnresolvedType
 }
 
@@ -951,13 +778,6 @@ case class Pmod(left: Expression, right: Expression) extends Binary(left, right)
   override def dataType: DataType = UnresolvedType
 }
 
-/** pmod(expr1, expr2) - Returns the positive value of `expr1` mod `expr2`. */
-case class Pmod(left: Expression, right: Expression, c: c) extends Expression with Fn {
-  override def prettyName: String = "PMOD"
-  override def children: Seq[Expression] = Seq(left, right, c)
-  override def dataType: DataType = UnresolvedType
-}
-
 /**
  * posexplode(expr) - Separates the elements of array `expr` into multiple rows with positions, or the elements of map
  * `expr` into multiple rows and columns with positions. Unless specified otherwise, uses the column name `pos` for
@@ -965,25 +785,6 @@ case class Pmod(left: Expression, right: Expression, c: c) extends Expression wi
  */
 case class PosExplode(left: Expression) extends Unary(left) with Fn {
   override def prettyName: String = "POSEXPLODE"
-  override def dataType: DataType = UnresolvedType
-}
-
-/**
- * position(substr, str[, pos]) - Returns the position of the first occurrence of `substr` in `str` after position
- * `pos`. The given `pos` and return value are 1-based.
- */
-case class StringLocate(left: Expression, right: Expression, c: Expression) extends Expression with Fn {
-  override def prettyName: String = "POSITION"
-  override def children: Seq[Expression] = Seq(left, right, c)
-  override def dataType: DataType = UnresolvedType
-}
-
-/**
- * position(substr, str[, pos]) - Returns the position of the first occurrence of `substr` in `str` after position
- * `pos`. The given `pos` and return value are 1-based.
- */
-case class StringLocate(left: Expression, right: Expression) extends Binary(left, right) with Fn {
-  override def prettyName: String = "POSITION"
   override def dataType: DataType = UnresolvedType
 }
 
@@ -999,18 +800,6 @@ case class Pow(left: Expression, right: Expression) extends Binary(left, right) 
   override def dataType: DataType = UnresolvedType
 }
 
-/** power(expr1, expr2) - Raises `expr1` to the power of `expr2`. */
-case class Pow(left: Expression, right: Expression) extends Binary(left, right) with Fn {
-  override def prettyName: String = "POWER"
-  override def dataType: DataType = UnresolvedType
-}
-
-/** printf(strfmt, obj, ...) - Returns a formatted string from printf-style format strings. */
-case class FormatString(children: Seq[Expression]) extends Expression with Fn {
-  override def prettyName: String = "PRINTF"
-  override def dataType: DataType = UnresolvedType
-}
-
 /** radians(expr) - Converts degrees to radians. */
 case class ToRadians(left: Expression) extends Unary(left) with Fn {
   override def prettyName: String = "RADIANS"
@@ -1023,57 +812,12 @@ case class RaiseError(left: Expression) extends Unary(left) with Fn {
   override def dataType: DataType = UnresolvedType
 }
 
-/** raise_error(expr) - Throws an exception with `expr`. */
-case class RaiseError(left: Expression, right: right) extends Expression with Fn {
-  override def prettyName: String = "RAISE_ERROR"
-  override def children: Seq[Expression] = Seq(left, right)
-  override def dataType: DataType = UnresolvedType
-}
-
-/**
- * rand([seed]) - Returns a random value with independent and identically distributed (i.i.d.) uniformly distributed
- * values in [0, 1).
- */
-case class Rand(left: Expression, right: right) extends Expression with Fn {
-  override def prettyName: String = "RAND"
-  override def children: Seq[Expression] = Seq(left, right)
-  override def dataType: DataType = UnresolvedType
-}
-
-/**
- * rand([seed]) - Returns a random value with independent and identically distributed (i.i.d.) uniformly distributed
- * values in [0, 1).
- */
-case class Rand() extends LeafExpression with Fn {
-  override def prettyName: String = "RAND"
-  override def dataType: DataType = UnresolvedType
-}
-
 /**
  * rand([seed]) - Returns a random value with independent and identically distributed (i.i.d.) uniformly distributed
  * values in [0, 1).
  */
 case class Rand(left: Expression) extends Unary(left) with Fn {
   override def prettyName: String = "RAND"
-  override def dataType: DataType = UnresolvedType
-}
-
-/**
- * randn([seed]) - Returns a random value with independent and identically distributed (i.i.d.) values drawn from the
- * standard normal distribution.
- */
-case class Randn(left: Expression, right: right) extends Expression with Fn {
-  override def prettyName: String = "RANDN"
-  override def children: Seq[Expression] = Seq(left, right)
-  override def dataType: DataType = UnresolvedType
-}
-
-/**
- * randn([seed]) - Returns a random value with independent and identically distributed (i.i.d.) values drawn from the
- * standard normal distribution.
- */
-case class Randn() extends LeafExpression with Fn {
-  override def prettyName: String = "RANDN"
   override def dataType: DataType = UnresolvedType
 }
 
@@ -1083,34 +827,6 @@ case class Randn() extends LeafExpression with Fn {
  */
 case class Randn(left: Expression) extends Unary(left) with Fn {
   override def prettyName: String = "RANDN"
-  override def dataType: DataType = UnresolvedType
-}
-
-/**
- * random([seed]) - Returns a random value with independent and identically distributed (i.i.d.) uniformly distributed
- * values in [0, 1).
- */
-case class Rand(left: Expression, right: right) extends Expression with Fn {
-  override def prettyName: String = "RANDOM"
-  override def children: Seq[Expression] = Seq(left, right)
-  override def dataType: DataType = UnresolvedType
-}
-
-/**
- * random([seed]) - Returns a random value with independent and identically distributed (i.i.d.) uniformly distributed
- * values in [0, 1).
- */
-case class Rand() extends LeafExpression with Fn {
-  override def prettyName: String = "RANDOM"
-  override def dataType: DataType = UnresolvedType
-}
-
-/**
- * random([seed]) - Returns a random value with independent and identically distributed (i.i.d.) uniformly distributed
- * values in [0, 1).
- */
-case class Rand(left: Expression) extends Unary(left) with Fn {
-  override def prettyName: String = "RANDOM"
   override def dataType: DataType = UnresolvedType
 }
 
@@ -1125,15 +841,6 @@ case class RegExpExtract(left: Expression, right: Expression, c: Expression) ext
 }
 
 /**
- * regexp_extract(str, regexp[, idx]) - Extract the first string in the `str` that match the `regexp` expression and
- * corresponding to the regex group index.
- */
-case class RegExpExtract(left: Expression, right: Expression) extends Binary(left, right) with Fn {
-  override def prettyName: String = "REGEXP_EXTRACT"
-  override def dataType: DataType = UnresolvedType
-}
-
-/**
  * regexp_extract_all(str, regexp[, idx]) - Extract all strings in the `str` that match the `regexp` expression and
  * corresponding to the regex group index.
  */
@@ -1143,26 +850,10 @@ case class RegExpExtractAll(left: Expression, right: Expression, c: Expression) 
   override def dataType: DataType = UnresolvedType
 }
 
-/**
- * regexp_extract_all(str, regexp[, idx]) - Extract all strings in the `str` that match the `regexp` expression and
- * corresponding to the regex group index.
- */
-case class RegExpExtractAll(left: Expression, right: Expression) extends Binary(left, right) with Fn {
-  override def prettyName: String = "REGEXP_EXTRACT_ALL"
-  override def dataType: DataType = UnresolvedType
-}
-
 /** regexp_replace(str, regexp, rep[, position]) - Replaces all substrings of `str` that match `regexp` with `rep`. */
 case class RegExpReplace(left: Expression, right: Expression, c: Expression, d: Expression) extends Expression with Fn {
   override def prettyName: String = "REGEXP_REPLACE"
   override def children: Seq[Expression] = Seq(left, right, c, d)
-  override def dataType: DataType = UnresolvedType
-}
-
-/** regexp_replace(str, regexp, rep[, position]) - Replaces all substrings of `str` that match `regexp` with `rep`. */
-case class RegExpReplace(left: Expression, right: Expression, c: Expression) extends Expression with Fn {
-  override def prettyName: String = "REGEXP_REPLACE"
-  override def children: Seq[Expression] = Seq(left, right, c)
   override def dataType: DataType = UnresolvedType
 }
 
@@ -1176,12 +867,6 @@ case class StringRepeat(left: Expression, right: Expression) extends Binary(left
 case class StringReplace(left: Expression, right: Expression, c: Expression) extends Expression with Fn {
   override def prettyName: String = "REPLACE"
   override def children: Seq[Expression] = Seq(left, right, c)
-  override def dataType: DataType = UnresolvedType
-}
-
-/** replace(str, search[, replace]) - Replaces all occurrences of `search` with `replace`. */
-case class StringReplace(left: Expression, right: Expression) extends Binary(left, right) with Fn {
-  override def prettyName: String = "REPLACE"
   override def dataType: DataType = UnresolvedType
 }
 
@@ -1219,12 +904,6 @@ case class Rollup(children: Seq[Expression]) extends Expression with Fn {
 }
 
 /** round(expr, d) - Returns `expr` rounded to `d` decimal places using HALF_UP rounding mode. */
-case class Round(left: Expression) extends Unary(left) with Fn {
-  override def prettyName: String = "ROUND"
-  override def dataType: DataType = UnresolvedType
-}
-
-/** round(expr, d) - Returns `expr` rounded to `d` decimal places using HALF_UP rounding mode. */
 case class Round(left: Expression, right: Expression) extends Binary(left, right) with Fn {
   override def prettyName: String = "ROUND"
   override def dataType: DataType = UnresolvedType
@@ -1241,51 +920,15 @@ case class StringRPad(left: Expression, right: Expression, c: Expression) extend
   override def dataType: DataType = UnresolvedType
 }
 
-/**
- * rpad(str, len[, pad]) - Returns `str`, right-padded with `pad` to a length of `len`. If `str` is longer than `len`,
- * the return value is shortened to `len` characters. If `pad` is not specified, `str` will be padded to the right with
- * space characters.
- */
-case class StringRPad(left: Expression, right: Expression) extends Binary(left, right) with Fn {
-  override def prettyName: String = "RPAD"
-  override def dataType: DataType = UnresolvedType
-}
-
 /** rtrim(str) - Removes the trailing space characters from `str`. */
 case class StringTrimRight(left: Expression, right: Expression) extends Binary(left, right) with Fn {
   override def prettyName: String = "RTRIM"
   override def dataType: DataType = UnresolvedType
 }
 
-/** rtrim(str) - Removes the trailing space characters from `str`. */
-case class StringTrimRight(left: Expression) extends Unary(left) with Fn {
-  override def prettyName: String = "RTRIM"
-  override def dataType: DataType = UnresolvedType
-}
-
-/** rtrim(str) - Removes the trailing space characters from `str`. */
-case class StringTrimRight(left: Expression, right: right) extends Expression with Fn {
-  override def prettyName: String = "RTRIM"
-  override def children: Seq[Expression] = Seq(left, right)
-  override def dataType: DataType = UnresolvedType
-}
-
-/** schema_of_csv(csv[, options]) - Returns schema in the DDL format of CSV string. */
-case class SchemaOfCsv(left: Expression) extends Unary(left) with Fn {
-  override def prettyName: String = "SCHEMA_OF_CSV"
-  override def dataType: DataType = UnresolvedType
-}
-
 /** schema_of_csv(csv[, options]) - Returns schema in the DDL format of CSV string. */
 case class SchemaOfCsv(left: Expression, right: Expression) extends Binary(left, right) with Fn {
   override def prettyName: String = "SCHEMA_OF_CSV"
-  override def dataType: DataType = UnresolvedType
-}
-
-/** schema_of_csv(csv[, options]) - Returns schema in the DDL format of CSV string. */
-case class SchemaOfCsv(left: Expression, right: right) extends Expression with Fn {
-  override def prettyName: String = "SCHEMA_OF_CSV"
-  override def children: Seq[Expression] = Seq(left, right)
   override def dataType: DataType = UnresolvedType
 }
 
@@ -1296,27 +939,9 @@ case class Sentences(left: Expression, right: Expression, c: Expression) extends
   override def dataType: DataType = UnresolvedType
 }
 
-/** sentences(str[, lang, country]) - Splits `str` into an array of array of words. */
-case class Sentences(left: Expression) extends Unary(left) with Fn {
-  override def prettyName: String = "SENTENCES"
-  override def dataType: DataType = UnresolvedType
-}
-
-/** sentences(str[, lang, country]) - Splits `str` into an array of array of words. */
-case class Sentences(left: Expression, right: Expression) extends Binary(left, right) with Fn {
-  override def prettyName: String = "SENTENCES"
-  override def dataType: DataType = UnresolvedType
-}
-
 /** sha(expr) - Returns a sha1 hash value as a hex string of the `expr`. */
 case class Sha1(left: Expression) extends Unary(left) with Fn {
   override def prettyName: String = "SHA"
-  override def dataType: DataType = UnresolvedType
-}
-
-/** sha1(expr) - Returns a sha1 hash value as a hex string of the `expr`. */
-case class Sha1(left: Expression) extends Unary(left) with Fn {
-  override def prettyName: String = "SHA1"
   override def dataType: DataType = UnresolvedType
 }
 
@@ -1350,12 +975,6 @@ case class ShiftRightUnsigned(left: Expression, right: Expression) extends Binar
 /** sign(expr) - Returns -1.0, 0.0 or 1.0 as `expr` is negative, 0 or positive. */
 case class Signum(left: Expression) extends Unary(left) with Fn {
   override def prettyName: String = "SIGN"
-  override def dataType: DataType = UnresolvedType
-}
-
-/** signum(expr) - Returns -1.0, 0.0 or 1.0 as `expr` is negative, 0 or positive. */
-case class Signum(left: Expression) extends Unary(left) with Fn {
-  override def prettyName: String = "SIGNUM"
   override def dataType: DataType = UnresolvedType
 }
 
@@ -1399,15 +1018,6 @@ case class StringSplit(left: Expression, right: Expression, c: Expression) exten
   override def dataType: DataType = UnresolvedType
 }
 
-/**
- * split(str, regex, limit) - Splits `str` around occurrences that match `regex` and returns an array with a length of
- * at most `limit`
- */
-case class StringSplit(left: Expression, right: Expression) extends Binary(left, right) with Fn {
-  override def prettyName: String = "SPLIT"
-  override def dataType: DataType = UnresolvedType
-}
-
 /** sqrt(expr) - Returns the square root of `expr`. */
 case class Sqrt(left: Expression) extends Unary(left) with Fn {
   override def prettyName: String = "SQRT"
@@ -1428,16 +1038,6 @@ case class Stack(children: Seq[Expression]) extends Expression with Fn {
  * delimiters. Default delimiters are ',' for `pairDelim` and ':' for `keyValueDelim`. Both `pairDelim` and
  * `keyValueDelim` are treated as regular expressions.
  */
-case class StringToMap(left: Expression) extends Unary(left) with Fn {
-  override def prettyName: String = "STR_TO_MAP"
-  override def dataType: DataType = UnresolvedType
-}
-
-/**
- * str_to_map(text[, pairDelim[, keyValueDelim]]) - Creates a map after splitting the text into key/value pairs using
- * delimiters. Default delimiters are ',' for `pairDelim` and ':' for `keyValueDelim`. Both `pairDelim` and
- * `keyValueDelim` are treated as regular expressions.
- */
 case class StringToMap(left: Expression, right: Expression, c: Expression) extends Expression with Fn {
   override def prettyName: String = "STR_TO_MAP"
   override def children: Seq[Expression] = Seq(left, right, c)
@@ -1445,16 +1045,6 @@ case class StringToMap(left: Expression, right: Expression, c: Expression) exten
 }
 
 /**
- * str_to_map(text[, pairDelim[, keyValueDelim]]) - Creates a map after splitting the text into key/value pairs using
- * delimiters. Default delimiters are ',' for `pairDelim` and ':' for `keyValueDelim`. Both `pairDelim` and
- * `keyValueDelim` are treated as regular expressions.
- */
-case class StringToMap(left: Expression, right: Expression) extends Binary(left, right) with Fn {
-  override def prettyName: String = "STR_TO_MAP"
-  override def dataType: DataType = UnresolvedType
-}
-
-/**
  * substr(str, pos[, len]) - Returns the substring of `str` that starts at `pos` and is of length `len`, or the slice of
  * byte array that starts at `pos` and is of length `len`.
  *
@@ -1464,43 +1054,6 @@ case class StringToMap(left: Expression, right: Expression) extends Binary(left,
 case class Substring(left: Expression, right: Expression, c: Expression) extends Expression with Fn {
   override def prettyName: String = "SUBSTR"
   override def children: Seq[Expression] = Seq(left, right, c)
-  override def dataType: DataType = UnresolvedType
-}
-
-/**
- * substr(str, pos[, len]) - Returns the substring of `str` that starts at `pos` and is of length `len`, or the slice of
- * byte array that starts at `pos` and is of length `len`.
- *
- * substr(str FROM pos[ FOR len]]) - Returns the substring of `str` that starts at `pos` and is of length `len`, or the
- * slice of byte array that starts at `pos` and is of length `len`.
- */
-case class Substring(left: Expression, right: Expression) extends Binary(left, right) with Fn {
-  override def prettyName: String = "SUBSTR"
-  override def dataType: DataType = UnresolvedType
-}
-
-/**
- * substring(str, pos[, len]) - Returns the substring of `str` that starts at `pos` and is of length `len`, or the slice
- * of byte array that starts at `pos` and is of length `len`.
- *
- * substring(str FROM pos[ FOR len]]) - Returns the substring of `str` that starts at `pos` and is of length `len`, or
- * the slice of byte array that starts at `pos` and is of length `len`.
- */
-case class Substring(left: Expression, right: Expression, c: Expression) extends Expression with Fn {
-  override def prettyName: String = "SUBSTRING"
-  override def children: Seq[Expression] = Seq(left, right, c)
-  override def dataType: DataType = UnresolvedType
-}
-
-/**
- * substring(str, pos[, len]) - Returns the substring of `str` that starts at `pos` and is of length `len`, or the slice
- * of byte array that starts at `pos` and is of length `len`.
- *
- * substring(str FROM pos[ FOR len]]) - Returns the substring of `str` that starts at `pos` and is of length `len`, or
- * the slice of byte array that starts at `pos` and is of length `len`.
- */
-case class Substring(left: Expression, right: Expression) extends Binary(left, right) with Fn {
-  override def prettyName: String = "SUBSTRING"
   override def dataType: DataType = UnresolvedType
 }
 
@@ -1531,28 +1084,8 @@ case class Tanh(left: Expression) extends Unary(left) with Fn {
 }
 
 /** to_csv(expr[, options]) - Returns a CSV string with a given struct value */
-case class StructsToCsv(left: left, right: Expression) extends Expression with Fn {
-  override def prettyName: String = "TO_CSV"
-  override def children: Seq[Expression] = Seq(left, right)
-  override def dataType: DataType = UnresolvedType
-}
-
-/** to_csv(expr[, options]) - Returns a CSV string with a given struct value */
-case class StructsToCsv(left: Expression) extends Unary(left) with Fn {
-  override def prettyName: String = "TO_CSV"
-  override def dataType: DataType = UnresolvedType
-}
-
-/** to_csv(expr[, options]) - Returns a CSV string with a given struct value */
 case class StructsToCsv(left: Expression, right: Expression) extends Binary(left, right) with Fn {
   override def prettyName: String = "TO_CSV"
-  override def dataType: DataType = UnresolvedType
-}
-
-/** to_csv(expr[, options]) - Returns a CSV string with a given struct value */
-case class StructsToCsv(left: left, right: Expression, c: c) extends Expression with Fn {
-  override def prettyName: String = "TO_CSV"
-  override def children: Seq[Expression] = Seq(left, right, c)
   override def dataType: DataType = UnresolvedType
 }
 
@@ -1606,51 +1139,6 @@ case class StringTrim(left: Expression, right: Expression) extends Binary(left, 
   override def dataType: DataType = UnresolvedType
 }
 
-/**
- * trim(str) - Removes the leading and trailing space characters from `str`.
- *
- * trim(BOTH FROM str) - Removes the leading and trailing space characters from `str`.
- *
- * trim(LEADING FROM str) - Removes the leading space characters from `str`.
- *
- * trim(TRAILING FROM str) - Removes the trailing space characters from `str`.
- *
- * trim(trimStr FROM str) - Remove the leading and trailing `trimStr` characters from `str`.
- *
- * trim(BOTH trimStr FROM str) - Remove the leading and trailing `trimStr` characters from `str`.
- *
- * trim(LEADING trimStr FROM str) - Remove the leading `trimStr` characters from `str`.
- *
- * trim(TRAILING trimStr FROM str) - Remove the trailing `trimStr` characters from `str`.
- */
-case class StringTrim(left: Expression) extends Unary(left) with Fn {
-  override def prettyName: String = "TRIM"
-  override def dataType: DataType = UnresolvedType
-}
-
-/**
- * trim(str) - Removes the leading and trailing space characters from `str`.
- *
- * trim(BOTH FROM str) - Removes the leading and trailing space characters from `str`.
- *
- * trim(LEADING FROM str) - Removes the leading space characters from `str`.
- *
- * trim(TRAILING FROM str) - Removes the trailing space characters from `str`.
- *
- * trim(trimStr FROM str) - Remove the leading and trailing `trimStr` characters from `str`.
- *
- * trim(BOTH trimStr FROM str) - Remove the leading and trailing `trimStr` characters from `str`.
- *
- * trim(LEADING trimStr FROM str) - Remove the leading `trimStr` characters from `str`.
- *
- * trim(TRAILING trimStr FROM str) - Remove the trailing `trimStr` characters from `str`.
- */
-case class StringTrim(left: Expression, right: right) extends Expression with Fn {
-  override def prettyName: String = "TRIM"
-  override def children: Seq[Expression] = Seq(left, right)
-  override def dataType: DataType = UnresolvedType
-}
-
 /** typeof(expr) - Return DDL-formatted type string for the data type of the input. */
 case class TypeOf(left: Expression) extends Unary(left) with Fn {
   override def prettyName: String = "TYPEOF"
@@ -1675,28 +1163,12 @@ case class Unhex(left: Expression) extends Unary(left) with Fn {
   override def dataType: DataType = UnresolvedType
 }
 
-/** upper(str) - Returns `str` with all characters changed to uppercase. */
-case class Upper(left: Expression) extends Unary(left) with Fn {
-  override def prettyName: String = "UPPER"
-  override def dataType: DataType = UnresolvedType
-}
-
 /**
  * uuid() - Returns an universally unique identifier (UUID) string. The value is returned as a canonical UUID
  * 36-character string.
  */
 case class Uuid() extends LeafExpression with Fn {
   override def prettyName: String = "UUID"
-  override def dataType: DataType = UnresolvedType
-}
-
-/**
- * uuid() - Returns an universally unique identifier (UUID) string. The value is returned as a canonical UUID
- * 36-character string.
- */
-case class Uuid(left: left) extends Expression with Fn {
-  override def prettyName: String = "UUID"
-  override def children: Seq[Expression] = Seq(left)
   override def dataType: DataType = UnresolvedType
 }
 
@@ -1713,9 +1185,9 @@ case class SparkVersion() extends LeafExpression with Fn {
  * CASE WHEN expr1 THEN expr2 [WHEN expr3 THEN expr4]* [ELSE expr5] END - When `expr1` = true, returns `expr2`; else
  * when `expr3` = true, returns `expr4`; else returns `expr5`.
  */
-case class CaseWhen(children: Seq[Expression], right: right) extends Expression with Fn {
+case class CaseWhen(branches: Seq[Expression], otherwise: Option[Expression] = None) extends Expression with Fn {
   override def prettyName: String = "WHEN"
-  override def children: Seq[Expression] = Seq(children, right)
+  override def children: Seq[Expression] = branches ++ otherwise
   override def dataType: DataType = UnresolvedType
 }
 
@@ -1730,28 +1202,9 @@ case class WidthBucket(left: Expression, right: Expression, c: Expression, d: Ex
 }
 
 /** N/A. */
-case class TimeWindow(left: Expression, right: right, c: c, d: d) extends Expression with Fn {
-  override def prettyName: String = "WINDOW"
-  override def children: Seq[Expression] = Seq(left, right, c, d)
-  override def dataType: DataType = UnresolvedType
-}
-
-/** N/A. */
-case class TimeWindow(left: Expression, right: Expression, c: Expression, d: Expression) extends Expression with Fn {
-  override def prettyName: String = "WINDOW"
-  override def children: Seq[Expression] = Seq(left, right, c, d)
-  override def dataType: DataType = UnresolvedType
-}
-
-/** N/A. */
-case class TimeWindow(left: Expression, right: Expression, c: Expression) extends Expression with Fn {
-  override def prettyName: String = "WINDOW"
-  override def children: Seq[Expression] = Seq(left, right, c)
-  override def dataType: DataType = UnresolvedType
-}
-
-/** N/A. */
-case class TimeWindow(left: Expression, right: Expression) extends Binary(left, right) with Fn {
+case class TimeWindow(left: Expression, windowDuration: Long, slideDuration: Long, startTime: Long)
+    extends Unary(left)
+    with Fn {
   override def prettyName: String = "WINDOW"
   override def dataType: DataType = UnresolvedType
 }
@@ -1807,15 +1260,6 @@ case class XPathLong(left: Expression, right: Expression) extends Binary(left, r
 }
 
 /**
- * xpath_number(xml, xpath) - Returns a double value, the value zero if no match is found, or NaN if a match is found
- * but the value is non-numeric.
- */
-case class XPathDouble(left: Expression, right: Expression) extends Binary(left, right) with Fn {
-  override def prettyName: String = "XPATH_NUMBER"
-  override def dataType: DataType = UnresolvedType
-}
-
-/**
  * xpath_short(xml, xpath) - Returns a short integer value, or the value zero if no match is found, or a match is found
  * but the value is non-numeric.
  */
@@ -1833,13 +1277,6 @@ case class XPathString(left: Expression, right: Expression) extends Binary(left,
 /** xxhash64(expr1, expr2, ...) - Returns a 64-bit hash value of the arguments. */
 case class XxHash64(children: Seq[Expression]) extends Expression with Fn {
   override def prettyName: String = "XXHASH64"
-  override def dataType: DataType = UnresolvedType
-}
-
-/** xxhash64(expr1, expr2, ...) - Returns a 64-bit hash value of the arguments. */
-case class XxHash64(children: Seq[Expression], right: right) extends Expression with Fn {
-  override def prettyName: String = "XXHASH64"
-  override def children: Seq[Expression] = Seq(children, right)
   override def dataType: DataType = UnresolvedType
 }
 
@@ -1975,22 +1412,9 @@ case class BoolAnd(left: Expression) extends Unary(left) with Fn {
   override def dataType: DataType = UnresolvedType
 }
 
-/** bool_or(expr) - Returns true if at least one value of `expr` is true. */
-case class BoolOr(left: Expression) extends Unary(left) with Fn {
-  override def prettyName: String = "BOOL_OR"
-  override def dataType: DataType = UnresolvedType
-}
-
 /** collect_list(expr) - Collects and returns a list of non-unique elements. */
 case class CollectList(left: Expression) extends Unary(left) with Fn {
   override def prettyName: String = "COLLECT_LIST"
-  override def dataType: DataType = UnresolvedType
-}
-
-/** collect_list(expr) - Collects and returns a list of non-unique elements. */
-case class CollectList(left: Expression, right: right, c: c) extends Expression with Fn {
-  override def prettyName: String = "COLLECT_LIST"
-  override def children: Seq[Expression] = Seq(left, right, c)
   override def dataType: DataType = UnresolvedType
 }
 
@@ -2000,23 +1424,9 @@ case class CollectSet(left: Expression) extends Unary(left) with Fn {
   override def dataType: DataType = UnresolvedType
 }
 
-/** collect_set(expr) - Collects and returns a set of unique elements. */
-case class CollectSet(left: Expression, right: right, c: c) extends Expression with Fn {
-  override def prettyName: String = "COLLECT_SET"
-  override def children: Seq[Expression] = Seq(left, right, c)
-  override def dataType: DataType = UnresolvedType
-}
-
 /** corr(expr1, expr2) - Returns Pearson coefficient of correlation between a set of number pairs. */
 case class Corr(left: Expression, right: Expression) extends Binary(left, right) with Fn {
   override def prettyName: String = "CORR"
-  override def dataType: DataType = UnresolvedType
-}
-
-/** corr(expr1, expr2) - Returns Pearson coefficient of correlation between a set of number pairs. */
-case class Corr(left: Expression, right: Expression, c: c) extends Expression with Fn {
-  override def prettyName: String = "CORR"
-  override def children: Seq[Expression] = Seq(left, right, c)
   override def dataType: DataType = UnresolvedType
 }
 
@@ -2345,36 +1755,9 @@ case class Skewness(left: Expression) extends Unary(left) with Fn {
   override def dataType: DataType = UnresolvedType
 }
 
-/** skewness(expr) - Returns the skewness value calculated from values of a group. */
-case class Skewness(left: Expression, right: right) extends Expression with Fn {
-  override def prettyName: String = "SKEWNESS"
-  override def children: Seq[Expression] = Seq(left, right)
-  override def dataType: DataType = UnresolvedType
-}
-
-/** some(expr) - Returns true if at least one value of `expr` is true. */
-case class BoolOr(left: Expression) extends Unary(left) with Fn {
-  override def prettyName: String = "SOME"
-  override def dataType: DataType = UnresolvedType
-}
-
 /** std(expr) - Returns the sample standard deviation calculated from values of a group. */
-case class StddevSamp(left: Expression, right: right) extends Expression with Fn {
+case class StdSamp(left: Expression) extends Unary(left) with Fn {
   override def prettyName: String = "STD"
-  override def children: Seq[Expression] = Seq(left, right)
-  override def dataType: DataType = UnresolvedType
-}
-
-/** std(expr) - Returns the sample standard deviation calculated from values of a group. */
-case class StddevSamp(left: Expression) extends Unary(left) with Fn {
-  override def prettyName: String = "STD"
-  override def dataType: DataType = UnresolvedType
-}
-
-/** stddev(expr) - Returns the sample standard deviation calculated from values of a group. */
-case class StddevSamp(left: Expression, right: right) extends Expression with Fn {
-  override def prettyName: String = "STDDEV"
-  override def children: Seq[Expression] = Seq(left, right)
   override def dataType: DataType = UnresolvedType
 }
 
@@ -2390,26 +1773,6 @@ case class StddevPop(left: Expression) extends Unary(left) with Fn {
   override def dataType: DataType = UnresolvedType
 }
 
-/** stddev_pop(expr) - Returns the population standard deviation calculated from values of a group. */
-case class StddevPop(left: Expression, right: right) extends Expression with Fn {
-  override def prettyName: String = "STDDEV_POP"
-  override def children: Seq[Expression] = Seq(left, right)
-  override def dataType: DataType = UnresolvedType
-}
-
-/** stddev_samp(expr) - Returns the sample standard deviation calculated from values of a group. */
-case class StddevSamp(left: Expression, right: right) extends Expression with Fn {
-  override def prettyName: String = "STDDEV_SAMP"
-  override def children: Seq[Expression] = Seq(left, right)
-  override def dataType: DataType = UnresolvedType
-}
-
-/** stddev_samp(expr) - Returns the sample standard deviation calculated from values of a group. */
-case class StddevSamp(left: Expression) extends Unary(left) with Fn {
-  override def prettyName: String = "STDDEV_SAMP"
-  override def dataType: DataType = UnresolvedType
-}
-
 /** sum(expr) - Returns the sum calculated from values of a group. */
 case class Sum(left: Expression) extends Unary(left) with Fn {
   override def prettyName: String = "SUM"
@@ -2422,36 +1785,10 @@ case class VariancePop(left: Expression) extends Unary(left) with Fn {
   override def dataType: DataType = UnresolvedType
 }
 
-/** var_pop(expr) - Returns the population variance calculated from values of a group. */
-case class VariancePop(left: Expression, right: right) extends Expression with Fn {
-  override def prettyName: String = "VAR_POP"
-  override def children: Seq[Expression] = Seq(left, right)
-  override def dataType: DataType = UnresolvedType
-}
-
 /** var_samp(expr) - Returns the sample variance calculated from values of a group. */
 case class VarianceSamp(left: Expression, right: right) extends Expression with Fn {
   override def prettyName: String = "VAR_SAMP"
   override def children: Seq[Expression] = Seq(left, right)
-  override def dataType: DataType = UnresolvedType
-}
-
-/** var_samp(expr) - Returns the sample variance calculated from values of a group. */
-case class VarianceSamp(left: Expression) extends Unary(left) with Fn {
-  override def prettyName: String = "VAR_SAMP"
-  override def dataType: DataType = UnresolvedType
-}
-
-/** variance(expr) - Returns the sample variance calculated from values of a group. */
-case class VarianceSamp(left: Expression, right: right) extends Expression with Fn {
-  override def prettyName: String = "VARIANCE"
-  override def children: Seq[Expression] = Seq(left, right)
-  override def dataType: DataType = UnresolvedType
-}
-
-/** variance(expr) - Returns the sample variance calculated from values of a group. */
-case class VarianceSamp(left: Expression) extends Unary(left) with Fn {
-  override def prettyName: String = "VARIANCE"
   override def dataType: DataType = UnresolvedType
 }
 
@@ -2491,25 +1828,6 @@ case class ArrayIntersect(left: Expression, right: Expression) extends Binary(le
 case class ArrayJoin(left: Expression, right: Expression, c: Expression) extends Expression with Fn {
   override def prettyName: String = "ARRAY_JOIN"
   override def children: Seq[Expression] = Seq(left, right, c)
-  override def dataType: DataType = UnresolvedType
-}
-
-/**
- * array_join(array, delimiter[, nullReplacement]) - Concatenates the elements of the given array using the delimiter
- * and an optional string to replace nulls. If no value is set for nullReplacement, any null value is filtered.
- */
-case class ArrayJoin(left: Expression, right: Expression, c: c) extends Expression with Fn {
-  override def prettyName: String = "ARRAY_JOIN"
-  override def children: Seq[Expression] = Seq(left, right, c)
-  override def dataType: DataType = UnresolvedType
-}
-
-/**
- * array_join(array, delimiter[, nullReplacement]) - Concatenates the elements of the given array using the delimiter
- * and an optional string to replace nulls. If no value is set for nullReplacement, any null value is filtered.
- */
-case class ArrayJoin(left: Expression, right: Expression) extends Binary(left, right) with Fn {
-  override def prettyName: String = "ARRAY_JOIN"
   override def dataType: DataType = UnresolvedType
 }
 
@@ -2604,44 +1922,6 @@ case class Sequence(left: Expression, right: Expression, c: Expression) extends 
   override def dataType: DataType = UnresolvedType
 }
 
-/**
- * sequence(start, stop, step) - Generates an array of elements from start to stop (inclusive), incrementing by step.
- * The type of the returned elements is the same as the type of argument expressions.
- *
- * Supported types are: byte, short, integer, long, date, timestamp.
- *
- * The start and stop expressions must resolve to the same type. If start and stop expressions resolve to the 'date' or
- * 'timestamp' type then the step expression must resolve to the 'interval' type, otherwise to the same type as the
- * start and stop expressions.
- */
-case class Sequence(left: Expression, right: Expression, c: c, d: d) extends Expression with Fn {
-  override def prettyName: String = "SEQUENCE"
-  override def children: Seq[Expression] = Seq(left, right, c, d)
-  override def dataType: DataType = UnresolvedType
-}
-
-/**
- * sequence(start, stop, step) - Generates an array of elements from start to stop (inclusive), incrementing by step.
- * The type of the returned elements is the same as the type of argument expressions.
- *
- * Supported types are: byte, short, integer, long, date, timestamp.
- *
- * The start and stop expressions must resolve to the same type. If start and stop expressions resolve to the 'date' or
- * 'timestamp' type then the step expression must resolve to the 'interval' type, otherwise to the same type as the
- * start and stop expressions.
- */
-case class Sequence(left: Expression, right: Expression) extends Binary(left, right) with Fn {
-  override def prettyName: String = "SEQUENCE"
-  override def dataType: DataType = UnresolvedType
-}
-
-/** shuffle(array) - Returns a random permutation of the given array. */
-case class Shuffle(left: Expression, right: right) extends Expression with Fn {
-  override def prettyName: String = "SHUFFLE"
-  override def children: Seq[Expression] = Seq(left, right)
-  override def dataType: DataType = UnresolvedType
-}
-
 /** shuffle(array) - Returns a random permutation of the given array. */
 case class Shuffle(left: Expression) extends Unary(left) with Fn {
   override def prettyName: String = "SHUFFLE"
@@ -2668,16 +1948,6 @@ case class SortArray(left: Expression, right: Expression) extends Binary(left, r
   override def dataType: DataType = UnresolvedType
 }
 
-/**
- * sort_array(array[, ascendingOrder]) - Sorts the input array in ascending or descending order according to the natural
- * ordering of the array elements. Null elements will be placed at the beginning of the returned array in ascending
- * order or at the end of the returned array in descending order.
- */
-case class SortArray(left: Expression) extends Unary(left) with Fn {
-  override def prettyName: String = "SORT_ARRAY"
-  override def dataType: DataType = UnresolvedType
-}
-
 /** add_months(start_date, num_months) - Returns the date that is `num_months` after `start_date`. */
 case class AddMonths(left: Expression, right: Expression) extends Binary(left, right) with Fn {
   override def prettyName: String = "ADD_MONTHS"
@@ -2692,18 +1962,6 @@ case class AddMonths(left: Expression, right: Expression) extends Binary(left, r
  */
 case class CurrentDate() extends LeafExpression with Fn {
   override def prettyName: String = "CURRENT_DATE"
-  override def dataType: DataType = UnresolvedType
-}
-
-/**
- * current_date() - Returns the current date at the start of query evaluation. All calls of current_date within the same
- * query return the same value.
- *
- * current_date - Returns the current date at the start of query evaluation.
- */
-case class CurrentDate(left: left) extends Expression with Fn {
-  override def prettyName: String = "CURRENT_DATE"
-  override def children: Seq[Expression] = Seq(left)
   override def dataType: DataType = UnresolvedType
 }
 
@@ -2734,16 +1992,6 @@ case class DateAdd(left: Expression, right: Expression) extends Binary(left, rig
  * date_format(timestamp, fmt) - Converts `timestamp` to a value of string in the format specified by the date format
  * `fmt`.
  */
-case class DateFormatClass(left: Expression, right: Expression, c: c) extends Expression with Fn {
-  override def prettyName: String = "DATE_FORMAT"
-  override def children: Seq[Expression] = Seq(left, right, c)
-  override def dataType: DataType = UnresolvedType
-}
-
-/**
- * date_format(timestamp, fmt) - Converts `timestamp` to a value of string in the format specified by the date format
- * `fmt`.
- */
 case class DateFormatClass(left: Expression, right: Expression) extends Binary(left, right) with Fn {
   override def prettyName: String = "DATE_FORMAT"
   override def dataType: DataType = UnresolvedType
@@ -2764,13 +2012,6 @@ case class DatePart(left: Expression, right: Expression) extends Binary(left, ri
 /** date_sub(start_date, num_days) - Returns the date that is `num_days` before `start_date`. */
 case class DateSub(left: Expression, right: Expression) extends Binary(left, right) with Fn {
   override def prettyName: String = "DATE_SUB"
-  override def dataType: DataType = UnresolvedType
-}
-
-/** date_trunc(fmt, ts) - Returns timestamp `ts` truncated to the unit specified by the format model `fmt`. */
-case class TruncTimestamp(left: Expression, right: Expression, c: c) extends Expression with Fn {
-  override def prettyName: String = "DATE_TRUNC"
-  override def children: Seq[Expression] = Seq(left, right, c)
   override def dataType: DataType = UnresolvedType
 }
 
@@ -2804,19 +2045,6 @@ case class FromUnixTime(left: Expression, right: Expression) extends Binary(left
   override def dataType: DataType = UnresolvedType
 }
 
-/** from_unixtime(unix_time[, fmt]) - Returns `unix_time` in the specified `fmt`. */
-case class FromUnixTime(left: Expression) extends Unary(left) with Fn {
-  override def prettyName: String = "FROM_UNIXTIME"
-  override def dataType: DataType = UnresolvedType
-}
-
-/** from_unixtime(unix_time[, fmt]) - Returns `unix_time` in the specified `fmt`. */
-case class FromUnixTime(left: Expression, right: Expression, c: c) extends Expression with Fn {
-  override def prettyName: String = "FROM_UNIXTIME"
-  override def children: Seq[Expression] = Seq(left, right, c)
-  override def dataType: DataType = UnresolvedType
-}
-
 /**
  * from_utc_timestamp(timestamp, timezone) - Given a timestamp like '2017-07-14 02:40:00.0', interprets it as a time in
  * UTC, and renders that time as a timestamp in the given time zone. For example, 'GMT+1' would yield '2017-07-14
@@ -2824,13 +2052,6 @@ case class FromUnixTime(left: Expression, right: Expression, c: c) extends Expre
  */
 case class FromUTCTimestamp(left: Expression, right: Expression) extends Binary(left, right) with Fn {
   override def prettyName: String = "FROM_UTC_TIMESTAMP"
-  override def dataType: DataType = UnresolvedType
-}
-
-/** hour(timestamp) - Returns the hour component of the string/timestamp. */
-case class Hour(left: Expression, right: right) extends Expression with Fn {
-  override def prettyName: String = "HOUR"
-  override def children: Seq[Expression] = Seq(left, right)
   override def dataType: DataType = UnresolvedType
 }
 
@@ -2847,35 +2068,9 @@ case class LastDay(left: Expression) extends Unary(left) with Fn {
 }
 
 /** make_date(year, month, day) - Create date from year, month and day fields. */
-case class MakeDate(left: Expression, right: Expression, c: Expression, d: d) extends Expression with Fn {
-  override def prettyName: String = "MAKE_DATE"
-  override def children: Seq[Expression] = Seq(left, right, c, d)
-  override def dataType: DataType = UnresolvedType
-}
-
-/** make_date(year, month, day) - Create date from year, month and day fields. */
 case class MakeDate(left: Expression, right: Expression, c: Expression) extends Expression with Fn {
   override def prettyName: String = "MAKE_DATE"
   override def children: Seq[Expression] = Seq(left, right, c)
-  override def dataType: DataType = UnresolvedType
-}
-
-/**
- * make_timestamp(year, month, day, hour, min, sec[, timezone]) - Create timestamp from year, month, day, hour, min, sec
- * and timezone fields.
- */
-case class MakeTimestamp(
-    left: Expression,
-    right: Expression,
-    c: Expression,
-    d: Expression,
-    e: Expression,
-    f: Expression,
-    g: g)
-    extends Expression
-    with Fn {
-  override def prettyName: String = "MAKE_TIMESTAMP"
-  override def children: Seq[Expression] = Seq(left, right, c, d, e, f, g)
   override def dataType: DataType = UnresolvedType
 }
 
@@ -2898,31 +2093,6 @@ case class MakeTimestamp(
   override def dataType: DataType = UnresolvedType
 }
 
-/**
- * make_timestamp(year, month, day, hour, min, sec[, timezone]) - Create timestamp from year, month, day, hour, min, sec
- * and timezone fields.
- */
-case class MakeTimestamp(
-    left: Expression,
-    right: Expression,
-    c: Expression,
-    d: Expression,
-    e: Expression,
-    f: Expression)
-    extends Expression
-    with Fn {
-  override def prettyName: String = "MAKE_TIMESTAMP"
-  override def children: Seq[Expression] = Seq(left, right, c, d, e, f)
-  override def dataType: DataType = UnresolvedType
-}
-
-/** minute(timestamp) - Returns the minute component of the string/timestamp. */
-case class Minute(left: Expression, right: right) extends Expression with Fn {
-  override def prettyName: String = "MINUTE"
-  override def children: Seq[Expression] = Seq(left, right)
-  override def dataType: DataType = UnresolvedType
-}
-
 /** minute(timestamp) - Returns the minute component of the string/timestamp. */
 case class Minute(left: Expression) extends Unary(left) with Fn {
   override def prettyName: String = "MINUTE"
@@ -2941,32 +2111,9 @@ case class Month(left: Expression) extends Unary(left) with Fn {
  * day will be ignored. Otherwise, the difference is calculated based on 31 days per month, and rounded to 8 digits
  * unless roundOff=false.
  */
-case class MonthsBetween(left: Expression, right: Expression) extends Binary(left, right) with Fn {
-  override def prettyName: String = "MONTHS_BETWEEN"
-  override def dataType: DataType = UnresolvedType
-}
-
-/**
- * months_between(timestamp1, timestamp2[, roundOff]) - If `timestamp1` is later than `timestamp2`, then the result is
- * positive. If `timestamp1` and `timestamp2` are on the same day of month, or both are the last day of month, time of
- * day will be ignored. Otherwise, the difference is calculated based on 31 days per month, and rounded to 8 digits
- * unless roundOff=false.
- */
 case class MonthsBetween(left: Expression, right: Expression, c: Expression) extends Expression with Fn {
   override def prettyName: String = "MONTHS_BETWEEN"
   override def children: Seq[Expression] = Seq(left, right, c)
-  override def dataType: DataType = UnresolvedType
-}
-
-/**
- * months_between(timestamp1, timestamp2[, roundOff]) - If `timestamp1` is later than `timestamp2`, then the result is
- * positive. If `timestamp1` and `timestamp2` are on the same day of month, or both are the last day of month, time of
- * day will be ignored. Otherwise, the difference is calculated based on 31 days per month, and rounded to 8 digits
- * unless roundOff=false.
- */
-case class MonthsBetween(left: Expression, right: Expression, c: Expression, d: d) extends Expression with Fn {
-  override def prettyName: String = "MONTHS_BETWEEN"
-  override def children: Seq[Expression] = Seq(left, right, c, d)
   override def dataType: DataType = UnresolvedType
 }
 
@@ -2987,13 +2134,6 @@ case class Now() extends LeafExpression with Fn {
 /** quarter(date) - Returns the quarter of the year for date, in the range 1 to 4. */
 case class Quarter(left: Expression) extends Unary(left) with Fn {
   override def prettyName: String = "QUARTER"
-  override def dataType: DataType = UnresolvedType
-}
-
-/** second(timestamp) - Returns the second component of the string/timestamp. */
-case class Second(left: Expression, right: right) extends Expression with Fn {
-  override def prettyName: String = "SECOND"
-  override def children: Seq[Expression] = Seq(left, right)
   override def dataType: DataType = UnresolvedType
 }
 
@@ -3031,15 +2171,6 @@ case class ParseToDate(left: Expression, right: Expression) extends Binary(left,
 }
 
 /**
- * to_date(date_str[, fmt]) - Parses the `date_str` expression with the `fmt` expression to a date. Returns null with
- * invalid input. By default, it follows casting rules to a date if the `fmt` is omitted.
- */
-case class ParseToDate(left: Expression) extends Unary(left) with Fn {
-  override def prettyName: String = "TO_DATE"
-  override def dataType: DataType = UnresolvedType
-}
-
-/**
  * to_timestamp(timestamp_str[, fmt]) - Parses the `timestamp_str` expression with the `fmt` expression to a timestamp.
  * Returns null with invalid input. By default, it follows casting rules to a timestamp if the `fmt` is omitted.
  */
@@ -3048,30 +2179,8 @@ case class ParseToTimestamp(left: Expression, right: Expression) extends Binary(
   override def dataType: DataType = UnresolvedType
 }
 
-/**
- * to_timestamp(timestamp_str[, fmt]) - Parses the `timestamp_str` expression with the `fmt` expression to a timestamp.
- * Returns null with invalid input. By default, it follows casting rules to a timestamp if the `fmt` is omitted.
- */
-case class ParseToTimestamp(left: Expression) extends Unary(left) with Fn {
-  override def prettyName: String = "TO_TIMESTAMP"
-  override def dataType: DataType = UnresolvedType
-}
-
-/** to_unix_timestamp(timeExp[, fmt]) - Returns the UNIX timestamp of the given time. */
-case class ToUnixTimestamp(left: Expression, right: Expression, c: c, d: d) extends Expression with Fn {
-  override def prettyName: String = "TO_UNIX_TIMESTAMP"
-  override def children: Seq[Expression] = Seq(left, right, c, d)
-  override def dataType: DataType = UnresolvedType
-}
-
 /** to_unix_timestamp(timeExp[, fmt]) - Returns the UNIX timestamp of the given time. */
 case class ToUnixTimestamp(left: Expression, right: Expression) extends Binary(left, right) with Fn {
-  override def prettyName: String = "TO_UNIX_TIMESTAMP"
-  override def dataType: DataType = UnresolvedType
-}
-
-/** to_unix_timestamp(timeExp[, fmt]) - Returns the UNIX timestamp of the given time. */
-case class ToUnixTimestamp(left: Expression) extends Unary(left) with Fn {
   override def prettyName: String = "TO_UNIX_TIMESTAMP"
   override def dataType: DataType = UnresolvedType
 }
