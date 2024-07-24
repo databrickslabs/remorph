@@ -405,7 +405,6 @@ case class UpdateTable(
   override def output: Seq[Attribute] = target.output
 }
 
-
 sealed trait ProcedureAction
 
 object ProcedureAction {
@@ -418,10 +417,8 @@ object ProcedureAction {
 sealed trait ArgMode
 
 /**
- * The mode of a procedure argument.
- In - The argument is an input argument.
- Out - The argument is an Procedure Return argument.
- InOut - The argument is an input/output argument
+ * The mode of a procedure argument. In - The argument is an input argument. Out - The argument is an Procedure Return
+ * argument. InOut - The argument is an input/output argument
  */
 object ArgMode {
   case object In extends ArgMode
@@ -443,7 +440,7 @@ case class ExternalCLRMethodRef(assemblyName: String, className: String, methodN
 
 sealed trait ProcedureBody
 
-case class SQLProcedureBody(statements: Seq[Plan]) extends ProcedureBody
+case class SQLProcedureBody(statements: Seq[LogicalPlan]) extends ProcedureBody
 
 case class ExternalProcedureBody(reference: ExternalCodeReference) extends ProcedureBody
 

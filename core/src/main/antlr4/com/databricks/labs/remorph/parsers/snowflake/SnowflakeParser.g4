@@ -1636,7 +1636,24 @@ createProcedure
     : CREATE orReplace? PROCEDURE objectName L_PAREN (argDecl (COMMA argDecl)*)? R_PAREN RETURNS (
         dataType
         | table_
-    ) notNull? LANGUAGE SQL (CALLED ON NULL_ INPUT | RETURNS NULL_ ON NULL_ INPUT | STRICT)? commentClause? executaAs? AS procedureDefinition
+    ) notNull? LANGUAGE SQL (CALLED ON NULL_ INPUT | RETURNS NULL_ ON NULL_ INPUT | STRICT)? (
+        VOLATILE
+        | IMMUTABLE
+    )? // Note: VOLATILE and IMMUTABLE are deprecated.
+    commentClause? executaAs? AS procedureDefinition
+    | CREATE orReplace? SECURE? PROCEDURE objectName L_PAREN (argDecl (COMMA argDecl)*)? R_PAREN RETURNS dataType notNull? LANGUAGE JAVASCRIPT (
+        CALLED ON NULL_ INPUT
+        | RETURNS NULL_ ON NULL_ INPUT
+        | STRICT
+    )? (VOLATILE | IMMUTABLE)? // Note: VOLATILE and IMMUTABLE are deprecated.
+    commentClause? executaAs? AS procedureDefinition
+    | CREATE orReplace? SECURE? PROCEDURE objectName L_PAREN (argDecl (COMMA argDecl)*)? R_PAREN RETURNS (
+        dataType notNull?
+        | TABLE L_PAREN (colDecl (COMMA colDecl)*)? R_PAREN
+    ) LANGUAGE PYTHON RUNTIME_VERSION EQ string (IMPORTS EQ L_PAREN stringList R_PAREN)? PACKAGES EQ L_PAREN stringList R_PAREN HANDLER EQ string
+    //            ( CALLED ON NULL_ INPUT | RETURNS NULL_ ON NULL_ INPUT | STRICT )?
+    //            ( VOLATILE | IMMUTABLE )? // Note: VOLATILE and IMMUTABLE are deprecated.
+    commentClause? executaAs? AS procedureDefinition
     ;
 
 createReplicationGroup

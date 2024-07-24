@@ -1,5 +1,6 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
+import com.databricks.labs.remorph.parsers.intermediate.AddColumn
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser.{StringContext => StrContext, _}
 import com.databricks.labs.remorph.parsers.{IncompleteParser, ParserCommon, intermediate => ir}
 
@@ -21,9 +22,9 @@ class SnowflakeDDLBuilder
     val runtimeInfo = ctx match {
       case c if c.JAVA() != null => buildJavaUDF(c)
       case c if c.PYTHON() != null => buildPythonUDF(c)
-      case c if c.JAVASCRIPT() != null => ir.JavascriptUDFInfo
+      case c if c.JAVASCRIPT() != null => ir.JavaScriptRuntimeInfo
       case c if c.SCALA() != null => buildScalaUDF(c)
-      case c if c.SQL() != null || c.LANGUAGE() == null => ir.SQLUDFInfo(c.MEMOIZABLE() != null)
+      case c if c.SQL() != null || c.LANGUAGE() == null => ir.SQLRuntimeInfo(c.MEMOIZABLE() != null)
     }
     val name = ctx.objectName().getText
     val returnType = DataTypeBuilder.buildDataType(ctx.dataType())
@@ -47,11 +48,11 @@ class SnowflakeDDLBuilder
     case c if c.string() != null => extractString(c.string())
   }).trim
 
-  private def buildJavaUDF(ctx: CreateFunctionContext): ir.UDFRuntimeInfo = buildJVMUDF(ctx)(ir.JavaUDFInfo.apply)
-  private def buildScalaUDF(ctx: CreateFunctionContext): ir.UDFRuntimeInfo = buildJVMUDF(ctx)(ir.ScalaUDFInfo.apply)
+  private def buildJavaUDF(ctx: CreateFunctionContext): ir.RuntimeInfo = buildJVMUDF(ctx)(ir.JavaRuntimeInfo.apply)
+  private def buildScalaUDF(ctx: CreateFunctionContext): ir.RuntimeInfo = buildJVMUDF(ctx)(ir.ScalaRuntimeInfo.apply)
 
   private def buildJVMUDF(ctx: CreateFunctionContext)(
-      ctr: (Option[String], Seq[String], String) => ir.UDFRuntimeInfo): ir.UDFRuntimeInfo = {
+      ctr: (Option[String], Seq[String], String) => ir.RuntimeInfo): ir.RuntimeInfo = {
     val imports =
       ctx
         .stringList()
@@ -68,7 +69,7 @@ class SnowflakeDDLBuilder
   private def extractHandler(ctx: CreateFunctionContext): String =
     Option(ctx.HANDLER()).flatMap(h => ctx.string().asScala.find(occursBefore(h, _))).map(extractString).get
 
-  private def buildPythonUDF(ctx: CreateFunctionContext): ir.PythonUDFInfo = {
+  private def buildPythonUDF(ctx: CreateFunctionContext): ir.PythonRuntimeInfo = {
     val packages =
       ctx
         .stringList()
@@ -76,7 +77,7 @@ class SnowflakeDDLBuilder
         .find(occursBefore(ctx.PACKAGES(0), _))
         .map(_.string().asScala.map(extractString))
         .getOrElse(Seq())
-    ir.PythonUDFInfo(extractRuntimeVersion(ctx), packages, extractHandler(ctx))
+    ir.PythonRuntimeInfo(extractRuntimeVersion(ctx), packages, extractHandler(ctx))
   }
 
   override def visitCreateTable(ctx: CreateTableContext): ir.Catalog = {
@@ -219,42 +220,18 @@ class SnowflakeDDLBuilder
     }
   }
 
-  /*  private def buildVariables(ctx: DeclareContext): Seq[ir.SetVariable] = {
-    // [TODO]: Add Support for Cursor
-    val ids = ctx.id().asScala.map(_.getText)
-    val dataTypes = ctx.dataType().asScala.map(dt => Some(DataTypeBuilder.buildDataType(dt)))
-    val expressions = ctx.expr().asScala.map(_.accept(expressionBuilder)).map(Some(_))
-
-    // Padding the lists to ensure they all have the same size
-    // [TODO]: This is a temporary fix. We need to handle this in a better way
-    val paddedDataTypes = dataTypes ++ Seq.fill(ids.size - dataTypes.size)(None)
-    val paddedExpressions = (expressions ++ Seq.fill(ids.size - expressions.size)(None))
-
-    ids.zip(paddedDataTypes).zip(paddedExpressions).map { case ((name, dataType), expr) =>
-      ir.SetVariable(name, dataType, expr)
-    }
-
-  }*/
-
-  /*  private def buildReturn(ctx: ReturnStatementContext): ir.Expression = {
-    // [TODO]: implement return statement for TABLE(res)
-    ctx.accept(expressionBuilder)
+  override def visitDeclareStatement(ctx: SnowflakeParser.DeclareStatementContext): ir.Command = {
+    val variableName = ctx.id().getText
+    val variableDataType = Some(DataTypeBuilder.buildDataType(ctx.dataType()))
+    val variableValue = None
+    ir.SetVariable(variableName, variableDataType, variableValue)
   }
 
-  private def buildProcedureBody(ctx: ProcedureBodyContext): ir.Plan = {
-    ctx.accept(expressionBuilder).asInstanceOf[ir.Plan]
-  }
+  override def visitLet(ctx: LetContext): ir.Command = {
+    val variableName = ctx.id().getText
+    val variableDataType = Option(ctx.dataType()).flatMap(dt => Some(DataTypeBuilder.buildDataType(dt)))
 
-  override def visitCreateProcedure(ctx: CreateProcedureContext): ir.Catalog = {
-    val name = ctx.objectName().getText
-    val parameters = ctx.argDecl().asScala.map(buildParameter)
-    val variables = Some(buildVariables(ctx.procedureDefinition().declare()))
-    val returnExpr = buildReturn(ctx.procedureDefinition().returnStatement())
-    // TODO Parse Procedure Body
-    val body = ctx.procedureDefinition() match {
-      case c if c.procedureBody() != null => Some(buildProcedureBody(c.procedureBody()))
-      case _ => None
-    }
-    ir.CreateProcedure(name, parameters, variables, body, returnExpr)
-  }*/
+    ir.SetVariable(variableName, variableDataType, Some(ctx.expr().accept(expressionBuilder)))
+
+  }
 }
