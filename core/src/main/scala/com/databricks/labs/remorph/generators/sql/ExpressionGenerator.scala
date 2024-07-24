@@ -5,11 +5,19 @@ import com.databricks.labs.remorph.parsers.intermediate.Literal
 import com.databricks.labs.remorph.parsers.{intermediate => ir}
 
 import java.text.SimpleDateFormat
-import java.util.Locale
+import java.util.{Locale, TimeZone}
 
 class ExpressionGenerator {
-  private val dateFormat = new SimpleDateFormat("yyyy-MM-dd")
-  private val timeFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS")
+  private val dateFormat = {
+    val format = new SimpleDateFormat("yyyy-MM-dd")
+    format.setTimeZone(TimeZone.getTimeZone("UTC"))
+    format
+  }
+  private val timeFormat = {
+    val format = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS")
+    format.setTimeZone(TimeZone.getTimeZone("UTC"))
+    format
+  }
 
   def expression(ctx: GeneratorContext, expr: ir.Expression): String = {
     expr match {
