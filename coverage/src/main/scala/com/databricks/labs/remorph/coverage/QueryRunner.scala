@@ -1,15 +1,16 @@
 package com.databricks.labs.remorph.coverage
 
-import com.databricks.labs.remorph.parsers.ProductionErrorCollector
+import com.databricks.labs.remorph.parsers.{ParseException, ProductionErrorCollector}
 import com.databricks.labs.remorph.parsers.intermediate.LogicalPlan
 import com.databricks.labs.remorph.parsers.snowflake.{SnowflakeAstBuilder, SnowflakeLexer, SnowflakeParser}
 import com.databricks.labs.remorph.parsers.tsql.{TSqlAstBuilder, TSqlLexer, TSqlParser}
+import com.databricks.labs.remorph.transpilers.{SnowflakeToDatabricksTranspiler, TranspileException}
 import org.antlr.v4.runtime.{CharStreams, CommonTokenStream, Parser}
 
 import scala.util.control.NonFatal
 
 trait QueryRunner {
-  def runQuery(inputQuery: String, expectedTranslation: String): ReportEntryReport
+  def runQuery(exampleQuery: ExampleQuery): ReportEntryReport
 }
 
 abstract class BaseParserQueryRunner[P <: Parser] extends QueryRunner {
@@ -21,9 +22,9 @@ abstract class BaseParserQueryRunner[P <: Parser] extends QueryRunner {
     pattern.findAllIn(result.toString).mkString(",")
   }
 
-  override def runQuery(inputQuery: String, expectedTranslation: String): ReportEntryReport = {
-    val parser = makeParser(inputQuery)
-    val errHandler = new ProductionErrorCollector(inputQuery, "")
+  override def runQuery(exampleQuery: ExampleQuery): ReportEntryReport = {
+    val parser = makeParser(exampleQuery.query)
+    val errHandler = new ProductionErrorCollector(exampleQuery.query, "")
     parser.removeErrorListeners()
     parser.addErrorListener(errHandler)
     val report = ReportEntryReport()
@@ -31,7 +32,7 @@ abstract class BaseParserQueryRunner[P <: Parser] extends QueryRunner {
       val result = translate(parser)
 
       if (result.toString.contains("Unresolved")) {
-        if (!expectedTranslation.exists(_.isLetter)) {
+        if (!exampleQuery.expectedTranslation.exists(_.exists(_.isLetter))) {
           // expected translation is empty, indicating that we expect to have Unresolved bits
           // in the output
           report.copy(parsed = 1, statements = 1)
@@ -84,4 +85,30 @@ class IsResolvedAsTSqlQueryRunner(astBuilder: TSqlAstBuilder) extends BaseParser
 
   override protected def translate(parser: TSqlParser): LogicalPlan = astBuilder.visit(parser.tSqlFile())
 
+}
+
+class IsTranspiledFromSnowflakeQueryRunner extends QueryRunner {
+
+  val snowflakeTranspiler = new SnowflakeToDatabricksTranspiler
+  override def runQuery(exampleQuery: ExampleQuery): ReportEntryReport = {
+    try {
+      val transpiled = snowflakeTranspiler.transpile(exampleQuery.query)
+      if (exampleQuery.expectedTranslation.exists(_ != transpiled)) {
+        ReportEntryReport(
+          parsed = 1,
+          transpiled = 1,
+          statements = 1,
+          transpilation_error = Some(s"Unexpected output $transpiled"))
+      } else {
+        ReportEntryReport(parsed = 1, transpiled = 1, statements = 1)
+      }
+    } catch {
+      case ParseException(msg) =>
+        ReportEntryReport(statements = 1, parsing_error = Some(msg))
+      case TranspileException(msg) =>
+        ReportEntryReport(statements = 1, parsed = 1, transpilation_error = Some(msg))
+      case NonFatal(e) =>
+        ReportEntryReport(parsing_error = Some(e.getMessage))
+    }
+  }
 }

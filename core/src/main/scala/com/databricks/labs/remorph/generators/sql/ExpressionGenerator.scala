@@ -1,14 +1,19 @@
 package com.databricks.labs.remorph.generators.sql
 
-import com.databricks.labs.remorph.generators.GeneratorContext
+import com.databricks.labs.remorph.generators.{Generator, GeneratorContext}
 import com.databricks.labs.remorph.parsers.{intermediate => ir}
+import com.databricks.labs.remorph.transpilers.TranspileException
 
-import java.text.SimpleDateFormat
+import java.time.format.DateTimeFormatter
+import java.time.{Instant, LocalDate, LocalDateTime, ZoneId, ZonedDateTime}
 import java.util.Locale
 
-class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper()) {
-  private val dateFormat = new SimpleDateFormat("yyyy-MM-dd")
-  private val timeFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS")
+class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
+    extends Generator[ir.Expression, String] {
+  private val dateFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+  private val timeFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS").withZone(ZoneId.of("UTC"))
+
+  override def generate(ctx: GeneratorContext, tree: ir.Expression): String = expression(ctx, tree)
 
   def expression(ctx: GeneratorContext, expr: ir.Expression): String = {
     expr match {
@@ -19,7 +24,9 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper()) {
       case l: ir.Literal => literal(ctx, l)
       case fn: ir.Fn => callFunction(ctx, fn)
       case ir.UnresolvedAttribute(name, _, _) => name
-      case _ => throw new IllegalArgumentException(s"Unsupported expression: $expr")
+      case i: ir.Id => id(ctx, i)
+      case a: ir.Alias => alias(ctx, a)
+      case x => throw TranspileException(s"Unsupported expression: $x")
     }
   }
 
@@ -84,14 +91,20 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper()) {
 
   private def timestampLiteral(l: ir.Literal) = {
     l.timestamp match {
-      case Some(timestamp) => doubleQuote(timeFormat.format(timestamp))
+      case Some(timestamp) =>
+        doubleQuote(
+          LocalDateTime
+            .from(ZonedDateTime.ofInstant(Instant.ofEpochMilli(timestamp), ZoneId.of("UTC")))
+            .format(timeFormat))
       case None => "NULL"
     }
   }
 
   private def dateLiteral(l: ir.Literal) = {
     l.date match {
-      case Some(date) => doubleQuote(dateFormat.format(date))
+      case Some(date) =>
+        doubleQuote(
+          LocalDate.from(ZonedDateTime.ofInstant(Instant.ofEpochMilli(date), ZoneId.of("UTC"))).format(dateFormat))
       case None => "NULL"
     }
   }
@@ -110,6 +123,18 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper()) {
     }
     // TODO: line-width formatting
     s"ARRAY(${elements.mkString(", ")})"
+  }
+
+  private def id(ctx: GeneratorContext, id: ir.Id): String = {
+    if (id.caseSensitive) {
+      doubleQuote(id.id)
+    } else {
+      id.id
+    }
+  }
+
+  private def alias(ctx: GeneratorContext, alias: ir.Alias): String = {
+    s"${expression(ctx, alias.expr)} AS ${alias.name.map(expression(ctx, _)).mkString(".")}"
   }
 
   private def orNull(option: Option[String]): String = option.getOrElse("NULL")
