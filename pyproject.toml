@@ -14,7 +14,7 @@ classifiers = [
 ]
 dependencies = [
   "databricks-sdk~=0.29.0",
-  "sqlglot==25.1.0",
+  "sqlglot==25.6.1",
   "databricks-labs-blueprint[yaml]>=0.2.3",
   "databricks-labs-lsql>=0.4.3",
 ]
@@ -49,7 +49,7 @@ dependencies = [
   "pytest-cov>=4.0.0,<5.0.0",
   "black>=23.1.0",
   "ruff>=0.0.243",
-  "databricks-connect",
+  "databricks-connect==15.1",
   "types-pyYAML",
   "types-pytz",
   "databricks-labs-pylint~=0.4.0",
@@ -77,6 +77,7 @@ verify      = ["black --check .",
 detached = true
 python="3.10"
 dependencies = [
+  "databricks-labs-remorph",
   "sqlglot",
 ]
 

@@ -1,6 +1,7 @@
 package com.databricks.labs.remorph.parsers.tsql
 
-import com.databricks.labs.remorph.parsers.{IRHelpers, intermediate => ir}
+import com.databricks.labs.remorph.parsers.intermediate.IRHelpers
+import com.databricks.labs.remorph.parsers.{intermediate => ir}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
@@ -9,19 +10,19 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
   override protected def astBuilder: TSqlParserBaseVisitor[_] = new TSqlExpressionBuilder
 
   "translate functions with no parameters" in {
-    example("APP_NAME()", _.expression(), ir.CallFunction("APP_NAME", List()))
-    example("SCOPE_IDENTITY()", _.expression(), ir.CallFunction("SCOPE_IDENTITY", List()))
+    exampleExpr("APP_NAME()", _.expression(), ir.CallFunction("APP_NAME", List()))
+    exampleExpr("SCOPE_IDENTITY()", _.expression(), ir.CallFunction("SCOPE_IDENTITY", List()))
   }
 
   "translate functions with variable numbers of parameters" in {
-    example(
+    exampleExpr(
       "CONCAT('a', 'b', 'c')",
       _.expression(),
       ir.CallFunction(
         "CONCAT",
         Seq(ir.Literal(string = Some("a")), ir.Literal(string = Some("b")), ir.Literal(string = Some("c")))))
 
-    example(
+    exampleExpr(
       "CONCAT_WS(',', 'a', 'b', 'c')",
       _.expression(),
       ir.CallFunction(
@@ -34,7 +35,7 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
   }
 
   "translate functions with functions as parameters" in {
-    example(
+    exampleExpr(
       "CONCAT(Greatest(42, 2, 4, \"ali\"), 'c')",
       _.expression(),
       ir.CallFunction(
@@ -51,7 +52,7 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
   }
 
   "translate functions with complicated expressions as parameters" in {
-    example(
+    exampleExpr(
       "CONCAT('a', 'b' || 'c', Greatest(42, 2, 4, \"ali\"))",
       _.standardFunction(),
       ir.CallFunction(
@@ -69,7 +70,7 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
   }
 
   "translate unknown functions as unresolved" in {
-    example(
+    exampleExpr(
       "UNKNOWN_FUNCTION()",
       _.expression(),
       ir.UnresolvedFunction("UNKNOWN_FUNCTION", List(), is_distinct = false, is_user_defined_function = false))
@@ -77,7 +78,7 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
 
   "translate functions with invalid function argument counts" in {
     // Later, we will register a semantic or lint error
-    example(
+    exampleExpr(
       "USER_NAME('a', 'b', 'c', 'd')", // USER_NAME function only accepts 0 or 1 argument
       _.expression(),
       ir.UnresolvedFunction(
@@ -91,7 +92,7 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
         is_user_defined_function = false,
         has_incorrect_argc = true))
 
-    example(
+    exampleExpr(
       "FLOOR()", // FLOOR requires 1 argument
       _.expression(),
       ir.UnresolvedFunction(
@@ -104,7 +105,7 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
 
   "translate functions that we know cannot be converted" in {
     // Later, we will register a semantic or lint error
-    example(
+    exampleExpr(
       "CONNECTIONPROPERTY('property')",
       _.expression(),
       ir.UnresolvedFunction(
@@ -115,7 +116,7 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
   }
 
   "translate windowing functions in all forms" in {
-    example(
+    exampleExpr(
       """SUM(salary) OVER (PARTITION BY department ORDER BY employee_id
          RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)""",
       _.expression(),
@@ -124,7 +125,7 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
         Seq(simplyNamedColumn("department")),
         Seq(ir.SortOrder(simplyNamedColumn("employee_id"), ir.AscendingSortDirection, ir.SortNullsUnspecified)),
         Some(ir.WindowFrame(ir.RangeFrame, ir.UnboundedPreceding, ir.CurrentRow))))
-    example(
+    exampleExpr(
       "SUM(salary) OVER (PARTITION BY department ORDER BY employee_id ROWS UNBOUNDED PRECEDING)",
       _.expression(),
       ir.Window(
@@ -133,7 +134,7 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
         Seq(ir.SortOrder(simplyNamedColumn("employee_id"), ir.AscendingSortDirection, ir.SortNullsUnspecified)),
         Some(ir.WindowFrame(ir.RowsFrame, ir.UnboundedPreceding, ir.NoBoundary))))
 
-    example(
+    exampleExpr(
       "SUM(salary) OVER (PARTITION BY department ORDER BY employee_id ROWS 66 PRECEDING)",
       _.expression(),
       ir.Window(
@@ -142,7 +143,7 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
         Seq(ir.SortOrder(simplyNamedColumn("employee_id"), ir.AscendingSortDirection, ir.SortNullsUnspecified)),
         Some(ir.WindowFrame(ir.RowsFrame, ir.PrecedingN(ir.Literal(integer = Some(66))), ir.NoBoundary))))
 
-    example(
+    exampleExpr(
       query = """
       AVG(salary) OVER (PARTITION BY department_id ORDER BY employee_id ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)
     """,
@@ -153,7 +154,7 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
         Seq(ir.SortOrder(simplyNamedColumn("employee_id"), ir.AscendingSortDirection, ir.SortNullsUnspecified)),
         Some(ir.WindowFrame(ir.RowsFrame, ir.UnboundedPreceding, ir.CurrentRow))))
 
-    example(
+    exampleExpr(
       query = """
       SUM(sales) OVER (ORDER BY month ROWS BETWEEN CURRENT ROW AND 2 FOLLOWING)
     """,
@@ -164,7 +165,7 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
         Seq(ir.SortOrder(simplyNamedColumn("month"), ir.AscendingSortDirection, ir.SortNullsUnspecified)),
         Some(ir.WindowFrame(ir.RowsFrame, ir.CurrentRow, ir.FollowingN(ir.Literal(integer = Some(2)))))))
 
-    example(
+    exampleExpr(
       "ROW_NUMBER() OVER (PARTITION BY department ORDER BY salary DESC)",
       _.selectListElem(),
       ir.Window(
@@ -173,7 +174,7 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
         Seq(ir.SortOrder(simplyNamedColumn("salary"), ir.DescendingSortDirection, ir.SortNullsUnspecified)),
         None))
 
-    example(
+    exampleExpr(
       "ROW_NUMBER() OVER (PARTITION BY department)",
       _.selectListElem(),
       ir.Window(ir.CallFunction("ROW_NUMBER", Seq.empty), Seq(simplyNamedColumn("department")), List(), None))
@@ -181,33 +182,33 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
   }
 
   "translate functions with DISTINCT arguments" in {
-    example(
+    exampleExpr(
       "COUNT(DISTINCT salary)",
       _.expression(),
       ir.CallFunction("COUNT", Seq(ir.Distinct(simplyNamedColumn("salary")))))
   }
 
   "translate special keyword functions" in {
-    example(
+    exampleExpr(
       // TODO: Returns UnresolvedFunction as it is not convertible - create UnsupportedFunction
       "@@CURSOR_ROWS",
       _.expression(),
       ir.UnresolvedFunction("@@CURSOR_ROWS", List(), is_distinct = false, is_user_defined_function = false))
 
-    example(
+    exampleExpr(
       // TODO: Returns UnresolvedFunction as it is not convertible - create UnsupportedFunction
       "@@FETCH_STATUS",
       _.expression(),
       ir.UnresolvedFunction("@@FETCH_STATUS", List(), is_distinct = false, is_user_defined_function = false))
 
-    example("SESSION_USER", _.expression(), ir.CallFunction("SESSION_USER", List()))
+    exampleExpr("SESSION_USER", _.expression(), ir.CallFunction("SESSION_USER", List()))
 
-    example("USER", _.expression(), ir.CallFunction("USER", List()))
+    exampleExpr("USER", _.expression(), ir.CallFunction("USER", List()))
   }
 
   "translate analytic windowing functions in all forms" in {
 
-    example(
+    exampleExpr(
       query = "FIRST_VALUE(Salary) OVER (PARTITION BY DepartmentID ORDER BY Salary DESC)",
       _.expression(),
       ir.Window(
@@ -216,7 +217,7 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
         Seq(ir.SortOrder(simplyNamedColumn("Salary"), ir.DescendingSortDirection, ir.SortNullsUnspecified)),
         None))
 
-    example(
+    exampleExpr(
       query = """
         LAST_VALUE(salary) OVER (PARTITION BY department_id ORDER BY employee_id DESC)
     """,
@@ -227,7 +228,7 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
         Seq(ir.SortOrder(simplyNamedColumn("employee_id"), ir.DescendingSortDirection, ir.SortNullsUnspecified)),
         None))
 
-    example(
+    exampleExpr(
       query = "PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY Salary) OVER (PARTITION BY DepartmentID)",
       _.expression(),
       ir.Window(
@@ -238,7 +239,7 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
         List(),
         None))
 
-    example(
+    exampleExpr(
       query = """
     LEAD(salary, 1) OVER (PARTITION BY department_id ORDER BY employee_id DESC)
   """,
@@ -249,7 +250,7 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
         Seq(ir.SortOrder(simplyNamedColumn("employee_id"), ir.DescendingSortDirection, ir.SortNullsUnspecified)),
         None))
 
-    example(
+    exampleExpr(
       query = """
     LEAD(salary, 1) IGNORE NULLS OVER (PARTITION BY department_id ORDER BY employee_id DESC)
   """,
@@ -265,14 +266,14 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
   }
 
   "translate 'functions' with non-standard syntax" in {
-    example(
+    exampleExpr(
       query = "NEXT VALUE FOR mySequence",
       _.expression(),
       ir.CallFunction("MONOTONICALLY_INCREASING_ID", List.empty))
   }
 
   "translate JSON_ARRAY in various forms" in {
-    example(
+    exampleExpr(
       query = "JSON_ARRAY(1, 2, 3 ABSENT ON NULL)",
       _.expression(),
       ir.CallFunction(
@@ -284,7 +285,7 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
               ir.Not(ir.IsNull(ir.UnresolvedNamedLambdaVariable(Seq("x")))),
               Seq(ir.UnresolvedNamedLambdaVariable(Seq("x"))))))))))
 
-    example(
+    exampleExpr(
       query = "JSON_ARRAY(4, 5, 6)",
       _.expression(),
       ir.CallFunction(
@@ -296,14 +297,14 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
               ir.Not(ir.IsNull(ir.UnresolvedNamedLambdaVariable(Seq("x")))),
               Seq(ir.UnresolvedNamedLambdaVariable(Seq("x"))))))))))
 
-    example(
+    exampleExpr(
       query = "JSON_ARRAY(1, 2, 3 NULL ON NULL)",
       _.expression(),
       ir.CallFunction(
         "TO_JSON",
         Seq(ir.ValueArray(Seq(ir.Literal(short = Some(1)), ir.Literal(short = Some(2)), ir.Literal(short = Some(3)))))))
 
-    example(
+    exampleExpr(
       query = "JSON_ARRAY(1, col1, x.col2 NULL ON NULL)",
       _.expression(),
       ir.CallFunction(
@@ -317,7 +318,7 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
   }
 
   "translate JSON_OBJECT in various forms" in {
-    example(
+    exampleExpr(
       query = "JSON_OBJECT('one': 1, 'two': 2, 'three': 3 ABSENT ON NULL)",
       _.expression(),
       ir.CallFunction(
@@ -334,7 +335,7 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
               ir.Not(ir.IsNull(ir.UnresolvedNamedLambdaVariable(Seq("v")))),
               Seq(ir.UnresolvedNamedLambdaVariable(Seq("k", "v"))))))))
 
-    example(
+    exampleExpr(
       query = "JSON_OBJECT('a': a, 'b': b, 'c': c NULL ON NULL)",
       _.expression(),
       ir.CallFunction(
@@ -346,25 +347,25 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
   }
 
   "translate functions using ALL" in {
-    example(query = "COUNT(ALL goals)", _.expression(), ir.CallFunction("COUNT", Seq(simplyNamedColumn("goals"))))
+    exampleExpr(query = "COUNT(ALL goals)", _.expression(), ir.CallFunction("COUNT", Seq(simplyNamedColumn("goals"))))
   }
 
   "translate freetext functions as inconvertible" in {
-    example(
+    exampleExpr(
       query = "FREETEXTTABLE(table, col, 'search')",
       _.expression(),
       ir.UnresolvedFunction("FREETEXTTABLE", List.empty, is_distinct = false, is_user_defined_function = false))
   }
 
   "translate $PARTITION functions as inconvertible" in {
-    example(
+    exampleExpr(
       query = "$PARTITION.partitionFunction(col)",
       _.expression(),
       ir.UnresolvedFunction("$PARTITION", List.empty, is_distinct = false, is_user_defined_function = false))
   }
 
   "translate HIERARCHYID static method as inconvertible" in {
-    example(
+    exampleExpr(
       query = "HIERARCHYID::Parse('1/2/3')",
       _.expression(),
       ir.UnresolvedFunction("HIERARCHYID", List.empty, is_distinct = false, is_user_defined_function = false))

@@ -952,13 +952,11 @@ STRING options {
     caseInsensitive = false;
 }: 'N'? '\'' ('\\' . | '\'\'' | ~['])* '\'';
 
-fragment SIGN: [+-];
-
-INT   : SIGN? DEC_DIGIT+;
-HEX   : SIGN? '0' 'X' HEX_DIGIT*;
-FLOAT : SIGN? DEC_DOT_DEC;
-REAL  : SIGN? (INT | DEC_DOT_DEC) ('E' [+-]? DEC_DIGIT+);
-MONEY : SIGN? '$' (INT | FLOAT);
+INT   : DEC_DIGIT+;
+HEX   : '0' 'X' HEX_DIGIT*;
+FLOAT : DEC_DOT_DEC;
+REAL  : (INT | DEC_DOT_DEC) ('E' [+-]? DEC_DIGIT+);
+MONEY : '$' (INT | FLOAT);
 
 EQ         : '=';
 GT         : '>';

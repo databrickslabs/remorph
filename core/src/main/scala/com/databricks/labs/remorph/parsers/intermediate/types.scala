@@ -1,36 +1,36 @@
 package com.databricks.labs.remorph.parsers.intermediate
 
 abstract class DataType
-case class NullType() extends DataType
-case class BooleanType() extends DataType
-case class BinaryType() extends DataType
+case object NullType extends DataType
+case object BooleanType extends DataType
+case object BinaryType extends DataType
 
 // Numeric types
 case class ByteType(size: Option[Int]) extends DataType
-case class ShortType() extends DataType
-case class IntegerType() extends DataType
-case class LongType() extends DataType
+case object ShortType extends DataType
+case object IntegerType extends DataType
+case object LongType extends DataType
 
-case class FloatType() extends DataType
-case class DoubleType() extends DataType
+case object FloatType extends DataType
+case object DoubleType extends DataType
 case class DecimalType(precision: Option[Int], scale: Option[Int]) extends DataType
 
 // String types
-case class StringType() extends DataType
+case object StringType extends DataType
 case class CharType(size: Option[Int]) extends DataType
 case class VarCharType(size: Option[Int]) extends DataType
 
 // Datatime types
-case class DateType() extends DataType
-case class TimeType() extends DataType
-case class TimestampType() extends DataType
-case class TimestampNTZType() extends DataType
+case object DateType extends DataType
+case object TimeType extends DataType
+case object TimestampType extends DataType
+case object TimestampNTZType extends DataType
 
 // Interval types
-case class IntervalType() extends DataType
-case class CalendarIntervalType() extends DataType
-case class YearMonthIntervalType() extends DataType
-case class DayTimeIntervalType() extends DataType
+case object IntervalType extends DataType
+case object CalendarIntervalType extends DataType
+case object YearMonthIntervalType extends DataType
+case object DayTimeIntervalType extends DataType
 
 // Complex types
 case class ArrayType() extends DataType
@@ -42,3 +42,5 @@ case class UDTType() extends DataType
 
 // UnparsedDataType
 case class UnparsedType() extends DataType
+
+case object UnresolvedType extends DataType

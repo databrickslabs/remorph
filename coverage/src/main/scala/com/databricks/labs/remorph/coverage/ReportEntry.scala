@@ -15,7 +15,7 @@ case class ReportEntryReport(
     transpiled: Int = 0, // 1 for success, 0 for failure
     transpiled_statements: Int = 0, // number of statements transpiled
     transpilation_error: Option[String] = None) {
-  def isSuccess: Boolean = parsed + transpiled == 2
+  def isSuccess: Boolean = parsing_error.isEmpty && transpilation_error.isEmpty
   def errorMessage: Option[String] = parsing_error.orElse(transpilation_error)
 }
 

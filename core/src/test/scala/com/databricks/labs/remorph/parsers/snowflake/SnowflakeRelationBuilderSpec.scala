@@ -1,6 +1,5 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
-import com.databricks.labs.remorph.parsers.IRHelpers
 import com.databricks.labs.remorph.parsers.intermediate._
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser.{JoinTypeContext, OuterJoinContext}
 import org.antlr.v4.runtime.RuleContext
@@ -23,7 +22,7 @@ class SnowflakeRelationBuilderSpec
   private def examples[R <: RuleContext](
       queries: Seq[String],
       rule: SnowflakeParser => R,
-      expectedAst: Relation): Assertion = {
+      expectedAst: LogicalPlan): Assertion = {
     val cp = new Checkpoint()
     queries.foreach(q => cp(example(q, rule, expectedAst)))
     cp.reportAll()
@@ -72,7 +71,7 @@ class SnowflakeRelationBuilderSpec
         "FROM some_table GROUP BY some_column",
         _.selectOptionalClauses(),
         Aggregate(
-          input = namedTable("some_table"),
+          namedTable("some_table"),
           group_type = GroupBy,
           grouping_expressions = Seq(simplyNamedColumn("some_column")),
           pivot = None))
@@ -81,7 +80,7 @@ class SnowflakeRelationBuilderSpec
         query = "FROM t1 PIVOT (AVG(a) FOR d IN('x', 'y'))",
         rule = _.selectOptionalClauses(),
         Aggregate(
-          input = namedTable("t1"),
+          namedTable("t1"),
           group_type = Pivot,
           grouping_expressions = Seq(CallFunction("AVG", Seq(simplyNamedColumn("a")))),
           pivot = Some(Pivot(simplyNamedColumn("d"), Seq(Literal(string = Some("x")), Literal(string = Some("y")))))))
@@ -90,7 +89,7 @@ class SnowflakeRelationBuilderSpec
         query = "FROM t1 PIVOT (COUNT(a) FOR d IN('x', 'y'))",
         rule = _.selectOptionalClauses(),
         Aggregate(
-          input = namedTable("t1"),
+          namedTable("t1"),
           group_type = Pivot,
           grouping_expressions = Seq(CallFunction("COUNT", Seq(simplyNamedColumn("a")))),
           pivot = Some(Pivot(simplyNamedColumn("d"), Seq(Literal(string = Some("x")), Literal(string = Some("y")))))))
@@ -99,7 +98,7 @@ class SnowflakeRelationBuilderSpec
         query = "FROM t1 PIVOT (MIN(a) FOR d IN('x', 'y'))",
         rule = _.selectOptionalClauses(),
         Aggregate(
-          input = namedTable("t1"),
+          namedTable("t1"),
           group_type = Pivot,
           grouping_expressions = Seq(CallFunction("MIN", Seq(simplyNamedColumn("a")))),
           pivot = Some(Pivot(simplyNamedColumn("d"), Seq(Literal(string = Some("x")), Literal(string = Some("y")))))))
@@ -182,7 +181,7 @@ class SnowflakeRelationBuilderSpec
         "FROM some_table WHERE 1=1 GROUP BY some_column",
         _.selectOptionalClauses(),
         Aggregate(
-          input = Filter(namedTable("some_table"), Equals(Literal(short = Some(1)), Literal(short = Some(1)))),
+          child = Filter(namedTable("some_table"), Equals(Literal(short = Some(1)), Literal(short = Some(1)))),
           group_type = GroupBy,
           grouping_expressions = Seq(simplyNamedColumn("some_column")),
           pivot = None))
@@ -192,7 +191,7 @@ class SnowflakeRelationBuilderSpec
         _.selectOptionalClauses(),
         Sort(
           Aggregate(
-            input = Filter(namedTable("some_table"), Equals(Literal(short = Some(1)), Literal(short = Some(1)))),
+            child = Filter(namedTable("some_table"), Equals(Literal(short = Some(1)), Literal(short = Some(1)))),
             group_type = GroupBy,
             grouping_expressions = Seq(simplyNamedColumn("some_column")),
             pivot = None),
@@ -245,7 +244,7 @@ class SnowflakeRelationBuilderSpec
         _.selectStatement(),
         Project(
           Deduplicate(
-            input = namedTable("t"),
+            namedTable("t"),
             column_names = Seq(Id("a"), Id("bb")),
             all_columns_as_keys = false,
             within_watermark = false),

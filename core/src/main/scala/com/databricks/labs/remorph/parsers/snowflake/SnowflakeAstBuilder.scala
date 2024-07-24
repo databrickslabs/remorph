@@ -1,7 +1,7 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser._
-import com.databricks.labs.remorph.parsers.{intermediate => ir}
+import com.databricks.labs.remorph.parsers.{ParserCommon, intermediate => ir}
 
 import scala.collection.JavaConverters._
 
@@ -9,10 +9,14 @@ import scala.collection.JavaConverters._
  * @see
  *   org.apache.spark.sql.catalyst.parser.AstBuilder
  */
-class SnowflakeAstBuilder extends SnowflakeParserBaseVisitor[ir.TreeNode] {
+class SnowflakeAstBuilder extends SnowflakeParserBaseVisitor[ir.LogicalPlan] with ParserCommon[ir.LogicalPlan] {
+
+  private val relationBuilder = new SnowflakeRelationBuilder
+  private val ddlBuilder = new SnowflakeDDLBuilder
+  private val dmlBuilder = new SnowflakeDMLBuilder
 
   // TODO investigate why this is needed
-  override protected def aggregateResult(aggregate: ir.TreeNode, nextResult: ir.TreeNode): ir.TreeNode = {
+  override protected def aggregateResult(aggregate: ir.LogicalPlan, nextResult: ir.LogicalPlan): ir.LogicalPlan = {
     if (nextResult == null) {
       aggregate
     } else {
@@ -20,30 +24,30 @@ class SnowflakeAstBuilder extends SnowflakeParserBaseVisitor[ir.TreeNode] {
     }
   }
 
-  override def visitBatch(ctx: BatchContext): ir.TreeNode = {
-    ir.Batch(ctx.sqlCommand().asScala.map(_.accept(this)).collect { case p: ir.Plan => p })
+  override def visitBatch(ctx: BatchContext): ir.LogicalPlan = {
+    ir.Batch(visitMany(ctx.sqlCommand()).collect { case p: ir.LogicalPlan => p })
   }
 
-  override def visitQueryStatement(ctx: QueryStatementContext): ir.TreeNode = {
-    val select = ctx.selectStatement().accept(new SnowflakeRelationBuilder)
+  override def visitQueryStatement(ctx: QueryStatementContext): ir.LogicalPlan = {
+    val select = ctx.selectStatement().accept(relationBuilder)
     val withCTE = buildCTE(ctx.withExpression(), select)
     ctx.setOperators().asScala.foldLeft(withCTE)(buildSetOperator)
 
   }
 
-  override def visitDdlCommand(ctx: DdlCommandContext): ir.TreeNode =
-    ctx.accept(new SnowflakeDDLBuilder)
+  override def visitDdlCommand(ctx: DdlCommandContext): ir.LogicalPlan =
+    ctx.accept(ddlBuilder)
 
-  private def buildCTE(ctx: WithExpressionContext, relation: ir.Relation): ir.Relation = {
+  private def buildCTE(ctx: WithExpressionContext, relation: ir.LogicalPlan): ir.LogicalPlan = {
     if (ctx == null) {
       return relation
     }
-    val ctes = ctx.commonTableExpression().asScala.map(_.accept(new SnowflakeRelationBuilder))
+    val ctes = relationBuilder.visitMany(ctx.commonTableExpression())
     ir.WithCTE(ctes, relation)
   }
 
-  private def buildSetOperator(left: ir.Relation, ctx: SetOperatorsContext): ir.Relation = {
-    val right = ctx.selectStatement().accept(new SnowflakeRelationBuilder)
+  private def buildSetOperator(left: ir.LogicalPlan, ctx: SetOperatorsContext): ir.LogicalPlan = {
+    val right = ctx.selectStatement().accept(relationBuilder)
     val (isAll, setOp) = ctx match {
       case c if c.UNION() != null =>
         (c.ALL() != null, ir.UnionSetOp)
@@ -55,4 +59,8 @@ class SnowflakeAstBuilder extends SnowflakeParserBaseVisitor[ir.TreeNode] {
     ir.SetOperation(left, right, setOp, is_all = isAll, by_name = false, allow_missing_columns = false)
   }
 
+  override def visitDmlCommand(ctx: DmlCommandContext): ir.LogicalPlan = ctx match {
+    case c if c.queryStatement() != null => c.queryStatement().accept(this)
+    case c => c.accept(dmlBuilder)
+  }
 }

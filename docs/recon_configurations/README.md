@@ -15,7 +15,8 @@ when comparing the source with the Databricks target.
     * [thresholds](#thresholds)
     * [filters](#filters)
     * [Key Considerations](#key-considerations)
-* [Reconciliation Examples](#reconciliation-examples)
+* [Reconciliation Example](#reconciliation-example)
+* [DataFlow Example](#dataflow-example)
 
 ## Types of Report Supported
 
@@ -250,6 +251,13 @@ class Transformation:
 | source      | string    | the transformation sql expr to be applied on source column | required          | "trim(s_address)" or "s_address" |
 | target      | string    | the transformation sql expr to be applied on source column | required          | "trim(s_address)" or "s_address" |
 
+### Note:
+
+Reconciliation also takes an udf in the transformation expr.Say for eg. we have a udf named sort_array_input() that takes an unsorted array as input and returns an array sorted.We can use that in transformation as below:
+
+```
+transformations=[Transformation(column_name)="array_col",source=sort_array_input(array_col),target=sort_array_input(array_col)]
+```
 ## thresholds
 
 <table>
@@ -389,10 +397,15 @@ required Oracle JDBC functionality is readily available within the Databricks en
 
 [[back to top](#remorph-reconciliation)]
 
-## Reconciliation Examples:
+## Reconciliation Example:
+For more Reconciliation Config example, please refer to [sample config][link].
 
-For more Reconciliation Config examples, please refer to [sample_notebook][link].
+[link]: reconcile_config_samples.md
 
-[link]: reconciliation-configs-examples.py
+[[back to top](#remorph-reconciliation)]
+
+## DataFlow Example
+
+Report Types Data [Visualisation](report_types_visualisation.md)
 
 [[back to top](#remorph-reconciliation)]

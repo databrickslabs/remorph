@@ -279,13 +279,13 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
     }
 
   private def buildPrimitive(con: Token): ir.Expression = con.getType match {
-    case c if c == DEFAULT => ir.Default()
-    case c if c == LOCAL_ID => ir.Identifier(con.getText, isQuoted = false)
-    case c if c == STRING => ir.Literal(string = Some(removeQuotes(con.getText)))
-    case c if c == NULL_ => ir.Literal(nullType = Some(ir.NullType()))
-    case c if c == HEX => ir.Literal(string = Some(con.getText)) // Preserve format
-    case c if c == MONEY => ir.Money(ir.Literal(string = Some(con.getText)))
-    case _ => convertNumeric(con.getText)
+    case DEFAULT => ir.Default()
+    case LOCAL_ID => ir.Identifier(con.getText, isQuoted = false)
+    case STRING => ir.Literal(string = Some(removeQuotes(con.getText)))
+    case NULL_ => ir.Literal(nullType = Some(ir.NullType))
+    case HEX => ir.Literal(string = Some(con.getText)) // Preserve format
+    case MONEY => ir.Money(ir.Literal(string = Some(con.getText)))
+    case INT | REAL | FLOAT => convertNumeric(con.getText)
   }
 
   // TODO: Maybe start sharing such things between all the parsers?
@@ -407,12 +407,12 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
   }
 
   override def visitExprDistinct(ctx: ExprDistinctContext): ir.Expression = {
-    // Support for functions such as COUNT(DISTINCT column), which is an expression not a relation
+    // Support for functions such as COUNT(DISTINCT column), which is an expression not a child
     ir.Distinct(ctx.expression().accept(this))
   }
 
   override def visitExprAll(ctx: ExprAllContext): ir.Expression = {
-    // Support for functions such as COUNT(ALL column), which is an expression not a relation.
+    // Support for functions such as COUNT(ALL column), which is an expression not a child.
     // ALL has no actual effect on the result so we just pass the expression as is. If we wish to
     // reproduce exsting annotations like this, then we woudl need to add IR.
     ctx.expression().accept(this)

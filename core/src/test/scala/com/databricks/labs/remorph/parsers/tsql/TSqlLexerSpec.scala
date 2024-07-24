@@ -14,7 +14,7 @@ class TSqlLexerSpec extends AnyWordSpec with Matchers with TableDrivenPropertyCh
     "parse string literals and ids" in {
 
       val testInput = Table(
-        ("input", "expected"), // Headers
+        ("child", "expected"), // Headers
 
         ("'And it''s raining'", TSqlLexer.STRING),
         ("""'Tab\oir'""", TSqlLexer.STRING),

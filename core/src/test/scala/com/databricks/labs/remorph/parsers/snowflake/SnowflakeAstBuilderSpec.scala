@@ -1,16 +1,14 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
-import com.databricks.labs.remorph.parsers.IRHelpers
 import com.databricks.labs.remorph.parsers.intermediate._
-import org.scalatest.Assertion
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
 class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon with Matchers with IRHelpers {
 
-  override protected def astBuilder: SnowflakeParserBaseVisitor[_] = new SnowflakeAstBuilder
+  override protected def astBuilder = new SnowflakeAstBuilder
 
-  private def singleQueryExample(query: String, expectedAst: Relation): Assertion =
+  private def singleQueryExample(query: String, expectedAst: LogicalPlan) =
     example(query, _.snowflakeFile(), Batch(Seq(expectedAst)))
 
   "SnowflakeAstBuilder" should {
@@ -140,7 +138,7 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
         query = "SELECT a, COUNT(b) FROM c GROUP BY a",
         expectedAst = Project(
           Aggregate(
-            input = NamedTable("c", Map.empty, is_streaming = false),
+            child = NamedTable("c", Map.empty, is_streaming = false),
             group_type = GroupBy,
             grouping_expressions = Seq(simplyNamedColumn("a")),
             pivot = None),
@@ -153,7 +151,7 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
         expectedAst = Project(
           Sort(
             Aggregate(
-              input = NamedTable("c", Map.empty, is_streaming = false),
+              child = NamedTable("c", Map.empty, is_streaming = false),
               group_type = GroupBy,
               grouping_expressions = Seq(simplyNamedColumn("a")),
               pivot = None),
@@ -168,7 +166,7 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
         expectedAst = Project(
           Filter(
             Aggregate(
-              input = NamedTable("c", Map.empty, is_streaming = false),
+              child = NamedTable("c", Map.empty, is_streaming = false),
               group_type = GroupBy,
               grouping_expressions = Seq(simplyNamedColumn("a")),
               pivot = None),
@@ -181,8 +179,8 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
         query = "SELECT a FROM b ORDER BY a",
         expectedAst = Project(
           Sort(
-            input = NamedTable("b", Map.empty, is_streaming = false),
-            order = Seq(SortOrder(Id("a"), AscendingSortDirection, SortNullsLast)),
+            NamedTable("b", Map.empty, is_streaming = false),
+            Seq(SortOrder(Id("a"), AscendingSortDirection, SortNullsLast)),
             is_global = false),
           Seq(simplyNamedColumn("a"))))
 
@@ -190,8 +188,8 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
         query = "SELECT a FROM b ORDER BY a DESC",
         expectedAst = Project(
           Sort(
-            input = NamedTable("b", Map.empty, is_streaming = false),
-            order = Seq(SortOrder(Id("a"), DescendingSortDirection, SortNullsFirst)),
+            NamedTable("b", Map.empty, is_streaming = false),
+            Seq(SortOrder(Id("a"), DescendingSortDirection, SortNullsFirst)),
             is_global = false),
           Seq(simplyNamedColumn("a"))))
 
@@ -199,8 +197,8 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
         query = "SELECT a FROM b ORDER BY a NULLS FIRST",
         expectedAst = Project(
           Sort(
-            input = NamedTable("b", Map.empty, is_streaming = false),
-            order = Seq(SortOrder(Id("a"), AscendingSortDirection, SortNullsFirst)),
+            NamedTable("b", Map.empty, is_streaming = false),
+            Seq(SortOrder(Id("a"), AscendingSortDirection, SortNullsFirst)),
             is_global = false),
           Seq(simplyNamedColumn("a"))))
 
@@ -208,8 +206,8 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
         query = "SELECT a FROM b ORDER BY a DESC NULLS LAST",
         expectedAst = Project(
           Sort(
-            input = NamedTable("b", Map.empty, is_streaming = false),
-            order = Seq(SortOrder(Id("a"), DescendingSortDirection, SortNullsLast)),
+            NamedTable("b", Map.empty, is_streaming = false),
+            Seq(SortOrder(Id("a"), DescendingSortDirection, SortNullsLast)),
             is_global = false),
           Seq(simplyNamedColumn("a"))))
     }
@@ -238,7 +236,7 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
         query = "SELECT a FROM b PIVOT (SUM(a) FOR c IN ('foo', 'bar'))",
         expectedAst = Project(
           Aggregate(
-            input = NamedTable("b", Map.empty, is_streaming = false),
+            child = NamedTable("b", Map.empty, is_streaming = false),
             group_type = Pivot,
             grouping_expressions = Seq(CallFunction("SUM", Seq(simplyNamedColumn("a")))),
             pivot =
@@ -251,7 +249,7 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
         query = "SELECT a FROM b UNPIVOT (c FOR d IN (e, f))",
         expectedAst = Project(
           Unpivot(
-            input = NamedTable("b", Map.empty, is_streaming = false),
+            child = NamedTable("b", Map.empty, is_streaming = false),
             ids = Seq(simplyNamedColumn("e"), simplyNamedColumn("f")),
             values = None,
             variable_column_name = Id("c"),
@@ -300,7 +298,7 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
           Filter(
             Filter(
               Aggregate(
-                input = Filter(namedTable("t1"), LesserThan(Id("c3"), Literal(short = Some(4)))),
+                child = Filter(namedTable("t1"), LesserThan(Id("c3"), Literal(short = Some(4)))),
                 group_type = GroupBy,
                 grouping_expressions = Seq(simplyNamedColumn("c2"), simplyNamedColumn("c3")),
                 pivot = None),
@@ -395,6 +393,43 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
             CreateTableCommand("t1", Seq(ColumnDeclaration("x", VarCharType(None)))),
             Project(namedTable("t1"), Seq(simplyNamedColumn("x"))),
             Project(namedTable("t3"), Seq(Literal(short = Some(3)))))))
+    }
+
+    // Tests below are just meant to verify that SnowflakeAstBuilder properly delegates DML commands
+    // (other than SELECT) to SnowflakeDMLBuilder
+
+    "translate INSERT commands" in {
+      singleQueryExample(
+        "INSERT INTO t (c1, c2, c3) VALUES (1,2, 3), (4, 5, 6)",
+        InsertIntoTable(
+          namedTable("t"),
+          Some(Seq(Id("c1"), Id("c2"), Id("c3"))),
+          Values(
+            Seq(
+              Seq(Literal(short = Some(1)), Literal(short = Some(2)), Literal(short = Some(3))),
+              Seq(Literal(short = Some(4)), Literal(short = Some(5)), Literal(short = Some(6))))),
+          None,
+          None,
+          overwrite = false))
+    }
+
+    "translate DELETE commands" in {
+      singleQueryExample(
+        "DELETE FROM t WHERE t.c1 > 42",
+        DeleteFromTable(
+          namedTable("t"),
+          None,
+          Some(GreaterThan(Dot(Id("t"), Id("c1")), Literal(short = Some(42)))),
+          None,
+          None))
+
+    }
+
+    "translate UPDATE commands" in {
+      singleQueryExample(
+        "UPDATE t1 SET c1 = 42;",
+        UpdateTable(namedTable("t1"), None, Seq(Assign(Id("c1"), Literal(short = Some(42)))), None, None, None))
+
     }
   }
 
