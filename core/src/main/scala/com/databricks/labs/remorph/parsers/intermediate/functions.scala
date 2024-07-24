@@ -169,49 +169,32 @@ case class Cast(left: Expression, dataType: DataType, timeZoneId: Option[String]
 /** cbrt(expr) - Returns the cube root of `expr`. */
 case class Cbrt(left: Expression) extends Unary(left) with Fn {
   override def prettyName: String = "CBRT"
-  override def dataType: DataType = UnresolvedType
+  override def dataType: DataType = DoubleType
 }
 
 
 /** ceil(expr) - Returns the smallest integer not smaller than `expr`. */
 case class Ceil(left: Expression) extends Unary(left) with Fn {
   override def prettyName: String = "CEIL"
-  override def dataType: DataType = UnresolvedType
+  override def aliases: Seq[String] = Seq("CEILING")
+  override def dataType: DataType = LongType
 }
 
 
-/** ceiling(expr) - Returns the smallest integer not smaller than `expr`. */
-case class Ceil(left: Expression) extends Unary(left) with Fn {
-  override def prettyName: String = "CEILING"
-  override def dataType: DataType = UnresolvedType
-}
-
-
-/** char(expr) - Returns the ASCII character having the binary equivalent to `expr`. If n is larger than 256 the result is equivalent to chr(n % 256) */
+/** char(expr) - Returns the ASCII character having the binary equivalent to `expr`.
+ * If n is larger than 256 the result is equivalent to chr(n % 256) */
 case class Chr(left: Expression) extends Unary(left) with Fn {
   override def prettyName: String = "CHAR"
-  override def dataType: DataType = UnresolvedType
+  override def aliases: Seq[String] = Seq("CHR")
+  override def dataType: DataType = StringType
 }
 
 
-/** char_length(expr) - Returns the character length of string data or number of bytes of binary data. The length of string data includes the trailing spaces. The length of binary data includes binary zeros. */
+/** char_length(expr) - Returns the character length of string data or number of bytes of binary data.
+ * The length of string data includes the trailing spaces. The length of binary data includes binary zeros. */
 case class Length(left: Expression) extends Unary(left) with Fn {
-  override def prettyName: String = "CHAR_LENGTH"
-  override def dataType: DataType = UnresolvedType
-}
-
-
-/** character_length(expr) - Returns the character length of string data or number of bytes of binary data. The length of string data includes the trailing spaces. The length of binary data includes binary zeros. */
-case class Length(left: Expression) extends Unary(left) with Fn {
-  override def prettyName: String = "CHARACTER_LENGTH"
-  override def dataType: DataType = UnresolvedType
-}
-
-
-/** chr(expr) - Returns the ASCII character having the binary equivalent to `expr`. If n is larger than 256 the result is equivalent to chr(n % 256) */
-case class Chr(left: Expression) extends Unary(left) with Fn {
-  override def prettyName: String = "CHR"
-  override def dataType: DataType = UnresolvedType
+  override def prettyName: String = "LENGTH"
+  override def dataType: DataType = LongType
 }
 
 
@@ -225,7 +208,7 @@ case class Coalesce(children: Seq[Expression]) extends Expression with Fn {
 /** concat_ws(sep[, str | array(str)]+) - Returns the concatenation of the strings separated by `sep`. */
 case class ConcatWs(children: Seq[Expression]) extends Expression with Fn {
   override def prettyName: String = "CONCAT_WS"
-  override def dataType: DataType = UnresolvedType
+  override def dataType: DataType = StringType
 }
 
 
@@ -237,11 +220,10 @@ case class Conv(left: Expression, right: Expression, c: Expression) extends Expr
 }
 
 
-/** cos(expr) - Returns the cosine of `expr`, as if computed by
-      `java.lang.Math.cos`. */
+/** cos(expr) - Returns the cosine of `expr`, as if computed by `java.lang.Math.cos`. */
 case class Cos(left: Expression) extends Unary(left) with Fn {
   override def prettyName: String = "COS"
-  override def dataType: DataType = UnresolvedType
+  override def dataType: DataType = DoubleType
 }
 
 
@@ -249,14 +231,14 @@ case class Cos(left: Expression) extends Unary(left) with Fn {
         `java.lang.Math.cosh`. */
 case class Cosh(left: Expression) extends Unary(left) with Fn {
   override def prettyName: String = "COSH"
-  override def dataType: DataType = UnresolvedType
+  override def dataType: DataType = DoubleType
 }
 
 
 /** cot(expr) - Returns the cotangent of `expr`, as if computed by `1/java.lang.Math.cot`. */
 case class Cot(left: Expression) extends Unary(left) with Fn {
   override def prettyName: String = "COT"
-  override def dataType: DataType = UnresolvedType
+  override def dataType: DataType = DoubleType
 }
 
 
@@ -278,57 +260,42 @@ case class Cube(children: Seq[Expression]) extends Expression with Fn {
 /** current_catalog() - Returns the current catalog. */
 case class CurrentCatalog() extends LeafExpression with Fn {
   override def prettyName: String = "CURRENT_CATALOG"
-  override def dataType: DataType = UnresolvedType
+  override def dataType: DataType = StringType
 }
 
 
 /** current_database() - Returns the current database. */
 case class CurrentDatabase() extends LeafExpression with Fn {
   override def prettyName: String = "CURRENT_DATABASE"
-  override def dataType: DataType = UnresolvedType
-}
-
-
-/** day(date) - Returns the day of month of the date/timestamp. */
-case class DayOfMonth(left: Expression) extends Unary(left) with Fn {
-  override def prettyName: String = "DAY"
-  override def dataType: DataType = UnresolvedType
+  override def dataType: DataType = StringType
 }
 
 
 /** dayofmonth(date) - Returns the day of month of the date/timestamp. */
 case class DayOfMonth(left: Expression) extends Unary(left) with Fn {
   override def prettyName: String = "DAYOFMONTH"
-  override def dataType: DataType = UnresolvedType
+  override def dataType: DataType = IntegerType
 }
 
 
 /** decode(bin, charset) - Decodes the first argument using the second argument character set. */
 case class Decode(left: Expression, right: Expression) extends Binary(left, right) with Fn {
   override def prettyName: String = "DECODE"
-  override def dataType: DataType = UnresolvedType
+  override def dataType: DataType = BinaryType
 }
 
 
 /** degrees(expr) - Converts radians to degrees. */
 case class ToDegrees(left: Expression) extends Unary(left) with Fn {
   override def prettyName: String = "DEGREES"
-  override def dataType: DataType = UnresolvedType
+  override def dataType: DataType = DoubleType
 }
 
-
-/** expr1 div expr2 - Divide `expr1` by `expr2`. It returns NULL if an operand is NULL or `expr2` is 0. The result is casted to long. */
-case class IntegralDivide(left: Expression, right: Expression, c: c) extends Expression with Fn {
-  override def prettyName: String = "DIV"
-  override def children: Seq[Expression] = Seq(left, right, c)
-  override def dataType: DataType = UnresolvedType
-}
-
-
-/** expr1 div expr2 - Divide `expr1` by `expr2`. It returns NULL if an operand is NULL or `expr2` is 0. The result is casted to long. */
+/** expr1 div expr2 - Divide `expr1` by `expr2`. It returns NULL if an operand is NULL or `expr2` is 0.
+ * The result is casted to long. */
 case class IntegralDivide(left: Expression, right: Expression) extends Binary(left, right) with Fn {
   override def prettyName: String = "DIV"
-  override def dataType: DataType = UnresolvedType
+  override def dataType: DataType = LongType
 }
 
 
@@ -688,13 +655,6 @@ case class Least(children: Seq[Expression]) extends Expression with Fn {
 /** left(str, len) - Returns the leftmost `len`(`len` can be string type) characters from the string `str`,if `len` is less or equal than 0 the result is an empty string. */
 case class Left(left: Expression, right: Expression) extends Binary(left, right) with Fn {
   override def prettyName: String = "LEFT"
-  override def dataType: DataType = UnresolvedType
-}
-
-
-/** length(expr) - Returns the character length of string data or number of bytes of binary data. The length of string data includes the trailing spaces. The length of binary data includes binary zeros. */
-case class Length(left: Expression) extends Unary(left) with Fn {
-  override def prettyName: String = "LENGTH"
   override def dataType: DataType = UnresolvedType
 }
 
