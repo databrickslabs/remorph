@@ -1,6 +1,8 @@
 package com.databricks.labs.remorph.parsers.intermediate
 
-import java.util.UUID
+import com.databricks.labs.remorph.parsers.intermediate.CallFunction.mapping
+
+import java.util.{Locale, UUID}
 
 // Expression used to refer to fields, functions and similar. This can be used everywhere
 // expressions in SQL appear.

@@ -1,5 +1,6 @@
 package com.databricks.labs.remorph.parsers
 
+import com.databricks.labs.remorph.parsers.intermediate.{CallFunction, DateAdd}
 import com.databricks.labs.remorph.parsers.{intermediate => ir}
 
 sealed trait FunctionType
@@ -36,7 +37,6 @@ object FunctionArity {
         // a mix of named and positional arguments were provided, which isn't supported
         false
       }
-
   }
 }
 
@@ -65,6 +65,28 @@ object FunctionDefinition {
   def notConvertible(minArg: Int, maxArg: Int): FunctionDefinition =
     FunctionDefinition(VariableArity(minArg, maxArg), NotConvertibleFunction)
 }
+
+class CallMapper {
+  def convert(call: ir.CallFunction): ir.Expression = {
+    resolveAliases(call) match {
+      case ir.CallFunction("DATEADD", args) =>
+        DateAdd(args(0), args(1))
+      case x: ir.CallFunction => x
+    }
+  }
+
+  private def resolveAliases(call: CallFunction) = call
+}
+class SnowflakeCallMapper extends CallMapper {
+  override def convert(call: ir.CallFunction): ir.Expression = {
+    call match {
+      case ir.CallFunction("DATEADD", args) =>
+        DateAdd(args(0), args(1))
+      case x: ir.CallFunction => super.convert(x)
+    }
+  }
+}
+
 
 abstract class FunctionBuilder {
 
