@@ -5,7 +5,7 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.mockito.MockitoSugar
 
-class SnowflakeStatementBuilderSpec
+class SnowflakeCommandBuilderSpec
     extends AnyWordSpec
     with SnowflakeParserTestCommon
     with Matchers

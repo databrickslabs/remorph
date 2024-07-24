@@ -88,8 +88,7 @@ case class WriteStreamOperationStart(
     extends LeafNode
     with Command
 
-
 case class CreateVariable(name: String, dataType: DataType, defaultExpr: Option[Expression], replace: Boolean)
-  extends Command {}
+    extends Command {}
 
 case class SetVariable(name: String, dataType: Option[DataType], expr: Option[Expression]) extends Command {}

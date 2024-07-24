@@ -4,8 +4,6 @@ case class UnresolvedRelation(inputText: String) extends LeafNode {
   override def output: Seq[Attribute] = Seq.empty
 }
 
-case class UnresolvedStatement(inputText: String) extends Statement {}
-
 case class UnresolvedExpression(inputText: String) extends LeafExpression {
   override def dataType: DataType = UnresolvedType
 }
