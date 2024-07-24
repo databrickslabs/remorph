@@ -538,7 +538,7 @@ case class CallMethodViaReflection(children: Seq[Expression]) extends Expression
 
 /** lcase(str) - Returns `str` with all characters changed to lowercase. */
 case class Lower(left: Expression) extends Unary(left) with Fn {
-  override def prettyName: String = "LCASE"
+  override def prettyName: String = "LOWER"
   override def dataType: DataType = UnresolvedType
 }
 
@@ -634,12 +634,6 @@ case class Log1p(left: Expression) extends Unary(left) with Fn {
 /** log2(expr) - Returns the logarithm of `expr` with base 2. */
 case class Log2(left: Expression) extends Unary(left) with Fn {
   override def prettyName: String = "LOG2"
-  override def dataType: DataType = UnresolvedType
-}
-
-/** lower(str) - Returns `str` with all characters changed to lowercase. */
-case class Lower(left: Expression) extends Unary(left) with Fn {
-  override def prettyName: String = "LOWER"
   override def dataType: DataType = UnresolvedType
 }
 
