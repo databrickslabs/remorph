@@ -2,6 +2,7 @@ package com.databricks.labs.remorph.parsers.intermediate
 
 trait Fn {
   def prettyName: String
+  def aliases: Seq[String] = Seq.empty
 }
 
 
@@ -78,7 +79,7 @@ case class Asin(left: Expression) extends Unary(left) with Fn {
 /** asinh(expr) - Returns inverse hyperbolic sine of `expr`. */
 case class Asinh(left: Expression) extends Unary(left) with Fn {
   override def prettyName: String = "ASINH"
-  override def dataType: DataType = UnresolvedType
+  override def dataType: DataType = DoubleType
 }
 
 
@@ -89,18 +90,11 @@ case class AssertTrue(left: Expression, right: Expression) extends Binary(left, 
 }
 
 
-/** assert_true(expr) - Throws an exception if `expr` is not true. */
-case class AssertTrue(left: Expression) extends Unary(left) with Fn {
-  override def prettyName: String = "ASSERT_TRUE"
-  override def dataType: DataType = UnresolvedType
-}
-
-
 /** atan(expr) - Returns the inverse tangent (a.k.a. arc tangent) of `expr`, as if computed by
       `java.lang.Math.atan` */
 case class Atan(left: Expression) extends Unary(left) with Fn {
   override def prettyName: String = "ATAN"
-  override def dataType: DataType = UnresolvedType
+  override def dataType: DataType = DoubleType
 }
 
 
@@ -109,67 +103,49 @@ case class Atan(left: Expression) extends Unary(left) with Fn {
       `java.lang.Math.atan2`. */
 case class Atan2(left: Expression, right: Expression) extends Binary(left, right) with Fn {
   override def prettyName: String = "ATAN2"
-  override def dataType: DataType = UnresolvedType
+  override def dataType: DataType = DoubleType
 }
 
 
 /** atanh(expr) - Returns inverse hyperbolic tangent of `expr`. */
 case class Atanh(left: Expression) extends Unary(left) with Fn {
   override def prettyName: String = "ATANH"
-  override def dataType: DataType = UnresolvedType
+  override def dataType: DataType = DoubleType
 }
 
 
-/** base64(bin) - Converts the argument from a binary `bin` to a base 64 string. */
+/** base64(bin) - Converts the argument from a binary `bin` to a base64 string. */
 case class Base64(left: Expression) extends Unary(left) with Fn {
   override def prettyName: String = "BASE64"
-  override def dataType: DataType = UnresolvedType
+  override def dataType: DataType = StringType
 }
 
 
 /** bin(expr) - Returns the string representation of the long value `expr` represented in binary. */
 case class Bin(left: Expression) extends Unary(left) with Fn {
   override def prettyName: String = "BIN"
-  override def dataType: DataType = UnresolvedType
+  override def dataType: DataType = StringType
 }
 
 
-/** bit_count(expr) - Returns the number of bits that are set in the argument expr as an unsigned 64-bit integer, or NULL if the argument is NULL. */
+/** bit_count(expr) - Returns the number of bits that are set in the argument expr as an unsigned 64-bit integer,
+ *  or NULL if the argument is NULL. */
 case class BitwiseCount(left: Expression) extends Unary(left) with Fn {
   override def prettyName: String = "BIT_COUNT"
-  override def dataType: DataType = UnresolvedType
+  override def dataType: DataType = LongType
 }
 
 
 /** bit_length(expr) - Returns the bit length of string data or number of bits of binary data. */
 case class BitLength(left: Expression) extends Unary(left) with Fn {
   override def prettyName: String = "BIT_LENGTH"
-  override def dataType: DataType = UnresolvedType
+  override def dataType: DataType = LongType
 }
-
-
-/** bround(expr, d) - Returns `expr` rounded to `d` decimal places using HALF_EVEN rounding mode. */
-case class BRound(left: Expression) extends Unary(left) with Fn {
-  override def prettyName: String = "BROUND"
-  override def dataType: DataType = UnresolvedType
-}
-
 
 /** bround(expr, d) - Returns `expr` rounded to `d` decimal places using HALF_EVEN rounding mode. */
 case class BRound(left: Expression, right: Expression) extends Binary(left, right) with Fn {
   override def prettyName: String = "BROUND"
-  override def dataType: DataType = UnresolvedType
-}
-
-
-/** cardinality(expr) - Returns the size of an array or a map.
- The function returns null for null input if spark.sql.legacy.sizeOfNull is set to false or
- spark.sql.ansi.enabled is set to true. Otherwise, the function returns -1 for null input.
- With the default settings, the function returns -1 for null input. */
-case class Size(left: Expression, right: right) extends Expression with Fn {
-  override def prettyName: String = "CARDINALITY"
-  override def children: Seq[Expression] = Seq(left, right)
-  override def dataType: DataType = UnresolvedType
+  override def dataType: DataType = DoubleType
 }
 
 
@@ -178,7 +154,8 @@ case class Size(left: Expression, right: right) extends Expression with Fn {
  spark.sql.ansi.enabled is set to true. Otherwise, the function returns -1 for null input.
  With the default settings, the function returns -1 for null input. */
 case class Size(left: Expression) extends Unary(left) with Fn {
-  override def prettyName: String = "CARDINALITY"
+  override def prettyName: String = "SIZE"
+  override def aliases: Seq[String] = Seq("CARDINALITY")
   override def dataType: DataType = UnresolvedType
 }
 
@@ -1529,27 +1506,6 @@ case class Sin(left: Expression) extends Unary(left) with Fn {
 /** sinh(expr) - Returns hyperbolic sine of `expr`, as if computed by `java.lang.Math.sinh`. */
 case class Sinh(left: Expression) extends Unary(left) with Fn {
   override def prettyName: String = "SINH"
-  override def dataType: DataType = UnresolvedType
-}
-
-
-/** size(expr) - Returns the size of an array or a map.
- The function returns null for null input if spark.sql.legacy.sizeOfNull is set to false or
- spark.sql.ansi.enabled is set to true. Otherwise, the function returns -1 for null input.
- With the default settings, the function returns -1 for null input. */
-case class Size(left: Expression, right: right) extends Expression with Fn {
-  override def prettyName: String = "SIZE"
-  override def children: Seq[Expression] = Seq(left, right)
-  override def dataType: DataType = UnresolvedType
-}
-
-
-/** size(expr) - Returns the size of an array or a map.
- The function returns null for null input if spark.sql.legacy.sizeOfNull is set to false or
- spark.sql.ansi.enabled is set to true. Otherwise, the function returns -1 for null input.
- With the default settings, the function returns -1 for null input. */
-case class Size(left: Expression) extends Unary(left) with Fn {
-  override def prettyName: String = "SIZE"
   override def dataType: DataType = UnresolvedType
 }
 
