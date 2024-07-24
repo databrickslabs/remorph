@@ -161,10 +161,8 @@ case class Size(left: Expression) extends Unary(left) with Fn {
 
 
 /** cast(expr AS type) - Casts the value `expr` to the target data type `type`. */
-case class Cast(left: Expression, right: right, c: c) extends Expression with Fn {
+case class Cast(left: Expression, dataType: DataType, timeZoneId: Option[String] = None) extends Unary(left) with Fn {
   override def prettyName: String = "CAST"
-  override def children: Seq[Expression] = Seq(left, right, c)
-  override def dataType: DataType = UnresolvedType
 }
 
 
