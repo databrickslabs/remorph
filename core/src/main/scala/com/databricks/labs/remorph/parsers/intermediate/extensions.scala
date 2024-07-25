@@ -91,8 +91,21 @@ case class Exists(relation: LogicalPlan) extends ToRefactor
 case class IsInRelation(relation: LogicalPlan, expression: Expression) extends ToRefactor
 case class IsInCollection(collection: Seq[Expression], expression: Expression) extends ToRefactor
 
-case class Like(expression: Expression, patterns: Seq[Expression], escape: Option[Expression], caseSensitive: Boolean)
+// TODO: convert into Like
+case class LikeSnowflake(
+    expression: Expression,
+    patterns: Seq[Expression],
+    escape: Option[Expression],
+    caseSensitive: Boolean)
     extends ToRefactor
+
+/**
+ * str like pattern[ ESCAPE escape] - Returns true if str matches `pattern` with `escape`, null if any arguments are
+ * null, false otherwise.
+ */
+case class Like(left: Expression, right: Expression, escapeChar: Char = '\\') extends Binary(left, right) {
+  override def dataType: DataType = BooleanType
+}
 
 case class RLike(expression: Expression, pattern: Expression) extends ToRefactor
 

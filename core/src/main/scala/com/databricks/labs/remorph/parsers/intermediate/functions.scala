@@ -144,7 +144,6 @@ class CallMapper {
     case CallFunction("LEFT", args) => Left(args.head, args(1))
     case CallFunction("LENGTH", args) => Length(args.head)
     case CallFunction("LEVENSHTEIN", args) => Levenshtein(args.head, args(1))
-    case CallFunction("LIKE", args) => Like(args.head, args(1))
     case CallFunction("LN", args) => Log(args.head)
     case CallFunction("LOG", args) => Logarithm(args.head, args(1))
     case CallFunction("LOG10", args) => Log10(args.head)
@@ -852,15 +851,6 @@ case class Left(left: Expression, right: Expression) extends Binary(left, right)
 /** levenshtein(str1, str2) - Returns the Levenshtein distance between the two given strings. */
 case class Levenshtein(left: Expression, right: Expression) extends Binary(left, right) with Fn {
   override def prettyName: String = "LEVENSHTEIN"
-  override def dataType: DataType = UnresolvedType
-}
-
-/**
- * str like pattern[ ESCAPE escape] - Returns true if str matches `pattern` with `escape`, null if any arguments are
- * null, false otherwise.
- */
-case class Like(left: Expression, right: Expression, escapeChar: Char = '\\') extends Binary(left, right) with Fn {
-  override def prettyName: String = "LIKE"
   override def dataType: DataType = UnresolvedType
 }
 

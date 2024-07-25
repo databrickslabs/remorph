@@ -117,27 +117,27 @@ class SnowflakeExprSpec extends AnyWordSpec with SnowflakeParserTestCommon with 
     "translate LIKE expressions" in {
       exprAndPredicateExample(
         "col1 LIKE '%foo'",
-        Like(Id("col1"), Seq(Literal(string = Some("%foo"))), None, caseSensitive = true))
+        LikeSnowflake(Id("col1"), Seq(Literal(string = Some("%foo"))), None, caseSensitive = true))
       exprAndPredicateExample(
         "col1 ILIKE '%foo'",
-        Like(Id("col1"), Seq(Literal(string = Some("%foo"))), None, caseSensitive = false))
+        LikeSnowflake(Id("col1"), Seq(Literal(string = Some("%foo"))), None, caseSensitive = false))
       exprAndPredicateExample(
         "col1 NOT LIKE '%foo'",
-        Not(Like(Id("col1"), Seq(Literal(string = Some("%foo"))), None, caseSensitive = true)))
+        Not(LikeSnowflake(Id("col1"), Seq(Literal(string = Some("%foo"))), None, caseSensitive = true)))
       exprAndPredicateExample(
         "col1 NOT ILIKE '%foo'",
-        Not(Like(Id("col1"), Seq(Literal(string = Some("%foo"))), None, caseSensitive = false)))
+        Not(LikeSnowflake(Id("col1"), Seq(Literal(string = Some("%foo"))), None, caseSensitive = false)))
       exprAndPredicateExample(
         "col1 LIKE '%foo' ESCAPE '^'",
-        Like(Id("col1"), Seq(Literal(string = Some("%foo"))), Some(Literal(string = Some("^"))), caseSensitive = true))
+        LikeSnowflake(Id("col1"), Seq(Literal(string = Some("%foo"))), Some(Literal(string = Some("^"))), caseSensitive = true))
       exprAndPredicateExample(
         "col1 ILIKE '%foo' ESCAPE '^'",
-        Like(Id("col1"), Seq(Literal(string = Some("%foo"))), Some(Literal(string = Some("^"))), caseSensitive = false))
+        LikeSnowflake(Id("col1"), Seq(Literal(string = Some("%foo"))), Some(Literal(string = Some("^"))), caseSensitive = false))
 
       exprAndPredicateExample(
         "col1 NOT LIKE '%foo' ESCAPE '^'",
         Not(
-          Like(
+          LikeSnowflake(
             Id("col1"),
             Seq(Literal(string = Some("%foo"))),
             Some(Literal(string = Some("^"))),
@@ -145,7 +145,7 @@ class SnowflakeExprSpec extends AnyWordSpec with SnowflakeParserTestCommon with 
       exprAndPredicateExample(
         "col1 NOT ILIKE '%foo' ESCAPE '^'",
         Not(
-          Like(
+          LikeSnowflake(
             Id("col1"),
             Seq(Literal(string = Some("%foo"))),
             Some(Literal(string = Some("^"))),
@@ -153,7 +153,7 @@ class SnowflakeExprSpec extends AnyWordSpec with SnowflakeParserTestCommon with 
 
       exprAndPredicateExample(
         "col1 LIKE ANY ('%foo', 'bar%', '%qux%')",
-        Like(
+        LikeSnowflake(
           Id("col1"),
           Seq(Literal(string = Some("%foo")), Literal(string = Some("bar%")), Literal(string = Some("%qux%"))),
           None,
@@ -161,7 +161,7 @@ class SnowflakeExprSpec extends AnyWordSpec with SnowflakeParserTestCommon with 
 
       exprAndPredicateExample(
         "col1 LIKE ANY ('%foo', 'bar%', '%qux%') ESCAPE '^'",
-        Like(
+        LikeSnowflake(
           Id("col1"),
           Seq(Literal(string = Some("%foo")), Literal(string = Some("bar%")), Literal(string = Some("%qux%"))),
           Some(Literal(string = Some("^"))),

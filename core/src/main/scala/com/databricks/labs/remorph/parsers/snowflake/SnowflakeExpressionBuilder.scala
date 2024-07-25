@@ -398,7 +398,7 @@ class SnowflakeExpressionBuilder()
               .asScala
               .find(occursBefore(c.ESCAPE(), _))
               .map(_.accept(this)))
-        ir.Like(expression, patterns, escape, c.LIKE() != null)
+        ir.LikeSnowflake(expression, patterns, escape, c.LIKE() != null)
       case c if c.RLIKE() != null =>
         val pattern = c.expr(0).accept(this)
         ir.RLike(expression, pattern)
