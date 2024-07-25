@@ -1587,20 +1587,16 @@ mergeStatement: withExpression? merge
     ;
 
 merge
-    : MERGE topClause? INTO? ddlObject withTableHints? asTableAlias? USING tableSources ON searchCondition whenMatches+ outputClause? optionClause?
-        SEMI
+    : MERGE topClause? INTO? ddlObject withTableHints? asTableAlias? USING tableSources ON searchCondition whenMatch* outputClause? optionClause? SEMI
     ;
 
-whenMatches
-    : (WHEN MATCHED (AND searchCondition)? THEN mergeMatched)+
-    | ( WHEN NOT MATCHED (BY TARGET)? (AND searchCondition)? THEN mergeNotMatched)
-    | ( WHEN NOT MATCHED BY SOURCE (AND searchCondition)? THEN mergeMatched)+
+whenMatch: WHEN NOT? MATCHED (BY (TARGET | SOURCE))? (AND searchCondition)? THEN mergeAction
     ;
 
-mergeMatched: UPDATE SET updateElem (COMMA updateElem)* | DELETE
-    ;
-
-mergeNotMatched: INSERT (LPAREN columnNameList RPAREN)? ( tableValueConstructor | DEFAULT VALUES)
+mergeAction
+    : UPDATE SET updateElem (COMMA updateElem)*
+    | DELETE
+    | INSERT (LPAREN expressionList RPAREN)? insertStatementValue
     ;
 
 deleteStatement: withExpression? delete

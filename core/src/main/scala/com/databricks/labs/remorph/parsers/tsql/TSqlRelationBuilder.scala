@@ -257,27 +257,70 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.LogicalPlan] {
   }
 
   override def visitMerge(ctx: MergeContext): ir.LogicalPlan = {
-    // TODO: Ran out of time to implement the rest of the MERGE statement
 
-//    val target = ctx.ddlObject().accept(this)
-//    val hints = buildTableHints(Option(ctx.withTableHints()))
-//    val finalTarget = if (hints.nonEmpty) {
-//      ir.TableWithHints(target, hints)
-//    } else {
-//      target
-//    }
-//
-//    val output = Option(ctx.outputClause()).map(_.accept(this))
-//    val condition = ctx.searchCondition().accept(expressionBuilder)
-//    val tableSourcesOption = Option(ctx.tableSources()).map(_.tableSource().asScala.map(_.accept(this)))
-//    val sourceRelation = tableSourcesOption.map {
-//      case Seq(tableSource) => tableSource
-//      case sources =>
-//        sources.reduce(
-//          ir.Join(_, _, None, ir.CrossJoin, Seq(), ir.JoinDataType(is_left_struct = false, is_right_struct = false)))
-//    }
+    val targetPlan = ctx.ddlObject().accept(this)
+    val hints = buildTableHints(Option(ctx.withTableHints()))
+    val finalTarget = if (hints.nonEmpty) {
+      ir.TableWithHints(targetPlan, hints)
+    } else {
+      targetPlan
+    }
 
-    ir.UnresolvedRelation(ctx.getText)
+    val output = Option(ctx.outputClause()).map(_.accept(this))
+    val mergeCondition = ctx.searchCondition().accept(expressionBuilder)
+    val tableSourcesPlan = ctx.tableSources().tableSource().asScala.map(_.accept(this))
+    val sourcePlan = tableSourcesPlan.tail.foldLeft(tableSourcesPlan.head)(
+      ir.Join(_, _, None, ir.CrossJoin, Seq(), ir.JoinDataType(is_left_struct = false, is_right_struct = false)))
+
+    // We may have a number of when clauses, each with a condition and an action. We keep the ANTLR syntax compact
+    // and lean and determine which of the three types of action we have in the whenMatch method based on
+    // the presence or absence of syntactical elements NOT and SOURCE as SOURCE can only be used with NOT
+    val (matchedActions, notMatchedActions, notMatchedBySourceActions) = Option(ctx.whenMatch())
+      .map(_.asScala.foldLeft((List.empty[ir.MergeAction], List.empty[ir.MergeAction], List.empty[ir.MergeAction])) {
+        case ((matched, notMatched, notMatchedBySource), m) =>
+          val action = buildWhenMatch(m)
+          if (m.NOT() == null) {
+            (action :: matched, notMatched, notMatchedBySource)
+          } else if (m.SOURCE() != null) {
+            (matched, notMatched, action :: notMatchedBySource)
+          } else {
+            (matched, action :: notMatched, notMatchedBySource)
+          }
+      })
+      .getOrElse((List.empty, List.empty, List.empty))
+
+    val optionClause = Option(ctx.optionClause).map(_.accept(expressionBuilder))
+
+    ir.MergeIntoTable(
+      finalTarget,
+      sourcePlan,
+      mergeCondition,
+      matchedActions,
+      notMatchedActions,
+      notMatchedBySourceActions,
+      output,
+      optionClause)
+  }
+
+  private def buildWhenMatch(ctx: WhenMatchContext): ir.MergeAction = {
+    val condition = ctx.searchCondition().accept(expressionBuilder)
+    ctx.mergeAction() match {
+      case action if action.DELETE() != null => ir.DeleteAction(Some(condition))
+      case action if action.UPDATE() != null => buildUpdateAction(action, condition)
+      case action if action.INSERT() != null => buildInsertAction(action, condition)
+    }
+  }
+
+  private def buildInsertAction(ctx: MergeActionContext, condition: ir.Expression): ir.InsertAction = {
+    val values = ctx.insertStatementValue().accept(this)
+    val columns = Option(ctx.expressionList())
+      .map(_.expression().asScala.map(_.accept(expressionBuilder)).collect { case col: ir.Column => col.columnName })
+    ir.InsertAction(Some(condition), columns, values)
+  }
+
+  private def buildUpdateAction(ctx: MergeActionContext, condition: ir.Expression): ir.UpdateAction = {
+    val setElements = ctx.updateElem().asScala.map(_.accept(expressionBuilder))
+    ir.UpdateAction(Some(condition), setElements)
   }
 
   override def visitUpdateStatement(ctx: UpdateStatementContext): ir.LogicalPlan = {
@@ -304,11 +347,9 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.LogicalPlan] {
     val setElements = ctx.updateElem().asScala.map(_.accept(expressionBuilder))
 
     val tableSourcesOption = Option(ctx.tableSources()).map(_.tableSource().asScala.map(_.accept(this)))
-    val sourceRelation = tableSourcesOption.map {
-      case Seq(tableSource) => tableSource
-      case sources =>
-        sources.reduce(
-          ir.Join(_, _, None, ir.CrossJoin, Seq(), ir.JoinDataType(is_left_struct = false, is_right_struct = false)))
+    val sourceRelation = tableSourcesOption.map { tableSources =>
+      tableSources.tail.foldLeft(tableSources.head)(
+        ir.Join(_, _, None, ir.CrossJoin, Seq(), ir.JoinDataType(is_left_struct = false, is_right_struct = false)))
     }
 
     val where = Option(ctx.updateWhereClause()) map (_.accept(expressionBuilder))
