@@ -51,10 +51,6 @@ case object RowNumber extends LeafExpression {
   override def dataType: DataType = LongType
 }
 
-case class NTile(expression: Expression) extends Unary(expression) {
-  override def dataType: DataType = expression.dataType
-}
-
 case class WithCTE(ctes: Seq[LogicalPlan], query: LogicalPlan) extends RelationCommon {
   override def output: Seq[Attribute] = query.output
   override def children: Seq[LogicalPlan] = ctes :+ query
