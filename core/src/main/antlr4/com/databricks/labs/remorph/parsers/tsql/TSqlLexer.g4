@@ -687,6 +687,7 @@ REPEATABLE                                  : 'REPEATABLE';
 REPEATABLEREAD                              : 'REPEATABLEREAD';
 REPLACE                                     : 'REPLACE';
 REPLICA                                     : 'REPLICA';
+REPLICATE                                   : 'REPLICATE';
 REPLICATION                                 : 'REPLICATION';
 REQUEST_MAX_CPU_TIME_SEC                    : 'REQUEST_MAX_CPU_TIME_SEC';
 REQUEST_MAX_MEMORY_GRANT_PERCENT            : 'REQUEST_MAX_MEMORY_GRANT_PERCENT';

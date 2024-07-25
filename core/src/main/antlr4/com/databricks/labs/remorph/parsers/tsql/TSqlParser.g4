@@ -1856,10 +1856,17 @@ updateStatisticsOptions: WITH updateStatisticsOption (COMMA updateStatisticsOpti
 updateStatisticsOption: RESAMPLE onPartitions? | optionList
     ;
 
-createTable
+createTableDefault
     : CREATE TABLE tableName LPAREN columnDefTableConstraints (COMMA? tableIndices)* COMMA? RPAREN (
         LOCK simpleId
     )? tableOptions* (ON id | DEFAULT | onPartitionOrFilegroup)? (TEXTIMAGE_ON id | DEFAULT)? SEMI?
+    ;
+
+createTableAs
+    : CREATE TABLE tableName (LPAREN columnNameList RPAREN)? tableOptions? AS selectStatementStandalone SEMI?
+    ;
+
+createTable: createTableDefault | createTableAs
     ;
 
 tableIndices
@@ -1874,12 +1881,15 @@ tableOptions
     : WITH (LPAREN tableOption (COMMA tableOption)* RPAREN | tableOption (COMMA tableOption)*)
     ;
 
+distributionType: HASH LPAREN id (COMMA id)* RPAREN | ROUND_ROBIN | REPLICATE
+    ;
+
 tableOption
     : (simpleId | keyword) EQ (simpleId | keyword | onOff | INT)
     | CLUSTERED COLUMNSTORE INDEX
     | HEAP
     | FILLFACTOR EQ INT
-    | DISTRIBUTION EQ HASH LPAREN id RPAREN
+    | DISTRIBUTION EQ distributionType
     | CLUSTERED INDEX LPAREN id (ASC | DESC)? ( COMMA id (ASC | DESC)?)* RPAREN
     | DATA_COMPRESSION EQ (NONE | ROW | PAGE) onPartitions?
     | XML_COMPRESSION EQ onOff onPartitions?
@@ -4090,7 +4100,19 @@ idOrString: id | STRING
     ;
 
 // Spaces are allowed for comparison operators.
-comparisonOperator: EQ | GT | LT | LT EQ | GT EQ | LT GT | EQ | GT | LT
+comparisonOperator
+    : EQ
+    | GT
+    | LT
+    | LT EQ
+    | GT EQ
+    | LT GT
+    | EQ
+    | BANG EQ
+    | GT
+    | BANG GT
+    | LT
+    | BANG LT
     ;
 
 assignmentOperator: PE | ME | SE | DE | MEA | AND_ASSIGN | XOR_ASSIGN | OR_ASSIGN
