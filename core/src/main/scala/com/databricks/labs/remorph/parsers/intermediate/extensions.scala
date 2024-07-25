@@ -96,8 +96,6 @@ case class Like(expression: Expression, patterns: Seq[Expression], escape: Optio
 
 case class RLike(expression: Expression, pattern: Expression) extends ToRefactor
 
-case class IsNull(expression: Expression) extends ToRefactor
-
 // Operators, in order of precedence
 
 // Bitwise NOT is highest precedence after parens '(' ')'
