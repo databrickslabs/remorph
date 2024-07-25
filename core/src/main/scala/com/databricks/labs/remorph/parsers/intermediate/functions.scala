@@ -1029,12 +1029,6 @@ case class OctetLength(left: Expression) extends Unary(left) with Fn {
   override def dataType: DataType = UnresolvedType
 }
 
-/** expr1 or expr2 - Logical OR. */
-case class Or(left: Expression, right: Expression) extends Binary(left, right) with Fn {
-  override def prettyName: String = "OR"
-  override def dataType: DataType = UnresolvedType
-}
-
 /** overlay(input, replace, pos[, len]) - Replace `input` with `replace` that starts at `pos` and is of length `len`. */
 case class Overlay(left: Expression, right: Expression, c: Expression, d: Expression) extends Expression with Fn {
   override def prettyName: String = "OVERLAY"
@@ -1569,18 +1563,6 @@ case class XxHash64(children: Seq[Expression]) extends Expression with Fn {
 case class ZipWith(left: Expression, right: Expression, c: Expression) extends Expression with Fn {
   override def prettyName: String = "ZIP_WITH"
   override def children: Seq[Expression] = Seq(left, right, c)
-  override def dataType: DataType = UnresolvedType
-}
-
-/** expr1 | expr2 - Returns the result of bitwise OR of `expr1` and `expr2`. */
-case class BitwiseOr(left: Expression, right: Expression) extends Binary(left, right) with Fn {
-  override def prettyName: String = "|"
-  override def dataType: DataType = UnresolvedType
-}
-
-/** ~ expr - Returns the result of bitwise NOT of `expr`. */
-case class BitwiseNot(left: Expression) extends Unary(left) with Fn {
-  override def prettyName: String = "~"
   override def dataType: DataType = UnresolvedType
 }
 
