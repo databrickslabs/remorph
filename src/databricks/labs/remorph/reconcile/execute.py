@@ -1,5 +1,4 @@
 import logging
-import os
 import sys
 from datetime import datetime
 from uuid import uuid4
@@ -77,12 +76,6 @@ def validate_input(input_value: str, list_of_value: set, message: str):
 def main(*argv) -> None:
     logger.debug(f"Arguments received: {argv}")
 
-    trigger_type = "reconcile"  # _aggregates
-    if len(argv) == 2:
-        trigger_type = argv[1]
-
-    assert trigger_type in {RECONCILE_API_NAME, AGG_RECONCILE_API_NAME}, f"Invalid option: {trigger_type}"
-
     w = WorkspaceClient()
 
     installation = Installation.assume_user_home(w, "remorph")
@@ -100,20 +93,9 @@ def main(*argv) -> None:
 
     table_recon = installation.load(type_ref=TableRecon, filename=filename)
 
-    if trigger_type == AGG_RECONCILE_API_NAME:
-        return _trigger_reconcile_aggregates(w, table_recon, reconcile_config)
-
-    return _trigger_recon(w, table_recon, reconcile_config)
-
-
-def _trigger_recon(
-    ws: WorkspaceClient,
-    table_recon: TableRecon,
-    reconcile_config: ReconcileConfig,
-):
     try:
         recon_output = recon(
-            ws=ws,
+            ws=w,
             spark=DatabricksSession.builder.getOrCreate(),
             table_recon=table_recon,
             reconcile_config=reconcile_config,
@@ -875,6 +857,6 @@ def _run_reconcile_aggregates(
 
 
 if __name__ == "__main__":
-    if "DATABRICKS_RUNTIME_VERSION" not in os.environ:
-        raise SystemExit("Only intended to run in Databricks Runtime")
+    # if "DATABRICKS_RUNTIME_VERSION" not in os.environ:
+    #     raise SystemExit("Only intended to run in Databricks Runtime")
     main(*sys.argv)
