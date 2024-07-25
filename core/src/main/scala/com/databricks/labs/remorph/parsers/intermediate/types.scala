@@ -33,9 +33,9 @@ case object YearMonthIntervalType extends DataType
 case object DayTimeIntervalType extends DataType
 
 // Complex types
-case class ArrayType() extends DataType
+case class ArrayType(elementType: DataType) extends DataType
 case class StructType() extends DataType
-case class MapType() extends DataType
+case class MapType(keyType: DataType, valueType: DataType) extends DataType
 
 // UserDefinedType
 case class UDTType() extends DataType
