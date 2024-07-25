@@ -404,3 +404,14 @@ case class UpdateTable(
   override def children: Seq[LogicalPlan] = Seq(target, source.getOrElse(NoopNode), outputRelation.getOrElse(NoopNode))
   override def output: Seq[Attribute] = target.output
 }
+
+case class MergeTables(
+    target: LogicalPlan,
+    source: Option[LogicalPlan],
+    conditions: Option[Expression],
+    outputRelation: Option[LogicalPlan],
+    options: Option[Expression])
+    extends Modification {
+  override def children: Seq[LogicalPlan] = Seq(target, source.getOrElse(NoopNode), outputRelation.getOrElse(NoopNode))
+  override def output: Seq[Attribute] = target.output
+}
