@@ -448,11 +448,6 @@ case class Size(left: Expression) extends Unary(left) with Fn {
   override def dataType: DataType = UnresolvedType
 }
 
-/** cast(expr AS type) - Casts the value `expr` to the target data type `type`. */
-case class Cast(left: Expression, dataType: DataType, timeZoneId: Option[String] = None) extends Unary(left) with Fn {
-  override def prettyName: String = "CAST"
-}
-
 /** cbrt(expr) - Returns the cube root of `expr`. */
 case class Cbrt(left: Expression) extends Unary(left) with Fn {
   override def prettyName: String = "CBRT"
