@@ -1,116 +1,648 @@
-import webbrowser
-from datetime import timedelta
-from unittest import mock
 from unittest.mock import create_autospec, patch
 
 import pytest
-
-from databricks.labs.remorph.helpers.dashboard_publisher import DashboardPublisher
-
-from databricks.labs.blueprint.installation import Installation, MockInstallation
-from databricks.labs.blueprint.tui import MockPrompts, Prompts
-from databricks.labs.lsql.backends import MockBackend
-from databricks.labs.remorph.config import (
-    MorphConfig,
-    RemorphConfigs,
-    ReconcileConfig,
-    DatabaseConfig,
-    ReconcileMetadataConfig,
-)
-from databricks.labs.remorph.helpers.deployment import TableDeployer, JobDeployer
-from databricks.labs.remorph.install import (
-    CatalogSetup,
-    WorkspaceInstallation,
-    WorkspaceInstaller,
-    ReconciliationMetadataSetup,
-)
+from databricks.labs.blueprint.installation import MockInstallation
 from databricks.sdk import WorkspaceClient
-from databricks.sdk.errors import NotFound
-from databricks.sdk.errors.platform import PermissionDenied
-from databricks.sdk.service.catalog import CatalogInfo, SchemaInfo, VolumeInfo
+from databricks.sdk.service import iam
+from databricks.labs.blueprint.tui import MockPrompts
+from databricks.labs.remorph.config import RemorphConfigs, ReconcileConfig, DatabaseConfig, ReconcileMetadataConfig
+from databricks.labs.remorph.contexts.application import ApplicationContext
+from databricks.labs.remorph.deployment.configurator import ResourceConfigurator
+from databricks.labs.remorph.deployment.installation import WorkspaceInstallation
+from databricks.labs.remorph.install import WorkspaceInstaller, MODULES
+from databricks.labs.remorph.config import MorphConfig
 from databricks.labs.blueprint.wheels import ProductInfo
-from databricks.sdk.service.compute import State
-from databricks.sdk.service.sql import (
-    DataSource,
-    EndpointInfo,
-    EndpointInfoWarehouseType,
-)
-from databricks.labs.blueprint.parallel import ManyError
+from databricks.labs.remorph.config import SQLGLOT_DIALECTS
+from databricks.labs.remorph.reconcile.constants import ReconSourceType, ReconReportType
 
-MODULES = ["all", "reconcile", "transpile"]
-
-SOURCES = [
-    "athena",
-    "bigquery",
-    "databricks",
-    "experimental",
-    "mysql",
-    "netezza",
-    "oracle",
-    "postgresql",
-    "presto",
-    "redshift",
-    "snowflake",
-    "sqlite",
-    "teradata",
-    "trino",
-    "tsql",
-    "vertica",
-]
+RECONCILE_DATA_SOURCES = sorted([source_type.value for source_type in ReconSourceType])
+RECONCILE_REPORT_TYPES = sorted([report_type.value for report_type in ReconReportType])
 
 
 @pytest.fixture
 def ws():
     w = create_autospec(WorkspaceClient)
-    w.config.host = "https://foo"
-    w.config.return_value = {"warehouse_id", "test_warehouse"}
-    w.data_sources.list = lambda: [DataSource(id="bcd", warehouse_id="abc")]
-    w.warehouses.list = lambda **_: [
-        EndpointInfo(name="abc", id="abc", warehouse_type=EndpointInfoWarehouseType.PRO, state=State.RUNNING)
-    ]
+    w.current_user.me.side_effect = lambda: iam.User(
+        user_name="me@example.com", groups=[iam.ComplexValue(display="admins")]
+    )
     return w
 
 
-@pytest.fixture
-def ws_no_catalog_schema():
-    w = create_autospec(WorkspaceClient)
-    w.catalogs.get.side_effect = NotFound("test")
-    w.schemas.get.side_effect = NotFound("test.schema")
-    w.catalogs.create.return_value = CatalogInfo.from_dict({"name": "test"})
-    w.schemas.create.return_value = SchemaInfo.from_dict({"name": "schema", "catalog_name": "test"})
-    return w
+def test_workspace_installer_run_raise_error_in_dbr(ws):
+    ctx = ApplicationContext(ws)
+    environ = {"DATABRICKS_RUNTIME_VERSION": "8.3.x-scala2.12"}
+    with pytest.raises(SystemExit):
+        WorkspaceInstaller(
+            ctx.workspace_client,
+            ctx.prompts,
+            ctx.installation,
+            ctx.install_state,
+            ctx.product_info,
+            ctx.resource_configurator,
+            ctx.workspace_installation,
+            environ=environ,
+        )
 
 
-@pytest.fixture
-def mock_installation():
-    return MockInstallation(
+def test_workspace_installer_run_install_not_called_in_test(ws):
+    ws_installation = create_autospec(WorkspaceInstallation)
+    ctx = ApplicationContext(ws)
+    ctx.replace(
+        product_info=ProductInfo.for_testing(RemorphConfigs),
+        resource_configurator=create_autospec(ResourceConfigurator),
+        workspace_installation=ws_installation,
+    )
+
+    provided_config = RemorphConfigs()
+    workspace_installer = WorkspaceInstaller(
+        ctx.workspace_client,
+        ctx.prompts,
+        ctx.installation,
+        ctx.install_state,
+        ctx.product_info,
+        ctx.resource_configurator,
+        ctx.workspace_installation,
+    )
+    returned_config = workspace_installer.run(config=provided_config)
+    assert returned_config == provided_config
+    ws_installation.install.assert_not_called()
+
+
+def test_workspace_installer_run_install_called_with_provided_config(ws):
+    ws_installation = create_autospec(WorkspaceInstallation)
+    ctx = ApplicationContext(ws)
+    ctx.replace(
+        resource_configurator=create_autospec(ResourceConfigurator),
+        workspace_installation=ws_installation,
+    )
+    provided_config = RemorphConfigs()
+    workspace_installer = WorkspaceInstaller(
+        ctx.workspace_client,
+        ctx.prompts,
+        ctx.installation,
+        ctx.install_state,
+        ctx.product_info,
+        ctx.resource_configurator,
+        ctx.workspace_installation,
+    )
+    returned_config = workspace_installer.run(config=provided_config)
+    assert returned_config == provided_config
+    ws_installation.install.assert_called_once_with(provided_config)
+
+
+def test_configure_error_if_invalid_module_selected(ws):
+    ctx = ApplicationContext(ws)
+    ctx.replace(
+        resource_configurator=create_autospec(ResourceConfigurator),
+        workspace_installation=create_autospec(WorkspaceInstallation),
+    )
+    workspace_installer = WorkspaceInstaller(
+        ctx.workspace_client,
+        ctx.prompts,
+        ctx.installation,
+        ctx.install_state,
+        ctx.product_info,
+        ctx.resource_configurator,
+        ctx.workspace_installation,
+    )
+
+    with pytest.raises(ValueError):
+        workspace_installer.configure(module="invalid_module")
+
+
+def test_workspace_installer_run_install_called_with_generated_config(ws):
+    prompts = MockPrompts(
+        {
+            r"Select a module to configure:": MODULES.index("transpile"),
+            r"Do you want to override the existing installation?": "no",
+            r"Select the source": sorted(SQLGLOT_DIALECTS.keys()).index("snowflake"),
+            r"Enter input SQL path.*": "/tmp/queries/snow",
+            r"Enter output directory.*": "/tmp/queries/databricks",
+            r"Would you like to validate.*": "no",
+            r"Open .* in the browser?": "no",
+        }
+    )
+    installation = MockInstallation()
+    ctx = ApplicationContext(ws)
+    ctx.replace(
+        prompts=prompts,
+        installation=installation,
+        resource_configurator=create_autospec(ResourceConfigurator),
+        workspace_installation=create_autospec(WorkspaceInstallation),
+    )
+
+    workspace_installer = WorkspaceInstaller(
+        ctx.workspace_client,
+        ctx.prompts,
+        ctx.installation,
+        ctx.install_state,
+        ctx.product_info,
+        ctx.resource_configurator,
+        ctx.workspace_installation,
+    )
+    workspace_installer.run()
+    installation.assert_file_written(
+        "config.yml",
+        {
+            "catalog_name": "remorph",
+            "input_sql": "/tmp/queries/snow",
+            "mode": "current",
+            "output_folder": "/tmp/queries/databricks",
+            "schema_name": "transpiler",
+            "skip_validation": True,
+            "source": "snowflake",
+            "version": 1,
+        },
+    )
+
+
+def test_configure_transpile_no_existing_installation(ws):
+    prompts = MockPrompts(
+        {
+            r"Select a module to configure:": MODULES.index("transpile"),
+            r"Do you want to override the existing installation?": "no",
+            r"Select the source": sorted(SQLGLOT_DIALECTS.keys()).index("snowflake"),
+            r"Enter input SQL path.*": "/tmp/queries/snow",
+            r"Enter output directory.*": "/tmp/queries/databricks",
+            r"Would you like to validate.*": "no",
+            r"Open .* in the browser?": "no",
+        }
+    )
+    installation = MockInstallation()
+    ctx = ApplicationContext(ws)
+    ctx.replace(
+        prompts=prompts,
+        installation=installation,
+        resource_configurator=create_autospec(ResourceConfigurator),
+        workspace_installation=create_autospec(WorkspaceInstallation),
+    )
+    workspace_installer = WorkspaceInstaller(
+        ctx.workspace_client,
+        ctx.prompts,
+        ctx.installation,
+        ctx.install_state,
+        ctx.product_info,
+        ctx.resource_configurator,
+        ctx.workspace_installation,
+    )
+    config = workspace_installer.configure()
+    expected_morph_config = MorphConfig(
+        source="snowflake",
+        input_sql="/tmp/queries/snow",
+        output_folder="/tmp/queries/databricks",
+        skip_validation=True,
+        catalog_name="remorph",
+        schema_name="transpiler",
+        mode="current",
+    )
+    expected_config = RemorphConfigs(morph=expected_morph_config)
+    assert config == expected_config
+    installation.assert_file_written(
+        "config.yml",
+        {
+            "catalog_name": "remorph",
+            "input_sql": "/tmp/queries/snow",
+            "mode": "current",
+            "output_folder": "/tmp/queries/databricks",
+            "schema_name": "transpiler",
+            "skip_validation": True,
+            "source": "snowflake",
+            "version": 1,
+        },
+    )
+
+
+def test_configure_transpile_installation_no_override(ws):
+    prompts = MockPrompts(
+        {
+            r"Select a module to configure:": MODULES.index("transpile"),
+            r"Do you want to override the existing installation?": "no",
+        }
+    )
+    ctx = ApplicationContext(ws)
+    ctx.replace(
+        prompts=prompts,
+        resource_configurator=create_autospec(ResourceConfigurator),
+        workspace_installation=create_autospec(WorkspaceInstallation),
+        installation=MockInstallation(
+            {
+                "config.yml": {
+                    "source": "snowflake",
+                    "catalog_name": "transpiler_test",
+                    "input_sql": "sf_queries",
+                    "output_folder": "out_dir",
+                    "schema_name": "convertor_test",
+                    "sdk_config": {
+                        "warehouse_id": "abc",
+                    },
+                    "version": 1,
+                }
+            }
+        ),
+    )
+
+    workspace_installer = WorkspaceInstaller(
+        ctx.workspace_client,
+        ctx.prompts,
+        ctx.installation,
+        ctx.install_state,
+        ctx.product_info,
+        ctx.resource_configurator,
+        ctx.workspace_installation,
+    )
+    with pytest.raises(SystemExit):
+        workspace_installer.configure()
+
+
+def test_configure_transpile_installation_config_error_continue_install(ws):
+    prompts = MockPrompts(
+        {
+            r"Select a module to configure:": MODULES.index("transpile"),
+            r"Do you want to override the existing installation?": "no",
+            r"Select the source": sorted(SQLGLOT_DIALECTS.keys()).index("snowflake"),
+            r"Enter input SQL path.*": "/tmp/queries/snow",
+            r"Enter output directory.*": "/tmp/queries/databricks",
+            r"Would you like to validate.*": "no",
+            r"Open .* in the browser?": "no",
+        }
+    )
+    installation = MockInstallation(
         {
             "config.yml": {
-                "source": "snowflake",
+                "source_name": "snowflake",  # Invalid key
                 "catalog_name": "transpiler_test",
                 "input_sql": "sf_queries",
-                "mode": "current",
                 "output_folder": "out_dir",
-                "skip_validation": False,
                 "schema_name": "convertor_test",
                 "sdk_config": {
                     "warehouse_id": "abc",
                 },
                 "version": 1,
-            },
+            }
+        }
+    )
+    ctx = ApplicationContext(ws)
+    ctx.replace(
+        prompts=prompts,
+        installation=installation,
+        resource_configurator=create_autospec(ResourceConfigurator),
+        workspace_installation=create_autospec(WorkspaceInstallation),
+    )
+    workspace_installer = WorkspaceInstaller(
+        ctx.workspace_client,
+        ctx.prompts,
+        ctx.installation,
+        ctx.install_state,
+        ctx.product_info,
+        ctx.resource_configurator,
+        ctx.workspace_installation,
+    )
+    config = workspace_installer.configure()
+    expected_morph_config = MorphConfig(
+        source="snowflake",
+        input_sql="/tmp/queries/snow",
+        output_folder="/tmp/queries/databricks",
+        skip_validation=True,
+        catalog_name="remorph",
+        schema_name="transpiler",
+        mode="current",
+    )
+    expected_config = RemorphConfigs(morph=expected_morph_config)
+    assert config == expected_config
+    installation.assert_file_written(
+        "config.yml",
+        {
+            "catalog_name": "remorph",
+            "input_sql": "/tmp/queries/snow",
+            "mode": "current",
+            "output_folder": "/tmp/queries/databricks",
+            "schema_name": "transpiler",
+            "skip_validation": True,
+            "source": "snowflake",
+            "version": 1,
+        },
+    )
+
+
+@patch("webbrowser.open")
+def test_configure_transpile_installation_with_no_validation(ws):
+    prompts = MockPrompts(
+        {
+            r"Select a module to configure:": MODULES.index("transpile"),
+            r"Select the source": sorted(SQLGLOT_DIALECTS.keys()).index("snowflake"),
+            r"Enter input SQL path.*": "/tmp/queries/snow",
+            r"Enter output directory.*": "/tmp/queries/databricks",
+            r"Would you like to validate.*": "no",
+            r"Open .* in the browser?": "yes",
+        }
+    )
+    installation = MockInstallation()
+    ctx = ApplicationContext(ws)
+    ctx.replace(
+        prompts=prompts,
+        installation=installation,
+        resource_configurator=create_autospec(ResourceConfigurator),
+        workspace_installation=create_autospec(WorkspaceInstallation),
+    )
+
+    workspace_installer = WorkspaceInstaller(
+        ctx.workspace_client,
+        ctx.prompts,
+        ctx.installation,
+        ctx.install_state,
+        ctx.product_info,
+        ctx.resource_configurator,
+        ctx.workspace_installation,
+    )
+    config = workspace_installer.configure()
+    expected_morph_config = MorphConfig(
+        source="snowflake",
+        input_sql="/tmp/queries/snow",
+        output_folder="/tmp/queries/databricks",
+        skip_validation=True,
+        catalog_name="remorph",
+        schema_name="transpiler",
+        mode="current",
+    )
+    expected_config = RemorphConfigs(morph=expected_morph_config)
+    assert config == expected_config
+    installation.assert_file_written(
+        "config.yml",
+        {
+            "catalog_name": "remorph",
+            "input_sql": "/tmp/queries/snow",
+            "mode": "current",
+            "output_folder": "/tmp/queries/databricks",
+            "schema_name": "transpiler",
+            "skip_validation": True,
+            "source": "snowflake",
+            "version": 1,
+        },
+    )
+
+
+def test_configure_transpile_installation_with_validation_and_cluster_id_in_config(ws):
+    prompts = MockPrompts(
+        {
+            r"Select a module to configure:": MODULES.index("transpile"),
+            r"Select the source": sorted(SQLGLOT_DIALECTS.keys()).index("snowflake"),
+            r"Enter input SQL path.*": "/tmp/queries/snow",
+            r"Enter output directory.*": "/tmp/queries/databricks",
+            r"Would you like to validate.*": "yes",
+            r"Do you want to use SQL Warehouse for validation?": "no",
+            r"Open .* in the browser?": "no",
+        }
+    )
+    installation = MockInstallation()
+    ws.config.cluster_id = "1234"
+
+    resource_configurator = create_autospec(ResourceConfigurator)
+    resource_configurator.prompt_for_catalog_setup.return_value = "remorph_test"
+    resource_configurator.prompt_for_schema_setup.return_value = "transpiler_test"
+
+    ctx = ApplicationContext(ws)
+    ctx.replace(
+        prompts=prompts,
+        installation=installation,
+        resource_configurator=resource_configurator,
+        workspace_installation=create_autospec(WorkspaceInstallation),
+    )
+
+    workspace_installer = WorkspaceInstaller(
+        ctx.workspace_client,
+        ctx.prompts,
+        ctx.installation,
+        ctx.install_state,
+        ctx.product_info,
+        ctx.resource_configurator,
+        ctx.workspace_installation,
+    )
+    config = workspace_installer.configure()
+    expected_config = RemorphConfigs(
+        morph=MorphConfig(
+            source="snowflake",
+            input_sql="/tmp/queries/snow",
+            output_folder="/tmp/queries/databricks",
+            catalog_name="remorph_test",
+            schema_name="transpiler_test",
+            mode="current",
+            sdk_config={"cluster_id": "1234"},
+        )
+    )
+    assert config == expected_config
+    installation.assert_file_written(
+        "config.yml",
+        {
+            "catalog_name": "remorph_test",
+            "input_sql": "/tmp/queries/snow",
+            "mode": "current",
+            "output_folder": "/tmp/queries/databricks",
+            "schema_name": "transpiler_test",
+            "sdk_config": {"cluster_id": "1234"},
+            "source": "snowflake",
+            "version": 1,
+        },
+    )
+
+
+def test_configure_transpile_installation_with_validation_and_cluster_id_from_prompt(ws):
+    prompts = MockPrompts(
+        {
+            r"Select a module to configure:": MODULES.index("transpile"),
+            r"Select the source": sorted(SQLGLOT_DIALECTS.keys()).index("snowflake"),
+            r"Enter input SQL path.*": "/tmp/queries/snow",
+            r"Enter output directory.*": "/tmp/queries/databricks",
+            r"Would you like to validate.*": "yes",
+            r"Do you want to use SQL Warehouse for validation?": "no",
+            r"Enter a valid cluster_id to proceed": "1234",
+            r"Open .* in the browser?": "no",
+        }
+    )
+    installation = MockInstallation()
+    ws.config.cluster_id = None
+
+    resource_configurator = create_autospec(ResourceConfigurator)
+    resource_configurator.prompt_for_catalog_setup.return_value = "remorph_test"
+    resource_configurator.prompt_for_schema_setup.return_value = "transpiler_test"
+
+    ctx = ApplicationContext(ws)
+    ctx.replace(
+        prompts=prompts,
+        installation=installation,
+        resource_configurator=resource_configurator,
+        workspace_installation=create_autospec(WorkspaceInstallation),
+    )
+
+    workspace_installer = WorkspaceInstaller(
+        ctx.workspace_client,
+        ctx.prompts,
+        ctx.installation,
+        ctx.install_state,
+        ctx.product_info,
+        ctx.resource_configurator,
+        ctx.workspace_installation,
+    )
+    config = workspace_installer.configure()
+    expected_config = RemorphConfigs(
+        morph=MorphConfig(
+            source="snowflake",
+            input_sql="/tmp/queries/snow",
+            output_folder="/tmp/queries/databricks",
+            catalog_name="remorph_test",
+            schema_name="transpiler_test",
+            mode="current",
+            sdk_config={"cluster_id": "1234"},
+        )
+    )
+    assert config == expected_config
+    installation.assert_file_written(
+        "config.yml",
+        {
+            "catalog_name": "remorph_test",
+            "input_sql": "/tmp/queries/snow",
+            "mode": "current",
+            "output_folder": "/tmp/queries/databricks",
+            "schema_name": "transpiler_test",
+            "sdk_config": {"cluster_id": "1234"},
+            "source": "snowflake",
+            "version": 1,
+        },
+    )
+
+
+def test_configure_transpile_installation_with_validation_and_warehouse_id_from_prompt(ws):
+    prompts = MockPrompts(
+        {
+            r"Select a module to configure:": MODULES.index("transpile"),
+            r"Select the source": sorted(SQLGLOT_DIALECTS.keys()).index("snowflake"),
+            r"Enter input SQL path.*": "/tmp/queries/snow",
+            r"Enter output directory.*": "/tmp/queries/databricks",
+            r"Would you like to validate.*": "yes",
+            r"Do you want to use SQL Warehouse for validation?": "yes",
+            r"Open .* in the browser?": "no",
+        }
+    )
+    installation = MockInstallation()
+    resource_configurator = create_autospec(ResourceConfigurator)
+    resource_configurator.prompt_for_catalog_setup.return_value = "remorph_test"
+    resource_configurator.prompt_for_schema_setup.return_value = "transpiler_test"
+    resource_configurator.prompt_for_warehouse_setup.return_value = "w_id"
+
+    ctx = ApplicationContext(ws)
+    ctx.replace(
+        prompts=prompts,
+        installation=installation,
+        resource_configurator=resource_configurator,
+        workspace_installation=create_autospec(WorkspaceInstallation),
+    )
+
+    workspace_installer = WorkspaceInstaller(
+        ctx.workspace_client,
+        ctx.prompts,
+        ctx.installation,
+        ctx.install_state,
+        ctx.product_info,
+        ctx.resource_configurator,
+        ctx.workspace_installation,
+    )
+    config = workspace_installer.configure()
+    expected_config = RemorphConfigs(
+        morph=MorphConfig(
+            source="snowflake",
+            input_sql="/tmp/queries/snow",
+            output_folder="/tmp/queries/databricks",
+            catalog_name="remorph_test",
+            schema_name="transpiler_test",
+            mode="current",
+            sdk_config={"warehouse_id": "w_id"},
+        )
+    )
+    assert config == expected_config
+    installation.assert_file_written(
+        "config.yml",
+        {
+            "catalog_name": "remorph_test",
+            "input_sql": "/tmp/queries/snow",
+            "mode": "current",
+            "output_folder": "/tmp/queries/databricks",
+            "schema_name": "transpiler_test",
+            "sdk_config": {"warehouse_id": "w_id"},
+            "source": "snowflake",
+            "version": 1,
+        },
+    )
+
+
+def test_configure_reconcile_installation_no_override(ws):
+    prompts = MockPrompts(
+        {
+            r"Select a module to configure:": MODULES.index("reconcile"),
+            r"Do you want to override the existing installation?": "no",
+        }
+    )
+    ctx = ApplicationContext(ws)
+    ctx.replace(
+        prompts=prompts,
+        resource_configurator=create_autospec(ResourceConfigurator),
+        workspace_installation=create_autospec(WorkspaceInstallation),
+        installation=MockInstallation(
+            {
+                "reconcile.yml": {
+                    "data_source": "snowflake",
+                    "report_type": "all",
+                    "secret_scope": "remorph_snowflake",
+                    "database_config": {
+                        "source_catalog": "snowflake_sample_data",
+                        "source_schema": "tpch_sf1000",
+                        "target_catalog": "tpch",
+                        "target_schema": "1000gb",
+                    },
+                    "metadata_config": {
+                        "catalog": "remorph",
+                        "schema": "reconcile",
+                        "volume": "reconcile_volume",
+                    },
+                    "version": 1,
+                }
+            }
+        ),
+    )
+    workspace_installer = WorkspaceInstaller(
+        ctx.workspace_client,
+        ctx.prompts,
+        ctx.installation,
+        ctx.install_state,
+        ctx.product_info,
+        ctx.resource_configurator,
+        ctx.workspace_installation,
+    )
+    with pytest.raises(SystemExit):
+        workspace_installer.configure()
+
+
+def test_configure_reconcile_installation_config_error_continue_install(ws):
+    prompts = MockPrompts(
+        {
+            r"Select a module to configure:": MODULES.index("reconcile"),
+            r"Select the Data Source": RECONCILE_DATA_SOURCES.index("oracle"),
+            r"Select the report type": RECONCILE_REPORT_TYPES.index("all"),
+            r"Enter Secret scope name to store .* connection details / secrets": "remorph_oracle",
+            r"Enter source database name for .*": "tpch_sf1000",
+            r"Enter target catalog name for Databricks": "tpch",
+            r"Enter target schema name for Databricks": "1000gb",
+            r"Open .* in the browser?": "no",
+        }
+    )
+    installation = MockInstallation(
+        {
             "reconcile.yml": {
-                "data_source": "snowflake",
+                "source": "oracle",  # Invalid key
+                "report_type": "all",
+                "secret_scope": "remorph_oracle",
                 "database_config": {
-                    "source_catalog": "snowflake_sample_data",
                     "source_schema": "tpch_sf1000",
                     "target_catalog": "tpch",
                     "target_schema": "1000gb",
-                },
-                "report_type": "all",
-                "secret_scope": "remorph_snowflake",
-                "tables": {
-                    "filter_type": "exclude",
-                    "tables_list": ["SUPPLIER", "FRIENDS", "ORDERS", "PART"],
                 },
                 "metadata_config": {
                     "catalog": "remorph",
@@ -118,338 +650,136 @@ def mock_installation():
                     "volume": "reconcile_volume",
                 },
                 "version": 1,
-            },
-        }
-    )
-
-
-@pytest.fixture
-def mock_installation_state():
-    return MockInstallation(
-        {
-            "state.json": {
-                "source": "dummy",
             }
         }
     )
 
+    resource_configurator = create_autospec(ResourceConfigurator)
+    resource_configurator.prompt_for_catalog_setup.return_value = "remorph"
+    resource_configurator.prompt_for_schema_setup.return_value = "reconcile"
+    resource_configurator.prompt_for_volume_setup.return_value = "reconcile_volume"
 
-@patch("webbrowser.open")
-def test_install(ws, mock_installation_state):
-    prompts = MockPrompts(
-        {
-            r"Select a module to configure:": MODULES.index("all"),
-            r"Select the source": SOURCES.index("bigquery"),
-            r"Enter Input SQL path.*": "data/queries/bigquery",
-            r"Enter Output directory.*": "transpiled",
-            r"Would you like to validate the Syntax, Semantics of the transpiled queries?": "no",
-            r"Open .* in the browser and continue...?": "yes",
-            r"Select the Data Source:": 2,
-            r"Select the Report Type:": 0,
-            r"Enter Secret Scope name to store .* connection details / secrets": "remorph_snowflake",
-            r"Enter .* Catalog name": "snowflake_sample_data",
-            r"Enter .* Database name": "tpch_sf1000",
-            r"Enter Databricks Catalog name": "tpch",
-            r"Enter Databricks Schema name": "1000gb",
-            r"Enter Catalog name to store reconcile metadata": "remorph",
-            r"Enter Schema name to store reconcile metadata": "reconcile",
-        }
+    ctx = ApplicationContext(ws)
+    ctx.replace(
+        prompts=prompts,
+        installation=installation,
+        resource_configurator=resource_configurator,
+        workspace_installation=create_autospec(WorkspaceInstallation),
     )
-    install = WorkspaceInstaller(ws, mock_installation_state, prompts=prompts)
 
-    # Assert that the `install` is an instance of WorkspaceInstaller
-    assert isinstance(install, WorkspaceInstaller)
-
-    with patch.object(WorkspaceInstallation, "run", autospec=True):
-        configs = install.run()
-        config = configs.morph
-        reconcile_config = configs.reconcile
-
-        assert config.source == "bigquery"
-        assert config.sdk_config is None
-        assert config.input_sql == "data/queries/bigquery"
-        assert config.output_folder == "transpiled"
-        assert config.skip_validation is True
-        assert config.catalog_name == "transpiler_test"
-        assert config.schema_name == "convertor_test"
-        assert config.mode == "current"
-
-        assert reconcile_config.data_source == "snowflake"
-        assert reconcile_config.database_config.source_catalog == "snowflake_sample_data"
-        assert reconcile_config.database_config.source_schema == "tpch_sf1000"
-        assert reconcile_config.database_config.target_catalog == "tpch"
-        assert reconcile_config.database_config.target_schema == "1000gb"
-        assert reconcile_config.report_type == "all"
-        assert reconcile_config.secret_scope == "remorph_snowflake"
-        assert reconcile_config.tables is None
-
-
-def test_install_dbr(ws, mock_installation, monkeypatch):
-    monkeypatch.setenv("DATABRICKS_RUNTIME_VERSION", "14.1")
-
-    with pytest.raises(SystemExit):
-        install = WorkspaceInstaller(ws, MockPrompts({}))
-        install.run()
-
-
-def test_save_config(ws, mock_installation, monkeypatch):
-    def mock_open(url):
-        print(f"Opening URL: {url}")
-
-    monkeypatch.setattr("webbrowser.open", mock_open)
-    prompts = MockPrompts(
-        {
-            r"Select a module to configure:": MODULES.index("transpile"),
-            r"Select the source": SOURCES.index("snowflake"),
-            r"Enter Input SQL path.*": "sf_queries",
-            r"Enter Output directory.*": "out_dir",
-            r"Would you like to validate the Syntax, Semantics of the transpiled queries?": "yes",
-            r"Do you want to use SQL Warehouse for validation?": "yes",
-            r".*PRO or SERVERLESS SQL warehouse.*": "1",
-            r"Enter Catalog for Validation": "transpiler_test",
-            r"Enter Schema for Validation": "convertor_test",
-            r"Open .* in the browser and continue...?": "yes",
-        }
+    workspace_installer = WorkspaceInstaller(
+        ctx.workspace_client,
+        ctx.prompts,
+        ctx.installation,
+        ctx.install_state,
+        ctx.product_info,
+        ctx.resource_configurator,
+        ctx.workspace_installation,
     )
-    install = WorkspaceInstaller(ws, mock_installation, prompts)
-    webbrowser.open('https://localhost/#workspace~/mock/config.yml')
-    install.configure()
-
-    mock_installation.assert_file_written(
-        "config.yml",
+    config = workspace_installer.configure()
+    expected_config = RemorphConfigs(
+        reconcile=ReconcileConfig(
+            data_source="oracle",
+            report_type="all",
+            secret_scope="remorph_oracle",
+            database_config=DatabaseConfig(
+                source_schema="tpch_sf1000",
+                target_catalog="tpch",
+                target_schema="1000gb",
+            ),
+            metadata_config=ReconcileMetadataConfig(
+                catalog="remorph",
+                schema="reconcile",
+                volume="reconcile_volume",
+            ),
+        )
+    )
+    assert config == expected_config
+    installation.assert_file_written(
+        "reconcile.yml",
         {
-            "source": "snowflake",
-            "sdk_config": {
-                "warehouse_id": "abc",
+            "data_source": "oracle",
+            "report_type": "all",
+            "secret_scope": "remorph_oracle",
+            "database_config": {
+                "source_schema": "tpch_sf1000",
+                "target_catalog": "tpch",
+                "target_schema": "1000gb",
             },
-            "input_sql": "sf_queries",
-            "output_folder": "out_dir",
-            "skip_validation": False,
-            "catalog_name": "transpiler_test",
-            "schema_name": "convertor_test",
-            "mode": "current",
+            "metadata_config": {
+                "catalog": "remorph",
+                "schema": "reconcile",
+                "volume": "reconcile_volume",
+            },
+            "version": 1,
         },
     )
 
 
-def test_create_sql_warehouse(ws_no_catalog_schema, mock_installation_state):
-    ws_client = ws_no_catalog_schema
-
-    prompts = MockPrompts(
-        {
-            r"Select a module to configure:": MODULES.index("transpile"),
-            r"Select the source": SOURCES.index("snowflake"),
-            r"Enter Input SQL path.*": "sf_queries",
-            r"Enter Output directory.*": "out_dir",
-            r"Would you like to validate the Syntax, Semantics of the transpiled queries?": "yes",
-            r"Do you want to use SQL Warehouse for validation?": "yes",
-            r"Select PRO or SERVERLESS SQL warehouse to run validation on": "0",
-            r"Enter Catalog for Validation": "test",
-            r".*Do you want to create a new one?": "yes",
-            r"Enter Schema for Validation": "schema",
-            r".*Do you want to create a new Schema?": "yes",
-            r"Open .* in the browser and continue...?": "no",
-        }
-    )
-
-    install = WorkspaceInstaller(ws_client, mock_installation_state, prompts)
-
-    # Assert that the `install` is an instance of WorkspaceInstaller
-    assert isinstance(install, WorkspaceInstaller)
-
-    configs = install.configure()
-
-    config = configs.morph
-
-    # Assert that the `config` is an instance of MorphConfig
-    assert isinstance(config, MorphConfig)
-
-    # Assert  the `config` variables
-    assert config.source == "snowflake"
-    assert config.skip_validation is False
-    assert config.catalog_name == "test"
-    assert config.schema_name == "schema"
-
-
-def test_get_cluster_id(ws, mock_installation_state):
-    prompts = MockPrompts(
-        {
-            r"Select a module to configure:": MODULES.index("transpile"),
-            r"Select the source": SOURCES.index("snowflake"),
-            r"Enter Input SQL path.*": "sf_queries",
-            r"Enter Output directory.*": "out_dir",
-            r"Would you like to validate the Syntax, Semantics of the transpiled queries?": "yes",
-            r"Do you want to use SQL Warehouse for validation?": "no",
-            r"Enter a valid cluster_id to proceed": "test_cluster",
-            r"Enter Catalog for Validation": "test",
-            r".*Do you want to create a new one?": "yes",
-            r"Enter Schema for Validation": "schema",
-            r".*Do you want to create a new Schema?": "yes",
-            r"Open .* in the browser and continue...?": "no",
-        }
-    )
-    ws.config.cluster_id = None  # setting this to None when cluster_id is not set in default configuration.
-
-    install = WorkspaceInstaller(ws, mock_installation_state, prompts)
-
-    # Assert that the `install` is an instance of WorkspaceInstaller
-    assert isinstance(install, WorkspaceInstaller)
-
-    configs = install.configure()
-
-    config = configs.morph
-    # Assert that the `config` is an instance of MorphConfig
-    assert isinstance(config, MorphConfig)
-
-    # Assert  the `config` variables
-    assert config.source == "snowflake"
-    assert config.skip_validation is False
-    assert config.catalog_name == "test"
-    assert config.schema_name == "schema"
-    assert config.sdk_config.get("cluster_id") == "test_cluster"
-
-
-def test_create_catalog_no(ws_no_catalog_schema, mock_installation_state):
-    prompts = MockPrompts(
-        {
-            r"Select a module to configure:": MODULES.index("transpile"),
-            r"Select the source": SOURCES.index("snowflake"),
-            r"Enter Input SQL path.*": "sf_queries",
-            r"Enter Output directory.*": "out_dir",
-            r"Would you like to validate the Syntax, Semantics of the transpiled queries?": "yes",
-            r"Do you want to use SQL Warehouse for validation?": "no",
-            r"Enter a valid cluster_id to proceed": "test_cluster",
-            r"Enter Catalog for Validation": "test",
-            r".*Do you want to create a new one?": "no",
-        }
-    )
-    install = WorkspaceInstaller(ws_no_catalog_schema, mock_installation_state, prompts)
-
-    with pytest.raises(SystemExit):
-        install.configure()
-
-
-def test_create_schema_no(ws_no_catalog_schema, mock_installation_state):
-    prompts = MockPrompts(
-        {
-            r"Select a module to configure:": MODULES.index("transpile"),
-            r"Select the source": SOURCES.index("snowflake"),
-            r"Enter Input SQL path.*": "sf_queries",
-            r"Enter Output directory.*": "out_dir",
-            r"Would you like to validate the Syntax, Semantics of the transpiled queries?": "yes",
-            r"Do you want to use SQL Warehouse for validation?": "no",
-            r"Enter a valid cluster_id to proceed": "test_cluster",
-            r"Enter Catalog for Validation": "test",
-            r".*Do you want to create a new one?": "yes",
-            r"Enter schema_name": "schema",
-            r".*Do you want to create a new Schema?": "no",
-            r".*": "",
-        }
-    )
-    install = WorkspaceInstaller(ws_no_catalog_schema, mock_installation_state, prompts)
-
-    with pytest.raises(SystemExit):
-        install.configure()
-
-
-def test_workspace_installation(ws, mock_installation, monkeypatch):
-    # Create a mock for the Installation
-    mock_install = create_autospec(Installation)
-
-    # Create a mock for the config
-    config = create_autospec(MorphConfig)
-
-    product_info = create_autospec(ProductInfo)
-
-    # Call the current function
-    result = WorkspaceInstallation(config, mock_install, ws, Prompts(), timedelta(minutes=2), product_info)
-
-    # Assert that the result is an instance of WorkspaceInstallation
-    assert isinstance(result, WorkspaceInstallation)
-
-
-def test_get_catalog():
-    mock_ws = create_autospec(WorkspaceClient)
-    mock_ws.catalogs.get.return_value = CatalogInfo.from_dict({"name": "test_catalog"})
-
-    # Create a mock for the Catalog Setup
-    catalog_setup = CatalogSetup(mock_ws)
-
-    assert catalog_setup.get("test_catalog") == "test_catalog"
-
-
-def test_get_catalog_permission_denied():
-    mock_ws = create_autospec(WorkspaceClient)
-    mock_ws.catalogs.get.side_effect = PermissionDenied("test_catalog")
-
-    # Create a mock for the Catalog Setup
-    catalog_setup = CatalogSetup(mock_ws)
-
-    with pytest.raises(PermissionDenied):
-        catalog_setup.get("test_catalog")
-
-
-def test_get_schema(ws):
-    mock_ws = create_autospec(WorkspaceClient)
-    mock_ws.schemas.get.return_value = SchemaInfo.from_dict({"name": "test.schema"})
-
-    # Create a mock for the Catalog Setup
-    catalog_setup = CatalogSetup(mock_ws)
-
-    assert catalog_setup.get_schema("test.schema") == "test.schema"
-
-
-def test_get_schema_permission_denied(ws):
-    mock_ws = create_autospec(WorkspaceClient)
-    mock_ws.schemas.get.side_effect = PermissionDenied("test.schema")
-
-    # Create a mock for the Catalog Setup
-    catalog_setup = CatalogSetup(mock_ws)
-
-    with pytest.raises(PermissionDenied):
-        catalog_setup.get_schema("test.schema")
-
-
-def test_config(ws):
-    config = MorphConfig(
-        source="snowflake",
-        skip_validation=False,
-        catalog_name="test_catalog",
-        schema_name="test_schema",
-        sdk_config=None,
-    )
-    assert isinstance(config, MorphConfig)
-
-
-def test_save_reconcile_config(ws, mock_installation, monkeypatch):
-    def mock_open(url):
-        print(f"Opening URL: {url}")
-
-    monkeypatch.setattr("webbrowser.open", mock_open)
+@patch("webbrowser.open")
+def test_configure_reconcile_no_existing_installation(ws):
     prompts = MockPrompts(
         {
             r"Select a module to configure:": MODULES.index("reconcile"),
-            r"Select the Data Source:": 2,
-            r"Select the Report Type:": 0,
-            r"Enter Secret Scope name to store .* connection details / secrets": "remorph_snowflake",
-            r"Enter .* Catalog name": "snowflake_sample_data",
-            r"Enter .* Database name": "tpch_sf1000",
-            r"Enter Databricks Catalog name": "tpch",
-            r"Enter Databricks Schema name": "1000gb",
-            r"Enter Catalog name to store reconcile metadata": "remorph",
-            r"Enter Schema name to store reconcile metadata": "reconcile",
-            r"Open .* in the browser and continue...?": "yes",
+            r"Select the Data Source": RECONCILE_DATA_SOURCES.index("snowflake"),
+            r"Select the report type": RECONCILE_REPORT_TYPES.index("all"),
+            r"Enter Secret scope name to store .* connection details / secrets": "remorph_snowflake",
+            r"Enter source catalog name for .*": "snowflake_sample_data",
+            r"Enter source schema name for .*": "tpch_sf1000",
+            r"Enter target catalog name for Databricks": "tpch",
+            r"Enter target schema name for Databricks": "1000gb",
+            r"Open .* in the browser?": "yes",
         }
     )
-    install = WorkspaceInstaller(ws, mock_installation, prompts)
+    installation = MockInstallation()
+    resource_configurator = create_autospec(ResourceConfigurator)
+    resource_configurator.prompt_for_catalog_setup.return_value = "remorph"
+    resource_configurator.prompt_for_schema_setup.return_value = "reconcile"
+    resource_configurator.prompt_for_volume_setup.return_value = "reconcile_volume"
 
-    webbrowser.open('https://localhost/#workspace~/mock/config.yml')
-    install.configure()
+    ctx = ApplicationContext(ws)
+    ctx.replace(
+        prompts=prompts,
+        installation=installation,
+        resource_configurator=resource_configurator,
+        workspace_installation=create_autospec(WorkspaceInstallation),
+    )
 
-    mock_installation.assert_file_written(
+    workspace_installer = WorkspaceInstaller(
+        ctx.workspace_client,
+        ctx.prompts,
+        ctx.installation,
+        ctx.install_state,
+        ctx.product_info,
+        ctx.resource_configurator,
+        ctx.workspace_installation,
+    )
+    config = workspace_installer.configure()
+    expected_config = RemorphConfigs(
+        reconcile=ReconcileConfig(
+            data_source="snowflake",
+            report_type="all",
+            secret_scope="remorph_snowflake",
+            database_config=DatabaseConfig(
+                source_schema="tpch_sf1000",
+                target_catalog="tpch",
+                target_schema="1000gb",
+                source_catalog="snowflake_sample_data",
+            ),
+            metadata_config=ReconcileMetadataConfig(
+                catalog="remorph",
+                schema="reconcile",
+                volume="reconcile_volume",
+            ),
+        )
+    )
+    assert config == expected_config
+    installation.assert_file_written(
         "reconcile.yml",
         {
             "data_source": "snowflake",
+            "report_type": "all",
+            "secret_scope": "remorph_snowflake",
             "database_config": {
                 "source_catalog": "snowflake_sample_data",
                 "source_schema": "tpch_sf1000",
@@ -461,261 +791,145 @@ def test_save_reconcile_config(ws, mock_installation, monkeypatch):
                 "schema": "reconcile",
                 "volume": "reconcile_volume",
             },
-            "report_type": "all",
-            "secret_scope": "remorph_snowflake",
-            "tables": {
-                "filter_type": "exclude",
-                "tables_list": ["SUPPLIER", "FRIENDS", "ORDERS", "PART"],
-            },
+            "version": 1,
         },
     )
 
 
-def test_workspace_installation_run(ws, mock_installation_state, monkeypatch):
-    def mock_open(url):
-        print(f"Opening URL: {url}")
-
-    monkeypatch.setattr("webbrowser.open", mock_open)
+def test_configure_all_override_installation(ws):
     prompts = MockPrompts(
         {
-            r"Select a module to configure:": MODULES.index("reconcile"),
-            r"Select the Data Source:": 2,
-            r"Select the Report Type:": 0,
-            r"Enter Secret Scope name to store .* connection details / secrets": "remorph_snowflake",
-            r"Enter .* Catalog name": "snowflake_sample_data",
-            r"Enter .* Database name": "tpch_sf1000",
-            r"Enter Databricks Catalog name": "tpch",
-            r"Enter Databricks Schema name": "1000gb",
-            r"Enter Catalog name to store reconcile metadata": "remorph",
-            r"Enter Schema name to store reconcile metadata": "reconcile",
-            r"Open .* in the browser and continue...?": "yes",
+            r"Select a module to configure:": MODULES.index("all"),
+            r"Do you want to override the existing installation?": "yes",
+            r"Select the source": sorted(SQLGLOT_DIALECTS.keys()).index("snowflake"),
+            r"Enter input SQL path.*": "/tmp/queries/snow",
+            r"Enter output directory.*": "/tmp/queries/databricks",
+            r"Would you like to validate.*": "no",
+            r"Open .* in the browser?": "no",
+            r"Select the Data Source": RECONCILE_DATA_SOURCES.index("snowflake"),
+            r"Select the report type": RECONCILE_REPORT_TYPES.index("all"),
+            r"Enter Secret scope name to store .* connection details / secrets": "remorph_snowflake",
+            r"Enter source catalog name for .*": "snowflake_sample_data",
+            r"Enter source schema name for .*": "tpch_sf1000",
+            r"Enter target catalog name for Databricks": "tpch",
+            r"Enter target schema name for Databricks": "1000gb",
         }
     )
-    install = WorkspaceInstaller(ws, mock_installation_state, prompts)
-
-    webbrowser.open('https://localhost/#workspace~/mock/config.yml')
-
-    with patch.object(WorkspaceInstallation, "run", return_value=None) as mock_run:
-        mock_run.side_effect = ManyError([NotFound("test1"), NotFound("test2")])
-        with pytest.raises(ManyError):
-            install.run()
-
-
-def test_workspace_installation_run_single_error(ws, monkeypatch):
-
-    mock_installation_reconcile = MockInstallation(
-        {
-            "reconcile.yml": {
-                "config": {
-                    "source_catalog": "snowflake_sample_data",
-                    "source_schema": "tpch_sf1000",
-                    "target_catalog": "tpch",
-                    "target_schema": "1000gb",
-                },
-                "report_type": "all",
-                "secret_scope": "remorph_snowflake",
-                "tables": {
-                    "filter_type": "exclude",
-                    "tables_list": ["SUPPLIER", "FRIENDS", "ORDERS", "PART"],
-                },
-                "version": 1,
-            }
-        }
-    )
-
-    def mock_open(url):
-        print(f"Opening URL: {url}")
-
-    monkeypatch.setattr("webbrowser.open", mock_open)
-    prompts = MockPrompts(
-        {
-            r"Select a module to configure:": MODULES.index("reconcile"),
-            r"Select the Data Source:": 2,
-            r"Select the Report Type:": 0,
-            r"Enter Secret Scope name to store .* connection details / secrets": "remorph_snowflake",
-            r"Enter .* Catalog name": "snowflake_sample_data",
-            r"Enter .* Database name": "tpch_sf1000",
-            r"Enter Databricks Catalog name": "tpch",
-            r"Enter Databricks Schema name": "1000gb",
-            r"Enter Catalog name to store reconcile metadata": "remorph",
-            r"Enter Schema name to store reconcile metadata": "reconcile",
-            r"Open .* in the browser and continue...?": "yes",
-        }
-    )
-    install = WorkspaceInstaller(ws, mock_installation_reconcile, prompts)
-
-    webbrowser.open('https://localhost/#workspace~/mock/config.yml')
-
-    with patch.object(WorkspaceInstallation, "run", return_value=None) as mock_run:
-        mock_run.side_effect = ManyError([NotFound("test1")])
-        with pytest.raises(NotFound):
-            install.run()
-
-
-def test_morph_config_error(ws, monkeypatch):
-    mock_installation_config = MockInstallation(
+    installation = MockInstallation(
         {
             "config.yml": {
+                "source": "snowflake",
                 "catalog_name": "transpiler_test",
                 "input_sql": "sf_queries",
-                "mode": "current",
                 "output_folder": "out_dir",
-                "skip_validation": False,
                 "schema_name": "convertor_test",
                 "sdk_config": {
                     "warehouse_id": "abc",
                 },
                 "version": 1,
-            }
+            },
+            "reconcile.yml": {
+                "data_source": "snowflake",
+                "report_type": "all",
+                "secret_scope": "remorph_snowflake",
+                "database_config": {
+                    "source_catalog": "snowflake_sample_data",
+                    "source_schema": "tpch_sf1000",
+                    "target_catalog": "tpch",
+                    "target_schema": "1000gb",
+                },
+                "metadata_config": {
+                    "catalog": "remorph",
+                    "schema": "reconcile",
+                    "volume": "reconcile_volume",
+                },
+                "version": 1,
+            },
         }
     )
 
-    def mock_open(url):
-        print(f"Opening URL: {url}")
+    resource_configurator = create_autospec(ResourceConfigurator)
+    resource_configurator.prompt_for_catalog_setup.return_value = "remorph"
+    resource_configurator.prompt_for_schema_setup.return_value = "reconcile"
+    resource_configurator.prompt_for_volume_setup.return_value = "reconcile_volume"
 
-    monkeypatch.setattr("webbrowser.open", mock_open)
-
-    prompts = MockPrompts(
-        {
-            r"Select a module to configure:": MODULES.index("transpile"),
-            r"Select the source": SOURCES.index("snowflake"),
-            r"Enter Input SQL path.*": "sf_queries",
-            r"Enter Output directory.*": "out_dir",
-            r"Would you like to validate the Syntax, Semantics of the transpiled queries?": "yes",
-            r"Do you want to use SQL Warehouse for validation?": "no",
-            r"Enter a valid cluster_id to proceed": "test_cluster",
-            r"Enter Catalog for Validation": "test",
-            r".*Do you want to create a new one?": "yes",
-            r"Enter schema_name": "schema",
-            r".*Do you want to create a new Schema?": "no",
-            r".*": "",
-        }
+    ctx = ApplicationContext(ws)
+    ctx.replace(
+        prompts=prompts,
+        installation=installation,
+        resource_configurator=resource_configurator,
+        workspace_installation=create_autospec(WorkspaceInstallation),
     )
 
-    install = WorkspaceInstaller(ws, mock_installation_config, prompts)
-    webbrowser.open('https://localhost/#workspace~/mock/config.yml')
-    install.configure()
+    workspace_installer = WorkspaceInstaller(
+        ctx.workspace_client,
+        ctx.prompts,
+        ctx.installation,
+        ctx.install_state,
+        ctx.product_info,
+        ctx.resource_configurator,
+        ctx.workspace_installation,
+    )
+    config = workspace_installer.configure()
+    expected_morph_config = MorphConfig(
+        source="snowflake",
+        input_sql="/tmp/queries/snow",
+        output_folder="/tmp/queries/databricks",
+        skip_validation=True,
+        catalog_name="remorph",
+        schema_name="transpiler",
+        mode="current",
+    )
 
-
-def test_recon_metadata_setup(ws):
-    recon_config = ReconcileConfig(
+    expected_reconcile_config = ReconcileConfig(
         data_source="snowflake",
         report_type="all",
         secret_scope="remorph_snowflake",
         database_config=DatabaseConfig(
-            source_catalog="snowflake_sample_data",
             source_schema="tpch_sf1000",
             target_catalog="tpch",
             target_schema="1000gb",
+            source_catalog="snowflake_sample_data",
         ),
-        metadata_config=ReconcileMetadataConfig(catalog="remorph", schema="reconcile"),
-        job_id="123",
-        tables=None,
-    )
-
-    catalog_setup = create_autospec(CatalogSetup)
-    sql_backend = MockBackend()
-    table_deployer = TableDeployer(sql_backend, "remorph", "reconcile")
-
-    recon_metadata_setup = ReconciliationMetadataSetup(ws, recon_config, catalog_setup, table_deployer)
-    recon_metadata_setup.configure_catalog()
-    catalog_setup.get.assert_called_with("remorph")
-
-    recon_metadata_setup.configure_schema()
-    catalog_setup.get_schema.assert_called_with("remorph.reconcile")
-
-    catalog_setup.get.side_effect = NotFound("Not found")
-    recon_metadata_setup.configure_catalog()
-    catalog_setup.create.assert_called_with("remorph")
-
-    catalog_setup.get_schema.side_effect = NotFound("Not found")
-    recon_metadata_setup.configure_schema()
-    catalog_setup.create_schema.assert_called_with("reconcile", "remorph")
-
-    recon_metadata_setup.deploy_tables()
-    assert len(sql_backend.queries) > 0
-
-
-@mock.patch.object(DashboardPublisher, 'create', autospec=True)
-@mock.patch.object(ReconciliationMetadataSetup, 'run', autospec=True)
-@mock.patch.object(JobDeployer, 'deploy_job', autospec=True)
-def test_recon_workspace_installation(deploy_job, metadata_setup_run, create_dashboard, ws):
-    installation = MockInstallation(is_global=False)
-    product_info = ProductInfo.from_class(ReconcileConfig)
-    prompts = MockPrompts({})
-    remorph_configs = RemorphConfigs(
-        morph=None,
-        reconcile=ReconcileConfig(
-            data_source="snowflake",
-            report_type="all",
-            secret_scope="remorph_snowflake",
-            database_config=DatabaseConfig(
-                source_catalog="snowflake_sample_data",
-                source_schema="tpch_sf1000",
-                target_catalog="tpch",
-                target_schema="1000gb",
-            ),
-            metadata_config=ReconcileMetadataConfig(catalog="remorph", schema="reconcile"),
-            job_id="123",
-            tables=None,
+        metadata_config=ReconcileMetadataConfig(
+            catalog="remorph",
+            schema="reconcile",
+            volume="reconcile_volume",
         ),
     )
-
-    workspace_installation = WorkspaceInstallation(
-        remorph_configs,
-        installation,
-        ws,
-        prompts,
-        timedelta(minutes=2),
-        product_info,
+    expected_config = RemorphConfigs(morph=expected_morph_config, reconcile=expected_reconcile_config)
+    assert config == expected_config
+    installation.assert_file_written(
+        "config.yml",
+        {
+            "catalog_name": "remorph",
+            "input_sql": "/tmp/queries/snow",
+            "mode": "current",
+            "output_folder": "/tmp/queries/databricks",
+            "schema_name": "transpiler",
+            "skip_validation": True,
+            "source": "snowflake",
+            "version": 1,
+        },
     )
 
-    with patch("databricks.labs.remorph.helpers.db_sql.get_sql_backend", return_value=MockBackend()):
-        workspace_installation.run()
-
-    ws.volumes.create.assert_called_once()
-    create_dashboard.assert_called_once()
-    metadata_setup_run.assert_called_once()
-    deploy_job.assert_called_once()
-
-
-def test_recon_workspace_installation_with_existing_volume(ws):
-    installation = MockInstallation(is_global=False)
-    product_info = ProductInfo.from_class(ReconcileConfig)
-    prompts = MockPrompts({})
-    remorph_configs = RemorphConfigs(
-        morph=None,
-        reconcile=ReconcileConfig(
-            data_source="snowflake",
-            report_type="all",
-            secret_scope="remorph_snowflake",
-            database_config=DatabaseConfig(
-                source_catalog="snowflake_sample_data",
-                source_schema="tpch_sf1000",
-                target_catalog="tpch",
-                target_schema="1000gb",
-            ),
-            metadata_config=ReconcileMetadataConfig(catalog="remorph", schema="reconcile"),
-            job_id="123",
-            tables=None,
-        ),
+    installation.assert_file_written(
+        "reconcile.yml",
+        {
+            "data_source": "snowflake",
+            "report_type": "all",
+            "secret_scope": "remorph_snowflake",
+            "database_config": {
+                "source_catalog": "snowflake_sample_data",
+                "source_schema": "tpch_sf1000",
+                "target_catalog": "tpch",
+                "target_schema": "1000gb",
+            },
+            "metadata_config": {
+                "catalog": "remorph",
+                "schema": "reconcile",
+                "volume": "reconcile_volume",
+            },
+            "version": 1,
+        },
     )
-
-    workspace_installation = WorkspaceInstallation(
-        remorph_configs,
-        installation,
-        ws,
-        prompts,
-        timedelta(minutes=2),
-        product_info,
-    )
-
-    ws.volumes.list.return_value = [
-        VolumeInfo(volume_id="122", name="volume1"),
-        VolumeInfo(volume_id="123", name="reconcile_volume"),
-    ]
-
-    with patch("databricks.labs.remorph.helpers.db_sql.get_sql_backend", return_value=MockBackend()):
-        workspace_installation.run()
-
-    ws.volumes.create.assert_not_called()

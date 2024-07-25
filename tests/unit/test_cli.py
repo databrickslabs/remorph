@@ -12,6 +12,7 @@ from databricks.labs.remorph.helpers.recon_config_utils import ReconConfigPrompt
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.errors import NotFound
 from databricks.labs.blueprint.installation import MockInstallation
+from databricks.sdk.config import Config
 
 
 @pytest.fixture
@@ -61,7 +62,10 @@ def mock_workspace_client_cli():
     workspace_client = create_autospec(WorkspaceClient)
     workspace_client.current_user.me().user_name = "foo"
     workspace_client.workspace.download = download
-    workspace_client.config = None
+    config = create_autospec(Config)
+    config.warehouse_id = None
+    config.cluster_id = None
+    workspace_client.config = config
     return workspace_client
 
 
@@ -139,6 +143,160 @@ def temp_dirs_for_lineage(tmpdir):
     sample_sql_file.write(sample_sql_content)
 
     return input_dir, output_dir
+
+
+def test_transpile_with_missing_installation():
+    workspace_client = create_autospec(WorkspaceClient)
+    with (
+        patch("databricks.labs.remorph.cli.ApplicationContext", autospec=True) as mock_app_context,
+        pytest.raises(SystemExit),
+    ):
+        mock_app_context.return_value.workspace_client = workspace_client
+        mock_app_context.return_value.transpile_config = None
+        cli.transpile(
+            workspace_client,
+            "snowflake",
+            "/path/to/sql/file.sql",
+            "/path/to/output",
+            "true",
+            "my_catalog",
+            "my_schema",
+            "current",
+        )
+
+
+def test_transpile_with_no_sdk_config():
+    workspace_client = create_autospec(WorkspaceClient)
+    with (
+        patch("databricks.labs.remorph.cli.ApplicationContext", autospec=True) as mock_app_context,
+        patch("databricks.labs.remorph.cli.morph", return_value={}) as mock_morph,
+        patch("os.path.exists", return_value=True),
+    ):
+        default_config = MorphConfig(
+            sdk_config=None,
+            source="snowflake",
+            input_sql="/path/to/sql/file.sql",
+            output_folder="/path/to/output",
+            skip_validation=True,
+            catalog_name="my_catalog",
+            schema_name="my_schema",
+            mode="current",
+        )
+        mock_app_context.return_value.transpile_config = default_config
+        mock_app_context.return_value.workspace_client = workspace_client
+        cli.transpile(
+            workspace_client,
+            "snowflake",
+            "/path/to/sql/file.sql",
+            "/path/to/output",
+            "true",
+            "my_catalog",
+            "my_schema",
+            "current",
+        )
+        mock_morph.assert_called_once_with(
+            workspace_client,
+            MorphConfig(
+                sdk_config=None,
+                source="snowflake",
+                input_sql="/path/to/sql/file.sql",
+                output_folder="/path/to/output",
+                skip_validation=True,
+                catalog_name="my_catalog",
+                schema_name="my_schema",
+                mode="current",
+            ),
+        )
+
+
+def test_transpile_with_warehouse_id_in_sdk_config():
+    workspace_client = create_autospec(WorkspaceClient)
+    with (
+        patch("databricks.labs.remorph.cli.ApplicationContext", autospec=True) as mock_app_context,
+        patch("os.path.exists", return_value=True),
+        patch("databricks.labs.remorph.cli.morph", return_value={}) as mock_morph,
+    ):
+        sdk_config = {"warehouse_id": "w_id"}
+        default_config = MorphConfig(
+            sdk_config=sdk_config,
+            source="snowflake",
+            input_sql="/path/to/sql/file.sql",
+            output_folder="/path/to/output",
+            skip_validation=True,
+            catalog_name="my_catalog",
+            schema_name="my_schema",
+            mode="current",
+        )
+        mock_app_context.return_value.workspace_client = workspace_client
+        mock_app_context.return_value.transpile_config = default_config
+        cli.transpile(
+            workspace_client,
+            "snowflake",
+            "/path/to/sql/file.sql",
+            "/path/to/output",
+            "true",
+            "my_catalog",
+            "my_schema",
+            "current",
+        )
+        mock_morph.assert_called_once_with(
+            workspace_client,
+            MorphConfig(
+                sdk_config=sdk_config,
+                source="snowflake",
+                input_sql="/path/to/sql/file.sql",
+                output_folder="/path/to/output",
+                skip_validation=True,
+                catalog_name="my_catalog",
+                schema_name="my_schema",
+                mode="current",
+            ),
+        )
+
+
+def test_transpile_with_cluster_id_in_sdk_config():
+    workspace_client = create_autospec(WorkspaceClient)
+    with (
+        patch("databricks.labs.remorph.cli.ApplicationContext", autospec=True) as mock_app_context,
+        patch("os.path.exists", return_value=True),
+        patch("databricks.labs.remorph.cli.morph", return_value={}) as mock_morph,
+    ):
+        sdk_config = {"cluster_id": "c_id"}
+        default_config = MorphConfig(
+            sdk_config=sdk_config,
+            source="snowflake",
+            input_sql="/path/to/sql/file.sql",
+            output_folder="/path/to/output",
+            skip_validation=True,
+            catalog_name="my_catalog",
+            schema_name="my_schema",
+            mode="current",
+        )
+        mock_app_context.return_value.workspace_client = workspace_client
+        mock_app_context.return_value.transpile_config = default_config
+        cli.transpile(
+            workspace_client,
+            "snowflake",
+            "/path/to/sql/file.sql",
+            "/path/to/output",
+            "true",
+            "my_catalog",
+            "my_schema",
+            "current",
+        )
+        mock_morph.assert_called_once_with(
+            workspace_client,
+            MorphConfig(
+                sdk_config=sdk_config,
+                source="snowflake",
+                input_sql="/path/to/sql/file.sql",
+                output_folder="/path/to/output",
+                skip_validation=True,
+                catalog_name="my_catalog",
+                schema_name="my_schema",
+                mode="current",
+            ),
+        )
 
 
 def test_transpile_with_invalid_dialect(mock_workspace_client_cli):
@@ -366,6 +524,19 @@ def test_generate_lineage_invalid_input_sql(mock_workspace_client_cli):
         )
 
 
+def test_generate_lineage_invalid_output_dir(mock_workspace_client_cli, monkeypatch):
+    input_sql = "/path/to/sql/file.sql"
+    output_folder = "/path/to/output"
+    monkeypatch.setattr("os.path.exists", lambda x: x == input_sql)
+    with pytest.raises(Exception, match="Error: Invalid value for '--output-folder'"):
+        cli.generate_lineage(
+            mock_workspace_client_cli,
+            source="snowflake",
+            input_sql=input_sql,
+            output_folder=output_folder,
+        )
+
+
 def test_configure_secrets_databricks(mock_workspace_client):
     source_dict = {"databricks": "0", "netezza": "1", "oracle": "2", "snowflake": "3"}
     prompts = MockPrompts(
@@ -386,9 +557,6 @@ def test_cli_configure_secrets_config(mock_workspace_client):
         mock_recon_config.assert_called_once_with(mock_workspace_client)
 
 
-def test_cli_reconcile(mock_workspace_client, mock_installation_reconcile, monkeypatch):
-    with patch(
-        "databricks.labs.blueprint.installation.Installation.assume_user_home", return_value=mock_installation_reconcile
-    ):
-        with patch("databricks.labs.remorph.helpers.reconcile_utils.ReconcileUtils.run", return_value=True):
-            cli.reconcile(mock_workspace_client)
+def test_cli_reconcile(mock_workspace_client):
+    with patch("databricks.labs.remorph.reconcile.runner.ReconcileRunner.run", return_value=True):
+        cli.reconcile(mock_workspace_client)

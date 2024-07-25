@@ -1,107 +1,74 @@
 import dataclasses
 import logging
-import os
-from datetime import datetime, timedelta, timezone
-from importlib.resources import files
+from datetime import datetime, timezone, timedelta
 from typing import Any
 
-import databricks.labs.remorph.resources
 from databricks.labs.blueprint.installation import Installation
 from databricks.labs.blueprint.installer import InstallState
 from databricks.labs.blueprint.wheels import ProductInfo
-from databricks.labs.lsql.backends import SqlBackend
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.errors import InvalidParameterValue
 from databricks.sdk.service import compute
 from databricks.sdk.service.jobs import Task, PythonWheelTask, JobCluster, JobSettings
 
 from databricks.labs.remorph.config import ReconcileConfig
-from databricks.labs.remorph.reconcile.constants import SourceType
+from databricks.labs.remorph.reconcile.constants import ReconSourceType
 
 logger = logging.getLogger(__name__)
 
-TEST_JOBS_PURGE_TIMEOUT = timedelta(hours=1, minutes=15)
+
+_TEST_JOBS_PURGE_TIMEOUT = timedelta(hours=1, minutes=15)
 
 
-class TableDeployer:
-    def __init__(self, sql_backend: SqlBackend, catalog: str, schema: str):
-        self._sql_backend = sql_backend
-        self._catalog = catalog
-        self._schema = schema
-
-    def deploy_table(self, table_name: str, relative_filepath: str):
-        """
-        Deploys a table to the catalog and schema specified in the constructor
-        :param table_name: The table to deploy
-        :param relative_filepath: DDL file path relative to the resource package
-        """
-        query = self._load(relative_filepath)
-        logger.info(f"Deploying table {table_name} in {self._catalog}.{self._schema}")
-        self._sql_backend.execute(query, catalog=self._catalog, schema=self._schema)
-
-    def _load(self, relative_filename: str) -> str:
-        sql = files(databricks.labs.remorph.resources).joinpath(relative_filename).read_text()
-        return sql
-
-
-class JobDeployer:
+class JobDeployment:
     def __init__(
         self,
-        workspace_client: WorkspaceClient,
+        ws: WorkspaceClient,
         installation: Installation,
         install_state: InstallState,
         product_info: ProductInfo,
-        recon_config: ReconcileConfig,
     ):
-        self._ws = workspace_client
+        self._ws = ws
         self._installation = installation
         self._install_state = install_state
         self._product_info = product_info
-        self._recon_config = recon_config
 
-    def deploy_job(self) -> str:
+    def deploy_recon_job(self, name, recon_config: ReconcileConfig):
         logger.info("Deploying reconciliation job.")
-        job_id = self._create_job()
-        self._install_state.save()
+        job_id = self._update_or_create_recon_job(name, recon_config)
         logger.info(f"Reconciliation job deployed with job_id={job_id}")
         logger.info(f"Job URL: {self._ws.config.host}#job/{job_id}")
-        return job_id
+        self._install_state.save()
 
-    def _create_job(self) -> str:
-        job_name = "Remorph_Reconciliation_Job"
+    def _update_or_create_recon_job(self, name, recon_config: ReconcileConfig) -> str:
         description = "Run the reconciliation process"
         task_key = "run_reconciliation"
 
-        job_settings = self._job_settings(job_name, task_key, description)
-        if job_name in self._install_state.jobs:
+        job_settings = self._recon_job_settings(name, task_key, description, recon_config)
+        if name in self._install_state.jobs:
             try:
-                job_id = int(self._install_state.jobs[job_name])
-                logger.info(f"Updating configuration for job={job_name}, job_id={job_id}")
+                job_id = int(self._install_state.jobs[name])
+                logger.info(f"Updating configuration for job `{name}`, job_id={job_id}")
                 self._ws.jobs.reset(job_id, JobSettings(**job_settings))
                 return str(job_id)
             except InvalidParameterValue:
-                del self._install_state.jobs[job_name]
-                logger.warning(f"Job={job_name} does not exist anymore for some reason")
-                return self._create_job()
+                del self._install_state.jobs[name]
+                logger.warning(f"Job `{name}` does not exist anymore for some reason")
+                return self._update_or_create_recon_job(name, recon_config)
 
-        logger.info(f"Creating new job configuration for job={job_name}")
+        logger.info(f"Creating new job configuration for job `{name}`")
         new_job = self._ws.jobs.create(**job_settings)
         assert new_job.job_id is not None
-        self._install_state.jobs[job_name] = str(new_job.job_id)
+        self._install_state.jobs[name] = str(new_job.job_id)
         return str(new_job.job_id)
 
-    def _name(self, name: str) -> str:
-        prefix = os.path.basename(self._installation.install_folder()).removeprefix('.')
-        return f"[{prefix.upper()}] {name}"
-
-    def _is_testing(self):
-        return self._product_info.product_name() != "remorph"
-
-    @staticmethod
-    def _get_test_purge_time() -> str:
-        return (datetime.now(timezone.utc) + TEST_JOBS_PURGE_TIMEOUT).strftime("%Y%m%d%H")
-
-    def _job_settings(self, job_name: str, task_key: str, description: str) -> dict[str, Any]:
+    def _recon_job_settings(
+        self,
+        job_name: str,
+        task_key: str,
+        description: str,
+        recon_config: ReconcileConfig,
+    ) -> dict[str, Any]:
         latest_lts_spark = self._ws.clusters.select_spark_version(latest=True, long_term_support=True)
         version = self._product_info.version()
         version = version if not self._ws.config.is_gcp else version.replace("+", "-")
@@ -112,7 +79,7 @@ class JobDeployer:
             tags.update({"RemoveAfter": date_to_remove})
 
         return {
-            "name": self._name(job_name),
+            "name": self._name_with_prefix(job_name),
             "tags": tags,
             "job_clusters": [
                 JobCluster(
@@ -133,20 +100,23 @@ class JobDeployer:
                         description=description,
                         job_cluster_key="Remorph_Reconciliation_Cluster",
                     ),
+                    recon_config,
                 ),
             ],
         }
 
-    def _job_recon_task(self, jobs_task: Task) -> Task:
+    def _job_recon_task(self, jobs_task: Task, recon_config: ReconcileConfig) -> Task:
         libraries = [
             compute.Library(pypi=compute.PythonPyPiLibrary("databricks-labs-remorph")),
         ]
-        source = self._recon_config.data_source
-        if source == SourceType.ORACLE.value:
-            # TODO: Automatically fetch a version list for `ojdbc8` and
-            #  use the second latest version instead of hardcoding
+        source = recon_config.data_source
+        if source == ReconSourceType.ORACLE.value:
+            # TODO: Automatically fetch a version list for `ojdbc8`
+            oracle_driver_version = "23.4.0.24.05"
             libraries.append(
-                compute.Library(maven=compute.MavenLibrary("com.oracle.database.jdbc:ojdbc8:23.4.0.24.05")),
+                compute.Library(
+                    maven=compute.MavenLibrary(f"com.oracle.database.jdbc:ojdbc8:{oracle_driver_version}"),
+                ),
             )
 
         return dataclasses.replace(
@@ -158,5 +128,16 @@ class JobDeployer:
             ),
         )
 
+    def _is_testing(self):
+        return self._product_info.product_name() != "remorph"
+
+    @staticmethod
+    def _get_test_purge_time() -> str:
+        return (datetime.now(timezone.utc) + _TEST_JOBS_PURGE_TIMEOUT).strftime("%Y%m%d%H")
+
     def _get_default_node_type_id(self) -> str:
         return self._ws.clusters.select_node_type(local_disk=True, min_memory_gb=16)
+
+    def _name_with_prefix(self, name: str) -> str:
+        prefix = self._installation.product()
+        return f"[{prefix.upper()}] {name}"

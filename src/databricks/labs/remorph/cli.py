@@ -1,15 +1,13 @@
 import json
 import os
 
-from pyspark.sql import SparkSession
 
-from databricks.connect import DatabricksSession
 from databricks.labs.blueprint.cli import App
 from databricks.labs.blueprint.entrypoint import get_logger
-from databricks.labs.blueprint.installation import Installation
 from databricks.labs.remorph.config import SQLGLOT_DIALECTS, MorphConfig
+from databricks.labs.remorph.contexts.application import ApplicationContext
 from databricks.labs.remorph.helpers.recon_config_utils import ReconConfigPrompts
-from databricks.labs.remorph.helpers.reconcile_utils import ReconcileUtils
+from databricks.labs.remorph.reconcile.runner import ReconcileRunner
 from databricks.labs.remorph.lineage import lineage_generator
 from databricks.labs.remorph.transpiler.execute import morph
 from databricks.sdk import WorkspaceClient
@@ -35,24 +33,27 @@ def transpile(
     schema_name: str,
     mode: str,
 ):
-    """transpiles source dialect to databricks dialect"""
-    installation = Installation.current(w, 'remorph')
-    default_config = installation.load(MorphConfig)
+    """Transpiles source dialect to databricks dialect"""
+    ctx = ApplicationContext(w)
+    logger.info(f"User: {ctx.current_user}")
+    default_config = ctx.transpile_config
+    if not default_config:
+        raise SystemExit("Installed transpile config not found. Please install Remorph transpile first.")
+    _override_workspace_client_config(ctx, default_config.sdk_config)
     mode = mode if mode else "current"  # not checking for default config as it will always be current
-
     if source.lower() not in SQLGLOT_DIALECTS:
-        raise_validation_exception(f"Error: Invalid value for '--source': '{source}' is not one of {DIALECTS}. ")
-    if not os.path.exists(input_sql) or input_sql in {None, ""}:
+        raise_validation_exception(f"Error: Invalid value for '--source': '{source}' is not one of {DIALECTS}.")
+    if not input_sql or not os.path.exists(input_sql):
         raise_validation_exception(f"Error: Invalid value for '--input_sql': Path '{input_sql}' does not exist.")
     if not output_folder:
         output_folder = default_config.output_folder if default_config.output_folder else None
     if skip_validation.lower() not in {"true", "false"}:
         raise_validation_exception(
-            f"Error: Invalid value for '--skip_validation': '{skip_validation}' is not one of 'true', 'false'. "
+            f"Error: Invalid value for '--skip_validation': '{skip_validation}' is not one of 'true', 'false'."
         )
     if mode.lower() not in {"current", "experimental"}:
         raise_validation_exception(
-            f"Error: Invalid value for '--mode': '{mode}' " f"is not one of 'current', 'experimental'. "
+            f"Error: Invalid value for '--mode': '{mode}' " f"is not one of 'current', 'experimental'."
         )
 
     sdk_config = default_config.sdk_config if default_config.sdk_config else None
@@ -70,33 +71,51 @@ def transpile(
         sdk_config=sdk_config,
     )
 
-    status = morph(w, config)
+    status = morph(ctx.workspace_client, config)
 
     print(json.dumps(status))
 
 
+def _override_workspace_client_config(ctx: ApplicationContext, overrides: dict[str, str] | None):
+    """
+    Override the Workspace client's SDK config with the user provided SDK config.
+    Users can provide the cluster_id and warehouse_id during the installation.
+    This will update the default config object in-place.
+    """
+    if not overrides:
+        return
+
+    warehouse_id = overrides.get("warehouse_id")
+    if warehouse_id:
+        ctx.connect_config.warehouse_id = warehouse_id
+
+    cluster_id = overrides.get("cluster_id")
+    if cluster_id:
+        ctx.connect_config.cluster_id = cluster_id
+
+
 @remorph.command
 def reconcile(w: WorkspaceClient):
-    """[EXPERIMENTAL] reconciles source to databricks datasets"""
-    logger.info(f"user: {w.current_user.me()}")
-
-    installation = Installation.assume_user_home(w, "remorph")
-
-    utils = ReconcileUtils(w, installation)
-    utils.run()
-
-
-def _get_spark_session(ws: WorkspaceClient) -> SparkSession:
-    return DatabricksSession.builder.sdkConfig(ws.config).getOrCreate()
+    """[EXPERIMENTAL] Reconciles source to Databricks datasets"""
+    ctx = ApplicationContext(w)
+    logger.info(f"User: {ctx.current_user}")
+    recon_runner = ReconcileRunner(
+        ctx.workspace_client,
+        ctx.installation,
+        ctx.install_state,
+        ctx.prompts,
+    )
+    recon_runner.run()
 
 
 @remorph.command
 def generate_lineage(w: WorkspaceClient, source: str, input_sql: str, output_folder: str):
     """[Experimental] Generates a lineage of source SQL files or folder"""
-    logger.info(f"User: {w.current_user.me()}")
+    ctx = ApplicationContext(w)
+    logger.info(f"User: {ctx.current_user}")
     if source.lower() not in SQLGLOT_DIALECTS:
-        raise_validation_exception(f"Error: Invalid value for '--source': '{source}' is not one of {DIALECTS}. ")
-    if not os.path.exists(input_sql) or input_sql in {None, ""}:
+        raise_validation_exception(f"Error: Invalid value for '--source': '{source}' is not one of {DIALECTS}.")
+    if not input_sql or not os.path.exists(input_sql):
         raise_validation_exception(f"Error: Invalid value for '--input_sql': Path '{input_sql}' does not exist.")
     if not os.path.exists(output_folder) or output_folder in {None, ""}:
         raise_validation_exception(
