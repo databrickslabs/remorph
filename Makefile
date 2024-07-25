@@ -40,7 +40,12 @@ coverage:
 build_core_jar:
 	mvn --update-snapshots -B install -DskipTests -pl "!com.databricks.labs:remorph-coverage" --file pom.xml
 
-dialect_coverage_report: build_core_jar
+python_coverage_report:
 	hatch run python src/databricks/labs/remorph/coverage/remorph_snow_transpilation_coverage.py
 	hatch -e sqlglot-latest run python src/databricks/labs/remorph/coverage/sqlglot_snow_transpilation_coverage.py
-	mvn compile -DskipTests exec:java -pl coverage --file pom.xml -DsourceDir=${INPUT_DIR} -DoutputPath=${OUTPUT_DIR} -DsourceDialect=Snow -Dextractor=full
+
+antlr_coverage_report:build_core_jar
+	mvn compile -DskipTests exec:java -pl coverage --file pom.xml -DsourceDir=${INPUT_DIR_PARENT}/snowflake -DoutputPath=${OUTPUT_DIR} -DsourceDialect=Snow -Dextractor=full
+	mvn exec:java -pl coverage --file pom.xml -DsourceDir=${INPUT_DIR_PARENT}/tsql -DoutputPath=${OUTPUT_DIR} -DsourceDialect=Tsql -Dextractor=full
+
+dialect_coverage_report:antlr_coverage_report python_coverage_report
