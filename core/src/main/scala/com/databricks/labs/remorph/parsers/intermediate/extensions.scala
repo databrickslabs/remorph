@@ -47,10 +47,6 @@ case object NoopNode extends LeafNode {
   override def output: Seq[Attribute] = Seq.empty
 }
 
-case object RowNumber extends LeafExpression {
-  override def dataType: DataType = LongType
-}
-
 case class WithCTE(ctes: Seq[LogicalPlan], query: LogicalPlan) extends RelationCommon {
   override def output: Seq[Attribute] = query.output
   override def children: Seq[LogicalPlan] = ctes :+ query
