@@ -107,8 +107,6 @@ case class Like(left: Expression, right: Expression, escapeChar: Char = '\\') ex
   override def dataType: DataType = BooleanType
 }
 
-case class RLike(expression: Expression, pattern: Expression) extends ToRefactor
-
 // Operators, in order of precedence
 
 // Bitwise NOT is highest precedence after parens '(' ')'
