@@ -174,7 +174,7 @@ jobs:
   coverage-tests-with-make:
     runs-on: ubuntu-latest
     env:
-      INPUT_DIR: .
+      INPUT_DIR_PARENT: .
       OUTPUT_DIR: ./test-reports
     steps:
       - name: Checkout
@@ -200,7 +200,11 @@ jobs:
           cache: 'maven'
 
       - name: Create dummy test file
-        run: echo "SELECT * FROM t;" >> dummy_test.sql
+        run: |
+          mkdir $INPUT_DIR_PARENT/snowflake
+          mkdir $INPUT_DIR_PARENT/tsql
+          echo "SELECT * FROM t;" >> snowflake/dummy_test.sql
+          echo "SELECT * FROM t;" >> tsql/dummy_test.sql
         shell: bash
 
       - name: Dry run coverage tests with make
