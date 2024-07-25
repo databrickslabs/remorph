@@ -38,9 +38,9 @@ logger = logging.getLogger(__name__)
 _RECON_TABLE_NAME = "main"
 _RECON_METRICS_TABLE_NAME = "metrics"
 _RECON_DETAILS_TABLE_NAME = "details"
-_RECON_AGGREGATE_RULES_TABLE_NAME = "agg_rules"
-_RECON_AGGREGATE_METRICS_TABLE_NAME = "agg_metrics"
-_RECON_AGGREGATE_DETAILS_TABLE_NAME = "agg_details"
+_RECON_AGGREGATE_RULES_TABLE_NAME = "aggregate_rules"
+_RECON_AGGREGATE_METRICS_TABLE_NAME = "aggregate_metrics"
+_RECON_AGGREGATE_DETAILS_TABLE_NAME = "aggregate_details"
 _SAMPLE_ROWS = 50
 
 
@@ -622,7 +622,12 @@ class ReconCapture:
             assert agg_output.rule, "Aggregate Rule must be defined for storing the rules"
             rule_id = hash(f"{recon_table_id}_{agg_output.rule.rule_column}")
             rule_query = agg_output.rule.get_rule_query(rule_id)
-            rules_table_df = self._union_dataframes(rules_table_df, self.spark.sql(rule_query))
+            rule_df = (
+                self.spark.sql(rule_query)
+                .withColumn("inserted_ts", lit(datetime.now()))
+                .select("rule_id", "rule_type", "rule_info", "inserted_ts")
+            )
+            rules_table_df = self._union_dataframes(rules_table_df, rule_df)
 
         if rules_table_df:
             _write_df_to_delta(rules_table_df, f"{self._db_prefix}.{_RECON_AGGREGATE_RULES_TABLE_NAME}")
