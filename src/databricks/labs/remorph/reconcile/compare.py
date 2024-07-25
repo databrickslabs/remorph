@@ -12,6 +12,8 @@ from databricks.labs.remorph.reconcile.recon_config import (
     DataReconcileOutput,
     MismatchOutput,
     Aggregate,
+    AggregateRule,
+    AggregateQueryOutput,
 )
 
 logger = logging.getLogger(__name__)
@@ -115,26 +117,80 @@ def reconcile_data(
     )
 
 
+def _reconcile_agg_data_rules(
+    rules: list[AggregateRule],
+    joined_df: DataFrame,
+    source_columns: list[str],
+    target_columns: list[str],
+):
+    output: list[AggregateQueryOutput] = []
+    for rule in rules:
+        # Generates select columns in the format of:
+        # [(source_min_col1, target_min_col1), (source_count_col3, target_count_col3) ... ]
+        rule_select_columns = [
+            (f"source_{rule.agg_type}_{rule.agg_column}", f"target_{rule.agg_type}_{rule.agg_column}")
+        ]
+
+        # df_rule_filter_columns = rule_select_columns
+
+        rule_group_columns = None
+        if rule.group_by_columns:
+            rule_group_columns = [
+                (f"source_group_by_{group_col}", f"target_group_by_{group_col}") for group_col in rule.group_by_columns
+            ]
+            # df_rule_filter_columns.extend(rule_group_columns)
+            rule_select_columns.extend(rule_group_columns)
+
+        df_rule_columns = []
+        for src_col, tgt_col in rule_select_columns:
+            df_rule_columns.extend([src_col, tgt_col])
+
+        rule_joined_df = joined_df.selectExpr(*df_rule_columns)
+
+        # Data mismatch between Source and Target aggregated data
+        mismatch = _get_mismatch_agg_data(rule_joined_df, rule_select_columns, rule_group_columns)
+
+        # Data missing in Source DataFrame
+        rule_target_columns = set(target_columns).intersection([target_col for _, target_col in rule_select_columns])
+        missing_in_src = rule_joined_df.filter(_agg_conditions(rule_select_columns, "missing_in_src")).select(
+            *rule_target_columns
+        )
+
+        # Data missing in Target DataFrame
+        rule_source_columns = set(source_columns).intersection([source_col for source_col, _ in rule_select_columns])
+        missing_in_tgt = rule_joined_df.filter(_agg_conditions(rule_select_columns, "missing_in_tgt")).select(
+            *rule_source_columns
+        )
+
+        mismatch_count = 0
+        if mismatch:
+            mismatch_count = mismatch.count()
+
+        rule_reconcile_output = DataReconcileOutput(
+            mismatch_count=mismatch_count,
+            missing_in_src_count=missing_in_src.count(),
+            missing_in_tgt_count=missing_in_tgt.count(),
+            missing_in_src=missing_in_src.limit(_SAMPLE_ROWS),
+            missing_in_tgt=missing_in_tgt.limit(_SAMPLE_ROWS),
+            mismatch=MismatchOutput(mismatch_df=mismatch),
+        )
+        output.append(AggregateQueryOutput(rule, rule_reconcile_output))
+
+    return output
+
+
 def reconcile_agg_data(
     source: DataFrame,
     target: DataFrame,
     group_list: list[Aggregate],
+    rules: list[AggregateRule],
     spark: SparkSession,
     path: str,
-) -> DataReconcileOutput:
+) -> list[AggregateQueryOutput]:
     source_alias = "src"
     target_alias = "tgt"
 
-    # Generates select columns in the format of:
-    # [(source_min_col1, target_min_col1), (source_count_col3, target_count_col3) ... ]
-    select_columns = [
-        (f"source_{agg.type}_{agg_col}".lower(), f"target_{agg.type}_{agg_col}".lower())
-        for agg in group_list
-        for agg_col in agg.agg_cols
-    ]
-
     # If there is no Group By condition, do Cross join as there is only one record
-    group_columns = None
     df = source.alias(source_alias).join(
         other=target.alias(target_alias),
         how="cross",
@@ -148,7 +204,6 @@ def reconcile_agg_data(
             for group_col in group_list[0].group_by_cols
         ]
 
-        select_columns = select_columns + group_columns
         # If there are Group By columns, do Full join on the grouped columns
         df = source.alias(source_alias).join(
             other=target.alias(target_alias),
@@ -162,33 +217,10 @@ def reconcile_agg_data(
     )
 
     # Write the joined df to volume path
-    joined_volume_df = ReconIntermediatePersist(spark, path).write_and_read_unmatched_df_with_volumes(joined_df)
+    joined_volume_df = ReconIntermediatePersist(spark, path).write_and_read_unmatched_df_with_volumes(joined_df).cache()
     logger.warning(f"Unmatched data is written to {path} successfully")
 
-    # Data mismatch between Source and Target aggregated data
-    mismatch = _get_mismatch_agg_data(joined_volume_df, select_columns, group_columns)
-
-    # Data missing in Source DataFrame
-    missing_in_src = joined_volume_df.filter(_agg_conditions(select_columns, "missing_in_src")).select(*target.columns)
-
-    # Data missing in Target DataFrame
-    missing_in_tgt = joined_volume_df.filter(_agg_conditions(select_columns, "missing_in_tgt")).select(*source.columns)
-
-    mismatch_count = 0
-    if mismatch:
-        mismatch_count = mismatch.count()
-
-    missing_in_src_count = missing_in_src.count()
-    missing_in_tgt_count = missing_in_tgt.count()
-
-    return DataReconcileOutput(
-        mismatch_count=mismatch_count,
-        missing_in_src_count=missing_in_src_count,
-        missing_in_tgt_count=missing_in_tgt_count,
-        missing_in_src=missing_in_src.limit(_SAMPLE_ROWS),
-        missing_in_tgt=missing_in_tgt.limit(_SAMPLE_ROWS),
-        mismatch=MismatchOutput(mismatch_df=mismatch, mismatch_columns=mismatch.columns),
-    )
+    return _reconcile_agg_data_rules(rules, joined_volume_df, source.columns, target.columns)
 
 
 def _get_mismatch_data(df: DataFrame, src_alias: str, tgt_alias: str) -> DataFrame:
@@ -243,10 +275,10 @@ def _agg_conditions(
     # return reduce(lambda a, b: a & b, conditions_list)
 
 
-def _match_cols(select_cols: list[tuple[str, str]]):
+def _generate_match_columns(select_cols: list[tuple[str, str]]):
     items = []
     for item in select_cols:
-        match_col_name = item[0].replace("source_", "") + "_match"
+        match_col_name = item[0].replace("source_", "match_")
         items.append((match_col_name, col(f"{item[0]}") == col(f"{item[1]}")))
     return items
 
@@ -256,15 +288,16 @@ def _get_mismatch_agg_data(
     select_cols: list[tuple[str, str]],
     group_cols: list[tuple[str, str]] | None,
 ) -> DataFrame:
+    df_with_match_cols = df
+
     if group_cols:
         filter_conditions = _agg_conditions(group_cols)
-        df = df.filter(filter_conditions)
+        df_with_match_cols = df_with_match_cols.filter(filter_conditions)
+
+    for match_column_name, match_column in _generate_match_columns(select_cols):
+        df_with_match_cols = df_with_match_cols.withColumn(match_column_name, match_column)
 
     select_conditions = _agg_conditions(select_cols, "select")
-
-    df_with_match_cols = df
-    for match_column_name, match_column in _match_cols(select_cols):
-        df_with_match_cols = df_with_match_cols.withColumn(match_column_name, match_column)
 
     return df_with_match_cols.withColumn("agg_data_match", select_conditions).filter(
         col("agg_data_match") == lit(False)

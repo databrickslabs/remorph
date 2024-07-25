@@ -8,7 +8,11 @@ from databricks.labs.remorph.reconcile.query_builder.base import QueryBuilder
 from databricks.labs.remorph.reconcile.query_builder.expression_generator import (
     build_column,
 )
-from databricks.labs.remorph.reconcile.recon_config import Aggregate, AggregateQueryRules, AggregateRule
+from databricks.labs.remorph.reconcile.recon_config import (
+    Aggregate,
+    AggregateQueryRules,
+    AggregateRule,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -106,7 +110,6 @@ class AggregateQueryBuilder(QueryBuilder):
         #   refer to Example 1
         query_agg_rules = []
         for agg in group_list:
-
             # Get the rules for each aggregate and append to the query_agg_rules list
             query_agg_rules.extend(self._build_agg_rules(agg))
 
@@ -190,9 +193,6 @@ class AggregateQueryBuilder(QueryBuilder):
 
         return groupby(_aggregates, key=attrgetter("group_by_cols_as_str"))
 
-    def _format_columns(self, cols: list[str]):
-        return ",".join([f" '{col.lower()}' ".strip() for col in sorted(cols)])
-
     def _build_agg_rules(self, agg: Aggregate) -> list[AggregateRule]:
         """
         Builds the rules for each aggregate column in the given Aggregate object
@@ -217,29 +217,11 @@ class AggregateQueryBuilder(QueryBuilder):
         :param agg: Aggregate
         :return: list[AggregateRule]
         """
-        agg_rules_list: list[AggregateRule] = []
 
-        # If group_by_columns are not defined, store is as null
-        group_by_column = "NULL"
-        if agg.group_by_cols:
-            # Convert the column to lower case with singe quotes, e.g., ('grp1', 'grp2')
-            group_by_column = f"concat_ws(', ', array({self._format_columns(agg.group_by_cols)}))"
-
-        for agg_col in agg.agg_cols:
-            # creates rule_column. e.g., hash(min_col1_grp1_grp2) # add recon_id
-            rule_column = f"{agg.type.lower()}_{agg_col.lower()}_{agg.group_by_cols_as_str}"
-            rule_id = hash(rule_column)
-            rule_query = (
-                f" SELECT {rule_id} as rule_id, "
-                f" '{agg.type.lower()}' as agg_type, "
-                f" '{agg_col.lower()}' as agg_column, "
-                f" {group_by_column} as group_by_columns "
-            )
-
-            agg_rules_list.append(AggregateRule(rule_id=rule_id, rule_column=rule_column, rule_query=rule_query))
-
-        #   "\nUNION\n".join(
-        return agg_rules_list
+        return [
+            AggregateRule(agg_type=agg.type, agg_column=agg_col, group_by_columns=agg.group_by_cols)
+            for agg_col in agg.agg_cols
+        ]
 
     def build_queries(self) -> dict[str, AggregateQueryRules]:
         """
@@ -271,7 +253,6 @@ class AggregateQueryBuilder(QueryBuilder):
 
         queries_dict = {}
         for key, group in self.grouped_aggregates():
-
             group_list: list[Aggregate] = list(group)
 
             query_with_rules = self._get_layer_query(group_list)
