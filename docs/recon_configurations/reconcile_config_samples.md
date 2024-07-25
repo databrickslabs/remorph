@@ -7,7 +7,7 @@ Consider the below tables that we want to reconcile:
 | source   | source_catalog | source_schema | product_prod | p_id INT,<br>p_name STRING,<br>price NUMBER,<br>discount DECIMAL(5,3),<br>offer DOUBLE,<br>creation_date DATE<br>comment STRING<br>             | p_id        |
 | target   | target_catalog | target_schema | product      | product_id INT,<br>product_name STRING,<br>price NUMBER,<br>discount DECIMAL(5,3),<br>offer DOUBLE,<br>creation_date DATE<br>comment STRING<br> | product_id  |
 
-## Run with Drop,Join,Transformation,Threshold,Filter,JDBC ReaderOptions configs
+## Run with Drop,Join,Transformation,ColumnThresholds,Filter,JDBC ReaderOptions configs
 
 
 ```json
@@ -49,12 +49,19 @@ Consider the below tables that we want to reconcile:
           "target": "to_date(creation_date,'yyyy-mm-dd')"
         }
       ],
-      "threshold": [
+      "column_thresholds": [
         {
           "column_name": "price",
           "upper_bound": "-50",
           "lower_bound": "50",
           "type": "float"
+        }
+      ],
+      "table_thresholds": [
+        {
+          "lower_bound": "0%",
+          "upper_bound": "5%",
+          "model": "mismatch"
         }
       ],
       "filters": {
