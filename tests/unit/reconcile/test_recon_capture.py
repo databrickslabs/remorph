@@ -26,7 +26,6 @@ from databricks.labs.remorph.reconcile.recon_config import (
     ThresholdOutput,
     ReconcileRecordCount,
     TableThresholds,
-    TableThresholdModel,
     TableThresholdBoundsException,
 )
 
@@ -707,7 +706,7 @@ def test_apply_threshold_for_mismatch_with_true_absolute(mock_workspace_client, 
     reconcile_output.missing_in_src = None
     reconcile_output.missing_in_tgt = None
     table_conf.table_thresholds = [
-        TableThresholds(lower_bound="0", upper_bound="4", model=TableThresholdModel.MISMATCH),
+        TableThresholds(lower_bound="0", upper_bound="4", model="mismatch"),
     ]
     recon_capture = ReconCapture(
         database_config,
@@ -742,7 +741,7 @@ def test_apply_threshold_for_mismatch_with_missing(mock_workspace_client, mock_s
     spark = mock_spark
     reconcile_output, schema_output, table_conf, reconcile_process, row_count = data_prep(spark)
     table_conf.table_thresholds = [
-        TableThresholds(lower_bound="0", upper_bound="4", model=TableThresholdModel.MISMATCH),
+        TableThresholds(lower_bound="0", upper_bound="4", model="mismatch"),
     ]
     recon_capture = ReconCapture(
         database_config,
@@ -777,7 +776,7 @@ def test_apply_threshold_for_mismatch_with_schema_fail(mock_workspace_client, mo
     spark = mock_spark
     reconcile_output, schema_output, table_conf, reconcile_process, row_count = data_prep(spark)
     table_conf.table_thresholds = [
-        TableThresholds(lower_bound="0", upper_bound="4", model=TableThresholdModel.MISMATCH),
+        TableThresholds(lower_bound="0", upper_bound="4", model="mismatch"),
     ]
     recon_capture = ReconCapture(
         database_config,
@@ -816,7 +815,7 @@ def test_apply_threshold_for_mismatch_with_wrong_absolute_bound(mock_workspace_c
     spark = mock_spark
     reconcile_output, schema_output, table_conf, reconcile_process, row_count = data_prep(spark)
     table_conf.table_thresholds = [
-        TableThresholds(lower_bound="0", upper_bound="1", model=TableThresholdModel.MISMATCH),
+        TableThresholds(lower_bound="0", upper_bound="1", model="mismatch"),
     ]
     reconcile_output.missing_in_src_count = 0
     reconcile_output.missing_in_tgt_count = 0
@@ -856,7 +855,7 @@ def test_apply_threshold_for_mismatch_with_wrong_percentage_bound(mock_workspace
     spark = mock_spark
     reconcile_output, schema_output, table_conf, reconcile_process, row_count = data_prep(spark)
     table_conf.table_thresholds = [
-        TableThresholds(lower_bound="0%", upper_bound="20%", model=TableThresholdModel.MISMATCH),
+        TableThresholds(lower_bound="0%", upper_bound="20%", model="mismatch"),
     ]
     reconcile_output.missing_in_src_count = 0
     reconcile_output.missing_in_tgt_count = 0
@@ -896,7 +895,7 @@ def test_apply_threshold_for_mismatch_with_true_percentage_bound(mock_workspace_
     spark = mock_spark
     reconcile_output, schema_output, table_conf, reconcile_process, row_count = data_prep(spark)
     table_conf.table_thresholds = [
-        TableThresholds(lower_bound="0%", upper_bound="90%", model=TableThresholdModel.MISMATCH),
+        TableThresholds(lower_bound="0%", upper_bound="90%", model="mismatch"),
     ]
     reconcile_output.missing_in_src_count = 0
     reconcile_output.missing_in_tgt_count = 0
@@ -951,7 +950,7 @@ def test_apply_threshold_for_mismatch_with_invalid_bounds(mock_workspace_client,
     )
     with pytest.raises(TableThresholdBoundsException):
         table_conf.table_thresholds = [
-            TableThresholds(lower_bound="-0%", upper_bound="-40%", model=TableThresholdModel.MISMATCH),
+            TableThresholds(lower_bound="-0%", upper_bound="-40%", model="mismatch"),
         ]
         recon_capture.start(
             data_reconcile_output=reconcile_output,
@@ -963,7 +962,7 @@ def test_apply_threshold_for_mismatch_with_invalid_bounds(mock_workspace_client,
 
     with pytest.raises(TableThresholdBoundsException):
         table_conf.table_thresholds = [
-            TableThresholds(lower_bound="10%", upper_bound="5%", model=TableThresholdModel.MISMATCH),
+            TableThresholds(lower_bound="10%", upper_bound="5%", model="mismatch"),
         ]
         recon_capture.start(
             data_reconcile_output=reconcile_output,
@@ -988,7 +987,7 @@ def test_apply_threshold_for_only_threshold_mismatch_with_true_absolute(mock_wor
     reconcile_output.missing_in_src = None
     reconcile_output.missing_in_tgt = None
     table_conf.table_thresholds = [
-        TableThresholds(lower_bound="0", upper_bound="2", model=TableThresholdModel.MISMATCH),
+        TableThresholds(lower_bound="0", upper_bound="2", model="mismatch"),
     ]
     recon_capture = ReconCapture(
         database_config,

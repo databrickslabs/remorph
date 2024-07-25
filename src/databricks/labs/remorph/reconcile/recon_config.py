@@ -3,7 +3,6 @@ from __future__ import annotations
 import logging
 from collections.abc import Callable
 from dataclasses import dataclass, field
-from enum import Enum
 
 from pyspark.sql import DataFrame
 from sqlglot import Dialect
@@ -14,6 +13,10 @@ logger = logging.getLogger(__name__)
 
 class TableThresholdBoundsException(ValueError):
     """Raise the error when the bounds for table threshold are invalid"""
+
+
+class InvalidModelForTableThreshold(ValueError):
+    """Raise the error when the model for table threshold is invalid"""
 
 
 @dataclass
@@ -74,18 +77,15 @@ class ColumnThresholds:
 
 
 @dataclass
-class TableThresholdModel(Enum):
-    MISMATCH = "mismatch"
-
-
-@dataclass
 class TableThresholds:
     lower_bound: str
     upper_bound: str
-    model: TableThresholdModel
+    model: str
 
     def __post_init__(self):
+        self.model = self.model.lower()
         self.validate_threshold_bounds()
+        self.validate_threshold_model()
 
     def get_mode(self):
         return "percentage" if "%" in self.lower_bound or "%" in self.upper_bound else "absolute"
@@ -97,6 +97,12 @@ class TableThresholds:
             raise TableThresholdBoundsException("Threshold bounds for table cannot be negative.")
         if lower_bound > upper_bound:
             raise TableThresholdBoundsException("Lower bound cannot be greater than upper bound.")
+
+    def validate_threshold_model(self):
+        if self.model not in ["mismatch"]:
+            raise InvalidModelForTableThreshold(
+                f"Invalid model for Table Threshold: expected 'mismatch', but got '{self.model}'."
+            )
 
 
 @dataclass
