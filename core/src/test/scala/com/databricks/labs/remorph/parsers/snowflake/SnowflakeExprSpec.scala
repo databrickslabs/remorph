@@ -40,7 +40,7 @@ class SnowflakeExprSpec extends AnyWordSpec with SnowflakeParserTestCommon with 
       example("column_1 - 1", Subtract(Id("column_1"), Literal(short = Some(1))))
       example("column_1/column_2", Divide(Id("column_1"), Id("column_2")))
       example("42 % 2", Mod(Literal(short = Some(42)), Literal(short = Some(2))))
-      example("'foo' || column_1", Concat(Literal(string = Some("foo")), Id("column_1")))
+      example("'foo' || column_1", Concat(Seq(Literal(string = Some("foo")), Id("column_1"))))
     }
 
     "translate IFF expression" in {

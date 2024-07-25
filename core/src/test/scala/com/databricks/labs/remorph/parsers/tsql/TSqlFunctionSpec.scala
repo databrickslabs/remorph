@@ -59,7 +59,7 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
         "CONCAT",
         List(
           ir.Literal(string = Some("a")),
-          ir.Concat(ir.Literal(string = Some("b")), ir.Literal(string = Some("c"))),
+          ir.Concat(Seq(ir.Literal(string = Some("b")), ir.Literal(string = Some("c")))),
           ir.CallFunction(
             "Greatest",
             List(

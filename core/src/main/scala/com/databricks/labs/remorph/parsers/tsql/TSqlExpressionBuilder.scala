@@ -275,7 +275,7 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
       case BIT_AND => ir.BitwiseAnd(left, right)
       case BIT_XOR => ir.BitwiseXor(left, right)
       case BIT_OR => ir.BitwiseOr(left, right)
-      case DOUBLE_BAR => ir.Concat(left, right)
+      case DOUBLE_BAR => ir.Concat(Seq(left, right))
     }
 
   private def buildPrimitive(con: Token): ir.Expression = con.getType match {

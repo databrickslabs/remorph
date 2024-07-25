@@ -224,7 +224,7 @@ class SnowflakeExpressionBuilder()
       case PLUS => ir.Add(left, right)
       case MINUS => ir.Subtract(left, right)
       case MODULE => ir.Mod(left, right)
-      case PIPE_PIPE => ir.Concat(left, right)
+      case PIPE_PIPE => ir.Concat(Seq(left, right))
     }
 
   private[snowflake] def buildComparisonExpression(

@@ -150,11 +150,6 @@ case class BitwiseXor(left: Expression, right: Expression) extends Binary(left, 
   override def dataType: DataType = left.dataType
 }
 
-// Other binary expressions
-case class Concat(left: Expression, right: Expression) extends Binary(left, right) {
-  override def dataType: DataType = StringType
-}
-
 // Assignment operators
 case class Assign(left: Expression, right: Expression) extends Binary(left, right) {
   override def dataType: DataType = UnresolvedType
