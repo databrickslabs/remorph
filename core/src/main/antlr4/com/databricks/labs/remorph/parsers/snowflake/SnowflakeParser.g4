@@ -146,6 +146,7 @@ otherCommand
     | beginTxn
     | returnStatement
     | let
+    | declareStatement
     ;
 
 beginTxn: BEGIN (WORK | TRANSACTION)? (NAME id)? | START TRANSACTION ( NAME id)?

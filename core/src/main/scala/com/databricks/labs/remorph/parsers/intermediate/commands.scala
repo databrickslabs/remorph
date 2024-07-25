@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.parsers.intermediate
 
-trait Command {
+trait Command extends LogicalPlan {
   def output: Seq[Attribute] = Seq.empty
 }
 
@@ -88,7 +88,11 @@ case class WriteStreamOperationStart(
     extends LeafNode
     with Command
 
-case class CreateVariable(name: String, dataType: DataType, defaultExpr: Option[Expression], replace: Boolean)
-    extends Command {}
+case class CreateVariable(name: LogicalPlan, defaultExpr: Expression, replace: Boolean) extends UnaryNode with Command {
+  override def child: LogicalPlan = name
+}
 
-case class SetVariable(name: String, dataType: Option[DataType], expr: Option[Expression]) extends Command {}
+case class SetVariable(name: LogicalPlan, dataType: Option[DataType], expr: Expression) extends UnaryNode with Command {
+
+  override def child: LogicalPlan = name
+}

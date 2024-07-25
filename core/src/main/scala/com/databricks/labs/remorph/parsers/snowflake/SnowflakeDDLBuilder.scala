@@ -219,18 +219,4 @@ class SnowflakeDDLBuilder
     }
   }
 
-  override def visitDeclareStatement(ctx: SnowflakeParser.DeclareStatementContext): ir.Command = {
-    val variableName = ctx.id().getText
-    val variableDataType = Some(DataTypeBuilder.buildDataType(ctx.dataType()))
-    val variableValue = None
-    ir.SetVariable(variableName, variableDataType, variableValue)
-  }
-
-  override def visitLet(ctx: LetContext): ir.Command = {
-    val variableName = ctx.id().getText
-    val variableDataType = Option(ctx.dataType()).flatMap(dt => Some(DataTypeBuilder.buildDataType(dt)))
-
-    ir.SetVariable(variableName, variableDataType, Some(ctx.expr().accept(expressionBuilder)))
-
-  }
 }

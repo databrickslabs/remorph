@@ -5,6 +5,8 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.mockito.MockitoSugar
 
+import scala.Console.in
+
 class SnowflakeCommandBuilderSpec
     extends AnyWordSpec
     with SnowflakeParserTestCommon
@@ -12,8 +14,8 @@ class SnowflakeCommandBuilderSpec
     with MockitoSugar
     with IRHelpers {
 
-  override protected def astBuilder: SnowflakeStatementBuilder =
-    new SnowflakeStatementBuilder
+  override protected def astBuilder: SnowflakeCommandBuilder =
+    new SnowflakeCommandBuilder
 
   "translate Let to SetVariable expressions" in {
     example("LET X := 1;", _.let(), SetVariable(name = "X", dataType = None, expr = Some(Literal(short = Some(1)))))
