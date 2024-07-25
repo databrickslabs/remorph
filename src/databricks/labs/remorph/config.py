@@ -47,8 +47,8 @@ class MorphConfig:
     input_sql: str | None = None
     output_folder: str | None = None
     skip_validation: bool = False
-    catalog_name: str = "transpiler_test"
-    schema_name: str = "convertor_test"
+    catalog_name: str = "remorph"
+    schema_name: str = "transpiler"
     mode: str = "current"
 
     def get_read_dialect(self):
@@ -127,5 +127,5 @@ class ReconcileConfig:
 
 @dataclass
 class RemorphConfigs:
-    morph: MorphConfig | None
-    reconcile: ReconcileConfig | None
+    morph: MorphConfig | None = None
+    reconcile: ReconcileConfig | None = None
