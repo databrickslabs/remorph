@@ -87,7 +87,6 @@ class SnowflakeCallMapper extends CallMapper {
   }
 }
 
-
 abstract class FunctionBuilder {
 
   protected val commonFunctionsPf: PartialFunction[String, FunctionDefinition] = {
