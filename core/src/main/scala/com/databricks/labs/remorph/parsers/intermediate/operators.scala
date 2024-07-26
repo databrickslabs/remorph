@@ -4,32 +4,34 @@ trait Predicate extends AstExtension {
   def dataType: DataType = BooleanType
 }
 
-case class And(left: Expression, right: Expression) extends Binary(left, right) with Predicate {}
-case class Or(left: Expression, right: Expression) extends Binary(left, right) with Predicate {}
-case class Not(pred: Expression) extends Unary(pred) with Predicate {}
+case class And(left: Expression, right: Expression) extends Binary(left, right) with Predicate
+case class Or(left: Expression, right: Expression) extends Binary(left, right) with Predicate
+case class Not(pred: Expression) extends Unary(pred) with Predicate
 
-case class Equals(left: Expression, right: Expression) extends Binary(left, right) with Predicate {}
-case class NotEquals(left: Expression, right: Expression) extends Binary(left, right) with Predicate {}
-case class LessThan(left: Expression, right: Expression) extends Binary(left, right) with Predicate {}
-case class LessThanOrEqual(left: Expression, right: Expression) extends Binary(left, right) with Predicate {}
-case class GreaterThan(left: Expression, right: Expression) extends Binary(left, right) with Predicate {}
-case class GreaterThanOrEqual(left: Expression, right: Expression) extends Binary(left, right) with Predicate {}
+case class Equals(left: Expression, right: Expression) extends Binary(left, right) with Predicate
+case class NotEquals(left: Expression, right: Expression) extends Binary(left, right) with Predicate
+case class LessThan(left: Expression, right: Expression) extends Binary(left, right) with Predicate
+case class LessThanOrEqual(left: Expression, right: Expression) extends Binary(left, right) with Predicate
+case class GreaterThan(left: Expression, right: Expression) extends Binary(left, right) with Predicate
+case class GreaterThanOrEqual(left: Expression, right: Expression) extends Binary(left, right) with Predicate
+
+trait Bitwise
 
 // Bitwise NOT is highest precedence after parens '(' ')'
-case class BitwiseNot(expression: Expression) extends Unary(expression) {
+case class BitwiseNot(expression: Expression) extends Unary(expression) with Bitwise {
   override def dataType: DataType = expression.dataType
 }
 
 // Binary bitwise expressions
-case class BitwiseAnd(left: Expression, right: Expression) extends Binary(left, right) {
+case class BitwiseAnd(left: Expression, right: Expression) extends Binary(left, right) with Bitwise {
   override def dataType: DataType = left.dataType
 }
 
-case class BitwiseOr(left: Expression, right: Expression) extends Binary(left, right) {
+case class BitwiseOr(left: Expression, right: Expression) extends Binary(left, right) with Bitwise {
   override def dataType: DataType = left.dataType
 }
 
-case class BitwiseXor(left: Expression, right: Expression) extends Binary(left, right) {
+case class BitwiseXor(left: Expression, right: Expression) extends Binary(left, right) with Bitwise {
   override def dataType: DataType = left.dataType
 }
 

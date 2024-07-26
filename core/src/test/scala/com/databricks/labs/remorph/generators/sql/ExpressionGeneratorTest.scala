@@ -8,7 +8,14 @@ import org.scalatestplus.mockito.MockitoSugar
 
 class ExpressionGeneratorTest extends AnyWordSpec with Matchers with MockitoSugar {
   private def generate(expr: ir.Expression): String = {
-    new ExpressionGenerator().expression(new GeneratorContext(), expr)
+    new ExpressionGenerator().expression(GeneratorContext(), expr)
+  }
+
+  "bitwise" in {
+    generate(ir.BitwiseOr(ir.UnresolvedAttribute("a"), ir.UnresolvedAttribute("b"))) shouldBe "a | b"
+    generate(ir.BitwiseAnd(ir.UnresolvedAttribute("a"), ir.UnresolvedAttribute("b"))) shouldBe "a & b"
+    generate(ir.BitwiseXor(ir.UnresolvedAttribute("a"), ir.UnresolvedAttribute("b"))) shouldBe "a ^ b"
+    generate(ir.BitwiseNot(ir.UnresolvedAttribute("a"))) shouldBe "~a"
   }
 
   "like" in {
