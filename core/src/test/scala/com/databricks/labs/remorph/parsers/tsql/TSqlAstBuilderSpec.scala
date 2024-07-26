@@ -908,4 +908,79 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
           None,
           Some(Options(Map("KEEP" -> Column(None, Id("PLAN"))), Map.empty, Map.empty, List.empty))))))
   }
+
+  "translate MERGE statements" in {
+    example(
+      query = """
+          |MERGE INTO t USING s
+          | ON t.a = s.a
+          | WHEN MATCHED THEN UPDATE SET t.b = s.b
+          | WHEN NOT MATCHED THEN INSERT (a, b) VALUES (s.a, s.b)""".stripMargin,
+      expectedAst = Batch(
+        Seq(MergeIntoTable(
+          NamedTable("t", Map(), is_streaming = false),
+          NamedTable("s", Map(), is_streaming = false),
+          Equals(Column(Some(ObjectReference(Id("t"))), Id("a")), Column(Some(ObjectReference(Id("s"))), Id("a"))),
+          Seq(
+            UpdateAction(
+              None,
+              Seq(Assign(
+                Column(Some(ObjectReference(Id("t"))), Id("b")),
+                Column(Some(ObjectReference(Id("s"))), Id("b")))))),
+          Seq(InsertAction(
+            None,
+            Some(Seq(Id("a"), Id("b"))),
+            DerivedRows(Seq(
+              Seq(Column(Some(ObjectReference(Id("s"))), Id("a")), Column(Some(ObjectReference(Id("s"))), Id("b"))))))),
+          List.empty,
+          None,
+          None))))
+
+    example(
+      query = """
+                |WITH s (a, b, col3count)
+                |                AS
+                |                (
+                |                    SELECT col1, fred, COUNT(OrderDate) AS counter
+                |                    FROM Table1
+                |                )
+                |   MERGE INTO t WITH (NOLOCK, READCOMMITTED) USING s
+                |   ON t.a = s.a
+                |   WHEN MATCHED THEN UPDATE SET t.b = s.b
+                |   WHEN NOT MATCHED BY TARGET THEN DELETE
+                |   WHEN NOT MATCHED BY SOURCE THEN INSERT (a, b) VALUES (s.a, s.b)""".stripMargin,
+      expectedAst = Batch(
+        Seq(WithCTE(
+          Seq(CTEDefinition(
+            "s",
+            Seq(simplyNamedColumn("a"), simplyNamedColumn("b"), simplyNamedColumn("col3count")),
+            Project(
+              namedTable("Table1"),
+              Seq(
+                simplyNamedColumn("col1"),
+                simplyNamedColumn("fred"),
+                Alias(CallFunction("COUNT", Seq(simplyNamedColumn("OrderDate"))), Seq(Id("counter")), None))))),
+          MergeIntoTable(
+            TableWithHints(
+              NamedTable("t", Map(), is_streaming = false),
+              Seq(FlagHint("NOLOCK"), FlagHint("READCOMMITTED"))),
+            NamedTable("s", Map(), is_streaming = false),
+            Equals(Column(Some(ObjectReference(Id("t"))), Id("a")), Column(Some(ObjectReference(Id("s"))), Id("a"))),
+            Seq(
+              UpdateAction(
+                None,
+                Seq(Assign(
+                  Column(Some(ObjectReference(Id("t"))), Id("b")),
+                  Column(Some(ObjectReference(Id("s"))), Id("b")))))),
+            Seq(DeleteAction(None)),
+            Seq(
+              InsertAction(
+                None,
+                Some(Seq(Id("a"), Id("b"))),
+                DerivedRows(Seq(Seq(
+                  Column(Some(ObjectReference(Id("s"))), Id("a")),
+                  Column(Some(ObjectReference(Id("s"))), Id("b"))))))),
+            None,
+            None)))))
+  }
 }

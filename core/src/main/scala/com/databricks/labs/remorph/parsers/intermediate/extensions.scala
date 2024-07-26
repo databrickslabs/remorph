@@ -244,7 +244,8 @@ case class UpdateStarAction(condition: Option[Expression]) extends MergeAction {
   override def children: Seq[Expression] = condition.toSeq
 }
 
-// TODO: As per Insert Above, the columns and values should become assignments to match Spark
+// TODO: As per Insert Above, the columns and values should perhaps become assignments to match Spark,
+// but TSql allows INSERT from derived rows, so this may be a better representation.
 case class InsertAction(condition: Option[Expression], columns: Option[Seq[Id]], values: LogicalPlan)
     extends MergeAction {
   override def children: Seq[Expression] = values.expressions

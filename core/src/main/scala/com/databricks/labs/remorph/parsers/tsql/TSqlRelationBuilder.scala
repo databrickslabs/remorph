@@ -279,12 +279,10 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.LogicalPlan] {
       .map(_.asScala.foldLeft((List.empty[ir.MergeAction], List.empty[ir.MergeAction], List.empty[ir.MergeAction])) {
         case ((matched, notMatched, notMatchedBySource), m) =>
           val action = buildWhenMatch(m)
-          if (m.NOT() == null) {
-            (action :: matched, notMatched, notMatchedBySource)
-          } else if (m.SOURCE() != null) {
-            (matched, notMatched, action :: notMatchedBySource)
-          } else {
-            (matched, action :: notMatched, notMatchedBySource)
+          (m.NOT(), m.SOURCE()) match {
+            case (null, _) => (action :: matched, notMatched, notMatchedBySource)
+            case (_, null) => (matched, action :: notMatched, notMatchedBySource)
+            case _ => (matched, notMatched, action :: notMatchedBySource)
           }
       })
       .getOrElse((List.empty, List.empty, List.empty))
@@ -303,24 +301,24 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.LogicalPlan] {
   }
 
   private def buildWhenMatch(ctx: WhenMatchContext): ir.MergeAction = {
-    val condition = ctx.searchCondition().accept(expressionBuilder)
+    val condition = Option(ctx.searchCondition()).map(_.accept(expressionBuilder))
     ctx.mergeAction() match {
-      case action if action.DELETE() != null => ir.DeleteAction(Some(condition))
+      case action if action.DELETE() != null => ir.DeleteAction(condition)
       case action if action.UPDATE() != null => buildUpdateAction(action, condition)
       case action if action.INSERT() != null => buildInsertAction(action, condition)
     }
   }
 
-  private def buildInsertAction(ctx: MergeActionContext, condition: ir.Expression): ir.InsertAction = {
+  private def buildInsertAction(ctx: MergeActionContext, condition: Option[ir.Expression]): ir.InsertAction = {
     val values = ctx.insertStatementValue().accept(this)
     val columns = Option(ctx.expressionList())
       .map(_.expression().asScala.map(_.accept(expressionBuilder)).collect { case col: ir.Column => col.columnName })
-    ir.InsertAction(Some(condition), columns, values)
+    ir.InsertAction(condition, columns, values)
   }
 
-  private def buildUpdateAction(ctx: MergeActionContext, condition: ir.Expression): ir.UpdateAction = {
+  private def buildUpdateAction(ctx: MergeActionContext, condition: Option[ir.Expression]): ir.UpdateAction = {
     val setElements = ctx.updateElem().asScala.map(_.accept(expressionBuilder))
-    ir.UpdateAction(Some(condition), setElements)
+    ir.UpdateAction(condition, setElements)
   }
 
   override def visitUpdateStatement(ctx: UpdateStatementContext): ir.LogicalPlan = {

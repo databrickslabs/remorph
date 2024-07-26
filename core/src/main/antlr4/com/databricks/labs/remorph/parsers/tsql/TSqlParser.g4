@@ -1588,6 +1588,7 @@ mergeStatement: withExpression? merge
 
 merge
     : MERGE topClause? INTO? ddlObject withTableHints? asTableAlias? USING tableSources ON searchCondition whenMatch* outputClause? optionClause? SEMI
+        ?
     ;
 
 whenMatch: WHEN NOT? MATCHED (BY (TARGET | SOURCE))? (AND searchCondition)? THEN mergeAction
