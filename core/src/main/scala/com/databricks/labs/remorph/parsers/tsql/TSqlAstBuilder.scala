@@ -75,6 +75,6 @@ class TSqlAstBuilder extends TSqlParserBaseVisitor[ir.LogicalPlan] {
         }
     }
     // Default flags generally don't need to be specified as they are by definition, the default
-    ir.BackupDatabase(database, disks, boolFlags, autoFlags, values)
+    BackupDatabase(database, disks, boolFlags, autoFlags, values)
   }
 }

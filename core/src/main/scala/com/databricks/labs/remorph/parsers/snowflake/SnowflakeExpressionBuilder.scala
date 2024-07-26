@@ -9,6 +9,7 @@ import java.time.{LocalDateTime, ZoneOffset}
 import java.time.format.DateTimeFormatter
 import scala.collection.JavaConverters._
 import scala.util.Try
+
 class SnowflakeExpressionBuilder()
     extends SnowflakeParserBaseVisitor[ir.Expression]
     with ParserCommon[ir.Expression]
@@ -120,7 +121,7 @@ class SnowflakeExpressionBuilder()
   }
 
   override def visitExprNextval(ctx: ExprNextvalContext): ir.Expression = {
-    ir.NextValue(ctx.objectName().getText)
+    NextValue(ctx.objectName().getText)
   }
 
   override def visitExprDot(ctx: ExprDotContext): ir.Expression = {
@@ -252,7 +253,7 @@ class SnowflakeExpressionBuilder()
     val condition = ctx.predicate().accept(this)
     val thenBranch = ctx.expr(0).accept(this)
     val elseBranch = ctx.expr(1).accept(this)
-    ir.Iff(condition, thenBranch, elseBranch)
+    Iff(condition, thenBranch, elseBranch)
   }
 
   override def visitCastExpr(ctx: CastExprContext): ir.Expression = ctx match {
@@ -373,12 +374,11 @@ class SnowflakeExpressionBuilder()
 
   private def buildPredicatePartial(ctx: PredicatePartialContext, expression: ir.Expression): ir.Expression = {
     val predicate = ctx match {
-
       case c if c.IN() != null && c.subquery() != null =>
-        ir.IsInRelation(c.subquery().accept(new SnowflakeRelationBuilder), expression)
+        IsInRelation(c.subquery().accept(new SnowflakeRelationBuilder), expression)
       case c if c.IN() != null && c.exprList() != null =>
         val collection = visitMany(c.exprList().expr())
-        ir.IsInCollection(collection, expression)
+        IsInCollection(collection, expression)
       case c if c.BETWEEN() != null =>
         val lowerBound = c.expr(0).accept(this)
         val upperBound = c.expr(1).accept(this)
@@ -398,7 +398,7 @@ class SnowflakeExpressionBuilder()
               .asScala
               .find(occursBefore(c.ESCAPE(), _))
               .map(_.accept(this)))
-        ir.LikeSnowflake(expression, patterns, escape, c.LIKE() != null)
+        LikeSnowflake(expression, patterns, escape, c.LIKE() != null)
       case c if c.RLIKE() != null =>
         val pattern = c.expr(0).accept(this)
         ir.RLike(expression, pattern)
@@ -410,7 +410,7 @@ class SnowflakeExpressionBuilder()
   }
 
   override def visitParamAssoc(ctx: ParamAssocContext): ir.Expression = {
-    ir.NamedArgumentExpression(ctx.id().getText.toUpperCase(), ctx.expr().accept(this))
+    NamedArgumentExpression(ctx.id().getText.toUpperCase(), ctx.expr().accept(this))
   }
 
   override def visitSetColumnValue(ctx: SetColumnValueContext): ir.Expression = {

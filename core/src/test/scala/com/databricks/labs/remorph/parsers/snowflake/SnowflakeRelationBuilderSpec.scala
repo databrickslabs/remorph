@@ -1,6 +1,7 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
 import com.databricks.labs.remorph.parsers.intermediate._
+import com.databricks.labs.remorph.parsers.snowflake
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser.{JoinTypeContext, OuterJoinContext}
 import org.antlr.v4.runtime.RuleContext
 import org.mockito.Mockito._
@@ -309,14 +310,15 @@ class SnowflakeRelationBuilderSpec
             CallFunction(
               "FLATTEN",
               Seq(
-                NamedArgumentExpression("INPUT", Id("some_col")),
-                NamedArgumentExpression("OUTER", Literal(boolean = Some(true))))))))
+                snowflake.NamedArgumentExpression("INPUT", Id("some_col")),
+                snowflake.NamedArgumentExpression("OUTER", Literal(boolean = Some(true))))))))
 
       example(
         "LATERAL FLATTEN (input => some_col) AS t",
         _.objectRef(),
         SubqueryAlias(
-          Lateral(TableFunction(CallFunction("FLATTEN", Seq(NamedArgumentExpression("INPUT", Id("some_col")))))),
+          Lateral(
+            TableFunction(CallFunction("FLATTEN", Seq(snowflake.NamedArgumentExpression("INPUT", Id("some_col")))))),
           Id("t"),
           Seq()))
     }

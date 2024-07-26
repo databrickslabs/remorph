@@ -1,6 +1,7 @@
 package com.databricks.labs.remorph.parsers
 
 import com.databricks.labs.remorph.parsers.intermediate.{CallFunction, DateAdd}
+import com.databricks.labs.remorph.parsers.snowflake.NamedArgumentExpression
 import com.databricks.labs.remorph.parsers.{intermediate => ir}
 
 sealed trait FunctionType
@@ -23,7 +24,7 @@ object FunctionArity {
     case FixedArity(n) => args.size == n
     case VariableArity(argMin, argMax) => argMin <= args.size && args.size <= argMax
     case SymbolicArity(required, optional) =>
-      val namedArguments = args.collect { case n: ir.NamedArgumentExpression => n }
+      val namedArguments = args.collect { case n: NamedArgumentExpression => n }
       // all provided arguments are named
       if (namedArguments.size == args.size) {
         // all required arguments are present

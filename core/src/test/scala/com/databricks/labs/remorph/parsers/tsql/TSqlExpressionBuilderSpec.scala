@@ -35,7 +35,7 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
         ir.Literal(decimal = Some(ir.Decimal("0.123456789e-1234", None, None))))
     }
     "translate simple primitives" in {
-      exampleExpr("DEFAULT", _.expression(), ir.Default())
+      exampleExpr("DEFAULT", _.expression(), Default())
       exampleExpr("@LocalId", _.expression(), ir.Identifier("@LocalId", isQuoted = false))
     }
 

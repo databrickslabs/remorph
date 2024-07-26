@@ -1,6 +1,7 @@
 package com.databricks.labs.remorph.parsers.tsql
 
 import com.databricks.labs.remorph.parsers.intermediate._
+import com.databricks.labs.remorph.parsers.tsql
 import org.mockito.Mockito.{mock, when}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -229,7 +230,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
           Seq(
             Project(
               namedTable("tab"),
-              Seq(XmlFunction(
+              Seq(tsql.TsqlXmlFunction(
                 CallFunction("query", Seq(Literal(string = Some("/root/child")))),
                 simplyNamedColumn("xmlcolumn")))))))
 
@@ -238,7 +239,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
         expectedAst = Batch(
           Seq(Project(
             namedTable("tab"),
-            Seq(XmlFunction(
+            Seq(tsql.TsqlXmlFunction(
               CallFunction("value", Seq(Literal(string = Some("path")), Literal(string = Some("type")))),
               simplyNamedColumn("xmlcolumn")))))))
 
@@ -247,7 +248,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
         expectedAst = Batch(
           Seq(Project(
             namedTable("xmltable"),
-            Seq(XmlFunction(
+            Seq(tsql.TsqlXmlFunction(
               CallFunction("exist", Seq(Literal(string = Some("/root/child[text()=\"Some Value\"]")))),
               simplyNamedColumn("xmlcolumn")))))))
 
@@ -758,7 +759,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
           namedTable("t"),
           Some(List(Id("a"), Id("b"))),
           DerivedRows(List(List(Literal(short = Some(1)), Literal(short = Some(2))))),
-          Some(Output(
+          Some(tsql.Output(
             namedTable("Inserted"),
             List(
               Alias(Column(Some(ObjectReference(Id("INSERTED"))), Id("a")), Seq(Id("a_lias")), None),
@@ -829,7 +830,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
             Assign(Column(None, Id("a")), Literal(short = Some(1))),
             Assign(Column(None, Id("b")), Literal(short = Some(2)))),
           None,
-          Some(Output(
+          Some(tsql.Output(
             NamedTable("Inserted", Map(), is_streaming = false),
             Seq(
               Alias(Column(Some(ObjectReference(Id("INSERTED"))), Id("a")), Seq(Id("a_lias")), None),
@@ -882,7 +883,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
           NamedTable("t", Map(), is_streaming = false),
           None,
           None,
-          Some(Output(
+          Some(tsql.Output(
             NamedTable("Deleted", Map(), is_streaming = false),
             Seq(
               Alias(Column(Some(ObjectReference(Id("DELETED"))), Id("a")), Seq(Id("a_lias")), None),

@@ -1,7 +1,15 @@
 package com.databricks.labs.remorph.parsers.intermediate
 
+import java.util.Locale
+
 trait Fn extends Expression {
   def prettyName: String
+}
+
+case class CallFunction(function_name: String, arguments: Seq[Expression]) extends Expression with Fn {
+  override def children: Seq[Expression] = arguments
+  override def dataType: DataType = UnresolvedType
+  override def prettyName: String = function_name.toUpperCase(Locale.getDefault)
 }
 
 class CallMapper {
