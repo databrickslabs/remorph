@@ -57,14 +57,14 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper()) {
     }
   }
 
-  private def timestampLiteral(l: Literal) = {
+  private def timestampLiteral(l: ir.Literal) = {
     l.timestamp match {
       case Some(timestamp) => doubleQuote(timeFormat.format(timestamp))
       case None => "NULL"
     }
   }
 
-  private def dateLiteral(l: Literal) = {
+  private def dateLiteral(l: ir.Literal) = {
     l.date match {
       case Some(date) => doubleQuote(dateFormat.format(date))
       case None => "NULL"

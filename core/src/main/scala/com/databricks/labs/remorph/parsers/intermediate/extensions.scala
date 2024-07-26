@@ -341,7 +341,8 @@ case class InsertIntoTable( // TODO: fix it
     options: Option[Expression],
     overwrite: Boolean)
     extends Modification {
-  override def children: Seq[LogicalPlan] = Seq(target, values, outputRelation.getOrElse(NoopNode))
+  override def children: Seq[LogicalPlan] = Seq(target, values) ++ outputRelation
+  override def expressions: Seq[Expression] = super.expressions ++ options ++ columns.getOrElse(Seq.empty)
   override def output: Seq[Attribute] = target.output
 }
 
@@ -385,7 +386,8 @@ case class DeleteFromTable(
     outputRelation: Option[LogicalPlan],
     options: Option[Expression])
     extends Modification {
-  override def children: Seq[LogicalPlan] = Seq(target, source.getOrElse(NoopNode), outputRelation.getOrElse(NoopNode))
+  override def children: Seq[LogicalPlan] = Seq(target) ++ source ++ outputRelation
+  override def expressions: Seq[Expression] = super.expressions ++ where ++ options
   override def output: Seq[Attribute] = target.output
 }
 
@@ -397,7 +399,8 @@ case class UpdateTable(
     outputRelation: Option[LogicalPlan],
     options: Option[Expression])
     extends Modification {
-  override def children: Seq[LogicalPlan] = Seq(target, source.getOrElse(NoopNode), outputRelation.getOrElse(NoopNode))
+  override def children: Seq[LogicalPlan] = Seq(target) ++ source ++ outputRelation
+  override def expressions: Seq[Expression] = super.expressions ++ where ++ options ++ set
   override def output: Seq[Attribute] = target.output
 }
 
@@ -408,6 +411,7 @@ case class MergeTables(
     outputRelation: Option[LogicalPlan],
     options: Option[Expression])
     extends Modification {
-  override def children: Seq[LogicalPlan] = Seq(target, source.getOrElse(NoopNode), outputRelation.getOrElse(NoopNode))
+  override def children: Seq[LogicalPlan] = Seq(target) ++ source ++ outputRelation
+  override def expressions: Seq[Expression] = super.expressions ++ options
   override def output: Seq[Attribute] = target.output
 }
