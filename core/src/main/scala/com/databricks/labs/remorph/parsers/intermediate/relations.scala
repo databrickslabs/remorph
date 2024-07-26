@@ -360,10 +360,6 @@ case object UnspecifiedGroupType extends GroupType
 
 case object GroupBy extends GroupType
 
-case object Rollup extends GroupType
-
-case object Cube extends GroupType
-
 case object Pivot extends GroupType
 
 case object UnspecifiedFormat extends ParseFormat

@@ -21,7 +21,6 @@ abstract class Unary(child: Expression) extends Expression {
 
 abstract class Binary(left: Expression, right: Expression) extends Expression {
   override def children: Seq[Expression] = Seq(left, right)
-
 }
 
 trait Predicate extends AstExtension {
@@ -45,14 +44,6 @@ case object Noop extends LeafExpression {
 
 case object NoopNode extends LeafNode {
   override def output: Seq[Attribute] = Seq.empty
-}
-
-case object RowNumber extends LeafExpression {
-  override def dataType: DataType = LongType
-}
-
-case class NTile(expression: Expression) extends Unary(expression) {
-  override def dataType: DataType = expression.dataType
 }
 
 case class WithCTE(ctes: Seq[LogicalPlan], query: LogicalPlan) extends RelationCommon {
@@ -91,12 +82,21 @@ case class Exists(relation: LogicalPlan) extends ToRefactor
 case class IsInRelation(relation: LogicalPlan, expression: Expression) extends ToRefactor
 case class IsInCollection(collection: Seq[Expression], expression: Expression) extends ToRefactor
 
-case class Like(expression: Expression, patterns: Seq[Expression], escape: Option[Expression], caseSensitive: Boolean)
+// TODO: convert into Like
+case class LikeSnowflake(
+    expression: Expression,
+    patterns: Seq[Expression],
+    escape: Option[Expression],
+    caseSensitive: Boolean)
     extends ToRefactor
 
-case class RLike(expression: Expression, pattern: Expression) extends ToRefactor
-
-case class IsNull(expression: Expression) extends ToRefactor
+/**
+ * str like pattern[ ESCAPE escape] - Returns true if str matches `pattern` with `escape`, null if any arguments are
+ * null, false otherwise.
+ */
+case class Like(left: Expression, right: Expression, escapeChar: Char = '\\') extends Binary(left, right) {
+  override def dataType: DataType = BooleanType
+}
 
 // Operators, in order of precedence
 
@@ -139,11 +139,6 @@ case class BitwiseOr(left: Expression, right: Expression) extends Binary(left, r
 }
 case class BitwiseXor(left: Expression, right: Expression) extends Binary(left, right) {
   override def dataType: DataType = left.dataType
-}
-
-// Other binary expressions
-case class Concat(left: Expression, right: Expression) extends Binary(left, right) {
-  override def dataType: DataType = StringType
 }
 
 // Assignment operators
@@ -353,6 +348,7 @@ case class InsertIntoTable( // TODO: fix it
 case class DerivedRows(rows: Seq[Seq[Expression]]) extends LeafNode {
   override def output: Seq[Attribute] = rows.flatten.map(e => AttributeReference(e.toString, e.dataType))
 }
+
 case class DefaultValues() extends LeafNode {
   override def output: Seq[Attribute] = Seq.empty
 }

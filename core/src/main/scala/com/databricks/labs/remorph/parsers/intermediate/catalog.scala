@@ -5,7 +5,6 @@ abstract class Catalog extends LeafNode {
   override def output: Seq[Attribute] = Seq.empty
 }
 
-case class CurrentDatabase() extends Catalog {}
 case class SetCurrentDatabase(db_name: String) extends Catalog {}
 case class ListDatabases(pattern: Option[String]) extends Catalog {}
 case class ListTables(db_name: Option[String], pattern: Option[String]) extends Catalog {}
@@ -41,7 +40,6 @@ case class UncacheTable(table_name: String) extends Catalog {}
 case class ClearCache() extends Catalog {}
 case class RefreshTable(table_name: String) extends Catalog {}
 case class RefreshByPath(path: String) extends Catalog {}
-case class CurrentCatalog() extends Catalog {}
 case class SetCurrentCatalog(catalog_name: String) extends Catalog {}
 case class ListCatalogs(pattern: Option[String]) extends Catalog {}
 
