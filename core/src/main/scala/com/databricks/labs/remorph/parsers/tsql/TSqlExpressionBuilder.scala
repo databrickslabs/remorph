@@ -31,6 +31,32 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
     ir.Options(opts.expressionOpts, opts.stringOpts, opts.boolFlags, opts.autoFlags)
   }
 
+  override def visitUpdateElemCol(ctx: TSqlParser.UpdateElemColContext): ir.Expression = {
+    val value = ctx.expression().accept(this)
+    val target1 = Option(ctx.l2)
+      .map(l2 => ir.Identifier(l2.getText, isQuoted = false))
+      .getOrElse(ctx.fullColumnName().accept(this))
+    val a1 = buildAssign(target1, value, ctx.op)
+    Option(ctx.l1).map(l1 => ir.Assign(ir.Identifier(l1.getText, isQuoted = false), a1)).getOrElse(a1)
+  }
+
+  override def visitUpdateElemUdt(ctx: TSqlParser.UpdateElemUdtContext): ir.Expression = {
+    val args = ctx.expressionList().expression().asScala.map(_.accept(this))
+    val fName = ctx.id(0).getText + "." + ctx.id(1).getText
+    val functionResult = functionBuilder.buildFunction(fName, args)
+
+    functionResult match {
+      case unresolvedFunction: ir.UnresolvedFunction =>
+        unresolvedFunction.copy(is_user_defined_function = true)
+      case _ => functionResult
+    }
+  }
+
+  override def visitUpdateWhereClause(ctx: UpdateWhereClauseContext): ir.Expression = {
+    ctx.searchCondition().accept(this)
+    // TODO: TSQL also supports updates via cursor traversal, which is not supported in Databricks SQL - lint error?
+  }
+
   /**
    * Build a local variable assignment from a column source
    *
@@ -40,18 +66,22 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
   private def buildLocalAssign(ctx: TSqlParser.SelectListElemContext): ir.Expression = {
     val localId = ir.Identifier(ctx.LOCAL_ID().getText, isQuoted = false)
     val expression = ctx.expression().accept(this)
-    ctx.op.getType match {
-      case EQ => ir.Assign(localId, expression)
-      case PE => ir.Assign(localId, ir.Add(localId, expression))
-      case ME => ir.Assign(localId, ir.Subtract(localId, expression))
-      case SE => ir.Assign(localId, ir.Multiply(localId, expression))
-      case DE => ir.Assign(localId, ir.Divide(localId, expression))
-      case MEA => ir.Assign(localId, ir.Mod(localId, expression))
-      case AND_ASSIGN => ir.Assign(localId, ir.BitwiseAnd(localId, expression))
-      case OR_ASSIGN => ir.Assign(localId, ir.BitwiseOr(localId, expression))
-      case XOR_ASSIGN => ir.Assign(localId, ir.BitwiseXor(localId, expression))
+    buildAssign(localId, expression, ctx.op)
+  }
+
+  private def buildAssign(target: ir.Expression, value: ir.Expression, op: Token): ir.Expression = {
+    op.getType match {
+      case EQ => ir.Assign(target, value)
+      case PE => ir.Assign(target, ir.Add(target, value))
+      case ME => ir.Assign(target, ir.Subtract(target, value))
+      case SE => ir.Assign(target, ir.Multiply(target, value))
+      case DE => ir.Assign(target, ir.Divide(target, value))
+      case MEA => ir.Assign(target, ir.Mod(target, value))
+      case AND_ASSIGN => ir.Assign(target, ir.BitwiseAnd(target, value))
+      case OR_ASSIGN => ir.Assign(target, ir.BitwiseOr(target, value))
+      case XOR_ASSIGN => ir.Assign(target, ir.BitwiseXor(target, value))
       // We can only reach here if the grammar is changed to add more operators and this function is not updated
-      case _ => ir.UnresolvedExpression(ctx.getText) // Handle unexpected operation types
+      case _ => ir.UnresolvedExpression(op.getText) // Handle unexpected operation types
     }
   }
 
@@ -234,6 +264,9 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
           case op if op.LT != null && op.EQ != null => ir.LesserThanOrEqual(left, right)
           case op if op.GT != null && op.EQ != null => ir.GreaterThanOrEqual(left, right)
           case op if op.LT != null && op.GT != null => ir.NotEquals(left, right)
+          case op if op.BANG != null && op.GT != null => ir.LesserThanOrEqual(left, right)
+          case op if op.BANG != null && op.LT != null => ir.GreaterThanOrEqual(left, right)
+          case op if op.BANG != null && op.EQ != null => ir.NotEquals(left, right)
           case op if op.EQ != null => ir.Equals(left, right)
           case op if op.GT != null => ir.GreaterThan(left, right)
           case op if op.LT != null => ir.LesserThan(left, right)

@@ -244,6 +244,107 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.LogicalPlan] {
     ctx.expressionList().expression().asScala.map(_.accept(expressionBuilder))
   }
 
+  override def visitMergeStatement(ctx: MergeStatementContext): ir.LogicalPlan = {
+    val merge = ctx.merge().accept(this)
+    Option(ctx.withExpression())
+      .map { withExpression =>
+        val ctes = withExpression.commonTableExpression().asScala.map(_.accept(this))
+        ir.WithCTE(ctes, merge)
+      }
+      .getOrElse(merge)
+  }
+
+  override def visitMerge(ctx: MergeContext): ir.LogicalPlan = {
+    // TODO: Ran out of time to implement the rest of the MERGE statement
+
+//    val target = ctx.ddlObject().accept(this)
+//    val hints = buildTableHints(Option(ctx.withTableHints()))
+//    val finalTarget = if (hints.nonEmpty) {
+//      ir.TableWithHints(target, hints)
+//    } else {
+//      target
+//    }
+//
+//    val output = Option(ctx.outputClause()).map(_.accept(this))
+//    val condition = ctx.searchCondition().accept(expressionBuilder)
+//    val tableSourcesOption = Option(ctx.tableSources()).map(_.tableSource().asScala.map(_.accept(this)))
+//    val sourceRelation = tableSourcesOption.map {
+//      case Seq(tableSource) => tableSource
+//      case sources =>
+//        sources.reduce(
+//          ir.Join(_, _, None, ir.CrossJoin, Seq(), ir.JoinDataType(is_left_struct = false, is_right_struct = false)))
+//    }
+
+    ir.UnresolvedRelation(ctx.getText)
+  }
+
+  override def visitUpdateStatement(ctx: UpdateStatementContext): ir.LogicalPlan = {
+    val update = ctx.update().accept(this)
+    Option(ctx.withExpression())
+      .map { withExpression =>
+        val ctes = withExpression.commonTableExpression().asScala.map(_.accept(this))
+        ir.WithCTE(ctes, update)
+      }
+      .getOrElse(update)
+  }
+
+  override def visitUpdate(ctx: UpdateContext): ir.LogicalPlan = {
+    val target = ctx.ddlObject().accept(this)
+    val hints = buildTableHints(Option(ctx.withTableHints()))
+    val hintTarget = if (hints.nonEmpty) {
+      ir.TableWithHints(target, hints)
+    } else {
+      target
+    }
+
+    val finalTarget = buildTop(Option(ctx.topClause()), hintTarget)
+    val output = Option(ctx.outputClause()).map(_.accept(this))
+    val setElements = ctx.updateElem().asScala.map(_.accept(expressionBuilder))
+
+    val tableSourcesOption = Option(ctx.tableSources()).map(_.tableSource().asScala.map(_.accept(this)))
+    val sourceRelation = tableSourcesOption.map {
+      case Seq(tableSource) => tableSource
+      case sources =>
+        sources.reduce(
+          ir.Join(_, _, None, ir.CrossJoin, Seq(), ir.JoinDataType(is_left_struct = false, is_right_struct = false)))
+    }
+
+    val where = Option(ctx.updateWhereClause()) map (_.accept(expressionBuilder))
+    val optionClause = Option(ctx.optionClause).map(_.accept(expressionBuilder))
+    ir.UpdateTable(finalTarget, sourceRelation, setElements, where, output, optionClause)
+  }
+
+  override def visitDeleteStatement(ctx: DeleteStatementContext): ir.LogicalPlan = {
+    val delete = ctx.delete().accept(this)
+    Option(ctx.withExpression())
+      .map { withExpression =>
+        val ctes = withExpression.commonTableExpression().asScala.map(_.accept(this))
+        ir.WithCTE(ctes, delete)
+      }
+      .getOrElse(delete)
+  }
+
+  override def visitDelete(ctx: DeleteContext): ir.LogicalPlan = {
+    val target = ctx.ddlObject().accept(this)
+    val hints = buildTableHints(Option(ctx.withTableHints()))
+    val finalTarget = if (hints.nonEmpty) {
+      ir.TableWithHints(target, hints)
+    } else {
+      target
+    }
+
+    val output = Option(ctx.outputClause()).map(_.accept(this))
+    val tableSourcesOption = Option(ctx.tableSources()).map(_.tableSource().asScala.map(_.accept(this)))
+    val sourceRelation = tableSourcesOption.map { tableSources =>
+      tableSources.tail.foldLeft(tableSources.head)(
+        ir.Join(_, _, None, ir.CrossJoin, Seq(), ir.JoinDataType(is_left_struct = false, is_right_struct = false)))
+    }
+
+    val where = Option(ctx.updateWhereClause()) map (_.accept(expressionBuilder))
+    val optionClause = Option(ctx.optionClause).map(_.accept(expressionBuilder))
+    ir.DeleteFromTable(finalTarget, sourceRelation, where, output, optionClause)
+  }
+
   override def visitInsertStatement(ctx: InsertStatementContext): ir.LogicalPlan = {
     val insert = ctx.insert().accept(this)
     Option(ctx.withExpression())

@@ -14,8 +14,14 @@ class AutoName(Enum):
         return name.lower()
 
 
-class SourceType(AutoName):
+class ReconSourceType(AutoName):
     SNOWFLAKE = auto()
-    NETEZZA = auto()
     ORACLE = auto()
     DATABRICKS = auto()
+
+
+class ReconReportType(AutoName):
+    DATA = auto()
+    SCHEMA = auto()
+    ROW = auto()
+    ALL = auto()

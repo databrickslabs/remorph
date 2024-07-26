@@ -12,7 +12,8 @@ when comparing the source with the Databricks target.
     * [jdbc_reader_options](#jdbc_reader_options)
     * [column_mapping](#column_mapping)
     * [transformations](#transformations)
-    * [thresholds](#thresholds)
+    * [column_thresholds](#column_thresholds)
+    * [table_thresholds](#table_thresholds)
     * [filters](#filters)
     * [Key Considerations](#key-considerations)
 * [Reconciliation Example](#reconciliation-example)
@@ -97,8 +98,9 @@ class Table:
     drop_columns: list[str] | None = None
     column_mapping: list[ColumnMapping] | None = None
     transformations: list[Transformation] | None = None
-    thresholds: list[Thresholds] | None = None
+    column_thresholds: list[ColumnThresholds] | None = None
     filters: Filters | None = None
+    table_thresholds: list[TableThresholds] | None = None
 </pre>
 </td>
 <td>
@@ -112,8 +114,9 @@ class Table:
   "drop_columns": null,
   "column_mapping": null,
   "transformation": null,
-  "thresholds": null,
-  "filters": null
+  "column_thresholds": null,
+  "filters": null,
+  "table_thresholds": null
 }
 </pre>
 </td>
@@ -122,18 +125,19 @@ class Table:
 
 
 
-| config_name         | data_type             | description                                                                                                                                                                                                                        | required/optional      | example_value                                                                                                                                     |
-|---------------------|-----------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------|
-| source_name         | string                | name of the source table                                                                                                                                                                                                           | required               | product                                                                                                                                           |
-| target_name         | string                | name of the target table                                                                                                                                                                                                           | required               | product                                                                                                                                           |
-| join_columns        | list[string]          | list of column names which act as the primary key to the table                                                                                                                                                                     | optional(default=None) | ["product_id"] or ["product_id", "order_id"]                                                                                                      |
-| jdbc_reader_options | string                | jdbc_reader_option, which helps to parallelise the data read from jdbc sources based on the given configuration.For more info [jdbc_reader_options](#jdbc_reader_options)                                                          | optional(default=None) | "jdbc_reader_options": {"number_partitions": 10,"partition_column": "s_suppkey","upper_bound": "10000000","lower_bound": "10","fetch_size":"100"} |
-| select_columns      | list[string]          | list of columns to be considered for the reconciliation process                                                                                                                                                                    | optional(default=None) | ["id", "name", "address"]                                                                                                                         |
-| drop_columns        | list[string]          | list of columns to be eliminated from the reconciliation process                                                                                                                                                                   | optional(default=None) | ["comment"]                                                                                                                                       |
-| column_mapping      | list[ColumnMapping]   | list of column_mapping that helps in resolving column name mismatch between src and tgt, e.g., "id" in src and "emp_id" in tgt.For more info [column_mapping](#column_mapping)                                                     | optional(default=None) | "column_mapping": [{"source_name": "id","target_name": "emp_id"}]                                                                                 |
-| transformations     | list[Transformations] | list of user-defined transformations that can be applied to src and tgt columns in case of any incompatibility data types or explicit transformation is applied during migration.For more info [transformations](#transformations) | optional(default=None) | "transformations": [{"column_name": "s_address","source": "trim(s_address)","target": "trim(s_address)"}]                                         |
-| thresholds          | list[Thresholds]      | list of threshold conditions that can be applied on the columns to match the minor exceptions in data. It supports percentile, absolute, and date fields. For more info [thresholds](#thresholds)                                  | optional(default=None) | "thresholds": [{"column_name": "sal", "lower_bound": "-5%", "upper_bound": "5%", "type": "int"}]                                                  |
-| filters             | Filters               | filter expr that can be used to filter the data on src and tgt based on respective expressions                                                                                                                                     | optional(default=None) | "filters": {"source": "lower(dept_name)>’ it’”, "target": "lower(department_name)>’ it’”}                                                         |
+| config_name         | data_type                | description                                                                                                                                                                                                                        | required/optional       | example_value                                                                                                                                     |
+|---------------------|--------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------|
+| source_name         | string                   | name of the source table                                                                                                                                                                                                           | required                | product                                                                                                                                           |
+| target_name         | string                   | name of the target table                                                                                                                                                                                                           | required                | product                                                                                                                                           |
+| join_columns        | list[string]             | list of column names which act as the primary key to the table                                                                                                                                                                     | optional(default=None)  | ["product_id"] or ["product_id", "order_id"]                                                                                                      |
+| jdbc_reader_options | string                   | jdbc_reader_option, which helps to parallelise the data read from jdbc sources based on the given configuration.For more info [jdbc_reader_options](#jdbc_reader_options)                                                          | optional(default=None)  | "jdbc_reader_options": {"number_partitions": 10,"partition_column": "s_suppkey","upper_bound": "10000000","lower_bound": "10","fetch_size":"100"} |
+| select_columns      | list[string]             | list of columns to be considered for the reconciliation process                                                                                                                                                                    | optional(default=None)  | ["id", "name", "address"]                                                                                                                         |
+| drop_columns        | list[string]             | list of columns to be eliminated from the reconciliation process                                                                                                                                                                   | optional(default=None)  | ["comment"]                                                                                                                                       |
+| column_mapping      | list[ColumnMapping]      | list of column_mapping that helps in resolving column name mismatch between src and tgt, e.g., "id" in src and "emp_id" in tgt.For more info [column_mapping](#column_mapping)                                                     | optional(default=None)  | "column_mapping": [{"source_name": "id","target_name": "emp_id"}]                                                                                 |
+| transformations     | list[Transformations]    | list of user-defined transformations that can be applied to src and tgt columns in case of any incompatibility data types or explicit transformation is applied during migration.For more info [transformations](#transformations) | optional(default=None)  | "transformations": [{"column_name": "s_address","source": "trim(s_address)","target": "trim(s_address)"}]                                         |
+| column_thresholds   | list[ColumnThresholds]   | list of threshold conditions that can be applied on the columns to match the minor exceptions in data. It supports percentile, absolute, and date fields. For more info [column_thresholds](#column_thresholds)                    | optional(default=None)  | "thresholds": [{"column_name": "sal", "lower_bound": "-5%", "upper_bound": "5%", "type": "int"}]                                                  |
+| table_thresholds    | list[TableThresholds]    | list of table thresholds conditions that can be applied on the tables to match the minor exceptions in mismatch count. It supports percentile, absolute. For more info [table_thresholds](#table_thresholds)                       |  optional(default=None) | "table_thresholds": [{"lower_bound": "0%", "upper_bound": "5%", "model": "mismatch"}]                                                   | 
+| filters             | Filters                  | filter expr that can be used to filter the data on src and tgt based on respective expressions                                                                                                                                     | optional(default=None)  | "filters": {"source": "lower(dept_name)>’ it’”, "target": "lower(department_name)>’ it’”}                                                         |
 
 ### jdbc_reader_options
 
@@ -258,7 +262,7 @@ Reconciliation also takes an udf in the transformation expr.Say for eg. we have 
 ```
 transformations=[Transformation(column_name)="array_col",source=sort_array_input(array_col),target=sort_array_input(array_col)]
 ```
-## thresholds
+## column_thresholds
 
 <table>
 <tr>
@@ -270,7 +274,7 @@ transformations=[Transformation(column_name)="array_col",source=sort_array_input
 <pre lang="python">
 
 @dataclass
-class Thresholds:
+class ColumnThresholds:
     column_name: str
     lower_bound: str
     upper_bound: str
@@ -280,7 +284,7 @@ class Thresholds:
 </td>
 <td>
 <pre lang="json">
-"thresholds":[
+"column_thresholds":[
   {
     "column_name": "&lt;COLUMN_NAME&gt",
     "lower_bound": "&lt;LOWER_BOUND&gt",
@@ -294,12 +298,54 @@ class Thresholds:
 </table>
 
 
-| field_name  | data_type | description                                                                                                 | required/optional   | example_value      |
-|-------------|-----------|-------------------------------------------------------------------------------------------------------------|---------------------|--------------------|
-| column_name | string    | the column that should be considered for threshold reconciliation                                           | required            | "product_discount" |
-| lower_bound | string    | the lower bound of the difference between the source value and the target value                             | optional(default=0) | -5%                | 
-| upper_bound | string    | the upper bound of the difference between the source value and the target value                             | optional(default=0) | 5%                 |            
-| type        | string    | The user must specify the column type. Supports SQLGLOT DataType.NUMERIC_TYPES and DataType.TEMPORAL_TYPES. | required            | int                |
+| field_name  | data_type | description                                                                                                 | required/optional | example_value      |
+|-------------|-----------|-------------------------------------------------------------------------------------------------------------|-------------------|--------------------|
+| column_name | string    | the column that should be considered for column threshold reconciliation                                    | required          | "product_discount" |
+| lower_bound | string    | the lower bound of the difference between the source value and the target value                             | required          | -5%                | 
+| upper_bound | string    | the upper bound of the difference between the source value and the target value                             | required          | 5%                 |            
+| type        | string    | The user must specify the column type. Supports SQLGLOT DataType.NUMERIC_TYPES and DataType.TEMPORAL_TYPES. | required          | int                |
+
+### table_thresholds
+
+<table>
+<tr>
+<th>Python</th>
+<th>JSON</th>
+</tr>
+<tr>
+<td>
+<pre lang="python">
+
+@dataclass
+class TableThresholds:
+lower_bound: str
+upper_bound: str
+model: str
+
+</pre>
+</td>
+<td>
+<pre lang="json">
+"table_thresholds":[
+  {
+    "lower_bound": "&lt;LOWER_BOUND&gt",
+    "upper_bound": "&lt;UPPER_BOUND&gt",
+    "model": "&lt;MODEL&gt"
+  }
+]
+</pre>
+</td>
+</tr>
+</table>
+
+* The threshold bounds for the table must be non-negative, with the lower bound not exceeding the upper bound.
+
+| field_name  | data_type | description                                                                                          | required/optional | example_value |
+|-------------|-----------|------------------------------------------------------------------------------------------------------|-------------------|---------------|
+| lower_bound | string    | the lower bound of the difference between the source mismatch and the target mismatch count          | required          | 0%            | 
+| upper_bound | string    | the upper bound of the difference between the source mismatch and the target mismatch count          | required          | 5%            |            
+| model       | string    | The user must specify on which table model it should be applied; for now, we support only "mismatch" | required          | int           |
+
 
 ### filters
 

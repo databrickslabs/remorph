@@ -294,10 +294,13 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
       exampleExpr("a > b", _.searchCondition(), ir.GreaterThan(simplyNamedColumn("a"), simplyNamedColumn("b")))
       exampleExpr("a < b", _.searchCondition(), ir.LesserThan(simplyNamedColumn("a"), simplyNamedColumn("b")))
       exampleExpr("a >= b", _.searchCondition(), ir.GreaterThanOrEqual(simplyNamedColumn("a"), simplyNamedColumn("b")))
+      exampleExpr("a !< b", _.searchCondition(), ir.GreaterThanOrEqual(simplyNamedColumn("a"), simplyNamedColumn("b")))
       exampleExpr("a <= b", _.searchCondition(), ir.LesserThanOrEqual(simplyNamedColumn("a"), simplyNamedColumn("b")))
+      exampleExpr("a !> b", _.searchCondition(), ir.LesserThanOrEqual(simplyNamedColumn("a"), simplyNamedColumn("b")))
       exampleExpr("a > = b", _.searchCondition(), ir.GreaterThanOrEqual(simplyNamedColumn("a"), simplyNamedColumn("b")))
       exampleExpr("a <  = b", _.searchCondition(), ir.LesserThanOrEqual(simplyNamedColumn("a"), simplyNamedColumn("b")))
       exampleExpr("a <> b", _.searchCondition(), ir.NotEquals(simplyNamedColumn("a"), simplyNamedColumn("b")))
+      exampleExpr("a != b", _.searchCondition(), ir.NotEquals(simplyNamedColumn("a"), simplyNamedColumn("b")))
       exampleExpr("NOT a = b", _.searchCondition(), ir.Not(ir.Equals(simplyNamedColumn("a"), simplyNamedColumn("b"))))
       exampleExpr(
         "a = b AND c = e",
