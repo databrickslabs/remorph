@@ -11,6 +11,11 @@ class ExpressionGeneratorTest extends AnyWordSpec with Matchers with MockitoSuga
     new ExpressionGenerator().expression(new GeneratorContext(), expr)
   }
 
+  "like" in {
+    generate(ir.Like(ir.UnresolvedAttribute("a"), ir.Literal("b%"))) shouldBe "a LIKE \"b%\""
+    generate(ir.Like(ir.UnresolvedAttribute("a"), ir.UnresolvedAttribute("b"), '/')) shouldBe "a LIKE b ESCAPE '/'"
+  }
+
   "predicates" should {
     "be generated" in {
       generate(ir.And(ir.UnresolvedAttribute("a"), ir.UnresolvedAttribute("b"))) shouldBe "(a AND b)"

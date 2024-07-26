@@ -12,12 +12,18 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper()) {
 
   def expression(ctx: GeneratorContext, expr: ir.Expression): String = {
     expr match {
+      case l: ir.Like => like(ctx, l)
       case _: ir.Predicate => predicate(ctx, expr)
       case l: ir.Literal => literal(ctx, l)
       case fn: ir.Fn => callFunction(ctx, fn)
       case ir.UnresolvedAttribute(name, _, _) => name
       case _ => throw new IllegalArgumentException(s"Unsupported expression: $expr")
     }
+  }
+
+  private def like(ctx: GeneratorContext, like: ir.Like): String = {
+    val escape = if (like.escapeChar != '\\') s" ESCAPE '${like.escapeChar}'" else ""
+    s"${expression(ctx, like.left)} LIKE ${expression(ctx, like.right)}$escape"
   }
 
   private def predicate(ctx: GeneratorContext, expr: ir.Expression): String = expr match {
@@ -57,14 +63,14 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper()) {
     }
   }
 
-  private def timestampLiteral(l: Literal) = {
+  private def timestampLiteral(l: ir.Literal) = {
     l.timestamp match {
       case Some(timestamp) => doubleQuote(timeFormat.format(timestamp))
       case None => "NULL"
     }
   }
 
-  private def dateLiteral(l: Literal) = {
+  private def dateLiteral(l: ir.Literal) = {
     l.date match {
       case Some(date) => doubleQuote(dateFormat.format(date))
       case None => "NULL"
