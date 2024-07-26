@@ -105,13 +105,13 @@ class SnowflakeExprSpec extends AnyWordSpec with SnowflakeParserTestCommon with 
         "col1 BETWEEN 3.14 AND 42",
         And(
           GreaterThanOrEqual(Id("col1"), Literal(float = Some(3.14f))),
-          LesserThanOrEqual(Id("col1"), Literal(short = Some(42)))))
+          LessThanOrEqual(Id("col1"), Literal(short = Some(42)))))
       exprAndPredicateExample(
         "col1 NOT BETWEEN 3.14 AND 42",
         Not(
           And(
             GreaterThanOrEqual(Id("col1"), Literal(float = Some(3.14f))),
-            LesserThanOrEqual(Id("col1"), Literal(short = Some(42))))))
+            LessThanOrEqual(Id("col1"), Literal(short = Some(42))))))
     }
 
     "translate LIKE expressions" in {

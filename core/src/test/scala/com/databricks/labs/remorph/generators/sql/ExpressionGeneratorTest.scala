@@ -11,6 +11,20 @@ class ExpressionGeneratorTest extends AnyWordSpec with Matchers with MockitoSuga
     new ExpressionGenerator().expression(new GeneratorContext(), expr)
   }
 
+  "predicates" should {
+    "be generated" in {
+      generate(ir.And(ir.UnresolvedAttribute("a"), ir.UnresolvedAttribute("b"))) shouldBe "(a AND b)"
+      generate(ir.Or(ir.UnresolvedAttribute("a"), ir.UnresolvedAttribute("b"))) shouldBe "(a OR b)"
+      generate(ir.Not(ir.UnresolvedAttribute("a"))) shouldBe "NOT (a)"
+      generate(ir.Equals(ir.UnresolvedAttribute("a"), ir.UnresolvedAttribute("b"))) shouldBe "a = b"
+      generate(ir.NotEquals(ir.UnresolvedAttribute("a"), ir.UnresolvedAttribute("b"))) shouldBe "a != b"
+      generate(ir.LessThan(ir.UnresolvedAttribute("a"), ir.UnresolvedAttribute("b"))) shouldBe "a < b"
+      generate(ir.LessThanOrEqual(ir.UnresolvedAttribute("a"), ir.UnresolvedAttribute("b"))) shouldBe "a <= b"
+      generate(ir.GreaterThan(ir.UnresolvedAttribute("a"), ir.UnresolvedAttribute("b"))) shouldBe "a > b"
+      generate(ir.GreaterThanOrEqual(ir.UnresolvedAttribute("a"), ir.UnresolvedAttribute("b"))) shouldBe "a >= b"
+    }
+  }
+
   "functions" should {
     "be generated" in {
       generate(ir.CallFunction("ABS", Seq(ir.UnresolvedAttribute("a")))) shouldBe "ABS(a)"

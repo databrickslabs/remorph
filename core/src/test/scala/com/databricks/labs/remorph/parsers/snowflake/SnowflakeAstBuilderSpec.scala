@@ -96,9 +96,9 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
         "!=" -> NotEquals(Id("a"), Id("b")),
         "<>" -> NotEquals(Id("a"), Id("b")),
         ">" -> GreaterThan(Id("a"), Id("b")),
-        "<" -> LesserThan(Id("a"), Id("b")),
+        "<" -> LessThan(Id("a"), Id("b")),
         ">=" -> GreaterThanOrEqual(Id("a"), Id("b")),
-        "<=" -> LesserThanOrEqual(Id("a"), Id("b")))
+        "<=" -> LessThanOrEqual(Id("a"), Id("b")))
 
       expectedOperatorTranslations.foreach { case (op, expectedPredicate) =>
         singleQueryExample(
@@ -298,7 +298,7 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
           Filter(
             Filter(
               Aggregate(
-                child = Filter(namedTable("t1"), LesserThan(Id("c3"), Literal(short = Some(4)))),
+                child = Filter(namedTable("t1"), LessThan(Id("c3"), Literal(short = Some(4)))),
                 group_type = GroupBy,
                 grouping_expressions = Seq(simplyNamedColumn("c2"), simplyNamedColumn("c3")),
                 pivot = None),

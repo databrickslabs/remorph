@@ -238,11 +238,11 @@ class SnowflakeExpressionBuilder()
     } else if (op.GT() != null) {
       ir.GreaterThan(left, right)
     } else if (op.LT() != null) {
-      ir.LesserThan(left, right)
+      ir.LessThan(left, right)
     } else if (op.GE() != null) {
       ir.GreaterThanOrEqual(left, right)
     } else if (op.LE() != null) {
-      ir.LesserThanOrEqual(left, right)
+      ir.LessThanOrEqual(left, right)
     } else {
       ir.UnresolvedExpression(op.getText)
     }
@@ -382,7 +382,7 @@ class SnowflakeExpressionBuilder()
       case c if c.BETWEEN() != null =>
         val lowerBound = c.expr(0).accept(this)
         val upperBound = c.expr(1).accept(this)
-        ir.And(ir.GreaterThanOrEqual(expression, lowerBound), ir.LesserThanOrEqual(expression, upperBound))
+        ir.And(ir.GreaterThanOrEqual(expression, lowerBound), ir.LessThanOrEqual(expression, upperBound))
       case c if c.LIKE() != null || c.ILIKE() != null =>
         val patterns = if (c.ANY() != null) {
           c.expr()

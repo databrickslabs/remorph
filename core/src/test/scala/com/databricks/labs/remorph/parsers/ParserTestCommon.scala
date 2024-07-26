@@ -43,10 +43,10 @@ trait ParserTestCommon[P <: Parser] { self: Assertions =>
   protected def reorderComparisons(plan: ir.LogicalPlan): ir.LogicalPlan = {
     plan transformAllExpressions {
       case ir.Equals(l, r) if l.hashCode() > r.hashCode() => ir.Equals(r, l)
-      case ir.GreaterThan(l, r) if l.hashCode() > r.hashCode() => ir.LesserThan(r, l)
-      case ir.GreaterThanOrEqual(l, r) if l.hashCode() > r.hashCode() => ir.LesserThanOrEqual(r, l)
-      case ir.LesserThan(l, r) if l.hashCode() > r.hashCode() => ir.GreaterThan(r, l)
-      case ir.LesserThanOrEqual(l, r) if l.hashCode() > r.hashCode() => ir.GreaterThanOrEqual(r, l)
+      case ir.GreaterThan(l, r) if l.hashCode() > r.hashCode() => ir.LessThan(r, l)
+      case ir.GreaterThanOrEqual(l, r) if l.hashCode() > r.hashCode() => ir.LessThanOrEqual(r, l)
+      case ir.LessThan(l, r) if l.hashCode() > r.hashCode() => ir.GreaterThan(r, l)
+      case ir.LessThanOrEqual(l, r) if l.hashCode() > r.hashCode() => ir.GreaterThanOrEqual(r, l)
     }
   }
 

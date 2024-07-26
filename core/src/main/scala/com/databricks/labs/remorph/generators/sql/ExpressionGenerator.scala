@@ -1,6 +1,7 @@
 package com.databricks.labs.remorph.generators.sql
 
 import com.databricks.labs.remorph.generators.GeneratorContext
+import com.databricks.labs.remorph.parsers.intermediate.Expression
 import com.databricks.labs.remorph.parsers.{intermediate => ir}
 
 import java.text.SimpleDateFormat
@@ -12,11 +13,25 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper()) {
 
   def expression(ctx: GeneratorContext, expr: ir.Expression): String = {
     expr match {
+      case _: ir.Predicate => predicate(ctx, expr)
       case l: ir.Literal => literal(ctx, l)
       case fn: ir.Fn => callFunction(ctx, fn)
       case ir.UnresolvedAttribute(name, _, _) => name
       case _ => throw new IllegalArgumentException(s"Unsupported expression: $expr")
     }
+  }
+
+  private def predicate(ctx: GeneratorContext, expr: Expression): String = expr match {
+    case ir.And(left, right) => s"(${expression(ctx, left)} AND ${expression(ctx, right)})"
+    case ir.Or(left, right) => s"(${expression(ctx, left)} OR ${expression(ctx, right)})"
+    case ir.Not(child) => s"NOT (${expression(ctx, child)})"
+    case ir.Equals(left, right) => s"${expression(ctx, left)} = ${expression(ctx, right)}"
+    case ir.NotEquals(left, right) => s"${expression(ctx, left)} != ${expression(ctx, right)}"
+    case ir.LessThan(left, right) => s"${expression(ctx, left)} < ${expression(ctx, right)}"
+    case ir.LessThanOrEqual(left, right) => s"${expression(ctx, left)} <= ${expression(ctx, right)}"
+    case ir.GreaterThan(left, right) => s"${expression(ctx, left)} > ${expression(ctx, right)}"
+    case ir.GreaterThanOrEqual(left, right) => s"${expression(ctx, left)} >= ${expression(ctx, right)}"
+    case _ => throw new IllegalArgumentException(s"Unsupported expression: $expr")
   }
 
   private def callFunction(ctx: GeneratorContext, fn: ir.Fn): String = {

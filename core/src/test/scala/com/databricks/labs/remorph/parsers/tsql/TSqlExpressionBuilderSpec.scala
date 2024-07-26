@@ -294,13 +294,13 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
     "translate search conditions" in {
       exampleExpr("a = b", _.searchCondition(), ir.Equals(simplyNamedColumn("a"), simplyNamedColumn("b")))
       exampleExpr("a > b", _.searchCondition(), ir.GreaterThan(simplyNamedColumn("a"), simplyNamedColumn("b")))
-      exampleExpr("a < b", _.searchCondition(), ir.LesserThan(simplyNamedColumn("a"), simplyNamedColumn("b")))
+      exampleExpr("a < b", _.searchCondition(), ir.LessThan(simplyNamedColumn("a"), simplyNamedColumn("b")))
       exampleExpr("a >= b", _.searchCondition(), ir.GreaterThanOrEqual(simplyNamedColumn("a"), simplyNamedColumn("b")))
       exampleExpr("a !< b", _.searchCondition(), ir.GreaterThanOrEqual(simplyNamedColumn("a"), simplyNamedColumn("b")))
-      exampleExpr("a <= b", _.searchCondition(), ir.LesserThanOrEqual(simplyNamedColumn("a"), simplyNamedColumn("b")))
-      exampleExpr("a !> b", _.searchCondition(), ir.LesserThanOrEqual(simplyNamedColumn("a"), simplyNamedColumn("b")))
+      exampleExpr("a <= b", _.searchCondition(), ir.LessThanOrEqual(simplyNamedColumn("a"), simplyNamedColumn("b")))
+      exampleExpr("a !> b", _.searchCondition(), ir.LessThanOrEqual(simplyNamedColumn("a"), simplyNamedColumn("b")))
       exampleExpr("a > = b", _.searchCondition(), ir.GreaterThanOrEqual(simplyNamedColumn("a"), simplyNamedColumn("b")))
-      exampleExpr("a <  = b", _.searchCondition(), ir.LesserThanOrEqual(simplyNamedColumn("a"), simplyNamedColumn("b")))
+      exampleExpr("a <  = b", _.searchCondition(), ir.LessThanOrEqual(simplyNamedColumn("a"), simplyNamedColumn("b")))
       exampleExpr("a <> b", _.searchCondition(), ir.NotEquals(simplyNamedColumn("a"), simplyNamedColumn("b")))
       exampleExpr("a != b", _.searchCondition(), ir.NotEquals(simplyNamedColumn("a"), simplyNamedColumn("b")))
       exampleExpr("NOT a = b", _.searchCondition(), ir.Not(ir.Equals(simplyNamedColumn("a"), simplyNamedColumn("b"))))
@@ -429,7 +429,7 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
             ir.WhenBranch(
               ir.And(
                 ir.Equals(simplyNamedColumn("a"), ir.Literal(short = Some(1))),
-                ir.LesserThan(simplyNamedColumn("b"), ir.Literal(short = Some(7)))),
+                ir.LessThan(simplyNamedColumn("b"), ir.Literal(short = Some(7)))),
               ir.Literal(string = Some("one"))),
             ir.WhenBranch(
               ir.Equals(simplyNamedColumn("a"), ir.Literal(short = Some(2))),

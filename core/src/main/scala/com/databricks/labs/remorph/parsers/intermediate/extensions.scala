@@ -33,10 +33,10 @@ case class Not(pred: Expression) extends Unary(pred) with Predicate {}
 
 case class Equals(left: Expression, right: Expression) extends Binary(left, right) with Predicate {}
 case class NotEquals(left: Expression, right: Expression) extends Binary(left, right) with Predicate {}
+case class LessThan(left: Expression, right: Expression) extends Binary(left, right) with Predicate {}
+case class LessThanOrEqual(left: Expression, right: Expression) extends Binary(left, right) with Predicate {}
 case class GreaterThan(left: Expression, right: Expression) extends Binary(left, right) with Predicate {}
-case class LesserThan(left: Expression, right: Expression) extends Binary(left, right) with Predicate {}
 case class GreaterThanOrEqual(left: Expression, right: Expression) extends Binary(left, right) with Predicate {}
-case class LesserThanOrEqual(left: Expression, right: Expression) extends Binary(left, right) with Predicate {}
 
 case object Noop extends LeafExpression {
   override def dataType: DataType = UnresolvedType
