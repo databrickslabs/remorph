@@ -3,7 +3,6 @@ package com.databricks.labs.remorph.parsers.snowflake
 import com.databricks.labs.remorph.parsers.intermediate._
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser.{StringContext => _, _}
 import org.mockito.Mockito._
-import org.scalatest.Assertion
 import org.scalatest.matchers.should
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.mockito.MockitoSugar
@@ -16,7 +15,7 @@ class SnowflakeDDLBuilderSpec
 
   override protected def astBuilder: SnowflakeDDLBuilder = new SnowflakeDDLBuilder
 
-  private def example(query: String, expectedAst: Catalog): Assertion = example(query, _.ddlCommand(), expectedAst)
+  private def example(query: String, expectedAst: Catalog): Unit = example(query, _.ddlCommand(), expectedAst)
 
   "SnowflakeCommandBuilder" should {
     "translate Java UDF create command" in {

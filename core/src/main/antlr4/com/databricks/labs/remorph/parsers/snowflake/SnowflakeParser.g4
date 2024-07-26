@@ -212,8 +212,8 @@ formatType: TYPE EQ typeFileformat formatTypeOptions*
     ;
 
 let
-    : LET id dataType? (ASSIGN | DEFAULT) (selectStatement | expr) SEMI
-    | id dataType? (ASSIGN | DEFAULT) (selectStatement | expr) SEMI
+    : LET key = id dataType? (ASSIGN | DEFAULT) value = expr SEMI
+    | key = id dataType? (ASSIGN | DEFAULT) value = expr SEMI
     ;
 
 returnStatement: RETURN expr SEMI

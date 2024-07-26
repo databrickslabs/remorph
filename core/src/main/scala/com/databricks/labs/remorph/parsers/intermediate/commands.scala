@@ -88,11 +88,13 @@ case class WriteStreamOperationStart(
     extends LeafNode
     with Command
 
+
+
 case class CreateVariable(name: LogicalPlan, defaultExpr: Expression, replace: Boolean) extends UnaryNode with Command {
   override def child: LogicalPlan = name
 }
 
-case class SetVariable(name: LogicalPlan, dataType: Option[DataType], expr: Expression) extends UnaryNode with Command {
+case class SetVariable(name: String, value: LogicalPlan) extends UnaryNode with Command {
 
-  override def child: LogicalPlan = name
+  override def child: LogicalPlan = value
 }
