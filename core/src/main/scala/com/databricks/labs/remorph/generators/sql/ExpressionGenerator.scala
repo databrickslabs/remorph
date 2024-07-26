@@ -1,6 +1,7 @@
 package com.databricks.labs.remorph.generators.sql
 
 import com.databricks.labs.remorph.generators.GeneratorContext
+import com.databricks.labs.remorph.parsers.intermediate.Literal
 import com.databricks.labs.remorph.parsers.{intermediate => ir}
 
 import java.text.SimpleDateFormat
@@ -35,19 +36,25 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper()) {
       case ir.FloatType => orNull(l.float.map(_.toString))
       case ir.DoubleType => orNull(l.double.map(_.toString))
       case ir.StringType => orNull(l.string.map(doubleQuote))
-      case ir.DateType =>
-        l.date match {
-          case Some(date) => doubleQuote(dateFormat.format(date))
-          case None => "NULL"
-        }
-      case ir.TimestampType =>
-        l.timestamp match {
-          case Some(timestamp) => doubleQuote(timeFormat.format(timestamp))
-          case None => "NULL"
-        }
+      case ir.DateType => dateLiteral(l)
+      case ir.TimestampType => timestampLiteral(l)
       case ir.ArrayType(_) => orNull(l.array.map(arrayExpr(ctx)))
       case ir.MapType(_, _) => orNull(l.map.map(mapExpr(ctx)))
       case _ => throw new IllegalArgumentException(s"Unsupported expression: ${l.dataType}")
+    }
+  }
+
+  private def timestampLiteral(l: Literal) = {
+    l.timestamp match {
+      case Some(timestamp) => doubleQuote(timeFormat.format(timestamp))
+      case None => "NULL"
+    }
+  }
+
+  private def dateLiteral(l: Literal) = {
+    l.date match {
+      case Some(date) => doubleQuote(dateFormat.format(date))
+      case None => "NULL"
     }
   }
 
