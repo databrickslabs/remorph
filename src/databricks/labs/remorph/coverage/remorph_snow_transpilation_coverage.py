@@ -6,7 +6,7 @@ from databricks.labs.remorph.snow.databricks import Databricks
 from databricks.labs.remorph.snow.snowflake import Snow
 
 if __name__ == "__main__":
-    input_dir = commons.get_env_var("INPUT_DIR", required=True)
+    input_dir = commons.get_env_var("INPUT_DIR_PARENT", required=True)
     output_dir = commons.get_env_var("OUTPUT_DIR", required=True)
 
     REMORPH_COMMIT_HASH = commons.get_current_commit_hash() or ""  # C0103 pylint
@@ -14,7 +14,7 @@ if __name__ == "__main__":
     remorph_version = product_info.unreleased_version()
 
     if not input_dir:
-        raise ValueError("Environment variable `INPUT_DIR` is required")
+        raise ValueError("Environment variable `INPUT_DIR_PARENT` is required")
     if not output_dir:
         raise ValueError("Environment variable `OUTPUT_DIR` is required")
 
@@ -24,6 +24,6 @@ if __name__ == "__main__":
         remorph_version,
         Snow,
         Databricks,
-        Path(input_dir),
+        Path(input_dir) / 'snowflake',
         Path(output_dir),
     )
