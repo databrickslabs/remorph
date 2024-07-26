@@ -11,6 +11,16 @@ class ExpressionGeneratorTest extends AnyWordSpec with Matchers with MockitoSuga
     new ExpressionGenerator().expression(GeneratorContext(), expr)
   }
 
+  "arithmetic" in {
+    generate(ir.UMinus(ir.UnresolvedAttribute("a"))) shouldBe "-a"
+    generate(ir.UPlus(ir.UnresolvedAttribute("a"))) shouldBe "+a"
+    generate(ir.Multiply(ir.UnresolvedAttribute("a"), ir.UnresolvedAttribute("b"))) shouldBe "a * b"
+    generate(ir.Divide(ir.UnresolvedAttribute("a"), ir.UnresolvedAttribute("b"))) shouldBe "a / b"
+    generate(ir.Mod(ir.UnresolvedAttribute("a"), ir.UnresolvedAttribute("b"))) shouldBe "a % b"
+    generate(ir.Add(ir.UnresolvedAttribute("a"), ir.UnresolvedAttribute("b"))) shouldBe "a + b"
+    generate(ir.Subtract(ir.UnresolvedAttribute("a"), ir.UnresolvedAttribute("b"))) shouldBe "a - b"
+  }
+
   "bitwise" in {
     generate(ir.BitwiseOr(ir.UnresolvedAttribute("a"), ir.UnresolvedAttribute("b"))) shouldBe "a | b"
     generate(ir.BitwiseAnd(ir.UnresolvedAttribute("a"), ir.UnresolvedAttribute("b"))) shouldBe "a & b"

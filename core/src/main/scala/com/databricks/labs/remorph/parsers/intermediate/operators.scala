@@ -35,28 +35,35 @@ case class BitwiseXor(left: Expression, right: Expression) extends Binary(left, 
   override def dataType: DataType = left.dataType
 }
 
+trait Arithmetic
+
 // Unary arithmetic expressions
-case class UMinus(expression: Expression) extends Unary(expression) {
+case class UMinus(expression: Expression) extends Unary(expression) with Arithmetic {
   override def dataType: DataType = expression.dataType
 }
-case class UPlus(expression: Expression) extends Unary(expression) {
+
+case class UPlus(expression: Expression) extends Unary(expression) with Arithmetic {
   override def dataType: DataType = expression.dataType
 }
 
 // Binary Arithmetic expressions
-case class Multiply(left: Expression, right: Expression) extends Binary(left, right) {
+case class Multiply(left: Expression, right: Expression) extends Binary(left, right) with Arithmetic {
   override def dataType: DataType = left.dataType
 }
-case class Divide(left: Expression, right: Expression) extends Binary(left, right) {
+
+case class Divide(left: Expression, right: Expression) extends Binary(left, right) with Arithmetic {
   override def dataType: DataType = left.dataType
 }
-case class Mod(left: Expression, right: Expression) extends Binary(left, right) {
+
+case class Mod(left: Expression, right: Expression) extends Binary(left, right) with Arithmetic {
   override def dataType: DataType = left.dataType
 }
-case class Add(left: Expression, right: Expression) extends Binary(left, right) {
+
+case class Add(left: Expression, right: Expression) extends Binary(left, right) with Arithmetic {
   override def dataType: DataType = left.dataType
 }
-case class Subtract(left: Expression, right: Expression) extends Binary(left, right) {
+
+case class Subtract(left: Expression, right: Expression) extends Binary(left, right) with Arithmetic {
   override def dataType: DataType = left.dataType
 }
 

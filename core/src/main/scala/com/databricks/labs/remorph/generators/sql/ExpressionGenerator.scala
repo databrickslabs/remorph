@@ -14,12 +14,23 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper()) {
     expr match {
       case l: ir.Like => like(ctx, l)
       case _: ir.Bitwise => bitwise(ctx, expr)
+      case _: ir.Arithmetic => arithmetic(ctx, expr)
       case _: ir.Predicate => predicate(ctx, expr)
       case l: ir.Literal => literal(ctx, l)
       case fn: ir.Fn => callFunction(ctx, fn)
       case ir.UnresolvedAttribute(name, _, _) => name
       case _ => throw new IllegalArgumentException(s"Unsupported expression: $expr")
     }
+  }
+
+  private def arithmetic(ctx: GeneratorContext, expr: ir.Expression): String = expr match {
+    case ir.UMinus(child) => s"-${expression(ctx, child)}"
+    case ir.UPlus(child) => s"+${expression(ctx, child)}"
+    case ir.Multiply(left, right) => s"${expression(ctx, left)} * ${expression(ctx, right)}"
+    case ir.Divide(left, right) => s"${expression(ctx, left)} / ${expression(ctx, right)}"
+    case ir.Mod(left, right) => s"${expression(ctx, left)} % ${expression(ctx, right)}"
+    case ir.Add(left, right) => s"${expression(ctx, left)} + ${expression(ctx, right)}"
+    case ir.Subtract(left, right) => s"${expression(ctx, left)} - ${expression(ctx, right)}"
   }
 
   private def bitwise(ctx: GeneratorContext, expr: ir.Expression): String = expr match {
