@@ -342,6 +342,7 @@ FILEPATH                                    : 'FILEPATH';
 FILESTREAM                                  : 'FILESTREAM';
 FILESTREAM_ON                               : 'FILESTREAM_ON';
 FILETABLE                                   : 'FILETABLE';
+FILE_SNAPSHOT                               : 'FILE_SNAPSHOT';
 FILLFACTOR                                  : 'FILLFACTOR';
 FILTER                                      : 'FILTER';
 FIRST                                       : 'FIRST';
