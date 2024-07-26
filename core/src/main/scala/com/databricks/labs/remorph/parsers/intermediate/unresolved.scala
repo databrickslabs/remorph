@@ -8,25 +8,21 @@ case class UnresolvedExpression(inputText: String) extends LeafExpression {
   override def dataType: DataType = UnresolvedType
 }
 
-case class UnresolvedAttribute(
-                                unparsed_identifier: String,
-                                plan_id: Long = 0,
-                                is_metadata_column: Boolean = false
-                              ) extends LeafExpression {
+case class UnresolvedAttribute(unparsed_identifier: String, plan_id: Long = 0, is_metadata_column: Boolean = false)
+    extends LeafExpression {
   override def dataType: DataType = UnresolvedType
 }
 
 case class UnresolvedFunction(
-                               function_name: String,
-                               arguments: Seq[Expression],
-                               is_distinct: Boolean,
-                               is_user_defined_function: Boolean,
-                               has_incorrect_argc: Boolean = false)
-  extends Expression {
+    function_name: String,
+    arguments: Seq[Expression],
+    is_distinct: Boolean,
+    is_user_defined_function: Boolean,
+    has_incorrect_argc: Boolean = false)
+    extends Expression {
   override def children: Seq[Expression] = arguments
   override def dataType: DataType = UnresolvedType
 }
-
 
 case class UnresolvedStar(unparsed_target: String) extends LeafExpression {
   override def dataType: DataType = UnresolvedType

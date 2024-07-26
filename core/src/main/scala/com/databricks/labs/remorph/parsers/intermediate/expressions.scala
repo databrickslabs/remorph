@@ -128,7 +128,7 @@ case class WhenBranch(condition: Expression, expression: Expression) extends Bin
 }
 
 case class Case(expression: Option[Expression], branches: Seq[WhenBranch], otherwise: Option[Expression])
-  extends Expression {
+    extends Expression {
   override def children: Seq[Expression] = expression.toSeq ++
     branches.flatMap(b => Seq(b.condition, b.expression)) ++ otherwise
   override def dataType: DataType = branches.head.dataType
@@ -259,5 +259,3 @@ case class CommonInlineUserDefinedFunction(
   override def children: Seq[Expression] = arguments ++ python_udf.toSeq ++ scalar_scala_udf.toSeq ++ java_udf.toSeq
   override def dataType: DataType = UnresolvedType
 }
-
-

@@ -317,7 +317,8 @@ class SnowflakeRelationBuilderSpec
         "LATERAL FLATTEN (input => some_col) AS t",
         _.objectRef(),
         SubqueryAlias(
-          Lateral(TableFunction(CallFunction("FLATTEN", Seq(snowflake.NamedArgumentExpression("INPUT", Id("some_col")))))),
+          Lateral(
+            TableFunction(CallFunction("FLATTEN", Seq(snowflake.NamedArgumentExpression("INPUT", Id("some_col")))))),
           Id("t"),
           Seq()))
     }

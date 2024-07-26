@@ -96,20 +96,20 @@ case class DatabaseExists(db_name: String) extends Catalog {}
 case class TableExists(table_name: String, db_name: Option[String]) extends Catalog {}
 case class FunctionExists(function_name: String, db_name: Option[String]) extends Catalog {}
 case class CreateExternalTable(
-                                table_name: String,
-                                path: Option[String],
-                                source: Option[String],
-                                schema: Option[DataType],
-                                options: Map[String, String])
-  extends Catalog {}
+    table_name: String,
+    path: Option[String],
+    source: Option[String],
+    schema: Option[DataType],
+    options: Map[String, String])
+    extends Catalog {}
 case class CreateTable(
-                        table_name: String,
-                        path: Option[String],
-                        source: Option[String],
-                        description: Option[String],
-                        schema: Option[DataType],
-                        options: Map[String, String])
-  extends Catalog {}
+    table_name: String,
+    path: Option[String],
+    source: Option[String],
+    description: Option[String],
+    schema: Option[DataType],
+    options: Map[String, String])
+    extends Catalog {}
 case class DropTempView(view_name: String) extends Catalog {}
 case class DropGlobalTempView(view_name: String) extends Catalog {}
 case class RecoverPartitions(table_name: String) extends Catalog {}
@@ -124,9 +124,9 @@ case class ListCatalogs(pattern: Option[String]) extends Catalog {}
 
 case class TableIdentifier(table: String, database: Option[String])
 case class CatalogTable(
-                         identifier: TableIdentifier,
-                         schema: StructType,
-                         partitionColumnNames: Seq[String],
-                         viewText: Option[String],
-                         comment: Option[String],
-                         unsupportedFeatures: Seq[String])
+    identifier: TableIdentifier,
+    schema: StructType,
+    partitionColumnNames: Seq[String],
+    viewText: Option[String],
+    comment: Option[String],
+    unsupportedFeatures: Seq[String])

@@ -24,27 +24,27 @@ object Literal {
 }
 
 case class Literal(
-                    nullType: Option[DataType] = None,
-                    binary: Option[Array[Byte]] = None,
-                    boolean: Option[Boolean] = None,
-                    byte: Option[Int] = None,
-                    short: Option[Int] = None,
-                    integer: Option[Int] = None,
-                    long: Option[Long] = None,
-                    float: Option[Float] = None,
-                    decimal: Option[Decimal] = None,
-                    double: Option[Double] = None,
-                    string: Option[String] = None,
-                    date: Option[Long] = None,
-                    timestamp: Option[Long] = None,
-                    timestamp_ntz: Option[Long] = None,
-                    calendar_interval: Option[CalendarInterval] = None,
-                    year_month_interval: Option[Int] = None,
-                    day_time_interval: Option[Long] = None,
-                    array: Option[ArrayExpr] = None,
-                    map: Option[MapExpr] = None,
-                    json: Option[JsonExpr] = None)
-  extends LeafExpression {
+    nullType: Option[DataType] = None,
+    binary: Option[Array[Byte]] = None,
+    boolean: Option[Boolean] = None,
+    byte: Option[Int] = None,
+    short: Option[Int] = None,
+    integer: Option[Int] = None,
+    long: Option[Long] = None,
+    float: Option[Float] = None,
+    decimal: Option[Decimal] = None,
+    double: Option[Double] = None,
+    string: Option[String] = None,
+    date: Option[Long] = None,
+    timestamp: Option[Long] = None,
+    timestamp_ntz: Option[Long] = None,
+    calendar_interval: Option[CalendarInterval] = None,
+    year_month_interval: Option[Int] = None,
+    day_time_interval: Option[Long] = None,
+    array: Option[ArrayExpr] = None,
+    map: Option[MapExpr] = None,
+    json: Option[JsonExpr] = None)
+    extends LeafExpression {
 
   override def dataType: DataType = {
     this match {

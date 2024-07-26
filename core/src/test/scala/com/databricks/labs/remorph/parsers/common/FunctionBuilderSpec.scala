@@ -617,7 +617,9 @@ class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenProp
     // wrongly named arguments
     FunctionArity.verifyArguments(
       SymbolicArity(Set("req1"), Set("opt1")),
-      Seq(snowflake.NamedArgumentExpression("REQ2", ir.Noop), snowflake.NamedArgumentExpression("REQ1", ir.Noop))) shouldBe false
+      Seq(
+        snowflake.NamedArgumentExpression("REQ2", ir.Noop),
+        snowflake.NamedArgumentExpression("REQ1", ir.Noop))) shouldBe false
 
     // mix of named and unnamed arguments
     FunctionArity.verifyArguments(

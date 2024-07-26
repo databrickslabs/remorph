@@ -63,7 +63,6 @@ case class BitwiseNot(expression: Expression) extends Unary(expression) {
   override def dataType: DataType = expression.dataType
 }
 
-
 // Binary bitwise expressions
 case class BitwiseAnd(left: Expression, right: Expression) extends Binary(left, right) {
   override def dataType: DataType = left.dataType
@@ -131,7 +130,6 @@ case class CreateInlineUDF(
     comment: Option[String],
     body: String)
     extends Catalog {}
-
 
 // Used for raw expressions that have no context
 case class Dot(left: Expression, right: Expression) extends Binary(left, right) {

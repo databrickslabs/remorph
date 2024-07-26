@@ -16,10 +16,9 @@ case class Iff(condition: Expression, thenBranch: Expression, elseBranch: Expres
   override def dataType: DataType = thenBranch.dataType
 }
 
-
 // TODO: convert into Like
 case class LikeSnowflake(
-                          expression: Expression,
-                          patterns: Seq[Expression],
-                          escape: Option[Expression],
-                          caseSensitive: Boolean)
+    expression: Expression,
+    patterns: Seq[Expression],
+    escape: Option[Expression],
+    caseSensitive: Boolean)
