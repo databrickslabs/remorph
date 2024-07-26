@@ -175,6 +175,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       INPUT_DIR_PARENT: .
+      INPUT_DIR: ./snowflake             # backward compat
       OUTPUT_DIR: ./test-reports
     steps:
       - name: Checkout
@@ -203,8 +204,8 @@ jobs:
         run: |
           mkdir $INPUT_DIR_PARENT/snowflake
           mkdir $INPUT_DIR_PARENT/tsql
-          echo "SELECT * FROM t;" >> snowflake/dummy_test.sql
-          echo "SELECT * FROM t;" >> tsql/dummy_test.sql
+          echo "SELECT * FROM t;" >> $INPUT_DIR_PARENT/snowflake/dummy_test.sql
+          echo "SELECT * FROM t;" >> $INPUT_DIR_PARENT/tsql/dummy_test.sql
         shell: bash
 
       - name: Dry run coverage tests with make

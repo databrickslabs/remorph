@@ -58,6 +58,8 @@ object Main {
 
     val outputFilePath = outputPath / s"$project-$sourceDialect-$targetDialect-${timeToEpochNanos(now)}.json"
 
+    os.makeDir.all(outputPath)
+
     testSource.listTests.foreach { test =>
       queryExtractor.extractQuery(test.inputFile).foreach { case (inputQuery, expectedTranslation) =>
         val runner = queryRunner
