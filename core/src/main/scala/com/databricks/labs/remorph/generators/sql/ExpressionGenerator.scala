@@ -20,7 +20,7 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper()) {
     }
   }
 
-  private def predicate(ctx: GeneratorContext, expr: Expression): String = expr match {
+  private def predicate(ctx: GeneratorContext, expr: ir.Expression): String = expr match {
     case ir.And(left, right) => s"(${expression(ctx, left)} AND ${expression(ctx, right)})"
     case ir.Or(left, right) => s"(${expression(ctx, left)} OR ${expression(ctx, right)})"
     case ir.Not(child) => s"NOT (${expression(ctx, child)})"
