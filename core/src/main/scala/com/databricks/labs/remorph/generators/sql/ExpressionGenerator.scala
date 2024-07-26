@@ -7,18 +7,25 @@ import com.databricks.labs.remorph.parsers.{intermediate => ir}
 import java.text.SimpleDateFormat
 import java.util.Locale
 
-class ExpressionGenerator {
+class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper()) {
   private val dateFormat = new SimpleDateFormat("yyyy-MM-dd")
   private val timeFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS")
 
   def expression(ctx: GeneratorContext, expr: ir.Expression): String = {
     expr match {
       case l: ir.Literal => literal(ctx, l)
+      case fn: ir.Fn => callFunction(ctx, fn)
+      case ir.UnresolvedAttribute(name, _, _) => name
       case _ => throw new IllegalArgumentException(s"Unsupported expression: $expr")
     }
   }
 
-  private def literal(ctx: GeneratorContext, l: Literal): String = {
+  private def callFunction(ctx: GeneratorContext, fn: ir.Fn): String = {
+    val call = callMapper.convert(fn)
+    s"${call.prettyName}(${call.children.map(expression(ctx, _)).mkString(", ")})"
+  }
+
+  private def literal(ctx: GeneratorContext, l: ir.Literal): String = {
     l.dataType match {
       case ir.NullType => "NULL"
       case ir.BinaryType => orNull(l.binary.map(_.map("%02X" format _).mkString))
@@ -29,19 +36,25 @@ class ExpressionGenerator {
       case ir.FloatType => orNull(l.float.map(_.toString))
       case ir.DoubleType => orNull(l.double.map(_.toString))
       case ir.StringType => orNull(l.string.map(doubleQuote))
-      case ir.DateType =>
-        l.date match {
-          case Some(date) => doubleQuote(dateFormat.format(date))
-          case None => "NULL"
-        }
-      case ir.TimestampType =>
-        l.timestamp match {
-          case Some(timestamp) => doubleQuote(timeFormat.format(timestamp))
-          case None => "NULL"
-        }
+      case ir.DateType => dateLiteral(l)
+      case ir.TimestampType => timestampLiteral(l)
       case ir.ArrayType(_) => orNull(l.array.map(arrayExpr(ctx)))
       case ir.MapType(_, _) => orNull(l.map.map(mapExpr(ctx)))
       case _ => throw new IllegalArgumentException(s"Unsupported expression: ${l.dataType}")
+    }
+  }
+
+  private def timestampLiteral(l: Literal) = {
+    l.timestamp match {
+      case Some(timestamp) => doubleQuote(timeFormat.format(timestamp))
+      case None => "NULL"
+    }
+  }
+
+  private def dateLiteral(l: Literal) = {
+    l.date match {
+      case Some(date) => doubleQuote(dateFormat.format(date))
+      case None => "NULL"
     }
   }
 

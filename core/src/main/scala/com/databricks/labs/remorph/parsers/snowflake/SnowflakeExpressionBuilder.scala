@@ -224,7 +224,7 @@ class SnowflakeExpressionBuilder()
       case PLUS => ir.Add(left, right)
       case MINUS => ir.Subtract(left, right)
       case MODULE => ir.Mod(left, right)
-      case PIPE_PIPE => ir.Concat(left, right)
+      case PIPE_PIPE => ir.Concat(Seq(left, right))
     }
 
   private[snowflake] def buildComparisonExpression(
@@ -399,7 +399,7 @@ class SnowflakeExpressionBuilder()
               .asScala
               .find(occursBefore(c.ESCAPE(), _))
               .map(_.accept(this)))
-        ir.Like(expression, patterns, escape, c.LIKE() != null)
+        ir.LikeSnowflake(expression, patterns, escape, c.LIKE() != null)
       case c if c.RLIKE() != null =>
         val pattern = c.expr(0).accept(this)
         ir.RLike(expression, pattern)

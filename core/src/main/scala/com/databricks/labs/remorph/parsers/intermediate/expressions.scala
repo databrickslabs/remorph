@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.parsers.intermediate
 
-import java.util.UUID
+import java.util.{Locale, UUID}
 
 // Expression used to refer to fields, functions and similar. This can be used everywhere
 // expressions in SQL appear.
@@ -70,11 +70,16 @@ trait NamedExpression extends Expression {
 
 class AttributeSet(val attrs: NamedExpression*) extends Set[NamedExpression] {
   def this(attrs: Set[NamedExpression]) = this(attrs.toSeq: _*)
-  override def contains(key: NamedExpression): Boolean = attrs.contains(key)
+
   override def iterator: Iterator[NamedExpression] = attrs.iterator
+
   override def +(elem: NamedExpression): AttributeSet = new AttributeSet(attrs :+ elem: _*)
+
   override def -(elem: NamedExpression): AttributeSet = new AttributeSet(attrs.filterNot(_ == elem): _*)
+
   def --(other: AttributeSet): AttributeSet = new AttributeSet(attrs.filterNot(other.contains): _*)
+
+  override def contains(key: NamedExpression): Boolean = attrs.contains(key)
 }
 
 abstract class Attribute extends LeafExpression with NamedExpression {
@@ -134,10 +139,14 @@ case class SortOrder(child: Expression, direction: SortDirection, nullOrdering: 
   override def dataType: DataType = child.dataType
 }
 
-case class Cast(expr: Expression, dataType: DataType, type_str: String = "", returnNullOnError: Boolean = false)
-    extends Expression {
-  override def children: Seq[Expression] = expr :: Nil
-}
+/** cast(expr AS type) - Casts the value `expr` to the target data type `type`. */
+case class Cast(
+    expr: Expression,
+    dataType: DataType,
+    type_str: String = "",
+    returnNullOnError: Boolean = false,
+    timeZoneId: Option[String] = None)
+    extends Unary(expr)
 
 case class Decimal(value: String, precision: Option[Int], scale: Option[Int]) extends LeafExpression {
   override def dataType: DataType = DecimalType(precision, scale)
@@ -239,7 +248,7 @@ case class Literal(
   }
 }
 
-case class UnresolvedAttribute(unparsed_identifier: String, plan_id: Long, is_metadata_column: Boolean)
+case class UnresolvedAttribute(unparsed_identifier: String, plan_id: Long = 0, is_metadata_column: Boolean = false)
     extends LeafExpression {
   override def dataType: DataType = UnresolvedType
 }
@@ -320,9 +329,10 @@ case class CommonInlineUserDefinedFunction(
   override def dataType: DataType = UnresolvedType
 }
 
-case class CallFunction(function_name: String, arguments: Seq[Expression]) extends Expression {
+case class CallFunction(function_name: String, arguments: Seq[Expression]) extends Expression with Fn {
   override def children: Seq[Expression] = arguments
   override def dataType: DataType = UnresolvedType
+  override def prettyName: String = function_name.toUpperCase(Locale.getDefault)
 }
 
 case class NamedArgumentExpression(key: String, value: Expression) extends Expression {
