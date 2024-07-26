@@ -9,20 +9,20 @@ class ExpressionGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.Ex
   override protected val generator = new ExpressionGenerator
 
   "arithmetic" in {
-    generate(ir.UMinus(ir.UnresolvedAttribute("a"))) shouldBe "-a"
-    generate(ir.UPlus(ir.UnresolvedAttribute("a"))) shouldBe "+a"
-    generate(ir.Multiply(ir.UnresolvedAttribute("a"), ir.UnresolvedAttribute("b"))) shouldBe "a * b"
-    generate(ir.Divide(ir.UnresolvedAttribute("a"), ir.UnresolvedAttribute("b"))) shouldBe "a / b"
-    generate(ir.Mod(ir.UnresolvedAttribute("a"), ir.UnresolvedAttribute("b"))) shouldBe "a % b"
-    generate(ir.Add(ir.UnresolvedAttribute("a"), ir.UnresolvedAttribute("b"))) shouldBe "a + b"
-    generate(ir.Subtract(ir.UnresolvedAttribute("a"), ir.UnresolvedAttribute("b"))) shouldBe "a - b"
+    ir.UMinus(ir.UnresolvedAttribute("a")) generates "-a"
+    ir.UPlus(ir.UnresolvedAttribute("a")) generates "+a"
+    ir.Multiply(ir.UnresolvedAttribute("a"), ir.UnresolvedAttribute("b")) generates "a * b"
+    ir.Divide(ir.UnresolvedAttribute("a"), ir.UnresolvedAttribute("b")) generates "a / b"
+    ir.Mod(ir.UnresolvedAttribute("a"), ir.UnresolvedAttribute("b")) generates "a % b"
+    ir.Add(ir.UnresolvedAttribute("a"), ir.UnresolvedAttribute("b")) generates "a + b"
+    ir.Subtract(ir.UnresolvedAttribute("a"), ir.UnresolvedAttribute("b")) generates "a - b"
   }
 
   "bitwise" in {
-    generate(ir.BitwiseOr(ir.UnresolvedAttribute("a"), ir.UnresolvedAttribute("b"))) shouldBe "a | b"
-    generate(ir.BitwiseAnd(ir.UnresolvedAttribute("a"), ir.UnresolvedAttribute("b"))) shouldBe "a & b"
-    generate(ir.BitwiseXor(ir.UnresolvedAttribute("a"), ir.UnresolvedAttribute("b"))) shouldBe "a ^ b"
-    generate(ir.BitwiseNot(ir.UnresolvedAttribute("a"))) shouldBe "~a"
+    ir.BitwiseOr(ir.UnresolvedAttribute("a"), ir.UnresolvedAttribute("b")) generates "a | b"
+    ir.BitwiseAnd(ir.UnresolvedAttribute("a"), ir.UnresolvedAttribute("b")) generates "a & b"
+    ir.BitwiseXor(ir.UnresolvedAttribute("a"), ir.UnresolvedAttribute("b")) generates "a ^ b"
+    ir.BitwiseNot(ir.UnresolvedAttribute("a")) generates "~a"
   }
 
   "like" in {

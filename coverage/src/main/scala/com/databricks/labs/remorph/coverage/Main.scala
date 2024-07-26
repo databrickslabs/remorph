@@ -75,7 +75,9 @@ object Main {
         os.write.append(outputFilePath, ujson.write(reportEntryJson, indent = -1) + "\n")
       }
     }
+    // scalastyle:off
     println(s"Successfully produced coverage report in $outputFilePath")
+    // scalastyle:on
   }
 
   def main(args: Array[String]): Unit = ParserForMethods(this).runOrExit(args)
