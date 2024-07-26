@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.parsers.intermediate
 
-import java.util.{Locale, UUID}
+import java.util.{UUID}
 
 // Expression used to refer to fields, functions and similar. This can be used everywhere
 // expressions in SQL appear.
@@ -107,21 +107,6 @@ abstract class Unary(child: Expression) extends Expression {
 abstract class Binary(left: Expression, right: Expression) extends Expression {
   override def children: Seq[Expression] = Seq(left, right)
 }
-
-trait Predicate extends AstExtension {
-  def dataType: DataType = BooleanType
-}
-
-case class And(left: Expression, right: Expression) extends Binary(left, right) with Predicate {}
-case class Or(left: Expression, right: Expression) extends Binary(left, right) with Predicate {}
-case class Not(pred: Expression) extends Unary(pred) with Predicate {}
-
-case class Equals(left: Expression, right: Expression) extends Binary(left, right) with Predicate {}
-case class NotEquals(left: Expression, right: Expression) extends Binary(left, right) with Predicate {}
-case class LessThan(left: Expression, right: Expression) extends Binary(left, right) with Predicate {}
-case class LessThanOrEqual(left: Expression, right: Expression) extends Binary(left, right) with Predicate {}
-case class GreaterThan(left: Expression, right: Expression) extends Binary(left, right) with Predicate {}
-case class GreaterThanOrEqual(left: Expression, right: Expression) extends Binary(left, right) with Predicate {}
 
 case class WhenBranch(condition: Expression, expression: Expression) extends Binary(condition, expression) {
   override def dataType: DataType = expression.dataType

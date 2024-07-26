@@ -114,8 +114,8 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
     case _ if ctx.tableName() != null =>
       val objectName = Option(ctx.tableName()).map(buildTableName)
       ir.Star(objectName)
-    case _ if ctx.INSERTED() != null => ir.Inserted(ir.Star(None))
-    case _ if ctx.DELETED() != null => ir.Deleted(ir.Star(None))
+    case _ if ctx.INSERTED() != null => Inserted(ir.Star(None))
+    case _ if ctx.DELETED() != null => Deleted(ir.Star(None))
     case _ => ir.Star(None)
   }
 
@@ -186,7 +186,7 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
         ir.Column(Some(ir.ObjectReference(path.head, path.tail: _*)), c2.columnName)
       case (_: ir.Column, c2: ir.CallFunction) =>
         functionBuilder.functionType(c2.function_name) match {
-          case XmlFunction => tsql.XmlFunction(c2, left)
+          case XmlFunction => tsql.TsqlXmlFunction(c2, left)
           case _ => ir.Dot(left, right)
         }
       // Other cases
@@ -232,7 +232,7 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
   }
 
   override def visitExprSubquery(ctx: ExprSubqueryContext): ir.Expression = {
-    ir.ScalarSubquery(ctx.subquery().accept(new TSqlRelationBuilder))
+    ScalarSubquery(ctx.subquery().accept(new TSqlRelationBuilder))
   }
 
   override def visitExprTz(ctx: ExprTzContext): ir.Expression = {
@@ -312,7 +312,7 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
     }
 
   private def buildPrimitive(con: Token): ir.Expression = con.getType match {
-    case DEFAULT => ir.Default()
+    case DEFAULT => Default()
     case LOCAL_ID => ir.Identifier(con.getText, isQuoted = false)
     case STRING => ir.Literal(string = Some(removeQuotes(con.getText)))
     case NULL_ => ir.Literal(nullType = Some(ir.NullType))

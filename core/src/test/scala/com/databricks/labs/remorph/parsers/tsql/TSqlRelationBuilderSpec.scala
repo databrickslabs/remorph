@@ -142,7 +142,7 @@ class TSqlRelationBuilderSpec
         _.selectStatement(),
         ir.Project(
           ir.TableAlias(
-            ir.ColumnAliases(
+            ColumnAliases(
               ir.Project(
                 ir.NamedTable("d", Map(), is_streaming = false),
                 Seq(ir.Column(None, ir.Id("x")), ir.Column(None, ir.Id("y")))),

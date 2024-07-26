@@ -6,10 +6,13 @@ abstract class ToRefactor extends LeafExpression {
   override def dataType: DataType = UnresolvedType
 }
 
+// TODO: (nfx) refactor to align more with catalyst
 case class Id(id: String, caseSensitive: Boolean = false) extends ToRefactor
 
+// TODO: (nfx) refactor to align more with catalyst
 case class ObjectReference(head: Id, tail: Id*) extends ToRefactor
 
+// TODO: (nfx) refactor to align more with catalyst
 case class Column(tableNameOrAlias: Option[ObjectReference], columnName: Id) extends ToRefactor with AstExtension {}
 case class Identifier(name: String, isQuoted: Boolean) extends ToRefactor with AstExtension {}
 case class DollarAction() extends ToRefactor with AstExtension {}
@@ -23,56 +26,25 @@ case object NoopNode extends LeafNode {
   override def output: Seq[Attribute] = Seq.empty
 }
 
+// TODO: (nfx) refactor to align more with catalyst
 case class WithCTE(ctes: Seq[LogicalPlan], query: LogicalPlan) extends RelationCommon {
   override def output: Seq[Attribute] = query.output
   override def children: Seq[LogicalPlan] = ctes :+ query
 }
 
+// TODO: (nfx) refactor to align more with catalyst
 case class CTEDefinition(tableName: String, columns: Seq[Expression], cte: LogicalPlan) extends RelationCommon {
   override def output: Seq[Attribute] = columns.map(c => AttributeReference(c.toString, c.dataType))
   override def children: Seq[LogicalPlan] = Seq(cte)
 }
 
+// TODO: (nfx) refactor to align more with catalyst
 case class Star(objectName: Option[ObjectReference]) extends LeafExpression {
   override def dataType: DataType = UnresolvedType
 }
-case class Inserted(selection: Expression) extends Unary(selection) {
-  override def dataType: DataType = selection.dataType
-}
-case class Deleted(selection: Expression) extends Unary(selection) {
-  override def dataType: DataType = selection.dataType
-}
 
+// TODO: (nfx) refactor to align more with catalyst
 case class Exists(relation: LogicalPlan) extends ToRefactor
-
-case class IsInRelation(relation: LogicalPlan, expression: Expression) extends ToRefactor
-case class IsInCollection(collection: Seq[Expression], expression: Expression) extends ToRefactor
-
-/**
- * str like pattern[ ESCAPE escape] - Returns true if str matches `pattern` with `escape`, null if any arguments are
- * null, false otherwise.
- */
-case class Like(left: Expression, right: Expression, escapeChar: Char = '\\') extends Binary(left, right) {
-  override def dataType: DataType = BooleanType
-}
-
-// Operators, in order of precedence
-
-// Bitwise NOT is highest precedence after parens '(' ')'
-case class BitwiseNot(expression: Expression) extends Unary(expression) {
-  override def dataType: DataType = expression.dataType
-}
-
-// Binary bitwise expressions
-case class BitwiseAnd(left: Expression, right: Expression) extends Binary(left, right) {
-  override def dataType: DataType = left.dataType
-}
-case class BitwiseOr(left: Expression, right: Expression) extends Binary(left, right) {
-  override def dataType: DataType = left.dataType
-}
-case class BitwiseXor(left: Expression, right: Expression) extends Binary(left, right) {
-  override def dataType: DataType = left.dataType
-}
 
 // Assignment operators
 case class Assign(left: Expression, right: Expression) extends Binary(left, right) {
@@ -103,6 +75,7 @@ case class TableAlias(child: LogicalPlan, alias: String, columns: Seq[Id] = Seq.
   override def output: Seq[Attribute] = columns.map(c => AttributeReference(c.id, StringType))
 }
 
+// TODO: (nfx) refactor to align more with catalyst
 // TODO: remove this and replace with Hint(Hint(...), ...)
 case class TableWithHints(child: LogicalPlan, hints: Seq[TableHint]) extends UnaryNode {
   override def output: Seq[Attribute] = child.output
@@ -148,8 +121,6 @@ case class Collate(string: Expression, specification: String) extends Unary(stri
   override def dataType: DataType = StringType
 }
 
-case class ScalarSubquery(relation: LogicalPlan) extends ToRefactor
-
 case class Timezone(expression: Expression, timeZone: Expression) extends Binary(expression, timeZone) {
   override def dataType: DataType = expression.dataType
 }
@@ -163,6 +134,7 @@ case class RowSamplingProbabilistic(probability: BigDecimal) extends SamplingMet
 case class RowSamplingFixedAmount(amount: BigDecimal) extends SamplingMethod
 case class BlockSampling(probability: BigDecimal) extends SamplingMethod
 
+// TODO: (nfx) refactor to align more with catalyst
 case class TableSample(input: LogicalPlan, samplingMethod: SamplingMethod, seed: Option[BigDecimal]) extends UnaryNode {
   override def child: LogicalPlan = input
   override def output: Seq[Attribute] = input.output
@@ -199,44 +171,12 @@ case class Options(
   override def dataType: DataType = UnresolvedType
 }
 
-case class BackupDatabase(
-    databaseName: String,
-    disks: Seq[String],
-    flags: Map[String, Boolean],
-    autoFlags: Seq[String],
-    values: Map[String, Expression])
-    extends LeafNode
-    with Command {}
-
-case class Output(target: LogicalPlan, outputs: Seq[Expression], columns: Option[Seq[Column]]) extends RelationCommon {
-  override def output: Seq[Attribute] = outputs.map(e => AttributeReference(e.toString, e.dataType))
-  override def children: Seq[LogicalPlan] = Seq(target)
-}
-
-case class DerivedRows(rows: Seq[Seq[Expression]]) extends LeafNode {
-  override def output: Seq[Attribute] = rows.flatten.map(e => AttributeReference(e.toString, e.dataType))
-}
-
-case class DefaultValues() extends LeafNode {
-  override def output: Seq[Attribute] = Seq.empty
-}
-
-// The default case for the expression parser needs to be explicitly defined to distinguish [DEFAULT]
-case class Default() extends LeafExpression {
-  override def dataType: DataType = UnresolvedType
-}
-
 // TSQL has some join types that are not natively supported in Databricks SQL, but can possibly be emulated
 // using LATERAL VIEW and an explode function. Some things like functions are translatable at IR production
 // time, but complex joins are probably/possibly better done at the translation from IR as they are more involved
 // than some simple prescribed action.
 case object CrossApply extends JoinType
 case object OuterApply extends JoinType
-
-case class ColumnAliases(input: LogicalPlan, aliases: Seq[Id]) extends RelationCommon {
-  override def output: Seq[Attribute] = aliases.map(a => AttributeReference(a.id, StringType))
-  override def children: Seq[LogicalPlan] = Seq(input)
-}
 
 case class TableFunction(functionCall: Expression) extends LeafNode {
   override def output: Seq[Attribute] = Seq.empty
