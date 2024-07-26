@@ -120,7 +120,7 @@ class SnowflakeExpressionBuilder()
   }
 
   override def visitExprNextval(ctx: ExprNextvalContext): ir.Expression = {
-    ir.NextValue(ctx.objectName().getText)
+    NextValue(ctx.objectName().getText)
   }
 
   override def visitExprDot(ctx: ExprDotContext): ir.Expression = {
@@ -252,7 +252,7 @@ class SnowflakeExpressionBuilder()
     val condition = ctx.predicate().accept(this)
     val thenBranch = ctx.expr(0).accept(this)
     val elseBranch = ctx.expr(1).accept(this)
-    ir.Iff(condition, thenBranch, elseBranch)
+    Iff(condition, thenBranch, elseBranch)
   }
 
   override def visitCastExpr(ctx: CastExprContext): ir.Expression = ctx match {
@@ -398,7 +398,7 @@ class SnowflakeExpressionBuilder()
               .asScala
               .find(occursBefore(c.ESCAPE(), _))
               .map(_.accept(this)))
-        ir.LikeSnowflake(expression, patterns, escape, c.LIKE() != null)
+        LikeSnowflake(expression, patterns, escape, c.LIKE() != null)
       case c if c.RLIKE() != null =>
         val pattern = c.expr(0).accept(this)
         ir.RLike(expression, pattern)
@@ -410,7 +410,7 @@ class SnowflakeExpressionBuilder()
   }
 
   override def visitParamAssoc(ctx: ParamAssocContext): ir.Expression = {
-    ir.NamedArgumentExpression(ctx.id().getText.toUpperCase(), ctx.expr().accept(this))
+    NamedArgumentExpression(ctx.id().getText.toUpperCase(), ctx.expr().accept(this))
   }
 
   override def visitSetColumnValue(ctx: SetColumnValueContext): ir.Expression = {

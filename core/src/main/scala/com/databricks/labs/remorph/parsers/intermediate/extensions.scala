@@ -15,29 +15,6 @@ case class Identifier(name: String, isQuoted: Boolean) extends ToRefactor with A
 case class DollarAction() extends ToRefactor with AstExtension {}
 case class Distinct(expression: Expression) extends ToRefactor
 
-abstract class Unary(child: Expression) extends Expression {
-  override def children: Seq[Expression] = Seq(child)
-}
-
-abstract class Binary(left: Expression, right: Expression) extends Expression {
-  override def children: Seq[Expression] = Seq(left, right)
-}
-
-trait Predicate extends AstExtension {
-  def dataType: DataType = BooleanType
-}
-
-case class And(left: Expression, right: Expression) extends Binary(left, right) with Predicate {}
-case class Or(left: Expression, right: Expression) extends Binary(left, right) with Predicate {}
-case class Not(pred: Expression) extends Unary(pred) with Predicate {}
-
-case class Equals(left: Expression, right: Expression) extends Binary(left, right) with Predicate {}
-case class NotEquals(left: Expression, right: Expression) extends Binary(left, right) with Predicate {}
-case class LessThan(left: Expression, right: Expression) extends Binary(left, right) with Predicate {}
-case class LessThanOrEqual(left: Expression, right: Expression) extends Binary(left, right) with Predicate {}
-case class GreaterThan(left: Expression, right: Expression) extends Binary(left, right) with Predicate {}
-case class GreaterThanOrEqual(left: Expression, right: Expression) extends Binary(left, right) with Predicate {}
-
 case object Noop extends LeafExpression {
   override def dataType: DataType = UnresolvedType
 }
@@ -66,29 +43,10 @@ case class Deleted(selection: Expression) extends Unary(selection) {
   override def dataType: DataType = selection.dataType
 }
 
-case class WhenBranch(condition: Expression, expression: Expression) extends Binary(condition, expression) {
-  override def dataType: DataType = expression.dataType
-}
-
-case class Case(expression: Option[Expression], branches: Seq[WhenBranch], otherwise: Option[Expression])
-    extends Expression {
-  override def children: Seq[Expression] = expression.toSeq ++
-    branches.flatMap(b => Seq(b.condition, b.expression)) ++ otherwise
-  override def dataType: DataType = branches.head.dataType
-}
-
 case class Exists(relation: LogicalPlan) extends ToRefactor
 
 case class IsInRelation(relation: LogicalPlan, expression: Expression) extends ToRefactor
 case class IsInCollection(collection: Seq[Expression], expression: Expression) extends ToRefactor
-
-// TODO: convert into Like
-case class LikeSnowflake(
-    expression: Expression,
-    patterns: Seq[Expression],
-    escape: Option[Expression],
-    caseSensitive: Boolean)
-    extends ToRefactor
 
 /**
  * str like pattern[ ESCAPE escape] - Returns true if str matches `pattern` with `escape`, null if any arguments are
@@ -105,30 +63,6 @@ case class BitwiseNot(expression: Expression) extends Unary(expression) {
   override def dataType: DataType = expression.dataType
 }
 
-// Unary arithmetic expressions
-case class UMinus(expression: Expression) extends Unary(expression) {
-  override def dataType: DataType = expression.dataType
-}
-case class UPlus(expression: Expression) extends Unary(expression) {
-  override def dataType: DataType = expression.dataType
-}
-
-// Binary Arithmetic expressions
-case class Multiply(left: Expression, right: Expression) extends Binary(left, right) {
-  override def dataType: DataType = left.dataType
-}
-case class Divide(left: Expression, right: Expression) extends Binary(left, right) {
-  override def dataType: DataType = left.dataType
-}
-case class Mod(left: Expression, right: Expression) extends Binary(left, right) {
-  override def dataType: DataType = left.dataType
-}
-case class Add(left: Expression, right: Expression) extends Binary(left, right) {
-  override def dataType: DataType = left.dataType
-}
-case class Subtract(left: Expression, right: Expression) extends Binary(left, right) {
-  override def dataType: DataType = left.dataType
-}
 
 // Binary bitwise expressions
 case class BitwiseAnd(left: Expression, right: Expression) extends Binary(left, right) {
@@ -150,6 +84,7 @@ case class Assign(left: Expression, right: Expression) extends Binary(left, righ
 case class NoTable() extends LeafNode {
   override def output: Seq[Attribute] = Seq.empty
 }
+
 case class LocalVarTable(id: Id) extends LeafNode {
   override def output: Seq[Attribute] = Seq.empty
 }
@@ -197,54 +132,12 @@ case class CreateInlineUDF(
     body: String)
     extends Catalog {}
 
-sealed trait Constraint
-sealed trait UnnamedConstraint extends Constraint
-case object Unique extends UnnamedConstraint
-case class Nullability(nullable: Boolean) extends UnnamedConstraint
-case object PrimaryKey extends UnnamedConstraint
-case class ForeignKey(references: String) extends UnnamedConstraint
-case class NamedConstraint(name: String, constraint: UnnamedConstraint) extends Constraint
-case class UnresolvedConstraint(inputText: String) extends UnnamedConstraint
-
-// This, and the above, are likely to change in a not-so-remote future.
-// There's already a CreateTable case defined in catalog.scala but its structure seems too different from
-// the information Snowflake grammar carries.
-// In future changes, we'll have to reconcile this CreateTableCommand with the "Sparkier" CreateTable somehow.
-case class ColumnDeclaration(
-    name: String,
-    dataType: DataType,
-    virtualColumnDeclaration: Option[Expression] = Option.empty,
-    constraints: Seq[Constraint] = Seq.empty)
-
-case class CreateTableCommand(name: String, columns: Seq[ColumnDeclaration]) extends Catalog {}
-
-sealed trait TableAlteration
-case class AddColumn(columnDeclaration: ColumnDeclaration) extends TableAlteration
-case class AddConstraint(columnName: String, constraint: Constraint) extends TableAlteration
-case class ChangeColumnDataType(columnName: String, newDataType: DataType) extends TableAlteration
-case class UnresolvedTableAlteration(inputText: String) extends TableAlteration
-case class DropConstraintByName(constraintName: String) extends TableAlteration
-// When constraintName is None, drop the constraint on every relevant column
-case class DropConstraint(columnName: Option[String], constraint: Constraint) extends TableAlteration
-case class DropColumns(columnNames: Seq[String]) extends TableAlteration
-case class RenameConstraint(oldName: String, newName: String) extends TableAlteration
-case class RenameColumn(oldName: String, newName: String) extends TableAlteration
-
-case class AlterTableCommand(tableName: String, alterations: Seq[TableAlteration]) extends Catalog {}
 
 // Used for raw expressions that have no context
 case class Dot(left: Expression, right: Expression) extends Binary(left, right) {
   override def dataType: DataType = UnresolvedType
 }
 
-// Specialized function calls, such as XML functions that usually apply to columns
-case class XmlFunction(function: CallFunction, column: Expression) extends Binary(function, column) {
-  override def dataType: DataType = UnresolvedType
-}
-
-case class NextValue(sequenceName: String) extends LeafExpression {
-  override def dataType: DataType = LongType
-}
 case class ArrayAccess(array: Expression, index: Expression) extends Binary(array, index) {
   override def dataType: DataType = array.dataType
 }
@@ -256,19 +149,11 @@ case class JsonAccess(json: Expression, path: Expression) extends Binary(json, p
 case class Collate(string: Expression, specification: String) extends Unary(string) {
   override def dataType: DataType = StringType
 }
-case class Iff(condition: Expression, thenBranch: Expression, elseBranch: Expression) extends Expression {
-  override def children: Seq[Expression] = Seq(condition, thenBranch, elseBranch)
-  override def dataType: DataType = thenBranch.dataType
-}
 
 case class ScalarSubquery(relation: LogicalPlan) extends ToRefactor
 
 case class Timezone(expression: Expression, timeZone: Expression) extends Binary(expression, timeZone) {
   override def dataType: DataType = expression.dataType
-}
-
-case class Money(value: Literal) extends Unary(value) {
-  override def dataType: DataType = UnresolvedType
 }
 
 case class WithinGroup(expression: Expression, order: Seq[SortOrder]) extends Unary(expression) {
@@ -330,22 +215,6 @@ case class Output(target: LogicalPlan, outputs: Seq[Expression], columns: Option
   override def children: Seq[LogicalPlan] = Seq(target)
 }
 
-// Used for DML other than SELECT
-abstract class Modification extends LogicalPlan
-
-case class InsertIntoTable( // TODO: fix it
-    target: LogicalPlan,
-    columns: Option[Seq[Id]],
-    values: LogicalPlan,
-    outputRelation: Option[LogicalPlan],
-    options: Option[Expression],
-    overwrite: Boolean)
-    extends Modification {
-  override def children: Seq[LogicalPlan] = Seq(target, values) ++ outputRelation
-  override def expressions: Seq[Expression] = super.expressions ++ options ++ columns.getOrElse(Seq.empty)
-  override def output: Seq[Attribute] = target.output
-}
-
 case class DerivedRows(rows: Seq[Seq[Expression]]) extends LeafNode {
   override def output: Seq[Attribute] = rows.flatten.map(e => AttributeReference(e.toString, e.dataType))
 }
@@ -374,44 +243,8 @@ case class ColumnAliases(input: LogicalPlan, aliases: Seq[Id]) extends RelationC
 case class TableFunction(functionCall: Expression) extends LeafNode {
   override def output: Seq[Attribute] = Seq.empty
 }
+
 case class Lateral(expr: LogicalPlan) extends UnaryNode {
   override def child: LogicalPlan = expr
   override def output: Seq[Attribute] = expr.output
-}
-
-case class DeleteFromTable(
-    target: LogicalPlan,
-    source: Option[LogicalPlan],
-    where: Option[Expression],
-    outputRelation: Option[LogicalPlan],
-    options: Option[Expression])
-    extends Modification {
-  override def children: Seq[LogicalPlan] = Seq(target) ++ source ++ outputRelation
-  override def expressions: Seq[Expression] = super.expressions ++ where ++ options
-  override def output: Seq[Attribute] = target.output
-}
-
-case class UpdateTable(
-    target: LogicalPlan,
-    source: Option[LogicalPlan],
-    set: Seq[Expression],
-    where: Option[Expression],
-    outputRelation: Option[LogicalPlan],
-    options: Option[Expression])
-    extends Modification {
-  override def children: Seq[LogicalPlan] = Seq(target) ++ source ++ outputRelation
-  override def expressions: Seq[Expression] = super.expressions ++ where ++ options ++ set
-  override def output: Seq[Attribute] = target.output
-}
-
-case class MergeTables(
-    target: LogicalPlan,
-    source: Option[LogicalPlan],
-    conditions: Option[Expression],
-    outputRelation: Option[LogicalPlan],
-    options: Option[Expression])
-    extends Modification {
-  override def children: Seq[LogicalPlan] = Seq(target) ++ source ++ outputRelation
-  override def expressions: Seq[Expression] = super.expressions ++ options
-  override def output: Seq[Attribute] = target.output
 }

@@ -1,10 +1,10 @@
 package com.databricks.labs.remorph.parsers.common
 
 import com.databricks.labs.remorph.parsers.intermediate.{IRHelpers, UnresolvedFunction}
-import com.databricks.labs.remorph.parsers.snowflake.SnowflakeFunctionBuilder
+import com.databricks.labs.remorph.parsers.snowflake.{NamedArgumentExpression, SnowflakeFunctionBuilder}
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeFunctionConverters.SnowflakeSynonyms
 import com.databricks.labs.remorph.parsers.tsql.TSqlFunctionBuilder
-import com.databricks.labs.remorph.parsers.{intermediate => ir, _}
+import com.databricks.labs.remorph.parsers.{snowflake, intermediate => ir, _}
 import org.scalatest.flatspec.AnyFlatSpec
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.prop.TableDrivenPropertyChecks
@@ -566,23 +566,23 @@ class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenProp
     val arity = SymbolicArity(Set("req1", "REQ2"), Set("opt1", "opt2", "opt3"))
     FunctionArity.verifyArguments(
       arity,
-      Seq(ir.NamedArgumentExpression("Req2", ir.Noop), ir.NamedArgumentExpression("REQ1", ir.Noop))) shouldBe true
+      Seq(NamedArgumentExpression("Req2", ir.Noop), snowflake.NamedArgumentExpression("REQ1", ir.Noop))) shouldBe true
 
     FunctionArity.verifyArguments(
       arity,
       Seq(
-        ir.NamedArgumentExpression("Req2", ir.Noop),
-        ir.NamedArgumentExpression("OPT1", ir.Noop),
-        ir.NamedArgumentExpression("REQ1", ir.Noop))) shouldBe true
+        snowflake.NamedArgumentExpression("Req2", ir.Noop),
+        snowflake.NamedArgumentExpression("OPT1", ir.Noop),
+        snowflake.NamedArgumentExpression("REQ1", ir.Noop))) shouldBe true
 
     FunctionArity.verifyArguments(
       arity,
       Seq(
-        ir.NamedArgumentExpression("Req2", ir.Noop),
-        ir.NamedArgumentExpression("OPT1", ir.Noop),
-        ir.NamedArgumentExpression("OPT3", ir.Noop),
-        ir.NamedArgumentExpression("OPT2", ir.Noop),
-        ir.NamedArgumentExpression("REQ1", ir.Noop))) shouldBe true
+        snowflake.NamedArgumentExpression("Req2", ir.Noop),
+        snowflake.NamedArgumentExpression("OPT1", ir.Noop),
+        snowflake.NamedArgumentExpression("OPT3", ir.Noop),
+        snowflake.NamedArgumentExpression("OPT2", ir.Noop),
+        snowflake.NamedArgumentExpression("REQ1", ir.Noop))) shouldBe true
   }
 
   "FunctionArity.verifyArguments" should "return true when arity is symbolic and arguments are provided unnamed" in {
@@ -604,7 +604,7 @@ class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenProp
     FunctionArity.verifyArguments(VariableArity(2, 3), Seq(ir.Noop)) shouldBe false
     FunctionArity.verifyArguments(
       SymbolicArity(Set("req1", "req2"), Set.empty),
-      Seq(ir.NamedArgumentExpression("REQ2", ir.Noop))) shouldBe false
+      Seq(snowflake.NamedArgumentExpression("REQ2", ir.Noop))) shouldBe false
     FunctionArity.verifyArguments(SymbolicArity(Set("req1", "req2"), Set.empty), Seq(ir.Noop)) shouldBe false
 
     // too many arguments
@@ -617,11 +617,11 @@ class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenProp
     // wrongly named arguments
     FunctionArity.verifyArguments(
       SymbolicArity(Set("req1"), Set("opt1")),
-      Seq(ir.NamedArgumentExpression("REQ2", ir.Noop), ir.NamedArgumentExpression("REQ1", ir.Noop))) shouldBe false
+      Seq(snowflake.NamedArgumentExpression("REQ2", ir.Noop), snowflake.NamedArgumentExpression("REQ1", ir.Noop))) shouldBe false
 
     // mix of named and unnamed arguments
     FunctionArity.verifyArguments(
       SymbolicArity(Set("REQ"), Set("OPT")),
-      Seq(ir.Noop, ir.NamedArgumentExpression("OPT", ir.Noop))) shouldBe false
+      Seq(ir.Noop, snowflake.NamedArgumentExpression("OPT", ir.Noop))) shouldBe false
   }
 }

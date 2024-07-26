@@ -1,7 +1,7 @@
 package com.databricks.labs.remorph.parsers.tsql
 
 import com.databricks.labs.remorph.parsers.tsql.TSqlParser._
-import com.databricks.labs.remorph.parsers.{ParserCommon, XmlFunction, intermediate => ir}
+import com.databricks.labs.remorph.parsers.{ParserCommon, XmlFunction, tsql, intermediate => ir}
 import org.antlr.v4.runtime.Token
 import org.antlr.v4.runtime.tree.Trees
 
@@ -186,7 +186,7 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
         ir.Column(Some(ir.ObjectReference(path.head, path.tail: _*)), c2.columnName)
       case (_: ir.Column, c2: ir.CallFunction) =>
         functionBuilder.functionType(c2.function_name) match {
-          case XmlFunction => ir.XmlFunction(c2, left)
+          case XmlFunction => tsql.XmlFunction(c2, left)
           case _ => ir.Dot(left, right)
         }
       // Other cases
@@ -317,7 +317,7 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
     case STRING => ir.Literal(string = Some(removeQuotes(con.getText)))
     case NULL_ => ir.Literal(nullType = Some(ir.NullType))
     case HEX => ir.Literal(string = Some(con.getText)) // Preserve format
-    case MONEY => ir.Money(ir.Literal(string = Some(con.getText)))
+    case MONEY => Money(ir.Literal(string = Some(con.getText)))
     case INT | REAL | FLOAT => convertNumeric(con.getText)
   }
 

@@ -1,6 +1,7 @@
 package com.databricks.labs.remorph.parsers.tsql
 
 import com.databricks.labs.remorph.parsers.intermediate._
+import com.databricks.labs.remorph.parsers.tsql
 import org.mockito.Mockito.{mock, when}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -229,7 +230,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
           Seq(
             Project(
               namedTable("tab"),
-              Seq(XmlFunction(
+              Seq(tsql.XmlFunction(
                 CallFunction("query", Seq(Literal(string = Some("/root/child")))),
                 simplyNamedColumn("xmlcolumn")))))))
 
@@ -238,7 +239,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
         expectedAst = Batch(
           Seq(Project(
             namedTable("tab"),
-            Seq(XmlFunction(
+            Seq(tsql.XmlFunction(
               CallFunction("value", Seq(Literal(string = Some("path")), Literal(string = Some("type")))),
               simplyNamedColumn("xmlcolumn")))))))
 
@@ -247,7 +248,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
         expectedAst = Batch(
           Seq(Project(
             namedTable("xmltable"),
-            Seq(XmlFunction(
+            Seq(tsql.XmlFunction(
               CallFunction("exist", Seq(Literal(string = Some("/root/child[text()=\"Some Value\"]")))),
               simplyNamedColumn("xmlcolumn")))))))
 
