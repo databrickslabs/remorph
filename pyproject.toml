@@ -74,7 +74,6 @@ verify      = ["black --check .",
                "pylint --output-format=colorized -j 0 src tests"]
 
 [tool.hatch.envs.sqlglot-latest]
-detached = true
 python="3.10"
 dependencies = [
   "databricks-labs-remorph",

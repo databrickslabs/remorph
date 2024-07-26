@@ -1,5 +1,5 @@
 from sqlglot.dialects.tsql import TSQL
-from databricks.labs.remorph.coverage import sqlglot_coverage
+from databricks.labs.remorph.coverage.commons import sqlglot_run_coverage
 
 if __name__ == "__main__":
-    sqlglot_coverage.run_coverage(TSQL, "tsql")
+    sqlglot_run_coverage(TSQL, "tsql")
