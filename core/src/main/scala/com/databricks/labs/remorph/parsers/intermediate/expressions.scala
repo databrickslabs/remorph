@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.parsers.intermediate
 
-import java.util.UUID
+import java.util.{Locale, UUID}
 
 // Expression used to refer to fields, functions and similar. This can be used everywhere
 // expressions in SQL appear.
@@ -247,7 +247,7 @@ case class Literal(
   }
 }
 
-case class UnresolvedAttribute(unparsed_identifier: String, plan_id: Long, is_metadata_column: Boolean)
+case class UnresolvedAttribute(unparsed_identifier: String, plan_id: Long = 0, is_metadata_column: Boolean = false)
     extends LeafExpression {
   override def dataType: DataType = UnresolvedType
 }
@@ -328,9 +328,10 @@ case class CommonInlineUserDefinedFunction(
   override def dataType: DataType = UnresolvedType
 }
 
-case class CallFunction(function_name: String, arguments: Seq[Expression]) extends Expression {
+case class CallFunction(function_name: String, arguments: Seq[Expression]) extends Expression with Fn {
   override def children: Seq[Expression] = arguments
   override def dataType: DataType = UnresolvedType
+  override def prettyName: String = function_name.toUpperCase(Locale.getDefault)
 }
 
 case class NamedArgumentExpression(key: String, value: Expression) extends Expression {

@@ -2,13 +2,12 @@ package com.databricks.labs.remorph.parsers.intermediate
 
 trait Fn extends Expression {
   def prettyName: String
-  def aliases: Seq[String] = Seq.empty
 }
 
 class CallMapper {
 
   /** This function is supposed to be overridden by dialects */
-  def convert(call: CallFunction): Expression = {
+  def convert(call: Fn): Fn = call match {
     case CallFunction("ABS", args) => Abs(args.head)
     case CallFunction("ACOS", args) => Acos(args.head)
     case CallFunction("ACOSH", args) => Acosh(args.head)
@@ -16,7 +15,6 @@ class CallMapper {
     case CallFunction("AGGREGATE", args) => ArrayAggregate(args.head, args(1), args(2), args(3))
     case CallFunction("ANY", args) => BoolOr(args.head)
     case CallFunction("APPROX_COUNT_DISTINCT", args) => HyperLogLogPlusPlus(args.head, args(1))
-    case CallFunction("ARRAY", args) => ArrayAggregate(args.head, args(1), args(2), args(3))
     case CallFunction("ARRAYS_OVERLAP", args) => ArraysOverlap(args.head, args(1))
     case CallFunction("ARRAYS_ZIP", args) => ArraysZip(args)
     case CallFunction("ARRAY_CONTAINS", args) => ArrayContains(args.head, args(1))
@@ -48,7 +46,6 @@ class CallMapper {
     case CallFunction("BIT_XOR", args) => BitXorAgg(args.head)
     case CallFunction("BOOL_AND", args) => BoolAnd(args.head)
     case CallFunction("BROUND", args) => BRound(args.head, args(1))
-    case CallFunction("CAST", args) => Cast(args.head, UnresolvedType) // TODO: must not be in this mapper
     case CallFunction("CBRT", args) => Cbrt(args.head)
     case CallFunction("CEIL", args) => Ceil(args.head)
     case CallFunction("CHAR", args) => Chr(args.head)
@@ -186,7 +183,6 @@ class CallMapper {
     case CallFunction("NVL", args) => Nvl(args.head, args(1))
     case CallFunction("NVL2", args) => Nvl2(args.head, args(1), args(2))
     case CallFunction("OCTET_LENGTH", args) => OctetLength(args.head)
-    case CallFunction("OR", args) => Or(args.head, args(1))
     case CallFunction("OVERLAY", args) => Overlay(args.head, args(1), args(2), args(3))
     case CallFunction("PARSE_URL", args) => ParseUrl(args)
     case CallFunction("PERCENTILE", args) => Percentile(args.head, args(1), args(2))
@@ -443,7 +439,6 @@ case class BRound(left: Expression, right: Expression) extends Binary(left, righ
  */
 case class Size(left: Expression) extends Unary(left) with Fn {
   override def prettyName: String = "SIZE"
-  override def aliases: Seq[String] = Seq("CARDINALITY")
   override def dataType: DataType = UnresolvedType
 }
 
@@ -456,7 +451,6 @@ case class Cbrt(left: Expression) extends Unary(left) with Fn {
 /** ceil(expr) - Returns the smallest integer not smaller than `expr`. */
 case class Ceil(left: Expression) extends Unary(left) with Fn {
   override def prettyName: String = "CEIL"
-  override def aliases: Seq[String] = Seq("CEILING")
   override def dataType: DataType = LongType
 }
 
@@ -466,7 +460,6 @@ case class Ceil(left: Expression) extends Unary(left) with Fn {
  */
 case class Chr(left: Expression) extends Unary(left) with Fn {
   override def prettyName: String = "CHAR"
-  override def aliases: Seq[String] = Seq("CHR")
   override def dataType: DataType = StringType
 }
 

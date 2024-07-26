@@ -21,7 +21,6 @@ abstract class Unary(child: Expression) extends Expression {
 
 abstract class Binary(left: Expression, right: Expression) extends Expression {
   override def children: Seq[Expression] = Seq(left, right)
-
 }
 
 trait Predicate extends AstExtension {
@@ -349,6 +348,7 @@ case class InsertIntoTable( // TODO: fix it
 case class DerivedRows(rows: Seq[Seq[Expression]]) extends LeafNode {
   override def output: Seq[Attribute] = rows.flatten.map(e => AttributeReference(e.toString, e.dataType))
 }
+
 case class DefaultValues() extends LeafNode {
   override def output: Seq[Attribute] = Seq.empty
 }

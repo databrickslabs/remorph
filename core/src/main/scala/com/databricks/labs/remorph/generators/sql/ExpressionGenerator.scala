@@ -1,30 +1,30 @@
 package com.databricks.labs.remorph.generators.sql
 
 import com.databricks.labs.remorph.generators.GeneratorContext
-import com.databricks.labs.remorph.parsers.intermediate.{Expression, Literal}
 import com.databricks.labs.remorph.parsers.{intermediate => ir}
 
 import java.text.SimpleDateFormat
 import java.util.Locale
 
-class ExpressionGenerator {
+class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper()) {
   private val dateFormat = new SimpleDateFormat("yyyy-MM-dd")
   private val timeFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS")
 
   def expression(ctx: GeneratorContext, expr: ir.Expression): String = {
     expr match {
       case l: ir.Literal => literal(ctx, l)
-      case fn: ir.Fn => callFunction(ctx, fn.prettyName, expr.children)
-      case ir.CallFunction(name, args) => callFunction(ctx, name, args)
+      case fn: ir.Fn => callFunction(ctx, fn)
+      case ir.UnresolvedAttribute(name, _, _) => name
       case _ => throw new IllegalArgumentException(s"Unsupported expression: $expr")
     }
   }
 
-  private def callFunction(ctx: GeneratorContext, name: String, args: Seq[Expression]): String = {
-    s"$name(${args.map(expression(ctx, _)).mkString(", ")})"
+  private def callFunction(ctx: GeneratorContext, fn: ir.Fn): String = {
+    val call = callMapper.convert(fn)
+    s"${call.prettyName}(${call.children.map(expression(ctx, _)).mkString(", ")})"
   }
 
-  private def literal(ctx: GeneratorContext, l: Literal): String = {
+  private def literal(ctx: GeneratorContext, l: ir.Literal): String = {
     l.dataType match {
       case ir.NullType => "NULL"
       case ir.BinaryType => orNull(l.binary.map(_.map("%02X" format _).mkString))
