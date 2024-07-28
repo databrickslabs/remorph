@@ -11,6 +11,7 @@ case class SQL(query: String, named_arguments: Map[String, Expression], pos_argu
 
 abstract class Read(is_streaming: Boolean) extends LeafNode
 
+// TODO: replace most (if not all) occurrences with UnresolvedRelation
 case class NamedTable(unparsed_identifier: String, options: Map[String, String], is_streaming: Boolean)
     extends Read(is_streaming) {
   override def output: Seq[Attribute] = Seq.empty
@@ -29,6 +30,7 @@ case class DataSource(
 
 case class Project(input: LogicalPlan, override val expressions: Seq[Expression]) extends UnaryNode {
   override def child: LogicalPlan = input
+  // TODO: add resolver for Star
   override def output: Seq[Attribute] = expressions.map(_.asInstanceOf[Attribute])
 }
 
@@ -70,11 +72,8 @@ case class SetOperation(
   override def output: Seq[Attribute] = left.output ++ right.output
 }
 
-// TODO: move is_percentage / with_ties to TSQL-specific nodes
-case class Limit(input: LogicalPlan, limit: Expression, is_percentage: Boolean = false, with_ties: Boolean = false)
-    extends UnaryNode {
-  override def child: LogicalPlan = input
-  override def output: Seq[Attribute] = input.output
+case class Limit(child: LogicalPlan, limit: Expression) extends UnaryNode {
+  override def output: Seq[Attribute] = child.output
 }
 
 case class Offset(child: LogicalPlan, offset: Expression) extends UnaryNode {
@@ -141,7 +140,8 @@ case class Range(start: Long, end: Long, step: Long, num_partitions: Int) extend
   override def output: Seq[Attribute] = Seq(AttributeReference("id", LongType))
 }
 
-case class SubqueryAlias(child: LogicalPlan, alias: Id, columnNames: Seq[Id]) extends UnaryNode {
+// TODO: most likely has to be SubqueryAlias(identifier: AliasIdentifier, child: LogicalPlan)
+case class SubqueryAlias(child: LogicalPlan, alias: Id, columnNames: Seq[Id] = Seq.empty) extends UnaryNode {
   override def output: Seq[Attribute] = child.output
 }
 

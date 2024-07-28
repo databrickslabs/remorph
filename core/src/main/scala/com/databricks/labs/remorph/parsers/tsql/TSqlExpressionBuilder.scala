@@ -1,5 +1,6 @@
 package com.databricks.labs.remorph.parsers.tsql
 
+import com.databricks.labs.remorph.parsers.intermediate.ScalarSubquery
 import com.databricks.labs.remorph.parsers.tsql.TSqlParser._
 import com.databricks.labs.remorph.parsers.{ParserCommon, XmlFunction, tsql, intermediate => ir}
 import org.antlr.v4.runtime.Token
