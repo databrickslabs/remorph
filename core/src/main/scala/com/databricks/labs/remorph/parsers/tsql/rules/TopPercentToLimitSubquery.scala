@@ -47,7 +47,7 @@ object TopPercentToLimitSubquery extends Rule[LogicalPlan] {
             child.output ++ Seq(
               Alias(
                 Window(
-                  NTile(Literal(100)),
+                  NTile(Literal(short = Some(100))),
                   sort_order = Seq(
                     // TODO: get a unit test
                   )),
@@ -55,23 +55,24 @@ object TopPercentToLimitSubquery extends Rule[LogicalPlan] {
           Id(withPercentileCteName))),
       Filter(
         Project(UnresolvedRelation(withPercentileCteName), child.output),
-        LessThanOrEqual(UnresolvedAttribute(percentileColName), Divide(percentage, Literal(100)))))
+        LessThanOrEqual(UnresolvedAttribute(percentileColName), Divide(percentage, Literal(short = Some(100))))))
   }
 
   private def viaTotalCount(child: LogicalPlan, percentage: Expression) = {
     val cteSuffix = counter.incrementAndGet()
     val originalCteName = s"_limited$cteSuffix"
+    val countedCteName = s"_counted$cteSuffix"
     WithCTE(
       Seq(
         SubqueryAlias(child, Id(originalCteName)),
         SubqueryAlias(
           Project(UnresolvedRelation(originalCteName), Seq(Alias(Count(Seq(Star())), Seq(Id("count"))))),
-          Id(s"_counted$cteSuffix"))),
+          Id(countedCteName))),
       Limit(
         Project(UnresolvedRelation(originalCteName), Seq(Star())),
         ScalarSubquery(
           Project(
-            UnresolvedRelation(originalCteName),
-            Seq(Cast(Multiply(Divide(Id("count"), percentage), Literal(100)), LongType))))))
+            UnresolvedRelation(countedCteName),
+            Seq(Cast(Multiply(Divide(Id("count"), percentage), Literal(short = Some(100))), LongType))))))
   }
 }

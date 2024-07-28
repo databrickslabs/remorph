@@ -12,14 +12,23 @@ trait PlanComparison {
     val actual = reorderComparisons(b)
     if (expected != actual) {
       fail(s"""
-           |== FAIL: Plans do not match ===
-           |${Strings.sideBySide(expected.treeString, actual.treeString).mkString("\n")}
+              |== FAIL: Plans do not match ===
+              |${Strings.sideBySide(pretty(expected), pretty(actual)).mkString("\n")}
          """.stripMargin)
     }
   }
 
+  private def pretty(x: Any): String = pprint.apply(x, width = 40).plainText
+
+  protected def eraseExprIds(plan: ir.LogicalPlan): ir.LogicalPlan = {
+    val exprId = ir.ExprId(0)
+    plan transformAllExpressions { case ir.AttributeReference(name, dt, nullable, _, qualifier) =>
+      ir.AttributeReference(name, dt, nullable, exprId, qualifier)
+    }
+  }
+
   protected def reorderComparisons(plan: ir.LogicalPlan): ir.LogicalPlan = {
-    plan transformAllExpressions {
+    eraseExprIds(plan) transformAllExpressions {
       case ir.Equals(l, r) if l.hashCode() > r.hashCode() => ir.Equals(r, l)
       case ir.GreaterThan(l, r) if l.hashCode() > r.hashCode() => ir.LessThan(r, l)
       case ir.GreaterThanOrEqual(l, r) if l.hashCode() > r.hashCode() => ir.LessThanOrEqual(r, l)

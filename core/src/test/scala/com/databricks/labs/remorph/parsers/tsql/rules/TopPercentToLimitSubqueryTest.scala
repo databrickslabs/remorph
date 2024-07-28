@@ -19,9 +19,9 @@ class TopPercentToLimitSubqueryTest extends AnyWordSpec with PlanComparison with
             Id("_counted1"))),
         Limit(
           Project(UnresolvedRelation("_limited1"), Seq(Star())),
-          ScalarSubquery(
-            Project(
-              UnresolvedRelation("_counted1"),
-              Seq(Cast(Multiply(Divide(Id("count"), Literal(10)), Literal(100)), LongType)))))))
+          ScalarSubquery(Project(
+            UnresolvedRelation("_counted1"),
+            Seq(
+              Cast(Multiply(Divide(Id("count"), Literal(short = Some(10))), Literal(short = Some(100))), LongType)))))))
   }
 }

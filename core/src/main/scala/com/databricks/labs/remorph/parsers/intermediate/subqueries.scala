@@ -1,6 +1,8 @@
 package com.databricks.labs.remorph.parsers.intermediate
 
-abstract class SubqueryExpression(plan: LogicalPlan) extends LeafExpression
+abstract class SubqueryExpression(plan: LogicalPlan) extends Expression {
+  override def children: Seq[Expression] = plan.expressions // TODO: not sure if this is a good idea
+}
 
 // returns one column. TBD if we want to split between
 // one row (scala) and ListQuery (many rows), as it makes
