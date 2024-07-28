@@ -126,4 +126,8 @@ class LogicalPlanGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.L
         .doesNotTranspile
     }
   }
+
+  "transpile to LIMIT" in {
+    ir.Limit(namedTable("a"), ir.Literal(10)) generates "a LIMIT 10"
+  }
 }
