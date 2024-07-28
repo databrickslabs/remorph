@@ -21,6 +21,8 @@ class LogicalPlanGenerator(val explicitDistinct: Boolean = false) extends Genera
       s"${generate(ctx, input)} LIMIT ${expr.generate(ctx, limit)}"
     case ir.Offset(child, offset) =>
       s"${generate(ctx, child)} OFFSET ${expr.generate(ctx, offset)}"
+    case ir.Values(data) =>
+      s"VALUES ${data.map(_.map(expr.generate(ctx, _)).mkString("(", ",", ")")).mkString(", ")}"
     case sort: ir.Sort => orderBy(ctx, sort)
     case join: ir.Join => generateJoin(ctx, join)
     case setOp: ir.SetOperation => setOperation(ctx, setOp)
