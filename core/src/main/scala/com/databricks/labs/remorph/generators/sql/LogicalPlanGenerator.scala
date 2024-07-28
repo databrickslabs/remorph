@@ -2,9 +2,9 @@ package com.databricks.labs.remorph.generators.sql
 
 import com.databricks.labs.remorph.parsers.{intermediate => ir}
 import com.databricks.labs.remorph.generators.{Generator, GeneratorContext}
-import com.databricks.labs.remorph.transpilers.TranspileException
+import com.databricks.labs.remorph.parsers.intermediate.{ExceptSetOp, IntersectSetOp, UnionSetOp}
 
-class LogicalPlanGenerator extends Generator[ir.LogicalPlan, String] {
+class LogicalPlanGenerator(val explicitDistinct: Boolean = false) extends Generator[ir.LogicalPlan, String] {
 
   private val expressionGenerator = new ExpressionGenerator
 
@@ -18,7 +18,8 @@ class LogicalPlanGenerator extends Generator[ir.LogicalPlan, String] {
     case ir.Filter(input, condition) =>
       s"${generate(ctx, input)} WHERE ${expressionGenerator.generate(ctx, condition)}"
     case join: ir.Join => generateJoin(ctx, join)
-    case x => throw TranspileException(s"not implemented ${x}")
+    case setOp: ir.SetOperation => setOperation(ctx, setOp)
+    case x => throw unknown(x)
   }
 
   private def generateJoin(ctx: GeneratorContext, join: ir.Join): String = {
@@ -41,4 +42,20 @@ class LogicalPlanGenerator extends Generator[ir.LogicalPlan, String] {
     s"$left $joinType $right$spaceAndCondition$spaceAndUsing"
   }
 
+  private def setOperation(ctx: GeneratorContext, setOp: ir.SetOperation): String = {
+    if (setOp.allow_missing_columns) {
+      throw unknown(setOp)
+    }
+    if (setOp.by_name) {
+      throw unknown(setOp)
+    }
+    val op = setOp.set_op_type match {
+      case UnionSetOp => "UNION"
+      case IntersectSetOp => "INTERSECT"
+      case ExceptSetOp => "EXCEPT"
+      case _ => throw unknown(setOp)
+    }
+    val duplicates = if (setOp.is_all) " ALL" else if (explicitDistinct) " DISTINCT" else ""
+    s"(${generate(ctx, setOp.left)}) $op$duplicates (${generate(ctx, setOp.right)})"
+  }
 }

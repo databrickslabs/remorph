@@ -54,4 +54,76 @@ class LogicalPlanGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.L
           is_right_struct = false)) generates "t1 RIGHT OUTER JOIN t2 ON IS_DATE(c1) USING c1, c2"
     }
   }
+
+  "SetOperation" should {
+    "transpile to UNION" in {
+      ir.SetOperation(
+        namedTable("a"),
+        namedTable("b"),
+        ir.UnionSetOp,
+        is_all = false,
+        by_name = false,
+        allow_missing_columns = false) generates "(a) UNION (b)"
+      ir.SetOperation(
+        namedTable("a"),
+        namedTable("b"),
+        ir.UnionSetOp,
+        is_all = true,
+        by_name = false,
+        allow_missing_columns = false) generates "(a) UNION ALL (b)"
+      ir.SetOperation(
+        namedTable("a"),
+        namedTable("b"),
+        ir.UnionSetOp,
+        is_all = true,
+        by_name = true,
+        allow_missing_columns = false)
+        .doesNotTranspile
+    }
+
+    "transpile to INTERSECT" in {
+      ir.SetOperation(
+        namedTable("a"),
+        namedTable("b"),
+        ir.IntersectSetOp,
+        is_all = false,
+        by_name = false,
+        allow_missing_columns = false) generates "(a) INTERSECT (b)"
+      ir.SetOperation(
+        namedTable("a"),
+        namedTable("b"),
+        ir.IntersectSetOp,
+        is_all = true,
+        by_name = false,
+        allow_missing_columns = false) generates "(a) INTERSECT ALL (b)"
+    }
+
+    "transpile to EXCEPT" in {
+      ir.SetOperation(
+        namedTable("a"),
+        namedTable("b"),
+        ir.ExceptSetOp,
+        is_all = false,
+        by_name = false,
+        allow_missing_columns = false) generates "(a) EXCEPT (b)"
+      ir.SetOperation(
+        namedTable("a"),
+        namedTable("b"),
+        ir.ExceptSetOp,
+        is_all = true,
+        by_name = false,
+        allow_missing_columns = false) generates "(a) EXCEPT ALL (b)"
+    }
+
+    "unspecified" in {
+      ir.SetOperation(
+        namedTable("a"),
+        namedTable("b"),
+        ir.UnspecifiedSetOp,
+        is_all = true,
+        by_name = true,
+        allow_missing_columns = false)
+        .doesNotTranspile
+    }
+  }
 }
