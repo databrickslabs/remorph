@@ -19,6 +19,8 @@ class LogicalPlanGenerator(val explicitDistinct: Boolean = false) extends Genera
       s"${generate(ctx, input)} WHERE ${expr.generate(ctx, condition)}"
     case ir.Limit(input, limit) =>
       s"${generate(ctx, input)} LIMIT ${expr.generate(ctx, limit)}"
+    case ir.Offset(child, offset) =>
+      s"${generate(ctx, child)} OFFSET ${expr.generate(ctx, offset)}"
     case join: ir.Join => generateJoin(ctx, join)
     case setOp: ir.SetOperation => setOperation(ctx, setOp)
     case x => throw unknown(x)
