@@ -3,20 +3,26 @@ package com.databricks.labs.remorph.generators.sql
 import com.databricks.labs.remorph.parsers.{intermediate => ir}
 import com.databricks.labs.remorph.generators.{Generator, GeneratorContext}
 import com.databricks.labs.remorph.parsers.intermediate.{ExceptSetOp, IntersectSetOp, UnionSetOp}
+import com.databricks.labs.remorph.transpilers.TranspileException
 
 class LogicalPlanGenerator(val explicitDistinct: Boolean = false) extends Generator[ir.LogicalPlan, String] {
 
-  private val expressionGenerator = new ExpressionGenerator
+  private val expr = new ExpressionGenerator
 
   override def generate(ctx: GeneratorContext, tree: ir.LogicalPlan): String = tree match {
     case b: ir.Batch => b.children.map(generate(ctx, _)).mkString("", ";\n", ";")
     case ir.WithCTE(ctes, query) =>
       s"WITH ${ctes.map(generate(ctx, _))} ${generate(ctx, query)}"
     case ir.Project(input, expressions) =>
-      s"SELECT ${expressions.map(expressionGenerator.generate(ctx, _)).mkString(",")} FROM ${generate(ctx, input)}"
+      s"SELECT ${expressions.map(expr.generate(ctx, _)).mkString(",")} FROM ${generate(ctx, input)}"
     case ir.NamedTable(id, _, _) => id
     case ir.Filter(input, condition) =>
-      s"${generate(ctx, input)} WHERE ${expressionGenerator.generate(ctx, condition)}"
+      s"${generate(ctx, input)} WHERE ${expr.generate(ctx, condition)}"
+    case ir.Limit(input, limit, percentage, _) =>
+      if (percentage) {
+        throw TranspileException("SELECT TOP .. PERCENT has to be transformed")
+      }
+      s"${generate(ctx, input)} LIMIT ${expr.generate(ctx, limit)}"
     case join: ir.Join => generateJoin(ctx, join)
     case setOp: ir.SetOperation => setOperation(ctx, setOp)
     case x => throw unknown(x)
@@ -35,7 +41,7 @@ class LogicalPlanGenerator(val explicitDistinct: Boolean = false) extends Genera
       case ir.CrossJoin => "JOIN"
     }
 
-    val conditionOpt = join.join_condition.map(expressionGenerator.generate(ctx, _))
+    val conditionOpt = join.join_condition.map(expr.generate(ctx, _))
     val spaceAndCondition = conditionOpt.map(" ON " + _).getOrElse("")
     val using = join.using_columns.mkString(", ")
     val spaceAndUsing = if (using.isEmpty) "" else s" USING $using"

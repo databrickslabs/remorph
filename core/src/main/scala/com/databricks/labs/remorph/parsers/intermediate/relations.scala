@@ -70,6 +70,7 @@ case class SetOperation(
   override def output: Seq[Attribute] = left.output ++ right.output
 }
 
+// TODO: move is_percentage / with_ties to TSQL-specific nodes
 case class Limit(input: LogicalPlan, limit: Expression, is_percentage: Boolean = false, with_ties: Boolean = false)
     extends UnaryNode {
   override def child: LogicalPlan = input
