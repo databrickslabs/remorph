@@ -8,7 +8,7 @@ case class TopPercent(child: LogicalPlan, percentage: Expression, with_ties: Boo
   override def output: Seq[Attribute] = child.output
 }
 
-object TopPercentToLimitSubquery extends Rule[LogicalPlan] {
+class TopPercentToLimitSubquery extends Rule[LogicalPlan] {
   private val counter = new AtomicLong()
   override def apply(plan: LogicalPlan): LogicalPlan = normalize(plan) transformUp {
     case TopPercent(child, percentage, withTies) =>
@@ -36,26 +36,30 @@ object TopPercentToLimitSubquery extends Rule[LogicalPlan] {
     val originalCteName = s"_limited$cteSuffix"
     val withPercentileCteName = s"_with_percentile$cteSuffix"
     val percentileColName = s"_percentile$cteSuffix"
-    // TODO: inject Filter in the right place, as this code takes a shortcut
-    //  and omits the existing ORDER BY, LIMIT, and OFFSET nodes.
-    WithCTE(
-      Seq(
-        SubqueryAlias(child, Id(originalCteName)),
-        SubqueryAlias(
-          Project(
-            UnresolvedRelation(originalCteName),
-            child.output ++ Seq(
-              Alias(
-                Window(
-                  NTile(Literal(short = Some(100))),
-                  sort_order = Seq(
-                    // TODO: get a unit test
-                  )),
-                Seq(Id(percentileColName))))),
-          Id(withPercentileCteName))),
-      Filter(
-        Project(UnresolvedRelation(withPercentileCteName), child.output),
-        LessThanOrEqual(UnresolvedAttribute(percentileColName), Divide(percentage, Literal(short = Some(100))))))
+    child match {
+      case Sort(child, order, _) =>
+        // this is (temporary) hack due to the lack of star resolution. otherwise child.output is fine
+        val reProject = child.find(_.isInstanceOf[Project]).map(_.asInstanceOf[Project]) match {
+          case Some(Project(_, expressions)) => expressions
+          case None =>
+            throw new IllegalArgumentException("Cannot find a projection")
+        }
+        WithCTE(
+          Seq(
+            SubqueryAlias(child, Id(originalCteName)),
+            SubqueryAlias(
+              Project(
+                UnresolvedRelation(originalCteName),
+                reProject ++ Seq(
+                  Alias(Window(NTile(Literal(short = Some(100))), sort_order = order), Seq(Id(percentileColName))))),
+              Id(withPercentileCteName))),
+          Filter(
+            Project(UnresolvedRelation(withPercentileCteName), reProject),
+            LessThanOrEqual(UnresolvedAttribute(percentileColName), Divide(percentage, Literal(short = Some(100))))))
+      case _ =>
+        // TODO: (jimidle) figure out cases when this is not true
+        throw new IllegalArgumentException("TopPercent with ties requires a Sort node")
+    }
   }
 
   private def viaTotalCount(child: LogicalPlan, percentage: Expression) = {
