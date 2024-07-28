@@ -1,6 +1,5 @@
 package com.databricks.labs.remorph.coverage
 
-import com.databricks.labs.remorph.parsers.tsql.TSqlAstBuilder
 import org.scalatest.flatspec.AnyFlatSpec
 
 import java.nio.file.Paths
@@ -41,4 +40,4 @@ class TSqlAcceptanceSuite
         new NestedFiles(Paths.get(Option(System.getProperty("tsql.test.resources.path"))
           .getOrElse("../tests/resources/functional/tsql"))),
         new DialectNameCommentBasedQueryExtractor("tsql", "databricks"),
-        new IsResolvedAsTSqlQueryRunner(new TSqlAstBuilder)))
+        new IsTranspiledFromTSqlQueryRunner))
