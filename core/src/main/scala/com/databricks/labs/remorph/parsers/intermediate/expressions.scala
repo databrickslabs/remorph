@@ -134,11 +134,11 @@ case object NoBoundary extends FrameBoundary
 case class WindowFrame(frame_type: FrameType, lower: FrameBoundary, upper: FrameBoundary)
 
 case class Window(
-  window_function: Expression,
-  partition_spec: Seq[Expression] = Seq.empty,
-  sort_order: Seq[SortOrder] = Seq.empty,
-  frame_spec: Option[WindowFrame] = None
-) extends Expression {
+    window_function: Expression,
+    partition_spec: Seq[Expression] = Seq.empty,
+    sort_order: Seq[SortOrder] = Seq.empty,
+    frame_spec: Option[WindowFrame] = None)
+    extends Expression {
   override def children: Seq[Expression] = window_function +: partition_spec
   override def dataType: DataType = window_function.dataType
 }
@@ -154,10 +154,10 @@ case object SortNullsFirst extends NullOrdering
 case object SortNullsLast extends NullOrdering
 
 case class SortOrder(
-  child: Expression,
-  direction: SortDirection = AscendingSortDirection,
-  nullOrdering: NullOrdering = SortNullsUnspecified
-) extends Unary(child) {
+    child: Expression,
+    direction: SortDirection = AscendingSortDirection,
+    nullOrdering: NullOrdering = SortNullsUnspecified)
+    extends Unary(child) {
   override def dataType: DataType = child.dataType
 }
 

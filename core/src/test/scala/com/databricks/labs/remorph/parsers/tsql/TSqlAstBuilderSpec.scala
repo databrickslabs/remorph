@@ -498,42 +498,19 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
     "use LIMIT" in {
       example(
         query = "SELECT TOP 10 * FROM Employees;",
-        expectedAst = Batch(
-          Seq(
-            Project(
-              Limit(namedTable("Employees"), Literal(short = Some(10))),
-              Seq(Star(None))))))
+        expectedAst = Batch(Seq(Project(Limit(namedTable("Employees"), Literal(short = Some(10))), Seq(Star(None))))))
     }
 
     "use TOP PERCENT" in {
       example(
         query = "SELECT TOP 10 PERCENT * FROM Employees;",
-        expectedAst = Batch(
-          Seq(
-            Project(
-              TopPercent(
-                namedTable("Employees"),
-                Literal(short = Some(10)),
-              ),
-              Seq(
-                Star(None)
-              )
-            )
-          )
-        )
-      )
+        expectedAst =
+          Batch(Seq(Project(TopPercent(namedTable("Employees"), Literal(short = Some(10))), Seq(Star(None))))))
 
       example(
         query = "SELECT TOP 10 PERCENT WITH TIES * FROM Employees;",
-        expectedAst = Batch(
-          Seq(
-            Project(
-              TopPercent(
-                namedTable("Employees"),
-                Literal(short = Some(10)),
-                with_ties = true
-              ),
-              Seq(Star(None))))))
+        expectedAst = Batch(Seq(
+          Project(TopPercent(namedTable("Employees"), Literal(short = Some(10)), with_ties = true), Seq(Star(None))))))
     }
   }
 
