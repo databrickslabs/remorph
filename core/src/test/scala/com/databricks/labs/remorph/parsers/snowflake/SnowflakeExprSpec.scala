@@ -196,9 +196,7 @@ class SnowflakeExprSpec extends AnyWordSpec with SnowflakeParserTestCommon with 
     "translate WITHIN GROUP expressions" in {
       exprAndPredicateExample(
         "ARRAY_AGG(col1) WITHIN GROUP (ORDER BY col2)",
-        WithinGroup(
-          CallFunction("ARRAY_AGG", Seq(Id("col1"))),
-          Seq(SortOrder(Id("col2"), AscendingSortDirection, SortNullsLast))))
+        WithinGroup(CallFunction("ARRAY_AGG", Seq(Id("col1"))), Seq(SortOrder(Id("col2"), Ascending, NullsLast))))
     }
 
     "translate JSON path expressions" in {

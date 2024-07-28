@@ -21,9 +21,19 @@ class LogicalPlanGenerator(val explicitDistinct: Boolean = false) extends Genera
       s"${generate(ctx, input)} LIMIT ${expr.generate(ctx, limit)}"
     case ir.Offset(child, offset) =>
       s"${generate(ctx, child)} OFFSET ${expr.generate(ctx, offset)}"
+    case sort: ir.Sort => orderBy(ctx, sort)
     case join: ir.Join => generateJoin(ctx, join)
     case setOp: ir.SetOperation => setOperation(ctx, setOp)
     case x => throw unknown(x)
+  }
+
+  private def orderBy(ctx: GeneratorContext, sort: ir.Sort): String = {
+    val orderStr = sort.order
+      .map { case ir.SortOrder(child, direction, nulls) =>
+        s"${expr.generate(ctx, child)} ${direction.sql} ${nulls.sql}"
+      }
+      .mkString(", ")
+    s"${generate(ctx, sort.child)} ORDER BY $orderStr"
   }
 
   private def generateJoin(ctx: GeneratorContext, join: ir.Join): String = {

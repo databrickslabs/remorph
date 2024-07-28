@@ -134,4 +134,10 @@ class LogicalPlanGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.L
   "transpile to OFFSET" in {
     ir.Offset(namedTable("a"), ir.Literal(10)) generates "a OFFSET 10"
   }
+
+  "transpile to ORDER BY" in {
+    ir.Sort(
+      namedTable("a"),
+      Seq(ir.SortOrder(ir.Id("c1"), ir.Ascending, ir.NullsFirst))) generates "a ORDER BY c1 ASC NULLS FIRST"
+  }
 }

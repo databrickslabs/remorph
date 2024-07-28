@@ -143,24 +143,6 @@ case class Window(
   override def dataType: DataType = window_function.dataType
 }
 
-abstract class SortDirection
-case object UnspecifiedSortDirection extends SortDirection
-case object AscendingSortDirection extends SortDirection
-case object DescendingSortDirection extends SortDirection
-
-abstract class NullOrdering
-case object SortNullsUnspecified extends NullOrdering
-case object SortNullsFirst extends NullOrdering
-case object SortNullsLast extends NullOrdering
-
-case class SortOrder(
-    child: Expression,
-    direction: SortDirection = AscendingSortDirection,
-    nullOrdering: NullOrdering = SortNullsUnspecified)
-    extends Unary(child) {
-  override def dataType: DataType = child.dataType
-}
-
 /** cast(expr AS type) - Casts the value `expr` to the target data type `type`. */
 case class Cast(
     expr: Expression,
