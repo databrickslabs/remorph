@@ -26,25 +26,24 @@ case object NoopNode extends LeafNode {
   override def output: Seq[Attribute] = Seq.empty
 }
 
-// TODO: (nfx) refactor to align more with catalyst
+// TODO: (nfx) refactor to align more with catalyst, UnaryNode
+// case class UnresolvedWith(child: LogicalPlan, ctes: Seq[(String, SubqueryAlias)])
 case class WithCTE(ctes: Seq[LogicalPlan], query: LogicalPlan) extends RelationCommon {
   override def output: Seq[Attribute] = query.output
   override def children: Seq[LogicalPlan] = ctes :+ query
 }
 
 // TODO: (nfx) refactor to align more with catalyst
+// TOTO: remove this class, replace with SubqueryAlias
 case class CTEDefinition(tableName: String, columns: Seq[Expression], cte: LogicalPlan) extends RelationCommon {
   override def output: Seq[Attribute] = columns.map(c => AttributeReference(c.toString, c.dataType))
   override def children: Seq[LogicalPlan] = Seq(cte)
 }
 
-// TODO: (nfx) refactor to align more with catalyst
-case class Star(objectName: Option[ObjectReference]) extends LeafExpression {
+// TODO: (nfx) refactor to align more with catalyst, rename to UnresolvedStar
+case class Star(objectName: Option[ObjectReference] = None) extends LeafExpression {
   override def dataType: DataType = UnresolvedType
 }
-
-// TODO: (nfx) refactor to align more with catalyst
-case class Exists(relation: LogicalPlan) extends ToRefactor
 
 // Assignment operators
 case class Assign(left: Expression, right: Expression) extends Binary(left, right) {
@@ -82,7 +81,7 @@ case class TableWithHints(child: LogicalPlan, hints: Seq[TableHint]) extends Una
 }
 
 case class Batch(children: Seq[LogicalPlan]) extends LogicalPlan {
-  override def output: Seq[Attribute] = Seq.empty
+  override def output: Seq[Attribute] = children.lastOption.map(_.output).getOrElse(Seq())
 }
 
 case class FunctionParameter(name: String, dataType: DataType, defaultValue: Option[Expression])

@@ -3,7 +3,6 @@ package com.databricks.labs.remorph.generators.sql
 import com.databricks.labs.remorph.parsers.{intermediate => ir}
 import com.databricks.labs.remorph.generators.{Generator, GeneratorContext}
 import com.databricks.labs.remorph.parsers.intermediate.{ExceptSetOp, IntersectSetOp, UnionSetOp}
-import com.databricks.labs.remorph.transpilers.TranspileException
 
 class LogicalPlanGenerator(val explicitDistinct: Boolean = false) extends Generator[ir.LogicalPlan, String] {
 
@@ -18,10 +17,7 @@ class LogicalPlanGenerator(val explicitDistinct: Boolean = false) extends Genera
     case ir.NamedTable(id, _, _) => id
     case ir.Filter(input, condition) =>
       s"${generate(ctx, input)} WHERE ${expr.generate(ctx, condition)}"
-    case ir.Limit(input, limit, percentage, _) =>
-      if (percentage) {
-        throw TranspileException("SELECT TOP .. PERCENT has to be transformed")
-      }
+    case ir.Limit(input, limit) =>
       s"${generate(ctx, input)} LIMIT ${expr.generate(ctx, limit)}"
     case join: ir.Join => generateJoin(ctx, join)
     case setOp: ir.SetOperation => setOperation(ctx, setOp)
