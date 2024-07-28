@@ -1,5 +1,4 @@
 package com.databricks.labs.remorph.coverage
-import com.databricks.labs.remorph.parsers.tsql.TSqlAstBuilder
 import mainargs._
 
 import java.time.Instant
@@ -52,7 +51,7 @@ object Main {
     }
     val queryRunner = sourceDialect match {
       case "Snow" => new IsTranspiledFromSnowflakeQueryRunner
-      case "Tsql" => new IsResolvedAsTSqlQueryRunner(new TSqlAstBuilder)
+      case "Tsql" => new IsTranspiledFromTSqlQueryRunner
     }
 
     val outputFilePath = outputPath / s"$project-$sourceDialect-$targetDialect-${timeToEpochNanos(now)}.json"
