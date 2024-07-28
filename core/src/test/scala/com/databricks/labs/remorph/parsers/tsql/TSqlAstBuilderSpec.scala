@@ -397,7 +397,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
             Window(
               CallFunction("ROW_NUMBER", List.empty),
               List.empty,
-              List(SortOrder(simplyNamedColumn("myColumn"), AscendingSortDirection, SortNullsUnspecified)),
+              List(SortOrder(simplyNamedColumn("myColumn"), Ascending, SortNullsUnspecified)),
               None),
             Seq(Id("nextVal")),
             None))))))
@@ -522,7 +522,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
           Offset(
             Sort(
               namedTable("Employees"),
-              Seq(SortOrder(simplyNamedColumn("Salary"), AscendingSortDirection, SortNullsUnspecified)),
+              Seq(SortOrder(simplyNamedColumn("Salary"), Ascending, SortNullsUnspecified)),
               is_global = false),
             Literal(short = Some(10))),
           Seq(Star(None))))))
@@ -535,7 +535,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
             Offset(
               Sort(
                 namedTable("Employees"),
-                Seq(SortOrder(simplyNamedColumn("Salary"), AscendingSortDirection, SortNullsUnspecified)),
+                Seq(SortOrder(simplyNamedColumn("Salary"), Ascending, SortNullsUnspecified)),
                 is_global = false),
               Literal(short = Some(10))),
             Literal(short = Some(5))),
@@ -551,7 +551,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
             Offset(
               Sort(
                 namedTable("Employees"),
-                Seq(SortOrder(simplyNamedColumn("Salary"), AscendingSortDirection, SortNullsUnspecified)),
+                Seq(SortOrder(simplyNamedColumn("Salary"), Ascending, SortNullsUnspecified)),
                 is_global = false),
               Literal(short = Some(10))),
             List(),
@@ -568,7 +568,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
               Offset(
                 Sort(
                   namedTable("Employees"),
-                  List(SortOrder(simplyNamedColumn("Salary"), AscendingSortDirection, SortNullsUnspecified)),
+                  List(SortOrder(simplyNamedColumn("Salary"), Ascending, SortNullsUnspecified)),
                   is_global = false),
                 Literal(short = Some(10))),
               Literal(short = Some(5))),

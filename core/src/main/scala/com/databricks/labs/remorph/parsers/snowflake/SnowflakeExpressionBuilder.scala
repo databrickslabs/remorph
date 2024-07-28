@@ -57,18 +57,18 @@ class SnowflakeExpressionBuilder()
   }
 
   override def visitOrderItem(ctx: OrderItemContext): ir.SortOrder = {
-    val direction = if (ctx.DESC() != null) ir.DescendingSortDirection else ir.AscendingSortDirection
-    val nullOrdering = if (direction == ir.DescendingSortDirection) {
+    val direction = if (ctx.DESC() != null) ir.Descending else ir.Ascending
+    val nullOrdering = if (direction == ir.Descending) {
       if (ctx.LAST() != null) {
-        ir.SortNullsLast
+        ir.NullsLast
       } else {
-        ir.SortNullsFirst
+        ir.NullsFirst
       }
     } else {
       if (ctx.FIRST() != null) {
-        ir.SortNullsFirst
+        ir.NullsFirst
       } else {
-        ir.SortNullsLast
+        ir.NullsLast
       }
     }
     ir.SortOrder(ctx.expr().accept(this), direction, nullOrdering)

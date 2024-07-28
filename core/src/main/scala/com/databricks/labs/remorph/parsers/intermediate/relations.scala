@@ -95,7 +95,25 @@ case class Aggregate(
   override def output: Seq[Attribute] = child.output ++ grouping_expressions.map(_.asInstanceOf[Attribute])
 }
 
-case class Sort(child: LogicalPlan, order: Seq[SortOrder], is_global: Boolean) extends UnaryNode {
+abstract class SortDirection(val sql: String)
+case object UnspecifiedSortDirection extends SortDirection("")
+case object Ascending extends SortDirection("ASC")
+case object Descending extends SortDirection("DESC")
+
+abstract class NullOrdering(val sql: String)
+case object SortNullsUnspecified extends NullOrdering("")
+case object NullsFirst extends NullOrdering("NULLS FIRST")
+case object NullsLast extends NullOrdering("NULLS LAST")
+
+case class SortOrder(
+    child: Expression,
+    direction: SortDirection = UnspecifiedSortDirection,
+    nullOrdering: NullOrdering = SortNullsUnspecified)
+    extends Unary(child) {
+  override def dataType: DataType = child.dataType
+}
+
+case class Sort(child: LogicalPlan, order: Seq[SortOrder], is_global: Boolean = false) extends UnaryNode {
   override def output: Seq[Attribute] = child.output
 }
 

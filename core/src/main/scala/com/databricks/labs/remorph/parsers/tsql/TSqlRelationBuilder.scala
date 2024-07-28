@@ -105,9 +105,9 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.LogicalPlan] {
         // orderItem.expression(1) is COLLATE - we will not support that, but should either add a comment in the
         // translated source or raise some kind of linting alert.
         if (orderItem.DESC() == null) {
-          ir.SortOrder(expression, ir.AscendingSortDirection, ir.SortNullsUnspecified)
+          ir.SortOrder(expression, ir.Ascending, ir.SortNullsUnspecified)
         } else {
-          ir.SortOrder(expression, ir.DescendingSortDirection, ir.SortNullsUnspecified)
+          ir.SortOrder(expression, ir.Descending, ir.SortNullsUnspecified)
         }
       }
       val sorted = ir.Sort(input, sortOrders, is_global = false)
