@@ -117,8 +117,10 @@ def to_lower_case(input_list: list[str]) -> list[str]:
 
 @dataclass
 class Table:
+    # pylint: disable=too-many-instance-attributes
     source_name: str
     target_name: str
+    aggregates: list[Aggregate] | None = None
     join_columns: list[str] | None = None
     jdbc_reader_options: JdbcReaderOptions | None = None
     select_columns: list[str] | None = None
@@ -287,6 +289,7 @@ class StatusOutput:
     row: bool | None = None
     column: bool | None = None
     schema: bool | None = None
+    aggregate: bool | None = None
 
 
 @dataclass
@@ -307,3 +310,73 @@ class ReconcileOutput:
 class ReconcileRecordCount:
     source: int = 0
     target: int = 0
+
+
+@dataclass
+class Aggregate:
+    agg_columns: list[str]
+    type: str
+    group_by_columns: list[str] | None = None
+
+    def __post_init__(self):
+        self.agg_columns = to_lower_case(self.agg_columns)
+        self.type = self.type.lower()
+        self.group_by_columns = to_lower_case(self.group_by_columns) if self.group_by_columns else None
+
+    def get_agg_type(self):
+        return self.type
+
+    @property
+    def group_by_columns_as_str(self):
+        return "+__+".join(self.group_by_columns) if self.group_by_columns else "NA"
+
+    @property
+    def agg_columns_as_str(self):
+        return "+__+".join(self.agg_columns)
+
+
+@dataclass
+class AggregateRule:
+    agg_type: str
+    agg_column: str
+    group_by_columns: list[str] | None
+    group_by_columns_as_str: str
+    rule_type: str = "AGGREGATE"
+
+    @property
+    def rule_column(self):
+        # creates rule_column. e.g., min_col1_grp1_grp2
+        return f"{self.agg_type}_{self.agg_column}_{self.group_by_columns_as_str}"
+
+    @property
+    def group_by_columns_as_table_column(self):
+        # If group_by_columns are not defined, store is as null
+        group_by_cols_as_table_col = "NULL"
+        if self.group_by_columns:
+            # Sort the columns, convert to lower case and create a string:  , e.g., grp1, grp2
+            formatted_cols = ", ".join([f"{col.lower()}" for col in sorted(self.group_by_columns)])
+            group_by_cols_as_table_col = f"\"{formatted_cols}\""
+        return group_by_cols_as_table_col
+
+    def get_rule_query(self, rule_id):
+        rule_info = f""" map( 'agg_type', '{self.agg_type}', 
+                 'agg_column', '{self.agg_column}', 
+                 'group_by_columns', {self.group_by_columns_as_table_column}
+                 )  
+        """
+        return f" SELECT {rule_id} as rule_id, " f" '{self.rule_type}' as rule_type, " f" {rule_info} as rule_info "
+
+
+@dataclass
+class AggregateQueryRules:
+    layer: str
+    group_by_columns: list[str] | None
+    group_by_columns_as_str: str
+    query: str
+    rules: list[AggregateRule]
+
+
+@dataclass
+class AggregateQueryOutput:
+    rule: AggregateRule | None
+    reconcile_output: DataReconcileOutput
