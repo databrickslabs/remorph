@@ -291,4 +291,5 @@ class SnowflakeExpressionBuilderSpec
       verifyNoMoreInteractions(operator)
     }
   }
+
 }
