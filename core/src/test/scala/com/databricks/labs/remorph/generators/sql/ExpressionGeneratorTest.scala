@@ -807,4 +807,22 @@ class ExpressionGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.Ex
         Map("foo" -> ir.Literal("bar"), "baz" -> ir.Literal("qux"))) generates "MAP(\"foo\", \"bar\", \"baz\", \"qux\")"
     }
   }
+
+  "distinct" should {
+    "be generated" in {
+      ir.Distinct(ir.Id("c1")) generates "DISTINCT c1"
+    }
+  }
+
+  "star" should {
+    "be generated" in {
+      ir.Star(None) generates "*"
+      ir.Star(Some(ir.ObjectReference(ir.Id("t1")))) generates "t1.*"
+      ir.Star(
+        Some(
+          ir.ObjectReference(
+            ir.Id("schema1"),
+            ir.Id("table 1", caseSensitive = true)))) generates "schema1.\"table 1\".*"
+    }
+  }
 }

@@ -26,6 +26,8 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
       case ir.UnresolvedAttribute(name, _, _) => name
       case i: ir.Id => id(ctx, i)
       case a: ir.Alias => alias(ctx, a)
+      case d: ir.Distinct => distinct(ctx, d)
+      case s: ir.Star => star(ctx, s)
       case x => throw TranspileException(s"Unsupported expression: $x")
     }
   }
@@ -135,6 +137,19 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
 
   private def alias(ctx: GeneratorContext, alias: ir.Alias): String = {
     s"${expression(ctx, alias.expr)} AS ${alias.name.map(expression(ctx, _)).mkString(".")}"
+  }
+
+  private def distinct(ctx: GeneratorContext, distinct: ir.Distinct): String = {
+    s"DISTINCT ${expression(ctx, distinct.expression)}"
+  }
+
+  private def star(ctx: GeneratorContext, star: ir.Star): String = {
+    val objectRef = star.objectName.map(or => generateObjectReference(ctx, or) + ".").getOrElse("")
+    s"$objectRef*"
+  }
+
+  private def generateObjectReference(ctx: GeneratorContext, reference: ir.ObjectReference): String = {
+    (reference.head +: reference.tail).map(id(ctx, _)).mkString(".")
   }
 
   private def orNull(option: Option[String]): String = option.getOrElse("NULL")

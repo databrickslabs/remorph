@@ -11,7 +11,7 @@ class LogicalPlanGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.L
   "Project" should {
     "transpile to SELECT" in {
       ir.Project(namedTable("t1"), Seq(ir.Id("c1"))) generates "SELECT c1 FROM t1"
-      ir.Project(namedTable("t1"), Seq(ir.Star(None))).doesNotTranspile
+      ir.Project(namedTable("t1"), Seq(ir.Star(None))) generates "SELECT * FROM t1"
     }
   }
 
