@@ -1,7 +1,5 @@
 package com.databricks.labs.remorph.coverage
 
-import com.databricks.labs.remorph.parsers.snowflake.SnowflakeAstBuilder
-import com.databricks.labs.remorph.parsers.tsql.TSqlAstBuilder
 import org.scalatest.flatspec.AnyFlatSpec
 
 import java.nio.file.Paths
@@ -14,7 +12,7 @@ case class AcceptanceTestConfig(
 abstract class AcceptanceTestRunner(config: AcceptanceTestConfig) extends AnyFlatSpec {
 
   private def runAcceptanceTest(acceptanceTest: AcceptanceTest): Option[ReportEntryReport] = {
-    config.queryExtractor.extractQuery(acceptanceTest.inputFile).map((config.queryRunner.runQuery _).tupled)
+    config.queryExtractor.extractQuery(acceptanceTest.inputFile).map(config.queryRunner.runQuery)
   }
 
   config.testFileSource.listTests.foreach { test =>
@@ -34,7 +32,7 @@ class SnowflakeAcceptanceSuite
         new NestedFiles(Paths.get(Option(System.getProperty("snowflake.test.resources.path"))
           .getOrElse("../tests/resources/functional/snowflake"))),
         new DialectNameCommentBasedQueryExtractor("snowflake", "databricks"),
-        new IsResolvedAsSnowflakeQueryRunner(new SnowflakeAstBuilder)))
+        new IsTranspiledFromSnowflakeQueryRunner))
 
 class TSqlAcceptanceSuite
     extends AcceptanceTestRunner(
@@ -42,4 +40,4 @@ class TSqlAcceptanceSuite
         new NestedFiles(Paths.get(Option(System.getProperty("tsql.test.resources.path"))
           .getOrElse("../tests/resources/functional/tsql"))),
         new DialectNameCommentBasedQueryExtractor("tsql", "databricks"),
-        new IsResolvedAsTSqlQueryRunner(new TSqlAstBuilder)))
+        new IsTranspiledFromTSqlQueryRunner))

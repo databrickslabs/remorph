@@ -449,7 +449,7 @@ abstract class TreeNode[BaseType <: TreeNode[BaseType]] extends Product {
    */
   def simpleString(maxFields: Int): String = s"$nodeName ${argString(maxFields)}".trim
 
-  override def toString: String = treeString
+  override def toString: String = treeString.replaceAll("\n]\n", "]\n") // TODO: fix properly
 
   /** Returns a string representation of the nodes in this tree */
   final def treeString: String = treeString()

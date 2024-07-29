@@ -1,7 +1,8 @@
 package com.databricks.labs.remorph.parsers.tsql
 
+import com.databricks.labs.remorph.parsers.intermediate.ScalarSubquery
 import com.databricks.labs.remorph.parsers.tsql.TSqlParser._
-import com.databricks.labs.remorph.parsers.{ParserCommon, XmlFunction, intermediate => ir}
+import com.databricks.labs.remorph.parsers.{ParserCommon, XmlFunction, tsql, intermediate => ir}
 import org.antlr.v4.runtime.Token
 import org.antlr.v4.runtime.tree.Trees
 
@@ -114,8 +115,8 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
     case _ if ctx.tableName() != null =>
       val objectName = Option(ctx.tableName()).map(buildTableName)
       ir.Star(objectName)
-    case _ if ctx.INSERTED() != null => ir.Inserted(ir.Star(None))
-    case _ if ctx.DELETED() != null => ir.Deleted(ir.Star(None))
+    case _ if ctx.INSERTED() != null => Inserted(ir.Star(None))
+    case _ if ctx.DELETED() != null => Deleted(ir.Star(None))
     case _ => ir.Star(None)
   }
 
@@ -186,7 +187,7 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
         ir.Column(Some(ir.ObjectReference(path.head, path.tail: _*)), c2.columnName)
       case (_: ir.Column, c2: ir.CallFunction) =>
         functionBuilder.functionType(c2.function_name) match {
-          case XmlFunction => ir.XmlFunction(c2, left)
+          case XmlFunction => tsql.TsqlXmlFunction(c2, left)
           case _ => ir.Dot(left, right)
         }
       // Other cases
@@ -232,7 +233,7 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
   }
 
   override def visitExprSubquery(ctx: ExprSubqueryContext): ir.Expression = {
-    ir.ScalarSubquery(ctx.subquery().accept(new TSqlRelationBuilder))
+    ScalarSubquery(ctx.subquery().accept(new TSqlRelationBuilder))
   }
 
   override def visitExprTz(ctx: ExprTzContext): ir.Expression = {
@@ -261,15 +262,15 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
         val left = ctx.expression(0).accept(this)
         val right = ctx.expression(1).accept(this)
         ctx.comparisonOperator match {
-          case op if op.LT != null && op.EQ != null => ir.LesserThanOrEqual(left, right)
+          case op if op.LT != null && op.EQ != null => ir.LessThanOrEqual(left, right)
           case op if op.GT != null && op.EQ != null => ir.GreaterThanOrEqual(left, right)
           case op if op.LT != null && op.GT != null => ir.NotEquals(left, right)
-          case op if op.BANG != null && op.GT != null => ir.LesserThanOrEqual(left, right)
+          case op if op.BANG != null && op.GT != null => ir.LessThanOrEqual(left, right)
           case op if op.BANG != null && op.LT != null => ir.GreaterThanOrEqual(left, right)
           case op if op.BANG != null && op.EQ != null => ir.NotEquals(left, right)
           case op if op.EQ != null => ir.Equals(left, right)
           case op if op.GT != null => ir.GreaterThan(left, right)
-          case op if op.LT != null => ir.LesserThan(left, right)
+          case op if op.LT != null => ir.LessThan(left, right)
         }
     }
   }
@@ -312,12 +313,12 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
     }
 
   private def buildPrimitive(con: Token): ir.Expression = con.getType match {
-    case DEFAULT => ir.Default()
+    case DEFAULT => Default()
     case LOCAL_ID => ir.Identifier(con.getText, isQuoted = false)
     case STRING => ir.Literal(string = Some(removeQuotes(con.getText)))
     case NULL_ => ir.Literal(nullType = Some(ir.NullType))
     case HEX => ir.Literal(string = Some(con.getText)) // Preserve format
-    case MONEY => ir.Money(ir.Literal(string = Some(con.getText)))
+    case MONEY => Money(ir.Literal(string = Some(con.getText)))
     case INT | REAL | FLOAT => convertNumeric(con.getText)
   }
 
@@ -380,8 +381,8 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
     ctx.orderByExpression().asScala.map { orderByExpr =>
       val expression = orderByExpr.expression(0).accept(this)
       val sortOrder =
-        if (Option(orderByExpr.DESC()).isDefined) ir.DescendingSortDirection
-        else ir.AscendingSortDirection
+        if (Option(orderByExpr.DESC()).isDefined) ir.Descending
+        else ir.Ascending
       ir.SortOrder(expression, sortOrder, ir.SortNullsUnspecified)
     }
 
