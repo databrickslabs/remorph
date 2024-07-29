@@ -85,13 +85,13 @@ class AggregateQueryBuilder(QueryBuilder):
         * Creates an Expression using
             - 'select' columns with alias for the aggregate columns
             - 'filters' (where) based on the layer
-            - 'group by' if group_by_cols are defined
+            - 'group by' if group_by_columns are defined
         * Generates and returns the SQL query using the above Expression and Dialect
         - query Aggregate rules
 
         Examples:
-            1.Input :: group_list: [Aggregate(type="Max", agg_cols=["col2", "col3"], group_by_cols=["col1"]),
-                              Aggregate(type="Sum", agg_cols=["col1", "col2"], group_by_cols=["col1"])]
+            1.Input :: group_list: [Aggregate(type="Max", agg_cols=["col2", "col3"], group_by_columns=["col1"]),
+                              Aggregate(type="Sum", agg_cols=["col1", "col2"], group_by_columns=["col1"])]
                            Returns -> SELECT max(col2) AS src_max_col2, max(col3) AS src_max_col3,
                                                             sum(col1) AS src_sum_col1, sum(col2) AS src_sum_col2
                                                 FROM :tbl
@@ -106,15 +106,30 @@ class AggregateQueryBuilder(QueryBuilder):
         :return: str - SQL Query
         """
         cols_with_mapping: list[exp.Expression] = []
-        # Generates a Single Query for multiple aggregates with the same group_by_cols,
+        # Generates a Single Query for multiple aggregates with the same group_by_columns,
         #   refer to Example 1
         query_agg_rules = []
+        processed_rules: dict[str, str] = {}
         for agg in group_list:
+
+            # Skip duplicate rules
+            # Example: {min_grp1+__+grp2 : col1+__+col2}, key = min_grp1+__+grp2
+            key = f"{agg.type}_{agg.group_by_columns_as_str}"
+            if key in processed_rules:
+                existing_rule = processed_rules.get(key)
+                if existing_rule == agg.agg_columns_as_str:
+                    logger.info(
+                        f"Skipping duplicate rule for key: {key}, value: {agg.agg_columns_as_str},"
+                        f" layer: {self.layer}"
+                    )
+                    continue
+            processed_rules[key] = agg.agg_columns_as_str
+
             # Get the rules for each aggregate and append to the query_agg_rules list
-            query_agg_rules.extend(self._build_agg_rules(agg))
+            query_agg_rules.extend(self._build_aggregate_rules(agg))
 
             # Get the mapping with alias for aggregate columns and append to the cols_with_mapping list
-            cols_with_mapping.extend(self._get_mapping_cols_with_alias(agg.agg_cols, agg.type))
+            cols_with_mapping.extend(self._get_mapping_cols_with_alias(agg.agg_columns, agg.type))
 
         # Apply user transformations on Select columns
         # Example: {column_name: creation_date, source: creation_date, target: to_date(creation_date,'yyyy-mm-dd')}
@@ -126,11 +141,11 @@ class AggregateQueryBuilder(QueryBuilder):
         select_cols_with_alias = self._agg_query_cols_with_alias(select_cols_with_transform)
         query_exp = exp.select(*select_cols_with_alias).from_(":tbl").where(self.filter)
 
-        # Apply Group by if group_by_cols are defined
-        if group_list[0].group_by_cols:
-            group_by_cols_with_mapping = self._get_mapping_cols_with_alias(group_list[0].group_by_cols, "GROUP_BY")
+        # Apply Group by if group_by_columns are defined
+        if group_list[0].group_by_columns:
+            group_by_cols_with_mapping = self._get_mapping_cols_with_alias(group_list[0].group_by_columns, "GROUP_BY")
 
-            # Apply user transformations on group_by_cols,
+            # Apply user transformations on group_by_columns,
             # ex: {column_name: creation_date, source: creation_date, target: to_date(creation_date,'yyyy-mm-dd')}
             group_by_cols_with_transform = (
                 self._apply_user_transformation(group_by_cols_with_mapping)
@@ -154,31 +169,37 @@ class AggregateQueryBuilder(QueryBuilder):
                 .group_by(*group_by_col_without_alias)
             )
 
-        agg_query_rules = AggregateQueryRules(query=query_exp.sql(dialect=self.engine), rules=query_agg_rules)
+        agg_query_rules = AggregateQueryRules(
+            layer=self.layer,
+            group_by_columns=group_list[0].group_by_columns,
+            group_by_columns_as_str=group_list[0].group_by_columns_as_str,
+            query=query_exp.sql(dialect=self.engine),
+            rules=query_agg_rules,
+        )
         return agg_query_rules
 
     def grouped_aggregates(self):
         """
-        Group items based on group_by_cols_keys:
+        Group items based on group_by_columns_keys:
         Example:
           aggregates = [
                                     Aggregate(type="Min", agg_cols=["c_nation_str", "col2"],
-                                                                                    group_by_cols=["col3"]),
-                                    Aggregate(type="Max", agg_cols=["col2", "col3"], group_by_cols=["col1"]),
+                                                                                    group_by_columns=["col3"]),
+                                    Aggregate(type="Max", agg_cols=["col2", "col3"], group_by_columns=["col1"]),
                                     Aggregate(type="avg", agg_cols=["col4"]),
-                                    Aggregate(type="sum", agg_cols=["col3", "col6"], group_by_cols=["col1"]),
+                                    Aggregate(type="sum", agg_cols=["col3", "col6"], group_by_columns=["col1"]),
                                 ]
           output:
                   * key: NA with index 1
-                    - Aggregate(agg_cols=['col4'], type='avg', group_by_cols=None, group_by_cols_as_str='NA')
+                    - Aggregate(agg_cols=['col4'], type='avg', group_by_columns=None, group_by_columns_as_str='NA')
                   * key: col1 with index 2
-                    - Aggregate(agg_cols=['col2', 'col3'], type='Max', group_by_cols=['col1'],
-                                                                                  group_by_cols_as_str='col1')
-                    - Aggregate(agg_cols=['col3', 'col6'], type='sum', group_by_cols=['col1'],
-                                                                                   group_by_cols_as_str='col1')
+                    - Aggregate(agg_cols=['col2', 'col3'], type='Max', group_by_columns=['col1'],
+                                                                                  group_by_columns_as_str='col1')
+                    - Aggregate(agg_cols=['col3', 'col6'], type='sum', group_by_columns=['col1'],
+                                                                                   group_by_columns_as_str='col1')
                   * key: col3 with index 3
-                    - Aggregate(agg_cols=['c_nation_str', 'col2'], type='Min', group_by_cols=['col3'],
-                    group_by_cols_as_str='col3')
+                    - Aggregate(agg_cols=['c_nation_str', 'col2'], type='Min', group_by_columns=['col3'],
+                    group_by_columns_as_str='col3')
         """
         _aggregates: list[Aggregate] = []
 
@@ -188,12 +209,13 @@ class AggregateQueryBuilder(QueryBuilder):
         if self.aggregates:
             _aggregates = self.aggregates
 
-        # Sort the aggregates based on group_by_cols_as_str
-        _aggregates.sort(key=attrgetter("group_by_cols_as_str"))
+        # Sort the aggregates based on group_by_columns_as_str
+        _aggregates.sort(key=attrgetter("group_by_columns_as_str"))
 
-        return groupby(_aggregates, key=attrgetter("group_by_cols_as_str"))
+        return groupby(_aggregates, key=attrgetter("group_by_columns_as_str"))
 
-    def _build_agg_rules(self, agg: Aggregate) -> list[AggregateRule]:
+    @classmethod
+    def _build_aggregate_rules(cls, agg: Aggregate) -> list[AggregateRule]:
         """
         Builds the rules for each aggregate column in the given Aggregate object
 
@@ -201,7 +223,7 @@ class AggregateQueryBuilder(QueryBuilder):
            Input :: Aggregate: {
                                               "type": "MIN",
                                               "agg_cols": ["COL1", "COL2"],
-                                              "group_by_cols": ["GRP1", "GRP2]
+                                              "group_by_columns": ["GRP1", "GRP2]
                                             }
            Returns -> [AggregateRule(rule_id=hash(min_col1_grp1_grp2)),
                                                         query=SELECT {rule_id} as rule_id,
@@ -219,16 +241,21 @@ class AggregateQueryBuilder(QueryBuilder):
         """
 
         return [
-            AggregateRule(agg_type=agg.type, agg_column=agg_col, group_by_columns=agg.group_by_cols)
-            for agg_col in agg.agg_cols
+            AggregateRule(
+                agg_type=agg.type,
+                agg_column=agg_col,
+                group_by_columns=agg.group_by_columns,
+                group_by_columns_as_str=agg.group_by_columns_as_str,
+            )
+            for agg_col in agg.agg_columns
         ]
 
-    def build_queries(self) -> dict[str, AggregateQueryRules]:
+    def build_queries(self) -> list[AggregateQueryRules]:
         """
         Generates the Source and Target Queries for the list of Aggregate objects
-        * Group items based on group_by_cols_keys and for each group,
+        * Group items based on group_by_columns_keys and for each group,
             generates the query_with_rules for both Source and Target Dialects
-        * Generates 2 Queries (Source, Target) for each unique group_by_cols_keys
+        * Generates 2 Queries (Source, Target) for each unique group_by_columns_keys
 
         Examples:
         1. [Aggregate(type="avg", agg_cols=["col4"])]
@@ -238,8 +265,8 @@ class AggregateQueryBuilder(QueryBuilder):
             {
             "tgt_query_1": "SELECT avg(col4) AS tgt_avg_col4 FROM :tbl"
             }
-         2. [Aggregate(type="Max", agg_cols=["col3"], group_by_cols=["col1"]),
-              Aggregate(type="Sum", agg_cols=["col2"], group_by_cols=["col4"])]
+         2. [Aggregate(type="Max", agg_cols=["col3"], group_by_columns=["col1"]),
+              Aggregate(type="Sum", agg_cols=["col2"], group_by_columns=["col4"])]
             {
             "src_query_1": "SELECT max(col3) AS src_max_col3 FROM :tbl GROUP BY col1"
             "src_query_2": "SELECT sum(col2) AS src_sum_col2 FROM :tbl GROUP BY col4"
@@ -250,13 +277,9 @@ class AggregateQueryBuilder(QueryBuilder):
             }
         :return: Dictionary with Source and Target Queries
         """
-
-        queries_dict = {}
+        query_with_rules_list = []
         for key, group in self.grouped_aggregates():
-            group_list: list[Aggregate] = list(group)
+            logger.info(f"Building Query and Rules for key: {key}, layer: {self.layer}")
+            query_with_rules_list.append(self._get_layer_query(list(group)))
 
-            query_with_rules = self._get_layer_query(group_list)
-
-            queries_dict[f"{self.layer}_query_{key}"] = query_with_rules
-
-        return queries_dict
+        return query_with_rules_list

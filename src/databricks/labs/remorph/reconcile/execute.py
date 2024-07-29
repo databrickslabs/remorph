@@ -1,3 +1,4 @@
+import os
 import logging
 import sys
 from datetime import datetime
@@ -20,7 +21,8 @@ from databricks.labs.remorph.config import (
 from databricks.labs.remorph.reconcile.compare import (
     capture_mismatch_data_and_columns,
     reconcile_data,
-    reconcile_agg_data,
+    join_aggregate_data,
+    reconcile_agg_data_per_rule,
 )
 from databricks.labs.remorph.reconcile.connectors.data_source import DataSource
 from databricks.labs.remorph.reconcile.connectors.source_adapter import create_adapter
@@ -55,6 +57,7 @@ from databricks.labs.remorph.reconcile.recon_config import (
     ThresholdOutput,
     AggregateQueryOutput,
     ReconcileRecordCount,
+    AggregateQueryRules,
 )
 from databricks.labs.remorph.reconcile.schema_compare import SchemaCompare
 from databricks.labs.remorph.transpiler.execute import verify_workspace_client
@@ -571,12 +574,12 @@ class Reconciliation:
         )
 
         # build Aggregate queries for source,
-        src_agg_queries = src_query_builder.build_queries()
+        src_agg_queries: list[AggregateQueryRules] = src_query_builder.build_queries()
 
         # There could be one or more queries per table based on the group by columns
 
         # build Aggregate queries for target(Databricks),
-        tgt_agg_queries = AggregateQueryBuilder(
+        tgt_agg_queries: list[AggregateQueryRules] = AggregateQueryBuilder(
             table_conf,
             tgt_schema,
             "target",
@@ -588,37 +591,45 @@ class Reconciliation:
         table_agg_output: list[AggregateQueryOutput] = []
 
         # Iterate over the grouped aggregates and reconcile the data
+        # Zip all the keys, read the source, target data for each Aggregate query
+        # and reconcile on the aggregate data
+        # For e.g., (source_query_GRP1, target_query_GRP1), (source_query_GRP2, target_query_GRP2)
+        for src_query_with_rules, tgt_query_with_rules in zip(src_agg_queries, tgt_agg_queries):
+            # For each Aggregate query, read the Source and Target Data and add a hash column
 
-        for key, group in src_query_builder.grouped_aggregates():
-            # For each Aggregate query, read the Source and Target Data
             src_data = self._source.read_data(
                 catalog=self._database_config.source_catalog,
                 schema=self._database_config.source_schema,
                 table=table_conf.source_name,
-                query=src_agg_queries[f"source_query_{key}"].query,
+                query=src_query_with_rules.query,
                 options=table_conf.jdbc_reader_options,
             )
             tgt_data = self._target.read_data(
                 catalog=self._database_config.target_catalog,
                 schema=self._database_config.target_schema,
                 table=table_conf.target_name,
-                query=tgt_agg_queries[f"target_query_{key}"].query,
+                query=tgt_query_with_rules.query,
                 options=table_conf.jdbc_reader_options,
             )
 
-            # Reconcile the Source and Target Aggregated data
-            group_agg_output: list[AggregateQueryOutput] = reconcile_agg_data(
+            # Join the Source and Target Aggregated data
+            joined_df = join_aggregate_data(
                 source=src_data,
                 target=tgt_data,
-                group_list=list(group),
-                rules=src_agg_queries[f"source_query_{key}"].rules,
+                key_columns=src_query_with_rules.group_by_columns,
                 spark=self._spark,
-                path=f"{volume_path}{key}",
+                path=f"{volume_path}{src_query_with_rules.group_by_columns_as_str}",
             )
 
+            # For each Aggregated Query, reconcile the data based on the rule
+            rules_reconcile_output: list[AggregateQueryOutput] = []
+            for rule in src_query_with_rules.rules:
+                rule_reconcile_output = reconcile_agg_data_per_rule(joined_df, src_data.columns, tgt_data.columns, rule)
+                rules_reconcile_output.append(AggregateQueryOutput(rule, rule_reconcile_output))
+
             # For each table, there could be many Aggregated queries.
-            # Collect the Reconcile output and rules for each Aggregate query and append it to the list
-            table_agg_output.extend(group_agg_output)
+            # Collect the list of Rule Reconcile output per each Aggregate query and append it to the list
+            table_agg_output.extend(rules_reconcile_output)
         return table_agg_output
 
     def _get_sample_data(
@@ -857,6 +868,6 @@ def _run_reconcile_aggregates(
 
 
 if __name__ == "__main__":
-    # if "DATABRICKS_RUNTIME_VERSION" not in os.environ:
-    #     raise SystemExit("Only intended to run in Databricks Runtime")
+    if "DATABRICKS_RUNTIME_VERSION" not in os.environ:
+        raise SystemExit("Only intended to run in Databricks Runtime")
     main(*sys.argv)

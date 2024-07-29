@@ -11,9 +11,7 @@ from databricks.labs.remorph.reconcile.recon_capture import (
 from databricks.labs.remorph.reconcile.recon_config import (
     DataReconcileOutput,
     MismatchOutput,
-    Aggregate,
     AggregateRule,
-    AggregateQueryOutput,
 )
 
 logger = logging.getLogger(__name__)
@@ -39,7 +37,10 @@ def _generate_join_condition(source_alias, target_alias, key_columns):
     return reduce(lambda a, b: a & b, conditions)
 
 
-def _generate_agg_join_condition(source_alias: str, target_alias: str, join_columns: list[tuple[str, str]]):
+def _generate_agg_join_condition(source_alias: str, target_alias: str, key_columns: list[str]):
+    join_columns: list[tuple[str, str]] = [
+        (f"source_group_by_{key_col}", f"target_group_by_{key_col}") for key_col in key_columns
+    ]
     conditions = [
         col(f"{source_alias}.{item[0]}").eqNullSafe(col(f"{target_alias}.{item[1]}")) for item in join_columns
     ]
@@ -72,7 +73,7 @@ def reconcile_data(
     )
 
     # Write unmatched df to volume
-    df = ReconIntermediatePersist(spark, path).write_and_read_unmatched_df_with_volumes(df)
+    df = ReconIntermediatePersist(spark, path).write_and_read_unmatched_df_with_volumes(df).cache()
     logger.warning(f"Unmatched data is written to {path} successfully")
 
     mismatch = _get_mismatch_data(df, source_alias, target_alias) if report_type in {"all", "data"} else None
@@ -117,76 +118,73 @@ def reconcile_data(
     )
 
 
-def _reconcile_agg_data_rules(
-    rules: list[AggregateRule],
+def reconcile_agg_data_per_rule(
     joined_df: DataFrame,
     source_columns: list[str],
     target_columns: list[str],
-):
-    output: list[AggregateQueryOutput] = []
-    for rule in rules:
-        # Generates select columns in the format of:
-        # [(source_min_col1, target_min_col1), (source_count_col3, target_count_col3) ... ]
-        rule_select_columns = [
-            (f"source_{rule.agg_type}_{rule.agg_column}", f"target_{rule.agg_type}_{rule.agg_column}")
+    rule: AggregateRule,
+) -> DataReconcileOutput:
+    """ "
+    Generates the reconciliation output for the given rule
+    """
+    # Generates select columns in the format of:
+    # [(source_min_col1, target_min_col1), (source_count_col3, target_count_col3) ... ]
+    rule_select_columns = [(f"source_{rule.agg_type}_{rule.agg_column}", f"target_{rule.agg_type}_{rule.agg_column}")]
+
+    rule_group_columns = None
+    if rule.group_by_columns:
+        rule_group_columns = [
+            (f"source_group_by_{group_col}", f"target_group_by_{group_col}") for group_col in rule.group_by_columns
         ]
+        rule_select_columns.extend(rule_group_columns)
 
-        # df_rule_filter_columns = rule_select_columns
+    df_rule_columns = []
+    for src_col, tgt_col in rule_select_columns:
+        df_rule_columns.extend([src_col, tgt_col])
 
-        rule_group_columns = None
-        if rule.group_by_columns:
-            rule_group_columns = [
-                (f"source_group_by_{group_col}", f"target_group_by_{group_col}") for group_col in rule.group_by_columns
-            ]
-            # df_rule_filter_columns.extend(rule_group_columns)
-            rule_select_columns.extend(rule_group_columns)
+    joined_df_with_rule_cols = joined_df.selectExpr(*df_rule_columns)
 
-        df_rule_columns = []
-        for src_col, tgt_col in rule_select_columns:
-            df_rule_columns.extend([src_col, tgt_col])
+    # Data mismatch between Source and Target aggregated data
+    mismatch = _get_mismatch_agg_data(joined_df_with_rule_cols, rule_select_columns, rule_group_columns)
 
-        rule_joined_df = joined_df.selectExpr(*df_rule_columns)
+    # Data missing in Source DataFrame
+    rule_target_columns = set(target_columns).intersection([target_col for _, target_col in rule_select_columns])
 
-        # Data mismatch between Source and Target aggregated data
-        mismatch = _get_mismatch_agg_data(rule_joined_df, rule_select_columns, rule_group_columns)
+    missing_in_src = joined_df_with_rule_cols.filter(_agg_conditions(rule_select_columns, "missing_in_src")).select(
+        *rule_target_columns
+    )
 
-        # Data missing in Source DataFrame
-        rule_target_columns = set(target_columns).intersection([target_col for _, target_col in rule_select_columns])
-        missing_in_src = rule_joined_df.filter(_agg_conditions(rule_select_columns, "missing_in_src")).select(
-            *rule_target_columns
-        )
+    # Data missing in Target DataFrame
+    rule_source_columns = set(source_columns).intersection([source_col for source_col, _ in rule_select_columns])
+    missing_in_tgt = joined_df_with_rule_cols.filter(_agg_conditions(rule_select_columns, "missing_in_tgt")).select(
+        *rule_source_columns
+    )
 
-        # Data missing in Target DataFrame
-        rule_source_columns = set(source_columns).intersection([source_col for source_col, _ in rule_select_columns])
-        missing_in_tgt = rule_joined_df.filter(_agg_conditions(rule_select_columns, "missing_in_tgt")).select(
-            *rule_source_columns
-        )
+    mismatch_count = 0
+    if mismatch:
+        mismatch_count = mismatch.count()
 
-        mismatch_count = 0
-        if mismatch:
-            mismatch_count = mismatch.count()
+    rule_reconcile_output = DataReconcileOutput(
+        mismatch_count=mismatch_count,
+        missing_in_src_count=missing_in_src.count(),
+        missing_in_tgt_count=missing_in_tgt.count(),
+        missing_in_src=missing_in_src.limit(_SAMPLE_ROWS),
+        missing_in_tgt=missing_in_tgt.limit(_SAMPLE_ROWS),
+        mismatch=MismatchOutput(mismatch_df=mismatch),
+    )
 
-        rule_reconcile_output = DataReconcileOutput(
-            mismatch_count=mismatch_count,
-            missing_in_src_count=missing_in_src.count(),
-            missing_in_tgt_count=missing_in_tgt.count(),
-            missing_in_src=missing_in_src.limit(_SAMPLE_ROWS),
-            missing_in_tgt=missing_in_tgt.limit(_SAMPLE_ROWS),
-            mismatch=MismatchOutput(mismatch_df=mismatch),
-        )
-        output.append(AggregateQueryOutput(rule, rule_reconcile_output))
-
-    return output
+    return rule_reconcile_output
 
 
-def reconcile_agg_data(
+def join_aggregate_data(
     source: DataFrame,
     target: DataFrame,
-    group_list: list[Aggregate],
-    rules: list[AggregateRule],
+    key_columns: list[str] | None,
     spark: SparkSession,
     path: str,
-) -> list[AggregateQueryOutput]:
+) -> DataFrame:
+    # TODO:  Integrate with reconcile_data function
+
     source_alias = "src"
     target_alias = "tgt"
 
@@ -198,16 +196,12 @@ def reconcile_agg_data(
 
     # Generates group by columns in the format of:
     # [(source_group_by_col1, target_group_by_col1), (source_group_by_col2, target_group_by_col2) ... ]
-    if group_list[0].group_by_cols:
-        group_columns = [
-            (f"source_group_by_{group_col}", f"target_group_by_{group_col}")
-            for group_col in group_list[0].group_by_cols
-        ]
 
+    if key_columns:
         # If there are Group By columns, do Full join on the grouped columns
         df = source.alias(source_alias).join(
             other=target.alias(target_alias),
-            on=_generate_agg_join_condition(source_alias, target_alias, group_columns),
+            on=_generate_agg_join_condition(source_alias, target_alias, key_columns),
             how="full",
         )
 
@@ -220,10 +214,14 @@ def reconcile_agg_data(
     joined_volume_df = ReconIntermediatePersist(spark, path).write_and_read_unmatched_df_with_volumes(joined_df).cache()
     logger.warning(f"Unmatched data is written to {path} successfully")
 
-    return _reconcile_agg_data_rules(rules, joined_volume_df, source.columns, target.columns)
+    return joined_volume_df
 
 
-def _get_mismatch_data(df: DataFrame, src_alias: str, tgt_alias: str) -> DataFrame:
+def _get_mismatch_data(
+    df: DataFrame,
+    src_alias: str,
+    tgt_alias: str,
+) -> DataFrame:
     return (
         df.filter(
             (col(f"{src_alias}_{_HASH_COLUMN_NAME}").isNotNull())
@@ -288,6 +286,7 @@ def _get_mismatch_agg_data(
     select_cols: list[tuple[str, str]],
     group_cols: list[tuple[str, str]] | None,
 ) -> DataFrame:
+    # TODO:  Integrate with _get_mismatch_data function
     df_with_match_cols = df
 
     if group_cols:
