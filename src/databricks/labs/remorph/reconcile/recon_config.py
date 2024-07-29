@@ -105,29 +105,6 @@ class Filters:
     target: str | None = None
 
 
-@dataclass
-class Aggregate:
-    agg_columns: list[str]
-    type: str
-    group_by_columns: list[str] | None = None
-
-    def __post_init__(self):
-        self.agg_columns = to_lower_case(self.agg_columns)
-        self.type = self.type.lower()
-        self.group_by_columns = to_lower_case(self.group_by_columns) if self.group_by_columns else None
-
-    def get_agg_type(self):
-        return self.type
-
-    @property
-    def group_by_columns_as_str(self):
-        return "+__+".join(self.group_by_columns) if self.group_by_columns else "NA"
-
-    @property
-    def agg_columns_as_str(self):
-        return "+__+".join(self.agg_columns)
-
-
 def to_lower_case(input_list: list[str]) -> list[str]:
     return [element.lower() for element in input_list]
 
@@ -324,6 +301,35 @@ class ReconcileOutput:
 
 
 @dataclass
+class ReconcileRecordCount:
+    source: int = 0
+    target: int = 0
+
+
+@dataclass
+class Aggregate:
+    agg_columns: list[str]
+    type: str
+    group_by_columns: list[str] | None = None
+
+    def __post_init__(self):
+        self.agg_columns = to_lower_case(self.agg_columns)
+        self.type = self.type.lower()
+        self.group_by_columns = to_lower_case(self.group_by_columns) if self.group_by_columns else None
+
+    def get_agg_type(self):
+        return self.type
+
+    @property
+    def group_by_columns_as_str(self):
+        return "+__+".join(self.group_by_columns) if self.group_by_columns else "NA"
+
+    @property
+    def agg_columns_as_str(self):
+        return "+__+".join(self.agg_columns)
+
+
+@dataclass
 class AggregateRule:
     agg_type: str
     agg_column: str
@@ -368,9 +374,3 @@ class AggregateQueryRules:
 class AggregateQueryOutput:
     rule: AggregateRule | None
     reconcile_output: DataReconcileOutput
-
-
-@dataclass
-class ReconcileRecordCount:
-    source: int = 0
-    target: int = 0
