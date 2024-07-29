@@ -52,9 +52,13 @@ case class MergeIntoTable(
     options: Option[Expression])
     extends Modification {
 
-  override def children: Seq[LogicalPlan] = Seq(target, source, outputRelation.getOrElse(NoopNode))
+  override def children: Seq[LogicalPlan] = {
+    val notMatchedValues = notMatchedActions.collect { case insertAction: InsertAction =>
+      insertAction.values
+    }
+    Seq(target, source, outputRelation.getOrElse(NoopNode)) ++ notMatchedValues
+  }
   override def output: Seq[Attribute] = target.output
-
 }
 
 sealed abstract class MergeAction extends Expression {
