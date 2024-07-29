@@ -363,7 +363,6 @@ class SnowflakeExpressionBuilder()
         ir.Case(None, branches, otherwise)
     }
   }
-
   override def visitPredicate(ctx: PredicateContext): ir.Expression = ctx match {
     case c if c.EXISTS() != null =>
       ir.Exists(c.subquery().accept(new SnowflakeRelationBuilder))
