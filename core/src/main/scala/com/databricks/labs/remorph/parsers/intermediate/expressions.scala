@@ -4,10 +4,6 @@ import java.util.{Locale, UUID}
 
 // Expression used to refer to fields, functions and similar. This can be used everywhere
 // expressions in SQL appear.
-case class ExpressionLogicalPlan(expression: Expression) extends LeafNode {
-  override def output: Seq[Attribute] = Seq.empty
-}
-
 abstract class Expression extends TreeNode[Expression] {
   lazy val resolved: Boolean = childrenResolved
 
