@@ -142,11 +142,10 @@ otherCommand
     | truncateMaterializedView
     | truncateTable
     | unset
-    | call
-    | beginTxn
-    | returnStatement
-    | let
-    | declareStatement
+    | scriptingStatement
+    ;
+
+scriptingStatement: call | declareCommand | let | returnStatement | beginTxn
     ;
 
 beginTxn: BEGIN (WORK | TRANSACTION)? (NAME id)? | START TRANSACTION ( NAME id)?
@@ -165,7 +164,7 @@ copyIntoTable
     ) R_PAREN files? pattern? fileFormat? copyOptions*
     ;
 
-declareClause: DECLARE declareStatement+
+declareCommand: DECLARE declareStatement+
     ;
 
 declareStatement
@@ -1624,7 +1623,7 @@ executaAs: EXECUTE AS callerOwner
 procedureBody: (let | call | executeImmediate | string)*
     ;
 
-procedureDefinition: DBL_DOLLAR | declareClause? BEGIN procedureBody returnStatement END SEMI
+procedureDefinition: DBL_DOLLAR | declareCommand? BEGIN procedureBody returnStatement END SEMI
     ;
 
 notNull: NOT NULL_

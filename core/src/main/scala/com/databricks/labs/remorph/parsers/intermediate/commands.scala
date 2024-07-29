@@ -93,3 +93,12 @@ case class CreateVariable(name: String, dataType: DataType, defaultExpr: Option[
     with Command
 
 case class SetVariable(name: String, dataType: Option[DataType], value: Expression) extends LeafNode with Command
+
+case class Statements(command: Seq[Command]) extends Command {
+  /*
+  Statements will help combine multiple commands in to sequence of commands Especially
+  commands like Declare or Set
+   */
+  override def children: Seq[LogicalPlan] = command
+}
+
