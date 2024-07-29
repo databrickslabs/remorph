@@ -94,6 +94,12 @@
       <scope>test</scope>
     </dependency>
     <dependency>
+      <groupId>com.lihaoyi</groupId>
+      <artifactId>pprint_${scala.binary.version}</artifactId>
+      <version>0.8.1</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
       <groupId>com.typesafe.scala-logging</groupId>
       <artifactId>scala-logging_${scala.binary.version}</artifactId>
       <version>3.9.5</version>

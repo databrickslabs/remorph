@@ -123,7 +123,7 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
       ir.Window(
         ir.CallFunction("SUM", Seq(simplyNamedColumn("salary"))),
         Seq(simplyNamedColumn("department")),
-        Seq(ir.SortOrder(simplyNamedColumn("employee_id"), ir.AscendingSortDirection, ir.SortNullsUnspecified)),
+        Seq(ir.SortOrder(simplyNamedColumn("employee_id"), ir.Ascending, ir.SortNullsUnspecified)),
         Some(ir.WindowFrame(ir.RangeFrame, ir.UnboundedPreceding, ir.CurrentRow))))
     exampleExpr(
       "SUM(salary) OVER (PARTITION BY department ORDER BY employee_id ROWS UNBOUNDED PRECEDING)",
@@ -131,7 +131,7 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
       ir.Window(
         ir.CallFunction("SUM", Seq(simplyNamedColumn("salary"))),
         Seq(simplyNamedColumn("department")),
-        Seq(ir.SortOrder(simplyNamedColumn("employee_id"), ir.AscendingSortDirection, ir.SortNullsUnspecified)),
+        Seq(ir.SortOrder(simplyNamedColumn("employee_id"), ir.Ascending, ir.SortNullsUnspecified)),
         Some(ir.WindowFrame(ir.RowsFrame, ir.UnboundedPreceding, ir.NoBoundary))))
 
     exampleExpr(
@@ -140,7 +140,7 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
       ir.Window(
         ir.CallFunction("SUM", Seq(simplyNamedColumn("salary"))),
         Seq(simplyNamedColumn("department")),
-        Seq(ir.SortOrder(simplyNamedColumn("employee_id"), ir.AscendingSortDirection, ir.SortNullsUnspecified)),
+        Seq(ir.SortOrder(simplyNamedColumn("employee_id"), ir.Ascending, ir.SortNullsUnspecified)),
         Some(ir.WindowFrame(ir.RowsFrame, ir.PrecedingN(ir.Literal(integer = Some(66))), ir.NoBoundary))))
 
     exampleExpr(
@@ -151,7 +151,7 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
       ir.Window(
         ir.CallFunction("AVG", Seq(simplyNamedColumn("salary"))),
         Seq(simplyNamedColumn("department_id")),
-        Seq(ir.SortOrder(simplyNamedColumn("employee_id"), ir.AscendingSortDirection, ir.SortNullsUnspecified)),
+        Seq(ir.SortOrder(simplyNamedColumn("employee_id"), ir.Ascending, ir.SortNullsUnspecified)),
         Some(ir.WindowFrame(ir.RowsFrame, ir.UnboundedPreceding, ir.CurrentRow))))
 
     exampleExpr(
@@ -162,7 +162,7 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
       ir.Window(
         ir.CallFunction("SUM", Seq(simplyNamedColumn("sales"))),
         List(),
-        Seq(ir.SortOrder(simplyNamedColumn("month"), ir.AscendingSortDirection, ir.SortNullsUnspecified)),
+        Seq(ir.SortOrder(simplyNamedColumn("month"), ir.Ascending, ir.SortNullsUnspecified)),
         Some(ir.WindowFrame(ir.RowsFrame, ir.CurrentRow, ir.FollowingN(ir.Literal(integer = Some(2)))))))
 
     exampleExpr(
@@ -171,7 +171,7 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
       ir.Window(
         ir.CallFunction("ROW_NUMBER", Seq.empty),
         Seq(simplyNamedColumn("department")),
-        Seq(ir.SortOrder(simplyNamedColumn("salary"), ir.DescendingSortDirection, ir.SortNullsUnspecified)),
+        Seq(ir.SortOrder(simplyNamedColumn("salary"), ir.Descending, ir.SortNullsUnspecified)),
         None))
 
     exampleExpr(
@@ -214,7 +214,7 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
       ir.Window(
         ir.CallFunction("FIRST_VALUE", Seq(simplyNamedColumn("Salary"))),
         Seq(simplyNamedColumn("DepartmentID")),
-        Seq(ir.SortOrder(simplyNamedColumn("Salary"), ir.DescendingSortDirection, ir.SortNullsUnspecified)),
+        Seq(ir.SortOrder(simplyNamedColumn("Salary"), ir.Descending, ir.SortNullsUnspecified)),
         None))
 
     exampleExpr(
@@ -225,7 +225,7 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
       ir.Window(
         ir.CallFunction("LAST_VALUE", Seq(simplyNamedColumn("salary"))),
         Seq(simplyNamedColumn("department_id")),
-        Seq(ir.SortOrder(simplyNamedColumn("employee_id"), ir.DescendingSortDirection, ir.SortNullsUnspecified)),
+        Seq(ir.SortOrder(simplyNamedColumn("employee_id"), ir.Descending, ir.SortNullsUnspecified)),
         None))
 
     exampleExpr(
@@ -234,7 +234,7 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
       ir.Window(
         ir.WithinGroup(
           ir.CallFunction("PERCENTILE_CONT", Seq(ir.Literal(float = Some(0.5f)))),
-          Seq(ir.SortOrder(simplyNamedColumn("Salary"), ir.AscendingSortDirection, ir.SortNullsUnspecified))),
+          Seq(ir.SortOrder(simplyNamedColumn("Salary"), ir.Ascending, ir.SortNullsUnspecified))),
         Seq(simplyNamedColumn("DepartmentID")),
         List(),
         None))
@@ -247,7 +247,7 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
       ir.Window(
         ir.CallFunction("LEAD", Seq(simplyNamedColumn("salary"), ir.Literal(short = Some(1)))),
         Seq(simplyNamedColumn("department_id")),
-        Seq(ir.SortOrder(simplyNamedColumn("employee_id"), ir.DescendingSortDirection, ir.SortNullsUnspecified)),
+        Seq(ir.SortOrder(simplyNamedColumn("employee_id"), ir.Descending, ir.SortNullsUnspecified)),
         None))
 
     exampleExpr(
@@ -260,7 +260,7 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
           "LEAD",
           Seq(simplyNamedColumn("salary"), ir.Literal(short = Some(1)), ir.Literal(boolean = Some(true)))),
         Seq(simplyNamedColumn("department_id")),
-        Seq(ir.SortOrder(simplyNamedColumn("employee_id"), ir.DescendingSortDirection, ir.SortNullsUnspecified)),
+        Seq(ir.SortOrder(simplyNamedColumn("employee_id"), ir.Descending, ir.SortNullsUnspecified)),
         None))
 
   }

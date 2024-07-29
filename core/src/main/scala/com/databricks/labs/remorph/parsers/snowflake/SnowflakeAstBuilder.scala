@@ -25,7 +25,7 @@ class SnowflakeAstBuilder extends SnowflakeParserBaseVisitor[ir.LogicalPlan] wit
   }
 
   override def visitBatch(ctx: BatchContext): ir.LogicalPlan = {
-    ir.Batch(visitMany(ctx.sqlCommand()).collect { case p: ir.LogicalPlan => p })
+    ir.Batch(visitMany(ctx.sqlCommand()))
   }
 
   override def visitQueryStatement(ctx: QueryStatementContext): ir.LogicalPlan = {

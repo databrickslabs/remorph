@@ -155,7 +155,7 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
               group_type = GroupBy,
               grouping_expressions = Seq(simplyNamedColumn("a")),
               pivot = None),
-            Seq(SortOrder(Id("a"), AscendingSortDirection, SortNullsLast)),
+            Seq(SortOrder(Id("a"), Ascending, NullsLast)),
             is_global = false),
           Seq(simplyNamedColumn("a"), CallFunction("COUNT", Seq(Id("b"))))))
     }
@@ -180,7 +180,7 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
         expectedAst = Project(
           Sort(
             NamedTable("b", Map.empty, is_streaming = false),
-            Seq(SortOrder(Id("a"), AscendingSortDirection, SortNullsLast)),
+            Seq(SortOrder(Id("a"), Ascending, NullsLast)),
             is_global = false),
           Seq(simplyNamedColumn("a"))))
 
@@ -189,7 +189,7 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
         expectedAst = Project(
           Sort(
             NamedTable("b", Map.empty, is_streaming = false),
-            Seq(SortOrder(Id("a"), DescendingSortDirection, SortNullsFirst)),
+            Seq(SortOrder(Id("a"), Descending, NullsFirst)),
             is_global = false),
           Seq(simplyNamedColumn("a"))))
 
@@ -198,7 +198,7 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
         expectedAst = Project(
           Sort(
             NamedTable("b", Map.empty, is_streaming = false),
-            Seq(SortOrder(Id("a"), AscendingSortDirection, SortNullsFirst)),
+            Seq(SortOrder(Id("a"), Ascending, NullsFirst)),
             is_global = false),
           Seq(simplyNamedColumn("a"))))
 
@@ -207,7 +207,7 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
         expectedAst = Project(
           Sort(
             NamedTable("b", Map.empty, is_streaming = false),
-            Seq(SortOrder(Id("a"), DescendingSortDirection, SortNullsLast)),
+            Seq(SortOrder(Id("a"), Descending, NullsLast)),
             is_global = false),
           Seq(simplyNamedColumn("a"))))
     }

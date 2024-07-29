@@ -2,6 +2,7 @@ package com.databricks.labs.remorph.parsers.tsql
 
 import com.databricks.labs.remorph.parsers.intermediate._
 import com.databricks.labs.remorph.parsers.tsql
+import com.databricks.labs.remorph.parsers.tsql.rules.TopPercent
 import org.mockito.Mockito.{mock, when}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -396,7 +397,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
             Window(
               CallFunction("ROW_NUMBER", List.empty),
               List.empty,
-              List(SortOrder(simplyNamedColumn("myColumn"), AscendingSortDirection, SortNullsUnspecified)),
+              List(SortOrder(simplyNamedColumn("myColumn"), Ascending, SortNullsUnspecified)),
               None),
             Seq(Id("nextVal")),
             None))))))
@@ -493,30 +494,24 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
             Map("LIMIT" -> Literal(short = Some(77)))))))
   }
 
-  "translate a SELECT with a TOP clause" in {
-    example(
-      query = "SELECT TOP 10 * FROM Employees;",
-      expectedAst = Batch(
-        Seq(
-          Project(
-            Limit(namedTable("Employees"), Literal(short = Some(10)), is_percentage = false, with_ties = false),
-            Seq(Star(None))))))
+  "translate a SELECT with a TOP clause" should {
+    "use LIMIT" in {
+      example(
+        query = "SELECT TOP 10 * FROM Employees;",
+        expectedAst = Batch(Seq(Project(Limit(namedTable("Employees"), Literal(short = Some(10))), Seq(Star(None))))))
+    }
 
-    example(
-      query = "SELECT TOP 10 PERCENT * FROM Employees;",
-      expectedAst = Batch(
-        Seq(
-          Project(
-            Limit(namedTable("Employees"), Literal(short = Some(10)), is_percentage = true, with_ties = false),
-            Seq(Star(None))))))
+    "use TOP PERCENT" in {
+      example(
+        query = "SELECT TOP 10 PERCENT * FROM Employees;",
+        expectedAst =
+          Batch(Seq(Project(TopPercent(namedTable("Employees"), Literal(short = Some(10))), Seq(Star(None))))))
 
-    example(
-      query = "SELECT TOP 10 PERCENT WITH TIES * FROM Employees;",
-      expectedAst = Batch(
-        Seq(
-          Project(
-            Limit(namedTable("Employees"), Literal(short = Some(10)), is_percentage = true, with_ties = true),
-            Seq(Star(None))))))
+      example(
+        query = "SELECT TOP 10 PERCENT WITH TIES * FROM Employees;",
+        expectedAst = Batch(Seq(
+          Project(TopPercent(namedTable("Employees"), Literal(short = Some(10)), with_ties = true), Seq(Star(None))))))
+    }
   }
 
   "translate a SELECT statement with an ORDER BY and OFFSET" in {
@@ -527,7 +522,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
           Offset(
             Sort(
               namedTable("Employees"),
-              Seq(SortOrder(simplyNamedColumn("Salary"), AscendingSortDirection, SortNullsUnspecified)),
+              Seq(SortOrder(simplyNamedColumn("Salary"), Ascending, SortNullsUnspecified)),
               is_global = false),
             Literal(short = Some(10))),
           Seq(Star(None))))))
@@ -540,7 +535,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
             Offset(
               Sort(
                 namedTable("Employees"),
-                Seq(SortOrder(simplyNamedColumn("Salary"), AscendingSortDirection, SortNullsUnspecified)),
+                Seq(SortOrder(simplyNamedColumn("Salary"), Ascending, SortNullsUnspecified)),
                 is_global = false),
               Literal(short = Some(10))),
             Literal(short = Some(5))),
@@ -556,7 +551,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
             Offset(
               Sort(
                 namedTable("Employees"),
-                Seq(SortOrder(simplyNamedColumn("Salary"), AscendingSortDirection, SortNullsUnspecified)),
+                Seq(SortOrder(simplyNamedColumn("Salary"), Ascending, SortNullsUnspecified)),
                 is_global = false),
               Literal(short = Some(10))),
             List(),
@@ -573,7 +568,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
               Offset(
                 Sort(
                   namedTable("Employees"),
-                  List(SortOrder(simplyNamedColumn("Salary"), AscendingSortDirection, SortNullsUnspecified)),
+                  List(SortOrder(simplyNamedColumn("Salary"), Ascending, SortNullsUnspecified)),
                   is_global = false),
                 Literal(short = Some(10))),
               Literal(short = Some(5))),

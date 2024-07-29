@@ -1,6 +1,7 @@
 package com.databricks.labs.remorph.parsers.tsql
 
 import com.databricks.labs.remorph.parsers.tsql.TSqlParser._
+import com.databricks.labs.remorph.parsers.tsql.rules.TopPercent
 import com.databricks.labs.remorph.parsers.{intermediate => ir}
 import org.antlr.v4.runtime.ParserRuleContext
 
@@ -60,11 +61,12 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.LogicalPlan] {
 
   private def buildTop(ctxOpt: Option[TSqlParser.TopClauseContext], input: ir.LogicalPlan): ir.LogicalPlan =
     ctxOpt.fold(input) { top =>
-      ir.Limit(
-        input,
-        top.expression().accept(expressionBuilder),
-        is_percentage = top.PERCENT() != null,
-        with_ties = top.TIES() != null)
+      val limit = top.expression().accept(expressionBuilder)
+      if (top.PERCENT() != null) {
+        TopPercent(input, limit, with_ties = top.TIES() != null)
+      } else {
+        ir.Limit(input, limit)
+      }
     }
 
   override def visitSelectOptionalClauses(ctx: SelectOptionalClausesContext): ir.LogicalPlan = {
@@ -103,9 +105,9 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.LogicalPlan] {
         // orderItem.expression(1) is COLLATE - we will not support that, but should either add a comment in the
         // translated source or raise some kind of linting alert.
         if (orderItem.DESC() == null) {
-          ir.SortOrder(expression, ir.AscendingSortDirection, ir.SortNullsUnspecified)
+          ir.SortOrder(expression, ir.Ascending, ir.SortNullsUnspecified)
         } else {
-          ir.SortOrder(expression, ir.DescendingSortDirection, ir.SortNullsUnspecified)
+          ir.SortOrder(expression, ir.Descending, ir.SortNullsUnspecified)
         }
       }
       val sorted = ir.Sort(input, sortOrders, is_global = false)

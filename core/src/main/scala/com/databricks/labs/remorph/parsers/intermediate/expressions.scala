@@ -135,27 +135,12 @@ case class WindowFrame(frame_type: FrameType, lower: FrameBoundary, upper: Frame
 
 case class Window(
     window_function: Expression,
-    partition_spec: Seq[Expression],
-    sort_order: Seq[SortOrder],
-    frame_spec: Option[WindowFrame])
+    partition_spec: Seq[Expression] = Seq.empty,
+    sort_order: Seq[SortOrder] = Seq.empty,
+    frame_spec: Option[WindowFrame] = None)
     extends Expression {
   override def children: Seq[Expression] = window_function +: partition_spec
   override def dataType: DataType = window_function.dataType
-}
-
-abstract class SortDirection
-case object UnspecifiedSortDirection extends SortDirection
-case object AscendingSortDirection extends SortDirection
-case object DescendingSortDirection extends SortDirection
-
-abstract class NullOrdering
-case object SortNullsUnspecified extends NullOrdering
-case object SortNullsFirst extends NullOrdering
-case object SortNullsLast extends NullOrdering
-
-case class SortOrder(child: Expression, direction: SortDirection, nullOrdering: NullOrdering) extends Expression {
-  override def children: Seq[Expression] = child :: Nil
-  override def dataType: DataType = child.dataType
 }
 
 /** cast(expr AS type) - Casts the value `expr` to the target data type `type`. */
@@ -204,8 +189,8 @@ case class UpdateFields(struct_expression: Expression, field_name: String, value
   override def dataType: DataType = UnresolvedType // TODO: Fix this
 }
 
-case class Alias(expr: Expression, name: Seq[Id], metadata: Option[String]) extends Expression {
-  override def children: Seq[Expression] = expr :: Nil
+// TODO: has to be Alias(expr: Expression, name: String)
+case class Alias(expr: Expression, name: Seq[Id], metadata: Option[String] = None) extends Unary(expr) {
   override def dataType: DataType = expr.dataType
 }
 

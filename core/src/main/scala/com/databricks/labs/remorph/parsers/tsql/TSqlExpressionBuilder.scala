@@ -1,5 +1,6 @@
 package com.databricks.labs.remorph.parsers.tsql
 
+import com.databricks.labs.remorph.parsers.intermediate.ScalarSubquery
 import com.databricks.labs.remorph.parsers.tsql.TSqlParser._
 import com.databricks.labs.remorph.parsers.{ParserCommon, XmlFunction, tsql, intermediate => ir}
 import org.antlr.v4.runtime.Token
@@ -380,8 +381,8 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
     ctx.orderByExpression().asScala.map { orderByExpr =>
       val expression = orderByExpr.expression(0).accept(this)
       val sortOrder =
-        if (Option(orderByExpr.DESC()).isDefined) ir.DescendingSortDirection
-        else ir.AscendingSortDirection
+        if (Option(orderByExpr.DESC()).isDefined) ir.Descending
+        else ir.Ascending
       ir.SortOrder(expression, sortOrder, ir.SortNullsUnspecified)
     }
 

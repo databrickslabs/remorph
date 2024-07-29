@@ -19,8 +19,6 @@ case class Inserted(selection: Expression) extends Unary(selection) {
   override def dataType: DataType = selection.dataType
 }
 
-case class ScalarSubquery(relation: LogicalPlan) extends ToRefactor
-
 // The default case for the expression parser needs to be explicitly defined to distinguish [DEFAULT]
 case class Default() extends LeafExpression {
   override def dataType: DataType = UnresolvedType

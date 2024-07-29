@@ -109,45 +109,27 @@ class SnowflakeRelationBuilderSpec
       example(
         "FROM some_table ORDER BY some_column",
         _.selectOptionalClauses(),
-        Sort(
-          namedTable("some_table"),
-          Seq(SortOrder(Id("some_column"), AscendingSortDirection, SortNullsLast)),
-          is_global = false))
+        Sort(namedTable("some_table"), Seq(SortOrder(Id("some_column"), Ascending, NullsLast)), is_global = false))
       example(
         "FROM some_table ORDER BY some_column ASC",
         _.selectOptionalClauses(),
-        Sort(
-          namedTable("some_table"),
-          Seq(SortOrder(Id("some_column"), AscendingSortDirection, SortNullsLast)),
-          is_global = false))
+        Sort(namedTable("some_table"), Seq(SortOrder(Id("some_column"), Ascending, NullsLast)), is_global = false))
       example(
         "FROM some_table ORDER BY some_column ASC NULLS FIRST",
         _.selectOptionalClauses(),
-        Sort(
-          namedTable("some_table"),
-          Seq(SortOrder(Id("some_column"), AscendingSortDirection, SortNullsFirst)),
-          is_global = false))
+        Sort(namedTable("some_table"), Seq(SortOrder(Id("some_column"), Ascending, NullsFirst)), is_global = false))
       example(
         "FROM some_table ORDER BY some_column DESC",
         _.selectOptionalClauses(),
-        Sort(
-          namedTable("some_table"),
-          Seq(SortOrder(Id("some_column"), DescendingSortDirection, SortNullsFirst)),
-          is_global = false))
+        Sort(namedTable("some_table"), Seq(SortOrder(Id("some_column"), Descending, NullsFirst)), is_global = false))
       example(
         "FROM some_table ORDER BY some_column DESC NULLS LAST",
         _.selectOptionalClauses(),
-        Sort(
-          namedTable("some_table"),
-          Seq(SortOrder(Id("some_column"), DescendingSortDirection, SortNullsLast)),
-          is_global = false))
+        Sort(namedTable("some_table"), Seq(SortOrder(Id("some_column"), Descending, NullsLast)), is_global = false))
       example(
         "FROM some_table ORDER BY some_column DESC NULLS FIRST",
         _.selectOptionalClauses(),
-        Sort(
-          namedTable("some_table"),
-          Seq(SortOrder(Id("some_column"), DescendingSortDirection, SortNullsFirst)),
-          is_global = false))
+        Sort(namedTable("some_table"), Seq(SortOrder(Id("some_column"), Descending, NullsFirst)), is_global = false))
 
     }
 
@@ -196,7 +178,7 @@ class SnowflakeRelationBuilderSpec
             group_type = GroupBy,
             grouping_expressions = Seq(simplyNamedColumn("some_column")),
             pivot = None),
-          Seq(SortOrder(Id("some_column"), AscendingSortDirection, SortNullsFirst)),
+          Seq(SortOrder(Id("some_column"), Ascending, NullsFirst)),
           is_global = false))
 
       example(
@@ -204,7 +186,7 @@ class SnowflakeRelationBuilderSpec
         _.selectOptionalClauses(),
         Sort(
           Filter(namedTable("some_table"), Equals(Literal(short = Some(1)), Literal(short = Some(1)))),
-          Seq(SortOrder(Id("some_column"), AscendingSortDirection, SortNullsFirst)),
+          Seq(SortOrder(Id("some_column"), Ascending, NullsFirst)),
           is_global = false))
     }
 
@@ -234,7 +216,7 @@ class SnowflakeRelationBuilderSpec
             Window(
               window_function = CallFunction("ROW_NUMBER", Seq()),
               partition_spec = Seq(Id("p")),
-              sort_order = Seq(SortOrder(Id("o"), AscendingSortDirection, SortNullsLast)),
+              sort_order = Seq(SortOrder(Id("o"), Ascending, NullsLast)),
               frame_spec = None),
             Literal(short = Some(1)))))
     }

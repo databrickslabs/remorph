@@ -1,6 +1,4 @@
 package com.databricks.labs.remorph.coverage
-import com.databricks.labs.remorph.parsers.snowflake.SnowflakeAstBuilder
-import com.databricks.labs.remorph.parsers.tsql.TSqlAstBuilder
 import mainargs._
 
 import java.time.Instant
@@ -52,8 +50,8 @@ object Main {
       case "full" => new WholeFileQueryExtractor
     }
     val queryRunner = sourceDialect match {
-      case "Snow" => new IsResolvedAsSnowflakeQueryRunner(new SnowflakeAstBuilder)
-      case "Tsql" => new IsResolvedAsTSqlQueryRunner(new TSqlAstBuilder)
+      case "Snow" => new IsTranspiledFromSnowflakeQueryRunner
+      case "Tsql" => new IsTranspiledFromTSqlQueryRunner
     }
 
     val outputFilePath = outputPath / s"$project-$sourceDialect-$targetDialect-${timeToEpochNanos(now)}.json"
@@ -61,7 +59,7 @@ object Main {
     os.makeDir.all(outputPath)
 
     testSource.listTests.foreach { test =>
-      queryExtractor.extractQuery(test.inputFile).foreach { case (inputQuery, expectedTranslation) =>
+      queryExtractor.extractQuery(test.inputFile).foreach { exampleQuery =>
         val runner = queryRunner
         val header = ReportEntryHeader(
           project = project,
@@ -71,12 +69,14 @@ object Main {
           source_dialect = sourceDialect,
           target_dialect = targetDialect,
           file = os.Path(test.inputFile).relativeTo(sourceDir).toString)
-        val report = runner.runQuery(inputQuery, expectedTranslation)
+        val report = runner.runQuery(exampleQuery)
         val reportEntryJson = ReportEntry(header, report).asJson
         os.write.append(outputFilePath, ujson.write(reportEntryJson, indent = -1) + "\n")
       }
     }
+    // scalastyle:off
     println(s"Successfully produced coverage report in $outputFilePath")
+    // scalastyle:on
   }
 
   def main(args: Array[String]): Unit = ParserForMethods(this).runOrExit(args)

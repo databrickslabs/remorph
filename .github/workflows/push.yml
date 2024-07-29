@@ -175,7 +175,6 @@ jobs:
     runs-on: ubuntu-latest
     env:
       INPUT_DIR_PARENT: .
-      INPUT_DIR: ./snowflake             # backward compat
       OUTPUT_DIR: ./test-reports
     steps:
       - name: Checkout
