@@ -12,8 +12,7 @@ class LogicalPlanGenerator(val explicitDistinct: Boolean = false) extends Genera
     case b: ir.Batch => b.children.map(generate(ctx, _)).mkString("", ";\n", ";")
     case ir.WithCTE(ctes, query) =>
       s"WITH ${ctes.map(generate(ctx, _))} ${generate(ctx, query)}"
-    case ir.Project(input, expressions) =>
-      s"SELECT ${expressions.map(expr.generate(ctx, _)).mkString(",")} FROM ${generate(ctx, input)}"
+    case p: ir.Project => project(ctx, p)
     case ir.NamedTable(id, _, _) => id
     case ir.Filter(input, condition) =>
       s"${generate(ctx, input)} WHERE ${expr.generate(ctx, condition)}"
@@ -27,6 +26,15 @@ class LogicalPlanGenerator(val explicitDistinct: Boolean = false) extends Genera
     case join: ir.Join => generateJoin(ctx, join)
     case setOp: ir.SetOperation => setOperation(ctx, setOp)
     case x => throw unknown(x)
+  }
+
+  private def project(ctx: GeneratorContext, proj: ir.Project): String = {
+    val fromClause = if (proj.input != ir.NoTable()) {
+      s" FROM ${generate(ctx, proj.input)}"
+    } else {
+      ""
+    }
+    s"SELECT ${proj.expressions.map(expr.generate(ctx, _)).mkString(",")}$fromClause"
   }
 
   private def orderBy(ctx: GeneratorContext, sort: ir.Sort): String = {
