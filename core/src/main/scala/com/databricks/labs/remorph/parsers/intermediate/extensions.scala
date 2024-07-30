@@ -46,6 +46,7 @@ case class Star(objectName: Option[ObjectReference] = None) extends LeafExpressi
 }
 
 // Assignment operators
+// TODO: This needs to be renamed to Assignment as per Catalyst
 case class Assign(left: Expression, right: Expression) extends Binary(left, right) {
   override def dataType: DataType = UnresolvedType
 }
@@ -168,6 +169,11 @@ case class Options(
     extends Expression {
   override def children: Seq[Expression] = expressionOpts.values.toSeq
   override def dataType: DataType = UnresolvedType
+}
+
+case class WithOptions(input: LogicalPlan, options: Expression) extends UnaryNode {
+  override def child: LogicalPlan = input
+  override def output: Seq[Attribute] = input.output
 }
 
 // TSQL has some join types that are not natively supported in Databricks SQL, but can possibly be emulated

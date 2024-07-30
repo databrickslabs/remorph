@@ -42,23 +42,21 @@ case class UpdateTable(
  * The logical plan of the MERGE INTO command, aligned with SparkSQL
  */
 case class MergeIntoTable(
-    target: LogicalPlan,
-    source: LogicalPlan,
+    targetTable: LogicalPlan,
+    sourceTable: LogicalPlan,
     mergeCondition: Expression,
     matchedActions: Seq[MergeAction],
     notMatchedActions: Seq[MergeAction],
-    notMatchedBySourceActions: Seq[MergeAction],
-    outputRelation: Option[LogicalPlan],
-    options: Option[Expression])
+    notMatchedBySourceActions: Seq[MergeAction])
     extends Modification {
 
   override def children: Seq[LogicalPlan] = {
     val notMatchedValues = notMatchedActions.collect { case insertAction: InsertAction =>
       insertAction.values
     }
-    Seq(target, source) ++ outputRelation ++ notMatchedValues
+    Seq(targetTable, sourceTable) ++ notMatchedValues
   }
-  override def output: Seq[Attribute] = target.output
+  override def output: Seq[Attribute] = targetTable.output
 }
 
 sealed abstract class MergeAction extends Expression {

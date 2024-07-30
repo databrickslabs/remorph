@@ -1595,8 +1595,10 @@ whenMatch: WHEN NOT? MATCHED (BY (TARGET | SOURCE))? (AND searchCondition)? THEN
     ;
 
 mergeAction
-    : UPDATE SET updateElem (COMMA updateElem)*
+    : UPDATE SET STAR
+    | UPDATE SET updateElem (COMMA updateElem)*
     | DELETE
+    | INSERT STAR
     | INSERT (LPAREN expressionList RPAREN)? insertStatementValue
     ;
 

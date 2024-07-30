@@ -932,9 +932,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
             Some(Seq(Id("a"), Id("b"))),
             DerivedRows(Seq(
               Seq(Column(Some(ObjectReference(Id("s"))), Id("a")), Column(Some(ObjectReference(Id("s"))), Id("b"))))))),
-          List.empty,
-          None,
-          None))))
+          List.empty))))
 
     example(
       query = """
@@ -979,8 +977,6 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
                 Some(Seq(Id("a"), Id("b"))),
                 DerivedRows(Seq(Seq(
                   Column(Some(ObjectReference(Id("s"))), Id("a")),
-                  Column(Some(ObjectReference(Id("s"))), Id("b"))))))),
-            None,
-            None)))))
+                  Column(Some(ObjectReference(Id("s"))), Id("b"))))))))))))
   }
 }

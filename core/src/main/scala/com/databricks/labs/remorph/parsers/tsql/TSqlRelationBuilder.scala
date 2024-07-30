@@ -266,7 +266,6 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.LogicalPlan] {
       targetPlan
     }
 
-    val output = Option(ctx.outputClause()).map(_.accept(this))
     val mergeCondition = ctx.searchCondition().accept(expressionBuilder)
     val tableSourcesPlan = ctx.tableSources().tableSource().asScala.map(_.accept(this))
     val sourcePlan = tableSourcesPlan.tail.foldLeft(tableSourcesPlan.head)(
@@ -288,23 +287,34 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.LogicalPlan] {
       .getOrElse((List.empty, List.empty, List.empty))
 
     val optionClause = Option(ctx.optionClause).map(_.accept(expressionBuilder))
+    val outputClause = Option(ctx.outputClause()).map(_.accept(this))
 
-    ir.MergeIntoTable(
+    val mergeIntoTable = ir.MergeIntoTable(
       finalTarget,
       sourcePlan,
       mergeCondition,
       matchedActions,
       notMatchedActions,
-      notMatchedBySourceActions,
-      output,
-      optionClause)
+      notMatchedBySourceActions)
+
+    val withOptions = optionClause match {
+      case Some(option) => ir.WithOptions(mergeIntoTable, option)
+      case None => mergeIntoTable
+    }
+
+    outputClause match {
+      case Some(output) => WithOutputClause(withOptions, output)
+      case None => withOptions
+    }
   }
 
   private def buildWhenMatch(ctx: WhenMatchContext): ir.MergeAction = {
     val condition = Option(ctx.searchCondition()).map(_.accept(expressionBuilder))
     ctx.mergeAction() match {
       case action if action.DELETE() != null => ir.DeleteAction(condition)
+      case action if action.UPDATE() != null && action.STAR() != null => ir.UpdateStarAction(condition)
       case action if action.UPDATE() != null => buildUpdateAction(action, condition)
+      case action if action.INSERT() != null && action.STAR() != null => ir.InsertStarAction(condition)
       case action if action.INSERT() != null => buildInsertAction(action, condition)
     }
   }
