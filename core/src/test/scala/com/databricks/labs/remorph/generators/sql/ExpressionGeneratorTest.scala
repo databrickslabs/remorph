@@ -8,6 +8,13 @@ class ExpressionGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.Ex
 
   override protected val generator = new ExpressionGenerator
 
+  "columns" in {
+    ir.UnresolvedAttribute("a") generates "a"
+    ir.Column(None, ir.Id("a")) generates "a"
+    ir.Column(Some(ir.ObjectReference(ir.Id("t"))), ir.Id("a")) generates "t.a"
+    ir.Column(Some(ir.ObjectReference(ir.Id("s.t"))), ir.Id("a")) generates "s.t.a"
+  }
+
   "arithmetic" in {
     ir.UMinus(ir.UnresolvedAttribute("a")) generates "-a"
     ir.UPlus(ir.UnresolvedAttribute("a")) generates "+a"

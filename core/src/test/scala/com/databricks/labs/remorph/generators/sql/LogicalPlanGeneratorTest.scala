@@ -30,15 +30,20 @@ class LogicalPlanGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.L
         namedTable("s"),
         ir.Equals(
           ir.Column(Some(ir.ObjectReference(ir.Id("t"))), ir.Id("a")),
-          ir.Column(Some(ir.ObjectReference(ir.Id("s"))), ir.Id("a"))
-        ),
+          ir.Column(Some(ir.ObjectReference(ir.Id("s"))), ir.Id("a"))),
         Seq(
           ir.UpdateAction(
             None,
             Seq(
               ir.Assign(
                 ir.Column(Some(ir.ObjectReference(ir.Id("t"))), ir.Id("b")),
-                ir.Column(Some(ir.ObjectReference(ir.Id("s"))), ir.Id("b")))))),
+                ir.Column(Some(ir.ObjectReference(ir.Id("s"))), ir.Id("b"))))),
+          ir.DeleteAction(
+            Some(ir.LessThan(
+              ir.Column(Some(ir.ObjectReference(ir.Id("s"))), ir.Id("b")),
+              ir.Literal(10)))
+          )
+        ),
         Seq(
           ir.InsertAction(
             None,
@@ -46,9 +51,10 @@ class LogicalPlanGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.L
               ir.Assign(ir.Column(None, ir.Id("a")), ir.Column(Some(ir.ObjectReference(ir.Id("s"))), ir.Id("a"))),
               ir.Assign(ir.Column(None, ir.Id("b")), ir.Column(Some(ir.ObjectReference(ir.Id("s"))), ir.Id("b")))))),
         List.empty) generates
-          "MERGE INTO t USING s ON t.a = s.a" +
-          " WHEN MATCHED THEN UPDATE SET t.b = s.b" +
-          " WHEN NOT MATCHED THEN INSERT (a, b) VALUES (s.a, s.b)"
+        "MERGE INTO t USING s ON t.a = s.a" +
+        " WHEN MATCHED THEN UPDATE SET t.b = s.b" +
+        " WHEN MATCHED AND s.b < 10 THEN DELETE" +
+        " WHEN NOT MATCHED THEN INSERT (a, b) VALUES (s.a, s.b)"
     }
   }
 

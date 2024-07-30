@@ -91,22 +91,20 @@ class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: 
     val source = generate(ctx, mergeIntoTable.sourceTable)
     val condition = expr.generate(ctx, mergeIntoTable.mergeCondition)
 
-    val matchedActions = if (mergeIntoTable.matchedActions.nonEmpty) {
-      s" WHEN MATCHED THEN ${mergeIntoTable.matchedActions.map(expr.generate(ctx, _)).mkString(" ")}"
-    } else {
-      ""
-    }
+    val matchedActions = mergeIntoTable.matchedActions.map { action =>
+      val conditionText = action.condition.map(cond => s" AND ${expr.generate(ctx, cond)}").getOrElse("")
+      s" WHEN MATCHED$conditionText THEN ${expr.generate(ctx, action)}"
+    }.mkString("")
 
-    val notMatchedActions = if (mergeIntoTable.notMatchedActions.nonEmpty) {
-      s" WHEN NOT MATCHED THEN ${mergeIntoTable.notMatchedActions.map(expr.generate(ctx, _)).mkString(" ")}"
-    } else {
-      ""
-    }
-    val notMatchedBySourceActions = if (mergeIntoTable.notMatchedBySourceActions.nonEmpty) {
-      s" WHEN NOT MATCHED BY SOURCE THEN ${mergeIntoTable.notMatchedActions.map(expr.generate(ctx, _)).mkString(" ")}"
-    } else {
-      ""
-    }
+    val notMatchedActions = mergeIntoTable.notMatchedActions.map { action =>
+      val conditionText = action.condition.map(cond => s" AND ${expr.generate(ctx, cond)}").getOrElse("")
+      s" WHEN NOT MATCHED$conditionText THEN ${expr.generate(ctx, action)}"
+    }.mkString("")
+
+    val notMatchedBySourceActions = mergeIntoTable.notMatchedBySourceActions.map { action =>
+      val conditionText = action.condition.map(cond => s" AND ${expr.generate(ctx, cond)}").getOrElse("")
+      s" WHEN NOT MATCHED BY SOURCE$conditionText THEN ${expr.generate(ctx, action)}"
+    }.mkString("")
 
     s"MERGE INTO $target USING $source ON $condition$matchedActions$notMatchedActions$notMatchedBySourceActions"
   }
