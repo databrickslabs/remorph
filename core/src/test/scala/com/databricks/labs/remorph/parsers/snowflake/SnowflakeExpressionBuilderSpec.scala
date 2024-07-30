@@ -158,6 +158,13 @@ class SnowflakeExpressionBuilderSpec
         _.columnElemStar(),
         Star(Some(ObjectReference(Id("db1"), Id("schema1"), Id("table1")))))
     }
+
+    "translate scalar subquery" in {
+      exampleExpr(
+        query = "(SELECT col1 from table_expr)",
+        rule = _.subQueryExpr(),
+        expectedAst = ScalarSubquery(Project(namedTable("t"), Seq(Star(None)))))
+    }
   }
 
   "SnowflakeExpressionBuilder.buildSortOrder" should {

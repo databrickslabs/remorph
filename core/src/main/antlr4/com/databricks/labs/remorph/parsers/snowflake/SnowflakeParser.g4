@@ -171,11 +171,11 @@ declareCommand: DECLARE declareStatement+
     ;
 
 declareStatement
-    : id dataType SEMI                                                       # declareSimple
-    | id dataType DEFAULT expr SEMI                                          # declareWithDefault
-    | id CURSOR FOR selectStatement SEMI                                     # declareCursor
-    | id RESULTSET (ASSIGN | DEFAULT) L_PAREN? selectStatement R_PAREN? SEMI # declareResultSet
-    | id EXCEPTION L_PAREN INT COMMA STRING R_PAREN SEMI                     # declareException
+    : id dataType SEMI                                   # declareSimple
+    | id dataType DEFAULT expr SEMI                      # declareWithDefault
+    | id CURSOR FOR expr SEMI                            # declareCursor
+    | id RESULTSET ((ASSIGN | DEFAULT) expr)? SEMI       # declareResultSet
+    | id EXCEPTION L_PAREN INT COMMA STRING R_PAREN SEMI # declareException
     ;
 
 externalLocation
@@ -216,9 +216,9 @@ formatType: TYPE EQ typeFileformat formatTypeOptions*
     ;
 
 let
-    : LET? id dataType? (ASSIGN | DEFAULT) expr SEMI                    # letVariableAssignment
-    | LET? id CURSOR FOR (selectStatement | id) SEMI                    # letCursor
-    | LET? id (ASSIGN | DEFAULT) L_PAREN? selectStatement R_PAREN? SEMI # letResultSet
+    : LET? id dataType? (ASSIGN | DEFAULT) expr SEMI     # letVariableAssignment
+    | LET? id CURSOR FOR (selectStatement | id) SEMI     # letCursor
+    | LET? id RESULTSET? ((ASSIGN | DEFAULT) expr)? SEMI # letResultSet
     ;
 
 returnStatement: RETURN expr SEMI
@@ -3156,12 +3156,15 @@ expr
     | castExpr                                  # exprCast
     | expr COLON_COLON dataType                 # exprAscribe
     | functionCall                              # exprFuncCall
-    | L_PAREN subquery R_PAREN                  # exprSubquery
+    | subQueryExpr                              # exprSubquery
     | expr predicatePartial                     # exprPredicate
     | DISTINCT expr                             # exprDistinct
     //Should be latest rule as it's nearly a catch all
     | primitiveExpression # exprPrimitive
     | parameterExpression # exprParameter
+    ;
+
+subQueryExpr: L_PAREN subquery R_PAREN
     ;
 
 withinGroup: WITHIN GROUP L_PAREN orderByClause R_PAREN

@@ -416,4 +416,8 @@ class SnowflakeExpressionBuilder()
   override def visitSetColumnValue(ctx: SetColumnValueContext): ir.Expression = {
     ir.Assign(ctx.id().accept(this), ctx.expr().accept(this))
   }
+
+  override def visitExprSubquery(ctx: ExprSubqueryContext): ir.Expression = {
+    ir.ScalarSubquery(ctx.subQueryExpr().accept(new SnowflakeRelationBuilder))
+  }
 }

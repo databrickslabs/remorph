@@ -26,6 +26,19 @@ class SnowflakeCommandBuilder
     ir.CreateVariable(variableName, dataType, None, replace = false)
   }
 
+  /*
+  override def visitDeclareResultSet(ctx: DeclareResultSetContext): ir.Command = {
+    val variableName = ctx.id().getText
+    val dataType = ir.StructType()
+    val variableValue = ctx.expr() match {
+      case null => None
+      case stmt => Some(stmt.accept(expressionBuilder))
+    }
+
+    ir.CreateVariable(variableName, dataType, variableValue, replace = false)
+  }
+   */
+
   override def visitLetVariableAssignment(ctx: LetVariableAssignmentContext): ir.Command = {
     val variableName = ctx.id().getText
     val variableDataType = Option(ctx.dataType()).flatMap(dt => Some(DataTypeBuilder.buildDataType(dt)))
