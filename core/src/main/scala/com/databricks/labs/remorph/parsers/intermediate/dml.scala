@@ -56,7 +56,7 @@ case class MergeIntoTable(
     val notMatchedValues = notMatchedActions.collect { case insertAction: InsertAction =>
       insertAction.values
     }
-    Seq(target, source, outputRelation.getOrElse(NoopNode)) ++ notMatchedValues
+    Seq(target, source) ++ outputRelation ++ notMatchedValues
   }
   override def output: Seq[Attribute] = target.output
 }
