@@ -17,18 +17,25 @@ class SnowflakeCommandBuilderSpec
 
   "translate Declare to CreateVariable Expression" in {
     example(
-      "x number default 0;",
+      "X NUMBER DEFAULT 0;",
       _.declareStatement(),
       CreateVariable(
-        name = "x",
+        name = "X",
         dataType = DecimalType(None, None),
         defaultExpr = Some(Literal(short = Some(0))),
         replace = false))
 
     example(
-      "select_statement varchar;",
+      "select_statement VARCHAR;",
       _.declareStatement(),
       CreateVariable(name = "select_statement", dataType = VarCharType(None), defaultExpr = None, replace = false))
+
+
+    example(
+      "price NUMBER(13,2) DEFAULT 111.50;",
+      _.declareStatement(),
+      CreateVariable(name = "price", dataType = DecimalType(Some(13), Some(2)),
+        defaultExpr = Some(Literal(float = Some(111.5f))), replace = false))
 
   }
 
@@ -44,7 +51,7 @@ class SnowflakeCommandBuilderSpec
         value = Concat(Seq(Literal(string = Some("select * from table where id = ")), Id("id")))))
 
     example(
-      "let price number(13,2) default 111.50;",
+      "LET price NUMBER(13,2) DEFAULT 111.50;",
       _.let(),
       SetVariable(
         name = "price",
@@ -52,7 +59,7 @@ class SnowflakeCommandBuilderSpec
         value = Literal(float = Some(111.5f))))
 
     example(
-      "let price number(13,2) := 121.55;",
+      "LET price NUMBER(13,2) := 121.55;",
       _.let(),
       SetVariable(
         name = "price",

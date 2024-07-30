@@ -142,10 +142,12 @@ otherCommand
     | truncateMaterializedView
     | truncateTable
     | unset
-    | scriptingStatement
+    | call
+    | beginTxn
+    | procStatement
     ;
 
-scriptingStatement: call | declareCommand | let | returnStatement | beginTxn
+procStatement: call | declareCommand | let | executeImmediate | returnStatement
     ;
 
 beginTxn: BEGIN (WORK | TRANSACTION)? (NAME id)? | START TRANSACTION ( NAME id)?
@@ -164,13 +166,14 @@ copyIntoTable
     ) R_PAREN files? pattern? fileFormat? copyOptions*
     ;
 
+//https://docs.snowflake.com/en/sql-reference/snowflake-scripting/declare
 declareCommand: DECLARE declareStatement+
     ;
 
 declareStatement
-    : id dataType SEMI
-    | id dataType DEFAULT L_PAREN selectStatement R_PAREN SEMI
-    | id dataType DEFAULT expr SEMI
+    : id dataType SEMI #declareSimple
+    | id dataType DEFAULT L_PAREN selectStatement R_PAREN SEMI #declareSelect
+    | id dataType DEFAULT expr SEMI #declarewithDefault
     ;
 
 externalLocation
@@ -1620,10 +1623,7 @@ callerOwner: CALLER | OWNER
 executaAs: EXECUTE AS callerOwner
     ;
 
-procedureBody: (let | call | executeImmediate | string)*
-    ;
-
-procedureDefinition: DBL_DOLLAR | declareCommand? BEGIN procedureBody returnStatement END SEMI
+procedureDefinition: DBL_DOLLAR | declareCommand? BEGIN procStatement+ END SEMI
     ;
 
 notNull: NOT NULL_
@@ -3242,6 +3242,7 @@ primitiveExpression
 
 parameterExpression: COLON id
     ;
+
 overClause: OVER L_PAREN (PARTITION BY expr (COMMA expr)*)? windowOrderingAndFrame? R_PAREN
     ;
 
