@@ -191,3 +191,11 @@ case class Lateral(expr: LogicalPlan) extends UnaryNode {
   override def child: LogicalPlan = expr
   override def output: Seq[Attribute] = expr.output
 }
+
+// TSQL has some INSERT and MERGE actions that are extensions over that which DataBricks SQL supports. These
+// can perhaps be translated by the generator.
+// TODO: Should these be in a TSQl only file?
+
+case class InsertDefaultsAction(condition: Option[Expression]) extends MergeAction {
+  override def children: Seq[Expression] = condition.toSeq
+}

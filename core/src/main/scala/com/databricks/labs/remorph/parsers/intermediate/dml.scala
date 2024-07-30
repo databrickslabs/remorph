@@ -50,16 +50,11 @@ case class MergeIntoTable(
     notMatchedBySourceActions: Seq[MergeAction])
     extends Modification {
 
-  override def children: Seq[LogicalPlan] = {
-    val notMatchedValues = notMatchedActions.collect { case insertAction: InsertAction =>
-      insertAction.values
-    }
-    Seq(targetTable, sourceTable) ++ notMatchedValues
-  }
+  override def children: Seq[LogicalPlan] = Seq(targetTable, sourceTable)
   override def output: Seq[Attribute] = targetTable.output
 }
 
-sealed abstract class MergeAction extends Expression {
+abstract class MergeAction extends Expression {
   def condition: Option[Expression]
   override def dataType: DataType = UnresolvedType
   override def children: Seq[Expression] = condition.toSeq
@@ -67,21 +62,12 @@ sealed abstract class MergeAction extends Expression {
 
 case class DeleteAction(condition: Option[Expression]) extends MergeAction
 
-case class UpdateAction(condition: Option[Expression], assignments: Seq[Expression]) extends MergeAction {
+case class UpdateAction(condition: Option[Expression], assignments: Seq[Assign]) extends MergeAction {
   override def children: Seq[Expression] = condition.toSeq ++ assignments
-}
-
-case class UpdateStarAction(condition: Option[Expression]) extends MergeAction {
-  override def children: Seq[Expression] = condition.toSeq
 }
 
 // TODO: As per Insert Above, the columns and values should perhaps become assignments to match Spark,
 // but TSql allows INSERT from derived rows, so this may be a better representation.
-case class InsertAction(condition: Option[Expression], columns: Option[Seq[Id]], values: LogicalPlan)
-    extends MergeAction {
-  override def children: Seq[Expression] = values.expressions
-}
-
-case class InsertStarAction(condition: Option[Expression]) extends MergeAction {
-  override def children: Seq[Expression] = condition.toSeq
+case class InsertAction(condition: Option[Expression], assignments: Seq[Assign]) extends MergeAction {
+  override def children: Seq[Expression] = assignments
 }

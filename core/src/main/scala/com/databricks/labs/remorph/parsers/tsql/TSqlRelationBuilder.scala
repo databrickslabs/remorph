@@ -312,22 +312,34 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.LogicalPlan] {
     val condition = Option(ctx.searchCondition()).map(_.accept(expressionBuilder))
     ctx.mergeAction() match {
       case action if action.DELETE() != null => ir.DeleteAction(condition)
-      case action if action.UPDATE() != null && action.STAR() != null => ir.UpdateStarAction(condition)
       case action if action.UPDATE() != null => buildUpdateAction(action, condition)
-      case action if action.INSERT() != null && action.STAR() != null => ir.InsertStarAction(condition)
       case action if action.INSERT() != null => buildInsertAction(action, condition)
     }
   }
 
-  private def buildInsertAction(ctx: MergeActionContext, condition: Option[ir.Expression]): ir.InsertAction = {
-    val values = ctx.insertStatementValue().accept(this)
-    val columns = Option(ctx.expressionList())
-      .map(_.expression().asScala.map(_.accept(expressionBuilder)).collect { case col: ir.Column => col.columnName })
-    ir.InsertAction(condition, columns, values)
+  private def buildInsertAction(ctx: MergeActionContext, condition: Option[ir.Expression]): ir.MergeAction = {
+
+    ctx match {
+      case action if action.DEFAULT() != null => ir.InsertDefaultsAction(condition)
+      case _ =>
+        val assignments =
+          (ctx.cols
+            .expression()
+            .asScala
+            .map(_.accept(expressionBuilder)) zip ctx.vals.expression().asScala.map(_.accept(expressionBuilder)))
+            .map { case (col, value) =>
+              ir.Assign(col, value)
+            }
+        ir.InsertAction(condition, assignments)
+    }
   }
 
   private def buildUpdateAction(ctx: MergeActionContext, condition: Option[ir.Expression]): ir.UpdateAction = {
-    val setElements = ctx.updateElem().asScala.map(_.accept(expressionBuilder))
+    val setElements = ctx.updateElem().asScala.collect { case elem =>
+      elem.accept(expressionBuilder) match {
+        case assign: ir.Assign => assign
+      }
+    }
     ir.UpdateAction(condition, setElements)
   }
 

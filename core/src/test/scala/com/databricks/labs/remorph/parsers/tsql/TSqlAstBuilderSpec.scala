@@ -929,9 +929,9 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
                 Column(Some(ObjectReference(Id("s"))), Id("b")))))),
           Seq(InsertAction(
             None,
-            Some(Seq(Id("a"), Id("b"))),
-            DerivedRows(Seq(
-              Seq(Column(Some(ObjectReference(Id("s"))), Id("a")), Column(Some(ObjectReference(Id("s"))), Id("b"))))))),
+            Seq(
+              Assign(Column(None, Id("a")), Column(Some(ObjectReference(Id("s"))), Id("a"))),
+              Assign(Column(None, Id("b")), Column(Some(ObjectReference(Id("s"))), Id("b")))))),
           List.empty))))
 
     example(
@@ -971,12 +971,10 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
                   Column(Some(ObjectReference(Id("t"))), Id("b")),
                   Column(Some(ObjectReference(Id("s"))), Id("b")))))),
             Seq(DeleteAction(None)),
-            Seq(
-              InsertAction(
-                None,
-                Some(Seq(Id("a"), Id("b"))),
-                DerivedRows(Seq(Seq(
-                  Column(Some(ObjectReference(Id("s"))), Id("a")),
-                  Column(Some(ObjectReference(Id("s"))), Id("b"))))))))))))
+            Seq(InsertAction(
+              None,
+              Seq(
+                Assign(Column(None, Id("a")), Column(Some(ObjectReference(Id("s"))), Id("a"))),
+                Assign(Column(None, Id("b")), Column(Some(ObjectReference(Id("s"))), Id("b")))))))))))
   }
 }
