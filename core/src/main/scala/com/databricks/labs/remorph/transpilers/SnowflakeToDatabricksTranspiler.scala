@@ -6,7 +6,7 @@ import com.databricks.labs.remorph.parsers.{ProductionErrorCollector, intermedia
 import com.databricks.labs.remorph.parsers.snowflake.{SnowflakeAstBuilder, SnowflakeLexer, SnowflakeParser}
 import org.antlr.v4.runtime.{CharStreams, CommonTokenStream}
 
-class SnowflakeToDatabricksTranspiler extends Transpiler {
+class SnowflakeToDatabricksTranspiler extends BaseTranspiler {
 
   private val astBuilder = new SnowflakeAstBuilder
   private val generator = new LogicalPlanGenerator(new ExpressionGenerator(new ir.SnowflakeCallMapper()))

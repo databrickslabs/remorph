@@ -8,7 +8,7 @@ import com.databricks.labs.remorph.parsers.tsql.rules.{PullLimitUpwards, TopPerc
 import com.databricks.labs.remorph.parsers.tsql.{TSqlAstBuilder, TSqlLexer, TSqlParser}
 import org.antlr.v4.runtime.{CharStreams, CommonTokenStream}
 
-class TSqlToDatabricksTranspiler extends Transpiler {
+class TSqlToDatabricksTranspiler extends BaseTranspiler {
   private val astBuilder = new TSqlAstBuilder()
   private val optimizer = ir.Rules(PullLimitUpwards, new TopPercentToLimitSubquery)
   private val generator = new LogicalPlanGenerator(new ExpressionGenerator())
