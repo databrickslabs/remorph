@@ -3228,7 +3228,6 @@ dataType
     | ARRAY
     | GEOGRAPHY
     | GEOMETRY
-    | RESULTSET
     ;
 
 primitiveExpression
