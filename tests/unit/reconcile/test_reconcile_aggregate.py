@@ -119,7 +119,7 @@ def test_reconcile_aggregate_data_missing_records(
         assert actual[0].rule.group_by_columns is None
         assert actual[0].rule.group_by_columns_as_str == "NA"
         assert actual[0].rule.group_by_columns_as_table_column == "NULL"
-        assert actual[0].rule.rule_column == "min_s_acctbal_NA"
+        assert actual[0].rule.column_from_rule == "min_s_acctbal_NA"
         assert actual[0].rule.rule_type == "AGGREGATE"
 
         assert actual[0].reconcile_output.mismatch.mismatch_df, "Mismatch dataframe must be present"
@@ -333,7 +333,7 @@ def test_reconcile_aggregate_data_mismatch_and_missing_records(
             assert actual.rule.group_by_columns_as_str == expected_rule.group_by_columns_as_str
             assert actual.rule.group_by_columns_as_table_column == expected_rule.group_by_columns_as_table_column
             assert (
-                actual.rule.rule_column
+                actual.rule.column_from_rule
                 == f"{expected_rule.agg_type}_{expected_rule.agg_column}_{expected_rule.group_by_columns_as_str}"
             )
             assert actual.rule.rule_type == "AGGREGATE"

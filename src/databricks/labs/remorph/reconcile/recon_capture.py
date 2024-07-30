@@ -531,7 +531,7 @@ class ReconCapture:
             agg_metrics_df = self.spark.sql(
                 f"""
                     select {recon_table_id} as recon_table_id,
-                    {hash(f"{recon_table_id}_{agg_output.rule.rule_column}")}  as rule_id,
+                    {hash(f"{recon_table_id}_{agg_output.rule.column_from_rule}")}  as rule_id,
                     named_struct(
                             'missing_in_source', {agg_data.missing_in_src_count},
                             'missing_in_target', {agg_data.missing_in_tgt_count},
@@ -568,7 +568,7 @@ class ReconCapture:
 
             if agg_details_rule_df:
                 assert agg_output.rule, "Aggregate Rule must be defined for storing the metrics"
-                rule_id = hash(f"{recon_table_id}_{agg_output.rule.rule_column}")
+                rule_id = hash(f"{recon_table_id}_{agg_output.rule.column_from_rule}")
                 agg_details_df = agg_details_rule_df.withColumn("rule_id", lit(rule_id)).select(
                     "recon_table_id", "rule_id", "recon_type", "data", "inserted_ts"
                 )
@@ -612,7 +612,7 @@ class ReconCapture:
         rules_table_df = None
         for agg_output in reconcile_agg_output_list:
             assert agg_output.rule, "Aggregate Rule must be defined for storing the rules"
-            rule_id = hash(f"{recon_table_id}_{agg_output.rule.rule_column}")
+            rule_id = hash(f"{recon_table_id}_{agg_output.rule.column_from_rule}")
             rule_query = agg_output.rule.get_rule_query(rule_id)
             rule_df = (
                 self.spark.sql(rule_query)

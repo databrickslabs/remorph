@@ -343,7 +343,7 @@ class AggregateRule:
     rule_type: str = "AGGREGATE"
 
     @property
-    def rule_column(self):
+    def column_from_rule(self):
         # creates rule_column. e.g., min_col1_grp1_grp2
         return f"{self.agg_type}_{self.agg_column}_{self.group_by_columns_as_str}"
 
