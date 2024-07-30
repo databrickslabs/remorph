@@ -26,7 +26,7 @@ class ExpressionGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.Ex
   }
 
   "like" in {
-    ir.Like(ir.UnresolvedAttribute("a"), ir.Literal("b%")) generates "a LIKE \"b%\""
+    ir.Like(ir.UnresolvedAttribute("a"), ir.Literal("b%")) generates "a LIKE 'b%'"
     ir.Like(ir.UnresolvedAttribute("a"), ir.UnresolvedAttribute("b"), '/') generates "a LIKE b ESCAPE '/'"
   }
 
@@ -543,7 +543,7 @@ class ExpressionGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.Ex
       ir.CallFunction("RIGHT", Seq(ir.UnresolvedAttribute("a"), ir.UnresolvedAttribute("b"))) generates "RIGHT(a, b)"
       ir.CallFunction("RINT", Seq(ir.UnresolvedAttribute("a"))) generates "RINT(a)"
 
-      ir.CallFunction("RLIKE", Seq(ir.UnresolvedAttribute("a"), ir.UnresolvedAttribute("b"))) generates "RLIKE(a, b)"
+      ir.CallFunction("RLIKE", Seq(ir.UnresolvedAttribute("a"), ir.UnresolvedAttribute("b"))) generates "a RLIKE b"
 
       ir.CallFunction("ROLLUP", Seq(ir.UnresolvedAttribute("a"), ir.UnresolvedAttribute("b"))) generates "ROLLUP(a, b)"
 
@@ -790,21 +790,21 @@ class ExpressionGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.Ex
 
       ir.Literal(double = Some(123.4)) generates "123.4"
 
-      ir.Literal(string = Some("abc")) generates "\"abc\""
+      ir.Literal(string = Some("abc")) generates "'abc'"
 
-      ir.Literal(date = Some(1721757801000L)) generates "\"2024-07-23\""
+      ir.Literal(date = Some(1721757801000L)) generates "'2024-07-23'"
 
       // we should generate UTC timezone
       //  ir.Literal(timestamp = Some(1721757801000L)) generates "\"2024-07-23 18:03:21.000\""
     }
 
     "arrays" in {
-      ir.Literal(Seq(ir.Literal("abc"), ir.Literal("def"))) generates "ARRAY(\"abc\", \"def\")"
+      ir.Literal(Seq(ir.Literal("abc"), ir.Literal("def"))) generates "ARRAY('abc', 'def')"
     }
 
     "maps" in {
       ir.Literal(
-        Map("foo" -> ir.Literal("bar"), "baz" -> ir.Literal("qux"))) generates "MAP(\"foo\", \"bar\", \"baz\", \"qux\")"
+        Map("foo" -> ir.Literal("bar"), "baz" -> ir.Literal("qux"))) generates "MAP('foo', 'bar', 'baz', 'qux')"
     }
   }
 

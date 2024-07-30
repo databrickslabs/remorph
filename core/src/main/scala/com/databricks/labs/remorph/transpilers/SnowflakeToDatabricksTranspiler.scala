@@ -1,16 +1,17 @@
 package com.databricks.labs.remorph.transpilers
 
 import com.databricks.labs.remorph.generators.GeneratorContext
-import com.databricks.labs.remorph.generators.sql.LogicalPlanGenerator
-import com.databricks.labs.remorph.parsers.ProductionErrorCollector
+import com.databricks.labs.remorph.generators.sql.{ExpressionGenerator, LogicalPlanGenerator}
+import com.databricks.labs.remorph.parsers.{ProductionErrorCollector, intermediate => ir}
 import com.databricks.labs.remorph.parsers.snowflake.{SnowflakeAstBuilder, SnowflakeLexer, SnowflakeParser}
 import org.antlr.v4.runtime.{CharStreams, CommonTokenStream}
 
 class SnowflakeToDatabricksTranspiler extends Transpiler {
 
-  val astBuilder = new SnowflakeAstBuilder
+  private val astBuilder = new SnowflakeAstBuilder
+  private val generator = new LogicalPlanGenerator(new ExpressionGenerator(new ir.SnowflakeCallMapper()))
 
-  override def transpile(input: String): String = {
+  override def parse(input: String): ir.LogicalPlan = {
     val inputString = CharStreams.fromString(input)
     val lexer = new SnowflakeLexer(inputString)
     val tokenStream = new CommonTokenStream(lexer)
@@ -19,8 +20,12 @@ class SnowflakeToDatabricksTranspiler extends Transpiler {
     parser.removeErrorListeners()
     parser.addErrorListener(errHandler)
     val tree = parser.snowflakeFile()
-    val logicalPlan = astBuilder.visit(tree)
-    val generator = new LogicalPlanGenerator
-    generator.generate(GeneratorContext(), logicalPlan)
+    astBuilder.visit(tree)
   }
+
+  override def optimize(logicalPlan: ir.LogicalPlan): ir.LogicalPlan = logicalPlan
+
+  override def generate(optimizedLogicalPlan: ir.LogicalPlan): String =
+    generator.generate(GeneratorContext(), optimizedLogicalPlan)
+
 }
