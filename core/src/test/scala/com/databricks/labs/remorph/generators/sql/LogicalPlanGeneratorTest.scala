@@ -50,7 +50,8 @@ class LogicalPlanGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.L
         "MERGE INTO t USING s ON t.a = s.a" +
         " WHEN MATCHED THEN UPDATE SET t.b = s.b" +
         " WHEN MATCHED AND s.b < 10 THEN DELETE" +
-        " WHEN NOT MATCHED THEN INSERT (a, b) VALUES (s.a, s.b)"
+        " WHEN NOT MATCHED THEN INSERT (a, b) VALUES (s.a, s.b)" +
+        ";"
     }
   }
 

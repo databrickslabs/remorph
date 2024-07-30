@@ -112,7 +112,7 @@ class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: 
       }
       .mkString("")
 
-    s"MERGE INTO $target USING $source ON $condition$matchedActions$notMatchedActions$notMatchedBySourceActions"
+    s"MERGE INTO $target USING $source ON $condition$matchedActions$notMatchedActions$notMatchedBySourceActions;"
   }
 
 
