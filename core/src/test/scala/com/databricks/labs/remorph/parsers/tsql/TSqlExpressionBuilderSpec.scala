@@ -11,8 +11,9 @@ import org.scalatest.wordspec.AnyWordSpec
 
 class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matchers with IRHelpers {
 
-  override protected def astBuilder: TSqlParserBaseVisitor[_] = new TSqlExpressionBuilder
   private val exprBuilder = new TSqlExpressionBuilder
+
+  override protected def astBuilder: TSqlParserBaseVisitor[_] = new TSqlExpressionBuilder
 
   "TSqlExpressionBuilder" should {
     "translate literals" in {
@@ -34,7 +35,7 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
         ir.Literal(decimal = Some(ir.Decimal("0.123456789e-1234", None, None))))
     }
     "translate simple primitives" in {
-      exampleExpr("DEFAULT", _.expression(), ir.Default())
+      exampleExpr("DEFAULT", _.expression(), Default())
       exampleExpr("@LocalId", _.expression(), ir.Identifier("@LocalId", isQuoted = false))
     }
 
@@ -49,7 +50,7 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
       exampleExpr(
         "'A' || 'B'",
         _.expression(),
-        ir.Concat(ir.Literal(string = Some("A")), ir.Literal(string = Some("B"))))
+        ir.Concat(Seq(ir.Literal(string = Some("A")), ir.Literal(string = Some("B")))))
       exampleExpr("4 ^ 2", _.expression(), ir.BitwiseXor(ir.Literal(short = Some(4)), ir.Literal(short = Some(2))))
     }
     "translate complex binary expressions" in {
@@ -96,7 +97,7 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
       exampleExpr(
         query = "a || b || c",
         _.expression(),
-        ir.Concat(ir.Concat(simplyNamedColumn("a"), simplyNamedColumn("b")), simplyNamedColumn("c")))
+        ir.Concat(Seq(ir.Concat(Seq(simplyNamedColumn("a"), simplyNamedColumn("b"))), simplyNamedColumn("c"))))
     }
     "correctly apply operator precedence and associativity" in {
       exampleExpr(
@@ -159,18 +160,19 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
         "1 + -2 * 3 + 7 | 1980 || 'leeds1' || 'leeds2' || 'leeds3'",
         _.expression(),
         ir.Concat(
-          ir.Concat(
-            ir.Concat(
-              ir.BitwiseOr(
-                ir.Add(
+          Seq(
+            ir.Concat(Seq(
+              ir.Concat(Seq(
+                ir.BitwiseOr(
                   ir.Add(
-                    ir.Literal(short = Some(1)),
-                    ir.Multiply(ir.UMinus(ir.Literal(short = Some(2))), ir.Literal(short = Some(3)))),
-                  ir.Literal(short = Some(7))),
-                ir.Literal(short = Some(1980))),
-              ir.Literal(string = Some("leeds1"))),
-            ir.Literal(string = Some("leeds2"))),
-          ir.Literal(string = Some("leeds3"))))
+                    ir.Add(
+                      ir.Literal(short = Some(1)),
+                      ir.Multiply(ir.UMinus(ir.Literal(short = Some(2))), ir.Literal(short = Some(3)))),
+                    ir.Literal(short = Some(7))),
+                  ir.Literal(short = Some(1980))),
+                ir.Literal(string = Some("leeds1")))),
+              ir.Literal(string = Some("leeds2")))),
+            ir.Literal(string = Some("leeds3")))))
     }
     "correctly respect explicit precedence with parentheses" in {
       exampleExpr(
@@ -292,12 +294,15 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
     "translate search conditions" in {
       exampleExpr("a = b", _.searchCondition(), ir.Equals(simplyNamedColumn("a"), simplyNamedColumn("b")))
       exampleExpr("a > b", _.searchCondition(), ir.GreaterThan(simplyNamedColumn("a"), simplyNamedColumn("b")))
-      exampleExpr("a < b", _.searchCondition(), ir.LesserThan(simplyNamedColumn("a"), simplyNamedColumn("b")))
+      exampleExpr("a < b", _.searchCondition(), ir.LessThan(simplyNamedColumn("a"), simplyNamedColumn("b")))
       exampleExpr("a >= b", _.searchCondition(), ir.GreaterThanOrEqual(simplyNamedColumn("a"), simplyNamedColumn("b")))
-      exampleExpr("a <= b", _.searchCondition(), ir.LesserThanOrEqual(simplyNamedColumn("a"), simplyNamedColumn("b")))
+      exampleExpr("a !< b", _.searchCondition(), ir.GreaterThanOrEqual(simplyNamedColumn("a"), simplyNamedColumn("b")))
+      exampleExpr("a <= b", _.searchCondition(), ir.LessThanOrEqual(simplyNamedColumn("a"), simplyNamedColumn("b")))
+      exampleExpr("a !> b", _.searchCondition(), ir.LessThanOrEqual(simplyNamedColumn("a"), simplyNamedColumn("b")))
       exampleExpr("a > = b", _.searchCondition(), ir.GreaterThanOrEqual(simplyNamedColumn("a"), simplyNamedColumn("b")))
-      exampleExpr("a <  = b", _.searchCondition(), ir.LesserThanOrEqual(simplyNamedColumn("a"), simplyNamedColumn("b")))
+      exampleExpr("a <  = b", _.searchCondition(), ir.LessThanOrEqual(simplyNamedColumn("a"), simplyNamedColumn("b")))
       exampleExpr("a <> b", _.searchCondition(), ir.NotEquals(simplyNamedColumn("a"), simplyNamedColumn("b")))
+      exampleExpr("a != b", _.searchCondition(), ir.NotEquals(simplyNamedColumn("a"), simplyNamedColumn("b")))
       exampleExpr("NOT a = b", _.searchCondition(), ir.Not(ir.Equals(simplyNamedColumn("a"), simplyNamedColumn("b"))))
       exampleExpr(
         "a = b AND c = e",
@@ -424,7 +429,7 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
             ir.WhenBranch(
               ir.And(
                 ir.Equals(simplyNamedColumn("a"), ir.Literal(short = Some(1))),
-                ir.LesserThan(simplyNamedColumn("b"), ir.Literal(short = Some(7)))),
+                ir.LessThan(simplyNamedColumn("b"), ir.Literal(short = Some(7)))),
               ir.Literal(string = Some("one"))),
             ir.WhenBranch(
               ir.Equals(simplyNamedColumn("a"), ir.Literal(short = Some(2))),

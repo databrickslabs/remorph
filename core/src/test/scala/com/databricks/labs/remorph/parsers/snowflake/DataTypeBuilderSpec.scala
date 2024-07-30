@@ -26,7 +26,7 @@ class DataTypeBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon wit
       example("BOOLEAN", BooleanType)
       example("DATE", DateType)
       example("BINARY", BinaryType)
-      example("ARRAY", ArrayType())
+      example("ARRAY", ArrayType(UnresolvedType))
     }
 
     "translate the rest to UnparsedType" in {

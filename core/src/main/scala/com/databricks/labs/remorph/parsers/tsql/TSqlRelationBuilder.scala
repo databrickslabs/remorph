@@ -1,6 +1,7 @@
 package com.databricks.labs.remorph.parsers.tsql
 
 import com.databricks.labs.remorph.parsers.tsql.TSqlParser._
+import com.databricks.labs.remorph.parsers.tsql.rules.TopPercent
 import com.databricks.labs.remorph.parsers.{intermediate => ir}
 import org.antlr.v4.runtime.ParserRuleContext
 
@@ -60,11 +61,12 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.LogicalPlan] {
 
   private def buildTop(ctxOpt: Option[TSqlParser.TopClauseContext], input: ir.LogicalPlan): ir.LogicalPlan =
     ctxOpt.fold(input) { top =>
-      ir.Limit(
-        input,
-        top.expression().accept(expressionBuilder),
-        is_percentage = top.PERCENT() != null,
-        with_ties = top.TIES() != null)
+      val limit = top.expression().accept(expressionBuilder)
+      if (top.PERCENT() != null) {
+        TopPercent(input, limit, with_ties = top.TIES() != null)
+      } else {
+        ir.Limit(input, limit)
+      }
     }
 
   override def visitSelectOptionalClauses(ctx: SelectOptionalClausesContext): ir.LogicalPlan = {
@@ -103,9 +105,9 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.LogicalPlan] {
         // orderItem.expression(1) is COLLATE - we will not support that, but should either add a comment in the
         // translated source or raise some kind of linting alert.
         if (orderItem.DESC() == null) {
-          ir.SortOrder(expression, ir.AscendingSortDirection, ir.SortNullsUnspecified)
+          ir.SortOrder(expression, ir.Ascending, ir.SortNullsUnspecified)
         } else {
-          ir.SortOrder(expression, ir.DescendingSortDirection, ir.SortNullsUnspecified)
+          ir.SortOrder(expression, ir.Descending, ir.SortNullsUnspecified)
         }
       }
       val sorted = ir.Sort(input, sortOrders, is_global = false)
@@ -168,7 +170,7 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.LogicalPlan] {
     val tsiElementWithAliases = Option(ctx.columnAliasList())
       .map { aliasList =>
         val aliases = aliasList.columnAlias().asScala.map(id => buildColumnAlias(id))
-        ir.ColumnAliases(tsiElement, aliases)
+        ColumnAliases(tsiElement, aliases)
       }
       .getOrElse(tsiElement)
 
@@ -237,11 +239,112 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.LogicalPlan] {
 
   override def visitTableValueConstructor(ctx: TableValueConstructorContext): ir.LogicalPlan = {
     val rows = ctx.tableValueRow().asScala.map(buildValueRow)
-    ir.DerivedRows(rows)
+    DerivedRows(rows)
   }
 
   private def buildValueRow(ctx: TableValueRowContext): Seq[ir.Expression] = {
     ctx.expressionList().expression().asScala.map(_.accept(expressionBuilder))
+  }
+
+  override def visitMergeStatement(ctx: MergeStatementContext): ir.LogicalPlan = {
+    val merge = ctx.merge().accept(this)
+    Option(ctx.withExpression())
+      .map { withExpression =>
+        val ctes = withExpression.commonTableExpression().asScala.map(_.accept(this))
+        ir.WithCTE(ctes, merge)
+      }
+      .getOrElse(merge)
+  }
+
+  override def visitMerge(ctx: MergeContext): ir.LogicalPlan = {
+    // TODO: Ran out of time to implement the rest of the MERGE statement
+
+//    val target = ctx.ddlObject().accept(this)
+//    val hints = buildTableHints(Option(ctx.withTableHints()))
+//    val finalTarget = if (hints.nonEmpty) {
+//      ir.TableWithHints(target, hints)
+//    } else {
+//      target
+//    }
+//
+//    val output = Option(ctx.outputClause()).map(_.accept(this))
+//    val condition = ctx.searchCondition().accept(expressionBuilder)
+//    val tableSourcesOption = Option(ctx.tableSources()).map(_.tableSource().asScala.map(_.accept(this)))
+//    val sourceRelation = tableSourcesOption.map {
+//      case Seq(tableSource) => tableSource
+//      case sources =>
+//        sources.reduce(
+//          ir.Join(_, _, None, ir.CrossJoin, Seq(), ir.JoinDataType(is_left_struct = false, is_right_struct = false)))
+//    }
+
+    ir.UnresolvedRelation(ctx.getText)
+  }
+
+  override def visitUpdateStatement(ctx: UpdateStatementContext): ir.LogicalPlan = {
+    val update = ctx.update().accept(this)
+    Option(ctx.withExpression())
+      .map { withExpression =>
+        val ctes = withExpression.commonTableExpression().asScala.map(_.accept(this))
+        ir.WithCTE(ctes, update)
+      }
+      .getOrElse(update)
+  }
+
+  override def visitUpdate(ctx: UpdateContext): ir.LogicalPlan = {
+    val target = ctx.ddlObject().accept(this)
+    val hints = buildTableHints(Option(ctx.withTableHints()))
+    val hintTarget = if (hints.nonEmpty) {
+      ir.TableWithHints(target, hints)
+    } else {
+      target
+    }
+
+    val finalTarget = buildTop(Option(ctx.topClause()), hintTarget)
+    val output = Option(ctx.outputClause()).map(_.accept(this))
+    val setElements = ctx.updateElem().asScala.map(_.accept(expressionBuilder))
+
+    val tableSourcesOption = Option(ctx.tableSources()).map(_.tableSource().asScala.map(_.accept(this)))
+    val sourceRelation = tableSourcesOption.map {
+      case Seq(tableSource) => tableSource
+      case sources =>
+        sources.reduce(
+          ir.Join(_, _, None, ir.CrossJoin, Seq(), ir.JoinDataType(is_left_struct = false, is_right_struct = false)))
+    }
+
+    val where = Option(ctx.updateWhereClause()) map (_.accept(expressionBuilder))
+    val optionClause = Option(ctx.optionClause).map(_.accept(expressionBuilder))
+    ir.UpdateTable(finalTarget, sourceRelation, setElements, where, output, optionClause)
+  }
+
+  override def visitDeleteStatement(ctx: DeleteStatementContext): ir.LogicalPlan = {
+    val delete = ctx.delete().accept(this)
+    Option(ctx.withExpression())
+      .map { withExpression =>
+        val ctes = withExpression.commonTableExpression().asScala.map(_.accept(this))
+        ir.WithCTE(ctes, delete)
+      }
+      .getOrElse(delete)
+  }
+
+  override def visitDelete(ctx: DeleteContext): ir.LogicalPlan = {
+    val target = ctx.ddlObject().accept(this)
+    val hints = buildTableHints(Option(ctx.withTableHints()))
+    val finalTarget = if (hints.nonEmpty) {
+      ir.TableWithHints(target, hints)
+    } else {
+      target
+    }
+
+    val output = Option(ctx.outputClause()).map(_.accept(this))
+    val tableSourcesOption = Option(ctx.tableSources()).map(_.tableSource().asScala.map(_.accept(this)))
+    val sourceRelation = tableSourcesOption.map { tableSources =>
+      tableSources.tail.foldLeft(tableSources.head)(
+        ir.Join(_, _, None, ir.CrossJoin, Seq(), ir.JoinDataType(is_left_struct = false, is_right_struct = false)))
+    }
+
+    val where = Option(ctx.updateWhereClause()) map (_.accept(expressionBuilder))
+    val optionClause = Option(ctx.optionClause).map(_.accept(expressionBuilder))
+    ir.DeleteFromTable(finalTarget, sourceRelation, where, output, optionClause)
   }
 
   override def visitInsertStatement(ctx: InsertStatementContext): ir.LogicalPlan = {
@@ -275,7 +378,7 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.LogicalPlan] {
   override def visitInsertStatementValue(ctx: InsertStatementValueContext): ir.LogicalPlan = {
     Option(ctx) match {
       case Some(context) if context.derivedTable() != null => context.derivedTable().accept(this)
-      case Some(context) if context.VALUES() != null => ir.DefaultValues()
+      case Some(context) if context.VALUES() != null => DefaultValues()
       case Some(context) => context.executeStatement().accept(this)
     }
   }
@@ -290,7 +393,7 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.LogicalPlan] {
     // Databricks SQL does not support the OUTPUT clause, but we may be able to translate
     // the clause to SELECT statements executed before or after the INSERT/DELETE/UPDATE/MERGE
     // is executed
-    ir.Output(target, outputs, columns)
+    Output(target, outputs, columns)
   }
 
   override def visitDdlObject(ctx: DdlObjectContext): ir.LogicalPlan = {

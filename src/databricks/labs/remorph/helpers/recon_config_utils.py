@@ -1,17 +1,11 @@
 import logging
 
 from databricks.labs.blueprint.tui import Prompts
-from databricks.labs.remorph.reconcile.constants import SourceType
+from databricks.labs.remorph.reconcile.constants import ReconSourceType
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.errors.platform import ResourceDoesNotExist
 
 logger = logging.getLogger(__name__)
-
-recon_source_choices = [
-    SourceType.SNOWFLAKE.value,
-    SourceType.ORACLE.value,
-    SourceType.DATABRICKS.value,
-]
 
 
 class ReconConfigPrompts:
@@ -94,7 +88,7 @@ class ReconConfigPrompts:
             logger.info(f"{info_op} Secret: *{secret_key}* in Scope: `{scope_name}`")
 
     def prompt_source(self):
-        source = self._prompts.choice("Select the source", recon_source_choices)
+        source = self._prompts.choice("Select the source", [source_type.value for source_type in ReconSourceType])
         self._source = source
         return source
 
@@ -104,7 +98,7 @@ class ReconConfigPrompts:
         :return: tuple[str, dict[str, str]]
         """
         logger.info(
-            f"Please answer a couple of questions to configure `{SourceType.SNOWFLAKE.value}` Connection profile"
+            f"Please answer a couple of questions to configure `{ReconSourceType.SNOWFLAKE.value}` Connection profile"
         )
 
         sf_url = self._prompts.question("Enter Snowflake URL")
@@ -127,7 +121,7 @@ class ReconConfigPrompts:
             "sfRole": sf_role,
         }
 
-        sf_conn_dict = (SourceType.SNOWFLAKE.value, sf_conn_details)
+        sf_conn_dict = (ReconSourceType.SNOWFLAKE.value, sf_conn_details)
         return sf_conn_dict
 
     def _prompt_oracle_connection_details(self) -> tuple[str, dict[str, str]]:
@@ -135,7 +129,9 @@ class ReconConfigPrompts:
         Prompt for Oracle connection details
         :return: tuple[str, dict[str, str]]
         """
-        logger.info(f"Please answer a couple of questions to configure `{SourceType.ORACLE.value}` Connection profile")
+        logger.info(
+            f"Please answer a couple of questions to configure `{ReconSourceType.ORACLE.value}` Connection profile"
+        )
         user = self._prompts.question("Enter User")
         password = self._prompts.question("Enter Password")
         host = self._prompts.question("Enter host")
@@ -144,7 +140,7 @@ class ReconConfigPrompts:
 
         oracle_conn_details = {"user": user, "password": password, "host": host, "port": port, "database": database}
 
-        oracle_conn_dict = (SourceType.ORACLE.value, oracle_conn_details)
+        oracle_conn_dict = (ReconSourceType.ORACLE.value, oracle_conn_details)
         return oracle_conn_dict
 
     def _connection_details(self):
@@ -154,9 +150,9 @@ class ReconConfigPrompts:
         """
         logger.debug(f"Prompting for `{self._source}` connection details")
         match self._source:
-            case SourceType.SNOWFLAKE.value:
+            case ReconSourceType.SNOWFLAKE.value:
                 return self._prompt_snowflake_connection_details()
-            case SourceType.ORACLE.value:
+            case ReconSourceType.ORACLE.value:
                 return self._prompt_oracle_connection_details()
 
     def prompt_and_save_connection_details(self):
@@ -164,7 +160,7 @@ class ReconConfigPrompts:
         Prompt for connection details and save them as Secrets in Databricks Workspace
         """
         # prompt for connection_details only if source is other than Databricks
-        if self._source == SourceType.DATABRICKS.value:
+        if self._source == ReconSourceType.DATABRICKS.value:
             logger.info("*Databricks* as a source is supported only for **Hive MetaStore (HMS) setup**")
             return
 

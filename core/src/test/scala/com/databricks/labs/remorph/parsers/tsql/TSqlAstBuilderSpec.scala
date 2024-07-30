@@ -1,6 +1,8 @@
 package com.databricks.labs.remorph.parsers.tsql
 
 import com.databricks.labs.remorph.parsers.intermediate._
+import com.databricks.labs.remorph.parsers.tsql
+import com.databricks.labs.remorph.parsers.tsql.rules.TopPercent
 import org.mockito.Mockito.{mock, when}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -229,7 +231,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
           Seq(
             Project(
               namedTable("tab"),
-              Seq(XmlFunction(
+              Seq(tsql.TsqlXmlFunction(
                 CallFunction("query", Seq(Literal(string = Some("/root/child")))),
                 simplyNamedColumn("xmlcolumn")))))))
 
@@ -238,7 +240,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
         expectedAst = Batch(
           Seq(Project(
             namedTable("tab"),
-            Seq(XmlFunction(
+            Seq(tsql.TsqlXmlFunction(
               CallFunction("value", Seq(Literal(string = Some("path")), Literal(string = Some("type")))),
               simplyNamedColumn("xmlcolumn")))))))
 
@@ -247,7 +249,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
         expectedAst = Batch(
           Seq(Project(
             namedTable("xmltable"),
-            Seq(XmlFunction(
+            Seq(tsql.TsqlXmlFunction(
               CallFunction("exist", Seq(Literal(string = Some("/root/child[text()=\"Some Value\"]")))),
               simplyNamedColumn("xmlcolumn")))))))
 
@@ -395,7 +397,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
             Window(
               CallFunction("ROW_NUMBER", List.empty),
               List.empty,
-              List(SortOrder(simplyNamedColumn("myColumn"), AscendingSortDirection, SortNullsUnspecified)),
+              List(SortOrder(simplyNamedColumn("myColumn"), Ascending, SortNullsUnspecified)),
               None),
             Seq(Id("nextVal")),
             None))))))
@@ -492,30 +494,24 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
             Map("LIMIT" -> Literal(short = Some(77)))))))
   }
 
-  "translate a SELECT with a TOP clause" in {
-    example(
-      query = "SELECT TOP 10 * FROM Employees;",
-      expectedAst = Batch(
-        Seq(
-          Project(
-            Limit(namedTable("Employees"), Literal(short = Some(10)), is_percentage = false, with_ties = false),
-            Seq(Star(None))))))
+  "translate a SELECT with a TOP clause" should {
+    "use LIMIT" in {
+      example(
+        query = "SELECT TOP 10 * FROM Employees;",
+        expectedAst = Batch(Seq(Project(Limit(namedTable("Employees"), Literal(short = Some(10))), Seq(Star(None))))))
+    }
 
-    example(
-      query = "SELECT TOP 10 PERCENT * FROM Employees;",
-      expectedAst = Batch(
-        Seq(
-          Project(
-            Limit(namedTable("Employees"), Literal(short = Some(10)), is_percentage = true, with_ties = false),
-            Seq(Star(None))))))
+    "use TOP PERCENT" in {
+      example(
+        query = "SELECT TOP 10 PERCENT * FROM Employees;",
+        expectedAst =
+          Batch(Seq(Project(TopPercent(namedTable("Employees"), Literal(short = Some(10))), Seq(Star(None))))))
 
-    example(
-      query = "SELECT TOP 10 PERCENT WITH TIES * FROM Employees;",
-      expectedAst = Batch(
-        Seq(
-          Project(
-            Limit(namedTable("Employees"), Literal(short = Some(10)), is_percentage = true, with_ties = true),
-            Seq(Star(None))))))
+      example(
+        query = "SELECT TOP 10 PERCENT WITH TIES * FROM Employees;",
+        expectedAst = Batch(Seq(
+          Project(TopPercent(namedTable("Employees"), Literal(short = Some(10)), with_ties = true), Seq(Star(None))))))
+    }
   }
 
   "translate a SELECT statement with an ORDER BY and OFFSET" in {
@@ -526,7 +522,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
           Offset(
             Sort(
               namedTable("Employees"),
-              Seq(SortOrder(simplyNamedColumn("Salary"), AscendingSortDirection, SortNullsUnspecified)),
+              Seq(SortOrder(simplyNamedColumn("Salary"), Ascending, SortNullsUnspecified)),
               is_global = false),
             Literal(short = Some(10))),
           Seq(Star(None))))))
@@ -539,7 +535,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
             Offset(
               Sort(
                 namedTable("Employees"),
-                Seq(SortOrder(simplyNamedColumn("Salary"), AscendingSortDirection, SortNullsUnspecified)),
+                Seq(SortOrder(simplyNamedColumn("Salary"), Ascending, SortNullsUnspecified)),
                 is_global = false),
               Literal(short = Some(10))),
             Literal(short = Some(5))),
@@ -555,7 +551,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
             Offset(
               Sort(
                 namedTable("Employees"),
-                Seq(SortOrder(simplyNamedColumn("Salary"), AscendingSortDirection, SortNullsUnspecified)),
+                Seq(SortOrder(simplyNamedColumn("Salary"), Ascending, SortNullsUnspecified)),
                 is_global = false),
               Literal(short = Some(10))),
             List(),
@@ -572,7 +568,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
               Offset(
                 Sort(
                   namedTable("Employees"),
-                  List(SortOrder(simplyNamedColumn("Salary"), AscendingSortDirection, SortNullsUnspecified)),
+                  List(SortOrder(simplyNamedColumn("Salary"), Ascending, SortNullsUnspecified)),
                   is_global = false),
                 Literal(short = Some(10))),
               Literal(short = Some(5))),
@@ -758,7 +754,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
           namedTable("t"),
           Some(List(Id("a"), Id("b"))),
           DerivedRows(List(List(Literal(short = Some(1)), Literal(short = Some(2))))),
-          Some(Output(
+          Some(tsql.Output(
             namedTable("Inserted"),
             List(
               Alias(Column(Some(ObjectReference(Id("INSERTED"))), Id("a")), Seq(Id("a_lias")), None),
@@ -803,5 +799,113 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
           None,
           None,
           overwrite = false))))
+  }
+
+  "should translate UPDATE statements" in {
+    example(
+      query = "UPDATE t SET a = 1, b = 2",
+      expectedAst = Batch(
+        Seq(UpdateTable(
+          NamedTable("t", Map(), is_streaming = false),
+          None,
+          Seq(
+            Assign(Column(None, Id("a")), Literal(short = Some(1))),
+            Assign(Column(None, Id("b")), Literal(short = Some(2)))),
+          None,
+          None,
+          None))))
+
+    example(
+      query = "UPDATE t SET a = 1, b = 2 OUTPUT INSERTED.a as a_lias, INSERTED.b INTO Inserted(a, b)",
+      expectedAst = Batch(
+        Seq(UpdateTable(
+          NamedTable("t", Map(), is_streaming = false),
+          None,
+          Seq(
+            Assign(Column(None, Id("a")), Literal(short = Some(1))),
+            Assign(Column(None, Id("b")), Literal(short = Some(2)))),
+          None,
+          Some(tsql.Output(
+            NamedTable("Inserted", Map(), is_streaming = false),
+            Seq(
+              Alias(Column(Some(ObjectReference(Id("INSERTED"))), Id("a")), Seq(Id("a_lias")), None),
+              Column(Some(ObjectReference(Id("INSERTED"))), Id("b"))),
+            Some(Seq(Column(None, Id("a")), Column(None, Id("b")))))),
+          None))))
+
+    example(
+      query = "UPDATE t SET a = 1, b = 2 FROM t1 WHERE t.a = t1.a",
+      expectedAst = Batch(
+        Seq(UpdateTable(
+          NamedTable("t", Map(), is_streaming = false),
+          Some(NamedTable("t1", Map(), is_streaming = false)),
+          Seq(
+            Assign(Column(None, Id("a")), Literal(short = Some(1))),
+            Assign(Column(None, Id("b")), Literal(short = Some(2)))),
+          Some(
+            Equals(Column(Some(ObjectReference(Id("t"))), Id("a")), Column(Some(ObjectReference(Id("t1"))), Id("a")))),
+          None,
+          None))))
+
+    example(
+      query = "UPDATE t SET a = 1, udf.Transform(b) FROM t1 WHERE t.a = t1.a OPTION (KEEP PLAN)",
+      expectedAst = Batch(
+        Seq(UpdateTable(
+          NamedTable("t", Map(), is_streaming = false),
+          Some(NamedTable("t1", Map(), is_streaming = false)),
+          Seq(
+            Assign(Column(None, Id("a")), Literal(short = Some(1))),
+            UnresolvedFunction(
+              "udf.Transform",
+              Seq(Column(None, Id("b"))),
+              is_distinct = false,
+              is_user_defined_function = true)),
+          Some(
+            Equals(Column(Some(ObjectReference(Id("t"))), Id("a")), Column(Some(ObjectReference(Id("t1"))), Id("a")))),
+          None,
+          Some(Options(Map("KEEP" -> Column(None, Id("PLAN"))), Map.empty, Map.empty, List.empty))))))
+  }
+
+  "translate DELETE statements" in {
+    example(
+      query = "DELETE FROM t",
+      expectedAst = Batch(Seq(DeleteFromTable(NamedTable("t", Map(), is_streaming = false), None, None, None, None))))
+
+    example(
+      query = "DELETE FROM t OUTPUT DELETED.a as a_lias, DELETED.b INTO Deleted(a, b)",
+      expectedAst = Batch(
+        Seq(DeleteFromTable(
+          NamedTable("t", Map(), is_streaming = false),
+          None,
+          None,
+          Some(tsql.Output(
+            NamedTable("Deleted", Map(), is_streaming = false),
+            Seq(
+              Alias(Column(Some(ObjectReference(Id("DELETED"))), Id("a")), Seq(Id("a_lias")), None),
+              Column(Some(ObjectReference(Id("DELETED"))), Id("b"))),
+            Some(Seq(Column(None, Id("a")), Column(None, Id("b")))))),
+          None))))
+
+    example(
+      query = "DELETE FROM t FROM t1 WHERE t.a = t1.a",
+      expectedAst = Batch(
+        Seq(DeleteFromTable(
+          NamedTable("t", Map(), is_streaming = false),
+          Some(NamedTable("t1", Map(), is_streaming = false)),
+          Some(
+            Equals(Column(Some(ObjectReference(Id("t"))), Id("a")), Column(Some(ObjectReference(Id("t1"))), Id("a")))),
+          None,
+          None))))
+
+    example(
+      query = "DELETE FROM t FROM t1 WHERE t.a = t1.a OPTION (KEEP PLAN)",
+      expectedAst = Batch(
+        Seq(DeleteFromTable(
+          NamedTable("t", Map(), is_streaming = false),
+          Some(NamedTable("t1", Map(), is_streaming = false)),
+          Some(
+            Equals(Column(Some(ObjectReference(Id("t"))), Id("a")), Column(Some(ObjectReference(Id("t1"))), Id("a")))),
+          None,
+          Some(Options(Map("KEEP" -> Column(None, Id("PLAN"))), Map.empty, Map.empty, List.empty))))))
   }
 }

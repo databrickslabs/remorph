@@ -1,6 +1,7 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
 import com.databricks.labs.remorph.parsers.intermediate._
+import com.databricks.labs.remorph.parsers.snowflake
 import org.scalatest.Checkpoints.Checkpoint
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -40,7 +41,7 @@ class SnowflakeExprSpec extends AnyWordSpec with SnowflakeParserTestCommon with 
       example("column_1 - 1", Subtract(Id("column_1"), Literal(short = Some(1))))
       example("column_1/column_2", Divide(Id("column_1"), Id("column_2")))
       example("42 % 2", Mod(Literal(short = Some(42)), Literal(short = Some(2))))
-      example("'foo' || column_1", Concat(Literal(string = Some("foo")), Id("column_1")))
+      example("'foo' || column_1", Concat(Seq(Literal(string = Some("foo")), Id("column_1"))))
     }
 
     "translate IFF expression" in {
@@ -86,17 +87,19 @@ class SnowflakeExprSpec extends AnyWordSpec with SnowflakeParserTestCommon with 
     "translate IN expressions" in {
       exprAndPredicateExample(
         "col1 IN (SELECT * FROM t)",
-        IsInRelation(Project(namedTable("t"), Seq(Star(None))), Id("col1")))
+        snowflake.IsInRelation(Project(namedTable("t"), Seq(Star(None))), Id("col1")))
       exprAndPredicateExample(
         "col1 NOT IN (SELECT * FROM t)",
-        Not(IsInRelation(Project(namedTable("t"), Seq(Star(None))), Id("col1"))))
+        Not(snowflake.IsInRelation(Project(namedTable("t"), Seq(Star(None))), Id("col1"))))
 
       exprAndPredicateExample(
         "col1 IN (1, 2, 3)",
-        IsInCollection(Seq(Literal(short = Some(1)), Literal(short = Some(2)), Literal(short = Some(3))), Id("col1")))
+        snowflake.IsInCollection(
+          Seq(Literal(short = Some(1)), Literal(short = Some(2)), Literal(short = Some(3))),
+          Id("col1")))
       exprAndPredicateExample(
         "col1 NOT IN ('foo', 'bar')",
-        Not(IsInCollection(Seq(Literal(string = Some("foo")), Literal(string = Some("bar"))), Id("col1"))))
+        Not(snowflake.IsInCollection(Seq(Literal(string = Some("foo")), Literal(string = Some("bar"))), Id("col1"))))
 
     }
 
@@ -105,39 +108,47 @@ class SnowflakeExprSpec extends AnyWordSpec with SnowflakeParserTestCommon with 
         "col1 BETWEEN 3.14 AND 42",
         And(
           GreaterThanOrEqual(Id("col1"), Literal(float = Some(3.14f))),
-          LesserThanOrEqual(Id("col1"), Literal(short = Some(42)))))
+          LessThanOrEqual(Id("col1"), Literal(short = Some(42)))))
       exprAndPredicateExample(
         "col1 NOT BETWEEN 3.14 AND 42",
         Not(
           And(
             GreaterThanOrEqual(Id("col1"), Literal(float = Some(3.14f))),
-            LesserThanOrEqual(Id("col1"), Literal(short = Some(42))))))
+            LessThanOrEqual(Id("col1"), Literal(short = Some(42))))))
     }
 
     "translate LIKE expressions" in {
       exprAndPredicateExample(
         "col1 LIKE '%foo'",
-        Like(Id("col1"), Seq(Literal(string = Some("%foo"))), None, caseSensitive = true))
+        snowflake.LikeSnowflake(Id("col1"), Seq(Literal(string = Some("%foo"))), None, caseSensitive = true))
       exprAndPredicateExample(
         "col1 ILIKE '%foo'",
-        Like(Id("col1"), Seq(Literal(string = Some("%foo"))), None, caseSensitive = false))
+        snowflake.LikeSnowflake(Id("col1"), Seq(Literal(string = Some("%foo"))), None, caseSensitive = false))
       exprAndPredicateExample(
         "col1 NOT LIKE '%foo'",
-        Not(Like(Id("col1"), Seq(Literal(string = Some("%foo"))), None, caseSensitive = true)))
+        Not(snowflake.LikeSnowflake(Id("col1"), Seq(Literal(string = Some("%foo"))), None, caseSensitive = true)))
       exprAndPredicateExample(
         "col1 NOT ILIKE '%foo'",
-        Not(Like(Id("col1"), Seq(Literal(string = Some("%foo"))), None, caseSensitive = false)))
+        Not(snowflake.LikeSnowflake(Id("col1"), Seq(Literal(string = Some("%foo"))), None, caseSensitive = false)))
       exprAndPredicateExample(
         "col1 LIKE '%foo' ESCAPE '^'",
-        Like(Id("col1"), Seq(Literal(string = Some("%foo"))), Some(Literal(string = Some("^"))), caseSensitive = true))
+        snowflake.LikeSnowflake(
+          Id("col1"),
+          Seq(Literal(string = Some("%foo"))),
+          Some(Literal(string = Some("^"))),
+          caseSensitive = true))
       exprAndPredicateExample(
         "col1 ILIKE '%foo' ESCAPE '^'",
-        Like(Id("col1"), Seq(Literal(string = Some("%foo"))), Some(Literal(string = Some("^"))), caseSensitive = false))
+        snowflake.LikeSnowflake(
+          Id("col1"),
+          Seq(Literal(string = Some("%foo"))),
+          Some(Literal(string = Some("^"))),
+          caseSensitive = false))
 
       exprAndPredicateExample(
         "col1 NOT LIKE '%foo' ESCAPE '^'",
         Not(
-          Like(
+          snowflake.LikeSnowflake(
             Id("col1"),
             Seq(Literal(string = Some("%foo"))),
             Some(Literal(string = Some("^"))),
@@ -145,7 +156,7 @@ class SnowflakeExprSpec extends AnyWordSpec with SnowflakeParserTestCommon with 
       exprAndPredicateExample(
         "col1 NOT ILIKE '%foo' ESCAPE '^'",
         Not(
-          Like(
+          snowflake.LikeSnowflake(
             Id("col1"),
             Seq(Literal(string = Some("%foo"))),
             Some(Literal(string = Some("^"))),
@@ -153,7 +164,7 @@ class SnowflakeExprSpec extends AnyWordSpec with SnowflakeParserTestCommon with 
 
       exprAndPredicateExample(
         "col1 LIKE ANY ('%foo', 'bar%', '%qux%')",
-        Like(
+        snowflake.LikeSnowflake(
           Id("col1"),
           Seq(Literal(string = Some("%foo")), Literal(string = Some("bar%")), Literal(string = Some("%qux%"))),
           None,
@@ -161,7 +172,7 @@ class SnowflakeExprSpec extends AnyWordSpec with SnowflakeParserTestCommon with 
 
       exprAndPredicateExample(
         "col1 LIKE ANY ('%foo', 'bar%', '%qux%') ESCAPE '^'",
-        Like(
+        snowflake.LikeSnowflake(
           Id("col1"),
           Seq(Literal(string = Some("%foo")), Literal(string = Some("bar%")), Literal(string = Some("%qux%"))),
           Some(Literal(string = Some("^"))),
@@ -185,9 +196,7 @@ class SnowflakeExprSpec extends AnyWordSpec with SnowflakeParserTestCommon with 
     "translate WITHIN GROUP expressions" in {
       exprAndPredicateExample(
         "ARRAY_AGG(col1) WITHIN GROUP (ORDER BY col2)",
-        WithinGroup(
-          CallFunction("ARRAY_AGG", Seq(Id("col1"))),
-          Seq(SortOrder(Id("col2"), AscendingSortDirection, SortNullsLast))))
+        WithinGroup(CallFunction("ARRAY_AGG", Seq(Id("col1"))), Seq(SortOrder(Id("col2"), Ascending, NullsLast))))
     }
 
     "translate JSON path expressions" in {

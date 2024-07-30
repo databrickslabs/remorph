@@ -69,21 +69,21 @@ class TSqlRelationBuilderSpec
         _.selectOptionalClauses(),
         ir.Sort(
           namedTable("some_table"),
-          Seq(ir.SortOrder(simplyNamedColumn("some_column"), ir.AscendingSortDirection, ir.SortNullsUnspecified)),
+          Seq(ir.SortOrder(simplyNamedColumn("some_column"), ir.Ascending, ir.SortNullsUnspecified)),
           is_global = false))
       example(
         "FROM some_table ORDER BY some_column ASC",
         _.selectOptionalClauses(),
         ir.Sort(
           namedTable("some_table"),
-          Seq(ir.SortOrder(simplyNamedColumn("some_column"), ir.AscendingSortDirection, ir.SortNullsUnspecified)),
+          Seq(ir.SortOrder(simplyNamedColumn("some_column"), ir.Ascending, ir.SortNullsUnspecified)),
           is_global = false))
       example(
         "FROM some_table ORDER BY some_column DESC",
         _.selectOptionalClauses(),
         ir.Sort(
           namedTable("some_table"),
-          Seq(ir.SortOrder(simplyNamedColumn("some_column"), ir.DescendingSortDirection, ir.SortNullsUnspecified)),
+          Seq(ir.SortOrder(simplyNamedColumn("some_column"), ir.Descending, ir.SortNullsUnspecified)),
           is_global = false))
     }
 
@@ -108,7 +108,7 @@ class TSqlRelationBuilderSpec
             group_type = ir.GroupBy,
             grouping_expressions = Seq(simplyNamedColumn("some_column")),
             pivot = None),
-          Seq(ir.SortOrder(simplyNamedColumn("some_column"), ir.AscendingSortDirection, ir.SortNullsUnspecified)),
+          Seq(ir.SortOrder(simplyNamedColumn("some_column"), ir.Ascending, ir.SortNullsUnspecified)),
           is_global = false))
 
     }
@@ -142,7 +142,7 @@ class TSqlRelationBuilderSpec
         _.selectStatement(),
         ir.Project(
           ir.TableAlias(
-            ir.ColumnAliases(
+            ColumnAliases(
               ir.Project(
                 ir.NamedTable("d", Map(), is_streaming = false),
                 Seq(ir.Column(None, ir.Id("x")), ir.Column(None, ir.Id("y")))),

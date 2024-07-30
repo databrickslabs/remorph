@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.parsers.intermediate
 
-import java.util.UUID
+import java.util.{UUID}
 
 // Expression used to refer to fields, functions and similar. This can be used everywhere
 // expressions in SQL appear.
@@ -70,11 +70,16 @@ trait NamedExpression extends Expression {
 
 class AttributeSet(val attrs: NamedExpression*) extends Set[NamedExpression] {
   def this(attrs: Set[NamedExpression]) = this(attrs.toSeq: _*)
-  override def contains(key: NamedExpression): Boolean = attrs.contains(key)
+
   override def iterator: Iterator[NamedExpression] = attrs.iterator
+
   override def +(elem: NamedExpression): AttributeSet = new AttributeSet(attrs :+ elem: _*)
+
   override def -(elem: NamedExpression): AttributeSet = new AttributeSet(attrs.filterNot(_ == elem): _*)
+
   def --(other: AttributeSet): AttributeSet = new AttributeSet(attrs.filterNot(other.contains): _*)
+
+  override def contains(key: NamedExpression): Boolean = attrs.contains(key)
 }
 
 abstract class Attribute extends LeafExpression with NamedExpression {
@@ -95,6 +100,25 @@ case class AttributeReference(
   override def newInstance(): NamedExpression = copy(exprId = NamedExpression.newExprId)
 }
 
+abstract class Unary(child: Expression) extends Expression {
+  override def children: Seq[Expression] = Seq(child)
+}
+
+abstract class Binary(left: Expression, right: Expression) extends Expression {
+  override def children: Seq[Expression] = Seq(left, right)
+}
+
+case class WhenBranch(condition: Expression, expression: Expression) extends Binary(condition, expression) {
+  override def dataType: DataType = expression.dataType
+}
+
+case class Case(expression: Option[Expression], branches: Seq[WhenBranch], otherwise: Option[Expression])
+    extends Expression {
+  override def children: Seq[Expression] = expression.toSeq ++
+    branches.flatMap(b => Seq(b.condition, b.expression)) ++ otherwise
+  override def dataType: DataType = branches.head.dataType
+}
+
 abstract class FrameType
 case object UndefinedFrame extends FrameType
 case object RangeFrame extends FrameType
@@ -111,33 +135,22 @@ case class WindowFrame(frame_type: FrameType, lower: FrameBoundary, upper: Frame
 
 case class Window(
     window_function: Expression,
-    partition_spec: Seq[Expression],
-    sort_order: Seq[SortOrder],
-    frame_spec: Option[WindowFrame])
+    partition_spec: Seq[Expression] = Seq.empty,
+    sort_order: Seq[SortOrder] = Seq.empty,
+    frame_spec: Option[WindowFrame] = None)
     extends Expression {
   override def children: Seq[Expression] = window_function +: partition_spec
   override def dataType: DataType = window_function.dataType
 }
 
-abstract class SortDirection
-case object UnspecifiedSortDirection extends SortDirection
-case object AscendingSortDirection extends SortDirection
-case object DescendingSortDirection extends SortDirection
-
-abstract class NullOrdering
-case object SortNullsUnspecified extends NullOrdering
-case object SortNullsFirst extends NullOrdering
-case object SortNullsLast extends NullOrdering
-
-case class SortOrder(child: Expression, direction: SortDirection, nullOrdering: NullOrdering) extends Expression {
-  override def children: Seq[Expression] = child :: Nil
-  override def dataType: DataType = child.dataType
-}
-
-case class Cast(expr: Expression, dataType: DataType, type_str: String = "", returnNullOnError: Boolean = false)
-    extends Expression {
-  override def children: Seq[Expression] = expr :: Nil
-}
+/** cast(expr AS type) - Casts the value `expr` to the target data type `type`. */
+case class Cast(
+    expr: Expression,
+    dataType: DataType,
+    type_str: String = "",
+    returnNullOnError: Boolean = false,
+    timeZoneId: Option[String] = None)
+    extends Unary(expr)
 
 case class Decimal(value: String, precision: Option[Int], scale: Option[Int]) extends LeafExpression {
   override def dataType: DataType = DecimalType(precision, scale)
@@ -147,7 +160,7 @@ case class CalendarInterval(months: Int, days: Int, microseconds: Long) extends 
   override def dataType: DataType = CalendarIntervalType
 }
 
-case class ArrayExpr(dataType: DataType, elements: Seq[Literal]) extends Expression {
+case class ArrayExpr(dataType: DataType, elements: Seq[Expression]) extends Expression {
   override def children: Seq[Expression] = elements
 }
 
@@ -155,115 +168,19 @@ case class JsonExpr(dataType: DataType, fields: Seq[(String, Literal)]) extends 
   override def children: Seq[Expression] = fields.map(_._2)
 }
 
-case class MapExpr(key_type: DataType, value_type: DataType, keys: Seq[Literal], values: Seq[Literal])
+case class MapExpr(key_type: DataType, value_type: DataType, keys: Seq[Literal], values: Seq[Expression])
     extends Expression {
   override def children: Seq[Expression] = keys ++ values
-  override def dataType: DataType = MapType() // TODO: Fix this
+  override def dataType: DataType = MapType(key_type, value_type)
 }
 
 case class Struct(dataType: DataType, elements: Seq[Literal]) extends Expression {
   override def children: Seq[Expression] = elements
 }
 
-case class Literal(
-    nullType: Option[DataType] = None,
-    binary: Option[Array[Byte]] = None,
-    boolean: Option[Boolean] = None,
-    byte: Option[Int] = None,
-    short: Option[Int] = None,
-    integer: Option[Int] = None,
-    long: Option[Long] = None,
-    float: Option[Float] = None,
-    decimal: Option[Decimal] = None,
-    double: Option[Double] = None,
-    string: Option[String] = None,
-    date: Option[Long] = None,
-    timestamp: Option[Long] = None,
-    timestamp_ntz: Option[Long] = None,
-    calendar_interval: Option[CalendarInterval] = None,
-    year_month_interval: Option[Int] = None,
-    day_time_interval: Option[Long] = None,
-    array: Option[ArrayExpr] = None,
-    map: Option[MapExpr] = None,
-    json: Option[JsonExpr] = None)
-    extends LeafExpression {
-  override def dataType: DataType = {
-    if (binary.isDefined) {
-      BinaryType
-    } else if (boolean.isDefined) {
-      BooleanType
-    } else if (byte.isDefined) {
-      ByteType(byte)
-    } else if (short.isDefined) {
-      ShortType
-    } else if (integer.isDefined) {
-      IntegerType
-    } else if (long.isDefined) {
-      LongType
-    } else if (float.isDefined) {
-      FloatType
-    } else if (decimal.isDefined) {
-      DecimalType(decimal.get.precision, decimal.get.scale)
-    } else if (double.isDefined) {
-      DoubleType
-    } else if (string.isDefined) {
-      StringType
-    } else if (date.isDefined) {
-      DateType
-    } else if (timestamp.isDefined) {
-      TimestampType
-    } else if (timestamp_ntz.isDefined) {
-      TimestampNTZType
-    } else if (calendar_interval.isDefined) {
-      CalendarIntervalType
-    } else if (year_month_interval.isDefined) {
-      YearMonthIntervalType
-    } else if (day_time_interval.isDefined) {
-      DayTimeIntervalType
-    } else if (array.isDefined) {
-      ArrayType()
-    } else if (map.isDefined) {
-      MapType()
-    } else if (json.isDefined) {
-      UDTType()
-    } else {
-      NullType
-    }
-  }
-}
-
-case class UnresolvedAttribute(unparsed_identifier: String, plan_id: Long, is_metadata_column: Boolean)
-    extends LeafExpression {
-  override def dataType: DataType = UnresolvedType
-}
-
-case class UnresolvedFunction(
-    function_name: String,
-    arguments: Seq[Expression],
-    is_distinct: Boolean,
-    is_user_defined_function: Boolean,
-    has_incorrect_argc: Boolean = false)
-    extends Expression {
-  override def children: Seq[Expression] = arguments
-  override def dataType: DataType = UnresolvedType
-}
-
 // TODO: remove this type
 case class ExpressionString(expression: String) extends LeafExpression {
   override def dataType: DataType = StringType
-}
-
-case class UnresolvedStar(unparsed_target: String) extends LeafExpression {
-  override def dataType: DataType = UnresolvedType
-}
-
-case class UnresolvedRegex(col_name: String, plan_id: Long) extends LeafExpression {
-  override def dataType: DataType = UnresolvedType
-}
-
-case class UnresolvedExtractValue(child: Expression, extraction: Expression) extends Expression {
-  override def children: Seq[Expression] = child :: extraction :: Nil
-  override def dataType: DataType = UnresolvedType
 }
 
 case class UpdateFields(struct_expression: Expression, field_name: String, value_expression: Option[Expression])
@@ -272,8 +189,8 @@ case class UpdateFields(struct_expression: Expression, field_name: String, value
   override def dataType: DataType = UnresolvedType // TODO: Fix this
 }
 
-case class Alias(expr: Expression, name: Seq[Id], metadata: Option[String]) extends Expression {
-  override def children: Seq[Expression] = expr :: Nil
+// TODO: has to be Alias(expr: Expression, name: String)
+case class Alias(expr: Expression, name: Seq[Id], metadata: Option[String] = None) extends Unary(expr) {
   override def dataType: DataType = expr.dataType
 }
 
@@ -310,15 +227,5 @@ case class CommonInlineUserDefinedFunction(
     java_udf: Option[JavaUDF])
     extends Expression {
   override def children: Seq[Expression] = arguments ++ python_udf.toSeq ++ scalar_scala_udf.toSeq ++ java_udf.toSeq
-  override def dataType: DataType = UnresolvedType
-}
-
-case class CallFunction(function_name: String, arguments: Seq[Expression]) extends Expression {
-  override def children: Seq[Expression] = arguments
-  override def dataType: DataType = UnresolvedType
-}
-
-case class NamedArgumentExpression(key: String, value: Expression) extends Expression {
-  override def children: Seq[Expression] = value :: Nil
   override def dataType: DataType = UnresolvedType
 }

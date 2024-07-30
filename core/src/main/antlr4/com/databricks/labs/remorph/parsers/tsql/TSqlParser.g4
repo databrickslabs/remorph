@@ -1583,9 +1583,12 @@ messageStatement
     )
     ;
 
-mergeStatement
-    : withExpression? MERGE (TOP LPAREN expression RPAREN PERCENT?)? INTO? ddlObject withTableHints? asTableAlias? USING tableSources ON
-        searchCondition whenMatches+ outputClause? optionClause? SEMI
+mergeStatement: withExpression? merge
+    ;
+
+merge
+    : MERGE topClause? INTO? ddlObject withTableHints? asTableAlias? USING tableSources ON searchCondition whenMatches+ outputClause? optionClause?
+        SEMI
     ;
 
 whenMatches
@@ -1594,19 +1597,17 @@ whenMatches
     | ( WHEN NOT MATCHED BY SOURCE (AND searchCondition)? THEN mergeMatched)+
     ;
 
-mergeMatched: UPDATE SET updateElemMerge (COMMA updateElemMerge)* | DELETE
+mergeMatched: UPDATE SET updateElem (COMMA updateElem)* | DELETE
     ;
 
 mergeNotMatched: INSERT (LPAREN columnNameList RPAREN)? ( tableValueConstructor | DEFAULT VALUES)
     ;
 
-deleteStatement
-    : withExpression? DELETE (TOP LPAREN expression RPAREN PERCENT? | TOP INT)? FROM? deleteStatementFrom withTableHints? outputClause? (
-        FROM tableSources
-    )? (WHERE ( searchCondition | CURRENT OF ( GLOBAL? cursorName | cursorVar = LOCAL_ID)))? forClause? optionClause? SEMI?
+deleteStatement: withExpression? delete
     ;
 
-deleteStatementFrom: ddlObject | rowsetFunctionLimited | tableVar = LOCAL_ID
+delete
+    : DELETE topClause? FROM? ddlObject withTableHints? outputClause? (FROM tableSources)? updateWhereClause? optionClause? SEMI?
     ;
 
 insertStatement: withExpression? insert
@@ -1631,13 +1632,17 @@ selectStatementStandalone: withExpression? selectStatement
 selectStatement: queryExpression forClause? optionClause? SEMI?
     ;
 
-updateStatement
-    : withExpression? UPDATE (TOP LPAREN expression RPAREN PERCENT?)? (
-        ddlObject
-        | rowsetFunctionLimited
-    ) withTableHints? SET updateElem (COMMA updateElem)* outputClause? (FROM tableSources)? (
-        WHERE (searchCondition | CURRENT OF ( GLOBAL? cursorName | cursorVar = LOCAL_ID))
-    )? forClause? optionClause? SEMI?
+updateStatement: withExpression? update
+    ;
+
+update
+    : UPDATE topClause? ddlObject withTableHints? SET updateElem (COMMA updateElem)* outputClause? (
+        FROM tableSources
+    )? updateWhereClause? optionClause? SEMI?
+    ;
+
+updateWhereClause
+    : WHERE (searchCondition | CURRENT OF ( GLOBAL? cursorName | cursorVar = LOCAL_ID))
     ;
 
 outputClause
@@ -1856,10 +1861,17 @@ updateStatisticsOptions: WITH updateStatisticsOption (COMMA updateStatisticsOpti
 updateStatisticsOption: RESAMPLE onPartitions? | optionList
     ;
 
-createTable
+createTableDefault
     : CREATE TABLE tableName LPAREN columnDefTableConstraints (COMMA? tableIndices)* COMMA? RPAREN (
         LOCK simpleId
     )? tableOptions* (ON id | DEFAULT | onPartitionOrFilegroup)? (TEXTIMAGE_ON id | DEFAULT)? SEMI?
+    ;
+
+createTableAs
+    : CREATE TABLE tableName (LPAREN columnNameList RPAREN)? tableOptions? AS selectStatementStandalone SEMI?
+    ;
+
+createTable: createTableDefault | createTableAs
     ;
 
 tableIndices
@@ -1874,12 +1886,15 @@ tableOptions
     : WITH (LPAREN tableOption (COMMA tableOption)* RPAREN | tableOption (COMMA tableOption)*)
     ;
 
+distributionType: HASH LPAREN id (COMMA id)* RPAREN | ROUND_ROBIN | REPLICATE
+    ;
+
 tableOption
     : (simpleId | keyword) EQ (simpleId | keyword | onOff | INT)
     | CLUSTERED COLUMNSTORE INDEX
     | HEAP
     | FILLFACTOR EQ INT
-    | DISTRIBUTION EQ HASH LPAREN id RPAREN
+    | DISTRIBUTION EQ distributionType
     | CLUSTERED INDEX LPAREN id (ASC | DESC)? ( COMMA id (ASC | DESC)?)* RPAREN
     | DATA_COMPRESSION EQ (NONE | ROW | PAGE) onPartitions?
     | XML_COMPRESSION EQ onOff onPartitions?
@@ -2865,14 +2880,18 @@ commonTableExpression: id (LPAREN columnNameList RPAREN)? AS LPAREN selectStatem
     ;
 
 updateElem
-    : LOCAL_ID EQ fullColumnName (EQ | assignmentOperator) expression
-    | (fullColumnName | LOCAL_ID) (EQ | assignmentOperator) expression
-    | udtColumnName = id DOT methodName = id LPAREN expressionList RPAREN
-    ;
-
-updateElemMerge
-    : (fullColumnName | LOCAL_ID) (EQ | assignmentOperator) expression
-    | udtColumnName = id DOT methodName = id LPAREN expressionList RPAREN
+    : (l1 = LOCAL_ID EQ)? (fullColumnName | l2 = LOCAL_ID) op = (
+        EQ
+        | PE
+        | ME
+        | SE
+        | DE
+        | MEA
+        | AND_ASSIGN
+        | XOR_ASSIGN
+        | OR_ASSIGN
+    ) expression                             # updateElemCol
+    | id DOT id LPAREN expressionList RPAREN # updateElemUdt
     ;
 
 searchCondition
@@ -4090,7 +4109,19 @@ idOrString: id | STRING
     ;
 
 // Spaces are allowed for comparison operators.
-comparisonOperator: EQ | GT | LT | LT EQ | GT EQ | LT GT | EQ | GT | LT
+comparisonOperator
+    : EQ
+    | GT
+    | LT
+    | LT EQ
+    | GT EQ
+    | LT GT
+    | EQ
+    | BANG EQ
+    | GT
+    | BANG GT
+    | LT
+    | BANG LT
     ;
 
 assignmentOperator: PE | ME | SE | DE | MEA | AND_ASSIGN | XOR_ASSIGN | OR_ASSIGN

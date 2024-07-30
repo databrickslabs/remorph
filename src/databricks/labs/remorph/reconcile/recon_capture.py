@@ -22,7 +22,6 @@ from databricks.labs.remorph.reconcile.recon_config import (
     StatusOutput,
     TableThresholds,
     ReconcileRecordCount,
-    TableThresholdModel,
 )
 from databricks.sdk import WorkspaceClient
 
@@ -238,7 +237,7 @@ class ReconCapture:
             return True
         # pull out table thresholds
         thresholds: list[TableThresholds] = (
-            [threshold for threshold in table_conf.table_thresholds if threshold.model == TableThresholdModel.MISMATCH]
+            [threshold for threshold in table_conf.table_thresholds if threshold.model == "mismatch"]
             if table_conf.table_thresholds
             else []
         )

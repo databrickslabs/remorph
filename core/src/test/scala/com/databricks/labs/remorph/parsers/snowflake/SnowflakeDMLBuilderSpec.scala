@@ -121,7 +121,7 @@ class SnowflakeDMLBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
           namedTable("t1"),
           None,
           Seq(Assign(Id("c1"), Literal(short = Some(42)))),
-          Some(LesserThan(Id("c1"), Literal(short = Some(0)))),
+          Some(LessThan(Id("c1"), Literal(short = Some(0)))),
           None,
           None))
 

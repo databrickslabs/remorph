@@ -174,7 +174,7 @@ eg:
 
 #### Refer to [Reconcile Configuration Guide][def] for detailed instructions and [example configurations][config]
 
-[def]: docs/recon_configurations/README
+[def]: docs/recon_configurations/README.md
 [config]: docs/recon_configurations/reconcile_config_samples.md
 
 ### Execution
@@ -409,9 +409,9 @@ for examples.***
 
 
 <details>
-<summary>Does Reconciler support `Threshold Validation` for report type as `row`?</summary>
+<summary>Does Reconciler support `Column Threshold Validation` for report type as `row`?</summary>
 
-***No. Threshold Validation is supported only for reports with the report type `data` or `all`, generally tables with
+***No. Column Threshold Validation is supported only for reports with the report type `data` or `all`, generally tables with
 primary keys.***
 </details>
 

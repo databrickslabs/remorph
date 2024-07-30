@@ -87,7 +87,7 @@ class SnowflakeExpressionBuilderSpec
         expectedAst = Window(
           window_function = CallFunction("ROW_NUMBER", Seq()),
           partition_spec = Seq(),
-          sort_order = Seq(SortOrder(Id("a"), DescendingSortDirection, SortNullsFirst)),
+          sort_order = Seq(SortOrder(Id("a"), Descending, NullsFirst)),
           frame_spec = None))
 
       exampleExpr(
@@ -105,9 +105,9 @@ class SnowflakeExpressionBuilderSpec
           window_function = CallFunction("NTILE", Seq(Literal(short = Some(42)))),
           partition_spec = Seq(Id("a")),
           sort_order = Seq(
-            SortOrder(Id("b"), AscendingSortDirection, SortNullsLast),
-            SortOrder(Id("c"), DescendingSortDirection, SortNullsFirst),
-            SortOrder(Id("d"), AscendingSortDirection, SortNullsLast)),
+            SortOrder(Id("b"), Ascending, NullsLast),
+            SortOrder(Id("c"), Descending, NullsFirst),
+            SortOrder(Id("d"), Ascending, NullsLast)),
           frame_spec = None))
     }
 
@@ -119,7 +119,7 @@ class SnowflakeExpressionBuilderSpec
         expectedAst = Window(
           window_function = CallFunction("ROW_NUMBER", Seq()),
           partition_spec = Seq(Id("a")),
-          sort_order = Seq(SortOrder(Id("a"), AscendingSortDirection, SortNullsLast)),
+          sort_order = Seq(SortOrder(Id("a"), Ascending, NullsLast)),
           frame_spec = Some(WindowFrame(RowsFrame, UnboundedPreceding, CurrentRow))))
 
       exampleExpr(
@@ -128,7 +128,7 @@ class SnowflakeExpressionBuilderSpec
         expectedAst = Window(
           window_function = CallFunction("ROW_NUMBER", Seq()),
           partition_spec = Seq(Id("a")),
-          sort_order = Seq(SortOrder(Id("a"), AscendingSortDirection, SortNullsLast)),
+          sort_order = Seq(SortOrder(Id("a"), Ascending, NullsLast)),
           frame_spec = Some(WindowFrame(RowsFrame, UnboundedPreceding, UnboundedFollowing))))
 
       exampleExpr(
@@ -137,7 +137,7 @@ class SnowflakeExpressionBuilderSpec
         expectedAst = Window(
           window_function = CallFunction("ROW_NUMBER", Seq()),
           partition_spec = Seq(Id("a")),
-          sort_order = Seq(SortOrder(Id("a"), AscendingSortDirection, SortNullsLast)),
+          sort_order = Seq(SortOrder(Id("a"), Ascending, NullsLast)),
           frame_spec = Some(WindowFrame(RowsFrame, PrecedingN(Literal(short = Some(42))), CurrentRow))))
 
       exampleExpr(
@@ -146,7 +146,7 @@ class SnowflakeExpressionBuilderSpec
         expectedAst = Window(
           window_function = CallFunction("ROW_NUMBER", Seq()),
           partition_spec = Seq(Id("a")),
-          sort_order = Seq(SortOrder(Id("a"), AscendingSortDirection, SortNullsLast)),
+          sort_order = Seq(SortOrder(Id("a"), Ascending, NullsLast)),
           frame_spec = Some(WindowFrame(RowsFrame, CurrentRow, FollowingN(Literal(short = Some(42)))))))
     }
 
@@ -164,41 +164,41 @@ class SnowflakeExpressionBuilderSpec
 
     "translate ORDER BY a" in {
       val tree = parseString("ORDER BY a", _.orderByClause())
-      astBuilder.buildSortOrder(tree) shouldBe Seq(SortOrder(Id("a"), AscendingSortDirection, SortNullsLast))
+      astBuilder.buildSortOrder(tree) shouldBe Seq(SortOrder(Id("a"), Ascending, NullsLast))
     }
 
     "translate ORDER BY a ASC NULLS FIRST" in {
       val tree = parseString("ORDER BY a ASC NULLS FIRST", _.orderByClause())
-      astBuilder.buildSortOrder(tree) shouldBe Seq(SortOrder(Id("a"), AscendingSortDirection, SortNullsFirst))
+      astBuilder.buildSortOrder(tree) shouldBe Seq(SortOrder(Id("a"), Ascending, NullsFirst))
     }
 
     "translate ORDER BY a DESC" in {
       val tree = parseString("ORDER BY a DESC", _.orderByClause())
-      astBuilder.buildSortOrder(tree) shouldBe Seq(SortOrder(Id("a"), DescendingSortDirection, SortNullsFirst))
+      astBuilder.buildSortOrder(tree) shouldBe Seq(SortOrder(Id("a"), Descending, NullsFirst))
     }
 
     "translate ORDER BY a, b DESC" in {
       val tree = parseString("ORDER BY a, b DESC", _.orderByClause())
       astBuilder.buildSortOrder(tree) shouldBe Seq(
-        SortOrder(Id("a"), AscendingSortDirection, SortNullsLast),
-        SortOrder(Id("b"), DescendingSortDirection, SortNullsFirst))
+        SortOrder(Id("a"), Ascending, NullsLast),
+        SortOrder(Id("b"), Descending, NullsFirst))
     }
 
     "translate ORDER BY a DESC NULLS LAST, b" in {
       val tree = parseString("ORDER BY a DESC NULLS LAST, b", _.orderByClause())
       astBuilder.buildSortOrder(tree) shouldBe Seq(
-        SortOrder(Id("a"), DescendingSortDirection, SortNullsLast),
-        SortOrder(Id("b"), AscendingSortDirection, SortNullsLast))
+        SortOrder(Id("a"), Descending, NullsLast),
+        SortOrder(Id("b"), Ascending, NullsLast))
     }
 
     "translate ORDER BY with many expressions" in {
       val tree = parseString("ORDER BY a DESC, b, c ASC, d DESC NULLS LAST, e", _.orderByClause())
       astBuilder.buildSortOrder(tree) shouldBe Seq(
-        SortOrder(Id("a"), DescendingSortDirection, SortNullsFirst),
-        SortOrder(Id("b"), AscendingSortDirection, SortNullsLast),
-        SortOrder(Id("c"), AscendingSortDirection, SortNullsLast),
-        SortOrder(Id("d"), DescendingSortDirection, SortNullsLast),
-        SortOrder(Id("e"), AscendingSortDirection, SortNullsLast))
+        SortOrder(Id("a"), Descending, NullsFirst),
+        SortOrder(Id("b"), Ascending, NullsLast),
+        SortOrder(Id("c"), Ascending, NullsLast),
+        SortOrder(Id("d"), Descending, NullsLast),
+        SortOrder(Id("e"), Ascending, NullsLast))
     }
 
     "translate EXISTS expressions" in {
