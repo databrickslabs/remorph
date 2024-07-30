@@ -314,19 +314,6 @@ class CallMapper {
   }
 }
 
-class SnowflakeCallMapper extends CallMapper {
-
-  override def convert(call: Fn): Expression = {
-    call match {
-      case CallFunction("DATEADD", args) =>
-        DateAdd(args(0), args(1))
-      case CallFunction("REGEXP_LIKE", args) =>
-        RLike(args(0), args(1))
-      case x: CallFunction => super.convert(x)
-    }
-  }
-}
-
 /** abs(expr) - Returns the absolute value of the numeric value. */
 case class Abs(left: Expression) extends Unary(left) with Fn {
   override def prettyName: String = "ABS"
