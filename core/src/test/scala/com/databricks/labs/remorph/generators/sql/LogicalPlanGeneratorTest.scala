@@ -39,11 +39,7 @@ class LogicalPlanGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.L
                 ir.Column(Some(ir.ObjectReference(ir.Id("t"))), ir.Id("b")),
                 ir.Column(Some(ir.ObjectReference(ir.Id("s"))), ir.Id("b"))))),
           ir.DeleteAction(
-            Some(ir.LessThan(
-              ir.Column(Some(ir.ObjectReference(ir.Id("s"))), ir.Id("b")),
-              ir.Literal(10)))
-          )
-        ),
+            Some(ir.LessThan(ir.Column(Some(ir.ObjectReference(ir.Id("s"))), ir.Id("b")), ir.Literal(10))))),
         Seq(
           ir.InsertAction(
             None,

@@ -91,20 +91,26 @@ class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: 
     val source = generate(ctx, mergeIntoTable.sourceTable)
     val condition = expr.generate(ctx, mergeIntoTable.mergeCondition)
 
-    val matchedActions = mergeIntoTable.matchedActions.map { action =>
-      val conditionText = action.condition.map(cond => s" AND ${expr.generate(ctx, cond)}").getOrElse("")
-      s" WHEN MATCHED$conditionText THEN ${expr.generate(ctx, action)}"
-    }.mkString("")
+    val matchedActions = mergeIntoTable.matchedActions
+      .map { action =>
+        val conditionText = action.condition.map(cond => s" AND ${expr.generate(ctx, cond)}").getOrElse("")
+        s" WHEN MATCHED$conditionText THEN ${expr.generate(ctx, action)}"
+      }
+      .mkString("")
 
-    val notMatchedActions = mergeIntoTable.notMatchedActions.map { action =>
-      val conditionText = action.condition.map(cond => s" AND ${expr.generate(ctx, cond)}").getOrElse("")
-      s" WHEN NOT MATCHED$conditionText THEN ${expr.generate(ctx, action)}"
-    }.mkString("")
+    val notMatchedActions = mergeIntoTable.notMatchedActions
+      .map { action =>
+        val conditionText = action.condition.map(cond => s" AND ${expr.generate(ctx, cond)}").getOrElse("")
+        s" WHEN NOT MATCHED$conditionText THEN ${expr.generate(ctx, action)}"
+      }
+      .mkString("")
 
-    val notMatchedBySourceActions = mergeIntoTable.notMatchedBySourceActions.map { action =>
-      val conditionText = action.condition.map(cond => s" AND ${expr.generate(ctx, cond)}").getOrElse("")
-      s" WHEN NOT MATCHED BY SOURCE$conditionText THEN ${expr.generate(ctx, action)}"
-    }.mkString("")
+    val notMatchedBySourceActions = mergeIntoTable.notMatchedBySourceActions
+      .map { action =>
+        val conditionText = action.condition.map(cond => s" AND ${expr.generate(ctx, cond)}").getOrElse("")
+        s" WHEN NOT MATCHED BY SOURCE$conditionText THEN ${expr.generate(ctx, action)}"
+      }
+      .mkString("")
 
     s"MERGE INTO $target USING $source ON $condition$matchedActions$notMatchedActions$notMatchedBySourceActions"
   }
