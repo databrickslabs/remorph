@@ -26,7 +26,6 @@ class SnowflakeCommandBuilder
     ir.CreateVariable(variableName, dataType, None, replace = false)
   }
 
-  /*
   override def visitDeclareResultSet(ctx: DeclareResultSetContext): ir.Command = {
     val variableName = ctx.id().getText
     val dataType = ir.StructType()
@@ -37,7 +36,6 @@ class SnowflakeCommandBuilder
 
     ir.CreateVariable(variableName, dataType, variableValue, replace = false)
   }
-   */
 
   override def visitLetVariableAssignment(ctx: LetVariableAssignmentContext): ir.Command = {
     val variableName = ctx.id().getText

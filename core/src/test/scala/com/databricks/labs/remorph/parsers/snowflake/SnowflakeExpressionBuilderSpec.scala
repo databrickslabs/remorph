@@ -162,8 +162,8 @@ class SnowflakeExpressionBuilderSpec
     "translate scalar subquery" in {
       exampleExpr(
         query = "(SELECT col1 from table_expr)",
-        rule = _.subQueryExpr(),
-        expectedAst = ScalarSubquery(Project(namedTable("t"), Seq(Star(None)))))
+        rule = _.expr(),
+        expectedAst = ScalarSubquery(Project(namedTable("table_expr"), Seq(Column(None, Id("col1"))))))
     }
   }
 

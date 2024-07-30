@@ -418,6 +418,6 @@ class SnowflakeExpressionBuilder()
   }
 
   override def visitExprSubquery(ctx: ExprSubqueryContext): ir.Expression = {
-    ir.ScalarSubquery(ctx.subQueryExpr().accept(new SnowflakeRelationBuilder))
+    ir.ScalarSubquery(ctx.subquery().accept(new SnowflakeRelationBuilder))
   }
 }

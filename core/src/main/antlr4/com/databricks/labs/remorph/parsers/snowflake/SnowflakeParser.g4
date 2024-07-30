@@ -3137,13 +3137,14 @@ exprList: expr (COMMA expr)*
     ;
 
 expr
-    : objectName DOT NEXTVAL                    # exprNextval
-    | expr DOT expr                             # exprDot
-    | expr COLON expr                           # exprColon
-    | expr COLLATE string                       # exprCollate
-    | caseExpression                            # exprCase
-    | iffExpr                                   # exprIff
-    | bracketExpression                         # exprBracket
+    : objectName DOT NEXTVAL # exprNextval
+    | expr DOT expr          # exprDot
+    | expr COLON expr        # exprColon
+    | expr COLLATE string    # exprCollate
+    | caseExpression         # exprCase
+    | iffExpr                # exprIff
+    //Removed it so expression precedance takes over.
+    //| bracketExpression                         # exprBracket
     | sign expr                                 # exprSign
     | expr op = (STAR | DIVIDE | MODULE) expr   # exprPrecedence0
     | expr op = (PLUS | MINUS | PIPE_PIPE) expr # exprPrecedence1
@@ -3156,7 +3157,7 @@ expr
     | castExpr                                  # exprCast
     | expr COLON_COLON dataType                 # exprAscribe
     | functionCall                              # exprFuncCall
-    | subQueryExpr                              # exprSubquery
+    | L_PAREN subquery R_PAREN                  # exprSubquery
     | expr predicatePartial                     # exprPredicate
     | DISTINCT expr                             # exprDistinct
     //Should be latest rule as it's nearly a catch all

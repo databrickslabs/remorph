@@ -39,14 +39,18 @@ class SnowflakeCommandBuilderSpec
         defaultExpr = Some(Literal(float = Some(111.5f))),
         replace = false))
 
-    /*    example(
+    example(
       "query_statement RESULTSET := (select col1 from some_table);",
       _.declareStatement(),
       CreateVariable(
         name = "query_statement",
         dataType = StructType(),
-        defaultExpr = Some(Literal(float = Some(111.5f))),
-        replace = false))*/
+        defaultExpr = Some(
+          ScalarSubquery(
+            Project(
+              NamedTable("some_table", Map(), is_streaming = false),
+              Seq(Column(None, Id("col1", caseSensitive = false)))))),
+        replace = false))
 
   }
 
