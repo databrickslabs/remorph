@@ -1,8 +1,8 @@
 package com.databricks.labs.remorph.generators.sql
 
-import com.databricks.labs.remorph.parsers.{intermediate => ir}
 import com.databricks.labs.remorph.generators.{Generator, GeneratorContext}
 import com.databricks.labs.remorph.parsers.intermediate.{ExceptSetOp, IntersectSetOp, MergeIntoTable, UnionSetOp}
+import com.databricks.labs.remorph.parsers.{intermediate => ir}
 import com.databricks.labs.remorph.parsers.intermediate.{ExceptSetOp, IntersectSetOp, UnionSetOp}
 import com.databricks.labs.remorph.transpilers.TranspileException
 
@@ -94,25 +94,30 @@ class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: 
     val matchedActions = mergeIntoTable.matchedActions
       .map { action =>
         val conditionText = action.condition.map(cond => s" AND ${expr.generate(ctx, cond)}").getOrElse("")
-        s" WHEN MATCHED$conditionText THEN ${expr.generate(ctx, action)}"
+        s" WHEN MATCHED${conditionText} THEN ${expr.generate(ctx, action)}"
       }
       .mkString("")
 
     val notMatchedActions = mergeIntoTable.notMatchedActions
       .map { action =>
         val conditionText = action.condition.map(cond => s" AND ${expr.generate(ctx, cond)}").getOrElse("")
-        s" WHEN NOT MATCHED$conditionText THEN ${expr.generate(ctx, action)}"
+        s" WHEN NOT MATCHED${conditionText} THEN ${expr.generate(ctx, action)}"
       }
       .mkString("")
 
     val notMatchedBySourceActions = mergeIntoTable.notMatchedBySourceActions
       .map { action =>
         val conditionText = action.condition.map(cond => s" AND ${expr.generate(ctx, cond)}").getOrElse("")
-        s" WHEN NOT MATCHED BY SOURCE$conditionText THEN ${expr.generate(ctx, action)}"
+        s" WHEN NOT MATCHED BY SOURCE${conditionText} THEN ${expr.generate(ctx, action)}"
       }
       .mkString("")
 
-    s"MERGE INTO $target USING $source ON $condition$matchedActions$notMatchedActions$notMatchedBySourceActions;"
+    s"MERGE INTO $target" +
+      s" USING $source" +
+      s" ON ${condition}" +
+      s"${matchedActions}" +
+      s"${notMatchedActions}" +
+      s"${notMatchedBySourceActions};"
   }
 
 
