@@ -33,7 +33,7 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
       case d: ir.Distinct => distinct(ctx, d)
       case s: ir.Star => star(ctx, s)
       case col: ir.Column => column(ctx, col)
-      case da: ir.DeleteAction => deleteAction(ctx, da)
+      case da: ir.DeleteAction => "DELETE"
       case ia: ir.InsertAction => insertAction(ctx, ia)
       case ua: ir.UpdateAction => updateAction(ctx, ua)
       case a: ir.Assign => assign(ctx, a)
@@ -49,10 +49,6 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
   private def column(ctx: GeneratorContext, column: ir.Column): String = {
     val objectRef = column.tableNameOrAlias.map(or => generateObjectReference(ctx, or) + ".").getOrElse("")
     s"$objectRef${id(ctx, column.columnName)}"
-  }
-
-  private def deleteAction(ctx: GeneratorContext, deleteAction: ir.DeleteAction): String = {
-    s"DELETE"
   }
 
   private def insertAction(ctx: GeneratorContext, insertAction: ir.InsertAction): String = {
