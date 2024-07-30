@@ -556,7 +556,8 @@ disable = [
   "fixme",
   "consider-using-assignment-expr",
   "logging-fstring-interpolation",
-  "consider-using-any-or-all"
+  "consider-using-any-or-all",
+  "too-many-instance-attributes",
 ]
 
 # Enable the message, report, category or checker with the given id(s). You can

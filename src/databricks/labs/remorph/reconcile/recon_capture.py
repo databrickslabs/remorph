@@ -184,8 +184,7 @@ def generate_final_reconcile_aggregate_output(
             INNER JOIN 
                 {_db_prefix}.{_RECON_AGGREGATE_METRICS_TABLE_NAME} metrics 
             ON 
-                (MAIN.recon_table_id = METRICS.recon_table_id
-                AND MAIN.recon_table_id = -7928385190413005914 
+                (MAIN.recon_table_id = METRICS.recon_table_id 
                 AND MAIN.api_name = 'reconcile-aggregate') 
             WHERE 
                 MAIN.recon_id = '{recon_id}'  

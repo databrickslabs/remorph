@@ -263,41 +263,6 @@ def _get_missing_data(
     )
 
 
-def _trigger_reconcile_aggregates(
-    ws: WorkspaceClient,
-    table_recon: TableRecon,
-    reconcile_config: ReconcileConfig,
-):
-    """
-    Triggers the reconciliation process for aggregated data (SUM, MIN, MAX, AVG) between source and target tables.
-
-    This function attempts to reconcile aggregate data based on the configurations provided. It logs the outcome
-    of the reconciliation process, including any errors encountered during execution.
-
-    Parameters:
-    - ws (WorkspaceClient): The workspace client used to interact with Databricks workspaces.
-    - table_recon (TableRecon): Configuration for the table reconciliation process, including source and target details.
-    - reconcile_config (ReconcileConfig): General configuration for the reconciliation process,
-                                                                    including database and table settings.
-
-    Raises:
-    - ReconciliationException: If an error occurs during the reconciliation process, it is caught and re-raised
-      after logging the error details.
-    """
-    try:
-        recon_output = reconcile_aggregates(
-            ws=ws,
-            spark=DatabricksSession.builder.getOrCreate(),
-            table_recon=table_recon,
-            reconcile_config=reconcile_config,
-        )
-        logger.info(f"recon_output: {recon_output}")
-        logger.info(f"recon_id: {recon_output.recon_id}")
-    except ReconciliationException as e:
-        logger.error(f"Error while running aggregate reconcile: {str(e)}")
-        raise e
-
-
 def reconcile_aggregates(
     ws: WorkspaceClient,
     spark: SparkSession,
@@ -305,7 +270,10 @@ def reconcile_aggregates(
     reconcile_config: ReconcileConfig,
     local_test_run: bool = False,
 ):
-    """[EXPERIMENTAL] Reconcile the aggregated data between the source and target tables."""
+    """[EXPERIMENTAL] Reconcile the aggregated data between the source and target tables.
+    for e.g., COUNT, SUM, AVG of columns between source and target with or without any specific key/group by columns
+    Supported Aggregate functions: MIN, MAX, COUNT, SUM, AVG, MEAN, MODE, PERCENTILE, STDDEV, VARIANCE, MEDIAN
+    """
     # verify the workspace client and add proper product and version details
     # TODO For now we are utilising the
     #  verify_workspace_client from transpile/execute.py file. Later verify_workspace_client function has to be

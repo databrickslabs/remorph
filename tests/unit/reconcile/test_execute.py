@@ -36,8 +36,6 @@ from databricks.labs.remorph.reconcile.recon_config import (
     ReconcileOutput,
     ReconcileTableOutput,
     StatusOutput,
-    Aggregate,
-    AggregateQueryOutput,
 )
 from databricks.labs.remorph.reconcile.schema_compare import SchemaCompare
 
@@ -85,14 +83,6 @@ class RecordCountQueries:
 
 
 @dataclass
-class AggregateQueries:
-    source_agg_query: str
-    target_agg_query: str
-    source_group_agg_query: str
-    target_group_agg_query: str
-
-
-@dataclass
 class QueryStore:
     hash_queries: HashQueries
     mismatch_queries: MismatchQueries
@@ -100,7 +90,6 @@ class QueryStore:
     threshold_queries: ThresholdQueries
     row_queries: RowQueries
     record_count_queries: RecordCountQueries
-    agg_queries: AggregateQueries
 
 
 @pytest.fixture
@@ -152,13 +141,6 @@ def query_store(mock_spark):
         target_record_count_query="SELECT COUNT(1) AS count FROM :tbl WHERE s_name = 't' AND s_address_t = 'a'",
     )
 
-    agg_queries = AggregateQueries(
-        source_agg_query="SELECT min(s_acctbal) AS source_min_s_acctbal FROM :tbl WHERE s_name = 't' AND s_address = 'a'",
-        target_agg_query="SELECT min(s_acctbal_t) AS target_min_s_acctbal FROM :tbl WHERE s_name = 't' AND s_address_t = 'a'",
-        source_group_agg_query="SELECT sum(s_acctbal) AS source_sum_s_acctbal, count(TRIM(s_name)) AS source_count_s_name, s_nationkey AS source_group_by_s_nationkey FROM :tbl WHERE s_name = 't' AND s_address = 'a' GROUP BY s_nationkey",
-        target_group_agg_query="SELECT sum(s_acctbal_t) AS target_sum_s_acctbal, count(TRIM(s_name)) AS target_count_s_name, s_nationkey_t AS target_group_by_s_nationkey FROM :tbl WHERE s_name = 't' AND s_address_t = 'a' GROUP BY s_nationkey_t",
-    )
-
     return QueryStore(
         hash_queries=hash_queries,
         mismatch_queries=mismatch_queries,
@@ -166,7 +148,6 @@ def query_store(mock_spark):
         threshold_queries=threshold_queries,
         row_queries=row_queries,
         record_count_queries=record_count_queries,
-        agg_queries=agg_queries,
     )
 
 
@@ -1985,219 +1966,3 @@ def test_generate_volume_path(table_conf_with_opts):
         volume_path
         == f"/Volumes/remorph/reconcile/reconcile_volume/{table_conf_with_opts.source_name}_{table_conf_with_opts.target_name}/"
     )
-
-
-def test_reconcile_aggregate_data_missing_records(
-    mock_spark,
-    table_conf_with_opts,
-    table_schema,
-    query_store,
-    tmp_path: Path,
-):
-    src_schema, tgt_schema = table_schema
-    table_conf_with_opts.drop_columns = ["s_acctbal"]
-    table_conf_with_opts.column_thresholds = None
-    table_conf_with_opts.aggregates = [Aggregate(type="MIN", agg_columns=["s_acctbal"])]
-
-    source_dataframe_repository = {
-        (
-            CATALOG,
-            SCHEMA,
-            query_store.agg_queries.source_agg_query,
-        ): mock_spark.createDataFrame(
-            [
-                Row(source_min_s_acctbal=11),
-            ]
-        ),
-    }
-    source_schema_repository = {(CATALOG, SCHEMA, SRC_TABLE): src_schema}
-
-    target_dataframe_repository = {
-        (
-            CATALOG,
-            SCHEMA,
-            query_store.agg_queries.target_agg_query,
-        ): mock_spark.createDataFrame(
-            [
-                Row(target_min_s_acctbal=10),
-            ]
-        )
-    }
-
-    target_schema_repository = {(CATALOG, SCHEMA, TGT_TABLE): tgt_schema}
-    database_config = DatabaseConfig(
-        source_catalog=CATALOG,
-        source_schema=SCHEMA,
-        target_catalog=CATALOG,
-        target_schema=SCHEMA,
-    )
-    schema_comparator = SchemaCompare(mock_spark)
-    source = MockDataSource(source_dataframe_repository, source_schema_repository)
-    target = MockDataSource(target_dataframe_repository, target_schema_repository)
-    with patch("databricks.labs.remorph.reconcile.execute.generate_volume_path", return_value=str(tmp_path)):
-        actual: list[AggregateQueryOutput] = Reconciliation(
-            source,
-            target,
-            database_config,
-            "",
-            schema_comparator,
-            get_dialect("databricks"),
-            mock_spark,
-            ReconcileMetadataConfig(),
-        ).reconcile_aggregates(table_conf_with_opts, src_schema, tgt_schema)
-
-        assert len(actual) == 1
-
-        assert actual[0].rule, "Rule must be generated"
-
-        assert actual[0].rule.agg_type == "min"
-        assert actual[0].rule.agg_column == "s_acctbal"
-        assert actual[0].rule.group_by_columns is None
-        assert actual[0].rule.group_by_columns_as_str == "NA"
-        assert actual[0].rule.group_by_columns_as_table_column == "NULL"
-        assert actual[0].rule.rule_column == "min_s_acctbal_NA"
-        assert actual[0].rule.rule_type == "AGGREGATE"
-
-        assert actual[0].reconcile_output.mismatch.mismatch_df, "Mismatch dataframe must be present"
-        assert not actual[0].reconcile_output.mismatch.mismatch_df.isEmpty()
-
-        expected = DataReconcileOutput(
-            mismatch_count=1,
-            missing_in_src_count=0,
-            missing_in_tgt_count=0,
-            mismatch=MismatchOutput(
-                mismatch_columns=None,
-                mismatch_df=mock_spark.createDataFrame(
-                    [
-                        Row(
-                            source_min_s_acctbal=11,
-                            target_min_s_acctbal=10,
-                            match_min_s_acctbal=False,
-                            agg_data_match=False,
-                        )
-                    ]
-                ),
-            ),
-        )
-
-        assert actual[0].reconcile_output.mismatch_count == expected.mismatch_count
-        assert actual[0].reconcile_output.missing_in_src_count == expected.missing_in_src_count
-        assert actual[0].reconcile_output.missing_in_tgt_count == expected.missing_in_tgt_count
-        assertDataFrameEqual(actual[0].reconcile_output.mismatch.mismatch_df, expected.mismatch.mismatch_df)
-
-
-def test_reconcile_aggregate_data_mismatch_missing_records(
-    mock_spark,
-    table_conf_with_opts,
-    table_schema,
-    query_store,
-    tmp_path: Path,
-):
-    src_schema, tgt_schema = table_schema
-    table_conf_with_opts.drop_columns = ["s_acctbal"]
-    table_conf_with_opts.column_thresholds = None
-    table_conf_with_opts.aggregates = [
-        Aggregate(type="SUM", agg_columns=["s_acctbal"], group_by_columns=["s_nationkey"]),
-        Aggregate(type="COUNT", agg_columns=["s_name"], group_by_columns=["s_nationkey"]),
-    ]
-
-    source_dataframe_repository = {
-        (
-            CATALOG,
-            SCHEMA,
-            query_store.agg_queries.source_group_agg_query,
-        ): mock_spark.createDataFrame(
-            [
-                Row(source_sum_s_acctbal=101, source_count_s_name=13, source_group_by_s_nationkey=11),
-                Row(source_sum_s_acctbal=23, source_count_s_name=11, source_group_by_s_nationkey=12),
-                Row(source_sum_s_acctbal=112, source_count_s_name=21, source_group_by_s_nationkey=13),
-            ]
-        ),
-    }
-    source_schema_repository = {(CATALOG, SCHEMA, SRC_TABLE): src_schema}
-
-    target_dataframe_repository = {
-        (
-            CATALOG,
-            SCHEMA,
-            query_store.agg_queries.target_group_agg_query,
-        ): mock_spark.createDataFrame(
-            [
-                Row(target_sum_s_acctbal=101, target_count_s_name=13, target_group_by_s_nationkey=11),
-                Row(target_sum_s_acctbal=43, target_count_s_name=9, target_group_by_s_nationkey=12),
-                Row(target_sum_s_acctbal=348, target_count_s_name=76, target_group_by_s_nationkey=14),
-            ]
-        )
-    }
-
-    target_schema_repository = {(CATALOG, SCHEMA, TGT_TABLE): tgt_schema}
-    database_config = DatabaseConfig(
-        source_catalog=CATALOG,
-        source_schema=SCHEMA,
-        target_catalog=CATALOG,
-        target_schema=SCHEMA,
-    )
-    schema_comparator = SchemaCompare(mock_spark)
-    source = MockDataSource(source_dataframe_repository, source_schema_repository)
-    target = MockDataSource(target_dataframe_repository, target_schema_repository)
-    with patch("databricks.labs.remorph.reconcile.execute.generate_volume_path", return_value=str(tmp_path)):
-        actual_list: list[AggregateQueryOutput] = Reconciliation(
-            source,
-            target,
-            database_config,
-            "",
-            schema_comparator,
-            get_dialect("databricks"),
-            mock_spark,
-            ReconcileMetadataConfig(),
-        ).reconcile_aggregates(table_conf_with_opts, src_schema, tgt_schema)
-
-        # actual = sorted(actual_list, key=lambda x: x.rule and x.rule.agg_type)
-        assert len(actual_list) == 2
-
-        filtered_list = [item for item in actual_list if item.rule and item.rule.agg_type == "count"]
-
-        assert len(filtered_list) == 1
-
-        assert filtered_list[0].rule, "Rule must be generated"
-
-        assert filtered_list[0].rule.agg_type == "count"
-        assert filtered_list[0].rule.agg_column == "s_name"
-        assert filtered_list[0].rule.group_by_columns == ["s_nationkey"]
-        assert filtered_list[0].rule.group_by_columns_as_str == "s_nationkey"
-        assert filtered_list[0].rule.rule_type == "AGGREGATE"
-
-        assert not filtered_list[0].reconcile_output.mismatch.mismatch_df, "Mismatch dataframe must be present"
-        assert filtered_list[0].reconcile_output.mismatch.mismatch_df is not None
-
-        expected = DataReconcileOutput(
-            mismatch_count=1,
-            missing_in_src_count=1,
-            missing_in_tgt_count=1,
-            mismatch=MismatchOutput(
-                mismatch_columns=None,
-                mismatch_df=mock_spark.createDataFrame(
-                    [
-                        Row(
-                            source_count_s_name=11,
-                            target_count_s_name=9,
-                            source_group_by_s_nationkey=12,
-                            target_group_by_s_nationkey=12,
-                            match_count_s_name=False,
-                            match_group_by_s_nationkey=True,
-                            agg_data_match=False,
-                        )
-                    ]
-                ),
-            ),
-            missing_in_src=mock_spark.createDataFrame([Row(target_count_s_name=76, target_group_by_s_nationkey=14)]),
-            missing_in_tgt=mock_spark.createDataFrame([Row(source_count_s_name=21, source_group_by_s_nationkey=13)]),
-        )
-
-        assert filtered_list[0].reconcile_output.mismatch_count == expected.mismatch_count
-        assert filtered_list[0].reconcile_output.missing_in_src_count == expected.missing_in_src_count
-        assert filtered_list[0].reconcile_output.missing_in_tgt_count == expected.missing_in_tgt_count
-
-        assertDataFrameEqual(filtered_list[0].reconcile_output.mismatch.mismatch_df, expected.mismatch.mismatch_df)
-
-

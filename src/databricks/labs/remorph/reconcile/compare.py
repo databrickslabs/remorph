@@ -196,6 +196,25 @@ def _agg_conditions(
     condition_type: str = "group_filter",
     op_type: str = "and",
 ):
+    """
+    Generate conditions for aggregated data comparison based on the condition type
+    and reduces it based on the operator (and, or)
+
+    e.g.,  cols = [(source_min_col1, target_min_col1)]
+              1. condition_type = "group_filter"
+                    source_group_by_col1 is not null and target_group_by_col1 is not null
+              2. condition_type = "select"
+                    source_min_col1 == target_min_col1
+              3. condition_type = "missing_in_src"
+                    source_min_col1 is null
+              4. condition_type = "missing_in_tgt"
+                      target_min_col1 is null
+
+    :param cols:  List of columns to compare
+    :param condition_type:  Type of condition to generate
+    :param op_type: and, or
+    :return:  Reduced column expressions
+    """
     assert cols, "Columns must be specified for aggregation conditions"
 
     conditions_list = [(col(f"{item[0]}").isNotNull() & col(f"{item[1]}").isNotNull()) for item in cols]
@@ -212,6 +231,18 @@ def _agg_conditions(
 
 
 def _generate_match_columns(select_cols: list[tuple[str, str]]):
+    """
+    Generate match columns for the given select columns
+    e.g.,  select_cols = [(source_min_col1, target_min_col1), (source_count_col3, target_count_col3)]
+            |--------------------------------------|---------------------|
+           |               match_min_col1                      |  match_count_col3 |
+           |--------------------------------------|--------------------|
+             source_min_col1 == target_min_col1 | source_count_col3 == target_count_col3
+           --------------------------------------|---------------------|
+
+    :param select_cols:
+    :return:
+    """
     items = []
     for item in select_cols:
         match_col_name = item[0].replace("source_", "match_")
@@ -225,15 +256,33 @@ def _get_mismatch_agg_data(
     group_cols: list[tuple[str, str]] | None,
 ) -> DataFrame:
     # TODO:  Integrate with _get_mismatch_data function
+    """
+    For each rule select columns, generate a match column to compare the aggregated data between Source and Target
+
+      e.g., select_cols = [(source_min_col1, target_min_col1), (source_count_col3, target_count_col3)]
+
+            source_min_col1 | target_min_col1 | match_min_col1 |  agg_data_match |
+            -----------------|--------------------|----------------|-------------------|
+                   11    |   12    |source_min_col1 == target_min_col1 | False                     |
+
+    :param df: Joined DataFrame with aggregated data from Source and Target
+    :param select_cols:  Rule specific select columns
+    :param group_cols: Rule specific group by columns, if any
+    :return: DataFrame with match_<AGG_TYPE>_<COLUMN> and agg_data_match columns
+                 to identify the aggregate data mismatch between Source and Target
+    """
     df_with_match_cols = df
 
     if group_cols:
+        # Filter Conditions are in the format of: source_group_by_col1 is not null and target_group_by_col1 is not null
         filter_conditions = _agg_conditions(group_cols)
         df_with_match_cols = df_with_match_cols.filter(filter_conditions)
 
+    # Generate match columns for the select columns. e.g., match_<AGG_TYPE>_<COLUMN>
     for match_column_name, match_column in _generate_match_columns(select_cols):
         df_with_match_cols = df_with_match_cols.withColumn(match_column_name, match_column)
 
+    # e.g., source_min_col1 == target_min_col1 and source_count_col3 == target_count_col3
     select_conditions = _agg_conditions(select_cols, "select")
 
     return df_with_match_cols.withColumn("agg_data_match", select_conditions).filter(
