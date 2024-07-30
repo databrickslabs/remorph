@@ -171,9 +171,11 @@ declareCommand: DECLARE declareStatement+
     ;
 
 declareStatement
-    : id dataType SEMI #declareSimple
-    | id dataType DEFAULT L_PAREN selectStatement R_PAREN SEMI #declareSelect
-    | id dataType DEFAULT expr SEMI #declarewithDefault
+    : id dataType SEMI                                                       # declareSimple
+    | id dataType DEFAULT expr SEMI                                          # declareWithDefault
+    | id CURSOR FOR selectStatement SEMI                                     # declareCursor
+    | id RESULTSET (ASSIGN | DEFAULT) L_PAREN? selectStatement R_PAREN? SEMI # declareResultSet
+    | id EXCEPTION L_PAREN INT COMMA STRING R_PAREN SEMI                     # declareException
     ;
 
 externalLocation
@@ -214,8 +216,9 @@ formatType: TYPE EQ typeFileformat formatTypeOptions*
     ;
 
 let
-    : LET key = id dataType? (ASSIGN | DEFAULT) value = expr SEMI
-    | key = id dataType? (ASSIGN | DEFAULT) value = expr SEMI
+    : LET? id dataType? (ASSIGN | DEFAULT) expr SEMI                    # letVariableAssignment
+    | LET? id CURSOR FOR (selectStatement | id) SEMI                    # letCursor
+    | LET? id (ASSIGN | DEFAULT) L_PAREN? selectStatement R_PAREN? SEMI # letResultSet
     ;
 
 returnStatement: RETURN expr SEMI

@@ -30,12 +30,14 @@ class SnowflakeCommandBuilderSpec
       _.declareStatement(),
       CreateVariable(name = "select_statement", dataType = VarCharType(None), defaultExpr = None, replace = false))
 
-
     example(
       "price NUMBER(13,2) DEFAULT 111.50;",
       _.declareStatement(),
-      CreateVariable(name = "price", dataType = DecimalType(Some(13), Some(2)),
-        defaultExpr = Some(Literal(float = Some(111.5f))), replace = false))
+      CreateVariable(
+        name = "price",
+        dataType = DecimalType(Some(13), Some(2)),
+        defaultExpr = Some(Literal(float = Some(111.5f))),
+        replace = false))
 
   }
 

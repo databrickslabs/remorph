@@ -13,17 +13,20 @@ class SnowflakeCommandBuilder
   protected override def wrapUnresolvedInput(unparsedInput: String): ir.UnresolvedCommand =
     ir.UnresolvedCommand(unparsedInput)
 
-  override def visitDeclareStatement(ctx: DeclareStatementContext): ir.Command = {
+  override def visitDeclareWithDefault(ctx: DeclareWithDefaultContext): ir.Command = {
     val variableName = ctx.id().getText
     val dataType = DataTypeBuilder.buildDataType(ctx.dataType())
-    val variableValue = ctx.expr() match {
-      case null => None
-      case _ => Some(ctx.expr().accept(expressionBuilder))
-    }
-    ir.CreateVariable(variableName, dataType, variableValue, replace = false)
+    val variableValue = ctx.expr().accept(expressionBuilder)
+    ir.CreateVariable(variableName, dataType, Some(variableValue), replace = false)
   }
 
-  override def visitLet(ctx: LetContext): ir.Command = {
+  override def visitDeclareSimple(ctx: DeclareSimpleContext): ir.Command = {
+    val variableName = ctx.id().getText
+    val dataType = DataTypeBuilder.buildDataType(ctx.dataType())
+    ir.CreateVariable(variableName, dataType, None, replace = false)
+  }
+
+  override def visitLetVariableAssignment(ctx: LetVariableAssignmentContext): ir.Command = {
     val variableName = ctx.id().getText
     val variableDataType = Option(ctx.dataType()).flatMap(dt => Some(DataTypeBuilder.buildDataType(dt)))
     val variableValue = ctx.expr().accept(expressionBuilder)
