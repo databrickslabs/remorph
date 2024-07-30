@@ -6,7 +6,7 @@ import com.databricks.labs.remorph.parsers.{intermediate => ir}
 import com.databricks.labs.remorph.transpilers.TranspileException
 
 import java.time.format.DateTimeFormatter
-import java.time.{Instant, LocalDate, LocalDateTime, ZoneId, ZonedDateTime}
+import java.time._
 import java.util.Locale
 
 class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
@@ -32,9 +32,38 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
       case a: ir.Alias => alias(ctx, a)
       case d: ir.Distinct => distinct(ctx, d)
       case s: ir.Star => star(ctx, s)
-      case c: ir.Column => column(ctx, c)
+      case col: ir.Column => column(ctx, col)
+      case da: ir.DeleteAction => deleteAction(ctx, da)
+      case ia: ir.InsertAction => insertAction(ctx, ia)
+      case ua: ir.UpdateAction => updateAction(ctx, ua)
+      case a: ir.Assign => assign(ctx, a)
+
       case x => throw TranspileException(s"Unsupported expression: $x")
     }
+  }
+
+  private def assign(ctx: GeneratorContext, assign: ir.Assign): String = {
+    s"${expression(ctx, assign.left)} = ${expression(ctx, assign.right)}"
+  }
+
+  private def column(ctx: GeneratorContext, column: ir.Column): String = {
+    val objectRef = column.tableNameOrAlias.map(or => generateObjectReference(ctx, or) + ".").getOrElse("")
+    s"$objectRef${id(ctx, column.columnName)}"
+  }
+
+  private def deleteAction(ctx: GeneratorContext, deleteAction: ir.DeleteAction): String = {
+    s"DELETE"
+  }
+
+  private def insertAction(ctx: GeneratorContext, insertAction: ir.InsertAction): String = {
+    val (cols, values) = insertAction.assignments.map { assign =>
+      (generate(ctx, assign.left), generate(ctx, assign.right))
+    }.unzip
+    s"INSERT (${cols.mkString(", ")}) VALUES (${values.mkString(", ")})"
+  }
+
+  private def updateAction(ctx: GeneratorContext, updateAction: ir.UpdateAction): String = {
+    s"UPDATE SET ${updateAction.assignments.map(assign => generate(ctx, assign)).mkString(", ")}"
   }
 
   private def arithmetic(ctx: GeneratorContext, expr: ir.Expression): String = expr match {
@@ -173,10 +202,7 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
   private def objectReference(ctx: GeneratorContext, objRef: ir.ObjectReference): String = {
     (objRef.head +: objRef.tail).map(id(ctx, _)).mkString(".")
   }
-  private def column(ctx: GeneratorContext, col: ir.Column): String = {
-    val objRef = col.tableNameOrAlias.map(t => expression(ctx, t) + ".").getOrElse("")
-    s"$objRef${id(ctx, col.columnName)}"
-  }
+
   private def orNull(option: Option[String]): String = option.getOrElse("NULL")
 
   private def doubleQuote(s: String): String = s""""$s""""

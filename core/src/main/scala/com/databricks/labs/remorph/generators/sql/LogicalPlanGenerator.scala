@@ -2,6 +2,7 @@ package com.databricks.labs.remorph.generators.sql
 
 import com.databricks.labs.remorph.parsers.{intermediate => ir}
 import com.databricks.labs.remorph.generators.{Generator, GeneratorContext}
+import com.databricks.labs.remorph.parsers.intermediate.{ExceptSetOp, IntersectSetOp, MergeIntoTable, UnionSetOp}
 import com.databricks.labs.remorph.parsers.intermediate.{ExceptSetOp, IntersectSetOp, UnionSetOp}
 import com.databricks.labs.remorph.transpilers.TranspileException
 
@@ -26,6 +27,7 @@ class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: 
     case sort: ir.Sort => orderBy(ctx, sort)
     case join: ir.Join => generateJoin(ctx, join)
     case setOp: ir.SetOperation => setOperation(ctx, setOp)
+    case mergeIntoTable: ir.MergeIntoTable => generateMerge(ctx, mergeIntoTable)
     case x => throw unknown(x)
   }
 
@@ -83,6 +85,32 @@ class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: 
     val duplicates = if (setOp.is_all) " ALL" else if (explicitDistinct) " DISTINCT" else ""
     s"(${generate(ctx, setOp.left)}) $op$duplicates (${generate(ctx, setOp.right)})"
   }
+
+  private def generateMerge(ctx: GeneratorContext, mergeIntoTable: MergeIntoTable) = {
+    val target = generate(ctx, mergeIntoTable.targetTable)
+    val source = generate(ctx, mergeIntoTable.sourceTable)
+    val condition = expr.generate(ctx, mergeIntoTable.mergeCondition)
+
+    val matchedActions = if (mergeIntoTable.matchedActions.nonEmpty) {
+      s" WHEN MATCHED THEN ${mergeIntoTable.matchedActions.map(expr.generate(ctx, _)).mkString(" ")}"
+    } else {
+      ""
+    }
+
+    val notMatchedActions = if (mergeIntoTable.notMatchedActions.nonEmpty) {
+      s" WHEN NOT MATCHED THEN ${mergeIntoTable.notMatchedActions.map(expr.generate(ctx, _)).mkString(" ")}"
+    } else {
+      ""
+    }
+    val notMatchedBySourceActions = if (mergeIntoTable.notMatchedBySourceActions.nonEmpty) {
+      s" WHEN NOT MATCHED BY SOURCE THEN ${mergeIntoTable.notMatchedActions.map(expr.generate(ctx, _)).mkString(" ")}"
+    } else {
+      ""
+    }
+
+    s"MERGE INTO $target USING $source ON $condition$matchedActions$notMatchedActions$notMatchedBySourceActions"
+  }
+
 
   private def aggregate(ctx: GeneratorContext, aggregate: ir.Aggregate): String = {
     val child = generate(ctx, aggregate.child)
