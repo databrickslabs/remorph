@@ -216,9 +216,9 @@ formatType: TYPE EQ typeFileformat formatTypeOptions*
     ;
 
 let
-    : LET? id dataType? (ASSIGN | DEFAULT) expr SEMI     # letVariableAssignment
-    | LET? id CURSOR FOR (selectStatement | id) SEMI     # letCursor
-    | LET? id RESULTSET? ((ASSIGN | DEFAULT) expr)? SEMI # letResultSet
+    //variable and resultset are covered under the same visitor since expr is common
+    : LET? id (dataType | RESULTSET)? (ASSIGN | DEFAULT) expr SEMI # letVariableAssignment
+    | LET? id CURSOR FOR (selectStatement | id) SEMI               # letCursor
     ;
 
 returnStatement: RETURN expr SEMI

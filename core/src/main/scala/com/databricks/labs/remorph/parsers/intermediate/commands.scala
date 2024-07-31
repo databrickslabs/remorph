@@ -88,9 +88,9 @@ case class WriteStreamOperationStart(
     extends LeafNode
     with Command
 
-case class CreateVariable(name: String, dataType: DataType, defaultExpr: Option[Expression], replace: Boolean)
+case class CreateVariable(name: Id, dataType: DataType, defaultExpr: Option[Expression] = None, replace: Boolean)
     extends LeafNode
     with Command
 
-case class SetVariable(name: String, dataType: Option[DataType], value: Expression) extends LeafNode with Command
+case class SetVariable(name: Id, value: Expression, dataType: Option[DataType] = None) extends LeafNode with Command
 

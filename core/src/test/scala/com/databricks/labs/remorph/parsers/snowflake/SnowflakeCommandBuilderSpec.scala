@@ -20,7 +20,7 @@ class SnowflakeCommandBuilderSpec
       "X NUMBER DEFAULT 0;",
       _.declareStatement(),
       CreateVariable(
-        name = "X",
+        name = Id("X"),
         dataType = DecimalType(None, None),
         defaultExpr = Some(Literal(short = Some(0))),
         replace = false))
@@ -28,13 +28,13 @@ class SnowflakeCommandBuilderSpec
     example(
       "select_statement VARCHAR;",
       _.declareStatement(),
-      CreateVariable(name = "select_statement", dataType = VarCharType(None), defaultExpr = None, replace = false))
+      CreateVariable(name = Id("select_statement"), dataType = VarCharType(None), defaultExpr = None, replace = false))
 
     example(
       "price NUMBER(13,2) DEFAULT 111.50;",
       _.declareStatement(),
       CreateVariable(
-        name = "price",
+        name = Id("price"),
         dataType = DecimalType(Some(13), Some(2)),
         defaultExpr = Some(Literal(float = Some(111.5f))),
         replace = false))
@@ -43,7 +43,7 @@ class SnowflakeCommandBuilderSpec
       "query_statement RESULTSET := (select col1 from some_table);",
       _.declareStatement(),
       CreateVariable(
-        name = "query_statement",
+        name = Id("query_statement"),
         dataType = StructType(),
         defaultExpr = Some(
           ScalarSubquery(
@@ -55,13 +55,13 @@ class SnowflakeCommandBuilderSpec
   }
 
   "translate Let to SetVariable expressions" in {
-    example("LET X := 1;", _.let(), SetVariable(name = "X", dataType = None, value = Literal(short = Some(1))))
+    example("LET X := 1;", _.let(), SetVariable(name = Id("X"), dataType = None, value = Literal(short = Some(1))))
 
     example(
       "select_statement := 'select * from table where id = ' || id;",
       _.let(),
       SetVariable(
-        name = "select_statement",
+        name = Id("select_statement"),
         dataType = None,
         value = Concat(Seq(Literal(string = Some("select * from table where id = ")), Id("id")))))
 
@@ -69,7 +69,7 @@ class SnowflakeCommandBuilderSpec
       "LET price NUMBER(13,2) DEFAULT 111.50;",
       _.let(),
       SetVariable(
-        name = "price",
+        name = Id("price"),
         dataType = Some(DecimalType(Some(13), Some(2))),
         value = Literal(float = Some(111.5f))))
 
@@ -77,9 +77,20 @@ class SnowflakeCommandBuilderSpec
       "LET price NUMBER(13,2) := 121.55;",
       _.let(),
       SetVariable(
-        name = "price",
+        name = Id("price"),
         dataType = Some(DecimalType(Some(13), Some(2))),
         value = Literal(float = Some(121.55f))))
+
+    example(
+      "LET query_statement RESULTSET := (select col1 from some_table);",
+      _.let(),
+      SetVariable(
+        name = Id("query_statement"),
+        dataType = Some(StructType()),
+        value = ScalarSubquery(
+          Project(
+            NamedTable("some_table", Map(), is_streaming = false),
+            Seq(Column(None, Id("col1", caseSensitive = false)))))))
 
   }
 
