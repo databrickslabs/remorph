@@ -62,7 +62,7 @@ class LogicalPlanGenerator(val explicitDistinct: Boolean = false) extends Genera
     val conditionOpt = join.join_condition.map(expr.generate(ctx, _))
     val spaceAndCondition = conditionOpt.map(" ON " + _).getOrElse("")
     val using = join.using_columns.mkString(", ")
-    val spaceAndUsing = if (using.isEmpty) "" else s" USING $using"
+    val spaceAndUsing = if (using.isEmpty) "" else s" USING ($using)"
     s"$left $joinType $right$spaceAndCondition$spaceAndUsing"
   }
 
