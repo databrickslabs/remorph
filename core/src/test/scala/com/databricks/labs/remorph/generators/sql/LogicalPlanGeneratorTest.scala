@@ -6,7 +6,7 @@ import org.scalatest.wordspec.AnyWordSpec
 
 class LogicalPlanGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.LogicalPlan] with ir.IRHelpers {
 
-  override protected val generator = new LogicalPlanGenerator
+  override protected val generator = new LogicalPlanGenerator(new ExpressionGenerator())
 
   "Project" should {
     "transpile to SELECT" in {

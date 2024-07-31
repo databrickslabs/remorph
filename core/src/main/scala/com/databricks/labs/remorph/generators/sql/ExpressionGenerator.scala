@@ -1,6 +1,7 @@
 package com.databricks.labs.remorph.generators.sql
 
 import com.databricks.labs.remorph.generators.{Generator, GeneratorContext}
+import com.databricks.labs.remorph.parsers.intermediate.RLike
 import com.databricks.labs.remorph.parsers.{intermediate => ir}
 import com.databricks.labs.remorph.transpilers.TranspileException
 
@@ -18,6 +19,7 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
   def expression(ctx: GeneratorContext, expr: ir.Expression): String = {
     expr match {
       case l: ir.Like => like(ctx, l)
+      case r: ir.RLike => rlike(ctx, r)
       case _: ir.Bitwise => bitwise(ctx, expr)
       case _: ir.Arithmetic => arithmetic(ctx, expr)
       case _: ir.Predicate => predicate(ctx, expr)
@@ -54,6 +56,10 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
     s"${expression(ctx, like.left)} LIKE ${expression(ctx, like.right)}$escape"
   }
 
+  private def rlike(ctx: GeneratorContext, r: RLike): String = {
+    s"${expression(ctx, r.left)} RLIKE ${expression(ctx, r.right)}"
+  }
+
   private def predicate(ctx: GeneratorContext, expr: ir.Expression): String = expr match {
     case ir.And(left, right) => s"(${expression(ctx, left)} AND ${expression(ctx, right)})"
     case ir.Or(left, right) => s"(${expression(ctx, left)} OR ${expression(ctx, right)})"
@@ -69,7 +75,12 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
 
   private def callFunction(ctx: GeneratorContext, fn: ir.Fn): String = {
     val call = callMapper.convert(fn)
-    s"${call.prettyName}(${call.children.map(expression(ctx, _)).mkString(", ")})"
+    call match {
+      case r: RLike => rlike(ctx, r)
+      case fn: ir.Fn => s"${fn.prettyName}(${fn.children.map(expression(ctx, _)).mkString(", ")})"
+      case _ => throw TranspileException("not implemented")
+    }
+
   }
 
   private def literal(ctx: GeneratorContext, l: ir.Literal): String = {
@@ -82,7 +93,7 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
       case ir.LongType => orNull(l.long.map(_.toString))
       case ir.FloatType => orNull(l.float.map(_.toString))
       case ir.DoubleType => orNull(l.double.map(_.toString))
-      case ir.StringType => orNull(l.string.map(doubleQuote))
+      case ir.StringType => orNull(l.string.map(singleQuote))
       case ir.DateType => dateLiteral(l)
       case ir.TimestampType => timestampLiteral(l)
       case ir.ArrayType(_) => orNull(l.array.map(arrayExpr(ctx)))
@@ -94,7 +105,7 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
   private def timestampLiteral(l: ir.Literal) = {
     l.timestamp match {
       case Some(timestamp) =>
-        doubleQuote(
+        singleQuote(
           LocalDateTime
             .from(ZonedDateTime.ofInstant(Instant.ofEpochMilli(timestamp), ZoneId.of("UTC")))
             .format(timeFormat))
@@ -105,7 +116,7 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
   private def dateLiteral(l: ir.Literal) = {
     l.date match {
       case Some(date) =>
-        doubleQuote(
+        singleQuote(
           LocalDate.from(ZonedDateTime.ofInstant(Instant.ofEpochMilli(date), ZoneId.of("UTC"))).format(dateFormat))
       case None => "NULL"
     }
@@ -155,4 +166,6 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
   private def orNull(option: Option[String]): String = option.getOrElse("NULL")
 
   private def doubleQuote(s: String): String = s""""$s""""
+
+  private def singleQuote(s: String): String = s"'$s'"
 }

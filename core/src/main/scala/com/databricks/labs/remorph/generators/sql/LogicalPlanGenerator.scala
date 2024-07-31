@@ -4,9 +4,8 @@ import com.databricks.labs.remorph.parsers.{intermediate => ir}
 import com.databricks.labs.remorph.generators.{Generator, GeneratorContext}
 import com.databricks.labs.remorph.parsers.intermediate.{ExceptSetOp, IntersectSetOp, UnionSetOp}
 
-class LogicalPlanGenerator(val explicitDistinct: Boolean = false) extends Generator[ir.LogicalPlan, String] {
-
-  private val expr = new ExpressionGenerator
+class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: Boolean = false)
+    extends Generator[ir.LogicalPlan, String] {
 
   override def generate(ctx: GeneratorContext, tree: ir.LogicalPlan): String = tree match {
     case b: ir.Batch => b.children.map(generate(ctx, _)).mkString("", ";\n", ";")
