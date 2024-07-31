@@ -2,10 +2,9 @@ package com.databricks.labs.remorph.transpilers
 
 import com.databricks.labs.remorph.generators.GeneratorContext
 import com.databricks.labs.remorph.generators.sql.{ExpressionGenerator, LogicalPlanGenerator}
-import com.databricks.labs.remorph.parsers.ProductionErrorCollector
-import com.databricks.labs.remorph.parsers.{intermediate => ir}
 import com.databricks.labs.remorph.parsers.tsql.rules.{PullLimitUpwards, TopPercentToLimitSubquery, TrapInsertDefaultsAction}
 import com.databricks.labs.remorph.parsers.tsql.{TSqlAstBuilder, TSqlLexer, TSqlParser}
+import com.databricks.labs.remorph.parsers.{ProductionErrorCollector, intermediate => ir}
 import org.antlr.v4.runtime.{CharStreams, CommonTokenStream}
 
 class TSqlToDatabricksTranspiler extends BaseTranspiler {

@@ -3,7 +3,6 @@ package com.databricks.labs.remorph.generators.sql
 import com.databricks.labs.remorph.generators.{Generator, GeneratorContext}
 import com.databricks.labs.remorph.parsers.intermediate.{ExceptSetOp, IntersectSetOp, MergeIntoTable, UnionSetOp}
 import com.databricks.labs.remorph.parsers.{intermediate => ir}
-import com.databricks.labs.remorph.parsers.intermediate.{ExceptSetOp, IntersectSetOp, UnionSetOp}
 import com.databricks.labs.remorph.transpilers.TranspileException
 
 class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: Boolean = false)
@@ -120,7 +119,6 @@ class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: 
       s"${notMatchedActions}" +
       s"${notMatchedBySourceActions};"
   }
-
 
   private def aggregate(ctx: GeneratorContext, aggregate: ir.Aggregate): String = {
     val child = generate(ctx, aggregate.child)
