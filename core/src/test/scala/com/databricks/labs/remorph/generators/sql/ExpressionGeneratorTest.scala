@@ -17,7 +17,7 @@ class ExpressionGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.Ex
       Map(),
       Map("FLAME" -> false, "QUICKLY" -> true),
       List()) generates
-    """/*
+      """/*
       |   The following statement was originally given the following OPTIONS:
       |
       |    Expression options:

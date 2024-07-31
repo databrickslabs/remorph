@@ -915,8 +915,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
           |MERGE INTO t USING s
           | ON t.a = s.a
           | WHEN MATCHED THEN UPDATE SET t.b = s.b
-          | WHEN NOT MATCHED THEN INSERT (a, b) VALUES (s.a, s.b)
-          | OPTION ( KEEPFIXED PLAN, FAST 666, MAX_GRANT_PERCENT = 30, FLAME ON, FLAME OFF, QUICKLY) """.stripMargin,
+          | WHEN NOT MATCHED THEN INSERT (a, b) VALUES (s.a, s.b)""".stripMargin,
       expectedAst = Batch(
         Seq(MergeIntoTable(
           NamedTable("t", Map(), is_streaming = false),
@@ -934,20 +933,54 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
               Assign(Column(None, Id("a")), Column(Some(ObjectReference(Id("s"))), Id("a"))),
               Assign(Column(None, Id("b")), Column(Some(ObjectReference(Id("s"))), Id("b")))))),
           List.empty))))
-
+  }
+  "translate MERGE statements with options" in {
     example(
       query = """
-                |WITH s (a, b, col3count)
-                |                AS
-                |                (
-                |                    SELECT col1, fred, COUNT(OrderDate) AS counter
-                |                    FROM Table1
-                |                )
-                |   MERGE INTO t WITH (NOLOCK, READCOMMITTED) USING s
-                |   ON t.a = s.a
-                |   WHEN MATCHED THEN UPDATE SET t.b = s.b
-                |   WHEN NOT MATCHED BY TARGET THEN DELETE
-                |   WHEN NOT MATCHED BY SOURCE THEN INSERT (a, b) VALUES (s.a, s.b)""".stripMargin,
+            |MERGE INTO t USING s
+            | ON t.a = s.a
+            | WHEN MATCHED THEN UPDATE SET t.b = s.b
+            | WHEN NOT MATCHED THEN INSERT (a, b) VALUES (s.a, s.b)
+            | OPTION ( KEEPFIXED PLAN, FAST 666, MAX_GRANT_PERCENT = 30, FLAME ON, FLAME OFF, QUICKLY) """.stripMargin,
+      expectedAst = Batch(
+        Seq(WithOptions(
+          MergeIntoTable(
+            NamedTable("t", Map(), is_streaming = false),
+            NamedTable("s", Map(), is_streaming = false),
+            Equals(Column(Some(ObjectReference(Id("t"))), Id("a")), Column(Some(ObjectReference(Id("s"))), Id("a"))),
+            Seq(
+              UpdateAction(
+                None,
+                Seq(Assign(
+                  Column(Some(ObjectReference(Id("t"))), Id("b")),
+                  Column(Some(ObjectReference(Id("s"))), Id("b")))))),
+            Seq(InsertAction(
+              None,
+              Seq(
+                Assign(Column(None, Id("a")), Column(Some(ObjectReference(Id("s"))), Id("a"))),
+                Assign(Column(None, Id("b")), Column(Some(ObjectReference(Id("s"))), Id("b")))))),
+            List.empty),
+          Options(
+            Map(
+              "KEEPFIXED" -> Column(None, Id("PLAN")),
+              "FAST" -> Literal(short = Some(666)),
+              "MAX_GRANT_PERCENT" -> Literal(short = Some(30))),
+            Map(),
+            Map("FLAME" -> false, "QUICKLY" -> true),
+            List())))))
+    example(
+      query = """
+            |WITH s (a, b, col3count)
+            |                AS
+            |                (
+            |                    SELECT col1, fred, COUNT(OrderDate) AS counter
+            |                    FROM Table1
+            |                )
+            |   MERGE INTO t WITH (NOLOCK, READCOMMITTED) USING s
+            |   ON t.a = s.a
+            |   WHEN MATCHED THEN UPDATE SET t.b = s.b
+            |   WHEN NOT MATCHED BY TARGET THEN DELETE
+            |   WHEN NOT MATCHED BY SOURCE THEN INSERT (a, b) VALUES (s.a, s.b)""".stripMargin,
       expectedAst = Batch(
         Seq(WithCTE(
           Seq(CTEDefinition(

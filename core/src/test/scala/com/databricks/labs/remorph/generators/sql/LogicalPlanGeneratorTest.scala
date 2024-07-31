@@ -53,6 +53,58 @@ class LogicalPlanGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.L
         " WHEN NOT MATCHED THEN INSERT (a, b) VALUES (s.a, s.b)" +
         ";"
     }
+    "transpile to MERGE with comments" in {
+      ir.WithOptions(
+        ir.MergeIntoTable(
+          ir.NamedTable("t", Map(), is_streaming = false),
+          ir.NamedTable("s", Map(), is_streaming = false),
+          ir.Equals(
+            ir.Column(Some(ir.ObjectReference(ir.Id("t"))), ir.Id("a")),
+            ir.Column(Some(ir.ObjectReference(ir.Id("s"))), ir.Id("a"))),
+          Seq(
+            ir.UpdateAction(
+              None,
+              Seq(
+                ir.Assign(
+                  ir.Column(Some(ir.ObjectReference(ir.Id("t"))), ir.Id("b")),
+                  ir.Column(Some(ir.ObjectReference(ir.Id("s"))), ir.Id("b")))))),
+          Seq(
+            ir.InsertAction(
+              None,
+              Seq(
+                ir.Assign(ir.Column(None, ir.Id("a")), ir.Column(Some(ir.ObjectReference(ir.Id("s"))), ir.Id("a"))),
+                ir.Assign(ir.Column(None, ir.Id("b")), ir.Column(Some(ir.ObjectReference(ir.Id("s"))), ir.Id("b")))))),
+          List.empty),
+        ir.Options(
+          Map(
+            "KEEPFIXED" -> ir.Column(None, ir.Id("PLAN")),
+            "FAST" -> ir.Literal(short = Some(666)),
+            "MAX_GRANT_PERCENT" -> ir.Literal(short = Some(30))),
+          Map(),
+          Map("FLAME" -> false, "QUICKLY" -> true),
+          List())) generates
+        """/*
+          |   The following statement was originally given the following OPTIONS:
+          |
+          |    Expression options:
+          |
+          |     KEEPFIXED = PLAN
+          |     FAST = 666
+          |     MAX_GRANT_PERCENT = 30
+          |
+          |    Boolean options:
+          |
+          |     FLAME = OFF
+          |     QUICKLY = ON
+          |
+          |
+          | */
+          |""".stripMargin +
+        "MERGE INTO t USING s ON t.a = s.a" +
+        " WHEN MATCHED THEN UPDATE SET t.b = s.b" +
+        " WHEN NOT MATCHED THEN INSERT (a, b) VALUES (s.a, s.b)" +
+        ";"
+    }
   }
 
   "Join" should {
