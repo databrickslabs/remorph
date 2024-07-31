@@ -28,6 +28,7 @@ class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: 
     case join: ir.Join => generateJoin(ctx, join)
     case setOp: ir.SetOperation => setOperation(ctx, setOp)
     case mergeIntoTable: ir.MergeIntoTable => generateMerge(ctx, mergeIntoTable)
+    case withOptions: ir.WithOptions => generateWithOptions(ctx, withOptions)
     case x => throw unknown(x)
   }
 
@@ -134,5 +135,11 @@ class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: 
         s"$child PIVOT($expressions FOR $col$values)"
       case a => throw TranspileException(s"Unsupported aggregate $a")
     }
+  }
+  private def generateWithOptions(ctx: GeneratorContext, withOptions: ir.WithOptions): String = {
+    val optionComments = expr.generate(ctx, withOptions.options)
+    val plan = generate(ctx, withOptions.input)
+    s"${optionComments}" +
+      s"${plan}"
   }
 }

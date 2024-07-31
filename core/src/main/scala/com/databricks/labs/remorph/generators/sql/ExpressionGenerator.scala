@@ -37,8 +37,55 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
       case ia: ir.InsertAction => insertAction(ctx, ia)
       case ua: ir.UpdateAction => updateAction(ctx, ua)
       case a: ir.Assign => assign(ctx, a)
+      case opts: ir.Options => options(ctx, opts)
 
       case x => throw TranspileException(s"Unsupported expression: $x")
+    }
+  }
+
+  private def options(ctx: GeneratorContext, opts: ir.Options): String = {
+    // First gather the options that are set by expressions
+    val exprOptions = opts.expressionOpts.map { case (key, expression) =>
+      s"     ${key} = ${generate(ctx, expression)}\n"
+    }.mkString
+    val exprStr = if (exprOptions.nonEmpty) {
+      s"    Expression options:\n\n${exprOptions}\n"
+    } else {
+      ""
+    }
+
+    val stringOptions = opts.stringOpts.map { case (key, value) =>
+      s"     ${key} = '${value}'\n"
+    }.mkString
+    val stringStr = if (stringOptions.nonEmpty) {
+      s"    String options:\n\n${stringOptions}\n"
+    } else {
+      ""
+    }
+
+    val boolOptions = opts.boolFlags.map { case (key, value) =>
+      s"     ${key} = ${if (value) { "ON" }
+        else { "OFF" }}\n"
+    }.mkString
+    val boolStr = if (boolOptions.nonEmpty) {
+      s"    Boolean options:\n\n${boolOptions}\n"
+    } else {
+      ""
+    }
+
+    val autoOptions = opts.autoFlags.map { key =>
+      s"     ${key}\n"
+    }.mkString
+    val autoStr = if (autoOptions.nonEmpty) {
+      s"    Auto options:\n\n${autoOptions}\n"
+    } else {
+      ""
+    }
+    val optString = s"${exprStr}${stringStr}${boolStr}${autoStr}"
+    if (optString.nonEmpty) {
+      s"/*\n   The following statement was originally given the following OPTIONS:\n\n${optString}\n */\n"
+    } else {
+      ""
     }
   }
 

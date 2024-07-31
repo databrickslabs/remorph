@@ -2,6 +2,10 @@ package com.databricks.labs.remorph.parsers.tsql.rules
 
 import com.databricks.labs.remorph.parsers.intermediate._
 
+case class InsertDefaultsAction(condition: Option[Expression]) extends MergeAction {
+  override def children: Seq[Expression] = condition.toSeq
+}
+
 object TrapInsertDefaultsAction extends Rule[LogicalPlan] {
 
   override def apply(plan: LogicalPlan): LogicalPlan = plan transformUp {

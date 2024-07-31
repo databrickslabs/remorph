@@ -1,7 +1,7 @@
 package com.databricks.labs.remorph.parsers.tsql
 
 import com.databricks.labs.remorph.parsers.tsql.TSqlParser._
-import com.databricks.labs.remorph.parsers.tsql.rules.TopPercent
+import com.databricks.labs.remorph.parsers.tsql.rules.{InsertDefaultsAction, TopPercent}
 import com.databricks.labs.remorph.parsers.{intermediate => ir}
 import org.antlr.v4.runtime.ParserRuleContext
 
@@ -320,7 +320,7 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.LogicalPlan] {
   private def buildInsertAction(ctx: MergeActionContext, condition: Option[ir.Expression]): ir.MergeAction = {
 
     ctx match {
-      case action if action.DEFAULT() != null => ir.InsertDefaultsAction(condition)
+      case action if action.DEFAULT() != null => InsertDefaultsAction(condition)
       case _ =>
         val assignments =
           (ctx.cols
