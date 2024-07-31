@@ -217,15 +217,19 @@ def _agg_conditions(
     """
     assert cols, "Columns must be specified for aggregation conditions"
 
-    conditions_list = [(col(f"{item[0]}").isNotNull() & col(f"{item[1]}").isNotNull()) for item in cols]
-
-    match condition_type:
-        case "select":
-            conditions_list = [col(f"{item[0]}") == col(f"{item[1]}") for item in cols]
-        case "missing_in_src":
-            conditions_list = [col(f"{item[0]}").isNull() for item in cols]
-        case "missing_in_tgt":
-            conditions_list = [col(f"{item[1]}").isNull() for item in cols]
+    if condition_type == "group_filter":
+        conditions_list = [
+            (col(f"{source_column}").isNotNull() & col(f"{target_column}").isNotNull())
+            for source_column, target_column in cols
+        ]
+    elif condition_type == "select":
+        conditions_list = [col(f"{source_column}") == col(f"{target_column}") for source_column, target_column in cols]
+    elif condition_type == "missing_in_src":
+        conditions_list = [col(f"{source_column}").isNull() for source_column, target_column in cols]
+    elif condition_type == "missing_in_tgt":
+        conditions_list = [col(f"{target_column}").isNull() for source_column, target_column in cols]
+    else:
+        raise ValueError(f"Invalid condition type: {condition_type}")
 
     return reduce(lambda a, b: a & b if op_type == "and" else a | b, conditions_list)
 
@@ -360,12 +364,6 @@ def join_aggregate_data(
     source_alias = "src"
     target_alias = "tgt"
 
-    # If there is no Group By condition, do Cross join as there is only one record
-    df = source.alias(source_alias).join(
-        other=target.alias(target_alias),
-        how="cross",
-    )
-
     # Generates group by columns in the format of:
     # [(source_group_by_col1, target_group_by_col1), (source_group_by_col2, target_group_by_col2) ... ]
 
@@ -375,6 +373,12 @@ def join_aggregate_data(
             other=target.alias(target_alias),
             on=_generate_agg_join_condition(source_alias, target_alias, key_columns),
             how="full",
+        )
+    else:
+        # If there is no Group By condition, do Cross join as there is only one record
+        df = source.alias(source_alias).join(
+            other=target.alias(target_alias),
+            how="cross",
         )
 
     joined_df = df.selectExpr(

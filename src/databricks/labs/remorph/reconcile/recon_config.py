@@ -325,13 +325,17 @@ class Aggregate:
     def get_agg_type(self):
         return self.type
 
+    @classmethod
+    def _join_columns(cls, columns: list[str]):
+        return "+__+".join(columns)
+
     @property
     def group_by_columns_as_str(self):
-        return "+__+".join(self.group_by_columns) if self.group_by_columns else "NA"
+        return self._join_columns(self.group_by_columns) if self.group_by_columns else "NA"
 
     @property
     def agg_columns_as_str(self):
-        return "+__+".join(self.agg_columns)
+        return self._join_columns(self.agg_columns)
 
 
 @dataclass

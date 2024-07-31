@@ -64,8 +64,8 @@ from databricks.connect import DatabricksSession
 logger = logging.getLogger(__name__)
 _SAMPLE_ROWS = 50
 
-RECONCILE_API_NAME = "reconcile"
-AGG_RECONCILE_API_NAME = "reconcile-aggregate"
+RECONCILE_OPERATION_NAME = "reconcile"
+AGG_RECONCILE_OPERATION_NAME = "aggregates-reconcile"
 
 
 def validate_input(input_value: str, list_of_value: set, message: str):
@@ -209,7 +209,7 @@ def recon(
 
 
 def _verify_successful_reconciliation(
-    reconcile_output: ReconcileOutput, api_name: str = "reconcile"
+    reconcile_output: ReconcileOutput, operation_name: str = "reconcile"
 ) -> ReconcileOutput:
     for table_output in reconcile_output.results:
         if table_output.exception_message or (
@@ -217,9 +217,9 @@ def _verify_successful_reconciliation(
             or table_output.status.row is False
             or table_output.status.schema is False
         ):
-            prefix = "Aggregate" if api_name == "reconcile-aggregate" else ""
             raise ReconciliationException(
-                f"{prefix} Reconciliation failed for one or more tables. Please check the recon metrics for more details.",
+                f" Reconciliation failed for one or more tables. Please check the recon metrics for more details."
+                f" **{operation_name}** failed.",
                 reconcile_output=reconcile_output,
             )
 
@@ -282,7 +282,9 @@ def reconcile_aggregates(
     ws_client: WorkspaceClient = verify_workspace_client(ws)
 
     report_type = ""
-    logger.info(f"report_type: {report_type}, data_source: {reconcile_config.data_source}")
+    if report_type:
+        logger.info(f"report_type: {report_type}")
+    logger.info(f"data_source: {reconcile_config.data_source}")
 
     # Read the reconcile_config and initialise the source and target data sources. Target is always Databricks
     source, target = initialise_data_source(
@@ -365,7 +367,7 @@ def reconcile_aggregates(
             metadata_config=reconcile_config.metadata_config,
             local_test_run=local_test_run,
         ),
-        api_name=AGG_RECONCILE_API_NAME,
+        operation_name=AGG_RECONCILE_OPERATION_NAME,
     )
 
 

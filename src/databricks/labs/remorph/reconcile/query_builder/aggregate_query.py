@@ -141,6 +141,8 @@ class AggregateQueryBuilder(QueryBuilder):
         select_cols_with_alias = self._agg_query_cols_with_alias(select_cols_with_transform)
         query_exp = exp.select(*select_cols_with_alias).from_(":tbl").where(self.filter)
 
+        assert group_list[0], "At least, one item must be present in the group_list."
+
         # Apply Group by if group_by_columns are defined
         if group_list[0].group_by_columns:
             group_by_cols_with_mapping = self._get_mapping_cols_with_alias(group_list[0].group_by_columns, "GROUP_BY")
