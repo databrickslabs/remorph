@@ -8,6 +8,41 @@ class ExpressionGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.Ex
 
   override protected val generator = new ExpressionGenerator
 
+  "options" in {
+    ir.Options(
+      Map(
+        "KEEPFIXED" -> ir.Column(None, ir.Id("PLAN")),
+        "FAST" -> ir.Literal(short = Some(666)),
+        "MAX_GRANT_PERCENT" -> ir.Literal(short = Some(30))),
+      Map(),
+      Map("FLAME" -> false, "QUICKLY" -> true),
+      List()) generates
+      """/*
+      |   The following statement was originally given the following OPTIONS:
+      |
+      |    Expression options:
+      |
+      |     KEEPFIXED = PLAN
+      |     FAST = 666
+      |     MAX_GRANT_PERCENT = 30
+      |
+      |    Boolean options:
+      |
+      |     FLAME = OFF
+      |     QUICKLY = ON
+      |
+      |
+      | */
+      |""".stripMargin
+  }
+
+  "columns" in {
+    ir.UnresolvedAttribute("a") generates "a"
+    ir.Column(None, ir.Id("a")) generates "a"
+    ir.Column(Some(ir.ObjectReference(ir.Id("t"))), ir.Id("a")) generates "t.a"
+    ir.Column(Some(ir.ObjectReference(ir.Id("s.t"))), ir.Id("a")) generates "s.t.a"
+  }
+
   "arithmetic" in {
     ir.UMinus(ir.UnresolvedAttribute("a")) generates "-a"
     ir.UPlus(ir.UnresolvedAttribute("a")) generates "+a"

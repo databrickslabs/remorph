@@ -1,8 +1,8 @@
 package com.databricks.labs.remorph.generators.sql
 
-import com.databricks.labs.remorph.parsers.{intermediate => ir}
 import com.databricks.labs.remorph.generators.{Generator, GeneratorContext}
-import com.databricks.labs.remorph.parsers.intermediate.{ExceptSetOp, IntersectSetOp, UnionSetOp}
+import com.databricks.labs.remorph.parsers.intermediate.{ExceptSetOp, IntersectSetOp, MergeIntoTable, UnionSetOp}
+import com.databricks.labs.remorph.parsers.{intermediate => ir}
 import com.databricks.labs.remorph.transpilers.TranspileException
 
 class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: Boolean = false)
@@ -26,6 +26,8 @@ class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: 
     case sort: ir.Sort => orderBy(ctx, sort)
     case join: ir.Join => generateJoin(ctx, join)
     case setOp: ir.SetOperation => setOperation(ctx, setOp)
+    case mergeIntoTable: ir.MergeIntoTable => generateMerge(ctx, mergeIntoTable)
+    case withOptions: ir.WithOptions => generateWithOptions(ctx, withOptions)
     case x => throw unknown(x)
   }
 
@@ -84,6 +86,40 @@ class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: 
     s"(${generate(ctx, setOp.left)}) $op$duplicates (${generate(ctx, setOp.right)})"
   }
 
+  private def generateMerge(ctx: GeneratorContext, mergeIntoTable: MergeIntoTable) = {
+    val target = generate(ctx, mergeIntoTable.targetTable)
+    val source = generate(ctx, mergeIntoTable.sourceTable)
+    val condition = expr.generate(ctx, mergeIntoTable.mergeCondition)
+
+    val matchedActions = mergeIntoTable.matchedActions
+      .map { action =>
+        val conditionText = action.condition.map(cond => s" AND ${expr.generate(ctx, cond)}").getOrElse("")
+        s" WHEN MATCHED${conditionText} THEN ${expr.generate(ctx, action)}"
+      }
+      .mkString("")
+
+    val notMatchedActions = mergeIntoTable.notMatchedActions
+      .map { action =>
+        val conditionText = action.condition.map(cond => s" AND ${expr.generate(ctx, cond)}").getOrElse("")
+        s" WHEN NOT MATCHED${conditionText} THEN ${expr.generate(ctx, action)}"
+      }
+      .mkString("")
+
+    val notMatchedBySourceActions = mergeIntoTable.notMatchedBySourceActions
+      .map { action =>
+        val conditionText = action.condition.map(cond => s" AND ${expr.generate(ctx, cond)}").getOrElse("")
+        s" WHEN NOT MATCHED BY SOURCE${conditionText} THEN ${expr.generate(ctx, action)}"
+      }
+      .mkString("")
+
+    s"MERGE INTO $target" +
+      s" USING $source" +
+      s" ON ${condition}" +
+      s"${matchedActions}" +
+      s"${notMatchedActions}" +
+      s"${notMatchedBySourceActions};"
+  }
+
   private def aggregate(ctx: GeneratorContext, aggregate: ir.Aggregate): String = {
     val child = generate(ctx, aggregate.child)
     val expressions = aggregate.grouping_expressions.map(expr.generate(ctx, _)).mkString(", ")
@@ -97,5 +133,11 @@ class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: 
         s"$child PIVOT($expressions FOR $col$values)"
       case a => throw TranspileException(s"Unsupported aggregate $a")
     }
+  }
+  private def generateWithOptions(ctx: GeneratorContext, withOptions: ir.WithOptions): String = {
+    val optionComments = expr.generate(ctx, withOptions.options)
+    val plan = generate(ctx, withOptions.input)
+    s"${optionComments}" +
+      s"${plan}"
   }
 }

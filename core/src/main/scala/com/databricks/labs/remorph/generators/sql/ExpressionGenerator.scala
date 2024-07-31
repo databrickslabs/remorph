@@ -5,8 +5,8 @@ import com.databricks.labs.remorph.parsers.intermediate.RLike
 import com.databricks.labs.remorph.parsers.{intermediate => ir}
 import com.databricks.labs.remorph.transpilers.TranspileException
 
+import java.time._
 import java.time.format.DateTimeFormatter
-import java.time.{Instant, LocalDate, LocalDateTime, ZoneId, ZonedDateTime}
 import java.util.Locale
 
 class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
@@ -32,9 +32,81 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
       case a: ir.Alias => alias(ctx, a)
       case d: ir.Distinct => distinct(ctx, d)
       case s: ir.Star => star(ctx, s)
-      case c: ir.Column => column(ctx, c)
+      case col: ir.Column => column(ctx, col)
+      case da: ir.DeleteAction => "DELETE"
+      case ia: ir.InsertAction => insertAction(ctx, ia)
+      case ua: ir.UpdateAction => updateAction(ctx, ua)
+      case a: ir.Assign => assign(ctx, a)
+      case opts: ir.Options => options(ctx, opts)
+
       case x => throw TranspileException(s"Unsupported expression: $x")
     }
+  }
+
+  private def options(ctx: GeneratorContext, opts: ir.Options): String = {
+    // First gather the options that are set by expressions
+    val exprOptions = opts.expressionOpts.map { case (key, expression) =>
+      s"     ${key} = ${generate(ctx, expression)}\n"
+    }.mkString
+    val exprStr = if (exprOptions.nonEmpty) {
+      s"    Expression options:\n\n${exprOptions}\n"
+    } else {
+      ""
+    }
+
+    val stringOptions = opts.stringOpts.map { case (key, value) =>
+      s"     ${key} = '${value}'\n"
+    }.mkString
+    val stringStr = if (stringOptions.nonEmpty) {
+      s"    String options:\n\n${stringOptions}\n"
+    } else {
+      ""
+    }
+
+    val boolOptions = opts.boolFlags.map { case (key, value) =>
+      s"     ${key} = ${if (value) { "ON" }
+        else { "OFF" }}\n"
+    }.mkString
+    val boolStr = if (boolOptions.nonEmpty) {
+      s"    Boolean options:\n\n${boolOptions}\n"
+    } else {
+      ""
+    }
+
+    val autoOptions = opts.autoFlags.map { key =>
+      s"     ${key}\n"
+    }.mkString
+    val autoStr = if (autoOptions.nonEmpty) {
+      s"    Auto options:\n\n${autoOptions}\n"
+    } else {
+      ""
+    }
+    val optString = s"${exprStr}${stringStr}${boolStr}${autoStr}"
+    if (optString.nonEmpty) {
+      s"/*\n   The following statement was originally given the following OPTIONS:\n\n${optString}\n */\n"
+    } else {
+      ""
+    }
+  }
+
+  private def assign(ctx: GeneratorContext, assign: ir.Assign): String = {
+    s"${expression(ctx, assign.left)} = ${expression(ctx, assign.right)}"
+  }
+
+  private def column(ctx: GeneratorContext, column: ir.Column): String = {
+    val objectRef = column.tableNameOrAlias.map(or => generateObjectReference(ctx, or) + ".").getOrElse("")
+    s"$objectRef${id(ctx, column.columnName)}"
+  }
+
+  private def insertAction(ctx: GeneratorContext, insertAction: ir.InsertAction): String = {
+    val (cols, values) = insertAction.assignments.map { assign =>
+      (generate(ctx, assign.left), generate(ctx, assign.right))
+    }.unzip
+    s"INSERT (${cols.mkString(", ")}) VALUES (${values.mkString(", ")})"
+  }
+
+  private def updateAction(ctx: GeneratorContext, updateAction: ir.UpdateAction): String = {
+    s"UPDATE SET ${updateAction.assignments.map(assign => generate(ctx, assign)).mkString(", ")}"
   }
 
   private def arithmetic(ctx: GeneratorContext, expr: ir.Expression): String = expr match {
@@ -173,10 +245,7 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
   private def objectReference(ctx: GeneratorContext, objRef: ir.ObjectReference): String = {
     (objRef.head +: objRef.tail).map(id(ctx, _)).mkString(".")
   }
-  private def column(ctx: GeneratorContext, col: ir.Column): String = {
-    val objRef = col.tableNameOrAlias.map(t => expression(ctx, t) + ".").getOrElse("")
-    s"$objRef${id(ctx, col.columnName)}"
-  }
+
   private def orNull(option: Option[String]): String = option.getOrElse("NULL")
 
   private def doubleQuote(s: String): String = s""""$s""""
