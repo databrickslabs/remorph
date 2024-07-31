@@ -145,4 +145,20 @@ class LogicalPlanGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.L
   "transpile to VALUES" in {
     ir.Values(Seq(Seq(ir.Literal(1), ir.Literal(2)), Seq(ir.Literal(3), ir.Literal(4)))) generates "VALUES (1,2), (3,4)"
   }
+
+  "Aggregate" should {
+    "transpile to GROUP BY" in {
+      ir.Aggregate(namedTable("t1"), ir.GroupBy, Seq(ir.Id("c1")), None) generates "t1 GROUP BY c1"
+    }
+
+    "transpile to PIVOT" in {
+      ir.Aggregate(
+        namedTable("t1"),
+        ir.Pivot,
+        Seq(ir.Id("c1")),
+        Some(ir.Pivot(ir.Id("c2"), Seq(ir.Literal(1), ir.Literal(2))))) generates
+        "t1 PIVOT(c1 FOR c2 IN(1, 2))"
+    }
+
+  }
 }

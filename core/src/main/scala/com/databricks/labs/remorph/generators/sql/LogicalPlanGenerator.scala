@@ -3,6 +3,7 @@ package com.databricks.labs.remorph.generators.sql
 import com.databricks.labs.remorph.parsers.{intermediate => ir}
 import com.databricks.labs.remorph.generators.{Generator, GeneratorContext}
 import com.databricks.labs.remorph.parsers.intermediate.{ExceptSetOp, IntersectSetOp, UnionSetOp}
+import com.databricks.labs.remorph.transpilers.TranspileException
 
 class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: Boolean = false)
     extends Generator[ir.LogicalPlan, String] {
@@ -21,6 +22,7 @@ class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: 
       s"${generate(ctx, child)} OFFSET ${expr.generate(ctx, offset)}"
     case ir.Values(data) =>
       s"VALUES ${data.map(_.map(expr.generate(ctx, _)).mkString("(", ",", ")")).mkString(", ")}"
+    case agg: ir.Aggregate => aggregate(ctx, agg)
     case sort: ir.Sort => orderBy(ctx, sort)
     case join: ir.Join => generateJoin(ctx, join)
     case setOp: ir.SetOperation => setOperation(ctx, setOp)
@@ -80,5 +82,20 @@ class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: 
     }
     val duplicates = if (setOp.is_all) " ALL" else if (explicitDistinct) " DISTINCT" else ""
     s"(${generate(ctx, setOp.left)}) $op$duplicates (${generate(ctx, setOp.right)})"
+  }
+
+  private def aggregate(ctx: GeneratorContext, aggregate: ir.Aggregate): String = {
+    val child = generate(ctx, aggregate.child)
+    val expressions = aggregate.grouping_expressions.map(expr.generate(ctx, _)).mkString(", ")
+    aggregate.group_type match {
+      case ir.GroupBy =>
+        s"$child GROUP BY $expressions"
+      case ir.Pivot if aggregate.pivot.isDefined =>
+        val pivot = aggregate.pivot.get
+        val col = expr.generate(ctx, pivot.col)
+        val values = pivot.values.map(expr.generate(ctx, _)).mkString(" IN(", ", ", ")")
+        s"$child PIVOT($expressions FOR $col$values)"
+      case a => throw TranspileException(s"Unsupported aggregate $a")
+    }
   }
 }
