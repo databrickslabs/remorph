@@ -4,7 +4,7 @@ import com.databricks.labs.remorph.parsers.intermediate._
 
 object TrapInsertDefaultsAction extends Rule[LogicalPlan] {
 
-  override def apply(plan: LogicalPlan): LogicalPlan = plan transformDown {
+  override def apply(plan: LogicalPlan): LogicalPlan = plan transformUp {
     case merge @ MergeIntoTable(_, _, _, _, notMatchedActions, _) =>
       notMatchedActions.collectFirst { case InsertDefaultsAction(_) =>
         throw new IllegalArgumentException(
