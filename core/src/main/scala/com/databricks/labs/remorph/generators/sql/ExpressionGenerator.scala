@@ -26,10 +26,13 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
       case l: ir.Literal => literal(ctx, l)
       case fn: ir.Fn => callFunction(ctx, fn)
       case ir.UnresolvedAttribute(name, _, _) => name
+      case d: ir.Dot => dot(ctx, d)
       case i: ir.Id => id(ctx, i)
+      case o: ir.ObjectReference => objectReference(ctx, o)
       case a: ir.Alias => alias(ctx, a)
       case d: ir.Distinct => distinct(ctx, d)
       case s: ir.Star => star(ctx, s)
+      case c: ir.Column => column(ctx, c)
       case x => throw TranspileException(s"Unsupported expression: $x")
     }
   }
@@ -163,6 +166,17 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
     (reference.head +: reference.tail).map(id(ctx, _)).mkString(".")
   }
 
+  private def dot(ctx: GeneratorContext, dot: ir.Dot): String = {
+    s"${expression(ctx, dot.left)}.${expression(ctx, dot.right)}"
+  }
+
+  private def objectReference(ctx: GeneratorContext, objRef: ir.ObjectReference): String = {
+    (objRef.head +: objRef.tail).map(id(ctx, _)).mkString(".")
+  }
+  private def column(ctx: GeneratorContext, col: ir.Column): String = {
+    val objRef = col.tableNameOrAlias.map(t => expression(ctx, t) + ".").getOrElse("")
+    s"$objRef${id(ctx, col.columnName)}"
+  }
   private def orNull(option: Option[String]): String = option.getOrElse("NULL")
 
   private def doubleQuote(s: String): String = s""""$s""""

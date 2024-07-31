@@ -52,7 +52,7 @@ class LogicalPlanGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.L
         Seq("c1", "c2"),
         JoinDataType(
           is_left_struct = false,
-          is_right_struct = false)) generates "t1 RIGHT OUTER JOIN t2 ON IS_DATE(c1) USING c1, c2"
+          is_right_struct = false)) generates "t1 RIGHT OUTER JOIN t2 ON IS_DATE(c1) USING (c1, c2)"
     }
   }
 
