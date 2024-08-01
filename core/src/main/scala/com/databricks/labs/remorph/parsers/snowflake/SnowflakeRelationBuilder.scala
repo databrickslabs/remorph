@@ -237,12 +237,13 @@ class SnowflakeRelationBuilder
   }
 
   private def buildJoin(left: ir.LogicalPlan, right: JoinClauseContext): ir.Join = {
+    val usingColumns = Option(right.columnList()).map(_.columnName().asScala.map(_.getText)).getOrElse(Seq())
     ir.Join(
       left,
       right.objectRef().accept(this),
-      None,
+      Option(right.predicate()).map(_.accept(expressionBuilder)),
       translateJoinType(right.joinType()),
-      Seq(),
+      usingColumns,
       ir.JoinDataType(is_left_struct = false, is_right_struct = false))
   }
 

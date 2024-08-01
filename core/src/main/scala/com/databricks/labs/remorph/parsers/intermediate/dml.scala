@@ -38,13 +38,34 @@ case class UpdateTable(
   override def output: Seq[Attribute] = target.output
 }
 
-case class MergeTables(
-    target: LogicalPlan,
-    source: Option[LogicalPlan],
-    conditions: Option[Expression],
-    outputRelation: Option[LogicalPlan],
-    options: Option[Expression])
+/**
+ * The logical plan of the MERGE INTO command, aligned with SparkSQL
+ */
+case class MergeIntoTable(
+    targetTable: LogicalPlan,
+    sourceTable: LogicalPlan,
+    mergeCondition: Expression,
+    matchedActions: Seq[MergeAction],
+    notMatchedActions: Seq[MergeAction],
+    notMatchedBySourceActions: Seq[MergeAction])
     extends Modification {
-  override def children: Seq[LogicalPlan] = Seq(target, source.getOrElse(NoopNode), outputRelation.getOrElse(NoopNode))
-  override def output: Seq[Attribute] = target.output
+
+  override def children: Seq[LogicalPlan] = Seq(targetTable, sourceTable)
+  override def output: Seq[Attribute] = targetTable.output
+}
+
+abstract class MergeAction extends Expression {
+  def condition: Option[Expression]
+  override def dataType: DataType = UnresolvedType
+  override def children: Seq[Expression] = condition.toSeq
+}
+
+case class DeleteAction(condition: Option[Expression]) extends MergeAction
+
+case class UpdateAction(condition: Option[Expression], assignments: Seq[Assign]) extends MergeAction {
+  override def children: Seq[Expression] = condition.toSeq ++ assignments
+}
+
+case class InsertAction(condition: Option[Expression], assignments: Seq[Assign]) extends MergeAction {
+  override def children: Seq[Expression] = assignments
 }

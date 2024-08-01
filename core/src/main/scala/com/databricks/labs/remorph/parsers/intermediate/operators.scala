@@ -74,3 +74,8 @@ case class Subtract(left: Expression, right: Expression) extends Binary(left, ri
 case class Like(left: Expression, right: Expression, escapeChar: Char = '\\') extends Binary(left, right) {
   override def dataType: DataType = BooleanType
 }
+
+/** str rlike regexp - Returns true if `str` matches `regexp`, or false otherwise. */
+case class RLike(left: Expression, right: Expression) extends Binary(left, right) {
+  override def dataType: DataType = BooleanType
+}
