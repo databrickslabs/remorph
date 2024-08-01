@@ -3,6 +3,7 @@ package com.databricks.labs.remorph.generators.sql
 import com.databricks.labs.remorph.generators.{Generator, GeneratorContext}
 import com.databricks.labs.remorph.parsers.intermediate.RLike
 import com.databricks.labs.remorph.parsers.{intermediate => ir}
+import com.databricks.labs.remorph.parsers.snowflake
 import com.databricks.labs.remorph.transpilers.TranspileException
 
 import java.time._
@@ -13,6 +14,9 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
     extends Generator[ir.Expression, String] {
   private val dateFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd")
   private val timeFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS").withZone(ZoneId.of("UTC"))
+
+  // LogicalPlan and Expression are mutually recursive (due to expressions such as EXISTS, IN, etc.)
+  private val logicalPlanGenerator = new LogicalPlanGenerator(this)
 
   override def generate(ctx: GeneratorContext, tree: ir.Expression): String = expression(ctx, tree)
 
@@ -40,8 +44,10 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
       case a: ir.Assign => assign(ctx, a)
       case opts: ir.Options => options(ctx, opts)
       case i: ir.KnownInterval => interval(ctx, i)
-
       case c: ir.Case => caseWhen(ctx, c)
+      case in: snowflake.IsInCollection => isInCollection(ctx, in)
+      case in: snowflake.IsInRelation => isInRelation(ctx, in)
+
       case x => throw TranspileException(s"Unsupported expression: $x")
     }
   }
@@ -281,6 +287,15 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
     val otherwise = c.otherwise.map { o => s"ELSE ${expression(ctx, o)}" }.toSeq
     val chunks = expr ++ branches ++ otherwise
     chunks.mkString("CASE ", " ", " END")
+  }
+
+  private def isInCollection(ctx: GeneratorContext, isInCollection: snowflake.IsInCollection): String = {
+    val values = isInCollection.collection.map(expression(ctx, _)).mkString(", ")
+    s"${expression(ctx, isInCollection.expression)} IN ($values)"
+  }
+
+  private def isInRelation(ctx: GeneratorContext, isInRelation: snowflake.IsInRelation): String = {
+    s"${expression(ctx, isInRelation.expression)} IN (${logicalPlanGenerator.generate(ctx, isInRelation.relation)})"
   }
 
   private def orNull(option: Option[String]): String = option.getOrElse("NULL")
