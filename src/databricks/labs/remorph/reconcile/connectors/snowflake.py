@@ -1,11 +1,13 @@
 import logging
 import re
+from datetime import datetime
 
 from pyspark.errors import PySparkException
 from pyspark.sql import DataFrame, DataFrameReader, SparkSession
 from pyspark.sql.functions import col
 from sqlglot import Dialect
 
+from databricks.labs.remorph.helpers.execution_time import timeit
 from databricks.labs.remorph.reconcile.connectors.data_source import DataSource
 from databricks.labs.remorph.reconcile.connectors.jdbc_reader import JDBCReaderMixin
 from databricks.labs.remorph.reconcile.connectors.secrets import SecretsMixin
@@ -67,6 +69,7 @@ class SnowflakeDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
         except (RuntimeError, PySparkException) as e:
             return self.log_and_throw_exception(e, "data", table_query)
 
+    @timeit
     def get_schema(
         self,
         catalog: str | None,
@@ -79,7 +82,10 @@ class SnowflakeDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
             SnowflakeDataSource._SCHEMA_QUERY.format(catalog=catalog, schema=schema, table=table),
         )
         try:
+            logger.debug(f"Fetching schema using query: \n`{schema_query}`")
+            logger.warning(f"Fetching Schema: Started at: {datetime.now()}")
             schema_df = self.reader(schema_query).load()
+            logger.warning(f"Schema fetched successfully. Completed at: {datetime.now()}")
             return [Schema(field.COLUMN_NAME.lower(), field.DATA_TYPE.lower()) for field in schema_df.collect()]
         except (RuntimeError, PySparkException) as e:
             return self.log_and_throw_exception(e, "schema", schema_query)
