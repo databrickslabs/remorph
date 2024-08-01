@@ -3,7 +3,7 @@ package com.databricks.labs.remorph.transpilers
 import com.databricks.labs.remorph.generators.GeneratorContext
 import com.databricks.labs.remorph.generators.sql.{ExpressionGenerator, LogicalPlanGenerator}
 import com.databricks.labs.remorph.parsers.tsql.rules.{PullLimitUpwards, TopPercentToLimitSubquery, TrapInsertDefaultsAction}
-import com.databricks.labs.remorph.parsers.tsql.{TSqlAstBuilder, TSqlLexer, TSqlParser}
+import com.databricks.labs.remorph.parsers.tsql.{TSqlAstBuilder, TSqlErrorStrategy, TSqlLexer, TSqlParser}
 import com.databricks.labs.remorph.parsers.{ProductionErrorCollector, intermediate => ir}
 import org.antlr.v4.runtime.{CharStreams, CommonTokenStream}
 
@@ -17,9 +17,10 @@ class TSqlToDatabricksTranspiler extends BaseTranspiler {
     val lexer = new TSqlLexer(inputString)
     val tokenStream = new CommonTokenStream(lexer)
     val parser = new TSqlParser(tokenStream)
-    val errHandler = new ProductionErrorCollector(input, "-- test string --")
+    parser.setErrorHandler(new TSqlErrorStrategy)
+    val errListener = new ProductionErrorCollector(input, "-- test string --")
     parser.removeErrorListeners()
-    parser.addErrorListener(errHandler)
+    parser.addErrorListener(errListener)
     val tree = parser.tSqlFile()
     astBuilder.visit(tree)
   }
