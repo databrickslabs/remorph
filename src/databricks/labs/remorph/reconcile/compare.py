@@ -11,6 +11,7 @@ from databricks.labs.remorph.reconcile.recon_config import (
     DataReconcileOutput,
     MismatchOutput,
     AggregateRule,
+    ColumnMapping,
 )
 
 logger = logging.getLogger(__name__)
@@ -182,17 +183,19 @@ def alias_column_str(alias: str, columns: list[str]) -> list[str]:
 
 
 def _generate_agg_join_condition(source_alias: str, target_alias: str, key_columns: list[str]):
-    join_columns: list[tuple[str, str]] = [
-        (f"source_group_by_{key_col}", f"target_group_by_{key_col}") for key_col in key_columns
+    join_columns: list[ColumnMapping] = [
+        ColumnMapping(source_name=f"source_group_by_{key_col}", target_name=f"target_group_by_{key_col}")
+        for key_col in key_columns
     ]
     conditions = [
-        col(f"{source_alias}.{item[0]}").eqNullSafe(col(f"{target_alias}.{item[1]}")) for item in join_columns
+        col(f"{source_alias}.{mapping.source_name}").eqNullSafe(col(f"{target_alias}.{mapping.target_name}"))
+        for mapping in join_columns
     ]
     return reduce(lambda a, b: a & b, conditions)
 
 
 def _agg_conditions(
-    cols: list[tuple[str, str]] | None,
+    cols: list[ColumnMapping] | None,
     condition_type: str = "group_filter",
     op_type: str = "and",
 ):
@@ -219,22 +222,21 @@ def _agg_conditions(
 
     if condition_type == "group_filter":
         conditions_list = [
-            (col(f"{source_column}").isNotNull() & col(f"{target_column}").isNotNull())
-            for source_column, target_column in cols
+            (col(f"{mapping.source_name}").isNotNull() & col(f"{mapping.target_name}").isNotNull()) for mapping in cols
         ]
     elif condition_type == "select":
-        conditions_list = [col(f"{source_column}") == col(f"{target_column}") for source_column, target_column in cols]
+        conditions_list = [col(f"{mapping.source_name}") == col(f"{mapping.target_name}") for mapping in cols]
     elif condition_type == "missing_in_src":
-        conditions_list = [col(f"{source_column}").isNull() for source_column, target_column in cols]
+        conditions_list = [col(f"{mapping.source_name}").isNull() for mapping in cols]
     elif condition_type == "missing_in_tgt":
-        conditions_list = [col(f"{target_column}").isNull() for source_column, target_column in cols]
+        conditions_list = [col(f"{mapping.target_name}").isNull() for mapping in cols]
     else:
         raise ValueError(f"Invalid condition type: {condition_type}")
 
     return reduce(lambda a, b: a & b if op_type == "and" else a | b, conditions_list)
 
 
-def _generate_match_columns(select_cols: list[tuple[str, str]]):
+def _generate_match_columns(select_cols: list[ColumnMapping]):
     """
     Generate match columns for the given select columns
     e.g.,  select_cols = [(source_min_col1, target_min_col1), (source_count_col3, target_count_col3)]
@@ -248,16 +250,16 @@ def _generate_match_columns(select_cols: list[tuple[str, str]]):
     :return:
     """
     items = []
-    for item in select_cols:
-        match_col_name = item[0].replace("source_", "match_")
-        items.append((match_col_name, col(f"{item[0]}") == col(f"{item[1]}")))
+    for mapping in select_cols:
+        match_col_name = mapping.source_name.replace("source_", "match_")
+        items.append((match_col_name, col(f"{mapping.source_name}") == col(f"{mapping.target_name}")))
     return items
 
 
 def _get_mismatch_agg_data(
     df: DataFrame,
-    select_cols: list[tuple[str, str]],
-    group_cols: list[tuple[str, str]] | None,
+    select_cols: list[ColumnMapping],
+    group_cols: list[ColumnMapping] | None,
 ) -> DataFrame:
     # TODO:  Integrate with _get_mismatch_data function
     """
@@ -305,18 +307,25 @@ def reconcile_agg_data_per_rule(
     """
     # Generates select columns in the format of:
     # [(source_min_col1, target_min_col1), (source_count_col3, target_count_col3) ... ]
-    rule_select_columns = [(f"source_{rule.agg_type}_{rule.agg_column}", f"target_{rule.agg_type}_{rule.agg_column}")]
+
+    rule_select_columns = [
+        ColumnMapping(
+            source_name=f"source_{rule.agg_type}_{rule.agg_column}",
+            target_name=f"target_{rule.agg_type}_{rule.agg_column}",
+        )
+    ]
 
     rule_group_columns = None
     if rule.group_by_columns:
         rule_group_columns = [
-            (f"source_group_by_{group_col}", f"target_group_by_{group_col}") for group_col in rule.group_by_columns
+            ColumnMapping(source_name=f"source_group_by_{group_col}", target_name=f"target_group_by_{group_col}")
+            for group_col in rule.group_by_columns
         ]
         rule_select_columns.extend(rule_group_columns)
 
     df_rule_columns = []
-    for src_col, tgt_col in rule_select_columns:
-        df_rule_columns.extend([src_col, tgt_col])
+    for mapping in rule_select_columns:
+        df_rule_columns.extend([mapping.source_name, mapping.target_name])
 
     joined_df_with_rule_cols = joined_df.selectExpr(*df_rule_columns)
 
@@ -324,14 +333,14 @@ def reconcile_agg_data_per_rule(
     mismatch = _get_mismatch_agg_data(joined_df_with_rule_cols, rule_select_columns, rule_group_columns)
 
     # Data missing in Source DataFrame
-    rule_target_columns = set(target_columns).intersection([target_col for _, target_col in rule_select_columns])
+    rule_target_columns = set(target_columns).intersection([mapping.target_name for mapping in rule_select_columns])
 
     missing_in_src = joined_df_with_rule_cols.filter(_agg_conditions(rule_select_columns, "missing_in_src")).select(
         *rule_target_columns
     )
 
     # Data missing in Target DataFrame
-    rule_source_columns = set(source_columns).intersection([source_col for source_col, _ in rule_select_columns])
+    rule_source_columns = set(source_columns).intersection([mapping.source_name for mapping in rule_select_columns])
     missing_in_tgt = joined_df_with_rule_cols.filter(_agg_conditions(rule_select_columns, "missing_in_tgt")).select(
         *rule_source_columns
     )
