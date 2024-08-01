@@ -46,6 +46,7 @@ case class Star(objectName: Option[ObjectReference] = None) extends LeafExpressi
 }
 
 // Assignment operators
+// TODO: (ji) This needs to be renamed to Assignment as per Catalyst
 case class Assign(left: Expression, right: Expression) extends Binary(left, right) {
   override def dataType: DataType = UnresolvedType
 }
@@ -160,20 +161,10 @@ case class FilterStruct(input: NamedStruct, lambdaFunction: LambdaFunction) exte
   override def dataType: DataType = UnresolvedType
 }
 
-case class Options(
-    expressionOpts: Map[String, Expression],
-    stringOpts: Map[String, String],
-    boolFlags: Map[String, Boolean],
-    autoFlags: List[String])
-    extends Expression {
-  override def children: Seq[Expression] = expressionOpts.values.toSeq
-  override def dataType: DataType = UnresolvedType
-}
-
 // TSQL has some join types that are not natively supported in Databricks SQL, but can possibly be emulated
 // using LATERAL VIEW and an explode function. Some things like functions are translatable at IR production
-// time, but complex joins are probably/possibly better done at the translation from IR as they are more involved
-// than some simple prescribed action.
+// time, but complex joins are better done at the translation from IR, via an optimizer rule as they are more involved
+// than some simple prescribed action such as a rename
 case object CrossApply extends JoinType
 case object OuterApply extends JoinType
 
@@ -184,4 +175,23 @@ case class TableFunction(functionCall: Expression) extends LeafNode {
 case class Lateral(expr: LogicalPlan) extends UnaryNode {
   override def child: LogicalPlan = expr
   override def output: Seq[Attribute] = expr.output
+}
+
+case class Comment(text: String) extends LeafNode {
+  override def output: Seq[Attribute] = Seq.empty
+}
+
+case class Options(
+    expressionOpts: Map[String, Expression],
+    stringOpts: Map[String, String],
+    boolFlags: Map[String, Boolean],
+    autoFlags: List[String])
+    extends Expression {
+  override def children: Seq[Expression] = expressionOpts.values.toSeq
+  override def dataType: DataType = UnresolvedType
+}
+
+case class WithOptions(input: LogicalPlan, options: Expression) extends UnaryNode {
+  override def child: LogicalPlan = input
+  override def output: Seq[Attribute] = input.output
 }

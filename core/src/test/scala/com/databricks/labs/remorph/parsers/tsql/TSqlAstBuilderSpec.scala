@@ -908,4 +908,107 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
           None,
           Some(Options(Map("KEEP" -> Column(None, Id("PLAN"))), Map.empty, Map.empty, List.empty))))))
   }
+
+  "translate MERGE statements" in {
+    example(
+      query = """
+          |MERGE INTO t USING s
+          | ON t.a = s.a
+          | WHEN MATCHED THEN UPDATE SET t.b = s.b
+          | WHEN NOT MATCHED THEN INSERT (a, b) VALUES (s.a, s.b)""".stripMargin,
+      expectedAst = Batch(
+        Seq(MergeIntoTable(
+          NamedTable("t", Map(), is_streaming = false),
+          NamedTable("s", Map(), is_streaming = false),
+          Equals(Column(Some(ObjectReference(Id("t"))), Id("a")), Column(Some(ObjectReference(Id("s"))), Id("a"))),
+          Seq(
+            UpdateAction(
+              None,
+              Seq(Assign(
+                Column(Some(ObjectReference(Id("t"))), Id("b")),
+                Column(Some(ObjectReference(Id("s"))), Id("b")))))),
+          Seq(InsertAction(
+            None,
+            Seq(
+              Assign(Column(None, Id("a")), Column(Some(ObjectReference(Id("s"))), Id("a"))),
+              Assign(Column(None, Id("b")), Column(Some(ObjectReference(Id("s"))), Id("b")))))),
+          List.empty))))
+  }
+  "translate MERGE statements with options" in {
+    example(
+      query = """
+            |MERGE INTO t USING s
+            | ON t.a = s.a
+            | WHEN MATCHED THEN UPDATE SET t.b = s.b
+            | WHEN NOT MATCHED THEN INSERT (a, b) VALUES (s.a, s.b)
+            | OPTION ( KEEPFIXED PLAN, FAST 666, MAX_GRANT_PERCENT = 30, FLAME ON, FLAME OFF, QUICKLY) """.stripMargin,
+      expectedAst = Batch(
+        Seq(WithOptions(
+          MergeIntoTable(
+            NamedTable("t", Map(), is_streaming = false),
+            NamedTable("s", Map(), is_streaming = false),
+            Equals(Column(Some(ObjectReference(Id("t"))), Id("a")), Column(Some(ObjectReference(Id("s"))), Id("a"))),
+            Seq(
+              UpdateAction(
+                None,
+                Seq(Assign(
+                  Column(Some(ObjectReference(Id("t"))), Id("b")),
+                  Column(Some(ObjectReference(Id("s"))), Id("b")))))),
+            Seq(InsertAction(
+              None,
+              Seq(
+                Assign(Column(None, Id("a")), Column(Some(ObjectReference(Id("s"))), Id("a"))),
+                Assign(Column(None, Id("b")), Column(Some(ObjectReference(Id("s"))), Id("b")))))),
+            List.empty),
+          Options(
+            Map(
+              "KEEPFIXED" -> Column(None, Id("PLAN")),
+              "FAST" -> Literal(short = Some(666)),
+              "MAX_GRANT_PERCENT" -> Literal(short = Some(30))),
+            Map(),
+            Map("FLAME" -> false, "QUICKLY" -> true),
+            List())))))
+    example(
+      query = """
+            |WITH s (a, b, col3count)
+            |                AS
+            |                (
+            |                    SELECT col1, fred, COUNT(OrderDate) AS counter
+            |                    FROM Table1
+            |                )
+            |   MERGE INTO t WITH (NOLOCK, READCOMMITTED) USING s
+            |   ON t.a = s.a
+            |   WHEN MATCHED THEN UPDATE SET t.b = s.b
+            |   WHEN NOT MATCHED BY TARGET THEN DELETE
+            |   WHEN NOT MATCHED BY SOURCE THEN INSERT (a, b) VALUES (s.a, s.b)""".stripMargin,
+      expectedAst = Batch(
+        Seq(WithCTE(
+          Seq(CTEDefinition(
+            "s",
+            Seq(simplyNamedColumn("a"), simplyNamedColumn("b"), simplyNamedColumn("col3count")),
+            Project(
+              namedTable("Table1"),
+              Seq(
+                simplyNamedColumn("col1"),
+                simplyNamedColumn("fred"),
+                Alias(CallFunction("COUNT", Seq(simplyNamedColumn("OrderDate"))), Seq(Id("counter")), None))))),
+          MergeIntoTable(
+            TableWithHints(
+              NamedTable("t", Map(), is_streaming = false),
+              Seq(FlagHint("NOLOCK"), FlagHint("READCOMMITTED"))),
+            NamedTable("s", Map(), is_streaming = false),
+            Equals(Column(Some(ObjectReference(Id("t"))), Id("a")), Column(Some(ObjectReference(Id("s"))), Id("a"))),
+            Seq(
+              UpdateAction(
+                None,
+                Seq(Assign(
+                  Column(Some(ObjectReference(Id("t"))), Id("b")),
+                  Column(Some(ObjectReference(Id("s"))), Id("b")))))),
+            Seq(DeleteAction(None)),
+            Seq(InsertAction(
+              None,
+              Seq(
+                Assign(Column(None, Id("a")), Column(Some(ObjectReference(Id("s"))), Id("a"))),
+                Assign(Column(None, Id("b")), Column(Some(ObjectReference(Id("s"))), Id("b")))))))))))
+  }
 }

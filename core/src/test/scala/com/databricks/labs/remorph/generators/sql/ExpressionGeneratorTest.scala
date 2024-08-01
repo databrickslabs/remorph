@@ -8,6 +8,41 @@ class ExpressionGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.Ex
 
   override protected val generator = new ExpressionGenerator
 
+  "options" in {
+    ir.Options(
+      Map(
+        "KEEPFIXED" -> ir.Column(None, ir.Id("PLAN")),
+        "FAST" -> ir.Literal(short = Some(666)),
+        "MAX_GRANT_PERCENT" -> ir.Literal(short = Some(30))),
+      Map(),
+      Map("FLAME" -> false, "QUICKLY" -> true),
+      List()) generates
+      """/*
+      |   The following statement was originally given the following OPTIONS:
+      |
+      |    Expression options:
+      |
+      |     KEEPFIXED = PLAN
+      |     FAST = 666
+      |     MAX_GRANT_PERCENT = 30
+      |
+      |    Boolean options:
+      |
+      |     FLAME = OFF
+      |     QUICKLY = ON
+      |
+      |
+      | */
+      |""".stripMargin
+  }
+
+  "columns" in {
+    ir.UnresolvedAttribute("a") generates "a"
+    ir.Column(None, ir.Id("a")) generates "a"
+    ir.Column(Some(ir.ObjectReference(ir.Id("t"))), ir.Id("a")) generates "t.a"
+    ir.Column(Some(ir.ObjectReference(ir.Id("s.t"))), ir.Id("a")) generates "s.t.a"
+  }
+
   "arithmetic" in {
     ir.UMinus(ir.UnresolvedAttribute("a")) generates "-a"
     ir.UPlus(ir.UnresolvedAttribute("a")) generates "+a"
@@ -26,7 +61,7 @@ class ExpressionGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.Ex
   }
 
   "like" in {
-    ir.Like(ir.UnresolvedAttribute("a"), ir.Literal("b%")) generates "a LIKE \"b%\""
+    ir.Like(ir.UnresolvedAttribute("a"), ir.Literal("b%")) generates "a LIKE 'b%'"
     ir.Like(ir.UnresolvedAttribute("a"), ir.UnresolvedAttribute("b"), '/') generates "a LIKE b ESCAPE '/'"
   }
 
@@ -543,7 +578,7 @@ class ExpressionGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.Ex
       ir.CallFunction("RIGHT", Seq(ir.UnresolvedAttribute("a"), ir.UnresolvedAttribute("b"))) generates "RIGHT(a, b)"
       ir.CallFunction("RINT", Seq(ir.UnresolvedAttribute("a"))) generates "RINT(a)"
 
-      ir.CallFunction("RLIKE", Seq(ir.UnresolvedAttribute("a"), ir.UnresolvedAttribute("b"))) generates "RLIKE(a, b)"
+      ir.CallFunction("RLIKE", Seq(ir.UnresolvedAttribute("a"), ir.UnresolvedAttribute("b"))) generates "a RLIKE b"
 
       ir.CallFunction("ROLLUP", Seq(ir.UnresolvedAttribute("a"), ir.UnresolvedAttribute("b"))) generates "ROLLUP(a, b)"
 
@@ -790,21 +825,21 @@ class ExpressionGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.Ex
 
       ir.Literal(double = Some(123.4)) generates "123.4"
 
-      ir.Literal(string = Some("abc")) generates "\"abc\""
+      ir.Literal(string = Some("abc")) generates "'abc'"
 
-      ir.Literal(date = Some(1721757801000L)) generates "\"2024-07-23\""
+      ir.Literal(date = Some(1721757801000L)) generates "'2024-07-23'"
 
       // we should generate UTC timezone
       //  ir.Literal(timestamp = Some(1721757801000L)) generates "\"2024-07-23 18:03:21.000\""
     }
 
     "arrays" in {
-      ir.Literal(Seq(ir.Literal("abc"), ir.Literal("def"))) generates "ARRAY(\"abc\", \"def\")"
+      ir.Literal(Seq(ir.Literal("abc"), ir.Literal("def"))) generates "ARRAY('abc', 'def')"
     }
 
     "maps" in {
       ir.Literal(
-        Map("foo" -> ir.Literal("bar"), "baz" -> ir.Literal("qux"))) generates "MAP(\"foo\", \"bar\", \"baz\", \"qux\")"
+        Map("foo" -> ir.Literal("bar"), "baz" -> ir.Literal("qux"))) generates "MAP('foo', 'bar', 'baz', 'qux')"
     }
   }
 
