@@ -16,6 +16,8 @@ class SnowLexerSpec extends AnyWordSpec with Matchers with TableDrivenPropertyCh
       val testInput = Table(
         ("child", "expected"), // Headers
 
+        ("""'\\'""", SnowflakeLexer.STRING),
+        ("""'?'""", SnowflakeLexer.STRING),
         ("'And it''s raining'", SnowflakeLexer.STRING),
         ("""'Tab\oir'""", SnowflakeLexer.STRING),
         ("""'Tab\'oir'""", SnowflakeLexer.STRING),
@@ -27,6 +29,9 @@ class SnowLexerSpec extends AnyWordSpec with Matchers with TableDrivenPropertyCh
         val inputString = CharStreams.fromString(input)
 
         lexer.setInputStream(inputString)
+        // scalastyle:off println
+        println(s"input: $inputString")
+        // scalastyle:on println
         val tok: Token = lexer.nextToken()
         tok.getType shouldBe expectedType
         tok.getText shouldBe input
