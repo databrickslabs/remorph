@@ -14,8 +14,13 @@ case class CallFunction(function_name: String, arguments: Seq[Expression]) exten
 
 class CallMapper {
 
+  private def withNormalizedName(call: Fn): Fn = call match {
+    case CallFunction(name, args) => CallFunction(name.toUpperCase(), args)
+    case other => other
+  }
+
   /** This function is supposed to be overridden by dialects */
-  def convert(call: Fn): Fn = call match {
+  def convert(call: Fn): Expression = withNormalizedName(call) match {
     case CallFunction("ABS", args) => Abs(args.head)
     case CallFunction("ACOS", args) => Acos(args.head)
     case CallFunction("ACOSH", args) => Acosh(args.head)
@@ -69,7 +74,8 @@ class CallMapper {
     case CallFunction("COT", args) => Cot(args.head)
     case CallFunction("COUNT", args) => Count(args)
     case CallFunction("COUNT_IF", args) => CountIf(args.head)
-    case CallFunction("COUNT_MIN_SKETCH", args) => CountMinSketchAgg(args.head, args(1), args(2), args(3))
+    case CallFunction("COUNT_MIN_SKETCH", args) =>
+      CountMinSketchAgg(args.head, args(1), args(2), args(3))
     case CallFunction("COVAR_POP", args) => CovPopulation(args.head, args(1))
     case CallFunction("COVAR_SAMP", args) => CovSample(args.head, args(1))
     case CallFunction("CRC32", args) => Crc32(args.head)
@@ -155,10 +161,12 @@ class CallMapper {
     case CallFunction("LOG1P", args) => Log1p(args.head)
     case CallFunction("LOG2", args) => Log2(args.head)
     case CallFunction("LOWER", args) => Lower(args.head)
-    case CallFunction("LPAD", args) => StringLPad(args.head, args(1), args.lastOption.getOrElse(Literal(" ")))
+    case CallFunction("LPAD", args) =>
+      StringLPad(args.head, args(1), args.lastOption.getOrElse(Literal(" ")))
     case CallFunction("LTRIM", args) => StringTrimLeft(args.head, args(1))
     case CallFunction("MAKE_DATE", args) => MakeDate(args.head, args(1), args(2))
-    case CallFunction("MAKE_INTERVAL", args) => MakeInterval(args.head, args(1), args(2), args(3), args(4), args(5))
+    case CallFunction("MAKE_INTERVAL", args) =>
+      MakeInterval(args.head, args(1), args(2), args(3), args(4), args(5))
     case CallFunction("MAKE_TIMESTAMP", args) =>
       MakeTimestamp(args.head, args(1), args(2), args(3), args(4), args(5), args(6))
     case CallFunction("MAP", args) => CreateMap(args, useStringTypeWhenEmpty = false)
@@ -199,7 +207,8 @@ class CallMapper {
     case CallFunction("PI", _) => Pi()
     case CallFunction("PMOD", args) => Pmod(args.head, args(1))
     case CallFunction("POSEXPLODE", args) => PosExplode(args.head)
-    case CallFunction("POSITION", args) => StringLocate(args.head, args(1), args.lastOption.getOrElse(Literal(1)))
+    case CallFunction("POSITION", args) =>
+      StringLocate(args.head, args(1), args.lastOption.getOrElse(Literal(1)))
     case CallFunction("POSITIVE", args) => UnaryPositive(args.head)
     case CallFunction("POW", args) => Pow(args.head, args(1))
     case CallFunction("QUARTER", args) => Quarter(args.head)
@@ -1162,12 +1171,6 @@ case class Right(left: Expression, right: Expression) extends Binary(left, right
  */
 case class Rint(left: Expression) extends Unary(left) with Fn {
   override def prettyName: String = "RINT"
-  override def dataType: DataType = UnresolvedType
-}
-
-/** str rlike regexp - Returns true if `str` matches `regexp`, or false otherwise. */
-case class RLike(left: Expression, right: Expression) extends Binary(left, right) with Fn {
-  override def prettyName: String = "RLIKE"
   override def dataType: DataType = UnresolvedType
 }
 

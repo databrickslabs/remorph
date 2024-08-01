@@ -36,6 +36,24 @@ class SnowflakeExpressionBuilder()
     buildAlias(ctx.asAlias(), rawExpression)
   }
 
+  override def visitColumnElem(ctx: ColumnElemContext): ir.Expression = {
+    val objectNameIds = Option(ctx.objectName()).map(_.id().asScala.map(visitId)).getOrElse(Seq())
+    val columnIds = ctx.columnName().id().asScala.map(visitId)
+    val fqn = objectNameIds ++ columnIds
+    val objectRefIds = fqn.take(fqn.size - 1)
+    val objectRef = if (objectRefIds.isEmpty) {
+      None
+    } else {
+      Some(ir.ObjectReference(objectRefIds.head, objectRefIds.tail: _*))
+    }
+    ir.Column(objectRef, fqn.last)
+  }
+
+  override def visitObjectName(ctx: ObjectNameContext): ir.ObjectReference = {
+    val ids = ctx.id().asScala.map(visitId)
+    ir.ObjectReference(ids.head, ids.tail: _*)
+  }
+
   override def visitColumnElemStar(ctx: ColumnElemStarContext): ir.Expression = {
     ir.Star(Option(ctx.objectName()).map { on =>
       val objectNameIds = on.id().asScala.map(visitId)

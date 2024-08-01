@@ -11,6 +11,11 @@ case class Output(target: LogicalPlan, outputs: Seq[Expression], columns: Option
   override def children: Seq[LogicalPlan] = Seq(target)
 }
 
+case class WithOutputClause(input: LogicalPlan, target: LogicalPlan) extends RelationCommon {
+  override def output: Seq[Attribute] = target.output
+  override def children: Seq[LogicalPlan] = Seq(input, target)
+}
+
 case class BackupDatabase(
     databaseName: String,
     disks: Seq[String],
