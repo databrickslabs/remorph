@@ -150,7 +150,7 @@ def test_reconcile_aggregate_data_missing_records(
         assertDataFrameEqual(actual[0].reconcile_output.mismatch.mismatch_df, expected.mismatch.mismatch_df)
 
 
-def _expected_rule_output():
+def expected_rule_output():
     count_rule_output = AggregateRule(
         agg_type="count",
         agg_column="s_name",
@@ -168,14 +168,14 @@ def _expected_rule_output():
     return {"count": count_rule_output, "sum": sum_rule_output}
 
 
-def _expected_reconcile_output(mock_spark):
+def expected_reconcile_output_dict(spark):
     count_reconcile_output = DataReconcileOutput(
         mismatch_count=1,
         missing_in_src_count=1,
         missing_in_tgt_count=1,
         mismatch=MismatchOutput(
             mismatch_columns=None,
-            mismatch_df=mock_spark.createDataFrame(
+            mismatch_df=spark.createDataFrame(
                 [
                     Row(
                         source_count_s_name=11,
@@ -189,8 +189,8 @@ def _expected_reconcile_output(mock_spark):
                 ]
             ),
         ),
-        missing_in_src=mock_spark.createDataFrame([Row(target_count_s_name=76, target_group_by_s_nationkey=14)]),
-        missing_in_tgt=mock_spark.createDataFrame([Row(source_count_s_name=21, source_group_by_s_nationkey=13)]),
+        missing_in_src=spark.createDataFrame([Row(target_count_s_name=76, target_group_by_s_nationkey=14)]),
+        missing_in_tgt=spark.createDataFrame([Row(source_count_s_name=21, source_group_by_s_nationkey=13)]),
     )
 
     sum_reconcile_output = DataReconcileOutput(
@@ -199,7 +199,7 @@ def _expected_reconcile_output(mock_spark):
         missing_in_tgt_count=1,
         mismatch=MismatchOutput(
             mismatch_columns=None,
-            mismatch_df=mock_spark.createDataFrame(
+            mismatch_df=spark.createDataFrame(
                 [
                     Row(
                         source_sum_s_acctbal=23,
@@ -213,8 +213,8 @@ def _expected_reconcile_output(mock_spark):
                 ]
             ),
         ),
-        missing_in_src=mock_spark.createDataFrame([Row(target_sum_s_acctbal=348, target_group_by_s_nationkey=14)]),
-        missing_in_tgt=mock_spark.createDataFrame([Row(source_sum_s_acctbal=112, source_group_by_s_nationkey=13)]),
+        missing_in_src=spark.createDataFrame([Row(target_sum_s_acctbal=348, target_group_by_s_nationkey=14)]),
+        missing_in_tgt=spark.createDataFrame([Row(source_sum_s_acctbal=112, source_group_by_s_nationkey=13)]),
     )
 
     return {"count": count_reconcile_output, "sum": sum_reconcile_output}
@@ -319,11 +319,9 @@ def test_reconcile_aggregate_data_mismatch_and_missing_records(
 
         assert len(actual_list) == 2
 
-        expected_reconcile_output = _expected_reconcile_output(mock_spark)
-
         for actual in actual_list:
             assert actual.rule, "Rule must be generated"
-            expected_rule = _expected_rule_output().get(actual.rule.agg_type)
+            expected_rule = expected_rule_output().get(actual.rule.agg_type)
             assert expected_rule, "Rule must be defined in expected"
 
             # Rule validations
@@ -339,4 +337,6 @@ def test_reconcile_aggregate_data_mismatch_and_missing_records(
             assert actual.rule.rule_type == "AGGREGATE"
 
             # Reconcile Output validations
-            _compare_reconcile_output(actual.reconcile_output, expected_reconcile_output.get(actual.rule.agg_type))
+            _compare_reconcile_output(
+                actual.reconcile_output, expected_reconcile_output_dict(mock_spark).get(actual.rule.agg_type)
+            )

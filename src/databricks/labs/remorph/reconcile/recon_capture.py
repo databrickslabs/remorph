@@ -186,7 +186,7 @@ def generate_final_reconcile_aggregate_output(
                 {_db_prefix}.{_RECON_AGGREGATE_METRICS_TABLE_NAME} metrics 
             ON 
                 (MAIN.recon_table_id = METRICS.recon_table_id 
-                AND MAIN.operation_name = 'reconcile-aggregate') 
+                AND MAIN.operation_name = 'aggregates-reconcile') 
             WHERE 
                 MAIN.recon_id = '{recon_id}'  
         )
@@ -555,15 +555,15 @@ class ReconCapture:
             agg_details_rule_df_list = []
 
             mismatch_df = self._get_df(recon_table_id, agg_output.reconcile_output, "mismatch")
-            if not mismatch_df.isEmpty():
+            if mismatch_df and not mismatch_df.isEmpty():
                 agg_details_rule_df_list.append(mismatch_df)
 
             missing_src_df = self._get_df(recon_table_id, agg_output.reconcile_output, "missing_in_source")
-            if not missing_src_df.isEmpty():
+            if missing_src_df and not missing_src_df.isEmpty():
                 agg_details_rule_df_list.append(missing_src_df)
 
             missing_tgt_df = self._get_df(recon_table_id, agg_output.reconcile_output, "missing_in_target")
-            if not missing_tgt_df.isEmpty():
+            if missing_tgt_df and not missing_tgt_df.isEmpty():
                 agg_details_rule_df_list.append(missing_tgt_df)
 
             agg_details_rule_df = self._union_dataframes(agg_details_rule_df_list)

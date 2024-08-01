@@ -10,6 +10,20 @@ from sqlglot import expressions as exp
 
 logger = logging.getLogger(__name__)
 
+_SUPPORTED_AGG_TYPES: set[str] = {
+    "min",
+    "max",
+    "count",
+    "sum",
+    "avg",
+    "mean",
+    "mode",
+    "percentile",
+    "stddev",
+    "variance",
+    "median",
+}
+
 
 class TableThresholdBoundsException(ValueError):
     """Raise the error when the bounds for table threshold are invalid"""
@@ -321,6 +335,9 @@ class Aggregate:
         self.agg_columns = to_lower_case(self.agg_columns)
         self.type = self.type.lower()
         self.group_by_columns = to_lower_case(self.group_by_columns) if self.group_by_columns else None
+        assert (
+            self.type in _SUPPORTED_AGG_TYPES
+        ), f"Invalid aggregate type: {self.type}, only {_SUPPORTED_AGG_TYPES} are supported."
 
     def get_agg_type(self):
         return self.type
