@@ -12,6 +12,7 @@ class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: 
     case b: ir.Batch => b.children.map(generate(ctx, _)).mkString("", ";\n", ";")
     case ir.WithCTE(ctes, query) =>
       s"WITH ${ctes.map(generate(ctx, _))} ${generate(ctx, query)}"
+    case c: ir.CTEDefinition => cte(ctx, c)
     case p: ir.Project => project(ctx, p)
     case ir.NamedTable(id, _, _) => id
     case ir.Filter(input, condition) =>
@@ -139,5 +140,15 @@ class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: 
     val plan = generate(ctx, withOptions.input)
     s"${optionComments}" +
       s"${plan}"
+  }
+
+  private def cte(ctx: GeneratorContext, cteDefinition: ir.CTEDefinition): String = {
+    val subquery = generate(ctx, cteDefinition.cte)
+    val table = if (cteDefinition.columns.isEmpty) {
+      cteDefinition.tableName
+    } else {
+      cteDefinition.tableName + cteDefinition.columns.map(expr.generate(ctx, _)).mkString("(", ", ", ")")
+    }
+    s"WITH ($subquery) AS $table"
   }
 }

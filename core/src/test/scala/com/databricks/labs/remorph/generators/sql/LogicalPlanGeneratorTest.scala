@@ -244,4 +244,16 @@ class LogicalPlanGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.L
     }
 
   }
+
+  "transpile to WITH" in {
+    ir.CTEDefinition(
+      "t1",
+      Seq(),
+      ir.Project(namedTable("table1"), Seq(ir.Star(None)))) generates "WITH (SELECT * FROM table1) AS t1"
+
+    ir.CTEDefinition(
+      "t1",
+      Seq(ir.Id("c1"), ir.Id("c2")),
+      ir.Project(namedTable("table1"), Seq(ir.Star(None)))) generates "WITH (SELECT * FROM table1) AS t1(c1, c2)"
+  }
 }
