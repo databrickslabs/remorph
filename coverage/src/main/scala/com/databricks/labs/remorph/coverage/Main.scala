@@ -69,9 +69,6 @@ object Main {
           source_dialect = sourceDialect,
           target_dialect = targetDialect,
           file = os.Path(test.inputFile).relativeTo(sourceDir).toString)
-        // scalastyle:off
-        println(s"File: ${test.inputFile}")
-        // scalastyle:on
         val report = runner.runQuery(exampleQuery)
         val reportEntryJson = ReportEntry(header, report).asJson
         os.write.append(outputFilePath, ujson.write(reportEntryJson, indent = -1) + "\n")
