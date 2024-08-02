@@ -87,18 +87,18 @@ case class Batch(children: Seq[LogicalPlan]) extends LogicalPlan {
 
 case class FunctionParameter(name: String, dataType: DataType, defaultValue: Option[Expression])
 
-sealed trait UDFRuntimeInfo
-case class JavaUDFInfo(runtimeVersion: Option[String], imports: Seq[String], handler: String) extends UDFRuntimeInfo
-case class PythonUDFInfo(runtimeVersion: Option[String], packages: Seq[String], handler: String) extends UDFRuntimeInfo
-case object JavascriptUDFInfo extends UDFRuntimeInfo
-case class ScalaUDFInfo(runtimeVersion: Option[String], imports: Seq[String], handler: String) extends UDFRuntimeInfo
-case class SQLUDFInfo(memoizable: Boolean) extends UDFRuntimeInfo
+sealed trait RuntimeInfo
+case class JavaRuntimeInfo(runtimeVersion: Option[String], imports: Seq[String], handler: String) extends RuntimeInfo
+case class PythonRuntimeInfo(runtimeVersion: Option[String], packages: Seq[String], handler: String) extends RuntimeInfo
+case object JavaScriptRuntimeInfo extends RuntimeInfo
+case class ScalaRuntimeInfo(runtimeVersion: Option[String], imports: Seq[String], handler: String) extends RuntimeInfo
+case class SQLRuntimeInfo(memoizable: Boolean) extends RuntimeInfo
 
 case class CreateInlineUDF(
     name: String,
     returnType: DataType,
     parameters: Seq[FunctionParameter],
-    runtimeInfo: UDFRuntimeInfo,
+    runtimeInfo: RuntimeInfo,
     acceptsNullParameters: Boolean,
     comment: Option[String],
     body: String)

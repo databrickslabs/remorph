@@ -144,6 +144,20 @@ otherCommand
     | unset
     | call
     | beginTxn
+    | declareCommand
+    | let
+    ;
+
+procStatement
+    : call
+    | declareCommand
+    | let
+    | executeImmediate
+    | returnStatement
+    | unresolvedStatement
+    ;
+
+unresolvedStatement: STRING | DBL_DOLLAR
     ;
 
 beginTxn: BEGIN (WORK | TRANSACTION)? (NAME id)? | START TRANSACTION ( NAME id)?
@@ -160,6 +174,18 @@ copyIntoTable
         | userStage
         | namedStage
     ) R_PAREN files? pattern? fileFormat? copyOptions*
+    ;
+
+// see https://docs.snowflake.com/en/sql-reference/snowflake-scripting/declare
+declareCommand: DECLARE declareStatement+
+    ;
+
+declareStatement
+    : id dataType SEMI                                   # declareSimple
+    | id dataType DEFAULT expr SEMI                      # declareWithDefault
+    | id CURSOR FOR expr SEMI                            # declareCursor
+    | id RESULTSET ((ASSIGN | DEFAULT) expr)? SEMI       # declareResultSet
+    | id EXCEPTION L_PAREN INT COMMA STRING R_PAREN SEMI # declareException
     ;
 
 externalLocation
@@ -197,6 +223,15 @@ formatName: FORMAT_NAME EQ string
     ;
 
 formatType: TYPE EQ typeFileformat formatTypeOptions*
+    ;
+
+let
+    // variable and resultset are covered under the same visitor since expr is common
+    : LET? id (dataType | RESULTSET)? (ASSIGN | DEFAULT) expr SEMI # letVariableAssignment
+    | LET? id CURSOR FOR (selectStatement | id) SEMI               # letCursor
+    ;
+
+returnStatement: RETURN expr SEMI
     ;
 
 stageFileFormat
@@ -1601,16 +1636,19 @@ callerOwner: CALLER | OWNER
 executaAs: EXECUTE AS callerOwner
     ;
 
-procedureDefinition: string | DBL_DOLLAR
+procedureDefinition: DBL_DOLLAR | declareCommand? BEGIN procStatement+ END SEMI
     ;
 
 notNull: NOT NULL_
     ;
 
+table_: TABLE (L_PAREN (colDecl (COMMA colDecl)*)? R_PAREN) | (functionCall)
+    ;
+
 createProcedure
     : CREATE orReplace? PROCEDURE objectName L_PAREN (argDecl (COMMA argDecl)*)? R_PAREN RETURNS (
         dataType
-        | TABLE L_PAREN (colDecl (COMMA colDecl)*)? R_PAREN
+        | table_
     ) notNull? LANGUAGE SQL (CALLED ON NULL_ INPUT | RETURNS NULL_ ON NULL_ INPUT | STRICT)? (
         VOLATILE
         | IMMUTABLE
@@ -3115,7 +3153,6 @@ expr
     | expr COLLATE string                       # exprCollate
     | caseExpression                            # exprCase
     | iffExpr                                   # exprIff
-    | bracketExpression                         # exprBracket
     | sign expr                                 # exprSign
     | expr op = (STAR | DIVIDE | MODULE) expr   # exprPrecedence0
     | expr op = (PLUS | MINUS | PIPE_PIPE) expr # exprPrecedence1
@@ -3133,6 +3170,10 @@ expr
     | DISTINCT expr                             # exprDistinct
     //Should be latest rule as it's nearly a catch all
     | primitiveExpression # exprPrimitive
+    | parameterExpression # exprParameter
+    ;
+
+subQueryExpr: L_PAREN subquery R_PAREN
     ;
 
 withinGroup: WITHIN GROUP L_PAREN orderByClause R_PAREN
@@ -3210,6 +3251,10 @@ primitiveExpression
     | BOTH_Q            # primExprBoth
     | ARRAY_Q           # primExprArray
     | OBJECT_Q          # primExprObject
+    | COLON id          # primVariable
+    ;
+
+parameterExpression: COLON id
     ;
 
 overClause: OVER L_PAREN (PARTITION BY expr (COMMA expr)*)? windowOrderingAndFrame? R_PAREN
