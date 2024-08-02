@@ -16,7 +16,7 @@
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>
     <!-- 5.x starting from 5.0.0 requires JRE 11 -->
-    <mockito.version>4.11.0</mockito.version>
+    <mockito.version>5.11.0</mockito.version>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <slf4j.version>2.0.9</slf4j.version>
     <antlr.version>4.13.1</antlr.version>
@@ -47,7 +47,7 @@
     <dependency>
       <groupId>com.databricks</groupId>
       <artifactId>databricks-sdk-java</artifactId>
-      <version>0.21.0</version>
+      <version>0.24.1</version>
     </dependency>
     <dependency>
       <groupId>org.apache.spark</groupId>
@@ -78,7 +78,7 @@
     <dependency>
       <groupId>org.scalatest</groupId>
       <artifactId>scalatest_${scala.binary.version}</artifactId>
-      <version>3.3.0-SNAP3</version>
+      <version>3.3.0-SNAP4</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -230,4 +230,11 @@
       </plugin>
     </plugins>
   </build>
+    <repositories>
+        <repository>
+            <id>maven_central</id>
+            <name>Maven Central</name>
+            <url>https://repo.maven.apache.org/maven2/</url>
+        </repository>
+    </repositories>
 </project>
