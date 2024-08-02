@@ -1,5 +1,6 @@
 import logging
 import re
+from datetime import datetime
 
 from pyspark.errors import PySparkException
 from pyspark.sql import DataFrame, SparkSession
@@ -69,7 +70,10 @@ class DatabricksDataSource(DataSource, SecretsMixin):
         catalog_str = catalog if catalog else "hive_metastore"
         schema_query = _get_schema_query(catalog_str, schema, table)
         try:
-            schema_df = self._spark.sql(schema_query).where("col_name not like '#%'").distinct()
-            return [Schema(field.col_name.lower(), field.data_type.lower()) for field in schema_df.collect()]
+            logger.debug(f"Fetching schema using query: \n`{schema_query}`")
+            logger.info(f"Fetching Schema: Started at: {datetime.now()}")
+            schema_metadata = self._spark.sql(schema_query).where("col_name not like '#%'").distinct().collect()
+            logger.info(f"Schema fetched successfully. Completed at: {datetime.now()}")
+            return [Schema(field.col_name.lower(), field.data_type.lower()) for field in schema_metadata]
         except (RuntimeError, PySparkException) as e:
             return self.log_and_throw_exception(e, "schema", schema_query)

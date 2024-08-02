@@ -83,10 +83,10 @@ class SnowflakeDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
         )
         try:
             logger.debug(f"Fetching schema using query: \n`{schema_query}`")
-            logger.warning(f"Fetching Schema: Started at: {datetime.now()}")
-            schema_df = self.reader(schema_query).load()
-            logger.warning(f"Schema fetched successfully. Completed at: {datetime.now()}")
-            return [Schema(field.COLUMN_NAME.lower(), field.DATA_TYPE.lower()) for field in schema_df.collect()]
+            logger.info(f"Fetching Schema: Started at: {datetime.now()}")
+            schema_metadata = self.reader(schema_query).load().collect()
+            logger.info(f"Schema fetched successfully. Completed at: {datetime.now()}")
+            return [Schema(field.COLUMN_NAME.lower(), field.DATA_TYPE.lower()) for field in schema_metadata]
         except (RuntimeError, PySparkException) as e:
             return self.log_and_throw_exception(e, "schema", schema_query)
 
