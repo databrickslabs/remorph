@@ -32,6 +32,7 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
       case a: ir.Alias => alias(ctx, a)
       case d: ir.Distinct => distinct(ctx, d)
       case s: ir.Star => star(ctx, s)
+      case c: ir.Cast => cast(ctx, c)
       case col: ir.Column => column(ctx, col)
       case da: ir.DeleteAction => "DELETE"
       case ia: ir.InsertAction => insertAction(ctx, ia)
@@ -236,6 +237,12 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
 
   private def generateObjectReference(ctx: GeneratorContext, reference: ir.ObjectReference): String = {
     (reference.head +: reference.tail).map(id(ctx, _)).mkString(".")
+  }
+
+  private def cast(ctx: GeneratorContext, cast: ir.Cast): String = {
+    val expr = expression(ctx, cast.expr)
+    val dataType = DataTypeGenerator.generateDataType(ctx, cast.dataType)
+    s"CAST($expr AS $dataType)"
   }
 
   private def dot(ctx: GeneratorContext, dot: ir.Dot): String = {
