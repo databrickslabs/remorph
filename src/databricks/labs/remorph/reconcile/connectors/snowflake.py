@@ -21,7 +21,7 @@ class SnowflakeDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
         concat(data_type, '(', numeric_precision, ',' , numeric_scale, ')') when lower(data_type) = 'text' then 
         concat('varchar', '(', CHARACTER_MAXIMUM_LENGTH, ')')  else data_type end as data_type from 
         {catalog}.INFORMATION_SCHEMA.COLUMNS where lower(table_name)='{table}' 
-        and lower(table_schema) = '{schema}' order by ordinal_position"""
+        and table_schema = '{schema}' order by ordinal_position"""
 
     def __init__(
         self,
@@ -76,7 +76,7 @@ class SnowflakeDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
         schema_query = re.sub(
             r'\s+',
             ' ',
-            SnowflakeDataSource._SCHEMA_QUERY.format(catalog=catalog, schema=schema, table=table),
+            SnowflakeDataSource._SCHEMA_QUERY.format(catalog=catalog, schema=schema.upper(), table=table),
         )
         try:
             schema_df = self.reader(schema_query).load()
