@@ -188,6 +188,10 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
       ir.CallFunction("COUNT", Seq(ir.Distinct(simplyNamedColumn("salary")))))
   }
 
+  "translate COUNT(*)" in {
+    exampleExpr("COUNT(*)", _.expression(), ir.CallFunction("COUNT", Seq(ir.Star(None))))
+  }
+
   "translate special keyword functions" in {
     exampleExpr(
       // TODO: Returns UnresolvedFunction as it is not convertible - create UnsupportedFunction
