@@ -13,8 +13,8 @@ class SnowflakeCommandBuilder
   protected override def wrapUnresolvedInput(unparsedInput: String): ir.UnresolvedCommand =
     ir.UnresolvedCommand(unparsedInput)
 
-  // [TODO]: Implement Cursor and Exception for Declare Statements.
-  // [TODO]: Implement Cursor for Let Statements.
+  // TODO: Implement Cursor and Exception for Declare Statements.
+  // TODO: Implement Cursor for Let Statements.
 
   override def visitDeclareWithDefault(ctx: DeclareWithDefaultContext): ir.Command = {
     val variableName = ctx.id().accept(expressionBuilder).asInstanceOf[ir.Id]

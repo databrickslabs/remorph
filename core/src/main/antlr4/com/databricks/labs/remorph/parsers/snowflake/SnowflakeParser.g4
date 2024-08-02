@@ -144,7 +144,8 @@ otherCommand
     | unset
     | call
     | beginTxn
-    | procStatement
+    | declareCommand
+    | let
     ;
 
 procStatement: call | declareCommand | let | executeImmediate | returnStatement
@@ -166,7 +167,7 @@ copyIntoTable
     ) R_PAREN files? pattern? fileFormat? copyOptions*
     ;
 
-//https://docs.snowflake.com/en/sql-reference/snowflake-scripting/declare
+// see https://docs.snowflake.com/en/sql-reference/snowflake-scripting/declare
 declareCommand: DECLARE declareStatement+
     ;
 
@@ -216,7 +217,7 @@ formatType: TYPE EQ typeFileformat formatTypeOptions*
     ;
 
 let
-    //variable and resultset are covered under the same visitor since expr is common
+    // variable and resultset are covered under the same visitor since expr is common
     : LET? id (dataType | RESULTSET)? (ASSIGN | DEFAULT) expr SEMI # letVariableAssignment
     | LET? id CURSOR FOR (selectStatement | id) SEMI               # letCursor
     ;
@@ -3137,14 +3138,12 @@ exprList: expr (COMMA expr)*
     ;
 
 expr
-    : objectName DOT NEXTVAL # exprNextval
-    | expr DOT expr          # exprDot
-    | expr COLON expr        # exprColon
-    | expr COLLATE string    # exprCollate
-    | caseExpression         # exprCase
-    | iffExpr                # exprIff
-    //Removed it so expression precedance takes over.
-    //| bracketExpression                         # exprBracket
+    : objectName DOT NEXTVAL                    # exprNextval
+    | expr DOT expr                             # exprDot
+    | expr COLON expr                           # exprColon
+    | expr COLLATE string                       # exprCollate
+    | caseExpression                            # exprCase
+    | iffExpr                                   # exprIff
     | sign expr                                 # exprSign
     | expr op = (STAR | DIVIDE | MODULE) expr   # exprPrecedence0
     | expr op = (PLUS | MINUS | PIPE_PIPE) expr # exprPrecedence1

@@ -40,7 +40,7 @@ class SnowflakeCommandBuilderSpec
         replace = false))
 
     example(
-      "query_statement RESULTSET := (select col1 from some_table);",
+      "query_statement RESULTSET := (SELECT col1 FROM some_table);",
       _.declareStatement(),
       CreateVariable(
         name = Id("query_statement"),
@@ -58,12 +58,12 @@ class SnowflakeCommandBuilderSpec
     example("LET X := 1;", _.let(), SetVariable(name = Id("X"), dataType = None, value = Literal(short = Some(1))))
 
     example(
-      "select_statement := 'select * from table where id = ' || id;",
+      "select_statement := 'SELECT * FROM table WHERE id = ' || id;",
       _.let(),
       SetVariable(
         name = Id("select_statement"),
         dataType = None,
-        value = Concat(Seq(Literal(string = Some("select * from table where id = ")), Id("id")))))
+        value = Concat(Seq(Literal(string = Some("SELECT * FROM table WHERE id = ")), Id("id")))))
 
     example(
       "LET price NUMBER(13,2) DEFAULT 111.50;",
@@ -82,7 +82,7 @@ class SnowflakeCommandBuilderSpec
         value = Literal(float = Some(121.55f))))
 
     example(
-      "LET query_statement RESULTSET := (select col1 from some_table);",
+      "LET query_statement RESULTSET := (SELECT col1 FROM some_table);",
       _.let(),
       SetVariable(
         name = Id("query_statement"),
