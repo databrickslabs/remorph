@@ -148,7 +148,16 @@ otherCommand
     | let
     ;
 
-procStatement: call | declareCommand | let | executeImmediate | returnStatement
+procStatement
+    : call
+    | declareCommand
+    | let
+    | executeImmediate
+    | returnStatement
+    | unresolvedStatement
+    ;
+
+unresolvedStatement: STRING | DBL_DOLLAR
     ;
 
 beginTxn: BEGIN (WORK | TRANSACTION)? (NAME id)? | START TRANSACTION ( NAME id)?
@@ -2257,7 +2266,7 @@ taskOverlap: ALLOW_OVERLAPPING_EXECUTION EQ trueFalse
 sql: EXECUTE IMMEDIATE DBL_DOLLAR | sqlCommand | call
     ;
 
-call: CALL objectName L_PAREN exprList? R_PAREN SEMI
+call: CALL objectName L_PAREN exprList? R_PAREN
     ;
 
 createUser: CREATE orReplace? USER ifNotExists? id objectProperties? objectParams? sessionParams?
