@@ -9,18 +9,20 @@ trait ParserTestCommon[P <: Parser] extends PlanComparison { self: Assertions =>
 
   protected def makeLexer(chars: CharStream): TokenSource
   protected def makeParser(tokens: TokenStream): P
-  protected def makeErrHandler(chars: String): ErrorCollector = new DefaultErrorCollector
+  protected def makeErrStrategy(): SqlErrorStrategy
+  protected def makeErrListener(chars: String): ErrorCollector = new DefaultErrorCollector
   protected def astBuilder: ParseTreeVisitor[_]
-  protected var errHandler: ErrorCollector = _
+  protected var errListener: ErrorCollector = _
 
   protected def parseString[R <: RuleContext](input: String, rule: P => R): R = {
     val inputString = CharStreams.fromString(input)
     val lexer = makeLexer(inputString)
     val tokenStream = new CommonTokenStream(lexer)
     val parser = makeParser(tokenStream)
-    errHandler = makeErrHandler(input)
+    errListener = makeErrListener(input)
     parser.removeErrorListeners()
-    parser.addErrorListener(errHandler)
+    parser.addErrorListener(errListener)
+    parser.setErrorHandler(makeErrStrategy())
     val tree = rule(parser)
 
     // uncomment the following line if you need a peek in the Snowflake/TSQL AST
@@ -30,9 +32,9 @@ trait ParserTestCommon[P <: Parser] extends PlanComparison { self: Assertions =>
 
   protected def example[R <: RuleContext](query: String, rule: P => R, expectedAst: ir.LogicalPlan) = {
     val sfTree = parseString(query, rule)
-    if (errHandler != null && errHandler.errorCount != 0) {
-      errHandler.logErrors()
-      fail(s"${errHandler.errorCount} errors found in the child string")
+    if (errListener != null && errListener.errorCount != 0) {
+      errListener.logErrors()
+      fail(s"${errListener.errorCount} errors found in the child string")
     }
 
     val result = astBuilder.visit(sfTree)
@@ -41,9 +43,9 @@ trait ParserTestCommon[P <: Parser] extends PlanComparison { self: Assertions =>
 
   protected def exampleExpr[R <: RuleContext](query: String, rule: P => R, expectedAst: ir.Expression) = {
     val sfTree = parseString(query, rule)
-    if (errHandler != null && errHandler.errorCount != 0) {
-      errHandler.logErrors()
-      fail(s"${errHandler.errorCount} errors found in the child string")
+    if (errListener != null && errListener.errorCount != 0) {
+      errListener.logErrors()
+      fail(s"${errListener.errorCount} errors found in the child string")
     }
     val result = astBuilder.visit(sfTree)
     val wrapExpr = (expr: ir.Expression) => ir.Filter(ir.NoopNode, expr)
@@ -59,11 +61,11 @@ trait ParserTestCommon[P <: Parser] extends PlanComparison { self: Assertions =>
    */
   protected def checkError[R <: RuleContext](query: String, rule: P => R, errContains: String): Assertion = {
     parseString(query, rule)
-    if (errHandler != null && errHandler.errorCount == 0) {
+    if (errListener != null && errListener.errorCount == 0) {
       fail(s"Expected an error in the child string\n$query\nbut no errors were found")
     }
 
-    val errors = errHandler.formatErrors
+    val errors = errListener.formatErrors
     assert(
       errors.exists(_.contains(errContains)),
       s"Expected error containing '$errContains' but got:\n${errors.mkString("\n")}")
