@@ -6,4 +6,4 @@
 SELECT sum(col1) AS sum_col1 FROM tabl;
 
 -- databricks sql:
-SELECT sum(col1) AS sum_col1 FROM tabl;
+SELECT SUM(col1) AS sum_col1 FROM tabl;
