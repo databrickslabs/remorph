@@ -921,7 +921,7 @@ alterSequence
 
 alterSecurityIntegrationExternalOauth
     : ALTER SECURITY? INTEGRATION ifExists id SET (TYPE EQ EXTERNAL_OAUTH)? (ENABLED EQ trueFalse)? (
-        EXTERNAL_OAUTH_TYPE EQ ( OKTA | AZURE | PING_FEDERATE | CUSTOM)
+        EXTERNAL_OAUTH_TYPE EQ ( OKTA | id | PING_FEDERATE | CUSTOM)
     )? (EXTERNAL_OAUTH_ISSUER EQ string)? (
         EXTERNAL_OAUTH_TOKEN_USER_MAPPING_CLAIM EQ (string | L_PAREN stringList R_PAREN)
     )? (EXTERNAL_OAUTH_SNOWFLAKE_USER_MAPPING_ATTRIBUTE EQ string)? (
@@ -953,7 +953,7 @@ securityIntegrationExternalOauthProperty
 
 alterSecurityIntegrationSnowflakeOauth
     : ALTER SECURITY? INTEGRATION ifExists? id SET (TYPE EQ EXTERNAL_OAUTH)? enabledTrueFalse? (
-        EXTERNAL_OAUTH_TYPE EQ ( OKTA | AZURE | PING_FEDERATE | CUSTOM)
+        EXTERNAL_OAUTH_TYPE EQ ( OKTA | id | PING_FEDERATE | CUSTOM)
     )? (EXTERNAL_OAUTH_ISSUER EQ string)? (
         EXTERNAL_OAUTH_TOKEN_USER_MAPPING_CLAIM EQ (string | L_PAREN stringList R_PAREN)
     )? (EXTERNAL_OAUTH_SNOWFLAKE_USER_MAPPING_ATTRIBUTE EQ string)? (
@@ -1515,19 +1515,7 @@ createFailoverGroup
     | CREATE FAILOVER GROUP ifNotExists? id AS REPLICA OF id DOT id DOT id
     ;
 
-typeFileformat
-    : CSV
-    | JSON
-    | AVRO
-    | ORC
-    | PARQUET
-    | XML
-    | CSV_Q
-    | JSON_Q
-    | AVRO_Q
-    | ORC_Q
-    | PARQUET_Q
-    | XML_Q
+typeFileformat: CSV | JSON | AVRO | ORC | PARQUET | XML | STRING
     ;
 
 createFileFormat
@@ -1703,7 +1691,7 @@ createSchema
 createSecurityIntegrationExternalOauth
     : CREATE orReplace? SECURITY INTEGRATION ifNotExists? id TYPE EQ EXTERNAL_OAUTH ENABLED EQ trueFalse EXTERNAL_OAUTH_TYPE EQ (
         OKTA
-        | AZURE
+        | id
         | PING_FEDERATE
         | CUSTOM
     ) EXTERNAL_OAUTH_ISSUER EQ string EXTERNAL_OAUTH_TOKEN_USER_MAPPING_CLAIM EQ (
@@ -1759,11 +1747,7 @@ createSecurityIntegrationSaml2
     ;
 
 createSecurityIntegrationScim
-    : CREATE orReplace? SECURITY INTEGRATION ifNotExists? id TYPE EQ SCIM SCIM_CLIENT EQ (
-        OKTA_Q
-        | AZURE_Q
-        | GENERIC_Q
-    ) RUN_AS_ROLE EQ (OKTA_PROVISIONER_Q | AAD_PROVISIONER_Q | GENERIC_SCIM_PROVISIONER_Q) networkPolicy? (
+    : CREATE orReplace? SECURITY INTEGRATION ifNotExists? id TYPE EQ SCIM SCIM_CLIENT EQ STRING RUN_AS_ROLE EQ STRING networkPolicy? (
         SYNC_PASSWORD EQ trueFalse
     )? commentClause?
     ;
@@ -1793,34 +1777,9 @@ createSessionPolicy
 createShare: CREATE orReplace? SHARE id commentClause?
     ;
 
-character
-    : CHAR_LITERAL
-    | AAD_PROVISIONER_Q
-    | ARRAY_Q
-    | AUTO_Q
-    | AVRO_Q
-    | AZURE_CSE_Q
-    | AZURE_Q
-    | BOTH_Q
-    | CSV_Q
-    | GCS_SSE_KMS_Q
-    | GENERIC_Q
-    | GENERIC_SCIM_PROVISIONER_Q
-    | JSON_Q
-    | NONE_Q
-    | OBJECT_Q
-    | OKTA_PROVISIONER_Q
-    | OKTA_Q
-    | ORC_Q
-    | PARQUET_Q
-    | S3
-    | SNOWPARK_OPTIMIZED
-    | XML_Q
-    ;
-
 formatTypeOptions
     //-- If TYPE EQ CSV
-    : COMPRESSION EQ (AUTO | GZIP | BZ2 | BROTLI | ZSTD | DEFLATE | RAW_DEFLATE | NONE | AUTO_Q)
+    : COMPRESSION EQ (AUTO | GZIP | BZ2 | BROTLI | ZSTD | DEFLATE | RAW_DEFLATE | NONE | string)
     | RECORD_DELIMITER EQ ( string | NONE)
     | FIELD_DELIMITER EQ ( string | NONE)
     | FILE_EXTENSION EQ string
@@ -1830,10 +1789,10 @@ formatTypeOptions
     | TIME_FORMAT EQ (string | AUTO)
     | TIMESTAMP_FORMAT EQ (string | AUTO)
     | BINARY_FORMAT EQ (HEX | BASE64 | UTF8)
-    | ESCAPE EQ (character | NONE | NONE_Q)
-    | ESCAPE_UNENCLOSED_FIELD EQ (string | NONE | NONE_Q)
+    | ESCAPE EQ (STRING | NONE)
+    | ESCAPE_UNENCLOSED_FIELD EQ (string | NONE)
     | TRIM_SPACE EQ trueFalse
-    | FIELD_OPTIONALLY_ENCLOSED_BY EQ (string | NONE | NONE_Q)
+    | FIELD_OPTIONALLY_ENCLOSED_BY EQ (string | NONE)
     | NULL_IF EQ L_PAREN stringList R_PAREN
     | ERROR_ON_COLUMN_COUNT_MISMATCH EQ trueFalse
     | REPLACE_INVALID_CHARACTERS EQ trueFalse
@@ -1987,12 +1946,10 @@ showStages: SHOW STAGES likePattern? inObj?
 /* ===========  End of stage DDL section =========== */
 
 cloudProviderParams
-    //(for Amazon S3)
-    : STORAGE_PROVIDER EQ S3 STORAGE_AWS_ROLE_ARN EQ string (STORAGE_AWS_OBJECT_ACL EQ string)?
-    //(for Google Cloud Storage)
-    | STORAGE_PROVIDER EQ GCS
-    //(for Microsoft Azure)
-    | STORAGE_PROVIDER EQ AZURE AZURE_TENANT_ID EQ string
+    : STORAGE_PROVIDER EQ STRING (
+        AZURE_TENANT_ID EQ (string | ID)
+        | STORAGE_AWS_ROLE_ARN EQ string (STORAGE_AWS_OBJECT_ACL EQ string)?
+    )?
     ;
 
 cloudProviderParams2
@@ -2266,7 +2223,8 @@ taskOverlap: ALLOW_OVERLAPPING_EXECUTION EQ trueFalse
 sql: EXECUTE IMMEDIATE DBL_DOLLAR | sqlCommand | call
     ;
 
-call: CALL objectName L_PAREN exprList? R_PAREN
+// Snowfllake allows calls to special internal stored procedures, named x.y!entrypoint
+call: CALL objectName (BANG id)? L_PAREN exprList? R_PAREN
     ;
 
 createUser: CREATE orReplace? USER ifNotExists? id objectProperties? objectParams? sessionParams?
@@ -2292,7 +2250,7 @@ whExtraSize: XXXLARGE | X4LARGE | X5LARGE | X6LARGE
 
 whProperties
     : WAREHOUSE_SIZE EQ (whCommonSize | whExtraSize | ID2)
-    | WAREHOUSE_TYPE EQ (STANDARD | SNOWPARK_OPTIMIZED)
+    | WAREHOUSE_TYPE EQ (STANDARD | string)
     | MAX_CLUSTER_COUNT EQ num
     | MIN_CLUSTER_COUNT EQ num
     | SCALING_POLICY EQ (STANDARD | ECONOMY)
@@ -3248,9 +3206,6 @@ primitiveExpression
     | id LSB string RSB # primObjectAccess
     | id                # primExprColumn
     | literal           # primExprLiteral
-    | BOTH_Q            # primExprBoth
-    | ARRAY_Q           # primExprArray
-    | OBJECT_Q          # primExprObject
     | COLON id          # primVariable
     ;
 
@@ -3319,7 +3274,7 @@ literal
     | jsonLiteral
     | arrayLiteral
     | NULL_
-    | AT_Q
+    | PARAM // A question mark can be used as a placeholder for a prepared statement that will use binding.
     ;
 
 sign: PLUS | MINUS
