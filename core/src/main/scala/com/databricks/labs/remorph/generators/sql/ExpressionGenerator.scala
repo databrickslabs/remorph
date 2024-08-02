@@ -65,7 +65,7 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
     }
 
     val boolOptions = opts.boolFlags.map { case (key, value) =>
-      s"     ${key} = ${if (value) { "ON" }
+      s"     ${key} ${if (value) { "ON" }
         else { "OFF" }}\n"
     }.mkString
     val boolStr = if (boolOptions.nonEmpty) {
@@ -75,7 +75,7 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
     }
 
     val autoOptions = opts.autoFlags.map { key =>
-      s"     ${key}\n"
+      s"     ${key} AUTO\n"
     }.mkString
     val autoStr = if (autoOptions.nonEmpty) {
       s"    Auto options:\n\n${autoOptions}\n"
