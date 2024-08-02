@@ -172,11 +172,10 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
       case r: RLike => rlike(ctx, r)
       case fn: ir.Fn => s"${fn.prettyName}(${fn.children.map(expression(ctx, _)).mkString(", ")})"
 
-      // Certain functions can be translated to SQL functions directly
+      // Certain functions can be translated directly to Databricks expressions such as INTERVAL
       case e: ir.Expression => expression(ctx, e)
       case _ => throw TranspileException("not implemented")
     }
-
   }
 
   private def literal(ctx: GeneratorContext, l: ir.Literal): String = {
