@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS main (
                          table_name: STRING NOT NULL
                         > NOT NULL,
     report_type STRING NOT NULL,
+    operation_name  STRING NOT NULL,
     start_ts TIMESTAMP,
     end_ts TIMESTAMP
 );
