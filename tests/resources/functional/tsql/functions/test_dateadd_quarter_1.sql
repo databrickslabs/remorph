@@ -7,4 +7,4 @@
 SELECT DATEADD(QUARTER, 2, col1) AS add_quarters_col1 FROM tabl;
 
 -- databricks sql:
-SELECT ADD_MONTHS(col1, 2*3) AS add_quarters_col1 FROM tabl;
+SELECT ADD_MONTHS(col1, 2 * 3) AS add_quarters_col1 FROM tabl;
