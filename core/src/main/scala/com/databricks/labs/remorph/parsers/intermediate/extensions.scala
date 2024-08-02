@@ -195,3 +195,26 @@ case class WithOptions(input: LogicalPlan, options: Expression) extends UnaryNod
   override def child: LogicalPlan = input
   override def output: Seq[Attribute] = input.output
 }
+
+// Though at least TSQL only needs the time based intervals, we are including all the interval types
+// supported by Spark SQL for completeness and future proofing
+sealed trait KnownIntervalType
+case object NANOSECOND_INTERVAL extends KnownIntervalType
+case object MICROSECOND_INTERVAL extends KnownIntervalType
+case object MILLISECOND_INTERVAL extends KnownIntervalType
+case object SECOND_INTERVAL extends KnownIntervalType
+case object MINUTE_INTERVAL extends KnownIntervalType
+case object HOUR_INTERVAL extends KnownIntervalType
+case object DAY_INTERVAL extends KnownIntervalType
+case object WEEK_INTERVAL extends KnownIntervalType
+case object MONTH_INTERVAL extends KnownIntervalType
+case object YEAR_INTERVAL extends KnownIntervalType
+
+// TSQL - For translation purposes, we cannot use teh standard Catalyst CalendarInterval as it is not
+// meant for code generation and converts everything to microseconds. It is much easier to use an extension
+// to the AST to represent the interval as it is required in TSQL, where we need to know if we were dealing with
+// MONTHS, HOURS, etc.
+case class KnownInterval(value: Expression, iType: KnownIntervalType) extends Expression {
+  override def children: Seq[Expression] = Seq(value)
+  override def dataType: DataType = UnresolvedType
+}

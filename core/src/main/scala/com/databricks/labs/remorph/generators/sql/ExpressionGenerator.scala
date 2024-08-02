@@ -39,9 +39,26 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
       case ua: ir.UpdateAction => updateAction(ctx, ua)
       case a: ir.Assign => assign(ctx, a)
       case opts: ir.Options => options(ctx, opts)
+      case i: ir.KnownInterval => interval(ctx, i)
 
       case x => throw TranspileException(s"Unsupported expression: $x")
     }
+  }
+
+  private def interval(ctx: GeneratorContext, interval: ir.KnownInterval): String = {
+    val iType = interval.iType match {
+      case ir.YEAR_INTERVAL => "YEAR"
+      case ir.MONTH_INTERVAL => "MONTH"
+      case ir.WEEK_INTERVAL => "WEEK"
+      case ir.DAY_INTERVAL => "DAY"
+      case ir.HOUR_INTERVAL => "HOUR"
+      case ir.MINUTE_INTERVAL => "MINUTE"
+      case ir.SECOND_INTERVAL => "SECOND"
+      case ir.MILLISECOND_INTERVAL => "MILLISECOND"
+      case ir.MICROSECOND_INTERVAL => "MICROSECOND"
+      case ir.NANOSECOND_INTERVAL => "NANOSECOND"
+    }
+    s"INTERVAL ${generate(ctx, interval.value)} ${iType}"
   }
 
   private def options(ctx: GeneratorContext, opts: ir.Options): String = {
@@ -154,6 +171,9 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
     call match {
       case r: RLike => rlike(ctx, r)
       case fn: ir.Fn => s"${fn.prettyName}(${fn.children.map(expression(ctx, _)).mkString(", ")})"
+
+      // Certain functions can be translated to SQL functions directly
+      case e: ir.Expression => expression(ctx, e)
       case _ => throw TranspileException("not implemented")
     }
 
