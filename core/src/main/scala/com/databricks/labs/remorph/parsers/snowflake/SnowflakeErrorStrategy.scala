@@ -5,8 +5,7 @@ import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser._
 import org.antlr.v4.runtime._
 import org.antlr.v4.runtime.misc.IntervalSet
 
-import scala.collection.convert.ImplicitConversions.`collection AsScalaIterable`
-import scala.collection.mutable.ListBuffer
+import scala.collection.JavaConverters._
 
 /**
  * Custom error strategy for SQL parsing <p> While we do not do anything super special here, we wish to override a
@@ -32,10 +31,6 @@ class SnowflakeErrorStrategy extends SqlErrorStrategy {
    *   the error message
    */
   override protected def generateMessage(recognizer: Parser, e: RecognitionException): String = {
-    val messages = new ListBuffer[String]()
-
-    val stringBuilder = new StringBuilder()
-
     // We build the messages by looking at the stack trace of the exception, but if the
     // rule translation is not found, or it is the same as the previous message, we skip it,
     // to avoid repeating the same message multiple times. This is because a recognition error
@@ -44,31 +39,26 @@ class SnowflakeErrorStrategy extends SqlErrorStrategy {
     // we may be embedded very deeply in the stack trace, so we want to avoid too many contexts
     // in a message.
     val stack = e.getStackTrace
-    stack.foreach { traceElement =>
+    val messages = stack.foldLeft(Seq.empty[String]) { case (messageChunks, traceElement) =>
       val methodName = traceElement.getMethodName
-      SnowflakeErrorStrategy.ruleTranslation.get(methodName).foreach { translatedMessage =>
-        // Only mention a batch if we have recovered all the way to the top rule
-        val shouldAppend = if (methodName == "snowflakeFile" || methodName == "batch") {
-          messages.isEmpty
+      val translatedMessageOpt = SnowflakeErrorStrategy.ruleTranslation.get(methodName)
+      translatedMessageOpt.fold(messageChunks) { translatedMessage =>
+        if (messageChunks.isEmpty || messageChunks.last != translatedMessage) {
+          messageChunks :+ translatedMessage
         } else {
-          messages.isEmpty || messages.last != translatedMessage
-        }
-
-        if (shouldAppend) {
-          messages.append(translatedMessage)
+          messageChunks
         }
       }
     }
 
-    if (messages.nonEmpty) {
-      stringBuilder.append("while parsing a ").append(messages.head)
+    if (messages.isEmpty) {
+      ""
+    } else {
+      messages.mkString("while parsing a ", " in a ", "")
     }
-
-    for (i <- 1 until messages.size) {
-      stringBuilder.append(" in a ").append(messages(i))
-    }
-    stringBuilder.toString()
   }
+
+  private val MaxExpectedTokensInErrorMessage = 12
 
   /**
    * When building the list of expected tokens, we do some custom manipulation so that we do not produce a list of 750
@@ -79,8 +69,6 @@ class SnowflakeErrorStrategy extends SqlErrorStrategy {
    * @return
    *   the expected string with tokens renamed in more human friendly form
    */
-  import scala.collection.mutable
-
   override protected def buildExpectedMessage(recognizer: Parser, expected: IntervalSet): String = {
     val expect = if (expected.contains(ID)) {
       removeIdKeywords(expected)
@@ -88,24 +76,23 @@ class SnowflakeErrorStrategy extends SqlErrorStrategy {
       expected
     }
 
-    val uniqueExpectedTokens = mutable.Set[String]()
-
-    // Iterate through the expected tokens
-    expect.toList.foreach { tokenId =>
+    val uniqueExpectedTokens = expect.toList.asScala.map { tokenId =>
       // Check if the token ID has a custom translation
-      val tokenString = SnowflakeErrorStrategy.tokenTranslation.get(tokenId) match {
+      SnowflakeErrorStrategy.tokenTranslation.get(tokenId) match {
         case Some(translatedName) => translatedName
         case None => recognizer.getVocabulary.getDisplayName(tokenId)
       }
-      uniqueExpectedTokens += tokenString
-    }
+    }.toSet
 
-    // Join the unique expected token strings with a comma and space for readability
-    // but only take the first 12 tokens to avoid a huge list of expected tokens
-    if (uniqueExpectedTokens.size <= 12) {
-      return uniqueExpectedTokens.toSeq.sorted(capitalizedSort).mkString(", ")
+    val overflowMark = if (uniqueExpectedTokens.size > MaxExpectedTokensInErrorMessage) {
+      "..."
+    } else {
+      ""
     }
-    uniqueExpectedTokens.toSeq.sorted(capitalizedSort).take(12).mkString(", ") + "..."
+    uniqueExpectedTokens.toSeq
+      .sorted(capitalizedSort)
+      .take(MaxExpectedTokensInErrorMessage)
+      .mkString("", ", ", overflowMark)
   }
 
   /**
