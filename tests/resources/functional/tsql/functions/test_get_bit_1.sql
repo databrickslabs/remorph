@@ -7,4 +7,4 @@
 SELECT GET_BIT(42, 7);
 
 -- databricks sql:
-SELECT getbit(42, 7);;
+SELECT GETBIT(42, 7);;
