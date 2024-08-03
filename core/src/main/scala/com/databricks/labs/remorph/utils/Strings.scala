@@ -1,9 +1,31 @@
 package com.databricks.labs.remorph.utils
 
+import java.io.{ByteArrayOutputStream, File, FileInputStream}
+import java.nio.charset.Charset
+import java.nio.charset.StandardCharsets.UTF_8
+
 /**
  * This utility object is based on org.apache.spark.sql.catalyst.util
  */
 object Strings {
+  def fileToString(file: File, encoding: Charset = UTF_8): String = {
+    val inStream = new FileInputStream(file)
+    val outStream = new ByteArrayOutputStream
+    try {
+      var reading = true
+      while (reading) {
+        inStream.read() match {
+          case -1 => reading = false
+          case c => outStream.write(c)
+        }
+      }
+      outStream.flush()
+    } finally {
+      inStream.close()
+    }
+    new String(outStream.toByteArray, encoding)
+  }
+
   def sideBySide(left: String, right: String): Seq[String] = {
     sideBySide(left.split("\n"), right.split("\n"))
   }
