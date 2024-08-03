@@ -3,7 +3,6 @@ package com.databricks.labs.remorph.coverage.runners
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-
 class DatabricksSQLTest extends AnyWordSpec with Matchers {
   "connectivity works" in {
     val env = new EnvGetter()

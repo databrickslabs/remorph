@@ -17,5 +17,5 @@ class DatabricksSQL(env: EnvGetter) extends LazyLogging {
 
   val spark = DatabricksSession.builder().sdkConfig(config).getOrCreate()
   val res = spark.sql("SELECT * FROM samples.tpch.customer LIMIT 10").collect()
-    logger.info(s"Tables: ${res.mkString(", ")}")
+  logger.info(s"Tables: ${res.mkString(", ")}")
 }

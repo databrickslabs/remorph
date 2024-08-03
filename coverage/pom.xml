@@ -83,6 +83,17 @@
             <artifactId>snowflake-jdbc</artifactId>
             <version>3.18.0</version>
         </dependency>
+        <dependency>
+            <groupId>com.github.tototoshi</groupId>
+            <artifactId>scala-csv_${scala.binary.version}</artifactId>
+            <version>2.0.0</version>
+        </dependency>
+        <dependency>
+            <groupId>com.microsoft.sqlserver</groupId>
+            <artifactId>mssql-jdbc</artifactId>
+            <!-- TODO: perhaps we need to switch to jre8 -->
+            <version>12.8.0.jre11</version>
+        </dependency>
     </dependencies>
     <build>
         <outputDirectory>target/scala-${scala.binary.version}/classes</outputDirectory>
