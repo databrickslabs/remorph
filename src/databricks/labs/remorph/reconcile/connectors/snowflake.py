@@ -18,11 +18,17 @@ logger = logging.getLogger(__name__)
 
 class SnowflakeDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
     _DRIVER = "snowflake"
-    # see
-    # https://docs.snowflake.com/en/sql-reference/info-schema#considerations-for-replacing-show-commands-with-information-schema-views
-    # only unquoted identifiers are treated as case-insensitive and are stored in uppercase.
-    # for quoted identifiers refer:
-    # https://docs.snowflake.com/en/sql-reference/identifiers-syntax#double-quoted-identifiers
+    """
+       * INFORMATION_SCHEMA:
+          - see https://docs.snowflake.com/en/sql-reference/info-schema#considerations-for-replacing-show-commands-with-information-schema-views
+       * DATA:
+          - only unquoted identifiers are treated as case-insensitive and are stored in uppercase.
+          - for quoted identifiers refer:
+             https://docs.snowflake.com/en/sql-reference/identifiers-syntax#double-quoted-identifiers
+       * ORDINAL_POSITION:
+          - indicates the sequential order of a column within a table or view, 
+             starting from 1 based on the order of column definition.
+    """
     _SCHEMA_QUERY = """select column_name,
                                                       case
                                                         when numeric_precision is not null and numeric_scale is not null
@@ -35,8 +41,7 @@ class SnowflakeDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
                                                       end as data_type
                                                       from {catalog}.INFORMATION_SCHEMA.COLUMNS
                                                       where lower(table_name)='{table}' and table_schema = '{schema}' 
-                                                      order by ordinal_position
-                                       """
+                                                      order by ordinal_position"""
 
     def __init__(
         self,

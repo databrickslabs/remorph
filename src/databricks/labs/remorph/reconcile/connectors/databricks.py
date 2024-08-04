@@ -28,8 +28,7 @@ def _get_schema_query(catalog: str, schema: str, table: str):
                        where lower(table_catalog)='{catalog}' 
                                     and lower(table_schema)='{schema}'
                                      and lower(table_name) ='{table}'
-                       order by col_name
-                   """
+                       order by col_name"""
     return re.sub(r'\s+', ' ', query)
 
 
