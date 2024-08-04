@@ -28,8 +28,8 @@ class ExpressionGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.Ex
       |
       |    Boolean options:
       |
-      |     FLAME = OFF
-      |     QUICKLY = ON
+      |     FLAME OFF
+      |     QUICKLY ON
       |
       |
       | */

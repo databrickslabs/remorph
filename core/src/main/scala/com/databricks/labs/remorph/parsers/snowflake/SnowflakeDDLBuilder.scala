@@ -1,6 +1,5 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
-import com.databricks.labs.remorph.parsers.intermediate.AddColumn
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser.{StringContext => StrContext, _}
 import com.databricks.labs.remorph.parsers.{IncompleteParser, ParserCommon, intermediate => ir}
 
@@ -22,9 +21,9 @@ class SnowflakeDDLBuilder
     val runtimeInfo = ctx match {
       case c if c.JAVA() != null => buildJavaUDF(c)
       case c if c.PYTHON() != null => buildPythonUDF(c)
-      case c if c.JAVASCRIPT() != null => ir.JavascriptUDFInfo
+      case c if c.JAVASCRIPT() != null => ir.JavaScriptRuntimeInfo
       case c if c.SCALA() != null => buildScalaUDF(c)
-      case c if c.SQL() != null || c.LANGUAGE() == null => ir.SQLUDFInfo(c.MEMOIZABLE() != null)
+      case c if c.SQL() != null || c.LANGUAGE() == null => ir.SQLRuntimeInfo(c.MEMOIZABLE() != null)
     }
     val name = ctx.objectName().getText
     val returnType = DataTypeBuilder.buildDataType(ctx.dataType())
@@ -48,11 +47,11 @@ class SnowflakeDDLBuilder
     case c if c.string() != null => extractString(c.string())
   }).trim
 
-  private def buildJavaUDF(ctx: CreateFunctionContext): ir.UDFRuntimeInfo = buildJVMUDF(ctx)(ir.JavaUDFInfo.apply)
-  private def buildScalaUDF(ctx: CreateFunctionContext): ir.UDFRuntimeInfo = buildJVMUDF(ctx)(ir.ScalaUDFInfo.apply)
+  private def buildJavaUDF(ctx: CreateFunctionContext): ir.RuntimeInfo = buildJVMUDF(ctx)(ir.JavaRuntimeInfo.apply)
+  private def buildScalaUDF(ctx: CreateFunctionContext): ir.RuntimeInfo = buildJVMUDF(ctx)(ir.ScalaRuntimeInfo.apply)
 
   private def buildJVMUDF(ctx: CreateFunctionContext)(
-      ctr: (Option[String], Seq[String], String) => ir.UDFRuntimeInfo): ir.UDFRuntimeInfo = {
+      ctr: (Option[String], Seq[String], String) => ir.RuntimeInfo): ir.RuntimeInfo = {
     val imports =
       ctx
         .stringList()
@@ -69,7 +68,7 @@ class SnowflakeDDLBuilder
   private def extractHandler(ctx: CreateFunctionContext): String =
     Option(ctx.HANDLER()).flatMap(h => ctx.string().asScala.find(occursBefore(h, _))).map(extractString).get
 
-  private def buildPythonUDF(ctx: CreateFunctionContext): ir.PythonUDFInfo = {
+  private def buildPythonUDF(ctx: CreateFunctionContext): ir.PythonRuntimeInfo = {
     val packages =
       ctx
         .stringList()
@@ -77,7 +76,7 @@ class SnowflakeDDLBuilder
         .find(occursBefore(ctx.PACKAGES(0), _))
         .map(_.string().asScala.map(extractString))
         .getOrElse(Seq())
-    ir.PythonUDFInfo(extractRuntimeVersion(ctx), packages, extractHandler(ctx))
+    ir.PythonRuntimeInfo(extractRuntimeVersion(ctx), packages, extractHandler(ctx))
   }
 
   override def visitCreateTable(ctx: CreateTableContext): ir.Catalog = {
@@ -168,7 +167,7 @@ class SnowflakeDDLBuilder
 
   private[snowflake] def buildColumnActions(ctx: TableColumnActionContext): Seq[ir.TableAlteration] = ctx match {
     case c if c.ADD() != null =>
-      c.fullColDecl().asScala.map(buildColumnDeclaration).map(AddColumn.apply)
+      c.fullColDecl().asScala.map(buildColumnDeclaration).map(ir.AddColumn.apply)
     case c if !c.alterColumnClause().isEmpty =>
       c.alterColumnClause().asScala.map(buildColumnAlterations)
     case c if c.DROP() != null =>
@@ -219,4 +218,5 @@ class SnowflakeDDLBuilder
       affectedColumns.map(col => ir.DropConstraint(Some(col), constraint))
     }
   }
+
 }

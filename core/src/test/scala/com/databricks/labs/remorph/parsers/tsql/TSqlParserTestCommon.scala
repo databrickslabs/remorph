@@ -8,12 +8,13 @@ trait TSqlParserTestCommon extends ParserTestCommon[TSqlParser] { self: Assertio
 
   override final protected def makeLexer(chars: CharStream): TokenSource = new TSqlLexer(chars)
 
-  override protected def makeErrHandler(chars: String): ErrorCollector =
+  override final protected def makeErrStrategy(): TSqlErrorStrategy = new TSqlErrorStrategy
+
+  override protected def makeErrListener(chars: String): ErrorCollector =
     new ProductionErrorCollector(chars, "-- test string --")
 
   override final protected def makeParser(tokenStream: TokenStream): TSqlParser = {
     val parser = new TSqlParser(tokenStream)
-    parser.setErrorHandler(new TSqlErrorStrategy)
     parser
   }
 }

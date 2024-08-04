@@ -17,6 +17,8 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
 
       "SELECT t1.c2 FROM t1 LEFT OUTER JOIN t2 USING (c2);" transpilesTo
         "SELECT t1.c2 FROM t1 LEFT OUTER JOIN t2 USING (c2);"
+
+      "SELECT c1::DOUBLE FROM t1;" transpilesTo "SELECT CAST(c1 AS DOUBLE) FROM t1;"
     }
 
   }
