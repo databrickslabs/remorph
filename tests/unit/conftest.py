@@ -320,6 +320,7 @@ def report_tables_schema():
                 nullable=False,
             ),
             StructField("report_type", StringType(), nullable=False),
+            StructField("operation_name", StringType(), nullable=False),
             StructField("start_ts", TimestampType()),
             StructField("end_ts", TimestampType()),
         ]

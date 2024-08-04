@@ -760,6 +760,7 @@ def test_recon_for_report_type_is_data(
                 ("org", "data", "supplier"),
                 ("org", "data", "target_supplier"),
                 "data",
+                "reconcile",
                 datetime(2024, 5, 23, 9, 21, 25, 122185),
                 datetime(2024, 5, 23, 9, 21, 25, 122185),
             )
@@ -954,6 +955,7 @@ def test_recon_for_report_type_schema(
                 ("org", "data", "supplier"),
                 ("org", "data", "target_supplier"),
                 "schema",
+                "reconcile",
                 datetime(2024, 5, 23, 9, 21, 25, 122185),
                 datetime(2024, 5, 23, 9, 21, 25, 122185),
             )
@@ -1151,6 +1153,7 @@ def test_recon_for_report_type_all(
                 ("org", "data", "supplier"),
                 ("org", "data", "target_supplier"),
                 "all",
+                "reconcile",
                 datetime(2024, 5, 23, 9, 21, 25, 122185),
                 datetime(2024, 5, 23, 9, 21, 25, 122185),
             )
@@ -1421,6 +1424,7 @@ def test_recon_for_report_type_is_row(
                 ("org", "data", "supplier"),
                 ("org", "data", "target_supplier"),
                 "row",
+                "reconcile",
                 datetime(2024, 5, 23, 9, 21, 25, 122185),
                 datetime(2024, 5, 23, 9, 21, 25, 122185),
             )
@@ -1561,6 +1565,7 @@ def test_schema_recon_with_data_source_exception(
                 ("org", "data", "supplier"),
                 ("org", "data", "target_supplier"),
                 "schema",
+                "reconcile",
                 datetime(2024, 5, 23, 9, 21, 25, 122185),
                 datetime(2024, 5, 23, 9, 21, 25, 122185),
             )
@@ -1630,6 +1635,7 @@ def test_schema_recon_with_general_exception(
                 ("org", "data", "supplier"),
                 ("org", "data", "target_supplier"),
                 "schema",
+                "reconcile",
                 datetime(2024, 5, 23, 9, 21, 25, 122185),
                 datetime(2024, 5, 23, 9, 21, 25, 122185),
             )
@@ -1700,6 +1706,7 @@ def test_data_recon_with_general_exception(
                 ("org", "data", "supplier"),
                 ("org", "data", "target_supplier"),
                 "data",
+                "reconcile",
                 datetime(2024, 5, 23, 9, 21, 25, 122185),
                 datetime(2024, 5, 23, 9, 21, 25, 122185),
             )
@@ -1770,6 +1777,7 @@ def test_data_recon_with_source_exception(
                 ("org", "data", "supplier"),
                 ("org", "data", "target_supplier"),
                 "data",
+                "reconcile",
                 datetime(2024, 5, 23, 9, 21, 25, 122185),
                 datetime(2024, 5, 23, 9, 21, 25, 122185),
             )

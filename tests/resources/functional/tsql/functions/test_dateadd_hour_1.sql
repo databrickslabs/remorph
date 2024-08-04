@@ -7,4 +7,4 @@
 SELECT DATEADD(hour, 7, col1) AS add_hours_col1 FROM tabl;
 
 -- databricks sql:
-SELECT (col1 + INTERVAL 7 HOUR) AS add_hours_col1 FROM tabl;
+SELECT col1 + INTERVAL 7 HOUR AS add_hours_col1 FROM tabl;

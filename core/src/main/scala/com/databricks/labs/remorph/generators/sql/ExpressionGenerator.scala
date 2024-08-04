@@ -1,11 +1,12 @@
 package com.databricks.labs.remorph.generators.sql
 
 import com.databricks.labs.remorph.generators.{Generator, GeneratorContext}
+import com.databricks.labs.remorph.parsers.intermediate.RLike
 import com.databricks.labs.remorph.parsers.{intermediate => ir}
 import com.databricks.labs.remorph.transpilers.TranspileException
 
+import java.time._
 import java.time.format.DateTimeFormatter
-import java.time.{Instant, LocalDate, LocalDateTime, ZoneId, ZonedDateTime}
 import java.util.Locale
 
 class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
@@ -18,18 +19,112 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
   def expression(ctx: GeneratorContext, expr: ir.Expression): String = {
     expr match {
       case l: ir.Like => like(ctx, l)
+      case r: ir.RLike => rlike(ctx, r)
       case _: ir.Bitwise => bitwise(ctx, expr)
       case _: ir.Arithmetic => arithmetic(ctx, expr)
       case _: ir.Predicate => predicate(ctx, expr)
       case l: ir.Literal => literal(ctx, l)
       case fn: ir.Fn => callFunction(ctx, fn)
       case ir.UnresolvedAttribute(name, _, _) => name
+      case d: ir.Dot => dot(ctx, d)
       case i: ir.Id => id(ctx, i)
+      case o: ir.ObjectReference => objectReference(ctx, o)
       case a: ir.Alias => alias(ctx, a)
       case d: ir.Distinct => distinct(ctx, d)
       case s: ir.Star => star(ctx, s)
+      case c: ir.Cast => cast(ctx, c)
+      case col: ir.Column => column(ctx, col)
+      case da: ir.DeleteAction => "DELETE"
+      case ia: ir.InsertAction => insertAction(ctx, ia)
+      case ua: ir.UpdateAction => updateAction(ctx, ua)
+      case a: ir.Assign => assign(ctx, a)
+      case opts: ir.Options => options(ctx, opts)
+      case i: ir.KnownInterval => interval(ctx, i)
+
       case x => throw TranspileException(s"Unsupported expression: $x")
     }
+  }
+
+  private def interval(ctx: GeneratorContext, interval: ir.KnownInterval): String = {
+    val iType = interval.iType match {
+      case ir.YEAR_INTERVAL => "YEAR"
+      case ir.MONTH_INTERVAL => "MONTH"
+      case ir.WEEK_INTERVAL => "WEEK"
+      case ir.DAY_INTERVAL => "DAY"
+      case ir.HOUR_INTERVAL => "HOUR"
+      case ir.MINUTE_INTERVAL => "MINUTE"
+      case ir.SECOND_INTERVAL => "SECOND"
+      case ir.MILLISECOND_INTERVAL => "MILLISECOND"
+      case ir.MICROSECOND_INTERVAL => "MICROSECOND"
+      case ir.NANOSECOND_INTERVAL => "NANOSECOND"
+    }
+    s"INTERVAL ${generate(ctx, interval.value)} ${iType}"
+  }
+
+  private def options(ctx: GeneratorContext, opts: ir.Options): String = {
+    // First gather the options that are set by expressions
+    val exprOptions = opts.expressionOpts.map { case (key, expression) =>
+      s"     ${key} = ${generate(ctx, expression)}\n"
+    }.mkString
+    val exprStr = if (exprOptions.nonEmpty) {
+      s"    Expression options:\n\n${exprOptions}\n"
+    } else {
+      ""
+    }
+
+    val stringOptions = opts.stringOpts.map { case (key, value) =>
+      s"     ${key} = '${value}'\n"
+    }.mkString
+    val stringStr = if (stringOptions.nonEmpty) {
+      s"    String options:\n\n${stringOptions}\n"
+    } else {
+      ""
+    }
+
+    val boolOptions = opts.boolFlags.map { case (key, value) =>
+      s"     ${key} ${if (value) { "ON" }
+        else { "OFF" }}\n"
+    }.mkString
+    val boolStr = if (boolOptions.nonEmpty) {
+      s"    Boolean options:\n\n${boolOptions}\n"
+    } else {
+      ""
+    }
+
+    val autoOptions = opts.autoFlags.map { key =>
+      s"     ${key} AUTO\n"
+    }.mkString
+    val autoStr = if (autoOptions.nonEmpty) {
+      s"    Auto options:\n\n${autoOptions}\n"
+    } else {
+      ""
+    }
+    val optString = s"${exprStr}${stringStr}${boolStr}${autoStr}"
+    if (optString.nonEmpty) {
+      s"/*\n   The following statement was originally given the following OPTIONS:\n\n${optString}\n */\n"
+    } else {
+      ""
+    }
+  }
+
+  private def assign(ctx: GeneratorContext, assign: ir.Assign): String = {
+    s"${expression(ctx, assign.left)} = ${expression(ctx, assign.right)}"
+  }
+
+  private def column(ctx: GeneratorContext, column: ir.Column): String = {
+    val objectRef = column.tableNameOrAlias.map(or => generateObjectReference(ctx, or) + ".").getOrElse("")
+    s"$objectRef${id(ctx, column.columnName)}"
+  }
+
+  private def insertAction(ctx: GeneratorContext, insertAction: ir.InsertAction): String = {
+    val (cols, values) = insertAction.assignments.map { assign =>
+      (generate(ctx, assign.left), generate(ctx, assign.right))
+    }.unzip
+    s"INSERT (${cols.mkString(", ")}) VALUES (${values.mkString(", ")})"
+  }
+
+  private def updateAction(ctx: GeneratorContext, updateAction: ir.UpdateAction): String = {
+    s"UPDATE SET ${updateAction.assignments.map(assign => generate(ctx, assign)).mkString(", ")}"
   }
 
   private def arithmetic(ctx: GeneratorContext, expr: ir.Expression): String = expr match {
@@ -54,6 +149,10 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
     s"${expression(ctx, like.left)} LIKE ${expression(ctx, like.right)}$escape"
   }
 
+  private def rlike(ctx: GeneratorContext, r: RLike): String = {
+    s"${expression(ctx, r.left)} RLIKE ${expression(ctx, r.right)}"
+  }
+
   private def predicate(ctx: GeneratorContext, expr: ir.Expression): String = expr match {
     case ir.And(left, right) => s"(${expression(ctx, left)} AND ${expression(ctx, right)})"
     case ir.Or(left, right) => s"(${expression(ctx, left)} OR ${expression(ctx, right)})"
@@ -69,7 +168,14 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
 
   private def callFunction(ctx: GeneratorContext, fn: ir.Fn): String = {
     val call = callMapper.convert(fn)
-    s"${call.prettyName}(${call.children.map(expression(ctx, _)).mkString(", ")})"
+    call match {
+      case r: RLike => rlike(ctx, r)
+      case fn: ir.Fn => s"${fn.prettyName}(${fn.children.map(expression(ctx, _)).mkString(", ")})"
+
+      // Certain functions can be translated directly to Databricks expressions such as INTERVAL
+      case e: ir.Expression => expression(ctx, e)
+      case _ => throw TranspileException("not implemented")
+    }
   }
 
   private def literal(ctx: GeneratorContext, l: ir.Literal): String = {
@@ -82,7 +188,7 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
       case ir.LongType => orNull(l.long.map(_.toString))
       case ir.FloatType => orNull(l.float.map(_.toString))
       case ir.DoubleType => orNull(l.double.map(_.toString))
-      case ir.StringType => orNull(l.string.map(doubleQuote))
+      case ir.StringType => orNull(l.string.map(singleQuote))
       case ir.DateType => dateLiteral(l)
       case ir.TimestampType => timestampLiteral(l)
       case ir.ArrayType(_) => orNull(l.array.map(arrayExpr(ctx)))
@@ -94,7 +200,7 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
   private def timestampLiteral(l: ir.Literal) = {
     l.timestamp match {
       case Some(timestamp) =>
-        doubleQuote(
+        singleQuote(
           LocalDateTime
             .from(ZonedDateTime.ofInstant(Instant.ofEpochMilli(timestamp), ZoneId.of("UTC")))
             .format(timeFormat))
@@ -105,7 +211,7 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
   private def dateLiteral(l: ir.Literal) = {
     l.date match {
       case Some(date) =>
-        doubleQuote(
+        singleQuote(
           LocalDate.from(ZonedDateTime.ofInstant(Instant.ofEpochMilli(date), ZoneId.of("UTC"))).format(dateFormat))
       case None => "NULL"
     }
@@ -152,7 +258,23 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
     (reference.head +: reference.tail).map(id(ctx, _)).mkString(".")
   }
 
+  private def cast(ctx: GeneratorContext, cast: ir.Cast): String = {
+    val expr = expression(ctx, cast.expr)
+    val dataType = DataTypeGenerator.generateDataType(ctx, cast.dataType)
+    s"CAST($expr AS $dataType)"
+  }
+
+  private def dot(ctx: GeneratorContext, dot: ir.Dot): String = {
+    s"${expression(ctx, dot.left)}.${expression(ctx, dot.right)}"
+  }
+
+  private def objectReference(ctx: GeneratorContext, objRef: ir.ObjectReference): String = {
+    (objRef.head +: objRef.tail).map(id(ctx, _)).mkString(".")
+  }
+
   private def orNull(option: Option[String]): String = option.getOrElse("NULL")
 
   private def doubleQuote(s: String): String = s""""$s""""
+
+  private def singleQuote(s: String): String = s"'$s'"
 }

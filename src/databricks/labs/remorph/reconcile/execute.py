@@ -18,6 +18,8 @@ from databricks.labs.remorph.config import (
 from databricks.labs.remorph.reconcile.compare import (
     capture_mismatch_data_and_columns,
     reconcile_data,
+    join_aggregate_data,
+    reconcile_agg_data_per_rule,
 )
 from databricks.labs.remorph.reconcile.connectors.data_source import DataSource
 from databricks.labs.remorph.reconcile.connectors.source_adapter import create_adapter
@@ -26,6 +28,7 @@ from databricks.labs.remorph.reconcile.exception import (
     InvalidInputException,
     ReconciliationException,
 )
+from databricks.labs.remorph.reconcile.query_builder.aggregate_query import AggregateQueryBuilder
 from databricks.labs.remorph.reconcile.query_builder.count_query import CountQueryBuilder
 from databricks.labs.remorph.reconcile.query_builder.hash_query import HashQueryBuilder
 from databricks.labs.remorph.reconcile.query_builder.sampling_query import (
@@ -38,6 +41,7 @@ from databricks.labs.remorph.reconcile.recon_capture import (
     ReconCapture,
     generate_final_reconcile_output,
     ReconIntermediatePersist,
+    generate_final_reconcile_aggregate_output,
 )
 from databricks.labs.remorph.reconcile.recon_config import (
     DataReconcileOutput,
@@ -48,6 +52,8 @@ from databricks.labs.remorph.reconcile.recon_config import (
     Table,
     ThresholdOutput,
     ReconcileRecordCount,
+    AggregateQueryOutput,
+    AggregateQueryRules,
 )
 from databricks.labs.remorph.reconcile.schema_compare import SchemaCompare
 from databricks.labs.remorph.transpiler.execute import verify_workspace_client
@@ -57,6 +63,9 @@ from databricks.connect import DatabricksSession
 
 logger = logging.getLogger(__name__)
 _SAMPLE_ROWS = 50
+
+RECONCILE_OPERATION_NAME = "reconcile"
+AGG_RECONCILE_OPERATION_NAME = "aggregates-reconcile"
 
 
 def validate_input(input_value: str, list_of_value: set, message: str):
@@ -199,7 +208,9 @@ def recon(
     )
 
 
-def _verify_successful_reconciliation(reconcile_output: ReconcileOutput) -> ReconcileOutput:
+def _verify_successful_reconciliation(
+    reconcile_output: ReconcileOutput, operation_name: str = "reconcile"
+) -> ReconcileOutput:
     for table_output in reconcile_output.results:
         if table_output.exception_message or (
             table_output.status.column is False
@@ -207,7 +218,8 @@ def _verify_successful_reconciliation(reconcile_output: ReconcileOutput) -> Reco
             or table_output.status.schema is False
         ):
             raise ReconciliationException(
-                "Reconciliation failed for one or more tables. Please check the recon metrics for more details.",
+                f" Reconciliation failed for one or more tables. Please check the recon metrics for more details."
+                f" **{operation_name}** failed.",
                 reconcile_output=reconcile_output,
             )
 
@@ -248,6 +260,114 @@ def _get_missing_data(
         table=table_name,
         query=sample_query,
         options=None,
+    )
+
+
+def reconcile_aggregates(
+    ws: WorkspaceClient,
+    spark: SparkSession,
+    table_recon: TableRecon,
+    reconcile_config: ReconcileConfig,
+    local_test_run: bool = False,
+):
+    """[EXPERIMENTAL] Reconcile the aggregated data between the source and target tables.
+    for e.g., COUNT, SUM, AVG of columns between source and target with or without any specific key/group by columns
+    Supported Aggregate functions: MIN, MAX, COUNT, SUM, AVG, MEAN, MODE, PERCENTILE, STDDEV, VARIANCE, MEDIAN
+    """
+    # verify the workspace client and add proper product and version details
+    # TODO For now we are utilising the
+    #  verify_workspace_client from transpile/execute.py file. Later verify_workspace_client function has to be
+    #  refactored
+
+    ws_client: WorkspaceClient = verify_workspace_client(ws)
+
+    report_type = ""
+    if report_type:
+        logger.info(f"report_type: {report_type}")
+    logger.info(f"data_source: {reconcile_config.data_source}")
+
+    # Read the reconcile_config and initialise the source and target data sources. Target is always Databricks
+    source, target = initialise_data_source(
+        engine=get_dialect(reconcile_config.data_source),
+        spark=spark,
+        ws=ws_client,
+        secret_scope=reconcile_config.secret_scope,
+    )
+
+    # Generate Unique recon_id for every run
+    recon_id = str(uuid4())
+
+    # initialise the Reconciliation
+    reconciler = Reconciliation(
+        source,
+        target,
+        reconcile_config.database_config,
+        report_type,
+        SchemaCompare(spark=spark),
+        get_dialect(reconcile_config.data_source),
+        spark,
+        metadata_config=reconcile_config.metadata_config,
+    )
+
+    # initialise the recon capture class
+    recon_capture = ReconCapture(
+        database_config=reconcile_config.database_config,
+        recon_id=recon_id,
+        report_type=report_type,
+        source_dialect=get_dialect(reconcile_config.data_source),
+        ws=ws_client,
+        spark=spark,
+        metadata_config=reconcile_config.metadata_config,
+        local_test_run=local_test_run,
+    )
+
+    # Get the Aggregated Reconciliation Output for each table
+    for table_conf in table_recon.tables:
+        recon_process_duration = ReconcileProcessDuration(start_ts=str(datetime.now()), end_ts=None)
+        try:
+            src_schema, tgt_schema = _get_schema(
+                source=source,
+                target=target,
+                table_conf=table_conf,
+                database_config=reconcile_config.database_config,
+            )
+        except DataSourceRuntimeException as e:
+            raise ReconciliationException(message=str(e)) from e
+
+        assert table_conf.aggregates, "Aggregates must be defined for Aggregates Reconciliation"
+
+        table_reconcile_agg_output_list: list[AggregateQueryOutput] = _run_reconcile_aggregates(
+            reconciler=reconciler,
+            table_conf=table_conf,
+            src_schema=src_schema,
+            tgt_schema=tgt_schema,
+        )
+
+        recon_process_duration.end_ts = str(datetime.now())
+
+        # Persist the data to the delta tables, only if all the rules are defined
+        if not any(set(agg_output.rule is None for agg_output in table_reconcile_agg_output_list)):
+            recon_capture.store_aggregates_metrics(
+                reconcile_agg_output_list=table_reconcile_agg_output_list,
+                table_conf=table_conf,
+                recon_process_duration=recon_process_duration,
+            )
+
+        (
+            ReconIntermediatePersist(
+                spark=spark,
+                path=generate_volume_path(table_conf, reconcile_config.metadata_config),
+            ).clean_unmatched_df_from_volume()
+        )
+
+    return _verify_successful_reconciliation(
+        generate_final_reconcile_aggregate_output(
+            recon_id=recon_id,
+            spark=spark,
+            metadata_config=reconcile_config.metadata_config,
+            local_test_run=local_test_run,
+        ),
+        operation_name=AGG_RECONCILE_OPERATION_NAME,
     )
 
 
@@ -300,6 +420,14 @@ class Reconciliation:
     ):
         return self._schema_comparator.compare(src_schema, tgt_schema, self._source_engine, table_conf)
 
+    def reconcile_aggregates(
+        self,
+        table_conf: Table,
+        src_schema: list[Schema],
+        tgt_schema: list[Schema],
+    ) -> list[AggregateQueryOutput]:
+        return self._get_reconcile_aggregate_output(table_conf, src_schema, tgt_schema)
+
     def _get_reconcile_output(
         self,
         table_conf,
@@ -336,6 +464,130 @@ class Reconciliation:
             spark=self._spark,
             path=volume_path,
         )
+
+    def _get_reconcile_aggregate_output(
+        self,
+        table_conf,
+        src_schema,
+        tgt_schema,
+    ):
+        """
+        Creates a single Query, for the aggregates having the same group by columns. (Ex: 1)
+        If there are no group by columns, all the aggregates are clubbed together in a single query. (Ex: 2)
+        Examples:
+            1.  {
+                      "type": "MIN",
+                      "agg_cols": ["COL1"],
+                      "group_by_cols": ["COL4"]
+                    },
+                    {
+                      "type": "MAX",
+                      "agg_cols": ["COL2"],
+                      "group_by_cols": ["COL9"]
+                    },
+                    {
+                      "type": "COUNT",
+                      "agg_cols": ["COL2"],
+                      "group_by_cols": ["COL9"]
+                    },
+                    {
+                      "type": "AVG",
+                      "agg_cols": ["COL3"],
+                      "group_by_cols": ["COL4"]
+                    },
+              Query 1: SELECT MIN(COL1), AVG(COL3) FROM :table GROUP BY COL4
+              Rules: ID  | Aggregate Type | Column | Group By Column
+                         #1,   MIN,                      COL1,     COL4
+                         #2,   AVG,                     COL3,      COL4
+              -------------------------------------------------------
+              Query 2: SELECT MAX(COL2), COUNT(COL2) FROM :table GROUP BY COL9
+              Rules: ID  | Aggregate Type | Column | Group By Column
+                         #1,   MAX,                      COL2,     COL9
+                         #2,   COUNT,                COL2,      COL9
+          2.  {
+              "type": "MAX",
+              "agg_cols": ["COL1"]
+            },
+            {
+              "type": "SUM",
+              "agg_cols": ["COL2"]
+            },
+            {
+              "type": "MAX",
+              "agg_cols": ["COL3"]
+            }
+          Query: SELECT MAX(COL1), SUM(COL2), MAX(COL3) FROM :table
+          Rules: ID  | Aggregate Type | Column | Group By Column
+                     #1, MAX, COL1,
+                     #2, SUM, COL2,
+                     #3, MAX, COL3,
+        """
+
+        src_query_builder = AggregateQueryBuilder(
+            table_conf,
+            src_schema,
+            "source",
+            self._source_engine,
+        )
+
+        # build Aggregate queries for source,
+        src_agg_queries: list[AggregateQueryRules] = src_query_builder.build_queries()
+
+        # There could be one or more queries per table based on the group by columns
+
+        # build Aggregate queries for target(Databricks),
+        tgt_agg_queries: list[AggregateQueryRules] = AggregateQueryBuilder(
+            table_conf,
+            tgt_schema,
+            "target",
+            self._target_engine,
+        ).build_queries()
+
+        volume_path = generate_volume_path(table_conf, self._metadata_config)
+
+        table_agg_output: list[AggregateQueryOutput] = []
+
+        # Iterate over the grouped aggregates and reconcile the data
+        # Zip all the keys, read the source, target data for each Aggregate query
+        # and reconcile on the aggregate data
+        # For e.g., (source_query_GRP1, target_query_GRP1), (source_query_GRP2, target_query_GRP2)
+        for src_query_with_rules, tgt_query_with_rules in zip(src_agg_queries, tgt_agg_queries):
+            # For each Aggregate query, read the Source and Target Data and add a hash column
+
+            src_data = self._source.read_data(
+                catalog=self._database_config.source_catalog,
+                schema=self._database_config.source_schema,
+                table=table_conf.source_name,
+                query=src_query_with_rules.query,
+                options=table_conf.jdbc_reader_options,
+            )
+            tgt_data = self._target.read_data(
+                catalog=self._database_config.target_catalog,
+                schema=self._database_config.target_schema,
+                table=table_conf.target_name,
+                query=tgt_query_with_rules.query,
+                options=table_conf.jdbc_reader_options,
+            )
+
+            # Join the Source and Target Aggregated data
+            joined_df = join_aggregate_data(
+                source=src_data,
+                target=tgt_data,
+                key_columns=src_query_with_rules.group_by_columns,
+                spark=self._spark,
+                path=f"{volume_path}{src_query_with_rules.group_by_columns_as_str}",
+            )
+
+            # For each Aggregated Query, reconcile the data based on the rule
+            rules_reconcile_output: list[AggregateQueryOutput] = []
+            for rule in src_query_with_rules.rules:
+                rule_reconcile_output = reconcile_agg_data_per_rule(joined_df, src_data.columns, tgt_data.columns, rule)
+                rules_reconcile_output.append(AggregateQueryOutput(rule, rule_reconcile_output))
+
+            # For each table, there could be many Aggregated queries.
+            # Collect the list of Rule Reconcile output per each Aggregate query and append it to the list
+            table_agg_output.extend(rules_reconcile_output)
+        return table_agg_output
 
     def _get_sample_data(
         self,
@@ -558,6 +810,18 @@ def _run_reconcile_schema(
         return reconciler.reconcile_schema(table_conf=table_conf, src_schema=src_schema, tgt_schema=tgt_schema)
     except PySparkException as e:
         return SchemaReconcileOutput(is_valid=False, exception=str(e))
+
+
+def _run_reconcile_aggregates(
+    reconciler: Reconciliation,
+    table_conf: Table,
+    src_schema: list[Schema],
+    tgt_schema: list[Schema],
+) -> list[AggregateQueryOutput]:
+    try:
+        return reconciler.reconcile_aggregates(table_conf, src_schema, tgt_schema)
+    except DataSourceRuntimeException as e:
+        return [AggregateQueryOutput(reconcile_output=DataReconcileOutput(exception=str(e)), rule=None)]
 
 
 if __name__ == "__main__":

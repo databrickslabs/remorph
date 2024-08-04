@@ -46,6 +46,7 @@ case class Star(objectName: Option[ObjectReference] = None) extends LeafExpressi
 }
 
 // Assignment operators
+// TODO: (ji) This needs to be renamed to Assignment as per Catalyst
 case class Assign(left: Expression, right: Expression) extends Binary(left, right) {
   override def dataType: DataType = UnresolvedType
 }
@@ -86,18 +87,18 @@ case class Batch(children: Seq[LogicalPlan]) extends LogicalPlan {
 
 case class FunctionParameter(name: String, dataType: DataType, defaultValue: Option[Expression])
 
-sealed trait UDFRuntimeInfo
-case class JavaUDFInfo(runtimeVersion: Option[String], imports: Seq[String], handler: String) extends UDFRuntimeInfo
-case class PythonUDFInfo(runtimeVersion: Option[String], packages: Seq[String], handler: String) extends UDFRuntimeInfo
-case object JavascriptUDFInfo extends UDFRuntimeInfo
-case class ScalaUDFInfo(runtimeVersion: Option[String], imports: Seq[String], handler: String) extends UDFRuntimeInfo
-case class SQLUDFInfo(memoizable: Boolean) extends UDFRuntimeInfo
+sealed trait RuntimeInfo
+case class JavaRuntimeInfo(runtimeVersion: Option[String], imports: Seq[String], handler: String) extends RuntimeInfo
+case class PythonRuntimeInfo(runtimeVersion: Option[String], packages: Seq[String], handler: String) extends RuntimeInfo
+case object JavaScriptRuntimeInfo extends RuntimeInfo
+case class ScalaRuntimeInfo(runtimeVersion: Option[String], imports: Seq[String], handler: String) extends RuntimeInfo
+case class SQLRuntimeInfo(memoizable: Boolean) extends RuntimeInfo
 
 case class CreateInlineUDF(
     name: String,
     returnType: DataType,
     parameters: Seq[FunctionParameter],
-    runtimeInfo: UDFRuntimeInfo,
+    runtimeInfo: RuntimeInfo,
     acceptsNullParameters: Boolean,
     comment: Option[String],
     body: String)
@@ -160,20 +161,10 @@ case class FilterStruct(input: NamedStruct, lambdaFunction: LambdaFunction) exte
   override def dataType: DataType = UnresolvedType
 }
 
-case class Options(
-    expressionOpts: Map[String, Expression],
-    stringOpts: Map[String, String],
-    boolFlags: Map[String, Boolean],
-    autoFlags: List[String])
-    extends Expression {
-  override def children: Seq[Expression] = expressionOpts.values.toSeq
-  override def dataType: DataType = UnresolvedType
-}
-
 // TSQL has some join types that are not natively supported in Databricks SQL, but can possibly be emulated
 // using LATERAL VIEW and an explode function. Some things like functions are translatable at IR production
-// time, but complex joins are probably/possibly better done at the translation from IR as they are more involved
-// than some simple prescribed action.
+// time, but complex joins are better done at the translation from IR, via an optimizer rule as they are more involved
+// than some simple prescribed action such as a rename
 case object CrossApply extends JoinType
 case object OuterApply extends JoinType
 
@@ -184,4 +175,46 @@ case class TableFunction(functionCall: Expression) extends LeafNode {
 case class Lateral(expr: LogicalPlan) extends UnaryNode {
   override def child: LogicalPlan = expr
   override def output: Seq[Attribute] = expr.output
+}
+
+case class Comment(text: String) extends LeafNode {
+  override def output: Seq[Attribute] = Seq.empty
+}
+
+case class Options(
+    expressionOpts: Map[String, Expression],
+    stringOpts: Map[String, String],
+    boolFlags: Map[String, Boolean],
+    autoFlags: List[String])
+    extends Expression {
+  override def children: Seq[Expression] = expressionOpts.values.toSeq
+  override def dataType: DataType = UnresolvedType
+}
+
+case class WithOptions(input: LogicalPlan, options: Expression) extends UnaryNode {
+  override def child: LogicalPlan = input
+  override def output: Seq[Attribute] = input.output
+}
+
+// Though at least TSQL only needs the time based intervals, we are including all the interval types
+// supported by Spark SQL for completeness and future proofing
+sealed trait KnownIntervalType
+case object NANOSECOND_INTERVAL extends KnownIntervalType
+case object MICROSECOND_INTERVAL extends KnownIntervalType
+case object MILLISECOND_INTERVAL extends KnownIntervalType
+case object SECOND_INTERVAL extends KnownIntervalType
+case object MINUTE_INTERVAL extends KnownIntervalType
+case object HOUR_INTERVAL extends KnownIntervalType
+case object DAY_INTERVAL extends KnownIntervalType
+case object WEEK_INTERVAL extends KnownIntervalType
+case object MONTH_INTERVAL extends KnownIntervalType
+case object YEAR_INTERVAL extends KnownIntervalType
+
+// TSQL - For translation purposes, we cannot use teh standard Catalyst CalendarInterval as it is not
+// meant for code generation and converts everything to microseconds. It is much easier to use an extension
+// to the AST to represent the interval as it is required in TSQL, where we need to know if we were dealing with
+// MONTHS, HOURS, etc.
+case class KnownInterval(value: Expression, iType: KnownIntervalType) extends Expression {
+  override def children: Seq[Expression] = Seq(value)
+  override def dataType: DataType = UnresolvedType
 }

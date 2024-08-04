@@ -6,6 +6,7 @@ import org.antlr.v4.runtime._
 import org.antlr.v4.runtime.misc.IntervalSet
 
 import scala.collection.convert.ImplicitConversions.`collection AsScalaIterable`
+import scala.collection.mutable
 import scala.collection.mutable.ListBuffer
 
 /**
@@ -34,17 +35,14 @@ class TSqlErrorStrategy extends SqlErrorStrategy {
   override protected def generateMessage(recognizer: Parser, e: RecognitionException): String = {
     val messages = new ListBuffer[String]()
 
-    val stringBuilder = new StringBuilder()
-
     // We build the messages by looking at the stack trace of the exception, but if the
     // rule translation is not found, or it is the same as the previous message, we skip it,
     // to avoid repeating the same message multiple times. This is because a recognition error
     // could be found in a parent rule or a child rule but there is no extra information
-    // provided by being more specific about the rule location. ALos, in some productions
+    // provided by being more specific about the rule location. Also, in some productions
     // we may be embedded very deeply in the stack trace, so we want to avoid too many contexts
     // in a message.
-    val stack = e.getStackTrace
-    stack.foreach { traceElement =>
+    e.getStackTrace.foreach { traceElement =>
       val methodName = traceElement.getMethodName
       TSqlErrorStrategy.ruleTranslation.get(methodName).foreach { translatedMessage =>
         // Only mention a batch if we have recovered all the way to the top rule
@@ -61,13 +59,17 @@ class TSqlErrorStrategy extends SqlErrorStrategy {
     }
 
     if (messages.nonEmpty) {
-      stringBuilder.append("while parsing a ").append(messages.head)
-    }
+      val initialMessage = s"while parsing ${articleFor(messages.head)} ${messages.head}"
+      messages.drop(1).foldLeft(initialMessage) { (acc, message) =>
+        s"$acc in ${articleFor(message)} $message"
+      }
+    } else ""
+  }
 
-    for (i <- 1 until messages.size) {
-      stringBuilder.append(" in a ").append(messages(i))
-    }
-    stringBuilder.toString()
+  private val vowels = Set('a', 'e', 'i', 'o', 'u')
+
+  def articleFor(word: String): String = {
+    if (word.nonEmpty && vowels.contains(word.head.toLower)) "an" else "a"
   }
 
   /**
@@ -79,8 +81,6 @@ class TSqlErrorStrategy extends SqlErrorStrategy {
    * @return
    *   the expected string with tokens renamed in more human friendly form
    */
-  import scala.collection.mutable
-
   override protected def buildExpectedMessage(recognizer: Parser, expected: IntervalSet): String = {
     val expect = if (expected.contains(ID)) {
       removeIdKeywords(expected)
