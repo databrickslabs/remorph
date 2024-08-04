@@ -1,4 +1,3 @@
-import json
 import os
 
 
@@ -9,17 +8,10 @@ from databricks.labs.remorph.contexts.application import ApplicationContext
 from databricks.labs.remorph.helpers.recon_config_utils import ReconConfigPrompts
 from databricks.labs.remorph.reconcile.runner import ReconcileRunner
 from databricks.labs.remorph.lineage import lineage_generator
-from databricks.labs.remorph.transpiler.execute import morph
 from databricks.sdk import WorkspaceClient
 
 remorph = App(__file__)
 logger = get_logger(__file__)
-
-DIALECTS = {name for name, dialect in SQLGLOT_DIALECTS.items()}
-
-
-def raise_validation_exception(msg: str) -> Exception:
-    raise ValueError(msg)
 
 
 @remorph.command
@@ -72,8 +64,6 @@ def transpile(
     )
 
     status = morph(ctx.workspace_client, config)
-
-    print(json.dumps(status))
 
 
 def _override_workspace_client_config(ctx: ApplicationContext, overrides: dict[str, str] | None):
