@@ -7,7 +7,6 @@ from pyspark.sql import DataFrame, DataFrameReader, SparkSession
 from pyspark.sql.functions import col
 from sqlglot import Dialect
 
-from databricks.labs.remorph.helpers.execution_time import timeit
 from databricks.labs.remorph.reconcile.connectors.data_source import DataSource
 from databricks.labs.remorph.reconcile.connectors.jdbc_reader import JDBCReaderMixin
 from databricks.labs.remorph.reconcile.connectors.secrets import SecretsMixin
@@ -21,11 +20,23 @@ class SnowflakeDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
     _DRIVER = "snowflake"
     # see
     # https://docs.snowflake.com/en/sql-reference/info-schema#considerations-for-replacing-show-commands-with-information-schema-views
-    _SCHEMA_QUERY = """select column_name, case when numeric_precision is not null and numeric_scale is not null then 
-        concat(data_type, '(', numeric_precision, ',' , numeric_scale, ')') when lower(data_type) = 'text' then 
-        concat('varchar', '(', CHARACTER_MAXIMUM_LENGTH, ')')  else data_type end as data_type from 
-        {catalog}.INFORMATION_SCHEMA.COLUMNS where lower(table_name)='{table}' 
-        and table_schema = '{schema}' order by ordinal_position"""
+    # only unquoted identifiers are treated as case-insensitive and are stored in uppercase.
+    # for quoted identifiers refer:
+    # https://docs.snowflake.com/en/sql-reference/identifiers-syntax#double-quoted-identifiers
+    _SCHEMA_QUERY = """select column_name,
+                                                      case
+                                                        when numeric_precision is not null and numeric_scale is not null
+                                                        then 
+                                                            concat(data_type, '(', numeric_precision, ',' , numeric_scale, ')')
+                                                        when lower(data_type) = 'text'
+                                                        then 
+                                                        concat('varchar', '(', CHARACTER_MAXIMUM_LENGTH, ')')
+                                                        else data_type
+                                                      end as data_type
+                                                      from {catalog}.INFORMATION_SCHEMA.COLUMNS
+                                                      where lower(table_name)='{table}' and table_schema = '{schema}' 
+                                                      order by ordinal_position
+                                       """
 
     def __init__(
         self,
@@ -71,13 +82,19 @@ class SnowflakeDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
         except (RuntimeError, PySparkException) as e:
             return self.log_and_throw_exception(e, "data", table_query)
 
-    @timeit
     def get_schema(
         self,
         catalog: str | None,
         schema: str,
         table: str,
     ) -> list[Schema]:
+        """
+        Fetch the Schema from the INFORMATION_SCHEMA.COLUMNS table in Snowflake.
+
+        If the user's current role does not have the necessary privileges to access the specified
+        Information Schema object, RunTimeError will be raised:
+        "SQL access control error: Insufficient privileges to operate on schema 'INFORMATION_SCHEMA' "
+        """
         schema_query = re.sub(
             r'\s+',
             ' ',
