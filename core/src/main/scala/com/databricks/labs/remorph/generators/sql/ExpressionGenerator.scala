@@ -40,7 +40,8 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
       case a: ir.Assign => assign(ctx, a)
       case opts: ir.Options => options(ctx, opts)
       case i: ir.KnownInterval => interval(ctx, i)
-
+      case w: ir.Window => window(ctx, w)
+      case o: ir.SortOrder => sortOrder(ctx, o)
       case x => throw TranspileException(s"Unsupported expression: $x")
     }
   }
@@ -270,6 +271,51 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
 
   private def objectReference(ctx: GeneratorContext, objRef: ir.ObjectReference): String = {
     (objRef.head +: objRef.tail).map(id(ctx, _)).mkString(".")
+  }
+
+  private def window(ctx: GeneratorContext, window: ir.Window): String = {
+    val expr = expression(ctx, window.window_function)
+    val partition = if (window.partition_spec.isEmpty) { "" }
+    else { window.partition_spec.map(expression(ctx, _)).mkString("PARTITION BY ", ", ", "") }
+    val orderBy = if (window.sort_order.isEmpty) { "" }
+    else { window.sort_order.map(sortOrder(ctx, _)).mkString(" ORDER BY ", ", ", "") }
+    val windowFrame = window.frame_spec
+      .map { frame =>
+        val mode = frame.frame_type match {
+          case ir.RowsFrame => "ROWS"
+          case ir.RangeFrame => "RANGE"
+        }
+        val boundaries = frameBoundary(ctx, frame.lower) ++ frameBoundary(ctx, frame.upper)
+        val frameBoundaries = if (boundaries.size < 2) { boundaries.mkString }
+        else { boundaries.mkString("BETWEEN ", " AND ", "") }
+        s" $mode $frameBoundaries"
+      }
+      .getOrElse("")
+    s"$expr OVER ($partition$orderBy$windowFrame)"
+  }
+
+  private def frameBoundary(ctx: GeneratorContext, boundary: ir.FrameBoundary): Seq[String] = boundary match {
+    case ir.NoBoundary => Seq.empty
+    case ir.CurrentRow => Seq("CURRENT ROW")
+    case ir.UnboundedPreceding => Seq("UNBOUNDED PRECEDING")
+    case ir.UnboundedFollowing => Seq("UNBOUNDED FOLLOWING")
+    case ir.PrecedingN(n) => Seq(s"${expression(ctx, n)} PRECEDING")
+    case ir.FollowingN(n) => Seq(s"${expression(ctx, n)} FOLLOWING")
+  }
+
+  private def sortOrder(ctx: GeneratorContext, order: ir.SortOrder): String = {
+    val orderBy = expression(ctx, order.child)
+    val direction = order.direction match {
+      case ir.Ascending => Seq("ASC")
+      case ir.Descending => Seq("DESC")
+      case ir.UnspecifiedSortDirection => Seq()
+    }
+    val nulls = order.nullOrdering match {
+      case ir.NullsFirst => Seq("NULLS FIRST")
+      case ir.NullsLast => Seq("NULLS LAST")
+      case ir.SortNullsUnspecified => Seq()
+    }
+    (Seq(orderBy) ++ direction ++ nulls).mkString(" ")
   }
 
   private def orNull(option: Option[String]): String = option.getOrElse("NULL")
