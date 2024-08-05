@@ -36,8 +36,11 @@ class TSqlCallMapper extends CallMapper {
     // code, but if we have columns or other expressions, we have to generate a longer sequence
     // as we don't know if we are setting or clearing a bit until runtime.
     v match {
-      case lit: Literal if lit == Literal(1) => BitwiseOr(x, ShiftLeft(Literal(1), n))
-      case _ => BitwiseOr(BitwiseAnd(x, BitwiseXor(Literal(-1), ShiftLeft(Literal(1), n))), ShiftRight(v, n))
+      case lit: Literal if lit == Literal(1) => BitwiseOr(x, CallFunction("SHIFTLEFT", Seq(Literal(1), n)))
+      case _ =>
+        BitwiseOr(
+          BitwiseAnd(x, BitwiseXor(Literal(-1), CallFunction("SHIFTLEFT", Seq(Literal(1), n)))),
+          CallFunction("SHIFTRIGHT", Seq(v, n)))
     }
   }
 
