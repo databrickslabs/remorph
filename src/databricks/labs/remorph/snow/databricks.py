@@ -237,7 +237,7 @@ def _array_slice(self: org_databricks.Databricks.Generator, expression: local_ex
     return func_expr
 
 
-def command(self, expression: exp.Command):
+def _to_command(self, expression: exp.Command):
     return f"{'-- '}{self.sql(expression,'this')}{self.sql(expression,'expression')}"
 
 
@@ -392,7 +392,7 @@ class Databricks(org_databricks.Databricks):  #
             exp.Mod: rename_func("MOD"),
             exp.NullSafeEQ: lambda self, e: self.binary(e, "<=>"),
             exp.If: if_sql(false_value="NULL"),
-            exp.Command: command,
+            exp.Command: _to_command,
         }
 
         def preprocess(self, expression: exp.Expression) -> exp.Expression:
