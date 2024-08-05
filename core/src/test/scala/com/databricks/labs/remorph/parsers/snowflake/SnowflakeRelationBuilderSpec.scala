@@ -195,15 +195,15 @@ class SnowflakeRelationBuilderSpec
       example(
         "WITH a AS (SELECT x, y FROM d)",
         _.withExpression(),
-        CTEDefinition("a", Seq(), Project(namedTable("d"), Seq(simplyNamedColumn("x"), simplyNamedColumn("y")))))
+        SubqueryAlias(Project(namedTable("d"), Seq(simplyNamedColumn("x"), simplyNamedColumn("y"))), Id("a"), Seq()))
 
       example(
         "WITH a (b, c) AS (SELECT x, y FROM d)",
         _.withExpression(),
-        CTEDefinition(
-          "a",
-          Seq(simplyNamedColumn("b"), simplyNamedColumn("c")),
-          Project(namedTable("d"), Seq(simplyNamedColumn("x"), simplyNamedColumn("y")))))
+        SubqueryAlias(
+          Project(namedTable("d"), Seq(simplyNamedColumn("x"), simplyNamedColumn("y"))),
+          Id("a"),
+          Seq(Id("b"), Id("c"))))
     }
 
     "translate QUALIFY clauses" in {

@@ -10,9 +10,7 @@ class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: 
 
   override def generate(ctx: GeneratorContext, tree: ir.LogicalPlan): String = tree match {
     case b: ir.Batch => b.children.map(generate(ctx, _)).mkString("", ";\n", ";")
-    case ir.WithCTE(ctes, query) =>
-      s"WITH ${ctes.map(generate(ctx, _))} ${generate(ctx, query)}"
-    case c: ir.CTEDefinition => cte(ctx, c)
+    case w: ir.WithCTE => cte(ctx, w)
     case p: ir.Project => project(ctx, p)
     case ir.NamedTable(id, _, _) => id
     case ir.Filter(input, condition) =>
@@ -29,6 +27,7 @@ class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: 
     case setOp: ir.SetOperation => setOperation(ctx, setOp)
     case mergeIntoTable: ir.MergeIntoTable => generateMerge(ctx, mergeIntoTable)
     case withOptions: ir.WithOptions => generateWithOptions(ctx, withOptions)
+    case s: ir.SubqueryAlias => subQueryAlias(ctx, s)
     case x => throw unknown(x)
   }
 
@@ -142,13 +141,20 @@ class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: 
       s"${plan}"
   }
 
-  private def cte(ctx: GeneratorContext, cteDefinition: ir.CTEDefinition): String = {
-    val subquery = generate(ctx, cteDefinition.cte)
-    val table = if (cteDefinition.columns.isEmpty) {
-      cteDefinition.tableName
+  private def cte(ctx: GeneratorContext, withCte: ir.WithCTE): String = {
+    val ctes = withCte.ctes.map(generate(ctx, _)).mkString(", ")
+    val query = generate(ctx, withCte.query)
+    s"WITH $ctes $query"
+  }
+
+  private def subQueryAlias(ctx: GeneratorContext, subQAlias: ir.SubqueryAlias): String = {
+    val subquery = generate(ctx, subQAlias.child)
+    val tableName = expr.generate(ctx, subQAlias.alias)
+    val table = if (subQAlias.columnNames.isEmpty) {
+      tableName
     } else {
-      cteDefinition.tableName + cteDefinition.columns.map(expr.generate(ctx, _)).mkString("(", ", ", ")")
+      tableName + subQAlias.columnNames.map(expr.generate(ctx, _)).mkString("(", ", ", ")")
     }
-    s"WITH ($subquery) AS $table"
+    s"($subquery) AS $table"
   }
 }
