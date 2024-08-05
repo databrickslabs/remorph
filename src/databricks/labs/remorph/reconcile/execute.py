@@ -76,7 +76,16 @@ def validate_input(input_value: str, list_of_value: set, message: str):
 
 
 def main(*argv) -> None:
+
     logger.debug(f"Arguments received: {argv}")
+
+    assert len(sys.argv) == 2, f"Invalid number of arguments: {len(sys.argv)}," f" Operation name must be specified."
+    operation_name = sys.argv[1]
+
+    assert operation_name in {
+        RECONCILE_OPERATION_NAME,
+        AGG_RECONCILE_OPERATION_NAME,
+    }, f"Invalid option: {operation_name}"
 
     w = WorkspaceClient()
 
@@ -95,6 +104,17 @@ def main(*argv) -> None:
 
     table_recon = installation.load(type_ref=TableRecon, filename=filename)
 
+    if operation_name == AGG_RECONCILE_OPERATION_NAME:
+        return _trigger_reconcile_aggregates(w, table_recon, reconcile_config)
+
+    return _trigger_recon(w, table_recon, reconcile_config)
+
+
+def _trigger_recon(
+    w: WorkspaceClient,
+    table_recon: TableRecon,
+    reconcile_config: ReconcileConfig,
+):
     try:
         recon_output = recon(
             ws=w,
@@ -106,6 +126,42 @@ def main(*argv) -> None:
         logger.info(f"recon_id: {recon_output.recon_id}")
     except ReconciliationException as e:
         logger.error(f"Error while running recon: {e.reconcile_output}")
+        raise e
+
+
+def _trigger_reconcile_aggregates(
+    ws: WorkspaceClient,
+    table_recon: TableRecon,
+    reconcile_config: ReconcileConfig,
+):
+    """
+    Triggers the reconciliation process for aggregated data  between source and target tables.
+    Supported Aggregate functions: MIN, MAX, COUNT, SUM, AVG, MEAN, MODE, PERCENTILE, STDDEV, VARIANCE, MEDIAN
+
+    This function attempts to reconcile aggregate data based on the configurations provided. It logs the outcome
+    of the reconciliation process, including any errors encountered during execution.
+
+    Parameters:
+    - ws (WorkspaceClient): The workspace client used to interact with Databricks workspaces.
+    - table_recon (TableRecon): Configuration for the table reconciliation process, including source and target details.
+    - reconcile_config (ReconcileConfig): General configuration for the reconciliation process,
+                                                                    including database and table settings.
+
+    Raises:
+    - ReconciliationException: If an error occurs during the reconciliation process, it is caught and re-raised
+      after logging the error details.
+    """
+    try:
+        recon_output = reconcile_aggregates(
+            ws=ws,
+            spark=DatabricksSession.builder.getOrCreate(),
+            table_recon=table_recon,
+            reconcile_config=reconcile_config,
+        )
+        logger.info(f"recon_output: {recon_output}")
+        logger.info(f"recon_id: {recon_output.recon_id}")
+    except ReconciliationException as e:
+        logger.error(f"Error while running aggregate reconcile: {str(e)}")
         raise e
 
 

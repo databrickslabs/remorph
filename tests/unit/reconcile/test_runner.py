@@ -245,7 +245,7 @@ def test_run_with_job_id_in_config():
 
     recon_runner = ReconcileRunner(ws, installation, install_state, prompts)
     recon_runner.run()
-    ws.jobs.run_now.assert_called_once_with(1234)
+    ws.jobs.run_now.assert_called_once_with(1234, job_parameters={'operation_name': 'reconcile'})
 
 
 def test_run_with_job_id_in_state(monkeypatch):
@@ -310,7 +310,7 @@ def test_run_with_job_id_in_state(monkeypatch):
 
     recon_runner = ReconcileRunner(ws, installation, install_state, prompts)
     recon_runner.run()
-    ws.jobs.run_now.assert_called_once_with(1234)
+    ws.jobs.run_now.assert_called_once_with(1234, job_parameters={'operation_name': 'reconcile'})
 
 
 def test_run_with_failed_execution():
@@ -371,4 +371,4 @@ def test_run_with_failed_execution():
     recon_runner = ReconcileRunner(ws, installation, install_state, prompts)
     with pytest.raises(SystemExit):
         recon_runner.run()
-    ws.jobs.run_now.assert_called_once_with(1234)
+    ws.jobs.run_now.assert_called_once_with(1234, job_parameters={'operation_name': 'reconcile'})
