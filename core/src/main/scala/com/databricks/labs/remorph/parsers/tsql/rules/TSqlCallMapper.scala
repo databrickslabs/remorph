@@ -10,8 +10,17 @@ class TSqlCallMapper extends CallMapper {
         processDateAdd(args)
       case CallFunction("GET_BIT", args) => BitwiseGet(args.head, args(1))
       case CallFunction("SET_BIT", args) => genBitSet(args)
+      case CallFunction("CHECKSUM_AGG", args) => checksumAgg(args)
       case x: CallFunction => super.convert(x)
     }
+  }
+
+  /**
+   * @param args
+   * @return
+   */
+  private def checksumAgg(args: Seq[Expression]): Expression = {
+    Md5(ConcatWs(Seq(Literal(","), CollectList(args.head))))
   }
 
   private def genBitSet(args: Seq[Expression]): Expression = {
