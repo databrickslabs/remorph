@@ -18,6 +18,20 @@ class TSqlExpressionGeneratorTest
 
   override protected val generator = new ExpressionGenerator(new TSqlCallMapper)
 
+  "SET_BIT" should {
+    "transpile to bitwise logic" in {
+      ir.CallFunction(
+        "SET_BIT",
+        Seq(ir.Literal(42.toShort), ir.Literal(7.toShort), ir.Literal(0.toShort))) generates
+        "42 & -1 ^ SHIFTLEFT(1, 7) | SHIFTRIGHT(0, 7)"
+
+      ir.CallFunction(
+        "SET_BIT",
+        Seq(ir.Literal(42.toShort), ir.Literal(7.toShort))) generates
+        "42 | SHIFTLEFT(1, 7)"
+    }
+  }
+
   "DATEADD" should {
     "transpile to DATE_ADD" in {
       ir.CallFunction(

@@ -20,6 +20,8 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
 
   def expression(ctx: GeneratorContext, expr: ir.Expression): String = {
     expr match {
+      case sl: ir.ShiftLeft => s"SHIFTLEFT(${expression(ctx, sl.left)}, ${expression(ctx, sl.right)})"
+      case sr: ir.ShiftRight => s"SHIFTRIGHT(${expression(ctx, sr.left)}, ${expression(ctx, sr.right)})"
       case l: ir.Like => like(ctx, l)
       case r: ir.RLike => rlike(ctx, r)
       case _: ir.Bitwise => bitwise(ctx, expr)
@@ -41,6 +43,7 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
       case ua: ir.UpdateAction => updateAction(ctx, ua)
       case a: ir.Assign => assign(ctx, a)
       case opts: ir.Options => options(ctx, opts)
+
       case i: ir.KnownInterval => interval(ctx, i)
       case s: ir.ScalarSubquery => scalarSubquery(ctx, s)
       case c: ir.Case => caseWhen(ctx, c)
