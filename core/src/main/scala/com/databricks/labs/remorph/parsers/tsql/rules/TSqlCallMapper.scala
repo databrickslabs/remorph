@@ -16,11 +16,12 @@ class TSqlCallMapper extends CallMapper {
   }
 
   /**
+   * Converts a CHECKSUM_ARG call to a MD5 function call sequence
    * @param args
    * @return
    */
   private def checksumAgg(args: Seq[Expression]): Expression = {
-    Md5(ConcatWs(Seq(Literal(","), CollectList(args.head))))
+    CallFunction("MD5", Seq(CallFunction("CONCAT_WS", Seq(Literal(","), CallFunction("COLLECT_LIST", args)))))
   }
 
   private def genBitSet(args: Seq[Expression]): Expression = {

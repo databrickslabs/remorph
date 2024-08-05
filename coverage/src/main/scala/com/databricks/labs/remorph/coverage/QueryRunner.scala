@@ -96,11 +96,12 @@ class IsTranspiledFromSnowflakeQueryRunner extends QueryRunner {
     try {
       val transpiled = snowflakeTranspiler.transpile(exampleQuery.query)
       if (exampleQuery.expectedTranslation.exists(_ != transpiled)) {
+        val expected = exampleQuery.expectedTranslation.getOrElse("")
         ReportEntryReport(
           parsed = 1,
           transpiled = 1,
           statements = 1,
-          transpilation_error = Some(s"Unexpected output $transpiled"))
+          transpilation_error = Some(s"Unexpected output: got `$transpiled`, expected `$expected`"))
       } else {
         ReportEntryReport(parsed = 1, transpiled = 1, statements = 1)
       }
@@ -122,11 +123,12 @@ class IsTranspiledFromTSqlQueryRunner extends QueryRunner {
     try {
       val transpiled = tsqlTranspiler.transpile(exampleQuery.query)
       if (exampleQuery.expectedTranslation.exists(_ != transpiled)) {
+        val expected = exampleQuery.expectedTranslation.getOrElse("")
         ReportEntryReport(
           parsed = 1,
           transpiled = 1,
           statements = 1,
-          transpilation_error = Some(s"Unexpected output $transpiled"))
+          transpilation_error = Some(s"Unexpected output: got `$transpiled`, expected `$expected`"))
       } else {
         ReportEntryReport(parsed = 1, transpiled = 1, statements = 1)
       }
