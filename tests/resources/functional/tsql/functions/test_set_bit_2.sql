@@ -6,4 +6,4 @@
 SELECT SET_BIT(42, 7, 0);
 
 -- databricks sql:
-SELECT SETBIT(42, 7, 0);
+SELECT BIT_OR(BIT_AND(42, BIT_XOR(-1, SHIFT_LEFT(1, 7))), SHIFT_RIGHT(0, 7));
