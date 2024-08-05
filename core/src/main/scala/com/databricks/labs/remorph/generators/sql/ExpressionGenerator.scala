@@ -14,7 +14,10 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
   private val dateFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd")
   private val timeFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS").withZone(ZoneId.of("UTC"))
 
-  override def generate(ctx: GeneratorContext, tree: ir.Expression): String = expression(ctx, tree)
+  override def generate(ctx: GeneratorContext, tree: ir.Expression): String = {
+    val t = expression(ctx, tree)
+    t
+  }
 
   def expression(ctx: GeneratorContext, expr: ir.Expression): String = {
     expr match {
@@ -39,6 +42,7 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
       case ua: ir.UpdateAction => updateAction(ctx, ua)
       case a: ir.Assign => assign(ctx, a)
       case opts: ir.Options => options(ctx, opts)
+
       case i: ir.KnownInterval => interval(ctx, i)
 
       case x => throw TranspileException(s"Unsupported expression: $x")
