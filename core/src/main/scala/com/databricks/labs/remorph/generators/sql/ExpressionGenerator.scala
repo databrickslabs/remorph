@@ -14,7 +14,10 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
   private val dateFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd")
   private val timeFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS").withZone(ZoneId.of("UTC"))
 
-  override def generate(ctx: GeneratorContext, tree: ir.Expression): String = expression(ctx, tree)
+  override def generate(ctx: GeneratorContext, tree: ir.Expression): String = {
+    val t = expression(ctx, tree)
+    t
+  }
 
   def expression(ctx: GeneratorContext, expr: ir.Expression): String = {
     expr match {
