@@ -54,6 +54,8 @@ class CallMapper {
     case CallFunction("BIN", args) => Bin(args.head)
     case CallFunction("BIT_AND", args) => BitAndAgg(args.head)
     case CallFunction("BIT_COUNT", args) => BitwiseCount(args.head)
+    case CallFunction("BIT_GET", args) => BitwiseGet(args.head, args(1))
+    case CallFunction("GETBIT", args) => BitwiseGet(args.head, args(1)) // Synonym for BIT_GET
     case CallFunction("BIT_LENGTH", args) => BitLength(args.head)
     case CallFunction("BIT_OR", args) => BitOrAgg(args.head)
     case CallFunction("BIT_XOR", args) => BitXorAgg(args.head)
@@ -441,6 +443,12 @@ case class BitwiseCount(left: Expression) extends Unary(left) with Fn {
 case class BitLength(left: Expression) extends Unary(left) with Fn {
   override def prettyName: String = "BIT_LENGTH"
   override def dataType: DataType = LongType
+}
+
+/** bit_get(expr, bit) and getbit(expr, bit) retuirns bit value at position bit in expr */
+case class BitwiseGet(left: Expression, right: Expression) extends Binary(left, right) with Fn {
+  override def prettyName: String = "GETBIT"
+  override def dataType: DataType = UnresolvedType
 }
 
 /** bround(expr, d) - Returns `expr` rounded to `d` decimal places using HALF_EVEN rounding mode. */

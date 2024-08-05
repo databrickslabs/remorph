@@ -8,7 +8,27 @@ class TSqlCallMapper extends CallMapper {
     call match {
       case CallFunction("DATEADD", args) =>
         processDateAdd(args)
+      case CallFunction("GET_BIT", args) => BitwiseGet(args.head, args(1))
+      case CallFunction("SET_BIT", args) => genBitSet(args)
+
       case x: CallFunction => super.convert(x)
+    }
+  }
+
+  private def genBitSet(args: Seq[Expression]): Expression = {
+    val x = args.head
+    val n = args(1)
+    val v = if (args.length > 2) { args(2) }
+    else { Literal(1) }
+
+    // There is no direct way to achieve a bit set in Databricks SQL, so
+    // we use standard bitwise operations to achieve the same effect. If we have
+    // literals for the bit the bit Value, we can generate less complicated
+    // code, but if we have columns or other expressions, we have to generate a longer sequence
+    // as we don't know if we are setting or clearing a bit until runtime.
+    v match {
+      case lit: Literal if lit == Literal(1) => BitwiseOr(x, ShiftLeft(Literal(1), n))
+      case _ => BitwiseOr(BitwiseAnd(x, BitwiseXor(Literal(-1), ShiftLeft(Literal(1), n))), ShiftRight(v, n))
     }
   }
 
