@@ -7,4 +7,4 @@
 SELECT DATEADD(MICROSECOND, 7, col1) AS add_microsecond_col1 FROM tabl;
 
 -- databricks sql:
-SELECT (col1 + INTERVAL 7 MICROSECOND) AS add_microsecond_col1 FROM tabl;
+SELECT col1 + INTERVAL 7 MICROSECOND AS add_microsecond_col1 FROM tabl;

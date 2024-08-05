@@ -13,6 +13,42 @@ class LogicalPlanGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.L
       ir.Project(namedTable("t1"), Seq(ir.Star(None))) generates "SELECT * FROM t1"
       ir.Project(ir.NoTable(), Seq(ir.Literal(1))) generates "SELECT 1"
     }
+
+    "transpile to SELECT with COMMENTS" in {
+      ir.WithOptions(
+        ir.Project(namedTable("t"), Seq(ir.Star(None))),
+        ir.Options(
+          Map(
+            "MAXRECURSION" -> ir.Literal(short = Some(10)),
+            "OPTIMIZE" -> ir.Column(None, ir.Id("FOR", caseSensitive = true))),
+          Map("SOMESTROPT" -> "STRINGOPTION"),
+          Map("SOMETHING" -> true, "SOMETHINGELSE" -> false),
+          List("SOMEOTHER"))) generates
+        """/*
+            |   The following statement was originally given the following OPTIONS:
+            |
+            |    Expression options:
+            |
+            |     MAXRECURSION = 10
+            |     OPTIMIZE = "FOR"
+            |
+            |    String options:
+            |
+            |     SOMESTROPT = 'STRINGOPTION'
+            |
+            |    Boolean options:
+            |
+            |     SOMETHING ON
+            |     SOMETHINGELSE OFF
+            |
+            |    Auto options:
+            |
+            |     SOMEOTHER AUTO
+            |
+            |
+            | */
+            |SELECT * FROM t""".stripMargin
+    }
   }
 
   "Filter" should {
@@ -94,8 +130,8 @@ class LogicalPlanGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.L
           |
           |    Boolean options:
           |
-          |     FLAME = OFF
-          |     QUICKLY = ON
+          |     FLAME OFF
+          |     QUICKLY ON
           |
           |
           | */
