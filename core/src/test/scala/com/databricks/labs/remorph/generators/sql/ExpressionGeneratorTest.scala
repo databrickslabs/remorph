@@ -860,4 +860,30 @@ class ExpressionGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.Ex
             ir.Id("table 1", caseSensitive = true)))) generates "schema1.\"table 1\".*"
     }
   }
+
+  "window functions" should {
+    "be generated" in {
+      ir.Window(
+        ir.RowNumber(),
+        Seq(ir.Id("a")),
+        Seq(ir.SortOrder(ir.Id("b"), ir.Ascending, ir.NullsFirst)),
+        Some(
+          ir.WindowFrame(
+            ir.RowsFrame,
+            ir.CurrentRow,
+            ir.NoBoundary))) generates "ROW_NUMBER() OVER (PARTITION BY a ORDER BY b ASC NULLS FIRST ROWS CURRENT ROW)"
+
+      ir.Window(
+        ir.RowNumber(),
+        Seq(ir.Id("a")),
+        Seq(ir.SortOrder(ir.Id("b"), ir.Ascending, ir.NullsFirst)),
+        Some(
+          ir.WindowFrame(
+            ir.RangeFrame,
+            ir.CurrentRow,
+            ir.FollowingN(
+              ir.Literal(42))))) generates "ROW_NUMBER() OVER (PARTITION BY a ORDER BY b ASC NULLS FIRST RANGE BETWEEN CURRENT ROW AND 42 FOLLOWING)"
+
+    }
+  }
 }
