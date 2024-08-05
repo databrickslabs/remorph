@@ -1,9 +1,9 @@
 package com.databricks.labs.remorph.coverage
 
-import com.databricks.labs.remorph.parsers.{ParseException, ProductionErrorCollector}
 import com.databricks.labs.remorph.parsers.intermediate.LogicalPlan
-import com.databricks.labs.remorph.parsers.snowflake.{SnowflakeAstBuilder, SnowflakeLexer, SnowflakeParser}
-import com.databricks.labs.remorph.parsers.tsql.{TSqlAstBuilder, TSqlLexer, TSqlParser}
+import com.databricks.labs.remorph.parsers.snowflake.{SnowflakeAstBuilder, SnowflakeErrorStrategy, SnowflakeLexer, SnowflakeParser}
+import com.databricks.labs.remorph.parsers.tsql.{TSqlAstBuilder, TSqlErrorStrategy, TSqlLexer, TSqlParser}
+import com.databricks.labs.remorph.parsers.{ParseException, ProductionErrorCollector}
 import com.databricks.labs.remorph.transpilers.{SnowflakeToDatabricksTranspiler, TSqlToDatabricksTranspiler, TranspileException}
 import org.antlr.v4.runtime.{CharStreams, CommonTokenStream, Parser}
 
@@ -66,6 +66,7 @@ class IsResolvedAsSnowflakeQueryRunner(astBuilder: SnowflakeAstBuilder) extends 
     val lexer = new SnowflakeLexer(inputString)
     val tokenStream = new CommonTokenStream(lexer)
     val parser = new SnowflakeParser(tokenStream)
+    parser.setErrorHandler(new SnowflakeErrorStrategy)
     parser
   }
 
@@ -80,6 +81,7 @@ class IsResolvedAsTSqlQueryRunner(astBuilder: TSqlAstBuilder) extends BaseParser
     val lexer = new TSqlLexer(inputString)
     val tokenStream = new CommonTokenStream(lexer)
     val parser = new TSqlParser(tokenStream)
+    parser.setErrorHandler(new TSqlErrorStrategy)
     parser
   }
 

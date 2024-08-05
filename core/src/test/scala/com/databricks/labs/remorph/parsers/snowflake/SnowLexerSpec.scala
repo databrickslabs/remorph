@@ -16,6 +16,8 @@ class SnowLexerSpec extends AnyWordSpec with Matchers with TableDrivenPropertyCh
       val testInput = Table(
         ("child", "expected"), // Headers
 
+        ("""'\\'""", SnowflakeLexer.STRING),
+        ("""'?'""", SnowflakeLexer.STRING),
         ("'And it''s raining'", SnowflakeLexer.STRING),
         ("""'Tab\oir'""", SnowflakeLexer.STRING),
         ("""'Tab\'oir'""", SnowflakeLexer.STRING),

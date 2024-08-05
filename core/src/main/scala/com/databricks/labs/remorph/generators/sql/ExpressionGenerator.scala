@@ -32,15 +32,33 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
       case a: ir.Alias => alias(ctx, a)
       case d: ir.Distinct => distinct(ctx, d)
       case s: ir.Star => star(ctx, s)
+      case c: ir.Cast => cast(ctx, c)
       case col: ir.Column => column(ctx, col)
       case da: ir.DeleteAction => "DELETE"
       case ia: ir.InsertAction => insertAction(ctx, ia)
       case ua: ir.UpdateAction => updateAction(ctx, ua)
       case a: ir.Assign => assign(ctx, a)
       case opts: ir.Options => options(ctx, opts)
+      case i: ir.KnownInterval => interval(ctx, i)
 
       case x => throw TranspileException(s"Unsupported expression: $x")
     }
+  }
+
+  private def interval(ctx: GeneratorContext, interval: ir.KnownInterval): String = {
+    val iType = interval.iType match {
+      case ir.YEAR_INTERVAL => "YEAR"
+      case ir.MONTH_INTERVAL => "MONTH"
+      case ir.WEEK_INTERVAL => "WEEK"
+      case ir.DAY_INTERVAL => "DAY"
+      case ir.HOUR_INTERVAL => "HOUR"
+      case ir.MINUTE_INTERVAL => "MINUTE"
+      case ir.SECOND_INTERVAL => "SECOND"
+      case ir.MILLISECOND_INTERVAL => "MILLISECOND"
+      case ir.MICROSECOND_INTERVAL => "MICROSECOND"
+      case ir.NANOSECOND_INTERVAL => "NANOSECOND"
+    }
+    s"INTERVAL ${generate(ctx, interval.value)} ${iType}"
   }
 
   private def options(ctx: GeneratorContext, opts: ir.Options): String = {
@@ -64,7 +82,7 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
     }
 
     val boolOptions = opts.boolFlags.map { case (key, value) =>
-      s"     ${key} = ${if (value) { "ON" }
+      s"     ${key} ${if (value) { "ON" }
         else { "OFF" }}\n"
     }.mkString
     val boolStr = if (boolOptions.nonEmpty) {
@@ -74,7 +92,7 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
     }
 
     val autoOptions = opts.autoFlags.map { key =>
-      s"     ${key}\n"
+      s"     ${key} AUTO\n"
     }.mkString
     val autoStr = if (autoOptions.nonEmpty) {
       s"    Auto options:\n\n${autoOptions}\n"
@@ -153,9 +171,11 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
     call match {
       case r: RLike => rlike(ctx, r)
       case fn: ir.Fn => s"${fn.prettyName}(${fn.children.map(expression(ctx, _)).mkString(", ")})"
+
+      // Certain functions can be translated directly to Databricks expressions such as INTERVAL
+      case e: ir.Expression => expression(ctx, e)
       case _ => throw TranspileException("not implemented")
     }
-
   }
 
   private def literal(ctx: GeneratorContext, l: ir.Literal): String = {
@@ -236,6 +256,12 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
 
   private def generateObjectReference(ctx: GeneratorContext, reference: ir.ObjectReference): String = {
     (reference.head +: reference.tail).map(id(ctx, _)).mkString(".")
+  }
+
+  private def cast(ctx: GeneratorContext, cast: ir.Cast): String = {
+    val expr = expression(ctx, cast.expr)
+    val dataType = DataTypeGenerator.generateDataType(ctx, cast.dataType)
+    s"CAST($expr AS $dataType)"
   }
 
   private def dot(ctx: GeneratorContext, dot: ir.Dot): String = {

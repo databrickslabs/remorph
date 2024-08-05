@@ -662,7 +662,14 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
             SOMETHINGELSE OFF,
             SOMEOTHER AUTO,
             SOMEstrOpt = 'STRINGOPTION')""",
-      expectedAst = Batch(Seq(Project(namedTable("t"), Seq(Star(None))))))
+      expectedAst = Batch(
+        Seq(WithOptions(
+          Project(namedTable("t"), Seq(Star(None))),
+          Options(
+            Map("MAXRECURSION" -> Literal(short = Some(10)), "OPTIMIZE" -> Column(None, Id("FOR", true))),
+            Map("SOMESTROPT" -> "STRINGOPTION"),
+            Map("SOMETHING" -> true, "SOMETHINGELSE" -> false),
+            List("SOMEOTHER"))))))
   }
 
   "parse and collect table hints for named table select statements in all variants" in {

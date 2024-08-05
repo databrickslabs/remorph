@@ -87,3 +87,10 @@ case class WriteStreamOperationStart(
     foreach_batch: Option[StreamingForeachFunction])
     extends LeafNode
     with Command
+
+case class CreateVariable(name: Id, dataType: DataType, defaultExpr: Option[Expression] = None, replace: Boolean)
+    extends LeafNode
+    with Command
+
+case class SetVariable(name: Id, value: Expression, dataType: Option[DataType] = None) extends LeafNode with Command
+

@@ -38,9 +38,11 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.LogicalPlan] {
 
     // We visit the OptionClause because in the future, we may be able to glean information from it
     // as an aid to migration, however the clause is not used in the AST or translation.
-    Option(ctx.optionClause).map(_.accept(expressionBuilder))
-
-    ctx.queryExpression.accept(this)
+    val query = ctx.queryExpression.accept(this)
+    Option(ctx.optionClause) match {
+      case Some(optionClause) => ir.WithOptions(query, optionClause.accept(expressionBuilder))
+      case None => query
+    }
   }
 
   override def visitQuerySpecification(ctx: TSqlParser.QuerySpecificationContext): ir.LogicalPlan = {
