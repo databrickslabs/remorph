@@ -3302,7 +3302,7 @@ withExpression: WITH commonTableExpression (COMMA commonTableExpression)*
     ;
 
 commonTableExpression
-    : id (L_PAREN columnList R_PAREN)? AS L_PAREN selectStatement setOperators* R_PAREN
+    : tableName = id (L_PAREN columns += id (COMMA columns += id)* R_PAREN)? AS L_PAREN selectStatement setOperators* R_PAREN
     ;
 
 selectStatement

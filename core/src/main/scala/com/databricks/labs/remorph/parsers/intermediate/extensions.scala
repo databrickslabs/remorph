@@ -33,13 +33,6 @@ case class WithCTE(ctes: Seq[LogicalPlan], query: LogicalPlan) extends RelationC
   override def children: Seq[LogicalPlan] = ctes :+ query
 }
 
-// TODO: (nfx) refactor to align more with catalyst
-// TOTO: remove this class, replace with SubqueryAlias
-case class CTEDefinition(tableName: String, columns: Seq[Expression], cte: LogicalPlan) extends RelationCommon {
-  override def output: Seq[Attribute] = columns.map(c => AttributeReference(c.toString, c.dataType))
-  override def children: Seq[LogicalPlan] = Seq(cte)
-}
-
 // TODO: (nfx) refactor to align more with catalyst, rename to UnresolvedStar
 case class Star(objectName: Option[ObjectReference] = None) extends LeafExpression {
   override def dataType: DataType = UnresolvedType

@@ -12,14 +12,14 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.LogicalPlan] {
   private val expressionBuilder = new TSqlExpressionBuilder
 
   override def visitCommonTableExpression(ctx: CommonTableExpressionContext): ir.LogicalPlan = {
-    val tableName = ctx.id().getText
+    val tableName = expressionBuilder.visitId(ctx.id())
     // Column list can be empty if the select specifies distinct column names
     val columns =
       Option(ctx.columnNameList())
-        .map(_.id().asScala.map(id => ir.Column(None, expressionBuilder.visitId(id))))
-        .getOrElse(List.empty)
+        .map(_.id().asScala.map(expressionBuilder.visitId))
+        .getOrElse(Seq.empty)
     val query = ctx.selectStatement().accept(this)
-    ir.CTEDefinition(tableName, columns, query)
+    ir.SubqueryAlias(query, tableName, columns)
   }
 
   override def visitSelectStatementStandalone(ctx: TSqlParser.SelectStatementStandaloneContext): ir.LogicalPlan = {

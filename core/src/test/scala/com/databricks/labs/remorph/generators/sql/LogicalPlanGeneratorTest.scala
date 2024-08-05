@@ -280,4 +280,5 @@ class LogicalPlanGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.L
     }
 
   }
+
 }

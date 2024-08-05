@@ -262,13 +262,10 @@ class SnowflakeRelationBuilder
   }
 
   override def visitCommonTableExpression(ctx: CommonTableExpressionContext): ir.LogicalPlan = {
-    val tableName = ctx.id().getText
-    val columns = Option(ctx.columnList())
-      .map(_.columnName().asScala)
-      .getOrElse(Seq())
-      .map(_.accept(expressionBuilder))
+    val tableName = expressionBuilder.visitId(ctx.tableName)
+    val columns = ctx.columns.asScala.map(expressionBuilder.visitId)
     val query = ctx.selectStatement().accept(this)
-    ir.CTEDefinition(tableName, columns, query)
+    ir.SubqueryAlias(query, tableName, columns)
   }
 
   private def buildNum(ctx: NumContext): BigDecimal = {

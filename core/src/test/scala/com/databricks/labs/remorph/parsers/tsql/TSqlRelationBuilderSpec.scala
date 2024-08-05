@@ -117,10 +117,10 @@ class TSqlRelationBuilderSpec
       example(
         "WITH a (b, c) AS (SELECT x, y FROM d)",
         _.withExpression(),
-        ir.CTEDefinition(
-          "a",
-          Seq(simplyNamedColumn("b"), simplyNamedColumn("c")),
-          ir.Project(namedTable("d"), Seq(simplyNamedColumn("x"), simplyNamedColumn("y")))))
+        ir.SubqueryAlias(
+          ir.Project(namedTable("d"), Seq(simplyNamedColumn("x"), simplyNamedColumn("y"))),
+          ir.Id("a"),
+          Seq(ir.Id("b"), ir.Id("c"))))
     }
 
     "translate SELECT DISTINCT clauses" in {

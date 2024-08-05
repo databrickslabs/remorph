@@ -262,11 +262,10 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
         query = "WITH a (b, c, d) AS (SELECT x, y, z FROM e) SELECT b, c, d FROM a",
         expectedAst = WithCTE(
           Seq(
-            CTEDefinition(
-              tableName = "a",
-              columns = Seq(simplyNamedColumn("b"), simplyNamedColumn("c"), simplyNamedColumn("d")),
-              cte =
-                Project(namedTable("e"), Seq(simplyNamedColumn("x"), simplyNamedColumn("y"), simplyNamedColumn("z"))))),
+            SubqueryAlias(
+              Project(namedTable("e"), Seq(simplyNamedColumn("x"), simplyNamedColumn("y"), simplyNamedColumn("z"))),
+              Id("a"),
+              Seq(Id("b"), Id("c"), Id("d")))),
           Project(namedTable("a"), Seq(simplyNamedColumn("b"), simplyNamedColumn("c"), simplyNamedColumn("d")))))
 
       singleQueryExample(
@@ -274,15 +273,14 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
           "WITH a (b, c, d) AS (SELECT x, y, z FROM e), aa (bb, cc) AS (SELECT xx, yy FROM f) SELECT b, c, d FROM a",
         expectedAst = WithCTE(
           Seq(
-            CTEDefinition(
-              tableName = "a",
-              columns = Seq(simplyNamedColumn("b"), simplyNamedColumn("c"), simplyNamedColumn("d")),
-              cte =
-                Project(namedTable("e"), Seq(simplyNamedColumn("x"), simplyNamedColumn("y"), simplyNamedColumn("z")))),
-            CTEDefinition(
-              tableName = "aa",
-              columns = Seq(simplyNamedColumn("bb"), simplyNamedColumn("cc")),
-              cte = Project(namedTable("f"), Seq(simplyNamedColumn("xx"), simplyNamedColumn("yy"))))),
+            SubqueryAlias(
+              Project(namedTable("e"), Seq(simplyNamedColumn("x"), simplyNamedColumn("y"), simplyNamedColumn("z"))),
+              Id("a"),
+              Seq(Id("b"), Id("c"), Id("d"))),
+            SubqueryAlias(
+              Project(namedTable("f"), Seq(simplyNamedColumn("xx"), simplyNamedColumn("yy"))),
+              Id("aa"),
+              Seq(Id("bb"), Id("cc")))),
           Project(namedTable("a"), Seq(simplyNamedColumn("b"), simplyNamedColumn("c"), simplyNamedColumn("d")))))
     }
 
