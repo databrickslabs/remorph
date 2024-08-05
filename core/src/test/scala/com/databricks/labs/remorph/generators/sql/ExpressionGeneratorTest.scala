@@ -1,7 +1,7 @@
 package com.databricks.labs.remorph.generators.sql
 
 import com.databricks.labs.remorph.parsers.intermediate.IRHelpers
-import com.databricks.labs.remorph.parsers.{snowflake, intermediate => ir}
+import com.databricks.labs.remorph.parsers.{intermediate => ir}
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.mockito.MockitoSugar
 
@@ -890,13 +890,13 @@ class ExpressionGeneratorTest
 
   "IN" should {
     "be generated" in {
-      snowflake.IsInRelation(
-        ir.Project(namedTable("table1"), Seq(ir.Id("column1"))),
-        ir.Id("c1")) generates "c1 IN (SELECT column1 FROM table1)"
+      ir.In(
+        ir.Id("c1"),
+        Seq(
+          ir.ScalarSubquery(
+            ir.Project(namedTable("table1"), Seq(ir.Id("column1")))))) generates "c1 IN (SELECT column1 FROM table1)"
 
-      snowflake.IsInCollection(
-        Seq(ir.Literal(1), ir.Literal(2), ir.Literal(3)),
-        ir.Id("c1")) generates "c1 IN (1, 2, 3)"
+      ir.In(ir.Id("c1"), Seq(ir.Literal(1), ir.Literal(2), ir.Literal(3))) generates "c1 IN (1, 2, 3)"
     }
   }
 }

@@ -87,19 +87,17 @@ class SnowflakeExprSpec extends AnyWordSpec with SnowflakeParserTestCommon with 
     "translate IN expressions" in {
       exprAndPredicateExample(
         "col1 IN (SELECT * FROM t)",
-        snowflake.IsInRelation(Project(namedTable("t"), Seq(Star(None))), Id("col1")))
+        In(Id("col1"), Seq(ScalarSubquery(Project(namedTable("t"), Seq(Star(None)))))))
       exprAndPredicateExample(
         "col1 NOT IN (SELECT * FROM t)",
-        Not(snowflake.IsInRelation(Project(namedTable("t"), Seq(Star(None))), Id("col1"))))
+        Not(In(Id("col1"), Seq(ScalarSubquery(Project(namedTable("t"), Seq(Star(None))))))))
 
       exprAndPredicateExample(
         "col1 IN (1, 2, 3)",
-        snowflake.IsInCollection(
-          Seq(Literal(short = Some(1)), Literal(short = Some(2)), Literal(short = Some(3))),
-          Id("col1")))
+        In(Id("col1"), Seq(Literal(short = Some(1)), Literal(short = Some(2)), Literal(short = Some(3)))))
       exprAndPredicateExample(
         "col1 NOT IN ('foo', 'bar')",
-        Not(snowflake.IsInCollection(Seq(Literal(string = Some("foo")), Literal(string = Some("bar"))), Id("col1"))))
+        Not(In(Id("col1"), Seq(Literal(string = Some("foo")), Literal(string = Some("bar"))))))
 
     }
 

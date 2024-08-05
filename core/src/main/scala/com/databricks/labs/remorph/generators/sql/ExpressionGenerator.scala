@@ -1,9 +1,7 @@
 package com.databricks.labs.remorph.generators.sql
 
 import com.databricks.labs.remorph.generators.{Generator, GeneratorContext}
-import com.databricks.labs.remorph.parsers.intermediate.RLike
 import com.databricks.labs.remorph.parsers.{intermediate => ir}
-import com.databricks.labs.remorph.parsers.snowflake
 import com.databricks.labs.remorph.transpilers.TranspileException
 
 import java.time._
@@ -44,10 +42,8 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
       case a: ir.Assign => assign(ctx, a)
       case opts: ir.Options => options(ctx, opts)
       case i: ir.KnownInterval => interval(ctx, i)
+      case s: ir.ScalarSubquery => scalarSubquery(ctx, s)
       case c: ir.Case => caseWhen(ctx, c)
-      case in: snowflake.IsInCollection => isInCollection(ctx, in)
-      case in: snowflake.IsInRelation => isInRelation(ctx, in)
-
       case x => throw TranspileException(s"Unsupported expression: $x")
     }
   }
@@ -156,7 +152,7 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
     s"${expression(ctx, like.left)} LIKE ${expression(ctx, like.right)}$escape"
   }
 
-  private def rlike(ctx: GeneratorContext, r: RLike): String = {
+  private def rlike(ctx: GeneratorContext, r: ir.RLike): String = {
     s"${expression(ctx, r.left)} RLIKE ${expression(ctx, r.right)}"
   }
 
@@ -176,7 +172,8 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
   private def callFunction(ctx: GeneratorContext, fn: ir.Fn): String = {
     val call = callMapper.convert(fn)
     call match {
-      case r: RLike => rlike(ctx, r)
+      case r: ir.RLike => rlike(ctx, r)
+      case i: ir.In => in(ctx, i)
       case fn: ir.Fn => s"${fn.prettyName}(${fn.children.map(expression(ctx, _)).mkString(", ")})"
 
       // Certain functions can be translated directly to Databricks expressions such as INTERVAL
@@ -289,13 +286,13 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
     chunks.mkString("CASE ", " ", " END")
   }
 
-  private def isInCollection(ctx: GeneratorContext, isInCollection: snowflake.IsInCollection): String = {
-    val values = isInCollection.collection.map(expression(ctx, _)).mkString(", ")
-    s"${expression(ctx, isInCollection.expression)} IN ($values)"
+  private def in(ctx: GeneratorContext, inExpr: ir.In): String = {
+    val values = inExpr.other.map(expression(ctx, _)).mkString(", ")
+    s"${expression(ctx, inExpr.left)} IN ($values)"
   }
 
-  private def isInRelation(ctx: GeneratorContext, isInRelation: snowflake.IsInRelation): String = {
-    s"${expression(ctx, isInRelation.expression)} IN (${logicalPlanGenerator.generate(ctx, isInRelation.relation)})"
+  private def scalarSubquery(ctx: GeneratorContext, subquery: ir.ScalarSubquery): String = {
+    logicalPlanGenerator.generate(ctx, subquery.relation)
   }
 
   private def orNull(option: Option[String]): String = option.getOrElse("NULL")
