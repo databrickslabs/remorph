@@ -7,6 +7,7 @@ from databricks.sdk import WorkspaceClient
 from databricks.sdk.errors import InvalidParameterValue
 from databricks.sdk.service.dashboards import Dashboard
 
+from databricks.labs.remorph.config import ReconcileMetadataConfig
 from databricks.labs.remorph.deployment.dashboard import DashboardDeployment
 
 
@@ -22,7 +23,7 @@ def test_deploy_new_dashboard():
     install_state = InstallState.from_installation(installation)
     name = "Remorph-Reconciliation"
     dashboard_publisher = DashboardDeployment(ws, installation, install_state)
-    dashboard_publisher.deploy(name, dashboard_file)
+    dashboard_publisher.deploy(name, dashboard_file, ReconcileMetadataConfig())
     _, kwargs = ws.lakeview.create.call_args
     assert kwargs["serialized_dashboard"] == dashboard_file.read_text()
     assert install_state.dashboards[name] == dashboard.dashboard_id
@@ -45,11 +46,7 @@ def test_deploy_new_dashboard_with_params():
     install_state = InstallState.from_installation(installation)
     name = "Remorph-Reconciliation"
     dashboard_publisher = DashboardDeployment(ws, installation, install_state)
-    dashboard_params = {
-        "catalog": "remorph1",
-        "schema": "reconcile1",
-    }
-    dashboard_publisher.deploy(name, dashboard_file, parameters=dashboard_params)
+    dashboard_publisher.deploy(name, dashboard_file, ReconcileMetadataConfig())
     _, kwargs = ws.lakeview.create.call_args
     assert kwargs["serialized_dashboard"] == substituted_dashboard_file.read_text()
     assert install_state.dashboards[name] == dashboard.dashboard_id
@@ -68,11 +65,7 @@ def test_deploy_new_parameterless_dashboard_with_user_params():
     install_state = InstallState.from_installation(installation)
     name = "Test_Dashboard_No_Param"
     dashboard_publisher = DashboardDeployment(ws, installation, install_state)
-    dashboard_params = {
-        "catalog": "remorph1",
-        "schema": "reconcile1",
-    }
-    dashboard_publisher.deploy(name, dashboard_file, parameters=dashboard_params)
+    dashboard_publisher.deploy(name, dashboard_file, ReconcileMetadataConfig())
     assert install_state.dashboards[name] == dashboard.dashboard_id
 
 
@@ -89,7 +82,7 @@ def test_deploy_existing_dashboard():
     installation = MockInstallation({"state.json": {"resources": {"dashboards": {name: dashboard_id}}, "version": 1}})
     install_state = InstallState.from_installation(installation)
     dashboard_publisher = DashboardDeployment(ws, installation, install_state)
-    dashboard_publisher.deploy(name, dashboard_file)
+    dashboard_publisher.deploy(name, dashboard_file, ReconcileMetadataConfig())
     _, kwargs = ws.lakeview.update.call_args
     assert kwargs["serialized_dashboard"] == dashboard_file.read_text()
     assert install_state.dashboards[name] == dashboard.dashboard_id
@@ -116,7 +109,7 @@ def test_deploy_missing_dashboard():
     )
     install_state = InstallState.from_installation(installation)
     dashboard_publisher = DashboardDeployment(ws, installation, install_state)
-    dashboard_publisher.deploy(name, dashboard_file)
+    dashboard_publisher.deploy(name, dashboard_file, ReconcileMetadataConfig())
     _, kwargs = ws.lakeview.create.call_args
     assert kwargs["serialized_dashboard"] == dashboard_file.read_text()
     assert install_state.dashboards[name] == dashboard.dashboard_id

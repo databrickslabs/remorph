@@ -6,7 +6,7 @@ from databricks.labs.blueprint.installer import InstallState
 from databricks.labs.blueprint.wheels import ProductInfo
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.errors import InvalidParameterValue, NotFound
-
+from databricks.labs.blueprint.wheels import find_project_root
 import databricks.labs.remorph.resources
 from databricks.labs.remorph.config import ReconcileConfig
 from databricks.labs.remorph.deployment.dashboard import DashboardDeployment
@@ -91,15 +91,9 @@ class ReconDeployment:
                 continue
 
     def _deploy_recon_metrics_dashboard(self, name: str, recon_config: ReconcileConfig):
-        dashboard_params = {
-            "catalog": recon_config.metadata_config.catalog,
-            "schema": recon_config.metadata_config.schema,
-        }
-
-        reconcile_dashboard_path = "reconcile/dashboards/Remorph-Reconciliation.lvdash.json"
-        dashboard_file = files(databricks.labs.remorph.resources).joinpath(reconcile_dashboard_path)
+        queries_folder = find_project_root(__file__) / "src/databricks/labs/remorph/resources/reconcile/dashboard"
         logger.info(f"Creating Reconciliation Dashboard `{name}`")
-        self._dashboard_deployer.deploy(name, dashboard_file, parameters=dashboard_params)
+        self._dashboard_deployer.deploy(name, queries_folder, recon_config.metadata_config)
 
     def _get_dashboards(self) -> list[tuple[str, str]]:
         return [
