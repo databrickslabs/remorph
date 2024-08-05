@@ -18,6 +18,12 @@ class TSqlExpressionGeneratorTest
 
   override protected val generator = new ExpressionGenerator(new TSqlCallMapper)
 
+  "CHECKSUM_AGG" should {
+    "transpile to MD5 function" in {
+      ir.CallFunction("CHECKSUM_AGG", Seq(ir.Id("col1"))) generates "MD5(CONCAT_WS(',', COLLECT_LIST(col1)))"
+    }
+  }
+
   "SET_BIT" should {
     "transpile to bitwise logic" in {
       ir.CallFunction("SET_BIT", Seq(ir.Literal(42.toShort), ir.Literal(7.toShort), ir.Literal(0.toShort))) generates
