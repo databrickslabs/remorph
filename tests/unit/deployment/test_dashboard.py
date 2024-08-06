@@ -12,7 +12,8 @@ from databricks.labs.remorph.deployment.dashboard import DashboardDeployment
 
 
 def test_deploy_new_dashboard():
-    dashboard_file = Path(__file__).parent / Path("../../resources/Remorph-Reconciliation.lvdash.json")
+    dashboard_file = Path(__file__).parent / Path(
+        "../../resources/dashboards/queries/Remorph-Reconciliation.lvdash.json")
     ws = create_autospec(WorkspaceClient)
     dashboard = Dashboard(
         dashboard_id="9c1fbf4ad3449be67d6cb64c8acc730b",
@@ -30,9 +31,10 @@ def test_deploy_new_dashboard():
 
 
 def test_deploy_new_dashboard_with_params():
-    dashboard_file = Path(__file__).parent / Path("../../resources/Remorph-Reconciliation.lvdash.json")
+    dashboard_file = Path(__file__).parent / Path(
+        "../../resources/dashboards/queries/Remorph-Reconciliation.lvdash.json")
     substituted_dashboard_file = Path(__file__).parent / Path(
-        '../../resources/Remorph-Reconciliation-Substituted.lvdash.json'
+        '../../resources/dashboards/queries/Remorph-Reconciliation-Substituted.lvdash.json'
     )
 
     ws = create_autospec(WorkspaceClient)
@@ -53,7 +55,8 @@ def test_deploy_new_dashboard_with_params():
 
 
 def test_deploy_new_parameterless_dashboard_with_user_params():
-    dashboard_file = Path(__file__).parent / Path("../../resources/Test_Dashboard_No_Param.lvdash.json")
+    dashboard_file = Path(__file__).parent / Path(
+        "../../resources/dashboards/queries/Test_Dashboard_No_Param.lvdash.json")
     ws = create_autospec(WorkspaceClient)
     dashboard = Dashboard(
         dashboard_id="8c1fbf4ad3449be67d6cb64c8acc730b",
@@ -70,7 +73,8 @@ def test_deploy_new_parameterless_dashboard_with_user_params():
 
 
 def test_deploy_existing_dashboard():
-    dashboard_file = Path(__file__).parent / Path("../../resources/Remorph-Reconciliation.lvdash.json")
+    dashboard_file = Path(__file__).parent / Path(
+        "../../resources/dashboards/queries/Remorph-Reconciliation.lvdash.json")
     ws = create_autospec(WorkspaceClient)
     dashboard_id = "9c1fbf4ad3449be67d6cb64c8acc730b"
     dashboard = Dashboard(
@@ -89,7 +93,8 @@ def test_deploy_existing_dashboard():
 
 
 def test_deploy_missing_dashboard():
-    dashboard_file = Path(__file__).parent / Path("../../resources/Remorph-Reconciliation.lvdash.json")
+    dashboard_file = Path(__file__).parent / Path(
+        "../../resources/dashboards/queries/Remorph-Reconciliation.lvdash.json")
     ws = create_autospec(WorkspaceClient)
     dashboard_id = "9c1fbf4ad3449be67d6cb64c8acc730b"
     dashboard = Dashboard(

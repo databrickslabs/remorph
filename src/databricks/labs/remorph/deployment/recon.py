@@ -40,9 +40,10 @@ class ReconDeployment:
         self._dashboard_deployer = dashboard_deployer
 
     def install(self, recon_config: ReconcileConfig | None):
-        if not recon_config:
-            return
         logger.info("Installing reconcile components.")
+        if not recon_config:
+            logger.warning("Recon Config is empty")
+            return
         self._deploy_tables(recon_config)
         self._deploy_dashboards(recon_config)
         self._deploy_jobs(recon_config)
@@ -91,7 +92,7 @@ class ReconDeployment:
                 continue
 
     def _deploy_recon_metrics_dashboard(self, name: str, recon_config: ReconcileConfig):
-        queries_folder = find_project_root(__file__) / "src/databricks/labs/remorph/resources/reconcile/dashboard"
+        queries_folder = find_project_root(__file__) / "src/databricks/labs/remorph/resources/reconcile/dashboards"
         logger.info(f"Creating Reconciliation Dashboard `{name}`")
         self._dashboard_deployer.deploy(name, queries_folder, recon_config.metadata_config)
 

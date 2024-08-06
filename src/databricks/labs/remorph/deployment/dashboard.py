@@ -6,7 +6,7 @@ from databricks.labs.blueprint.installation import Installation
 from databricks.labs.blueprint.installer import InstallState
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.retries import retried
-from databricks.sdk.errors import InvalidParameterValue, NotFound, DatabricksError
+from databricks.sdk.errors import InvalidParameterValue, NotFound, DatabricksError, ResourceAlreadyExists
 
 from databricks.sdk.service.dashboards import LifecycleState
 from databricks.labs.lsql.dashboards import DashboardMetadata, Dashboards
@@ -58,6 +58,10 @@ class DashboardDeployment:
         """Create a dashboard from Queries inside folder"""
         logger.info(f"Deploying dashboard {name} from {folder}")
         parent_path = f"{self._installation.install_folder()}/dashboards"
+        try:
+            self._ws.workspace.mkdirs(parent_path)
+        except ResourceAlreadyExists:
+            pass
 
         metadata = DashboardMetadata.from_path(folder).replace_database(
             database=f"hive_metastore.{config.schema}",
