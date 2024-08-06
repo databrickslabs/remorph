@@ -860,4 +860,26 @@ class ExpressionGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.Ex
             ir.Id("table 1", caseSensitive = true)))) generates "schema1.\"table 1\".*"
     }
   }
+
+  "case...when...else" should {
+    "be generated" in {
+      ir.Case(None, Seq(ir.WhenBranch(ir.Literal(true), ir.Literal(42))), None) generates "CASE WHEN TRUE THEN 42 END"
+
+      ir.Case(
+        Some(ir.Id("c1")),
+        Seq(ir.WhenBranch(ir.Literal(true), ir.Literal(42))),
+        None) generates "CASE c1 WHEN TRUE THEN 42 END"
+
+      ir.Case(
+        Some(ir.Id("c1")),
+        Seq(ir.WhenBranch(ir.Literal(true), ir.Literal(42))),
+        Some(ir.Literal(0))) generates "CASE c1 WHEN TRUE THEN 42 ELSE 0 END"
+
+      ir.Case(
+        Some(ir.Id("c1")),
+        Seq(ir.WhenBranch(ir.Literal("Answer"), ir.Literal(42)), ir.WhenBranch(ir.Literal("Year"), ir.Literal(2024))),
+        Some(ir.Literal(0))) generates "CASE c1 WHEN 'Answer' THEN 42 WHEN 'Year' THEN 2024 ELSE 0 END"
+
+    }
+  }
 }
