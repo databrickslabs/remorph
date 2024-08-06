@@ -2,7 +2,7 @@ package com.databricks.labs.remorph.transpilers
 
 import com.databricks.labs.remorph.generators.GeneratorContext
 import com.databricks.labs.remorph.generators.sql.{ExpressionGenerator, LogicalPlanGenerator}
-import com.databricks.labs.remorph.parsers.tsql.rules.{PullLimitUpwards, TopPercentToLimitSubquery, TrapInsertDefaultsAction}
+import com.databricks.labs.remorph.parsers.tsql.rules.{PullLimitUpwards, TSqlCallMapper, TopPercentToLimitSubquery, TrapInsertDefaultsAction}
 import com.databricks.labs.remorph.parsers.tsql.{TSqlAstBuilder, TSqlErrorStrategy, TSqlLexer, TSqlParser}
 import com.databricks.labs.remorph.parsers.{ProductionErrorCollector, intermediate => ir}
 import org.antlr.v4.runtime.{CharStreams, CommonTokenStream}
@@ -10,7 +10,7 @@ import org.antlr.v4.runtime.{CharStreams, CommonTokenStream}
 class TSqlToDatabricksTranspiler extends BaseTranspiler {
   private val astBuilder = new TSqlAstBuilder()
   private val optimizer = ir.Rules(PullLimitUpwards, new TopPercentToLimitSubquery, TrapInsertDefaultsAction)
-  private val generator = new LogicalPlanGenerator(new ExpressionGenerator())
+  private val generator = new LogicalPlanGenerator(new ExpressionGenerator(new TSqlCallMapper()))
 
   override def parse(input: String): ir.LogicalPlan = {
     val inputString = CharStreams.fromString(input)

@@ -46,7 +46,6 @@ options {
     caseInsensitive = true;
 }
 
-AAD_PROVISIONER_Q                             : '\'AAD_PROVISIONER\'';
 ABORT                                         : 'ABORT';
 ABORT_DETACHED_QUERY                          : 'ABORT_DETACHED_QUERY';
 ABORT_STATEMENT                               : 'ABORT_STATEMENT';
@@ -94,7 +93,6 @@ AT_KEYWORD                                    : 'AT';
 AUTHORIZATION                                 : 'AUTHORIZATION';
 AUTHORIZATIONS                                : 'AUTHORIZATIONS';
 AUTO                                          : 'AUTO';
-AUTO_Q                                        : '\'AUTO\'';
 AUTOCOMMIT                                    : 'AUTOCOMMIT';
 AUTOCOMMIT_API_SUPPORTED                      : 'AUTOCOMMIT_API_SUPPORTED';
 AUTOINCREMENT                                 : 'AUTOINCREMENT';
@@ -105,7 +103,6 @@ AUTO_REFRESH                                  : 'AUTO_REFRESH';
 AUTO_RESUME                                   : 'AUTO_RESUME';
 AUTO_SUSPEND                                  : 'AUTO_SUSPEND';
 AVRO                                          : 'AVRO';
-AVRO_Q                                        : '\'AVRO\'';
 AWS_KEY_ID                                    : 'AWS_KEY_ID';
 AWS_ROLE                                      : 'AWS_ROLE';
 AWS_SECRET_KEY                                : 'AWS_SECRET_KEY';
@@ -114,12 +111,9 @@ AWS_SNS_ROLE_ARN                              : 'AWS_SNS_ROLE_ARN';
 AWS_SNS_TOPIC                                 : 'AWS_SNS_TOPIC';
 AWS_SNS_TOPIC_ARN                             : 'AWS_SNS_TOPIC_ARN';
 AWS_TOKEN                                     : 'AWS_TOKEN';
-AZURE                                         : 'AZURE';
 AZURE_AD_APPLICATION_ID                       : 'AZURE_AD_APPLICATION_ID';
-AZURE_CSE_Q                                   : '\'AZURE_CSE\'';
 AZURE_EVENT_GRID                              : 'AZURE_EVENT_GRID';
 AZURE_EVENT_GRID_TOPIC_ENDPOINT               : 'AZURE_EVENT_GRID_TOPIC_ENDPOINT';
-AZURE_Q                                       : '\'AZURE\'';
 AZURE_SAS_TOKEN                               : 'AZURE_SAS_TOKEN';
 AZURE_STORAGE_QUEUE_PRIMARY_URI               : 'AZURE_STORAGE_QUEUE_PRIMARY_URI';
 AZURE_TENANT_ID                               : 'AZURE_TENANT_ID';
@@ -136,7 +130,6 @@ BLOCK                                         : 'BLOCK';
 BLOCKED_IP_LIST                               : 'BLOCKED_IP_LIST';
 BLOCKED_ROLES_LIST                            : 'BLOCKED_ROLES_LIST';
 BODY                                          : 'BODY';
-BOTH_Q                                        : '\'BOTH\'';
 BROTLI                                        : 'BROTLI';
 BUSINESS_CRITICAL                             : 'BUSINESS_CRITICAL';
 BY                                            : 'BY';
@@ -192,9 +185,9 @@ CREDENTIALS                                   : 'CREDENTIALS';
 CREDIT_QUOTA                                  : 'CREDIT_QUOTA';
 CROSS                                         : 'CROSS';
 CSV                                           : 'CSV';
-CSV_Q                                         : '\'CSV\'';
 CUBE                                          : 'CUBE';
 CURRENT                                       : 'CURRENT';
+CURSOR                                        : 'CURSOR';
 CUSTOM                                        : 'CUSTOM';
 DAILY                                         : 'DAILY';
 DATA                                          : 'DATA';
@@ -205,6 +198,7 @@ DATE_FORMAT                                   : 'DATE_FORMAT';
 DATE_INPUT_FORMAT                             : 'DATE_INPUT_FORMAT';
 DATE_OUTPUT_FORMAT                            : 'DATE_OUTPUT_FORMAT';
 DAYS_TO_EXPIRY                                : 'DAYS_TO_EXPIRY';
+DECLARE                                       : 'DECLARE';
 DEFAULT                                       : 'DEFAULT';
 DEFAULT_DDL_COLLATION_                        : 'DEFAULT_DDL_COLLATION';
 DEFAULT_NAMESPACE                             : 'DEFAULT_NAMESPACE';
@@ -263,6 +257,7 @@ ESCAPE                                        : 'ESCAPE';
 ESCAPE_UNENCLOSED_FIELD                       : 'ESCAPE_UNENCLOSED_FIELD';
 EVENT                                         : 'EVENT';
 EXCEPT                                        : 'EXCEPT';
+EXCEPTION                                     : 'EXCEPTION';
 EXCHANGE                                      : 'EXCHANGE';
 EXECUTE                                       : 'EXEC' 'UTE'?;
 EXECUTION                                     : 'EXECUTION';
@@ -317,10 +312,6 @@ FUTURE                                         : 'FUTURE';
 GCP_PUBSUB                                     : 'GCP_PUBSUB';
 GCP_PUBSUB_SUBSCRIPTION_NAME                   : 'GCP_PUBSUB_SUBSCRIPTION_NAME';
 GCP_PUBSUB_TOPIC_NAME                          : 'GCP_PUBSUB_TOPIC_NAME';
-GCS                                            : 'GCS';
-GCS_SSE_KMS_Q                                  : '\'GCS_SSE_KMS\'';
-GENERIC_Q                                      : '\'GENERIC\'';
-GENERIC_SCIM_PROVISIONER_Q                     : '\'GENERIC_SCIM_PROVISIONER\'';
 GEO                                            : 'GEO';
 GEOGRAPHY_OUTPUT_FORMAT                        : 'GEOGRAPHY_OUTPUT_FORMAT';
 GEOMETRY_OUTPUT_FORMAT                         : 'GEOMETRY_OUTPUT_FORMAT';
@@ -380,7 +371,6 @@ JDBC_TREAT_TIMESTAMP_NTZ_AS_UTC                : 'JDBC_TREAT_TIMESTAMP_NTZ_AS_UT
 JDBC_USE_SESSION_TIMEZONE                      : 'JDBC_USE_SESSION_TIMEZONE';
 JOIN                                           : 'JOIN';
 JSON                                           : 'JSON';
-JSON_Q                                         : '\'JSON\'';
 JSON_INDENT                                    : 'JSON_INDENT';
 JS_TREAT_INTEGER_AS_BIGINT                     : 'JS_TREAT_INTEGER_AS_BIGINT';
 KEY                                            : 'KEY';
@@ -392,6 +382,7 @@ LAST                                           : 'LAST';
 LAST_NAME                                      : 'LAST_NAME';
 LAST_QUERY_ID                                  : 'LAST_QUERY_ID';
 LATERAL                                        : 'LATERAL';
+LET                                            : 'LET';
 LEAD                                           : 'LEAD';
 LEFT                                           : 'LEFT';
 LENGTH                                         : 'LENGTH';
@@ -450,7 +441,6 @@ NEXT                                           : 'NEXT';
 NEXTVAL                                        : 'NEXTVAL';
 NO                                             : 'NO';
 NONE                                           : 'NONE';
-NONE_Q                                         : '\'NONE\'';
 NOORDER                                        : 'NOORDER';
 NORELY                                         : 'NORELY';
 NOT                                            : 'NOT';
@@ -475,14 +465,11 @@ OAUTH_REDIRECT_URI                             : 'OAUTH_REDIRECT_URI';
 OAUTH_REFRESH_TOKEN_VALIDITY                   : 'OAUTH_REFRESH_TOKEN_VALIDITY';
 OAUTH_USE_SECONDARY_ROLES                      : 'OAUTH_USE_SECONDARY_ROLES';
 OBJECT                                         : 'OBJECT';
-OBJECT_Q                                       : '\'OBJECT\'';
 OBJECTS                                        : 'OBJECTS';
 OBJECT_TYPES                                   : 'OBJECT_TYPES';
 OF                                             : 'OF';
 OFFSET                                         : 'OFFSET';
 OKTA                                           : 'OKTA';
-OKTA_PROVISIONER_Q                             : '\'OKTA_PROVISIONER\'';
-OKTA_Q                                         : '\'OKTA\'';
 OLD                                            : 'OLD';
 OMIT                                           : 'OMIT';
 ON                                             : 'ON';
@@ -494,7 +481,6 @@ OPTIMIZATION                                   : 'OPTIMIZATION';
 OPTION                                         : 'OPTION';
 OR                                             : 'OR';
 ORC                                            : 'ORC';
-ORC_Q                                          : '\'ORC\'';
 ORDER                                          : 'ORDER';
 ORGADMIN                                       : 'ORGADMIN';
 ORGANIZATION                                   : 'ORGANIZATION';
@@ -509,7 +495,6 @@ PACKAGES                                       : 'PACKAGES';
 PARALLEL                                       : 'PARALLEL';
 PARAMETERS                                     : 'PARAMETERS';
 PARQUET                                        : 'PARQUET';
-PARQUET_Q                                      : '\'PARQUET\'';
 PARTIAL                                        : 'PARTIAL';
 PARTITION                                      : 'PARTITION';
 PARTITION_TYPE                                 : 'PARTITION_TYPE';
@@ -591,6 +576,7 @@ RESTRICT                                 : 'RESTRICT';
 RESTRICTIONS                             : 'RESTRICTIONS';
 RESULT                                   : 'RESULT';
 RESUME                                   : 'RESUME';
+RETURN                                   : 'RETURN';
 RETURNS                                  : 'RETURNS';
 RETURN_ALL_ERRORS                        : 'RETURN_ALL_ERRORS';
 RETURN_ERRORS                            : 'RETURN_ERRORS';
@@ -611,7 +597,6 @@ RSA_PUBLIC_KEY                           : 'RSA_PUBLIC_KEY';
 RSA_PUBLIC_KEY_2                         : 'RSA_PUBLIC_KEY_2';
 RUN_AS_ROLE                              : 'RUN_AS_ROLE';
 RUNTIME_VERSION                          : 'RUNTIME_VERSION';
-S3                                       : '\'S3\'';
 SAML2                                    : 'SAML2';
 SAML2_ENABLE_SP_INITIATED                : 'SAML2_ENABLE_SP_INITIATED';
 SAML2_FORCE_AUTHN                        : 'SAML2_FORCE_AUTHN';
@@ -669,7 +654,6 @@ SNAPPY                                   : 'SNAPPY';
 SNAPPY_COMPRESSION                       : 'SNAPPY_COMPRESSION';
 SNOWFLAKE_FULL                           : 'SNOWFLAKE_FULL';
 SNOWFLAKE_SSE                            : 'SNOWFLAKE_SSE';
-SNOWPARK_OPTIMIZED                       : '\'SNOWPARK-OPTIMIZED\'';
 SOME                                     : 'SOME';
 SOURCE                                   : 'SOURCE';
 SOURCE_COMPRESSION                       : 'SOURCE_COMPRESSION';
@@ -812,7 +796,6 @@ X5LARGE                                  : 'X5LARGE';
 X6LARGE                                  : 'X6LARGE';
 XLARGE                                   : 'XLARGE';
 XML                                      : 'XML';
-XML_Q                                    : '\'XML\'';
 XSMALL                                   : 'XSMALL';
 XXLARGE                                  : 'XXLARGE';
 XXXLARGE                                 : 'XXXLARGE';
@@ -820,7 +803,6 @@ YEARLY                                   : 'YEARLY';
 ZSTD                                     : 'ZSTD';
 
 ARRAY            : 'ARRAY';
-ARRAY_Q          : '\'ARRAY\''; // TODO: Get rid of this
 BIGINT           : 'BIGINT';
 BINARY           : 'BINARY';
 BOOLEAN          : 'BOOLEAN';
@@ -845,6 +827,7 @@ NUMERIC          : 'NUMERIC';
 NVARCHAR2        : 'NVARCHAR2';
 NVARCHAR         : 'NVARCHAR';
 REAL_            : 'REAL';
+RESULTSET        : 'RESULTSET';
 SMALLINT         : 'SMALLINT';
 STRING_          : 'STRING';
 TEXT             : 'TEXT';
@@ -885,17 +868,10 @@ DECIMAL : DEC_DIGIT+;
 FLOAT   : DEC_DOT_DEC;
 REAL    : (DECIMAL | DEC_DOT_DEC) 'E' [+-]? DEC_DIGIT+;
 
-CHAR_LITERAL: '\'' (~['\\\r\n] | EscapeSequence) '\'';
-
-fragment EscapeSequence:
-    '\\' [btnfr"'\\]
-    | '\\' ([0-3]? [0-7])? [0-7]
-    | '\\' 'u'+ HexDigit HexDigit HexDigit HexDigit
-;
-
 fragment HexDigit  : [0-9a-f];
 fragment HexString : [A-Z0-9|.] [A-Z0-9+\-|.]*;
 
+BANG  : '!';
 ARROW : '->';
 ASSOC : '=>';
 
@@ -907,10 +883,10 @@ GE   : '>=';
 LT   : '<';
 LE   : '<=';
 
+ASSIGN      : ':=';
 PIPE_PIPE   : '||';
 DOT         : '.';
 AT          : '@';
-AT_Q        : '\'@\'';
 DOLLAR      : '$';
 L_PAREN     : '(';
 R_PAREN     : ')';
@@ -929,5 +905,13 @@ PLUS        : '+';
 MINUS       : '-';
 TILDA       : '~';
 
+// A question mark can be used as a placeholder for a prepared statement that will use binding.
+PARAM: '?';
+
 fragment DEC_DOT_DEC : DEC_DIGIT+ DOT DEC_DIGIT+ | DEC_DIGIT+ DOT | DOT DEC_DIGIT+;
 fragment DEC_DIGIT   : [0-9];
+
+// This lexer rule is needed so that any unknown character in the lexicon does not
+// cause an incomprehensible error message. This rule will allow the parser to issue
+// somethign more meaningful and perform error recovery.
+BADCHAR: .;
