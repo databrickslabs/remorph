@@ -28,6 +28,7 @@ class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: 
     case mergeIntoTable: ir.MergeIntoTable => generateMerge(ctx, mergeIntoTable)
     case withOptions: ir.WithOptions => generateWithOptions(ctx, withOptions)
     case s: ir.SubqueryAlias => subQueryAlias(ctx, s)
+    case t: ir.TableAlias => tableAlias(ctx, t)
     case x => throw unknown(x)
   }
 
@@ -156,5 +157,14 @@ class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: 
       tableName + subQAlias.columnNames.map(expr.generate(ctx, _)).mkString("(", ", ", ")")
     }
     s"($subquery) AS $table"
+  }
+
+  private def tableAlias(ctx: GeneratorContext, alias: ir.TableAlias): String = {
+    val target = generate(ctx, alias.child)
+    val columns = if (alias.columns.isEmpty) { "" }
+    else {
+      alias.columns.map(expr.generate(ctx, _)).mkString("(", ", ", ")")
+    }
+    s"$target AS ${alias.alias}$columns"
   }
 }
