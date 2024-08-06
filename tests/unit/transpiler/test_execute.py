@@ -154,7 +154,7 @@ def test_with_dir_skip_validation(initial_setup, mock_workspace_client):
     assert len(status) > 0, "Status returned by morph function is an empty list"
     for stat in status:
         assert stat["total_files_processed"] == 6, "total_files_processed does not match expected value"
-        assert stat["total_queries_processed"] == 4, "total_queries_processed does not match expected value"
+        assert stat["total_queries_processed"] == 5, "total_queries_processed does not match expected value"
         assert (
             stat["no_of_sql_failed_while_parsing"] == 0
         ), "no_of_sql_failed_while_parsing does not match expected value"
@@ -208,7 +208,7 @@ def test_with_dir_with_output_folder_skip_validation(initial_setup, mock_workspa
     assert len(status) > 0, "Status returned by morph function is an empty list"
     for stat in status:
         assert stat["total_files_processed"] == 6, "total_files_processed does not match expected value"
-        assert stat["total_queries_processed"] == 4, "total_queries_processed does not match expected value"
+        assert stat["total_queries_processed"] == 5, "total_queries_processed does not match expected value"
         assert (
             stat["no_of_sql_failed_while_parsing"] == 0
         ), "no_of_sql_failed_while_parsing does not match expected value"
