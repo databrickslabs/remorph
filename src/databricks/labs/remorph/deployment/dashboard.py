@@ -64,9 +64,14 @@ class DashboardDeployment:
             pass
 
         metadata = DashboardMetadata.from_path(folder).replace_database(
-            database=f"hive_metastore.{config.schema}",
-            database_to_replace="inventory",
+            catalog=config.catalog,
+            catalog_to_replace="remorph_catalog",
+            database=config.schema,
+            database_to_replace="remorph_schema",
         )
+        print("**********************")
+        print(metadata)
+        print("***********************")
 
         metadata.display_name = self._name_with_prefix(metadata.display_name)
 
