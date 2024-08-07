@@ -1,7 +1,6 @@
 import json
 import os
 
-
 from databricks.labs.blueprint.cli import App
 from databricks.labs.blueprint.entrypoint import get_logger
 from databricks.labs.remorph.config import SQLGLOT_DIALECTS, MorphConfig
@@ -10,6 +9,8 @@ from databricks.labs.remorph.helpers.recon_config_utils import ReconConfigPrompt
 from databricks.labs.remorph.reconcile.runner import ReconcileRunner
 from databricks.labs.remorph.lineage import lineage_generator
 from databricks.labs.remorph.transpiler.execute import morph
+from databricks.labs.remorph.reconcile.execute import RECONCILE_OPERATION_NAME, AGG_RECONCILE_OPERATION_NAME
+
 from databricks.sdk import WorkspaceClient
 
 remorph = App(__file__)
@@ -105,7 +106,22 @@ def reconcile(w: WorkspaceClient):
         ctx.install_state,
         ctx.prompts,
     )
-    recon_runner.run()
+    recon_runner.run(operation_name=RECONCILE_OPERATION_NAME)
+
+
+@remorph.command
+def aggregates_reconcile(w: WorkspaceClient):
+    """[EXPERIMENTAL] Reconciles Aggregated source to Databricks datasets"""
+    ctx = ApplicationContext(w)
+    logger.info(f"User: {ctx.current_user}")
+    recon_runner = ReconcileRunner(
+        ctx.workspace_client,
+        ctx.installation,
+        ctx.install_state,
+        ctx.prompts,
+    )
+
+    recon_runner.run(operation_name=AGG_RECONCILE_OPERATION_NAME)
 
 
 @remorph.command

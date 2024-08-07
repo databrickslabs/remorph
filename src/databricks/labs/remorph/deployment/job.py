@@ -9,13 +9,12 @@ from databricks.labs.blueprint.wheels import ProductInfo
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.errors import InvalidParameterValue
 from databricks.sdk.service import compute
-from databricks.sdk.service.jobs import Task, PythonWheelTask, JobCluster, JobSettings
+from databricks.sdk.service.jobs import Task, PythonWheelTask, JobCluster, JobSettings, JobParameterDefinition
 
 from databricks.labs.remorph.config import ReconcileConfig
 from databricks.labs.remorph.reconcile.constants import ReconSourceType
 
 logger = logging.getLogger(__name__)
-
 
 _TEST_JOBS_PURGE_TIMEOUT = timedelta(hours=1, minutes=15)
 
@@ -103,6 +102,8 @@ class JobDeployment:
                     recon_config,
                 ),
             ],
+            "max_concurrent_runs": 2,
+            "parameters": [JobParameterDefinition(name="operation_name", default="reconcile")],
         }
 
     def _job_recon_task(self, jobs_task: Task, recon_config: ReconcileConfig) -> Task:
@@ -125,6 +126,7 @@ class JobDeployment:
             python_wheel_task=PythonWheelTask(
                 package_name="databricks_labs_remorph",
                 entry_point="reconcile",
+                parameters=["{{job.parameters.[operation_name]}}"],
             ),
         )
 

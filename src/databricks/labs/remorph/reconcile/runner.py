@@ -10,6 +10,7 @@ from databricks.sdk.errors import NotFound, PermissionDenied
 
 from databricks.labs.remorph.config import ReconcileConfig, TableRecon
 from databricks.labs.remorph.deployment.recon import RECON_JOB_NAME
+from databricks.labs.remorph.reconcile.execute import RECONCILE_OPERATION_NAME
 
 logger = logging.getLogger(__name__)
 
@@ -29,16 +30,18 @@ class ReconcileRunner:
         self._install_state = install_state
         self._prompts = prompts
 
-    def run(self):
+    def run(self, operation_name=RECONCILE_OPERATION_NAME):
         reconcile_config = self._get_verified_recon_config()
         job_id = self._get_recon_job_id(reconcile_config)
         logger.info(f"Triggering the reconcile job with job_id: `{job_id}`")
-        wait = self._ws.jobs.run_now(job_id)
+        wait = self._ws.jobs.run_now(job_id, job_parameters={"operation_name": operation_name})
         if not wait.run_id:
             raise SystemExit(f"Job {job_id} execution failed. Please check the job logs for more details.")
 
         job_run_url = f"{self._ws.config.host}/jobs/{job_id}/runs/{wait.run_id}"
-        logger.info(f"Reconcile job started. Please check the job_url `{job_run_url}` for the current status.")
+        logger.info(
+            f"'{operation_name.upper()}' job started. Please check the job_url `{job_run_url}` for the current status."
+        )
         if self._prompts.confirm(f"Would you like to open the job run URL `{job_run_url}` in the browser?"):
             webbrowser.open(job_run_url)
 

@@ -560,3 +560,8 @@ def test_cli_configure_secrets_config(mock_workspace_client):
 def test_cli_reconcile(mock_workspace_client):
     with patch("databricks.labs.remorph.reconcile.runner.ReconcileRunner.run", return_value=True):
         cli.reconcile(mock_workspace_client)
+
+
+def test_cli_aggregates_reconcile(mock_workspace_client):
+    with patch("databricks.labs.remorph.reconcile.runner.ReconcileRunner.run", return_value=True):
+        cli.aggregates_reconcile(mock_workspace_client)
