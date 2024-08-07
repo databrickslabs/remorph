@@ -1,5 +1,6 @@
 import logging
 import re
+from datetime import datetime
 
 from pyspark.errors import PySparkException
 from pyspark.sql import DataFrame, DataFrameReader, SparkSession
@@ -17,13 +18,30 @@ logger = logging.getLogger(__name__)
 
 class SnowflakeDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
     _DRIVER = "snowflake"
-    # see
-    # https://docs.snowflake.com/en/sql-reference/info-schema#considerations-for-replacing-show-commands-with-information-schema-views
-    _SCHEMA_QUERY = """select column_name, case when numeric_precision is not null and numeric_scale is not null then 
-        concat(data_type, '(', numeric_precision, ',' , numeric_scale, ')') when lower(data_type) = 'text' then 
-        concat('varchar', '(', CHARACTER_MAXIMUM_LENGTH, ')')  else data_type end as data_type from 
-        {catalog}.INFORMATION_SCHEMA.COLUMNS where lower(table_name)='{table}' 
-        and table_schema = '{schema}' order by ordinal_position"""
+    """
+       * INFORMATION_SCHEMA:
+          - see https://docs.snowflake.com/en/sql-reference/info-schema#considerations-for-replacing-show-commands-with-information-schema-views
+       * DATA:
+          - only unquoted identifiers are treated as case-insensitive and are stored in uppercase.
+          - for quoted identifiers refer:
+             https://docs.snowflake.com/en/sql-reference/identifiers-syntax#double-quoted-identifiers
+       * ORDINAL_POSITION:
+          - indicates the sequential order of a column within a table or view, 
+             starting from 1 based on the order of column definition.
+    """
+    _SCHEMA_QUERY = """select column_name,
+                                                      case
+                                                            when numeric_precision is not null and numeric_scale is not null
+                                                            then 
+                                                                concat(data_type, '(', numeric_precision, ',' , numeric_scale, ')')
+                                                            when lower(data_type) = 'text'
+                                                            then 
+                                                                concat('varchar', '(', CHARACTER_MAXIMUM_LENGTH, ')')
+                                                            else data_type
+                                                      end as data_type
+                                                      from {catalog}.INFORMATION_SCHEMA.COLUMNS
+                                                      where lower(table_name)='{table}' and table_schema = '{schema}' 
+                                                      order by ordinal_position"""
 
     def __init__(
         self,
@@ -75,14 +93,24 @@ class SnowflakeDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
         schema: str,
         table: str,
     ) -> list[Schema]:
+        """
+        Fetch the Schema from the INFORMATION_SCHEMA.COLUMNS table in Snowflake.
+
+        If the user's current role does not have the necessary privileges to access the specified
+        Information Schema object, RunTimeError will be raised:
+        "SQL access control error: Insufficient privileges to operate on schema 'INFORMATION_SCHEMA' "
+        """
         schema_query = re.sub(
             r'\s+',
             ' ',
             SnowflakeDataSource._SCHEMA_QUERY.format(catalog=catalog, schema=schema.upper(), table=table),
         )
         try:
-            schema_df = self.reader(schema_query).load()
-            return [Schema(field.COLUMN_NAME.lower(), field.DATA_TYPE.lower()) for field in schema_df.collect()]
+            logger.debug(f"Fetching schema using query: \n`{schema_query}`")
+            logger.info(f"Fetching Schema: Started at: {datetime.now()}")
+            schema_metadata = self.reader(schema_query).load().collect()
+            logger.info(f"Schema fetched successfully. Completed at: {datetime.now()}")
+            return [Schema(field.COLUMN_NAME.lower(), field.DATA_TYPE.lower()) for field in schema_metadata]
         except (RuntimeError, PySparkException) as e:
             return self.log_and_throw_exception(e, "schema", schema_query)
 

@@ -1,4 +1,6 @@
 import re
+import logging
+from datetime import datetime
 
 from pyspark.errors import PySparkException
 from pyspark.sql import DataFrame, DataFrameReader, SparkSession
@@ -9,6 +11,8 @@ from databricks.labs.remorph.reconcile.connectors.jdbc_reader import JDBCReaderM
 from databricks.labs.remorph.reconcile.connectors.secrets import SecretsMixin
 from databricks.labs.remorph.reconcile.recon_config import JdbcReaderOptions, Schema
 from databricks.sdk import WorkspaceClient
+
+logger = logging.getLogger(__name__)
 
 
 class OracleDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
@@ -75,8 +79,11 @@ class OracleDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
             OracleDataSource._SCHEMA_QUERY.format(table=table, owner=schema),
         )
         try:
-            schema_df = self.reader(schema_query).load()
-            return [Schema(field.column_name.lower(), field.data_type.lower()) for field in schema_df.collect()]
+            logger.debug(f"Fetching schema using query: \n`{schema_query}`")
+            logger.info(f"Fetching Schema: Started at: {datetime.now()}")
+            schema_metadata = self.reader(schema_query).load().collect()
+            logger.info(f"Schema fetched successfully. Completed at: {datetime.now()}")
+            return [Schema(field.column_name.lower(), field.data_type.lower()) for field in schema_metadata]
         except (RuntimeError, PySparkException) as e:
             return self.log_and_throw_exception(e, "schema", schema_query)
 
