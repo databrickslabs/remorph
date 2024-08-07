@@ -26,6 +26,7 @@ class WorkspaceInstallation:
 
     def install(self, config: RemorphConfigs):
         if config.reconcile:
+            logger.info("Installing Remorph reconcile Metadata components.")
             self._recon_deployment.install(config.reconcile)
 
     def uninstall(self, config: RemorphConfigs):
