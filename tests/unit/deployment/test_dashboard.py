@@ -1,21 +1,35 @@
+import json
 from pathlib import Path
 from unittest.mock import create_autospec
-
+import logging
+import pytest
 from databricks.labs.blueprint.installation import MockInstallation
 from databricks.labs.blueprint.installer import InstallState
 from databricks.sdk import WorkspaceClient
-from databricks.sdk.errors import InvalidParameterValue
+from databricks.sdk.errors import InvalidParameterValue, NotFound
 from databricks.sdk.service.dashboards import Dashboard
+from databricks.sdk.service.dashboards import LifecycleState
 
 from databricks.labs.remorph.config import ReconcileMetadataConfig
 from databricks.labs.remorph.deployment.dashboard import DashboardDeployment
 
 
-def test_deploy_new_dashboard():
-    dashboard_file = Path(__file__).parent / Path(
-        "../../resources/dashboards/queries/Remorph-Reconciliation.lvdash.json"
-    )
+def _get_dashboard_query(kwargs):
+    serialized_dashboard = json.loads(kwargs['serialized_dashboard'])
+    return serialized_dashboard['datasets'][0]['query']
+
+
+def test_deploy_dashboard():
     ws = create_autospec(WorkspaceClient)
+    expected_query = """SELECT
+  main.recon_id,
+  main.source_type,
+  main.report_type,
+  main.source_table.`catalog` AS source_catalog,
+  main.source_table.`schema` AS source_schema,
+  main.source_table.table_name AS source_table_name\nFROM remorph.reconcile.main AS main""".strip()
+
+    dashboard_folder = Path(__file__).parent / Path("../../resources/dashboards/queries")
     dashboard = Dashboard(
         dashboard_id="9c1fbf4ad3449be67d6cb64c8acc730b",
         display_name="Remorph-Reconciliation",
@@ -25,81 +39,17 @@ def test_deploy_new_dashboard():
     install_state = InstallState.from_installation(installation)
     name = "Remorph-Reconciliation"
     dashboard_publisher = DashboardDeployment(ws, installation, install_state)
-    dashboard_publisher.deploy(name, dashboard_file, ReconcileMetadataConfig())
+    dashboard_publisher.deploy(name, dashboard_folder, ReconcileMetadataConfig())
     _, kwargs = ws.lakeview.create.call_args
-    assert kwargs["serialized_dashboard"] == dashboard_file.read_text()
+    query = _get_dashboard_query(kwargs)
+    assert query == expected_query
     assert install_state.dashboards[name] == dashboard.dashboard_id
 
 
-def test_deploy_new_dashboard_with_params():
-    dashboard_file = Path(__file__).parent / Path(
-        "../../resources/dashboards/queries/Remorph-Reconciliation.lvdash.json"
-    )
-    substituted_dashboard_file = Path(__file__).parent / Path(
-        '../../resources/dashboards/queries/Remorph-Reconciliation-Substituted.lvdash.json'
-    )
+@pytest.mark.parametrize("exception", [InvalidParameterValue, NotFound])
+def test_recovery_invalid_dashboard(caplog, exception):
+    dashboard_folder = Path(__file__).parent / Path("../../resources/dashboards/queries")
 
-    ws = create_autospec(WorkspaceClient)
-    dashboard = Dashboard(
-        dashboard_id="9c1fbf4ad3449be67d6cb64c8acc730b",
-        display_name="Remorph-Reconciliation",
-    )
-    ws.lakeview.create.return_value = dashboard
-
-    installation = MockInstallation(is_global=False)
-    install_state = InstallState.from_installation(installation)
-    name = "Remorph-Reconciliation"
-    dashboard_publisher = DashboardDeployment(ws, installation, install_state)
-    dashboard_publisher.deploy(name, dashboard_file, ReconcileMetadataConfig())
-    _, kwargs = ws.lakeview.create.call_args
-    assert kwargs["serialized_dashboard"] == substituted_dashboard_file.read_text()
-    assert install_state.dashboards[name] == dashboard.dashboard_id
-
-
-def test_deploy_new_parameterless_dashboard_with_user_params():
-    dashboard_file = Path(__file__).parent / Path(
-        "../../resources/dashboards/queries/Test_Dashboard_No_Param.lvdash.json"
-    )
-    ws = create_autospec(WorkspaceClient)
-    dashboard = Dashboard(
-        dashboard_id="8c1fbf4ad3449be67d6cb64c8acc730b",
-        display_name="Test_Dashboard_No_Param",
-    )
-    ws.lakeview.create.return_value = dashboard
-
-    installation = MockInstallation(is_global=False)
-    install_state = InstallState.from_installation(installation)
-    name = "Test_Dashboard_No_Param"
-    dashboard_publisher = DashboardDeployment(ws, installation, install_state)
-    dashboard_publisher.deploy(name, dashboard_file, ReconcileMetadataConfig())
-    assert install_state.dashboards[name] == dashboard.dashboard_id
-
-
-def test_deploy_existing_dashboard():
-    dashboard_file = Path(__file__).parent / Path(
-        "../../resources/dashboards/queries/Remorph-Reconciliation.lvdash.json"
-    )
-    ws = create_autospec(WorkspaceClient)
-    dashboard_id = "9c1fbf4ad3449be67d6cb64c8acc730b"
-    dashboard = Dashboard(
-        dashboard_id=dashboard_id,
-        display_name="Remorph-Reconciliation",
-    )
-    ws.lakeview.update.return_value = dashboard
-    name = "Remorph-Reconciliation"
-    installation = MockInstallation({"state.json": {"resources": {"dashboards": {name: dashboard_id}}, "version": 1}})
-    install_state = InstallState.from_installation(installation)
-    dashboard_publisher = DashboardDeployment(ws, installation, install_state)
-    dashboard_publisher.deploy(name, dashboard_file, ReconcileMetadataConfig())
-    _, kwargs = ws.lakeview.update.call_args
-    assert kwargs["serialized_dashboard"] == dashboard_file.read_text()
-    assert install_state.dashboards[name] == dashboard.dashboard_id
-
-
-def test_deploy_missing_dashboard():
-    dashboard_file = Path(__file__).parent / Path(
-        "../../resources/dashboards/queries/Remorph-Reconciliation.lvdash.json"
-    )
     ws = create_autospec(WorkspaceClient)
     dashboard_id = "9c1fbf4ad3449be67d6cb64c8acc730b"
     dashboard = Dashboard(
@@ -107,7 +57,7 @@ def test_deploy_missing_dashboard():
         display_name="Remorph-Reconciliation",
     )
     ws.lakeview.create.return_value = dashboard
-    ws.lakeview.update.side_effect = InvalidParameterValue("Dashboard not found")
+    ws.lakeview.get.side_effect = exception
     name = "Remorph-Reconciliation"
     installation = MockInstallation(
         {
@@ -119,7 +69,39 @@ def test_deploy_missing_dashboard():
     )
     install_state = InstallState.from_installation(installation)
     dashboard_publisher = DashboardDeployment(ws, installation, install_state)
-    dashboard_publisher.deploy(name, dashboard_file, ReconcileMetadataConfig())
-    _, kwargs = ws.lakeview.create.call_args
-    assert kwargs["serialized_dashboard"] == dashboard_file.read_text()
-    assert install_state.dashboards[name] == dashboard.dashboard_id
+    with caplog.at_level(logging.DEBUG, logger="databricks.labs.remorph.deployment.dashboard"):
+        dashboard_publisher.deploy(name, dashboard_folder, ReconcileMetadataConfig())
+    assert "Recovering invalid dashboard" in caplog.text
+    assert "Deleted dangling dashboard" in caplog.text
+    ws.workspace.delete.assert_called()
+    ws.lakeview.create.assert_called()
+    ws.lakeview.update.assert_not_called()
+
+
+def test_recovery_trashed_dashboard(caplog):
+    dashboard_folder = Path(__file__).parent / Path("../../resources/dashboards/queries")
+
+    ws = create_autospec(WorkspaceClient)
+    dashboard_id = "9c1fbf4ad3449be67d6cb64c8acc730b"
+    dashboard = Dashboard(
+        dashboard_id=dashboard_id,
+        display_name="Remorph-Reconciliation",
+    )
+    ws.lakeview.create.return_value = dashboard
+    ws.lakeview.get.return_value = Dashboard(lifecycle_state=LifecycleState.TRASHED)
+    name = "Remorph-Reconciliation"
+    installation = MockInstallation(
+        {
+            "state.json": {
+                "resources": {"dashboards": {name: "8c1fbf4ad3449be67d6cb64c8acc730b"}},
+                "version": 1,
+            },
+        }
+    )
+    install_state = InstallState.from_installation(installation)
+    dashboard_publisher = DashboardDeployment(ws, installation, install_state)
+    with caplog.at_level(logging.DEBUG, logger="databricks.labs.remorph.deployment.dashboard"):
+        dashboard_publisher.deploy(name, dashboard_folder, ReconcileMetadataConfig())
+    assert "Recreating trashed dashboard" in caplog.text
+    ws.lakeview.create.assert_called()
+    ws.lakeview.update.assert_not_called()

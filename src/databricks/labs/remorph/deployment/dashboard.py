@@ -32,6 +32,7 @@ class DashboardDeployment:
     def _handle_existing_dashboard(self, dashboard_id: str, display_name: str, parent_path: str) -> str | None:
         try:
             dashboard = self._ws.lakeview.get(dashboard_id)
+
             if dashboard.lifecycle_state is None:
                 raise NotFound(f"Dashboard life cycle state: {display_name} ({dashboard_id})")
             if dashboard.lifecycle_state == LifecycleState.TRASHED:
@@ -69,14 +70,10 @@ class DashboardDeployment:
             database=config.schema,
             database_to_replace="remorph_schema",
         )
-        print("**********************")
-        print(metadata)
-        print("***********************")
 
         metadata.display_name = self._name_with_prefix(metadata.display_name)
 
-        reference = f"{folder.parent.stem}_{folder.stem}".lower()
-        dashboard_id = self._install_state.dashboards.get(reference)
+        dashboard_id = self._install_state.dashboards.get(name)
         if dashboard_id is not None:
             dashboard_id = self._handle_existing_dashboard(dashboard_id, metadata.display_name, parent_path)
 

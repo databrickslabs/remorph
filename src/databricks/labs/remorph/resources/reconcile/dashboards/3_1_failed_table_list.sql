@@ -1,3 +1,4 @@
+/* --filter start_date */
 SELECT
   main.recon_id,
   main.source_type,
