@@ -9,6 +9,10 @@ from databricks.labs.blueprint.installation import SerdeError
 from databricks.labs.blueprint.installer import InstallState
 from databricks.labs.blueprint.tui import Prompts
 from databricks.labs.blueprint.wheels import ProductInfo
+
+from databricks.sdk.errors.platform import InvalidParameterValue
+from databricks.labs.blueprint.upgrades import Upgrades
+
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.errors import NotFound, PermissionDenied
 from databricks.sdk.service.catalog import Privilege
@@ -43,6 +47,7 @@ class WorkspaceInstaller:
         product_info: ProductInfo,
         resource_configurator: ResourceConfigurator,
         workspace_installation: WorkspaceInstallation,
+        upgrades: Upgrades,
         environ: dict[str, str] | None = None,
     ):
         self._ws = ws
@@ -52,6 +57,7 @@ class WorkspaceInstaller:
         self._product_info = product_info
         self._resource_configurator = resource_configurator
         self._ws_installation = workspace_installation
+        self._upgrades = upgrades
 
         if not environ:
             environ = dict(os.environ.items())
@@ -75,6 +81,7 @@ class WorkspaceInstaller:
 
     def configure(self, module: str | None = None) -> RemorphConfigs:
         selected_module = module or self._prompts.choice("Select a module to configure:", MODULES)
+        self._apply_upgrades()
         match selected_module:
             case "transpile":
                 logger.info("Configuring remorph `transpile`.")
@@ -298,6 +305,12 @@ class WorkspaceInstaller:
         if self._prompts.confirm(f"Open config file {ws_file_url} in the browser?"):
             webbrowser.open(ws_file_url)
 
+    def _apply_upgrades(self):
+        try:
+            self._upgrades.apply(self._ws)
+        except (InvalidParameterValue, NotFound) as err:
+            logger.warning(f"Installed version is too old: {err}")
+
 
 if __name__ == "__main__":
     logger = get_logger(__file__)
@@ -314,5 +327,6 @@ if __name__ == "__main__":
         app_context.product_info,
         app_context.resource_configurator,
         app_context.workspace_installation,
+        app_context.upgrades,
     )
     installer.run()
