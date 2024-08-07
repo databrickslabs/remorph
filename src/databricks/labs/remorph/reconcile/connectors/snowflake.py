@@ -31,13 +31,13 @@ class SnowflakeDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
     """
     _SCHEMA_QUERY = """select column_name,
                                                       case
-                                                        when numeric_precision is not null and numeric_scale is not null
-                                                        then 
-                                                            concat(data_type, '(', numeric_precision, ',' , numeric_scale, ')')
-                                                        when lower(data_type) = 'text'
-                                                        then 
-                                                        concat('varchar', '(', CHARACTER_MAXIMUM_LENGTH, ')')
-                                                        else data_type
+                                                            when numeric_precision is not null and numeric_scale is not null
+                                                            then 
+                                                                concat(data_type, '(', numeric_precision, ',' , numeric_scale, ')')
+                                                            when lower(data_type) = 'text'
+                                                            then 
+                                                                concat('varchar', '(', CHARACTER_MAXIMUM_LENGTH, ')')
+                                                            else data_type
                                                       end as data_type
                                                       from {catalog}.INFORMATION_SCHEMA.COLUMNS
                                                       where lower(table_name)='{table}' and table_schema = '{schema}' 
