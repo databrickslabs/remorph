@@ -41,7 +41,7 @@ commands:
   - name: reconcile
     description: Reconcile is an utility to streamline the reconciliation process between source data and target data residing on Databricks.
   - name: aggregates-reconcile
-    description: Aggregates Reconcile is an utility to streamline the reconciliation process between the aggregated source and target data residing on Databricks.
+    description: Aggregates Reconcile is an utility to streamline the reconciliation process, specific aggregate metric is compared between source and target data residing on Databricks.
   - name: generate-lineage
     description: Utility to generate a lineage of the SQL files
     flags:
