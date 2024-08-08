@@ -2,7 +2,7 @@ package com.databricks.labs.remorph.parsers.common
 
 import com.databricks.labs.remorph.parsers.intermediate.{IRHelpers, UnresolvedFunction}
 import com.databricks.labs.remorph.parsers.snowflake.{NamedArgumentExpression, SnowflakeFunctionBuilder}
-import com.databricks.labs.remorph.parsers.snowflake.SnowflakeFunctionConverters.SnowflakeSynonyms
+import com.databricks.labs.remorph.parsers.snowflake.SnowflakeFunctionConverters.SynonymOf
 import com.databricks.labs.remorph.parsers.tsql.TSqlFunctionBuilder
 import com.databricks.labs.remorph.parsers.{snowflake, intermediate => ir, _}
 import org.scalatest.flatspec.AnyFlatSpec
@@ -69,7 +69,7 @@ class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenProp
       ("CURRENT_DATABASE", Some(FunctionDefinition.standard(0))),
       ("CURRENT_TIMESTAMP", Some(FunctionDefinition.standard(0, 1))),
       ("DATEDIFF", Some(FunctionDefinition.standard(3))),
-      ("DATE", Some(FunctionDefinition.standard(1, 2).withConversionStrategy(SnowflakeSynonyms))),
+      ("DATE", Some(FunctionDefinition.standard(1, 2).withConversionStrategy(SynonymOf("TO_DATE")))),
       ("DATE_FROM_PARTS", Some(FunctionDefinition.standard(3))),
       ("DATE_PART", Some(FunctionDefinition.standard(2))),
       ("DATE_TRUNC", Some(FunctionDefinition.standard(2))),
@@ -103,7 +103,7 @@ class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenProp
       ("NEXT_DAY", Some(FunctionDefinition.standard(2))),
       ("NULLIFZERO", Some(FunctionDefinition.standard(1))),
       ("NTH_VAlUE", Some(FunctionDefinition.standard(2))),
-      ("NVL", Some(FunctionDefinition.standard(2))),
+      ("NVL", Some(FunctionDefinition.standard(2).withConversionStrategy(SynonymOf("IFNULL")))),
       ("NVL2", Some(FunctionDefinition.standard(3))),
       ("OBJECT_CONSTRUCT", Some(FunctionDefinition.standard(0, Int.MaxValue))),
       ("OBJECT_KEYS", Some(FunctionDefinition.standard(1))),
@@ -137,20 +137,20 @@ class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenProp
       ("STRTOK", Some(FunctionDefinition.standard(1, 3))),
       ("STRTOK_TO_ARRAY", Some(FunctionDefinition.standard(1, 2))),
       ("SYSDATE", Some(FunctionDefinition.standard(0))),
-      ("TIME", Some(FunctionDefinition.standard(1, 2).withConversionStrategy(SnowflakeSynonyms))),
+      ("TIME", Some(FunctionDefinition.standard(1, 2).withConversionStrategy(SynonymOf("TO_TIME")))),
       ("TIMEADD", Some(FunctionDefinition.standard(3))),
       ("TIMESTAMPADD", Some(FunctionDefinition.standard(3))),
       ("TIMESTAMPDIFF", Some(FunctionDefinition.standard(3))),
       ("TIMESTAMP_FROM_PARTS", Some(FunctionDefinition.standard(2, 8))),
       ("TO_ARRAY", Some(FunctionDefinition.standard(1))),
       ("TO_BOOLEAN", Some(FunctionDefinition.standard(1))),
-      ("TO_CHAR", Some(FunctionDefinition.standard(1, 2).withConversionStrategy(SnowflakeSynonyms))),
+      ("TO_CHAR", Some(FunctionDefinition.standard(1, 2).withConversionStrategy(SynonymOf("TO_VARCHAR")))),
       ("TO_DATE", Some(FunctionDefinition.standard(1, 2))),
-      ("TO_DECIMAL", Some(FunctionDefinition.standard(1, 4))),
+      ("TO_DECIMAL", Some(FunctionDefinition.standard(1, 4).withConversionStrategy(SynonymOf("TO_NUMBER")))),
       ("TO_DOUBLE", Some(FunctionDefinition.standard(1, 2))),
       ("TO_JSON", Some(FunctionDefinition.standard(1))),
       ("TO_NUMBER", Some(FunctionDefinition.standard(1, 4))),
-      ("TO_NUMERIC", Some(FunctionDefinition.standard(1, 4))),
+      ("TO_NUMERIC", Some(FunctionDefinition.standard(1, 4).withConversionStrategy(SynonymOf("TO_NUMBER")))),
       ("TO_OBJECT", Some(FunctionDefinition.standard(1))),
       ("TO_TIME", Some(FunctionDefinition.standard(1, 2))),
       ("TO_TIMESTAMP", Some(FunctionDefinition.standard(1, 2))),
@@ -166,10 +166,10 @@ class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenProp
       ("TRY_TO_BINARY", Some(FunctionDefinition.standard(1, 2))),
       ("TRY_TO_BOOLEAN", Some(FunctionDefinition.standard(1))),
       ("TRY_TO_DATE", Some(FunctionDefinition.standard(1, 2))),
-      ("TRY_TO_DECIMAL", Some(FunctionDefinition.standard(1, 4))),
+      ("TRY_TO_DECIMAL", Some(FunctionDefinition.standard(1, 4).withConversionStrategy(SynonymOf("TRY_TO_NUMBER")))),
       ("TRY_TO_DOUBLE", Some(FunctionDefinition.standard(1, 2))),
       ("TRY_TO_NUMBER", Some(FunctionDefinition.standard(1, 4))),
-      ("TRY_TO_NUMERIC", Some(FunctionDefinition.standard(1, 4))),
+      ("TRY_TO_NUMERIC", Some(FunctionDefinition.standard(1, 4).withConversionStrategy(SynonymOf("TRY_TO_NUMBER")))),
       ("TRY_TO_TIME", Some(FunctionDefinition.standard(1, 2))),
       ("TRY_TO_TIMESTAMP", Some(FunctionDefinition.standard(1, 2))),
       ("TRY_TO_TIMESTAMP_LTZ", Some(FunctionDefinition.standard(1, 2))),
