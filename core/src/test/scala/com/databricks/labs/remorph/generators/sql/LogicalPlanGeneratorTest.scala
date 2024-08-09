@@ -279,6 +279,22 @@ class LogicalPlanGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.L
         "t1 PIVOT(c1 FOR c2 IN(1, 2))"
     }
 
+    "transpile to SELECT DISTINCT" in {
+      ir.Deduplicate(
+        namedTable("t1"),
+        Seq(ir.Id("c1"), ir.Id("c2")),
+        all_columns_as_keys = false,
+        within_watermark = false
+      ) generates "SELECT DISTINCT c1, c2 FROM t1"
+
+      ir.Deduplicate(
+        namedTable("t1"),
+        Seq(),
+        all_columns_as_keys = true,
+        within_watermark = false
+      ) generates "SELECT DISTINCT * FROM t1"
+    }
+
   }
 
   "transpile to AS" in {
