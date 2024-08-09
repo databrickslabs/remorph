@@ -28,6 +28,7 @@ class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: 
     case setOp: ir.SetOperation => setOperation(ctx, setOp)
     case mergeIntoTable: ir.MergeIntoTable => generateMerge(ctx, mergeIntoTable)
     case withOptions: ir.WithOptions => generateWithOptions(ctx, withOptions)
+    case d: ir.Deduplicate => deduplicate(ctx, d)
     case x => throw unknown(x)
   }
 
@@ -139,5 +140,14 @@ class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: 
     val plan = generate(ctx, withOptions.input)
     s"${optionComments}" +
       s"${plan}"
+  }
+
+  private def deduplicate(ctx: GeneratorContext, dedup: ir.Deduplicate): String = {
+    val table = generate(ctx, dedup.child)
+    val columns = if (dedup.all_columns_as_keys) { "*" }
+    else {
+      dedup.column_names.map(expr.generate(ctx, _)).mkString(", ")
+    }
+    s"SELECT DISTINCT $columns FROM $table"
   }
 }
