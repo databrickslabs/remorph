@@ -7,7 +7,9 @@ Consider the below tables that we want to reconcile:
 | source   | source_catalog | source_schema | product_prod | p_id INT,<br>p_name STRING,<br>price NUMBER,<br>discount DECIMAL(5,3),<br>offer DOUBLE,<br>creation_date DATE<br>comment STRING<br>             | p_id        |
 | target   | target_catalog | target_schema | product      | product_id INT,<br>product_name STRING,<br>price NUMBER,<br>discount DECIMAL(5,3),<br>offer DOUBLE,<br>creation_date DATE<br>comment STRING<br> | product_id  |
 
-## Run with Drop,Join,Transformation,ColumnThresholds,Filter,JDBC ReaderOptions configs
+## Aggregates-Reconcile Run with Join, Column Mappings, Transformation, Filter and JDBC ReaderOptions configs
+
+> **Note:** Even though the user provides the `select_columns` and `drop_columns`, those are not considered.
 
 
 ```json

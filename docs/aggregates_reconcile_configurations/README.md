@@ -58,11 +58,7 @@ flowchart TD
 
 ## Supported Source Systems
 
-| Source     | Schema | Row | Data | All |
-|------------|--------|-----|------|-----|
-| Oracle     | Yes    | Yes | Yes  | Yes |
-| Snowflake  | Yes    | Yes | Yes  | Yes |
-| Databricks | Yes    | Yes | Yes  | Yes |
+All [source systems](../recon_configurations/README.md#supported-source-system) supported by reconcile
 
 [[back to top](#remorph-aggregates-reconciliation)]
 
@@ -81,7 +77,7 @@ flowchart TD
 class Table:
     source_name: str
     target_name: str
-    **aggregates: list[Aggregate] | None = None**
+    <b>aggregates: list[Aggregate] | None = None</b>
     join_columns: list[str] | None = None
     jdbc_reader_options: JdbcReaderOptions | None = None
     select_columns: list[str] | None = None
