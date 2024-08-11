@@ -2,7 +2,7 @@
 
 Consider the below tables that we want to reconcile:
 
-| categroy | catalog        | schema        | table_name   | schema                                                                                                                                          | primary_key |
+| category | catalog        | schema        | table_name   | schema                                                                                                                                          | primary_key |
 |----------|----------------|---------------|--------------|-------------------------------------------------------------------------------------------------------------------------------------------------|-------------|
 | source   | source_catalog | source_schema | product_prod | p_id INT,<br>p_name STRING,<br>price NUMBER,<br>discount DECIMAL(5,3),<br>offer DOUBLE,<br>creation_date DATE<br>comment STRING<br>             | p_id        |
 | target   | target_catalog | target_schema | product      | product_id INT,<br>product_name STRING,<br>price NUMBER,<br>discount DECIMAL(5,3),<br>offer DOUBLE,<br>creation_date DATE<br>comment STRING<br> | product_id  |

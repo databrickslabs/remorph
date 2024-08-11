@@ -88,7 +88,7 @@ flowchart TB
     
     subgraph target-aggregated
         direction TB
-        O["sum(population): 40"]
+        O["min(population): 40"]
     end
     
     
