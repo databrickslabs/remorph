@@ -29,6 +29,7 @@ class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: 
     case withOptions: ir.WithOptions => generateWithOptions(ctx, withOptions)
     case s: ir.SubqueryAlias => subQueryAlias(ctx, s)
     case t: ir.TableAlias => tableAlias(ctx, t)
+    case d: ir.Deduplicate => deduplicate(ctx, d)
     case x => throw unknown(x)
   }
 
@@ -166,5 +167,14 @@ class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: 
       alias.columns.map(expr.generate(ctx, _)).mkString("(", ", ", ")")
     }
     s"$target AS ${alias.alias}$columns"
+  }
+
+  private def deduplicate(ctx: GeneratorContext, dedup: ir.Deduplicate): String = {
+    val table = generate(ctx, dedup.child)
+    val columns = if (dedup.all_columns_as_keys) { "*" }
+    else {
+      dedup.column_names.map(expr.generate(ctx, _)).mkString(", ")
+    }
+    s"SELECT DISTINCT $columns FROM $table"
   }
 }
