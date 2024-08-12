@@ -1655,11 +1655,37 @@ outputDmlListElem: (expression | asterisk) asColumnAlias?
     ;
 
 createDatabase
-    : CREATE DATABASE (database = id) (CONTAINMENT EQ ( NONE | PARTIAL))? (
-        ON PRIMARY? databaseFileSpec ( COMMA databaseFileSpec)*
-    )? (id /* LOG */ ON databaseFileSpec (COMMA databaseFileSpec)*)? (COLLATE collationName = id)? (
+    : CREATE DATABASE id (CONTAINMENT EQ ( NONE | PARTIAL))?
+    (
+        ON (
+            (PRIMARY? databaseFileSpec ( COMMA databaseFileSpec)*)?
+            (id /* LOG */ ON databaseFileSpec (COMMA databaseFileSpec)*)?
+        )
+    )?
+    (COLLATE collationName = id)?
+    (
         WITH createDatabaseOption (COMMA createDatabaseOption)*
     )?
+    ;
+
+createDatabaseScopedCredential
+    : CREATE DATABASE SCOPED CREDENTIAL id WITH IDENTITY EQ STRING (SECRET EQ STRING)?
+    ;
+
+createDatabaseOption
+    : FILESTREAM (databaseFilestreamOption (COMMA databaseFilestreamOption)*)
+    | genericOption
+    ;
+
+// TODO: Remove this after verifying translation options for Datrabricks SQL
+    nouse:
+     DEFAULT_LANGUAGE EQ ( id | STRING)
+    | DEFAULT_FULLTEXT_LANGUAGE EQ ( id | STRING)
+    | NESTED_TRIGGERS EQ ( OFF | ON)
+    | TRANSFORM_NOISE_WORDS EQ ( OFF | ON)
+    | TWO_DIGIT_YEAR_CUTOFF EQ INT
+    | DB_CHAINING ( OFF | ON)
+    | TRUSTWORTHY ( OFF | ON)
     ;
 
 createIndex
@@ -3235,16 +3261,7 @@ windowFrameExtent: windowFrameBound | BETWEEN windowFrameBound AND windowFrameBo
 windowFrameBound: UNBOUNDED (PRECEDING | FOLLOWING) | INT (PRECEDING | FOLLOWING) | CURRENT ROW
     ;
 
-createDatabaseOption
-    : FILESTREAM (databaseFilestreamOption (COMMA databaseFilestreamOption)*)
-    | DEFAULT_LANGUAGE EQ ( id | STRING)
-    | DEFAULT_FULLTEXT_LANGUAGE EQ ( id | STRING)
-    | NESTED_TRIGGERS EQ ( OFF | ON)
-    | TRANSFORM_NOISE_WORDS EQ ( OFF | ON)
-    | TWO_DIGIT_YEAR_CUTOFF EQ INT
-    | DB_CHAINING ( OFF | ON)
-    | TRUSTWORTHY ( OFF | ON)
-    ;
+
 
 databaseFilestreamOption
     : LPAREN ((NON_TRANSACTED_ACCESS EQ ( OFF | READ_ONLY | FULL)) | ( DIRECTORY_NAME EQ STRING)) RPAREN
