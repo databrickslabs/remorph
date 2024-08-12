@@ -272,6 +272,7 @@ def _verify_successful_reconciliation(
             table_output.status.column is False
             or table_output.status.row is False
             or table_output.status.schema is False
+            or table_output.status.aggregate is False
         ):
             raise ReconciliationException(
                 f" Reconciliation failed for one or more tables. Please check the recon metrics for more details."
@@ -401,13 +402,12 @@ def reconcile_aggregates(
 
         recon_process_duration.end_ts = str(datetime.now())
 
-        # Persist the data to the delta tables, only if all the rules are defined
-        if not any(set(agg_output.rule is None for agg_output in table_reconcile_agg_output_list)):
-            recon_capture.store_aggregates_metrics(
-                reconcile_agg_output_list=table_reconcile_agg_output_list,
-                table_conf=table_conf,
-                recon_process_duration=recon_process_duration,
-            )
+        # Persist the data to the delta tables
+        recon_capture.store_aggregates_metrics(
+            reconcile_agg_output_list=table_reconcile_agg_output_list,
+            table_conf=table_conf,
+            recon_process_duration=recon_process_duration,
+        )
 
         (
             ReconIntermediatePersist(
