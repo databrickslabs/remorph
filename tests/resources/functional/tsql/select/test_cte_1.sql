@@ -5,6 +5,6 @@
 --
 -- tsql sql:
 WITH cte AS (SELECT * FROM t) SELECT * FROM cte
-GO
+
 -- databricks sql:
 WITH cte AS (SELECT * FROM t) SELECT * FROM cte
