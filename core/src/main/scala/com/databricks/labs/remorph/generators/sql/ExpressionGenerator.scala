@@ -41,7 +41,6 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
       case ua: ir.UpdateAction => updateAction(ctx, ua)
       case a: ir.Assign => assign(ctx, a)
       case opts: ir.Options => options(ctx, opts)
-
       case i: ir.KnownInterval => interval(ctx, i)
       case s: ir.ScalarSubquery => scalarSubquery(ctx, s)
       case c: ir.Case => caseWhen(ctx, c)
@@ -179,6 +178,7 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
 
       // Certain functions can be translated directly to Databricks expressions such as INTERVAL
       case e: ir.Expression => expression(ctx, e)
+
       case _ => throw TranspileException("not implemented")
     }
   }
