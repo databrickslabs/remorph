@@ -3128,7 +3128,6 @@ expr
     | DISTINCT expr                             # exprDistinct
     | L_PAREN subquery R_PAREN                  # exprSubquery
     | primitiveExpression                       # exprPrimitive
-    | parameterExpression                       # exprParameter
     ;
 
 withinGroup: WITHIN GROUP L_PAREN orderByClause R_PAREN
@@ -3203,10 +3202,7 @@ primitiveExpression
     | id LSB string RSB # primObjectAccess
     | id                # primExprColumn
     | literal           # primExprLiteral
-    | COLON id          # primVariable
-    ;
-
-parameterExpression: COLON id
+    | COLON id          # primVariable // TODO: This needs to move to main expression as expression COLON expression  when JSON is implemented
     ;
 
 overClause: OVER L_PAREN (PARTITION BY expr (COMMA expr)*)? windowOrderingAndFrame? R_PAREN

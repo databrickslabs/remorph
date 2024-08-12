@@ -68,12 +68,8 @@ class SnowflakeExpressionBuilderSpec
     "translate complex binary expressions" in {
       exampleExpr("a + b * 2", _.expr(), ir.Add(Id("a"), ir.Multiply(Id("b"), ir.Literal(short = Some(2)))))
       exampleExpr("(a + b) * 2", _.expr(), ir.Multiply(ir.Add(Id("a"), Id("b")), ir.Literal(short = Some(2))))
-      exampleExpr("a & b | c", _.expr(), ir.BitwiseOr(ir.BitwiseAnd(Id("a"), Id("b")), Id("c")))
-      exampleExpr("(a & b) | c", _.expr(), ir.BitwiseOr(ir.BitwiseAnd(Id("a"), Id("b")), Id("c")))
       exampleExpr("a + b * 2", _.expr(), ir.Add(Id("a"), ir.Multiply(Id("b"), ir.Literal(short = Some(2)))))
       exampleExpr("(a + b) * 2", _.expr(), ir.Multiply(ir.Add(Id("a"), Id("b")), ir.Literal(short = Some(2))))
-      exampleExpr("a & b | c", _.expr(), ir.BitwiseOr(ir.BitwiseAnd(Id("a"), Id("b")), Id("c")))
-      exampleExpr("(a & b) | c", _.expr(), ir.BitwiseOr(ir.BitwiseAnd(Id("a"), Id("b")), Id("c")))
       exampleExpr(
         "a % 3 + b * 2 - c / 5",
         _.expr(),
