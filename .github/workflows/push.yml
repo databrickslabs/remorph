@@ -84,7 +84,7 @@ jobs:
           distribution: corretto
           java-version: 11
 
-      # GitHub Action team seems not to have cycles to make the cache work properly, hence this hack.
+      # GitHub Action team seems not to have cycles to make the cache work properly, hence this hack
       # See https://github.com/actions/setup-java/issues/255
       # See https://github.com/actions/setup-java/issues/577
       - name: Cache Maven
