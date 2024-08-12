@@ -225,25 +225,32 @@
           </pom>
         </configuration>
       </plugin>
-      <plugin>
-        <groupId>org.antipathy</groupId>
-        <artifactId>mvn-scalafmt_2.12</artifactId>
-        <version>1.1.1640084764.9f463a9</version>
-        <configuration>
-          <configLocation>.scalafmt.conf</configLocation>
-        </configuration>
-        <executions>
-          <execution>
-            <phase>validate</phase>
-            <goals>
-              <goal>format</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
     </plugins>
   </build>
   <profiles>
+    <profile>
+      <id>format</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.antipathy</groupId>
+            <artifactId>mvn-scalafmt_2.12</artifactId>
+            <version>1.1.1640084764.9f463a9</version>
+            <configuration>
+              <configLocation>.scalafmt.conf</configLocation>
+            </configuration>
+            <executions>
+              <execution>
+                <phase>validate</phase>
+                <goals>
+                  <goal>format</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
     <profile>
       <id>release</id>
       <build>
