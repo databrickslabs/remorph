@@ -41,6 +41,7 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
       case opts: ir.Options => options(ctx, opts)
       case i: ir.KnownInterval => interval(ctx, i)
 
+      case c: ir.Case => caseWhen(ctx, c)
       case x => throw TranspileException(s"Unsupported expression: $x")
     }
   }
@@ -270,6 +271,16 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
 
   private def objectReference(ctx: GeneratorContext, objRef: ir.ObjectReference): String = {
     (objRef.head +: objRef.tail).map(id(ctx, _)).mkString(".")
+  }
+
+  private def caseWhen(ctx: GeneratorContext, c: ir.Case): String = {
+    val expr = c.expression.map(expression(ctx, _)).toSeq
+    val branches = c.branches.map { branch =>
+      s"WHEN ${expression(ctx, branch.condition)} THEN ${expression(ctx, branch.expression)}"
+    }
+    val otherwise = c.otherwise.map { o => s"ELSE ${expression(ctx, o)}" }.toSeq
+    val chunks = expr ++ branches ++ otherwise
+    chunks.mkString("CASE ", " ", " END")
   }
 
   private def orNull(option: Option[String]): String = option.getOrElse("NULL")
