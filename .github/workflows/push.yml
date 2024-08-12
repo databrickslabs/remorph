@@ -72,7 +72,7 @@ jobs:
           # Exit with status code 1 if there are differences (i.e. unformatted files)
           git diff --exit-code
 
-  fmt-scala:
+  fmt-core:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
