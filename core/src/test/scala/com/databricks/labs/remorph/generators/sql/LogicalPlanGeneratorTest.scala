@@ -281,4 +281,11 @@ class LogicalPlanGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.L
 
   }
 
+  "transpile to AS" in {
+    ir.TableAlias(
+      namedTable("table1"),
+      "t1",
+      Seq(ir.Id("c1"), ir.Id("c2"), ir.Id("c3"))) generates "table1 AS t1(c1, c2, c3)"
+  }
+
 }
