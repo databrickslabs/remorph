@@ -3105,7 +3105,8 @@ exprList: expr (COMMA expr)*
     ;
 
 expr
-    : objectName DOT NEXTVAL                    # exprNextval
+    : L_PAREN expr R_PAREN                      # exprPrecedence
+    | objectName DOT NEXTVAL                    # exprNextval
     | expr DOT expr                             # exprDot
     | expr COLON expr                           # exprColon
     | expr COLLATE string                       # exprCollate
@@ -3123,15 +3124,11 @@ expr
     | castExpr                                  # exprCast
     | expr COLON_COLON dataType                 # exprAscribe
     | functionCall                              # exprFuncCall
-    | L_PAREN subquery R_PAREN                  # exprSubquery
     | expr predicatePartial                     # exprPredicate
     | DISTINCT expr                             # exprDistinct
-    //Should be latest rule as it's nearly a catch all
-    | primitiveExpression # exprPrimitive
-    | parameterExpression # exprParameter
-    ;
-
-subQueryExpr: L_PAREN subquery R_PAREN
+    | L_PAREN subquery R_PAREN                  # exprSubquery
+    | primitiveExpression                       # exprPrimitive
+    | parameterExpression                       # exprParameter
     ;
 
 withinGroup: WITHIN GROUP L_PAREN orderByClause R_PAREN

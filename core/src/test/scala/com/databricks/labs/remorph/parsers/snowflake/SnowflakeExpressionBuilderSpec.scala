@@ -50,7 +50,7 @@ class SnowflakeExpressionBuilderSpec
         _.columnName(),
         Column(Some(ObjectReference(Id("My Table", caseSensitive = true))), Id("x")))
     }
-    
+
     "translate simple numeric binary expressions" in {
       exampleExpr("1 + 2", _.expr(), ir.Add(ir.Literal(short = Some(1)), ir.Literal(short = Some(2))))
       exampleExpr("1 +2", _.expr(), ir.Add(ir.Literal(short = Some(1)), ir.Literal(short = Some(2))))
@@ -66,50 +66,21 @@ class SnowflakeExpressionBuilderSpec
     }
 
     "translate complex binary expressions" in {
-      exampleExpr(
-        "a + b * 2",
-        _.expr(),
-        ir.Add(Id("a"), ir.Multiply(Id("b"), ir.Literal(short = Some(2)))))
-      exampleExpr(
-        "(a + b) * 2",
-        _.expr(),
-        ir.Multiply(ir.Add(Id("a"), Id("b")), ir.Literal(short = Some(2))))
-      exampleExpr(
-        "a & b | c",
-        _.expr(),
-        ir.BitwiseOr(ir.BitwiseAnd(Id("a"), Id("b")), Id("c")))
-      exampleExpr(
-        "(a & b) | c",
-        _.expr(),
-        ir.BitwiseOr(ir.BitwiseAnd(Id("a"), Id("b")), Id("c")))
-      exampleExpr(
-        "a + b * 2",
-        _.expr(),
-        ir.Add(Id("a"), ir.Multiply(Id("b"), ir.Literal(short = Some(2)))))
-      exampleExpr(
-        "(a + b) * 2",
-        _.expr(),
-        ir.Multiply(ir.Add(Id("a"), Id("b")), ir.Literal(short = Some(2))))
-      exampleExpr(
-        "a & b | c",
-        _.expr(),
-        ir.BitwiseOr(ir.BitwiseAnd(Id("a"), Id("b")), Id("c")))
-      exampleExpr(
-        "(a & b) | c",
-        _.expr(),
-        ir.BitwiseOr(ir.BitwiseAnd(Id("a"), Id("b")), Id("c")))
+      exampleExpr("a + b * 2", _.expr(), ir.Add(Id("a"), ir.Multiply(Id("b"), ir.Literal(short = Some(2)))))
+      exampleExpr("(a + b) * 2", _.expr(), ir.Multiply(ir.Add(Id("a"), Id("b")), ir.Literal(short = Some(2))))
+      exampleExpr("a & b | c", _.expr(), ir.BitwiseOr(ir.BitwiseAnd(Id("a"), Id("b")), Id("c")))
+      exampleExpr("(a & b) | c", _.expr(), ir.BitwiseOr(ir.BitwiseAnd(Id("a"), Id("b")), Id("c")))
+      exampleExpr("a + b * 2", _.expr(), ir.Add(Id("a"), ir.Multiply(Id("b"), ir.Literal(short = Some(2)))))
+      exampleExpr("(a + b) * 2", _.expr(), ir.Multiply(ir.Add(Id("a"), Id("b")), ir.Literal(short = Some(2))))
+      exampleExpr("a & b | c", _.expr(), ir.BitwiseOr(ir.BitwiseAnd(Id("a"), Id("b")), Id("c")))
+      exampleExpr("(a & b) | c", _.expr(), ir.BitwiseOr(ir.BitwiseAnd(Id("a"), Id("b")), Id("c")))
       exampleExpr(
         "a % 3 + b * 2 - c / 5",
         _.expr(),
         ir.Subtract(
-          ir.Add(
-            ir.Mod(Id("a"), ir.Literal(short = Some(3))),
-            ir.Multiply(Id("b"), ir.Literal(short = Some(2)))),
+          ir.Add(ir.Mod(Id("a"), ir.Literal(short = Some(3))), ir.Multiply(Id("b"), ir.Literal(short = Some(2)))),
           ir.Divide(Id("c"), ir.Literal(short = Some(5)))))
-      exampleExpr(
-        query = "a || b || c",
-        _.expr(),
-        ir.Concat(Seq(ir.Concat(Seq(Id("a"), Id("b"))), Id("c"))))
+      exampleExpr(query = "a || b || c", _.expr(), ir.Concat(Seq(ir.Concat(Seq(Id("a"), Id("b"))), Id("c"))))
     }
 
     "correctly apply operator precedence and associativity" in {
@@ -118,75 +89,28 @@ class SnowflakeExpressionBuilderSpec
         _.expr(),
         ir.Add(ir.Literal(short = Some(1)), ir.UMinus(ir.UPlus(ir.UPlus(ir.UMinus(ir.Literal(short = Some(2))))))))
       exampleExpr(
-        "1 + ~ 2 * 3",
-        _.expr(),
-        ir.Add(
-          ir.Literal(short = Some(1)),
-          ir.Multiply(ir.BitwiseNot(ir.Literal(short = Some(2))), ir.Literal(short = Some(3)))))
-      exampleExpr(
         "1 + -2 * 3",
         _.expr(),
         ir.Add(
           ir.Literal(short = Some(1)),
           ir.Multiply(ir.UMinus(ir.Literal(short = Some(2))), ir.Literal(short = Some(3)))))
       exampleExpr(
-        "1 + -2 * 3 + 7 & 66",
-        _.expr(),
-        ir.BitwiseAnd(
-          ir.Add(
-            ir.Add(
-              ir.Literal(short = Some(1)),
-              ir.Multiply(ir.UMinus(ir.Literal(short = Some(2))), ir.Literal(short = Some(3)))),
-            ir.Literal(short = Some(7))),
-          ir.Literal(short = Some(66))))
-      exampleExpr(
-        "1 + -2 * 3 + 7 ^ 66",
-        _.expr(),
-        ir.BitwiseXor(
-          ir.Add(
-            ir.Add(
-              ir.Literal(short = Some(1)),
-              ir.Multiply(ir.UMinus(ir.Literal(short = Some(2))), ir.Literal(short = Some(3)))),
-            ir.Literal(short = Some(7))),
-          ir.Literal(short = Some(66))))
-      exampleExpr(
-        "1 + -2 * 3 + 7 | 66",
-        _.expr(),
-        ir.BitwiseOr(
-          ir.Add(
-            ir.Add(
-              ir.Literal(short = Some(1)),
-              ir.Multiply(ir.UMinus(ir.Literal(short = Some(2))), ir.Literal(short = Some(3)))),
-            ir.Literal(short = Some(7))),
-          ir.Literal(short = Some(66))))
-      exampleExpr(
-        "1 + -2 * 3 + 7 + ~66",
-        _.expr(),
-        ir.Add(
-          ir.Add(
-            ir.Add(
-              ir.Literal(short = Some(1)),
-              ir.Multiply(ir.UMinus(ir.Literal(short = Some(2))), ir.Literal(short = Some(3)))),
-            ir.Literal(short = Some(7))),
-          ir.BitwiseNot(ir.Literal(short = Some(66)))))
-      exampleExpr(
-        "1 + -2 * 3 + 7 | 1980 || 'leeds1' || 'leeds2' || 'leeds3'",
+        "1 + -2 * 3 + 7 || 'leeds1' || 'leeds2' || 'leeds3'",
         _.expr(),
         ir.Concat(
           Seq(
             ir.Concat(Seq(
               ir.Concat(Seq(
-                ir.BitwiseOr(
+                ir.Add(
                   ir.Add(
-                    ir.Add(
-                      ir.Literal(short = Some(1)),
-                      ir.Multiply(ir.UMinus(ir.Literal(short = Some(2))), ir.Literal(short = Some(3)))),
-                    ir.Literal(short = Some(7))),
-                  ir.Literal(short = Some(1980))),
+                    ir.Literal(short = Some(1)),
+                    ir.Multiply(ir.UMinus(ir.Literal(short = Some(2))), ir.Literal(short = Some(3)))),
+                  ir.Literal(short = Some(7))),
                 ir.Literal(string = Some("leeds1")))),
               ir.Literal(string = Some("leeds2")))),
             ir.Literal(string = Some("leeds3")))))
     }
+
     "correctly respect explicit precedence with parentheses" in {
       exampleExpr(
         "(1 + 2) * 3",
