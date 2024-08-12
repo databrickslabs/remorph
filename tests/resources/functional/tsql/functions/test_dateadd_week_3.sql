@@ -7,4 +7,4 @@
 SELECT DATEADD(ww, 2, col1) AS add_weeks_col1 FROM tabl;
 
 -- databricks sql:
-SELECT DATE_ADD(col1, 2*7) AS add_weeks_col1 FROM tabl;
+SELECT DATE_ADD(col1, 2 * 7) AS add_weeks_col1 FROM tabl;

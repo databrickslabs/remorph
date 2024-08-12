@@ -1,9 +1,9 @@
 -- ## SET_BIT
 --
--- The SET_BIT function is identical in TSql and Databricks, save for a renaming of the function.
+-- The SET_BIT function does not exist in Databricks SQL, so we must use bit functions
 --
 -- tsql sql:
 SELECT SET_BIT(42, 7);
 
 -- databricks sql:
-SELECT SETBIT(42, 7);
+SELECT 42 | SHIFTLEFT(1, 7);
