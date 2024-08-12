@@ -138,6 +138,10 @@ class SnowflakeExpressionBuilder()
     case _ => ir.Literal(decimal = Some(ir.Decimal(decimal, None, None)))
   }
 
+  override def visitExprPrecedence(ctx: ExprPrecedenceContext): ir.Expression = {
+    ctx.expr().accept(this)
+  }
+
   override def visitExprNextval(ctx: ExprNextvalContext): ir.Expression = {
     NextValue(ctx.objectName().getText)
   }
