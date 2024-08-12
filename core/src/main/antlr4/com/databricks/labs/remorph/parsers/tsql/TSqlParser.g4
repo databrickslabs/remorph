@@ -1655,17 +1655,13 @@ outputDmlListElem: (expression | asterisk) asColumnAlias?
     ;
 
 createDatabase
-    : CREATE DATABASE id (CONTAINMENT EQ ( NONE | PARTIAL))?
-    (
+    : CREATE DATABASE id (CONTAINMENT EQ ( NONE | PARTIAL))? (
         ON (
-            (PRIMARY? databaseFileSpec ( COMMA databaseFileSpec)*)?
-            (id /* LOG */ ON databaseFileSpec (COMMA databaseFileSpec)*)?
+            (PRIMARY? databaseFileSpec ( COMMA databaseFileSpec)*)? (
+                id /* LOG */ ON databaseFileSpec (COMMA databaseFileSpec)*
+            )?
         )
-    )?
-    (COLLATE collationName = id)?
-    (
-        WITH createDatabaseOption (COMMA createDatabaseOption)*
-    )?
+    )? (COLLATE collationName = id)? (WITH createDatabaseOption (COMMA createDatabaseOption)*)?
     ;
 
 createDatabaseScopedCredential
@@ -1678,8 +1674,8 @@ createDatabaseOption
     ;
 
 // TODO: Remove this after verifying translation options for Datrabricks SQL
-    nouse:
-     DEFAULT_LANGUAGE EQ ( id | STRING)
+nouse
+    : DEFAULT_LANGUAGE EQ (id | STRING)
     | DEFAULT_FULLTEXT_LANGUAGE EQ ( id | STRING)
     | NESTED_TRIGGERS EQ ( OFF | ON)
     | TRANSFORM_NOISE_WORDS EQ ( OFF | ON)
@@ -3260,8 +3256,6 @@ windowFrameExtent: windowFrameBound | BETWEEN windowFrameBound AND windowFrameBo
 
 windowFrameBound: UNBOUNDED (PRECEDING | FOLLOWING) | INT (PRECEDING | FOLLOWING) | CURRENT ROW
     ;
-
-
 
 databaseFilestreamOption
     : LPAREN ((NON_TRANSACTED_ACCESS EQ ( OFF | READ_ONLY | FULL)) | ( DIRECTORY_NAME EQ STRING)) RPAREN
