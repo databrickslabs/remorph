@@ -1656,11 +1656,9 @@ outputDmlListElem: (expression | asterisk) asColumnAlias?
 
 createDatabase
     : CREATE DATABASE id (CONTAINMENT EQ ( NONE | PARTIAL))? (
-        ON (
-            (PRIMARY? databaseFileSpec ( COMMA databaseFileSpec)*)? (
-                id /* LOG */ ON databaseFileSpec (COMMA databaseFileSpec)*
-            )?
-        )
+        ON (PRIMARY? databaseFileSpec ( COMMA databaseFileSpec)*)? (
+            id /* LOG */ ON databaseFileSpec (COMMA databaseFileSpec)*
+        )?
     )? (COLLATE collationName = id)? (WITH createDatabaseOption (COMMA createDatabaseOption)*)?
     ;
 
