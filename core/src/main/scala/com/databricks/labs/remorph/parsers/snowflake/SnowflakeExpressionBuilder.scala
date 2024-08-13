@@ -311,7 +311,7 @@ class SnowflakeExpressionBuilder()
   }
 
   // see: https://docs.snowflake.com/en/sql-reference/functions-analytic#list-of-window-functions
-  private val SnowflakeRankRelatedWindowFunctions = Set(
+  private val rankRelatedWindowFunctions = Set(
     "CUME_DIST",
     "DENSE_RANK",
     "FIRST_VALUE",
@@ -332,7 +332,7 @@ class SnowflakeExpressionBuilder()
   private def snowflakeDefaultFrameSpec(windowFunction: ir.Expression): Option[ir.WindowFrame] = {
     val rankRelatedDefaultFrameSpec = ir.WindowFrame(ir.RowsFrame, ir.UnboundedPreceding, ir.UnboundedFollowing)
     windowFunction match {
-      case fn: ir.Fn if SnowflakeRankRelatedWindowFunctions.contains(fn.prettyName) => Some(rankRelatedDefaultFrameSpec)
+      case fn: ir.Fn if rankRelatedWindowFunctions.contains(fn.prettyName) => Some(rankRelatedDefaultFrameSpec)
       case _ => None
     }
   }
