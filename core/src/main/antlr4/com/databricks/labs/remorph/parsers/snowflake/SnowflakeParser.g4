@@ -149,7 +149,7 @@ otherCommand
     | scriptingCommand
     ;
 
-scriptingCommand: BANG set|STRING
+scriptingCommand: BANG set | STRING
     ;
 
 procStatement
