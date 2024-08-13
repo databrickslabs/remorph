@@ -64,6 +64,11 @@
       <artifactId>spark-core_${scala.binary.version}</artifactId>
       <version>${spark.version}</version>
     </dependency>
+    <dependency>
+      <groupId>org.codehaus.mojo</groupId>
+      <artifactId>exec-maven-plugin</artifactId>
+      <version>3.4.1</version>
+    </dependency>
   </dependencies>
   <build>
     <outputDirectory>target/scala-${scala.binary.version}/classes</outputDirectory>
@@ -113,8 +118,8 @@
           </execution>
         </executions>
         <configuration>
-          <visitor>true</visitor>
-          <listener>false</listener>
+          <visitor>false</visitor>
+          <listener>true</listener>
           <sourceDirectory>src/main/antlr4</sourceDirectory>
           <treatWarningsAsErrors>true</treatWarningsAsErrors>
           <includes>
