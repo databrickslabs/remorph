@@ -49,7 +49,7 @@ If you make changes to the ANTLR grammar, you should check the following things
      a shared rule that cuts down on the number of rules, that is generally a good thing.
 
 You must create tests at each stage for any syntax changes. IR generation tests, coverage tests, and
-transpilation tests are all required. Make sure there are tests cover all variants of the syntax you have
+transpilation tests are all required. Make sure there are tests covering all variants of the syntax you have
 added or changed. It is generally be a good idea to write the tests before changing the grammar. 
 
 ### Installing antlr-format
