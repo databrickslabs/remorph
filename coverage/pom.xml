@@ -1,5 +1,5 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+     xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>com.databricks.labs</groupId>
@@ -20,6 +20,8 @@
     <endComment>-- databricks sql:</endComment>
     <sourceDialect></sourceDialect>
     <extractor></extractor>
+    <databricks-connect.version>15.1.0</databricks-connect.version>
+    <databricks-sdk-java.version>0.27.1</databricks-sdk-java.version>
   </properties>
   <dependencies>
     <dependency>
@@ -64,12 +66,33 @@
     <dependency>
       <groupId>com.databricks</groupId>
       <artifactId>databricks-sdk-java</artifactId>
-      <version>0.21.0</version>
+      <version>${databricks-sdk-java.version}</version>
     </dependency>
     <dependency>
-      <groupId>org.apache.spark</groupId>
-      <artifactId>spark-core_${scala.binary.version}</artifactId>
-      <version>${spark.version}</version>
+      <groupId>com.fasterxml.jackson.module</groupId>
+      <artifactId>jackson-module-scala_${scala.binary.version}</artifactId>
+      <version>2.15.0</version>
+    </dependency>
+    <dependency>
+      <groupId>com.databricks</groupId>
+      <artifactId>databricks-connect</artifactId>
+      <version>${databricks-connect.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>net.snowflake</groupId>
+      <artifactId>snowflake-jdbc</artifactId>
+      <version>3.18.0</version>
+    </dependency>
+    <dependency>
+      <groupId>com.github.tototoshi</groupId>
+      <artifactId>scala-csv_${scala.binary.version}</artifactId>
+      <version>2.0.0</version>
+    </dependency>
+    <dependency>
+      <groupId>com.microsoft.sqlserver</groupId>
+      <artifactId>mssql-jdbc</artifactId>
+      <!-- TODO: perhaps we need to switch to jre8 -->
+      <version>12.8.0.jre11</version>
     </dependency>
   </dependencies>
   <build>
