@@ -1881,17 +1881,19 @@ updateStatisticsOptions: WITH updateStatisticsOption (COMMA updateStatisticsOpti
 updateStatisticsOption: RESAMPLE onPartitions? | optionList
     ;
 
-createTableDefault
-    : CREATE TABLE tableName LPAREN columnDefTableConstraints (COMMA? tableIndices)* COMMA? RPAREN (
-        LOCK simpleId
-    )? tableOptions* (ON id | DEFAULT | onPartitionOrFilegroup)? (TEXTIMAGE_ON id | DEFAULT)? SEMI?
+createTable
+    : CREATE TABLE tableName (
+        LPAREN columnDefTableConstraints (COMMA? tableIndices)* COMMA? RPAREN (LOCK simpleId)?
+    )? createTableAs? tableOptions* (ON id | DEFAULT | onPartitionOrFilegroup)? (
+        TEXTIMAGE_ON id
+        | DEFAULT
+    )? SEMI?
     ;
 
 createTableAs
-    : CREATE TABLE tableName (LPAREN columnNameList RPAREN)? tableOptions? AS selectStatementStandalone SEMI?
-    ;
-
-createTable: createTableDefault | createTableAs
+    : AS selectStatementStandalone       # ctas
+    | AS FILETABLE WITH lparenOptionList # ctasFiletable
+    | AS (NODE | EDGE)                   # ctasGraph
     ;
 
 tableIndices
