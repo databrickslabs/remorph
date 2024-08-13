@@ -3,4 +3,4 @@
 ALTER STREAM mystream SET COMMENT = 'New comment for stream';
 
 -- databricks sql:
--- ALTER STREAM mystream SET COMMENT = 'New comment for stream';
+-- snowsql command:ALTER STREAM mystream SET COMMENT = 'New comment for stream';
