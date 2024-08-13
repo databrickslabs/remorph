@@ -193,7 +193,7 @@ class ExpressionGeneratorTest
       ir.CallFunction(
         "COALESCE",
         Seq(ir.UnresolvedAttribute("a"), ir.UnresolvedAttribute("b"))) generates "COALESCE(a, b)"
-      ir.CallFunction("COLLECT_LIST", Seq(ir.UnresolvedAttribute("a"))) generates "COLLECT_LIST(a)"
+      ir.CallFunction("COLLECT_LIST", Seq(ir.UnresolvedAttribute("a"))) generates "ARRAY_AGG(a)"
       ir.CallFunction("COLLECT_SET", Seq(ir.UnresolvedAttribute("a"))) generates "COLLECT_SET(a)"
 
       ir.CallFunction("CONCAT", Seq(ir.UnresolvedAttribute("a"), ir.UnresolvedAttribute("b"))) generates "CONCAT(a, b)"
@@ -663,6 +663,14 @@ class ExpressionGeneratorTest
           ir.UnresolvedAttribute("a"),
           ir.UnresolvedAttribute("b"),
           ir.UnresolvedAttribute("c"))) generates "SPLIT(a, b, c)"
+
+      ir.CallFunction(
+        "SPLIT_PART",
+        Seq(
+          ir.UnresolvedAttribute("a"),
+          ir.UnresolvedAttribute("b"),
+          ir.UnresolvedAttribute("c"))) generates "SPLIT_PART(a, b, c)"
+
       ir.CallFunction("SQRT", Seq(ir.UnresolvedAttribute("a"))) generates "SQRT(a)"
 
       ir.CallFunction("STACK", Seq(ir.UnresolvedAttribute("a"), ir.UnresolvedAttribute("b"))) generates "STACK(a, b)"
@@ -706,6 +714,10 @@ class ExpressionGeneratorTest
       ir.CallFunction(
         "TO_JSON",
         Seq(ir.UnresolvedAttribute("a"), ir.UnresolvedAttribute("b"))) generates "TO_JSON(a, b)"
+
+      ir.CallFunction(
+        "TO_NUMBER",
+        Seq(ir.UnresolvedAttribute("a"), ir.UnresolvedAttribute("b"))) generates "TO_NUMBER(a, b)"
 
       ir.CallFunction(
         "TO_TIMESTAMP",
