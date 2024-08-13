@@ -1873,6 +1873,7 @@ createTable
 createTableAs
     : AS selectStatementStandalone       # ctas
     | AS FILETABLE WITH lparenOptionList # ctasFiletable
+    | AS (NODE | EDGE)                   # ctasGraph
     ;
 
 tableIndices
