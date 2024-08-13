@@ -20,7 +20,7 @@ class TSqlExpressionGeneratorTest
 
   "CHECKSUM_AGG" should {
     "transpile to MD5 function" in {
-      ir.CallFunction("CHECKSUM_AGG", Seq(ir.Id("col1"))) generates "MD5(CONCAT_WS(',', COLLECT_LIST(col1)))"
+      ir.CallFunction("CHECKSUM_AGG", Seq(ir.Id("col1"))) generates "MD5(CONCAT_WS(',', ARRAY_AGG(col1)))"
     }
   }
 

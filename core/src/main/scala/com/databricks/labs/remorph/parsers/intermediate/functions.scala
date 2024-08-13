@@ -12,12 +12,7 @@ case class CallFunction(function_name: String, arguments: Seq[Expression]) exten
   override def prettyName: String = function_name.toUpperCase(Locale.getDefault)
 }
 
-class CallMapper {
-
-  private def withNormalizedName(call: Fn): Fn = call match {
-    case CallFunction(name, args) => CallFunction(name.toUpperCase(), args)
-    case other => other
-  }
+class CallMapper extends IRHelpers {
 
   /** This function is supposed to be overridden by dialects */
   def convert(call: Fn): Expression = withNormalizedName(call) match {
@@ -34,7 +29,9 @@ class CallMapper {
     case CallFunction("ARRAY_DISTINCT", args) => ArrayDistinct(args.head)
     case CallFunction("ARRAY_EXCEPT", args) => ArrayExcept(args.head, args(1))
     case CallFunction("ARRAY_INTERSECT", args) => ArrayIntersect(args.head, args(1))
-    case CallFunction("ARRAY_JOIN", args) => ArrayJoin(args.head, args(1), args(2))
+    case CallFunction("ARRAY_JOIN", args) =>
+      val delim = if (args.size >= 3) Some(args(2)) else None
+      ArrayJoin(args.head, args(1), delim)
     case CallFunction("ARRAY_MAX", args) => ArrayMax(args.head)
     case CallFunction("ARRAY_MIN", args) => ArrayMin(args.head)
     case CallFunction("ARRAY_POSITION", args) => ArrayPosition(args.head, args(1))
@@ -65,7 +62,7 @@ class CallMapper {
     case CallFunction("CEIL", args) => Ceil(args.head)
     case CallFunction("CHAR", args) => Chr(args.head)
     case CallFunction("COALESCE", args) => Coalesce(args)
-    case CallFunction("COLLECT_LIST", args) => CollectList(args.head)
+    case CallFunction("COLLECT_LIST", args) => CollectList(args.head, args.tail.headOption)
     case CallFunction("COLLECT_SET", args) => CollectSet(args.head)
     case CallFunction("CONCAT", args) => Concat(args)
     case CallFunction("CONCAT_WS", args) => ConcatWs(args)
@@ -254,7 +251,10 @@ class CallMapper {
     case CallFunction("SOUNDEX", args) => SoundEx(args.head)
     case CallFunction("SPACE", args) => StringSpace(args.head)
     case CallFunction("SPARK_PARTITION_ID", _) => SparkPartitionID()
-    case CallFunction("SPLIT", args) => StringSplit(args.head, args(1), args(2))
+    case CallFunction("SPLIT", args) =>
+      val delim = if (args.size >= 3) Some(args(2)) else None
+      StringSplit(args.head, args(1), delim)
+    case CallFunction("SPLIT_PART", args) => StringSplitPart(args.head, args(1), args(2))
     case CallFunction("SQRT", args) => Sqrt(args.head)
     case CallFunction("STACK", args) => Stack(args)
     case CallFunction("STD", args) => StdSamp(args.head)
@@ -272,6 +272,7 @@ class CallMapper {
     case CallFunction("TO_CSV", args) => StructsToCsv(args.head, args(1))
     case CallFunction("TO_DATE", args) => ParseToDate(args.head, args(1))
     case CallFunction("TO_JSON", args) => StructsToJson(args.head, args(1))
+    case CallFunction("TO_NUMBER", args) => ToNumber(args.head, args(1))
     case CallFunction("TO_TIMESTAMP", args) => ParseToTimestamp(args.head, args(1))
     case CallFunction("TO_UNIX_TIMESTAMP", args) => ToUnixTimestamp(args.head, args(1))
     case CallFunction("TO_UTC_TIMESTAMP", args) => ToUTCTimestamp(args.head, args(1))
@@ -281,6 +282,7 @@ class CallMapper {
     case CallFunction("TRANSLATE", args) => StringTranslate(args.head, args(1), args(2))
     case CallFunction("TRIM", args) => StringTrim(args.head, args(1))
     case CallFunction("TRUNC", args) => TruncDate(args.head, args(1))
+    case CallFunction("TRY_TO_NUMBER", args) => TryToNumber(args.head, args(1))
     case CallFunction("TYPEOF", args) => TypeOf(args.head)
     case CallFunction("UCASE", args) => Upper(args.head)
     case CallFunction("UNBASE64", args) => UnBase64(args.head)
@@ -1300,10 +1302,19 @@ case class SparkPartitionID() extends LeafExpression with Fn {
  * split(str, regex, limit) - Splits `str` around occurrences that match `regex` and returns an array with a length of
  * at most `limit`
  */
-case class StringSplit(left: Expression, right: Expression, c: Expression) extends Expression with Fn {
+case class StringSplit(left: Expression, right: Expression, c: Option[Expression]) extends Expression with Fn {
   override def prettyName: String = "SPLIT"
-  override def children: Seq[Expression] = Seq(left, right, c)
+  override def children: Seq[Expression] = Seq(left, right) ++ c.toSeq
   override def dataType: DataType = UnresolvedType
+}
+
+/**
+ * split_part(str, delim, partNum) - Splits str around occurrences of delim and returns the partNum part.
+ */
+case class StringSplitPart(str: Expression, delim: Expression, partNum: Expression) extends Expression with Fn {
+  override def prettyName: String = "SPLIT_PART"
+  override def children: Seq[Expression] = Seq(str, delim, partNum)
+  override def dataType: DataType = StringType
 }
 
 /** sqrt(expr) - Returns the square root of `expr`. */
@@ -1624,9 +1635,11 @@ case class BoolAnd(left: Expression) extends Unary(left) with Fn {
 }
 
 /** collect_list(expr) - Collects and returns a list of non-unique elements. */
-case class CollectList(left: Expression) extends Unary(left) with Fn {
-  override def prettyName: String = "COLLECT_LIST"
+case class CollectList(expr: Expression, cond: Option[Expression] = None) extends Expression with Fn {
+  // COLLECT_LIST and ARRAY_AGG are synonyms, but ARRAY_AGG is used in the test examples
+  override def prettyName: String = "ARRAY_AGG"
   override def dataType: DataType = UnresolvedType
+  override def children: Seq[Expression] = Seq(expr) ++ cond.toSeq
 }
 
 /** collect_set(expr) - Collects and returns a set of unique elements. */
@@ -1837,9 +1850,9 @@ case class ArrayIntersect(left: Expression, right: Expression) extends Binary(le
  * array_join(array, delimiter[, nullReplacement]) - Concatenates the elements of the given array using the delimiter
  * and an optional string to replace nulls. If no value is set for nullReplacement, any null value is filtered.
  */
-case class ArrayJoin(left: Expression, right: Expression, c: Expression) extends Expression with Fn {
+case class ArrayJoin(left: Expression, right: Expression, c: Option[Expression]) extends Expression with Fn {
   override def prettyName: String = "ARRAY_JOIN"
-  override def children: Seq[Expression] = Seq(left, right, c)
+  override def children: Seq[Expression] = Seq(left, right) ++ c.toSeq
   override def dataType: DataType = UnresolvedType
 }
 
@@ -2428,5 +2441,22 @@ case class Rank(children: Seq[Expression]) extends Expression with Fn {
  */
 case class RowNumber() extends LeafExpression with Fn {
   override def prettyName: String = "ROW_NUMBER"
+  override def dataType: DataType = UnresolvedType
+}
+
+/**
+ * to_number(expr, fmt) - Returns expr cast to DECIMAL using formatting fmt
+ */
+case class ToNumber(expr: Expression, fmt: Expression) extends Binary(expr, fmt) with Fn {
+  override def prettyName: String = "TO_NUMBER"
+  override def dataType: DataType = UnresolvedType
+}
+
+/**
+ * try_to_number(expr, fmt) - Returns expr cast to DECIMAL using formatting fmt, or NULL if expr does not match the
+ * format.
+ */
+case class TryToNumber(expr: Expression, fmt: Expression) extends Binary(expr, fmt) with Fn {
+  override def prettyName: String = "TRY_TO_NUMBER"
   override def dataType: DataType = UnresolvedType
 }
