@@ -89,7 +89,10 @@ tokens that are used in the parser grammar but not defined in the lexer grammar,
 provides a few extra tools such as identifying unused rules, and providing a visual representation of trees
 etc.
 
-If you intended to make changes to the ANTLR defined syntax, please read teh READ.me under ./core before
+Please read the documentation for the plugin so that you can make the most of it and have it generate
+the lexer and parser in a temp directory to tell you about things like undefined tokens etc.
+
+If you intended to make changes to the ANTLR defined syntax, please read teh README.md under ./core before
 doing so. Changes to ANTLR grammars can have a big knock on effects on the rest of the codebase, and must
 be carefully reviewed and tested - all the way from parse to code generation. Such changes are generally
 not suited to beginners.
