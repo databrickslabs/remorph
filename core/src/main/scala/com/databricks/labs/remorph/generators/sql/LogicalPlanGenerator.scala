@@ -39,7 +39,7 @@ class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: 
     } else {
       ""
     }
-    s"SELECT ${proj.expressions.map(expr.generate(ctx, _)).mkString(",")}$fromClause"
+    s"SELECT ${proj.expressions.map(expr.generate(ctx, _)).mkString(", ")}$fromClause"
   }
 
   private def orderBy(ctx: GeneratorContext, sort: ir.Sort): String = {
