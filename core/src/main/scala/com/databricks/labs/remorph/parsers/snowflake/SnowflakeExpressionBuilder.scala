@@ -301,12 +301,40 @@ class SnowflakeExpressionBuilder()
       Option(ctx.windowOrderingAndFrame())
         .flatMap(c => Option(c.rowOrRangeClause()))
         .map(buildWindowFrame)
+        .orElse(snowflakeDefaultFrameSpec(windowFunction))
 
     ir.Window(
       window_function = windowFunction,
       partition_spec = partitionSpec,
       sort_order = sortOrder,
       frame_spec = frameSpec)
+  }
+
+  // see: https://docs.snowflake.com/en/sql-reference/functions-analytic#list-of-window-functions
+  private val rankRelatedWindowFunctions = Set(
+    "CUME_DIST",
+    "DENSE_RANK",
+    "FIRST_VALUE",
+    "LAG",
+    "LAST_VALUE",
+    "LEAD",
+    "NTH_VALUE",
+    "NTILE",
+    "PERCENT_RANK",
+    "RANK",
+    "ROW_NUMBER")
+
+  /**
+   * For rank-related window functions, snowflake's default frame deviate from ANSI standard. So in such case, we must
+   * make the frame specification explicit. see:
+   * https://docs.snowflake.com/en/sql-reference/functions-analytic#usage-notes-for-window-frames
+   */
+  private def snowflakeDefaultFrameSpec(windowFunction: ir.Expression): Option[ir.WindowFrame] = {
+    val rankRelatedDefaultFrameSpec = ir.WindowFrame(ir.RowsFrame, ir.UnboundedPreceding, ir.UnboundedFollowing)
+    windowFunction match {
+      case fn: ir.Fn if rankRelatedWindowFunctions.contains(fn.prettyName) => Some(rankRelatedDefaultFrameSpec)
+      case _ => None
+    }
   }
 
   private[snowflake] def buildSortOrder(ctx: OrderByClauseContext): Seq[ir.SortOrder] = {
