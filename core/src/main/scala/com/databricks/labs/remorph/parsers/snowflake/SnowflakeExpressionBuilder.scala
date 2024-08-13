@@ -138,6 +138,10 @@ class SnowflakeExpressionBuilder()
     case _ => ir.Literal(decimal = Some(ir.Decimal(decimal, None, None)))
   }
 
+  override def visitExprPrecedence(ctx: ExprPrecedenceContext): ir.Expression = {
+    ctx.expr().accept(this)
+  }
+
   override def visitExprNextval(ctx: ExprNextvalContext): ir.Expression = {
     NextValue(ctx.objectName().getText)
   }
@@ -393,10 +397,10 @@ class SnowflakeExpressionBuilder()
   private def buildPredicatePartial(ctx: PredicatePartialContext, expression: ir.Expression): ir.Expression = {
     val predicate = ctx match {
       case c if c.IN() != null && c.subquery() != null =>
-        IsInRelation(c.subquery().accept(new SnowflakeRelationBuilder), expression)
+        ir.In(expression, Seq(ir.ScalarSubquery(c.subquery().accept(new SnowflakeRelationBuilder))))
       case c if c.IN() != null && c.exprList() != null =>
         val collection = visitMany(c.exprList().expr())
-        IsInCollection(collection, expression)
+        ir.In(expression, collection)
       case c if c.BETWEEN() != null =>
         val lowerBound = c.expr(0).accept(this)
         val upperBound = c.expr(1).accept(this)

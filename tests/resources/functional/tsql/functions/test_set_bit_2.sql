@@ -6,4 +6,4 @@
 SELECT SET_BIT(42, 7, 0);
 
 -- databricks sql:
-SELECT SETBIT(42, 7, 0);
+SELECT 42 & -1 ^ SHIFTLEFT(1, 7) | SHIFTRIGHT(0, 7);

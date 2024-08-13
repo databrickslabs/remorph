@@ -10,7 +10,12 @@ class SnowflakeCallMapper extends CallMapper {
         DateAdd(args.head, args(1))
       case CallFunction("REGEXP_LIKE", args) =>
         RLike(args.head, args(1))
+
       case x: CallFunction => super.convert(x)
+
+      // As well as CallFunctions, we can receive concrete functions, which are already resolved,
+      // and don't need to be converted
+      case x: Fn => x
     }
   }
 }

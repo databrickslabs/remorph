@@ -2,6 +2,7 @@ package com.databricks.labs.remorph.parsers.snowflake
 
 import com.databricks.labs.remorph.parsers.intermediate._
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser.{ComparisonOperatorContext, LiteralContext}
+import com.databricks.labs.remorph.parsers.{intermediate => ir}
 import org.mockito.Mockito._
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -48,6 +49,103 @@ class SnowflakeExpressionBuilderSpec
         "\"My Table\".x",
         _.columnName(),
         Column(Some(ObjectReference(Id("My Table", caseSensitive = true))), Id("x")))
+    }
+
+    "translate simple numeric binary expressions" in {
+      exampleExpr("1 + 2", _.expr(), ir.Add(ir.Literal(short = Some(1)), ir.Literal(short = Some(2))))
+      exampleExpr("1 +2", _.expr(), ir.Add(ir.Literal(short = Some(1)), ir.Literal(short = Some(2))))
+      exampleExpr("1 - 2", _.expr(), ir.Subtract(ir.Literal(short = Some(1)), ir.Literal(short = Some(2))))
+      exampleExpr("1 -2", _.expr(), ir.Subtract(ir.Literal(short = Some(1)), ir.Literal(short = Some(2))))
+      exampleExpr("1 * 2", _.expr(), ir.Multiply(ir.Literal(short = Some(1)), ir.Literal(short = Some(2))))
+      exampleExpr("1 / 2", _.expr(), ir.Divide(ir.Literal(short = Some(1)), ir.Literal(short = Some(2))))
+      exampleExpr("1 % 2", _.expr(), ir.Mod(ir.Literal(short = Some(1)), ir.Literal(short = Some(2))))
+      exampleExpr(
+        "'A' || 'B'",
+        _.expr(),
+        ir.Concat(Seq(ir.Literal(string = Some("A")), ir.Literal(string = Some("B")))))
+    }
+
+    "translate complex binary expressions" in {
+      exampleExpr("a + b * 2", _.expr(), ir.Add(Id("a"), ir.Multiply(Id("b"), ir.Literal(short = Some(2)))))
+      exampleExpr("(a + b) * 2", _.expr(), ir.Multiply(ir.Add(Id("a"), Id("b")), ir.Literal(short = Some(2))))
+      exampleExpr("a + b * 2", _.expr(), ir.Add(Id("a"), ir.Multiply(Id("b"), ir.Literal(short = Some(2)))))
+      exampleExpr("(a + b) * 2", _.expr(), ir.Multiply(ir.Add(Id("a"), Id("b")), ir.Literal(short = Some(2))))
+      exampleExpr(
+        "a % 3 + b * 2 - c / 5",
+        _.expr(),
+        ir.Subtract(
+          ir.Add(ir.Mod(Id("a"), ir.Literal(short = Some(3))), ir.Multiply(Id("b"), ir.Literal(short = Some(2)))),
+          ir.Divide(Id("c"), ir.Literal(short = Some(5)))))
+      exampleExpr(query = "a || b || c", _.expr(), ir.Concat(Seq(ir.Concat(Seq(Id("a"), Id("b"))), Id("c"))))
+    }
+
+    "correctly apply operator precedence and associativity" in {
+      exampleExpr(
+        "1 + -++-2",
+        _.expr(),
+        ir.Add(ir.Literal(short = Some(1)), ir.UMinus(ir.UPlus(ir.UPlus(ir.UMinus(ir.Literal(short = Some(2))))))))
+      exampleExpr(
+        "1 + -2 * 3",
+        _.expr(),
+        ir.Add(
+          ir.Literal(short = Some(1)),
+          ir.Multiply(ir.UMinus(ir.Literal(short = Some(2))), ir.Literal(short = Some(3)))))
+      exampleExpr(
+        "1 + -2 * 3 + 7 || 'leeds1' || 'leeds2' || 'leeds3'",
+        _.expr(),
+        ir.Concat(
+          Seq(
+            ir.Concat(Seq(
+              ir.Concat(Seq(
+                ir.Add(
+                  ir.Add(
+                    ir.Literal(short = Some(1)),
+                    ir.Multiply(ir.UMinus(ir.Literal(short = Some(2))), ir.Literal(short = Some(3)))),
+                  ir.Literal(short = Some(7))),
+                ir.Literal(string = Some("leeds1")))),
+              ir.Literal(string = Some("leeds2")))),
+            ir.Literal(string = Some("leeds3")))))
+    }
+
+    "correctly respect explicit precedence with parentheses" in {
+      exampleExpr(
+        "(1 + 2) * 3",
+        _.expr(),
+        ir.Multiply(ir.Add(ir.Literal(short = Some(1)), ir.Literal(short = Some(2))), ir.Literal(short = Some(3))))
+      exampleExpr(
+        "1 + (2 * 3)",
+        _.expr(),
+        ir.Add(ir.Literal(short = Some(1)), ir.Multiply(ir.Literal(short = Some(2)), ir.Literal(short = Some(3)))))
+      exampleExpr(
+        "(1 + 2) * (3 + 4)",
+        _.expr(),
+        ir.Multiply(
+          ir.Add(ir.Literal(short = Some(1)), ir.Literal(short = Some(2))),
+          ir.Add(ir.Literal(short = Some(3)), ir.Literal(short = Some(4)))))
+      exampleExpr(
+        "1 + (2 * 3) + 4",
+        _.expr(),
+        ir.Add(
+          ir.Add(ir.Literal(short = Some(1)), ir.Multiply(ir.Literal(short = Some(2)), ir.Literal(short = Some(3)))),
+          ir.Literal(short = Some(4))))
+      exampleExpr(
+        "1 + (2 * 3 + 4)",
+        _.expr(),
+        ir.Add(
+          ir.Literal(short = Some(1)),
+          ir.Add(ir.Multiply(ir.Literal(short = Some(2)), ir.Literal(short = Some(3))), ir.Literal(short = Some(4)))))
+      exampleExpr(
+        "1 + (2 * (3 + 4))",
+        _.expr(),
+        ir.Add(
+          ir.Literal(short = Some(1)),
+          ir.Multiply(ir.Literal(short = Some(2)), ir.Add(ir.Literal(short = Some(3)), ir.Literal(short = Some(4))))))
+      exampleExpr(
+        "(1 + (2 * (3 + 4)))",
+        _.expr(),
+        ir.Add(
+          ir.Literal(short = Some(1)),
+          ir.Multiply(ir.Literal(short = Some(2)), ir.Add(ir.Literal(short = Some(3)), ir.Literal(short = Some(4))))))
     }
 
     "translate functions with special syntax" in {
