@@ -41,7 +41,7 @@ snowflakeFile: batch? EOF
 batch: sqlCommand (SEMI* sqlCommand)* SEMI*
     ;
 
-sqlCommand: ddlCommand | dmlCommand | showCommand | useCommand | describeCommand | otherCommand | unresolvedCommand
+sqlCommand: ddlCommand | dmlCommand | showCommand | useCommand | describeCommand | otherCommand
     ;
 
 ddlCommand: alterCommand | createCommand | dropCommand | undropCommand
@@ -146,9 +146,10 @@ otherCommand
     | beginTxn
     | declareCommand
     | let
+    | scriptingCommand
     ;
 
-unresolvedCommand: BANG STRING
+scriptingCommand: BANG set|STRING
     ;
 
 procStatement
