@@ -326,8 +326,8 @@ class SnowflakeExpressionBuilder()
 
   /**
    * For rank-related window functions, snowflake's default frame deviate from ANSI standard. So in such case, we must
-   * make the frame specification explicit.
-   * see: https://docs.snowflake.com/en/sql-reference/functions-analytic#usage-notes-for-window-frames
+   * make the frame specification explicit. see:
+   * https://docs.snowflake.com/en/sql-reference/functions-analytic#usage-notes-for-window-frames
    */
   private def snowflakeDefaultFrameSpec(windowFunction: ir.Expression): Option[ir.WindowFrame] = {
     val rankRelatedDefaultFrameSpec = ir.WindowFrame(ir.RowsFrame, ir.UnboundedPreceding, ir.UnboundedFollowing)
