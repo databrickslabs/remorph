@@ -18,7 +18,7 @@ fmt-python:
 	hatch run fmt
 
 fmt-scala:
-	mvn -f pom.xml scalafmt:format
+	mvn validate -Pformat
 
 test: test-python test-scala
 

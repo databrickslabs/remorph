@@ -27,7 +27,7 @@ class CommentBasedQueryExtractor(startComment: String, endComment: String) exten
     (startIndexOpt, endIndexOpt) match {
       case (Some(startIndex), Some(endIndex)) =>
         val inputQuery = indexedLines.map(_._1).slice(startIndex + 1, endIndex).mkString("\n")
-        val expectedTranslation = indexedLines.map(_._1).drop(endIndex + 1).mkString("\n")
+        val expectedTranslation = indexedLines.map(_._1).drop(endIndex + 1).mkString(" ").replaceAll("\\s+", " ").trim
         Some(ExampleQuery(inputQuery, Some(expectedTranslation)))
       case _ => None
     }
