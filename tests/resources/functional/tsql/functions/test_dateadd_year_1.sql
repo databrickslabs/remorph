@@ -8,4 +8,4 @@
 SELECT DATEADD(YEAR, 2, col1) AS add_years_col1 FROM tabl;
 
 -- databricks sql:
-SELECT ADD_MONTHS(col1, 2*12) AS add_years_col1 FROM tabl;
+SELECT ADD_MONTHS(col1, 2 * 12) AS add_years_col1 FROM tabl;

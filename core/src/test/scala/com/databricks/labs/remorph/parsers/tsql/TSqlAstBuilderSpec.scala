@@ -410,7 +410,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
       expectedAst = Batch(
         Seq(
           WithCTE(
-            Seq(CTEDefinition("cte", List.empty, Project(namedTable("t"), Seq(Star(None))))),
+            Seq(SubqueryAlias(Project(namedTable("t"), Seq(Star(None))), Id("cte"), List.empty)),
             Project(namedTable("cte"), Seq(Star(None)))))))
 
     example(
@@ -431,24 +431,24 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
       expectedAst = Batch(
         Seq(WithCTE(
           Seq(
-            CTEDefinition(
-              "cteTable1",
-              Seq(simplyNamedColumn("col1"), simplyNamedColumn("col2"), simplyNamedColumn("col3count")),
+            SubqueryAlias(
               Project(
                 namedTable("Table1"),
                 Seq(
                   simplyNamedColumn("col1"),
                   simplyNamedColumn("fred"),
-                  Alias(CallFunction("COUNT", Seq(simplyNamedColumn("OrderDate"))), Seq(Id("counter")), None)))),
-            CTEDefinition(
-              "cteTable2",
-              Seq(simplyNamedColumn("colx"), simplyNamedColumn("coly"), simplyNamedColumn("colxcount")),
+                  Alias(CallFunction("COUNT", Seq(simplyNamedColumn("OrderDate"))), Seq(Id("counter")), None))),
+              Id("cteTable1"),
+              Seq(Id("col1"), Id("col2"), Id("col3count"))),
+            SubqueryAlias(
               Project(
                 namedTable("Table2"),
                 Seq(
                   simplyNamedColumn("col1"),
                   simplyNamedColumn("fred"),
-                  Alias(CallFunction("COUNT", Seq(simplyNamedColumn("OrderDate"))), Seq(Id("counter")), None))))),
+                  Alias(CallFunction("COUNT", Seq(simplyNamedColumn("OrderDate"))), Seq(Id("counter")), None))),
+              Id("cteTable2"),
+              Seq(Id("colx"), Id("coly"), Id("colxcount")))),
           Project(
             namedTable("cteTable"),
             Seq(
@@ -774,7 +774,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
       query = "WITH wtab AS (SELECT * FROM t) INSERT INTO t (a, b) select * from wtab",
       expectedAst = Batch(
         Seq(WithCTE(
-          Seq(CTEDefinition("wtab", List.empty, Project(namedTable("t"), Seq(Star(None))))),
+          Seq(SubqueryAlias(Project(namedTable("t"), Seq(Star(None))), Id("wtab"), List.empty)),
           InsertIntoTable(
             namedTable("t"),
             Some(Seq(Id("a"), Id("b"))),
@@ -990,15 +990,15 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
             |   WHEN NOT MATCHED BY SOURCE THEN INSERT (a, b) VALUES (s.a, s.b)""".stripMargin,
       expectedAst = Batch(
         Seq(WithCTE(
-          Seq(CTEDefinition(
-            "s",
-            Seq(simplyNamedColumn("a"), simplyNamedColumn("b"), simplyNamedColumn("col3count")),
+          Seq(SubqueryAlias(
             Project(
               namedTable("Table1"),
               Seq(
                 simplyNamedColumn("col1"),
                 simplyNamedColumn("fred"),
-                Alias(CallFunction("COUNT", Seq(simplyNamedColumn("OrderDate"))), Seq(Id("counter")), None))))),
+                Alias(CallFunction("COUNT", Seq(simplyNamedColumn("OrderDate"))), Seq(Id("counter")), None))),
+            Id("s"),
+            Seq(Id("a"), Id("b"), Id("col3count")))),
           MergeIntoTable(
             TableWithHints(
               NamedTable("t", Map(), is_streaming = false),

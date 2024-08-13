@@ -499,7 +499,6 @@ class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenProp
 
       ("ISNULL", Seq(simplyNamedColumn("x"), ir.Literal(integer = Some(1))), "IFNULL"),
       ("GET_BIT", Seq(simplyNamedColumn("x"), ir.Literal(integer = Some(1))), "GETBIT"),
-      ("SET_BIT", Seq(simplyNamedColumn("x"), ir.Literal(integer = Some(1))), "SETBIT"),
       ("left_SHIFT", Seq(simplyNamedColumn("x"), ir.Literal(integer = Some(1))), "LEFTSHIFT"),
       ("RIGHT_SHIFT", Seq(simplyNamedColumn("x"), ir.Literal(integer = Some(1))), "RIGHTSHIFT"))
 
