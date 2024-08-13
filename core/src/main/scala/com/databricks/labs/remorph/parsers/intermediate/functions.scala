@@ -1635,7 +1635,7 @@ case class BoolAnd(left: Expression) extends Unary(left) with Fn {
 }
 
 /** collect_list(expr) - Collects and returns a list of non-unique elements. */
-case class CollectList(expr: Expression, cond: Option[Expression]) extends Expression with Fn {
+case class CollectList(expr: Expression, cond: Option[Expression] = None) extends Expression with Fn {
   // COLLECT_LIST and ARRAY_AGG are synonyms, but ARRAY_AGG is used in the test examples
   override def prettyName: String = "ARRAY_AGG"
   override def dataType: DataType = UnresolvedType

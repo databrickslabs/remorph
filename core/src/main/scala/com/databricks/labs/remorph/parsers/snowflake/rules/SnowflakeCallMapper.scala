@@ -36,11 +36,11 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
       case Seq(_, StringLiteral(path)) => ir.Literal("$." + path)
       case Seq(_, id: ir.Id) => ir.Concat(Seq(ir.Literal("$."), id))
 
-      case a => throw TranspileException(s"Unsupported arguments to GET_JSON_OBJECT: ${a.mkString("(", ", ", ")")}")
-
       // As well as CallFunctions, we can receive concrete functions, which are already resolved,
       // and don't need to be converted
-      case x: Fn => x
+      case x: ir.Fn => x
+
+      case a => throw TranspileException(s"Unsupported arguments to GET_JSON_OBJECT: ${a.mkString("(", ", ", ")")}")
     }
     ir.GetJsonObject(args.head, translatedFmt)
   }
