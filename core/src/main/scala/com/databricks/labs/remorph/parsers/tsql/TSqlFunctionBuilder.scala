@@ -71,7 +71,6 @@ class TSqlFunctionBuilder extends FunctionBuilder with StringConverter {
     irName.toUpperCase() match {
       case "ISNULL" => ir.CallFunction(convertString(irName, "IFNULL"), args)
       case "GET_BIT" => ir.CallFunction(convertString(irName, "GETBIT"), args)
-      case "SET_BIT" => ir.CallFunction(convertString(irName, "SETBIT"), args)
       case "LEFT_SHIFT" => ir.CallFunction(convertString(irName, "LEFTSHIFT"), args)
       case "RIGHT_SHIFT" => ir.CallFunction(convertString(irName, "RIGHTSHIFT"), args)
       case _ => ir.CallFunction(irName, args)

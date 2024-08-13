@@ -48,7 +48,7 @@ jobs:
           codecov_yml_path: codecov.yml
           token: ${{ secrets.CODECOV_TOKEN }}
 
-  fmt:
+  fmt-python:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -65,7 +65,36 @@ jobs:
         run: pip install hatch==$HATCH_VERSION
 
       - name: Reformat code
-        run: make fmt
+        run: make fmt-python
+
+      - name: Fail on differences
+        run: |
+          # Exit with status code 1 if there are differences (i.e. unformatted files)
+          git diff --exit-code
+
+  fmt-core:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 11
+        uses: actions/setup-java@v4
+        with:
+          distribution: corretto
+          java-version: 11
+
+      # GitHub Action team seems not to have cycles to make the cache work properly, hence this hack
+      # See https://github.com/actions/setup-java/issues/255
+      # See https://github.com/actions/setup-java/issues/577
+      - name: Cache Maven
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2
+          key: ${{ github.job }}-${{ hashFiles('**/pom.xml') }}
+
+      - name: Reformat code
+        run: make fmt-scala
 
       - name: Fail on differences
         run: |
@@ -103,7 +132,15 @@ jobs:
         with:
           distribution: corretto
           java-version: 11
-          cache: 'maven'
+
+      # GitHub Action team seems not to have cycles to make the cache work properly, hence this hack.
+      # See https://github.com/actions/setup-java/issues/255
+      # See https://github.com/actions/setup-java/issues/577
+      - name: Cache Maven
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2
+          key: ${{ github.job }}-${{ hashFiles('**/pom.xml') }}
 
       - name: Run Unit Tests with Maven
         run: mvn --update-snapshots -B install scoverage:report -pl "!com.databricks.labs:remorph-coverage" --file pom.xml --fail-at-end
@@ -133,7 +170,15 @@ jobs:
         with:
           distribution: corretto
           java-version: 11
-          cache: 'maven'
+
+      # GitHub Action team seems not to have cycles to make the cache work properly, hence this hack.
+      # See https://github.com/actions/setup-java/issues/255
+      # See https://github.com/actions/setup-java/issues/577
+      - name: Cache Maven
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2
+          key: ${{ github.job }}-${{ hashFiles('**/pom.xml') }}
 
       - name: Download remorph-core-jars
         uses: actions/download-artifact@v4
@@ -197,7 +242,15 @@ jobs:
         with:
           distribution: corretto
           java-version: 11
-          cache: 'maven'
+
+      # GitHub Action team seems not to have cycles to make the cache work properly, hence this hack.
+      # See https://github.com/actions/setup-java/issues/255
+      # See https://github.com/actions/setup-java/issues/577
+      - name: Cache Maven
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2
+          key: ${{ github.job }}-${{ hashFiles('**/pom.xml') }}
 
       - name: Create dummy test file
         run: |

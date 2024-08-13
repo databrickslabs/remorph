@@ -3105,7 +3105,8 @@ exprList: expr (COMMA expr)*
     ;
 
 expr
-    : objectName DOT NEXTVAL                    # exprNextval
+    : L_PAREN expr R_PAREN                      # exprPrecedence
+    | objectName DOT NEXTVAL                    # exprNextval
     | expr DOT expr                             # exprDot
     | expr COLON expr                           # exprColon
     | expr COLLATE string                       # exprCollate
@@ -3123,15 +3124,10 @@ expr
     | castExpr                                  # exprCast
     | expr COLON_COLON dataType                 # exprAscribe
     | functionCall                              # exprFuncCall
-    | L_PAREN subquery R_PAREN                  # exprSubquery
     | expr predicatePartial                     # exprPredicate
     | DISTINCT expr                             # exprDistinct
-    //Should be latest rule as it's nearly a catch all
-    | primitiveExpression # exprPrimitive
-    | parameterExpression # exprParameter
-    ;
-
-subQueryExpr: L_PAREN subquery R_PAREN
+    | L_PAREN subquery R_PAREN                  # exprSubquery
+    | primitiveExpression                       # exprPrimitive
     ;
 
 withinGroup: WITHIN GROUP L_PAREN orderByClause R_PAREN
@@ -3206,10 +3202,7 @@ primitiveExpression
     | id LSB string RSB # primObjectAccess
     | id                # primExprColumn
     | literal           # primExprLiteral
-    | COLON id          # primVariable
-    ;
-
-parameterExpression: COLON id
+    | COLON id          # primVariable // TODO: This needs to move to main expression as expression COLON expression  when JSON is implemented
     ;
 
 overClause: OVER L_PAREN (PARTITION BY expr (COMMA expr)*)? windowOrderingAndFrame? R_PAREN
@@ -3302,7 +3295,7 @@ withExpression: WITH commonTableExpression (COMMA commonTableExpression)*
     ;
 
 commonTableExpression
-    : id (L_PAREN columnList R_PAREN)? AS L_PAREN selectStatement setOperators* R_PAREN
+    : tableName = id (L_PAREN columns += id (COMMA columns += id)* R_PAREN)? AS L_PAREN selectStatement setOperators* R_PAREN
     ;
 
 selectStatement

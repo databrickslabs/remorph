@@ -1,4 +1,4 @@
-# Reconcile Config
+# Aggregates Reconcile Config
 
 Consider the below tables that we want to reconcile:
 
@@ -7,7 +7,9 @@ Consider the below tables that we want to reconcile:
 | source   | source_catalog | source_schema | product_prod | p_id INT,<br>p_name STRING,<br>price NUMBER,<br>discount DECIMAL(5,3),<br>offer DOUBLE,<br>creation_date DATE<br>comment STRING<br>             | p_id        |
 | target   | target_catalog | target_schema | product      | product_id INT,<br>product_name STRING,<br>price NUMBER,<br>discount DECIMAL(5,3),<br>offer DOUBLE,<br>creation_date DATE<br>comment STRING<br> | product_id  |
 
-## Run with Drop,Join,Transformation,ColumnThresholds,Filter,JDBC ReaderOptions configs
+## Aggregates-Reconcile Run with Join, Column Mappings, Transformation, Filter and JDBC ReaderOptions configs
+
+> **Note:** Even though the user provides the `select_columns` and `drop_columns`, those are not considered.
 
 
 ```json
@@ -18,6 +20,39 @@ Consider the below tables that we want to reconcile:
   "target_schema": "target_schema",
   "tables": [
     {
+      "aggregates": [{
+        "type": "MIN",
+        "agg_columns": ["discount"],
+        "group_by_columns": ["p_id"]
+      },
+        {
+          "type": "AVG",
+          "agg_columns": ["discount"],
+          "group_by_columns": ["p_id"]
+        },
+        {
+          "type": "MAX",
+          "agg_columns": ["p_id"],
+          "group_by_columns": ["creation_date"]
+        },
+        {
+          "type": "MAX",
+          "agg_columns": ["p_name"]
+        },
+        {
+          "type": "SUM",
+          "agg_columns": ["p_id"]
+        },
+        {
+          "type": "MAX",
+          "agg_columns": ["creation_date"]
+        },
+        {
+          "type": "MAX",
+          "agg_columns": ["p_id"],
+          "group_by_columns": ["creation_date"]
+        }
+      ],
       "source_name": "product_prod",
       "target_name": "product",
       "jdbc_reader_options": {
