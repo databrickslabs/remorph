@@ -19,14 +19,38 @@ Changing the ANTLR grammars is a specialized task, and only a few team members h
 Do not attempt to change the grammars unless you have been given explicit permission to do so. 
 
 It is unfortunately, easy to add parser rules without realizing the full implications of the change, 
-and this can lead to performance problems. Performance problems usually come from the fact that ANTLR will manage 
-to make a working parser out of almost any input specification. However, the parser may be very slow, 
+and this can lead to performance problems, incorrect IR and incorrect code gen.
+Performance problems usually come from the fact that ANTLR will manage to make a working parser 
+out of almost any input specification. However, the resulting parser may then be very slow, 
 or may not be able to handle certain edge cases.
 
-After a grammar change is made, the .g4 files must be reformatted to stay in line with the guidelines. We use (for now
-at least) the [antlr-format](https://github.com/mike-lischke/antlr-format) tool to do this. The tool was written
-in typescript, so it does not easily run as a maven task. For the moment, please run it manually on the .g4 files
-in each of the dialects we support under `src/main/antlr4/../parsers`
+After a grammar change is made, the .g4 files must be reformatted to stay in line with the guidelines. 
+We use (for now at least) the [antlr-format](https://github.com/mike-lischke/antlr-format) tool to do this. The tool is run as part of the 
+maven build process, if you are using the 'format' maven profile.
+
+## Checking ANTLR changes
+
+If you make changes to the ANTLR grammar, you should check the following things 
+(this is a good order to check them in):
+
+ - Have you defined any new TOKENS used in the PARSER?
+   - If so, did you define them in the LEXER?
+ - Have you eliminated the use of any tokens (this is generally a good thing - such as replacing 
+   a long list of option keywords with an id rule, which is then checked later in the process)?
+   - If so, have you removed them from the lexer?
+ - Have you added any new rules? If so:
+   - have you checked that you have not duplicated some syntactic structure that is already defined
+     and could be reused? 
+   - have you checked that they are used in the parser (the IntelliJ plugin will highlight unused rules)?
+ - Have you orphaned any rules? If so:
+   - did you mean to do so? 
+   - have you removed them (the IntelliJ plugin will highlight unused rules)?
+   - are you sure that removing them is the right thing to do? If you can create
+     a shared rule that cuts down on the number of rules, that is generally a good thing.
+
+You must create tests at each stage for any syntax changes. IR generation tests, coverage tests, and
+transpilation tests are all required. Make sure there are tests cover all variants of the syntax you have
+added or changed. It is generally be a good idea to write the tests before changing the grammar. 
 
 ### Installing antlr-format
 
@@ -57,11 +81,14 @@ formatting 2 file(s)...
 done [82 ms]
 ```
 
+Note that the formatting configuration is contained in the .g4 files themselves, so there is no need to 
+provide a configuration file. Please do not change the formatting rules.
+
 ### Caveat
 
 Some of the grammar definitions (`src/main/antlr4/com/databricks/labs/remorph/parsers/<dialect>/<dialect>Parser.g4`)
 may still be works-in-progress and, as such, may contain rules that are either incorrect or simply 
-_get in the way_ of implementing the Snowflake->IR translation.
+_get in the way_ of implementing the <dialect> -> IR translation.
 
 When stumbling upon such a case, one should:
 - materialize the problem in a (failing) test in `<Dialect><something>BuilderSpec`, flagged as `ignored` until the problem is solved
