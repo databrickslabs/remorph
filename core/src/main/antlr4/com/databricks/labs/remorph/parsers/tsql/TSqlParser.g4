@@ -1655,11 +1655,31 @@ outputDmlListElem: (expression | asterisk) asColumnAlias?
     ;
 
 createDatabase
-    : CREATE DATABASE (database = id) (CONTAINMENT EQ ( NONE | PARTIAL))? (
-        ON PRIMARY? databaseFileSpec ( COMMA databaseFileSpec)*
-    )? (id /* LOG */ ON databaseFileSpec (COMMA databaseFileSpec)*)? (COLLATE collationName = id)? (
-        WITH createDatabaseOption (COMMA createDatabaseOption)*
-    )?
+    : CREATE DATABASE id (CONTAINMENT EQ ( NONE | PARTIAL))? (
+        ON (PRIMARY? databaseFileSpec ( COMMA databaseFileSpec)*)? (
+            id /* LOG */ ON databaseFileSpec (COMMA databaseFileSpec)*
+        )?
+    )? (COLLATE collationName = id)? (WITH createDatabaseOption (COMMA createDatabaseOption)*)?
+    ;
+
+createDatabaseScopedCredential
+    : CREATE DATABASE SCOPED CREDENTIAL id WITH IDENTITY EQ STRING (SECRET EQ STRING)?
+    ;
+
+createDatabaseOption
+    : FILESTREAM (databaseFilestreamOption (COMMA databaseFilestreamOption)*)
+    | genericOption
+    ;
+
+// TODO: Remove this after verifying translation options for Datrabricks SQL
+nouse
+    : DEFAULT_LANGUAGE EQ (id | STRING)
+    | DEFAULT_FULLTEXT_LANGUAGE EQ ( id | STRING)
+    | NESTED_TRIGGERS EQ ( OFF | ON)
+    | TRANSFORM_NOISE_WORDS EQ ( OFF | ON)
+    | TWO_DIGIT_YEAR_CUTOFF EQ INT
+    | DB_CHAINING ( OFF | ON)
+    | TRUSTWORTHY ( OFF | ON)
     ;
 
 createIndex
@@ -1861,17 +1881,19 @@ updateStatisticsOptions: WITH updateStatisticsOption (COMMA updateStatisticsOpti
 updateStatisticsOption: RESAMPLE onPartitions? | optionList
     ;
 
-createTableDefault
-    : CREATE TABLE tableName LPAREN columnDefTableConstraints (COMMA? tableIndices)* COMMA? RPAREN (
-        LOCK simpleId
-    )? tableOptions* (ON id | DEFAULT | onPartitionOrFilegroup)? (TEXTIMAGE_ON id | DEFAULT)? SEMI?
+createTable
+    : CREATE TABLE tableName (
+        LPAREN columnDefTableConstraints (COMMA? tableIndices)* COMMA? RPAREN (LOCK simpleId)?
+    )? createTableAs? tableOptions* (ON id | DEFAULT | onPartitionOrFilegroup)? (
+        TEXTIMAGE_ON id
+        | DEFAULT
+    )? SEMI?
     ;
 
 createTableAs
-    : CREATE TABLE tableName (LPAREN columnNameList RPAREN)? tableOptions? AS selectStatementStandalone SEMI?
-    ;
-
-createTable: createTableDefault | createTableAs
+    : AS selectStatementStandalone       # ctas
+    | AS FILETABLE WITH lparenOptionList # ctasFiletable
+    | AS (NODE | EDGE)                   # ctasGraph
     ;
 
 tableIndices
@@ -3233,17 +3255,6 @@ windowFrameExtent: windowFrameBound | BETWEEN windowFrameBound AND windowFrameBo
     ;
 
 windowFrameBound: UNBOUNDED (PRECEDING | FOLLOWING) | INT (PRECEDING | FOLLOWING) | CURRENT ROW
-    ;
-
-createDatabaseOption
-    : FILESTREAM (databaseFilestreamOption (COMMA databaseFilestreamOption)*)
-    | DEFAULT_LANGUAGE EQ ( id | STRING)
-    | DEFAULT_FULLTEXT_LANGUAGE EQ ( id | STRING)
-    | NESTED_TRIGGERS EQ ( OFF | ON)
-    | TRANSFORM_NOISE_WORDS EQ ( OFF | ON)
-    | TWO_DIGIT_YEAR_CUTOFF EQ INT
-    | DB_CHAINING ( OFF | ON)
-    | TRUSTWORTHY ( OFF | ON)
     ;
 
 databaseFilestreamOption

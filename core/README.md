@@ -19,14 +19,277 @@ Changing the ANTLR grammars is a specialized task, and only a few team members h
 Do not attempt to change the grammars unless you have been given explicit permission to do so. 
 
 It is unfortunately, easy to add parser rules without realizing the full implications of the change, 
-and this can lead to performance problems. Performance problems usually come from the fact that ANTLR will manage 
-to make a working parser out of almost any input specification. However, the parser may be very slow, 
+and this can lead to performance problems, incorrect IR and incorrect code gen.
+Performance problems usually come from the fact that ANTLR will manage to make a working parser 
+out of almost any input specification. However, the resulting parser may then be very slow, 
 or may not be able to handle certain edge cases.
 
-After a grammar change is made, the .g4 files must be reformatted to stay in line with the guidelines. We use (for now
-at least) the [antlr-format](https://github.com/mike-lischke/antlr-format) tool to do this. The tool was written
-in typescript, so it does not easily run as a maven task. For the moment, please run it manually on the .g4 files
-in each of the dialects we support under `src/main/antlr4/../parsers`
+After a grammar change is made, the .g4 files must be reformatted to stay in line with the guidelines. 
+We use (for now at least) the [antlr-format](https://github.com/mike-lischke/antlr-format) tool to do this. The tool is run as part of the 
+maven build process, if you are using the 'format' maven profile. You can also run it from the command line
+via make:
+
+```bash
+make fmt
+```
+
+or:
+
+```bash
+make fmt-scala
+```
+
+## Checking ANTLR changes
+
+If you make changes to the ANTLR grammar, you should check the following things 
+(this is a good order to check them in):
+
+ - Have you defined any new TOKENS used in the PARSER?
+   - If so, did you define them in the LEXER?
+ - Have you eliminated the use of any tokens (this is generally a good thing - such as replacing 
+   a long list of option keywords with an id rule, which is then checked later in the process)?
+   - If so, have you removed them from the lexer?
+ - Have you added any new rules? If so:
+   - have you checked that you have not duplicated some syntactic structure that is already defined
+     and could be reused? 
+   - have you checked that they are used in the parser (the IntelliJ plugin will highlight unused rules)?
+ - Have you orphaned any rules? If so:
+   - did you mean to do so? 
+   - have you removed them (the IntelliJ plugin will highlight unused rules)?
+   - are you sure that removing them is the right thing to do? If you can create
+     a shared rule that cuts down on the number of rules, that is generally a good thing.
+
+You must create tests at each stage for any syntax changes. IR generation tests, coverage tests, and
+transpilation tests are all required. Make sure there are tests covering all variants of the syntax you have
+added or changed. It is generally be a good idea to write the tests before changing the grammar. 
+
+### Examples
+
+#### Adding new tokens
+Let's say you need to add a new type to this parser rule:
+
+```antlr
+distributionType: HASH LPAREN id (COMMA id)* RPAREN | ROUND_ROBIN | REPLICATE
+    ;
+```
+
+So you change the rule to:
+
+```antlrv4
+distributionType: HASH LPAREN id (COMMA id)* RPAREN | ROUND_ROBIN | REPLICATE | MAGIC
+    ;
+```
+
+The IDE plugin should be showing you that MAGIC is not defined as a token in the lexer by
+underlining it.
+
+![ANTLR error](docs/img/antlrmissingtioken.png)
+
+You should then add a new token to the lexer:
+
+```antlrv4
+lexer grammar TSqlGrammar;
+// ...
+LOW                                         : 'LOW';
+MAGIC                                       : 'MAGIC';
+MANUAL                                      : 'MANUAL';
+MARK                                        : 'MARK';
+MASK                                        : 'MASK';
+// ...
+```
+
+And the IDE should now be happy. Please keep the token definitions in alphabetical order of
+the token name.
+
+#### Orphaned Rules
+Let's say that you have had to refactor some rules because something that was previously a standalone
+rule is now incorporated into the expression syntax. So you change:
+
+```antlrv4
+r1          : SELECT id jsonExtract? FROM t1;
+jsonExtract : COLON id;
+```
+To:
+
+```antlrv4
+r1          : SELECT expression FROM t1;
+jsonExtract : COLON id;
+
+expression  :
+ // ...
+ | expression COLON id
+ // ...
+```
+You should now check to see if `jsonExtract` is used anywhere else for a number of reasons:
+    - it may be that it is no longer needed and can be removed
+    - it may be that it is used in other places and needs to be refactored to `expression`
+      everywhere. 
+    - it may be that it is used in other places and needs to be left as is because it is
+      a different use case.
+
+Note that in general, if you can use `expression` instead of a specific rule, you should do so,
+and resolve the expression type in the IR generation phase. We are generally looking to
+parse correct input in this tool, and in any case a good grammar accepts almost anything
+that _might_ be correct, and then performs semantic checks in the next phase after parsing,
+as this gives better error output.
+
+Be careful though, as sometimes SQL syntax is ambiguous and you may need to restrict the
+syntactic element to a specific type such as `id` in order to avoid ambiguity.
+
+Note as well, that if you are using the ANTLR plugin for IntelliJ IDEA, it will highlight rules
+that are orphaned (not used) in the parser like so:
+
+![ANTLR unused rule](docs/img/antlrorphanedrule.png)
+
+The underline in this case is easy to miss, but if you check the top right of the editor window
+you will see that there is a warning there:
+
+![ANTLR unused rule](docs/img/intellijproblem.png)
+
+And click the icons wil switch to the problems view, where you can see the warnings:
+
+![ANTLR problem list](docs/img/antlrproblemlist.png)
+
+Note that as of writing, there are a number of orphaned rules in the grammar that have
+been left by previous authors. They will be gradually cleaned up, but do not add to the list.
+
+Finally, some rules will appear to be orphaned, but are actually are the entry points for
+the external calls into the parser. There is currently no way to mark these as such in the
+plugin. You can generally assume they are external entry points if the rule ends in
+`EOF` to indicate that it parses to the end of the input.
+
+For instance:
+
+```antlrv4
+tSqlFile: batch? EOF
+    ;
+```    
+#### labels 
+Use of labels where they are not needed is discouraged. They are overused in the current
+grammars. Use them where it makes it much easier to check in the ParserContext received by
+the visit method. This is because a label creates a new variable, getters and associated
+stuff in the generated method context.
+
+There is no need for this:
+
+```antlrv4
+r1: XXX name=id YYY name2=id (name3=id)?
+    ;
+```
+Just so you can reference `ctx.name` and so on in the visitor. You can use `ctx.id(0)`,
+and so on:
+
+```antlrv4
+r1: XXX id YYY id id?
+    ;
+```
+
+You should use labels where it makes both the rule and the visitor easier to read. For instance,
+a rule with two optional parse paths, with a common element. Let's assume in the following
+artificial example, the YY clause means two different things depending on if it
+comes before or after the ZZ clause:
+
+```antlrv4
+r1: XX (YY id )? ZZ id (YY id)?
+    ;
+```
+
+In the visitor, you will not know if the `id` is the first or second `id` in the `YY` clause
+unless the size of ctx.id() is 3. So, you can use labels to make it clear:
+
+```antlrv4
+r1: XX (YY pre=id )? ZZ xx=id (YY post=id)?
+    ;
+```
+
+Which means that in the visitor, you can check for `ctx.pre`, `ctx.xx` and `ctx.post` and know
+for certain which `id` you are looking at.
+
+#### Refactoring rules
+
+In some cases, you may see that rules repeat long sequences of tokens. This is generally a bad
+thing, and you should strive to merge them in to a common rule. Two to four tokens is generally
+OK, but much longer than that, and you should consider refactoring. As of writing for instance, 
+there are many TSQL grammar rules for `create` vs `altet` where the original author has
+repeated all the tokens and options. They will eventually be refactored into common rules.
+
+Do not separate longer sequences of tokens into separate rules unless there is in fact
+commonality between two or more rules. At runtime, a new rule will generate as a new method and
+incur the setup and teardown time involved in calling a new rule. 
+
+If you see an opportunity to refactor, and it is because you have added a new rule or syntax
+then do so. Refactoring outside the scope of your PR requires a second PR, or raise an issue.
+
+In the current TSQL grammar, we can see that: 
+ - there are two rules using a common sequence of tokens that we can refactor into a common rule
+ - that it is probably not worth doing that for `createLoginAzure`
+ - `labels=` have been used for no reason. 
+
+```antlrv4
+alterLoginAzureSql
+    : ALTER LOGIN loginName = id (
+        (ENABLE | DISABLE)?
+        | WITH (
+            PASSWORD EQ password = STRING (OLD_PASSWORD EQ oldPassword = STRING)?
+            | NAME EQ loginName = id
+        )
+    )
+    ;
+
+createLoginAzureSql: CREATE LOGIN loginName = id WITH PASSWORD EQ STRING ( SID EQ sid = HEX)?
+    ;
+
+alterLoginAzureSqlDwAndPdw
+    : ALTER LOGIN loginName = id (
+        (ENABLE | DISABLE)?
+        | WITH (
+            PASSWORD EQ password = STRING (
+                OLD_PASSWORD EQ oldPassword = STRING (MUST_CHANGE | UNLOCK)*
+            )?
+            | NAME EQ loginName = id
+        )
+    )
+    ;
+```
+
+So, a refactor would look like this (in stages - later you will see it all at once):
+
+```antlrv4
+alterLoginAzureSql
+    : ALTER LOGIN id passwordClause
+    ;
+
+createLoginAzureSql: CREATE LOGIN loginName = id WITH PASSWORD EQ STRING ( SID EQ sid = HEX)?
+    ;
+
+alterLoginAzureSqlDwAndPdw
+    : ALTER LOGIN id passwordClause
+    ;
+    
+passWordClause:
+        (ENABLE | DISABLE)?
+        | WITH (
+            PASSWORD EQ STRING (
+                OLD_PASSWORD EQ STRING (MUST_CHANGE | UNLOCK)*
+            )?
+            | NAME EQ  id
+        )
+    ;    
+```
+
+In passwdClause we know in the visitor that ctx.STRING(0) is the password, and 
+ctx.STRING(1) is the old password. We can also check if ctx.MUST_CHANGE() or ctx.UNLOCK()
+are present and because they are optional, we can share the passwdClause between the
+two rules even though `alterLoginAzureSql` does not support them. The visitor can check
+for them and raise an error if it is present in the wrong context, or we can assume valid
+input and ignore it. We can now use a specific buildPasswordClause method in the visitor to
+return some common definition of a password clause.
+
+But... we now realize that `createLoginAzureSql` and `alterLoginAzureSqlDwAndPdw` are the same
+and there is only need for one of them. So we can merge them into one and remove and extra
+entry in the calling clause, which in the TSQL grammar is `ddlClause`, and hey presto we
+have removed a rule, reduced parser complexity, and made the grammar easier to read. If there
+is any IR difference between the two, we can handle that in the visitor.
 
 ### Installing antlr-format
 
@@ -57,22 +320,25 @@ formatting 2 file(s)...
 done [82 ms]
 ```
 
+Note that the formatting configuration is contained in the .g4 files themselves, so there is no need to 
+provide a configuration file. Please do not change the formatting rules.
+
 ### Caveat
 
 Some of the grammar definitions (`src/main/antlr4/com/databricks/labs/remorph/parsers/<dialect>/<dialect>Parser.g4`)
 may still be works-in-progress and, as such, may contain rules that are either incorrect or simply 
-_get in the way_ of implementing the Snowflake->IR translation.
+_get in the way_ of implementing the <dialect> -> IR translation.
 
 When stumbling upon such a case, one should:
 - materialize the problem in a (failing) test in `<Dialect><something>BuilderSpec`, flagged as `ignored` until the problem is solved
-- shallowly investigate the problem in the grammar and raise a Github issue with a problem statement
+- shallowly investigate the problem in the grammar and raise a GitHub issue with a problem statement
 - add a `TODO` comment on top of the failing test with a link to said issue
 - point out the issue to someone tasked with changing/fixing grammars
 - move on with implementing something else
 
 ## Converting to IR in the <Dialect><thing>Builder classes
 
-Here is methodolgy used to effect changes to IR generation.
+Here is the methodology used to effect changes to IR generation.
 
 ### Step 1: add a test
 
