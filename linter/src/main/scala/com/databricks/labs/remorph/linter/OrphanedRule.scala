@@ -17,7 +17,11 @@ class OrphanedRule(ruleTracker: RuleTracker) extends ANTLRv4ParserBaseListener {
    */
   override def enterRuleref(ctx: ANTLRv4Parser.RulerefContext): Unit = {
     val ruleReference =
-      new RuleReference(ctx.start.getLine, ctx.start.getCharPositionInLine, ctx.stop.getCharPositionInLine, ctx.getText)
+      new RuleReference(
+        ctx.start.getLine,
+        ctx.start.getCharPositionInLine,
+        ctx.stop.getCharPositionInLine + ctx.getText.length,
+        ctx.getText)
     ruleTracker.addRuleRef(ruleReference)
   }
 }

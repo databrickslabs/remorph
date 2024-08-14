@@ -75,18 +75,18 @@ class RuleTracker {
   // This is where we reconcile the rule definitions with the references to discover
   // undefined and unreferenced rules
 
-  def reconcileRules(): RuleSummary = {
+  def reconcileRules(): OrphanedRuleSummary = {
     orphanedRuleDefs = ruleDefMap.values.filterNot(rule => ruleRefMap.contains(rule.ruleName)).toList
     undefinedRules = ruleRefMap.values.flatten.filterNot(ref => ruleDefMap.contains(ref.ruleName)).toList
-    RuleSummary(orphanedRuleDefs, undefinedRules)
+    OrphanedRuleSummary(orphanedRuleDefs, undefinedRules)
   }
 
   def getOrphanedRuleDefs: List[RuleDefinition] = orphanedRuleDefs
   def getUndefinedRules: List[RuleReference] = undefinedRules
 }
 
-case class RuleSummary(orphanedRuleDef: List[RuleDefinition], undefinedRules: List[RuleReference]) {
-  def toJSON: String = {
+case class OrphanedRuleSummary(orphanedRuleDef: List[RuleDefinition], undefinedRules: List[RuleReference]) {
+  def toJSON: Obj = {
     val orphanedRuleDefJson = orphanedRuleDef.map { rule =>
       Obj("lineNo" -> rule.lineNo, "ruleName" -> rule.ruleName)
     }
@@ -99,8 +99,12 @@ case class RuleSummary(orphanedRuleDef: List[RuleDefinition], undefinedRules: Li
         "ruleName" -> rule.ruleName)
     }
 
-    val json = Obj("orphanedRuleDef" -> orphanedRuleDefJson, "undefinedRules" -> undefinedRulesJson)
-
-    json.render()
+    Obj(
+      "orphanCount" -> orphanedRuleDef.size,
+      "undefinedRuleCount" -> undefinedRules.size,
+      "orphanedRuleDef" -> orphanedRuleDefJson,
+      "undefinedRules" -> undefinedRulesJson)
   }
+
+  def hasIssues: Boolean = orphanedRuleDef.nonEmpty || undefinedRules.nonEmpty
 }
