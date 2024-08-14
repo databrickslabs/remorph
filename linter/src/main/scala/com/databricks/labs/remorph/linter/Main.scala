@@ -1,4 +1,4 @@
-package com.databricks.labs.remorph.antlrlinter
+package com.databricks.labs.remorph.linter
 
 import org.antlr.v4.runtime.tree.ParseTreeWalker
 import org.antlr.v4.runtime.{CharStreams, CommonTokenStream}
@@ -9,7 +9,9 @@ object Main {
     val exitCode = ParserForMethods(this).runOrExit(args) match {
       case Right(value: Int) => value
       case Left(error) =>
+        // scalastyle:off println
         println(error)
+        // scalastyle:on
         1 // Failure
     }
     sys.exit(exitCode)

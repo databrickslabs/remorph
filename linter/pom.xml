@@ -6,7 +6,7 @@
     <artifactId>remorph</artifactId>
     <version>0.2.0-SNAPSHOT</version>
   </parent>
-  <artifactId>remorph-antlrlinter</artifactId>
+  <artifactId>remorph-linter</artifactId>
   <packaging>jar</packaging>
   <properties>
     <junit-bom.version>5.10.0</junit-bom.version>
@@ -79,7 +79,7 @@
         <artifactId>exec-maven-plugin</artifactId>
         <version>3.4.1</version>
         <configuration>
-          <mainClass>com.databricks.labs.remorph.antlrlinter.Main</mainClass>
+          <mainClass>com.databricks.labs.remorph.linter.Main</mainClass>
           <arguments>
             <argument>-i</argument>
             <argument>${sourceDir}</argument>

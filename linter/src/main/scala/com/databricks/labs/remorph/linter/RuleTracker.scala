@@ -1,4 +1,4 @@
-package com.databricks.labs.remorph.antlrlinter
+package com.databricks.labs.remorph.linter
 
 import ujson._
 
@@ -11,7 +11,7 @@ class RuleTracker {
 
   // Definition handling
   def addRuleDef(rule: RuleDefinition): Unit = {
-    ruleDefMap += (rule.getRuleName -> rule)
+    ruleDefMap += (rule.ruleName -> rule)
   }
 
   def getRuleDef(ruleName: String): RuleDefinition = {
@@ -49,14 +49,14 @@ class RuleTracker {
   }
 
   def getRuleDefLineNo(ruleName: String): Int = {
-    ruleDefMap.get(ruleName).map(_.getLineNo).getOrElse(-1)
+    ruleDefMap.get(ruleName).map(_.lineNo).getOrElse(-1)
   }
 
   // Reference handling
 
   def addRuleRef(ruleRef: RuleReference): Unit = {
-    val ruleName = ruleRef.getRuleName
-    ruleRefMap += (ruleName -> (ruleRef :: ruleRefMap.getOrElse(ruleName, Nil)))
+    val name = ruleRef.ruleName
+    ruleRefMap += (name -> (ruleRef :: ruleRefMap.getOrElse(name, Nil)))
   }
 
   def getRuleRefs(ruleName: String): List[RuleReference] = {
@@ -76,8 +76,8 @@ class RuleTracker {
   // undefined and unreferenced rules
 
   def reconcileRules(): RuleSummary = {
-    orphanedRuleDefs = ruleDefMap.values.filterNot(rule => ruleRefMap.contains(rule.getRuleName)).toList
-    undefinedRules = ruleRefMap.values.flatten.filterNot(ref => ruleDefMap.contains(ref.getRuleName)).toList
+    orphanedRuleDefs = ruleDefMap.values.filterNot(rule => ruleRefMap.contains(rule.ruleName)).toList
+    undefinedRules = ruleRefMap.values.flatten.filterNot(ref => ruleDefMap.contains(ref.ruleName)).toList
     RuleSummary(orphanedRuleDefs, undefinedRules)
   }
 
@@ -89,17 +89,17 @@ case class RuleSummary(orphanedRuleDef: List[RuleDefinition], undefinedRules: Li
   def toJSON: String = {
     val orphanedRuleDefJson = orphanedRuleDef.map { rule =>
       Obj(
-        "lineNo" -> rule.getLineNo,
-        "ruleName" -> rule.getRuleName,
+        "lineNo" -> rule.lineNo,
+        "ruleName" -> rule.ruleName,
       )
     }
 
     val undefinedRulesJson = undefinedRules.map { rule =>
       Obj(
-        "lineNo" -> rule.getLineNo,
-        "charStart" -> rule.getCharStart,
-        "charEnd" -> rule.getCharEnd,
-        "ruleName" -> rule.getRuleName,
+        "lineNo" -> rule.lineNo,
+        "charStart" -> rule.charStart,
+        "charEnd" -> rule.charEnd,
+        "ruleName" -> rule.ruleName,
       )
     }
 

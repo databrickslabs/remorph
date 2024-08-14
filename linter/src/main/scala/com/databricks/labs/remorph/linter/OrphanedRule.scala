@@ -1,4 +1,4 @@
-package com.databricks.labs.remorph.antlrlinter
+package com.databricks.labs.remorph.linter
 
 class OrphanedRule(ruleTracker: RuleTracker) extends ANTLRv4ParserBaseListener {
 

@@ -1,4 +1,4 @@
-package com.databricks.labs.remorph.antlrlinter;
+package com.databricks.labs.remorph.linter;
 /*
  [The "BSD licence"]
  Copyright (c) 2005-2007 Terence Parr
