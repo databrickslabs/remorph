@@ -94,8 +94,8 @@ object Main {
               println("Undefined rules (rules referenced but never defined):")
               summary.undefinedRules.foreach { rule =>
                 println(s"\n  ${rule.ruleName} used at line ${rule.lineNo}, col ${rule.charStart}")
-                println("    " + sourceLines(rule.lineNo -1))
-                println(" " * (4 +rule.charStart) + "^" * (rule.charEnd - rule.charStart))
+                println("    " + sourceLines(rule.lineNo - 1))
+                println(" " * (4 + rule.charStart) + "^" * (rule.charEnd - rule.charStart))
               }
             }
           }
@@ -108,7 +108,7 @@ object Main {
     } catch {
       case e: Exception =>
         e.printStackTrace()
-          sys.exit(1)
+        sys.exit(1)
     }
   }
 
