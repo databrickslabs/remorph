@@ -272,7 +272,7 @@ jobs:
           exit 1
 
 
-  antlr-grammar-lintinh:
+  antlr-grammar-linting:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
