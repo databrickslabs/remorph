@@ -296,5 +296,5 @@ jobs:
           key: ${{ github.job }}-${{ hashFiles('**/pom.xml') }}
 
       - name: Run Lint Test with Maven
-        run: mvn --update-snapshots -B exec:java -pl linter --file pom.xml -Dexec.args="-i core/src/main/antlr4 -o .venv/linter/grammar -c true"
+        run: mvn compile -DskipTests --update-snapshots -B exec:java -pl linter --file pom.xml -Dexec.args="-i core/src/main/antlr4 -o .venv/linter/grammar -c true"
         continue-on-error: true # Note - we need to fix existing issues before we can enforce this
