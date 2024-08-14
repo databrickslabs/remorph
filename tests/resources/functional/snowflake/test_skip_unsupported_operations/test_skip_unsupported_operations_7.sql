@@ -3,4 +3,4 @@
 SHOW STREAMS LIKE 'line%' IN tpch.public;
 
 -- databricks sql:
--- snowsql command:SHOW STREAMS LIKE 'line%' IN tpch.public;
+-- SHOW STREAMS LIKE 'line%' IN tpch.public;

@@ -3,4 +3,4 @@
 EXECUTE TASK mytask;
 
 -- databricks sql:
--- snowsql command:EXECUTE'TASK mytask';
+-- EXECUTE'TASK mytask';
