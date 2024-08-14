@@ -88,10 +88,7 @@ class RuleTracker {
 case class RuleSummary(orphanedRuleDef: List[RuleDefinition], undefinedRules: List[RuleReference]) {
   def toJSON: String = {
     val orphanedRuleDefJson = orphanedRuleDef.map { rule =>
-      Obj(
-        "lineNo" -> rule.lineNo,
-        "ruleName" -> rule.ruleName,
-      )
+      Obj("lineNo" -> rule.lineNo, "ruleName" -> rule.ruleName)
     }
 
     val undefinedRulesJson = undefinedRules.map { rule =>
@@ -99,14 +96,10 @@ case class RuleSummary(orphanedRuleDef: List[RuleDefinition], undefinedRules: Li
         "lineNo" -> rule.lineNo,
         "charStart" -> rule.charStart,
         "charEnd" -> rule.charEnd,
-        "ruleName" -> rule.ruleName,
-      )
+        "ruleName" -> rule.ruleName)
     }
 
-    val json = Obj(
-      "orphanedRuleDef" -> orphanedRuleDefJson,
-      "undefinedRules" -> undefinedRulesJson
-    )
+    val json = Obj("orphanedRuleDef" -> orphanedRuleDefJson, "undefinedRules" -> undefinedRulesJson)
 
     json.render()
   }

@@ -5,24 +5,18 @@ import org.antlr.v4.runtime.{CharStreams, CommonTokenStream}
 import mainargs._
 
 object Main {
-  def main(args: Array[String]): Unit = {
-    val exitCode = ParserForMethods(this).runOrExit(args) match {
-      case Right(value: Int) => value
-      case Left(error) =>
-        // scalastyle:off println
-        println(error)
-        // scalastyle:on
-        1 // Failure
-    }
-    sys.exit(exitCode)
+
+  implicit object PathRead extends TokensReader.Simple[os.Path] {
+    def shortName: String = "path"
+    def read(strs: Seq[String]): Either[String, os.Path] = Right(os.Path(strs.head, os.pwd))
   }
 
   @main
   def run(
-      @arg(short = 'i', name = "inputpath", doc = "Source path of g4 grammar files")
+      @arg(short = 'i', doc = "Source path of g4 grammar files")
       sourceDir: os.Path,
-      @arg(short = 'o', name = "outputpath", doc = "Report output path")
-      outputPath: os.Path): Int = {
+      @arg(short = 'o', doc = "Report output path")
+      outputPath: os.Path): Unit = {
     try {
       val ruleTracker = new RuleTracker
       val orphanedRule = new OrphanedRule(ruleTracker)
@@ -42,13 +36,14 @@ object Main {
       walker.walk(orphanedRule, tree)
       val summary = ruleTracker.reconcileRules()
       val output = ujson.write(summary.toJSON)
+      // scalastyle:off println
       println(output)
-
-      0 // Success
+      // scalastyle:on println
     } catch {
       case e: Exception =>
         e.printStackTrace()
-        1 // Failure
     }
   }
+
+  def main(args: Array[String]): Unit = ParserForMethods(this).runOrExit(args)
 }
