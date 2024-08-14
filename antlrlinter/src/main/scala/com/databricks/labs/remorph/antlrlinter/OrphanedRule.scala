@@ -11,11 +11,12 @@ class OrphanedRule extends ANTLRv4ParserBaseListener {
 
     val ruleSymbol = ctx.RULE_REF().getSymbol
     val ruleDefinition = new RuleDefinition(ruleSymbol.getLine, ruleSymbol.getText)
-    ruleTracker.addRule(ruleDefinition)
+    ruleTracker.addRuleDef(ruleDefinition)
   }
 
 
   override def enterRuleref(ctx: ANTLRv4Parser.RulerefContext): Unit = {
-
+    val ruleReference = new RuleReference(ctx.start.getLine, ctx.start.getCharPositionInLine, ctx.stop.getCharPositionInLine, ctx.getText)
+    ruleTracker.addRuleRef(ruleReference)
   }
 }

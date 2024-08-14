@@ -1,54 +1,113 @@
 package com.databricks.labs.remorph.antlrlinter
 
+import ujson._
+
 class RuleTracker {
 
-  private var ruleMap: Map[String, RuleDefinition] = Map()
+  private var ruleDefMap: Map[String, RuleDefinition] = Map()
+  private var ruleRefMap: Map[String, List[RuleReference]] = Map()
+  private var orphanedRuleDefs: List[RuleDefinition] = List()
+  private var undefinedRules: List[RuleReference] = List()
 
-  def addRule(rule: RuleDefinition): Unit = {
-    ruleMap += (rule.getRuleName -> rule)
+  // Definition handling
+  def addRuleDef(rule: RuleDefinition): Unit = {
+    ruleDefMap += (rule.getRuleName -> rule)
   }
 
-  def getRule(ruleName: String): RuleDefinition = {
-    ruleMap(ruleName)
+  def getRuleDef(ruleName: String): RuleDefinition = {
+    ruleDefMap(ruleName)
   }
 
   def getRuleMap: Map[String, RuleDefinition] = {
-    ruleMap
+    ruleDefMap
   }
 
-  def getRuleCount: Int = {
-    ruleMap.size
+  def getRuleDefCount: Int = {
+    ruleDefMap.size
   }
 
-  def getRuleNames: List[String] = {
-    ruleMap.keys.toList
+  def getRuleDefNames: List[String] = {
+    ruleDefMap.keys.toList
   }
 
   def getRuleDefinitions: List[RuleDefinition] = {
-    ruleMap.values.toList
+    ruleDefMap.values.toList
   }
 
   def getRuleDefinition(ruleName: String): RuleDefinition = {
-    ruleMap(ruleName)
+    ruleDefMap(ruleName)
+  }
+
+  /**
+   * How many times the rule definition is referenced in the grammar
+   * @param ruleName
+   *   the name of the rule
+   * @return
+   */
+  def getRuleDefRefCount(ruleName: String): Int = {
+    ruleRefMap.get(ruleName).map(_.size).getOrElse(0)
+  }
+
+  def getRuleDefLineNo(ruleName: String): Int = {
+    ruleDefMap.get(ruleName).map(_.getLineNo).getOrElse(-1)
+  }
+
+  // Reference handling
+
+  def addRuleRef(ruleRef: RuleReference): Unit = {
+    val ruleName = ruleRef.getRuleName
+    ruleRefMap += (ruleName -> (ruleRef :: ruleRefMap.getOrElse(ruleName, Nil)))
+  }
+
+  def getRuleRefs(ruleName: String): List[RuleReference] = {
+    ruleRefMap(ruleName)
   }
 
   def getRuleRefCount(ruleName: String): Int = {
-    ruleMap(ruleName).getRefCount
+    ruleRefMap.get(ruleName).map(_.size).getOrElse(0)
   }
 
-  def getRuleLineNo(ruleName: String): Int = {
-    ruleMap(ruleName).getLineNo
+  def getRuleRefsByCondition(condition: RuleReference => Boolean): List[RuleReference] = {
+    ruleRefMap.values.flatten.filter(condition).toList
   }
 
-  def getRuleWithRefCountLessThan(refCount: Int): List[RuleDefinition] = {
-    ruleMap.values.filter(_.getRefCount < refCount).toList
+  // Reconciliation
+  // This is where we reconcile the rule definitions with the references to discover
+  // undefined and unreferenced rules
+
+  def reconcileRules(): RuleSummary = {
+    orphanedRuleDefs = ruleDefMap.values.filterNot(rule => ruleRefMap.contains(rule.getRuleName)).toList
+    undefinedRules = ruleRefMap.values.flatten.filterNot(ref => ruleDefMap.contains(ref.getRuleName)).toList
+    RuleSummary(orphanedRuleDefs, undefinedRules)
   }
 
-  def getRulesWithRefCountEqualTo(refCount: Int): List[RuleDefinition] = {
-    ruleMap.values.filter(_.getRefCount == refCount).toList
-  }
+  def getOrphanedRuleDefs: List[RuleDefinition] = orphanedRuleDefs
+  def getUndefinedRules: List[RuleReference] = undefinedRules
+}
 
-  def getUnReferencedRules: List[RuleDefinition] = {
-    ruleMap.values.filter(_.getRefCount == 0).toList
+case class RuleSummary(orphanedRuleDef: List[RuleDefinition], undefinedRules: List[RuleReference]) {
+  def toJSON: String = {
+    val orphanedRuleDefJson = orphanedRuleDef.map { rule =>
+      Obj(
+        "lineNo" -> rule.getLineNo,
+        "ruleName" -> rule.getRuleName,
+      )
+    }
+
+    val undefinedRulesJson = undefinedRules.map { rule =>
+      Obj(
+        "lineNo" -> rule.getLineNo,
+        "charStart" -> rule.getCharStart,
+        "charEnd" -> rule.getCharEnd,
+        "ruleName" -> rule.getRuleName,
+      )
+    }
+
+    val json = Obj(
+      "orphanedRuleDef" -> orphanedRuleDefJson,
+      "undefinedRules" -> undefinedRulesJson
+    )
+
+    json.render()
   }
 }
