@@ -199,6 +199,8 @@ jobs:
         run: mvn --update-snapshots -B exec:java -pl coverage --file pom.xml --fail-at-end -DsourceDir=tests/resources/functional/snowflake -DoutputPath=coverage-result.json -DsourceDialect=Snow -Dextractor=comment
         continue-on-error: true
 
+
+
       - name: Publish JUnit report
         uses: EnricoMi/publish-unit-test-result-action@v2
         if: always()
@@ -292,12 +294,6 @@ jobs:
         with:
           path: ~/.m2
           key: ${{ github.job }}-${{ hashFiles('**/pom.xml') }}
-
-      - name: Download remorph-core-jars
-        uses: actions/download-artifact@v4
-        with:
-          name: remorph-core-jars
-          path: ~/.m2/repository/com/databricks/labs/
 
       - name: Run Lint Test with Maven
         run: mvn --update-snapshots -B exec:java -pl linter --file pom.xml -Dexec.args="-i core/src/main/antlr4 -o .venv/linter/grammar -c true"
