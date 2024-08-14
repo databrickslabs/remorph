@@ -911,4 +911,30 @@ class ExpressionGeneratorTest
       ir.In(ir.Id("c1"), Seq(ir.Literal(1), ir.Literal(2), ir.Literal(3))) generates "c1 IN (1, 2, 3)"
     }
   }
+
+  "window functions" should {
+    "be generated" in {
+      ir.Window(
+        ir.RowNumber(),
+        Seq(ir.Id("a")),
+        Seq(ir.SortOrder(ir.Id("b"), ir.Ascending, ir.NullsFirst)),
+        Some(
+          ir.WindowFrame(
+            ir.RowsFrame,
+            ir.CurrentRow,
+            ir.NoBoundary))) generates "ROW_NUMBER() OVER (PARTITION BY a ORDER BY b ASC NULLS FIRST ROWS CURRENT ROW)"
+
+      ir.Window(
+        ir.RowNumber(),
+        Seq(ir.Id("a")),
+        Seq(ir.SortOrder(ir.Id("b"), ir.Ascending, ir.NullsFirst)),
+        Some(
+          ir.WindowFrame(
+            ir.RangeFrame,
+            ir.CurrentRow,
+            ir.FollowingN(
+              ir.Literal(42))))) generates "ROW_NUMBER() OVER (PARTITION BY a ORDER BY b ASC NULLS FIRST RANGE BETWEEN CURRENT ROW AND 42 FOLLOWING)"
+
+    }
+  }
 }
