@@ -7,19 +7,17 @@ import scala.jdk.CollectionConverters._
 
 class OrphanedRule(ruleTracker: RuleTracker) extends ANTLRv4ParserBaseListener {
 
-
   /**
-   * Checks if a rule or any of its children contains EOF as a terminal node.
-   * Rules ending in EOF are entry point rules called externally and may
-   * not be referenced in the grammar, only defined. They are not reported as
-   * orphaned.
+   * Checks if a rule or any of its children contains EOF as a terminal node. Rules ending in EOF are entry point rules
+   * called externally and may not be referenced in the grammar, only defined. They are not reported as orphaned.
    *
-   * @param ctx the parser context to search within
+   * @param ctx
+   *   the parser context to search within
    * @return
    */
   private def containsEOF(ctx: ParserRuleContext): Boolean = {
     val x = Trees.findAllNodes(ctx, ANTLRv4Parser.TOKEN_REF, true).asScala
-      x.foreach { node =>
+    x.foreach { node =>
       if (node.getText == "EOF") {
         return true
       }

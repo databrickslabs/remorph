@@ -76,8 +76,7 @@ class RuleTracker {
   // undefined and unreferenced rules
 
   def reconcileRules(): OrphanedRuleSummary = {
-    orphanedRuleDefs =
-      ruleDefMap.values.filterNot(rule => ruleRefMap.contains(rule.ruleName) || rule.isExternal).toList
+    orphanedRuleDefs = ruleDefMap.values.filterNot(rule => ruleRefMap.contains(rule.ruleName) || rule.isExternal).toList
     undefinedRules = ruleRefMap.values.flatten.filterNot(ref => ruleDefMap.contains(ref.ruleName)).toList
     OrphanedRuleSummary(orphanedRuleDefs, undefinedRules)
   }
