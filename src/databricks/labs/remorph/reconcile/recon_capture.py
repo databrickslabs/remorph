@@ -527,10 +527,12 @@ class ReconCapture:
             # If there is any exception and rule is not created,
             # then use dummy rule_id (000000) to store into metrics table
             if agg_output.rule:
-                rule_id = hash(f"{recon_table_id}_{agg_output.rule.column_from_rule}")
+                rule_id_hash = hash(f"{recon_table_id}_{agg_output.rule.column_from_rule}")
             else:
                 logger.error("Aggregate Rule is not present")
-                rule_id = "null"
+                rule_id_hash = 0
+
+            rule_id = "null" if rule_id_hash == 0 else rule_id_hash
 
             agg_metrics_df = self.spark.sql(
                 f"""
@@ -551,8 +553,9 @@ class ReconCapture:
             )
             agg_metrics_df_list.append(agg_metrics_df)
 
-        agg_metrics_table_df = (self._union_dataframes(agg_metrics_df_list)
-                                .withColumn("rule_id", col("rule_id").cast("bigint")))
+        agg_metrics_table_df = self._union_dataframes(agg_metrics_df_list).withColumn(
+            "rule_id", col("rule_id").cast("bigint")
+        )
         _write_df_to_delta(agg_metrics_table_df, f"{self._db_prefix}.{_RECON_AGGREGATE_METRICS_TABLE_NAME}")
 
     def _insert_aggregates_into_details_table(
