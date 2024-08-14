@@ -84,9 +84,10 @@ object Main {
               println("Orphaned rules (rules defined but never used):")
               summary.orphanedRuleDef.foreach { rule =>
                 println(s"  ${rule.ruleName} defined at line ${rule.lineNo}:")
-                sourceLines.slice(rule.lineNo - 1, rule.lineNo + 2).foreach { line =>
+                sourceLines.slice(rule.lineNo - 1, rule.lineNo + 1).foreach { line =>
                   println("    " + line)
                 }
+                println()
               }
             }
             if (summary.undefinedRules.nonEmpty) {
