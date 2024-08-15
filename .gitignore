@@ -15,3 +15,5 @@ coverage.*
 *.tokens
 spark-warehouse/
 remorph_transpile/
+/linter/gen/
+/linter/src/main/antlr4/library/gen/

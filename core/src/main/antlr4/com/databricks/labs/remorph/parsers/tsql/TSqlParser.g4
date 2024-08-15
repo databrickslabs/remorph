@@ -1671,17 +1671,6 @@ createDatabaseOption
     | genericOption
     ;
 
-// TODO: Remove this after verifying translation options for Datrabricks SQL
-nouse
-    : DEFAULT_LANGUAGE EQ (id | STRING)
-    | DEFAULT_FULLTEXT_LANGUAGE EQ ( id | STRING)
-    | NESTED_TRIGGERS EQ ( OFF | ON)
-    | TRANSFORM_NOISE_WORDS EQ ( OFF | ON)
-    | TWO_DIGIT_YEAR_CUTOFF EQ INT
-    | DB_CHAINING ( OFF | ON)
-    | TRUSTWORTHY ( OFF | ON)
-    ;
-
 createIndex
     : CREATE UNIQUE? clustered? INDEX id ON tableName LPAREN columnNameListWithOrder RPAREN (
         INCLUDE LPAREN columnNameList RPAREN
