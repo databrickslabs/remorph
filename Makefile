@@ -62,3 +62,6 @@ antlr-coverage: build_core_jar
 	echo "Running coverage for tsql"
 	mvn exec:java -pl coverage --file pom.xml -DsourceDir=${INPUT_DIR_PARENT}/tsql -DoutputPath=.venv/antlr-coverage -DsourceDialect=Tsql -Dextractor=full
 	OUTPUT_DIR=.venv/antlr-coverage hatch run python src/databricks/labs/remorph/coverage/local_report.py
+
+antlr-lint:
+	mvn compile -DskipTests exec:java -pl linter --file pom.xml -Dexec.args="-i core/src/main/antlr4 -o .venv/linter/grammar -c true"

@@ -39,6 +39,19 @@ or:
 make fmt-scala
 ```
 
+Also, there is a Databricks specific ANTLR linter, which you MUST run before checking in. 
+
+It can be run from the command line with:
+
+
+```bash
+make anltr-lint
+```
+
+And it will identify problems that the ANTLR tool does not consider problematic because it does
+not have enough context. For instance, the ANTLR tool does not identify rules with no caller
+as it must assume that they will be called from outside the grammar.
+
 ## Checking ANTLR changes
 
 If you make changes to the ANTLR grammar, you should check the following things 
