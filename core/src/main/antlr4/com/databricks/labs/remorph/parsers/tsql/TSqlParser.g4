@@ -171,7 +171,7 @@ ddlClause
     | createWorkloadGroup
     | createXmlIndex
     | createXmlSchemaCollection
-    | disableTrigger
+    | triggerDisEn
     | dropAggregate
     | dropApplicationRole
     | dropAssembly
@@ -234,7 +234,7 @@ ddlClause
     | dropView
     | dropWorkloadGroup
     | dropXmlSchemaCollection
-    | enableTrigger
+    | triggerDisEn
     | lockTable
     | truncateTable
     | updateStatistics
@@ -272,7 +272,7 @@ breakStatement: BREAK SEMI?
 continueStatement: CONTINUE SEMI?
     ;
 
-gotoStatement: GOTO id SEMI? | id COLON SEMI?
+gotoStatement: GOTO id COLON? SEMI?
     ;
 
 returnStatement: RETURN expression? SEMI?
@@ -341,13 +341,13 @@ alterApplicationRole
     )? (COMMA? DEFAULT_SCHEMA EQ appRoleDefaultSchema = id)?
     ;
 
-alterXmlSchemaCollection: ALTER XML SCHEMA COLLECTION id (DOT id)? ADD STRING
+alterXmlSchemaCollection: ALTER XML SCHEMA COLLECTION dotIdentifier ADD STRING
     ;
 
 createApplicationRole: CREATE APPLICATION ROLE id WITH optionList
     ;
 
-dropAggregate: DROP AGGREGATE (IF EXISTS)? id (DOT id)?
+dropAggregate: DROP AGGREGATE (IF EXISTS)? dotIdentifier?
     ;
 
 dropApplicationRole: DROP APPLICATION ROLE rolename = id
@@ -403,7 +403,7 @@ createAsymmetricKey
 dropAsymmetricKey: DROP ASYMMETRIC KEY id (REMOVE PROVIDER KEY)?
     ;
 
-alterAuthorization: ALTER AUTHORIZATION ON (classType DOUBLE_COLON)? entityName TO genericOption
+alterAuthorization: ALTER AUTHORIZATION ON (classType DOUBLE_COLON)? dotIdentifier TO genericOption
     ;
 
 classType: id id? id?
@@ -640,7 +640,7 @@ dropExternalLibrary: DROP EXTERNAL LIBRARY libraryName = id ( AUTHORIZATION owne
 dropExternalResourcePool: DROP EXTERNAL RESOURCE POOL poolName = id
     ;
 
-dropExternalTable: DROP EXTERNAL TABLE (databaseName = id DOT)? ( schemaName = id DOT)? table = id
+dropExternalTable: DROP EXTERNAL TABLE dotIdentifier
     ;
 
 dropEventNotifications
@@ -657,7 +657,7 @@ dropEventSession: DROP EVENT SESSION eventSessionName = id ON SERVER
 dropFulltextCatalog: DROP FULLTEXT CATALOG catalogName = id
     ;
 
-dropFulltextIndex: DROP FULLTEXT INDEX ON (schema = id DOT)? table = id
+dropFulltextIndex: DROP FULLTEXT INDEX ON dotIdentifier
     ;
 
 dropFulltextStoplist: DROP FULLTEXT STOPLIST stoplistName = id
@@ -678,7 +678,7 @@ dropPartitionFunction: DROP PARTITION FUNCTION partitionFunctionName = id
 dropPartitionScheme: DROP PARTITION SCHEME partitionSchemeName = id
     ;
 
-dropQueue: DROP QUEUE (databaseName = id DOT)? (schemaName = id DOT)? queueName = id
+dropQueue: DROP QUEUE dotIdentifier
     ;
 
 dropRemoteServiceBinding: DROP REMOTE SERVICE BINDING bindingName = id
@@ -693,7 +693,7 @@ dropDbRole: DROP ROLE (IF EXISTS)? roleName = id
 dropRoute: DROP ROUTE routeName = id
     ;
 
-dropRule: DROP RULE (IF EXISTS)? ( COMMA? (schemaName = id DOT)? ruleName = id)?
+dropRule: DROP RULE (IF EXISTS)? dotIdentifier (COMMA dotIdentifier)*
     ;
 
 dropSchema: DROP SCHEMA (IF EXISTS)? schemaName = id
@@ -703,13 +703,11 @@ dropSearchPropertyList: DROP SEARCH PROPERTY LIST propertyListName = id
     ;
 
 dropSecurityPolicy
-    : DROP SECURITY POLICY (IF EXISTS)? (schemaName = id DOT)? securityPolicyName = id
+    : DROP SECURITY POLICY (IF EXISTS)? dotIdentifier
     ;
 
 dropSequence
-    : DROP SEQUENCE (IF EXISTS)? (
-        COMMA? (databaseName = id DOT)? (schemaName = id DOT)? sequenceName = id
-    )?
+    : DROP SEQUENCE (IF EXISTS)? dotIdentifier (COMMA dotIdentifier)*
     ;
 
 dropServerAudit: DROP SERVER AUDIT auditName = id
@@ -725,20 +723,20 @@ dropService: DROP SERVICE droppedServiceName = id
     ;
 
 dropSignature
-    : DROP (COUNTER)? SIGNATURE FROM (schemaName = id DOT)? moduleName = id BY (
+    : DROP (COUNTER)? SIGNATURE FROM dotIdentifier BY (
         COMMA? CERTIFICATE certName = id
         | COMMA? ASYMMETRIC KEY AsymKeyName = id
     )+
     ;
 
 dropStatisticsNameAzureDwAndPdw
-    : DROP STATISTICS (schemaName = id DOT)? objectName = id DOT statisticsName = id
+    : DROP STATISTICS dotIdentifier
     ;
 
 dropSymmetricKey: DROP SYMMETRIC KEY symmetricKeyName = id ( REMOVE PROVIDER KEY)?
     ;
 
-dropSynonym: DROP SYNONYM (IF EXISTS)? (schema = id DOT)? synonymName = id
+dropSynonym: DROP SYNONYM (IF EXISTS)? dotIdentifier
     ;
 
 dropUser: DROP USER (IF EXISTS)? userName = id
@@ -747,17 +745,9 @@ dropUser: DROP USER (IF EXISTS)? userName = id
 dropWorkloadGroup: DROP WORKLOAD GROUP groupName = id
     ;
 
-disableTrigger
-    : DISABLE TRIGGER ((COMMA? (schemaName = id DOT)? triggerName = id)+ | ALL) ON (
-        (schemaId = id DOT)? objectName = id
-        | DATABASE
-        | ALL SERVER
-    )
-    ;
-
-enableTrigger
-    : ENABLE TRIGGER ((COMMA? (schemaName = id DOT)? triggerName = id)+ | ALL) ON (
-        (schemaId = id DOT)? objectName = id
+triggerDisEn
+    : (DISABLE|ENABLE) TRIGGER (triggers += dotIdentifier (COMMA triggers += dotIdentifier)* | ALL) ON (
+        on=dotIdentifier
         | DATABASE
         | ALL SERVER
     )
@@ -841,32 +831,76 @@ createEventNotification
     ) (WITH FAN_IN)? FOR (COMMA? eventTypeOrGroup = id)+ TO SERVICE brokerService = STRING COMMA brokerServiceSpecifierOrCurrentDatabase = STRING
     ;
 
+addDropEvent
+    : ADD EVENT (
+                      dotIdentifier (
+                          LPAREN (
+                              SET (
+                                  COMMA? eventCustomizableAttributue = id EQ ( INT | STRING)
+                                  )*
+                              )?
+                              (
+                                  ACTION LPAREN dotIdentifier (COMMA dotIdentifier)* RPAREN
+                              )+
+                              (WHERE eventSessionPredicateExpression)?
+                          RPAREN
+                      )*
+              )
+              | DROP EVENT dotIdentifier
+    ;
+
+addDropEventTarget
+    : ADD TARGET dotIdentifier (
+    LPAREN
+        SET (
+            COMMA? targetParameterName = id EQ ( LPAREN? INT RPAREN? | STRING)
+        )+
+    RPAREN
+    )
+    | DROP TARGET dotIdentifier
+;
+
+addDropEventOrTarget
+    : addDropEvent
+    | addDropEventTarget
+    ;
+
 createOrAlterEventSession
-    : (CREATE | ALTER) EVENT SESSION eventSessionName = id ON SERVER (
-        COMMA? ADD EVENT ((eventModuleGuid = id DOT)? eventPackageName = id DOT eventName = id) (
-            LPAREN (SET ( COMMA? eventCustomizableAttributue = id EQ ( INT | STRING))*)? (
-                ACTION LPAREN (
-                    COMMA? (eventModuleGuid = id DOT)? eventPackageName = id DOT actionName = id
-                )+ RPAREN
-            )+ (WHERE eventSessionPredicateExpression)? RPAREN
-        )*
-    )* (COMMA? DROP EVENT (eventModuleGuid = id DOT)? eventPackageName = id DOT eventName = id)* (
-        (ADD TARGET (eventModuleGuid = id DOT)? eventPackageName = id DOT targetName = id) (
-            LPAREN SET (COMMA? targetParameterName = id EQ ( LPAREN? INT RPAREN? | STRING))+ RPAREN
-        )*
-    )* (DROP TARGET (eventModuleGuid = id DOT)? eventPackageName = id DOT targetName = id)* (
-        WITH LPAREN (COMMA? MAX_MEMORY EQ maxMemory = INT (KB | MB))? (
-            COMMA? EVENT_RETENTION_MODE EQ (
-                ALLOW_SINGLE_EVENT_LOSS
-                | ALLOW_MULTIPLE_EVENT_LOSS
-                | NO_EVENT_LOSS
-            )
-        )? (COMMA? MAX_DISPATCH_LATENCY EQ ( maxDispatchLatencySeconds = INT SECONDS | INFINITE))? (
-            COMMA? MAX_EVENT_SIZE EQ maxEventSize = INT (KB | MB)
-        )? (COMMA? MEMORY_PARTITION_MODE EQ ( NONE | PER_NODE | PER_CPU))? (
-            COMMA? TRACK_CAUSALITY EQ (ON | OFF)
-        )? (COMMA? STARTUP_STATE EQ (ON | OFF))? RPAREN
-    )? (STATE EQ (START | STOP))?
+    : (CREATE | ALTER)
+        EVENT SESSION id
+        ON (SERVER | DATABASE)
+        addDropEventOrTarget (COMMA addDropEventOrTarget)*
+         (
+                             WITH LPAREN (
+                                            COMMA? MAX_MEMORY EQ maxMemory = INT (KB | MB)
+                                         )?
+                                         (
+                                            COMMA? EVENT_RETENTION_MODE EQ (
+                                                                                ALLOW_SINGLE_EVENT_LOSS
+                                                                              | ALLOW_MULTIPLE_EVENT_LOSS
+                                                                              | NO_EVENT_LOSS
+                                                                            )
+                                        )?
+                                        (
+                                            COMMA? MAX_DISPATCH_LATENCY EQ ( maxDispatchLatencySeconds = INT SECONDS | INFINITE)
+                                        )?
+                                        (
+                                            COMMA? MAX_EVENT_SIZE EQ maxEventSize = INT (KB | MB)
+                                        )?
+                                        (
+                                            COMMA? MEMORY_PARTITION_MODE EQ ( NONE | PER_NODE | PER_CPU)
+                                        )?
+                                        (
+                                            COMMA? TRACK_CAUSALITY EQ (ON | OFF)
+                                        )?
+                                        (
+                                            COMMA? STARTUP_STATE EQ (ON | OFF)
+                                       )?
+                                  RPAREN
+                        )?
+        (
+            STATE EQ (START | STOP)
+        )?
     ;
 
 eventSessionPredicateExpression
@@ -884,19 +918,9 @@ eventSessionPredicateFactor
     ;
 
 eventSessionPredicateLeaf
-    : (
-        eventFieldName = id
-        | (
-            eventFieldName = id
-            | ((eventModuleGuid = id DOT)? eventPackageName = id DOT predicateSourceName = id)
-        ) (EQ | (LT GT) | (BANG EQ) | GT | (GT EQ) | LT | LT EQ) (INT | STRING)
-    )
-    | (eventModuleGuid = id DOT)? eventPackageName = id DOT predicateCompareName = id LPAREN (
-        eventFieldName = id
-        | ((eventModuleGuid = id DOT)? eventPackageName = id DOT predicateSourceName = id) COMMA (
-            INT
-            | STRING
-        )
+    : dotIdentifier ((EQ | (LT GT) | (BANG EQ) | GT | (GT EQ) | LT | LT EQ) (INT | STRING))?
+    | dotIdentifier LPAREN (
+        dotIdentifier COMMA (INT | STRING)
     ) RPAREN
     ;
 
@@ -968,7 +992,7 @@ alterFulltextStoplist
 
 createFulltextStoplist
     : CREATE FULLTEXT STOPLIST stoplistName = id (
-        FROM ((databaseName = id DOT)? sourceStoplistName = id | SYSTEM STOPLIST)
+        FROM (dotIdentifier | SYSTEM STOPLIST)
     )? (AUTHORIZATION ownerName = id)?
     ;
 
@@ -1110,7 +1134,7 @@ createResourcePool
 alterResourceGovernor
     : ALTER RESOURCE GOVERNOR (
         (DISABLE | RECONFIGURE)
-        | WITH LPAREN CLASSIFIER_FUNCTION EQ (schemaName = id DOT functionName = id | NULL_) RPAREN
+        | WITH LPAREN CLASSIFIER_FUNCTION EQ (dotIdentifier| NULL_) RPAREN
         | RESET STATISTICS
         | WITH LPAREN MAX_OUTSTANDING_IO_PER_VOLUME EQ maxOutstandingIoPerVolume = INT RPAREN
     )
@@ -1129,7 +1153,7 @@ auditActionSpecGroup
     ;
 
 auditActionSpecification
-    : actionSpecification (COMMA actionSpecification)* ON (auditClassName COLON COLON)? auditSecurable BY principalId (
+    : actionSpecification (COMMA actionSpecification)* ON (auditClassName COLON COLON)? dotIdentifier BY principalId (
         COMMA principalId
     )*
     ;
@@ -1138,9 +1162,6 @@ actionSpecification: SELECT | INSERT | UPDATE | DELETE | EXECUTE | RECEIVE | REF
     ;
 
 auditClassName: OBJECT | SCHEMA | TABLE
-    ;
-
-auditSecurable: ((id DOT)? id DOT)? id
     ;
 
 alterDbRole
@@ -1195,20 +1216,20 @@ createSchemaAzureSqlDwAndPdw: CREATE SCHEMA schemaName = id ( AUTHORIZATION owne
     ;
 
 alterSchemaAzureSqlDwAndPdw
-    : ALTER SCHEMA schemaName = id TRANSFER (OBJECT DOUBLE_COLON)? id (DOT ID)?
+    : ALTER SCHEMA schemaName = id TRANSFER (OBJECT DOUBLE_COLON)? dotIdentifier?
     ;
 
 createSearchPropertyList
     : CREATE SEARCH PROPERTY LIST newListName = id (
-        FROM (databaseName = id DOT)? sourceListName = id
+        FROM dotIdentifier
     )? (AUTHORIZATION ownerName = id)?
     ;
 
 createSecurityPolicy
-    : CREATE SECURITY POLICY (schemaName = id DOT)? securityPolicyName = id (
-        COMMA? ADD (FILTER | BLOCK)? PREDICATE tvfSchemaName = id DOT securityPredicateFunctionName = id LPAREN (
+    : CREATE SECURITY POLICY dotIdentifier (
+        COMMA? ADD (FILTER | BLOCK)? PREDICATE dotIdentifier LPAREN (
             COMMA? columnNameOrArguments = id
-        )+ RPAREN ON tableSchemaName = id DOT name = id (
+        )+ RPAREN ON dotIdentifier (
             COMMA? AFTER (INSERT | UPDATE)
             | COMMA? BEFORE (UPDATE | DELETE)
         )*
@@ -1216,7 +1237,7 @@ createSecurityPolicy
     ;
 
 alterSequence
-    : ALTER SEQUENCE (schemaName = id DOT)? sequenceName = id (RESTART (WITH INT)?)? (
+    : ALTER SEQUENCE dotIdentifier (RESTART (WITH INT)?)? (
         INCREMENT BY sequnceIncrement = INT
     )? (MINVALUE INT | NO MINVALUE)? (MAXVALUE INT | NO MAXVALUE)? (CYCLE | NO CYCLE)? (
         CACHE INT
@@ -1225,7 +1246,7 @@ alterSequence
     ;
 
 createSequence
-    : CREATE SEQUENCE (schemaName = id DOT)? sequenceName = id (AS dataType)? (START WITH INT)? (
+    : CREATE SEQUENCE dotIdentifier (AS dataType)? (START WITH INT)? (
         INCREMENT BY MINUS? INT
     )? (MINVALUE (MINUS? INT)? | NO MINVALUE)? (MAXVALUE (MINUS? INT)? | NO MAXVALUE)? (
         CYCLE
@@ -1377,7 +1398,7 @@ alterServerRolePdw: ALTER SERVER ROLE serverRoleName = id (ADD | DROP) MEMBER lo
     ;
 
 alterService
-    : ALTER SERVICE modifiedServiceName = id (ON QUEUE (schemaName = id DOT)? queueName = id)? (
+    : ALTER SERVICE modifiedServiceName = id (ON QUEUE dotIdentifier)? (
         LPAREN optArgClause (COMMA optArgClause)* RPAREN
     )?
     ;
@@ -1386,9 +1407,7 @@ optArgClause: (ADD | DROP) CONTRACT modifiedContractName = id
     ;
 
 createService
-    : CREATE SERVICE createServiceName = id (AUTHORIZATION ownerName = id)? ON QUEUE (
-        schemaName = id DOT
-    )? queueName = id (LPAREN (COMMA? (id | DEFAULT))+ RPAREN)?
+    : CREATE SERVICE createServiceName = id (AUTHORIZATION ownerName = id)? ON QUEUE dotIdentifier (LPAREN (COMMA? (id | DEFAULT))+ RPAREN)?
     ;
 
 alterServiceMasterKey
@@ -1415,10 +1434,7 @@ alterSymmetricKey
     ;
 
 createSynonym
-    : CREATE SYNONYM (schemaName_1 = id DOT)? synonymName = id FOR (
-        (serverName = id DOT)? (databaseName = id DOT)? (schemaName_2 = id DOT)? objectName = id
-        | (databaseOrSchema2 = id DOT)? ( schemaId2_orObjectName = id DOT)?
-    )
+    : CREATE SYNONYM dotIdentifier FOR dotIdentifier
     ;
 
 alterUser
@@ -1537,7 +1553,7 @@ queueSettings
     : WITH (STATUS EQ onOff COMMA?)? (RETENTION EQ onOff COMMA?)? (
         ACTIVATION LPAREN (
             (
-                (STATUS EQ onOff COMMA?)? (PROCEDURE_NAME EQ funcProcNameDatabaseSchema COMMA?)? (
+                (STATUS EQ onOff COMMA?)? (PROCEDURE_NAME EQ dotIdentifier COMMA?)? (
                     MAX_QUEUE_READERS EQ maxReaders = INT COMMA?
                 )? (EXECUTE AS (SELF | userName = STRING | OWNER) COMMA?)?
             )
@@ -1768,7 +1784,7 @@ createNonclusteredColumnstoreIndex
     ;
 
 createOrAlterProcedure
-    : ((CREATE (OR (ALTER | REPLACE))?) | ALTER) proc = (PROC | PROCEDURE) procName = funcProcNameSchema (
+    : ((CREATE (OR (ALTER | REPLACE))?) | ALTER) proc = (PROC | PROCEDURE) procName = dotIdentifier (
         SEMI INT
     )? (LPAREN? procedureParam (COMMA procedureParam)* RPAREN?)? (
         WITH procedureOption (COMMA procedureOption)*
@@ -1782,7 +1798,7 @@ createOrAlterTrigger: createOrAlterDmlTrigger | createOrAlterDdlTrigger
     ;
 
 createOrAlterDmlTrigger
-    : (CREATE (OR (ALTER | REPLACE))? | ALTER) TRIGGER simpleName ON tableName (
+    : (CREATE (OR (ALTER | REPLACE))? | ALTER) TRIGGER dotIdentifier ON tableName (
         WITH dmlTriggerOption (COMMA dmlTriggerOption)*
     )? (FOR | AFTER | INSTEAD OF) dmlTriggerOperation (COMMA dmlTriggerOperation)* (WITH APPEND)? (
         NOT FOR REPLICATION
@@ -1796,7 +1812,7 @@ dmlTriggerOperation: (INSERT | UPDATE | DELETE)
     ;
 
 createOrAlterDdlTrigger
-    : (CREATE (OR (ALTER | REPLACE))? | ALTER) TRIGGER simpleName ON (ALL SERVER | DATABASE) (
+    : (CREATE (OR (ALTER | REPLACE))? | ALTER) TRIGGER dotIdentifier ON (ALL SERVER | DATABASE) (
         WITH dmlTriggerOption (COMMA dmlTriggerOption)*
     )? (FOR | AFTER) ddlTriggerOperation (COMMA ddlTriggerOperation)* AS sqlClauses+
     ;
@@ -1805,7 +1821,7 @@ ddlTriggerOperation: simpleId
     ;
 
 createOrAlterFunction
-    : ((CREATE (OR ALTER)?) | ALTER) FUNCTION funcName = funcProcNameSchema (
+    : ((CREATE (OR ALTER)?) | ALTER) FUNCTION funcName = dotIdentifier (
         (LPAREN procedureParam (COMMA procedureParam)* RPAREN)
         | LPAREN RPAREN
     ) //must have (), but can be empty
@@ -1923,12 +1939,9 @@ createTableIndexOption
     ;
 
 createView
-    : (CREATE (OR (ALTER | REPLACE))? | ALTER) VIEW simpleName (LPAREN columnNameList RPAREN)? (
-        WITH viewAttribute (COMMA viewAttribute)*
-    )? AS selectStatementStandalone (WITH CHECK OPTION)? SEMI?
-    ;
-
-viewAttribute: ENCRYPTION | SCHEMABINDING | VIEW_METADATA
+    : (CREATE (OR ALTER)? | ALTER) VIEW dotIdentifier (LPAREN columnNameList RPAREN)? (
+        WITH optionList
+    )? AS selectStatementStandalone (WITH genericOption)? SEMI?
     ;
 
 alterTable
@@ -2202,20 +2215,20 @@ dropBackwardCompatibleIndex: (ownerName = id DOT)? tableOrViewName = id DOT inde
     ;
 
 dropProcedure
-    : DROP proc = (PROC | PROCEDURE) (IF EXISTS)? funcProcNameSchema (COMMA funcProcNameSchema)* SEMI?
+    : DROP proc = (PROC | PROCEDURE) (IF EXISTS)? dotIdentifier (COMMA dotIdentifier)* SEMI?
     ;
 
 dropTrigger: dropDmlTrigger | dropDdlTrigger
     ;
 
-dropDmlTrigger: DROP TRIGGER (IF EXISTS)? simpleName (COMMA simpleName)* SEMI?
+dropDmlTrigger: DROP TRIGGER (IF EXISTS)? dotIdentifier (COMMA dotIdentifier)* SEMI?
     ;
 
 dropDdlTrigger
-    : DROP TRIGGER (IF EXISTS)? simpleName (COMMA simpleName)* ON (DATABASE | ALL SERVER) SEMI?
+    : DROP TRIGGER (IF EXISTS)? dotIdentifier (COMMA dotIdentifier)* ON (DATABASE | ALL SERVER) SEMI?
     ;
 
-dropFunction: DROP FUNCTION (IF EXISTS)? funcProcNameSchema ( COMMA funcProcNameSchema)* SEMI?
+dropFunction: DROP FUNCTION (IF EXISTS)? dotIdentifier ( COMMA dotIdentifier)* SEMI?
     ;
 
 dropStatistics: DROP STATISTICS (COMMA? (tableName DOT)? name = id)+ SEMI
@@ -2224,16 +2237,16 @@ dropStatistics: DROP STATISTICS (COMMA? (tableName DOT)? name = id)+ SEMI
 dropTable: DROP TABLE (IF EXISTS)? tableName (COMMA tableName)* SEMI?
     ;
 
-dropView: DROP VIEW (IF EXISTS)? simpleName (COMMA simpleName)* SEMI?
+dropView: DROP VIEW (IF EXISTS)? dotIdentifier (COMMA dotIdentifier)* SEMI?
     ;
 
 createType
-    : CREATE TYPE name = simpleName (FROM dataType nullNotnull?)? (
+    : CREATE TYPE name = dotIdentifier (FROM dataType nullNotnull?)? (
         AS TABLE LPAREN columnDefTableConstraints RPAREN
     )?
     ;
 
-dropType: DROP TYPE (IF EXISTS)? name = simpleName
+dropType: DROP TYPE (IF EXISTS)? name = dotIdentifier
     ;
 
 rowsetFunctionLimited: openquery | opendatasource
@@ -2309,11 +2322,11 @@ executeStatement: EXECUTE executeBody SEMI?
     ;
 
 executeBodyBatch
-    : funcProcNameServerDatabaseSchema (executeStatementArg (COMMA executeStatementArg)*)? SEMI?
+    : dotIdentifier (executeStatementArg (COMMA executeStatementArg)*)? SEMI?
     ;
 
 executeBody
-    : (returnStatus = LOCAL_ID EQ)? (funcProcNameServerDatabaseSchema | executeVarString) executeStatementArg?
+    : (returnStatus = LOCAL_ID EQ)? (dotIdentifier | executeVarString) executeStatementArg?
     | LPAREN executeVarString (COMMA executeVarString)* RPAREN (AS (LOGIN | USER) EQ STRING)? (
         AT_KEYWORD linkedServer = id
     )?
@@ -3253,31 +3266,10 @@ fileSpecification
     )? (MAXSIZE EQ (fileSize | UNLIMITED) COMMA?)? (FILEGROWTH EQ fileSize COMMA?)? RPAREN
     ;
 
-entityName
-    : (
-        server = id DOT database = id DOT schema = id DOT
-        | database = id DOT (schema = id)? DOT
-        | schema = id DOT
-    )? table = id
-    ;
-
 tableName: (linkedServer = id DOT DOT)? ids += id (DOT ids += id)*
     ;
 
-simpleName: (schema = id DOT)? name = id
-    ;
-
-funcProcNameSchema: ((schema = id) DOT)? procedure = id
-    ;
-
-funcProcNameDatabaseSchema
-    : database = id? DOT schema = id? DOT procedure = id
-    | funcProcNameSchema
-    ;
-
-funcProcNameServerDatabaseSchema
-    : server = id? DOT database = id? DOT schema = id? DOT procedure = id
-    | funcProcNameDatabaseSchema
+dotIdentifier: id (DOT id)*
     ;
 
 ddlObject: tableName | rowsetFunctionLimited | LOCAL_ID
@@ -3341,10 +3333,7 @@ waitforConversation
     ;
 
 getConversation
-    : GET CONVERSATION GROUP conversationGroupId = (STRING | LOCAL_ID) FROM queue = queueId SEMI?
-    ;
-
-queueId: (databaseName = id DOT schemaName = id DOT name = id) | id
+    : GET CONVERSATION GROUP conversationGroupId = (STRING | LOCAL_ID) FROM queue = dotIdentifier SEMI?
     ;
 
 sendConversation
