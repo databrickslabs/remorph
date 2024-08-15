@@ -3,22 +3,14 @@ package com.databricks.labs.remorph
 import com.databricks.labs.remorph.parsers.{intermediate => ir}
 import com.databricks.labs.remorph.transpilers.TranspilerFactory
 
-import java.io.File
-import scala.io.Source
-
 class RootTableIdentifier(engine: String) {
 
   private val transpiler = TranspilerFactory.getTranspiler(engine)
 
-  def processFile(file: File, dag: DAG): DAG = {
-    val source = Source.fromFile(file)
-    try {
-      val sql = source.getLines().mkString("\n")
-      val parsedSql = transpiler.parse(sql)
-      findTables(dag, parsedSql)
-    } finally {
-      source.close()
-    }
+  def processQuery(sql: String, dag: DAG): DAG = {
+    val parsedSql = transpiler.parse(sql)
+    findTables(dag, parsedSql)
+
   }
 
   private def getTablName(p: ir.LogicalPlan): Set[String] = {
