@@ -115,9 +115,6 @@ tablesOrQueries: tableOrQuery (COMMA tableOrQuery)*
 deleteStatement: DELETE FROM tableRef (USING tablesOrQueries)? (WHERE predicate)?
     ;
 
-valuesBuilder: VALUES L_PAREN exprList R_PAREN (COMMA L_PAREN exprList R_PAREN)?
-    ;
-
 otherCommand
     : copyIntoTable
     | copyIntoLocation
@@ -3142,12 +3139,6 @@ predicatePartial
     | NOT? BETWEEN expr AND expr
     ;
 
-jsonPath: jsonPathElem (DOT jsonPathElem)*
-    ;
-
-jsonPathElem: ID | DOUBLE_QUOTE_ID (LSB (string | num) RSB)?
-    ;
-
 iffExpr: IFF L_PAREN predicate COMMA expr COMMA expr R_PAREN
     ;
 
@@ -3271,9 +3262,6 @@ literal
     ;
 
 sign: PLUS | MINUS
-    ;
-
-bracketExpression: L_PAREN exprList R_PAREN | L_PAREN subquery R_PAREN
     ;
 
 caseExpression
