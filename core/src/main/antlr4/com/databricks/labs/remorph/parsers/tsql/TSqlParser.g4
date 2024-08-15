@@ -403,7 +403,8 @@ createAsymmetricKey
 dropAsymmetricKey: DROP ASYMMETRIC KEY id (REMOVE PROVIDER KEY)?
     ;
 
-alterAuthorization: ALTER AUTHORIZATION ON (classType DOUBLE_COLON)? dotIdentifier TO genericOption
+alterAuthorization
+    : ALTER AUTHORIZATION ON (classType DOUBLE_COLON)? dotIdentifier TO genericOption
     ;
 
 classType: id id? id?
@@ -702,12 +703,10 @@ dropSchema: DROP SCHEMA (IF EXISTS)? schemaName = id
 dropSearchPropertyList: DROP SEARCH PROPERTY LIST propertyListName = id
     ;
 
-dropSecurityPolicy
-    : DROP SECURITY POLICY (IF EXISTS)? dotIdentifier
+dropSecurityPolicy: DROP SECURITY POLICY (IF EXISTS)? dotIdentifier
     ;
 
-dropSequence
-    : DROP SEQUENCE (IF EXISTS)? dotIdentifier (COMMA dotIdentifier)*
+dropSequence: DROP SEQUENCE (IF EXISTS)? dotIdentifier (COMMA dotIdentifier)*
     ;
 
 dropServerAudit: DROP SERVER AUDIT auditName = id
@@ -729,8 +728,7 @@ dropSignature
     )+
     ;
 
-dropStatisticsNameAzureDwAndPdw
-    : DROP STATISTICS dotIdentifier
+dropStatisticsNameAzureDwAndPdw: DROP STATISTICS dotIdentifier
     ;
 
 dropSymmetricKey: DROP SYMMETRIC KEY symmetricKeyName = id ( REMOVE PROVIDER KEY)?
@@ -746,11 +744,10 @@ dropWorkloadGroup: DROP WORKLOAD GROUP groupName = id
     ;
 
 triggerDisEn
-    : (DISABLE|ENABLE) TRIGGER (triggers += dotIdentifier (COMMA triggers += dotIdentifier)* | ALL) ON (
-        on=dotIdentifier
-        | DATABASE
-        | ALL SERVER
-    )
+    : (DISABLE | ENABLE) TRIGGER (
+        triggers += dotIdentifier (COMMA triggers += dotIdentifier)*
+        | ALL
+    ) ON (on = dotIdentifier | DATABASE | ALL SERVER)
     ;
 
 lockTable
@@ -833,74 +830,41 @@ createEventNotification
 
 addDropEvent
     : ADD EVENT (
-                      dotIdentifier (
-                          LPAREN (
-                              SET (
-                                  COMMA? eventCustomizableAttributue = id EQ ( INT | STRING)
-                                  )*
-                              )?
-                              (
-                                  ACTION LPAREN dotIdentifier (COMMA dotIdentifier)* RPAREN
-                              )+
-                              (WHERE eventSessionPredicateExpression)?
-                          RPAREN
-                      )*
-              )
-              | DROP EVENT dotIdentifier
+        dotIdentifier (
+            LPAREN (SET ( COMMA? eventCustomizableAttributue = id EQ ( INT | STRING))*)? (
+                ACTION LPAREN dotIdentifier (COMMA dotIdentifier)* RPAREN
+            )+ (WHERE eventSessionPredicateExpression)? RPAREN
+        )*
+    )
+    | DROP EVENT dotIdentifier
     ;
 
 addDropEventTarget
     : ADD TARGET dotIdentifier (
-    LPAREN
-        SET (
-            COMMA? targetParameterName = id EQ ( LPAREN? INT RPAREN? | STRING)
-        )+
-    RPAREN
+        LPAREN SET (COMMA? targetParameterName = id EQ ( LPAREN? INT RPAREN? | STRING))+ RPAREN
     )
     | DROP TARGET dotIdentifier
-;
+    ;
 
-addDropEventOrTarget
-    : addDropEvent
-    | addDropEventTarget
+addDropEventOrTarget: addDropEvent | addDropEventTarget
     ;
 
 createOrAlterEventSession
-    : (CREATE | ALTER)
-        EVENT SESSION id
-        ON (SERVER | DATABASE)
-        addDropEventOrTarget (COMMA addDropEventOrTarget)*
-         (
-                             WITH LPAREN (
-                                            COMMA? MAX_MEMORY EQ maxMemory = INT (KB | MB)
-                                         )?
-                                         (
-                                            COMMA? EVENT_RETENTION_MODE EQ (
-                                                                                ALLOW_SINGLE_EVENT_LOSS
-                                                                              | ALLOW_MULTIPLE_EVENT_LOSS
-                                                                              | NO_EVENT_LOSS
-                                                                            )
-                                        )?
-                                        (
-                                            COMMA? MAX_DISPATCH_LATENCY EQ ( maxDispatchLatencySeconds = INT SECONDS | INFINITE)
-                                        )?
-                                        (
-                                            COMMA? MAX_EVENT_SIZE EQ maxEventSize = INT (KB | MB)
-                                        )?
-                                        (
-                                            COMMA? MEMORY_PARTITION_MODE EQ ( NONE | PER_NODE | PER_CPU)
-                                        )?
-                                        (
-                                            COMMA? TRACK_CAUSALITY EQ (ON | OFF)
-                                        )?
-                                        (
-                                            COMMA? STARTUP_STATE EQ (ON | OFF)
-                                       )?
-                                  RPAREN
-                        )?
-        (
-            STATE EQ (START | STOP)
-        )?
+    : (CREATE | ALTER) EVENT SESSION id ON (SERVER | DATABASE) addDropEventOrTarget (
+        COMMA addDropEventOrTarget
+    )* (
+        WITH LPAREN (COMMA? MAX_MEMORY EQ maxMemory = INT (KB | MB))? (
+            COMMA? EVENT_RETENTION_MODE EQ (
+                ALLOW_SINGLE_EVENT_LOSS
+                | ALLOW_MULTIPLE_EVENT_LOSS
+                | NO_EVENT_LOSS
+            )
+        )? (COMMA? MAX_DISPATCH_LATENCY EQ ( maxDispatchLatencySeconds = INT SECONDS | INFINITE))? (
+            COMMA? MAX_EVENT_SIZE EQ maxEventSize = INT (KB | MB)
+        )? (COMMA? MEMORY_PARTITION_MODE EQ ( NONE | PER_NODE | PER_CPU))? (
+            COMMA? TRACK_CAUSALITY EQ (ON | OFF)
+        )? (COMMA? STARTUP_STATE EQ (ON | OFF))? RPAREN
+    )? (STATE EQ (START | STOP))?
     ;
 
 eventSessionPredicateExpression
@@ -919,9 +883,7 @@ eventSessionPredicateFactor
 
 eventSessionPredicateLeaf
     : dotIdentifier ((EQ | (LT GT) | (BANG EQ) | GT | (GT EQ) | LT | LT EQ) (INT | STRING))?
-    | dotIdentifier LPAREN (
-        dotIdentifier COMMA (INT | STRING)
-    ) RPAREN
+    | dotIdentifier LPAREN ( dotIdentifier COMMA (INT | STRING)) RPAREN
     ;
 
 alterExternalDataSource
@@ -991,9 +953,9 @@ alterFulltextStoplist
     ;
 
 createFulltextStoplist
-    : CREATE FULLTEXT STOPLIST stoplistName = id (
-        FROM (dotIdentifier | SYSTEM STOPLIST)
-    )? (AUTHORIZATION ownerName = id)?
+    : CREATE FULLTEXT STOPLIST stoplistName = id (FROM (dotIdentifier | SYSTEM STOPLIST))? (
+        AUTHORIZATION ownerName = id
+    )?
     ;
 
 alterLoginSqlServer
@@ -1134,7 +1096,7 @@ createResourcePool
 alterResourceGovernor
     : ALTER RESOURCE GOVERNOR (
         (DISABLE | RECONFIGURE)
-        | WITH LPAREN CLASSIFIER_FUNCTION EQ (dotIdentifier| NULL_) RPAREN
+        | WITH LPAREN CLASSIFIER_FUNCTION EQ (dotIdentifier | NULL_) RPAREN
         | RESET STATISTICS
         | WITH LPAREN MAX_OUTSTANDING_IO_PER_VOLUME EQ maxOutstandingIoPerVolume = INT RPAREN
     )
@@ -1220,9 +1182,9 @@ alterSchemaAzureSqlDwAndPdw
     ;
 
 createSearchPropertyList
-    : CREATE SEARCH PROPERTY LIST newListName = id (
-        FROM dotIdentifier
-    )? (AUTHORIZATION ownerName = id)?
+    : CREATE SEARCH PROPERTY LIST newListName = id (FROM dotIdentifier)? (
+        AUTHORIZATION ownerName = id
+    )?
     ;
 
 createSecurityPolicy
@@ -1237,21 +1199,17 @@ createSecurityPolicy
     ;
 
 alterSequence
-    : ALTER SEQUENCE dotIdentifier (RESTART (WITH INT)?)? (
-        INCREMENT BY sequnceIncrement = INT
-    )? (MINVALUE INT | NO MINVALUE)? (MAXVALUE INT | NO MAXVALUE)? (CYCLE | NO CYCLE)? (
-        CACHE INT
-        | NO CACHE
-    )?
+    : ALTER SEQUENCE dotIdentifier (RESTART (WITH INT)?)? (INCREMENT BY sequnceIncrement = INT)? (
+        MINVALUE INT
+        | NO MINVALUE
+    )? (MAXVALUE INT | NO MAXVALUE)? (CYCLE | NO CYCLE)? (CACHE INT | NO CACHE)?
     ;
 
 createSequence
-    : CREATE SEQUENCE dotIdentifier (AS dataType)? (START WITH INT)? (
-        INCREMENT BY MINUS? INT
-    )? (MINVALUE (MINUS? INT)? | NO MINVALUE)? (MAXVALUE (MINUS? INT)? | NO MAXVALUE)? (
-        CYCLE
-        | NO CYCLE
-    )? (CACHE INT? | NO CACHE)?
+    : CREATE SEQUENCE dotIdentifier (AS dataType)? (START WITH INT)? (INCREMENT BY MINUS? INT)? (
+        MINVALUE (MINUS? INT)?
+        | NO MINVALUE
+    )? (MAXVALUE (MINUS? INT)? | NO MAXVALUE)? (CYCLE | NO CYCLE)? (CACHE INT? | NO CACHE)?
     ;
 
 alterServerAudit
@@ -1407,7 +1365,9 @@ optArgClause: (ADD | DROP) CONTRACT modifiedContractName = id
     ;
 
 createService
-    : CREATE SERVICE createServiceName = id (AUTHORIZATION ownerName = id)? ON QUEUE dotIdentifier (LPAREN (COMMA? (id | DEFAULT))+ RPAREN)?
+    : CREATE SERVICE createServiceName = id (AUTHORIZATION ownerName = id)? ON QUEUE dotIdentifier (
+        LPAREN (COMMA? (id | DEFAULT))+ RPAREN
+    )?
     ;
 
 alterServiceMasterKey
@@ -1433,8 +1393,7 @@ alterSymmetricKey
     )
     ;
 
-createSynonym
-    : CREATE SYNONYM dotIdentifier FOR dotIdentifier
+createSynonym: CREATE SYNONYM dotIdentifier FOR dotIdentifier
     ;
 
 alterUser
@@ -2321,8 +2280,7 @@ killStatsJob: STATS JOB jobId = INT
 executeStatement: EXECUTE executeBody SEMI?
     ;
 
-executeBodyBatch
-    : dotIdentifier (executeStatementArg (COMMA executeStatementArg)*)? SEMI?
+executeBodyBatch: dotIdentifier (executeStatementArg (COMMA executeStatementArg)*)? SEMI?
     ;
 
 executeBody
