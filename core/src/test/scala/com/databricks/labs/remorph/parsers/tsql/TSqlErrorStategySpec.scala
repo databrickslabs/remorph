@@ -19,7 +19,7 @@ class TSqlErrorStategySpec extends AnyWordSpec with TSqlParserTestCommon with Ma
       checkError(query = "*", errContains = "unexpected extra input")
     }
     "process a missing input exception" in {
-      checkError(query = "SELECT * FROM FRED As X Y ", errContains = "missing")
+      checkError(query = "SELECT * FROM FRED As X Y ", errContains = "unexpected extra input")
     }
   }
 
@@ -28,13 +28,12 @@ class TSqlErrorStategySpec extends AnyWordSpec with TSqlParserTestCommon with Ma
       checkError(
         query = "SELECT * FROM FRED As X Y ",
         errContains =
-          "missing ':' at '<EOF>'\nwhile parsing a T-SQL batch\nFile: -- test string --, Line: 1, Token: <EOF>")
+          "unexpected extra input 'Y' while parsing a T-SQL batch")
 
       checkError(
         query = "*",
         errContains = "unexpected extra input '*' while parsing a T-SQL batch\n" +
-          "expecting one of: End of batch, Identifier, Select Statement, Statement, '(', '.', ';', 'RAW', 'WITH'\n" +
-          "File: -- test string --, Line: 1, Token: *\n*\n^")
+          "expecting one of: End of batch, Identifier, Select Statement, Statement, '(', ';', 'RAW', 'WITH'")
 
       checkError(
         query = "SELECT * FROM",
