@@ -128,6 +128,7 @@ ddlClause
     | createColumnstoreIndex
     | createCredential
     | createCryptographicProvider
+    | createDatabaseScopedCredential
     | createDatabase
     | createDatabaseAuditSpecification
     | createDbRole
@@ -3000,10 +3001,6 @@ optionClause: OPTION lparenOptionList
 selectList: selectElement += selectListElem ( COMMA selectElement += selectListElem)*
     ;
 
-udtMethodArguments
-    : LPAREN argument += executeVarString (COMMA argument += executeVarString)* RPAREN
-    ;
-
 asterisk: (INSERTED | DELETED) DOT STAR | (tableName DOT)? STAR
     ;
 
@@ -3197,19 +3194,10 @@ asTableAlias: AS? (id | DOUBLE_QUOTE_ID)
 withTableHints: WITH LPAREN tableHint (COMMA? tableHint)* RPAREN
     ;
 
-deprecatedTableHint: LPAREN tableHint RPAREN
-    ;
-
-sybaseLegacyHint: HOLDLOCK | NOHOLDLOCK | READPAST | SHARED
-    ;
-
 tableHint
     : INDEX EQ? LPAREN expressionList RPAREN
     | FORCESEEK ( LPAREN expression LPAREN columnNameList RPAREN RPAREN)?
     | genericOption
-    ;
-
-indexValue: id | INT
     ;
 
 columnAliasList: LPAREN columnAlias (COMMA columnAlias)* RPAREN
@@ -3273,12 +3261,6 @@ entityName
     )? table = id
     ;
 
-entityNameForAzureDw: schema = id | schema = id DOT objectName = id
-    ;
-
-entityNameForParallelDw: schemaDatabase = id | schema = id DOT objectName = id
-    ;
-
 tableName: (linkedServer = id DOT DOT)? ids += id (DOT ids += id)*
     ;
 
@@ -3305,12 +3287,6 @@ fullColumnName: ((DELETED | INSERTED | tableName) DOT)? ( id | (DOLLAR (IDENTITY
     ;
 
 columnNameListWithOrder: id (ASC | DESC)? (COMMA id (ASC | DESC)?)*
-    ;
-
-insertColumnNameList: insertColumnId (COMMA insertColumnId)*
-    ;
-
-insertColumnId: (id? DOT)* id
     ;
 
 columnNameList: id (COMMA id)*
