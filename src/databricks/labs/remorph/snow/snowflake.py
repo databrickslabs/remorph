@@ -214,6 +214,18 @@ def _parse_tonumber(args: list) -> local_expression.ToNumber:
     return local_expression.ToNumber(this=seq_get(args, 0), expression=seq_get(args, 1))
 
 
+def _contains_expression(expression, check):
+    if isinstance(expression, check):
+        return True
+    if hasattr(expression, 'this') and _contains_expression(expression.this, check):
+        return True
+    if hasattr(expression, 'expressions'):
+        for sub_expr in expression.expressions:
+            if _contains_expression(sub_expr, check):
+                return True
+    return False
+
+
 class Snow(Snowflake):
     # Instantiate Snowflake Dialect
     snowflake = Snowflake()
@@ -365,6 +377,11 @@ class Snow(Snowflake):
             "APPROX_PERCENTILE": exp.ApproxQuantile.from_arg_list,
             "NTH_VALUE": local_expression.NthValue.from_arg_list,
             "MEDIAN": local_expression.Median.from_arg_list,
+            "CUME_DIST": local_expression.CumeDist.from_arg_list,
+            "DENSE_RANK": local_expression.DenseRank.from_arg_list,
+            "RANK": local_expression.Rank.from_arg_list,
+            "PERCENT_RANK": local_expression.PercentRank.from_arg_list,
+            "NTILE": local_expression.Ntile.from_arg_list,
         }
 
         FUNCTION_PARSERS = {
@@ -490,3 +507,145 @@ class Snow(Snowflake):
                 return self.expression(local_expression.Bracket, this=this, expressions=[path])
 
             return self.expression(exp.Bracket, this=this, expressions=[path])
+
+        def _parse_filter(self, this: exp.Expression | None) -> exp.Expression | None:
+            if self._match_pair(TokenType.FILTER, TokenType.L_PAREN):
+                self._match(TokenType.WHERE)
+                this = self.expression(exp.Filter, this=this, expression=self._parse_where(skip_where_token=True))
+                self._match_r_paren()
+            return this
+
+        def _parse_within_group(self, this: exp.Expression | None) -> exp.Expression | None:
+            if self._match_text_seq("WITHIN", "GROUP"):
+                order = self._parse_wrapped(self._parse_order)
+                this = self.expression(exp.WithinGroup, this=this, expression=order)
+            return this
+
+        def _parse_ignore_nulls(self, this: exp.Expression | None) -> exp.Expression | None:
+            if isinstance(this, exp.AggFunc):
+                ignore_respect = this.find(exp.IgnoreNulls, exp.RespectNulls)
+                if ignore_respect and ignore_respect is not this:
+                    ignore_respect.replace(ignore_respect.this)
+                    this = self.expression(ignore_respect.__class__, this=this)
+            return self._parse_respect_or_ignore_nulls(this)
+
+        def _parse_window(self, this: exp.Expression | None, alias: bool = False) -> exp.Expression | None:
+            func = this
+            comments = func.comments if isinstance(func, exp.Expression) else None
+
+            this = self._parse_filter(this)
+
+            # T-SQL allows the OVER (...) syntax after WITHIN GROUP.
+            # https://learn.microsoft.com/en-us/sql/t-sql/functions/percentile-disc-transact-sql?view=sql-server-ver16
+            this = self._parse_within_group(this)
+
+            # SQL spec defines an optional [ { IGNORE | RESPECT } NULLS ] OVER
+            # Some dialects choose to implement and some do not.
+            # https://dev.mysql.com/doc/refman/8.0/en/window-function-descriptions.html
+
+            # There is some code above in _parse_lambda that handles
+            #   SELECT FIRST_VALUE(TABLE.COLUMN IGNORE|RESPECT NULLS) OVER ...
+
+            # The below changes handle
+            #   SELECT FIRST_VALUE(TABLE.COLUMN) IGNORE|RESPECT NULLS OVER ...
+
+            # Oracle allows both formats
+            #   (https://docs.oracle.com/en/database/oracle/oracle-database/19/sqlrf/img_text/first_value.html)
+            #   and Snowflake chose to do the same for familiarity
+            #   https://docs.snowflake.com/en/sql-reference/functions/first_value.html#usage-notes
+            this = self._parse_ignore_nulls(this)
+
+            # bigquery select from window x AS (partition by ...)
+            if alias:
+                over = None
+                self._match(TokenType.ALIAS)
+            elif not self._match_set(self.WINDOW_BEFORE_PAREN_TOKENS):
+                return this
+            else:
+                over = self._prev.text.upper()
+
+            if comments and isinstance(func, exp.Expression):
+                func.pop_comments()
+
+            if not self._match(TokenType.L_PAREN):
+                return self.expression(
+                    exp.Window,
+                    comments=comments,
+                    this=this,
+                    alias=self._parse_id_var(False),
+                    over=over,
+                )
+
+            window_alias = self._parse_id_var(any_token=False, tokens=self.WINDOW_ALIAS_TOKENS)
+
+            first = self._match(TokenType.FIRST)
+            if self._match_text_seq("LAST"):
+                first = False
+
+            partition, order = self._parse_partition_and_order()
+            kind = self._match_set((TokenType.ROWS, TokenType.RANGE)) and self._prev.text
+
+            if kind:
+                self._match(TokenType.BETWEEN)
+                start = self._parse_window_spec()
+                self._match(TokenType.AND)
+                end = self._parse_window_spec()
+
+                spec = self.expression(
+                    exp.WindowSpec,
+                    kind=kind,
+                    start=start["value"],
+                    start_side=start["side"],
+                    end=end["value"],
+                    end_side=end["side"],
+                )
+            else:
+                spec = None
+
+            self._match_r_paren()
+
+            window = self.expression(
+                exp.Window,
+                comments=comments,
+                this=this,
+                partition_by=partition,
+                order=order,
+                spec=spec,
+                alias=window_alias,
+                over=over,
+                first=first,
+            )
+
+            # This covers Oracle's FIRST/LAST syntax: aggregate KEEP (...) OVER (...)
+            if self._match_set(self.WINDOW_BEFORE_PAREN_TOKENS, advance=False):
+                return self._parse_window(window, alias=alias)
+
+            if (
+                _contains_expression(
+                    window.this,
+                    (
+                        local_expression.CumeDist,
+                        local_expression.DenseRank,
+                        exp.FirstValue,
+                        exp.Lag,
+                        exp.LastValue,
+                        exp.Lead,
+                        local_expression.NthValue,
+                        local_expression.Ntile,
+                        local_expression.PercentRank,
+                        local_expression.Rank,
+                        exp.RowNumber,
+                    ),
+                )
+                and window.args.get('spec') is None
+            ):
+                window.args['spec'] = self.expression(
+                    exp.WindowSpec,
+                    kind="ROWS",
+                    start="UNBOUNDED",
+                    start_side="PRECEDING",
+                    end="UNBOUNDED",
+                    end_side="FOLLOWING",
+                )
+
+            return window
