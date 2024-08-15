@@ -294,11 +294,12 @@ tryCatchStatement
     : BEGIN TRY SEMI? sqlClauses+ END TRY SEMI? BEGIN CATCH SEMI? sqlClauses* END CATCH SEMI?
     ;
 
-waitforStatement: WAITFOR
- ( DELAY STRING
- | id STRING // TIME
- | receiveStatement? COMMA? (id expression)? expression?
-     ) SEMI?
+waitforStatement
+    : WAITFOR (
+        DELAY STRING
+        | id STRING // TIME
+        | receiveStatement? COMMA? (id expression)? expression?
+    ) SEMI?
     ;
 
 whileStatement: WHILE searchCondition ( sqlClauses | BREAK SEMI? | CONTINUE SEMI?)
@@ -337,9 +338,9 @@ anotherStatement
     ;
 
 alterApplicationRole
-    : ALTER APPLICATION ROLE id WITH (COMMA? NAME EQ id)? (
-        COMMA? PASSWORD EQ  STRING
-    )? (COMMA? DEFAULT_SCHEMA EQ id)?
+    : ALTER APPLICATION ROLE id WITH (COMMA? NAME EQ id)? (COMMA? PASSWORD EQ STRING)? (
+        COMMA? DEFAULT_SCHEMA EQ id
+    )?
     ;
 
 alterXmlSchemaCollection: ALTER XML SCHEMA COLLECTION dotIdentifier ADD STRING
@@ -351,14 +352,16 @@ createApplicationRole: CREATE APPLICATION ROLE id WITH optionList
 dropAggregate: DROP AGGREGATE (IF EXISTS)? dotIdentifier?
     ;
 
-dropApplicationRole: DROP APPLICATION ROLE  id
+dropApplicationRole: DROP APPLICATION ROLE id
     ;
 
 alterAssembly: ALTER ASSEMBLY id alterAssemblyClause
     ;
 
 alterAssemblyClause
-    : (FROM (STRING | AS id))? ( WITH optionList)? (DROP optionList)? (ADD FILE FROM STRING (AS id)?)?
+    : (FROM (STRING | AS id))? (WITH optionList)? (DROP optionList)? (
+        ADD FILE FROM STRING (AS id)?
+    )?
     ;
 
 createAssembly
@@ -451,7 +454,7 @@ alterAvailabilityGroupOptions
         (
             AUTOMATED_BACKUP_PREFERENCE EQ (PRIMARY | SECONDARY_ONLY | SECONDARY | NONE)
             | FAILURE_CONDITION_LEVEL EQ INT
-            | HEALTH_CHECK_TIMEOUT EQ  INT
+            | HEALTH_CHECK_TIMEOUT EQ INT
             | DB_FAILOVER EQ ( ON | OFF)
             | REQUIRED_SYNCHRONIZED_SECONDARIES_TO_COMMIT EQ INT
         ) RPAREN
@@ -520,15 +523,10 @@ alterAvailabilityGroupOptions
     | ADD LISTENER STRING LPAREN (
         WITH DHCP (ON LPAREN STRING STRING RPAREN)
         | WITH IP LPAREN (
-            (COMMA? LPAREN ( STRING (COMMA STRING)?) RPAREN)+ RPAREN (
-                COMMA PORT EQ INT
-            )?
+            (COMMA? LPAREN ( STRING (COMMA STRING)?) RPAREN)+ RPAREN (COMMA PORT EQ INT)?
         )
     ) RPAREN
-    | MODIFY LISTENER (
-        ADD IP LPAREN (  STRING (COMMA STRING)?) RPAREN
-        | PORT EQ INT
-    )
+    | MODIFY LISTENER (ADD IP LPAREN ( STRING (COMMA STRING)?) RPAREN | PORT EQ INT)
     | RESTART LISTENER STRING
     | REMOVE LISTENER STRING
     | OFFLINE
@@ -588,7 +586,7 @@ dropCredential: DROP CREDENTIAL id
 dropCryptograhicProvider: DROP CRYPTOGRAPHIC PROVIDER id
     ;
 
-dropDatabase: DROP DATABASE (IF EXISTS)? ( COMMA?  id)+
+dropDatabase: DROP DATABASE (IF EXISTS)? ( COMMA? id)+
     ;
 
 dropDatabaseAuditSpecification: DROP DATABASE AUDIT SPECIFICATION id
@@ -621,12 +619,7 @@ dropExternalResourcePool: DROP EXTERNAL RESOURCE POOL id
 dropExternalTable: DROP EXTERNAL TABLE dotIdentifier
     ;
 
-dropEventNotifications
-    : DROP EVENT NOTIFICATION id (COMMA id)* ON (
-        SERVER
-        | DATABASE
-        | QUEUE id
-    )
+dropEventNotifications: DROP EVENT NOTIFICATION id (COMMA id)* ON ( SERVER | DATABASE | QUEUE id)
     ;
 
 dropEventSession: DROP EVENT SESSION id ON SERVER
@@ -700,7 +693,7 @@ dropService: DROP SERVICE id
 
 dropSignature
     : DROP (COUNTER)? SIGNATURE FROM dotIdentifier BY (
-        COMMA? CERTIFICATE cert+=id
+        COMMA? CERTIFICATE cert += id
         | COMMA? ASYMMETRIC KEY id
     )+
     ;
@@ -738,36 +731,27 @@ truncateTable
     ;
 
 createColumnMasterKey
-    : CREATE COLUMN MASTER KEY id WITH LPAREN KEY_STORE_PROVIDER_NAME EQ STRING COMMA KEY_PATH EQ STRING
-        RPAREN
+    : CREATE COLUMN MASTER KEY id WITH LPAREN KEY_STORE_PROVIDER_NAME EQ STRING COMMA KEY_PATH EQ STRING RPAREN
     ;
 
-alterCredential
-    : ALTER CREDENTIAL id WITH IDENTITY EQ STRING (
-        COMMA SECRET EQ STRING
-    )?
+alterCredential: ALTER CREDENTIAL id WITH IDENTITY EQ STRING ( COMMA SECRET EQ STRING)?
     ;
 
 createCredential
-    : CREATE CREDENTIAL id WITH IDENTITY EQ STRING (
-        COMMA SECRET EQ STRING
-    )? (FOR CRYPTOGRAPHIC PROVIDER id)?
+    : CREATE CREDENTIAL id WITH IDENTITY EQ STRING (COMMA SECRET EQ STRING)? (
+        FOR CRYPTOGRAPHIC PROVIDER id
+    )?
     ;
 
 alterCryptographicProvider
-    : ALTER CRYPTOGRAPHIC PROVIDER id (FROM FILE EQ STRING)? (
-        ENABLE
-        | DISABLE
-    )?
+    : ALTER CRYPTOGRAPHIC PROVIDER id (FROM FILE EQ STRING)? (ENABLE | DISABLE)?
     ;
 
 createCryptographicProvider: CREATE CRYPTOGRAPHIC PROVIDER id FROM FILE EQ STRING
     ;
 
 createEndpoint
-    : CREATE ENDPOINT id (AUTHORIZATION id)? (
-        STATE EQ (STARTED | STOPPED | DISABLED)
-    )? AS TCP LPAREN endpointListenerClause RPAREN (
+    : CREATE ENDPOINT id (AUTHORIZATION id)? (STATE EQ (STARTED | STOPPED | DISABLED))? AS TCP LPAREN endpointListenerClause RPAREN (
         FOR TSQL LPAREN RPAREN
         | FOR SERVICE_BROKER LPAREN endpointAuthenticationClause (
             COMMA? endpointEncryptionAlogorithmClause
@@ -786,9 +770,9 @@ endpointEncryptionAlogorithmClause
 
 endpointAuthenticationClause
     : AUTHENTICATION EQ (
-          WINDOWS (NTLM | KERBEROS | NEGOTIATE)? ( CERTIFICATE id)?
+        WINDOWS (NTLM | KERBEROS | NEGOTIATE)? ( CERTIFICATE id)?
         | CERTIFICATE id WINDOWS? ( NTLM | KERBEROS | NEGOTIATE)?
-      )
+    )
     ;
 
 endpointListenerClause
@@ -798,11 +782,9 @@ endpointListenerClause
     ;
 
 createEventNotification
-    : CREATE EVENT NOTIFICATION id ON (
-        SERVER
-        | DATABASE
-        | QUEUE id
-    ) (WITH FAN_IN)? FOR (COMMA? etg += id)+ TO SERVICE STRING COMMA STRING
+    : CREATE EVENT NOTIFICATION id ON (SERVER | DATABASE | QUEUE id) (WITH FAN_IN)? FOR (
+        COMMA? etg += id
+    )+ TO SERVICE STRING COMMA STRING
     ;
 
 addDropEvent
@@ -817,9 +799,7 @@ addDropEvent
     ;
 
 addDropEventTarget
-    : ADD TARGET dotIdentifier (
-        LPAREN SET (COMMA? id EQ ( LPAREN? INT RPAREN? | STRING))+ RPAREN
-    )
+    : ADD TARGET dotIdentifier (LPAREN SET (COMMA? id EQ ( LPAREN? INT RPAREN? | STRING))+ RPAREN)
     | DROP TARGET dotIdentifier
     ;
 
@@ -865,22 +845,21 @@ eventSessionPredicateLeaf
 
 alterExternalDataSource
     : ALTER EXTERNAL DATA SOURCE id (
-     SET (
-        LOCATION EQ STRING COMMA?
-        | RESOURCE_MANAGER_LOCATION EQ STRING COMMA?
-        | CREDENTIAL EQ id
-    )+
-    | WITH LPAREN TYPE EQ BLOB_STORAGE COMMA LOCATION EQ STRING (
-        COMMA CREDENTIAL EQ id
-    )? RPAREN
+        SET (
+            LOCATION EQ STRING COMMA?
+            | RESOURCE_MANAGER_LOCATION EQ STRING COMMA?
+            | CREDENTIAL EQ id
+        )+
+        | WITH LPAREN TYPE EQ BLOB_STORAGE COMMA LOCATION EQ STRING (COMMA CREDENTIAL EQ id)? RPAREN
     )
     ;
 
 alterExternalLibrary
     : ALTER EXTERNAL LIBRARY id (AUTHORIZATION id)? (SET | ADD) (
-        LPAREN CONTENT EQ (STRING | HEX | NONE) (
-            COMMA PLATFORM EQ (WINDOWS | LINUX)? RPAREN
-        ) WITH (COMMA? LANGUAGE EQ (R | PYTHON) | DATA_SOURCE EQ id)+ RPAREN
+        LPAREN CONTENT EQ (STRING | HEX | NONE) (COMMA PLATFORM EQ (WINDOWS | LINUX)? RPAREN) WITH (
+            COMMA? LANGUAGE EQ (R | PYTHON)
+            | DATA_SOURCE EQ id
+        )+ RPAREN
     )
     ;
 
@@ -896,18 +875,14 @@ alterExternalResourcePool
     : ALTER EXTERNAL RESOURCE POOL (id | DEFAULT_DOUBLE_QUOTE) WITH LPAREN MAX_CPU_PERCENT EQ INT (
         COMMA? AFFINITY CPU EQ ( AUTO | (COMMA? INT TO INT | COMMA INT)+)
         | NUMANODE EQ (COMMA? INT TO INT | COMMA? INT)+
-    ) (COMMA? MAX_MEMORY_PERCENT EQ INT)? (
-        COMMA? MAX_PROCESSES EQ INT
-    )? RPAREN
+    ) (COMMA? MAX_MEMORY_PERCENT EQ INT)? (COMMA? MAX_PROCESSES EQ INT)? RPAREN
     ;
 
 createExternalResourcePool
     : CREATE EXTERNAL RESOURCE POOL id WITH LPAREN MAX_CPU_PERCENT EQ INT (
         COMMA? AFFINITY CPU EQ ( AUTO | (COMMA? INT TO INT | COMMA INT)+)
         | NUMANODE EQ (COMMA? INT TO INT | COMMA? INT)+
-    ) (COMMA? MAX_MEMORY_PERCENT EQ INT)? (
-        COMMA? MAX_PROCESSES EQ INT
-    )? RPAREN
+    ) (COMMA? MAX_MEMORY_PERCENT EQ INT)? (COMMA? MAX_PROCESSES EQ INT)? RPAREN
     ;
 
 alterFulltextCatalog
@@ -919,9 +894,9 @@ alterFulltextCatalog
     ;
 
 createFulltextCatalog
-    : CREATE FULLTEXT CATALOG id (ON FILEGROUP id)? (
-        IN PATH STRING
-    )? (WITH ACCENT_SENSITIVITY EQ (ON | OFF))? (AS DEFAULT)? (AUTHORIZATION id)?
+    : CREATE FULLTEXT CATALOG id (ON FILEGROUP id)? (IN PATH STRING)? (
+        WITH ACCENT_SENSITIVITY EQ (ON | OFF)
+    )? (AS DEFAULT)? (AUTHORIZATION id)?
     ;
 
 alterFulltextStoplist
@@ -932,19 +907,15 @@ alterFulltextStoplist
     ;
 
 createFulltextStoplist
-    : CREATE FULLTEXT STOPLIST id (FROM (dotIdentifier | SYSTEM STOPLIST))? (
-        AUTHORIZATION id
-    )?
+    : CREATE FULLTEXT STOPLIST id (FROM (dotIdentifier | SYSTEM STOPLIST))? (AUTHORIZATION id)?
     ;
 
 alterLoginSqlServer
     : ALTER LOGIN id (
         (ENABLE | DISABLE)?
-        | WITH (
-            (PASSWORD EQ ( STRING | HEX HASHED)) (MUST_CHANGE | UNLOCK)*
-        )? (OLD_PASSWORD EQ STRING ( MUST_CHANGE | UNLOCK)*)? (
-            DEFAULT_DATABASE EQ id
-        )? (DEFAULT_LANGUAGE EQ id)? (NAME EQ id)? (
+        | WITH ((PASSWORD EQ ( STRING | HEX HASHED)) (MUST_CHANGE | UNLOCK)*)? (
+            OLD_PASSWORD EQ STRING ( MUST_CHANGE | UNLOCK)*
+        )? (DEFAULT_DATABASE EQ id)? (DEFAULT_LANGUAGE EQ id)? (NAME EQ id)? (
             CHECK_POLICY EQ (ON | OFF)
         )? (CHECK_EXPIRATION EQ (ON | OFF))? (CREDENTIAL EQ id)? (NO CREDENTIAL)?
         | (ADD | DROP) CREDENTIAL id
@@ -953,19 +924,15 @@ alterLoginSqlServer
 
 createLoginSqlServer
     : CREATE LOGIN id (
-        WITH (
-            (PASSWORD EQ ( STRING | HEX HASHED)) (MUST_CHANGE | UNLOCK)*
-        )? (COMMA? SID EQ HEX)? (COMMA? DEFAULT_DATABASE EQ id)? (
-            COMMA? DEFAULT_LANGUAGE EQ id
-        )? (COMMA? CHECK_EXPIRATION EQ (ON | OFF))? (COMMA? CHECK_POLICY EQ (ON | OFF))? (
-            COMMA? CREDENTIAL EQ id
-        )?
+        WITH ((PASSWORD EQ ( STRING | HEX HASHED)) (MUST_CHANGE | UNLOCK)*)? (COMMA? SID EQ HEX)? (
+            COMMA? DEFAULT_DATABASE EQ id
+        )? (COMMA? DEFAULT_LANGUAGE EQ id)? (COMMA? CHECK_EXPIRATION EQ (ON | OFF))? (
+            COMMA? CHECK_POLICY EQ (ON | OFF)
+        )? (COMMA? CREDENTIAL EQ id)?
         | (
             FROM (
                 WINDOWS (
-                    WITH (COMMA? DEFAULT_DATABASE EQ id)? (
-                        COMMA? DEFAULT_LANGUAGE EQ STRING
-                    )?
+                    WITH (COMMA? DEFAULT_DATABASE EQ id)? (COMMA? DEFAULT_LANGUAGE EQ STRING)?
                 )
                 | CERTIFICATE id
                 | ASYMMETRIC KEY id
@@ -977,10 +944,7 @@ createLoginSqlServer
 alterLoginAzureSql
     : ALTER LOGIN id (
         (ENABLE | DISABLE)?
-        | WITH (
-            PASSWORD EQ STRING (OLD_PASSWORD EQ STRING)?
-            | NAME EQ id
-        )
+        | WITH ( PASSWORD EQ STRING (OLD_PASSWORD EQ STRING)? | NAME EQ id)
     )
     ;
 
@@ -990,12 +954,7 @@ createLoginAzureSql: CREATE LOGIN id WITH PASSWORD EQ STRING ( SID EQ HEX)?
 alterLoginAzureSqlDwAndPdw
     : ALTER LOGIN id (
         (ENABLE | DISABLE)?
-        | WITH (
-            PASSWORD EQ STRING (
-                OLD_PASSWORD EQ STRING (MUST_CHANGE | UNLOCK)*
-            )?
-            | NAME EQ id
-        )
+        | WITH (PASSWORD EQ STRING ( OLD_PASSWORD EQ STRING (MUST_CHANGE | UNLOCK)*)? | NAME EQ id)
     )
     ;
 
@@ -1040,20 +999,17 @@ alterPartitionFunction
     : ALTER PARTITION FUNCTION id LPAREN RPAREN (SPLIT | MERGE) RANGE LPAREN INT RPAREN
     ;
 
-alterPartitionScheme
-    : ALTER PARTITION SCHEME id NEXT USED (id)?
+alterPartitionScheme: ALTER PARTITION SCHEME id NEXT USED (id)?
     ;
 
 alterRemoteServiceBinding
-    : ALTER REMOTE SERVICE BINDING id WITH (USER EQ id)? (
-        COMMA ANONYMOUS EQ (ON | OFF)
-    )?
+    : ALTER REMOTE SERVICE BINDING id WITH (USER EQ id)? (COMMA ANONYMOUS EQ (ON | OFF))?
     ;
 
 createRemoteServiceBinding
-    : CREATE REMOTE SERVICE BINDING id (AUTHORIZATION id)? TO SERVICE STRING WITH (
-        USER EQ id
-    )? (COMMA ANONYMOUS EQ (ON | OFF))?
+    : CREATE REMOTE SERVICE BINDING id (AUTHORIZATION id)? TO SERVICE STRING WITH (USER EQ id)? (
+        COMMA ANONYMOUS EQ (ON | OFF)
+    )?
     ;
 
 createResourcePool
@@ -1082,15 +1038,12 @@ alterResourceGovernor
     ;
 
 alterDatabaseAuditSpecification
-    : ALTER DATABASE AUDIT SPECIFICATION id (
-        FOR SERVER AUDIT id
-    )? (auditActionSpecGroup (COMMA auditActionSpecGroup)*)? (
-        WITH LPAREN STATE EQ (ON | OFF) RPAREN
-    )?
+    : ALTER DATABASE AUDIT SPECIFICATION id (FOR SERVER AUDIT id)? (
+        auditActionSpecGroup (COMMA auditActionSpecGroup)*
+    )? (WITH LPAREN STATE EQ (ON | OFF) RPAREN)?
     ;
 
-auditActionSpecGroup
-    : (ADD | DROP) LPAREN (auditActionSpecification | id) RPAREN
+auditActionSpecGroup: (ADD | DROP) LPAREN (auditActionSpecification | id) RPAREN
     ;
 
 auditActionSpecification
@@ -1105,47 +1058,33 @@ actionSpecification: SELECT | INSERT | UPDATE | DELETE | EXECUTE | RECEIVE | REF
 auditClassName: OBJECT | SCHEMA | TABLE
     ;
 
-alterDbRole
-    : ALTER ROLE id (
-        (ADD | DROP) MEMBER id
-        | WITH NAME EQ id
-    )
+alterDbRole: ALTER ROLE id ( (ADD | DROP) MEMBER id | WITH NAME EQ id)
     ;
 
 createDatabaseAuditSpecification
-    : CREATE DATABASE AUDIT SPECIFICATION id (
-        FOR SERVER AUDIT id
-    )? (auditActionSpecGroup (COMMA auditActionSpecGroup)*)? (
-        WITH LPAREN STATE EQ (ON | OFF) RPAREN
-    )?
+    : CREATE DATABASE AUDIT SPECIFICATION id (FOR SERVER AUDIT id)? (
+        auditActionSpecGroup (COMMA auditActionSpecGroup)*
+    )? (WITH LPAREN STATE EQ (ON | OFF) RPAREN)?
     ;
 
 createDbRole: CREATE ROLE id (AUTHORIZATION id)?
     ;
 
 createRoute
-    : CREATE ROUTE id (AUTHORIZATION id)? WITH (
-        COMMA? SERVICE_NAME EQ STRING
-    )? (COMMA? BROKER_INSTANCE EQ STRING)? (COMMA? LIFETIME EQ INT)? COMMA? ADDRESS EQ STRING (
-        COMMA MIRROR_ADDRESS EQ STRING
-    )?
+    : CREATE ROUTE id (AUTHORIZATION id)? WITH (COMMA? SERVICE_NAME EQ STRING)? (
+        COMMA? BROKER_INSTANCE EQ STRING
+    )? (COMMA? LIFETIME EQ INT)? COMMA? ADDRESS EQ STRING (COMMA MIRROR_ADDRESS EQ STRING)?
     ;
 
 createRule: CREATE RULE (id DOT)? id AS searchCondition
     ;
 
 alterSchemaSql
-    : ALTER SCHEMA id TRANSFER ((OBJECT | TYPE | XML SCHEMA COLLECTION) DOUBLE_COLON)? id (
-        DOT id
-    )?
+    : ALTER SCHEMA id TRANSFER ((OBJECT | TYPE | XML SCHEMA COLLECTION) DOUBLE_COLON)? id (DOT id)?
     ;
 
 createSchema
-    : CREATE SCHEMA (
-        id
-        | AUTHORIZATION id
-        | id AUTHORIZATION id
-    ) (
+    : CREATE SCHEMA (id | AUTHORIZATION id | id AUTHORIZATION id) (
         createTable
         | createView
         | (GRANT | DENY) (SELECT | INSERT | DELETE | UPDATE) ON (SCHEMA DOUBLE_COLON)? id TO id
@@ -1156,21 +1095,16 @@ createSchema
 createSchemaAzureSqlDwAndPdw: CREATE SCHEMA id ( AUTHORIZATION id)?
     ;
 
-alterSchemaAzureSqlDwAndPdw
-    : ALTER SCHEMA id TRANSFER (OBJECT DOUBLE_COLON)? dotIdentifier?
+alterSchemaAzureSqlDwAndPdw: ALTER SCHEMA id TRANSFER (OBJECT DOUBLE_COLON)? dotIdentifier?
     ;
 
 createSearchPropertyList
-    : CREATE SEARCH PROPERTY LIST id (FROM dotIdentifier)? (
-        AUTHORIZATION id
-    )?
+    : CREATE SEARCH PROPERTY LIST id (FROM dotIdentifier)? (AUTHORIZATION id)?
     ;
 
 createSecurityPolicy
     : CREATE SECURITY POLICY dotIdentifier (
-        COMMA? ADD (FILTER | BLOCK)? PREDICATE dotIdentifier LPAREN (
-            COMMA? id
-        )+ RPAREN ON dotIdentifier (
+        COMMA? ADD (FILTER | BLOCK)? PREDICATE dotIdentifier LPAREN (COMMA? id)+ RPAREN ON dotIdentifier (
             COMMA? AFTER (INSERT | UPDATE)
             | COMMA? BEFORE (UPDATE | DELETE)
         )*
@@ -1215,15 +1149,10 @@ alterServerAudit
             )* RPAREN
         )? (
             WHERE (
-                COMMA? (NOT?) id (
-                    EQ
-                    | (LT GT)
-                    | (BANG EQ)
-                    | GT
-                    | (GT EQ)
-                    | LT
-                    | LT EQ
-                ) (INT | STRING)
+                COMMA? (NOT?) id (EQ | (LT GT) | (BANG EQ) | GT | (GT EQ) | LT | LT EQ) (
+                    INT
+                    | STRING
+                )
                 | COMMA? (AND | OR) NOT? (EQ | (LT GT) | (BANG EQ) | GT | (GT EQ) | LT | LT EQ) (
                     INT
                     | STRING
@@ -1260,15 +1189,10 @@ createServerAudit
             )* RPAREN
         )? (
             WHERE (
-                COMMA? (NOT?) id (
-                    EQ
-                    | (LT GT)
-                    | (BANG EQ)
-                    | GT
-                    | (GT EQ)
-                    | LT
-                    | LT EQ
-                ) (INT | STRING)
+                COMMA? (NOT?) id (EQ | (LT GT) | (BANG EQ) | GT | (GT EQ) | LT | LT EQ) (
+                    INT
+                    | STRING
+                )
                 | COMMA? (AND | OR) NOT? (EQ | (LT GT) | (BANG EQ) | GT | (GT EQ) | LT | LT EQ) (
                     INT
                     | STRING
@@ -1281,17 +1205,15 @@ createServerAudit
     ;
 
 alterServerAuditSpecification
-    : ALTER SERVER AUDIT SPECIFICATION id (
-        FOR SERVER AUDIT id
-    )? ((ADD | DROP) LPAREN id RPAREN)* (
+    : ALTER SERVER AUDIT SPECIFICATION id (FOR SERVER AUDIT id)? ((ADD | DROP) LPAREN id RPAREN)* (
         WITH LPAREN STATE EQ (ON | OFF) RPAREN
     )?
     ;
 
 createServerAuditSpecification
-    : CREATE SERVER AUDIT SPECIFICATION id (
-        FOR SERVER AUDIT id
-    )? (ADD LPAREN id RPAREN)* (WITH LPAREN STATE EQ (ON | OFF) RPAREN)?
+    : CREATE SERVER AUDIT SPECIFICATION id (FOR SERVER AUDIT id)? (ADD LPAREN id RPAREN)* (
+        WITH LPAREN STATE EQ (ON | OFF) RPAREN
+    )?
     ;
 
 alterServerConfiguration
@@ -1335,9 +1257,7 @@ alterServerRolePdw: ALTER SERVER ROLE id (ADD | DROP) MEMBER id
     ;
 
 alterService
-    : ALTER SERVICE id (ON QUEUE dotIdentifier)? (
-        LPAREN optArgClause (COMMA optArgClause)* RPAREN
-    )?
+    : ALTER SERVICE id (ON QUEUE dotIdentifier)? (LPAREN optArgClause (COMMA optArgClause)* RPAREN)?
     ;
 
 optArgClause: (ADD | DROP) CONTRACT id
@@ -1422,12 +1342,8 @@ createUser
     ;
 
 createUserAzureSqlDw
-    : CREATE USER id ((FOR | FROM) LOGIN id | WITHOUT LOGIN)? (
-        WITH DEFAULT_SCHEMA EQ id
-    )?
-    | CREATE USER  id FROM EXTERNAL PROVIDER (
-        WITH DEFAULT_SCHEMA EQ id
-    )?
+    : CREATE USER id ((FOR | FROM) LOGIN id | WITHOUT LOGIN)? (WITH DEFAULT_SCHEMA EQ id)?
+    | CREATE USER id FROM EXTERNAL PROVIDER ( WITH DEFAULT_SCHEMA EQ id)?
     ;
 
 alterUserAzureSql
@@ -1462,19 +1378,11 @@ createWorkloadGroup
             | MAX_DOP EQ INT
             | GROUP_MAX_REQUESTS EQ INT
         )+ RPAREN
-    )? (
-        USING (id | DEFAULT_DOUBLE_QUOTE)? (
-            COMMA? EXTERNAL id
-            | DEFAULT_DOUBLE_QUOTE
-        )?
-    )?
+    )? (USING (id | DEFAULT_DOUBLE_QUOTE)? ( COMMA? EXTERNAL id | DEFAULT_DOUBLE_QUOTE)?)?
     ;
 
 createPartitionFunction
-    : CREATE PARTITION FUNCTION id LPAREN dataType RPAREN AS RANGE (
-        LEFT
-        | RIGHT
-    )? FOR VALUES LPAREN expressionList RPAREN
+    : CREATE PARTITION FUNCTION id LPAREN dataType RPAREN AS RANGE (LEFT | RIGHT)? FOR VALUES LPAREN expressionList RPAREN
     ;
 
 createPartitionScheme
@@ -1483,8 +1391,7 @@ createPartitionScheme
     )* RPAREN
     ;
 
-createQueue
-    : CREATE QUEUE (tableName | id) queueSettings? (ON id | DEFAULT)?
+createQueue: CREATE QUEUE (tableName | id) queueSettings? (ON id | DEFAULT)?
     ;
 
 queueSettings
@@ -1529,12 +1436,7 @@ conversationStatement
 
 messageStatement
     : CREATE MESSAGE TYPE id (AUTHORIZATION id)? (
-        VALIDATION EQ (
-            NONE
-            | EMPTY
-            | WELL_FORMED_XML
-            | VALID_XML WITH SCHEMA COLLECTION id
-        )
+        VALIDATION EQ (NONE | EMPTY | WELL_FORMED_XML | VALID_XML WITH SCHEMA COLLECTION id)
     )
     ;
 
@@ -1596,8 +1498,7 @@ update
     )? updateWhereClause? optionClause? SEMI?
     ;
 
-updateWhereClause
-    : WHERE (searchCondition | CURRENT OF ( GLOBAL? cursorName | LOCAL_ID))
+updateWhereClause: WHERE (searchCondition | CURRENT OF ( GLOBAL? cursorName | LOCAL_ID))
     ;
 
 outputClause
@@ -1696,10 +1597,7 @@ singlePartitionRebuildIndexOption
     | ONLINE EQ (ON (LPAREN lowPriorityLockWait RPAREN)? | OFF)
     ;
 
-onPartitions
-    : ON PARTITIONS LPAREN INT (TO INT)? (
-        COMMA INT (TO INT)?
-    )* RPAREN
+onPartitions: ON PARTITIONS LPAREN INT (TO INT)? ( COMMA INT (TO INT)?)* RPAREN
     ;
 
 createColumnstoreIndex
@@ -1722,11 +1620,12 @@ createNonclusteredColumnstoreIndex
     ;
 
 createOrAlterProcedure
-    : ((CREATE (OR (ALTER | REPLACE))?) | ALTER) proc = (PROC | PROCEDURE) dotIdentifier (
-        SEMI INT
-    )? (LPAREN? procedureParam (COMMA procedureParam)* RPAREN?)? (
-        WITH procedureOption (COMMA procedureOption)*
-    )? (FOR REPLICATION)? AS (asExternalName | sqlClauses*)
+    : ((CREATE (OR (ALTER | REPLACE))?) | ALTER) proc = (PROC | PROCEDURE) dotIdentifier (SEMI INT)? (
+        LPAREN? procedureParam (COMMA procedureParam)* RPAREN?
+    )? (WITH procedureOption (COMMA procedureOption)*)? (FOR REPLICATION)? AS (
+        asExternalName
+        | sqlClauses*
+    )
     ;
 
 asExternalName: EXTERNAL NAME dotIdentifier
@@ -1791,9 +1690,11 @@ procedureParamDefaultValue: NULL_ | DEFAULT | constant | LOCAL_ID
     ;
 
 procedureParam
-    : LOCAL_ID AS? (id DOT)? dataType VARYING? (
-        EQ procedureParamDefaultValue
-    )? (OUT | OUTPUT | READONLY)?
+    : LOCAL_ID AS? (id DOT)? dataType VARYING? (EQ procedureParamDefaultValue)? (
+        OUT
+        | OUTPUT
+        | READONLY
+    )?
     ;
 
 procedureOption: executeClause | genericOption
@@ -1903,9 +1804,7 @@ alterTable
     ;
 
 switchPartition
-    : (PARTITION? expression)? TO tableName (
-        PARTITION expression
-    )? (WITH lowPriorityLockWait)?
+    : (PARTITION? expression)? TO tableName (PARTITION expression)? (WITH lowPriorityLockWait)?
     ;
 
 lowPriorityLockWait
@@ -1932,11 +1831,9 @@ addOrModifyFiles
     ;
 
 fileSpec
-    : LPAREN NAME EQ idOrString (COMMA NEWNAME EQ idOrString)? (
-        COMMA FILENAME EQ STRING
-    )? (COMMA SIZE EQ fileSize)? (COMMA MAXSIZE EQ (fileSize) | UNLIMITED)? (
-        COMMA FILEGROWTH EQ fileSize
-    )? (COMMA OFFLINE)? RPAREN
+    : LPAREN NAME EQ idOrString (COMMA NEWNAME EQ idOrString)? (COMMA FILENAME EQ STRING)? (
+        COMMA SIZE EQ fileSize
+    )? (COMMA MAXSIZE EQ (fileSize) | UNLIMITED)? (COMMA FILEGROWTH EQ fileSize)? (COMMA OFFLINE)? RPAREN
     ;
 
 addOrModifyFilegroups
@@ -2007,9 +1904,7 @@ cursorOption: CURSOR_CLOSE_ON_COMMIT onOff | CURSOR_DEFAULT ( LOCAL | GLOBAL)
     ;
 
 alterEndpoint
-    : ALTER ENDPOINT id (AUTHORIZATION id)? (
-        STATE EQ state = (STARTED | STOPPED | DISABLED)
-    )? AS TCP LPAREN endpointListenerClause RPAREN (
+    : ALTER ENDPOINT id (AUTHORIZATION id)? (STATE EQ state = (STARTED | STOPPED | DISABLED))? AS TCP LPAREN endpointListenerClause RPAREN (
         FOR TSQL LPAREN RPAREN
         | FOR SERVICE_BROKER LPAREN endpointAuthenticationClause (
             COMMA? endpointEncryptionAlogorithmClause
@@ -2193,8 +2088,7 @@ rowsetFunctionLimited: openquery | opendatasource
 openquery: OPENQUERY LPAREN id COMMA STRING RPAREN
     ;
 
-opendatasource
-    : OPENDATASOURCE LPAREN STRING COMMA STRING RPAREN dotIdentifier
+opendatasource: OPENDATASOURCE LPAREN STRING COMMA STRING RPAREN dotIdentifier
     ;
 
 // TODO: JI - Simplify me
@@ -2234,8 +2128,7 @@ backupCertificate
     )?
     ;
 
-backupMasterKey
-    : BACKUP MASTER KEY TO FILE EQ STRING ENCRYPTION BY PASSWORD EQ STRING
+backupMasterKey: BACKUP MASTER KEY TO FILE EQ STRING ENCRYPTION BY PASSWORD EQ STRING
     ;
 
 backupServiceMasterKey
@@ -2305,10 +2198,9 @@ principalId: id | PUBLIC
     ;
 
 createCertificate
-    : CREATE CERTIFICATE id (AUTHORIZATION id)? (
-        FROM existingKeys
-        | generateNewKeys
-    ) (ACTIVE FOR BEGIN DIALOG EQ onOff)?
+    : CREATE CERTIFICATE id (AUTHORIZATION id)? (FROM existingKeys | generateNewKeys) (
+        ACTIVE FOR BEGIN DIALOG EQ onOff
+    )?
     ;
 
 existingKeys
@@ -2317,15 +2209,10 @@ existingKeys
     ;
 
 privateKeyOptions
-    : (FILE | HEX) EQ STRING (
-        COMMA (DECRYPTION | ENCRYPTION) BY PASSWORD EQ STRING
-    )?
+    : (FILE | HEX) EQ STRING (COMMA (DECRYPTION | ENCRYPTION) BY PASSWORD EQ STRING)?
     ;
 
-generateNewKeys
-    : (ENCRYPTION BY PASSWORD EQ STRING)? WITH SUBJECT EQ STRING (
-        COMMA dateOptions
-    )*
+generateNewKeys: (ENCRYPTION BY PASSWORD EQ STRING)? WITH SUBJECT EQ STRING ( COMMA dateOptions)*
     ;
 
 dateOptions: (START_DATE | EXPIRY_DATE) EQ STRING
@@ -2341,9 +2228,9 @@ closeKey: CLOSE SYMMETRIC KEY id | CLOSE ALL SYMMETRIC KEYS | CLOSE MASTER KEY
 
 createKey
     : CREATE MASTER KEY ENCRYPTION BY PASSWORD EQ STRING
-    | CREATE SYMMETRIC KEY id (AUTHORIZATION id)? (
-        FROM PROVIDER id
-    )? WITH ((keyOptions | ENCRYPTION BY encryptionMechanism) COMMA?)+
+    | CREATE SYMMETRIC KEY id (AUTHORIZATION id)? (FROM PROVIDER id)? WITH (
+        (keyOptions | ENCRYPTION BY encryptionMechanism) COMMA?
+    )+
     ;
 
 keyOptions
@@ -2367,11 +2254,7 @@ algorithm
     | AES_256
     ;
 
-encryptionMechanism
-    : CERTIFICATE id
-    | ASYMMETRIC KEY id
-    | SYMMETRIC KEY id
-    | PASSWORD EQ STRING
+encryptionMechanism: CERTIFICATE id | ASYMMETRIC KEY id | SYMMETRIC KEY id | PASSWORD EQ STRING
     ;
 
 decryptionMechanism
@@ -2457,28 +2340,19 @@ dbccCheckalloc
         LPAREN (id | STRING | INT) (
             COMMA NOINDEX
             | COMMA ( REPAIR_ALLOW_DATA_LOSS | REPAIR_FAST | REPAIR_REBUILD)
-        )? RPAREN (
-            WITH dbccCheckallocOption (COMMA dbccCheckallocOption)*
-        )?
+        )? RPAREN (WITH dbccCheckallocOption (COMMA dbccCheckallocOption)*)?
     )?
     ;
 
-dbccCheckcatalog
-    : CHECKCATALOG (LPAREN (id | STRING | INT) RPAREN)? (
-        WITH NO_INFOMSGS
-    )?
+dbccCheckcatalog: CHECKCATALOG (LPAREN (id | STRING | INT) RPAREN)? ( WITH NO_INFOMSGS)?
     ;
 
 dbccCheckconstraintsOption: ALL_CONSTRAINTS | ALL_ERRORMSGS | NO_INFOMSGS
     ;
 
 dbccCheckconstraints
-    : CHECKCONSTRAINTS (
-        LPAREN (id | STRING) RPAREN
-    )? (
-        WITH dbccCheckconstraintsOption (
-            COMMA dbccCheckconstraintsOption
-        )*
+    : CHECKCONSTRAINTS (LPAREN (id | STRING) RPAREN)? (
+        WITH dbccCheckconstraintsOption ( COMMA dbccCheckconstraintsOption)*
     )?
     ;
 
@@ -2506,23 +2380,14 @@ dbccCheckfilegroup
 
 dbccChecktable
     : CHECKTABLE LPAREN STRING (
-        COMMA (
-            NOINDEX
-            | expression
-            | REPAIR_ALLOW_DATA_LOSS
-            | REPAIR_FAST
-            | REPAIR_REBUILD
-        )
-    )? RPAREN (
-        WITH dbccCheckdbTableOption (COMMA dbccCheckdbTableOption)*
-    )?
+        COMMA (NOINDEX | expression | REPAIR_ALLOW_DATA_LOSS | REPAIR_FAST | REPAIR_REBUILD)
+    )? RPAREN (WITH dbccCheckdbTableOption (COMMA dbccCheckdbTableOption)*)?
     ;
 
 dbccCleantable
-    : CLEANTABLE LPAREN (id | STRING | INT) COMMA (
-        id
-        | STRING
-    ) (COMMA INT)? RPAREN (WITH NO_INFOMSGS)?
+    : CLEANTABLE LPAREN (id | STRING | INT) COMMA (id | STRING) (COMMA INT)? RPAREN (
+        WITH NO_INFOMSGS
+    )?
     ;
 
 dbccClonedatabaseOption
@@ -2539,10 +2404,7 @@ dbccClonedatabase
     )?
     ;
 
-dbccPdwShowspaceused
-    : PDW_SHOWSPACEUSED (LPAREN id RPAREN)? (
-        WITH IGNORE_REPLICATED_TABLE_CACHE
-    )?
+dbccPdwShowspaceused: PDW_SHOWSPACEUSED (LPAREN id RPAREN)? ( WITH IGNORE_REPLICATED_TABLE_CACHE)?
     ;
 
 dbccProccache: PROCCACHE (WITH NO_INFOMSGS)?
@@ -2558,22 +2420,19 @@ dbccShowcontig
     ;
 
 dbccShrinklog
-    : SHRINKLOG (LPAREN SIZE EQ ((INT ( MB | GB | TB)) | DEFAULT) RPAREN)? (
-        WITH NO_INFOMSGS
-    )?
+    : SHRINKLOG (LPAREN SIZE EQ ((INT ( MB | GB | TB)) | DEFAULT) RPAREN)? (WITH NO_INFOMSGS)?
     ;
 
 dbccDbreindex
-    : DBREINDEX LPAREN idOrString (
-        COMMA idOrString ( COMMA expression)?
-    )? RPAREN (WITH NO_INFOMSGS)?
+    : DBREINDEX LPAREN idOrString (COMMA idOrString ( COMMA expression)?)? RPAREN (
+        WITH NO_INFOMSGS
+    )?
     ;
 
 dbccDllFree: id LPAREN FREE RPAREN ( WITH NO_INFOMSGS)?
     ;
 
-dbccDropcleanbuffers
-    : DROPCLEANBUFFERS (LPAREN COMPUTE | ALL RPAREN)? (WITH NO_INFOMSGS)?
+dbccDropcleanbuffers: DROPCLEANBUFFERS (LPAREN COMPUTE | ALL RPAREN)? (WITH NO_INFOMSGS)?
     ;
 
 dbccClause
@@ -2665,12 +2524,7 @@ columnIndex
     )?
     ;
 
-onPartitionOrFilegroup
-    : ON (
-        ( id LPAREN id RPAREN)
-        | id
-        | DEFAULT_DOUBLE_QUOTE
-    )
+onPartitionOrFilegroup: ON ( ( id LPAREN id RPAREN) | id | DEFAULT_DOUBLE_QUOTE)
     ;
 
 tableConstraint
@@ -2792,7 +2646,7 @@ constant_LOCAL_ID: constant | LOCAL_ID
 
 expression
     : LPAREN expression RPAREN                                # exprPrecedence
-    | <assoc = right> BIT_NOT expression                 # exprBitNot
+    | <assoc = right> BIT_NOT expression                      # exprBitNot
     | <assoc = right> op = (PLUS | MINUS) expression          # exprUnary
     | expression op = (STAR | DIV | MOD) expression           # exprOpPrec1
     | expression op = (PLUS | MINUS) expression               # exprOpPrec2
@@ -3048,9 +2902,7 @@ fullColumnNameList: column += fullColumnName (COMMA column += fullColumnName)*
     ;
 
 rowsetFunction
-    : (
-        OPENROWSET LPAREN STRING COMMA STRING COMMA STRING RPAREN
-    )
+    : (OPENROWSET LPAREN STRING COMMA STRING COMMA STRING RPAREN)
     | (OPENROWSET LPAREN BULK STRING COMMA ( bulkOption (COMMA bulkOption)* | id) RPAREN)
     ;
 
@@ -3236,8 +3088,7 @@ beginConversationTimer
     ;
 
 beginConversationDialog
-    : BEGIN DIALOG (CONVERSATION)? LOCAL_ID FROM SERVICE serviceName TO SERVICE serviceName
-        (
+    : BEGIN DIALOG (CONVERSATION)? LOCAL_ID FROM SERVICE serviceName TO SERVICE serviceName (
         COMMA STRING
     )? ON CONTRACT contractName (
         WITH ((RELATED_CONVERSATION | RELATED_CONVERSATION_GROUP) EQ LOCAL_ID COMMA?)? (
@@ -3263,8 +3114,7 @@ endConversation
     )?
     ;
 
-waitforConversation
-    : WAITFOR? LPAREN getConversation RPAREN (COMMA? TIMEOUT expression)? SEMI?
+waitforConversation: WAITFOR? LPAREN getConversation RPAREN (COMMA? TIMEOUT expression)? SEMI?
     ;
 
 getConversation

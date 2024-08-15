@@ -27,8 +27,7 @@ class TSqlErrorStategySpec extends AnyWordSpec with TSqlParserTestCommon with Ma
     "produce human readable messages" in {
       checkError(
         query = "SELECT * FROM FRED As X Y ",
-        errContains =
-          "unexpected extra input 'Y' while parsing a T-SQL batch")
+        errContains = "unexpected extra input 'Y' while parsing a T-SQL batch")
 
       checkError(
         query = "*",
