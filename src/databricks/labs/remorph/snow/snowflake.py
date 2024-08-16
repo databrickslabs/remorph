@@ -510,35 +510,33 @@ class Snow(Snowflake):
 
         def _parse_window(self, this: exp.Expression | None, alias: bool = False) -> exp.Expression | None:
             window = super()._parse_window(this=this, alias=alias)
-            if window:
-                # Adding default window frame for the rank-related functions in snowflake
-                if (
-                    _contains_expression(
-                        window.this,
-                        (
-                            local_expression.CumeDist,
-                            local_expression.DenseRank,
-                            exp.FirstValue,
-                            exp.Lag,
-                            exp.LastValue,
-                            exp.Lead,
-                            local_expression.NthValue,
-                            local_expression.Ntile,
-                            local_expression.PercentRank,
-                            local_expression.Rank,
-                            exp.RowNumber,
-                        ),
-                    )
-                    and window.args.get('spec') is None
-                ):
-                    window.args['spec'] = self.expression(
-                        exp.WindowSpec,
-                        kind="ROWS",
-                        start="UNBOUNDED",
-                        start_side="PRECEDING",
-                        end="UNBOUNDED",
-                        end_side="FOLLOWING",
-                    )
-
-                return window
+            # Adding default window frame for the rank-related functions in snowflake
+            if (
+                window
+                and _contains_expression(
+                    window.this,
+                    (
+                        local_expression.CumeDist,
+                        local_expression.DenseRank,
+                        exp.FirstValue,
+                        exp.Lag,
+                        exp.LastValue,
+                        exp.Lead,
+                        local_expression.NthValue,
+                        local_expression.Ntile,
+                        local_expression.PercentRank,
+                        local_expression.Rank,
+                        exp.RowNumber,
+                    ),
+                )
+                and window.args.get('spec') is None
+            ):
+                window.args['spec'] = self.expression(
+                    exp.WindowSpec,
+                    kind="ROWS",
+                    start="UNBOUNDED",
+                    start_side="PRECEDING",
+                    end="UNBOUNDED",
+                    end_side="FOLLOWING",
+                )
             return window
