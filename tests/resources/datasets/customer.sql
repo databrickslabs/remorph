@@ -13,7 +13,6 @@ CREATE TABLE if NOT EXISTS customer (
 
 ----------------------------------------------------------------
 
-%sql
 INSERT INTO customer (c_custkey, c_name, c_address, c_nationkey, c_phone, c_acctbal, c_mktsegment, c_comment) VALUES
  (3295930, 'Customer#003295930', 'V0E9sOQGMCpNW', 6, '16-588-250-3730', 4319.11, 'HOUSEHOLD', 'pinto beans. quickly express deposits are slyly final accounts. fu'),
  (3371083, 'Customer#003371083', 'X7Dh9jIV,OFXaim1 Y', 6, '16-850-721-5939', 362.92, 'AUTOMOBILE', 'riously final Tiresias affix carefully above the slyly final packages. ironic, fin'),
