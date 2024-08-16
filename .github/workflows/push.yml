@@ -199,6 +199,8 @@ jobs:
         run: mvn --update-snapshots -B exec:java -pl coverage --file pom.xml --fail-at-end -DsourceDir=tests/resources/functional/snowflake -DoutputPath=coverage-result.json -DsourceDialect=Snow -Dextractor=comment
         continue-on-error: true
 
+
+
       - name: Publish JUnit report
         uses: EnricoMi/publish-unit-test-result-action@v2
         if: always()
@@ -268,3 +270,31 @@ jobs:
         run: |
           echo "No file produced in tests-reports/"
           exit 1
+
+
+  antlr-grammar-linting:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK 11
+        uses: actions/setup-java@v4
+        with:
+          distribution: corretto
+          java-version: 11
+
+      # GitHub Action team seems not to have cycles to make the cache work properly, hence this hack.
+      # See https://github.com/actions/setup-java/issues/255
+      # See https://github.com/actions/setup-java/issues/577
+      - name: Cache Maven
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2
+          key: ${{ github.job }}-${{ hashFiles('**/pom.xml') }}
+
+      - name: Run Lint Test with Maven
+        run: mvn compile -DskipTests --update-snapshots -B exec:java -pl linter --file pom.xml -Dexec.args="-i core/src/main/antlr4 -o .venv/linter/grammar -c true"
+        continue-on-error: true # Note - we need to fix existing issues before we can enforce this

@@ -11,6 +11,7 @@ target/
 coverage.*
 *.iws
 /core/gen/
+/antlrlinter/gen/
 *.tokens
 spark-warehouse/
 remorph_transpile/
