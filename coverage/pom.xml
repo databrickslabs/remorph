@@ -94,6 +94,16 @@
       <!-- TODO: perhaps we need to switch to jre8 -->
       <version>12.8.0.jre11</version>
     </dependency>
+    <dependency>
+      <groupId>net.snowflake</groupId>
+      <artifactId>snowflake-jdbc</artifactId>
+      <version>3.18.0</version>
+    </dependency>
+    <dependency>
+      <groupId>org.bouncycastle</groupId>
+      <artifactId>bcprov-jdk18on</artifactId>
+      <version>1.78.1</version>
+    </dependency>
   </dependencies>
   <build>
     <outputDirectory>target/scala-${scala.binary.version}/classes</outputDirectory>

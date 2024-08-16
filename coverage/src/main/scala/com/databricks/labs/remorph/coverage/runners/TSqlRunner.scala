@@ -1,9 +1,6 @@
 package com.databricks.labs.remorph.coverage.runners
 
-import com.github.tototoshi.csv.CSVWriter
-
-import java.io.StringWriter
-import java.sql.{Connection, DriverManager, ResultSet}
+import java.sql.DriverManager
 
 class TSqlRunner(env: EnvGetter) {
   // scalastyle:off
@@ -14,34 +11,9 @@ class TSqlRunner(env: EnvGetter) {
   private val user = env.get("TEST_TSQL_USER")
   private val pass = env.get("TEST_TSQL_PASS")
   private val connection = DriverManager.getConnection(url, user, pass)
+  private val dumper = new CsvDumper(connection)
 
-  def queryToCSV(query: String): String = {
-    val statement = connection.createStatement()
-    val resultSet = statement.executeQuery(query)
-    val csv = resultSetToCSV(resultSet)
-    resultSet.close()
-    statement.close()
-    csv
-  }
-
-  private def resultSetToCSV(resultSet: ResultSet): String = {
-    val writer = new StringWriter()
-    val csvWriter = new CSVWriter(writer)
-
-    // write the header
-    val metaData = resultSet.getMetaData
-    val columnCount = metaData.getColumnCount
-    val header = (1 to columnCount).map(metaData.getColumnName)
-    csvWriter.writeRow(header)
-
-    // write the data
-    while (resultSet.next()) {
-      val row = (1 to columnCount).map(resultSet.getString)
-      csvWriter.writeRow(row)
-    }
-
-    writer.toString()
-  }
+  def queryToCSV(query: String): String = dumper.queryToCSV(query)
 
   def close() {
     connection.close()
