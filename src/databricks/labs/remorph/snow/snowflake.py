@@ -214,14 +214,14 @@ def _parse_tonumber(args: list) -> local_expression.ToNumber:
     return local_expression.ToNumber(this=seq_get(args, 0), expression=seq_get(args, 1))
 
 
-def _contains_expression(expression, check):
-    if isinstance(expression, check):
+def _contains_expression(expr, target_type):
+    if isinstance(expr, target_type):
         return True
-    if hasattr(expression, 'this') and _contains_expression(expression.this, check):
+    if hasattr(expr, 'this') and _contains_expression(expr.this, target_type):
         return True
-    if hasattr(expression, 'expressions'):
-        for sub_expr in expression.expressions:
-            if _contains_expression(sub_expr, check):
+    if hasattr(expr, 'expressions'):
+        for sub_expr in expr.expressions:
+            if _contains_expression(sub_expr, target_type):
                 return True
     return False
 
@@ -620,6 +620,7 @@ class Snow(Snowflake):
             if self._match_set(self.WINDOW_BEFORE_PAREN_TOKENS, advance=False):
                 return self._parse_window(window, alias=alias)
 
+            # Adding default window frame for the rank-related functions in snowflake
             if (
                 _contains_expression(
                     window.this,
