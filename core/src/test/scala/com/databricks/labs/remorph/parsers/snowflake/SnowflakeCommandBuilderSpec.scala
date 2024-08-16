@@ -94,4 +94,12 @@ class SnowflakeCommandBuilderSpec
 
   }
 
+  "translate BANG to Unresolved Expression" in {
+    example(
+      "!set error_flag = true;",
+      _.snowSqlCommand(),
+      UnresolvedCommand("!"))
+  }
+
+
 }
