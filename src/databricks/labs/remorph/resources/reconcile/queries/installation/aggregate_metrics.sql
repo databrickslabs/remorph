@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS aggregate_metrics (
     recon_table_id BIGINT NOT NULL,
-    rule_id BIGINT,
+    rule_id BIGINT NOT NULL,
     recon_metrics STRUCT<
                                                 missing_in_source: INTEGER,
                                                 missing_in_target: INTEGER,
