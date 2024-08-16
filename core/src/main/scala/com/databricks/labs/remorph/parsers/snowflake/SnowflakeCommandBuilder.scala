@@ -52,7 +52,7 @@ class SnowflakeCommandBuilder
     ir.SetVariable(variableName, variableValue, variableDataType)
   }
 
-  override  def visitSnowSqlCommand(ctx: SnowSqlCommandContext): ir.UnresolvedCommand = {
+  override def visitSnowSqlCommand(ctx: SnowSqlCommandContext): ir.UnresolvedCommand = {
     ir.UnresolvedCommand(ctx.getText)
   }
 

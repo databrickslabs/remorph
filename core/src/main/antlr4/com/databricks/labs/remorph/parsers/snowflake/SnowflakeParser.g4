@@ -41,7 +41,14 @@ snowflakeFile: batch? EOF
 batch: sqlCommand (SEMI* sqlCommand)* SEMI*
     ;
 
-sqlCommand:  ddlCommand | dmlCommand | showCommand | useCommand | describeCommand | otherCommand | snowSqlCommand
+sqlCommand
+    : ddlCommand
+    | dmlCommand
+    | showCommand
+    | useCommand
+    | describeCommand
+    | otherCommand
+    | snowSqlCommand
     ;
 
 ddlCommand: alterCommand | createCommand | dropCommand | undropCommand
