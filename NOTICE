@@ -18,6 +18,14 @@ Copyright (c) 2016, Marcus Henriksson (kuseman80@gmail.com).
 Snowflake Database grammar - https://github.com/antlr/grammars-v4/tree/master/sql/snowflake
 Copyright (c) 2022, Michał Lorek.
 
+SLF4J - https://slf4j.org
+Copyright (c) 2004-2023 QOS.ch
+License - https://www.slf4j.org/license.html
+
+Microsoft JDBC Driver for SQL Server - https://github.com/microsoft/mssql-jdbc
+Copyright (c) Microsoft Corporation
+License - https://github.com/microsoft/mssql-jdbc/blob/main/LICENSE
+
 This software contains code from the following open source projects, licensed under the Apache 2.0 license:
 
 DataComPy - https://github.com/capitalone/datacompy
@@ -31,6 +39,22 @@ License - https://github.com/apache/spark/blob/master/LICENSE
 Databricks SDK for Python - https://github.com/databricks/databricks-sdk-py
 Copyright 2023 Databricks, Inc.  All rights reserved.
 License - https://github.com/databricks/databricks-sdk-py/blob/main/LICENSE
+
+Apache Log4j - https://github.com/apache/logging-log4j2
+Copyright 1999-2024 Apache Software Foundation
+License - https://github.com/apache/logging-log4j2/blob/2.x/LICENSE.txt
+
+Scala Logging - https://github.com/lightbend-labs/scala-logging
+Copyright 2014-2021 Lightbend, Inc.
+License - https://github.com/lightbend-labs/scala-logging?tab=Apache-2.0-1-ov-file#readme
+
+Snowflake JDBC Driver - https://github.com/snowflakedb/snowflake-jdbc
+Copyright 2012-2023 Snowflake Computing, Inc.
+License - https://github.com/snowflakedb/snowflake-jdbc/blob/master/LICENSE.txt
+
+scala-csv - https://github.com/tototoshi/scala-csv
+Copyright 2013-2015 Toshiyuki Takahashi
+License - https://github.com/tototoshi/scala-csv/blob/master/LICENSE.txt
 
 This software contains code from the following open source projects, licensed under the BSD license:
 

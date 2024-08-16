@@ -22,6 +22,8 @@
     <extractor></extractor>
     <databricks-connect.version>15.1.0</databricks-connect.version>
     <databricks-sdk-java.version>0.27.1</databricks-sdk-java.version>
+    <mssql-jdbc.version>12.8.0.jre8</mssql-jdbc.version>
+    <snowflake-jdbc.version>3.18.0</snowflake-jdbc.version>
   </properties>
   <dependencies>
     <dependency>
@@ -81,7 +83,7 @@
     <dependency>
       <groupId>net.snowflake</groupId>
       <artifactId>snowflake-jdbc</artifactId>
-      <version>3.18.0</version>
+      <version>${snowflake-jdbc.version}</version>
     </dependency>
     <dependency>
       <groupId>com.github.tototoshi</groupId>
@@ -91,13 +93,7 @@
     <dependency>
       <groupId>com.microsoft.sqlserver</groupId>
       <artifactId>mssql-jdbc</artifactId>
-      <!-- TODO: perhaps we need to switch to jre8 -->
-      <version>12.8.0.jre11</version>
-    </dependency>
-    <dependency>
-      <groupId>net.snowflake</groupId>
-      <artifactId>snowflake-jdbc</artifactId>
-      <version>3.18.0</version>
+      <version>${mssql-jdbc.version}</version>
     </dependency>
     <dependency>
       <groupId>org.bouncycastle</groupId>
