@@ -2,17 +2,17 @@ package com.databricks.labs.remorph
 
 import org.scalatest.funsuite.AnyFunSuite
 
-class DAGTest extends AnyFunSuite {
+class LineageTest extends AnyFunSuite {
 
   test("addNode should add a node to the DAG") {
-    val dag = new DAG
+    val dag = new Lineage
     val node = Node("A")
     dag.addNode(node)
     assert(dag.getNodes.contains(node))
   }
 
   test("addEdge should add an edge to the DAG") {
-    val dag = new DAG
+    val dag = new Lineage
     val nodeA = Node("A")
     val nodeB = Node("B")
     dag.addNode(nodeA)
@@ -22,7 +22,7 @@ class DAGTest extends AnyFunSuite {
   }
 
   test("addEdge should throw an exception if adding an edge creates a cycle") {
-    val dag = new DAG
+    val dag = new Lineage
     val nodeA = Node("A")
     val nodeB = Node("B")
     dag.addNode(nodeA)
@@ -34,7 +34,7 @@ class DAGTest extends AnyFunSuite {
   }
 
   test("getImmediateParents should return the immediate parents of a node") {
-    val dag = new DAG
+    val dag = new Lineage
     val nodeA = Node("A")
     val nodeB = Node("B")
     val nodeC = Node("C")

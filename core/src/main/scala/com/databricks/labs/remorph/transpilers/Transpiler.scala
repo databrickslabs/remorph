@@ -21,13 +21,3 @@ abstract class BaseTranspiler extends Transpiler {
     generate(optimized)
   }
 }
-
-object TranspilerFactory {
-  def getTranspiler(engine: String): Transpiler = {
-    engine.toLowerCase() match {
-      case "tsql" => new TSqlToDatabricksTranspiler()
-      case "snowflake" => new SnowflakeToDatabricksTranspiler()
-      case _ => throw new IllegalArgumentException(s"Unsupported source database: $engine")
-    }
-  }
-}

@@ -5,7 +5,7 @@ case class Node(name: String)
 
 case class Edge(from: Node, to: Node)
 
-class DAG {
+class Lineage {
   private val nodes: mutable.Set[Node] = mutable.Set()
   private val edges: mutable.Set[Edge] = mutable.Set()
 

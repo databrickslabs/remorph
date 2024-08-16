@@ -1,23 +1,20 @@
 package com.databricks.labs.remorph
 
 import com.databricks.labs.remorph.parsers.{intermediate => ir}
-import com.databricks.labs.remorph.transpilers.TranspilerFactory
+import com.databricks.labs.remorph.transpilers.Transpiler
 
-class RootTableIdentifier(engine: String) {
+class RootTableIdentifier(transpiler: Transpiler) {
 
-  private val transpiler = TranspilerFactory.getTranspiler(engine)
-
-  def processQuery(sql: String, dag: DAG): DAG = {
+  def processQuery(sql: String, dag: Lineage): Lineage = {
     val parsedSql = transpiler.parse(sql)
     findTables(dag, parsedSql)
-
   }
 
   private def getTablName(p: ir.LogicalPlan): Set[String] = {
     p.find(_.isInstanceOf[ir.NamedTable]).map(_.asInstanceOf[ir.NamedTable].unparsed_identifier).toSet
   }
 
-  private def findTables(dag: DAG, plan: ir.LogicalPlan): DAG = {
+  private def findTables(dag: Lineage, plan: ir.LogicalPlan): Lineage = {
     var child = ""
     var parent = Set.empty[String]
 
