@@ -155,7 +155,7 @@ otherCommand
     | let
     ;
 
-snowSqlCommand: BANG
+snowSqlCommand: BANG batch
     ;
 
 procStatement
