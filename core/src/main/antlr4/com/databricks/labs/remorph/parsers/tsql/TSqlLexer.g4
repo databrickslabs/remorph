@@ -938,8 +938,6 @@ DOLLAR_ACTION: '$ACTION';
 // Functions starting with double at signs
 AAPSEUDO: '@@' ID;
 
-IPV4_ADDR: DEC_DIGIT+ '.' DEC_DIGIT+ '.' DEC_DIGIT+ '.' DEC_DIGIT+;
-
 SPACE        : [ \t\r\n]+                -> skip;
 COMMENT      : '/*' (COMMENT | .)*? '*/' -> channel(HIDDEN);
 LINE_COMMENT : '--' ~[\r\n]*             -> channel(HIDDEN);
