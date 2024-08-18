@@ -1,5 +1,6 @@
 import logging
 import sys
+import os
 from datetime import datetime
 from uuid import uuid4
 
@@ -890,6 +891,6 @@ def _run_reconcile_aggregates(
 
 
 if __name__ == "__main__":
-    # if "DATABRICKS_RUNTIME_VERSION" not in os.environ:
-    #     raise SystemExit("Only intended to run in Databricks Runtime")
+    if "DATABRICKS_RUNTIME_VERSION" not in os.environ:
+        raise SystemExit("Only intended to run in Databricks Runtime")
     main(*sys.argv)
