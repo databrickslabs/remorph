@@ -3133,10 +3133,14 @@ withinGroup: WITHIN GROUP L_PAREN orderByClause R_PAREN
 predicatePartial
     : IS nullNotNull
     | NOT? IN L_PAREN (subquery | exprList) R_PAREN
-    | NOT? ( LIKE | ILIKE) expr (ESCAPE expr)?
-    | NOT? RLIKE expr
-    | NOT? (LIKE | ILIKE) ANY L_PAREN expr (COMMA expr)* R_PAREN (ESCAPE expr)?
+    | NOT? likeExpression
     | NOT? BETWEEN expr AND expr
+    ;
+
+likeExpression
+    : op = (LIKE | ILIKE) pat = expr (ESCAPE escapeChar = expr)?           # likeExprSinglePattern
+    | op = (LIKE | ILIKE) (ANY | ALL) exprListInParentheses (ESCAPE expr)? # likeExprMultiplePatterns
+    | RLIKE expr                                                           # likeExprRLike
     ;
 
 iffExpr: IFF L_PAREN predicate COMMA expr COMMA expr R_PAREN

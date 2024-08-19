@@ -20,7 +20,12 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
 
   def expression(ctx: GeneratorContext, expr: ir.Expression): String = {
     expr match {
-      case l: ir.Like => like(ctx, l)
+      case ir.Like(subject, pattern, escape) => likeSingle(ctx, subject, pattern, escape, caseSensitive = true)
+      case ir.LikeAny(subject, patterns) => likeMultiple(ctx, subject, patterns, caseSensitive = true, all = false)
+      case ir.LikeAll(subject, patterns) => likeMultiple(ctx, subject, patterns, caseSensitive = true, all = true)
+      case ir.ILike(subject, pattern, escape) => likeSingle(ctx, subject, pattern, escape, caseSensitive = false)
+      case ir.ILikeAny(subject, patterns) => likeMultiple(ctx, subject, patterns, caseSensitive = false, all = false)
+      case ir.ILikeAll(subject, patterns) => likeMultiple(ctx, subject, patterns, caseSensitive = false, all = true)
       case r: ir.RLike => rlike(ctx, r)
       case _: ir.Bitwise => bitwise(ctx, expr)
       case _: ir.Arithmetic => arithmetic(ctx, expr)
@@ -149,9 +154,29 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
     case ir.BitwiseNot(child) => s"~${expression(ctx, child)}"
   }
 
-  private def like(ctx: GeneratorContext, like: ir.Like): String = {
-    val escape = if (like.escapeChar != '\\') s" ESCAPE '${like.escapeChar}'" else ""
-    s"${expression(ctx, like.left)} LIKE ${expression(ctx, like.right)}$escape"
+  private def likeSingle(
+      ctx: GeneratorContext,
+      subject: ir.Expression,
+      pattern: ir.Expression,
+      escapeChar: Char,
+      caseSensitive: Boolean): String = {
+    val op = if (caseSensitive) { "LIKE" }
+    else { "ILIKE" }
+    val escape = if (escapeChar != '\\') s" ESCAPE '${escapeChar}'" else ""
+    s"${expression(ctx, subject)} $op ${expression(ctx, pattern)}$escape"
+  }
+
+  private def likeMultiple(
+      ctx: GeneratorContext,
+      subject: ir.Expression,
+      patterns: Seq[ir.Expression],
+      caseSensitive: Boolean,
+      all: Boolean): String = {
+    val op = if (caseSensitive) { "LIKE" }
+    else { "ILIKE" }
+    val allOrAny = if (all) { "ALL" }
+    else { "ANY" }
+    s"${expression(ctx, subject)} $op $allOrAny ${patterns.map(expression(ctx, _)).mkString("(", ", ", ")")}"
   }
 
   private def rlike(ctx: GeneratorContext, r: ir.RLike): String = {
