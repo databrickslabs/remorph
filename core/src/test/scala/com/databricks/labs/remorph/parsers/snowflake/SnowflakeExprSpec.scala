@@ -1,7 +1,6 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
 import com.databricks.labs.remorph.parsers.intermediate._
-import com.databricks.labs.remorph.parsers.snowflake
 import org.scalatest.Checkpoints.Checkpoint
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
@@ -118,63 +117,71 @@ class SnowflakeExprSpec extends AnyWordSpec with SnowflakeParserTestCommon with 
     "translate LIKE expressions" in {
       exprAndPredicateExample(
         "col1 LIKE '%foo'",
-        snowflake.LikeSnowflake(Id("col1"), Seq(Literal(string = Some("%foo"))), None, caseSensitive = true))
+        Like(Id("col1"), Literal(string = Some("%foo"))))
       exprAndPredicateExample(
         "col1 ILIKE '%foo'",
-        snowflake.LikeSnowflake(Id("col1"), Seq(Literal(string = Some("%foo"))), None, caseSensitive = false))
+        ILike(Id("col1"), Literal(string = Some("%foo"))))
       exprAndPredicateExample(
         "col1 NOT LIKE '%foo'",
-        Not(snowflake.LikeSnowflake(Id("col1"), Seq(Literal(string = Some("%foo"))), None, caseSensitive = true)))
+        Not(Like(Id("col1"), Literal(string = Some("%foo")))))
       exprAndPredicateExample(
         "col1 NOT ILIKE '%foo'",
-        Not(snowflake.LikeSnowflake(Id("col1"), Seq(Literal(string = Some("%foo"))), None, caseSensitive = false)))
+        Not(ILike(Id("col1"), Literal(string = Some("%foo")))))
       exprAndPredicateExample(
         "col1 LIKE '%foo' ESCAPE '^'",
-        snowflake.LikeSnowflake(
+        Like(
           Id("col1"),
-          Seq(Literal(string = Some("%foo"))),
-          Some(Literal(string = Some("^"))),
-          caseSensitive = true))
+          Literal(string = Some("%foo")),
+          '^'))
       exprAndPredicateExample(
         "col1 ILIKE '%foo' ESCAPE '^'",
-        snowflake.LikeSnowflake(
+        ILike(
           Id("col1"),
-          Seq(Literal(string = Some("%foo"))),
-          Some(Literal(string = Some("^"))),
-          caseSensitive = false))
+          Literal(string = Some("%foo")),
+          '^'))
 
       exprAndPredicateExample(
         "col1 NOT LIKE '%foo' ESCAPE '^'",
         Not(
-          snowflake.LikeSnowflake(
+          Like(
             Id("col1"),
-            Seq(Literal(string = Some("%foo"))),
-            Some(Literal(string = Some("^"))),
-            caseSensitive = true)))
+            Literal(string = Some("%foo")),
+            '^')))
       exprAndPredicateExample(
         "col1 NOT ILIKE '%foo' ESCAPE '^'",
         Not(
-          snowflake.LikeSnowflake(
+          ILike(
             Id("col1"),
-            Seq(Literal(string = Some("%foo"))),
-            Some(Literal(string = Some("^"))),
-            caseSensitive = false)))
+            Literal(string = Some("%foo")),
+            '^')))
 
       exprAndPredicateExample(
         "col1 LIKE ANY ('%foo', 'bar%', '%qux%')",
-        snowflake.LikeSnowflake(
+        LikeAny(
           Id("col1"),
-          Seq(Literal(string = Some("%foo")), Literal(string = Some("bar%")), Literal(string = Some("%qux%"))),
-          None,
-          caseSensitive = true))
+          Seq(Literal(string = Some("%foo")), Literal(string = Some("bar%")), Literal(string = Some("%qux%")))))
+
 
       exprAndPredicateExample(
-        "col1 LIKE ANY ('%foo', 'bar%', '%qux%') ESCAPE '^'",
-        snowflake.LikeSnowflake(
+        "col1 LIKE ALL ('%foo', 'bar^%', '%qux%') ESCAPE '^'",
+        LikeAll(
           Id("col1"),
-          Seq(Literal(string = Some("%foo")), Literal(string = Some("bar%")), Literal(string = Some("%qux%"))),
-          Some(Literal(string = Some("^"))),
-          caseSensitive = true))
+          Seq(Literal(string = Some("%foo")), Literal(string = Some("bar\\%")), Literal(string = Some("%qux%")))))
+
+      exprAndPredicateExample(
+        "col1 ILIKE ANY ('%foo', 'bar^%', '%qux%') ESCAPE '^'",
+        ILikeAny(
+          Id("col1"),
+          Seq(Literal(string = Some("%foo")), Literal(string = Some("bar\\%")), Literal(string = Some("%qux%")))))
+
+      exprAndPredicateExample(
+        "col1 ILIKE ALL ('%foo', 'bar%', '%qux%')",
+        ILikeAll(
+          Id("col1"),
+          Seq(Literal(string = Some("%foo")), Literal(string = Some("bar%")), Literal(string = Some("%qux%")))))
+
+
+
 
       exprAndPredicateExample("col1 RLIKE '[a-z][A-Z]*'", RLike(Id("col1"), Literal(string = Some("[a-z][A-Z]*"))))
       exprAndPredicateExample(

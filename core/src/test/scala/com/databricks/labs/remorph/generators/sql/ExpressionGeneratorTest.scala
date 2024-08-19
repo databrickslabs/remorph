@@ -68,6 +68,16 @@ class ExpressionGeneratorTest
   "like" in {
     ir.Like(ir.UnresolvedAttribute("a"), ir.Literal("b%")) generates "a LIKE 'b%'"
     ir.Like(ir.UnresolvedAttribute("a"), ir.UnresolvedAttribute("b"), '/') generates "a LIKE b ESCAPE '/'"
+    ir.ILike(ir.UnresolvedAttribute("a"), ir.Literal("b%")) generates "a ILIKE 'b%'"
+    ir.ILike(ir.UnresolvedAttribute("a"), ir.UnresolvedAttribute("b"), '/') generates "a ILIKE b ESCAPE '/'"
+    ir.LikeAny(ir.UnresolvedAttribute("a"), Seq(ir.Literal("b%"), ir.Literal("c%"))) generates "a LIKE ANY ('b%', 'c%')"
+    ir.LikeAll(ir.UnresolvedAttribute("a"), Seq(ir.Literal("b%"), ir.Literal("%c"))) generates "a LIKE ALL ('b%', '%c')"
+    ir.ILikeAny(
+      ir.UnresolvedAttribute("a"),
+      Seq(ir.Literal("b%"), ir.Literal("c%"))) generates "a ILIKE ANY ('b%', 'c%')"
+    ir.ILikeAll(
+      ir.UnresolvedAttribute("a"),
+      Seq(ir.Literal("b%"), ir.Literal("%c"))) generates "a ILIKE ALL ('b%', '%c')"
   }
 
   "predicates" should {
@@ -937,4 +947,5 @@ class ExpressionGeneratorTest
 
     }
   }
+
 }
