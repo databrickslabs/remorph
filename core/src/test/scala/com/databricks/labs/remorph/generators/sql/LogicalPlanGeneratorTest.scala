@@ -145,7 +145,7 @@ class LogicalPlanGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.L
 
   "Join" should {
     "transpile to JOIN" in {
-      crossJoin(namedTable("t1"), namedTable("t2")) generates "t1 JOIN t2"
+      crossJoin(namedTable("t1"), namedTable("t2")) generates "t1 CROSS JOIN t2"
 
       ir.Join(
         namedTable("t1"),
@@ -172,6 +172,14 @@ class LogicalPlanGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.L
         ir.JoinDataType(
           is_left_struct = false,
           is_right_struct = false)) generates "t1 RIGHT OUTER JOIN t2 ON IS_DATE(c1) USING (c1, c2)"
+
+      ir.Join(
+        namedTable("t1"),
+        namedTable("t2"),
+        None,
+        ir.NaturalJoin(ir.LeftOuterJoin),
+        Seq(),
+        ir.JoinDataType(is_left_struct = false, is_right_struct = false)) generates "t1 NATURAL LEFT OUTER JOIN t2"
     }
   }
 

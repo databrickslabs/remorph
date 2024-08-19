@@ -3391,8 +3391,7 @@ joinType: INNER | outerJoin
     ;
 
 joinClause
-    : joinType? JOIN objectRef ((ON predicate)? | (USING L_PAREN columnList R_PAREN)?)
-    //| joinType? JOIN objectRef (USING L_PAREN columnList R_PAREN)?
+    : joinType? JOIN objectRef ((ON predicate) | (USING L_PAREN columnList R_PAREN))?
     | NATURAL outerJoin? JOIN objectRef
     | CROSS JOIN objectRef
     ;
