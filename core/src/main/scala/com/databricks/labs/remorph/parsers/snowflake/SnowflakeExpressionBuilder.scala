@@ -17,6 +17,7 @@ class SnowflakeExpressionBuilder()
     with ir.IRHelpers {
 
   private val functionBuilder = new SnowflakeFunctionBuilder
+  private val typeBuilder = new SnowflakeTypeBuilder
 
   protected override def wrapUnresolvedInput(unparsedInput: String): ir.UnresolvedExpression =
     ir.UnresolvedExpression(unparsedInput)
@@ -204,7 +205,7 @@ class SnowflakeExpressionBuilder()
   }
 
   override def visitExprAscribe(ctx: ExprAscribeContext): ir.Expression = {
-    ir.Cast(ctx.expr().accept(this), DataTypeBuilder.buildDataType(ctx.dataType()))
+    ir.Cast(ctx.expr().accept(this), typeBuilder.buildDataType(ctx.dataType()))
   }
 
   override def visitExprSign(ctx: ExprSignContext): ir.Expression = ctx.sign() match {
@@ -282,7 +283,7 @@ class SnowflakeExpressionBuilder()
   override def visitCastExpr(ctx: CastExprContext): ir.Expression = ctx match {
     case c if c.castOp != null =>
       val expression = c.expr().accept(this)
-      val dataType = DataTypeBuilder.buildDataType(c.dataType())
+      val dataType = typeBuilder.buildDataType(c.dataType())
       ir.Cast(expression, dataType, returnNullOnError = c.TRY_CAST() != null)
     case c if c.INTERVAL() != null =>
       ir.Cast(c.expr().accept(this), ir.IntervalType)
