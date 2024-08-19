@@ -3186,7 +3186,7 @@ dataType
     | binaryAlias = ( BINARY | VARBINARY) dataTypeSize?
     | VARIANT
     | OBJECT
-    | ARRAY
+    | ARRAY (L_PAREN dataType R_PAREN)?
     | GEOGRAPHY
     | GEOMETRY
     ;

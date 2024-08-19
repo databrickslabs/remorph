@@ -8,6 +8,7 @@ case object BinaryType extends DataType
 // Numeric types
 case class ByteType(size: Option[Int]) extends DataType
 case object ShortType extends DataType
+case object TinyintType extends DataType
 case object IntegerType extends DataType
 case object LongType extends DataType
 

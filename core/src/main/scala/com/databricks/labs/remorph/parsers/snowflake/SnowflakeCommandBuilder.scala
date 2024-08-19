@@ -9,6 +9,7 @@ class SnowflakeCommandBuilder
     with IncompleteParser[ir.Command] {
 
   private val expressionBuilder = new SnowflakeExpressionBuilder
+  private val typeBuilder = new SnowflakeTypeBuilder
 
   protected override def wrapUnresolvedInput(unparsedInput: String): ir.UnresolvedCommand =
     ir.UnresolvedCommand(unparsedInput)
@@ -18,14 +19,14 @@ class SnowflakeCommandBuilder
 
   override def visitDeclareWithDefault(ctx: DeclareWithDefaultContext): ir.Command = {
     val variableName = ctx.id().accept(expressionBuilder).asInstanceOf[ir.Id]
-    val dataType = DataTypeBuilder.buildDataType(ctx.dataType())
+    val dataType = typeBuilder.buildDataType(ctx.dataType())
     val variableValue = ctx.expr().accept(expressionBuilder)
     ir.CreateVariable(variableName, dataType, Some(variableValue), replace = false)
   }
 
   override def visitDeclareSimple(ctx: DeclareSimpleContext): ir.Command = {
     val variableName = ctx.id().accept(expressionBuilder).asInstanceOf[ir.Id]
-    val dataType = DataTypeBuilder.buildDataType(ctx.dataType())
+    val dataType = typeBuilder.buildDataType(ctx.dataType())
     ir.CreateVariable(variableName, dataType, None, replace = false)
   }
 
@@ -46,10 +47,9 @@ class SnowflakeCommandBuilder
 
     val variableDataType = variableValue match {
       case _: ir.ScalarSubquery => Some(ir.StructType())
-      case _ => Option(ctx.dataType()).flatMap(dt => Some(DataTypeBuilder.buildDataType(dt)))
+      case _ => Option(ctx.dataType()).flatMap(dt => Some(typeBuilder.buildDataType(dt)))
     }
 
     ir.SetVariable(variableName, variableValue, variableDataType)
   }
-
 }

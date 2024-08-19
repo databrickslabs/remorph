@@ -204,7 +204,8 @@ class SnowflakeDDLBuilderSpec
               VarCharType(Some(32)),
               None,
               Seq(Unique, NamedConstraint("fkey", ForeignKey("s.t2.x")))),
-            ColumnDeclaration("b", IntegerType, None, Seq(NamedConstraint("fkey", ForeignKey("s.t2.y")))))))
+            ColumnDeclaration("b", DecimalType(Some(38), Some(0)), None,
+              Seq(NamedConstraint("fkey", ForeignKey("s.t2.y")))))))
     }
 
     "translate ALTER TABLE commands" in {
@@ -223,7 +224,7 @@ class SnowflakeDDLBuilderSpec
 
       example(
         query = "ALTER TABLE s.t1 ALTER (COLUMN a TYPE INT)",
-        expectedAst = AlterTableCommand("s.t1", Seq(ChangeColumnDataType("a", IntegerType))))
+        expectedAst = AlterTableCommand("s.t1", Seq(ChangeColumnDataType("a", DecimalType(Some(38), Some(0))))))
       example(
         query = "ALTER TABLE s.t1 ALTER (COLUMN a NOT NULL)",
         expectedAst = AlterTableCommand("s.t1", Seq(AddConstraint("a", Nullability(false)))))

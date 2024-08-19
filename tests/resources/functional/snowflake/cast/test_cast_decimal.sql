@@ -10,4 +10,4 @@ SELECT
   CAST(12345 AS DECIMAL(10, 2)) AS decimal_val,
   CAST(12345 AS DECIMAL(10, 2)) AS number_val,
   CAST(12345 AS DECIMAL(10, 2)) AS numeric_val,
-  CAST(12345 AS DECIMAL(38, 0)) AS bigint_val
+  CAST(12345 AS DECIMAL(38, 0)) AS bigint_val;

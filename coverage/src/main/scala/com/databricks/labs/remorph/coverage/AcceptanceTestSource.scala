@@ -18,6 +18,10 @@ object NestedFiles {
   }
 
   @tailrec private def checkProjectRoot(current: Path): Path = {
+    val a = System.getProperty("user.dir")
+    val b = Paths.get(".").toAbsolutePath
+    throw new RuntimeException(s"current: $current, a: $a, b: $b")
+
     // check if labs.yml exists in the current folder
     if (Files.exists(current.resolve("labs.yml"))) {
       current

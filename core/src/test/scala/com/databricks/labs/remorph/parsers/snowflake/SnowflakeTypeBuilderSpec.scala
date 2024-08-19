@@ -6,12 +6,12 @@ import org.scalatest.Assertion
 import org.scalatest.matchers.should
 import org.scalatest.wordspec.AnyWordSpec
 
-class DataTypeBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon with should.Matchers {
+class SnowflakeTypeBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon with should.Matchers {
 
   private def example(query: String, expectedDataType: DataType): Assertion = {
-    assert(DataTypeBuilder.buildDataType(parseString(query, _.dataType())) === expectedDataType)
+    assert(new SnowflakeTypeBuilder().buildDataType(parseString(query, _.dataType())) === expectedDataType)
   }
-  "DataTypeBuilder" should {
+  "SnowflakeTypeBuilder" should {
     "precision types" in {
       example("CHAR(1)", CharType(Some(1)))
       example("CHARACTER(1)", CharType(Some(1)))
@@ -22,22 +22,23 @@ class DataTypeBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon wit
     }
 
     "non-precision types" in {
+      example("ARRAY(INTEGER)", ArrayType(defaultNumber))
       example("ARRAY", ArrayType(UnresolvedType))
-      example("BIGINT", LongType)
+      example("BIGINT", defaultNumber)
       example("BINARY", BinaryType)
       example("BOOLEAN", BooleanType)
-      example("BYTEINT", IntegerType)
+      example("BYTEINT", defaultNumber)
       example("DATE", DateType)
       example("DOUBLE", DoubleType)
       example("DOUBLE PRECISION", DoubleType)
-      example("FLOAT", FloatType)
-      example("FLOAT4", FloatType)
+      example("FLOAT", DoubleType)
+      example("FLOAT4", DoubleType)
       example("FLOAT8", DoubleType)
-      example("INT", IntegerType)
-      example("INTEGER", IntegerType)
+      example("INT", defaultNumber)
+      example("INTEGER", defaultNumber)
       example("OBJECT", UnparsedType("OBJECT"))
-      example("REAL", FloatType)
-      example("SMALLINT", ShortType)
+      example("REAL", DoubleType)
+      example("SMALLINT", defaultNumber)
       example("STRING", StringType)
       example("TEXT", StringType)
       example("TIME", TimestampType)
@@ -45,10 +46,14 @@ class DataTypeBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon wit
       example("TIMESTAMP_LTZ", TimestampType)
       example("TIMESTAMP_NTZ", TimestampNTZType)
       example("TIMESTAMP_TZ", TimestampType)
-      example("TINYINT", ShortType)
+      example("TINYINT", TinyintType)
       example("VARBINARY", BinaryType)
       example("VARIANT", UnparsedType("VARIANT"))
     }
+  }
+
+  private def defaultNumber = {
+    DecimalType(Some(38), Some(0))
   }
 
   override protected def astBuilder: ParseTreeVisitor[_] = null

@@ -4,4 +4,4 @@ SELECT
 
 -- databricks sql:
 SELECT
-  CAST('2024-01-01' AS DATE) AS date_val
+  CAST('2024-01-01' AS DATE) AS date_val;

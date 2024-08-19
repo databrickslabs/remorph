@@ -11,8 +11,14 @@ import scala.collection.JavaConverters._
  * @see
  *   https://docs.snowflake.com/en/sql-reference-data-types
  */
-object DataTypeBuilder {
+class SnowflakeTypeBuilder {
+  // see https://docs.snowflake.com/en/sql-reference/data-types-numeric#int-integer-bigint-smallint-tinyint-byteint
+  private def defaultNumber = ir.DecimalType(Some(38), Some(0))
+
   def buildDataType(ctx: DataTypeContext): ir.DataType = {
+    if (ctx == null) {
+      return ir.UnresolvedType
+    }
     val typeDef = ctx.getText.toUpperCase()
     typeDef match {
       // precision types
@@ -21,22 +27,22 @@ object DataTypeBuilder {
       case _ if ctx.VARCHAR() != null => ir.VarCharType(maybeSize(ctx))
 
       // non-precision types
-      case "ARRAY" => ir.ArrayType(ir.UnresolvedType)
-      case "BIGINT" => ir.LongType
+      case _ if ctx.ARRAY() != null => ir.ArrayType(buildDataType(ctx.dataType()))
+      case "BIGINT" => defaultNumber
       case "BINARY" => ir.BinaryType
       case "BOOLEAN" => ir.BooleanType
-      case "BYTEINT" => ir.IntegerType
+      case "BYTEINT" => defaultNumber
       case "DATE" => ir.DateType
       case "DOUBLE" => ir.DoubleType
       case "DOUBLE PRECISION" => ir.DoubleType
-      case "FLOAT" => ir.FloatType
-      case "FLOAT4" => ir.FloatType
+      case "FLOAT" => ir.DoubleType
+      case "FLOAT4" => ir.DoubleType
       case "FLOAT8" => ir.DoubleType
-      case "INT" => ir.IntegerType
-      case "INTEGER" => ir.IntegerType
+      case "INT" => defaultNumber
+      case "INTEGER" => defaultNumber
       case "OBJECT" => ir.UnparsedType("OBJECT") // TODO: get more examples
-      case "REAL" => ir.FloatType
-      case "SMALLINT" => ir.ShortType
+      case "REAL" => ir.DoubleType
+      case "SMALLINT" => defaultNumber
       case "STRING" => ir.StringType
       case "TEXT" => ir.StringType
       case "TIME" => ir.TimestampType
@@ -44,7 +50,7 @@ object DataTypeBuilder {
       case "TIMESTAMP_LTZ" => ir.TimestampType
       case "TIMESTAMP_NTZ" => ir.TimestampNTZType
       case "TIMESTAMP_TZ" => ir.TimestampType
-      case "TINYINT" => ir.ShortType
+      case "TINYINT" => ir.TinyintType
       case "VARBINARY" => ir.BinaryType
       case "VARIANT" => ir.UnparsedType("VARIANT") // TODO: get more examples
 

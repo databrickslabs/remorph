@@ -10,6 +10,7 @@ object DataTypeGenerator {
     case ir.BooleanType => "BOOLEAN"
     case ir.BinaryType => "BINARY"
     case ir.ShortType => "SMALLINT"
+    case ir.TinyintType => "TINYINT"
     case ir.IntegerType => "INT"
     case ir.LongType => "BIGINT"
     case ir.FloatType => "FLOAT"
