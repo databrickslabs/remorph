@@ -28,6 +28,6 @@ class TSqlToDatabricksTranspiler extends BaseTranspiler {
   override def optimize(logicalPlan: ir.LogicalPlan): ir.LogicalPlan = optimizer.apply(logicalPlan)
 
   override def generate(optimizedLogicalPlan: ir.LogicalPlan): String =
-    generator.generate(GeneratorContext(), optimizedLogicalPlan)
+    generator.generate(GeneratorContext(generator), optimizedLogicalPlan)
 
 }

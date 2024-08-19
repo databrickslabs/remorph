@@ -27,6 +27,6 @@ class SnowflakeToDatabricksTranspiler extends BaseTranspiler {
   override def optimize(logicalPlan: ir.LogicalPlan): ir.LogicalPlan = logicalPlan
 
   override def generate(optimizedLogicalPlan: ir.LogicalPlan): String =
-    generator.generate(GeneratorContext(), optimizedLogicalPlan)
+    generator.generate(GeneratorContext(generator), optimizedLogicalPlan)
 
 }
