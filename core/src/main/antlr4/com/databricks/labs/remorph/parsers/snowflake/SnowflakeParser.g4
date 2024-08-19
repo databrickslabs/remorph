@@ -3138,10 +3138,10 @@ predicatePartial
     ;
 
 likeExpression
-	: op = (LIKE | ILIKE) pat = expr (ESCAPE escapeChar = expr)? #likeExprSinglePattern
-	| op = (LIKE | ILIKE) (ANY | ALL) exprListInParentheses (ESCAPE expr)? #likeExprMultiplePatterns
-	| RLIKE expr #likeExprRLike
-	;
+    : op = (LIKE | ILIKE) pat = expr (ESCAPE escapeChar = expr)?           # likeExprSinglePattern
+    | op = (LIKE | ILIKE) (ANY | ALL) exprListInParentheses (ESCAPE expr)? # likeExprMultiplePatterns
+    | RLIKE expr                                                           # likeExprRLike
+    ;
 
 iffExpr: IFF L_PAREN predicate COMMA expr COMMA expr R_PAREN
     ;

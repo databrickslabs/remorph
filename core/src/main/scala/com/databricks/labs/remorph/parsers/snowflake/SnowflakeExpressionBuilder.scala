@@ -445,9 +445,12 @@ class SnowflakeExpressionBuilder()
   private def buildLikeExpression(ctx: LikeExpressionContext, child: ir.Expression): ir.Expression = ctx match {
     case single: LikeExprSinglePatternContext =>
       val pattern = single.pat.accept(this)
-      val escape = Option(single.escapeChar).map(_.accept(this)).collect{
-        case StringLiteral(s) => s.head
-      }.getOrElse('\\')
+      val escape = Option(single.escapeChar)
+        .map(_.accept(this))
+        .collect { case StringLiteral(s) =>
+          s.head
+        }
+        .getOrElse('\\')
       single.op.getType match {
         case LIKE => ir.Like(child, pattern, escape)
         case ILIKE => ir.ILike(child, pattern, escape)
@@ -467,12 +470,15 @@ class SnowflakeExpressionBuilder()
   }
 
   private def normalizePatterns(patterns: Seq[ir.Expression], escape: ExprContext): Seq[ir.Expression] = {
-    Option(escape).map(_.accept(this)).collect{
-      case StringLiteral(esc) => patterns.map{
-        case StringLiteral(pat) => ir.Literal(pat.replace(esc, "\\"))
-        case e => ir.StringReplace(e, ir.Literal(esc), ir.Literal("\\"))
+    Option(escape)
+      .map(_.accept(this))
+      .collect { case StringLiteral(esc) =>
+        patterns.map {
+          case StringLiteral(pat) => ir.Literal(pat.replace(esc, "\\"))
+          case e => ir.StringReplace(e, ir.Literal(esc), ir.Literal("\\"))
+        }
       }
-    }.getOrElse(patterns)
+      .getOrElse(patterns)
 
   }
 
