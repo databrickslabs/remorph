@@ -26,6 +26,10 @@ Microsoft JDBC Driver for SQL Server - https://github.com/microsoft/mssql-jdbc
 Copyright (c) Microsoft Corporation
 License - https://github.com/microsoft/mssql-jdbc/blob/main/LICENSE
 
+sql-formatter - https://github.com/vertical-blank/sql-formatter
+Copyright (c) 2019 Yohei Yamana
+License - https://github.com/vertical-blank/sql-formatter/blob/master/LICENSE
+
 This software contains code from the following open source projects, licensed under the Apache 2.0 license:
 
 DataComPy - https://github.com/capitalone/datacompy
