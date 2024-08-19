@@ -503,21 +503,21 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
       exampleExpr("CAST(a AS datetimeoffset)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.StringType))
       exampleExpr("CAST(a AS smalldatetime)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.TimestampType))
       exampleExpr("CAST(a AS char)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.CharType(size = None)))
-      exampleExpr("CAST(a AS varchar)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.VarCharType(size = None)))
+      exampleExpr("CAST(a AS varchar)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.VarcharType(size = None)))
       exampleExpr("CAST(a AS nchar)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.CharType(size = None)))
-      exampleExpr("CAST(a AS nvarchar)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.VarCharType(size = None)))
-      exampleExpr("CAST(a AS text)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.VarCharType(None)))
-      exampleExpr("CAST(a AS ntext)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.VarCharType(None)))
+      exampleExpr("CAST(a AS nvarchar)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.VarcharType(size = None)))
+      exampleExpr("CAST(a AS text)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.VarcharType(None)))
+      exampleExpr("CAST(a AS ntext)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.VarcharType(None)))
       exampleExpr("CAST(a AS image)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.BinaryType))
       exampleExpr("CAST(a AS decimal)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.DecimalType(None, None)))
       exampleExpr("CAST(a AS numeric)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.DecimalType(None, None)))
       exampleExpr("CAST(a AS binary)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.BinaryType))
       exampleExpr("CAST(a AS varbinary)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.BinaryType))
-      exampleExpr("CAST(a AS json)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.VarCharType(None)))
+      exampleExpr("CAST(a AS json)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.VarcharType(None)))
       exampleExpr(
         "CAST(a AS uniqueidentifier)",
         _.expression(),
-        ir.Cast(simplyNamedColumn("a"), ir.VarCharType(size = Some(16))))
+        ir.Cast(simplyNamedColumn("a"), ir.VarcharType(size = Some(16))))
     }
 
     "translate CAST pseudo function calls with length arguments" in {
@@ -525,12 +525,12 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
       exampleExpr(
         "CAST(a AS varchar(10))",
         _.expression(),
-        ir.Cast(simplyNamedColumn("a"), ir.VarCharType(size = Some(10))))
+        ir.Cast(simplyNamedColumn("a"), ir.VarcharType(size = Some(10))))
       exampleExpr("CAST(a AS nchar(10))", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.CharType(size = Some(10))))
       exampleExpr(
         "CAST(a AS nvarchar(10))",
         _.expression(),
-        ir.Cast(simplyNamedColumn("a"), ir.VarCharType(size = Some(10))))
+        ir.Cast(simplyNamedColumn("a"), ir.VarcharType(size = Some(10))))
     }
 
     "translate CAST pseudo function calls with scale arguments" in {
@@ -623,7 +623,7 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
       exampleExpr(
         "TRY_CAST(a AS varchar)",
         _.expression(),
-        ir.Cast(simplyNamedColumn("a"), ir.VarCharType(size = None), returnNullOnError = true))
+        ir.Cast(simplyNamedColumn("a"), ir.VarcharType(size = None), returnNullOnError = true))
       exampleExpr(
         "TRY_CAST(a AS nchar)",
         _.expression(),
@@ -631,15 +631,15 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
       exampleExpr(
         "TRY_CAST(a AS nvarchar)",
         _.expression(),
-        ir.Cast(simplyNamedColumn("a"), ir.VarCharType(size = None), returnNullOnError = true))
+        ir.Cast(simplyNamedColumn("a"), ir.VarcharType(size = None), returnNullOnError = true))
       exampleExpr(
         "TRY_CAST(a AS text)",
         _.expression(),
-        ir.Cast(simplyNamedColumn("a"), ir.VarCharType(None), returnNullOnError = true))
+        ir.Cast(simplyNamedColumn("a"), ir.VarcharType(None), returnNullOnError = true))
       exampleExpr(
         "TRY_CAST(a AS ntext)",
         _.expression(),
-        ir.Cast(simplyNamedColumn("a"), ir.VarCharType(None), returnNullOnError = true))
+        ir.Cast(simplyNamedColumn("a"), ir.VarcharType(None), returnNullOnError = true))
       exampleExpr(
         "TRY_CAST(a AS image)",
         _.expression(),
@@ -663,11 +663,11 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
       exampleExpr(
         "TRY_CAST(a AS json)",
         _.expression(),
-        ir.Cast(simplyNamedColumn("a"), ir.VarCharType(None), returnNullOnError = true))
+        ir.Cast(simplyNamedColumn("a"), ir.VarcharType(None), returnNullOnError = true))
       exampleExpr(
         "TRY_CAST(a AS uniqueidentifier)",
         _.expression(),
-        ir.Cast(simplyNamedColumn("a"), ir.VarCharType(size = Some(16)), returnNullOnError = true))
+        ir.Cast(simplyNamedColumn("a"), ir.VarcharType(size = Some(16)), returnNullOnError = true))
     }
 
     "translate TRY_CAST pseudo function calls with length arguments" in {
@@ -678,7 +678,7 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
       exampleExpr(
         "TRY_CAST(a AS varchar(10))",
         _.expression(),
-        ir.Cast(simplyNamedColumn("a"), ir.VarCharType(size = Some(10)), returnNullOnError = true))
+        ir.Cast(simplyNamedColumn("a"), ir.VarcharType(size = Some(10)), returnNullOnError = true))
       exampleExpr(
         "TRY_CAST(a AS nchar(10))",
         _.expression(),
@@ -686,7 +686,7 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
       exampleExpr(
         "TRY_CAST(a AS nvarchar(10))",
         _.expression(),
-        ir.Cast(simplyNamedColumn("a"), ir.VarCharType(size = Some(10)), returnNullOnError = true))
+        ir.Cast(simplyNamedColumn("a"), ir.VarcharType(size = Some(10)), returnNullOnError = true))
     }
 
     "translate TRY_CAST pseudo function calls with scale arguments" in {

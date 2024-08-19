@@ -19,7 +19,7 @@ case class DecimalType(precision: Option[Int], scale: Option[Int]) extends DataT
 // String types
 case object StringType extends DataType
 case class CharType(size: Option[Int]) extends DataType
-case class VarCharType(size: Option[Int]) extends DataType
+case class VarcharType(size: Option[Int]) extends DataType
 
 // Datatime types
 case object DateType extends DataType

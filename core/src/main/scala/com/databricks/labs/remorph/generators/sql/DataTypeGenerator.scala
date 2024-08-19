@@ -2,7 +2,12 @@ package com.databricks.labs.remorph.generators.sql
 
 import com.databricks.labs.remorph.generators.GeneratorContext
 import com.databricks.labs.remorph.parsers.{intermediate => ir}
+import com.databricks.labs.remorph.transpilers.TranspileException
 
+/**
+ * @see
+ *   https://docs.databricks.com/en/sql/language-manual/sql-ref-datatypes.html
+ */
 object DataTypeGenerator {
 
   def generateDataType(ctx: GeneratorContext, dt: ir.DataType): String = dt match {
@@ -30,6 +35,10 @@ object DataTypeGenerator {
     case ir.StructType() => "STRUCT" // TODO fix this
     case ir.MapType(keyType, valueType) =>
       s"MAP<${generateDataType(ctx, keyType)}, ${generateDataType(ctx, valueType)}>"
+    case ir.VarcharType(size) => s"VARCHAR${maybeSize(size)}"
+    case ir.CharType(size) => s"CHAR${maybeSize(size)}"
+    case _ => throw TranspileException(s"not implemented: $dt")
   }
 
+  private def maybeSize(size: Option[Int]): String = size.map(s => s"($s)").getOrElse("")
 }

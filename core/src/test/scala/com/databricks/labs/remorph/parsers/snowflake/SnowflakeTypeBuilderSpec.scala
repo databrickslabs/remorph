@@ -18,7 +18,7 @@ class SnowflakeTypeBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommo
       example("DECIMAL(10, 2)", DecimalType(Some(10), Some(2)))
       example("NUMBER(10, 2)", DecimalType(Some(10), Some(2)))
       example("NUMERIC(10, 2)", DecimalType(Some(10), Some(2)))
-      example("VARCHAR(10)", VarCharType(Some(10)))
+      example("VARCHAR(10)", VarcharType(Some(10)))
     }
 
     "non-precision types" in {

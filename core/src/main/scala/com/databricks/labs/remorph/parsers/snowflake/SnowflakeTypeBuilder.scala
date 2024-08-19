@@ -21,10 +21,10 @@ class SnowflakeTypeBuilder {
     }
     val typeDef = ctx.getText.toUpperCase()
     typeDef match {
-      // precision types
-      case _ if ctx.charAlias != null => ir.CharType(maybeSize(ctx))
+      // precision types - loosing precision except for decimal
+      case _ if ctx.charAlias != null => ir.StringType
+      case _ if ctx.varcharAlias != null => ir.StringType
       case _ if ctx.numberAlias != null => decimal(ctx)
-      case _ if ctx.VARCHAR() != null => ir.VarCharType(maybeSize(ctx))
 
       // non-precision types
       case _ if ctx.ARRAY() != null => ir.ArrayType(buildDataType(ctx.dataType()))
@@ -64,9 +64,5 @@ class SnowflakeTypeBuilder {
     val precision = nums.headOption.map(_.getText.toInt)
     val scale = nums.drop(1).headOption.map(_.getText.toInt)
     ir.DecimalType(precision, scale)
-  }
-
-  private def maybeSize(ctx: DataTypeContext) = {
-    Option(ctx.dataTypeSize()).map(_.num().getText.toInt)
   }
 }

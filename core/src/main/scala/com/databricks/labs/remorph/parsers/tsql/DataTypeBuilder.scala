@@ -35,17 +35,17 @@ class DataTypeBuilder {
       case "datetimeoffset" => ir.StringType // TODO: No direct equivalent
       case "smalldatetime" => ir.TimestampType // Equivalent smalldatetime
       case "char" => ir.CharType(size = lenOpt)
-      case "varchar" => ir.VarCharType(size = lenOpt)
+      case "varchar" => ir.VarcharType(size = lenOpt)
       case "nchar" => ir.CharType(size = lenOpt)
-      case "nvarchar" => ir.VarCharType(size = lenOpt)
-      case "text" => ir.VarCharType(None)
-      case "ntext" => ir.VarCharType(None)
+      case "nvarchar" => ir.VarcharType(size = lenOpt)
+      case "text" => ir.VarcharType(None)
+      case "ntext" => ir.VarcharType(None)
       case "image" => ir.BinaryType
       case "decimal" | "numeric" => ir.DecimalType(precision = lenOpt, scale = scaleOpt) // Equivalent decimal
       case "binary" => ir.BinaryType
       case "varbinary" => ir.BinaryType
-      case "json" => ir.VarCharType(None)
-      case "uniqueidentifier" => ir.VarCharType(size = Some(16)) // Equivalent uniqueidentifier
+      case "json" => ir.VarcharType(None)
+      case "uniqueidentifier" => ir.VarcharType(size = Some(16)) // Equivalent uniqueidentifier
       case _ => ir.UnparsedType(typeDefinition)
     }
   }
