@@ -4,13 +4,21 @@ import com.databricks.labs.remorph.parsers.intermediate.LogicalPlan
 import com.databricks.labs.remorph.parsers.snowflake.{SnowflakeAstBuilder, SnowflakeErrorStrategy, SnowflakeLexer, SnowflakeParser}
 import com.databricks.labs.remorph.parsers.tsql.{TSqlAstBuilder, TSqlErrorStrategy, TSqlLexer, TSqlParser}
 import com.databricks.labs.remorph.parsers.{ParseException, ProductionErrorCollector}
-import com.databricks.labs.remorph.transpilers.{SnowflakeToDatabricksTranspiler, TSqlToDatabricksTranspiler, TranspileException}
+import com.databricks.labs.remorph.transpilers.{SnowflakeToDatabricksTranspiler, TSqlToDatabricksTranspiler, TranspileException, Formatter}
+import com.databricks.labs.remorph.utils.Strings
 import org.antlr.v4.runtime.{CharStreams, CommonTokenStream, Parser}
 
 import scala.util.control.NonFatal
 
-trait QueryRunner {
+trait QueryRunner extends Formatter {
   def runQuery(exampleQuery: ExampleQuery): ReportEntryReport
+
+  protected def compareQueries(expected: String, actual: String): String = {
+    s"""
+       |=== Unexpected output (expected vs actual) ===
+       |${Strings.sideBySide(format(expected), format(actual)).mkString("\n")}
+       |""".stripMargin
+  }
 }
 
 abstract class BaseParserQueryRunner[P <: Parser] extends QueryRunner {
@@ -90,18 +98,17 @@ class IsResolvedAsTSqlQueryRunner(astBuilder: TSqlAstBuilder) extends BaseParser
 }
 
 class IsTranspiledFromSnowflakeQueryRunner extends QueryRunner {
-
   val snowflakeTranspiler = new SnowflakeToDatabricksTranspiler
   override def runQuery(exampleQuery: ExampleQuery): ReportEntryReport = {
     try {
       val transpiled = snowflakeTranspiler.transpile(exampleQuery.query)
-      if (exampleQuery.expectedTranslation.exists(_ != transpiled)) {
+      if (exampleQuery.expectedTranslation.map(format).exists(_ != transpiled)) {
         val expected = exampleQuery.expectedTranslation.getOrElse("")
         ReportEntryReport(
           parsed = 1,
           transpiled = 1,
           statements = 1,
-          transpilation_error = Some(s"Unexpected output: got `$transpiled`, expected `$expected`"))
+          transpilation_error = Some(compareQueries(expected, transpiled)))
       } else {
         ReportEntryReport(parsed = 1, transpiled = 1, statements = 1)
       }
@@ -117,18 +124,17 @@ class IsTranspiledFromSnowflakeQueryRunner extends QueryRunner {
 }
 
 class IsTranspiledFromTSqlQueryRunner extends QueryRunner {
-
   val tsqlTranspiler = new TSqlToDatabricksTranspiler
   override def runQuery(exampleQuery: ExampleQuery): ReportEntryReport = {
     try {
       val transpiled = tsqlTranspiler.transpile(exampleQuery.query)
-      if (exampleQuery.expectedTranslation.exists(_ != transpiled)) {
+      if (exampleQuery.expectedTranslation.map(format).exists(_ != transpiled)) {
         val expected = exampleQuery.expectedTranslation.getOrElse("")
         ReportEntryReport(
           parsed = 1,
           transpiled = 1,
           statements = 1,
-          transpilation_error = Some(s"Unexpected output: got `$transpiled`, expected `$expected`"))
+          transpilation_error = Some(compareQueries(expected, transpiled)))
       } else {
         ReportEntryReport(parsed = 1, transpiled = 1, statements = 1)
       }

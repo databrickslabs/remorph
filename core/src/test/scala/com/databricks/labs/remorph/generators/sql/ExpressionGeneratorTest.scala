@@ -549,7 +549,7 @@ class ExpressionGeneratorTest
       ir.CallFunction("POSEXPLODE", Seq(ir.UnresolvedAttribute("a"))) generates "POSEXPLODE(a)"
       ir.CallFunction("POSITIVE", Seq(ir.UnresolvedAttribute("a"))) generates "POSITIVE(a)"
 
-      ir.CallFunction("POW", Seq(ir.UnresolvedAttribute("a"), ir.UnresolvedAttribute("b"))) generates "POW(a, b)"
+      ir.CallFunction("POW", Seq(ir.UnresolvedAttribute("a"), ir.UnresolvedAttribute("b"))) generates "POWER(a, b)"
       ir.CallFunction("QUARTER", Seq(ir.UnresolvedAttribute("a"))) generates "QUARTER(a)"
       ir.CallFunction("RADIANS", Seq(ir.UnresolvedAttribute("a"))) generates "RADIANS(a)"
       ir.CallFunction("RAISE_ERROR", Seq(ir.UnresolvedAttribute("a"))) generates "RAISE_ERROR(a)"

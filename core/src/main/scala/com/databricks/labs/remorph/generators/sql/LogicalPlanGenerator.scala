@@ -44,7 +44,11 @@ class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: 
   private def orderBy(ctx: GeneratorContext, sort: ir.Sort): String = {
     val orderStr = sort.order
       .map { case ir.SortOrder(child, direction, nulls) =>
-        s"${expr.generate(ctx, child)} ${direction.sql} ${nulls.sql}"
+        val dir = direction match {
+          case ir.Ascending => ""
+          case ir.Descending => " DESC"
+        }
+        s"${expr.generate(ctx, child)}$dir ${nulls.sql}"
       }
       .mkString(", ")
     s"${generate(ctx, sort.child)} ORDER BY $orderStr"
