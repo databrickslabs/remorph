@@ -170,7 +170,7 @@ class TSqlDMLBuilder extends TSqlParserBaseVisitor[ir.Modification] {
     ir.InsertIntoTable(finalTarget, columns, values, output, optionClause, overwrite = false)
   }
 
-   private def buildInsertStatementValue(ctx: InsertStatementValueContext): ir.LogicalPlan = {
+  private def buildInsertStatementValue(ctx: InsertStatementValueContext): ir.LogicalPlan = {
     Option(ctx) match {
       case Some(context) if context.derivedTable() != null => context.derivedTable().accept(relationBuilder)
       case Some(context) if context.VALUES() != null => DefaultValues()

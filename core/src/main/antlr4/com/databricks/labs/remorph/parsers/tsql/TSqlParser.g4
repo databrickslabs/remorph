@@ -62,13 +62,7 @@ sqlClauses
     | goStatement SEMI*
     ;
 
-dmlClause
-    : mergeStatement
-    | deleteStatement
-    | insertStatement
-    | selectStatementStandalone
-    | updateStatement
-    | bulkStatement
+dmlClause: withExpression? ( selectStatement | merge | delete | insert | update | bulkStatement)
     ;
 
 ddlClause

@@ -8,8 +8,6 @@ class TSqlDDLBuilder extends TSqlParserBaseVisitor[ir.Catalog] with ParserCommon
 
   private val optionBuilder = new OptionBuilder(new TSqlExpressionBuilder)
 
-
-
   /**
    * This is not actually implemented but was a quick way to exercise the genericOption builder before we had other
    * syntax implemented to test it with.

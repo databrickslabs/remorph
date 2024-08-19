@@ -188,7 +188,6 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.LogicalPlan] {
       .getOrElse(relation)
   }
 
-
   private def buildColumnAlias(ctx: TSqlParser.ColumnAliasContext): ir.Id = {
     ctx match {
       case c if c.id() != null => expressionBuilder.visitId(c.id())
