@@ -194,16 +194,20 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
   }
 
   private def callFunction(ctx: GeneratorContext, fn: ir.Fn): String = {
-    val call = callMapper.convert(fn)
-    call match {
-      case r: ir.RLike => rlike(ctx, r)
-      case i: ir.In => in(ctx, i)
-      case fn: ir.Fn => s"${fn.prettyName}(${fn.children.map(expression(ctx, _)).mkString(", ")})"
+    try {
+      callMapper.convert(fn) match {
+        case r: ir.RLike => rlike(ctx, r)
+        case i: ir.In => in(ctx, i)
+        case fn: ir.Fn => s"${fn.prettyName}(${fn.children.map(expression(ctx, _)).mkString(", ")})"
 
-      // Certain functions can be translated directly to Databricks expressions such as INTERVAL
-      case e: ir.Expression => expression(ctx, e)
+        // Certain functions can be translated directly to Databricks expressions such as INTERVAL
+        case e: ir.Expression => expression(ctx, e)
 
-      case _ => throw TranspileException("not implemented")
+        case _ => throw TranspileException(s"${fn.prettyName}: not implemented")
+      }
+    } catch {
+      case e: IndexOutOfBoundsException =>
+        throw TranspileException(s"${fn.prettyName}: illegal index: ${e.getMessage}, expr: $fn")
     }
   }
 

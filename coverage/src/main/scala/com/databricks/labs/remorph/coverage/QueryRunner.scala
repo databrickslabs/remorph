@@ -1,7 +1,7 @@
 package com.databricks.labs.remorph.coverage
 
 import com.databricks.labs.remorph.parsers.ParseException
-import com.databricks.labs.remorph.transpilers.{SnowflakeToDatabricksTranspiler, TSqlToDatabricksTranspiler, TranspileException, Formatter}
+import com.databricks.labs.remorph.transpilers.{Formatter, SnowflakeToDatabricksTranspiler, TSqlToDatabricksTranspiler, TranspileException}
 import com.databricks.labs.remorph.utils.Strings
 
 import scala.util.control.NonFatal
@@ -38,7 +38,7 @@ class IsTranspiledFromSnowflakeQueryRunner extends QueryRunner {
       case TranspileException(msg) =>
         ReportEntryReport(statements = 1, parsed = 1, transpilation_error = Some(msg))
       case NonFatal(e) =>
-        ReportEntryReport(parsing_error = Some(e.getMessage))
+        ReportEntryReport(parsing_error = Some(s"${e.getClass.getSimpleName}: ${e.getMessage}"))
     }
   }
 }
