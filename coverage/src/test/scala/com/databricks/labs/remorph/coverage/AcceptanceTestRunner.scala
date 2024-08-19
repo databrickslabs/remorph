@@ -30,7 +30,7 @@ class SnowflakeAcceptanceSuite
     extends AcceptanceTestRunner(
       AcceptanceTestConfig(
         new NestedFiles(Paths.get(Option(System.getProperty("snowflake.test.resources.path"))
-          .getOrElse(s"${System.getProperty("user.dir")}/tests/resources/functional/snowflake"))),
+          .getOrElse(s"${NestedFiles.projectRoot}/tests/resources/functional/snowflake"))),
         new DialectNameCommentBasedQueryExtractor("snowflake", "databricks"),
         new IsTranspiledFromSnowflakeQueryRunner))
 
@@ -38,6 +38,6 @@ class TSqlAcceptanceSuite
     extends AcceptanceTestRunner(
       AcceptanceTestConfig(
         new NestedFiles(Paths.get(Option(System.getProperty("tsql.test.resources.path"))
-          .getOrElse(s"${System.getProperty("user.dir")}/tests/resources/functional/tsql"))),
+          .getOrElse(s"${NestedFiles.projectRoot}/tests/resources/functional/tsql"))),
         new DialectNameCommentBasedQueryExtractor("tsql", "databricks"),
         new IsTranspiledFromTSqlQueryRunner))
