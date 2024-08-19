@@ -45,9 +45,9 @@ case class MergeIntoTable(
     targetTable: LogicalPlan,
     sourceTable: LogicalPlan,
     mergeCondition: Expression,
-    matchedActions: Seq[MergeAction],
-    notMatchedActions: Seq[MergeAction],
-    notMatchedBySourceActions: Seq[MergeAction])
+    matchedActions: Seq[MergeAction] = Seq.empty,
+    notMatchedActions: Seq[MergeAction] = Seq.empty,
+    notMatchedBySourceActions: Seq[MergeAction] = Seq.empty)
     extends Modification {
 
   override def children: Seq[LogicalPlan] = Seq(targetTable, sourceTable)
