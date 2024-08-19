@@ -915,3 +915,27 @@ fragment DEC_DIGIT   : [0-9];
 // cause an incomprehensible error message. This rule will allow the parser to issue
 // somethign more meaningful and perform error recovery.
 BADCHAR: .;
+
+WS: [ \t\n\r\f]+ -> skip;
+SQLCOMMAND:
+    '!' WS* (
+        'abort'
+        | 'connect'
+        | 'define'
+        | 'edit'
+        | 'exit'
+        | 'help'
+        | 'options'
+        | 'pause'
+        | 'print'
+        | 'queries'
+        | 'quit'
+        | 'rehash'
+        | 'result'
+        | 'set'
+        | 'source'
+        | 'spool'
+        | 'system'
+        | 'variables'
+    ) ~[\r\n]*
+;

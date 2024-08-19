@@ -30,6 +30,7 @@ class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: 
     case s: ir.SubqueryAlias => subQueryAlias(ctx, s)
     case t: ir.TableAlias => tableAlias(ctx, t)
     case d: ir.Deduplicate => deduplicate(ctx, d)
+    case unresolved: ir.UnresolvedCommand => s"--${unresolved.inputText}"
     case x => throw unknown(x)
   }
 

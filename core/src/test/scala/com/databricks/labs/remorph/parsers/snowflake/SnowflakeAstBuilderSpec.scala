@@ -429,6 +429,10 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
         UpdateTable(namedTable("t1"), None, Seq(Assign(Id("c1"), Literal(short = Some(42)))), None, None, None))
 
     }
+
+    "translate BANG to Unresolved Expression" in {
+      example("!set error_flag = true;", _.snowSqlCommand(), UnresolvedCommand("!set error_flag = true"))
+    }
   }
 
 }
