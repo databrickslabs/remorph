@@ -12,19 +12,14 @@ trait AcceptanceTestSource {
 }
 
 object NestedFiles {
-  def projectRoot: String = checkProjectRoot(Paths.get(".")) match {
-    case p if p == Paths.get("/") => throw new RuntimeException("Could not find project root")
-    case p => p.toString
-  }
+  def projectRoot: String = checkProjectRoot(Paths.get(".").toAbsolutePath).toString
 
   @tailrec private def checkProjectRoot(current: Path): Path = {
-    val a = System.getProperty("user.dir")
-    val b = Paths.get(".").toAbsolutePath
-    throw new RuntimeException(s"current: $current, a: $a, b: $b")
-
     // check if labs.yml exists in the current folder
     if (Files.exists(current.resolve("labs.yml"))) {
       current
+    } else if (current.getParent == null) {
+      throw new RuntimeException("Could not find project root")
     } else {
       checkProjectRoot(current.getParent)
     }

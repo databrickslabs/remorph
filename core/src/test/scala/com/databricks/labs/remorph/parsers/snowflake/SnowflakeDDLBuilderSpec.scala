@@ -204,7 +204,10 @@ class SnowflakeDDLBuilderSpec
               VarCharType(Some(32)),
               None,
               Seq(Unique, NamedConstraint("fkey", ForeignKey("s.t2.x")))),
-            ColumnDeclaration("b", DecimalType(Some(38), Some(0)), None,
+            ColumnDeclaration(
+              "b",
+              DecimalType(Some(38), Some(0)),
+              None,
               Seq(NamedConstraint("fkey", ForeignKey("s.t2.y")))))))
     }
 
