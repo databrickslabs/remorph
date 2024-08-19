@@ -17,8 +17,8 @@ class DataTypeBuilder {
     val lenOpt = Option(ctx.INT(0)) map (_.getText.toInt) // A single length parameter
     val scaleOpt = Option(ctx.INT(1)) map (_.getText.toInt) // A single scale parameter
 
-    ctx.id().getText.toLowerCase() match {
-
+    val typeDefinition = ctx.id().getText
+    typeDefinition.toLowerCase() match {
       case "tinyint" => ir.ByteType(size = Some(1))
       case "smallint" => ir.ShortType
       case "int" => ir.IntegerType
@@ -46,12 +46,12 @@ class DataTypeBuilder {
       case "varbinary" => ir.BinaryType
       case "json" => ir.VarCharType(None)
       case "uniqueidentifier" => ir.VarCharType(size = Some(16)) // Equivalent uniqueidentifier
-      case _ => ir.UnparsedType()
+      case _ => ir.UnparsedType(typeDefinition)
     }
   }
 
   private def buildIdentity(ctx: TSqlParser.DataTypeIdentityContext): ir.DataType =
     // As of right now, there is no way to implement the IDENTITY property declared as a column type in TSql
-    ir.UnparsedType()
+    ir.UnparsedType(ctx.getText)
 
 }

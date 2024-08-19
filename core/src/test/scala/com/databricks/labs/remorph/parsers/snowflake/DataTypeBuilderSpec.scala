@@ -12,26 +12,42 @@ class DataTypeBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon wit
     assert(DataTypeBuilder.buildDataType(parseString(query, _.dataType())) === expectedDataType)
   }
   "DataTypeBuilder" should {
-    "translate most of Snowflake datatypes" in {
-      example("VARCHAR", VarCharType(None))
-      example("VARCHAR(32)", VarCharType(Some(32)))
-      example("INT", DecimalType(Some(38), None))
-      example("NUMBER", DecimalType(None, None))
-      example("NUMBER(12)", DecimalType(Some(12), None))
-      example("NUMBER(12, 5)", DecimalType(Some(12), Some(5)))
-      example("CHAR", CharType(None))
-      example("CHAR(8)", CharType(Some(8)))
-      example("FLOAT", DoubleType)
-      example("DOUBLE", DoubleType)
-      example("BOOLEAN", BooleanType)
-      example("DATE", DateType)
-      example("BINARY", BinaryType)
-      example("ARRAY", ArrayType(UnresolvedType))
+    "precision types" in {
+      example("CHAR(1)", CharType(Some(1)))
+      example("CHARACTER(1)", CharType(Some(1)))
+      example("DECIMAL(10, 2)", DecimalType(Some(10), Some(2)))
+      example("NUMBER(10, 2)", DecimalType(Some(10), Some(2)))
+      example("NUMERIC(10, 2)", DecimalType(Some(10), Some(2)))
+      example("VARCHAR(10)", VarCharType(Some(10)))
     }
 
-    "translate the rest to UnparsedType" in {
-      example("VARIANT", UnparsedType())
-      example("OBJECT", UnparsedType())
+    "non-precision types" in {
+      example("ARRAY", ArrayType(UnresolvedType))
+      example("BIGINT", LongType)
+      example("BINARY", BinaryType)
+      example("BOOLEAN", BooleanType)
+      example("BYTEINT", IntegerType)
+      example("DATE", DateType)
+      example("DOUBLE", DoubleType)
+      example("DOUBLE PRECISION", DoubleType)
+      example("FLOAT", FloatType)
+      example("FLOAT4", FloatType)
+      example("FLOAT8", DoubleType)
+      example("INT", IntegerType)
+      example("INTEGER", IntegerType)
+      example("OBJECT", UnparsedType("OBJECT"))
+      example("REAL", FloatType)
+      example("SMALLINT", ShortType)
+      example("STRING", StringType)
+      example("TEXT", StringType)
+      example("TIME", TimestampType)
+      example("TIMESTAMP", TimestampType)
+      example("TIMESTAMP_LTZ", TimestampType)
+      example("TIMESTAMP_NTZ", TimestampNTZType)
+      example("TIMESTAMP_TZ", TimestampType)
+      example("TINYINT", ShortType)
+      example("VARBINARY", BinaryType)
+      example("VARIANT", UnparsedType("VARIANT"))
     }
   }
 

@@ -72,7 +72,7 @@ class SnowflakeExprSpec extends AnyWordSpec with SnowflakeParserTestCommon with 
       example("DATE(column_1)", CallFunction("TO_DATE", Seq(Id("column_1"))))
       example("TO_DATE('2024-05-15')", CallFunction("TO_DATE", Seq(Literal(string = Some("2024-05-15")))))
       example("INTERVAL '1 hour'", Cast(Literal(string = Some("1 hour")), IntervalType))
-      example("42::FLOAT", Cast(Literal(short = Some(42)), DoubleType))
+      example("42::FLOAT", Cast(Literal(short = Some(42)), FloatType))
       example("TO_CHAR(42)", CallFunction("TO_VARCHAR", Seq(Literal(short = Some(42)))))
     }
 

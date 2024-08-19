@@ -715,11 +715,14 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
       // TODO: Resolve what to do with IDENTITY
       // IDENTITY it isn't actually castable but we have not implemented CREATE TABLE yet, so cover here for now
       // then examine what happens in snowflake
-      exampleExpr("CAST(a AS col1 IDENTITY(10, 2))", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.UnparsedType()))
+      exampleExpr(
+        "CAST(a AS col1 IDENTITY(10, 2))",
+        _.expression(),
+        ir.Cast(simplyNamedColumn("a"), ir.UnparsedType("col1IDENTITY(10,2)")))
     }
 
     "translate unknown types to UnParsedType" in {
-      exampleExpr("CAST(a AS sometype)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.UnparsedType()))
+      exampleExpr("CAST(a AS sometype)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.UnparsedType("sometype")))
     }
 
   }

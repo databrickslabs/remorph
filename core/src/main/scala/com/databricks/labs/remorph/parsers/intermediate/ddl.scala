@@ -40,7 +40,7 @@ case class MapType(keyType: DataType, valueType: DataType) extends DataType
 // UserDefinedType
 case class UDTType() extends DataType
 
-case class UnparsedType() extends DataType
+case class UnparsedType(text: String) extends DataType
 
 case object UnresolvedType extends DataType
 

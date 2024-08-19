@@ -71,7 +71,7 @@ class SnowflakeDDLBuilderSpec
                   |$$$$;""".stripMargin,
         expectedAst = CreateInlineUDF(
           name = "py_udf",
-          returnType = UnparsedType(),
+          returnType = UnparsedType("VARIANT"),
           parameters = Seq(),
           runtimeInfo = PythonRuntimeInfo(
             runtimeVersion = Some("3.8"),
@@ -204,11 +204,7 @@ class SnowflakeDDLBuilderSpec
               VarCharType(Some(32)),
               None,
               Seq(Unique, NamedConstraint("fkey", ForeignKey("s.t2.x")))),
-            ColumnDeclaration(
-              "b",
-              DecimalType(Some(38), None),
-              None,
-              Seq(NamedConstraint("fkey", ForeignKey("s.t2.y")))))))
+            ColumnDeclaration("b", IntegerType, None, Seq(NamedConstraint("fkey", ForeignKey("s.t2.y")))))))
     }
 
     "translate ALTER TABLE commands" in {
@@ -227,7 +223,7 @@ class SnowflakeDDLBuilderSpec
 
       example(
         query = "ALTER TABLE s.t1 ALTER (COLUMN a TYPE INT)",
-        expectedAst = AlterTableCommand("s.t1", Seq(ChangeColumnDataType("a", DecimalType(Some(38), None)))))
+        expectedAst = AlterTableCommand("s.t1", Seq(ChangeColumnDataType("a", IntegerType))))
       example(
         query = "ALTER TABLE s.t1 ALTER (COLUMN a NOT NULL)",
         expectedAst = AlterTableCommand("s.t1", Seq(AddConstraint("a", Nullability(false)))))
