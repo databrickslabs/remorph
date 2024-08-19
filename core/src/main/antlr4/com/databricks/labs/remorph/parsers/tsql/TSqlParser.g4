@@ -43,10 +43,7 @@ tSqlFile: batch? EOF
     ;
 
 // TODO: JI - Simplify this
-batch
-    : goStatement
-    | executeBodyBatch? (goStatement | sqlClauses)*
-    | batchLevelStatement goStatement*
+batch: executeBodyBatch? (goStatement | sqlClauses)+ | batchLevelStatement goStatement*
     ;
 
 batchLevelStatement
@@ -1729,12 +1726,11 @@ updateStatisticsOptions: WITH updateStatisticsOption (COMMA updateStatisticsOpti
 updateStatisticsOption: RESAMPLE onPartitions? | optionList
     ;
 
-createTable
-    : CREATE (createExternal | createInternal) ;
+createTable: CREATE (createExternal | createInternal)
+    ;
 
 createInternal
-:   TABLE
-    tableName (
+    : TABLE tableName (
         LPAREN columnDefTableConstraints (COMMA? tableIndices)* COMMA? RPAREN (LOCK simpleId)?
     )? createTableAs? tableOptions* (ON id | DEFAULT | onPartitionOrFilegroup)? (
         TEXTIMAGE_ON id
@@ -1743,11 +1739,7 @@ createInternal
     ;
 
 createExternal
-    : EXTERNAL TABLE
-        tableName (LPAREN columnDefTableConstraints RPAREN)?
-        WITH LPAREN optionList RPAREN
-        AS selectStatementStandalone
-     SEMI?
+    : EXTERNAL TABLE tableName (LPAREN columnDefTableConstraints RPAREN)? WITH LPAREN optionList RPAREN AS selectStatementStandalone SEMI?
     ;
 
 createTableAs
@@ -1800,22 +1792,61 @@ createView
 
 alterTable
     : ALTER TABLE tableName (
-        SET LPAREN LOCK_ESCALATION EQ (AUTO | TABLE | DISABLE) RPAREN
-        | ADD columnDefTableConstraints
-        | ALTER COLUMN (columnDefinition | columnModifier)
-        | DROP COLUMN id (COMMA id)*
-        | DROP CONSTRAINT id
-        | WITH (CHECK | NOCHECK) ADD (CONSTRAINT id)? (
-            FOREIGN KEY LPAREN columnNameList RPAREN REFERENCES tableName (
-                LPAREN columnNameList RPAREN
-            )? (onDelete | onUpdate)*
-            | CHECK LPAREN searchCondition RPAREN
-        )
-        | (NOCHECK | CHECK) CONSTRAINT id
-        | (ENABLE | DISABLE) TRIGGER id?
+        alterTableColumn
+        | WITH genericOption // CHECK | NOCHECK
+        | alterTableAdd
+        | alterTableDrop
         | REBUILD tableOptions
         | SWITCH switchPartition
+        | SET LPAREN id EQ ON LPAREN optionList RPAREN RPAREN
+        | (SET LPAREN optionList RPAREN | genericOption)+
     ) SEMI?
+    ;
+
+alterTableDrop
+    : DROP (
+        dropSet (COMMA dropSet)*
+        | WITH? (CHECK | NOCHECK) CONSTRAINT (ALL | id (COMMA id)*)
+        | (ENABLE | DISABLE) TRIGGER (ALL | id (COMMA id)*)
+        | (ENABLE | DISABLE) CHANGE_TRACKING (WITH LPAREN genericOption RPAREN)?
+    ) SEMI?
+    ;
+
+dropSet
+    : CONSTRAINT? (IF EXISTS)? dropId (COMMA dropId)*
+    | COLUMN (IF EXISTS)? id (COMMA id)*
+    | /* PERIOD */ id FOR /* SYSTEM_TIME */ id
+    ;
+
+dropId: id (WITH dropClusteredConstraintOption (COMMA dropClusteredConstraintOption)*?)
+    ;
+
+dropClusteredConstraintOption
+    : genericOption
+    | MOVE TO id (LPAREN dotIdentifier RPAREN | id | STRING)
+    ;
+
+alterTableAdd
+    : ADD (
+        ( computedColumnDefinition | tableConstraint | columnSetDefinition)+
+        | (alterGenerated (COMMA alterGenerated)*)?
+    )
+    ;
+
+alterGenerated
+    : dotIdentifier id GENERATED ALWAYS AS (ROW | TRANSACTION_ID | SEQUENCE_NUMBER) (START | END) HIDDEN_KEYWORD? (
+        NOT? NULL_
+    )? (CONSTRAINT id)? DEFAULT expression (WITH VALUES)?
+    | /* PERIOD */ id FOR /* SYSTEM_TIME */ id LPAREN (dotIdentifier COMMA dotIdentifier) RPAREN
+    ;
+
+alterTableColumn
+    : ALTER COLUMN dotIdentifier (
+        (LPAREN INT (COMMA INT)? RPAREN | xmlSchemaCollection) (COLLATE id)? (NULL_ | NOT NULL_)? SPARSE? (
+            WITH LPAREN genericOption RPAREN
+        )?
+        | (ADD | DROP) genericOption (WITH LPAREN genericOption RPAREN)?
+    )
     ;
 
 switchPartition
@@ -2490,7 +2521,19 @@ columnDefTableConstraints: columnDefTableConstraint (COMMA? columnDefTableConstr
 columnDefTableConstraint: columnDefinition | materializedColumnDefinition | tableConstraint
     ;
 
-columnDefinition: id (dataType | AS expression PERSISTED?) columnDefinitionElement* columnIndex?
+computedColumnDefinition
+    : id (dataType | AS expression) (PERSISTED (NOT NULL_)?)? (
+        (CONSTRAINT id)? (PRIMARY KEY | UNIQUE) (CLUSTERED | NONCLUSTERED)? primaryKeyOptions
+        | (FOREIGN KEY)? foreignKeyOptions
+        | checkConstraint
+    )?
+    ;
+
+columnSetDefinition: id XML id FOR id
+    ;
+
+columnDefinition
+    : id (dataType | AS expression (PERSISTED (NOT NULL_)?)?) columnDefinitionElement* columnIndex?
     ;
 
 columnDefinitionElement
@@ -2508,17 +2551,6 @@ columnDefinitionElement
         | RANDOMIZED
     ) COMMA ALGORITHM EQ STRING RPAREN
     | columnConstraint
-    ;
-
-columnModifier
-    : id (ADD | DROP) (
-        ROWGUIDCOL
-        | PERSISTED
-        | NOT FOR REPLICATION
-        | SPARSE
-        | HIDDEN_KEYWORD
-        | MASKED ( WITH ( FUNCTION EQ STRING | LPAREN FUNCTION EQ STRING RPAREN))?
-    )
     ;
 
 materializedColumnDefinition: id (COMPUTE | AS) expression ( MATERIALIZED | NOT MATERIALIZED)?
@@ -2559,7 +2591,7 @@ primaryKeyOptions: (WITH FILLFACTOR EQ INT)? alterTableIndexOptions? onPartition
     ;
 
 foreignKeyOptions
-    : REFERENCES tableName LPAREN columnNameList RPAREN (onDelete | onUpdate)* (
+    : REFERENCES tableName (LPAREN columnNameList RPAREN)? onDelete? onUpdate? (
         NOT FOR REPLICATION
     )?
     ;
