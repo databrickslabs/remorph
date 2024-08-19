@@ -13,12 +13,12 @@ class SnowflakeTypeBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommo
   }
   "SnowflakeTypeBuilder" should {
     "precision types" in {
-      example("CHAR(1)", CharType(Some(1)))
-      example("CHARACTER(1)", CharType(Some(1)))
+      example("CHAR(1)", StringType)
+      example("CHARACTER(1)", StringType)
+      example("VARCHAR(10)", StringType)
       example("DECIMAL(10, 2)", DecimalType(Some(10), Some(2)))
       example("NUMBER(10, 2)", DecimalType(Some(10), Some(2)))
       example("NUMERIC(10, 2)", DecimalType(Some(10), Some(2)))
-      example("VARCHAR(10)", VarcharType(Some(10)))
     }
 
     "non-precision types" in {
