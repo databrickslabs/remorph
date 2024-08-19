@@ -189,6 +189,11 @@ case class WithOptions(input: LogicalPlan, options: Expression) extends UnaryNod
   override def output: Seq[Attribute] = input.output
 }
 
+case class WithModificationOptions(input: Modification, options: Expression) extends Modification {
+  override def children: Seq[Modification] = Seq(input)
+  override def output: Seq[Attribute] = input.output
+}
+
 // Though at least TSQL only needs the time based intervals, we are including all the interval types
 // supported by Spark SQL for completeness and future proofing
 sealed trait KnownIntervalType

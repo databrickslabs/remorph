@@ -1,7 +1,7 @@
 package com.databricks.labs.remorph.parsers.tsql
 
 import com.databricks.labs.remorph.parsers.tsql.TSqlParser._
-import com.databricks.labs.remorph.parsers.tsql.rules.{InsertDefaultsAction, TopPercent}
+import com.databricks.labs.remorph.parsers.tsql.rules.TopPercent
 import com.databricks.labs.remorph.parsers.{intermediate => ir}
 import org.antlr.v4.runtime.ParserRuleContext
 
@@ -61,7 +61,7 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.LogicalPlan] {
     }
   }
 
-  private def buildTop(ctxOpt: Option[TSqlParser.TopClauseContext], input: ir.LogicalPlan): ir.LogicalPlan =
+  private[tsql] def buildTop(ctxOpt: Option[TSqlParser.TopClauseContext], input: ir.LogicalPlan): ir.LogicalPlan =
     ctxOpt.fold(input) { top =>
       val limit = top.expression().accept(expressionBuilder)
       if (top.PERCENT() != null) {
@@ -188,33 +188,6 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.LogicalPlan] {
       .getOrElse(relation)
   }
 
-  // Table hints arrive syntactically as a () delimited list of options and, in the
-  // case of deprecated hint syntax, as a list of generic options without (). Here,
-  // we build a single map from both sources, either or both of which may be empty.
-  // In true TSQL style, some of the hints have non-orthodox syntax, and must be handled
-  // directly.
-  private def buildTableHints(ctx: Option[WithTableHintsContext]): Seq[ir.TableHint] = {
-    ctx.map(_.tableHint().asScala.map(buildHint).toList).getOrElse(Seq.empty)
-  }
-
-  private def buildHint(ctx: TableHintContext): ir.TableHint = {
-    ctx match {
-      case index if index.INDEX() != null =>
-        ir.IndexHint(index.expressionList().expression().asScala.map { expr =>
-          expr.accept(expressionBuilder) match {
-            case column: ir.Column => column.columnName
-            case other => other
-          }
-        })
-      case force if force.FORCESEEK() != null =>
-        val name = Option(force.expression()).map(_.accept(expressionBuilder))
-        val columns = Option(force.columnNameList()).map(_.id().asScala.map(_.accept(expressionBuilder)))
-        ir.ForceSeekHint(name, columns)
-      case _ =>
-        val option = expressionBuilder.optionBuilder.buildOption(ctx.genericOption())
-        ir.FlagHint(option.id)
-    }
-  }
 
   private def buildColumnAlias(ctx: TSqlParser.ColumnAliasContext): ir.Id = {
     ctx match {
@@ -246,217 +219,6 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.LogicalPlan] {
 
   private def buildValueRow(ctx: TableValueRowContext): Seq[ir.Expression] = {
     ctx.expressionList().expression().asScala.map(_.accept(expressionBuilder))
-  }
-
-  override def visitMergeStatement(ctx: MergeStatementContext): ir.LogicalPlan = {
-    val merge = ctx.merge().accept(this)
-    Option(ctx.withExpression())
-      .map { withExpression =>
-        val ctes = withExpression.commonTableExpression().asScala.map(_.accept(this))
-        ir.WithCTE(ctes, merge)
-      }
-      .getOrElse(merge)
-  }
-
-  override def visitMerge(ctx: MergeContext): ir.LogicalPlan = {
-
-    val targetPlan = ctx.ddlObject().accept(this)
-    val hints = buildTableHints(Option(ctx.withTableHints()))
-    val finalTarget = if (hints.nonEmpty) {
-      ir.TableWithHints(targetPlan, hints)
-    } else {
-      targetPlan
-    }
-
-    val mergeCondition = ctx.searchCondition().accept(expressionBuilder)
-    val tableSourcesPlan = ctx.tableSources().tableSource().asScala.map(_.accept(this))
-    val sourcePlan = tableSourcesPlan.tail.foldLeft(tableSourcesPlan.head)(
-      ir.Join(_, _, None, ir.CrossJoin, Seq(), ir.JoinDataType(is_left_struct = false, is_right_struct = false)))
-
-    // We may have a number of when clauses, each with a condition and an action. We keep the ANTLR syntax compact
-    // and lean and determine which of the three types of action we have in the whenMatch method based on
-    // the presence or absence of syntactical elements NOT and SOURCE as SOURCE can only be used with NOT
-    val (matchedActions, notMatchedActions, notMatchedBySourceActions) = Option(ctx.whenMatch())
-      .map(_.asScala.foldLeft((List.empty[ir.MergeAction], List.empty[ir.MergeAction], List.empty[ir.MergeAction])) {
-        case ((matched, notMatched, notMatchedBySource), m) =>
-          val action = buildWhenMatch(m)
-          (m.NOT(), m.SOURCE()) match {
-            case (null, _) => (action :: matched, notMatched, notMatchedBySource)
-            case (_, null) => (matched, action :: notMatched, notMatchedBySource)
-            case _ => (matched, notMatched, action :: notMatchedBySource)
-          }
-      })
-      .getOrElse((List.empty, List.empty, List.empty))
-
-    val optionClause = Option(ctx.optionClause).map(_.accept(expressionBuilder))
-    val outputClause = Option(ctx.outputClause()).map(_.accept(this))
-
-    val mergeIntoTable = ir.MergeIntoTable(
-      finalTarget,
-      sourcePlan,
-      mergeCondition,
-      matchedActions,
-      notMatchedActions,
-      notMatchedBySourceActions)
-
-    val withOptions = optionClause match {
-      case Some(option) => ir.WithOptions(mergeIntoTable, option)
-      case None => mergeIntoTable
-    }
-
-    outputClause match {
-      case Some(output) => WithOutputClause(withOptions, output)
-      case None => withOptions
-    }
-  }
-
-  private def buildWhenMatch(ctx: WhenMatchContext): ir.MergeAction = {
-    val condition = Option(ctx.searchCondition()).map(_.accept(expressionBuilder))
-    ctx.mergeAction() match {
-      case action if action.DELETE() != null => ir.DeleteAction(condition)
-      case action if action.UPDATE() != null => buildUpdateAction(action, condition)
-      case action if action.INSERT() != null => buildInsertAction(action, condition)
-    }
-  }
-
-  private def buildInsertAction(ctx: MergeActionContext, condition: Option[ir.Expression]): ir.MergeAction = {
-
-    ctx match {
-      case action if action.DEFAULT() != null => InsertDefaultsAction(condition)
-      case _ =>
-        val assignments =
-          (ctx.cols
-            .expression()
-            .asScala
-            .map(_.accept(expressionBuilder)) zip ctx.vals.expression().asScala.map(_.accept(expressionBuilder)))
-            .map { case (col, value) =>
-              ir.Assign(col, value)
-            }
-        ir.InsertAction(condition, assignments)
-    }
-  }
-
-  private def buildUpdateAction(ctx: MergeActionContext, condition: Option[ir.Expression]): ir.UpdateAction = {
-    val setElements = ctx.updateElem().asScala.collect { case elem =>
-      elem.accept(expressionBuilder) match {
-        case assign: ir.Assign => assign
-      }
-    }
-    ir.UpdateAction(condition, setElements)
-  }
-
-  override def visitUpdateStatement(ctx: UpdateStatementContext): ir.LogicalPlan = {
-    val update = ctx.update().accept(this)
-    Option(ctx.withExpression())
-      .map { withExpression =>
-        val ctes = withExpression.commonTableExpression().asScala.map(_.accept(this))
-        ir.WithCTE(ctes, update)
-      }
-      .getOrElse(update)
-  }
-
-  override def visitUpdate(ctx: UpdateContext): ir.LogicalPlan = {
-    val target = ctx.ddlObject().accept(this)
-    val hints = buildTableHints(Option(ctx.withTableHints()))
-    val hintTarget = if (hints.nonEmpty) {
-      ir.TableWithHints(target, hints)
-    } else {
-      target
-    }
-
-    val finalTarget = buildTop(Option(ctx.topClause()), hintTarget)
-    val output = Option(ctx.outputClause()).map(_.accept(this))
-    val setElements = ctx.updateElem().asScala.map(_.accept(expressionBuilder))
-
-    val tableSourcesOption = Option(ctx.tableSources()).map(_.tableSource().asScala.map(_.accept(this)))
-    val sourceRelation = tableSourcesOption.map { tableSources =>
-      tableSources.tail.foldLeft(tableSources.head)(
-        ir.Join(_, _, None, ir.CrossJoin, Seq(), ir.JoinDataType(is_left_struct = false, is_right_struct = false)))
-    }
-
-    val where = Option(ctx.updateWhereClause()) map (_.accept(expressionBuilder))
-    val optionClause = Option(ctx.optionClause).map(_.accept(expressionBuilder))
-    ir.UpdateTable(finalTarget, sourceRelation, setElements, where, output, optionClause)
-  }
-
-  override def visitDeleteStatement(ctx: DeleteStatementContext): ir.LogicalPlan = {
-    val delete = ctx.delete().accept(this)
-    Option(ctx.withExpression())
-      .map { withExpression =>
-        val ctes = withExpression.commonTableExpression().asScala.map(_.accept(this))
-        ir.WithCTE(ctes, delete)
-      }
-      .getOrElse(delete)
-  }
-
-  override def visitDelete(ctx: DeleteContext): ir.LogicalPlan = {
-    val target = ctx.ddlObject().accept(this)
-    val hints = buildTableHints(Option(ctx.withTableHints()))
-    val finalTarget = if (hints.nonEmpty) {
-      ir.TableWithHints(target, hints)
-    } else {
-      target
-    }
-
-    val output = Option(ctx.outputClause()).map(_.accept(this))
-    val tableSourcesOption = Option(ctx.tableSources()).map(_.tableSource().asScala.map(_.accept(this)))
-    val sourceRelation = tableSourcesOption.map { tableSources =>
-      tableSources.tail.foldLeft(tableSources.head)(
-        ir.Join(_, _, None, ir.CrossJoin, Seq(), ir.JoinDataType(is_left_struct = false, is_right_struct = false)))
-    }
-
-    val where = Option(ctx.updateWhereClause()) map (_.accept(expressionBuilder))
-    val optionClause = Option(ctx.optionClause).map(_.accept(expressionBuilder))
-    ir.DeleteFromTable(finalTarget, sourceRelation, where, output, optionClause)
-  }
-
-  override def visitInsertStatement(ctx: InsertStatementContext): ir.LogicalPlan = {
-    val insert = ctx.insert().accept(this)
-    Option(ctx.withExpression())
-      .map { withExpression =>
-        val ctes = withExpression.commonTableExpression().asScala.map(_.accept(this))
-        ir.WithCTE(ctes, insert)
-      }
-      .getOrElse(insert)
-  }
-
-  override def visitInsert(ctx: InsertContext): ir.LogicalPlan = {
-    val target = ctx.ddlObject().accept(this)
-    val hints = buildTableHints(Option(ctx.withTableHints()))
-    val finalTarget = if (hints.nonEmpty) {
-      ir.TableWithHints(target, hints)
-    } else {
-      target
-    }
-
-    val columns = Option(ctx.expressionList())
-      .map(_.expression().asScala.map(_.accept(expressionBuilder)).collect { case col: ir.Column => col.columnName })
-
-    val output = Option(ctx.outputClause()).map(_.accept(this))
-    val values = ctx.insertStatementValue().accept(this)
-    val optionClause = Option(ctx.optionClause).map(_.accept(expressionBuilder))
-    ir.InsertIntoTable(finalTarget, columns, values, output, optionClause, overwrite = false)
-  }
-
-  override def visitInsertStatementValue(ctx: InsertStatementValueContext): ir.LogicalPlan = {
-    Option(ctx) match {
-      case Some(context) if context.derivedTable() != null => context.derivedTable().accept(this)
-      case Some(context) if context.VALUES() != null => DefaultValues()
-      case Some(context) => context.executeStatement().accept(this)
-    }
-  }
-
-  override def visitOutputClause(ctx: OutputClauseContext): ir.LogicalPlan = {
-    val outputs = ctx.outputDmlListElem().asScala.map(_.accept(expressionBuilder))
-    val target = Option(ctx.ddlObject()).map(_.accept(this))
-    val columns =
-      Option(ctx.columnNameList())
-        .map(_.id().asScala.map(id => ir.Column(None, expressionBuilder.visitId(id))))
-
-    // Databricks SQL does not support the OUTPUT clause, but we may be able to translate
-    // the clause to SELECT statements executed before or after the INSERT/DELETE/UPDATE/MERGE
-    // is executed
-    Output(target, outputs, columns)
   }
 
   override def visitDdlObject(ctx: DdlObjectContext): ir.LogicalPlan = {
@@ -544,6 +306,34 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.LogicalPlan] {
       translateJoinType(ctx),
       Seq.empty,
       ir.JoinDataType(is_left_struct = false, is_right_struct = false))
+  }
+
+  // Table hints arrive syntactically as a () delimited list of options and, in the
+  // case of deprecated hint syntax, as a list of generic options without (). Here,
+  // we build a single map from both sources, either or both of which may be empty.
+  // In true TSQL style, some of the hints have non-orthodox syntax, and must be handled
+  // directly.
+  private[tsql] def buildTableHints(ctx: Option[WithTableHintsContext]): Seq[ir.TableHint] = {
+    ctx.map(_.tableHint().asScala.map(buildHint).toList).getOrElse(Seq.empty)
+  }
+
+  private def buildHint(ctx: TableHintContext): ir.TableHint = {
+    ctx match {
+      case index if index.INDEX() != null =>
+        ir.IndexHint(index.expressionList().expression().asScala.map { expr =>
+          expr.accept(expressionBuilder) match {
+            case column: ir.Column => column.columnName
+            case other => other
+          }
+        })
+      case force if force.FORCESEEK() != null =>
+        val name = Option(force.expression()).map(_.accept(expressionBuilder))
+        val columns = Option(force.columnNameList()).map(_.id().asScala.map(_.accept(expressionBuilder)))
+        ir.ForceSeekHint(name, columns)
+      case _ =>
+        val option = expressionBuilder.optionBuilder.buildOption(ctx.genericOption())
+        ir.FlagHint(option.id)
+    }
   }
 
   private[tsql] def translateJoinType(ctx: JoinOnContext): ir.JoinType = ctx.joinType() match {

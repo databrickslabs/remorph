@@ -46,3 +46,8 @@ case class UnresolvedCatalog(inputText: String) extends Catalog {
   override def output: Seq[Attribute] = Seq.empty
   override def children: Seq[LogicalPlan] = Seq.empty
 }
+
+case class UnresolvedModification(inputText: String) extends Modification {
+  override def output: Seq[Attribute] = Seq.empty
+  override def children: Seq[LogicalPlan] = Seq.empty
+}

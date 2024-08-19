@@ -1446,9 +1446,6 @@ messageStatement
     )
     ;
 
-mergeStatement: withExpression? merge
-    ;
-
 merge
     : MERGE topClause? INTO? ddlObject withTableHints? asTableAlias? USING tableSources ON searchCondition whenMatch* outputClause? optionClause? SEMI
         ?
@@ -1466,9 +1463,6 @@ mergeAction
     )
     ;
 
-deleteStatement: withExpression? delete
-    ;
-
 delete
     : DELETE topClause? FROM? ddlObject withTableHints? outputClause? (FROM tableSources)? updateWhereClause? optionClause? SEMI?
     ;
@@ -1483,9 +1477,6 @@ bulkInsertOption: ORDER LPAREN bulkInsertCol (COMMA bulkInsertCol)* RPAREN | gen
     ;
 
 bulkInsertCol: id (ASC | DESC)?
-    ;
-
-insertStatement: withExpression? insert
     ;
 
 insert
@@ -1505,9 +1496,6 @@ selectStatementStandalone: withExpression? selectStatement
     ;
 
 selectStatement: queryExpression forClause? optionClause? SEMI?
-    ;
-
-updateStatement: withExpression? update
     ;
 
 update

@@ -916,7 +916,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
             | WHEN NOT MATCHED THEN INSERT (a, b) VALUES (s.a, s.b)
             | OPTION ( KEEPFIXED PLAN, FAST 666, MAX_GRANT_PERCENT = 30, FLAME ON, FLAME OFF, QUICKLY) """.stripMargin,
       expectedAst = Batch(
-        Seq(WithOptions(
+        Seq(WithModificationOptions(
           MergeIntoTable(
             NamedTable("t", Map(), is_streaming = false),
             NamedTable("s", Map(), is_streaming = false),
