@@ -47,10 +47,10 @@ batch: executeBodyBatch? (goStatement | sqlClauses)+ | batchLevelStatement goSta
     ;
 
 batchLevelStatement
-    : createOrAlterFunction
-    | createOrAlterProcedure
-    | createOrAlterTrigger
-    | createView
+    : createOrAlterFunction SEMI*
+    | createOrAlterProcedure SEMI*
+    | createOrAlterTrigger SEMI*
+    | createView SEMI*
     ;
 
 // TODO: Properly sort out SEMI colons, which have been haphazzardly added in some
