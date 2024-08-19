@@ -56,13 +56,16 @@ batchLevelStatement
     | createView
     ;
 
+// TODO: Properly sort out SEMI colons, which have been haphazzardly added in some
+// places and not others.
+
 sqlClauses
-    : dmlClause
-    | cflStatement
-    | anotherStatement
-    | ddlClause
-    | dbccClause
-    | backupStatement
+    : dmlClause SEMI*
+    | cflStatement SEMI*
+    | anotherStatement SEMI*
+    | ddlClause SEMI*
+    | dbccClause SEMI*
+    | backupStatement SEMI*
     | SEMI // Empty statement
     ;
 
