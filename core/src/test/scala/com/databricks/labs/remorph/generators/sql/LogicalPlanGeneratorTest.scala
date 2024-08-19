@@ -266,7 +266,7 @@ class LogicalPlanGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.L
   "transpile to ORDER BY" in {
     ir.Sort(
       namedTable("a"),
-      Seq(ir.SortOrder(ir.Id("c1"), ir.Ascending, ir.NullsFirst))) generates "a ORDER BY c1 ASC NULLS FIRST"
+      Seq(ir.SortOrder(ir.Id("c1"), ir.Ascending, ir.NullsFirst))) generates "a ORDER BY c1 NULLS FIRST"
   }
 
   "transpile to VALUES" in {
