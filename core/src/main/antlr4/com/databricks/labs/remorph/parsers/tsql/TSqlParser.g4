@@ -45,7 +45,7 @@ tSqlFile: batch? EOF
 // TODO: JI - Simplify this
 batch
     : goStatement
-    | executeBodyBatch? (goStatement | sqlClauses+) goStatement*
+    | executeBodyBatch? (goStatement | sqlClauses)*
     | batchLevelStatement goStatement*
     ;
 
@@ -1730,12 +1730,24 @@ updateStatisticsOption: RESAMPLE onPartitions? | optionList
     ;
 
 createTable
-    : CREATE TABLE tableName (
+    : CREATE (createExternal | createInternal) ;
+
+createInternal
+:   TABLE
+    tableName (
         LPAREN columnDefTableConstraints (COMMA? tableIndices)* COMMA? RPAREN (LOCK simpleId)?
     )? createTableAs? tableOptions* (ON id | DEFAULT | onPartitionOrFilegroup)? (
         TEXTIMAGE_ON id
         | DEFAULT
     )? SEMI?
+    ;
+
+createExternal
+    : EXTERNAL TABLE
+        tableName (LPAREN columnDefTableConstraints RPAREN)?
+        WITH LPAREN optionList RPAREN
+        AS selectStatementStandalone
+     SEMI?
     ;
 
 createTableAs
