@@ -102,7 +102,7 @@ class IsTranspiledFromSnowflakeQueryRunner extends QueryRunner {
   override def runQuery(exampleQuery: ExampleQuery): ReportEntryReport = {
     try {
       val transpiled = snowflakeTranspiler.transpile(exampleQuery.query)
-      if (exampleQuery.expectedTranslation.exists(_ != transpiled)) {
+      if (exampleQuery.expectedTranslation.map(format).exists(_ != transpiled)) {
         val expected = exampleQuery.expectedTranslation.getOrElse("")
         ReportEntryReport(
           parsed = 1,
@@ -128,7 +128,7 @@ class IsTranspiledFromTSqlQueryRunner extends QueryRunner {
   override def runQuery(exampleQuery: ExampleQuery): ReportEntryReport = {
     try {
       val transpiled = tsqlTranspiler.transpile(exampleQuery.query)
-      if (exampleQuery.expectedTranslation.exists(_ != transpiled)) {
+      if (exampleQuery.expectedTranslation.map(format).exists(_ != transpiled)) {
         val expected = exampleQuery.expectedTranslation.getOrElse("")
         ReportEntryReport(
           parsed = 1,
