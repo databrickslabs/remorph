@@ -13,9 +13,6 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
   private val dateFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd")
   private val timeFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS").withZone(ZoneId.of("UTC"))
 
-  // LogicalPlan and Expression are mutually recursive (due to expressions such as EXISTS, IN, etc.)
-  private val logicalPlanGenerator = new LogicalPlanGenerator(this)
-
   override def generate(ctx: GeneratorContext, tree: ir.Expression): String = expression(ctx, tree)
 
   def expression(ctx: GeneratorContext, expr: ir.Expression): String = {
@@ -320,7 +317,7 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
   }
 
   private def scalarSubquery(ctx: GeneratorContext, subquery: ir.ScalarSubquery): String = {
-    logicalPlanGenerator.generate(ctx, subquery.relation)
+    ctx.logical.generate(ctx, subquery.relation)
   }
 
   private def window(ctx: GeneratorContext, window: ir.Window): String = {
