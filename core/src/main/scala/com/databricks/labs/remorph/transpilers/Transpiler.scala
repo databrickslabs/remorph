@@ -3,6 +3,7 @@ package com.databricks.labs.remorph.transpilers
 import com.databricks.labs.remorph.parsers.{intermediate => ir}
 import com.github.vertical_blank.sqlformatter.SqlFormatter
 import com.github.vertical_blank.sqlformatter.core.FormatConfig
+import com.github.vertical_blank.sqlformatter.languages.Dialect
 
 trait Transpiler {
   def transpile(input: String): String
@@ -16,7 +17,7 @@ trait Formatter {
     .maxColumnLength(100)
     .build()
 
-  def format(input: String): String = SqlFormatter.format(input, sqlFormat)
+  def format(input: String): String = SqlFormatter.of(Dialect.SparkSql) format (input, sqlFormat)
 }
 
 abstract class BaseTranspiler extends Transpiler with Formatter {
