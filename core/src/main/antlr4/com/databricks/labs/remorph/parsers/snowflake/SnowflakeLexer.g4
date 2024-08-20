@@ -842,7 +842,9 @@ DUMMY:
     'DUMMY'
 ; //Dummy is not a keyword but rules reference it in unfinished grammar - need to get rid
 
-SPACE        : [ \t\r\n\u000c\u0085\u00a0\u1680\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u202f\u205f\u3000]+                -> skip;
+SPACE:
+    [ \t\r\n\u000c\u0085\u00a0\u1680\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u202f\u205f\u3000]+ -> skip
+;
 
 SQL_COMMENT    : '/*' (SQL_COMMENT | .)*? '*/' -> channel(HIDDEN);
 LINE_COMMENT   : '--' ~[\r\n]*                 -> channel(HIDDEN);

@@ -842,15 +842,10 @@ eventSessionPredicateLeaf
     ;
 
 createExternalDataSource
-    : CREATE EXTERNAL DATA SOURCE id
-      WITH LPAREN
-        (COMMA? (  genericOption | connectionOptions))*
-        RPAREN
-        SEMI?
+    : CREATE EXTERNAL DATA SOURCE id WITH LPAREN (COMMA? ( genericOption | connectionOptions))* RPAREN SEMI?
     ;
 
-connectionOptions
-    :  id EQ STRING (COMMA STRING)*
+connectionOptions: id EQ STRING (COMMA STRING)*
     ;
 
 alterExternalDataSource
@@ -1477,18 +1472,16 @@ delete
     : DELETE topClause? FROM? ddlObject withTableHints? outputClause? (FROM tableSources)? updateWhereClause? optionClause? SEMI?
     ;
 
-bulkStatement: BULK INSERT dotIdentifier
-FROM STRING
-( WITH LPAREN bulkInsertOption (COMMA? bulkInsertOption)* RPAREN )?
+bulkStatement
+    : BULK INSERT dotIdentifier FROM STRING (
+        WITH LPAREN bulkInsertOption (COMMA? bulkInsertOption)* RPAREN
+    )?
     ;
 
-bulkInsertOption:
-    ORDER LPAREN bulkInsertCol (COMMA bulkInsertCol)* RPAREN
-       | genericOption
+bulkInsertOption: ORDER LPAREN bulkInsertCol (COMMA bulkInsertCol)* RPAREN | genericOption
     ;
 
-bulkInsertCol:
-    id (ASC |DESC)?
+bulkInsertCol: id (ASC | DESC)?
     ;
 
 insertStatement: withExpression? insert
@@ -1539,13 +1532,11 @@ createDatabase
         ON (PRIMARY? databaseFileSpec ( COMMA databaseFileSpec)*)? (
             id /* LOG */ ON databaseFileSpec (COMMA databaseFileSpec)*
         )?
-    )? (COLLATE id)? (WITH createDatabaseOption (COMMA createDatabaseOption)*)?
-    SEMI?
+    )? (COLLATE id)? (WITH createDatabaseOption (COMMA createDatabaseOption)*)? SEMI?
     ;
 
 createDatabaseScopedCredential
-    : CREATE DATABASE SCOPED CREDENTIAL id
-            WITH IDENTITY EQ STRING (COMMA SECRET EQ STRING)? SEMI?
+    : CREATE DATABASE SCOPED CREDENTIAL id WITH IDENTITY EQ STRING (COMMA SECRET EQ STRING)? SEMI?
     ;
 
 createDatabaseOption
@@ -1758,27 +1749,22 @@ createTable: CREATE (createExternal | createInternal)
 createInternal
     : TABLE tableName (
         LPAREN columnDefTableConstraints (COMMA? tableIndices)* COMMA? RPAREN (LOCK simpleId)?
-    )?
-    tableOptions?  // This sequence looks strange but alloes CTAS and normal CREATE TABLE to be parsed
-    createTableAs?
-    tableOptions?
-    (ON id | DEFAULT | onPartitionOrFilegroup)? (
+    )? tableOptions? // This sequence looks strange but alloes CTAS and normal CREATE TABLE to be parsed
+    createTableAs? tableOptions? (ON id | DEFAULT | onPartitionOrFilegroup)? (
         TEXTIMAGE_ON id
         | DEFAULT
     )? SEMI?
     ;
-
-distributionOption: DISTRIBUTION EQ distributionType ;
 
 createExternal
     : EXTERNAL TABLE tableName (LPAREN columnDefTableConstraints RPAREN)? WITH LPAREN optionList RPAREN AS selectStatementStandalone SEMI?
     ;
 
 createTableAs
-    : AS selectStatementStandalone       # ctas
-    | AS FILETABLE WITH lparenOptionList # ctasFiletable
-    | AS (NODE | EDGE)                   # ctasGraph
-    | AS /* CLONE */ id OF dotIdentifier (AT_KEYWORD STRING)?        # ctasClone
+    : AS selectStatementStandalone                            # ctas
+    | AS FILETABLE WITH lparenOptionList                      # ctasFiletable
+    | AS (NODE | EDGE)                                        # ctasGraph
+    | AS /* CLONE */ id OF dotIdentifier (AT_KEYWORD STRING)? # ctasClone
     ;
 
 tableIndices
@@ -1965,16 +1951,13 @@ autoOption
     ;
 
 changeTrackingOption
-    : CHANGE_TRACKING (EQ (
-        OFF
-        | ON)
+    : CHANGE_TRACKING (
+        EQ ( OFF | ON)
         | LPAREN (changeTrackingOpt ( COMMA changeTrackingOpt)*) RPAREN
     )
     ;
 
-changeTrackingOpt
-    : AUTO_CLEANUP EQ onOff
-    | CHANGE_RETENTION EQ INT ( DAYS | HOURS | MINUTES)
+changeTrackingOpt: AUTO_CLEANUP EQ onOff | CHANGE_RETENTION EQ INT ( DAYS | HOURS | MINUTES)
     ;
 
 containmentOption: CONTAINMENT EQ (NONE | PARTIAL)
@@ -2187,17 +2170,14 @@ cursorStatement
     ;
 
 backupDatabase
-    : BACKUP DATABASE id
-        (READ_WRITE_FILEGROUPS (COMMA optionList)?)?
-        optionList?
-        (TO optionList)
-        (MIRROR TO optionList)?
-     (WITH (
-        ENCRYPTION LPAREN ALGORITHM EQ genericOption COMMA SERVER CERTIFICATE EQ genericOption RPAREN
-        | optionList
+    : BACKUP DATABASE id (READ_WRITE_FILEGROUPS (COMMA optionList)?)? optionList? (TO optionList) (
+        MIRROR TO optionList
+    )? (
+        WITH (
+            ENCRYPTION LPAREN ALGORITHM EQ genericOption COMMA SERVER CERTIFICATE EQ genericOption RPAREN
+            | optionList
         )
-    )?
-    SEMI?
+    )? SEMI?
     ;
 
 backupLog: BACKUP id /* LOG */ id TO optionList (MIRROR TO optionList)? ( WITH optionList)?

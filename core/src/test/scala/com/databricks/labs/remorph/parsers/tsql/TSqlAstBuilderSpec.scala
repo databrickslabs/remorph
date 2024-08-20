@@ -460,7 +460,6 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
               simplyNamedColumn("colxcount")))))))
   }
 
-
   "translate a SELECT with a TOP clause" should {
     "use LIMIT" in {
       example(
