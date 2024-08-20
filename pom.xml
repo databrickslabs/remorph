@@ -23,6 +23,7 @@
     </license>
   </licenses>
   <modules>
+    <module>linter</module>
     <module>core</module>
     <module>py</module>
     <module>coverage</module>

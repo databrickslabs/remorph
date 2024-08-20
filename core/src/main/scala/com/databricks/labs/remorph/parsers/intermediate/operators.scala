@@ -75,7 +75,32 @@ case class Like(left: Expression, right: Expression, escapeChar: Char = '\\') ex
   override def dataType: DataType = BooleanType
 }
 
+case class LikeAll(child: Expression, patterns: Seq[Expression]) extends Expression {
+  override def children: Seq[Expression] = child +: patterns
+  override def dataType: DataType = BooleanType
+}
+
+case class LikeAny(child: Expression, patterns: Seq[Expression]) extends Expression {
+  override def children: Seq[Expression] = child +: patterns
+  override def dataType: DataType = BooleanType
+}
+
+case class ILike(left: Expression, right: Expression, escapeChar: Char = '\\') extends Binary(left, right) {
+  override def dataType: DataType = BooleanType
+}
+
+case class ILikeAll(child: Expression, patterns: Seq[Expression]) extends Expression {
+  override def children: Seq[Expression] = child +: patterns
+  override def dataType: DataType = BooleanType
+}
+
+case class ILikeAny(child: Expression, patterns: Seq[Expression]) extends Expression {
+  override def children: Seq[Expression] = child +: patterns
+  override def dataType: DataType = BooleanType
+}
+
 /** str rlike regexp - Returns true if `str` matches `regexp`, or false otherwise. */
 case class RLike(left: Expression, right: Expression) extends Binary(left, right) {
   override def dataType: DataType = BooleanType
 }
+

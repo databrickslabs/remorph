@@ -186,7 +186,7 @@ class SnowflakeExpressionBuilderSpec
           window_function = CallFunction("ROW_NUMBER", Seq()),
           partition_spec = Seq(),
           sort_order = Seq(SortOrder(Id("a"), Descending, NullsFirst)),
-          frame_spec = None))
+          frame_spec = Some(WindowFrame(RowsFrame, UnboundedPreceding, UnboundedFollowing))))
 
       exampleExpr(
         query = "ROW_NUMBER() OVER (PARTITION BY a)",
@@ -195,7 +195,7 @@ class SnowflakeExpressionBuilderSpec
           window_function = CallFunction("ROW_NUMBER", Seq()),
           partition_spec = Seq(Id("a")),
           sort_order = Seq(),
-          frame_spec = None))
+          frame_spec = Some(WindowFrame(RowsFrame, UnboundedPreceding, UnboundedFollowing))))
       exampleExpr(
         query = "NTILE(42) OVER (PARTITION BY a ORDER BY b, c DESC, d)",
         rule = _.rankingWindowedFunction(),
@@ -206,7 +206,7 @@ class SnowflakeExpressionBuilderSpec
             SortOrder(Id("b"), Ascending, NullsLast),
             SortOrder(Id("c"), Descending, NullsFirst),
             SortOrder(Id("d"), Ascending, NullsLast)),
-          frame_spec = None))
+          frame_spec = Some(WindowFrame(RowsFrame, UnboundedPreceding, UnboundedFollowing))))
     }
 
     "translate window frame specifications" in {

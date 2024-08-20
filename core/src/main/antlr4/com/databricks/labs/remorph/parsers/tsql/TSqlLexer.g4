@@ -290,6 +290,7 @@ DROP_EXISTING                               : 'DROP_EXISTING';
 DROPCLEANBUFFERS                            : 'DROPCLEANBUFFERS';
 DTC_SUPPORT                                 : 'DTC_SUPPORT';
 DYNAMIC                                     : 'DYNAMIC';
+EDGE                                        : 'EDGE';
 ELEMENTS                                    : 'ELEMENTS';
 ELSE                                        : 'ELSE';
 EMERGENCY                                   : 'EMERGENCY';
@@ -340,6 +341,7 @@ FILENAME                                    : 'FILENAME';
 FILEPATH                                    : 'FILEPATH';
 FILESTREAM                                  : 'FILESTREAM';
 FILESTREAM_ON                               : 'FILESTREAM_ON';
+FILETABLE                                   : 'FILETABLE';
 FILLFACTOR                                  : 'FILLFACTOR';
 FILTER                                      : 'FILTER';
 FIRST                                       : 'FIRST';
@@ -531,6 +533,7 @@ NO_TRUNCATE                                 : 'NO_TRUNCATE';
 NO_WAIT                                     : 'NO_WAIT';
 NOCHECK                                     : 'NOCHECK';
 NOCOUNT                                     : 'NOCOUNT';
+NODE                                        : 'NODE';
 NODES                                       : 'NODES';
 NOEXEC                                      : 'NOEXEC';
 NOEXPAND                                    : 'NOEXPAND';
@@ -934,8 +937,6 @@ DOLLAR_ACTION: '$ACTION';
 
 // Functions starting with double at signs
 AAPSEUDO: '@@' ID;
-
-IPV4_ADDR: DEC_DIGIT+ '.' DEC_DIGIT+ '.' DEC_DIGIT+ '.' DEC_DIGIT+;
 
 SPACE        : [ \t\r\n]+                -> skip;
 COMMENT      : '/*' (COMMENT | .)*? '*/' -> channel(HIDDEN);
