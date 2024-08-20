@@ -15,4 +15,4 @@ USING (
     k
 ) AS b
 ON
-  target.k = b.k WHEN MATCHED THEN UPDATE SET v = b.v
+  target.k = b.k WHEN MATCHED THEN UPDATE SET v = b.v;
