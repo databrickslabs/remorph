@@ -28,9 +28,12 @@ class SnowflakeDMLBuilder
   override def visitDeleteStatement(ctx: DeleteStatementContext): ir.Modification = {
     val target = ctx.tableRef().accept(relationBuilder)
     val where = Option(ctx.predicate()).map(_.accept(expressionBuilder))
-    val source = Option(ctx.tablesOrQueries())
-      .map(t => relationBuilder.visitMany(t.tableOrQuery()).foldLeft(target)(crossJoin))
-    ir.DeleteFromTable(target, source, where, None, None)
+    Option(ctx.tablesOrQueries()) match {
+      case Some(value) =>
+        val relation = relationBuilder.visit(value)
+        ir.MergeIntoTable(target, relation, where.getOrElse(ir.Noop), matchedActions = Seq(ir.DeleteAction(None)))
+      case None => ir.DeleteFromTable(target, where = where)
+    }
   }
 
   override def visitUpdateStatement(ctx: UpdateStatementContext): ir.Modification = {

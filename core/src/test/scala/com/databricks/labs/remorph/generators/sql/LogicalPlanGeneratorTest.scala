@@ -169,6 +169,15 @@ class LogicalPlanGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.L
     }
   }
 
+  "DeleteFromTable" should {
+    "transpile to DELETE" in {
+      ir.DeleteFromTable(
+        target = namedTable("t"),
+        where = Some(ir.Equals(ir.Column(None, ir.Id("c")), ir.Literal(3)))) generates
+        "DELETE FROM t WHERE c = 3"
+    }
+  }
+
   "Join" should {
     "transpile to JOIN" in {
       crossJoin(namedTable("t1"), namedTable("t2")) generates "t1 CROSS JOIN t2"
