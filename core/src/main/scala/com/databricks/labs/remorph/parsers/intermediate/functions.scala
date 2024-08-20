@@ -2487,7 +2487,7 @@ case class TryToTimestamp(expr: Expression, fmt: Expression) extends Binary(expr
 }
 
 /**
- *  timestampadd(unit, value, expr) - Adds value units to a timestamp expr
+ * timestampadd(unit, value, expr) - Adds value units to a timestamp expr
  */
 case class TimestampAdd(unit: String, quantity: Expression, timestamp: Expression)
     extends Binary(quantity, timestamp)

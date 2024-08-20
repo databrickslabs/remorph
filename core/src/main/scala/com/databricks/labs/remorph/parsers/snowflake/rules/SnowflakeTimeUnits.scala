@@ -31,7 +31,6 @@ object SnowflakeTimeUnits {
     Set("TIMEZONE_HOUR", "TZH") -> "timezone_hour",
     Set("TIMEZONE_MINUTE", "TZM") -> "timezone_minute")
 
-
   def findTimePart(timePart: String): Option[String] =
     timeParts.find(_._1.contains(timePart.toUpperCase())).map(_._2)
 
