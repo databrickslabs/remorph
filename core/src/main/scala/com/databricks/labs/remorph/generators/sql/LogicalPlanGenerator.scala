@@ -1,6 +1,7 @@
 package com.databricks.labs.remorph.generators.sql
 
 import com.databricks.labs.remorph.generators.{Generator, GeneratorContext}
+import com.databricks.labs.remorph.parsers.intermediate.UpdateTable
 import com.databricks.labs.remorph.parsers.{intermediate => ir}
 import com.databricks.labs.remorph.transpilers.TranspileException
 
@@ -24,11 +25,13 @@ class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: 
     case sort: ir.Sort => orderBy(ctx, sort)
     case join: ir.Join => generateJoin(ctx, join)
     case setOp: ir.SetOperation => setOperation(ctx, setOp)
-    case mergeIntoTable: ir.MergeIntoTable => generateMerge(ctx, mergeIntoTable)
+    case mergeIntoTable: ir.MergeIntoTable => merge(ctx, mergeIntoTable)
     case withOptions: ir.WithOptions => generateWithOptions(ctx, withOptions)
     case s: ir.SubqueryAlias => subQueryAlias(ctx, s)
     case t: ir.TableAlias => tableAlias(ctx, t)
     case d: ir.Deduplicate => deduplicate(ctx, d)
+    case u: ir.UpdateTable => update(ctx, u)
+    case ir.NoopNode => ""
     case x => throw unknown(x)
   }
 
@@ -97,38 +100,36 @@ class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: 
     s"(${generate(ctx, setOp.left)}) $op$duplicates (${generate(ctx, setOp.right)})"
   }
 
-  private def generateMerge(ctx: GeneratorContext, mergeIntoTable: ir.MergeIntoTable) = {
+  private def update(ctx: GeneratorContext, update: UpdateTable): String = {
+    val target = generate(ctx, update.target)
+    val set = update.set.map(expr.generate(ctx, _)).mkString(", ")
+    val where = update.where.map(cond => s" WHERE ${expr.generate(ctx, cond)}").getOrElse("")
+    s"UPDATE $target SET $set$where"
+  }
+
+  private def merge(ctx: GeneratorContext, mergeIntoTable: ir.MergeIntoTable): String = {
     val target = generate(ctx, mergeIntoTable.targetTable)
     val source = generate(ctx, mergeIntoTable.sourceTable)
     val condition = expr.generate(ctx, mergeIntoTable.mergeCondition)
-
-    val matchedActions = mergeIntoTable.matchedActions
-      .map { action =>
-        val conditionText = action.condition.map(cond => s" AND ${expr.generate(ctx, cond)}").getOrElse("")
-        s" WHEN MATCHED${conditionText} THEN ${expr.generate(ctx, action)}"
-      }
-      .mkString("")
-
-    val notMatchedActions = mergeIntoTable.notMatchedActions
-      .map { action =>
-        val conditionText = action.condition.map(cond => s" AND ${expr.generate(ctx, cond)}").getOrElse("")
-        s" WHEN NOT MATCHED${conditionText} THEN ${expr.generate(ctx, action)}"
-      }
-      .mkString("")
-
-    val notMatchedBySourceActions = mergeIntoTable.notMatchedBySourceActions
-      .map { action =>
-        val conditionText = action.condition.map(cond => s" AND ${expr.generate(ctx, cond)}").getOrElse("")
-        s" WHEN NOT MATCHED BY SOURCE${conditionText} THEN ${expr.generate(ctx, action)}"
-      }
-      .mkString("")
-
-    s"MERGE INTO $target" +
-      s" USING $source" +
-      s" ON ${condition}" +
-      s"${matchedActions}" +
-      s"${notMatchedActions}" +
-      s"${notMatchedBySourceActions};"
+    val matchedActions = mergeIntoTable.matchedActions.map { action =>
+      val conditionText = action.condition.map(cond => s" AND ${expr.generate(ctx, cond)}").getOrElse("")
+      s" WHEN MATCHED${conditionText} THEN ${expr.generate(ctx, action)}"
+    }.mkString
+    val notMatchedActions = mergeIntoTable.notMatchedActions.map { action =>
+      val conditionText = action.condition.map(cond => s" AND ${expr.generate(ctx, cond)}").getOrElse("")
+      s" WHEN NOT MATCHED${conditionText} THEN ${expr.generate(ctx, action)}"
+    }.mkString
+    val notMatchedBySourceActions = mergeIntoTable.notMatchedBySourceActions.map { action =>
+      val conditionText = action.condition.map(cond => s" AND ${expr.generate(ctx, cond)}").getOrElse("")
+      s" WHEN NOT MATCHED BY SOURCE${conditionText} THEN ${expr.generate(ctx, action)}"
+    }.mkString
+    s"""MERGE INTO $target
+       |USING $source
+       |ON $condition
+       |$matchedActions
+       |$notMatchedActions
+       |$notMatchedBySourceActions
+       |""".stripMargin
   }
 
   private def aggregate(ctx: GeneratorContext, aggregate: ir.Aggregate): String = {

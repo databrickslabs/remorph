@@ -38,7 +38,7 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
       case s: ir.Star => star(ctx, s)
       case c: ir.Cast => cast(ctx, c)
       case col: ir.Column => column(ctx, col)
-      case da: ir.DeleteAction => "DELETE"
+      case _: ir.DeleteAction => "DELETE"
       case ia: ir.InsertAction => insertAction(ctx, ia)
       case ua: ir.UpdateAction => updateAction(ctx, ua)
       case a: ir.Assign => assign(ctx, a)
@@ -48,6 +48,7 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
       case c: ir.Case => caseWhen(ctx, c)
       case w: ir.Window => window(ctx, w)
       case o: ir.SortOrder => sortOrder(ctx, o)
+      case ir.Exists(subquery) => s"EXISTS (${ctx.logical.generate(ctx, subquery)})"
       case x => throw TranspileException(s"Unsupported expression: $x")
     }
   }

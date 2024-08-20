@@ -30,9 +30,9 @@ case class UpdateTable(
     target: LogicalPlan,
     source: Option[LogicalPlan],
     set: Seq[Expression],
-    where: Option[Expression],
-    outputRelation: Option[LogicalPlan],
-    options: Option[Expression])
+    where: Option[Expression] = None,
+    outputRelation: Option[LogicalPlan] = None,
+    options: Option[Expression] = None)
     extends Modification {
   override def children: Seq[LogicalPlan] = Seq(target, source.getOrElse(NoopNode), outputRelation.getOrElse(NoopNode))
   override def output: Seq[Attribute] = target.output
@@ -45,9 +45,9 @@ case class MergeIntoTable(
     targetTable: LogicalPlan,
     sourceTable: LogicalPlan,
     mergeCondition: Expression,
-    matchedActions: Seq[MergeAction],
-    notMatchedActions: Seq[MergeAction],
-    notMatchedBySourceActions: Seq[MergeAction])
+    matchedActions: Seq[MergeAction] = Seq.empty,
+    notMatchedActions: Seq[MergeAction] = Seq.empty,
+    notMatchedBySourceActions: Seq[MergeAction] = Seq.empty)
     extends Modification {
 
   override def children: Seq[LogicalPlan] = Seq(targetTable, sourceTable)
