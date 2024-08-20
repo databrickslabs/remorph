@@ -42,7 +42,7 @@ options {
 tSqlFile: batch? EOF
     ;
 
-batch: SEMI* executeBodyBatch? SEMI* (sqlClauses SEMI*)+
+batch: SEMI* ( ( sqlClauses SEMI*)+ | executeBodyBatch goStatement? SEMI*)
     ;
 
 // TODO: Properly sort out SEMI colons, which have been haphazzardly added in some
@@ -259,6 +259,7 @@ cflStatement
     | tryCatchStatement
     | waitforStatement
     | whileStatement
+    | receiveStatement
     ;
 
 blockStatement: BEGIN SEMI? sqlClauses* END SEMI?
@@ -1495,7 +1496,7 @@ insertStatementValue: derivedTable | executeStatement | DEFAULT VALUES
     ;
 
 receiveStatement
-    : LPAREN? RECEIVE (ALL | DISTINCT | topClause | STAR) (LOCAL_ID EQ expression COMMA?)* FROM tableName (
+    : LPAREN? RECEIVE (ALL | DISTINCT | topClause | STAR | ((id | LOCAL_ID EQ expression) COMMA?)*) FROM tableName (
         INTO id (WHERE searchCondition)
     )? RPAREN?
     ;
@@ -1757,7 +1758,9 @@ createInternal
     ;
 
 createExternal
-    : EXTERNAL TABLE tableName (LPAREN columnDefTableConstraints RPAREN)? WITH LPAREN optionList RPAREN AS selectStatementStandalone SEMI?
+    : EXTERNAL TABLE tableName (LPAREN columnDefTableConstraints RPAREN)? WITH LPAREN optionList RPAREN (
+        AS selectStatementStandalone
+    ) SEMI?
     ;
 
 createTableAs
@@ -1783,14 +1786,18 @@ distributionType: HASH LPAREN id (COMMA id)* RPAREN | ROUND_ROBIN | REPLICATE
     ;
 
 tableOption
-    : CLUSTERED COLUMNSTORE INDEX
-    | HEAP
-    | FILLFACTOR EQ INT
-    | DISTRIBUTION EQ distributionType
+    : DISTRIBUTION EQ distributionType
     | CLUSTERED INDEX LPAREN id (ASC | DESC)? ( COMMA id (ASC | DESC)?)* RPAREN
     | DATA_COMPRESSION EQ (NONE | ROW | PAGE) onPartitions?
     | XML_COMPRESSION EQ onOff onPartitions?
-    | (simpleId | keyword) EQ (simpleId | keyword | onOff | INT)
+    | id EQ (
+        OFF (LPAREN id RPAREN)?
+        | ON (LPAREN tableOptionElement (COMMA tableOptionElement)* RPAREN)?
+    )
+    | genericOption
+    ;
+
+tableOptionElement: id EQ dotIdentifier LPAREN optionList RPAREN | genericOption
     ;
 
 createTableIndexOptions
@@ -2734,6 +2741,7 @@ expression
     | expression op = (PLUS | MINUS) expression               # exprOpPrec2
     | expression op = (BIT_AND | BIT_XOR | BIT_OR) expression # exprOpPrec3
     | expression op = DOUBLE_BAR expression                   # exprOpPrec4
+    | expression op = DOUBLE_COLON expression                 # exprOpPrec4
     | primitiveExpression                                     # exprPrimitive
     | functionCall                                            # exprFunc
     | functionValues                                          # exprFuncVal
@@ -2911,18 +2919,18 @@ tableSourceItem: tsiElement (asTableAlias columnAliasList?)? withTableHints?
     ;
 
 tsiElement
-    : tableName                  # tsiNamedTable
-    | rowsetFunction             # tsiRowsetFunction
-    | LPAREN derivedTable RPAREN # tsiDerivedTable
-    | changeTable                # tsiChangeTable
-    | nodesMethod                # tsiNodesMethod
-    | (id DOT)? functionCall     # tsiFunctionCall
-    | LOCAL_ID                   # tsiLocalId
-    | LOCAL_ID DOT functionCall  # tsiLocalIdFunctionCall
-    | openXml                    # tsiOpenXml
-    | openJson                   # tsiOpenJson
-    | DOUBLE_COLON functionCall  # tsiDoubleColonFunctionCall
-    | LPAREN tableSource RPAREN  # tsiParenTableSource
+    : tableName                                                   # tsiNamedTable
+    | rowsetFunction                                              # tsiRowsetFunction
+    | LPAREN derivedTable RPAREN                                  # tsiDerivedTable
+    | changeTable                                                 # tsiChangeTable
+    | nodesMethod                                                 # tsiNodesMethod
+    | /* TODO (id DOT)? distinguish xml functions */ functionCall # tsiFunctionCall
+    | LOCAL_ID                                                    # tsiLocalId
+    | LOCAL_ID DOT functionCall                                   # tsiLocalIdFunctionCall
+    | openXml                                                     # tsiOpenXml
+    | openJson                                                    # tsiOpenJson
+    | dotIdentifier? DOUBLE_COLON functionCall                    # tsiDoubleColonFunctionCall
+    | LPAREN tableSource RPAREN                                   # tsiParenTableSource
     ;
 
 openJson
@@ -3008,7 +3016,7 @@ functionValues: f = ( AAPSEUDO | SESSION_USER | SYSTEM_USER | USER)
 
 // Standard functions that are built in but take standard syntax, or are
 // some user function etc
-standardFunction: (id DOT)? funcId LPAREN (expression (COMMA expression)*)? RPAREN
+standardFunction: funcId LPAREN (expression (COMMA expression)*)? RPAREN
     ;
 
 funcId: id | FORMAT | LEFT | RIGHT | REPLACE | CONCAT
@@ -3435,6 +3443,7 @@ keyword
     | EXPLICIT
     | EXTENDED_LOGICAL_CHECKS
     | EXTENSION
+    | EXTERNAL
     | EXTERNAL_ACCESS
     | FAIL_OPERATION
     | FAILOVER
@@ -3737,6 +3746,7 @@ keyword
     | REPEATABLEREAD
     | REPLACE
     | REPLICA
+    | REPLICATE
     | REQUEST_MAX_CPU_TIME_SEC
     | REQUEST_MAX_MEMORY_GRANT_PERCENT
     | REQUEST_MEMORY_GRANT_TIMEOUT_SEC
@@ -3932,7 +3942,7 @@ keyword
     | ZONE
     ;
 
-id: ID | TEMP_ID | DOUBLE_QUOTE_ID | SQUARE_BRACKET_ID | keyword | RAW
+id: ID | TEMP_ID | DOUBLE_QUOTE_ID | SQUARE_BRACKET_ID | NODEID | keyword | RAW
     ;
 
 simpleId: ID

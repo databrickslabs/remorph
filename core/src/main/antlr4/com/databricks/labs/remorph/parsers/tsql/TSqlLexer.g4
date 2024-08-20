@@ -933,6 +933,9 @@ XMLSCHEMA                                   : 'XMLSCHEMA';
 XSINIL                                      : 'XSINIL';
 ZONE                                        : 'ZONE';
 
+// Specials for graph nodes
+NODEID: '$NODE_ID';
+
 //Combinations that cannot be used as IDs
 DOLLAR_ACTION: '$ACTION';
 
