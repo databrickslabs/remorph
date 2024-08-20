@@ -17,8 +17,8 @@ class LineageTest extends AnyFunSuite {
     val nodeB = Node("B")
     dag.addNode(nodeA)
     dag.addNode(nodeB)
-    dag.addEdge(nodeA, nodeB)
-    assert(dag.getEdges.contains(Edge(nodeA, nodeB)))
+    dag.addEdge(nodeA, nodeB, Action.Read)
+    assert(dag.getEdges.contains(Edge(nodeA, Action.Read, nodeB)))
   }
 
   test("addEdge should throw an exception if adding an edge creates a cycle") {
@@ -27,9 +27,9 @@ class LineageTest extends AnyFunSuite {
     val nodeB = Node("B")
     dag.addNode(nodeA)
     dag.addNode(nodeB)
-    dag.addEdge(nodeA, nodeB)
+    dag.addEdge(nodeA, nodeB, Action.Write)
     assertThrows[IllegalArgumentException] {
-      dag.addEdge(nodeB, nodeA)
+      dag.addEdge(nodeB, nodeA, Action.Write)
     }
   }
 
@@ -41,8 +41,8 @@ class LineageTest extends AnyFunSuite {
     dag.addNode(nodeA)
     dag.addNode(nodeB)
     dag.addNode(nodeC)
-    dag.addEdge(nodeA, nodeB)
-    dag.addEdge(nodeC, nodeB)
+    dag.addEdge(nodeA, nodeB, Action.Read)
+    dag.addEdge(nodeC, nodeB, Action.Read)
     assert(dag.getImmediateParents(nodeB) == Set(nodeA, nodeC))
   }
 }
