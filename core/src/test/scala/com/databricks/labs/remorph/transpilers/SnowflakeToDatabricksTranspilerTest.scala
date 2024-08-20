@@ -19,7 +19,6 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
         "SELECT * FROM employees WHERE department_id != 10;"
       /* Test BANG command END */
 
-
       "SELECT * FROM t1;" transpilesTo
         s"""SELECT
            |  *
