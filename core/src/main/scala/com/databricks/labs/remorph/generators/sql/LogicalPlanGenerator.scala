@@ -2,6 +2,7 @@ package com.databricks.labs.remorph.generators.sql
 
 import com.databricks.labs.remorph.generators.{Generator, GeneratorContext}
 import com.databricks.labs.remorph.parsers.intermediate.{InsertIntoTable, UpdateTable}
+import com.databricks.labs.remorph.parsers.intermediate.{Expression, LogicalPlan, UpdateTable}
 import com.databricks.labs.remorph.parsers.{intermediate => ir}
 import com.databricks.labs.remorph.transpilers.TranspileException
 
@@ -32,6 +33,7 @@ class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: 
     case d: ir.Deduplicate => deduplicate(ctx, d)
     case u: ir.UpdateTable => update(ctx, u)
     case i: ir.InsertIntoTable => insert(ctx, i)
+    case ir.DeleteFromTable(target, None, where, None, None) => delete(ctx, target, where)
     case ir.NoopNode => ""
     case x => throw unknown(x)
   }
@@ -111,11 +113,18 @@ class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: 
     s"(${generate(ctx, setOp.left)}) $op$duplicates (${generate(ctx, setOp.right)})"
   }
 
+  // @see https://docs.databricks.com/en/sql/language-manual/delta-update.html
   private def update(ctx: GeneratorContext, update: UpdateTable): String = {
     val target = generate(ctx, update.target)
     val set = update.set.map(expr.generate(ctx, _)).mkString(", ")
     val where = update.where.map(cond => s" WHERE ${expr.generate(ctx, cond)}").getOrElse("")
     s"UPDATE $target SET $set$where"
+  }
+
+  // @see https://docs.databricks.com/en/sql/language-manual/delta-delete-from.html
+  private def delete(ctx: GeneratorContext, target: LogicalPlan, where: Option[Expression]): String = {
+    val whereStr = where.map(cond => s" WHERE ${expr.generate(ctx, cond)}").getOrElse("")
+    s"DELETE FROM ${generate(ctx, target)}$whereStr"
   }
 
   private def merge(ctx: GeneratorContext, mergeIntoTable: ir.MergeIntoTable): String = {
