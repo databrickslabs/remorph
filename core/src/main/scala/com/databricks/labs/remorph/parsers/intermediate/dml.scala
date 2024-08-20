@@ -3,13 +3,13 @@ package com.databricks.labs.remorph.parsers.intermediate
 // Used for DML other than SELECT
 abstract class Modification extends LogicalPlan
 
-case class InsertIntoTable( // TODO: fix it
+case class InsertIntoTable(
     target: LogicalPlan,
     columns: Option[Seq[Id]],
     values: LogicalPlan,
-    outputRelation: Option[LogicalPlan],
-    options: Option[Expression],
-    overwrite: Boolean)
+    outputRelation: Option[LogicalPlan] = None,
+    options: Option[Expression] = None,
+    overwrite: Boolean = false)
     extends Modification {
   override def children: Seq[LogicalPlan] = Seq(target, values, outputRelation.getOrElse(NoopNode))
   override def output: Seq[Attribute] = target.output

@@ -216,7 +216,7 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
     l.dataType match {
       case ir.NullType => "NULL"
       case ir.BinaryType => orNull(l.binary.map(_.map("%02X" format _).mkString))
-      case ir.BooleanType => orNull(l.boolean.map(_.toString.toUpperCase(Locale.getDefault)))
+      case ir.BooleanType => orNull(l.boolean.map(_.toString.toLowerCase(Locale.getDefault)))
       case ir.ShortType => orNull(l.short.map(_.toString))
       case ir.IntegerType => orNull(l.integer.map(_.toString))
       case ir.LongType => orNull(l.long.map(_.toString))

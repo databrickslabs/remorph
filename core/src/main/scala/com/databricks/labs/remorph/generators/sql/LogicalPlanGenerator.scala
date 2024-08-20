@@ -1,7 +1,7 @@
 package com.databricks.labs.remorph.generators.sql
 
 import com.databricks.labs.remorph.generators.{Generator, GeneratorContext}
-import com.databricks.labs.remorph.parsers.intermediate.UpdateTable
+import com.databricks.labs.remorph.parsers.intermediate.{InsertIntoTable, UpdateTable}
 import com.databricks.labs.remorph.parsers.{intermediate => ir}
 import com.databricks.labs.remorph.transpilers.TranspileException
 
@@ -31,8 +31,19 @@ class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: 
     case t: ir.TableAlias => tableAlias(ctx, t)
     case d: ir.Deduplicate => deduplicate(ctx, d)
     case u: ir.UpdateTable => update(ctx, u)
+    case i: ir.InsertIntoTable => insert(ctx, i)
     case ir.NoopNode => ""
     case x => throw unknown(x)
+  }
+
+  private def insert(ctx: GeneratorContext, insert: InsertIntoTable): String = {
+    val target = generate(ctx, insert.target)
+    val columns = insert.columns.map(_.map(expr.generate(ctx, _)).mkString("(", ", ", ")")).getOrElse("")
+    val values = generate(ctx, insert.values)
+    val output = insert.outputRelation.map(generate(ctx, _)).getOrElse("")
+    val options = insert.options.map(expr.generate(ctx, _)).getOrElse("")
+    val overwrite = if (insert.overwrite) " OVERWRITE" else ""
+    s"INSERT$overwrite INTO $target $columns $values$output$options"
   }
 
   private def project(ctx: GeneratorContext, proj: ir.Project): String = {
