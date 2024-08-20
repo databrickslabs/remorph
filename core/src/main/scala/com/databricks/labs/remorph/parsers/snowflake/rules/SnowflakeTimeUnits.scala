@@ -1,7 +1,11 @@
 package com.databricks.labs.remorph.parsers.snowflake.rules
 
-object SnowflakeTimeUnits {
-  private val dateParts = Map(
+import com.databricks.labs.remorph.parsers.intermediate.IRHelpers
+import com.databricks.labs.remorph.parsers.{intermediate => ir}
+import com.databricks.labs.remorph.transpilers.TranspileException
+
+object SnowflakeTimeUnits extends IRHelpers {
+  private val dateOrTimeParts = Map(
     Set("YEAR", "Y", "YY", "YYY", "YYYY", "YR", "YEARS", "YRS") -> "year",
     Set("MONTH", "MM", "MON", "MONS", "MONTHS") -> "month",
     Set("DAY", "D", "DD", "DAYS", "DAYOFMONTH") -> "day",
@@ -12,12 +16,7 @@ object SnowflakeTimeUnits {
     Set("WEEKISO", "WEEK_ISO", "WEEKOFYEARISO", "WEEKOFYEAR_ISO") -> "weekiso",
     Set("QUARTER", "Q", "QTR", "QTRS", "QUARTERS") -> "quarter",
     Set("YEAROFWEEK") -> "yearofweek",
-    Set("YEAROFWEEKISO") -> "yearofweekiso")
-
-  def findDatePart(datePart: String): Option[String] =
-    dateParts.find(_._1.contains(datePart.toUpperCase())).map(_._2)
-
-  private val timeParts = Map(
+    Set("YEAROFWEEKISO") -> "yearofweekiso",
     Set("HOUR", "H", "HH", "HR", "HOURS", "HRS") -> "hour",
     Set("MINUTE", "M", "MI", "MIN", "MINUTES", "MINS") -> "minute",
     Set("SECOND", "S", "SEC", "SECONDS", "SECS") -> "second",
@@ -31,9 +30,16 @@ object SnowflakeTimeUnits {
     Set("TIMEZONE_HOUR", "TZH") -> "timezone_hour",
     Set("TIMEZONE_MINUTE", "TZM") -> "timezone_minute")
 
-  def findTimePart(timePart: String): Option[String] =
-    timeParts.find(_._1.contains(timePart.toUpperCase())).map(_._2)
 
-  def findDateOrTimePart(part: String): Option[String] =
-    (dateParts ++ timeParts).find(_._1.contains(part.toUpperCase())).map(_._2)
+  private def findDateOrTimePart(part: String): Option[String] =
+    dateOrTimeParts.find(_._1.contains(part.toUpperCase())).map(_._2)
+
+  def translateDateOrTimePart(input: ir.Expression): String = input match {
+    case ir.Id(part, _) if SnowflakeTimeUnits.findDateOrTimePart(part).nonEmpty =>
+      SnowflakeTimeUnits.findDateOrTimePart(part).get
+    case StringLiteral(part) if SnowflakeTimeUnits.findDateOrTimePart(part).nonEmpty =>
+      SnowflakeTimeUnits.findDateOrTimePart(part).get
+    case x => throw TranspileException(s"unknown date/time part $x")
+  }
+
 }

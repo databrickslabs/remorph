@@ -174,16 +174,9 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
     }
   }
 
-  private def translateDateOrTimePart(input: ir.Expression): String = input match {
-    case ir.Id(part, _) if SnowflakeTimeUnits.findDateOrTimePart(part).nonEmpty =>
-      SnowflakeTimeUnits.findDateOrTimePart(part).get
-    case StringLiteral(part) if SnowflakeTimeUnits.findDateOrTimePart(part).nonEmpty =>
-      SnowflakeTimeUnits.findDateOrTimePart(part).get
-    case x => throw TranspileException(s"unknown date part $x")
-  }
 
   private def dateDiff(args: Seq[ir.Expression]): ir.Expression = {
-    val datePart = translateDateOrTimePart(args.head)
+    val datePart = SnowflakeTimeUnits.translateDateOrTimePart(args.head)
     ir.TimestampDiff(datePart, args(1), args(2))
   }
 
@@ -207,17 +200,17 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
   }
 
   private def timestampAdd(args: Seq[ir.Expression]): ir.Expression = {
-    val dateOrTimePart = translateDateOrTimePart(args.head)
+    val dateOrTimePart = SnowflakeTimeUnits.translateDateOrTimePart(args.head)
     ir.TimestampAdd(dateOrTimePart, args(1), args(2))
   }
 
   private def datePart(args: Seq[ir.Expression]): ir.Expression = {
-    val part = translateDateOrTimePart(args.head)
+    val part = SnowflakeTimeUnits.translateDateOrTimePart(args.head)
     ir.Extract(ir.Id(part), args(1))
   }
 
   private def dateTrunc(args: Seq[ir.Expression]): ir.Expression = {
-    val part = translateDateOrTimePart(args.head)
+    val part = SnowflakeTimeUnits.translateDateOrTimePart(args.head)
     ir.TruncTimestamp(ir.Literal(part.toUpperCase()), args(1))
   }
 
