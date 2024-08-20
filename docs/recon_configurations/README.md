@@ -493,7 +493,6 @@ between source and target data residing on Databricks.
 | <a href="https://docs.databricks.com/en/sql/language-manual/functions/avg.html" target="_blank">**avg**</a>                                               |
 | <a href="https://docs.databricks.com/en/sql/language-manual/functions/mean.html" target="_blank">**mean**</a>                                             |
 | <a href="https://docs.databricks.com/en/sql/language-manual/functions/mode.html" target="_blank">**mode**</a>                                             |
-| <a href="https://docs.databricks.com/en/sql/language-manual/functions/percentile.html" target="_blank">**percentile**</a>                                 |
 | <a href="https://docs.databricks.com/en/sql/language-manual/functions/stddev.html" target="_blank">**stddev**</a>                                         |
 | <a href="https://docs.databricks.com/en/sql/language-manual/functions/variance.html" target="_blank">**variance**</a>                                     |
 | <a href="https://docs.databricks.com/en/sql/language-manual/functions/median.html" target="_blank">**median**</a>                                         |
@@ -548,9 +547,11 @@ class Table:
     filters: Filters | None = None
     table_thresholds: list[TableThresholds] | None = None
 
+
       Table(
         source_name= "<SOURCE_NAME>",
         target_name= "<TARGET_NAME>",
+        join_columns= ["<COLUMN_NAME_1>", "<COLUMN_NAME_2>"]
         aggregates= [
             Aggregate(
                 agg_columns=["<COLUMN_NAME_3>"],
@@ -613,12 +614,14 @@ class Table:
 ### Key Considerations:
 
 1. The aggregate column names, group by columns and type are always converted to lowercase and considered for reconciliation.
-2. Currently, it doesn't support case insensitivity and does not have collation support
-3. The queries with “group by” column(s) are compared based on the same group by columns.
-4. The queries without “group by” column(s) are compared row-to-row.
-5. Existing features like `column_mapping`, `transformations`, `JDBCReaderOptions` and `filters` are leveraged for the aggregate metric reconciliation.
-6. Existing `select_columns` and `drop_columns` are not considered for the aggregate metric reconciliation.
-7. Even though the user provides the `select_columns` and `drop_columns`, those are not considered.
+2. Currently, it doesn't support aggregates on window function using the OVER clause.
+3. It doesn't support case insensitivity and does not have collation support
+4. The queries with “group by” column(s) are compared based on the same group by columns.
+5. The queries without “group by” column(s) are compared row-to-row.
+6. Existing features like `column_mapping`, `transformations`, `JDBCReaderOptions` and `filters` are leveraged for the aggregate metric reconciliation.
+7. Existing `select_columns` and `drop_columns` are not considered for the aggregate metric reconciliation.
+8. Even though the user provides the `select_columns` and `drop_columns`, those are not considered.
+9. If Transformations are defined, those are applied to both the “aggregate columns” and “group by columns”. 
 
 [[back to top](#remorph-aggregates-reconciliation)]
 
