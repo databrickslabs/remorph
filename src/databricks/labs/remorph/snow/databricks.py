@@ -520,8 +520,6 @@ class Databricks(org_databricks.Databricks):  #
             if len(expression.args) == 3 and expression.args.get("this"):
                 expr = expression.args["this"]
 
-            expr = f"'{expr.name}'" if isinstance(expr, exp.Cast) else expr
-
             result = self.func(func, expression.args["srcTZ"], expr)
             if len(expression.args) == 3:
                 result = self.func(func, expression.args["srcTZ"], expression.args["tgtTZ"], expr)
@@ -664,4 +662,9 @@ class Databricks(org_databricks.Databricks):  #
         def anonymous_sql(self: org_databricks.Databricks.Generator, expression: exp.Anonymous) -> str:
             if expression.this == "EDITDISTANCE":
                 return self.func("LEVENSHTEIN", *expression.expressions)
+            if expression.this == "TO_TIMESTAMP":
+                return self.sql(
+                    exp.Cast(this=expression.expressions[0], to=exp.DataType(this=exp.DataType.Type.TIMESTAMP))
+                )
+
             return self.func(self.sql(expression, "this"), *expression.expressions)
