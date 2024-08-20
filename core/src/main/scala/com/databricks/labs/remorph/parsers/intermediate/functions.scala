@@ -2063,7 +2063,6 @@ case class TimestampDiff(unit: String, start: Expression, end: Expression, timeZ
     with Fn {
   // TIMESTAMPDIFF and DATEDIFF are synonyms, but DATEDIFF is used in the example queries, so we stick to it for now.
   override def prettyName: String = "DATEDIFF"
-
   override def dataType: DataType = UnresolvedType
 }
 
