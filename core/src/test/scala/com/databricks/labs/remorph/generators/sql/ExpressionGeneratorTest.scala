@@ -840,7 +840,7 @@ class ExpressionGeneratorTest
 
       ir.Literal(binary = Some(Array(0x01, 0x02, 0x03))) generates "010203"
 
-      ir.Literal(boolean = Some(true)) generates "TRUE"
+      ir.Literal(boolean = Some(true)) generates "true"
 
       ir.Literal(short = Some(123)) generates "123"
 
@@ -890,17 +890,17 @@ class ExpressionGeneratorTest
 
   "case...when...else" should {
     "be generated" in {
-      ir.Case(None, Seq(ir.WhenBranch(ir.Literal(true), ir.Literal(42))), None) generates "CASE WHEN TRUE THEN 42 END"
+      ir.Case(None, Seq(ir.WhenBranch(ir.Literal(true), ir.Literal(42))), None) generates "CASE WHEN true THEN 42 END"
 
       ir.Case(
         Some(ir.Id("c1")),
         Seq(ir.WhenBranch(ir.Literal(true), ir.Literal(42))),
-        None) generates "CASE c1 WHEN TRUE THEN 42 END"
+        None) generates "CASE c1 WHEN true THEN 42 END"
 
       ir.Case(
         Some(ir.Id("c1")),
         Seq(ir.WhenBranch(ir.Literal(true), ir.Literal(42))),
-        Some(ir.Literal(0))) generates "CASE c1 WHEN TRUE THEN 42 ELSE 0 END"
+        Some(ir.Literal(0))) generates "CASE c1 WHEN true THEN 42 ELSE 0 END"
 
       ir.Case(
         Some(ir.Id("c1")),

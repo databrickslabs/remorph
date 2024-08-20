@@ -160,6 +160,15 @@ class LogicalPlanGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.L
     }
   }
 
+  "InsertIntoTable" should {
+    "transpile to INSERT" in {
+      ir.InsertIntoTable(
+        namedTable("t"),
+        Some(Seq(ir.Id("a"), ir.Id("b"))),
+        ir.Values(Seq(Seq(ir.Literal(1), ir.Literal(2))))) generates "INSERT INTO t (a, b) VALUES (1,2)"
+    }
+  }
+
   "Join" should {
     "transpile to JOIN" in {
       crossJoin(namedTable("t1"), namedTable("t2")) generates "t1 CROSS JOIN t2"
