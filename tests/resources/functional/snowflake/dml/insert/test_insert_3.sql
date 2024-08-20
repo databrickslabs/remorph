@@ -14,4 +14,4 @@ SELECT
   z
 FROM bar
 WHERE
-  x > z AND y = 'qux'
+  x > z AND y = 'qux';

@@ -37,6 +37,6 @@ class NestedFiles(root: Path) extends AcceptanceTestSource {
         .toSeq
 
     val sqlFiles = files.filter(_.getFileName.toString.endsWith(".sql"))
-    sqlFiles.map(p => AcceptanceTest(root.relativize(p).toString, p.toFile))
+    sqlFiles.sorted.map(p => AcceptanceTest(root.relativize(p).toString, p.toFile))
   }
 }
