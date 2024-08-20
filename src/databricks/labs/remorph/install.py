@@ -38,6 +38,7 @@ MODULES = sorted({"transpile", "reconcile", "all"})
 
 
 class WorkspaceInstaller:
+    # pylint: disable=too-many-arguments
     def __init__(
         self,
         ws: WorkspaceClient,
@@ -309,7 +310,7 @@ class WorkspaceInstaller:
         try:
             self._upgrades.apply(self._ws)
         except (InvalidParameterValue, NotFound) as err:
-            logger.warning(f"Installed version is too old: {err}")
+            logger.warning(f"Unable to apply Upgrades due to: {err}")
 
 
 if __name__ == "__main__":
