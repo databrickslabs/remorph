@@ -7,8 +7,11 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
 
   override def convert(call: ir.Fn): ir.Expression = {
     withNormalizedName(call) match {
+      // keep all the names in alphabetical order
       case ir.CallFunction("ARRAY_CAT", args) => ir.Concat(args)
       case ir.CallFunction("ARRAY_CONSTRUCT", args) => ir.CreateArray(args)
+      case ir.CallFunction("BASE64_DECODE_STRING", args) => ir.UnBase64(args.head)
+      case ir.CallFunction("BASE64_ENCODE", args) => ir.Base64(args.head)
       case ir.CallFunction("BOOLAND_AGG", args) => ir.BoolAnd(args.head)
       case ir.CallFunction("DATEADD", args) => ir.DateAdd(args.head, args(1))
       case ir.CallFunction("EDITDISTANCE", args) => ir.Levenshtein(args.head, args(1))
@@ -26,6 +29,8 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
       case ir.CallFunction("TO_DOUBLE", args) => ir.CallFunction("DOUBLE", args)
       case ir.CallFunction("TO_NUMBER", args) => toNumber(args)
       case ir.CallFunction("TO_OBJECT", args) => ir.StructsToJson(args.head, args(1))
+      case ir.CallFunction("TO_VARCHAR", args) => ir.CallFunction("TO_CHAR", args)
+      case ir.CallFunction("TRY_BASE64_DECODE_STRING", args) => ir.UnBase64(args.head)
       case ir.CallFunction("TRY_TO_NUMBER", args) => tryToNumber(args)
       case x => super.convert(x)
     }

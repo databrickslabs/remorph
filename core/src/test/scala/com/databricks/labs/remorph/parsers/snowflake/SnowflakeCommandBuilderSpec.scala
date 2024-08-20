@@ -28,7 +28,7 @@ class SnowflakeCommandBuilderSpec
     example(
       "select_statement VARCHAR;",
       _.declareStatement(),
-      CreateVariable(name = Id("select_statement"), dataType = VarCharType(None), defaultExpr = None, replace = false))
+      CreateVariable(name = Id("select_statement"), dataType = StringType, defaultExpr = None, replace = false))
 
     example(
       "price NUMBER(13,2) DEFAULT 111.50;",
