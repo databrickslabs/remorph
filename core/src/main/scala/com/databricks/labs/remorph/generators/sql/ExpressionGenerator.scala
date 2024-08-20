@@ -11,7 +11,7 @@ import java.util.Locale
 class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
     extends Generator[ir.Expression, String] {
   private val dateFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd")
-  private val timeFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS").withZone(ZoneId.of("UTC"))
+  private val timeFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").withZone(ZoneId.of("UTC"))
 
   override def generate(ctx: GeneratorContext, tree: ir.Expression): String = expression(ctx, tree)
 
@@ -49,6 +49,7 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
       case w: ir.Window => window(ctx, w)
       case o: ir.SortOrder => sortOrder(ctx, o)
       case ir.Exists(subquery) => s"EXISTS (${ctx.logical.generate(ctx, subquery)})"
+      case a: ir.ArrayAccess => arrayAccess(ctx, a)
       case null => "" // don't fail transpilation if the expression is null
       case x => throw TranspileException(s"Unsupported expression: $x")
     }
@@ -215,7 +216,11 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
     try {
       callMapper.convert(fn) match {
         case r: ir.RLike => rlike(ctx, r)
-        case i: ir.In => in(ctx, i)
+        case r: ir.RegExpExtract => regexpExtract(ctx, r)
+      case t: ir.TimestampDiff => timestampDiff(ctx, t)
+      case t: ir.TimestampAdd => timestampAdd(ctx, t)
+      case e: ir.Extract => extract(ctx, e)
+      case i: ir.In => in(ctx, i)
         case fn: ir.Fn => s"${fn.prettyName}(${fn.children.map(expression(ctx, _)).mkString(", ")})"
 
         // Certain functions can be translated directly to Databricks expressions such as INTERVAL
@@ -251,10 +256,11 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
   private def timestampLiteral(l: ir.Literal) = {
     l.timestamp match {
       case Some(timestamp) =>
-        singleQuote(
-          LocalDateTime
-            .from(ZonedDateTime.ofInstant(Instant.ofEpochMilli(timestamp), ZoneId.of("UTC")))
-            .format(timeFormat))
+        val timestampStr = singleQuote(
+            LocalDateTime
+              .from(ZonedDateTime.ofInstant(Instant.ofEpochSecond(timestamp), ZoneId.of("UTC")))
+              .format(timeFormat))
+        s"CAST($timestampStr AS TIMESTAMP)"
       case None => "NULL"
     }
   }
@@ -262,8 +268,8 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
   private def dateLiteral(l: ir.Literal) = {
     l.date match {
       case Some(date) =>
-        singleQuote(
-          LocalDate.from(ZonedDateTime.ofInstant(Instant.ofEpochMilli(date), ZoneId.of("UTC"))).format(dateFormat))
+        val dateStr = singleQuote(LocalDate.ofEpochDay(date).format(dateFormat))
+        s"CAST($dateStr AS DATE)"
       case None => "NULL"
     }
   }
@@ -385,6 +391,27 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
     (Seq(orderBy) ++ direction ++ nulls).mkString(" ")
   }
 
+  private def regexpExtract(ctx: GeneratorContext, extract: ir.RegExpExtract): String = {
+    val c = if (extract.c == ir.Literal(1)) { "" }
+    else { s", ${expression(ctx, extract.c)}" }
+    s"${extract.prettyName}(${expression(ctx, extract.left)}, ${expression(ctx, extract.right)}$c)"
+  }
+
+  private def arrayAccess(ctx: GeneratorContext, access: ir.ArrayAccess): String = {
+    s"${expression(ctx, access.array)}[${expression(ctx, access.index)}]"
+  }
+
+  private def timestampDiff(ctx: GeneratorContext, diff: ir.TimestampDiff): String = {
+    s"${diff.prettyName}(${diff.unit}, ${expression(ctx, diff.start)}, ${expression(ctx, diff.end)})"
+  }
+
+  private def timestampAdd(ctx: GeneratorContext, tsAdd: ir.TimestampAdd): String = {
+    s"${tsAdd.prettyName}(${tsAdd.unit}, ${expression(ctx, tsAdd.quantity)}, ${expression(ctx, tsAdd.timestamp)})"
+  }
+
+  private def extract(ctx: GeneratorContext, e: ir.Extract): String = {
+    s"EXTRACT(${expression(ctx, e.left)} FROM ${expression(ctx, e.right)})"
+  }
   private def orNull(option: Option[String]): String = option.getOrElse("NULL")
 
   private def doubleQuote(s: String): String = s""""$s""""

@@ -306,7 +306,7 @@ class ExpressionGeneratorTest
 
       ir.CallFunction(
         "EXTRACT",
-        Seq(ir.UnresolvedAttribute("a"), ir.UnresolvedAttribute("b"))) generates "EXTRACT(a, b)"
+        Seq(ir.UnresolvedAttribute("a"), ir.UnresolvedAttribute("b"))) generates "EXTRACT(a FROM b)"
       ir.CallFunction("FACTORIAL", Seq(ir.UnresolvedAttribute("a"))) generates "FACTORIAL(a)"
 
       ir.CallFunction("FILTER", Seq(ir.UnresolvedAttribute("a"), ir.UnresolvedAttribute("b"))) generates "FILTER(a, b)"
@@ -854,7 +854,7 @@ class ExpressionGeneratorTest
 
       ir.Literal(string = Some("abc")) generates "'abc'"
 
-      ir.Literal(date = Some(1721757801000L)) generates "'2024-07-23'"
+      ir.Literal(date = Some(19927)) generates "CAST('2024-07-23' AS DATE)"
 
       // we should generate UTC timezone
       //  ir.Literal(timestamp = Some(1721757801000L)) generates "\"2024-07-23 18:03:21.000\""
