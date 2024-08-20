@@ -227,7 +227,10 @@ class SnowflakeRelationBuilder
   }
 
   override def visitTableSource(ctx: TableSourceContext): ir.LogicalPlan = {
-    val tableSource = ctx.tableSourceItemJoined().accept(this)
+    val tableSource = ctx match {
+      case c if c.tableSourceItemJoined() != null => c.tableSourceItemJoined().accept(this)
+      case c if c.tableSource() != null => c.tableSource().accept(this)
+    }
     buildSample(ctx.sample(), tableSource)
   }
 

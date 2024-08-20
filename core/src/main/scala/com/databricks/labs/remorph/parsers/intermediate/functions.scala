@@ -167,7 +167,7 @@ class CallMapper extends IRHelpers {
     case CallFunction("MAKE_INTERVAL", args) =>
       MakeInterval(args.head, args(1), args(2), args(3), args(4), args(5))
     case CallFunction("MAKE_TIMESTAMP", args) =>
-      MakeTimestamp(args.head, args(1), args(2), args(3), args(4), args(5), args(6))
+      MakeTimestamp(args.head, args(1), args(2), args(3), args(4), args(5), Some(args(6)))
     case CallFunction("MAP", args) => CreateMap(args, useStringTypeWhenEmpty = false)
     case CallFunction("MAP_CONCAT", args) => MapConcat(args)
     case CallFunction("MAP_ENTRIES", args) => MapEntries(args.head)
@@ -271,7 +271,7 @@ class CallMapper extends IRHelpers {
     case CallFunction("TIMESTAMP_MILLIS", args) => MillisToTimestamp(args.head)
     case CallFunction("TIMESTAMP_SECONDS", args) => SecondsToTimestamp(args.head)
     case CallFunction("TO_CSV", args) => StructsToCsv(args.head, args(1))
-    case CallFunction("TO_DATE", args) => ParseToDate(args.head, args(1))
+    case CallFunction("TO_DATE", args) => ParseToDate(args.head, args.lift(1))
     case CallFunction("TO_JSON", args) => StructsToJson(args.head, args(1))
     case CallFunction("TO_NUMBER", args) => ToNumber(args.head, args(1))
     case CallFunction("TO_TIMESTAMP", args) => ParseToTimestamp(args.head, args(1))
@@ -2057,6 +2057,16 @@ case class DateDiff(left: Expression, right: Expression) extends Binary(left, ri
   override def dataType: DataType = UnresolvedType
 }
 
+/** datediff(units, start, end) - Returns the difference between two timestamps measured in `units`. */
+case class TimestampDiff(unit: String, start: Expression, end: Expression, timeZoneId: Option[String] = None)
+    extends Binary(start, end)
+    with Fn {
+  // TIMESTAMPDIFF and DATEDIFF are synonyms, but DATEDIFF is used in the example queries, so we stick to it for now.
+  override def prettyName: String = "DATEDIFF"
+
+  override def dataType: DataType = UnresolvedType
+}
+
 /** dayofweek(date) - Returns the day of the week for date/timestamp (1 = Sunday, 2 = Monday, ..., 7 = Saturday). */
 case class DayOfWeek(left: Expression) extends Unary(left) with Fn {
   override def prettyName: String = "DAYOFWEEK"
@@ -2115,11 +2125,11 @@ case class MakeTimestamp(
     d: Expression,
     e: Expression,
     f: Expression,
-    g: Expression)
+    g: Option[Expression])
     extends Expression
     with Fn {
   override def prettyName: String = "MAKE_TIMESTAMP"
-  override def children: Seq[Expression] = Seq(left, right, c, d, e, f, g)
+  override def children: Seq[Expression] = Seq(left, right, c, d, e, f) ++ g.toSeq
   override def dataType: DataType = UnresolvedType
 }
 
@@ -2195,8 +2205,9 @@ case class SecondsToTimestamp(left: Expression) extends Unary(left) with Fn {
  * to_date(date_str[, fmt]) - Parses the `date_str` expression with the `fmt` expression to a date. Returns null with
  * invalid input. By default, it follows casting rules to a date if the `fmt` is omitted.
  */
-case class ParseToDate(left: Expression, right: Expression) extends Binary(left, right) with Fn {
+case class ParseToDate(left: Expression, right: Option[Expression]) extends Expression with Fn {
   override def prettyName: String = "TO_DATE"
+  override def children: Seq[Expression] = Seq(left) ++ right.toSeq
   override def dataType: DataType = UnresolvedType
 }
 
@@ -2464,4 +2475,25 @@ case class ToNumber(expr: Expression, fmt: Expression) extends Binary(expr, fmt)
 case class TryToNumber(expr: Expression, fmt: Expression) extends Binary(expr, fmt) with Fn {
   override def prettyName: String = "TRY_TO_NUMBER"
   override def dataType: DataType = UnresolvedType
+}
+
+/**
+ * try_to_timestamp(expr, fmt) - Returns expr cast to a timestamp using an optional formatting, or NULL if the cast
+ * fails.
+ */
+case class TryToTimestamp(expr: Expression, fmt: Expression) extends Binary(expr, fmt) with Fn {
+  override def prettyName: String = "TRY_TO_TIMESTAMP"
+  override def dataType: DataType = TimestampType
+}
+
+/**
+ *  timestampadd(unit, value, expr) - Adds value units to a timestamp expr
+ */
+case class TimestampAdd(unit: String, quantity: Expression, timestamp: Expression)
+    extends Binary(quantity, timestamp)
+    with Fn {
+  // TIMESTAMPADD, DATE_ADD and DATEADD are synonyms, but the latter is used in the examples.
+  override def prettyName: String = "DATEADD"
+
+  override def dataType: DataType = TimestampType
 }
