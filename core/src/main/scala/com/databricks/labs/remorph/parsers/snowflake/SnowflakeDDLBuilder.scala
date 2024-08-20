@@ -10,6 +10,7 @@ class SnowflakeDDLBuilder
     with IncompleteParser[ir.Catalog] {
 
   private val expressionBuilder = new SnowflakeExpressionBuilder
+  private val typeBuilder = new SnowflakeTypeBuilder
 
   override protected def wrapUnresolvedInput(unparsedInput: String): ir.Catalog = ir.UnresolvedCatalog(unparsedInput)
 
@@ -26,7 +27,7 @@ class SnowflakeDDLBuilder
       case c if c.SQL() != null || c.LANGUAGE() == null => ir.SQLRuntimeInfo(c.MEMOIZABLE() != null)
     }
     val name = ctx.objectName().getText
-    val returnType = DataTypeBuilder.buildDataType(ctx.dataType())
+    val returnType = typeBuilder.buildDataType(ctx.dataType())
     val parameters = ctx.argDecl().asScala.map(buildParameter)
     val acceptsNullParameters = ctx.CALLED() != null
     val body = buildFunctionBody(ctx.functionDefinition())
@@ -37,7 +38,7 @@ class SnowflakeDDLBuilder
   private def buildParameter(ctx: ArgDeclContext): ir.FunctionParameter = {
     ir.FunctionParameter(
       name = ctx.argName().getText,
-      dataType = DataTypeBuilder.buildDataType(ctx.argDataType().dataType()),
+      dataType = typeBuilder.buildDataType(ctx.argDataType().dataType()),
       defaultValue = Option(ctx.argDefaultValueClause())
         .map(_.expr().accept(expressionBuilder)))
   }
@@ -115,7 +116,7 @@ class SnowflakeDDLBuilder
 
   private def buildColumnDeclaration(ctx: FullColDeclContext): ir.ColumnDeclaration = {
     val name = ctx.colDecl().columnName().getText
-    val dataType = DataTypeBuilder.buildDataType(ctx.colDecl().dataType())
+    val dataType = typeBuilder.buildDataType(ctx.colDecl().dataType())
     val constraints = ctx.inlineConstraint().asScala.map(buildInlineConstraint)
     val nullability = if (ctx.nullNotNull().isEmpty) {
       Seq()
@@ -181,7 +182,7 @@ class SnowflakeDDLBuilder
     val columnName = ctx.columnName().getText
     ctx match {
       case c if c.dataType() != null =>
-        ir.ChangeColumnDataType(columnName, DataTypeBuilder.buildDataType(c.dataType()))
+        ir.ChangeColumnDataType(columnName, typeBuilder.buildDataType(c.dataType()))
       case c if c.DROP() != null && c.NULL_() != null =>
         ir.DropConstraint(Some(columnName), ir.Nullability(c.NOT() == null))
       case c if c.NULL_() != null =>

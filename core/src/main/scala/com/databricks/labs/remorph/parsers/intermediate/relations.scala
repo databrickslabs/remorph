@@ -367,6 +367,8 @@ case object LeftSemiJoin extends JoinType
 
 case object CrossJoin extends JoinType
 
+case class NaturalJoin(joinType: JoinType) extends JoinType
+
 case object UnspecifiedSetOp extends SetOpType
 
 case object IntersectSetOp extends SetOpType

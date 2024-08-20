@@ -68,6 +68,16 @@ class ExpressionGeneratorTest
   "like" in {
     ir.Like(ir.UnresolvedAttribute("a"), ir.Literal("b%")) generates "a LIKE 'b%'"
     ir.Like(ir.UnresolvedAttribute("a"), ir.UnresolvedAttribute("b"), '/') generates "a LIKE b ESCAPE '/'"
+    ir.ILike(ir.UnresolvedAttribute("a"), ir.Literal("b%")) generates "a ILIKE 'b%'"
+    ir.ILike(ir.UnresolvedAttribute("a"), ir.UnresolvedAttribute("b"), '/') generates "a ILIKE b ESCAPE '/'"
+    ir.LikeAny(ir.UnresolvedAttribute("a"), Seq(ir.Literal("b%"), ir.Literal("c%"))) generates "a LIKE ANY ('b%', 'c%')"
+    ir.LikeAll(ir.UnresolvedAttribute("a"), Seq(ir.Literal("b%"), ir.Literal("%c"))) generates "a LIKE ALL ('b%', '%c')"
+    ir.ILikeAny(
+      ir.UnresolvedAttribute("a"),
+      Seq(ir.Literal("b%"), ir.Literal("c%"))) generates "a ILIKE ANY ('b%', 'c%')"
+    ir.ILikeAll(
+      ir.UnresolvedAttribute("a"),
+      Seq(ir.Literal("b%"), ir.Literal("%c"))) generates "a ILIKE ALL ('b%', '%c')"
   }
 
   "predicates" should {
@@ -193,7 +203,7 @@ class ExpressionGeneratorTest
       ir.CallFunction(
         "COALESCE",
         Seq(ir.UnresolvedAttribute("a"), ir.UnresolvedAttribute("b"))) generates "COALESCE(a, b)"
-      ir.CallFunction("COLLECT_LIST", Seq(ir.UnresolvedAttribute("a"))) generates "COLLECT_LIST(a)"
+      ir.CallFunction("COLLECT_LIST", Seq(ir.UnresolvedAttribute("a"))) generates "ARRAY_AGG(a)"
       ir.CallFunction("COLLECT_SET", Seq(ir.UnresolvedAttribute("a"))) generates "COLLECT_SET(a)"
 
       ir.CallFunction("CONCAT", Seq(ir.UnresolvedAttribute("a"), ir.UnresolvedAttribute("b"))) generates "CONCAT(a, b)"
@@ -539,7 +549,7 @@ class ExpressionGeneratorTest
       ir.CallFunction("POSEXPLODE", Seq(ir.UnresolvedAttribute("a"))) generates "POSEXPLODE(a)"
       ir.CallFunction("POSITIVE", Seq(ir.UnresolvedAttribute("a"))) generates "POSITIVE(a)"
 
-      ir.CallFunction("POW", Seq(ir.UnresolvedAttribute("a"), ir.UnresolvedAttribute("b"))) generates "POW(a, b)"
+      ir.CallFunction("POW", Seq(ir.UnresolvedAttribute("a"), ir.UnresolvedAttribute("b"))) generates "POWER(a, b)"
       ir.CallFunction("QUARTER", Seq(ir.UnresolvedAttribute("a"))) generates "QUARTER(a)"
       ir.CallFunction("RADIANS", Seq(ir.UnresolvedAttribute("a"))) generates "RADIANS(a)"
       ir.CallFunction("RAISE_ERROR", Seq(ir.UnresolvedAttribute("a"))) generates "RAISE_ERROR(a)"
@@ -663,6 +673,14 @@ class ExpressionGeneratorTest
           ir.UnresolvedAttribute("a"),
           ir.UnresolvedAttribute("b"),
           ir.UnresolvedAttribute("c"))) generates "SPLIT(a, b, c)"
+
+      ir.CallFunction(
+        "SPLIT_PART",
+        Seq(
+          ir.UnresolvedAttribute("a"),
+          ir.UnresolvedAttribute("b"),
+          ir.UnresolvedAttribute("c"))) generates "SPLIT_PART(a, b, c)"
+
       ir.CallFunction("SQRT", Seq(ir.UnresolvedAttribute("a"))) generates "SQRT(a)"
 
       ir.CallFunction("STACK", Seq(ir.UnresolvedAttribute("a"), ir.UnresolvedAttribute("b"))) generates "STACK(a, b)"
@@ -706,6 +724,10 @@ class ExpressionGeneratorTest
       ir.CallFunction(
         "TO_JSON",
         Seq(ir.UnresolvedAttribute("a"), ir.UnresolvedAttribute("b"))) generates "TO_JSON(a, b)"
+
+      ir.CallFunction(
+        "TO_NUMBER",
+        Seq(ir.UnresolvedAttribute("a"), ir.UnresolvedAttribute("b"))) generates "TO_NUMBER(a, b)"
 
       ir.CallFunction(
         "TO_TIMESTAMP",
@@ -899,4 +921,31 @@ class ExpressionGeneratorTest
       ir.In(ir.Id("c1"), Seq(ir.Literal(1), ir.Literal(2), ir.Literal(3))) generates "c1 IN (1, 2, 3)"
     }
   }
+
+  "window functions" should {
+    "be generated" in {
+      ir.Window(
+        ir.RowNumber(),
+        Seq(ir.Id("a")),
+        Seq(ir.SortOrder(ir.Id("b"), ir.Ascending, ir.NullsFirst)),
+        Some(
+          ir.WindowFrame(
+            ir.RowsFrame,
+            ir.CurrentRow,
+            ir.NoBoundary))) generates "ROW_NUMBER() OVER (PARTITION BY a ORDER BY b ASC NULLS FIRST ROWS CURRENT ROW)"
+
+      ir.Window(
+        ir.RowNumber(),
+        Seq(ir.Id("a")),
+        Seq(ir.SortOrder(ir.Id("b"), ir.Ascending, ir.NullsFirst)),
+        Some(
+          ir.WindowFrame(
+            ir.RangeFrame,
+            ir.CurrentRow,
+            ir.FollowingN(
+              ir.Literal(42))))) generates "ROW_NUMBER() OVER (PARTITION BY a ORDER BY b ASC NULLS FIRST RANGE BETWEEN CURRENT ROW AND 42 FOLLOWING)"
+
+    }
+  }
+
 }

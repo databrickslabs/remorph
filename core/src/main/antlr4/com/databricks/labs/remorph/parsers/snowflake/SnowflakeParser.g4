@@ -122,9 +122,6 @@ tablesOrQueries: tableOrQuery (COMMA tableOrQuery)*
 deleteStatement: DELETE FROM tableRef (USING tablesOrQueries)? (WHERE predicate)?
     ;
 
-valuesBuilder: VALUES L_PAREN exprList R_PAREN (COMMA L_PAREN exprList R_PAREN)?
-    ;
-
 otherCommand
     : copyIntoTable
     | copyIntoLocation
@@ -3146,16 +3143,14 @@ withinGroup: WITHIN GROUP L_PAREN orderByClause R_PAREN
 predicatePartial
     : IS nullNotNull
     | NOT? IN L_PAREN (subquery | exprList) R_PAREN
-    | NOT? ( LIKE | ILIKE) expr (ESCAPE expr)?
-    | NOT? RLIKE expr
-    | NOT? (LIKE | ILIKE) ANY L_PAREN expr (COMMA expr)* R_PAREN (ESCAPE expr)?
+    | NOT? likeExpression
     | NOT? BETWEEN expr AND expr
     ;
 
-jsonPath: jsonPathElem (DOT jsonPathElem)*
-    ;
-
-jsonPathElem: ID | DOUBLE_QUOTE_ID (LSB (string | num) RSB)?
+likeExpression
+    : op = (LIKE | ILIKE) pat = expr (ESCAPE escapeChar = expr)?           # likeExprSinglePattern
+    | op = (LIKE | ILIKE) (ANY | ALL) exprListInParentheses (ESCAPE expr)? # likeExprMultiplePatterns
+    | RLIKE expr                                                           # likeExprRLike
     ;
 
 iffExpr: IFF L_PAREN predicate COMMA expr COMMA expr R_PAREN
@@ -3201,7 +3196,7 @@ dataType
     | binaryAlias = ( BINARY | VARBINARY) dataTypeSize?
     | VARIANT
     | OBJECT
-    | ARRAY
+    | ARRAY (L_PAREN dataType R_PAREN)?
     | GEOGRAPHY
     | GEOMETRY
     ;
@@ -3281,9 +3276,6 @@ literal
     ;
 
 sign: PLUS | MINUS
-    ;
-
-bracketExpression: L_PAREN exprList R_PAREN | L_PAREN subquery R_PAREN
     ;
 
 caseExpression
@@ -3413,8 +3405,7 @@ joinType: INNER | outerJoin
     ;
 
 joinClause
-    : joinType? JOIN objectRef ((ON predicate)? | (USING L_PAREN columnList R_PAREN)?)
-    //| joinType? JOIN objectRef (USING L_PAREN columnList R_PAREN)?
+    : joinType? JOIN objectRef ((ON predicate) | (USING L_PAREN columnList R_PAREN))?
     | NATURAL outerJoin? JOIN objectRef
     | CROSS JOIN objectRef
     ;

@@ -33,7 +33,8 @@ class DataTypeGeneratorTest extends AnyWordSpec with Matchers with TableDrivenPr
   "DataTypeGenerator" should {
     "generate proper SQL data types" in {
       forAll(translations) { (dt, expected) =>
-        DataTypeGenerator.generateDataType(GeneratorContext(), dt) shouldBe expected
+        val logical = new LogicalPlanGenerator(new ExpressionGenerator())
+        DataTypeGenerator.generateDataType(GeneratorContext(logical), dt) shouldBe expected
       }
     }
   }
