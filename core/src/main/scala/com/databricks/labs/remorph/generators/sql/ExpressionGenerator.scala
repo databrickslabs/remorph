@@ -199,10 +199,10 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
       callMapper.convert(fn) match {
         case r: ir.RLike => rlike(ctx, r)
         case r: ir.RegExpExtract => regexpExtract(ctx, r)
-      case t: ir.TimestampDiff => timestampDiff(ctx, t)
-      case t: ir.TimestampAdd => timestampAdd(ctx, t)
-      case e: ir.Extract => extract(ctx, e)
-      case i: ir.In => in(ctx, i)
+        case t: ir.TimestampDiff => timestampDiff(ctx, t)
+        case t: ir.TimestampAdd => timestampAdd(ctx, t)
+        case e: ir.Extract => extract(ctx, e)
+        case i: ir.In => in(ctx, i)
         case fn: ir.Fn => s"${fn.prettyName}(${fn.children.map(expression(ctx, _)).mkString(", ")})"
 
         // Certain functions can be translated directly to Databricks expressions such as INTERVAL
@@ -239,9 +239,9 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
     l.timestamp match {
       case Some(timestamp) =>
         val timestampStr = singleQuote(
-            LocalDateTime
-              .from(ZonedDateTime.ofInstant(Instant.ofEpochSecond(timestamp), ZoneId.of("UTC")))
-              .format(timeFormat))
+          LocalDateTime
+            .from(ZonedDateTime.ofInstant(Instant.ofEpochSecond(timestamp), ZoneId.of("UTC")))
+            .format(timeFormat))
         s"CAST($timestampStr AS TIMESTAMP)"
       case None => "NULL"
     }
