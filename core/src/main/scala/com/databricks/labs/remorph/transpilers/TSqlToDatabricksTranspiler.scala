@@ -26,6 +26,16 @@ class TSqlToDatabricksTranspiler extends BaseTranspiler {
     parser.removeErrorListeners()
     parser.addErrorListener(errListener)
     val tree = parser.tSqlFile()
+    if (errListener.errorCount > 0) {
+
+      // scalastyle:off println
+      println("==============================")
+      println(input)
+      println("------------------------------")
+      errListener.formatErrors.foreach(println)
+      println("------------------------------")
+      // scalastyle:on println
+    }
     astBuilder.visit(tree)
   }
 

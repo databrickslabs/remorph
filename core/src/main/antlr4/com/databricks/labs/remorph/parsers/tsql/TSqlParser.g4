@@ -42,15 +42,7 @@ options {
 tSqlFile: batch? EOF
     ;
 
-// TODO: JI - Simplify this
-batch: executeBodyBatch? (goStatement | sqlClauses)+ | batchLevelStatement goStatement*
-    ;
-
-batchLevelStatement
-    : createOrAlterFunction SEMI*
-    | createOrAlterProcedure SEMI*
-    | createOrAlterTrigger SEMI*
-    | createView SEMI*
+batch: executeBodyBatch? (sqlClauses SEMI*)+
     ;
 
 // TODO: Properly sort out SEMI colons, which have been haphazzardly added in some
@@ -63,7 +55,11 @@ sqlClauses
     | ddlClause SEMI*
     | dbccClause SEMI*
     | backupStatement SEMI*
-    | SEMI // Empty statement
+    | createOrAlterFunction SEMI*
+    | createOrAlterProcedure SEMI*
+    | createOrAlterTrigger SEMI*
+    | createView SEMI*
+    | goStatement SEMI*
     ;
 
 dmlClause
@@ -72,6 +68,7 @@ dmlClause
     | insertStatement
     | selectStatementStandalone
     | updateStatement
+    | bulkStatement
     ;
 
 ddlClause
@@ -136,6 +133,7 @@ ddlClause
     | createEventNotification
     | createExternalLibrary
     | createExternalResourcePool
+    | createExternalDataSource
     | createFulltextCatalog
     | createFulltextStoplist
     | createIndex
@@ -843,6 +841,18 @@ eventSessionPredicateLeaf
     | dotIdentifier LPAREN ( dotIdentifier COMMA (INT | STRING)) RPAREN
     ;
 
+createExternalDataSource
+    : CREATE EXTERNAL DATA SOURCE id
+      WITH LPAREN
+        (COMMA? (  genericOption | connectionOptions))*
+        RPAREN
+        SEMI?
+    ;
+
+connectionOptions
+    :  id EQ STRING (COMMA STRING)*
+    ;
+
 alterExternalDataSource
     : ALTER EXTERNAL DATA SOURCE id (
         SET (
@@ -1467,6 +1477,20 @@ delete
     : DELETE topClause? FROM? ddlObject withTableHints? outputClause? (FROM tableSources)? updateWhereClause? optionClause? SEMI?
     ;
 
+bulkStatement: BULK INSERT dotIdentifier
+FROM STRING
+( WITH LPAREN bulkInsertOption (COMMA? bulkInsertOption)* RPAREN )?
+    ;
+
+bulkInsertOption:
+    ORDER LPAREN bulkInsertCol (COMMA bulkInsertCol)* RPAREN
+       | genericOption
+    ;
+
+bulkInsertCol:
+    id (ASC |DESC)?
+    ;
+
 insertStatement: withExpression? insert
     ;
 
@@ -1516,10 +1540,12 @@ createDatabase
             id /* LOG */ ON databaseFileSpec (COMMA databaseFileSpec)*
         )?
     )? (COLLATE id)? (WITH createDatabaseOption (COMMA createDatabaseOption)*)?
+    SEMI?
     ;
 
 createDatabaseScopedCredential
-    : CREATE DATABASE SCOPED CREDENTIAL id WITH IDENTITY EQ STRING (SECRET EQ STRING)?
+    : CREATE DATABASE SCOPED CREDENTIAL id
+            WITH IDENTITY EQ STRING (COMMA SECRET EQ STRING)? SEMI?
     ;
 
 createDatabaseOption
@@ -1732,11 +1758,17 @@ createTable: CREATE (createExternal | createInternal)
 createInternal
     : TABLE tableName (
         LPAREN columnDefTableConstraints (COMMA? tableIndices)* COMMA? RPAREN (LOCK simpleId)?
-    )? createTableAs? tableOptions* (ON id | DEFAULT | onPartitionOrFilegroup)? (
+    )?
+    tableOptions?  // This sequence looks strange but alloes CTAS and normal CREATE TABLE to be parsed
+    createTableAs?
+    tableOptions?
+    (ON id | DEFAULT | onPartitionOrFilegroup)? (
         TEXTIMAGE_ON id
         | DEFAULT
     )? SEMI?
     ;
+
+distributionOption: DISTRIBUTION EQ distributionType ;
 
 createExternal
     : EXTERNAL TABLE tableName (LPAREN columnDefTableConstraints RPAREN)? WITH LPAREN optionList RPAREN AS selectStatementStandalone SEMI?
@@ -1746,6 +1778,7 @@ createTableAs
     : AS selectStatementStandalone       # ctas
     | AS FILETABLE WITH lparenOptionList # ctasFiletable
     | AS (NODE | EDGE)                   # ctasGraph
+    | AS /* CLONE */ id OF dotIdentifier (AT_KEYWORD STRING)?        # ctasClone
     ;
 
 tableIndices
@@ -1764,14 +1797,14 @@ distributionType: HASH LPAREN id (COMMA id)* RPAREN | ROUND_ROBIN | REPLICATE
     ;
 
 tableOption
-    : (simpleId | keyword) EQ (simpleId | keyword | onOff | INT)
-    | CLUSTERED COLUMNSTORE INDEX
+    : CLUSTERED COLUMNSTORE INDEX
     | HEAP
     | FILLFACTOR EQ INT
     | DISTRIBUTION EQ distributionType
     | CLUSTERED INDEX LPAREN id (ASC | DESC)? ( COMMA id (ASC | DESC)?)* RPAREN
     | DATA_COMPRESSION EQ (NONE | ROW | PAGE) onPartitions?
     | XML_COMPRESSION EQ onOff onPartitions?
+    | (simpleId | keyword) EQ (simpleId | keyword | onOff | INT)
     ;
 
 createTableIndexOptions
@@ -1898,8 +1931,8 @@ filegroupUpdatabilityOption: READONLY | READWRITE | READ_ONLY | READ_WRITE
     ;
 
 databaseOptionspec
-    : autoOption
-    | changeTrackingOption
+    : changeTrackingOption
+    | autoOption
     | containmentOption
     | cursorOption
     | databaseMirroringOption
@@ -1932,13 +1965,14 @@ autoOption
     ;
 
 changeTrackingOption
-    : CHANGE_TRACKING EQ (
+    : CHANGE_TRACKING (EQ (
         OFF
-        | ON LPAREN (changeTrackingOptionList ( COMMA changeTrackingOptionList)*)* RPAREN
+        | ON)
+        | LPAREN (changeTrackingOpt ( COMMA changeTrackingOpt)*) RPAREN
     )
     ;
 
-changeTrackingOptionList
+changeTrackingOpt
     : AUTO_CLEANUP EQ onOff
     | CHANGE_RETENTION EQ INT ( DAYS | HOURS | MINUTES)
     ;
@@ -2153,12 +2187,17 @@ cursorStatement
     ;
 
 backupDatabase
-    : BACKUP DATABASE id (READ_WRITE_FILEGROUPS optionList)? (TO optionList)+ (
-        MIRROR TO optionList
-    )* WITH (
-        optionList
-        | ENCRYPTION LPAREN ALGORITHM EQ genericOption COMMA SERVER CERTIFICATE EQ genericOption RPAREN
+    : BACKUP DATABASE id
+        (READ_WRITE_FILEGROUPS (COMMA optionList)?)?
+        optionList?
+        (TO optionList)
+        (MIRROR TO optionList)?
+     (WITH (
+        ENCRYPTION LPAREN ALGORITHM EQ genericOption COMMA SERVER CERTIFICATE EQ genericOption RPAREN
+        | optionList
+        )
     )?
+    SEMI?
     ;
 
 backupLog: BACKUP id /* LOG */ id TO optionList (MIRROR TO optionList)? ( WITH optionList)?
@@ -2360,7 +2399,7 @@ transactionStatement
     | SAVE (TRAN | TRANSACTION) (id | LOCAL_ID)?
     ;
 
-goStatement: GO INT?
+goStatement: GO INT? SEMI?
     ;
 
 useStatement: USE id
@@ -2876,12 +2915,12 @@ tableSourceItem: tsiElement (asTableAlias columnAliasList?)? withTableHints?
     ;
 
 tsiElement
-    : tableName                  # tsiNamedTable
+    : (SYS DOT)? tableName       # tsiNamedTable
     | rowsetFunction             # tsiRowsetFunction
     | LPAREN derivedTable RPAREN # tsiDerivedTable
     | changeTable                # tsiChangeTable
     | nodesMethod                # tsiNodesMethod
-    | functionCall               # tsiFunctionCall
+    | (SYS DOT)? functionCall    # tsiFunctionCall
     | LOCAL_ID                   # tsiLocalId
     | LOCAL_ID DOT functionCall  # tsiLocalIdFunctionCall
     | openXml                    # tsiOpenXml
@@ -3451,6 +3490,7 @@ keyword
     | HIGH
     | HONOR_BROKER_PRIORITY
     | HOURS
+    | IDENTITY
     | IDENTITY_VALUE
     | IGNORE_CONSTRAINTS
     | IGNORE_DUP_KEY

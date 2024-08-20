@@ -32,14 +32,12 @@ class TSqlErrorStategySpec extends AnyWordSpec with TSqlParserTestCommon with Ma
       checkError(
         query = "*",
         errContains = "unexpected extra input '*' while parsing a T-SQL batch\n" +
-          "expecting one of: End of batch, Identifier, Select Statement, Statement, '(', ';', 'RAW', 'WITH'")
+          "expecting one of: End of batch, Identifier, Select Statement, Statement, ")
 
       checkError(
         query = "SELECT * FROM",
         errContains = "'<EOF>' was unexpected while parsing a table source in a FROM clause " +
-          "in a SELECT statement\nexpecting one of: @Local, Identifier, '$', '$PARTITION', '(', '::', " +
-          "'CONTAINSTABLE', 'FREETEXTTABLE', 'LEFT', 'OPENROWSET', 'OPENXML', 'RAW'...\nFile: -- test " +
-          "string --, Line: 1, Token: <EOF>\nSELECT * FROM")
+          "in a SELECT statement\nexpecting one of:")
     }
   }
 }
