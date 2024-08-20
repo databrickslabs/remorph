@@ -1,8 +1,6 @@
 package com.databricks.labs.remorph.generators.sql
 
 import com.databricks.labs.remorph.generators.{Generator, GeneratorContext}
-import com.databricks.labs.remorph.parsers.intermediate.{InsertIntoTable, UpdateTable}
-import com.databricks.labs.remorph.parsers.intermediate.{Expression, LogicalPlan, UpdateTable}
 import com.databricks.labs.remorph.parsers.{intermediate => ir}
 import com.databricks.labs.remorph.transpilers.TranspileException
 
@@ -36,16 +34,6 @@ class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: 
     case ir.DeleteFromTable(target, None, where, None, None) => delete(ctx, target, where)
     case ir.NoopNode => ""
     case x => throw unknown(x)
-  }
-
-  private def insert(ctx: GeneratorContext, insert: InsertIntoTable): String = {
-    val target = generate(ctx, insert.target)
-    val columns = insert.columns.map(_.map(expr.generate(ctx, _)).mkString("(", ", ", ")")).getOrElse("")
-    val values = generate(ctx, insert.values)
-    val output = insert.outputRelation.map(generate(ctx, _)).getOrElse("")
-    val options = insert.options.map(expr.generate(ctx, _)).getOrElse("")
-    val overwrite = if (insert.overwrite) " OVERWRITE" else ""
-    s"INSERT$overwrite INTO $target $columns $values$output$options"
   }
 
   private def project(ctx: GeneratorContext, proj: ir.Project): String = {
@@ -113,8 +101,19 @@ class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: 
     s"(${generate(ctx, setOp.left)}) $op$duplicates (${generate(ctx, setOp.right)})"
   }
 
+  // @see https://docs.databricks.com/en/sql/language-manual/sql-ref-syntax-dml-insert-into.html
+  private def insert(ctx: GeneratorContext, insert: ir.InsertIntoTable): String = {
+    val target = generate(ctx, insert.target)
+    val columns = insert.columns.map(_.map(expr.generate(ctx, _)).mkString("(", ", ", ")")).getOrElse("")
+    val values = generate(ctx, insert.values)
+    val output = insert.outputRelation.map(generate(ctx, _)).getOrElse("")
+    val options = insert.options.map(expr.generate(ctx, _)).getOrElse("")
+    val overwrite = if (insert.overwrite) " OVERWRITE" else ""
+    s"INSERT$overwrite INTO $target $columns $values$output$options"
+  }
+
   // @see https://docs.databricks.com/en/sql/language-manual/delta-update.html
-  private def update(ctx: GeneratorContext, update: UpdateTable): String = {
+  private def update(ctx: GeneratorContext, update: ir.UpdateTable): String = {
     val target = generate(ctx, update.target)
     val set = update.set.map(expr.generate(ctx, _)).mkString(", ")
     val where = update.where.map(cond => s" WHERE ${expr.generate(ctx, cond)}").getOrElse("")
@@ -122,11 +121,12 @@ class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: 
   }
 
   // @see https://docs.databricks.com/en/sql/language-manual/delta-delete-from.html
-  private def delete(ctx: GeneratorContext, target: LogicalPlan, where: Option[Expression]): String = {
+  private def delete(ctx: GeneratorContext, target: ir.LogicalPlan, where: Option[ir.Expression]): String = {
     val whereStr = where.map(cond => s" WHERE ${expr.generate(ctx, cond)}").getOrElse("")
     s"DELETE FROM ${generate(ctx, target)}$whereStr"
   }
 
+  // @see https://docs.databricks.com/en/sql/language-manual/delta-merge-into.html
   private def merge(ctx: GeneratorContext, mergeIntoTable: ir.MergeIntoTable): String = {
     val target = generate(ctx, mergeIntoTable.targetTable)
     val source = generate(ctx, mergeIntoTable.sourceTable)
