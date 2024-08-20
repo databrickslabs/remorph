@@ -81,7 +81,6 @@
       <groupId>org.apache.spark</groupId>
       <artifactId>spark-catalyst_${scala.binary.version}</artifactId>
       <version>${spark.version}</version>
-      <classifier>tests</classifier>
       <scope>provided</scope>
     </dependency>
     <dependency>
