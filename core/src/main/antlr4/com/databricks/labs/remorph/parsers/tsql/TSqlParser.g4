@@ -42,7 +42,7 @@ options {
 tSqlFile: batch? EOF
     ;
 
-batch: executeBodyBatch? (sqlClauses SEMI*)+
+batch: SEMI* executeBodyBatch? SEMI* (sqlClauses SEMI*)+
     ;
 
 // TODO: Properly sort out SEMI colons, which have been haphazzardly added in some
@@ -2911,12 +2911,12 @@ tableSourceItem: tsiElement (asTableAlias columnAliasList?)? withTableHints?
     ;
 
 tsiElement
-    : (SYS DOT)? tableName       # tsiNamedTable
+    : tableName                  # tsiNamedTable
     | rowsetFunction             # tsiRowsetFunction
     | LPAREN derivedTable RPAREN # tsiDerivedTable
     | changeTable                # tsiChangeTable
     | nodesMethod                # tsiNodesMethod
-    | (SYS DOT)? functionCall    # tsiFunctionCall
+    | (id DOT)? functionCall     # tsiFunctionCall
     | LOCAL_ID                   # tsiLocalId
     | LOCAL_ID DOT functionCall  # tsiLocalIdFunctionCall
     | openXml                    # tsiOpenXml
@@ -3008,7 +3008,7 @@ functionValues: f = ( AAPSEUDO | SESSION_USER | SYSTEM_USER | USER)
 
 // Standard functions that are built in but take standard syntax, or are
 // some user function etc
-standardFunction: funcId LPAREN (expression (COMMA expression)*)? RPAREN
+standardFunction: (id DOT)? funcId LPAREN (expression (COMMA expression)*)? RPAREN
     ;
 
 funcId: id | FORMAT | LEFT | RIGHT | REPLACE | CONCAT
@@ -3209,7 +3209,7 @@ sendConversation
     )? SEMI?
     ;
 
-dataType: dataTypeIdentity | id (LPAREN (INT | MAX) (COMMA INT)? RPAREN)?
+dataType: dataTypeIdentity | XML LPAREN id RPAREN | id (LPAREN (INT | MAX) (COMMA INT)? RPAREN)?
     ;
 
 dataTypeIdentity: id IDENTITY (LPAREN INT COMMA INT RPAREN)?

@@ -835,7 +835,6 @@ SWITCH                                      : 'SWITCH';
 SYMMETRIC                                   : 'SYMMETRIC';
 SYNCHRONOUS_COMMIT                          : 'SYNCHRONOUS_COMMIT';
 SYNONYM                                     : 'SYNONYM';
-SYS                                         : 'SYS';
 SYSTEM                                      : 'SYSTEM';
 SYSTEM_USER                                 : 'SYSTEM_USER';
 TABLE                                       : 'TABLE';
