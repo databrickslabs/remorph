@@ -2493,6 +2493,5 @@ case class TimestampAdd(unit: String, quantity: Expression, timestamp: Expressio
     with Fn {
   // TIMESTAMPADD, DATE_ADD and DATEADD are synonyms, but the latter is used in the examples.
   override def prettyName: String = "DATEADD"
-
   override def dataType: DataType = TimestampType
 }
