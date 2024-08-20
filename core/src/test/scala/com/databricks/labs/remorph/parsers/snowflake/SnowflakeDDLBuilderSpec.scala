@@ -39,8 +39,8 @@ class SnowflakeDDLBuilderSpec
           |""".stripMargin,
         expectedAst = CreateInlineUDF(
           name = "echo_varchar",
-          returnType = VarCharType(None),
-          parameters = Seq(FunctionParameter("x", VarCharType(None), None)),
+          returnType = StringType,
+          parameters = Seq(FunctionParameter("x", StringType, None)),
           JavaRuntimeInfo(
             runtimeVersion = None,
             imports = Seq("@~/some-dir/some-lib.jar"),
@@ -71,7 +71,7 @@ class SnowflakeDDLBuilderSpec
                   |$$$$;""".stripMargin,
         expectedAst = CreateInlineUDF(
           name = "py_udf",
-          returnType = UnparsedType(),
+          returnType = UnparsedType("VARIANT"),
           parameters = Seq(),
           runtimeInfo = PythonRuntimeInfo(
             runtimeVersion = Some("3.8"),
@@ -131,8 +131,8 @@ class SnowflakeDDLBuilderSpec
                   |  $$$$;""".stripMargin,
         expectedAst = CreateInlineUDF(
           name = "echo_varchar",
-          returnType = VarCharType(None),
-          parameters = Seq(FunctionParameter("x", VarCharType(None), Some(Literal(string = Some("foo"))))),
+          returnType = StringType,
+          parameters = Seq(FunctionParameter("x", StringType, Some(Literal(string = Some("foo"))))),
           runtimeInfo = ScalaRuntimeInfo(runtimeVersion = Some("2.12"), imports = Seq(), handler = "Echo.echoVarchar"),
           acceptsNullParameters = true,
           comment = None,
@@ -160,32 +160,29 @@ class SnowflakeDDLBuilderSpec
     "translate CREATE TABLE commands" in {
       example(
         query = "CREATE TABLE s.t1 (x VARCHAR)",
-        expectedAst =
-          CreateTableCommand(name = "s.t1", columns = Seq(ColumnDeclaration("x", VarCharType(None), None, Seq()))))
+        expectedAst = CreateTableCommand(name = "s.t1", columns = Seq(ColumnDeclaration("x", StringType, None, Seq()))))
 
       example(
         query = "CREATE TABLE s.t1 (x VARCHAR UNIQUE)",
-        expectedAst = CreateTableCommand(
-          name = "s.t1",
-          columns = Seq(ColumnDeclaration("x", VarCharType(None), None, Seq(Unique)))))
+        expectedAst =
+          CreateTableCommand(name = "s.t1", columns = Seq(ColumnDeclaration("x", StringType, None, Seq(Unique)))))
 
       example(
         query = "CREATE TABLE s.t1 (x VARCHAR NOT NULL)",
         expectedAst = CreateTableCommand(
           name = "s.t1",
-          columns = Seq(ColumnDeclaration("x", VarCharType(None), None, Seq(Nullability(false))))))
+          columns = Seq(ColumnDeclaration("x", StringType, None, Seq(Nullability(false))))))
 
       example(
         query = "CREATE TABLE s.t1 (x VARCHAR PRIMARY KEY)",
-        expectedAst = CreateTableCommand(
-          name = "s.t1",
-          columns = Seq(ColumnDeclaration("x", VarCharType(None), None, Seq(PrimaryKey)))))
+        expectedAst =
+          CreateTableCommand(name = "s.t1", columns = Seq(ColumnDeclaration("x", StringType, None, Seq(PrimaryKey)))))
 
       example(
         query = "CREATE TABLE s.t1 (x VARCHAR UNIQUE FOREIGN KEY REFERENCES s.t2 (y))",
         expectedAst = CreateTableCommand(
           name = "s.t1",
-          columns = Seq(ColumnDeclaration("x", VarCharType(None), None, Seq(Unique, ForeignKey("s.t2.y"))))))
+          columns = Seq(ColumnDeclaration("x", StringType, None, Seq(Unique, ForeignKey("s.t2.y"))))))
 
       example(
         query = """CREATE TABLE s.t1 (
@@ -198,15 +195,11 @@ class SnowflakeDDLBuilderSpec
         expectedAst = CreateTableCommand(
           name = "s.t1",
           columns = Seq(
-            ColumnDeclaration("id", VarCharType(None), None, Seq(Nullability(false), PrimaryKey)),
-            ColumnDeclaration(
-              "a",
-              VarCharType(Some(32)),
-              None,
-              Seq(Unique, NamedConstraint("fkey", ForeignKey("s.t2.x")))),
+            ColumnDeclaration("id", StringType, None, Seq(Nullability(false), PrimaryKey)),
+            ColumnDeclaration("a", StringType, None, Seq(Unique, NamedConstraint("fkey", ForeignKey("s.t2.x")))),
             ColumnDeclaration(
               "b",
-              DecimalType(Some(38), None),
+              DecimalType(Some(38), Some(0)),
               None,
               Seq(NamedConstraint("fkey", ForeignKey("s.t2.y")))))))
     }
@@ -214,7 +207,7 @@ class SnowflakeDDLBuilderSpec
     "translate ALTER TABLE commands" in {
       example(
         query = "ALTER TABLE s.t1 ADD COLUMN c VARCHAR",
-        expectedAst = AlterTableCommand("s.t1", Seq(AddColumn(ColumnDeclaration("c", VarCharType(None))))))
+        expectedAst = AlterTableCommand("s.t1", Seq(AddColumn(ColumnDeclaration("c", StringType)))))
 
       example(
         query = "ALTER TABLE s.t1 ADD CONSTRAINT pk PRIMARY KEY (a, b, c)",
@@ -227,7 +220,7 @@ class SnowflakeDDLBuilderSpec
 
       example(
         query = "ALTER TABLE s.t1 ALTER (COLUMN a TYPE INT)",
-        expectedAst = AlterTableCommand("s.t1", Seq(ChangeColumnDataType("a", DecimalType(Some(38), None)))))
+        expectedAst = AlterTableCommand("s.t1", Seq(ChangeColumnDataType("a", DecimalType(Some(38), Some(0))))))
       example(
         query = "ALTER TABLE s.t1 ALTER (COLUMN a NOT NULL)",
         expectedAst = AlterTableCommand("s.t1", Seq(AddConstraint("a", Nullability(false)))))

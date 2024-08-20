@@ -210,6 +210,7 @@ class CallMapper extends IRHelpers {
       StringLocate(args.head, args(1), args.lastOption.getOrElse(Literal(1)))
     case CallFunction("POSITIVE", args) => UnaryPositive(args.head)
     case CallFunction("POW", args) => Pow(args.head, args(1))
+    case CallFunction("POWER", args) => Pow(args.head, args(1))
     case CallFunction("QUARTER", args) => Quarter(args.head)
     case CallFunction("RADIANS", args) => ToRadians(args.head)
     case CallFunction("RAISE_ERROR", args) => RaiseError(args.head)
@@ -1090,9 +1091,13 @@ case class UnaryPositive(left: Expression) extends Unary(left) with Fn {
   override def dataType: DataType = UnresolvedType
 }
 
-/** pow(expr1, expr2) - Raises `expr1` to the power of `expr2`. */
+/**
+ * pow(expr1, expr2) - Raises `expr1` to the power of `expr2`.
+ * @see
+ *   https://docs.databricks.com/en/sql/language-manual/functions/pow.html
+ */
 case class Pow(left: Expression, right: Expression) extends Binary(left, right) with Fn {
-  override def prettyName: String = "POW"
+  override def prettyName: String = "POWER" // alias: POW
   override def dataType: DataType = UnresolvedType
 }
 
