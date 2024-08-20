@@ -108,8 +108,8 @@ class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: 
     val values = generate(ctx, insert.values)
     val output = insert.outputRelation.map(generate(ctx, _)).getOrElse("")
     val options = insert.options.map(expr.generate(ctx, _)).getOrElse("")
-    val overwrite = if (insert.overwrite) " OVERWRITE" else ""
-    s"INSERT$overwrite INTO $target $columns $values$output$options"
+    val overwrite = if (insert.overwrite) "OVERWRITE TABLE" else "INTO"
+    s"INSERT $overwrite $target $columns $values$output$options"
   }
 
   // @see https://docs.databricks.com/en/sql/language-manual/delta-update.html

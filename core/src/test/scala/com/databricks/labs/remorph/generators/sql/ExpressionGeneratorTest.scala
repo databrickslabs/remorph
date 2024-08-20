@@ -82,8 +82,8 @@ class ExpressionGeneratorTest
 
   "predicates" should {
     "be generated" in {
-      ir.And(ir.UnresolvedAttribute("a"), ir.UnresolvedAttribute("b")) generates "(a AND b)"
-      ir.Or(ir.UnresolvedAttribute("a"), ir.UnresolvedAttribute("b")) generates "(a OR b)"
+      ir.And(ir.UnresolvedAttribute("a"), ir.UnresolvedAttribute("b")) generates "a AND b"
+      ir.Or(ir.UnresolvedAttribute("a"), ir.UnresolvedAttribute("b")) generates "a OR b"
       ir.Not(ir.UnresolvedAttribute("a")) generates "NOT (a)"
       ir.Equals(ir.UnresolvedAttribute("a"), ir.UnresolvedAttribute("b")) generates "a = b"
       ir.NotEquals(ir.UnresolvedAttribute("a"), ir.UnresolvedAttribute("b")) generates "a != b"
