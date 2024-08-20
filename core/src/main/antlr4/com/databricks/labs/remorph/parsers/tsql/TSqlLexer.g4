@@ -645,6 +645,7 @@ PROVIDER_KEY_NAME                           : 'PROVIDER_KEY_NAME';
 PUBLIC                                      : 'PUBLIC';
 PYTHON                                      : 'PYTHON';
 QUERY                                       : 'QUERY';
+QUERY_STORE                                 : 'QUERY_STORE';
 QUEUE                                       : 'QUEUE';
 QUEUE_DELAY                                 : 'QUEUE_DELAY';
 QUOTED_IDENTIFIER                           : 'QUOTED_IDENTIFIER';
