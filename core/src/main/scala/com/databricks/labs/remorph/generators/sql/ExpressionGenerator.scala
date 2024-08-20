@@ -1,6 +1,7 @@
 package com.databricks.labs.remorph.generators.sql
 
 import com.databricks.labs.remorph.generators.{Generator, GeneratorContext}
+import com.databricks.labs.remorph.parsers.intermediate.WithinGroup
 import com.databricks.labs.remorph.parsers.{intermediate => ir}
 import com.databricks.labs.remorph.transpilers.TranspileException
 
@@ -49,6 +50,7 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
       case w: ir.Window => window(ctx, w)
       case o: ir.SortOrder => sortOrder(ctx, o)
       case ir.Exists(subquery) => s"EXISTS (${ctx.logical.generate(ctx, subquery)})"
+      case w: ir.WithinGroup => withinGroup(ctx, w)
       case x => throw TranspileException(s"Unsupported expression: $x")
     }
   }
@@ -382,6 +384,10 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
       case ir.SortNullsUnspecified => Seq()
     }
     (Seq(orderBy) ++ direction ++ nulls).mkString(" ")
+  }
+
+  private def withinGroup(ctx: GeneratorContext, w: ir.WithinGroup): String = {
+    //
   }
 
   private def orNull(option: Option[String]): String = option.getOrElse("NULL")
