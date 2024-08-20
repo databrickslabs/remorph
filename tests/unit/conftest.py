@@ -193,9 +193,17 @@ def parse_sql_files(input_dir: Path, source: str, target: str, is_expected_excep
                     exception = SqlglotError(test_name)
                     if exception_type in {ParseError, UnsupportedError}:
                         exception = exception_type(test_name)
-                    suite.append(FunctionalTestFileWithExpectedException(target_sql, source_sql, test_name, exception))
+                    suite.append(
+                        FunctionalTestFileWithExpectedException(
+                            target_sql,
+                            source_sql,
+                            test_name,
+                            exception,
+                            target,
+                        )
+                    )
                 else:
-                    suite.append(FunctionalTestFile(target_sql, source_sql, test_name))
+                    suite.append(FunctionalTestFile(target_sql, source_sql, test_name, target))
     return suite
 
 
