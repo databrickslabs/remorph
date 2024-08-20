@@ -174,7 +174,6 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
     }
   }
 
-
   private def dateDiff(args: Seq[ir.Expression]): ir.Expression = {
     val datePart = SnowflakeTimeUnits.translateDateOrTimePart(args.head)
     ir.TimestampDiff(datePart, args(1), args(2))

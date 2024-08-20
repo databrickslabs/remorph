@@ -30,7 +30,6 @@ object SnowflakeTimeUnits extends IRHelpers {
     Set("TIMEZONE_HOUR", "TZH") -> "timezone_hour",
     Set("TIMEZONE_MINUTE", "TZM") -> "timezone_minute")
 
-
   private def findDateOrTimePart(part: String): Option[String] =
     dateOrTimeParts.find(_._1.contains(part.toUpperCase())).map(_._2)
 
