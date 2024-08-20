@@ -50,7 +50,7 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
         NamedTable("table_x", Map.empty, is_streaming = false),
         NamedTable("table_y", Map.empty, is_streaming = false),
         join_condition = None,
-        InnerJoin,
+        UnspecifiedJoin,
         using_columns = Seq(),
         JoinDataType(is_left_struct = false, is_right_struct = false))
 
@@ -58,6 +58,18 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
       singleQueryExample(
         query = "SELECT a FROM table_x JOIN table_y",
         expectedAst = Project(simpleJoinAst, Seq(simplyNamedColumn("a"))))
+    }
+
+    "translate a query with a INNER JOIN" in {
+      singleQueryExample(
+        query = "SELECT a FROM table_x INNER JOIN table_y",
+        expectedAst = Project(simpleJoinAst.copy(join_type = InnerJoin), Seq(simplyNamedColumn("a"))))
+    }
+
+    "translate a query with a CROSS JOIN" in {
+      singleQueryExample(
+        query = "SELECT a FROM table_x CROSS JOIN table_y",
+        expectedAst = Project(simpleJoinAst.copy(join_type = CrossJoin), Seq(simplyNamedColumn("a"))))
     }
 
     "translate a query with a LEFT JOIN" in {
@@ -88,6 +100,21 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
       singleQueryExample(
         query = "SELECT a FROM table_x FULL JOIN table_y",
         expectedAst = Project(simpleJoinAst.copy(join_type = FullOuterJoin), Seq(simplyNamedColumn("a"))))
+    }
+
+    "translate a query with a NATURAL JOIN" in {
+      singleQueryExample(
+        query = "SELECT a FROM table_x NATURAL JOIN table_y",
+        expectedAst =
+          Project(simpleJoinAst.copy(join_type = NaturalJoin(UnspecifiedJoin)), Seq(simplyNamedColumn("a"))))
+
+      singleQueryExample(
+        query = "SELECT a FROM table_x NATURAL LEFT JOIN table_y",
+        expectedAst = Project(simpleJoinAst.copy(join_type = NaturalJoin(LeftOuterJoin)), Seq(simplyNamedColumn("a"))))
+
+      singleQueryExample(
+        query = "SELECT a FROM table_x NATURAL RIGHT JOIN table_y",
+        expectedAst = Project(simpleJoinAst.copy(join_type = NaturalJoin(RightOuterJoin)), Seq(simplyNamedColumn("a"))))
     }
 
     "translate a query with a simple WHERE clause" in {
@@ -388,7 +415,7 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
         _.snowflakeFile(),
         Batch(
           Seq(
-            CreateTableCommand("t1", Seq(ColumnDeclaration("x", VarCharType(None)))),
+            CreateTableCommand("t1", Seq(ColumnDeclaration("x", StringType))),
             Project(namedTable("t1"), Seq(simplyNamedColumn("x"))),
             Project(namedTable("t3"), Seq(Literal(short = Some(3)))))))
     }

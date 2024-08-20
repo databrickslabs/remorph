@@ -1,7 +1,6 @@
 package com.databricks.labs.remorph.generators.sql
 
 import com.databricks.labs.remorph.generators.{Generator, GeneratorContext}
-import com.databricks.labs.remorph.parsers.intermediate.{ExceptSetOp, IntersectSetOp, MergeIntoTable, UnionSetOp}
 import com.databricks.labs.remorph.parsers.{intermediate => ir}
 import com.databricks.labs.remorph.transpilers.TranspileException
 
@@ -45,7 +44,11 @@ class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: 
   private def orderBy(ctx: GeneratorContext, sort: ir.Sort): String = {
     val orderStr = sort.order
       .map { case ir.SortOrder(child, direction, nulls) =>
-        s"${expr.generate(ctx, child)} ${direction.sql} ${nulls.sql}"
+        val dir = direction match {
+          case ir.Ascending => ""
+          case ir.Descending => " DESC"
+        }
+        s"${expr.generate(ctx, child)}$dir ${nulls.sql}"
       }
       .mkString(", ")
     s"${generate(ctx, sort.child)} ORDER BY $orderStr"
@@ -54,21 +57,27 @@ class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: 
   private def generateJoin(ctx: GeneratorContext, join: ir.Join): String = {
     val left = generate(ctx, join.left)
     val right = generate(ctx, join.right)
-    val joinType = join.join_type match {
-      case ir.InnerJoin => "INNER JOIN"
-      case ir.FullOuterJoin => "FULL OUTER JOIN"
-      case ir.LeftOuterJoin => "LEFT OUTER JOIN"
-      case ir.LeftSemiJoin => "LEFT SEMI JOIN"
-      case ir.LeftAntiJoin => "LEFT ANTI JOIN"
-      case ir.RightOuterJoin => "RIGHT OUTER JOIN"
-      case ir.CrossJoin => "JOIN"
-    }
-
+    val joinType = generateJoinType(join.join_type)
+    val joinClause = if (joinType.isEmpty) { "JOIN" }
+    else { joinType + " JOIN" }
     val conditionOpt = join.join_condition.map(expr.generate(ctx, _))
-    val spaceAndCondition = conditionOpt.map(" ON " + _).getOrElse("")
-    val using = join.using_columns.mkString(", ")
-    val spaceAndUsing = if (using.isEmpty) "" else s" USING ($using)"
-    s"$left $joinType $right$spaceAndCondition$spaceAndUsing"
+    val condition = conditionOpt.map("ON " + _).getOrElse("")
+    val usingColumns = join.using_columns.mkString(", ")
+    val using = if (usingColumns.isEmpty) "" else s"USING ($usingColumns)"
+    Seq(left, joinClause, right, condition, using).filterNot(_.isEmpty).mkString(" ")
+  }
+
+  private def generateJoinType(joinType: ir.JoinType): String = joinType match {
+    case ir.InnerJoin => "INNER"
+    case ir.FullOuterJoin => "FULL OUTER"
+    case ir.LeftOuterJoin => "LEFT OUTER"
+    case ir.LeftSemiJoin => "LEFT SEMI"
+    case ir.LeftAntiJoin => "LEFT ANTI"
+    case ir.RightOuterJoin => "RIGHT OUTER"
+    case ir.CrossJoin => "CROSS"
+    case ir.NaturalJoin(ir.UnspecifiedJoin) => "NATURAL"
+    case ir.NaturalJoin(jt) => s"NATURAL ${generateJoinType(jt)}"
+    case ir.UnspecifiedJoin => ""
   }
 
   private def setOperation(ctx: GeneratorContext, setOp: ir.SetOperation): String = {
@@ -79,16 +88,16 @@ class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: 
       throw unknown(setOp)
     }
     val op = setOp.set_op_type match {
-      case UnionSetOp => "UNION"
-      case IntersectSetOp => "INTERSECT"
-      case ExceptSetOp => "EXCEPT"
+      case ir.UnionSetOp => "UNION"
+      case ir.IntersectSetOp => "INTERSECT"
+      case ir.ExceptSetOp => "EXCEPT"
       case _ => throw unknown(setOp)
     }
     val duplicates = if (setOp.is_all) " ALL" else if (explicitDistinct) " DISTINCT" else ""
     s"(${generate(ctx, setOp.left)}) $op$duplicates (${generate(ctx, setOp.right)})"
   }
 
-  private def generateMerge(ctx: GeneratorContext, mergeIntoTable: MergeIntoTable) = {
+  private def generateMerge(ctx: GeneratorContext, mergeIntoTable: ir.MergeIntoTable) = {
     val target = generate(ctx, mergeIntoTable.targetTable)
     val source = generate(ctx, mergeIntoTable.sourceTable)
     val condition = expr.generate(ctx, mergeIntoTable.mergeCondition)

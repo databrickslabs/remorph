@@ -8,6 +8,7 @@ case object BinaryType extends DataType
 // Numeric types
 case class ByteType(size: Option[Int]) extends DataType
 case object ShortType extends DataType
+case object TinyintType extends DataType
 case object IntegerType extends DataType
 case object LongType extends DataType
 
@@ -18,7 +19,7 @@ case class DecimalType(precision: Option[Int], scale: Option[Int]) extends DataT
 // String types
 case object StringType extends DataType
 case class CharType(size: Option[Int]) extends DataType
-case class VarCharType(size: Option[Int]) extends DataType
+case class VarcharType(size: Option[Int]) extends DataType
 
 // Datatime types
 case object DateType extends DataType
@@ -40,7 +41,7 @@ case class MapType(keyType: DataType, valueType: DataType) extends DataType
 // UserDefinedType
 case class UDTType() extends DataType
 
-case class UnparsedType() extends DataType
+case class UnparsedType(text: String) extends DataType
 
 case object UnresolvedType extends DataType
 

@@ -13,9 +13,11 @@ import scala.util.Try
 class SnowflakeExpressionBuilder()
     extends SnowflakeParserBaseVisitor[ir.Expression]
     with ParserCommon[ir.Expression]
-    with IncompleteParser[ir.Expression] {
+    with IncompleteParser[ir.Expression]
+    with ir.IRHelpers {
 
   private val functionBuilder = new SnowflakeFunctionBuilder
+  private val typeBuilder = new SnowflakeTypeBuilder
 
   protected override def wrapUnresolvedInput(unparsedInput: String): ir.UnresolvedExpression =
     ir.UnresolvedExpression(unparsedInput)
@@ -203,7 +205,7 @@ class SnowflakeExpressionBuilder()
   }
 
   override def visitExprAscribe(ctx: ExprAscribeContext): ir.Expression = {
-    ir.Cast(ctx.expr().accept(this), DataTypeBuilder.buildDataType(ctx.dataType()))
+    ir.Cast(ctx.expr().accept(this), typeBuilder.buildDataType(ctx.dataType()))
   }
 
   override def visitExprSign(ctx: ExprSignContext): ir.Expression = ctx.sign() match {
@@ -281,7 +283,7 @@ class SnowflakeExpressionBuilder()
   override def visitCastExpr(ctx: CastExprContext): ir.Expression = ctx match {
     case c if c.castOp != null =>
       val expression = c.expr().accept(this)
-      val dataType = DataTypeBuilder.buildDataType(c.dataType())
+      val dataType = typeBuilder.buildDataType(c.dataType())
       ir.Cast(expression, dataType, returnNullOnError = c.TRY_CAST() != null)
     case c if c.INTERVAL() != null =>
       ir.Cast(c.expr().accept(this), ir.IntervalType)
@@ -433,30 +435,52 @@ class SnowflakeExpressionBuilder()
         val lowerBound = c.expr(0).accept(this)
         val upperBound = c.expr(1).accept(this)
         ir.And(ir.GreaterThanOrEqual(expression, lowerBound), ir.LessThanOrEqual(expression, upperBound))
-      case c if c.LIKE() != null || c.ILIKE() != null =>
-        val patterns = if (c.ANY() != null) {
-          c.expr()
-            .asScala
-            .filter(e => occursBefore(c.L_PAREN(), e) && occursBefore(e, c.R_PAREN()))
-            .map(_.accept(this))
-        } else {
-          Seq(c.expr(0).accept(this))
-        }
-        val escape = Option(c.ESCAPE())
-          .flatMap(_ =>
-            c.expr()
-              .asScala
-              .find(occursBefore(c.ESCAPE(), _))
-              .map(_.accept(this)))
-        LikeSnowflake(expression, patterns, escape, c.LIKE() != null)
-      case c if c.RLIKE() != null =>
-        val pattern = c.expr(0).accept(this)
-        ir.RLike(expression, pattern)
+      case c if c.likeExpression() != null => buildLikeExpression(c.likeExpression(), expression)
       case c if c.IS() != null =>
         val isNull: ir.Expression = ir.IsNull(expression)
         Option(c.nullNotNull().NOT()).fold(isNull)(_ => ir.Not(isNull))
     }
     Option(ctx.NOT()).fold(predicate)(_ => ir.Not(predicate))
+  }
+
+  private def buildLikeExpression(ctx: LikeExpressionContext, child: ir.Expression): ir.Expression = ctx match {
+    case single: LikeExprSinglePatternContext =>
+      val pattern = single.pat.accept(this)
+      val escape = Option(single.escapeChar)
+        .map(_.accept(this))
+        .collect { case StringLiteral(s) =>
+          s.head
+        }
+        .getOrElse('\\')
+      single.op.getType match {
+        case LIKE => ir.Like(child, pattern, escape)
+        case ILIKE => ir.ILike(child, pattern, escape)
+      }
+    case multi: LikeExprMultiplePatternsContext =>
+      val patterns = visitMany(multi.exprListInParentheses().exprList().expr())
+      val normalizedPatterns = normalizePatterns(patterns, multi.expr())
+      multi.op.getType match {
+        case LIKE if multi.ALL() != null => ir.LikeAll(child, normalizedPatterns)
+        case LIKE => ir.LikeAny(child, normalizedPatterns)
+        case ILIKE if multi.ALL() != null => ir.ILikeAll(child, normalizedPatterns)
+        case ILIKE => ir.ILikeAny(child, normalizedPatterns)
+      }
+
+    case rlike: LikeExprRLikeContext => ir.RLike(child, rlike.expr().accept(this))
+
+  }
+
+  private def normalizePatterns(patterns: Seq[ir.Expression], escape: ExprContext): Seq[ir.Expression] = {
+    Option(escape)
+      .map(_.accept(this))
+      .collect { case StringLiteral(esc) =>
+        patterns.map {
+          case StringLiteral(pat) => ir.Literal(pat.replace(esc, "\\"))
+          case e => ir.StringReplace(e, ir.Literal(esc), ir.Literal("\\"))
+        }
+      }
+      .getOrElse(patterns)
+
   }
 
   override def visitParamAssoc(ctx: ParamAssocContext): ir.Expression = {

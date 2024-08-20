@@ -238,27 +238,43 @@ class SnowflakeRelationBuilder
 
   private def buildJoin(left: ir.LogicalPlan, right: JoinClauseContext): ir.Join = {
     val usingColumns = Option(right.columnList()).map(_.columnName().asScala.map(_.getText)).getOrElse(Seq())
+    val joinType = if (right.NATURAL() != null) {
+      ir.NaturalJoin(translateOuterJoinType(right.outerJoin()))
+    } else if (right.CROSS() != null) {
+      ir.CrossJoin
+    } else {
+      translateJoinType(right.joinType())
+    }
     ir.Join(
       left,
       right.objectRef().accept(this),
       Option(right.predicate()).map(_.accept(expressionBuilder)),
-      translateJoinType(right.joinType()),
+      joinType,
       usingColumns,
       ir.JoinDataType(is_left_struct = false, is_right_struct = false))
+
   }
 
   private[snowflake] def translateJoinType(joinType: JoinTypeContext): ir.JoinType = {
-    if (joinType == null || joinType.outerJoin() == null) {
-      ir.InnerJoin
-    } else if (joinType.outerJoin().LEFT() != null) {
-      ir.LeftOuterJoin
-    } else if (joinType.outerJoin().RIGHT() != null) {
-      ir.RightOuterJoin
-    } else if (joinType.outerJoin().FULL() != null) {
-      ir.FullOuterJoin
-    } else {
-      ir.UnspecifiedJoin
-    }
+    Option(joinType)
+      .map { jt =>
+        if (jt.INNER() != null) {
+          ir.InnerJoin
+        } else {
+          translateOuterJoinType(jt.outerJoin())
+        }
+      }
+      .getOrElse(ir.UnspecifiedJoin)
+  }
+
+  private def translateOuterJoinType(ctx: OuterJoinContext): ir.JoinType = {
+    Option(ctx)
+      .collect {
+        case c if c.LEFT() != null => ir.LeftOuterJoin
+        case c if c.RIGHT() != null => ir.RightOuterJoin
+        case c if c.FULL() != null => ir.FullOuterJoin
+      }
+      .getOrElse(ir.UnspecifiedJoin)
   }
 
   override def visitCommonTableExpression(ctx: CommonTableExpressionContext): ir.LogicalPlan = {

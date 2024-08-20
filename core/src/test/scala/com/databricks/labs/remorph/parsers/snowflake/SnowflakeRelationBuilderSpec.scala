@@ -321,7 +321,7 @@ class SnowflakeRelationBuilderSpec
       verify(outerJoin).LEFT()
       verify(outerJoin).RIGHT()
       verify(outerJoin).FULL()
-      verify(joinType, times(4)).outerJoin()
+      verify(joinType).outerJoin()
     }
   }
 }

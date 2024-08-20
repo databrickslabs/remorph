@@ -20,6 +20,7 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <slf4j.version>2.0.9</slf4j.version>
     <antlr.version>4.13.1</antlr.version>
+    <sql-formatter.version>2.0.5</sql-formatter.version>
   </properties>
   <dependencyManagement>
     <dependencies>
@@ -118,6 +119,11 @@
       <groupId>com.typesafe.scala-logging</groupId>
       <artifactId>scala-logging_${scala.binary.version}</artifactId>
       <version>3.9.5</version>
+    </dependency>
+    <dependency>
+      <groupId>com.github.vertical-blank</groupId>
+      <artifactId>sql-formatter</artifactId>
+      <version>${sql-formatter.version}</version>
     </dependency>
   </dependencies>
   <build>
