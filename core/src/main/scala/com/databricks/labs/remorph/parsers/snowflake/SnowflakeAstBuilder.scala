@@ -65,12 +65,6 @@ class SnowflakeAstBuilder extends SnowflakeParserBaseVisitor[ir.LogicalPlan] wit
   }
 
   override def visitSnowSqlCommand(ctx: SnowSqlCommandContext): ir.UnresolvedCommand = {
-    val input = ctx.getText.trim
-    ir.UnresolvedCommand(if (input.endsWith(";")) { /* Removing ; as it will get appended in generator */
-      input.substring(0, input.length - 1)
-    } else {
-      input
-    })
+    ir.UnresolvedCommand(ctx.getText)
   }
-
 }

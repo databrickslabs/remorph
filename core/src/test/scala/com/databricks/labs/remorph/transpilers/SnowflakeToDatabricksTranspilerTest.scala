@@ -11,8 +11,8 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
     "transpile queries" in {
 
       /* Test BANG ! command */
-      "!set error_flag = true;" transpilesTo "--!set error_flag = true;"
-      "!define tablename=CENUSTRACKONE;" transpilesTo "--!define tablename=CENUSTRACKONE;"
+      "!set error_flag = true" transpilesTo "--!set error_flag = true;"
+      "!define tablename=CENUSTRACKONE" transpilesTo "--!define tablename=CENUSTRACKONE;"
       "!print Include This Text" transpilesTo "--!print Include This Text;"
       "!abort 77589bd1" transpilesTo "--!abort 77589bd1;"
       "SELECT * FROM employees WHERE department_id != 10;" transpilesTo

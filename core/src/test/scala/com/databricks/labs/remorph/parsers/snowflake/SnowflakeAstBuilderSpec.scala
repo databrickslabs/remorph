@@ -431,7 +431,14 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
     }
 
     "translate BANG to Unresolved Expression" in {
-      example("!set error_flag = true;", _.snowSqlCommand(), UnresolvedCommand("!set error_flag = true"))
+      example("!set error_flag = true;", _.snowSqlCommand(), UnresolvedCommand("!set error_flag = true;"))
+      example("!set dfsdfds", _.snowSqlCommand(), UnresolvedCommand("!set dfsdfds"))
+      assertThrows[Exception] {
+        example("!", _.snowSqlCommand(), UnresolvedCommand("!"))
+      }
+      assertThrows[Exception] {
+        example("!badcommand", _.snowSqlCommand(), UnresolvedCommand("!badcommand"))
+      }
     }
   }
 
