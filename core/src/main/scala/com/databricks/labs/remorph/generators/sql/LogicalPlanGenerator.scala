@@ -102,13 +102,12 @@ class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: 
 
   private def update(ctx: GeneratorContext, update: UpdateTable): String = {
     val target = generate(ctx, update.target)
-    val source = update.source.map(generate(ctx, _)).getOrElse("")
     val set = update.set.map(expr.generate(ctx, _)).mkString(", ")
-    val where = update.where.map(expr.generate(ctx, _)).getOrElse("")
-    s"UPDATE $target SET $set $source WHERE $where"
+    val where = update.where.map(cond => s" WHERE ${expr.generate(ctx, cond)}").getOrElse("")
+    s"UPDATE $target SET $set$where"
   }
 
-  private def merge(ctx: GeneratorContext, mergeIntoTable: ir.MergeIntoTable) = {
+  private def merge(ctx: GeneratorContext, mergeIntoTable: ir.MergeIntoTable): String = {
     val target = generate(ctx, mergeIntoTable.targetTable)
     val source = generate(ctx, mergeIntoTable.sourceTable)
     val condition = expr.generate(ctx, mergeIntoTable.mergeCondition)

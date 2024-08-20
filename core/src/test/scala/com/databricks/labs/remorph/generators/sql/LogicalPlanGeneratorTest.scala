@@ -147,6 +147,19 @@ class LogicalPlanGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.L
     }
   }
 
+  "UpdateTable" should {
+    "transpile to UPDATE" in {
+      ir.UpdateTable(
+        namedTable("t"),
+        None,
+        Seq(
+          ir.Assign(ir.Column(None, ir.Id("a")), ir.Literal(1)),
+          ir.Assign(ir.Column(None, ir.Id("b")), ir.Literal(2))),
+        Some(ir.Equals(ir.Column(None, ir.Id("c")), ir.Literal(3)))) generates
+        "UPDATE t SET a = 1, b = 2 WHERE c = 3"
+    }
+  }
+
   "Join" should {
     "transpile to JOIN" in {
       crossJoin(namedTable("t1"), namedTable("t2")) generates "t1 CROSS JOIN t2"
