@@ -49,6 +49,7 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
       case w: ir.Window => window(ctx, w)
       case o: ir.SortOrder => sortOrder(ctx, o)
       case ir.Exists(subquery) => s"EXISTS (${ctx.logical.generate(ctx, subquery)})"
+      case null => "" // don't fail transpilation if the expression is null
       case x => throw TranspileException(s"Unsupported expression: $x")
     }
   }
