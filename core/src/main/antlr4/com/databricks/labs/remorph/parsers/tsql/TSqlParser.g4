@@ -1938,15 +1938,23 @@ databaseOptionspec
     | sqlOption
     | targetRecoveryTimeOption
     | termination
-    | genericOption
     | queryStoreOption
+    | genericOption
     ;
 
 queryStoreOption
-    : QUERY_STORE (OFF (LPAREN /* FORCED */ id RPAREN)? | ON (LPAREN queryStoreElementOpt RPAREN)?)
+    : QUERY_STORE (
+        EQ (
+            OFF (LPAREN /* FORCED */ id RPAREN)?
+            | ON (LPAREN queryStoreElementOpt (COMMA queryStoreElementOpt)* RPAREN)?
+        )
+        | LPAREN queryStoreElementOpt RPAREN
+        | ALL
+        | id
+    )
     ;
 
-queryStoreElementOpt:
+queryStoreElementOpt: id EQ LPAREN optionList RPAREN | genericOption
     ;
 
 autoOption
