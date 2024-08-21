@@ -1,9 +1,7 @@
 package com.databricks.labs.remorph.parsers.tsql
 
-import com.databricks.labs.remorph.parsers.{intermediate => ir}
 import com.databricks.labs.remorph.parsers.intermediate.LogicalPlan
-import com.databricks.labs.remorph.parsers.tsql.TSqlParser.DmlClauseContext
-import com.databricks.labs.remorph.parsers.{OptionAuto, OptionExpression, OptionOff, OptionOn, OptionString, intermediate => ir}
+import com.databricks.labs.remorph.parsers.{intermediate => ir}
 
 import scala.collection.JavaConverters.asScalaBufferConverter
 
@@ -50,19 +48,6 @@ class TSqlAstBuilder extends TSqlParserBaseVisitor[ir.LogicalPlan] {
       case coaTrigger if coaTrigger.createOrAlterTrigger() != null => coaTrigger.createOrAlterTrigger().accept(this)
       case cv if cv.createView() != null => cv.createView().accept(this)
       case go if go.goStatement() != null => go.goStatement().accept(this)
-      case _ => ir.UnresolvedRelation(ctx.getText)
-    }
-  }
-
-  override def visitDmlClause(ctx: DmlClauseContext): ir.LogicalPlan = {
-    ctx match {
-      case insert if insert.insertStatement() != null => insert.insertStatement().accept(relationBuilder)
-      case select if select.selectStatementStandalone() != null =>
-        select.selectStatementStandalone().accept(relationBuilder)
-      case delete if delete.deleteStatement() != null => delete.deleteStatement().accept(relationBuilder)
-      case merge if merge.mergeStatement() != null => merge.mergeStatement().accept(relationBuilder)
-      case update if update.updateStatement() != null => update.updateStatement().accept(relationBuilder)
-      case bulk if bulk.bulkStatement() != null => bulk.bulkStatement().accept(relationBuilder)
       case _ => ir.UnresolvedRelation(ctx.getText)
     }
   }

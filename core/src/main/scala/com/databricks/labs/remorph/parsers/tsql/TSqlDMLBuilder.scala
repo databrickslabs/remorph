@@ -18,6 +18,7 @@ class TSqlDMLBuilder extends TSqlParserBaseVisitor[ir.Modification] {
       case dml if dml.delete() != null => dml.delete().accept(this)
       case dml if dml.merge() != null => dml.merge().accept(this)
       case dml if dml.update() != null => dml.update().accept(this)
+      case bulk if bulk.bulkStatement() != null => bulk.bulkStatement().accept(this)
       case _ => ir.UnresolvedModification(ctx.getText)
     }
 
@@ -180,7 +181,7 @@ class TSqlDMLBuilder extends TSqlParserBaseVisitor[ir.Modification] {
 
   private def buildOutputClause(ctx: OutputClauseContext): Output = {
     val outputs = ctx.outputDmlListElem().asScala.map(_.accept(expressionBuilder))
-    val target = ctx.ddlObject().accept(relationBuilder)
+    val target = Option(ctx.ddlObject()).map(_.accept(relationBuilder))
     val columns =
       Option(ctx.columnNameList())
         .map(_.id().asScala.map(id => ir.Column(None, expressionBuilder.visitId(id))))
