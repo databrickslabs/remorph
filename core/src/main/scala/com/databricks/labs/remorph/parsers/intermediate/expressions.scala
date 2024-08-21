@@ -119,6 +119,16 @@ case class Case(expression: Option[Expression], branches: Seq[WhenBranch], other
   override def dataType: DataType = branches.head.dataType
 }
 
+/** isnotnull(expr) - Returns true if `expr` is not null, or false otherwise. */
+case class IsNotNull(left: Expression) extends Unary(left) {
+  override def dataType: DataType = left.dataType
+}
+
+/** isnull(expr) - Returns true if `expr` is null, or false otherwise. */
+case class IsNull(left: Expression) extends Unary(left) {
+  override def dataType: DataType = left.dataType
+}
+
 abstract class FrameType
 case object UndefinedFrame extends FrameType
 case object RangeFrame extends FrameType

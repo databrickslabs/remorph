@@ -1,6 +1,5 @@
-
 -- snowflake sql:
-SELECT round(col1) AS round_col1 FROM tabl;
+SELECT round(100.123) AS rounded;
 
 -- databricks sql:
-SELECT ROUND(col1) AS round_col1 FROM tabl;
+SELECT ROUND(100.123) AS rounded;
