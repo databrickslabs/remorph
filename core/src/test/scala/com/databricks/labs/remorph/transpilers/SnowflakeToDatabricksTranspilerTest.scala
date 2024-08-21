@@ -10,6 +10,15 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
 
     "transpile queries" in {
 
+      "SELECT * FROM t1 WHERE  col1 != 100;" transpilesTo (
+        s"""SELECT
+           |  *
+           |FROM
+           |  t1
+           |WHERE
+           |  col1 != 100;""".stripMargin
+      )
+
       "SELECT * FROM t1;" transpilesTo
         s"""SELECT
            |  *
@@ -28,7 +37,9 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
            |  t1.c2
            |FROM
            |  t1
-           |  LEFT OUTER JOIN t2 USING (c2);""".stripMargin
+           |  LEFT OUTER JOIN t2
+           |USING
+           |  (c2);""".stripMargin
 
       "SELECT c1::DOUBLE FROM t1;" transpilesTo
         s"""SELECT
