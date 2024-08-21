@@ -2991,7 +2991,11 @@ fullColumnNameList: column += fullColumnName (COMMA column += fullColumnName)*
     ;
 
 rowsetFunction
-    : (OPENROWSET LPAREN STRING COMMA ((STRING SEMI STRING SEMI STRING) | STRING) (COMMA (dotIdentifier | STRING)) RPAREN)
+    : (
+        OPENROWSET LPAREN STRING COMMA ((STRING SEMI STRING SEMI STRING) | STRING) (
+            COMMA (dotIdentifier | STRING)
+        ) RPAREN
+    )
     | (OPENROWSET LPAREN BULK STRING COMMA ( id EQ STRING COMMA optionList? | id) RPAREN)
     ;
 

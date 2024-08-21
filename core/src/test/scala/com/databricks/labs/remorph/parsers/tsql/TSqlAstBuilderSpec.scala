@@ -799,7 +799,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
             Assign(Column(None, Id("b")), Literal(short = Some(2)))),
           None,
           Some(tsql.Output(
-           Some( NamedTable("Inserted", Map(), is_streaming = false)),
+            Some(NamedTable("Inserted", Map(), is_streaming = false)),
             Seq(
               Alias(Column(Some(ObjectReference(Id("INSERTED"))), Id("a")), Seq(Id("a_lias")), None),
               Column(Some(ObjectReference(Id("INSERTED"))), Id("b"))),
