@@ -3363,9 +3363,7 @@ fromClause
 tableSources: tableSource (COMMA tableSource)*
     ;
 
-tableSource
-    : tableSourceItemJoined sample?
-    //| L_PAREN tableSource R_PAREN
+tableSource: tableSourceItemJoined sample? | L_PAREN tableSource R_PAREN
     ;
 
 tableSourceItemJoined: objectRef joinClause* | L_PAREN tableSourceItemJoined R_PAREN joinClause*

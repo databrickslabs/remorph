@@ -76,7 +76,6 @@ def validate_input(input_value: str, list_of_value: set, message: str):
 
 
 def main(*argv) -> None:
-
     logger.debug(f"Arguments received: {argv}")
 
     assert len(sys.argv) == 2, f"Invalid number of arguments: {len(sys.argv)}," f" Operation name must be specified."
@@ -272,6 +271,7 @@ def _verify_successful_reconciliation(
             table_output.status.column is False
             or table_output.status.row is False
             or table_output.status.schema is False
+            or table_output.status.aggregate is False
         ):
             raise ReconciliationException(
                 f" Reconciliation failed for one or more tables. Please check the recon metrics for more details."
@@ -401,13 +401,12 @@ def reconcile_aggregates(
 
         recon_process_duration.end_ts = str(datetime.now())
 
-        # Persist the data to the delta tables, only if all the rules are defined
-        if not any(set(agg_output.rule is None for agg_output in table_reconcile_agg_output_list)):
-            recon_capture.store_aggregates_metrics(
-                reconcile_agg_output_list=table_reconcile_agg_output_list,
-                table_conf=table_conf,
-                recon_process_duration=recon_process_duration,
-            )
+        # Persist the data to the delta tables
+        recon_capture.store_aggregates_metrics(
+            reconcile_agg_output_list=table_reconcile_agg_output_list,
+            table_conf=table_conf,
+            recon_process_duration=recon_process_duration,
+        )
 
         (
             ReconIntermediatePersist(
@@ -610,35 +609,46 @@ class Reconciliation:
         for src_query_with_rules, tgt_query_with_rules in zip(src_agg_queries, tgt_agg_queries):
             # For each Aggregate query, read the Source and Target Data and add a hash column
 
-            src_data = self._source.read_data(
-                catalog=self._database_config.source_catalog,
-                schema=self._database_config.source_schema,
-                table=table_conf.source_name,
-                query=src_query_with_rules.query,
-                options=table_conf.jdbc_reader_options,
-            )
-            tgt_data = self._target.read_data(
-                catalog=self._database_config.target_catalog,
-                schema=self._database_config.target_schema,
-                table=table_conf.target_name,
-                query=tgt_query_with_rules.query,
-                options=table_conf.jdbc_reader_options,
-            )
-
-            # Join the Source and Target Aggregated data
-            joined_df = join_aggregate_data(
-                source=src_data,
-                target=tgt_data,
-                key_columns=src_query_with_rules.group_by_columns,
-                spark=self._spark,
-                path=f"{volume_path}{src_query_with_rules.group_by_columns_as_str}",
-            )
+            rules_reconcile_output: list[AggregateQueryOutput] = []
+            src_data = None
+            tgt_data = None
+            joined_df = None
+            data_source_exception = None
+            try:
+                src_data = self._source.read_data(
+                    catalog=self._database_config.source_catalog,
+                    schema=self._database_config.source_schema,
+                    table=table_conf.source_name,
+                    query=src_query_with_rules.query,
+                    options=table_conf.jdbc_reader_options,
+                )
+                tgt_data = self._target.read_data(
+                    catalog=self._database_config.target_catalog,
+                    schema=self._database_config.target_schema,
+                    table=table_conf.target_name,
+                    query=tgt_query_with_rules.query,
+                    options=table_conf.jdbc_reader_options,
+                )
+                # Join the Source and Target Aggregated data
+                joined_df = join_aggregate_data(
+                    source=src_data,
+                    target=tgt_data,
+                    key_columns=src_query_with_rules.group_by_columns,
+                    spark=self._spark,
+                    path=f"{volume_path}{src_query_with_rules.group_by_columns_as_str}",
+                )
+            except DataSourceRuntimeException as e:
+                data_source_exception = e
 
             # For each Aggregated Query, reconcile the data based on the rule
-            rules_reconcile_output: list[AggregateQueryOutput] = []
             for rule in src_query_with_rules.rules:
-                rule_reconcile_output = reconcile_agg_data_per_rule(joined_df, src_data.columns, tgt_data.columns, rule)
-                rules_reconcile_output.append(AggregateQueryOutput(rule, rule_reconcile_output))
+                if data_source_exception:
+                    rule_reconcile_output = DataReconcileOutput(exception=str(data_source_exception))
+                else:
+                    rule_reconcile_output = reconcile_agg_data_per_rule(
+                        joined_df, src_data.columns, tgt_data.columns, rule
+                    )
+                rules_reconcile_output.append(AggregateQueryOutput(rule=rule, reconcile_output=rule_reconcile_output))
 
             # For each table, there could be many Aggregated queries.
             # Collect the list of Rule Reconcile output per each Aggregate query and append it to the list

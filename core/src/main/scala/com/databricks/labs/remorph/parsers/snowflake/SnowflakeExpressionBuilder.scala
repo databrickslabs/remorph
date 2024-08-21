@@ -277,7 +277,7 @@ class SnowflakeExpressionBuilder()
     val condition = ctx.predicate().accept(this)
     val thenBranch = ctx.expr(0).accept(this)
     val elseBranch = ctx.expr(1).accept(this)
-    Iff(condition, thenBranch, elseBranch)
+    ir.If(condition, thenBranch, elseBranch)
   }
 
   override def visitCastExpr(ctx: CastExprContext): ir.Expression = ctx match {

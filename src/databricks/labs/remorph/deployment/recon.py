@@ -70,13 +70,19 @@ class ReconDeployment:
         schema = recon_config.metadata_config.schema
         resources = files(databricks.labs.remorph.resources)
         query_dir = resources.joinpath("reconcile/queries/installation")
-        main_table_file = query_dir.joinpath("main.sql")
-        metrics_table_file = query_dir.joinpath("metrics.sql")
-        details_table_file = query_dir.joinpath("details.sql")
 
-        self._table_deployer.deploy_table_from_ddl_file(catalog, schema, "main", main_table_file)
-        self._table_deployer.deploy_table_from_ddl_file(catalog, schema, "metrics", metrics_table_file)
-        self._table_deployer.deploy_table_from_ddl_file(catalog, schema, "details", details_table_file)
+        sqls_to_deploy = [
+            "main.sql",
+            "metrics.sql",
+            "details.sql",
+            "aggregate_metrics.sql",
+            "aggregate_details.sql",
+            "aggregate_rules.sql",
+        ]
+
+        for sql_file in sqls_to_deploy:
+            table_sql_file = query_dir.joinpath(sql_file)
+            self._table_deployer.deploy_table_from_ddl_file(catalog, schema, sql_file.strip(".sql"), table_sql_file)
 
     def _deploy_dashboards(self, recon_config: ReconcileConfig):
         logger.info("Deploying reconciliation dashboards.")

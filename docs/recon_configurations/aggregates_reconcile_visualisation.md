@@ -51,7 +51,7 @@ flowchart TB
     
     subgraph aggregates-reconcile
         direction TB
-        T["aggregate: <b>SUM</b> as type<br><b>population</b> as agg-columns<br><b>state</b>as group_by_columns"]
+        T["aggregate: <b>SUM</b> as type<br><b>population</b> as agg-columns<br><b>state</b> as group_by_columns"]
     end
     
     source --> source-aggregated
