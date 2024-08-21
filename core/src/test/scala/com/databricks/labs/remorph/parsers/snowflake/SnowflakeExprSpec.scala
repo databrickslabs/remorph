@@ -44,7 +44,7 @@ class SnowflakeExprSpec extends AnyWordSpec with SnowflakeParserTestCommon with 
     }
 
     "translate IFF expression" in {
-      example("IFF (true, column_1, column_2)", Iff(Literal(boolean = Some(true)), Id("column_1"), Id("column_2")))
+      example("IFF (true, column_1, column_2)", If(Literal(boolean = Some(true)), Id("column_1"), Id("column_2")))
     }
 
     "translate array literals" in {
