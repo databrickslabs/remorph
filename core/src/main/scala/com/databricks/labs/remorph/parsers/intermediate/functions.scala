@@ -2488,10 +2488,9 @@ case class TryToTimestamp(expr: Expression, fmt: Expression) extends Binary(expr
 /**
  * timestampadd(unit, value, expr) - Adds value units to a timestamp expr
  */
-case class TimestampAdd(unit: String, quantity: Expression, timestamp: Expression)
-    extends Binary(quantity, timestamp)
-    with Fn {
+case class TimestampAdd(unit: String, quantity: Expression, timestamp: Expression) extends Expression with Fn {
   // TIMESTAMPADD, DATE_ADD and DATEADD are synonyms, but the latter is used in the examples.
   override def prettyName: String = "DATEADD"
+  override def children: Seq[Expression] = Seq(quantity, timestamp)
   override def dataType: DataType = TimestampType
 }
