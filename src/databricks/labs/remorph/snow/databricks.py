@@ -10,6 +10,7 @@ from sqlglot.helper import apply_index_offset, csv
 from sqlglot.dialects.dialect import if_sql
 
 from databricks.labs.remorph.snow import lca_utils, local_expression
+from databricks.labs.remorph.snow.snowflake import contains_expression, rank_functions
 
 logger = logging.getLogger(__name__)
 
@@ -665,3 +666,10 @@ class Databricks(org_databricks.Databricks):  #
             if expression.this == "EDITDISTANCE":
                 return self.func("LEVENSHTEIN", *expression.expressions)
             return self.func(self.sql(expression, "this"), *expression.expressions)
+
+        def order_sql(self, expression: exp.Order, flat: bool = False) -> str:
+            if isinstance(expression.parent, exp.Window) and contains_expression(expression.parent, rank_functions):
+                for ordered_expression in expression.expressions:
+                    if isinstance(ordered_expression, exp.Ordered) and ordered_expression.args.get('desc') is None:
+                        ordered_expression.args['desc'] = False
+            return super().order_sql(expression, flat)

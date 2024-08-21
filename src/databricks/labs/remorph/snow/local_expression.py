@@ -136,6 +136,26 @@ class Median(Func):
     arg_types = {"this": True}
 
 
+class CumeDist(Func):
+    arg_types = {"this": False}
+
+
+class DenseRank(Func):
+    arg_types = {"this": False}
+
+
+class Rank(Func):
+    arg_types = {"this": False}
+
+
+class PercentRank(Func):
+    arg_types = {"this": False}
+
+
+class Ntile(Func):
+    arg_types = {"this": True, "is_string": False}
+
+
 @dataclass
 class WithinGroupParams:
     agg_col: exp.Column
