@@ -10,15 +10,31 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
       // keep all the names in alphabetical order
       case ir.CallFunction("ARRAY_CAT", args) => ir.Concat(args)
       case ir.CallFunction("ARRAY_CONSTRUCT", args) => ir.CreateArray(args)
+      case ir.CallFunction("ARRAY_CONSTRUCT_COMPACT", args) =>
+        ir.ArrayExcept(ir.CreateArray(args), ir.CreateArray(Seq(ir.Literal(nullType = Some(ir.NullType)))))
+      case ir.CallFunction("ARRAY_CONTAINS", args) => ir.ArrayContains(args(1), args.head)
+      case ir.CallFunction("ARRAY_INTERSECTION", args) => ir.ArrayIntersect(args.head, args(1))
+      case ir.CallFunction("ARRAY_SIZE", args) => ir.Size(args.head)
+      case ir.CallFunction("ARRAY_SLICE", args) =>
+        // @see https://docs.snowflake.com/en/sql-reference/functions/array_slice
+        // @see https://docs.databricks.com/en/sql/language-manual/functions/slice.html
+        // TODO: optimize constants: ir.Add(ir.Literal(2), ir.Literal(2)) => ir.Literal(4)
+        ir.Slice(args.head, addOne(args(1)), args.lift(2).getOrElse(ir.Literal(1)))
+      case ir.CallFunction("ARRAY_TO_STRING", args) => ir.ArrayJoin(args.head, args(1), None)
       case ir.CallFunction("BASE64_DECODE_STRING", args) => ir.UnBase64(args.head)
       case ir.CallFunction("BASE64_ENCODE", args) => ir.Base64(args.head)
+      case ir.CallFunction("BITOR_AGG", args) => ir.BitOrAgg(args.head)
       case ir.CallFunction("BOOLAND_AGG", args) => ir.BoolAnd(args.head)
       case ir.CallFunction("DATEADD", args) => ir.DateAdd(args.head, args(1))
       case ir.CallFunction("EDITDISTANCE", args) => ir.Levenshtein(args.head, args(1))
+      case ir.CallFunction("FLATTEN", args) =>
+        // @see https://docs.snowflake.com/en/sql-reference/functions/flatten
+        ir.Explode(args.head)
       case ir.CallFunction("IFNULL", args) => ir.Coalesce(args)
       case ir.CallFunction("JSON_EXTRACT_PATH_TEXT", args) => getJsonObject(args)
       case ir.CallFunction("LEN", args) => ir.Length(args.head)
-      case ir.CallFunction("LISTAGG", args) => ir.ArrayJoin(args.head, ir.CollectList(args(1), None), None)
+      case ir.CallFunction("LISTAGG", args) =>
+        ir.ArrayJoin(ir.CollectList(args.head, None), args.lift(1).getOrElse(ir.Literal("")), None)
       case ir.CallFunction("MONTHNAME", args) => ir.DateFormatClass(args.head, ir.Literal("MMM"))
       case ir.CallFunction("OBJECT_KEYS", args) => ir.JsonObjectKeys(args.head)
       case ir.CallFunction("POSITION", args) => ir.CallFunction("LOCATE", args)
@@ -26,6 +42,7 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
       case ir.CallFunction("SPLIT_PART", args) => splitPart(args)
       case ir.CallFunction("SQUARE", args) => ir.Pow(args.head, ir.Literal(2))
       case ir.CallFunction("STRTOK_TO_ARRAY", args) => split(args)
+      case ir.CallFunction("SYSDATE", _) => ir.CurrentTimestamp()
       case ir.CallFunction("TO_DOUBLE", args) => ir.CallFunction("DOUBLE", args)
       case ir.CallFunction("TO_NUMBER", args) => toNumber(args)
       case ir.CallFunction("TO_OBJECT", args) => ir.StructsToJson(args.head, args(1))
@@ -34,6 +51,11 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
       case ir.CallFunction("TRY_TO_NUMBER", args) => tryToNumber(args)
       case x => super.convert(x)
     }
+  }
+
+  private def addOne(expr: ir.Expression): ir.Expression = ir.Add(expr, ir.Literal(1)) match {
+    case ir.Add(IntLiteral(a), IntLiteral(b)) => ir.Literal(a + b)
+    case x => x
   }
 
   private def getJsonObject(args: Seq[ir.Expression]): ir.Expression = {

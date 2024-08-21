@@ -83,11 +83,13 @@ class LogicalPlanGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.L
               ir.Assign(ir.Column(None, ir.Id("a")), ir.Column(Some(ir.ObjectReference(ir.Id("s"))), ir.Id("a"))),
               ir.Assign(ir.Column(None, ir.Id("b")), ir.Column(Some(ir.ObjectReference(ir.Id("s"))), ir.Id("b")))))),
         List.empty) generates
-        "MERGE INTO t USING s ON t.a = s.a" +
-        " WHEN MATCHED THEN UPDATE SET t.b = s.b" +
-        " WHEN MATCHED AND s.b < 10 THEN DELETE" +
-        " WHEN NOT MATCHED THEN INSERT (a, b) VALUES (s.a, s.b)" +
-        ";"
+        s"""MERGE INTO t
+           |USING s
+           |ON t.a = s.a
+           | WHEN MATCHED THEN UPDATE SET t.b = s.b WHEN MATCHED AND s.b < 10 THEN DELETE
+           | WHEN NOT MATCHED THEN INSERT (a, b) VALUES (s.a, s.b)
+           |
+           |""".stripMargin
     }
     "transpile to MERGE with comments" in {
       ir.WithOptions(
@@ -135,11 +137,44 @@ class LogicalPlanGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.L
           |
           |
           | */
-          |""".stripMargin +
-        "MERGE INTO t USING s ON t.a = s.a" +
-        " WHEN MATCHED THEN UPDATE SET t.b = s.b" +
-        " WHEN NOT MATCHED THEN INSERT (a, b) VALUES (s.a, s.b)" +
-        ";"
+          |MERGE INTO t
+          |USING s
+          |ON t.a = s.a
+          | WHEN MATCHED THEN UPDATE SET t.b = s.b
+          | WHEN NOT MATCHED THEN INSERT (a, b) VALUES (s.a, s.b)
+          |
+          |""".stripMargin
+    }
+  }
+
+  "UpdateTable" should {
+    "transpile to UPDATE" in {
+      ir.UpdateTable(
+        namedTable("t"),
+        None,
+        Seq(
+          ir.Assign(ir.Column(None, ir.Id("a")), ir.Literal(1)),
+          ir.Assign(ir.Column(None, ir.Id("b")), ir.Literal(2))),
+        Some(ir.Equals(ir.Column(None, ir.Id("c")), ir.Literal(3)))) generates
+        "UPDATE t SET a = 1, b = 2 WHERE c = 3"
+    }
+  }
+
+  "InsertIntoTable" should {
+    "transpile to INSERT" in {
+      ir.InsertIntoTable(
+        namedTable("t"),
+        Some(Seq(ir.Id("a"), ir.Id("b"))),
+        ir.Values(Seq(Seq(ir.Literal(1), ir.Literal(2))))) generates "INSERT INTO t (a, b) VALUES (1,2)"
+    }
+  }
+
+  "DeleteFromTable" should {
+    "transpile to DELETE" in {
+      ir.DeleteFromTable(
+        target = namedTable("t"),
+        where = Some(ir.Equals(ir.Column(None, ir.Id("c")), ir.Literal(3)))) generates
+        "DELETE FROM t WHERE c = 3"
     }
   }
 

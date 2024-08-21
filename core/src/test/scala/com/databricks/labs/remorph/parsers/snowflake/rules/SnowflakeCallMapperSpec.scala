@@ -43,8 +43,8 @@ class SnowflakeCallMapperSpec extends AnyWordSpec with Matchers {
       ir.CallFunction("LEN", Seq(ir.Noop)) becomes ir.Length(ir.Noop)
 
       ir.CallFunction("LISTAGG", Seq(ir.Literal(1), ir.Literal(2))) becomes ir.ArrayJoin(
-        ir.Literal(1),
-        ir.CollectList(ir.Literal(2), None),
+        ir.CollectList(ir.Literal(1), None),
+        ir.Literal(2),
         None)
 
       ir.CallFunction("MONTHNAME", Seq(ir.Noop)) becomes ir.DateFormatClass(ir.Noop, ir.Literal("MMM"))

@@ -118,7 +118,7 @@ class CallMapper extends IRHelpers {
     case CallFunction("FORMAT_NUMBER", args) => FormatNumber(args.head, args(1))
     case CallFunction("FORMAT_STRING", args) => FormatString(args)
     case CallFunction("FROM_CSV", args) => CsvToStructs(args.head, args(1), args(2))
-    case CallFunction("FROM_JSON", args) => JsonToStructs(args.head, args(1), args(2))
+    case CallFunction("FROM_JSON", args) => JsonToStructs(args.head, args(1), args.lift(2))
     case CallFunction("FROM_UNIXTIME", args) => FromUnixTime(args.head, args(1))
     case CallFunction("FROM_UTC_TIMESTAMP", args) => FromUTCTimestamp(args.head, args(1))
     case CallFunction("GET_JSON_OBJECT", args) => GetJsonObject(args.head, args(1))
@@ -2292,9 +2292,9 @@ case class Year(left: Expression) extends Unary(left) with Fn {
 }
 
 /** from_json(jsonStr, schema[, options]) - Returns a struct value with the given `jsonStr` and `schema`. */
-case class JsonToStructs(left: Expression, right: Expression, c: Expression) extends Expression with Fn {
+case class JsonToStructs(left: Expression, right: Expression, c: Option[Expression]) extends Expression with Fn {
   override def prettyName: String = "FROM_JSON"
-  override def children: Seq[Expression] = Seq(left, right, c)
+  override def children: Seq[Expression] = Seq(left, right) ++ c
   override def dataType: DataType = UnresolvedType
 }
 
