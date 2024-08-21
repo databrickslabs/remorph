@@ -28,6 +28,8 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
       case _: ir.Arithmetic => arithmetic(ctx, expr)
       case _: ir.Predicate => predicate(ctx, expr)
       case l: ir.Literal => literal(ctx, l)
+      case i: ir.IsNull => isNull(ctx, i)
+      case i: ir.IsNotNull => isNotNull(ctx, i)
       case fn: ir.Fn => callFunction(ctx, fn)
       case ir.UnresolvedAttribute(name, _, _) => name
       case d: ir.Dot => dot(ctx, d)
@@ -54,6 +56,9 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
       case x => throw TranspileException(s"Unsupported expression: $x")
     }
   }
+
+  private def isNull(ctx: GeneratorContext, i: ir.IsNull) = s"${expression(ctx, i.left)} IS NULL"
+  private def isNotNull(ctx: GeneratorContext, i: ir.IsNotNull) = s"${expression(ctx, i.left)} IS NOT NULL"
 
   private def interval(ctx: GeneratorContext, interval: ir.KnownInterval): String = {
     val iType = interval.iType match {
