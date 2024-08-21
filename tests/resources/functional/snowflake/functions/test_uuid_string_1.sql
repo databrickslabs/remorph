@@ -1,4 +1,3 @@
-
 -- snowflake sql:
 SELECT UUID_STRING();
 

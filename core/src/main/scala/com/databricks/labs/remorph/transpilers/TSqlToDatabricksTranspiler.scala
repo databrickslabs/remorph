@@ -9,7 +9,11 @@ import org.antlr.v4.runtime.{CharStreams, CommonTokenStream}
 
 class TSqlToDatabricksTranspiler extends BaseTranspiler {
   private val astBuilder = new TSqlAstBuilder()
-  private val optimizer = ir.Rules(PullLimitUpwards, new TopPercentToLimitSubquery, TrapInsertDefaultsAction)
+  private val optimizer = ir.Rules(
+    ir.AlwaysUpperNameForCallFunction,
+    PullLimitUpwards,
+    new TopPercentToLimitSubquery,
+    TrapInsertDefaultsAction)
   private val generator = new LogicalPlanGenerator(new ExpressionGenerator(new TSqlCallMapper()))
 
   override def parse(input: String): ir.LogicalPlan = {

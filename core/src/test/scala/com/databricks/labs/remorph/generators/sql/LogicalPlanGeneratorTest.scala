@@ -30,7 +30,7 @@ class LogicalPlanGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.L
             |    Expression options:
             |
             |     MAXRECURSION = 10
-            |     OPTIMIZE = "FOR"
+            |     OPTIMIZE = `FOR`
             |
             |    String options:
             |

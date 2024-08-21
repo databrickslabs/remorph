@@ -1,4 +1,3 @@
-
 -- snowflake sql:
 SELECT ltrim(col1) AS ltrim_col1 FROM tabl;
 

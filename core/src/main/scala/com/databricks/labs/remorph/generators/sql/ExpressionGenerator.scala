@@ -28,6 +28,8 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
       case _: ir.Arithmetic => arithmetic(ctx, expr)
       case _: ir.Predicate => predicate(ctx, expr)
       case l: ir.Literal => literal(ctx, l)
+      case i: ir.IsNull => isNull(ctx, i)
+      case i: ir.IsNotNull => isNotNull(ctx, i)
       case fn: ir.Fn => callFunction(ctx, fn)
       case ir.UnresolvedAttribute(name, _, _) => name
       case d: ir.Dot => dot(ctx, d)
@@ -50,10 +52,27 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
       case o: ir.SortOrder => sortOrder(ctx, o)
       case ir.Exists(subquery) => s"EXISTS (${ctx.logical.generate(ctx, subquery)})"
       case a: ir.ArrayAccess => arrayAccess(ctx, a)
+      case j: ir.JsonAccess => jsonAccess(ctx, j)
       case null => "" // don't fail transpilation if the expression is null
       case x => throw TranspileException(s"Unsupported expression: $x")
     }
   }
+
+  private def jsonAccess(ctx: GeneratorContext, j: ir.JsonAccess): String = {
+    val path = j.path.map {
+      case ir.Id(name, false) => s".$name"
+      case ir.Id(name, true) if isAlphanum(name) => s".$name"
+      case ir.Id(name, true) => s"['$name']"
+      case l: ir.Literal if l.short.isDefined => s"[${l.short.get}]"
+      case l: ir.Literal if l.integer.isDefined => s"[${l.integer.get}]"
+      case l: ir.Literal if l.string.isDefined => s"['${l.string.get}']"
+      case i: ir.Expression => throw TranspileException(s"Unsupported path: $i")
+    }.mkString
+    s"${expression(ctx, j.json)}$path"
+  }
+
+  private def isNull(ctx: GeneratorContext, i: ir.IsNull) = s"${expression(ctx, i.left)} IS NULL"
+  private def isNotNull(ctx: GeneratorContext, i: ir.IsNotNull) = s"${expression(ctx, i.left)} IS NOT NULL"
 
   private def interval(ctx: GeneratorContext, interval: ir.KnownInterval): String = {
     val iType = interval.iType match {
@@ -288,12 +307,9 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
     s"ARRAY(${elements.mkString(", ")})"
   }
 
-  private def id(ctx: GeneratorContext, id: ir.Id): String = {
-    if (id.caseSensitive) {
-      doubleQuote(id.id)
-    } else {
-      id.id
-    }
+  private def id(ctx: GeneratorContext, id: ir.Id): String = id match {
+    case ir.Id(name, true) => s"`$name`"
+    case ir.Id(name, false) => name
   }
 
   private def alias(ctx: GeneratorContext, alias: ir.Alias): String = {
@@ -414,7 +430,6 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
   }
   private def orNull(option: Option[String]): String = option.getOrElse("NULL")
 
-  private def doubleQuote(s: String): String = s""""$s""""
-
   private def singleQuote(s: String): String = s"'$s'"
+  private def isAlphanum(s: String): Boolean = s.forall(_.isLetterOrDigit)
 }

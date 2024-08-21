@@ -1,4 +1,3 @@
-
 -- snowflake sql:
 SELECT d, MONTHNAME(d) FROM dates;
 
