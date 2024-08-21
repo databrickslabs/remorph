@@ -645,6 +645,7 @@ PROVIDER_KEY_NAME                           : 'PROVIDER_KEY_NAME';
 PUBLIC                                      : 'PUBLIC';
 PYTHON                                      : 'PYTHON';
 QUERY                                       : 'QUERY';
+QUERY_STORE                                 : 'QUERY_STORE';
 QUEUE                                       : 'QUEUE';
 QUEUE_DELAY                                 : 'QUEUE_DELAY';
 QUOTED_IDENTIFIER                           : 'QUOTED_IDENTIFIER';
@@ -932,13 +933,18 @@ XMLSCHEMA                                   : 'XMLSCHEMA';
 XSINIL                                      : 'XSINIL';
 ZONE                                        : 'ZONE';
 
+// Specials for graph nodes
+NODEID: '$NODE_ID';
+
 //Combinations that cannot be used as IDs
 DOLLAR_ACTION: '$ACTION';
 
 // Functions starting with double at signs
 AAPSEUDO: '@@' ID;
 
-SPACE        : [ \t\r\n]+                -> skip;
+SPACE:
+    [ \t\r\n\u000c\u0085\u00a0\u1680\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u202f\u205f\u3000]+ -> skip
+;
 COMMENT      : '/*' (COMMENT | .)*? '*/' -> channel(HIDDEN);
 LINE_COMMENT : '--' ~[\r\n]*             -> channel(HIDDEN);
 

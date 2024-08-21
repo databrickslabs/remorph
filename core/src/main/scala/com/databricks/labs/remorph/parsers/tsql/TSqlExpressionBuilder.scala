@@ -258,21 +258,34 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
   override def visitScPrec(ctx: TSqlParser.ScPrecContext): ir.Expression = ctx.searchCondition.accept(this)
 
   override def visitPredicate(ctx: TSqlParser.PredicateContext): ir.Expression = {
-    ctx.expression().size() match {
-      case 1 => ctx.expression(0).accept(this)
+
+    ctx match {
+      case e if e.EXISTS() != null => ir.UnresolvedExpression(ctx.getText) // TODO: build EXISTS
+      case f if f.freetextPredicate() != null => ir.UnresolvedExpression(ctx.getText) // TODO: build FREETEXT
+      case i if i.IN() != null => ir.UnresolvedExpression(ctx.getText) // TODO: build IN
+      case asa if asa.subquery() != null => ir.UnresolvedExpression(ctx.getText) // TODO: build = ALL/SOM/ANY subquery
+      case l if l.LIKE() != null => ir.UnresolvedExpression(ctx.getText) // TODO: build LIKE
+      case i if i.IS() != null => ir.UnresolvedExpression(ctx.getText) // TODO: build IS
       case _ =>
-        val left = ctx.expression(0).accept(this)
-        val right = ctx.expression(1).accept(this)
-        ctx.comparisonOperator match {
-          case op if op.LT != null && op.EQ != null => ir.LessThanOrEqual(left, right)
-          case op if op.GT != null && op.EQ != null => ir.GreaterThanOrEqual(left, right)
-          case op if op.LT != null && op.GT != null => ir.NotEquals(left, right)
-          case op if op.BANG != null && op.GT != null => ir.LessThanOrEqual(left, right)
-          case op if op.BANG != null && op.LT != null => ir.GreaterThanOrEqual(left, right)
-          case op if op.BANG != null && op.EQ != null => ir.NotEquals(left, right)
-          case op if op.EQ != null => ir.Equals(left, right)
-          case op if op.GT != null => ir.GreaterThan(left, right)
-          case op if op.LT != null => ir.LessThan(left, right)
+        ctx.expression().size() match {
+          // Single expression as a predicate
+          case 1 => ctx.expression(0).accept(this)
+
+          // Binary logical operators
+          case _ =>
+            val left = ctx.expression(0).accept(this)
+            val right = ctx.expression(1).accept(this)
+            ctx.comparisonOperator match {
+              case op if op.LT != null && op.EQ != null => ir.LessThanOrEqual(left, right)
+              case op if op.GT != null && op.EQ != null => ir.GreaterThanOrEqual(left, right)
+              case op if op.LT != null && op.GT != null => ir.NotEquals(left, right)
+              case op if op.BANG != null && op.GT != null => ir.LessThanOrEqual(left, right)
+              case op if op.BANG != null && op.LT != null => ir.GreaterThanOrEqual(left, right)
+              case op if op.BANG != null && op.EQ != null => ir.NotEquals(left, right)
+              case op if op.EQ != null => ir.Equals(left, right)
+              case op if op.GT != null => ir.GreaterThan(left, right)
+              case op if op.LT != null => ir.LessThan(left, right)
+            }
         }
     }
   }
