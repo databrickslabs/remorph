@@ -161,11 +161,13 @@ case class FilterStruct(input: NamedStruct, lambdaFunction: LambdaFunction) exte
 case object CrossApply extends JoinType
 case object OuterApply extends JoinType
 
+// TODO: fix
+// @see https://docs.databricks.com/en/sql/language-manual/sql-ref-syntax-qry-select-tvf.html
 case class TableFunction(functionCall: Expression) extends LeafNode {
   override def output: Seq[Attribute] = Seq.empty
 }
 
-case class Lateral(expr: LogicalPlan) extends UnaryNode {
+case class Lateral(expr: LogicalPlan, outer: Boolean = false) extends UnaryNode {
   override def child: LogicalPlan = expr
   override def output: Seq[Attribute] = expr.output
 }

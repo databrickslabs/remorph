@@ -366,4 +366,25 @@ class SnowflakeRelationBuilderSpec
       verify(joinType).outerJoin()
     }
   }
+
+  "LATERAL" should {
+    "FROM persons_struct p, lateral flatten(input => ${p}.${c}, path => 'contact') f" in {
+      example(
+        "FROM persons_struct p, lateral flatten(input => ${p}.${c}, path => 'contact') f",
+        _.fromClause(),
+        Join(
+          namedTable("persons_struct"),
+          Lateral(
+            TableFunction(
+              CallFunction(
+                "FLATTEN",
+                Seq(
+//                  NamedArgumentExpression("INPUT", Path(Seq("p", "c"))),
+                  NamedArgumentExpression("PATH", Literal(string = Some("contact"))))))),
+          None,
+          InnerJoin,
+          Seq(),
+          JoinDataType(is_left_struct = false, is_right_struct = false)))
+    }
+  }
 }

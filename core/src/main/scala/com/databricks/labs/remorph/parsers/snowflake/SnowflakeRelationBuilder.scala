@@ -127,6 +127,8 @@ class SnowflakeRelationBuilder
     buildSubqueryAlias(ctx.tableAlias(), buildPivotOrUnpivot(ctx.pivotUnpivot(), tableFunc))
   }
 
+  // @see https://docs.snowflake.com/en/sql-reference/functions/flatten
+  // @see https://docs.snowflake.com/en/sql-reference/functions-table
   override def visitObjRefSubquery(ctx: ObjRefSubqueryContext): ir.LogicalPlan = {
     val relation = ctx match {
       case c if c.subquery() != null => c.subquery().accept(this)

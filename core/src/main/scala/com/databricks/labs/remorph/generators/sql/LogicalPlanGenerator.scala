@@ -36,6 +36,7 @@ class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: 
     case c: ir.CreateTableCommand => createTable(ctx, c)
     case t: ir.TableSample => tableSample(ctx, t)
     case a: ir.AlterTableCommand => alterTable(ctx, a)
+    case l: ir.Lateral => lateral(ctx, l)
     case ir.NoopNode => ""
     //  TODO We should always generate an unresolved node, our plan should never be null
     case null => "" // don't fail transpilation if the plan is null
@@ -87,6 +88,14 @@ class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: 
         s"${c.name} $dataType $constraints"
       }
       .mkString(", ")
+  }
+
+  // @see https://docs.databricks.com/en/sql/language-manual/sql-ref-syntax-qry-select-lateral-view.html
+  private def lateral(ctx: GeneratorContext, lateral: ir.Lateral): String = lateral match {
+    case ir.Lateral(ir.TableFunction(fn), isOuter) =>
+      val outer = if (isOuter) " OUTER" else ""
+      s"LATERAL VIEW$outer ${expr.generate(ctx, fn)}"
+    case _ => throw unknown(lateral)
   }
 
   // @see https://docs.databricks.com/en/sql/language-manual/sql-ref-syntax-qry-select-sampling.html
