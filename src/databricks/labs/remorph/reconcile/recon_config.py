@@ -18,7 +18,6 @@ _SUPPORTED_AGG_TYPES: set[str] = {
     "avg",
     "mean",
     "mode",
-    "percentile",
     "stddev",
     "variance",
     "median",

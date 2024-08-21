@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS aggregate_metrics (
                                                 missing_in_source: INTEGER,
                                                 missing_in_target: INTEGER,
                                                 mismatch: INTEGER
-                                           > NOT NULL,
+                                           >,
     run_metrics STRUCT<
                         status: BOOLEAN NOT NULL,
                         run_by_user: STRING NOT NULL,
