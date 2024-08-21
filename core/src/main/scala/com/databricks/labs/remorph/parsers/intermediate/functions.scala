@@ -270,7 +270,7 @@ class CallMapper extends IRHelpers {
     case CallFunction("TIMESTAMP_SECONDS", args) => SecondsToTimestamp(args.head)
     case CallFunction("TO_CSV", args) => StructsToCsv(args.head, args(1))
     case CallFunction("TO_DATE", args) => ParseToDate(args.head, args.lift(1))
-    case CallFunction("TO_JSON", args) => StructsToJson(args.head, args(1))
+    case CallFunction("TO_JSON", args) => StructsToJson(args.head, args.lift(1))
     case CallFunction("TO_NUMBER", args) => ToNumber(args.head, args(1))
     case CallFunction("TO_TIMESTAMP", args) => ParseToTimestamp(args.head, args(1))
     case CallFunction("TO_UNIX_TIMESTAMP", args) => ToUnixTimestamp(args.head, args(1))
@@ -2334,7 +2334,8 @@ case class SchemaOfJson(left: Expression, right: Expression) extends Binary(left
 }
 
 /** to_json(expr[, options]) - Returns a JSON string with a given struct value */
-case class StructsToJson(left: Expression, right: Expression) extends Binary(left, right) with Fn {
+case class StructsToJson(left: Expression, right: Option[Expression]) extends Expression with Fn {
+  override def children: Seq[Expression] = Seq(left) ++ right
   override def prettyName: String = "TO_JSON"
   override def dataType: DataType = UnresolvedType
 }
