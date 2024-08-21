@@ -8,6 +8,33 @@ class TSqlDDLBuilder(optionBuilder: OptionBuilder)
     extends TSqlParserBaseVisitor[ir.Catalog]
     with ParserCommon[ir.Catalog] {
 
+  override def visitCreateTable(ctx: TSqlParser.CreateTableContext): ir.Catalog =
+    ctx match {
+      case ci if ci.createInternal() != null => ci.createInternal().accept(this)
+      case ct if ct.createExternal() != null => ct.createExternal().accept(this)
+      case _ => ir.UnresolvedCatalog(ctx.getText)
+    }
+
+  override def visitCreateInternal(ctx: TSqlParser.CreateInternalContext): ir.Catalog = {
+//    val tableName = ctx.tableName().getText
+//    val columns = ctx.columnDefTableConstraints().columnDefTableConstraint().asScala.map(_.accept(this))
+//    val lock = Option(ctx.simpleId()).map(_.accept(this))
+//    val ctas = Option(ctx.createTableAs()).map(_.accept(this))
+//    val options = Option(ctx.tableOptions(1)).map(_.accept(this))
+//    val partitionOn = Option(ctx.onPartitionOrFilegroup()).map(_.accept(this))
+
+    // TODO: Where are we getting CreateTable ir from? The current one in Catalog seesm wrong and the one for
+    //       Snowflake is not close to covering everything that TSQL has.
+    ir.UnresolvedCatalog(ctx.getText)
+  }
+
+  override def visitCreateExternal(ctx: TSqlParser.CreateExternalContext): ir.Catalog = {
+//    val tableName = ctx.tableName().getText
+//    val columns = ctx.columnDefTableConstraints().columnDefTableConstraint().asScala.map(_.accept(this))
+    // TODO: build options
+    ir.UnresolvedCatalog(ctx.getText)
+  }
+
   /**
    * This is not actually implemented but was a quick way to exercise the genericOption builder before we had other
    * syntax implemented to test it with.
@@ -15,9 +42,8 @@ class TSqlDDLBuilder(optionBuilder: OptionBuilder)
    * @param ctx
    *   the parse tree
    */
-  override def visitBackupStatement(ctx: TSqlParser.BackupStatementContext): ir.Catalog = {
+  override def visitBackupStatement(ctx: TSqlParser.BackupStatementContext): ir.Catalog =
     ctx.backupDatabase().accept(this)
-  }
 
   override def visitBackupDatabase(ctx: TSqlParser.BackupDatabaseContext): ir.Catalog = {
     val database = ctx.id().getText
@@ -39,4 +65,5 @@ class TSqlDDLBuilder(optionBuilder: OptionBuilder)
     // Default flags generally don't need to be specified as they are by definition, the default
     BackupDatabase(database, disks, boolFlags, autoFlags, values)
   }
+
 }
