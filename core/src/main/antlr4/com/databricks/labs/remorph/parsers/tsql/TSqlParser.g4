@@ -42,7 +42,7 @@ options {
 tSqlFile: batch? EOF
     ;
 
-batch: SEMI* ( ( sqlClauses SEMI*)+ | executeBodyBatch goStatement? SEMI*)
+batch: SEMI* executeBodyBatch? (sqlClauses+ SEMI*)+
     ;
 
 // TODO: Properly sort out SEMI colons, which have been haphazzardly added in some
@@ -2810,7 +2810,6 @@ predicate
     : EXISTS LPAREN subquery RPAREN
     | freetextPredicate
     | expression comparisonOperator expression
-    | expression ME expression
     | expression comparisonOperator (ALL | SOME | ANY) LPAREN subquery RPAREN
     | expression NOT* BETWEEN expression AND expression
     | expression NOT* IN LPAREN (subquery | expressionList) RPAREN
@@ -2992,8 +2991,8 @@ fullColumnNameList: column += fullColumnName (COMMA column += fullColumnName)*
     ;
 
 rowsetFunction
-    : (OPENROWSET LPAREN STRING COMMA STRING COMMA STRING RPAREN)
-    | (OPENROWSET LPAREN BULK STRING COMMA ( bulkOption (COMMA bulkOption)* | id) RPAREN)
+    : (OPENROWSET LPAREN STRING COMMA ((STRING SEMI STRING SEMI STRING) | STRING) (COMMA (dotIdentifier | STRING)) RPAREN)
+    | (OPENROWSET LPAREN BULK STRING COMMA ( id EQ STRING COMMA optionList? | id) RPAREN)
     ;
 
 bulkOption: id EQ bulkOptionValue = (INT | STRING)

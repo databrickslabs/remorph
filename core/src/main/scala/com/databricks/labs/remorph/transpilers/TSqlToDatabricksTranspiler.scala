@@ -17,26 +17,16 @@ class TSqlToDatabricksTranspiler extends BaseTranspiler {
   private val generator = new LogicalPlanGenerator(new ExpressionGenerator(new TSqlCallMapper()))
 
   override def parse(input: String): ir.LogicalPlan = {
-    val inputString = CharStreams.fromString(input)
-    val lexer = new TSqlLexer(inputString)
-    val tokenStream = new CommonTokenStream(lexer)
-    val parser = new TSqlParser(tokenStream)
-    parser.setErrorHandler(new TSqlErrorStrategy)
-    val errListener = new ProductionErrorCollector(input, "-- test string --")
-    parser.removeErrorListeners()
-    parser.addErrorListener(errListener)
-    val tree = parser.tSqlFile()
-    if (errListener.errorCount > 0) {
-
-      // scalastyle:off println
-      println("==============================")
-      println(input)
-      println("------------------------------")
-      errListener.formatErrors.foreach(println)
-      println("------------------------------")
-      // scalastyle:on println
-    }
-    astBuilder.visit(tree)
+      val inputString = CharStreams.fromString(input)
+      val lexer = new TSqlLexer(inputString)
+      val tokenStream = new CommonTokenStream(lexer)
+      val parser = new TSqlParser(tokenStream)
+      parser.setErrorHandler(new TSqlErrorStrategy)
+      val errListener = new ProductionErrorCollector(input, "-- test string --")
+      parser.removeErrorListeners()
+      parser.addErrorListener(errListener)
+      val tree = parser.tSqlFile()
+      astBuilder.visit(tree)
   }
 
   override def optimize(logicalPlan: ir.LogicalPlan): ir.LogicalPlan = optimizer.apply(logicalPlan)

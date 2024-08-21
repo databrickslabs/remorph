@@ -728,7 +728,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
           Some(List(Id("a"), Id("b"))),
           DerivedRows(List(List(Literal(short = Some(1)), Literal(short = Some(2))))),
           Some(tsql.Output(
-            namedTable("Inserted"),
+            Some(namedTable("Inserted")),
             List(
               Alias(Column(Some(ObjectReference(Id("INSERTED"))), Id("a")), Seq(Id("a_lias")), None),
               Column(Some(ObjectReference(Id("INSERTED"))), Id("b"))),
@@ -799,7 +799,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
             Assign(Column(None, Id("b")), Literal(short = Some(2)))),
           None,
           Some(tsql.Output(
-            NamedTable("Inserted", Map(), is_streaming = false),
+           Some( NamedTable("Inserted", Map(), is_streaming = false)),
             Seq(
               Alias(Column(Some(ObjectReference(Id("INSERTED"))), Id("a")), Seq(Id("a_lias")), None),
               Column(Some(ObjectReference(Id("INSERTED"))), Id("b"))),
@@ -852,7 +852,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
           None,
           None,
           Some(tsql.Output(
-            NamedTable("Deleted", Map(), is_streaming = false),
+            Some(NamedTable("Deleted", Map(), is_streaming = false)),
             Seq(
               Alias(Column(Some(ObjectReference(Id("DELETED"))), Id("a")), Seq(Id("a_lias")), None),
               Column(Some(ObjectReference(Id("DELETED"))), Id("b"))),
