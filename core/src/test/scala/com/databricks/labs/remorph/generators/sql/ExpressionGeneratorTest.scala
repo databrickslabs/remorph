@@ -882,9 +882,7 @@ class ExpressionGeneratorTest
       ir.Star(Some(ir.ObjectReference(ir.Id("t1")))) generates "t1.*"
       ir.Star(
         Some(
-          ir.ObjectReference(
-            ir.Id("schema1"),
-            ir.Id("table 1", caseSensitive = true)))) generates "schema1.\"table 1\".*"
+          ir.ObjectReference(ir.Id("schema1"), ir.Id("table 1", caseSensitive = true)))) generates "schema1.`table 1`.*"
     }
   }
 

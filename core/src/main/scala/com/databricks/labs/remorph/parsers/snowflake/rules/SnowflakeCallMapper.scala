@@ -63,7 +63,7 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
       case ir.CallFunction("TO_DATE", args) => toDate(args)
       case ir.CallFunction("TO_DOUBLE", args) => ir.CallFunction("DOUBLE", args)
       case ir.CallFunction("TO_NUMBER", args) => toNumber(args)
-      case ir.CallFunction("TO_OBJECT", args) => ir.StructsToJson(args.head, args(1))
+      case ir.CallFunction("TO_OBJECT", args) => ir.StructsToJson(args.head, args.lift(1))
       case ir.CallFunction("TO_VARCHAR", args) => ir.CallFunction("TO_CHAR", args)
       case ir.CallFunction("TO_TIMESTAMP", args) => toTimestamp(args)
       case ir.CallFunction("TRY_TO_DATE", args) => tryToDate(args)
