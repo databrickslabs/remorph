@@ -360,4 +360,12 @@ class LogicalPlanGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.L
     }
   }
 
+  "TableSample" should {
+    "transpile to TABLESAMPLE" in {
+      ir.TableSample(
+        namedTable("t1"),
+        ir.RowSamplingFixedAmount(BigDecimal(10)),
+        Some(BigDecimal(10))) generates "(t1) TABLESAMPLE (10 ROWS) REPEATABLE (10)"
+    }
+  }
 }

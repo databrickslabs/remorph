@@ -1,6 +1,7 @@
 package com.databricks.labs.remorph.generators.sql
 
 import com.databricks.labs.remorph.generators.{Generator, GeneratorContext}
+import com.databricks.labs.remorph.parsers.intermediate.{BlockSampling, RowSamplingFixedAmount, RowSamplingProbabilistic}
 import com.databricks.labs.remorph.parsers.{intermediate => ir}
 import com.databricks.labs.remorph.transpilers.TranspileException
 
@@ -33,9 +34,21 @@ class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: 
     case i: ir.InsertIntoTable => insert(ctx, i)
     case ir.DeleteFromTable(target, None, where, None, None) => delete(ctx, target, where)
     case c: ir.CreateTableCommand => createTable(ctx, c)
+    case t: ir.TableSample => tableSample(ctx, t)
     case ir.NoopNode => ""
     case null => "" // don't fail transpilation if the plan is null
     case x => throw unknown(x)
+  }
+
+  // @see https://docs.databricks.com/en/sql/language-manual/sql-ref-syntax-qry-select-sampling.html
+  private def tableSample(ctx: GeneratorContext, t: ir.TableSample): String = {
+    val sampling = t.samplingMethod match {
+      case RowSamplingProbabilistic(probability) => s"$probability PERCENT"
+      case RowSamplingFixedAmount(amount) => s"$amount ROWS"
+      case BlockSampling(probability) => s"BUCKET $probability OUT OF 1"
+    }
+    val seed = t.seed.map(s => s" REPEATABLE ($s)").getOrElse("")
+    s"(${generate(ctx, t.child)}) TABLESAMPLE ($sampling)$seed"
   }
 
   private def createTable(ctx: GeneratorContext, createTable: ir.CreateTableCommand): String = {
