@@ -345,4 +345,19 @@ class LogicalPlanGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.L
       Seq(ir.Id("c1"), ir.Id("c2"), ir.Id("c3"))) generates "table1 AS t1(c1, c2, c3)"
   }
 
+  "CreateTableCommand" should {
+    "transpile to CREATE TABLE" in {
+      ir.CreateTableCommand(
+        "t1",
+        Seq(
+          ir.ColumnDeclaration(
+            "c1",
+            ir.IntegerType,
+            constraints = Seq(ir.Nullability(nullable = false), ir.PrimaryKey)),
+          ir.ColumnDeclaration(
+            "c2",
+            ir.StringType))) generates "CREATE TABLE t1 (c1 INT NOT NULL PRIMARY KEY, c2 STRING )"
+    }
+  }
+
 }
