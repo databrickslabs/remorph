@@ -219,7 +219,9 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
       when(joinTypeContextMock.INNER()).thenReturn(null)
       when(joinOnContextMock.joinType()).thenReturn(joinTypeContextMock)
 
-      val builder = new TSqlRelationBuilder
+      val expressionBuilder = new TSqlExpressionBuilder(null)
+      val builder = new TSqlRelationBuilder(expressionBuilder)
+      expressionBuilder.relationBuilder = builder
       val result = builder.translateJoinType(joinOnContextMock)
       result shouldBe UnspecifiedJoin
     }

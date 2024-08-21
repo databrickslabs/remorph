@@ -8,7 +8,9 @@ import org.antlr.v4.runtime.tree.Trees
 
 import scala.collection.JavaConverters._
 
-class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with ParserCommon[ir.Expression] {
+class TSqlExpressionBuilder(var relationBuilder: TSqlRelationBuilder)
+    extends TSqlParserBaseVisitor[ir.Expression]
+    with ParserCommon[ir.Expression] {
 
   private val functionBuilder = new TSqlFunctionBuilder
   private[tsql] val optionBuilder = new OptionBuilder(this)
@@ -235,7 +237,7 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
   }
 
   override def visitExprSubquery(ctx: ExprSubqueryContext): ir.Expression = {
-    ScalarSubquery(ctx.subquery().accept(new TSqlRelationBuilder))
+    ScalarSubquery(ctx.subquery().accept(relationBuilder))
   }
 
   override def visitExprTz(ctx: ExprTzContext): ir.Expression = {

@@ -11,9 +11,12 @@ import scala.collection.JavaConverters.asScalaBufferConverter
  */
 class TSqlAstBuilder extends TSqlParserBaseVisitor[ir.LogicalPlan] {
 
-  private val relationBuilder = new TSqlRelationBuilder
-  private val dmlBuilder = new TSqlDMLBuilder
-  private val ddlBuilder = new TSqlDDLBuilder
+  private val expressionBuilder = new TSqlExpressionBuilder(null)
+  private val relationBuilder = new TSqlRelationBuilder(expressionBuilder)
+  expressionBuilder.relationBuilder = relationBuilder
+  private val optionBuilder = new OptionBuilder(expressionBuilder)
+  private val dmlBuilder = new TSqlDMLBuilder(expressionBuilder, relationBuilder)
+  private val ddlBuilder = new TSqlDDLBuilder(optionBuilder)
 
   override def visitTSqlFile(ctx: TSqlParser.TSqlFileContext): ir.LogicalPlan = {
     Option(ctx.batch()).map(_.accept(this)).getOrElse(ir.Batch(List()))

@@ -7,9 +7,7 @@ import org.antlr.v4.runtime.ParserRuleContext
 
 import scala.collection.JavaConverters.asScalaBufferConverter
 
-class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.LogicalPlan] {
-
-  private val expressionBuilder = new TSqlExpressionBuilder
+class TSqlRelationBuilder(expressionBuilder: TSqlExpressionBuilder) extends TSqlParserBaseVisitor[ir.LogicalPlan] {
 
   override def visitCommonTableExpression(ctx: CommonTableExpressionContext): ir.LogicalPlan = {
     val tableName = expressionBuilder.visitId(ctx.id())

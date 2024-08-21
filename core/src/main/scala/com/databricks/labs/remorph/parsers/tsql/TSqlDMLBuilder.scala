@@ -5,11 +5,8 @@ import com.databricks.labs.remorph.parsers.tsql.rules.InsertDefaultsAction
 import com.databricks.labs.remorph.parsers.{intermediate => ir}
 
 import scala.collection.JavaConverters.asScalaBufferConverter
-
-class TSqlDMLBuilder extends TSqlParserBaseVisitor[ir.Modification] {
-
-  private val expressionBuilder = new TSqlExpressionBuilder
-  private val relationBuilder = new TSqlRelationBuilder
+class TSqlDMLBuilder(expressionBuilder: TSqlExpressionBuilder, relationBuilder: TSqlRelationBuilder)
+    extends TSqlParserBaseVisitor[ir.Modification] {
 
   override def visitDmlClause(ctx: DmlClauseContext): ir.Modification =
     ctx match {

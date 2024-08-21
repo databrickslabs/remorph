@@ -4,9 +4,9 @@ import com.databricks.labs.remorph.parsers.{OptionAuto, OptionExpression, Option
 
 import scala.collection.JavaConverters.asScalaBufferConverter
 
-class TSqlDDLBuilder extends TSqlParserBaseVisitor[ir.Catalog] with ParserCommon[ir.Catalog] {
-
-  private val optionBuilder = new OptionBuilder(new TSqlExpressionBuilder)
+class TSqlDDLBuilder(optionBuilder: OptionBuilder)
+    extends TSqlParserBaseVisitor[ir.Catalog]
+    with ParserCommon[ir.Catalog] {
 
   /**
    * This is not actually implemented but was a quick way to exercise the genericOption builder before we had other
