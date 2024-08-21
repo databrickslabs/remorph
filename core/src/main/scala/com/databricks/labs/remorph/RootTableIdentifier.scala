@@ -12,22 +12,20 @@ class RootTableIdentifier(transpiler: Transpiler) {
   }
 
   private def getTableFromExpression(p: ir.Expression): Set[String] = {
-    p.collect {
-      case exp: ir.ScalarSubquery => fetchTableName(exp.relation)
+    p.collect { case exp: ir.ScalarSubquery =>
+      fetchTableName(exp.relation)
     }.toSet
   }
-
 
   private def getTableList(p: ir.LogicalPlan): Set[String] = {
-    p.collect {
-      case nt: ir.NamedTable => nt.unparsed_identifier
+    p.collect { case nt: ir.NamedTable =>
+      nt.unparsed_identifier
     }.toSet
   }
 
-
   private def fetchTableName(p: ir.LogicalPlan): String = {
-    p.collectFirst {
-      case nt: ir.NamedTable => nt.unparsed_identifier
+    p.collectFirst { case nt: ir.NamedTable =>
+      nt.unparsed_identifier
     }.get
   }
 
@@ -60,9 +58,9 @@ class RootTableIdentifier(transpiler: Transpiler) {
 
     graph.addNode(Node(child.name))
     parent.toList.sorted.foreach(p => {
-        graph.addNode(Node(p))
-        graph.addEdge(Node(p), Node(child.name), child.action)
-        })
+      graph.addNode(Node(p))
+      graph.addEdge(Node(p), Node(child.name), child.action)
+    })
     graph
   }
 

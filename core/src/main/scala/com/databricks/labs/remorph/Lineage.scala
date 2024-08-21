@@ -1,10 +1,9 @@
 package com.databricks.labs.remorph
 import scala.collection.mutable
 
-
 case object Action extends Enumeration {
-    type Operation = Value
-    val Read, Write, Update, Delete = Value
+  type Operation = Value
+  val Read, Write, Update, Delete = Value
 }
 
 case class Node(name: String)
