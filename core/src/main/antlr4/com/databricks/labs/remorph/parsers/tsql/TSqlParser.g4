@@ -2999,9 +2999,6 @@ rowsetFunction
     | (OPENROWSET LPAREN BULK STRING COMMA ( id EQ STRING COMMA optionList? | id) RPAREN)
     ;
 
-bulkOption: id EQ bulkOptionValue = (INT | STRING)
-    ;
-
 derivedTable: subquery | tableValueConstructor | LPAREN tableValueConstructor RPAREN
     ;
 
