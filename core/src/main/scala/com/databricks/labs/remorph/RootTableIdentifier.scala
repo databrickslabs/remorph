@@ -11,6 +11,13 @@ class RootTableIdentifier(transpiler: Transpiler) {
     findTables(graph, parsedSql)
   }
 
+  private def getTableFromExpression(p: ir.Expression): Set[String] = {
+    p.collect {
+      case exp: ir.ScalarSubquery => fetchTableName(exp.relation)
+    }.toSet
+  }
+
+
   private def getTableList(p: ir.LogicalPlan): Set[String] = {
     p.collect {
       case nt: ir.NamedTable => nt.unparsed_identifier
@@ -42,14 +49,17 @@ class RootTableIdentifier(transpiler: Transpiler) {
         case m: ir.MergeIntoTable => updateChild(m.targetTable, Action.Update)
         case p: ir.Project => parent = parent ++ getTableList(p)
         case i: ir.Join => parent = parent ++ getTableList(i)
-        case _ => () // do nothing
+        case sub: ir.SubqueryAlias => parent = parent ++ getTableList(sub)
+        case f: ir.Filter => parent = parent ++ getTableFromExpression(f.condition)
+        case _ => () // do Nothing
       }
+
       node.children.foreach(collectTables)
     }
     collectTables(plan)
 
     graph.addNode(Node(child.name))
-    parent.foreach(p => {
+    parent.toList.sorted.foreach(p => {
         graph.addNode(Node(p))
         graph.addEdge(Node(p), Node(child.name), child.action)
         })
