@@ -1,4 +1,3 @@
-
 -- snowflake sql:
 SELECT rtrim(col1) AS rtrim_col1 FROM tabl;
 

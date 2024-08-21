@@ -64,6 +64,7 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
       case ir.CallFunction("TRY_TO_NUMBER", args) => tryToNumber(args)
       case ir.CallFunction("TRY_BASE64_DECODE_STRING", args) => ir.UnBase64(args.head)
       case ir.CallFunction("TRY_BASE64_DECODE_BINARY", args) => ir.UnBase64(args.head)
+      case ir.CallFunction("UUID_STRING", _) => ir.Uuid()
       case x => super.convert(x)
     }
   }
@@ -88,7 +89,6 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
   }
 
   private def split(args: Seq[ir.Expression]): ir.Expression = {
-
     val delim = args(1) match {
       case StringLiteral(d) => ir.Literal(s"[$d]")
       case e => ir.Concat(Seq(ir.Literal("["), e, ir.Literal("]")))

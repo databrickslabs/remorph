@@ -11,7 +11,8 @@ class SnowflakeToDatabricksTranspiler extends BaseTranspiler {
 
   private val astBuilder = new SnowflakeAstBuilder
   private val generator = new LogicalPlanGenerator(new ExpressionGenerator(new SnowflakeCallMapper()))
-  private val optimizer = ir.Rules(new UpdateToMerge, new CastParseJsonToFromJson(generator))
+  private val optimizer =
+    ir.Rules(ir.AlwaysUpperNameForCallFunction, new UpdateToMerge, new CastParseJsonToFromJson(generator))
 
   override def parse(input: String): ir.LogicalPlan = {
     val inputString = CharStreams.fromString(input)
