@@ -1,4 +1,3 @@
-
 -- snowflake sql:
 SELECT DAYNAME('2015-04-03 10:00') AS MONTH;
 
