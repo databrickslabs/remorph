@@ -38,7 +38,7 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
       case s: ir.Star => star(ctx, s)
       case c: ir.Cast => cast(ctx, c)
       case col: ir.Column => column(ctx, col)
-      case da: ir.DeleteAction => "DELETE"
+      case _: ir.DeleteAction => "DELETE"
       case ia: ir.InsertAction => insertAction(ctx, ia)
       case ua: ir.UpdateAction => updateAction(ctx, ua)
       case a: ir.Assign => assign(ctx, a)
@@ -48,6 +48,8 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
       case c: ir.Case => caseWhen(ctx, c)
       case w: ir.Window => window(ctx, w)
       case o: ir.SortOrder => sortOrder(ctx, o)
+      case ir.Exists(subquery) => s"EXISTS (${ctx.logical.generate(ctx, subquery)})"
+      case null => "" // don't fail transpilation if the expression is null
       case x => throw TranspileException(s"Unsupported expression: $x")
     }
   }
@@ -181,8 +183,8 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
   }
 
   private def predicate(ctx: GeneratorContext, expr: ir.Expression): String = expr match {
-    case ir.And(left, right) => s"(${expression(ctx, left)} AND ${expression(ctx, right)})"
-    case ir.Or(left, right) => s"(${expression(ctx, left)} OR ${expression(ctx, right)})"
+    case a: ir.And => andPredicate(ctx, a)
+    case o: ir.Or => orPredicate(ctx, o)
     case ir.Not(child) => s"NOT (${expression(ctx, child)})"
     case ir.Equals(left, right) => s"${expression(ctx, left)} = ${expression(ctx, right)}"
     case ir.NotEquals(left, right) => s"${expression(ctx, left)} != ${expression(ctx, right)}"
@@ -191,6 +193,22 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
     case ir.GreaterThan(left, right) => s"${expression(ctx, left)} > ${expression(ctx, right)}"
     case ir.GreaterThanOrEqual(left, right) => s"${expression(ctx, left)} >= ${expression(ctx, right)}"
     case _ => throw new IllegalArgumentException(s"Unsupported expression: $expr")
+  }
+
+  private def andPredicate(ctx: GeneratorContext, a: ir.And): String = a match {
+    case ir.And(ir.Or(ol, or), right) =>
+      s"(${expression(ctx, ol)} OR ${expression(ctx, or)}) AND ${expression(ctx, right)}"
+    case ir.And(left, ir.Or(ol, or)) =>
+      s"${expression(ctx, left)} AND (${expression(ctx, ol)} OR ${expression(ctx, or)})"
+    case ir.And(left, right) => s"${expression(ctx, left)} AND ${expression(ctx, right)}"
+  }
+
+  private def orPredicate(ctx: GeneratorContext, a: ir.Or): String = a match {
+    case ir.Or(ir.And(ol, or), right) =>
+      s"(${expression(ctx, ol)} AND ${expression(ctx, or)}) OR ${expression(ctx, right)}"
+    case ir.Or(left, ir.And(ol, or)) =>
+      s"${expression(ctx, left)} OR (${expression(ctx, ol)} AND ${expression(ctx, or)})"
+    case ir.Or(left, right) => s"${expression(ctx, left)} OR ${expression(ctx, right)}"
   }
 
   private def callFunction(ctx: GeneratorContext, fn: ir.Fn): String = {
@@ -215,7 +233,7 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
     l.dataType match {
       case ir.NullType => "NULL"
       case ir.BinaryType => orNull(l.binary.map(_.map("%02X" format _).mkString))
-      case ir.BooleanType => orNull(l.boolean.map(_.toString.toUpperCase(Locale.getDefault)))
+      case ir.BooleanType => orNull(l.boolean.map(_.toString.toLowerCase(Locale.getDefault)))
       case ir.ShortType => orNull(l.short.map(_.toString))
       case ir.IntegerType => orNull(l.integer.map(_.toString))
       case ir.LongType => orNull(l.long.map(_.toString))
@@ -254,7 +272,6 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
     val entries = map.keys.zip(map.values).map { case (key, value) =>
       s"${literal(ctx, key)}, ${expression(ctx, value)}"
     }
-    // TODO: line-width formatting
     s"MAP(${entries.mkString(", ")})"
   }
 
@@ -262,7 +279,6 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
     val elements = array.elements.map { element =>
       expression(ctx, element)
     }
-    // TODO: line-width formatting
     s"ARRAY(${elements.mkString(", ")})"
   }
 

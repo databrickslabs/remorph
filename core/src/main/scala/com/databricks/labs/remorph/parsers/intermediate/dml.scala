@@ -3,13 +3,13 @@ package com.databricks.labs.remorph.parsers.intermediate
 // Used for DML other than SELECT
 abstract class Modification extends LogicalPlan
 
-case class InsertIntoTable( // TODO: fix it
+case class InsertIntoTable(
     target: LogicalPlan,
     columns: Option[Seq[Id]],
     values: LogicalPlan,
-    outputRelation: Option[LogicalPlan],
-    options: Option[Expression],
-    overwrite: Boolean)
+    outputRelation: Option[LogicalPlan] = None,
+    options: Option[Expression] = None,
+    overwrite: Boolean = false)
     extends Modification {
   override def children: Seq[LogicalPlan] = Seq(target, values, outputRelation.getOrElse(NoopNode))
   override def output: Seq[Attribute] = target.output
@@ -17,10 +17,10 @@ case class InsertIntoTable( // TODO: fix it
 
 case class DeleteFromTable(
     target: LogicalPlan,
-    source: Option[LogicalPlan],
-    where: Option[Expression],
-    outputRelation: Option[LogicalPlan],
-    options: Option[Expression])
+    source: Option[LogicalPlan] = None,
+    where: Option[Expression] = None,
+    outputRelation: Option[LogicalPlan] = None,
+    options: Option[Expression] = None)
     extends Modification {
   override def children: Seq[LogicalPlan] = Seq(target, source.getOrElse(NoopNode), outputRelation.getOrElse(NoopNode))
   override def output: Seq[Attribute] = target.output
@@ -30,9 +30,9 @@ case class UpdateTable(
     target: LogicalPlan,
     source: Option[LogicalPlan],
     set: Seq[Expression],
-    where: Option[Expression],
-    outputRelation: Option[LogicalPlan],
-    options: Option[Expression])
+    where: Option[Expression] = None,
+    outputRelation: Option[LogicalPlan] = None,
+    options: Option[Expression] = None)
     extends Modification {
   override def children: Seq[LogicalPlan] = Seq(target, source.getOrElse(NoopNode), outputRelation.getOrElse(NoopNode))
   override def output: Seq[Attribute] = target.output
@@ -45,9 +45,9 @@ case class MergeIntoTable(
     targetTable: LogicalPlan,
     sourceTable: LogicalPlan,
     mergeCondition: Expression,
-    matchedActions: Seq[MergeAction],
-    notMatchedActions: Seq[MergeAction],
-    notMatchedBySourceActions: Seq[MergeAction])
+    matchedActions: Seq[MergeAction] = Seq.empty,
+    notMatchedActions: Seq[MergeAction] = Seq.empty,
+    notMatchedBySourceActions: Seq[MergeAction] = Seq.empty)
     extends Modification {
 
   override def children: Seq[LogicalPlan] = Seq(targetTable, sourceTable)
@@ -60,7 +60,7 @@ abstract class MergeAction extends Expression {
   override def children: Seq[Expression] = condition.toSeq
 }
 
-case class DeleteAction(condition: Option[Expression]) extends MergeAction
+case class DeleteAction(condition: Option[Expression] = None) extends MergeAction
 
 case class UpdateAction(condition: Option[Expression], assignments: Seq[Assign]) extends MergeAction {
   override def children: Seq[Expression] = condition.toSeq ++ assignments
