@@ -2325,7 +2325,6 @@ case class SchemaOfJson(left: Expression, right: Expression) extends Binary(left
 
 /** to_json(expr[, options]) - Returns a JSON string with a given struct value */
 case class StructsToJson(left: Expression, right: Option[Expression]) extends Expression with Fn {
-  override def children: Seq[Expression] = Seq(left) ++ right
   override def prettyName: String = "TO_JSON"
   override def children: Seq[Expression] = Seq(left) ++ right.toSeq
   override def dataType: DataType = UnresolvedType

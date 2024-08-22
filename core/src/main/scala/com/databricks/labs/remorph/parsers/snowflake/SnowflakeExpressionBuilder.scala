@@ -442,7 +442,7 @@ class SnowflakeExpressionBuilder()
       case c if c.likeExpression() != null => buildLikeExpression(c.likeExpression(), expression)
       case c if c.IS() != null =>
         val isNull: ir.Expression = ir.IsNull(expression)
-        Option(c.nullNotNull().NOT()).fold(isNull)(_ => ir.Not(isNull))
+        Option(c.nullNotNull().NOT()).fold(isNull)(_ => ir.IsNotNull(expression))
     }
     Option(ctx.NOT()).fold(predicate)(_ => ir.Not(predicate))
   }

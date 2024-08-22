@@ -161,7 +161,7 @@ class SnowflakeExprSpec extends AnyWordSpec with SnowflakeParserTestCommon with 
 
     "translate IS [NOT] NULL expressions" in {
       exprAndPredicateExample("col1 IS NULL", IsNull(Id("col1")))
-      exprAndPredicateExample("col1 IS NOT NULL", Not(IsNull(Id("col1"))))
+      exprAndPredicateExample("col1 IS NOT NULL", IsNotNull(Id("col1")))
     }
 
     "translate DISTINCT expressions" in {

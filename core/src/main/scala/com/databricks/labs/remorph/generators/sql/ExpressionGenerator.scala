@@ -238,8 +238,6 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
         case r: ir.RLike => rlike(ctx, r)
         case r: ir.RegExpExtract => regexpExtract(ctx, r)
         case t: ir.TimestampDiff => timestampDiff(ctx, t)
-        case i: ir.IsNull => postfix(ctx, i)
-        case i: ir.IsNotNull => postfix(ctx, i)
         case t: ir.TimestampAdd => timestampAdd(ctx, t)
         case e: ir.Extract => extract(ctx, e)
         case i: ir.In => in(ctx, i)
@@ -442,10 +440,6 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
 
   private def extract(ctx: GeneratorContext, e: ir.Extract): String = {
     s"EXTRACT(${expression(ctx, e.left)} FROM ${expression(ctx, e.right)})"
-  }
-
-  private def postfix(ctx: GeneratorContext, unaryFunc: ir.Unary with ir.Fn): String = {
-    s"${expression(ctx, unaryFunc.child)} ${unaryFunc.prettyName}"
   }
 
   private def orNull(option: Option[String]): String = option.getOrElse("NULL")
