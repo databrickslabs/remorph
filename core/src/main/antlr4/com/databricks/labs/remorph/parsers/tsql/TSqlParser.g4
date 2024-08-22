@@ -1730,8 +1730,8 @@ createTable: CREATE (createExternal | createInternal)
     ;
 
 createInternal
-    : TABLE tableName (LPAREN columnDefTableConstraints COMMA? RPAREN (LOCK simpleId)?)? tableOptions? 
-        // This sequence looks strange but alloes CTAS and normal CREATE TABLE to be parsed
+    : TABLE tableName (LPAREN columnDefTableConstraints COMMA? RPAREN (LOCK simpleId)?)? tableOptions?
+    // This sequence looks strange but alloes CTAS and normal CREATE TABLE to be parsed
     createTableAs? tableOptions? (ON id | DEFAULT | onPartitionOrFilegroup)? (
         TEXTIMAGE_ON id
         | DEFAULT
