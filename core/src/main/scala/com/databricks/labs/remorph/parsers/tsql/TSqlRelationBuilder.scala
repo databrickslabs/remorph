@@ -448,7 +448,7 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.LogicalPlan] {
 
   override def visitOutputClause(ctx: OutputClauseContext): ir.LogicalPlan = {
     val outputs = ctx.outputDmlListElem().asScala.map(_.accept(expressionBuilder))
-    val target = ctx.ddlObject().accept(this)
+    val target = Option(ctx.ddlObject()).map(_.accept(this))
     val columns =
       Option(ctx.columnNameList())
         .map(_.id().asScala.map(id => ir.Column(None, expressionBuilder.visitId(id))))

@@ -42,15 +42,7 @@ options {
 tSqlFile: batch? EOF
     ;
 
-// TODO: JI - Simplify this
-batch: executeBodyBatch? (goStatement | sqlClauses)+ | batchLevelStatement goStatement*
-    ;
-
-batchLevelStatement
-    : createOrAlterFunction SEMI*
-    | createOrAlterProcedure SEMI*
-    | createOrAlterTrigger SEMI*
-    | createView SEMI*
+batch: SEMI* executeBodyBatch? SEMI* (sqlClauses+ SEMI*)+
     ;
 
 // TODO: Properly sort out SEMI colons, which have been haphazzardly added in some
@@ -63,7 +55,11 @@ sqlClauses
     | ddlClause SEMI*
     | dbccClause SEMI*
     | backupStatement SEMI*
-    | SEMI // Empty statement
+    | createOrAlterFunction SEMI*
+    | createOrAlterProcedure SEMI*
+    | createOrAlterTrigger SEMI*
+    | createView SEMI*
+    | goStatement SEMI*
     ;
 
 dmlClause
@@ -72,6 +68,7 @@ dmlClause
     | insertStatement
     | selectStatementStandalone
     | updateStatement
+    | bulkStatement
     ;
 
 ddlClause
@@ -136,6 +133,7 @@ ddlClause
     | createEventNotification
     | createExternalLibrary
     | createExternalResourcePool
+    | createExternalDataSource
     | createFulltextCatalog
     | createFulltextStoplist
     | createIndex
@@ -261,6 +259,7 @@ cflStatement
     | tryCatchStatement
     | waitforStatement
     | whileStatement
+    | receiveStatement
     ;
 
 blockStatement: BEGIN SEMI? sqlClauses* END SEMI?
@@ -841,6 +840,13 @@ eventSessionPredicateFactor
 eventSessionPredicateLeaf
     : dotIdentifier ((EQ | (LT GT) | (BANG EQ) | GT | (GT EQ) | LT | LT EQ) (INT | STRING))?
     | dotIdentifier LPAREN ( dotIdentifier COMMA (INT | STRING)) RPAREN
+    ;
+
+createExternalDataSource
+    : CREATE EXTERNAL DATA SOURCE id WITH LPAREN (COMMA? ( genericOption | connectionOptions))* RPAREN SEMI?
+    ;
+
+connectionOptions: id EQ STRING (COMMA STRING)*
     ;
 
 alterExternalDataSource
@@ -1467,6 +1473,18 @@ delete
     : DELETE topClause? FROM? ddlObject withTableHints? outputClause? (FROM tableSources)? updateWhereClause? optionClause? SEMI?
     ;
 
+bulkStatement
+    : BULK INSERT dotIdentifier FROM STRING (
+        WITH LPAREN bulkInsertOption (COMMA? bulkInsertOption)* RPAREN
+    )?
+    ;
+
+bulkInsertOption: ORDER LPAREN bulkInsertCol (COMMA bulkInsertCol)* RPAREN | genericOption
+    ;
+
+bulkInsertCol: id (ASC | DESC)?
+    ;
+
 insertStatement: withExpression? insert
     ;
 
@@ -1478,7 +1496,7 @@ insertStatementValue: derivedTable | executeStatement | DEFAULT VALUES
     ;
 
 receiveStatement
-    : LPAREN? RECEIVE (ALL | DISTINCT | topClause | STAR) (LOCAL_ID EQ expression COMMA?)* FROM tableName (
+    : LPAREN? RECEIVE (ALL | DISTINCT | topClause | STAR | ((id | LOCAL_ID EQ expression) COMMA?)*) FROM tableName (
         INTO id (WHERE searchCondition)
     )? RPAREN?
     ;
@@ -1515,11 +1533,11 @@ createDatabase
         ON (PRIMARY? databaseFileSpec ( COMMA databaseFileSpec)*)? (
             id /* LOG */ ON databaseFileSpec (COMMA databaseFileSpec)*
         )?
-    )? (COLLATE id)? (WITH createDatabaseOption (COMMA createDatabaseOption)*)?
+    )? (COLLATE id)? (WITH createDatabaseOption (COMMA createDatabaseOption)*)? SEMI?
     ;
 
 createDatabaseScopedCredential
-    : CREATE DATABASE SCOPED CREDENTIAL id WITH IDENTITY EQ STRING (SECRET EQ STRING)?
+    : CREATE DATABASE SCOPED CREDENTIAL id WITH IDENTITY EQ STRING (COMMA SECRET EQ STRING)? SEMI?
     ;
 
 createDatabaseOption
@@ -1732,20 +1750,24 @@ createTable: CREATE (createExternal | createInternal)
 createInternal
     : TABLE tableName (
         LPAREN columnDefTableConstraints (COMMA? tableIndices)* COMMA? RPAREN (LOCK simpleId)?
-    )? createTableAs? tableOptions* (ON id | DEFAULT | onPartitionOrFilegroup)? (
+    )? tableOptions? // This sequence looks strange but alloes CTAS and normal CREATE TABLE to be parsed
+    createTableAs? tableOptions? (ON id | DEFAULT | onPartitionOrFilegroup)? (
         TEXTIMAGE_ON id
         | DEFAULT
     )? SEMI?
     ;
 
 createExternal
-    : EXTERNAL TABLE tableName (LPAREN columnDefTableConstraints RPAREN)? WITH LPAREN optionList RPAREN AS selectStatementStandalone SEMI?
+    : EXTERNAL TABLE tableName (LPAREN columnDefTableConstraints RPAREN)? WITH LPAREN optionList RPAREN (
+        AS selectStatementStandalone
+    ) SEMI?
     ;
 
 createTableAs
-    : AS selectStatementStandalone       # ctas
-    | AS FILETABLE WITH lparenOptionList # ctasFiletable
-    | AS (NODE | EDGE)                   # ctasGraph
+    : AS selectStatementStandalone                            # ctas
+    | AS FILETABLE WITH lparenOptionList                      # ctasFiletable
+    | AS (NODE | EDGE)                                        # ctasGraph
+    | AS /* CLONE */ id OF dotIdentifier (AT_KEYWORD STRING)? # ctasClone
     ;
 
 tableIndices
@@ -1764,14 +1786,18 @@ distributionType: HASH LPAREN id (COMMA id)* RPAREN | ROUND_ROBIN | REPLICATE
     ;
 
 tableOption
-    : (simpleId | keyword) EQ (simpleId | keyword | onOff | INT)
-    | CLUSTERED COLUMNSTORE INDEX
-    | HEAP
-    | FILLFACTOR EQ INT
-    | DISTRIBUTION EQ distributionType
+    : DISTRIBUTION EQ distributionType
     | CLUSTERED INDEX LPAREN id (ASC | DESC)? ( COMMA id (ASC | DESC)?)* RPAREN
     | DATA_COMPRESSION EQ (NONE | ROW | PAGE) onPartitions?
     | XML_COMPRESSION EQ onOff onPartitions?
+    | id EQ (
+        OFF (LPAREN id RPAREN)?
+        | ON (LPAREN tableOptionElement (COMMA tableOptionElement)* RPAREN)?
+    )
+    | genericOption
+    ;
+
+tableOptionElement: id EQ dotIdentifier LPAREN optionList RPAREN | genericOption
     ;
 
 createTableIndexOptions
@@ -1898,8 +1924,8 @@ filegroupUpdatabilityOption: READONLY | READWRITE | READ_ONLY | READ_WRITE
     ;
 
 databaseOptionspec
-    : autoOption
-    | changeTrackingOption
+    : changeTrackingOption
+    | autoOption
     | containmentOption
     | cursorOption
     | databaseMirroringOption
@@ -1919,7 +1945,23 @@ databaseOptionspec
     | sqlOption
     | targetRecoveryTimeOption
     | termination
+    | queryStoreOption
     | genericOption
+    ;
+
+queryStoreOption
+    : QUERY_STORE (
+        EQ (
+            OFF (LPAREN /* FORCED */ id RPAREN)?
+            | ON (LPAREN queryStoreElementOpt (COMMA queryStoreElementOpt)* RPAREN)?
+        )
+        | LPAREN queryStoreElementOpt RPAREN
+        | ALL
+        | id
+    )
+    ;
+
+queryStoreElementOpt: id EQ LPAREN optionList RPAREN | genericOption
     ;
 
 autoOption
@@ -1932,15 +1974,13 @@ autoOption
     ;
 
 changeTrackingOption
-    : CHANGE_TRACKING EQ (
-        OFF
-        | ON LPAREN (changeTrackingOptionList ( COMMA changeTrackingOptionList)*)* RPAREN
+    : CHANGE_TRACKING (
+        EQ ( OFF | ON)
+        | LPAREN (changeTrackingOpt ( COMMA changeTrackingOpt)*) RPAREN
     )
     ;
 
-changeTrackingOptionList
-    : AUTO_CLEANUP EQ onOff
-    | CHANGE_RETENTION EQ INT ( DAYS | HOURS | MINUTES)
+changeTrackingOpt: AUTO_CLEANUP EQ onOff | CHANGE_RETENTION EQ INT ( DAYS | HOURS | MINUTES)
     ;
 
 containmentOption: CONTAINMENT EQ (NONE | PARTIAL)
@@ -2153,12 +2193,14 @@ cursorStatement
     ;
 
 backupDatabase
-    : BACKUP DATABASE id (READ_WRITE_FILEGROUPS optionList)? (TO optionList)+ (
+    : BACKUP DATABASE id (READ_WRITE_FILEGROUPS (COMMA optionList)?)? optionList? (TO optionList) (
         MIRROR TO optionList
-    )* WITH (
-        optionList
-        | ENCRYPTION LPAREN ALGORITHM EQ genericOption COMMA SERVER CERTIFICATE EQ genericOption RPAREN
-    )?
+    )? (
+        WITH (
+            ENCRYPTION LPAREN ALGORITHM EQ genericOption COMMA SERVER CERTIFICATE EQ genericOption RPAREN
+            | optionList
+        )
+    )? SEMI?
     ;
 
 backupLog: BACKUP id /* LOG */ id TO optionList (MIRROR TO optionList)? ( WITH optionList)?
@@ -2360,7 +2402,7 @@ transactionStatement
     | SAVE (TRAN | TRANSACTION) (id | LOCAL_ID)?
     ;
 
-goStatement: GO INT?
+goStatement: GO INT? SEMI?
     ;
 
 useStatement: USE id
@@ -2699,6 +2741,7 @@ expression
     | expression op = (PLUS | MINUS) expression               # exprOpPrec2
     | expression op = (BIT_AND | BIT_XOR | BIT_OR) expression # exprOpPrec3
     | expression op = DOUBLE_BAR expression                   # exprOpPrec4
+    | expression op = DOUBLE_COLON expression                 # exprOpPrec4
     | primitiveExpression                                     # exprPrimitive
     | functionCall                                            # exprFunc
     | functionValues                                          # exprFuncVal
@@ -2767,7 +2810,6 @@ predicate
     : EXISTS LPAREN subquery RPAREN
     | freetextPredicate
     | expression comparisonOperator expression
-    | expression ME expression
     | expression comparisonOperator (ALL | SOME | ANY) LPAREN subquery RPAREN
     | expression NOT* BETWEEN expression AND expression
     | expression NOT* IN LPAREN (subquery | expressionList) RPAREN
@@ -2876,18 +2918,18 @@ tableSourceItem: tsiElement (asTableAlias columnAliasList?)? withTableHints?
     ;
 
 tsiElement
-    : tableName                  # tsiNamedTable
-    | rowsetFunction             # tsiRowsetFunction
-    | LPAREN derivedTable RPAREN # tsiDerivedTable
-    | changeTable                # tsiChangeTable
-    | nodesMethod                # tsiNodesMethod
-    | functionCall               # tsiFunctionCall
-    | LOCAL_ID                   # tsiLocalId
-    | LOCAL_ID DOT functionCall  # tsiLocalIdFunctionCall
-    | openXml                    # tsiOpenXml
-    | openJson                   # tsiOpenJson
-    | DOUBLE_COLON functionCall  # tsiDoubleColonFunctionCall
-    | LPAREN tableSource RPAREN  # tsiParenTableSource
+    : tableName                                                   # tsiNamedTable
+    | rowsetFunction                                              # tsiRowsetFunction
+    | LPAREN derivedTable RPAREN                                  # tsiDerivedTable
+    | changeTable                                                 # tsiChangeTable
+    | nodesMethod                                                 # tsiNodesMethod
+    | /* TODO (id DOT)? distinguish xml functions */ functionCall # tsiFunctionCall
+    | LOCAL_ID                                                    # tsiLocalId
+    | LOCAL_ID DOT functionCall                                   # tsiLocalIdFunctionCall
+    | openXml                                                     # tsiOpenXml
+    | openJson                                                    # tsiOpenJson
+    | dotIdentifier? DOUBLE_COLON functionCall                    # tsiDoubleColonFunctionCall
+    | LPAREN tableSource RPAREN                                   # tsiParenTableSource
     ;
 
 openJson
@@ -2949,11 +2991,12 @@ fullColumnNameList: column += fullColumnName (COMMA column += fullColumnName)*
     ;
 
 rowsetFunction
-    : (OPENROWSET LPAREN STRING COMMA STRING COMMA STRING RPAREN)
-    | (OPENROWSET LPAREN BULK STRING COMMA ( bulkOption (COMMA bulkOption)* | id) RPAREN)
-    ;
-
-bulkOption: id EQ bulkOptionValue = (INT | STRING)
+    : (
+        OPENROWSET LPAREN STRING COMMA ((STRING SEMI STRING SEMI STRING) | STRING) (
+            COMMA (dotIdentifier | STRING)
+        ) RPAREN
+    )
+    | (OPENROWSET LPAREN BULK STRING COMMA ( id EQ STRING COMMA optionList? | id) RPAREN)
     ;
 
 derivedTable: subquery | tableValueConstructor | LPAREN tableValueConstructor RPAREN
@@ -3174,7 +3217,7 @@ sendConversation
     )? SEMI?
     ;
 
-dataType: dataTypeIdentity | id (LPAREN (INT | MAX) (COMMA INT)? RPAREN)?
+dataType: dataTypeIdentity | XML LPAREN id RPAREN | id (LPAREN (INT | MAX) (COMMA INT)? RPAREN)?
     ;
 
 dataTypeIdentity: id IDENTITY (LPAREN INT COMMA INT RPAREN)?
@@ -3400,6 +3443,7 @@ keyword
     | EXPLICIT
     | EXTENDED_LOGICAL_CHECKS
     | EXTENSION
+    | EXTERNAL
     | EXTERNAL_ACCESS
     | FAIL_OPERATION
     | FAILOVER
@@ -3451,6 +3495,7 @@ keyword
     | HIGH
     | HONOR_BROKER_PRIORITY
     | HOURS
+    | IDENTITY
     | IDENTITY_VALUE
     | IGNORE_CONSTRAINTS
     | IGNORE_DUP_KEY
@@ -3701,6 +3746,7 @@ keyword
     | REPEATABLEREAD
     | REPLACE
     | REPLICA
+    | REPLICATE
     | REQUEST_MAX_CPU_TIME_SEC
     | REQUEST_MAX_MEMORY_GRANT_PERCENT
     | REQUEST_MEMORY_GRANT_TIMEOUT_SEC
@@ -3896,7 +3942,7 @@ keyword
     | ZONE
     ;
 
-id: ID | TEMP_ID | DOUBLE_QUOTE_ID | SQUARE_BRACKET_ID | keyword | RAW
+id: ID | TEMP_ID | DOUBLE_QUOTE_ID | SQUARE_BRACKET_ID | NODEID | keyword | RAW
     ;
 
 simpleId: ID
