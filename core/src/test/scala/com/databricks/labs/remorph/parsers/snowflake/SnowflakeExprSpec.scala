@@ -65,7 +65,7 @@ class SnowflakeExprSpec extends AnyWordSpec with SnowflakeParserTestCommon with 
 
     "translate cast expressions" in {
       example("CAST (column_1 AS BOOLEAN)", Cast(Id("column_1"), BooleanType))
-      example("TRY_CAST (column_1 AS BOOLEAN)", Cast(Id("column_1"), BooleanType, returnNullOnError = true))
+      example("TRY_CAST (column_1 AS BOOLEAN)", TryCast(Id("column_1"), BooleanType))
       example("TO_TIMESTAMP(1234567890)", CallFunction("TO_TIMESTAMP", Seq(Literal(integer = Some(1234567890)))))
       example("TIME('00:00:00')", CallFunction("TO_TIME", Seq(Literal(string = Some("00:00:00")))))
       example("TO_TIME(column_1)", CallFunction("TO_TIME", Seq(Id("column_1"))))

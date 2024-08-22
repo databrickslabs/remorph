@@ -39,6 +39,7 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
       case d: ir.Distinct => distinct(ctx, d)
       case s: ir.Star => star(ctx, s)
       case c: ir.Cast => cast(ctx, c)
+      case t: ir.TryCast => tryCast(ctx, t)
       case col: ir.Column => column(ctx, col)
       case _: ir.DeleteAction => "DELETE"
       case ia: ir.InsertAction => insertAction(ctx, ia)
@@ -237,6 +238,8 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
         case r: ir.RLike => rlike(ctx, r)
         case r: ir.RegExpExtract => regexpExtract(ctx, r)
         case t: ir.TimestampDiff => timestampDiff(ctx, t)
+        case i: ir.IsNull => postfix(ctx, i)
+        case i: ir.IsNotNull => postfix(ctx, i)
         case t: ir.TimestampAdd => timestampAdd(ctx, t)
         case e: ir.Extract => extract(ctx, e)
         case i: ir.In => in(ctx, i)
@@ -330,9 +333,21 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
   }
 
   private def cast(ctx: GeneratorContext, cast: ir.Cast): String = {
-    val expr = expression(ctx, cast.expr)
-    val dataType = DataTypeGenerator.generateDataType(ctx, cast.dataType)
-    s"CAST($expr AS $dataType)"
+    castLike(ctx, "CAST", cast.expr, cast.dataType)
+  }
+
+  private def tryCast(ctx: GeneratorContext, tryCast: ir.TryCast): String = {
+    castLike(ctx, "TRY_CAST", tryCast.expr, tryCast.dataType)
+  }
+
+  private def castLike(
+      ctx: GeneratorContext,
+      prettyName: String,
+      expr: ir.Expression,
+      dataType: ir.DataType): String = {
+    val e = expression(ctx, expr)
+    val dt = DataTypeGenerator.generateDataType(ctx, dataType)
+    s"$prettyName($e AS $dt)"
   }
 
   private def dot(ctx: GeneratorContext, dot: ir.Dot): String = {
@@ -428,6 +443,11 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
   private def extract(ctx: GeneratorContext, e: ir.Extract): String = {
     s"EXTRACT(${expression(ctx, e.left)} FROM ${expression(ctx, e.right)})"
   }
+
+  private def postfix(ctx: GeneratorContext, unaryFunc: ir.Unary with ir.Fn): String = {
+    s"${expression(ctx, unaryFunc.child)} ${unaryFunc.prettyName}"
+  }
+
   private def orNull(option: Option[String]): String = option.getOrElse("NULL")
 
   private def singleQuote(s: String): String = s"'$s'"

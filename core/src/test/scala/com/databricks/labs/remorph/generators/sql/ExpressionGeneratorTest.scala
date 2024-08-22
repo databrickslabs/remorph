@@ -742,11 +742,11 @@ class ExpressionGeneratorTest
     }
 
     "ISNOTNULL(a)" in {
-      ir.CallFunction("ISNOTNULL", Seq(ir.UnresolvedAttribute("a"))) generates "ISNOTNULL(a)"
+      ir.CallFunction("ISNOTNULL", Seq(ir.UnresolvedAttribute("a"))) generates "a IS NOT NULL"
     }
 
     "ISNULL(a)" in {
-      ir.CallFunction("ISNULL", Seq(ir.UnresolvedAttribute("a"))) generates "ISNULL(a)"
+      ir.CallFunction("ISNULL", Seq(ir.UnresolvedAttribute("a"))) generates "a IS NULL"
     }
 
     "JAVA_METHOD(a, b)" in {

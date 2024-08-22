@@ -284,7 +284,11 @@ class SnowflakeExpressionBuilder()
     case c if c.castOp != null =>
       val expression = c.expr().accept(this)
       val dataType = typeBuilder.buildDataType(c.dataType())
-      ir.Cast(expression, dataType, returnNullOnError = c.TRY_CAST() != null)
+      ctx.castOp.getType match {
+        case CAST => ir.Cast(expression, dataType)
+        case TRY_CAST => ir.TryCast(expression, dataType)
+      }
+
     case c if c.INTERVAL() != null =>
       ir.Cast(c.expr().accept(this), ir.IntervalType)
   }
