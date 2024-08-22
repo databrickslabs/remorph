@@ -291,7 +291,7 @@ class SnowflakeExpressionBuilder()
 
   override def visitRankingWindowedFunction(ctx: RankingWindowedFunctionContext): ir.Expression = {
     val ignore_nulls = if (ctx.ignoreOrRepectNulls() != null) {
-      ctx.ignoreOrRepectNulls().getText.equals("IGNORENULLS")
+      ctx.ignoreOrRepectNulls().getText.equalsIgnoreCase("IGNORENULLS")
     } else false
 
     buildWindow(ctx.overClause(), ctx.standardFunction().accept(this), ignore_nulls)
