@@ -12,8 +12,9 @@ class RootTableIdentifier(transpiler: Transpiler) {
   }
 
   private def getTableFromExpression(p: ir.Expression): Set[String] = {
-    p.collect { case exp: ir.ScalarSubquery =>
-      fetchTableName(exp.relation)
+    // TODO Tackle Unresolved Expressions
+    p.collect {
+      case e: ir.ScalarSubquery => fetchTableName(e.relation)
     }.toSet
   }
 
@@ -44,7 +45,7 @@ class RootTableIdentifier(transpiler: Transpiler) {
         case i: ir.InsertIntoTable => updateChild(i.target, Action.Write)
         case d: ir.DeleteFromTable => updateChild(d.target, Action.Delete)
         case u: ir.UpdateTable => updateChild(u.target, Action.Update)
-        case m: ir.MergeIntoTable => updateChild(m.targetTable, Action.Update)
+        case m: ir.MergeIntoTable => updateChild(m.targetTable, Action.Merge)
         case p: ir.Project => parent = parent ++ getTableList(p)
         case i: ir.Join => parent = parent ++ getTableList(i)
         case sub: ir.SubqueryAlias => parent = parent ++ getTableList(sub)
@@ -59,7 +60,8 @@ class RootTableIdentifier(transpiler: Transpiler) {
     graph.addNode(Node(child.name))
     parent.toList.sorted.foreach(p => {
       graph.addNode(Node(p))
-      graph.addEdge(Node(p), Node(child.name), child.action)
+      // merge IR nodes will produce the same parent and child
+        graph.addEdge(Node(p), Node(child.name), child.action)
     })
     graph
   }

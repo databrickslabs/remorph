@@ -3,7 +3,7 @@ import scala.collection.mutable
 
 case object Action extends Enumeration {
   type Operation = Value
-  val Read, Write, Update, Delete = Value
+  val Read, Write, Update, Delete, Merge = Value
 }
 
 case class Node(name: String)
