@@ -427,8 +427,6 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
     s"EXTRACT(${expression(ctx, e.left)} FROM ${expression(ctx, e.right)})"
   }
 
-  private def orNull(option: Option[String]): String = option.getOrElse("NULL")
-
   private def singleQuote(s: String): String = s"'$s'"
   private def isAlphanum(s: String): Boolean = s.forall(_.isLetterOrDigit)
 }

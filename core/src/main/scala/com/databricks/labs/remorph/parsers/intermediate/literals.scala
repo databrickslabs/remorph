@@ -2,6 +2,8 @@ package com.databricks.labs.remorph.parsers.intermediate
 
 import java.time.ZoneOffset
 
+case class Literal(value: Any, dataType: DataType) extends LeafExpression
+
 object Literal {
   val True: Literal = Literal(true, BooleanType)
   val False: Literal = Literal(false, BooleanType)
@@ -183,5 +185,3 @@ object StringLiteral {
     case _ => None
   }
 }
-
-case class Literal(value: Any, dataType: DataType) extends LeafExpression

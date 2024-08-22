@@ -305,7 +305,7 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
     ir.Case(
       None,
       Seq(
-        ir.WhenBranch(ir.IsNull(args.head), ir.Literal(nullType = Some(ir.NullType))),
+        ir.WhenBranch(ir.IsNull(args.head), ir.Literal.Null),
         ir.WhenBranch(
           ir.And(ir.RLike(args.head, ir.Literal("^-?[0-9]+$")), ir.IsNotNull(ir.TryCast(args.head, ir.IntegerType))),
           ir.Literal(true))),
@@ -313,7 +313,7 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
   }
 
   private def toArray(args: Seq[ir.Expression]): ir.Expression = {
-    ir.If(ir.IsNull(args.head), ir.Literal.NULL, ir.CreateArray(Seq(args.head)))
+    ir.If(ir.IsNull(args.head), ir.Literal.Null, ir.CreateArray(Seq(args.head)))
   }
 
   private def toBoolean(args: Seq[ir.Expression]): ir.Expression = {
@@ -321,7 +321,7 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
   }
 
   private def tryToBoolean(args: Seq[ir.Expression]): ir.Expression = {
-    toBooleanLike(args.head, ir.Literal.NULL)
+    toBooleanLike(args.head, ir.Literal.Null)
   }
 
   private def toBooleanLike(arg: ir.Expression, otherwise: ir.Expression): ir.Expression = {
@@ -329,7 +329,7 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
     ir.Case(
       None,
       Seq(
-        ir.WhenBranch(ir.IsNull(arg), ir.Literal.NULL),
+        ir.WhenBranch(ir.IsNull(arg), ir.Literal.Null),
         ir.WhenBranch(ir.Equals(ir.TypeOf(arg), ir.Literal("boolean")), ir.CallFunction("BOOLEAN", Seq(arg))),
         ir.WhenBranch(
           ir.Equals(ir.TypeOf(arg), ir.Literal("string")),
