@@ -45,6 +45,30 @@ issues without relying on external systems. Focus on testing the edge cases of t
 things may fail. See [this example](https://github.com/databricks/databricks-sdk-py/pull/295) as a reference of an extensive
 unit test coverage suite and the clear difference between _unit tests_ and _integration tests_.
 
+## JVM Proxy
+
+In order to use this, you have to install `remorph` on any workspace via `databricks labs install .`, 
+so that `.databricks-login.json` file gets created with the following contents:
+
+```
+{
+  "workspace_profile": "labs-azure-tool",
+  "cluster_id": "0708-200540-wcwi4i9e"
+}
+```
+
+then run `make dev-cli` to collect classpath information. And then invoke commands, 
+like `databricks labs remorph debug-script --name file`. Add `--debug` flag to recompile project each run.
+
+Example output is:
+```text
+databricks labs remorph debug-script --name foo
+21:57:42  INFO [databricks.sdk] Using Azure CLI authentication with AAD tokens
+21:57:42  WARN [databricks.sdk] azure_workspace_resource_id field not provided. It is recommended to specify this field in the Databricks configuration to avoid authentication errors.
+Debugging script...
+Map(log_level -> disabled, name -> foo)
+```
+
 ## Local Setup
 
 This section provides a step-by-step guide to set up and start working on the project. These steps will help you set up your project environment and dependencies for efficient development.
