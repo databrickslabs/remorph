@@ -367,7 +367,7 @@ class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenProp
       ("REPLICATE", Some(FunctionDefinition.standard(2))),
       ("REVERSE", Some(FunctionDefinition.standard(1))),
       ("RIGHT", Some(FunctionDefinition.standard(2))),
-      ("ROUND", Some(FunctionDefinition.standard(2, 3))),
+      ("ROUND", Some(FunctionDefinition.standard(1, 3))),
       ("ROW_NUMBER", Some(FunctionDefinition.standard(0))),
       ("ROWCOUNT_BIG", Some(FunctionDefinition.standard(0))),
       ("RTRIM", Some(FunctionDefinition.standard(1))),

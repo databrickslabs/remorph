@@ -139,8 +139,6 @@ class CallMapper extends IRHelpers {
     case CallFunction("INPUT_FILE_NAME", _) => InputFileName()
     case CallFunction("INSTR", args) => StringInstr(args.head, args(1))
     case CallFunction("ISNAN", args) => IsNaN(args.head)
-    case CallFunction("ISNOTNULL", args) => IsNotNull(args.head)
-    case CallFunction("ISNULL", args) => IsNull(args.head)
     case CallFunction("JAVA_METHOD", args) => CallMethodViaReflection(args)
     case CallFunction("JSON_ARRAY_LENGTH", args) => LengthOfJsonArray(args.head)
     case CallFunction("JSON_OBJECT_KEYS", args) => JsonObjectKeys(args.head)
@@ -162,7 +160,7 @@ class CallMapper extends IRHelpers {
     case CallFunction("LOWER", args) => Lower(args.head)
     case CallFunction("LPAD", args) =>
       StringLPad(args.head, args(1), args.lastOption.getOrElse(Literal(" ")))
-    case CallFunction("LTRIM", args) => StringTrimLeft(args.head, args(1))
+    case CallFunction("LTRIM", args) => StringTrimLeft(args.head, args.lift(1))
     case CallFunction("MAKE_DATE", args) => MakeDate(args.head, args(1), args(2))
     case CallFunction("MAKE_INTERVAL", args) =>
       MakeInterval(args.head, args(1), args(2), args(3), args(4), args(5))
@@ -219,7 +217,7 @@ class CallMapper extends IRHelpers {
     case CallFunction("RANK", args) => Rank(args)
     case CallFunction("REGEXP_EXTRACT", args) => RegExpExtract(args.head, args(1), args(2))
     case CallFunction("REGEXP_EXTRACT_ALL", args) => RegExpExtractAll(args.head, args(1), args(2))
-    case CallFunction("REGEXP_REPLACE", args) => RegExpReplace(args.head, args(1), args(2), args(3))
+    case CallFunction("REGEXP_REPLACE", args) => RegExpReplace(args.head, args(1), args(2), args.lift(3))
     case CallFunction("REPEAT", args) => StringRepeat(args.head, args(1))
     case CallFunction("REPLACE", args) => StringReplace(args.head, args(1), args(2))
     case CallFunction("REVERSE", args) => Reverse(args.head)
@@ -227,10 +225,10 @@ class CallMapper extends IRHelpers {
     case CallFunction("RINT", args) => Rint(args.head)
     case CallFunction("RLIKE", args) => RLike(args.head, args(1))
     case CallFunction("ROLLUP", args) => Rollup(args)
-    case CallFunction("ROUND", args) => Round(args.head, args(1))
+    case CallFunction("ROUND", args) => Round(args.head, args.lift(1))
     case CallFunction("ROW_NUMBER", _) => RowNumber()
     case CallFunction("RPAD", args) => StringRPad(args.head, args(1), args(2))
-    case CallFunction("RTRIM", args) => StringTrimRight(args.head, args(1))
+    case CallFunction("RTRIM", args) => StringTrimRight(args.head, args.lift(1))
     case CallFunction("SCHEMA_OF_CSV", args) => SchemaOfCsv(args.head, args(1))
     case CallFunction("SCHEMA_OF_JSON", args) => SchemaOfJson(args.head, args(1))
     case CallFunction("SECOND", args) => Second(args.head)
@@ -272,7 +270,7 @@ class CallMapper extends IRHelpers {
     case CallFunction("TIMESTAMP_SECONDS", args) => SecondsToTimestamp(args.head)
     case CallFunction("TO_CSV", args) => StructsToCsv(args.head, args(1))
     case CallFunction("TO_DATE", args) => ParseToDate(args.head, args.lift(1))
-    case CallFunction("TO_JSON", args) => StructsToJson(args.head, args(1))
+    case CallFunction("TO_JSON", args) => StructsToJson(args.head, args.lift(1))
     case CallFunction("TO_NUMBER", args) => ToNumber(args.head, args(1))
     case CallFunction("TO_TIMESTAMP", args) => ParseToTimestamp(args.head, args(1))
     case CallFunction("TO_UNIX_TIMESTAMP", args) => ToUnixTimestamp(args.head, args(1))
@@ -281,7 +279,7 @@ class CallMapper extends IRHelpers {
     case CallFunction("TRANSFORM_KEYS", args) => TransformKeys(args.head, args(1))
     case CallFunction("TRANSFORM_VALUES", args) => TransformValues(args.head, args(1))
     case CallFunction("TRANSLATE", args) => StringTranslate(args.head, args(1), args(2))
-    case CallFunction("TRIM", args) => StringTrim(args.head, args(1))
+    case CallFunction("TRIM", args) => StringTrim(args.head, args.lift(1))
     case CallFunction("TRUNC", args) => TruncDate(args.head, args(1))
     case CallFunction("TRY_TO_NUMBER", args) => TryToNumber(args.head, args(1))
     case CallFunction("TYPEOF", args) => TypeOf(args.head)
@@ -830,18 +828,6 @@ case class IsNaN(left: Expression) extends Unary(left) with Fn {
   override def dataType: DataType = UnresolvedType
 }
 
-/** isnotnull(expr) - Returns true if `expr` is not null, or false otherwise. */
-case class IsNotNull(left: Expression) extends Unary(left) with Fn {
-  override def prettyName: String = "ISNOTNULL"
-  override def dataType: DataType = UnresolvedType
-}
-
-/** isnull(expr) - Returns true if `expr` is null, or false otherwise. */
-case class IsNull(left: Expression) extends Unary(left) with Fn {
-  override def prettyName: String = "ISNULL"
-  override def dataType: DataType = UnresolvedType
-}
-
 /** java_method(class, method[, arg1[, arg2 ..]]) - Calls a method with reflection. */
 case class CallMethodViaReflection(children: Seq[Expression]) extends Expression with Fn {
   override def prettyName: String = "JAVA_METHOD"
@@ -927,8 +913,9 @@ case class StringLPad(left: Expression, right: Expression, pad: Expression = Lit
 }
 
 /** ltrim(str) - Removes the leading space characters from `str`. */
-case class StringTrimLeft(left: Expression, right: Expression) extends Binary(left, right) with Fn {
+case class StringTrimLeft(left: Expression, right: Option[Expression]) extends Expression with Fn {
   override def prettyName: String = "LTRIM"
+  override def children: Seq[Expression] = Seq(left) ++ right
   override def dataType: DataType = UnresolvedType
 }
 
@@ -1152,9 +1139,11 @@ case class RegExpExtractAll(left: Expression, right: Expression, c: Expression) 
 }
 
 /** regexp_replace(str, regexp, rep[, position]) - Replaces all substrings of `str` that match `regexp` with `rep`. */
-case class RegExpReplace(left: Expression, right: Expression, c: Expression, d: Expression) extends Expression with Fn {
+case class RegExpReplace(left: Expression, right: Expression, c: Expression, d: Option[Expression])
+    extends Expression
+    with Fn {
   override def prettyName: String = "REGEXP_REPLACE"
-  override def children: Seq[Expression] = Seq(left, right, c, d)
+  override def children: Seq[Expression] = Seq(left, right, c) ++ d
   override def dataType: DataType = UnresolvedType
 }
 
@@ -1199,7 +1188,8 @@ case class Rollup(children: Seq[Expression]) extends Expression with Fn {
 }
 
 /** round(expr, d) - Returns `expr` rounded to `d` decimal places using HALF_UP rounding mode. */
-case class Round(left: Expression, right: Expression) extends Binary(left, right) with Fn {
+case class Round(left: Expression, right: Option[Expression]) extends Expression with Fn {
+  override def children: Seq[Expression] = Seq(left) ++ right
   override def prettyName: String = "ROUND"
   override def dataType: DataType = UnresolvedType
 }
@@ -1216,7 +1206,8 @@ case class StringRPad(left: Expression, right: Expression, c: Expression) extend
 }
 
 /** rtrim(str) - Removes the trailing space characters from `str`. */
-case class StringTrimRight(left: Expression, right: Expression) extends Binary(left, right) with Fn {
+case class StringTrimRight(left: Expression, right: Option[Expression]) extends Expression with Fn {
+  override def children: Seq[Expression] = Seq(left) ++ right
   override def prettyName: String = "RTRIM"
   override def dataType: DataType = UnresolvedType
 }
@@ -1438,7 +1429,8 @@ case class StringTranslate(left: Expression, right: Expression, c: Expression) e
  *
  * trim(TRAILING trimStr FROM str) - Remove the trailing `trimStr` characters from `str`.
  */
-case class StringTrim(left: Expression, right: Expression) extends Binary(left, right) with Fn {
+case class StringTrim(left: Expression, right: Option[Expression]) extends Expression with Fn {
+  override def children: Seq[Expression] = Seq(left) ++ right
   override def prettyName: String = "TRIM"
   override def dataType: DataType = UnresolvedType
 }
@@ -1482,16 +1474,6 @@ case class Uuid() extends LeafExpression with Fn {
  */
 case class SparkVersion() extends LeafExpression with Fn {
   override def prettyName: String = "VERSION"
-  override def dataType: DataType = UnresolvedType
-}
-
-/**
- * CASE WHEN expr1 THEN expr2 [WHEN expr3 THEN expr4]* [ELSE expr5] END - When `expr1` = true, returns `expr2`; else
- * when `expr3` = true, returns `expr4`; else returns `expr5`.
- */
-case class CaseWhen(branches: Seq[Expression], otherwise: Option[Expression] = None) extends Expression with Fn {
-  override def prettyName: String = "WHEN"
-  override def children: Seq[Expression] = branches ++ otherwise
   override def dataType: DataType = UnresolvedType
 }
 
@@ -2342,8 +2324,9 @@ case class SchemaOfJson(left: Expression, right: Expression) extends Binary(left
 }
 
 /** to_json(expr[, options]) - Returns a JSON string with a given struct value */
-case class StructsToJson(left: Expression, right: Expression) extends Binary(left, right) with Fn {
+case class StructsToJson(left: Expression, right: Option[Expression]) extends Expression with Fn {
   override def prettyName: String = "TO_JSON"
+  override def children: Seq[Expression] = Seq(left) ++ right.toSeq
   override def dataType: DataType = UnresolvedType
 }
 
@@ -2493,4 +2476,12 @@ case class TimestampAdd(unit: String, quantity: Expression, timestamp: Expressio
   override def prettyName: String = "DATEADD"
   override def children: Seq[Expression] = Seq(quantity, timestamp)
   override def dataType: DataType = TimestampType
+}
+
+/**
+ * try_cast(sourceExpr AS targetType) - Returns the value of sourceExpr cast to data type targetType if possible, or
+ * NULL if not possible.
+ */
+case class TryCast(expr: Expression, override val dataType: DataType) extends Expression {
+  override def children: Seq[Expression] = Seq(expr)
 }

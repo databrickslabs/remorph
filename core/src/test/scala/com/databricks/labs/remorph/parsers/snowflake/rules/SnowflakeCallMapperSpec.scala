@@ -104,7 +104,7 @@ class SnowflakeCallMapperSpec extends AnyWordSpec with Matchers {
 
       ir.CallFunction("TO_OBJECT", Seq(ir.Literal(1), ir.Literal(2))) becomes ir.StructsToJson(
         ir.Literal(1),
-        ir.Literal(2))
+        Some(ir.Literal(2)))
 
       ir.CallFunction("TRY_TO_NUMBER", Seq(ir.Literal("$123.5"), ir.Literal("$999.0"), ir.Literal(26))) becomes ir.Cast(
         ir.TryToNumber(ir.Literal("$123.5"), ir.Literal("$999.0")),

@@ -12,7 +12,7 @@ SELECT DISTINCT
   WHERE dst.mto_flag = 1
       AND dst.customer_type IN ('Consumer')
       AND dd.STORE_ID IN (SELECT store_id FROM foo.bar.cng_stores_stage)
-      AND dd.is_test = FALSE
+      AND dd.is_test = false
       AND dst.origin IN ('Chat')
       AND dd_agent_id IS NOT NULL
   AND dst.CREATED_DATE > current_date - 7
@@ -38,7 +38,7 @@ SELECT DISTINCT
         store_id
       FROM foo.bar.cng_stores_stage
     )
-    AND dd.is_test = FALSE
+    AND dd.is_test = false
     AND dst.origin IN ('Chat')
     AND NOT dd_agent_id IS NULL
     AND dst.CREATED_DATE > CURRENT_DATE - 7

@@ -249,7 +249,7 @@ abstract class FunctionBuilder {
     case "REPLICATE" => FunctionDefinition.standard(2)
     case "REVERSE" => FunctionDefinition.standard(1)
     case "RIGHT" => FunctionDefinition.standard(2)
-    case "ROUND" => FunctionDefinition.standard(2, 3)
+    case "ROUND" => FunctionDefinition.standard(1, 3)
     case "ROW_NUMBER" => FunctionDefinition.standard(0)
     case "ROWCOUNT_BIG" => FunctionDefinition.standard(0)
     case "RTRIM" => FunctionDefinition.standard(1)

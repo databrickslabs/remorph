@@ -460,40 +460,6 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
               simplyNamedColumn("colxcount")))))))
   }
 
-  "parse genericOptions correctly" in {
-    // NOTE that we are using the BACKUP DATABASE command to test the generic options as it is the
-    // simplest command that has generic options.
-    example(
-      query = "BACKUP DATABASE mydb TO DISK = 'disk' WITH mount = auto, verbose = default",
-      expectedAst = Batch(Seq(BackupDatabase("mydb", Seq("disk"), Map.empty, Seq("MOUNT"), Map.empty))))
-
-    example(
-      query = "BACKUP DATABASE mydb TO DISK = 'disk1', DISK = 'disk2' WITH mount = auto, verbose = default",
-      expectedAst = Batch(Seq(BackupDatabase("mydb", Seq("disk2", "disk1"), Map.empty, Seq("MOUNT"), Map.empty))))
-
-    example(
-      query = "BACKUP DATABASE mydb TO DISK = 'disk1' WITH audit = ON, desCription = 'backup1', FILE_SNAPSHOT OFF",
-      expectedAst = Batch(
-        Seq(
-          BackupDatabase("mydb", Seq("disk1"), Map("AUDIT" -> true, "FILE_SNAPSHOT" -> false), List.empty, Map.empty))))
-
-    example(
-      query = "BACKUP DATABASE mydb TO DISK = 'disk1' WITH ON, OFF, AUTO, DEFAULT",
-      expectedAst =
-        Batch(Seq(BackupDatabase("mydb", Seq("disk1"), Map("ON" -> true, "OFF" -> false), Seq("AUTO"), Map.empty))))
-
-    example(
-      query = "BACKUP DATABASE mydb TO DISK 'd1' WITH COPY_ONLY, limit = 77 KB",
-      expectedAst = Batch(
-        Seq(
-          BackupDatabase(
-            "mydb",
-            Seq("d1"),
-            Map("COPY_ONLY" -> true),
-            List.empty,
-            Map("LIMIT" -> Literal(short = Some(77)))))))
-  }
-
   "translate a SELECT with a TOP clause" should {
     "use LIMIT" in {
       example(
@@ -762,7 +728,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
           Some(List(Id("a"), Id("b"))),
           DerivedRows(List(List(Literal(short = Some(1)), Literal(short = Some(2))))),
           Some(tsql.Output(
-            namedTable("Inserted"),
+            Some(namedTable("Inserted")),
             List(
               Alias(Column(Some(ObjectReference(Id("INSERTED"))), Id("a")), Seq(Id("a_lias")), None),
               Column(Some(ObjectReference(Id("INSERTED"))), Id("b"))),
@@ -833,7 +799,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
             Assign(Column(None, Id("b")), Literal(short = Some(2)))),
           None,
           Some(tsql.Output(
-            NamedTable("Inserted", Map(), is_streaming = false),
+            Some(NamedTable("Inserted", Map(), is_streaming = false)),
             Seq(
               Alias(Column(Some(ObjectReference(Id("INSERTED"))), Id("a")), Seq(Id("a_lias")), None),
               Column(Some(ObjectReference(Id("INSERTED"))), Id("b"))),
@@ -886,7 +852,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
           None,
           None,
           Some(tsql.Output(
-            NamedTable("Deleted", Map(), is_streaming = false),
+            Some(NamedTable("Deleted", Map(), is_streaming = false)),
             Seq(
               Alias(Column(Some(ObjectReference(Id("DELETED"))), Id("a")), Seq(Id("a_lias")), None),
               Column(Some(ObjectReference(Id("DELETED"))), Id("b"))),

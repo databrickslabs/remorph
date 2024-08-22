@@ -100,7 +100,7 @@ case class AttributeReference(
   override def newInstance(): NamedExpression = copy(exprId = NamedExpression.newExprId)
 }
 
-abstract class Unary(child: Expression) extends Expression {
+abstract class Unary(val child: Expression) extends Expression {
   override def children: Seq[Expression] = Seq(child)
 }
 
@@ -117,6 +117,16 @@ case class Case(expression: Option[Expression], branches: Seq[WhenBranch], other
   override def children: Seq[Expression] = expression.toSeq ++
     branches.flatMap(b => Seq(b.condition, b.expression)) ++ otherwise
   override def dataType: DataType = branches.head.dataType
+}
+
+/** isnotnull(expr) - Returns true if `expr` is not null, or false otherwise. */
+case class IsNotNull(left: Expression) extends Unary(left) {
+  override def dataType: DataType = left.dataType
+}
+
+/** isnull(expr) - Returns true if `expr` is null, or false otherwise. */
+case class IsNull(left: Expression) extends Unary(left) {
+  override def dataType: DataType = left.dataType
 }
 
 abstract class FrameType
