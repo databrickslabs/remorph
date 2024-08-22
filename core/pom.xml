@@ -21,6 +21,8 @@
     <slf4j.version>2.0.9</slf4j.version>
     <antlr.version>4.13.1</antlr.version>
     <sql-formatter.version>2.0.5</sql-formatter.version>
+    <scala-logging.version>3.9.5</scala-logging.version>
+    <databricks-sdk-java.version>0.27.1</databricks-sdk-java.version>
   </properties>
   <dependencyManagement>
     <dependencies>
@@ -40,6 +42,11 @@
       <version>${antlr.version}</version>
     </dependency>
     <dependency>
+      <groupId>org.json4s</groupId>
+      <artifactId>json4s-jackson_${scala.binary.version}</artifactId>
+      <version>4.0.7</version>
+    </dependency>
+    <dependency>
       <groupId>org.scala-lang</groupId>
       <artifactId>scala-library</artifactId>
       <version>${scala.version}</version>
@@ -48,7 +55,7 @@
     <dependency>
       <groupId>com.databricks</groupId>
       <artifactId>databricks-sdk-java</artifactId>
-      <version>0.21.0</version>
+      <version>${databricks-sdk-java.version}</version>
     </dependency>
     <dependency>
       <groupId>org.apache.logging.log4j</groupId>
@@ -63,33 +70,7 @@
     <dependency>
       <groupId>com.typesafe.scala-logging</groupId>
       <artifactId>scala-logging_${scala.binary.version}</artifactId>
-      <version>3.9.5</version>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.spark</groupId>
-      <artifactId>spark-core_${scala.binary.version}</artifactId>
-      <version>${spark.version}</version>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.spark</groupId>
-      <artifactId>spark-sql_${scala.binary.version}</artifactId>
-      <version>${spark.version}</version>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.spark</groupId>
-      <artifactId>spark-catalyst_${scala.binary.version}</artifactId>
-      <version>${spark.version}</version>
-      <classifier>tests</classifier>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.spark</groupId>
-      <artifactId>spark-launcher_${scala.binary.version}</artifactId>
-      <version>${spark.version}</version>
-      <classifier>tests</classifier>
-      <scope>provided</scope>
+      <version>${scala-logging.version}</version>
     </dependency>
     <dependency>
       <groupId>org.scalatest</groupId>
@@ -114,11 +95,6 @@
       <artifactId>pprint_${scala.binary.version}</artifactId>
       <version>0.8.1</version>
       <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>com.typesafe.scala-logging</groupId>
-      <artifactId>scala-logging_${scala.binary.version}</artifactId>
-      <version>3.9.5</version>
     </dependency>
     <dependency>
       <groupId>com.github.vertical-blank</groupId>
