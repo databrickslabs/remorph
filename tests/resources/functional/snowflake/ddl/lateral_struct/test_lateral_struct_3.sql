@@ -6,7 +6,7 @@ SELECT
   i.value:prop::FLOAT as prop,
   candidates
 FROM dwh.vw  d,
-LATERAL FLATTEN (INPUT => d.impressions, OUTER => TRUE) i
+LATERAL FLATTEN (INPUT => d.impressions, OUTER => true) i
 WHERE event_date = '{start_date}' and event_name in ('store.replacements_view');
 
 -- databricks sql:

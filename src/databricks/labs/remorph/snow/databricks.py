@@ -177,7 +177,7 @@ def _to_boolean(self: org_databricks.Databricks.Generator, expression: local_exp
                WHEN LOWER({this}) IN ('false', 'f', 'no', 'n', 'off', '0') THEN FALSE
                ELSE RAISE_ERROR('Boolean value of x is not recognized by TO_BOOLEAN')
                END
-       WHEN ISNOTNULL(TRY_CAST({this} AS DOUBLE)) THEN
+       WHEN TRY_CAST({this} AS DOUBLE) IS NOT NULL THEN
            CASE
                WHEN ISNAN(CAST({this} AS DOUBLE)) OR CAST({this} AS DOUBLE) = DOUBLE('infinity') THEN
                     RAISE_ERROR('Invalid parameter type for TO_BOOLEAN')

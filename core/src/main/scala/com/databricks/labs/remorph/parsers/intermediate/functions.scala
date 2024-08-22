@@ -1478,16 +1478,6 @@ case class SparkVersion() extends LeafExpression with Fn {
 }
 
 /**
- * CASE WHEN expr1 THEN expr2 [WHEN expr3 THEN expr4]* [ELSE expr5] END - When `expr1` = true, returns `expr2`; else
- * when `expr3` = true, returns `expr4`; else returns `expr5`.
- */
-case class CaseWhen(branches: Seq[Expression], otherwise: Option[Expression] = None) extends Expression with Fn {
-  override def prettyName: String = "WHEN"
-  override def children: Seq[Expression] = branches ++ otherwise
-  override def dataType: DataType = UnresolvedType
-}
-
-/**
  * width_bucket(value, min_value, max_value, num_bucket) - Returns the bucket number to which `value` would be assigned
  * in an equiwidth histogram with `num_bucket` buckets, in the range `min_value` to `max_value`."
  */
@@ -2335,8 +2325,8 @@ case class SchemaOfJson(left: Expression, right: Expression) extends Binary(left
 
 /** to_json(expr[, options]) - Returns a JSON string with a given struct value */
 case class StructsToJson(left: Expression, right: Option[Expression]) extends Expression with Fn {
-  override def children: Seq[Expression] = Seq(left) ++ right
   override def prettyName: String = "TO_JSON"
+  override def children: Seq[Expression] = Seq(left) ++ right.toSeq
   override def dataType: DataType = UnresolvedType
 }
 
@@ -2486,4 +2476,12 @@ case class TimestampAdd(unit: String, quantity: Expression, timestamp: Expressio
   override def prettyName: String = "DATEADD"
   override def children: Seq[Expression] = Seq(quantity, timestamp)
   override def dataType: DataType = TimestampType
+}
+
+/**
+ * try_cast(sourceExpr AS targetType) - Returns the value of sourceExpr cast to data type targetType if possible, or
+ * NULL if not possible.
+ */
+case class TryCast(expr: Expression, override val dataType: DataType) extends Expression {
+  override def children: Seq[Expression] = Seq(expr)
 }

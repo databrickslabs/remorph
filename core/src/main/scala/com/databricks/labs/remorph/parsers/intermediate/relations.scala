@@ -106,10 +106,10 @@ case object NullsFirst extends NullOrdering("NULLS FIRST")
 case object NullsLast extends NullOrdering("NULLS LAST")
 
 case class SortOrder(
-    child: Expression,
+    expr: Expression,
     direction: SortDirection = UnspecifiedSortDirection,
     nullOrdering: NullOrdering = SortNullsUnspecified)
-    extends Unary(child) {
+    extends Unary(expr) {
   override def dataType: DataType = child.dataType
 }
 

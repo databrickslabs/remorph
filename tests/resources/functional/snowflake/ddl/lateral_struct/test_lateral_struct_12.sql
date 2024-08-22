@@ -4,7 +4,7 @@ SELECT
   verticals.value AS value
 FROM
   sample_data,
-  LATERAL FLATTEN(input => array_column, OUTER => TRUE ) AS verticals;
+  LATERAL FLATTEN(input => array_column, OUTER => true ) AS verticals;
 
 -- databricks sql:
 SELECT

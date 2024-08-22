@@ -25,7 +25,7 @@ SELECT
 FROM SNOWFLAKE.DATA_SHARING_USAGE.LISTING_ACCESS_HISTORY AS lah
 LATERAL VIEW EXPLODE(lah.listing_objects_accessed) AS los
 LATERAL VIEW EXPLODE(los.value.columns) AS cols
-WHERE TRUE AND CAST(los.value.objectDomain AS STRING) IN ('Table', 'View') AND
+WHERE true AND CAST(los.value.objectDomain AS STRING) IN ('Table', 'View') AND
 query_date BETWEEN '2022-03-01' AND '2022-04-30' AND
 CAST(los.value.objectName AS STRING) = 'DATABASE_NAME.SCHEMA_NAME.TABLE_NAME' AND
 lah.consumer_account_locator = 'CONSUMER_ACCOUNT_LOCATOR' GROUP BY 1, 2, 3;

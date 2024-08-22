@@ -21,6 +21,8 @@ object Literal {
       value.values.toSeq)))
   def apply(values: Seq[Expression]): Literal =
     Literal(array = Some(ArrayExpr(values.headOption.map(_.dataType).getOrElse(UnresolvedType), values)))
+
+  val NULL: Literal = Literal(nullType = Some(NullType))
 }
 
 case class Literal(

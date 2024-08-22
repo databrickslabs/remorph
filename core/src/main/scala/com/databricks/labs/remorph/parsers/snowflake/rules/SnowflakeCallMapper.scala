@@ -1,5 +1,6 @@
 package com.databricks.labs.remorph.parsers.snowflake.rules
 
+import com.databricks.labs.remorph.parsers.intermediate.WhenBranch
 import com.databricks.labs.remorph.parsers.{intermediate => ir}
 import com.databricks.labs.remorph.transpilers.TranspileException
 
@@ -43,6 +44,7 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
         // @see https://docs.snowflake.com/en/sql-reference/functions/flatten
         ir.Explode(args.head)
       case ir.CallFunction("IFNULL", args) => ir.Coalesce(args)
+      case ir.CallFunction("IS_INTEGER", args) => isInteger(args)
       case ir.CallFunction("JSON_EXTRACT_PATH_TEXT", args) => getJsonObject(args)
       case ir.CallFunction("LEN", args) => ir.Length(args.head)
       case ir.CallFunction("LISTAGG", args) =>
@@ -60,17 +62,22 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
       case ir.CallFunction("SYSDATE", _) => ir.CurrentTimestamp()
       case ir.CallFunction("TIMESTAMPADD", args) => timestampAdd(args)
       case ir.CallFunction("TIMESTAMP_FROM_PARTS", args) => makeTimestamp(args)
+      case ir.CallFunction("TO_ARRAY", args) => toArray(args)
+      case ir.CallFunction("TO_BOOLEAN", args) => toBoolean(args)
       case ir.CallFunction("TO_DATE", args) => toDate(args)
       case ir.CallFunction("TO_DOUBLE", args) => ir.CallFunction("DOUBLE", args)
       case ir.CallFunction("TO_NUMBER", args) => toNumber(args)
       case ir.CallFunction("TO_OBJECT", args) => ir.StructsToJson(args.head, args.lift(1))
       case ir.CallFunction("TO_VARCHAR", args) => ir.CallFunction("TO_CHAR", args)
+      case ir.CallFunction("TO_VARIANT", args) => ir.StructsToJson(args.head, None)
       case ir.CallFunction("TO_TIMESTAMP", args) => toTimestamp(args)
+      case ir.CallFunction("TRY_TO_BOOLEAN", args) => tryToBoolean(args)
       case ir.CallFunction("TRY_TO_DATE", args) => tryToDate(args)
       case ir.CallFunction("TRY_TO_NUMBER", args) => tryToNumber(args)
       case ir.CallFunction("TRY_BASE64_DECODE_STRING", args) => ir.UnBase64(args.head)
       case ir.CallFunction("TRY_BASE64_DECODE_BINARY", args) => ir.UnBase64(args.head)
       case ir.CallFunction("UUID_STRING", _) => ir.Uuid()
+      case ir.CallFunction("ZEROIFNULL", args) => ir.If(ir.IsNull(args.head), ir.Literal(0), args.head)
       case x => super.convert(x)
     }
   }
@@ -292,5 +299,77 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
     } else {
       throw TranspileException(s"wrong number of arguments to TO_DATE, expected 1 or 2, got ${args.size}")
     }
+  }
+
+  private def isInteger(args: Seq[ir.Expression]): ir.Expression = {
+    ir.Case(
+      None,
+      Seq(
+        ir.WhenBranch(ir.IsNull(args.head), ir.Literal(nullType = Some(ir.NullType))),
+        ir.WhenBranch(
+          ir.And(ir.RLike(args.head, ir.Literal("^-?[0-9]+$")), ir.IsNotNull(ir.TryCast(args.head, ir.IntegerType))),
+          ir.Literal(true))),
+      Some(ir.Literal(false)))
+  }
+
+  private def toArray(args: Seq[ir.Expression]): ir.Expression = {
+    ir.If(ir.IsNull(args.head), ir.Literal.NULL, ir.CreateArray(Seq(args.head)))
+  }
+
+  private def toBoolean(args: Seq[ir.Expression]): ir.Expression = {
+    toBooleanLike(args.head, ir.RaiseError(ir.Literal("Invalid parameter type for TO_BOOLEAN")))
+  }
+
+  private def tryToBoolean(args: Seq[ir.Expression]): ir.Expression = {
+    toBooleanLike(args.head, ir.Literal.NULL)
+  }
+
+  private def toBooleanLike(arg: ir.Expression, otherwise: ir.Expression): ir.Expression = {
+    val castArgAsDouble = ir.Cast(arg, ir.DoubleType)
+    ir.Case(
+      None,
+      Seq(
+        ir.WhenBranch(ir.IsNull(arg), ir.Literal.NULL),
+        ir.WhenBranch(ir.Equals(ir.TypeOf(arg), ir.Literal("boolean")), ir.CallFunction("BOOLEAN", Seq(arg))),
+        ir.WhenBranch(
+          ir.Equals(ir.TypeOf(arg), ir.Literal("string")),
+          ir.Case(
+            None,
+            Seq(
+              ir.WhenBranch(
+                ir.In(
+                  ir.Lower(arg),
+                  Seq(
+                    ir.Literal("true"),
+                    ir.Literal("t"),
+                    ir.Literal("yes"),
+                    ir.Literal("y"),
+                    ir.Literal("on"),
+                    ir.Literal("1"))),
+                ir.Literal(true)),
+              ir.WhenBranch(
+                ir.In(
+                  ir.Lower(arg),
+                  Seq(
+                    ir.Literal("false"),
+                    ir.Literal("f"),
+                    ir.Literal("no"),
+                    ir.Literal("n"),
+                    ir.Literal("off"),
+                    ir.Literal("0"))),
+                ir.Literal(false))),
+            Some(ir.RaiseError(ir.Literal(s"Boolean value of x is not recognized by TO_BOOLEAN"))))),
+        WhenBranch(
+          ir.IsNotNull(ir.TryCast(arg, ir.DoubleType)),
+          ir.Case(
+            None,
+            Seq(
+              ir.WhenBranch(
+                ir.Or(
+                  ir.IsNaN(castArgAsDouble),
+                  ir.Equals(castArgAsDouble, ir.CallFunction("DOUBLE", Seq(ir.Literal("infinity"))))),
+                ir.RaiseError(ir.Literal("Invalid parameter type for TO_BOOLEAN")))),
+            Some(ir.NotEquals(castArgAsDouble, ir.Literal(0.0)))))),
+      Some(otherwise))
   }
 }

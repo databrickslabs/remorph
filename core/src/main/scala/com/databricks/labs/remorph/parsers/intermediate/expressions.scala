@@ -100,7 +100,7 @@ case class AttributeReference(
   override def newInstance(): NamedExpression = copy(exprId = NamedExpression.newExprId)
 }
 
-abstract class Unary(child: Expression) extends Expression {
+abstract class Unary(val child: Expression) extends Expression {
   override def children: Seq[Expression] = Seq(child)
 }
 
