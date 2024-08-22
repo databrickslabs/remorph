@@ -6,17 +6,20 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
 
   protected val transpiler = new SnowflakeToDatabricksTranspiler
 
-  "Snowflake transpiler" should {
+  "snowsql commands" should {
 
-    "transpile queries" in {
-
-      /* Test BANG ! command */
+    "transpile BANG" in {
       "!set error_flag = true" transpilesTo "--!set error_flag = true;"
       "!define tablename=CENUSTRACKONE" transpilesTo "--!define tablename=CENUSTRACKONE;"
       "!print Include This Text" transpilesTo "--!print Include This Text;"
       "!abort 77589bd1" transpilesTo "--!abort 77589bd1;"
+    }
 
-      /* Test BANG command END */
+  }
+
+  "Snowflake transpiler" should {
+
+    "transpile queries" in {
 
       "SELECT * FROM t1 WHERE  col1 != 100;" transpilesTo (
         s"""SELECT
