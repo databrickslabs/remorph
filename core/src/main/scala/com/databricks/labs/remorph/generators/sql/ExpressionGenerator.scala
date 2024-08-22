@@ -364,6 +364,10 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
         s" $mode $frameBoundaries"
       }
       .getOrElse("")
+    if (window.ignore_nulls) {
+      return s"$expr IGNORE NULLS OVER ($partition$orderBy$windowFrame)"
+    }
+
     s"$expr OVER ($partition$orderBy$windowFrame)"
   }
 
