@@ -508,8 +508,7 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.LogicalPlan] {
       pivot = Some(ir.Pivot(column, values)))
   }
 
-  private def buildLiteral(str: String): ir.Literal =
-    ir.Literal(string = Some(removeQuotesAndBrackets(str)))
+  private def buildLiteral(str: String): ir.Expression = ir.Literal(removeQuotesAndBrackets(str))
 
   private def buildApply(left: ir.LogicalPlan, ctx: ApplyContext): ir.LogicalPlan = {
     val rightRelation = ctx.tableSourceItem().accept(this)

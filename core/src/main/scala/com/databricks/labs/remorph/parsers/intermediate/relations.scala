@@ -84,7 +84,7 @@ case class Tail(child: LogicalPlan, limit: Int) extends UnaryNode {
   override def output: Seq[Attribute] = child.output
 }
 
-case class Pivot(col: Expression, values: Seq[Literal])
+case class Pivot(col: Expression, values: Seq[Expression])
 
 case class Aggregate(
     child: LogicalPlan,

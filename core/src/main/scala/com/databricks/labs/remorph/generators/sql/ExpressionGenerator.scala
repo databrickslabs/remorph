@@ -28,6 +28,8 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
       case _: ir.Arithmetic => arithmetic(ctx, expr)
       case _: ir.Predicate => predicate(ctx, expr)
       case l: ir.Literal => literal(ctx, l)
+      case a: ir.ArrayExpr => arrayExpr(ctx, a)
+      case m: ir.MapExpr => mapExpr(ctx, m)
       case i: ir.IsNull => isNull(ctx, i)
       case i: ir.IsNotNull => isNotNull(ctx, i)
       case fn: ir.Fn => callFunction(ctx, fn)
@@ -64,9 +66,8 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
       case ir.Id(name, false) => s".$name"
       case ir.Id(name, true) if isAlphanum(name) => s".$name"
       case ir.Id(name, true) => s"['$name']"
-      case l: ir.Literal if l.short.isDefined => s"[${l.short.get}]"
-      case l: ir.Literal if l.integer.isDefined => s"[${l.integer.get}]"
-      case l: ir.Literal if l.string.isDefined => s"['${l.string.get}']"
+      case ir.IntLiteral(value) => s"[$value]"
+      case ir.StringLiteral(value) => s"['$value']"
       case i: ir.Expression => throw TranspileException(s"Unsupported path: $i")
     }.mkString
     s"${expression(ctx, j.json)}$path"
@@ -254,58 +255,42 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
     }
   }
 
-  private def literal(ctx: GeneratorContext, l: ir.Literal): String = {
-    l.dataType match {
-      case ir.NullType => "NULL"
-      case ir.BinaryType => orNull(l.binary.map(_.map("%02X" format _).mkString))
-      case ir.BooleanType => orNull(l.boolean.map(_.toString.toLowerCase(Locale.getDefault)))
-      case ir.ShortType => orNull(l.short.map(_.toString))
-      case ir.IntegerType => orNull(l.integer.map(_.toString))
-      case ir.LongType => orNull(l.long.map(_.toString))
-      case ir.FloatType => orNull(l.float.map(_.toString))
-      case ir.DoubleType => orNull(l.double.map(_.toString))
-      case ir.StringType => orNull(l.string.map(singleQuote))
-      case ir.DateType => dateLiteral(l)
-      case ir.TimestampType => timestampLiteral(l)
-      case ir.ArrayType(_) => orNull(l.array.map(arrayExpr(ctx)))
-      case ir.MapType(_, _) => orNull(l.map.map(mapExpr(ctx)))
-      case _ => throw new IllegalArgumentException(s"Unsupported expression: ${l.dataType}")
-    }
+  private def literal(ctx: GeneratorContext, l: ir.Literal): String = l match {
+    case ir.Literal(_, ir.NullType) => "NULL"
+    case ir.Literal(bytes: Array[Byte], ir.BinaryType) => bytes.map("%02X" format _).mkString
+    case ir.Literal(value, ir.BooleanType) => value.toString.toLowerCase(Locale.getDefault)
+    case ir.Literal(value, ir.ShortType) => value.toString
+    case ir.IntLiteral(value) => value.toString
+    case ir.Literal(value, ir.LongType) => value.toString
+    case ir.FloatLiteral(value) => value.toString
+    case ir.DoubleLiteral(value) => value.toString
+    case ir.DecimalLiteral(value) => value.toString
+    case ir.Literal(value: String, ir.StringType) => singleQuote(value)
+    case ir.Literal(epochDay: Long, ir.DateType) =>
+      val dateStr = singleQuote(LocalDate.ofEpochDay(epochDay).format(dateFormat))
+      s"CAST($dateStr AS DATE)"
+    case ir.Literal(epochSecond: Long, ir.TimestampType) =>
+      val timestampStr = singleQuote(
+        LocalDateTime
+          .from(ZonedDateTime.ofInstant(Instant.ofEpochSecond(epochSecond), ZoneId.of("UTC")))
+          .format(timeFormat))
+      s"CAST($timestampStr AS TIMESTAMP)"
+    case _ =>
+      throw new IllegalArgumentException(s"Unsupported expression: ${l.dataType}")
   }
 
-  private def timestampLiteral(l: ir.Literal) = {
-    l.timestamp match {
-      case Some(timestamp) =>
-        val timestampStr = singleQuote(
-          LocalDateTime
-            .from(ZonedDateTime.ofInstant(Instant.ofEpochSecond(timestamp), ZoneId.of("UTC")))
-            .format(timeFormat))
-        s"CAST($timestampStr AS TIMESTAMP)"
-      case None => "NULL"
-    }
+  private def arrayExpr(ctx: GeneratorContext, a: ir.ArrayExpr): String = {
+    val elementsStr = a.children.map(expression(ctx, _)).mkString(", ")
+    s"ARRAY($elementsStr)"
   }
 
-  private def dateLiteral(l: ir.Literal) = {
-    l.date match {
-      case Some(date) =>
-        val dateStr = singleQuote(LocalDate.ofEpochDay(date).format(dateFormat))
-        s"CAST($dateStr AS DATE)"
-      case None => "NULL"
-    }
-  }
-
-  private def mapExpr(ctx: GeneratorContext)(map: ir.MapExpr): String = {
-    val entries = map.keys.zip(map.values).map { case (key, value) =>
-      s"${literal(ctx, key)}, ${expression(ctx, value)}"
-    }
-    s"MAP(${entries.mkString(", ")})"
-  }
-
-  private def arrayExpr(ctx: GeneratorContext)(array: ir.ArrayExpr): String = {
-    val elements = array.elements.map { element =>
-      expression(ctx, element)
-    }
-    s"ARRAY(${elements.mkString(", ")})"
+  private def mapExpr(ctx: GeneratorContext, m: ir.MapExpr): String = {
+    val entriesStr = m.map
+      .map { case (key, value) =>
+        s"${expression(ctx, key)}, ${expression(ctx, value)}"
+      }
+      .mkString(", ")
+    s"MAP($entriesStr)"
   }
 
   private def id(ctx: GeneratorContext, id: ir.Id): String = id match {

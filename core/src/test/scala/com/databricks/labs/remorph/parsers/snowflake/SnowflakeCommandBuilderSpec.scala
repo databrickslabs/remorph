@@ -22,7 +22,7 @@ class SnowflakeCommandBuilderSpec
       CreateVariable(
         name = Id("X"),
         dataType = DecimalType(None, None),
-        defaultExpr = Some(Literal(short = Some(0))),
+        defaultExpr = Some(Literal(0)),
         replace = false))
 
     example(
@@ -36,7 +36,7 @@ class SnowflakeCommandBuilderSpec
       CreateVariable(
         name = Id("price"),
         dataType = DecimalType(Some(13), Some(2)),
-        defaultExpr = Some(Literal(float = Some(111.5f))),
+        defaultExpr = Some(Literal(111.5f)),
         replace = false))
 
     example(
@@ -55,7 +55,7 @@ class SnowflakeCommandBuilderSpec
   }
 
   "translate Let to SetVariable expressions" in {
-    example("LET X := 1;", _.let(), SetVariable(name = Id("X"), dataType = None, value = Literal(short = Some(1))))
+    example("LET X := 1;", _.let(), SetVariable(name = Id("X"), dataType = None, value = Literal(1)))
 
     example(
       "select_statement := 'SELECT * FROM table WHERE id = ' || id;",
@@ -63,23 +63,17 @@ class SnowflakeCommandBuilderSpec
       SetVariable(
         name = Id("select_statement"),
         dataType = None,
-        value = Concat(Seq(Literal(string = Some("SELECT * FROM table WHERE id = ")), Id("id")))))
+        value = Concat(Seq(Literal("SELECT * FROM table WHERE id = "), Id("id")))))
 
     example(
       "LET price NUMBER(13,2) DEFAULT 111.50;",
       _.let(),
-      SetVariable(
-        name = Id("price"),
-        dataType = Some(DecimalType(Some(13), Some(2))),
-        value = Literal(float = Some(111.5f))))
+      SetVariable(name = Id("price"), dataType = Some(DecimalType(Some(13), Some(2))), value = Literal(111.5f)))
 
     example(
       "LET price NUMBER(13,2) := 121.55;",
       _.let(),
-      SetVariable(
-        name = Id("price"),
-        dataType = Some(DecimalType(Some(13), Some(2))),
-        value = Literal(float = Some(121.55f))))
+      SetVariable(name = Id("price"), dataType = Some(DecimalType(Some(13), Some(2))), value = Literal(121.55f)))
 
     example(
       "LET query_statement RESULTSET := (SELECT col1 FROM some_table);",

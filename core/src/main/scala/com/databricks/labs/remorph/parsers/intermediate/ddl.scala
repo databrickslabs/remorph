@@ -1,6 +1,19 @@
 package com.databricks.labs.remorph.parsers.intermediate
 
-abstract class DataType
+abstract class DataType {
+  def isPrimitive: Boolean = this match {
+    case BooleanType => true
+    case ByteType(_) => true
+    case ShortType => true
+    case IntegerType => true
+    case LongType => true
+    case FloatType => true
+    case DoubleType => true
+    case StringType => true
+    case _ => false
+  }
+}
+
 case object NullType extends DataType
 case object BooleanType extends DataType
 case object BinaryType extends DataType
@@ -14,6 +27,13 @@ case object LongType extends DataType
 
 case object FloatType extends DataType
 case object DoubleType extends DataType
+
+object DecimalType {
+  def apply(): DecimalType = DecimalType(None, None)
+  def apply(precision: Int, scale: Int): DecimalType = DecimalType(Some(precision), Some(scale))
+  def fromBigDecimal(d: BigDecimal): DecimalType = DecimalType(Some(d.precision), Some(d.scale))
+}
+
 case class DecimalType(precision: Option[Int], scale: Option[Int]) extends DataType
 
 // String types

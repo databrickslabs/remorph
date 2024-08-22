@@ -5,9 +5,8 @@ import com.databricks.labs.remorph.parsers.{intermediate => ir}
 import com.databricks.labs.remorph.transpilers.TranspileException
 
 class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
-  private val nullLiteral: ir.Literal = ir.Literal(nullType = Some(ir.NullType))
-  private val zeroLiteral: ir.Literal = ir.Literal(0)
-  private val oneLiteral: ir.Literal = ir.Literal(1)
+  private val zeroLiteral: ir.Literal = ir.IntLiteral(0)
+  private val oneLiteral: ir.Literal = ir.IntLiteral(1)
 
   override def convert(call: ir.Fn): ir.Expression = {
     withNormalizedName(call) match {
@@ -15,7 +14,7 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
       case ir.CallFunction("ARRAY_CAT", args) => ir.Concat(args)
       case ir.CallFunction("ARRAY_CONSTRUCT", args) => ir.CreateArray(args)
       case ir.CallFunction("ARRAY_CONSTRUCT_COMPACT", args) =>
-        ir.ArrayExcept(ir.CreateArray(args), ir.CreateArray(Seq(nullLiteral)))
+        ir.ArrayExcept(ir.CreateArray(args), ir.CreateArray(Seq(ir.Literal.Null)))
       case ir.CallFunction("ARRAY_CONTAINS", args) => ir.ArrayContains(args(1), args.head)
       case ir.CallFunction("ARRAY_INTERSECTION", args) => ir.ArrayIntersect(args.head, args(1))
       case ir.CallFunction("ARRAY_SIZE", args) => ir.Size(args.head)
@@ -82,7 +81,8 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
     }
   }
 
-  private def nullIfZero(expr: ir.Expression): ir.Expression = ir.If(ir.Equals(expr, zeroLiteral), nullLiteral, expr)
+  private def nullIfZero(expr: ir.Expression): ir.Expression =
+    ir.If(ir.Equals(expr, zeroLiteral), ir.Literal.Null, expr)
 
   private def div0null(args: Seq[ir.Expression]): ir.Expression = args match {
     case Seq(left, right) =>
@@ -95,13 +95,13 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
   }
 
   private def addOne(expr: ir.Expression): ir.Expression = ir.Add(expr, oneLiteral) match {
-    case ir.Add(IntLiteral(a), IntLiteral(b)) => ir.Literal(a + b)
+    case ir.Add(ir.IntLiteral(a), ir.IntLiteral(b)) => ir.Literal(a + b)
     case x => x
   }
 
   private def getJsonObject(args: Seq[ir.Expression]): ir.Expression = {
     val translatedFmt = args match {
-      case Seq(_, StringLiteral(path)) => ir.Literal("$." + path)
+      case Seq(_, ir.StringLiteral(path)) => ir.Literal("$." + path)
       case Seq(_, id: ir.Id) => ir.Concat(Seq(ir.Literal("$."), id))
 
       // As well as CallFunctions, we can receive concrete functions, which are already resolved,
@@ -115,7 +115,7 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
 
   private def split(args: Seq[ir.Expression]): ir.Expression = {
     val delim = args(1) match {
-      case StringLiteral(d) => ir.Literal(s"[$d]")
+      case ir.StringLiteral(d) => ir.Literal(s"[$d]")
       case e => ir.Concat(Seq(ir.Literal("["), e, ir.Literal("]")))
     }
     ir.StringSplit(args.head, delim, None)
@@ -128,14 +128,14 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
     } else if (args.size == 2) {
       ir.ToNumber(args.head, args(1))
     } else {
-      val fmt = getArg(1).collect { case f @ StringLiteral(_) =>
+      val fmt = getArg(1).collect { case f @ ir.StringLiteral(_) =>
         f
       }
       val precPos = fmt.fold(1)(_ => 2)
-      val prec = getArg(precPos).collect { case IntLiteral(p) =>
+      val prec = getArg(precPos).collect { case ir.IntLiteral(p) =>
         p
       }
-      val scale = getArg(precPos + 1).collect { case IntLiteral(s) =>
+      val scale = getArg(precPos + 1).collect { case ir.IntLiteral(s) =>
         s
       }
       val castedExpr = fmt.fold(args.head)(_ => ir.ToNumber(args.head, args(1)))
@@ -148,17 +148,17 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
     if (args.size == 1) {
       ir.Cast(args.head, ir.DecimalType(Some(38), Some(0)))
     } else {
-      val fmt = getArg(1).collect { case f @ StringLiteral(_) =>
+      val fmt = getArg(1).collect { case f @ ir.StringLiteral(_) =>
         f
       }
       val precPos = fmt.fold(1)(_ => 2)
       val prec = getArg(precPos)
-        .collect { case IntLiteral(p) =>
+        .collect { case ir.IntLiteral(p) =>
           p
         }
         .orElse(Some(38))
       val scale = getArg(precPos + 1)
-        .collect { case IntLiteral(s) =>
+        .collect { case ir.IntLiteral(s) =>
           s
         }
         .orElse(Some(0))
@@ -180,8 +180,8 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
    * first part" while it raises an error in DB SQL.
    */
   private def splitPart(args: Seq[ir.Expression]): ir.Expression = args match {
-    case Seq(str, delim, IntLiteral(0)) => ir.StringSplitPart(str, delim, oneLiteral)
-    case Seq(str, delim, IntLiteral(p)) => ir.StringSplitPart(str, delim, ir.Literal(p))
+    case Seq(str, delim, ir.IntLiteral(0)) => ir.StringSplitPart(str, delim, oneLiteral)
+    case Seq(str, delim, ir.IntLiteral(p)) => ir.StringSplitPart(str, delim, ir.Literal(p))
     case Seq(str, delim, expr) =>
       ir.StringSplitPart(str, delim, ir.If(ir.Equals(expr, zeroLiteral), oneLiteral, expr))
     case other =>
@@ -260,11 +260,11 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
       // determine whether it's an amount of nanoseconds (ie. a number) or a timezone reference
       // (ie. a string)
       args(6) match {
-        case IntLiteral(_) =>
+        case ir.IntLiteral(_) =>
           // We ignore that last parameter as DB SQL doesn't handle nanoseconds
           // TODO warn the user about this
           ir.MakeTimestamp(args.head, args(1), args(2), args(3), args(4), args(5), None)
-        case timezone @ StringLiteral(_) =>
+        case timezone @ ir.StringLiteral(_) =>
           ir.MakeTimestamp(args.head, args(1), args(2), args(3), args(4), args(5), Some(timezone))
         case _ => throw TranspileException("could not interpret the last argument to TIMESTAMP_FROM_PARTS")
       }
