@@ -140,7 +140,7 @@ class SnowflakeExpressionBuilderSpec
       exampleExpr("COUNT(*)", _.aggregateFunction(), CallFunction("COUNT", Seq(Star(None))))
 
       exampleExpr("LISTAGG(x, ',')", _.aggregateFunction(), CallFunction("LISTAGG", Seq(Id("x"), Literal(","))))
-      exampleExpr("ARRAY_AGG(x)", _.aggregateFunction(), CallFunction("ARRAYAGG", Seq(Id("x"))))
+      exampleExpr("ARRAY_AGG(x)", _.aggregateFunction(), CallFunction("ARRAY_AGG", Seq(Id("x"))))
     }
 
     "translate a query with a window function" in {

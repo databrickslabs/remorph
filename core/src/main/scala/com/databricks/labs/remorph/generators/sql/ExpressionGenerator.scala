@@ -56,6 +56,7 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
       case ir.Exists(subquery) => s"EXISTS (${ctx.logical.generate(ctx, subquery)})"
       case a: ir.ArrayAccess => arrayAccess(ctx, a)
       case j: ir.JsonAccess => jsonAccess(ctx, j)
+      case l: ir.LambdaFunction => lambdaFunction(ctx, l)
       case null => "" // don't fail transpilation if the expression is null
       case x => throw TranspileException(s"Unsupported expression: $x")
     }
@@ -431,6 +432,17 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
     s"EXTRACT(${expression(ctx, e.left)} FROM ${expression(ctx, e.right)})"
   }
 
+  private def lambdaFunction(ctx: GeneratorContext, l: ir.LambdaFunction): String = {
+    val parameterList = l.arguments.map(lambdaArgument)
+    val parameters = if (parameterList.size > 1) { parameterList.mkString("(", ", ", ")") }
+    else { parameterList.mkString }
+    val body = expression(ctx, l.function)
+    s"$parameters -> $body"
+  }
+
+  private def lambdaArgument(arg: ir.UnresolvedNamedLambdaVariable): String = {
+    arg.name_parts.mkString(".")
+  }
   private def singleQuote(s: String): String = s"'$s'"
   private def isAlphanum(s: String): Boolean = s.forall(_.isLetterOrDigit)
 }
