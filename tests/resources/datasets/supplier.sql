@@ -1,14 +1,13 @@
 --------------------------------------------------------------------------------
-
-DROP TABLE if EXISTS supplier;
-CREATE TABLE if NOT EXISTS supplier (
+CREATE TABLE supplier (
   s_suppkey BIGINT,
-  s_name STRING,
-  s_address STRING,
-  s_nationkey BIGINT,
-  s_phone STRING,
+  s_name VARCHAR(500),
+  s_address VARCHAR(500),
+  s_nationkey VARCHAR(500),
+  s_phone VARCHAR(500),
   s_acctbal DECIMAL(18,2),
-  s_comment STRING);
+  s_comment VARCHAR(500)
+  );
 
 --------------------------------------------------------------------------------
 

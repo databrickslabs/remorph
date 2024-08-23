@@ -1,15 +1,14 @@
 ----------------------------------------------------------------
-
-DROP TABLE if EXISTS supplier;
-CREATE TABLE if NOT EXISTS customer (
+CREATE TABLE customer (
   c_custkey BIGINT,
-  c_name STRING,
-  c_address STRING,
+  c_name VARCHAR(500),
+  c_address VARCHAR(500),
   c_nationkey BIGINT,
-  c_phone STRING,
+  c_phone VARCHAR(500),
   c_acctbal DECIMAL(18,2),
-  c_mktsegment STRING,
-  c_comment STRING);
+  c_mktsegment VARCHAR(500),
+  c_comment VARCHAR(500)
+  );
 
 ----------------------------------------------------------------
 
