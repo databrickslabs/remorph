@@ -217,6 +217,7 @@ def _parse_tonumber(args: list) -> local_expression.ToNumber:
 class Snow(Snowflake):
     # Instantiate Snowflake Dialect
     snowflake = Snowflake()
+    snowflake.SUPPORTS_COLUMN_JOIN_MARKS = True
 
     class Tokenizer(Snowflake.Tokenizer):
 
@@ -228,7 +229,10 @@ class Snow(Snowflake):
             r"(?i)var\s+\w+\s+=\s+\w+?": TokenType.VAR,
         }
 
-        KEYWORDS = {**Snowflake.Tokenizer.KEYWORDS}
+        KEYWORDS = {
+            **Snowflake.Tokenizer.KEYWORDS,
+            "(+)": TokenType.JOIN_MARKER,
+        }
         # DEC is not a reserved keyword in Snowflake it can be used as table alias
         KEYWORDS.pop("DEC")
 
