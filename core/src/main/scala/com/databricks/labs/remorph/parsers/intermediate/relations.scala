@@ -19,7 +19,7 @@ case class NamedTable(unparsed_identifier: String, options: Map[String, String],
 
 case class DataSource(
     format: String,
-    schema: String,
+    schemaString: String,
     options: Map[String, String],
     paths: Seq[String],
     predicates: Seq[String],
@@ -31,7 +31,13 @@ case class DataSource(
 case class Project(input: LogicalPlan, override val expressions: Seq[Expression]) extends UnaryNode {
   override def child: LogicalPlan = input
   // TODO: add resolver for Star
-  override def output: Seq[Attribute] = expressions.map(_.asInstanceOf[Attribute])
+  override def output: Seq[Attribute] = expressions.map {
+    case a: Attribute => a
+    case Alias(child, Id(name, _)) => AttributeReference(name, child.dataType)
+    case Id(name, _) => AttributeReference(name, UnresolvedType)
+    case Column(_, Id(name, _)) => AttributeReference(name, UnresolvedType)
+    case expr: Expression => throw new UnsupportedOperationException(s"cannot convert to attribute: $expr")
+  }
 }
 
 case class Filter(input: LogicalPlan, condition: Expression) extends UnaryNode {
@@ -131,7 +137,7 @@ case class Deduplicate(
   override def expressions: Seq[Expression] = super.expressions ++ column_names
 }
 
-case class LocalRelation(child: LogicalPlan, data: Array[Byte], schema: String) extends UnaryNode {
+case class LocalRelation(child: LogicalPlan, data: Array[Byte], schemaString: String) extends UnaryNode {
   override def output: Seq[Attribute] = child.output
 }
 

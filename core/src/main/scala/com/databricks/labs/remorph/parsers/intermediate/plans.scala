@@ -148,6 +148,17 @@ abstract class LogicalPlan extends Plan[LogicalPlan] {
    * Returns true if all its children of this query plan have been resolved.
    */
   def childrenResolved: Boolean = children.forall(_.resolved)
+
+  def schema: DataType = {
+    val concrete = output.forall(_.isInstanceOf[Attribute])
+    if (concrete) {
+      StructType(output.map { a: Attribute =>
+        StructField(a.name, a.dataType)
+      })
+    } else {
+      UnresolvedType
+    }
+  }
 }
 
 abstract class LeafNode extends LogicalPlan {

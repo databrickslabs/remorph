@@ -1,5 +1,6 @@
 package com.databricks.labs.remorph.coverage
 
+import org.scalactic.source
 import org.scalatest.flatspec.AnyFlatSpec
 
 import java.nio.file.Paths
