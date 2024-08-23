@@ -30,7 +30,7 @@ trait ParserTestCommon[P <: Parser] extends PlanComparison { self: Assertions =>
     tree
   }
 
-  protected def example[R <: RuleContext](query: String, rule: P => R, expectedAst: ir.LogicalPlan) = {
+  protected def example[R <: RuleContext](query: String, rule: P => R, expectedAst: ir.LogicalPlan): Unit = {
     val sfTree = parseString(query, rule)
     if (errListener != null && errListener.errorCount != 0) {
       errListener.logErrors()
@@ -41,7 +41,7 @@ trait ParserTestCommon[P <: Parser] extends PlanComparison { self: Assertions =>
     comparePlans(expectedAst, result.asInstanceOf[ir.LogicalPlan])
   }
 
-  protected def exampleExpr[R <: RuleContext](query: String, rule: P => R, expectedAst: ir.Expression) = {
+  protected def exampleExpr[R <: RuleContext](query: String, rule: P => R, expectedAst: ir.Expression): Unit = {
     val sfTree = parseString(query, rule)
     if (errListener != null && errListener.errorCount != 0) {
       errListener.logErrors()

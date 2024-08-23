@@ -132,7 +132,7 @@ class SnowflakeDDLBuilderSpec
         expectedAst = CreateInlineUDF(
           name = "echo_varchar",
           returnType = StringType,
-          parameters = Seq(FunctionParameter("x", StringType, Some(Literal(string = Some("foo"))))),
+          parameters = Seq(FunctionParameter("x", StringType, Some(Literal("foo")))),
           runtimeInfo = ScalaRuntimeInfo(runtimeVersion = Some("2.12"), imports = Seq(), handler = "Echo.echoVarchar"),
           acceptsNullParameters = true,
           comment = None,

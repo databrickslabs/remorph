@@ -12,7 +12,7 @@ trait PlanComparison {
     val actual = reorderComparisons(b)
     if (expected != actual) {
       fail(s"""
-              |== FAIL: Plans do not match ===
+              |== FAIL: Plans do not match (expected vs actual) ===
               |${Strings.sideBySide(pretty(expected), pretty(actual)).mkString("\n")}
          """.stripMargin)
     }

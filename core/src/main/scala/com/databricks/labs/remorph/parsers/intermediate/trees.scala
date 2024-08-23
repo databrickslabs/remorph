@@ -120,7 +120,7 @@ abstract class TreeNode[BaseType <: TreeNode[BaseType]] extends Product {
   def map[A](f: BaseType => A): Seq[A] = {
     val ret = new collection.mutable.ArrayBuffer[A]()
     foreach(ret += f(_))
-    ret.toSeq
+    ret.toList.toSeq
   }
 
   /**
@@ -129,7 +129,7 @@ abstract class TreeNode[BaseType <: TreeNode[BaseType]] extends Product {
   def flatMap[A](f: BaseType => TraversableOnce[A]): Seq[A] = {
     val ret = new collection.mutable.ArrayBuffer[A]()
     foreach(ret ++= f(_))
-    ret.toSeq
+    ret.toList.toSeq
   }
 
   /**
@@ -140,7 +140,7 @@ abstract class TreeNode[BaseType <: TreeNode[BaseType]] extends Product {
     val ret = new collection.mutable.ArrayBuffer[B]()
     val lifted = pf.lift
     foreach(node => lifted(node).foreach(ret.+=))
-    ret.toSeq
+    ret.toList.toSeq
   }
 
   /**

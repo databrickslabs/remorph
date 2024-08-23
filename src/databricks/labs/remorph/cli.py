@@ -10,6 +10,7 @@ from databricks.labs.remorph.reconcile.runner import ReconcileRunner
 from databricks.labs.remorph.lineage import lineage_generator
 from databricks.labs.remorph.transpiler.execute import morph
 from databricks.labs.remorph.reconcile.execute import RECONCILE_OPERATION_NAME, AGG_RECONCILE_OPERATION_NAME
+from databricks.labs.remorph.jvmproxy import proxy_command
 
 from databricks.sdk import WorkspaceClient
 
@@ -21,6 +22,9 @@ DIALECTS = {name for name, dialect in SQLGLOT_DIALECTS.items()}
 
 def raise_validation_exception(msg: str) -> Exception:
     raise ValueError(msg)
+
+
+proxy_command(remorph, "debug-script")
 
 
 @remorph.command

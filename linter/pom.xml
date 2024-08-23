@@ -21,6 +21,11 @@
     <endComment>-- databricks sql:</endComment>
     <sourceDialect></sourceDialect>
     <extractor></extractor>
+    <os-lib.version>0.10.1</os-lib.version>
+    <mainargs.version>0.7.0</mainargs.version>
+    <ujson.version>3.0.0-M2</ujson.version>
+    <scalatest.version>3.3.0-SNAP3</scalatest.version>
+    <exec-maven-plugin.version>3.4.1</exec-maven-plugin.version>
   </properties>
   <dependencies>
     <dependency>
@@ -31,22 +36,22 @@
     <dependency>
       <groupId>com.lihaoyi</groupId>
       <artifactId>os-lib_${scala.binary.version}</artifactId>
-      <version>0.10.1</version>
+      <version>${os-lib.version}</version>
     </dependency>
     <dependency>
       <groupId>com.lihaoyi</groupId>
       <artifactId>mainargs_${scala.binary.version}</artifactId>
-      <version>0.7.0</version>
+      <version>${mainargs.version}</version>
     </dependency>
     <dependency>
       <groupId>com.lihaoyi</groupId>
       <artifactId>ujson_${scala.binary.version}</artifactId>
-      <version>3.0.0-M2</version>
+      <version>${ujson.version}</version>
     </dependency>
     <dependency>
       <groupId>org.scalatest</groupId>
       <artifactId>scalatest_${scala.binary.version}</artifactId>
-      <version>3.3.0-SNAP3</version>
+      <version>${scalatest.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -60,14 +65,9 @@
       <version>0.21.0</version>
     </dependency>
     <dependency>
-      <groupId>org.apache.spark</groupId>
-      <artifactId>spark-core_${scala.binary.version}</artifactId>
-      <version>${spark.version}</version>
-    </dependency>
-    <dependency>
       <groupId>org.codehaus.mojo</groupId>
       <artifactId>exec-maven-plugin</artifactId>
-      <version>3.4.1</version>
+      <version>${exec-maven-plugin.version}</version>
     </dependency>
   </dependencies>
   <build>
@@ -77,7 +77,7 @@
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>exec-maven-plugin</artifactId>
-        <version>3.4.1</version>
+        <version>${exec-maven-plugin.version}</version>
         <configuration>
           <mainClass>com.databricks.labs.remorph.linter.Main</mainClass>
           <arguments>
@@ -128,7 +128,6 @@
           </includes>
           <libDirectory>src/main/antlr4/library</libDirectory>
         </configuration>
-
       </plugin>
     </plugins>
   </build>

@@ -18,9 +18,7 @@ class LogicalPlanGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.L
       ir.WithOptions(
         ir.Project(namedTable("t"), Seq(ir.Star(None))),
         ir.Options(
-          Map(
-            "MAXRECURSION" -> ir.Literal(short = Some(10)),
-            "OPTIMIZE" -> ir.Column(None, ir.Id("FOR", caseSensitive = true))),
+          Map("MAXRECURSION" -> ir.Literal(10), "OPTIMIZE" -> ir.Column(None, ir.Id("FOR", caseSensitive = true))),
           Map("SOMESTROPT" -> "STRINGOPTION"),
           Map("SOMETHING" -> true, "SOMETHINGELSE" -> false),
           List("SOMEOTHER"))) generates
@@ -116,8 +114,8 @@ class LogicalPlanGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.L
         ir.Options(
           Map(
             "KEEPFIXED" -> ir.Column(None, ir.Id("PLAN")),
-            "FAST" -> ir.Literal(short = Some(666)),
-            "MAX_GRANT_PERCENT" -> ir.Literal(short = Some(30))),
+            "FAST" -> ir.Literal(666),
+            "MAX_GRANT_PERCENT" -> ir.Literal(30)),
           Map(),
           Map("FLAME" -> false, "QUICKLY" -> true),
           List())) generates

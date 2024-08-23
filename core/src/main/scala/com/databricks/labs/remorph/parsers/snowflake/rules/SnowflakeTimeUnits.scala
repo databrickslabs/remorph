@@ -36,7 +36,7 @@ object SnowflakeTimeUnits extends IRHelpers {
   def translateDateOrTimePart(input: ir.Expression): String = input match {
     case ir.Id(part, _) if SnowflakeTimeUnits.findDateOrTimePart(part).nonEmpty =>
       SnowflakeTimeUnits.findDateOrTimePart(part).get
-    case StringLiteral(part) if SnowflakeTimeUnits.findDateOrTimePart(part).nonEmpty =>
+    case ir.StringLiteral(part) if SnowflakeTimeUnits.findDateOrTimePart(part).nonEmpty =>
       SnowflakeTimeUnits.findDateOrTimePart(part).get
     case x => throw TranspileException(s"unknown date/time part $x")
   }
