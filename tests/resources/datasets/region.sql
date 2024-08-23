@@ -1,10 +1,8 @@
 --------------------------------------------------------------------------------
-
-DROP TABLE if EXISTS region;
-CREATE TABLE if NOT EXISTS region (
+CREATE TABLE region (
   r_regionkey BIGINT,
-  r_name STRING,
-  r_comment STRING
+  r_name VARCHAR(500),
+  r_comment VARCHAR(500)
 );
 --------------------------------------------------------------------------------
 

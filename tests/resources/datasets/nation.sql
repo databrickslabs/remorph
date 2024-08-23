@@ -1,11 +1,10 @@
 ------------------------------------------------------------
-
-DROP TABLE if EXISTS nation;
-CREATE TABLE if NOT EXISTS nation (
+CREATE TABLE nation (
   n_nationkey BIGINT,
-  n_name STRING,
+  n_name VARCHAR(500),
   n_regionkey BIGINT,
-  n_comment STRING);
+  n_comment VARCHAR(500)
+  );
 
 ------------------------------------------------------------
 
