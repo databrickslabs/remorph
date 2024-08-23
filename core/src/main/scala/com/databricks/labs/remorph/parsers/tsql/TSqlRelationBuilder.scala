@@ -141,10 +141,10 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.LogicalPlan] {
 
   private def buildDistinct(from: ir.LogicalPlan, columns: Seq[ir.Expression]): ir.LogicalPlan = {
     val columnNames = columns.collect {
-      case ir.Column(_, c) => Seq(c)
+      case ir.Column(_, c) => c
       case ir.Alias(_, a) => a
       // Note that the ir.Star(None) is not matched so that we set all_columns_as_keys to true
-    }.flatten
+    }
     ir.Deduplicate(from, columnNames, all_columns_as_keys = columnNames.isEmpty, within_watermark = false)
   }
 

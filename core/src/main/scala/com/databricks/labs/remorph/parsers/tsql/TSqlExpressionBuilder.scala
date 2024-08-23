@@ -433,7 +433,7 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
     val columnDef = ctx.expression().accept(this)
     val aliasOption = Option(ctx.columnAlias()).orElse(Option(ctx.asColumnAlias()).map(_.columnAlias())).map { alias =>
       val name = Option(alias.id()).map(visitId).getOrElse(ir.Id(alias.STRING().getText))
-      ir.Alias(columnDef, Seq(name))
+      ir.Alias(columnDef, name)
     }
     aliasOption.getOrElse(columnDef)
   }
@@ -507,7 +507,7 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
     val expression = Option(ctx.expression()).map(_.accept(this)).getOrElse(ctx.asterisk().accept(this))
     val aliasOption = Option(ctx.asColumnAlias()).map(_.columnAlias()).map { alias =>
       val name = Option(alias.id()).map(visitId).getOrElse(ir.Id(alias.STRING().getText))
-      ir.Alias(expression, Seq(name))
+      ir.Alias(expression, name)
     }
     aliasOption.getOrElse(expression)
   }

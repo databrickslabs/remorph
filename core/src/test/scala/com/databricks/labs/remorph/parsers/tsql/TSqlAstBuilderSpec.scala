@@ -40,9 +40,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
           Seq(
             Project(
               namedTable("dbo.table_x"),
-              Seq(
-                Alias(simplyNamedColumn("a"), Seq(Id("b"))),
-                Alias(simplyNamedColumn("BigCol"), Seq(Id("J"))))))))
+              Seq(Alias(simplyNamedColumn("a"), Id("b")), Alias(simplyNamedColumn("BigCol"), Id("J")))))))
     }
 
     "accept constants in selects" in {
@@ -342,7 +340,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
               simplyNamedColumn("Name"),
               Alias(
                 ScalarSubquery(Project(namedTable("Employees"), Seq(simplyNamedColumn("AvgSalary")))),
-                Seq(Id("AverageSalary"))))))))
+                Id("AverageSalary")))))))
     }
   }
 
@@ -359,25 +357,19 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
       expectedAst = Batch(
         Seq(Project(
           Deduplicate(namedTable("t"), List(Id("a"), Id("bb")), all_columns_as_keys = false, within_watermark = false),
-          Seq(simplyNamedColumn("a"), Alias(simplyNamedColumn("b"), Seq(Id("bb"))))))))
+          Seq(simplyNamedColumn("a"), Alias(simplyNamedColumn("b"), Id("bb")))))))
   }
 
   "Columns specified with dedicated syntax" in {
     example(
       query = "SELECT NEXT VALUE FOR mySequence As nextVal",
       expectedAst = Batch(
-        Seq(
-          Project(
-            NoTable(),
-            Seq(Alias(CallFunction("MONOTONICALLY_INCREASING_ID", List.empty), Seq(Id("nextVal"))))))))
+        Seq(Project(NoTable(), Seq(Alias(CallFunction("MONOTONICALLY_INCREASING_ID", List.empty), Id("nextVal")))))))
 
     example(
       query = "SELECT NEXT VALUE FOR var.mySequence As nextVal",
       expectedAst = Batch(
-        Seq(
-          Project(
-            NoTable(),
-            Seq(Alias(CallFunction("MONOTONICALLY_INCREASING_ID", List.empty), Seq(Id("nextVal"))))))))
+        Seq(Project(NoTable(), Seq(Alias(CallFunction("MONOTONICALLY_INCREASING_ID", List.empty), Id("nextVal")))))))
 
     example(
       query = "SELECT NEXT VALUE FOR var.mySequence OVER (ORDER BY myColumn) As nextVal ",
@@ -390,7 +382,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
               List.empty,
               List(SortOrder(simplyNamedColumn("myColumn"), Ascending, SortNullsUnspecified)),
               None),
-            Seq(Id("nextVal"))))))))
+            Id("nextVal")))))))
 
   }
 
@@ -427,7 +419,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
                 Seq(
                   simplyNamedColumn("col1"),
                   simplyNamedColumn("fred"),
-                  Alias(CallFunction("COUNT", Seq(simplyNamedColumn("OrderDate"))), Seq(Id("counter"))))),
+                  Alias(CallFunction("COUNT", Seq(simplyNamedColumn("OrderDate"))), Id("counter")))),
               Id("cteTable1"),
               Seq(Id("col1"), Id("col2"), Id("col3count"))),
             SubqueryAlias(
@@ -436,7 +428,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
                 Seq(
                   simplyNamedColumn("col1"),
                   simplyNamedColumn("fred"),
-                  Alias(CallFunction("COUNT", Seq(simplyNamedColumn("OrderDate"))), Seq(Id("counter"))))),
+                  Alias(CallFunction("COUNT", Seq(simplyNamedColumn("OrderDate"))), Id("counter")))),
               Id("cteTable2"),
               Seq(Id("colx"), Id("coly"), Id("colxcount")))),
           Project(
@@ -716,7 +708,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
           Some(tsql.Output(
             Some(namedTable("Inserted")),
             List(
-              Alias(Column(Some(ObjectReference(Id("INSERTED"))), Id("a")), Seq(Id("a_lias"))),
+              Alias(Column(Some(ObjectReference(Id("INSERTED"))), Id("a")), Id("a_lias")),
               Column(Some(ObjectReference(Id("INSERTED"))), Id("b"))),
             Some(List(simplyNamedColumn("a"), simplyNamedColumn("b"))))),
           None,
@@ -784,7 +776,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
           Some(tsql.Output(
             Some(NamedTable("Inserted", Map(), is_streaming = false)),
             Seq(
-              Alias(Column(Some(ObjectReference(Id("INSERTED"))), Id("a")), Seq(Id("a_lias"))),
+              Alias(Column(Some(ObjectReference(Id("INSERTED"))), Id("a")), Id("a_lias")),
               Column(Some(ObjectReference(Id("INSERTED"))), Id("b"))),
             Some(Seq(Column(None, Id("a")), Column(None, Id("b")))))),
           None))))
@@ -835,7 +827,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
           Some(tsql.Output(
             Some(NamedTable("Deleted", Map(), is_streaming = false)),
             Seq(
-              Alias(Column(Some(ObjectReference(Id("DELETED"))), Id("a")), Seq(Id("a_lias"))),
+              Alias(Column(Some(ObjectReference(Id("DELETED"))), Id("a")), Id("a_lias")),
               Column(Some(ObjectReference(Id("DELETED"))), Id("b"))),
             Some(Seq(Column(None, Id("a")), Column(None, Id("b")))))),
           None))))
@@ -940,7 +932,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
               Seq(
                 simplyNamedColumn("col1"),
                 simplyNamedColumn("fred"),
-                Alias(CallFunction("COUNT", Seq(simplyNamedColumn("OrderDate"))), Seq(Id("counter"))))),
+                Alias(CallFunction("COUNT", Seq(simplyNamedColumn("OrderDate"))), Id("counter")))),
             Id("s"),
             Seq(Id("a"), Id("b"), Id("col3count")))),
           MergeIntoTable(

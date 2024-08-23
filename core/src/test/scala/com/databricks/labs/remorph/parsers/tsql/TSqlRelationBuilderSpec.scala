@@ -145,7 +145,7 @@ class TSqlRelationBuilderSpec
             column_names = Seq(ir.Id("a"), ir.Id("bb")),
             all_columns_as_keys = false,
             within_watermark = false),
-          Seq(simplyNamedColumn("a"), ir.Alias(simplyNamedColumn("b"), Seq(ir.Id("bb"))))))
+          Seq(simplyNamedColumn("a"), ir.Alias(simplyNamedColumn("b"), ir.Id("bb")))))
     }
 
     "SELECT a, b AS bb FROM (SELECT x, y FROM d) AS t (aliasA, 'aliasB')" in {
@@ -160,7 +160,7 @@ class TSqlRelationBuilderSpec
                 Seq(ir.Column(None, ir.Id("x")), ir.Column(None, ir.Id("y")))),
               Seq(ir.Id("aliasA"), ir.Id("aliasB"))),
             "t"),
-          Seq(ir.Column(None, ir.Id("a")), ir.Alias(ir.Column(None, ir.Id("b")), Seq(ir.Id("bb"))))))
+          Seq(ir.Column(None, ir.Id("a")), ir.Alias(ir.Column(None, ir.Id("b")), ir.Id("bb")))))
     }
   }
 }

@@ -21,9 +21,8 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
     "translate a simple SELECT query with an aliased column" in {
       singleQueryExample(
         query = "SELECT a AS aa FROM b",
-        expectedAst = Project(
-          NamedTable("b", Map.empty, is_streaming = false),
-          Seq(Alias(simplyNamedColumn("a"), Seq(Id("aa"))))))
+        expectedAst =
+          Project(NamedTable("b", Map.empty, is_streaming = false), Seq(Alias(simplyNamedColumn("a"), Id("aa")))))
     }
 
     "translate a simple SELECT query involving multiple columns" in {
@@ -39,7 +38,7 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
         query = "SELECT a, b AS bb, c FROM table_x",
         expectedAst = Project(
           NamedTable("table_x", Map.empty, is_streaming = false),
-          Seq(simplyNamedColumn("a"), Alias(simplyNamedColumn("b"), Seq(Id("bb"))), simplyNamedColumn("c"))))
+          Seq(simplyNamedColumn("a"), Alias(simplyNamedColumn("b"), Id("bb")), simplyNamedColumn("c"))))
     }
 
     val simpleJoinAst =
@@ -109,14 +108,14 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
       "SELECT a FROM table_x NATURAL LEFT JOIN table_y" in {
         singleQueryExample(
           query = "SELECT a FROM table_x NATURAL LEFT JOIN table_y",
-          expectedAst = Project(
-            simpleJoinAst.copy(join_type = NaturalJoin(LeftOuterJoin)), Seq(simplyNamedColumn("a"))))
+          expectedAst =
+            Project(simpleJoinAst.copy(join_type = NaturalJoin(LeftOuterJoin)), Seq(simplyNamedColumn("a"))))
       }
       "SELECT a FROM table_x NATURAL RIGHT JOIN table_y" in {
         singleQueryExample(
           query = "SELECT a FROM table_x NATURAL RIGHT JOIN table_y",
-          expectedAst = Project(
-            simpleJoinAst.copy(join_type = NaturalJoin(RightOuterJoin)), Seq(simplyNamedColumn("a"))))
+          expectedAst =
+            Project(simpleJoinAst.copy(join_type = NaturalJoin(RightOuterJoin)), Seq(simplyNamedColumn("a"))))
       }
     }
 
@@ -255,8 +254,8 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
       "SELECT a FROM b LIMIT 5" in {
         singleQueryExample(
           query = "SELECT a FROM b LIMIT 5",
-          expectedAst = Project(
-            Limit(NamedTable("b", Map.empty, is_streaming = false), Literal(5)), Seq(simplyNamedColumn("a"))))
+          expectedAst =
+            Project(Limit(NamedTable("b", Map.empty, is_streaming = false), Literal(5)), Seq(simplyNamedColumn("a"))))
       }
       "SELECT a FROM b LIMIT 5 OFFSET 10" in {
         singleQueryExample(
@@ -308,8 +307,7 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
                 Project(namedTable("e"), Seq(simplyNamedColumn("x"), simplyNamedColumn("y"), simplyNamedColumn("z"))),
                 Id("a"),
                 Seq(Id("b"), Id("c"), Id("d")))),
-            Project(namedTable("a"), Seq(simplyNamedColumn("b"), simplyNamedColumn("c"), simplyNamedColumn("d"))))
-        )
+            Project(namedTable("a"), Seq(simplyNamedColumn("b"), simplyNamedColumn("c"), simplyNamedColumn("d")))))
       }
       "WITH a (b, c, d) AS (SELECT x, y, z FROM e), aa (bb, cc) AS (SELECT xx, yy FROM f) SELECT b, c, d FROM a" in {
         singleQueryExample(
@@ -325,8 +323,7 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
                 Project(namedTable("f"), Seq(simplyNamedColumn("xx"), simplyNamedColumn("yy"))),
                 Id("aa"),
                 Seq(Id("bb"), Id("cc")))),
-            Project(namedTable("a"), Seq(simplyNamedColumn("b"), simplyNamedColumn("c"), simplyNamedColumn("d"))))
-        )
+            Project(namedTable("a"), Seq(simplyNamedColumn("b"), simplyNamedColumn("c"), simplyNamedColumn("d")))))
       }
     }
 
@@ -350,7 +347,7 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
             GreaterThan(CallFunction("MIN", Seq(Id("r"))), Literal(6))),
           Seq(
             simplyNamedColumn("c2"),
-            Alias(Window(CallFunction("SUM", Seq(Id("c3"))), Seq(Id("c2")), Seq(), None), Seq(Id("r"))))))
+            Alias(Window(CallFunction("SUM", Seq(Id("c3"))), Seq(Id("c2")), Seq(), None), Id("r")))))
     }
 
     "translate a query with set operators" should {

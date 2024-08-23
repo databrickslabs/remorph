@@ -90,6 +90,14 @@ class SnowflakeExpressionBuilderSpec
           Column(Some(ObjectReference(Id("My Table", caseSensitive = true))), Id("x")))
       }
     }
+    "translate aliases" should {
+      "x AS y" in {
+        exampleExpr("1 AS y", _.selectListElem(), Alias(Literal(1), Id("y")))
+      }
+      "1 y" in {
+        exampleExpr("1 y", _.selectListElem(), Alias(Literal(1), Id("y")))
+      }
+    }
 
     "translate simple numeric binary expressions" should {
       "1 + 2" in {
@@ -186,22 +194,19 @@ class SnowflakeExpressionBuilderSpec
         exampleExpr(
           "1 + (2 * 3 + 4)",
           _.expr(),
-          ir.Add(ir.Literal(1), ir.Add(ir.Multiply(ir.Literal(2), ir.Literal(3)), ir.Literal(4)))
-        )
+          ir.Add(ir.Literal(1), ir.Add(ir.Multiply(ir.Literal(2), ir.Literal(3)), ir.Literal(4))))
       }
       "1 + (2 * (3 + 4))" in {
         exampleExpr(
           "1 + (2 * (3 + 4))",
           _.expr(),
-          ir.Add(ir.Literal(1), ir.Multiply(ir.Literal(2), ir.Add(ir.Literal(3), ir.Literal(4))))
-        )
+          ir.Add(ir.Literal(1), ir.Multiply(ir.Literal(2), ir.Add(ir.Literal(3), ir.Literal(4)))))
       }
       "(1 + (2 * (3 + 4)))" in {
         exampleExpr(
           "(1 + (2 * (3 + 4)))",
           _.expr(),
-          ir.Add(ir.Literal(1), ir.Multiply(ir.Literal(2), ir.Add(ir.Literal(3), ir.Literal(4))))
-        )
+          ir.Add(ir.Literal(1), ir.Multiply(ir.Literal(2), ir.Add(ir.Literal(3), ir.Literal(4)))))
       }
     }
 
@@ -296,8 +301,7 @@ class SnowflakeExpressionBuilderSpec
               SortOrder(Id("b"), Ascending, NullsLast),
               SortOrder(Id("c"), Descending, NullsFirst),
               SortOrder(Id("d"), Ascending, NullsLast)),
-            frame_spec = Some(WindowFrame(RowsFrame, UnboundedPreceding, UnboundedFollowing)))
-        )
+            frame_spec = Some(WindowFrame(RowsFrame, UnboundedPreceding, UnboundedFollowing))))
       }
       "LAST_VALUE(col_name) IGNORE NULLS OVER (PARTITION BY a ORDER BY b, c DESC, d)" in {
         exampleExpr(
@@ -324,8 +328,7 @@ class SnowflakeExpressionBuilderSpec
             window_function = CallFunction("ROW_NUMBER", Seq()),
             partition_spec = Seq(Id("a")),
             sort_order = Seq(SortOrder(Id("a"), Ascending, NullsLast)),
-            frame_spec = Some(WindowFrame(RowsFrame, UnboundedPreceding, CurrentRow)))
-        )
+            frame_spec = Some(WindowFrame(RowsFrame, UnboundedPreceding, CurrentRow))))
       }
       "ROW_NUMBER() OVER(PARTITION BY a ORDER BY a ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)" in {
         exampleExpr(
@@ -335,30 +338,27 @@ class SnowflakeExpressionBuilderSpec
             window_function = CallFunction("ROW_NUMBER", Seq()),
             partition_spec = Seq(Id("a")),
             sort_order = Seq(SortOrder(Id("a"), Ascending, NullsLast)),
-            frame_spec = Some(WindowFrame(RowsFrame, UnboundedPreceding, UnboundedFollowing)))
-        )
+            frame_spec = Some(WindowFrame(RowsFrame, UnboundedPreceding, UnboundedFollowing))))
       }
       "ROW_NUMBER() OVER(PARTITION BY a ORDER BY a ROWS BETWEEN 42 PRECEDING AND CURRENT ROW)" in {
-          exampleExpr(
+        exampleExpr(
           "ROW_NUMBER() OVER(PARTITION BY a ORDER BY a ROWS BETWEEN 42 PRECEDING AND CURRENT ROW)",
           _.rankingWindowedFunction(),
           expectedAst = Window(
-              window_function = CallFunction("ROW_NUMBER", Seq()),
-              partition_spec = Seq(Id("a")),
-              sort_order = Seq(SortOrder(Id("a"), Ascending, NullsLast)),
-              frame_spec = Some(WindowFrame(RowsFrame, PrecedingN(Literal(42)), CurrentRow)))
-          )
+            window_function = CallFunction("ROW_NUMBER", Seq()),
+            partition_spec = Seq(Id("a")),
+            sort_order = Seq(SortOrder(Id("a"), Ascending, NullsLast)),
+            frame_spec = Some(WindowFrame(RowsFrame, PrecedingN(Literal(42)), CurrentRow))))
       }
       "ROW_NUMBER() OVER(PARTITION BY a ORDER BY a ROWS BETWEEN 42 PRECEDING AND 42 FOLLOWING)" in {
-          exampleExpr(
+        exampleExpr(
           "ROW_NUMBER() OVER(PARTITION BY a ORDER BY a ROWS BETWEEN 42 PRECEDING AND 42 FOLLOWING)",
           _.rankingWindowedFunction(),
           expectedAst = Window(
-              window_function = CallFunction("ROW_NUMBER", Seq()),
-              partition_spec = Seq(Id("a")),
-              sort_order = Seq(SortOrder(Id("a"), Ascending, NullsLast)),
-              frame_spec = Some(WindowFrame(RowsFrame, PrecedingN(Literal(42)), FollowingN(Literal(42)))))
-          )
+            window_function = CallFunction("ROW_NUMBER", Seq()),
+            partition_spec = Seq(Id("a")),
+            sort_order = Seq(SortOrder(Id("a"), Ascending, NullsLast)),
+            frame_spec = Some(WindowFrame(RowsFrame, PrecedingN(Literal(42)), FollowingN(Literal(42))))))
       }
     }
 

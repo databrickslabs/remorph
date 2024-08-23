@@ -121,55 +121,37 @@ class SnowflakeRelationBuilderSpec
         example(
           "FROM some_table ORDER BY some_column",
           _.selectOptionalClauses(),
-          Sort(
-            namedTable("some_table"),
-            Seq(SortOrder(Id("some_column"), Ascending, NullsLast)),
-            is_global = false))
+          Sort(namedTable("some_table"), Seq(SortOrder(Id("some_column"), Ascending, NullsLast)), is_global = false))
       }
       "FROM some_table ORDER BY some_column ASC" in {
         example(
           "FROM some_table ORDER BY some_column ASC",
           _.selectOptionalClauses(),
-          Sort(
-            namedTable("some_table"),
-            Seq(SortOrder(Id("some_column"), Ascending, NullsLast)),
-            is_global = false))
+          Sort(namedTable("some_table"), Seq(SortOrder(Id("some_column"), Ascending, NullsLast)), is_global = false))
       }
       "FROM some_table ORDER BY some_column ASC NULLS FIRST" in {
         example(
           "FROM some_table ORDER BY some_column ASC NULLS FIRST",
           _.selectOptionalClauses(),
-          Sort(
-            namedTable("some_table"),
-            Seq(SortOrder(Id("some_column"), Ascending, NullsFirst)),
-            is_global = false))
+          Sort(namedTable("some_table"), Seq(SortOrder(Id("some_column"), Ascending, NullsFirst)), is_global = false))
       }
       "FROM some_table ORDER BY some_column DESC" in {
         example(
           "FROM some_table ORDER BY some_column DESC",
           _.selectOptionalClauses(),
-          Sort(
-            namedTable("some_table"),
-            Seq(SortOrder(Id("some_column"), Descending, NullsFirst)),
-            is_global = false))
+          Sort(namedTable("some_table"), Seq(SortOrder(Id("some_column"), Descending, NullsFirst)), is_global = false))
       }
       "FROM some_table ORDER BY some_column DESC NULLS LAST" in {
         example(
           "FROM some_table ORDER BY some_column DESC NULLS LAST",
           _.selectOptionalClauses(),
-          Sort(
-            namedTable("some_table"),
-            Seq(SortOrder(Id("some_column"), Descending, NullsLast)),
-            is_global = false))
+          Sort(namedTable("some_table"), Seq(SortOrder(Id("some_column"), Descending, NullsLast)), is_global = false))
       }
       "FROM some_table ORDER BY some_column DESC NULLS FIRST" in {
         example(
           "FROM some_table ORDER BY some_column DESC NULLS FIRST",
           _.selectOptionalClauses(),
-          Sort(
-            namedTable("some_table"),
-            Seq(SortOrder(Id("some_column"), Descending, NullsFirst)),
-            is_global = false))
+          Sort(namedTable("some_table"), Seq(SortOrder(Id("some_column"), Descending, NullsFirst)), is_global = false))
       }
     }
 
@@ -283,7 +265,7 @@ class SnowflakeRelationBuilderSpec
             column_names = Seq(Id("a"), Id("bb")),
             all_columns_as_keys = false,
             within_watermark = false),
-          Seq(simplyNamedColumn("a"), Alias(simplyNamedColumn("b"), Seq(Id("bb"))))))
+          Seq(simplyNamedColumn("a"), Alias(simplyNamedColumn("b"), Id("bb")))))
     }
 
     "translate SELECT TOP clauses" should {
@@ -318,8 +300,11 @@ class SnowflakeRelationBuilderSpec
           "TABLE(some_func(some_arg))",
           _.objectRef(),
           TableFunction(
-            UnresolvedFunction("some_func", Seq(Id("some_arg")),
-              is_distinct = false, is_user_defined_function = false)))
+            UnresolvedFunction(
+              "some_func",
+              Seq(Id("some_arg")),
+              is_distinct = false,
+              is_user_defined_function = false)))
       }
       "TABLE(some_func(some_arg)) t(c1, c2, c3)" in {
         example(
@@ -348,8 +333,7 @@ class SnowflakeRelationBuilderSpec
                 "FLATTEN",
                 Seq(
                   snowflake.NamedArgumentExpression("INPUT", Id("some_col")),
-                  snowflake.NamedArgumentExpression("OUTER", Literal.True)))))
-        )
+                  snowflake.NamedArgumentExpression("OUTER", Literal.True))))))
       }
       "LATERAL FLATTEN (input => some_col) AS t" in {
         example(

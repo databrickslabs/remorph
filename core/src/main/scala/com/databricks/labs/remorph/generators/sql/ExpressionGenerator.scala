@@ -300,7 +300,7 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
   }
 
   private def alias(ctx: GeneratorContext, alias: ir.Alias): String = {
-    s"${expression(ctx, alias.expr)} AS ${alias.name.map(expression(ctx, _)).mkString(".")}"
+    s"${expression(ctx, alias.expr)} AS ${expression(ctx, alias.name)}"
   }
 
   private def distinct(ctx: GeneratorContext, distinct: ir.Distinct): String = {

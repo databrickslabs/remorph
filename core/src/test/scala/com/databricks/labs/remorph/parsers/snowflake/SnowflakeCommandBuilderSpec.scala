@@ -44,16 +44,16 @@ class SnowflakeCommandBuilderSpec
     }
     "query_statement RESULTSET := (SELECT col1 FROM some_table);" in {
       example(
-          "query_statement RESULTSET := (SELECT col1 FROM some_table);",
-          _.declareStatement(),
-          CreateVariable(
+        "query_statement RESULTSET := (SELECT col1 FROM some_table);",
+        _.declareStatement(),
+        CreateVariable(
           name = Id("query_statement"),
           dataType = StructType(),
           defaultExpr = Some(
-              ScalarSubquery(
+            ScalarSubquery(
               Project(
-                  NamedTable("some_table", Map(), is_streaming = false),
-                  Seq(Column(None, Id("col1", caseSensitive = false)))))),
+                NamedTable("some_table", Map(), is_streaming = false),
+                Seq(Column(None, Id("col1", caseSensitive = false)))))),
           replace = false))
     }
   }
@@ -88,13 +88,12 @@ class SnowflakeCommandBuilderSpec
         "LET query_statement RESULTSET := (SELECT col1 FROM some_table);",
         _.let(),
         SetVariable(
-        name = Id("query_statement"),
-        dataType = Some(StructType()),
-        value = ScalarSubquery(
+          name = Id("query_statement"),
+          dataType = Some(StructType()),
+          value = ScalarSubquery(
             Project(
-            NamedTable("some_table", Map(), is_streaming = false),
-            Seq(Column(None, Id("col1", caseSensitive = false))))))
-      )
+              NamedTable("some_table", Map(), is_streaming = false),
+              Seq(Column(None, Id("col1", caseSensitive = false)))))))
     }
   }
 

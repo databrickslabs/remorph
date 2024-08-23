@@ -57,9 +57,9 @@ class SnowflakeRelationBuilder
       projectExpressions: Seq[ir.Expression]): ir.LogicalPlan =
     if (Option(ctx).exists(_.DISTINCT() != null)) {
       val columnNames = projectExpressions.collect {
-        case ir.Column(_, c) => Seq(c)
+        case ir.Column(_, c) => c
         case ir.Alias(_, a) => a
-      }.flatten
+      }
       ir.Deduplicate(input, columnNames, columnNames.isEmpty, within_watermark = false)
     } else {
       input

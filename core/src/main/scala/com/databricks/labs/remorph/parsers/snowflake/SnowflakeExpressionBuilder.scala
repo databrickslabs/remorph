@@ -66,7 +66,7 @@ class SnowflakeExpressionBuilder()
   private def buildAlias(ctx: AsAliasContext, input: ir.Expression): ir.Expression =
     Option(ctx).fold(input) { c =>
       val alias = visitId(c.alias().id())
-      ir.Alias(input, Seq(alias))
+      ir.Alias(input, alias)
     }
   override def visitColumnName(ctx: ColumnNameContext): ir.Expression = {
     ctx.id().asScala match {

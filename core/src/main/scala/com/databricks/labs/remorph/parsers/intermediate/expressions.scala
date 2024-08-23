@@ -187,9 +187,7 @@ case class UpdateFields(struct_expression: Expression, field_name: String, value
   override def dataType: DataType = UnresolvedType // TODO: Fix this
 }
 
-// TODO: has to be Alias(expr: Expression, name: String)
-case class Alias(expr: Expression, name: Seq[Id]) extends Unary(expr) {
-  def this(expr: Expression, name: String) = this(expr, Seq(Id(name)))
+case class Alias(expr: Expression, name: Id) extends Unary(expr) {
   override def dataType: DataType = expr.dataType
 }
 

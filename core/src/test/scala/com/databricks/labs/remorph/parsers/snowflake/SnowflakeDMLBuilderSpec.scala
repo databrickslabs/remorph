@@ -116,9 +116,8 @@ class SnowflakeDMLBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
           _.updateStatement(),
           UpdateTable(
             TableAlias(namedTable("table1"), "t1", Seq()),
-            Some(crossJoin(
-              TableAlias(namedTable("table1"), "t1", Seq()),
-              TableAlias(namedTable("table2"), "t2", Seq()))),
+            Some(
+              crossJoin(TableAlias(namedTable("table1"), "t1", Seq()), TableAlias(namedTable("table2"), "t2", Seq()))),
             Seq(Assign(Id("c1"), Add(Id("c2"), Dot(Id("t2"), Id("c2"))))),
             Some(Equals(Dot(Id("t1"), Id("c3")), Dot(Id("t2"), Id("c3")))),
             None,

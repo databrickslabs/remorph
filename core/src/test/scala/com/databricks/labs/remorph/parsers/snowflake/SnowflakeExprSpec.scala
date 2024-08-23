@@ -19,7 +19,8 @@ class SnowflakeExprSpec extends AnyWordSpec with SnowflakeParserTestCommon with 
         example("d.s.sequence_1.NEXTVAL", NextValue("d.s.sequence_1"))
       }
       "d.s.t.column_1[42]" in {
-        example("d.s.t.column_1[42]",
+        example(
+          "d.s.t.column_1[42]",
           Dot(Dot(Dot(Id("d"), Id("s")), Id("t")), ArrayAccess(Id("column_1"), Literal(42))))
       }
       "d.s.t.column_1:field_1.\"inner field\"" in {
@@ -237,8 +238,7 @@ class SnowflakeExprSpec extends AnyWordSpec with SnowflakeParserTestCommon with 
           "s.f.value:x.y.names[2]",
           JsonAccess(
             Dot(Dot(Id("s"), Id("f")), Id("value")),
-            Dot(Dot(Id("x"), Id("y")), ArrayAccess(Id("names"), Literal(2))))
-        )
+            Dot(Dot(Id("x"), Id("y")), ArrayAccess(Id("names"), Literal(2)))))
       }
       "x:inner_obj['nested_field']" in {
         example("x:inner_obj['nested_field']", JsonAccess(Id("x"), JsonAccess(Id("inner_obj"), Id("nested_field"))))
