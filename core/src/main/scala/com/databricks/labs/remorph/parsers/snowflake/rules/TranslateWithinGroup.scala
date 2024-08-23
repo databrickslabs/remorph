@@ -8,8 +8,10 @@ import scala.annotation.tailrec
 class TranslateWithinGroup extends ir.Rule[ir.LogicalPlan] {
 
   override def apply(plan: ir.LogicalPlan): ir.LogicalPlan = {
-    plan transformAllExpressions { case ir.WithinGroup(ir.CallFunction("ARRAY_AGG", args), sorts) =>
-      sortArray(args.head, sorts.head)
+    plan transformAllExpressions {
+      case ir.WithinGroup(ir.CallFunction("ARRAY_AGG", args), sorts) => sortArray(args.head, sorts.head)
+      case ir.WithinGroup(ir.CallFunction("LISTAGG", args), sorts) =>
+        ir.ArrayJoin(sortArray(args.head, sorts.head), args(1))
     }
   }
 

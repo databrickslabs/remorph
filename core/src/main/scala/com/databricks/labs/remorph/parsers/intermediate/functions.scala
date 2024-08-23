@@ -1835,7 +1835,7 @@ case class ArrayIntersect(left: Expression, right: Expression) extends Binary(le
  * array_join(array, delimiter[, nullReplacement]) - Concatenates the elements of the given array using the delimiter
  * and an optional string to replace nulls. If no value is set for nullReplacement, any null value is filtered.
  */
-case class ArrayJoin(left: Expression, right: Expression, c: Option[Expression]) extends Expression with Fn {
+case class ArrayJoin(left: Expression, right: Expression, c: Option[Expression] = None) extends Expression with Fn {
   override def prettyName: String = "ARRAY_JOIN"
   override def children: Seq[Expression] = Seq(left, right) ++ c.toSeq
   override def dataType: DataType = UnresolvedType
