@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.parsers.snowflake.rules
 
-import com.databricks.labs.remorph.parsers.intermediate.WhenBranch
+import com.databricks.labs.remorph.parsers.intermediate.{Expression, StringLiteral, WhenBranch}
 import com.databricks.labs.remorph.parsers.{intermediate => ir}
 import com.databricks.labs.remorph.transpilers.TranspileException
 
@@ -51,6 +51,7 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
       case ir.CallFunction("MONTHNAME", args) => ir.DateFormatClass(args.head, ir.Literal("MMM"))
       case ir.CallFunction("NULLIFZERO", args) => nullIfZero(args.head)
       case ir.CallFunction("OBJECT_KEYS", args) => ir.JsonObjectKeys(args.head)
+      case ir.CallFunction("OBJECT_CONSTRUCT", args) => objectConstruct(args)
       case ir.CallFunction("POSITION", args) => ir.CallFunction("LOCATE", args)
       case ir.CallFunction("REGEXP_LIKE", args) => ir.RLike(args.head, args(1))
       case ir.CallFunction("REGEXP_SUBSTR", args) => regexpExtract(args)
@@ -79,6 +80,20 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
       case ir.CallFunction("ZEROIFNULL", args) => ir.If(ir.IsNull(args.head), ir.Literal(0), args.head)
       case x => super.convert(x)
     }
+  }
+
+  private def objectConstruct(args: Seq[ir.Expression]): ir.Expression = args match {
+    case Seq(s @ ir.Star(_)) => ir.StructExpr(Seq(s))
+    case pairs: Seq[Expression] =>
+      ir.StructExpr(
+        pairs
+          .sliding(2, 2)
+          .collect {
+            case Seq(StringLiteral(key), v) => ir.Alias(v, ir.Id(key))
+            case Seq(a, b) => throw TranspileException(s"Unsupported arguments to OBJECT_CONSTRUCT: $a, $b")
+            case Seq(a) => throw TranspileException(s"Unsupported argument to OBJECT_CONSTRUCT: $a")
+          }
+          .toList)
   }
 
   private def nullIfZero(expr: ir.Expression): ir.Expression =

@@ -48,7 +48,7 @@ class SnowflakeCommandBuilderSpec
         _.declareStatement(),
         CreateVariable(
           name = Id("query_statement"),
-          dataType = StructType(),
+          dataType = StructType(Seq()),
           defaultExpr = Some(
             ScalarSubquery(
               Project(
@@ -89,7 +89,7 @@ class SnowflakeCommandBuilderSpec
         _.let(),
         SetVariable(
           name = Id("query_statement"),
-          dataType = Some(StructType()),
+          dataType = Some(StructType(Seq(StructField("col1", UnresolvedType)))),
           value = ScalarSubquery(
             Project(
               NamedTable("some_table", Map(), is_streaming = false),
