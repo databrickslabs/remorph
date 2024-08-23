@@ -1,6 +1,7 @@
 package com.databricks.labs.remorph.coverage
 
 import com.databricks.labs.remorph.parsers.ParseException
+import com.databricks.labs.remorph.queries.ExampleQuery
 import com.databricks.labs.remorph.transpilers.{Formatter, SnowflakeToDatabricksTranspiler, TSqlToDatabricksTranspiler, TranspileException}
 import com.databricks.labs.remorph.utils.Strings
 
