@@ -2,7 +2,7 @@ package com.databricks.labs.remorph
 
 import com.databricks.labs.remorph.parsers.{intermediate => ir}
 import com.databricks.labs.remorph.transpilers.Transpiler
-// scalastyle:off
+
 case class ChildActionMap(name: String, action: Action.Operation)
 class RootTableIdentifier(transpiler: Transpiler) {
 
@@ -59,8 +59,9 @@ class RootTableIdentifier(transpiler: Transpiler) {
     }
     collectTables(plan)
 
-    if (child != null)
+    if (child != null) {
       graph.addNode(Node(child.name))
+    }
 
     parent.toList.sorted.foreach(p => {
       graph.addNode(Node(p))
