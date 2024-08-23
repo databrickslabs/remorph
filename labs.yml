@@ -58,3 +58,7 @@ commands:
     flags:
       - name: name
         description: Filename to debug
+      - name: dialect
+        description: sql dialect
+  - name: debug-me
+    description: "[INTERNAL] Debug SDK connectivity"
