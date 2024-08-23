@@ -443,6 +443,17 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
         UpdateTable(namedTable("t1"), None, Seq(Assign(Id("c1"), Literal(42))), None, None, None))
 
     }
+
+    "translate BANG to Unresolved Expression" in {
+      example("!set error_flag = true;", _.snowSqlCommand(), UnresolvedCommand("!set error_flag = true;"))
+      example("!set dfsdfds", _.snowSqlCommand(), UnresolvedCommand("!set dfsdfds"))
+      assertThrows[Exception] {
+        example("!", _.snowSqlCommand(), UnresolvedCommand("!"))
+      }
+      assertThrows[Exception] {
+        example("!badcommand", _.snowSqlCommand(), UnresolvedCommand("!badcommand"))
+      }
+    }
   }
 
 }

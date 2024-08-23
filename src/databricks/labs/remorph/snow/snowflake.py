@@ -254,6 +254,12 @@ class Snow(Snowflake):
             r"(?i)var\s+\w+\s+=\s+\w+?": TokenType.VAR,
         }
 
+        SINGLE_TOKENS = {
+            **Snowflake.Tokenizer.SINGLE_TOKENS,
+            "&": TokenType.PARAMETER,  # https://docs.snowflake.com/en/user-guide/snowsql-use#substituting-variables-in-a-session
+            "!": TokenType.COMMAND,
+        }
+
         KEYWORDS = {**Snowflake.Tokenizer.KEYWORDS}
         # DEC is not a reserved keyword in Snowflake it can be used as table alias
         KEYWORDS.pop("DEC")
