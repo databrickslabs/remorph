@@ -11,7 +11,12 @@ class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: 
     case b: ir.Batch =>
       b.children
         .map {
-          case ir.UnresolvedCommand(text) => s"--$text"
+          case ir.UnresolvedCommand(text) =>
+            if (text.endsWith(";")) {
+              text
+            } else {
+              text + ";";
+            }
           case query => s"${generate(ctx, query);}"
         }
         .mkString("/n")
