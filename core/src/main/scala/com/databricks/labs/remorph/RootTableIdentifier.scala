@@ -8,13 +8,15 @@ class RootTableIdentifier(transpiler: Transpiler) {
 
   def processQuery(sql: String, graph: Lineage): Lineage = {
     val parsedSql = transpiler.parse(sql)
-    findTables(graph, parsedSql)
+
+    parsedSql.children.foreach(p => findTables(graph, p))
+    graph
   }
 
   private def getTableFromExpression(p: ir.Expression): Set[String] = {
     // TODO Tackle Unresolved Expressions
-    p.collect {
-      case e: ir.ScalarSubquery => fetchTableName(e.relation)
+    p.collect { case e: ir.ScalarSubquery =>
+      fetchTableName(e.relation)
     }.toSet
   }
 
@@ -34,18 +36,18 @@ class RootTableIdentifier(transpiler: Transpiler) {
     var child: ChildActionMap = null
     var parent = Set.empty[String]
 
-    def updateChild(target: ir.LogicalPlan, action: Action.Operation): Unit = {
-      child = ChildActionMap(fetchTableName(target), action)
+    def updateChild(target: ir.LogicalPlan, action: Action.Operation): ChildActionMap = {
+      ChildActionMap(fetchTableName(target), action)
     }
 
     def collectTables(node: ir.LogicalPlan): Unit = {
 
       node match {
         case c: ir.CreateTable => // TODO be implemented for CTAS
-        case i: ir.InsertIntoTable => updateChild(i.target, Action.Write)
-        case d: ir.DeleteFromTable => updateChild(d.target, Action.Delete)
-        case u: ir.UpdateTable => updateChild(u.target, Action.Update)
-        case m: ir.MergeIntoTable => updateChild(m.targetTable, Action.Merge)
+        case i: ir.InsertIntoTable => child = updateChild(i.target, Action.Write)
+        case d: ir.DeleteFromTable => child = updateChild(d.target, Action.Delete)
+        case u: ir.UpdateTable => child = updateChild(u.target, Action.Update)
+        case m: ir.MergeIntoTable => child = updateChild(m.targetTable, Action.Merge)
         case p: ir.Project => parent = parent ++ getTableList(p)
         case i: ir.Join => parent = parent ++ getTableList(i)
         case sub: ir.SubqueryAlias => parent = parent ++ getTableList(sub)
@@ -57,11 +59,17 @@ class RootTableIdentifier(transpiler: Transpiler) {
     }
     collectTables(plan)
 
-    graph.addNode(Node(child.name))
+    if (child != null)
+      graph.addNode(Node(child.name))
+
     parent.toList.sorted.foreach(p => {
       graph.addNode(Node(p))
       // merge IR nodes will produce the same parent and child
+      if (child != null) {
         graph.addEdge(Node(p), Node(child.name), child.action)
+      } else {
+        graph.addEdge(Node(p), Node("None"), Action.Read)
+      }
     })
     graph
   }
