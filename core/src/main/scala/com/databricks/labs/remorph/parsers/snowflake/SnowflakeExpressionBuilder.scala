@@ -288,11 +288,17 @@ class SnowflakeExpressionBuilder()
   }
 
   override def visitRankingWindowedFunction(ctx: RankingWindowedFunctionContext): ir.Expression = {
-    // TODO handle ignoreOrRespectNulls
-    buildWindow(ctx.overClause(), ctx.standardFunction().accept(this))
+    val ignore_nulls = if (ctx.ignoreOrRepectNulls() != null) {
+      ctx.ignoreOrRepectNulls().getText.equalsIgnoreCase("IGNORENULLS")
+    } else false
+
+    buildWindow(ctx.overClause(), ctx.standardFunction().accept(this), ignore_nulls)
   }
 
-  private def buildWindow(ctx: OverClauseContext, windowFunction: ir.Expression): ir.Expression = {
+  private def buildWindow(
+      ctx: OverClauseContext,
+      windowFunction: ir.Expression,
+      ignore_nulls: Boolean = false): ir.Expression = {
     val partitionSpec = visitMany(ctx.expr())
     val sortOrder =
       Option(ctx.windowOrderingAndFrame()).map(c => buildSortOrder(c.orderByClause())).getOrElse(Seq())
@@ -307,7 +313,8 @@ class SnowflakeExpressionBuilder()
       window_function = windowFunction,
       partition_spec = partitionSpec,
       sort_order = sortOrder,
-      frame_spec = frameSpec)
+      frame_spec = frameSpec,
+      ignore_nulls = ignore_nulls)
   }
 
   // see: https://docs.snowflake.com/en/sql-reference/functions-analytic#list-of-window-functions

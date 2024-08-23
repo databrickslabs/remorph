@@ -162,6 +162,7 @@ class SnowflakeExpressionBuilderSpec
           partition_spec = Seq(Id("a")),
           sort_order = Seq(),
           frame_spec = Some(WindowFrame(RowsFrame, UnboundedPreceding, UnboundedFollowing))))
+
       exampleExpr(
         query = "NTILE(42) OVER (PARTITION BY a ORDER BY b, c DESC, d)",
         rule = _.rankingWindowedFunction(),
@@ -173,6 +174,19 @@ class SnowflakeExpressionBuilderSpec
             SortOrder(Id("c"), Descending, NullsFirst),
             SortOrder(Id("d"), Ascending, NullsLast)),
           frame_spec = Some(WindowFrame(RowsFrame, UnboundedPreceding, UnboundedFollowing))))
+
+      exampleExpr(
+        query = "LAST_VALUE(col_name) IGNORE NULLS OVER (PARTITION BY a ORDER BY b, c DESC, d)",
+        rule = _.rankingWindowedFunction(),
+        expectedAst = Window(
+          window_function = CallFunction("LAST_VALUE", Seq(Id("col_name", false))),
+          partition_spec = Seq(Id("a")),
+          sort_order = Seq(
+            SortOrder(Id("b"), Ascending, NullsLast),
+            SortOrder(Id("c"), Descending, NullsFirst),
+            SortOrder(Id("d"), Ascending, NullsLast)),
+          frame_spec = Some(WindowFrame(RowsFrame, UnboundedPreceding, UnboundedFollowing)),
+          ignore_nulls = true))
     }
 
     "translate window frame specifications" in {

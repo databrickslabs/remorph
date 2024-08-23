@@ -1,16 +1,15 @@
 ----------------------------------------------
-
-DROP TABLE if EXISTS orders;
-CREATE TABLE if NOT EXISTS orders (
+CREATE TABLE orders (
   o_orderkey BIGINT,
   o_custkey BIGINT,
-  o_orderstatus STRING,
+  o_orderstatus VARCHAR(500),
   o_totalprice DECIMAL(18,2),
   o_orderdate DATE,
-  o_orderpriority STRING,
+  o_orderpriority VARCHAR(500),
   o_clerk STRING,
   o_shippriority INT,
-  o_comment STRING);
+  o_comment VARCHAR(500)
+  );
 
 ----------------------------------------------
 

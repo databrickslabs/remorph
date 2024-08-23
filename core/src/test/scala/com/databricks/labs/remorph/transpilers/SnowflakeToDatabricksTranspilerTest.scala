@@ -54,6 +54,25 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
            |  demo1;""".stripMargin
     }
 
+    "transpile window functions" in {
+      s"""SELECT LAST_VALUE(c1)
+        |IGNORE NULLS OVER (PARTITION BY t1.c2 ORDER BY t1.c3 DESC
+        |RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS dc4
+        |FROM t1;""".stripMargin transpilesTo
+        s"""SELECT
+           |  LAST_VALUE(c1) IGNORE NULLS OVER (
+           |    PARTITION BY
+           |      t1.c2
+           |    ORDER BY
+           |      t1.c3 DESC NULLS FIRST
+           |    RANGE
+           |      BETWEEN UNBOUNDED PRECEDING
+           |      AND CURRENT ROW
+           |  ) AS dc4
+           |FROM
+           |  t1;""".stripMargin
+    }
+
   }
 
 }

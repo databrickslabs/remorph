@@ -52,6 +52,20 @@ DATE_DELTA_INTERVAL = {
     "d": "day",
 }
 
+rank_functions = (
+    local_expression.CumeDist,
+    local_expression.DenseRank,
+    exp.FirstValue,
+    exp.Lag,
+    exp.LastValue,
+    exp.Lead,
+    local_expression.NthValue,
+    local_expression.Ntile,
+    local_expression.PercentRank,
+    local_expression.Rank,
+    exp.RowNumber,
+)
+
 
 def _parse_to_timestamp(args: list) -> exp.StrToTime | exp.UnixToTime | exp.TimeStrToTime:
     if len(args) == 2:
@@ -214,6 +228,18 @@ def _parse_tonumber(args: list) -> local_expression.ToNumber:
     return local_expression.ToNumber(this=seq_get(args, 0), expression=seq_get(args, 1))
 
 
+def contains_expression(expr, target_type):
+    if isinstance(expr, target_type):
+        return True
+    if hasattr(expr, 'this') and contains_expression(expr.this, target_type):
+        return True
+    if hasattr(expr, 'expressions'):
+        for sub_expr in expr.expressions:
+            if contains_expression(sub_expr, target_type):
+                return True
+    return False
+
+
 class Snow(Snowflake):
     # Instantiate Snowflake Dialect
     snowflake = Snowflake()
@@ -365,6 +391,11 @@ class Snow(Snowflake):
             "APPROX_PERCENTILE": exp.ApproxQuantile.from_arg_list,
             "NTH_VALUE": local_expression.NthValue.from_arg_list,
             "MEDIAN": local_expression.Median.from_arg_list,
+            "CUME_DIST": local_expression.CumeDist.from_arg_list,
+            "DENSE_RANK": local_expression.DenseRank.from_arg_list,
+            "RANK": local_expression.Rank.from_arg_list,
+            "PERCENT_RANK": local_expression.PercentRank.from_arg_list,
+            "NTILE": local_expression.Ntile.from_arg_list,
         }
 
         FUNCTION_PARSERS = {
@@ -490,3 +521,17 @@ class Snow(Snowflake):
                 return self.expression(local_expression.Bracket, this=this, expressions=[path])
 
             return self.expression(exp.Bracket, this=this, expressions=[path])
+
+        def _parse_window(self, this: exp.Expression | None, alias: bool = False) -> exp.Expression | None:
+            window = super()._parse_window(this=this, alias=alias)
+            # Adding default window frame for the rank-related functions in snowflake
+            if window and contains_expression(window.this, rank_functions) and window.args.get('spec') is None:
+                window.args['spec'] = self.expression(
+                    exp.WindowSpec,
+                    kind="ROWS",
+                    start="UNBOUNDED",
+                    start_side="PRECEDING",
+                    end="UNBOUNDED",
+                    end_side="FOLLOWING",
+                )
+            return window

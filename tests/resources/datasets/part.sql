@@ -1,19 +1,18 @@
 --------------------------------------------------------------------------------
-
-DROP TABLE if EXISTS part;
-CREATE TABLE if NOT EXISTS part (
+CREATE TABLE part (
   p_partkey BIGINT,
-  p_name STRING,
-  p_mfgr STRING,
-  p_brand STRING,
-  p_type STRING,
+  p_name VARCHAR(500),
+  p_mfgr VARCHAR(500),
+  p_brand VARCHAR(500),
+  p_type VARCHAR(500),
   p_size INT,
-  p_container STRING,
+  p_container VARCHAR(500),
   p_retailprice DECIMAL(18,2),
-  p_comment STRING);
+  p_comment VARCHAR(500)
+  );
 
 --------------------------------------------------------------------------------
-%sql
+
 INSERT INTO part (p_partkey, p_name, p_mfgr, p_brand, p_type, p_size, p_container, p_retailprice, p_comment) VALUES
 (449928, 'violet pale medium cyan maroon', 'Manufacturer#4', 'Brand#43', 'ECONOMY PLATED BRASS', 11, 'SM BAG', 1877.90, 'ely regular a'),
  (640486, 'bisque sandy sky floral frosted', 'Manufacturer#1', 'Brand#15', 'LARGE POLISHED STEEL', 20, 'MED CASE', 1426.45, 'ts. final pinto bean'),

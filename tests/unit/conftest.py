@@ -81,8 +81,13 @@ def morph_config():
 
 
 def _normalize_string(value: str) -> str:
-    # Remove indentations and convert to lowercase
-    lines = [line.strip() for line in value.splitlines()]
+    # Remove extra spaces and ensure consistent spacing around parentheses
+    value = re.sub(r'\s+', ' ', value)  # Replace multiple spaces with a single space
+    value = re.sub(r'\s*\(\s*', ' ( ', value)  # Ensure space around opening parenthesis
+    value = re.sub(r'\s*\)\s*', ' ) ', value)  # Ensure space around closing parenthesis
+    value = value.strip()  # Remove leading and trailing spaces
+    # Remove indentations, trailing spaces from each line, and convert to lowercase
+    lines = [line.rstrip() for line in value.splitlines()]
     return " ".join(lines).lower().strip()
 
 
@@ -122,8 +127,8 @@ def validate_source_transpile(databricks_sql, *, source=None, pretty=False, expe
             error_level=None,
         )[0]
         orig_sql = actual_sql
-        actual_sql = _normalize_string(actual_sql).rstrip(';')
-        expected_sql = _normalize_string(databricks_sql).rstrip(';')
+        actual_sql = _normalize_string(actual_sql.rstrip(';'))
+        expected_sql = _normalize_string(databricks_sql.rstrip(';'))
 
         error_msg = f"""-> *target_sql* `{expected_sql}` is not matching with\
                                 \n-> *transpiled_sql* `{actual_sql}`\
