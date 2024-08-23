@@ -3,7 +3,8 @@ package com.databricks.labs.remorph
 import com.databricks.labs.remorph.parsers.{intermediate => ir}
 import com.databricks.labs.remorph.transpilers.Transpiler
 
-case class ChildActionMap(name: String, action: Action.Operation)
+private case class ChildActionMap(name: String, action: Action.Operation)
+
 class RootTableIdentifier(transpiler: Transpiler) {
 
   def processQuery(sql: String, graph: Lineage): Lineage = {
