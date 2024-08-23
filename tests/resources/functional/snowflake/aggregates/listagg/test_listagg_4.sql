@@ -25,4 +25,4 @@ FROM test_table
 WHERE
   col2 > 10000
 GROUP BY
-  col3
+  col3;
