@@ -1,4 +1,5 @@
 package com.databricks.labs.remorph.coverage
+import com.databricks.labs.remorph.queries.{DialectNameCommentBasedQueryExtractor, NestedFiles, WholeFileQueryExtractor}
 import mainargs._
 
 import java.time.Instant
