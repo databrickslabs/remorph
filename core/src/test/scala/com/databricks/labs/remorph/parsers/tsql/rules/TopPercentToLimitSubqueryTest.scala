@@ -15,7 +15,7 @@ class TopPercentToLimitSubqueryTest extends AnyWordSpec with PlanComparison with
         Seq(
           SubqueryAlias(Project(namedTable("Employees"), Seq(Star())), Id("_limited1")),
           SubqueryAlias(
-            Project(UnresolvedRelation("_limited1"), Seq(Alias(Count(Seq(Star())), Seq(Id("count"))))),
+            Project(UnresolvedRelation("_limited1"), Seq(Alias(Count(Seq(Star())), Id("count")))),
             Id("_counted1"))),
         Limit(
           Project(UnresolvedRelation("_limited1"), Seq(Star())),
@@ -43,7 +43,7 @@ class TopPercentToLimitSubqueryTest extends AnyWordSpec with PlanComparison with
                 Star(),
                 Alias(
                   Window(NTile(Literal(100)), sort_order = Seq(SortOrder(UnresolvedAttribute("a")))),
-                  Seq(Id("_percentile1"))))),
+                  Id("_percentile1")))),
             Id("_with_percentile1"))),
         Filter(
           Project(UnresolvedRelation("_with_percentile1"), Seq(Star())),

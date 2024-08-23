@@ -12,43 +12,80 @@ class SnowflakeExprSpec extends AnyWordSpec with SnowflakeParserTestCommon with 
   private def example(input: String, expectedAst: Expression): Unit = exampleExpr(input, _.expr(), expectedAst)
 
   "SnowflakeExpressionBuilder" should {
-    "" in {
+    "do something" should {
       val col = Dot(Dot(Dot(Id("d"), Id("s")), Id("t")), Id("column_1"))
 
-      example("d.s.sequence_1.NEXTVAL", NextValue("d.s.sequence_1"))
-      example("d.s.t.column_1[42]", Dot(Dot(Dot(Id("d"), Id("s")), Id("t")), ArrayAccess(Id("column_1"), Literal(42))))
-      example(
-        "d.s.t.column_1:field_1.\"inner field\"",
-        JsonAccess(col, Dot(Id("field_1"), Id("inner field", caseSensitive = true))))
-      example("d.s.t.column_1 COLLATE 'en_US-trim'", Collate(col, "en_US-trim"))
+      "d.s.sequence_1.NEXTVAL" in {
+        example("d.s.sequence_1.NEXTVAL", NextValue("d.s.sequence_1"))
+      }
+      "d.s.t.column_1[42]" in {
+        example(
+          "d.s.t.column_1[42]",
+          Dot(Dot(Dot(Id("d"), Id("s")), Id("t")), ArrayAccess(Id("column_1"), Literal(42))))
+      }
+      "d.s.t.column_1:field_1.\"inner field\"" in {
+        example(
+          "d.s.t.column_1:field_1.\"inner field\"",
+          JsonAccess(col, Dot(Id("field_1"), Id("inner field", caseSensitive = true))))
+      }
+      "d.s.t.column_1 COLLATE 'en_US-trim'" in {
+        example("d.s.t.column_1 COLLATE 'en_US-trim'", Collate(col, "en_US-trim"))
+      }
     }
 
-    "translate unary arithmetic operators" in {
-      example("+column_1", UPlus(Id("column_1")))
-      example("+42", UPlus(Literal(42)))
-      example("-column_1", UMinus(Id("column_1")))
-      example("-42", UMinus(Literal(42)))
-      example("NOT true", Not(Literal.True))
-      example("NOT column_2", Not(Id("column_2")))
+    "translate unary arithmetic operators" should {
+      "+column_1" in {
+        example("+column_1", UPlus(Id("column_1")))
+      }
+      "+42" in {
+        example("+42", UPlus(Literal(42)))
+      }
+      "-column_1" in {
+        example("-column_1", UMinus(Id("column_1")))
+      }
+      "-42" in {
+        example("-42", UMinus(Literal(42)))
+      }
+      "NOT true" in {
+        example("NOT true", Not(Literal.True))
+      }
+      "NOT column_2" in {
+        example("NOT column_2", Not(Id("column_2")))
+      }
     }
 
-    "translate binary arithmetic operators" in {
-      example("1+1", Add(Literal(1), Literal(1)))
-      example("2 * column_1", Multiply(Literal(2), Id("column_1")))
-      example("column_1 - 1", Subtract(Id("column_1"), Literal(1)))
-      example("column_1/column_2", Divide(Id("column_1"), Id("column_2")))
-      example("42 % 2", Mod(Literal(42), Literal(2)))
-      example("'foo' || column_1", Concat(Seq(Literal("foo"), Id("column_1"))))
+    "translate binary arithmetic operators" should {
+      "1+1" in {
+        example("1+1", Add(Literal(1), Literal(1)))
+      }
+      "2 * column_1" in {
+        example("2 * column_1", Multiply(Literal(2), Id("column_1")))
+      }
+      "column_1 - 1" in {
+        example("column_1 - 1", Subtract(Id("column_1"), Literal(1)))
+      }
+      "column_1/column_2" in {
+        example("column_1/column_2", Divide(Id("column_1"), Id("column_2")))
+      }
+      "42 % 2" in {
+        example("42 % 2", Mod(Literal(42), Literal(2)))
+      }
+      "'foo' || column_1" in {
+        example("'foo' || column_1", Concat(Seq(Literal("foo"), Id("column_1"))))
+      }
     }
 
     "translate IFF expression" in {
       example("IFF (true, column_1, column_2)", If(Literal.True, Id("column_1"), Id("column_2")))
     }
 
-    "translate array literals" in {
-      example("[1, 2, 3]", ArrayExpr(Seq(Literal(1), Literal(2), Literal(3)), IntegerType))
-
-      example("[1, 2, 'three']", ArrayExpr(Seq(Literal(1), Literal(2), Literal("three")), IntegerType))
+    "translate array literals" should {
+      "[1, 2, 3]" in {
+        example("[1, 2, 3]", ArrayExpr(Seq(Literal(1), Literal(2), Literal(3)), IntegerType))
+      }
+      "[1, 2, 'three']" in {
+        example("[1, 2, 'three']", ArrayExpr(Seq(Literal(1), Literal(2), Literal("three")), IntegerType))
+      }
     }
 
     "translate cast expressions" should {
@@ -176,9 +213,13 @@ class SnowflakeExprSpec extends AnyWordSpec with SnowflakeParserTestCommon with 
       }
     }
 
-    "translate IS [NOT] NULL expressions" in {
-      exprAndPredicateExample("col1 IS NULL", IsNull(Id("col1")))
-      exprAndPredicateExample("col1 IS NOT NULL", IsNotNull(Id("col1")))
+    "translate IS [NOT] NULL expressions" should {
+      "col1 IS NULL" in {
+        exprAndPredicateExample("col1 IS NULL", IsNull(Id("col1")))
+      }
+      "col1 IS NOT NULL" in {
+        exprAndPredicateExample("col1 IS NOT NULL", IsNotNull(Id("col1")))
+      }
     }
 
     "translate DISTINCT expressions" in {
@@ -191,14 +232,17 @@ class SnowflakeExprSpec extends AnyWordSpec with SnowflakeParserTestCommon with 
         WithinGroup(CallFunction("ARRAY_AGG", Seq(Id("col1"))), Seq(SortOrder(Id("col2"), Ascending, NullsLast))))
     }
 
-    "translate JSON path expressions" in {
-      example(
-        "s.f.value:x.y.names[2]",
-        JsonAccess(
-          Dot(Dot(Id("s"), Id("f")), Id("value")),
-          Dot(Dot(Id("x"), Id("y")), ArrayAccess(Id("names"), Literal(2)))))
-
-      example("x:inner_obj['nested_field']", JsonAccess(Id("x"), JsonAccess(Id("inner_obj"), Id("nested_field"))))
+    "translate JSON path expressions" should {
+      "s.f.value:x.y.names[2]" in {
+        example(
+          "s.f.value:x.y.names[2]",
+          JsonAccess(
+            Dot(Dot(Id("s"), Id("f")), Id("value")),
+            Dot(Dot(Id("x"), Id("y")), ArrayAccess(Id("names"), Literal(2)))))
+      }
+      "x:inner_obj['nested_field']" in {
+        example("x:inner_obj['nested_field']", JsonAccess(Id("x"), JsonAccess(Id("inner_obj"), Id("nested_field"))))
+      }
     }
 
     "translate JSON literals" in {
