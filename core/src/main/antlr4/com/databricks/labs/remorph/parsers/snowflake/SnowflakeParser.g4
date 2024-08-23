@@ -3023,6 +3023,7 @@ nonReservedWords
     | LAST_QUERY_ID
     | LEAD
     | LENGTH
+    | LISTAGG
     | LOCAL
     | MAX_CONCURRENCY_LEVEL
     | MODE

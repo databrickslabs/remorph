@@ -35,4 +35,4 @@ WITH cte AS (
     ) AS agg_tags
   FROM cte
   GROUP BY
-    1
+    1;
