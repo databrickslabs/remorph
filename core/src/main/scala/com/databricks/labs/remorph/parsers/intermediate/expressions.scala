@@ -171,8 +171,9 @@ case class JsonExpr(dataType: DataType, fields: Seq[(String, Expression)]) exten
   override def children: Seq[Expression] = fields.map(_._2)
 }
 
-case class Struct(dataType: DataType, elements: Seq[Literal]) extends Expression {
-  override def children: Seq[Expression] = elements
+case class Struct(values: Map[String, Expression]) extends Expression {
+  override def children: Seq[Expression] = Nil // FIXME
+  override def dataType: DataType = UnresolvedType
 }
 
 // TODO: remove this type
@@ -187,7 +188,8 @@ case class UpdateFields(struct_expression: Expression, field_name: String, value
 }
 
 // TODO: has to be Alias(expr: Expression, name: String)
-case class Alias(expr: Expression, name: Seq[Id], metadata: Option[String] = None) extends Unary(expr) {
+case class Alias(expr: Expression, name: Seq[Id]) extends Unary(expr) {
+  def this(expr: Expression, name: String) = this(expr, Seq(Id(name)))
   override def dataType: DataType = expr.dataType
 }
 
