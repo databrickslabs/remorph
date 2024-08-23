@@ -15,7 +15,7 @@ class SnowflakeDMLBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
         InsertIntoTable(
           namedTable("foo"),
           None,
-          Project(Limit(namedTable("bar"), Literal(short = Some(100))), Seq(Star(None))),
+          Project(Limit(namedTable("bar"), Literal(100)), Seq(Star(None))),
           None,
           None,
           overwrite = false))
@@ -26,7 +26,7 @@ class SnowflakeDMLBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
         InsertIntoTable(
           namedTable("foo"),
           None,
-          Project(Limit(namedTable("bar"), Literal(short = Some(100))), Seq(Star(None))),
+          Project(Limit(namedTable("bar"), Literal(100)), Seq(Star(None))),
           None,
           None,
           overwrite = true))
@@ -37,10 +37,7 @@ class SnowflakeDMLBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
         InsertIntoTable(
           namedTable("foo"),
           None,
-          Values(
-            Seq(
-              Seq(Literal(short = Some(1)), Literal(short = Some(2)), Literal(short = Some(3))),
-              Seq(Literal(short = Some(4)), Literal(short = Some(5)), Literal(short = Some(6))))),
+          Values(Seq(Seq(Literal(1), Literal(2), Literal(3)), Seq(Literal(4), Literal(5), Literal(6)))),
           None,
           None,
           overwrite = false))
@@ -51,10 +48,7 @@ class SnowflakeDMLBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
         InsertIntoTable(
           namedTable("foo"),
           None,
-          Values(
-            Seq(
-              Seq(Literal(short = Some(1)), Literal(short = Some(2)), Literal(short = Some(3))),
-              Seq(Literal(short = Some(4)), Literal(short = Some(5)), Literal(short = Some(6))))),
+          Values(Seq(Seq(Literal(1), Literal(2), Literal(3)), Seq(Literal(4), Literal(5), Literal(6)))),
           None,
           None,
           overwrite = true))
@@ -66,12 +60,7 @@ class SnowflakeDMLBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
         example(
           "DELETE FROM t WHERE t.c1 > 42",
           _.deleteStatement(),
-          DeleteFromTable(
-            namedTable("t"),
-            None,
-            Some(GreaterThan(Dot(Id("t"), Id("c1")), Literal(short = Some(42)))),
-            None,
-            None))
+          DeleteFromTable(namedTable("t"), None, Some(GreaterThan(Dot(Id("t"), Id("c1")), Literal(42))), None, None))
       }
 
       "as merge" in {
@@ -99,7 +88,7 @@ class SnowflakeDMLBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
       example(
         "UPDATE t1 SET c1 = 42",
         _.updateStatement(),
-        UpdateTable(namedTable("t1"), None, Seq(Assign(Id("c1"), Literal(short = Some(42)))), None, None, None))
+        UpdateTable(namedTable("t1"), None, Seq(Assign(Id("c1"), Literal(42))), None, None, None))
 
       example(
         "UPDATE t1 SET c1 = 42 WHERE c1 < 0",
@@ -107,8 +96,8 @@ class SnowflakeDMLBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
         UpdateTable(
           namedTable("t1"),
           None,
-          Seq(Assign(Id("c1"), Literal(short = Some(42)))),
-          Some(LessThan(Id("c1"), Literal(short = Some(0)))),
+          Seq(Assign(Id("c1"), Literal(42))),
+          Some(LessThan(Id("c1"), Literal(0))),
           None,
           None))
 

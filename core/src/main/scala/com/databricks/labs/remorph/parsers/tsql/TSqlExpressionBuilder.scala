@@ -330,21 +330,11 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
   private def buildPrimitive(con: Token): ir.Expression = con.getType match {
     case DEFAULT => Default()
     case LOCAL_ID => ir.Identifier(con.getText, isQuoted = false)
-    case STRING => ir.Literal(string = Some(removeQuotes(con.getText)))
-    case NULL_ => ir.Literal(nullType = Some(ir.NullType))
-    case HEX => ir.Literal(string = Some(con.getText)) // Preserve format
-    case MONEY => Money(ir.Literal(string = Some(con.getText)))
-    case INT | REAL | FLOAT => convertNumeric(con.getText)
-  }
-
-  // TODO: Maybe start sharing such things between all the parsers?
-  private def convertNumeric(str: String): ir.Literal = BigDecimal(str) match {
-    case d if d.isValidShort => ir.Literal(short = Some(d.toShort))
-    case d if d.isValidInt => ir.Literal(integer = Some(d.toInt))
-    case d if d.isValidLong => ir.Literal(long = Some(d.toLong))
-    case d if d.isDecimalFloat || d.isExactFloat => ir.Literal(float = Some(d.toFloat))
-    case d if d.isDecimalDouble || d.isExactDouble => ir.Literal(double = Some(d.toDouble))
-    case _ => ir.Literal(decimal = Some(ir.Decimal(str, None, None)))
+    case STRING => ir.Literal(removeQuotes(con.getText))
+    case NULL_ => ir.Literal.Null
+    case HEX => ir.Literal(con.getText) // Preserve format
+    case MONEY => Money(ir.StringLiteral(con.getText))
+    case INT | REAL | FLOAT => ir.NumericLiteral(con.getText)
   }
 
   override def visitStandardFunction(ctx: StandardFunctionContext): ir.Expression = {
@@ -381,7 +371,7 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
   private def buildNullIgnore(ctx: ir.Expression, ignoreNulls: Boolean): ir.Expression = {
     ctx match {
       case callFunction: ir.CallFunction if ignoreNulls =>
-        callFunction.copy(arguments = callFunction.arguments :+ ir.Literal(boolean = Some(true)))
+        callFunction.copy(arguments = callFunction.arguments :+ ir.Literal.True)
       case _ => ctx
     }
   }
@@ -427,9 +417,9 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
       case c if c.UNBOUNDED() != null && c.FOLLOWING() != null => ir.UnboundedFollowing
       case c if c.CURRENT() != null => ir.CurrentRow
       case c if c.INT() != null && c.PRECEDING() != null =>
-        ir.PrecedingN(ir.Literal(integer = Some(c.INT().getText.toInt)))
+        ir.PrecedingN(ir.Literal(c.INT().getText.toInt, ir.IntegerType))
       case c if c.INT() != null && c.FOLLOWING() != null =>
-        ir.FollowingN(ir.Literal(integer = Some(c.INT().getText.toInt)))
+        ir.FollowingN(ir.Literal(c.INT().getText.toInt, ir.IntegerType))
     }
 
   /**

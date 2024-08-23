@@ -197,7 +197,7 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
               group_type = GroupBy,
               grouping_expressions = Seq(simplyNamedColumn("a")),
               pivot = None),
-            GreaterThan(CallFunction("COUNT", Seq(Id("b"))), Literal(short = Some(1)))),
+            GreaterThan(CallFunction("COUNT", Seq(Id("b"))), Literal(1))),
           Seq(simplyNamedColumn("a"), CallFunction("COUNT", Seq(Id("b"))))))
     }
 
@@ -242,21 +242,17 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
     "translate queries with LIMIT and OFFSET" in {
       singleQueryExample(
         query = "SELECT a FROM b LIMIT 5",
-        expectedAst = Project(
-          Limit(NamedTable("b", Map.empty, is_streaming = false), Literal(short = Some(5))),
-          Seq(simplyNamedColumn("a"))))
+        expectedAst =
+          Project(Limit(NamedTable("b", Map.empty, is_streaming = false), Literal(5)), Seq(simplyNamedColumn("a"))))
       singleQueryExample(
         query = "SELECT a FROM b LIMIT 5 OFFSET 10",
         expectedAst = Project(
-          Offset(
-            Limit(NamedTable("b", Map.empty, is_streaming = false), Literal(short = Some(5))),
-            Literal(short = Some(10))),
+          Offset(Limit(NamedTable("b", Map.empty, is_streaming = false), Literal(5)), Literal(10)),
           Seq(simplyNamedColumn("a"))))
       singleQueryExample(
         query = "SELECT a FROM b OFFSET 10 FETCH FIRST 42",
-        expectedAst = Project(
-          Offset(NamedTable("b", Map.empty, is_streaming = false), Literal(short = Some(10))),
-          Seq(simplyNamedColumn("a"))))
+        expectedAst =
+          Project(Offset(NamedTable("b", Map.empty, is_streaming = false), Literal(10)), Seq(simplyNamedColumn("a"))))
     }
     "translate a query with PIVOT" in {
       singleQueryExample(
@@ -266,8 +262,7 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
             child = NamedTable("b", Map.empty, is_streaming = false),
             group_type = Pivot,
             grouping_expressions = Seq(CallFunction("SUM", Seq(simplyNamedColumn("a")))),
-            pivot =
-              Some(Pivot(simplyNamedColumn("c"), Seq(Literal(string = Some("foo")), Literal(string = Some("bar")))))),
+            pivot = Some(Pivot(simplyNamedColumn("c"), Seq(Literal("foo"), Literal("bar"))))),
           Seq(simplyNamedColumn("a"))))
     }
 
@@ -323,12 +318,12 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
           Filter(
             Filter(
               Aggregate(
-                child = Filter(namedTable("t1"), LessThan(Id("c3"), Literal(short = Some(4)))),
+                child = Filter(namedTable("t1"), LessThan(Id("c3"), Literal(4))),
                 group_type = GroupBy,
                 grouping_expressions = Seq(simplyNamedColumn("c2"), simplyNamedColumn("c3")),
                 pivot = None),
-              GreaterThanOrEqual(CallFunction("AVG", Seq(Id("c1"))), Literal(short = Some(5)))),
-            GreaterThan(CallFunction("MIN", Seq(Id("r"))), Literal(short = Some(6)))),
+              GreaterThanOrEqual(CallFunction("AVG", Seq(Id("c1"))), Literal(5))),
+            GreaterThan(CallFunction("MIN", Seq(Id("r"))), Literal(6))),
           Seq(
             simplyNamedColumn("c2"),
             Alias(Window(CallFunction("SUM", Seq(Id("c3"))), Seq(Id("c2")), Seq(), None), Seq(Id("r")), None))))
@@ -417,7 +412,7 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
           Seq(
             CreateTableCommand("t1", Seq(ColumnDeclaration("x", StringType))),
             Project(namedTable("t1"), Seq(simplyNamedColumn("x"))),
-            Project(namedTable("t3"), Seq(Literal(short = Some(3)))))))
+            Project(namedTable("t3"), Seq(Literal(3))))))
     }
 
     // Tests below are just meant to verify that SnowflakeAstBuilder properly delegates DML commands
@@ -429,10 +424,7 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
         InsertIntoTable(
           namedTable("t"),
           Some(Seq(Id("c1"), Id("c2"), Id("c3"))),
-          Values(
-            Seq(
-              Seq(Literal(short = Some(1)), Literal(short = Some(2)), Literal(short = Some(3))),
-              Seq(Literal(short = Some(4)), Literal(short = Some(5)), Literal(short = Some(6))))),
+          Values(Seq(Seq(Literal(1), Literal(2), Literal(3)), Seq(Literal(4), Literal(5), Literal(6)))),
           None,
           None,
           overwrite = false))
@@ -441,19 +433,14 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
     "translate DELETE commands" in {
       singleQueryExample(
         "DELETE FROM t WHERE t.c1 > 42",
-        DeleteFromTable(
-          namedTable("t"),
-          None,
-          Some(GreaterThan(Dot(Id("t"), Id("c1")), Literal(short = Some(42)))),
-          None,
-          None))
+        DeleteFromTable(namedTable("t"), None, Some(GreaterThan(Dot(Id("t"), Id("c1")), Literal(42))), None, None))
 
     }
 
     "translate UPDATE commands" in {
       singleQueryExample(
         "UPDATE t1 SET c1 = 42;",
-        UpdateTable(namedTable("t1"), None, Seq(Assign(Id("c1"), Literal(short = Some(42)))), None, None, None))
+        UpdateTable(namedTable("t1"), None, Seq(Assign(Id("c1"), Literal(42))), None, None, None))
 
     }
   }

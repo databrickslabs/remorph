@@ -5,6 +5,8 @@ import com.databricks.labs.remorph.parsers.{intermediate => ir}
 import org.scalatest.wordspec.AnyWordSpec
 import org.scalatestplus.mockito.MockitoSugar
 
+import java.sql.{Date, Timestamp}
+
 class ExpressionGeneratorTest
     extends AnyWordSpec
     with GeneratorTestCommon[ir.Expression]
@@ -17,8 +19,8 @@ class ExpressionGeneratorTest
     ir.Options(
       Map(
         "KEEPFIXED" -> ir.Column(None, ir.Id("PLAN")),
-        "FAST" -> ir.Literal(short = Some(666)),
-        "MAX_GRANT_PERCENT" -> ir.Literal(short = Some(30))),
+        "FAST" -> ir.Literal(666),
+        "MAX_GRANT_PERCENT" -> ir.Literal(30)),
       Map(),
       Map("FLAME" -> false, "QUICKLY" -> true),
       List()) generates
@@ -1542,38 +1544,61 @@ class ExpressionGeneratorTest
   }
 
   "literal" should {
-    "be generated" in {
-      ir.Literal() generates "NULL"
-
-      ir.Literal(binary = Some(Array(0x01, 0x02, 0x03))) generates "010203"
-
-      ir.Literal(boolean = Some(true)) generates "true"
-
-      ir.Literal(short = Some(123)) generates "123"
-
-      ir.Literal(integer = Some(123)) generates "123"
-
-      ir.Literal(long = Some(123)) generates "123"
-
-      ir.Literal(float = Some(123.4f)) generates "123.4"
-
-      ir.Literal(double = Some(123.4)) generates "123.4"
-
-      ir.Literal(string = Some("abc")) generates "'abc'"
-
-      ir.Literal(date = Some(19927)) generates "CAST('2024-07-23' AS DATE)"
-
-      // we should generate UTC timezone
-      //  ir.Literal(timestamp = Some(1721757801000L)) generates "\"2024-07-23 18:03:21.000\""
+    "NULL" in {
+      ir.Literal(null) generates "NULL"
     }
 
-    "arrays" in {
-      ir.Literal(Seq(ir.Literal("abc"), ir.Literal("def"))) generates "ARRAY('abc', 'def')"
+    "binary array" in {
+      ir.Literal(Array[Byte](0x01, 0x02, 0x03)) generates "010203"
     }
 
-    "maps" in {
-      ir.Literal(
-        Map("foo" -> ir.Literal("bar"), "baz" -> ir.Literal("qux"))) generates "MAP('foo', 'bar', 'baz', 'qux')"
+    "booleans" in {
+      ir.Literal(true) generates "true"
+      ir.Literal(false) generates "false"
+    }
+
+    "short" in {
+      ir.Literal(123, ir.ShortType) generates "123"
+    }
+
+    "123" in {
+      ir.Literal(123) generates "123"
+    }
+
+    "long" in {
+      ir.Literal(123, ir.LongType) generates "123"
+    }
+
+    "float" in {
+      ir.Literal(123.4f, ir.FloatType) generates "123.4"
+    }
+
+    "double" in {
+      ir.Literal(123.4, ir.DoubleType) generates "123.4"
+    }
+
+    "decimal" in {
+      ir.Literal(BigDecimal("123.4")) generates "123.4"
+    }
+
+    "string" in {
+      ir.Literal("abc") generates "'abc'"
+    }
+
+    "CAST('2024-07-23 18:03:21' AS TIMESTAMP)" in {
+      ir.Literal(new Timestamp(1721757801L)) generates "CAST('2024-07-23 18:03:21' AS TIMESTAMP)"
+    }
+
+    "CAST('2024-07-23' AS DATE)" in {
+      ir.Literal(new Date(1721757801000L)) generates "CAST('2024-07-23' AS DATE)"
+    }
+
+    "ARRAY('abc', 'def')" in {
+      ir.Literal(Seq("abc", "def")) generates "ARRAY('abc', 'def')"
+    }
+
+    "MAP('foo', 'bar', 'baz', 'qux')" in {
+      ir.Literal(Map("foo" -> "bar", "baz" -> "qux")) generates "MAP('foo', 'bar', 'baz', 'qux')"
     }
   }
 

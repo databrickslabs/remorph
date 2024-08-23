@@ -48,7 +48,7 @@ class TSqlRelationBuilderSpec
       example(
         "FROM some_table WHERE 1=1",
         _.selectOptionalClauses(),
-        ir.Filter(namedTable("some_table"), ir.Equals(ir.Literal(short = Some(1)), ir.Literal(short = Some(1)))))
+        ir.Filter(namedTable("some_table"), ir.Equals(ir.Literal(1), ir.Literal(1))))
     }
 
     "translate GROUP BY clauses" in {
@@ -92,8 +92,7 @@ class TSqlRelationBuilderSpec
         "FROM some_table WHERE 1=1 GROUP BY some_column",
         _.selectOptionalClauses(),
         ir.Aggregate(
-          child =
-            ir.Filter(namedTable("some_table"), ir.Equals(ir.Literal(short = Some(1)), ir.Literal(short = Some(1)))),
+          child = ir.Filter(namedTable("some_table"), ir.Equals(ir.Literal(1), ir.Literal(1))),
           group_type = ir.GroupBy,
           grouping_expressions = Seq(simplyNamedColumn("some_column")),
           pivot = None))
@@ -103,8 +102,7 @@ class TSqlRelationBuilderSpec
         _.selectOptionalClauses(),
         ir.Sort(
           ir.Aggregate(
-            child =
-              ir.Filter(namedTable("some_table"), ir.Equals(ir.Literal(short = Some(1)), ir.Literal(short = Some(1)))),
+            child = ir.Filter(namedTable("some_table"), ir.Equals(ir.Literal(1), ir.Literal(1))),
             group_type = ir.GroupBy,
             grouping_expressions = Seq(simplyNamedColumn("some_column")),
             pivot = None),

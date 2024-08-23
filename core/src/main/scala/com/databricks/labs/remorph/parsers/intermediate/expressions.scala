@@ -163,26 +163,12 @@ case class Cast(
     timeZoneId: Option[String] = None)
     extends Unary(expr)
 
-case class Decimal(value: String, precision: Option[Int], scale: Option[Int]) extends LeafExpression {
-  override def dataType: DataType = DecimalType(precision, scale)
-}
-
 case class CalendarInterval(months: Int, days: Int, microseconds: Long) extends LeafExpression {
   override def dataType: DataType = CalendarIntervalType
 }
 
-case class ArrayExpr(dataType: DataType, elements: Seq[Expression]) extends Expression {
-  override def children: Seq[Expression] = elements
-}
-
-case class JsonExpr(dataType: DataType, fields: Seq[(String, Literal)]) extends Expression {
+case class JsonExpr(dataType: DataType, fields: Seq[(String, Expression)]) extends Expression {
   override def children: Seq[Expression] = fields.map(_._2)
-}
-
-case class MapExpr(key_type: DataType, value_type: DataType, keys: Seq[Literal], values: Seq[Expression])
-    extends Expression {
-  override def children: Seq[Expression] = keys ++ values
-  override def dataType: DataType = MapType(key_type, value_type)
 }
 
 case class Struct(dataType: DataType, elements: Seq[Literal]) extends Expression {

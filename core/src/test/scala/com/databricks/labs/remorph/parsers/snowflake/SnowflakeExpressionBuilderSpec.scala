@@ -20,21 +20,21 @@ class SnowflakeExpressionBuilderSpec
 
   "SnowflakeExpressionBuilder" should {
     "translate literals" in {
-      exampleExpr("null", _.literal(), Literal(nullType = Some(NullType)))
-      exampleExpr("true", _.literal(), Literal(boolean = Some(true)))
-      exampleExpr("false", _.literal(), Literal(boolean = Some(false)))
-      exampleExpr("1", _.literal(), Literal(short = Some(1)))
-      exampleExpr(Int.MaxValue.toString, _.literal(), Literal(integer = Some(Int.MaxValue)))
-      exampleExpr("-1", _.literal(), Literal(short = Some(-1)))
-      exampleExpr("1.1", _.literal(), Literal(float = Some(1.1f)))
-      exampleExpr("1.1e2", _.literal(), Literal(short = Some(110)))
-      exampleExpr(Long.MaxValue.toString, _.literal(), Literal(long = Some(Long.MaxValue)))
-      exampleExpr("1.1e-2", _.literal(), Literal(float = Some(0.011f)))
-      exampleExpr("0.123456789", _.literal(), Literal(double = Some(0.123456789)))
-      exampleExpr("0.123456789e-1234", _.literal(), Literal(decimal = Some(Decimal("0.123456789e-1234", None, None))))
-      exampleExpr("'foo'", _.literal(), Literal(string = Some("foo")))
-      exampleExpr("DATE'1970-01-01'", _.literal(), Literal(date = Some(0)))
-      exampleExpr("TIMESTAMP'1970-01-01 00:00:00'", _.literal(), Literal(timestamp = Some(0)))
+      exampleExpr("null", _.literal(), Literal.Null)
+      exampleExpr("true", _.literal(), Literal.True)
+      exampleExpr("false", _.literal(), Literal.False)
+      exampleExpr("1", _.literal(), Literal(1))
+      exampleExpr(Int.MaxValue.toString, _.literal(), Literal(Int.MaxValue))
+      exampleExpr("-1", _.literal(), Literal(-1))
+      exampleExpr("1.1", _.literal(), Literal(1.1f))
+      exampleExpr("1.1e2", _.literal(), Literal(110))
+      exampleExpr(Long.MaxValue.toString, _.literal(), Literal(Long.MaxValue))
+      exampleExpr("1.1e-2", _.literal(), Literal(0.011f))
+      exampleExpr("0.123456789", _.literal(), Literal(0.123456789))
+      exampleExpr("0.123456789e-1234", _.literal(), DecimalLiteral("0.123456789e-1234"))
+      exampleExpr("'foo'", _.literal(), Literal("foo"))
+      exampleExpr("DATE'1970-01-01'", _.literal(), Literal(0, DateType))
+      exampleExpr("TIMESTAMP'1970-01-01 00:00:00'", _.literal(), Literal(0, TimestampType))
     }
 
     "translate ids (quoted or not)" in {
@@ -52,44 +52,33 @@ class SnowflakeExpressionBuilderSpec
     }
 
     "translate simple numeric binary expressions" in {
-      exampleExpr("1 + 2", _.expr(), ir.Add(ir.Literal(short = Some(1)), ir.Literal(short = Some(2))))
-      exampleExpr("1 +2", _.expr(), ir.Add(ir.Literal(short = Some(1)), ir.Literal(short = Some(2))))
-      exampleExpr("1 - 2", _.expr(), ir.Subtract(ir.Literal(short = Some(1)), ir.Literal(short = Some(2))))
-      exampleExpr("1 -2", _.expr(), ir.Subtract(ir.Literal(short = Some(1)), ir.Literal(short = Some(2))))
-      exampleExpr("1 * 2", _.expr(), ir.Multiply(ir.Literal(short = Some(1)), ir.Literal(short = Some(2))))
-      exampleExpr("1 / 2", _.expr(), ir.Divide(ir.Literal(short = Some(1)), ir.Literal(short = Some(2))))
-      exampleExpr("1 % 2", _.expr(), ir.Mod(ir.Literal(short = Some(1)), ir.Literal(short = Some(2))))
-      exampleExpr(
-        "'A' || 'B'",
-        _.expr(),
-        ir.Concat(Seq(ir.Literal(string = Some("A")), ir.Literal(string = Some("B")))))
+      exampleExpr("1 + 2", _.expr(), ir.Add(ir.Literal(1), ir.Literal(2)))
+      exampleExpr("1 +2", _.expr(), ir.Add(ir.Literal(1), ir.Literal(2)))
+      exampleExpr("1 - 2", _.expr(), ir.Subtract(ir.Literal(1), ir.Literal(2)))
+      exampleExpr("1 -2", _.expr(), ir.Subtract(ir.Literal(1), ir.Literal(2)))
+      exampleExpr("1 * 2", _.expr(), ir.Multiply(ir.Literal(1), ir.Literal(2)))
+      exampleExpr("1 / 2", _.expr(), ir.Divide(ir.Literal(1), ir.Literal(2)))
+      exampleExpr("1 % 2", _.expr(), ir.Mod(ir.Literal(1), ir.Literal(2)))
+      exampleExpr("'A' || 'B'", _.expr(), ir.Concat(Seq(ir.Literal("A"), ir.Literal("B"))))
     }
 
     "translate complex binary expressions" in {
-      exampleExpr("a + b * 2", _.expr(), ir.Add(Id("a"), ir.Multiply(Id("b"), ir.Literal(short = Some(2)))))
-      exampleExpr("(a + b) * 2", _.expr(), ir.Multiply(ir.Add(Id("a"), Id("b")), ir.Literal(short = Some(2))))
-      exampleExpr("a + b * 2", _.expr(), ir.Add(Id("a"), ir.Multiply(Id("b"), ir.Literal(short = Some(2)))))
-      exampleExpr("(a + b) * 2", _.expr(), ir.Multiply(ir.Add(Id("a"), Id("b")), ir.Literal(short = Some(2))))
+      exampleExpr("a + b * 2", _.expr(), ir.Add(Id("a"), ir.Multiply(Id("b"), ir.Literal(2))))
+      exampleExpr("(a + b) * 2", _.expr(), ir.Multiply(ir.Add(Id("a"), Id("b")), ir.Literal(2)))
+      exampleExpr("a + b * 2", _.expr(), ir.Add(Id("a"), ir.Multiply(Id("b"), ir.Literal(2))))
+      exampleExpr("(a + b) * 2", _.expr(), ir.Multiply(ir.Add(Id("a"), Id("b")), ir.Literal(2)))
       exampleExpr(
         "a % 3 + b * 2 - c / 5",
         _.expr(),
         ir.Subtract(
-          ir.Add(ir.Mod(Id("a"), ir.Literal(short = Some(3))), ir.Multiply(Id("b"), ir.Literal(short = Some(2)))),
-          ir.Divide(Id("c"), ir.Literal(short = Some(5)))))
+          ir.Add(ir.Mod(Id("a"), ir.Literal(3)), ir.Multiply(Id("b"), ir.Literal(2))),
+          ir.Divide(Id("c"), ir.Literal(5))))
       exampleExpr(query = "a || b || c", _.expr(), ir.Concat(Seq(ir.Concat(Seq(Id("a"), Id("b"))), Id("c"))))
     }
 
     "correctly apply operator precedence and associativity" in {
-      exampleExpr(
-        "1 + -++-2",
-        _.expr(),
-        ir.Add(ir.Literal(short = Some(1)), ir.UMinus(ir.UPlus(ir.UPlus(ir.UMinus(ir.Literal(short = Some(2))))))))
-      exampleExpr(
-        "1 + -2 * 3",
-        _.expr(),
-        ir.Add(
-          ir.Literal(short = Some(1)),
-          ir.Multiply(ir.UMinus(ir.Literal(short = Some(2))), ir.Literal(short = Some(3)))))
+      exampleExpr("1 + -++-2", _.expr(), ir.Add(ir.Literal(1), ir.UMinus(ir.UPlus(ir.UPlus(ir.UMinus(ir.Literal(2)))))))
+      exampleExpr("1 + -2 * 3", _.expr(), ir.Add(ir.Literal(1), ir.Multiply(ir.UMinus(ir.Literal(2)), ir.Literal(3))))
       exampleExpr(
         "1 + -2 * 3 + 7 || 'leeds1' || 'leeds2' || 'leeds3'",
         _.expr(),
@@ -97,55 +86,35 @@ class SnowflakeExpressionBuilderSpec
           Seq(
             ir.Concat(Seq(
               ir.Concat(Seq(
-                ir.Add(
-                  ir.Add(
-                    ir.Literal(short = Some(1)),
-                    ir.Multiply(ir.UMinus(ir.Literal(short = Some(2))), ir.Literal(short = Some(3)))),
-                  ir.Literal(short = Some(7))),
-                ir.Literal(string = Some("leeds1")))),
-              ir.Literal(string = Some("leeds2")))),
-            ir.Literal(string = Some("leeds3")))))
+                ir.Add(ir.Add(ir.Literal(1), ir.Multiply(ir.UMinus(ir.Literal(2)), ir.Literal(3))), ir.Literal(7)),
+                ir.Literal("leeds1"))),
+              ir.Literal("leeds2"))),
+            ir.Literal("leeds3"))))
     }
 
     "correctly respect explicit precedence with parentheses" in {
-      exampleExpr(
-        "(1 + 2) * 3",
-        _.expr(),
-        ir.Multiply(ir.Add(ir.Literal(short = Some(1)), ir.Literal(short = Some(2))), ir.Literal(short = Some(3))))
-      exampleExpr(
-        "1 + (2 * 3)",
-        _.expr(),
-        ir.Add(ir.Literal(short = Some(1)), ir.Multiply(ir.Literal(short = Some(2)), ir.Literal(short = Some(3)))))
+      exampleExpr("(1 + 2) * 3", _.expr(), ir.Multiply(ir.Add(ir.Literal(1), ir.Literal(2)), ir.Literal(3)))
+      exampleExpr("1 + (2 * 3)", _.expr(), ir.Add(ir.Literal(1), ir.Multiply(ir.Literal(2), ir.Literal(3))))
       exampleExpr(
         "(1 + 2) * (3 + 4)",
         _.expr(),
-        ir.Multiply(
-          ir.Add(ir.Literal(short = Some(1)), ir.Literal(short = Some(2))),
-          ir.Add(ir.Literal(short = Some(3)), ir.Literal(short = Some(4)))))
+        ir.Multiply(ir.Add(ir.Literal(1), ir.Literal(2)), ir.Add(ir.Literal(3), ir.Literal(4))))
       exampleExpr(
         "1 + (2 * 3) + 4",
         _.expr(),
-        ir.Add(
-          ir.Add(ir.Literal(short = Some(1)), ir.Multiply(ir.Literal(short = Some(2)), ir.Literal(short = Some(3)))),
-          ir.Literal(short = Some(4))))
+        ir.Add(ir.Add(ir.Literal(1), ir.Multiply(ir.Literal(2), ir.Literal(3))), ir.Literal(4)))
       exampleExpr(
         "1 + (2 * 3 + 4)",
         _.expr(),
-        ir.Add(
-          ir.Literal(short = Some(1)),
-          ir.Add(ir.Multiply(ir.Literal(short = Some(2)), ir.Literal(short = Some(3))), ir.Literal(short = Some(4)))))
+        ir.Add(ir.Literal(1), ir.Add(ir.Multiply(ir.Literal(2), ir.Literal(3)), ir.Literal(4))))
       exampleExpr(
         "1 + (2 * (3 + 4))",
         _.expr(),
-        ir.Add(
-          ir.Literal(short = Some(1)),
-          ir.Multiply(ir.Literal(short = Some(2)), ir.Add(ir.Literal(short = Some(3)), ir.Literal(short = Some(4))))))
+        ir.Add(ir.Literal(1), ir.Multiply(ir.Literal(2), ir.Add(ir.Literal(3), ir.Literal(4)))))
       exampleExpr(
         "(1 + (2 * (3 + 4)))",
         _.expr(),
-        ir.Add(
-          ir.Literal(short = Some(1)),
-          ir.Multiply(ir.Literal(short = Some(2)), ir.Add(ir.Literal(short = Some(3)), ir.Literal(short = Some(4))))))
+        ir.Add(ir.Literal(1), ir.Multiply(ir.Literal(2), ir.Add(ir.Literal(3), ir.Literal(4)))))
     }
 
     "translate functions with special syntax" in {
@@ -170,10 +139,7 @@ class SnowflakeExpressionBuilderSpec
 
       exampleExpr("COUNT(*)", _.aggregateFunction(), CallFunction("COUNT", Seq(Star(None))))
 
-      exampleExpr(
-        "LISTAGG(x, ',')",
-        _.aggregateFunction(),
-        CallFunction("LISTAGG", Seq(Id("x"), Literal(string = Some(",")))))
+      exampleExpr("LISTAGG(x, ',')", _.aggregateFunction(), CallFunction("LISTAGG", Seq(Id("x"), Literal(","))))
       exampleExpr("ARRAY_AGG(x)", _.aggregateFunction(), CallFunction("ARRAYAGG", Seq(Id("x"))))
     }
 
@@ -201,7 +167,7 @@ class SnowflakeExpressionBuilderSpec
         query = "NTILE(42) OVER (PARTITION BY a ORDER BY b, c DESC, d)",
         rule = _.rankingWindowedFunction(),
         expectedAst = Window(
-          window_function = CallFunction("NTILE", Seq(Literal(short = Some(42)))),
+          window_function = CallFunction("NTILE", Seq(Literal(42))),
           partition_spec = Seq(Id("a")),
           sort_order = Seq(
             SortOrder(Id("b"), Ascending, NullsLast),
@@ -250,7 +216,7 @@ class SnowflakeExpressionBuilderSpec
           window_function = CallFunction("ROW_NUMBER", Seq()),
           partition_spec = Seq(Id("a")),
           sort_order = Seq(SortOrder(Id("a"), Ascending, NullsLast)),
-          frame_spec = Some(WindowFrame(RowsFrame, PrecedingN(Literal(short = Some(42))), CurrentRow))))
+          frame_spec = Some(WindowFrame(RowsFrame, PrecedingN(Literal(42)), CurrentRow))))
 
       exampleExpr(
         query = "ROW_NUMBER() OVER(PARTITION BY a ORDER BY a ROWS BETWEEN CURRENT ROW AND 42 FOLLOWING)",
@@ -259,7 +225,7 @@ class SnowflakeExpressionBuilderSpec
           window_function = CallFunction("ROW_NUMBER", Seq()),
           partition_spec = Seq(Id("a")),
           sort_order = Seq(SortOrder(Id("a"), Ascending, NullsLast)),
-          frame_spec = Some(WindowFrame(RowsFrame, CurrentRow, FollowingN(Literal(short = Some(42)))))))
+          frame_spec = Some(WindowFrame(RowsFrame, CurrentRow, FollowingN(Literal(42))))))
     }
 
     "translate star-expressions" in {
@@ -338,18 +304,18 @@ class SnowflakeExpressionBuilderSpec
       Case(
         expression = None,
         branches = scala.collection.immutable.Seq(
-          WhenBranch(Equals(Id("col1"), Literal(short = Some(1))), Literal(string = Some("one"))),
-          WhenBranch(Equals(Id("col2"), Literal(short = Some(2))), Literal(string = Some("two")))),
+          WhenBranch(Equals(Id("col1"), Literal(1)), Literal("one")),
+          WhenBranch(Equals(Id("col2"), Literal(2)), Literal("two"))),
         otherwise = None))
 
     exampleExpr(
       "CASE 'foo' WHEN col1 = 1 THEN 'one' WHEN col2 = 2 THEN 'two' END",
       _.caseExpression(),
       Case(
-        expression = Some(Literal(string = Some("foo"))),
+        expression = Some(Literal("foo")),
         branches = scala.collection.immutable.Seq(
-          WhenBranch(Equals(Id("col1"), Literal(short = Some(1))), Literal(string = Some("one"))),
-          WhenBranch(Equals(Id("col2"), Literal(short = Some(2))), Literal(string = Some("two")))),
+          WhenBranch(Equals(Id("col1"), Literal(1)), Literal("one")),
+          WhenBranch(Equals(Id("col2"), Literal(2)), Literal("two"))),
         otherwise = None))
 
     exampleExpr(
@@ -358,26 +324,26 @@ class SnowflakeExpressionBuilderSpec
       Case(
         expression = None,
         branches = scala.collection.immutable.Seq(
-          WhenBranch(Equals(Id("col1"), Literal(short = Some(1))), Literal(string = Some("one"))),
-          WhenBranch(Equals(Id("col2"), Literal(short = Some(2))), Literal(string = Some("two")))),
-        otherwise = Some(Literal(string = Some("other")))))
+          WhenBranch(Equals(Id("col1"), Literal(1)), Literal("one")),
+          WhenBranch(Equals(Id("col2"), Literal(2)), Literal("two"))),
+        otherwise = Some(Literal("other"))))
 
     exampleExpr(
       "CASE 'foo' WHEN col1 = 1 THEN 'one' WHEN col2 = 2 THEN 'two' ELSE 'other' END",
       _.caseExpression(),
       Case(
-        expression = Some(Literal(string = Some("foo"))),
+        expression = Some(Literal("foo")),
         branches = scala.collection.immutable.Seq(
-          WhenBranch(Equals(Id("col1"), Literal(short = Some(1))), Literal(string = Some("one"))),
-          WhenBranch(Equals(Id("col2"), Literal(short = Some(2))), Literal(string = Some("two")))),
-        otherwise = Some(Literal(string = Some("other")))))
+          WhenBranch(Equals(Id("col1"), Literal(1)), Literal("one")),
+          WhenBranch(Equals(Id("col2"), Literal(2)), Literal("two"))),
+        otherwise = Some(Literal("other"))))
 
   }
 
   "SnowflakeExpressionBuilder.visit_Literal" should {
     "handle unresolved child" in {
       val literal = mock[LiteralContext]
-      astBuilder.visitLiteral(literal) shouldBe Literal(nullType = Some(NullType))
+      astBuilder.visitLiteral(literal) shouldBe Literal.Null
       verify(literal).sign()
       verify(literal).DATE_LIT()
       verify(literal).TIMESTAMP_LIT()

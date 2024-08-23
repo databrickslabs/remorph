@@ -64,7 +64,7 @@ class SnowflakeRelationBuilderSpec
       example(
         "FROM some_table WHERE 1=1",
         _.selectOptionalClauses(),
-        Filter(namedTable("some_table"), Equals(Literal(short = Some(1)), Literal(short = Some(1)))))
+        Filter(namedTable("some_table"), Equals(Literal(1), Literal(1))))
     }
 
     "translate GROUP BY clauses" in {
@@ -84,7 +84,7 @@ class SnowflakeRelationBuilderSpec
           namedTable("t1"),
           group_type = Pivot,
           grouping_expressions = Seq(CallFunction("AVG", Seq(simplyNamedColumn("a")))),
-          pivot = Some(Pivot(simplyNamedColumn("d"), Seq(Literal(string = Some("x")), Literal(string = Some("y")))))))
+          pivot = Some(Pivot(simplyNamedColumn("d"), Seq(Literal("x"), Literal("y"))))))
 
       example(
         query = "FROM t1 PIVOT (COUNT(a) FOR d IN('x', 'y'))",
@@ -93,7 +93,7 @@ class SnowflakeRelationBuilderSpec
           namedTable("t1"),
           group_type = Pivot,
           grouping_expressions = Seq(CallFunction("COUNT", Seq(simplyNamedColumn("a")))),
-          pivot = Some(Pivot(simplyNamedColumn("d"), Seq(Literal(string = Some("x")), Literal(string = Some("y")))))))
+          pivot = Some(Pivot(simplyNamedColumn("d"), Seq(Literal("x"), Literal("y"))))))
 
       example(
         query = "FROM t1 PIVOT (MIN(a) FOR d IN('x', 'y'))",
@@ -102,7 +102,7 @@ class SnowflakeRelationBuilderSpec
           namedTable("t1"),
           group_type = Pivot,
           grouping_expressions = Seq(CallFunction("MIN", Seq(simplyNamedColumn("a")))),
-          pivot = Some(Pivot(simplyNamedColumn("d"), Seq(Literal(string = Some("x")), Literal(string = Some("y")))))))
+          pivot = Some(Pivot(simplyNamedColumn("d"), Seq(Literal("x"), Literal("y"))))))
     }
 
     "translate ORDER BY clauses" in {
@@ -164,7 +164,7 @@ class SnowflakeRelationBuilderSpec
         "FROM some_table WHERE 1=1 GROUP BY some_column",
         _.selectOptionalClauses(),
         Aggregate(
-          child = Filter(namedTable("some_table"), Equals(Literal(short = Some(1)), Literal(short = Some(1)))),
+          child = Filter(namedTable("some_table"), Equals(Literal(1), Literal(1))),
           group_type = GroupBy,
           grouping_expressions = Seq(simplyNamedColumn("some_column")),
           pivot = None))
@@ -174,7 +174,7 @@ class SnowflakeRelationBuilderSpec
         _.selectOptionalClauses(),
         Sort(
           Aggregate(
-            child = Filter(namedTable("some_table"), Equals(Literal(short = Some(1)), Literal(short = Some(1)))),
+            child = Filter(namedTable("some_table"), Equals(Literal(1), Literal(1))),
             group_type = GroupBy,
             grouping_expressions = Seq(simplyNamedColumn("some_column")),
             pivot = None),
@@ -185,7 +185,7 @@ class SnowflakeRelationBuilderSpec
         "FROM some_table WHERE 1=1 ORDER BY some_column NULLS FIRST",
         _.selectOptionalClauses(),
         Sort(
-          Filter(namedTable("some_table"), Equals(Literal(short = Some(1)), Literal(short = Some(1)))),
+          Filter(namedTable("some_table"), Equals(Literal(1), Literal(1))),
           Seq(SortOrder(Id("some_column"), Ascending, NullsFirst)),
           is_global = false))
     }
@@ -218,7 +218,7 @@ class SnowflakeRelationBuilderSpec
               partition_spec = Seq(Id("p")),
               sort_order = Seq(SortOrder(Id("o"), Ascending, NullsLast)),
               frame_spec = Some(WindowFrame(RowsFrame, UnboundedPreceding, UnboundedFollowing))),
-            Literal(short = Some(1)))))
+            Literal(1))))
     }
 
     "translate SELECT DISTINCT clauses" in {
@@ -239,7 +239,7 @@ class SnowflakeRelationBuilderSpec
       example(
         "SELECT TOP 42 a FROM t",
         _.selectStatement(),
-        Project(Limit(namedTable("t"), Literal(short = Some(42))), Seq(simplyNamedColumn("a"))))
+        Project(Limit(namedTable("t"), Literal(42)), Seq(simplyNamedColumn("a"))))
 
       example(
         "SELECT DISTINCT TOP 42 a FROM t",
@@ -247,7 +247,7 @@ class SnowflakeRelationBuilderSpec
         Project(
           Limit(
             Deduplicate(namedTable("t"), Seq(Id("a")), all_columns_as_keys = false, within_watermark = false),
-            Literal(short = Some(42))),
+            Literal(42)),
           Seq(simplyNamedColumn("a"))))
     }
 
@@ -255,10 +255,7 @@ class SnowflakeRelationBuilderSpec
       example(
         "VALUES ('a', 1), ('b', 2)",
         _.objectRef(),
-        Values(
-          Seq(
-            Seq(Literal(string = Some("a")), Literal(short = Some(1))),
-            Seq(Literal(string = Some("b")), Literal(short = Some(2))))))
+        Values(Seq(Seq(Literal("a"), Literal(1)), Seq(Literal("b"), Literal(2)))))
     }
 
     "translate table functions as object references" in {
@@ -293,7 +290,7 @@ class SnowflakeRelationBuilderSpec
               "FLATTEN",
               Seq(
                 snowflake.NamedArgumentExpression("INPUT", Id("some_col")),
-                snowflake.NamedArgumentExpression("OUTER", Literal(boolean = Some(true))))))))
+                snowflake.NamedArgumentExpression("OUTER", Literal.True))))))
 
       example(
         "LATERAL FLATTEN (input => some_col) AS t",
