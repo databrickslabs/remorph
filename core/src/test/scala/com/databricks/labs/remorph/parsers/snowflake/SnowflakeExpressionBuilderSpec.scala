@@ -253,30 +253,6 @@ class SnowflakeExpressionBuilderSpec
         exampleExpr("LISTAGG(x, ',')", _.aggregateFunction(), CallFunction("LISTAGG", Seq(Id("x"), Literal(","))))
       }
       "ARRAY_AGG(x)" in {
-        exampleExpr("ARRAY_AGG(x)", _.aggregateFunction(), CallFunction("ARRAYAGG", Seq(Id("x"))))
-      }
-    }
-
-    "translate aggregation functions" should {
-      "COUNT(x)" in {
-        exampleExpr("COUNT(x)", _.aggregateFunction(), CallFunction("COUNT", Seq(Id("x"))))
-      }
-      "AVG(x)" in {
-        exampleExpr("AVG(x)", _.aggregateFunction(), CallFunction("AVG", Seq(Id("x"))))
-      }
-      "SUM(x)" in {
-        exampleExpr("SUM(x)", _.aggregateFunction(), CallFunction("SUM", Seq(Id("x"))))
-      }
-      "MIN(x)" in {
-        exampleExpr("MIN(x)", _.aggregateFunction(), CallFunction("MIN", Seq(Id("x"))))
-      }
-      "COUNT(*)" in {
-        exampleExpr("COUNT(*)", _.aggregateFunction(), CallFunction("COUNT", Seq(Star(None))))
-      }
-      "LISTAGG(x, ',')" in {
-        exampleExpr("LISTAGG(x, ',')", _.aggregateFunction(), CallFunction("LISTAGG", Seq(Id("x"), Literal(","))))
-      }
-      "ARRAY_AGG(x)" in {
         exampleExpr("ARRAY_AGG(x)", _.aggregateFunction(), CallFunction("ARRAY_AGG", Seq(Id("x"))))
       }
     }
