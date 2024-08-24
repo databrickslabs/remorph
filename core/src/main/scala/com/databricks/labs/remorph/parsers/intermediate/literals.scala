@@ -185,3 +185,11 @@ object StringLiteral {
     case _ => None
   }
 }
+
+object BooleanLiteral {
+  def apply(b: Boolean): Literal = if (b) Literal.True else Literal.False
+  def unapply(a: Any): Option[Boolean] = a match {
+    case Literal(true, BooleanType) => Some(true)
+    case _ => Some(false)
+  }
+}

@@ -15,7 +15,7 @@ class FlattenLateralViewToExplode  extends Rule[LogicalPlan] with IRHelpers {
         case NamedArgumentExpression(key, value) => key.toUpperCase() -> value
       }.toMap
       val input = named("INPUT")
-      //      val path = named.get("PATH").orElse(Some(Literal("")))
+      // val path = named.get("PATH").orElse(Some(Literal("")))
       val outer = getFlag(named, "OUTER")
       // val recursive = getFlag(named, "RECURSIVE")
       // val mode = named.get("MODE").orElse(Some(Literal("BOTH")))
@@ -23,10 +23,8 @@ class FlattenLateralViewToExplode  extends Rule[LogicalPlan] with IRHelpers {
       Lateral(TableFunction(explode), outer = outer)
   }
 
-  private def getFlag(named: Map[String, Expression], flagName: String): Boolean = {
-    named.get(flagName).orElse(Some(Literal(false))) match {
-      case Some(BooleanLiteral(value)) => value
-      case _ => false
-    }
+  private def getFlag(named: Map[String, Expression], flagName: String): Boolean = named.get(flagName) match {
+    case Some(BooleanLiteral(value)) => value
+    case _ => false
   }
 }

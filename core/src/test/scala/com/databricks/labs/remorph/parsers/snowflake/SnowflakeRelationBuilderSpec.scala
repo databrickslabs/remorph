@@ -379,8 +379,8 @@ class SnowflakeRelationBuilderSpec
               CallFunction(
                 "FLATTEN",
                 Seq(
-//                  NamedArgumentExpression("INPUT", Path(Seq("p", "c"))),
-                  NamedArgumentExpression("PATH", Literal(string = Some("contact"))))))),
+                  // NamedArgumentExpression("INPUT", Path(Seq("p", "c"))),
+                  NamedArgumentExpression("PATH", Literal("contact")))))),
           None,
           InnerJoin,
           Seq(),
