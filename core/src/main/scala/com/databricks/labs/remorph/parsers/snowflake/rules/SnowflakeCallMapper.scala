@@ -1,8 +1,10 @@
 package com.databricks.labs.remorph.parsers.snowflake.rules
 
-import com.databricks.labs.remorph.parsers.intermediate.{Expression, StringLiteral, WhenBranch}
 import com.databricks.labs.remorph.parsers.{intermediate => ir}
 import com.databricks.labs.remorph.transpilers.TranspileException
+
+import java.time.format.DateTimeFormatter
+import scala.util.Try
 
 class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
   private val zeroLiteral: ir.Literal = ir.IntLiteral(0)
@@ -36,9 +38,10 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
       case ir.CallFunction("DATE_PART", args) => datePart(args)
       case ir.CallFunction("DATE_TRUNC", args) => dateTrunc(args)
       case ir.CallFunction("DAYNAME", args) => dayname(args)
+      case ir.CallFunction("DECODE", args) => decode(args)
       case ir.CallFunction("DIV0", args) => div0(args)
       case ir.CallFunction("DIV0NULL", args) => div0null(args)
-      case ir.CallFunction("EDITDISTANCE", args) => ir.Levenshtein(args.head, args(1))
+      case ir.CallFunction("EDITDISTANCE", args) => ir.Levenshtein(args.head, args(1), args.lift(2))
       case ir.CallFunction("FLATTEN", args) =>
         // @see https://docs.snowflake.com/en/sql-reference/functions/flatten
         ir.Explode(args.head)
@@ -52,6 +55,7 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
       case ir.CallFunction("NULLIFZERO", args) => nullIfZero(args.head)
       case ir.CallFunction("OBJECT_KEYS", args) => ir.JsonObjectKeys(args.head)
       case ir.CallFunction("OBJECT_CONSTRUCT", args) => objectConstruct(args)
+      case ir.CallFunction("PARSE_JSON", args) => fromJson(args)
       case ir.CallFunction("POSITION", args) => ir.CallFunction("LOCATE", args)
       case ir.CallFunction("REGEXP_LIKE", args) => ir.RLike(args.head, args(1))
       case ir.CallFunction("REGEXP_SUBSTR", args) => regexpExtract(args)
@@ -70,12 +74,14 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
       case ir.CallFunction("TO_OBJECT", args) => ir.StructsToJson(args.head, args.lift(1))
       case ir.CallFunction("TO_VARCHAR", args) => ir.CallFunction("TO_CHAR", args)
       case ir.CallFunction("TO_VARIANT", args) => ir.StructsToJson(args.head, None)
+      case ir.CallFunction("TO_TIME", args) => toTime(args)
       case ir.CallFunction("TO_TIMESTAMP", args) => toTimestamp(args)
+      case ir.CallFunction("TRY_BASE64_DECODE_STRING", args) => ir.UnBase64(args.head)
+      case ir.CallFunction("TRY_BASE64_DECODE_BINARY", args) => ir.UnBase64(args.head)
+      case ir.CallFunction("TRY_PARSE_JSON", args) => fromJson(args)
       case ir.CallFunction("TRY_TO_BOOLEAN", args) => tryToBoolean(args)
       case ir.CallFunction("TRY_TO_DATE", args) => tryToDate(args)
       case ir.CallFunction("TRY_TO_NUMBER", args) => tryToNumber(args)
-      case ir.CallFunction("TRY_BASE64_DECODE_STRING", args) => ir.UnBase64(args.head)
-      case ir.CallFunction("TRY_BASE64_DECODE_BINARY", args) => ir.UnBase64(args.head)
       case ir.CallFunction("UUID_STRING", _) => ir.Uuid()
       case ir.CallFunction("ZEROIFNULL", args) => ir.If(ir.IsNull(args.head), ir.Literal(0), args.head)
       case x => super.convert(x)
@@ -84,12 +90,12 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
 
   private def objectConstruct(args: Seq[ir.Expression]): ir.Expression = args match {
     case Seq(s @ ir.Star(_)) => ir.StructExpr(Seq(s))
-    case pairs: Seq[Expression] =>
+    case pairs: Seq[ir.Expression] =>
       ir.StructExpr(
         pairs
           .sliding(2, 2)
           .collect {
-            case Seq(StringLiteral(key), v) => ir.Alias(v, ir.Id(key))
+            case Seq(ir.StringLiteral(key), v) => ir.Alias(v, ir.Id(key))
             case Seq(a, b) => throw TranspileException(s"Unsupported arguments to OBJECT_CONSTRUCT: $a, $b")
             case Seq(a) => throw TranspileException(s"Unsupported argument to OBJECT_CONSTRUCT: $a")
           }
@@ -129,9 +135,10 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
   }
 
   private def split(args: Seq[ir.Expression]): ir.Expression = {
-    val delim = args(1) match {
-      case ir.StringLiteral(d) => ir.Literal(s"[$d]")
-      case e => ir.Concat(Seq(ir.Literal("["), e, ir.Literal("]")))
+    val delim = args.lift(1) match {
+      case None => ir.StringLiteral("[ ]")
+      case Some(ir.StringLiteral(d)) => ir.StringLiteral(s"[$d]")
+      case Some(e) => ir.Concat(Seq(ir.StringLiteral("["), e, ir.StringLiteral("]")))
     }
     ir.StringSplit(args.head, delim, None)
   }
@@ -292,6 +299,23 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
     }
   }
 
+  private def toTime(args: Seq[ir.Expression]): ir.Expression = {
+    if (args.size == 1) {
+      ir.ParseToTimestamp(args.head, inferTimeFormat(args.head))
+    } else if (args.size == 2) {
+      ir.ParseToTimestamp(args.head, args(1))
+    } else {
+      throw TranspileException(s"wrong number of arguments to TO_TIMESTAMP, expected 1 or 2, got ${args.size}")
+    }
+  }
+
+  private val timestampFormats = Seq("yyyy-MM-dd HH:mm:ss")
+
+  private def inferTimeFormat(expression: ir.Expression): ir.Expression = expression match {
+    case ir.StringLiteral(timeStr) =>
+      ir.StringLiteral(timestampFormats.find(fmt => Try(DateTimeFormatter.ofPattern(fmt).parse(timeStr)).isSuccess).get)
+  }
+
   private def toTimestamp(args: Seq[ir.Expression]): ir.Expression = {
     if (args.size == 1) {
       ir.Cast(args.head, ir.TimestampType)
@@ -374,7 +398,7 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
                     ir.Literal("0"))),
                 ir.Literal(false))),
             Some(ir.RaiseError(ir.Literal(s"Boolean value of x is not recognized by TO_BOOLEAN"))))),
-        WhenBranch(
+        ir.WhenBranch(
           ir.IsNotNull(ir.TryCast(arg, ir.DoubleType)),
           ir.Case(
             None,
@@ -384,7 +408,35 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
                   ir.IsNaN(castArgAsDouble),
                   ir.Equals(castArgAsDouble, ir.CallFunction("DOUBLE", Seq(ir.Literal("infinity"))))),
                 ir.RaiseError(ir.Literal("Invalid parameter type for TO_BOOLEAN")))),
-            Some(ir.NotEquals(castArgAsDouble, ir.Literal(0.0)))))),
+            Some(ir.NotEquals(castArgAsDouble, ir.DoubleLiteral(0.0d)))))),
       Some(otherwise))
+  }
+
+  private def decode(args: Seq[ir.Expression]): ir.Expression = {
+    if (args.size >= 3) {
+      val expr = args.head
+      val groupedArgs = args.tail.sliding(2, 2).toList
+      ir.Case(
+        None,
+        groupedArgs.takeWhile(_.size == 2).map(l => makeWhenBranch(expr, l.head, l.last)),
+        groupedArgs.find(_.size == 1).map(_.head))
+    } else {
+      throw TranspileException(s"wrong number of arguments to DECODE, expected at least 3, got ${args.size}")
+    }
+  }
+
+  private def makeWhenBranch(expr: ir.Expression, cond: ir.Expression, out: ir.Expression): ir.WhenBranch = {
+    cond match {
+      case ir.Literal.Null => ir.WhenBranch(ir.IsNull(expr), out)
+      case any => ir.WhenBranch(ir.Equals(expr, any), out)
+    }
+  }
+
+  private def fromJson(args: Seq[ir.Expression]): ir.Expression = {
+    val schema = args.lift(1) match {
+      case None => ir.SchemaReference(args.head)
+      case Some(e) => e
+    }
+    ir.JsonToStructs(args.head, schema, None)
   }
 }
