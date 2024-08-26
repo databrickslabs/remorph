@@ -9,16 +9,7 @@ class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: 
     extends Generator[ir.LogicalPlan, String] {
 
   override def generate(ctx: GeneratorContext, tree: ir.LogicalPlan): String = tree match {
-    case b: ir.Batch =>
-      batch(ctx, b)
-      b.children
-        .map {
-          case ir.UnresolvedCommand(text) =>
-            "--" + text.stripSuffix(";")
-          case _ => s"${generate(ctx, _);}"
-        }
-        .mkString("", ";\n", ";")
-
+    case b: ir.Batch => batch(ctx, b)
     case w: ir.WithCTE => cte(ctx, w)
     case p: ir.Project => project(ctx, p)
     case ir.NamedTable(id, _, _) => id
@@ -55,7 +46,7 @@ class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: 
       .map {
         case ir.UnresolvedCommand(text) =>
           "--" + text.stripSuffix(";")
-        case _ => s"${generate(ctx, _);}"
+        case query => s"${generate(ctx, query)}"
       }
       .mkString("", ";\n", ";")
   }
