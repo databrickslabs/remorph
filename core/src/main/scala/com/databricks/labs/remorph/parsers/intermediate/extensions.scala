@@ -34,7 +34,7 @@ case class WithCTE(ctes: Seq[LogicalPlan], query: LogicalPlan) extends RelationC
 }
 
 // TODO: (nfx) refactor to align more with catalyst, rename to UnresolvedStar
-case class Star(objectName: Option[ObjectReference] = None) extends LeafExpression {
+case class Star(objectName: Option[ObjectReference] = None) extends LeafExpression with StarOrAlias {
   override def dataType: DataType = UnresolvedType
 }
 

@@ -2,12 +2,13 @@ package com.databricks.labs.remorph
 
 case class Payload(command: String, flags: Map[String, String])
 
-object Main extends App {
+object Main extends App with ApplicationContext {
   // scalastyle:off println
   route match {
     case Payload("debug-script", args) =>
-      println("Debugging script...")
-      println(args)
+      exampleDebugger.debugExample(args("name"), args.get("dialect"))
+    case Payload("debug-me", _) =>
+      prettyPrinter(workspaceClient.currentUser().me())
     case Payload(command, _) =>
       println(s"Unknown command: $command")
   }

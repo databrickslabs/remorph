@@ -30,6 +30,7 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
       case l: ir.Literal => literal(ctx, l)
       case a: ir.ArrayExpr => arrayExpr(ctx, a)
       case m: ir.MapExpr => mapExpr(ctx, m)
+      case s: ir.StructExpr => structExpr(ctx, s)
       case i: ir.IsNull => isNull(ctx, i)
       case i: ir.IsNotNull => isNotNull(ctx, i)
       case fn: ir.Fn => callFunction(ctx, fn)
@@ -60,6 +61,15 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
       case null => "" // don't fail transpilation if the expression is null
       case x => throw TranspileException(s"Unsupported expression: $x")
     }
+  }
+
+  private def structExpr(ctx: GeneratorContext, s: ir.StructExpr): String = {
+    s.fields
+      .map {
+        case a: ir.Alias => generate(ctx, a)
+        case s: ir.Star => "*"
+      }
+      .mkString("STRUCT(", ", ", ")")
   }
 
   private def jsonAccess(ctx: GeneratorContext, j: ir.JsonAccess): String = {

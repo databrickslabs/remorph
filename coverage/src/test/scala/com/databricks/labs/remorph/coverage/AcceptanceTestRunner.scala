@@ -1,13 +1,11 @@
 package com.databricks.labs.remorph.coverage
 
+import com.databricks.labs.remorph.queries.{AcceptanceTest, ExampleSource, DialectNameCommentBasedQueryExtractor, NestedFiles, QueryExtractor}
 import org.scalatest.flatspec.AnyFlatSpec
 
 import java.nio.file.Paths
 
-case class AcceptanceTestConfig(
-    testFileSource: AcceptanceTestSource,
-    queryExtractor: QueryExtractor,
-    queryRunner: QueryRunner)
+case class AcceptanceTestConfig(testFileSource: ExampleSource, queryExtractor: QueryExtractor, queryRunner: QueryRunner)
 
 abstract class AcceptanceTestRunner(config: AcceptanceTestConfig) extends AnyFlatSpec {
 
