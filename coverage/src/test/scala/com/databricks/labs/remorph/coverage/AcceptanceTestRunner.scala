@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.coverage
 
-import com.databricks.labs.remorph.queries.{AcceptanceTest, ExampleSource, DialectNameCommentBasedQueryExtractor, NestedFiles, QueryExtractor}
+import com.databricks.labs.remorph.queries.{AcceptanceTest, ExampleSource, CommentBasedQueryExtractor, NestedFiles, QueryExtractor}
 import org.scalatest.flatspec.AnyFlatSpec
 
 import java.nio.file.Paths
@@ -29,7 +29,7 @@ class SnowflakeAcceptanceSuite
       AcceptanceTestConfig(
         new NestedFiles(Paths.get(Option(System.getProperty("snowflake.test.resources.path"))
           .getOrElse(s"${NestedFiles.projectRoot}/tests/resources/functional/snowflake"))),
-        new DialectNameCommentBasedQueryExtractor("snowflake", "databricks"),
+        new CommentBasedQueryExtractor("snowflake", "databricks"),
         new IsTranspiledFromSnowflakeQueryRunner))
 
 class TSqlAcceptanceSuite
@@ -37,5 +37,5 @@ class TSqlAcceptanceSuite
       AcceptanceTestConfig(
         new NestedFiles(Paths.get(Option(System.getProperty("tsql.test.resources.path"))
           .getOrElse(s"${NestedFiles.projectRoot}/tests/resources/functional/tsql"))),
-        new DialectNameCommentBasedQueryExtractor("tsql", "databricks"),
+        new CommentBasedQueryExtractor("tsql", "databricks"),
         new IsTranspiledFromTSqlQueryRunner))
