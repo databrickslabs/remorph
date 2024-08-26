@@ -14,8 +14,17 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
     "transpile BANG without semicolon" in {
       "!print Include This Text" transpilesTo "--!print Include This Text;"
     }
-    "transpile BANG with DEFINE" in {
-      "!define tablename=CENUSTRACKONE;" transpilesTo "--!define tablename=CENUSTRACKONE;"
+    "transpile BANG with options" in {
+      "!options catch=true" transpilesTo "--!options catch=true;"
+    }
+    "transpile BANG with negative scenario unknown command" in {
+      "!test unknown command" transpilesTo ""
+    }
+    "transpile BANG with negative scenario unknown command2" in {
+      "!abc set=abc" transpilesTo ""
+    }
+    "transpile BANG with negative scenario unknown command3" in {
+      "!xyz error_flag = true" transpilesTo ""
     }
   }
 

@@ -37,18 +37,24 @@ class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: 
     case t: ir.TableSample => tableSample(ctx, t)
     case ir.NoopNode => ""
     case ir.UnresolvedCommand(inputText) => s"--${inputText}"
+    //  TODO We should always generate an unresolved node, our plan should never be null
     case null => "" // don't fail transpilation if the plan is null
     case x => throw unknown(x)
   }
 
   private def batch(ctx: GeneratorContext, b: Batch): String = {
-    b.children
+    val seqSql = b.children
       .map {
         case ir.UnresolvedCommand(text) =>
           "--" + text.stripSuffix(";")
         case query => s"${generate(ctx, query)}"
       }
-      .mkString("", ";\n", ";")
+      .filter(_.nonEmpty)
+    if (seqSql.nonEmpty) {
+      seqSql.mkString("", ";\n", ";")
+    } else {
+      ""
+    }
   }
 
   // @see https://docs.databricks.com/en/sql/language-manual/sql-ref-syntax-qry-select-sampling.html
