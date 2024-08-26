@@ -246,7 +246,7 @@ class SnowflakeExprSpec extends AnyWordSpec with SnowflakeParserTestCommon with 
     }
 
     "translate JSON literals" in {
-      example("{'a': 1, 'b': 2}", JsonExpr(UnresolvedType, Seq("a" -> Literal(1), "b" -> Literal(2))))
+      example("{'a': 1, 'b': 2}", StructExpr(Seq(Alias(Literal(1), Id("a")), Alias(Literal(2), Id("b")))))
     }
   }
 }
