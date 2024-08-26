@@ -1,6 +1,7 @@
 package com.databricks.labs.remorph.generators.sql
 
 import com.databricks.labs.remorph.generators.{Generator, GeneratorContext}
+import com.databricks.labs.remorph.parsers.intermediate.Batch
 import com.databricks.labs.remorph.parsers.{intermediate => ir}
 import com.databricks.labs.remorph.transpilers.TranspileException
 
@@ -9,6 +10,7 @@ class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: 
 
   override def generate(ctx: GeneratorContext, tree: ir.LogicalPlan): String = tree match {
     case b: ir.Batch =>
+      batch(ctx, b)
       b.children
         .map {
           case ir.UnresolvedCommand(text) =>
@@ -46,6 +48,16 @@ class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: 
     case ir.UnresolvedCommand(inputText) => s"--${inputText}"
     case null => "" // don't fail transpilation if the plan is null
     case x => throw unknown(x)
+  }
+
+  private def batch(ctx: GeneratorContext, b: Batch): String = {
+    b.children
+      .map {
+        case ir.UnresolvedCommand(text) =>
+          "--" + text.stripSuffix(";")
+        case _ => s"${generate(ctx, _);}"
+      }
+      .mkString("", ";\n", ";")
   }
 
   // @see https://docs.databricks.com/en/sql/language-manual/sql-ref-syntax-qry-select-sampling.html
