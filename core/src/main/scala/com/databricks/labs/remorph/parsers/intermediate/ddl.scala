@@ -55,7 +55,8 @@ case object DayTimeIntervalType extends DataType
 
 // Complex types
 case class ArrayType(elementType: DataType) extends DataType
-case class StructType() extends DataType
+case class StructField(name: String, dataType: DataType, nullable: Boolean = true)
+case class StructType(fields: Seq[StructField]) extends DataType
 case class MapType(keyType: DataType, valueType: DataType) extends DataType
 
 // UserDefinedType
@@ -120,7 +121,6 @@ case class CreateExternalTable(
     table_name: String,
     path: Option[String],
     source: Option[String],
-    schema: Option[DataType],
     options: Map[String, String])
     extends Catalog {}
 case class CreateTable(
@@ -128,7 +128,6 @@ case class CreateTable(
     path: Option[String],
     source: Option[String],
     description: Option[String],
-    schema: Option[DataType],
     options: Map[String, String])
     extends Catalog {}
 case class DropTempView(view_name: String) extends Catalog {}

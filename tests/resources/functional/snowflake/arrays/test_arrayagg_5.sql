@@ -27,4 +27,4 @@ ORDER BY col2 DESC;
   GROUP BY
     col2
   ORDER BY
-    col2 DESC NULLS FIRST
+    col2 DESC NULLS FIRST;

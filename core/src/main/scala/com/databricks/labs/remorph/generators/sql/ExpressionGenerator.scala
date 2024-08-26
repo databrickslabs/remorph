@@ -30,6 +30,7 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
       case l: ir.Literal => literal(ctx, l)
       case a: ir.ArrayExpr => arrayExpr(ctx, a)
       case m: ir.MapExpr => mapExpr(ctx, m)
+      case s: ir.StructExpr => structExpr(ctx, s)
       case i: ir.IsNull => isNull(ctx, i)
       case i: ir.IsNotNull => isNotNull(ctx, i)
       case fn: ir.Fn => callFunction(ctx, fn)
@@ -56,9 +57,19 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
       case ir.Exists(subquery) => s"EXISTS (${ctx.logical.generate(ctx, subquery)})"
       case a: ir.ArrayAccess => arrayAccess(ctx, a)
       case j: ir.JsonAccess => jsonAccess(ctx, j)
+      case l: ir.LambdaFunction => lambdaFunction(ctx, l)
       case null => "" // don't fail transpilation if the expression is null
       case x => throw TranspileException(s"Unsupported expression: $x")
     }
+  }
+
+  private def structExpr(ctx: GeneratorContext, s: ir.StructExpr): String = {
+    s.fields
+      .map {
+        case a: ir.Alias => generate(ctx, a)
+        case s: ir.Star => "*"
+      }
+      .mkString("STRUCT(", ", ", ")")
   }
 
   private def jsonAccess(ctx: GeneratorContext, j: ir.JsonAccess): String = {
@@ -299,7 +310,7 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
   }
 
   private def alias(ctx: GeneratorContext, alias: ir.Alias): String = {
-    s"${expression(ctx, alias.expr)} AS ${alias.name.map(expression(ctx, _)).mkString(".")}"
+    s"${expression(ctx, alias.expr)} AS ${expression(ctx, alias.name)}"
   }
 
   private def distinct(ctx: GeneratorContext, distinct: ir.Distinct): String = {
@@ -431,6 +442,17 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
     s"EXTRACT(${expression(ctx, e.left)} FROM ${expression(ctx, e.right)})"
   }
 
+  private def lambdaFunction(ctx: GeneratorContext, l: ir.LambdaFunction): String = {
+    val parameterList = l.arguments.map(lambdaArgument)
+    val parameters = if (parameterList.size > 1) { parameterList.mkString("(", ", ", ")") }
+    else { parameterList.mkString }
+    val body = expression(ctx, l.function)
+    s"$parameters -> $body"
+  }
+
+  private def lambdaArgument(arg: ir.UnresolvedNamedLambdaVariable): String = {
+    arg.name_parts.mkString(".")
+  }
   private def singleQuote(s: String): String = s"'$s'"
   private def isAlphanum(s: String): Boolean = s.forall(_.isLetterOrDigit)
 }

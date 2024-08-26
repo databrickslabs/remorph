@@ -119,13 +119,16 @@ def validate_source_transpile(databricks_sql, *, source=None, pretty=False, expe
 
     for source_dialect, source_sql in (source or {}).items():
         write_dialect = get_dialect("experimental") if experimental else get_dialect("databricks")
-        actual_sql = transpile(
-            source_sql,
-            read=get_dialect(source_dialect),
-            write=write_dialect,
-            pretty=pretty,
-            error_level=None,
-        )[0]
+
+        actual_sql = "; ".join(
+            transpile(
+                source_sql,
+                read=get_dialect(source_dialect),
+                write=write_dialect,
+                pretty=pretty,
+                error_level=None,
+            )
+        )
         orig_sql = actual_sql
         actual_sql = _normalize_string(actual_sql.rstrip(';'))
         expected_sql = _normalize_string(databricks_sql.rstrip(';'))

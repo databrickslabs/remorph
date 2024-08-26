@@ -32,7 +32,14 @@ object DataTypeGenerator {
     case ir.TimestampType => "TIMESTAMP"
     case ir.TimestampNTZType => "TIMESTAMP_NTZ"
     case ir.ArrayType(elementType) => s"ARRAY<${generateDataType(ctx, elementType)}>"
-    case ir.StructType() => "STRUCT" // TODO fix this
+    case ir.StructType(fields) =>
+      val fieldTypes = fields
+        .map { case ir.StructField(name, dataType, nullable) =>
+          val isNullable = if (nullable) "" else " NOT NULL"
+          s"$name:${generateDataType(ctx, dataType)}$isNullable"
+        }
+        .mkString(",")
+      s"STRUCT<$fieldTypes>"
     case ir.MapType(keyType, valueType) =>
       s"MAP<${generateDataType(ctx, keyType)}, ${generateDataType(ctx, valueType)}>"
     case ir.VarcharType(size) => s"VARCHAR${maybeSize(size)}"

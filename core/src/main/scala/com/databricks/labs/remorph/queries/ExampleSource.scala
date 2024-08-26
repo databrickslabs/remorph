@@ -1,4 +1,4 @@
-package com.databricks.labs.remorph.coverage
+package com.databricks.labs.remorph.queries
 
 import java.io.File
 import java.nio.file.{Files, Path, Paths}
@@ -7,7 +7,7 @@ import scala.collection.JavaConverters._
 
 case class AcceptanceTest(testName: String, inputFile: File)
 
-trait AcceptanceTestSource {
+trait ExampleSource {
   def listTests: Seq[AcceptanceTest]
 }
 
@@ -26,7 +26,7 @@ object NestedFiles {
   }
 }
 
-class NestedFiles(root: Path) extends AcceptanceTestSource {
+class NestedFiles(root: Path) extends ExampleSource {
   def listTests: Seq[AcceptanceTest] = {
     val files =
       Files

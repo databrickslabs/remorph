@@ -35,6 +35,7 @@ class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: 
     case c: ir.CreateTableCommand => createTable(ctx, c)
     case t: ir.TableSample => tableSample(ctx, t)
     case ir.NoopNode => ""
+    case ir.UnresolvedCommand(inputText) => s"--${inputText}"
     case null => "" // don't fail transpilation if the plan is null
     case x => throw unknown(x)
   }
@@ -208,7 +209,17 @@ class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: 
   }
 
   private def cte(ctx: GeneratorContext, withCte: ir.WithCTE): String = {
-    val ctes = withCte.ctes.map(generate(ctx, _)).mkString(", ")
+    val ctes = withCte.ctes
+      .map {
+        case ir.SubqueryAlias(child, alias, cols) =>
+          val columns = cols.map(expr.generate(ctx, _)).mkString("(", ", ", ")")
+          val columnsStr = if (cols.isEmpty) "" else " " + columns
+          val id = expr.generate(ctx, alias)
+          val sub = generate(ctx, child)
+          s"$id$columnsStr AS ($sub)"
+        case x => generate(ctx, x)
+      }
+      .mkString(", ")
     val query = generate(ctx, withCte.query)
     s"WITH $ctes $query"
   }

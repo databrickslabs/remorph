@@ -41,7 +41,14 @@ snowflakeFile: batch? EOF
 batch: sqlCommand (SEMI* sqlCommand)* SEMI*
     ;
 
-sqlCommand: ddlCommand | dmlCommand | showCommand | useCommand | describeCommand | otherCommand
+sqlCommand
+    : ddlCommand
+    | dmlCommand
+    | showCommand
+    | useCommand
+    | describeCommand
+    | otherCommand
+    | snowSqlCommand
     ;
 
 ddlCommand: alterCommand | createCommand | dropCommand | undropCommand
@@ -143,6 +150,9 @@ otherCommand
     | beginTxn
     | declareCommand
     | let
+    ;
+
+snowSqlCommand: SQLCOMMAND
     ;
 
 procStatement
@@ -3013,6 +3023,7 @@ nonReservedWords
     | LAST_QUERY_ID
     | LEAD
     | LENGTH
+    | LISTAGG
     | LOCAL
     | MAX_CONCURRENCY_LEVEL
     | MODE

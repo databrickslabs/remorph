@@ -167,17 +167,20 @@ case class CalendarInterval(months: Int, days: Int, microseconds: Long) extends 
   override def dataType: DataType = CalendarIntervalType
 }
 
-case class JsonExpr(dataType: DataType, fields: Seq[(String, Expression)]) extends Expression {
-  override def children: Seq[Expression] = fields.map(_._2)
-}
+case class StructExpr(fields: Seq[StarOrAlias]) extends Expression {
+  override def children: Seq[Expression] = fields.map {
+    case a: Alias => a
+    case s: Star => s
+  }
 
-case class Struct(dataType: DataType, elements: Seq[Literal]) extends Expression {
-  override def children: Seq[Expression] = elements
-}
-
-// TODO: remove this type
-case class ExpressionString(expression: String) extends LeafExpression {
-  override def dataType: DataType = StringType
+  override def dataType: DataType = fields match {
+    case Nil => UnresolvedType
+    case Seq(Star(_)) => UnresolvedType
+    case _ =>
+      StructType(fields.map { case Alias(child, Id(name, _)) =>
+        StructField(name, child.dataType)
+      })
+  }
 }
 
 case class UpdateFields(struct_expression: Expression, field_name: String, value_expression: Option[Expression])
@@ -186,8 +189,9 @@ case class UpdateFields(struct_expression: Expression, field_name: String, value
   override def dataType: DataType = UnresolvedType // TODO: Fix this
 }
 
-// TODO: has to be Alias(expr: Expression, name: String)
-case class Alias(expr: Expression, name: Seq[Id], metadata: Option[String] = None) extends Unary(expr) {
+trait StarOrAlias
+
+case class Alias(expr: Expression, name: Id) extends Unary(expr) with StarOrAlias {
   override def dataType: DataType = expr.dataType
 }
 

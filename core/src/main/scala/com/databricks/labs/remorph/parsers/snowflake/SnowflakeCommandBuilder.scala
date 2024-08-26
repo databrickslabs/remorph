@@ -32,12 +32,11 @@ class SnowflakeCommandBuilder
 
   override def visitDeclareResultSet(ctx: DeclareResultSetContext): ir.Command = {
     val variableName = ctx.id().accept(expressionBuilder).asInstanceOf[ir.Id]
-    val dataType = ir.StructType()
     val variableValue = ctx.expr() match {
       case null => None
       case stmt => Some(stmt.accept(expressionBuilder))
     }
-
+    val dataType = ir.StructType(Seq())
     ir.CreateVariable(variableName, dataType, variableValue, replace = false)
   }
 
@@ -46,7 +45,7 @@ class SnowflakeCommandBuilder
     val variableValue = ctx.expr().accept(expressionBuilder)
 
     val variableDataType = variableValue match {
-      case _: ir.ScalarSubquery => Some(ir.StructType())
+      case s: ir.ScalarSubquery => Some(s.dataType)
       case _ => Option(ctx.dataType()).flatMap(dt => Some(typeBuilder.buildDataType(dt)))
     }
 

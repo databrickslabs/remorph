@@ -244,7 +244,7 @@ class CallMapper extends IRHelpers {
     case CallFunction("SIZE", args) => Size(args.head)
     case CallFunction("SKEWNESS", args) => Skewness(args.head)
     case CallFunction("SLICE", args) => Slice(args.head, args(1), args(2))
-    case CallFunction("SORT_ARRAY", args) => SortArray(args.head, args(1))
+    case CallFunction("SORT_ARRAY", args) => SortArray(args.head, args.lift(1))
     case CallFunction("SOUNDEX", args) => SoundEx(args.head)
     case CallFunction("SPACE", args) => StringSpace(args.head)
     case CallFunction("SPARK_PARTITION_ID", _) => SparkPartitionID()
@@ -1835,7 +1835,7 @@ case class ArrayIntersect(left: Expression, right: Expression) extends Binary(le
  * array_join(array, delimiter[, nullReplacement]) - Concatenates the elements of the given array using the delimiter
  * and an optional string to replace nulls. If no value is set for nullReplacement, any null value is filtered.
  */
-case class ArrayJoin(left: Expression, right: Expression, c: Option[Expression]) extends Expression with Fn {
+case class ArrayJoin(left: Expression, right: Expression, c: Option[Expression] = None) extends Expression with Fn {
   override def prettyName: String = "ARRAY_JOIN"
   override def children: Seq[Expression] = Seq(left, right) ++ c.toSeq
   override def dataType: DataType = UnresolvedType
@@ -1953,8 +1953,9 @@ case class Slice(left: Expression, right: Expression, c: Expression) extends Exp
  * ordering of the array elements. Null elements will be placed at the beginning of the returned array in ascending
  * order or at the end of the returned array in descending order.
  */
-case class SortArray(left: Expression, right: Expression) extends Binary(left, right) with Fn {
+case class SortArray(left: Expression, right: Option[Expression] = None) extends Expression with Fn {
   override def prettyName: String = "SORT_ARRAY"
+  override def children: Seq[Expression] = Seq(left) ++ right.toSeq
   override def dataType: DataType = UnresolvedType
 }
 

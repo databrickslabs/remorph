@@ -28,6 +28,7 @@ class SnowflakeFunctionBuilder extends FunctionBuilder {
     case "APPROX_TOP_K_ESTIMATE" => FunctionDefinition.standard(2)
     case "ARRAYS_OVERLAP" => FunctionDefinition.standard(2)
     case "ARRAYS_TO_OBJECT" => FunctionDefinition.standard(2)
+    case "ARRAYAGG" => FunctionDefinition.standard(1).withConversionStrategy(SynonymOf("ARRAY_AGG"))
     case "ARRAY_AGG" => FunctionDefinition.standard(1)
     case "ARRAY_APPEND" => FunctionDefinition.standard(2)
     case "ARRAY_CAT" => FunctionDefinition.standard(2)

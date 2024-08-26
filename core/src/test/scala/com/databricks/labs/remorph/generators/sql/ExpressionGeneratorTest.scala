@@ -43,6 +43,14 @@ class ExpressionGeneratorTest
       |""".stripMargin
   }
 
+  "struct" in {
+    ir.StructExpr(
+      Seq(
+        ir.Alias(ir.Literal(1), ir.Id("a")),
+        ir.Alias(ir.Literal("two"), ir.Id("b")),
+        ir.Alias(ir.Literal(Seq(1, 2, 3)), ir.Id("c")))) generates "STRUCT(1 AS a, 'two' AS b, ARRAY(1, 2, 3) AS c)"
+  }
+
   "columns" should {
     "unresolved" in {
       ir.UnresolvedAttribute("a") generates "a"

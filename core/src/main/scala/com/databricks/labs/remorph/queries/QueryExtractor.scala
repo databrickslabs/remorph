@@ -1,4 +1,6 @@
-package com.databricks.labs.remorph.coverage
+package com.databricks.labs.remorph.queries
+
+import com.databricks.labs.remorph.parsers.PlanParser
 
 import java.io.File
 import scala.io.Source
@@ -36,3 +38,17 @@ class CommentBasedQueryExtractor(startComment: String, endComment: String) exten
 
 class DialectNameCommentBasedQueryExtractor(sourceDialect: String, targetDialect: String)
     extends CommentBasedQueryExtractor(s"-- $sourceDialect sql:", s"-- $targetDialect sql:")
+
+class ExampleDebugger(getParser: String => PlanParser[_], prettyPrinter: Any => Unit) {
+  def debugExample(name: String, maybeDialect: Option[String]): Unit = {
+    val dialect = maybeDialect.getOrElse("snowflake")
+    val parser = getParser(dialect)
+    val extractor = new DialectNameCommentBasedQueryExtractor(dialect, "databricks")
+    extractor.extractQuery(new File(name)) match {
+      case Some(ExampleQuery(query, _)) =>
+        val plan = parser.parse(query)
+        prettyPrinter(plan)
+      case None => throw new IllegalArgumentException(s"Example $name not found")
+    }
+  }
+}

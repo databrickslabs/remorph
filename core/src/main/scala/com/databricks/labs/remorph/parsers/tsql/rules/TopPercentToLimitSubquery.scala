@@ -50,7 +50,7 @@ class TopPercentToLimitSubquery extends Rule[LogicalPlan] {
             SubqueryAlias(
               Project(
                 UnresolvedRelation(originalCteName),
-                reProject ++ Seq(Alias(Window(NTile(Literal(100)), sort_order = order), Seq(Id(percentileColName))))),
+                reProject ++ Seq(Alias(Window(NTile(Literal(100)), sort_order = order), Id(percentileColName)))),
               Id(withPercentileCteName))),
           Filter(
             Project(UnresolvedRelation(withPercentileCteName), reProject),
@@ -69,7 +69,7 @@ class TopPercentToLimitSubquery extends Rule[LogicalPlan] {
       Seq(
         SubqueryAlias(child, Id(originalCteName)),
         SubqueryAlias(
-          Project(UnresolvedRelation(originalCteName), Seq(Alias(Count(Seq(Star())), Seq(Id("count"))))),
+          Project(UnresolvedRelation(originalCteName), Seq(Alias(Count(Seq(Star())), Id("count")))),
           Id(countedCteName))),
       Limit(
         Project(UnresolvedRelation(originalCteName), Seq(Star())),

@@ -66,7 +66,7 @@ class SnowflakeExpressionBuilder()
   private def buildAlias(ctx: AsAliasContext, input: ir.Expression): ir.Expression =
     Option(ctx).fold(input) { c =>
       val alias = visitId(c.alias().id())
-      ir.Alias(input, Seq(alias), None)
+      ir.Alias(input, alias)
     }
   override def visitColumnName(ctx: ColumnNameContext): ir.Expression = {
     ctx.id().asScala match {
@@ -216,10 +216,9 @@ class SnowflakeExpressionBuilder()
     val fields = ctx.kvPair().asScala.map { kv =>
       val fieldName = removeQuotes(kv.key.getText)
       val fieldValue = visitLiteral(kv.literal())
-      fieldName -> fieldValue
+      ir.Alias(fieldValue, ir.Id(fieldName))
     }
-    // TODO: rewrite with StructLiteral
-    ir.JsonExpr(UnresolvedType, fields)
+    ir.StructExpr(fields)
   }
 
   override def visitArrayLiteral(ctx: ArrayLiteralContext): ir.Expression = {
