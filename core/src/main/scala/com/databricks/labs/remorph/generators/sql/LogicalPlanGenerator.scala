@@ -12,14 +12,11 @@ class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: 
       b.children
         .map {
           case ir.UnresolvedCommand(text) =>
-            if (text.endsWith(";")) {
-              text
-            } else {
-              text + ";";
-            }
-          case query => s"${generate(ctx, query);}"
+            "--" + text.stripSuffix(";")
+          case _ => s"${generate(ctx, _);}"
         }
-        .mkString("/n")
+        .mkString("", ";\n", ";")
+
     case w: ir.WithCTE => cte(ctx, w)
     case p: ir.Project => project(ctx, p)
     case ir.NamedTable(id, _, _) => id
