@@ -1,5 +1,5 @@
 package com.databricks.labs.remorph.coverage
-import com.databricks.labs.remorph.queries.{DialectNameCommentBasedQueryExtractor, NestedFiles, WholeFileQueryExtractor}
+import com.databricks.labs.remorph.queries.{CommentBasedQueryExtractor, NestedFiles, WholeFileQueryExtractor}
 import mainargs._
 
 import java.time.Instant
@@ -47,7 +47,7 @@ object Main {
     val commitHash = getCurrentCommitHash
     val testSource = new NestedFiles(sourceDir.toNIO)
     val queryExtractor = extractor match {
-      case "comment" => new DialectNameCommentBasedQueryExtractor(sourceDialect, targetDialect)
+      case "comment" => new CommentBasedQueryExtractor(sourceDialect, targetDialect)
       case "full" => new WholeFileQueryExtractor
     }
     val queryRunner = sourceDialect match {
