@@ -29,12 +29,12 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
     }
 
     "transpile Multi ADD Columns" in {
-      "ALTER TABLE t1 ADD COLUMN c1 INTEGER, c2 NUMBER;" transpilesTo
+      "ALTER TABLE t1 ADD COLUMN c1 INTEGER, c2 VARCHAR;" transpilesTo
         s"""ALTER TABLE
            |  t1
            |ADD
            |  COLUMN c1 DECIMAL(38, 0),
-           |  c2 DECIMAL;""".stripMargin
+           |  c2 STRING;""".stripMargin
     }
 
     "transpile Single Drop Columns" in {

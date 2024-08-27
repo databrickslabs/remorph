@@ -23,7 +23,7 @@ object DataTypeGenerator {
     case ir.DecimalType(precision, scale) =>
       val arguments = precision.toSeq ++ scale.toSeq
       if (arguments.isEmpty) {
-        "DECIMAL"
+        "DECIMAL(38, 0)"
       } else {
         s"DECIMAL${arguments.mkString("(", ", ", ")")}"
       }
