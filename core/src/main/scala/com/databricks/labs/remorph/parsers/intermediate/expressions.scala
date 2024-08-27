@@ -231,7 +231,6 @@ case class CommonInlineUserDefinedFunction(
   override def dataType: DataType = UnresolvedType
 }
 
-
 case class SchemaReference(columnName: Expression) extends Unary(columnName) {
   override def dataType: DataType = UnresolvedType
 }

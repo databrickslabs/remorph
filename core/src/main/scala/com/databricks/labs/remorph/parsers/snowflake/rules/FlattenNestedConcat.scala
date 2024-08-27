@@ -12,13 +12,12 @@ class FlattenNestedConcat extends ir.Rule[ir.LogicalPlan] {
   }
 
   // Make the implementation accessible for testing without having to build a full LogicalPlan
-  private[rules] def flattenConcat: PartialFunction[ir.Expression, ir.Expression] = {
-    case expression =>
-      expression transformUp { case ir.Concat(items) =>
-        ir.Concat(items.flatMap {
-          case ir.Concat(sub) => sub
-          case x => Seq(x)
-        })
-      }
+  private[rules] def flattenConcat: PartialFunction[ir.Expression, ir.Expression] = { case expression =>
+    expression transformUp { case ir.Concat(items) =>
+      ir.Concat(items.flatMap {
+        case ir.Concat(sub) => sub
+        case x => Seq(x)
+      })
+    }
   }
 }

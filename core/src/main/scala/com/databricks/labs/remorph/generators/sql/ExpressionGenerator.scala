@@ -465,7 +465,6 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
     }
   }
 
-
   private def schemaReference(ctx: GeneratorContext, s: ir.SchemaReference): String = {
     val ref = s.columnName match {
       case d: ir.Dot => expression(ctx, d)
