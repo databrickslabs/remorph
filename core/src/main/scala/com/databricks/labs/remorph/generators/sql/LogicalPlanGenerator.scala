@@ -34,10 +34,63 @@ class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: 
     case ir.DeleteFromTable(target, None, where, None, None) => delete(ctx, target, where)
     case c: ir.CreateTableCommand => createTable(ctx, c)
     case t: ir.TableSample => tableSample(ctx, t)
+    case a: ir.AlterTableCommand => alterTable(ctx, a)
     case ir.NoopNode => ""
     case ir.UnresolvedCommand(inputText) => s"--${inputText}"
     case null => "" // don't fail transpilation if the plan is null
     case x => throw unknown(x)
+  }
+
+  private def alterTable(ctx: GeneratorContext, a: ir.AlterTableCommand): String = {
+    val operation = buildAlter(ctx, a.alterations)
+    s"ALTER TABLE ${a.tableName} $operation"
+  }
+
+  private def buildAlter(ctx: GeneratorContext, alteration: Seq[ir.TableAlteration]): String = {
+    alteration match {
+      case a: Seq[_] => buildTableAlteration(ctx, a)
+      case _ => ""
+    }
+  }
+
+  private def buildTableAlteration(ctx: GeneratorContext, c: Seq[_]): String = {
+
+    c match {
+      case a: Seq[_] =>
+        if (a.headOption.exists(_.isInstanceOf[ir.AddColumn])) {
+          buildAddColumn(ctx, a)
+        } else if (a.headOption.exists(_.isInstanceOf[ir.DropColumns])) {
+          buildDropColumns(a)
+        } else if (a.headOption.exists(_.isInstanceOf[ir.RenameColumn])) {
+          buildRenameColumn(a)
+        } else ""
+      case _ => "" // TODO Implement Nothing
+    }
+  }
+
+  private def buildAddColumn(ctx: GeneratorContext, addColumns: Seq[_]): String = {
+
+    val columns = addColumns.map(_.asInstanceOf[ir.AddColumn])
+    val columnOperation = columns map { column =>
+      val c = column.columnDeclaration
+      val dataType = DataTypeGenerator.generateDataType(ctx, c.dataType)
+      val constraints = c.constraints.map(constraint(ctx, _)).mkString(" ")
+      s"${c.name} $dataType $constraints"
+    }
+
+    s"ADD COLUMN ${columnOperation.mkString(", ")}"
+  }
+
+  private def buildDropColumns(addDropColumns: Seq[_]): String = {
+    val columnNames = addDropColumns.flatMap(_.asInstanceOf[ir.DropColumns].columnNames).mkString(", ")
+    s"DROP COLUMN ${columnNames}"
+  }
+
+  private def buildRenameColumn(addRenameColumns: Seq[_]): String = {
+    // Rename is always done on a single column
+    val oldName = addRenameColumns.map(_.asInstanceOf[ir.RenameColumn]).head.oldName
+    val newName = addRenameColumns.map(_.asInstanceOf[ir.RenameColumn]).head.newName
+    s"RENAME COLUMN ${oldName} to ${newName}"
   }
 
   // @see https://docs.databricks.com/en/sql/language-manual/sql-ref-syntax-qry-select-sampling.html

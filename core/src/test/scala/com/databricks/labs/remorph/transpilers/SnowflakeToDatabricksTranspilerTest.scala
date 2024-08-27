@@ -17,6 +17,48 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
 
   }
 
+  "Snowflake Alter commands" should {
+
+    "transpile Single ADD Columns" in {
+      "ALTER TABLE t1 ADD COLUMN c1 INTEGER;" transpilesTo (
+        s"""ALTER TABLE
+           |  t1
+           |ADD
+           |  COLUMN c1 DECIMAL(38, 0);""".stripMargin
+      )
+    }
+
+    "transpile Multi ADD Columns" in {
+      "ALTER TABLE t1 ADD COLUMN c1 INTEGER, c2 NUMBER;" transpilesTo
+        s"""ALTER TABLE
+           |  t1
+           |ADD
+           |  COLUMN c1 DECIMAL(38, 0),
+           |  c2 DECIMAL;""".stripMargin
+    }
+
+    "transpile Single Drop Columns" in {
+      "ALTER TABLE t1 DROP COLUMN c1;" transpilesTo (
+        s"""ALTER TABLE
+           |  t1 DROP COLUMN c1;""".stripMargin
+      )
+    }
+
+    "transpile Multi Drop Columns" in {
+      "ALTER TABLE t1 DROP COLUMN c1, c2;" transpilesTo
+        s"""ALTER TABLE
+           |  t1 DROP COLUMN c1,
+           |  c2;""".stripMargin
+    }
+
+    "transpile Rename Columns" in {
+      "ALTER TABLE t1 RENAME COLUMN c1 to c2;" transpilesTo
+        s"""ALTER TABLE
+           |  t1 RENAME COLUMN c1 to c2;""".stripMargin
+    }
+
+  }
+
   "Snowflake transpiler" should {
 
     "transpile queries" in {
