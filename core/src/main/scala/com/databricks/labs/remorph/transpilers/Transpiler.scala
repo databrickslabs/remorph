@@ -6,9 +6,12 @@ import com.github.vertical_blank.sqlformatter.core.FormatConfig
 import com.github.vertical_blank.sqlformatter.languages.Dialect
 import scala.util.matching.Regex
 
+trait Parser {
+  def parse(input: String): ir.LogicalPlan
+}
+
 trait Transpiler {
   def transpile(input: String): String
-  def parse(input: String): ir.LogicalPlan
 }
 
 class Sed(rules: (String, String)*) {
@@ -43,7 +46,7 @@ trait Formatter {
   }
 }
 
-abstract class BaseTranspiler extends Transpiler with Formatter {
+abstract class BaseTranspiler extends Transpiler with Formatter with Parser {
 
   override def parse(input: String): ir.LogicalPlan
 

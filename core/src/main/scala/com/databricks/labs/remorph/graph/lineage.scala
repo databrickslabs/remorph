@@ -1,4 +1,5 @@
-package com.databricks.labs.remorph
+package com.databricks.labs.remorph.graph
+
 import scala.collection.mutable
 
 case object Action extends Enumeration {
@@ -6,7 +7,7 @@ case object Action extends Enumeration {
   val Read, Write, Update, Delete, Merge = Value
 }
 
-case class Node(name: String)
+case class Node(catalog: Option[String], schema: String, table: String)
 
 case class Edge(from: Node, operator: Action.Operation, to: Node)
 
@@ -25,11 +26,16 @@ class Lineage {
     edges += Edge(from, operator, to)
   }
 
-  def getNodes: Set[Node] = nodes.toSet
+  private def getNodes: Seq[Node] = nodes.toSeq
 
-  def getEdges: Set[Edge] = edges.toSet
+  private def getEdges: Set[Edge] = edges.toSet
 
-  def getImmediateParents(node: Node): Set[Node] = {
-    edges.filter(_.to == node).map(_.from).toSet
+  def getImmediateParents(node: String): Set[Node] = {
+    // Update table will have the same parent and child name
+    getEdges.filter(x => x.to != x.from && x.to.table == node).map(_.from)
   }
+
+  def roots: Set[Node] = nodes.filter(n => edges.forall(e => e.to != n)).toSet
+
+  def sorted: Set[Node] = getNodes.sortBy(n => n.table).toSet
 }
