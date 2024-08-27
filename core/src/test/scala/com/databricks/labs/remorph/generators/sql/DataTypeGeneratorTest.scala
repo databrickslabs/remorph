@@ -22,7 +22,7 @@ class DataTypeGeneratorTest extends AnyWordSpec with Matchers with TableDrivenPr
     (ir.DateType, "DATE"),
     (ir.TimestampType, "TIMESTAMP"),
     (ir.TimestampNTZType, "TIMESTAMP_NTZ"),
-    (ir.DecimalType(None, None), "DECIMAL"),
+    (ir.DecimalType(None, None), "DECIMAL(38, 0)"),
     (ir.DecimalType(Some(10), None), "DECIMAL(10)"),
     (ir.DecimalType(Some(38), Some(6)), "DECIMAL(38, 6)"),
     (ir.ArrayType(ir.StringType), "ARRAY<STRING>"),
