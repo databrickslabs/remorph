@@ -299,14 +299,10 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
     }
   }
 
-  private def toTime(args: Seq[ir.Expression]): ir.Expression = {
-    if (args.size == 1) {
-      ir.ParseToTimestamp(args.head, inferTimeFormat(args.head))
-    } else if (args.size == 2) {
-      ir.ParseToTimestamp(args.head, args(1))
-    } else {
-      throw TranspileException(s"wrong number of arguments to TO_TIMESTAMP, expected 1 or 2, got ${args.size}")
-    }
+  private def toTime(args: Seq[ir.Expression]): ir.Expression = args match {
+    case Seq(a) => ir.ParseToTimestamp(a, inferTimeFormat(a))
+    case Seq(a, b) => ir.ParseToTimestamp(a, b)
+    case _ => throw TranspileException(s"wrong number of arguments to TO_TIMESTAMP, expected 1 or 2, got ${args.size}")
   }
 
   private val timestampFormats = Seq("yyyy-MM-dd HH:mm:ss")
