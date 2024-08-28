@@ -344,6 +344,11 @@ class Databricks(org_databricks.Databricks):  #
     databricks = org_databricks.Databricks()
 
     class Generator(org_databricks.Databricks.Generator):
+        INVERSE_TIME_MAPPING: dict[str, str] = {
+            **{v: k for k, v in org_databricks.Databricks.TIME_MAPPING.items()},
+            "%-d": "dd",
+        }
+
         COLLATE_IS_FUNC = True
         # [TODO]: Variant needs to be transformed better, for now parsing to string was deemed as the choice.
         TYPE_MAPPING = {
@@ -401,6 +406,9 @@ class Databricks(org_databricks.Databricks):  #
         def preprocess(self, expression: exp.Expression) -> exp.Expression:
             fixed_ast = expression.transform(lca_utils.unalias_lca_in_select, copy=False)
             return super().preprocess(fixed_ast)
+
+        def format_time(self, expression: exp.Expression, inverse_time_mapping=None, inverse_time_trie=None):
+            return super().format_time(expression, self.INVERSE_TIME_MAPPING)
 
         def join_sql(self, expression: exp.Join) -> str:
             """Overwrites `join_sql()` in `sqlglot/generator.py`
