@@ -28,7 +28,7 @@ when comparing the source with the Databricks target.
 | **data**    | [data](report_types_visualisation.md#data)     | reconcile the data at row and column level- ```join_columns``` will help us to identify mismatches at each row and column level                                                                | - **mismatch_data**(the sample data with mismatches captured at each column and row level )<br> - **missing_in_src**(sample rows that are available in target but missing in source)<br> - **missing_in_tgt**(sample rows that are available in source but are missing in target)<br> - **threshold_mismatch**(configured column will be reconciled based on percentile or threshold boundary or date boundary)<br> - **mismatch_columns**(consolidated list of columns that has mismatches in them)<br> |
 | **all**     | [all](report_types_visualisation.md#all)       | this is a combination of data + schema                                                                                                                                                         | - **data + schema outputs**                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 
-[&#8593; [back to top](#remorph-reconciliation)]
+[[&#8593; back to top](#remorph-reconciliation)]
 
 ## Report Type-Flow Chart
 
@@ -66,7 +66,7 @@ flowchart TD
     ALL --> SCHEMA_VALIDATION
 ```
 
-[&#8593; [back to top](#remorph-reconciliation)]
+[[&#8593; back to top](#remorph-reconciliation)]
 
 ## Supported Source System
 
@@ -76,7 +76,7 @@ flowchart TD
 | Snowflake  | Yes    | Yes | Yes  | Yes |
 | Databricks | Yes    | Yes | Yes  | Yes |
 
-[&#8593; [back to top](#remorph-reconciliation)]
+[[&#8593; back to top](#remorph-reconciliation)]
 
 ### TABLE Config Elements:
 
@@ -407,7 +407,7 @@ class Filters:
    reconciler will not apply any logic
    on top of this.
 
-[&#8593; [back to top](#remorph-reconciliation)]
+[[&#8593; back to top](#remorph-reconciliation)]
 
 # Guidance for Oracle as a source
 
@@ -436,7 +436,7 @@ class Filters:
 This installation is a necessary step to enable seamless comparison between Oracle and Databricks, ensuring that the
 required Oracle JDBC functionality is readily available within the Databricks environment.
 
-[&#8593; [back to top](#remorph-reconciliation)]
+[[&#8593; back to top](#remorph-reconciliation)]
 
 ## Commonly Used Custom Transformations
 
@@ -447,20 +447,20 @@ required Oracle JDBC functionality is readily available within the Databricks en
 | Snowflake   | array         | array_to_string(array_sort(array_compact(<col_name>), true, true),’,’) | concat_ws(’,’, <col_name>)                      | [2,undefined,1]         | [1,2]                   | in case of removing "undefined" during migration and want to sort the array                 |
 | Snowflake   | timestamp_ntz | date_part(epoch_second,<col_name>)                                     | unix_timestamp(<col_name>)                      | 2020-01-01 00:00:00.000 | 2020-01-01 00:00:00.000 | convert timestamp_ntz to epoch for getting a match between Snowflake and data bricks        |
 
-[&#8593; [back to top](#remorph-reconciliation)]
+[[&#8593; back to top](#remorph-reconciliation)]
 
 ## Reconciliation Example:
 For more Reconciliation Config example, please refer to [sample config][link].
 
 [link]: reconcile_config_samples.md
 
-[&#8593; [back to top](#remorph-reconciliation)]
+[[&#8593; back to top](#remorph-reconciliation)]
 
 ## DataFlow Example
 
 Report Types Data [Visualisation](report_types_visualisation.md)
 
-[&#8593; [back to top](#remorph-reconciliation)]
+[[&#8593; back to top](#remorph-reconciliation)]
 
 ------
 
@@ -507,7 +507,7 @@ between source and target data residing on Databricks.
 
 [[back to aggregates-reconciliation](#remorph-aggregates-reconciliation)]
 
-[&#8593; [back to top](#remorph-reconciliation)]
+[[&#8593; back to top](#remorph-reconciliation)]
 
 ## Flow Chart
 
@@ -521,7 +521,7 @@ flowchart TD
 
 [[back to aggregates-reconciliation](#remorph-aggregates-reconciliation)]
 
-[&#8593; [back to top](#remorph-reconciliation)]
+[[&#8593; back to top](#remorph-reconciliation)]
 
 
 ### TABLE Config Examples:
@@ -541,16 +541,16 @@ Please refer [TABLE Config Elements](#TABLE-Config-Elements) for Class and JSON 
     target_name= "<TARGET_NAME>",
     join_columns= ["<COLUMN_NAME_1>", "<COLUMN_NAME_2>"]
     aggregates= [
-        Aggregate(
-            agg_columns=["<COLUMN_NAME_3>"],
-            type= "MIN",
-            group_by_columns= ["<GROUP_COLUMN_NAME>"]
-        ),
-        Aggregate(
-            agg_columns=["<COLUMN_NAME_4>"],
-            type= "max"
-        )
-    ]
+            Aggregate(
+                        agg_columns=["<COLUMN_NAME_3>"],
+                        type= "MIN",
+                        group_by_columns= ["<GROUP_COLUMN_NAME>"]
+            ),
+            Aggregate(
+                        agg_columns=["<COLUMN_NAME_4>"],
+                        type= "max"
+            )
+        ]
   )
     
 </pre>
@@ -617,7 +617,7 @@ class Aggregate:
 
 [[back to aggregates-reconciliation](#remorph-aggregates-reconciliation)]
 
-[&#8593; [back to top](#remorph-reconciliation)]
+[[&#8593; back to top](#remorph-reconciliation)]
 
 
 ### Key Considerations:
@@ -634,7 +634,7 @@ class Aggregate:
 
 [[back to aggregates-reconciliation](#remorph-aggregates-reconciliation)]
 
-[&#8593; [back to top](#remorph-reconciliation)]
+[[&#8593; back to top](#remorph-reconciliation)]
 
 ## Aggregates Reconciliation JSON Example
 
@@ -644,7 +644,7 @@ Please refer this [sample config][link] for detailed example config.
 
 [[back to aggregates-reconciliation](#remorph-aggregates-reconciliation)]
 
-[&#8593; [back to top](#remorph-reconciliation)]
+[[&#8593; back to top](#remorph-reconciliation)]
 
 ## DataFlow Example
 
@@ -652,4 +652,4 @@ Aggregates Reconcile Data [Visualisation](aggregates_reconcile_visualisation.md)
 
 [[back to aggregates-reconciliation](#remorph-aggregates-reconciliation)]
 
-[&#8593; [back to top](#remorph-reconciliation)]
+[[&#8593; back to top](#remorph-reconciliation)]
