@@ -230,3 +230,7 @@ case class CommonInlineUserDefinedFunction(
   override def children: Seq[Expression] = arguments ++ python_udf.toSeq ++ scalar_scala_udf.toSeq ++ java_udf.toSeq
   override def dataType: DataType = UnresolvedType
 }
+
+case class SchemaReference(columnName: Expression) extends Unary(columnName) {
+  override def dataType: DataType = UnresolvedType
+}
