@@ -9,13 +9,13 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
   "snowsql commands" should {
 
     "transpile BANG with semicolon" in {
-      "!set error_flag = true;" transpilesTo "--!set error_flag = true;"
+      "!set error_flag = true;" transpilesTo "-- !set error_flag = true;"
     }
     "transpile BANG without semicolon" in {
-      "!print Include This Text" transpilesTo "--!print Include This Text;"
+      "!print Include This Text" transpilesTo "-- !print Include This Text;"
     }
     "transpile BANG with options" in {
-      "!options catch=true" transpilesTo "--!options catch=true;"
+      "!options catch=true" transpilesTo "-- !options catch=true;"
     }
     "transpile BANG with negative scenario unknown command" in {
       "!test unknown command" transpilesTo ""

@@ -46,7 +46,7 @@ class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: 
     val seqSql = b.children
       .map {
         case ir.UnresolvedCommand(text) =>
-          "--" + text.stripSuffix(";")
+          s"-- ${text.stripSuffix(";")}"
         case query => s"${generate(ctx, query)}"
       }
       .filter(_.nonEmpty)
