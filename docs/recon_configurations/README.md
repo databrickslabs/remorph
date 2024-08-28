@@ -534,7 +534,7 @@ Please refer [TABLE Config Elements](#TABLE-Config-Elements) for Class and JSON 
 </tr>
 <tr>
 <td>
-<pre lang="python">
+<pre>
 
   Table(
     source_name= "<SOURCE_NAME>",
