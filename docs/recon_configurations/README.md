@@ -109,15 +109,7 @@ class Table:
 {
   "source_name": "&lt;SOURCE_NAME&gt",
   "target_name": "&lt;TARGET_NAME&gt",
-  "aggregates": [{
-                    "type": "MIN",
-                    "agg_columns": ["&lt;COLUMN_NAME_3&gt;"],
-                    "group_by_columns": ["&lt;GROUP_COLUMN_NAME&gt;"]
-                  },
-                  {
-                    "type": "MAX",
-                    "agg_columns": ["&lt;COLUMN_NAME_4&gt;"],
-                  }],
+  "aggregates": null,
   "join_columns": ["&lt;COLUMN_NAME_1&gt","&lt;COLUMN_NAME_2&gt"],
   "jdbc_reader_options": null,
   "select_columns": null,
@@ -139,7 +131,7 @@ class Table:
 |---------------------|------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------|
 | source_name         | string                 | name of the source table                                                                                                                                                                                                           | required               | product                                                                                                                                           |
 | target_name         | string                 | name of the target table                                                                                                                                                                                                           | required               | product                                                                                                                                           |
-| aggregates          | list[Aggregate]        | list of aggregates, refer [Aggregates](#aggregate-attributes) for more information                                                                                                                                                 | optional(default=None) | "aggregates": [{"type": "MAX", "agg_columns": ["<COLUMN_NAME_4>"]}],                                                                              |
+| aggregates          | list[Aggregate]        | list of aggregates, refer [Aggregate](#aggregate) for more information                                                                                                                                                             | optional(default=None) | "aggregates": [{"type": "MAX", "agg_columns": ["<COLUMN_NAME_4>"]}],                                                                              |
 | join_columns        | list[string]           | list of column names which act as the primary key to the table                                                                                                                                                                     | optional(default=None) | ["product_id"] or ["product_id", "order_id"]                                                                                                      |
 | jdbc_reader_options | string                 | jdbc_reader_option, which helps to parallelise the data read from jdbc sources based on the given configuration.For more info [jdbc_reader_options](#jdbc_reader_options)                                                          | optional(default=None) | "jdbc_reader_options": {"number_partitions": 10,"partition_column": "s_suppkey","upper_bound": "10000000","lower_bound": "10","fetch_size":"100"} |
 | select_columns      | list[string]           | list of columns to be considered for the reconciliation process                                                                                                                                                                    | optional(default=None) | ["id", "name", "address"]                                                                                                                         |
@@ -480,8 +472,8 @@ between source and target data residing on Databricks.
 
 ### Summary
 
-| operation_name           | sample visualisation          | description                                                                                                                       | key outputs  captured in the recon metrics tables                                                                                                                                                                                                                               |
-|--------------------------|-------------------------------|-----------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| operation_name           | sample visualisation                            | description                                                                                                                       | key outputs  captured in the recon metrics tables                                                                                                                                                                                                                               |
+|--------------------------|-------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | **aggregates-reconcile** | [data](aggregates_reconcile_visualisation#data) | reconciles the data for each aggregate metric - ```join_columns``` are used to identify the mismatches at aggregated metric level | - **mismatch_data**(sample data with mismatches captured at aggregated metric level )<br> - **missing_in_src**(sample rows that are available in target but missing in source)<br> - **missing_in_tgt**(sample rows that are available in source but are missing in target)<br> |
 
 
@@ -489,7 +481,7 @@ between source and target data residing on Databricks.
 * [Flow Chart](#flow-chart)
 * [Supported Source Systems](#supported-source-systems)
 * [TABLE Config Elements](#table-config-elements)
-    * [Aggregate Attributes](#aggregate-attributes)
+    * [Aggregate](#aggregate)
     * [Key Considerations](#key-considerations)
 * [Aggregates Reconciliation Example](#aggregates-reconciliation-example)
 * [DataFlow Example](#dataflow-example)
@@ -589,9 +581,9 @@ class Table:
   "target_name": "&lt;TARGET_NAME&gt",
   "join_columns": ["&lt;COLUMN_NAME_1&gt","&lt;COLUMN_NAME_2&gt"],
   "aggregates": [{
-                    "type": "MIN",
-                    "agg_columns": ["&lt;COLUMN_NAME_3&gt;"],
-                    "group_by_columns": ["&lt;GROUP_COLUMN_NAME&gt;"]
+                   "type": "MIN",
+                   "agg_columns": ["&lt;COLUMN_NAME_3&gt;"],
+                   "group_by_columns": ["&lt;GROUP_COLUMN_NAME&gt;"]
                   },
                   {
                     "type": "MAX",
@@ -613,13 +605,41 @@ class Table:
 
 
 
-### Aggregate Attributes:
+### aggregate
 
-| config_name      | data_type    | description                                                           | required/optional      | example_value          |
+<table>
+<tr>
+<th>Python</th>
+<th>JSON</th>
+</tr>
+<tr>
+<td>
+<pre lang="python">
+@dataclass
+class Aggregate:
+    agg_columns: list[str]
+    type: str
+    group_by_columns: list[str] | None = None
+</pre>
+</td>
+<td>
+<pre lang="json">
+{
+  "type": "MIN",
+  "agg_columns": ["&lt;COLUMN_NAME_3&gt;"],
+  "group_by_columns": ["&lt;GROUP_COLUMN_NAME&gt;"]
+}
+</pre>
+</td>
+</tr>
+</table>
+
+| field_name       | data_type    | description                                                           | required/optional      | example_value          |
 |------------------|--------------|-----------------------------------------------------------------------|------------------------|------------------------|
 | type             | string       | [Supported Aggregate Functions](#supported-aggregate-functions)       | required               | MIN                    |
 | agg_columns      | list[string] | list of columns names on which aggregate function needs to be applied | required               | ["product_discount"]   |
 | group_by_columns | list[string] | list of column names on which grouping needs  to be applied           | optional(default=None) | ["product_id"] or None |
+
 
 
 [[back to top](#remorph-aggregates-reconciliation)]
