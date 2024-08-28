@@ -1,7 +1,4 @@
 -- snowflake sql:
-SELECT v, v:food, TO_JSON(v) FROM jdemo1;
-
---revised snowflake sql
 SELECT
   v,
   v:food AS food,
@@ -11,9 +8,6 @@ FROM (
 ) t;
 
 -- databricks sql:
-SELECT v, v.food, TO_JSON(v) FROM jdemo1;
-
---revised databricks sql
 SELECT
   v,
   v.food,

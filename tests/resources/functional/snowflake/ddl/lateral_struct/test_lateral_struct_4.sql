@@ -1,14 +1,5 @@
 -- snowflake sql:
 SELECT
-  tt.id AS tax_transaction_id,
-  cast(tt.response_body:"isMpfState" AS BOOLEAN) AS is_mpf_state,
-  REGEXP_REPLACE(tt.request_body:"deliveryLocation":"city", '""', '') AS delivery_city,
-  REGEXP_REPLACE(tt.request_body:"store":"storeAddress":"zipCode", '""', '') AS
-  store_zipcode
-FROM tax_table tt;
-
---revised snowflake sql
-SELECT
   tt.value:id AS tax_transaction_id,
   CAST(tt.value:responseBody:isMpfState AS BOOLEAN) AS is_mpf_state,
   REGEXP_REPLACE(tt.value:requestBody:deliveryLocation:city, '""', '') AS delivery_city,
@@ -27,14 +18,6 @@ FROM (
 
 
 -- databricks sql:
-SELECT
-  tt.id AS tax_transaction_id,
-  CAST(tt.response_body.isMpfState AS BOOLEAN) AS is_mpf_state,
-  REGEXP_REPLACE(tt.request_body.deliveryLocation.city, '""', '') AS delivery_city,
-  REGEXP_REPLACE(tt.request_body.store.storeAddress.zipCode, '""', '') AS store_zipcode
-FROM tax_table AS tt;
-
--- revised databricks sql
 SELECT
   tt.col1 AS tax_transaction_id,
   CAST(tt.col2.responseBody.isMpfState AS BOOLEAN) AS is_mpf_state,

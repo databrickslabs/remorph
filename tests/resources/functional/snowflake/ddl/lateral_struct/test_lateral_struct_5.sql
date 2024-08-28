@@ -1,10 +1,4 @@
 -- snowflake sql:
-select
-  varchar1,
-  float1::varchar,
-  variant1:"Loan Number"::varchar from tmp;
-
--- revised snowflake sql
 SELECT
   varchar1,
   CAST(float1 AS STRING) AS float1_as_string,
@@ -16,15 +10,7 @@ FROM
     OBJECT_CONSTRUCT('Loan_Number', 'LN789') AS variant1
   ) AS tmp;
 
-
 -- databricks sql:
-SELECT
-  varchar1,
-  CAST(float1 AS STRING),
-  CAST(variant1.`Loan Number` AS STRING)
-FROM tmp;
-
--- revised databricks sql
 SELECT
   varchar1,
   CAST(float1 AS STRING),
