@@ -48,15 +48,23 @@ class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: 
 
   private def buildTableAlteration(ctx: GeneratorContext, alterations: Seq[ir.TableAlteration]): String = {
     alterations.headOption match {
-      case Some(add: ir.AddColumn) => buildAddColumn(ctx, alterations.collect { case c: ir.AddColumn => c })
-      case Some(drop: ir.DropColumns) => buildDropColumns(alterations.collect { case c: ir.DropColumns => c })
-      case Some(rename: ir.RenameColumn) => buildRenameColumn(alterations.collect { case c: ir.RenameColumn => c })
-      case _ => "" // TODO implement other alter operations
+      case Some(a: ir.AddColumn) => buildAddColumn(ctx, alterations.collect { case c: ir.AddColumn => c })
+      case Some(ac: ir.AddConstraint) => throw TranspileException(s"not implemented ADD CONSTRAINT: ${ac}")
+      case Some(cd: ir.ChangeColumnDataType) =>
+        throw TranspileException(s"not implemented ALTER COLUMN DATATYPE: ${cd}")
+      case Some(d: ir.DropColumns) => buildDropColumns(alterations.collect { case c: ir.DropColumns => c })
+      case Some(dcn: ir.DropConstraintByName) =>
+        buildDropConstraintByName(alterations.collect { case c: ir.DropConstraintByName => c })
+      case Some(dc: ir.DropConstraint) => throw TranspileException(s"not implemented DROP CONSTRAINT: ${dc}")
+      case Some(r: ir.RenameColumn) => buildRenameColumn(alterations.collect { case c: ir.RenameColumn => c })
+      case Some(rct: ir.RenameConstraint) =>
+        buildRenameConstraints(alterations.collect { case c: ir.RenameConstraint => c })
+      case Some(unresolved: ir.UnresolvedTableAlteration) => s"-- ${unresolved.inputText}"
+      case None => "" // None is a no-op
     }
   }
 
   private def buildAddColumn(ctx: GeneratorContext, columns: Seq[ir.AddColumn]): String = {
-
     val columnOperation = columns map { column =>
       val c = column.columnDeclaration
       val dataType = DataTypeGenerator.generateDataType(ctx, c.dataType)
@@ -67,16 +75,28 @@ class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: 
     s"ADD COLUMN ${columnOperation.mkString(", ")}"
   }
 
-  private def buildDropColumns(addDropColumns: Seq[ir.DropColumns]): String = {
-    val columnNames = addDropColumns.flatMap(_.columnNames).mkString(", ")
+  private def buildDropColumns(dropColumns: Seq[ir.DropColumns]): String = {
+    val columnNames = dropColumns.flatMap(_.columnNames).mkString(", ")
     s"DROP COLUMN ${columnNames}"
   }
 
-  private def buildRenameColumn(addRenameColumns: Seq[ir.RenameColumn]): String = {
+  private def buildDropConstraintByName(dropConstraintByName: Seq[ir.DropConstraintByName]): String = {
+    val constraintNames = dropConstraintByName.map(_.constraintName).mkString(", ")
+    s"DROP CONSTRAINT ${constraintNames}"
+  }
+
+  private def buildRenameColumn(renameColumns: Seq[ir.RenameColumn]): String = {
     // Rename is always done on a single column
-    val oldName = addRenameColumns.head.oldName
-    val newName = addRenameColumns.head.newName
+    val oldName = renameColumns.head.oldName
+    val newName = renameColumns.head.newName
     s"RENAME COLUMN ${oldName} to ${newName}"
+  }
+
+  private def buildRenameConstraints(renameConstraints: Seq[ir.RenameConstraint]): String = {
+    val constraintOperation = renameConstraints map { constraint =>
+      s"${constraint.oldName} TO ${constraint.newName}"
+    }
+    s"RENAME CONSTRAINT ${constraintOperation.mkString(", ")}"
   }
 
   // @see https://docs.databricks.com/en/sql/language-manual/sql-ref-syntax-qry-select-sampling.html
