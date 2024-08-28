@@ -505,4 +505,13 @@ class SnowflakeExpressionBuilderSpec
       verifyNoMoreInteractions(operator)
     }
   }
+
+  "variable substitution" should {
+    "&abc" in {
+      exampleExpr("&abc", _.expr(), Variable("abc"))
+    }
+    "&ab_c.bc_d" in {
+      exampleExpr("&ab_c.bc_d", _.expr(), Dot(Variable("ab_c"), Id("bc_d")))
+    }
+  }
 }

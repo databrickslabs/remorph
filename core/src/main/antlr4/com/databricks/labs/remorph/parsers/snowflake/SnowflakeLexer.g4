@@ -906,6 +906,7 @@ MODULE      : '%';
 PLUS        : '+';
 MINUS       : '-';
 TILDA       : '~';
+AMP         : '&';
 
 // A question mark can be used as a placeholder for a prepared statement that will use binding.
 PARAM: '?';

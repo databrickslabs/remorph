@@ -212,6 +212,12 @@ class SnowflakeExpressionBuilder()
     buildBinaryOperation(ctx.op, ctx.expr(0).accept(this), ctx.expr(1).accept(this))
   }
 
+  // @see https://docs.snowflake.com/en/user-guide/snowsql-use#label-snowsql-enabling-variable-substitution
+  // TODO: fold it into macro pre-processor engine
+  override def visitExprVariable(ctx: ExprVariableContext): ir.Expression = ctx.id().accept(this) match {
+    case ir.Id(name, _) => ir.Variable(name)
+  }
+
   override def visitJsonLiteral(ctx: JsonLiteralContext): ir.Expression = {
     val fields = ctx.kvPair().asScala.map { kv =>
       val fieldName = removeQuotes(kv.key.getText)
