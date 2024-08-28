@@ -42,35 +42,21 @@ class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: 
   }
 
   private def alterTable(ctx: GeneratorContext, a: ir.AlterTableCommand): String = {
-    val operation = buildAlter(ctx, a.alterations)
+    val operation = buildTableAlteration(ctx, a.alterations)
     s"ALTER TABLE ${a.tableName} $operation"
   }
 
-  private def buildAlter(ctx: GeneratorContext, alteration: Seq[ir.TableAlteration]): String = {
-    alteration match {
-      case a: Seq[_] => buildTableAlteration(ctx, a)
-      case _ => ""
+  private def buildTableAlteration(ctx: GeneratorContext, alterations: Seq[ir.TableAlteration]): String = {
+    alterations.headOption match {
+      case Some(add: ir.AddColumn) => buildAddColumn(ctx, alterations.collect { case c: ir.AddColumn => c })
+      case Some(drop: ir.DropColumns) => buildDropColumns(alterations.collect { case c: ir.DropColumns => c })
+      case Some(rename: ir.RenameColumn) => buildRenameColumn(alterations.collect { case c: ir.RenameColumn => c })
+      case _ => "" // TODO implement other alter operations
     }
   }
 
-  private def buildTableAlteration(ctx: GeneratorContext, c: Seq[_]): String = {
+  private def buildAddColumn(ctx: GeneratorContext, columns: Seq[ir.AddColumn]): String = {
 
-    c match {
-      case a: Seq[_] =>
-        if (a.headOption.exists(_.isInstanceOf[ir.AddColumn])) {
-          buildAddColumn(ctx, a)
-        } else if (a.headOption.exists(_.isInstanceOf[ir.DropColumns])) {
-          buildDropColumns(a)
-        } else if (a.headOption.exists(_.isInstanceOf[ir.RenameColumn])) {
-          buildRenameColumn(a)
-        } else ""
-      case _ => "" // TODO Implement Nothing
-    }
-  }
-
-  private def buildAddColumn(ctx: GeneratorContext, addColumns: Seq[_]): String = {
-
-    val columns = addColumns.map(_.asInstanceOf[ir.AddColumn])
     val columnOperation = columns map { column =>
       val c = column.columnDeclaration
       val dataType = DataTypeGenerator.generateDataType(ctx, c.dataType)
@@ -81,15 +67,15 @@ class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: 
     s"ADD COLUMN ${columnOperation.mkString(", ")}"
   }
 
-  private def buildDropColumns(addDropColumns: Seq[_]): String = {
-    val columnNames = addDropColumns.flatMap(_.asInstanceOf[ir.DropColumns].columnNames).mkString(", ")
+  private def buildDropColumns(addDropColumns: Seq[ir.DropColumns]): String = {
+    val columnNames = addDropColumns.flatMap(_.columnNames).mkString(", ")
     s"DROP COLUMN ${columnNames}"
   }
 
-  private def buildRenameColumn(addRenameColumns: Seq[_]): String = {
+  private def buildRenameColumn(addRenameColumns: Seq[ir.RenameColumn]): String = {
     // Rename is always done on a single column
-    val oldName = addRenameColumns.map(_.asInstanceOf[ir.RenameColumn]).head.oldName
-    val newName = addRenameColumns.map(_.asInstanceOf[ir.RenameColumn]).head.newName
+    val oldName = addRenameColumns.head.oldName
+    val newName = addRenameColumns.head.newName
     s"RENAME COLUMN ${oldName} to ${newName}"
   }
 
