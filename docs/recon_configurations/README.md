@@ -92,6 +92,7 @@ flowchart TD
 class Table:
     source_name: str
     target_name: str
+    aggregates: list[Aggregate] | None = None
     join_columns: list[str] | None = None
     jdbc_reader_options: JdbcReaderOptions | None = None
     select_columns: list[str] | None = None
@@ -108,6 +109,15 @@ class Table:
 {
   "source_name": "&lt;SOURCE_NAME&gt",
   "target_name": "&lt;TARGET_NAME&gt",
+  "aggregates": [{
+                    "type": "MIN",
+                    "agg_columns": ["&lt;COLUMN_NAME_3&gt;"],
+                    "group_by_columns": ["&lt;GROUP_COLUMN_NAME&gt;"]
+                  },
+                  {
+                    "type": "MAX",
+                    "agg_columns": ["&lt;COLUMN_NAME_4&gt;"],
+                  }],
   "join_columns": ["&lt;COLUMN_NAME_1&gt","&lt;COLUMN_NAME_2&gt"],
   "jdbc_reader_options": null,
   "select_columns": null,
@@ -125,19 +135,23 @@ class Table:
 
 
 
-| config_name         | data_type                | description                                                                                                                                                                                                                        | required/optional       | example_value                                                                                                                                     |
-|---------------------|--------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------|
-| source_name         | string                   | name of the source table                                                                                                                                                                                                           | required                | product                                                                                                                                           |
-| target_name         | string                   | name of the target table                                                                                                                                                                                                           | required                | product                                                                                                                                           |
-| join_columns        | list[string]             | list of column names which act as the primary key to the table                                                                                                                                                                     | optional(default=None)  | ["product_id"] or ["product_id", "order_id"]                                                                                                      |
-| jdbc_reader_options | string                   | jdbc_reader_option, which helps to parallelise the data read from jdbc sources based on the given configuration.For more info [jdbc_reader_options](#jdbc_reader_options)                                                          | optional(default=None)  | "jdbc_reader_options": {"number_partitions": 10,"partition_column": "s_suppkey","upper_bound": "10000000","lower_bound": "10","fetch_size":"100"} |
-| select_columns      | list[string]             | list of columns to be considered for the reconciliation process                                                                                                                                                                    | optional(default=None)  | ["id", "name", "address"]                                                                                                                         |
-| drop_columns        | list[string]             | list of columns to be eliminated from the reconciliation process                                                                                                                                                                   | optional(default=None)  | ["comment"]                                                                                                                                       |
-| column_mapping      | list[ColumnMapping]      | list of column_mapping that helps in resolving column name mismatch between src and tgt, e.g., "id" in src and "emp_id" in tgt.For more info [column_mapping](#column_mapping)                                                     | optional(default=None)  | "column_mapping": [{"source_name": "id","target_name": "emp_id"}]                                                                                 |
-| transformations     | list[Transformations]    | list of user-defined transformations that can be applied to src and tgt columns in case of any incompatibility data types or explicit transformation is applied during migration.For more info [transformations](#transformations) | optional(default=None)  | "transformations": [{"column_name": "s_address","source": "trim(s_address)","target": "trim(s_address)"}]                                         |
-| column_thresholds   | list[ColumnThresholds]   | list of threshold conditions that can be applied on the columns to match the minor exceptions in data. It supports percentile, absolute, and date fields. For more info [column_thresholds](#column_thresholds)                    | optional(default=None)  | "thresholds": [{"column_name": "sal", "lower_bound": "-5%", "upper_bound": "5%", "type": "int"}]                                                  |
-| table_thresholds    | list[TableThresholds]    | list of table thresholds conditions that can be applied on the tables to match the minor exceptions in mismatch count. It supports percentile, absolute. For more info [table_thresholds](#table_thresholds)                       |  optional(default=None) | "table_thresholds": [{"lower_bound": "0%", "upper_bound": "5%", "model": "mismatch"}]                                                   | 
-| filters             | Filters                  | filter expr that can be used to filter the data on src and tgt based on respective expressions                                                                                                                                     | optional(default=None)  | "filters": {"source": "lower(dept_name)>’ it’”, "target": "lower(department_name)>’ it’”}                                                         |
+| config_name         | data_type              | description                                                                                                                                                                                                                        | required/optional      | example_value                                                                                                                                     |
+|---------------------|------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------|
+| source_name         | string                 | name of the source table                                                                                                                                                                                                           | required               | product                                                                                                                                           |
+| target_name         | string                 | name of the target table                                                                                                                                                                                                           | required               | product                                                                                                                                           |
+| aggregates          | list[Aggregate]        | list of aggregates, refer [Aggregates](#aggregate-attributes) for more information                                                                                                                                                 | optional(default=None) | "aggregates": [{"type": "MAX", "agg_columns": ["<COLUMN_NAME_4>"]}],                                                                              |
+| join_columns        | list[string]           | list of column names which act as the primary key to the table                                                                                                                                                                     | optional(default=None) | ["product_id"] or ["product_id", "order_id"]                                                                                                      |
+| jdbc_reader_options | string                 | jdbc_reader_option, which helps to parallelise the data read from jdbc sources based on the given configuration.For more info [jdbc_reader_options](#jdbc_reader_options)                                                          | optional(default=None) | "jdbc_reader_options": {"number_partitions": 10,"partition_column": "s_suppkey","upper_bound": "10000000","lower_bound": "10","fetch_size":"100"} |
+| select_columns      | list[string]           | list of columns to be considered for the reconciliation process                                                                                                                                                                    | optional(default=None) | ["id", "name", "address"]                                                                                                                         |
+| drop_columns        | list[string]           | list of columns to be eliminated from the reconciliation process                                                                                                                                                                   | optional(default=None) | ["comment"]                                                                                                                                       |
+| column_mapping      | list[ColumnMapping]    | list of column_mapping that helps in resolving column name mismatch between src and tgt, e.g., "id" in src and "emp_id" in tgt.For more info [column_mapping](#column_mapping)                                                     | optional(default=None) | "column_mapping": [{"source_name": "id","target_name": "emp_id"}]                                                                                 |
+| transformations     | list[Transformations]  | list of user-defined transformations that can be applied to src and tgt columns in case of any incompatibility data types or explicit transformation is applied during migration.For more info [transformations](#transformations) | optional(default=None) | "transformations": [{"column_name": "s_address","source": "trim(s_address)","target": "trim(s_address)"}]                                         |
+| column_thresholds   | list[ColumnThresholds] | list of threshold conditions that can be applied on the columns to match the minor exceptions in data. It supports percentile, absolute, and date fields. For more info [column_thresholds](#column_thresholds)                    | optional(default=None) | "thresholds": [{"column_name": "sal", "lower_bound": "-5%", "upper_bound": "5%", "type": "int"}]                                                  |
+| table_thresholds    | list[TableThresholds]  | list of table thresholds conditions that can be applied on the tables to match the minor exceptions in mismatch count. It supports percentile, absolute. For more info [table_thresholds](#table_thresholds)                       | optional(default=None) | "table_thresholds": [{"lower_bound": "0%", "upper_bound": "5%", "model": "mismatch"}]                                                             | 
+| filters             | Filters                | filter expr that can be used to filter the data on src and tgt based on respective expressions                                                                                                                                     | optional(default=None) | "filters": {"source": "lower(dept_name)>’ it’”, "target": "lower(department_name)>’ it’”}                                                         |
+
+### aggregates-reconciliation
+ * Refer [aggregates-reconcile](#remorph-aggregates-reconciliation) for configs and more details.
 
 ### jdbc_reader_options
 
@@ -547,6 +561,7 @@ class Table:
     filters: Filters | None = None
     table_thresholds: list[TableThresholds] | None = None
 
+--------------------------------------------
 
       Table(
         source_name= "<SOURCE_NAME>",
@@ -574,14 +589,14 @@ class Table:
   "target_name": "&lt;TARGET_NAME&gt",
   "join_columns": ["&lt;COLUMN_NAME_1&gt","&lt;COLUMN_NAME_2&gt"],
   "aggregates": [{
-                        "type": "MIN",
-                        "agg_columns": ["&lt;COLUMN_NAME_3&gt"],
-                        "group_by_columns": ["&lt;GROUP_COLUMN_NAME&gt"]
-                      },
-                      {
-                        "type": "MAX",
-                        "agg_columns": ["&lt;COLUMN_NAME_4&gt"],
-                      }],
+                    "type": "MIN",
+                    "agg_columns": ["&lt;COLUMN_NAME_3&gt;"],
+                    "group_by_columns": ["&lt;GROUP_COLUMN_NAME&gt;"]
+                  },
+                  {
+                    "type": "MAX",
+                    "agg_columns": ["&lt;COLUMN_NAME_4&gt;"],
+                  }],
   "jdbc_reader_options": null,
   "select_columns": null,
   "drop_columns": null,
