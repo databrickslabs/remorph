@@ -61,8 +61,8 @@ class SnowflakeTypeBuilder {
 
   private def decimal(c: DataTypeContext) = {
     val nums = c.num().asScala
-    val precision = nums.headOption.map(_.getText.toInt)
-    val scale = nums.drop(1).headOption.map(_.getText.toInt)
+    val precision = nums.headOption.map(_.getText.toInt).getOrElse("38".toInt)
+    val scale = nums.drop(1).headOption.map(_.getText.toInt).getOrElse("0".toInt)
     ir.DecimalType(precision, scale)
   }
 }

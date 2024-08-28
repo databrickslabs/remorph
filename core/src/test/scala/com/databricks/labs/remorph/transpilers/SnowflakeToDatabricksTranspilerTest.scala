@@ -19,7 +19,7 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
 
   "Snowflake Alter commands" should {
 
-    "transpile Single ADD Columns" in {
+    "ALTER TABLE t1 ADD COLUMN c1 INTEGER" in {
       "ALTER TABLE t1 ADD COLUMN c1 INTEGER;" transpilesTo (
         s"""ALTER TABLE
            |  t1
@@ -28,7 +28,7 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
       )
     }
 
-    "transpile Multi ADD Columns" in {
+    "ALTER TABLE t1 ADD COLUMN c1 INTEGER, c2 VARCHAR;" in {
       "ALTER TABLE t1 ADD COLUMN c1 INTEGER, c2 VARCHAR;" transpilesTo
         s"""ALTER TABLE
            |  t1
@@ -37,21 +37,21 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
            |  c2 STRING;""".stripMargin
     }
 
-    "transpile Single Drop Columns" in {
+    "ALTER TABLE t1 DROP COLUMN c1;" in {
       "ALTER TABLE t1 DROP COLUMN c1;" transpilesTo (
         s"""ALTER TABLE
            |  t1 DROP COLUMN c1;""".stripMargin
       )
     }
 
-    "transpile Multi Drop Columns" in {
+    "ALTER TABLE t1 DROP COLUMN c1, c2;" in {
       "ALTER TABLE t1 DROP COLUMN c1, c2;" transpilesTo
         s"""ALTER TABLE
            |  t1 DROP COLUMN c1,
            |  c2;""".stripMargin
     }
 
-    "transpile Rename Columns" in {
+    "ALTER TABLE t1 RENAME COLUMN c1 to c2;" in {
       "ALTER TABLE t1 RENAME COLUMN c1 to c2;" transpilesTo
         s"""ALTER TABLE
            |  t1 RENAME COLUMN c1 to c2;""".stripMargin
