@@ -3148,7 +3148,6 @@ expr
     | expr predicatePartial                     # exprPredicate
     | DISTINCT expr                             # exprDistinct
     | L_PAREN subquery R_PAREN                  # exprSubquery
-    | AMP id                                    # exprVariable
     | primitiveExpression                       # exprPrimitive
     ;
 
