@@ -8,6 +8,7 @@ when comparing the source with the Databricks target.
 * [Types of Report Supported](#types-of-report-supported)
 * [Report Type-Flow Chart](#report-type-flow-chart)
 * [Supported Source System](#supported-source-system)
+* [TABLE Config JSON filename](#table-config-json-filename)
 * [TABLE Config Elements](#table-config-elements)
     * [aggregates](#aggregate) 
     * [jdbc_reader_options](#jdbc_reader_options)
@@ -84,6 +85,67 @@ flowchart TD
 | Oracle     | Yes    | Yes | Yes  | Yes |
 | Snowflake  | Yes    | Yes | Yes  | Yes |
 | Databricks | Yes    | Yes | Yes  | Yes |
+
+[[&#8593; back to top](#remorph-reconciliation)]
+
+### TABLE Config Json filename:
+The config file must be named as `recon_config_<DATA_SOURCE>_<SOURCE_CATALOG_OR_SCHEMA>_<REPORT_TYPE>.json` and should be placed in the remorph root directory `.remorph` in the Databricks Workspace.
+
+<table>
+    <tr>
+        <th>Snowflake</th>
+        <td>
+            <pre lang="yaml">
+ database_config:
+  source_catalog: sample_data
+  source_schema: default
+  ...
+metadata_config:
+  ...
+data_source: databricks
+report_type: all
+...   
+             </pre>
+        </td>
+        <td>recon_config_snowflake_sample_data_all.json</td>
+    </tr>
+    <tr>
+        <th>Oracle</th>
+        <td>
+<pre lang="yaml">
+ database_config:
+  source_schema: orc
+  ...
+metadata_config:
+  ...
+data_source: oracle
+report_type: data
+...   
+             </pre>
+        </td>
+        <td>recon_config_oracle_orc_data.json</td>
+    </tr>
+    <tr>
+        <th>Databricks (Hive MetaStore)</th>
+        <td>
+            <pre lang="yaml">
+ database_config:
+  source_schema: hms
+  ...
+metadata_config:
+  ...
+data_source: databricks
+report_type: schema
+...   
+             </pre>
+        </td>
+        <td>recon_config_databricks_hms_schema.json</td>
+    </tr>
+</table>
+
+> **Note:** the filename must be created in the same case as <SOURCE_CATALOG_OR_SCHEMA> is defined.
+> For example, if the source schema is defined as `ORC` in the config, the filename should be `recon_config_oracle_ORC_data.json`.
+
 
 [[&#8593; back to top](#remorph-reconciliation)]
 
@@ -268,9 +330,8 @@ class Transformation:
 | source      | string    | the transformation sql expr to be applied on source column | required          | "trim(s_address)" or "s_address" |
 | target      | string    | the transformation sql expr to be applied on source column | required          | "trim(s_address)" or "s_address" |
 
-### Note:
 
-Reconciliation also takes an udf in the transformation expr.Say for eg. we have a udf named sort_array_input() that takes an unsorted array as input and returns an array sorted.We can use that in transformation as below:
+> **Note:** Reconciliation also takes an udf in the transformation expr.Say for eg. we have a udf named sort_array_input() that takes an unsorted array as input and returns an array sorted.We can use that in transformation as below:
 
 ```
 transformations=[Transformation(column_name)="array_col",source=sort_array_input(array_col),target=sort_array_input(array_col)]
