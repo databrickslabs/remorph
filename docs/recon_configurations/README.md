@@ -9,6 +9,7 @@ when comparing the source with the Databricks target.
 * [Report Type-Flow Chart](#report-type-flow-chart)
 * [Supported Source System](#supported-source-system)
 * [TABLE Config Elements](#table-config-elements)
+    * [aggregates](#aggregate) 
     * [jdbc_reader_options](#jdbc_reader_options)
     * [column_mapping](#column_mapping)
     * [transformations](#transformations)
@@ -18,6 +19,14 @@ when comparing the source with the Databricks target.
     * [Key Considerations](#key-considerations)
 * [Reconciliation Example](#reconciliation-example)
 * [DataFlow Example](#dataflow-example)
+* [Aggregates Reconcile](#remorph-aggregates-reconciliation)
+    * [Supported Aggregate Functions](#supported-aggregate-functions)
+    * [Flow Chart](#flow-chart)
+    * [Aggregate](#aggregate)
+        * [TABLE Config Examples](#table-config-examples)
+    * [Key Considerations](#key-considerations)
+    * [Aggregates Reconciliation Example](#aggregates-reconciliation-json-example)
+    * [DataFlow Example](#dataflow-example)
 
 ## Types of Report Supported
 
@@ -142,8 +151,6 @@ class Table:
 | table_thresholds    | list[TableThresholds]  | list of table thresholds conditions that can be applied on the tables to match the minor exceptions in mismatch count. It supports percentile, absolute. For more info [table_thresholds](#table_thresholds)                       | optional(default=None) | "table_thresholds": [{"lower_bound": "0%", "upper_bound": "5%", "model": "mismatch"}]                                                             | 
 | filters             | Filters                | filter expr that can be used to filter the data on src and tgt based on respective expressions                                                                                                                                     | optional(default=None) | "filters": {"source": "lower(dept_name)>’ it’”, "target": "lower(department_name)>’ it’”}                                                         |
 
-### aggregates-reconciliation
- * Refer [aggregates-reconcile](#remorph-aggregates-reconciliation) for configs and more details.
 
 ### jdbc_reader_options
 
@@ -477,16 +484,6 @@ between source and target data residing on Databricks.
 | **aggregates-reconcile** | [data](aggregates_reconcile_visualisation.md#data) | reconciles the data for each aggregate metric - ```join_columns``` are used to identify the mismatches at aggregated metric level | - **mismatch_data**(sample data with mismatches captured at aggregated metric level )<br> - **missing_in_src**(sample rows that are available in target but missing in source)<br> - **missing_in_tgt**(sample rows that are available in source but are missing in target)<br> |
 
 
-* [Supported Aggregate Functions](#supported-aggregate-functions)
-* [Flow Chart](#flow-chart)
-* [Supported Source Systems](#supported-source-systems)
-* [TABLE Config Examples](#table-config-examples)
-    * [Aggregate](#aggregate)
-    * [Key Considerations](#key-considerations)
-* [Aggregates Reconciliation Example](#aggregates-reconciliation-example)
-* [DataFlow Example](#dataflow-example)
-
-
 ## Supported Aggregate Functions
 
 
@@ -524,61 +521,7 @@ flowchart TD
 [[&#8593; back to top](#remorph-reconciliation)]
 
 
-### TABLE Config Examples:
-Please refer [TABLE Config Elements](#TABLE-Config-Elements) for Class and JSON configs.
-
-<table>
-<tr>
-<th>Python</th>
-<th>JSON</th>
-</tr>
-<tr>
-<td>
-<pre lang="python">
-
-  Table(
-    source_name= "<SOURCE_NAME>",
-    target_name= "<TARGET_NAME>",
-    join_columns= ["<COLUMN_NAME_1>", "<COLUMN_NAME_2>"]
-    aggregates= [
-            Aggregate(
-                        agg_columns=["<COLUMN_NAME_3>"],
-                        type= "MIN",
-                        group_by_columns= ["<GROUP_COLUMN_NAME>"]
-            ),
-            Aggregate(
-                        agg_columns=["<COLUMN_NAME_4>"],
-                        type= "max"
-            )
-        ]
-  )
-    
-</pre>
-</td>
-<td>
-<pre lang="json">
-{
-  "source_name": "&lt;SOURCE_NAME&gt",
-  "target_name": "&lt;TARGET_NAME&gt",
-  "join_columns": ["&lt;COLUMN_NAME_1&gt","&lt;COLUMN_NAME_2&gt"],
-  "aggregates": [{
-                   "type": "MIN",
-                   "agg_columns": ["&lt;COLUMN_NAME_3&gt;"],
-                   "group_by_columns": ["&lt;GROUP_COLUMN_NAME&gt;"]
-                  },
-                  {
-                    "type": "MAX",
-                    "agg_columns": ["&lt;COLUMN_NAME_4&gt;"],
-                  }],
-}
-</pre>
-</td>
-</tr>
-</table>
-
-
-
-### aggregate
+## aggregate
 
 <table>
 <tr>
@@ -620,7 +563,60 @@ class Aggregate:
 [[&#8593; back to top](#remorph-reconciliation)]
 
 
-### Key Considerations:
+### TABLE Config Examples:
+Please refer [TABLE Config Elements](#TABLE-Config-Elements) for Class and JSON configs.
+
+<table>
+<tr>
+<th>Python</th>
+<th>JSON</th>
+</tr>
+<tr>
+<td>
+<pre lang="python">
+
+Table(
+source_name= "<SOURCE_NAME>",
+target_name= "<TARGET_NAME>",
+join_columns= ["<COLUMN_NAME_1>", "<COLUMN_NAME_2>"]
+aggregates= [
+Aggregate(
+agg_columns=["<COLUMN_NAME_3>"],
+type= "MIN",
+group_by_columns= ["<GROUP_COLUMN_NAME>"]
+),
+Aggregate(
+agg_columns=["<COLUMN_NAME_4>"],
+type= "max"
+)
+]
+)
+
+</pre>
+</td>
+<td>
+<pre lang="json">
+{
+  "source_name": "&lt;SOURCE_NAME&gt",
+  "target_name": "&lt;TARGET_NAME&gt",
+  "join_columns": ["&lt;COLUMN_NAME_1&gt","&lt;COLUMN_NAME_2&gt"],
+  "aggregates": [{
+                   "type": "MIN",
+                   "agg_columns": ["&lt;COLUMN_NAME_3&gt;"],
+                   "group_by_columns": ["&lt;GROUP_COLUMN_NAME&gt;"]
+                  },
+                  {
+                    "type": "MAX",
+                    "agg_columns": ["&lt;COLUMN_NAME_4&gt;"],
+                  }],
+}
+</pre>
+</td>
+</tr>
+</table>
+
+
+## Key Considerations:
 
 1. The aggregate column names, group by columns and type are always converted to lowercase and considered for reconciliation.
 2. Currently, it doesn't support aggregates on window function using the OVER clause.
