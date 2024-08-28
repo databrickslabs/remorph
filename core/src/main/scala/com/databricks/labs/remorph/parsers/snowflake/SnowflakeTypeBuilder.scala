@@ -61,6 +61,8 @@ class SnowflakeTypeBuilder {
 
   private def decimal(c: DataTypeContext) = {
     val nums = c.num().asScala
+    // https://docs.snowflake.com/en/sql-reference/data-types-numeric#number
+    // Per Docs defaulting the precision to 38 and scale to 0
     val precision = nums.headOption.map(_.getText.toInt).getOrElse("38".toInt)
     val scale = nums.drop(1).headOption.map(_.getText.toInt).getOrElse("0".toInt)
     ir.DecimalType(precision, scale)
