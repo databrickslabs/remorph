@@ -36,6 +36,7 @@ class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: 
     case t: ir.TableSample => tableSample(ctx, t)
     case ir.NoopNode => ""
     case ir.UnresolvedCommand(inputText) => s"--${inputText}"
+    case ir.UnresolvedCatalog(inputText) => s"-- ${inputText}"
     case null => "" // don't fail transpilation if the plan is null
     case x => throw unknown(x)
   }
