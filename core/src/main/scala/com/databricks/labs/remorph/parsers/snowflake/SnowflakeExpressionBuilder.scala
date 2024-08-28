@@ -26,6 +26,17 @@ class SnowflakeExpressionBuilder()
     case c if c.DOUBLE_QUOTE_ID() != null =>
       val idValue = c.getText.trim.stripPrefix("\"").stripSuffix("\"").replaceAll("\"\"", "\"")
       ir.Id(idValue, caseSensitive = true)
+    case v if v.AMP() != null =>
+      // Note that there is nothing special about &id other than they become $id in Databricks
+      // Many places in the builder concatenate the output of visitId with other strings and so we
+      // lose the ir.Dot(ir.Variable, ir.Id) that we could pick up and therefore propagate ir.Variable if
+      // we wanted to leave the translation to generate phase. I think we probably do want to do that, but
+      // a lot of code has bypassed accept() and called visitId directly, and expects ir.Id, then uses fields from it.
+      //
+      // To rework that is quite a big job. So, for now, we translate &id to $id here. It is not wrong for the id rule
+      // to hold the AMP ID alt, but ideally it would produce an ir.Variable and we would process that at generation
+      // time instead of concatenating into strings :(
+      ir.Id("$" + v.ID().getText)
     case id => ir.Id(id.getText)
   }
 
@@ -210,12 +221,6 @@ class SnowflakeExpressionBuilder()
 
   override def visitExprPrecedence1(ctx: ExprPrecedence1Context): ir.Expression = {
     buildBinaryOperation(ctx.op, ctx.expr(0).accept(this), ctx.expr(1).accept(this))
-  }
-
-  // @see https://docs.snowflake.com/en/user-guide/snowsql-use#label-snowsql-enabling-variable-substitution
-  // TODO: fold it into macro pre-processor engine
-  override def visitExprVariable(ctx: ExprVariableContext): ir.Expression = ctx.id().accept(this) match {
-    case ir.Id(name, _) => ir.Variable(name)
   }
 
   override def visitJsonLiteral(ctx: JsonLiteralContext): ir.Expression = {

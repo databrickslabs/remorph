@@ -508,10 +508,10 @@ class SnowflakeExpressionBuilderSpec
 
   "variable substitution" should {
     "&abc" in {
-      exampleExpr("&abc", _.expr(), Variable("abc"))
+      exampleExpr("&abc", _.expr(), Id("$abc"))
     }
     "&ab_c.bc_d" in {
-      exampleExpr("&ab_c.bc_d", _.expr(), Dot(Variable("ab_c"), Id("bc_d")))
+      exampleExpr("&ab_c.bc_d", _.expr(), Dot(Id("$ab_c"), Id("bc_d")))
     }
   }
 }

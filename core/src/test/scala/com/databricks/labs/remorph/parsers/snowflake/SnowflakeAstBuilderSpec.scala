@@ -488,7 +488,7 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
       "select * from a where b = &ids" in {
         singleQueryExample(
           "select * from a where b = &ids",
-          Project(Filter(namedTable("a"), Equals(Id("b"), Id("ids"))), Seq(Star())))
+          Project(Filter(namedTable("a"), Equals(Id("b"), Id("$ids"))), Seq(Star())))
       }
     }
   }

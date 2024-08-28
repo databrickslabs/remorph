@@ -2965,6 +2965,7 @@ id
     | ID2
     | DOUBLE_QUOTE_ID
     | DOUBLE_QUOTE_BLANK
+    | AMP ID           // Snowflake variables from CLI or injection
     | nonReservedWords //id is used for object name. Snowflake is very permissive
     ;
 
@@ -3135,7 +3136,6 @@ expr
     | expr predicatePartial                     # exprPredicate
     | DISTINCT expr                             # exprDistinct
     | L_PAREN subquery R_PAREN                  # exprSubquery
-    | AMP id                                    # exprVariable
     | primitiveExpression                       # exprPrimitive
     ;
 
