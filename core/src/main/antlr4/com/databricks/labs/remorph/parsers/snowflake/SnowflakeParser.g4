@@ -2977,7 +2977,7 @@ id
     | ID2
     | DOUBLE_QUOTE_ID
     | DOUBLE_QUOTE_BLANK
-    | AMP ID           // Snowflake variables from CLI or injection
+    | AMP LCB? ID RCB? // Snowflake variables from CLI or injection - we rely on valid input
     | nonReservedWords //id is used for object name. Snowflake is very permissive
     ;
 

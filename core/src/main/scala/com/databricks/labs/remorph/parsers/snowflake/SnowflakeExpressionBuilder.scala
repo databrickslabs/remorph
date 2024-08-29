@@ -36,7 +36,7 @@ class SnowflakeExpressionBuilder()
       // To rework that is quite a big job. So, for now, we translate &id to $id here. It is not wrong for the id rule
       // to hold the AMP ID alt, but ideally it would produce an ir.Variable and we would process that at generation
       // time instead of concatenating into strings :(
-      ir.Id("$" + v.ID().getText)
+      ir.Id(s"$${${v.ID().getText}}")
     case id => ir.Id(id.getText)
   }
 
@@ -169,7 +169,7 @@ class SnowflakeExpressionBuilder()
             .asScala
             .map {
               case p if p.VAR_SIMPLE() != null => s"$${${p.VAR_SIMPLE().getText.drop(1)}}" // &var => ${var}
-              case p if p.VAR_COMPLEX() != null => s"$$${p.VAR_COMPLEX().getText.drop(1)}" // &{var} => ${var}
+              case p if p.VAR_COMPLEX() != null => s"$${${p.VAR_COMPLEX().getText.drop(1)}}" // &{var} => ${var}
               case p if p.STRING_AMPAMP() != null => "&" // && => &
               case p if p.STRING_CONTENT() != null => p.STRING_CONTENT().getText
               case p if p.STRING_ESCAPE() != null => p.STRING_ESCAPE().getText
