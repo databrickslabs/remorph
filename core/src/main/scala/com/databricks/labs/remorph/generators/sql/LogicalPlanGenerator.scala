@@ -43,7 +43,7 @@ class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: 
 
   private def alterTable(ctx: GeneratorContext, a: ir.AlterTableCommand): String = {
     val operation = buildTableAlteration(ctx, a.alterations)
-    s"ALTER TABLE ${a.tableName} $operation"
+    s"ALTER TABLE  ${a.tableName} $operation"
   }
 
   private def buildTableAlteration(ctx: GeneratorContext, alterations: Seq[ir.TableAlteration]): String = {
@@ -60,7 +60,7 @@ class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: 
       case Some(rct: ir.RenameConstraint) =>
         buildRenameConstraints(alterations.collect { case c: ir.RenameConstraint => c })
       case Some(unresolved: ir.UnresolvedTableAlteration) => s"-- ${unresolved.inputText}"
-      case None => "" // None is a no-op
+      case None => "" // None is a noop
     }
   }
 
