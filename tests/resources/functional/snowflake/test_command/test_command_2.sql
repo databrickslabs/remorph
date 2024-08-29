@@ -1,6 +1,6 @@
 -- snowflake sql:
-!abort job123
+SELECT !(2 = 2) AS always_false
 
 
 -- databricks sql:
--- !abort job123;
+SELECT !(2 = 2) AS always_false
