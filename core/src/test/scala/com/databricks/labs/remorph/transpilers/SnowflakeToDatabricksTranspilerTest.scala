@@ -25,6 +25,53 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
     }
   }
 
+  "Snowflake Alter commands" should {
+
+    "ALTER TABLE t1 ADD COLUMN c1 INTEGER" in {
+      "ALTER TABLE t1 ADD COLUMN c1 INTEGER;" transpilesTo (
+        s"""ALTER TABLE
+           |  t1
+           |ADD
+           |  COLUMN c1 DECIMAL(38, 0);""".stripMargin
+      )
+    }
+
+    "ALTER TABLE t1 ADD COLUMN c1 INTEGER, c2 VARCHAR;" in {
+      "ALTER TABLE t1 ADD COLUMN c1 INTEGER, c2 VARCHAR;" transpilesTo
+        s"""ALTER TABLE
+           |  t1
+           |ADD
+           |  COLUMN c1 DECIMAL(38, 0),
+           |  c2 STRING;""".stripMargin
+    }
+
+    "ALTER TABLE t1 DROP COLUMN c1;" in {
+      "ALTER TABLE t1 DROP COLUMN c1;" transpilesTo (
+        s"""ALTER TABLE
+           |  t1 DROP COLUMN c1;""".stripMargin
+      )
+    }
+
+    "ALTER TABLE t1 DROP COLUMN c1, c2;" in {
+      "ALTER TABLE t1 DROP COLUMN c1, c2;" transpilesTo
+        s"""ALTER TABLE
+           |  t1 DROP COLUMN c1,
+           |  c2;""".stripMargin
+    }
+
+    "ALTER TABLE t1 RENAME COLUMN c1 to c2;" in {
+      "ALTER TABLE t1 RENAME COLUMN c1 to c2;" transpilesTo
+        s"""ALTER TABLE
+           |  t1 RENAME COLUMN c1 to c2;""".stripMargin
+    }
+
+    "ALTER TABLE s.t1 DROP CONSTRAINT pk" in {
+      "ALTER TABLE s.t1 DROP CONSTRAINT pk;" transpilesTo
+        s"""ALTER TABLE
+           |  s.t1 DROP CONSTRAINT pk;""".stripMargin
+    }
+  }
+
   "Snowflake transpiler" should {
 
     "transpile queries" in {

@@ -154,6 +154,11 @@ class SnowflakeDDLBuilder
     case c => ir.UnresolvedConstraint(c.getText)
   }
 
+  override def visitAlterSession(ctx: AlterSessionContext): ir.Catalog = {
+    // Added replace formatting the incoming text a=b to a = b
+    ir.UnresolvedCatalog("ALTER SESSION SET " + ctx.sessionParams().getText.replace("=", " = "))
+  }
+
   override def visitAlterTable(ctx: AlterTableContext): ir.Catalog = {
     val tableName = ctx.objectName(0).getText
     ctx match {
@@ -167,7 +172,7 @@ class SnowflakeDDLBuilder
 
   private[snowflake] def buildColumnActions(ctx: TableColumnActionContext): Seq[ir.TableAlteration] = ctx match {
     case c if c.ADD() != null =>
-      c.fullColDecl().asScala.map(buildColumnDeclaration).map(ir.AddColumn.apply)
+      Seq(ir.AddColumn(c.fullColDecl().asScala.map(buildColumnDeclaration)))
     case c if !c.alterColumnClause().isEmpty =>
       c.alterColumnClause().asScala.map(buildColumnAlterations)
     case c if c.DROP() != null =>
