@@ -122,5 +122,24 @@ class SnowflakeCallMapperSpec extends AnyWordSpec with Matchers {
         ir.DecimalType(Some(26), Some(4)))
 
     }
+
+    "ARRAY_SLICE index shift" in {
+      ir.CallFunction("ARRAY_SLICE", Seq(ir.Id("arr1"), ir.IntLiteral(0), ir.IntLiteral(2))) becomes ir.Slice(
+        ir.Id("arr1"),
+        ir.IntLiteral(1),
+        ir.IntLiteral(2))
+
+      ir.CallFunction("ARRAY_SLICE", Seq(ir.Id("arr1"), ir.UMinus(ir.IntLiteral(2)), ir.IntLiteral(2))) becomes ir
+        .Slice(ir.Id("arr1"), ir.UMinus(ir.IntLiteral(2)), ir.IntLiteral(2))
+
+      ir.CallFunction("ARRAY_SLICE", Seq(ir.Id("arr1"), ir.Id("col1"), ir.IntLiteral(2))) becomes ir
+        .Slice(
+          ir.Id("arr1"),
+          ir.If(
+            ir.GreaterThanOrEqual(ir.Id("col1"), ir.IntLiteral(0)),
+            ir.Add(ir.Id("col1"), ir.IntLiteral(1)),
+            ir.Id("col1")),
+          ir.IntLiteral(2))
+    }
   }
 }
