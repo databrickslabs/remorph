@@ -51,9 +51,4 @@ class SnowflakeCommandBuilder
 
     ir.SetVariable(variableName, variableValue, variableDataType)
   }
-
-  override def visitAlterSession(ctx: AlterSessionContext): ir.Command = {
-    // Added replace formatting the incoming text a=b to a = b
-    ir.UnresolvedCommand("ALTER SESSION SET " + ctx.sessionParams().getText.replace("=", " = "))
-  }
 }
