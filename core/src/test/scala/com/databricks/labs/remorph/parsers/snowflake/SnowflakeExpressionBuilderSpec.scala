@@ -514,13 +514,13 @@ class SnowflakeExpressionBuilderSpec
   // but we are in a half way house transition state
   "variable substitution" should {
     "&abc" in {
-      exampleExpr("&abc", _.expr(), Id("${abc}"))
+      exampleExpr("&abc", _.expr(), Id("$abc"))
     }
     "&ab_c.bc_d" in {
-      exampleExpr("&ab_c.bc_d", _.expr(), Dot(Id("${ab_c}"), Id("bc_d")))
+      exampleExpr("&ab_c.bc_d", _.expr(), Dot(Id("$ab_c"), Id("bc_d")))
     }
     "&{ab_c}.&bc_d" in {
-      exampleExpr("&{ab_c}.&bc_d", _.expr(), Dot(Id("${ab_c}"), Id("${bc_d}")))
+      exampleExpr("&{ab_c}.&bc_d", _.expr(), Dot(Id("$ab_c"), Id("$bc_d")))
     }
   }
 }
