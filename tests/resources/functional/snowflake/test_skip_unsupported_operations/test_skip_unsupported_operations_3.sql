@@ -3,4 +3,3 @@
 ROLLBACK;
 
 -- databricks sql:
-;
