@@ -140,7 +140,8 @@ def transform_expression(
     funcs: list[Callable[[exp.Expression], exp.Expression]],
 ) -> exp.Expression:
     for func in funcs:
-        expr = func(expr)
+        if expr.is_string:
+            expr = func(expr)
     assert isinstance(expr, exp.Expression), (
         f"Func returned an instance of type [{type(expr)}], " "should have been Expression."
     )
@@ -241,4 +242,8 @@ Dialect_hash_algo_mapping = [
         algo=[partial(anonymous, func="RAWTOHEX(STANDARD_HASH({}, 'SHA256'))", is_expr=True)],
     ),
     DialectHashConfig(dialect=get_dialect("databricks"), algo=[partial(sha2, num_bits="256", is_expr=True)]),
+    DialectHashConfig(
+        dialect=get_dialect("tsql"),
+        algo=[partial(anonymous, func="CONVERT(VARCHAR(64), HASHBYTES('SHA2_256', {}), 2)", is_expr=True)]
+    ),
 ]
