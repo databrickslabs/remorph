@@ -21,9 +21,9 @@ logger = logging.getLogger(__name__)
 
 
 def _union_concat(
-        unions: list[exp.Select],
-        result: exp.Union | exp.Select,
-        cnt=0,
+    unions: list[exp.Select],
+    result: exp.Union | exp.Select,
+    cnt=0,
 ) -> exp.Select | exp.Union:
     if len(unions) == 1:
         return result
@@ -42,7 +42,6 @@ class TsqlSamplingQueryBuilder(QueryBuilder):
             key_cols = sorted(join_columns)
         else:
             key_cols = sorted(self.table_conf.get_tgt_to_src_col_mapping_list(join_columns))
-        keys_df = df.select(*key_cols)
 
         # Build the `src` subquery
         cols = sorted((join_columns | self.select_columns) - self.threshold_columns - self.drop_columns)
@@ -51,12 +50,7 @@ class TsqlSamplingQueryBuilder(QueryBuilder):
             for col in cols
         ]
         sql_with_transforms = self.add_transformations(cols_with_alias, self.engine)
-        src_subquery = (
-            select(*sql_with_transforms)
-            .from_(":tbl")
-            .where(self.filter)
-            .sql(dialect=self.engine)
-        )
+        src_subquery = select(*sql_with_transforms).from_(":tbl").where(self.filter).sql(dialect=self.engine)
         src_subquery_sql = f"({src_subquery}) AS src"
 
         # Build the `recon` subquery
@@ -85,13 +79,15 @@ class TsqlSamplingQueryBuilder(QueryBuilder):
 
         join_condition = ' AND '.join(
             [
-                f"COALESCE(LTRIM(RTRIM(src.{col})), '_null_recon_') = COALESCE(LTRIM(RTRIM(recon.{col})), '_null_recon_')"
-                if _get_is_string(column_types_dict, col)
-                else f"COALESCE(src.{col}, '_null_recon_') = COALESCE(recon.{col}, '_null_recon_')"
+                (
+                    f"COALESCE(LTRIM(RTRIM(src.{col})), '_null_recon_') = COALESCE(LTRIM(RTRIM(recon.{col})), '_null_recon_')"
+                    if _get_is_string(column_types_dict, col)
+                    else f"COALESCE(src.{col}, '_null_recon_') = COALESCE(recon.{col}, '_null_recon_')"
+                )
                 for col in key_cols
             ]
         )
-        #regex replace
+        # regex replace
 
         # Manually construct the final query
         final_query = f"""
@@ -100,18 +96,20 @@ class TsqlSamplingQueryBuilder(QueryBuilder):
         INNER JOIN {recon_subquery}
         ON {join_condition}
         """
-        print("==========")
-        print("Sampling Query : ", final_query)
-        print("==========")
+
         logger.info(f"Sampling Query for {self.layer}: {final_query}")
         return final_query
 
     @classmethod
     def _get_join_clause(cls, key_cols: list):
         # Not used in this version, kept for reference
-        return build_join_clause(
-            "recon", key_cols, source_table_alias="src", target_table_alias="recon", kind="inner", func=exp.EQ
-        ).transform(coalesce, default="_null_recon_", is_string=True).transform(trim)
+        return (
+            build_join_clause(
+                "recon", key_cols, source_table_alias="src", target_table_alias="recon", kind="inner", func=exp.EQ
+            )
+            .transform(coalesce, default="_null_recon_", is_string=True)
+            .transform(trim)
+        )
 
     def _get_with_clause(self, df: DataFrame) -> exp.Select:
         union_res = []

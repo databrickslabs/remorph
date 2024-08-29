@@ -50,11 +50,11 @@ class SqlServerDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
                   """
 
     def __init__(
-            self,
-            engine: Dialect,
-            spark: SparkSession,
-            ws: WorkspaceClient,
-            secret_scope: str,
+        self,
+        engine: Dialect,
+        spark: SparkSession,
+        ws: WorkspaceClient,
+        secret_scope: str,
     ):
         self._engine = engine
         self._spark = spark
@@ -64,8 +64,10 @@ class SqlServerDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
     @property
     def get_jdbc_url(self) -> str:
         # Fetch secrets once and store them in variables
-        secrets = {key: self._get_secret(key) for key in
-                   ['host', 'port', 'database', 'user', 'password','encrypt','trustServerCertificate']}
+        secrets = {
+            key: self._get_secret(key)
+            for key in ['host', 'port', 'database', 'user', 'password', 'encrypt', 'trustServerCertificate']
+        }
 
         # Construct the JDBC URL
         return (
@@ -78,12 +80,12 @@ class SqlServerDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
         )
 
     def read_data(
-            self,
-            catalog: str | None,
-            schema: str,
-            table: str,
-            query: str,
-            options: JdbcReaderOptions | None,
+        self,
+        catalog: str | None,
+        schema: str,
+        table: str,
+        query: str,
+        options: JdbcReaderOptions | None,
     ) -> DataFrame:
         table_query = query.replace(":tbl", f"{catalog}.{schema}.{table}")
         try:
@@ -101,10 +103,10 @@ class SqlServerDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
             return self.log_and_throw_exception(e, "data", table_query)
 
     def get_schema(
-            self,
-            catalog: str | None,
-            schema: str,
-            table: str,
+        self,
+        catalog: str | None,
+        schema: str,
+        table: str,
     ) -> list[Schema]:
         """
         Fetch the Schema from the INFORMATION_SCHEMA.COLUMNS table in SQL Server.

@@ -244,6 +244,6 @@ Dialect_hash_algo_mapping = [
     DialectHashConfig(dialect=get_dialect("databricks"), algo=[partial(sha2, num_bits="256", is_expr=True)]),
     DialectHashConfig(
         dialect=get_dialect("tsql"),
-        algo=[partial(anonymous, func="CONVERT(VARCHAR(64), HASHBYTES('SHA2_256', {}), 2)", is_expr=True)]
+        algo=[partial(anonymous, func="CONVERT(VARCHAR(64), HASHBYTES('SHA2_256', {}), 2)", is_expr=True)],
     ),
 ]
