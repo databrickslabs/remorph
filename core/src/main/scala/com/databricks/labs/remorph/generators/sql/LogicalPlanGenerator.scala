@@ -55,18 +55,22 @@ class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: 
     // RENAME COLUMN/ RENAME CONSTRAINTS Always be ir.TableAlteration
     // ALTER COLUMN IS A Seq[ir.TableAlternations] Data Type Change, Constraint Changes etc
     alterations map {
-        case ir.AddColumn(columns) => s"ADD COLUMN ${buildAddColumn(ctx, columns)}"
-        case ir.DropColumns(columns) => s"DROP COLUMN ${columns.mkString(", ")}"
-        case ir.DropConstraintByName(constraints) => s"DROP CONSTRAINT ${constraints}"
-        case ir.RenameColumn(oldName, newName) => s"RENAME COLUMN ${oldName} to ${newName}"
-        case x => throw TranspileException(s"Unsupported table alteration ${x}")
-        } mkString ", "
-    }
+      case ir.AddColumn(columns) => s"ADD COLUMN ${buildAddColumn(ctx, columns)}"
+      case ir.DropColumns(columns) => s"DROP COLUMN ${columns.mkString(", ")}"
+      case ir.DropConstraintByName(constraints) => s"DROP CONSTRAINT ${constraints}"
+      case ir.RenameColumn(oldName, newName) => s"RENAME COLUMN ${oldName} to ${newName}"
+      case x => throw TranspileException(s"Unsupported table alteration ${x}")
+    } mkString ", "
+  }
 
-  private def buildAddColumn(ctx: GeneratorContext, c: ir.ColumnDeclaration): String = {
-    val dataType = DataTypeGenerator.generateDataType(ctx, c.dataType)
-    val constraints = c.constraints.map(constraint(ctx, _)).mkString(" ")
-    s"${c.name} $dataType $constraints"
+  private def buildAddColumn(ctx: GeneratorContext, columns: Seq[ir.ColumnDeclaration]): String = {
+    columns
+      .map { c =>
+        val dataType = DataTypeGenerator.generateDataType(ctx, c.dataType)
+        val constraints = c.constraints.map(constraint(ctx, _)).mkString(" ")
+        s"${c.name} $dataType $constraints"
+      }
+      .mkString(", ")
   }
 
   // @see https://docs.databricks.com/en/sql/language-manual/sql-ref-syntax-qry-select-sampling.html
