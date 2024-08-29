@@ -154,11 +154,6 @@ class SnowflakeDDLBuilder
     case c => ir.UnresolvedConstraint(c.getText)
   }
 
-  override def visitAlterSession(ctx: AlterSessionContext): ir.Catalog = {
-    // Added replace formatting the incoming text a=b to a = b
-    ir.UnresolvedCatalog("ALTER SESSION SET " + ctx.sessionParams().getText.replace("=", " = "))
-  }
-
   override def visitAlterTable(ctx: AlterTableContext): ir.Catalog = {
     val tableName = ctx.objectName(0).getText
     ctx match {
