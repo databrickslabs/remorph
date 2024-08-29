@@ -218,10 +218,13 @@ class SnowflakeExpressionBuilderSpec
           CallFunction("EXTRACT", Seq(Id("day"), Id("date1"))))
       }
 
-      exampleExpr(
-        "EXTRACT('day' FROM date1)",
-        _.builtinFunction(),
-        CallFunction("EXTRACT", Seq(Id("day"), Id("date1"))))
+      "EXTRACT('day' FROM date1)" in {
+        exampleExpr(
+          "EXTRACT('day' FROM date1)",
+          _.builtinFunction(),
+          CallFunction("EXTRACT", Seq(Id("day"), Id("date1"))))
+      }
+
     }
 
     "translate functions named with a keyword" should {
@@ -476,7 +479,7 @@ class SnowflakeExpressionBuilderSpec
       verify(literal).sign()
       verify(literal).DATE_LIT()
       verify(literal).TIMESTAMP_LIT()
-      verify(literal).STRING()
+      verify(literal).string()
       verify(literal).DECIMAL()
       verify(literal).FLOAT()
       verify(literal).REAL()
