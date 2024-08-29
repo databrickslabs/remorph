@@ -149,7 +149,7 @@ class CallMapper extends IRHelpers {
     case CallFunction("LEAST", args) => Least(args)
     case CallFunction("LEFT", args) => Left(args.head, args(1))
     case CallFunction("LENGTH", args) => Length(args.head)
-    case CallFunction("LEVENSHTEIN", args) => Levenshtein(args.head, args(1))
+    case CallFunction("LEVENSHTEIN", args) => Levenshtein(args.head, args(1), args.lift(2))
     case CallFunction("LN", args) => Log(args.head)
     case CallFunction("LOG", args) => Logarithm(args.head, args(1))
     case CallFunction("LOG10", args) => Log10(args.head)
@@ -854,8 +854,11 @@ case class Left(left: Expression, right: Expression) extends Binary(left, right)
 }
 
 /** levenshtein(str1, str2) - Returns the Levenshtein distance between the two given strings. */
-case class Levenshtein(left: Expression, right: Expression) extends Binary(left, right) with Fn {
+case class Levenshtein(left: Expression, right: Expression, maxDistance: Option[Expression])
+    extends Expression
+    with Fn {
   override def prettyName: String = "LEVENSHTEIN"
+  override def children: Seq[Expression] = Seq(left, right) ++ maxDistance.toSeq
   override def dataType: DataType = UnresolvedType
 }
 

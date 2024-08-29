@@ -28,7 +28,8 @@ class SnowflakeCallMapperSpec extends AnyWordSpec with Matchers {
 
       ir.CallFunction("EDITDISTANCE", Seq(ir.Literal(1), ir.Literal(2))) becomes ir.Levenshtein(
         ir.Literal(1),
-        ir.Literal(2))
+        ir.Literal(2),
+        None)
 
       ir.CallFunction("IFNULL", Seq(ir.Noop)) becomes ir.Coalesce(Seq(ir.Noop))
 
