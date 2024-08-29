@@ -459,7 +459,6 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
 
   private def variable(ctx: GeneratorContext, v: ir.Variable): String = s"$$${v.name}"
 
-
   private def concat(ctx: GeneratorContext, c: ir.Concat): String = {
     val args = c.children.map(expression(ctx, _))
     if (c.children.size > 2) {
