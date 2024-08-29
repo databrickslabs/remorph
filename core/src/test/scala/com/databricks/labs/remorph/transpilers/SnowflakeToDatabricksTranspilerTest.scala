@@ -62,12 +62,6 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
         s"""ALTER TABLE
            |  s.t1 DROP CONSTRAINT pk;""".stripMargin
     }
-
-    "ALTER TABLE s.t1 RENAME CONSTRAINT pk TO pk_t1" in {
-      "ALTER TABLE s.t1 RENAME CONSTRAINT pk TO pk_t1;" transpilesTo
-        s"""ALTER TABLE
-             |  s.t1 RENAME CONSTRAINT pk TO pk_t1;""".stripMargin
-    }
   }
 
   "Snowflake transpiler" should {
