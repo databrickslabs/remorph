@@ -7,7 +7,7 @@ SELECT
     FROM_JSON('NULL', {JSON_COLUMN_SCHEMA}) AS Key_One,
     NULL AS Key_Two,
     'null' AS Key_Three
-  ) AS obj
+  ) AS obj;
 
 -- experimental sql:
 SELECT STRUCT(PARSE_JSON('NULL') AS Key_One, NULL AS Key_Two, 'null' AS Key_Three) AS obj;

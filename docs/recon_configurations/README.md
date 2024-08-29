@@ -8,7 +8,9 @@ when comparing the source with the Databricks target.
 * [Types of Report Supported](#types-of-report-supported)
 * [Report Type-Flow Chart](#report-type-flow-chart)
 * [Supported Source System](#supported-source-system)
+* [TABLE Config JSON filename](#table-config-json-filename)
 * [TABLE Config Elements](#table-config-elements)
+    * [aggregates](#aggregate) 
     * [jdbc_reader_options](#jdbc_reader_options)
     * [column_mapping](#column_mapping)
     * [transformations](#transformations)
@@ -18,6 +20,14 @@ when comparing the source with the Databricks target.
     * [Key Considerations](#key-considerations)
 * [Reconciliation Example](#reconciliation-example)
 * [DataFlow Example](#dataflow-example)
+* [Aggregates Reconcile](#remorph-aggregates-reconciliation)
+    * [Supported Aggregate Functions](#supported-aggregate-functions)
+    * [Flow Chart](#flow-chart)
+    * [Aggregate](#aggregate)
+        * [TABLE Config Examples](#table-config-examples)
+    * [Key Considerations](#key-considerations)
+    * [Aggregates Reconciliation Example](#aggregates-reconciliation-json-example)
+    * [DataFlow Example](#dataflow-example)
 
 ## Types of Report Supported
 
@@ -28,7 +38,7 @@ when comparing the source with the Databricks target.
 | **data**    | [data](report_types_visualisation.md#data)     | reconcile the data at row and column level- ```join_columns``` will help us to identify mismatches at each row and column level                                                                | - **mismatch_data**(the sample data with mismatches captured at each column and row level )<br> - **missing_in_src**(sample rows that are available in target but missing in source)<br> - **missing_in_tgt**(sample rows that are available in source but are missing in target)<br> - **threshold_mismatch**(configured column will be reconciled based on percentile or threshold boundary or date boundary)<br> - **mismatch_columns**(consolidated list of columns that has mismatches in them)<br> |
 | **all**     | [all](report_types_visualisation.md#all)       | this is a combination of data + schema                                                                                                                                                         | - **data + schema outputs**                                                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 
-[[back to top](#remorph-reconciliation)]
+[[&#8593; back to top](#remorph-reconciliation)]
 
 ## Report Type-Flow Chart
 
@@ -66,7 +76,7 @@ flowchart TD
     ALL --> SCHEMA_VALIDATION
 ```
 
-[[back to top](#remorph-reconciliation)]
+[[&#8593; back to top](#remorph-reconciliation)]
 
 ## Supported Source System
 
@@ -76,7 +86,68 @@ flowchart TD
 | Snowflake  | Yes    | Yes | Yes  | Yes |
 | Databricks | Yes    | Yes | Yes  | Yes |
 
-[[back to top](#remorph-reconciliation)]
+[[&#8593; back to top](#remorph-reconciliation)]
+
+### TABLE Config Json filename:
+The config file must be named as `recon_config_<DATA_SOURCE>_<SOURCE_CATALOG_OR_SCHEMA>_<REPORT_TYPE>.json` and should be placed in the remorph root directory `.remorph` in the Databricks Workspace.
+
+<table>
+    <tr>
+        <th>Snowflake</th>
+        <td>
+            <pre lang="yaml">
+ database_config:
+  source_catalog: sample_data
+  source_schema: default
+  ...
+metadata_config:
+  ...
+data_source: databricks
+report_type: all
+...   
+             </pre>
+        </td>
+        <td>recon_config_snowflake_sample_data_all.json</td>
+    </tr>
+    <tr>
+        <th>Oracle</th>
+        <td>
+<pre lang="yaml">
+ database_config:
+  source_schema: orc
+  ...
+metadata_config:
+  ...
+data_source: oracle
+report_type: data
+...   
+             </pre>
+        </td>
+        <td>recon_config_oracle_orc_data.json</td>
+    </tr>
+    <tr>
+        <th>Databricks (Hive MetaStore)</th>
+        <td>
+            <pre lang="yaml">
+ database_config:
+  source_schema: hms
+  ...
+metadata_config:
+  ...
+data_source: databricks
+report_type: schema
+...   
+             </pre>
+        </td>
+        <td>recon_config_databricks_hms_schema.json</td>
+    </tr>
+</table>
+
+> **Note:** the filename must be created in the same case as <SOURCE_CATALOG_OR_SCHEMA> is defined.
+> For example, if the source schema is defined as `ORC` in the config, the filename should be `recon_config_oracle_ORC_data.json`.
+
+
+[[&#8593; back to top](#remorph-reconciliation)]
 
 ### TABLE Config Elements:
 
@@ -92,6 +163,7 @@ flowchart TD
 class Table:
     source_name: str
     target_name: str
+    aggregates: list[Aggregate] | None = None
     join_columns: list[str] | None = None
     jdbc_reader_options: JdbcReaderOptions | None = None
     select_columns: list[str] | None = None
@@ -108,6 +180,7 @@ class Table:
 {
   "source_name": "&lt;SOURCE_NAME&gt",
   "target_name": "&lt;TARGET_NAME&gt",
+  "aggregates": null,
   "join_columns": ["&lt;COLUMN_NAME_1&gt","&lt;COLUMN_NAME_2&gt"],
   "jdbc_reader_options": null,
   "select_columns": null,
@@ -125,19 +198,21 @@ class Table:
 
 
 
-| config_name         | data_type                | description                                                                                                                                                                                                                        | required/optional       | example_value                                                                                                                                     |
-|---------------------|--------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|-------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------|
-| source_name         | string                   | name of the source table                                                                                                                                                                                                           | required                | product                                                                                                                                           |
-| target_name         | string                   | name of the target table                                                                                                                                                                                                           | required                | product                                                                                                                                           |
-| join_columns        | list[string]             | list of column names which act as the primary key to the table                                                                                                                                                                     | optional(default=None)  | ["product_id"] or ["product_id", "order_id"]                                                                                                      |
-| jdbc_reader_options | string                   | jdbc_reader_option, which helps to parallelise the data read from jdbc sources based on the given configuration.For more info [jdbc_reader_options](#jdbc_reader_options)                                                          | optional(default=None)  | "jdbc_reader_options": {"number_partitions": 10,"partition_column": "s_suppkey","upper_bound": "10000000","lower_bound": "10","fetch_size":"100"} |
-| select_columns      | list[string]             | list of columns to be considered for the reconciliation process                                                                                                                                                                    | optional(default=None)  | ["id", "name", "address"]                                                                                                                         |
-| drop_columns        | list[string]             | list of columns to be eliminated from the reconciliation process                                                                                                                                                                   | optional(default=None)  | ["comment"]                                                                                                                                       |
-| column_mapping      | list[ColumnMapping]      | list of column_mapping that helps in resolving column name mismatch between src and tgt, e.g., "id" in src and "emp_id" in tgt.For more info [column_mapping](#column_mapping)                                                     | optional(default=None)  | "column_mapping": [{"source_name": "id","target_name": "emp_id"}]                                                                                 |
-| transformations     | list[Transformations]    | list of user-defined transformations that can be applied to src and tgt columns in case of any incompatibility data types or explicit transformation is applied during migration.For more info [transformations](#transformations) | optional(default=None)  | "transformations": [{"column_name": "s_address","source": "trim(s_address)","target": "trim(s_address)"}]                                         |
-| column_thresholds   | list[ColumnThresholds]   | list of threshold conditions that can be applied on the columns to match the minor exceptions in data. It supports percentile, absolute, and date fields. For more info [column_thresholds](#column_thresholds)                    | optional(default=None)  | "thresholds": [{"column_name": "sal", "lower_bound": "-5%", "upper_bound": "5%", "type": "int"}]                                                  |
-| table_thresholds    | list[TableThresholds]    | list of table thresholds conditions that can be applied on the tables to match the minor exceptions in mismatch count. It supports percentile, absolute. For more info [table_thresholds](#table_thresholds)                       |  optional(default=None) | "table_thresholds": [{"lower_bound": "0%", "upper_bound": "5%", "model": "mismatch"}]                                                   | 
-| filters             | Filters                  | filter expr that can be used to filter the data on src and tgt based on respective expressions                                                                                                                                     | optional(default=None)  | "filters": {"source": "lower(dept_name)>’ it’”, "target": "lower(department_name)>’ it’”}                                                         |
+| config_name         | data_type              | description                                                                                                                                                                                                                        | required/optional      | example_value                                                                                                                                     |
+|---------------------|------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------|
+| source_name         | string                 | name of the source table                                                                                                                                                                                                           | required               | product                                                                                                                                           |
+| target_name         | string                 | name of the target table                                                                                                                                                                                                           | required               | product                                                                                                                                           |
+| aggregates          | list[Aggregate]        | list of aggregates, refer [Aggregate](#aggregate) for more information                                                                                                                                                             | optional(default=None) | "aggregates": [{"type": "MAX", "agg_columns": ["<COLUMN_NAME_4>"]}],                                                                              |
+| join_columns        | list[string]           | list of column names which act as the primary key to the table                                                                                                                                                                     | optional(default=None) | ["product_id"] or ["product_id", "order_id"]                                                                                                      |
+| jdbc_reader_options | string                 | jdbc_reader_option, which helps to parallelise the data read from jdbc sources based on the given configuration.For more info [jdbc_reader_options](#jdbc_reader_options)                                                          | optional(default=None) | "jdbc_reader_options": {"number_partitions": 10,"partition_column": "s_suppkey","upper_bound": "10000000","lower_bound": "10","fetch_size":"100"} |
+| select_columns      | list[string]           | list of columns to be considered for the reconciliation process                                                                                                                                                                    | optional(default=None) | ["id", "name", "address"]                                                                                                                         |
+| drop_columns        | list[string]           | list of columns to be eliminated from the reconciliation process                                                                                                                                                                   | optional(default=None) | ["comment"]                                                                                                                                       |
+| column_mapping      | list[ColumnMapping]    | list of column_mapping that helps in resolving column name mismatch between src and tgt, e.g., "id" in src and "emp_id" in tgt.For more info [column_mapping](#column_mapping)                                                     | optional(default=None) | "column_mapping": [{"source_name": "id","target_name": "emp_id"}]                                                                                 |
+| transformations     | list[Transformations]  | list of user-defined transformations that can be applied to src and tgt columns in case of any incompatibility data types or explicit transformation is applied during migration.For more info [transformations](#transformations) | optional(default=None) | "transformations": [{"column_name": "s_address","source": "trim(s_address)","target": "trim(s_address)"}]                                         |
+| column_thresholds   | list[ColumnThresholds] | list of threshold conditions that can be applied on the columns to match the minor exceptions in data. It supports percentile, absolute, and date fields. For more info [column_thresholds](#column_thresholds)                    | optional(default=None) | "thresholds": [{"column_name": "sal", "lower_bound": "-5%", "upper_bound": "5%", "type": "int"}]                                                  |
+| table_thresholds    | list[TableThresholds]  | list of table thresholds conditions that can be applied on the tables to match the minor exceptions in mismatch count. It supports percentile, absolute. For more info [table_thresholds](#table_thresholds)                       | optional(default=None) | "table_thresholds": [{"lower_bound": "0%", "upper_bound": "5%", "model": "mismatch"}]                                                             | 
+| filters             | Filters                | filter expr that can be used to filter the data on src and tgt based on respective expressions                                                                                                                                     | optional(default=None) | "filters": {"source": "lower(dept_name)>’ it’”, "target": "lower(department_name)>’ it’”}                                                         |
+
 
 ### jdbc_reader_options
 
@@ -255,9 +330,8 @@ class Transformation:
 | source      | string    | the transformation sql expr to be applied on source column | required          | "trim(s_address)" or "s_address" |
 | target      | string    | the transformation sql expr to be applied on source column | required          | "trim(s_address)" or "s_address" |
 
-### Note:
 
-Reconciliation also takes an udf in the transformation expr.Say for eg. we have a udf named sort_array_input() that takes an unsorted array as input and returns an array sorted.We can use that in transformation as below:
+> **Note:** Reconciliation also takes an udf in the transformation expr.Say for eg. we have a udf named sort_array_input() that takes an unsorted array as input and returns an array sorted.We can use that in transformation as below:
 
 ```
 transformations=[Transformation(column_name)="array_col",source=sort_array_input(array_col),target=sort_array_input(array_col)]
@@ -401,7 +475,7 @@ class Filters:
    reconciler will not apply any logic
    on top of this.
 
-[[back to top](#remorph-reconciliation)]
+[[&#8593; back to top](#remorph-reconciliation)]
 
 # Guidance for Oracle as a source
 
@@ -430,7 +504,7 @@ class Filters:
 This installation is a necessary step to enable seamless comparison between Oracle and Databricks, ensuring that the
 required Oracle JDBC functionality is readily available within the Databricks environment.
 
-[[back to top](#remorph-reconciliation)]
+[[&#8593; back to top](#remorph-reconciliation)]
 
 ## Commonly Used Custom Transformations
 
@@ -441,44 +515,34 @@ required Oracle JDBC functionality is readily available within the Databricks en
 | Snowflake   | array         | array_to_string(array_sort(array_compact(<col_name>), true, true),’,’) | concat_ws(’,’, <col_name>)                      | [2,undefined,1]         | [1,2]                   | in case of removing "undefined" during migration and want to sort the array                 |
 | Snowflake   | timestamp_ntz | date_part(epoch_second,<col_name>)                                     | unix_timestamp(<col_name>)                      | 2020-01-01 00:00:00.000 | 2020-01-01 00:00:00.000 | convert timestamp_ntz to epoch for getting a match between Snowflake and data bricks        |
 
-[[back to top](#remorph-reconciliation)]
+[[&#8593; back to top](#remorph-reconciliation)]
 
 ## Reconciliation Example:
 For more Reconciliation Config example, please refer to [sample config][link].
 
 [link]: reconcile_config_samples.md
 
-[[back to top](#remorph-reconciliation)]
+[[&#8593; back to top](#remorph-reconciliation)]
 
 ## DataFlow Example
 
 Report Types Data [Visualisation](report_types_visualisation.md)
 
-[[back to top](#remorph-reconciliation)]
+[[&#8593; back to top](#remorph-reconciliation)]
 
 ------
 
 ## Remorph Aggregates Reconciliation
 
 
-Aggregates Reconcile is a utility to streamline the reconciliation process, specific aggregate metric is compared
+Aggregates Reconcile is an utility to streamline the reconciliation process, specific aggregate metric is compared
 between source and target data residing on Databricks.
 
 ### Summary
 
-| operation_name           | sample visualisation          | description                                                                                                                       | key outputs  captured in the recon metrics tables                                                                                                                                                                                                                               |
-|--------------------------|-------------------------------|-----------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| **aggregates-reconcile** | [data](aggregates_reconcile_visualisation#data) | reconciles the data for each aggregate metric - ```join_columns``` are used to identify the mismatches at aggregated metric level | - **mismatch_data**(sample data with mismatches captured at aggregated metric level )<br> - **missing_in_src**(sample rows that are available in target but missing in source)<br> - **missing_in_tgt**(sample rows that are available in source but are missing in target)<br> |
-
-
-* [Supported Aggregate Functions](#supported-aggregate-functions)
-* [Flow Chart](#flow-chart)
-* [Supported Source Systems](#supported-source-systems)
-* [TABLE Config Elements](#table-config-elements)
-    * [Aggregate Attributes](#aggregate-attributes)
-    * [Key Considerations](#key-considerations)
-* [Aggregates Reconciliation Example](#aggregates-reconciliation-example)
-* [DataFlow Example](#dataflow-example)
+| operation_name           | sample visualisation                               | description                                                                                                                       | key outputs  captured in the recon metrics tables                                                                                                                                                                                                                               |
+|--------------------------|----------------------------------------------------|-----------------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| **aggregates-reconcile** | [data](aggregates_reconcile_visualisation.md#data) | reconciles the data for each aggregate metric - ```join_columns``` are used to identify the mismatches at aggregated metric level | - **mismatch_data**(sample data with mismatches captured at aggregated metric level )<br> - **missing_in_src**(sample rows that are available in target but missing in source)<br> - **missing_in_tgt**(sample rows that are available in source but are missing in target)<br> |
 
 
 ## Supported Aggregate Functions
@@ -499,8 +563,9 @@ between source and target data residing on Databricks.
 
 
 
-[[back to top](#remorph-aggregates-reconciliation)]
+[[back to aggregates-reconciliation](#remorph-aggregates-reconciliation)]
 
+[[&#8593; back to top](#remorph-reconciliation)]
 
 ## Flow Chart
 
@@ -512,17 +577,12 @@ flowchart TD
 ```
 
 
-[[back to top](#remorph-aggregates-reconciliation)]
+[[back to aggregates-reconciliation](#remorph-aggregates-reconciliation)]
+
+[[&#8593; back to top](#remorph-reconciliation)]
 
 
-## Supported Source Systems
-
-All [source systems](../recon_configurations/README.md#supported-source-system) supported by reconcile
-
-[[back to top](#remorph-aggregates-reconciliation)]
-
-
-### TABLE Config Elements:
+## aggregate
 
 <table>
 <tr>
@@ -533,38 +593,66 @@ All [source systems](../recon_configurations/README.md#supported-source-system) 
 <td>
 <pre lang="python">
 @dataclass
-class Table:
-    source_name: str
-    target_name: str
-    <b>aggregates: list[Aggregate] | None = None</b>
-    join_columns: list[str] | None = None
-    jdbc_reader_options: JdbcReaderOptions | None = None
-    select_columns: list[str] | None = None
-    drop_columns: list[str] | None = None
-    column_mapping: list[ColumnMapping] | None = None
-    transformations: list[Transformation] | None = None
-    column_thresholds: list[ColumnThresholds] | None = None
-    filters: Filters | None = None
-    table_thresholds: list[TableThresholds] | None = None
+class Aggregate:
+    agg_columns: list[str]
+    type: str
+    group_by_columns: list[str] | None = None
+</pre>
+</td>
+<td>
+<pre lang="json">
+{
+  "type": "MIN",
+  "agg_columns": ["&lt;COLUMN_NAME_3&gt;"],
+  "group_by_columns": ["&lt;GROUP_COLUMN_NAME&gt;"]
+}
+</pre>
+</td>
+</tr>
+</table>
+
+| field_name       | data_type    | description                                                           | required/optional      | example_value          |
+|------------------|--------------|-----------------------------------------------------------------------|------------------------|------------------------|
+| type             | string       | [Supported Aggregate Functions](#supported-aggregate-functions)       | required               | MIN                    |
+| agg_columns      | list[string] | list of columns names on which aggregate function needs to be applied | required               | ["product_discount"]   |
+| group_by_columns | list[string] | list of column names on which grouping needs  to be applied           | optional(default=None) | ["product_id"] or None |
 
 
-      Table(
-        source_name= "<SOURCE_NAME>",
-        target_name= "<TARGET_NAME>",
-        join_columns= ["<COLUMN_NAME_1>", "<COLUMN_NAME_2>"]
-        aggregates= [
-            Aggregate(
-                agg_columns=["<COLUMN_NAME_3>"],
-                type= "MIN",
-                group_by_columns= ["<GROUP_COLUMN_NAME>"]
-            ),
-            Aggregate(
-                agg_columns=["<COLUMN_NAME_4>"],
-                type= "max"
-            )
-        ]
-      )
-    
+
+[[back to aggregates-reconciliation](#remorph-aggregates-reconciliation)]
+
+[[&#8593; back to top](#remorph-reconciliation)]
+
+
+### TABLE Config Examples:
+Please refer [TABLE Config Elements](#TABLE-Config-Elements) for Class and JSON configs.
+
+<table>
+<tr>
+<th>Python</th>
+<th>JSON</th>
+</tr>
+<tr>
+<td>
+<pre lang="python">
+
+Table(
+source_name= "<SOURCE_NAME>",
+target_name= "<TARGET_NAME>",
+join_columns= ["<COLUMN_NAME_1>", "<COLUMN_NAME_2>"]
+aggregates= [
+Aggregate(
+agg_columns=["<COLUMN_NAME_3>"],
+type= "MIN",
+group_by_columns= ["<GROUP_COLUMN_NAME>"]
+),
+Aggregate(
+agg_columns=["<COLUMN_NAME_4>"],
+type= "max"
+)
+]
+)
+
 </pre>
 </td>
 <td>
@@ -574,22 +662,14 @@ class Table:
   "target_name": "&lt;TARGET_NAME&gt",
   "join_columns": ["&lt;COLUMN_NAME_1&gt","&lt;COLUMN_NAME_2&gt"],
   "aggregates": [{
-                        "type": "MIN",
-                        "agg_columns": ["&lt;COLUMN_NAME_3&gt"],
-                        "group_by_columns": ["&lt;GROUP_COLUMN_NAME&gt"]
-                      },
-                      {
-                        "type": "MAX",
-                        "agg_columns": ["&lt;COLUMN_NAME_4&gt"],
-                      }],
-  "jdbc_reader_options": null,
-  "select_columns": null,
-  "drop_columns": null,
-  "column_mapping": null,
-  "transformation": null,
-  "column_thresholds": null,
-  "filters": null,
-  "table_thresholds": null
+                   "type": "MIN",
+                   "agg_columns": ["&lt;COLUMN_NAME_3&gt;"],
+                   "group_by_columns": ["&lt;GROUP_COLUMN_NAME&gt;"]
+                  },
+                  {
+                    "type": "MAX",
+                    "agg_columns": ["&lt;COLUMN_NAME_4&gt;"],
+                  }],
 }
 </pre>
 </td>
@@ -597,21 +677,7 @@ class Table:
 </table>
 
 
-
-### Aggregate Attributes:
-
-| config_name      | data_type    | description                                                           | required/optional      | example_value          |
-|------------------|--------------|-----------------------------------------------------------------------|------------------------|------------------------|
-| type             | string       | [Supported Aggregate Functions](#supported-aggregate-functions)       | required               | MIN                    |
-| agg_columns      | list[string] | list of columns names on which aggregate function needs to be applied | required               | ["product_discount"]   |
-| group_by_columns | list[string] | list of column names on which grouping needs  to be applied           | optional(default=None) | ["product_id"] or None |
-
-
-[[back to top](#remorph-aggregates-reconciliation)]
-
-
-
-### Key Considerations:
+## Key Considerations:
 
 1. The aggregate column names, group by columns and type are always converted to lowercase and considered for reconciliation.
 2. Currently, it doesn't support aggregates on window function using the OVER clause.
@@ -623,20 +689,24 @@ class Table:
 8. Even though the user provides the `select_columns` and `drop_columns`, those are not considered.
 9. If Transformations are defined, those are applied to both the “aggregate columns” and “group by columns”. 
 
-[[back to top](#remorph-aggregates-reconciliation)]
+[[back to aggregates-reconciliation](#remorph-aggregates-reconciliation)]
 
+[[&#8593; back to top](#remorph-reconciliation)]
 
-## Aggregates Reconciliation Example
+## Aggregates Reconciliation JSON Example
 
-For more examples, please refer to [sample config][link].
+Please refer this [sample config][link] for detailed example config.
 
-[link]: reconcile_config_samples.md
+[link]: reconcile_config_samples.md#Aggregates-Reconcile-Config
 
-[[back to top](#remorph-aggregates-reconciliation)]
+[[back to aggregates-reconciliation](#remorph-aggregates-reconciliation)]
 
+[[&#8593; back to top](#remorph-reconciliation)]
 
 ## DataFlow Example
 
 Aggregates Reconcile Data [Visualisation](aggregates_reconcile_visualisation.md)
 
-[[back to top](#remorph-aggregates-reconciliation)]
+[[back to aggregates-reconciliation](#remorph-aggregates-reconciliation)]
+
+[[&#8593; back to top](#remorph-reconciliation)]
