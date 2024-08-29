@@ -36,7 +36,9 @@ class SnowflakeExpressionBuilder()
       // To rework that is quite a big job. So, for now, we translate &id to $id here. It is not wrong for the id rule
       // to hold the AMP ID alt, but ideally it would produce an ir.Variable and we would process that at generation
       // time instead of concatenating into strings :(
-      ir.Id(s"$${${v.ID().getText}}")
+      ir.Id(s"$$${v.ID().getText}")
+    case d if d.ID2() != null =>
+      ir.Id(s"$$${d.ID2().getText.drop(1)}")
     case id => ir.Id(id.getText)
   }
 
