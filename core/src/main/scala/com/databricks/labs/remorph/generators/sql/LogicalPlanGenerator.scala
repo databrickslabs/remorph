@@ -1,6 +1,7 @@
 package com.databricks.labs.remorph.generators.sql
 
 import com.databricks.labs.remorph.generators.{Generator, GeneratorContext}
+import com.databricks.labs.remorph.parsers.intermediate.Batch
 import com.databricks.labs.remorph.parsers.{intermediate => ir}
 import com.databricks.labs.remorph.transpilers.TranspileException
 
@@ -8,7 +9,7 @@ class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: 
     extends Generator[ir.LogicalPlan, String] {
 
   override def generate(ctx: GeneratorContext, tree: ir.LogicalPlan): String = tree match {
-    case b: ir.Batch => b.children.map(generate(ctx, _)).mkString("", ";\n", ";")
+    case b: ir.Batch => batch(ctx, b)
     case w: ir.WithCTE => cte(ctx, w)
     case p: ir.Project => project(ctx, p)
     case ir.NamedTable(id, _, _) => id
@@ -36,8 +37,24 @@ class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: 
     case t: ir.TableSample => tableSample(ctx, t)
     case ir.NoopNode => ""
     case ir.UnresolvedCommand(inputText) => s"--${inputText}"
+    //  TODO We should always generate an unresolved node, our plan should never be null
     case null => "" // don't fail transpilation if the plan is null
     case x => throw unknown(x)
+  }
+
+  private def batch(ctx: GeneratorContext, b: Batch): String = {
+    val seqSql = b.children
+      .map {
+        case ir.UnresolvedCommand(text) =>
+          s"-- ${text.stripSuffix(";")}"
+        case query => s"${generate(ctx, query)}"
+      }
+      .filter(_.nonEmpty)
+    if (seqSql.nonEmpty) {
+      seqSql.mkString("", ";\n", ";")
+    } else {
+      ""
+    }
   }
 
   // @see https://docs.databricks.com/en/sql/language-manual/sql-ref-syntax-qry-select-sampling.html
