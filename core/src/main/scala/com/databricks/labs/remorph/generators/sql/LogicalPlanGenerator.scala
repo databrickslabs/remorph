@@ -36,6 +36,7 @@ class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: 
     case c: ir.CreateTableCommand => createTable(ctx, c)
     case t: ir.TableSample => tableSample(ctx, t)
     case a: ir.AlterTableCommand => alterTable(ctx, a)
+    case l: ir.Lateral => lateral(ctx, l)
     case ir.NoopNode => ""
     //  TODO We should always generate an unresolved node, our plan should never be null
     case null => "" // don't fail transpilation if the plan is null
@@ -87,6 +88,14 @@ class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: 
         s"${c.name} $dataType $constraints"
       }
       .mkString(", ")
+  }
+
+  // @see https://docs.databricks.com/en/sql/language-manual/sql-ref-syntax-qry-select-lateral-view.html
+  private def lateral(ctx: GeneratorContext, lateral: ir.Lateral): String = lateral match {
+    case ir.Lateral(ir.TableFunction(fn), isOuter) =>
+      val outer = if (isOuter) " OUTER" else ""
+      s"LATERAL VIEW$outer ${expr.generate(ctx, fn)}"
+    case _ => throw unknown(lateral)
   }
 
   // @see https://docs.databricks.com/en/sql/language-manual/sql-ref-syntax-qry-select-sampling.html
@@ -146,7 +155,11 @@ class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: 
     val left = generate(ctx, join.left)
     val right = generate(ctx, join.right)
     if (join.join_condition.isEmpty && join.using_columns.isEmpty && join.join_type == ir.InnerJoin) {
-      s"$left, $right"
+      if (join.right.find(_.isInstanceOf[ir.Lateral]).isDefined) {
+        s"$left $right"
+      } else {
+        s"$left, $right"
+      }
     } else {
       val joinType = generateJoinType(join.join_type)
       val joinClause = if (joinType.isEmpty) { "JOIN" }
@@ -282,14 +295,17 @@ class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: 
   }
 
   private def subQueryAlias(ctx: GeneratorContext, subQAlias: ir.SubqueryAlias): String = {
-    val subquery = generate(ctx, subQAlias.child)
+    val subquery = subQAlias.child match {
+      case l: ir.Lateral => lateral(ctx, l)
+      case _ => s"(${generate(ctx, subQAlias.child)})"
+    }
     val tableName = expr.generate(ctx, subQAlias.alias)
     val table = if (subQAlias.columnNames.isEmpty) {
       tableName
     } else {
       tableName + subQAlias.columnNames.map(expr.generate(ctx, _)).mkString("(", ", ", ")")
     }
-    s"($subquery) AS $table"
+    s"$subquery AS $table"
   }
 
   private def tableAlias(ctx: GeneratorContext, alias: ir.TableAlias): String = {
