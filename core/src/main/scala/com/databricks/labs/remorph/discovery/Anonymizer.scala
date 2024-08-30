@@ -39,14 +39,7 @@ class Anonymizer(parser: PlanParser[_]) extends LazyLogging {
   private[discovery] def fingerprint(query: ExecutedQuery): Fingerprint = {
     try {
       val plan = parser.parse(query.source)
-      Fingerprint(
-        query.timestamp,
-        fingerprint(plan),
-        query.duration,
-        query.user,
-        workloadType(plan),
-        queryType(plan),
-      )
+      Fingerprint(query.timestamp, fingerprint(plan), query.duration, query.user, workloadType(plan), queryType(plan))
     } catch {
       case NonFatal(err) =>
         logger.warn(s"Failed to parse query: ${query.source}", err)
