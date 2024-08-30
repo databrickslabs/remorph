@@ -457,7 +457,7 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
     arg.name_parts.mkString(".")
   }
 
-  private def variable(ctx: GeneratorContext, v: ir.Variable): String = s"$$${v.name}"
+  private def variable(ctx: GeneratorContext, v: ir.Variable): String = s"$${${v.name}}"
 
   private def concat(ctx: GeneratorContext, c: ir.Concat): String = {
     val args = c.children.map(expression(ctx, _))
