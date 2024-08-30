@@ -53,3 +53,12 @@ commands:
         description: Directory to store the generated lineage file
   - name: configure-secrets
     description: Utility to setup Scope and Secrets on Databricks Workspace
+  - name: debug-script
+    description: "[INTERNAL] Debug Script"
+    flags:
+      - name: name
+        description: Filename to debug
+      - name: dialect
+        description: sql dialect
+  - name: debug-me
+    description: "[INTERNAL] Debug SDK connectivity"

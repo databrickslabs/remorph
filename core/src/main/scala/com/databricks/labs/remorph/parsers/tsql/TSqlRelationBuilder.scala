@@ -141,10 +141,10 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.LogicalPlan] {
 
   private def buildDistinct(from: ir.LogicalPlan, columns: Seq[ir.Expression]): ir.LogicalPlan = {
     val columnNames = columns.collect {
-      case ir.Column(_, c) => Seq(c)
-      case ir.Alias(_, a, _) => a
+      case ir.Column(_, c) => c
+      case ir.Alias(_, a) => a
       // Note that the ir.Star(None) is not matched so that we set all_columns_as_keys to true
-    }.flatten
+    }
     ir.Deduplicate(from, columnNames, all_columns_as_keys = columnNames.isEmpty, within_watermark = false)
   }
 
@@ -448,7 +448,7 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.LogicalPlan] {
 
   override def visitOutputClause(ctx: OutputClauseContext): ir.LogicalPlan = {
     val outputs = ctx.outputDmlListElem().asScala.map(_.accept(expressionBuilder))
-    val target = ctx.ddlObject().accept(this)
+    val target = Option(ctx.ddlObject()).map(_.accept(this))
     val columns =
       Option(ctx.columnNameList())
         .map(_.id().asScala.map(id => ir.Column(None, expressionBuilder.visitId(id))))
@@ -508,8 +508,7 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.LogicalPlan] {
       pivot = Some(ir.Pivot(column, values)))
   }
 
-  private def buildLiteral(str: String): ir.Literal =
-    ir.Literal(string = Some(removeQuotesAndBrackets(str)))
+  private def buildLiteral(str: String): ir.Expression = ir.Literal(removeQuotesAndBrackets(str))
 
   private def buildApply(left: ir.LogicalPlan, ctx: ApplyContext): ir.LogicalPlan = {
     val rightRelation = ctx.tableSourceItem().accept(this)

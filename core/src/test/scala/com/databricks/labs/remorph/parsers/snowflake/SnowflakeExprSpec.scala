@@ -12,68 +12,113 @@ class SnowflakeExprSpec extends AnyWordSpec with SnowflakeParserTestCommon with 
   private def example(input: String, expectedAst: Expression): Unit = exampleExpr(input, _.expr(), expectedAst)
 
   "SnowflakeExpressionBuilder" should {
-    "" in {
+    "do something" should {
       val col = Dot(Dot(Dot(Id("d"), Id("s")), Id("t")), Id("column_1"))
 
-      example("d.s.sequence_1.NEXTVAL", NextValue("d.s.sequence_1"))
-      example(
-        "d.s.t.column_1[42]",
-        Dot(Dot(Dot(Id("d"), Id("s")), Id("t")), ArrayAccess(Id("column_1"), Literal(short = Some(42)))))
-      example(
-        "d.s.t.column_1:field_1.\"inner field\"",
-        JsonAccess(col, Dot(Id("field_1"), Id("inner field", caseSensitive = true))))
-      example("d.s.t.column_1 COLLATE 'en_US-trim'", Collate(col, "en_US-trim"))
+      "d.s.sequence_1.NEXTVAL" in {
+        example("d.s.sequence_1.NEXTVAL", NextValue("d.s.sequence_1"))
+      }
+      "d.s.t.column_1[42]" in {
+        example(
+          "d.s.t.column_1[42]",
+          Dot(Dot(Dot(Id("d"), Id("s")), Id("t")), ArrayAccess(Id("column_1"), Literal(42))))
+      }
+      "d.s.t.column_1:field_1.\"inner field\"" in {
+        example(
+          "d.s.t.column_1:field_1.\"inner field\"",
+          JsonAccess(col, Dot(Id("field_1"), Id("inner field", caseSensitive = true))))
+      }
+      "d.s.t.column_1 COLLATE 'en_US-trim'" in {
+        example("d.s.t.column_1 COLLATE 'en_US-trim'", Collate(col, "en_US-trim"))
+      }
     }
 
-    "translate unary arithmetic operators" in {
-      example("+column_1", UPlus(Id("column_1")))
-      example("+42", UPlus(Literal(short = Some(42))))
-      example("-column_1", UMinus(Id("column_1")))
-      example("-42", UMinus(Literal(short = Some(42))))
-      example("NOT true", Not(Literal(boolean = Some(true))))
-      example("NOT column_2", Not(Id("column_2")))
+    "translate unary arithmetic operators" should {
+      "+column_1" in {
+        example("+column_1", UPlus(Id("column_1")))
+      }
+      "+42" in {
+        example("+42", UPlus(Literal(42)))
+      }
+      "-column_1" in {
+        example("-column_1", UMinus(Id("column_1")))
+      }
+      "-42" in {
+        example("-42", UMinus(Literal(42)))
+      }
+      "NOT true" in {
+        example("NOT true", Not(Literal.True))
+      }
+      "NOT column_2" in {
+        example("NOT column_2", Not(Id("column_2")))
+      }
     }
 
-    "translate binary arithmetic operators" in {
-      example("1+1", Add(Literal(short = Some(1)), Literal(short = Some(1))))
-      example("2 * column_1", Multiply(Literal(short = Some(2)), Id("column_1")))
-      example("column_1 - 1", Subtract(Id("column_1"), Literal(short = Some(1))))
-      example("column_1/column_2", Divide(Id("column_1"), Id("column_2")))
-      example("42 % 2", Mod(Literal(short = Some(42)), Literal(short = Some(2))))
-      example("'foo' || column_1", Concat(Seq(Literal(string = Some("foo")), Id("column_1"))))
+    "translate binary arithmetic operators" should {
+      "1+1" in {
+        example("1+1", Add(Literal(1), Literal(1)))
+      }
+      "2 * column_1" in {
+        example("2 * column_1", Multiply(Literal(2), Id("column_1")))
+      }
+      "column_1 - 1" in {
+        example("column_1 - 1", Subtract(Id("column_1"), Literal(1)))
+      }
+      "column_1/column_2" in {
+        example("column_1/column_2", Divide(Id("column_1"), Id("column_2")))
+      }
+      "42 % 2" in {
+        example("42 % 2", Mod(Literal(42), Literal(2)))
+      }
+      "'foo' || column_1" in {
+        example("'foo' || column_1", Concat(Seq(Literal("foo"), Id("column_1"))))
+      }
     }
 
     "translate IFF expression" in {
-      example("IFF (true, column_1, column_2)", Iff(Literal(boolean = Some(true)), Id("column_1"), Id("column_2")))
+      example("IFF (true, column_1, column_2)", If(Literal.True, Id("column_1"), Id("column_2")))
     }
 
-    "translate array literals" in {
-      example(
-        "[1, 2, 3]",
-        Literal(array = Some(
-          ArrayExpr(
-            UnresolvedType,
-            Seq(Literal(short = Some(1)), Literal(short = Some(2)), Literal(short = Some(3)))))))
-
-      example(
-        "[1, 2, 'three']",
-        Literal(array = Some(
-          ArrayExpr(
-            UnresolvedType,
-            Seq(Literal(short = Some(1)), Literal(short = Some(2)), Literal(string = Some("three")))))))
+    "translate array literals" should {
+      "[1, 2, 3]" in {
+        example("[1, 2, 3]", ArrayExpr(Seq(Literal(1), Literal(2), Literal(3)), IntegerType))
+      }
+      "[1, 2, 'three']" in {
+        example("[1, 2, 'three']", ArrayExpr(Seq(Literal(1), Literal(2), Literal("three")), IntegerType))
+      }
     }
 
-    "translate cast expressions" in {
-      example("CAST (column_1 AS BOOLEAN)", Cast(Id("column_1"), BooleanType))
-      example("TRY_CAST (column_1 AS BOOLEAN)", Cast(Id("column_1"), BooleanType, returnNullOnError = true))
-      example("TO_TIMESTAMP(1234567890)", CallFunction("TO_TIMESTAMP", Seq(Literal(integer = Some(1234567890)))))
-      example("TIME('00:00:00')", CallFunction("TO_TIME", Seq(Literal(string = Some("00:00:00")))))
-      example("TO_TIME(column_1)", CallFunction("TO_TIME", Seq(Id("column_1"))))
-      example("DATE(column_1)", CallFunction("TO_DATE", Seq(Id("column_1"))))
-      example("TO_DATE('2024-05-15')", CallFunction("TO_DATE", Seq(Literal(string = Some("2024-05-15")))))
-      example("INTERVAL '1 hour'", Cast(Literal(string = Some("1 hour")), IntervalType))
-      example("42::FLOAT", Cast(Literal(short = Some(42)), DoubleType))
-      example("TO_CHAR(42)", CallFunction("TO_VARCHAR", Seq(Literal(short = Some(42)))))
+    "translate cast expressions" should {
+      "CAST (column_1 AS BOOLEAN)" in {
+        example("CAST (column_1 AS BOOLEAN)", Cast(Id("column_1"), BooleanType))
+      }
+      "TRY_CAST (column_1 AS BOOLEAN)" in {
+        example("TRY_CAST (column_1 AS BOOLEAN)", TryCast(Id("column_1"), BooleanType))
+      }
+      "TO_TIMESTAMP(1234567890)" in {
+        example("TO_TIMESTAMP(1234567890)", CallFunction("TO_TIMESTAMP", Seq(Literal(1234567890))))
+      }
+      "TIME('00:00:00')" in {
+        example("TIME('00:00:00')", CallFunction("TO_TIME", Seq(Literal("00:00:00"))))
+      }
+      "TO_TIME(column_1)" in {
+        example("TO_TIME(column_1)", CallFunction("TO_TIME", Seq(Id("column_1"))))
+      }
+      "DATE(column_1)" in {
+        example("DATE(column_1)", CallFunction("TO_DATE", Seq(Id("column_1"))))
+      }
+      "TO_DATE('2024-05-15')" in {
+        example("TO_DATE('2024-05-15')", CallFunction("TO_DATE", Seq(Literal("2024-05-15"))))
+      }
+      "INTERVAL '1 hour'" in {
+        example("INTERVAL '1 hour'", Cast(Literal("1 hour"), IntervalType))
+      }
+      "42::FLOAT" in {
+        example("42::FLOAT", Cast(Literal(42), DoubleType))
+      }
+      "TO_CHAR(42)" in {
+        example("TO_CHAR(42)", CallFunction("TO_VARCHAR", Seq(Literal(42))))
+      }
     }
 
     def exprAndPredicateExample(query: String, expectedAst: Expression): Unit = {
@@ -83,85 +128,98 @@ class SnowflakeExprSpec extends AnyWordSpec with SnowflakeParserTestCommon with 
       cp.reportAll()
     }
 
-    "translate IN expressions" in {
-      exprAndPredicateExample(
-        "col1 IN (SELECT * FROM t)",
-        In(Id("col1"), Seq(ScalarSubquery(Project(namedTable("t"), Seq(Star(None)))))))
-      exprAndPredicateExample(
-        "col1 NOT IN (SELECT * FROM t)",
-        Not(In(Id("col1"), Seq(ScalarSubquery(Project(namedTable("t"), Seq(Star(None))))))))
-
-      exprAndPredicateExample(
-        "col1 IN (1, 2, 3)",
-        In(Id("col1"), Seq(Literal(short = Some(1)), Literal(short = Some(2)), Literal(short = Some(3)))))
-      exprAndPredicateExample(
-        "col1 NOT IN ('foo', 'bar')",
-        Not(In(Id("col1"), Seq(Literal(string = Some("foo")), Literal(string = Some("bar"))))))
-
+    "translate IN expressions" should {
+      "col1 IN (SELECT * FROM t)" in {
+        exprAndPredicateExample(
+          "col1 IN (SELECT * FROM t)",
+          In(Id("col1"), Seq(ScalarSubquery(Project(namedTable("t"), Seq(Star(None)))))))
+      }
+      "col1 NOT IN (SELECT * FROM t)" in {
+        exprAndPredicateExample(
+          "col1 NOT IN (SELECT * FROM t)",
+          Not(In(Id("col1"), Seq(ScalarSubquery(Project(namedTable("t"), Seq(Star(None))))))))
+      }
+      "col1 IN (1, 2, 3)" in {
+        exprAndPredicateExample("col1 IN (1, 2, 3)", In(Id("col1"), Seq(Literal(1), Literal(2), Literal(3))))
+      }
+      "col1 NOT IN ('foo', 'bar')" in {
+        exprAndPredicateExample("col1 NOT IN ('foo', 'bar')", Not(In(Id("col1"), Seq(Literal("foo"), Literal("bar")))))
+      }
     }
 
-    "translate BETWEEN expressions" in {
-      exprAndPredicateExample(
-        "col1 BETWEEN 3.14 AND 42",
-        And(
-          GreaterThanOrEqual(Id("col1"), Literal(float = Some(3.14f))),
-          LessThanOrEqual(Id("col1"), Literal(short = Some(42)))))
-      exprAndPredicateExample(
-        "col1 NOT BETWEEN 3.14 AND 42",
-        Not(
-          And(
-            GreaterThanOrEqual(Id("col1"), Literal(float = Some(3.14f))),
-            LessThanOrEqual(Id("col1"), Literal(short = Some(42))))))
+    "translate BETWEEN expressions" should {
+      "col1 BETWEEN 3.14 AND 42" in {
+        exprAndPredicateExample(
+          "col1 BETWEEN 3.14 AND 42",
+          And(GreaterThanOrEqual(Id("col1"), Literal(3.14)), LessThanOrEqual(Id("col1"), Literal(42))))
+      }
+      "col1 NOT BETWEEN 3.14 AND 42" in {
+        exprAndPredicateExample(
+          "col1 NOT BETWEEN 3.14 AND 42",
+          Not(And(GreaterThanOrEqual(Id("col1"), Literal(3.14)), LessThanOrEqual(Id("col1"), Literal(42)))))
+      }
     }
 
-    "translate LIKE expressions" in {
-      exprAndPredicateExample("col1 LIKE '%foo'", Like(Id("col1"), Literal(string = Some("%foo"))))
-      exprAndPredicateExample("col1 ILIKE '%foo'", ILike(Id("col1"), Literal(string = Some("%foo"))))
-      exprAndPredicateExample("col1 NOT LIKE '%foo'", Not(Like(Id("col1"), Literal(string = Some("%foo")))))
-      exprAndPredicateExample("col1 NOT ILIKE '%foo'", Not(ILike(Id("col1"), Literal(string = Some("%foo")))))
-      exprAndPredicateExample("col1 LIKE '%foo' ESCAPE '^'", Like(Id("col1"), Literal(string = Some("%foo")), '^'))
-      exprAndPredicateExample("col1 ILIKE '%foo' ESCAPE '^'", ILike(Id("col1"), Literal(string = Some("%foo")), '^'))
-
-      exprAndPredicateExample(
-        "col1 NOT LIKE '%foo' ESCAPE '^'",
-        Not(Like(Id("col1"), Literal(string = Some("%foo")), '^')))
-      exprAndPredicateExample(
-        "col1 NOT ILIKE '%foo' ESCAPE '^'",
-        Not(ILike(Id("col1"), Literal(string = Some("%foo")), '^')))
-
-      exprAndPredicateExample(
-        "col1 LIKE ANY ('%foo', 'bar%', '%qux%')",
-        LikeAny(
-          Id("col1"),
-          Seq(Literal(string = Some("%foo")), Literal(string = Some("bar%")), Literal(string = Some("%qux%")))))
-
-      exprAndPredicateExample(
-        "col1 LIKE ALL ('%foo', 'bar^%', '%qux%') ESCAPE '^'",
-        LikeAll(
-          Id("col1"),
-          Seq(Literal(string = Some("%foo")), Literal(string = Some("bar\\%")), Literal(string = Some("%qux%")))))
-
-      exprAndPredicateExample(
-        "col1 ILIKE ANY ('%foo', 'bar^%', '%qux%') ESCAPE '^'",
-        ILikeAny(
-          Id("col1"),
-          Seq(Literal(string = Some("%foo")), Literal(string = Some("bar\\%")), Literal(string = Some("%qux%")))))
-
-      exprAndPredicateExample(
-        "col1 ILIKE ALL ('%foo', 'bar%', '%qux%')",
-        ILikeAll(
-          Id("col1"),
-          Seq(Literal(string = Some("%foo")), Literal(string = Some("bar%")), Literal(string = Some("%qux%")))))
-
-      exprAndPredicateExample("col1 RLIKE '[a-z][A-Z]*'", RLike(Id("col1"), Literal(string = Some("[a-z][A-Z]*"))))
-      exprAndPredicateExample(
-        "col1 NOT RLIKE '[a-z][A-Z]*'",
-        Not(RLike(Id("col1"), Literal(string = Some("[a-z][A-Z]*")))))
+    "translate LIKE expressions" should {
+      "col1 LIKE '%foo'" in {
+        exprAndPredicateExample("col1 LIKE '%foo'", Like(Id("col1"), Literal("%foo")))
+      }
+      "col1 ILIKE '%foo'" in {
+        exprAndPredicateExample("col1 ILIKE '%foo'", ILike(Id("col1"), Literal("%foo")))
+      }
+      "col1 NOT LIKE '%foo'" in {
+        exprAndPredicateExample("col1 NOT LIKE '%foo'", Not(Like(Id("col1"), Literal("%foo"))))
+      }
+      "col1 NOT ILIKE '%foo'" in {
+        exprAndPredicateExample("col1 NOT ILIKE '%foo'", Not(ILike(Id("col1"), Literal("%foo"))))
+      }
+      "col1 LIKE '%foo' ESCAPE '^'" in {
+        exprAndPredicateExample("col1 LIKE '%foo' ESCAPE '^'", Like(Id("col1"), Literal("%foo"), '^'))
+      }
+      "col1 ILIKE '%foo' ESCAPE '^'" in {
+        exprAndPredicateExample("col1 ILIKE '%foo' ESCAPE '^'", ILike(Id("col1"), Literal("%foo"), '^'))
+      }
+      "col1 NOT LIKE '%foo' ESCAPE '^'" in {
+        exprAndPredicateExample("col1 NOT LIKE '%foo' ESCAPE '^'", Not(Like(Id("col1"), Literal("%foo"), '^')))
+      }
+      "col1 NOT ILIKE '%foo' ESCAPE '^'" in {
+        exprAndPredicateExample("col1 NOT ILIKE '%foo' ESCAPE '^'", Not(ILike(Id("col1"), Literal("%foo"), '^')))
+      }
+      "col1 LIKE ANY ('%foo', 'bar%', '%qux%')" in {
+        exprAndPredicateExample(
+          "col1 LIKE ANY ('%foo', 'bar%', '%qux%')",
+          LikeAny(Id("col1"), Seq(Literal("%foo"), Literal("bar%"), Literal("%qux%"))))
+      }
+      "col1 LIKE ALL ('%foo', 'bar^%', '%qux%') ESCAPE '^'" in {
+        exprAndPredicateExample(
+          "col1 LIKE ALL ('%foo', 'bar^%', '%qux%') ESCAPE '^'",
+          LikeAll(Id("col1"), Seq(Literal("%foo"), Literal("bar\\^%"), Literal("%qux%"))))
+      }
+      "col1 ILIKE ANY ('%foo', 'bar^%', '%qux%') ESCAPE '^'" in {
+        exprAndPredicateExample(
+          "col1 ILIKE ANY ('%foo', 'bar^%', '%qux%') ESCAPE '^'",
+          ILikeAny(Id("col1"), Seq(Literal("%foo"), Literal("bar\\^%"), Literal("%qux%"))))
+      }
+      "col1 ILIKE ALL ('%foo', 'bar%', '%qux%')" in {
+        exprAndPredicateExample(
+          "col1 ILIKE ALL ('%foo', 'bar%', '%qux%')",
+          ILikeAll(Id("col1"), Seq(Literal("%foo"), Literal("bar%"), Literal("%qux%"))))
+      }
+      "col1 RLIKE '[a-z][A-Z]*'" in {
+        exprAndPredicateExample("col1 RLIKE '[a-z][A-Z]*'", RLike(Id("col1"), Literal("[a-z][A-Z]*")))
+      }
+      "col1 NOT RLIKE '[a-z][A-Z]*'" in {
+        exprAndPredicateExample("col1 NOT RLIKE '[a-z][A-Z]*'", Not(RLike(Id("col1"), Literal("[a-z][A-Z]*"))))
+      }
     }
 
-    "translate IS [NOT] NULL expressions" in {
-      exprAndPredicateExample("col1 IS NULL", IsNull(Id("col1")))
-      exprAndPredicateExample("col1 IS NOT NULL", Not(IsNull(Id("col1"))))
+    "translate IS [NOT] NULL expressions" should {
+      "col1 IS NULL" in {
+        exprAndPredicateExample("col1 IS NULL", IsNull(Id("col1")))
+      }
+      "col1 IS NOT NULL" in {
+        exprAndPredicateExample("col1 IS NOT NULL", IsNotNull(Id("col1")))
+      }
     }
 
     "translate DISTINCT expressions" in {
@@ -174,23 +232,21 @@ class SnowflakeExprSpec extends AnyWordSpec with SnowflakeParserTestCommon with 
         WithinGroup(CallFunction("ARRAY_AGG", Seq(Id("col1"))), Seq(SortOrder(Id("col2"), Ascending, NullsLast))))
     }
 
-    "translate JSON path expressions" in {
-      example(
-        "s.f.value:x.y.names[2]",
-        JsonAccess(
-          Dot(Dot(Id("s"), Id("f")), Id("value")),
-          Dot(Dot(Id("x"), Id("y")), ArrayAccess(Id("names"), Literal(short = Some(2))))))
-
-      example("x:inner_obj['nested_field']", JsonAccess(Id("x"), JsonAccess(Id("inner_obj"), Id("nested_field"))))
+    "translate JSON path expressions" should {
+      "s.f.value:x.y.names[2]" in {
+        example(
+          "s.f.value:x.y.names[2]",
+          JsonAccess(
+            Dot(Dot(Id("s"), Id("f")), Id("value")),
+            Dot(Dot(Id("x"), Id("y")), ArrayAccess(Id("names"), Literal(2)))))
+      }
+      "x:inner_obj['nested_field']" in {
+        example("x:inner_obj['nested_field']", JsonAccess(Id("x"), JsonAccess(Id("inner_obj"), Id("nested_field"))))
+      }
     }
 
     "translate JSON literals" in {
-      example(
-        "{'a': 1, 'b': 2}",
-        Literal(json =
-          Some(JsonExpr(UnresolvedType, Seq("a" -> Literal(short = Some(1)), "b" -> Literal(short = Some(2)))))))
+      example("{'a': 1, 'b': 2}", StructExpr(Seq(Alias(Literal(1), Id("a")), Alias(Literal(2), Id("b")))))
     }
-
   }
-
 }

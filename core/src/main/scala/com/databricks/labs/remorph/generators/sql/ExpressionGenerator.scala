@@ -11,7 +11,7 @@ import java.util.Locale
 class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
     extends Generator[ir.Expression, String] {
   private val dateFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd")
-  private val timeFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS").withZone(ZoneId.of("UTC"))
+  private val timeFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").withZone(ZoneId.of("UTC"))
 
   override def generate(ctx: GeneratorContext, tree: ir.Expression): String = expression(ctx, tree)
 
@@ -28,6 +28,11 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
       case _: ir.Arithmetic => arithmetic(ctx, expr)
       case _: ir.Predicate => predicate(ctx, expr)
       case l: ir.Literal => literal(ctx, l)
+      case a: ir.ArrayExpr => arrayExpr(ctx, a)
+      case m: ir.MapExpr => mapExpr(ctx, m)
+      case s: ir.StructExpr => structExpr(ctx, s)
+      case i: ir.IsNull => isNull(ctx, i)
+      case i: ir.IsNotNull => isNotNull(ctx, i)
       case fn: ir.Fn => callFunction(ctx, fn)
       case ir.UnresolvedAttribute(name, _, _) => name
       case d: ir.Dot => dot(ctx, d)
@@ -37,8 +42,9 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
       case d: ir.Distinct => distinct(ctx, d)
       case s: ir.Star => star(ctx, s)
       case c: ir.Cast => cast(ctx, c)
+      case t: ir.TryCast => tryCast(ctx, t)
       case col: ir.Column => column(ctx, col)
-      case da: ir.DeleteAction => "DELETE"
+      case _: ir.DeleteAction => "DELETE"
       case ia: ir.InsertAction => insertAction(ctx, ia)
       case ua: ir.UpdateAction => updateAction(ctx, ua)
       case a: ir.Assign => assign(ctx, a)
@@ -48,9 +54,40 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
       case c: ir.Case => caseWhen(ctx, c)
       case w: ir.Window => window(ctx, w)
       case o: ir.SortOrder => sortOrder(ctx, o)
+      case ir.Exists(subquery) => s"EXISTS (${ctx.logical.generate(ctx, subquery)})"
+      case a: ir.ArrayAccess => arrayAccess(ctx, a)
+      case j: ir.JsonAccess => jsonAccess(ctx, j)
+      case l: ir.LambdaFunction => lambdaFunction(ctx, l)
+      case v: ir.Variable => variable(ctx, v)
+      case s: ir.SchemaReference => schemaReference(ctx, s)
+      case null => "" // don't fail transpilation if the expression is null
       case x => throw TranspileException(s"Unsupported expression: $x")
     }
   }
+
+  private def structExpr(ctx: GeneratorContext, s: ir.StructExpr): String = {
+    s.fields
+      .map {
+        case a: ir.Alias => generate(ctx, a)
+        case s: ir.Star => "*"
+      }
+      .mkString("STRUCT(", ", ", ")")
+  }
+
+  private def jsonAccess(ctx: GeneratorContext, j: ir.JsonAccess): String = {
+    val path = j.path.map {
+      case ir.Id(name, false) => s".$name"
+      case ir.Id(name, true) if isAlphanum(name) => s".$name"
+      case ir.Id(name, true) => s"['$name']"
+      case ir.IntLiteral(value) => s"[$value]"
+      case ir.StringLiteral(value) => s"['$value']"
+      case i: ir.Expression => throw TranspileException(s"Unsupported path: $i")
+    }.mkString
+    s"${expression(ctx, j.json)}$path"
+  }
+
+  private def isNull(ctx: GeneratorContext, i: ir.IsNull) = s"${expression(ctx, i.left)} IS NULL"
+  private def isNotNull(ctx: GeneratorContext, i: ir.IsNotNull) = s"${expression(ctx, i.left)} IS NOT NULL"
 
   private def interval(ctx: GeneratorContext, interval: ir.KnownInterval): String = {
     val iType = interval.iType match {
@@ -181,8 +218,8 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
   }
 
   private def predicate(ctx: GeneratorContext, expr: ir.Expression): String = expr match {
-    case ir.And(left, right) => s"(${expression(ctx, left)} AND ${expression(ctx, right)})"
-    case ir.Or(left, right) => s"(${expression(ctx, left)} OR ${expression(ctx, right)})"
+    case a: ir.And => andPredicate(ctx, a)
+    case o: ir.Or => orPredicate(ctx, o)
     case ir.Not(child) => s"NOT (${expression(ctx, child)})"
     case ir.Equals(left, right) => s"${expression(ctx, left)} = ${expression(ctx, right)}"
     case ir.NotEquals(left, right) => s"${expression(ctx, left)} != ${expression(ctx, right)}"
@@ -193,10 +230,31 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
     case _ => throw new IllegalArgumentException(s"Unsupported expression: $expr")
   }
 
+  private def andPredicate(ctx: GeneratorContext, a: ir.And): String = a match {
+    case ir.And(ir.Or(ol, or), right) =>
+      s"(${expression(ctx, ol)} OR ${expression(ctx, or)}) AND ${expression(ctx, right)}"
+    case ir.And(left, ir.Or(ol, or)) =>
+      s"${expression(ctx, left)} AND (${expression(ctx, ol)} OR ${expression(ctx, or)})"
+    case ir.And(left, right) => s"${expression(ctx, left)} AND ${expression(ctx, right)}"
+  }
+
+  private def orPredicate(ctx: GeneratorContext, a: ir.Or): String = a match {
+    case ir.Or(ir.And(ol, or), right) =>
+      s"(${expression(ctx, ol)} AND ${expression(ctx, or)}) OR ${expression(ctx, right)}"
+    case ir.Or(left, ir.And(ol, or)) =>
+      s"${expression(ctx, left)} OR (${expression(ctx, ol)} AND ${expression(ctx, or)})"
+    case ir.Or(left, right) => s"${expression(ctx, left)} OR ${expression(ctx, right)}"
+  }
+
   private def callFunction(ctx: GeneratorContext, fn: ir.Fn): String = {
     try {
       callMapper.convert(fn) match {
         case r: ir.RLike => rlike(ctx, r)
+        case r: ir.RegExpExtract => regexpExtract(ctx, r)
+        case t: ir.TimestampDiff => timestampDiff(ctx, t)
+        case t: ir.TimestampAdd => timestampAdd(ctx, t)
+        case e: ir.Extract => extract(ctx, e)
+        case c: ir.Concat => concat(ctx, c)
         case i: ir.In => in(ctx, i)
         case fn: ir.Fn => s"${fn.prettyName}(${fn.children.map(expression(ctx, _)).mkString(", ")})"
 
@@ -211,71 +269,51 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
     }
   }
 
-  private def literal(ctx: GeneratorContext, l: ir.Literal): String = {
-    l.dataType match {
-      case ir.NullType => "NULL"
-      case ir.BinaryType => orNull(l.binary.map(_.map("%02X" format _).mkString))
-      case ir.BooleanType => orNull(l.boolean.map(_.toString.toUpperCase(Locale.getDefault)))
-      case ir.ShortType => orNull(l.short.map(_.toString))
-      case ir.IntegerType => orNull(l.integer.map(_.toString))
-      case ir.LongType => orNull(l.long.map(_.toString))
-      case ir.FloatType => orNull(l.float.map(_.toString))
-      case ir.DoubleType => orNull(l.double.map(_.toString))
-      case ir.StringType => orNull(l.string.map(singleQuote))
-      case ir.DateType => dateLiteral(l)
-      case ir.TimestampType => timestampLiteral(l)
-      case ir.ArrayType(_) => orNull(l.array.map(arrayExpr(ctx)))
-      case ir.MapType(_, _) => orNull(l.map.map(mapExpr(ctx)))
-      case _ => throw new IllegalArgumentException(s"Unsupported expression: ${l.dataType}")
-    }
+  private def literal(ctx: GeneratorContext, l: ir.Literal): String = l match {
+    case ir.Literal(_, ir.NullType) => "NULL"
+    case ir.Literal(bytes: Array[Byte], ir.BinaryType) => bytes.map("%02X" format _).mkString
+    case ir.Literal(value, ir.BooleanType) => value.toString.toLowerCase(Locale.getDefault)
+    case ir.Literal(value, ir.ShortType) => value.toString
+    case ir.IntLiteral(value) => value.toString
+    case ir.Literal(value, ir.LongType) => value.toString
+    case ir.FloatLiteral(value) => value.toString
+    case ir.DoubleLiteral(value) => value.toString
+    case ir.DecimalLiteral(value) => value.toString
+    case ir.Literal(value: String, ir.StringType) => singleQuote(value)
+    case ir.Literal(epochDay: Long, ir.DateType) =>
+      val dateStr = singleQuote(LocalDate.ofEpochDay(epochDay).format(dateFormat))
+      s"CAST($dateStr AS DATE)"
+    case ir.Literal(epochSecond: Long, ir.TimestampType) =>
+      val timestampStr = singleQuote(
+        LocalDateTime
+          .from(ZonedDateTime.ofInstant(Instant.ofEpochSecond(epochSecond), ZoneId.of("UTC")))
+          .format(timeFormat))
+      s"CAST($timestampStr AS TIMESTAMP)"
+    case _ =>
+      throw new IllegalArgumentException(s"Unsupported expression: ${l.dataType}")
   }
 
-  private def timestampLiteral(l: ir.Literal) = {
-    l.timestamp match {
-      case Some(timestamp) =>
-        singleQuote(
-          LocalDateTime
-            .from(ZonedDateTime.ofInstant(Instant.ofEpochMilli(timestamp), ZoneId.of("UTC")))
-            .format(timeFormat))
-      case None => "NULL"
-    }
+  private def arrayExpr(ctx: GeneratorContext, a: ir.ArrayExpr): String = {
+    val elementsStr = a.children.map(expression(ctx, _)).mkString(", ")
+    s"ARRAY($elementsStr)"
   }
 
-  private def dateLiteral(l: ir.Literal) = {
-    l.date match {
-      case Some(date) =>
-        singleQuote(
-          LocalDate.from(ZonedDateTime.ofInstant(Instant.ofEpochMilli(date), ZoneId.of("UTC"))).format(dateFormat))
-      case None => "NULL"
-    }
+  private def mapExpr(ctx: GeneratorContext, m: ir.MapExpr): String = {
+    val entriesStr = m.map
+      .map { case (key, value) =>
+        s"${expression(ctx, key)}, ${expression(ctx, value)}"
+      }
+      .mkString(", ")
+    s"MAP($entriesStr)"
   }
 
-  private def mapExpr(ctx: GeneratorContext)(map: ir.MapExpr): String = {
-    val entries = map.keys.zip(map.values).map { case (key, value) =>
-      s"${literal(ctx, key)}, ${expression(ctx, value)}"
-    }
-    // TODO: line-width formatting
-    s"MAP(${entries.mkString(", ")})"
-  }
-
-  private def arrayExpr(ctx: GeneratorContext)(array: ir.ArrayExpr): String = {
-    val elements = array.elements.map { element =>
-      expression(ctx, element)
-    }
-    // TODO: line-width formatting
-    s"ARRAY(${elements.mkString(", ")})"
-  }
-
-  private def id(ctx: GeneratorContext, id: ir.Id): String = {
-    if (id.caseSensitive) {
-      doubleQuote(id.id)
-    } else {
-      id.id
-    }
+  private def id(ctx: GeneratorContext, id: ir.Id): String = id match {
+    case ir.Id(name, true) => s"`$name`"
+    case ir.Id(name, false) => name
   }
 
   private def alias(ctx: GeneratorContext, alias: ir.Alias): String = {
-    s"${expression(ctx, alias.expr)} AS ${alias.name.map(expression(ctx, _)).mkString(".")}"
+    s"${expression(ctx, alias.expr)} AS ${expression(ctx, alias.name)}"
   }
 
   private def distinct(ctx: GeneratorContext, distinct: ir.Distinct): String = {
@@ -292,9 +330,21 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
   }
 
   private def cast(ctx: GeneratorContext, cast: ir.Cast): String = {
-    val expr = expression(ctx, cast.expr)
-    val dataType = DataTypeGenerator.generateDataType(ctx, cast.dataType)
-    s"CAST($expr AS $dataType)"
+    castLike(ctx, "CAST", cast.expr, cast.dataType)
+  }
+
+  private def tryCast(ctx: GeneratorContext, tryCast: ir.TryCast): String = {
+    castLike(ctx, "TRY_CAST", tryCast.expr, tryCast.dataType)
+  }
+
+  private def castLike(
+      ctx: GeneratorContext,
+      prettyName: String,
+      expr: ir.Expression,
+      dataType: ir.DataType): String = {
+    val e = expression(ctx, expr)
+    val dt = DataTypeGenerator.generateDataType(ctx, dataType)
+    s"$prettyName($e AS $dt)"
   }
 
   private def dot(ctx: GeneratorContext, dot: ir.Dot): String = {
@@ -342,6 +392,10 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
         s" $mode $frameBoundaries"
       }
       .getOrElse("")
+    if (window.ignore_nulls) {
+      return s"$expr IGNORE NULLS OVER ($partition$orderBy$windowFrame)"
+    }
+
     s"$expr OVER ($partition$orderBy$windowFrame)"
   }
 
@@ -369,9 +423,59 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
     (Seq(orderBy) ++ direction ++ nulls).mkString(" ")
   }
 
-  private def orNull(option: Option[String]): String = option.getOrElse("NULL")
+  private def regexpExtract(ctx: GeneratorContext, extract: ir.RegExpExtract): String = {
+    val c = if (extract.c == ir.Literal(1)) { "" }
+    else { s", ${expression(ctx, extract.c)}" }
+    s"${extract.prettyName}(${expression(ctx, extract.left)}, ${expression(ctx, extract.right)}$c)"
+  }
 
-  private def doubleQuote(s: String): String = s""""$s""""
+  private def arrayAccess(ctx: GeneratorContext, access: ir.ArrayAccess): String = {
+    s"${expression(ctx, access.array)}[${expression(ctx, access.index)}]"
+  }
 
+  private def timestampDiff(ctx: GeneratorContext, diff: ir.TimestampDiff): String = {
+    s"${diff.prettyName}(${diff.unit}, ${expression(ctx, diff.start)}, ${expression(ctx, diff.end)})"
+  }
+
+  private def timestampAdd(ctx: GeneratorContext, tsAdd: ir.TimestampAdd): String = {
+    s"${tsAdd.prettyName}(${tsAdd.unit}, ${expression(ctx, tsAdd.quantity)}, ${expression(ctx, tsAdd.timestamp)})"
+  }
+
+  private def extract(ctx: GeneratorContext, e: ir.Extract): String = {
+    s"EXTRACT(${expression(ctx, e.left)} FROM ${expression(ctx, e.right)})"
+  }
+
+  private def lambdaFunction(ctx: GeneratorContext, l: ir.LambdaFunction): String = {
+    val parameterList = l.arguments.map(lambdaArgument)
+    val parameters = if (parameterList.size > 1) { parameterList.mkString("(", ", ", ")") }
+    else { parameterList.mkString }
+    val body = expression(ctx, l.function)
+    s"$parameters -> $body"
+  }
+
+  private def lambdaArgument(arg: ir.UnresolvedNamedLambdaVariable): String = {
+    arg.name_parts.mkString(".")
+  }
+
+  private def variable(ctx: GeneratorContext, v: ir.Variable): String = s"$${${v.name}}"
+
+  private def concat(ctx: GeneratorContext, c: ir.Concat): String = {
+    val args = c.children.map(expression(ctx, _))
+    if (c.children.size > 2) {
+      args.mkString(" || ")
+    } else {
+      args.mkString("CONCAT(", ", ", ")")
+    }
+  }
+
+  private def schemaReference(ctx: GeneratorContext, s: ir.SchemaReference): String = {
+    val ref = s.columnName match {
+      case d: ir.Dot => expression(ctx, d)
+      case i: ir.Id => expression(ctx, i)
+      case _ => "JSON_COLUMN"
+    }
+    s"{${ref.toUpperCase(Locale.getDefault())}_SCHEMA}"
+  }
   private def singleQuote(s: String): String = s"'$s'"
+  private def isAlphanum(s: String): Boolean = s.forall(_.isLetterOrDigit)
 }

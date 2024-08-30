@@ -10,8 +10,3 @@ case class NamedArgumentExpression(key: String, value: ir.Expression) extends ir
 case class NextValue(sequenceName: String) extends ir.LeafExpression {
   override def dataType: ir.DataType = ir.LongType
 }
-
-case class Iff(condition: ir.Expression, thenBranch: ir.Expression, elseBranch: ir.Expression) extends ir.Expression {
-  override def children: Seq[ir.Expression] = Seq(condition, thenBranch, elseBranch)
-  override def dataType: ir.DataType = thenBranch.dataType
-}

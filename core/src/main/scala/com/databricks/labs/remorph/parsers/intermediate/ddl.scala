@@ -1,6 +1,19 @@
 package com.databricks.labs.remorph.parsers.intermediate
 
-abstract class DataType
+abstract class DataType {
+  def isPrimitive: Boolean = this match {
+    case BooleanType => true
+    case ByteType(_) => true
+    case ShortType => true
+    case IntegerType => true
+    case LongType => true
+    case FloatType => true
+    case DoubleType => true
+    case StringType => true
+    case _ => false
+  }
+}
+
 case object NullType extends DataType
 case object BooleanType extends DataType
 case object BinaryType extends DataType
@@ -14,6 +27,13 @@ case object LongType extends DataType
 
 case object FloatType extends DataType
 case object DoubleType extends DataType
+
+object DecimalType {
+  def apply(): DecimalType = DecimalType(None, None)
+  def apply(precision: Int, scale: Int): DecimalType = DecimalType(Some(precision), Some(scale))
+  def fromBigDecimal(d: BigDecimal): DecimalType = DecimalType(Some(d.precision), Some(d.scale))
+}
+
 case class DecimalType(precision: Option[Int], scale: Option[Int]) extends DataType
 
 // String types
@@ -35,7 +55,8 @@ case object DayTimeIntervalType extends DataType
 
 // Complex types
 case class ArrayType(elementType: DataType) extends DataType
-case class StructType() extends DataType
+case class StructField(name: String, dataType: DataType, nullable: Boolean = true)
+case class StructType(fields: Seq[StructField]) extends DataType
 case class MapType(keyType: DataType, valueType: DataType) extends DataType
 
 // UserDefinedType
@@ -67,7 +88,7 @@ case class ColumnDeclaration(
 case class CreateTableCommand(name: String, columns: Seq[ColumnDeclaration]) extends Catalog {}
 
 sealed trait TableAlteration
-case class AddColumn(columnDeclaration: ColumnDeclaration) extends TableAlteration
+case class AddColumn(columnDeclaration: Seq[ColumnDeclaration]) extends TableAlteration
 case class AddConstraint(columnName: String, constraint: Constraint) extends TableAlteration
 case class ChangeColumnDataType(columnName: String, newDataType: DataType) extends TableAlteration
 case class UnresolvedTableAlteration(inputText: String) extends TableAlteration
@@ -100,7 +121,6 @@ case class CreateExternalTable(
     table_name: String,
     path: Option[String],
     source: Option[String],
-    schema: Option[DataType],
     options: Map[String, String])
     extends Catalog {}
 case class CreateTable(
@@ -108,7 +128,6 @@ case class CreateTable(
     path: Option[String],
     source: Option[String],
     description: Option[String],
-    schema: Option[DataType],
     options: Map[String, String])
     extends Catalog {}
 case class DropTempView(view_name: String) extends Catalog {}

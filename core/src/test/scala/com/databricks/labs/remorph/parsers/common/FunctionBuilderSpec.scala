@@ -70,6 +70,7 @@ class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenProp
       ("CURRENT_TIMESTAMP", Some(FunctionDefinition.standard(0, 1))),
       ("DATEDIFF", Some(FunctionDefinition.standard(3))),
       ("DATE", Some(FunctionDefinition.standard(1, 2).withConversionStrategy(SynonymOf("TO_DATE")))),
+      ("DATEFROMPARTS", Some(FunctionDefinition.standard(3).withConversionStrategy(SynonymOf("DATE_FROM_PARTS")))),
       ("DATE_FROM_PARTS", Some(FunctionDefinition.standard(3))),
       ("DATE_PART", Some(FunctionDefinition.standard(2))),
       ("DATE_TRUNC", Some(FunctionDefinition.standard(2))),
@@ -138,9 +139,9 @@ class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenProp
       ("STRTOK_TO_ARRAY", Some(FunctionDefinition.standard(1, 2))),
       ("SYSDATE", Some(FunctionDefinition.standard(0))),
       ("TIME", Some(FunctionDefinition.standard(1, 2).withConversionStrategy(SynonymOf("TO_TIME")))),
-      ("TIMEADD", Some(FunctionDefinition.standard(3))),
+      ("TIMEADD", Some(FunctionDefinition.standard(3).withConversionStrategy(SynonymOf("DATEADD")))),
       ("TIMESTAMPADD", Some(FunctionDefinition.standard(3))),
-      ("TIMESTAMPDIFF", Some(FunctionDefinition.standard(3))),
+      ("TIMESTAMPDIFF", Some(FunctionDefinition.standard(3).withConversionStrategy(SynonymOf("DATEDIFF")))),
       ("TIMESTAMP_FROM_PARTS", Some(FunctionDefinition.standard(2, 8))),
       ("TO_ARRAY", Some(FunctionDefinition.standard(1))),
       ("TO_BOOLEAN", Some(FunctionDefinition.standard(1))),
@@ -366,7 +367,7 @@ class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenProp
       ("REPLICATE", Some(FunctionDefinition.standard(2))),
       ("REVERSE", Some(FunctionDefinition.standard(1))),
       ("RIGHT", Some(FunctionDefinition.standard(2))),
-      ("ROUND", Some(FunctionDefinition.standard(2, 3))),
+      ("ROUND", Some(FunctionDefinition.standard(1, 3))),
       ("ROW_NUMBER", Some(FunctionDefinition.standard(0))),
       ("ROWCOUNT_BIG", Some(FunctionDefinition.standard(0))),
       ("RTRIM", Some(FunctionDefinition.standard(1))),
@@ -497,10 +498,10 @@ class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenProp
     val renameTable = Table(
       ("functionName", "params", "expectedFunctionName"), // Header
 
-      ("ISNULL", Seq(simplyNamedColumn("x"), ir.Literal(integer = Some(1))), "IFNULL"),
-      ("GET_BIT", Seq(simplyNamedColumn("x"), ir.Literal(integer = Some(1))), "GETBIT"),
-      ("left_SHIFT", Seq(simplyNamedColumn("x"), ir.Literal(integer = Some(1))), "LEFTSHIFT"),
-      ("RIGHT_SHIFT", Seq(simplyNamedColumn("x"), ir.Literal(integer = Some(1))), "RIGHTSHIFT"))
+      ("ISNULL", Seq(simplyNamedColumn("x"), ir.Literal(1)), "IFNULL"),
+      ("GET_BIT", Seq(simplyNamedColumn("x"), ir.Literal(1)), "GETBIT"),
+      ("left_SHIFT", Seq(simplyNamedColumn("x"), ir.Literal(1)), "LEFTSHIFT"),
+      ("RIGHT_SHIFT", Seq(simplyNamedColumn("x"), ir.Literal(1)), "RIGHTSHIFT"))
 
     forAll(renameTable) { (functionName: String, params: Seq[ir.Expression], expectedFunctionName: String) =>
       {
@@ -516,20 +517,20 @@ class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenProp
   "buildFunction" should "not resolve IFNULL when child dialect isn't TSql" in {
     val functionBuilder = new SnowflakeFunctionBuilder
 
-    val result1 = functionBuilder.buildFunction("ISNULL", Seq(simplyNamedColumn("x"), ir.Literal(integer = Some(0))))
+    val result1 = functionBuilder.buildFunction("ISNULL", Seq(simplyNamedColumn("x"), ir.Literal(0)))
     result1 shouldBe a[UnresolvedFunction]
   }
 
   "buildFunction" should "not resolve IFNULL when child dialect isn't Snowflake" in {
     val functionBuilder = new TSqlFunctionBuilder
 
-    val result1 = functionBuilder.buildFunction("IFNULL", Seq(simplyNamedColumn("x"), ir.Literal(integer = Some(0))))
+    val result1 = functionBuilder.buildFunction("IFNULL", Seq(simplyNamedColumn("x"), ir.Literal(0)))
     result1 shouldBe a[UnresolvedFunction]
   }
 
   "buildFunction" should "Should preserve case if it can" in {
     val functionBuilder = new TSqlFunctionBuilder
-    val result1 = functionBuilder.buildFunction("isnull", Seq(simplyNamedColumn("x"), ir.Literal(integer = Some(0))))
+    val result1 = functionBuilder.buildFunction("isnull", Seq(simplyNamedColumn("x"), ir.Literal(0)))
     result1 match {
       case f: ir.CallFunction => f.function_name shouldBe "ifnull"
       case _ => fail("ifnull conversion failed")
@@ -538,10 +539,7 @@ class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenProp
 
   "FunctionRename strategy" should "preserve original function if no match is found" in {
     val functionBuilder = new TSqlFunctionBuilder
-    val result1 = functionBuilder.applyConversionStrategy(
-      FunctionDefinition.standard(1),
-      Seq(ir.Literal(integer = Some(66))),
-      "Abs")
+    val result1 = functionBuilder.applyConversionStrategy(FunctionDefinition.standard(1), Seq(ir.Literal(66)), "Abs")
     result1 match {
       case f: ir.CallFunction => f.function_name shouldBe "Abs"
       case _ => fail("UNKNOWN_FUNCTION conversion failed")

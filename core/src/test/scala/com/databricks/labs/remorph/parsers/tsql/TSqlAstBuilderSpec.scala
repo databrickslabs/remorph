@@ -40,25 +40,24 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
           Seq(
             Project(
               namedTable("dbo.table_x"),
-              Seq(
-                Alias(simplyNamedColumn("a"), Seq(Id("b")), None),
-                Alias(simplyNamedColumn("BigCol"), Seq(Id("J")), None))))))
+              Seq(Alias(simplyNamedColumn("a"), Id("b")), Alias(simplyNamedColumn("BigCol"), Id("J")))))))
     }
 
     "accept constants in selects" in {
       example(
         query = "SELECT 42, 65535, 6.4, 0x5A, 2.7E9, 4.24523534425245E10, $40",
         expectedAst = Batch(
-          Seq(Project(
-            NoTable(),
-            Seq(
-              Literal(short = Some(42)),
-              Literal(integer = Some(65535)),
-              Literal(float = Some(6.4f)),
-              Literal(string = Some("0x5A")),
-              Literal(long = Some(2700000000L)),
-              Literal(double = Some(4.24523534425245e10)),
-              Money(Literal(string = Some("$40"))))))))
+          Seq(
+            Project(
+              NoTable(),
+              Seq(
+                Literal(42),
+                Literal(65535),
+                Literal(6.4f),
+                Literal("0x5A"),
+                Literal(2700000000L),
+                Literal(4.24523534425245e10),
+                Money(StringLiteral("$40")))))))
     }
 
     "translate collation specifiers" in {
@@ -228,21 +227,20 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
       example(
         query = "SELECT xmlcolumn.query('/root/child') FROM tab",
         expectedAst = Batch(
-          Seq(
-            Project(
-              namedTable("tab"),
-              Seq(tsql.TsqlXmlFunction(
-                CallFunction("query", Seq(Literal(string = Some("/root/child")))),
-                simplyNamedColumn("xmlcolumn")))))))
+          Seq(Project(
+            namedTable("tab"),
+            Seq(tsql
+              .TsqlXmlFunction(CallFunction("query", Seq(Literal("/root/child"))), simplyNamedColumn("xmlcolumn")))))))
 
       example(
         "SELECT xmlcolumn.value('path', 'type') FROM tab",
         expectedAst = Batch(
-          Seq(Project(
-            namedTable("tab"),
-            Seq(tsql.TsqlXmlFunction(
-              CallFunction("value", Seq(Literal(string = Some("path")), Literal(string = Some("type")))),
-              simplyNamedColumn("xmlcolumn")))))))
+          Seq(
+            Project(
+              namedTable("tab"),
+              Seq(tsql.TsqlXmlFunction(
+                CallFunction("value", Seq(Literal("path"), Literal("type"))),
+                simplyNamedColumn("xmlcolumn")))))))
 
       example(
         "SELECT xmlcolumn.exist('/root/child[text()=\"Some Value\"]') FROM xmltable;",
@@ -250,7 +248,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
           Seq(Project(
             namedTable("xmltable"),
             Seq(tsql.TsqlXmlFunction(
-              CallFunction("exist", Seq(Literal(string = Some("/root/child[text()=\"Some Value\"]")))),
+              CallFunction("exist", Seq(Literal("/root/child[text()=\"Some Value\"]"))),
               simplyNamedColumn("xmlcolumn")))))))
 
       // TODO: Add nodes(), modify(), when we complete UPDATE and CROSS APPLY
@@ -264,9 +262,9 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
           Seq(Project(
             NoTable(),
             Seq(
-              Assign(Identifier("@a", isQuoted = false), Literal(short = Some(1))),
-              Assign(Identifier("@b", isQuoted = false), Literal(short = Some(2))),
-              Assign(Identifier("@c", isQuoted = false), Literal(short = Some(3))))))))
+              Assign(Identifier("@a", isQuoted = false), Literal(1)),
+              Assign(Identifier("@b", isQuoted = false), Literal(2)),
+              Assign(Identifier("@c", isQuoted = false), Literal(3)))))))
 
       example(
         query = "SELECT @a += 1, @b -= 2",
@@ -274,12 +272,8 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
           Seq(Project(
             NoTable(),
             Seq(
-              Assign(
-                Identifier("@a", isQuoted = false),
-                Add(Identifier("@a", isQuoted = false), Literal(short = Some(1)))),
-              Assign(
-                Identifier("@b", isQuoted = false),
-                Subtract(Identifier("@b", isQuoted = false), Literal(short = Some(2)))))))))
+              Assign(Identifier("@a", isQuoted = false), Add(Identifier("@a", isQuoted = false), Literal(1))),
+              Assign(Identifier("@b", isQuoted = false), Subtract(Identifier("@b", isQuoted = false), Literal(2))))))))
 
       example(
         query = "SELECT @a *= 1, @b /= 2",
@@ -287,12 +281,8 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
           Seq(Project(
             NoTable(),
             Seq(
-              Assign(
-                Identifier("@a", isQuoted = false),
-                Multiply(Identifier("@a", isQuoted = false), Literal(short = Some(1)))),
-              Assign(
-                Identifier("@b", isQuoted = false),
-                Divide(Identifier("@b", isQuoted = false), Literal(short = Some(2)))))))))
+              Assign(Identifier("@a", isQuoted = false), Multiply(Identifier("@a", isQuoted = false), Literal(1))),
+              Assign(Identifier("@b", isQuoted = false), Divide(Identifier("@b", isQuoted = false), Literal(2))))))))
 
       example(
         query = "SELECT @a %= myColumn",
@@ -350,8 +340,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
               simplyNamedColumn("Name"),
               Alias(
                 ScalarSubquery(Project(namedTable("Employees"), Seq(simplyNamedColumn("AvgSalary")))),
-                Seq(Id("AverageSalary")),
-                None))))))
+                Id("AverageSalary")))))))
     }
   }
 
@@ -368,25 +357,19 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
       expectedAst = Batch(
         Seq(Project(
           Deduplicate(namedTable("t"), List(Id("a"), Id("bb")), all_columns_as_keys = false, within_watermark = false),
-          Seq(simplyNamedColumn("a"), Alias(simplyNamedColumn("b"), Seq(Id("bb")), None))))))
+          Seq(simplyNamedColumn("a"), Alias(simplyNamedColumn("b"), Id("bb")))))))
   }
 
   "Columns specified with dedicated syntax" in {
     example(
       query = "SELECT NEXT VALUE FOR mySequence As nextVal",
       expectedAst = Batch(
-        Seq(
-          Project(
-            NoTable(),
-            Seq(Alias(CallFunction("MONOTONICALLY_INCREASING_ID", List.empty), Seq(Id("nextVal")), None))))))
+        Seq(Project(NoTable(), Seq(Alias(CallFunction("MONOTONICALLY_INCREASING_ID", List.empty), Id("nextVal")))))))
 
     example(
       query = "SELECT NEXT VALUE FOR var.mySequence As nextVal",
       expectedAst = Batch(
-        Seq(
-          Project(
-            NoTable(),
-            Seq(Alias(CallFunction("MONOTONICALLY_INCREASING_ID", List.empty), Seq(Id("nextVal")), None))))))
+        Seq(Project(NoTable(), Seq(Alias(CallFunction("MONOTONICALLY_INCREASING_ID", List.empty), Id("nextVal")))))))
 
     example(
       query = "SELECT NEXT VALUE FOR var.mySequence OVER (ORDER BY myColumn) As nextVal ",
@@ -399,8 +382,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
               List.empty,
               List(SortOrder(simplyNamedColumn("myColumn"), Ascending, SortNullsUnspecified)),
               None),
-            Seq(Id("nextVal")),
-            None))))))
+            Id("nextVal")))))))
 
   }
 
@@ -437,7 +419,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
                 Seq(
                   simplyNamedColumn("col1"),
                   simplyNamedColumn("fred"),
-                  Alias(CallFunction("COUNT", Seq(simplyNamedColumn("OrderDate"))), Seq(Id("counter")), None))),
+                  Alias(CallFunction("COUNT", Seq(simplyNamedColumn("OrderDate"))), Id("counter")))),
               Id("cteTable1"),
               Seq(Id("col1"), Id("col2"), Id("col3count"))),
             SubqueryAlias(
@@ -446,7 +428,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
                 Seq(
                   simplyNamedColumn("col1"),
                   simplyNamedColumn("fred"),
-                  Alias(CallFunction("COUNT", Seq(simplyNamedColumn("OrderDate"))), Seq(Id("counter")), None))),
+                  Alias(CallFunction("COUNT", Seq(simplyNamedColumn("OrderDate"))), Id("counter")))),
               Id("cteTable2"),
               Seq(Id("colx"), Id("coly"), Id("colxcount")))),
           Project(
@@ -460,57 +442,22 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
               simplyNamedColumn("colxcount")))))))
   }
 
-  "parse genericOptions correctly" in {
-    // NOTE that we are using the BACKUP DATABASE command to test the generic options as it is the
-    // simplest command that has generic options.
-    example(
-      query = "BACKUP DATABASE mydb TO DISK = 'disk' WITH mount = auto, verbose = default",
-      expectedAst = Batch(Seq(BackupDatabase("mydb", Seq("disk"), Map.empty, Seq("MOUNT"), Map.empty))))
-
-    example(
-      query = "BACKUP DATABASE mydb TO DISK = 'disk1', DISK = 'disk2' WITH mount = auto, verbose = default",
-      expectedAst = Batch(Seq(BackupDatabase("mydb", Seq("disk2", "disk1"), Map.empty, Seq("MOUNT"), Map.empty))))
-
-    example(
-      query = "BACKUP DATABASE mydb TO DISK = 'disk1' WITH audit = ON, desCription = 'backup1', FILE_SNAPSHOT OFF",
-      expectedAst = Batch(
-        Seq(
-          BackupDatabase("mydb", Seq("disk1"), Map("AUDIT" -> true, "FILE_SNAPSHOT" -> false), List.empty, Map.empty))))
-
-    example(
-      query = "BACKUP DATABASE mydb TO DISK = 'disk1' WITH ON, OFF, AUTO, DEFAULT",
-      expectedAst =
-        Batch(Seq(BackupDatabase("mydb", Seq("disk1"), Map("ON" -> true, "OFF" -> false), Seq("AUTO"), Map.empty))))
-
-    example(
-      query = "BACKUP DATABASE mydb TO DISK 'd1' WITH COPY_ONLY, limit = 77 KB",
-      expectedAst = Batch(
-        Seq(
-          BackupDatabase(
-            "mydb",
-            Seq("d1"),
-            Map("COPY_ONLY" -> true),
-            List.empty,
-            Map("LIMIT" -> Literal(short = Some(77)))))))
-  }
-
   "translate a SELECT with a TOP clause" should {
     "use LIMIT" in {
       example(
         query = "SELECT TOP 10 * FROM Employees;",
-        expectedAst = Batch(Seq(Project(Limit(namedTable("Employees"), Literal(short = Some(10))), Seq(Star(None))))))
+        expectedAst = Batch(Seq(Project(Limit(namedTable("Employees"), Literal(10)), Seq(Star(None))))))
     }
 
     "use TOP PERCENT" in {
       example(
         query = "SELECT TOP 10 PERCENT * FROM Employees;",
-        expectedAst =
-          Batch(Seq(Project(TopPercent(namedTable("Employees"), Literal(short = Some(10))), Seq(Star(None))))))
+        expectedAst = Batch(Seq(Project(TopPercent(namedTable("Employees"), Literal(10)), Seq(Star(None))))))
 
       example(
         query = "SELECT TOP 10 PERCENT WITH TIES * FROM Employees;",
-        expectedAst = Batch(Seq(
-          Project(TopPercent(namedTable("Employees"), Literal(short = Some(10)), with_ties = true), Seq(Star(None))))))
+        expectedAst =
+          Batch(Seq(Project(TopPercent(namedTable("Employees"), Literal(10), with_ties = true), Seq(Star(None))))))
     }
   }
 
@@ -524,7 +471,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
               namedTable("Employees"),
               Seq(SortOrder(simplyNamedColumn("Salary"), Ascending, SortNullsUnspecified)),
               is_global = false),
-            Literal(short = Some(10))),
+            Literal(10)),
           Seq(Star(None))))))
 
     example(
@@ -537,8 +484,8 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
                 namedTable("Employees"),
                 Seq(SortOrder(simplyNamedColumn("Salary"), Ascending, SortNullsUnspecified)),
                 is_global = false),
-              Literal(short = Some(10))),
-            Literal(short = Some(5))),
+              Literal(10)),
+            Literal(5)),
           Seq(Star(None))))))
   }
 
@@ -553,7 +500,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
                 namedTable("Employees"),
                 Seq(SortOrder(simplyNamedColumn("Salary"), Ascending, SortNullsUnspecified)),
                 is_global = false),
-              Literal(short = Some(10))),
+              Literal(10)),
             List(),
             all_columns_as_keys = true,
             within_watermark = false),
@@ -570,8 +517,8 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
                   namedTable("Employees"),
                   List(SortOrder(simplyNamedColumn("Salary"), Ascending, SortNullsUnspecified)),
                   is_global = false),
-                Literal(short = Some(10))),
-              Literal(short = Some(5))),
+                Literal(10)),
+              Literal(5)),
             List(),
             all_columns_as_keys = true,
             within_watermark = false),
@@ -586,8 +533,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
           child = namedTable("b"),
           group_type = Pivot,
           grouping_expressions = Seq(CallFunction("SUM", Seq(simplyNamedColumn("a")))),
-          pivot =
-            Some(Pivot(simplyNamedColumn("c"), Seq(Literal(string = Some("foo")), Literal(string = Some("bar")))))),
+          pivot = Some(Pivot(simplyNamedColumn("c"), Seq(Literal("foo"), Literal("bar"))))),
         Seq(simplyNamedColumn("a"))))
   }
 
@@ -666,7 +612,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
         Seq(WithOptions(
           Project(namedTable("t"), Seq(Star(None))),
           Options(
-            Map("MAXRECURSION" -> Literal(short = Some(10)), "OPTIMIZE" -> Column(None, Id("FOR", true))),
+            Map("MAXRECURSION" -> Literal(10), "OPTIMIZE" -> Column(None, Id("FOR", true))),
             Map("SOMESTROPT" -> "STRINGOPTION"),
             Map("SOMETHING" -> true, "SOMETHINGELSE" -> false),
             List("SOMEOTHER"))))))
@@ -685,9 +631,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
       expectedAst = Batch(
         Seq(
           Project(
-            TableWithHints(
-              namedTable("t"),
-              Seq(ForceSeekHint(Some(Literal(short = Some(1))), Some(Seq(Id("Col1"), Id("Col2")))))),
+            TableWithHints(namedTable("t"), Seq(ForceSeekHint(Some(Literal(1)), Some(Seq(Id("Col1"), Id("Col2")))))),
             Seq(Star(None))))))
     example(
       query = "SELECT * FROM t WITH (INDEX = (Bill, Ted))",
@@ -710,7 +654,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
           InsertIntoTable(
             namedTable("t"),
             Some(Seq(Id("a"), Id("b"))),
-            DerivedRows(Seq(Seq(Literal(short = Some(1)), Literal(short = Some(2))))),
+            DerivedRows(Seq(Seq(Literal(1), Literal(2)))),
             None,
             None,
             overwrite = false))))
@@ -718,26 +662,26 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
     example(
       query = "INSERT INTO @LocalVar (a, b) VALUES (1, 2)",
       expectedAst = Batch(
-        Seq(InsertIntoTable(
-          LocalVarTable(Id("@LocalVar")),
-          Some(Seq(Id("a"), Id("b"))),
-          DerivedRows(Seq(Seq(Literal(short = Some(1)), Literal(short = Some(2))))),
-          None,
-          None,
-          overwrite = false))))
+        Seq(
+          InsertIntoTable(
+            LocalVarTable(Id("@LocalVar")),
+            Some(Seq(Id("a"), Id("b"))),
+            DerivedRows(Seq(Seq(Literal(1), Literal(2)))),
+            None,
+            None,
+            overwrite = false))))
 
     example(
       query = "INSERT INTO t (a, b) VALUES (1, 2), (3, 4)",
       expectedAst = Batch(
-        Seq(InsertIntoTable(
-          namedTable("t"),
-          Some(Seq(Id("a"), Id("b"))),
-          DerivedRows(Seq(
-            Seq(Literal(short = Some(1)), Literal(short = Some(2))),
-            Seq(Literal(short = Some(3)), Literal(short = Some(4))))),
-          None,
-          None,
-          overwrite = false))))
+        Seq(
+          InsertIntoTable(
+            namedTable("t"),
+            Some(Seq(Id("a"), Id("b"))),
+            DerivedRows(Seq(Seq(Literal(1), Literal(2)), Seq(Literal(3), Literal(4)))),
+            None,
+            None,
+            overwrite = false))))
 
     example(
       query = "INSERT INTO t WITH (TABLOCK) (a, b) VALUES (1, 2)",
@@ -745,7 +689,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
         Seq(InsertIntoTable(
           TableWithHints(namedTable("t"), List(FlagHint("TABLOCK"))),
           Some(Seq(Id("a"), Id("b"))),
-          DerivedRows(Seq(Seq(Literal(short = Some(1)), Literal(short = Some(2))))),
+          DerivedRows(Seq(Seq(Literal(1), Literal(2)))),
           None,
           None,
           overwrite = false))))
@@ -760,11 +704,11 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
         List(InsertIntoTable(
           namedTable("t"),
           Some(List(Id("a"), Id("b"))),
-          DerivedRows(List(List(Literal(short = Some(1)), Literal(short = Some(2))))),
+          DerivedRows(List(List(Literal(1), Literal(2)))),
           Some(tsql.Output(
-            namedTable("Inserted"),
+            Some(namedTable("Inserted")),
             List(
-              Alias(Column(Some(ObjectReference(Id("INSERTED"))), Id("a")), Seq(Id("a_lias")), None),
+              Alias(Column(Some(ObjectReference(Id("INSERTED"))), Id("a")), Id("a_lias")),
               Column(Some(ObjectReference(Id("INSERTED"))), Id("b"))),
             Some(List(simplyNamedColumn("a"), simplyNamedColumn("b"))))),
           None,
@@ -812,15 +756,14 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
     example(
       query = "UPDATE t SET a = 1, b = 2",
       expectedAst = Batch(
-        Seq(UpdateTable(
-          NamedTable("t", Map(), is_streaming = false),
-          None,
-          Seq(
-            Assign(Column(None, Id("a")), Literal(short = Some(1))),
-            Assign(Column(None, Id("b")), Literal(short = Some(2)))),
-          None,
-          None,
-          None))))
+        Seq(
+          UpdateTable(
+            NamedTable("t", Map(), is_streaming = false),
+            None,
+            Seq(Assign(Column(None, Id("a")), Literal(1)), Assign(Column(None, Id("b")), Literal(2))),
+            None,
+            None,
+            None))))
 
     example(
       query = "UPDATE t SET a = 1, b = 2 OUTPUT INSERTED.a as a_lias, INSERTED.b INTO Inserted(a, b)",
@@ -828,14 +771,12 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
         Seq(UpdateTable(
           NamedTable("t", Map(), is_streaming = false),
           None,
-          Seq(
-            Assign(Column(None, Id("a")), Literal(short = Some(1))),
-            Assign(Column(None, Id("b")), Literal(short = Some(2)))),
+          Seq(Assign(Column(None, Id("a")), Literal(1)), Assign(Column(None, Id("b")), Literal(2))),
           None,
           Some(tsql.Output(
-            NamedTable("Inserted", Map(), is_streaming = false),
+            Some(NamedTable("Inserted", Map(), is_streaming = false)),
             Seq(
-              Alias(Column(Some(ObjectReference(Id("INSERTED"))), Id("a")), Seq(Id("a_lias")), None),
+              Alias(Column(Some(ObjectReference(Id("INSERTED"))), Id("a")), Id("a_lias")),
               Column(Some(ObjectReference(Id("INSERTED"))), Id("b"))),
             Some(Seq(Column(None, Id("a")), Column(None, Id("b")))))),
           None))))
@@ -846,9 +787,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
         Seq(UpdateTable(
           NamedTable("t", Map(), is_streaming = false),
           Some(NamedTable("t1", Map(), is_streaming = false)),
-          Seq(
-            Assign(Column(None, Id("a")), Literal(short = Some(1))),
-            Assign(Column(None, Id("b")), Literal(short = Some(2)))),
+          Seq(Assign(Column(None, Id("a")), Literal(1)), Assign(Column(None, Id("b")), Literal(2))),
           Some(
             Equals(Column(Some(ObjectReference(Id("t"))), Id("a")), Column(Some(ObjectReference(Id("t1"))), Id("a")))),
           None,
@@ -861,7 +800,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
           NamedTable("t", Map(), is_streaming = false),
           Some(NamedTable("t1", Map(), is_streaming = false)),
           Seq(
-            Assign(Column(None, Id("a")), Literal(short = Some(1))),
+            Assign(Column(None, Id("a")), Literal(1)),
             UnresolvedFunction(
               "udf.Transform",
               Seq(Column(None, Id("b"))),
@@ -886,9 +825,9 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
           None,
           None,
           Some(tsql.Output(
-            NamedTable("Deleted", Map(), is_streaming = false),
+            Some(NamedTable("Deleted", Map(), is_streaming = false)),
             Seq(
-              Alias(Column(Some(ObjectReference(Id("DELETED"))), Id("a")), Seq(Id("a_lias")), None),
+              Alias(Column(Some(ObjectReference(Id("DELETED"))), Id("a")), Id("a_lias")),
               Column(Some(ObjectReference(Id("DELETED"))), Id("b"))),
             Some(Seq(Column(None, Id("a")), Column(None, Id("b")))))),
           None))))
@@ -968,10 +907,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
                 Assign(Column(None, Id("b")), Column(Some(ObjectReference(Id("s"))), Id("b")))))),
             List.empty),
           Options(
-            Map(
-              "KEEPFIXED" -> Column(None, Id("PLAN")),
-              "FAST" -> Literal(short = Some(666)),
-              "MAX_GRANT_PERCENT" -> Literal(short = Some(30))),
+            Map("KEEPFIXED" -> Column(None, Id("PLAN")), "FAST" -> Literal(666), "MAX_GRANT_PERCENT" -> Literal(30)),
             Map(),
             Map("FLAME" -> false, "QUICKLY" -> true),
             List())))))
@@ -996,7 +932,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
               Seq(
                 simplyNamedColumn("col1"),
                 simplyNamedColumn("fred"),
-                Alias(CallFunction("COUNT", Seq(simplyNamedColumn("OrderDate"))), Seq(Id("counter")), None))),
+                Alias(CallFunction("COUNT", Seq(simplyNamedColumn("OrderDate"))), Id("counter")))),
             Id("s"),
             Seq(Id("a"), Id("b"), Id("col3count")))),
           MergeIntoTable(

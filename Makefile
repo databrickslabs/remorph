@@ -65,3 +65,6 @@ antlr-coverage: build_core_jar
 
 antlr-lint:
 	mvn compile -DskipTests exec:java -pl linter --file pom.xml -Dexec.args="-i core/src/main/antlr4 -o .venv/linter/grammar -c true"
+
+dev-cli:
+	mvn -f core/pom.xml dependency:build-classpath -Dmdep.outputFile=target/classpath.txt

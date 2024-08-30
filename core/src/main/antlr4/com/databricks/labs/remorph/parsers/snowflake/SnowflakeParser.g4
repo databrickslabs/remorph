@@ -41,7 +41,14 @@ snowflakeFile: batch? EOF
 batch: sqlCommand (SEMI* sqlCommand)* SEMI*
     ;
 
-sqlCommand: ddlCommand | dmlCommand | showCommand | useCommand | describeCommand | otherCommand
+sqlCommand
+    : ddlCommand
+    | dmlCommand
+    | showCommand
+    | useCommand
+    | describeCommand
+    | otherCommand
+    | snowSqlCommand
     ;
 
 ddlCommand: alterCommand | createCommand | dropCommand | undropCommand
@@ -145,6 +152,9 @@ otherCommand
     | let
     ;
 
+snowSqlCommand: SQLCOMMAND
+    ;
+
 procStatement
     : call
     | declareCommand
@@ -154,7 +164,7 @@ procStatement
     | unresolvedStatement
     ;
 
-unresolvedStatement: STRING | DBL_DOLLAR
+unresolvedStatement: string
     ;
 
 beginTxn: BEGIN (WORK | TRANSACTION)? (NAME id)? | START TRANSACTION ( NAME id)?
@@ -182,11 +192,11 @@ declareStatement
     | id dataType DEFAULT expr SEMI                      # declareWithDefault
     | id CURSOR FOR expr SEMI                            # declareCursor
     | id RESULTSET ((ASSIGN | DEFAULT) expr)? SEMI       # declareResultSet
-    | id EXCEPTION L_PAREN INT COMMA STRING R_PAREN SEMI # declareException
+    | id EXCEPTION L_PAREN INT COMMA string R_PAREN SEMI # declareException
     ;
 
 externalLocation
-    : STRING
+    : string
     //(for Amazon S3)
     //'s3://<bucket>[/<path>]'
     //        ( ( STORAGE_INTEGRATION EQ id_ )?
@@ -254,9 +264,7 @@ functionSignature: L_PAREN dataTypeList? R_PAREN
 commit: COMMIT WORK?
     ;
 
-executeImmediate
-    : EXECUTE IMMEDIATE (string | id | ID2) (USING L_PAREN id (COMMA id)* R_PAREN)?
-    | EXECUTE IMMEDIATE DBL_DOLLAR
+executeImmediate: EXECUTE IMMEDIATE (string | id | ID2) (USING L_PAREN id (COMMA id)* R_PAREN)?
     ;
 
 executeTask: EXECUTE TASK objectName
@@ -268,7 +276,7 @@ explain: EXPLAIN (USING (TABULAR | JSON | TEXT))? sqlCommand
 parallel: PARALLEL EQ num
     ;
 
-getDml: GET (namedStage | userStage | tableStage) STRING parallel? pattern?
+getDml: GET (namedStage | userStage | tableStage) string parallel? pattern?
     ;
 
 grantOwnership
@@ -431,7 +439,7 @@ stagePath: DIVIDE (ID (DIVIDE ID)* DIVIDE?)?
     ;
 
 put
-    : PUT STRING (tableStage | userStage | namedStage) (PARALLEL EQ num)? (
+    : PUT string (tableStage | userStage | namedStage) (PARALLEL EQ num)? (
         AUTO_COMPRESS EQ trueFalse
     )? (
         SOURCE_COMPRESSION EQ (
@@ -1512,7 +1520,7 @@ createFailoverGroup
     | CREATE FAILOVER GROUP ifNotExists? id AS REPLICA OF id DOT id DOT id
     ;
 
-typeFileformat: CSV | JSON | AVRO | ORC | PARQUET | XML | STRING
+typeFileformat: CSV | JSON | AVRO | ORC | PARQUET | XML | string
     ;
 
 createFileFormat
@@ -1531,7 +1539,7 @@ colDecl: columnName dataType virtualColumnDecl?
 virtualColumnDecl: AS L_PAREN functionCall R_PAREN
     ;
 
-functionDefinition: string | DBL_DOLLAR
+functionDefinition: string
     ;
 
 createFunction
@@ -1621,7 +1629,7 @@ callerOwner: CALLER | OWNER
 executaAs: EXECUTE AS callerOwner
     ;
 
-procedureDefinition: DBL_DOLLAR | declareCommand? BEGIN procStatement+ END SEMI
+procedureDefinition: DOLLAR_STRING | declareCommand? BEGIN procStatement+ END SEMI
     ;
 
 notNull: NOT NULL_
@@ -1744,7 +1752,7 @@ createSecurityIntegrationSaml2
     ;
 
 createSecurityIntegrationScim
-    : CREATE orReplace? SECURITY INTEGRATION ifNotExists? id TYPE EQ SCIM SCIM_CLIENT EQ STRING RUN_AS_ROLE EQ STRING networkPolicy? (
+    : CREATE orReplace? SECURITY INTEGRATION ifNotExists? id TYPE EQ SCIM SCIM_CLIENT EQ string RUN_AS_ROLE EQ string networkPolicy? (
         SYNC_PASSWORD EQ trueFalse
     )? commentClause?
     ;
@@ -1786,7 +1794,7 @@ formatTypeOptions
     | TIME_FORMAT EQ (string | AUTO)
     | TIMESTAMP_FORMAT EQ (string | AUTO)
     | BINARY_FORMAT EQ (HEX | BASE64 | UTF8)
-    | ESCAPE EQ (STRING | NONE)
+    | ESCAPE EQ (string | NONE)
     | ESCAPE_UNENCLOSED_FIELD EQ (string | NONE)
     | TRIM_SPACE EQ trueFalse
     | FIELD_OPTIONALLY_ENCLOSED_BY EQ (string | NONE)
@@ -1874,10 +1882,10 @@ storageEncryption: ENCRYPTION EQ parenStringOptions
 parenStringOptions: L_PAREN stringOption* R_PAREN
     ;
 
-stringOption: id EQ STRING
+stringOption: id EQ string
     ;
 
-externalStageParams: URL EQ STRING storageIntegrationEqId? storageCredentials? storageEncryption?
+externalStageParams: URL EQ string storageIntegrationEqId? storageCredentials? storageEncryption?
     ;
 
 trueFalse: TRUE | FALSE
@@ -1943,7 +1951,7 @@ showStages: SHOW STAGES likePattern? inObj?
 /* ===========  End of stage DDL section =========== */
 
 cloudProviderParams
-    : STORAGE_PROVIDER EQ STRING (
+    : STORAGE_PROVIDER EQ string (
         AZURE_TENANT_ID EQ (string | ID)
         | STORAGE_AWS_ROLE_ARN EQ string (STORAGE_AWS_OBJECT_ACL EQ string)?
     )?
@@ -2217,7 +2225,7 @@ taskErrorIntegration: ERROR_INTEGRATION EQ id
 taskOverlap: ALLOW_OVERLAPPING_EXECUTION EQ trueFalse
     ;
 
-sql: EXECUTE IMMEDIATE DBL_DOLLAR | sqlCommand | call
+sql: EXECUTE IMMEDIATE DOLLAR_STRING | sqlCommand | call
     ;
 
 // Snowfllake allows calls to special internal stored procedures, named x.y!entrypoint
@@ -2571,7 +2579,7 @@ describePipe: describe PIPE objectName
 describeProcedure: describe PROCEDURE objectName argTypes
     ;
 
-describeResult: describe RESULT (STRING | LAST_QUERY_ID L_PAREN R_PAREN)
+describeResult: describe RESULT (string | LAST_QUERY_ID L_PAREN R_PAREN)
     ;
 
 describeRowAccessPolicy: describe ROW ACCESS POLICY id
@@ -2941,7 +2949,21 @@ regionGroupId: id
 snowflakeRegionId: id
     ;
 
-string: STRING
+// Strings are not a single token match but a stream of parts which may consist
+// of variable references as well as plain text.
+string: STRING_START stringPart* STRING_END | DOLLAR_STRING
+    ;
+
+stringPart
+    : (
+        VAR_SIMPLE
+        | VAR_COMPLEX
+        | STRING_CONTENT
+        | STRING_UNICODE
+        | STRING_ESCAPE
+        | STRING_SQUOTE
+        | STRING_AMPAMP
+    )
     ;
 
 stringList: string (COMMA string)*
@@ -2955,6 +2977,7 @@ id
     | ID2
     | DOUBLE_QUOTE_ID
     | DOUBLE_QUOTE_BLANK
+    | AMP LCB? ID RCB? // Snowflake variables from CLI or injection - we rely on valid input
     | nonReservedWords //id is used for object name. Snowflake is very permissive
     ;
 
@@ -3013,6 +3036,7 @@ nonReservedWords
     | LAST_QUERY_ID
     | LEAD
     | LENGTH
+    | LISTAGG
     | LOCAL
     | MAX_CONCURRENCY_LEVEL
     | MODE
@@ -3113,6 +3137,7 @@ expr
     | expr op = (STAR | DIVIDE | MODULE) expr   # exprPrecedence0
     | expr op = (PLUS | MINUS | PIPE_PIPE) expr # exprPrecedence1
     | expr comparisonOperator expr              # exprComparison
+    | expr predicatePartial                     # exprPredicate
     | op = NOT+ expr                            # exprNot
     | expr AND expr                             # exprAnd
     | expr OR expr                              # exprOr
@@ -3121,7 +3146,6 @@ expr
     | castExpr                                  # exprCast
     | expr COLON_COLON dataType                 # exprAscribe
     | functionCall                              # exprFuncCall
-    | expr predicatePartial                     # exprPredicate
     | DISTINCT expr                             # exprDistinct
     | L_PAREN subquery R_PAREN                  # exprSubquery
     | primitiveExpression                       # exprPrimitive
@@ -3152,7 +3176,7 @@ castExpr: castOp = (TRY_CAST | CAST) L_PAREN expr AS dataType R_PAREN | INTERVAL
 jsonLiteral: LCB kvPair (COMMA kvPair)* RCB | LCB RCB
     ;
 
-kvPair: key = STRING COLON literal
+kvPair: key = string COLON literal
     ;
 
 arrayLiteral: LSB literal (COMMA literal)* RSB | LSB RSB
@@ -3218,7 +3242,7 @@ windowFrameBound: UNBOUNDED (PRECEDING | FOLLOWING) | num (PRECEDING | FOLLOWING
 functionCall: builtinFunction | standardFunction | rankingWindowedFunction | aggregateFunction
     ;
 
-builtinFunction: EXTRACT L_PAREN part = (STRING | ID) FROM expr R_PAREN # builtinExtract
+builtinFunction: EXTRACT L_PAREN (string | ID) FROM expr R_PAREN # builtinExtract
     ;
 
 standardFunction: functionName L_PAREN (exprList | paramAssocList)? R_PAREN
@@ -3255,7 +3279,7 @@ aggregateFunction
 literal
     : DATE_LIT
     | TIMESTAMP_LIT
-    | STRING
+    | string
     | sign? DECIMAL
     | sign? (REAL | FLOAT)
     | trueFalse
@@ -3363,9 +3387,7 @@ fromClause
 tableSources: tableSource (COMMA tableSource)*
     ;
 
-tableSource
-    : tableSourceItemJoined sample?
-    //| L_PAREN tableSource R_PAREN
+tableSource: tableSourceItemJoined sample? | L_PAREN tableSource R_PAREN
     ;
 
 tableSourceItemJoined: objectRef joinClause* | L_PAREN tableSourceItemJoined R_PAREN joinClause*

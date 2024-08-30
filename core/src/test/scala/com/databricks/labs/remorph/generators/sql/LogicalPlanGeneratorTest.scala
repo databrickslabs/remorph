@@ -18,9 +18,7 @@ class LogicalPlanGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.L
       ir.WithOptions(
         ir.Project(namedTable("t"), Seq(ir.Star(None))),
         ir.Options(
-          Map(
-            "MAXRECURSION" -> ir.Literal(short = Some(10)),
-            "OPTIMIZE" -> ir.Column(None, ir.Id("FOR", caseSensitive = true))),
+          Map("MAXRECURSION" -> ir.Literal(10), "OPTIMIZE" -> ir.Column(None, ir.Id("FOR", caseSensitive = true))),
           Map("SOMESTROPT" -> "STRINGOPTION"),
           Map("SOMETHING" -> true, "SOMETHINGELSE" -> false),
           List("SOMEOTHER"))) generates
@@ -30,7 +28,7 @@ class LogicalPlanGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.L
             |    Expression options:
             |
             |     MAXRECURSION = 10
-            |     OPTIMIZE = "FOR"
+            |     OPTIMIZE = `FOR`
             |
             |    String options:
             |
@@ -83,11 +81,13 @@ class LogicalPlanGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.L
               ir.Assign(ir.Column(None, ir.Id("a")), ir.Column(Some(ir.ObjectReference(ir.Id("s"))), ir.Id("a"))),
               ir.Assign(ir.Column(None, ir.Id("b")), ir.Column(Some(ir.ObjectReference(ir.Id("s"))), ir.Id("b")))))),
         List.empty) generates
-        "MERGE INTO t USING s ON t.a = s.a" +
-        " WHEN MATCHED THEN UPDATE SET t.b = s.b" +
-        " WHEN MATCHED AND s.b < 10 THEN DELETE" +
-        " WHEN NOT MATCHED THEN INSERT (a, b) VALUES (s.a, s.b)" +
-        ";"
+        s"""MERGE INTO t
+           |USING s
+           |ON t.a = s.a
+           | WHEN MATCHED THEN UPDATE SET t.b = s.b WHEN MATCHED AND s.b < 10 THEN DELETE
+           | WHEN NOT MATCHED THEN INSERT (a, b) VALUES (s.a, s.b)
+           |
+           |""".stripMargin
     }
     "transpile to MERGE with comments" in {
       ir.WithOptions(
@@ -114,8 +114,8 @@ class LogicalPlanGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.L
         ir.Options(
           Map(
             "KEEPFIXED" -> ir.Column(None, ir.Id("PLAN")),
-            "FAST" -> ir.Literal(short = Some(666)),
-            "MAX_GRANT_PERCENT" -> ir.Literal(short = Some(30))),
+            "FAST" -> ir.Literal(666),
+            "MAX_GRANT_PERCENT" -> ir.Literal(30)),
           Map(),
           Map("FLAME" -> false, "QUICKLY" -> true),
           List())) generates
@@ -135,11 +135,44 @@ class LogicalPlanGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.L
           |
           |
           | */
-          |""".stripMargin +
-        "MERGE INTO t USING s ON t.a = s.a" +
-        " WHEN MATCHED THEN UPDATE SET t.b = s.b" +
-        " WHEN NOT MATCHED THEN INSERT (a, b) VALUES (s.a, s.b)" +
-        ";"
+          |MERGE INTO t
+          |USING s
+          |ON t.a = s.a
+          | WHEN MATCHED THEN UPDATE SET t.b = s.b
+          | WHEN NOT MATCHED THEN INSERT (a, b) VALUES (s.a, s.b)
+          |
+          |""".stripMargin
+    }
+  }
+
+  "UpdateTable" should {
+    "transpile to UPDATE" in {
+      ir.UpdateTable(
+        namedTable("t"),
+        None,
+        Seq(
+          ir.Assign(ir.Column(None, ir.Id("a")), ir.Literal(1)),
+          ir.Assign(ir.Column(None, ir.Id("b")), ir.Literal(2))),
+        Some(ir.Equals(ir.Column(None, ir.Id("c")), ir.Literal(3)))) generates
+        "UPDATE t SET a = 1, b = 2 WHERE c = 3"
+    }
+  }
+
+  "InsertIntoTable" should {
+    "transpile to INSERT" in {
+      ir.InsertIntoTable(
+        namedTable("t"),
+        Some(Seq(ir.Id("a"), ir.Id("b"))),
+        ir.Values(Seq(Seq(ir.Literal(1), ir.Literal(2))))) generates "INSERT INTO t (a, b) VALUES (1,2)"
+    }
+  }
+
+  "DeleteFromTable" should {
+    "transpile to DELETE" in {
+      ir.DeleteFromTable(
+        target = namedTable("t"),
+        where = Some(ir.Equals(ir.Column(None, ir.Id("c")), ir.Literal(3)))) generates
+        "DELETE FROM t WHERE c = 3"
     }
   }
 
@@ -153,7 +186,7 @@ class LogicalPlanGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.L
         None,
         ir.InnerJoin,
         Seq(),
-        ir.JoinDataType(is_left_struct = false, is_right_struct = false)) generates "t1 INNER JOIN t2"
+        ir.JoinDataType(is_left_struct = false, is_right_struct = false)) generates "t1, t2"
 
       ir.Join(
         namedTable("t1"),
@@ -171,7 +204,7 @@ class LogicalPlanGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.L
         Seq("c1", "c2"),
         ir.JoinDataType(
           is_left_struct = false,
-          is_right_struct = false)) generates "t1 RIGHT OUTER JOIN t2 ON IS_DATE(c1) USING (c1, c2)"
+          is_right_struct = false)) generates "t1 RIGHT JOIN t2 ON IS_DATE(c1) USING (c1, c2)"
 
       ir.Join(
         namedTable("t1"),
@@ -179,7 +212,7 @@ class LogicalPlanGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.L
         None,
         ir.NaturalJoin(ir.LeftOuterJoin),
         Seq(),
-        ir.JoinDataType(is_left_struct = false, is_right_struct = false)) generates "t1 NATURAL LEFT OUTER JOIN t2"
+        ir.JoinDataType(is_left_struct = false, is_right_struct = false)) generates "t1 NATURAL LEFT JOIN t2"
     }
   }
 
@@ -310,4 +343,27 @@ class LogicalPlanGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.L
       Seq(ir.Id("c1"), ir.Id("c2"), ir.Id("c3"))) generates "table1 AS t1(c1, c2, c3)"
   }
 
+  "CreateTableCommand" should {
+    "transpile to CREATE TABLE" in {
+      ir.CreateTableCommand(
+        "t1",
+        Seq(
+          ir.ColumnDeclaration(
+            "c1",
+            ir.IntegerType,
+            constraints = Seq(ir.Nullability(nullable = false), ir.PrimaryKey)),
+          ir.ColumnDeclaration(
+            "c2",
+            ir.StringType))) generates "CREATE TABLE t1 (c1 INT NOT NULL PRIMARY KEY, c2 STRING )"
+    }
+  }
+
+  "TableSample" should {
+    "transpile to TABLESAMPLE" in {
+      ir.TableSample(
+        namedTable("t1"),
+        ir.RowSamplingFixedAmount(BigDecimal(10)),
+        Some(BigDecimal(10))) generates "(t1) TABLESAMPLE (10 ROWS) REPEATABLE (10)"
+    }
+  }
 }

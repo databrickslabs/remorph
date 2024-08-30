@@ -57,9 +57,9 @@ class SnowflakeRelationBuilder
       projectExpressions: Seq[ir.Expression]): ir.LogicalPlan =
     if (Option(ctx).exists(_.DISTINCT() != null)) {
       val columnNames = projectExpressions.collect {
-        case ir.Column(_, c) => Seq(c)
-        case ir.Alias(_, a, _) => a
-      }.flatten
+        case ir.Column(_, c) => c
+        case ir.Alias(_, a) => a
+      }
       ir.Deduplicate(input, columnNames, columnNames.isEmpty, within_watermark = false)
     } else {
       input
@@ -227,7 +227,10 @@ class SnowflakeRelationBuilder
   }
 
   override def visitTableSource(ctx: TableSourceContext): ir.LogicalPlan = {
-    val tableSource = ctx.tableSourceItemJoined().accept(this)
+    val tableSource = ctx match {
+      case c if c.tableSourceItemJoined() != null => c.tableSourceItemJoined().accept(this)
+      case c if c.tableSource() != null => c.tableSource().accept(this)
+    }
     buildSample(ctx.sample(), tableSource)
   }
 

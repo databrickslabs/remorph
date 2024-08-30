@@ -1,12 +1,11 @@
 --------------------------------------------------------------------------------
-
-DROP TABLE if EXISTS partsupp;
-CREATE TABLE if NOT EXISTS partsupp (
+CREATE TABLE partsupp (
   ps_partkey BIGINT,
   ps_suppkey BIGINT,
   ps_availqty INT,
   ps_supplycost DECIMAL(18,2),
-  ps_comment STRING);
+  ps_comment VARCHAR(500)
+  );
 
 --------------------------------------------------------------------------------
 

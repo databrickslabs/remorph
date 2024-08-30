@@ -21,37 +21,44 @@ class TSqlRelationBuilderSpec
       example("", _.selectOptionalClauses(), ir.NoTable())
     }
 
-    "translate FROM clauses" in {
-      example("FROM some_table", _.fromClause(), namedTable("some_table"))
-      example("FROM some_schema.some_table", _.fromClause(), namedTable("some_schema.some_table"))
-      example("FROM some_server..some_table", _.fromClause(), namedTable("some_server..some_table"))
-
-      example(
-        "FROM t1, t2, t3",
-        _.fromClause(),
-        ir.Join(
+    "translate FROM clauses" should {
+      "FROM some_table" in {
+        example("FROM some_table", _.fromClause(), namedTable("some_table"))
+      }
+      "FROM some_schema.some_table" in {
+        example("FROM some_schema.some_table", _.fromClause(), namedTable("some_schema.some_table"))
+      }
+      "FROM some_server..some_table" in {
+        example("FROM some_server..some_table", _.fromClause(), namedTable("some_server..some_table"))
+      }
+      "FROM t1, t2, t3" in {
+        example(
+          "FROM t1, t2, t3",
+          _.fromClause(),
           ir.Join(
-            namedTable("t1"),
-            namedTable("t2"),
+            ir.Join(
+              namedTable("t1"),
+              namedTable("t2"),
+              None,
+              ir.CrossJoin,
+              Seq(),
+              ir.JoinDataType(is_left_struct = false, is_right_struct = false)),
+            namedTable("t3"),
             None,
             ir.CrossJoin,
             Seq(),
-            ir.JoinDataType(is_left_struct = false, is_right_struct = false)),
-          namedTable("t3"),
-          None,
-          ir.CrossJoin,
-          Seq(),
-          ir.JoinDataType(is_left_struct = false, is_right_struct = false)))
+            ir.JoinDataType(is_left_struct = false, is_right_struct = false)))
+      }
     }
 
-    "translate WHERE clauses" in {
+    "FROM some_table WHERE 1=1" in {
       example(
         "FROM some_table WHERE 1=1",
         _.selectOptionalClauses(),
-        ir.Filter(namedTable("some_table"), ir.Equals(ir.Literal(short = Some(1)), ir.Literal(short = Some(1)))))
+        ir.Filter(namedTable("some_table"), ir.Equals(ir.Literal(1), ir.Literal(1))))
     }
 
-    "translate GROUP BY clauses" in {
+    "FROM some_table GROUP BY some_column" in {
       example(
         "FROM some_table GROUP BY some_column",
         _.selectOptionalClauses(),
@@ -60,60 +67,65 @@ class TSqlRelationBuilderSpec
           group_type = ir.GroupBy,
           grouping_expressions = Seq(simplyNamedColumn("some_column")),
           pivot = None))
-
     }
 
-    "translate ORDER BY clauses" in {
-      example(
-        "FROM some_table ORDER BY some_column",
-        _.selectOptionalClauses(),
-        ir.Sort(
-          namedTable("some_table"),
-          Seq(ir.SortOrder(simplyNamedColumn("some_column"), ir.Ascending, ir.SortNullsUnspecified)),
-          is_global = false))
-      example(
-        "FROM some_table ORDER BY some_column ASC",
-        _.selectOptionalClauses(),
-        ir.Sort(
-          namedTable("some_table"),
-          Seq(ir.SortOrder(simplyNamedColumn("some_column"), ir.Ascending, ir.SortNullsUnspecified)),
-          is_global = false))
-      example(
-        "FROM some_table ORDER BY some_column DESC",
-        _.selectOptionalClauses(),
-        ir.Sort(
-          namedTable("some_table"),
-          Seq(ir.SortOrder(simplyNamedColumn("some_column"), ir.Descending, ir.SortNullsUnspecified)),
-          is_global = false))
+    "translate ORDER BY clauses" should {
+      "FROM some_table ORDER BY some_column" in {
+        example(
+          "FROM some_table ORDER BY some_column",
+          _.selectOptionalClauses(),
+          ir.Sort(
+            namedTable("some_table"),
+            Seq(ir.SortOrder(simplyNamedColumn("some_column"), ir.Ascending, ir.SortNullsUnspecified)),
+            is_global = false))
+      }
+      "FROM some_table ORDER BY some_column ASC" in {
+        example(
+          "FROM some_table ORDER BY some_column ASC",
+          _.selectOptionalClauses(),
+          ir.Sort(
+            namedTable("some_table"),
+            Seq(ir.SortOrder(simplyNamedColumn("some_column"), ir.Ascending, ir.SortNullsUnspecified)),
+            is_global = false))
+      }
+      "FROM some_table ORDER BY some_column DESC" in {
+        example(
+          "FROM some_table ORDER BY some_column DESC",
+          _.selectOptionalClauses(),
+          ir.Sort(
+            namedTable("some_table"),
+            Seq(ir.SortOrder(simplyNamedColumn("some_column"), ir.Descending, ir.SortNullsUnspecified)),
+            is_global = false))
+      }
     }
 
-    "translate combinations of the above" in {
-      example(
-        "FROM some_table WHERE 1=1 GROUP BY some_column",
-        _.selectOptionalClauses(),
-        ir.Aggregate(
-          child =
-            ir.Filter(namedTable("some_table"), ir.Equals(ir.Literal(short = Some(1)), ir.Literal(short = Some(1)))),
-          group_type = ir.GroupBy,
-          grouping_expressions = Seq(simplyNamedColumn("some_column")),
-          pivot = None))
-
-      example(
-        "FROM some_table WHERE 1=1 GROUP BY some_column ORDER BY some_column",
-        _.selectOptionalClauses(),
-        ir.Sort(
+    "translate combinations of the above" should {
+      "FROM some_table WHERE 1=1 GROUP BY some_column" in {
+        example(
+          "FROM some_table WHERE 1=1 GROUP BY some_column",
+          _.selectOptionalClauses(),
           ir.Aggregate(
-            child =
-              ir.Filter(namedTable("some_table"), ir.Equals(ir.Literal(short = Some(1)), ir.Literal(short = Some(1)))),
+            child = ir.Filter(namedTable("some_table"), ir.Equals(ir.Literal(1), ir.Literal(1))),
             group_type = ir.GroupBy,
             grouping_expressions = Seq(simplyNamedColumn("some_column")),
-            pivot = None),
-          Seq(ir.SortOrder(simplyNamedColumn("some_column"), ir.Ascending, ir.SortNullsUnspecified)),
-          is_global = false))
-
+            pivot = None))
+      }
+      "FROM some_table WHERE 1=1 GROUP BY some_column ORDER BY some_column" in {
+        example(
+          "FROM some_table WHERE 1=1 GROUP BY some_column ORDER BY some_column",
+          _.selectOptionalClauses(),
+          ir.Sort(
+            ir.Aggregate(
+              child = ir.Filter(namedTable("some_table"), ir.Equals(ir.Literal(1), ir.Literal(1))),
+              group_type = ir.GroupBy,
+              grouping_expressions = Seq(simplyNamedColumn("some_column")),
+              pivot = None),
+            Seq(ir.SortOrder(simplyNamedColumn("some_column"), ir.Ascending, ir.SortNullsUnspecified)),
+            is_global = false))
+      }
     }
 
-    "translate CTE definitions" in {
+    "WITH a (b, c) AS (SELECT x, y FROM d)" in {
       example(
         "WITH a (b, c) AS (SELECT x, y FROM d)",
         _.withExpression(),
@@ -123,7 +135,7 @@ class TSqlRelationBuilderSpec
           Seq(ir.Id("b"), ir.Id("c"))))
     }
 
-    "translate SELECT DISTINCT clauses" in {
+    "SELECT DISTINCT a, b AS bb FROM t" in {
       example(
         "SELECT DISTINCT a, b AS bb FROM t",
         _.selectStatement(),
@@ -133,10 +145,10 @@ class TSqlRelationBuilderSpec
             column_names = Seq(ir.Id("a"), ir.Id("bb")),
             all_columns_as_keys = false,
             within_watermark = false),
-          Seq(simplyNamedColumn("a"), ir.Alias(simplyNamedColumn("b"), Seq(ir.Id("bb")), None))))
+          Seq(simplyNamedColumn("a"), ir.Alias(simplyNamedColumn("b"), ir.Id("bb")))))
     }
 
-    "translate derived tables with list of column aliases" in {
+    "SELECT a, b AS bb FROM (SELECT x, y FROM d) AS t (aliasA, 'aliasB')" in {
       example(
         "SELECT a, b AS bb FROM (SELECT x, y FROM d) AS t (aliasA, 'aliasB')",
         _.selectStatement(),
@@ -148,7 +160,7 @@ class TSqlRelationBuilderSpec
                 Seq(ir.Column(None, ir.Id("x")), ir.Column(None, ir.Id("y")))),
               Seq(ir.Id("aliasA"), ir.Id("aliasB"))),
             "t"),
-          Seq(ir.Column(None, ir.Id("a")), ir.Alias(ir.Column(None, ir.Id("b")), Seq(ir.Id("bb")), None))))
+          Seq(ir.Column(None, ir.Id("a")), ir.Alias(ir.Column(None, ir.Id("b")), ir.Id("bb")))))
     }
   }
 }

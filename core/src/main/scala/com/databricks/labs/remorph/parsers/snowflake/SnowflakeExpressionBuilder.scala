@@ -5,7 +5,7 @@ import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser.{StringCont
 import com.databricks.labs.remorph.parsers.{IncompleteParser, ParserCommon, intermediate => ir}
 import org.antlr.v4.runtime.Token
 
-import java.time.{LocalDateTime, ZoneOffset}
+import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import scala.collection.JavaConverters._
 import scala.util.Try
@@ -26,6 +26,19 @@ class SnowflakeExpressionBuilder()
     case c if c.DOUBLE_QUOTE_ID() != null =>
       val idValue = c.getText.trim.stripPrefix("\"").stripSuffix("\"").replaceAll("\"\"", "\"")
       ir.Id(idValue, caseSensitive = true)
+    case v if v.AMP() != null =>
+      // Note that there is nothing special about &id other than they become $id in Databricks
+      // Many places in the builder concatenate the output of visitId with other strings and so we
+      // lose the ir.Dot(ir.Variable, ir.Id) that we could pick up and therefore propagate ir.Variable if
+      // we wanted to leave the translation to generate phase. I think we probably do want to do that, but
+      // a lot of code has bypassed accept() and called visitId directly, and expects ir.Id, then uses fields from it.
+      //
+      // To rework that is quite a big job. So, for now, we translate &id to $id here. It is not wrong for the id rule
+      // to hold the AMP ID alt, but ideally it would produce an ir.Variable and we would process that at generation
+      // time instead of concatenating into strings :(
+      ir.Id(s"$$${v.ID().getText}")
+    case d if d.ID2() != null =>
+      ir.Id(s"$$${d.ID2().getText.drop(1)}")
     case id => ir.Id(id.getText)
   }
 
@@ -66,7 +79,7 @@ class SnowflakeExpressionBuilder()
   private def buildAlias(ctx: AsAliasContext, input: ir.Expression): ir.Expression =
     Option(ctx).fold(input) { c =>
       val alias = visitId(c.alias().id())
-      ir.Alias(input, Seq(alias), None)
+      ir.Alias(input, alias)
     }
   override def visitColumnName(ctx: ColumnNameContext): ir.Expression = {
     ctx.id().asScala match {
@@ -94,50 +107,93 @@ class SnowflakeExpressionBuilder()
     ir.SortOrder(ctx.expr().accept(this), direction, nullOrdering)
   }
 
-  override def visitLiteral(ctx: LiteralContext): ir.Literal = {
+  override def visitLiteral(ctx: LiteralContext): ir.Expression = {
     val sign = Option(ctx.sign()).map(_ => "-").getOrElse("")
     ctx match {
       case c if c.DATE_LIT() != null =>
         val dateStr = c.DATE_LIT().getText.stripPrefix("DATE'").stripSuffix("'")
         Try(java.time.LocalDate.parse(dateStr))
-          .map(date => ir.Literal(date = Some(date.toEpochDay)))
-          .getOrElse(ir.Literal(nullType = Some(ir.NullType)))
+          .map(ir.Literal(_))
+          .getOrElse(ir.Literal.Null)
       case c if c.TIMESTAMP_LIT() != null =>
         val timestampStr = c.TIMESTAMP_LIT().getText.stripPrefix("TIMESTAMP'").stripSuffix("'")
         val format = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
         Try(LocalDateTime.parse(timestampStr, format))
-          .map(dt => ir.Literal(timestamp = Some(dt.toEpochSecond(ZoneOffset.UTC))))
-          .getOrElse(ir.Literal(nullType = Some(ir.NullType)))
-      case c if c.STRING() != null => ir.Literal(string = Some(removeQuotes(c.STRING().getText)))
-      case c if c.DECIMAL() != null => buildLiteralNumber(sign + c.DECIMAL().getText)
-      case c if c.FLOAT() != null => buildLiteralNumber(sign + c.FLOAT().getText)
-      case c if c.REAL() != null => buildLiteralNumber(sign + c.REAL().getText)
-      case c if c.NULL_() != null => ir.Literal(nullType = Some(ir.NullType))
+          .map(ir.Literal(_))
+          .getOrElse(ir.Literal.Null)
+      case c if c.string() != null => c.string.accept(this)
+      case c if c.DECIMAL() != null => ir.NumericLiteral(sign + c.DECIMAL().getText)
+      case c if c.FLOAT() != null => ir.NumericLiteral(sign + c.FLOAT().getText)
+      case c if c.REAL() != null => ir.NumericLiteral(sign + c.REAL().getText)
+      case c if c.NULL_() != null => ir.Literal.Null
       case c if c.trueFalse() != null => visitTrueFalse(c.trueFalse())
       case c if c.jsonLiteral() != null => visitJsonLiteral(c.jsonLiteral())
       case c if c.arrayLiteral() != null => visitArrayLiteral(c.arrayLiteral())
-      case _ => ir.Literal(nullType = Some(ir.NullType))
+      case _ => ir.Literal.Null
     }
   }
 
-  override def visitNum(ctx: NumContext): ir.Literal = buildLiteralNumber(ctx.getText)
+  /**
+   * Reconstruct a string literal from its composite parts, translating variable
+   * references on the fly.
+   * <p>
+   *   A string literal is a sequence of tokens identifying either a variable reference
+   *   or a piece of normal text. At this point in time, we basically re-assemble the pieces
+   *   here into an ir.StringLiteral. The variable references are translated here into the Databricks
+   *   SQL equivalent, which is $id.
+   * </p>
+   * <p>
+   *   Note however that we really should be generating  something like ir.CompositeString(Seq[something])
+   *   and then anywhere our ir currently uses a String ir ir.StringLiteral, we should be using ir.CompositeString,
+   *   which will then be correctly translated at generation time. We wil get there in increments however - for
+   *   now, this hack will correctly translate variable references in string literals.
+   * </p>
+   *
+   * @param ctx the parse tree
+   */
+  override def visitString(ctx: SnowflakeParser.StringContext): ir.Expression = {
+    ctx match {
+
+      // $$string$$ means interpret the string as raw string with no variable substitution, escape sequences, etc.
+      // TODO: Do we need a raw flag in the ir.StringLiteral so that we generate r'sdfsdfsdsfds' for Databricks SQL?
+      //       or is r'string' a separate Ir in Spark?
+      case ds if ctx.DOLLAR_STRING() != null =>
+        val str = ctx.DOLLAR_STRING().getText.stripPrefix("$$").stripSuffix("$$")
+        ir.StringLiteral(str)
+
+      // Else we must have composite string literal
+      case _ =>
+        val str = if (ctx.stringPart() == null) {
+          ""
+        } else {
+          ctx
+            .stringPart()
+            .asScala
+            .map {
+              case p if p.VAR_SIMPLE() != null => s"$${${p.VAR_SIMPLE().getText.drop(1)}}" // &var => ${var} (soon)
+              case p if p.VAR_COMPLEX() != null => s"$$${p.VAR_COMPLEX().getText.drop(1)}" // &{var} => ${var}
+              case p if p.STRING_AMPAMP() != null => "&" // && => &
+              case p if p.STRING_CONTENT() != null => p.STRING_CONTENT().getText
+              case p if p.STRING_ESCAPE() != null => p.STRING_ESCAPE().getText
+              case p if p.STRING_SQUOTE() != null => "''" // Escaped single quote
+              case p if p.STRING_UNICODE() != null => p.STRING_UNICODE().getText
+              case _ => removeQuotes(ctx.getText)
+            }
+            .mkString
+        }
+        ir.StringLiteral(str)
+    }
+  }
+
+  override def visitNum(ctx: NumContext): ir.Expression = ir.NumericLiteral(ctx.getText)
 
   private def removeQuotes(str: String): String = {
     str.stripPrefix("'").stripSuffix("'")
   }
 
   override def visitTrueFalse(ctx: TrueFalseContext): ir.Literal = ctx.TRUE() match {
-    case null => ir.Literal(boolean = Some(false))
-    case _ => ir.Literal(boolean = Some(true))
-  }
-
-  private def buildLiteralNumber(decimal: String): ir.Literal = BigDecimal(decimal) match {
-    case d if d.isValidShort => ir.Literal(short = Some(d.toShort))
-    case d if d.isValidInt => ir.Literal(integer = Some(d.toInt))
-    case d if d.isValidLong => ir.Literal(long = Some(d.toLong))
-    case d if d.isDecimalFloat || d.isExactFloat => ir.Literal(float = Some(d.toFloat))
-    case d if d.isDecimalDouble || d.isExactDouble => ir.Literal(double = Some(d.toDouble))
-    case _ => ir.Literal(decimal = Some(ir.Decimal(decimal, None, None)))
+    case null => ir.Literal.False
+    case _ => ir.Literal.True
   }
 
   override def visitExprPrecedence(ctx: ExprPrecedenceContext): ir.Expression = {
@@ -221,17 +277,19 @@ class SnowflakeExpressionBuilder()
     buildBinaryOperation(ctx.op, ctx.expr(0).accept(this), ctx.expr(1).accept(this))
   }
 
-  override def visitJsonLiteral(ctx: JsonLiteralContext): ir.Literal = {
+  override def visitJsonLiteral(ctx: JsonLiteralContext): ir.Expression = {
     val fields = ctx.kvPair().asScala.map { kv =>
       val fieldName = removeQuotes(kv.key.getText)
       val fieldValue = visitLiteral(kv.literal())
-      fieldName -> fieldValue
+      ir.Alias(fieldValue, ir.Id(fieldName))
     }
-    ir.Literal(json = Some(ir.JsonExpr(UnresolvedType, fields)))
+    ir.StructExpr(fields)
   }
 
-  override def visitArrayLiteral(ctx: ArrayLiteralContext): ir.Literal = {
-    ir.Literal(array = Some(ir.ArrayExpr(UnresolvedType, ctx.literal().asScala.map(visitLiteral))))
+  override def visitArrayLiteral(ctx: ArrayLiteralContext): ir.Expression = {
+    val elements = ctx.literal().asScala.map(visitLiteral).toList.toSeq
+    val dataType = elements.headOption.map(_.dataType).getOrElse(UnresolvedType)
+    ir.ArrayExpr(elements, dataType)
   }
 
   override def visitPrimArrayAccess(ctx: PrimArrayAccessContext): ir.Expression = {
@@ -277,24 +335,34 @@ class SnowflakeExpressionBuilder()
     val condition = ctx.predicate().accept(this)
     val thenBranch = ctx.expr(0).accept(this)
     val elseBranch = ctx.expr(1).accept(this)
-    Iff(condition, thenBranch, elseBranch)
+    ir.If(condition, thenBranch, elseBranch)
   }
 
   override def visitCastExpr(ctx: CastExprContext): ir.Expression = ctx match {
     case c if c.castOp != null =>
       val expression = c.expr().accept(this)
       val dataType = typeBuilder.buildDataType(c.dataType())
-      ir.Cast(expression, dataType, returnNullOnError = c.TRY_CAST() != null)
+      ctx.castOp.getType match {
+        case CAST => ir.Cast(expression, dataType)
+        case TRY_CAST => ir.TryCast(expression, dataType)
+      }
+
     case c if c.INTERVAL() != null =>
       ir.Cast(c.expr().accept(this), ir.IntervalType)
   }
 
   override def visitRankingWindowedFunction(ctx: RankingWindowedFunctionContext): ir.Expression = {
-    // TODO handle ignoreOrRespectNulls
-    buildWindow(ctx.overClause(), ctx.standardFunction().accept(this))
+    val ignore_nulls = if (ctx.ignoreOrRepectNulls() != null) {
+      ctx.ignoreOrRepectNulls().getText.equalsIgnoreCase("IGNORENULLS")
+    } else false
+
+    buildWindow(ctx.overClause(), ctx.standardFunction().accept(this), ignore_nulls)
   }
 
-  private def buildWindow(ctx: OverClauseContext, windowFunction: ir.Expression): ir.Expression = {
+  private def buildWindow(
+      ctx: OverClauseContext,
+      windowFunction: ir.Expression,
+      ignore_nulls: Boolean = false): ir.Expression = {
     val partitionSpec = visitMany(ctx.expr())
     val sortOrder =
       Option(ctx.windowOrderingAndFrame()).map(c => buildSortOrder(c.orderByClause())).getOrElse(Seq())
@@ -309,7 +377,8 @@ class SnowflakeExpressionBuilder()
       window_function = windowFunction,
       partition_spec = partitionSpec,
       sort_order = sortOrder,
-      frame_spec = frameSpec)
+      frame_spec = frameSpec,
+      ignore_nulls = ignore_nulls)
   }
 
   // see: https://docs.snowflake.com/en/sql-reference/functions-analytic#list-of-window-functions
@@ -384,7 +453,7 @@ class SnowflakeExpressionBuilder()
 
   override def visitAggFuncList(ctx: AggFuncListContext): ir.Expression = {
     val param = ctx.expr().accept(this)
-    val separator = Option(ctx.string()).map(s => ir.Literal(string = Some(removeQuotes(s.getText))))
+    val separator = Option(ctx.string()).map(s => ir.Literal(removeQuotes(s.getText)))
     ctx.op.getType match {
       case LISTAGG => functionBuilder.buildFunction("LISTAGG", param +: separator.toSeq)
       case ARRAY_AGG => functionBuilder.buildFunction("ARRAYAGG", Seq(param))
@@ -393,9 +462,17 @@ class SnowflakeExpressionBuilder()
   // end aggregateFunction
 
   override def visitBuiltinExtract(ctx: BuiltinExtractContext): ir.Expression = {
-    val part = ir.Id(removeQuotes(ctx.part.getText))
+    val part = if (ctx.ID() != null) { ir.Id(removeQuotes(ctx.ID().getText)) }
+    else {
+      buildIdFromString(ctx.string())
+    }
     val date = ctx.expr().accept(this)
     functionBuilder.buildFunction(ctx.EXTRACT().getText, Seq(part, date))
+  }
+
+  private def buildIdFromString(ctx: SnowflakeParser.StringContext): ir.Id = ctx.accept(this) match {
+    case ir.StringLiteral(s) => ir.Id(s)
+    case _ => throw new IllegalArgumentException("Expected a string literal")
   }
 
   override def visitCaseExpression(ctx: CaseExpressionContext): ir.Expression = {
@@ -438,7 +515,7 @@ class SnowflakeExpressionBuilder()
       case c if c.likeExpression() != null => buildLikeExpression(c.likeExpression(), expression)
       case c if c.IS() != null =>
         val isNull: ir.Expression = ir.IsNull(expression)
-        Option(c.nullNotNull().NOT()).fold(isNull)(_ => ir.Not(isNull))
+        Option(c.nullNotNull().NOT()).fold(isNull)(_ => ir.IsNotNull(expression))
     }
     Option(ctx.NOT()).fold(predicate)(_ => ir.Not(predicate))
   }
@@ -448,7 +525,7 @@ class SnowflakeExpressionBuilder()
       val pattern = single.pat.accept(this)
       val escape = Option(single.escapeChar)
         .map(_.accept(this))
-        .collect { case StringLiteral(s) =>
+        .collect { case ir.StringLiteral(s) =>
           s.head
         }
         .getOrElse('\\')
@@ -473,14 +550,15 @@ class SnowflakeExpressionBuilder()
   private def normalizePatterns(patterns: Seq[ir.Expression], escape: ExprContext): Seq[ir.Expression] = {
     Option(escape)
       .map(_.accept(this))
-      .collect { case StringLiteral(esc) =>
+      .collect { case ir.StringLiteral(esc) =>
         patterns.map {
-          case StringLiteral(pat) => ir.Literal(pat.replace(esc, "\\"))
+          case ir.StringLiteral(pat) =>
+            val escapedPattern = pat.replace(esc, s"\\$esc")
+            ir.StringLiteral(escapedPattern)
           case e => ir.StringReplace(e, ir.Literal(esc), ir.Literal("\\"))
         }
       }
       .getOrElse(patterns)
-
   }
 
   override def visitParamAssoc(ctx: ParamAssocContext): ir.Expression = {

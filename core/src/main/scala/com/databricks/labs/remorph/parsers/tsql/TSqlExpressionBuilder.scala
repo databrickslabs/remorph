@@ -258,21 +258,34 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
   override def visitScPrec(ctx: TSqlParser.ScPrecContext): ir.Expression = ctx.searchCondition.accept(this)
 
   override def visitPredicate(ctx: TSqlParser.PredicateContext): ir.Expression = {
-    ctx.expression().size() match {
-      case 1 => ctx.expression(0).accept(this)
+
+    ctx match {
+      case e if e.EXISTS() != null => ir.UnresolvedExpression(ctx.getText) // TODO: build EXISTS
+      case f if f.freetextPredicate() != null => ir.UnresolvedExpression(ctx.getText) // TODO: build FREETEXT
+      case i if i.IN() != null => ir.UnresolvedExpression(ctx.getText) // TODO: build IN
+      case asa if asa.subquery() != null => ir.UnresolvedExpression(ctx.getText) // TODO: build = ALL/SOM/ANY subquery
+      case l if l.LIKE() != null => ir.UnresolvedExpression(ctx.getText) // TODO: build LIKE
+      case i if i.IS() != null => ir.UnresolvedExpression(ctx.getText) // TODO: build IS
       case _ =>
-        val left = ctx.expression(0).accept(this)
-        val right = ctx.expression(1).accept(this)
-        ctx.comparisonOperator match {
-          case op if op.LT != null && op.EQ != null => ir.LessThanOrEqual(left, right)
-          case op if op.GT != null && op.EQ != null => ir.GreaterThanOrEqual(left, right)
-          case op if op.LT != null && op.GT != null => ir.NotEquals(left, right)
-          case op if op.BANG != null && op.GT != null => ir.LessThanOrEqual(left, right)
-          case op if op.BANG != null && op.LT != null => ir.GreaterThanOrEqual(left, right)
-          case op if op.BANG != null && op.EQ != null => ir.NotEquals(left, right)
-          case op if op.EQ != null => ir.Equals(left, right)
-          case op if op.GT != null => ir.GreaterThan(left, right)
-          case op if op.LT != null => ir.LessThan(left, right)
+        ctx.expression().size() match {
+          // Single expression as a predicate
+          case 1 => ctx.expression(0).accept(this)
+
+          // Binary logical operators
+          case _ =>
+            val left = ctx.expression(0).accept(this)
+            val right = ctx.expression(1).accept(this)
+            ctx.comparisonOperator match {
+              case op if op.LT != null && op.EQ != null => ir.LessThanOrEqual(left, right)
+              case op if op.GT != null && op.EQ != null => ir.GreaterThanOrEqual(left, right)
+              case op if op.LT != null && op.GT != null => ir.NotEquals(left, right)
+              case op if op.BANG != null && op.GT != null => ir.LessThanOrEqual(left, right)
+              case op if op.BANG != null && op.LT != null => ir.GreaterThanOrEqual(left, right)
+              case op if op.BANG != null && op.EQ != null => ir.NotEquals(left, right)
+              case op if op.EQ != null => ir.Equals(left, right)
+              case op if op.GT != null => ir.GreaterThan(left, right)
+              case op if op.LT != null => ir.LessThan(left, right)
+            }
         }
     }
   }
@@ -317,21 +330,11 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
   private def buildPrimitive(con: Token): ir.Expression = con.getType match {
     case DEFAULT => Default()
     case LOCAL_ID => ir.Identifier(con.getText, isQuoted = false)
-    case STRING => ir.Literal(string = Some(removeQuotes(con.getText)))
-    case NULL_ => ir.Literal(nullType = Some(ir.NullType))
-    case HEX => ir.Literal(string = Some(con.getText)) // Preserve format
-    case MONEY => Money(ir.Literal(string = Some(con.getText)))
-    case INT | REAL | FLOAT => convertNumeric(con.getText)
-  }
-
-  // TODO: Maybe start sharing such things between all the parsers?
-  private def convertNumeric(str: String): ir.Literal = BigDecimal(str) match {
-    case d if d.isValidShort => ir.Literal(short = Some(d.toShort))
-    case d if d.isValidInt => ir.Literal(integer = Some(d.toInt))
-    case d if d.isValidLong => ir.Literal(long = Some(d.toLong))
-    case d if d.isDecimalFloat || d.isExactFloat => ir.Literal(float = Some(d.toFloat))
-    case d if d.isDecimalDouble || d.isExactDouble => ir.Literal(double = Some(d.toDouble))
-    case _ => ir.Literal(decimal = Some(ir.Decimal(str, None, None)))
+    case STRING => ir.Literal(removeQuotes(con.getText))
+    case NULL_ => ir.Literal.Null
+    case HEX => ir.Literal(con.getText) // Preserve format
+    case MONEY => Money(ir.StringLiteral(con.getText))
+    case INT | REAL | FLOAT => ir.NumericLiteral(con.getText)
   }
 
   override def visitStandardFunction(ctx: StandardFunctionContext): ir.Expression = {
@@ -368,7 +371,7 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
   private def buildNullIgnore(ctx: ir.Expression, ignoreNulls: Boolean): ir.Expression = {
     ctx match {
       case callFunction: ir.CallFunction if ignoreNulls =>
-        callFunction.copy(arguments = callFunction.arguments :+ ir.Literal(boolean = Some(true)))
+        callFunction.copy(arguments = callFunction.arguments :+ ir.Literal.True)
       case _ => ctx
     }
   }
@@ -414,9 +417,9 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
       case c if c.UNBOUNDED() != null && c.FOLLOWING() != null => ir.UnboundedFollowing
       case c if c.CURRENT() != null => ir.CurrentRow
       case c if c.INT() != null && c.PRECEDING() != null =>
-        ir.PrecedingN(ir.Literal(integer = Some(c.INT().getText.toInt)))
+        ir.PrecedingN(ir.Literal(c.INT().getText.toInt, ir.IntegerType))
       case c if c.INT() != null && c.FOLLOWING() != null =>
-        ir.FollowingN(ir.Literal(integer = Some(c.INT().getText.toInt)))
+        ir.FollowingN(ir.Literal(c.INT().getText.toInt, ir.IntegerType))
     }
 
   /**
@@ -430,10 +433,9 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
     val columnDef = ctx.expression().accept(this)
     val aliasOption = Option(ctx.columnAlias()).orElse(Option(ctx.asColumnAlias()).map(_.columnAlias())).map { alias =>
       val name = Option(alias.id()).map(visitId).getOrElse(ir.Id(alias.STRING().getText))
-      ir.Alias(columnDef, Seq(name), None)
+      ir.Alias(columnDef, name)
     }
     aliasOption.getOrElse(columnDef)
-
   }
 
   override def visitExprWithinGroup(ctx: ExprWithinGroupContext): ir.Expression = {
@@ -505,7 +507,7 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
     val expression = Option(ctx.expression()).map(_.accept(this)).getOrElse(ctx.asterisk().accept(this))
     val aliasOption = Option(ctx.asColumnAlias()).map(_.columnAlias()).map { alias =>
       val name = Option(alias.id()).map(visitId).getOrElse(ir.Id(alias.STRING().getText))
-      ir.Alias(expression, Seq(name), None)
+      ir.Alias(expression, name)
     }
     aliasOption.getOrElse(expression)
   }
