@@ -89,9 +89,18 @@ flowchart TD
 [[&#8593; back to top](#remorph-reconciliation)]
 
 ### TABLE Config Json filename:
-The config file must be named as `recon_config_<DATA_SOURCE>_<SOURCE_CATALOG_OR_SCHEMA>_<REPORT_TYPE>.json` and should be placed in the remorph root directory `.remorph` in the Databricks Workspace.
+The config file must be named as `recon_config_<DATA_SOURCE>_<SOURCE_CATALOG_OR_SCHEMA>_<REPORT_TYPE>.json` and should be placed in the remorph root directory `.remorph` within the Databricks Workspace. 
+
+> The filename pattern would remain the same for all the data_sources.
+
+Please find the `Table Recon` filename examples below for the `Snowflake`, `Oracle`, and `Databricks` source systems.
 
 <table>
+    <tr>
+       <th>Data Source</th>
+       <th>Reconcile Config</th>
+       <th>Table Recon filename</th>
+    </tr>  
     <tr>
         <th>Snowflake</th>
         <td>
@@ -102,7 +111,7 @@ The config file must be named as `recon_config_<DATA_SOURCE>_<SOURCE_CATALOG_OR_
   ...
 metadata_config:
   ...
-data_source: databricks
+data_source: snowflake
 report_type: all
 ...   
              </pre>
@@ -144,7 +153,7 @@ report_type: schema
 </table>
 
 > **Note:** the filename must be created in the same case as <SOURCE_CATALOG_OR_SCHEMA> is defined.
-> For example, if the source schema is defined as `ORC` in the config, the filename should be `recon_config_oracle_ORC_data.json`.
+> For example, if the source schema is defined as `ORC` in the `reconcile` config, the filename should be `recon_config_oracle_ORC_data.json`.
 
 
 [[&#8593; back to top](#remorph-reconciliation)]
