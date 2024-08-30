@@ -26,6 +26,17 @@ class SnowflakeExpressionBuilder()
     case c if c.DOUBLE_QUOTE_ID() != null =>
       val idValue = c.getText.trim.stripPrefix("\"").stripSuffix("\"").replaceAll("\"\"", "\"")
       ir.Id(idValue, caseSensitive = true)
+    case v if v.AMP() != null =>
+      // Note that there is nothing special about &id other than they become $id in Databricks
+      // Many places in the builder concatenate the output of visitId with other strings and so we
+      // lose the ir.Dot(ir.Variable, ir.Id) that we could pick up and therefore propagate ir.Variable if
+      // we wanted to leave the translation to generate phase. I think we probably do want to do that, but
+      // a lot of code has bypassed accept() and called visitId directly, and expects ir.Id, then uses fields from it.
+      //
+      // To rework that is quite a big job. So, for now, we translate &id to $id here. It is not wrong for the id rule
+      // to hold the AMP ID alt, but ideally it would produce an ir.Variable and we would process that at generation
+      // time instead of concatenating into strings :(
+      ir.Id("$" + v.ID().getText)
     case id => ir.Id(id.getText)
   }
 
@@ -108,7 +119,7 @@ class SnowflakeExpressionBuilder()
         Try(LocalDateTime.parse(timestampStr, format))
           .map(ir.Literal(_))
           .getOrElse(ir.Literal.Null)
-      case c if c.STRING() != null => ir.StringLiteral(removeQuotes(c.STRING().getText))
+      case c if c.string() != null => c.string.accept(this)
       case c if c.DECIMAL() != null => ir.NumericLiteral(sign + c.DECIMAL().getText)
       case c if c.FLOAT() != null => ir.NumericLiteral(sign + c.FLOAT().getText)
       case c if c.REAL() != null => ir.NumericLiteral(sign + c.REAL().getText)
@@ -117,6 +128,58 @@ class SnowflakeExpressionBuilder()
       case c if c.jsonLiteral() != null => visitJsonLiteral(c.jsonLiteral())
       case c if c.arrayLiteral() != null => visitArrayLiteral(c.arrayLiteral())
       case _ => ir.Literal.Null
+    }
+  }
+
+  /**
+   * Reconstruct a string literal from its composite parts, translating variable
+   * references on the fly.
+   * <p>
+   *   A string literal is a sequence of tokens identifying either a variable reference
+   *   or a piece of normal text. At this point in time, we basically re-assemble the pieces
+   *   here into an ir.StringLiteral. The variable references are translated here into the Databricks
+   *   SQL equivalent, which is $id.
+   * </p>
+   * <p>
+   *   Note however that we really should be generating  something like ir.CompositeString(Seq[something])
+   *   and then anywhere our ir currently uses a String ir ir.StringLiteral, we should be using ir.CompositeString,
+   *   which will then be correctly translated at generation time. We wil get there in increments however - for
+   *   now, this hack will correctly translate variable references in string literals.
+   * </p>
+   *
+   * @param ctx the parse tree
+   */
+  override def visitString(ctx: SnowflakeParser.StringContext): ir.Expression = {
+    ctx match {
+
+      // $$string$$ means interpret the string as raw string with no variable substitution, escape sequences, etc.
+      // TODO: Do we need a raw flag in the ir.StringLiteral so that we generate r'sdfsdfsdsfds' for Databricks SQL?
+      //       or is r'string' a separate Ir in Spark?
+      case ds if ctx.DOLLAR_STRING() != null =>
+        val str = ctx.DOLLAR_STRING().getText.stripPrefix("$$").stripSuffix("$$")
+        ir.StringLiteral(str)
+
+      // Else we must have composite string literal
+      case _ =>
+        val str = if (ctx.stringPart() == null) {
+          ""
+        } else {
+          ctx
+            .stringPart()
+            .asScala
+            .map {
+              case p if p.VAR_SIMPLE() != null => s"$${${p.VAR_SIMPLE().getText.drop(1)}}" // &var => ${var}
+              case p if p.VAR_COMPLEX() != null => s"$$${p.VAR_COMPLEX().getText.drop(1)}" // &{var} => ${var}
+              case p if p.STRING_AMPAMP() != null => "&" // && => &
+              case p if p.STRING_CONTENT() != null => p.STRING_CONTENT().getText
+              case p if p.STRING_ESCAPE() != null => p.STRING_ESCAPE().getText
+              case p if p.STRING_SQUOTE() != null => "''" // Escaped single quote
+              case p if p.STRING_UNICODE() != null => p.STRING_UNICODE().getText
+              case _ => removeQuotes(ctx.getText)
+            }
+            .mkString
+        }
+        ir.StringLiteral(str)
     }
   }
 
@@ -397,9 +460,17 @@ class SnowflakeExpressionBuilder()
   // end aggregateFunction
 
   override def visitBuiltinExtract(ctx: BuiltinExtractContext): ir.Expression = {
-    val part = ir.Id(removeQuotes(ctx.part.getText))
+    val part = if (ctx.ID() != null) { ir.Id(removeQuotes(ctx.ID().getText)) }
+    else {
+      buildIdFromString(ctx.string())
+    }
     val date = ctx.expr().accept(this)
     functionBuilder.buildFunction(ctx.EXTRACT().getText, Seq(part, date))
+  }
+
+  private def buildIdFromString(ctx: SnowflakeParser.StringContext): ir.Id = ctx.accept(this) match {
+    case ir.StringLiteral(s) => ir.Id(s)
+    case _ => throw new IllegalArgumentException("Expected a string literal")
   }
 
   override def visitCaseExpression(ctx: CaseExpressionContext): ir.Expression = {
