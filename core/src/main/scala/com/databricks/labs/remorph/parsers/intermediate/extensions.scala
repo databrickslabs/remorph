@@ -75,7 +75,7 @@ case class TableWithHints(child: LogicalPlan, hints: Seq[TableHint]) extends Una
 }
 
 case class Batch(children: Seq[LogicalPlan]) extends LogicalPlan {
-  override def output: Seq[Attribute] = children.lastOption.map(_.output).getOrElse(Seq())
+  override def output: Seq[Attribute] = children.lastOption.map(_.output).getOrElse(Seq()).toSeq
 }
 
 case class FunctionParameter(name: String, dataType: DataType, defaultValue: Option[Expression])
