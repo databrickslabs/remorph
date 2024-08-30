@@ -80,6 +80,7 @@ class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: 
     s"SELECT ${proj.expressions.map(expr.generate(ctx, _)).mkString(", ")}$fromClause"
   }
 
+
   private def orderBy(ctx: GeneratorContext, sort: ir.Sort): String = {
     val orderStr = sort.order
       .map { case ir.SortOrder(child, direction, nulls) =>
@@ -96,23 +97,27 @@ class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: 
   private def generateJoin(ctx: GeneratorContext, join: ir.Join): String = {
     val left = generate(ctx, join.left)
     val right = generate(ctx, join.right)
-    val joinType = generateJoinType(join.join_type)
-    val joinClause = if (joinType.isEmpty) { "JOIN" }
-    else { joinType + " JOIN" }
-    val conditionOpt = join.join_condition.map(expr.generate(ctx, _))
-    val condition = conditionOpt.map("ON " + _).getOrElse("")
-    val usingColumns = join.using_columns.mkString(", ")
-    val using = if (usingColumns.isEmpty) "" else s"USING ($usingColumns)"
-    Seq(left, joinClause, right, condition, using).filterNot(_.isEmpty).mkString(" ")
+    if (join.join_condition.isEmpty && join.using_columns.isEmpty && join.join_type == ir.InnerJoin) {
+      s"$left, $right"
+    } else {
+      val joinType = generateJoinType(join.join_type)
+      val joinClause = if (joinType.isEmpty) { "JOIN" }
+      else { joinType + " JOIN" }
+      val conditionOpt = join.join_condition.map(expr.generate(ctx, _))
+      val condition = conditionOpt.map("ON " + _).getOrElse("")
+      val usingColumns = join.using_columns.mkString(", ")
+      val using = if (usingColumns.isEmpty) "" else s"USING ($usingColumns)"
+      Seq(left, joinClause, right, condition, using).filterNot(_.isEmpty).mkString(" ")
+    }
   }
 
   private def generateJoinType(joinType: ir.JoinType): String = joinType match {
     case ir.InnerJoin => "INNER"
     case ir.FullOuterJoin => "FULL OUTER"
-    case ir.LeftOuterJoin => "LEFT OUTER"
+    case ir.LeftOuterJoin => "LEFT"
     case ir.LeftSemiJoin => "LEFT SEMI"
     case ir.LeftAntiJoin => "LEFT ANTI"
-    case ir.RightOuterJoin => "RIGHT OUTER"
+    case ir.RightOuterJoin => "RIGHT"
     case ir.CrossJoin => "CROSS"
     case ir.NaturalJoin(ir.UnspecifiedJoin) => "NATURAL"
     case ir.NaturalJoin(jt) => s"NATURAL ${generateJoinType(jt)}"

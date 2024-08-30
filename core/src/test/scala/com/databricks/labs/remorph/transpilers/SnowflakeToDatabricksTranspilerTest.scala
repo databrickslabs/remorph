@@ -43,12 +43,12 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
            |  t1
            |  INNER JOIN t2 ON t2.c2 = t2.c1;""".stripMargin
 
-      "SELECT t1.c2 FROM t1 LEFT OUTER JOIN t2 USING (c2);" transpilesTo
+      "SELECT t1.c2 FROM t1 LEFT JOIN t2 USING (c2);" transpilesTo
         s"""SELECT
            |  t1.c2
            |FROM
            |  t1
-           |  LEFT OUTER JOIN t2
+           |  LEFT JOIN t2
            |USING
            |  (c2);""".stripMargin
 

@@ -186,7 +186,7 @@ class LogicalPlanGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.L
         None,
         ir.InnerJoin,
         Seq(),
-        ir.JoinDataType(is_left_struct = false, is_right_struct = false)) generates "t1 INNER JOIN t2"
+        ir.JoinDataType(is_left_struct = false, is_right_struct = false)) generates "t1, t2"
 
       ir.Join(
         namedTable("t1"),
@@ -204,7 +204,7 @@ class LogicalPlanGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.L
         Seq("c1", "c2"),
         ir.JoinDataType(
           is_left_struct = false,
-          is_right_struct = false)) generates "t1 RIGHT OUTER JOIN t2 ON IS_DATE(c1) USING (c1, c2)"
+          is_right_struct = false)) generates "t1 RIGHT JOIN t2 ON IS_DATE(c1) USING (c1, c2)"
 
       ir.Join(
         namedTable("t1"),
@@ -212,7 +212,7 @@ class LogicalPlanGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.L
         None,
         ir.NaturalJoin(ir.LeftOuterJoin),
         Seq(),
-        ir.JoinDataType(is_left_struct = false, is_right_struct = false)) generates "t1 NATURAL LEFT OUTER JOIN t2"
+        ir.JoinDataType(is_left_struct = false, is_right_struct = false)) generates "t1 NATURAL LEFT JOIN t2"
     }
   }
 
