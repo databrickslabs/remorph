@@ -1,6 +1,6 @@
 -- snowflake sql:
 SELECT
-  demo1.level_key:"level_1_key":"level_2_key"['1'] AS value
+  demo.level_key:"level_1_key":"level_2_key"['1'] AS col
 FROM
     (
      select
@@ -10,15 +10,18 @@ FROM
                    '1', 'desired_value'
                              )
                         )
-                    ) as value
+                    ) as col
     )
-AS demo1(level_key);
+AS demo(level_key);
 
 
 -- databricks sql:
 SELECT
-  level_key.level_1_key.level_2_key['1']
+ demo.level_key.level_1_key.level_2_key['1'] as col
 FROM
-  VALUES
-    (map('level_1_key', map('level_2_key', map('1', 'desired_value'))))
-AS demo1(level_key);
+  (SELECT STRUCT(
+      STRUCT(
+        STRUCT('desired_value' AS `1`) AS level_2_key
+      ) AS level_1_key
+    ) as col)
+AS demo(level_key);

@@ -10,8 +10,8 @@ FROM (
 -- databricks sql:
 SELECT
   v,
-  v.food,
-  TO_JSON(v)
+  v.food AS food,
+  TO_JSON(v) AS v_as_json
 FROM (
   SELECT STRUCT('apple' AS food) AS v
-) t;
+) AS t;

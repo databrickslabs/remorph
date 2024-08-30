@@ -38,8 +38,8 @@ SELECT
   CAST(los.objectDomain AS STRING) AS object_type,
   CAST(los.objectName AS STRING) AS object_name,
   CAST(cols.columnName AS STRING) AS column_name,
-  COUNT(DISTINCT lah.query_token) AS n_queries,
-  COUNT(DISTINCT lah.consumer_account_locator) AS n_distinct_consumer_accounts
+  COUNT(DISTINCT CAST(lah.query_token AS STRING)) AS n_queries,
+  COUNT(DISTINCT CAST(lah.consumer_account_locator AS STRING)) AS n_distinct_consumer_accounts
 FROM
   (
     SELECT
@@ -72,7 +72,7 @@ FROM
           }
         ]
       }')) AS lah
-  ) tmp
+  ) src
 LATERAL VIEW EXPLODE(lah.listing_objects_accessed) AS los
 LATERAL VIEW EXPLODE(los.columns) AS cols
 WHERE

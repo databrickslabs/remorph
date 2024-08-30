@@ -1,21 +1,21 @@
 -- snowflake sql:
- SELECT
+SELECT
    verticals.index AS index,
-   verticals.value AS value
+   verticals.value AS array_val
  FROM
    (
-     select ARRAY_CONSTRUCT('value1', 'value2', 'value3') as value
+     select ARRAY_CONSTRUCT('value1', 'value2', 'value3') as col
    ) AS sample_data(array_column),
    LATERAL FLATTEN(input => sample_data.array_column, OUTER => true) AS verticals;
 
 
 -- databricks sql:
- SELECT
-   verticals.index AS index,
-   verticals.value AS value
- FROM
-   (
-     select ARRAY_CONSTRUCT('value1', 'value2', 'value3') as value
-   ) AS sample_data(array_column),
-   LATERAL FLATTEN(input => sample_data.array_column, OUTER => true) AS verticals;
+SELECT
+  verticals.index AS index,
+  verticals.value AS array_val
+FROM
+  (
+    select ARRAY('value1', 'value2', 'value3') as col
+  ) AS sample_data(array_column)
+  LATERAL VIEW OUTER POSEXPLODE(sample_data.array_column) verticals AS index, value
 

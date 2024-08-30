@@ -482,10 +482,11 @@ class Snow(Snowflake):
                 # get the table alias when FROM token is found
                 if self_copy._match(TokenType.FROM, advance=False):
                     self_copy._advance()  # advance to next token
-                    # break the loop when subquery is found after `FROM` For ex: `FROM (select * from another_table)`
-                    # instead of table name, For ex: `FROM persons p`
+                    # parse further when subquery is found after `FROM` For ex: `FROM (select * from another_table)`
                     if self_copy._match(TokenType.L_PAREN, advance=False):
-                        break
+                        self_copy._advance()  # advance to the subquery
+                        self_copy._parse_subquery(self_copy)  # parse the subquery
+                        self_copy._advance()
                     self_copy._parse_table_parts()  # parse the table parts
                     table_alias = self_copy._parse_table_alias()  # get to table alias
                     return table_alias
