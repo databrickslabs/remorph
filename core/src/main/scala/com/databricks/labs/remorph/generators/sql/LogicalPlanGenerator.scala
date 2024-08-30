@@ -80,7 +80,6 @@ class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: 
     s"SELECT ${proj.expressions.map(expr.generate(ctx, _)).mkString(", ")}$fromClause"
   }
 
-
   private def orderBy(ctx: GeneratorContext, sort: ir.Sort): String = {
     val orderStr = sort.order
       .map { case ir.SortOrder(child, direction, nulls) =>
@@ -104,7 +103,11 @@ class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: 
       val joinClause = if (joinType.isEmpty) { "JOIN" }
       else { joinType + " JOIN" }
       val conditionOpt = join.join_condition.map(expr.generate(ctx, _))
-      val condition = conditionOpt.map("ON " + _).getOrElse("")
+      val condition = join.join_condition match {
+        case None => ""
+        case Some(_: ir.And) | Some(_: ir.Or) => s"ON (${conditionOpt.get})"
+        case Some(_) => s"ON ${conditionOpt.get}"
+      }
       val usingColumns = join.using_columns.mkString(", ")
       val using = if (usingColumns.isEmpty) "" else s"USING ($usingColumns)"
       Seq(left, joinClause, right, condition, using).filterNot(_.isEmpty).mkString(" ")
