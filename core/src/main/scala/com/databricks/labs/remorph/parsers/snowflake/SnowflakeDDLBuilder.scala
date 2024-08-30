@@ -219,9 +219,4 @@ class SnowflakeDDLBuilder
     }
   }
 
-  override def visitAlterSession(ctx: AlterSessionContext): ir.UnresolvedCommand = {
-    // Added replace formatting the incoming text a=b to a = b
-    ir.UnresolvedCommand("ALTER SESSION SET " + ctx.sessionParams().getText.replace("=", " = "))
-  }
-
 }
