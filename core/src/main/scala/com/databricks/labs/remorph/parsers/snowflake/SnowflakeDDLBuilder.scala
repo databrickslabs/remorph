@@ -2,6 +2,7 @@ package com.databricks.labs.remorph.parsers.snowflake
 
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser.{StringContext => StrContext, _}
 import com.databricks.labs.remorph.parsers.{IncompleteParser, ParserCommon, intermediate => ir}
+import com.databricks.labs.remorph.utils.Strings
 import org.antlr.v4.runtime.ParserRuleContext
 
 import scala.collection.JavaConverters._
@@ -157,21 +158,8 @@ class SnowflakeDDLBuilder
 
   override def visitAlterSession(ctx: AlterSessionContext): ir.UnresolvedCommand = {
     // Added replace formatting the incoming text a=b to a = b
-    val alterSession = formatContextString(ctx)
+    val alterSession = Strings.formatContextString(ctx)
     ir.UnresolvedCommand(alterSession)
-  }
-
-  private def formatContextString(ctx: ParserRuleContext) = {
-    if (ctx.getChildCount == 0) {
-      ""
-    } else {
-      val builder = new StringBuilder
-      for (i <- 0 until ctx.getChildCount) {
-        builder.append(ctx.getChild(i).getText)
-        builder.append(" ")
-      }
-      builder.toString.stripSuffix(" ") // remove any trailing spaces
-    }
   }
 
   override def visitAlterTable(ctx: AlterTableContext): ir.Catalog = {
