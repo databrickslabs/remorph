@@ -218,10 +218,13 @@ class SnowflakeExpressionBuilderSpec
           CallFunction("EXTRACT", Seq(Id("day"), Id("date1"))))
       }
 
-      exampleExpr(
-        "EXTRACT('day' FROM date1)",
-        _.builtinFunction(),
-        CallFunction("EXTRACT", Seq(Id("day"), Id("date1"))))
+      "EXTRACT('day' FROM date1)" in {
+        exampleExpr(
+          "EXTRACT('day' FROM date1)",
+          _.builtinFunction(),
+          CallFunction("EXTRACT", Seq(Id("day"), Id("date1"))))
+      }
+
     }
 
     "translate functions named with a keyword" should {
@@ -476,7 +479,7 @@ class SnowflakeExpressionBuilderSpec
       verify(literal).sign()
       verify(literal).DATE_LIT()
       verify(literal).TIMESTAMP_LIT()
-      verify(literal).STRING()
+      verify(literal).string()
       verify(literal).DECIMAL()
       verify(literal).FLOAT()
       verify(literal).REAL()
@@ -503,6 +506,15 @@ class SnowflakeExpressionBuilderSpec
       verify(operator).LE()
       verify(operator).getText
       verifyNoMoreInteractions(operator)
+    }
+  }
+
+  "variable substitution" should {
+    "&abc" in {
+      exampleExpr("&abc", _.expr(), Id("$abc"))
+    }
+    "&ab_c.bc_d" in {
+      exampleExpr("&ab_c.bc_d", _.expr(), Dot(Id("$ab_c"), Id("bc_d")))
     }
   }
 }

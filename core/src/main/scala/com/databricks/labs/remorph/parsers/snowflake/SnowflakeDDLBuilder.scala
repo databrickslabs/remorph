@@ -14,9 +14,11 @@ class SnowflakeDDLBuilder
 
   override protected def wrapUnresolvedInput(unparsedInput: String): ir.Catalog = ir.UnresolvedCatalog(unparsedInput)
 
-  private def extractString(ctx: StrContext): String = {
-    ctx.getText.stripPrefix("'").stripSuffix("'")
-  }
+  private def extractString(ctx: StrContext): String =
+    ctx.accept(expressionBuilder) match {
+      case ir.StringLiteral(s) => s
+      case e => throw new IllegalArgumentException(s"Expected a string literal, got $e")
+    }
 
   override def visitCreateFunction(ctx: CreateFunctionContext): ir.Catalog = {
     val runtimeInfo = ctx match {
@@ -43,10 +45,7 @@ class SnowflakeDDLBuilder
         .map(_.expr().accept(expressionBuilder)))
   }
 
-  private def buildFunctionBody(ctx: FunctionDefinitionContext): String = (ctx match {
-    case c if c.DBL_DOLLAR() != null => c.DBL_DOLLAR().getText.stripPrefix("$$").stripSuffix("$$")
-    case c if c.string() != null => extractString(c.string())
-  }).trim
+  private def buildFunctionBody(ctx: FunctionDefinitionContext): String = extractString(ctx.string()).trim
 
   private def buildJavaUDF(ctx: CreateFunctionContext): ir.RuntimeInfo = buildJVMUDF(ctx)(ir.JavaRuntimeInfo.apply)
   private def buildScalaUDF(ctx: CreateFunctionContext): ir.RuntimeInfo = buildJVMUDF(ctx)(ir.ScalaRuntimeInfo.apply)
@@ -155,6 +154,11 @@ class SnowflakeDDLBuilder
     case c => ir.UnresolvedConstraint(c.getText)
   }
 
+  override def visitAlterSession(ctx: AlterSessionContext): ir.Catalog = {
+    // Added replace formatting the incoming text a=b to a = b
+    ir.UnresolvedCatalog("ALTER SESSION SET " + ctx.sessionParams().getText.replace("=", " = "))
+  }
+
   override def visitAlterTable(ctx: AlterTableContext): ir.Catalog = {
     val tableName = ctx.objectName(0).getText
     ctx match {
@@ -168,7 +172,7 @@ class SnowflakeDDLBuilder
 
   private[snowflake] def buildColumnActions(ctx: TableColumnActionContext): Seq[ir.TableAlteration] = ctx match {
     case c if c.ADD() != null =>
-      c.fullColDecl().asScala.map(buildColumnDeclaration).map(ir.AddColumn.apply)
+      Seq(ir.AddColumn(c.fullColDecl().asScala.map(buildColumnDeclaration)))
     case c if !c.alterColumnClause().isEmpty =>
       c.alterColumnClause().asScala.map(buildColumnAlterations)
     case c if c.DROP() != null =>

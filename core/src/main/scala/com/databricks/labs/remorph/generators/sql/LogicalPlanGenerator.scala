@@ -35,6 +35,7 @@ class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: 
     case ir.DeleteFromTable(target, None, where, None, None) => delete(ctx, target, where)
     case c: ir.CreateTableCommand => createTable(ctx, c)
     case t: ir.TableSample => tableSample(ctx, t)
+    case a: ir.AlterTableCommand => alterTable(ctx, a)
     case ir.NoopNode => ""
     case ir.UnresolvedCommand(inputText) => s"--${inputText}"
     //  TODO We should always generate an unresolved node, our plan should never be null
@@ -55,6 +56,38 @@ class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: 
     } else {
       ""
     }
+  }
+
+  private def alterTable(ctx: GeneratorContext, a: ir.AlterTableCommand): String = {
+    val operation = buildTableAlteration(ctx, a.alterations)
+    s"ALTER TABLE  ${a.tableName} $operation"
+  }
+
+  private def buildTableAlteration(ctx: GeneratorContext, alterations: Seq[ir.TableAlteration]): String = {
+    // docs:https://docs.databricks.com/en/sql/language-manual/sql-ref-syntax-ddl-alter-table.html#parameters
+    // docs:https://learn.microsoft.com/en-us/azure/databricks/sql/language-manual/sql-ref-syntax-ddl-alter-table#syntax
+    // ADD COLUMN can be Seq[ir.TableAlteration]
+    // DROP COLUMN will be ir.TableAlteration since it stored the list of columns
+    // DROP CONSTRAINTS BY NAME is ir.TableAlteration
+    // RENAME COLUMN/ RENAME CONSTRAINTS Always be ir.TableAlteration
+    // ALTER COLUMN IS A Seq[ir.TableAlternations] Data Type Change, Constraint Changes etc
+    alterations map {
+      case ir.AddColumn(columns) => s"ADD COLUMN ${buildAddColumn(ctx, columns)}"
+      case ir.DropColumns(columns) => s"DROP COLUMN ${columns.mkString(", ")}"
+      case ir.DropConstraintByName(constraints) => s"DROP CONSTRAINT ${constraints}"
+      case ir.RenameColumn(oldName, newName) => s"RENAME COLUMN ${oldName} to ${newName}"
+      case x => throw TranspileException(s"Unsupported table alteration ${x}")
+    } mkString ", "
+  }
+
+  private def buildAddColumn(ctx: GeneratorContext, columns: Seq[ir.ColumnDeclaration]): String = {
+    columns
+      .map { c =>
+        val dataType = DataTypeGenerator.generateDataType(ctx, c.dataType)
+        val constraints = c.constraints.map(constraint(ctx, _)).mkString(" ")
+        s"${c.name} $dataType $constraints"
+      }
+      .mkString(", ")
   }
 
   // @see https://docs.databricks.com/en/sql/language-manual/sql-ref-syntax-qry-select-sampling.html

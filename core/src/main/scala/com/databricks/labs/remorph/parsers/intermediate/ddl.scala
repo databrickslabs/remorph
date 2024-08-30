@@ -88,7 +88,7 @@ case class ColumnDeclaration(
 case class CreateTableCommand(name: String, columns: Seq[ColumnDeclaration]) extends Catalog {}
 
 sealed trait TableAlteration
-case class AddColumn(columnDeclaration: ColumnDeclaration) extends TableAlteration
+case class AddColumn(columnDeclaration: Seq[ColumnDeclaration]) extends TableAlteration
 case class AddConstraint(columnName: String, constraint: Constraint) extends TableAlteration
 case class ChangeColumnDataType(columnName: String, newDataType: DataType) extends TableAlteration
 case class UnresolvedTableAlteration(inputText: String) extends TableAlteration
