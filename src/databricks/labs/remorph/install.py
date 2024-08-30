@@ -59,6 +59,7 @@ class WorkspaceInstaller:
         self._resource_configurator = resource_configurator
         self._ws_installation = workspace_installation
         self._upgrades = upgrades
+        self._wheels = product_info.wheels(ws)
 
         if not environ:
             environ = dict(os.environ.items())
@@ -82,7 +83,12 @@ class WorkspaceInstaller:
 
     def configure(self, module: str | None = None) -> RemorphConfigs:
         selected_module = module or self._prompts.choice("Select a module to configure:", MODULES)
+        configs = self._configure_module(selected_module)
+        self._upload_wheel()
         self._apply_upgrades()
+        return configs
+
+    def _configure_module(self, selected_module: str) -> RemorphConfigs:
         match selected_module:
             case "transpile":
                 logger.info("Configuring remorph `transpile`.")
@@ -311,6 +317,12 @@ class WorkspaceInstaller:
             self._upgrades.apply(self._ws)
         except (InvalidParameterValue, NotFound) as err:
             logger.warning(f"Unable to apply Upgrades due to: {err}")
+
+    def _upload_wheel(self):
+        with self._wheels:
+            wheel_paths = [self._wheels.upload_to_wsfs()]
+            wheel_paths = [f"/Workspace{wheel}" for wheel in wheel_paths]
+            return wheel_paths
 
 
 if __name__ == "__main__":

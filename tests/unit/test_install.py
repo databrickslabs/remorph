@@ -40,6 +40,7 @@ def test_workspace_installer_run_raise_error_in_dbr(ws):
             ctx.product_info,
             ctx.resource_configurator,
             ctx.workspace_installation,
+            ctx.upgrades,
             environ=environ,
         )
 
@@ -62,6 +63,7 @@ def test_workspace_installer_run_install_not_called_in_test(ws):
         ctx.product_info,
         ctx.resource_configurator,
         ctx.workspace_installation,
+        ctx.upgrades,
     )
     returned_config = workspace_installer.run(config=provided_config)
     assert returned_config == provided_config
@@ -84,6 +86,7 @@ def test_workspace_installer_run_install_called_with_provided_config(ws):
         ctx.product_info,
         ctx.resource_configurator,
         ctx.workspace_installation,
+        ctx.upgrades,
     )
     returned_config = workspace_installer.run(config=provided_config)
     assert returned_config == provided_config
@@ -104,6 +107,7 @@ def test_configure_error_if_invalid_module_selected(ws):
         ctx.product_info,
         ctx.resource_configurator,
         ctx.workspace_installation,
+        ctx.upgrades,
     )
 
     with pytest.raises(ValueError):
@@ -139,6 +143,7 @@ def test_workspace_installer_run_install_called_with_generated_config(ws):
         ctx.product_info,
         ctx.resource_configurator,
         ctx.workspace_installation,
+        ctx.upgrades,
     )
     workspace_installer.run()
     installation.assert_file_written(
@@ -184,6 +189,7 @@ def test_configure_transpile_no_existing_installation(ws):
         ctx.product_info,
         ctx.resource_configurator,
         ctx.workspace_installation,
+        ctx.upgrades,
     )
     config = workspace_installer.configure()
     expected_morph_config = MorphConfig(
@@ -249,6 +255,7 @@ def test_configure_transpile_installation_no_override(ws):
         ctx.product_info,
         ctx.resource_configurator,
         ctx.workspace_installation,
+        ctx.upgrades,
     )
     with pytest.raises(SystemExit):
         workspace_installer.configure()
@@ -296,6 +303,7 @@ def test_configure_transpile_installation_config_error_continue_install(ws):
         ctx.product_info,
         ctx.resource_configurator,
         ctx.workspace_installation,
+        ctx.upgrades,
     )
     config = workspace_installer.configure()
     expected_morph_config = MorphConfig(
@@ -353,6 +361,7 @@ def test_configure_transpile_installation_with_no_validation(ws):
         ctx.product_info,
         ctx.resource_configurator,
         ctx.workspace_installation,
+        ctx.upgrades,
     )
     config = workspace_installer.configure()
     expected_morph_config = MorphConfig(
@@ -416,6 +425,7 @@ def test_configure_transpile_installation_with_validation_and_cluster_id_in_conf
         ctx.product_info,
         ctx.resource_configurator,
         ctx.workspace_installation,
+        ctx.upgrades,
     )
     config = workspace_installer.configure()
     expected_config = RemorphConfigs(
@@ -481,6 +491,7 @@ def test_configure_transpile_installation_with_validation_and_cluster_id_from_pr
         ctx.product_info,
         ctx.resource_configurator,
         ctx.workspace_installation,
+        ctx.upgrades,
     )
     config = workspace_installer.configure()
     expected_config = RemorphConfigs(
@@ -544,6 +555,7 @@ def test_configure_transpile_installation_with_validation_and_warehouse_id_from_
         ctx.product_info,
         ctx.resource_configurator,
         ctx.workspace_installation,
+        ctx.upgrades,
     )
     config = workspace_installer.configure()
     expected_config = RemorphConfigs(
@@ -615,6 +627,7 @@ def test_configure_reconcile_installation_no_override(ws):
         ctx.product_info,
         ctx.resource_configurator,
         ctx.workspace_installation,
+        ctx.upgrades,
     )
     with pytest.raises(SystemExit):
         workspace_installer.configure()
@@ -675,6 +688,7 @@ def test_configure_reconcile_installation_config_error_continue_install(ws):
         ctx.product_info,
         ctx.resource_configurator,
         ctx.workspace_installation,
+        ctx.upgrades,
     )
     config = workspace_installer.configure()
     expected_config = RemorphConfigs(
@@ -753,6 +767,7 @@ def test_configure_reconcile_no_existing_installation(ws):
         ctx.product_info,
         ctx.resource_configurator,
         ctx.workspace_installation,
+        ctx.upgrades,
     )
     config = workspace_installer.configure()
     expected_config = RemorphConfigs(
@@ -869,6 +884,7 @@ def test_configure_all_override_installation(ws):
         ctx.product_info,
         ctx.resource_configurator,
         ctx.workspace_installation,
+        ctx.upgrades,
     )
     config = workspace_installer.configure()
     expected_morph_config = MorphConfig(
