@@ -155,7 +155,11 @@ class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: 
     val left = generate(ctx, join.left)
     val right = generate(ctx, join.right)
     if (join.join_condition.isEmpty && join.using_columns.isEmpty && join.join_type == ir.InnerJoin) {
-      s"$left, $right"
+      if (join.right.find(_.isInstanceOf[ir.Lateral]).isDefined) {
+        s"$left $right"
+      } else {
+        s"$left, $right"
+      }
     } else {
       val joinType = generateJoinType(join.join_type)
       val joinClause = if (joinType.isEmpty) { "JOIN" }
@@ -291,14 +295,17 @@ class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: 
   }
 
   private def subQueryAlias(ctx: GeneratorContext, subQAlias: ir.SubqueryAlias): String = {
-    val subquery = generate(ctx, subQAlias.child)
+    val subquery = subQAlias.child match {
+      case l: ir.Lateral => lateral(ctx, l)
+      case _ => s"(${generate(ctx, subQAlias.child)})"
+    }
     val tableName = expr.generate(ctx, subQAlias.alias)
     val table = if (subQAlias.columnNames.isEmpty) {
       tableName
     } else {
       tableName + subQAlias.columnNames.map(expr.generate(ctx, _)).mkString("(", ", ", ")")
     }
-    s"($subquery) AS $table"
+    s"$subquery AS $table"
   }
 
   private def tableAlias(ctx: GeneratorContext, alias: ir.TableAlias): String = {
