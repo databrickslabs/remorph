@@ -123,15 +123,20 @@ class SnowflakeCallMapperSpec extends AnyWordSpec with Matchers {
 
     }
 
-    "ARRAY_SLICE index shift" in {
+    "ARRAY_SLICE zero index becomes one" in {
       ir.CallFunction("ARRAY_SLICE", Seq(ir.Id("arr1"), ir.IntLiteral(0), ir.IntLiteral(2))) becomes ir.Slice(
         ir.Id("arr1"),
         ir.IntLiteral(1),
         ir.IntLiteral(2))
+    }
 
+    "ARRAY_SLICE negative index stays unchanged" in {
       ir.CallFunction("ARRAY_SLICE", Seq(ir.Id("arr1"), ir.UMinus(ir.IntLiteral(2)), ir.IntLiteral(2))) becomes ir
         .Slice(ir.Id("arr1"), ir.UMinus(ir.IntLiteral(2)), ir.IntLiteral(2))
 
+    }
+
+    "ARRAY_SLICE non-literal index shift" in {
       ir.CallFunction("ARRAY_SLICE", Seq(ir.Id("arr1"), ir.Id("col1"), ir.IntLiteral(2))) becomes ir
         .Slice(
           ir.Id("arr1"),
