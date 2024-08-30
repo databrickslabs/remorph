@@ -147,10 +147,9 @@ class SnowflakeDDLBuilderSpec
                   |  AS 'a * b';""".stripMargin,
         expectedAst = CreateInlineUDF(
           name = "multiply1",
-          returnType = DecimalType(None, None),
-          parameters = Seq(
-            FunctionParameter("a", DecimalType(None, None), None),
-            FunctionParameter("b", DecimalType(None, None), None)),
+          returnType = DecimalType(38, 0),
+          parameters =
+            Seq(FunctionParameter("a", DecimalType(38, 0), None), FunctionParameter("b", DecimalType(38, 0), None)),
           runtimeInfo = SQLRuntimeInfo(memoizable = false),
           acceptsNullParameters = false,
           comment = Some("multiply two numbers"),
@@ -208,7 +207,7 @@ class SnowflakeDDLBuilderSpec
       "ALTER TABLE s.t1 ADD COLUMN c VARCHAR" in {
         example(
           "ALTER TABLE s.t1 ADD COLUMN c VARCHAR",
-          AlterTableCommand("s.t1", Seq(AddColumn(ColumnDeclaration("c", StringType)))))
+          AlterTableCommand("s.t1", Seq(AddColumn(Seq(ColumnDeclaration("c", StringType))))))
       }
       "ALTER TABLE s.t1 ADD CONSTRAINT pk PRIMARY KEY (a, b, c)" in {
         example(

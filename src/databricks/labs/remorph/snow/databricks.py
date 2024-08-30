@@ -238,10 +238,13 @@ def _array_slice(self: org_databricks.Databricks.Generator, expression: local_ex
     return func_expr
 
 
-def _to_command(self, expression: exp.Command):
-    this_sql = self.sql(expression, 'this')
-    prefix = '-- snowsql command:' if this_sql == '!' else '-- '
-    return f"{prefix}{this_sql}{self.sql(expression, 'expression')}"
+def _to_command(self, expr: exp.Command):
+    this_sql = self.sql(expr, 'this')
+    expression = self.sql(expr.expression, 'this')
+    prefix = f"-- {this_sql}"
+    if this_sql == "!":
+        return f"{prefix}{expression}"
+    return f"{prefix} {expression}"
 
 
 def _parse_json(self, expr: exp.ParseJSON):

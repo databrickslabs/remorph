@@ -8,13 +8,68 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
 
   "snowsql commands" should {
 
-    "transpile BANG" in {
-      "!set error_flag = true" transpilesTo "--!set error_flag = true;"
-      "!define tablename=CENUSTRACKONE" transpilesTo "--!define tablename=CENUSTRACKONE;"
-      "!print Include This Text" transpilesTo "--!print Include This Text;"
-      "!abort 77589bd1" transpilesTo "--!abort 77589bd1;"
+    "transpile BANG with semicolon" in {
+      "!set error_flag = true;" transpilesTo "-- !set error_flag = true;"
+    }
+    "transpile BANG without semicolon" in {
+      "!print Include This Text" transpilesTo "-- !print Include This Text;"
+    }
+    "transpile BANG with options" in {
+      "!options catch=true" transpilesTo "-- !options catch=true;"
+    }
+    "transpile BANG with negative scenario unknown command" in {
+      "!test unknown command" transpilesTo ""
+    }
+    "transpile BANG with negative scenario unknown command2" in {
+      "!abc set=abc" transpilesTo ""
+    }
+  }
+
+  "Snowflake Alter commands" should {
+
+    "ALTER TABLE t1 ADD COLUMN c1 INTEGER" in {
+      "ALTER TABLE t1 ADD COLUMN c1 INTEGER;" transpilesTo (
+        s"""ALTER TABLE
+           |  t1
+           |ADD
+           |  COLUMN c1 DECIMAL(38, 0);""".stripMargin
+      )
     }
 
+    "ALTER TABLE t1 ADD COLUMN c1 INTEGER, c2 VARCHAR;" in {
+      "ALTER TABLE t1 ADD COLUMN c1 INTEGER, c2 VARCHAR;" transpilesTo
+        s"""ALTER TABLE
+           |  t1
+           |ADD
+           |  COLUMN c1 DECIMAL(38, 0),
+           |  c2 STRING;""".stripMargin
+    }
+
+    "ALTER TABLE t1 DROP COLUMN c1;" in {
+      "ALTER TABLE t1 DROP COLUMN c1;" transpilesTo (
+        s"""ALTER TABLE
+           |  t1 DROP COLUMN c1;""".stripMargin
+      )
+    }
+
+    "ALTER TABLE t1 DROP COLUMN c1, c2;" in {
+      "ALTER TABLE t1 DROP COLUMN c1, c2;" transpilesTo
+        s"""ALTER TABLE
+           |  t1 DROP COLUMN c1,
+           |  c2;""".stripMargin
+    }
+
+    "ALTER TABLE t1 RENAME COLUMN c1 to c2;" in {
+      "ALTER TABLE t1 RENAME COLUMN c1 to c2;" transpilesTo
+        s"""ALTER TABLE
+           |  t1 RENAME COLUMN c1 to c2;""".stripMargin
+    }
+
+    "ALTER TABLE s.t1 DROP CONSTRAINT pk" in {
+      "ALTER TABLE s.t1 DROP CONSTRAINT pk;" transpilesTo
+        s"""ALTER TABLE
+           |  s.t1 DROP CONSTRAINT pk;""".stripMargin
+    }
   }
 
   "Snowflake transpiler" should {
