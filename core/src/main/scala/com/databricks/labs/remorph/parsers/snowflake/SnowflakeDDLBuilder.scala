@@ -3,7 +3,6 @@ package com.databricks.labs.remorph.parsers.snowflake
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser.{StringContext => StrContext, _}
 import com.databricks.labs.remorph.parsers.{IncompleteParser, ParserCommon, intermediate => ir}
 import com.databricks.labs.remorph.utils.Strings
-import org.antlr.v4.runtime.ParserRuleContext
 
 import scala.collection.JavaConverters._
 class SnowflakeDDLBuilder
