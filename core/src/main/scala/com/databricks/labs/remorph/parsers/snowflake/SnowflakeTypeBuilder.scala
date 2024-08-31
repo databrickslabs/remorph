@@ -25,6 +25,9 @@ class SnowflakeTypeBuilder {
       case _ if ctx.charAlias != null => ir.StringType
       case _ if ctx.varcharAlias != null => ir.StringType
       case _ if ctx.numberAlias != null => decimal(ctx)
+      case _ if ctx.TIMESTAMP() != null => ir.TimestampType
+      case _ if ctx.TIMESTAMP_LTZ() != null => ir.TimestampType
+      case _ if ctx.TIMESTAMP_NTZ() != null => ir.TimestampNTZType
 
       // non-precision types
       case _ if ctx.ARRAY() != null => ir.ArrayType(buildDataType(ctx.dataType()))
@@ -46,9 +49,6 @@ class SnowflakeTypeBuilder {
       case "STRING" => ir.StringType
       case "TEXT" => ir.StringType
       case "TIME" => ir.TimestampType
-      case "TIMESTAMP" => ir.TimestampType
-      case "TIMESTAMP_LTZ" => ir.TimestampType
-      case "TIMESTAMP_NTZ" => ir.TimestampNTZType
       case "TIMESTAMP_TZ" => ir.TimestampType
       case "TINYINT" => ir.TinyintType
       case "VARBINARY" => ir.BinaryType
