@@ -555,7 +555,7 @@ NOTIFICATIONS                               : 'NOTIFICATIONS';
 NOUNLOAD                                    : 'NOUNLOAD';
 NTILE                                       : 'NTILE';
 NTLM                                        : 'NTLM';
-NULL_                                       : 'NULL'; // TODO: Rename this to NULL
+NULL                                        : 'NULL';
 NULLS                                       : 'NULLS';
 NUMANODE                                    : 'NUMANODE';
 NUMBER                                      : 'NUMBER';

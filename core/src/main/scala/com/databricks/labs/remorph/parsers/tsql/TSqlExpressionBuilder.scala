@@ -290,15 +290,6 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
     }
   }
 
-  /**
-   * For now, we assume that we are dealing with Column names. LOCAL_ID is catered for as part of an expression in the
-   * current grammar, but even that can be an alias for a column name, though it is not recommended.
-   *
-   * For now then, they are all seen as columns.
-   *
-   * @param ctx
-   *   the parse tree
-   */
   override def visitId(ctx: IdContext): ir.Id = ctx match {
     case c if c.ID() != null => ir.Id(ctx.getText, caseSensitive = false)
     case c if c.TEMP_ID() != null => ir.Id(ctx.getText, caseSensitive = false)
@@ -419,13 +410,6 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
         ir.FollowingN(ir.Literal(c.INT().getText.toInt, ir.IntegerType))
     }
 
-  /**
-   * This is a special case where we are building a column definition. This is used in the SELECT statement to define
-   * the columns that are being selected. This is a special case because we need to handle the aliasing of columns.
-   *
-   * @param ctx
-   *   the parse tree
-   */
   override def visitExpressionElem(ctx: ExpressionElemContext): ir.Expression = {
     val columnDef = ctx.expression().accept(this)
     val aliasOption = Option(ctx.columnAlias()).orElse(Option(ctx.asColumnAlias()).map(_.columnAlias())).map { alias =>

@@ -1,5 +1,7 @@
 package com.databricks.labs.remorph.parsers.intermediate
 
+import com.databricks.labs.remorph.parsers.GenericOption
+
 abstract class DataType {
   def isPrimitive: Boolean = this match {
     case BooleanType => true
@@ -59,6 +61,10 @@ case class StructField(name: String, dataType: DataType, nullable: Boolean = tru
 case class StructType(fields: Seq[StructField]) extends DataType
 case class MapType(keyType: DataType, valueType: DataType) extends DataType
 
+// While Databricks SQl does not DIRECTLY support IDENTITY in the way some other dialects do, it does support
+// Id BIGINT GENERATED ALWAYS AS IDENTITY
+case class IdentityType(start: Option[Int], increment: Option[Int]) extends DataType
+
 // UserDefinedType
 case class UDTType() extends DataType
 
@@ -66,29 +72,39 @@ case class UnparsedType(text: String) extends DataType
 
 case object UnresolvedType extends DataType
 
+// These are likely to change in a not-so-remote future. Spark SQL does not have constraints
+// as it is not a database in its own right. Databricks SQL supports Key constraints and
+// also allows the definition of CHECK constraints via ALTER table after table creation. Spark
+// does support nullability but stores that as a boolean in the column definition, as well as an
+// expression for default values.
+//
+// So we will store the column constraints with the column definition and then use them to generate
+// Databricks SQL CHECK constraints where we can, and comment the rest.
 sealed trait Constraint
 sealed trait UnnamedConstraint extends Constraint
-case object Unique extends UnnamedConstraint
+case class Unique(options: Seq[GenericOption]) extends UnnamedConstraint
+// Nullability is kept in case the NOT NULL constraint is named and we must generate a CHECK constraint
 case class Nullability(nullable: Boolean) extends UnnamedConstraint
-case object PrimaryKey extends UnnamedConstraint
-case class ForeignKey(references: String) extends UnnamedConstraint
+case class PrimaryKey(options: Seq[GenericOption] = Seq.empty, columns: Option[Seq[String]] = None)
+    extends UnnamedConstraint
+case class ForeignKey(refObject: String, refCols: String, options: Seq[GenericOption]) extends UnnamedConstraint
+case class CheckConstraint(expression: Expression) extends UnnamedConstraint
+case class IdentityConstraint(start: String, increment: String) extends UnnamedConstraint
 case class NamedConstraint(name: String, constraint: UnnamedConstraint) extends Constraint
 case class UnresolvedConstraint(inputText: String) extends UnnamedConstraint
 
-// This, and the above, are likely to change in a not-so-remote future.
-// There's already a CreateTable case defined in catalog.scala but its structure seems too different from
-// the information Snowflake grammar carries.
-// In future changes, we'll have to reconcile this CreateTableCommand with the "Sparkier" CreateTable somehow.
 case class ColumnDeclaration(
-    name: String,
-    dataType: DataType,
-    virtualColumnDeclaration: Option[Expression] = Option.empty,
-    constraints: Seq[Constraint] = Seq.empty)
+    colDef: StructField,
+    defaultValue: Option[Expression] = None,
+    generationExpression: Option[Expression] = Option.empty,
+    constraints: Seq[Constraint] = Seq.empty,
+    tableConstraints: Seq[Constraint] = Seq.empty,
+    options: Seq[GenericOption] = Seq.empty)
 
 case class CreateTableCommand(name: String, columns: Seq[ColumnDeclaration]) extends Catalog {}
 
 sealed trait TableAlteration
-case class AddColumn(columnDeclaration: Seq[ColumnDeclaration]) extends TableAlteration
+case class AddColumn(columnDeclaration: ColumnDeclaration) extends TableAlteration
 case class AddConstraint(columnName: String, constraint: Constraint) extends TableAlteration
 case class ChangeColumnDataType(columnName: String, newDataType: DataType) extends TableAlteration
 case class UnresolvedTableAlteration(inputText: String) extends TableAlteration
@@ -121,21 +137,40 @@ case class CreateExternalTable(
     table_name: String,
     path: Option[String],
     source: Option[String],
+    schema: Option[DataType],
     options: Map[String, String])
     extends Catalog {}
+
+// As per Spark v2Commands
 case class CreateTable(
     table_name: String,
     path: Option[String],
     source: Option[String],
     description: Option[String],
+    schema: Option[DataType],
     options: Map[String, String])
     extends Catalog {}
+
+/**
+ * The logical plan of the CREATE INDEX command, as per Spark
+ */
+case class CreateIndex(
+    table: String,
+    indexName: String,
+    indexType: String,
+    ignoreIfExists: Boolean,
+    columns: Seq[Column],
+    properties: Map[String, String])
+    extends Catalog {
+  override def children: Seq[LogicalPlan] = Seq.empty
+}
+
 case class DropTempView(view_name: String) extends Catalog {}
 case class DropGlobalTempView(view_name: String) extends Catalog {}
 case class RecoverPartitions(table_name: String) extends Catalog {}
 case class IsCached(table_name: String) extends Catalog {}
 case class CacheTable(table_name: String, storage_level: StorageLevel) extends Catalog {}
-case class UncacheTable(table_name: String) extends Catalog {}
+case class UncachedTable(table_name: String) extends Catalog {}
 case class ClearCache() extends Catalog {}
 case class RefreshTable(table_name: String) extends Catalog {}
 case class RefreshByPath(path: String) extends Catalog {}

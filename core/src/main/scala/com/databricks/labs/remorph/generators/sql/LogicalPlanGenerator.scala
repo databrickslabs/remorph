@@ -123,10 +123,12 @@ class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: 
   private def constraint(ctx: GeneratorContext, c: ir.Constraint): String = c match {
     case ir.Unique => "UNIQUE"
     case ir.Nullability(nullable) => if (nullable) "NULL" else "NOT NULL"
-    case ir.PrimaryKey => "PRIMARY KEY"
+    // TODO: TSQL has options for primary key constraints
+    case ir.PrimaryKey(_) => "PRIMARY KEY"
     case ir.ForeignKey(references) => s"FOREIGN KEY REFERENCES $references"
     case ir.NamedConstraint(name, unnamed) => s"CONSTRAINT $name ${constraint(ctx, unnamed)}"
     case ir.UnresolvedConstraint(inputText) => s"/** $inputText **/"
+    case ir.CheckConstraint(e) => s"CHECK (${expr.generate(ctx, e)})"
   }
 
   private def project(ctx: GeneratorContext, proj: ir.Project): String = {

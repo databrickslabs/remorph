@@ -1,5 +1,7 @@
 package com.databricks.labs.remorph.parsers.intermediate
 
+import com.databricks.labs.remorph.parsers.GenericOption
+
 trait AstExtension
 
 abstract class ToRefactor extends LeafExpression {
@@ -190,6 +192,24 @@ case class WithOptions(input: LogicalPlan, options: Expression) extends UnaryNod
   override def child: LogicalPlan = input
   override def output: Seq[Attribute] = input.output
 }
+
+case class WithModificationOptions(input: Modification, options: Expression) extends Modification {
+  override def children: Seq[Modification] = Seq(input)
+  override def output: Seq[Attribute] = input.output
+}
+
+case class WithIndices(plan: LogicalPlan, indices: Seq[CreateIndex]) extends Catalog {
+  override def children: Seq[LogicalPlan] = Seq(plan)
+  override def output: Seq[Attribute] = plan.output
+}
+
+// TSQL allows the definition of everything including constraints and indexes in CREATE TABLE,
+// whereas Databricks SQL does not. We will store the constraints and indexes separate from the
+// spark like ColumnDefinition and then deal with them in the generator
+case class WithColumnConstraints(
+    columnDeclaration: LogicalPlan,
+    constraints: Seq[Constraint],
+    options: Seq[GenericOption])
 
 // Though at least TSQL only needs the time based intervals, we are including all the interval types
 // supported by Spark SQL for completeness and future proofing

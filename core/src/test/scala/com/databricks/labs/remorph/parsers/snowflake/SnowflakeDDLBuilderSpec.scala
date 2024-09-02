@@ -147,61 +147,74 @@ class SnowflakeDDLBuilderSpec
                   |  AS 'a * b';""".stripMargin,
         expectedAst = CreateInlineUDF(
           name = "multiply1",
-          returnType = DecimalType(38, 0),
-          parameters =
-            Seq(FunctionParameter("a", DecimalType(38, 0), None), FunctionParameter("b", DecimalType(38, 0), None)),
+          returnType = DecimalType(None, None),
+          parameters = Seq(
+            FunctionParameter("a", DecimalType(None, None), None),
+            FunctionParameter("b", DecimalType(None, None), None)),
           runtimeInfo = SQLRuntimeInfo(memoizable = false),
           acceptsNullParameters = false,
           comment = Some("multiply two numbers"),
           body = "a * b"))
     }
 
-    "translate CREATE TABLE commands" should {
-      "CREATE TABLE s.t1 (x VARCHAR)" in {
-        example(
-          "CREATE TABLE s.t1 (x VARCHAR)",
-          CreateTableCommand(name = "s.t1", columns = Seq(ColumnDeclaration("x", StringType, None, Seq()))))
-      }
-      "CREATE TABLE s.t1 (x VARCHAR UNIQUE)" in {
-        example(
-          "CREATE TABLE s.t1 (x VARCHAR UNIQUE)",
-          CreateTableCommand(name = "s.t1", columns = Seq(ColumnDeclaration("x", StringType, None, Seq(Unique)))))
-      }
-      "CREATE TABLE s.t1 (x VARCHAR NOT NULL)" in {
-        example(
-          "CREATE TABLE s.t1 (x VARCHAR NOT NULL)",
-          CreateTableCommand("s.t1", Seq(ColumnDeclaration("x", StringType, None, Seq(Nullability(false))))))
-      }
-      "CREATE TABLE s.t1 (x VARCHAR PRIMARY KEY)" in {
-        example(
-          "CREATE TABLE s.t1 (x VARCHAR PRIMARY KEY)",
-          CreateTableCommand("s.t1", Seq(ColumnDeclaration("x", StringType, None, Seq(PrimaryKey)))))
-      }
-      "CREATE TABLE s.t1 (x VARCHAR UNIQUE FOREIGN KEY REFERENCES s.t2 (y))" in {
-        example(
-          "CREATE TABLE s.t1 (x VARCHAR UNIQUE FOREIGN KEY REFERENCES s.t2 (y))",
-          CreateTableCommand("s.t1", Seq(ColumnDeclaration("x", StringType, None, Seq(Unique, ForeignKey("s.t2.y"))))))
-      }
-      "more complex" in {
-        example(
-          query = """CREATE TABLE s.t1 (
-              |  id VARCHAR PRIMARY KEY NOT NULL,
-              |  a VARCHAR(32) UNIQUE,
-              |  b INTEGER,
-              |  CONSTRAINT fkey FOREIGN KEY (a, b) REFERENCES s.t2 (x, y)
-              |)
-              |""".stripMargin,
-          expectedAst = CreateTableCommand(
-            name = "s.t1",
-            columns = Seq(
-              ColumnDeclaration("id", StringType, None, Seq(Nullability(false), PrimaryKey)),
-              ColumnDeclaration("a", StringType, None, Seq(Unique, NamedConstraint("fkey", ForeignKey("s.t2.x")))),
-              ColumnDeclaration(
-                "b",
-                DecimalType(Some(38), Some(0)),
-                None,
-                Seq(NamedConstraint("fkey", ForeignKey("s.t2.y")))))))
-      }
+    "translate CREATE TABLE commands" in {
+      example(
+        query = "CREATE TABLE s.t1 (x VARCHAR)",
+        expectedAst = CreateTableCommand(
+          name = "s.t1",
+          columns = Seq(ColumnDeclaration("x", StringType, nullable = true, None, None, Seq()))))
+
+      example(
+        query = "CREATE TABLE s.t1 (x VARCHAR UNIQUE)",
+        expectedAst = CreateTableCommand(
+          name = "s.t1",
+          columns = Seq(ColumnDeclaration("x", StringType, nullable = true, None, None, Seq(Unique)))))
+
+      example(
+        query = "CREATE TABLE s.t1 (x VARCHAR NOT NULL)",
+        expectedAst = CreateTableCommand(
+          name = "s.t1",
+          columns = Seq(ColumnDeclaration("x", StringType, nullable = false, None, None, Seq()))))
+
+      example(
+        query = "CREATE TABLE s.t1 (x VARCHAR PRIMARY KEY)",
+        expectedAst = CreateTableCommand(
+          name = "s.t1",
+          columns = Seq(ColumnDeclaration("x", StringType, nullable = true, None, None, Seq(PrimaryKey(None))))))
+
+      example(
+        query = "CREATE TABLE s.t1 (x VARCHAR UNIQUE FOREIGN KEY REFERENCES s.t2 (y))",
+        expectedAst = CreateTableCommand(
+          name = "s.t1",
+          columns =
+            Seq(ColumnDeclaration("x", StringType, nullable = true, None, None, Seq(Unique, ForeignKey("s.t2.y"))))))
+
+      example(
+        query = """CREATE TABLE s.t1 (
+            |  id VARCHAR PRIMARY KEY NOT NULL,
+            |  a VARCHAR(32) UNIQUE,
+            |  b INTEGER,
+            |  CONSTRAINT fkey FOREIGN KEY (a, b) REFERENCES s.t2 (x, y)
+            |)
+            |""".stripMargin,
+        expectedAst = CreateTableCommand(
+          name = "s.t1",
+          columns = Seq(
+            ColumnDeclaration("id", StringType, nullable = false, None, None, Seq(PrimaryKey(None))),
+            ColumnDeclaration(
+              "a",
+              StringType,
+              nullable = true,
+              None,
+              None,
+              Seq(Unique, NamedConstraint("fkey", ForeignKey("s.t2.x")))),
+            ColumnDeclaration(
+              "b",
+              DecimalType(Some(38), Some(0)),
+              nullable = true,
+              None,
+              None,
+              Seq(NamedConstraint("fkey", ForeignKey("s.t2.y")))))))
     }
     "translate ALTER TABLE commands" should {
       "ALTER TABLE s.t1 ADD COLUMN c VARCHAR" in {
