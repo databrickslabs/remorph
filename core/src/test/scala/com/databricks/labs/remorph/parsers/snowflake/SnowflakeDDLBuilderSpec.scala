@@ -339,9 +339,9 @@ class SnowflakeDDLBuilderSpec
       result shouldBe UnresolvedCatalog(dummyTextForAlterTable)
       verify(alterTable).objectName(0)
       verify(alterTable).tableColumnAction()
-      // verify(alterTable).constraintAction()
-      // verify(alterTable).getText
-      // verifyNoMoreInteractions(alterTable)
+      verify(alterTable).constraintAction()
+      verify(alterTable).getText
+      verifyNoMoreInteractions(alterTable)
     }
   }
 
