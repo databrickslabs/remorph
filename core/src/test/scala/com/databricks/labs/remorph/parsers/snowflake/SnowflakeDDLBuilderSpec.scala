@@ -342,6 +342,7 @@ class SnowflakeDDLBuilderSpec
       verify(alterTable).constraintAction()
       verify(alterTable).getText
       verifyNoMoreInteractions(alterTable)
+
     }
   }
 
