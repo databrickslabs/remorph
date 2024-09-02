@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.parsers
 
-import org.antlr.v4.runtime.RuleContext
+import org.antlr.v4.runtime.{RuleContext}
 import org.antlr.v4.runtime.tree.{ParseTreeVisitor, RuleNode}
 import com.databricks.labs.remorph.parsers.{intermediate => ir}
 
@@ -17,7 +17,7 @@ trait IncompleteParser[T] extends ParseTreeVisitor[T] {
   }
   // TODO: Merge formatContext with visitChildren to consistent formatting.
   /**
-   * Formats the text of a given `ParserRuleContext` by concatenating the text of all its children nodes,
+   * Formats the text of a given `RuleContext` by concatenating the text of all its children nodes,
    * separated by spaces.
    *
    * @param ctx the `RuleContext` to format.
@@ -35,6 +35,7 @@ trait IncompleteParser[T] extends ParseTreeVisitor[T] {
       }
       builder.toString.stripSuffix(" ") // remove any trailing spaces
     }
-    ir.UnresolvedCommand(contextAsString)
+    // TODO Recursively check for ParseRuleContext and format the children
+    ir.UnresolvedCommand(contextAsString.replace("=", " = "))
   }
 }
