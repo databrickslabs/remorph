@@ -1,0 +1,3 @@
+--Query type: DQL
+DECLARE @geom GEOGRAPHY = geography::STGeomFromWKB(CONVERT(varbinary, '010100000066666666A9CB17411F85EBC19E325641', 2), 4326);
+SELECT @geom.AsTextZM() AS geom;

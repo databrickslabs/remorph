@@ -1,0 +1,2 @@
+--Query type: DDL
+SELECT PRIORITY_LEVEL FROM (VALUES (5)) AS PriorityLevels (PRIORITY_LEVEL);

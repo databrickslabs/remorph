@@ -1,0 +1,9 @@
+--Query type: DQL
+WITH temp_result AS (
+    SELECT 'TABLE_NAME' AS TABLE_NAME,
+           'COLUMN_NAME' AS COLUMN_NAME,
+           'DATA_TYPE' AS DATA_TYPE,
+           'CHARACTER_MAXIMUM_LENGTH' AS CHARACTER_MAXIMUM_LENGTH
+)
+SELECT *
+FROM temp_result;

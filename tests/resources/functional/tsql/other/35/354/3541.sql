@@ -1,0 +1,12 @@
+--Query type: DCL
+CREATE LOGIN User456 WITH PASSWORD = 'password';
+CREATE USER User456 FOR LOGIN User456;
+
+WITH endpoints AS (
+    SELECT 'Endpoint456' AS name
+)
+SELECT *
+FROM endpoints;
+
+-- REMORPH CLEANUP: DROP USER User456;
+-- REMORPH CLEANUP: DROP LOGIN User456;

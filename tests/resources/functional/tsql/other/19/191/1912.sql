@@ -1,0 +1,2 @@
+--Query type: DML
+WITH cte AS ( SELECT LEN(REPLICATE('a', 8000) + REPLICATE('c', 8000) + REPLICATE('b', 8000)) AS b ) SELECT b FROM cte

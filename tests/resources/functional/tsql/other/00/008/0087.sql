@@ -1,0 +1,2 @@
+--Query type: DDL
+WITH customer_data AS ( SELECT c_custkey, c_name, c_address, c_nationkey, c_phone, c_acctbal, c_mktsegment, c_comment FROM ( VALUES (1, 'Customer#000000001', '1313  Interstatedr', 1, '25-989-741-2988', 2106.22, 'BUILDING', 'regular future accounts'), (2, 'Customer#000000002', '1852  Birkdalect', 1, '25-989-741-2988', 2106.22, 'BUILDING', 'regular future accounts') ) AS customer (c_custkey, c_name, c_address, c_nationkey, c_phone, c_acctbal, c_mktsegment, c_comment) ) SELECT * FROM customer_data

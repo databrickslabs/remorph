@@ -1,0 +1,9 @@
+--Query type: DQL
+WITH dates AS (
+    SELECT CAST('2022-01-01 12:00:00' AS DATETIME) AS dt1,
+           CAST('2022-01-02 13:00:00' AS DATETIME) AS dt2
+)
+SELECT dt1 AS [DATE_TIME],
+       CAST(dt1 AS DATE) AS [DATE_TIME_AS_DATE],
+       CAST(dt1 AS TIME) AS [DATE_TIME_AS_TIME]
+FROM dates;

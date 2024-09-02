@@ -1,0 +1,5 @@
+--Query type: DDL
+CREATE SEQUENCE seq_orders
+    START WITH 10
+    INCREMENT BY 10;
+-- REMORPH CLEANUP: DROP SEQUENCE seq_orders;

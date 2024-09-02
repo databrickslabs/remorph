@@ -1,0 +1,2 @@
+--Query type: DDL
+CREATE SEARCH PROPERTY LIST ContractPropertyList; -- REMORPH CLEANUP: DROP SEARCH PROPERTY LIST ContractPropertyList;

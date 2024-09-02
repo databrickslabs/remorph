@@ -1,0 +1,2 @@
+--Query type: DQL
+SELECT c_customer_sk, YEAR(o_order_date) AS SalesYear, o_totalprice AS CurrentQuota, LEAD(o_totalprice, 1, 0) OVER (ORDER BY YEAR(o_order_date)) AS NextQuota FROM (VALUES (1, '2005-01-01', 100.0), (1, '2006-01-01', 120.0), (2, '2005-01-01', 80.0), (2, '2006-01-01', 90.0)) AS T (c_customer_sk, o_order_date, o_totalprice) WHERE c_customer_sk = 1 AND YEAR(o_order_date) IN ('2005', '2006');

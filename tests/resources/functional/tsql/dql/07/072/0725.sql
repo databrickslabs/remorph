@@ -1,0 +1,8 @@
+--Query type: DQL
+WITH DateValues AS (
+    SELECT CONVERT(DATE, '2019-03-15') AS Date1, CONVERT(DATE, '2019-02-15') AS Date2
+    UNION ALL
+    SELECT CONVERT(DATE, '2019-03-31'), CONVERT(DATE, '2019-02-28')
+)
+SELECT DATEDIFF(MONTH, Date2, Date1) AS MonthsBetween1, DATEDIFF(MONTH, Date2, Date1) AS MonthsBetween2
+FROM DateValues

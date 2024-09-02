@@ -1,0 +1,2 @@
+--Query type: DDL
+DROP TABLE IF EXISTS #TempCTE;
