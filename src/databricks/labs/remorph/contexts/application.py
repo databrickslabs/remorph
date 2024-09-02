@@ -1,3 +1,4 @@
+# pylint: disable=too-many-public-methods
 import logging
 from functools import cached_property
 
@@ -129,3 +130,7 @@ class ApplicationContext:
     @cached_property
     def upgrades(self):
         return Upgrades(self.product_info, self.installation)
+
+    @cached_property
+    def wheels(self):
+        return self.product_info.wheels(self.workspace_client)

@@ -8,7 +8,7 @@ from databricks.labs.blueprint.installation import Installation
 from databricks.labs.blueprint.installation import SerdeError
 from databricks.labs.blueprint.installer import InstallState
 from databricks.labs.blueprint.tui import Prompts
-from databricks.labs.blueprint.wheels import ProductInfo
+from databricks.labs.blueprint.wheels import ProductInfo, WheelsV2
 
 from databricks.sdk.errors.platform import InvalidParameterValue
 from databricks.labs.blueprint.upgrades import Upgrades
@@ -49,6 +49,7 @@ class WorkspaceInstaller:
         resource_configurator: ResourceConfigurator,
         workspace_installation: WorkspaceInstallation,
         upgrades: Upgrades,
+        wheels: WheelsV2,
         environ: dict[str, str] | None = None,
     ):
         self._ws = ws
@@ -59,7 +60,7 @@ class WorkspaceInstaller:
         self._resource_configurator = resource_configurator
         self._ws_installation = workspace_installation
         self._upgrades = upgrades
-        self._wheels = product_info.wheels(ws)
+        self._wheels = wheels
 
         if not environ:
             environ = dict(os.environ.items())
@@ -341,5 +342,6 @@ if __name__ == "__main__":
         app_context.resource_configurator,
         app_context.workspace_installation,
         app_context.upgrades,
+        app_context.wheels,
     )
     installer.run()

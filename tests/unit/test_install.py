@@ -11,7 +11,7 @@ from databricks.labs.remorph.deployment.configurator import ResourceConfigurator
 from databricks.labs.remorph.deployment.installation import WorkspaceInstallation
 from databricks.labs.remorph.install import WorkspaceInstaller, MODULES
 from databricks.labs.remorph.config import MorphConfig
-from databricks.labs.blueprint.wheels import ProductInfo
+from databricks.labs.blueprint.wheels import ProductInfo, WheelsV2
 from databricks.labs.remorph.config import SQLGLOT_DIALECTS
 from databricks.labs.remorph.reconcile.constants import ReconSourceType, ReconReportType
 
@@ -41,6 +41,7 @@ def test_workspace_installer_run_raise_error_in_dbr(ws):
             ctx.resource_configurator,
             ctx.workspace_installation,
             ctx.upgrades,
+            ctx.wheels,
             environ=environ,
         )
 
@@ -64,6 +65,7 @@ def test_workspace_installer_run_install_not_called_in_test(ws):
         ctx.resource_configurator,
         ctx.workspace_installation,
         ctx.upgrades,
+        ctx.wheels,
     )
     returned_config = workspace_installer.run(config=provided_config)
     assert returned_config == provided_config
@@ -87,6 +89,7 @@ def test_workspace_installer_run_install_called_with_provided_config(ws):
         ctx.resource_configurator,
         ctx.workspace_installation,
         ctx.upgrades,
+        ctx.wheels,
     )
     returned_config = workspace_installer.run(config=provided_config)
     assert returned_config == provided_config
@@ -108,6 +111,7 @@ def test_configure_error_if_invalid_module_selected(ws):
         ctx.resource_configurator,
         ctx.workspace_installation,
         ctx.upgrades,
+        ctx.wheels,
     )
 
     with pytest.raises(ValueError):
@@ -144,6 +148,7 @@ def test_workspace_installer_run_install_called_with_generated_config(ws):
         ctx.resource_configurator,
         ctx.workspace_installation,
         ctx.upgrades,
+        ctx.wheels,
     )
     workspace_installer.run()
     installation.assert_file_written(
@@ -190,6 +195,7 @@ def test_configure_transpile_no_existing_installation(ws):
         ctx.resource_configurator,
         ctx.workspace_installation,
         ctx.upgrades,
+        ctx.wheels,
     )
     config = workspace_installer.configure()
     expected_morph_config = MorphConfig(
@@ -256,6 +262,7 @@ def test_configure_transpile_installation_no_override(ws):
         ctx.resource_configurator,
         ctx.workspace_installation,
         ctx.upgrades,
+        ctx.wheels,
     )
     with pytest.raises(SystemExit):
         workspace_installer.configure()
@@ -304,6 +311,7 @@ def test_configure_transpile_installation_config_error_continue_install(ws):
         ctx.resource_configurator,
         ctx.workspace_installation,
         ctx.upgrades,
+        ctx.wheels,
     )
     config = workspace_installer.configure()
     expected_morph_config = MorphConfig(
@@ -362,6 +370,7 @@ def test_configure_transpile_installation_with_no_validation(ws):
         ctx.resource_configurator,
         ctx.workspace_installation,
         ctx.upgrades,
+        ctx.wheels,
     )
     config = workspace_installer.configure()
     expected_morph_config = MorphConfig(
@@ -426,6 +435,7 @@ def test_configure_transpile_installation_with_validation_and_cluster_id_in_conf
         ctx.resource_configurator,
         ctx.workspace_installation,
         ctx.upgrades,
+        ctx.wheels,
     )
     config = workspace_installer.configure()
     expected_config = RemorphConfigs(
@@ -492,6 +502,7 @@ def test_configure_transpile_installation_with_validation_and_cluster_id_from_pr
         ctx.resource_configurator,
         ctx.workspace_installation,
         ctx.upgrades,
+        ctx.wheels,
     )
     config = workspace_installer.configure()
     expected_config = RemorphConfigs(
@@ -556,6 +567,7 @@ def test_configure_transpile_installation_with_validation_and_warehouse_id_from_
         ctx.resource_configurator,
         ctx.workspace_installation,
         ctx.upgrades,
+        ctx.wheels,
     )
     config = workspace_installer.configure()
     expected_config = RemorphConfigs(
@@ -628,6 +640,7 @@ def test_configure_reconcile_installation_no_override(ws):
         ctx.resource_configurator,
         ctx.workspace_installation,
         ctx.upgrades,
+        ctx.wheels,
     )
     with pytest.raises(SystemExit):
         workspace_installer.configure()
@@ -689,6 +702,7 @@ def test_configure_reconcile_installation_config_error_continue_install(ws):
         ctx.resource_configurator,
         ctx.workspace_installation,
         ctx.upgrades,
+        ctx.wheels,
     )
     config = workspace_installer.configure()
     expected_config = RemorphConfigs(
@@ -768,6 +782,7 @@ def test_configure_reconcile_no_existing_installation(ws):
         ctx.resource_configurator,
         ctx.workspace_installation,
         ctx.upgrades,
+        ctx.wheels,
     )
     config = workspace_installer.configure()
     expected_config = RemorphConfigs(
@@ -885,6 +900,7 @@ def test_configure_all_override_installation(ws):
         ctx.resource_configurator,
         ctx.workspace_installation,
         ctx.upgrades,
+        ctx.wheels,
     )
     config = workspace_installer.configure()
     expected_morph_config = MorphConfig(
@@ -949,3 +965,66 @@ def test_configure_all_override_installation(ws):
             "version": 1,
         },
     )
+
+
+def test_runs_upgrades_on_more_recent_version(ws):
+    installation = MockInstallation(
+        {
+            'version.json': {'version': '0.3.0', 'wheel': '...', 'date': '...'},
+            'state.json': {
+                'resources': {
+                    'dashboards': {'Reconciliation Metrics': 'abc'},
+                    'jobs': {'Reconciliation Runner': '12345'},
+                }
+            },
+            'config.yml': {
+                "source": "snowflake",
+                "catalog_name": "upgrades",
+                "input_sql": "queries",
+                "output_folder": "out",
+                "schema_name": "test",
+                "sdk_config": {
+                    "warehouse_id": "dummy",
+                },
+                "version": 1,
+            },
+        }
+    )
+
+    ctx = ApplicationContext(ws)
+    prompts = MockPrompts(
+        {
+            r"Select a module to configure:": MODULES.index("transpile"),
+            r"Do you want to override the existing installation?": "yes",
+            r"Select the source": sorted(SQLGLOT_DIALECTS.keys()).index("snowflake"),
+            r"Enter input SQL path.*": "/tmp/queries/snow",
+            r"Enter output directory.*": "/tmp/queries/databricks",
+            r"Would you like to validate.*": "no",
+            r"Open .* in the browser?": "no",
+        }
+    )
+    wheels = create_autospec(WheelsV2)
+
+    ctx.replace(
+        prompts=prompts,
+        installation=installation,
+        resource_configurator=create_autospec(ResourceConfigurator),
+        workspace_installation=create_autospec(WorkspaceInstallation),
+        wheels=wheels,
+    )
+
+    workspace_installer = WorkspaceInstaller(
+        ctx.workspace_client,
+        ctx.prompts,
+        ctx.installation,
+        ctx.install_state,
+        ctx.product_info,
+        ctx.resource_configurator,
+        ctx.workspace_installation,
+        ctx.upgrades,
+        ctx.wheels,
+    )
+
+    workspace_installer.run()
+
+    wheels.upload_to_wsfs.assert_called()
