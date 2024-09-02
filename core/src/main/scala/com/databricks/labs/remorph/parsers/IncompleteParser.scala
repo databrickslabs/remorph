@@ -25,17 +25,30 @@ trait IncompleteParser[T] extends ParseTreeVisitor[T] {
    *         If the context has no children, returns an empty string.
    */
   def formatContext(contexts: RuleContext): ir.UnresolvedCommand = {
-    val contextAsString = if (contexts.getChildCount == 0) {
-      ""
-    } else {
-      val builder = new StringBuilder
-      for (i <- 0 until contexts.getChildCount) {
-        builder.append(contexts.getChild(i).getText)
-        builder.append(" ")
+    def formatContextRecursive(ctx: RuleContext): String = {
+      if (ctx.getChildCount == 0) {
+        ctx.getText
+      } else {
+        val builder = new StringBuilder
+        for (i <- 0 until ctx.getChildCount) {
+          val child = ctx.getChild(i)
+          if (child.isInstanceOf[RuleContext]) {
+            builder.append(formatContextRecursive(child.asInstanceOf[RuleContext]))
+          } else {
+            builder.append(child.getText)
+          }
+          builder.append(" ")
+        }
+        // remove any trailing spaces and some regular expression
+        // TODO Fix this to not include regex rather check based on Generic String Context Expression.
+        builder.toString
+          .stripSuffix(" ")
+          .replaceAll("'\\s*(.*?)\\s*'", "'$1'")
+          .replaceAll("\\s*\\(\\s*(.*?)\\s*\\)", "($1)")
       }
-      builder.toString.stripSuffix(" ") // remove any trailing spaces
     }
-    // TODO Recursively check for ParseRuleContext and format the children
-    ir.UnresolvedCommand(contextAsString.replace("=", " = "))
+    val contextAsString = formatContextRecursive(contexts)
+    ir.UnresolvedCommand(contextAsString)
   }
+
 }
