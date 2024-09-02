@@ -509,12 +509,18 @@ class SnowflakeExpressionBuilderSpec
     }
   }
 
+  // Note that when we truly handle &vars, we will get ir.Variable here and not Id
+  // and the & parts will not be changed to ${} until we get to the final SQL generation
+  // but we are in a half way house transition state
   "variable substitution" should {
     "&abc" in {
       exampleExpr("&abc", _.expr(), Id("$abc"))
     }
     "&ab_c.bc_d" in {
       exampleExpr("&ab_c.bc_d", _.expr(), Dot(Id("$ab_c"), Id("bc_d")))
+    }
+    "&{ab_c}.&bc_d" in {
+      exampleExpr("&{ab_c}.&bc_d", _.expr(), Dot(Id("$ab_c"), Id("$bc_d")))
     }
   }
 }

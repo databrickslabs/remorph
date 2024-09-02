@@ -2977,7 +2977,7 @@ id
     | ID2
     | DOUBLE_QUOTE_ID
     | DOUBLE_QUOTE_BLANK
-    | AMP ID           // Snowflake variables from CLI or injection
+    | AMP LCB? ID RCB? // Snowflake variables from CLI or injection - we rely on valid input
     | nonReservedWords //id is used for object name. Snowflake is very permissive
     ;
 
@@ -3137,6 +3137,7 @@ expr
     | expr op = (STAR | DIVIDE | MODULE) expr   # exprPrecedence0
     | expr op = (PLUS | MINUS | PIPE_PIPE) expr # exprPrecedence1
     | expr comparisonOperator expr              # exprComparison
+    | expr predicatePartial                     # exprPredicate
     | op = NOT+ expr                            # exprNot
     | expr AND expr                             # exprAnd
     | expr OR expr                              # exprOr
@@ -3145,7 +3146,6 @@ expr
     | castExpr                                  # exprCast
     | expr COLON_COLON dataType                 # exprAscribe
     | functionCall                              # exprFuncCall
-    | expr predicatePartial                     # exprPredicate
     | DISTINCT expr                             # exprDistinct
     | L_PAREN subquery R_PAREN                  # exprSubquery
     | primitiveExpression                       # exprPrimitive
