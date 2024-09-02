@@ -264,7 +264,8 @@ class SnowflakeDDLBuilderSpec
       }
 
       "ALTER STREAM mystream SET COMMENT = 'New comment for stream'" in {
-        example("ALTER STREAM mystream SET COMMENT = 'New comment for stream';",
+        example(
+          "ALTER STREAM mystream SET COMMENT = 'New comment for stream';",
           UnresolvedCommand("ALTER STREAM mystream SET COMMENT = 'New comment for stream'"))
       }
 
