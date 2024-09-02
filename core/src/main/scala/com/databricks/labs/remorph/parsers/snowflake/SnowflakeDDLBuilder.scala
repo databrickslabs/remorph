@@ -92,6 +92,10 @@ class SnowflakeDDLBuilder
     ir.CreateTableCommand(tableName, columns)
   }
 
+  override def visitCreateStream(ctx: CreateStreamContext): ir.UnresolvedCommand = {
+    formatContext(ctx)
+  }
+
   private def buildColumnDeclarations(ctx: Seq[ColumnDeclItemContext]): Seq[ir.ColumnDeclaration] = {
     // According to the grammar, either ctx.fullColDecl or ctx.outOfLineConstraint is non-null.
     val columns = ctx.collect {
