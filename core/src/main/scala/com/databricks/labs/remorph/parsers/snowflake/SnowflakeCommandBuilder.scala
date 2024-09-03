@@ -1,5 +1,6 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
+import com.databricks.labs.remorph.parsers.intermediate.Command
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeParser._
 import com.databricks.labs.remorph.parsers.{IncompleteParser, ParserCommon, intermediate => ir}
 
@@ -50,5 +51,9 @@ class SnowflakeCommandBuilder
     }
 
     ir.SetVariable(variableName, variableValue, variableDataType)
+  }
+
+  override def visitExecuteTask(ctx: ExecuteTaskContext): ir.Command = {
+    ir.UnresolvedCommand(ctx.getText)
   }
 }
