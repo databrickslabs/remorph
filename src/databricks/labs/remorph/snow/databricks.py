@@ -8,6 +8,7 @@ from sqlglot.dialects.dialect import rename_func
 from sqlglot.errors import ParseError, UnsupportedError
 from sqlglot.helper import apply_index_offset, csv
 from sqlglot.dialects.dialect import if_sql
+from sqlglot.transforms import eliminate_join_marks
 
 from databricks.labs.remorph.snow import lca_utils, local_expression
 
@@ -391,7 +392,9 @@ class Databricks(org_databricks.Databricks):  #
         }
 
         def preprocess(self, expression: exp.Expression) -> exp.Expression:
-            fixed_ast = expression.transform(lca_utils.unalias_lca_in_select, copy=False)
+            fixed_ast = expression.transform(lca_utils.unalias_lca_in_select, copy=False).transform(
+                eliminate_join_marks, copy=False
+            )
             return super().preprocess(fixed_ast)
 
         def join_sql(self, expression: exp.Join) -> str:
@@ -471,6 +474,14 @@ class Databricks(org_databricks.Databricks):  #
                 return self.sql(agg_expr)
 
             return super().withingroup_sql(expression)
+
+        def column_sql(self, expression: exp.Column) -> str:
+            join_mark = " (+)" if expression.args.get("join_mark") else ""
+            # if join_mark and not self.dialect.SUPPORTS_COLUMN_JOIN_MARKS:
+            #     join_mark = ""
+            #     self.unsupported("Outer join syntax using the (+) operator is not supported.")
+
+            return f"{self.column_parts(expression)}{join_mark}"
 
         def split_sql(self, expression: local_expression.Split) -> str:
             """
