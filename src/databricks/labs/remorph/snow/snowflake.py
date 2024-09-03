@@ -1,7 +1,7 @@
 import copy
 import logging
 import re
-
+import typing as t
 from sqlglot import expressions as exp
 from sqlglot.dialects.dialect import build_date_delta as parse_date_delta, build_formatted_time
 from sqlglot.dialects.snowflake import Snowflake
@@ -479,13 +479,30 @@ class Snow(Snowflake):
             # iterate through all the tokens if tokens are available
             while self_copy._index < len(self_copy._tokens):
                 self_copy._advance()
+
+                # Adding code to test where condition
+                if self_copy._match(TokenType.WHERE, advance=False):
+                    self_copy._advance()
+                    print("self_copy._parse_column_reference()")
+                    self_copy._parse_table_parts()
+                    table_alias = self_copy._parse_table_alias()  # get to table alias
+                    print("table_alias")
+                    print(table_alias)
+
+                    # # Ignore `.value` in the table alias
+                    # if table_alias and table_alias.this and table_alias.this.name:
+                    #     table_alias.this.name = table_alias.this.name.split(".")[0]
+
+                    return table_alias
+
                 # get the table alias when FROM token is found
                 if self_copy._match(TokenType.FROM, advance=False):
                     self_copy._advance()  # advance to next token
+
                     # parse further when subquery is found after `FROM` For ex: `FROM (select * from another_table)`
                     if self_copy._match(TokenType.L_PAREN, advance=False):
-                        self_copy._advance()  # advance to the subquery
-                        self_copy._parse_subquery(self_copy)  # parse the subquery
+                        # self_copy._advance()  # advance to the subquery
+                        self_copy._parse_subquery(self_copy._advance())  # parse the subquery
                         self_copy._advance()
                     self_copy._parse_table_parts()  # parse the table parts
                     table_alias = self_copy._parse_table_alias()  # get to table alias
@@ -542,3 +559,23 @@ class Snow(Snowflake):
                     end_side="FOLLOWING",
                 )
             return window
+
+        def _parse_where(self, skip_where_token: bool = False) -> t.Optional[exp.Where]:
+            if not skip_where_token and not self._match(TokenType.WHERE):
+                return None
+
+            table_alias = str(self._get_table_alias()) if self._get_table_alias() else None
+            if isinstance(self.expression, exp.Column) and self.expression.table == table_alias and self.expression.name.upper() == "VALUE":
+                expression = self.expression.table
+            # return self.expression(exp.Where, this=self._parse_assignment(), expression=self.expression)
+
+            result = self.expression(
+                exp.Where, comments=self._prev_comments, this=self._parse_assignment()
+            )
+
+            # TODO:
+            # 1. find all the brackets inside where
+            # 2. inside each bracket , find all the columns if bracket this has name = value replace with table alias
+            # 3. if column name is value and table alias is not equal to table alias of the column,
+            # replace with table alias
+            return result

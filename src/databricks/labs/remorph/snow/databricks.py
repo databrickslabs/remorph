@@ -253,8 +253,14 @@ def _parse_json(self, expr: exp.ParseJSON):
     """
     expr_this = self.sql(expr, "this")
     # use column name as prefix or use JSON_COLUMN_SCHEMA when the expression is nested
-    column = expr_this.replace("'", "").upper() if isinstance(expr.this, exp.Column) else "JSON_COLUMN"
-    conv_expr = self.func("FROM_JSON", expr_this, f"{{{column}_SCHEMA}}")
+    # column = expr_this.replace("'", "").upper() if isinstance(expr.this, exp.Column) else "JSON_COLUMN"
+    # conv_expr = self.func("FROM_JSON", expr_this, f"{{{column}_SCHEMA}}")
+
+    ##changes starts here
+    column = expr_this.replace("'", "").upper() if isinstance(expr.this, exp.Column) else expr_this
+    # conv_expr = self.func("FROM_JSON", expr_this, f"schema_of_json({expr_this})")
+    conv_expr = self.func("FROM_JSON", expr_this, f"schema_of_json({column})")
+
     warning_msg = (
         f"***Warning***: you need to explicitly specify `SCHEMA` for `{column}` column in expression: `{conv_expr}`"
     )
