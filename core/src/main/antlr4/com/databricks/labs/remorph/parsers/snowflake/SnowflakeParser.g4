@@ -149,7 +149,7 @@ otherCommand
     | call
     | beginTxn
     | declareCommand
-    | let // to wide rule need to look at the let rule precedence.
+    | let
     ;
 
 snowSqlCommand: SQLCOMMAND

@@ -51,8 +51,4 @@ class SnowflakeCommandBuilder
 
     ir.SetVariable(variableName, variableValue, variableDataType)
   }
-
-  override def visitExecuteTask(ctx: ExecuteTaskContext): ir.Command = {
-    formatContext(ctx)
-  }
 }

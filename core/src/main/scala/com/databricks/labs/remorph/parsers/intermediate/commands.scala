@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.parsers.intermediate
 
-trait Command extends LogicalPlan {
+trait Command {
   def output: Seq[Attribute] = Seq.empty
 }
 
