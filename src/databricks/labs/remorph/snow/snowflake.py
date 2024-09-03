@@ -243,6 +243,7 @@ def contains_expression(expr, target_type):
 class Snow(Snowflake):
     # Instantiate Snowflake Dialect
     snowflake = Snowflake()
+    snowflake.SUPPORTS_COLUMN_JOIN_MARKS = True
 
     class Tokenizer(Snowflake.Tokenizer):
 
@@ -260,7 +261,7 @@ class Snow(Snowflake):
             "!": TokenType.COMMAND,
         }
 
-        KEYWORDS = {**Snowflake.Tokenizer.KEYWORDS}
+        KEYWORDS = {**Snowflake.Tokenizer.KEYWORDS, "(+)": TokenType.JOIN_MARKER}
         # DEC is not a reserved keyword in Snowflake it can be used as table alias
         KEYWORDS.pop("DEC")
 

@@ -8,6 +8,7 @@ from sqlglot.dialects.dialect import rename_func
 from sqlglot.errors import ParseError, UnsupportedError
 from sqlglot.helper import apply_index_offset, csv
 from sqlglot.dialects.dialect import if_sql
+from sqlglot.transforms import eliminate_join_marks
 
 from databricks.labs.remorph.snow import lca_utils, local_expression
 from databricks.labs.remorph.snow.snowflake import contains_expression, rank_functions
@@ -407,7 +408,9 @@ class Databricks(org_databricks.Databricks):  #
         }
 
         def preprocess(self, expression: exp.Expression) -> exp.Expression:
-            fixed_ast = expression.transform(lca_utils.unalias_lca_in_select, copy=False)
+            fixed_ast = expression.transform(lca_utils.unalias_lca_in_select, copy=False).transform(
+                eliminate_join_marks, copy=False
+            )
             return super().preprocess(fixed_ast)
 
         def format_time(self, expression: exp.Expression, inverse_time_mapping=None, inverse_time_trie=None):
