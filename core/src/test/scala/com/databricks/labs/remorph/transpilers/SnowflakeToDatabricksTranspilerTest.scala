@@ -141,4 +141,13 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
 
   }
 
+  "Snowflake Execute commands" should {
+
+    "EXECUTE TASK task1;" in {
+      "EXECUTE TASK task1;" transpilesTo
+        s"""-- EXECUTE TASK task1;""".stripMargin
+    }
+
+  }
+
 }
