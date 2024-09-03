@@ -941,8 +941,6 @@ SQLCOMMAND:
     ) ~[\r\n]*
 ;
 
-ANY_BANG: BANG ID ~[\r\n]*;
-
 STRING_START: '\'' -> pushMode(stringMode);
 
 // This lexer rule is needed so that any unknown character in the lexicon does not

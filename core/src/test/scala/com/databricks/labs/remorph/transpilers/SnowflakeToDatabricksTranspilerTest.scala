@@ -18,10 +18,20 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
       "!options catch=true" transpilesTo "-- !options catch=true;"
     }
     "transpile BANG with negative scenario unknown command" in {
-      "!test unknown command" transpilesTo ""
+      "!test unknown command" transpilesTo
+        """-- ;
+        |-- test;
+        |-- unknown;
+        |-- command;""".stripMargin
     }
     "transpile BANG with negative scenario unknown command2" in {
-      "!abc set=abc" transpilesTo ""
+      "!abc set=abc" transpilesTo
+        """-- ;
+          |-- abc;
+          |-- ;
+          |-- set=;
+          |-- ;
+          |-- abc;""".stripMargin
     }
   }
 
