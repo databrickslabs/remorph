@@ -24,7 +24,7 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
         // @see https://docs.snowflake.com/en/sql-reference/functions/array_slice
         // @see https://docs.databricks.com/en/sql/language-manual/functions/slice.html
         // TODO: optimize constants: ir.Add(ir.Literal(2), ir.Literal(2)) => ir.Literal(4)
-        ir.Slice(args.head, addOne(args(1)), args.lift(2).getOrElse(oneLiteral))
+        ir.Slice(args.head, zeroIndexedToOneIndexed(args(1)), args.lift(2).getOrElse(oneLiteral))
       case ir.CallFunction("ARRAY_TO_STRING", args) => ir.ArrayJoin(args.head, args(1), None)
       case ir.CallFunction("BASE64_DECODE_STRING", args) => ir.UnBase64(args.head)
       case ir.CallFunction("BASE64_DECODE_BINARY", args) => ir.UnBase64(args.head)
@@ -115,9 +115,10 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
       ir.If(ir.Equals(right, zeroLiteral), zeroLiteral, ir.Divide(left, right))
   }
 
-  private def addOne(expr: ir.Expression): ir.Expression = ir.Add(expr, oneLiteral) match {
-    case ir.Add(ir.IntLiteral(a), ir.IntLiteral(b)) => ir.Literal(a + b)
-    case x => x
+  private def zeroIndexedToOneIndexed(expr: ir.Expression): ir.Expression = expr match {
+    case ir.IntLiteral(num) => ir.IntLiteral(num + 1)
+    case neg: ir.UMinus => neg
+    case x => ir.If(ir.GreaterThanOrEqual(x, zeroLiteral), ir.Add(x, oneLiteral), x)
   }
 
   private def getJsonObject(args: Seq[ir.Expression]): ir.Expression = {

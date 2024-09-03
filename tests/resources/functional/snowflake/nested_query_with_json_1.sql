@@ -28,5 +28,5 @@ FROM (
   ) AS K
 ) AS B
 WHERE
-  A.COL1 = B.COL4
+  A.COL1 = B.COL4;
 
