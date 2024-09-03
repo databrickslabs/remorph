@@ -92,6 +92,14 @@ class SnowflakeDDLBuilder
     ir.CreateTableCommand(tableName, columns)
   }
 
+  override def visitCreateStream(ctx: CreateStreamContext): ir.UnresolvedCommand = {
+    formatContext(ctx)
+  }
+
+  override def visitCreateTask(ctx: CreateTaskContext): ir.UnresolvedCommand = {
+    formatContext(ctx)
+  }
+
   private def buildColumnDeclarations(ctx: Seq[ColumnDeclItemContext]): Seq[ir.ColumnDeclaration] = {
     // According to the grammar, either ctx.fullColDecl or ctx.outOfLineConstraint is non-null.
     val columns = ctx.collect {
@@ -154,9 +162,11 @@ class SnowflakeDDLBuilder
     case c => ir.UnresolvedConstraint(c.getText)
   }
 
-  override def visitAlterSession(ctx: AlterSessionContext): ir.Catalog = {
-    // Added replace formatting the incoming text a=b to a = b
-    ir.UnresolvedCatalog("ALTER SESSION SET " + ctx.sessionParams().getText.replace("=", " = "))
+  override def visitAlterCommand(ctx: AlterCommandContext): ir.Catalog = {
+    ctx match {
+      case c if c.alterTable() != null => c.alterTable().accept(this)
+      case _ => formatContext(ctx)
+    }
   }
 
   override def visitAlterTable(ctx: AlterTableContext): ir.Catalog = {

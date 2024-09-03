@@ -258,6 +258,30 @@ class SnowflakeDDLBuilderSpec
       }
     }
 
+    "translate Unresolved COMMAND" should {
+      "ALTER SESSION SET QUERY_TAG = 'TAG'" in {
+        example("ALTER SESSION SET QUERY_TAG = 'TAG';", UnresolvedCommand("ALTER SESSION SET QUERY_TAG = 'TAG'"))
+      }
+
+      "ALTER STREAM mystream SET COMMENT = 'New comment for stream'" in {
+        example(
+          "ALTER STREAM mystream SET COMMENT = 'New comment for stream';",
+          UnresolvedCommand("ALTER STREAM mystream SET COMMENT = 'New comment for stream'"))
+      }
+
+      "CREATE STREAM mystream ON TABLE mytable" in {
+        example(
+          "CREATE STREAM mystream ON TABLE mytable;",
+          UnresolvedCommand("CREATE STREAM mystream ON TABLE mytable"))
+      }
+
+      "CREATE TASK t1 SCHEDULE = '30 MINUTE' AS INSERT INTO tbl(ts) VALUES(CURRENT_TIMESTAMP)" in {
+        example(
+          "CREATE TASK t1 SCHEDULE = '30 MINUTE' AS INSERT INTO tbl(ts) VALUES(CURRENT_TIMESTAMP);",
+          UnresolvedCommand("CREATE TASK t1 SCHEDULE = '30 MINUTE' AS INSERT INTO tbl(ts) VALUES(CURRENT_TIMESTAMP)"))
+      }
+    }
+
     "wrap unknown AST in UnresolvedCatalog" in {
       astBuilder.visit(parseString("CREATE USER homer", _.createCommand())) shouldBe a[UnresolvedCatalog]
     }
