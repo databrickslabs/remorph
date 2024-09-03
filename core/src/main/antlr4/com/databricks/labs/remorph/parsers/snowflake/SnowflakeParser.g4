@@ -152,10 +152,10 @@ otherCommand
     | let
     ;
 
-snowSqlCommand: SQLCOMMAND | unresolvedBangCommnad
+snowSqlCommand: SQLCOMMAND | unresolvedBangCommand
     ;
 
-unresolvedBangCommnad: ANY_BANG
+unresolvedBangCommand: ANY_BANG
     ;
 
 procStatement
