@@ -82,12 +82,11 @@ class TsqlSamplingQueryBuilder(QueryBuilder):
                 (
                     f"COALESCE(LTRIM(RTRIM(src.{col})), '_null_recon_') = COALESCE(LTRIM(RTRIM(recon.{col})), '_null_recon_')"
                     if _get_is_string(column_types_dict, col)
-                    else f"COALESCE(src.{col}, '_null_recon_') = COALESCE(recon.{col}, '_null_recon_')"
+                    else f"COALESCE(src.{col}, -999999) = COALESCE(recon.{col}, -999999)"
                 )
                 for col in key_cols
             ]
         )
-        # regex replace
 
         # Manually construct the final query
         final_query = f"""
