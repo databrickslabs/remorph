@@ -43,7 +43,7 @@ class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: 
     case x => throw unknown(x)
   }
 
-  private def batch(ctx: GeneratorContext, b: Batch): String = {
+  private def batch(ctx: GeneratorContext, b: ir.Batch): String = {
     val seqSql = b.children
       .map {
         case ir.UnresolvedCommand(text) =>
