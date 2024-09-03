@@ -66,7 +66,7 @@ class SnowflakeAstBuilder extends SnowflakeParserBaseVisitor[ir.LogicalPlan] wit
   }
 
   override def visitOtherCommand(ctx: OtherCommandContext): ir.LogicalPlan = {
-   ctx.accept(commandBuilder)
+    ctx.accept(commandBuilder)
   }
 
   override def visitSnowSqlCommand(ctx: SnowSqlCommandContext): ir.UnresolvedCommand = {

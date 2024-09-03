@@ -156,7 +156,7 @@ snowSqlCommand: SQLCOMMAND | unresolvedBangCommnad
     ;
 
 unresolvedBangCommnad: ANY_BANG
-;
+    ;
 
 procStatement
     : call
