@@ -53,6 +53,6 @@ class SnowflakeCommandBuilder
   }
 
   override def visitExecuteTask(ctx: ExecuteTaskContext): ir.Command = {
-    ir.UnresolvedCommand(ctx.getText)
+    formatContext(ctx)
   }
 }
