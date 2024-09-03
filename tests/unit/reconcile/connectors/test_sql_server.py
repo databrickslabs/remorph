@@ -1,0 +1,194 @@
+import base64
+import re
+from unittest.mock import MagicMock, create_autospec
+
+import pytest
+
+from databricks.labs.remorph.config import get_dialect
+from databricks.labs.remorph.reconcile.connectors.sql_server import SqlServerDataSource
+from databricks.labs.remorph.reconcile.exception import DataSourceRuntimeException
+from databricks.labs.remorph.reconcile.recon_config import JdbcReaderOptions, Table
+from databricks.sdk import WorkspaceClient
+from databricks.sdk.service.workspace import GetSecretResponse
+
+
+def mock_secret(scope, key):
+    secret_mock = {
+        "scope": {
+            'user': GetSecretResponse(key='user', value=base64.b64encode(bytes('my_user', 'utf-8')).decode('utf-8')),
+            'password': GetSecretResponse(
+                key='password', value=base64.b64encode(bytes('my_password', 'utf-8')).decode('utf-8')
+            ),
+            'host': GetSecretResponse(key='host', value=base64.b64encode(bytes('my_host', 'utf-8')).decode('utf-8')),
+            'port': GetSecretResponse(key='port', value=base64.b64encode(bytes('777', 'utf-8')).decode('utf-8')),
+            'database': GetSecretResponse(
+                key='database', value=base64.b64encode(bytes('my_database', 'utf-8')).decode('utf-8')
+            ),
+            'encrypt': GetSecretResponse(key='encrypt', value=base64.b64encode(bytes('true', 'utf-8')).decode('utf-8')),
+            'trustServerCertificate': GetSecretResponse(
+                key='trustServerCertificate', value=base64.b64encode(bytes('true', 'utf-8')).decode('utf-8')
+            ),
+        }
+    }
+
+    return secret_mock[scope][key]
+
+
+def initial_setup():
+    pyspark_sql_session = MagicMock()
+    spark = pyspark_sql_session.SparkSession.builder.getOrCreate()
+
+    # Define the source, workspace, and scope
+    engine = get_dialect("tsql")
+    ws = create_autospec(WorkspaceClient)
+    scope = "scope"
+    ws.secrets.get_secret.side_effect = mock_secret
+    return engine, spark, ws, scope
+
+
+def test_get_jdbc_url_happy():
+    # initial setup
+    engine, spark, ws, scope = initial_setup()
+    # create object for SnowflakeDataSource
+    ds = SqlServerDataSource(engine, spark, ws, scope)
+    url = ds.get_jdbc_url
+    # Assert that the URL is generated correctly
+    assert url == (
+        """jdbc:sqlserver://my_host:777;databaseName=my_database;user=my_user;password=my_password;encrypt=true;trustServerCertificate=true;"""
+    )
+
+
+def test_get_jdbc_url_fail():
+    # initial setup
+    engine, spark, ws, scope = initial_setup()
+    ws.secrets.get_secret.side_effect = mock_secret
+    # create object for SnowflakeDataSource
+    ds = SqlServerDataSource(engine, spark, ws, scope)
+    url = ds.get_jdbc_url
+    # Assert that the URL is generated correctly
+    assert url == (
+        """jdbc:sqlserver://my_host:777;databaseName=my_database;user=my_user;password=my_password;encrypt=true;trustServerCertificate=true;"""
+    )
+
+
+def test_read_data_with_options():
+    # initial setup
+    engine, spark, ws, scope = initial_setup()
+
+    # create object for SnowflakeDataSource
+    ds = SqlServerDataSource(engine, spark, ws, scope)
+    # Create a Tables configuration object with JDBC reader options
+    table_conf = Table(
+        source_name="supplier",
+        target_name="supplier",
+        jdbc_reader_options=JdbcReaderOptions(
+            number_partitions=100, partition_column="s_nationkey", lower_bound="0", upper_bound="100"
+        ),
+        join_columns=None,
+        select_columns=None,
+        drop_columns=None,
+        column_mapping=None,
+        transformations=None,
+        column_thresholds=None,
+        filters=None,
+    )
+
+    # Call the read_data method with the Tables configuration
+    ds.read_data("org", "data", "employee", "select 1 from :tbl", table_conf.jdbc_reader_options)
+
+    # spark assertions
+    spark.read.format.assert_called_with("jdbc")
+    spark.read.format().option.assert_called_with(
+        "url",
+        "jdbc:sqlserver://my_host:777;databaseName=my_database;user=my_user;password=my_password;encrypt=true;trustServerCertificate=true;",
+    )
+    spark.read.format().option().option.assert_called_with("driver", "com.microsoft.sqlserver.jdbc.SQLServerDriver")
+    spark.read.format().option().option().option.assert_called_with("dbtable", "(select 1 from org.data.employee) tmp")
+    actual_args = spark.read.format().option().option().option().options.call_args.kwargs
+    expected_args = {
+        "numPartitions": 100,
+        "partitionColumn": "s_nationkey",
+        "lowerBound": '0',
+        "upperBound": "100",
+        "fetchsize": 100,
+    }
+    assert actual_args == expected_args
+    spark.read.format().option().option().option().options().load.assert_called_once()
+
+
+def test_get_schema():
+    # initial setup
+    engine, spark, ws, scope = initial_setup()
+    # Mocking get secret method to return the required values
+    ds = SqlServerDataSource(engine, spark, ws, scope)
+    # call test method
+    ds.get_schema("org", "schema", "supplier")
+    # spark assertions
+    spark.read.format.assert_called_with("jdbc")
+    spark.read.format().option().option().option.assert_called_with(
+        "dbtable",
+        re.sub(
+            r'\s+',
+            ' ',
+            r"""(SELECT 
+                     COLUMN_NAME,
+                     CASE
+                        WHEN NUMERIC_PRECISION IS NOT NULL AND NUMERIC_PRECISION < 10 AND NUMERIC_PRECISION_RADIX = 10 AND NUMERIC_SCALE = 0 
+                            THEN 'smallint' 
+                        WHEN NUMERIC_PRECISION IS NOT NULL AND NUMERIC_PRECISION_RADIX = 10 AND NUMERIC_SCALE = 0 
+                            THEN DATA_TYPE  
+                        WHEN NUMERIC_PRECISION IS NOT NULL AND NUMERIC_PRECISION_RADIX = 10 AND NUMERIC_SCALE IS NOT NULL 
+                            THEN 'decimal' + '(' + CAST(NUMERIC_PRECISION AS VARCHAR) + ',' + CAST(NUMERIC_SCALE AS VARCHAR) + ')'
+                        WHEN NUMERIC_PRECISION IS NOT NULL AND NUMERIC_PRECISION_RADIX = 2 AND NUMERIC_SCALE IS NULL
+                            THEN 'float' 
+                        WHEN CHARACTER_MAXIMUM_LENGTH is NOT NULL AND CHARACTER_SET_NAME IS NOT NULL
+                            THEN 'string' 
+                        WHEN DATA_TYPE = 'date' 
+                            THEN DATA_TYPE
+                        WHEN DATA_TYPE IN ('time','datetime', 'datetime2', 'smalldatetime','datetimeoffset')
+                            THEN 'timestamp'
+                        WHEN DATA_TYPE IN ('bit')
+                            THEN 'boolean'
+                        WHEN CHARACTER_MAXIMUM_LENGTH is NOT NULL AND DATA_TYPE IN ('binary','varbinary','image')
+                            THEN 'binary'
+                        ELSE DATA_TYPE
+                    END AS 'DATA_TYPE'
+                    FROM 
+                        INFORMATION_SCHEMA.COLUMNS
+                    WHERE 
+                    LOWER(TABLE_NAME) = LOWER('supplier')
+                    AND LOWER(TABLE_SCHEMA) = LOWER('schema')
+                    AND LOWER(TABLE_CATALOG) = LOWER('org')
+                ) tmp""",
+        ),
+    )
+
+
+def test_get_schema_exception_handling():
+    # initial setup
+    engine, spark, ws, scope = initial_setup()
+    ds = SqlServerDataSource(engine, spark, ws, scope)
+
+    spark.read.format().option().option().option().load.side_effect = RuntimeError("Test Exception")
+
+    # Call the get_schema method with predefined table, schema, and catalog names and assert that a PySparkException
+    # is raised
+    with pytest.raises(
+        DataSourceRuntimeException,
+        match=re.escape(
+            "Runtime exception occurred while fetching schema using SELECT COLUMN_NAME, CASE WHEN NUMERIC_PRECISION IS NOT NULL AND NUMERIC_PRECISION < 10 "
+            "AND NUMERIC_PRECISION_RADIX = 10 AND NUMERIC_SCALE = 0 THEN 'smallint' "
+            "WHEN NUMERIC_PRECISION IS NOT NULL AND NUMERIC_PRECISION_RADIX = 10 AND NUMERIC_SCALE = 0 "
+            "THEN DATA_TYPE WHEN NUMERIC_PRECISION IS NOT NULL AND NUMERIC_PRECISION_RADIX = 10 "
+            "AND NUMERIC_SCALE IS NOT NULL THEN 'decimal' + '(' + CAST(NUMERIC_PRECISION AS VARCHAR) + ',' "
+            "+ CAST(NUMERIC_SCALE AS VARCHAR) + ')' WHEN NUMERIC_PRECISION IS NOT NULL AND NUMERIC_PRECISION_RADIX = 2 "
+            "AND NUMERIC_SCALE IS NULL THEN 'float' WHEN CHARACTER_MAXIMUM_LENGTH is NOT NULL AND CHARACTER_SET_NAME "
+            "IS NOT NULL THEN 'string' WHEN DATA_TYPE = 'date' THEN DATA_TYPE WHEN DATA_TYPE IN "
+            "('time','datetime', 'datetime2', 'smalldatetime','datetimeoffset') THEN 'timestamp' "
+            "WHEN DATA_TYPE IN ('bit') THEN 'boolean' WHEN CHARACTER_MAXIMUM_LENGTH is NOT NULL AND DATA_TYPE "
+            "IN ('binary','varbinary','image') THEN 'binary' ELSE DATA_TYPE END AS 'DATA_TYPE' "
+            "FROM INFORMATION_SCHEMA.COLUMNS WHERE LOWER(TABLE_NAME) = LOWER('supplier') "
+            "AND LOWER(TABLE_SCHEMA) = LOWER('schema') AND LOWER(TABLE_CATALOG) = LOWER('catalog')  : Test Exception"
+        ),
+    ):
+        ds.get_schema("catalog", "schema", "supplier")
