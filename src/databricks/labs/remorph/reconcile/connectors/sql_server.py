@@ -15,39 +15,40 @@ from databricks.sdk import WorkspaceClient
 
 logger = logging.getLogger(__name__)
 
+_SCHEMA_QUERY = """SELECT 
+                     COLUMN_NAME,
+                     CASE
+                        WHEN NUMERIC_PRECISION IS NOT NULL AND NUMERIC_PRECISION < 10 AND NUMERIC_PRECISION_RADIX = 10 AND NUMERIC_SCALE = 0 
+                            THEN 'smallint' 
+                        WHEN NUMERIC_PRECISION IS NOT NULL AND NUMERIC_PRECISION_RADIX = 10 AND NUMERIC_SCALE = 0 
+                            THEN DATA_TYPE  
+                        WHEN NUMERIC_PRECISION IS NOT NULL AND NUMERIC_PRECISION_RADIX = 10 AND NUMERIC_SCALE IS NOT NULL 
+                            THEN 'decimal' + '(' + CAST(NUMERIC_PRECISION AS VARCHAR) + ',' + CAST(NUMERIC_SCALE AS VARCHAR) + ')'
+                        WHEN NUMERIC_PRECISION IS NOT NULL AND NUMERIC_PRECISION_RADIX = 2 AND NUMERIC_SCALE IS NULL
+                            THEN 'float' 
+                        WHEN CHARACTER_MAXIMUM_LENGTH is NOT NULL AND CHARACTER_SET_NAME IS NOT NULL
+                            THEN 'string' 
+                        WHEN DATA_TYPE = 'date' 
+                            THEN DATA_TYPE
+                        WHEN DATA_TYPE IN ('time','datetime', 'datetime2', 'smalldatetime','datetimeoffset')
+                            THEN 'timestamp'
+                        WHEN DATA_TYPE IN ('bit')
+                            THEN 'boolean'
+                        WHEN CHARACTER_MAXIMUM_LENGTH is NOT NULL AND DATA_TYPE IN ('binary','varbinary','image')
+                            THEN 'binary'
+                        ELSE DATA_TYPE
+                    END AS 'DATA_TYPE'
+                    FROM 
+                        INFORMATION_SCHEMA.COLUMNS
+                    WHERE 
+                    LOWER(TABLE_NAME) = LOWER('{table}')
+                    AND LOWER(TABLE_SCHEMA) = LOWER('{schema}')
+                    AND LOWER(TABLE_CATALOG) = LOWER('{catalog}')
+              """
+
 
 class SqlServerDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
     _DRIVER = "sqlserver"
-    _SCHEMA_QUERY = """SELECT 
-                         COLUMN_NAME,
-                         CASE
-                            WHEN NUMERIC_PRECISION IS NOT NULL AND NUMERIC_PRECISION < 10 AND NUMERIC_PRECISION_RADIX = 10 AND NUMERIC_SCALE = 0 
-                                THEN 'smallint' 
-                            WHEN NUMERIC_PRECISION IS NOT NULL AND NUMERIC_PRECISION_RADIX = 10 AND NUMERIC_SCALE = 0 
-                                THEN DATA_TYPE  
-                            WHEN NUMERIC_PRECISION IS NOT NULL AND NUMERIC_PRECISION_RADIX = 10 AND NUMERIC_SCALE IS NOT NULL 
-                                THEN 'decimal' + '(' + CAST(NUMERIC_PRECISION AS VARCHAR) + ',' + CAST(NUMERIC_SCALE AS VARCHAR) + ')'
-                            WHEN NUMERIC_PRECISION IS NOT NULL AND NUMERIC_PRECISION_RADIX = 2 AND NUMERIC_SCALE IS NULL
-                                THEN 'float' 
-                            WHEN CHARACTER_MAXIMUM_LENGTH is NOT NULL AND CHARACTER_SET_NAME IS NOT NULL
-                                THEN 'string' 
-                            WHEN DATA_TYPE = 'date' 
-                                THEN DATA_TYPE
-                            WHEN DATA_TYPE IN ('time','datetime', 'datetime2', 'smalldatetime','datetimeoffset')
-                                THEN 'timestamp'
-                            WHEN DATA_TYPE IN ('bit')
-                                THEN 'boolean'
-                            WHEN CHARACTER_MAXIMUM_LENGTH is NOT NULL AND DATA_TYPE IN ('binary','varbinary','image')
-                                THEN 'binary'
-                            ELSE DATA_TYPE
-                        END AS 'DATA_TYPE'
-                        FROM 
-                            INFORMATION_SCHEMA.COLUMNS
-                        WHERE 
-                        LOWER(TABLE_NAME) = LOWER('{table}')
-                        AND LOWER(TABLE_SCHEMA) = LOWER('{schema}')
-                        AND LOWER(TABLE_CATALOG) = LOWER('{catalog}')
-                  """
 
     def __init__(
         self,
@@ -71,7 +72,7 @@ class SqlServerDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
 
         # Construct the JDBC URL
         return (
-            f"jdbc:{SqlServerDataSource._DRIVER}://{secrets['host']}:{secrets['port']};"
+            f"jdbc:{self._DRIVER}://{secrets['host']}:{secrets['port']};"
             f"databaseName={secrets['database']};"
             f"user={secrets['user']};"
             f"password={secrets['password']};"
@@ -118,7 +119,7 @@ class SqlServerDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
         schema_query = re.sub(
             r'\s+',
             ' ',
-            SqlServerDataSource._SCHEMA_QUERY.format(catalog=catalog, schema=schema, table=table),
+            _SCHEMA_QUERY.format(catalog=catalog, schema=schema, table=table),
         )
         try:
             logger.debug(f"Fetching schema using query: \n`{schema_query}`")
@@ -130,4 +131,4 @@ class SqlServerDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
             return self.log_and_throw_exception(e, "schema", schema_query)
 
     def reader(self, query: str) -> DataFrameReader:
-        return self._get_jdbc_reader(query, self.get_jdbc_url, SqlServerDataSource._DRIVER)
+        return self._get_jdbc_reader(query, self.get_jdbc_url, self._DRIVER)
