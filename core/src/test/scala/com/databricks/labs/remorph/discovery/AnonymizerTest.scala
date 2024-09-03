@@ -56,7 +56,7 @@ class AnonymizerTest extends AnyWordSpec with Matchers {
       anonymizer.fingerprint(query) should equal(
         Fingerprint(
           new Timestamp(1725032011000L),
-          "c11ea6f506aa613d9d653cebf93902340d85d3fb",
+          "3cb7865cbb724d921629971dbc0e971624a6c3e2",
           Duration.ofMillis(300),
           "foo",
           WorkloadType.OTHER,
