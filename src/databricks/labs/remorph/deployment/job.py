@@ -108,7 +108,9 @@ class JobDeployment:
 
     def _job_recon_task(self, jobs_task: Task, recon_config: ReconcileConfig) -> Task:
         libraries = [
-            compute.Library(whl=f"/Workspace/{self._installation.install_folder()}/wheels/databricks_labs_remorph-{self._product_info.version()}-py3-none-any.whl"),
+            compute.Library(
+                whl=f"/Workspace/{self._installation.install_folder()}/wheels/databricks_labs_remorph-{self._product_info.version()}-py3-none-any.whl"
+            ),
         ]
         source = recon_config.data_source
         if source == ReconSourceType.ORACLE.value:
