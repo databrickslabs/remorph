@@ -8,10 +8,8 @@ from databricks.labs.blueprint.installation import Installation
 from databricks.labs.blueprint.installation import SerdeError
 from databricks.labs.blueprint.installer import InstallState
 from databricks.labs.blueprint.tui import Prompts
-from databricks.labs.blueprint.wheels import ProductInfo, WheelsV2
+from databricks.labs.blueprint.wheels import ProductInfo
 
-from databricks.sdk.errors.platform import InvalidParameterValue
-from databricks.labs.blueprint.upgrades import Upgrades
 
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.errors import NotFound, PermissionDenied
@@ -38,7 +36,6 @@ MODULES = sorted({"transpile", "reconcile", "all"})
 
 
 class WorkspaceInstaller:
-    # pylint: disable=too-many-arguments
     def __init__(
         self,
         ws: WorkspaceClient,
@@ -48,8 +45,6 @@ class WorkspaceInstaller:
         product_info: ProductInfo,
         resource_configurator: ResourceConfigurator,
         workspace_installation: WorkspaceInstallation,
-        upgrades: Upgrades,
-        wheels: WheelsV2,
         environ: dict[str, str] | None = None,
     ):
         self._ws = ws
@@ -59,8 +54,6 @@ class WorkspaceInstaller:
         self._product_info = product_info
         self._resource_configurator = resource_configurator
         self._ws_installation = workspace_installation
-        self._upgrades = upgrades
-        self._wheels = wheels
 
         if not environ:
             environ = dict(os.environ.items())
@@ -85,8 +78,7 @@ class WorkspaceInstaller:
     def configure(self, module: str | None = None) -> RemorphConfigs:
         selected_module = module or self._prompts.choice("Select a module to configure:", MODULES)
         configs = self._configure_module(selected_module)
-        self._upload_wheel()
-        self._apply_upgrades()
+
         return configs
 
     def _configure_module(self, selected_module: str) -> RemorphConfigs:
@@ -313,18 +305,6 @@ class WorkspaceInstaller:
         if self._prompts.confirm(f"Open config file {ws_file_url} in the browser?"):
             webbrowser.open(ws_file_url)
 
-    def _apply_upgrades(self):
-        try:
-            self._upgrades.apply(self._ws)
-        except (InvalidParameterValue, NotFound) as err:
-            logger.warning(f"Unable to apply Upgrades due to: {err}")
-
-    def _upload_wheel(self):
-        with self._wheels:
-            wheel_paths = [self._wheels.upload_to_wsfs()]
-            wheel_paths = [f"/Workspace{wheel}" for wheel in wheel_paths]
-            return wheel_paths
-
 
 if __name__ == "__main__":
     logger = get_logger(__file__)
@@ -341,7 +321,5 @@ if __name__ == "__main__":
         app_context.product_info,
         app_context.resource_configurator,
         app_context.workspace_installation,
-        app_context.upgrades,
-        app_context.wheels,
     )
     installer.run()

@@ -9,7 +9,6 @@ from databricks.labs.blueprint.installation import Installation
 from databricks.labs.blueprint.tui import Prompts
 from databricks.sdk import WorkspaceClient
 
-from databricks.labs.remorph.config import ReconcileConfig
 from databricks.labs.remorph.contexts.application import ApplicationContext
 from databricks.labs.remorph.deployment.recon import RECON_JOB_NAME
 from databricks.labs.remorph.helpers import db_sql
@@ -61,15 +60,15 @@ def _main_table_query() -> str:
     return query_dir.joinpath("main.sql").read_text()
 
 
-def _current_main_table_columns() -> list[str]:
+def _current_main_table_columns() -> set[str]:
     """
     Extract the column names from the main table DDL
-    :return: column_names: list[str]
+    :return: column_names: set[str]
     """
     main_sql = _replace_patterns(_main_table_query())
-    main_table_columns = [
+    main_table_columns = set(
         _extract_column_name(main_table_column) for main_table_column in _extract_columns_with_datatype(main_sql)
-    ]
+    )
     return main_table_columns
 
 
@@ -97,7 +96,7 @@ def _main_table_mismatch(installed_main_table_columns, current_main_table_column
 def _recreate_main_table_sql(
     table_identifier: str,
     installed_main_table_columns: list[str],
-    current_main_table_columns: list[str],
+    current_main_table_columns: set[str],
     prompts: Prompts,
 ) -> str | None:
     """
@@ -114,7 +113,7 @@ def _recreate_main_table_sql(
         f"CREATE OR REPLACE TABLE {table_identifier} AS SELECT {','.join(current_main_table_columns)} FROM {table_identifier}"
     )
 
-    if False in set(column in installed_main_table_columns for column in current_main_table_columns):
+    if not set(current_main_table_columns).issubset(installed_main_table_columns):
         if prompts.confirm("The `main` table columns are not as expected. Do you want to recreate the `main` table?"):
             sql = _main_table_query()
         else:
@@ -138,7 +137,8 @@ def _upgrade_reconcile_metadata_main_table(
     :param ws:
     :param app_context:
     """
-    reconcile_config = installation.load(ReconcileConfig)
+    reconcile_config = app_context.recon_config
+    assert reconcile_config, "Reconcile config must be present to upgrade the reconcile metadata main table"
     table_identifier = f"{reconcile_config.metadata_config.catalog}.{reconcile_config.metadata_config.schema}.main1"
     installed_main_table_columns = _installed_main_table_columns(ws, table_identifier)
     sql: str | None = f"ALTER TABLE {table_identifier} ADD COLUMN operation_name  STRING AFTER report_type"

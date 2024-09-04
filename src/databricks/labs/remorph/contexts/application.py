@@ -125,6 +125,8 @@ class ApplicationContext:
             self.prompts,
             self.installation,
             self.recon_deployment,
+            self.wheels,
+            self.upgrades,
         )
 
     @cached_property
