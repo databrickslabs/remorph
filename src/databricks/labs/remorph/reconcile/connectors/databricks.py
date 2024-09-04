@@ -18,6 +18,8 @@ logger = logging.getLogger(__name__)
 def _get_schema_query(catalog: str, schema: str, table: str):
     # TODO: Ensure that the target_catalog in the configuration is not set to "hive_metastore". The source_catalog
     #  can only be set to "hive_metastore" if the source type is "databricks".
+    if schema == "global_temp":
+        return f"describe table global_temp.{table}"
     if catalog == "hive_metastore":
         return f"describe table {catalog}.{schema}.{table}"
 
@@ -54,9 +56,12 @@ class DatabricksDataSource(DataSource, SecretsMixin):
         query: str,
         options: JdbcReaderOptions | None,
     ) -> DataFrame:
-        if not catalog:
-            catalog = "hive_metastore"
-        table_with_namespace = f"{catalog}.{schema}.{table}"
+        catalog_schema = "hive_metastore" if not catalog else catalog
+        if schema == "global_temp":
+            catalog_schema = "global_temp"
+        else:
+            catalog_schema = f"{catalog_schema}.{schema}"
+        table_with_namespace = f"{catalog_schema}.{table}"
         table_query = query.replace(":tbl", table_with_namespace)
         try:
             df = self._spark.sql(table_query)
