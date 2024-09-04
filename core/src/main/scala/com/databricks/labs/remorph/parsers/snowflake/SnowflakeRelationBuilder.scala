@@ -32,8 +32,12 @@ class SnowflakeRelationBuilder
           c.selectTopClause().selectListTop().selectList().selectListElem().asScala)
     }
     val expressions = selectListElements.map(_.accept(expressionBuilder))
-    ir.Project(buildTop(top, buildDistinct(allOrDistinct, relation, expressions)), expressions)
 
+    if (Option(allOrDistinct).exists(_.DISTINCT() != null)) {
+      buildTop(top, buildDistinct(relation, expressions))
+    } else {
+      ir.Project(buildTop(top, relation), expressions)
+    }
   }
 
   private def buildLimitOffset(ctx: LimitClauseContext, input: ir.LogicalPlan): ir.LogicalPlan = {
@@ -51,19 +55,14 @@ class SnowflakeRelationBuilder
     }
   }
 
-  private def buildDistinct(
-      ctx: AllDistinctContext,
-      input: ir.LogicalPlan,
-      projectExpressions: Seq[ir.Expression]): ir.LogicalPlan =
-    if (Option(ctx).exists(_.DISTINCT() != null)) {
-      val columnNames = projectExpressions.collect {
-        case ir.Column(_, c) => c
-        case ir.Alias(_, a) => a
-      }
-      ir.Deduplicate(input, columnNames, columnNames.isEmpty, within_watermark = false)
-    } else {
-      input
+  private def buildDistinct(input: ir.LogicalPlan, projectExpressions: Seq[ir.Expression]): ir.LogicalPlan = {
+
+    val columnNames = projectExpressions.collect {
+      case ir.Column(_, c) => c
+      case ir.Alias(_, a) => a
     }
+    ir.Deduplicate(input, projectExpressions, columnNames.isEmpty, within_watermark = false)
+  }
 
   private def buildTop(ctxOpt: Option[TopClauseContext], input: ir.LogicalPlan): ir.LogicalPlan =
     ctxOpt.fold(input) { top =>
