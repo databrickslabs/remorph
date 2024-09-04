@@ -1,8 +1,15 @@
-package com.databricks.labs.remorph.toolchain
+package com.databricks.labs.remorph.transpilers
 
 import java.nio.file.{Files, Path, Paths}
 import scala.io.Source.fromFile
 import scala.collection.JavaConverters._
+
+case class SourceCode(source: String, filename: String = "-- test source --")
+
+trait Source extends Iterator[SourceCode]
+
+
+
 
 class DirectorySource(root: String, fileFilter: Option[Path => Boolean] = None) extends Source {
   private val files =
