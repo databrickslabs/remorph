@@ -344,7 +344,7 @@ def _create_named_struct_for_cmp(agg_col, order_col) -> exp.Expression:
 
 def _not_sql(self, expression: exp.Not) -> str:
     if isinstance(expression.this, exp.Is):
-        return f"{expression.this.this} NOT {self.sql(expression.this, 'expression')}"
+        return f"{expression.this.this} IS NOT {self.sql(expression.this, 'expression')}"
     return f"NOT {self.sql(expression, 'this')}"
 
 
