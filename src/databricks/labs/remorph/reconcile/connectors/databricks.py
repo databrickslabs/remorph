@@ -56,12 +56,12 @@ class DatabricksDataSource(DataSource, SecretsMixin):
         query: str,
         options: JdbcReaderOptions | None,
     ) -> DataFrame:
-        catalog_schema = "hive_metastore" if not catalog else catalog
+        namespace_catalog = "hive_metastore" if not catalog else catalog
         if schema == "global_temp":
-            catalog_schema = "global_temp"
+            namespace_catalog = "global_temp"
         else:
-            catalog_schema = f"{catalog_schema}.{schema}"
-        table_with_namespace = f"{catalog_schema}.{table}"
+            namespace_catalog = f"{namespace_catalog}.{schema}"
+        table_with_namespace = f"{namespace_catalog}.{table}"
         table_query = query.replace(":tbl", table_with_namespace)
         try:
             df = self._spark.sql(table_query)
