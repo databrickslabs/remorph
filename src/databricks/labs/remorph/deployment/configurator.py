@@ -52,7 +52,7 @@ class ResourceConfigurator:
                     result = self._catalog_ops.create_catalog(catalog_name)
                     assert result.name is not None
                     return result.name
-                raise SystemExit("Please create the catalog. Aborting the installation.")
+                raise SystemExit("Cannot continue installation, without a valid catalog, Aborting the installation.")
         raise SystemExit(f"Couldn't get answer within {max_attempts} attempts. Aborting the installation.")
 
     def prompt_for_schema_setup(
@@ -84,7 +84,7 @@ class ResourceConfigurator:
                     result = self._catalog_ops.create_schema(schema_name, catalog)
                     assert result.name is not None
                     return result.name
-                raise SystemExit("Please create the schema. Aborting the installation.")
+                raise SystemExit("Cannot continue installation, without a valid schema. Aborting the installation.")
         raise SystemExit(f"Couldn't get answer within {max_attempts} attempts. Aborting the installation.")
 
     def prompt_for_volume_setup(
@@ -120,7 +120,7 @@ class ResourceConfigurator:
                     result = self._catalog_ops.create_volume(catalog, schema, volume_name)
                     assert result.name is not None
                     return result.name
-                raise SystemExit("Please create the volume. Aborting the installation.")
+                raise SystemExit("Cannot continue installation, without a valid volume. Aborting the installation.")
         raise SystemExit(f"Couldn't get answer within {max_attempts} attempts. Aborting the installation.")
 
     def prompt_for_warehouse_setup(self, warehouse_name_prefix: str) -> str:
