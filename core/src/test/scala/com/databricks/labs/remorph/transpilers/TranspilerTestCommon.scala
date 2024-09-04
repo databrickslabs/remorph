@@ -9,7 +9,7 @@ trait TranspilerTestCommon extends Matchers {
 
   implicit class TranspilerTestOps(input: String) {
     def transpilesTo(expectedOutput: String): Assertion = {
-      transpiler.transpile(input).toLowerCase() shouldBe expectedOutput.toLowerCase()
+      transpiler.transpile(SourceCode(input)).output.getOrElse("").toLowerCase() shouldBe expectedOutput.toLowerCase()
     }
   }
 }
