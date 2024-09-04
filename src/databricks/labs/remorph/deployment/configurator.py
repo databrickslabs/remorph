@@ -44,15 +44,15 @@ class ResourceConfigurator:
                 assert user_name is not None
                 if self._catalog_ops.has_catalog_access(catalog, user_name, required_privileges):
                     return catalog_name
-                logger.info(f"User `{user_name}` doesn't have privilege to use catalog `{catalog_name}`")
+                logger.warning(f"User `{user_name}` doesn't have sufficient privileges to use catalog `{catalog_name}`")
                 if not self._prompts.confirm("Do you want to use another catalog?"):
-                    raise SystemExit("Aborting the installation.")
+                    raise SystemExit("Please choose the correct catalog. Aborting the installation.")
             else:
                 if self._prompts.confirm(f"Catalog `{catalog_name}` doesn't exist. Create it?"):
                     result = self._catalog_ops.create_catalog(catalog_name)
                     assert result.name is not None
                     return result.name
-                raise SystemExit("Aborting the installation.")
+                raise SystemExit("Please create the catalog. Aborting the installation.")
         raise SystemExit(f"Couldn't get answer within {max_attempts} attempts. Aborting the installation.")
 
     def prompt_for_schema_setup(
@@ -74,17 +74,17 @@ class ResourceConfigurator:
                 assert user_name is not None
                 if self._catalog_ops.has_schema_access(schema, user_name, required_privileges):
                     return schema_name
-                logger.info(
-                    f"User `{user_name}` doesn't have privilege to use schema `{schema_name}` in catalog `{catalog}`"
+                logger.warning(
+                    f"User `{user_name}` doesn't have sufficient privileges to use schema `{schema_name}` in catalog `{catalog}`"
                 )
                 if not self._prompts.confirm("Do you want to use another schema?"):
-                    raise SystemExit("Aborting the installation.")
+                    raise SystemExit("Please choose the correct schema. Aborting the installation.")
             else:
                 if self._prompts.confirm(f"Schema `{schema_name}` doesn't exist in catalog `{catalog}`. Create it?"):
                     result = self._catalog_ops.create_schema(schema_name, catalog)
                     assert result.name is not None
                     return result.name
-                raise SystemExit("Aborting the installation.")
+                raise SystemExit("Please create the schema. Aborting the installation.")
         raise SystemExit(f"Couldn't get answer within {max_attempts} attempts. Aborting the installation.")
 
     def prompt_for_volume_setup(
@@ -107,12 +107,12 @@ class ResourceConfigurator:
                 assert user_name is not None
                 if self._catalog_ops.has_volume_access(volume, user_name, required_privileges):
                     return volume_name
-                logger.info(
-                    f"User `{user_name}` doesn't have privilege to use volume `{volume_name}` "
+                logger.warning(
+                    f"User `{user_name}` doesn't have sufficient privileges to use volume `{volume_name}` "
                     f"in catalog `{catalog}` and schema `{schema}`"
                 )
                 if not self._prompts.confirm("Do you want to use another volume?"):
-                    raise SystemExit("Aborting the installation.")
+                    raise SystemExit("Please choose the correct volume. Aborting the installation.")
             else:
                 if self._prompts.confirm(
                     f"Volume `{volume_name}` doesn't exist in catalog `{catalog}` and schema `{schema}`. Create it?"
@@ -120,7 +120,7 @@ class ResourceConfigurator:
                     result = self._catalog_ops.create_volume(catalog, schema, volume_name)
                     assert result.name is not None
                     return result.name
-                raise SystemExit("Aborting the installation.")
+                raise SystemExit("Please create the volume. Aborting the installation.")
         raise SystemExit(f"Couldn't get answer within {max_attempts} attempts. Aborting the installation.")
 
     def prompt_for_warehouse_setup(self, warehouse_name_prefix: str) -> str:
