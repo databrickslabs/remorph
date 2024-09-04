@@ -93,11 +93,11 @@ class SnowflakeDDLBuilder
   }
 
   override def visitCreateStream(ctx: CreateStreamContext): ir.UnresolvedCommand = {
-    formatContext(ctx)
+    ir.UnresolvedCommand(getTextFromParserRuleContext(ctx))
   }
 
   override def visitCreateTask(ctx: CreateTaskContext): ir.UnresolvedCommand = {
-    formatContext(ctx)
+    ir.UnresolvedCommand(getTextFromParserRuleContext(ctx))
   }
 
   private def buildColumnDeclarations(ctx: Seq[ColumnDeclItemContext]): Seq[ir.ColumnDeclaration] = {
@@ -165,7 +165,7 @@ class SnowflakeDDLBuilder
   override def visitAlterCommand(ctx: AlterCommandContext): ir.Catalog = {
     ctx match {
       case c if c.alterTable() != null => c.alterTable().accept(this)
-      case _ => formatContext(ctx)
+      case _ => ir.UnresolvedCommand(getTextFromParserRuleContext(ctx))
     }
   }
 
