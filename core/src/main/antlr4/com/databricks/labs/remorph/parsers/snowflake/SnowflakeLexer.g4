@@ -914,4 +914,5 @@ fragment DEC_DIGIT   : [0-9];
 // This lexer rule is needed so that any unknown character in the lexicon does not
 // cause an incomprehensible error message. This rule will allow the parser to issue
 // somethign more meaningful and perform error recovery.
-BADCHAR: .;
+BADCHAR       : .;
+NON_ANSI_JOIN : '(''+'')';

@@ -3194,6 +3194,7 @@ dataType
 primitiveExpression
     : DEFAULT           # primExprDefault //?
     | id LSB num RSB    # primArrayAccess
+    | id NON_ANSI_JOIN     # primExprNonAnsiJoin
     | id LSB string RSB # primObjectAccess
     | id                # primExprColumn
     | literal           # primExprLiteral
