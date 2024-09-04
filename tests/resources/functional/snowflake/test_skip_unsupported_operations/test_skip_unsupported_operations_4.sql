@@ -3,4 +3,3 @@
 COMMIT;
 
 -- databricks sql:
-;

@@ -58,6 +58,8 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
       case a: ir.ArrayAccess => arrayAccess(ctx, a)
       case j: ir.JsonAccess => jsonAccess(ctx, j)
       case l: ir.LambdaFunction => lambdaFunction(ctx, l)
+      case v: ir.Variable => variable(ctx, v)
+      case s: ir.SchemaReference => schemaReference(ctx, s)
       case null => "" // don't fail transpilation if the expression is null
       case x => throw TranspileException(s"Unsupported expression: $x")
     }
@@ -252,6 +254,7 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
         case t: ir.TimestampDiff => timestampDiff(ctx, t)
         case t: ir.TimestampAdd => timestampAdd(ctx, t)
         case e: ir.Extract => extract(ctx, e)
+        case c: ir.Concat => concat(ctx, c)
         case i: ir.In => in(ctx, i)
         case fn: ir.Fn => s"${fn.prettyName}(${fn.children.map(expression(ctx, _)).mkString(", ")})"
 
@@ -452,6 +455,26 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
 
   private def lambdaArgument(arg: ir.UnresolvedNamedLambdaVariable): String = {
     arg.name_parts.mkString(".")
+  }
+
+  private def variable(ctx: GeneratorContext, v: ir.Variable): String = s"$${${v.name}}"
+
+  private def concat(ctx: GeneratorContext, c: ir.Concat): String = {
+    val args = c.children.map(expression(ctx, _))
+    if (c.children.size > 2) {
+      args.mkString(" || ")
+    } else {
+      args.mkString("CONCAT(", ", ", ")")
+    }
+  }
+
+  private def schemaReference(ctx: GeneratorContext, s: ir.SchemaReference): String = {
+    val ref = s.columnName match {
+      case d: ir.Dot => expression(ctx, d)
+      case i: ir.Id => expression(ctx, i)
+      case _ => "JSON_COLUMN"
+    }
+    s"{${ref.toUpperCase(Locale.getDefault())}_SCHEMA}"
   }
   private def singleQuote(s: String): String = s"'$s'"
   private def isAlphanum(s: String): Boolean = s.forall(_.isLetterOrDigit)

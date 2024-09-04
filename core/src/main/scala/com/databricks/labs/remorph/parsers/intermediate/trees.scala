@@ -501,14 +501,7 @@ abstract class TreeNode[BaseType <: TreeNode[BaseType]] extends Product {
    * the prettier toString function is obfuscating the actual structure. In the case of 'pure' `TreeNodes` that only
    * contain primitives and other TreeNodes, the result can be pasted in the REPL to build an equivalent Tree.
    */
-  def asCode: String = {
-    val args = productIterator.map {
-      case tn: TreeNode[_] => tn.asCode
-      case s: String => "\"" + s + "\""
-      case other => other.toString
-    }
-    s"$nodeName(${args.mkString(",")})"
-  }
+  def asCode: String = pprint.apply(self).plainText
 
   /**
    * The arguments that should be included in the arg string. Defaults to the `productIterator`.

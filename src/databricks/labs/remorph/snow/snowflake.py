@@ -72,7 +72,7 @@ def _parse_to_timestamp(args: list) -> exp.StrToTime | exp.UnixToTime | exp.Time
         first_arg, second_arg = args
         if second_arg.is_string:
             # case: <string_expr> [ , <format> ]
-            return build_formatted_time(exp.StrToTime, "snowflake")(args)
+            return build_formatted_time(exp.StrToTime, "snowflake", default=True)(args)
         return exp.UnixToTime(this=first_arg, scale=second_arg)
 
     # The first argument might be an expression like 40 * 365 * 86400, so we try to
