@@ -72,12 +72,12 @@ FROM
           }
         ]
       }')) AS lah
-  ) src
-LATERAL VIEW EXPLODE(lah.listing_objects_accessed) AS los
+  ) AS src
+LATERAL VIEW EXPLODE(src.lah.listing_objects_accessed) AS los
 LATERAL VIEW EXPLODE(los.columns) AS cols
 WHERE
   CAST(los.objectDomain AS STRING) IN ('Table', 'View') AND
-  lah.query_date BETWEEN '2022-03-01' AND '2022-04-30' AND
+  CAST(src.lah.query_date AS DATE) BETWEEN '2022-03-01' AND '2022-04-30' AND
   CAST(los.objectName AS STRING) = 'DATABASE_NAME.SCHEMA_NAME.TABLE_NAME' AND
-  lah.consumer_account_locator = 'CONSUMER_ACCOUNT_LOCATOR'
+  CAST(src.lah.consumer_account_locator AS STRING) = 'CONSUMER_ACCOUNT_LOCATOR'
 GROUP BY 1, 2, 3;

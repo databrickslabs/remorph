@@ -481,19 +481,16 @@ class Snow(Snowflake):
                 self_copy._advance()
 
                 # Adding code to test where condition
-                if self_copy._match(TokenType.WHERE, advance=False):
-                    self_copy._advance()
-                    print("self_copy._parse_column_reference()")
-                    self_copy._parse_table_parts()
-                    table_alias = self_copy._parse_table_alias()  # get to table alias
-                    print("table_alias")
-                    print(table_alias)
-
-                    # # Ignore `.value` in the table alias
-                    # if table_alias and table_alias.this and table_alias.this.name:
-                    #     table_alias.this.name = table_alias.this.name.split(".")[0]
-
-                    return table_alias
+                # if self_copy._match(TokenType.WHERE, advance=False):
+                #     self_copy._advance()
+                #     # print("self_copy._parse_column()")
+                #     # print(self_copy._parse_column_reference())
+                #     # table_alias = self_copy._parse_table_alias()  # get to table alias
+                #     table_alias = self_copy._parse_column_reference()
+                #     print(f"table_alias++WHERE+++{table_alias}")
+                #     break
+                    # print(table_alias)
+                    # return table_alias
 
                 # get the table alias when FROM token is found
                 if self_copy._match(TokenType.FROM, advance=False):
@@ -507,7 +504,6 @@ class Snow(Snowflake):
                     self_copy._parse_table_parts()  # parse the table parts
                     table_alias = self_copy._parse_table_alias()  # get to table alias
                     return table_alias
-
             return table_alias
 
         def _json_column_op(self, this, path):
@@ -560,22 +556,35 @@ class Snow(Snowflake):
                 )
             return window
 
-        def _parse_where(self, skip_where_token: bool = False) -> t.Optional[exp.Where]:
-            if not skip_where_token and not self._match(TokenType.WHERE):
-                return None
-
-            table_alias = str(self._get_table_alias()) if self._get_table_alias() else None
-            if isinstance(self.expression, exp.Column) and self.expression.table == table_alias and self.expression.name.upper() == "VALUE":
-                expression = self.expression.table
-            # return self.expression(exp.Where, this=self._parse_assignment(), expression=self.expression)
-
-            result = self.expression(
-                exp.Where, comments=self._prev_comments, this=self._parse_assignment()
-            )
-
-            # TODO:
-            # 1. find all the brackets inside where
-            # 2. inside each bracket , find all the columns if bracket this has name = value replace with table alias
-            # 3. if column name is value and table alias is not equal to table alias of the column,
-            # replace with table alias
-            return result
+        # def _parse_where(self, skip_where_token: bool = False) -> t.Optional[exp.Where]:
+        #     self_copy = copy.deepcopy(self)
+        #     # while self_copy._index < len(self_copy._tokens):
+        #     #     self_copy._advance()
+        #     #     print("count---"+str(count))
+        #
+        #     if not skip_where_token and not self._match(TokenType.WHERE):
+        #         return None
+        #
+        #     result = self_copy.expression(
+        #         exp.Where, comments=self._prev_comments, this=self._parse_assignment()
+        #     )
+        #
+        #     print("*****")
+        #     print(result.args.values())
+        #     print("*****")
+        #     new_expression = exp.Expression()
+        #     for value in result.args.values():
+        #         new_expression.append("this",value)
+        #     print("^^^^^^^^")
+        #     print(new_expression.args)
+        #
+        #
+        #     # is_name_value = this.name.upper() == "VALUE"
+        #     # is_path_value = path.alias_or_name.upper() == "VALUE"
+        #     # TODO:
+        #     # 1. find all the brackets inside where
+        #     # 2. inside each bracket , find all the columns if bracket this has name = value replace with table alias
+        #     # 3. if column name is value and table alias is not equal to table alias of the column,
+        #     # replace with table alias
+        #
+        #     return result

@@ -260,14 +260,76 @@ def _parse_json(self, expr: exp.ParseJSON):
     # conv_expr = self.func("FROM_JSON", expr_this, f"{{{column}_SCHEMA}}")
 
     ##changes starts here
-    column = expr_this.replace("'", "").upper() if isinstance(expr.this, exp.Column) else expr_this
+    column = expr_this.replace("'", "").replace("\\n", "").upper() if isinstance(expr.this, exp.Column) else expr_this.replace("\\n", "")
     # conv_expr = self.func("FROM_JSON", expr_this, f"schema_of_json({expr_this})")
-    conv_expr = self.func("FROM_JSON", expr_this, f"schema_of_json({column})")
+    conv_expr = self.func("FROM_JSON", expr_this.replace("\\n", " "), f"schema_of_json({column})")
 
-    warning_msg = (
-        f"***Warning***: you need to explicitly specify `SCHEMA` for `{column}` column in expression: `{conv_expr}`"
-    )
-    logger.warning(warning_msg)
+    # warning_msg = (
+    #     f"***Warning***: you need to explicitly specify `SCHEMA` for `{column}` column in expression: `{conv_expr}`"
+    # )
+    # logger.warning(warning_msg)
+    return conv_expr
+
+
+def transform_where(self, expr: exp):
+    """
+    Checks if columns in where clause are part of lateral views and replaces them with table alias
+    instead of using with column.values
+    """
+    # print("repr(expr)-------")
+    # print(repr(expr))
+
+    # # find parent
+    # print("repr(expr.parent)########")
+    # print(repr(expr.parent))
+    # print("#####################")
+    # Fetch parent of Where clause
+    parent = expr
+    lateral_aliases = set()
+
+    where_expr = expr.find(exp.Where)
+    # print("where_expr---------")
+    # print(repr(where_expr))
+    # Find all lateral views and their aliases in the parent
+    for lateral in parent.find_all(exp.Lateral):
+        alias = lateral.args.get("alias")
+        if alias:
+            lateral_aliases.add(alias.name)
+
+    # print("lateral_aliases---------")
+    # print(lateral_aliases)
+    #
+    # print("expr--------------")
+    # print(repr(expr))
+    # def transform_bracket(bracket_expr):
+    #     if isinstance(bracket_expr.this, exp.Column) and isinstance(bracket_expr.this.this, exp.Identifier):
+    #         if bracket_expr.this.this.name in lateral_aliases:
+    #             bracket_expr.set("this", bracket_expr.this.table)
+    #     return bracket_expr
+
+    # Traverse the where clause to find the Brackets and replaced the .value if it is referencing to the lateral views
+    for node in expr.find_all(local_expression.Bracket):
+        # print("pre repr(node)------")
+        # print(repr(node))
+        # print("node.this.table------")
+        # print(node.this.table)
+        # print(repr(node.expression))
+        if (isinstance(node.this, exp.Column) and isinstance(node.this.this, exp.Identifier)
+                and node.this.table in lateral_aliases):
+            if node.this.this.name == "value":
+                node.set("this", str(node.this.table))
+                node.set("expressions", node.expressions)
+                # self.expression(local_expression.Bracket, this=node.this.table, expressions=[node.expression])
+        # Recursively transform nested Bracket expressions
+        # for expr in node.expressions:
+        #     if isinstance(expr, exp.Bracket):
+        #         transform_bracket(expr)
+        # print("post repr(node)------")
+        # print(repr(node))
+
+    conv_expr = expr
+    # print("conv_expr========")
+    # print(repr(conv_expr))
     return conv_expr
 
 
@@ -410,11 +472,13 @@ class Databricks(org_databricks.Databricks):  #
             exp.NullSafeEQ: lambda self, e: self.binary(e, "<=>"),
             exp.If: if_sql(false_value="NULL"),
             exp.Command: _to_command,
+            # exp.Where: _transform_where,
         }
 
         def preprocess(self, expression: exp.Expression) -> exp.Expression:
             fixed_ast = expression.transform(lca_utils.unalias_lca_in_select, copy=False)
-            return super().preprocess(fixed_ast)
+            transformed_ast = transform_where(self, fixed_ast)  # check where to place this function transform_where
+            return super().preprocess(transformed_ast)
 
         def format_time(self, expression: exp.Expression, inverse_time_mapping=None, inverse_time_trie=None):
             return super().format_time(expression, self.INVERSE_TIME_MAPPING)
