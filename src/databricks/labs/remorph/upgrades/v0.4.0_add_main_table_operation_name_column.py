@@ -60,15 +60,15 @@ def _main_table_query() -> str:
     return query_dir.joinpath("main.sql").read_text()
 
 
-def _current_main_table_columns() -> set[str]:
+def _current_main_table_columns() -> list[str]:
     """
     Extract the column names from the main table DDL
-    :return: column_names: set[str]
+    :return: column_names: list[str]
     """
     main_sql = _replace_patterns(_main_table_query())
-    main_table_columns = set(
+    main_table_columns = [
         _extract_column_name(main_table_column) for main_table_column in _extract_columns_with_datatype(main_sql)
-    )
+    ]
     return main_table_columns
 
 
@@ -96,7 +96,7 @@ def _main_table_mismatch(installed_main_table_columns, current_main_table_column
 def _recreate_main_table_sql(
     table_identifier: str,
     installed_main_table_columns: list[str],
-    current_main_table_columns: set[str],
+    current_main_table_columns: list[str],
     prompts: Prompts,
 ) -> str | None:
     """

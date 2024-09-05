@@ -77,11 +77,6 @@ class WorkspaceInstaller:
 
     def configure(self, module: str | None = None) -> RemorphConfigs:
         selected_module = module or self._prompts.choice("Select a module to configure:", MODULES)
-        configs = self._configure_module(selected_module)
-
-        return configs
-
-    def _configure_module(self, selected_module: str) -> RemorphConfigs:
         match selected_module:
             case "transpile":
                 logger.info("Configuring remorph `transpile`.")
