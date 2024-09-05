@@ -94,11 +94,7 @@ class SqlServerDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
                 df = self.reader(table_query).load()
             else:
                 options = self._get_jdbc_reader_options(options)
-                df = (
-                    self._get_jdbc_reader(table_query, self.get_jdbc_url, self._DRIVER)
-                    .options(**options)
-                    .load()
-                )
+                df = self._get_jdbc_reader(table_query, self.get_jdbc_url, self._DRIVER).options(**options).load()
             return df.select([col(column).alias(column.lower()) for column in df.columns])
         except (RuntimeError, PySparkException) as e:
             return self.log_and_throw_exception(e, "data", table_query)
