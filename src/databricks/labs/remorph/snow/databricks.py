@@ -252,23 +252,15 @@ def _parse_json(self, expr: exp.ParseJSON):
     Converts `PARSE_JSON` function to `FROM_JSON` function.
     Schema is a mandatory argument for Databricks `FROM_JSON` function
     [FROM_JSON](https://docs.databricks.com/en/sql/language-manual/functions/from_json.html)
-    Need to explicitly specify the Schema {<COL_NAME>_SCHEMA} in the current execution environment
+    Need to explicitly specify the Schema {<COL_NAME>_SCHEMA} in the current execution environment.Use [schema_of_json]
+    (https://docs.databricks.com/en/sql/language-manual/functions/schema_of_json.html#schema_of_json-function)
+     to fetch the schema from the json string
     """
     expr_this = self.sql(expr, "this")
-    # use column name as prefix or use JSON_COLUMN_SCHEMA when the expression is nested
-    # column = expr_this.replace("'", "").upper() if isinstance(expr.this, exp.Column) else "JSON_COLUMN"
-    # conv_expr = self.func("FROM_JSON", expr_this, f"{{{column}_SCHEMA}}")
-
-    ##changes starts here
-    column = expr_this.replace("'", "").replace("\\n", "").upper() if isinstance(expr.this, exp.Column) else expr_this.replace("\\n", "")
-    # conv_expr = self.func("FROM_JSON", expr_this, f"schema_of_json({expr_this})")
-    conv_expr = self.func("FROM_JSON", expr_this.replace("\\n", " "), f"schema_of_json({column})")
-
-    # warning_msg = (
-    #     f"***Warning***: you need to explicitly specify `SCHEMA` for `{column}` column in expression: `{conv_expr}`"
-    # )
-    # logger.warning(warning_msg)
-    return conv_expr
+    formatted_expr = expr_this.replace("\\n", " ")
+    column = formatted_expr.replace("'", "").upper() if isinstance(expr.this, exp.Column) else formatted_expr
+    conv_expr = f"FROM_JSON({formatted_expr},schema_of_json({column}))"
+    return self.sql(conv_expr)
 
 
 def transform_where(self, expr: exp):
@@ -276,62 +268,24 @@ def transform_where(self, expr: exp):
     Checks if columns in where clause are part of lateral views and replaces them with table alias
     instead of using with column.values
     """
-    # print("repr(expr)-------")
-    # print(repr(expr))
 
-    # # find parent
-    # print("repr(expr.parent)########")
-    # print(repr(expr.parent))
-    # print("#####################")
-    # Fetch parent of Where clause
-    parent = expr
     lateral_aliases = set()
 
-    where_expr = expr.find(exp.Where)
-    # print("where_expr---------")
-    # print(repr(where_expr))
     # Find all lateral views and their aliases in the parent
-    for lateral in parent.find_all(exp.Lateral):
+    for lateral in expr.find_all(exp.Lateral):
         alias = lateral.args.get("alias")
         if alias:
             lateral_aliases.add(alias.name)
 
-    # print("lateral_aliases---------")
-    # print(lateral_aliases)
-    #
-    # print("expr--------------")
-    # print(repr(expr))
-    # def transform_bracket(bracket_expr):
-    #     if isinstance(bracket_expr.this, exp.Column) and isinstance(bracket_expr.this.this, exp.Identifier):
-    #         if bracket_expr.this.this.name in lateral_aliases:
-    #             bracket_expr.set("this", bracket_expr.this.table)
-    #     return bracket_expr
-
-    # Traverse the where clause to find the Brackets and replaced the .value if it is referencing to the lateral views
+    # Traverse the query to find the Brackets and replaced the `.value`
+    # if it is referencing to the lateral views
     for node in expr.find_all(local_expression.Bracket):
-        # print("pre repr(node)------")
-        # print(repr(node))
-        # print("node.this.table------")
-        # print(node.this.table)
-        # print(repr(node.expression))
         if (isinstance(node.this, exp.Column) and isinstance(node.this.this, exp.Identifier)
                 and node.this.table in lateral_aliases):
             if node.this.this.name == "value":
                 node.set("this", str(node.this.table))
                 node.set("expressions", node.expressions)
-                # self.expression(local_expression.Bracket, this=node.this.table, expressions=[node.expression])
-        # Recursively transform nested Bracket expressions
-        # for expr in node.expressions:
-        #     if isinstance(expr, exp.Bracket):
-        #         transform_bracket(expr)
-        # print("post repr(node)------")
-        # print(repr(node))
-
-    conv_expr = expr
-    # print("conv_expr========")
-    # print(repr(conv_expr))
-    return conv_expr
-
+    return expr
 
 def _to_number(self, expression: local_expression.ToNumber):
     func = "TO_NUMBER"
@@ -472,7 +426,6 @@ class Databricks(org_databricks.Databricks):  #
             exp.NullSafeEQ: lambda self, e: self.binary(e, "<=>"),
             exp.If: if_sql(false_value="NULL"),
             exp.Command: _to_command,
-            # exp.Where: _transform_where,
         }
 
         def preprocess(self, expression: exp.Expression) -> exp.Expression:
