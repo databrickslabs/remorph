@@ -152,10 +152,7 @@ otherCommand
     | let // to wide rule need to look at the let rule precedence.
     ;
 
-snowSqlCommand: SQLCOMMAND | unresolvedBangCommnad
-    ;
-
-unresolvedBangCommnad: ANY_BANG
+snowSqlCommand: SQLCOMMAND
     ;
 
 procStatement

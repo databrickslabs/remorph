@@ -46,8 +46,3 @@ case class UnresolvedCatalog(inputText: String) extends Catalog {
   override def output: Seq[Attribute] = Seq.empty
   override def children: Seq[LogicalPlan] = Seq.empty
 }
-
-case class UnresolvedSnowSqlCommand(inputText: String) extends LogicalPlan {
-  override def output: Seq[Attribute] = Seq.empty
-  override def children: Seq[LogicalPlan] = Seq.empty
-}
