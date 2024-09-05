@@ -131,34 +131,33 @@ def test_get_schema():
             r'\s+',
             ' ',
             r"""(SELECT 
-                     COLUMN_NAME,
-                     CASE
-                        WHEN NUMERIC_PRECISION IS NOT NULL AND NUMERIC_PRECISION < 10 AND NUMERIC_PRECISION_RADIX = 10 AND NUMERIC_SCALE = 0 
-                            THEN 'smallint' 
-                        WHEN NUMERIC_PRECISION IS NOT NULL AND NUMERIC_PRECISION_RADIX = 10 AND NUMERIC_SCALE = 0 
-                            THEN DATA_TYPE  
-                        WHEN NUMERIC_PRECISION IS NOT NULL AND NUMERIC_PRECISION_RADIX = 10 AND NUMERIC_SCALE IS NOT NULL 
-                            THEN 'decimal' + '(' + CAST(NUMERIC_PRECISION AS VARCHAR) + ',' + CAST(NUMERIC_SCALE AS VARCHAR) + ')'
-                        WHEN NUMERIC_PRECISION IS NOT NULL AND NUMERIC_PRECISION_RADIX = 2 AND NUMERIC_SCALE IS NULL
-                            THEN 'float' 
-                        WHEN CHARACTER_MAXIMUM_LENGTH is NOT NULL AND CHARACTER_SET_NAME IS NOT NULL
-                            THEN 'string' 
-                        WHEN DATA_TYPE = 'date' 
-                            THEN DATA_TYPE
-                        WHEN DATA_TYPE IN ('time','datetime', 'datetime2', 'smalldatetime','datetimeoffset')
-                            THEN 'timestamp'
-                        WHEN DATA_TYPE IN ('bit')
-                            THEN 'boolean'
-                        WHEN CHARACTER_MAXIMUM_LENGTH is NOT NULL AND DATA_TYPE IN ('binary','varbinary','image')
-                            THEN 'binary'
-                        ELSE DATA_TYPE
-                    END AS 'DATA_TYPE'
-                    FROM 
-                        INFORMATION_SCHEMA.COLUMNS
-                    WHERE 
-                    LOWER(TABLE_NAME) = LOWER('supplier')
-                    AND LOWER(TABLE_SCHEMA) = LOWER('schema')
-                    AND LOWER(TABLE_CATALOG) = LOWER('org')
+                         COLUMN_NAME,
+                         CASE
+                            WHEN DATA_TYPE IN ('int', 'bigint', 'smallint', 'tinyint') 
+                                THEN DATA_TYPE
+                            WHEN DATA_TYPE IN ('decimal' ,'numeric')
+                                THEN 'decimal(' + 
+                                    CAST(NUMERIC_PRECISION AS VARCHAR) + ',' + 
+                                    CAST(NUMERIC_SCALE AS VARCHAR) + ')'
+                            WHEN DATA_TYPE IN ('float', 'real') 
+                                    THEN 'float' 
+                            WHEN CHARACTER_MAXIMUM_LENGTH IS NOT NULL AND DATA_TYPE IN ('varchar','char','text','nchar','nvarchar','ntext') 
+                                    THEN 'string'
+                            WHEN DATA_TYPE = 'date' 
+                                    THEN DATA_TYPE
+                            WHEN DATA_TYPE IN ('time','datetime', 'datetime2','smalldatetime','datetimeoffset')
+                                    THEN 'timestamp'
+                            WHEN DATA_TYPE IN ('bit')
+                                    THEN 'boolean'
+                            WHEN DATA_TYPE IN ('binary','varbinary','image')
+                                    THEN 'binary'
+                            ELSE DATA_TYPE
+                        END AS 'DATA_TYPE'
+                        FROM 
+                            INFORMATION_SCHEMA.COLUMNS
+                      WHERE LOWER(TABLE_NAME) = LOWER('supplier')
+                      AND LOWER(TABLE_SCHEMA) = LOWER('schema')
+                      AND LOWER(TABLE_CATALOG) = LOWER('org')
                 ) tmp""",
         ),
     )
@@ -175,20 +174,6 @@ def test_get_schema_exception_handling():
     # is raised
     with pytest.raises(
         DataSourceRuntimeException,
-        match=re.escape(
-            "Runtime exception occurred while fetching schema using SELECT COLUMN_NAME, CASE WHEN NUMERIC_PRECISION IS NOT NULL AND NUMERIC_PRECISION < 10 "
-            "AND NUMERIC_PRECISION_RADIX = 10 AND NUMERIC_SCALE = 0 THEN 'smallint' "
-            "WHEN NUMERIC_PRECISION IS NOT NULL AND NUMERIC_PRECISION_RADIX = 10 AND NUMERIC_SCALE = 0 "
-            "THEN DATA_TYPE WHEN NUMERIC_PRECISION IS NOT NULL AND NUMERIC_PRECISION_RADIX = 10 "
-            "AND NUMERIC_SCALE IS NOT NULL THEN 'decimal' + '(' + CAST(NUMERIC_PRECISION AS VARCHAR) + ',' "
-            "+ CAST(NUMERIC_SCALE AS VARCHAR) + ')' WHEN NUMERIC_PRECISION IS NOT NULL AND NUMERIC_PRECISION_RADIX = 2 "
-            "AND NUMERIC_SCALE IS NULL THEN 'float' WHEN CHARACTER_MAXIMUM_LENGTH is NOT NULL AND CHARACTER_SET_NAME "
-            "IS NOT NULL THEN 'string' WHEN DATA_TYPE = 'date' THEN DATA_TYPE WHEN DATA_TYPE IN "
-            "('time','datetime', 'datetime2', 'smalldatetime','datetimeoffset') THEN 'timestamp' "
-            "WHEN DATA_TYPE IN ('bit') THEN 'boolean' WHEN CHARACTER_MAXIMUM_LENGTH is NOT NULL AND DATA_TYPE "
-            "IN ('binary','varbinary','image') THEN 'binary' ELSE DATA_TYPE END AS 'DATA_TYPE' "
-            "FROM INFORMATION_SCHEMA.COLUMNS WHERE LOWER(TABLE_NAME) = LOWER('supplier') "
-            "AND LOWER(TABLE_SCHEMA) = LOWER('schema') AND LOWER(TABLE_CATALOG) = LOWER('catalog')  : Test Exception"
-        ),
+        match=re.escape("""Runtime exception occurred while fetching schema using SELECT COLUMN_NAME, CASE WHEN DATA_TYPE IN ('int', 'bigint', 'smallint', 'tinyint') THEN DATA_TYPE WHEN DATA_TYPE IN ('decimal' ,'numeric') THEN 'decimal(' + CAST(NUMERIC_PRECISION AS VARCHAR) + ',' + CAST(NUMERIC_SCALE AS VARCHAR) + ')' WHEN DATA_TYPE IN ('float', 'real') THEN 'float' WHEN CHARACTER_MAXIMUM_LENGTH IS NOT NULL AND DATA_TYPE IN ('varchar','char','text','nchar','nvarchar','ntext') THEN 'string' WHEN DATA_TYPE = 'date' THEN DATA_TYPE WHEN DATA_TYPE IN ('time','datetime', 'datetime2','smalldatetime','datetimeoffset') THEN 'timestamp' WHEN DATA_TYPE IN ('bit') THEN 'boolean' WHEN DATA_TYPE IN ('binary','varbinary','image') THEN 'binary' ELSE DATA_TYPE END AS 'DATA_TYPE' FROM INFORMATION_SCHEMA.COLUMNS WHERE LOWER(TABLE_NAME) = LOWER('supplier') AND LOWER(TABLE_SCHEMA) = LOWER('schema') AND LOWER(TABLE_CATALOG) = LOWER('org')  : Test Exception""") ,
     ):
-        ds.get_schema("catalog", "schema", "supplier")
+        ds.get_schema("org", "schema", "supplier")

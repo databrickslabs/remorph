@@ -18,24 +18,24 @@ logger = logging.getLogger(__name__)
 _SCHEMA_QUERY = """SELECT 
                      COLUMN_NAME,
                      CASE
-                        WHEN NUMERIC_PRECISION IS NOT NULL AND NUMERIC_PRECISION < 10 AND NUMERIC_PRECISION_RADIX = 10 AND NUMERIC_SCALE = 0 
-                            THEN 'smallint' 
-                        WHEN NUMERIC_PRECISION IS NOT NULL AND NUMERIC_PRECISION_RADIX = 10 AND NUMERIC_SCALE = 0 
-                            THEN DATA_TYPE  
-                        WHEN NUMERIC_PRECISION IS NOT NULL AND NUMERIC_PRECISION_RADIX = 10 AND NUMERIC_SCALE IS NOT NULL 
-                            THEN 'decimal' + '(' + CAST(NUMERIC_PRECISION AS VARCHAR) + ',' + CAST(NUMERIC_SCALE AS VARCHAR) + ')'
-                        WHEN NUMERIC_PRECISION IS NOT NULL AND NUMERIC_PRECISION_RADIX = 2 AND NUMERIC_SCALE IS NULL
-                            THEN 'float' 
-                        WHEN CHARACTER_MAXIMUM_LENGTH is NOT NULL AND CHARACTER_SET_NAME IS NOT NULL
-                            THEN 'string' 
-                        WHEN DATA_TYPE = 'date' 
+                        WHEN DATA_TYPE IN ('int', 'bigint', 'smallint', 'tinyint') 
                             THEN DATA_TYPE
-                        WHEN DATA_TYPE IN ('time','datetime', 'datetime2', 'smalldatetime','datetimeoffset')
-                            THEN 'timestamp'
+                        WHEN DATA_TYPE IN ('decimal' ,'numeric')
+                            THEN 'decimal(' + 
+                                CAST(NUMERIC_PRECISION AS VARCHAR) + ',' + 
+                                CAST(NUMERIC_SCALE AS VARCHAR) + ')'
+                        WHEN DATA_TYPE IN ('float', 'real') 
+                                THEN 'float' 
+                        WHEN CHARACTER_MAXIMUM_LENGTH IS NOT NULL AND DATA_TYPE IN ('varchar','char','text','nchar','nvarchar','ntext') 
+                                THEN 'string'
+                        WHEN DATA_TYPE = 'date' 
+                                THEN DATA_TYPE
+                        WHEN DATA_TYPE IN ('time','datetime', 'datetime2','smalldatetime','datetimeoffset')
+                                THEN 'timestamp'
                         WHEN DATA_TYPE IN ('bit')
-                            THEN 'boolean'
-                        WHEN CHARACTER_MAXIMUM_LENGTH is NOT NULL AND DATA_TYPE IN ('binary','varbinary','image')
-                            THEN 'binary'
+                                THEN 'boolean'
+                        WHEN DATA_TYPE IN ('binary','varbinary','image')
+                                THEN 'binary'
                         ELSE DATA_TYPE
                     END AS 'DATA_TYPE'
                     FROM 
@@ -95,7 +95,7 @@ class SqlServerDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
             else:
                 options = self._get_jdbc_reader_options(options)
                 df = (
-                    self._get_jdbc_reader(table_query, self.get_jdbc_url, SqlServerDataSource._DRIVER)
+                    self._get_jdbc_reader(table_query, self.get_jdbc_url, self._DRIVER)
                     .options(**options)
                     .load()
                 )
