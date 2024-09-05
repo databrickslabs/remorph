@@ -3126,7 +3126,8 @@ exprList: expr (COMMA expr)*
     ;
 
 expr
-    : L_PAREN expr R_PAREN                      # exprPrecedence
+    :
+    L_PAREN expr R_PAREN                      # exprPrecedence
     | objectName DOT NEXTVAL                    # exprNextval
     | expr DOT expr                             # exprDot
     | expr COLON expr                           # exprColon
@@ -3149,6 +3150,7 @@ expr
     | DISTINCT expr                             # exprDistinct
     | L_PAREN subquery R_PAREN                  # exprSubquery
     | primitiveExpression                       # exprPrimitive
+    | expr L_PAREN PLUS R_PAREN                 #exprJoin
     ;
 
 withinGroup: WITHIN GROUP L_PAREN orderByClause R_PAREN
