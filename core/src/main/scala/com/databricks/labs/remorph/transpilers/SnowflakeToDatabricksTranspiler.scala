@@ -62,9 +62,7 @@ class SnowflakeToDatabricksTranspiler extends BaseTranspiler {
   override def optimize(logicalPlan: ir.LogicalPlan): Result[ir.LogicalPlan] = {
     try {
       val plan = optimizer.apply(logicalPlan)
-      Result.Success(
-        stage = WorkflowStage.OPTIMIZE,
-        plan)
+      Result.Success(stage = WorkflowStage.OPTIMIZE, plan)
     } catch {
       case e: Exception =>
         val sw = new StringWriter
@@ -90,9 +88,7 @@ class SnowflakeToDatabricksTranspiler extends BaseTranspiler {
         val stackTrace = sw.toString
         val errorJson = write(
           Map("exception" -> e.getClass.getSimpleName, "message" -> e.getMessage, "stackTrace" -> stackTrace))
-        Result.Failure(
-          stage = WorkflowStage.GENERATE,
-          errorJson)
+        Result.Failure(stage = WorkflowStage.GENERATE, errorJson)
     }
   }
 

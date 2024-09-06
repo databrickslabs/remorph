@@ -16,10 +16,6 @@ object WorkflowStage {
   case object GENERATE extends WorkflowStage
 }
 
-
-
-
-
 trait Transpiler {
   def transpile(input: SourceCode): Result[String]
 }

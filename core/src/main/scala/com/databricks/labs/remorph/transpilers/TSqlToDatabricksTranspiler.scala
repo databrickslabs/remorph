@@ -43,7 +43,7 @@ class TSqlToDatabricksTranspiler extends BaseTranspiler {
   override def visit(tree: ParserRuleContext): Result[ir.LogicalPlan] = {
     try {
       val plan = astBuilder.visit(tree)
-      Result.Success(stage = WorkflowStage.PLAN, plan )
+      Result.Success(stage = WorkflowStage.PLAN, plan)
     } catch {
       case e: Exception =>
         val sw = new StringWriter
@@ -51,16 +51,14 @@ class TSqlToDatabricksTranspiler extends BaseTranspiler {
         val stackTrace = sw.toString
         val errorJson = write(
           Map("exception" -> e.getClass.getSimpleName, "message" -> e.getMessage, "stackTrace" -> stackTrace))
-        Result.Failure(stage = WorkflowStage.PLAN, errorJson )
+        Result.Failure(stage = WorkflowStage.PLAN, errorJson)
     }
   }
 
   override def optimize(logicalPlan: ir.LogicalPlan): Result[ir.LogicalPlan] = {
     try {
       val plan = optimizer.apply(logicalPlan)
-      Result.Success(
-        stage = WorkflowStage.OPTIMIZE,
-        plan)
+      Result.Success(stage = WorkflowStage.OPTIMIZE, plan)
     } catch {
       case e: Exception =>
         val sw = new StringWriter
@@ -78,7 +76,7 @@ class TSqlToDatabricksTranspiler extends BaseTranspiler {
 
       // If the final result is without errors, we can return the output and discard the other generated
       // pieces.
-      Result.Success(stage = WorkflowStage.GENERATE, output )
+      Result.Success(stage = WorkflowStage.GENERATE, output)
     } catch {
       case e: Exception =>
         val sw = new StringWriter
@@ -86,9 +84,7 @@ class TSqlToDatabricksTranspiler extends BaseTranspiler {
         val stackTrace = sw.toString
         val errorJson = write(
           Map("exception" -> e.getClass.getSimpleName, "message" -> e.getMessage, "stackTrace" -> stackTrace))
-        Result.Failure(
-          stage = WorkflowStage.GENERATE,
-           errorJson)
+        Result.Failure(stage = WorkflowStage.GENERATE, errorJson)
     }
   }
 
