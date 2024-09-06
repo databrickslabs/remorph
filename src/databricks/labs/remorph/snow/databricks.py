@@ -342,6 +342,12 @@ def _create_named_struct_for_cmp(agg_col, order_col) -> exp.Expression:
     return named_struct_func
 
 
+def _not_sql(self, expression: exp.Not) -> str:
+    if isinstance(expression.this, exp.Is):
+        return f"{expression.this.this} IS NOT {self.sql(expression.this, 'expression')}"
+    return f"NOT {self.sql(expression, 'this')}"
+
+
 class Databricks(org_databricks.Databricks):  #
     # Instantiate Databricks Dialect
     databricks = org_databricks.Databricks()
@@ -404,6 +410,7 @@ class Databricks(org_databricks.Databricks):  #
             exp.NullSafeEQ: lambda self, e: self.binary(e, "<=>"),
             exp.If: if_sql(false_value="NULL"),
             exp.Command: _to_command,
+            exp.Not: _not_sql,
         }
 
         def preprocess(self, expression: exp.Expression) -> exp.Expression:

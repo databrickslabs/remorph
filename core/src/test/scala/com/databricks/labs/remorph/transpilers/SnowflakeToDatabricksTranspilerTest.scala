@@ -120,6 +120,15 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
            |  demo1;""".stripMargin
     }
 
+    "transpile select distinct query" in {
+      s"""SELECT DISTINCT c1, c2 FROM T1""".stripMargin transpilesTo
+        s"""SELECT
+           |  DISTINCT c1,
+           |  c2
+           |FROM
+           |  T1;""".stripMargin
+    }
+
     "transpile window functions" in {
       s"""SELECT LAST_VALUE(c1)
         |IGNORE NULLS OVER (PARTITION BY t1.c2 ORDER BY t1.c3 DESC
