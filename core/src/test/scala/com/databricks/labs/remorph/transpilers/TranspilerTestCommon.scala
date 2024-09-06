@@ -10,7 +10,7 @@ trait TranspilerTestCommon extends Matchers with Formatter {
   implicit class TranspilerTestOps(input: String) {
     def transpilesTo(expectedOutput: String): Assertion = {
       transpiler.transpile(SourceCode(input)) match {
-        case Result.Success(_, output) => format(output) shouldBe format(expectedOutput)
+        case Result.Success(output) => format(output) shouldBe format(expectedOutput)
         case Result.Failure(_, err) => fail(err)
       }
     }

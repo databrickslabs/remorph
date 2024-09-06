@@ -34,7 +34,7 @@ class TSqlToDatabricksTranspiler extends BaseTranspiler {
     if (errListener.errorCount > 0) {
       Result.Failure(stage = WorkflowStage.PARSE, errListener.errorsAsJson)
     } else {
-      Result.Success(stage = WorkflowStage.PARSE, tree)
+      Result.Success(tree)
     }
   }
 
@@ -43,7 +43,7 @@ class TSqlToDatabricksTranspiler extends BaseTranspiler {
   override def visit(tree: ParserRuleContext): Result[ir.LogicalPlan] = {
     try {
       val plan = astBuilder.visit(tree)
-      Result.Success(stage = WorkflowStage.PLAN, plan)
+      Result.Success(plan)
     } catch {
       case e: Exception =>
         val sw = new StringWriter
@@ -58,7 +58,7 @@ class TSqlToDatabricksTranspiler extends BaseTranspiler {
   override def optimize(logicalPlan: ir.LogicalPlan): Result[ir.LogicalPlan] = {
     try {
       val plan = optimizer.apply(logicalPlan)
-      Result.Success(stage = WorkflowStage.OPTIMIZE, plan)
+      Result.Success(plan)
     } catch {
       case e: Exception =>
         val sw = new StringWriter
@@ -76,7 +76,7 @@ class TSqlToDatabricksTranspiler extends BaseTranspiler {
 
       // If the final result is without errors, we can return the output and discard the other generated
       // pieces.
-      Result.Success(stage = WorkflowStage.GENERATE, output)
+      Result.Success(output)
     } catch {
       case e: Exception =>
         val sw = new StringWriter

@@ -22,7 +22,7 @@ abstract class BaseQueryRunner(transpiler: Transpiler) extends QueryRunner {
     transpiler.transpile(SourceCode(exampleQuery.query)) match {
       case Result.Failure(PARSE, errorJson) => ReportEntryReport(statements = 1, parsing_error = Some(errorJson))
       case Result.Failure(_, errorJson) => ReportEntryReport(statements = 1, transpilation_error = Some(errorJson))
-      case Result.Success(_, output) =>
+      case Result.Success(output) =>
         if (exampleQuery.expectedTranslation.map(format).exists(_ != format(output))) {
           val expected = exampleQuery.expectedTranslation.getOrElse("")
           ReportEntryReport(
