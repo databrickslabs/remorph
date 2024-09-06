@@ -6,7 +6,7 @@ import com.databricks.labs.remorph.parsers.snowflake.rules.{CastParseJsonToFromJ
 import com.databricks.labs.remorph.parsers.snowflake.rules._
 import com.databricks.labs.remorph.parsers.{ProductionErrorCollector, intermediate => ir}
 import com.databricks.labs.remorph.parsers.snowflake.{SnowflakeAstBuilder, SnowflakeLexer, SnowflakeParser}
-import org.antlr.v4.runtime.{CharStreams, CommonTokenStream}
+import org.antlr.v4.runtime.{CharStreams, CommonTokenStream, ParserRuleContext}
 import org.json4s.jackson.Serialization
 import org.json4s.jackson.Serialization.write
 import org.json4s.{Formats, NoTypeHints}
@@ -26,7 +26,7 @@ class SnowflakeToDatabricksTranspiler extends BaseTranspiler {
       new FlattenLateralViewToExplode(),
       new FlattenNestedConcat)
 
-  override def parse(input: SourceCode): Result = {
+  override def parse(input: SourceCode): Result[ParserRuleContext] = {
     val inputString = CharStreams.fromString(input.source)
     val lexer = new SnowflakeLexer(inputString)
     val tokenStream = new CommonTokenStream(lexer)
@@ -36,18 +36,18 @@ class SnowflakeToDatabricksTranspiler extends BaseTranspiler {
     parser.addErrorListener(errListener)
     val tree = parser.snowflakeFile()
     if (errListener.errorCount > 0) {
-      Result(stage = WorkflowStage.PARSE, errorsJson = errListener.errorsAsJson, tree = Some(tree))
+      Result.Failure(stage = WorkflowStage.PARSE, errListener.errorsAsJson) // , tree = Some(tree))
     } else {
-      Result(stage = WorkflowStage.PARSE, tree = Some(tree))
+      Result.Success(stage = WorkflowStage.PARSE, output = tree)
     }
   }
 
   implicit val formats: Formats = Serialization.formats(NoTypeHints)
 
-  override def visit(tree: Result): Result = {
+  override def visit(tree: ParserRuleContext): Result[ir.LogicalPlan] = {
     try {
-      val plan = astBuilder.visit(tree.tree.get)
-      Result(stage = WorkflowStage.PLAN, plan = Some(plan), tree = tree.tree)
+      val plan = astBuilder.visit(tree)
+      Result.Success(stage = WorkflowStage.PLAN, plan)
     } catch {
       case e: Exception =>
         val sw = new StringWriter
@@ -55,18 +55,16 @@ class SnowflakeToDatabricksTranspiler extends BaseTranspiler {
         val stackTrace = sw.toString
         val errorJson = write(
           Map("exception" -> e.getClass.getSimpleName, "message" -> e.getMessage, "stackTrace" -> stackTrace))
-        Result(stage = WorkflowStage.PLAN, errorsJson = errorJson, tree = tree.tree)
+        Result.Failure(stage = WorkflowStage.PLAN, errorJson)
     }
   }
 
-  override def optimize(logicalPlan: Result): Result = {
+  override def optimize(logicalPlan: ir.LogicalPlan): Result[ir.LogicalPlan] = {
     try {
-      val plan = optimizer.apply(logicalPlan.plan.get)
-      Result(
+      val plan = optimizer.apply(logicalPlan)
+      Result.Success(
         stage = WorkflowStage.OPTIMIZE,
-        plan = logicalPlan.plan,
-        optimizedPlan = Some(plan),
-        tree = logicalPlan.tree)
+        plan)
     } catch {
       case e: Exception =>
         val sw = new StringWriter
@@ -74,20 +72,17 @@ class SnowflakeToDatabricksTranspiler extends BaseTranspiler {
         val stackTrace = sw.toString
         val errorJson = write(
           Map("exception" -> e.getClass.getSimpleName, "message" -> e.getMessage, "stackTrace" -> stackTrace))
-        Result(stage = WorkflowStage.OPTIMIZE, errorsJson = errorJson, plan = logicalPlan.plan, tree = logicalPlan.tree)
+        Result.Failure(stage = WorkflowStage.OPTIMIZE, errorJson)
     }
   }
 
-
-  override def generate(optimizedLogicalPlan: Result): Result = {
+  override def generate(optimizedLogicalPlan: ir.LogicalPlan): Result[String] = {
     try {
-      val output = generator.generate(GeneratorContext(generator), optimizedLogicalPlan.optimizedPlan.get)
+      val output = generator.generate(GeneratorContext(generator), optimizedLogicalPlan)
 
       // If the final result is without errors, we can return the output and discard the other generated
       // pieces.
-      Result(
-        stage = WorkflowStage.GENERATE,
-        output = Some(output))
+      Result.Success(stage = WorkflowStage.GENERATE, output)
     } catch {
       case e: Exception =>
         val sw = new StringWriter
@@ -95,11 +90,9 @@ class SnowflakeToDatabricksTranspiler extends BaseTranspiler {
         val stackTrace = sw.toString
         val errorJson = write(
           Map("exception" -> e.getClass.getSimpleName, "message" -> e.getMessage, "stackTrace" -> stackTrace))
-        Result(
+        Result.Failure(
           stage = WorkflowStage.GENERATE,
-          errorsJson = errorJson,
-          plan = optimizedLogicalPlan.plan,
-          tree = optimizedLogicalPlan.tree)
+          errorJson)
     }
   }
 
