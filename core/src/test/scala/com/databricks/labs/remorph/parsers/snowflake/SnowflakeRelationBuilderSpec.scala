@@ -259,13 +259,11 @@ class SnowflakeRelationBuilderSpec
       example(
         "SELECT DISTINCT a, b AS bb FROM t",
         _.selectStatement(),
-        Project(
-          Deduplicate(
-            namedTable("t"),
-            column_names = Seq(Id("a"), Id("bb")),
-            all_columns_as_keys = false,
-            within_watermark = false),
-          Seq(simplyNamedColumn("a"), Alias(simplyNamedColumn("b"), Id("bb")))))
+        Deduplicate(
+          namedTable("t"),
+          column_names = Seq(simplyNamedColumn("a"), Alias(simplyNamedColumn("b"), Id("bb"))),
+          all_columns_as_keys = false,
+          within_watermark = false))
     }
 
     "translate SELECT TOP clauses" should {
@@ -279,11 +277,13 @@ class SnowflakeRelationBuilderSpec
         example(
           "SELECT DISTINCT TOP 42 a FROM t",
           _.selectStatement(),
-          Project(
-            Limit(
-              Deduplicate(namedTable("t"), Seq(Id("a")), all_columns_as_keys = false, within_watermark = false),
-              Literal(42)),
-            Seq(simplyNamedColumn("a"))))
+          Limit(
+            Deduplicate(
+              namedTable("t"),
+              Seq(simplyNamedColumn("a")),
+              all_columns_as_keys = false,
+              within_watermark = false),
+            Literal(42)))
       }
     }
 
