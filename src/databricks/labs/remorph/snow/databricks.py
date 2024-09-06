@@ -256,11 +256,6 @@ def _parse_json(self, expr: exp.ParseJSON):
     (https://docs.databricks.com/en/sql/language-manual/functions/schema_of_json.html#schema_of_json-function)
      to fetch the schema from the json string
     """
-    # expr_this = self.sql(expr, "this")
-    # formatted_expr = expr_this.replace("\\n", " ")
-    # column = formatted_expr.replace("'", "").upper() if isinstance(expr.this, exp.Column) else formatted_expr
-    # conv_expr = f"FROM_JSON({formatted_expr},schema_of_json({column}))"
-    # return self.sql(conv_expr)
     # TODO:
     #  DECLARE json_schema = '';
     #  SET VAR json_schema = (select schema_of_json_agg(data) from dummy limit 1);
