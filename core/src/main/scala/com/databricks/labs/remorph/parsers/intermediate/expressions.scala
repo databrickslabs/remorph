@@ -238,3 +238,7 @@ case class Variable(name: String) extends LeafExpression {
 case class SchemaReference(columnName: Expression) extends Unary(columnName) {
   override def dataType: DataType = UnresolvedType
 }
+
+case class JoinMarkExpression(value: Expression) extends LeafExpression {
+  override def dataType: DataType = value.dataType
+}

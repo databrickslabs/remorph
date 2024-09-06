@@ -572,4 +572,9 @@ class SnowflakeExpressionBuilder()
   override def visitExprSubquery(ctx: ExprSubqueryContext): ir.Expression = {
     ir.ScalarSubquery(ctx.subquery().accept(new SnowflakeRelationBuilder))
   }
+
+  override def visitExprJoin(ctx: ExprJoinContext): ir.Expression = {
+    ir.JoinMarkExpression(ctx.expr().accept(this))
+
+  }
 }
