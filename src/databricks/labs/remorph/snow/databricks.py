@@ -256,36 +256,29 @@ def _parse_json(self, expr: exp.ParseJSON):
     (https://docs.databricks.com/en/sql/language-manual/functions/schema_of_json.html#schema_of_json-function)
      to fetch the schema from the json string
     """
+    # expr_this = self.sql(expr, "this")
+    # formatted_expr = expr_this.replace("\\n", " ")
+    # column = formatted_expr.replace("'", "").upper() if isinstance(expr.this, exp.Column) else formatted_expr
+    # conv_expr = f"FROM_JSON({formatted_expr},schema_of_json({column}))"
+    # return self.sql(conv_expr)
+    # TODO:
+    #  DECLARE json_schema = '';
+    #  SET VAR json_schema = (select schema_of_json_agg(data) from dummy limit 1);
+    #  SELECT from_json(data, json_schema) from dummy;
     expr_this = self.sql(expr, "this")
-    formatted_expr = expr_this.replace("\\n", " ")
-    column = formatted_expr.replace("'", "").upper() if isinstance(expr.this, exp.Column) else formatted_expr
-    conv_expr = f"FROM_JSON({formatted_expr},schema_of_json({column}))"
-    return self.sql(conv_expr)
+    # use column name as prefix or use JSON_COLUMN_SCHEMA when the expression is nested
+    column = expr_this.replace("'", "").upper() if isinstance(expr.this, exp.Column) else "JSON_COLUMN"
+    conv_expr = f"FROM_JSON({expr_this}, schema_of_json('{{{column}}}'))"
+    warning_msg = f"""***Warning***: you need to explicitly specify `SCHEMA` for `{column}` 
+            column in expression: `{conv_expr}`
+            Alternatively you can declare a variable and set the schema using 
+            `DECLARE json_schema = '';`
+            `SET VAR json_schema = (select schema_of_json_agg(data) from table limit 1);`
+            SELECT from_json(data, json_schema) from dummy;
+        """
+    logger.warning(warning_msg)
+    return conv_expr
 
-
-def transform_where(self, expr: exp):
-    """
-    Checks if columns in where clause are part of lateral views and replaces them with table alias
-    instead of using with column.values
-    """
-
-    lateral_aliases = set()
-
-    # Find all lateral views and their aliases in the parent
-    for lateral in expr.find_all(exp.Lateral):
-        alias = lateral.args.get("alias")
-        if alias:
-            lateral_aliases.add(alias.name)
-
-    # Traverse the query to find the Brackets and replaced the `.value`
-    # if it is referencing to the lateral views
-    for node in expr.find_all(local_expression.Bracket):
-        if (isinstance(node.this, exp.Column) and isinstance(node.this.this, exp.Identifier)
-                and node.this.table in lateral_aliases):
-            if node.this.this.name == "value":
-                node.set("this", str(node.this.table))
-                node.set("expressions", node.expressions)
-    return expr
 
 def _to_number(self, expression: local_expression.ToNumber):
     func = "TO_NUMBER"
@@ -430,7 +423,7 @@ class Databricks(org_databricks.Databricks):  #
 
         def preprocess(self, expression: exp.Expression) -> exp.Expression:
             fixed_ast = expression.transform(lca_utils.unalias_lca_in_select, copy=False)
-            transformed_ast = transform_where(self, fixed_ast)  # check where to place this function transform_where
+            transformed_ast = lca_utils.transform_where(fixed_ast)
             return super().preprocess(transformed_ast)
 
         def format_time(self, expression: exp.Expression, inverse_time_mapping=None, inverse_time_trie=None):

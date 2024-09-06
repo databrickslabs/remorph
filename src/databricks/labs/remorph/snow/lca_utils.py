@@ -1,6 +1,8 @@
 import logging
 from collections.abc import Iterable
 
+from databricks.labs.remorph.snow import local_expression
+
 from sqlglot import expressions as exp
 from sqlglot import parse
 from sqlglot.dialects.dialect import DialectType
@@ -136,3 +138,31 @@ def _find_invalid_lca_in_window(
                 aliases_in_window.add(column.name)
 
     return aliases_in_window
+
+
+def transform_where(expr: exp):
+    """
+    Checks if columns in where clause are part of lateral views and replaces them with table alias
+    instead of using with column.values
+    """
+
+    lateral_aliases = set()
+
+    # Find all lateral views and their aliases in the parent
+    for lateral in expr.find_all(exp.Lateral):
+        alias = lateral.args.get("alias")
+        if alias:
+            lateral_aliases.add(alias.name)
+
+    # Traverse the query to find the Brackets and replaced the `.value`
+    # if it is referencing to the lateral views
+    for node in expr.find_all(local_expression.Bracket):
+        if (
+            isinstance(node.this, exp.Column)
+            and isinstance(node.this.this, exp.Identifier)
+            and node.this.table in lateral_aliases
+        ):
+            if node.this.this.name == "value":
+                node.set("this", str(node.this.table))
+                node.set("expressions", node.expressions)
+    return expr

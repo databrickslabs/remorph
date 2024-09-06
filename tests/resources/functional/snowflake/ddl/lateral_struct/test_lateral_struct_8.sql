@@ -1,24 +1,11 @@
 -- snowflake sql:
-SELECT STRIP_NULL_VALUE(PARSE_JSON(src.col):c)
+SELECT PARSE_JSON(src.col):c AS c
 FROM VALUES
-  ('{
-  "a": "1",
-  "b": "2",
-  "c": null
-  }')
-  , ('{
-  "a": "1",
-  "b": "2",
-  "c": "3"
-  }') AS src(col);
-
+  ('{"a": "1", "b": "2", "c": null}'),
+  ('{"a": "1", "b": "2", "c": "3"}') AS src(col);
 -- databricks sql:
 SELECT
-  CASE
-    WHEN map_value['c'] IS NULL THEN NULL
-    ELSE map_value['c']
-  END AS c
+  FROM_JSON(src.col, schema_of_json('{SRC.COL}')).c AS c
 FROM VALUES
-  (MAP('a', '1', 'b', '2', 'c', NULL)),
-  (MAP('a', '1', 'b', '2', 'c', '3'))
-  AS src(map_value);
+   ('{"a": "1", "b": "2", "c": null}'),
+   ('{"a": "1", "b": "2", "c": "3"}') AS src(col);

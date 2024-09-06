@@ -7,21 +7,7 @@ SELECT
   COUNT(DISTINCT lah:"consumer_account_locator"::STRING) AS n_distinct_consumer_accounts
 FROM
   (SELECT
-    PARSE_JSON('{
-      "query_date": "2022-03-02",
-      "query_token": "some_token",
-      "consumer_account_locator": "CONSUMER_ACCOUNT_LOCATOR",
-      "listing_objects_accessed": [
-        {
-          "objectDomain": "Table",
-          "objectName": "DATABASE_NAME.SCHEMA_NAME.TABLE_NAME",
-          "columns": [
-            {"columnName": "column1"},
-            {"columnName": "column2"}
-          ]
-        }
-      ]
-    }') AS lah
+    PARSE_JSON('{"query_date": "2022-03-02","query_token": "some_token","consumer_account_locator": "CONSUMER_ACCOUNT_LOCATOR","listing_objects_accessed": [{"objectDomain": "Table","objectName": "DATABASE_NAME.SCHEMA_NAME.TABLE_NAME","columns": [{"columnName": "column1"},{"columnName": "column2"}]}]}') AS lah
   ) AS src,
   LATERAL FLATTEN(input => src.lah:"listing_objects_accessed") AS los,
   LATERAL FLATTEN(input => los.value:"columns") AS cols
@@ -43,35 +29,7 @@ SELECT
 FROM
   (
     SELECT
-      FROM_JSON('{
-        "query_date": "2022-03-02",
-        "query_token": "some_token",
-        "consumer_account_locator": "CONSUMER_ACCOUNT_LOCATOR",
-        "listing_objects_accessed": [
-          {
-            "objectDomain": "Table",
-            "objectName": "DATABASE_NAME.SCHEMA_NAME.TABLE_NAME",
-            "columns": [
-              {"columnName": "column1"},
-              {"columnName": "column2"}
-            ]
-          }
-        ]
-      }',schema_of_json('{
-        "query_date": "2022-03-02",
-        "query_token": "some_token",
-        "consumer_account_locator": "CONSUMER_ACCOUNT_LOCATOR",
-        "listing_objects_accessed": [
-          {
-            "objectDomain": "Table",
-            "objectName": "DATABASE_NAME.SCHEMA_NAME.TABLE_NAME",
-            "columns": [
-              {"columnName": "column1"},
-              {"columnName": "column2"}
-            ]
-          }
-        ]
-      }')) AS lah
+      FROM_JSON('{"query_date": "2022-03-02","query_token": "some_token","consumer_account_locator": "CONSUMER_ACCOUNT_LOCATOR","listing_objects_accessed": [{"objectDomain": "Table","objectName": "DATABASE_NAME.SCHEMA_NAME.TABLE_NAME","columns": [{"columnName": "column1"},{"columnName": "column2"}]}]}', schema_of_json('{JSON_COLUMN}')) AS lah
   ) AS src
 LATERAL VIEW EXPLODE(src.lah.listing_objects_accessed) AS los
 LATERAL VIEW EXPLODE(los.columns) AS cols

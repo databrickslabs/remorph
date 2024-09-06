@@ -1,7 +1,6 @@
 import copy
 import logging
 import re
-import typing as t
 from sqlglot import expressions as exp
 from sqlglot.dialects.dialect import build_date_delta as parse_date_delta, build_formatted_time
 from sqlglot.dialects.snowflake import Snowflake
@@ -462,7 +461,7 @@ class Snow(Snowflake):
 
             return self.expression(local_expression.Parameter, this=this, wrapped=wrapped, suffix=suffix)
 
-        def _get_table_alias(self) -> exp.TableAlias | None:
+        def _get_table_alias(self) -> exp.TableAlias | exp.Expression | None:
             """
             :returns the `table alias` by looping through all the tokens until it finds the `From` token.
             Example:
@@ -484,10 +483,20 @@ class Snow(Snowflake):
                 if self_copy._match(TokenType.FROM, advance=False):
                     self_copy._advance()  # advance to next token
 
+                    if self_copy._match(TokenType.VALUES, advance=False):
+                        # self_copy._parse_subquery(self_copy._advance())  # parse the subquery
+                        self_copy._advance()
+
+                        while not self_copy._match(TokenType.ALIAS, advance=False):
+                            self_copy._advance()
+                        self_copy._advance()  # advance to AS
+                        table_alias = self_copy._parse_identifier()
+                        return table_alias
+
                     # parse further when subquery is found after `FROM` For ex: `FROM (select * from another_table)`
                     if self_copy._match(TokenType.L_PAREN, advance=False):
-                        # self_copy._advance()  # advance to the subquery
-                        self_copy._parse_subquery(self_copy._advance())  # parse the subquery
+                        self_copy._advance()
+                        self_copy._parse_subquery(None)  # parse the subquery
                         self_copy._advance()
                     self_copy._parse_table_parts()  # parse the table parts
                     table_alias = self_copy._parse_table_alias()  # get to table alias
