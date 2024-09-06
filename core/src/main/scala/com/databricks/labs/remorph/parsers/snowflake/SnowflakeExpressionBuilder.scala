@@ -509,8 +509,8 @@ class SnowflakeExpressionBuilder()
         val collection = visitMany(c.exprList().expr())
         ir.In(expression, collection)
       case c if c.BETWEEN() != null =>
-        val lowerBound = c.expr(0).accept(this)
-        val upperBound = c.expr(1).accept(this)
+        val lowerBound = c.temporalExpr(0).accept(this)
+        val upperBound = c.temporalExpr(1).accept(this)
         ir.And(ir.GreaterThanOrEqual(expression, lowerBound), ir.LessThanOrEqual(expression, upperBound))
       case c if c.likeExpression() != null => buildLikeExpression(c.likeExpression(), expression)
       case c if c.IS() != null =>

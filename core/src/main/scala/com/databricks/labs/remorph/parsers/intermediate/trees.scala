@@ -98,7 +98,9 @@ abstract class TreeNode[BaseType <: TreeNode[BaseType]] extends Product {
    */
   def foreach(f: BaseType => Unit): Unit = {
     f(this)
-    children.foreach(_.foreach(f))
+    children
+      .filterNot(_ == null)
+      .foreach(_.foreach(f))
   }
 
   /**

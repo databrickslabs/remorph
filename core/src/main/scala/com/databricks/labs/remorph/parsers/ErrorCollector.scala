@@ -40,7 +40,7 @@ class DefaultErrorCollector extends ErrorCollector {
   override def reset(): Unit = count = 0
 }
 
-class ProductionErrorCollector(sourceCode: String, fileName: String) extends ErrorCollector {
+class ProductionErrorCollector(sourceCode: String, fileName: String = "???") extends ErrorCollector {
   val errors: ListBuffer[ErrorDetail] = ListBuffer()
   val logger: Logger = LogManager.getLogger(classOf[ErrorCollector])
 

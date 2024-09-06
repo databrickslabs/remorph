@@ -133,6 +133,24 @@ abstract class Plan[PlanType <: Plan[PlanType]] extends TreeNode[PlanType] {
       case other => Nil
     }.toSeq
   }
+
+  /** Returns all expressions present in this query plan and its descendants */
+  def nestedExpressions: Seq[Expression] = {
+    // Recursively find all expressions from a traversable.
+    def seqToExpressions(seq: Iterable[Any]): Iterable[Expression] = seq.flatMap {
+      case e: Expression => e :: Nil
+      case p: Plan[_] => p.nestedExpressions
+      case s: Iterable[_] => seqToExpressions(s)
+      case other => Nil
+    }
+
+    productIterator.flatMap {
+      case e: Expression => e :: Nil
+      case s: Some[_] => seqToExpressions(s.toSeq)
+      case seq: Iterable[_] => seqToExpressions(seq)
+      case other => Nil
+    }.toSeq
+  }
 }
 
 abstract class LogicalPlan extends Plan[LogicalPlan] {

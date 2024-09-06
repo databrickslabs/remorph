@@ -161,6 +161,10 @@ class SnowflakeRelationBuilder
     ir.Values(expressions)
   }
 
+  override def visitObjRefValues(ctx: ObjRefValuesContext): ir.LogicalPlan = {
+    buildTableAlias(ctx.tableAlias(), ctx.valuesTable().accept(this))
+  }
+
   override def visitObjRefDefault(ctx: ObjRefDefaultContext): ir.LogicalPlan = {
     buildTableAlias(ctx.tableAlias(), buildPivotOrUnpivot(ctx.pivotUnpivot(), ctx.objectName().accept(this)))
   }

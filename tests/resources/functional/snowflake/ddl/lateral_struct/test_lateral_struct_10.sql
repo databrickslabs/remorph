@@ -45,7 +45,6 @@ AS tt(id, resp)
 , LATERAL FLATTEN(input => PARSE_JSON(tt.resp):order:items) AS lit
 
 -- databricks sql:
-%sql
 SELECT
     tt.id,
     lit.details
