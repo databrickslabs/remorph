@@ -56,7 +56,6 @@ class SnowflakeRelationBuilder
   }
 
   private def buildDistinct(input: ir.LogicalPlan, projectExpressions: Seq[ir.Expression]): ir.LogicalPlan = {
-
     val columnNames = projectExpressions.collect {
       case ir.Column(_, c) => c
       case ir.Alias(_, a) => a

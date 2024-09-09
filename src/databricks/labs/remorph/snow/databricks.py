@@ -341,11 +341,9 @@ def _create_named_struct_for_cmp(agg_col, order_col) -> exp.Expression:
     )
     return named_struct_func
 
-
 def _current_date(self, expression: exp.CurrentDate) -> str:
     zone = self.sql(expression, "this")
     return f"CURRENT_DATE({zone})" if zone else "CURRENT_DATE()"
-
 
 def _not_sql(self, expression: exp.Not) -> str:
     if isinstance(expression.this, exp.Is):
