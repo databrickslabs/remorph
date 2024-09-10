@@ -19,7 +19,8 @@ class SnowflakeToDatabricksTranspiler extends BaseTranspiler {
       new CastParseJsonToFromJson(generator),
       new TranslateWithinGroup,
       new FlattenLateralViewToExplode(),
-      new FlattenNestedConcat)
+      new FlattenNestedConcat,
+      new TranslateJoinMark)
 
   override def parse(input: String): ir.LogicalPlan = {
     val inputString = CharStreams.fromString(input)
