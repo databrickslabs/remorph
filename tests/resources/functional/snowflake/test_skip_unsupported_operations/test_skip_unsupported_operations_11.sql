@@ -15,7 +15,7 @@ SELECT DISTINCT
       AND dd.is_test = false
       AND dst.origin IN ('Chat')
       AND dd_agent_id IS NOT NULL
-  AND dst.CREATED_DATE > current_date - 7
+  AND dst.CREATED_DATE > CURRENT_DATE - 7
   ORDER BY 1 DESC, 3 DESC;
   ;
 
@@ -41,7 +41,7 @@ SELECT DISTINCT
     AND dd.is_test = false
     AND dst.origin IN ('Chat')
     AND dd_agent_id IS NOT NULL
-    AND dst.CREATED_DATE > CURRENT_DATE - 7
+    AND dst.CREATED_DATE > CURRENT_DATE() - 7
   ORDER BY
     1 DESC NULLS FIRST,
     3 DESC NULLS FIRST;
