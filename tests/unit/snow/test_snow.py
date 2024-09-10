@@ -17,7 +17,7 @@ def test_parse_parameter(dialect_context):
                 upd_ts
              FROM ${SCHEMA_NM}_MV.${TBL_NM}
              WHERE
-                NOT xyz IS NULL AND src_ent = '${SCHEMA_NM}_MV.COL'
+                 xyz IS NOT NULL AND src_ent = '${SCHEMA_NM}_MV.COL'
           """
 
     validate_source_transpile(
