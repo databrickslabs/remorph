@@ -266,7 +266,7 @@ def _parse_json(self, expr: exp.ParseJSON):
     conv_expr = f"FROM_JSON({expr_this}, schema_of_json('{{{column}}}'))"
     warning_msg = f"""***Warning***: you need to explicitly specify `SCHEMA` for `{column}` 
             column in expression: `{conv_expr}`
-            Alternatively you can declare a variable and set the schema using 
+            Alternatively you can declare a variable and set the schema using (Works with DBR 15.0)
             `DECLARE json_schema = '';`
             `SET VAR json_schema = (select schema_of_json_agg(data) from table limit 1);`
             SELECT from_json(data, json_schema) from dummy;
