@@ -20,6 +20,10 @@ LATERAL VIEW EXPLODE(FROM_JSON(tt.resp, schema_of_json('tt.resp')).order.items) 
 
 -- experimental sql:
 SELECT
-  tt.id, PARSE_JSON(tt.details) FROM prod.public.table AS tt
-  LATERAL VIEW EXPLODE(PARSE_JSON(PARSE_JSON(tt.resp).items)) AS lit
-  LATERAL VIEW EXPLODE(PARSE_JSON(lit.value.details)) AS ltd;
+ tt.id,
+ lit.details as details
+ FROM VALUES
+ (1, '{"order": {"id": 101,"items": [{"item_id": "A1","quantity": 2,"details": {"color": "red"}},{"item_id": "B2","quantity": 5,"details": {"color": "blue"}}]}}'),
+ (2, '{"order": {"id": 202,"items": [{"item_id": "C3","quantity": 4,"details": {"color": "green", "size": "L"}},{"item_id": "D4","quantity": 3,"details": {"color": "yellow", "size": "M"}}]}}')
+AS tt(id, resp)
+lateral view explode ( parse_json ( tt.resp ) .order.items ) as lit

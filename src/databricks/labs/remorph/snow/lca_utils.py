@@ -1,8 +1,6 @@
 import logging
 from collections.abc import Iterable
 
-from databricks.labs.remorph.snow import local_expression
-
 from sqlglot import expressions as exp
 from sqlglot import parse
 from sqlglot.dialects.dialect import DialectType
@@ -10,7 +8,7 @@ from sqlglot.errors import ErrorLevel, ParseError, TokenError, UnsupportedError
 from sqlglot.expressions import Expression, Select
 from sqlglot.optimizer.scope import Scope, build_scope
 
-
+from databricks.labs.remorph.snow import local_expression
 from databricks.labs.remorph.helpers.morph_status import ValidationError
 from databricks.labs.remorph.snow.local_expression import AliasInfo
 
@@ -140,7 +138,7 @@ def _find_invalid_lca_in_window(
     return aliases_in_window
 
 
-def transform_where(expr: exp):
+def transform_where(expr: exp.Expression):
     """
     Checks if columns in where clause are part of lateral views and replaces them with table alias
     instead of using with column.values
