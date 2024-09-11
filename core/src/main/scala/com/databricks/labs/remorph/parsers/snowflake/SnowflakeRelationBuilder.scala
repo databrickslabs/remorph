@@ -70,15 +70,12 @@ class SnowflakeRelationBuilder
     }
 
   override def visitSelectOptionalClauses(ctx: SelectOptionalClausesContext): ir.LogicalPlan = {
-
-
     val from = Option(ctx.fromClause()).map(_.accept(this)).getOrElse(ir.NoTable())
-    val whereCon = buildWhere(ctx.whereClause(), from)
     buildOrderBy(
       ctx.orderByClause(),
       buildQualify(
         ctx.qualifyClause(),
-        buildHaving(ctx.havingClause(), buildGroupBy(ctx.groupByClause(), whereCon))))
+        buildHaving(ctx.havingClause(), buildGroupBy(ctx.groupByClause(), buildWhere(ctx.whereClause(), from)))))
   }
 
   override def visitFromClause(ctx: FromClauseContext): ir.LogicalPlan = {
@@ -94,8 +91,7 @@ class SnowflakeRelationBuilder
 
   private def buildFilter[A](ctx: A, conditionRule: A => ParserRuleContext, input: ir.LogicalPlan): ir.LogicalPlan =
     Option(ctx).fold(input) { c =>
-     val v = ir.Filter(input, conditionRule(c).accept(expressionBuilder))
-      v
+     ir.Filter(input, conditionRule(c).accept(expressionBuilder))
     }
   private def buildHaving(ctx: HavingClauseContext, input: ir.LogicalPlan): ir.LogicalPlan =
     buildFilter[HavingClauseContext](ctx, _.predicate(), input)
@@ -103,9 +99,7 @@ class SnowflakeRelationBuilder
   private def buildQualify(ctx: QualifyClauseContext, input: ir.LogicalPlan): ir.LogicalPlan =
     buildFilter[QualifyClauseContext](ctx, _.expr(), input)
   private def buildWhere(ctx: WhereClauseContext, from: ir.LogicalPlan): ir.LogicalPlan = {
-
-    val a = buildFilter[WhereClauseContext](ctx, _.predicate(), from)
-    a
+    buildFilter[WhereClauseContext](ctx, _.predicate(), from)
   }
 
   private def buildGroupBy(ctx: GroupByClauseContext, input: ir.LogicalPlan): ir.LogicalPlan = {
