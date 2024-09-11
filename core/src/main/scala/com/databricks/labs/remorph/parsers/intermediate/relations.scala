@@ -129,7 +129,7 @@ case class Drop(child: LogicalPlan, columns: Seq[Expression], column_names: Seq[
 
 case class Deduplicate(
     child: LogicalPlan,
-    column_names: Seq[Id],
+    column_names: Seq[Expression],
     all_columns_as_keys: Boolean,
     within_watermark: Boolean)
     extends UnaryNode {
