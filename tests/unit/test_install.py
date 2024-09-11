@@ -973,11 +973,13 @@ def test_runs_upgrades_on_more_recent_version(ws):
     )
     wheels = create_autospec(WheelsV2)
 
+    mock_workspace_installation = create_autospec(WorkspaceInstallation)
+
     ctx.replace(
         prompts=prompts,
         installation=installation,
         resource_configurator=create_autospec(ResourceConfigurator),
-        workspace_installation=create_autospec(WorkspaceInstallation),
+        workspace_installation=mock_workspace_installation,
         wheels=wheels,
     )
 
@@ -993,4 +995,16 @@ def test_runs_upgrades_on_more_recent_version(ws):
 
     workspace_installer.run()
 
-    wheels.upload_to_wsfs.assert_called()
+    mock_workspace_installation.install.assert_called_once_with(
+        RemorphConfigs(
+            morph=MorphConfig(
+                source="snowflake",
+                input_sql="/tmp/queries/snow",
+                output_folder="/tmp/queries/databricks",
+                catalog_name="remorph",
+                schema_name="transpiler",
+                mode="current",
+                skip_validation=True,
+            )
+        )
+    )
