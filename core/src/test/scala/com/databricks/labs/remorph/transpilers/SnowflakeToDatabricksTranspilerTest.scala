@@ -7,11 +7,22 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
   protected val transpiler = new SnowflakeToDatabricksTranspiler
 
   "Snowflake non ansi command" should {
-    "transpile non ansi command" in {
-      "select * from t1,t2 where t1.x=t2.x(+) " transpilesTo
-        "SELECT T1.d, T2.c FROM T1, T2 WHERE T1.x = T2.x;".stripMargin
+    "transpile left join non ansi command" in {
+      "select * from T1,T2 where T1.X=T2.Y(+)" transpilesTo
+        s"""SELECT * FROM T1
+           |LEFT JOIN T2
+           |ON T1.X=T2.Y""".stripMargin
 
     }
+
+    "transpile right join non ansi command" in {
+      "select a from T1,T2 where T1.X(+) = T2.Y" transpilesTo
+        s"""SELECT a FROM
+           |T1 RIGHT JOIN T2
+           | ON T1.X = T2.Y;""".stripMargin
+
+    }
+
     "transpile non ansi command2" in {
       "select * from t,t2 where sal+e > 10" transpilesTo
         "SELECT T1.d, T2.c FROM T1, T2 WHERE T1.x = T2.x;".stripMargin

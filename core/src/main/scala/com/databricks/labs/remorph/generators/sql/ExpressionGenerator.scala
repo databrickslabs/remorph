@@ -61,6 +61,7 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
       case v: ir.Variable => variable(ctx, v)
       case s: ir.SchemaReference => schemaReference(ctx, s)
       case null => "" // don't fail transpilation if the expression is null
+      case j: ir.JoinMarkExpression => ""
       case x => throw TranspileException(s"Unsupported expression: $x")
     }
   }
