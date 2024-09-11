@@ -45,7 +45,7 @@ class ReconDeployment:
         logger.info("Installing reconcile components.")
         self._deploy_tables(recon_config)
         self._deploy_dashboards(recon_config)
-        remorph_wheel_path = [whl for whl in wheel_paths if self._product_info.product_name() in whl][0]
+        remorph_wheel_path = [whl for whl in wheel_paths if "remorph" in whl][0]
         self._deploy_jobs(recon_config, remorph_wheel_path)
         self._install_state.save()
         logger.info("Installation of reconcile components completed successfully.")
