@@ -68,10 +68,19 @@ def _format_create_sql(self, expression: exp.Create) -> str:
 
     # Remove modifiers in order to simplify the schema.  For example, this removes things like "IF NOT EXISTS"
     # from "CREATE TABLE foo IF NOT EXISTS".
-    args_to_delete = ["temporary", "transient", "external", "replace", "exists", "unique", "materialized", "properties"]
+    args_to_delete = ["temporary", "transient", "external",
+                      "replace", "exists", "unique",
+                      "materialized", "properties", "index"]
     for arg_to_delete in args_to_delete:
         if expression.args.get(arg_to_delete):
             del expression.args[arg_to_delete]
+
+    if expression.args['kind'] == "TABLE":
+        expression.args['exists'] = True
+        expression.args['replace'] = False
+    else:
+        if expression.args['replace'] is None:
+            expression.args['exists'] = True
 
     return self.create_sql(expression)
 
