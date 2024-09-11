@@ -575,6 +575,5 @@ class SnowflakeExpressionBuilder()
 
   override def visitExprJoin(ctx: ExprJoinContext): ir.Expression = {
     ir.JoinMarkExpression(ctx.expr().accept(this))
-
   }
 }
