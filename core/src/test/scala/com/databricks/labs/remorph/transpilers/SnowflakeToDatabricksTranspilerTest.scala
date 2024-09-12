@@ -11,12 +11,28 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
       "select * from T1,T2 where T1.X=T2.Y(+)" transpilesTo
         s"""SELECT * FROM T1
            |LEFT JOIN T2
-           |ON T1.X=T2.Y""".stripMargin
+           |ON T1.X = T2.Y;""".stripMargin
 
     }
 
     "transpile right join non ansi command" in {
       "select a from T1,T2 where T1.X(+) = T2.Y" transpilesTo
+        s"""SELECT a FROM
+           |T1 RIGHT JOIN T2
+           | ON T1.X = T2.Y;""".stripMargin
+
+    }
+
+    "transpile right join non ansi with can clause" in {
+      "select a from T1,T2 where T1.X(+) = T2.Y and T1.SAL(+) = 100 and T2.DEPT = 'abc' " transpilesTo
+        s"""SELECT a FROM
+           |T1 RIGHT JOIN T2
+           | ON T1.X = T2.Y;""".stripMargin
+
+    }
+
+    "transpile right join non ansi with clause" in {
+      "select a from T1,T2 where T1.X(+) = T2.Y and T2.DEPT = 'abc' " transpilesTo
         s"""SELECT a FROM
            |T1 RIGHT JOIN T2
            | ON T1.X = T2.Y;""".stripMargin
