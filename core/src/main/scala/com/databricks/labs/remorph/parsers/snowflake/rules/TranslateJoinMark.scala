@@ -14,27 +14,23 @@ class TranslateJoinMark extends ir.Rule[ir.LogicalPlan] {
 
   private def transformJoinMarkPlan2(plan: LogicalPlan): LogicalPlan = {
 
-    val joinMarkCollection = collectJoinMarks(plan)
-    println(joinMarkCollection.size)
-
     plan.transform {
       case ir.Filter(relation, condition) =>
+        val joinMarkCollection = collectJoinMarks(plan)
+        println(joinMarkCollection.size)
         def transformCondition(cond: ir.Expression): LogicalPlan = cond match {
-          case ir.Equals(JoinMarkExpression(left: ir.Expression), right: ir.Literal) =>
-            relation
+
           case ir.Equals(JoinMarkExpression(left: ir.Expression), right: ir.Expression) =>
-            createRightOuterJoin(relation, cond)
+            createRightOuterJoin(relation, cond,joinMarkCollection)
           case ir.Equals(left: ir.Expression, JoinMarkExpression(right: ir.Expression)) =>
             createLeftOuterJoin(relation, cond)
-         // case ir.And(left, right) =>
-            //t1.a(+) = t2.a AND t1.b(+) = t2.b
-            //Transform left -> (+) or without JM t2.sal(+) = 100   t2.sal = 100
-
-            //accumulate join markers and apply to the relation
-           //  transformCondition(relation,left)
-            // transformCondition(relation,right)
-
-
+         /* case ir.Equals(JoinMarkExpression(left: ir.Expression), right: ir.Literal) =>
+            relation*/
+          case ir.And(left:ir.Expression, right:ir.Expression) =>
+            //TODO: handle and condition
+             transformCondition(left)
+             transformCondition(right)
+            relation
 
           case _ => relation
         }
@@ -43,36 +39,20 @@ class TranslateJoinMark extends ir.Rule[ir.LogicalPlan] {
       case other => other
     }
   }
-  // scalastyle:off
-/*  private def transformJoinMarkPlan(plan: LogicalPlan):LogicalPlan = {
-    plan.transform {
-      case ir.Filter(relation, condition) =>
-        condition match {
 
-          case ir.Equals(JoinMarkExpression(left: ir.Expression), right: ir.Expression) =>
-            createRightOuterJoin(relation, condition)
-          case ir.Equals(left: ir.Expression, JoinMarkExpression(right: ir.Expression)) =>
-            createLeftOuterJoin(relation, condition)
 
-          case _ => relation
-          // Add other cases as needed (e.g., NotEquals, GreaterThan, etc.)
-        }
-      case other => other
-    }
-  }*/
-
-  private def collectJoinMarks(plan: LogicalPlan): scala.collection.mutable.ArrayBuffer[ir.Expression] = {
-    val joinMarkCollection = scala.collection.mutable.ArrayBuffer[ir.Expression]()
+  private def collectJoinMarks(plan: LogicalPlan): scala.collection.mutable.Set[ir.Expression] = {
+    val joinMarkCollection = scala.collection.mutable.Set[ir.Expression]()
 
     plan.collect {
       case ir.Filter(relation, condition) =>
         def transformCondition(cond: ir.Expression): Unit = cond match {
           case ir.Equals(JoinMarkExpression(left: ir.Expression), right: ir.Literal) =>
-            joinMarkCollection += condition
+            joinMarkCollection += cond
           case ir.Equals(JoinMarkExpression(left: ir.Expression), right: ir.Expression) =>
-            joinMarkCollection += condition
+            joinMarkCollection += cond
           case ir.Equals(left: ir.Expression, JoinMarkExpression(right: ir.Expression)) =>
-            joinMarkCollection += condition
+            joinMarkCollection += cond
           case ir.And(left, right) =>
             transformCondition(left)
             transformCondition(right)
@@ -85,26 +65,21 @@ class TranslateJoinMark extends ir.Rule[ir.LogicalPlan] {
   }
 
 
+  private def createRightOuterJoin(relation: LogicalPlan, condition: Expression,andExpressions:scala.collection.mutable.Set[ir.Expression]) = {
 
-
-
-  private def createRightOuterJoin(relation: LogicalPlan, condition: Expression,andCond: Option[Expression]=None) = {
-
-    val join_condition = condition.transform({ case JoinMarkExpression(left: ir.Expression) =>
-      left
-    })
-   val join_con =  if(andCond.isDefined){
-     ir.And(join_condition,andCond.get)
-    }else {
-      join_condition
+    var derivedAnd: Option[ir.Expression] = None
+    andExpressions.foreach {
+      case ex @ ir.Equals(JoinMarkExpression(left: ir.Expression), right: ir.Literal) =>
+        derivedAnd = derivedAnd match {
+          case Some(existing) => Some(ir.And(existing, ex))
+          case None => Some(ir.And(ex, condition))
+        }
     }
-
-
 
     ir.Join(
       relation.asInstanceOf[Join].left,
       relation.asInstanceOf[Join].right,
-      Some(join_con),
+      Some(derivedAnd.get),
       ir.RightOuterJoin,
       Seq(),
       ir.JoinDataType(is_left_struct = false, is_right_struct = false))
