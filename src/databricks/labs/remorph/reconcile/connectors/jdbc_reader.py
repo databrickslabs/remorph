@@ -11,6 +11,7 @@ class JDBCReaderMixin:
         driver_class = {
             "oracle": "oracle.jdbc.driver.OracleDriver",
             "snowflake": "net.snowflake.client.jdbc.SnowflakeDriver",
+            "teradata": "com.teradata.jdbc.TeraDriver",
         }
         return (
             self._spark.read.format("jdbc")

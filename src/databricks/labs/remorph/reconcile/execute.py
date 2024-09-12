@@ -7,6 +7,7 @@ from uuid import uuid4
 from pyspark.errors import PySparkException
 from pyspark.sql import DataFrame, SparkSession
 from sqlglot import Dialect
+from sqlglot import Teradata
 
 from databricks.labs.remorph.config import (
     DatabaseConfig,

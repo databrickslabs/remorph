@@ -1,10 +1,12 @@
 from pyspark.sql import SparkSession
 from sqlglot import Dialect
+from sqlglot.dialects import Teradata
 
 from databricks.labs.remorph.reconcile.connectors.data_source import DataSource
 from databricks.labs.remorph.reconcile.connectors.databricks import DatabricksDataSource
 from databricks.labs.remorph.reconcile.connectors.oracle import OracleDataSource
 from databricks.labs.remorph.reconcile.connectors.snowflake import SnowflakeDataSource
+from databricks.labs.remorph.reconcile.connectors.snowflake import TeradataDataSource
 from databricks.labs.remorph.snow.databricks import Databricks
 from databricks.labs.remorph.snow.oracle import Oracle
 from databricks.labs.remorph.snow.snowflake import Snow
@@ -23,4 +25,6 @@ def create_adapter(
         return OracleDataSource(engine, spark, ws, secret_scope)
     if isinstance(engine, Databricks):
         return DatabricksDataSource(engine, spark, ws, secret_scope)
+    if isinstance(engine, Teradata):
+        return TeradataDataSource(engine, spark, ws, secret_scope)
     raise ValueError(f"Unsupported source type --> {engine}")
