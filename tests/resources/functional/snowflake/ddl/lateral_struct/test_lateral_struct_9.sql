@@ -27,7 +27,7 @@ SELECT
 FROM
   (
     SELECT
-      FROM_JSON('{"query_date": "2022-03-02","query_token": "some_token","consumer_account_locator": "CONSUMER_ACCOUNT_LOCATOR","listing_objects_accessed": [{"objectDomain": "Table","objectName": "DATABASE_NAME.SCHEMA_NAME.TABLE_NAME","columns": [{"columnName": "column1"},{"columnName": "column2"}]}]}', schema_of_json('{JSON_COLUMN}')) AS lah
+      FROM_JSON('{"query_date": "2022-03-02","query_token": "some_token","consumer_account_locator": "CONSUMER_ACCOUNT_LOCATOR","listing_objects_accessed": [{"objectDomain": "Table","objectName": "DATABASE_NAME.SCHEMA_NAME.TABLE_NAME","columns": [{"columnName": "column1"},{"columnName": "column2"}]}]}', schema_of_json('{JSON_COLUMN_SCHEMA}')) AS lah
   ) AS src
 LATERAL VIEW EXPLODE(src.lah.listing_objects_accessed) AS los
 LATERAL VIEW EXPLODE(los.columns) AS cols

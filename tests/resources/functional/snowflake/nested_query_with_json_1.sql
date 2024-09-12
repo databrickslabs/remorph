@@ -42,7 +42,7 @@ FROM (
     *
   FROM (
     SELECT
-      CAST(FROM_JSON(COL5, schema_of_json('{COL5}')).PRICE AS DOUBLE) AS COL3,
+      CAST(FROM_JSON(COL5, schema_of_json('{COL5_SCHEMA}')).PRICE AS DOUBLE) AS COL3,
       COL4
     FROM VALUES
       ('{"PRICE": 100.50}', 'val1'),

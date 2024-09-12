@@ -263,7 +263,8 @@ def _parse_json(self, expr: exp.ParseJSON):
     expr_this = self.sql(expr, "this")
     # use column name as prefix or use JSON_COLUMN_SCHEMA when the expression is nested
     column = expr_this.replace("'", "").upper() if isinstance(expr.this, exp.Column) else "JSON_COLUMN"
-    conv_expr = f"FROM_JSON({expr_this}, schema_of_json('{{{column}}}'))"
+    schema_of_json_expr = f"schema_of_json('{{{column}_SCHEMA}}')"
+    conv_expr = self.func("FROM_JSON", expr_this, schema_of_json_expr)
     warning_msg = f"""***Warning***: you need to explicitly specify `SCHEMA` for `{column}` 
             column in expression: `{conv_expr}`
             Alternatively you can declare a variable and set the schema using (Works with DBR 15.0)

@@ -6,7 +6,7 @@ FROM VALUES
 
 -- databricks sql:
 SELECT
-  FROM_JSON(src.col, schema_of_json('{SRC.COL}')).c AS c
+  FROM_JSON(src.col, schema_of_json('{SRC.COL_SCHEMA}')).c AS c
 FROM VALUES
    ('{"a": "1", "b": "2", "c": null}'),
    ('{"a": "1", "b": "2", "c": "3"}') AS src(col);

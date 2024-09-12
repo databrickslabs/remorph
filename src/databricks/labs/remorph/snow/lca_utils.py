@@ -161,6 +161,6 @@ def transform_where(expr: exp.Expression):
             and node.this.table in lateral_aliases
         ):
             if node.this.this.name == "value":
-                node.set("this", str(node.this.table))
+                node.set("this", node.this.table)
                 node.set("expressions", node.expressions)
     return expr
