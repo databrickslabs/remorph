@@ -17,35 +17,15 @@ WHERE
   los.value:"objectName"::STRING = 'DATABASE_NAME.SCHEMA_NAME.TABLE_NAME' AND
   src.lah:"consumer_account_locator"::STRING = 'CONSUMER_ACCOUNT_LOCATOR'
 GROUP BY 1, 2, 3;
+
 -- databricks sql:
 SELECT
-  CAST(los.objectDomain AS STRING) AS object_type,
-  CAST(los.objectName AS STRING) AS object_name,
-  CAST(cols.columnName AS STRING) AS column_name,
-  COUNT(DISTINCT CAST(lah.query_token AS STRING)) AS n_queries,
-  COUNT(DISTINCT CAST(lah.consumer_account_locator AS STRING)) AS n_distinct_consumer_accounts
-FROM
-  (
-    SELECT
-      FROM_JSON('{"query_date": "2022-03-02","query_token": "some_token","consumer_account_locator": "CONSUMER_ACCOUNT_LOCATOR","listing_objects_accessed": [{"objectDomain": "Table","objectName": "DATABASE_NAME.SCHEMA_NAME.TABLE_NAME","columns": [{"columnName": "column1"},{"columnName": "column2"}]}]}', schema_of_json('{JSON_COLUMN_SCHEMA}')) AS lah
-  ) AS src
-LATERAL VIEW EXPLODE(src.lah.listing_objects_accessed) AS los
-LATERAL VIEW EXPLODE(los.columns) AS cols
-WHERE
-  CAST(los.objectDomain AS STRING) IN ('Table', 'View') AND
-  CAST(src.lah.query_date AS DATE) BETWEEN '2022-03-01' AND '2022-04-30' AND
-  CAST(los.objectName AS STRING) = 'DATABASE_NAME.SCHEMA_NAME.TABLE_NAME' AND
-  CAST(src.lah.consumer_account_locator AS STRING) = 'CONSUMER_ACCOUNT_LOCATOR'
-GROUP BY 1, 2, 3;
-
--- experimental sql:
-SELECT
-  CAST (los.objectdomain as string) as object_type,
-  CAST (los.objectname as string) as object_name,
-  CAST (cols.columnname as string) as column_name,
-  COUNT (DISTINCT CAST (lah.query_token as string)) as n_queries,
+  CAST (los:objectdomain as string) as object_type,
+  CAST (los:objectname as string) as object_name,
+  CAST (cols:columnname as string) as column_name,
+  COUNT (DISTINCT CAST (lah:query_token as string)) as n_queries,
   COUNT (
-    DISTINCT CAST (lah.consumer_account_locator as string)
+    DISTINCT CAST (lah:consumer_account_locator as string)
   ) as n_distinct_consumer_accounts
 FROM
   (
@@ -53,11 +33,12 @@ FROM
       parse_json (
         '{"query_date": "2022-03-02","query_token": "some_token","consumer_account_locator": "consumer_account_locator","listing_objects_accessed": [{"objectdomain": "table","objectname": "database_name.schema_name.table_name","columns": [{"columnname": "column1"},{"columnname": "column2"}]}]}'
       ) AS lah
-  ) AS src lateral VIEW explode (src.lah.listing_objects_accessed) AS los lateral VIEW explode (los.columns) AS cols
+  ) AS src
+  LATERAL VIEW EXPLODE (CAST (src.lah:listing_objects_accessed AS ARRAY<VARIANT>)) AS los
+  LATERAL VIEW EXPLODE (CAST (los:columns AS ARRAY<VARIANT>)) AS cols
 WHERE
-  CAST (los.objectdomain AS string) in ('table', 'view')
-  AND CAST (src.lah.query_date AS DATE) BETWEEN '2022-03-01'
-  AND '2022-04-30'
-  AND CAST (los.objectname AS string) = 'database_name.schema_name.table_name'
-  AND CAST (src.lah.consumer_account_locator AS string) = 'consumer_account_locator'
-GROUP BY 1, 2, 3
+  CAST (los:objectdomain AS string) in ('table', 'view')
+  AND CAST (src.lah:query_date AS DATE) BETWEEN '2022-03-01' AND '2022-04-30'
+  AND CAST (los:objectname AS string) = 'database_name.schema_name.table_name'
+  AND CAST (src.lah:consumer_account_locator AS string) = 'consumer_account_locator'
+GROUP BY 1, 2, 3;
