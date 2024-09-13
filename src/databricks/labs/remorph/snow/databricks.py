@@ -247,7 +247,7 @@ def _to_command(self, expr: exp.Command):
     return f"{prefix} {expression}"
 
 
-def _parse_json(self, expr: exp.ParseJSON):
+def _parse_json_old(self, expr: exp.ParseJSON):
     """
     Converts `PARSE_JSON` function to `FROM_JSON` function.
     Schema is a mandatory argument for Databricks `FROM_JSON` function
@@ -263,6 +263,10 @@ def _parse_json(self, expr: exp.ParseJSON):
     )
     logger.warning(warning_msg)
     return conv_expr
+
+
+def _parse_json(self, expression: exp.ParseJSON) -> str:
+    return self.func("PARSE_JSON", expression.this, expression.expression)
 
 
 def _to_number(self, expression: local_expression.ToNumber):
@@ -373,7 +377,8 @@ class Databricks(org_databricks.Databricks):  #
             exp.DataType.Type.BIGINT: "BIGINT",
             exp.DataType.Type.DATETIME: "TIMESTAMP",
             exp.DataType.Type.VARCHAR: "STRING",
-            exp.DataType.Type.VARIANT: "STRING",
+            # exp.DataType.Type.VARIANT: "STRING",
+            exp.DataType.Type.VARIANT: "VARIANT",
             exp.DataType.Type.FLOAT: "DOUBLE",
             exp.DataType.Type.OBJECT: "STRING",
             exp.DataType.Type.GEOGRAPHY: "STRING",
