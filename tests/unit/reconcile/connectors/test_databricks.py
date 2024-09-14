@@ -44,6 +44,11 @@ def test_get_schema():
     spark.sql.assert_called_with(re.sub(r'\s+', ' ', """describe table hive_metastore.schema.supplier"""))
     spark.sql().where.assert_called_with("col_name not like '#%'")
 
+    # global_temp as schema with hive_metastore
+    dd.get_schema("hive_metastore", "global_temp", "supplier")
+    spark.sql.assert_called_with(re.sub(r'\s+', ' ', """describe table global_temp.supplier"""))
+    spark.sql().where.assert_called_with("col_name not like '#%'")
+
 
 def test_read_data_from_uc():
     # initial setup
@@ -56,6 +61,10 @@ def test_read_data_from_uc():
     dd.read_data("org", "data", "employee", "select id as id, name as name from :tbl", None)
     spark.sql.assert_called_with("select id as id, name as name from org.data.employee")
 
+    # global_temp as schema with UC catalog
+    dd.read_data("org", "global_temp", "employee", "select id as id, name as name from :tbl", None)
+    spark.sql.assert_called_with("select id as id, name as name from global_temp.employee")
+
 
 def test_read_data_from_hive():
     # initial setup
@@ -67,6 +76,10 @@ def test_read_data_from_hive():
     # Test with query
     dd.read_data("hive_metastore", "data", "employee", "select id as id, name as name from :tbl", None)
     spark.sql.assert_called_with("select id as id, name as name from hive_metastore.data.employee")
+
+    # global_temp as schema with hive_metastore
+    dd.read_data("hive_metastore", "global_temp", "employee", "select id as id, name as name from :tbl", None)
+    spark.sql.assert_called_with("select id as id, name as name from global_temp.employee")
 
 
 def test_read_data_exception_handling():
