@@ -60,7 +60,7 @@ def _lateral_bracket_sql(self, expression: local_expression.Bracket) -> str:
     # If expression contains space in between encode it in backticks(``):
     # e.g. ref."ID Number" -> ref.`ID Number`.
     expressions_sql = ", ".join(f"`{e}`" if " " in e else e for e in expressions)
-    return f"{self.sql(expression, 'this')}.{expressions_sql}"
+    return f"{self.sql(expression, 'this')}:{expressions_sql}"
 
 
 def _format_create_sql(self, expression: exp.Create) -> str:
@@ -115,7 +115,7 @@ def _lateral_view(self: org_databricks.Databricks.Generator, expression: exp.Lat
             generator_function_str = f"POSEXPLODE({generator_expr})"
             alias_str = f"{' ' + alias.name if isinstance(alias, exp.TableAlias) else ''} AS index, value"
         else:
-            generator_function_str = f"EXPLODE({generator_expr})"
+            generator_function_str = f"EXPLODE(CAST({generator_expr} AS ARRAY<VARIANT>))"
 
     return self.sql(f"LATERAL VIEW {'OUTER ' if is_outer else ''}{generator_function_str}{alias_str}")
 

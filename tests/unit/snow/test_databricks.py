@@ -4,7 +4,7 @@ import pytest
 
 from ..conftest import FunctionalTestFile, get_functional_test_files_from_directory
 
-path = Path(__file__).parent / Path('../../resources/functional/snowflake/')
+path = Path(__file__).parent / Path('../../resources/functional/snowflake/ddl/lateral_struct/')
 functional_tests = get_functional_test_files_from_directory(path, "snowflake", "databricks", False)
 test_names = [f.test_name for f in functional_tests]
 
