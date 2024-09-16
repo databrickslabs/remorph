@@ -11,9 +11,10 @@ import org.antlr.v4.runtime.{CharStreams, CommonTokenStream}
 class SnowflakeToDatabricksTranspiler extends BaseTranspiler {
 
   private val astBuilder = new SnowflakeAstBuilder
-  private val generator = new LogicalPlanGenerator(new ExpressionGenerator(new SnowflakeCallMapper()))
+  private val generator = new LogicalPlanGenerator(new ExpressionGenerator)
   private val optimizer =
     ir.Rules(
+      new SnowflakeCallMapper,
       ir.AlwaysUpperNameForCallFunction,
       new UpdateToMerge,
       new CastParseJsonToFromJson(generator),

@@ -387,7 +387,7 @@ class ExpressionGeneratorTest
     }
 
     "ARRAY_AGG(a)" in {
-      ir.CallFunction("COLLECT_LIST", Seq(ir.UnresolvedAttribute("a"))) generates "ARRAY_AGG(a)"
+      ir.CollectList(ir.UnresolvedAttribute("a")) generates "ARRAY_AGG(a)"
     }
 
     "COLLECT_SET(a)" in {
@@ -596,9 +596,7 @@ class ExpressionGeneratorTest
     }
 
     "EXTRACT(a FROM b)" in {
-      ir.CallFunction(
-        "EXTRACT",
-        Seq(ir.UnresolvedAttribute("a"), ir.UnresolvedAttribute("b"))) generates "EXTRACT(a FROM b)"
+      ir.Extract(ir.UnresolvedAttribute("a"), ir.UnresolvedAttribute("b")) generates "EXTRACT(a FROM b)"
     }
     "FACTORIAL(a)" in {
       ir.CallFunction("FACTORIAL", Seq(ir.UnresolvedAttribute("a"))) generates "FACTORIAL(a)"
@@ -1067,7 +1065,7 @@ class ExpressionGeneratorTest
     }
 
     "POWER(a, b)" in {
-      ir.CallFunction("POW", Seq(ir.UnresolvedAttribute("a"), ir.UnresolvedAttribute("b"))) generates "POWER(a, b)"
+      ir.Pow(ir.UnresolvedAttribute("a"), ir.UnresolvedAttribute("b")) generates "POWER(a, b)"
     }
 
     "QUARTER(a)" in {
@@ -1146,7 +1144,7 @@ class ExpressionGeneratorTest
     }
 
     "a RLIKE b" in {
-      ir.CallFunction("RLIKE", Seq(ir.UnresolvedAttribute("a"), ir.UnresolvedAttribute("b"))) generates "a RLIKE b"
+      ir.RLike(ir.UnresolvedAttribute("a"), ir.UnresolvedAttribute("b")) generates "a RLIKE b"
     }
 
     "ROLLUP(a, b)" in {
