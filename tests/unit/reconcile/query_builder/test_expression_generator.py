@@ -57,7 +57,6 @@ def test_to_char(expr):
     assert to_char(expr).sql(dialect="oracle") == "SELECT TO_CHAR(col1) FROM DUAL"
     assert to_char(expr, to_format='YYYY-MM-DD').sql(dialect="oracle") == "SELECT TO_CHAR(col1, 'YYYY-MM-DD') FROM DUAL"
 
-
 def test_array_to_string(expr):
     assert array_to_string(expr).sql() == "SELECT ARRAY_TO_STRING(col1, ',') FROM DUAL"
     assert array_to_string(expr, null_replacement='NA').sql() == "SELECT ARRAY_TO_STRING(col1, ',', 'NA') FROM DUAL"
@@ -119,7 +118,7 @@ def test_lower(expr):
 
 def test_get_hash_transform():
     assert isinstance(get_hash_transform(get_dialect("snowflake")), list) is True
-
+    assert isinstance(get_hash_transform(get_dialect("tsql")), list) is True
     with pytest.raises(ValueError):
         get_hash_transform(get_dialect("trino"))
 

@@ -18,23 +18,23 @@ logger = logging.getLogger(__name__)
 _SCHEMA_QUERY = """SELECT 
                      COLUMN_NAME,
                      CASE
-                        WHEN DATA_TYPE IN ('int', 'bigint', 'smallint', 'tinyint') 
+                        WHEN DATA_TYPE IN ('int', 'bigint')
                             THEN DATA_TYPE
+                        WHEN DATA_TYPE IN ('smallint', 'tinyint') 
+                            THEN 'smallint'
                         WHEN DATA_TYPE IN ('decimal' ,'numeric')
                             THEN 'decimal(' + 
                                 CAST(NUMERIC_PRECISION AS VARCHAR) + ',' + 
                                 CAST(NUMERIC_SCALE AS VARCHAR) + ')'
                         WHEN DATA_TYPE IN ('float', 'real') 
-                                THEN 'float' 
+                                THEN 'double'
                         WHEN CHARACTER_MAXIMUM_LENGTH IS NOT NULL AND DATA_TYPE IN ('varchar','char','text','nchar','nvarchar','ntext') 
-                                THEN 'string'
-                        WHEN DATA_TYPE = 'date' 
                                 THEN DATA_TYPE
-                        WHEN DATA_TYPE IN ('time','datetime', 'datetime2','smalldatetime','datetimeoffset')
-                                THEN 'timestamp'
+                        WHEN DATA_TYPE IN ('date','time','datetime', 'datetime2','smalldatetime','datetimeoffset')
+                                THEN DATA_TYPE
                         WHEN DATA_TYPE IN ('bit')
                                 THEN 'boolean'
-                        WHEN DATA_TYPE IN ('binary','varbinary','image')
+                        WHEN DATA_TYPE IN ('binary','varbinary')
                                 THEN 'binary'
                         ELSE DATA_TYPE
                     END AS 'DATA_TYPE'

@@ -80,21 +80,23 @@ class TsqlSamplingQueryBuilder(QueryBuilder):
         join_condition = ' AND '.join(
             [
                 (
-                    f"COALESCE(LTRIM(RTRIM(src.{col})), '_null_recon_') = COALESCE(LTRIM(RTRIM(recon.{col})), '_null_recon_')"
+                    f"COALESCE(LTRIM(RTRIM(src.[{col}])), '_null_recon_') = COALESCE(LTRIM(RTRIM(recon.[{col}])), '_null_recon_')"
                     if _get_is_string(column_types_dict, col)
-                    else f"COALESCE(src.{col}, -999999) = COALESCE(recon.{col}, -999999)"
+                    else f"COALESCE(src.[{col}], -999999) = COALESCE(recon.[{col}], -999999)"
                 )
                 for col in key_cols
             ]
         )
 
-        # Manually construct the final query
+        select_cols = ', '.join(f"src.[{col}]" for col in cols)
+
+        # Final query construction
         final_query = f"""
-        SELECT src.{', src.'.join(cols)}
-        FROM {src_subquery_sql}
-        INNER JOIN {recon_subquery}
-        ON {join_condition}
-        """
+                       SELECT {select_cols}
+                       FROM {src_subquery_sql} 
+                       INNER JOIN {recon_subquery} 
+                       ON {join_condition}
+                       """
 
         logger.info(f"Sampling Query for {self.layer}: {final_query}")
         return final_query
@@ -109,23 +111,3 @@ class TsqlSamplingQueryBuilder(QueryBuilder):
             .transform(coalesce, default="_null_recon_", is_string=True)
             .transform(trim)
         )
-
-    def _get_with_clause(self, df: DataFrame) -> exp.Select:
-        union_res = []
-        for row in df.take(_SAMPLE_ROWS):
-            column_types = [(str(f.name).lower(), f.dataType) for f in df.schema.fields]
-            column_types_dict = dict(column_types)
-            row_select = [
-                (
-                    build_literal(this=str(value), alias=col, is_string=_get_is_string(column_types_dict, col))
-                    if value is not None
-                    else exp.Alias(this=exp.Null(), alias=col)
-                )
-                for col, value in zip(df.columns, row)
-            ]
-            if get_key_from_dialect(self.engine) == "oracle":
-                union_res.append(select(*row_select).from_("dual"))
-            else:
-                union_res.append(select(*row_select))
-        union_statements = _union_concat(union_res, union_res[0], 0)
-        return exp.Select().with_(alias='recon', as_=union_statements)

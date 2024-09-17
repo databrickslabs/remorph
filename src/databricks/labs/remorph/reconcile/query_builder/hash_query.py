@@ -75,8 +75,16 @@ class HashQueryBuilder(QueryBuilder):
         cols_with_alias = [build_column(this=col, alias=None) for col in cols]
         cols_with_transform = self.add_transformations(cols_with_alias, self.engine)
         col_exprs = exp.select(*cols_with_transform).iter_expressions()
-        concat_expr = concat(list(col_exprs))
+
+        col_exprs_list = list(col_exprs)
+        # Add an empty string to the list of expressions - needed for cases where we have only
+        # one column in concat - especially in case of tsql
+        col_exprs_list.append("''")
+
+        concat_expr = concat(col_exprs_list)
 
         hash_expr = concat_expr.transform(_hash_transform, self.engine).transform(lower, is_expr=True)
 
-        return build_column(hash_expr, alias=column_alias)
+        return build_column(hash_expr,alias=column_alias)
+
+

@@ -6,6 +6,9 @@ def test_count_query(table_conf_with_opts):
     source_query = CountQueryBuilder(
         table_conf=table_conf_with_opts, layer="source", engine=get_dialect("oracle")
     ).build_query()
+    source_query = CountQueryBuilder(
+        table_conf=table_conf_with_opts, layer="source", engine=get_dialect("tsql")
+    ).build_query()
     target_query = CountQueryBuilder(
         table_conf=table_conf_with_opts, layer="target", engine=get_dialect("databricks")
     ).build_query()

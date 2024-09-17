@@ -80,6 +80,13 @@ class SchemaCompare:
 
     @classmethod
     def _parse(cls, source: Dialect, column: str, data_type: str) -> str:
+        if source == "tsql":
+            return (
+                parse_one(f"create table dummy ([{column}] {data_type})", read=source)
+                .sql(dialect=get_dialect("databricks"))
+                .replace(", ", ",")
+            )
+
         return (
             parse_one(f"create table dummy ({column} {data_type})", read=source)
             .sql(dialect=get_dialect("databricks"))
@@ -91,17 +98,29 @@ class SchemaCompare:
         return bool(all(x.is_valid for x in schema_compare_maps))
 
     @classmethod
-    def _validate_parsed_query(cls, master: SchemaMatchResult, parsed_query) -> None:
-        databricks_query = f"create table dummy ({master.source_column} {master.databricks_datatype})"
-        logger.info(
-            f"""
-        Source datatype: create table dummy ({master.source_column} {master.source_datatype})
-        Parse datatype: {parsed_query}
-        Databricks datatype: {databricks_query}
-        """
-        )
-        if parsed_query.lower() != databricks_query.lower():
-            master.is_valid = False
+    def _validate_parsed_query(cls, master: SchemaMatchResult, parsed_query,source) -> None:
+        if source == "tsql":
+            databricks_query = f"create table dummy (`{master.source_column}` {master.databricks_datatype})"
+            logger.info(
+                f"""
+                    Source datatype: create table dummy (`{master.source_column}` {master.source_datatype})
+                    Parse datatype: {parsed_query}
+                    Databricks datatype: {databricks_query}
+                    """
+            )
+            if parsed_query.lower() != databricks_query.lower():
+                master.is_valid = False
+        else :
+            databricks_query = f"create table dummy ({master.source_column} {master.databricks_datatype})"
+            logger.info(
+                f"""
+            Source datatype: create table dummy ({master.source_column} {master.source_datatype})
+            Parse datatype: {parsed_query}
+            Databricks datatype: {databricks_query}
+            """
+            )
+            if parsed_query.lower() != databricks_query.lower():
+                master.is_valid = False
 
     def compare(
         self,
@@ -121,7 +140,7 @@ class SchemaCompare:
         for master in master_schema:
             if not isinstance(source, Databricks):
                 parsed_query = self._parse(source, master.source_column, master.source_datatype)
-                self._validate_parsed_query(master, parsed_query)
+                self._validate_parsed_query(master, parsed_query,source)
             elif master.source_datatype.lower() != master.databricks_datatype.lower():
                 master.is_valid = False
 

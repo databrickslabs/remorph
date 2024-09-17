@@ -117,11 +117,12 @@ def anonymous(expr: exp.Column, func: str, is_expr: bool = False) -> exp.Express
     return new_expr
 
 
-def build_column(this: exp.ExpOrStr, table_name="", quoted=False, alias=None) -> exp.Expression:
+def build_column(this: exp.ExpOrStr, table_name="", quoted=True, alias=None) -> exp.Expression:
     if alias:
         if isinstance(this, str):
             return exp.Alias(
-                this=exp.Column(this=this, table=table_name), alias=exp.Identifier(this=alias, quoted=quoted)
+                this=exp.Column(this=exp.Identifier(this=this, quoted=True), table=table_name),
+                alias=exp.Identifier(this=alias, quoted=quoted)
             )
         return exp.Alias(this=this, alias=exp.Identifier(this=alias, quoted=quoted))
     return exp.Column(this=exp.Identifier(this=this, quoted=quoted), table=table_name)
@@ -140,8 +141,7 @@ def transform_expression(
     funcs: list[Callable[[exp.Expression], exp.Expression]],
 ) -> exp.Expression:
     for func in funcs:
-        if expr.is_string:
-            expr = func(expr)
+        expr = func(expr)
     assert isinstance(expr, exp.Expression), (
         f"Func returned an instance of type [{type(expr)}], " "should have been Expression."
     )
@@ -230,6 +230,20 @@ DataType_transform_mapping: dict[str, dict[str, list[partial[exp.Expression]]]] 
         exp.DataType.Type.NCHAR.value: [partial(anonymous, func="NVL(TRIM(TO_CHAR({})),'_null_recon_')")],
         exp.DataType.Type.NVARCHAR.value: [partial(anonymous, func="NVL(TRIM(TO_CHAR({})),'_null_recon_')")],
     },
+    "tsql": {
+        "default": [
+            partial(anonymous, func="COALESCE(LTRIM(RTRIM(CAST([{}] AS VARCHAR(64)))), '_null_recon_')")
+        ],
+        exp.DataType.Type.DATE.value: [
+            partial(anonymous, func="COALESCE(CONVERT(DATE, {0}, 101), '1900-01-01')")
+        ],
+        exp.DataType.Type.TIME.value: [
+            partial(anonymous, func="COALESCE(CONVERT(TIME, {0}, 108), '00:00:00')")
+        ],
+        exp.DataType.Type.DATETIME.value: [
+            partial(anonymous, func="COALESCE(CONVERT(DATETIME, {0}, 120), '1900-01-01 00:00:00')")
+        ],
+    },
     "databricks": {
         exp.DataType.Type.ARRAY.value: [partial(anonymous, func="CONCAT_WS(',', SORT_ARRAY({}))")],
     },
@@ -244,6 +258,7 @@ Dialect_hash_algo_mapping = [
     DialectHashConfig(dialect=get_dialect("databricks"), algo=[partial(sha2, num_bits="256", is_expr=True)]),
     DialectHashConfig(
         dialect=get_dialect("tsql"),
-        algo=[partial(anonymous, func="CONVERT(VARCHAR(64), HASHBYTES('SHA2_256', {}), 2)", is_expr=True)],
+        algo=[partial(anonymous, func="CONVERT(VARCHAR(256), HASHBYTES('SHA2_256', CONVERT(VARCHAR(256),{})), 2)",
+                      is_expr=True)],
     ),
 ]
