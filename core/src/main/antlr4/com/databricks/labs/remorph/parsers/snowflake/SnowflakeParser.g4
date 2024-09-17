@@ -3247,7 +3247,7 @@ builtinFunction: EXTRACT L_PAREN (string | ID) FROM expr R_PAREN # builtinExtrac
 
 standardFunction
     : functionName L_PAREN (exprList | paramAssocList)? R_PAREN
-    | functionOptinalBrackets (L_PAREN R_PAREN)?
+    | functionOptionalBrackets (L_PAREN R_PAREN)?
     ;
 
 functionName: id | nonReservedFunctionName
@@ -3258,7 +3258,7 @@ nonReservedFunctionName
     | RIGHT // keywords that cannot be used as id, but can be used as function names
     ;
 
-functionOptinalBrackets
+functionOptionalBrackets
     : CURRENT_DATE      // https://docs.snowflake.com/en/sql-reference/functions/current_date
     | CURRENT_TIMESTAMP // https://docs.snowflake.com/en/sql-reference/functions/current_timestamp
     | CURRENT_TIME      // https://docs.snowflake.com/en/sql-reference/functions/current_time
