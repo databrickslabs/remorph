@@ -10,9 +10,6 @@ from databricks.labs.remorph.reconcile.query_builder.expression_generator import
     build_column,
     build_literal,
     _get_is_string,
-    build_join_clause,
-    trim,
-    coalesce,
 )
 
 _SAMPLE_ROWS = 50
@@ -100,14 +97,3 @@ class TsqlSamplingQueryBuilder(QueryBuilder):
 
         logger.info(f"Sampling Query for {self.layer}: {final_query}")
         return final_query
-
-    @classmethod
-    def _get_join_clause(cls, key_cols: list):
-        # Not used in this version, kept for reference
-        return (
-            build_join_clause(
-                "recon", key_cols, source_table_alias="src", target_table_alias="recon", kind="inner", func=exp.EQ
-            )
-            .transform(coalesce, default="_null_recon_", is_string=True)
-            .transform(trim)
-        )

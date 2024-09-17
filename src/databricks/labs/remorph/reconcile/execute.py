@@ -7,7 +7,6 @@ from uuid import uuid4
 from pyspark.errors import PySparkException
 from pyspark.sql import DataFrame, SparkSession
 from sqlglot import Dialect
-from sqlglot.dialects import TSQL
 from databricks.labs.remorph.config import (
     DatabaseConfig,
     TableRecon,
@@ -55,7 +54,6 @@ from databricks.labs.remorph.reconcile.recon_config import (
     AggregateQueryOutput,
     AggregateQueryRules,
 )
-from databricks.labs.remorph.reconcile.query_builder.tsql_sampling_query import TsqlSamplingQueryBuilder
 from databricks.labs.remorph.reconcile.schema_compare import SchemaCompare
 from databricks.labs.remorph.transpiler.execute import verify_workspace_client
 from databricks.sdk import WorkspaceClient
@@ -672,10 +670,8 @@ class Reconciliation:
             or reconcile_output.missing_in_src_count > 0
             or reconcile_output.missing_in_tgt_count > 0
         ):
-            if isinstance(self._source_engine, TSQL):
-                src_sampler = TsqlSamplingQueryBuilder(table_conf, src_schema, "source", self._source_engine)
-            else:
-                src_sampler = SamplingQueryBuilder(table_conf, src_schema, "source", self._source_engine)
+
+            src_sampler = SamplingQueryBuilder(table_conf, src_schema, "source", self._source_engine)
 
             tgt_sampler = SamplingQueryBuilder(table_conf, tgt_schema, "target", self._target_engine)
 

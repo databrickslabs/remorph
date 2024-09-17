@@ -117,12 +117,11 @@ def anonymous(expr: exp.Column, func: str, is_expr: bool = False) -> exp.Express
     return new_expr
 
 
-def build_column(this: exp.ExpOrStr, table_name="", quoted=True, alias=None) -> exp.Expression:
+def build_column(this: exp.ExpOrStr, table_name="", quoted=False, alias=None) -> exp.Expression:
     if alias:
         if isinstance(this, str):
             return exp.Alias(
-                this=exp.Column(this=exp.Identifier(this=this, quoted=True), table=table_name),
-                alias=exp.Identifier(this=alias, quoted=quoted),
+                this=exp.Column(this=this, table=table_name), alias=exp.Identifier(this=alias, quoted=quoted)
             )
         return exp.Alias(this=this, alias=exp.Identifier(this=alias, quoted=quoted))
     return exp.Column(this=exp.Identifier(this=this, quoted=quoted), table=table_name)
