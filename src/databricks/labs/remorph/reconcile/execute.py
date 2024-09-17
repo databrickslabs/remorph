@@ -54,7 +54,6 @@ from databricks.labs.remorph.reconcile.recon_config import (
     ReconcileRecordCount,
     AggregateQueryOutput,
     AggregateQueryRules,
-    Aggregate
 )
 from databricks.labs.remorph.reconcile.query_builder.tsql_sampling_query import TsqlSamplingQueryBuilder
 from databricks.labs.remorph.reconcile.schema_compare import SchemaCompare
@@ -112,9 +111,9 @@ def main(*argv) -> None:
 
 
 def _trigger_recon(
-        w: WorkspaceClient,
-        table_recon: TableRecon,
-        reconcile_config: ReconcileConfig,
+    w: WorkspaceClient,
+    table_recon: TableRecon,
+    reconcile_config: ReconcileConfig,
 ):
     try:
         recon_output = recon(

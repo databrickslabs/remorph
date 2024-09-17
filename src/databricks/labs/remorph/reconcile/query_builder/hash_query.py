@@ -85,6 +85,4 @@ class HashQueryBuilder(QueryBuilder):
 
         hash_expr = concat_expr.transform(_hash_transform, self.engine).transform(lower, is_expr=True)
 
-        return build_column(hash_expr,alias=column_alias)
-
-
+        return build_column(hash_expr, alias=column_alias)

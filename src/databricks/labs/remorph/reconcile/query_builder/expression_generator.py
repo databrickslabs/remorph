@@ -122,7 +122,7 @@ def build_column(this: exp.ExpOrStr, table_name="", quoted=True, alias=None) -> 
         if isinstance(this, str):
             return exp.Alias(
                 this=exp.Column(this=exp.Identifier(this=this, quoted=True), table=table_name),
-                alias=exp.Identifier(this=alias, quoted=quoted)
+                alias=exp.Identifier(this=alias, quoted=quoted),
             )
         return exp.Alias(this=this, alias=exp.Identifier(this=alias, quoted=quoted))
     return exp.Column(this=exp.Identifier(this=this, quoted=quoted), table=table_name)
@@ -231,15 +231,9 @@ DataType_transform_mapping: dict[str, dict[str, list[partial[exp.Expression]]]] 
         exp.DataType.Type.NVARCHAR.value: [partial(anonymous, func="NVL(TRIM(TO_CHAR({})),'_null_recon_')")],
     },
     "tsql": {
-        "default": [
-            partial(anonymous, func="COALESCE(LTRIM(RTRIM(CAST([{}] AS VARCHAR(64)))), '_null_recon_')")
-        ],
-        exp.DataType.Type.DATE.value: [
-            partial(anonymous, func="COALESCE(CONVERT(DATE, {0}, 101), '1900-01-01')")
-        ],
-        exp.DataType.Type.TIME.value: [
-            partial(anonymous, func="COALESCE(CONVERT(TIME, {0}, 108), '00:00:00')")
-        ],
+        "default": [partial(anonymous, func="COALESCE(LTRIM(RTRIM(CAST([{}] AS VARCHAR(64)))), '_null_recon_')")],
+        exp.DataType.Type.DATE.value: [partial(anonymous, func="COALESCE(CONVERT(DATE, {0}, 101), '1900-01-01')")],
+        exp.DataType.Type.TIME.value: [partial(anonymous, func="COALESCE(CONVERT(TIME, {0}, 108), '00:00:00')")],
         exp.DataType.Type.DATETIME.value: [
             partial(anonymous, func="COALESCE(CONVERT(DATETIME, {0}, 120), '1900-01-01 00:00:00')")
         ],
@@ -258,7 +252,12 @@ Dialect_hash_algo_mapping = [
     DialectHashConfig(dialect=get_dialect("databricks"), algo=[partial(sha2, num_bits="256", is_expr=True)]),
     DialectHashConfig(
         dialect=get_dialect("tsql"),
-        algo=[partial(anonymous, func="CONVERT(VARCHAR(256), HASHBYTES('SHA2_256', CONVERT(VARCHAR(256),{})), 2)",
-                      is_expr=True)],
+        algo=[
+            partial(
+                anonymous,
+                func="CONVERT(VARCHAR(256), HASHBYTES('SHA2_256', CONVERT(VARCHAR(256),{})), 2)",
+                is_expr=True,
+            )
+        ],
     ),
 ]
