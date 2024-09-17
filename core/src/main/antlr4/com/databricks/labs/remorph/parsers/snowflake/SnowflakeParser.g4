@@ -3247,7 +3247,7 @@ builtinFunction: EXTRACT L_PAREN (string | ID) FROM expr R_PAREN # builtinExtrac
 
 standardFunction
     : functionName L_PAREN (exprList | paramAssocList)? R_PAREN
-    | functionOptionalBrackets (L_PAREN R_PAREN)?
+    | functionOptionalBrackets (L_PAREN exprList? R_PAREN)?
     ;
 
 functionName: id | nonReservedFunctionName
