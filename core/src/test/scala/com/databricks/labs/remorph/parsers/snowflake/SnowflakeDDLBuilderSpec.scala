@@ -147,10 +147,9 @@ class SnowflakeDDLBuilderSpec
                   |  AS 'a * b';""".stripMargin,
         expectedAst = CreateInlineUDF(
           name = "multiply1",
-          returnType = DecimalType(None, None),
-          parameters = Seq(
-            FunctionParameter("a", DecimalType(None, None), None),
-            FunctionParameter("b", DecimalType(None, None), None)),
+          returnType = DecimalType(38, 0),
+          parameters =
+            Seq(FunctionParameter("a", DecimalType(38, 0), None), FunctionParameter("b", DecimalType(38, 0), None)),
           runtimeInfo = SQLRuntimeInfo(memoizable = false),
           acceptsNullParameters = false,
           comment = Some("multiply two numbers"),
@@ -208,7 +207,7 @@ class SnowflakeDDLBuilderSpec
       "ALTER TABLE s.t1 ADD COLUMN c VARCHAR" in {
         example(
           "ALTER TABLE s.t1 ADD COLUMN c VARCHAR",
-          AlterTableCommand("s.t1", Seq(AddColumn(ColumnDeclaration("c", StringType)))))
+          AlterTableCommand("s.t1", Seq(AddColumn(Seq(ColumnDeclaration("c", StringType))))))
       }
       "ALTER TABLE s.t1 ADD CONSTRAINT pk PRIMARY KEY (a, b, c)" in {
         example(
@@ -256,6 +255,30 @@ class SnowflakeDDLBuilderSpec
         example(
           "ALTER TABLE s.t1 RENAME CONSTRAINT pk TO pk_t1",
           AlterTableCommand("s.t1", Seq(RenameConstraint("pk", "pk_t1"))))
+      }
+    }
+
+    "translate Unresolved COMMAND" should {
+      "ALTER SESSION SET QUERY_TAG = 'TAG'" in {
+        example("ALTER SESSION SET QUERY_TAG = 'TAG';", UnresolvedCommand("ALTER SESSION SET QUERY_TAG = 'TAG'"))
+      }
+
+      "ALTER STREAM mystream SET COMMENT = 'New comment for stream'" in {
+        example(
+          "ALTER STREAM mystream SET COMMENT = 'New comment for stream';",
+          UnresolvedCommand("ALTER STREAM mystream SET COMMENT = 'New comment for stream'"))
+      }
+
+      "CREATE STREAM mystream ON TABLE mytable" in {
+        example(
+          "CREATE STREAM mystream ON TABLE mytable;",
+          UnresolvedCommand("CREATE STREAM mystream ON TABLE mytable"))
+      }
+
+      "CREATE TASK t1 SCHEDULE = '30 MINUTE' AS INSERT INTO tbl(ts) VALUES(CURRENT_TIMESTAMP)" in {
+        example(
+          "CREATE TASK t1 SCHEDULE = '30 MINUTE' AS INSERT INTO tbl(ts) VALUES(CURRENT_TIMESTAMP);",
+          UnresolvedCommand("CREATE TASK t1 SCHEDULE = '30 MINUTE' AS INSERT INTO tbl(ts) VALUES(CURRENT_TIMESTAMP)"))
       }
     }
 

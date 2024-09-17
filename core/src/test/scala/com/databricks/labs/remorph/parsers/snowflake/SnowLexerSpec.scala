@@ -9,19 +9,28 @@ class SnowLexerSpec extends AnyWordSpec with Matchers with TableDrivenPropertyCh
 
   private val lexer = new SnowflakeLexer(null)
 
+  private def fillTokens(input: String): List[Token] = {
+    val inputString = CharStreams.fromString(input)
+    lexer.setInputStream(inputString)
+    Iterator.continually(lexer.nextToken()).takeWhile(_.getType != Token.EOF).toList
+  }
+
+  private def dumpTokens(tokens: List[Token]): Unit = {
+    tokens.foreach { t =>
+      // scalastyle:off println
+      val name = lexer.getVocabulary.getDisplayName(t.getType).padTo(32, ' ')
+      println(s"${name}(${t.getType}) -->${t.getText}<--")
+      // scalastyle:on println
+    }
+  }
+
   // TODO: Expand this test to cover all token types, and maybe all tokens
   "Snowflake Lexer" should {
-    "parse string literals and ids" in {
+    "scan string literals and ids" in {
 
       val testInput = Table(
         ("child", "expected"), // Headers
 
-        ("""'\\'""", SnowflakeLexer.STRING),
-        ("""'?'""", SnowflakeLexer.STRING),
-        ("'And it''s raining'", SnowflakeLexer.STRING),
-        ("""'Tab\oir'""", SnowflakeLexer.STRING),
-        ("""'Tab\'oir'""", SnowflakeLexer.STRING),
-        ("'hello'", SnowflakeLexer.STRING),
         (""""quoted""id"""", SnowflakeLexer.DOUBLE_QUOTE_ID),
         ("\"quote\"\"andunquote\"\"\"", SnowflakeLexer.DOUBLE_QUOTE_ID))
 
@@ -35,6 +44,261 @@ class SnowLexerSpec extends AnyWordSpec with Matchers with TableDrivenPropertyCh
       }
     }
 
-  }
+    "scan string literals with escaped solidus" in {
+      val tok = fillTokens("""'\\'""")
+      dumpTokens(tok)
+      tok.head.getType shouldBe SnowflakeLexer.STRING_START
+      tok.head.getText shouldBe "'"
 
+      tok(1).getType shouldBe SnowflakeLexer.STRING_ESCAPE
+      tok(1).getText shouldBe """\\"""
+
+      tok(2).getType shouldBe SnowflakeLexer.STRING_END
+      tok(2).getText shouldBe "'"
+
+    }
+
+    "scan string literals with double single quotes" in {
+      val tok = fillTokens("'And it''s raining'")
+      dumpTokens(tok)
+
+      tok.head.getType shouldBe SnowflakeLexer.STRING_START
+      tok.head.getText shouldBe "'"
+
+      tok(1).getType shouldBe SnowflakeLexer.STRING_CONTENT
+      tok(1).getText shouldBe "And it"
+
+      tok(2).getType shouldBe SnowflakeLexer.STRING_SQUOTE
+      tok(2).getText shouldBe "''"
+
+      tok(3).getType shouldBe SnowflakeLexer.STRING_CONTENT
+      tok(3).getText shouldBe "s raining"
+
+      tok(4).getType shouldBe SnowflakeLexer.STRING_END
+      tok(4).getText shouldBe "'"
+    }
+
+    "scan string literals with an escaped character" in {
+      val tok = fillTokens("""'Tab\oir'""")
+      dumpTokens(tok)
+
+      tok.head.getType shouldBe SnowflakeLexer.STRING_START
+      tok.head.getText shouldBe "'"
+
+      tok(1).getType shouldBe SnowflakeLexer.STRING_CONTENT
+      tok(1).getText shouldBe "Tab"
+
+      tok(2).getType shouldBe SnowflakeLexer.STRING_ESCAPE
+      tok(2).getText shouldBe "\\o"
+
+      tok(3).getType shouldBe SnowflakeLexer.STRING_CONTENT
+      tok(3).getText shouldBe "ir"
+
+      tok(4).getType shouldBe SnowflakeLexer.STRING_END
+      tok(4).getText shouldBe "'"
+    }
+
+    "scan string literals with an escaped single quote" in {
+      val tok = fillTokens("""'Tab\'oir'""")
+      dumpTokens(tok)
+
+      tok.head.getType shouldBe SnowflakeLexer.STRING_START
+      tok.head.getText shouldBe "'"
+
+      tok(1).getType shouldBe SnowflakeLexer.STRING_CONTENT
+      tok(1).getText shouldBe "Tab"
+
+      tok(2).getType shouldBe SnowflakeLexer.STRING_ESCAPE
+      tok(2).getText shouldBe "\\'"
+
+      tok(3).getType shouldBe SnowflakeLexer.STRING_CONTENT
+      tok(3).getText shouldBe "oir"
+
+      tok(4).getType shouldBe SnowflakeLexer.STRING_END
+      tok(4).getText shouldBe "'"
+    }
+
+    "scan string literals with an embedded Unicode escape" in {
+      val tok = fillTokens("'Tab\\" + "uAcDcbaT'")
+      dumpTokens(tok)
+
+      tok.head.getType shouldBe SnowflakeLexer.STRING_START
+      tok.head.getText shouldBe "'"
+
+      tok(1).getType shouldBe SnowflakeLexer.STRING_CONTENT
+      tok(1).getText shouldBe "Tab"
+
+      tok(2).getType shouldBe SnowflakeLexer.STRING_UNICODE
+      tok(2).getText shouldBe "\\uAcDc"
+
+      tok(3).getType shouldBe SnowflakeLexer.STRING_CONTENT
+      tok(3).getText shouldBe "baT"
+
+      tok(4).getType shouldBe SnowflakeLexer.STRING_END
+      tok(4).getText shouldBe "'"
+    }
+
+    "scan simple &variables" in {
+      val tok = fillTokens("&leeds")
+      dumpTokens(tok)
+
+      tok.head.getType shouldBe SnowflakeLexer.AMP
+      tok.head.getText shouldBe "&"
+
+      tok(1).getType shouldBe SnowflakeLexer.ID
+      tok(1).getText shouldBe "leeds"
+    }
+
+    "scan simple consecutive &variables" in {
+      val tok = fillTokens("&leeds&manchester")
+      dumpTokens(tok)
+
+      tok.head.getType shouldBe SnowflakeLexer.AMP
+      tok.head.getText shouldBe "&"
+
+      tok(1).getType shouldBe SnowflakeLexer.ID
+      tok(1).getText shouldBe "leeds"
+
+      tok(2).getType shouldBe SnowflakeLexer.AMP
+      tok(2).getText shouldBe "&"
+
+      tok(3).getType shouldBe SnowflakeLexer.ID
+      tok(3).getText shouldBe "manchester"
+    }
+
+    "scan simple &variables within composite variables" in {
+      lexer.setInputStream(CharStreams.fromString("&leeds.&manchester"))
+      val tok = fillTokens("&leeds.&manchester")
+      dumpTokens(tok)
+
+      tok.head.getType shouldBe SnowflakeLexer.AMP
+      tok.head.getText shouldBe "&"
+
+      tok(1).getType shouldBe SnowflakeLexer.ID
+      tok(1).getText shouldBe "leeds"
+
+      tok(2).getType shouldBe SnowflakeLexer.DOT
+      tok(2).getText shouldBe "."
+
+      tok(3).getType shouldBe SnowflakeLexer.AMP
+      tok(3).getText shouldBe "&"
+
+      tok(4).getType shouldBe SnowflakeLexer.ID
+      tok(4).getText shouldBe "manchester"
+    }
+
+    "scan && in a string" in {
+      val tok = fillTokens("'&&notAVar'")
+      dumpTokens(tok)
+
+      tok.head.getType shouldBe SnowflakeLexer.STRING_START
+      tok.head.getText shouldBe "'"
+
+      tok(1).getType shouldBe SnowflakeLexer.STRING_AMPAMP
+      tok(1).getText shouldBe "&&"
+
+      tok(2).getType shouldBe SnowflakeLexer.STRING_CONTENT
+      tok(2).getText shouldBe "notAVar"
+
+      tok(3).getType shouldBe SnowflakeLexer.STRING_END
+      tok(3).getText shouldBe "'"
+    }
+
+    "scan && in a string with {}" in {
+      val tok = fillTokens("'&&{notAVar}'")
+      dumpTokens(tok)
+
+      tok.head.getType shouldBe SnowflakeLexer.STRING_START
+      tok.head.getText shouldBe "'"
+
+      tok(1).getType shouldBe SnowflakeLexer.STRING_AMPAMP
+      tok(1).getText shouldBe "&&"
+
+      tok(2).getType shouldBe SnowflakeLexer.STRING_CONTENT
+      tok(2).getText shouldBe "{notAVar}"
+
+      tok(3).getType shouldBe SnowflakeLexer.STRING_END
+      tok(3).getText shouldBe "'"
+    }
+    "scan &variables in a string" in {
+      val tok = fillTokens("'&leeds'")
+      dumpTokens(tok)
+
+      tok.head.getType shouldBe SnowflakeLexer.STRING_START
+      tok.head.getText shouldBe "'"
+
+      tok(1).getType shouldBe SnowflakeLexer.VAR_SIMPLE
+      tok(1).getText shouldBe "&leeds"
+
+      tok(2).getType shouldBe SnowflakeLexer.STRING_END
+      tok(2).getText shouldBe "'"
+    }
+
+    "scan consecutive &variables in a string" in {
+      val tok = fillTokens("'&leeds&{united}'")
+      dumpTokens(tok)
+
+      tok.head.getType shouldBe SnowflakeLexer.STRING_START
+      tok.head.getText shouldBe "'"
+
+      tok(1).getType shouldBe SnowflakeLexer.VAR_SIMPLE
+      tok(1).getText shouldBe "&leeds"
+
+      tok(2).getType shouldBe SnowflakeLexer.VAR_COMPLEX
+      tok(2).getText shouldBe "&{united}"
+
+      tok(3).getType shouldBe SnowflakeLexer.STRING_END
+      tok(3).getText shouldBe "'"
+    }
+
+    "scan &variables separated by && in a string" in {
+      val tok = fillTokens("'&leeds&&&united'")
+      dumpTokens(tok)
+
+      tok.head.getType shouldBe SnowflakeLexer.STRING_START
+      tok.head.getText shouldBe "'"
+
+      tok(1).getType shouldBe SnowflakeLexer.VAR_SIMPLE
+      tok(1).getText shouldBe "&leeds"
+
+      tok(2).getType shouldBe SnowflakeLexer.STRING_AMPAMP
+      tok(2).getText shouldBe "&&"
+
+      tok(3).getType shouldBe SnowflakeLexer.VAR_SIMPLE
+      tok(3).getText shouldBe "&united"
+
+      tok(4).getType shouldBe SnowflakeLexer.STRING_END
+      tok(4).getText shouldBe "'"
+    }
+
+    "scan a single ampersand in a string" in {
+      val tok = fillTokens("'&'")
+      dumpTokens(tok)
+      tok.head.getType shouldBe SnowflakeLexer.STRING_START
+      tok.head.getText shouldBe "'"
+
+      tok(1).getType shouldBe SnowflakeLexer.STRING_CONTENT
+      tok(1).getText shouldBe "&"
+
+      tok(2).getType shouldBe SnowflakeLexer.STRING_END
+      tok(2).getText shouldBe "'"
+
+    }
+
+    "scan a trailing ampersand in a string" in {
+      val tok = fillTokens("'&score&'")
+      dumpTokens(tok)
+      tok.head.getType shouldBe SnowflakeLexer.STRING_START
+      tok.head.getText shouldBe "'"
+
+      tok(1).getType shouldBe SnowflakeLexer.VAR_SIMPLE
+      tok(1).getText shouldBe "&score"
+
+      tok(2).getType shouldBe SnowflakeLexer.STRING_CONTENT
+      tok(2).getText shouldBe "&"
+
+      tok(3).getType shouldBe SnowflakeLexer.STRING_END
+      tok(3).getText shouldBe "'"
+    }
+  }
 }

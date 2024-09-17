@@ -3,6 +3,7 @@ package com.databricks.labs.remorph.transpilers
 import com.databricks.labs.remorph.generators.GeneratorContext
 import com.databricks.labs.remorph.generators.sql.{ExpressionGenerator, LogicalPlanGenerator}
 import com.databricks.labs.remorph.parsers.snowflake.rules.{CastParseJsonToFromJson, FlattenNestedConcat, SnowflakeCallMapper, TranslateWithinGroup, UpdateToMerge}
+import com.databricks.labs.remorph.parsers.snowflake.rules._
 import com.databricks.labs.remorph.parsers.{ProductionErrorCollector, intermediate => ir}
 import com.databricks.labs.remorph.parsers.snowflake.{SnowflakeAstBuilder, SnowflakeLexer, SnowflakeParser}
 import org.antlr.v4.runtime.{CharStreams, CommonTokenStream}
@@ -10,13 +11,15 @@ import org.antlr.v4.runtime.{CharStreams, CommonTokenStream}
 class SnowflakeToDatabricksTranspiler extends BaseTranspiler {
 
   private val astBuilder = new SnowflakeAstBuilder
-  private val generator = new LogicalPlanGenerator(new ExpressionGenerator(new SnowflakeCallMapper()))
+  private val generator = new LogicalPlanGenerator(new ExpressionGenerator)
   private val optimizer =
     ir.Rules(
+      new SnowflakeCallMapper,
       ir.AlwaysUpperNameForCallFunction,
       new UpdateToMerge,
       new CastParseJsonToFromJson(generator),
       new TranslateWithinGroup,
+      new FlattenLateralViewToExplode(),
       new FlattenNestedConcat)
 
   override def parse(input: String): ir.LogicalPlan = {

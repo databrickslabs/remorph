@@ -238,10 +238,13 @@ def _array_slice(self: org_databricks.Databricks.Generator, expression: local_ex
     return func_expr
 
 
-def _to_command(self, expression: exp.Command):
-    this_sql = self.sql(expression, 'this')
-    prefix = '-- snowsql command:' if this_sql == '!' else '-- '
-    return f"{prefix}{this_sql}{self.sql(expression, 'expression')}"
+def _to_command(self, expr: exp.Command):
+    this_sql = self.sql(expr, 'this')
+    expression = self.sql(expr.expression, 'this')
+    prefix = f"-- {this_sql}"
+    if this_sql == "!":
+        return f"{prefix}{expression}"
+    return f"{prefix} {expression}"
 
 
 def _parse_json(self, expr: exp.ParseJSON):
@@ -339,6 +342,17 @@ def _create_named_struct_for_cmp(agg_col, order_col) -> exp.Expression:
     return named_struct_func
 
 
+def _current_date(self, expression: exp.CurrentDate) -> str:
+    zone = self.sql(expression, "this")
+    return f"CURRENT_DATE({zone})" if zone else "CURRENT_DATE()"
+
+
+def _not_sql(self, expression: exp.Not) -> str:
+    if isinstance(expression.this, exp.Is):
+        return f"{expression.this.this} IS NOT {self.sql(expression.this, 'expression')}"
+    return f"NOT {self.sql(expression, 'this')}"
+
+
 class Databricks(org_databricks.Databricks):  #
     # Instantiate Databricks Dialect
     databricks = org_databricks.Databricks()
@@ -401,6 +415,8 @@ class Databricks(org_databricks.Databricks):  #
             exp.NullSafeEQ: lambda self, e: self.binary(e, "<=>"),
             exp.If: if_sql(false_value="NULL"),
             exp.Command: _to_command,
+            exp.CurrentDate: _current_date,
+            exp.Not: _not_sql,
         }
 
         def preprocess(self, expression: exp.Expression) -> exp.Expression:
