@@ -1,5 +1,7 @@
 package com.databricks.labs.remorph.parsers.intermediate
 
+import com.databricks.labs.remorph.transpilers.TranspileException
+
 import java.util.Locale
 
 trait Fn extends Expression {
@@ -12,7 +14,19 @@ case class CallFunction(function_name: String, arguments: Seq[Expression]) exten
   override def prettyName: String = function_name.toUpperCase(Locale.getDefault)
 }
 
-class CallMapper extends IRHelpers {
+class CallMapper extends Rule[LogicalPlan] with IRHelpers {
+
+  override final def apply(plan: LogicalPlan): LogicalPlan = {
+    plan transformAllExpressions { case fn: Fn =>
+      try {
+        convert(fn)
+      } catch {
+        case e: IndexOutOfBoundsException =>
+          throw TranspileException(s"${fn.prettyName}: illegal index: ${e.getMessage}, expr: $fn")
+
+      }
+    }
+  }
 
   /** This function is supposed to be overridden by dialects */
   def convert(call: Fn): Expression = withNormalizedName(call) match {
