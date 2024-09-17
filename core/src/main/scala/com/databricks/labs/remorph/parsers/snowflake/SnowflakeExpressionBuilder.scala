@@ -444,7 +444,7 @@ class SnowflakeExpressionBuilder()
         case c if c.nonReservedFunctionName() != null => c.nonReservedFunctionName().getText
       }
     } else {
-      ctx.functionOptinalBrackets().getText
+      ctx.functionOptionalBrackets().getText
     }
   }
 
