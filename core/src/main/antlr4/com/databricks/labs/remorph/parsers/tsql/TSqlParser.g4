@@ -2561,6 +2561,7 @@ columnDefinitionElement
     : MASKED WITH LPAREN FUNCTION EQ STRING RPAREN
     | defaultValue
     | identityColumn
+    | generatedAs
     | ROWGUIDCOL
     | ENCRYPTED WITH LPAREN COLUMN_ENCRYPTION_KEY EQ STRING COMMA ENCRYPTION_TYPE EQ (
         DETERMINISTIC
