@@ -3245,7 +3245,9 @@ functionCall: builtinFunction | standardFunction | rankingWindowedFunction | agg
 builtinFunction: EXTRACT L_PAREN (string | ID) FROM expr R_PAREN # builtinExtract
     ;
 
-standardFunction: functionName L_PAREN (exprList | paramAssocList)? R_PAREN
+standardFunction
+    : functionName L_PAREN (exprList | paramAssocList)? R_PAREN
+    | functionOptinalBrackets (L_PAREN R_PAREN)?
     ;
 
 functionName: id | nonReservedFunctionName
@@ -3254,6 +3256,14 @@ functionName: id | nonReservedFunctionName
 nonReservedFunctionName
     : LEFT
     | RIGHT // keywords that cannot be used as id, but can be used as function names
+    ;
+
+functionOptinalBrackets
+    : CURRENT_DATE      // https://docs.snowflake.com/en/sql-reference/functions/current_date
+    | CURRENT_TIMESTAMP // https://docs.snowflake.com/en/sql-reference/functions/current_timestamp
+    | CURRENT_TIME      // https://docs.snowflake.com/en/sql-reference/functions/current_time
+    | LOCALTIME         // https://docs.snowflake.com/en/sql-reference/functions/localtime
+    | LOCALTIMESTAMP    // https://docs.snowflake.com/en/sql-reference/functions/localtimestamp
     ;
 
 paramAssocList: paramAssoc (COMMA paramAssoc)*

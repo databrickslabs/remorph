@@ -428,16 +428,24 @@ class SnowflakeExpressionBuilder()
   }
 
   override def visitStandardFunction(ctx: StandardFunctionContext): ir.Expression = {
-    val functionName = ctx.functionName() match {
-      case c if c.id() != null => visitId(c.id()).id
-      case c if c.nonReservedFunctionName() != null => c.nonReservedFunctionName().getText
-    }
+    val functionName = fetchFunctionName(ctx)
     val arguments = ctx match {
       case c if c.exprList() != null => visitMany(c.exprList().expr())
       case c if c.paramAssocList() != null => c.paramAssocList().paramAssoc().asScala.map(_.accept(this))
       case _ => Seq.empty
     }
     functionBuilder.buildFunction(functionName, arguments)
+  }
+
+  private def fetchFunctionName(ctx: StandardFunctionContext): String = {
+    if (ctx.functionName() != null) {
+      ctx.functionName() match {
+        case c if c.id() != null => visitId(c.id()).id
+        case c if c.nonReservedFunctionName() != null => c.nonReservedFunctionName().getText
+      }
+    } else {
+      ctx.functionOptinalBrackets().getText
+    }
   }
 
   // aggregateFunction
