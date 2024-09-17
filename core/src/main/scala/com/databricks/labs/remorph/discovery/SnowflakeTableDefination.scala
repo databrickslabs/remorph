@@ -1,27 +1,41 @@
-//scalastyle:off
 package com.databricks.labs.remorph.discovery
 
 import com.databricks.labs.remorph.parsers.intermediate.{DataType, StructField}
-import com.databricks.labs.remorph.parsers.tsql.{TSqlLexer, TSqlParser}
+import com.databricks.labs.remorph.parsers.snowflake.{SnowflakeLexer, SnowflakeParser}
 import org.antlr.v4.runtime.{CharStreams, CommonTokenStream}
 
 import java.sql.Connection
 import scala.collection.mutable.ListBuffer
-
+/**
+ * Class representing the definition of a Snowflake table.
+ *
+ * @param conn The SQL connection to the Snowflake database.
+ */
 class SnowflakeTableDefination(conn: Connection) {
 
+  /**
+   * Parses a data type string and returns the corresponding DataType object.
+   *
+   * @param dataTypeString The string representation of the data type.
+   * @return The DataType object corresponding to the input string.
+   */
   private def getDataType(dataTypeString: String): DataType = {
     val inputString = CharStreams.fromString(dataTypeString)
-    val lexer = new TSqlLexer(inputString)
+    val lexer = new SnowflakeLexer(inputString)
     val tokenStream = new CommonTokenStream(lexer)
-    val parser = new TSqlParser(tokenStream)
+    val parser = new SnowflakeParser(tokenStream)
     val ctx = parser.dataType()
-    import com.databricks.labs.remorph.parsers.tsql.DataTypeBuilder
-    val dataTypeBuilder = new DataTypeBuilder
-    dataTypeBuilder.build(ctx)
+    import com.databricks.labs.remorph.parsers.snowflake.SnowflakeTypeBuilder
+    val dataTypeBuilder = new SnowflakeTypeBuilder
+    dataTypeBuilder.buildDataType(ctx)
   }
 
-  def getTableDefinations(): Seq[TableDefinition] = {
+  /**
+   * Retrieves the definitions of all tables in the Snowflake database.
+   *
+   * @return A sequence of TableDefinition objects representing the tables in the database.
+   */
+  def getTableDefinitions: Seq[TableDefinition] = {
     val stmt = conn.createStatement()
     val columnSchemaQuery = s"""SELECT
                                |    sft.TABLE_CATALOG,
