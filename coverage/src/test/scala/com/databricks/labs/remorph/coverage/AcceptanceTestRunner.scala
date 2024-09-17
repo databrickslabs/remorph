@@ -54,8 +54,7 @@ class SnowflakeAcceptanceSuite
           "test_skip_unsupported_operations/test_skip_unsupported_operations_7.sql",
           "test_skip_unsupported_operations/test_skip_unsupported_operations_9.sql",
           "test_skip_unsupported_operations/test_skip_unsupported_operations_10.sql",
-          "test_skip_unsupported_operations/test_skip_unsupported_operations_11.sql",
-        )))
+          "test_skip_unsupported_operations/test_skip_unsupported_operations_11.sql")))
 
 class TSqlAcceptanceSuite
     extends AcceptanceTestRunner(
@@ -87,5 +86,4 @@ class TSqlAcceptanceSuite
           "functions/test_percent_rank_1.sql",
           "functions/test_percentile_cont_1.sql",
           "functions/test_percentile_disc_1.sql",
-          "select/test_cte_xml.sql",
-        )))
+          "select/test_cte_xml.sql")))
