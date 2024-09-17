@@ -53,16 +53,22 @@ class TSqlAstBuilder extends TSqlParserBaseVisitor[ir.LogicalPlan] {
   }
 
   override def visitDmlClause(ctx: DmlClauseContext): ir.LogicalPlan = {
-    ctx match {
-      case insert if insert.insertStatement() != null => insert.insertStatement().accept(relationBuilder)
-      case select if select.selectStatementStandalone() != null =>
-        select.selectStatementStandalone().accept(relationBuilder)
-      case delete if delete.deleteStatement() != null => delete.deleteStatement().accept(relationBuilder)
-      case merge if merge.mergeStatement() != null => merge.mergeStatement().accept(relationBuilder)
-      case update if update.updateStatement() != null => update.updateStatement().accept(relationBuilder)
+    val query = ctx match {
+      case insert if insert.insert() != null => insert.insert().accept(relationBuilder)
+      case select if select.selectStatement() != null =>
+        select.selectStatement.accept(relationBuilder)
+      case delete if delete.delete() != null => delete.delete().accept(relationBuilder)
+      case merge if merge.merge() != null => merge.merge().accept(relationBuilder)
+      case update if update.update() != null => update.update().accept(relationBuilder)
       case bulk if bulk.bulkStatement() != null => bulk.bulkStatement().accept(relationBuilder)
       case _ => ir.UnresolvedRelation(ctx.getText)
     }
+    Option(ctx.withExpression())
+      .map { withExpression =>
+        val ctes = withExpression.commonTableExpression().asScala.map(_.accept(this))
+        ir.WithCTE(ctes, query)
+      }
+      .getOrElse(query)
   }
 
   /**
