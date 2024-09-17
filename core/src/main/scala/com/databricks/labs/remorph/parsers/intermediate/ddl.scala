@@ -89,6 +89,7 @@ case class PrimaryKey(options: Seq[GenericOption] = Seq.empty, columns: Option[S
     extends UnnamedConstraint
 case class ForeignKey(tableCols: String, refObject: String, refCols: String, options: Seq[GenericOption])
     extends UnnamedConstraint
+case class DefaultValueConstraint(value: Expression) extends UnnamedConstraint
 case class CheckConstraint(expression: Expression) extends UnnamedConstraint
 case class IdentityConstraint(start: String, increment: String) extends UnnamedConstraint
 case class NamedConstraint(name: String, constraint: UnnamedConstraint) extends Constraint
@@ -151,6 +152,15 @@ case class CreateTable(
     source: Option[String],
     description: Option[String],
     override val schema: DataType)
+    extends Catalog {}
+
+// As per Spark v2Commands
+case class CreateTableAsSelect(
+    table_name: String,
+    query: LogicalPlan,
+    path: Option[String],
+    source: Option[String],
+    description: Option[String])
     extends Catalog {}
 
 /**

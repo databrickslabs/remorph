@@ -13,7 +13,10 @@ import scala.collection.JavaConverters.asScalaBufferConverter
 class TSqlAstBuilder extends TSqlParserBaseVisitor[ir.LogicalPlan] {
 
   private val relationBuilder = new TSqlRelationBuilder
-  private val optionBuilder = new OptionBuilder(new TSqlExpressionBuilder)
+  private val expressionBuilder = new TSqlExpressionBuilder
+  private val optionBuilder = new OptionBuilder(expressionBuilder)
+  private val ddlBuilder = new TSqlDDLBuilder(optionBuilder, expressionBuilder, relationBuilder)
+
 
   override def visitTSqlFile(ctx: TSqlParser.TSqlFileContext): ir.LogicalPlan = {
     Option(ctx.batch()).map(_.accept(this)).getOrElse(ir.Batch(List()))
@@ -38,7 +41,7 @@ class TSqlAstBuilder extends TSqlParserBaseVisitor[ir.LogicalPlan] {
       case dml if dml.dmlClause() != null => dml.dmlClause().accept(this)
       case cfl if cfl.cflStatement() != null => cfl.cflStatement().accept(this)
       case another if another.anotherStatement() != null => another.anotherStatement().accept(this)
-      case ddl if ddl.ddlClause() != null => ddl.ddlClause().accept(this)
+      case ddl if ddl.ddlClause() != null => ddl.ddlClause().accept(ddlBuilder)
       case dbcc if dbcc.dbccClause() != null => dbcc.dbccClause().accept(this)
       case backup if backup.backupStatement() != null => backup.backupStatement().accept(this)
       case coaFunction if coaFunction.createOrAlterFunction() != null =>

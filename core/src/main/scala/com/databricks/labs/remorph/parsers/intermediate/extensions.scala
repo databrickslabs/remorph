@@ -208,12 +208,16 @@ case class WithIndices(plan: LogicalPlan, indices: Seq[CreateIndex]) extends Cat
 // spark like CreateTable and then deal with them in the generator. This is because some TSQL stuff will
 // be column constraints, some become table constraints, some need to be generated as ALTER statements after
 // the CREATE TABLE, etc.
-case class WithConstraintsIdx(
+case class CreateTableParams(
     create: Catalog, // The base create table command
-    colConstraints: Option[Map[String, Seq[Constraint]]], // Column constraints
-    constraints: Option[Seq[Constraint]], // Table constraints
-    indices: Option[Seq[CreateIndex]], // Index Definitions
-    options: Option[Seq[GenericOption]])
+    colConstraints: Map[String, Seq[Constraint]], // Column constraints
+    colOptions: Map[String, Seq[GenericOption]], // Column constraints
+    constraints: Seq[Constraint], // Table constraints
+    indices: Seq[Constraint], // Index Definitions (currently all unresolved)
+    partition: Option[String], // Partitioning information but unsupported
+    options: Option[Seq[GenericOption]] // Command level options
+                            ) extends Catalog
+
 
 // Though at least TSQL only needs the time based intervals, we are including all the interval types
 // supported by Spark SQL for completeness and future proofing

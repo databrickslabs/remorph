@@ -1730,7 +1730,7 @@ createTable: CREATE (createExternal | createInternal)
     ;
 
 createInternal
-    : TABLE tableName (LPAREN columnDefTableConstraints COMMA? RPAREN (LOCK simpleId)?)? tableOptions?
+    : TABLE tableName (LPAREN columnDefTableConstraints COMMA? RPAREN)? tableOptions?
     // This sequence looks strange but alloes CTAS and normal CREATE TABLE to be parsed
     createTableAs? tableOptions? (ON id | DEFAULT | onPartitionOrFilegroup)? (
         TEXTIMAGE_ON id
@@ -1745,10 +1745,10 @@ createExternal
     ;
 
 createTableAs
-    : AS selectStatementStandalone                            # ctas
-    | AS FILETABLE WITH lparenOptionList                      # ctasFiletable
-    | AS (NODE | EDGE)                                        # ctasGraph
-    | AS /* CLONE */ id OF dotIdentifier (AT_KEYWORD STRING)? # ctasClone
+    : AS selectStatementStandalone
+    | AS FILETABLE WITH lparenOptionList
+    | AS (NODE | EDGE)
+    | AS /* CLONE */ id OF dotIdentifier (AT_KEYWORD STRING)?
     ;
 
 tableIndices
