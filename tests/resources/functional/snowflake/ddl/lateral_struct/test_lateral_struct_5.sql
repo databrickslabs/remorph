@@ -20,4 +20,4 @@ FROM (
     'example_varchar' AS varchar1,
     123.456 AS float1,
     PARSE_JSON('{"Loan_Number": "LN789"}') AS variant1
-) AS tmp
+) AS tmp;

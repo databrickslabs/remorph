@@ -110,9 +110,9 @@ def _lateral_view(self: org_databricks.Databricks.Generator, expression: exp.Lat
                 generator_expr += "." + self.sql(expr, 'expression').replace("'", "")
             if node == "OUTER":
                 is_outer = True
-
+        # Casting as ARRAY<VARIANT> for POSEXPLODE and EXPLODE as it is required with variant datatype in Databricks
         if select_contains_index:
-            generator_function_str = f"POSEXPLODE({generator_expr})"
+            generator_function_str = f"POSEXPLODE(CAST({generator_expr} AS ARRAY<VARIANT>))"
             alias_str = f"{' ' + alias.name if isinstance(alias, exp.TableAlias) else ''} AS index, value"
         else:
             generator_function_str = f"EXPLODE(CAST({generator_expr} AS ARRAY<VARIANT>))"
@@ -247,24 +247,6 @@ def _to_command(self, expr: exp.Command):
     return f"{prefix} {expression}"
 
 
-def _parse_json_old(self, expr: exp.ParseJSON):
-    """
-    Converts `PARSE_JSON` function to `FROM_JSON` function.
-    Schema is a mandatory argument for Databricks `FROM_JSON` function
-    [FROM_JSON](https://docs.databricks.com/en/sql/language-manual/functions/from_json.html)
-    Need to explicitly specify the Schema {<COL_NAME>_SCHEMA} in the current execution environment
-    """
-    expr_this = self.sql(expr, "this")
-    # use column name as prefix or use JSON_COLUMN_SCHEMA when the expression is nested
-    column = expr_this.replace("'", "").upper() if isinstance(expr.this, exp.Column) else "JSON_COLUMN"
-    conv_expr = self.func("FROM_JSON", expr_this, f"{{{column}_SCHEMA}}")
-    warning_msg = (
-        f"***Warning***: you need to explicitly specify `SCHEMA` for `{column}` column in expression: `{conv_expr}`"
-    )
-    logger.warning(warning_msg)
-    return conv_expr
-
-
 def _parse_json(self, expression: exp.ParseJSON) -> str:
     return self.func("PARSE_JSON", expression.this, expression.expression)
 
@@ -377,7 +359,6 @@ class Databricks(org_databricks.Databricks):  #
             exp.DataType.Type.BIGINT: "BIGINT",
             exp.DataType.Type.DATETIME: "TIMESTAMP",
             exp.DataType.Type.VARCHAR: "STRING",
-            # exp.DataType.Type.VARIANT: "STRING",
             exp.DataType.Type.VARIANT: "VARIANT",
             exp.DataType.Type.FLOAT: "DOUBLE",
             exp.DataType.Type.OBJECT: "STRING",
@@ -426,7 +407,8 @@ class Databricks(org_databricks.Databricks):  #
 
         def preprocess(self, expression: exp.Expression) -> exp.Expression:
             fixed_ast = expression.transform(lca_utils.unalias_lca_in_select, copy=False)
-            return super().preprocess(fixed_ast)
+            transformed_ast = lca_utils.transform_where_and_from(fixed_ast)
+            return super().preprocess(transformed_ast)
 
         def format_time(self, expression: exp.Expression, inverse_time_mapping=None, inverse_time_trie=None):
             return super().format_time(expression, self.INVERSE_TIME_MAPPING)

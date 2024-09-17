@@ -1,22 +1,25 @@
 -- snowflake sql:
 SELECT
-  p.info:id AS `ID`,
-  p.info:first AS `First`,
-  p.info:first.b AS C
-FROM (
-  SELECT
-    PARSE_JSON('{"id": {"a":{"c":"102","d":"106"}}, "first": {"b":"105"}}')
-) AS p(info);
+  f.value:name AS "Contact",
+  f.value:first,
+  CAST(p.col:a:info:id AS DOUBLE) AS "id_parsed",
+  p.col:b:first,
+  p.col:a:info
+FROM
+  (SELECT
+    PARSE_JSON('{"a": {"info": {"id": 101, "first": "John" }, "contact": [{"name": "Alice", "first": "A"}, {"name": "Bob", "first": "B"}]}, "b": {"id": 101, "first": "John"}}')
+  ) AS p(col)
+, LATERAL FLATTEN(input => p.col:a:contact) AS f;
 
 -- databricks sql:
 SELECT
-  p.col:a.info,
+  f:name AS `Contact`,
+  f:first,
   CAST(p.col:a:info:id AS DOUBLE) AS `id_parsed`,
   p.col:b:first,
   p.col:a:info
 FROM (
   SELECT
-    PARSE_JSON(
-      '{\n        "a": {\n          "info": {"id": 101, "first": "John"},\n          "contact": [\n            {"name": "Alice", "first": "A"},\n            {"name": "Bob", "first": "B"}\n          ]\n        },\n        "b": {"id": 101, "first": "John"}\n      }'
-    )
+    PARSE_JSON('{"a": {"info": {"id": 101, "first": "John" }, "contact": [{"name": "Alice", "first": "A"}, {"name": "Bob", "first": "B"}]}, "b": {"id": 101, "first": "John"}}')
 ) AS p(col)
+ LATERAL VIEW EXPLODE(CAST(p.col:a:contact AS ARRAY<VARIANT>)) AS f;

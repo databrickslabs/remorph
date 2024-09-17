@@ -462,7 +462,7 @@ class Snow(Snowflake):
 
             return self.expression(local_expression.Parameter, this=this, wrapped=wrapped, suffix=suffix)
 
-        def _get_table_alias_old(self) -> exp.TableAlias | None:
+        def _get_table_alias_old(self) -> exp.TableAlias | exp.Expression | None:
             """
             :returns the `table alias` by looping through all the tokens until it finds the `From` token.
             Example:
@@ -514,10 +514,11 @@ class Snow(Snowflake):
                 if self_copy._match(TokenType.FROM, advance=False):
                     self_copy._advance()  # advance to next token
 
+                    # Code to handle VALUES keyword
                     if self_copy._match(TokenType.VALUES, advance=False):
-                        # self_copy._parse_subquery(self_copy._advance())  # parse the subquery
                         self_copy._advance()
 
+                        # Loop until ALIAS token is found
                         while not self_copy._match(TokenType.ALIAS, advance=False):
                             self_copy._advance()
                         self_copy._advance()  # advance to AS
@@ -529,9 +530,10 @@ class Snow(Snowflake):
                         self_copy._advance()
                         self_copy._parse_subquery(None)  # parse the subquery
                         self_copy._advance()
-                    self_copy._parse_table_parts()  # parse the table parts
-                    table_alias = self_copy._parse_table_alias()  # get to table alias
-                    return table_alias
+                    else:
+                        self_copy._parse_table_parts()  # parse the table parts
+                        table_alias = self_copy._parse_table_alias()  # get to table alias
+                        return table_alias
             return table_alias
 
         def _json_column_op(self, this, path):

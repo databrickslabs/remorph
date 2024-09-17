@@ -17,7 +17,7 @@ WITH cte AS (
     SELECT
       id,
       tag,
-      SUM(tag.count) AS item_count
+      SUM(tag:count) AS item_count
     FROM another_table
   )
   SELECT

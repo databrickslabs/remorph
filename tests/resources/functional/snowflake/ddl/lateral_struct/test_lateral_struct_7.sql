@@ -15,4 +15,4 @@ SELECT
 FROM (
   SELECT
     PARSE_JSON('{"food": "apple"}') AS v
-) AS t
+) AS t;
