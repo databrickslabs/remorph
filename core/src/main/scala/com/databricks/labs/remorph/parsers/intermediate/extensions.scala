@@ -198,11 +198,6 @@ case class WithModificationOptions(input: Modification, options: Expression) ext
   override def output: Seq[Attribute] = input.output
 }
 
-case class WithIndices(plan: LogicalPlan, indices: Seq[CreateIndex]) extends Catalog {
-  override def children: Seq[LogicalPlan] = Seq(plan)
-  override def output: Seq[Attribute] = plan.output
-}
-
 // TSQL allows the definition of everything including constraints and indexes in CREATE TABLE,
 // whereas Databricks SQL does not. We will store the constraints, indexes etc., separately from the
 // spark like CreateTable and then deal with them in the generator. This is because some TSQL stuff will

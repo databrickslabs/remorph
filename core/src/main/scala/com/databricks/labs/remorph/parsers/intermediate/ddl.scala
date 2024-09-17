@@ -82,7 +82,8 @@ case object UnresolvedType extends DataType
 // Databricks SQL CHECK constraints where we can, and comment the rest.
 sealed trait Constraint
 sealed trait UnnamedConstraint extends Constraint
-case class Unique(options: Seq[GenericOption], columns: Option[Seq[String]] = None) extends UnnamedConstraint
+case class Unique(options: Seq[GenericOption] = Seq.empty, columns: Option[Seq[String]] = None)
+    extends UnnamedConstraint
 // Nullability is kept in case the NOT NULL constraint is named and we must generate a CHECK constraint
 case class Nullability(nullable: Boolean) extends UnnamedConstraint
 case class PrimaryKey(options: Seq[GenericOption] = Seq.empty, columns: Option[Seq[String]] = None)
@@ -162,20 +163,6 @@ case class CreateTableAsSelect(
     source: Option[String],
     description: Option[String])
     extends Catalog {}
-
-/**
- * The logical plan of the CREATE INDEX command, as per Spark
- */
-case class CreateIndex(
-    table: String,
-    indexName: String,
-    indexType: String,
-    ignoreIfExists: Boolean,
-    columns: Seq[Column],
-    properties: Map[String, String])
-    extends Catalog {
-  override def children: Seq[LogicalPlan] = Seq.empty
-}
 
 case class DropTempView(view_name: String) extends Catalog {}
 case class DropGlobalTempView(view_name: String) extends Catalog {}

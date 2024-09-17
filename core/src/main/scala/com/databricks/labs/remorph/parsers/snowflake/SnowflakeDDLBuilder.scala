@@ -126,24 +126,23 @@ class SnowflakeDDLBuilder
     val dataType = typeBuilder.buildDataType(ctx.colDecl().dataType())
     val constraints = ctx.inlineConstraint().asScala.map(buildInlineConstraint)
     val nullability = if (ctx.nullNotNull().isEmpty) {
-      true
+      Seq()
     } else {
-      !ctx.nullNotNull().asScala.exists(_.NOT() != null)
+      Seq(ir.Nullability(!ctx.nullNotNull().asScala.exists(_.NOT() != null)))
     }
-    ir.ColumnDeclaration(name, dataType, nullability, None, None, constraints)
+    ir.ColumnDeclaration(name, dataType, virtualColumnDeclaration = None, nullability ++ constraints)
   }
-
   private[snowflake] def buildOutOfLineConstraints(ctx: OutOfLineConstraintContext): Seq[(String, ir.Constraint)] = {
     val columnNames = ctx.columnListInParentheses(0).columnList().columnName().asScala.map(_.getText)
     val repeatForEveryColumnName = List.fill[ir.UnnamedConstraint](columnNames.size)(_)
     val unnamedConstraints = ctx match {
-      case c if c.UNIQUE() != null => repeatForEveryColumnName(ir.Unique)
-      case c if c.primaryKey() != null => repeatForEveryColumnName(ir.PrimaryKey())
+      case c if c.UNIQUE() != null => repeatForEveryColumnName(ir.Unique(Seq.empty))
+      case c if c.primaryKey() != null => repeatForEveryColumnName(ir.PrimaryKey(Seq.empty))
       case c if c.foreignKey() != null =>
         val referencedObject = c.objectName().getText
         val references =
           c.columnListInParentheses(1).columnList().columnName().asScala.map(referencedObject + "." + _.getText)
-        references.map(ir.ForeignKey.apply)
+        references.map(ref => ir.ForeignKey("", ref, "", Seq.empty))
       case c => repeatForEveryColumnName(ir.UnresolvedConstraint(c.getText))
     }
     val constraintNameOpt = Option(ctx.id()).map(_.getText)
@@ -154,11 +153,11 @@ class SnowflakeDDLBuilder
   }
 
   private[snowflake] def buildInlineConstraint(ctx: InlineConstraintContext): ir.Constraint = ctx match {
-    case c if c.UNIQUE() != null => ir.Unique
+    case c if c.UNIQUE() != null => ir.Unique()
     case c if c.primaryKey() != null => ir.PrimaryKey()
     case c if c.foreignKey() != null =>
       val references = c.objectName().getText + Option(ctx.columnName()).map("." + _.getText).getOrElse("")
-      ir.ForeignKey(references)
+      ir.ForeignKey("", references, "", Seq.empty)
     case c => ir.UnresolvedConstraint(c.getText)
   }
 
@@ -220,7 +219,7 @@ class SnowflakeDDLBuilder
     val affectedColumns = columnListOpt.map(_.columnList().columnName().asScala.map(_.getText)).getOrElse(Seq())
     ctx match {
       case c if c.primaryKey() != null => dropConstraints(affectedColumns, ir.PrimaryKey())
-      case c if c.UNIQUE() != null => dropConstraints(affectedColumns, ir.Unique)
+      case c if c.UNIQUE() != null => dropConstraints(affectedColumns, ir.Unique())
       case c if c.id.size() > 0 => Seq(ir.DropConstraintByName(c.id(0).getText))
       case c => Seq(ir.UnresolvedTableAlteration(ctx.getText))
     }

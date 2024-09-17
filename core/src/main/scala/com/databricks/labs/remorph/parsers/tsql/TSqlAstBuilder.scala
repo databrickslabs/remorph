@@ -68,7 +68,7 @@ class TSqlAstBuilder extends TSqlParserBaseVisitor[ir.LogicalPlan] {
     }
     Option(ctx.withExpression())
       .map { withExpression =>
-        val ctes = withExpression.commonTableExpression().asScala.map(_.accept(this))
+        val ctes = withExpression.commonTableExpression().asScala.map(_.accept(relationBuilder))
         ir.WithCTE(ctes, query)
       }
       .getOrElse(query)
