@@ -1,14 +1,12 @@
 //scalastyle:off
 package com.databricks.labs.remorph.discovery
 
-
 import com.databricks.labs.remorph.parsers.intermediate.{DataType, StructField}
 import com.databricks.labs.remorph.parsers.tsql.{TSqlLexer, TSqlParser}
 import org.antlr.v4.runtime.{CharStreams, CommonTokenStream}
 
 import java.sql.Connection
 import scala.collection.mutable.ListBuffer
-
 
 class SnowflakeTableDefination(conn: Connection) {
 
@@ -23,7 +21,7 @@ class SnowflakeTableDefination(conn: Connection) {
     dataTypeBuilder.build(ctx)
   }
 
-   def getTableDefinations(): Seq[TableDefinition] = {
+  def getTableDefinations(): Seq[TableDefinition] = {
     val stmt = conn.createStatement()
     val columnSchemaQuery = s"""SELECT
                                |    sft.TABLE_CATALOG,
@@ -64,27 +62,29 @@ class SnowflakeTableDefination(conn: Connection) {
       val rs = stmt.executeQuery(columnSchemaQuery)
       try {
         while (rs.next()) {
-         val TABLE_CATALOG = rs.getString("TABLE_CATALOG")
-            val TABLE_SCHEMA = rs.getString("TABLE_SCHEMA")
-            val TABLE_NAME = rs.getString("TABLE_NAME")
+          val TABLE_CATALOG = rs.getString("TABLE_CATALOG")
+          val TABLE_SCHEMA = rs.getString("TABLE_SCHEMA")
+          val TABLE_NAME = rs.getString("TABLE_NAME")
           val columns = new ListBuffer[StructField]()
-          rs.getString(4).split("~").map( x => {
-            val data = x.split(":")
-            println("-----")
-            val name = data(0)
-            val dataType = getDataType(data(1))
-            columns.append( StructField(name, dataType, data(2).toBoolean))
-          })
-          tableDefinitionList.append(TableDefinition(
-            TABLE_CATALOG,
-            TABLE_SCHEMA,
-            TABLE_NAME,
-            null, // location
-            Option(rs.getString("TABLE_TYPE")),// FORMAT
-            null, // view text
-            columns,
-            rs.getInt("BYTES")/ (1024*1024*1024) // sizeGb
-          ))
+          rs.getString(4)
+            .split("~")
+            .map(x => {
+              val data = x.split(":")
+              val name = data(0)
+              val dataType = getDataType(data(1))
+              columns.append(StructField(name, dataType, data(2).toBoolean))
+            })
+          tableDefinitionList.append(
+            TableDefinition(
+              TABLE_CATALOG,
+              TABLE_SCHEMA,
+              TABLE_NAME,
+              null, // location
+              Option(rs.getString("TABLE_TYPE")), // FORMAT
+              null, // view text
+              columns,
+              rs.getInt("BYTES") / (1024 * 1024 * 1024) // sizeGb
+            ))
         }
         print(tableDefinitionList.size)
         tableDefinitionList
@@ -95,7 +95,5 @@ class SnowflakeTableDefination(conn: Connection) {
       stmt.close()
     }
   }
-
-
 
 }
