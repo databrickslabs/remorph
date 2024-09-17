@@ -23,7 +23,7 @@ case class BackupDatabase(
     flags: Map[String, Boolean],
     autoFlags: Seq[String],
     values: Map[String, Expression])
-    extends LeafNode
+    extends Catalog
     with Command {}
 
 case class ColumnAliases(input: LogicalPlan, aliases: Seq[Id]) extends RelationCommon {

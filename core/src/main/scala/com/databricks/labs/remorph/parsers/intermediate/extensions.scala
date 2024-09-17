@@ -204,12 +204,16 @@ case class WithIndices(plan: LogicalPlan, indices: Seq[CreateIndex]) extends Cat
 }
 
 // TSQL allows the definition of everything including constraints and indexes in CREATE TABLE,
-// whereas Databricks SQL does not. We will store the constraints and indexes separate from the
-// spark like ColumnDefinition and then deal with them in the generator
-case class WithColumnConstraints(
-    columnDeclaration: LogicalPlan,
-    constraints: Seq[Constraint],
-    options: Seq[GenericOption])
+// whereas Databricks SQL does not. We will store the constraints, indexes etc., separately from the
+// spark like CreateTable and then deal with them in the generator. This is because some TSQL stuff will
+// be column constraints, some become table constraints, some need to be generated as ALTER statements after
+// the CREATE TABLE, etc.
+case class WithConstraintsIdx(
+    create: Catalog, // The base create table command
+    colConstraints: Option[Map[String, Seq[Constraint]]], // Column constraints
+    constraints: Option[Seq[Constraint]], // Table constraints
+    indices: Option[Seq[CreateIndex]], // Index Definitions
+    options: Option[Seq[GenericOption]])
 
 // Though at least TSQL only needs the time based intervals, we are including all the interval types
 // supported by Spark SQL for completeness and future proofing

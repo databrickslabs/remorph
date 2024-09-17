@@ -2600,11 +2600,11 @@ onPartitionOrFilegroup: ON ( ( id LPAREN id RPAREN) | id | DEFAULT_DOUBLE_QUOTE)
     ;
 
 tableConstraint
-    : (CONSTRAINT id)? (
+    : (CONSTRAINT cid=id)? (
         ((PRIMARY KEY | UNIQUE) clustered? LPAREN columnNameListWithOrder RPAREN primaryKeyOptions)
         | ( FOREIGN KEY LPAREN columnNameList RPAREN foreignKeyOptions)
         | ( CONNECTION LPAREN connectionNode ( COMMA connectionNode)* RPAREN)
-        | ( DEFAULT expression FOR id ( WITH VALUES)?)
+        | ( DEFAULT expression FOR defid=id ( WITH VALUES)?)
         | checkConstraint
     )
     ;
@@ -3138,8 +3138,12 @@ ddlObject: tableName | rowsetFunctionLimited | LOCAL_ID
 fullColumnName: ((DELETED | INSERTED | tableName) DOT)? ( id | (DOLLAR (IDENTITY | ROWGUID)))
     ;
 
-columnNameListWithOrder: id (ASC | DESC)? (COMMA id (ASC | DESC)?)*
+columnNameListWithOrder: columnNameWithOrder (COMMA columnNameWithOrder)*
     ;
+
+columnNameWithOrder: id (ASC | DESC)?
+    ;
+
 
 columnNameList: id (COMMA id)*
     ;

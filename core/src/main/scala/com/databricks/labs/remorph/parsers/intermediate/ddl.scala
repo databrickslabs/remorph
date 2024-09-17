@@ -82,24 +82,27 @@ case object UnresolvedType extends DataType
 // Databricks SQL CHECK constraints where we can, and comment the rest.
 sealed trait Constraint
 sealed trait UnnamedConstraint extends Constraint
-case class Unique(options: Seq[GenericOption]) extends UnnamedConstraint
+case class Unique(options: Seq[GenericOption], columns: Option[Seq[String]] = None) extends UnnamedConstraint
 // Nullability is kept in case the NOT NULL constraint is named and we must generate a CHECK constraint
 case class Nullability(nullable: Boolean) extends UnnamedConstraint
 case class PrimaryKey(options: Seq[GenericOption] = Seq.empty, columns: Option[Seq[String]] = None)
     extends UnnamedConstraint
-case class ForeignKey(refObject: String, refCols: String, options: Seq[GenericOption]) extends UnnamedConstraint
+case class ForeignKey(tableCols: String, refObject: String, refCols: String, options: Seq[GenericOption])
+    extends UnnamedConstraint
 case class CheckConstraint(expression: Expression) extends UnnamedConstraint
 case class IdentityConstraint(start: String, increment: String) extends UnnamedConstraint
 case class NamedConstraint(name: String, constraint: UnnamedConstraint) extends Constraint
 case class UnresolvedConstraint(inputText: String) extends UnnamedConstraint
 
+// This, and the above, are likely to change in a not-so-remote future.
+// There's already a CreateTable case defined in catalog.scala but its structure seems too different from
+// the information Snowflake grammar carries.
+// In future changes, we'll have to reconcile this CreateTableCommand with the "Sparkier" CreateTable somehow.
 case class ColumnDeclaration(
-    colDef: StructField,
-    defaultValue: Option[Expression] = None,
-    generationExpression: Option[Expression] = Option.empty,
-    constraints: Seq[Constraint] = Seq.empty,
-    tableConstraints: Seq[Constraint] = Seq.empty,
-    options: Seq[GenericOption] = Seq.empty)
+    name: String,
+    dataType: DataType,
+    virtualColumnDeclaration: Option[Expression] = Option.empty,
+    constraints: Seq[Constraint] = Seq.empty)
 
 case class CreateTableCommand(name: String, columns: Seq[ColumnDeclaration]) extends Catalog {}
 
@@ -137,8 +140,8 @@ case class CreateExternalTable(
     table_name: String,
     path: Option[String],
     source: Option[String],
-    schema: Option[DataType],
-    options: Map[String, String])
+    description: Option[String],
+    override val schema: DataType)
     extends Catalog {}
 
 // As per Spark v2Commands
@@ -147,8 +150,7 @@ case class CreateTable(
     path: Option[String],
     source: Option[String],
     description: Option[String],
-    schema: Option[DataType],
-    options: Map[String, String])
+    override val schema: DataType)
     extends Catalog {}
 
 /**
