@@ -17,7 +17,6 @@ class TSqlAstBuilder extends TSqlParserBaseVisitor[ir.LogicalPlan] {
   private val optionBuilder = new OptionBuilder(expressionBuilder)
   private val ddlBuilder = new TSqlDDLBuilder(optionBuilder, expressionBuilder, relationBuilder)
 
-
   override def visitTSqlFile(ctx: TSqlParser.TSqlFileContext): ir.LogicalPlan = {
     Option(ctx.batch()).map(_.accept(this)).getOrElse(ir.Batch(List()))
   }

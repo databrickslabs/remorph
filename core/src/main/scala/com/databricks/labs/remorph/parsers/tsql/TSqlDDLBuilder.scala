@@ -7,9 +7,9 @@ import com.databricks.labs.remorph.utils.ParsingUtils
 import scala.collection.JavaConverters.asScalaBufferConverter
 
 class TSqlDDLBuilder(
-                      optionBuilder: OptionBuilder,
-                     expressionBuilder: TSqlExpressionBuilder,
-                      relationBuilder: TSqlRelationBuilder)
+    optionBuilder: OptionBuilder,
+    expressionBuilder: TSqlExpressionBuilder,
+    relationBuilder: TSqlRelationBuilder)
     extends TSqlParserBaseVisitor[ir.Catalog]
     with ParserCommon[ir.Catalog] {
 
@@ -62,13 +62,7 @@ class TSqlDDLBuilder(
     val createTable = ctx.createTableAs() match {
       case null => ir.CreateTable(tableName, None, None, None, schema)
       case ctas if ctas.selectStatementStandalone() != null =>
-        ir.CreateTableAsSelect(
-          tableName,
-          ctas.selectStatementStandalone().accept(relationBuilder),
-          None,
-          None,
-          None
-        )
+        ir.CreateTableAsSelect(tableName, ctas.selectStatementStandalone().accept(relationBuilder), None, None, None)
       case _ => ir.UnresolvedCatalog(ctx.getText)
     }
 
@@ -106,15 +100,15 @@ class TSqlDDLBuilder(
     createTable match {
       case ct: ir.UnresolvedCatalog =>
         ct
-      case _ => ir.CreateTableParams(
-        createTable,
-        columnConstraints,
-        columnOptions,
-        tableConstraints,
-        indices,
-        partitionOn,
-        options
-      )
+      case _ =>
+        ir.CreateTableParams(
+          createTable,
+          columnConstraints,
+          columnOptions,
+          tableConstraints,
+          indices,
+          partitionOn,
+          options)
     }
   }
 

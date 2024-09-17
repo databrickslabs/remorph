@@ -2548,15 +2548,13 @@ columnDefTableConstraint
     | tableIndices
     ;
 
-computedColumnDefinition
-    : id AS expression (PERSISTED (NOT NULL)?)? columnConstraint?
+computedColumnDefinition: id AS expression (PERSISTED (NOT NULL)?)? columnConstraint?
     ;
 
 columnSetDefinition: id XML id FOR id
     ;
 
-columnDefinition
-    : id dataType columnDefinitionElement* columnIndex?
+columnDefinition: id dataType columnDefinitionElement* columnIndex?
     ;
 
 columnDefinitionElement
@@ -2572,7 +2570,8 @@ columnDefinitionElement
     | genericOption // TSQL column flags and options that we cannot support in Databricks
     ;
 
-generatedAs: GENERATED ALWAYS AS (ROW | TRANSACTION_ID | SEQUENCE_NUMBER) (START | END) HIDDEN_KEYWORD?
+generatedAs
+    : GENERATED ALWAYS AS (ROW | TRANSACTION_ID | SEQUENCE_NUMBER) (START | END) HIDDEN_KEYWORD?
     ;
 
 identityColumn: IDENTITY (LPAREN INT COMMA INT RPAREN)?
@@ -2600,11 +2599,11 @@ onPartitionOrFilegroup: ON ( ( id LPAREN id RPAREN) | id | DEFAULT_DOUBLE_QUOTE)
     ;
 
 tableConstraint
-    : (CONSTRAINT cid=id)? (
+    : (CONSTRAINT cid = id)? (
         ((PRIMARY KEY | UNIQUE) clustered? LPAREN columnNameListWithOrder RPAREN primaryKeyOptions)
         | ( FOREIGN KEY LPAREN columnNameList RPAREN foreignKeyOptions)
         | ( CONNECTION LPAREN connectionNode ( COMMA connectionNode)* RPAREN)
-        | ( DEFAULT expression FOR defid=id ( WITH VALUES)?)
+        | ( DEFAULT expression FOR defid = id ( WITH VALUES)?)
         | checkConstraint
     )
     ;
@@ -3143,7 +3142,6 @@ columnNameListWithOrder: columnNameWithOrder (COMMA columnNameWithOrder)*
 
 columnNameWithOrder: id (ASC | DESC)?
     ;
-
 
 columnNameList: id (COMMA id)*
     ;
