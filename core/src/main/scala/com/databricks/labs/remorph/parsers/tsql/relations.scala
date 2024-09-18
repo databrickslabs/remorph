@@ -23,8 +23,7 @@ case class BackupDatabase(
     flags: Map[String, Boolean],
     autoFlags: Seq[String],
     values: Map[String, Expression])
-    extends LeafNode
-    with Command {}
+    extends Catalog {}
 
 case class ColumnAliases(input: LogicalPlan, aliases: Seq[Id]) extends RelationCommon {
   override def output: Seq[Attribute] = aliases.map(a => AttributeReference(a.id, StringType))
