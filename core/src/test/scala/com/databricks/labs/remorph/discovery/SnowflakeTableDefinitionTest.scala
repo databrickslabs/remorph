@@ -1,4 +1,3 @@
-// scalastyle:off
 package com.databricks.labs.remorph.discovery
 
 import com.databricks.labs.remorph.connections.{EnvGetter, SnowflakeConnectionFactory}
@@ -6,7 +5,6 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
 import java.sql.Connection
-// scalastyle:off
 class SnowflakeTableDefinitionTest extends AnyWordSpec with Matchers {
   "Snowflake Table Definition Test" should {
     "work in happy path" in {
