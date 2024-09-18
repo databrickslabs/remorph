@@ -39,6 +39,7 @@ class LogicalPlanGenerator(
     case t: ir.TableSample => tableSample(ctx, t)
     case a: ir.AlterTableCommand => alterTable(ctx, a)
     case l: ir.Lateral => lateral(ctx, l)
+    case c: ir.CreateTableParams => createTableParams(ctx, c)
     case ir.NoopNode => ""
     //  TODO We should always generate an unresolved node, our plan should never be null
     case null => "" // don't fail transpilation if the plan is null
@@ -58,6 +59,63 @@ class LogicalPlanGenerator(
     } else {
       ""
     }
+  }
+
+  private def createTableParams(ctx: GeneratorContext, crp: ir.CreateTableParams): String = {
+
+    // We build the overall table creation statement differently depending on whether the primitive is
+    // a CREATE TABLE or a CREATE TABLE AS (SELECT ...)
+    crp.create match {
+      case ct: ir.CreateTable =>
+        // we build the columns using the raw column declarations, adding in any col constraints
+        // and any column options
+        val columns = ct.schema match {
+          case ir.StructType(fields) =>
+            fields
+              .map { col =>
+                val constraints = crp.colConstraints.getOrElse(col.name, Seq.empty)
+                val options = crp.colOptions.getOrElse(col.name, Seq.empty)
+                genColumnDecl(ctx, col, constraints, options)
+              }
+              .mkString(", ")
+        }
+
+        // We now generate any table level constraints
+        val tableConstraintStr = crp.constraints.map(constraint(ctx, _)).mkString(", ")
+        val tableConstraintStrWithComma = if (tableConstraintStr.nonEmpty) s", $tableConstraintStr" else ""
+
+        // record any table level options
+        val tableOptions = crp.options.map(_.map(optGen.generateOption(ctx, _)).mkString("\n   ")).getOrElse("")
+
+        val tableOptionsComment =
+          if (tableOptions.isEmpty) "" else s"   The following options are unsupported:\n\n   $tableOptions\n"
+        val indicesStr = crp.indices.map(constraint(ctx, _)).mkString("   \n")
+        val indicesComment =
+          if (indicesStr.isEmpty) "" else s"   The following index directives are unsupported:\n\n   $indicesStr*/\n"
+        val leadingComment = (tableOptionsComment, indicesComment) match {
+          case ("", "") => ""
+          case (a, "") => s"/*\n$a*/\n"
+          case ("", b) => s"/*\n$b*/\n"
+          case (a, b) => s"/*\n$a\n$b*/\n"
+        }
+
+        s"${leadingComment}CREATE TABLE ${ct.table_name} (${columns}${tableConstraintStrWithComma})"
+
+      case ctas: ir.CreateTableAsSelect => s"CREATE TABLE ${ctas.table_name} AS (${generate(ctx, ctas.query)})"
+    }
+  }
+
+  private def genColumnDecl(
+      ctx: GeneratorContext,
+      col: ir.StructField,
+      constraints: Seq[ir.Constraint],
+      options: Seq[ir.GenericOption]): String = {
+    val dataType = DataTypeGenerator.generateDataType(ctx, col.dataType)
+    val constraintsStr = constraints.map(constraint(ctx, _)).mkString(" ")
+    val constraintsGen = if (constraintsStr.isEmpty) "" else s" $constraintsStr"
+    val optionsStr = options.map(optGen.generateOption(ctx, _)).mkString(" ")
+    val optionsComment = if (optionsStr.isEmpty) "" else s" /* $optionsStr */"
+    s"${col.name} ${dataType}${constraintsGen}${optionsComment}"
   }
 
   private def alterTable(ctx: GeneratorContext, a: ir.AlterTableCommand): String = {
@@ -158,11 +216,12 @@ class LogicalPlanGenerator(
 
   private def generateUniqueConstraint(ctx: GeneratorContext, unique: ir.Unique): String = {
     val columns = unique.columns.map(_.mkString("(", ", ", ")")).getOrElse("")
+    val columnStr = if (columns.isEmpty) "" else s" $columns"
     val commentOptions = optGen.generateOptionList(ctx, unique.options) match {
       case "" => ""
       case options => s" /* $options */"
     }
-    s"UNIQUE ${columns}${commentOptions}"
+    s"UNIQUE${columnStr}${commentOptions}"
   }
 
   private def project(ctx: GeneratorContext, proj: ir.Project): String = {

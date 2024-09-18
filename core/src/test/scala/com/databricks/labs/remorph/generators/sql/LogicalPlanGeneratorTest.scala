@@ -368,4 +368,95 @@ class LogicalPlanGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.L
         Some(BigDecimal(10))) generates "(t1) TABLESAMPLE (10 ROWS) REPEATABLE (10)"
     }
   }
+
+  "CreateTableParameters" should {
+    "transpile to CREATE TABLE" in {
+      ir.CreateTableParams(
+        ir.CreateTable(
+          "some_table",
+          None,
+          None,
+          None,
+          ir.StructType(Seq(ir.StructField("a", ir.IntegerType), ir.StructField("b", ir.VarcharType(Some(10)))))),
+        Map("a" -> Seq.empty, "b" -> Seq.empty),
+        Map("a" -> Seq.empty, "b" -> Seq.empty),
+        Seq.empty,
+        Seq.empty,
+        None,
+        Some(Seq.empty)) generates "CREATE TABLE some_table (a INT, b VARCHAR(10))"
+    }
+
+    "transpile to CREATE TABLE with commented options" in {
+      ir.CreateTableParams(
+        ir.CreateTable(
+          "some_table",
+          None,
+          None,
+          None,
+          ir.StructType(Seq(ir.StructField("a", ir.IntegerType), ir.StructField("b", ir.VarcharType(Some(10)))))),
+        Map("a" -> Seq.empty, "b" -> Seq.empty),
+        Map("a" -> Seq(ir.OptionUnresolved("Unsupported Option: SPARSE")), "b" -> Seq.empty),
+        Seq(
+          ir.NamedConstraint(
+            "c1",
+            ir.CheckConstraint(ir.GreaterThan(ir.Column(None, ir.Id("a")), ir.Literal(0, ir.IntegerType))))),
+        Seq.empty,
+        None,
+        Some(Seq.empty)) generates
+        "CREATE TABLE some_table (a INT /* Unsupported Option: SPARSE */, b VARCHAR(10), CONSTRAINT c1 CHECK (a > 0))"
+    }
+
+    "transpile to CREATE TABLE with default values" in {
+      ir.CreateTableParams(
+        ir.CreateTable(
+          "some_table",
+          None,
+          None,
+          None,
+          ir.StructType(Seq(ir.StructField("a", ir.IntegerType), ir.StructField("b", ir.VarcharType(Some(10)))))),
+        Map(
+          "a" -> Seq(ir.DefaultValueConstraint(ir.Literal(0, ir.IntegerType))),
+          "b" -> Seq(ir.DefaultValueConstraint(ir.Literal("foo", ir.StringType)))),
+        Map("a" -> Seq.empty, "b" -> Seq.empty),
+        Seq.empty,
+        Seq.empty,
+        None,
+        Some(Seq.empty)) generates
+        "CREATE TABLE some_table (a INT DEFAULT 0, b VARCHAR(10) DEFAULT 'foo')"
+    }
+
+    "transpile to CREATE TABLE with foreign key table constraint" in {
+      ir.CreateTableParams(
+        ir.CreateTable(
+          "some_table",
+          None,
+          None,
+          None,
+          ir.StructType(Seq(ir.StructField("a", ir.IntegerType), ir.StructField("b", ir.VarcharType(Some(10)))))),
+        Map("a" -> Seq.empty, "b" -> Seq.empty),
+        Map("a" -> Seq.empty, "b" -> Seq.empty),
+        Seq(ir.NamedConstraint("c1", ir.ForeignKey("a, b", "other_table", "c, d", Seq.empty))),
+        Seq.empty,
+        None,
+        Some(Seq.empty)) generates
+        "CREATE TABLE some_table (a INT, b VARCHAR(10), CONSTRAINT c1 FOREIGN KEY (a, b) REFERENCES other_table(c, d))"
+    }
+
+    "transpile to CREATE TABLE with a primary key, foreign key and a Unique column" in  {
+      ir.CreateTableParams(
+        ir.CreateTable(
+          "some_table",
+          None,
+          None,
+          None,
+          ir.StructType(Seq(ir.StructField("a", ir.IntegerType), ir.StructField("b", ir.VarcharType(Some(10)))))),
+        Map("a" -> Seq(ir.PrimaryKey()), "b" -> Seq(ir.Unique())),
+        Map("a" -> Seq.empty, "b" -> Seq.empty),
+        Seq(ir.ForeignKey("b", "other_table", "b", Seq.empty)),
+        Seq.empty,
+        None,
+        Some(Seq.empty)) generates
+        "CREATE TABLE some_table (a INT PRIMARY KEY, b VARCHAR(10) UNIQUE, FOREIGN KEY (b) REFERENCES other_table(b))"
+    }
+  }
 }

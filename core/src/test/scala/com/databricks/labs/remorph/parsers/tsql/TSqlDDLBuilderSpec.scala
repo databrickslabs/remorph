@@ -5,7 +5,7 @@ import com.databricks.labs.remorph.parsers.{intermediate => ir}
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 
-class TSqkDDLBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matchers with IRHelpers {
+class TSqlDDLBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matchers with IRHelpers {
 
   override protected def astBuilder: TSqlParserBaseVisitor[_] = new TSqlAstBuilder
 
