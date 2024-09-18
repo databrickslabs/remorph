@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.discovery
 
-object Constant {
+object Constants {
   val tableDefinitionQuery: String = s"""SELECT
                                 |    sft.TABLE_CATALOG,
                                 |    sft.TABLE_SCHEMA,
