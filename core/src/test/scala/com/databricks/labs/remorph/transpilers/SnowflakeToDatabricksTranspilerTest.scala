@@ -167,9 +167,9 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
     }
 
     "SELECT CURRENT_TIMESTAMP(1) FROM t1" in {
-      s""""SELECT CURRENT_TIMESTAMP(1) FROM t1"""".stripMargin transpilesTo (
+      s""""SELECT CURRENT_TIMESTAMP() FROM t1"""".stripMargin transpilesTo (
         s"""SELECT
-           |  DATE_FORMAT(CURRENT_TIMESTAMP(), 'yyyy-MM-dd HH:mm:ss.SSS'),
+           |  DATE_FORMATz(CURRENT_TIMESTAMP(), 'yyyy-MM-dd HH:mm:ss.SSS'),
            |FROM
            |  t1""".stripMargin
       )
