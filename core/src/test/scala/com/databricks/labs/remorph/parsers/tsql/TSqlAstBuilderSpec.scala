@@ -380,7 +380,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
             Window(
               CallFunction("ROW_NUMBER", List.empty),
               List.empty,
-              List(SortOrder(simplyNamedColumn("myColumn"), Ascending, SortNullsUnspecified)),
+              List(SortOrder(simplyNamedColumn("myColumn"), UnspecifiedSortDirection, SortNullsUnspecified)),
               None),
             Id("nextVal")))))))
 
