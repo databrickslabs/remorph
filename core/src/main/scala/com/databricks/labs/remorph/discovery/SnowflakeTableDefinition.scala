@@ -7,7 +7,6 @@ import org.antlr.v4.runtime.{CharStreams, CommonTokenStream}
 import java.sql.Connection
 import scala.collection.mutable.ListBuffer
 
-
 class SnowflakeTableDefinition(conn: Connection) {
 
   /**
