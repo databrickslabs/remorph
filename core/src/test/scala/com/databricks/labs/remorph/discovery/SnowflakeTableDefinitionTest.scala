@@ -15,7 +15,7 @@ class SnowflakeTableDefinitionTest extends AnyWordSpec with Matchers {
       var conn: Connection = null
       try {
         conn = connFactory.newConnection()
-        val snow = new SnowflakeTableDefination(conn)
+        val snow = new SnowflakeTableDefinition(conn)
         val colDf = snow.getTableDefinitions("SNOWFLAKE")
         colDf.size should be > 0
       } catch {

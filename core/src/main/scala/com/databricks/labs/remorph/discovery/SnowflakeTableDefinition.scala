@@ -12,7 +12,7 @@ import scala.collection.mutable.ListBuffer
  *
  * @param conn The SQL connection to the Snowflake database.
  */
-class SnowflakeTableDefination(conn: Connection) {
+class SnowflakeTableDefinition(conn: Connection) {
 
   /**
    * Parses a data type string and returns the corresponding DataType object.
