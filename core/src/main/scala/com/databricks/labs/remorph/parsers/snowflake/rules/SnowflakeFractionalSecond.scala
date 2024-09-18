@@ -30,11 +30,11 @@ class SnowflakeFractionalSecond extends ir.Rule[ir.LogicalPlan] {
         } else {
           handleSpecialTSFunctions("CURRENT_TIMESTAMP", right)
         }
-      case ir.CallFunction("LOCAL_TIMESTAMP", right) =>
+      case ir.CallFunction("LOCALTIMESTAMP", right) =>
         if (right.isEmpty) {
           ir.CurrentTimestamp()
         } else {
-          handleSpecialTSFunctions("CURRENT_TIMESTAMP", right)
+          handleSpecialTSFunctions("LOCALTIMESTAMP", right)
         }
     }
   }

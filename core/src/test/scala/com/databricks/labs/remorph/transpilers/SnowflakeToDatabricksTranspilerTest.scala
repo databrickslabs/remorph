@@ -159,10 +159,24 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
            |  CURRENT_DATE(),
            |  CURRENT_TIMESTAMP(),
            |  DATE_FORMAT(CURRENT_TIMESTAMP(), 'HH:mm:ss'),
-           |  LOCALTIME(),
-           |  LOCALTIMESTAMP()
+           |  DATE_FORMAT(CURRENT_TIMESTAMP(), 'HH:mm:ss'),
+           |  CURRENT_TIMESTAMP()
            |FROM
            |  t1;""".stripMargin
+      )
+    }
+
+    "SELECT CURRENT_TIME(4), CURRENT_TIMESTAMP(1), CURRENT_TIME FROM t1 WHERE dt < CURRENT_TIMESTAMP()" in {
+      s""""SELECT CURRENT_TIME(4), CURRENT_TIMESTAMP(1),
+         |CURRENT_TIME FROM t1 WHERE dt < CURRENT_TIMESTAMP()"""".stripMargin transpilesTo(
+        s"""SELECT
+           |  DATE_FORMAT(CURRENT_TIMESTAMP(), 'HH:mm:ss'),
+           |  DATE_FORMAT(CURRENT_TIMESTAMP(), 'yyyy-MM-dd HH:mm:ss.SSS'),
+           |  DATE_FORMAT(CURRENT_TIMESTAMP(), 'HH:mm:ss')
+           |FROM
+           |  t1
+           |WHERE
+           |  dt < CURRENT_TIMESTAMP();""".stripMargin
       )
     }
 
