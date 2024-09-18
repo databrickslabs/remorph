@@ -88,6 +88,20 @@ def _select_contains_index(expression: exp.Select) -> bool:
     return False
 
 
+def _cast_expression(expression: str, data_type: str) -> str:
+    """
+    function to cast an expression to a specified data type.
+
+    Args:
+        expression (str): The expression to be cast.
+        data_type (str): The target data type for casting.
+
+    Returns:
+        str: The SQL string for the cast expression.
+    """
+    return f"CAST({expression} AS {data_type})"
+
+
 def _lateral_view(self: org_databricks.Databricks.Generator, expression: exp.Lateral) -> str:
     this = expression.args['this']
     alias = expression.args['alias']
@@ -110,12 +124,15 @@ def _lateral_view(self: org_databricks.Databricks.Generator, expression: exp.Lat
                 generator_expr += "." + self.sql(expr, 'expression').replace("'", "")
             if node == "OUTER":
                 is_outer = True
+
         # Casting as ARRAY<VARIANT> for POSEXPLODE and EXPLODE as it is required with variant datatype in Databricks
+        # Use the helper function for casting the expression
+        generator_expr_casted = _cast_expression(generator_expr, "ARRAY<VARIANT>")
         if select_contains_index:
-            generator_function_str = f"POSEXPLODE(CAST({generator_expr} AS ARRAY<VARIANT>))"
+            generator_function_str = f"POSEXPLODE({generator_expr_casted})"
             alias_str = f"{' ' + alias.name if isinstance(alias, exp.TableAlias) else ''} AS index, value"
         else:
-            generator_function_str = f"EXPLODE(CAST({generator_expr} AS ARRAY<VARIANT>))"
+            generator_function_str = f"EXPLODE({generator_expr_casted})"
 
     return self.sql(f"LATERAL VIEW {'OUTER ' if is_outer else ''}{generator_function_str}{alias_str}")
 
@@ -404,6 +421,7 @@ class Databricks(org_databricks.Databricks):  #
             exp.CurrentDate: _current_date,
             exp.Not: _not_sql,
         }
+
 
         def preprocess(self, expression: exp.Expression) -> exp.Expression:
             fixed_ast = expression.transform(lca_utils.unalias_lca_in_select, copy=False)
