@@ -47,7 +47,7 @@ _SCHEMA_QUERY = """SELECT
 
 
 class TeradataDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
-    _DRIVER = "sqlserver"
+    _DRIVER = "teradata"
 
     def __init__(
         self,
@@ -64,10 +64,7 @@ class TeradataDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
     @property
     def get_jdbc_url(self) -> str:
         # Fetch secrets once and store them in variables
-        secrets = {
-            key: self._get_secret(key)
-            for key in ['host', 'port', 'database', 'user', 'password', 'encrypt', 'trustServerCertificate']
-        }
+        secrets = {key: self._get_secret(key) for key in ['host', 'port', 'database', 'user', 'password']}
 
         # Construct the JDBC URL
         return (
@@ -75,8 +72,6 @@ class TeradataDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
             f"databaseName={secrets['database']};"
             f"user={secrets['user']};"
             f"password={secrets['password']};"
-            f"encrypt={secrets['encrypt']};"
-            f"trustServerCertificate={secrets['trustServerCertificate']};"
         )
 
     def read_data(

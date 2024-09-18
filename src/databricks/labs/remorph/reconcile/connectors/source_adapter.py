@@ -6,7 +6,7 @@ from databricks.labs.remorph.reconcile.connectors.data_source import DataSource
 from databricks.labs.remorph.reconcile.connectors.databricks import DatabricksDataSource
 from databricks.labs.remorph.reconcile.connectors.oracle import OracleDataSource
 from databricks.labs.remorph.reconcile.connectors.snowflake import SnowflakeDataSource
-from databricks.labs.remorph.reconcile.connectors.snowflake import TeradataDataSource
+from databricks.labs.remorph.reconcile.connectors.teradata import TeradataDataSource
 from databricks.labs.remorph.snow.databricks import Databricks
 from databricks.labs.remorph.snow.oracle import Oracle
 from databricks.labs.remorph.snow.snowflake import Snow

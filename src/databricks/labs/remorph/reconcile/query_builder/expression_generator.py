@@ -244,5 +244,5 @@ Dialect_hash_algo_mapping = [
     DialectHashConfig(
         dialect=get_dialect("teradata"),
         algo=[partial(anonymous, func="TO_HEX(HASH_SHA256({}))", is_expr=True)],
-    )
+    ),
 ]
