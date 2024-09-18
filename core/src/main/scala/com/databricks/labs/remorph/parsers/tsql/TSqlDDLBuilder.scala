@@ -176,7 +176,16 @@ class TSqlDDLBuilder(
               Some(true)
             }
           } else {
-            constraints += buildColumnConstraint(c.columnConstraint())
+            val con = buildColumnConstraint(ctx.id().getText, c.columnConstraint())
+
+            // TSQL allows FOREIGN KEY and CHECK constraints to be declared as column constraints,
+            // but Databricks SQL does not so we need to gather them as table constraints
+
+            if (c.columnConstraint().FOREIGN() != null || c.columnConstraint().checkConstraint() != null) {
+              tableConstraints += con
+            } else {
+              constraints += con
+            }
           }
 
         case d if d.identityColumn() != null =>
@@ -284,12 +293,15 @@ class TSqlDDLBuilder(
    * Note that TSQL is way more involved than Databricks SQL. We must record all the different options so that we can
    * at least generate a comment.
    *
+   * TSQL allows FOREIGN KEY and CHECK constraints to be declared as column constraints, but Databricks SQL does not
+   * So the caller needs to check for those circumstances and handle them accordingly.
+   *
    * @param ctx
    *   the parser context
    * @return
    *   a constraint definition
    */
-  private def buildColumnConstraint(ctx: TSqlParser.ColumnConstraintContext): ir.Constraint = {
+  private def buildColumnConstraint(colName: String, ctx: TSqlParser.ColumnConstraintContext): ir.Constraint = {
     val options = Seq.newBuilder[ir.GenericOption]
     val constraint = ctx match {
       case pu if pu.PRIMARY() != null || pu.UNIQUE() != null =>
@@ -309,7 +321,7 @@ class TSqlDDLBuilder(
         }
 
       case fk if fk.FOREIGN() != null =>
-        // Foreign key construction
+        // Foreign key construction - note that this is a table level constraint in Databricks SQL
         val refObject = fk.foreignKeyOptions().tableName().getText
         val refCols = Option(fk.foreignKeyOptions())
           .map(_.columnNameList().id().asScala.map(_.getText).mkString(","))
@@ -320,10 +332,10 @@ class TSqlDDLBuilder(
         if (fk.foreignKeyOptions().onUpdate() != null) {
           options += buildFkOnUpdate(fk.foreignKeyOptions().onUpdate())
         }
-        ir.ForeignKey(refObject, "", refCols, options.result())
+        ir.ForeignKey(colName, refObject, refCols, options.result())
 
       case cc if cc.checkConstraint() != null =>
-        // Check constraint construction
+        // Check constraint construction (will be gathered as a table level constraint)
         val expr = cc.checkConstraint().searchCondition().accept(expressionBuilder)
         if (cc.checkConstraint().NOT() != null) {
           options += ir.OptionUnresolved("NOT FOR REPLICATION")

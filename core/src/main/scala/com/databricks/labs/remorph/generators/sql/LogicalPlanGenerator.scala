@@ -111,11 +111,12 @@ class LogicalPlanGenerator(
       constraints: Seq[ir.Constraint],
       options: Seq[ir.GenericOption]): String = {
     val dataType = DataTypeGenerator.generateDataType(ctx, col.dataType)
+    val dataTypeStr = if (!col.nullable) s"$dataType NOT NULL" else dataType
     val constraintsStr = constraints.map(constraint(ctx, _)).mkString(" ")
     val constraintsGen = if (constraintsStr.isEmpty) "" else s" $constraintsStr"
     val optionsStr = options.map(optGen.generateOption(ctx, _)).mkString(" ")
     val optionsComment = if (optionsStr.isEmpty) "" else s" /* $optionsStr */"
-    s"${col.name} ${dataType}${constraintsGen}${optionsComment}"
+    s"${col.name} ${dataTypeStr}${constraintsGen}${optionsComment}"
   }
 
   private def alterTable(ctx: GeneratorContext, a: ir.AlterTableCommand): String = {
