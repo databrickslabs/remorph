@@ -147,10 +147,9 @@ class SnowflakeDDLBuilderSpec
                   |  AS 'a * b';""".stripMargin,
         expectedAst = CreateInlineUDF(
           name = "multiply1",
-          returnType = DecimalType(None, None),
-          parameters = Seq(
-            FunctionParameter("a", DecimalType(None, None), None),
-            FunctionParameter("b", DecimalType(None, None), None)),
+          returnType = DecimalType(38, 0),
+          parameters =
+            Seq(FunctionParameter("a", DecimalType(38, 0), None), FunctionParameter("b", DecimalType(38, 0), None)),
           runtimeInfo = SQLRuntimeInfo(memoizable = false),
           acceptsNullParameters = false,
           comment = Some("multiply two numbers"),
@@ -166,7 +165,7 @@ class SnowflakeDDLBuilderSpec
       "CREATE TABLE s.t1 (x VARCHAR UNIQUE)" in {
         example(
           "CREATE TABLE s.t1 (x VARCHAR UNIQUE)",
-          CreateTableCommand(name = "s.t1", columns = Seq(ColumnDeclaration("x", StringType, None, Seq(Unique)))))
+          CreateTableCommand(name = "s.t1", columns = Seq(ColumnDeclaration("x", StringType, None, Seq(Unique())))))
       }
       "CREATE TABLE s.t1 (x VARCHAR NOT NULL)" in {
         example(
@@ -176,12 +175,14 @@ class SnowflakeDDLBuilderSpec
       "CREATE TABLE s.t1 (x VARCHAR PRIMARY KEY)" in {
         example(
           "CREATE TABLE s.t1 (x VARCHAR PRIMARY KEY)",
-          CreateTableCommand("s.t1", Seq(ColumnDeclaration("x", StringType, None, Seq(PrimaryKey)))))
+          CreateTableCommand("s.t1", Seq(ColumnDeclaration("x", StringType, None, Seq(PrimaryKey())))))
       }
       "CREATE TABLE s.t1 (x VARCHAR UNIQUE FOREIGN KEY REFERENCES s.t2 (y))" in {
         example(
           "CREATE TABLE s.t1 (x VARCHAR UNIQUE FOREIGN KEY REFERENCES s.t2 (y))",
-          CreateTableCommand("s.t1", Seq(ColumnDeclaration("x", StringType, None, Seq(Unique, ForeignKey("s.t2.y"))))))
+          CreateTableCommand(
+            "s.t1",
+            Seq(ColumnDeclaration("x", StringType, None, Seq(Unique(), ForeignKey("", "s.t2.y", "", Seq.empty))))))
       }
       "more complex" in {
         example(
@@ -195,20 +196,24 @@ class SnowflakeDDLBuilderSpec
           expectedAst = CreateTableCommand(
             name = "s.t1",
             columns = Seq(
-              ColumnDeclaration("id", StringType, None, Seq(Nullability(false), PrimaryKey)),
-              ColumnDeclaration("a", StringType, None, Seq(Unique, NamedConstraint("fkey", ForeignKey("s.t2.x")))),
+              ColumnDeclaration("id", StringType, None, Seq(Nullability(false), PrimaryKey())),
+              ColumnDeclaration(
+                "a",
+                StringType,
+                None,
+                Seq(Unique(), NamedConstraint("fkey", ForeignKey("", "s.t2.x", "", Seq.empty)))),
               ColumnDeclaration(
                 "b",
                 DecimalType(Some(38), Some(0)),
                 None,
-                Seq(NamedConstraint("fkey", ForeignKey("s.t2.y")))))))
+                Seq(NamedConstraint("fkey", ForeignKey("", "s.t2.y", "", Seq.empty)))))))
       }
     }
     "translate ALTER TABLE commands" should {
       "ALTER TABLE s.t1 ADD COLUMN c VARCHAR" in {
         example(
           "ALTER TABLE s.t1 ADD COLUMN c VARCHAR",
-          AlterTableCommand("s.t1", Seq(AddColumn(ColumnDeclaration("c", StringType)))))
+          AlterTableCommand("s.t1", Seq(AddColumn(Seq(ColumnDeclaration("c", StringType))))))
       }
       "ALTER TABLE s.t1 ADD CONSTRAINT pk PRIMARY KEY (a, b, c)" in {
         example(
@@ -216,9 +221,9 @@ class SnowflakeDDLBuilderSpec
           AlterTableCommand(
             "s.t1",
             Seq(
-              AddConstraint("a", NamedConstraint("pk", PrimaryKey)),
-              AddConstraint("b", NamedConstraint("pk", PrimaryKey)),
-              AddConstraint("c", NamedConstraint("pk", PrimaryKey)))))
+              AddConstraint("a", NamedConstraint("pk", PrimaryKey())),
+              AddConstraint("b", NamedConstraint("pk", PrimaryKey())),
+              AddConstraint("c", NamedConstraint("pk", PrimaryKey())))))
       }
       "ALTER TABLE s.t1 ALTER (COLUMN a TYPE INT)" in {
         example(
@@ -239,7 +244,7 @@ class SnowflakeDDLBuilderSpec
         example("ALTER TABLE s.t1 DROP COLUMN a", AlterTableCommand("s.t1", Seq(DropColumns(Seq("a")))))
       }
       "ALTER TABLE s.t1 DROP PRIMARY KEY" in {
-        example("ALTER TABLE s.t1 DROP PRIMARY KEY", AlterTableCommand("s.t1", Seq(DropConstraint(None, PrimaryKey))))
+        example("ALTER TABLE s.t1 DROP PRIMARY KEY", AlterTableCommand("s.t1", Seq(DropConstraint(None, PrimaryKey()))))
       }
       "ALTER TABLE s.t1 DROP CONSTRAINT pk" in {
         example("ALTER TABLE s.t1 DROP CONSTRAINT pk", AlterTableCommand("s.t1", Seq(DropConstraintByName("pk"))))
@@ -247,7 +252,7 @@ class SnowflakeDDLBuilderSpec
       "ALTER TABLE s.t1 DROP UNIQUE (b, c)" in {
         example(
           "ALTER TABLE s.t1 DROP UNIQUE (b, c)",
-          AlterTableCommand("s.t1", Seq(DropConstraint(Some("b"), Unique), DropConstraint(Some("c"), Unique))))
+          AlterTableCommand("s.t1", Seq(DropConstraint(Some("b"), Unique()), DropConstraint(Some("c"), Unique()))))
       }
       "ALTER TABLE s.t1 RENAME COLUMN a TO aa" in {
         example("ALTER TABLE s.t1 RENAME COLUMN a TO aa", AlterTableCommand("s.t1", Seq(RenameColumn("a", "aa"))))
@@ -256,6 +261,30 @@ class SnowflakeDDLBuilderSpec
         example(
           "ALTER TABLE s.t1 RENAME CONSTRAINT pk TO pk_t1",
           AlterTableCommand("s.t1", Seq(RenameConstraint("pk", "pk_t1"))))
+      }
+    }
+
+    "translate Unresolved COMMAND" should {
+      "ALTER SESSION SET QUERY_TAG = 'TAG'" in {
+        example("ALTER SESSION SET QUERY_TAG = 'TAG';", UnresolvedCommand("ALTER SESSION SET QUERY_TAG = 'TAG'"))
+      }
+
+      "ALTER STREAM mystream SET COMMENT = 'New comment for stream'" in {
+        example(
+          "ALTER STREAM mystream SET COMMENT = 'New comment for stream';",
+          UnresolvedCommand("ALTER STREAM mystream SET COMMENT = 'New comment for stream'"))
+      }
+
+      "CREATE STREAM mystream ON TABLE mytable" in {
+        example(
+          "CREATE STREAM mystream ON TABLE mytable;",
+          UnresolvedCommand("CREATE STREAM mystream ON TABLE mytable"))
+      }
+
+      "CREATE TASK t1 SCHEDULE = '30 MINUTE' AS INSERT INTO tbl(ts) VALUES(CURRENT_TIMESTAMP)" in {
+        example(
+          "CREATE TASK t1 SCHEDULE = '30 MINUTE' AS INSERT INTO tbl(ts) VALUES(CURRENT_TIMESTAMP);",
+          UnresolvedCommand("CREATE TASK t1 SCHEDULE = '30 MINUTE' AS INSERT INTO tbl(ts) VALUES(CURRENT_TIMESTAMP)"))
       }
     }
 

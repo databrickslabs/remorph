@@ -8,8 +8,7 @@ import java.time._
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
-class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
-    extends Generator[ir.Expression, String] {
+class ExpressionGenerator extends Generator[ir.Expression, String] {
   private val dateFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd")
   private val timeFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").withZone(ZoneId.of("UTC"))
 
@@ -33,7 +32,6 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
       case s: ir.StructExpr => structExpr(ctx, s)
       case i: ir.IsNull => isNull(ctx, i)
       case i: ir.IsNotNull => isNotNull(ctx, i)
-      case fn: ir.Fn => callFunction(ctx, fn)
       case ir.UnresolvedAttribute(name, _, _) => name
       case d: ir.Dot => dot(ctx, d)
       case i: ir.Id => id(ctx, i)
@@ -58,6 +56,18 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
       case a: ir.ArrayAccess => arrayAccess(ctx, a)
       case j: ir.JsonAccess => jsonAccess(ctx, j)
       case l: ir.LambdaFunction => lambdaFunction(ctx, l)
+      case v: ir.Variable => variable(ctx, v)
+      case s: ir.SchemaReference => schemaReference(ctx, s)
+      case r: ir.RegExpExtract => regexpExtract(ctx, r)
+      case t: ir.TimestampDiff => timestampDiff(ctx, t)
+      case t: ir.TimestampAdd => timestampAdd(ctx, t)
+      case e: ir.Extract => extract(ctx, e)
+      case c: ir.Concat => concat(ctx, c)
+      case i: ir.In => in(ctx, i)
+
+      // keep this case after every case involving an `Fn`, otherwise it will make said case unreachable
+      case fn: ir.Fn => s"${fn.prettyName}(${fn.children.map(expression(ctx, _)).mkString(", ")})"
+
       case null => "" // don't fail transpilation if the expression is null
       case x => throw TranspileException(s"Unsupported expression: $x")
     }
@@ -242,28 +252,6 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
     case ir.Or(left, ir.And(ol, or)) =>
       s"${expression(ctx, left)} OR (${expression(ctx, ol)} AND ${expression(ctx, or)})"
     case ir.Or(left, right) => s"${expression(ctx, left)} OR ${expression(ctx, right)}"
-  }
-
-  private def callFunction(ctx: GeneratorContext, fn: ir.Fn): String = {
-    try {
-      callMapper.convert(fn) match {
-        case r: ir.RLike => rlike(ctx, r)
-        case r: ir.RegExpExtract => regexpExtract(ctx, r)
-        case t: ir.TimestampDiff => timestampDiff(ctx, t)
-        case t: ir.TimestampAdd => timestampAdd(ctx, t)
-        case e: ir.Extract => extract(ctx, e)
-        case i: ir.In => in(ctx, i)
-        case fn: ir.Fn => s"${fn.prettyName}(${fn.children.map(expression(ctx, _)).mkString(", ")})"
-
-        // Certain functions can be translated directly to Databricks expressions such as INTERVAL
-        case e: ir.Expression => expression(ctx, e)
-
-        case _ => throw TranspileException(s"${fn.prettyName}: not implemented")
-      }
-    } catch {
-      case e: IndexOutOfBoundsException =>
-        throw TranspileException(s"${fn.prettyName}: illegal index: ${e.getMessage}, expr: $fn")
-    }
   }
 
   private def literal(ctx: GeneratorContext, l: ir.Literal): String = l match {
@@ -452,6 +440,26 @@ class ExpressionGenerator(val callMapper: ir.CallMapper = new ir.CallMapper())
 
   private def lambdaArgument(arg: ir.UnresolvedNamedLambdaVariable): String = {
     arg.name_parts.mkString(".")
+  }
+
+  private def variable(ctx: GeneratorContext, v: ir.Variable): String = s"$${${v.name}}"
+
+  private def concat(ctx: GeneratorContext, c: ir.Concat): String = {
+    val args = c.children.map(expression(ctx, _))
+    if (c.children.size > 2) {
+      args.mkString(" || ")
+    } else {
+      args.mkString("CONCAT(", ", ", ")")
+    }
+  }
+
+  private def schemaReference(ctx: GeneratorContext, s: ir.SchemaReference): String = {
+    val ref = s.columnName match {
+      case d: ir.Dot => expression(ctx, d)
+      case i: ir.Id => expression(ctx, i)
+      case _ => "JSON_COLUMN"
+    }
+    s"{${ref.toUpperCase(Locale.getDefault())}_SCHEMA}"
   }
   private def singleQuote(s: String): String = s"'$s'"
   private def isAlphanum(s: String): Boolean = s.forall(_.isLetterOrDigit)

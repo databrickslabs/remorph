@@ -238,10 +238,13 @@ def _array_slice(self: org_databricks.Databricks.Generator, expression: local_ex
     return func_expr
 
 
-def _to_command(self, expression: exp.Command):
-    this_sql = self.sql(expression, 'this')
-    prefix = '-- snowsql command:' if this_sql == '!' else '-- '
-    return f"{prefix}{this_sql}{self.sql(expression, 'expression')}"
+def _to_command(self, expr: exp.Command):
+    this_sql = self.sql(expr, 'this')
+    expression = self.sql(expr.expression, 'this')
+    prefix = f"-- {this_sql}"
+    if this_sql == "!":
+        return f"{prefix}{expression}"
+    return f"{prefix} {expression}"
 
 
 def _parse_json(self, expr: exp.ParseJSON):
@@ -339,11 +342,27 @@ def _create_named_struct_for_cmp(agg_col, order_col) -> exp.Expression:
     return named_struct_func
 
 
+def _current_date(self, expression: exp.CurrentDate) -> str:
+    zone = self.sql(expression, "this")
+    return f"CURRENT_DATE({zone})" if zone else "CURRENT_DATE()"
+
+
+def _not_sql(self, expression: exp.Not) -> str:
+    if isinstance(expression.this, exp.Is):
+        return f"{expression.this.this} IS NOT {self.sql(expression.this, 'expression')}"
+    return f"NOT {self.sql(expression, 'this')}"
+
+
 class Databricks(org_databricks.Databricks):  #
     # Instantiate Databricks Dialect
     databricks = org_databricks.Databricks()
 
     class Generator(org_databricks.Databricks.Generator):
+        INVERSE_TIME_MAPPING: dict[str, str] = {
+            **{v: k for k, v in org_databricks.Databricks.TIME_MAPPING.items()},
+            "%-d": "dd",
+        }
+
         COLLATE_IS_FUNC = True
         # [TODO]: Variant needs to be transformed better, for now parsing to string was deemed as the choice.
         TYPE_MAPPING = {
@@ -396,11 +415,16 @@ class Databricks(org_databricks.Databricks):  #
             exp.NullSafeEQ: lambda self, e: self.binary(e, "<=>"),
             exp.If: if_sql(false_value="NULL"),
             exp.Command: _to_command,
+            exp.CurrentDate: _current_date,
+            exp.Not: _not_sql,
         }
 
         def preprocess(self, expression: exp.Expression) -> exp.Expression:
             fixed_ast = expression.transform(lca_utils.unalias_lca_in_select, copy=False)
             return super().preprocess(fixed_ast)
+
+        def format_time(self, expression: exp.Expression, inverse_time_mapping=None, inverse_time_trie=None):
+            return super().format_time(expression, self.INVERSE_TIME_MAPPING)
 
         def join_sql(self, expression: exp.Join) -> str:
             """Overwrites `join_sql()` in `sqlglot/generator.py`

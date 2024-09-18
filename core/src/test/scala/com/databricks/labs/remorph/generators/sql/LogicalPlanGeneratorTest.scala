@@ -5,7 +5,9 @@ import org.scalatest.wordspec.AnyWordSpec
 
 class LogicalPlanGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.LogicalPlan] with ir.IRHelpers {
 
-  override protected val generator = new LogicalPlanGenerator(new ExpressionGenerator())
+  protected val expressionGenerator = new ExpressionGenerator()
+  protected val optionGenerator = new OptionGenerator(expressionGenerator)
+  override protected val generator = new LogicalPlanGenerator(expressionGenerator, optionGenerator)
 
   "Project" should {
     "transpile to SELECT" in {
@@ -186,7 +188,7 @@ class LogicalPlanGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.L
         None,
         ir.InnerJoin,
         Seq(),
-        ir.JoinDataType(is_left_struct = false, is_right_struct = false)) generates "t1 INNER JOIN t2"
+        ir.JoinDataType(is_left_struct = false, is_right_struct = false)) generates "t1, t2"
 
       ir.Join(
         namedTable("t1"),
@@ -204,7 +206,7 @@ class LogicalPlanGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.L
         Seq("c1", "c2"),
         ir.JoinDataType(
           is_left_struct = false,
-          is_right_struct = false)) generates "t1 RIGHT OUTER JOIN t2 ON IS_DATE(c1) USING (c1, c2)"
+          is_right_struct = false)) generates "t1 RIGHT JOIN t2 ON IS_DATE(c1) USING (c1, c2)"
 
       ir.Join(
         namedTable("t1"),
@@ -212,7 +214,7 @@ class LogicalPlanGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.L
         None,
         ir.NaturalJoin(ir.LeftOuterJoin),
         Seq(),
-        ir.JoinDataType(is_left_struct = false, is_right_struct = false)) generates "t1 NATURAL LEFT OUTER JOIN t2"
+        ir.JoinDataType(is_left_struct = false, is_right_struct = false)) generates "t1 NATURAL LEFT JOIN t2"
     }
   }
 
@@ -351,7 +353,7 @@ class LogicalPlanGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.L
           ir.ColumnDeclaration(
             "c1",
             ir.IntegerType,
-            constraints = Seq(ir.Nullability(nullable = false), ir.PrimaryKey)),
+            constraints = Seq(ir.Nullability(nullable = false), ir.PrimaryKey())),
           ir.ColumnDeclaration(
             "c2",
             ir.StringType))) generates "CREATE TABLE t1 (c1 INT NOT NULL PRIMARY KEY, c2 STRING )"

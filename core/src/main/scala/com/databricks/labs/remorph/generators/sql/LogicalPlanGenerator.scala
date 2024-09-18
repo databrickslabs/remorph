@@ -1,14 +1,18 @@
 package com.databricks.labs.remorph.generators.sql
 
 import com.databricks.labs.remorph.generators.{Generator, GeneratorContext}
+import com.databricks.labs.remorph.parsers.intermediate.Batch
 import com.databricks.labs.remorph.parsers.{intermediate => ir}
 import com.databricks.labs.remorph.transpilers.TranspileException
 
-class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: Boolean = false)
+class LogicalPlanGenerator(
+    val expr: ExpressionGenerator,
+    val optGen: OptionGenerator,
+    val explicitDistinct: Boolean = false)
     extends Generator[ir.LogicalPlan, String] {
 
   override def generate(ctx: GeneratorContext, tree: ir.LogicalPlan): String = tree match {
-    case b: ir.Batch => b.children.map(generate(ctx, _)).mkString("", ";\n", ";")
+    case b: ir.Batch => batch(ctx, b)
     case w: ir.WithCTE => cte(ctx, w)
     case p: ir.Project => project(ctx, p)
     case ir.NamedTable(id, _, _) => id
@@ -34,10 +38,67 @@ class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: 
     case ir.DeleteFromTable(target, None, where, None, None) => delete(ctx, target, where)
     case c: ir.CreateTableCommand => createTable(ctx, c)
     case t: ir.TableSample => tableSample(ctx, t)
+    case a: ir.AlterTableCommand => alterTable(ctx, a)
+    case l: ir.Lateral => lateral(ctx, l)
     case ir.NoopNode => ""
-    case ir.UnresolvedCommand(inputText) => s"--${inputText}"
+    //  TODO We should always generate an unresolved node, our plan should never be null
     case null => "" // don't fail transpilation if the plan is null
     case x => throw unknown(x)
+  }
+
+  private def batch(ctx: GeneratorContext, b: Batch): String = {
+    val seqSql = b.children
+      .map {
+        case ir.UnresolvedCommand(text) =>
+          s"-- ${text.stripSuffix(";")}"
+        case query => s"${generate(ctx, query)}"
+      }
+      .filter(_.nonEmpty)
+    if (seqSql.nonEmpty) {
+      seqSql.mkString("", ";\n", ";")
+    } else {
+      ""
+    }
+  }
+
+  private def alterTable(ctx: GeneratorContext, a: ir.AlterTableCommand): String = {
+    val operation = buildTableAlteration(ctx, a.alterations)
+    s"ALTER TABLE  ${a.tableName} $operation"
+  }
+
+  private def buildTableAlteration(ctx: GeneratorContext, alterations: Seq[ir.TableAlteration]): String = {
+    // docs:https://docs.databricks.com/en/sql/language-manual/sql-ref-syntax-ddl-alter-table.html#parameters
+    // docs:https://learn.microsoft.com/en-us/azure/databricks/sql/language-manual/sql-ref-syntax-ddl-alter-table#syntax
+    // ADD COLUMN can be Seq[ir.TableAlteration]
+    // DROP COLUMN will be ir.TableAlteration since it stored the list of columns
+    // DROP CONSTRAINTS BY NAME is ir.TableAlteration
+    // RENAME COLUMN/ RENAME CONSTRAINTS Always be ir.TableAlteration
+    // ALTER COLUMN IS A Seq[ir.TableAlternations] Data Type Change, Constraint Changes etc
+    alterations map {
+      case ir.AddColumn(columns) => s"ADD COLUMN ${buildAddColumn(ctx, columns)}"
+      case ir.DropColumns(columns) => s"DROP COLUMN ${columns.mkString(", ")}"
+      case ir.DropConstraintByName(constraints) => s"DROP CONSTRAINT ${constraints}"
+      case ir.RenameColumn(oldName, newName) => s"RENAME COLUMN ${oldName} to ${newName}"
+      case x => throw TranspileException(s"Unsupported table alteration ${x}")
+    } mkString ", "
+  }
+
+  private def buildAddColumn(ctx: GeneratorContext, columns: Seq[ir.ColumnDeclaration]): String = {
+    columns
+      .map { c =>
+        val dataType = DataTypeGenerator.generateDataType(ctx, c.dataType)
+        val constraints = c.constraints.map(constraint(ctx, _)).mkString(" ")
+        s"${c.name} $dataType $constraints"
+      }
+      .mkString(", ")
+  }
+
+  // @see https://docs.databricks.com/en/sql/language-manual/sql-ref-syntax-qry-select-lateral-view.html
+  private def lateral(ctx: GeneratorContext, lateral: ir.Lateral): String = lateral match {
+    case ir.Lateral(ir.TableFunction(fn), isOuter) =>
+      val outer = if (isOuter) " OUTER" else ""
+      s"LATERAL VIEW$outer ${expr.generate(ctx, fn)}"
+    case _ => throw unknown(lateral)
   }
 
   // @see https://docs.databricks.com/en/sql/language-manual/sql-ref-syntax-qry-select-sampling.html
@@ -63,12 +124,46 @@ class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: 
   }
 
   private def constraint(ctx: GeneratorContext, c: ir.Constraint): String = c match {
-    case ir.Unique => "UNIQUE"
+    case unique: ir.Unique => generateUniqueConstraint(ctx, unique)
     case ir.Nullability(nullable) => if (nullable) "NULL" else "NOT NULL"
-    case ir.PrimaryKey => "PRIMARY KEY"
-    case ir.ForeignKey(references) => s"FOREIGN KEY REFERENCES $references"
+    case pk: ir.PrimaryKey => generatePrimaryKey(ctx, pk)
+    case fk: ir.ForeignKey => generateForeignKey(ctx, fk)
     case ir.NamedConstraint(name, unnamed) => s"CONSTRAINT $name ${constraint(ctx, unnamed)}"
     case ir.UnresolvedConstraint(inputText) => s"/** $inputText **/"
+    case ir.CheckConstraint(e) => s"CHECK (${expr.generate(ctx, e)})"
+    case ir.DefaultValueConstraint(value) => s"DEFAULT ${expr.generate(ctx, value)}"
+    case ir.IdentityConstraint(seed, step) => s"IDENTITY ($seed, $step)"
+  }
+
+  private def generateForeignKey(ctx: GeneratorContext, fk: ir.ForeignKey): String = {
+    val colNames = fk.tableCols match {
+      case "" => ""
+      case cols => s"(${cols}) "
+    }
+    val commentOptions = optGen.generateOptionList(ctx, fk.options) match {
+      case "" => ""
+      case options => s" /* Unsupported:  $options */"
+    }
+    s"FOREIGN KEY ${colNames}REFERENCES ${fk.refObject}(${fk.refCols})$commentOptions"
+  }
+
+  private def generatePrimaryKey(context: GeneratorContext, key: ir.PrimaryKey): String = {
+    val columns = key.columns.map(_.mkString("(", ", ", ")")).getOrElse("")
+    val commentOptions = optGen.generateOptionList(context, key.options) match {
+      case "" => ""
+      case options => s" /* $options */"
+    }
+    val columnsStr = if (columns.isEmpty) "" else s" $columns"
+    s"PRIMARY KEY${columnsStr}${commentOptions}"
+  }
+
+  private def generateUniqueConstraint(ctx: GeneratorContext, unique: ir.Unique): String = {
+    val columns = unique.columns.map(_.mkString("(", ", ", ")")).getOrElse("")
+    val commentOptions = optGen.generateOptionList(ctx, unique.options) match {
+      case "" => ""
+      case options => s" /* $options */"
+    }
+    s"UNIQUE ${columns}${commentOptions}"
   }
 
   private def project(ctx: GeneratorContext, proj: ir.Project): String = {
@@ -96,23 +191,35 @@ class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: 
   private def generateJoin(ctx: GeneratorContext, join: ir.Join): String = {
     val left = generate(ctx, join.left)
     val right = generate(ctx, join.right)
-    val joinType = generateJoinType(join.join_type)
-    val joinClause = if (joinType.isEmpty) { "JOIN" }
-    else { joinType + " JOIN" }
-    val conditionOpt = join.join_condition.map(expr.generate(ctx, _))
-    val condition = conditionOpt.map("ON " + _).getOrElse("")
-    val usingColumns = join.using_columns.mkString(", ")
-    val using = if (usingColumns.isEmpty) "" else s"USING ($usingColumns)"
-    Seq(left, joinClause, right, condition, using).filterNot(_.isEmpty).mkString(" ")
+    if (join.join_condition.isEmpty && join.using_columns.isEmpty && join.join_type == ir.InnerJoin) {
+      if (join.right.find(_.isInstanceOf[ir.Lateral]).isDefined) {
+        s"$left $right"
+      } else {
+        s"$left, $right"
+      }
+    } else {
+      val joinType = generateJoinType(join.join_type)
+      val joinClause = if (joinType.isEmpty) { "JOIN" }
+      else { joinType + " JOIN" }
+      val conditionOpt = join.join_condition.map(expr.generate(ctx, _))
+      val condition = join.join_condition match {
+        case None => ""
+        case Some(_: ir.And) | Some(_: ir.Or) => s"ON (${conditionOpt.get})"
+        case Some(_) => s"ON ${conditionOpt.get}"
+      }
+      val usingColumns = join.using_columns.mkString(", ")
+      val using = if (usingColumns.isEmpty) "" else s"USING ($usingColumns)"
+      Seq(left, joinClause, right, condition, using).filterNot(_.isEmpty).mkString(" ")
+    }
   }
 
   private def generateJoinType(joinType: ir.JoinType): String = joinType match {
     case ir.InnerJoin => "INNER"
     case ir.FullOuterJoin => "FULL OUTER"
-    case ir.LeftOuterJoin => "LEFT OUTER"
+    case ir.LeftOuterJoin => "LEFT"
     case ir.LeftSemiJoin => "LEFT SEMI"
     case ir.LeftAntiJoin => "LEFT ANTI"
-    case ir.RightOuterJoin => "RIGHT OUTER"
+    case ir.RightOuterJoin => "RIGHT"
     case ir.CrossJoin => "CROSS"
     case ir.NaturalJoin(ir.UnspecifiedJoin) => "NATURAL"
     case ir.NaturalJoin(jt) => s"NATURAL ${generateJoinType(jt)}"
@@ -225,14 +332,17 @@ class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: 
   }
 
   private def subQueryAlias(ctx: GeneratorContext, subQAlias: ir.SubqueryAlias): String = {
-    val subquery = generate(ctx, subQAlias.child)
+    val subquery = subQAlias.child match {
+      case l: ir.Lateral => lateral(ctx, l)
+      case _ => s"(${generate(ctx, subQAlias.child)})"
+    }
     val tableName = expr.generate(ctx, subQAlias.alias)
     val table = if (subQAlias.columnNames.isEmpty) {
       tableName
     } else {
       tableName + subQAlias.columnNames.map(expr.generate(ctx, _)).mkString("(", ", ", ")")
     }
-    s"($subquery) AS $table"
+    s"$subquery AS $table"
   }
 
   private def tableAlias(ctx: GeneratorContext, alias: ir.TableAlias): String = {

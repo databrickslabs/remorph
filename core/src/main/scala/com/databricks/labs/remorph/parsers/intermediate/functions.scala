@@ -1,5 +1,7 @@
 package com.databricks.labs.remorph.parsers.intermediate
 
+import com.databricks.labs.remorph.transpilers.TranspileException
+
 import java.util.Locale
 
 trait Fn extends Expression {
@@ -12,7 +14,19 @@ case class CallFunction(function_name: String, arguments: Seq[Expression]) exten
   override def prettyName: String = function_name.toUpperCase(Locale.getDefault)
 }
 
-class CallMapper extends IRHelpers {
+class CallMapper extends Rule[LogicalPlan] with IRHelpers {
+
+  override final def apply(plan: LogicalPlan): LogicalPlan = {
+    plan transformAllExpressions { case fn: Fn =>
+      try {
+        convert(fn)
+      } catch {
+        case e: IndexOutOfBoundsException =>
+          throw TranspileException(s"${fn.prettyName}: illegal index: ${e.getMessage}, expr: $fn")
+
+      }
+    }
+  }
 
   /** This function is supposed to be overridden by dialects */
   def convert(call: Fn): Expression = withNormalizedName(call) match {
@@ -149,7 +163,7 @@ class CallMapper extends IRHelpers {
     case CallFunction("LEAST", args) => Least(args)
     case CallFunction("LEFT", args) => Left(args.head, args(1))
     case CallFunction("LENGTH", args) => Length(args.head)
-    case CallFunction("LEVENSHTEIN", args) => Levenshtein(args.head, args(1))
+    case CallFunction("LEVENSHTEIN", args) => Levenshtein(args.head, args(1), args.lift(2))
     case CallFunction("LN", args) => Log(args.head)
     case CallFunction("LOG", args) => Logarithm(args.head, args(1))
     case CallFunction("LOG10", args) => Log10(args.head)
@@ -854,8 +868,11 @@ case class Left(left: Expression, right: Expression) extends Binary(left, right)
 }
 
 /** levenshtein(str1, str2) - Returns the Levenshtein distance between the two given strings. */
-case class Levenshtein(left: Expression, right: Expression) extends Binary(left, right) with Fn {
+case class Levenshtein(left: Expression, right: Expression, maxDistance: Option[Expression])
+    extends Expression
+    with Fn {
   override def prettyName: String = "LEVENSHTEIN"
+  override def children: Seq[Expression] = Seq(left, right) ++ maxDistance.toSeq
   override def dataType: DataType = UnresolvedType
 }
 

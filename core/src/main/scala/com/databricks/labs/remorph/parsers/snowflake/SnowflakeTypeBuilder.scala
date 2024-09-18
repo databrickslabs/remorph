@@ -25,6 +25,9 @@ class SnowflakeTypeBuilder {
       case _ if ctx.charAlias != null => ir.StringType
       case _ if ctx.varcharAlias != null => ir.StringType
       case _ if ctx.numberAlias != null => decimal(ctx)
+      case _ if ctx.TIMESTAMP() != null => ir.TimestampType
+      case _ if ctx.TIMESTAMP_LTZ() != null => ir.TimestampType
+      case _ if ctx.TIMESTAMP_NTZ() != null => ir.TimestampNTZType
 
       // non-precision types
       case _ if ctx.ARRAY() != null => ir.ArrayType(buildDataType(ctx.dataType()))
@@ -46,9 +49,6 @@ class SnowflakeTypeBuilder {
       case "STRING" => ir.StringType
       case "TEXT" => ir.StringType
       case "TIME" => ir.TimestampType
-      case "TIMESTAMP" => ir.TimestampType
-      case "TIMESTAMP_LTZ" => ir.TimestampType
-      case "TIMESTAMP_NTZ" => ir.TimestampNTZType
       case "TIMESTAMP_TZ" => ir.TimestampType
       case "TINYINT" => ir.TinyintType
       case "VARBINARY" => ir.BinaryType
@@ -61,8 +61,10 @@ class SnowflakeTypeBuilder {
 
   private def decimal(c: DataTypeContext) = {
     val nums = c.num().asScala
-    val precision = nums.headOption.map(_.getText.toInt)
-    val scale = nums.drop(1).headOption.map(_.getText.toInt)
+    // https://docs.snowflake.com/en/sql-reference/data-types-numeric#number
+    // Per Docs defaulting the precision to 38 and scale to 0
+    val precision = nums.headOption.map(_.getText.toInt).getOrElse(38)
+    val scale = nums.drop(1).headOption.map(_.getText.toInt).getOrElse(0)
     ir.DecimalType(precision, scale)
   }
 }

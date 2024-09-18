@@ -11,4 +11,4 @@ JOIN TABL2 AS B
     A.COL1 = B.COL1 OR (
       A.COL1 IS NULL AND B.COL1 IS NULL
     )
-  )
+  );

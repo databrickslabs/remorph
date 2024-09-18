@@ -1,5 +1,7 @@
 package com.databricks.labs.remorph.parsers.intermediate
 
+import com.databricks.labs.remorph.parsers.GenericOption
+
 trait AstExtension
 
 abstract class ToRefactor extends LeafExpression {
@@ -75,7 +77,7 @@ case class TableWithHints(child: LogicalPlan, hints: Seq[TableHint]) extends Una
 }
 
 case class Batch(children: Seq[LogicalPlan]) extends LogicalPlan {
-  override def output: Seq[Attribute] = children.lastOption.map(_.output).getOrElse(Seq())
+  override def output: Seq[Attribute] = children.lastOption.map(_.output).getOrElse(Seq()).toSeq
 }
 
 case class FunctionParameter(name: String, dataType: DataType, defaultValue: Option[Expression])
@@ -161,11 +163,13 @@ case class FilterStruct(input: NamedStruct, lambdaFunction: LambdaFunction) exte
 case object CrossApply extends JoinType
 case object OuterApply extends JoinType
 
+// TODO: fix
+// @see https://docs.databricks.com/en/sql/language-manual/sql-ref-syntax-qry-select-tvf.html
 case class TableFunction(functionCall: Expression) extends LeafNode {
   override def output: Seq[Attribute] = Seq.empty
 }
 
-case class Lateral(expr: LogicalPlan) extends UnaryNode {
+case class Lateral(expr: LogicalPlan, outer: Boolean = false) extends UnaryNode {
   override def child: LogicalPlan = expr
   override def output: Seq[Attribute] = expr.output
 }
@@ -188,6 +192,26 @@ case class WithOptions(input: LogicalPlan, options: Expression) extends UnaryNod
   override def child: LogicalPlan = input
   override def output: Seq[Attribute] = input.output
 }
+
+case class WithModificationOptions(input: Modification, options: Expression) extends Modification {
+  override def children: Seq[Modification] = Seq(input)
+  override def output: Seq[Attribute] = input.output
+}
+
+// TSQL allows the definition of everything including constraints and indexes in CREATE TABLE,
+// whereas Databricks SQL does not. We will store the constraints, indexes etc., separately from the
+// spark like CreateTable and then deal with them in the generator. This is because some TSQL stuff will
+// be column constraints, some become table constraints, some need to be generated as ALTER statements after
+// the CREATE TABLE, etc.
+case class CreateTableParams(
+    create: Catalog, // The base create table command
+    colConstraints: Map[String, Seq[Constraint]], // Column constraints
+    colOptions: Map[String, Seq[GenericOption]], // Column constraints
+    constraints: Seq[Constraint], // Table constraints
+    indices: Seq[Constraint], // Index Definitions (currently all unresolved)
+    partition: Option[String], // Partitioning information but unsupported
+    options: Option[Seq[GenericOption]] // Command level options
+) extends Catalog
 
 // Though at least TSQL only needs the time based intervals, we are including all the interval types
 // supported by Spark SQL for completeness and future proofing
