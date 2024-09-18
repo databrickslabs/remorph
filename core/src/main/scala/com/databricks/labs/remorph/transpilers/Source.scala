@@ -8,9 +8,6 @@ case class SourceCode(source: String, filename: String = "-- test source --")
 
 trait Source extends Iterator[SourceCode]
 
-
-
-
 class DirectorySource(root: String, fileFilter: Option[Path => Boolean] = None) extends Source {
   private val files =
     Files

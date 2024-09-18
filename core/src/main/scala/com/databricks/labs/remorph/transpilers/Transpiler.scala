@@ -16,19 +16,8 @@ object WorkflowStage {
   case object GENERATE extends WorkflowStage
 }
 
-case class Result(
-    stage: WorkflowStage = WorkflowStage.PARSE,
-    errorsJson: String = "",
-    tree: Option[ParserRuleContext] = None,
-    plan: Option[ir.LogicalPlan] = None,
-    optimizedPlan: Option[ir.LogicalPlan] = None,
-    output: Option[String] = None) {
-
-  def inError(): Boolean = errorsJson.nonEmpty
-}
-
 trait Transpiler {
-  def transpile(input: SourceCode): Result
+  def transpile(input: SourceCode): Result[String]
 }
 
 class Sed(rules: (String, String)*) {
@@ -65,45 +54,15 @@ trait Formatter {
 
 abstract class BaseTranspiler extends Transpiler with Formatter {
 
-  protected def parse(input: SourceCode): Result
-  protected def toParseTree(input: SourceCode): Result = {
-    val parsed = parse(input)
-    if (parsed.inError()) parsed
-    else Result(stage = WorkflowStage.PARSE, tree = parsed.tree)
-  }
-  protected def visit(tree: Result): Result
-  protected def toPlan(input: SourceCode): Result = {
-    val parsed = parse(input)
-    val visited = processStage(parsed, r => visit(parsed))
-    if (visited.inError()) visited
-    else Result(stage = WorkflowStage.PLAN, plan = visited.plan, tree = visited.tree)
-  }
+  protected def parse(input: SourceCode): Result[ParserRuleContext]
 
-  protected def optimize(logicalPlan: Result): Result
+  protected def visit(tree: ParserRuleContext): Result[ir.LogicalPlan]
 
-  protected def toOptimizedPlan(input: SourceCode): Result = {
-    val parsed = parse(input)
-    val visited = processStage(parsed, r => visit(parsed))
-    val optimized = processStage(visited, r => optimize(visited))
-    if (optimized.inError()) optimized
-    else Result(stage = WorkflowStage.OPTIMIZE, optimizedPlan = optimized.optimizedPlan)
-  }
+  protected def optimize(logicalPlan: ir.LogicalPlan): Result[ir.LogicalPlan]
 
-  protected def generate(optimizedLogicalPlan: Result): Result
+  protected def generate(optimizedLogicalPlan: ir.LogicalPlan): Result[String]
 
-  def processStage(currentResult: Result, nextStage: Result => Result): Result = {
-    if (currentResult.inError()) currentResult
-    else nextStage(currentResult)
-  }
-
-  override def transpile(input: SourceCode): Result = {
-
-    val parsed = parse(input)
-    val visited = processStage(parsed, r => visit(parsed))
-    val optimized = processStage(visited, r => optimize(visited))
-    val generated = processStage(optimized, r => generate(optimized))
-
-    if (generated.inError()) generated
-    else Result(stage = WorkflowStage.GENERATE, output = Some(format(generated.output.get)))
+  override def transpile(input: SourceCode): Result[String] = {
+    parse(input).flatMap(visit).flatMap(optimize).flatMap(generate)
   }
 }
