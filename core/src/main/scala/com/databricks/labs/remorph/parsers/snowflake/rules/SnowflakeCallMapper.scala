@@ -11,9 +11,6 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
   private val oneLiteral: ir.Literal = ir.IntLiteral(1)
 
   override def convert(call: ir.Fn): ir.Expression = {
-    print("\n")
-    print(call)
-    print("\n")
     withNormalizedName(call) match {
       // keep all the names in alphabetical order
       case ir.CallFunction("ARRAY_CAT", args) => ir.Concat(args)

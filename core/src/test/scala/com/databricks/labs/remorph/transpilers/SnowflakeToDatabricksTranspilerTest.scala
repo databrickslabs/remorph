@@ -150,4 +150,22 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
 
   }
 
+  "Snowflake transpile function with optional brackets" should {
+
+    "SELECT CURRENT_DATE, CURRENT_TIMESTAMP, CURRENT_TIME, LOCALTIME, LOCALTIMESTAMP FROM t1" in {
+      s"""SELECT CURRENT_DATE, CURRENT_TIMESTAMP, CURRENT_TIME,
+         |LOCALTIME, LOCALTIMESTAMP FROM t1""".stripMargin transpilesTo (
+        s"""SELECT
+           |  CURRENT_DATE(),
+           |  CURRENT_TIMESTAMP(),
+           |  DATE_FORMAT(CURRENT_TIMESTAMP(), 'HH:mm:ss'),
+           |  LOCALTIME(),
+           |  LOCALTIMESTAMP()
+           |FROM
+           |  t1;""".stripMargin
+      )
+    }
+
+  }
+
 }

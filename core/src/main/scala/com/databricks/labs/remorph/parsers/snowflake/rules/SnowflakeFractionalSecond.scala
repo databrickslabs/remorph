@@ -23,13 +23,19 @@ class SnowflakeFractionalSecond extends ir.Rule[ir.LogicalPlan] {
   override def apply(plan: ir.LogicalPlan): ir.LogicalPlan = {
     plan transformAllExpressions {
       case ir.CallFunction("CURRENT_TIME", right) => handleSpecialTSFunctions("CURRENT_TIME", right)
+      case ir.CallFunction("LOCALTIME", right) => handleSpecialTSFunctions("LOCALTIME", right)
       case ir.CallFunction("CURRENT_TIMESTAMP", right) =>
         if (right.isEmpty) {
           ir.CurrentTimestamp()
         } else {
           handleSpecialTSFunctions("CURRENT_TIMESTAMP", right)
         }
-      case ir.CallFunction("LOCAL_TIMESTAMP", right) => handleSpecialTSFunctions("LOCAL_TIMESTAMP", right)
+      case ir.CallFunction("LOCAL_TIMESTAMP", right) =>
+        if (right.isEmpty) {
+          ir.CurrentTimestamp()
+        } else {
+          handleSpecialTSFunctions("CURRENT_TIMESTAMP", right)
+        }
     }
   }
 
@@ -48,7 +54,7 @@ class SnowflakeFractionalSecond extends ir.Rule[ir.LogicalPlan] {
     // https://docs.snowflake.com/en/sql-reference/functions/current_time
     // https://docs.snowflake.com/en/sql-reference/functions/localtimestamp
     val formatString = functionName match {
-      case "CURRENT_TIME" => timeFormat
+      case "CURRENT_TIME" | "LOCALTIME" => timeFormat
       case _ => s"yyyy-MM-dd $timeFormat.SSS"
     }
     ir.DateFormatClass(ir.CurrentTimestamp(), ir.Literal(formatString))
