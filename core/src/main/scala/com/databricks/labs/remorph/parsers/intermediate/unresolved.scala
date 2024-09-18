@@ -45,9 +45,9 @@ case class UnresolvedCommand(inputText: String) extends Catalog with Command {
 case class UnresolvedCatalog(inputText: String) extends Catalog {
   override def output: Seq[Attribute] = Seq.empty
   override def children: Seq[LogicalPlan] = Seq.empty
+}
 
 case class UnresolvedCTAS(inputText: String) extends Catalog with Command {
   override def output: Seq[Attribute] = Seq.empty
   override def children: Seq[LogicalPlan] = Seq.empty
 }
-
