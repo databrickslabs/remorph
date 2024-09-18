@@ -31,20 +31,16 @@ class SnowflakeTableDefination(conn: Connection) {
     dataTypeBuilder.buildDataType(ctx)
   }
 
-  /**
-   * Retrieves the definitions of all tables in the Snowflake database.
-   *
-   * @return A sequence of TableDefinition objects representing the tables in the database.
-   */
-  def getTableDefinitions(catalogueName: String): Seq[TableDefinition] = {
-
-    val query = s"""SELECT
+  private def getTableDefinitionQuery(catalogueName: String): String = {
+    s"""SELECT
                    |    sft.TABLE_CATALOG,
                    |    sft.TABLE_SCHEMA,
                    |    sft.TABLE_NAME,
+                   |    sfe.location,
+                   |    sfe.file_format_name,
+                   |    sfv.view_definition,
                    |    t.Schema as derivedSchema,
                    |    sft.BYTES,
-                   |    sft.TABLE_TYPE
                    |FROM (
                    |    SELECT
                    |        TABLE_CATALOG,
@@ -70,20 +66,36 @@ class SnowflakeTableDefination(conn: Connection) {
                    |    ON t.TABLE_CATALOG = sft.TABLE_CATALOG
                    |    AND t.TABLE_SCHEMA = sft.TABLE_SCHEMA
                    |    AND t.TABLE_NAME = sft.TABLE_NAME
+                   |LEFT JOIN ${catalogueName}.INFORMATION_SCHEMA.VIEWS sfv
+                   |    ON t.TABLE_CATALOG = sfv.TABLE_CATALOG
+                   |    AND t.TABLE_SCHEMA = sfv.TABLE_SCHEMA
+                   |    AND t.TABLE_NAME = sfv.TABLE_NAME
+                   |LEFT JOIN ${catalogueName}.INFORMATION_SCHEMA.EXTERNAL_TABLES sfe
+                   |    ON t.TABLE_CATALOG = sfe.TABLE_CATALOG
+                   |    AND t.TABLE_SCHEMA = sfe.TABLE_SCHEMA
+                   |    AND t.TABLE_NAME = sfe.TABLE_NAME
                    |ORDER BY
-                   |    sft.TABLE_CATALOG, sft.TABLE_SCHEMA, sft.TABLE_NAME;""".stripMargin
+                   |    sft.TABLE_CATALOG, sft.TABLE_SCHEMA, sft.TABLE_NAME;
+                   |""".stripMargin
+  }
 
+  /**
+   * Retrieves the definitions of all tables in the Snowflake database.
+   *
+   * @return A sequence of TableDefinition objects representing the tables in the database.
+   */
+  def getTableDefinitions(catalogueName: String): Seq[TableDefinition] = {
     val stmt = conn.createStatement()
     try {
       val tableDefinitionList = new scala.collection.mutable.ListBuffer[TableDefinition]()
-      val rs = stmt.executeQuery(query)
+      val rs = stmt.executeQuery(getTableDefinitionQuery(catalogueName))
       try {
         while (rs.next()) {
           val TABLE_CATALOG = rs.getString("TABLE_CATALOG")
           val TABLE_SCHEMA = rs.getString("TABLE_SCHEMA")
           val TABLE_NAME = rs.getString("TABLE_NAME")
           val columns = new ListBuffer[StructField]()
-          rs.getString(4)
+          rs.getString(7)
             .split("~")
             .foreach(x => {
               val data = x.split(":")
@@ -96,14 +108,13 @@ class SnowflakeTableDefination(conn: Connection) {
               TABLE_CATALOG,
               TABLE_SCHEMA,
               TABLE_NAME,
-              null, // location
-              Option(rs.getString("TABLE_TYPE")), // FORMAT
-              null, // view text
+              Option(rs.getString(4)), // location
+              Option(rs.getString(5)), // FORMAT
+              Option(rs.getString(6)), // view text
               columns,
               rs.getInt("BYTES") / (1024 * 1024 * 1024) // sizeGb
             ))
         }
-        print(tableDefinitionList.size)
         tableDefinitionList
       } finally {
         rs.close()
