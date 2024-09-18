@@ -7,6 +7,11 @@ from databricks.sdk.errors import NotFound
 
 from databricks.labs.remorph.config import RemorphConfigs
 from databricks.labs.remorph.deployment.recon import ReconDeployment
+from databricks.labs.blueprint.wheels import WheelsV2
+
+from databricks.sdk.errors.platform import InvalidParameterValue
+from databricks.labs.blueprint.upgrades import Upgrades
+
 
 logger = logging.getLogger("databricks.labs.remorph.install")
 
@@ -18,15 +23,33 @@ class WorkspaceInstallation:
         prompts: Prompts,
         installation: Installation,
         recon_deployment: ReconDeployment,
+        wheels: WheelsV2,
+        upgrades: Upgrades,
     ):
         self._ws = ws
         self._prompts = prompts
         self._installation = installation
         self._recon_deployment = recon_deployment
+        self._wheels = wheels
+        self._upgrades = upgrades
+
+    def _apply_upgrades(self):
+        try:
+            self._upgrades.apply(self._ws)
+        except (InvalidParameterValue, NotFound) as err:
+            logger.warning(f"Unable to apply Upgrades due to: {err}")
+
+    def _upload_wheel(self):
+        with self._wheels:
+            wheel_paths = [self._wheels.upload_to_wsfs()]
+            wheel_paths = [f"/Workspace{wheel}" for wheel in wheel_paths]
+            return wheel_paths
 
     def install(self, config: RemorphConfigs):
         if config.reconcile:
             self._recon_deployment.install(config.reconcile)
+        self._upload_wheel()
+        self._apply_upgrades()
 
     def uninstall(self, config: RemorphConfigs):
         # This will remove all the Remorph modules

@@ -11,7 +11,7 @@ from databricks.labs.remorph.deployment.configurator import ResourceConfigurator
 from databricks.labs.remorph.deployment.installation import WorkspaceInstallation
 from databricks.labs.remorph.install import WorkspaceInstaller, MODULES
 from databricks.labs.remorph.config import MorphConfig
-from databricks.labs.blueprint.wheels import ProductInfo
+from databricks.labs.blueprint.wheels import ProductInfo, WheelsV2
 from databricks.labs.remorph.config import SQLGLOT_DIALECTS
 from databricks.labs.remorph.reconcile.constants import ReconSourceType, ReconReportType
 
@@ -932,4 +932,79 @@ def test_configure_all_override_installation(ws):
             },
             "version": 1,
         },
+    )
+
+
+def test_runs_upgrades_on_more_recent_version(ws):
+    installation = MockInstallation(
+        {
+            'version.json': {'version': '0.3.0', 'wheel': '...', 'date': '...'},
+            'state.json': {
+                'resources': {
+                    'dashboards': {'Reconciliation Metrics': 'abc'},
+                    'jobs': {'Reconciliation Runner': '12345'},
+                }
+            },
+            'config.yml': {
+                "source": "snowflake",
+                "catalog_name": "upgrades",
+                "input_sql": "queries",
+                "output_folder": "out",
+                "schema_name": "test",
+                "sdk_config": {
+                    "warehouse_id": "dummy",
+                },
+                "version": 1,
+            },
+        }
+    )
+
+    ctx = ApplicationContext(ws)
+    prompts = MockPrompts(
+        {
+            r"Select a module to configure:": MODULES.index("transpile"),
+            r"Do you want to override the existing installation?": "yes",
+            r"Select the source": sorted(SQLGLOT_DIALECTS.keys()).index("snowflake"),
+            r"Enter input SQL path.*": "/tmp/queries/snow",
+            r"Enter output directory.*": "/tmp/queries/databricks",
+            r"Would you like to validate.*": "no",
+            r"Open .* in the browser?": "no",
+        }
+    )
+    wheels = create_autospec(WheelsV2)
+
+    mock_workspace_installation = create_autospec(WorkspaceInstallation)
+
+    ctx.replace(
+        prompts=prompts,
+        installation=installation,
+        resource_configurator=create_autospec(ResourceConfigurator),
+        workspace_installation=mock_workspace_installation,
+        wheels=wheels,
+    )
+
+    workspace_installer = WorkspaceInstaller(
+        ctx.workspace_client,
+        ctx.prompts,
+        ctx.installation,
+        ctx.install_state,
+        ctx.product_info,
+        ctx.resource_configurator,
+        ctx.workspace_installation,
+    )
+
+    workspace_installer.run()
+
+    mock_workspace_installation.install.assert_called_once_with(
+        RemorphConfigs(
+            morph=MorphConfig(
+                source="snowflake",
+                input_sql="/tmp/queries/snow",
+                output_folder="/tmp/queries/databricks",
+                catalog_name="remorph",
+                schema_name="transpiler",
+                mode="current",
+                skip_validation=True,
+            )
+        )
     )
