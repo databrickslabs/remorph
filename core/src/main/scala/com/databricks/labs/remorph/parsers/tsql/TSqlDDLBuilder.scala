@@ -1,7 +1,7 @@
 package com.databricks.labs.remorph.parsers.tsql
 
-import com.databricks.labs.remorph.parsers.intermediate.{Constraint, Expression, StructField}
-import com.databricks.labs.remorph.parsers.{GenericOption, OptionAuto, OptionExpression, OptionOff, OptionOn, OptionString, OptionUnresolved, ParserCommon, intermediate => ir}
+import com.databricks.labs.remorph.parsers.intermediate.{Constraint, Expression, GenericOption, OptionAuto, OptionExpression, OptionOff, OptionOn, OptionString, OptionUnresolved, StructField}
+import com.databricks.labs.remorph.parsers.{ParserCommon, intermediate => ir}
 import com.databricks.labs.remorph.utils.ParsingUtils
 
 import scala.collection.JavaConverters.asScalaBufferConverter

@@ -1,7 +1,7 @@
 package com.databricks.labs.remorph.generators.sql
 
 import com.databricks.labs.remorph.generators.GeneratorContext
-import com.databricks.labs.remorph.parsers._
+import com.databricks.labs.remorph.parsers.intermediate.{GenericOption, OptionAuto, OptionDefault, OptionExpression, OptionOff, OptionOn, OptionString, OptionUnresolved}
 
 class OptionGenerator(expr: ExpressionGenerator) {
 

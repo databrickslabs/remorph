@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.parsers.tsql
 
-import com.databricks.labs.remorph.parsers._
+import com.databricks.labs.remorph.parsers.intermediate.{GenericOption, OptionAuto, OptionDefault, OptionExpression, OptionLists, OptionOff, OptionOn, OptionString}
 import com.databricks.labs.remorph.parsers.{intermediate => ir}
 import com.databricks.labs.remorph.parsers.tsql.TSqlParser.GenericOptionContext
 
