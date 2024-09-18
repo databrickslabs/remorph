@@ -217,7 +217,7 @@ class TSqlDDLBuilder(
       case pu if pu.PRIMARY() != null || pu.UNIQUE() != null =>
         if (pu.clustered() != null) {
           if (pu.clustered().CLUSTERED() != null) {
-            options +=ir.OptionUnresolved(pu.clustered().getText)
+            options += ir.OptionUnresolved(pu.clustered().getText)
           }
         }
         val colNames = ctx.columnNameListWithOrder().columnNameWithOrder().asScala.map { cnwo =>
