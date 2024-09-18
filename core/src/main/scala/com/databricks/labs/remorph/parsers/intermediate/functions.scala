@@ -97,7 +97,7 @@ class CallMapper extends Rule[LogicalPlan] with IRHelpers {
     case CallFunction("CURRENT_CATALOG", _) => CurrentCatalog()
     case CallFunction("CURRENT_DATABASE", _) => CurrentDatabase()
     case CallFunction("CURRENT_DATE", _) => CurrentDate()
-    case CallFunction("CURRENT_TIMESTAMP", _) => CurrentTimestamp()
+    // case CallFunction("CURRENT_TIMESTAMP", _) => CurrentTimestamp()
     case CallFunction("CURRENT_TIMEZONE", _) => CurrentTimeZone()
     case CallFunction("DATEDIFF", args) => DateDiff(args.head, args(1))
     case CallFunction("DATE_ADD", args) => DateAdd(args.head, args(1))

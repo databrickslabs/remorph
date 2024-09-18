@@ -11,6 +11,9 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
   private val oneLiteral: ir.Literal = ir.IntLiteral(1)
 
   override def convert(call: ir.Fn): ir.Expression = {
+    print("\n")
+    print(call)
+    print("\n")
     withNormalizedName(call) match {
       // keep all the names in alphabetical order
       case ir.CallFunction("ARRAY_CAT", args) => ir.Concat(args)
@@ -31,7 +34,6 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
       case ir.CallFunction("BASE64_ENCODE", args) => ir.Base64(args.head)
       case ir.CallFunction("BITOR_AGG", args) => ir.BitOrAgg(args.head)
       case ir.CallFunction("BOOLAND_AGG", args) => ir.BoolAnd(args.head)
-      case ir.CallFunction("CURRENT_TIMESTAMP", _) => ir.CurrentTimestamp()
       case ir.CallFunction("DATEADD", args) => dateAdd(args)
       case ir.CallFunction("DATEDIFF", args) => dateDiff(args)
       case ir.CallFunction("DATE_FROM_PARTS", args) => ir.MakeDate(args.head, args(1), args(2))
