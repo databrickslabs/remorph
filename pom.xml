@@ -26,7 +26,6 @@
     <module>linter</module>
     <module>core</module>
     <module>py</module>
-    <module>coverage</module>
   </modules>
   <scm>
     <connection>scm:git:https://github.com/databrickslabs/remorph.git</connection>
