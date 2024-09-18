@@ -14,14 +14,14 @@ class SnowflakeToDatabricksTranspiler extends BaseTranspiler {
   private val generator = new LogicalPlanGenerator(new ExpressionGenerator)
   private val optimizer =
     ir.Rules(
+      new SnowflakeFractionalSecond,
       new SnowflakeCallMapper,
       ir.AlwaysUpperNameForCallFunction,
       new UpdateToMerge,
       new CastParseJsonToFromJson(generator),
       new TranslateWithinGroup,
       new FlattenLateralViewToExplode(),
-      new FlattenNestedConcat,
-      new SnowflakeFractionalSecond)
+      new FlattenNestedConcat)
 
   override def parse(input: String): ir.LogicalPlan = {
     val inputString = CharStreams.fromString(input)
