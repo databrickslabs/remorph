@@ -134,7 +134,6 @@
         <configuration>
           <reportsDirectory>${project.build.directory}/surefire-reports</reportsDirectory>
           <junitxml>.</junitxml>
-          <testFailureIgnore>true</testFailureIgnore>
         </configuration>
         <executions>
           <execution>
