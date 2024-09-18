@@ -442,7 +442,7 @@ class LogicalPlanGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.L
         "CREATE TABLE some_table (a INT, b VARCHAR(10), CONSTRAINT c1 FOREIGN KEY (a, b) REFERENCES other_table(c, d))"
     }
 
-    "transpile to CREATE TABLE with a primary key, foreign key and a Unique column" in  {
+    "transpile to CREATE TABLE with a primary key, foreign key and a Unique column" in {
       ir.CreateTableParams(
         ir.CreateTable(
           "some_table",
