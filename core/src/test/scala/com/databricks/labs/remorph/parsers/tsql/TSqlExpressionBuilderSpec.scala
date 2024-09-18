@@ -11,9 +11,11 @@ import org.scalatest.wordspec.AnyWordSpec
 
 class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matchers with IRHelpers {
 
-  private val exprBuilder = new TSqlExpressionBuilder
+  private val exprBuilder = new TSqlExpressionBuilder(null)
+  private val relationBuilder = new TSqlRelationBuilder(exprBuilder)
+  exprBuilder.relationBuilder = relationBuilder
 
-  override protected def astBuilder: TSqlParserBaseVisitor[_] = new TSqlExpressionBuilder
+  override protected def astBuilder: TSqlParserBaseVisitor[_] = exprBuilder
 
   "TSqlExpressionBuilder" should {
     "translate literals" in {

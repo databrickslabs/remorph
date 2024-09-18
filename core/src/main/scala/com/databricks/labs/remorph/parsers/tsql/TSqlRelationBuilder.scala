@@ -7,9 +7,7 @@ import org.antlr.v4.runtime.ParserRuleContext
 
 import scala.collection.JavaConverters.asScalaBufferConverter
 
-class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.LogicalPlan] {
-
-  private val expressionBuilder = new TSqlExpressionBuilder
+class TSqlRelationBuilder(expressionBuilder: TSqlExpressionBuilder) extends TSqlParserBaseVisitor[ir.LogicalPlan] {
 
   override def visitCommonTableExpression(ctx: CommonTableExpressionContext): ir.LogicalPlan = {
     val tableName = expressionBuilder.visitId(ctx.id())
@@ -61,7 +59,7 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.LogicalPlan] {
     }
   }
 
-  private def buildTop(ctxOpt: Option[TSqlParser.TopClauseContext], input: ir.LogicalPlan): ir.LogicalPlan =
+  private[tsql] def buildTop(ctxOpt: Option[TSqlParser.TopClauseContext], input: ir.LogicalPlan): ir.LogicalPlan =
     ctxOpt.fold(input) { top =>
       val limit = top.expression().accept(expressionBuilder)
       if (top.PERCENT() != null) {
@@ -193,7 +191,7 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.LogicalPlan] {
   // we build a single map from both sources, either or both of which may be empty.
   // In true TSQL style, some of the hints have non-orthodox syntax, and must be handled
   // directly.
-  private def buildTableHints(ctx: Option[WithTableHintsContext]): Seq[ir.TableHint] = {
+  private[tsql] def buildTableHints(ctx: Option[WithTableHintsContext]): Seq[ir.TableHint] = {
     ctx.map(_.tableHint().asScala.map(buildHint).toList).getOrElse(Seq.empty)
   }
 

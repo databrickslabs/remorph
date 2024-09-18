@@ -218,7 +218,9 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
       when(joinTypeContextMock.INNER()).thenReturn(null)
       when(joinOnContextMock.joinType()).thenReturn(joinTypeContextMock)
 
-      val builder = new TSqlRelationBuilder
+      val expressionBuilder = new TSqlExpressionBuilder(null)
+      val builder = new TSqlRelationBuilder(expressionBuilder)
+      expressionBuilder.relationBuilder = builder
       val result = builder.translateJoinType(joinOnContextMock)
       result shouldBe UnspecifiedJoin
     }
@@ -889,7 +891,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
             | WHEN NOT MATCHED THEN INSERT (a, b) VALUES (s.a, s.b)
             | OPTION ( KEEPFIXED PLAN, FAST 666, MAX_GRANT_PERCENT = 30, FLAME ON, FLAME OFF, QUICKLY) """.stripMargin,
       expectedAst = Batch(
-        Seq(WithOptions(
+        Seq(WithModificationOptions(
           MergeIntoTable(
             NamedTable("t", Map(), is_streaming = false),
             NamedTable("s", Map(), is_streaming = false),
