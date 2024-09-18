@@ -7,4 +7,4 @@
 SELECT CHECKSUM_AGG(col1) FROM t1;
 
 -- databricks sql:
-SELECT MD5(CONCAT_WS(',', COLLECT_LIST(col1))) FROM t1;
+SELECT MD5(CONCAT_WS(',', ARRAY_AGG(col1))) FROM t1;
