@@ -17,8 +17,4 @@ object Result {
 
     override def flatMap[B](f: Nothing => Result[B]): Result[B] = this
   }
-
-  implicit class ResultKleisli[A, B](f: A => Result[B]) {
-    def >>[C](other: B => Result[C]): A => Result[C] = a => f(a).flatMap(other)
-  }
 }

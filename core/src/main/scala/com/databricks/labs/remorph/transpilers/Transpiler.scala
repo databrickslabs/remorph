@@ -63,6 +63,6 @@ abstract class BaseTranspiler extends Transpiler with Formatter {
   protected def generate(optimizedLogicalPlan: ir.LogicalPlan): Result[String]
 
   override def transpile(input: SourceCode): Result[String] = {
-    (parse _ >> visit >> optimize >> generate)(input)
+    parse(input).flatMap(visit).flatMap(optimize).flatMap(generate)
   }
 }
