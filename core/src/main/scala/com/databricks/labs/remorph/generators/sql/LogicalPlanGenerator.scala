@@ -1,7 +1,6 @@
 package com.databricks.labs.remorph.generators.sql
 
 import com.databricks.labs.remorph.generators.{Generator, GeneratorContext}
-import com.databricks.labs.remorph.parsers.intermediate.Batch
 import com.databricks.labs.remorph.parsers.{intermediate => ir}
 import com.databricks.labs.remorph.transpilers.TranspileException
 
@@ -46,7 +45,7 @@ class LogicalPlanGenerator(
     case x => throw unknown(x)
   }
 
-  private def batch(ctx: GeneratorContext, b: Batch): String = {
+  private def batch(ctx: GeneratorContext, b: ir.Batch): String = {
     val seqSql = b.children
       .map {
         case ir.UnresolvedCommand(text) =>
