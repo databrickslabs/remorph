@@ -437,7 +437,6 @@ class SnowflakeExpressionBuilder()
     functionBuilder.buildFunction(functionName, arguments)
   }
 
-
   private def fetchFunctionName(ctx: StandardFunctionContext): String = {
     if (ctx.functionName() != null) {
       ctx.functionName() match {

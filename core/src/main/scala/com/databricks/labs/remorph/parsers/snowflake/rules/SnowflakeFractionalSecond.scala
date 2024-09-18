@@ -2,7 +2,7 @@ package com.databricks.labs.remorph.parsers.snowflake.rules
 
 import com.databricks.labs.remorph.parsers.{intermediate => ir}
 
-class SnowflakeFractionalSecond extends ir.Rule[ir.LogicalPlan]{
+class SnowflakeFractionalSecond extends ir.Rule[ir.LogicalPlan] {
 
   // Please read the note here : https://docs.snowflake.com/en/sql-reference/functions/current_timestamp#arguments
   // TODO Fractional seconds are only displayed if they have been explicitly
@@ -20,13 +20,18 @@ class SnowflakeFractionalSecond extends ir.Rule[ir.LogicalPlan]{
     8 -> "HH:mm:ss",
     9 -> "HH:mm:ss")
 
-    override def apply(plan: ir.LogicalPlan): ir.LogicalPlan = {
-      plan transformAllExpressions {
-        case ir.CallFunction("CURRENT_TIME", right) => handleSpecialTSFunctions("CURRENT_TIME", right)
-        case ir.CallFunction("CURRENT_TIMESTAMP", right) => handleSpecialTSFunctions("CURRENT_TIMESTAMP", right)
-        case ir.CallFunction("LOCAL_TIMESTAMP", right) => handleSpecialTSFunctions("LOCAL_TIMESTAMP", right)
-      }
+  override def apply(plan: ir.LogicalPlan): ir.LogicalPlan = {
+    plan transformAllExpressions {
+      case ir.CallFunction("CURRENT_TIME", right) => handleSpecialTSFunctions("CURRENT_TIME", right)
+      case ir.CallFunction("CURRENT_TIMESTAMP", right) =>
+        if (right.isEmpty) {
+          ir.CurrentTimestamp()
+        } else {
+          handleSpecialTSFunctions("CURRENT_TIMESTAMP", right)
+        }
+      case ir.CallFunction("LOCAL_TIMESTAMP", right) => handleSpecialTSFunctions("LOCAL_TIMESTAMP", right)
     }
+  }
 
   private def getIntegerValue(literal: Option[ir.Literal]): Option[Int] = literal match {
     case Some(ir.Literal(value: Int, _)) => Some(value)
@@ -48,7 +53,5 @@ class SnowflakeFractionalSecond extends ir.Rule[ir.LogicalPlan]{
     }
     ir.DateFormatClass(ir.CurrentTimestamp(), ir.Literal(formatString))
   }
-
-
 
 }
