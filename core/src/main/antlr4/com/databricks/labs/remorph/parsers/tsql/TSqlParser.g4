@@ -23,7 +23,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 THE SOFTWARE.
 */
 
-
 // =================================================================================
 // Please reformat the grammr file before a change commit. See remorph/core/README.md
 // For formatting, see: https://github.com/mike-lischke/antlr-format/blob/main/doc/formatting.md
