@@ -5,7 +5,9 @@ import org.scalatest.wordspec.AnyWordSpec
 
 class LogicalPlanGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.LogicalPlan] with ir.IRHelpers {
 
-  override protected val generator = new LogicalPlanGenerator(new ExpressionGenerator())
+  protected val expressionGenerator = new ExpressionGenerator()
+  protected val optionGenerator = new OptionGenerator(expressionGenerator)
+  override protected val generator = new LogicalPlanGenerator(expressionGenerator, optionGenerator)
 
   "Project" should {
     "transpile to SELECT" in {
@@ -351,7 +353,7 @@ class LogicalPlanGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.L
           ir.ColumnDeclaration(
             "c1",
             ir.IntegerType,
-            constraints = Seq(ir.Nullability(nullable = false), ir.PrimaryKey)),
+            constraints = Seq(ir.Nullability(nullable = false), ir.PrimaryKey())),
           ir.ColumnDeclaration(
             "c2",
             ir.StringType))) generates "CREATE TABLE t1 (c1 INT NOT NULL PRIMARY KEY, c2 STRING )"
