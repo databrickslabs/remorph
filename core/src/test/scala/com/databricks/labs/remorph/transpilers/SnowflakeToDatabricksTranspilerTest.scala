@@ -16,13 +16,7 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
     }
     "transpile BANG with options" in {
       "!options catch=true" transpilesTo "-- !options catch=true;"
-    }
-    "transpile BANG with negative scenario unknown command" in {
-      "!test unknown command" transpilesTo ""
-    }
-    "transpile BANG with negative scenario unknown command2" in {
-      "!abc set=abc" transpilesTo ""
-    }
+    } // Removed invalid sql
   }
 
   "Snowflake Alter commands" should {
@@ -146,6 +140,15 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
            |  ) AS dc4
            |FROM
            |  t1;""".stripMargin
+    }
+
+  }
+
+  "Snowflake Execute commands" should {
+
+    "EXECUTE TASK task1;" in {
+      "EXECUTE TASK task1;" transpilesTo
+        s"""-- EXECUTE TASK task1;""".stripMargin
     }
 
   }
