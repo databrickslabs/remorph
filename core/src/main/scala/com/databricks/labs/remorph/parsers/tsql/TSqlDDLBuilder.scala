@@ -1,7 +1,6 @@
 package com.databricks.labs.remorph.parsers.tsql
 
 import com.databricks.labs.remorph.parsers.{ParserCommon, intermediate => ir}
-import com.databricks.labs.remorph.utils.ParsingUtils
 
 import scala.collection.JavaConverters.asScalaBufferConverter
 
@@ -187,14 +186,14 @@ class TSqlDDLBuilder(
         // Unsupported stuff
         case m if m.MASKED() != null =>
           // MASKED WITH FUNCTION = 'functionName' is not supported in Databricks SQL
-          options += ir.OptionUnresolved(s"Unsupported Option: ${ParsingUtils.getTextFromParserRuleContext(m)}")
+          options += ir.OptionUnresolved(s"Unsupported Option: ${getTextFromParserRuleContext(m)}")
 
         case f if f.ENCRYPTED() != null =>
           // ENCRYPTED WITH ... is not supported in Databricks SQL
-          options += ir.OptionUnresolved(s"Unsupported Option: ${ParsingUtils.getTextFromParserRuleContext(f)}")
+          options += ir.OptionUnresolved(s"Unsupported Option: ${getTextFromParserRuleContext(f)}")
 
         case o if o.genericOption() != null =>
-          options += ir.OptionUnresolved(s"Unsupported Option: ${ParsingUtils.getTextFromParserRuleContext(o)}")
+          options += ir.OptionUnresolved(s"Unsupported Option: ${getTextFromParserRuleContext(o)}")
       }
     }
     val dataType = dataTypeBuilder.build(ctx.dataType())
