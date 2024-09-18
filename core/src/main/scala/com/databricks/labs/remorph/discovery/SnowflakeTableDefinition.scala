@@ -7,11 +7,7 @@ import org.antlr.v4.runtime.{CharStreams, CommonTokenStream}
 import java.sql.Connection
 import scala.collection.mutable.ListBuffer
 
-/**
- * Class representing the definition of a Snowflake table.
- *
- * @param conn The SQL connection to the Snowflake database.
- */
+
 class SnowflakeTableDefinition(conn: Connection) {
 
   /**
