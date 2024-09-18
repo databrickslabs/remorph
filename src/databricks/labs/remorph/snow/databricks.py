@@ -422,7 +422,6 @@ class Databricks(org_databricks.Databricks):  #
             exp.Not: _not_sql,
         }
 
-
         def preprocess(self, expression: exp.Expression) -> exp.Expression:
             fixed_ast = expression.transform(lca_utils.unalias_lca_in_select, copy=False)
             transformed_ast = lca_utils.transform_where_and_from(fixed_ast)
