@@ -97,8 +97,6 @@ class CallMapper extends Rule[LogicalPlan] with IRHelpers {
     case CallFunction("CURRENT_CATALOG", _) => CurrentCatalog()
     case CallFunction("CURRENT_DATABASE", _) => CurrentDatabase()
     case CallFunction("CURRENT_DATE", _) => CurrentDate()
-    // My Preference is to refactor this and implement in parser
-    case CallFunction("CURRENT_TIME", _) => DateFormatClass(CurrentTimestamp(), Literal("HH:mm:ss"))
     case CallFunction("CURRENT_TIMESTAMP", _) => CurrentTimestamp()
     case CallFunction("CURRENT_TIMEZONE", _) => CurrentTimeZone()
     case CallFunction("DATEDIFF", args) => DateDiff(args.head, args(1))

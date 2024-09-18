@@ -434,7 +434,46 @@ class SnowflakeExpressionBuilder()
       case c if c.paramAssocList() != null => c.paramAssocList().paramAssoc().asScala.map(_.accept(this))
       case _ => Seq.empty
     }
-    functionBuilder.buildFunction(functionName, arguments)
+
+    // https://docs.snowflake.com/en/sql-reference/functions/current_timestamp
+    // https://docs.snowflake.com/en/sql-reference/functions/current_time
+    // https://docs.snowflake.com/en/sql-reference/functions/localtimestamp
+    functionName.toUpperCase() match {
+      case "CURRENT_TIME" | "CURRENT_TIMESTAMP" | "LOCAL_TIMESTAMP" =>
+        handleSpecialTimestampFunctions(functionName, arguments)
+      case _ => functionBuilder.buildFunction(functionName, arguments)
+    }
+
+  }
+  private val timeMapping: Map[Int, String] = Map(
+    0 -> "HH:mm:ss.SSSSSSSSS",
+    1 -> "HH:mm:ss.S",
+    2 -> "HH:mm:ss.SS",
+    3 -> "HH:mm:ss.SSS",
+    4 -> "HH:mm:ss.SSSS",
+    5 -> "HH:mm:ss.SSSSS",
+    6 -> "HH:mm:ss.SSSSSS",
+    7 -> "HH:mm:ss.SSSSSSS",
+    8 -> "HH:mm:ss.SSSSSSSS",
+    9 -> "HH:mm:ss.SSSSSSSSS")
+
+  private def getIntegerValue(literal: Option[ir.Literal]): Option[Int] = literal match {
+    case Some(ir.Literal(value: Int, _)) => Some(value)
+    case _ => None
+  }
+
+  private def handleSpecialTimestampFunctions(functionName: String, arguments: Seq[ir.Expression]): ir.Expression = {
+    val timeFormat = timeMapping(getIntegerValue(arguments.headOption.flatMap {
+      case lit: ir.Literal => Some(lit)
+      case _ => None
+    }).getOrElse(0))
+
+    val formatString = functionName match {
+      case "CURRENT_TIME" => timeFormat
+      case _ => s"yyyy-MM-dd $timeFormat"
+    }
+
+    functionBuilder.buildFunction("DATE_FORMAT", Seq(ir.CurrentTimestamp(), ir.Literal(formatString)))
   }
 
   private def fetchFunctionName(ctx: StandardFunctionContext): String = {
