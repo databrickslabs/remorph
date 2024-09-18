@@ -188,17 +188,13 @@ jobs:
 
       - name: Run Coverage Tests with Maven
         run: mvn --update-snapshots -B test -pl coverage --file pom.xml --fail-at-end
-        continue-on-error: true
 
 
       - name: Run TSQL Coverage Tests with Maven
         run: mvn --update-snapshots -B exec:java -pl coverage --file pom.xml --fail-at-end -DsourceDir=tests/resources/functional/tsql -DoutputPath=coverage-result.json -DsourceDialect=Tsql -Dextractor=comment
-        continue-on-error: true
 
       - name: Run Snowflake Coverage Tests with Maven
         run: mvn --update-snapshots -B exec:java -pl coverage --file pom.xml --fail-at-end -DsourceDir=tests/resources/functional/snowflake -DoutputPath=coverage-result.json -DsourceDialect=Snow -Dextractor=comment
-        continue-on-error: true
-
 
 
       - name: Publish JUnit report
