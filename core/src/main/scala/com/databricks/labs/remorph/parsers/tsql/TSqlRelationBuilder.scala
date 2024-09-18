@@ -248,16 +248,6 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.LogicalPlan] {
     ctx.expressionList().expression().asScala.map(_.accept(expressionBuilder))
   }
 
-  override def visitMergeStatement(ctx: MergeStatementContext): ir.LogicalPlan = {
-    val merge = ctx.merge().accept(this)
-    Option(ctx.withExpression())
-      .map { withExpression =>
-        val ctes = withExpression.commonTableExpression().asScala.map(_.accept(this))
-        ir.WithCTE(ctes, merge)
-      }
-      .getOrElse(merge)
-  }
-
   override def visitMerge(ctx: MergeContext): ir.LogicalPlan = {
 
     val targetPlan = ctx.ddlObject().accept(this)
@@ -345,16 +335,6 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.LogicalPlan] {
     ir.UpdateAction(condition, setElements)
   }
 
-  override def visitUpdateStatement(ctx: UpdateStatementContext): ir.LogicalPlan = {
-    val update = ctx.update().accept(this)
-    Option(ctx.withExpression())
-      .map { withExpression =>
-        val ctes = withExpression.commonTableExpression().asScala.map(_.accept(this))
-        ir.WithCTE(ctes, update)
-      }
-      .getOrElse(update)
-  }
-
   override def visitUpdate(ctx: UpdateContext): ir.LogicalPlan = {
     val target = ctx.ddlObject().accept(this)
     val hints = buildTableHints(Option(ctx.withTableHints()))
@@ -379,16 +359,6 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.LogicalPlan] {
     ir.UpdateTable(finalTarget, sourceRelation, setElements, where, output, optionClause)
   }
 
-  override def visitDeleteStatement(ctx: DeleteStatementContext): ir.LogicalPlan = {
-    val delete = ctx.delete().accept(this)
-    Option(ctx.withExpression())
-      .map { withExpression =>
-        val ctes = withExpression.commonTableExpression().asScala.map(_.accept(this))
-        ir.WithCTE(ctes, delete)
-      }
-      .getOrElse(delete)
-  }
-
   override def visitDelete(ctx: DeleteContext): ir.LogicalPlan = {
     val target = ctx.ddlObject().accept(this)
     val hints = buildTableHints(Option(ctx.withTableHints()))
@@ -408,16 +378,6 @@ class TSqlRelationBuilder extends TSqlParserBaseVisitor[ir.LogicalPlan] {
     val where = Option(ctx.updateWhereClause()) map (_.accept(expressionBuilder))
     val optionClause = Option(ctx.optionClause).map(_.accept(expressionBuilder))
     ir.DeleteFromTable(finalTarget, sourceRelation, where, output, optionClause)
-  }
-
-  override def visitInsertStatement(ctx: InsertStatementContext): ir.LogicalPlan = {
-    val insert = ctx.insert().accept(this)
-    Option(ctx.withExpression())
-      .map { withExpression =>
-        val ctes = withExpression.commonTableExpression().asScala.map(_.accept(this))
-        ir.WithCTE(ctes, insert)
-      }
-      .getOrElse(insert)
   }
 
   override def visitInsert(ctx: InsertContext): ir.LogicalPlan = {

@@ -5,7 +5,10 @@ import com.databricks.labs.remorph.parsers.intermediate.Batch
 import com.databricks.labs.remorph.parsers.{intermediate => ir}
 import com.databricks.labs.remorph.transpilers.TranspileException
 
-class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: Boolean = false)
+class LogicalPlanGenerator(
+    val expr: ExpressionGenerator,
+    val optGen: OptionGenerator,
+    val explicitDistinct: Boolean = false)
     extends Generator[ir.LogicalPlan, String] {
 
   override def generate(ctx: GeneratorContext, tree: ir.LogicalPlan): String = tree match {
@@ -121,12 +124,46 @@ class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: 
   }
 
   private def constraint(ctx: GeneratorContext, c: ir.Constraint): String = c match {
-    case ir.Unique => "UNIQUE"
+    case unique: ir.Unique => generateUniqueConstraint(ctx, unique)
     case ir.Nullability(nullable) => if (nullable) "NULL" else "NOT NULL"
-    case ir.PrimaryKey => "PRIMARY KEY"
-    case ir.ForeignKey(references) => s"FOREIGN KEY REFERENCES $references"
+    case pk: ir.PrimaryKey => generatePrimaryKey(ctx, pk)
+    case fk: ir.ForeignKey => generateForeignKey(ctx, fk)
     case ir.NamedConstraint(name, unnamed) => s"CONSTRAINT $name ${constraint(ctx, unnamed)}"
     case ir.UnresolvedConstraint(inputText) => s"/** $inputText **/"
+    case ir.CheckConstraint(e) => s"CHECK (${expr.generate(ctx, e)})"
+    case ir.DefaultValueConstraint(value) => s"DEFAULT ${expr.generate(ctx, value)}"
+    case ir.IdentityConstraint(seed, step) => s"IDENTITY ($seed, $step)"
+  }
+
+  private def generateForeignKey(ctx: GeneratorContext, fk: ir.ForeignKey): String = {
+    val colNames = fk.tableCols match {
+      case "" => ""
+      case cols => s"(${cols}) "
+    }
+    val commentOptions = optGen.generateOptionList(ctx, fk.options) match {
+      case "" => ""
+      case options => s" /* Unsupported:  $options */"
+    }
+    s"FOREIGN KEY ${colNames}REFERENCES ${fk.refObject}(${fk.refCols})$commentOptions"
+  }
+
+  private def generatePrimaryKey(context: GeneratorContext, key: ir.PrimaryKey): String = {
+    val columns = key.columns.map(_.mkString("(", ", ", ")")).getOrElse("")
+    val commentOptions = optGen.generateOptionList(context, key.options) match {
+      case "" => ""
+      case options => s" /* $options */"
+    }
+    val columnsStr = if (columns.isEmpty) "" else s" $columns"
+    s"PRIMARY KEY${columnsStr}${commentOptions}"
+  }
+
+  private def generateUniqueConstraint(ctx: GeneratorContext, unique: ir.Unique): String = {
+    val columns = unique.columns.map(_.mkString("(", ", ", ")")).getOrElse("")
+    val commentOptions = optGen.generateOptionList(ctx, unique.options) match {
+      case "" => ""
+      case options => s" /* $options */"
+    }
+    s"UNIQUE ${columns}${commentOptions}"
   }
 
   private def project(ctx: GeneratorContext, proj: ir.Project): String = {
