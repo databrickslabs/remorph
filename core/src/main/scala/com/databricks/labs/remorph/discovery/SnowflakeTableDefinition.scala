@@ -3,6 +3,7 @@ package com.databricks.labs.remorph.discovery
 import com.databricks.labs.remorph.parsers.intermediate.{DataType, StructField}
 import com.databricks.labs.remorph.parsers.snowflake.{SnowflakeLexer, SnowflakeParser}
 import org.antlr.v4.runtime.{CharStreams, CommonTokenStream}
+import com.databricks.labs.remorph.parsers.snowflake.SnowflakeTypeBuilder
 
 import java.sql.Connection
 import scala.collection.mutable.ListBuffer
@@ -21,7 +22,6 @@ class SnowflakeTableDefinition(conn: Connection) {
     val tokenStream = new CommonTokenStream(lexer)
     val parser = new SnowflakeParser(tokenStream)
     val ctx = parser.dataType()
-    import com.databricks.labs.remorph.parsers.snowflake.SnowflakeTypeBuilder
     val dataTypeBuilder = new SnowflakeTypeBuilder
     dataTypeBuilder.buildDataType(ctx)
   }
