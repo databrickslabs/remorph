@@ -16,4 +16,9 @@ CREATE TABLE IF NOT EXISTS main (
     operation_name  STRING NOT NULL,
     start_ts TIMESTAMP,
     end_ts TIMESTAMP
+)
+TBLPROPERTIES (
+    'delta.columnMapping.mode' = 'name',
+    'delta.minReaderVersion' = '2',
+    'delta.minWriterVersion' = '5'
 );

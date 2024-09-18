@@ -3,6 +3,9 @@ from unittest.mock import create_autospec
 import pytest
 from databricks.labs.blueprint.installation import MockInstallation, Installation
 from databricks.labs.blueprint.tui import MockPrompts
+from databricks.labs.blueprint.wheels import WheelsV2
+from databricks.labs.blueprint.upgrades import Upgrades
+
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.errors import NotFound
 from databricks.sdk.service import iam
@@ -35,6 +38,9 @@ def test_install_all(ws):
     )
     recon_deployment = create_autospec(ReconDeployment)
     installation = create_autospec(Installation)
+    wheels = create_autospec(WheelsV2)
+    upgrades = create_autospec(Upgrades)
+
     transpile_config = MorphConfig(
         source="snowflake",
         input_sql="/tmp/queries/snow6",
@@ -60,7 +66,7 @@ def test_install_all(ws):
         ),
     )
     config = RemorphConfigs(morph=transpile_config, reconcile=reconcile_config)
-    installation = WorkspaceInstallation(ws, prompts, installation, recon_deployment)
+    installation = WorkspaceInstallation(ws, prompts, installation, recon_deployment, wheels, upgrades)
     installation.install(config)
 
 
@@ -68,6 +74,9 @@ def test_no_recon_component_installation(ws):
     prompts = MockPrompts({})
     recon_deployment = create_autospec(ReconDeployment)
     installation = create_autospec(Installation)
+    wheels = create_autospec(WheelsV2)
+    upgrades = create_autospec(Upgrades)
+
     transpile_config = MorphConfig(
         source="snowflake",
         input_sql="/tmp/queries/snow7",
@@ -78,7 +87,7 @@ def test_no_recon_component_installation(ws):
         mode="current",
     )
     config = RemorphConfigs(morph=transpile_config)
-    installation = WorkspaceInstallation(ws, prompts, installation, recon_deployment)
+    installation = WorkspaceInstallation(ws, prompts, installation, recon_deployment, wheels, upgrades)
     installation.install(config)
     recon_deployment.install.assert_not_called()
 
@@ -87,6 +96,9 @@ def test_recon_component_installation(ws):
     recon_deployment = create_autospec(ReconDeployment)
     installation = create_autospec(Installation)
     prompts = MockPrompts({})
+    wheels = create_autospec(WheelsV2)
+    upgrades = create_autospec(Upgrades)
+
     reconcile_config = ReconcileConfig(
         data_source="oracle",
         report_type="all",
@@ -103,7 +115,7 @@ def test_recon_component_installation(ws):
         ),
     )
     config = RemorphConfigs(reconcile=reconcile_config)
-    installation = WorkspaceInstallation(ws, prompts, installation, recon_deployment)
+    installation = WorkspaceInstallation(ws, prompts, installation, recon_deployment, wheels, upgrades)
     installation.install(config)
     recon_deployment.install.assert_called()
 
@@ -116,7 +128,10 @@ def test_negative_uninstall_confirmation(ws):
     )
     installation = create_autospec(Installation)
     recon_deployment = create_autospec(ReconDeployment)
-    ws_installation = WorkspaceInstallation(ws, prompts, installation, recon_deployment)
+    wheels = create_autospec(WheelsV2)
+    upgrades = create_autospec(Upgrades)
+
+    ws_installation = WorkspaceInstallation(ws, prompts, installation, recon_deployment, wheels, upgrades)
     config = RemorphConfigs()
     ws_installation.uninstall(config)
     installation.remove.assert_not_called()
@@ -132,7 +147,10 @@ def test_missing_installation(ws):
     installation.files.side_effect = NotFound("Installation not found")
     installation.install_folder.return_value = "~/mock"
     recon_deployment = create_autospec(ReconDeployment)
-    ws_installation = WorkspaceInstallation(ws, prompts, installation, recon_deployment)
+    wheels = create_autospec(WheelsV2)
+    upgrades = create_autospec(Upgrades)
+
+    ws_installation = WorkspaceInstallation(ws, prompts, installation, recon_deployment, wheels, upgrades)
     config = RemorphConfigs()
     ws_installation.uninstall(config)
     installation.remove.assert_not_called()
@@ -175,7 +193,10 @@ def test_uninstall_configs_exist(ws):
     config = RemorphConfigs(morph=transpile_config, reconcile=reconcile_config)
     installation = MockInstallation({})
     recon_deployment = create_autospec(ReconDeployment)
-    ws_installation = WorkspaceInstallation(ws, prompts, installation, recon_deployment)
+    wheels = create_autospec(WheelsV2)
+    upgrades = create_autospec(Upgrades)
+
+    ws_installation = WorkspaceInstallation(ws, prompts, installation, recon_deployment, wheels, upgrades)
     ws_installation.uninstall(config)
     recon_deployment.uninstall.assert_called()
     installation.assert_removed()
@@ -189,7 +210,10 @@ def test_uninstall_configs_missing(ws):
     )
     installation = MockInstallation()
     recon_deployment = create_autospec(ReconDeployment)
-    ws_installation = WorkspaceInstallation(ws, prompts, installation, recon_deployment)
+    wheels = create_autospec(WheelsV2)
+    upgrades = create_autospec(Upgrades)
+
+    ws_installation = WorkspaceInstallation(ws, prompts, installation, recon_deployment, wheels, upgrades)
     config = RemorphConfigs()
     ws_installation.uninstall(config)
     recon_deployment.uninstall.assert_not_called()
