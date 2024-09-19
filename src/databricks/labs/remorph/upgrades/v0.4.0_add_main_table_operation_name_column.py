@@ -157,7 +157,8 @@ def _upgrade_reconcile_metadata_main_table(
 def _upgrade_reconcile_workflow(app_context: ApplicationContext):
     if app_context.recon_config:
         logger.info("Upgrading reconcile workflow")
-        app_context.job_deployment.deploy_recon_job(RECON_JOB_NAME, app_context.recon_config)
+        wheel_path = f"/Workspace{app_context.wheels.upload_to_wsfs()}"
+        app_context.job_deployment.deploy_recon_job(RECON_JOB_NAME, app_context.recon_config, wheel_path)
         logger.debug("Upgraded reconcile workflow")
 
 
