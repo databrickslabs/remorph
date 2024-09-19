@@ -5,7 +5,9 @@ import org.scalatest.wordspec.AnyWordSpec
 
 class LogicalPlanGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.LogicalPlan] with ir.IRHelpers {
 
-  override protected val generator = new LogicalPlanGenerator(new ExpressionGenerator())
+  protected val expressionGenerator = new ExpressionGenerator()
+  protected val optionGenerator = new OptionGenerator(expressionGenerator)
+  override protected val generator = new LogicalPlanGenerator(expressionGenerator, optionGenerator)
 
   "Project" should {
     "transpile to SELECT" in {
@@ -351,7 +353,7 @@ class LogicalPlanGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.L
           ir.ColumnDeclaration(
             "c1",
             ir.IntegerType,
-            constraints = Seq(ir.Nullability(nullable = false), ir.PrimaryKey)),
+            constraints = Seq(ir.Nullability(nullable = false), ir.PrimaryKey())),
           ir.ColumnDeclaration(
             "c2",
             ir.StringType))) generates "CREATE TABLE t1 (c1 INT NOT NULL PRIMARY KEY, c2 STRING )"
@@ -364,6 +366,165 @@ class LogicalPlanGeneratorTest extends AnyWordSpec with GeneratorTestCommon[ir.L
         namedTable("t1"),
         ir.RowSamplingFixedAmount(BigDecimal(10)),
         Some(BigDecimal(10))) generates "(t1) TABLESAMPLE (10 ROWS) REPEATABLE (10)"
+    }
+  }
+
+  "CreateTableParameters" should {
+    "transpile to CREATE TABLE" in {
+      ir.CreateTableParams(
+        ir.CreateTable(
+          "some_table",
+          None,
+          None,
+          None,
+          ir.StructType(Seq(ir.StructField("a", ir.IntegerType), ir.StructField("b", ir.VarcharType(Some(10)))))),
+        Map("a" -> Seq.empty, "b" -> Seq.empty),
+        Map("a" -> Seq.empty, "b" -> Seq.empty),
+        Seq.empty,
+        Seq.empty,
+        None,
+        Some(Seq.empty)) generates "CREATE TABLE some_table (a INT, b VARCHAR(10))"
+    }
+
+    "transpile to CREATE TABLE with commented options" in {
+      ir.CreateTableParams(
+        ir.CreateTable(
+          "some_table",
+          None,
+          None,
+          None,
+          ir.StructType(Seq(ir.StructField("a", ir.IntegerType), ir.StructField("b", ir.VarcharType(Some(10)))))),
+        Map("a" -> Seq.empty, "b" -> Seq.empty),
+        Map("a" -> Seq(ir.OptionUnresolved("Unsupported Option: SPARSE")), "b" -> Seq.empty),
+        Seq(
+          ir.NamedConstraint(
+            "c1",
+            ir.CheckConstraint(ir.GreaterThan(ir.Column(None, ir.Id("a")), ir.Literal(0, ir.IntegerType))))),
+        Seq.empty,
+        None,
+        Some(Seq.empty)) generates
+        "CREATE TABLE some_table (a INT /* Unsupported Option: SPARSE */, b VARCHAR(10), CONSTRAINT c1 CHECK (a > 0))"
+    }
+
+    "transpile to CREATE TABLE with default values" in {
+      ir.CreateTableParams(
+        ir.CreateTable(
+          "some_table",
+          None,
+          None,
+          None,
+          ir.StructType(Seq(ir.StructField("a", ir.IntegerType), ir.StructField("b", ir.VarcharType(Some(10)))))),
+        Map(
+          "a" -> Seq(ir.DefaultValueConstraint(ir.Literal(0, ir.IntegerType))),
+          "b" -> Seq(ir.DefaultValueConstraint(ir.Literal("foo", ir.StringType)))),
+        Map("a" -> Seq.empty, "b" -> Seq.empty),
+        Seq.empty,
+        Seq.empty,
+        None,
+        Some(Seq.empty)) generates
+        "CREATE TABLE some_table (a INT DEFAULT 0, b VARCHAR(10) DEFAULT 'foo')"
+    }
+
+    "transpile to CREATE TABLE with foreign key table constraint" in {
+      ir.CreateTableParams(
+        ir.CreateTable(
+          "some_table",
+          None,
+          None,
+          None,
+          ir.StructType(Seq(ir.StructField("a", ir.IntegerType), ir.StructField("b", ir.VarcharType(Some(10)))))),
+        Map("a" -> Seq.empty, "b" -> Seq.empty),
+        Map("a" -> Seq.empty, "b" -> Seq.empty),
+        Seq(ir.NamedConstraint("c1", ir.ForeignKey("a, b", "other_table", "c, d", Seq.empty))),
+        Seq.empty,
+        None,
+        Some(Seq.empty)) generates
+        "CREATE TABLE some_table (a INT, b VARCHAR(10), CONSTRAINT c1 FOREIGN KEY (a, b) REFERENCES other_table(c, d))"
+    }
+
+    "transpile to CREATE TABLE with a primary key, foreign key and a Unique column" in {
+      ir.CreateTableParams(
+        ir.CreateTable(
+          "some_table",
+          None,
+          None,
+          None,
+          ir.StructType(Seq(ir.StructField("a", ir.IntegerType), ir.StructField("b", ir.VarcharType(Some(10)))))),
+        Map("a" -> Seq(ir.PrimaryKey()), "b" -> Seq(ir.Unique())),
+        Map("a" -> Seq.empty, "b" -> Seq.empty),
+        Seq(ir.ForeignKey("b", "other_table", "b", Seq.empty)),
+        Seq.empty,
+        None,
+        Some(Seq.empty)) generates
+        "CREATE TABLE some_table (a INT PRIMARY KEY, b VARCHAR(10) UNIQUE, FOREIGN KEY (b) REFERENCES other_table(b))"
+    }
+
+    "transpile to CREATE TABLE with various complex column constraints" in {
+      ir.CreateTableParams(
+        ir.CreateTable(
+          "example_table",
+          None,
+          None,
+          None,
+          ir.StructType(Seq(
+            ir.StructField("id", ir.IntegerType),
+            ir.StructField("name", ir.VarcharType(Some(50)), nullable = false),
+            ir.StructField("age", ir.IntegerType),
+            ir.StructField("email", ir.VarcharType(Some(100))),
+            ir.StructField("department_id", ir.IntegerType)))),
+        Map(
+          "name" -> Seq.empty,
+          "email" -> Seq(ir.Unique()),
+          "department_id" -> Seq.empty,
+          "age" -> Seq.empty,
+          "id" -> Seq(ir.PrimaryKey())),
+        Map(
+          "name" -> Seq.empty,
+          "email" -> Seq.empty,
+          "department_id" -> Seq.empty,
+          "age" -> Seq.empty,
+          "id" -> Seq.empty),
+        Seq(
+          ir.CheckConstraint(ir.GreaterThanOrEqual(ir.Column(None, ir.Id("age")), ir.Literal(18, ir.IntegerType))),
+          ir.ForeignKey("department_id", "departments", "id", Seq.empty)),
+        Seq.empty,
+        None,
+        Some(Seq.empty)) generates
+        "CREATE TABLE example_table (id INT PRIMARY KEY, name VARCHAR(50) NOT NULL, age INT," +
+        " email VARCHAR(100) UNIQUE, department_id INT, CHECK (age >= 18)," +
+        " FOREIGN KEY (department_id) REFERENCES departments(id))"
+    }
+    "transpile to CREATE TABLE with a named NULL constraint" in {
+      ir.CreateTableParams(
+        ir.CreateTable(
+          "example_table",
+          None,
+          None,
+          None,
+          ir.StructType(Seq(ir.StructField("id", ir.VarcharType(Some(10)))))),
+        Map("id" -> Seq.empty),
+        Map("id" -> Seq.empty),
+        Seq(ir.NamedConstraint("c1", ir.CheckConstraint(ir.IsNotNull(ir.Column(None, ir.Id("id")))))),
+        Seq.empty,
+        None,
+        Some(Seq.empty)) generates "CREATE TABLE example_table (id VARCHAR(10), CONSTRAINT c1 CHECK (id IS NOT NULL))"
+    }
+
+    "transpile unsupported table level options to comments" in {
+      ir.CreateTableParams(
+        ir.CreateTable("example_table", None, None, None, ir.StructType(Seq(ir.StructField("id", ir.IntegerType)))),
+        Map("id" -> Seq.empty),
+        Map("id" -> Seq.empty),
+        Seq.empty,
+        Seq.empty,
+        None,
+        Some(Seq(ir.OptionUnresolved("LEDGER=ON")))) generates
+        """/*
+          |   The following options are unsupported:
+          |
+          |   LEDGER=ON
+          |*/
+          |CREATE TABLE example_table (id INT)""".stripMargin
     }
   }
 }

@@ -1,6 +1,5 @@
 package com.databricks.labs.remorph.parsers.tsql
 
-import com.databricks.labs.remorph.parsers.intermediate.ScalarSubquery
 import com.databricks.labs.remorph.parsers.tsql.TSqlParser._
 import com.databricks.labs.remorph.parsers.{ParserCommon, XmlFunction, tsql, intermediate => ir}
 import org.antlr.v4.runtime.Token
@@ -235,7 +234,7 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
   }
 
   override def visitExprSubquery(ctx: ExprSubqueryContext): ir.Expression = {
-    ScalarSubquery(ctx.subquery().accept(new TSqlRelationBuilder))
+    ir.ScalarSubquery(ctx.subquery().accept(new TSqlRelationBuilder))
   }
 
   override def visitExprTz(ctx: ExprTzContext): ir.Expression = {
@@ -290,15 +289,6 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
     }
   }
 
-  /**
-   * For now, we assume that we are dealing with Column names. LOCAL_ID is catered for as part of an expression in the
-   * current grammar, but even that can be an alias for a column name, though it is not recommended.
-   *
-   * For now then, they are all seen as columns.
-   *
-   * @param ctx
-   *   the parse tree
-   */
   override def visitId(ctx: IdContext): ir.Id = ctx match {
     case c if c.ID() != null => ir.Id(ctx.getText, caseSensitive = false)
     case c if c.TEMP_ID() != null => ir.Id(ctx.getText, caseSensitive = false)
@@ -331,7 +321,7 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
     case DEFAULT => Default()
     case LOCAL_ID => ir.Identifier(con.getText, isQuoted = false)
     case STRING => ir.Literal(removeQuotes(con.getText))
-    case NULL_ => ir.Literal.Null
+    case NULL => ir.Literal.Null
     case HEX => ir.Literal(con.getText) // Preserve format
     case MONEY => Money(ir.StringLiteral(con.getText))
     case INT | REAL | FLOAT => ir.NumericLiteral(con.getText)
@@ -353,7 +343,7 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
     // windowing functions such as LAG or LEAD, so that the clause is manifest here. The syntax allows
     // IGNORE NULLS and RESPECT NULLS, but RESPECT NULLS is the default behavior.
     val windowFunction =
-      buildNullIgnore(buildWindowingFunction(ctx.expression().accept(this)), ctx.overClause().IGNORE() != null)
+      buildWindowingFunction(ctx.expression().accept(this))
     val partitionByExpressions =
       Option(ctx.overClause().expression()).map(_.asScala.toList.map(_.accept(this))).getOrElse(List.empty)
     val orderByExpressions = Option(ctx.overClause().orderByClause())
@@ -362,18 +352,12 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
     val windowFrame = Option(ctx.overClause().rowOrRangeClause())
       .map(buildWindowFrame)
 
-    ir.Window(windowFunction, partitionByExpressions, orderByExpressions, windowFrame)
-  }
-
-  // Some windowing functions take a final boolean parameter in Databricks SQL, which is the equivalent
-  // of IGNORE NULLS syntax in T-SQL. When true, the Databricks windowing function will ignore nulls in
-  // the window frame. For instance LEAD or LAG functions support this.
-  private def buildNullIgnore(ctx: ir.Expression, ignoreNulls: Boolean): ir.Expression = {
-    ctx match {
-      case callFunction: ir.CallFunction if ignoreNulls =>
-        callFunction.copy(arguments = callFunction.arguments :+ ir.Literal.True)
-      case _ => ctx
-    }
+    ir.Window(
+      windowFunction,
+      partitionByExpressions,
+      orderByExpressions,
+      windowFrame,
+      ctx.overClause().IGNORE() != null)
   }
 
   // Some functions need to be converted to Databricks equivalent Windowing functions for the OVER clause
@@ -386,8 +370,11 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
     ctx.orderByExpression().asScala.map { orderByExpr =>
       val expression = orderByExpr.expression(0).accept(this)
       val sortOrder =
-        if (Option(orderByExpr.DESC()).isDefined) ir.Descending
-        else ir.Ascending
+        orderByExpr match {
+          case o if o.DESC() != null => ir.Descending
+          case o if o.ASC() != null => ir.Ascending
+          case _ => ir.UnspecifiedSortDirection
+        }
       ir.SortOrder(expression, sortOrder, ir.SortNullsUnspecified)
     }
 
@@ -422,13 +409,6 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
         ir.FollowingN(ir.Literal(c.INT().getText.toInt, ir.IntegerType))
     }
 
-  /**
-   * This is a special case where we are building a column definition. This is used in the SELECT statement to define
-   * the columns that are being selected. This is a special case because we need to handle the aliasing of columns.
-   *
-   * @param ctx
-   *   the parse tree
-   */
   override def visitExpressionElem(ctx: ExpressionElemContext): ir.Expression = {
     val columnDef = ctx.expression().accept(this)
     val aliasOption = Option(ctx.columnAlias()).orElse(Option(ctx.asColumnAlias()).map(_.columnAlias())).map { alias =>

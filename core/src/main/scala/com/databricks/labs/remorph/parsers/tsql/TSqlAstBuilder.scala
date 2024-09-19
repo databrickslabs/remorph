@@ -1,8 +1,7 @@
 package com.databricks.labs.remorph.parsers.tsql
 
-import com.databricks.labs.remorph.parsers.intermediate.LogicalPlan
 import com.databricks.labs.remorph.parsers.tsql.TSqlParser.DmlClauseContext
-import com.databricks.labs.remorph.parsers.{OptionAuto, OptionExpression, OptionOff, OptionOn, OptionString, intermediate => ir}
+import com.databricks.labs.remorph.parsers.{intermediate => ir}
 
 import scala.collection.JavaConverters.asScalaBufferConverter
 
@@ -13,7 +12,9 @@ import scala.collection.JavaConverters.asScalaBufferConverter
 class TSqlAstBuilder extends TSqlParserBaseVisitor[ir.LogicalPlan] {
 
   private val relationBuilder = new TSqlRelationBuilder
-  private val optionBuilder = new OptionBuilder(new TSqlExpressionBuilder)
+  private val expressionBuilder = new TSqlExpressionBuilder
+  private val optionBuilder = new OptionBuilder(expressionBuilder)
+  private val ddlBuilder = new TSqlDDLBuilder(optionBuilder, expressionBuilder, relationBuilder)
 
   override def visitTSqlFile(ctx: TSqlParser.TSqlFileContext): ir.LogicalPlan = {
     Option(ctx.batch()).map(_.accept(this)).getOrElse(ir.Batch(List()))
@@ -30,7 +31,7 @@ class TSqlAstBuilder extends TSqlParserBaseVisitor[ir.LogicalPlan] {
   }
 
   // TODO: Stored procedure calls etc as batch start
-  override def visitExecuteBodyBatch(ctx: TSqlParser.ExecuteBodyBatchContext): LogicalPlan =
+  override def visitExecuteBodyBatch(ctx: TSqlParser.ExecuteBodyBatchContext): ir.LogicalPlan =
     ir.UnresolvedRelation(ctx.getText)
 
   override def visitSqlClauses(ctx: TSqlParser.SqlClausesContext): ir.LogicalPlan = {
@@ -38,7 +39,7 @@ class TSqlAstBuilder extends TSqlParserBaseVisitor[ir.LogicalPlan] {
       case dml if dml.dmlClause() != null => dml.dmlClause().accept(this)
       case cfl if cfl.cflStatement() != null => cfl.cflStatement().accept(this)
       case another if another.anotherStatement() != null => another.anotherStatement().accept(this)
-      case ddl if ddl.ddlClause() != null => ddl.ddlClause().accept(this)
+      case ddl if ddl.ddlClause() != null => ddl.ddlClause().accept(ddlBuilder)
       case dbcc if dbcc.dbccClause() != null => dbcc.dbccClause().accept(this)
       case backup if backup.backupStatement() != null => backup.backupStatement().accept(this)
       case coaFunction if coaFunction.createOrAlterFunction() != null =>
@@ -53,16 +54,22 @@ class TSqlAstBuilder extends TSqlParserBaseVisitor[ir.LogicalPlan] {
   }
 
   override def visitDmlClause(ctx: DmlClauseContext): ir.LogicalPlan = {
-    ctx match {
-      case insert if insert.insertStatement() != null => insert.insertStatement().accept(relationBuilder)
-      case select if select.selectStatementStandalone() != null =>
-        select.selectStatementStandalone().accept(relationBuilder)
-      case delete if delete.deleteStatement() != null => delete.deleteStatement().accept(relationBuilder)
-      case merge if merge.mergeStatement() != null => merge.mergeStatement().accept(relationBuilder)
-      case update if update.updateStatement() != null => update.updateStatement().accept(relationBuilder)
+    val query = ctx match {
+      case insert if insert.insert() != null => insert.insert().accept(relationBuilder)
+      case select if select.selectStatement() != null =>
+        select.selectStatement.accept(relationBuilder)
+      case delete if delete.delete() != null => delete.delete().accept(relationBuilder)
+      case merge if merge.merge() != null => merge.merge().accept(relationBuilder)
+      case update if update.update() != null => update.update().accept(relationBuilder)
       case bulk if bulk.bulkStatement() != null => bulk.bulkStatement().accept(relationBuilder)
       case _ => ir.UnresolvedRelation(ctx.getText)
     }
+    Option(ctx.withExpression())
+      .map { withExpression =>
+        val ctes = withExpression.commonTableExpression().asScala.map(_.accept(relationBuilder))
+        ir.WithCTE(ctes, query)
+      }
+      .getOrElse(query)
   }
 
   /**
@@ -84,12 +91,12 @@ class TSqlAstBuilder extends TSqlParserBaseVisitor[ir.LogicalPlan] {
       (List.empty[String], Map.empty[String, Boolean], List.empty[String], Map.empty[String, ir.Expression])) {
       case ((disks, boolFlags, autoFlags, values), option) =>
         option match {
-          case OptionString("DISK", value) =>
+          case ir.OptionString("DISK", value) =>
             (value.stripPrefix("'").stripSuffix("'") :: disks, boolFlags, autoFlags, values)
-          case OptionOn(id) => (disks, boolFlags + (id -> true), autoFlags, values)
-          case OptionOff(id) => (disks, boolFlags + (id -> false), autoFlags, values)
-          case OptionAuto(id) => (disks, boolFlags, id :: autoFlags, values)
-          case OptionExpression(id, expr, _) => (disks, boolFlags, autoFlags, values + (id -> expr))
+          case ir.OptionOn(id) => (disks, boolFlags + (id -> true), autoFlags, values)
+          case ir.OptionOff(id) => (disks, boolFlags + (id -> false), autoFlags, values)
+          case ir.OptionAuto(id) => (disks, boolFlags, id :: autoFlags, values)
+          case ir.OptionExpression(id, expr, _) => (disks, boolFlags, autoFlags, values + (id -> expr))
           case _ => (disks, boolFlags, autoFlags, values)
         }
     }

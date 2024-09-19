@@ -7,4 +7,4 @@
 WITH cte AS (SELECT * FROM t) SELECT * FROM cte
 
 -- databricks sql:
-WITH cte AS (SELECT * FROM t) SELECT * FROM cte
+WITH cte AS (SELECT * FROM t) SELECT * FROM cte;
