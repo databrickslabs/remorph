@@ -8,14 +8,7 @@ import scala.collection.JavaConverters.asScalaBufferConverter
  * @see
  *   org.apache.spark.sql.catalyst.parser.AstBuilder
  */
-class TSqlAstBuilder extends TSqlParserBaseVisitor[ir.LogicalPlan] {
-
-  private val expressionBuilder = new TSqlExpressionBuilder(null)
-  private val relationBuilder = new TSqlRelationBuilder(expressionBuilder)
-  expressionBuilder.relationBuilder = relationBuilder
-  private val dmlBuilder = new TSqlDMLBuilder(expressionBuilder, relationBuilder)
-  private val optionBuilder = new OptionBuilder(expressionBuilder)
-  private val ddlBuilder = new TSqlDDLBuilder(optionBuilder, expressionBuilder, relationBuilder)
+class TSqlAstBuilder(vc: TSqlVisitorCoordinator) extends TSqlParserBaseVisitor[ir.LogicalPlan] {
 
   override def visitTSqlFile(ctx: TSqlParser.TSqlFileContext): ir.LogicalPlan = {
     Option(ctx.batch()).map(_.accept(this)).getOrElse(ir.Batch(List()))
@@ -40,9 +33,9 @@ class TSqlAstBuilder extends TSqlParserBaseVisitor[ir.LogicalPlan] {
       case dml if dml.dmlClause() != null => dml.dmlClause().accept(this)
       case cfl if cfl.cflStatement() != null => cfl.cflStatement().accept(this)
       case another if another.anotherStatement() != null => another.anotherStatement().accept(this)
-      case ddl if ddl.ddlClause() != null => ddl.ddlClause().accept(ddlBuilder)
+      case ddl if ddl.ddlClause() != null => ddl.ddlClause().accept(vc.ddlBuilder)
       case dbcc if dbcc.dbccClause() != null => dbcc.dbccClause().accept(this)
-      case backup if backup.backupStatement() != null => backup.backupStatement().accept(ddlBuilder)
+      case backup if backup.backupStatement() != null => backup.backupStatement().accept(vc.ddlBuilder)
       case coaFunction if coaFunction.createOrAlterFunction() != null =>
         coaFunction.createOrAlterFunction().accept(this)
       case coaProcedure if coaProcedure.createOrAlterProcedure() != null =>
@@ -57,14 +50,14 @@ class TSqlAstBuilder extends TSqlParserBaseVisitor[ir.LogicalPlan] {
   override def visitDmlClause(ctx: TSqlParser.DmlClauseContext): ir.LogicalPlan = {
     val dml = ctx match {
       case dml if dml.selectStatement() != null =>
-        dml.selectStatement().accept(relationBuilder)
+        dml.selectStatement().accept(vc.relationBuilder)
       case _ =>
-        ctx.accept(dmlBuilder)
+        ctx.accept(vc.dmlBuilder)
     }
 
     Option(ctx.withExpression())
       .map { withExpression =>
-        val ctes = withExpression.commonTableExpression().asScala.map(_.accept(relationBuilder))
+        val ctes = withExpression.commonTableExpression().asScala.map(_.accept(vc.relationBuilder))
         ir.WithCTE(ctes, dml)
       }
       .getOrElse(dml)

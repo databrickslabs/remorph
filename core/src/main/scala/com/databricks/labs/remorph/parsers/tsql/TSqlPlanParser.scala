@@ -7,12 +7,12 @@ import org.antlr.v4.runtime.{CharStream, ParserRuleContext, TokenSource, TokenSt
 
 class TSqlPlanParser extends PlanParser[TSqlParser] {
 
-  private val astBuilder = new TSqlAstBuilder()
+  private val vc = new TSqlVisitorCoordinator
 
   override protected def createLexer(input: CharStream): TokenSource = new TSqlLexer(input)
   override protected def createParser(stream: TokenStream): TSqlParser = new TSqlParser(stream)
   override protected def createTree(parser: TSqlParser): ParserRuleContext = parser.tSqlFile()
-  override protected def createPlan(tree: ParserRuleContext): LogicalPlan = astBuilder.visit(tree)
+  override protected def createPlan(tree: ParserRuleContext): LogicalPlan = vc.astBuilder.visit(tree)
 
   // TODO: Note that this is not the correct place for the optimizer, but it is here for now
   override protected def createOptimizer: Rules[LogicalPlan] = {

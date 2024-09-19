@@ -9,7 +9,7 @@ import org.scalatest.wordspec.AnyWordSpec
 
 class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matchers with IRHelpers {
 
-  override protected def astBuilder: TSqlParserBaseVisitor[_] = new TSqlAstBuilder
+  override protected def astBuilder: TSqlParserBaseVisitor[_] = vc.astBuilder
 
   private def example(query: String, expectedAst: LogicalPlan): Unit =
     example(query, _.tSqlFile(), expectedAst)
@@ -218,10 +218,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
       when(joinTypeContextMock.INNER()).thenReturn(null)
       when(joinOnContextMock.joinType()).thenReturn(joinTypeContextMock)
 
-      val expressionBuilder = new TSqlExpressionBuilder(null)
-      val builder = new TSqlRelationBuilder(expressionBuilder)
-      expressionBuilder.relationBuilder = builder
-      val result = builder.translateJoinType(joinOnContextMock)
+      val result = vc.relationBuilder.translateJoinType(joinOnContextMock)
       result shouldBe UnspecifiedJoin
     }
 

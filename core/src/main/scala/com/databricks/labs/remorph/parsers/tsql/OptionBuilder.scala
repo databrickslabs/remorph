@@ -3,7 +3,7 @@ package com.databricks.labs.remorph.parsers.tsql
 import com.databricks.labs.remorph.parsers.tsql.TSqlParser.GenericOptionContext
 import com.databricks.labs.remorph.parsers.{intermediate => ir}
 
-class OptionBuilder(expressionBuilder: TSqlExpressionBuilder) {
+class OptionBuilder(vc: TSqlVisitorCoordinator) {
 
   private[tsql] def buildOptionList(opts: Seq[GenericOptionContext]): ir.OptionLists = {
     val options = opts.map(this.buildOption)
@@ -35,10 +35,10 @@ class OptionBuilder(expressionBuilder: TSqlExpressionBuilder) {
       // FOR cannot be allowed as an id as it clashes with the FOR clause in SELECT et al. So
       // we special case it here and elide the FOR. It handles just a few things such as OPTIMIZE FOR UNKNOWN,
       // which becomes "OPTIMIZE", Id(UNKNOWN)
-      case c if c.FOR() != null => ir.OptionExpression(id, expressionBuilder.visitId(c.id(1)), None)
+      case c if c.FOR() != null => ir.OptionExpression(id, vc.expressionBuilder.visitId(c.id(1)), None)
       case c if c.expression() != null =>
         val supplement = if (c.id(1) != null) Some(ctx.id(1).getText) else None
-        ir.OptionExpression(id, c.expression().accept(expressionBuilder), supplement)
+        ir.OptionExpression(id, c.expression().accept(vc.expressionBuilder), supplement)
       case _ if id == "DEFAULT" => ir.OptionDefault(id)
       case _ if id == "ON" => ir.OptionOn(id)
       case _ if id == "OFF" => ir.OptionOff(id)

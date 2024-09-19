@@ -13,9 +13,7 @@ class TSqlRelationBuilderSpec
     with MockitoSugar
     with IRHelpers {
 
-  private val expressionBuilder = new TSqlExpressionBuilder(null)
-  override protected def astBuilder: TSqlRelationBuilder = new TSqlRelationBuilder(expressionBuilder)
-  expressionBuilder.relationBuilder = astBuilder
+  override protected def astBuilder: TSqlRelationBuilder = vc.relationBuilder
 
   "TSqlRelationBuilder" should {
 

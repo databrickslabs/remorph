@@ -5,8 +5,7 @@ import com.databricks.labs.remorph.parsers.tsql.rules.InsertDefaultsAction
 import com.databricks.labs.remorph.parsers.{intermediate => ir}
 
 import scala.collection.JavaConverters.asScalaBufferConverter
-class TSqlDMLBuilder(expressionBuilder: TSqlExpressionBuilder, relationBuilder: TSqlRelationBuilder)
-    extends TSqlParserBaseVisitor[ir.Modification] {
+class TSqlDMLBuilder(vc: TSqlVisitorCoordinator) extends TSqlParserBaseVisitor[ir.Modification] {
 
   override def visitDmlClause(ctx: DmlClauseContext): ir.Modification =
     ctx match {
@@ -20,16 +19,16 @@ class TSqlDMLBuilder(expressionBuilder: TSqlExpressionBuilder, relationBuilder: 
     }
 
   override def visitMerge(ctx: MergeContext): ir.Modification = {
-    val targetPlan = ctx.ddlObject().accept(relationBuilder)
-    val hints = relationBuilder.buildTableHints(Option(ctx.withTableHints()))
+    val targetPlan = ctx.ddlObject().accept(vc.relationBuilder)
+    val hints = vc.relationBuilder.buildTableHints(Option(ctx.withTableHints()))
     val finalTarget = if (hints.nonEmpty) {
       ir.TableWithHints(targetPlan, hints)
     } else {
       targetPlan
     }
 
-    val mergeCondition = ctx.searchCondition().accept(expressionBuilder)
-    val tableSourcesPlan = ctx.tableSources().tableSource().asScala.map(_.accept(relationBuilder))
+    val mergeCondition = ctx.searchCondition().accept(vc.expressionBuilder)
+    val tableSourcesPlan = ctx.tableSources().tableSource().asScala.map(_.accept(vc.relationBuilder))
     val sourcePlan = tableSourcesPlan.tail.foldLeft(tableSourcesPlan.head)(
       ir.Join(_, _, None, ir.CrossJoin, Seq(), ir.JoinDataType(is_left_struct = false, is_right_struct = false)))
 
@@ -48,7 +47,7 @@ class TSqlDMLBuilder(expressionBuilder: TSqlExpressionBuilder, relationBuilder: 
       })
       .getOrElse((List.empty, List.empty, List.empty))
 
-    val optionClause = Option(ctx.optionClause).map(_.accept(expressionBuilder))
+    val optionClause = Option(ctx.optionClause).map(_.accept(vc.expressionBuilder))
     val outputClause = Option(ctx.outputClause()).map(buildOutputClause)
 
     val mergeIntoTable = ir.MergeIntoTable(
@@ -71,7 +70,7 @@ class TSqlDMLBuilder(expressionBuilder: TSqlExpressionBuilder, relationBuilder: 
   }
 
   private def buildWhenMatch(ctx: WhenMatchContext): ir.MergeAction = {
-    val condition = Option(ctx.searchCondition()).map(_.accept(expressionBuilder))
+    val condition = Option(ctx.searchCondition()).map(_.accept(vc.expressionBuilder))
     ctx.mergeAction() match {
       case action if action.DELETE() != null => ir.DeleteAction(condition)
       case action if action.UPDATE() != null => buildUpdateAction(action, condition)
@@ -88,7 +87,7 @@ class TSqlDMLBuilder(expressionBuilder: TSqlExpressionBuilder, relationBuilder: 
           (ctx.cols
             .expression()
             .asScala
-            .map(_.accept(expressionBuilder)) zip ctx.vals.expression().asScala.map(_.accept(expressionBuilder)))
+            .map(_.accept(vc.expressionBuilder)) zip ctx.vals.expression().asScala.map(_.accept(vc.expressionBuilder)))
             .map { case (col, value) =>
               ir.Assign(col, value)
             }
@@ -98,7 +97,7 @@ class TSqlDMLBuilder(expressionBuilder: TSqlExpressionBuilder, relationBuilder: 
 
   private def buildUpdateAction(ctx: MergeActionContext, condition: Option[ir.Expression]): ir.UpdateAction = {
     val setElements = ctx.updateElem().asScala.collect { case elem =>
-      elem.accept(expressionBuilder) match {
+      elem.accept(vc.expressionBuilder) match {
         case assign: ir.Assign => assign
       }
     }
@@ -106,32 +105,32 @@ class TSqlDMLBuilder(expressionBuilder: TSqlExpressionBuilder, relationBuilder: 
   }
 
   override def visitUpdate(ctx: UpdateContext): ir.Modification = {
-    val target = ctx.ddlObject().accept(relationBuilder)
-    val hints = relationBuilder.buildTableHints(Option(ctx.withTableHints()))
+    val target = ctx.ddlObject().accept(vc.relationBuilder)
+    val hints = vc.relationBuilder.buildTableHints(Option(ctx.withTableHints()))
     val hintTarget = if (hints.nonEmpty) {
       ir.TableWithHints(target, hints)
     } else {
       target
     }
 
-    val finalTarget = relationBuilder.buildTop(Option(ctx.topClause()), hintTarget)
+    val finalTarget = vc.relationBuilder.buildTop(Option(ctx.topClause()), hintTarget)
     val output = Option(ctx.outputClause()).map(buildOutputClause)
-    val setElements = ctx.updateElem().asScala.map(_.accept(expressionBuilder))
+    val setElements = ctx.updateElem().asScala.map(_.accept(vc.expressionBuilder))
 
-    val tableSourcesOption = Option(ctx.tableSources()).map(_.tableSource().asScala.map(_.accept(relationBuilder)))
+    val tableSourcesOption = Option(ctx.tableSources()).map(_.tableSource().asScala.map(_.accept(vc.relationBuilder)))
     val sourceRelation = tableSourcesOption.map { tableSources =>
       tableSources.tail.foldLeft(tableSources.head)(
         ir.Join(_, _, None, ir.CrossJoin, Seq(), ir.JoinDataType(is_left_struct = false, is_right_struct = false)))
     }
 
-    val where = Option(ctx.updateWhereClause()) map (_.accept(expressionBuilder))
-    val optionClause = Option(ctx.optionClause).map(_.accept(expressionBuilder))
+    val where = Option(ctx.updateWhereClause()) map (_.accept(vc.expressionBuilder))
+    val optionClause = Option(ctx.optionClause).map(_.accept(vc.expressionBuilder))
     ir.UpdateTable(finalTarget, sourceRelation, setElements, where, output, optionClause)
   }
 
   override def visitDelete(ctx: DeleteContext): ir.Modification = {
-    val target = ctx.ddlObject().accept(relationBuilder)
-    val hints = relationBuilder.buildTableHints(Option(ctx.withTableHints()))
+    val target = ctx.ddlObject().accept(vc.relationBuilder)
+    val hints = vc.relationBuilder.buildTableHints(Option(ctx.withTableHints()))
     val finalTarget = if (hints.nonEmpty) {
       ir.TableWithHints(target, hints)
     } else {
@@ -139,20 +138,20 @@ class TSqlDMLBuilder(expressionBuilder: TSqlExpressionBuilder, relationBuilder: 
     }
 
     val output = Option(ctx.outputClause()).map(buildOutputClause)
-    val tableSourcesOption = Option(ctx.tableSources()).map(_.tableSource().asScala.map(_.accept(relationBuilder)))
+    val tableSourcesOption = Option(ctx.tableSources()).map(_.tableSource().asScala.map(_.accept(vc.relationBuilder)))
     val sourceRelation = tableSourcesOption.map { tableSources =>
       tableSources.tail.foldLeft(tableSources.head)(
         ir.Join(_, _, None, ir.CrossJoin, Seq(), ir.JoinDataType(is_left_struct = false, is_right_struct = false)))
     }
 
-    val where = Option(ctx.updateWhereClause()) map (_.accept(expressionBuilder))
-    val optionClause = Option(ctx.optionClause).map(_.accept(expressionBuilder))
+    val where = Option(ctx.updateWhereClause()) map (_.accept(vc.expressionBuilder))
+    val optionClause = Option(ctx.optionClause).map(_.accept(vc.expressionBuilder))
     ir.DeleteFromTable(finalTarget, sourceRelation, where, output, optionClause)
   }
 
   override def visitInsert(ctx: InsertContext): ir.Modification = {
-    val target = ctx.ddlObject().accept(relationBuilder)
-    val hints = relationBuilder.buildTableHints(Option(ctx.withTableHints()))
+    val target = ctx.ddlObject().accept(vc.relationBuilder)
+    val hints = vc.relationBuilder.buildTableHints(Option(ctx.withTableHints()))
     val finalTarget = if (hints.nonEmpty) {
       ir.TableWithHints(target, hints)
     } else {
@@ -160,28 +159,28 @@ class TSqlDMLBuilder(expressionBuilder: TSqlExpressionBuilder, relationBuilder: 
     }
 
     val columns = Option(ctx.expressionList())
-      .map(_.expression().asScala.map(_.accept(expressionBuilder)).collect { case col: ir.Column => col.columnName })
+      .map(_.expression().asScala.map(_.accept(vc.expressionBuilder)).collect { case col: ir.Column => col.columnName })
 
     val output = Option(ctx.outputClause()).map(buildOutputClause)
     val values = buildInsertStatementValue(ctx.insertStatementValue())
-    val optionClause = Option(ctx.optionClause).map(_.accept(expressionBuilder))
-    ir.InsertIntoTable(finalTarget, columns, values, output, optionClause, overwrite = false)
+    val optionClause = Option(ctx.optionClause).map(_.accept(vc.expressionBuilder))
+    ir.InsertIntoTable(finalTarget, columns, values, output, optionClause)
   }
 
   private def buildInsertStatementValue(ctx: InsertStatementValueContext): ir.LogicalPlan = {
     Option(ctx) match {
-      case Some(context) if context.derivedTable() != null => context.derivedTable().accept(relationBuilder)
+      case Some(context) if context.derivedTable() != null => context.derivedTable().accept(vc.relationBuilder)
       case Some(context) if context.VALUES() != null => DefaultValues()
-      case Some(context) => context.executeStatement().accept(relationBuilder)
+      case Some(context) => context.executeStatement().accept(vc.relationBuilder)
     }
   }
 
   private def buildOutputClause(ctx: OutputClauseContext): Output = {
-    val outputs = ctx.outputDmlListElem().asScala.map(_.accept(expressionBuilder))
-    val target = Option(ctx.ddlObject()).map(_.accept(relationBuilder))
+    val outputs = ctx.outputDmlListElem().asScala.map(_.accept(vc.expressionBuilder))
+    val target = Option(ctx.ddlObject()).map(_.accept(vc.relationBuilder))
     val columns =
       Option(ctx.columnNameList())
-        .map(_.id().asScala.map(id => ir.Column(None, expressionBuilder.visitId(id))))
+        .map(_.id().asScala.map(id => ir.Column(None, vc.expressionBuilder.visitId(id))))
 
     // Databricks SQL does not support the OUTPUT clause, but we may be able to translate
     // the clause to SELECT statements executed before or after the INSERT/DELETE/UPDATE/MERGE
