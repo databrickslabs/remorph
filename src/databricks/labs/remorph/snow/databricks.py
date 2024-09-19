@@ -88,26 +88,13 @@ def _select_contains_index(expression: exp.Select) -> bool:
     return False
 
 
-def _cast_expression(expression: str, data_type: str) -> str:
-    """
-    function to cast an expression to a specified data type.
-
-    Args:
-        expression (str): The expression to be cast.
-        data_type (str): The target data type for casting.
-
-    Returns:
-        str: The SQL string for the cast expression.
-    """
-    return f"CAST({expression} AS {data_type})"
-
-
 def _lateral_view(self: org_databricks.Databricks.Generator, expression: exp.Lateral) -> str:
     this = expression.args['this']
     alias = expression.args['alias']
     alias_str = f" AS {alias.name}" if isinstance(alias, exp.TableAlias) else ""
     generator_function_str = self.sql(this)
     is_outer = False
+    select_contains_index = False
 
     if isinstance(this, exp.Explode):
         explode_expr = this
@@ -125,16 +112,21 @@ def _lateral_view(self: org_databricks.Databricks.Generator, expression: exp.Lat
             if node == "OUTER":
                 is_outer = True
 
-        # Casting as ARRAY<VARIANT> for POSEXPLODE and EXPLODE as it is required with variant datatype in Databricks
-        # Use the helper function for casting the expression
-        generator_expr_casted = _cast_expression(generator_expr, "ARRAY<VARIANT>")
         if select_contains_index:
-            generator_function_str = f"POSEXPLODE({generator_expr_casted})"
+            generator_function_str = f"POSEXPLODE({generator_expr})"
             alias_str = f"{' ' + alias.name if isinstance(alias, exp.TableAlias) else ''} AS index, value"
         else:
-            generator_function_str = f"EXPLODE({generator_expr_casted})"
+            generator_function_str = f"VARIANT_EXPLODE({generator_expr})"
 
-    return self.sql(f"LATERAL VIEW {'OUTER ' if is_outer else ''}{generator_function_str}{alias_str}")
+    if is_outer:
+        generator_function_str = generator_function_str.replace("VARIANT_EXPLODE", "VARIANT_EXPLODE_OUTER")
+
+    if select_contains_index:
+        lateral_statement = self.sql(f"LATERAL VIEW OUTER {generator_function_str}{alias_str}")
+    else:
+        lateral_statement = self.sql(f", LATERAL {generator_function_str}{alias_str}")
+    return lateral_statement
+    # return self.sql(f", LATERAL {'OUTER ' if is_outer else ''}{generator_function_str}{alias_str}")
 
 
 # [TODO] Add more datatype coverage https://docs.databricks.com/sql/language-manual/sql-ref-datatypes.html
@@ -424,8 +416,7 @@ class Databricks(org_databricks.Databricks):  #
 
         def preprocess(self, expression: exp.Expression) -> exp.Expression:
             fixed_ast = expression.transform(lca_utils.unalias_lca_in_select, copy=False)
-            transformed_ast = lca_utils.transform_where_and_from(fixed_ast)
-            return super().preprocess(transformed_ast)
+            return super().preprocess(fixed_ast)
 
         def format_time(self, expression: exp.Expression, inverse_time_mapping=None, inverse_time_trie=None):
             return super().format_time(expression, self.INVERSE_TIME_MAPPING)

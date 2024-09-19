@@ -418,7 +418,7 @@ class Snow(Snowflake):
 
         COLUMN_OPERATORS = {
             **Snowflake.Parser.COLUMN_OPERATORS,
-            TokenType.COLON: lambda self, this, path: self._json_column_op(this, path),
+            # TokenType.COLON: lambda self, this, path: self._json_column_op(this, path),
         }
 
         TIMESTAMPS: set[TokenType] = Snowflake.Parser.TIMESTAMPS.copy() - {TokenType.TIME}

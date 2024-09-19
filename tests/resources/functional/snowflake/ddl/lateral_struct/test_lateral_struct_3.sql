@@ -20,9 +20,9 @@ WHERE
 -- databricks sql:
 SELECT
   CAST(d.col:display_position AS DECIMAL(38, 0)) AS display_position,
-  CAST(i:attributes AS STRING) AS attributes,
+  CAST(i.value:attributes AS STRING) AS attributes,
   CAST(CURRENT_TIMESTAMP() AS TIMESTAMP_NTZ) AS created_at,
-  CAST(i:prop AS DOUBLE) AS prop,
+  CAST(i.value:prop AS DOUBLE) AS prop,
   d.col:candidates AS candidates
 FROM (
   SELECT
@@ -30,6 +30,6 @@ FROM (
     '2024-08-28' AS event_date,
     'store.replacements_view' AS event_name
 ) AS d
- LATERAL VIEW OUTER EXPLODE(CAST(d.col:impressions AS ARRAY<VARIANT>)) AS i
+, LATERAL VARIANT_EXPLODE_OUTER(d.col:impressions) AS i
 WHERE
   d.event_date = '2024-08-28' AND d.event_name IN ('store.replacements_view');

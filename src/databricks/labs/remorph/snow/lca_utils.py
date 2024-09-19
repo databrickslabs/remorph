@@ -136,38 +136,3 @@ def _find_invalid_lca_in_window(
                 aliases_in_window.add(column.name)
 
     return aliases_in_window
-
-
-def transform_where_and_from(expr: exp.Expression):
-    """
-    Transforms the given SQL expression to ensure that columns in the WHERE and FROM clauses are correctly referenced
-    when lateral views are involved. Specifically, it replaces references to lateral view columns with their corresponding
-    table aliases to maintain the correct SQL syntax and semantics.
-
-    Args:
-        expr (exp.Expression): The SQL expression to be transformed.
-
-    Returns:
-        exp.Expression: The transformed SQL expression with correct column references.
-    """
-
-    lateral_aliases = set()
-
-    # Find all lateral views and their aliases in the parent
-    for lateral in expr.find_all(exp.Lateral):
-        alias = lateral.args.get("alias")
-        if alias:
-            lateral_aliases.add(alias.name)
-
-    # Traverse the query to find the Brackets and replaced the `.value`
-    # if it is referencing to the lateral views
-    for node in expr.find_all(local_expression.Bracket):
-        if (
-            isinstance(node.this, exp.Column)
-            and isinstance(node.this.this, exp.Identifier)
-            and node.this.table in lateral_aliases
-        ):
-            if node.this.this.name == "value":
-                node.set("this", node.this.table)
-                node.set("expressions", node.expressions)
-    return expr
