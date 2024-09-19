@@ -87,9 +87,9 @@ class SnowflakeTableDefinitions(conn: Connection) {
       val rs = stmt.executeQuery(getTableDefinitionQuery(catalogName))
       try {
         while (rs.next()) {
-          val TABLE_CATALOG = rs.getString("TABLE_CATALOG")
-          val TABLE_SCHEMA = rs.getString("TABLE_SCHEMA")
-          val TABLE_NAME = rs.getString("TABLE_NAME")
+          val tableCatalog = rs.getString("TABLE_CATALOG")
+          val tableSchema = rs.getString("TABLE_SCHEMA")
+          val tableName = rs.getString("TABLE_NAME")
           val columns = rs.getString(7)
             .split("~")
             .map(x => {
@@ -100,9 +100,9 @@ class SnowflakeTableDefinitions(conn: Connection) {
             })
           tableDefinitionList.append(
             TableDefinition(
-              TABLE_CATALOG,
-              TABLE_SCHEMA,
-              TABLE_NAME,
+              tableCatalog,
+              tableSchema,
+              tableName,
               Option(rs.getString(4)), // location
               Option(rs.getString(5)), // FORMAT
               Option(rs.getString(6)), // view text
