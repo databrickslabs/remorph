@@ -14,6 +14,7 @@ class SnowflakeAstBuilder extends SnowflakeParserBaseVisitor[ir.LogicalPlan] wit
   private val relationBuilder = new SnowflakeRelationBuilder
   private val ddlBuilder = new SnowflakeDDLBuilder
   private val dmlBuilder = new SnowflakeDMLBuilder
+  private val commandBuilder = new SnowflakeCommandBuilder
 
   // TODO investigate why this is needed
   override protected def aggregateResult(aggregate: ir.LogicalPlan, nextResult: ir.LogicalPlan): ir.LogicalPlan = {
@@ -64,7 +65,11 @@ class SnowflakeAstBuilder extends SnowflakeParserBaseVisitor[ir.LogicalPlan] wit
     case c => c.accept(dmlBuilder)
   }
 
-  override def visitSnowSqlCommand(ctx: SnowSqlCommandContext): ir.UnresolvedCommand = {
+  override def visitOtherCommand(ctx: OtherCommandContext): ir.LogicalPlan = {
+    ctx.accept(commandBuilder)
+  }
+
+  override def visitSnowSqlCommand(ctx: SnowSqlCommandContext): ir.LogicalPlan = {
     ir.UnresolvedCommand(ctx.getText)
   }
 }
