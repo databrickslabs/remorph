@@ -1,6 +1,5 @@
 package com.databricks.labs.remorph.parsers.tsql
 
-import com.databricks.labs.remorph.parsers.intermediate.ScalarSubquery
 import com.databricks.labs.remorph.parsers.tsql.TSqlParser._
 import com.databricks.labs.remorph.parsers.{ParserCommon, XmlFunction, tsql, intermediate => ir}
 import org.antlr.v4.runtime.Token
@@ -235,7 +234,7 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
   }
 
   override def visitExprSubquery(ctx: ExprSubqueryContext): ir.Expression = {
-    ScalarSubquery(ctx.subquery().accept(new TSqlRelationBuilder))
+    ir.ScalarSubquery(ctx.subquery().accept(new TSqlRelationBuilder))
   }
 
   override def visitExprTz(ctx: ExprTzContext): ir.Expression = {
