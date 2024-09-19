@@ -1,7 +1,5 @@
 package com.databricks.labs.remorph.parsers.tsql
 
-import com.databricks.labs.remorph.parsers.intermediate.LogicalPlan
-import com.databricks.labs.remorph.parsers.tsql.TSqlParser.DmlClauseContext
 import com.databricks.labs.remorph.parsers.{intermediate => ir}
 
 import scala.collection.JavaConverters.asScalaBufferConverter

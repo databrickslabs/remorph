@@ -236,7 +236,7 @@ class TSqlExpressionBuilder(var relationBuilder: TSqlRelationBuilder)
   }
 
   override def visitExprSubquery(ctx: ExprSubqueryContext): ir.Expression = {
-    ScalarSubquery(ctx.subquery().accept(relationBuilder))
+    ir.ScalarSubquery(ctx.subquery().accept(relationBuilder))
   }
 
   override def visitExprTz(ctx: ExprTzContext): ir.Expression = {
