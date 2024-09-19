@@ -110,7 +110,7 @@ class JobDeployment:
 
     def _job_recon_task(self, jobs_task: Task, recon_config: ReconcileConfig, remorph_wheel_path: str) -> Task:
         libraries = [
-            compute.Library(whl=f"{remorph_wheel_path}"),
+            compute.Library(whl=remorph_wheel_path),
         ]
         source = recon_config.data_source
         if source == ReconSourceType.ORACLE.value:

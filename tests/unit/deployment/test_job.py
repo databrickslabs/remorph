@@ -60,7 +60,7 @@ def test_deploy_new_job(oracle_recon_config):
     product_info = ProductInfo.from_class(RemorphConfigs)
     name = "Recon Job"
     job_deployer = JobDeployment(workspace_client, installation, install_state, product_info)
-    job_deployer.deploy_recon_job(name, oracle_recon_config, "remorph-0.5.0-py3-none-any.whl")
+    job_deployer.deploy_recon_job(name, oracle_recon_config, "remorph-x.y.z-py3-none-any.whl")
     workspace_client.jobs.create.assert_called_once()
     assert install_state.jobs[name] == str(job.job_id)
 
