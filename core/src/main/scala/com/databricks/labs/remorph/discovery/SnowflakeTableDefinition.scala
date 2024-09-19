@@ -26,7 +26,7 @@ class SnowflakeTableDefinition(conn: Connection) {
     dataTypeBuilder.buildDataType(ctx)
   }
 
-  private def getTableDefinitionQuery(catalogueName: String): String = {
+  private def getTableDefinitionQuery(catalogName: String): String = {
     s"""SELECT
                    |    sft.TABLE_CATALOG,
                    |    sft.TABLE_SCHEMA,
@@ -53,19 +53,19 @@ class SnowflakeTableDefinition(conn: Connection) {
                    |             END|| ':' || TO_BOOLEAN(CASE WHEN IS_NULLABLE = 'YES' THEN 'true' ELSE 'false' END),
                    |        '~') WITHIN GROUP (ORDER BY ordinal_position) AS Schema
                    |    FROM
-                   |        ${catalogueName}.INFORMATION_SCHEMA.COLUMNS
+                   |        ${catalogName}.INFORMATION_SCHEMA.COLUMNS
                    |    GROUP BY
                    |        TABLE_CATALOG, TABLE_SCHEMA, TABLE_NAME
                    |) t
-                   |JOIN ${catalogueName}.INFORMATION_SCHEMA.TABLES sft
+                   |JOIN ${catalogName}.INFORMATION_SCHEMA.TABLES sft
                    |    ON t.TABLE_CATALOG = sft.TABLE_CATALOG
                    |    AND t.TABLE_SCHEMA = sft.TABLE_SCHEMA
                    |    AND t.TABLE_NAME = sft.TABLE_NAME
-                   |LEFT JOIN ${catalogueName}.INFORMATION_SCHEMA.VIEWS sfv
+                   |LEFT JOIN ${catalogName}.INFORMATION_SCHEMA.VIEWS sfv
                    |    ON t.TABLE_CATALOG = sfv.TABLE_CATALOG
                    |    AND t.TABLE_SCHEMA = sfv.TABLE_SCHEMA
                    |    AND t.TABLE_NAME = sfv.TABLE_NAME
-                   |LEFT JOIN ${catalogueName}.INFORMATION_SCHEMA.EXTERNAL_TABLES sfe
+                   |LEFT JOIN ${catalogName}.INFORMATION_SCHEMA.EXTERNAL_TABLES sfe
                    |    ON t.TABLE_CATALOG = sfe.TABLE_CATALOG
                    |    AND t.TABLE_SCHEMA = sfe.TABLE_SCHEMA
                    |    AND t.TABLE_NAME = sfe.TABLE_NAME
@@ -79,11 +79,11 @@ class SnowflakeTableDefinition(conn: Connection) {
    *
    * @return A sequence of TableDefinition objects representing the tables in the database.
    */
-  def getTableDefinitions(catalogueName: String): Seq[TableDefinition] = {
+  def getTableDefinitions(catalogName: String): Seq[TableDefinition] = {
     val stmt = conn.createStatement()
     try {
       val tableDefinitionList = new scala.collection.mutable.ListBuffer[TableDefinition]()
-      val rs = stmt.executeQuery(getTableDefinitionQuery(catalogueName))
+      val rs = stmt.executeQuery(getTableDefinitionQuery(catalogName))
       try {
         while (rs.next()) {
           val TABLE_CATALOG = rs.getString("TABLE_CATALOG")
