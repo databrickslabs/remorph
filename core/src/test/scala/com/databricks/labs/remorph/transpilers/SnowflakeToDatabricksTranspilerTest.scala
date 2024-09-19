@@ -144,7 +144,6 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
 
   }
 
-
   "Snowflake transpile function with optional brackets" should {
 
     "SELECT CURRENT_DATE, CURRENT_TIMESTAMP, CURRENT_TIME, LOCALTIME, LOCALTIMESTAMP FROM t1" in {
@@ -164,11 +163,11 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
     "SELECT CURRENT_TIMESTAMP(1) FROM t1 where dt < CURRENT_TIMESTAMP" in {
       s"""SELECT CURRENT_TIMESTAMP(1) FROM t1 where dt < CURRENT_TIMESTAMP""".stripMargin transpilesTo (
         s"""SELECT
-             |  DATE_FORMAT(CURRENT_TIMESTAMP(), 'yyyy-MM-dd HH:mm:ss.SSS')
-             |FROM
-             |  t1
-             |WHERE
-             |  dt < CURRENT_TIMESTAMP();""".stripMargin
+           |  DATE_FORMAT(CURRENT_TIMESTAMP(), 'yyyy-MM-dd HH:mm:ss.SSS')
+           |FROM
+           |  t1
+           |WHERE
+           |  dt < CURRENT_TIMESTAMP();""".stripMargin
       )
     }
 
@@ -193,6 +192,7 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
            |  dt < CURRENT_TIMESTAMP();""".stripMargin
       )
     }
+  }
 
   "Snowflake Execute commands" should {
 
