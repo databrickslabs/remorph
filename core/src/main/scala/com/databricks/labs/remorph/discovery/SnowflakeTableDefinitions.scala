@@ -104,14 +104,50 @@ class SnowflakeTableDefinitions(conn: Connection) {
               tableCatalog,
               tableSchema,
               tableName,
-              Option(rs.getString("LOCATION")), // location
-              Option(rs.getString("FILE_FORMAT_NAME")), // FORMAT
-              Option(rs.getString("VIEW_DEFINITION")), // view text
+              Option(rs.getString("LOCATION")),
+              Option(rs.getString("FILE_FORMAT_NAME")),
+              Option(rs.getString("VIEW_DEFINITION")),
               columns,
-              sizeGb = rs.getInt("BYTES") / (1024 * 1024 * 1024) // sizeGb
+              sizeGb = rs.getInt("BYTES") / (1024 * 1024 * 1024)
             ))
         }
         tableDefinitionList
+      } finally {
+        rs.close()
+      }
+    } finally {
+      stmt.close()
+    }
+  }
+
+  def getAllSchemas(catalogName: String): mutable.ListBuffer[String] = {
+    val stmt = conn.createStatement()
+    try {
+      val rs = stmt.executeQuery(s"SHOW SCHEMAS IN $catalogName")
+      try {
+        val schemaList = new mutable.ListBuffer[String]()
+        while (rs.next()) {
+          schemaList.append(rs.getString("name"))
+        }
+        schemaList
+      } finally {
+        rs.close()
+      }
+    } finally {
+      stmt.close()
+    }
+  }
+
+  def getAllCatalogs: mutable.ListBuffer[String] = {
+    val stmt = conn.createStatement()
+    try {
+      val rs = stmt.executeQuery("SHOW DATABASES")
+      try {
+        val catalogList = new mutable.ListBuffer[String]()
+        while (rs.next()) {
+          catalogList.append(rs.getString("name"))
+        }
+        catalogList
       } finally {
         rs.close()
       }
