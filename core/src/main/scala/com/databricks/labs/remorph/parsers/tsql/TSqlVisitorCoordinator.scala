@@ -1,13 +1,16 @@
 package com.databricks.labs.remorph.parsers.tsql
 
-class TSqlVisitorCoordinator {
+import com.databricks.labs.remorph.parsers.VisitorCoordinator
 
-  val relationBuilder: TSqlRelationBuilder = new TSqlRelationBuilder(this)
+class TSqlVisitorCoordinator extends VisitorCoordinator {
+
+  val astBuilder = new TSqlAstBuilder(this)
+  val relationBuilder = new TSqlRelationBuilder(this)
   val expressionBuilder = new TSqlExpressionBuilder(this)
   val dmlBuilder = new TSqlDMLBuilder(this)
-  val optionBuilder = new OptionBuilder(this)
   val ddlBuilder = new TSqlDDLBuilder(this)
-  val dataTypeBuilder: DataTypeBuilder = new DataTypeBuilder
   val functionBuilder = new TSqlFunctionBuilder
-  val astBuilder = new TSqlAstBuilder(this)
+
+  // TSQL extension
+  val optionBuilder = new OptionBuilder(this)
 }
