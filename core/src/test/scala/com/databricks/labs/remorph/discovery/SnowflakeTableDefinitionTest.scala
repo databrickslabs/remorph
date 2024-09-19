@@ -13,7 +13,7 @@ class SnowflakeTableDefinitionTest extends AnyWordSpec with Matchers {
       var conn: Connection = null
       try {
         conn = connFactory.newConnection()
-        val snow = new SnowflakeTableDefinition(conn)
+        val snow = new SnowflakeTableDefinitions(conn)
         snow.getTableDefinitions("SNOWFLAKE")
       } catch {
         case e: Exception => e.printStackTrace()

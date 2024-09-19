@@ -6,9 +6,9 @@ import org.antlr.v4.runtime.{CharStreams, CommonTokenStream}
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakeTypeBuilder
 
 import java.sql.Connection
-import scala.collection.mutable.ListBuffer
+import scala.collection.mutable
 
-class SnowflakeTableDefinition(conn: Connection) {
+class SnowflakeTableDefinitions(conn: Connection) {
 
   /**
    * Parses a data type string and returns the corresponding DataType object.
@@ -82,21 +82,20 @@ class SnowflakeTableDefinition(conn: Connection) {
   def getTableDefinitions(catalogName: String): Seq[TableDefinition] = {
     val stmt = conn.createStatement()
     try {
-      val tableDefinitionList = new scala.collection.mutable.ListBuffer[TableDefinition]()
+      val tableDefinitionList = new mutable.ListBuffer[TableDefinition]()
       val rs = stmt.executeQuery(getTableDefinitionQuery(catalogName))
       try {
         while (rs.next()) {
           val TABLE_CATALOG = rs.getString("TABLE_CATALOG")
           val TABLE_SCHEMA = rs.getString("TABLE_SCHEMA")
           val TABLE_NAME = rs.getString("TABLE_NAME")
-          val columns = new ListBuffer[StructField]()
-          rs.getString(7)
+          val columns = rs.getString(7)
             .split("~")
-            .foreach(x => {
+            .map(x => {
               val data = x.split(":")
               val name = data(0)
               val dataType = getDataType(data(1))
-              columns.append(StructField(name, dataType, data(2).toBoolean))
+              StructField(name, dataType, data(2).toBoolean)
             })
           tableDefinitionList.append(
             TableDefinition(
@@ -110,6 +109,7 @@ class SnowflakeTableDefinition(conn: Connection) {
               rs.getInt("BYTES") / (1024 * 1024 * 1024) // sizeGb
             ))
         }
+        println(tableDefinitionList.size)
         tableDefinitionList
       } finally {
         rs.close()
