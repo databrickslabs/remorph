@@ -16,28 +16,28 @@ from databricks.sdk import WorkspaceClient
 logger = logging.getLogger(__name__)
 
 _SCHEMA_QUERY = """SELECT 
-                     ColumnName,
+                     ColumnName as column_name,
                      CASE 
-                        WHEN ColumnType IN ('int', 'bigint', 'smallint', 'tinyint') 
-                            THEN ColumnType
-                        WHEN ColumnType IN ('decimal' ,'numeric')
+                        WHEN ColumnType IN ('I') 
+                            THEN 'int'
+                        WHEN ColumnType IN ('D')
                             THEN 'decimal(' + 
-                                CAST(NUMERIC_PRECISION AS VARCHAR) + ',' + 
-                                CAST(NUMERIC_SCALE AS VARCHAR) + ')'
-                        WHEN ColumnType IN ('float', 'real') 
+                                CAST(DecimalTotalDigits AS VARCHAR(100)) + ',' + 
+                                CAST(DecimalFractionalDigits AS VARCHAR(100)) + ')'
+                        WHEN ColumnType IN ('F') 
                                 THEN 'float' 
-                        WHEN CHARACTER_MAXIMUM_LENGTH IS NOT NULL AND ColumnType IN ('varchar','char','text','nchar','nvarchar','ntext') 
-                                THEN 'string'
-                        WHEN ColumnType = 'date' 
-                                THEN ColumnType
-                        WHEN ColumnType IN ('time','datetime', 'datetime2','smalldatetime','datetimeoffset')
+                        WHEN ColumnLength IS NOT NULL AND ColumnType IN ('VC') 
+                                THEN 'varchar(' + CAST(ColumnLength AS VARCHAR(100)) + ')'
+                        WHEN ColumnType = 'DT' 
+                                THEN 'date'
+                        WHEN ColumnType IN ('TS')
                                 THEN 'timestamp'
-                        WHEN ColumnType IN ('bit')
+                        WHEN ColumnType IN ('B')
                                 THEN 'boolean'
-                        WHEN ColumnType IN ('binary','varbinary','image')
-                                THEN 'binary'
-                        ELSE ColumnType
-                    END AS 'ColumnType'
+                        WHEN ColumnType IN ('V')
+                                THEN 'varchar'
+                        ELSE 'string'
+                    END data_type
                     FROM 
                         DBC.ColumnsV
                     WHERE 
@@ -64,14 +64,14 @@ class TeradataDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
     @property
     def get_jdbc_url(self) -> str:
         # Fetch secrets once and store them in variables
-        secrets = {key: self._get_secret(key) for key in ['host', 'port', 'database', 'user', 'password']}
-
+        secrets = {key: self._get_secret(key) for key in ['CDE-BNSTLK-AZ-APPL-PWD']}
+        #jdbc:teradata://edwd.corp.erac.com
         # Construct the JDBC URL
         return (
-            f"jdbc:{self._DRIVER}://{secrets['host']}:{secrets['port']};"
-            f"databaseName={secrets['database']};"
-            f"user={secrets['user']};"
-            f"password={secrets['password']};"
+            f"jdbc:{self._DRIVER}://edwp.corp.erac.com/DBS_PORT=1025,"
+            #f"databaseName={secrets['database']},"
+            f"user=CDE_BNSTLK_AZ_APPL,"
+            f"password={secrets['CDE-BNSTLK-AZ-APPL-PWD']},"
         )
 
     def read_data(
@@ -100,10 +100,10 @@ class TeradataDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
         table: str,
     ) -> list[Schema]:
         """
-        Fetch the Schema from the INFORMATION_SCHEMA.COLUMNS table in SQL Server.
+        Fetch the Schema from the DBC.ColumnsV table in Teradata.
         If the user's current role does not have the necessary privileges to access the specified
         Information Schema object, RunTimeError will be raised:
-        "SQL access control error: Insufficient privileges to operate on schema 'INFORMATION_SCHEMA' "
+        "SQL access control error: Insufficient privileges to operate on schema 'DBC.ColumnsV' "
         """
         schema_query = re.sub(
             r'\s+',
