@@ -39,4 +39,4 @@ FROM
     STRUCT(101 AS id, 'John' AS first) AS b) AS col
   )
 AS p
-Lateral VIEW EXPLODE(p.col.a.contact) AS f;
+LATERAL VIEW EXPLODE(p.col.a.contact) AS f;

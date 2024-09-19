@@ -20,9 +20,9 @@ GROUP BY 1, 2, 3;
 
 -- databricks sql:
 SELECT
-  CAST (los:objectdomain as string) as object_type,
-  CAST (los:objectname as string) as object_name,
-  CAST (cols:columnname as string) as column_name,
+  CAST (los.value:objectdomain as string) as object_type,
+  CAST (los.value:objectname as string) as object_name,
+  CAST (cols.value:columnname as string) as column_name,
   COUNT (DISTINCT CAST (lah:query_token as string)) as n_queries,
   COUNT (
     DISTINCT CAST (lah:consumer_account_locator as string)
@@ -33,12 +33,12 @@ FROM
       parse_json (
         '{"query_date": "2022-03-02","query_token": "some_token","consumer_account_locator": "consumer_account_locator","listing_objects_accessed": [{"objectdomain": "table","objectname": "database_name.schema_name.table_name","columns": [{"columnname": "column1"},{"columnname": "column2"}]}]}'
       ) AS lah
-  ) AS src
-  LATERAL VIEW EXPLODE (CAST (src.lah:listing_objects_accessed AS ARRAY<VARIANT>)) AS los
-  LATERAL VIEW EXPLODE (CAST (los:columns AS ARRAY<VARIANT>)) AS cols
+  ) AS src,
+  LATERAL VARIANT_EXPLODE (src.lah:listing_objects_accessed) AS los,
+  LATERAL VARIANT_EXPLODE (los.value:columns) AS cols
 WHERE
-  CAST (los:objectdomain AS string) in ('table', 'view')
+  CAST (los.value:objectdomain AS string) in ('table', 'view')
   AND CAST (src.lah:query_date AS DATE) BETWEEN '2022-03-01' AND '2022-04-30'
-  AND CAST (los:objectname AS string) = 'database_name.schema_name.table_name'
+  AND CAST (los.value:objectname AS string) = 'database_name.schema_name.table_name'
   AND CAST (src.lah:consumer_account_locator AS string) = 'consumer_account_locator'
 GROUP BY 1, 2, 3;
