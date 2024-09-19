@@ -243,6 +243,6 @@ Dialect_hash_algo_mapping = [
     DialectHashConfig(dialect=get_dialect("databricks"), algo=[partial(sha2, num_bits="256", is_expr=True)]),
     DialectHashConfig(
         dialect=get_dialect("teradata"),
-        algo=[partial(anonymous, func="TO_HEX(HASH_SHA256({}))", is_expr=True)],
+        algo=[partial(anonymous, func="HASH_SHA256(TRIM(CAST({} AS VARCHAR(255))))", is_expr=True)],
     ),
 ]

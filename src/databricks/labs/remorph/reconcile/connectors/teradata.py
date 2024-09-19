@@ -16,18 +16,18 @@ from databricks.sdk import WorkspaceClient
 logger = logging.getLogger(__name__)
 
 _SCHEMA_QUERY = """SELECT 
-                     ColumnName as column_name,
+                     ColumnName as COLUMN_NAME,
                      CASE 
                         WHEN ColumnType IN ('I') 
                             THEN 'int'
                         WHEN ColumnType IN ('D')
-                            THEN 'decimal(' + 
-                                CAST(DecimalTotalDigits AS VARCHAR(100)) + ',' + 
-                                CAST(DecimalFractionalDigits AS VARCHAR(100)) + ')'
+                            THEN 'decimal(' || 
+                                CAST(DecimalTotalDigits AS VARCHAR(100)) || ',' ||
+                                CAST(DecimalFractionalDigits AS VARCHAR(100)) || ')'
                         WHEN ColumnType IN ('F') 
                                 THEN 'float' 
-                        WHEN ColumnLength IS NOT NULL AND ColumnType IN ('VC') 
-                                THEN 'varchar(' + CAST(ColumnLength AS VARCHAR(100)) + ')'
+                        WHEN ColumnLength IS NOT NULL AND ColumnType IN ('VC','CV') 
+                                THEN 'varchar(' || CAST(ColumnLength AS VARCHAR(100)) || ')'
                         WHEN ColumnType = 'DT' 
                                 THEN 'date'
                         WHEN ColumnType IN ('TS')
@@ -37,7 +37,7 @@ _SCHEMA_QUERY = """SELECT
                         WHEN ColumnType IN ('V')
                                 THEN 'varchar'
                         ELSE 'string'
-                    END data_type
+                    END DATA_TYPE
                     FROM 
                         DBC.ColumnsV
                     WHERE 
@@ -83,6 +83,7 @@ class TeradataDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
         options: JdbcReaderOptions | None,
     ) -> DataFrame:
         table_query = query.replace(":tbl", f"{catalog}.{schema}.{table}")
+        print(table_query)
         try:
             if options is None:
                 df = self.reader(table_query).load()
