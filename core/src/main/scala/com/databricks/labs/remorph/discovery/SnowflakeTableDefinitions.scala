@@ -27,51 +27,52 @@ class SnowflakeTableDefinitions(conn: Connection) {
   }
 
   private def getTableDefinitionQuery(catalogName: String): String = {
-    s"""SELECT
-                   |    sft.TABLE_CATALOG,
-                   |    sft.TABLE_SCHEMA,
-                   |    sft.TABLE_NAME,
-                   |    sfe.location,
-                   |    sfe.file_format_name,
-                   |    sfv.view_definition,
-                   |    t.Schema as derivedSchema,
-                   |    sft.BYTES,
-                   |FROM (
-                   |    SELECT
-                   |        TABLE_CATALOG,
-                   |        TABLE_SCHEMA,
-                   |        TABLE_NAME,
-                   |        LISTAGG(column_name || ':' ||
-                   |            CASE
-                   |                WHEN numeric_precision IS NOT NULL AND numeric_scale IS NOT NULL
-                   |                THEN
-                   |                    CONCAT(data_type, '(', numeric_precision, ',' , numeric_scale, ')')
-                   |                WHEN LOWER(data_type) = 'text'
-                   |                THEN
-                   |                    CONCAT('varchar', '(', CHARACTER_MAXIMUM_LENGTH, ')')
-                   |                ELSE data_type
-                   |             END|| ':' || TO_BOOLEAN(CASE WHEN IS_NULLABLE = 'YES' THEN 'true' ELSE 'false' END),
-                   |        '~') WITHIN GROUP (ORDER BY ordinal_position) AS Schema
-                   |    FROM
-                   |        ${catalogName}.INFORMATION_SCHEMA.COLUMNS
-                   |    GROUP BY
-                   |        TABLE_CATALOG, TABLE_SCHEMA, TABLE_NAME
-                   |) t
-                   |JOIN ${catalogName}.INFORMATION_SCHEMA.TABLES sft
-                   |    ON t.TABLE_CATALOG = sft.TABLE_CATALOG
-                   |    AND t.TABLE_SCHEMA = sft.TABLE_SCHEMA
-                   |    AND t.TABLE_NAME = sft.TABLE_NAME
-                   |LEFT JOIN ${catalogName}.INFORMATION_SCHEMA.VIEWS sfv
-                   |    ON t.TABLE_CATALOG = sfv.TABLE_CATALOG
-                   |    AND t.TABLE_SCHEMA = sfv.TABLE_SCHEMA
-                   |    AND t.TABLE_NAME = sfv.TABLE_NAME
-                   |LEFT JOIN ${catalogName}.INFORMATION_SCHEMA.EXTERNAL_TABLES sfe
-                   |    ON t.TABLE_CATALOG = sfe.TABLE_CATALOG
-                   |    AND t.TABLE_SCHEMA = sfe.TABLE_SCHEMA
-                   |    AND t.TABLE_NAME = sfe.TABLE_NAME
-                   |ORDER BY
-                   |    sft.TABLE_CATALOG, sft.TABLE_SCHEMA, sft.TABLE_NAME;
-                   |""".stripMargin
+    s"""WITH column_info AS (
+       |    SELECT
+       |        TABLE_CATALOG,
+       |        TABLE_SCHEMA,
+       |        TABLE_NAME,
+       |        LISTAGG(column_name || ':' ||
+       |            CASE
+       |                WHEN numeric_precision IS NOT NULL AND numeric_scale IS NOT NULL
+       |                THEN
+       |                    CONCAT(data_type, '(', numeric_precision, ',' , numeric_scale, ')')
+       |                WHEN LOWER(data_type) = 'text'
+       |                THEN
+       |                    CONCAT('varchar', '(', CHARACTER_MAXIMUM_LENGTH, ')')
+       |                ELSE data_type
+       |             END|| ':' || TO_BOOLEAN(CASE WHEN IS_NULLABLE = 'YES' THEN 'true' ELSE 'false' END),
+       |        '~') WITHIN GROUP (ORDER BY ordinal_position) AS Schema
+       |    FROM
+       |        ${catalogName}.INFORMATION_SCHEMA.COLUMNS
+       |    GROUP BY
+       |        TABLE_CATALOG, TABLE_SCHEMA, TABLE_NAME
+       |)
+       |SELECT
+       |    sft.TABLE_CATALOG,
+       |    sft.TABLE_SCHEMA,
+       |    sft.TABLE_NAME,
+       |    sfe.location,
+       |    sfe.file_format_name,
+       |    sfv.view_definition,
+       |    column_info.Schema as derivedSchema,
+       |    sft.BYTES
+       |FROM
+       |    column_info
+       |JOIN ${catalogName}.INFORMATION_SCHEMA.TABLES sft
+       |    ON column_info.TABLE_CATALOG = sft.TABLE_CATALOG
+       |    AND column_info.TABLE_SCHEMA = sft.TABLE_SCHEMA
+       |    AND column_info.TABLE_NAME = sft.TABLE_NAME
+       |LEFT JOIN ${catalogName}.INFORMATION_SCHEMA.VIEWS sfv
+       |    ON column_info.TABLE_CATALOG = sfv.TABLE_CATALOG
+       |    AND column_info.TABLE_SCHEMA = sfv.TABLE_SCHEMA
+       |    AND column_info.TABLE_NAME = sfv.TABLE_NAME
+       |LEFT JOIN ${catalogName}.INFORMATION_SCHEMA.EXTERNAL_TABLES sfe
+       |    ON column_info.TABLE_CATALOG = sfe.TABLE_CATALOG
+       |    AND column_info.TABLE_SCHEMA = sfe.TABLE_SCHEMA
+       |    AND column_info.TABLE_NAME = sfe.TABLE_NAME
+       |ORDER BY
+       |    sft.TABLE_CATALOG, sft.TABLE_SCHEMA, sft.TABLE_NAME;""".stripMargin
   }
 
   /**
