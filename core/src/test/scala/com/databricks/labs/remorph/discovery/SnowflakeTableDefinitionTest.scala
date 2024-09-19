@@ -14,7 +14,7 @@ class SnowflakeTableDefinitionTest extends AnyWordSpec with Matchers {
       try {
         conn = connFactory.newConnection()
         val snow = new SnowflakeTableDefinitions(conn)
-        snow.getTableDefinitions("SNOWFLAKE")
+        snow.getTableDefinitions("REMORPH")
       } catch {
         case e: Exception => e.printStackTrace()
       } finally {

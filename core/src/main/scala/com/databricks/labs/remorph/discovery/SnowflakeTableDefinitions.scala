@@ -55,7 +55,7 @@ class SnowflakeTableDefinitions(conn: Connection) {
        |    sfe.location,
        |    sfe.file_format_name,
        |    sfv.view_definition,
-       |    column_info.Schema as derivedSchema,
+       |    column_info.Schema as DERIVED_SCHEMA,
        |    sft.BYTES
        |FROM
        |    column_info
@@ -90,7 +90,8 @@ class SnowflakeTableDefinitions(conn: Connection) {
           val tableCatalog = rs.getString("TABLE_CATALOG")
           val tableSchema = rs.getString("TABLE_SCHEMA")
           val tableName = rs.getString("TABLE_NAME")
-          val columns = rs.getString(7)
+          val columns = rs
+            .getString("DERIVED_SCHEMA")
             .split("~")
             .map(x => {
               val data = x.split(":")
@@ -103,14 +104,13 @@ class SnowflakeTableDefinitions(conn: Connection) {
               tableCatalog,
               tableSchema,
               tableName,
-              Option(rs.getString(4)), // location
-              Option(rs.getString(5)), // FORMAT
-              Option(rs.getString(6)), // view text
+              Option(rs.getString("LOCATION")), // location
+              Option(rs.getString("FILE_FORMAT_NAME")), // FORMAT
+              Option(rs.getString("VIEW_DEFINITION")), // view text
               columns,
               rs.getInt("BYTES") / (1024 * 1024 * 1024) // sizeGb
             ))
         }
-        println(tableDefinitionList.size)
         tableDefinitionList
       } finally {
         rs.close()
