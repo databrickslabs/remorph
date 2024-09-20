@@ -1,8 +1,7 @@
 package com.databricks.labs.remorph.parsers.tsql
 
-import com.databricks.labs.remorph.parsers.intermediate.LogicalPlan
 import com.databricks.labs.remorph.parsers.tsql.TSqlParser.DmlClauseContext
-import com.databricks.labs.remorph.parsers.{OptionAuto, OptionExpression, OptionOff, OptionOn, OptionString, intermediate => ir}
+import com.databricks.labs.remorph.parsers.{intermediate => ir}
 
 import scala.collection.JavaConverters.asScalaBufferConverter
 
@@ -32,7 +31,7 @@ class TSqlAstBuilder extends TSqlParserBaseVisitor[ir.LogicalPlan] {
   }
 
   // TODO: Stored procedure calls etc as batch start
-  override def visitExecuteBodyBatch(ctx: TSqlParser.ExecuteBodyBatchContext): LogicalPlan =
+  override def visitExecuteBodyBatch(ctx: TSqlParser.ExecuteBodyBatchContext): ir.LogicalPlan =
     ir.UnresolvedRelation(ctx.getText)
 
   override def visitSqlClauses(ctx: TSqlParser.SqlClausesContext): ir.LogicalPlan = {
@@ -92,12 +91,12 @@ class TSqlAstBuilder extends TSqlParserBaseVisitor[ir.LogicalPlan] {
       (List.empty[String], Map.empty[String, Boolean], List.empty[String], Map.empty[String, ir.Expression])) {
       case ((disks, boolFlags, autoFlags, values), option) =>
         option match {
-          case OptionString("DISK", value) =>
+          case ir.OptionString("DISK", value) =>
             (value.stripPrefix("'").stripSuffix("'") :: disks, boolFlags, autoFlags, values)
-          case OptionOn(id) => (disks, boolFlags + (id -> true), autoFlags, values)
-          case OptionOff(id) => (disks, boolFlags + (id -> false), autoFlags, values)
-          case OptionAuto(id) => (disks, boolFlags, id :: autoFlags, values)
-          case OptionExpression(id, expr, _) => (disks, boolFlags, autoFlags, values + (id -> expr))
+          case ir.OptionOn(id) => (disks, boolFlags + (id -> true), autoFlags, values)
+          case ir.OptionOff(id) => (disks, boolFlags + (id -> false), autoFlags, values)
+          case ir.OptionAuto(id) => (disks, boolFlags, id :: autoFlags, values)
+          case ir.OptionExpression(id, expr, _) => (disks, boolFlags, autoFlags, values + (id -> expr))
           case _ => (disks, boolFlags, autoFlags, values)
         }
     }

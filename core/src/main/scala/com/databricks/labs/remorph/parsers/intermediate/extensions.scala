@@ -1,7 +1,5 @@
 package com.databricks.labs.remorph.parsers.intermediate
 
-import com.databricks.labs.remorph.parsers.GenericOption
-
 trait AstExtension
 
 abstract class ToRefactor extends LeafExpression {
