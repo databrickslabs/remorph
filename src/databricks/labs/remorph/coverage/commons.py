@@ -50,8 +50,15 @@ def sqlglot_run_coverage(dialect, subfolder):
     if not output_dir:
         raise ValueError("Environment variable `OUTPUT_DIR` is required")
 
-    collect_transpilation_stats("SQLGlot", SQLGLOT_COMMIT_HASH, sqlglot_version, dialect, Databricks,
-                                Path(input_dir) / subfolder, Path(output_dir), )
+    collect_transpilation_stats(
+        "SQLGlot",
+        SQLGLOT_COMMIT_HASH,
+        sqlglot_version,
+        dialect,
+        Databricks,
+        Path(input_dir) / subfolder,
+        Path(output_dir),
+    )
 
 
 def local_report(output_dir: Path):
@@ -70,9 +77,11 @@ def local_report(output_dir: Path):
         parse_ratio = parsed / total
         transpile_ratio = transpiled / total
         reconcile_ratio = reconciled / total
-        print(f"{project} -> {dialect}: {parse_ratio:.2%} parsed ({parsed}/{total}), "
-              f"{transpile_ratio:.2%} transpiled ({transpiled}/{total}), "
-              f"{reconcile_ratio:.2%} reconciled ({reconciled}/{total})")
+        print(
+            f"{project} -> {dialect}: {parse_ratio:.2%} parsed ({parsed}/{total}), "
+            f"{transpile_ratio:.2%} transpiled ({transpiled}/{total}), "
+            f"{reconcile_ratio:.2%} reconciled ({reconciled}/{total})"
+        )
 
 
 def get_supported_sql_files(input_dir: Path) -> Generator[Path, None, None]:
@@ -101,8 +110,14 @@ def get_env_var(env_var: str, *, required: bool = False) -> str | None:
 
 def get_current_commit_hash() -> str | None:
     try:
-        return (subprocess.check_output(["/usr/bin/git", "rev-parse", "--short", "HEAD"],
-                                        cwd=Path(__file__).resolve().parent, ).decode("ascii").strip())
+        return (
+            subprocess.check_output(
+                ["/usr/bin/git", "rev-parse", "--short", "HEAD"],
+                cwd=Path(__file__).resolve().parent,
+            )
+            .decode("ascii")
+            .strip()
+        )
     except (subprocess.CalledProcessError, FileNotFoundError) as e:
         logger.warning(f"Could not get the current commit hash. {e!s}")
         return None
@@ -134,19 +149,36 @@ def _ensure_valid_io_paths(input_dir: Path, result_dir: Path):
         raise NotADirectoryError(message)
 
 
-def _get_report_file_path(project: str, source_dialect: type[Dialect], target_dialect: type[Dialect],
-                          result_dir: Path, ) -> Path:
+def _get_report_file_path(
+    project: str,
+    source_dialect: type[Dialect],
+    target_dialect: type[Dialect],
+    result_dir: Path,
+) -> Path:
     source_dialect_name = source_dialect.__name__
     target_dialect_name = target_dialect.__name__
     current_time_ns = time.time_ns()
     return result_dir / f"{project}_{source_dialect_name}_{target_dialect_name}_{current_time_ns}.json".lower()
 
 
-def _prepare_report_entry(project: str, commit_hash: str, version: str, source_dialect: type[Dialect],
-                          target_dialect: type[Dialect], file_path: str, sql: str, ) -> ReportEntry:
-    report_entry = ReportEntry(project=project, commit_hash=commit_hash, version=version,
-                               timestamp=get_current_time_utc().isoformat(), source_dialect=source_dialect.__name__,
-                               target_dialect=target_dialect.__name__, file=file_path, )
+def _prepare_report_entry(
+    project: str,
+    commit_hash: str,
+    version: str,
+    source_dialect: type[Dialect],
+    target_dialect: type[Dialect],
+    file_path: str,
+    sql: str,
+) -> ReportEntry:
+    report_entry = ReportEntry(
+        project=project,
+        commit_hash=commit_hash,
+        version=version,
+        timestamp=get_current_time_utc().isoformat(),
+        source_dialect=source_dialect.__name__,
+        target_dialect=target_dialect.__name__,
+        file=file_path,
+    )
     try:
         expressions = parse_sql(sql, source_dialect)
         report_entry.parsed = 1
@@ -165,8 +197,15 @@ def _prepare_report_entry(project: str, commit_hash: str, version: str, source_d
     return report_entry
 
 
-def collect_transpilation_stats(project: str, commit_hash: str, version: str, source_dialect: type[Dialect],
-                                target_dialect: type[Dialect], input_dir: Path, result_dir: Path, ):
+def collect_transpilation_stats(
+    project: str,
+    commit_hash: str,
+    version: str,
+    source_dialect: type[Dialect],
+    target_dialect: type[Dialect],
+    input_dir: Path,
+    result_dir: Path,
+):
     _ensure_valid_io_paths(input_dir, result_dir)
     report_file_path = _get_report_file_path(project, source_dialect, target_dialect, result_dir)
 
@@ -174,6 +213,13 @@ def collect_transpilation_stats(project: str, commit_hash: str, version: str, so
         for input_file in get_supported_sql_files(input_dir):
             sql = input_file.read_text(encoding="utf-8-sig")
             file_path = str(input_file.absolute().relative_to(input_dir.parent.absolute()))
-            report_entry = _prepare_report_entry(project, commit_hash, version, source_dialect, target_dialect,
-                                                 file_path, sql, )
+            report_entry = _prepare_report_entry(
+                project,
+                commit_hash,
+                version,
+                source_dialect,
+                target_dialect,
+                file_path,
+                sql,
+            )
             write_json_line(report_file, report_entry)
