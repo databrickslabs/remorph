@@ -14,7 +14,10 @@ case class ReportEntryReport(
     parsing_error: Option[String] = None,
     transpiled: Int = 0, // 1 for success, 0 for failure
     transpiled_statements: Int = 0, // number of statements transpiled
-    transpilation_error: Option[String] = None) {
+    transpilation_error: Option[String] = None,
+    reconciled: Int = 0,
+    reconciled_statements: Int = 0,
+    reconciliation_error: Option[String] = None) {
   def isSuccess: Boolean = parsing_error.isEmpty && transpilation_error.isEmpty
   def errorMessage: Option[String] = parsing_error.orElse(transpilation_error)
 }
@@ -35,6 +38,9 @@ case class ReportEntry(header: ReportEntryHeader, report: ReportEntryReport) {
       "parsing_error" -> report.parsing_error.map(ujson.Str).getOrElse(ujson.Null),
       "transpiled" -> ujson.Num(report.transpiled),
       "transpiled_statements" -> ujson.Num(report.transpiled_statements),
-      "transpilation_error" -> report.transpilation_error.map(ujson.Str).getOrElse(ujson.Null))
+      "transpilation_error" -> report.transpilation_error.map(ujson.Str).getOrElse(ujson.Null),
+      "reconciled" -> ujson.Num(report.reconciled),
+      "reconciled_statements" -> ujson.Num(report.reconciled_statements),
+      "reconciliation_error" -> report.reconciliation_error.map(ujson.Str).getOrElse(ujson.Null))
   }
 }

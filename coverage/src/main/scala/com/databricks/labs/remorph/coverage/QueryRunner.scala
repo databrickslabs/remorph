@@ -31,9 +31,10 @@ abstract class BaseQueryRunner(transpiler: Transpiler) extends QueryRunner {
             parsed = 1,
             transpiled = 1,
             statements = 1,
-            transpilation_error = Some(compareQueries(expected, output)))
+            reconciliation_error = Some(compareQueries(expected, output)))
         } else {
-          ReportEntryReport(parsed = 1, transpiled = 1, statements = 1)
+          ReportEntryReport(parsed = 1, transpiled = 1, reconciled = 1, statements = 1, transpiled_statements = 1,
+            reconciled_statements = 1)
         }
     }
   }
