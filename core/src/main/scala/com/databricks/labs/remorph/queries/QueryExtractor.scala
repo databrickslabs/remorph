@@ -1,6 +1,7 @@
 package com.databricks.labs.remorph.queries
 
 import com.databricks.labs.remorph.parsers.PlanParser
+import com.databricks.labs.remorph.transpilers.SourceCode
 
 import java.io.File
 import scala.io.Source
@@ -58,8 +59,14 @@ class ExampleDebugger(getParser: String => PlanParser[_], prettyPrinter: Any => 
     val extractor = new CommentBasedQueryExtractor(dialect, "databricks")
     extractor.extractQuery(new File(name)) match {
       case Some(ExampleQuery(query, _)) =>
-        val plan = parser.parse(query)
-        prettyPrinter(plan)
+        parser.parse(new SourceCode(query)).flatMap(parser.visit) match {
+          case com.databricks.labs.remorph.transpilers.Result.Failure(stage, errorJson) =>
+            // scalastyle:off println
+            System.err.println(s"Failed to parse query: $query $errorJson")
+          // scalastyle:on println
+          case com.databricks.labs.remorph.transpilers.Result.Success(plan) =>
+            prettyPrinter(plan)
+        }
       case None => throw new IllegalArgumentException(s"Example $name not found")
     }
   }
