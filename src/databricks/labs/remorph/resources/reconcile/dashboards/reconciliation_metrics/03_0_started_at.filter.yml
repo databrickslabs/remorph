@@ -1,0 +1,5 @@
+columns:
+- start_ts
+title: Started At
+description: Applied to all datasets
+type: DATE_RANGE_PICKER

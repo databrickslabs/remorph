@@ -1,0 +1,352 @@
+display_name: "Reconciliation Metrics"
+tiles:
+  08_0_recon_details_pivot:
+    overrides:
+      spec:
+        version: 3
+        widgetType: pivot
+        encodings:
+          rows:
+            - fieldName: recon_id
+              displayName: recon_id
+            - fieldName: source_table
+              displayName: source_table
+            - fieldName: target_table
+              displayName: target_table
+            - fieldName: recon_type
+              displayName: recon_type
+            - fieldName: rn
+              displayName: rn
+          columns:
+            - fieldName: key
+              displayName: key
+          cell:
+            fieldName: value
+            cellType: text
+            displayName: value
+  11_0_failed_recon_ids:
+    overrides:
+      spec:
+        version: 3
+        widgetType: bar
+        encodings:
+          x:
+            fieldName: target_table
+            scale:
+              type: categorical
+              sort:
+                by: y-reversed
+            displayName: target_table
+          'y':
+            fieldName: countdistinct(recon_id)
+            scale:
+              type: quantitative
+            displayName: Count of Unique recon_id
+          label:
+            show: true
+      queries:
+        - name: main_query
+          query:
+            datasetName: 11_0_failed_recon_ids
+            fields:
+              - name: target_table
+                expression: '`target_table`'
+              - name: countdistinct(recon_id)
+                expression: COUNT(DISTINCT `recon_id`)
+            disaggregated: false
+  12_0_total_failed_runs:
+    overrides:
+      spec:
+        version: 2
+        widgetType: counter
+        encodings:
+          value:
+            fieldName: countdistinct(recon_id)
+            displayName: countdistinct(recon_id)
+      queries:
+        - name: main_query
+          query:
+            datasetName: 12_0_total_failed_runs
+            fields:
+              - name: countdistinct(recon_id)
+                expression: 'COUNT(DISTINCT `recon_id`)'
+            disaggregated: false
+  12_1_failed_targets:
+    overrides:
+      spec:
+        version: 2
+        widgetType: counter
+        encodings:
+          value:
+            fieldName: countdistinct(target_table)
+            displayName: countdistinct(target_table)
+      queries:
+        - name: main_query
+          query:
+            datasetName: 12_1_failed_targets
+            fields:
+              - name: countdistinct(target_table)
+                expression: 'COUNT(DISTINCT `target_table`)'
+            disaggregated: false
+  12_3_successful_targets:
+    overrides:
+      spec:
+        version: 2
+        widgetType: counter
+        encodings:
+          value:
+            fieldName: countdistinct(target_table)
+            displayName: countdistinct(target_table)
+      queries:
+        - name: main_query
+          query:
+            datasetName: 12_3_successful_targets
+            fields:
+              - name: countdistinct(target_table)
+                expression: 'COUNT(DISTINCT `target_table`)'
+            disaggregated: false
+  14_0_mismatched_records:
+    overrides:
+      queries:
+        - name: main_query
+          query:
+            datasetName: 14_0_mismatched_records
+            fields:
+              - name: target_table
+                expression: '`target_table`'
+              - name: hourly(start_ts)
+                expression: 'DATE_TRUNC("HOUR", `start_ts`)'
+              - name: absolute_mismatch
+                expression: '`absolute_mismatch`'
+            disaggregated: true
+      spec:
+        version: 3
+        widgetType: area
+        encodings:
+          x:
+            fieldName: hourly(start_ts)
+            scale:
+              type: temporal
+            displayName: start_ts
+          'y':
+            fieldName: absolute_mismatch
+            scale:
+              type: quantitative
+            displayName: absolute_mismatch
+          color:
+            fieldName: target_table
+            scale:
+              type: categorical
+            displayName: target_table
+          label:
+            show: false
+  14_1_threshold_mismatches:
+    overrides:
+      queries:
+        - name: main_query
+          query:
+            datasetName: 14_1_threshold_mismatches
+            fields:
+              - name: target_table
+                expression: '`target_table`'
+              - name: hourly(start_ts)
+                expression: 'DATE_TRUNC("HOUR", `start_ts`)'
+              - name: threshold_mismatch
+                expression: '`threshold_mismatch`'
+            disaggregated: true
+      spec:
+        version: 3
+        widgetType: area
+        encodings:
+          x:
+            fieldName: hourly(start_ts)
+            scale:
+              type: temporal
+            displayName: start_ts
+          'y':
+            fieldName: threshold_mismatch
+            scale:
+              type: quantitative
+            displayName: threshold_mismatch
+          color:
+            fieldName: target_table
+            scale:
+              type: categorical
+            displayName: target_table
+          label:
+            show: false
+  15_0_missing_in_databricks:
+    overrides:
+      queries:
+        - name: main_query
+          query:
+            datasetName: 15_0_missing_in_databricks
+            fields:
+              - name: target_table
+                expression: '`target_table`'
+              - name: hourly(start_ts)
+                expression: 'DATE_TRUNC("HOUR", `start_ts`)'
+              - name: missing_in_target
+                expression: '`missing_in_target`'
+            disaggregated: true
+      spec:
+        version: 3
+        widgetType: area
+        encodings:
+          x:
+            fieldName: hourly(start_ts)
+            scale:
+              type: temporal
+            displayName: start_ts
+          'y':
+            fieldName: missing_in_target
+            scale:
+              type: quantitative
+            displayName: missing_in_target
+          color:
+            fieldName: target_table
+            scale:
+              type: categorical
+            displayName: target_table
+          label:
+            show: false
+  15_1_missing_in_source:
+    overrides:
+      queries:
+        - name: main_query
+          query:
+            datasetName: 15_1_missing_in_source
+            fields:
+              - name: target_table
+                expression: '`target_table`'
+              - name: hourly(start_ts)
+                expression: 'DATE_TRUNC("HOUR", `start_ts`)'
+              - name: missing_in_source
+                expression: '`missing_in_source`'
+            disaggregated: true
+      spec:
+        version: 3
+        widgetType: area
+        encodings:
+          x:
+            fieldName: hourly(start_ts)
+            scale:
+              type: temporal
+            displayName: start_ts
+          'y':
+            fieldName: missing_in_source
+            scale:
+              type: quantitative
+            displayName: missing_in_source
+          color:
+            fieldName: target_table
+            scale:
+              type: categorical
+            displayName: target_table
+          label:
+            show: false
+  21_0_aggr_mismatched_records:
+    overrides:
+      queries:
+        - name: main_query
+          query:
+            datasetName: 21_0_aggr_mismatched_records
+            fields:
+              - name: target_table
+                expression: '`target_table`'
+              - name: hourly(start_ts)
+                expression: 'DATE_TRUNC("HOUR", `start_ts`)'
+              - name: mismatch
+                expression: '`mismatch`'
+            disaggregated: true
+      spec:
+        version: 3
+        widgetType: area
+        encodings:
+          x:
+            fieldName: hourly(start_ts)
+            scale:
+              type: temporal
+            displayName: start_ts
+          'y':
+            fieldName: mismatch
+            scale:
+              type: quantitative
+            displayName: mismatch
+          color:
+            fieldName: target_table
+            scale:
+              type: categorical
+            displayName: target_table
+          label:
+            show: false
+  22_0_aggr_missing_in_databricks:
+    overrides:
+      queries:
+        - name: main_query
+          query:
+            datasetName: 22_0_aggr_missing_in_databricks
+            fields:
+              - name: target_table
+                expression: '`target_table`'
+              - name: hourly(start_ts)
+                expression: 'DATE_TRUNC("HOUR", `start_ts`)'
+              - name: missing_in_target
+                expression: '`missing_in_target`'
+            disaggregated: true
+      spec:
+        version: 3
+        widgetType: area
+        encodings:
+          x:
+            fieldName: hourly(start_ts)
+            scale:
+              type: temporal
+            displayName: start_ts
+          'y':
+            fieldName: missing_in_target
+            scale:
+              type: quantitative
+            displayName: missing_in_target
+          color:
+            fieldName: target_table
+            scale:
+              type: categorical
+            displayName: target_table
+          label:
+            show: false
+  22_1_aggr_missing_in_source:
+    overrides:
+      queries:
+        - name: main_query
+          query:
+            datasetName: 22_1_aggr_missing_in_source
+            fields:
+              - name: target_table
+                expression: '`target_table`'
+              - name: hourly(start_ts)
+                expression: 'DATE_TRUNC("HOUR", `start_ts`)'
+              - name: missing_in_source
+                expression: '`missing_in_source`'
+            disaggregated: true
+      spec:
+        version: 3
+        widgetType: area
+        encodings:
+          x:
+            fieldName: hourly(start_ts)
+            scale:
+              type: temporal
+            displayName: start_ts
+          'y':
+            fieldName: missing_in_source
+            scale:
+              type: quantitative
+            displayName: missing_in_source
+          color:
+            fieldName: target_table
+            scale:
+              type: categorical
+            displayName: target_table
+          label:
+            show: false

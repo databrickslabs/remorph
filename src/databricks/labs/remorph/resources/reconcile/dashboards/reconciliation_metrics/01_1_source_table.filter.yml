@@ -1,0 +1,5 @@
+columns:
+- source_table
+type: MULTI_SELECT
+title: Source Table Name
+description: Applied to all datasets
