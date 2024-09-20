@@ -2,12 +2,13 @@ package com.databricks.labs.remorph.discovery
 
 import com.databricks.labs.remorph.parsers.PlanParser
 import com.databricks.labs.remorph.parsers.intermediate._
+import com.databricks.labs.remorph.transpilers.WorkflowStage.PARSE
+import com.databricks.labs.remorph.transpilers.{Result, SourceCode}
 import com.typesafe.scalalogging.LazyLogging
 
 import java.security.MessageDigest
 import java.sql.Timestamp
 import java.time.Duration
-import scala.util.control.NonFatal
 
 object WorkloadType extends Enumeration {
   type WorkloadType = Value
@@ -37,13 +38,15 @@ class Anonymizer(parser: PlanParser[_]) extends LazyLogging {
   def apply(history: QueryHistory): Fingerprints = Fingerprints(history.queries.map(fingerprint))
 
   private[discovery] def fingerprint(query: ExecutedQuery): Fingerprint = {
-    try {
-      val plan = parser.parse(query.source)
-      Fingerprint(query.timestamp, fingerprint(plan), query.duration, query.user, workloadType(plan), queryType(plan))
-    } catch {
-      case NonFatal(err) =>
-        logger.warn(s"Failed to parse query: ${query.source}", err)
+    parser.parse(SourceCode(query.source)).flatMap(parser.visit) match {
+      case Result.Failure(PARSE, errorJson) =>
+        logger.warn(s"Failed to parse query: ${query.source} $errorJson")
         Fingerprint(query.timestamp, "unknown", query.duration, query.user, WorkloadType.OTHER, QueryType.OTHER)
+      case Result.Failure(_, errorJson) =>
+        logger.warn(s"Failed to produce plan from query: ${query.source} $errorJson")
+        Fingerprint(query.timestamp, "unknown", query.duration, query.user, WorkloadType.OTHER, QueryType.OTHER)
+      case Result.Success(plan) =>
+        Fingerprint(query.timestamp, fingerprint(plan), query.duration, query.user, workloadType(plan), queryType(plan))
     }
   }
 

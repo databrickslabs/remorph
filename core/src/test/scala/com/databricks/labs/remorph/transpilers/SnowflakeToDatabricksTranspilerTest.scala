@@ -16,7 +16,13 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
     }
     "transpile BANG with options" in {
       "!options catch=true" transpilesTo "-- !options catch=true;"
-    } // Removed invalid sql
+    }
+    "transpile BANG with negative scenario unknown command" in {
+      "!test unknown command".failsTranspilation
+    }
+    "transpile BANG with negative scenario unknown command2" in {
+      "!abc set=abc".failsTranspilation
+    }
   }
 
   "Snowflake Alter commands" should {
