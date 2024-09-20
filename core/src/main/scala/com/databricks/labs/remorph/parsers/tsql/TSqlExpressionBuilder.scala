@@ -257,13 +257,15 @@ class TSqlExpressionBuilder(vc: TSqlVisitorCoordinator)
   override def visitPredicate(ctx: TSqlParser.PredicateContext): ir.Expression = {
 
     ctx match {
-      case e if e.EXISTS() != null => ir.UnresolvedExpression(ctx.getText) // TODO: build EXISTS
-      case f if f.freetextPredicate() != null => ir.UnresolvedExpression(ctx.getText) // TODO: build FREETEXT
-      case i if i.IN() != null => ir.UnresolvedExpression(ctx.getText) // TODO: build IN
+      case e if e.EXISTS() != null => ir.UnresolvedExpression(getTextFromParserRuleContext(ctx)) // TODO: build EXISTS
+      case f if f.freetextPredicate() != null =>
+        ir.UnresolvedExpression(getTextFromParserRuleContext(ctx)) // TODO: build FREETEXT
+      case i if i.IN() != null => ir.UnresolvedExpression(getTextFromParserRuleContext(ctx)) // TODO: build IN
       // TODO: build = ALL/SOM/ANY subquery
-      case asa if asa.selectStatement() != null => ir.UnresolvedExpression(ctx.getText)
-      case l if l.LIKE() != null => ir.UnresolvedExpression(ctx.getText) // TODO: build LIKE
-      case i if i.IS() != null => ir.UnresolvedExpression(ctx.getText) // TODO: build IS
+      case asa if asa.selectStatement() != null => ir.UnresolvedExpression(getTextFromParserRuleContext(ctx))
+      case l if l.LIKE() != null => ir.UnresolvedExpression(getTextFromParserRuleContext(ctx)) // TODO: build LIKE
+      case i if i.IS() != null => ir.UnresolvedExpression(getTextFromParserRuleContext(ctx)) // TODO: build IS
+      case b if b.BETWEEN() != null => ir.UnresolvedExpression(getTextFromParserRuleContext(ctx)) // TODO: build BETWEEN
       case _ =>
         ctx.expression().size() match {
           // Single expression as a predicate
