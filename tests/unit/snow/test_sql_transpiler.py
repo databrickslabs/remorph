@@ -2,7 +2,6 @@ import pytest
 from sqlglot import expressions
 
 from databricks.labs.remorph.snow import local_expression
-from databricks.labs.remorph.snow.experimental import DatabricksExperimental
 from databricks.labs.remorph.snow.sql_transpiler import SqlglotEngine
 
 
@@ -87,9 +86,3 @@ def test_parse_sql_content(transpiler):
     result = list(transpiler.parse_sql_content("SELECT * FROM table_name", "test.sql"))
     assert result[0][0] == "table_name"
     assert result[0][1] == "test.sql"
-
-
-def test_experimental_write_dialect(morph_config):
-    morph_config.mode = "experimental"
-    dialect = morph_config.get_write_dialect()
-    assert isinstance(dialect, DatabricksExperimental)

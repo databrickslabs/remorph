@@ -126,7 +126,6 @@ def _lateral_view(self: org_databricks.Databricks.Generator, expression: exp.Lat
     else:
         lateral_statement = self.sql(f", LATERAL {generator_function_str}{alias_str}")
     return lateral_statement
-    # return self.sql(f", LATERAL {'OUTER ' if is_outer else ''}{generator_function_str}{alias_str}")
 
 
 # [TODO] Add more datatype coverage https://docs.databricks.com/sql/language-manual/sql-ref-datatypes.html
