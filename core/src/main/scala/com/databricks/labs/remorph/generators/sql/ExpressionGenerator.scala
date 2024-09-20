@@ -200,11 +200,11 @@ class ExpressionGenerator extends Generator[ir.Expression, String] {
       ctx: GeneratorContext,
       subject: ir.Expression,
       pattern: ir.Expression,
-      escapeChar: Char,
+      escapeChar: Option[ir.Expression],
       caseSensitive: Boolean): String = {
     val op = if (caseSensitive) { "LIKE" }
     else { "ILIKE" }
-    val escape = if (escapeChar != '\\') s" ESCAPE '${escapeChar}'" else ""
+    val escape = escapeChar.map(char => s" ESCAPE ${expression(ctx, char)}").getOrElse("")
     s"${expression(ctx, subject)} $op ${expression(ctx, pattern)}$escape"
   }
 
