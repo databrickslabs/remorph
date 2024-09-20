@@ -19,11 +19,7 @@ class CoverageTest {
     val epoch = Instant.ofEpochMilli(0)
     java.time.Duration.between(epoch, instant).toNanos
   }
-  def run(
-      sourceDir: os.Path,
-      outputPath: os.Path,
-      extractor: String,
-      dialect: String): Unit = {
+  def run(sourceDir: os.Path, outputPath: os.Path, extractor: String, dialect: String): Unit = {
 
     val now = Instant.now
 
