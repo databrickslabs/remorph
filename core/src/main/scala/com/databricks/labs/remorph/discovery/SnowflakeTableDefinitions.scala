@@ -29,20 +29,20 @@ class SnowflakeTableDefinitions(conn: Connection) {
   private def getTableDefinitionQuery(catalogName: String): String = {
     s"""WITH column_info AS (
        |  SELECT
-       |      TABLE_CATALOG,
-       |      TABLE_SCHEMA,
-       |      TABLE_NAME,
-       |      LISTAGG(column_name || ':' ||
-       |          CASE
-       |              WHEN numeric_precision IS NOT NULL AND numeric_scale IS NOT NULL
-       |              THEN
-       |                  CONCAT(data_type, '(', numeric_precision, ',' , numeric_scale, ')')
-       |              WHEN LOWER(data_type) = 'text'
-       |              THEN
-       |                  CONCAT('varchar', '(', CHARACTER_MAXIMUM_LENGTH, ')')
-       |              ELSE data_type
-       |           END|| ':' || TO_BOOLEAN(CASE WHEN IS_NULLABLE = 'YES' THEN 'true' ELSE 'false' END),
-       |      '~') WITHIN GROUP (ORDER BY ordinal_position) AS Schema
+       |    TABLE_CATALOG,
+       |    TABLE_SCHEMA,
+       |    TABLE_NAME,
+       |    LISTAGG(column_name || ':' ||
+       |        CASE
+       |            WHEN numeric_precision IS NOT NULL AND numeric_scale IS NOT NULL
+       |            THEN
+       |                CONCAT(data_type, '(', numeric_precision, ',' , numeric_scale, ')')
+       |            WHEN LOWER(data_type) = 'text'
+       |            THEN
+       |                CONCAT('varchar', '(', CHARACTER_MAXIMUM_LENGTH, ')')
+       |            ELSE data_type
+       |         END|| ':' || TO_BOOLEAN(CASE WHEN IS_NULLABLE = 'YES' THEN 'true' ELSE 'false' END),
+       |    '~') WITHIN GROUP (ORDER BY ordinal_position) AS Schema
        |  FROM
        |      ${catalogName}.INFORMATION_SCHEMA.COLUMNS
        |  GROUP BY
