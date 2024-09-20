@@ -55,6 +55,7 @@ dependencies = [
   "databricks-labs-pylint~=0.4.0",
   "mypy~=1.10.0",
   "numpy==1.26.4",
+  "cryptography>=41.0.3"
 ]
 
 [project.entry-points.databricks]
