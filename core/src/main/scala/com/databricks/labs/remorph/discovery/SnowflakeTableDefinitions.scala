@@ -56,7 +56,7 @@ class SnowflakeTableDefinitions(conn: Connection) {
        |  sfe.file_format_name,
        |  sfv.view_definition,
        |  column_info.Schema as DERIVED_SCHEMA,
-       |  sft.BYTES
+       |  FLOOR(sft.BYTES / (1024 * 1024 * 1024)) AS SIZE_GB
        |FROM
        |  column_info
        |JOIN ${catalogName}.INFORMATION_SCHEMA.TABLES sft
@@ -80,7 +80,7 @@ class SnowflakeTableDefinitions(conn: Connection) {
    *
    * @return A sequence of TableDefinition objects representing the tables in the database.
    */
-  def getTableDefinitions(catalogName: String): Seq[TableDefinition] = {
+  private def getTableDefinitions(catalogName: String): Seq[TableDefinition] = {
     val stmt = conn.createStatement()
     try {
       val tableDefinitionList = new mutable.ListBuffer[TableDefinition]()
@@ -108,7 +108,7 @@ class SnowflakeTableDefinitions(conn: Connection) {
               Option(rs.getString("FILE_FORMAT_NAME")),
               Option(rs.getString("VIEW_DEFINITION")),
               columns,
-              sizeGb = rs.getInt("BYTES") / (1024 * 1024 * 1024)))
+              rs.getInt("SIZE_GB")))
         }
         tableDefinitionList
       } finally {
@@ -117,6 +117,10 @@ class SnowflakeTableDefinitions(conn: Connection) {
     } finally {
       stmt.close()
     }
+  }
+
+  def getAllTableDefinitions: mutable.Seq[TableDefinition] = {
+    getAllCatalogs.flatMap(getTableDefinitions)
   }
 
   def getAllSchemas(catalogName: String): mutable.ListBuffer[String] = {

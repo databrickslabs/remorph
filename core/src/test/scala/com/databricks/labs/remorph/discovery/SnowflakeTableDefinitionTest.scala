@@ -10,7 +10,8 @@ import org.scalatest.wordspec.AnyWordSpec
 class SnowflakeTableDefinitionTest extends AnyWordSpec with Matchers {
 
   "getTableDefinitions" should {
-    "return table definitions for a valid catalog" in {
+
+    "return table definitions for a all catalogs" in {
       val mockConn = mock(classOf[Connection])
       val mockStmt = mock(classOf[Statement])
       val mockRs = mock(classOf[ResultSet])
@@ -27,8 +28,14 @@ class SnowflakeTableDefinitionTest extends AnyWordSpec with Matchers {
       when(mockRs.getString("VIEW_DEFINITION")).thenReturn(null)
       when(mockRs.getInt("BYTES")).thenReturn(1024 * 1024 * 1024)
 
+      // Mock behavior for getAllCatalogs
+      val mockCatalogResultSet = mock(classOf[ResultSet])
+      when(mockStmt.executeQuery("SHOW DATABASES")).thenReturn(mockCatalogResultSet)
+      when(mockCatalogResultSet.next()).thenReturn(true, false)
+      when(mockCatalogResultSet.getString("name")).thenReturn("TEST_CATALOG")
+
       val snowflakeTableDefinitions = new SnowflakeTableDefinitions(mockConn)
-      val result = snowflakeTableDefinitions.getTableDefinitions("CATALOG")
+      val result = snowflakeTableDefinitions.getAllTableDefinitions
 
       result should have size 1
       result.head.columns should have size 2
