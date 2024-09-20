@@ -108,8 +108,7 @@ class SnowflakeTableDefinitions(conn: Connection) {
               Option(rs.getString("FILE_FORMAT_NAME")),
               Option(rs.getString("VIEW_DEFINITION")),
               columns,
-              sizeGb = rs.getInt("BYTES") / (1024 * 1024 * 1024)
-            ))
+              sizeGb = rs.getInt("BYTES") / (1024 * 1024 * 1024)))
         }
         tableDefinitionList
       } finally {

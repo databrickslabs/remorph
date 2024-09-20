@@ -1,45 +1,69 @@
 package com.databricks.labs.remorph.discovery
 
+import java.sql.{Connection, ResultSet, Statement}
+
+import org.mockito.ArgumentMatchers._
+import org.mockito.Mockito._
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
-import java.sql.Connection
-
-import com.databricks.labs.remorph.connections.{EnvGetter, SnowflakeConnectionFactory}
 
 class SnowflakeTableDefinitionTest extends AnyWordSpec with Matchers {
-  private val env = new EnvGetter
-  private val connFactory = new SnowflakeConnectionFactory(env)
 
-  "Snowflake Table Definition Test" should {
-    "Test table definition" in {
-      withConnection { conn =>
-        val snowflakeDefinitions = new SnowflakeTableDefinitions(conn)
-        val tableDefinitions = snowflakeDefinitions.getTableDefinitions("REMORPH")
-        tableDefinitions should not be empty
-      }
+  "getTableDefinitions" should {
+    "return table definitions for a valid catalog" in {
+      val mockConn = mock(classOf[Connection])
+      val mockStmt = mock(classOf[Statement])
+      val mockRs = mock(classOf[ResultSet])
+
+      when(mockConn.createStatement()).thenReturn(mockStmt)
+      when(mockStmt.executeQuery(anyString())).thenReturn(mockRs)
+      when(mockRs.next()).thenReturn(true, false)
+      when(mockRs.getString("TABLE_CATALOG")).thenReturn("CATALOG")
+      when(mockRs.getString("TABLE_SCHEMA")).thenReturn("SCHEMA")
+      when(mockRs.getString("TABLE_NAME")).thenReturn("TABLE")
+      when(mockRs.getString("DERIVED_SCHEMA")).thenReturn("col1:int:true~col2:string:false")
+      when(mockRs.getString("LOCATION")).thenReturn(null)
+      when(mockRs.getString("FILE_FORMAT_NAME")).thenReturn(null)
+      when(mockRs.getString("VIEW_DEFINITION")).thenReturn(null)
+      when(mockRs.getInt("BYTES")).thenReturn(1024 * 1024 * 1024)
+
+      val snowflakeTableDefinitions = new SnowflakeTableDefinitions(mockConn)
+      val result = snowflakeTableDefinitions.getTableDefinitions("CATALOG")
+
+      result should have size 1
+      result.head.columns should have size 2
     }
 
-    "Test list catalog" in {
-      withConnection { conn =>
-        val snowflakeDefinitions = new SnowflakeTableDefinitions(conn)
-        val catalogs = snowflakeDefinitions.getAllCatalogs
-        catalogs should not be empty
-      }
+    "return all schemas for a valid catalog" in {
+      val mockConn = mock(classOf[Connection])
+      val mockStmt = mock(classOf[Statement])
+      val mockRs = mock(classOf[ResultSet])
+
+      when(mockConn.createStatement()).thenReturn(mockStmt)
+      when(mockStmt.executeQuery(anyString())).thenReturn(mockRs)
+      when(mockRs.next()).thenReturn(true, true, false)
+      when(mockRs.getString("name")).thenReturn("SCHEMA1", "SCHEMA2")
+
+      val snowflakeTableDefinitions = new SnowflakeTableDefinitions(mockConn)
+      val result = snowflakeTableDefinitions.getAllSchemas("CATALOG")
+
+      result should contain allOf ("SCHEMA1", "SCHEMA2")
+    }
+
+    "return all catalogs" in {
+      val mockConn = mock(classOf[Connection])
+      val mockStmt = mock(classOf[Statement])
+      val mockRs = mock(classOf[ResultSet])
+
+      when(mockConn.createStatement()).thenReturn(mockStmt)
+      when(mockStmt.executeQuery(anyString())).thenReturn(mockRs)
+      when(mockRs.next()).thenReturn(true, true, false)
+      when(mockRs.getString("name")).thenReturn("CATALOG1", "CATALOG2")
+
+      val snowflakeTableDefinitions = new SnowflakeTableDefinitions(mockConn)
+      val result = snowflakeTableDefinitions.getAllCatalogs
+
+      result should contain allOf ("CATALOG1", "CATALOG2")
     }
   }
-
-  private def withConnection[T](f: Connection => T): T = {
-    var conn: Connection = null
-    try {
-      conn = connFactory.newConnection()
-      f(conn)
-    } catch {
-      case e: Exception =>
-        fail(s"Failed to execute database operation: ${e.getMessage}")
-    } finally {
-      if (conn != null) {
-          conn.close()
-        }
-      }
-    }
 }
