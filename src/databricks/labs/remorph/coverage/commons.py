@@ -4,17 +4,18 @@ import dataclasses
 import json
 import logging
 import os
-import sqlglot
 import subprocess
 import time
 from collections.abc import Generator
 from datetime import datetime, timezone
 from pathlib import Path
-from sqlglot.dialects.databricks import Databricks
-from sqlglot.dialects.dialect import Dialect
-from sqlglot.errors import ErrorLevel
-from sqlglot.expressions import Expression
 from typing import TextIO
+
+import sqlglot
+from sqlglot.expressions import Expression
+from sqlglot.dialects.dialect import Dialect
+from sqlglot.dialects.databricks import Databricks
+from sqlglot.errors import ErrorLevel
 
 logger = logging.getLogger(__name__)
 
