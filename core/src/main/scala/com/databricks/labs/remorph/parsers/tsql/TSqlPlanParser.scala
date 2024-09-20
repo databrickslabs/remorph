@@ -13,6 +13,7 @@ class TSqlPlanParser extends PlanParser[TSqlParser] {
   override protected def createParser(stream: TokenStream): TSqlParser = new TSqlParser(stream)
   override protected def createTree(parser: TSqlParser): ParserRuleContext = parser.tSqlFile()
   override protected def createPlan(tree: ParserRuleContext): LogicalPlan = vc.astBuilder.visit(tree)
+  override protected def addErrorStrategy(parser: TSqlParser): Unit = parser.setErrorHandler(new TSqlErrorStrategy)
 
   // TODO: Note that this is not the correct place for the optimizer, but it is here for now
   override protected def createOptimizer: Rules[LogicalPlan] = {

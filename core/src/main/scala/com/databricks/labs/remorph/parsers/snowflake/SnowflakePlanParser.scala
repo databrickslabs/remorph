@@ -17,6 +17,8 @@ class SnowflakePlanParser extends PlanParser[SnowflakeParser] {
   override protected def createParser(stream: TokenStream): SnowflakeParser = new SnowflakeParser(stream)
   override protected def createTree(parser: SnowflakeParser): ParserRuleContext = parser.snowflakeFile()
   override protected def createPlan(tree: ParserRuleContext): LogicalPlan = astBuilder.visit(tree)
+  override protected def addErrorStrategy(parser: SnowflakeParser): Unit =
+    parser.setErrorHandler(new SnowflakeErrorStrategy)
 
   // TODO: Note that this is not the correct place for the optimizer, but it is here for now
   override protected def createOptimizer: ir.Rules[ir.LogicalPlan] = {

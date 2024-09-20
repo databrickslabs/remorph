@@ -17,6 +17,7 @@ trait PlanParser[P <: Parser] {
   protected def createParser(stream: TokenStream): P
   protected def createTree(parser: P): ParserRuleContext
   protected def createPlan(tree: ParserRuleContext): ir.LogicalPlan
+  protected def addErrorStrategy(parser: P): Unit
 
   // TODO: This is probably not where the optimizer should be as this is a Plan "Parser" - it is here for now
   protected def createOptimizer: ir.Rules[ir.LogicalPlan]
@@ -30,6 +31,7 @@ trait PlanParser[P <: Parser] {
     val inputString = CharStreams.fromString(input.source)
     val tokenStream = new CommonTokenStream(createLexer(inputString))
     val parser = createParser(tokenStream)
+    addErrorStrategy(parser)
     val errListener = new ProductionErrorCollector(input.source, input.filename)
     parser.removeErrorListeners()
     parser.addErrorListener(errListener)
