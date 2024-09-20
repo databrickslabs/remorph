@@ -12,7 +12,7 @@ class TSqlDDLBuilder(vc: TSqlVisitorCoordinator)
     ctx match {
       case ci if ci.createInternal() != null => ci.createInternal().accept(this)
       case ct if ct.createExternal() != null => ct.createExternal().accept(this)
-      case _ => ir.UnresolvedCatalog(ctx.getText)
+      case _ => ir.UnresolvedCatalog(getTextFromParserRuleContext(ctx))
     }
 
   override def visitCreateInternal(ctx: TSqlParser.CreateInternalContext): ir.Catalog = {
@@ -56,7 +56,7 @@ class TSqlDDLBuilder(vc: TSqlVisitorCoordinator)
       case null => ir.CreateTable(tableName, None, None, None, schema)
       case ctas if ctas.selectStatementStandalone() != null =>
         ir.CreateTableAsSelect(tableName, ctas.selectStatementStandalone().accept(vc.relationBuilder), None, None, None)
-      case _ => ir.UnresolvedCatalog(ctx.getText)
+      case _ => ir.UnresolvedCatalog(getTextFromParserRuleContext(ctx))
     }
 
     // But because TSQL is so much more complicated than Databricks SQL, we need to build the table alterations
@@ -106,7 +106,7 @@ class TSqlDDLBuilder(vc: TSqlVisitorCoordinator)
   }
 
   override def visitCreateExternal(ctx: TSqlParser.CreateExternalContext): ir.Catalog = {
-    ir.UnresolvedCatalog(ctx.getText)
+    ir.UnresolvedCatalog(getTextFromParserRuleContext(ctx))
   }
 
   /**
@@ -117,7 +117,7 @@ class TSqlDDLBuilder(vc: TSqlVisitorCoordinator)
    * @return the option we have parsed
    */
   private def buildOption(ctx: TSqlParser.TableOptionContext): ir.GenericOption = {
-    ir.OptionUnresolved(ctx.getText)
+    ir.OptionUnresolved(getTextFromParserRuleContext(ctx))
   }
 
   private case class TSqlColDef(
@@ -220,7 +220,7 @@ class TSqlDDLBuilder(vc: TSqlVisitorCoordinator)
       case pu if pu.PRIMARY() != null || pu.UNIQUE() != null =>
         if (pu.clustered() != null) {
           if (pu.clustered().CLUSTERED() != null) {
-            options += ir.OptionUnresolved(pu.clustered().getText)
+            options += ir.OptionUnresolved(getTextFromParserRuleContext(pu.clustered()))
           }
         }
         val colNames = ctx.columnNameListWithOrder().columnNameWithOrder().asScala.map { cnwo =>
@@ -253,11 +253,11 @@ class TSqlDDLBuilder(vc: TSqlVisitorCoordinator)
 
       case cc if cc.CONNECTION() != null =>
         // CONNECTION is not supported in Databricks SQL
-        ir.UnresolvedConstraint(ctx.getText)
+        ir.UnresolvedConstraint(getTextFromParserRuleContext(ctx))
 
       case defVal if defVal.DEFAULT() != null =>
         // DEFAULT is not supported in Databricks SQL at TABLE constraint level
-        ir.UnresolvedConstraint(ctx.getText)
+        ir.UnresolvedConstraint(getTextFromParserRuleContext(ctx))
 
       case cc if cc.checkConstraint() != null =>
         // Check constraint construction
@@ -267,7 +267,7 @@ class TSqlDDLBuilder(vc: TSqlVisitorCoordinator)
         }
         ir.CheckConstraint(expr)
 
-      case _ => ir.UnresolvedConstraint(ctx.getText)
+      case _ => ir.UnresolvedConstraint(getTextFromParserRuleContext(ctx))
     }
 
     // Name the constraint if it is named and not unresolved
@@ -302,7 +302,7 @@ class TSqlDDLBuilder(vc: TSqlVisitorCoordinator)
       case pu if pu.PRIMARY() != null || pu.UNIQUE() != null =>
         // Primary or unique key construction.
         if (pu.clustered() != null) {
-          options += ir.OptionUnresolved(pu.clustered().getText)
+          options += ir.OptionUnresolved(getTextFromParserRuleContext(pu.clustered()))
         }
 
         if (pu.primaryKeyOptions() != null) {
@@ -337,7 +337,7 @@ class TSqlDDLBuilder(vc: TSqlVisitorCoordinator)
         }
         ir.CheckConstraint(expr)
 
-      case _ => ir.UnresolvedConstraint(ctx.getText)
+      case _ => ir.UnresolvedConstraint(getTextFromParserRuleContext(ctx))
     }
 
     // Name the constraint if it is named and not unresolved
@@ -392,7 +392,7 @@ class TSqlDDLBuilder(vc: TSqlVisitorCoordinator)
    * @return An unresolved constraint representing the index syntax
    */
   private def buildIndex(ctx: TSqlParser.TableIndicesContext): ir.UnresolvedConstraint = {
-    ir.UnresolvedConstraint(ctx.getText)
+    ir.UnresolvedConstraint(getTextFromParserRuleContext(ctx))
   }
 
   /**

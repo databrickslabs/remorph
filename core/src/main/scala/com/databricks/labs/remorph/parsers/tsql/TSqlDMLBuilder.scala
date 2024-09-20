@@ -2,10 +2,12 @@ package com.databricks.labs.remorph.parsers.tsql
 
 import com.databricks.labs.remorph.parsers.tsql.TSqlParser._
 import com.databricks.labs.remorph.parsers.tsql.rules.InsertDefaultsAction
-import com.databricks.labs.remorph.parsers.{intermediate => ir}
+import com.databricks.labs.remorph.parsers.{ParserCommon, intermediate => ir}
 
 import scala.collection.JavaConverters.asScalaBufferConverter
-class TSqlDMLBuilder(vc: TSqlVisitorCoordinator) extends TSqlParserBaseVisitor[ir.Modification] {
+class TSqlDMLBuilder(vc: TSqlVisitorCoordinator)
+    extends TSqlParserBaseVisitor[ir.Modification]
+    with ParserCommon[ir.Modification] {
 
   override def visitDmlClause(ctx: DmlClauseContext): ir.Modification =
     ctx match {
@@ -15,7 +17,7 @@ class TSqlDMLBuilder(vc: TSqlVisitorCoordinator) extends TSqlParserBaseVisitor[i
       case dml if dml.merge() != null => dml.merge().accept(this)
       case dml if dml.update() != null => dml.update().accept(this)
       case bulk if bulk.bulkStatement() != null => bulk.bulkStatement().accept(this)
-      case _ => ir.UnresolvedModification(ctx.getText)
+      case _ => ir.UnresolvedModification(getTextFromParserRuleContext(ctx))
     }
 
   override def visitMerge(ctx: MergeContext): ir.Modification = {

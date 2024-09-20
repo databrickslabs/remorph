@@ -174,7 +174,7 @@ class TSqlDDLBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
         Seq.empty,
         Seq.empty,
         None,
-        Some(Seq(ir.OptionUnresolved("LEDGER=ON")))))
+        Some(Seq(ir.OptionUnresolved("LEDGER = ON")))))
 
   }
 }
