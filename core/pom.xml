@@ -55,7 +55,6 @@
       <groupId>org.scala-lang</groupId>
       <artifactId>scala-library</artifactId>
       <version>${scala.version}</version>
-      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>com.databricks</groupId>
@@ -247,40 +246,71 @@
           <plugin>
             <groupId>org.codehaus.mojo</groupId>
             <artifactId>exec-maven-plugin</artifactId>
-            <version>3.3.0</version>
+            <version>3.4.1</version>
             <executions>
-              <!-- npm install antlr-format-cli -->
+<!--              &lt;!&ndash; npm install antlr-format-cli &ndash;&gt;-->
+<!--              <execution>-->
+<!--                <id>npm install antlr-format antlr-format-cli</id>-->
+<!--                <phase>validate</phase>-->
+<!--                <goals>-->
+<!--                  <goal>exec</goal>-->
+<!--                </goals>-->
+<!--                <configuration>-->
+<!--                  <executable>${project.build.directory}/node/npm</executable>-->
+<!--                  <arguments>-->
+<!--                    <argument>install</argument>-->
+<!--                    <argument>-g</argument>-->
+<!--                    <argument>&#45;&#45;save-dev</argument>-->
+<!--                    <argument>antlr-format</argument>-->
+<!--                    <argument>antlr-format-cli</argument>-->
+<!--                  </arguments>-->
+<!--                </configuration>-->
+<!--              </execution>-->
+<!--              &lt;!&ndash; antlr-fmt &ndash;&gt;-->
+<!--              <execution>-->
+<!--                <id>antlr-fmt</id>-->
+<!--                <phase>validate</phase>-->
+<!--                <goals>-->
+<!--                  <goal>exec</goal>-->
+<!--                </goals>-->
+<!--                <configuration>-->
+<!--                  <executable>${project.build.directory}/bin/antlr-format</executable>-->
+<!--                  <arguments>-->
+<!--                    <argument>-v</argument>-->
+<!--                    <argument>${basedir}/src/main/antlr4/**/*.g4</argument>-->
+<!--                  </arguments>-->
+<!--                </configuration>-->
+<!--              </execution>-->
               <execution>
-                <id>npm install antlr-format antlr-format-cli</id>
-                <phase>validate</phase>
                 <goals>
-                  <goal>exec</goal>
+                  <goal>java</goal>
                 </goals>
-                <configuration>
-                  <executable>${project.build.directory}/node/npm</executable>
-                  <arguments>
-                    <argument>install</argument>
-                    <argument>-g</argument>
-                    <argument>--save-dev</argument>
-                    <argument>antlr-format</argument>
-                    <argument>antlr-format-cli</argument>
-                  </arguments>
-                </configuration>
               </execution>
-              <!-- antlr-fmt -->
+            </executions>
+            <configuration>
+              <mainClass>"com.databricks.labs.remorph.Main"</mainClass>
+            </configuration>
+          </plugin>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-assembly-plugin</artifactId>
+            <version>3.6.0</version>
+            <configuration>
+              <descriptorRefs>
+                <descriptorRef>jar-with-dependencies</descriptorRef>
+              </descriptorRefs>
+              <archive>
+                <manifest>
+                  <mainClass>com.databricks.labs.remorph.Main</mainClass>
+                </manifest>
+              </archive>
+            </configuration>
+            <executions>
               <execution>
-                <id>antlr-fmt</id>
-                <phase>validate</phase>
+                <phase>package</phase>
                 <goals>
-                  <goal>exec</goal>
+                  <goal>single</goal>
                 </goals>
-                <configuration>
-                  <executable>${project.build.directory}/bin/antlr-format</executable>
-                  <arguments>
-                    <argument>-v</argument>
-                    <argument>${basedir}/src/main/antlr4/**/*.g4</argument>
-                  </arguments>
-                </configuration>
               </execution>
             </executions>
           </plugin>

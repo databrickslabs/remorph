@@ -64,7 +64,7 @@
           </descriptorRefs>
           <archive>
             <manifest>
-              <mainClass>com.databricks.labs.transpiler.Main</mainClass>
+              <mainClass>com.databricks.labs.remorph.Main</mainClass>
             </manifest>
           </archive>
         </configuration>
