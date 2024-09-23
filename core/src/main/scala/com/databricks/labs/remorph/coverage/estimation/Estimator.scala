@@ -7,7 +7,7 @@ import com.databricks.labs.remorph.parsers.PlanParser
 import com.typesafe.scalalogging.LazyLogging
 import os.Path
 
-class Estimator extends LazyLogging{
+class Estimator extends LazyLogging {
 
   def run(outputDir: Path, dialect: String, planParser: PlanParser[_]): Unit = {
 
@@ -16,7 +16,8 @@ class Estimator extends LazyLogging{
     val env = new EnvGetter
 
     val conn = dialect match {
-      case "snowflake" => val connFactory = new SnowflakeConnectionFactory(env)
+      case "snowflake" =>
+        val connFactory = new SnowflakeConnectionFactory(env)
         connFactory.newConnection() // TODO: wrap with closing logic
       case _ => throw new IllegalArgumentException(s"Unsupported dialect: $dialect")
     }
