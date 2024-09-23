@@ -1,6 +1,5 @@
 import codecs
 from pathlib import Path
-from collections.abc import Generator
 
 
 # Optionally check to see if a string begins with a Byte Order Mark
@@ -68,7 +67,7 @@ def dir_walk(root: Path):
         yield from dir_walk(each_dir)
 
 
-def get_sql_file(input_path: str | Path) -> Generator[Path, None, None]:
+def get_sql_file(input_path: str | Path):
     """
     Returns Generator that yields the names of all SQL files in the given directory.
     :param input_path: Path

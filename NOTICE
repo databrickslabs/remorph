@@ -74,3 +74,8 @@ https://github.com/databrickslabs/blueprint/blob/main/LICENSE
 
 Databricks Connect - https://pypi.org/project/databricks-connect/
 Copyright (2019) Databricks Inc.
+
+cryptography - https://github.com/pyca/cryptography
+Copyright 2013-2023 The Python Cryptographic Authority and individual contributors.
+License - https://github.com/pyca/cryptography/blob/main/LICENSE
+This library requires compiled dependencies, including a C compiler and OpenSSL.
