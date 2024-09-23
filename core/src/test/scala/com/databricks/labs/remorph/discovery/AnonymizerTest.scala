@@ -48,7 +48,7 @@ class AnonymizerTest extends AnyWordSpec with Matchers {
           QueryType.DDL))
     }
 
-    "unknown query" in {
+    "trap an unknown query" in {
       val snow = new SnowflakePlanParser
       val anonymizer = new Anonymizer(snow)
       val query = ExecutedQuery(new Timestamp(1725032011000L), "THIS IS UNKNOWN;", Duration.ofMillis(300), "foo")
@@ -56,8 +56,7 @@ class AnonymizerTest extends AnyWordSpec with Matchers {
       anonymizer.fingerprint(query) should equal(
         Fingerprint(
           new Timestamp(1725032011000L),
-          // Changed hash value since query results in set of ir.UnresolvedCommand as part of otherCommand
-          "3cb7865cbb724d921629971dbc0e971624a6c3e2",
+          "unknown",
           Duration.ofMillis(300),
           "foo",
           WorkloadType.OTHER,

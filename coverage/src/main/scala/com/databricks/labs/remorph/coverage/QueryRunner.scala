@@ -1,11 +1,9 @@
 package com.databricks.labs.remorph.coverage
 
-import com.databricks.labs.remorph.parsers.ParseException
 import com.databricks.labs.remorph.queries.ExampleQuery
-import com.databricks.labs.remorph.transpilers.{Formatter, SnowflakeToDatabricksTranspiler, TSqlToDatabricksTranspiler, TranspileException}
+import com.databricks.labs.remorph.transpilers.WorkflowStage.PARSE
+import com.databricks.labs.remorph.transpilers.{Formatter, Result, SnowflakeToDatabricksTranspiler, SourceCode, TSqlToDatabricksTranspiler, Transpiler}
 import com.databricks.labs.remorph.utils.Strings
-
-import scala.util.control.NonFatal
 
 trait QueryRunner extends Formatter {
   def runQuery(exampleQuery: ExampleQuery): ReportEntryReport
@@ -18,54 +16,27 @@ trait QueryRunner extends Formatter {
   }
 }
 
-class IsTranspiledFromSnowflakeQueryRunner extends QueryRunner {
-  val snowflakeTranspiler = new SnowflakeToDatabricksTranspiler
+abstract class BaseQueryRunner(transpiler: Transpiler) extends QueryRunner {
+
   override def runQuery(exampleQuery: ExampleQuery): ReportEntryReport = {
-    try {
-      val transpiled = snowflakeTranspiler.transpile(exampleQuery.query)
-      if (exampleQuery.expectedTranslation.map(format).exists(_ != transpiled)) {
-        val expected = exampleQuery.expectedTranslation.getOrElse("")
-        ReportEntryReport(
-          parsed = 1,
-          transpiled = 1,
-          statements = 1,
-          transpilation_error = Some(compareQueries(expected, transpiled)))
-      } else {
-        ReportEntryReport(parsed = 1, transpiled = 1, statements = 1)
-      }
-    } catch {
-      case ParseException(msg) =>
-        ReportEntryReport(statements = 1, parsing_error = Some(msg))
-      case TranspileException(msg) =>
-        ReportEntryReport(statements = 1, parsed = 1, transpilation_error = Some(msg))
-      case NonFatal(e) =>
-        ReportEntryReport(parsing_error = Some(s"${e.getClass.getSimpleName}: ${e.getMessage}"))
+    transpiler.transpile(SourceCode(exampleQuery.query)) match {
+      case Result.Failure(PARSE, errorJson) => ReportEntryReport(statements = 1, parsing_error = Some(errorJson))
+      case Result.Failure(_, errorJson) => ReportEntryReport(statements = 1, transpilation_error = Some(errorJson))
+      case Result.Success(output) =>
+        if (exampleQuery.expectedTranslation.map(format).exists(_ != format(output))) {
+          val expected = exampleQuery.expectedTranslation.getOrElse("")
+          ReportEntryReport(
+            parsed = 1,
+            transpiled = 1,
+            statements = 1,
+            transpilation_error = Some(compareQueries(expected, output)))
+        } else {
+          ReportEntryReport(parsed = 1, transpiled = 1, statements = 1)
+        }
     }
   }
 }
 
-class IsTranspiledFromTSqlQueryRunner extends QueryRunner {
-  val tsqlTranspiler = new TSqlToDatabricksTranspiler
-  override def runQuery(exampleQuery: ExampleQuery): ReportEntryReport = {
-    try {
-      val transpiled = tsqlTranspiler.transpile(exampleQuery.query)
-      if (exampleQuery.expectedTranslation.map(format).exists(_ != transpiled)) {
-        val expected = exampleQuery.expectedTranslation.getOrElse("")
-        ReportEntryReport(
-          parsed = 1,
-          transpiled = 1,
-          statements = 1,
-          transpilation_error = Some(compareQueries(expected, transpiled)))
-      } else {
-        ReportEntryReport(parsed = 1, transpiled = 1, statements = 1)
-      }
-    } catch {
-      case ParseException(msg) =>
-        ReportEntryReport(statements = 1, parsing_error = Some(msg))
-      case TranspileException(msg) =>
-        ReportEntryReport(statements = 1, parsed = 1, transpilation_error = Some(msg))
-      case NonFatal(e) =>
-        ReportEntryReport(parsing_error = Some(e.getMessage))
-    }
-  }
-}
+class IsTranspiledFromSnowflakeQueryRunner extends BaseQueryRunner(new SnowflakeToDatabricksTranspiler)
+
+class IsTranspiledFromTSqlQueryRunner extends BaseQueryRunner(new TSqlToDatabricksTranspiler)

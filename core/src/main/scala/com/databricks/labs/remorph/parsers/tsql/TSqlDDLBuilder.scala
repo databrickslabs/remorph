@@ -4,14 +4,9 @@ import com.databricks.labs.remorph.parsers.{ParserCommon, intermediate => ir}
 
 import scala.collection.JavaConverters.asScalaBufferConverter
 
-class TSqlDDLBuilder(
-    optionBuilder: OptionBuilder,
-    expressionBuilder: TSqlExpressionBuilder,
-    relationBuilder: TSqlRelationBuilder)
+class TSqlDDLBuilder(vc: TSqlVisitorCoordinator)
     extends TSqlParserBaseVisitor[ir.Catalog]
     with ParserCommon[ir.Catalog] {
-
-  private val dataTypeBuilder: DataTypeBuilder = new DataTypeBuilder
 
   override def visitCreateTable(ctx: TSqlParser.CreateTableContext): ir.Catalog =
     ctx match {
@@ -60,7 +55,7 @@ class TSqlDDLBuilder(
     val createTable = ctx.createTableAs() match {
       case null => ir.CreateTable(tableName, None, None, None, schema)
       case ctas if ctas.selectStatementStandalone() != null =>
-        ir.CreateTableAsSelect(tableName, ctas.selectStatementStandalone().accept(relationBuilder), None, None, None)
+        ir.CreateTableAsSelect(tableName, ctas.selectStatementStandalone().accept(vc.relationBuilder), None, None, None)
       case _ => ir.UnresolvedCatalog(ctx.getText)
     }
 
@@ -148,7 +143,7 @@ class TSqlDDLBuilder(
         case d if d.defaultValue() != null =>
           // Databricks SQL does not support the naming of the DEFAULT CONSTRAINT, so we will just use the default
           // expression we are given, but if there is a name, we will store it as a comment
-          constraints += ir.DefaultValueConstraint(d.defaultValue().expression().accept(expressionBuilder))
+          constraints += ir.DefaultValueConstraint(d.defaultValue().expression().accept(vc.expressionBuilder))
           if (d.defaultValue().id() != null) {
             options += ir.OptionUnresolved(
               s"Databricks SQL cannot name the DEFAULT CONSTRAINT ${d.defaultValue().id().getText}")
@@ -205,7 +200,7 @@ class TSqlDDLBuilder(
           options += ir.OptionUnresolved(s"Unsupported Option: ${getTextFromParserRuleContext(o)}")
       }
     }
-    val dataType = dataTypeBuilder.build(ctx.dataType())
+    val dataType = vc.dataTypeBuilder.build(ctx.dataType())
     val sf = ir.StructField(ctx.id().getText, dataType, nullable.getOrElse(true))
 
     // TODO: index options
@@ -266,7 +261,7 @@ class TSqlDDLBuilder(
 
       case cc if cc.checkConstraint() != null =>
         // Check constraint construction
-        val expr = cc.checkConstraint().searchCondition().accept(expressionBuilder)
+        val expr = cc.checkConstraint().searchCondition().accept(vc.expressionBuilder)
         if (cc.checkConstraint().NOT() != null) {
           options += ir.OptionUnresolved("NOT FOR REPLICATION")
         }
@@ -336,7 +331,7 @@ class TSqlDDLBuilder(
 
       case cc if cc.checkConstraint() != null =>
         // Check constraint construction (will be gathered as a table level constraint)
-        val expr = cc.checkConstraint().searchCondition().accept(expressionBuilder)
+        val expr = cc.checkConstraint().searchCondition().accept(vc.expressionBuilder)
         if (cc.checkConstraint().NOT() != null) {
           options += ir.OptionUnresolved("NOT FOR REPLICATION")
         }
@@ -413,7 +408,7 @@ class TSqlDDLBuilder(
   override def visitBackupDatabase(ctx: TSqlParser.BackupDatabaseContext): ir.Catalog = {
     val database = ctx.id().getText
     val opts = ctx.optionList()
-    val options = opts.asScala.flatMap(_.genericOption().asScala).toList.map(optionBuilder.buildOption)
+    val options = opts.asScala.flatMap(_.genericOption().asScala).toList.map(vc.optionBuilder.buildOption)
     val (disks, boolFlags, autoFlags, values) = options.foldLeft(
       (List.empty[String], Map.empty[String, Boolean], List.empty[String], Map.empty[String, ir.Expression])) {
       case ((disks, boolFlags, autoFlags, values), option) =>
