@@ -70,4 +70,4 @@ dev-cli:
 	mvn -f core/pom.xml dependency:build-classpath -Dmdep.outputFile=target/classpath.txt
 
 estimate-coverage: build_core_jar
-	java -jar $(wildcard core/target/remorph-core-*-SNAPSHOT.jar) '{"command": "estimate", "flags":{"dst":"$(abspath ${OUTPUT_DIR})", "source-dialect": "Snow"}}'
+	java -jar $(wildcard core/target/remorph-core-*-SNAPSHOT.jar) '{"command": "estimate", "flags":{"dst":"$(abspath ${OUTPUT_DIR})", "source-dialect": "snowflake"}}'
