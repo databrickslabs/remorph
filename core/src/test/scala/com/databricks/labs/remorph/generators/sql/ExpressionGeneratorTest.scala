@@ -107,16 +107,18 @@ class ExpressionGeneratorTest
 
   "like" should {
     "a LIKE 'b%'" in {
-      ir.Like(ir.UnresolvedAttribute("a"), ir.Literal("b%")) generates "a LIKE 'b%'"
+      ir.Like(ir.UnresolvedAttribute("a"), ir.Literal("b%"), None) generates "a LIKE 'b%'"
     }
     "a LIKE b ESCAPE '/'" in {
-      ir.Like(ir.UnresolvedAttribute("a"), ir.UnresolvedAttribute("b"), '/') generates "a LIKE b ESCAPE '/'"
+      ir.Like(ir.UnresolvedAttribute("a"), ir.UnresolvedAttribute("b"), Some(ir.Literal('/'))) generates
+        "a LIKE b ESCAPE '/'"
     }
     "a ILIKE 'b%'" in {
-      ir.ILike(ir.UnresolvedAttribute("a"), ir.Literal("b%")) generates "a ILIKE 'b%'"
+      ir.ILike(ir.UnresolvedAttribute("a"), ir.Literal("b%"), None) generates "a ILIKE 'b%'"
     }
     "a ILIKE b ESCAPE '/'" in {
-      ir.ILike(ir.UnresolvedAttribute("a"), ir.UnresolvedAttribute("b"), '/') generates "a ILIKE b ESCAPE '/'"
+      ir.ILike(ir.UnresolvedAttribute("a"), ir.UnresolvedAttribute("b"), Some(ir.Literal('/'))) generates
+        "a ILIKE b ESCAPE '/'"
     }
     "a LIKE ANY ('b%', 'c%')" in {
       ir.LikeAny(

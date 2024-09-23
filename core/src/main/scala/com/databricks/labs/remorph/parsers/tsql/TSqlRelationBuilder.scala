@@ -2,12 +2,14 @@ package com.databricks.labs.remorph.parsers.tsql
 
 import com.databricks.labs.remorph.parsers.tsql.TSqlParser._
 import com.databricks.labs.remorph.parsers.tsql.rules.{InsertDefaultsAction, TopPercent}
-import com.databricks.labs.remorph.parsers.{intermediate => ir}
+import com.databricks.labs.remorph.parsers.{ParserCommon, intermediate => ir}
 import org.antlr.v4.runtime.ParserRuleContext
 
 import scala.collection.JavaConverters.asScalaBufferConverter
 
-class TSqlRelationBuilder(vc: TSqlVisitorCoordinator) extends TSqlParserBaseVisitor[ir.LogicalPlan] {
+class TSqlRelationBuilder(vc: TSqlVisitorCoordinator)
+    extends TSqlParserBaseVisitor[ir.LogicalPlan]
+    with ParserCommon[ir.LogicalPlan] {
 
   override def visitCommonTableExpression(ctx: CommonTableExpressionContext): ir.LogicalPlan = {
     val tableName = vc.expressionBuilder.visitId(ctx.id())
@@ -32,7 +34,7 @@ class TSqlRelationBuilder(vc: TSqlVisitorCoordinator) extends TSqlParserBaseVisi
 
   override def visitSelectStatement(ctx: TSqlParser.SelectStatementContext): ir.LogicalPlan = {
     // TODO: The FOR clause of TSQL is not supported in Databricks SQL as XML and JSON are not supported
-    //       in the same way. We probably need to raise an error here that can be used by some sort of linter
+    //       we need to create an UnresolvedRelation for it
 
     // We visit the OptionClause because in the future, we may be able to glean information from it
     // as an aid to migration, however the clause is not used in the AST or translation.
@@ -422,7 +424,7 @@ class TSqlRelationBuilder(vc: TSqlVisitorCoordinator) extends TSqlParserBaseVisi
       case tableName if tableName.tableName() != null => tableName.tableName().accept(this)
       case localId if localId.LOCAL_ID() != null => ir.LocalVarTable(ir.Id(localId.LOCAL_ID().getText))
       // TODO: OPENROWSET and OPENQUERY
-      case _ => ir.UnresolvedRelation(ctx.getText)
+      case _ => ir.UnresolvedRelation(getTextFromParserRuleContext(ctx))
     }
   }
 

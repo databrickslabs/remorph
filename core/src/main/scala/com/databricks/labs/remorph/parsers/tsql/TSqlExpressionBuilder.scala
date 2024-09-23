@@ -254,40 +254,71 @@ class TSqlExpressionBuilder(vc: TSqlVisitorCoordinator)
 
   override def visitScPrec(ctx: TSqlParser.ScPrecContext): ir.Expression = ctx.searchCondition.accept(this)
 
-  override def visitPredicate(ctx: TSqlParser.PredicateContext): ir.Expression = {
+  override def visitPredExists(ctx: PredExistsContext): ir.Expression = {
+    ir.Exists(ctx.selectStatement().accept(vc.relationBuilder))
+  }
 
-    ctx match {
-      case e if e.EXISTS() != null => ir.UnresolvedExpression(getTextFromParserRuleContext(ctx)) // TODO: build EXISTS
-      case f if f.freetextPredicate() != null =>
-        ir.UnresolvedExpression(getTextFromParserRuleContext(ctx)) // TODO: build FREETEXT
-      case i if i.IN() != null => ir.UnresolvedExpression(getTextFromParserRuleContext(ctx)) // TODO: build IN
-      // TODO: build = ALL/SOM/ANY subquery
-      case asa if asa.selectStatement() != null => ir.UnresolvedExpression(getTextFromParserRuleContext(ctx))
-      case l if l.LIKE() != null => ir.UnresolvedExpression(getTextFromParserRuleContext(ctx)) // TODO: build LIKE
-      case i if i.IS() != null => ir.UnresolvedExpression(getTextFromParserRuleContext(ctx)) // TODO: build IS
-      case b if b.BETWEEN() != null => ir.UnresolvedExpression(getTextFromParserRuleContext(ctx)) // TODO: build BETWEEN
-      case _ =>
-        ctx.expression().size() match {
-          // Single expression as a predicate
-          case 1 => ctx.expression(0).accept(this)
+  override def visitPredFreetext(ctx: PredFreetextContext): ir.Expression = {
+    ir.UnresolvedExpression(getTextFromParserRuleContext(ctx)) // TODO: build FREETEXT
+  }
 
-          // Binary logical operators
-          case _ =>
-            val left = ctx.expression(0).accept(this)
-            val right = ctx.expression(1).accept(this)
-            ctx.comparisonOperator match {
-              case op if op.LT != null && op.EQ != null => ir.LessThanOrEqual(left, right)
-              case op if op.GT != null && op.EQ != null => ir.GreaterThanOrEqual(left, right)
-              case op if op.LT != null && op.GT != null => ir.NotEquals(left, right)
-              case op if op.BANG != null && op.GT != null => ir.LessThanOrEqual(left, right)
-              case op if op.BANG != null && op.LT != null => ir.GreaterThanOrEqual(left, right)
-              case op if op.BANG != null && op.EQ != null => ir.NotEquals(left, right)
-              case op if op.EQ != null => ir.Equals(left, right)
-              case op if op.GT != null => ir.GreaterThan(left, right)
-              case op if op.LT != null => ir.LessThan(left, right)
-            }
-        }
+  override def visitPredBinop(ctx: PredBinopContext): ir.Expression = {
+    val left = ctx.expression(0).accept(this)
+    val right = ctx.expression(1).accept(this)
+    ctx.comparisonOperator match {
+      case op if op.LT != null && op.EQ != null => ir.LessThanOrEqual(left, right)
+      case op if op.GT != null && op.EQ != null => ir.GreaterThanOrEqual(left, right)
+      case op if op.LT != null && op.GT != null => ir.NotEquals(left, right)
+      case op if op.BANG != null && op.GT != null => ir.LessThanOrEqual(left, right)
+      case op if op.BANG != null && op.LT != null => ir.GreaterThanOrEqual(left, right)
+      case op if op.BANG != null && op.EQ != null => ir.NotEquals(left, right)
+      case op if op.EQ != null => ir.Equals(left, right)
+      case op if op.GT != null => ir.GreaterThan(left, right)
+      case op if op.LT != null => ir.LessThan(left, right)
     }
+  }
+
+  override def visitPredASA(ctx: PredASAContext): ir.Expression = {
+    ir.UnresolvedExpression(getTextFromParserRuleContext(ctx)) // TODO: build ASA
+  }
+
+  override def visitPredBetween(ctx: PredBetweenContext): ir.Expression = {
+    val lowerBound = ctx.expression(1).accept(this)
+    val upperBound = ctx.expression(2).accept(this)
+    val expression = ctx.expression(0).accept(this)
+    val between = ir.And(ir.GreaterThanOrEqual(expression, lowerBound), ir.LessThanOrEqual(expression, upperBound))
+    Option(ctx.NOT()).fold[ir.Expression](between)(_ => ir.Not(between))
+  }
+
+  override def visitPredIn(ctx: PredInContext): ir.Expression = {
+    val in = if (ctx.selectStatement() != null) {
+      // In the result of a sub query
+      ir.In(ctx.expression().accept(this), Seq(ir.ScalarSubquery(ctx.selectStatement().accept(vc.relationBuilder))))
+    } else {
+      // In a list of expressions
+      ir.In(ctx.expression().accept(this), ctx.expressionList().expression().asScala.map(_.accept(this)))
+    }
+    Option(ctx.NOT()).fold[ir.Expression](in)(_ => ir.Not(in))
+  }
+
+  override def visitPredLike(ctx: PredLikeContext): ir.Expression = {
+    val left = ctx.expression(0).accept(this)
+    val right = ctx.expression(1).accept(this)
+    // NB: The escape character is a complete expression that evaluates to a single char at runtime
+    // and not a single char at parse time.
+    val escape = Option(ctx.expression(2))
+      .map(_.accept(this))
+    val like = ir.Like(left, right, escape)
+    Option(ctx.NOT()).fold[ir.Expression](like)(_ => ir.Not(like))
+  }
+
+  override def visitPredIsNull(ctx: PredIsNullContext): ir.Expression = {
+    val expression = ctx.expression().accept(this)
+    if (ctx.NOT() != null) ir.IsNotNull(expression) else ir.IsNull(expression)
+  }
+
+  override def visitPredExpression(ctx: PredExpressionContext): ir.Expression = {
+    ctx.expression().accept(this)
   }
 
   override def visitId(ctx: IdContext): ir.Id = ctx match {

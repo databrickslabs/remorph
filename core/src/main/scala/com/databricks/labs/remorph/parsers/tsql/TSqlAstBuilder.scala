@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.parsers.tsql
 
-import com.databricks.labs.remorph.parsers.{intermediate => ir}
+import com.databricks.labs.remorph.parsers.{ParserCommon, intermediate => ir}
 
 import scala.collection.JavaConverters.asScalaBufferConverter
 
@@ -8,7 +8,9 @@ import scala.collection.JavaConverters.asScalaBufferConverter
  * @see
  *   org.apache.spark.sql.catalyst.parser.AstBuilder
  */
-class TSqlAstBuilder(vc: TSqlVisitorCoordinator) extends TSqlParserBaseVisitor[ir.LogicalPlan] {
+class TSqlAstBuilder(vc: TSqlVisitorCoordinator)
+    extends TSqlParserBaseVisitor[ir.LogicalPlan]
+    with ParserCommon[ir.LogicalPlan] {
 
   override def visitTSqlFile(ctx: TSqlParser.TSqlFileContext): ir.LogicalPlan = {
     Option(ctx.batch()).map(_.accept(this)).getOrElse(ir.Batch(List()))
@@ -26,7 +28,7 @@ class TSqlAstBuilder(vc: TSqlVisitorCoordinator) extends TSqlParserBaseVisitor[i
 
   // TODO: Stored procedure calls etc as batch start
   override def visitExecuteBodyBatch(ctx: TSqlParser.ExecuteBodyBatchContext): ir.LogicalPlan =
-    ir.UnresolvedRelation(ctx.getText)
+    ir.UnresolvedRelation(getTextFromParserRuleContext(ctx))
 
   override def visitSqlClauses(ctx: TSqlParser.SqlClausesContext): ir.LogicalPlan = {
     ctx match {
@@ -43,7 +45,7 @@ class TSqlAstBuilder(vc: TSqlVisitorCoordinator) extends TSqlParserBaseVisitor[i
       case coaTrigger if coaTrigger.createOrAlterTrigger() != null => coaTrigger.createOrAlterTrigger().accept(this)
       case cv if cv.createView() != null => cv.createView().accept(this)
       case go if go.goStatement() != null => go.goStatement().accept(this)
-      case _ => ir.UnresolvedRelation(ctx.getText)
+      case _ => ir.UnresolvedRelation(getTextFromParserRuleContext(ctx))
     }
   }
 
