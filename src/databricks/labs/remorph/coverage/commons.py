@@ -35,9 +35,6 @@ class ReportEntry:
     transpiled: int = 0  # 1 for success, 0 for failure
     transpiled_statements: int = 0  # number of statements transpiled
     transpilation_error: str | None = None
-    reconciled: int = 0  # 1 for success, 0 for failure
-    reconciled_statements: int = 0  # number of statements reconciled
-    reconciliation_error: str | None = None  # Difference between transpiled and expected output
 
 
 def sqlglot_run_coverage(dialect, subfolder):
@@ -74,14 +71,11 @@ def local_report(output_dir: Path):
         total = len(entries)
         parsed = sum(entry.parsed for entry in entries)
         transpiled = sum(entry.transpiled for entry in entries)
-        reconciled = sum(entry.reconciled for entry in entries)
         parse_ratio = parsed / total
         transpile_ratio = transpiled / total
-        reconcile_ratio = reconciled / total
         print(
             f"{project} -> {dialect}: {parse_ratio:.2%} parsed ({parsed}/{total}), "
-            f"{transpile_ratio:.2%} transpiled ({transpiled}/{total}), "
-            f"{reconcile_ratio:.2%} reconciled ({reconciled}/{total})"
+            f"{transpile_ratio:.2%} transpiled ({transpiled}/{total})"
         )
 
 
