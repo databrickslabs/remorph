@@ -6,6 +6,7 @@ import com.databricks.labs.remorph.parsers.PlanParser
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakePlanParser
 import com.databricks.labs.remorph.parsers.tsql.TSqlPlanParser
 import com.databricks.labs.remorph.queries.ExampleDebugger
+import com.databricks.labs.remorph.transpilers.{BaseTranspiler, SnowflakeToDatabricksTranspiler, TSqlToDatabricksTranspiler}
 import com.databricks.sdk.WorkspaceClient
 import com.databricks.sdk.core.DatabricksConfig
 
@@ -15,6 +16,11 @@ trait ApplicationContext {
   def planParser(dialect: String): PlanParser[_] = dialect match {
     case "snowflake" => snowflakePlanParser
     case "tsql" => tsqlPlanParser
+    case _ => throw new IllegalArgumentException(s"Unsupported dialect: $dialect")
+  }
+  def transpiler(dialect: String): BaseTranspiler = dialect match {
+    case "snowflake" => new SnowflakeToDatabricksTranspiler
+    case "tsql" => new TSqlToDatabricksTranspiler
     case _ => throw new IllegalArgumentException(s"Unsupported dialect: $dialect")
   }
   def connectConfig: DatabricksConfig = new DatabricksConfig()
