@@ -11,6 +11,8 @@ object Main extends App with ApplicationContext {
       prettyPrinter(workspaceClient.currentUser().me())
     case Payload("debug-coverage", args) =>
       coverageTest.run(os.Path(args("src")), os.Path(args("dst")), args("extractor"), args("source-dialect"))
+    case Payload("estimate", args) =>
+        estimator.run(os.Path(args("dst")), args("source-dialect"))
     case Payload(command, _) =>
       println(s"Unknown command: $command")
   }
