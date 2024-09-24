@@ -9,7 +9,7 @@ object Main extends App with ApplicationContext {
       exampleDebugger.debugExample(args("name"), args.get("dialect"))
     case Payload("debug-me", _) =>
       prettyPrinter(workspaceClient.currentUser().me())
-    case Payload("coverage", args) =>
+    case Payload("debug-coverage", args) =>
       coverageTest.run(os.Path(args("src")), os.Path(args("dst")), args("extractor"), args("source-dialect"))
     case Payload(command, _) =>
       println(s"Unknown command: $command")
