@@ -15,7 +15,11 @@ from databricks.labs.remorph.reconcile.query_builder.expression_generator import
 logger = logging.getLogger(__name__)
 
 
-def _hash_transform(node: exp.Expression, source: Dialect, layer: str):
+def _hash_transform(
+    node: exp.Expression,
+    source: Dialect,
+    layer: str,
+):
     transform = get_hash_transform(source, layer)
     return transform_expression(node, transform)
 

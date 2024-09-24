@@ -123,6 +123,9 @@ def test_get_hash_transform():
     with pytest.raises(ValueError):
         get_hash_transform(get_dialect("trino"), "source")
 
+    with pytest.raises(ValueError):
+        get_hash_transform(get_dialect("snowflake"), "sourc")
+
 
 def test_build_from_clause():
     # with table alias

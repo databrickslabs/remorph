@@ -147,14 +147,19 @@ def transform_expression(
     return expr
 
 
-def get_hash_transform(source: Dialect, layer: str):
+def get_hash_transform(
+    source: Dialect,
+    layer: str,
+):
     dialect_algo = Dialect_hash_algo_mapping.get(source)
     if not dialect_algo:
-        raise ValueError(f"Source {source} is not supported")
+        raise ValueError(f"Source {source} is not supported. Please add it to Dialect_hash_algo_mapping dictionary.")
 
     layer_algo = getattr(dialect_algo, layer, None)
     if not layer_algo:
-        raise ValueError(f"Layer {layer} is not supported for source {source}")
+        raise ValueError(
+            f"Layer {layer} is not supported for source {source}. Please add it to Dialect_hash_algo_mapping dictionary."
+        )
     return [layer_algo]
 
 
