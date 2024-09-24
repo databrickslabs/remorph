@@ -13,7 +13,7 @@ class TSqlRelationBuilderSpec
     with MockitoSugar
     with IRHelpers {
 
-  override protected def astBuilder: TSqlRelationBuilder = new TSqlRelationBuilder
+  override protected def astBuilder: TSqlRelationBuilder = vc.relationBuilder
 
   "TSqlRelationBuilder" should {
 

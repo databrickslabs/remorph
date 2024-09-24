@@ -531,12 +531,11 @@ class SnowflakeExpressionBuilder()
   private def buildLikeExpression(ctx: LikeExpressionContext, child: ir.Expression): ir.Expression = ctx match {
     case single: LikeExprSinglePatternContext =>
       val pattern = single.pat.accept(this)
+      // NB: The escape character is a complete expression that evaluates to a single char at runtime
+      // and not a single char at parse time.
       val escape = Option(single.escapeChar)
         .map(_.accept(this))
-        .collect { case ir.StringLiteral(s) =>
-          s.head
-        }
-        .getOrElse('\\')
+
       single.op.getType match {
         case LIKE => ir.Like(child, pattern, escape)
         case ILIKE => ir.ILike(child, pattern, escape)
