@@ -2,7 +2,7 @@ package com.databricks.labs.remorph.coverage
 
 import com.databricks.labs.remorph.queries.ExampleQuery
 import com.databricks.labs.remorph.transpilers.WorkflowStage.PARSE
-import com.databricks.labs.remorph.transpilers.{Formatter, Result, SnowflakeToDatabricksTranspiler, SourceCode, TSqlToDatabricksTranspiler, Transpiler}
+import com.databricks.labs.remorph.transpilers._
 import com.databricks.labs.remorph.utils.Strings
 
 trait QueryRunner extends Formatter {
@@ -21,17 +21,15 @@ abstract class BaseQueryRunner(transpiler: Transpiler) extends QueryRunner {
   override def runQuery(exampleQuery: ExampleQuery): ReportEntryReport = {
     transpiler.transpile(SourceCode(exampleQuery.query)) match {
       case Result.Failure(PARSE, errorJson) => ReportEntryReport(statements = 1, parsing_error = Some(errorJson))
-      case Result.Failure(_, errorJson) => ReportEntryReport(statements = 1, transpilation_error = Some(errorJson))
+      case Result.Failure(_, errorJson) =>
+        // If we got past the PARSE stage, then remember to record that we parsed it correctly
+        ReportEntryReport(parsed = 1, statements = 1, transpilation_error = Some(errorJson))
       case Result.Success(output) =>
         if (exampleQuery.expectedTranslation.map(format).exists(_ != format(output))) {
           val expected = exampleQuery.expectedTranslation.getOrElse("")
-          ReportEntryReport(
-            parsed = 1,
-            transpiled = 1,
-            statements = 1,
-            transpilation_error = Some(compareQueries(expected, output)))
+          ReportEntryReport(parsed = 1, statements = 1, transpilation_error = Some(compareQueries(expected, output)))
         } else {
-          ReportEntryReport(parsed = 1, transpiled = 1, statements = 1)
+          ReportEntryReport(parsed = 1, transpiled = 1, statements = 1, transpiled_statements = 1)
         }
     }
   }
