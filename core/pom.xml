@@ -28,6 +28,8 @@
     <upickle.version>4.0.0</upickle.version>
     <mssql-jdbc.version>12.8.0.jre8</mssql-jdbc.version>
     <snowflake-jdbc.version>3.18.0</snowflake-jdbc.version>
+    <os-lib.version>0.10.1</os-lib.version>
+    <scala-csv.version>2.0.0</scala-csv.version>
   </properties>
   <dependencyManagement>
     <dependencies>
@@ -49,7 +51,7 @@
     <dependency>
       <groupId>com.fasterxml.jackson.module</groupId>
       <artifactId>jackson-module-scala_${scala.binary.version}</artifactId>
-      <version>2.15.0</version>
+      <version>${jackson.version}</version>
     </dependency>
     <dependency>
       <groupId>org.scala-lang</groupId>
@@ -72,7 +74,7 @@
         </exclusion>
         <exclusion>
           <groupId>org.json4s</groupId>
-          <artifactId>json4s-scalap_2.12</artifactId>
+          <artifactId>json4s-scalap_${scala.binary.version}</artifactId>
         </exclusion>
       </exclusions>
     </dependency>
@@ -129,7 +131,7 @@
     <dependency>
       <groupId>com.lihaoyi</groupId>
       <artifactId>os-lib_${scala.binary.version}</artifactId>
-      <version>0.10.1</version>
+      <version>${os-lib.version}</version>
     </dependency>
     <dependency>
       <groupId>com.github.vertical-blank</groupId>
@@ -144,7 +146,7 @@
     <dependency>
       <groupId>com.github.tototoshi</groupId>
       <artifactId>scala-csv_${scala.binary.version}</artifactId>
-      <version>2.0.0</version>
+      <version>${scala-csv.version}</version>
     </dependency>
     <dependency>
       <groupId>com.microsoft.sqlserver</groupId>
@@ -288,7 +290,7 @@
               </execution>
             </executions>
             <configuration>
-              <mainClass>"com.databricks.labs.remorph.Main"</mainClass>
+              <mainClass>com.databricks.labs.remorph.Main</mainClass>
             </configuration>
           </plugin>
           <plugin>
