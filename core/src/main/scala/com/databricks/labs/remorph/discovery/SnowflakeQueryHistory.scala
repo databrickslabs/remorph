@@ -9,6 +9,7 @@ class SnowflakeQueryHistory(conn: Connection) {
     val stmt = conn.createStatement()
     try {
       val rs = stmt.executeQuery(s"""SELECT
+           |  QUERY_HASH,
            |  QUERY_TEXT,
            |  USER_NAME,
            |  WAREHOUSE_NAME,
@@ -17,7 +18,11 @@ class SnowflakeQueryHistory(conn: Connection) {
            |FROM
            |  SNOWFLAKE.ACCOUNT_USAGE.QUERY_HISTORY
            |WHERE
-           |  START_TIME > CURRENT_DATE - 30
+           |    START_TIME > CURRENT_DATE - 30
+           |  AND
+           |    QUERY_TEXT != ''  -- Many system queries are empty
+           |  AND
+           |    QUERY_TEXT != '<redacted>' -- Certain queries are completely redacted
            |ORDER BY
            |  START_TIME
            |""".stripMargin)
@@ -26,6 +31,7 @@ class SnowflakeQueryHistory(conn: Connection) {
         while (rs.next()) {
           queries.append(
             ExecutedQuery(
+              rs.getString("QUERY_HASH"),
               rs.getTimestamp("START_TIME"),
               rs.getString("QUERY_TEXT"),
               Duration.ofMillis(rs.getLong("TOTAL_ELAPSED_TIME")),

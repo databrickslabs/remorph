@@ -36,6 +36,8 @@ class Anonymizer(parser: PlanParser[_]) extends LazyLogging {
   private val placeholder = Literal("?", UnresolvedType)
 
   def apply(history: QueryHistory): Fingerprints = Fingerprints(history.queries.map(fingerprint))
+  def apply(query: ExecutedQuery, plan: LogicalPlan): Fingerprint = fingerprint(query, plan)
+  def apply(query: ExecutedQuery): Fingerprint = fingerprint(query)
 
   private[discovery] def fingerprint(query: ExecutedQuery): Fingerprint = {
     parser.parse(SourceCode(query.source)).flatMap(parser.visit) match {
@@ -48,6 +50,16 @@ class Anonymizer(parser: PlanParser[_]) extends LazyLogging {
       case Result.Success(plan) =>
         Fingerprint(query.timestamp, fingerprint(plan), query.duration, query.user, workloadType(plan), queryType(plan))
     }
+  }
+
+  /**
+   * Create a fingerprint for a query and its plan, when the plan is already produced
+   * @param query The executed query
+   * @param plan The logical plan
+   * @return A fingerprint representing the query plan
+   */
+  private[discovery] def fingerprint(query: ExecutedQuery, plan: LogicalPlan): Fingerprint = {
+    Fingerprint(query.timestamp, fingerprint(plan), query.duration, query.user, workloadType(plan), queryType(plan))
   }
 
   private def fingerprint(plan: LogicalPlan): String = {
