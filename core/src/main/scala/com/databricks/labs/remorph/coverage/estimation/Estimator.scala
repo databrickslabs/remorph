@@ -18,7 +18,7 @@ import java.time.Instant
 class Estimator extends LazyLogging {
   private val placeholder = Literal("?", UnresolvedType)
 
-  def run(outputDir: Path, dialect: String, planParser: PlanParser[_]): Unit = {
+  def run(outputDir: Path, dialect: String, planParser: PlanParser[_], consoleReport: Boolean = true): Unit = {
 
     val env = new EnvGetter
     val now = Instant.now
@@ -75,7 +75,7 @@ class Estimator extends LazyLogging {
                         statements = 1,
                         parsed = 1,
                         transpilation_error = Some(errorJson)),
-                      EstimateAnalysisReport())
+                      EstimateAnalysisReport(fingerprint = Some(fingerprint)))
 
                   case Success(_: String) =>
                     val statCount = countStatements(plan)
@@ -85,7 +85,7 @@ class Estimator extends LazyLogging {
                         transpiled = 1,
                         transpiled_statements = statCount,
                         parsed = 1),
-                      EstimateAnalysisReport())
+                      EstimateAnalysisReport(fingerprint = Some(fingerprint)))
 
                   case _ =>
                     EstimateReportRecord(
@@ -94,7 +94,7 @@ class Estimator extends LazyLogging {
                         statements = 1,
                         parsed = 1,
                         transpilation_error = Some("Unexpected result from transpilation")),
-                      EstimateAnalysisReport())
+                      EstimateAnalysisReport(Some(fingerprint)))
                 }
               } else {
                 // Empty report will be filtered out as it means it was a duplicate
@@ -124,7 +124,7 @@ class Estimator extends LazyLogging {
       }
 
       val report = EstimateReport(
-        sampleSize = reportEntries.size,
+        sampleSize = history.queries.size,
         uniqueSuccesses = uniqueSuccesses,
         parseFailures = parseFailures,
         transpileFailures = transpileFailures,
@@ -133,10 +133,20 @@ class Estimator extends LazyLogging {
       )
 
       val jsonReport: String = write(report, indent = 4)
-
       os.write(resultPath, jsonReport)
-      logger.info(s"Discovered queries  : ${history.queries.size}")
-      logger.info(s"Unique queries      : ${parsedSet.size}")
+
+      if (consoleReport) {
+        // scalastyle:off println
+        println(s"Sample size        : ${history.queries.size}")
+        println(s"Unique successes   : $uniqueSuccesses")
+        println(s"Parse failures     : $parseFailures")
+        println(s"Transpile failures : $transpileFailures")
+        println(s"Parsed query count : ${report.uniqueSuccesses}")
+        println(s"Overall complexity : ${report.overallComplexity}")
+        println(s"Report written to  : $resultPath")
+        println()
+        // scalastyle:on println
+      }
     } finally {
       conn.close()
     }

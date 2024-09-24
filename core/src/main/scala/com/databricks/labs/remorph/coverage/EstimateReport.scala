@@ -1,5 +1,6 @@
 package com.databricks.labs.remorph.coverage
 
+import com.databricks.labs.remorph.discovery.Fingerprint
 import upickle.default._
 
 sealed trait SqlComplexity
@@ -53,7 +54,9 @@ object EstimateTranspilationReport {
 }
 
 @upickle.implicits.serializeDefaults(true)
-case class EstimateAnalysisReport(complexity: SqlComplexity = SqlComplexity.LOW)
+case class EstimateAnalysisReport(
+    fingerprint: Option[Fingerprint] = None,
+    complexity: SqlComplexity = SqlComplexity.LOW)
 
 object EstimateAnalysisReport {
   implicit val rw: ReadWriter[EstimateAnalysisReport] = macroRW
