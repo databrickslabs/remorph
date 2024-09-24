@@ -60,6 +60,10 @@ scala-csv - https://github.com/tototoshi/scala-csv
 Copyright 2013-2015 Toshiyuki Takahashi
 License - https://github.com/tototoshi/scala-csv/blob/master/LICENSE.txt
 
+cryptography - https://github.com/pyca/cryptography
+Copyright 2013-2023 The Python Cryptographic Authority and individual contributors.
+License - https://github.com/pyca/cryptography/blob/main/LICENSE
+
 This software contains code from the following open source projects, licensed under the BSD license:
 
 ANTLR v4 - https://github.com/antlr/antlr4

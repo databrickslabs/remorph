@@ -12,7 +12,7 @@ case class Output(target: Option[LogicalPlan], outputs: Seq[Expression], columns
   override def children: Seq[LogicalPlan] = Seq(target.getOrElse(NoopNode))
 }
 
-case class WithOutputClause(input: LogicalPlan, target: LogicalPlan) extends RelationCommon {
+case class WithOutputClause(input: LogicalPlan, target: LogicalPlan) extends Modification {
   override def output: Seq[Attribute] = target.output
   override def children: Seq[LogicalPlan] = Seq(input, target)
 }

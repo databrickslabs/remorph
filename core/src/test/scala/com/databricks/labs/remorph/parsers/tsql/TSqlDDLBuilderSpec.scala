@@ -7,10 +7,7 @@ import org.scalatest.wordspec.AnyWordSpec
 
 class TSqlDDLBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matchers with IRHelpers {
 
-  override protected def astBuilder: TSqlParserBaseVisitor[_] = new TSqlAstBuilder
-
-//  private def example(query: String, expectedAst: LogicalPlan): Unit =
-//    example(query, _.tSqlFile(), expectedAst)
+  override protected def astBuilder: TSqlParserBaseVisitor[_] = vc.astBuilder
 
   private def singleQueryExample(query: String, expectedAst: LogicalPlan): Unit =
     example(query, _.tSqlFile(), Batch(Seq(expectedAst)))
@@ -177,7 +174,7 @@ class TSqlDDLBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
         Seq.empty,
         Seq.empty,
         None,
-        Some(Seq(ir.OptionUnresolved("LEDGER=ON")))))
+        Some(Seq(ir.OptionUnresolved("LEDGER = ON")))))
 
   }
 }

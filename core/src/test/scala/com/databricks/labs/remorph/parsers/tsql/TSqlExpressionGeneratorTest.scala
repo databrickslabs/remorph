@@ -15,6 +15,6 @@ class TSqlExpressionGeneratorTest
     with MockitoSugar
     with IRHelpers {
 
-  override protected val generator = new ExpressionGenerator
+  override protected val generator = new ExpressionGenerator()
 
 }
