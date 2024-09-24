@@ -155,6 +155,8 @@ Verify the successful installation by executing the provided command; confirmati
 ![reconcile-help](docs/img/reconcile-help.png)
 
 ### Execution Pre-Set Up
+>1. Setup the configuration file:
+
 Once the installation is done, a folder named **.remorph** will be created in the user workspace's home folder.
 To process the reconciliation for specific table sources, we must create a config file that gives the detailed required configurations for the table-specific ones.
 The file name should be in the format as below and created inside the **.remorph** folder.
@@ -176,6 +178,54 @@ eg:
 
 [def]: docs/recon_configurations/README.md
 [config]: docs/recon_configurations/reconcile_config_samples.md
+
+> 2. Setup the connection properties
+
+Remorph-Reconcile manages connection properties by utilizing secrets stored in the Databricks workspace.
+Below is the default secret naming convention for managing connection properties.
+
+**Note: When both the source and target are Databricks, a secret scope is not required.**
+
+**Default Secret Scope:** remorph_{data_source}
+
+| source | scope |
+|--------|-------|
+| snowflake | remorph_snowflake |
+| oracle | remorph_oracle |
+| databricks | remorph_databricks |
+
+Below are the connection properties required for each source:
+```
+Snowflake:
+
+sfUrl = https://<acount_name>.snowflakecomputing.com
+account = <acount_name>
+sfUser = <user>
+sfPassword = <password>
+sfDatabase = <database>
+sfSchema = <schema>
+sfWarehouse = <warehouse_name>
+sfRole = <role_name>
+pem_private_key = <pkcs8_pem_private_key>
+
+Note: For Snowflake authentication, either sfPassword or pem_private_key is required. 
+Priority is given to pem_private_key, and if it is not found, sfPassword will be used. 
+If neither is available, an exception will be raised.
+ 
+```
+
+```
+Oracle:
+
+user = <user>
+password = <password>
+host = <host>
+port = <port>
+database = <database/SID>
+```
+
+
+
 
 ### Execution
 Execute the below command to initialize the reconcile process.
