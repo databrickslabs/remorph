@@ -2787,15 +2787,15 @@ searchCondition
     ;
 
 predicate
-    : EXISTS LPAREN selectStatement RPAREN
-    | freetextPredicate
-    | expression comparisonOperator expression
-    | expression comparisonOperator (ALL | SOME | ANY) LPAREN selectStatement RPAREN
-    | expression NOT* BETWEEN expression AND expression
-    | expression NOT* IN LPAREN (selectStatement | expressionList) RPAREN
-    | expression NOT* LIKE expression (ESCAPE expression)?
-    | expression IS nullNotnull
-    | expression
+    : EXISTS LPAREN selectStatement RPAREN                                           # predExists
+    | freetextPredicate                                                              # predFreetext
+    | expression comparisonOperator expression                                       # predBinop
+    | expression comparisonOperator (ALL | SOME | ANY) LPAREN selectStatement RPAREN # predASA
+    | expression NOT? BETWEEN expression AND expression                              # predBetween
+    | expression NOT? IN LPAREN (selectStatement | expressionList) RPAREN            # predIn
+    | expression NOT? LIKE expression (ESCAPE expression)?                           # predLike
+    | expression IS NOT? NULL                                                        # predIsNull
+    | expression                                                                     # predExpression
     ;
 
 queryExpression
