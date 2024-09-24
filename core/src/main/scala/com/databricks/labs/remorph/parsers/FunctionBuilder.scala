@@ -128,6 +128,7 @@ abstract class FunctionBuilder {
     case "DATEADD" => FunctionDefinition.standard(3)
     case "DATEDIFF" => FunctionDefinition.standard(3)
     case "DATEFROMPARTS" => FunctionDefinition.standard(3)
+    case "DATE_FORMAT" => FunctionDefinition.standard(2)
     case "DATENAME" => FunctionDefinition.standard(2)
     case "DATEPART" => FunctionDefinition.standard(2)
     case "DATETIME2FROMPARTS" => FunctionDefinition.standard(8)

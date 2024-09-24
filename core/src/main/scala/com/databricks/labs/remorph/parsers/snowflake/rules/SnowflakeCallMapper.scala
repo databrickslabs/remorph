@@ -31,7 +31,6 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
       case ir.CallFunction("BASE64_ENCODE", args) => ir.Base64(args.head)
       case ir.CallFunction("BITOR_AGG", args) => ir.BitOrAgg(args.head)
       case ir.CallFunction("BOOLAND_AGG", args) => ir.BoolAnd(args.head)
-      case ir.CallFunction("CURRENT_TIMESTAMP", _) => ir.CurrentTimestamp()
       case ir.CallFunction("DATEADD", args) => dateAdd(args)
       case ir.CallFunction("DATEDIFF", args) => dateDiff(args)
       case ir.CallFunction("DATE_FROM_PARTS", args) => ir.MakeDate(args.head, args(1), args(2))
