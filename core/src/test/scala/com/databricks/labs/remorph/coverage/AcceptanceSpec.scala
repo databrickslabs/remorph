@@ -39,8 +39,7 @@ class SnowflakeAcceptanceSuite
             "test_command/test_command_3.sql",
             "test_skip_unsupported_operations/test_skip_unsupported_operations_7.sql",
             "test_skip_unsupported_operations/test_skip_unsupported_operations_9.sql",
-            "test_skip_unsupported_operations/test_skip_unsupported_operations_10.sql",
-            "test_skip_unsupported_operations/test_skip_unsupported_operations_11.sql"))))
+            "test_skip_unsupported_operations/test_skip_unsupported_operations_10.sql"))))
 
 class TSqlAcceptanceSuite
     extends AcceptanceSpec(
