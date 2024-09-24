@@ -1,7 +1,5 @@
 package com.databricks.labs.remorph.parsers.intermediate
 
-import com.databricks.labs.remorph.parsers.GenericOption
-
 abstract class DataType {
   def isPrimitive: Boolean = this match {
     case BooleanType => true

@@ -42,7 +42,7 @@ python="3.10"
 path = ".venv"
 
 dependencies = [
-  "pylint",
+  "pylint~=3.2.2",
   "pylint-pytest==2.0.0a0",
   "coverage[toml]>=6.5",
   "pytest",

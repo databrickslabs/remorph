@@ -11,9 +11,7 @@ import org.scalatest.wordspec.AnyWordSpec
 
 class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matchers with IRHelpers {
 
-  private val exprBuilder = new TSqlExpressionBuilder
-
-  override protected def astBuilder: TSqlParserBaseVisitor[_] = new TSqlExpressionBuilder
+  override protected def astBuilder: TSqlParserBaseVisitor[_] = vc.expressionBuilder
 
   "TSqlExpressionBuilder" should {
     "translate literals" in {
@@ -330,7 +328,7 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
       val expressionMockFunc = mock(classOf[TSqlParser.ExpressionContext])
       when(mockCtx.expression(1)).thenReturn(expressionMockFunc)
       when(expressionMockFunc.accept(any())).thenReturn(ir.CallFunction("UNKNOWN_FUNCTION", List()))
-      val result = exprBuilder.visitExprDot(mockCtx)
+      val result = vc.expressionBuilder.visitExprDot(mockCtx)
       result shouldBe a[ir.Dot]
     }
 
@@ -397,7 +395,7 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
       when(mockCtx.expressionElem()).thenReturn(null)
 
       // Call the method with the mock instance
-      val result = exprBuilder.visitSelectListElem(mockCtx)
+      val result = vc.expressionBuilder.visitSelectListElem(mockCtx)
 
       // Verify the result
       result shouldBe a[ir.UnresolvedExpression]
@@ -415,7 +413,7 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
       when(expressionContextMock.accept(any())).thenReturn(null)
       when(selectListElemContextMock.expression()).thenReturn(expressionContextMock)
 
-      val result = exprBuilder.visitSelectListElem(selectListElemContextMock)
+      val result = vc.expressionBuilder.visitSelectListElem(selectListElemContextMock)
 
       result shouldBe a[ir.UnresolvedExpression]
     }
