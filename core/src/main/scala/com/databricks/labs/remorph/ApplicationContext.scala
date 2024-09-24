@@ -1,5 +1,6 @@
 package com.databricks.labs.remorph
 
+import com.databricks.labs.remorph.coverage.CoverageTest
 import com.databricks.labs.remorph.parsers.PlanParser
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakePlanParser
 import com.databricks.labs.remorph.parsers.tsql.TSqlPlanParser
@@ -19,4 +20,5 @@ trait ApplicationContext {
   def workspaceClient: WorkspaceClient = new WorkspaceClient(connectConfig)
   def prettyPrinter[T](v: T): Unit = pprint.pprintln[T](v)
   def exampleDebugger: ExampleDebugger = new ExampleDebugger(planParser, prettyPrinter)
+  def coverageTest: CoverageTest = new CoverageTest
 }

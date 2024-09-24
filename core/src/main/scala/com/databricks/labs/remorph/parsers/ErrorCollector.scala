@@ -2,9 +2,7 @@ package com.databricks.labs.remorph.parsers
 
 import org.antlr.v4.runtime._
 import org.apache.logging.log4j.{LogManager, Logger}
-import org.json4s._
-import org.json4s.jackson.Serialization
-import org.json4s.jackson.Serialization.write
+import upickle.default._
 
 import scala.collection.mutable.ListBuffer
 
@@ -18,7 +16,16 @@ sealed trait ErrorCollector extends BaseErrorListener {
 
 class EmptyErrorCollector extends ErrorCollector
 
-case class ErrorDetail(line: Int, charPositionInLine: Int, msg: String, offendingToken: Token)
+case class ErrorDetail(
+    line: Int,
+    charPositionInLine: Int,
+    msg: String,
+    offendingTokenWidth: Int,
+    offendingTokenText: String)
+
+object ErrorDetail {
+  implicit val errorDetailRW: ReadWriter[ErrorDetail] = macroRW
+}
 
 class DefaultErrorCollector extends ErrorCollector {
 
@@ -44,8 +51,6 @@ class ProductionErrorCollector(sourceCode: String, fileName: String) extends Err
   val errors: ListBuffer[ErrorDetail] = ListBuffer()
   val logger: Logger = LogManager.getLogger(classOf[ErrorCollector])
 
-  implicit val formats: Formats = Serialization.formats(NoTypeHints)
-
   override def syntaxError(
       recognizer: Recognizer[_, _],
       offendingSymbol: Any,
@@ -53,16 +58,21 @@ class ProductionErrorCollector(sourceCode: String, fileName: String) extends Err
       charPositionInLine: Int,
       msg: String,
       e: RecognitionException): Unit = {
-    errors += ErrorDetail(line, charPositionInLine, msg, offendingSymbol.asInstanceOf[Token])
+    val errorDetail = offendingSymbol match {
+      case t: Token =>
+        val width = t.getStopIndex - t.getStartIndex + 1
+        ErrorDetail(line, charPositionInLine, msg, width, t.getText)
+      case _ => ErrorDetail(line, charPositionInLine, msg, 0, "")
+    }
+    errors += errorDetail
   }
 
   override private[remorph] def formatErrors: Seq[String] = {
     val lines = sourceCode.split("\n")
     errors.map { error =>
       val errorLine = lines(error.line - 1)
-      val offendingTokenWidth = error.offendingToken.getStopIndex - error.offendingToken.getStartIndex + 1
-      val errorText = formatError(errorLine, error.charPositionInLine, offendingTokenWidth)
-      s"${error.msg}\nFile: $fileName, Line: ${error.line}, Token: ${error.offendingToken.getText}\n$errorText"
+      val errorText = formatError(errorLine, error.charPositionInLine, error.offendingTokenWidth)
+      s"${error.msg}\nFile: $fileName, Line: ${error.line}, Token: ${error.offendingTokenText}\n$errorText"
     }
   }
 
@@ -106,7 +116,7 @@ class ProductionErrorCollector(sourceCode: String, fileName: String) extends Err
     }
   }
 
-  override def errorsAsJson: String = write(errors)
+  override def errorsAsJson: String = write(errors.toList)
 
   override def errorCount: Int = errors.size
 

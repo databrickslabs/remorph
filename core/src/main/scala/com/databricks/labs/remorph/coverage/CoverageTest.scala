@@ -1,15 +1,10 @@
 package com.databricks.labs.remorph.coverage
+
 import com.databricks.labs.remorph.queries.{CommentBasedQueryExtractor, NestedFiles, WholeFileQueryExtractor}
-import mainargs._
 
 import java.time.Instant
 
-object Main {
-
-  implicit object PathRead extends TokensReader.Simple[os.Path] {
-    def shortName: String = "path"
-    def read(strs: Seq[String]): Either[String, os.Path] = Right(os.Path(strs.head, os.pwd))
-  }
+class CoverageTest {
 
   private def getCurrentCommitHash: Option[String] = {
     val gitRevParse = os.proc("/usr/bin/git", "rev-parse", "--short", "HEAD").call(os.pwd)
@@ -24,38 +19,27 @@ object Main {
     val epoch = Instant.ofEpochMilli(0)
     java.time.Duration.between(epoch, instant).toNanos
   }
-  @main
-  def run(
-      @arg(short = 'i', doc = "Source path of test queries")
-      sourceDir: os.Path,
-      @arg(short = 'o', doc = "Report output path")
-      outputPath: os.Path,
-      @arg(short = 'x', doc = "Query extractor")
-      extractor: String,
-      @arg(short = 's', doc = "Start comment")
-      startComment: Option[String],
-      @arg(short = 'e', doc = "End comment")
-      endComment: Option[String],
-      @arg(short = 'd', doc = "Source dialect")
-      sourceDialect: String,
-      @arg(short = 't', doc = "Target dialect")
-      targetDialect: String = "databricks"): Unit = {
+  def run(sourceDir: os.Path, outputPath: os.Path, extractor: String, dialect: String): Unit = {
 
     val now = Instant.now
 
+    val dialectFullName = dialect match {
+      case "Snow" => "snowflake"
+      case "Tsql" => "tsql"
+    }
     val project = "remorph-core"
     val commitHash = getCurrentCommitHash
     val testSource = new NestedFiles(sourceDir.toNIO)
     val queryExtractor = extractor match {
-      case "comment" => new CommentBasedQueryExtractor(sourceDialect, targetDialect)
+      case "comment" => new CommentBasedQueryExtractor(dialectFullName, "databricks")
       case "full" => new WholeFileQueryExtractor
     }
-    val queryRunner = sourceDialect match {
+    val queryRunner = dialect match {
       case "Snow" => new IsTranspiledFromSnowflakeQueryRunner
       case "Tsql" => new IsTranspiledFromTSqlQueryRunner
     }
 
-    val outputFilePath = outputPath / s"$project-$sourceDialect-$targetDialect-${timeToEpochNanos(now)}.json"
+    val outputFilePath = outputPath / s"$project-$dialect-databricks-${timeToEpochNanos(now)}.json"
 
     os.makeDir.all(outputPath)
 
@@ -67,18 +51,13 @@ object Main {
           commit_hash = commitHash,
           version = "latest",
           timestamp = now.toString,
-          source_dialect = sourceDialect,
-          target_dialect = targetDialect,
+          source_dialect = dialect,
+          target_dialect = "databricks",
           file = os.Path(test.inputFile).relativeTo(sourceDir).toString)
         val report = runner.runQuery(exampleQuery)
         val reportEntryJson = ReportEntry(header, report).asJson
         os.write.append(outputFilePath, ujson.write(reportEntryJson, indent = -1) + "\n")
       }
     }
-    // scalastyle:off
-    println(s"Successfully produced coverage report in $outputFilePath")
-    // scalastyle:on
   }
-
-  def main(args: Array[String]): Unit = ParserForMethods(this).runOrExit(args)
 }
