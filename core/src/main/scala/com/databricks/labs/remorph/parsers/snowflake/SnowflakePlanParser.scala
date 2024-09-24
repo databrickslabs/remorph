@@ -23,6 +23,7 @@ class SnowflakePlanParser extends PlanParser[SnowflakeParser] {
   // TODO: Note that this is not the correct place for the optimizer, but it is here for now
   override protected def createOptimizer: ir.Rules[ir.LogicalPlan] = {
     ir.Rules(
+      new ConvertFractionalSecond,
       new SnowflakeCallMapper,
       ir.AlwaysUpperNameForCallFunction,
       new UpdateToMerge,

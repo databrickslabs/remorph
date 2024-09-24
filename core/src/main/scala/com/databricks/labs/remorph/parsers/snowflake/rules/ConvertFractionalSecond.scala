@@ -2,7 +2,7 @@ package com.databricks.labs.remorph.parsers.snowflake.rules
 
 import com.databricks.labs.remorph.parsers.{intermediate => ir}
 
-class SnowflakeFractionalSecond extends ir.Rule[ir.LogicalPlan] {
+class ConvertFractionalSecond extends ir.Rule[ir.LogicalPlan] {
 
   // Please read the note here : https://docs.snowflake.com/en/sql-reference/functions/current_timestamp#arguments
   // TODO Fractional seconds are only displayed if they have been explicitly
