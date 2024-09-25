@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.coverage.estimation
 
-import com.databricks.labs.remorph.coverage.EstimateReport
+import com.databricks.labs.remorph.coverage.EstimationReport
 import upickle.default._
 
 import java.time.Instant
@@ -9,7 +9,7 @@ trait EstimationReporter {
   def report(): Unit
 }
 
-class ConsoleEstimationReporter(estimate: EstimateReport) extends EstimationReporter {
+class ConsoleEstimationReporter(estimate: EstimationReport) extends EstimationReporter {
   override def report(): Unit = {
     // scalastyle:off println
     println(s"Sample size              : ${estimate.sampleSize}")
@@ -23,7 +23,7 @@ class ConsoleEstimationReporter(estimate: EstimateReport) extends EstimationRepo
   }
 }
 
-class JsonEstimationReporter(outputDir: os.Path, estimate: EstimateReport) extends EstimationReporter {
+class JsonEstimationReporter(outputDir: os.Path, estimate: EstimationReport) extends EstimationReporter {
   override def report(): Unit = {
     val now = Instant.now
     os.makeDir.all(outputDir)

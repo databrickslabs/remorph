@@ -12,7 +12,7 @@ import com.typesafe.scalalogging.LazyLogging
 class Estimator(queryHistory: QueryHistoryProvider, planParser: PlanParser[_], analyzer: EstimationAnalyzer)
     extends LazyLogging {
 
-  def run(): EstimateReport = {
+  def run(): EstimationReport = {
     val history = queryHistory.history()
     val anonymizer = new Anonymizer(planParser)
     val parsedSet = scala.collection.mutable.Set[String]()
@@ -21,7 +21,7 @@ class Estimator(queryHistory: QueryHistoryProvider, planParser: PlanParser[_], a
 
     val (uniqueSuccesses, parseFailures, transpileFailures) = countReportEntries(reportEntries)
 
-    EstimateReport(
+    EstimationReport(
       dialect = planParser.dialect,
       sampleSize = history.queries.size,
       uniqueSuccesses = uniqueSuccesses,
@@ -35,19 +35,19 @@ class Estimator(queryHistory: QueryHistoryProvider, planParser: PlanParser[_], a
   private def processQuery(
       query: ExecutedQuery,
       anonymizer: Anonymizer,
-      parsedSet: scala.collection.mutable.Set[String]): Option[EstimateReportRecord] = {
+      parsedSet: scala.collection.mutable.Set[String]): Option[EstimationReportRecord] = {
     planParser.parse(SourceCode(query.source, query.user + "_" + query.id)).flatMap(planParser.visit) match {
       case Failure(PARSE, errorJson) =>
         Some(
-          EstimateReportRecord(
-            EstimateTranspilationReport(Some(query.source), statements = 1, parsing_error = Some(errorJson)),
-            EstimateAnalysisReport()))
+          EstimationReportRecord(
+            EstimationTranspilationReport(Some(query.source), statements = 1, parsing_error = Some(errorJson)),
+            EstimationAnalysisReport()))
 
       case Failure(PLAN, errorJson) =>
         Some(
-          EstimateReportRecord(
-            EstimateTranspilationReport(Some(query.source), statements = 1, transpilation_error = Some(errorJson)),
-            EstimateAnalysisReport()))
+          EstimationReportRecord(
+            EstimationTranspilationReport(Some(query.source), statements = 1, transpilation_error = Some(errorJson)),
+            EstimationAnalysisReport()))
 
       case Success(plan) =>
         val queryHash = anonymizer(plan)
@@ -60,52 +60,52 @@ class Estimator(queryHistory: QueryHistoryProvider, planParser: PlanParser[_], a
 
       case _ =>
         Some(
-          EstimateReportRecord(
-            EstimateTranspilationReport(
+          EstimationReportRecord(
+            EstimationTranspilationReport(
               query = Some(query.source),
               statements = 1,
               parsing_error = Some("Unexpected result from parse phase")),
-            EstimateAnalysisReport()))
+            EstimationAnalysisReport()))
     }
   }
 
   private def generateReportRecord(
       query: ExecutedQuery,
       plan: LogicalPlan,
-      anonymizer: Anonymizer): EstimateReportRecord = {
+      anonymizer: Anonymizer): EstimationReportRecord = {
     val generator = new SqlGenerator
     planParser.optimize(plan).flatMap(generator.generate) match {
       case Failure(_, errorJson) =>
-        EstimateReportRecord(
-          EstimateTranspilationReport(
+        EstimationReportRecord(
+          EstimationTranspilationReport(
             query = Some(query.source),
             statements = 1,
             parsed = 1,
             transpilation_error = Some(errorJson)),
-          EstimateAnalysisReport(fingerprint = Some(anonymizer(query, plan))))
+          EstimationAnalysisReport(fingerprint = Some(anonymizer(query, plan))))
 
       case Success(_: String) =>
         val statCount = analyzer.countStatements(plan)
-        EstimateReportRecord(
-          EstimateTranspilationReport(
+        EstimationReportRecord(
+          EstimationTranspilationReport(
             statements = statCount,
             transpiled = 1,
             transpiled_statements = statCount,
             parsed = 1),
-          EstimateAnalysisReport(fingerprint = Some(anonymizer(query, plan))))
+          EstimationAnalysisReport(fingerprint = Some(anonymizer(query, plan))))
 
       case _ =>
-        EstimateReportRecord(
-          EstimateTranspilationReport(
+        EstimationReportRecord(
+          EstimationTranspilationReport(
             query = Some(query.source),
             statements = 1,
             parsed = 1,
             transpilation_error = Some("Unexpected result from transpilation")),
-          EstimateAnalysisReport(fingerprint = Some(anonymizer(query, plan))))
+          EstimationAnalysisReport(fingerprint = Some(anonymizer(query, plan))))
     }
   }
 
-  def countReportEntries(reportEntries: Seq[EstimateReportRecord]): (Int, Int, Int) = {
+  def countReportEntries(reportEntries: Seq[EstimationReportRecord]): (Int, Int, Int) = {
     reportEntries.foldLeft((0, 0, 0)) { case ((uniqueSuccesses, parseFailures, transpileFailures), entry) =>
       val newUniqueSuccesses =
         if (entry.transpilationReport.parsed == 1 && entry.transpilationReport.transpiled == 1) uniqueSuccesses + 1

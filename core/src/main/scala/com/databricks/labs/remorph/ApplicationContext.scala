@@ -3,7 +3,7 @@ package com.databricks.labs.remorph
 import com.databricks.labs.remorph.coverage.connections.SnowflakeConnectionFactory
 import com.databricks.labs.remorph.coverage.estimation.{ConsoleEstimationReporter, EstimationAnalyzer, Estimator, JsonEstimationReporter}
 import com.databricks.labs.remorph.coverage.runners.EnvGetter
-import com.databricks.labs.remorph.coverage.{CoverageTest, EstimateReport}
+import com.databricks.labs.remorph.coverage.{CoverageTest, EstimationReport}
 import com.databricks.labs.remorph.discovery.SnowflakeQueryHistory
 import com.databricks.labs.remorph.parsers.PlanParser
 import com.databricks.labs.remorph.parsers.snowflake.SnowflakePlanParser
@@ -48,9 +48,9 @@ trait ApplicationContext {
       planParser(dialect),
       new EstimationAnalyzer())
 
-  def jsonEstimationReporter(outputDir: os.Path, estimate: EstimateReport): JsonEstimationReporter =
+  def jsonEstimationReporter(outputDir: os.Path, estimate: EstimationReport): JsonEstimationReporter =
     new JsonEstimationReporter(outputDir, estimate)
 
-  def consoleEstimationReporter(estimate: EstimateReport): ConsoleEstimationReporter =
+  def consoleEstimationReporter(estimate: EstimationReport): ConsoleEstimationReporter =
     new ConsoleEstimationReporter(estimate)
 }

@@ -1,34 +1,34 @@
 package com.databricks.labs.remorph.coverage
 
-import com.databricks.labs.remorph.discovery.Fingerprint
 import com.databricks.labs.remorph.coverage.estimation.SqlComplexity
+import com.databricks.labs.remorph.discovery.Fingerprint
 import upickle.default.{ReadWriter, macroRW}
 
 @upickle.implicits.serializeDefaults(true)
-case class EstimateReport(
+case class EstimationReport(
     dialect: String, // What dialect of SQL is this a report for?
     sampleSize: Int, // How many records were used to estimate
     uniqueSuccesses: Int, // How many unique queries were successfully estimated
     parseFailures: Int,
     transpileFailures: Int,
-    records: Seq[EstimateReportRecord], // The actual records - includes failures
+    records: Seq[EstimationReportRecord], // The actual records - includes failures
     overallComplexity: SqlComplexity = SqlComplexity.LOW)
 
-object EstimateReport {
-  implicit val rw: ReadWriter[EstimateReport] = macroRW
+object EstimationReport {
+  implicit val rw: ReadWriter[EstimationReport] = macroRW
 }
 
 @upickle.implicits.serializeDefaults(true)
-case class EstimateReportRecord(
-    transpilationReport: EstimateTranspilationReport,
-    analysisReport: EstimateAnalysisReport)
+case class EstimationReportRecord(
+    transpilationReport: EstimationTranspilationReport,
+    analysisReport: EstimationAnalysisReport)
 
-object EstimateReportRecord {
-  implicit val rw: ReadWriter[EstimateReportRecord] = macroRW
+object EstimationReportRecord {
+  implicit val rw: ReadWriter[EstimationReportRecord] = macroRW
 }
 
 @upickle.implicits.serializeDefaults(true)
-case class EstimateTranspilationReport(
+case class EstimationTranspilationReport(
     query: Option[String] = None,
     parsed: Int = 0, // 1 for success, 0 for failure
     statements: Int = 0, // number of statements parsed
@@ -37,15 +37,15 @@ case class EstimateTranspilationReport(
     transpiled_statements: Int = 0, // number of statements transpiled
     transpilation_error: Option[String] = None)
 
-object EstimateTranspilationReport {
-  implicit val rw: ReadWriter[EstimateTranspilationReport] = macroRW
+object EstimationTranspilationReport {
+  implicit val rw: ReadWriter[EstimationTranspilationReport] = macroRW
 }
 
 @upickle.implicits.serializeDefaults(true)
-case class EstimateAnalysisReport(
+case class EstimationAnalysisReport(
     fingerprint: Option[Fingerprint] = None,
     complexity: SqlComplexity = SqlComplexity.LOW)
 
-object EstimateAnalysisReport {
-  implicit val rw: ReadWriter[EstimateAnalysisReport] = macroRW
+object EstimationAnalysisReport {
+  implicit val rw: ReadWriter[EstimationAnalysisReport] = macroRW
 }
