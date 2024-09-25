@@ -4,7 +4,11 @@ import java.sql.Connection
 import java.time.Duration
 import scala.collection.mutable.ListBuffer
 
-class SnowflakeQueryHistory(conn: Connection) {
+trait QueryHistoryProvider {
+  def history(): QueryHistory
+}
+
+class SnowflakeQueryHistory(conn: Connection) extends QueryHistoryProvider {
   def history(): QueryHistory = {
     val stmt = conn.createStatement()
     try {

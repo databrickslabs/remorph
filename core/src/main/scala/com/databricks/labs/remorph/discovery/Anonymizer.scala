@@ -53,6 +53,7 @@ class Anonymizer(parser: PlanParser[_]) extends LazyLogging {
   def apply(history: QueryHistory): Fingerprints = Fingerprints(history.queries.map(fingerprint))
   def apply(query: ExecutedQuery, plan: LogicalPlan): Fingerprint = fingerprint(query, plan)
   def apply(query: ExecutedQuery): Fingerprint = fingerprint(query)
+  def apply(plan: LogicalPlan): String = fingerprint(plan)
 
   private[discovery] def fingerprint(query: ExecutedQuery): Fingerprint = {
     parser.parse(SourceCode(query.source)).flatMap(parser.visit) match {
@@ -77,12 +78,24 @@ class Anonymizer(parser: PlanParser[_]) extends LazyLogging {
     Fingerprint(query.timestamp, fingerprint(plan), query.duration, query.user, workloadType(plan), queryType(plan))
   }
 
+  /**
+   * <p>
+   * Provide a generic hash for the given plan
+   * </p><p>
+   * Before hashing the plan, we replace all literals with a placeholder. This way we can hash the plan
+   * without worrying about the actual values and will generate the same hash code for queries that only
+   * differ by literal values.
+   * </p><p>
+   *   This is a very simple anonymization technique, but it's good enough for our purposes.
+   *   e.g. ... "LIMIT 500 OFFSET 0" and "LIMIT 100 OFFSET 20" will have
+   *   the same fingerprint.
+   * </p>
+   *
+   * @param plan The plan we want a hash code for
+   * @return The hash string for the query with literals replaced by placeholders
+   */
   private def fingerprint(plan: LogicalPlan): String = {
-    // replace all literals with a placeholder, that way we can hash the plan
-    // without worrying about the actual values. This is a very simple
-    // anonymization technique, but it's good enough for our purposes.
-    // e.g. ... "LIMIT 500 OFFSET 0" and "LIMIT 100 OFFSET 20" will have
-    // the same fingerprint.
+
     val erasedLiterals = plan transformAllExpressions { case _: Literal =>
       placeholder
     }

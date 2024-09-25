@@ -1,24 +1,12 @@
 package com.databricks.labs.remorph.coverage
 
 import com.databricks.labs.remorph.discovery.Fingerprint
-import upickle.default._
-
-sealed trait SqlComplexity
-object SqlComplexity {
-  case object LOW extends SqlComplexity
-  case object MEDIUM extends SqlComplexity
-  case object COMPLEX extends SqlComplexity
-  case object VERY_COMPLEX extends SqlComplexity
-
-  implicit val rw: ReadWriter[SqlComplexity] = ReadWriter.merge(
-    macroRW[SqlComplexity.LOW.type],
-    macroRW[SqlComplexity.MEDIUM.type],
-    macroRW[SqlComplexity.COMPLEX.type],
-    macroRW[SqlComplexity.VERY_COMPLEX.type])
-}
+import com.databricks.labs.remorph.coverage.estimation.SqlComplexity
+import upickle.default.{ReadWriter, macroRW}
 
 @upickle.implicits.serializeDefaults(true)
 case class EstimateReport(
+    dialect: String, // What dialect of SQL is this a report for?
     sampleSize: Int, // How many records were used to estimate
     uniqueSuccesses: Int, // How many unique queries were successfully estimated
     parseFailures: Int,
