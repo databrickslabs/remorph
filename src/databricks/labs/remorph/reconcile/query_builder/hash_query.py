@@ -11,6 +11,7 @@ from databricks.labs.remorph.reconcile.query_builder.expression_generator import
     lower,
     transform_expression,
 )
+from databricks.labs.remorph.config import get_dialect
 
 logger = logging.getLogger(__name__)
 
@@ -58,11 +59,12 @@ class HashQueryBuilder(QueryBuilder):
         )
         hash_col_with_transform = [self._generate_hash_algorithm(hashcols_sorted_as_src_seq, _HASH_COLUMN_NAME)]
 
+        dialect = self.engine if self.layer == "source" else get_dialect("databricks")
         res = (
             exp.select(*hash_col_with_transform + key_cols_with_transform)
             .from_(":tbl")
             .where(self.filter)
-            .sql(dialect=self.engine)
+            .sql(dialect=dialect)
         )
 
         logger.info(f"Hash Query for {self.layer}: {res}")
@@ -74,7 +76,9 @@ class HashQueryBuilder(QueryBuilder):
         column_alias: str,
     ) -> exp.Expression:
         cols_with_alias = [build_column(this=col, alias=None) for col in cols]
-        cols_with_transform = self.add_transformations(cols_with_alias, self.engine)
+        cols_with_transform = self.add_transformations(
+            cols_with_alias, self.engine if self.layer == "source" else get_dialect("databricks")
+        )
         col_exprs = exp.select(*cols_with_transform).iter_expressions()
         concat_expr = concat(list(col_exprs))
 
