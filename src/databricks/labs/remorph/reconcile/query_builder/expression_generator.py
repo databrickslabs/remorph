@@ -6,7 +6,7 @@ from sqlglot import Dialect
 from sqlglot import expressions as exp
 
 from databricks.labs.remorph.config import get_dialect
-from databricks.labs.remorph.reconcile.recon_config import DialectHashConfig
+from databricks.labs.remorph.reconcile.recon_config import HashAlgoMapping
 
 
 def _apply_func_expr(expr: exp.Expression, expr_func: Callable, **kwargs) -> exp.Expression:
@@ -65,11 +65,11 @@ def to_char(expr: exp.Expression, to_format=None, nls_param=None) -> exp.Express
 
 
 def array_to_string(
-    expr: exp.Expression,
-    delimiter: str = ",",
-    is_string=True,
-    null_replacement: str | None = None,
-    is_null_replace=True,
+        expr: exp.Expression,
+        delimiter: str = ",",
+        is_string=True,
+        null_replacement: str | None = None,
+        is_null_replace=True,
 ) -> exp.Expression:
     if null_replacement:
         return _apply_func_expr(
@@ -136,8 +136,8 @@ def build_literal(this: exp.ExpOrStr, alias=None, quoted=False, is_string=True) 
 
 
 def transform_expression(
-    expr: exp.Expression,
-    funcs: list[Callable[[exp.Expression], exp.Expression]],
+        expr: exp.Expression,
+        funcs: list[Callable[[exp.Expression], exp.Expression]],
 ) -> exp.Expression:
     for func in funcs:
         expr = func(expr)
@@ -147,11 +147,20 @@ def transform_expression(
     return expr
 
 
-def get_hash_transform(source: Dialect):
-    dialect_algo = list(filter(lambda dialect: dialect.dialect == source, Dialect_hash_algo_mapping))
-    if dialect_algo:
-        return dialect_algo[0].algo
-    raise ValueError(f"Source {source} is not supported")
+def get_hash_transform(
+        source: Dialect,
+        layer: str,
+):
+    dialect_algo = Dialect_hash_algo_mapping.get(source)
+    if not dialect_algo:
+        raise ValueError(f"Source {source} is not supported. Please add it to Dialect_hash_algo_mapping dictionary.")
+
+    layer_algo = getattr(dialect_algo, layer, None)
+    if not layer_algo:
+        raise ValueError(
+            f"Layer {layer} is not supported for source {source}. Please add it to Dialect_hash_algo_mapping dictionary."
+        )
+    return [layer_algo]
 
 
 def build_from_clause(table_name: str, table_alias: str | None = None) -> exp.From:
@@ -159,12 +168,12 @@ def build_from_clause(table_name: str, table_alias: str | None = None) -> exp.Fr
 
 
 def build_join_clause(
-    table_name: str,
-    join_columns: list,
-    source_table_alias: str | None = None,
-    target_table_alias: str | None = None,
-    kind: str = "inner",
-    func: Callable = exp.NullSafeEQ,
+        table_name: str,
+        join_columns: list,
+        source_table_alias: str | None = None,
+        target_table_alias: str | None = None,
+        kind: str = "inner",
+        func: Callable = exp.NullSafeEQ,
 ) -> exp.Join:
     join_conditions = []
     for column in join_columns:
@@ -185,10 +194,10 @@ def build_join_clause(
 
 
 def build_sub(
-    left_column_name: str,
-    right_column_name: str,
-    left_table_name: str | None = None,
-    right_table_name: str | None = None,
+        left_column_name: str,
+        right_column_name: str,
+        left_table_name: str | None = None,
+        right_table_name: str | None = None,
 ) -> exp.Sub:
     return exp.Sub(
         this=build_column(left_column_name, left_table_name),
@@ -242,21 +251,23 @@ DataType_transform_mapping: dict[str, dict[str, list[partial[exp.Expression]]]] 
     },
 }
 
-Dialect_hash_algo_mapping = [
-    DialectHashConfig(dialect=get_dialect("snowflake"), algo=[partial(sha2, num_bits="256", is_expr=True)]),
-    DialectHashConfig(
-        dialect=get_dialect("oracle"),
-        algo=[partial(anonymous, func="RAWTOHEX(STANDARD_HASH({}, 'SHA256'))", is_expr=True)],
+sha256_partial = partial(sha2, num_bits="256", is_expr=True)
+Dialect_hash_algo_mapping: dict[Dialect, HashAlgoMapping] = {
+    get_dialect("snowflake"): HashAlgoMapping(
+        source=sha256_partial,
+        target=sha256_partial,
     ),
-    DialectHashConfig(dialect=get_dialect("databricks"), algo=[partial(sha2, num_bits="256", is_expr=True)]),
-    DialectHashConfig(
-        dialect=get_dialect("tsql"),
-        algo=[
-            partial(
-                anonymous,
-                func="CONVERT(VARCHAR(256), HASHBYTES('SHA2_256', CONVERT(VARCHAR(256),{})), 2)",
-                is_expr=True,
-            )
-        ],
+    get_dialect("oracle"): HashAlgoMapping(
+        source=partial(anonymous, func="RAWTOHEX(STANDARD_HASH({}, 'SHA256'))", is_expr=True),
+        target=sha256_partial,
     ),
-]
+    get_dialect("databricks"): HashAlgoMapping(
+        source=sha256_partial,
+        target=sha256_partial,
+    ),
+    get_dialect("tsql"): HashAlgoMapping(
+        source=partial(anonymous, func="CONVERT(VARCHAR(256), HASHBYTES('SHA2_256', CONVERT(VARCHAR(256),{})), 2)",
+                       is_expr=True),
+        target=sha256_partial,
+    )
+}
