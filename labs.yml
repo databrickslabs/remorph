@@ -62,3 +62,12 @@ commands:
         description: sql dialect
   - name: debug-me
     description: "[INTERNAL] Debug SDK connectivity"
+  - name: debug-coverage
+    description: "[INTERNAL] Run coverage tests"
+    flags:
+      - name: src
+        description: The parent directory under which test queries are laid out
+      - name: dst
+        description: The directory under which the report files will be written
+      - name: extractor
+        description: The strategy for extracting queries from the test files. Valid strategies are "full" (when files contain only one input query) and "comment" (when files contain an input query and the corresponding translation, separated by a comment stating the dialect of each query).
