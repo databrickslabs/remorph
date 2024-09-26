@@ -18,6 +18,7 @@ trait PlanParser[P <: Parser] {
   protected def createTree(parser: P): ParserRuleContext
   protected def createPlan(tree: ParserRuleContext): ir.LogicalPlan
   protected def addErrorStrategy(parser: P): Unit
+  def dialect: String
 
   // TODO: This is probably not where the optimizer should be as this is a Plan "Parser" - it is here for now
   protected def createOptimizer: ir.Rules[ir.LogicalPlan]
@@ -85,4 +86,5 @@ trait PlanParser[P <: Parser] {
         Result.Failure(stage = WorkflowStage.OPTIMIZE, errorJson)
     }
   }
+
 }

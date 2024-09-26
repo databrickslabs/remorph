@@ -5,7 +5,7 @@ import com.databricks.labs.remorph.parsers.intermediate.StructField
 import java.sql.Timestamp
 import java.time.Duration
 
-case class ExecutedQuery(timestamp: Timestamp, source: String, duration: Duration, user: String)
+case class ExecutedQuery(id: String, timestamp: Timestamp, source: String, duration: Duration, user: String)
 
 case class QueryHistory(queries: Seq[ExecutedQuery])
 

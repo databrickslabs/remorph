@@ -68,3 +68,6 @@ antlr-lint:
 
 dev-cli:
 	mvn -f core/pom.xml dependency:build-classpath -Dmdep.outputFile=target/classpath.txt
+
+estimate-coverage: build_core_jar
+	java -jar $(wildcard core/target/remorph-core-*-SNAPSHOT.jar) '{"command": "debug-estimate", "flags":{"dst":"$(abspath ${OUTPUT_DIR})", "source-dialect": "snowflake", "console-output": "true"}}'
