@@ -80,12 +80,14 @@ class Anonymizer(parser: PlanParser[_]) extends LazyLogging {
 
   /**
    * <p>
-   * Provide a generic hash for the given plan
-   * </p><p>
-   * Before hashing the plan, we replace all literals with a placeholder. This way we can hash the plan
-   * without worrying about the actual values and will generate the same hash code for queries that only
-   * differ by literal values.
-   * </p><p>
+   *   Provide a generic hash for the given plan
+   * </p>
+   * <p>
+   *   Before hashing the plan, we replace all literals with a placeholder. This way we can hash the plan
+   *   without worrying about the actual values and will generate the same hash code for queries that only
+   *   differ by literal values.
+   * </p>
+   * <p>
    *   This is a very simple anonymization technique, but it's good enough for our purposes.
    *   e.g. ... "LIMIT 500 OFFSET 0" and "LIMIT 100 OFFSET 20" will have
    *   the same fingerprint.

@@ -17,13 +17,14 @@ class ConsoleEstimationReporter(estimate: EstimationReport) extends EstimationRe
     println(s"Unique successful parses : ${estimate.uniqueSuccesses}")
     println(s"Parse failures           : ${estimate.parseFailures}")
     println(s"Transpile failures       : ${estimate.transpileFailures}")
-    println(s"Overall complexity       : ${estimate.overallComplexity}")
+    println(s"Overall complexity       : ${estimate.overallComplexity.complexity}")
     println()
     // scalastyle:on println
   }
 }
 
-class JsonEstimationReporter(outputDir: os.Path, estimate: EstimationReport) extends EstimationReporter {
+class JsonEstimationReporter(outputDir: os.Path, preserveQueries: Boolean, estimate: EstimationReport)
+    extends EstimationReporter {
   override def report(): Unit = {
     val now = Instant.now
     os.makeDir.all(outputDir)
