@@ -145,12 +145,11 @@ jobs:
       - name: Run Unit Tests with Maven
         run: mvn --update-snapshots scoverage:report --file pom.xml --fail-at-end
 
-      - name: Uplaod remorph-core jars as Artifacts
+      - name: Upload remorph-core jars as Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: remorph-core-jars
           path: ~/.m2/repository/com/databricks/labs/remorph*
-
 
       - name: Publish JUnit report
         uses: EnricoMi/publish-unit-test-result-action@v2
