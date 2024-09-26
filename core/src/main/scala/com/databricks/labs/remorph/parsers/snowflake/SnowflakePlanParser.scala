@@ -24,12 +24,13 @@ class SnowflakePlanParser extends PlanParser[SnowflakeParser] {
   override protected def createOptimizer: ir.Rules[ir.LogicalPlan] = {
     ir.Rules(
       new ConvertFractionalSecond,
+      new FlattenLateralViewToExplode(),
       new SnowflakeCallMapper,
       ir.AlwaysUpperNameForCallFunction,
       new UpdateToMerge,
       new CastParseJsonToFromJson(generator),
       new TranslateWithinGroup,
-      new FlattenLateralViewToExplode(),
-      new FlattenNestedConcat)
+      new FlattenNestedConcat,
+      new CompactJsonAccess)
   }
 }

@@ -3411,7 +3411,7 @@ objectRef
     | objectName START WITH predicate CONNECT BY priorList?                          # objRefStartWith
     ;
 
-tableAlias: AS? alias (L_PAREN id (COMMA id)*)?
+tableAlias: AS? alias (L_PAREN id (COMMA id)* R_PAREN)?
     ;
 
 priorList: priorItem (COMMA priorItem)*

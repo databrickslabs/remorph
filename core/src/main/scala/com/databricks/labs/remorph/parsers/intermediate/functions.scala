@@ -2501,3 +2501,8 @@ case class TimestampAdd(unit: String, quantity: Expression, timestamp: Expressio
 case class TryCast(expr: Expression, override val dataType: DataType) extends Expression {
   override def children: Seq[Expression] = Seq(expr)
 }
+
+case class ParseJson(left: Expression) extends Unary(left) with Fn {
+  override def prettyName: String = "PARSE_JSON"
+  override def dataType: DataType = UnresolvedType
+}

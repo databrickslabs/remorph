@@ -54,7 +54,7 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
       case ir.CallFunction("NULLIFZERO", args) => nullIfZero(args.head)
       case ir.CallFunction("OBJECT_KEYS", args) => ir.JsonObjectKeys(args.head)
       case ir.CallFunction("OBJECT_CONSTRUCT", args) => objectConstruct(args)
-      case ir.CallFunction("PARSE_JSON", args) => fromJson(args)
+      case ir.CallFunction("PARSE_JSON", args) => ir.ParseJson(args.head)
       case ir.CallFunction("POSITION", args) => ir.CallFunction("LOCATE", args)
       case ir.CallFunction("REGEXP_LIKE", args) => ir.RLike(args.head, args(1))
       case ir.CallFunction("REGEXP_SUBSTR", args) => regexpExtract(args)
