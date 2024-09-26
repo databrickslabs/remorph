@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.coverage
 
-import com.databricks.labs.remorph.coverage.estimation.{SqlComplexity, EstimationStatistics}
+import com.databricks.labs.remorph.coverage.estimation.{EstimationStatistics, SqlComplexity}
 import com.databricks.labs.remorph.discovery.Fingerprint
 import upickle.default.{ReadWriter, macroRW}
 
@@ -13,7 +13,12 @@ case class EstimationReport(
     parseFailures: Int,
     transpileFailures: Int,
     records: Seq[EstimationReportRecord] // The actual records - includes failures
-)
+) {
+
+  def withRecords(newRecords: Seq[EstimationReportRecord]): EstimationReport = {
+    this.copy(records = newRecords)
+  }
+}
 
 object EstimationReport {
   implicit val rw: ReadWriter[EstimationReport] = macroRW
@@ -22,7 +27,11 @@ object EstimationReport {
 @upickle.implicits.serializeDefaults(true)
 case class EstimationReportRecord(
     transpilationReport: EstimationTranspilationReport,
-    analysisReport: EstimationAnalysisReport)
+    analysisReport: EstimationAnalysisReport) {
+  def withQueries(newQuery: String, output: Option[String]): EstimationReportRecord = {
+    this.copy(transpilationReport = transpilationReport.withQueries(newQuery, output))
+  }
+}
 
 object EstimationReportRecord {
   implicit val rw: ReadWriter[EstimationReportRecord] = macroRW
@@ -31,12 +40,18 @@ object EstimationReportRecord {
 @upickle.implicits.serializeDefaults(true)
 case class EstimationTranspilationReport(
     query: Option[String] = None,
+    output: Option[String] = None,
     parsed: Int = 0, // 1 for success, 0 for failure
     statements: Int = 0, // number of statements parsed
     parsing_error: Option[String] = None,
     transpiled: Int = 0, // 1 for success, 0 for failure
     transpiled_statements: Int = 0, // number of statements transpiled
-    transpilation_error: Option[String] = None)
+    transpilation_error: Option[String] = None) {
+
+  def withQueries(newQuery: String, output: Option[String]): EstimationTranspilationReport = {
+    this.copy(query = Some(newQuery), output = output)
+  }
+}
 
 object EstimationTranspilationReport {
   implicit val rw: ReadWriter[EstimationTranspilationReport] = macroRW

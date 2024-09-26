@@ -27,7 +27,21 @@ object QueryType extends Enumeration {
     readwriter[String].bimap[QueryType](_.toString, str => QueryType.withName(str))
 }
 
+/**
+ * A fingerprint is a hash of a query plan that can be used to recognize duplicate queries
+ *
+ * @param dbQueryHash The hash or id of the query as stored in the database, which can be used to identify the query
+ *                    when the queries cannot be stored offsite because of customer data restrictions
+ * @param timestamp The timestamp of when this query was executed
+ * @param fingerprint The hash of the query plan, rather than the query itself - can be null if we
+ *                    cannot parse the query into a digestible plan
+ * @param duration how long this query took to execute, which may or may not be an indication of complexity
+ * @param user The user who executed the query against the database
+ * @param workloadType The type of workload this query represents (e.g. ETL, SQL_SERVING, OTHER)
+ * @param queryType The type of query this is (e.g. DDL, DML, PROC, OTHER)
+ */
 case class Fingerprint(
+    dbQueryHash: String,
     timestamp: Timestamp,
     fingerprint: String,
     duration: Duration,
@@ -59,12 +73,33 @@ class Anonymizer(parser: PlanParser[_]) extends LazyLogging {
     parser.parse(SourceCode(query.source)).flatMap(parser.visit) match {
       case Result.Failure(PARSE, errorJson) =>
         logger.warn(s"Failed to parse query: ${query.source} $errorJson")
-        Fingerprint(query.timestamp, "unknown", query.duration, query.user, WorkloadType.OTHER, QueryType.OTHER)
+        Fingerprint(
+          query.id,
+          query.timestamp,
+          "unknown",
+          query.duration,
+          query.user,
+          WorkloadType.OTHER,
+          QueryType.OTHER)
       case Result.Failure(_, errorJson) =>
         logger.warn(s"Failed to produce plan from query: ${query.source} $errorJson")
-        Fingerprint(query.timestamp, "unknown", query.duration, query.user, WorkloadType.OTHER, QueryType.OTHER)
+        Fingerprint(
+          query.id,
+          query.timestamp,
+          "unknown",
+          query.duration,
+          query.user,
+          WorkloadType.OTHER,
+          QueryType.OTHER)
       case Result.Success(plan) =>
-        Fingerprint(query.timestamp, fingerprint(plan), query.duration, query.user, workloadType(plan), queryType(plan))
+        Fingerprint(
+          query.id,
+          query.timestamp,
+          fingerprint(plan),
+          query.duration,
+          query.user,
+          workloadType(plan),
+          queryType(plan))
     }
   }
 
@@ -75,7 +110,14 @@ class Anonymizer(parser: PlanParser[_]) extends LazyLogging {
    * @return A fingerprint representing the query plan
    */
   private[discovery] def fingerprint(query: ExecutedQuery, plan: LogicalPlan): Fingerprint = {
-    Fingerprint(query.timestamp, fingerprint(plan), query.duration, query.user, workloadType(plan), queryType(plan))
+    Fingerprint(
+      query.id,
+      query.timestamp,
+      fingerprint(plan),
+      query.duration,
+      query.user,
+      workloadType(plan),
+      queryType(plan))
   }
 
   /**

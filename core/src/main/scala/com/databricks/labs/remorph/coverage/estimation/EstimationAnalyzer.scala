@@ -107,26 +107,22 @@ class EstimationAnalyzer extends LazyLogging {
 
   private def logicalPlanEvaluator: PartialFunction[LogicalPlan, Int] = { case lp: LogicalPlan =>
     try {
-      // scalastyle:off println
-      println(lp)
-      // scalastyle:on println
       1
     } catch {
       case _: Throwable => 5
     }
   }
 
-  def expressionEvaluator: PartialFunction[Expression, Int] = { case expr: Expression =>
+  private def expressionEvaluator: PartialFunction[Expression, Int] = { case expr: Expression =>
     try {
-      // scalastyle:off println
-      println(expr)
-      // scalastyle:on println
       1
     } catch {
       case _: Throwable => 5
     }
   }
 
+  // TODO: Verify these calculations and decide if they are all needed or not. May not harm to keep them around anyway
+  // TODO: calculate complexity using above stats not just the median score
   def summarizeComplexity(reportEntries: Seq[EstimationReportRecord]): EstimationStatistics = {
     val scores = reportEntries.map(_.analysisReport.score)
 
@@ -152,7 +148,7 @@ class EstimationAnalyzer extends LazyLogging {
 
     // Percentiles
     def percentile(p: Double): Double = {
-      val k = (p * (sortedScores.size - 1) + 1).toInt - 1
+      val k = (p * (sortedScores.size - 1)).toInt
       sortedScores(k)
     }
     val percentile25 = percentile(0.25)
@@ -160,7 +156,7 @@ class EstimationAnalyzer extends LazyLogging {
     val percentile75 = percentile(0.75)
 
     // Geometric Mean
-    val geometricMeanScore = math.pow(scores.product.toDouble, 1.0 / scores.size)
+    val geometricMeanScore = math.pow(scores.map(_.toDouble).product, 1.0 / scores.size)
 
     EstimationStatistics(
       medianScore,
@@ -171,7 +167,6 @@ class EstimationAnalyzer extends LazyLogging {
       percentile50,
       percentile75,
       geometricMeanScore,
-      SqlComplexity.fromScore(medianScore)
-    ) // TODO: calculate complexity using above stats not just the median
+      SqlComplexity.fromScore(medianScore))
   }
 }

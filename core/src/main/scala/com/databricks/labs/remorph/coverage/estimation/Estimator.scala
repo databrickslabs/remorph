@@ -97,7 +97,7 @@ class Estimator(queryHistory: QueryHistoryProvider, planParser: PlanParser[_], a
             score = score + 100,
             complexity = SqlComplexity.fromScore(score)))
 
-      case Success(_: String) =>
+      case Success(output: String) =>
         // A successful transpilation means that we can reduce the score because the query seems
         // to be successfully translated. However, that does not mean that it scores 0 because there
         // will be some effort required to verify the translation.
@@ -105,6 +105,8 @@ class Estimator(queryHistory: QueryHistoryProvider, planParser: PlanParser[_], a
         val statCount = analyzer.countStatements(plan)
         EstimationReportRecord(
           EstimationTranspilationReport(
+            query = Some(query.source),
+            output = Some(output),
             statements = statCount,
             transpiled = 1,
             transpiled_statements = statCount,
