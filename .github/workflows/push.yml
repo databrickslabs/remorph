@@ -143,58 +143,13 @@ jobs:
           key: ${{ github.job }}-${{ hashFiles('**/pom.xml') }}
 
       - name: Run Unit Tests with Maven
-        run: mvn --update-snapshots -B install scoverage:report -pl "!com.databricks.labs:remorph-coverage" --file pom.xml --fail-at-end
+        run: mvn --update-snapshots scoverage:report --file pom.xml --fail-at-end
 
       - name: Uplaod remorph-core jars as Artifacts
         uses: actions/upload-artifact@v4
         with:
           name: remorph-core-jars
           path: ~/.m2/repository/com/databricks/labs/remorph*
-
-      - name: Publish test coverage
-        uses: codecov/codecov-action@v4
-        with:
-          token: ${{ secrets.CODECOV_TOKEN }}
-
-  coverage-tests:
-    needs: test-core
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Set up JDK 11
-        uses: actions/setup-java@v4
-        with:
-          distribution: corretto
-          java-version: 11
-
-      # GitHub Action team seems not to have cycles to make the cache work properly, hence this hack.
-      # See https://github.com/actions/setup-java/issues/255
-      # See https://github.com/actions/setup-java/issues/577
-      - name: Cache Maven
-        uses: actions/cache@v4
-        with:
-          path: ~/.m2
-          key: ${{ github.job }}-${{ hashFiles('**/pom.xml') }}
-
-      - name: Download remorph-core-jars
-        uses: actions/download-artifact@v4
-        with:
-          name: remorph-core-jars
-          path: ~/.m2/repository/com/databricks/labs/
-
-      - name: Run Coverage Tests with Maven
-        run: mvn --update-snapshots -B test -pl coverage --file pom.xml --fail-at-end
-
-
-      - name: Run TSQL Coverage Tests with Maven
-        run: mvn --update-snapshots -B exec:java -pl coverage --file pom.xml --fail-at-end -DsourceDir=tests/resources/functional/tsql -DoutputPath=coverage-result.json -DsourceDialect=Tsql -Dextractor=comment
-
-      - name: Run Snowflake Coverage Tests with Maven
-        run: mvn --update-snapshots -B exec:java -pl coverage --file pom.xml --fail-at-end -DsourceDir=tests/resources/functional/snowflake -DoutputPath=coverage-result.json -DsourceDialect=Snow -Dextractor=comment
 
 
       - name: Publish JUnit report
@@ -208,11 +163,10 @@ jobs:
           fail_on: 'nothing'
         continue-on-error: true
 
-      - name: Upload coverage tests results as json as Artifacts
-        uses: actions/upload-artifact@v4
+      - name: Publish test coverage
+        uses: codecov/codecov-action@v4
         with:
-          name: remorph-coverage-results
-          path: coverage/target/coverage-result.json
+          token: ${{ secrets.CODECOV_TOKEN }}
 
   coverage-tests-with-make:
     runs-on: ubuntu-latest

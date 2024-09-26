@@ -38,7 +38,7 @@ coverage:
 	hatch run coverage && open htmlcov/index.html
 
 build_core_jar:
-	mvn --update-snapshots -B install -DskipTests -pl "!com.databricks.labs:remorph-coverage" --file pom.xml
+	mvn --file pom.xml -pl core package
 
 clean_coverage_dir:
 	rm -fr ${OUTPUT_DIR}
@@ -50,17 +50,17 @@ python_coverage_report:
 	hatch -e sqlglot-latest run python src/databricks/labs/remorph/coverage/sqlglot_tsql_transpilation_coverage.py
 
 antlr_coverage_report: build_core_jar
-	mvn compile -DskipTests exec:java -pl coverage --file pom.xml -DsourceDir=${INPUT_DIR_PARENT}/snowflake -DoutputPath=${OUTPUT_DIR} -DsourceDialect=Snow -Dextractor=full
-	mvn exec:java -pl coverage --file pom.xml -DsourceDir=${INPUT_DIR_PARENT}/tsql -DoutputPath=${OUTPUT_DIR} -DsourceDialect=Tsql -Dextractor=full
+	java -jar $(wildcard core/target/remorph-core-*-SNAPSHOT.jar) '{"command": "debug-coverage", "flags":{"src": "$(abspath ${INPUT_DIR_PARENT}/snowflake)", "dst":"$(abspath ${OUTPUT_DIR})", "source-dialect": "Snow", "extractor": "full"}}'
+	java -jar $(wildcard core/target/remorph-core-*-SNAPSHOT.jar) '{"command": "debug-coverage", "flags":{"src": "$(abspath ${INPUT_DIR_PARENT}/tsql)", "dst":"$(abspath ${OUTPUT_DIR})", "source-dialect": "Tsql", "extractor": "full"}}'
 
 dialect_coverage_report: clean_coverage_dir antlr_coverage_report python_coverage_report
 	hatch run python src/databricks/labs/remorph/coverage/local_report.py
 
 antlr-coverage: build_core_jar
 	echo "Running coverage for snowflake"
-	mvn -DskipTests compile exec:java -pl coverage --file pom.xml -DsourceDir=${INPUT_DIR_PARENT}/snowflake -DoutputPath=.venv/antlr-coverage -DsourceDialect=Snow -Dextractor=full
+	java -jar $(wildcard core/target/remorph-core-*-SNAPSHOT.jar) '{"command": "coverage", "flags":{"src": "$(abspath ${INPUT_DIR_PARENT}/snowflake)", "dst":"$(abspath ${OUTPUT_DIR})", "source-dialect": "Snow", "extractor": "full"}}'
 	echo "Running coverage for tsql"
-	mvn exec:java -pl coverage --file pom.xml -DsourceDir=${INPUT_DIR_PARENT}/tsql -DoutputPath=.venv/antlr-coverage -DsourceDialect=Tsql -Dextractor=full
+	java -jar $(wildcard core/target/remorph-core-*-SNAPSHOT.jar) '{"command": "coverage", "flags":{"src": "$(abspath ${INPUT_DIR_PARENT}/tsql)", "dst":"$(abspath ${OUTPUT_DIR})", "source-dialect": "Tsql", "extractor": "full"}}'
 	OUTPUT_DIR=.venv/antlr-coverage hatch run python src/databricks/labs/remorph/coverage/local_report.py
 
 antlr-lint:
