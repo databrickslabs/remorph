@@ -18,7 +18,15 @@ object SqlComplexity {
     macroRW[SqlComplexity.VERY_COMPLEX.type])
 }
 
+case class SourceTextComplexity(lineCount: Int, textLength: Int)
+
 class EstimationAnalyzer extends LazyLogging {
   // TODO: We will do this and the rest of the analysis in the next PR
   def countStatements(plan: ir.LogicalPlan): Int = 1
+
+  def estimateComplexity(plan: ir.LogicalPlan): SqlComplexity = SqlComplexity.LOW
+
+  def sourceTextComplexity(query: String): SourceTextComplexity = {
+    SourceTextComplexity(query.split("\n").length, query.length)
+  }
 }
