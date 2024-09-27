@@ -18,10 +18,10 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
       "!options catch=true" transpilesTo "-- !options catch=true;"
     }
     "transpile BANG with negative scenario unknown command" in {
-      "!test unknown command" transpilesTo ""
+      "!test unknown command".failsTranspilation
     }
     "transpile BANG with negative scenario unknown command2" in {
-      "!abc set=abc" transpilesTo ""
+      "!abc set=abc".failsTranspilation
     }
   }
 
@@ -148,6 +148,64 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
            |  t1;""".stripMargin
     }
 
+  }
+
+  "Snowflake transpile function with optional brackets" should {
+
+    "SELECT CURRENT_DATE, CURRENT_TIMESTAMP, CURRENT_TIME, LOCALTIME, LOCALTIMESTAMP FROM t1" in {
+      s"""SELECT CURRENT_DATE, CURRENT_TIMESTAMP, CURRENT_TIME,
+         |LOCALTIME, LOCALTIMESTAMP FROM t1""".stripMargin transpilesTo (
+        s"""SELECT
+           |  CURRENT_DATE(),
+           |  CURRENT_TIMESTAMP(),
+           |  DATE_FORMAT(CURRENT_TIMESTAMP(), 'HH:mm:ss'),
+           |  DATE_FORMAT(CURRENT_TIMESTAMP(), 'HH:mm:ss'),
+           |  CURRENT_TIMESTAMP()
+           |FROM
+           |  t1;""".stripMargin
+      )
+    }
+
+    "SELECT CURRENT_TIMESTAMP(1) FROM t1 where dt < CURRENT_TIMESTAMP" in {
+      s"""SELECT CURRENT_TIMESTAMP(1) FROM t1 where dt < CURRENT_TIMESTAMP""".stripMargin transpilesTo (
+        s"""SELECT
+           |  DATE_FORMAT(CURRENT_TIMESTAMP(), 'yyyy-MM-dd HH:mm:ss.SSS')
+           |FROM
+           |  t1
+           |WHERE
+           |  dt < CURRENT_TIMESTAMP();""".stripMargin
+      )
+    }
+
+    "SELECT CURRENT_TIME(1) FROM t1 where dt < CURRENT_TIMESTAMP()" in {
+      s"""SELECT CURRENT_TIME(1) FROM t1 where dt < CURRENT_TIMESTAMP()""".stripMargin transpilesTo (
+        s"""SELECT
+           |  DATE_FORMAT(CURRENT_TIMESTAMP(), 'HH:mm:ss')
+           |FROM
+           |  t1
+           |WHERE
+           |  dt < CURRENT_TIMESTAMP();""".stripMargin
+      )
+    }
+
+    "SELECT LOCALTIME() FROM t1 where dt < LOCALTIMESTAMP" in {
+      s"""SELECT LOCALTIME() FROM t1 where dt < LOCALTIMESTAMP()""".stripMargin transpilesTo (
+        s"""SELECT
+           |  DATE_FORMAT(CURRENT_TIMESTAMP(), 'HH:mm:ss')
+           |FROM
+           |  t1
+           |WHERE
+           |  dt < CURRENT_TIMESTAMP();""".stripMargin
+      )
+    }
+  }
+
+  "Snowflake Execute commands" should {
+
+    "EXECUTE TASK task1;" in {
+      "EXECUTE TASK task1;" transpilesTo
+        s"""-- EXECUTE TASK task1;""".stripMargin
+    }
   }
 
 }

@@ -13,6 +13,7 @@ class AnonymizerTest extends AnyWordSpec with Matchers {
       val snow = new SnowflakePlanParser
       val anonymizer = new Anonymizer(snow)
       val query = ExecutedQuery(
+        "id",
         new Timestamp(1725032011000L),
         "SELECT a, b FROM c WHERE d >= 300 AND e = 'foo'",
         Duration.ofMillis(300),
@@ -33,6 +34,7 @@ class AnonymizerTest extends AnyWordSpec with Matchers {
       val anonymizer = new Anonymizer(snow)
       val query =
         ExecutedQuery(
+          "id",
           new Timestamp(1725032011000L),
           "CREATE TABLE foo (a INT, b STRING)",
           Duration.ofMillis(300),
@@ -48,15 +50,15 @@ class AnonymizerTest extends AnyWordSpec with Matchers {
           QueryType.DDL))
     }
 
-    "unknown query" in {
+    "trap an unknown query" in {
       val snow = new SnowflakePlanParser
       val anonymizer = new Anonymizer(snow)
-      val query = ExecutedQuery(new Timestamp(1725032011000L), "THIS IS UNKNOWN;", Duration.ofMillis(300), "foo")
+      val query = ExecutedQuery("id", new Timestamp(1725032011000L), "THIS IS UNKNOWN;", Duration.ofMillis(300), "foo")
 
       anonymizer.fingerprint(query) should equal(
         Fingerprint(
           new Timestamp(1725032011000L),
-          "c11ea6f506aa613d9d653cebf93902340d85d3fb",
+          "unknown",
           Duration.ofMillis(300),
           "foo",
           WorkloadType.OTHER,
@@ -71,16 +73,19 @@ class AnonymizerTest extends AnyWordSpec with Matchers {
       val history = QueryHistory(
         Seq(
           ExecutedQuery(
+            "id",
             new Timestamp(1725032011000L),
             "SELECT a, b FROM c WHERE d >= 300 AND e = 'foo'",
             Duration.ofMillis(300),
             "foo"),
           ExecutedQuery(
+            "id",
             new Timestamp(1725032011001L),
             "SELECT a, b FROM c WHERE d >= 931 AND e = 'bar'",
             Duration.ofMillis(300),
             "foo"),
           ExecutedQuery(
+            "id",
             new Timestamp(1725032011002L),
             "SELECT a, b FROM c WHERE d >= 234 AND e = 'something very different'",
             Duration.ofMillis(300),

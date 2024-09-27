@@ -9,7 +9,7 @@ import org.scalatest.wordspec.AnyWordSpec
 
 class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matchers with IRHelpers {
 
-  override protected def astBuilder: TSqlParserBaseVisitor[_] = new TSqlAstBuilder
+  override protected def astBuilder: TSqlParserBaseVisitor[_] = vc.astBuilder
 
   private def example(query: String, expectedAst: LogicalPlan): Unit =
     example(query, _.tSqlFile(), expectedAst)
@@ -218,8 +218,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
       when(joinTypeContextMock.INNER()).thenReturn(null)
       when(joinOnContextMock.joinType()).thenReturn(joinTypeContextMock)
 
-      val builder = new TSqlRelationBuilder
-      val result = builder.translateJoinType(joinOnContextMock)
+      val result = vc.relationBuilder.translateJoinType(joinOnContextMock)
       result shouldBe UnspecifiedJoin
     }
 
@@ -380,7 +379,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
             Window(
               CallFunction("ROW_NUMBER", List.empty),
               List.empty,
-              List(SortOrder(simplyNamedColumn("myColumn"), Ascending, SortNullsUnspecified)),
+              List(SortOrder(simplyNamedColumn("myColumn"), UnspecifiedSortDirection, SortNullsUnspecified)),
               None),
             Id("nextVal")))))))
 
@@ -889,7 +888,7 @@ class TSqlAstBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matc
             | WHEN NOT MATCHED THEN INSERT (a, b) VALUES (s.a, s.b)
             | OPTION ( KEEPFIXED PLAN, FAST 666, MAX_GRANT_PERCENT = 30, FLAME ON, FLAME OFF, QUICKLY) """.stripMargin,
       expectedAst = Batch(
-        Seq(WithOptions(
+        Seq(WithModificationOptions(
           MergeIntoTable(
             NamedTable("t", Map(), is_streaming = false),
             NamedTable("s", Map(), is_streaming = false),

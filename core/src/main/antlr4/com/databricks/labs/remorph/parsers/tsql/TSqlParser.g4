@@ -62,13 +62,7 @@ sqlClauses
     | goStatement SEMI*
     ;
 
-dmlClause
-    : mergeStatement
-    | deleteStatement
-    | insertStatement
-    | selectStatementStandalone
-    | updateStatement
-    | bulkStatement
+dmlClause: withExpression? ( selectStatement | merge | delete | insert | update | bulkStatement)
     ;
 
 ddlClause
@@ -309,7 +303,7 @@ printStatement: PRINT (expression | DOUBLE_QUOTE_ID) (COMMA LOCAL_ID)* SEMI?
 
 raiseerrorStatement
     : RAISERROR LPAREN (INT | STRING | LOCAL_ID) COMMA constant_LOCAL_ID COMMA constant_LOCAL_ID (
-        COMMA (constant_LOCAL_ID | NULL_)
+        COMMA (constant_LOCAL_ID | NULL)
     )* RPAREN (WITH genericOption)? SEMI?
     | RAISERROR INT formatstring = (STRING | LOCAL_ID | DOUBLE_QUOTE_ID) (
         COMMA args += (INT | STRING | LOCAL_ID)
@@ -1037,7 +1031,7 @@ createResourcePool
 alterResourceGovernor
     : ALTER RESOURCE GOVERNOR (
         (DISABLE | RECONFIGURE)
-        | WITH LPAREN CLASSIFIER_FUNCTION EQ (dotIdentifier | NULL_) RPAREN
+        | WITH LPAREN CLASSIFIER_FUNCTION EQ (dotIdentifier | NULL) RPAREN
         | RESET STATISTICS
         | WITH LPAREN MAX_OUTSTANDING_IO_PER_VOLUME EQ INT RPAREN
     )
@@ -1304,7 +1298,7 @@ createSynonym: CREATE SYNONYM dotIdentifier FOR dotIdentifier
 alterUser
     : ALTER USER id WITH (
         COMMA? NAME EQ id
-        | COMMA? DEFAULT_SCHEMA EQ ( id | NULL_)
+        | COMMA? DEFAULT_SCHEMA EQ ( id | NULL)
         | COMMA? LOGIN EQ id
         | COMMA? PASSWORD EQ STRING (OLD_PASSWORD EQ STRING)+
         | COMMA? DEFAULT_LANGUAGE EQ ( NONE | INT | id)
@@ -1446,9 +1440,6 @@ messageStatement
     )
     ;
 
-mergeStatement: withExpression? merge
-    ;
-
 merge
     : MERGE topClause? INTO? ddlObject withTableHints? asTableAlias? USING tableSources ON searchCondition whenMatch* outputClause? optionClause? SEMI
         ?
@@ -1466,9 +1457,6 @@ mergeAction
     )
     ;
 
-deleteStatement: withExpression? delete
-    ;
-
 delete
     : DELETE topClause? FROM? ddlObject withTableHints? outputClause? (FROM tableSources)? updateWhereClause? optionClause? SEMI?
     ;
@@ -1483,9 +1471,6 @@ bulkInsertOption: ORDER LPAREN bulkInsertCol (COMMA bulkInsertCol)* RPAREN | gen
     ;
 
 bulkInsertCol: id (ASC | DESC)?
-    ;
-
-insertStatement: withExpression? insert
     ;
 
 insert
@@ -1505,9 +1490,6 @@ selectStatementStandalone: withExpression? selectStatement
     ;
 
 selectStatement: queryExpression forClause? optionClause? SEMI?
-    ;
-
-updateStatement: withExpression? update
     ;
 
 update
@@ -1704,7 +1686,7 @@ funcBodyReturnsScalar
     )
     ;
 
-procedureParamDefaultValue: NULL_ | DEFAULT | constant | LOCAL_ID
+procedureParamDefaultValue: NULL | DEFAULT | constant | LOCAL_ID
     ;
 
 procedureParam
@@ -1721,8 +1703,8 @@ procedureOption: executeClause | genericOption
 functionOption
     : ENCRYPTION
     | SCHEMABINDING
-    | RETURNS NULL_ ON NULL_ INPUT
-    | CALLED ON NULL_ INPUT
+    | RETURNS NULL ON NULL INPUT
+    | CALLED ON NULL INPUT
     | executeClause
     ;
 
@@ -1748,9 +1730,8 @@ createTable: CREATE (createExternal | createInternal)
     ;
 
 createInternal
-    : TABLE tableName (
-        LPAREN columnDefTableConstraints (COMMA? tableIndices)* COMMA? RPAREN (LOCK simpleId)?
-    )? tableOptions? // This sequence looks strange but alloes CTAS and normal CREATE TABLE to be parsed
+    : TABLE tableName (LPAREN columnDefTableConstraints COMMA? RPAREN)? tableOptions?
+    // This sequence looks strange but alloes CTAS and normal CREATE TABLE to be parsed
     createTableAs? tableOptions? (ON id | DEFAULT | onPartitionOrFilegroup)? (
         TEXTIMAGE_ON id
         | DEFAULT
@@ -1764,10 +1745,10 @@ createExternal
     ;
 
 createTableAs
-    : AS selectStatementStandalone                            # ctas
-    | AS FILETABLE WITH lparenOptionList                      # ctasFiletable
-    | AS (NODE | EDGE)                                        # ctasGraph
-    | AS /* CLONE */ id OF dotIdentifier (AT_KEYWORD STRING)? # ctasClone
+    : AS selectStatementStandalone
+    | AS FILETABLE WITH lparenOptionList
+    | AS (NODE | EDGE)
+    | AS /* CLONE */ id OF dotIdentifier (AT_KEYWORD STRING)?
     ;
 
 tableIndices
@@ -1861,14 +1842,14 @@ alterTableAdd
 
 alterGenerated
     : dotIdentifier id GENERATED ALWAYS AS (ROW | TRANSACTION_ID | SEQUENCE_NUMBER) (START | END) HIDDEN_KEYWORD? (
-        NOT? NULL_
+        NOT? NULL
     )? (CONSTRAINT id)? DEFAULT expression (WITH VALUES)?
     | /* PERIOD */ id FOR /* SYSTEM_TIME */ id LPAREN (dotIdentifier COMMA dotIdentifier) RPAREN
     ;
 
 alterTableColumn
     : ALTER COLUMN dotIdentifier (
-        (LPAREN INT (COMMA INT)? RPAREN | xmlSchemaCollection) (COLLATE id)? (NULL_ | NOT NULL_)? SPARSE? (
+        (LPAREN INT (COMMA INT)? RPAREN | xmlSchemaCollection) (COLLATE id)? (NULL | NOT NULL)? SPARSE? (
             WITH LPAREN genericOption RPAREN
         )?
         | (ADD | DROP) genericOption (WITH LPAREN genericOption RPAREN)?
@@ -2260,7 +2241,7 @@ executeStatementArgNamed: LOCAL_ID EQ executeParameter
 executeStatementArgUnnamed: executeParameter
     ;
 
-executeParameter: ( constant | LOCAL_ID (OUTPUT | OUT)? | id | DEFAULT | NULL_)
+executeParameter: ( constant | LOCAL_ID (OUTPUT | OUT)? | id | DEFAULT | NULL)
     ;
 
 executeVarString
@@ -2560,47 +2541,49 @@ tableTypeIndices
 columnDefTableConstraints: columnDefTableConstraint (COMMA? columnDefTableConstraint)*
     ;
 
-columnDefTableConstraint: columnDefinition | materializedColumnDefinition | tableConstraint
+columnDefTableConstraint
+    : columnDefinition
+    | computedColumnDefinition
+    | tableConstraint
+    | tableIndices
     ;
 
-computedColumnDefinition
-    : id (dataType | AS expression) (PERSISTED (NOT NULL_)?)? (
-        (CONSTRAINT id)? (PRIMARY KEY | UNIQUE) (CLUSTERED | NONCLUSTERED)? primaryKeyOptions
-        | (FOREIGN KEY)? foreignKeyOptions
-        | checkConstraint
-    )?
+computedColumnDefinition: id AS expression (PERSISTED (NOT NULL)?)? columnConstraint?
     ;
 
 columnSetDefinition: id XML id FOR id
     ;
 
-columnDefinition
-    : id (dataType | AS expression (PERSISTED (NOT NULL_)?)?) columnDefinitionElement* columnIndex?
+columnDefinition: id dataType columnDefinitionElement* columnIndex?
     ;
 
 columnDefinitionElement
-    : FILESTREAM
-    | COLLATE id
-    | SPARSE
-    | MASKED WITH LPAREN FUNCTION EQ STRING RPAREN
-    | (CONSTRAINT id)? DEFAULT expression
-    | IDENTITY (LPAREN INT COMMA INT RPAREN)?
-    | NOT FOR REPLICATION
-    | GENERATED ALWAYS AS (ROW | TRANSACTION_ID | SEQUENCE_NUMBER) (START | END) HIDDEN_KEYWORD?
+    : MASKED WITH LPAREN FUNCTION EQ STRING RPAREN
+    | defaultValue
+    | identityColumn
+    | generatedAs
     | ROWGUIDCOL
     | ENCRYPTED WITH LPAREN COLUMN_ENCRYPTION_KEY EQ STRING COMMA ENCRYPTION_TYPE EQ (
         DETERMINISTIC
         | RANDOMIZED
     ) COMMA ALGORITHM EQ STRING RPAREN
     | columnConstraint
+    | genericOption // TSQL column flags and options that we cannot support in Databricks
     ;
 
-materializedColumnDefinition: id (COMPUTE | AS) expression ( MATERIALIZED | NOT MATERIALIZED)?
+generatedAs
+    : GENERATED ALWAYS AS (ROW | TRANSACTION_ID | SEQUENCE_NUMBER) (START | END) HIDDEN_KEYWORD?
+    ;
+
+identityColumn: IDENTITY (LPAREN INT COMMA INT RPAREN)?
+    ;
+
+defaultValue: (CONSTRAINT id)? DEFAULT expression
     ;
 
 columnConstraint
     : (CONSTRAINT id)? (
-        nullNotnull
+        NOT? NULL
         | ((PRIMARY KEY | UNIQUE) clustered? primaryKeyOptions)
         | ( (FOREIGN KEY)? foreignKeyOptions)
         | checkConstraint
@@ -2617,11 +2600,11 @@ onPartitionOrFilegroup: ON ( ( id LPAREN id RPAREN) | id | DEFAULT_DOUBLE_QUOTE)
     ;
 
 tableConstraint
-    : (CONSTRAINT id)? (
+    : (CONSTRAINT cid = id)? (
         ((PRIMARY KEY | UNIQUE) clustered? LPAREN columnNameListWithOrder RPAREN primaryKeyOptions)
         | ( FOREIGN KEY LPAREN columnNameList RPAREN foreignKeyOptions)
         | ( CONNECTION LPAREN connectionNode ( COMMA connectionNode)* RPAREN)
-        | ( DEFAULT expression FOR id ( WITH VALUES)?)
+        | ( DEFAULT expression FOR defid = id ( WITH VALUES)?)
         | checkConstraint
     )
     ;
@@ -2641,10 +2624,10 @@ foreignKeyOptions
 checkConstraint: CHECK (NOT FOR REPLICATION)? LPAREN searchCondition RPAREN
     ;
 
-onDelete: ON DELETE (NO ACTION | CASCADE | SET NULL_ | SET DEFAULT)
+onDelete: ON DELETE (NO ACTION | CASCADE | SET NULL | SET DEFAULT)
     ;
 
-onUpdate: ON UPDATE (NO ACTION | CASCADE | SET NULL_ | SET DEFAULT)
+onUpdate: ON UPDATE (NO ACTION | CASCADE | SET NULL | SET DEFAULT)
     ;
 
 alterTableIndexOptions: WITH LPAREN alterTableIndexOption ( COMMA alterTableIndexOption)* RPAREN
@@ -2752,7 +2735,7 @@ expression
     | expression withinGroup                                  # exprWithinGroup
     | DOLLAR_ACTION                                           # exprDollar
     | <assoc = right> expression DOT expression               # exprDot
-    | LPAREN subquery RPAREN                                  # exprSubquery
+    | LPAREN selectStatement RPAREN                           # exprSubquery
     | ALL expression                                          # exprAll
     | DISTINCT expression                                     # exprDistinct
     | DOLLAR_ACTION                                           # exprDollar
@@ -2768,13 +2751,10 @@ timeZone
     : AT_KEYWORD id ZONE expression // AT TIME ZONE
     ;
 
-primitiveExpression: op = (DEFAULT | NULL_ | LOCAL_ID) | constant
+primitiveExpression: op = (DEFAULT | NULL | LOCAL_ID) | constant
     ;
 
 caseExpression: CASE caseExpr = expression? switchSection+ ( ELSE elseExpr = expression)? END
-    ;
-
-subquery: selectStatement
     ;
 
 withExpression: WITH xmlNamespaces? commonTableExpression ( COMMA commonTableExpression)*
@@ -2807,15 +2787,15 @@ searchCondition
     ;
 
 predicate
-    : EXISTS LPAREN subquery RPAREN
-    | freetextPredicate
-    | expression comparisonOperator expression
-    | expression comparisonOperator (ALL | SOME | ANY) LPAREN subquery RPAREN
-    | expression NOT* BETWEEN expression AND expression
-    | expression NOT* IN LPAREN (subquery | expressionList) RPAREN
-    | expression NOT* LIKE expression (ESCAPE expression)?
-    | expression IS nullNotnull
-    | expression
+    : EXISTS LPAREN selectStatement RPAREN                                           # predExists
+    | freetextPredicate                                                              # predFreetext
+    | expression comparisonOperator expression                                       # predBinop
+    | expression comparisonOperator (ALL | SOME | ANY) LPAREN selectStatement RPAREN # predASA
+    | expression NOT? BETWEEN expression AND expression                              # predBetween
+    | expression NOT? IN LPAREN (selectStatement | expressionList) RPAREN            # predIn
+    | expression NOT? LIKE expression (ESCAPE expression)?                           # predLike
+    | expression IS NOT? NULL                                                        # predIsNull
+    | expression                                                                     # predExpression
     ;
 
 queryExpression
@@ -2949,7 +2929,7 @@ changeTable: changeTableChanges | changeTableVersion
     ;
 
 changeTableChanges
-    : CHANGETABLE LPAREN CHANGES tableName COMMA changesid = (NULL_ | INT | LOCAL_ID) RPAREN
+    : CHANGETABLE LPAREN CHANGES tableName COMMA changesid = (NULL | INT | LOCAL_ID) RPAREN
     ;
 
 changeTableVersion
@@ -2999,7 +2979,7 @@ rowsetFunction
     | (OPENROWSET LPAREN BULK STRING COMMA ( id EQ STRING COMMA optionList? | id) RPAREN)
     ;
 
-derivedTable: subquery | tableValueConstructor | LPAREN tableValueConstructor RPAREN
+derivedTable: selectStatement | tableValueConstructor | LPAREN tableValueConstructor RPAREN
     ;
 
 functionCall
@@ -3061,7 +3041,7 @@ builtInFunctions
 jsonKeyValue: expression COLON expression
     ;
 
-jsonNullClause: (loseNulls = ABSENT | NULL_) ON NULL_
+jsonNullClause: (loseNulls = ABSENT | NULL) ON NULL
     ;
 
 hierarchyidStaticMethod
@@ -3069,7 +3049,7 @@ hierarchyidStaticMethod
     ;
 
 nodesMethod
-    : (locId = LOCAL_ID | valueId = fullColumnName | LPAREN subquery RPAREN) DOT NODES LPAREN xquery = STRING RPAREN
+    : (locId = LOCAL_ID | valueId = fullColumnName | LPAREN selectStatement RPAREN) DOT NODES LPAREN xquery = STRING RPAREN
     ;
 
 switchSection: WHEN searchCondition THEN expression
@@ -3155,7 +3135,10 @@ ddlObject: tableName | rowsetFunctionLimited | LOCAL_ID
 fullColumnName: ((DELETED | INSERTED | tableName) DOT)? ( id | (DOLLAR (IDENTITY | ROWGUID)))
     ;
 
-columnNameListWithOrder: id (ASC | DESC)? (COMMA id (ASC | DESC)?)*
+columnNameListWithOrder: columnNameWithOrder (COMMA columnNameWithOrder)*
+    ;
+
+columnNameWithOrder: id (ASC | DESC)?
     ;
 
 columnNameList: id (COMMA id)*
@@ -3170,7 +3153,7 @@ onOff: ON | OFF
 clustered: CLUSTERED | NONCLUSTERED
     ;
 
-nullNotnull: NOT? NULL_
+nullNotnull: NOT? NULL
     ;
 
 beginConversationTimer

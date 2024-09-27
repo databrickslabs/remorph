@@ -12,7 +12,7 @@ case class Output(target: Option[LogicalPlan], outputs: Seq[Expression], columns
   override def children: Seq[LogicalPlan] = Seq(target.getOrElse(NoopNode))
 }
 
-case class WithOutputClause(input: LogicalPlan, target: LogicalPlan) extends RelationCommon {
+case class WithOutputClause(input: LogicalPlan, target: LogicalPlan) extends Modification {
   override def output: Seq[Attribute] = target.output
   override def children: Seq[LogicalPlan] = Seq(input, target)
 }
@@ -23,8 +23,7 @@ case class BackupDatabase(
     flags: Map[String, Boolean],
     autoFlags: Seq[String],
     values: Map[String, Expression])
-    extends LeafNode
-    with Command {}
+    extends Catalog {}
 
 case class ColumnAliases(input: LogicalPlan, aliases: Seq[Id]) extends RelationCommon {
   override def output: Seq[Attribute] = aliases.map(a => AttributeReference(a.id, StringType))

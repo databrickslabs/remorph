@@ -3,13 +3,15 @@ import re
 from unittest.mock import MagicMock, create_autospec
 
 import pytest
-
+from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.hazmat.primitives import serialization
 from databricks.labs.remorph.config import get_dialect
 from databricks.labs.remorph.reconcile.connectors.snowflake import SnowflakeDataSource
-from databricks.labs.remorph.reconcile.exception import DataSourceRuntimeException
+from databricks.labs.remorph.reconcile.exception import DataSourceRuntimeException, InvalidSnowflakePemPrivateKey
 from databricks.labs.remorph.reconcile.recon_config import JdbcReaderOptions, Table
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.service.workspace import GetSecretResponse
+from databricks.sdk.errors import NotFound
 
 
 def mock_secret(scope, key):
@@ -41,6 +43,34 @@ def mock_secret(scope, key):
     }
 
     return secret_mock[scope][key]
+
+
+def generate_pkcs8_pem_key(malformed=False):
+    private_key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
+    pem_key = private_key.private_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PrivateFormat.PKCS8,
+        encryption_algorithm=serialization.NoEncryption(),
+    ).decode('utf-8')
+    return pem_key[:50] + "MALFORMED" + pem_key[60:] if malformed else pem_key
+
+
+def mock_private_key_secret(scope, key):
+    if key == 'pem_private_key':
+        return GetSecretResponse(key=key, value=base64.b64encode(generate_pkcs8_pem_key().encode()).decode())
+    return mock_secret(scope, key)
+
+
+def mock_malformed_private_key_secret(scope, key):
+    if key == 'pem_private_key':
+        return GetSecretResponse(key=key, value=base64.b64encode(generate_pkcs8_pem_key(True).encode()).decode())
+    return mock_secret(scope, key)
+
+
+def mock_no_auth_key_secret(scope, key):
+    if key == 'pem_private_key' or key == 'sfPassword':
+        raise NotFound("Secret not found")
+    return mock_secret(scope, key)
 
 
 def initial_setup():
@@ -246,3 +276,45 @@ def test_get_schema_exception_handling():
         "Exception",
     ):
         ds.get_schema("catalog", "schema", "supplier")
+
+
+def test_read_data_with_out_options_private_key():
+    engine, spark, ws, scope = initial_setup()
+    ws.secrets.get_secret.side_effect = mock_private_key_secret
+    ds = SnowflakeDataSource(engine, spark, ws, scope)
+    table_conf = Table(source_name="supplier", target_name="supplier")
+    ds.read_data("org", "data", "employee", "select 1 from :tbl", table_conf.jdbc_reader_options)
+    spark.read.format.assert_called_with("snowflake")
+    spark.read.format().option.assert_called_with("dbtable", "(select 1 from org.data.employee) as tmp")
+    expected_options = {
+        "sfUrl": "my_url",
+        "sfUser": "my_user",
+        "sfDatabase": "my_database",
+        "sfSchema": "my_schema",
+        "sfWarehouse": "my_warehouse",
+        "sfRole": "my_role",
+    }
+    actual_options = spark.read.format().option().options.call_args[1]
+    actual_options.pop("pem_private_key", None)
+    assert actual_options == expected_options
+    spark.read.format().option().options().load.assert_called_once()
+
+
+def test_read_data_with_out_options_malformed_private_key():
+    engine, spark, ws, scope = initial_setup()
+    ws.secrets.get_secret.side_effect = mock_malformed_private_key_secret
+    ds = SnowflakeDataSource(engine, spark, ws, scope)
+    table_conf = Table(source_name="supplier", target_name="supplier")
+    with pytest.raises(InvalidSnowflakePemPrivateKey, match="Failed to load or process the provided PEM private key."):
+        ds.read_data("org", "data", "employee", "select 1 from :tbl", table_conf.jdbc_reader_options)
+
+
+def test_read_data_with_out_any_auth():
+    engine, spark, ws, scope = initial_setup()
+    ws.secrets.get_secret.side_effect = mock_no_auth_key_secret
+    ds = SnowflakeDataSource(engine, spark, ws, scope)
+    table_conf = Table(source_name="supplier", target_name="supplier")
+    with pytest.raises(
+        NotFound, match='sfPassword and pem_private_key not found. Either one is required for snowflake auth.'
+    ):
+        ds.read_data("org", "data", "employee", "select 1 from :tbl", table_conf.jdbc_reader_options)

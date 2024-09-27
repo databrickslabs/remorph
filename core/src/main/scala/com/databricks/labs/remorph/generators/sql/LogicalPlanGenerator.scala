@@ -1,11 +1,13 @@
 package com.databricks.labs.remorph.generators.sql
 
 import com.databricks.labs.remorph.generators.{Generator, GeneratorContext}
-import com.databricks.labs.remorph.parsers.intermediate.Batch
 import com.databricks.labs.remorph.parsers.{intermediate => ir}
 import com.databricks.labs.remorph.transpilers.TranspileException
 
-class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: Boolean = false)
+class LogicalPlanGenerator(
+    val expr: ExpressionGenerator,
+    val optGen: OptionGenerator,
+    val explicitDistinct: Boolean = false)
     extends Generator[ir.LogicalPlan, String] {
 
   override def generate(ctx: GeneratorContext, tree: ir.LogicalPlan): String = tree match {
@@ -37,13 +39,14 @@ class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: 
     case t: ir.TableSample => tableSample(ctx, t)
     case a: ir.AlterTableCommand => alterTable(ctx, a)
     case l: ir.Lateral => lateral(ctx, l)
+    case c: ir.CreateTableParams => createTableParams(ctx, c)
     case ir.NoopNode => ""
     //  TODO We should always generate an unresolved node, our plan should never be null
     case null => "" // don't fail transpilation if the plan is null
     case x => throw unknown(x)
   }
 
-  private def batch(ctx: GeneratorContext, b: Batch): String = {
+  private def batch(ctx: GeneratorContext, b: ir.Batch): String = {
     val seqSql = b.children
       .map {
         case ir.UnresolvedCommand(text) =>
@@ -56,6 +59,64 @@ class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: 
     } else {
       ""
     }
+  }
+
+  private def createTableParams(ctx: GeneratorContext, crp: ir.CreateTableParams): String = {
+
+    // We build the overall table creation statement differently depending on whether the primitive is
+    // a CREATE TABLE or a CREATE TABLE AS (SELECT ...)
+    crp.create match {
+      case ct: ir.CreateTable =>
+        // we build the columns using the raw column declarations, adding in any col constraints
+        // and any column options
+        val columns = ct.schema match {
+          case ir.StructType(fields) =>
+            fields
+              .map { col =>
+                val constraints = crp.colConstraints.getOrElse(col.name, Seq.empty)
+                val options = crp.colOptions.getOrElse(col.name, Seq.empty)
+                genColumnDecl(ctx, col, constraints, options)
+              }
+              .mkString(", ")
+        }
+
+        // We now generate any table level constraints
+        val tableConstraintStr = crp.constraints.map(constraint(ctx, _)).mkString(", ")
+        val tableConstraintStrWithComma = if (tableConstraintStr.nonEmpty) s", $tableConstraintStr" else ""
+
+        // record any table level options
+        val tableOptions = crp.options.map(_.map(optGen.generateOption(ctx, _)).mkString("\n   ")).getOrElse("")
+
+        val tableOptionsComment =
+          if (tableOptions.isEmpty) "" else s"   The following options are unsupported:\n\n   $tableOptions\n"
+        val indicesStr = crp.indices.map(constraint(ctx, _)).mkString("   \n")
+        val indicesComment =
+          if (indicesStr.isEmpty) "" else s"   The following index directives are unsupported:\n\n   $indicesStr*/\n"
+        val leadingComment = (tableOptionsComment, indicesComment) match {
+          case ("", "") => ""
+          case (a, "") => s"/*\n$a*/\n"
+          case ("", b) => s"/*\n$b*/\n"
+          case (a, b) => s"/*\n$a\n$b*/\n"
+        }
+
+        s"${leadingComment}CREATE TABLE ${ct.table_name} (${columns}${tableConstraintStrWithComma})"
+
+      case ctas: ir.CreateTableAsSelect => s"CREATE TABLE ${ctas.table_name} AS (${generate(ctx, ctas.query)})"
+    }
+  }
+
+  private def genColumnDecl(
+      ctx: GeneratorContext,
+      col: ir.StructField,
+      constraints: Seq[ir.Constraint],
+      options: Seq[ir.GenericOption]): String = {
+    val dataType = DataTypeGenerator.generateDataType(ctx, col.dataType)
+    val dataTypeStr = if (!col.nullable) s"$dataType NOT NULL" else dataType
+    val constraintsStr = constraints.map(constraint(ctx, _)).mkString(" ")
+    val constraintsGen = if (constraintsStr.isEmpty) "" else s" $constraintsStr"
+    val optionsStr = options.map(optGen.generateOption(ctx, _)).mkString(" ")
+    val optionsComment = if (optionsStr.isEmpty) "" else s" /* $optionsStr */"
+    s"${col.name} ${dataTypeStr}${constraintsGen}${optionsComment}"
   }
 
   private def alterTable(ctx: GeneratorContext, a: ir.AlterTableCommand): String = {
@@ -121,12 +182,47 @@ class LogicalPlanGenerator(val expr: ExpressionGenerator, val explicitDistinct: 
   }
 
   private def constraint(ctx: GeneratorContext, c: ir.Constraint): String = c match {
-    case ir.Unique => "UNIQUE"
+    case unique: ir.Unique => generateUniqueConstraint(ctx, unique)
     case ir.Nullability(nullable) => if (nullable) "NULL" else "NOT NULL"
-    case ir.PrimaryKey => "PRIMARY KEY"
-    case ir.ForeignKey(references) => s"FOREIGN KEY REFERENCES $references"
+    case pk: ir.PrimaryKey => generatePrimaryKey(ctx, pk)
+    case fk: ir.ForeignKey => generateForeignKey(ctx, fk)
     case ir.NamedConstraint(name, unnamed) => s"CONSTRAINT $name ${constraint(ctx, unnamed)}"
     case ir.UnresolvedConstraint(inputText) => s"/** $inputText **/"
+    case ir.CheckConstraint(e) => s"CHECK (${expr.generate(ctx, e)})"
+    case ir.DefaultValueConstraint(value) => s"DEFAULT ${expr.generate(ctx, value)}"
+    case ir.IdentityConstraint(seed, step) => s"IDENTITY ($seed, $step)"
+  }
+
+  private def generateForeignKey(ctx: GeneratorContext, fk: ir.ForeignKey): String = {
+    val colNames = fk.tableCols match {
+      case "" => ""
+      case cols => s"(${cols}) "
+    }
+    val commentOptions = optGen.generateOptionList(ctx, fk.options) match {
+      case "" => ""
+      case options => s" /* Unsupported:  $options */"
+    }
+    s"FOREIGN KEY ${colNames}REFERENCES ${fk.refObject}(${fk.refCols})$commentOptions"
+  }
+
+  private def generatePrimaryKey(context: GeneratorContext, key: ir.PrimaryKey): String = {
+    val columns = key.columns.map(_.mkString("(", ", ", ")")).getOrElse("")
+    val commentOptions = optGen.generateOptionList(context, key.options) match {
+      case "" => ""
+      case options => s" /* $options */"
+    }
+    val columnsStr = if (columns.isEmpty) "" else s" $columns"
+    s"PRIMARY KEY${columnsStr}${commentOptions}"
+  }
+
+  private def generateUniqueConstraint(ctx: GeneratorContext, unique: ir.Unique): String = {
+    val columns = unique.columns.map(_.mkString("(", ", ", ")")).getOrElse("")
+    val columnStr = if (columns.isEmpty) "" else s" $columns"
+    val commentOptions = optGen.generateOptionList(ctx, unique.options) match {
+      case "" => ""
+      case options => s" /* $options */"
+    }
+    s"UNIQUE${columnStr}${commentOptions}"
   }
 
   private def project(ctx: GeneratorContext, proj: ir.Project): String = {
