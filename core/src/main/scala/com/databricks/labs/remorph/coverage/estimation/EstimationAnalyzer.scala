@@ -6,6 +6,7 @@ import com.databricks.labs.remorph.parsers.intermediate.{Expression, LogicalPlan
 import com.databricks.labs.remorph.parsers.{intermediate => ir}
 import com.typesafe.scalalogging.LazyLogging
 import upickle.default._
+import scala.util.control.NonFatal
 
 sealed trait SqlComplexity
 object SqlComplexity {
@@ -64,19 +65,18 @@ class EstimationAnalyzer extends LazyLogging {
       node: TreeNode[_],
       logicalPlanVisitor: PartialFunction[LogicalPlan, Int],
       expressionVisitor: PartialFunction[Expression, Int]): Int = {
-    if (node == null) return 0 // Return 0 if the node is null
+    if (node == null) return 0 // Return 0 if the node is null (guards against bad IR for the moment - will change)
 
     node match {
       case lp: LogicalPlan =>
-        if (lp.children == null) return 0
-        val currentValue = if (logicalPlanVisitor.isDefinedAt(lp)) logicalPlanVisitor(lp) else 0
+        val currentValue = logicalPlanVisitor.applyOrElse(lp, (_: LogicalPlan) => 0)
         val childrenValue = lp.children.map(child => evaluateTree(child, logicalPlanVisitor, expressionVisitor)).sum
         val expressionsValue = lp.expressions.map(expr => evaluateTree(expr, logicalPlanVisitor, expressionVisitor)).sum
         currentValue + childrenValue + expressionsValue
 
       case expr: Expression =>
         if (expr.children == null) return 0
-        val currentValue = if (expressionVisitor.isDefinedAt(expr)) expressionVisitor(expr) else 0
+        val currentValue = expressionVisitor.applyOrElse(expr, (_: Expression) => 0)
         val childrenValue = expr.children.map(child => evaluateTree(child, logicalPlanVisitor, expressionVisitor)).sum
         currentValue + childrenValue
 
@@ -107,17 +107,17 @@ class EstimationAnalyzer extends LazyLogging {
 
   private def logicalPlanEvaluator: PartialFunction[LogicalPlan, Int] = { case lp: LogicalPlan =>
     try {
-      1
+      1 // Placeholder
     } catch {
-      case _: Throwable => 5
+      case NonFatal(_) => 5
     }
   }
 
   private def expressionEvaluator: PartialFunction[Expression, Int] = { case expr: Expression =>
     try {
-      1
+      1 // Placeholder
     } catch {
-      case _: Throwable => 5
+      case NonFatal(_) => 5
     }
   }
 
