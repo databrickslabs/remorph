@@ -39,14 +39,15 @@ class ReconDeployment:
         self._job_deployer = job_deployer
         self._dashboard_deployer = dashboard_deployer
 
-    def install(self, recon_config: ReconcileConfig | None):
-        logger.info("Installing reconcile components.")
+    def install(self, recon_config: ReconcileConfig | None, wheel_paths: list[str]):
         if not recon_config:
             logger.warning("Recon Config is empty")
             return
+        logger.info("Installing reconcile components.")
         self._deploy_tables(recon_config)
         self._deploy_dashboards(recon_config)
-        self._deploy_jobs(recon_config)
+        remorph_wheel_path = [whl for whl in wheel_paths if "remorph" in whl][0]
+        self._deploy_jobs(recon_config, remorph_wheel_path)
         self._install_state.save()
         logger.info("Installation of reconcile components completed successfully.")
 
@@ -71,13 +72,19 @@ class ReconDeployment:
         schema = recon_config.metadata_config.schema
         resources = files(databricks.labs.remorph.resources)
         query_dir = resources.joinpath("reconcile/queries/installation")
-        main_table_file = query_dir.joinpath("main.sql")
-        metrics_table_file = query_dir.joinpath("metrics.sql")
-        details_table_file = query_dir.joinpath("details.sql")
 
-        self._table_deployer.deploy_table_from_ddl_file(catalog, schema, "main", main_table_file)
-        self._table_deployer.deploy_table_from_ddl_file(catalog, schema, "metrics", metrics_table_file)
-        self._table_deployer.deploy_table_from_ddl_file(catalog, schema, "details", details_table_file)
+        sqls_to_deploy = [
+            "main.sql",
+            "metrics.sql",
+            "details.sql",
+            "aggregate_metrics.sql",
+            "aggregate_details.sql",
+            "aggregate_rules.sql",
+        ]
+
+        for sql_file in sqls_to_deploy:
+            table_sql_file = query_dir.joinpath(sql_file)
+            self._table_deployer.deploy_table_from_ddl_file(catalog, schema, sql_file.strip(".sql"), table_sql_file)
 
     def _deploy_dashboards(self, recon_config: ReconcileConfig):
         logger.info("Deploying reconciliation dashboards.")
@@ -121,9 +128,9 @@ class ReconDeployment:
                 logger.warning(f"Dashboard `{dashboard_name}` doesn't exist anymore for some reason.")
                 continue
 
-    def _deploy_jobs(self, recon_config: ReconcileConfig):
+    def _deploy_jobs(self, recon_config: ReconcileConfig, remorph_wheel_path: str):
         logger.info("Deploying reconciliation jobs.")
-        self._job_deployer.deploy_recon_job(RECON_JOB_NAME, recon_config)
+        self._job_deployer.deploy_recon_job(RECON_JOB_NAME, recon_config, remorph_wheel_path)
         for job_name, job_id in self._get_deprecated_jobs():
             try:
                 logger.info(f"Removing job_id={job_id}, as it is no longer needed.")

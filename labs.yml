@@ -40,6 +40,8 @@ commands:
       {{end}}
   - name: reconcile
     description: Reconcile is an utility to streamline the reconciliation process between source data and target data residing on Databricks.
+  - name: aggregates-reconcile
+    description: Aggregates Reconcile is an utility to streamline the reconciliation process, specific aggregate metric is compared between source and target data residing on Databricks.
   - name: generate-lineage
     description: Utility to generate a lineage of the SQL files
     flags:
@@ -51,3 +53,12 @@ commands:
         description: Directory to store the generated lineage file
   - name: configure-secrets
     description: Utility to setup Scope and Secrets on Databricks Workspace
+  - name: debug-script
+    description: "[INTERNAL] Debug Script"
+    flags:
+      - name: name
+        description: Filename to debug
+      - name: dialect
+        description: sql dialect
+  - name: debug-me
+    description: "[INTERNAL] Debug SDK connectivity"

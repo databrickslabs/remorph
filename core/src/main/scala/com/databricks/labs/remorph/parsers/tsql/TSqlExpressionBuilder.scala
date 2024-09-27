@@ -1,6 +1,5 @@
 package com.databricks.labs.remorph.parsers.tsql
 
-import com.databricks.labs.remorph.parsers.intermediate.ScalarSubquery
 import com.databricks.labs.remorph.parsers.tsql.TSqlParser._
 import com.databricks.labs.remorph.parsers.{ParserCommon, XmlFunction, tsql, intermediate => ir}
 import org.antlr.v4.runtime.Token
@@ -8,11 +7,9 @@ import org.antlr.v4.runtime.tree.Trees
 
 import scala.collection.JavaConverters._
 
-class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with ParserCommon[ir.Expression] {
-
-  private val functionBuilder = new TSqlFunctionBuilder
-  private[tsql] val optionBuilder = new OptionBuilder(this)
-  private val dataTypeBuilder: DataTypeBuilder = new DataTypeBuilder
+class TSqlExpressionBuilder(vc: TSqlVisitorCoordinator)
+    extends TSqlParserBaseVisitor[ir.Expression]
+    with ParserCommon[ir.Expression] {
 
   override def visitSelectListElem(ctx: TSqlParser.SelectListElemContext): ir.Expression = {
     ctx match {
@@ -28,7 +25,7 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
   override def visitOptionClause(ctx: TSqlParser.OptionClauseContext): ir.Expression = {
     // we gather the options given to use by the original query, though at the moment, we do nothing
     // with them.
-    val opts = optionBuilder.buildOptionList(ctx.lparenOptionList().optionList().genericOption().asScala)
+    val opts = vc.optionBuilder.buildOptionList(ctx.lparenOptionList().optionList().genericOption().asScala)
     ir.Options(opts.expressionOpts, opts.stringOpts, opts.boolFlags, opts.autoFlags)
   }
 
@@ -44,7 +41,7 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
   override def visitUpdateElemUdt(ctx: TSqlParser.UpdateElemUdtContext): ir.Expression = {
     val args = ctx.expressionList().expression().asScala.map(_.accept(this))
     val fName = ctx.id(0).getText + "." + ctx.id(1).getText
-    val functionResult = functionBuilder.buildFunction(fName, args)
+    val functionResult = vc.functionBuilder.buildFunction(fName, args)
 
     functionResult match {
       case unresolvedFunction: ir.UnresolvedFunction =>
@@ -186,7 +183,7 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
         val path = c1.columnName +: c2.tableNameOrAlias.map(ref => ref.head +: ref.tail).getOrElse(Nil)
         ir.Column(Some(ir.ObjectReference(path.head, path.tail: _*)), c2.columnName)
       case (_: ir.Column, c2: ir.CallFunction) =>
-        functionBuilder.functionType(c2.function_name) match {
+        vc.functionBuilder.functionType(c2.function_name) match {
           case XmlFunction => tsql.TsqlXmlFunction(c2, left)
           case _ => ir.Dot(left, right)
         }
@@ -217,8 +214,10 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
 
   override def visitExprDollar(ctx: ExprDollarContext): ir.Expression = ir.DollarAction()
 
+  override def visitExprStar(ctx: ExprStarContext): ir.Expression = ir.Star(None)
+
   override def visitExprFuncVal(ctx: ExprFuncValContext): ir.Expression = {
-    functionBuilder.buildFunction(ctx.getText, Seq.empty)
+    vc.functionBuilder.buildFunction(ctx.getText, Seq.empty)
   }
 
   override def visitExprCollate(ctx: ExprCollateContext): ir.Expression =
@@ -233,7 +232,7 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
   }
 
   override def visitExprSubquery(ctx: ExprSubqueryContext): ir.Expression = {
-    ScalarSubquery(ctx.subquery().accept(new TSqlRelationBuilder))
+    ir.ScalarSubquery(ctx.selectStatement().accept(vc.relationBuilder))
   }
 
   override def visitExprTz(ctx: ExprTzContext): ir.Expression = {
@@ -255,44 +254,82 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
 
   override def visitScPrec(ctx: TSqlParser.ScPrecContext): ir.Expression = ctx.searchCondition.accept(this)
 
-  override def visitPredicate(ctx: TSqlParser.PredicateContext): ir.Expression = {
-    ctx.expression().size() match {
-      case 1 => ctx.expression(0).accept(this)
-      case _ =>
-        val left = ctx.expression(0).accept(this)
-        val right = ctx.expression(1).accept(this)
-        ctx.comparisonOperator match {
-          case op if op.LT != null && op.EQ != null => ir.LessThanOrEqual(left, right)
-          case op if op.GT != null && op.EQ != null => ir.GreaterThanOrEqual(left, right)
-          case op if op.LT != null && op.GT != null => ir.NotEquals(left, right)
-          case op if op.BANG != null && op.GT != null => ir.LessThanOrEqual(left, right)
-          case op if op.BANG != null && op.LT != null => ir.GreaterThanOrEqual(left, right)
-          case op if op.BANG != null && op.EQ != null => ir.NotEquals(left, right)
-          case op if op.EQ != null => ir.Equals(left, right)
-          case op if op.GT != null => ir.GreaterThan(left, right)
-          case op if op.LT != null => ir.LessThan(left, right)
-        }
+  override def visitPredExists(ctx: PredExistsContext): ir.Expression = {
+    ir.Exists(ctx.selectStatement().accept(vc.relationBuilder))
+  }
+
+  override def visitPredFreetext(ctx: PredFreetextContext): ir.Expression = {
+    ir.UnresolvedExpression(getTextFromParserRuleContext(ctx)) // TODO: build FREETEXT
+  }
+
+  override def visitPredBinop(ctx: PredBinopContext): ir.Expression = {
+    val left = ctx.expression(0).accept(this)
+    val right = ctx.expression(1).accept(this)
+    ctx.comparisonOperator match {
+      case op if op.LT != null && op.EQ != null => ir.LessThanOrEqual(left, right)
+      case op if op.GT != null && op.EQ != null => ir.GreaterThanOrEqual(left, right)
+      case op if op.LT != null && op.GT != null => ir.NotEquals(left, right)
+      case op if op.BANG != null && op.GT != null => ir.LessThanOrEqual(left, right)
+      case op if op.BANG != null && op.LT != null => ir.GreaterThanOrEqual(left, right)
+      case op if op.BANG != null && op.EQ != null => ir.NotEquals(left, right)
+      case op if op.EQ != null => ir.Equals(left, right)
+      case op if op.GT != null => ir.GreaterThan(left, right)
+      case op if op.LT != null => ir.LessThan(left, right)
     }
   }
 
-  /**
-   * For now, we assume that we are dealing with Column names. LOCAL_ID is catered for as part of an expression in the
-   * current grammar, but even that can be an alias for a column name, though it is not recommended.
-   *
-   * For now then, they are all seen as columns.
-   *
-   * @param ctx
-   *   the parse tree
-   */
+  override def visitPredASA(ctx: PredASAContext): ir.Expression = {
+    ir.UnresolvedExpression(getTextFromParserRuleContext(ctx)) // TODO: build ASA
+  }
+
+  override def visitPredBetween(ctx: PredBetweenContext): ir.Expression = {
+    val lowerBound = ctx.expression(1).accept(this)
+    val upperBound = ctx.expression(2).accept(this)
+    val expression = ctx.expression(0).accept(this)
+    val between = ir.And(ir.GreaterThanOrEqual(expression, lowerBound), ir.LessThanOrEqual(expression, upperBound))
+    Option(ctx.NOT()).fold[ir.Expression](between)(_ => ir.Not(between))
+  }
+
+  override def visitPredIn(ctx: PredInContext): ir.Expression = {
+    val in = if (ctx.selectStatement() != null) {
+      // In the result of a sub query
+      ir.In(ctx.expression().accept(this), Seq(ir.ScalarSubquery(ctx.selectStatement().accept(vc.relationBuilder))))
+    } else {
+      // In a list of expressions
+      ir.In(ctx.expression().accept(this), ctx.expressionList().expression().asScala.map(_.accept(this)))
+    }
+    Option(ctx.NOT()).fold[ir.Expression](in)(_ => ir.Not(in))
+  }
+
+  override def visitPredLike(ctx: PredLikeContext): ir.Expression = {
+    val left = ctx.expression(0).accept(this)
+    val right = ctx.expression(1).accept(this)
+    // NB: The escape character is a complete expression that evaluates to a single char at runtime
+    // and not a single char at parse time.
+    val escape = Option(ctx.expression(2))
+      .map(_.accept(this))
+    val like = ir.Like(left, right, escape)
+    Option(ctx.NOT()).fold[ir.Expression](like)(_ => ir.Not(like))
+  }
+
+  override def visitPredIsNull(ctx: PredIsNullContext): ir.Expression = {
+    val expression = ctx.expression().accept(this)
+    if (ctx.NOT() != null) ir.IsNotNull(expression) else ir.IsNull(expression)
+  }
+
+  override def visitPredExpression(ctx: PredExpressionContext): ir.Expression = {
+    ctx.expression().accept(this)
+  }
+
   override def visitId(ctx: IdContext): ir.Id = ctx match {
-    case c if c.ID() != null => ir.Id(ctx.getText, caseSensitive = false)
-    case c if c.TEMP_ID() != null => ir.Id(ctx.getText, caseSensitive = false)
+    case c if c.ID() != null => ir.Id(ctx.getText)
+    case c if c.TEMP_ID() != null => ir.Id(ctx.getText)
     case c if c.DOUBLE_QUOTE_ID() != null =>
       ir.Id(ctx.getText.trim.stripPrefix("\"").stripSuffix("\""), caseSensitive = true)
     case c if c.SQUARE_BRACKET_ID() != null =>
       ir.Id(ctx.getText.trim.stripPrefix("[").stripSuffix("]"), caseSensitive = true)
-    case c if c.RAW() != null => ir.Id(ctx.getText, caseSensitive = false)
-    case _ => ir.Id(removeQuotes(ctx.getText), caseSensitive = false)
+    case c if c.RAW() != null => ir.Id(ctx.getText)
+    case _ => ir.Id(removeQuotes(ctx.getText))
   }
 
   private[tsql] def removeQuotes(str: String): String = {
@@ -315,40 +352,30 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
   private def buildPrimitive(con: Token): ir.Expression = con.getType match {
     case DEFAULT => Default()
     case LOCAL_ID => ir.Identifier(con.getText, isQuoted = false)
-    case STRING => ir.Literal(string = Some(removeQuotes(con.getText)))
-    case NULL_ => ir.Literal(nullType = Some(ir.NullType))
-    case HEX => ir.Literal(string = Some(con.getText)) // Preserve format
-    case MONEY => Money(ir.Literal(string = Some(con.getText)))
-    case INT | REAL | FLOAT => convertNumeric(con.getText)
-  }
-
-  // TODO: Maybe start sharing such things between all the parsers?
-  private def convertNumeric(str: String): ir.Literal = BigDecimal(str) match {
-    case d if d.isValidShort => ir.Literal(short = Some(d.toShort))
-    case d if d.isValidInt => ir.Literal(integer = Some(d.toInt))
-    case d if d.isValidLong => ir.Literal(long = Some(d.toLong))
-    case d if d.isDecimalFloat || d.isExactFloat => ir.Literal(float = Some(d.toFloat))
-    case d if d.isDecimalDouble || d.isExactDouble => ir.Literal(double = Some(d.toDouble))
-    case _ => ir.Literal(decimal = Some(ir.Decimal(str, None, None)))
+    case STRING => ir.Literal(removeQuotes(con.getText))
+    case NULL => ir.Literal.Null
+    case HEX => ir.Literal(con.getText) // Preserve format
+    case MONEY => Money(ir.StringLiteral(con.getText))
+    case INT | REAL | FLOAT => ir.NumericLiteral(con.getText)
   }
 
   override def visitStandardFunction(ctx: StandardFunctionContext): ir.Expression = {
     val name = ctx.funcId.getText
     val args = Option(ctx.expression()).map(_.asScala.map(_.accept(this))).getOrElse(Seq.empty)
-    functionBuilder.buildFunction(name, args)
+    vc.functionBuilder.buildFunction(name, args)
   }
 
-  // Note that this visitor is made complicated and difficult because the built in ir does not use options
-  // and so we build placeholder values for the optional values. They also do not extend expression
+  // Note that this visitor is made complicated and difficult because the built-in ir does not use options.
+  // So we build placeholder values for the optional values. They also do not extend expression
   // so we can't build them logically with visit and accept. Maybe replace them with
-  // extensions that do do this?
+  // extensions that do this?
   override def visitExprOver(ctx: ExprOverContext): ir.Window = {
 
     // The OVER clause is used to accept the IGNORE nulls clause that can be specified after certain
     // windowing functions such as LAG or LEAD, so that the clause is manifest here. The syntax allows
     // IGNORE NULLS and RESPECT NULLS, but RESPECT NULLS is the default behavior.
     val windowFunction =
-      buildNullIgnore(buildWindowingFunction(ctx.expression().accept(this)), ctx.overClause().IGNORE() != null)
+      buildWindowingFunction(ctx.expression().accept(this))
     val partitionByExpressions =
       Option(ctx.overClause().expression()).map(_.asScala.toList.map(_.accept(this))).getOrElse(List.empty)
     val orderByExpressions = Option(ctx.overClause().orderByClause())
@@ -357,18 +384,12 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
     val windowFrame = Option(ctx.overClause().rowOrRangeClause())
       .map(buildWindowFrame)
 
-    ir.Window(windowFunction, partitionByExpressions, orderByExpressions, windowFrame)
-  }
-
-  // Some windowing functions take a final boolean parameter in Databricks SQL, which is the equivalent
-  // of IGNORE NULLS syntax in T-SQL. When true, the Databricks windowing function will ignore nulls in
-  // the window frame. For instance LEAD or LAG functions support this.
-  private def buildNullIgnore(ctx: ir.Expression, ignoreNulls: Boolean): ir.Expression = {
-    ctx match {
-      case callFunction: ir.CallFunction if ignoreNulls =>
-        callFunction.copy(arguments = callFunction.arguments :+ ir.Literal(boolean = Some(true)))
-      case _ => ctx
-    }
+    ir.Window(
+      windowFunction,
+      partitionByExpressions,
+      orderByExpressions,
+      windowFrame,
+      ctx.overClause().IGNORE() != null)
   }
 
   // Some functions need to be converted to Databricks equivalent Windowing functions for the OVER clause
@@ -381,8 +402,11 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
     ctx.orderByExpression().asScala.map { orderByExpr =>
       val expression = orderByExpr.expression(0).accept(this)
       val sortOrder =
-        if (Option(orderByExpr.DESC()).isDefined) ir.Descending
-        else ir.Ascending
+        orderByExpr match {
+          case o if o.DESC() != null => ir.Descending
+          case o if o.ASC() != null => ir.Ascending
+          case _ => ir.UnspecifiedSortDirection
+        }
       ir.SortOrder(expression, sortOrder, ir.SortNullsUnspecified)
     }
 
@@ -412,26 +436,18 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
       case c if c.UNBOUNDED() != null && c.FOLLOWING() != null => ir.UnboundedFollowing
       case c if c.CURRENT() != null => ir.CurrentRow
       case c if c.INT() != null && c.PRECEDING() != null =>
-        ir.PrecedingN(ir.Literal(integer = Some(c.INT().getText.toInt)))
+        ir.PrecedingN(ir.Literal(c.INT().getText.toInt, ir.IntegerType))
       case c if c.INT() != null && c.FOLLOWING() != null =>
-        ir.FollowingN(ir.Literal(integer = Some(c.INT().getText.toInt)))
+        ir.FollowingN(ir.Literal(c.INT().getText.toInt, ir.IntegerType))
     }
 
-  /**
-   * This is a special case where we are building a column definition. This is used in the SELECT statement to define
-   * the columns that are being selected. This is a special case because we need to handle the aliasing of columns.
-   *
-   * @param ctx
-   *   the parse tree
-   */
   override def visitExpressionElem(ctx: ExpressionElemContext): ir.Expression = {
     val columnDef = ctx.expression().accept(this)
     val aliasOption = Option(ctx.columnAlias()).orElse(Option(ctx.asColumnAlias()).map(_.columnAlias())).map { alias =>
       val name = Option(alias.id()).map(visitId).getOrElse(ir.Id(alias.STRING().getText))
-      ir.Alias(columnDef, Seq(name), None)
+      ir.Alias(columnDef, name)
     }
     aliasOption.getOrElse(columnDef)
-
   }
 
   override def visitExprWithinGroup(ctx: ExprWithinGroupContext): ir.Expression = {
@@ -448,13 +464,13 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
   override def visitExprAll(ctx: ExprAllContext): ir.Expression = {
     // Support for functions such as COUNT(ALL column), which is an expression not a child.
     // ALL has no actual effect on the result so we just pass the expression as is. If we wish to
-    // reproduce exsting annotations like this, then we woudl need to add IR.
+    // reproduce existing annotations like this, then we would need to add IR.
     ctx.expression().accept(this)
   }
 
   override def visitPartitionFunction(ctx: PartitionFunctionContext): ir.Expression = {
     // $$PARTITION is not supported in Databricks SQL, so we will report it is not supported
-    functionBuilder.buildFunction(s"$$PARTITION", List.empty)
+    vc.functionBuilder.buildFunction(s"$$PARTITION", List.empty)
   }
 
   /**
@@ -465,12 +481,12 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
    */
   override def visitNextValueFor(ctx: NextValueForContext): ir.Expression = {
     val sequenceName = buildTableName(ctx.tableName())
-    functionBuilder.buildFunction("NEXTVALUEFOR", Seq(sequenceName))
+    vc.functionBuilder.buildFunction("NEXTVALUEFOR", Seq(sequenceName))
   }
 
   override def visitCast(ctx: CastContext): ir.Expression = {
     val expression = ctx.expression().accept(this)
-    val dataType = dataTypeBuilder.build(ctx.dataType())
+    val dataType = vc.dataTypeBuilder.build(ctx.dataType())
     ir.Cast(expression, dataType, returnNullOnError = ctx.TRY_CAST() != null)
   }
 
@@ -490,20 +506,20 @@ class TSqlExpressionBuilder() extends TSqlParserBaseVisitor[ir.Expression] with 
   override def visitFreetextFunction(ctx: FreetextFunctionContext): ir.Expression = {
     // Databricks SQL does not support FREETEXT functions, so there is no point in trying to convert these
     // functions. We do need to generate IR that indicates that this is a function that is not supported.
-    functionBuilder.buildFunction(ctx.f.getText, List.empty)
+    vc.functionBuilder.buildFunction(ctx.f.getText, List.empty)
   }
 
   override def visitHierarchyidStaticMethod(ctx: HierarchyidStaticMethodContext): ir.Expression = {
     // Databricks SQL does not support HIERARCHYID functions, so there is no point in trying to convert these
     // functions. We do need to generate IR that indicates that this is a function that is not supported.
-    functionBuilder.buildFunction("HIERARCHYID", List.empty)
+    vc.functionBuilder.buildFunction("HIERARCHYID", List.empty)
   }
 
   override def visitOutputDmlListElem(ctx: OutputDmlListElemContext): ir.Expression = {
     val expression = Option(ctx.expression()).map(_.accept(this)).getOrElse(ctx.asterisk().accept(this))
     val aliasOption = Option(ctx.asColumnAlias()).map(_.columnAlias()).map { alias =>
       val name = Option(alias.id()).map(visitId).getOrElse(ir.Id(alias.STRING().getText))
-      ir.Alias(expression, Seq(name), None)
+      ir.Alias(expression, name)
     }
     aliasOption.getOrElse(expression)
   }

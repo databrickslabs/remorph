@@ -19,16 +19,13 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
     }
 
     "translate a simple SELECT query with an aliased column" in {
-
       singleQueryExample(
         query = "SELECT a AS aa FROM b",
-        expectedAst = Project(
-          NamedTable("b", Map.empty, is_streaming = false),
-          Seq(Alias(simplyNamedColumn("a"), Seq(Id("aa")), None))))
+        expectedAst =
+          Project(NamedTable("b", Map.empty, is_streaming = false), Seq(Alias(simplyNamedColumn("a"), Id("aa")))))
     }
 
     "translate a simple SELECT query involving multiple columns" in {
-
       singleQueryExample(
         query = "SELECT a, b, c FROM table_x",
         expectedAst = Project(
@@ -37,12 +34,11 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
     }
 
     "translate a SELECT query involving multiple columns and aliases" in {
-
       singleQueryExample(
         query = "SELECT a, b AS bb, c FROM table_x",
         expectedAst = Project(
           NamedTable("table_x", Map.empty, is_streaming = false),
-          Seq(simplyNamedColumn("a"), Alias(simplyNamedColumn("b"), Seq(Id("bb")), None), simplyNamedColumn("c"))))
+          Seq(simplyNamedColumn("a"), Alias(simplyNamedColumn("b"), Id("bb")), simplyNamedColumn("c"))))
     }
 
     val simpleJoinAst =
@@ -50,7 +46,7 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
         NamedTable("table_x", Map.empty, is_streaming = false),
         NamedTable("table_y", Map.empty, is_streaming = false),
         join_condition = None,
-        InnerJoin,
+        UnspecifiedJoin,
         using_columns = Seq(),
         JoinDataType(is_left_struct = false, is_right_struct = false))
 
@@ -58,6 +54,18 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
       singleQueryExample(
         query = "SELECT a FROM table_x JOIN table_y",
         expectedAst = Project(simpleJoinAst, Seq(simplyNamedColumn("a"))))
+    }
+
+    "translate a query with a INNER JOIN" in {
+      singleQueryExample(
+        query = "SELECT a FROM table_x INNER JOIN table_y",
+        expectedAst = Project(simpleJoinAst.copy(join_type = InnerJoin), Seq(simplyNamedColumn("a"))))
+    }
+
+    "translate a query with a CROSS JOIN" in {
+      singleQueryExample(
+        query = "SELECT a FROM table_x CROSS JOIN table_y",
+        expectedAst = Project(simpleJoinAst.copy(join_type = CrossJoin), Seq(simplyNamedColumn("a"))))
     }
 
     "translate a query with a LEFT JOIN" in {
@@ -90,6 +98,27 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
         expectedAst = Project(simpleJoinAst.copy(join_type = FullOuterJoin), Seq(simplyNamedColumn("a"))))
     }
 
+    "translate a query with a NATURAL JOIN" should {
+      "SELECT a FROM table_x NATURAL JOIN table_y" in {
+        singleQueryExample(
+          query = "SELECT a FROM table_x NATURAL JOIN table_y",
+          expectedAst =
+            Project(simpleJoinAst.copy(join_type = NaturalJoin(UnspecifiedJoin)), Seq(simplyNamedColumn("a"))))
+      }
+      "SELECT a FROM table_x NATURAL LEFT JOIN table_y" in {
+        singleQueryExample(
+          query = "SELECT a FROM table_x NATURAL LEFT JOIN table_y",
+          expectedAst =
+            Project(simpleJoinAst.copy(join_type = NaturalJoin(LeftOuterJoin)), Seq(simplyNamedColumn("a"))))
+      }
+      "SELECT a FROM table_x NATURAL RIGHT JOIN table_y" in {
+        singleQueryExample(
+          query = "SELECT a FROM table_x NATURAL RIGHT JOIN table_y",
+          expectedAst =
+            Project(simpleJoinAst.copy(join_type = NaturalJoin(RightOuterJoin)), Seq(simplyNamedColumn("a"))))
+      }
+    }
+
     "translate a query with a simple WHERE clause" in {
       val expectedOperatorTranslations = List(
         "=" -> Equals(Id("a"), Id("b")),
@@ -109,28 +138,32 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
       }
     }
 
-    "translate a query with a WHERE clause involving composite predicates" in {
-      singleQueryExample(
-        query = "SELECT a, b FROM c WHERE a = b AND b = a",
-        expectedAst = Project(
-          Filter(
-            NamedTable("c", Map.empty, is_streaming = false),
-            And(Equals(Id("a"), Id("b")), Equals(Id("b"), Id("a")))),
-          Seq(simplyNamedColumn("a"), simplyNamedColumn("b"))))
-
-      singleQueryExample(
-        query = "SELECT a, b FROM c WHERE a = b OR b = a",
-        expectedAst = Project(
-          Filter(
-            NamedTable("c", Map.empty, is_streaming = false),
-            Or(Equals(Id("a"), Id("b")), Equals(Id("b"), Id("a")))),
-          Seq(simplyNamedColumn("a"), simplyNamedColumn("b"))))
-
-      singleQueryExample(
-        query = "SELECT a, b FROM c WHERE NOT a = b",
-        expectedAst = Project(
-          Filter(NamedTable("c", Map.empty, is_streaming = false), Not(Equals(Id("a"), Id("b")))),
-          Seq(simplyNamedColumn("a"), simplyNamedColumn("b"))))
+    "translate a query with a WHERE clause involving composite predicates" should {
+      "SELECT a, b FROM c WHERE a = b AND b = a" in {
+        singleQueryExample(
+          query = "SELECT a, b FROM c WHERE a = b AND b = a",
+          expectedAst = Project(
+            Filter(
+              NamedTable("c", Map.empty, is_streaming = false),
+              And(Equals(Id("a"), Id("b")), Equals(Id("b"), Id("a")))),
+            Seq(simplyNamedColumn("a"), simplyNamedColumn("b"))))
+      }
+      "SELECT a, b FROM c WHERE a = b OR b = a" in {
+        singleQueryExample(
+          query = "SELECT a, b FROM c WHERE a = b OR b = a",
+          expectedAst = Project(
+            Filter(
+              NamedTable("c", Map.empty, is_streaming = false),
+              Or(Equals(Id("a"), Id("b")), Equals(Id("b"), Id("a")))),
+            Seq(simplyNamedColumn("a"), simplyNamedColumn("b"))))
+      }
+      "SELECT a, b FROM c WHERE NOT a = b" in {
+        singleQueryExample(
+          query = "SELECT a, b FROM c WHERE NOT a = b",
+          expectedAst = Project(
+            Filter(NamedTable("c", Map.empty, is_streaming = false), Not(Equals(Id("a"), Id("b")))),
+            Seq(simplyNamedColumn("a"), simplyNamedColumn("b"))))
+      }
     }
 
     "translate a query with a GROUP BY clause" in {
@@ -170,67 +203,75 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
               group_type = GroupBy,
               grouping_expressions = Seq(simplyNamedColumn("a")),
               pivot = None),
-            GreaterThan(CallFunction("COUNT", Seq(Id("b"))), Literal(short = Some(1)))),
+            GreaterThan(CallFunction("COUNT", Seq(Id("b"))), Literal(1))),
           Seq(simplyNamedColumn("a"), CallFunction("COUNT", Seq(Id("b"))))))
     }
 
-    "translate a query with ORDER BY" in {
-      singleQueryExample(
-        query = "SELECT a FROM b ORDER BY a",
-        expectedAst = Project(
-          Sort(
-            NamedTable("b", Map.empty, is_streaming = false),
-            Seq(SortOrder(Id("a"), Ascending, NullsLast)),
-            is_global = false),
-          Seq(simplyNamedColumn("a"))))
-
-      singleQueryExample(
-        query = "SELECT a FROM b ORDER BY a DESC",
-        expectedAst = Project(
-          Sort(
-            NamedTable("b", Map.empty, is_streaming = false),
-            Seq(SortOrder(Id("a"), Descending, NullsFirst)),
-            is_global = false),
-          Seq(simplyNamedColumn("a"))))
-
-      singleQueryExample(
-        query = "SELECT a FROM b ORDER BY a NULLS FIRST",
-        expectedAst = Project(
-          Sort(
-            NamedTable("b", Map.empty, is_streaming = false),
-            Seq(SortOrder(Id("a"), Ascending, NullsFirst)),
-            is_global = false),
-          Seq(simplyNamedColumn("a"))))
-
-      singleQueryExample(
-        query = "SELECT a FROM b ORDER BY a DESC NULLS LAST",
-        expectedAst = Project(
-          Sort(
-            NamedTable("b", Map.empty, is_streaming = false),
-            Seq(SortOrder(Id("a"), Descending, NullsLast)),
-            is_global = false),
-          Seq(simplyNamedColumn("a"))))
+    "translate a query with ORDER BY" should {
+      "SELECT a FROM b ORDER BY a" in {
+        singleQueryExample(
+          query = "SELECT a FROM b ORDER BY a",
+          expectedAst = Project(
+            Sort(
+              NamedTable("b", Map.empty, is_streaming = false),
+              Seq(SortOrder(Id("a"), Ascending, NullsLast)),
+              is_global = false),
+            Seq(simplyNamedColumn("a"))))
+      }
+      "SELECT a FROM b ORDER BY a DESC" in {
+        singleQueryExample(
+          "SELECT a FROM b ORDER BY a DESC",
+          Project(
+            Sort(
+              NamedTable("b", Map.empty, is_streaming = false),
+              Seq(SortOrder(Id("a"), Descending, NullsFirst)),
+              is_global = false),
+            Seq(simplyNamedColumn("a"))))
+      }
+      "SELECT a FROM b ORDER BY a NULLS FIRST" in {
+        singleQueryExample(
+          query = "SELECT a FROM b ORDER BY a NULLS FIRST",
+          expectedAst = Project(
+            Sort(
+              NamedTable("b", Map.empty, is_streaming = false),
+              Seq(SortOrder(Id("a"), Ascending, NullsFirst)),
+              is_global = false),
+            Seq(simplyNamedColumn("a"))))
+      }
+      "SELECT a FROM b ORDER BY a DESC NULLS LAST" in {
+        singleQueryExample(
+          query = "SELECT a FROM b ORDER BY a DESC NULLS LAST",
+          expectedAst = Project(
+            Sort(
+              NamedTable("b", Map.empty, is_streaming = false),
+              Seq(SortOrder(Id("a"), Descending, NullsLast)),
+              is_global = false),
+            Seq(simplyNamedColumn("a"))))
+      }
     }
 
-    "translate queries with LIMIT and OFFSET" in {
-      singleQueryExample(
-        query = "SELECT a FROM b LIMIT 5",
-        expectedAst = Project(
-          Limit(NamedTable("b", Map.empty, is_streaming = false), Literal(short = Some(5))),
-          Seq(simplyNamedColumn("a"))))
-      singleQueryExample(
-        query = "SELECT a FROM b LIMIT 5 OFFSET 10",
-        expectedAst = Project(
-          Offset(
-            Limit(NamedTable("b", Map.empty, is_streaming = false), Literal(short = Some(5))),
-            Literal(short = Some(10))),
-          Seq(simplyNamedColumn("a"))))
-      singleQueryExample(
-        query = "SELECT a FROM b OFFSET 10 FETCH FIRST 42",
-        expectedAst = Project(
-          Offset(NamedTable("b", Map.empty, is_streaming = false), Literal(short = Some(10))),
-          Seq(simplyNamedColumn("a"))))
+    "translate queries with LIMIT and OFFSET" should {
+      "SELECT a FROM b LIMIT 5" in {
+        singleQueryExample(
+          query = "SELECT a FROM b LIMIT 5",
+          expectedAst =
+            Project(Limit(NamedTable("b", Map.empty, is_streaming = false), Literal(5)), Seq(simplyNamedColumn("a"))))
+      }
+      "SELECT a FROM b LIMIT 5 OFFSET 10" in {
+        singleQueryExample(
+          query = "SELECT a FROM b LIMIT 5 OFFSET 10",
+          expectedAst = Project(
+            Offset(Limit(NamedTable("b", Map.empty, is_streaming = false), Literal(5)), Literal(10)),
+            Seq(simplyNamedColumn("a"))))
+      }
+      "SELECT a FROM b OFFSET 10 FETCH FIRST 42" in {
+        singleQueryExample(
+          query = "SELECT a FROM b OFFSET 10 FETCH FIRST 42",
+          expectedAst =
+            Project(Offset(NamedTable("b", Map.empty, is_streaming = false), Literal(10)), Seq(simplyNamedColumn("a"))))
+      }
     }
+
     "translate a query with PIVOT" in {
       singleQueryExample(
         query = "SELECT a FROM b PIVOT (SUM(a) FOR c IN ('foo', 'bar'))",
@@ -239,8 +280,7 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
             child = NamedTable("b", Map.empty, is_streaming = false),
             group_type = Pivot,
             grouping_expressions = Seq(CallFunction("SUM", Seq(simplyNamedColumn("a")))),
-            pivot =
-              Some(Pivot(simplyNamedColumn("c"), Seq(Literal(string = Some("foo")), Literal(string = Some("bar")))))),
+            pivot = Some(Pivot(simplyNamedColumn("c"), Seq(Literal("foo"), Literal("bar"))))),
           Seq(simplyNamedColumn("a"))))
     }
 
@@ -257,33 +297,34 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
           Seq(simplyNamedColumn("a"))))
     }
 
-    "translate queries with WITH clauses" in {
-      singleQueryExample(
-        query = "WITH a (b, c, d) AS (SELECT x, y, z FROM e) SELECT b, c, d FROM a",
-        expectedAst = WithCTE(
-          Seq(
-            CTEDefinition(
-              tableName = "a",
-              columns = Seq(simplyNamedColumn("b"), simplyNamedColumn("c"), simplyNamedColumn("d")),
-              cte =
-                Project(namedTable("e"), Seq(simplyNamedColumn("x"), simplyNamedColumn("y"), simplyNamedColumn("z"))))),
-          Project(namedTable("a"), Seq(simplyNamedColumn("b"), simplyNamedColumn("c"), simplyNamedColumn("d")))))
-
-      singleQueryExample(
-        query =
-          "WITH a (b, c, d) AS (SELECT x, y, z FROM e), aa (bb, cc) AS (SELECT xx, yy FROM f) SELECT b, c, d FROM a",
-        expectedAst = WithCTE(
-          Seq(
-            CTEDefinition(
-              tableName = "a",
-              columns = Seq(simplyNamedColumn("b"), simplyNamedColumn("c"), simplyNamedColumn("d")),
-              cte =
-                Project(namedTable("e"), Seq(simplyNamedColumn("x"), simplyNamedColumn("y"), simplyNamedColumn("z")))),
-            CTEDefinition(
-              tableName = "aa",
-              columns = Seq(simplyNamedColumn("bb"), simplyNamedColumn("cc")),
-              cte = Project(namedTable("f"), Seq(simplyNamedColumn("xx"), simplyNamedColumn("yy"))))),
-          Project(namedTable("a"), Seq(simplyNamedColumn("b"), simplyNamedColumn("c"), simplyNamedColumn("d")))))
+    "translate queries with WITH clauses" should {
+      "WITH a (b, c, d) AS (SELECT x, y, z FROM e) SELECT b, c, d FROM a" in {
+        singleQueryExample(
+          query = "WITH a (b, c, d) AS (SELECT x, y, z FROM e) SELECT b, c, d FROM a",
+          expectedAst = WithCTE(
+            Seq(
+              SubqueryAlias(
+                Project(namedTable("e"), Seq(simplyNamedColumn("x"), simplyNamedColumn("y"), simplyNamedColumn("z"))),
+                Id("a"),
+                Seq(Id("b"), Id("c"), Id("d")))),
+            Project(namedTable("a"), Seq(simplyNamedColumn("b"), simplyNamedColumn("c"), simplyNamedColumn("d")))))
+      }
+      "WITH a (b, c, d) AS (SELECT x, y, z FROM e), aa (bb, cc) AS (SELECT xx, yy FROM f) SELECT b, c, d FROM a" in {
+        singleQueryExample(
+          query =
+            "WITH a (b, c, d) AS (SELECT x, y, z FROM e), aa (bb, cc) AS (SELECT xx, yy FROM f) SELECT b, c, d FROM a",
+          expectedAst = WithCTE(
+            Seq(
+              SubqueryAlias(
+                Project(namedTable("e"), Seq(simplyNamedColumn("x"), simplyNamedColumn("y"), simplyNamedColumn("z"))),
+                Id("a"),
+                Seq(Id("b"), Id("c"), Id("d"))),
+              SubqueryAlias(
+                Project(namedTable("f"), Seq(simplyNamedColumn("xx"), simplyNamedColumn("yy"))),
+                Id("aa"),
+                Seq(Id("bb"), Id("cc")))),
+            Project(namedTable("a"), Seq(simplyNamedColumn("b"), simplyNamedColumn("c"), simplyNamedColumn("d")))))
+      }
     }
 
     "translate a query with WHERE, GROUP BY, HAVING, QUALIFY" in {
@@ -298,86 +339,96 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
           Filter(
             Filter(
               Aggregate(
-                child = Filter(namedTable("t1"), LessThan(Id("c3"), Literal(short = Some(4)))),
+                child = Filter(namedTable("t1"), LessThan(Id("c3"), Literal(4))),
                 group_type = GroupBy,
                 grouping_expressions = Seq(simplyNamedColumn("c2"), simplyNamedColumn("c3")),
                 pivot = None),
-              GreaterThanOrEqual(CallFunction("AVG", Seq(Id("c1"))), Literal(short = Some(5)))),
-            GreaterThan(CallFunction("MIN", Seq(Id("r"))), Literal(short = Some(6)))),
+              GreaterThanOrEqual(CallFunction("AVG", Seq(Id("c1"))), Literal(5))),
+            GreaterThan(CallFunction("MIN", Seq(Id("r"))), Literal(6))),
           Seq(
             simplyNamedColumn("c2"),
-            Alias(Window(CallFunction("SUM", Seq(Id("c3"))), Seq(Id("c2")), Seq(), None), Seq(Id("r")), None))))
+            Alias(Window(CallFunction("SUM", Seq(Id("c3"))), Seq(Id("c2")), Seq(), None), Id("r")))))
     }
 
-    "translate a query with set operators" in {
-      singleQueryExample(
-        "SELECT a FROM t1 UNION SELECT b FROM t2",
-        SetOperation(
-          Project(namedTable("t1"), Seq(simplyNamedColumn("a"))),
-          Project(namedTable("t2"), Seq(simplyNamedColumn("b"))),
-          UnionSetOp,
-          is_all = false,
-          by_name = false,
-          allow_missing_columns = false))
-      singleQueryExample(
-        "SELECT a FROM t1 UNION ALL SELECT b FROM t2",
-        SetOperation(
-          Project(namedTable("t1"), Seq(simplyNamedColumn("a"))),
-          Project(namedTable("t2"), Seq(simplyNamedColumn("b"))),
-          UnionSetOp,
-          is_all = true,
-          by_name = false,
-          allow_missing_columns = false))
-      singleQueryExample(
-        "SELECT a FROM t1 MINUS SELECT b FROM t2",
-        SetOperation(
-          Project(namedTable("t1"), Seq(simplyNamedColumn("a"))),
-          Project(namedTable("t2"), Seq(simplyNamedColumn("b"))),
-          ExceptSetOp,
-          is_all = false,
-          by_name = false,
-          allow_missing_columns = false))
-      singleQueryExample(
-        "SELECT a FROM t1 EXCEPT SELECT b FROM t2",
-        SetOperation(
-          Project(namedTable("t1"), Seq(simplyNamedColumn("a"))),
-          Project(namedTable("t2"), Seq(simplyNamedColumn("b"))),
-          ExceptSetOp,
-          is_all = false,
-          by_name = false,
-          allow_missing_columns = false))
-
-      singleQueryExample(
-        "SELECT a FROM t1 INTERSECT SELECT b FROM t2",
-        SetOperation(
-          Project(namedTable("t1"), Seq(simplyNamedColumn("a"))),
-          Project(namedTable("t2"), Seq(simplyNamedColumn("b"))),
-          IntersectSetOp,
-          is_all = false,
-          by_name = false,
-          allow_missing_columns = false))
-
-      singleQueryExample(
-        "SELECT a FROM t1 INTERSECT SELECT b FROM t2 MINUS SELECT c FROM t3 UNION SELECT d FROM t4",
-        SetOperation(
+    "translate a query with set operators" should {
+      "SELECT a FROM t1 UNION SELECT b FROM t2" in {
+        singleQueryExample(
+          "SELECT a FROM t1 UNION SELECT b FROM t2",
           SetOperation(
-            SetOperation(
-              Project(namedTable("t1"), Seq(simplyNamedColumn("a"))),
-              Project(namedTable("t2"), Seq(simplyNamedColumn("b"))),
-              IntersectSetOp,
-              is_all = false,
-              by_name = false,
-              allow_missing_columns = false),
-            Project(namedTable("t3"), Seq(simplyNamedColumn("c"))),
+            Project(namedTable("t1"), Seq(simplyNamedColumn("a"))),
+            Project(namedTable("t2"), Seq(simplyNamedColumn("b"))),
+            UnionSetOp,
+            is_all = false,
+            by_name = false,
+            allow_missing_columns = false))
+      }
+      "SELECT a FROM t1 UNION ALL SELECT b FROM t2" in {
+        singleQueryExample(
+          "SELECT a FROM t1 UNION ALL SELECT b FROM t2",
+          SetOperation(
+            Project(namedTable("t1"), Seq(simplyNamedColumn("a"))),
+            Project(namedTable("t2"), Seq(simplyNamedColumn("b"))),
+            UnionSetOp,
+            is_all = true,
+            by_name = false,
+            allow_missing_columns = false))
+      }
+      "SELECT a FROM t1 MINUS SELECT b FROM t2" in {
+        singleQueryExample(
+          "SELECT a FROM t1 MINUS SELECT b FROM t2",
+          SetOperation(
+            Project(namedTable("t1"), Seq(simplyNamedColumn("a"))),
+            Project(namedTable("t2"), Seq(simplyNamedColumn("b"))),
             ExceptSetOp,
             is_all = false,
             by_name = false,
-            allow_missing_columns = false),
-          Project(namedTable("t4"), Seq(simplyNamedColumn("d"))),
-          UnionSetOp,
-          is_all = false,
-          by_name = false,
-          allow_missing_columns = false))
+            allow_missing_columns = false))
+      }
+      "SELECT a FROM t1 EXCEPT SELECT b FROM t2" in {
+        singleQueryExample(
+          "SELECT a FROM t1 EXCEPT SELECT b FROM t2",
+          SetOperation(
+            Project(namedTable("t1"), Seq(simplyNamedColumn("a"))),
+            Project(namedTable("t2"), Seq(simplyNamedColumn("b"))),
+            ExceptSetOp,
+            is_all = false,
+            by_name = false,
+            allow_missing_columns = false))
+      }
+      "SELECT a FROM t1 INTERSECT SELECT b FROM t2" in {
+        singleQueryExample(
+          "SELECT a FROM t1 INTERSECT SELECT b FROM t2",
+          SetOperation(
+            Project(namedTable("t1"), Seq(simplyNamedColumn("a"))),
+            Project(namedTable("t2"), Seq(simplyNamedColumn("b"))),
+            IntersectSetOp,
+            is_all = false,
+            by_name = false,
+            allow_missing_columns = false))
+      }
+      "SELECT a FROM t1 INTERSECT SELECT b FROM t2 MINUS SELECT c FROM t3 UNION SELECT d FROM t4" in {
+        singleQueryExample(
+          "SELECT a FROM t1 INTERSECT SELECT b FROM t2 MINUS SELECT c FROM t3 UNION SELECT d FROM t4",
+          SetOperation(
+            SetOperation(
+              SetOperation(
+                Project(namedTable("t1"), Seq(simplyNamedColumn("a"))),
+                Project(namedTable("t2"), Seq(simplyNamedColumn("b"))),
+                IntersectSetOp,
+                is_all = false,
+                by_name = false,
+                allow_missing_columns = false),
+              Project(namedTable("t3"), Seq(simplyNamedColumn("c"))),
+              ExceptSetOp,
+              is_all = false,
+              by_name = false,
+              allow_missing_columns = false),
+            Project(namedTable("t4"), Seq(simplyNamedColumn("d"))),
+            UnionSetOp,
+            is_all = false,
+            by_name = false,
+            allow_missing_columns = false))
+      }
     }
 
     "translate batches of queries" in {
@@ -390,9 +441,9 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
         _.snowflakeFile(),
         Batch(
           Seq(
-            CreateTableCommand("t1", Seq(ColumnDeclaration("x", VarCharType(None)))),
+            CreateTableCommand("t1", Seq(ColumnDeclaration("x", StringType))),
             Project(namedTable("t1"), Seq(simplyNamedColumn("x"))),
-            Project(namedTable("t3"), Seq(Literal(short = Some(3)))))))
+            Project(namedTable("t3"), Seq(Literal(3))))))
     }
 
     // Tests below are just meant to verify that SnowflakeAstBuilder properly delegates DML commands
@@ -404,10 +455,7 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
         InsertIntoTable(
           namedTable("t"),
           Some(Seq(Id("c1"), Id("c2"), Id("c3"))),
-          Values(
-            Seq(
-              Seq(Literal(short = Some(1)), Literal(short = Some(2)), Literal(short = Some(3))),
-              Seq(Literal(short = Some(4)), Literal(short = Some(5)), Literal(short = Some(6))))),
+          Values(Seq(Seq(Literal(1), Literal(2), Literal(3)), Seq(Literal(4), Literal(5), Literal(6)))),
           None,
           None,
           overwrite = false))
@@ -416,21 +464,33 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
     "translate DELETE commands" in {
       singleQueryExample(
         "DELETE FROM t WHERE t.c1 > 42",
-        DeleteFromTable(
-          namedTable("t"),
-          None,
-          Some(GreaterThan(Dot(Id("t"), Id("c1")), Literal(short = Some(42)))),
-          None,
-          None))
-
+        DeleteFromTable(namedTable("t"), None, Some(GreaterThan(Dot(Id("t"), Id("c1")), Literal(42))), None, None))
     }
 
     "translate UPDATE commands" in {
       singleQueryExample(
         "UPDATE t1 SET c1 = 42;",
-        UpdateTable(namedTable("t1"), None, Seq(Assign(Id("c1"), Literal(short = Some(42)))), None, None, None))
+        UpdateTable(namedTable("t1"), None, Seq(Assign(Id("c1"), Literal(42))), None, None, None))
+    }
 
+    "translate BANG to Unresolved Expression" in {
+      example("!set error_flag = true;", _.snowSqlCommand(), UnresolvedCommand("!set error_flag = true;"))
+      example("!set dfsdfds", _.snowSqlCommand(), UnresolvedCommand("!set dfsdfds"))
+      assertThrows[Exception] {
+        example("!", _.snowSqlCommand(), UnresolvedCommand("!"))
+      }
+      assertThrows[Exception] {
+        example("!badcommand", _.snowSqlCommand(), UnresolvedCommand("!badcommand"))
+      }
+    }
+
+    "translate amps" should {
+      "select * from a where b = &ids" in {
+        singleQueryExample(
+          "select * from a where b = &ids",
+          // Note when we truly process &vars we should get Variable, not Id
+          Project(Filter(namedTable("a"), Equals(Id("b"), Id("$ids"))), Seq(Star())))
+      }
     }
   }
-
 }

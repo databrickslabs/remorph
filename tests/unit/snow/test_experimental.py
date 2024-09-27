@@ -13,5 +13,8 @@ test_names = [f.test_name for f in functional_tests]
 def test_experimental(dialect_context, sample: FunctionalTestFile):
     validate_source_transpile, _ = dialect_context
     validate_source_transpile(
-        databricks_sql=sample.databricks_sql, source={"snowflake": sample.source}, experimental=True
+        databricks_sql=sample.databricks_sql,
+        source={"snowflake": sample.source},
+        experimental=True,
+        pretty=True,
     )

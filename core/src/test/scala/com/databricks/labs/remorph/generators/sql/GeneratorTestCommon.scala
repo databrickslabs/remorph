@@ -12,11 +12,17 @@ trait GeneratorTestCommon[T <: ir.TreeNode[T]] extends Matchers {
 
   implicit class TestOps(t: T) {
     def generates(expectedOutput: String): Assertion = {
-      generator.generate(GeneratorContext(), t) shouldBe expectedOutput
+      val exprGenerator = new ExpressionGenerator()
+      val optionGenerator = new OptionGenerator(exprGenerator)
+      val logical = new LogicalPlanGenerator(exprGenerator, optionGenerator)
+      generator.generate(GeneratorContext(logical), t) shouldBe expectedOutput
     }
 
     def doesNotTranspile: Assertion = {
-      assertThrows[TranspileException](generator.generate(GeneratorContext(), t))
+      val exprGenerator = new ExpressionGenerator()
+      val optionGenerator = new OptionGenerator(exprGenerator)
+      val logical = new LogicalPlanGenerator(exprGenerator, optionGenerator)
+      assertThrows[TranspileException](generator.generate(GeneratorContext(logical), t))
     }
   }
 }

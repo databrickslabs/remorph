@@ -1,17 +1,18 @@
 package com.databricks.labs.remorph.parsers.tsql
 
-import com.databricks.labs.remorph.parsers.intermediate.{Attribute, AttributeReference, Column, Command, Expression, Id, LeafNode, LogicalPlan, RelationCommon, StringType}
+import com.databricks.labs.remorph.parsers.intermediate._
 
 case class DerivedRows(rows: Seq[Seq[Expression]]) extends LeafNode {
   override def output: Seq[Attribute] = rows.flatten.map(e => AttributeReference(e.toString, e.dataType))
 }
 
-case class Output(target: LogicalPlan, outputs: Seq[Expression], columns: Option[Seq[Column]]) extends RelationCommon {
+case class Output(target: Option[LogicalPlan], outputs: Seq[Expression], columns: Option[Seq[Column]])
+    extends RelationCommon {
   override def output: Seq[Attribute] = outputs.map(e => AttributeReference(e.toString, e.dataType))
-  override def children: Seq[LogicalPlan] = Seq(target)
+  override def children: Seq[LogicalPlan] = Seq(target.getOrElse(NoopNode))
 }
 
-case class WithOutputClause(input: LogicalPlan, target: LogicalPlan) extends RelationCommon {
+case class WithOutputClause(input: LogicalPlan, target: LogicalPlan) extends Modification {
   override def output: Seq[Attribute] = target.output
   override def children: Seq[LogicalPlan] = Seq(input, target)
 }
@@ -22,8 +23,7 @@ case class BackupDatabase(
     flags: Map[String, Boolean],
     autoFlags: Seq[String],
     values: Map[String, Expression])
-    extends LeafNode
-    with Command {}
+    extends Catalog {}
 
 case class ColumnAliases(input: LogicalPlan, aliases: Seq[Id]) extends RelationCommon {
   override def output: Seq[Attribute] = aliases.map(a => AttributeReference(a.id, StringType))

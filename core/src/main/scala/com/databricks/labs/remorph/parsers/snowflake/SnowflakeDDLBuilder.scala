@@ -10,12 +10,15 @@ class SnowflakeDDLBuilder
     with IncompleteParser[ir.Catalog] {
 
   private val expressionBuilder = new SnowflakeExpressionBuilder
+  private val typeBuilder = new SnowflakeTypeBuilder
 
   override protected def wrapUnresolvedInput(unparsedInput: String): ir.Catalog = ir.UnresolvedCatalog(unparsedInput)
 
-  private def extractString(ctx: StrContext): String = {
-    ctx.getText.stripPrefix("'").stripSuffix("'")
-  }
+  private def extractString(ctx: StrContext): String =
+    ctx.accept(expressionBuilder) match {
+      case ir.StringLiteral(s) => s
+      case e => throw new IllegalArgumentException(s"Expected a string literal, got $e")
+    }
 
   override def visitCreateFunction(ctx: CreateFunctionContext): ir.Catalog = {
     val runtimeInfo = ctx match {
@@ -26,7 +29,7 @@ class SnowflakeDDLBuilder
       case c if c.SQL() != null || c.LANGUAGE() == null => ir.SQLRuntimeInfo(c.MEMOIZABLE() != null)
     }
     val name = ctx.objectName().getText
-    val returnType = DataTypeBuilder.buildDataType(ctx.dataType())
+    val returnType = typeBuilder.buildDataType(ctx.dataType())
     val parameters = ctx.argDecl().asScala.map(buildParameter)
     val acceptsNullParameters = ctx.CALLED() != null
     val body = buildFunctionBody(ctx.functionDefinition())
@@ -37,15 +40,12 @@ class SnowflakeDDLBuilder
   private def buildParameter(ctx: ArgDeclContext): ir.FunctionParameter = {
     ir.FunctionParameter(
       name = ctx.argName().getText,
-      dataType = DataTypeBuilder.buildDataType(ctx.argDataType().dataType()),
+      dataType = typeBuilder.buildDataType(ctx.argDataType().dataType()),
       defaultValue = Option(ctx.argDefaultValueClause())
         .map(_.expr().accept(expressionBuilder)))
   }
 
-  private def buildFunctionBody(ctx: FunctionDefinitionContext): String = (ctx match {
-    case c if c.DBL_DOLLAR() != null => c.DBL_DOLLAR().getText.stripPrefix("$$").stripSuffix("$$")
-    case c if c.string() != null => extractString(c.string())
-  }).trim
+  private def buildFunctionBody(ctx: FunctionDefinitionContext): String = extractString(ctx.string()).trim
 
   private def buildJavaUDF(ctx: CreateFunctionContext): ir.RuntimeInfo = buildJVMUDF(ctx)(ir.JavaRuntimeInfo.apply)
   private def buildScalaUDF(ctx: CreateFunctionContext): ir.RuntimeInfo = buildJVMUDF(ctx)(ir.ScalaRuntimeInfo.apply)
@@ -92,13 +92,21 @@ class SnowflakeDDLBuilder
     ir.CreateTableCommand(tableName, columns)
   }
 
+  override def visitCreateStream(ctx: CreateStreamContext): ir.UnresolvedCommand = {
+    ir.UnresolvedCommand(getTextFromParserRuleContext(ctx))
+  }
+
+  override def visitCreateTask(ctx: CreateTaskContext): ir.UnresolvedCommand = {
+    ir.UnresolvedCommand(getTextFromParserRuleContext(ctx))
+  }
+
   private def buildColumnDeclarations(ctx: Seq[ColumnDeclItemContext]): Seq[ir.ColumnDeclaration] = {
     // According to the grammar, either ctx.fullColDecl or ctx.outOfLineConstraint is non-null.
     val columns = ctx.collect {
       case c if c.fullColDecl() != null => buildColumnDeclaration(c.fullColDecl())
     }
     // An out-of-line constraint may apply to one or many columns
-    // When an out-of-line contraint applies to multiple columns,
+    // When an out-of-line constraint applies to multiple columns,
     // we record a column-name -> constraint mapping for each.
     val outOfLineConstraints: Seq[(String, ir.Constraint)] = ctx.collect {
       case c if c.outOfLineConstraint() != null => buildOutOfLineConstraints(c.outOfLineConstraint())
@@ -115,7 +123,7 @@ class SnowflakeDDLBuilder
 
   private def buildColumnDeclaration(ctx: FullColDeclContext): ir.ColumnDeclaration = {
     val name = ctx.colDecl().columnName().getText
-    val dataType = DataTypeBuilder.buildDataType(ctx.colDecl().dataType())
+    val dataType = typeBuilder.buildDataType(ctx.colDecl().dataType())
     val constraints = ctx.inlineConstraint().asScala.map(buildInlineConstraint)
     val nullability = if (ctx.nullNotNull().isEmpty) {
       Seq()
@@ -124,18 +132,17 @@ class SnowflakeDDLBuilder
     }
     ir.ColumnDeclaration(name, dataType, virtualColumnDeclaration = None, nullability ++ constraints)
   }
-
   private[snowflake] def buildOutOfLineConstraints(ctx: OutOfLineConstraintContext): Seq[(String, ir.Constraint)] = {
     val columnNames = ctx.columnListInParentheses(0).columnList().columnName().asScala.map(_.getText)
     val repeatForEveryColumnName = List.fill[ir.UnnamedConstraint](columnNames.size)(_)
     val unnamedConstraints = ctx match {
-      case c if c.UNIQUE() != null => repeatForEveryColumnName(ir.Unique)
-      case c if c.primaryKey() != null => repeatForEveryColumnName(ir.PrimaryKey)
+      case c if c.UNIQUE() != null => repeatForEveryColumnName(ir.Unique(Seq.empty))
+      case c if c.primaryKey() != null => repeatForEveryColumnName(ir.PrimaryKey(Seq.empty))
       case c if c.foreignKey() != null =>
         val referencedObject = c.objectName().getText
         val references =
           c.columnListInParentheses(1).columnList().columnName().asScala.map(referencedObject + "." + _.getText)
-        references.map(ir.ForeignKey.apply)
+        references.map(ref => ir.ForeignKey("", ref, "", Seq.empty))
       case c => repeatForEveryColumnName(ir.UnresolvedConstraint(c.getText))
     }
     val constraintNameOpt = Option(ctx.id()).map(_.getText)
@@ -146,12 +153,19 @@ class SnowflakeDDLBuilder
   }
 
   private[snowflake] def buildInlineConstraint(ctx: InlineConstraintContext): ir.Constraint = ctx match {
-    case c if c.UNIQUE() != null => ir.Unique
-    case c if c.primaryKey() != null => ir.PrimaryKey
+    case c if c.UNIQUE() != null => ir.Unique()
+    case c if c.primaryKey() != null => ir.PrimaryKey()
     case c if c.foreignKey() != null =>
       val references = c.objectName().getText + Option(ctx.columnName()).map("." + _.getText).getOrElse("")
-      ir.ForeignKey(references)
+      ir.ForeignKey("", references, "", Seq.empty)
     case c => ir.UnresolvedConstraint(c.getText)
+  }
+
+  override def visitAlterCommand(ctx: AlterCommandContext): ir.Catalog = {
+    ctx match {
+      case c if c.alterTable() != null => c.alterTable().accept(this)
+      case _ => ir.UnresolvedCommand(getTextFromParserRuleContext(ctx))
+    }
   }
 
   override def visitAlterTable(ctx: AlterTableContext): ir.Catalog = {
@@ -167,7 +181,7 @@ class SnowflakeDDLBuilder
 
   private[snowflake] def buildColumnActions(ctx: TableColumnActionContext): Seq[ir.TableAlteration] = ctx match {
     case c if c.ADD() != null =>
-      c.fullColDecl().asScala.map(buildColumnDeclaration).map(ir.AddColumn.apply)
+      Seq(ir.AddColumn(c.fullColDecl().asScala.map(buildColumnDeclaration)))
     case c if !c.alterColumnClause().isEmpty =>
       c.alterColumnClause().asScala.map(buildColumnAlterations)
     case c if c.DROP() != null =>
@@ -181,7 +195,7 @@ class SnowflakeDDLBuilder
     val columnName = ctx.columnName().getText
     ctx match {
       case c if c.dataType() != null =>
-        ir.ChangeColumnDataType(columnName, DataTypeBuilder.buildDataType(c.dataType()))
+        ir.ChangeColumnDataType(columnName, typeBuilder.buildDataType(c.dataType()))
       case c if c.DROP() != null && c.NULL_() != null =>
         ir.DropConstraint(Some(columnName), ir.Nullability(c.NOT() == null))
       case c if c.NULL_() != null =>
@@ -204,8 +218,8 @@ class SnowflakeDDLBuilder
     val columnListOpt = Option(ctx.columnListInParentheses())
     val affectedColumns = columnListOpt.map(_.columnList().columnName().asScala.map(_.getText)).getOrElse(Seq())
     ctx match {
-      case c if c.primaryKey() != null => dropConstraints(affectedColumns, ir.PrimaryKey)
-      case c if c.UNIQUE() != null => dropConstraints(affectedColumns, ir.Unique)
+      case c if c.primaryKey() != null => dropConstraints(affectedColumns, ir.PrimaryKey())
+      case c if c.UNIQUE() != null => dropConstraints(affectedColumns, ir.Unique())
       case c if c.id.size() > 0 => Seq(ir.DropConstraintByName(c.id(0).getText))
       case c => Seq(ir.UnresolvedTableAlteration(ctx.getText))
     }

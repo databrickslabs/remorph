@@ -1,4 +1,3 @@
-
 -- snowflake sql:
 select array_agg(col1) FROM test_table;
 

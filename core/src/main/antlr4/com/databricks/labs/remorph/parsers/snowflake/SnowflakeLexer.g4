@@ -46,6 +46,10 @@ options {
     caseInsensitive = true;
 }
 
+tokens {
+    STRING_CONTENT
+}
+
 ABORT                                         : 'ABORT';
 ABORT_DETACHED_QUERY                          : 'ABORT_DETACHED_QUERY';
 ABORT_STATEMENT                               : 'ABORT_STATEMENT';
@@ -187,6 +191,9 @@ CROSS                                         : 'CROSS';
 CSV                                           : 'CSV';
 CUBE                                          : 'CUBE';
 CURRENT                                       : 'CURRENT';
+CURRENT_DATE                                  : 'CURRENT_DATE';
+CURRENT_TIME                                  : 'CURRENT_TIME';
+CURRENT_TIMESTAMP                             : 'CURRENT_TIMESTAMP';
 CURSOR                                        : 'CURSOR';
 CUSTOM                                        : 'CUSTOM';
 DAILY                                         : 'DAILY';
@@ -392,6 +399,8 @@ LINEAR                                         : 'LINEAR';
 LIST                                           : 'LIST';
 LISTING                                        : 'LISTING';
 LOCAL                                          : 'LOCAL';
+LOCALTIME                                      : 'LOCALTIME';
+LOCALTIMESTAMP                                 : 'LOCALTIMESTAMP';
 LOCATION                                       : 'LOCATION';
 LOCKS                                          : 'LOCKS';
 LOCK_TIMEOUT                                   : 'LOCK_TIMEOUT';
@@ -842,7 +851,11 @@ DUMMY:
     'DUMMY'
 ; //Dummy is not a keyword but rules reference it in unfinished grammar - need to get rid
 
-SPACE: [ \t\r\n]+ -> skip;
+fragment SPACE:
+    [ \t\r\n\u000c\u0085\u00a0\u1680\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u202f\u205f\u3000]+
+;
+
+WS: SPACE -> channel(HIDDEN);
 
 SQL_COMMENT    : '/*' (SQL_COMMENT | .)*? '*/' -> channel(HIDDEN);
 LINE_COMMENT   : '--' ~[\r\n]*                 -> channel(HIDDEN);
@@ -855,14 +868,12 @@ DOUBLE_QUOTE_BLANK : '""';
 ID  : [A-Z_] [A-Z0-9_@$]*;
 ID2 : DOLLAR [A-Z_] [A-Z0-9_]*;
 
-DBL_DOLLAR: '$$' ('\\$' | '$' ~'$' | ~'$')*? '$$';
+DOLLAR_STRING: '$$' ('\\$' | '$' ~'$' | ~'$')*? '$$';
 
 DATE_LIT: 'DATE\'' [0-9][0-9][0-9][0-9] '-' [0-9][0-9] '-' [0-9][0-9] '\'';
 TIMESTAMP_LIT:
     'TIMESTAMP\'' [0-9][0-9][0-9][0-9]'-' [0-9][0-9]'-' [0-9][0-9]' ' [0-9][0-9]':' [0-9][0-9]':' [0-9][0-9]'\''
 ;
-
-STRING: '\'' ('\\' . | '\'\'' | ~['])* '\'';
 
 DECIMAL : DEC_DIGIT+;
 FLOAT   : DEC_DOT_DEC;
@@ -904,6 +915,7 @@ MODULE      : '%';
 PLUS        : '+';
 MINUS       : '-';
 TILDA       : '~';
+AMP         : '&';
 
 // A question mark can be used as a placeholder for a prepared statement that will use binding.
 PARAM: '?';
@@ -911,7 +923,78 @@ PARAM: '?';
 fragment DEC_DOT_DEC : DEC_DIGIT+ DOT DEC_DIGIT+ | DEC_DIGIT+ DOT | DOT DEC_DIGIT+;
 fragment DEC_DIGIT   : [0-9];
 
+SQLCOMMAND:
+    '!' SPACE? (
+        'abort'
+        | 'connect'
+        | 'define'
+        | 'edit'
+        | 'exit'
+        | 'help'
+        | 'options'
+        | 'pause'
+        | 'print'
+        | 'queries'
+        | 'quit'
+        | 'rehash'
+        | 'result'
+        | 'set'
+        | 'source'
+        | 'spool'
+        | 'system'
+        | 'variables'
+    ) ~[\r\n]*
+;
+
+STRING_START: '\'' -> pushMode(stringMode);
+
 // This lexer rule is needed so that any unknown character in the lexicon does not
-// cause an incomprehensible error message. This rule will allow the parser to issue
-// somethign more meaningful and perform error recovery.
+// cause an incomprehensible error message from teh lexer. This rule will allow the parser to issue
+// something more meaningful and perform error recovery as the lexer CANNOT raise an error - it
+// will alwys match at least one character using this catch-all rule.
+//
+// !IMPORTANT! - Always leave this as the last lexer rule, before the mode definitions
 BADCHAR: .;
+
+// ================================================================================================
+// LEXICAL MODES
+//
+// Lexical modes are used to allow the lexer to return different token types than the main lexer
+// and are triggered by a main lexer rule matching a specific token. The mode is ended by matching
+// a specific lexical sequence in the input stream. Note that this is a lexical trigger only and is
+// not influenced by the parser state as the paresr does NOT direct the lexer:
+//
+// 1) The lexer runs against the entire input sequence and returns tokens to the parser.
+// 2) THEN the parser uses the tokens to build the parse tree - it cannot therefore influence the
+//    lexer in any way.
+
+// In string mode we are separating out normal string literals from defined variable
+// references, so that they can be translated from Snowflakey syntax to Databricks SQL syntax.
+// This mode is trigered when we hit a single quote in the lexer and ends when we hit the
+// terminating single quote minus the usual escape character processing.
+mode stringMode;
+
+// An element that is a variable reference can be &{variable} or just &variable. They are
+// separated out in case there is any difference needed in translation/generation. A single
+// & is placed in a string by using &&.
+
+// We exit the stringMode when we see the terminating single quote.
+//
+STRING_END: '\'' -> popMode;
+
+STRING_AMP    : '&' -> type(STRING_CONTENT);
+STRING_AMPAMP : '&&';
+
+// Note that snowflake also allows $var, and :var
+// if they are allowed in literal strings// then they can be added here.
+//
+VAR_SIMPLE  : '&' [A-Z_] [A-Z0-9_]*;
+VAR_COMPLEX : '&{' [A-Z_] [A-Z0-9_]* '}';
+
+// TODO: Do we also need \xHH hex and \999 octal escapes?
+STRING_UNICODE : '\\' 'u' HexDigit HexDigit HexDigit HexDigit;
+STRING_ESCAPE  : '\\' .;
+STRING_SQUOTE  : '\'\'';
+
+// Anything that is not a variable reference is just a normal piece of text.
+STRING_BIT: ~['\\&]+ -> type(STRING_CONTENT);

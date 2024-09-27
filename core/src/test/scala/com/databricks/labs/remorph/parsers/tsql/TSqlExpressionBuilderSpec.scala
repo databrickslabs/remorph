@@ -11,28 +11,23 @@ import org.scalatest.wordspec.AnyWordSpec
 
 class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon with Matchers with IRHelpers {
 
-  private val exprBuilder = new TSqlExpressionBuilder
-
-  override protected def astBuilder: TSqlParserBaseVisitor[_] = new TSqlExpressionBuilder
+  override protected def astBuilder: TSqlParserBaseVisitor[_] = vc.expressionBuilder
 
   "TSqlExpressionBuilder" should {
     "translate literals" in {
-      exampleExpr("null", _.expression(), ir.Literal(nullType = Some(ir.NullType)))
-      exampleExpr("1", _.expression(), ir.Literal(short = Some(1)))
-      exampleExpr("-1", _.expression(), ir.UMinus(ir.Literal(short = Some(1))))
-      exampleExpr("+1", _.expression(), ir.UPlus(ir.Literal(short = Some(1))))
-      exampleExpr("1.1", _.expression(), ir.Literal(float = Some(1.1f)))
-      exampleExpr("'foo'", _.expression(), ir.Literal(string = Some("foo")))
+      exampleExpr("null", _.expression(), ir.Literal.Null)
+      exampleExpr("1", _.expression(), ir.Literal(1))
+      exampleExpr("-1", _.expression(), ir.UMinus(ir.Literal(1))) // TODO: add optimizer
+      exampleExpr("+1", _.expression(), ir.UPlus(ir.Literal(1)))
+      exampleExpr("1.1", _.expression(), ir.Literal(1.1f))
+      exampleExpr("'foo'", _.expression(), ir.Literal("foo"))
     }
     "translate scientific notation" in {
-      exampleExpr("1.1e2", _.expression(), ir.Literal(short = Some(110)))
-      exampleExpr("1.1e-2", _.expression(), ir.Literal(float = Some(0.011f)))
-      exampleExpr("1e2", _.expression(), ir.Literal(short = Some(100)))
-      exampleExpr("0.123456789", _.expression(), ir.Literal(double = Some(0.123456789)))
-      exampleExpr(
-        "0.123456789e-1234",
-        _.expression(),
-        ir.Literal(decimal = Some(ir.Decimal("0.123456789e-1234", None, None))))
+      exampleExpr("1.1e2", _.expression(), ir.Literal(110))
+      exampleExpr("1.1e-2", _.expression(), ir.Literal(0.011f))
+      exampleExpr("1e2", _.expression(), ir.Literal(100))
+      exampleExpr("0.123456789", _.expression(), ir.Literal(0.123456789))
+      exampleExpr("0.123456789e-1234", _.expression(), ir.DecimalLiteral("0.123456789e-1234"))
     }
     "translate simple primitives" in {
       exampleExpr("DEFAULT", _.expression(), Default())
@@ -40,28 +35,25 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
     }
 
     "translate simple numeric binary expressions" in {
-      exampleExpr("1 + 2", _.expression(), ir.Add(ir.Literal(short = Some(1)), ir.Literal(short = Some(2))))
-      exampleExpr("1 +2", _.expression(), ir.Add(ir.Literal(short = Some(1)), ir.Literal(short = Some(2))))
-      exampleExpr("1 - 2", _.expression(), ir.Subtract(ir.Literal(short = Some(1)), ir.Literal(short = Some(2))))
-      exampleExpr("1 -2", _.expression(), ir.Subtract(ir.Literal(short = Some(1)), ir.Literal(short = Some(2))))
-      exampleExpr("1 * 2", _.expression(), ir.Multiply(ir.Literal(short = Some(1)), ir.Literal(short = Some(2))))
-      exampleExpr("1 / 2", _.expression(), ir.Divide(ir.Literal(short = Some(1)), ir.Literal(short = Some(2))))
-      exampleExpr("1 % 2", _.expression(), ir.Mod(ir.Literal(short = Some(1)), ir.Literal(short = Some(2))))
-      exampleExpr(
-        "'A' || 'B'",
-        _.expression(),
-        ir.Concat(Seq(ir.Literal(string = Some("A")), ir.Literal(string = Some("B")))))
-      exampleExpr("4 ^ 2", _.expression(), ir.BitwiseXor(ir.Literal(short = Some(4)), ir.Literal(short = Some(2))))
+      exampleExpr("1 + 2", _.expression(), ir.Add(ir.Literal(1), ir.Literal(2)))
+      exampleExpr("1 +2", _.expression(), ir.Add(ir.Literal(1), ir.Literal(2)))
+      exampleExpr("1 - 2", _.expression(), ir.Subtract(ir.Literal(1), ir.Literal(2)))
+      exampleExpr("1 -2", _.expression(), ir.Subtract(ir.Literal(1), ir.Literal(2)))
+      exampleExpr("1 * 2", _.expression(), ir.Multiply(ir.Literal(1), ir.Literal(2)))
+      exampleExpr("1 / 2", _.expression(), ir.Divide(ir.Literal(1), ir.Literal(2)))
+      exampleExpr("1 % 2", _.expression(), ir.Mod(ir.Literal(1), ir.Literal(2)))
+      exampleExpr("'A' || 'B'", _.expression(), ir.Concat(Seq(ir.Literal("A"), ir.Literal("B"))))
+      exampleExpr("4 ^ 2", _.expression(), ir.BitwiseXor(ir.Literal(4), ir.Literal(2)))
     }
     "translate complex binary expressions" in {
       exampleExpr(
         "a + b * 2",
         _.expression(),
-        ir.Add(simplyNamedColumn("a"), ir.Multiply(simplyNamedColumn("b"), ir.Literal(short = Some(2)))))
+        ir.Add(simplyNamedColumn("a"), ir.Multiply(simplyNamedColumn("b"), ir.Literal(2))))
       exampleExpr(
         "(a + b) * 2",
         _.expression(),
-        ir.Multiply(ir.Add(simplyNamedColumn("a"), simplyNamedColumn("b")), ir.Literal(short = Some(2))))
+        ir.Multiply(ir.Add(simplyNamedColumn("a"), simplyNamedColumn("b")), ir.Literal(2)))
       exampleExpr(
         "a & b | c",
         _.expression(),
@@ -73,11 +65,11 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
       exampleExpr(
         "a + b * 2",
         _.expression(),
-        ir.Add(simplyNamedColumn("a"), ir.Multiply(simplyNamedColumn("b"), ir.Literal(short = Some(2)))))
+        ir.Add(simplyNamedColumn("a"), ir.Multiply(simplyNamedColumn("b"), ir.Literal(2))))
       exampleExpr(
         "(a + b) * 2",
         _.expression(),
-        ir.Multiply(ir.Add(simplyNamedColumn("a"), simplyNamedColumn("b")), ir.Literal(short = Some(2))))
+        ir.Multiply(ir.Add(simplyNamedColumn("a"), simplyNamedColumn("b")), ir.Literal(2)))
       exampleExpr(
         "a & b | c",
         _.expression(),
@@ -90,10 +82,8 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
         "a % 3 + b * 2 - c / 5",
         _.expression(),
         ir.Subtract(
-          ir.Add(
-            ir.Mod(simplyNamedColumn("a"), ir.Literal(short = Some(3))),
-            ir.Multiply(simplyNamedColumn("b"), ir.Literal(short = Some(2)))),
-          ir.Divide(simplyNamedColumn("c"), ir.Literal(short = Some(5)))))
+          ir.Add(ir.Mod(simplyNamedColumn("a"), ir.Literal(3)), ir.Multiply(simplyNamedColumn("b"), ir.Literal(2))),
+          ir.Divide(simplyNamedColumn("c"), ir.Literal(5))))
       exampleExpr(
         query = "a || b || c",
         _.expression(),
@@ -103,116 +93,77 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
       exampleExpr(
         "1 + -++-2",
         _.expression(),
-        ir.Add(ir.Literal(short = Some(1)), ir.UMinus(ir.UPlus(ir.UPlus(ir.UMinus(ir.Literal(short = Some(2))))))))
+        ir.Add(ir.Literal(1), ir.UMinus(ir.UPlus(ir.UPlus(ir.UMinus(ir.Literal(2)))))))
       exampleExpr(
         "1 + ~ 2 * 3",
         _.expression(),
-        ir.Add(
-          ir.Literal(short = Some(1)),
-          ir.Multiply(ir.BitwiseNot(ir.Literal(short = Some(2))), ir.Literal(short = Some(3)))))
+        ir.Add(ir.Literal(1), ir.Multiply(ir.BitwiseNot(ir.Literal(2)), ir.Literal(3))))
       exampleExpr(
         "1 + -2 * 3",
         _.expression(),
-        ir.Add(
-          ir.Literal(short = Some(1)),
-          ir.Multiply(ir.UMinus(ir.Literal(short = Some(2))), ir.Literal(short = Some(3)))))
+        ir.Add(ir.Literal(1), ir.Multiply(ir.UMinus(ir.Literal(2)), ir.Literal(3))))
       exampleExpr(
         "1 + -2 * 3 + 7 & 66",
         _.expression(),
         ir.BitwiseAnd(
-          ir.Add(
-            ir.Add(
-              ir.Literal(short = Some(1)),
-              ir.Multiply(ir.UMinus(ir.Literal(short = Some(2))), ir.Literal(short = Some(3)))),
-            ir.Literal(short = Some(7))),
-          ir.Literal(short = Some(66))))
+          ir.Add(ir.Add(ir.Literal(1), ir.Multiply(ir.UMinus(ir.Literal(2)), ir.Literal(3))), ir.Literal(7)),
+          ir.Literal(66)))
       exampleExpr(
         "1 + -2 * 3 + 7 ^ 66",
         _.expression(),
         ir.BitwiseXor(
-          ir.Add(
-            ir.Add(
-              ir.Literal(short = Some(1)),
-              ir.Multiply(ir.UMinus(ir.Literal(short = Some(2))), ir.Literal(short = Some(3)))),
-            ir.Literal(short = Some(7))),
-          ir.Literal(short = Some(66))))
+          ir.Add(ir.Add(ir.Literal(1), ir.Multiply(ir.UMinus(ir.Literal(2)), ir.Literal(3))), ir.Literal(7)),
+          ir.Literal(66)))
       exampleExpr(
         "1 + -2 * 3 + 7 | 66",
         _.expression(),
         ir.BitwiseOr(
-          ir.Add(
-            ir.Add(
-              ir.Literal(short = Some(1)),
-              ir.Multiply(ir.UMinus(ir.Literal(short = Some(2))), ir.Literal(short = Some(3)))),
-            ir.Literal(short = Some(7))),
-          ir.Literal(short = Some(66))))
+          ir.Add(ir.Add(ir.Literal(1), ir.Multiply(ir.UMinus(ir.Literal(2)), ir.Literal(3))), ir.Literal(7)),
+          ir.Literal(66)))
       exampleExpr(
         "1 + -2 * 3 + 7 + ~66",
         _.expression(),
         ir.Add(
-          ir.Add(
-            ir.Add(
-              ir.Literal(short = Some(1)),
-              ir.Multiply(ir.UMinus(ir.Literal(short = Some(2))), ir.Literal(short = Some(3)))),
-            ir.Literal(short = Some(7))),
-          ir.BitwiseNot(ir.Literal(short = Some(66)))))
+          ir.Add(ir.Add(ir.Literal(1), ir.Multiply(ir.UMinus(ir.Literal(2)), ir.Literal(3))), ir.Literal(7)),
+          ir.BitwiseNot(ir.Literal(66))))
       exampleExpr(
         "1 + -2 * 3 + 7 | 1980 || 'leeds1' || 'leeds2' || 'leeds3'",
         _.expression(),
         ir.Concat(
           Seq(
             ir.Concat(Seq(
-              ir.Concat(Seq(
-                ir.BitwiseOr(
-                  ir.Add(
-                    ir.Add(
-                      ir.Literal(short = Some(1)),
-                      ir.Multiply(ir.UMinus(ir.Literal(short = Some(2))), ir.Literal(short = Some(3)))),
-                    ir.Literal(short = Some(7))),
-                  ir.Literal(short = Some(1980))),
-                ir.Literal(string = Some("leeds1")))),
-              ir.Literal(string = Some("leeds2")))),
-            ir.Literal(string = Some("leeds3")))))
+              ir.Concat(
+                Seq(
+                  ir.BitwiseOr(
+                    ir.Add(ir.Add(ir.Literal(1), ir.Multiply(ir.UMinus(ir.Literal(2)), ir.Literal(3))), ir.Literal(7)),
+                    ir.Literal(1980)),
+                  ir.Literal("leeds1"))),
+              ir.Literal("leeds2"))),
+            ir.Literal("leeds3"))))
     }
     "correctly respect explicit precedence with parentheses" in {
-      exampleExpr(
-        "(1 + 2) * 3",
-        _.expression(),
-        ir.Multiply(ir.Add(ir.Literal(short = Some(1)), ir.Literal(short = Some(2))), ir.Literal(short = Some(3))))
-      exampleExpr(
-        "1 + (2 * 3)",
-        _.expression(),
-        ir.Add(ir.Literal(short = Some(1)), ir.Multiply(ir.Literal(short = Some(2)), ir.Literal(short = Some(3)))))
+      exampleExpr("(1 + 2) * 3", _.expression(), ir.Multiply(ir.Add(ir.Literal(1), ir.Literal(2)), ir.Literal(3)))
+      exampleExpr("1 + (2 * 3)", _.expression(), ir.Add(ir.Literal(1), ir.Multiply(ir.Literal(2), ir.Literal(3))))
       exampleExpr(
         "(1 + 2) * (3 + 4)",
         _.expression(),
-        ir.Multiply(
-          ir.Add(ir.Literal(short = Some(1)), ir.Literal(short = Some(2))),
-          ir.Add(ir.Literal(short = Some(3)), ir.Literal(short = Some(4)))))
+        ir.Multiply(ir.Add(ir.Literal(1), ir.Literal(2)), ir.Add(ir.Literal(3), ir.Literal(4))))
       exampleExpr(
         "1 + (2 * 3) + 4",
         _.expression(),
-        ir.Add(
-          ir.Add(ir.Literal(short = Some(1)), ir.Multiply(ir.Literal(short = Some(2)), ir.Literal(short = Some(3)))),
-          ir.Literal(short = Some(4))))
+        ir.Add(ir.Add(ir.Literal(1), ir.Multiply(ir.Literal(2), ir.Literal(3))), ir.Literal(4)))
       exampleExpr(
         "1 + (2 * 3 + 4)",
         _.expression(),
-        ir.Add(
-          ir.Literal(short = Some(1)),
-          ir.Add(ir.Multiply(ir.Literal(short = Some(2)), ir.Literal(short = Some(3))), ir.Literal(short = Some(4)))))
+        ir.Add(ir.Literal(1), ir.Add(ir.Multiply(ir.Literal(2), ir.Literal(3)), ir.Literal(4))))
       exampleExpr(
         "1 + (2 * (3 + 4))",
         _.expression(),
-        ir.Add(
-          ir.Literal(short = Some(1)),
-          ir.Multiply(ir.Literal(short = Some(2)), ir.Add(ir.Literal(short = Some(3)), ir.Literal(short = Some(4))))))
+        ir.Add(ir.Literal(1), ir.Multiply(ir.Literal(2), ir.Add(ir.Literal(3), ir.Literal(4)))))
       exampleExpr(
         "(1 + (2 * (3 + 4)))",
         _.expression(),
-        ir.Add(
-          ir.Literal(short = Some(1)),
-          ir.Multiply(ir.Literal(short = Some(2)), ir.Add(ir.Literal(short = Some(3)), ir.Literal(short = Some(4))))))
+        ir.Add(ir.Literal(1), ir.Multiply(ir.Literal(2), ir.Add(ir.Literal(3), ir.Literal(4)))))
     }
 
     "correctly resolve dot delimited plain references" in {
@@ -285,7 +236,7 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
       val mockVisitor = mock(classOf[TSqlExpressionBuilder])
 
       when(mockDotExprCtx.expression(anyInt())).thenReturn(mockExpressionCtx)
-      when(mockExpressionCtx.accept(mockVisitor)).thenReturn(ir.Literal(string = Some("a")))
+      when(mockExpressionCtx.accept(mockVisitor)).thenReturn(ir.Literal("a"))
       val result = astBuilder.visitExprDot(mockDotExprCtx)
 
       result shouldBe a[ir.Dot]
@@ -377,7 +328,7 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
       val expressionMockFunc = mock(classOf[TSqlParser.ExpressionContext])
       when(mockCtx.expression(1)).thenReturn(expressionMockFunc)
       when(expressionMockFunc.accept(any())).thenReturn(ir.CallFunction("UNKNOWN_FUNCTION", List()))
-      val result = exprBuilder.visitExprDot(mockCtx)
+      val result = vc.expressionBuilder.visitExprDot(mockCtx)
       result shouldBe a[ir.Dot]
     }
 
@@ -388,10 +339,8 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
         _.expression(),
         ir.Case(
           Some(simplyNamedColumn("a")),
-          Seq(
-            ir.WhenBranch(ir.Literal(short = Some(1)), ir.Literal(string = Some("one"))),
-            ir.WhenBranch(ir.Literal(short = Some(2)), ir.Literal(string = Some("two")))),
-          Some(ir.Literal(string = Some("other")))))
+          Seq(ir.WhenBranch(ir.Literal(1), ir.Literal("one")), ir.WhenBranch(ir.Literal(2), ir.Literal("two"))),
+          Some(ir.Literal("other"))))
 
       // Case without an initial expression and with an else clause
       exampleExpr(
@@ -400,13 +349,9 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
         ir.Case(
           None,
           Seq(
-            ir.WhenBranch(
-              ir.Equals(simplyNamedColumn("a"), ir.Literal(short = Some(1))),
-              ir.Literal(string = Some("one"))),
-            ir.WhenBranch(
-              ir.Equals(simplyNamedColumn("a"), ir.Literal(short = Some(2))),
-              ir.Literal(string = Some("two")))),
-          Some(ir.Literal(string = Some("other")))))
+            ir.WhenBranch(ir.Equals(simplyNamedColumn("a"), ir.Literal(1)), ir.Literal("one")),
+            ir.WhenBranch(ir.Equals(simplyNamedColumn("a"), ir.Literal(2)), ir.Literal("two"))),
+          Some(ir.Literal("other"))))
 
       // Case with an initial expression and without an else clause
       exampleExpr(
@@ -414,9 +359,7 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
         _.expression(),
         ir.Case(
           Some(simplyNamedColumn("a")),
-          Seq(
-            ir.WhenBranch(ir.Literal(short = Some(1)), ir.Literal(string = Some("one"))),
-            ir.WhenBranch(ir.Literal(short = Some(2)), ir.Literal(string = Some("two")))),
+          Seq(ir.WhenBranch(ir.Literal(1), ir.Literal("one")), ir.WhenBranch(ir.Literal(2), ir.Literal("two"))),
           None))
 
       // Case without an initial expression and without an else clause
@@ -428,12 +371,10 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
           Seq(
             ir.WhenBranch(
               ir.And(
-                ir.Equals(simplyNamedColumn("a"), ir.Literal(short = Some(1))),
-                ir.LessThan(simplyNamedColumn("b"), ir.Literal(short = Some(7)))),
-              ir.Literal(string = Some("one"))),
-            ir.WhenBranch(
-              ir.Equals(simplyNamedColumn("a"), ir.Literal(short = Some(2))),
-              ir.Literal(string = Some("two")))),
+                ir.Equals(simplyNamedColumn("a"), ir.Literal(1)),
+                ir.LessThan(simplyNamedColumn("b"), ir.Literal(7))),
+              ir.Literal("one")),
+            ir.WhenBranch(ir.Equals(simplyNamedColumn("a"), ir.Literal(2)), ir.Literal("two"))),
           None))
     }
 
@@ -442,10 +383,7 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
     }
 
     "translate a timezone reference" in {
-      exampleExpr(
-        "a AT TIME ZONE 'UTC'",
-        _.expression(),
-        ir.Timezone(simplyNamedColumn("a"), ir.Literal(string = Some("UTC"))))
+      exampleExpr("a AT TIME ZONE 'UTC'", _.expression(), ir.Timezone(simplyNamedColumn("a"), ir.Literal("UTC")))
     }
 
     "return UnresolvedExpression for unsupported SelectListElem" in {
@@ -457,7 +395,7 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
       when(mockCtx.expressionElem()).thenReturn(null)
 
       // Call the method with the mock instance
-      val result = exprBuilder.visitSelectListElem(mockCtx)
+      val result = vc.expressionBuilder.visitSelectListElem(mockCtx)
 
       // Verify the result
       result shouldBe a[ir.UnresolvedExpression]
@@ -475,7 +413,7 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
       when(expressionContextMock.accept(any())).thenReturn(null)
       when(selectListElemContextMock.expression()).thenReturn(expressionContextMock)
 
-      val result = exprBuilder.visitSelectListElem(selectListElemContextMock)
+      val result = vc.expressionBuilder.visitSelectListElem(selectListElemContextMock)
 
       result shouldBe a[ir.UnresolvedExpression]
     }
@@ -503,21 +441,21 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
       exampleExpr("CAST(a AS datetimeoffset)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.StringType))
       exampleExpr("CAST(a AS smalldatetime)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.TimestampType))
       exampleExpr("CAST(a AS char)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.CharType(size = None)))
-      exampleExpr("CAST(a AS varchar)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.VarCharType(size = None)))
+      exampleExpr("CAST(a AS varchar)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.VarcharType(size = None)))
       exampleExpr("CAST(a AS nchar)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.CharType(size = None)))
-      exampleExpr("CAST(a AS nvarchar)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.VarCharType(size = None)))
-      exampleExpr("CAST(a AS text)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.VarCharType(None)))
-      exampleExpr("CAST(a AS ntext)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.VarCharType(None)))
+      exampleExpr("CAST(a AS nvarchar)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.VarcharType(size = None)))
+      exampleExpr("CAST(a AS text)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.VarcharType(None)))
+      exampleExpr("CAST(a AS ntext)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.VarcharType(None)))
       exampleExpr("CAST(a AS image)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.BinaryType))
       exampleExpr("CAST(a AS decimal)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.DecimalType(None, None)))
       exampleExpr("CAST(a AS numeric)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.DecimalType(None, None)))
       exampleExpr("CAST(a AS binary)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.BinaryType))
       exampleExpr("CAST(a AS varbinary)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.BinaryType))
-      exampleExpr("CAST(a AS json)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.VarCharType(None)))
+      exampleExpr("CAST(a AS json)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.VarcharType(None)))
       exampleExpr(
         "CAST(a AS uniqueidentifier)",
         _.expression(),
-        ir.Cast(simplyNamedColumn("a"), ir.VarCharType(size = Some(16))))
+        ir.Cast(simplyNamedColumn("a"), ir.VarcharType(size = Some(16))))
     }
 
     "translate CAST pseudo function calls with length arguments" in {
@@ -525,12 +463,12 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
       exampleExpr(
         "CAST(a AS varchar(10))",
         _.expression(),
-        ir.Cast(simplyNamedColumn("a"), ir.VarCharType(size = Some(10))))
+        ir.Cast(simplyNamedColumn("a"), ir.VarcharType(size = Some(10))))
       exampleExpr("CAST(a AS nchar(10))", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.CharType(size = Some(10))))
       exampleExpr(
         "CAST(a AS nvarchar(10))",
         _.expression(),
-        ir.Cast(simplyNamedColumn("a"), ir.VarCharType(size = Some(10))))
+        ir.Cast(simplyNamedColumn("a"), ir.VarcharType(size = Some(10))))
     }
 
     "translate CAST pseudo function calls with scale arguments" in {
@@ -623,7 +561,7 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
       exampleExpr(
         "TRY_CAST(a AS varchar)",
         _.expression(),
-        ir.Cast(simplyNamedColumn("a"), ir.VarCharType(size = None), returnNullOnError = true))
+        ir.Cast(simplyNamedColumn("a"), ir.VarcharType(size = None), returnNullOnError = true))
       exampleExpr(
         "TRY_CAST(a AS nchar)",
         _.expression(),
@@ -631,15 +569,15 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
       exampleExpr(
         "TRY_CAST(a AS nvarchar)",
         _.expression(),
-        ir.Cast(simplyNamedColumn("a"), ir.VarCharType(size = None), returnNullOnError = true))
+        ir.Cast(simplyNamedColumn("a"), ir.VarcharType(size = None), returnNullOnError = true))
       exampleExpr(
         "TRY_CAST(a AS text)",
         _.expression(),
-        ir.Cast(simplyNamedColumn("a"), ir.VarCharType(None), returnNullOnError = true))
+        ir.Cast(simplyNamedColumn("a"), ir.VarcharType(None), returnNullOnError = true))
       exampleExpr(
         "TRY_CAST(a AS ntext)",
         _.expression(),
-        ir.Cast(simplyNamedColumn("a"), ir.VarCharType(None), returnNullOnError = true))
+        ir.Cast(simplyNamedColumn("a"), ir.VarcharType(None), returnNullOnError = true))
       exampleExpr(
         "TRY_CAST(a AS image)",
         _.expression(),
@@ -663,11 +601,11 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
       exampleExpr(
         "TRY_CAST(a AS json)",
         _.expression(),
-        ir.Cast(simplyNamedColumn("a"), ir.VarCharType(None), returnNullOnError = true))
+        ir.Cast(simplyNamedColumn("a"), ir.VarcharType(None), returnNullOnError = true))
       exampleExpr(
         "TRY_CAST(a AS uniqueidentifier)",
         _.expression(),
-        ir.Cast(simplyNamedColumn("a"), ir.VarCharType(size = Some(16)), returnNullOnError = true))
+        ir.Cast(simplyNamedColumn("a"), ir.VarcharType(size = Some(16)), returnNullOnError = true))
     }
 
     "translate TRY_CAST pseudo function calls with length arguments" in {
@@ -678,7 +616,7 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
       exampleExpr(
         "TRY_CAST(a AS varchar(10))",
         _.expression(),
-        ir.Cast(simplyNamedColumn("a"), ir.VarCharType(size = Some(10)), returnNullOnError = true))
+        ir.Cast(simplyNamedColumn("a"), ir.VarcharType(size = Some(10)), returnNullOnError = true))
       exampleExpr(
         "TRY_CAST(a AS nchar(10))",
         _.expression(),
@@ -686,7 +624,7 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
       exampleExpr(
         "TRY_CAST(a AS nvarchar(10))",
         _.expression(),
-        ir.Cast(simplyNamedColumn("a"), ir.VarCharType(size = Some(10)), returnNullOnError = true))
+        ir.Cast(simplyNamedColumn("a"), ir.VarcharType(size = Some(10)), returnNullOnError = true))
     }
 
     "translate TRY_CAST pseudo function calls with scale arguments" in {
@@ -715,11 +653,14 @@ class TSqlExpressionBuilderSpec extends AnyWordSpec with TSqlParserTestCommon wi
       // TODO: Resolve what to do with IDENTITY
       // IDENTITY it isn't actually castable but we have not implemented CREATE TABLE yet, so cover here for now
       // then examine what happens in snowflake
-      exampleExpr("CAST(a AS col1 IDENTITY(10, 2))", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.UnparsedType()))
+      exampleExpr(
+        "CAST(a AS col1 IDENTITY(10, 2))",
+        _.expression(),
+        ir.Cast(simplyNamedColumn("a"), ir.UnparsedType("col1IDENTITY(10,2)")))
     }
 
     "translate unknown types to UnParsedType" in {
-      exampleExpr("CAST(a AS sometype)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.UnparsedType()))
+      exampleExpr("CAST(a AS sometype)", _.expression(), ir.Cast(simplyNamedColumn("a"), ir.UnparsedType("sometype")))
     }
 
   }

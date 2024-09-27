@@ -32,8 +32,12 @@ class SnowflakeRelationBuilder
           c.selectTopClause().selectListTop().selectList().selectListElem().asScala)
     }
     val expressions = selectListElements.map(_.accept(expressionBuilder))
-    ir.Project(buildTop(top, buildDistinct(allOrDistinct, relation, expressions)), expressions)
 
+    if (Option(allOrDistinct).exists(_.DISTINCT() != null)) {
+      buildTop(top, buildDistinct(relation, expressions))
+    } else {
+      ir.Project(buildTop(top, relation), expressions)
+    }
   }
 
   private def buildLimitOffset(ctx: LimitClauseContext, input: ir.LogicalPlan): ir.LogicalPlan = {
@@ -51,19 +55,13 @@ class SnowflakeRelationBuilder
     }
   }
 
-  private def buildDistinct(
-      ctx: AllDistinctContext,
-      input: ir.LogicalPlan,
-      projectExpressions: Seq[ir.Expression]): ir.LogicalPlan =
-    if (Option(ctx).exists(_.DISTINCT() != null)) {
-      val columnNames = projectExpressions.collect {
-        case ir.Column(_, c) => Seq(c)
-        case ir.Alias(_, a, _) => a
-      }.flatten
-      ir.Deduplicate(input, columnNames, columnNames.isEmpty, within_watermark = false)
-    } else {
-      input
+  private def buildDistinct(input: ir.LogicalPlan, projectExpressions: Seq[ir.Expression]): ir.LogicalPlan = {
+    val columnNames = projectExpressions.collect {
+      case ir.Column(_, c) => c
+      case ir.Alias(_, a) => a
     }
+    ir.Deduplicate(input, projectExpressions, columnNames.isEmpty, within_watermark = false)
+  }
 
   private def buildTop(ctxOpt: Option[TopClauseContext], input: ir.LogicalPlan): ir.LogicalPlan =
     ctxOpt.fold(input) { top =>
@@ -127,6 +125,8 @@ class SnowflakeRelationBuilder
     buildSubqueryAlias(ctx.tableAlias(), buildPivotOrUnpivot(ctx.pivotUnpivot(), tableFunc))
   }
 
+  // @see https://docs.snowflake.com/en/sql-reference/functions/flatten
+  // @see https://docs.snowflake.com/en/sql-reference/functions-table
   override def visitObjRefSubquery(ctx: ObjRefSubqueryContext): ir.LogicalPlan = {
     val relation = ctx match {
       case c if c.subquery() != null => c.subquery().accept(this)
@@ -227,7 +227,10 @@ class SnowflakeRelationBuilder
   }
 
   override def visitTableSource(ctx: TableSourceContext): ir.LogicalPlan = {
-    val tableSource = ctx.tableSourceItemJoined().accept(this)
+    val tableSource = ctx match {
+      case c if c.tableSourceItemJoined() != null => c.tableSourceItemJoined().accept(this)
+      case c if c.tableSource() != null => c.tableSource().accept(this)
+    }
     buildSample(ctx.sample(), tableSource)
   }
 
@@ -238,37 +241,50 @@ class SnowflakeRelationBuilder
 
   private def buildJoin(left: ir.LogicalPlan, right: JoinClauseContext): ir.Join = {
     val usingColumns = Option(right.columnList()).map(_.columnName().asScala.map(_.getText)).getOrElse(Seq())
+    val joinType = if (right.NATURAL() != null) {
+      ir.NaturalJoin(translateOuterJoinType(right.outerJoin()))
+    } else if (right.CROSS() != null) {
+      ir.CrossJoin
+    } else {
+      translateJoinType(right.joinType())
+    }
     ir.Join(
       left,
       right.objectRef().accept(this),
       Option(right.predicate()).map(_.accept(expressionBuilder)),
-      translateJoinType(right.joinType()),
+      joinType,
       usingColumns,
       ir.JoinDataType(is_left_struct = false, is_right_struct = false))
+
   }
 
   private[snowflake] def translateJoinType(joinType: JoinTypeContext): ir.JoinType = {
-    if (joinType == null || joinType.outerJoin() == null) {
-      ir.InnerJoin
-    } else if (joinType.outerJoin().LEFT() != null) {
-      ir.LeftOuterJoin
-    } else if (joinType.outerJoin().RIGHT() != null) {
-      ir.RightOuterJoin
-    } else if (joinType.outerJoin().FULL() != null) {
-      ir.FullOuterJoin
-    } else {
-      ir.UnspecifiedJoin
-    }
+    Option(joinType)
+      .map { jt =>
+        if (jt.INNER() != null) {
+          ir.InnerJoin
+        } else {
+          translateOuterJoinType(jt.outerJoin())
+        }
+      }
+      .getOrElse(ir.UnspecifiedJoin)
+  }
+
+  private def translateOuterJoinType(ctx: OuterJoinContext): ir.JoinType = {
+    Option(ctx)
+      .collect {
+        case c if c.LEFT() != null => ir.LeftOuterJoin
+        case c if c.RIGHT() != null => ir.RightOuterJoin
+        case c if c.FULL() != null => ir.FullOuterJoin
+      }
+      .getOrElse(ir.UnspecifiedJoin)
   }
 
   override def visitCommonTableExpression(ctx: CommonTableExpressionContext): ir.LogicalPlan = {
-    val tableName = ctx.id().getText
-    val columns = Option(ctx.columnList())
-      .map(_.columnName().asScala)
-      .getOrElse(Seq())
-      .map(_.accept(expressionBuilder))
+    val tableName = expressionBuilder.visitId(ctx.tableName)
+    val columns = ctx.columns.asScala.map(expressionBuilder.visitId)
     val query = ctx.selectStatement().accept(this)
-    ir.CTEDefinition(tableName, columns, query)
+    ir.SubqueryAlias(query, tableName, columns)
   }
 
   private def buildNum(ctx: NumContext): BigDecimal = {

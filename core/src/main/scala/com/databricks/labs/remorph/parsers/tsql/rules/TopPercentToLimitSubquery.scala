@@ -50,12 +50,11 @@ class TopPercentToLimitSubquery extends Rule[LogicalPlan] {
             SubqueryAlias(
               Project(
                 UnresolvedRelation(originalCteName),
-                reProject ++ Seq(
-                  Alias(Window(NTile(Literal(short = Some(100))), sort_order = order), Seq(Id(percentileColName))))),
+                reProject ++ Seq(Alias(Window(NTile(Literal(100)), sort_order = order), Id(percentileColName)))),
               Id(withPercentileCteName))),
           Filter(
             Project(UnresolvedRelation(withPercentileCteName), reProject),
-            LessThanOrEqual(UnresolvedAttribute(percentileColName), Divide(percentage, Literal(short = Some(100))))))
+            LessThanOrEqual(UnresolvedAttribute(percentileColName), Divide(percentage, Literal(100)))))
       case _ =>
         // TODO: (jimidle) figure out cases when this is not true
         throw new IllegalArgumentException("TopPercent with ties requires a Sort node")
@@ -70,13 +69,13 @@ class TopPercentToLimitSubquery extends Rule[LogicalPlan] {
       Seq(
         SubqueryAlias(child, Id(originalCteName)),
         SubqueryAlias(
-          Project(UnresolvedRelation(originalCteName), Seq(Alias(Count(Seq(Star())), Seq(Id("count"))))),
+          Project(UnresolvedRelation(originalCteName), Seq(Alias(Count(Seq(Star())), Id("count")))),
           Id(countedCteName))),
       Limit(
         Project(UnresolvedRelation(originalCteName), Seq(Star())),
         ScalarSubquery(
           Project(
             UnresolvedRelation(countedCteName),
-            Seq(Cast(Multiply(Divide(Id("count"), percentage), Literal(short = Some(100))), LongType))))))
+            Seq(Cast(Multiply(Divide(Id("count"), percentage), Literal(100)), LongType))))))
   }
 }

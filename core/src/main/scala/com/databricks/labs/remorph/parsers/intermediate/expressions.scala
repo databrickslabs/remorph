@@ -100,7 +100,7 @@ case class AttributeReference(
   override def newInstance(): NamedExpression = copy(exprId = NamedExpression.newExprId)
 }
 
-abstract class Unary(child: Expression) extends Expression {
+abstract class Unary(val child: Expression) extends Expression {
   override def children: Seq[Expression] = Seq(child)
 }
 
@@ -117,6 +117,16 @@ case class Case(expression: Option[Expression], branches: Seq[WhenBranch], other
   override def children: Seq[Expression] = expression.toSeq ++
     branches.flatMap(b => Seq(b.condition, b.expression)) ++ otherwise
   override def dataType: DataType = branches.head.dataType
+}
+
+/** isnotnull(expr) - Returns true if `expr` is not null, or false otherwise. */
+case class IsNotNull(left: Expression) extends Unary(left) {
+  override def dataType: DataType = left.dataType
+}
+
+/** isnull(expr) - Returns true if `expr` is null, or false otherwise. */
+case class IsNull(left: Expression) extends Unary(left) {
+  override def dataType: DataType = left.dataType
 }
 
 abstract class FrameType
@@ -137,7 +147,8 @@ case class Window(
     window_function: Expression,
     partition_spec: Seq[Expression] = Seq.empty,
     sort_order: Seq[SortOrder] = Seq.empty,
-    frame_spec: Option[WindowFrame] = None)
+    frame_spec: Option[WindowFrame] = None,
+    ignore_nulls: Boolean = false) // This Translates to Databricks Default Respect Nulls
     extends Expression {
   override def children: Seq[Expression] = window_function +: partition_spec
   override def dataType: DataType = window_function.dataType
@@ -152,35 +163,24 @@ case class Cast(
     timeZoneId: Option[String] = None)
     extends Unary(expr)
 
-case class Decimal(value: String, precision: Option[Int], scale: Option[Int]) extends LeafExpression {
-  override def dataType: DataType = DecimalType(precision, scale)
-}
-
 case class CalendarInterval(months: Int, days: Int, microseconds: Long) extends LeafExpression {
   override def dataType: DataType = CalendarIntervalType
 }
 
-case class ArrayExpr(dataType: DataType, elements: Seq[Expression]) extends Expression {
-  override def children: Seq[Expression] = elements
-}
+case class StructExpr(fields: Seq[StarOrAlias]) extends Expression {
+  override def children: Seq[Expression] = fields.map {
+    case a: Alias => a
+    case s: Star => s
+  }
 
-case class JsonExpr(dataType: DataType, fields: Seq[(String, Literal)]) extends Expression {
-  override def children: Seq[Expression] = fields.map(_._2)
-}
-
-case class MapExpr(key_type: DataType, value_type: DataType, keys: Seq[Literal], values: Seq[Expression])
-    extends Expression {
-  override def children: Seq[Expression] = keys ++ values
-  override def dataType: DataType = MapType(key_type, value_type)
-}
-
-case class Struct(dataType: DataType, elements: Seq[Literal]) extends Expression {
-  override def children: Seq[Expression] = elements
-}
-
-// TODO: remove this type
-case class ExpressionString(expression: String) extends LeafExpression {
-  override def dataType: DataType = StringType
+  override def dataType: DataType = fields match {
+    case Nil => UnresolvedType
+    case Seq(Star(_)) => UnresolvedType
+    case _ =>
+      StructType(fields.map { case Alias(child, Id(name, _)) =>
+        StructField(name, child.dataType)
+      })
+  }
 }
 
 case class UpdateFields(struct_expression: Expression, field_name: String, value_expression: Option[Expression])
@@ -189,8 +189,9 @@ case class UpdateFields(struct_expression: Expression, field_name: String, value
   override def dataType: DataType = UnresolvedType // TODO: Fix this
 }
 
-// TODO: has to be Alias(expr: Expression, name: String)
-case class Alias(expr: Expression, name: Seq[Id], metadata: Option[String] = None) extends Unary(expr) {
+trait StarOrAlias
+
+case class Alias(expr: Expression, name: Id) extends Unary(expr) with StarOrAlias {
   override def dataType: DataType = expr.dataType
 }
 
@@ -227,5 +228,13 @@ case class CommonInlineUserDefinedFunction(
     java_udf: Option[JavaUDF])
     extends Expression {
   override def children: Seq[Expression] = arguments ++ python_udf.toSeq ++ scalar_scala_udf.toSeq ++ java_udf.toSeq
+  override def dataType: DataType = UnresolvedType
+}
+
+case class Variable(name: String) extends LeafExpression {
+  override def dataType: DataType = UnresolvedType
+}
+
+case class SchemaReference(columnName: Expression) extends Unary(columnName) {
   override def dataType: DataType = UnresolvedType
 }

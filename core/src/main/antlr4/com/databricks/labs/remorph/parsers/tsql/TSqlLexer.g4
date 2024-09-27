@@ -290,6 +290,7 @@ DROP_EXISTING                               : 'DROP_EXISTING';
 DROPCLEANBUFFERS                            : 'DROPCLEANBUFFERS';
 DTC_SUPPORT                                 : 'DTC_SUPPORT';
 DYNAMIC                                     : 'DYNAMIC';
+EDGE                                        : 'EDGE';
 ELEMENTS                                    : 'ELEMENTS';
 ELSE                                        : 'ELSE';
 EMERGENCY                                   : 'EMERGENCY';
@@ -340,6 +341,7 @@ FILENAME                                    : 'FILENAME';
 FILEPATH                                    : 'FILEPATH';
 FILESTREAM                                  : 'FILESTREAM';
 FILESTREAM_ON                               : 'FILESTREAM_ON';
+FILETABLE                                   : 'FILETABLE';
 FILLFACTOR                                  : 'FILLFACTOR';
 FILTER                                      : 'FILTER';
 FIRST                                       : 'FIRST';
@@ -531,6 +533,7 @@ NO_TRUNCATE                                 : 'NO_TRUNCATE';
 NO_WAIT                                     : 'NO_WAIT';
 NOCHECK                                     : 'NOCHECK';
 NOCOUNT                                     : 'NOCOUNT';
+NODE                                        : 'NODE';
 NODES                                       : 'NODES';
 NOEXEC                                      : 'NOEXEC';
 NOEXPAND                                    : 'NOEXPAND';
@@ -552,7 +555,7 @@ NOTIFICATIONS                               : 'NOTIFICATIONS';
 NOUNLOAD                                    : 'NOUNLOAD';
 NTILE                                       : 'NTILE';
 NTLM                                        : 'NTLM';
-NULL_                                       : 'NULL';
+NULL                                        : 'NULL';
 NULLS                                       : 'NULLS';
 NUMANODE                                    : 'NUMANODE';
 NUMBER                                      : 'NUMBER';
@@ -642,6 +645,7 @@ PROVIDER_KEY_NAME                           : 'PROVIDER_KEY_NAME';
 PUBLIC                                      : 'PUBLIC';
 PYTHON                                      : 'PYTHON';
 QUERY                                       : 'QUERY';
+QUERY_STORE                                 : 'QUERY_STORE';
 QUEUE                                       : 'QUEUE';
 QUEUE_DELAY                                 : 'QUEUE_DELAY';
 QUOTED_IDENTIFIER                           : 'QUOTED_IDENTIFIER';
@@ -929,15 +933,18 @@ XMLSCHEMA                                   : 'XMLSCHEMA';
 XSINIL                                      : 'XSINIL';
 ZONE                                        : 'ZONE';
 
+// Specials for graph nodes
+NODEID: '$NODE_ID';
+
 //Combinations that cannot be used as IDs
 DOLLAR_ACTION: '$ACTION';
 
 // Functions starting with double at signs
 AAPSEUDO: '@@' ID;
 
-IPV4_ADDR: DEC_DIGIT+ '.' DEC_DIGIT+ '.' DEC_DIGIT+ '.' DEC_DIGIT+;
-
-SPACE        : [ \t\r\n]+                -> skip;
+SPACE:
+    [ \t\r\n\u000c\u0085\u00a0\u1680\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u202f\u205f\u3000]+ -> skip
+;
 COMMENT      : '/*' (COMMENT | .)*? '*/' -> channel(HIDDEN);
 LINE_COMMENT : '--' ~[\r\n]*             -> channel(HIDDEN);
 

@@ -1,6 +1,19 @@
 package com.databricks.labs.remorph.parsers.intermediate
 
-abstract class DataType
+abstract class DataType {
+  def isPrimitive: Boolean = this match {
+    case BooleanType => true
+    case ByteType(_) => true
+    case ShortType => true
+    case IntegerType => true
+    case LongType => true
+    case FloatType => true
+    case DoubleType => true
+    case StringType => true
+    case _ => false
+  }
+}
+
 case object NullType extends DataType
 case object BooleanType extends DataType
 case object BinaryType extends DataType
@@ -8,17 +21,25 @@ case object BinaryType extends DataType
 // Numeric types
 case class ByteType(size: Option[Int]) extends DataType
 case object ShortType extends DataType
+case object TinyintType extends DataType
 case object IntegerType extends DataType
 case object LongType extends DataType
 
 case object FloatType extends DataType
 case object DoubleType extends DataType
+
+object DecimalType {
+  def apply(): DecimalType = DecimalType(None, None)
+  def apply(precision: Int, scale: Int): DecimalType = DecimalType(Some(precision), Some(scale))
+  def fromBigDecimal(d: BigDecimal): DecimalType = DecimalType(Some(d.precision), Some(d.scale))
+}
+
 case class DecimalType(precision: Option[Int], scale: Option[Int]) extends DataType
 
 // String types
 case object StringType extends DataType
 case class CharType(size: Option[Int]) extends DataType
-case class VarCharType(size: Option[Int]) extends DataType
+case class VarcharType(size: Option[Int]) extends DataType
 
 // Datatime types
 case object DateType extends DataType
@@ -34,22 +55,42 @@ case object DayTimeIntervalType extends DataType
 
 // Complex types
 case class ArrayType(elementType: DataType) extends DataType
-case class StructType() extends DataType
+case class StructField(name: String, dataType: DataType, nullable: Boolean = true)
+case class StructType(fields: Seq[StructField]) extends DataType
 case class MapType(keyType: DataType, valueType: DataType) extends DataType
+
+// While Databricks SQl does not DIRECTLY support IDENTITY in the way some other dialects do, it does support
+// Id BIGINT GENERATED ALWAYS AS IDENTITY
+case class IdentityType(start: Option[Int], increment: Option[Int]) extends DataType
 
 // UserDefinedType
 case class UDTType() extends DataType
 
-case class UnparsedType() extends DataType
+case class UnparsedType(text: String) extends DataType
 
 case object UnresolvedType extends DataType
 
+// These are likely to change in a not-so-remote future. Spark SQL does not have constraints
+// as it is not a database in its own right. Databricks SQL supports Key constraints and
+// also allows the definition of CHECK constraints via ALTER table after table creation. Spark
+// does support nullability but stores that as a boolean in the column definition, as well as an
+// expression for default values.
+//
+// So we will store the column constraints with the column definition and then use them to generate
+// Databricks SQL CHECK constraints where we can, and comment the rest.
 sealed trait Constraint
 sealed trait UnnamedConstraint extends Constraint
-case object Unique extends UnnamedConstraint
+case class Unique(options: Seq[GenericOption] = Seq.empty, columns: Option[Seq[String]] = None)
+    extends UnnamedConstraint
+// Nullability is kept in case the NOT NULL constraint is named and we must generate a CHECK constraint
 case class Nullability(nullable: Boolean) extends UnnamedConstraint
-case object PrimaryKey extends UnnamedConstraint
-case class ForeignKey(references: String) extends UnnamedConstraint
+case class PrimaryKey(options: Seq[GenericOption] = Seq.empty, columns: Option[Seq[String]] = None)
+    extends UnnamedConstraint
+case class ForeignKey(tableCols: String, refObject: String, refCols: String, options: Seq[GenericOption])
+    extends UnnamedConstraint
+case class DefaultValueConstraint(value: Expression) extends UnnamedConstraint
+case class CheckConstraint(expression: Expression) extends UnnamedConstraint
+case class IdentityConstraint(start: String, increment: String) extends UnnamedConstraint
 case class NamedConstraint(name: String, constraint: UnnamedConstraint) extends Constraint
 case class UnresolvedConstraint(inputText: String) extends UnnamedConstraint
 
@@ -66,7 +107,7 @@ case class ColumnDeclaration(
 case class CreateTableCommand(name: String, columns: Seq[ColumnDeclaration]) extends Catalog {}
 
 sealed trait TableAlteration
-case class AddColumn(columnDeclaration: ColumnDeclaration) extends TableAlteration
+case class AddColumn(columnDeclaration: Seq[ColumnDeclaration]) extends TableAlteration
 case class AddConstraint(columnName: String, constraint: Constraint) extends TableAlteration
 case class ChangeColumnDataType(columnName: String, newDataType: DataType) extends TableAlteration
 case class UnresolvedTableAlteration(inputText: String) extends TableAlteration
@@ -99,23 +140,34 @@ case class CreateExternalTable(
     table_name: String,
     path: Option[String],
     source: Option[String],
-    schema: Option[DataType],
-    options: Map[String, String])
+    description: Option[String],
+    override val schema: DataType)
     extends Catalog {}
+
+// As per Spark v2Commands
 case class CreateTable(
     table_name: String,
     path: Option[String],
     source: Option[String],
     description: Option[String],
-    schema: Option[DataType],
-    options: Map[String, String])
+    override val schema: DataType)
     extends Catalog {}
+
+// As per Spark v2Commands
+case class CreateTableAsSelect(
+    table_name: String,
+    query: LogicalPlan,
+    path: Option[String],
+    source: Option[String],
+    description: Option[String])
+    extends Catalog {}
+
 case class DropTempView(view_name: String) extends Catalog {}
 case class DropGlobalTempView(view_name: String) extends Catalog {}
 case class RecoverPartitions(table_name: String) extends Catalog {}
 case class IsCached(table_name: String) extends Catalog {}
 case class CacheTable(table_name: String, storage_level: StorageLevel) extends Catalog {}
-case class UncacheTable(table_name: String) extends Catalog {}
+case class UncachedTable(table_name: String) extends Catalog {}
 case class ClearCache() extends Catalog {}
 case class RefreshTable(table_name: String) extends Catalog {}
 case class RefreshByPath(path: String) extends Catalog {}

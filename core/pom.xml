@@ -20,6 +20,16 @@
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <slf4j.version>2.0.9</slf4j.version>
     <antlr.version>4.13.1</antlr.version>
+    <sql-formatter.version>2.0.5</sql-formatter.version>
+    <scala-logging.version>3.9.5</scala-logging.version>
+    <databricks-sdk-java.version>0.27.1</databricks-sdk-java.version>
+    <databricks-connect.version>15.1.0</databricks-connect.version>
+    <ujson.version>4.0.0</ujson.version>
+    <upickle.version>4.0.0</upickle.version>
+    <mssql-jdbc.version>12.8.0.jre8</mssql-jdbc.version>
+    <snowflake-jdbc.version>3.18.0</snowflake-jdbc.version>
+    <os-lib.version>0.10.1</os-lib.version>
+    <scala-csv.version>2.0.0</scala-csv.version>
   </properties>
   <dependencyManagement>
     <dependencies>
@@ -39,41 +49,49 @@
       <version>${antlr.version}</version>
     </dependency>
     <dependency>
+      <groupId>com.fasterxml.jackson.module</groupId>
+      <artifactId>jackson-module-scala_${scala.binary.version}</artifactId>
+      <version>${jackson.version}</version>
+    </dependency>
+    <dependency>
       <groupId>org.scala-lang</groupId>
       <artifactId>scala-library</artifactId>
       <version>${scala.version}</version>
-      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>com.databricks</groupId>
       <artifactId>databricks-sdk-java</artifactId>
-      <version>0.21.0</version>
+      <version>${databricks-sdk-java.version}</version>
     </dependency>
     <dependency>
-      <groupId>org.apache.spark</groupId>
-      <artifactId>spark-core_${scala.binary.version}</artifactId>
-      <version>${spark.version}</version>
-      <scope>provided</scope>
+      <groupId>com.databricks</groupId>
+      <artifactId>databricks-connect</artifactId>
+      <version>${databricks-connect.version}</version>
+      <exclusions>
+        <exclusion>
+          <groupId>org.scala-lang</groupId>
+          <artifactId>scala-reflect</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.json4s</groupId>
+          <artifactId>json4s-scalap_${scala.binary.version}</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
-      <groupId>org.apache.spark</groupId>
-      <artifactId>spark-sql_${scala.binary.version}</artifactId>
-      <version>${spark.version}</version>
-      <scope>provided</scope>
+      <groupId>org.apache.logging.log4j</groupId>
+      <artifactId>log4j-slf4j2-impl</artifactId>
+      <version>2.23.1</version>
     </dependency>
     <dependency>
-      <groupId>org.apache.spark</groupId>
-      <artifactId>spark-catalyst_${scala.binary.version}</artifactId>
-      <version>${spark.version}</version>
-      <classifier>tests</classifier>
-      <scope>provided</scope>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
+      <version>${slf4j.version}</version>
     </dependency>
     <dependency>
-      <groupId>org.apache.spark</groupId>
-      <artifactId>spark-launcher_${scala.binary.version}</artifactId>
-      <version>${spark.version}</version>
-      <classifier>tests</classifier>
-      <scope>provided</scope>
+      <groupId>com.typesafe.scala-logging</groupId>
+      <artifactId>scala-logging_${scala.binary.version}</artifactId>
+      <version>${scala-logging.version}</version>
     </dependency>
     <dependency>
       <groupId>org.scalatest</groupId>
@@ -97,12 +115,48 @@
       <groupId>com.lihaoyi</groupId>
       <artifactId>pprint_${scala.binary.version}</artifactId>
       <version>0.8.1</version>
-      <scope>test</scope>
+      <scope>compile</scope>
     </dependency>
     <dependency>
-      <groupId>com.typesafe.scala-logging</groupId>
-      <artifactId>scala-logging_${scala.binary.version}</artifactId>
-      <version>3.9.5</version>
+      <groupId>com.lihaoyi</groupId>
+      <artifactId>upickle_2.12</artifactId>
+      <version>${upickle.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.lihaoyi</groupId>
+      <artifactId>ujson_${scala.binary.version}</artifactId>
+      <version>${ujson.version}</version>
+      <scope>compile</scope>
+    </dependency>
+    <dependency>
+      <groupId>com.lihaoyi</groupId>
+      <artifactId>os-lib_${scala.binary.version}</artifactId>
+      <version>${os-lib.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.github.vertical-blank</groupId>
+      <artifactId>sql-formatter</artifactId>
+      <version>${sql-formatter.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>net.snowflake</groupId>
+      <artifactId>snowflake-jdbc</artifactId>
+      <version>${snowflake-jdbc.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.github.tototoshi</groupId>
+      <artifactId>scala-csv_${scala.binary.version}</artifactId>
+      <version>${scala-csv.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.microsoft.sqlserver</groupId>
+      <artifactId>mssql-jdbc</artifactId>
+      <version>${mssql-jdbc.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.bouncycastle</groupId>
+      <artifactId>bcprov-jdk18on</artifactId>
+      <version>1.78.1</version>
     </dependency>
   </dependencies>
   <build>
@@ -110,62 +164,13 @@
     <testOutputDirectory>target/scala-${scala.binary.version}/test-classes</testOutputDirectory>
     <plugins>
       <plugin>
-        <groupId>com.github.eirslett</groupId>
-        <artifactId>frontend-maven-plugin</artifactId>
-        <version>1.15.0</version>
+        <!-- we only have scala tests, so skip surefire -->
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>3.1.2</version>
         <configuration>
-          <nodeVersion>v22.3.0</nodeVersion>
-          <installDirectory>${project.build.directory}</installDirectory>
+          <skipTests>true</skipTests>
         </configuration>
-        <executions>
-          <execution>
-            <id>install node and npm</id>
-            <phase>validate</phase>
-            <goals>
-              <goal>install-node-and-npm</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>exec-maven-plugin</artifactId>
-        <version>3.3.0</version>
-        <executions>
-          <!-- npm install antlr-format-cli -->
-          <execution>
-            <id>npm install antlr-format antlr-format-cli</id>
-            <phase>validate</phase>
-            <goals>
-              <goal>exec</goal>
-            </goals>
-            <configuration>
-              <executable>${project.build.directory}/node/npm</executable>
-              <arguments>
-                <argument>install</argument>
-                <argument>-g</argument>
-                <argument>--save-dev</argument>
-                <argument>antlr-format</argument>
-                <argument>antlr-format-cli</argument>
-              </arguments>
-            </configuration>
-          </execution>
-          <!-- antlr-fmt -->
-          <execution>
-            <id>antlr-fmt</id>
-            <phase>generate-sources</phase>
-            <goals>
-              <goal>exec</goal>
-            </goals>
-            <configuration>
-              <executable>${project.build.directory}/bin/antlr-format</executable>
-              <arguments>
-                <argument>-v</argument>
-                <argument>${basedir}/src/main/antlr4/**/*.g4</argument>
-              </arguments>
-            </configuration>
-          </execution>
-        </executions>
       </plugin>
       <plugin>
         <groupId>org.scalatest</groupId>
@@ -205,19 +210,6 @@
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-javadoc-plugin</artifactId>
-        <version>3.6.3</version>
-        <executions>
-          <execution>
-            <id>attach-javadocs</id>
-            <goals>
-              <goal>jar</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-jar-plugin</artifactId>
         <version>2.4</version>
         <executions>
@@ -230,4 +222,102 @@
       </plugin>
     </plugins>
   </build>
+  <profiles>
+    <profile>
+      <id>format</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>com.github.eirslett</groupId>
+            <artifactId>frontend-maven-plugin</artifactId>
+            <version>1.15.0</version>
+            <configuration>
+              <nodeVersion>v22.3.0</nodeVersion>
+              <installDirectory>${project.build.directory}</installDirectory>
+            </configuration>
+            <executions>
+              <execution>
+                <id>install node and npm</id>
+                <phase>validate</phase>
+                <goals>
+                  <goal>install-node-and-npm</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+          <plugin>
+            <groupId>org.codehaus.mojo</groupId>
+            <artifactId>exec-maven-plugin</artifactId>
+            <version>3.4.1</version>
+            <executions>
+<!--              &lt;!&ndash; npm install antlr-format-cli &ndash;&gt;-->
+<!--              <execution>-->
+<!--                <id>npm install antlr-format antlr-format-cli</id>-->
+<!--                <phase>validate</phase>-->
+<!--                <goals>-->
+<!--                  <goal>exec</goal>-->
+<!--                </goals>-->
+<!--                <configuration>-->
+<!--                  <executable>${project.build.directory}/node/npm</executable>-->
+<!--                  <arguments>-->
+<!--                    <argument>install</argument>-->
+<!--                    <argument>-g</argument>-->
+<!--                    <argument>&#45;&#45;save-dev</argument>-->
+<!--                    <argument>antlr-format</argument>-->
+<!--                    <argument>antlr-format-cli</argument>-->
+<!--                  </arguments>-->
+<!--                </configuration>-->
+<!--              </execution>-->
+<!--              &lt;!&ndash; antlr-fmt &ndash;&gt;-->
+<!--              <execution>-->
+<!--                <id>antlr-fmt</id>-->
+<!--                <phase>validate</phase>-->
+<!--                <goals>-->
+<!--                  <goal>exec</goal>-->
+<!--                </goals>-->
+<!--                <configuration>-->
+<!--                  <executable>${project.build.directory}/bin/antlr-format</executable>-->
+<!--                  <arguments>-->
+<!--                    <argument>-v</argument>-->
+<!--                    <argument>${basedir}/src/main/antlr4/**/*.g4</argument>-->
+<!--                  </arguments>-->
+<!--                </configuration>-->
+<!--              </execution>-->
+              <execution>
+                <goals>
+                  <goal>java</goal>
+                </goals>
+              </execution>
+            </executions>
+            <configuration>
+              <mainClass>com.databricks.labs.remorph.Main</mainClass>
+            </configuration>
+          </plugin>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-assembly-plugin</artifactId>
+            <version>3.6.0</version>
+            <configuration>
+              <descriptorRefs>
+                <descriptorRef>jar-with-dependencies</descriptorRef>
+              </descriptorRefs>
+              <archive>
+                <manifest>
+                  <mainClass>com.databricks.labs.remorph.Main</mainClass>
+                </manifest>
+              </archive>
+            </configuration>
+            <executions>
+              <execution>
+                <phase>package</phase>
+                <goals>
+                  <goal>single</goal>
+                </goals>
+              </execution>
+            </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+  </profiles>
 </project>

@@ -1,14 +1,15 @@
 package com.databricks.labs.remorph.generators.sql
 
 import com.databricks.labs.remorph.generators.GeneratorContext
+import com.databricks.labs.remorph.parsers.intermediate.DataType
 import com.databricks.labs.remorph.parsers.{intermediate => ir}
 import org.scalatest.matchers.should.Matchers
-import org.scalatest.prop.TableDrivenPropertyChecks
+import org.scalatest.prop.{TableDrivenPropertyChecks, TableFor2}
 import org.scalatest.wordspec.AnyWordSpec
 
 class DataTypeGeneratorTest extends AnyWordSpec with Matchers with TableDrivenPropertyChecks {
 
-  val translations = Table(
+  val translations: TableFor2[DataType, String] = Table(
     ("datatype", "expected translation"),
     (ir.NullType, "VOID"),
     (ir.BooleanType, "BOOLEAN"),
@@ -28,12 +29,24 @@ class DataTypeGeneratorTest extends AnyWordSpec with Matchers with TableDrivenPr
     (ir.ArrayType(ir.StringType), "ARRAY<STRING>"),
     (ir.ArrayType(ir.ArrayType(ir.IntegerType)), "ARRAY<ARRAY<INT>>"),
     (ir.MapType(ir.StringType, ir.DoubleType), "MAP<STRING, DOUBLE>"),
-    (ir.MapType(ir.StringType, ir.ArrayType(ir.DateType)), "MAP<STRING, ARRAY<DATE>>"))
+    (ir.MapType(ir.StringType, ir.ArrayType(ir.DateType)), "MAP<STRING, ARRAY<DATE>>"),
+    (ir.VarcharType(Some(10)), "VARCHAR(10)"),
+    (
+      ir.StructExpr(
+        Seq(
+          ir.Alias(ir.Literal(1), ir.Id("a")),
+          ir.Alias(ir.Literal("two"), ir.Id("b")),
+          ir.Alias(ir.Literal(Seq(1, 2, 3)), ir.Id("c"))))
+        .dataType,
+      "STRUCT<a:INT,b:STRING,c:ARRAY<INT>>"))
 
   "DataTypeGenerator" should {
     "generate proper SQL data types" in {
+      val exprGenerator = new ExpressionGenerator()
+      val optionGenerator = new OptionGenerator(exprGenerator)
+      val logical = new LogicalPlanGenerator(exprGenerator, optionGenerator)
       forAll(translations) { (dt, expected) =>
-        DataTypeGenerator.generateDataType(GeneratorContext(), dt) shouldBe expected
+        DataTypeGenerator.generateDataType(GeneratorContext(logical), dt) shouldBe expected
       }
     }
   }

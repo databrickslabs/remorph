@@ -19,7 +19,7 @@ case class NamedTable(unparsed_identifier: String, options: Map[String, String],
 
 case class DataSource(
     format: String,
-    schema: String,
+    schemaString: String,
     options: Map[String, String],
     paths: Seq[String],
     predicates: Seq[String],
@@ -31,7 +31,13 @@ case class DataSource(
 case class Project(input: LogicalPlan, override val expressions: Seq[Expression]) extends UnaryNode {
   override def child: LogicalPlan = input
   // TODO: add resolver for Star
-  override def output: Seq[Attribute] = expressions.map(_.asInstanceOf[Attribute])
+  override def output: Seq[Attribute] = expressions.map {
+    case a: Attribute => a
+    case Alias(child, Id(name, _)) => AttributeReference(name, child.dataType)
+    case Id(name, _) => AttributeReference(name, UnresolvedType)
+    case Column(_, Id(name, _)) => AttributeReference(name, UnresolvedType)
+    case expr: Expression => throw new UnsupportedOperationException(s"cannot convert to attribute: $expr")
+  }
 }
 
 case class Filter(input: LogicalPlan, condition: Expression) extends UnaryNode {
@@ -84,7 +90,7 @@ case class Tail(child: LogicalPlan, limit: Int) extends UnaryNode {
   override def output: Seq[Attribute] = child.output
 }
 
-case class Pivot(col: Expression, values: Seq[Literal])
+case class Pivot(col: Expression, values: Seq[Expression])
 
 case class Aggregate(
     child: LogicalPlan,
@@ -106,10 +112,10 @@ case object NullsFirst extends NullOrdering("NULLS FIRST")
 case object NullsLast extends NullOrdering("NULLS LAST")
 
 case class SortOrder(
-    child: Expression,
+    expr: Expression,
     direction: SortDirection = UnspecifiedSortDirection,
     nullOrdering: NullOrdering = SortNullsUnspecified)
-    extends Unary(child) {
+    extends Unary(expr) {
   override def dataType: DataType = child.dataType
 }
 
@@ -123,7 +129,7 @@ case class Drop(child: LogicalPlan, columns: Seq[Expression], column_names: Seq[
 
 case class Deduplicate(
     child: LogicalPlan,
-    column_names: Seq[Id],
+    column_names: Seq[Expression],
     all_columns_as_keys: Boolean,
     within_watermark: Boolean)
     extends UnaryNode {
@@ -131,7 +137,7 @@ case class Deduplicate(
   override def expressions: Seq[Expression] = super.expressions ++ column_names
 }
 
-case class LocalRelation(child: LogicalPlan, data: Array[Byte], schema: String) extends UnaryNode {
+case class LocalRelation(child: LogicalPlan, data: Array[Byte], schemaString: String) extends UnaryNode {
   override def output: Seq[Attribute] = child.output
 }
 
@@ -366,6 +372,8 @@ case object LeftAntiJoin extends JoinType
 case object LeftSemiJoin extends JoinType
 
 case object CrossJoin extends JoinType
+
+case class NaturalJoin(joinType: JoinType) extends JoinType
 
 case object UnspecifiedSetOp extends SetOpType
 

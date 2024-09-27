@@ -37,12 +37,22 @@ case class UnresolvedExtractValue(child: Expression, extraction: Expression) ext
   override def dataType: DataType = UnresolvedType
 }
 
-case class UnresolvedCommand(inputText: String) extends LeafNode with Command {
+case class UnresolvedCommand(inputText: String) extends Catalog with Command {
   override def output: Seq[Attribute] = Seq.empty
   override def children: Seq[LogicalPlan] = Seq.empty
 }
 
 case class UnresolvedCatalog(inputText: String) extends Catalog {
+  override def output: Seq[Attribute] = Seq.empty
+  override def children: Seq[LogicalPlan] = Seq.empty
+}
+
+case class UnresolvedCTAS(inputText: String) extends Catalog with Command {
+  override def output: Seq[Attribute] = Seq.empty
+  override def children: Seq[LogicalPlan] = Seq.empty
+}
+
+case class UnresolvedModification(inputText: String) extends Modification {
   override def output: Seq[Attribute] = Seq.empty
   override def children: Seq[LogicalPlan] = Seq.empty
 }

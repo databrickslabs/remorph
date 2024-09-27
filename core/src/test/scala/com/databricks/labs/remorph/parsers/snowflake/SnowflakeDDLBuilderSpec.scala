@@ -39,8 +39,8 @@ class SnowflakeDDLBuilderSpec
           |""".stripMargin,
         expectedAst = CreateInlineUDF(
           name = "echo_varchar",
-          returnType = VarCharType(None),
-          parameters = Seq(FunctionParameter("x", VarCharType(None), None)),
+          returnType = StringType,
+          parameters = Seq(FunctionParameter("x", StringType, None)),
           JavaRuntimeInfo(
             runtimeVersion = None,
             imports = Seq("@~/some-dir/some-lib.jar"),
@@ -71,7 +71,7 @@ class SnowflakeDDLBuilderSpec
                   |$$$$;""".stripMargin,
         expectedAst = CreateInlineUDF(
           name = "py_udf",
-          returnType = UnparsedType(),
+          returnType = UnparsedType("VARIANT"),
           parameters = Seq(),
           runtimeInfo = PythonRuntimeInfo(
             runtimeVersion = Some("3.8"),
@@ -131,8 +131,8 @@ class SnowflakeDDLBuilderSpec
                   |  $$$$;""".stripMargin,
         expectedAst = CreateInlineUDF(
           name = "echo_varchar",
-          returnType = VarCharType(None),
-          parameters = Seq(FunctionParameter("x", VarCharType(None), Some(Literal(string = Some("foo"))))),
+          returnType = StringType,
+          parameters = Seq(FunctionParameter("x", StringType, Some(Literal("foo")))),
           runtimeInfo = ScalaRuntimeInfo(runtimeVersion = Some("2.12"), imports = Seq(), handler = "Echo.echoVarchar"),
           acceptsNullParameters = true,
           comment = None,
@@ -147,115 +147,145 @@ class SnowflakeDDLBuilderSpec
                   |  AS 'a * b';""".stripMargin,
         expectedAst = CreateInlineUDF(
           name = "multiply1",
-          returnType = DecimalType(None, None),
-          parameters = Seq(
-            FunctionParameter("a", DecimalType(None, None), None),
-            FunctionParameter("b", DecimalType(None, None), None)),
+          returnType = DecimalType(38, 0),
+          parameters =
+            Seq(FunctionParameter("a", DecimalType(38, 0), None), FunctionParameter("b", DecimalType(38, 0), None)),
           runtimeInfo = SQLRuntimeInfo(memoizable = false),
           acceptsNullParameters = false,
           comment = Some("multiply two numbers"),
           body = "a * b"))
     }
 
-    "translate CREATE TABLE commands" in {
-      example(
-        query = "CREATE TABLE s.t1 (x VARCHAR)",
-        expectedAst =
-          CreateTableCommand(name = "s.t1", columns = Seq(ColumnDeclaration("x", VarCharType(None), None, Seq()))))
-
-      example(
-        query = "CREATE TABLE s.t1 (x VARCHAR UNIQUE)",
-        expectedAst = CreateTableCommand(
-          name = "s.t1",
-          columns = Seq(ColumnDeclaration("x", VarCharType(None), None, Seq(Unique)))))
-
-      example(
-        query = "CREATE TABLE s.t1 (x VARCHAR NOT NULL)",
-        expectedAst = CreateTableCommand(
-          name = "s.t1",
-          columns = Seq(ColumnDeclaration("x", VarCharType(None), None, Seq(Nullability(false))))))
-
-      example(
-        query = "CREATE TABLE s.t1 (x VARCHAR PRIMARY KEY)",
-        expectedAst = CreateTableCommand(
-          name = "s.t1",
-          columns = Seq(ColumnDeclaration("x", VarCharType(None), None, Seq(PrimaryKey)))))
-
-      example(
-        query = "CREATE TABLE s.t1 (x VARCHAR UNIQUE FOREIGN KEY REFERENCES s.t2 (y))",
-        expectedAst = CreateTableCommand(
-          name = "s.t1",
-          columns = Seq(ColumnDeclaration("x", VarCharType(None), None, Seq(Unique, ForeignKey("s.t2.y"))))))
-
-      example(
-        query = """CREATE TABLE s.t1 (
-            |  id VARCHAR PRIMARY KEY NOT NULL,
-            |  a VARCHAR(32) UNIQUE,
-            |  b INTEGER,
-            |  CONSTRAINT fkey FOREIGN KEY (a, b) REFERENCES s.t2 (x, y)
-            |)
-            |""".stripMargin,
-        expectedAst = CreateTableCommand(
-          name = "s.t1",
-          columns = Seq(
-            ColumnDeclaration("id", VarCharType(None), None, Seq(Nullability(false), PrimaryKey)),
-            ColumnDeclaration(
-              "a",
-              VarCharType(Some(32)),
-              None,
-              Seq(Unique, NamedConstraint("fkey", ForeignKey("s.t2.x")))),
-            ColumnDeclaration(
-              "b",
-              DecimalType(Some(38), None),
-              None,
-              Seq(NamedConstraint("fkey", ForeignKey("s.t2.y")))))))
+    "translate CREATE TABLE commands" should {
+      "CREATE TABLE s.t1 (x VARCHAR)" in {
+        example(
+          "CREATE TABLE s.t1 (x VARCHAR)",
+          CreateTableCommand(name = "s.t1", columns = Seq(ColumnDeclaration("x", StringType, None, Seq()))))
+      }
+      "CREATE TABLE s.t1 (x VARCHAR UNIQUE)" in {
+        example(
+          "CREATE TABLE s.t1 (x VARCHAR UNIQUE)",
+          CreateTableCommand(name = "s.t1", columns = Seq(ColumnDeclaration("x", StringType, None, Seq(Unique())))))
+      }
+      "CREATE TABLE s.t1 (x VARCHAR NOT NULL)" in {
+        example(
+          "CREATE TABLE s.t1 (x VARCHAR NOT NULL)",
+          CreateTableCommand("s.t1", Seq(ColumnDeclaration("x", StringType, None, Seq(Nullability(false))))))
+      }
+      "CREATE TABLE s.t1 (x VARCHAR PRIMARY KEY)" in {
+        example(
+          "CREATE TABLE s.t1 (x VARCHAR PRIMARY KEY)",
+          CreateTableCommand("s.t1", Seq(ColumnDeclaration("x", StringType, None, Seq(PrimaryKey())))))
+      }
+      "CREATE TABLE s.t1 (x VARCHAR UNIQUE FOREIGN KEY REFERENCES s.t2 (y))" in {
+        example(
+          "CREATE TABLE s.t1 (x VARCHAR UNIQUE FOREIGN KEY REFERENCES s.t2 (y))",
+          CreateTableCommand(
+            "s.t1",
+            Seq(ColumnDeclaration("x", StringType, None, Seq(Unique(), ForeignKey("", "s.t2.y", "", Seq.empty))))))
+      }
+      "more complex" in {
+        example(
+          query = """CREATE TABLE s.t1 (
+              |  id VARCHAR PRIMARY KEY NOT NULL,
+              |  a VARCHAR(32) UNIQUE,
+              |  b INTEGER,
+              |  CONSTRAINT fkey FOREIGN KEY (a, b) REFERENCES s.t2 (x, y)
+              |)
+              |""".stripMargin,
+          expectedAst = CreateTableCommand(
+            name = "s.t1",
+            columns = Seq(
+              ColumnDeclaration("id", StringType, None, Seq(Nullability(false), PrimaryKey())),
+              ColumnDeclaration(
+                "a",
+                StringType,
+                None,
+                Seq(Unique(), NamedConstraint("fkey", ForeignKey("", "s.t2.x", "", Seq.empty)))),
+              ColumnDeclaration(
+                "b",
+                DecimalType(Some(38), Some(0)),
+                None,
+                Seq(NamedConstraint("fkey", ForeignKey("", "s.t2.y", "", Seq.empty)))))))
+      }
+    }
+    "translate ALTER TABLE commands" should {
+      "ALTER TABLE s.t1 ADD COLUMN c VARCHAR" in {
+        example(
+          "ALTER TABLE s.t1 ADD COLUMN c VARCHAR",
+          AlterTableCommand("s.t1", Seq(AddColumn(Seq(ColumnDeclaration("c", StringType))))))
+      }
+      "ALTER TABLE s.t1 ADD CONSTRAINT pk PRIMARY KEY (a, b, c)" in {
+        example(
+          "ALTER TABLE s.t1 ADD CONSTRAINT pk PRIMARY KEY (a, b, c)",
+          AlterTableCommand(
+            "s.t1",
+            Seq(
+              AddConstraint("a", NamedConstraint("pk", PrimaryKey())),
+              AddConstraint("b", NamedConstraint("pk", PrimaryKey())),
+              AddConstraint("c", NamedConstraint("pk", PrimaryKey())))))
+      }
+      "ALTER TABLE s.t1 ALTER (COLUMN a TYPE INT)" in {
+        example(
+          "ALTER TABLE s.t1 ALTER (COLUMN a TYPE INT)",
+          AlterTableCommand("s.t1", Seq(ChangeColumnDataType("a", DecimalType(Some(38), Some(0))))))
+      }
+      "ALTER TABLE s.t1 ALTER (COLUMN a NOT NULL)" in {
+        example(
+          "ALTER TABLE s.t1 ALTER (COLUMN a NOT NULL)",
+          AlterTableCommand("s.t1", Seq(AddConstraint("a", Nullability(false)))))
+      }
+      "ALTER TABLE s.t1 ALTER (COLUMN a DROP NOT NULL)" in {
+        example(
+          "ALTER TABLE s.t1 ALTER (COLUMN a DROP NOT NULL)",
+          AlterTableCommand("s.t1", Seq(DropConstraint(Some("a"), Nullability(false)))))
+      }
+      "ALTER TABLE s.t1 DROP COLUMN a" in {
+        example("ALTER TABLE s.t1 DROP COLUMN a", AlterTableCommand("s.t1", Seq(DropColumns(Seq("a")))))
+      }
+      "ALTER TABLE s.t1 DROP PRIMARY KEY" in {
+        example("ALTER TABLE s.t1 DROP PRIMARY KEY", AlterTableCommand("s.t1", Seq(DropConstraint(None, PrimaryKey()))))
+      }
+      "ALTER TABLE s.t1 DROP CONSTRAINT pk" in {
+        example("ALTER TABLE s.t1 DROP CONSTRAINT pk", AlterTableCommand("s.t1", Seq(DropConstraintByName("pk"))))
+      }
+      "ALTER TABLE s.t1 DROP UNIQUE (b, c)" in {
+        example(
+          "ALTER TABLE s.t1 DROP UNIQUE (b, c)",
+          AlterTableCommand("s.t1", Seq(DropConstraint(Some("b"), Unique()), DropConstraint(Some("c"), Unique()))))
+      }
+      "ALTER TABLE s.t1 RENAME COLUMN a TO aa" in {
+        example("ALTER TABLE s.t1 RENAME COLUMN a TO aa", AlterTableCommand("s.t1", Seq(RenameColumn("a", "aa"))))
+      }
+      "ALTER TABLE s.t1 RENAME CONSTRAINT pk TO pk_t1" in {
+        example(
+          "ALTER TABLE s.t1 RENAME CONSTRAINT pk TO pk_t1",
+          AlterTableCommand("s.t1", Seq(RenameConstraint("pk", "pk_t1"))))
+      }
     }
 
-    "translate ALTER TABLE commands" in {
-      example(
-        query = "ALTER TABLE s.t1 ADD COLUMN c VARCHAR",
-        expectedAst = AlterTableCommand("s.t1", Seq(AddColumn(ColumnDeclaration("c", VarCharType(None))))))
+    "translate Unresolved COMMAND" should {
+      "ALTER SESSION SET QUERY_TAG = 'TAG'" in {
+        example("ALTER SESSION SET QUERY_TAG = 'TAG';", UnresolvedCommand("ALTER SESSION SET QUERY_TAG = 'TAG'"))
+      }
 
-      example(
-        query = "ALTER TABLE s.t1 ADD CONSTRAINT pk PRIMARY KEY (a, b, c)",
-        expectedAst = AlterTableCommand(
-          "s.t1",
-          Seq(
-            AddConstraint("a", NamedConstraint("pk", PrimaryKey)),
-            AddConstraint("b", NamedConstraint("pk", PrimaryKey)),
-            AddConstraint("c", NamedConstraint("pk", PrimaryKey)))))
+      "ALTER STREAM mystream SET COMMENT = 'New comment for stream'" in {
+        example(
+          "ALTER STREAM mystream SET COMMENT = 'New comment for stream';",
+          UnresolvedCommand("ALTER STREAM mystream SET COMMENT = 'New comment for stream'"))
+      }
 
-      example(
-        query = "ALTER TABLE s.t1 ALTER (COLUMN a TYPE INT)",
-        expectedAst = AlterTableCommand("s.t1", Seq(ChangeColumnDataType("a", DecimalType(Some(38), None)))))
-      example(
-        query = "ALTER TABLE s.t1 ALTER (COLUMN a NOT NULL)",
-        expectedAst = AlterTableCommand("s.t1", Seq(AddConstraint("a", Nullability(false)))))
-      example(
-        query = "ALTER TABLE s.t1 ALTER (COLUMN a DROP NOT NULL)",
-        expectedAst = AlterTableCommand("s.t1", Seq(DropConstraint(Some("a"), Nullability(false)))))
+      "CREATE STREAM mystream ON TABLE mytable" in {
+        example(
+          "CREATE STREAM mystream ON TABLE mytable;",
+          UnresolvedCommand("CREATE STREAM mystream ON TABLE mytable"))
+      }
 
-      example(
-        query = "ALTER TABLE s.t1 DROP COLUMN a",
-        expectedAst = AlterTableCommand("s.t1", Seq(DropColumns(Seq("a")))))
-
-      example(
-        query = "ALTER TABLE s.t1 DROP PRIMARY KEY",
-        expectedAst = AlterTableCommand("s.t1", Seq(DropConstraint(None, PrimaryKey))))
-      example(
-        query = "ALTER TABLE s.t1 DROP CONSTRAINT pk",
-        expectedAst = AlterTableCommand("s.t1", Seq(DropConstraintByName("pk"))))
-      example(
-        query = "ALTER TABLE s.t1 DROP UNIQUE (b, c)",
-        expectedAst =
-          AlterTableCommand("s.t1", Seq(DropConstraint(Some("b"), Unique), DropConstraint(Some("c"), Unique))))
-
-      example(
-        query = "ALTER TABLE s.t1 RENAME COLUMN a TO aa",
-        expectedAst = AlterTableCommand("s.t1", Seq(RenameColumn("a", "aa"))))
-      example(
-        query = "ALTER TABLE s.t1 RENAME CONSTRAINT pk TO pk_t1",
-        expectedAst = AlterTableCommand("s.t1", Seq(RenameConstraint("pk", "pk_t1"))))
+      "CREATE TASK t1 SCHEDULE = '30 MINUTE' AS INSERT INTO tbl(ts) VALUES(CURRENT_TIMESTAMP)" in {
+        example(
+          "CREATE TASK t1 SCHEDULE = '30 MINUTE' AS INSERT INTO tbl(ts) VALUES(CURRENT_TIMESTAMP);",
+          UnresolvedCommand("CREATE TASK t1 SCHEDULE = '30 MINUTE' AS INSERT INTO tbl(ts) VALUES(CURRENT_TIMESTAMP)"))
+      }
     }
 
     "wrap unknown AST in UnresolvedCatalog" in {

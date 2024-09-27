@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.parsers.snowflake
 
-import com.databricks.labs.remorph.parsers.snowflake.SnowflakeFunctionConverters.SnowflakeSynonyms
+import com.databricks.labs.remorph.parsers.snowflake.SnowflakeFunctionConverters.SynonymOf
 import com.databricks.labs.remorph.parsers.{ConversionStrategy, FunctionBuilder, FunctionDefinition, intermediate => ir}
 
 class SnowflakeFunctionBuilder extends FunctionBuilder {
@@ -28,6 +28,7 @@ class SnowflakeFunctionBuilder extends FunctionBuilder {
     case "APPROX_TOP_K_ESTIMATE" => FunctionDefinition.standard(2)
     case "ARRAYS_OVERLAP" => FunctionDefinition.standard(2)
     case "ARRAYS_TO_OBJECT" => FunctionDefinition.standard(2)
+    case "ARRAYAGG" => FunctionDefinition.standard(1).withConversionStrategy(SynonymOf("ARRAY_AGG"))
     case "ARRAY_AGG" => FunctionDefinition.standard(1)
     case "ARRAY_APPEND" => FunctionDefinition.standard(2)
     case "ARRAY_CAT" => FunctionDefinition.standard(2)
@@ -174,10 +175,12 @@ class SnowflakeFunctionBuilder extends FunctionBuilder {
     case "DATA_METRIC_FUNCTION_REFERENCES" => FunctionDefinition.standard(3)
     case "DATA_METRIC_SCHEDULED_TIME (system data metric function)" => FunctionDefinition.standard(0)
     case "DATA_TRANSFER_HISTORY" => FunctionDefinition.symbolic(Set.empty, Set("DATE_RANGE_START", "DATE_RANGE_END"))
-    case "DATE" => FunctionDefinition.standard(1, 2).withConversionStrategy(SnowflakeSynonyms)
+    case "DATE" => FunctionDefinition.standard(1, 2).withConversionStrategy(SynonymOf("TO_DATE"))
     case "DATEADD" => FunctionDefinition.standard(3)
     case "DATEDIFF" => FunctionDefinition.standard(3)
+    case "DATEFROMPARTS" => FunctionDefinition.standard(3).withConversionStrategy(SynonymOf("DATE_FROM_PARTS"))
     case "DATE_FROM_PARTS" => FunctionDefinition.standard(3)
+    case "DATE_FORMAT" => FunctionDefinition.standard(2)
     case "DATE_PART" => FunctionDefinition.standard(2)
     case "DATE_TRUNC" => FunctionDefinition.standard(2)
     case "DAY" => FunctionDefinition.standard(1)
@@ -398,7 +401,7 @@ class SnowflakeFunctionBuilder extends FunctionBuilder {
     case "NULLIFZERO" => FunctionDefinition.standard(1)
     case "NULL_COUNT (system data metric function)" => FunctionDefinition.standard(1)
     case "NULL_PERCENT (system data metric function)" => FunctionDefinition.standard(1)
-    case "NVL" => FunctionDefinition.standard(2)
+    case "NVL" => FunctionDefinition.standard(2).withConversionStrategy(SynonymOf("IFNULL"))
     case "NVL2" => FunctionDefinition.standard(3)
     case "OBJECT_AGG" => FunctionDefinition.standard(2)
     case "OBJECT_CONSTRUCT" => FunctionDefinition.standard(0, Int.MaxValue)
@@ -712,11 +715,11 @@ class SnowflakeFunctionBuilder extends FunctionBuilder {
           "ROOT_TASK_ID"))
     case "TEXT_HTML" => FunctionDefinition.standard(1)
     case "TEXT_PLAIN" => FunctionDefinition.standard(1)
-    case "TIME" => FunctionDefinition.standard(1, 2).withConversionStrategy(SnowflakeSynonyms)
-    case "TIMEADD" => FunctionDefinition.standard(3)
+    case "TIME" => FunctionDefinition.standard(1, 2).withConversionStrategy(SynonymOf("TO_TIME"))
+    case "TIMEADD" => FunctionDefinition.standard(3).withConversionStrategy(SynonymOf("DATEADD"))
     case "TIMEDIFF" => FunctionDefinition.standard(3)
     case "TIMESTAMPADD" => FunctionDefinition.standard(3)
-    case "TIMESTAMPDIFF" => FunctionDefinition.standard(3)
+    case "TIMESTAMPDIFF" => FunctionDefinition.standard(3).withConversionStrategy(SynonymOf("DATEDIFF"))
     case "TIMESTAMP_FROM_PARTS" => FunctionDefinition.standard(2, 8)
     case "TIMESTAMP_LTZ_FROM_PARTS" => FunctionDefinition.standard(6, 7)
     case "TIMESTAMP_NTZ_FROM_PARTS" => FunctionDefinition.standard(2, 7)
@@ -728,17 +731,16 @@ class SnowflakeFunctionBuilder extends FunctionBuilder {
     case "TO_BINARY" => FunctionDefinition.standard(1, 2)
     case "TO_BOOLEAN" => FunctionDefinition.standard(1)
     case "TO_CHAR , TO_VARCHAR" => FunctionDefinition.standard(4, 5)
-    case "TO_CHAR" => FunctionDefinition.standard(1, 2).withConversionStrategy(SnowflakeSynonyms)
+    case "TO_CHAR" => FunctionDefinition.standard(1, 2).withConversionStrategy(SynonymOf("TO_VARCHAR"))
     case "TO_DATE , DATE" => FunctionDefinition.standard(4, 5)
     case "TO_DATE" => FunctionDefinition.standard(1, 2)
-    case "TO_DECIMAL , TO_NUMBER , TO_NUMERIC" => FunctionDefinition.standard(1, 4)
-    case "TO_DECIMAL" => FunctionDefinition.standard(1, 4)
+    case "TO_DECIMAL" => FunctionDefinition.standard(1, 4).withConversionStrategy(SynonymOf("TO_NUMBER"))
     case "TO_DOUBLE" => FunctionDefinition.standard(1, 2)
     case "TO_GEOGRAPHY" => FunctionDefinition.standard(1, 2)
     case "TO_GEOMETRY" => FunctionDefinition.standard(1, 3)
     case "TO_JSON" => FunctionDefinition.standard(1)
     case "TO_NUMBER" => FunctionDefinition.standard(1, 4)
-    case "TO_NUMERIC" => FunctionDefinition.standard(1, 4)
+    case "TO_NUMERIC" => FunctionDefinition.standard(1, 4).withConversionStrategy(SynonymOf("TO_NUMBER"))
     case "TO_OBJECT" => FunctionDefinition.standard(1)
     case "TO_QUERY" => FunctionDefinition.standard(1, 3)
     case "TO_TIME , TIME" => FunctionDefinition.standard(4, 5)
@@ -767,13 +769,12 @@ class SnowflakeFunctionBuilder extends FunctionBuilder {
     case "TRY_TO_BINARY" => FunctionDefinition.standard(1, 2)
     case "TRY_TO_BOOLEAN" => FunctionDefinition.standard(1)
     case "TRY_TO_DATE" => FunctionDefinition.standard(1, 2)
-    case "TRY_TO_DECIMAL" => FunctionDefinition.standard(1, 4)
-    case "TRY_TO_DECIMAL, TRY_TO_NUMBER, TRY_TO_NUMERIC" => FunctionDefinition.standard(1, 4)
+    case "TRY_TO_DECIMAL" => FunctionDefinition.standard(1, 4).withConversionStrategy(SynonymOf("TRY_TO_NUMBER"))
     case "TRY_TO_DOUBLE" => FunctionDefinition.standard(1, 2)
     case "TRY_TO_GEOGRAPHY" => FunctionDefinition.standard(1, 2)
     case "TRY_TO_GEOMETRY" => FunctionDefinition.standard(1, 3)
     case "TRY_TO_NUMBER" => FunctionDefinition.standard(1, 4)
-    case "TRY_TO_NUMERIC" => FunctionDefinition.standard(1, 4)
+    case "TRY_TO_NUMERIC" => FunctionDefinition.standard(1, 4).withConversionStrategy(SynonymOf("TRY_TO_NUMBER"))
     case "TRY_TO_TIME" => FunctionDefinition.standard(1, 2)
     case "TRY_TO_TIMESTAMP / TRY_TO_TIMESTAMP_*" => FunctionDefinition.standard(2, 3)
     case "TRY_TO_TIMESTAMP" => FunctionDefinition.standard(1, 2)
@@ -835,14 +836,8 @@ class SnowflakeFunctionBuilder extends FunctionBuilder {
 
 object SnowflakeFunctionConverters {
 
-  object SnowflakeSynonyms extends ConversionStrategy {
-    override def convert(irName: String, args: Seq[ir.Expression]): ir.Expression = {
-      irName.toUpperCase() match {
-        case "DATE" => ir.CallFunction("TO_DATE", args)
-        case "TIME" => ir.CallFunction("TO_TIME", args)
-        case "TO_CHAR" => ir.CallFunction("TO_VARCHAR", args)
-        case _ => ir.CallFunction(irName, args)
-      }
-    }
+  case class SynonymOf(canonicalName: String) extends ConversionStrategy {
+    override def convert(irName: String, args: Seq[ir.Expression]): ir.Expression = ir.CallFunction(canonicalName, args)
   }
+
 }
