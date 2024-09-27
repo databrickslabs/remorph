@@ -5,7 +5,6 @@ from collections.abc import Callable
 from dataclasses import dataclass, field
 
 from pyspark.sql import DataFrame
-from sqlglot import Dialect
 from sqlglot import expressions as exp
 
 logger = logging.getLogger(__name__)
@@ -269,9 +268,9 @@ class DataReconcileOutput:
 
 
 @dataclass
-class DialectHashConfig:
-    dialect: Dialect
-    algo: list[Callable]
+class HashAlgoMapping:
+    source: Callable
+    target: Callable
 
 
 @dataclass

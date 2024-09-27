@@ -1,7 +1,5 @@
 package com.databricks.labs.remorph.transpilers
 
-import com.databricks.labs.remorph.generators.GeneratorContext
-import com.databricks.labs.remorph.generators.sql.{ExpressionGenerator, LogicalPlanGenerator, OptionGenerator}
 import com.databricks.labs.remorph.parsers.{PlanParser, intermediate => ir}
 import com.github.vertical_blank.sqlformatter.SqlFormatter
 import com.github.vertical_blank.sqlformatter.core.FormatConfig
@@ -9,9 +7,7 @@ import com.github.vertical_blank.sqlformatter.languages.Dialect
 import org.antlr.v4.runtime.ParserRuleContext
 import org.json4s.jackson.Serialization
 import org.json4s.{Formats, NoTypeHints}
-import org.json4s.jackson.Serialization.write
 
-import java.io.{PrintWriter, StringWriter}
 import scala.util.matching.Regex
 
 sealed trait WorkflowStage
@@ -61,9 +57,7 @@ trait Formatter {
 abstract class BaseTranspiler extends Transpiler with Formatter {
 
   protected val planParser: PlanParser[_]
-  protected val exprGenerator = new ExpressionGenerator
-  protected val optionGenerator = new OptionGenerator(exprGenerator)
-  protected val generator = new LogicalPlanGenerator(exprGenerator, optionGenerator)
+  protected val generator = new SqlGenerator
 
   implicit val formats: Formats = Serialization.formats(NoTypeHints)
 
@@ -76,18 +70,7 @@ abstract class BaseTranspiler extends Transpiler with Formatter {
   protected def optimize(logicalPlan: ir.LogicalPlan): Result[ir.LogicalPlan] = planParser.optimize(logicalPlan)
 
   protected def generate(optimizedLogicalPlan: ir.LogicalPlan): Result[String] = {
-    try {
-      val output = generator.generate(GeneratorContext(generator), optimizedLogicalPlan)
-      Result.Success(output)
-    } catch {
-      case e: Exception =>
-        val sw = new StringWriter
-        e.printStackTrace(new PrintWriter(sw))
-        val stackTrace = sw.toString
-        val errorJson = write(
-          Map("exception" -> e.getClass.getSimpleName, "message" -> e.getMessage, "stackTrace" -> stackTrace))
-        Result.Failure(stage = WorkflowStage.GENERATE, errorJson)
-    }
+    generator.generate(optimizedLogicalPlan)
   }
 
   override def transpile(input: SourceCode): Result[String] = {
