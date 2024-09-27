@@ -120,7 +120,9 @@ def test_prompt_for_schema_setup_existing_schema_no_access_abort(ws):
         }
     )
     catalog_operations = create_autospec(CatalogOperations)
-    catalog_operations.get_schema.return_value = SchemaInfo(catalog_name="remorph", name="reconcile")
+    catalog_operations.get_schema.return_value = SchemaInfo(
+        catalog_name="remorph", name="reconcile", full_name="remorph.reconcile"
+    )
     catalog_operations.has_catalog_access.return_value = True
     catalog_operations.has_schema_access.return_value = False
     configurator = ResourceConfigurator(ws, prompts, catalog_operations)
@@ -208,6 +210,7 @@ def test_prompt_for_volume_setup_existing_volume_no_access_abort(ws):
         catalog_name="remorph",
         schema_name="reconcile",
         name="recon_volume",
+        full_name="remorph.reconcile.recon_volume",
     )
     catalog_operations.has_volume_access.return_value = False
     configurator = ResourceConfigurator(ws, prompts, catalog_operations)

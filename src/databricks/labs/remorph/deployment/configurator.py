@@ -104,21 +104,14 @@ class ResourceConfigurator:
         self, catalog_name: str, user_name: str, privilege_sets: tuple[set[Privilege], ...]
     ):
         catalog = self._catalog_ops.get_catalog(catalog_name)
-        assert catalog
+        assert catalog, f"Catalog not found {catalog_name}"
         if self._catalog_ops.has_catalog_access(catalog, user_name, privilege_sets):
             return True
-        privilege_set_permissions = [
-            (
-                privilege_set,
-                self._catalog_ops.has_privileges(user_name, SecurableType.CATALOG, catalog.name, privilege_set),
-            )
-            for privilege_set in privilege_sets
-        ]
-
-        missing_permissions = ResourceConfigurator._get_missing_permissions(privilege_set_permissions)
-
+        missing_permissions = self._get_missing_permissions(
+            user_name, SecurableType.CATALOG, catalog.name, privilege_sets
+        )
         logger.error(
-            f"User `{user_name}` doesn't have required privileges `{missing_permissions}` \n to access catalog `{catalog_name}` "
+            f"User `{user_name}` doesn't have required privileges :: \n`{missing_permissions}`\n to access catalog `{catalog_name}` "
         )
         return False
 
@@ -126,20 +119,14 @@ class ResourceConfigurator:
         self, catalog_name: str, schema_name: str, user_name: str, privilege_sets: tuple[set[Privilege], ...]
     ):
         schema = self._catalog_ops.get_schema(catalog_name, schema_name)
-        assert schema
+        assert schema, f"Schema not found {catalog_name}.{schema_name}"
         if self._catalog_ops.has_schema_access(schema, user_name, privilege_sets):
             return True
-        privilege_set_permissions = [
-            (
-                privilege_set,
-                self._catalog_ops.has_privileges(user_name, SecurableType.SCHEMA, schema.full_name, privilege_set),
-            )
-            for privilege_set in privilege_sets
-        ]
-        missing_permissions = ResourceConfigurator._get_missing_permissions(privilege_set_permissions)
-
+        missing_permissions = self._get_missing_permissions(
+            user_name, SecurableType.SCHEMA, schema.full_name, privilege_sets
+        )
         logger.error(
-            f"User `{user_name}` doesn't have required privileges `{missing_permissions}` \n to access schema `{schema.full_name}` "
+            f"User `{user_name}` doesn't have required privileges :: \n`{missing_permissions}`\n to access schema `{schema.full_name}` "
         )
         return False
 
@@ -152,30 +139,31 @@ class ResourceConfigurator:
         privilege_sets: tuple[set[Privilege], ...],
     ):
         volume = self._catalog_ops.get_volume(catalog_name, schema_name, volume_name)
-        assert volume
+        assert volume, f"Volume not found {catalog_name}.{schema_name}.{volume_name}"
         if self._catalog_ops.has_volume_access(volume, user_name, privilege_sets):
             return True
-        privilege_set_permissions = [
-            (
-                privilege_set,
-                self._catalog_ops.has_privileges(user_name, SecurableType.VOLUME, volume.full_name, privilege_set),
-            )
-            for privilege_set in privilege_sets
-        ]
-        missing_permissions = ResourceConfigurator._get_missing_permissions(privilege_set_permissions)
-
+        missing_permissions = self._get_missing_permissions(
+            user_name, SecurableType.VOLUME, volume.full_name, privilege_sets
+        )
         logger.error(
-            f"User `{user_name}` doesn't have required privileges `{missing_permissions}` \n to access volume `{volume.full_name}` "
+            f"User `{user_name}` doesn't have required privileges :: \n`{missing_permissions}`\n to access volume `{volume.full_name}` "
         )
         return False
 
-    @classmethod
-    def _get_missing_permissions(cls, privilege_set_permissions: list[tuple[set[Privilege], bool]]):
+    def _get_missing_permissions(
+        self,
+        user_name: str,
+        securable_type: SecurableType,
+        resource_name: str | None,
+        privilege_sets: tuple[set[Privilege], ...],
+    ):
+        assert resource_name, f"Catalog Resource name must be provided {resource_name}"
         missing_permissions_list = []
-        for privilege_set, permissions in privilege_set_permissions:
+        for privilege_set in privilege_sets:
+            permissions = self._catalog_ops.has_privileges(user_name, securable_type, resource_name, privilege_set)
             if not permissions:
                 missing_privileges = ", ".join([privilege.name for privilege in privilege_set])
-                missing_permissions_list.append(f" '{missing_privileges}' ")
+                missing_permissions_list.append(f" * '{missing_privileges}' ")
 
         return " OR \n".join(missing_permissions_list)
 
