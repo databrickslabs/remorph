@@ -22,4 +22,4 @@ FROM (
   SELECT
    PARSE_JSON('{"a": {"info": {"id": 101, "first": "John" }, "contact": [{"name": "Alice", "first": "A"}, {"name": "Bob", "first": "B"}]}, "b": {"id": 101, "first": "John"}}')
 ) AS p(col)
-, LATERAL VARIANT_EXPLODE (p.col:a.contact) AS f;
+, LATERAL VARIANT_EXPLODE(p.col:a.contact) AS f;

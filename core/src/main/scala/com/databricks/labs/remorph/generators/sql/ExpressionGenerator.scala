@@ -25,6 +25,7 @@ class ExpressionGenerator extends Generator[ir.Expression, String] {
       case r: ir.RLike => rlike(ctx, r)
       case _: ir.Bitwise => bitwise(ctx, expr)
       case _: ir.Arithmetic => arithmetic(ctx, expr)
+      case b: ir.Between => between(ctx, b)
       case _: ir.Predicate => predicate(ctx, expr)
       case l: ir.Literal => literal(ctx, l)
       case a: ir.ArrayExpr => arrayExpr(ctx, a)
@@ -88,11 +89,11 @@ class ExpressionGenerator extends Generator[ir.Expression, String] {
     s"${expression(ctx, j.json)}$anchorPath"
   }
 
-  private def jsonPath( j: ir.Expression): Seq[String] = {
+  private def jsonPath(j: ir.Expression): Seq[String] = {
     j match {
-      case ir.Id(name, false) => Seq(s".$name")
-      case ir.Id(name, true) if isAlphanum(name) => Seq(s".$name")
-      case ir.Id(name, true) => Seq(s"['$name']")
+//      case ir.Id(name, false) => Seq(s".$name")
+      case ir.Id(name, _) if isValidIdentifier(name) => Seq(s".$name")
+      case ir.Id(name, _) => Seq(s"['$name']".replace("'", "\""))
       case ir.IntLiteral(value) => Seq(s"[$value]")
       case ir.StringLiteral(value) => Seq(s"['$value']")
       case ir.Dot(left, right) => jsonPath(left) ++ jsonPath(right)
@@ -468,5 +469,10 @@ class ExpressionGenerator extends Generator[ir.Expression, String] {
     s"{${ref.toUpperCase(Locale.getDefault())}_SCHEMA}"
   }
   private def singleQuote(s: String): String = s"'$s'"
-  private def isAlphanum(s: String): Boolean = s.forall(_.isLetterOrDigit)
+  private def isValidIdentifier(s: String): Boolean =
+    (s.head.isLetter || s.head == '_') && s.forall(x => x.isLetterOrDigit || x == '_')
+
+  private def between(ctx: GeneratorContext, b: ir.Between): String = {
+    s"${expression(ctx, b.exp)} BETWEEN ${expression(ctx, b.lower)} AND ${expression(ctx, b.upper)}"
+  }
 }

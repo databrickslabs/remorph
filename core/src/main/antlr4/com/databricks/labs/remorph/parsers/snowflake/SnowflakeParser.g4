@@ -3138,13 +3138,13 @@ expr
     | expr op = (PLUS | MINUS | PIPE_PIPE) expr # exprPrecedence1
     | expr comparisonOperator expr              # exprComparison
     | expr predicatePartial                     # exprPredicate
+    | expr COLON_COLON dataType                 # exprAscribe
     | op = NOT+ expr                            # exprNot
     | expr AND expr                             # exprAnd
     | expr OR expr                              # exprOr
     | expr withinGroup                          # exprWithinGroup
     | expr overClause                           # exprOver
     | castExpr                                  # exprCast
-    | expr COLON_COLON dataType                 # exprAscribe
     | functionCall                              # exprFuncCall
     | DISTINCT expr                             # exprDistinct
     | L_PAREN subquery R_PAREN                  # exprSubquery
@@ -3407,7 +3407,7 @@ objectRef
     : objectName atBefore? changes? matchRecognize? pivotUnpivot? tableAlias?        # objRefDefault
     | TABLE L_PAREN functionCall R_PAREN pivotUnpivot? tableAlias?                   # objRefTableFunc
     | LATERAL? (functionCall | (L_PAREN subquery R_PAREN)) pivotUnpivot? tableAlias? # objRefSubquery
-    | valuesTable                                                                    # objRefValues
+    | valuesTable tableAlias?                                                        # objRefValues
     | objectName START WITH predicate CONNECT BY priorList?                          # objRefStartWith
     ;
 
@@ -3503,8 +3503,8 @@ exprListInParentheses: L_PAREN exprList R_PAREN
     ;
 
 valuesTable
-    : L_PAREN valuesTableBody R_PAREN (asAlias columnAliasListInBrackets?)?
-    | valuesTableBody (asAlias columnAliasListInBrackets?)?
+    : L_PAREN valuesTableBody R_PAREN
+    | valuesTableBody
     ;
 
 valuesTableBody: VALUES exprListInParentheses (COMMA exprListInParentheses)*

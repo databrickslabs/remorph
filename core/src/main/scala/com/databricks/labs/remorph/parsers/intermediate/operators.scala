@@ -14,6 +14,9 @@ case class LessThan(left: Expression, right: Expression) extends Binary(left, ri
 case class LessThanOrEqual(left: Expression, right: Expression) extends Binary(left, right) with Predicate
 case class GreaterThan(left: Expression, right: Expression) extends Binary(left, right) with Predicate
 case class GreaterThanOrEqual(left: Expression, right: Expression) extends Binary(left, right) with Predicate
+case class Between(exp: Expression, lower: Expression, upper: Expression) extends Expression with Predicate {
+  override def children: Seq[Expression] = Seq(exp, lower, upper)
+}
 
 trait Bitwise
 

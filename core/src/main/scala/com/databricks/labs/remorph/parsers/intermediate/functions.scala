@@ -662,6 +662,16 @@ case class Explode(left: Expression) extends Unary(left) with Fn {
   override def dataType: DataType = UnresolvedType
 }
 
+case class VariantExplode(left: Expression) extends Unary(left) with Fn {
+  override def prettyName: String = "VARIANT_EXPLODE"
+  override def dataType: DataType = UnresolvedType
+}
+
+case class VariantExplodeOuter(left: Expression) extends Unary(left) with Fn {
+  override def prettyName: String = "VARIANT_EXPLODE_OUTER"
+  override def dataType: DataType = UnresolvedType
+}
+
 /** expm1(expr) - Returns exp(`expr`) - 1. */
 case class Expm1(left: Expression) extends Unary(left) with Fn {
   override def prettyName: String = "EXPM1"
@@ -2502,7 +2512,10 @@ case class TryCast(expr: Expression, override val dataType: DataType) extends Ex
   override def children: Seq[Expression] = Seq(expr)
 }
 
+/**
+ * parse_json(expr) - Parses the JSON string `expr` and returns the resulting structure.
+ */
 case class ParseJson(left: Expression) extends Unary(left) with Fn {
   override def prettyName: String = "PARSE_JSON"
-  override def dataType: DataType = UnresolvedType
+  override def dataType: DataType = VariantType
 }

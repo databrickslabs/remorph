@@ -208,4 +208,31 @@ class SnowflakeToDatabricksTranspilerTest extends AnyWordSpec with TranspilerTes
     }
   }
 
+  "Snowflake sample test" should {
+
+    "test-1;" in {
+      """SELECT
+        |  f.value:name AS "Contact",
+        |  f.value:first,
+        |  CAST(p.col:a:info:id AS DOUBLE) AS "id_parsed",
+        |  p.col:b:first,
+        |  p.col:a:info
+        |FROM
+        |  (SELECT
+        |    PARSE_JSON('{"a": {"info": {"id": 101, "first": "John" }, "contact": [{"name": "Alice", "first": "A"}, {"name": "Bob", "first": "B"}]}, "b": {"id": 101, "first": "John"}}')
+        |  ) AS p(col)
+        |, LATERAL FLATTEN(input => p.col:a:contact) AS f;""".stripMargin transpilesTo
+        s"""""".stripMargin
+
+    }
+
+    "test-2;" in {
+      """SELECT PARSE_JSON(src.col):c AS c
+        |    FROM VALUES
+        |      ('{"a": "1", "b": "2", "c": null}'),
+        |    ('{"a": "1", "b": "2", "c": "3"}') AS src(col);""".stripMargin transpilesTo
+        s"""""".stripMargin
+    }
+  }
+
 }

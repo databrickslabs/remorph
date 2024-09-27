@@ -38,7 +38,7 @@ class LogicalPlanGenerator(
     case c: ir.CreateTableCommand => createTable(ctx, c)
     case t: ir.TableSample => tableSample(ctx, t)
     case a: ir.AlterTableCommand => alterTable(ctx, a)
-    case l: ir.Lateral => lateral(ctx, l)
+    case l: ir.Lateral => lateralView(ctx, l)
     case c: ir.CreateTableParams => createTableParams(ctx, c)
     case ir.NoopNode => ""
     //  TODO We should always generate an unresolved node, our plan should never be null
@@ -152,10 +152,11 @@ class LogicalPlanGenerator(
   }
 
   // @see https://docs.databricks.com/en/sql/language-manual/sql-ref-syntax-qry-select-lateral-view.html
-  private def lateral(ctx: GeneratorContext, lateral: ir.Lateral): String = lateral match {
-    case ir.Lateral(ir.TableFunction(fn), isOuter) =>
+  private def lateralView(ctx: GeneratorContext, lateral: ir.Lateral): String = lateral match {
+    case ir.Lateral(ir.TableFunction(fn), isOuter, isView) =>
       val outer = if (isOuter) " OUTER" else ""
-      s"LATERAL VIEW$outer ${expr.generate(ctx, fn)}"
+      val view = if (isView) " VIEW" else ""
+      s"LATERAL$view$outer ${expr.generate(ctx, fn)}"
     case _ => throw unknown(lateral)
   }
 
@@ -247,11 +248,18 @@ class LogicalPlanGenerator(
     s"${generate(ctx, sort.child)} ORDER BY $orderStr"
   }
 
+  private def isLateralView(lp: ir.LogicalPlan): Boolean = {
+    lp match {
+      case ir.Lateral(_, _, isView) => isView
+      case _ => false
+    }
+  }
+
   private def generateJoin(ctx: GeneratorContext, join: ir.Join): String = {
     val left = generate(ctx, join.left)
     val right = generate(ctx, join.right)
     if (join.join_condition.isEmpty && join.using_columns.isEmpty && join.join_type == ir.InnerJoin) {
-      if (join.right.find(_.isInstanceOf[ir.Lateral]).isDefined) {
+      if (isLateralView(join.right)) {
         s"$left $right"
       } else {
         s"$left, $right"
@@ -392,7 +400,7 @@ class LogicalPlanGenerator(
 
   private def subQueryAlias(ctx: GeneratorContext, subQAlias: ir.SubqueryAlias): String = {
     val subquery = subQAlias.child match {
-      case l: ir.Lateral => lateral(ctx, l)
+      case l: ir.Lateral => lateralView(ctx, l)
       case _ => s"(${generate(ctx, subQAlias.child)})"
     }
     val tableName = expr.generate(ctx, subQAlias.alias)
