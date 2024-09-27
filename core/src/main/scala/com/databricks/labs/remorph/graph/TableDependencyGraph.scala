@@ -10,8 +10,8 @@ protected case class Node(tableDefinition: TableDefinition, metadata: Map[String
 protected case class Edge(from: TableDefinition, to: TableDefinition, metadata: Map[String, String])
 
 class TableDependencyGraph(parser: PlanParser[_]) extends DependencyGraph with LazyLogging {
-  private val nodes = scala.collection.mutable.Set.empty[Node]
-  private val edges = scala.collection.mutable.Set.empty[Edge]
+  val nodes = scala.collection.mutable.Set.empty[Node]
+  val edges = scala.collection.mutable.Set.empty[Edge]
 
   override protected def addNode(id: TableDefinition, metadata: Map[String, String]): Unit = {
     // Metadata list of query ids and add node only if it is not already present.
@@ -73,6 +73,8 @@ class TableDependencyGraph(parser: PlanParser[_]) extends DependencyGraph with L
       val plan = parser.parse(SourceCode(query.source)).flatMap(parser.visit)
       plan match {
         case Result.Success(plan) =>
+          print(plan.treeString)
+          print("\n")
           plan collect { case x: ir.NamedTable =>
             addNode(tableDefinition.filter(_.table == x.unparsed_identifier).head, Map("query" -> query.id))
           }
@@ -84,7 +86,7 @@ class TableDependencyGraph(parser: PlanParser[_]) extends DependencyGraph with L
   }
 
   // TODO Implement logic for fetching edges(parents) only upto certain level
-  override def getRoot(table: String, level: Int = 0): TableDefinition = {
+  override def getRoot(table: String, level: Int = 1): TableDefinition = {
     def findRoot(node: Node, currentLevel: Int): Node = {
       if (currentLevel == level || edges.forall(_.to != node.tableDefinition)) {
         node
@@ -98,7 +100,7 @@ class TableDependencyGraph(parser: PlanParser[_]) extends DependencyGraph with L
     val targetNode = nodes
       .find(_.tableDefinition.table == table)
       .getOrElse(throw new NoSuchElementException(s"No table $table found"))
-    findRoot(targetNode, 0).tableDefinition
+    findRoot(targetNode, level).tableDefinition
   }
 
   override def getUpstreamTables(table: String): Set[TableDefinition] = {
