@@ -1,6 +1,6 @@
-/* --title 'Unique target tables failed' --width 2 */
+/* --title 'Total number of runs failed' --width 2 */
 SELECT
-    CONCAT(main.target_table.catalog, '.', main.target_table.schema, '.', main.target_table.table_name) AS target_table,
+    main.recon_id AS rec_id,
     DATE(main.start_ts) AS start_date
 FROM
     remorph.reconcile.main main

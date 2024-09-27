@@ -18,11 +18,11 @@ WITH details_view AS (
              remorph.reconcile.aggregate_metrics
      )
 SELECT
-    recon_id,
-    source_table,
-    target_table,
-    recon_type,
-    aggregate_type,
+    recon_id AS dd_recon_id,
+    source_table AS dd_source_table,
+    target_table AS dd_target_table,
+    recon_type AS dd_recon_type,
+    aggregate_type AS dd_aggregate_type,
     rule AS aggregate_column,
     source_value,
     target_value,
