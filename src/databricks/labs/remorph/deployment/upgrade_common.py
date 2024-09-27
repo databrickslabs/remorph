@@ -52,7 +52,7 @@ def table_original_query(table_name: str) -> str:
     """
     resources = files(databricks.labs.remorph.resources)
     query_dir = resources.joinpath("reconcile/queries/installation")
-    return query_dir.joinpath(f"{table_name}.sql").read_text()
+    return query_dir.joinpath(f"{table_name}.sql").read_text().replace("CREATE TABLE IF NOT EXISTS", "CREATE OR REPLACE TABLE")
 
 
 def current_table_columns(table_name: str) -> list[str]:
