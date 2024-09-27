@@ -27,6 +27,8 @@ class SnowflakeQueryHistory(conn: Connection) extends QueryHistoryProvider {
            |    QUERY_TEXT != ''  -- Many system queries are empty
            |  AND
            |    QUERY_TEXT != '<redacted>' -- Certain queries are completely redacted
+           |  AND
+           |    QUERY_TEXT IS NOT NULL
            |ORDER BY
            |  START_TIME
            |""".stripMargin)
