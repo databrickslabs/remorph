@@ -48,8 +48,11 @@ trait ApplicationContext {
       planParser(dialect),
       new EstimationAnalyzer())
 
-  def jsonEstimationReporter(outputDir: os.Path, estimate: EstimationReport): JsonEstimationReporter =
-    new JsonEstimationReporter(outputDir, estimate)
+  def jsonEstimationReporter(
+      outputDir: os.Path,
+      preserveQueries: Boolean,
+      estimate: EstimationReport): JsonEstimationReporter =
+    new JsonEstimationReporter(outputDir, preserveQueries, estimate)
 
   def consoleEstimationReporter(estimate: EstimationReport): ConsoleEstimationReporter =
     new ConsoleEstimationReporter(estimate)
