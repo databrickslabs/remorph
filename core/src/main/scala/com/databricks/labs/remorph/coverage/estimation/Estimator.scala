@@ -52,12 +52,9 @@ class Estimator(queryHistory: QueryHistoryProvider, planParser: PlanParser[_], a
 
       case Success(plan) =>
         val queryHash = anonymizer(plan)
-        // scalastyle:off println
-        println(s"Query: ${query.source}")
         val sourceTextComplexity = analyzer.sourceTextComplexity(query.source)
         val score = analyzer.evaluateTree(plan) + analyzer.countStatements(
           plan) + sourceTextComplexity.textLength + sourceTextComplexity.lineCount
-        // scalastyle:on println
         if (!parsedSet.contains(queryHash)) {
           parsedSet += queryHash
           Some(generateReportRecord(query, plan, score, anonymizer))
