@@ -10,7 +10,7 @@ object Main extends App with ApplicationContext {
     case Payload("debug-me", _) =>
       prettyPrinter(workspaceClient.currentUser().me())
     case Payload("debug-coverage", args) =>
-      coverageTest.run(os.Path(args("src")), os.Path(args("dst")), args("extractor"), args("source-dialect"))
+      coverageTest.run(os.Path(args("src")), os.Path(args("dst")), args("extractor"))
     case Payload("debug-estimate", args) =>
       val report = estimator(args("source-dialect")).run()
       jsonEstimationReporter(os.Path(args("dst")), report).report()
