@@ -64,7 +64,7 @@ def test_prompt_for_catalog_setup_existing_catalog_no_access_retry_exhaust_attem
     catalog_operations.has_catalog_access.return_value = False
     configurator = ResourceConfigurator(ws, prompts, catalog_operations)
     with pytest.raises(SystemExit):
-        configurator.prompt_for_catalog_setup(max_attempts=2)
+        configurator.prompt_for_catalog_setup()
 
 
 def test_prompt_for_catalog_setup_new_catalog(ws):
@@ -139,7 +139,7 @@ def test_prompt_for_schema_setup_existing_schema_no_access_retry_exhaust_attempt
     catalog_operations.has_schema_access.return_value = False
     configurator = ResourceConfigurator(ws, prompts, catalog_operations)
     with pytest.raises(SystemExit):
-        configurator.prompt_for_schema_setup("remorph", "reconcile", max_attempts=2)
+        configurator.prompt_for_schema_setup("remorph", "reconcile")
 
 
 def test_prompt_for_schema_setup_new_schema(ws):
@@ -237,7 +237,6 @@ def test_prompt_for_volume_setup_existing_volume_no_access_retry_exhaust_attempt
             "remorph",
             "reconcile",
             "recon_volume",
-            max_attempts=2,
         )
 
 

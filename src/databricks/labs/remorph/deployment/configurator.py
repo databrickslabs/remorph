@@ -1,6 +1,5 @@
 import logging
 import time
-from itertools import chain
 
 from databricks.labs.blueprint.tui import Prompts
 from databricks.sdk import WorkspaceClient
@@ -63,36 +62,19 @@ class ResourceConfigurator:
         catalog: str,
         schema: str,
         default_volume_name: str,
-        required_privileges: tuple[set[Privilege], ...] = (
-            {Privilege.ALL_PRIVILEGES},
-            {Privilege.READ_VOLUME, Privilege.WRITE_VOLUME},
-        ),
-        max_attempts: int = 3,
     ) -> str:
-        for _ in range(1, max_attempts + 1):
-            volume_name = self._prompts.question("Enter volume name", default=default_volume_name)
-            volume = self._catalog_ops.get_volume(catalog, schema, volume_name)
-            if volume:
-                logger.info(f"Found existing volume `{volume_name}` in catalog `{catalog}` and schema `{schema}`")
-                user_name = self._user.user_name
-                assert user_name is not None
-                if self._catalog_ops.has_volume_access(volume, user_name, required_privileges):
-                    return volume_name
-                logger.warning(
-                    f"User `{user_name}` doesn't have sufficient privileges to use volume `{volume_name}` "
-                    f"in catalog `{catalog}` and schema `{schema}`"
-                )
-                if not self._prompts.confirm("Do you want to use another volume?"):
-                    raise SystemExit("Please choose the correct volume. Aborting the installation.")
-            else:
-                if self._prompts.confirm(
-                    f"Volume `{volume_name}` doesn't exist in catalog `{catalog}` and schema `{schema}`. Create it?"
-                ):
-                    result = self._catalog_ops.create_volume(catalog, schema, volume_name)
-                    assert result.name is not None
-                    return result.name
-                raise SystemExit("Cannot continue installation, without a valid volume. Aborting the installation.")
-        raise SystemExit(f"Couldn't get answer within {max_attempts} attempts. Aborting the installation.")
+        volume_name = self._prompts.question("Enter volume name", default=default_volume_name)
+        volume = self._catalog_ops.get_volume(catalog, schema, volume_name)
+        if volume:
+            logger.info(f"Found existing volume `{volume_name}` in catalog `{catalog}` and schema `{schema}`")
+            return volume_name
+        if self._prompts.confirm(
+            f"Volume `{volume_name}` doesn't exist in catalog `{catalog}` and schema `{schema}`. Create it?"
+        ):
+            result = self._catalog_ops.create_volume(catalog, schema, volume_name)
+            assert result.name is not None
+            return result.name
+        raise SystemExit("Cannot continue installation, without a valid volume. Aborting the installation.")
 
     def prompt_for_warehouse_setup(self, warehouse_name_prefix: str) -> str:
         def warehouse_type(_):
@@ -132,14 +114,11 @@ class ResourceConfigurator:
             )
             for privilege_set in privilege_sets
         ]
-        missing_permissions = set(
-            chain.from_iterable(
-                privilege_set for privilege_set, permissions in privilege_set_permissions if not permissions
-            )
-        )
+
+        missing_permissions = ResourceConfigurator._get_missing_permissions(privilege_set_permissions)
 
         logger.error(
-            f"User `{user_name}` doesn't have sufficient privileges `{missing_permissions}` to access catalog `{catalog_name}` "
+            f"User `{user_name}` doesn't have required privileges `{missing_permissions}` \n to access catalog `{catalog_name}` "
         )
         return False
 
@@ -157,24 +136,62 @@ class ResourceConfigurator:
             )
             for privilege_set in privilege_sets
         ]
-        missing_permissions = set(
-            chain.from_iterable(
-                privilege_set for privilege_set, permissions in privilege_set_permissions if not permissions
-            )
-        )
+        missing_permissions = ResourceConfigurator._get_missing_permissions(privilege_set_permissions)
+
         logger.error(
-            f"User `{user_name}` doesn't have sufficient privileges `{missing_permissions}` to access schema `{schema.full_name}` "
+            f"User `{user_name}` doesn't have required privileges `{missing_permissions}` \n to access schema `{schema.full_name}` "
         )
         return False
 
-    def has_necessary_access(self, catalog_name: str, schema_name: str, volume_name: str):
+    def has_necessary_volume_access(
+        self,
+        catalog_name: str,
+        schema_name: str,
+        volume_name: str,
+        user_name: str,
+        privilege_sets: tuple[set[Privilege], ...],
+    ):
+        volume = self._catalog_ops.get_volume(catalog_name, schema_name, volume_name)
+        assert volume
+        if self._catalog_ops.has_volume_access(volume, user_name, privilege_sets):
+            return True
+        privilege_set_permissions = [
+            (
+                privilege_set,
+                self._catalog_ops.has_privileges(user_name, SecurableType.VOLUME, volume.full_name, privilege_set),
+            )
+            for privilege_set in privilege_sets
+        ]
+        missing_permissions = ResourceConfigurator._get_missing_permissions(privilege_set_permissions)
+
+        logger.error(
+            f"User `{user_name}` doesn't have required privileges `{missing_permissions}` \n to access volume `{volume.full_name}` "
+        )
+        return False
+
+    @classmethod
+    def _get_missing_permissions(cls, privilege_set_permissions: list[tuple[set[Privilege], bool]]):
+        missing_permissions_list = []
+        for privilege_set, permissions in privilege_set_permissions:
+            if not permissions:
+                missing_privileges = ", ".join([privilege.name for privilege in privilege_set])
+                missing_permissions_list.append(f" '{missing_privileges}' ")
+
+        return " OR \n".join(missing_permissions_list)
+
+    def has_necessary_access(self, catalog_name: str, schema_name: str, volume_name: str | None):
         catalog_required_privileges: tuple[set[Privilege], ...] = (
             {Privilege.ALL_PRIVILEGES},
             {Privilege.USE_CATALOG},
         )
         schema_required_privileges: tuple[set[Privilege], ...] = (
             {Privilege.ALL_PRIVILEGES},
-            {Privilege.USE_SCHEMA, Privilege.CREATE_VOLUME},
+            {Privilege.USE_SCHEMA, Privilege.MODIFY, Privilege.SELECT, Privilege.CREATE_VOLUME},
+            {Privilege.USE_SCHEMA, Privilege.MODIFY, Privilege.SELECT},
+        )
+        volume_required_privileges: tuple[set[Privilege], ...] = (
+            {Privilege.ALL_PRIVILEGES},
+            {Privilege.READ_VOLUME, Privilege.WRITE_VOLUME},
         )
 
         user_name = self._user.user_name
@@ -184,7 +201,11 @@ class ResourceConfigurator:
         schema_access = self.has_necessary_schema_access(
             catalog_name, schema_name, user_name, schema_required_privileges
         )
-        logger.debug(f"Volume: {volume_name}")
-        # self.has_necessary_volume_access(catalog_name, schema_name, user_name, schema_required_privileges)
-        if not catalog_access or not schema_access:
+        required_access = catalog_access and schema_access
+        if volume_name:
+            volume_access = self.has_necessary_volume_access(
+                catalog_name, schema_name, volume_name, user_name, volume_required_privileges
+            )
+            required_access = required_access and volume_access
+        if not required_access:
             raise SystemExit("Cannot continue installation, without necessary access. Aborting the installation.")
