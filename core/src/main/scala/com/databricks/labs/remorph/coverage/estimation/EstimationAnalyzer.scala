@@ -6,6 +6,7 @@ import com.databricks.labs.remorph.parsers.intermediate.{Expression, LogicalPlan
 import com.databricks.labs.remorph.parsers.{intermediate => ir}
 import com.typesafe.scalalogging.LazyLogging
 import upickle.default._
+
 import scala.util.control.NonFatal
 
 sealed trait SqlComplexity
@@ -49,7 +50,10 @@ object EstimationStatistics {
 }
 
 class EstimationAnalyzer extends LazyLogging {
-  // TODO: We will do this and the rest of the analysis in the next PR
+
+  // How much each thing in our analysis discovery costs
+  val cost = new RuleDefinitions
+
   def countStatements(plan: ir.LogicalPlan): Int = 1
 
   def estimateComplexity(query: ExecutedQuery, plan: ir.LogicalPlan): ComplexityEstimate = {
@@ -114,15 +118,52 @@ class EstimationAnalyzer extends LazyLogging {
   }
 
   private def expressionEvaluator: PartialFunction[Expression, Int] = { case expr: Expression =>
-    try {
-      1 // Placeholder
-    } catch {
-      case NonFatal(_) => 5
+    // Initial score for any expression
+    val initialScore = cost.rules.getOrElse("EXPRESSSION", 1)
+    val expressionScore =
+      try {
+        expr match {
+          case ir.ScalarSubquery(relation) =>
+            // ScalarSubqueries are a bit more complex than a simple expression and their score
+            // is calculated by an addition for the subquery being present, and the sub-query itself
+            cost.rules.getOrElse("SUBQUERY", 5) + evaluateTree(relation)
+
+          case uf: ir.UnresolvedFunction =>
+            // Unsupported functions are a bit more complex than a simple expression and their score
+            // is calculated by an addition for the function being present, and the function itself
+            cost.rules.getOrElse("UNSUPPORTED_FUNCTION", 10) + assessFunction(uf)
+
+          case _ => initialScore // Default case for other expressions
+        }
+      } catch {
+        case NonFatal(_) => 5
+      }
+
+    // Final score for the expression is the sum of its components
+    initialScore + expressionScore
+  }
+
+  /**
+   * Assess the complexity of an unsupported  function conversion based on our internal knowledge of how
+   * the function is used. Some functions indicate data processing that is not supported in Databricks SQL
+   * and some will indicate a well-known conversion pattern that is known to be successful.
+   * @param func the function definition to analyze
+   * @return the conversion complexity score for the function
+   */
+  private def assessFunction(func: ir.UnresolvedFunction): Int = {
+    func match {
+      // For instance XML functions are not supported in Databricks SQL and will require manual conversion,
+      // which will be a significant amount of work.
+      case ir.UnresolvedFunction(name, _, _, _, _) =>
+        cost.rules.getOrElse("UNRESOLVED_FUNCTION", 10) + cost.rules.getOrElse(name, 0)
+
+      // All other functions are assumed to be simple verifications
+      case _ => 0
     }
   }
 
   // TODO: Verify these calculations and decide if they are all needed or not. May not harm to keep them around anyway
-  // TODO: calculate complexity using above stats not just the median score
+  // TODO: calculate overall complexity using the stats not just the median score?
   def summarizeComplexity(reportEntries: Seq[EstimationReportRecord]): EstimationStatistics = {
     val scores = reportEntries.map(_.analysisReport.score)
 
