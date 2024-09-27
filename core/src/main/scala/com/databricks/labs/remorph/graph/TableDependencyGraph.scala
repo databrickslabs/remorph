@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.graph
 
-import com.databricks.labs.remorph.discovery.{QueryHistory, TableDefinition}
+import com.databricks.labs.remorph.discovery.{ExecutedQuery, QueryHistory, TableDefinition}
 import com.databricks.labs.remorph.parsers.PlanParser
 import com.databricks.labs.remorph.transpilers.{Result, SourceCode}
 import com.typesafe.scalalogging.LazyLogging
@@ -34,52 +34,82 @@ class TableDependencyGraph(parser: PlanParser[_]) extends DependencyGraph with L
     edges += Edge(from, to, metadata)
   }
 
-  // protected override def getNodes: Set[TableDefinition] = nodes.map(_.tableDefinition).toSet
-
-  // protected override def getEdges: Set[(TableDefinition, TableDefinition)] =
-  // edges.map(edge => (edge.from, edge.to)).toSet
-
-  private def walkWithParent(plan: ir.LogicalPlan)(f: (ir.LogicalPlan, Option[ir.LogicalPlan]) => Unit): Unit = {
-    def recurse(node: ir.LogicalPlan, parent: Option[ir.LogicalPlan]): Unit = {
-      f(node, parent)
-      node.children.foreach(child => recurse(child, Some(node)))
-    }
-    recurse(plan, None)
-  }
-
-  private def getTableName(plan: ir.LogicalPlan): Option[String] = {
+  private def getTableName(plan: ir.LogicalPlan): String = {
     plan collectFirst { case x: ir.NamedTable =>
       x.unparsed_identifier
     }
-  }
+  }.getOrElse("None")
 
   private def generateEdges(plan: ir.LogicalPlan, tableDefinition: Seq[TableDefinition], queryId: String): Unit = {
-    walkWithParent(plan) {
-      case (node: ir.NamedTable, Some(parent)) =>
-        parent match {
-          case _: ir.Project | _: ir.Join | _: ir.SubqueryAlias | _: ir.Filter =>
-            val fromTable = tableDefinition.filter(_.table == node.unparsed_identifier).head
-            val toTable = tableDefinition.filter(_.table == getTableName(parent).getOrElse("None")).head
-            // TODO figure out a simpler way to add Action
-            addEdge(fromTable, toTable, Map("query" -> queryId, "action" -> "action"))
-          case _ => // Do nothing for other parent types
+    var toTable: TableDefinition = null
+    var action = "SELECT"
+    var fromTable: Seq[TableDefinition] = Seq.empty
+
+    def collectTables(node: ir.LogicalPlan): Unit = {
+      node match {
+        case _: ir.CreateTable =>
+          toTable = tableDefinition.filter(_.table == getTableName(plan)).head
+          action = "CREATE"
+        case _: ir.InsertIntoTable =>
+          toTable = tableDefinition.filter(_.table == getTableName(plan)).head
+          action = "INSERT"
+        case _: ir.DeleteFromTable =>
+          toTable = tableDefinition.filter(_.table == getTableName(plan)).head
+          action = "DELETE"
+        case _: ir.UpdateTable =>
+          toTable = tableDefinition.filter(_.table == getTableName(plan)).head
+          action = "UPDATE"
+        case _: ir.MergeIntoTable =>
+          toTable = tableDefinition.filter(_.table == getTableName(plan)).head
+          action = "MERGE"
+        case _: ir.Project | _: ir.Join | _: ir.SubqueryAlias | _: ir.Filter =>
+          val tableList = plan collect { case x: ir.NamedTable =>
+            x.unparsed_identifier
+          }
+          fromTable = tableDefinition.filter(x => tableList.contains(x.table))
+        case _ => // Do nothing
+      }
+      node.children.foreach(collectTables)
+    }
+
+    collectTables(plan)
+
+    if (fromTable.isEmpty) {
+      logger.warn(s"No tables found for insert into table values query")
+    } else {
+      fromTable.foreach(f => {
+        if (f != toTable) {
+          addEdge(f, toTable, Map("query" -> queryId, "action" -> action))
+        } else {
+          logger.warn(s"Ignoring reference detected for table ${f.table}")
         }
-      case _ => // Do nothing for other node types
+      })
     }
   }
 
-  def buildDependancy(queryHistory: QueryHistory, tableDefinition: Seq[TableDefinition]): Unit = {
+  private def buildNode(plan: ir.LogicalPlan, tableDefinition: Seq[TableDefinition], query: ExecutedQuery): Unit = {
+    plan collect { case x: ir.NamedTable =>
+      print(x.unparsed_identifier)
+      print("\n")
+      tableDefinition.find(_.table == x.unparsed_identifier) match {
+        case Some(name) => addNode(name, Map("query" -> query.id))
+        case None =>
+          logger.warn(
+            s"Table ${x.unparsed_identifier} not found in table definitions " +
+              s"or is it a subquery alias")
+      }
+    }
+  }
+
+  def buildDependency(queryHistory: QueryHistory, tableDefinition: Seq[TableDefinition]): Unit = {
     queryHistory.queries.foreach { query =>
+      print("\n")
+      print(query.source)
+      print("\n")
       val plan = parser.parse(SourceCode(query.source)).flatMap(parser.visit)
       plan match {
-        case Result.Success(plan) =>
-          print(plan.treeString)
-          print("\n")
-          plan collect { case x: ir.NamedTable =>
-            addNode(tableDefinition.filter(_.table == x.unparsed_identifier).head, Map("query" -> query.id))
-          }
-          generateEdges(plan, tableDefinition, query.id)
-
+        case Result.Success(p) => buildNode(p, tableDefinition, query)
+          generateEdges(p, tableDefinition, query.id)
         case _ => logger.warn(s"Failed to produce plan from query: ${query.source}")
       }
     }
@@ -101,22 +131,6 @@ class TableDependencyGraph(parser: PlanParser[_]) extends DependencyGraph with L
       .find(_.tableDefinition.table == table)
       .getOrElse(throw new NoSuchElementException(s"No table $table found"))
     findRoot(targetNode, level).tableDefinition
-  }
-
-  override def getUpstreamTables(table: String): Set[TableDefinition] = {
-    val targetNode = nodes.find(_.tableDefinition.table == table)
-    targetNode match {
-      case Some(node) => edges.filter(_.to == node.tableDefinition).map(_.from).toSet
-      case None => Set.empty[TableDefinition]
-    }
-  }
-
-  override def getDownstreamTables(table: String): Set[TableDefinition] = {
-    val targetNode = nodes.find(_.tableDefinition.table == table)
-    targetNode match {
-      case Some(node) => edges.filter(_.from == node.tableDefinition).map(_.to).toSet
-      case None => Set.empty[TableDefinition]
-    }
   }
 
 }

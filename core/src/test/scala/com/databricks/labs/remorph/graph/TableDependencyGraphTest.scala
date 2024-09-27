@@ -41,7 +41,7 @@ class TableDependencyGraphTest extends AnyFlatSpec with Matchers {
       ExecutedQuery(
         "query5",
         new Timestamp(System.currentTimeMillis()),
-        "WITH cte AS (SELECT col1 FROM table6) SELECT * FROM cte",
+        "WITH cte AS (SELECT col1 FROM table5) SELECT * FROM cte",
         Duration.ofSeconds(35),
         "user5"),
       ExecutedQuery(
@@ -53,7 +53,7 @@ class TableDependencyGraphTest extends AnyFlatSpec with Matchers {
       ExecutedQuery(
         "query7",
         new Timestamp(System.currentTimeMillis()),
-        "MERGE INTO table2 USING source_table ON table2.id = source_table.id " +
+        "MERGE INTO table2 USING table3 source_table ON table2.id = source_table.id " +
           "WHEN MATCHED THEN UPDATE SET table2.col1 = source_table.col1",
         Duration.ofSeconds(50),
         "user2"),
@@ -107,10 +107,11 @@ class TableDependencyGraphTest extends AnyFlatSpec with Matchers {
       table = "table5",
       columns = Seq(StructField("col1", IntegerType, true), StructField("col2", StringType, false)),
       sizeGb = 50))
+
   "TableDependencyGraph" should "add nodes correctly" in {
 
     val graph = new TableDependencyGraph(parser)
-    graph.buildDependancy(queryHistory, tableDefinitions)
+    graph.buildDependency(queryHistory, tableDefinitions)
     val nodes = graph.getRoot("table1")
     print(nodes)
   }
