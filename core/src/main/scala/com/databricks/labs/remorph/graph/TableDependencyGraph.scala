@@ -133,4 +133,7 @@ class TableDependencyGraph(parser: PlanParser[_]) extends DependencyGraph with L
     findRoot(targetNode, level).tableDefinition
   }
 
+  override def getUpstreamTables(table: String): Set[TableDefinition] = Set.empty[TableDefinition]
+
+  override def getDownstreamTables(table: String): Set[TableDefinition] = Set.empty[TableDefinition]
 }
