@@ -1,7 +1,6 @@
 package com.databricks.labs.remorph.coverage.estimation
 
 import com.databricks.labs.remorph.coverage.EstimationReportRecord
-import com.databricks.labs.remorph.discovery.ExecutedQuery
 import com.databricks.labs.remorph.parsers.intermediate.{Expression, LogicalPlan, TreeNode}
 import com.databricks.labs.remorph.parsers.{intermediate => ir}
 import com.typesafe.scalalogging.LazyLogging
@@ -31,7 +30,7 @@ object SqlComplexity {
     macroRW[SqlComplexity.VERY_COMPLEX.type])
 }
 
-case class ComplexityEstimate(complexity: SqlComplexity, statementCount: Int, charCount: Int, lineCount: Int)
+// TODO: case class ComplexityEstimate(complexity: SqlComplexity, statementCount: Int, charCount: Int, lineCount: Int)
 case class SourceTextComplexity(lineCount: Int, textLength: Int)
 
 case class EstimationStatistics(
@@ -54,35 +53,60 @@ class EstimationAnalyzer extends LazyLogging {
   // How much each thing in our analysis discovery costs
   val cost = new RuleDefinitions
 
-  def countStatements(plan: ir.LogicalPlan): Int = 1
-
-  def estimateComplexity(query: ExecutedQuery, plan: ir.LogicalPlan): ComplexityEstimate = {
-    val s = sourceTextComplexity(query.source)
-    ComplexityEstimate(SqlComplexity.LOW, countStatements(plan), s.textLength, s.lineCount)
-  }
-
-  def evaluateTree(node: TreeNode[_]): Int = {
+  def evaluateTree(node: TreeNode[_]): RuleScore = {
     evaluateTree(node, logicalPlanEvaluator, expressionEvaluator)
   }
 
   def evaluateTree(
       node: TreeNode[_],
-      logicalPlanVisitor: PartialFunction[LogicalPlan, Int],
-      expressionVisitor: PartialFunction[Expression, Int]): Int = {
-    if (node == null) return 0 // Return 0 if the node is null (guards against bad IR for the moment - will change)
+      logicalPlanVisitor: PartialFunction[LogicalPlan, RuleScore],
+      expressionVisitor: PartialFunction[Expression, RuleScore]): RuleScore = {
+
+    if (node == null) {
+      logger.error("IR_ERROR: Node is null!")
+      return RuleScore(
+        "IR_ERROR",
+        cost.rules.getOrElse("IR_ERROR", 100),
+        Seq.empty
+      ) // Return default value if the node is null
+    }
 
     node match {
       case lp: LogicalPlan =>
-        val currentValue = logicalPlanVisitor.applyOrElse(lp, (_: LogicalPlan) => 0)
-        val childrenValue = lp.children.map(child => evaluateTree(child, logicalPlanVisitor, expressionVisitor)).sum
-        val expressionsValue = lp.expressions.map(expr => evaluateTree(expr, logicalPlanVisitor, expressionVisitor)).sum
-        currentValue + childrenValue + expressionsValue
+        val currentRuleScore = logicalPlanVisitor.applyOrElse(
+          lp,
+          (_: LogicalPlan) => RuleScore("IR_ERROR", cost.rules.getOrElse("IR_ERROR", 100), Seq.empty))
+
+        val childrenRuleScores =
+          lp.children.map(child => evaluateTree(child, logicalPlanVisitor, expressionVisitor))
+        val expressionRuleScores =
+          lp.expressions.map(expr => evaluateTree(expr, logicalPlanVisitor, expressionVisitor))
+
+        val childrenValue = childrenRuleScores.map(_.score).sum
+        val expressionsValue = expressionRuleScores.map(_.score).sum
+
+        RuleScore(
+          currentRuleScore.rule,
+          currentRuleScore.score + childrenValue + expressionsValue,
+          childrenRuleScores ++ expressionRuleScores)
 
       case expr: Expression =>
-        if (expr.children == null) return 0
-        val currentValue = expressionVisitor.applyOrElse(expr, (_: Expression) => 0)
-        val childrenValue = expr.children.map(child => evaluateTree(child, logicalPlanVisitor, expressionVisitor)).sum
-        currentValue + childrenValue
+        if (expr.children == null) {
+          logger.error("IR_ERROR: Expression has null for children instead of empty list!")
+          return RuleScore("IR_ERROR", cost.rules.getOrElse("IR_ERROR", 100), Seq.empty)
+        }
+        val currentRuleScore = expressionVisitor.applyOrElse(
+          expr,
+          (_: Expression) => RuleScore("IR_ERROR", cost.rules.getOrElse("IR_ERROR", 100), Seq.empty))
+        val childrenRuleScores =
+          expr.children.map(child => evaluateTree(child, logicalPlanVisitor, expressionVisitor))
+        val childrenValue = childrenRuleScores.map(_.score).sum
+
+        // All expressions have a base cost, plus the cost of the expression itself and its children
+        RuleScore(
+          "EXPRESSION",
+          cost.rules.getOrElse("EXPRESSION", 1) + currentRuleScore.score + childrenValue,
+          childrenRuleScores)
 
       case _ =>
         throw new IllegalArgumentException(s"Unsupported node type: ${node.getClass.getSimpleName}")
@@ -109,38 +133,49 @@ class EstimationAnalyzer extends LazyLogging {
     SourceTextComplexity(query.split("\n").length, query.length)
   }
 
-  private def logicalPlanEvaluator: PartialFunction[LogicalPlan, Int] = { case lp: LogicalPlan =>
+  private def logicalPlanEvaluator: PartialFunction[LogicalPlan, RuleScore] = { case lp: LogicalPlan =>
     try {
-      1 // Placeholder
+      lp match {
+        case ir.UnresolvedCommand(_) =>
+          RuleScore("UNSUPPORTED_COMMAND", cost.rules.getOrElse("UNSUPPORTED_COMMAND", 1), Seq.empty)
+
+        case _ =>
+          RuleScore(
+            "STATEMENT",
+            cost.rules.getOrElse("STATEMENT", 1),
+            Seq.empty
+          ) // Default case for other logical plans
+      }
+
     } catch {
-      case NonFatal(_) => 5
+      case NonFatal(_) => RuleScore("IR_ERROR", cost.rules.getOrElse("IR_ERROR", 100), Seq.empty)
     }
   }
 
-  private def expressionEvaluator: PartialFunction[Expression, Int] = { case expr: Expression =>
-    // Initial score for any expression
-    val initialScore = cost.rules.getOrElse("EXPRESSSION", 1)
-    val expressionScore =
-      try {
-        expr match {
-          case ir.ScalarSubquery(relation) =>
-            // ScalarSubqueries are a bit more complex than a simple expression and their score
-            // is calculated by an addition for the subquery being present, and the sub-query itself
-            cost.rules.getOrElse("SUBQUERY", 5) + evaluateTree(relation)
+  private def expressionEvaluator: PartialFunction[Expression, RuleScore] = { case expr: Expression =>
+    try {
+      expr match {
+        case ir.ScalarSubquery(relation) =>
+          // ScalarSubqueries are a bit more complex than a simple expression and their score
+          // is calculated by an addition for the subquery being present, and the sub-query itself
+          val subqueryScore = evaluateTree(relation)
+          RuleScore("SUBQUERY", cost.rules.getOrElse("SUBQUERY", 5) + subqueryScore.score, Seq(subqueryScore))
 
-          case uf: ir.UnresolvedFunction =>
-            // Unsupported functions are a bit more complex than a simple expression and their score
-            // is calculated by an addition for the function being present, and the function itself
-            cost.rules.getOrElse("UNSUPPORTED_FUNCTION", 10) + assessFunction(uf)
+        case uf: ir.UnresolvedFunction =>
+          // Unsupported functions are a bit more complex than a simple expression and their score
+          // is calculated by an addition for the function being present, and the function itself
+          assessFunction(uf)
 
-          case _ => initialScore // Default case for other expressions
-        }
-      } catch {
-        case NonFatal(_) => 5
+        case _ =>
+          RuleScore(
+            "EXPRESSION",
+            cost.rules.getOrElse("EXPRESSION", 1),
+            Seq.empty
+          ) // Default case for other expressions
       }
-
-    // Final score for the expression is the sum of its components
-    initialScore + expressionScore
+    } catch {
+      case NonFatal(_) => RuleScore("IR_ERROR", cost.rules.getOrElse("IR_ERROR", 100), Seq.empty)
+    }
   }
 
   /**
@@ -150,22 +185,22 @@ class EstimationAnalyzer extends LazyLogging {
    * @param func the function definition to analyze
    * @return the conversion complexity score for the function
    */
-  private def assessFunction(func: ir.UnresolvedFunction): Int = {
+  private def assessFunction(func: ir.UnresolvedFunction): RuleScore = {
     func match {
       // For instance XML functions are not supported in Databricks SQL and will require manual conversion,
       // which will be a significant amount of work.
       case ir.UnresolvedFunction(name, _, _, _, _) =>
-        cost.rules.getOrElse("UNRESOLVED_FUNCTION", 10) + cost.rules.getOrElse(name, 0)
-
-      // All other functions are assumed to be simple verifications
-      case _ => 0
+        RuleScore(
+          s"UNRESOLVED_FUNCTION:${name}",
+          cost.rules.getOrElse("UNRESOLVED_FUNCTION", 10) + cost.rules.getOrElse(name, 0),
+          Seq.empty)
     }
   }
 
   // TODO: Verify these calculations and decide if they are all needed or not. May not harm to keep them around anyway
   // TODO: calculate overall complexity using the stats not just the median score?
   def summarizeComplexity(reportEntries: Seq[EstimationReportRecord]): EstimationStatistics = {
-    val scores = reportEntries.map(_.analysisReport.score)
+    val scores = reportEntries.map(_.analysisReport.score.score)
 
     // Median
     val sortedScores = scores.sorted
@@ -210,4 +245,20 @@ class EstimationAnalyzer extends LazyLogging {
       geometricMeanScore,
       SqlComplexity.fromScore(medianScore))
   }
+
+  /**
+   * Assigns a conversion complexity score based on how much text is in the query, which is a basic
+   * indicator of how much work will be required to manually inspect a query.
+   * @param sourceTextComplexity the complexity of the source text
+   * @return the score for the complexity of the query
+   */
+  def assessText(sourceTextComplexity: SourceTextComplexity): Int =
+    // TODO: These values are arbitrary and need to be verified in some way
+    sourceTextComplexity.lineCount + sourceTextComplexity.textLength match {
+      case l if l < 100 => 1
+      case l if l < 500 => 5
+      case l if l < 1000 => 10
+      case l if l < 5000 => 25
+      case _ => 50
+    }
 }
