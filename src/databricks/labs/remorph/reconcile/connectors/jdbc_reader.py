@@ -17,7 +17,7 @@ class JDBCReaderMixin:
             self._spark.read.format("jdbc")
             .option("url", jdbc_url)
             .option("driver", driver_class.get(driver, driver))
-            .option("dbtable", f"({query}) tmp")
+            .option("query", f"{query}")
         )
 
     @staticmethod

@@ -232,6 +232,12 @@ DataType_transform_mapping: dict[str, dict[str, list[partial[exp.Expression]]]] 
     "databricks": {
         exp.DataType.Type.ARRAY.value: [partial(anonymous, func="CONCAT_WS(',', SORT_ARRAY({}))")],
     },
+    "teradata": {
+        exp.DataType.Type.DATE.value: [partial(anonymous, func="COALESCE(CAST({} AS VARCHAR(20)), '_null_recon_')")],
+        exp.DataType.Type.DATETIME.value: [partial(anonymous, func="COALESCE(CAST({} AS VARCHAR(20)), '_null_recon_')")],
+        exp.DataType.Type.TIMESTAMP.value: [partial(anonymous, func="COALESCE(CAST({} AS VARCHAR(20)), '_null_recon_')")],
+        exp.DataType.Type.INTERVAL.value: [partial(anonymous, func="COALESCE(CAST({} AS VARCHAR(50)), '_null_recon_')")],
+    },
 }
 
 Dialect_hash_algo_mapping = [
@@ -243,6 +249,6 @@ Dialect_hash_algo_mapping = [
     DialectHashConfig(dialect=get_dialect("databricks"), algo=[partial(sha2, num_bits="256", is_expr=True)]),
     DialectHashConfig(
         dialect=get_dialect("teradata"),
-        algo=[partial(anonymous, func="HASH_SHA256(TRIM(CAST({} AS VARCHAR(255))))", is_expr=True)],
+        algo=[partial(anonymous, func="hash_sha256({})", is_expr=True)],
     ),
 ]

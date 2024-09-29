@@ -99,6 +99,8 @@ class SamplingQueryBuilder(QueryBuilder):
             ]
             if get_key_from_dialect(self.engine) == "oracle":
                 union_res.append(select(*row_select).from_("dual"))
+            elif get_key_from_dialect(self.engine) == "teradata":
+                union_res.append(select(*row_select).from_(" (SELECT 1 AS dummy_col) AS dummy"))
             else:
                 union_res.append(select(*row_select))
         union_statements = _union_concat(union_res, union_res[0], 0)

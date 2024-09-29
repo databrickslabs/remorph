@@ -20,6 +20,8 @@ _SCHEMA_QUERY = """SELECT
                      CASE 
                         WHEN ColumnType IN ('I') 
                             THEN 'int'
+                        WHEN ColumnType IN ('I2') 
+                            THEN 'smallint'
                         WHEN ColumnType IN ('D')
                             THEN 'decimal(' || 
                                 CAST(DecimalTotalDigits AS VARCHAR(100)) || ',' ||
@@ -28,7 +30,7 @@ _SCHEMA_QUERY = """SELECT
                                 THEN 'float' 
                         WHEN ColumnLength IS NOT NULL AND ColumnType IN ('VC','CV') 
                                 THEN 'varchar(' || CAST(ColumnLength AS VARCHAR(100)) || ')'
-                        WHEN ColumnType = 'DT' 
+                        WHEN ColumnType IN ('DT', 'DA') 
                                 THEN 'date'
                         WHEN ColumnType IN ('TS')
                                 THEN 'timestamp'
@@ -61,17 +63,30 @@ class TeradataDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
         self._ws = ws
         self._secret_scope = secret_scope
 
+    # @property
+    # def get_jdbc_url(self) -> str:
+    #     # Fetch secrets once and store them in variables
+    #     secrets = {key: self._get_secret(key) for key in ['CDE-BNSTLK-AZ-APPL-PWD']}
+    #     # Construct the JDBC URL
+    #     return (
+    #         f"jdbc:{self._DRIVER}://edwp.corp.erac.com/DBS_PORT=1025,"
+    #         #f"databaseName={secrets['database']},"
+    #         f"user=CDE_BNSTLK_AZ_APPL,"
+    #         f"password={secrets['CDE-BNSTLK-AZ-APPL-PWD']},"
+    #     )
+
     @property
     def get_jdbc_url(self) -> str:
         # Fetch secrets once and store them in variables
-        secrets = {key: self._get_secret(key) for key in ['CDE-BNSTLK-AZ-APPL-PWD']}
-        #jdbc:teradata://edwd.corp.erac.com
         # Construct the JDBC URL
+        host = "ec2-54-241-85-177.us-west-1.compute.amazonaws.com"
+        port = "1025"
+        user = "reconcile_test_app_user"
+        password = "dbc"
+        database = "reconcile_test"
+        url = f"jdbc:teradata://{host}/DBS_PORT={port},DATABASE={database},USER={user},PASSWORD={password}"
         return (
-            f"jdbc:{self._DRIVER}://edwp.corp.erac.com/DBS_PORT=1025,"
-            #f"databaseName={secrets['database']},"
-            f"user=CDE_BNSTLK_AZ_APPL,"
-            f"password={secrets['CDE-BNSTLK-AZ-APPL-PWD']},"
+            url
         )
 
     def read_data(
@@ -82,7 +97,7 @@ class TeradataDataSource(DataSource, SecretsMixin, JDBCReaderMixin):
         query: str,
         options: JdbcReaderOptions | None,
     ) -> DataFrame:
-        table_query = query.replace(":tbl", f"{catalog}.{schema}.{table}")
+        table_query = query.replace(":tbl", f"{schema}.{table}")
         print(table_query)
         try:
             if options is None:

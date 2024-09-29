@@ -22,7 +22,7 @@ class CountQueryBuilder:
         self._engine = engine
 
     def build_query(self):
-        select_clause = build_column(this=exp.Count(this=build_literal(this="1", is_string=False)), alias="count")
+        select_clause = build_column(this=exp.Count(this=build_literal(this="1", is_string=False)), alias="total_count")
         count_query = (
             exp.select(select_clause)
             .from_(":tbl")
