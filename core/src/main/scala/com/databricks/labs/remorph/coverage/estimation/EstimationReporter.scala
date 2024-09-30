@@ -15,7 +15,7 @@ class ConsoleEstimationReporter(estimate: EstimationReport) extends EstimationRe
     println(s"Sample size              : ${estimate.sampleSize}")
     println(s"Output record count      : ${estimate.records.size}")
     println(s"Unique successful parses : ${estimate.uniqueSuccesses}")
-    println(s"Parse failures           : ${estimate.parseFailures}")
+    println(s"Unique Parse failures    : ${estimate.parseFailures}")
     println(s"Transpile failures       : ${estimate.transpileFailures}")
     println(s"Overall complexity       : ${estimate.overallComplexity.complexity}")
     println()

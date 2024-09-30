@@ -178,4 +178,30 @@ class Anonymizer(parser: PlanParser[_]) extends LazyLogging {
       case _ => QueryType.OTHER
     }
   }
+
+  /**
+   * Create a fingerprint for a query, when the plan is not yet, or cannot be produced.
+   * <p>
+   *   This is a fallback method for when we cannot parse the query into a plan. It will
+   *   make a crude attempt to hash the query text itself, taking out literals and numerics.
+   *   This gives us a very basic way to identify duplicate queries and not report them as
+   *   unparsable if they are just different by a few values from a previous query. In turn,
+   *   this gives us a better idea of how many unique unparsable queries we have yet to deal
+   *   with, rather than just reporting them all as unparsable and making the core work
+   *   seem bigger than it actually is.
+   *</p>
+   * <p>
+   *   We could improve this hash by removing comments and normalizing whitespace perhaps,
+   *   but whether we would get any gains from that is debatable
+   * </p>
+   *
+   * @param query The text of the query to parse
+   * @return A fingerprint representing the query text
+   */
+  def fingerprint(query: String): String = {
+    val masked = query.replaceAll("\\b\\d+\\b", "42").replaceAll("'[^']*'", "?")
+    val digest = MessageDigest.getInstance("SHA-1")
+    digest.update(masked.getBytes)
+    digest.digest().map("%02x".format(_)).mkString
+  }
 }

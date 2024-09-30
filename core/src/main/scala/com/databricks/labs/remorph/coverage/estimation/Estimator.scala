@@ -15,10 +15,9 @@ class Estimator(queryHistory: QueryHistoryProvider, planParser: PlanParser[_], a
   def run(): EstimationReport = {
     val history = queryHistory.history()
     val anonymizer = new Anonymizer(planParser)
+    // Hashews of either query strings or plans that we have seen before.
     val parsedSet = scala.collection.mutable.Set[String]()
-
     val reportEntries = history.queries.flatMap(processQuery(_, anonymizer, parsedSet))
-
     val (uniqueSuccesses, parseFailures, transpileFailures) = countReportEntries(reportEntries)
 
     EstimationReport(
@@ -37,44 +36,55 @@ class Estimator(queryHistory: QueryHistoryProvider, planParser: PlanParser[_], a
       query: ExecutedQuery,
       anonymizer: Anonymizer,
       parsedSet: scala.collection.mutable.Set[String]): Option[EstimationReportRecord] = {
-    planParser.parse(SourceCode(query.source, query.user + "_" + query.id)).flatMap(planParser.visit) match {
-      case Failure(PARSE, errorJson) =>
-        Some(
-          EstimationReportRecord(
-            EstimationTranspilationReport(Some(query.source), statements = 1, parsing_error = Some(errorJson)),
-            EstimationAnalysisReport(
-              score = RuleScore("PARSE_FAILURE", analyzer.cost.rules.getOrElse("UNEXPECTED_RESULT", 100), Seq.empty),
-              complexity = SqlComplexity.VERY_COMPLEX)))
 
-      case Failure(PLAN, errorJson) =>
-        Some(
-          EstimationReportRecord(
-            EstimationTranspilationReport(Some(query.source), statements = 1, transpilation_error = Some(errorJson)),
-            EstimationAnalysisReport(
-              score = RuleScore("PLAN_FAILURE", analyzer.cost.rules.getOrElse("UNEXPECTED_RESULT", 100), Seq.empty),
-              complexity = SqlComplexity.VERY_COMPLEX)))
+    // Skip entries that have already been seen as text but for which we were unable to parse or
+    // produce a plan for
+    val fingerprint = anonymizer.fingerprint(query.source)
+    if (!parsedSet.contains(fingerprint)) {
+      parsedSet += fingerprint
+      planParser.parse(SourceCode(query.source, query.user + "_" + query.id)).flatMap(planParser.visit) match {
+        case Failure(PARSE, errorJson) =>
+          Some(
+            EstimationReportRecord(
+              EstimationTranspilationReport(Some(query.source), statements = 1, parsing_error = Some(errorJson)),
+              EstimationAnalysisReport(
+                score = RuleScore("PARSE_FAILURE", analyzer.cost.rules.getOrElse("UNEXPECTED_RESULT", 100), Seq.empty),
+                complexity = SqlComplexity.VERY_COMPLEX)))
 
-      case Success(plan) =>
-        val queryHash = anonymizer(plan)
-        val score = analyzer.evaluateTree(plan)
-        if (!parsedSet.contains(queryHash)) {
-          parsedSet += queryHash
-          Some(generateReportRecord(query, plan, score, anonymizer))
-        } else {
-          None
-        }
+        case Failure(PLAN, errorJson) =>
+          Some(
+            EstimationReportRecord(
+              EstimationTranspilationReport(Some(query.source), statements = 1, transpilation_error = Some(errorJson)),
+              EstimationAnalysisReport(
+                score = RuleScore("PLAN_FAILURE", analyzer.cost.rules.getOrElse("UNEXPECTED_RESULT", 100), Seq.empty),
+                complexity = SqlComplexity.VERY_COMPLEX)))
 
-      case _ =>
-        Some(
-          EstimationReportRecord(
-            EstimationTranspilationReport(
-              query = Some(query.source),
-              statements = 1,
-              parsing_error = Some("Unexpected result from parse phase")),
-            EstimationAnalysisReport(
-              score =
-                RuleScore("UNEXPECTED_RESULT", analyzer.cost.rules.getOrElse("UNEXPECTED_RESULT", 100), Seq.empty),
-              complexity = SqlComplexity.VERY_COMPLEX)))
+        case Success(plan) =>
+          val queryHash = anonymizer(plan)
+          val score = analyzer.evaluateTree(plan)
+          // Note that the plan hash will generally be more accurate than the query hash, hence we check here
+          // as well as against the plain text
+          if (!parsedSet.contains(queryHash)) {
+            parsedSet += queryHash
+            Some(generateReportRecord(query, plan, score, anonymizer))
+          } else {
+            None
+          }
+
+        case _ =>
+          Some(
+            EstimationReportRecord(
+              EstimationTranspilationReport(
+                query = Some(query.source),
+                statements = 1,
+                parsing_error = Some("Unexpected result from parse phase")),
+              EstimationAnalysisReport(
+                score =
+                  RuleScore("UNEXPECTED_RESULT", analyzer.cost.rules.getOrElse("UNEXPECTED_RESULT", 100), Seq.empty),
+                complexity = SqlComplexity.VERY_COMPLEX)))
+      }
+    } else {
+      None
     }
   }
 
