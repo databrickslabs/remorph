@@ -30,8 +30,10 @@ class TableGraph(parser: PlanParser[_]) extends DependencyGraph with LazyLogging
     }
   }
 
-  override protected def addEdge(from: TableDefinition, to: Option[TableDefinition],
-                                 metadata: Map[String, String]): Unit = {
+  override protected def addEdge(
+      from: TableDefinition,
+      to: Option[TableDefinition],
+      metadata: Map[String, String]): Unit = {
     edges += Edge(from, to, metadata)
   }
 
@@ -103,19 +105,19 @@ class TableGraph(parser: PlanParser[_]) extends DependencyGraph with LazyLogging
   def buildDependency(queryHistory: QueryHistory, tableDefinition: Set[TableDefinition]): Unit = {
     queryHistory.queries.foreach { query =>
       try {
-      val plan = parser.parse(SourceCode(query.source)).flatMap(parser.visit)
-      plan match {
-        case Result.Failure(_, errorJson) =>
-          logger.warn(s"Failed to produce plan from query: ${query.source}")
-          logger.debug(s"Error: $errorJson")
-        case Result.Success(p) =>
-          buildNode(p, tableDefinition, query)
-          generateEdges(p, tableDefinition, query.id)
-      }
-        } catch {
-        // TODO Null Pointer Exception is thrown as Result.Success, need to investigate for Merge Query.
-          case e: Exception => logger.warn(s"Failed to produce plan from query: ${query.source}")
+        val plan = parser.parse(SourceCode(query.source)).flatMap(parser.visit)
+        plan match {
+          case Result.Failure(_, errorJson) =>
+            logger.warn(s"Failed to produce plan from query: ${query.source}")
+            logger.debug(s"Error: $errorJson")
+          case Result.Success(p) =>
+            buildNode(p, tableDefinition, query)
+            generateEdges(p, tableDefinition, query.id)
         }
+      } catch {
+        // TODO Null Pointer Exception is thrown as Result.Success, need to investigate for Merge Query.
+        case e: Exception => logger.warn(s"Failed to produce plan from query: ${query.source}")
+      }
     }
   }
 
@@ -138,11 +140,11 @@ class TableGraph(parser: PlanParser[_]) extends DependencyGraph with LazyLogging
   // TODO Implement logic for fetching edges(parents) only upto certain level
   def getRootTables(): Set[TableDefinition] = {
     val inDegreeMap = countInDegrees()
-    nodes.map(_.tableDefinition)
+    nodes
+      .map(_.tableDefinition)
       .filter(table => inDegreeMap.getOrElse(table, 0) == 0)
       .toSet
   }
-
 
   override def getUpstreamTables(table: TableDefinition): Set[TableDefinition] = {
     edges.filter(_.to.contains(table)).map(_.from).toSet
