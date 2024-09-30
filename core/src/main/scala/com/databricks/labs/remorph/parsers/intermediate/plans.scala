@@ -117,8 +117,10 @@ abstract class Plan[PlanType <: Plan[PlanType]] extends TreeNode[PlanType] {
     }.asInstanceOf[this.type]
   }
 
-  /** Returns all of the expressions present in this query (that is expression defined in this plan operator and in each
-   * its descendants). */
+  /**
+   * Returns all of the expressions present in this query (that is expression defined in this plan operator and in each
+   * its descendants).
+   */
   def expressions: Seq[Expression] = { // TODO: bring back `final` after "expressions" in Project is renamed
     // Recursively find all expressions from a traversable.
     def seqToExpressions(seq: Iterable[Any]): Iterable[Expression] = seq.flatMap {

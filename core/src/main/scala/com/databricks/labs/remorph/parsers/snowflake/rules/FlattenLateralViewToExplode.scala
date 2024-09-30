@@ -30,12 +30,12 @@ class FlattenLateralViewToExplode extends Rule[LogicalPlan] with IRHelpers {
     // FLATTEN produces a table with several columns (that we materialize as FLATTEN_OUTPUT_COLUMNS).
     // We retain only the columns that are actually referenced elsewhere in the query.
     val flattenOutputReferencedColumns = FLATTEN_OUTPUT_COLUMNS.filter { col =>
-        exprs.exists(_.find {
-          case Dot(x, Id(c, false)) => x == id && c.equalsIgnoreCase(col)
-          case Column(Some(r), Id(c, false)) => r.head == id && c.equalsIgnoreCase(col)
-          case _ => false
-        }.isDefined)
-      }
+      exprs.exists(_.find {
+        case Dot(x, Id(c, false)) => x == id && c.equalsIgnoreCase(col)
+        case Column(Some(r), Id(c, false)) => r.head == id && c.equalsIgnoreCase(col)
+        case _ => false
+      }.isDefined)
+    }
 
     val input = named("INPUT")
     val outer = getFlag(named, "OUTER")
@@ -63,6 +63,5 @@ class FlattenLateralViewToExplode extends Rule[LogicalPlan] with IRHelpers {
     case Some(BooleanLiteral(value)) => value
     case _ => false
   }
-
 
 }
