@@ -1,9 +1,8 @@
 package com.databricks.labs.remorph.discovery
 
 import com.databricks.labs.remorph.parsers.intermediate.{DataType, StructField}
-import com.databricks.labs.remorph.parsers.snowflake.{SnowflakeLexer, SnowflakeParser}
+import com.databricks.labs.remorph.parsers.tsql.{DataTypeBuilder, TSqlLexer, TSqlParser}
 import org.antlr.v4.runtime.{CharStreams, CommonTokenStream}
-import com.databricks.labs.remorph.parsers.snowflake.SnowflakeTypeBuilder
 
 import java.sql.Connection
 import scala.collection.mutable
@@ -18,12 +17,12 @@ class TSqlTableDefinitions(conn: Connection) {
    */
   private def getDataType(dataTypeString: String): DataType = {
     val inputString = CharStreams.fromString(dataTypeString)
-    val lexer = new SnowflakeLexer(inputString)
+    val lexer = new TSqlLexer(inputString)
     val tokenStream = new CommonTokenStream(lexer)
-    val parser = new SnowflakeParser(tokenStream)
+    val parser = new TSqlParser(tokenStream)
     val ctx = parser.dataType()
-    val dataTypeBuilder = new SnowflakeTypeBuilder
-    dataTypeBuilder.buildDataType(ctx)
+    val dataTypeBuilder = new DataTypeBuilder
+    dataTypeBuilder.build(ctx)
   }
 
   private def getTableDefinitionQuery(catalogName: String): String = {
