@@ -9,8 +9,7 @@ import com.databricks.labs.remorph.parsers.{intermediate => ir}
 protected case class Node(tableDefinition: TableDefinition, metadata: Map[String, Set[String]])
 protected case class Edge(from: TableDefinition, to: TableDefinition, metadata: Map[String, String])
 
-class TableGraph(parser: PlanParser[_])
-  extends DependencyGraph with LazyLogging {
+class TableGraph(parser: PlanParser[_]) extends DependencyGraph with LazyLogging {
   private val nodes = scala.collection.mutable.Set.empty[Node]
   private val edges = scala.collection.mutable.Set.empty[Edge]
 
@@ -109,7 +108,8 @@ class TableGraph(parser: PlanParser[_])
       print("\n")
       val plan = parser.parse(SourceCode(query.source)).flatMap(parser.visit)
       plan match {
-        case Result.Success(p) => buildNode(p, tableDefinition, query)
+        case Result.Success(p) =>
+          buildNode(p, tableDefinition, query)
           generateEdges(p, tableDefinition, query.id)
         case _ => logger.warn(s"Failed to produce plan from query: ${query.source}")
       }

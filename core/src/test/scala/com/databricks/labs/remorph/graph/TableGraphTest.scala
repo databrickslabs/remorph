@@ -110,7 +110,7 @@ class TableGraphTest extends AnyFlatSpec with Matchers {
 
   "TableDependencyGraph" should "add nodes correctly" in {
 
-    val graph = new TableGraph(parser,tableDefinitions)
+    val graph = new TableGraph(parser, tableDefinitions)
     graph.buildDependency(queryHistory)
     val nodes = graph.getRoot("table1")
     print(nodes)
