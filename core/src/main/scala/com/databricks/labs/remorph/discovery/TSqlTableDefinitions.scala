@@ -8,7 +8,8 @@ import com.databricks.labs.remorph.parsers.snowflake.SnowflakeTypeBuilder
 import java.sql.Connection
 import scala.collection.mutable
 
-class TSqlTableDefinitions(conn: Connection)  {
+class TSqlTableDefinitions(conn: Connection) {
+
   /**
    * Parses a data type string and returns the corresponding DataType object.
    *
@@ -113,9 +114,9 @@ class TSqlTableDefinitions(conn: Connection)  {
       val rs = stmt.executeQuery(getTableDefinitionQuery(catalogName))
       try {
         while (rs.next()) {
-          val tableCatalog = rs.getString("TABLE_CATALOG")
           val tableSchema = rs.getString("TABLE_SCHEMA")
           val tableName = rs.getString("TABLE_NAME")
+          val tableCatalog = rs.getString("TABLE_CATALOG")
           val columns = rs
             .getString("DERIVED_SCHEMA")
             .split("~")
@@ -152,13 +153,17 @@ class TSqlTableDefinitions(conn: Connection)  {
   def getAllSchemas(catalogName: String): mutable.ListBuffer[String] = {
     val stmt = conn.createStatement()
     try {
-      val rs = stmt.executeQuery(s"SHOW SCHEMAS IN $catalogName")
+      val rs = stmt.executeQuery(s"""select SCHEMA_NAME from ${catalogName}.INFORMATION_SCHEMA.SCHEMATA""")
       try {
         val schemaList = new mutable.ListBuffer[String]()
         while (rs.next()) {
-          schemaList.append(rs.getString("name"))
+          schemaList.append(rs.getString("SCHEMA_NAME"))
         }
         schemaList
+      } catch {
+        case e: Exception =>
+          e.printStackTrace()
+          throw e
       } finally {
         rs.close()
       }
