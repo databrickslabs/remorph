@@ -7,7 +7,8 @@ import com.typesafe.scalalogging.LazyLogging
 import com.databricks.labs.remorph.parsers.{intermediate => ir}
 
 protected case class Node(tableDefinition: TableDefinition, metadata: Map[String, Set[String]])
-protected case class Edge(from: TableDefinition, to: Option[TableDefinition], metadata: Map[String, String])
+// `from` is the table which is sourced to create `to` table
+protected case class Edge(from: Node, to: Option[Node], metadata: Map[String, String])
 
 class TableGraph(parser: PlanParser[_]) extends DependencyGraph with LazyLogging {
   val nodes = scala.collection.mutable.Set.empty[Node]
@@ -17,6 +18,7 @@ class TableGraph(parser: PlanParser[_]) extends DependencyGraph with LazyLogging
     // Metadata list of query ids and add node only if it is not already present.
     // for Example if a table is used in multiple queries, we need to consolidate the metadata
     // here we are storing only query hash id as metadata not the query itself
+    // TODO Fix Node Metadata to store query id and query source currently it stores Set(Set(queryId),queryId)
     val existingNode = nodes.find(_.tableDefinition == id)
     existingNode match {
       case Some(node) =>
@@ -34,7 +36,9 @@ class TableGraph(parser: PlanParser[_]) extends DependencyGraph with LazyLogging
       from: TableDefinition,
       to: Option[TableDefinition],
       metadata: Map[String, String]): Unit = {
-    edges += Edge(from, to, metadata)
+    val fromNode = nodes.find(_.tableDefinition == from).get
+    val toNode = to.flatMap(td => nodes.find(_.tableDefinition == td))
+    edges += Edge(fromNode, toNode, metadata)
   }
 
   private def getTableName(plan: ir.LogicalPlan): String = {
@@ -131,7 +135,7 @@ class TableGraph(parser: PlanParser[_]) extends DependencyGraph with LazyLogging
 
     edges.foreach { edge =>
       edge.to.foreach { toTable =>
-        inDegreeMap(toTable) += 1
+        inDegreeMap(toTable.tableDefinition) += 1
       }
     }
     inDegreeMap.toMap
@@ -147,10 +151,37 @@ class TableGraph(parser: PlanParser[_]) extends DependencyGraph with LazyLogging
   }
 
   override def getUpstreamTables(table: TableDefinition): Set[TableDefinition] = {
-    edges.filter(_.to.contains(table)).map(_.from).toSet
+    val node = nodes.find(_.tableDefinition == table)
+
+    node match {
+      case Some(n) =>
+        edges
+          .filter(x => {
+            (x.to, n) match {
+              case (Some(x), y) => x == y
+              case _ => false
+            }
+          })
+          .flatMap(_.to)
+          .map(_.tableDefinition)
+          .toSet
+      case None =>
+        logger.warn(s"Table ${table.table} not found in the graph")
+        Set.empty[TableDefinition]
+    }
   }
 
+  // TODO implement recursive call to get all downstream tables.
   override def getDownstreamTables(table: TableDefinition): Set[TableDefinition] = {
-    edges.filter(_.from == table).flatMap(_.to).toSet
+    val node = nodes.find(_.tableDefinition == table)
+
+    node match {
+      case Some(n) =>
+        edges.filter(_.from == n).flatMap(_.to).map(_.tableDefinition).toSet
+      case None =>
+        logger.warn(s"Table ${table.table} not found in the graph")
+        Set.empty[TableDefinition]
+    }
+
   }
 }

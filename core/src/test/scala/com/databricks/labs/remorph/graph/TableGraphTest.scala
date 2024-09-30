@@ -118,13 +118,25 @@ class TableGraphTest extends AnyFlatSpec with Matchers {
   }
 
   "TableDependencyGraph" should "return correct upstream tables" in {
-    val upstreamTables = graph.getUpstreamTables(TableDefinition("catalog1", "schema1", "table1", None))
+    val upstreamTables = graph.getUpstreamTables(
+      TableDefinition(
+        catalog = "catalog1",
+        schema = "schema1",
+        table = "table1",
+        columns = Seq(StructField("col1", IntegerType, true), StructField("col2", StringType, false)),
+        sizeGb = 10))
     assert(upstreamTables.map(_.table) == Set("table2", "table3"))
   }
 
   "TableDependencyGraph" should "return correct downstream tables" in {
-    val downstreamTables = graph.getDownstreamTables(TableDefinition("catalog2", "schema2", "table5", None))
-    assert(downstreamTables.map(_.table) == Set("table1"))
+    val downstreamTables = graph.getDownstreamTables(
+      TableDefinition(
+        catalog = "catalog5",
+        schema = "schema5",
+        table = "table5",
+        columns = Seq(StructField("col1", IntegerType, true), StructField("col2", StringType, false)),
+        sizeGb = 50))
+    assert(downstreamTables.map(_.table) == Set("table2"))
   }
 
 }
