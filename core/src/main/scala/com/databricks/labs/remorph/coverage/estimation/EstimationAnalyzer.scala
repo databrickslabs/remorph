@@ -33,7 +33,13 @@ object SqlComplexity {
 // TODO: case class ComplexityEstimate(complexity: SqlComplexity, statementCount: Int, charCount: Int, lineCount: Int)
 case class SourceTextComplexity(lineCount: Int, textLength: Int)
 
-case class EstimationStatistics(
+case class EstimationStatistics(allStats: EstimationStatisticsEntry, successStats: EstimationStatisticsEntry)
+
+object EstimationStatistics {
+  implicit val rw: ReadWriter[EstimationStatistics] = macroRW
+}
+
+case class EstimationStatisticsEntry(
     medianScore: Int,
     meanScore: Double,
     modeScore: Int,
@@ -44,8 +50,8 @@ case class EstimationStatistics(
     geometricMeanScore: Double,
     complexity: SqlComplexity)
 
-object EstimationStatistics {
-  implicit val rw: ReadWriter[EstimationStatistics] = macroRW
+object EstimationStatisticsEntry {
+  implicit val rw: ReadWriter[EstimationStatisticsEntry] = macroRW
 }
 
 class EstimationAnalyzer extends LazyLogging {
@@ -197,50 +203,28 @@ class EstimationAnalyzer extends LazyLogging {
     }
   }
 
-  // TODO: Verify these calculations and decide if they are all needed or not. May not harm to keep them around anyway
-  // TODO: calculate overall complexity using the stats not just the median score?
   def summarizeComplexity(reportEntries: Seq[EstimationReportRecord]): EstimationStatistics = {
-    val scores = reportEntries.map(_.analysisReport.score.score)
 
-    // Median
-    val sortedScores = scores.sorted
-    val medianScore = if (sortedScores.size % 2 == 1) {
-      sortedScores(sortedScores.size / 2)
-    } else {
-      val (up, down) = sortedScores.splitAt(sortedScores.size / 2)
-      (up.last + down.head) / 2
-    }
+    // We produce a list fo all scores and a list of all successful transpile scores, which allows to produce
+    // statistics on ALL transpilation attempts and at the same time on only successful transpilations. Use case
+    // will vary on who is consuming the final reports.
+    val scores = reportEntries.map(_.analysisReport.score.score).sorted
+    val successScores = reportEntries
+      .filter(_.transpilationReport.transpilation_error.isEmpty)
+      .map(_.analysisReport.score.score)
+      .sorted
 
-    // Mean
+    val medianScore = median(scores)
     val meanScore = scores.sum.toDouble / scores.size
-
-    // Mode
     val modeScore = scores.groupBy(identity).maxBy(_._2.size)._1
-
-    // Standard Deviation
-    val mean = scores.sum.toDouble / scores.size
-    val variance = scores.map(score => math.pow(score - mean, 2)).sum / scores.size
+    val variance = scores.map(score => math.pow(score - meanScore, 2)).sum / scores.size
     val stdDeviation = math.sqrt(variance)
+    val percentile25 = percentile(scores, 0.25)
+    val percentile50 = percentile(scores, 0.50) // Same as median
+    val percentile75 = percentile(scores, 0.75)
+    val geometricMeanScore = geometricMean(scores)
 
-    // Percentiles
-    def percentile(p: Double): Double = {
-      val k = (p * (sortedScores.size - 1)).toInt
-      sortedScores(k)
-    }
-    val percentile25 = percentile(0.25)
-    val percentile50 = percentile(0.50) // Same as median
-    val percentile75 = percentile(0.75)
-
-    // Geometric Mean
-    val nonZeroScores = scores.filter(_ != 0)
-    val geometricMeanScore = if (nonZeroScores.nonEmpty) {
-      val logSum = nonZeroScores.map(score => math.log(score.toDouble)).sum
-      math.exp(logSum / nonZeroScores.size)
-    } else {
-      0.0
-    }
-
-    EstimationStatistics(
+    val allStats = EstimationStatisticsEntry(
       medianScore,
       meanScore,
       modeScore,
@@ -250,6 +234,56 @@ class EstimationAnalyzer extends LazyLogging {
       percentile75,
       geometricMeanScore,
       SqlComplexity.fromScore(geometricMeanScore))
+
+    val successStats = if (successScores.isEmpty) {
+      EstimationStatisticsEntry(0, 0, 0, 0, 0, 0, 0, 0, SqlComplexity.LOW)
+    } else {
+      EstimationStatisticsEntry(
+        median(successScores),
+        successScores.sum.toDouble / successScores.size,
+        successScores.groupBy(identity).maxBy(_._2.size)._1,
+        math.sqrt(
+          successScores
+            .map(score => math.pow(score - (successScores.sum.toDouble / successScores.size), 2))
+            .sum / successScores.size),
+        percentile(successScores, 0.25),
+        percentile(successScores, 0.50), // Same as median
+        percentile(successScores, 0.75),
+        geometricMean(successScores),
+        SqlComplexity.fromScore(geometricMean(successScores)))
+    }
+
+    EstimationStatistics(allStats = allStats, successStats = successStats)
+  }
+
+  private def percentile(scores: Seq[Int], p: Double): Double = {
+    if (scores.isEmpty) {
+      0
+    } else {
+      val k = (p * (scores.size - 1)).toInt
+      scores(k)
+    }
+  }
+
+  private def geometricMean(scores: Seq[Int]): Double = {
+    val nonZeroScores = scores.filter(_ != 0)
+    if (nonZeroScores.nonEmpty) {
+      val logSum = nonZeroScores.map(score => math.log(score.toDouble)).sum
+      math.exp(logSum / nonZeroScores.size)
+    } else {
+      0.0
+    }
+  }
+
+  def median(scores: Seq[Int]): Int = {
+    if (scores.isEmpty) {
+      0
+    } else if (scores.size % 2 == 1) {
+      scores(scores.size / 2)
+    } else {
+      val (up, down) = scores.splitAt(scores.size / 2)
+      (up.last + down.head) / 2
+    }
   }
 
   /**

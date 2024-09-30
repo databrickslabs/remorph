@@ -62,21 +62,34 @@ class SummaryEstimationReporter(outputDir: os.Path, estimate: EstimationReport) 
          | | Unique successful transpiles| ${estimate.uniqueSuccesses}   |
          | | Unique Parse failures       | ${estimate.parseFailures}      |
          | | Transpile failures          | ${estimate.transpileFailures}  |
-         | | Overall complexity          | ${estimate.overallComplexity.complexity} |
+         | | Overall complexity (ALL)    | ${estimate.overallComplexity.allStats.complexity} |
+         | | Overall complexity (SUCCESS)| ${estimate.overallComplexity.successStats.complexity} |
          |
-         |## Statistics used to calculate overall complexity
+         |## Statistics used to calculate overall complexity (ALL results)
          |
          | | Metric                      | Value                          |
          | |:----------------------------|--------------------------------:|
-         | | Mean score | ${f"${estimate.overallComplexity.meanScore}%,.2f"}|
-         | | Standard deviation | ${f"${estimate.overallComplexity.stdDeviation}%,.2f"}|
-         | | Mode score | ${estimate.overallComplexity.modeScore}|
-         | | Median score | ${estimate.overallComplexity.medianScore}|
-         | | Percentile 25 | ${f"${estimate.overallComplexity.percentile25}%,.2f"}|
-         | | Percentile 50 | ${f"${estimate.overallComplexity.percentile50}%,.2f"}|
-         | | Percentile 75 | ${f"${estimate.overallComplexity.percentile75}%,.2f"}|
-         | | Geometric mean score | ${f"${estimate.overallComplexity.geometricMeanScore}%,.2f"}|
+         | | Mean score | ${f"${estimate.overallComplexity.allStats.meanScore}%,.2f"}|
+         | | Standard deviation | ${f"${estimate.overallComplexity.allStats.stdDeviation}%,.2f"}|
+         | | Mode score | ${estimate.overallComplexity.allStats.modeScore}|
+         | | Median score | ${estimate.overallComplexity.allStats.medianScore}|
+         | | Percentile 25 | ${f"${estimate.overallComplexity.allStats.percentile25}%,.2f"}|
+         | | Percentile 50 | ${f"${estimate.overallComplexity.allStats.percentile50}%,.2f"}|
+         | | Percentile 75 | ${f"${estimate.overallComplexity.allStats.percentile75}%,.2f"}|
+         | | Geometric mean score | ${f"${estimate.overallComplexity.allStats.geometricMeanScore}%,.2f"}|
          |
+         |## Statistics used to calculate overall complexity (Successful results only)
+         |
+         | | Metric                      | Value                          |
+         | |:----------------------------|--------------------------------:|
+         | | Mean score | ${f"${estimate.overallComplexity.successStats.meanScore}%,.2f"}|
+         | | Standard deviation | ${f"${estimate.overallComplexity.successStats.stdDeviation}%,.2f"}|
+         | | Mode score | ${estimate.overallComplexity.successStats.modeScore}|
+         | | Median score | ${estimate.overallComplexity.successStats.medianScore}|
+         | | Percentile 25 | ${f"${estimate.overallComplexity.successStats.percentile25}%,.2f"}|
+         | | Percentile 50 | ${f"${estimate.overallComplexity.successStats.percentile50}%,.2f"}|
+         | | Percentile 75 | ${f"${estimate.overallComplexity.successStats.percentile75}%,.2f"}|
+         | | Geometric mean score | ${f"${estimate.overallComplexity.successStats.geometricMeanScore}%,.2f"}|
          |""".stripMargin
 
     val summaryFilePath = outputDir / "summary.md"
