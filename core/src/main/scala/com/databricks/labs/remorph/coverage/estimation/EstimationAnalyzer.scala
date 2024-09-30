@@ -16,10 +16,10 @@ object SqlComplexity {
   case object VERY_COMPLEX extends SqlComplexity
 
   // TODO: Define the scores for each complexity level
-  def fromScore(score: Int): SqlComplexity = score match {
+  def fromScore(score: Double): SqlComplexity = score match {
     case s if s < 10 => LOW
-    case s if s < 20 => MEDIUM
-    case s if s < 30 => COMPLEX
+    case s if s < 60 => MEDIUM
+    case s if s < 120 => COMPLEX
     case _ => VERY_COMPLEX
   }
 
@@ -232,7 +232,13 @@ class EstimationAnalyzer extends LazyLogging {
     val percentile75 = percentile(0.75)
 
     // Geometric Mean
-    val geometricMeanScore = math.pow(scores.map(_.toDouble).product, 1.0 / scores.size)
+    val nonZeroScores = scores.filter(_ != 0)
+    val geometricMeanScore = if (nonZeroScores.nonEmpty) {
+      val logSum = nonZeroScores.map(score => math.log(score.toDouble)).sum
+      math.exp(logSum / nonZeroScores.size)
+    } else {
+      0.0
+    }
 
     EstimationStatistics(
       medianScore,
@@ -243,7 +249,7 @@ class EstimationAnalyzer extends LazyLogging {
       percentile50,
       percentile75,
       geometricMeanScore,
-      SqlComplexity.fromScore(medianScore))
+      SqlComplexity.fromScore(geometricMeanScore))
   }
 
   /**
