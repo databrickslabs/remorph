@@ -189,7 +189,7 @@ class Anonymizer(parser: PlanParser[_]) extends LazyLogging {
    *   this gives us a better idea of how many unique unparsable queries we have yet to deal
    *   with, rather than just reporting them all as unparsable and making the core work
    *   seem bigger than it actually is.
-   *</p>
+   * </p>
    * <p>
    *   We could improve this hash by removing comments and normalizing whitespace perhaps,
    *   but whether we would get any gains from that is debatable
