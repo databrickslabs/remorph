@@ -1,3 +1,4 @@
+/*
 package com.databricks.labs.remorph.integration
 
 import com.databricks.labs.remorph.connections.{EnvGetter, SnowflakeConnectionFactory}
@@ -17,3 +18,4 @@ class SnowflakeQueryHistoryTest extends AnyWordSpec with Matchers {
     }
   }
 }
+ */

@@ -8,19 +8,25 @@ import org.scalatest.wordspec.AnyWordSpec
 class TSqlTableDefinationTest extends AnyWordSpec with Matchers {
   "integration" should {
     "get table definitions for TSql" in {
-      val TSqlConnectionFactory = new TSqlConnectionFactory(new EnvGetter)
-      val conn = TSqlConnectionFactory.newConnection()
-      val sqlTD = new TSqlTableDefinitions(conn)
-      val rs = sqlTD.getAllTableDefinitions
-      rs should not be (empty)
+      val conn = new TSqlConnectionFactory(new EnvGetter).newConnection()
+      try {
+        val sqlTD = new TSqlTableDefinitions(conn)
+        val rs = sqlTD.getAllTableDefinitions
+        rs should not be empty
+      } finally {
+        conn.close()
+      }
     }
 
     "get all catalog for TSql" in {
-      val TSqlConnectionFactory = new TSqlConnectionFactory(new EnvGetter)
-      val conn = TSqlConnectionFactory.newConnection()
-      val sqlTD = new TSqlTableDefinitions(conn)
-      val rs = sqlTD.getAllCatalogs
-      rs should not be (empty)
+      val conn = new TSqlConnectionFactory(new EnvGetter).newConnection()
+      try {
+        val sqlTD = new TSqlTableDefinitions(conn)
+        val rs = sqlTD.getAllCatalogs
+        rs should not be empty
+      } finally {
+        conn.close()
+      }
     }
 
   }
