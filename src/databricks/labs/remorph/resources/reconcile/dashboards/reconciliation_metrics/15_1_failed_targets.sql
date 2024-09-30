@@ -1,6 +1,6 @@
 /* --title 'Unique target tables failed' --width 2 */
 SELECT
-    CONCAT(main.target_table.catalog, '.', main.target_table.schema, '.', main.target_table.table_name) AS t_table,
+    CONCAT_WS('.', main.target_table.catalog, main.target_table.schema, main.target_table.table_name) AS t_table,
     DATE(main.start_ts) AS start_date
 FROM
     remorph.reconcile.main main

@@ -102,10 +102,10 @@ tiles:
             - booleanValues:
                 - 'false'
                 - 'true'
-              displayAs: boolean
+              displayAs: string
               fieldName: status
               title: status
-              type: boolean
+              type: string
             - booleanValues:
                 - 'false'
                 - 'true'
@@ -294,10 +294,10 @@ tiles:
             - booleanValues:
                 - 'false'
                 - 'true'
-              displayAs: boolean
+              displayAs: string
               fieldName: is_valid
               title: is_valid
-              type: boolean
+              type: string
   11_0_recon_details_pivot:
     overrides:
       spec:

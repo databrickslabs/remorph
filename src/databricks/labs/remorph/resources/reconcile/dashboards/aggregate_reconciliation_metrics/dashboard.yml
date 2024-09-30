@@ -109,10 +109,10 @@ tiles:
             - booleanValues:
                 - 'false'
                 - 'true'
-              displayAs: boolean
+              displayAs: string
               fieldName: status
               title: status
-              type: boolean
+              type: string
             - booleanValues:
                 - 'false'
                 - 'true'
@@ -252,10 +252,10 @@ tiles:
             - booleanValues:
                 - 'false'
                 - 'true'
-              displayAs: boolean
+              displayAs: string
               fieldName: status
               title: status
-              type: boolean
+              type: string
   10_0_aggr_mismatched_records:
     overrides:
       queries:

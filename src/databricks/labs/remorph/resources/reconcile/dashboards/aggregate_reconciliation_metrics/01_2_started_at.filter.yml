@@ -2,3 +2,4 @@ columns:
 - start_ts
 title: Started At
 type: DATE_RANGE_PICKER
+width: 2
