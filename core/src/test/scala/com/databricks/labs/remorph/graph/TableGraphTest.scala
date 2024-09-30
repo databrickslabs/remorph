@@ -17,7 +17,7 @@ class TableGraphTest extends AnyFlatSpec with Matchers {
       ExecutedQuery(
         "query1",
         new Timestamp(System.currentTimeMillis()),
-        "CREATE TABLE table1 (col1 INT, col2 STRING)",
+        "INSERT INTO table1 SELECT col1, col2 FROM table2 INNER JOIN table3 on table2.id = table3.id",
         Duration.ofSeconds(30),
         "user1"),
       ExecutedQuery(
@@ -53,8 +53,8 @@ class TableGraphTest extends AnyFlatSpec with Matchers {
       ExecutedQuery(
         "query7",
         new Timestamp(System.currentTimeMillis()),
-        "MERGE INTO table2 USING table3 source_table ON table2.id = source_table.id " +
-          "WHEN MATCHED THEN UPDATE SET table2.col1 = source_table.col1",
+        """MERGE INTO table2 USING table3 source_table ON table2.id = source_table.id
+          |WHEN MATCHED THEN UPDATE SET table2.col1 = source_table.col1""".stripMargin,
         Duration.ofSeconds(50),
         "user2"),
       ExecutedQuery(
@@ -72,11 +72,11 @@ class TableGraphTest extends AnyFlatSpec with Matchers {
       ExecutedQuery(
         "query10",
         new Timestamp(System.currentTimeMillis()),
-        "SELECT * FROM table5 WHERE col1 = 'some_value'",
+        "INSERT INTO table2 SELECT * FROM table5 WHERE col1 = 'some_value'",
         Duration.ofSeconds(65),
         "user5")))
 
-  private val tableDefinitions = Seq(
+  private val tableDefinitions = Set(
     TableDefinition(
       catalog = "catalog1",
       schema = "schema1",
@@ -107,13 +107,24 @@ class TableGraphTest extends AnyFlatSpec with Matchers {
       table = "table5",
       columns = Seq(StructField("col1", IntegerType, true), StructField("col2", StringType, false)),
       sizeGb = 50))
+  val graph = new TableGraph(parser)
+  graph.buildDependency(queryHistory, tableDefinitions)
 
   "TableDependencyGraph" should "add nodes correctly" in {
+    val roots = graph.getRootTables()
+    assert(roots.size == 3)
+    assert(roots.map(x => x.table).toList.sorted.toSet == Set("table3", "table4", "table5"))
 
-    val graph = new TableGraph(parser, tableDefinitions)
-    graph.buildDependency(queryHistory)
-    val nodes = graph.getRoot("table1")
-    print(nodes)
+  }
+
+  "TableDependencyGraph" should "return correct upstream tables" in {
+    val upstreamTables = graph.getUpstreamTables(TableDefinition("catalog1", "schema1", "table1", None))
+    assert(upstreamTables.map(_.table) == Set("table2", "table3"))
+  }
+
+  "TableDependencyGraph" should "return correct downstream tables" in {
+    val downstreamTables = graph.getDownstreamTables(TableDefinition("catalog2", "schema2", "table5", None))
+    assert(downstreamTables.map(_.table) == Set("table1"))
   }
 
 }

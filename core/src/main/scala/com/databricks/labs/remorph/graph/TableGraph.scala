@@ -7,11 +7,11 @@ import com.typesafe.scalalogging.LazyLogging
 import com.databricks.labs.remorph.parsers.{intermediate => ir}
 
 protected case class Node(tableDefinition: TableDefinition, metadata: Map[String, Set[String]])
-protected case class Edge(from: TableDefinition, to: TableDefinition, metadata: Map[String, String])
+protected case class Edge(from: TableDefinition, to: Option[TableDefinition], metadata: Map[String, String])
 
 class TableGraph(parser: PlanParser[_]) extends DependencyGraph with LazyLogging {
-  private val nodes = scala.collection.mutable.Set.empty[Node]
-  private val edges = scala.collection.mutable.Set.empty[Edge]
+  val nodes = scala.collection.mutable.Set.empty[Node]
+  val edges = scala.collection.mutable.Set.empty[Edge]
 
   override protected def addNode(id: TableDefinition, metadata: Map[String, String]): Unit = {
     // Metadata list of query ids and add node only if it is not already present.
@@ -30,7 +30,8 @@ class TableGraph(parser: PlanParser[_]) extends DependencyGraph with LazyLogging
     }
   }
 
-  override protected def addEdge(from: TableDefinition, to: TableDefinition, metadata: Map[String, String]): Unit = {
+  override protected def addEdge(from: TableDefinition, to: Option[TableDefinition],
+                                 metadata: Map[String, String]): Unit = {
     edges += Edge(from, to, metadata)
   }
 
@@ -41,32 +42,32 @@ class TableGraph(parser: PlanParser[_]) extends DependencyGraph with LazyLogging
   }.getOrElse("None")
 
   private def generateEdges(plan: ir.LogicalPlan, tableDefinition: Set[TableDefinition], queryId: String): Unit = {
-    var toTable: TableDefinition = null
+    var toTable: Option[TableDefinition] = None
     var action = "SELECT"
     var fromTable: Seq[TableDefinition] = Seq.empty
 
     def collectTables(node: ir.LogicalPlan): Unit = {
       node match {
         case _: ir.CreateTable =>
-          toTable = tableDefinition.filter(_.table == getTableName(plan)).head
+          toTable = Some(tableDefinition.filter(_.table == getTableName(plan)).head)
           action = "CREATE"
         case _: ir.InsertIntoTable =>
-          toTable = tableDefinition.filter(_.table == getTableName(plan)).head
+          toTable = Some(tableDefinition.filter(_.table == getTableName(plan)).head)
           action = "INSERT"
         case _: ir.DeleteFromTable =>
-          toTable = tableDefinition.filter(_.table == getTableName(plan)).head
+          toTable = Some(tableDefinition.filter(_.table == getTableName(plan)).head)
           action = "DELETE"
         case _: ir.UpdateTable =>
-          toTable = tableDefinition.filter(_.table == getTableName(plan)).head
+          toTable = Some(tableDefinition.filter(_.table == getTableName(plan)).head)
           action = "UPDATE"
         case _: ir.MergeIntoTable =>
-          toTable = tableDefinition.filter(_.table == getTableName(plan)).head
+          toTable = Some(tableDefinition.filter(_.table == getTableName(plan)).head)
           action = "MERGE"
         case _: ir.Project | _: ir.Join | _: ir.SubqueryAlias | _: ir.Filter =>
           val tableList = plan collect { case x: ir.NamedTable =>
             x.unparsed_identifier
           }
-          fromTable = tableDefinition.filter(x => tableList.contains(x.table))
+          fromTable = tableDefinition.toSeq.filter(x => tableList.contains(x.table))
         case _ => // Do nothing
       }
       node.children.foreach(collectTables)
@@ -74,23 +75,21 @@ class TableGraph(parser: PlanParser[_]) extends DependencyGraph with LazyLogging
 
     collectTables(plan)
 
-    if (fromTable.isEmpty) {
-      logger.warn(s"No tables found for insert into table values query")
-    } else {
+    if (fromTable.nonEmpty) {
       fromTable.foreach(f => {
-        if (f != toTable) {
+        if (toTable.isDefined && f != toTable.get) {
           addEdge(f, toTable, Map("query" -> queryId, "action" -> action))
         } else {
-          logger.warn(s"Ignoring reference detected for table ${f.table}")
+          logger.debug(s"Ignoring reference detected for table ${f.table}")
         }
       })
+    } else {
+      logger.debug(s"No tables found for insert into table values query")
     }
   }
 
   private def buildNode(plan: ir.LogicalPlan, tableDefinition: Set[TableDefinition], query: ExecutedQuery): Unit = {
     plan collect { case x: ir.NamedTable =>
-      print(x.unparsed_identifier)
-      print("\n")
       tableDefinition.find(_.table == x.unparsed_identifier) match {
         case Some(name) => addNode(name, Map("query" -> query.id))
         case None =>
@@ -103,38 +102,53 @@ class TableGraph(parser: PlanParser[_]) extends DependencyGraph with LazyLogging
 
   def buildDependency(queryHistory: QueryHistory, tableDefinition: Set[TableDefinition]): Unit = {
     queryHistory.queries.foreach { query =>
-      print("\n")
-      print(query.source)
-      print("\n")
+      try {
       val plan = parser.parse(SourceCode(query.source)).flatMap(parser.visit)
       plan match {
+        case Result.Failure(_, errorJson) =>
+          logger.warn(s"Failed to produce plan from query: ${query.source}")
+          logger.debug(s"Error: $errorJson")
         case Result.Success(p) =>
           buildNode(p, tableDefinition, query)
           generateEdges(p, tableDefinition, query.id)
-        case _ => logger.warn(s"Failed to produce plan from query: ${query.source}")
+      }
+        } catch {
+        // TODO Null Pointer Exception is thrown as Result.Success, need to investigate for Merge Query.
+          case e: Exception => logger.warn(s"Failed to produce plan from query: ${query.source}")
+        }
+    }
+  }
+
+  private def countInDegrees(): Map[TableDefinition, Int] = {
+    val inDegreeMap = scala.collection.mutable.Map[TableDefinition, Int]().withDefaultValue(0)
+
+    // Initialize inDegreeMap with all nodes
+    nodes.foreach { node =>
+      inDegreeMap(node.tableDefinition) = 0
+    }
+
+    edges.foreach { edge =>
+      edge.to.foreach { toTable =>
+        inDegreeMap(toTable) += 1
       }
     }
+    inDegreeMap.toMap
   }
 
   // TODO Implement logic for fetching edges(parents) only upto certain level
-  override def getRoot(table: String, level: Int = 1): TableDefinition = {
-    def findRoot(node: Node, currentLevel: Int): Node = {
-      if (currentLevel == level || edges.forall(_.to != node.tableDefinition)) {
-        node
-      } else {
-        val upstreamNodes = edges
-          .filter(_.to == node.tableDefinition)
-          .map(edge => nodes.find(_.tableDefinition == edge.from).get)
-        findRoot(upstreamNodes.head, currentLevel + 1) // Assuming a single upstream path for simplicity
-      }
-    }
-    val targetNode = nodes
-      .find(_.tableDefinition.table == table)
-      .getOrElse(throw new NoSuchElementException(s"No table $table found"))
-    findRoot(targetNode, level).tableDefinition
+  def getRootTables(): Set[TableDefinition] = {
+    val inDegreeMap = countInDegrees()
+    nodes.map(_.tableDefinition)
+      .filter(table => inDegreeMap.getOrElse(table, 0) == 0)
+      .toSet
   }
 
-  override def getUpstreamTables(table: TableDefinition): Set[TableDefinition] = Set.empty[TableDefinition]
 
-  override def getDownstreamTables(table: TableDefinition): Set[TableDefinition] = Set.empty[TableDefinition]
+  override def getUpstreamTables(table: TableDefinition): Set[TableDefinition] = {
+    edges.filter(_.to.contains(table)).map(_.from).toSet
+  }
+
+  override def getDownstreamTables(table: TableDefinition): Set[TableDefinition] = {
+    edges.filter(_.from == table).flatMap(_.to).toSet
+  }
 }
