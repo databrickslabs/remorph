@@ -16,4 +16,4 @@ FROM (
   SELECT
     ARRAY('value1', 'value2', 'value3') AS col
 ) AS sample_data(array_column)
- LATERAL VIEW OUTER POSEXPLODE(sample_data.array_column) verticals AS index, value
+ LATERAL VIEW OUTER POSEXPLODE(sample_data.array_column) verticals AS index, value;
