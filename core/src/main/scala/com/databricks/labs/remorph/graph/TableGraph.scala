@@ -14,21 +14,20 @@ class TableGraph(parser: PlanParser[_]) extends DependencyGraph with LazyLogging
   val nodes = scala.collection.mutable.Set.empty[Node]
   val edges = scala.collection.mutable.Set.empty[Edge]
 
-  override protected def addNode(id: TableDefinition, metadata: Map[String, String]): Unit = {
+  override protected def addNode(id: TableDefinition, metadata: Map[String, Set[String]]): Unit = {
     // Metadata list of query ids and add node only if it is not already present.
     // for Example if a table is used in multiple queries, we need to consolidate the metadata
     // here we are storing only query hash id as metadata not the query itself
-    // TODO Fix Node Metadata to store query id and query source currently it stores Set(Set(queryId),queryId)
     val existingNode = nodes.find(_.tableDefinition == id)
     existingNode match {
       case Some(node) =>
         val consolidatedMetadata = (node.metadata.toSeq ++ metadata.toSeq)
           .groupBy(_._1)
-          .mapValues(_.map(_._2.toString).toSet)
+          .mapValues(_.flatten(_._2).toSet)
         nodes -= node
         nodes += node.copy(metadata = consolidatedMetadata)
       case None =>
-        nodes += Node(id, metadata.mapValues(Set(_)))
+        nodes += Node(id, metadata)
     }
   }
 
@@ -97,7 +96,7 @@ class TableGraph(parser: PlanParser[_]) extends DependencyGraph with LazyLogging
   private def buildNode(plan: ir.LogicalPlan, tableDefinition: Set[TableDefinition], query: ExecutedQuery): Unit = {
     plan collect { case x: ir.NamedTable =>
       tableDefinition.find(_.table == x.unparsed_identifier) match {
-        case Some(name) => addNode(name, Map("query" -> query.id))
+        case Some(name) => addNode(name, Map("query" -> Set(query.id)))
         case None =>
           logger.warn(
             s"Table ${x.unparsed_identifier} not found in table definitions " +
