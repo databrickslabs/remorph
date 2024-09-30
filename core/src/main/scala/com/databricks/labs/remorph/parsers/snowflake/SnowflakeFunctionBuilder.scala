@@ -180,6 +180,7 @@ class SnowflakeFunctionBuilder extends FunctionBuilder {
     case "DATEDIFF" => FunctionDefinition.standard(3)
     case "DATEFROMPARTS" => FunctionDefinition.standard(3).withConversionStrategy(SynonymOf("DATE_FROM_PARTS"))
     case "DATE_FROM_PARTS" => FunctionDefinition.standard(3)
+    case "DATE_FORMAT" => FunctionDefinition.standard(2)
     case "DATE_PART" => FunctionDefinition.standard(2)
     case "DATE_TRUNC" => FunctionDefinition.standard(2)
     case "DAY" => FunctionDefinition.standard(1)

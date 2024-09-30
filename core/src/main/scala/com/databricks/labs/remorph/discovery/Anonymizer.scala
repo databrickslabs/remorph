@@ -5,6 +5,7 @@ import com.databricks.labs.remorph.parsers.intermediate._
 import com.databricks.labs.remorph.transpilers.WorkflowStage.PARSE
 import com.databricks.labs.remorph.transpilers.{Result, SourceCode}
 import com.typesafe.scalalogging.LazyLogging
+import upickle.default._
 
 import java.security.MessageDigest
 import java.sql.Timestamp
@@ -13,20 +14,48 @@ import java.time.Duration
 object WorkloadType extends Enumeration {
   type WorkloadType = Value
   val ETL, SQL_SERVING, OTHER = Value
+
+  implicit val rw: ReadWriter[WorkloadType] =
+    readwriter[String].bimap[WorkloadType](_.toString, str => WorkloadType.withName(str))
 }
 
 object QueryType extends Enumeration {
   type QueryType = Value
   val DDL, DML, PROC, OTHER = Value
+
+  implicit val rw: ReadWriter[QueryType] =
+    readwriter[String].bimap[QueryType](_.toString, str => QueryType.withName(str))
 }
 
+/**
+ * A fingerprint is a hash of a query plan that can be used to recognize duplicate queries
+ *
+ * @param dbQueryHash The hash or id of the query as stored in the database, which can be used to identify the query
+ *                    when the queries cannot be stored offsite because of customer data restrictions
+ * @param timestamp The timestamp of when this query was executed
+ * @param fingerprint The hash of the query plan, rather than the query itself - can be null if we
+ *                    cannot parse the query into a digestible plan
+ * @param duration how long this query took to execute, which may or may not be an indication of complexity
+ * @param user The user who executed the query against the database
+ * @param workloadType The type of workload this query represents (e.g. ETL, SQL_SERVING, OTHER)
+ * @param queryType The type of query this is (e.g. DDL, DML, PROC, OTHER)
+ */
 case class Fingerprint(
+    dbQueryHash: String,
     timestamp: Timestamp,
     fingerprint: String,
     duration: Duration,
     user: String,
     workloadType: WorkloadType.WorkloadType,
-    queryType: QueryType.QueryType)
+    queryType: QueryType.QueryType) {}
+
+object Fingerprint {
+  implicit val rw: ReadWriter[Fingerprint] = macroRW
+  implicit val timestampRW: ReadWriter[Timestamp] =
+    readwriter[Long].bimap[Timestamp](ts => ts.getTime, millis => new Timestamp(millis))
+  implicit val durationRW: ReadWriter[Duration] =
+    readwriter[Long].bimap[Duration](duration => duration.toMillis, millis => Duration.ofMillis(millis))
+}
 
 case class Fingerprints(fingerprints: Seq[Fingerprint]) {
   def uniqueQueries: Int = fingerprints.map(_.fingerprint).distinct.size
@@ -36,26 +65,81 @@ class Anonymizer(parser: PlanParser[_]) extends LazyLogging {
   private val placeholder = Literal("?", UnresolvedType)
 
   def apply(history: QueryHistory): Fingerprints = Fingerprints(history.queries.map(fingerprint))
+  def apply(query: ExecutedQuery, plan: LogicalPlan): Fingerprint = fingerprint(query, plan)
+  def apply(query: ExecutedQuery): Fingerprint = fingerprint(query)
+  def apply(plan: LogicalPlan): String = fingerprint(plan)
 
   private[discovery] def fingerprint(query: ExecutedQuery): Fingerprint = {
     parser.parse(SourceCode(query.source)).flatMap(parser.visit) match {
       case Result.Failure(PARSE, errorJson) =>
         logger.warn(s"Failed to parse query: ${query.source} $errorJson")
-        Fingerprint(query.timestamp, "unknown", query.duration, query.user, WorkloadType.OTHER, QueryType.OTHER)
+        Fingerprint(
+          query.id,
+          query.timestamp,
+          "unknown",
+          query.duration,
+          query.user,
+          WorkloadType.OTHER,
+          QueryType.OTHER)
       case Result.Failure(_, errorJson) =>
         logger.warn(s"Failed to produce plan from query: ${query.source} $errorJson")
-        Fingerprint(query.timestamp, "unknown", query.duration, query.user, WorkloadType.OTHER, QueryType.OTHER)
+        Fingerprint(
+          query.id,
+          query.timestamp,
+          "unknown",
+          query.duration,
+          query.user,
+          WorkloadType.OTHER,
+          QueryType.OTHER)
       case Result.Success(plan) =>
-        Fingerprint(query.timestamp, fingerprint(plan), query.duration, query.user, workloadType(plan), queryType(plan))
+        Fingerprint(
+          query.id,
+          query.timestamp,
+          fingerprint(plan),
+          query.duration,
+          query.user,
+          workloadType(plan),
+          queryType(plan))
     }
   }
 
+  /**
+   * Create a fingerprint for a query and its plan, when the plan is already produced
+   * @param query The executed query
+   * @param plan The logical plan
+   * @return A fingerprint representing the query plan
+   */
+  private[discovery] def fingerprint(query: ExecutedQuery, plan: LogicalPlan): Fingerprint = {
+    Fingerprint(
+      query.id,
+      query.timestamp,
+      fingerprint(plan),
+      query.duration,
+      query.user,
+      workloadType(plan),
+      queryType(plan))
+  }
+
+  /**
+   * <p>
+   *   Provide a generic hash for the given plan
+   * </p>
+   * <p>
+   *   Before hashing the plan, we replace all literals with a placeholder. This way we can hash the plan
+   *   without worrying about the actual values and will generate the same hash code for queries that only
+   *   differ by literal values.
+   * </p>
+   * <p>
+   *   This is a very simple anonymization technique, but it's good enough for our purposes.
+   *   e.g. ... "LIMIT 500 OFFSET 0" and "LIMIT 100 OFFSET 20" will have
+   *   the same fingerprint.
+   * </p>
+   *
+   * @param plan The plan we want a hash code for
+   * @return The hash string for the query with literals replaced by placeholders
+   */
   private def fingerprint(plan: LogicalPlan): String = {
-    // replace all literals with a placeholder, that way we can hash the plan
-    // without worrying about the actual values. This is a very simple
-    // anonymization technique, but it's good enough for our purposes.
-    // e.g. ... "LIMIT 500 OFFSET 0" and "LIMIT 100 OFFSET 20" will have
-    // the same fingerprint.
+
     val erasedLiterals = plan transformAllExpressions { case _: Literal =>
       placeholder
     }
