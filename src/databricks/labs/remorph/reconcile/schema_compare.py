@@ -99,28 +99,16 @@ class SchemaCompare:
 
     @classmethod
     def _validate_parsed_query(cls, master: SchemaMatchResult, parsed_query, source) -> None:
-        if source == "tsql":
-            databricks_query = f"create table dummy (`{master.source_column}` {master.databricks_datatype})"
-            logger.info(
-                f"""
-                    Source datatype: create table dummy (`{master.source_column}` {master.source_datatype})
-                    Parse datatype: {parsed_query}
-                    Databricks datatype: {databricks_query}
-                    """
-            )
-            if parsed_query.lower() != databricks_query.lower():
-                master.is_valid = False
-        else:
-            databricks_query = f"create table dummy ({master.source_column} {master.databricks_datatype})"
-            logger.info(
-                f"""
-            Source datatype: create table dummy ({master.source_column} {master.source_datatype})
+        databricks_query = f"create table dummy (`{master.source_column}` {master.databricks_datatype})"
+        logger.info(
+            f"""
+            Source datatype: create table dummy (`{master.source_column}` {master.source_datatype})
             Parse datatype: {parsed_query}
             Databricks datatype: {databricks_query}
             """
-            )
-            if parsed_query.lower() != databricks_query.lower():
-                master.is_valid = False
+        )
+        if parsed_query.lower() != databricks_query.lower():
+            master.is_valid = False
 
     def compare(
         self,

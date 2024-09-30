@@ -5,12 +5,13 @@ from databricks.labs.remorph.reconcile.recon_config import JdbcReaderOptions
 
 class JDBCReaderMixin:
     _spark: SparkSession
+
     # TODO update the url
-    def _get_jdbc_reader(self, query, jdbc_url, driver , prepare_query=""):
+    def _get_jdbc_reader(self, query, jdbc_url, driver, prepare_query=""):
         driver_class = {
             "oracle": "oracle.jdbc.driver.OracleDriver",
             "snowflake": "net.snowflake.client.jdbc.SnowflakeDriver",
-            "sqlserver": "com.microsoft.sqlserver.jdbc.SQLServerDriver"
+            "sqlserver": "com.microsoft.sqlserver.jdbc.SQLServerDriver",
         }
         return (
             self._spark.read.format("jdbc")
