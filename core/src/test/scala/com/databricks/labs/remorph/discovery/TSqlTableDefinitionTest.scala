@@ -12,7 +12,7 @@ class TSqlTableDefinitionTest extends AnyWordSpec with Matchers {
       val TSqlConnectionFactory = new TSqlConnectionFactory(new EnvGetter)
       val conn = TSqlConnectionFactory.newConnection()
       val tsqlTD = new TSqlTableDefinitions(conn)
-      val rs = tsqlTD.getAllCatalogs
+      val rs = tsqlTD.getAllTableDefinitions
       println(rs)
 
 
