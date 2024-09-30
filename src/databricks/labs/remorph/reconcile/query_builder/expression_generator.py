@@ -148,8 +148,8 @@ def transform_expression(
 
 
 def get_hash_transform(
-        source: Dialect,
-        layer: str,
+    source: Dialect,
+    layer: str
 ):
     dialect_algo = Dialect_hash_algo_mapping.get(source)
     if not dialect_algo:
