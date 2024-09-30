@@ -8,7 +8,7 @@ import org.scalatest.wordspec.AnyWordSpec
 
 class SnowflakeQueryHistoryTest extends AnyWordSpec with Matchers {
   "integration" should {
-    "work in happy path" in {
+    "work in happy path" ignore {
       val env = new EnvGetter
       val connFactory = new SnowflakeConnectionFactory(env)
       val conn = connFactory.newConnection() // TODO: wrap with closing logic

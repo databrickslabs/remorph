@@ -74,7 +74,8 @@ def local_report(output_dir: Path):
         parse_ratio = parsed / total
         transpile_ratio = transpiled / total
         print(
-            f"{project} -> {dialect}: {parse_ratio:.2%} parsed ({parsed}/{total}), {transpile_ratio:.2%} transpiled ({transpiled}/{total})"
+            f"{project} -> {dialect}: {parse_ratio:.2%} parsed ({parsed}/{total}), "
+            f"{transpile_ratio:.2%} transpiled ({transpiled}/{total})"
         )
 
 
