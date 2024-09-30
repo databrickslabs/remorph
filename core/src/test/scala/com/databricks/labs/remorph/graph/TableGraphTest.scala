@@ -10,7 +10,7 @@ import java.time.Duration
 import com.databricks.labs.remorph.discovery.{ExecutedQuery, QueryHistory}
 import com.databricks.labs.remorph.parsers.intermediate.{IntegerType, StringType, StructField}
 
-class TableDependencyGraphTest extends AnyFlatSpec with Matchers {
+class TableGraphTest extends AnyFlatSpec with Matchers {
   private val parser = new SnowflakePlanParser()
   private val queryHistory = QueryHistory(
     Seq(
@@ -110,8 +110,8 @@ class TableDependencyGraphTest extends AnyFlatSpec with Matchers {
 
   "TableDependencyGraph" should "add nodes correctly" in {
 
-    val graph = new TableDependencyGraph(parser)
-    graph.buildDependency(queryHistory, tableDefinitions)
+    val graph = new TableGraph(parser,tableDefinitions)
+    graph.buildDependency(queryHistory)
     val nodes = graph.getRoot("table1")
     print(nodes)
   }

@@ -9,9 +9,10 @@ import com.databricks.labs.remorph.parsers.{intermediate => ir}
 protected case class Node(tableDefinition: TableDefinition, metadata: Map[String, Set[String]])
 protected case class Edge(from: TableDefinition, to: TableDefinition, metadata: Map[String, String])
 
-class TableDependencyGraph(parser: PlanParser[_]) extends DependencyGraph with LazyLogging {
-  val nodes = scala.collection.mutable.Set.empty[Node]
-  val edges = scala.collection.mutable.Set.empty[Edge]
+class TableGraph(parser: PlanParser[_])
+  extends DependencyGraph with LazyLogging {
+  private val nodes = scala.collection.mutable.Set.empty[Node]
+  private val edges = scala.collection.mutable.Set.empty[Edge]
 
   override protected def addNode(id: TableDefinition, metadata: Map[String, String]): Unit = {
     // Metadata list of query ids and add node only if it is not already present.
@@ -40,7 +41,7 @@ class TableDependencyGraph(parser: PlanParser[_]) extends DependencyGraph with L
     }
   }.getOrElse("None")
 
-  private def generateEdges(plan: ir.LogicalPlan, tableDefinition: Seq[TableDefinition], queryId: String): Unit = {
+  private def generateEdges(plan: ir.LogicalPlan, tableDefinition: Set[TableDefinition], queryId: String): Unit = {
     var toTable: TableDefinition = null
     var action = "SELECT"
     var fromTable: Seq[TableDefinition] = Seq.empty
@@ -87,7 +88,7 @@ class TableDependencyGraph(parser: PlanParser[_]) extends DependencyGraph with L
     }
   }
 
-  private def buildNode(plan: ir.LogicalPlan, tableDefinition: Seq[TableDefinition], query: ExecutedQuery): Unit = {
+  private def buildNode(plan: ir.LogicalPlan, tableDefinition: Set[TableDefinition], query: ExecutedQuery): Unit = {
     plan collect { case x: ir.NamedTable =>
       print(x.unparsed_identifier)
       print("\n")
@@ -101,7 +102,7 @@ class TableDependencyGraph(parser: PlanParser[_]) extends DependencyGraph with L
     }
   }
 
-  def buildDependency(queryHistory: QueryHistory, tableDefinition: Seq[TableDefinition]): Unit = {
+  def buildDependency(queryHistory: QueryHistory, tableDefinition: Set[TableDefinition]): Unit = {
     queryHistory.queries.foreach { query =>
       print("\n")
       print(query.source)
@@ -133,7 +134,7 @@ class TableDependencyGraph(parser: PlanParser[_]) extends DependencyGraph with L
     findRoot(targetNode, level).tableDefinition
   }
 
-  override def getUpstreamTables(table: String): Set[TableDefinition] = Set.empty[TableDefinition]
+  override def getUpstreamTables(table: TableDefinition): Set[TableDefinition] = Set.empty[TableDefinition]
 
-  override def getDownstreamTables(table: String): Set[TableDefinition] = Set.empty[TableDefinition]
+  override def getDownstreamTables(table: TableDefinition): Set[TableDefinition] = Set.empty[TableDefinition]
 }
