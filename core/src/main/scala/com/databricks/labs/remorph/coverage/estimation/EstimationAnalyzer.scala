@@ -85,7 +85,7 @@ class EstimationAnalyzer extends LazyLogging {
         val expressionsValue = expressionRuleScores.map(_.rule.score).sum
 
         RuleScore(
-          currentRuleScore.rule.plusScore(currentRuleScore.rule.score + childrenValue + expressionsValue),
+          currentRuleScore.rule.plusScore(childrenValue + expressionsValue),
           childrenRuleScores ++ expressionRuleScores)
 
       case expr: Expression =>
@@ -101,7 +101,7 @@ class EstimationAnalyzer extends LazyLogging {
         val childrenValue = childrenRuleScores.map(_.rule.score).sum
 
         // All expressions have a base cost, plus the cost of the expression itself and its children
-        RuleScore(currentRuleScore.rule.plusScore(currentRuleScore.rule.score + childrenValue), childrenRuleScores)
+        RuleScore(currentRuleScore.rule.plusScore(childrenValue), childrenRuleScores)
 
       case _ =>
         throw new IllegalArgumentException(s"Unsupported node type: ${node.getClass.getSimpleName}")
@@ -151,10 +151,7 @@ class EstimationAnalyzer extends LazyLogging {
           // ScalarSubqueries are a bit more complex than a simple expression and their score
           // is calculated by an addition for the subquery being present, and the sub-query itself
           val subqueryRelationScore = evaluateTree(relation)
-          val subqueryScore = SubqueryRule()
-          RuleScore(
-            subqueryScore.plusScore(subqueryScore.score + subqueryRelationScore.rule.score),
-            Seq(subqueryRelationScore))
+          RuleScore(SubqueryRule().plusScore(subqueryRelationScore.rule.score), Seq(subqueryRelationScore))
 
         case uf: ir.UnresolvedFunction =>
           // Unsupported functions are a bit more complex than a simple expression and their score
