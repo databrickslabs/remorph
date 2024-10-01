@@ -11,8 +11,8 @@ protected case class Node(tableDefinition: TableDefinition, metadata: Map[String
 protected case class Edge(from: Node, to: Option[Node], metadata: Map[String, String])
 
 class TableGraph(parser: PlanParser[_]) extends DependencyGraph with LazyLogging {
-  val nodes = scala.collection.mutable.Set.empty[Node]
-  val edges = scala.collection.mutable.Set.empty[Edge]
+  private val nodes = scala.collection.mutable.Set.empty[Node]
+  private val edges = scala.collection.mutable.Set.empty[Edge]
 
   override protected def addNode(id: TableDefinition, metadata: Map[String, Set[String]]): Unit = {
     // Metadata list of query ids and add node only if it is not already present.
