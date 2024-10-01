@@ -662,11 +662,22 @@ case class Explode(left: Expression) extends Unary(left) with Fn {
   override def dataType: DataType = UnresolvedType
 }
 
+/**
+ variant_explode(expr) - Separates the elements of a variant type `expr` into multiple rows. This function is used
+ specifically for handling variant data types, ensuring that each element is processed and outputted as a separate row.
+ The default column name for the elements is `col`.
+ */
 case class VariantExplode(left: Expression) extends Unary(left) with Fn {
   override def prettyName: String = "VARIANT_EXPLODE"
   override def dataType: DataType = UnresolvedType
 }
 
+/**
+  variant_explode_outer(expr) - Separates the elements of a variant type `expr` into multiple rows,
+  including null values. This function is used specifically for handling variant data types, ensuring that
+  each element, including nulls, is processed and outputted as a separate row. The default column name for the
+  elements is `col`.
+ */
 case class VariantExplodeOuter(left: Expression) extends Unary(left) with Fn {
   override def prettyName: String = "VARIANT_EXPLODE_OUTER"
   override def dataType: DataType = UnresolvedType

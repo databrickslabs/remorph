@@ -428,11 +428,4 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
     }
   }
 
-//  private def fromJson(args: Seq[ir.Expression]): ir.Expression = {
-//    val schema = args.lift(1) match {
-//      case None => ir.SchemaReference(args.head)
-//      case Some(e) => e
-//    }
-//    ir.JsonToStructs(args.head, schema, None)
-//  }
 }

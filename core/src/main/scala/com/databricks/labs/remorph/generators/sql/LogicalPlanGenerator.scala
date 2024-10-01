@@ -38,7 +38,7 @@ class LogicalPlanGenerator(
     case c: ir.CreateTableCommand => createTable(ctx, c)
     case t: ir.TableSample => tableSample(ctx, t)
     case a: ir.AlterTableCommand => alterTable(ctx, a)
-    case l: ir.Lateral => lateralView(ctx, l)
+    case l: ir.Lateral => lateral(ctx, l)
     case c: ir.CreateTableParams => createTableParams(ctx, c)
     case ir.NoopNode => ""
     //  TODO We should always generate an unresolved node, our plan should never be null
@@ -152,7 +152,7 @@ class LogicalPlanGenerator(
   }
 
   // @see https://docs.databricks.com/en/sql/language-manual/sql-ref-syntax-qry-select-lateral-view.html
-  private def lateralView(ctx: GeneratorContext, lateral: ir.Lateral): String = lateral match {
+  private def lateral(ctx: GeneratorContext, lateral: ir.Lateral): String = lateral match {
     case ir.Lateral(ir.TableFunction(fn), isOuter, isView) =>
       val outer = if (isOuter) " OUTER" else ""
       val view = if (isView) " VIEW" else ""
@@ -400,7 +400,7 @@ class LogicalPlanGenerator(
 
   private def subQueryAlias(ctx: GeneratorContext, subQAlias: ir.SubqueryAlias): String = {
     val subquery = subQAlias.child match {
-      case l: ir.Lateral => lateralView(ctx, l)
+      case l: ir.Lateral => lateral(ctx, l)
       case _ => s"(${generate(ctx, subQAlias.child)})"
     }
     val tableName = expr.generate(ctx, subQAlias.alias)

@@ -91,7 +91,6 @@ class ExpressionGenerator extends Generator[ir.Expression, String] {
 
   private def jsonPath(j: ir.Expression): Seq[String] = {
     j match {
-//      case ir.Id(name, false) => Seq(s".$name")
       case ir.Id(name, _) if isValidIdentifier(name) => Seq(s".$name")
       case ir.Id(name, _) => Seq(s"['$name']".replace("'", "\""))
       case ir.IntLiteral(value) => Seq(s"[$value]")
