@@ -30,7 +30,6 @@ object SqlComplexity {
     macroRW[SqlComplexity.VERY_COMPLEX.type])
 }
 
-case class ComplexityEstimate(complexity: SqlComplexity, statementCount: Int, charCount: Int, lineCount: Int)
 case class SourceTextComplexity(lineCount: Int, textLength: Int)
 
 case class EstimationStatistics(allStats: EstimationStatisticsEntry, successStats: EstimationStatisticsEntry)
@@ -56,9 +55,6 @@ object EstimationStatisticsEntry {
 
 class EstimationAnalyzer extends LazyLogging {
 
-  // How much each thing in our analysis discovery costs
-  val cost = new RuleDefinitions
-
   def evaluateTree(node: TreeNode[_]): RuleScore = {
     evaluateTree(node, logicalPlanEvaluator, expressionEvaluator)
   }
@@ -68,51 +64,44 @@ class EstimationAnalyzer extends LazyLogging {
       logicalPlanVisitor: PartialFunction[LogicalPlan, RuleScore],
       expressionVisitor: PartialFunction[Expression, RuleScore]): RuleScore = {
 
+    // NOte, that this means there is a bug in the IR generator. When such bugs are fixed
+    // we can remove this and the check for null as child nodes in expressions.
     if (node == null) {
       logger.error("IR_ERROR: Node is null!")
-      return RuleScore(
-        "IR_ERROR",
-        cost.rules.getOrElse("IR_ERROR", 100),
-        Seq.empty
-      ) // Return default value if the node is null
+      return RuleScore(IrErrorRule(), Seq.empty) // Return default value if the node is null
     }
 
     node match {
       case lp: LogicalPlan =>
-        val currentRuleScore = logicalPlanVisitor.applyOrElse(
-          lp,
-          (_: LogicalPlan) => RuleScore("IR_ERROR", cost.rules.getOrElse("IR_ERROR", 100), Seq.empty))
+        val currentRuleScore =
+          logicalPlanVisitor.applyOrElse(lp, (_: LogicalPlan) => RuleScore(IrErrorRule(), Seq.empty))
 
         val childrenRuleScores =
           lp.children.map(child => evaluateTree(child, logicalPlanVisitor, expressionVisitor))
         val expressionRuleScores =
           lp.expressions.map(expr => evaluateTree(expr, logicalPlanVisitor, expressionVisitor))
 
-        val childrenValue = childrenRuleScores.map(_.score).sum
-        val expressionsValue = expressionRuleScores.map(_.score).sum
+        val childrenValue = childrenRuleScores.map(_.rule.score).sum
+        val expressionsValue = expressionRuleScores.map(_.rule.score).sum
 
         RuleScore(
-          currentRuleScore.rule,
-          currentRuleScore.score + childrenValue + expressionsValue,
+          currentRuleScore.rule.withScore(currentRuleScore.rule.score + childrenValue + expressionsValue),
           childrenRuleScores ++ expressionRuleScores)
 
       case expr: Expression =>
+        // NOte that this may no longer be necessary even now, but the IR generator needs to be checked
         if (expr.children == null) {
           logger.error("IR_ERROR: Expression has null for children instead of empty list!")
-          return RuleScore("IR_ERROR", cost.rules.getOrElse("IR_ERROR", 100), Seq.empty)
+          return RuleScore(IrErrorRule(), Seq.empty)
         }
-        val currentRuleScore = expressionVisitor.applyOrElse(
-          expr,
-          (_: Expression) => RuleScore("IR_ERROR", cost.rules.getOrElse("IR_ERROR", 100), Seq.empty))
+        val currentRuleScore =
+          expressionVisitor.applyOrElse(expr, (_: Expression) => RuleScore(IrErrorRule(), Seq.empty))
         val childrenRuleScores =
           expr.children.map(child => evaluateTree(child, logicalPlanVisitor, expressionVisitor))
-        val childrenValue = childrenRuleScores.map(_.score).sum
+        val childrenValue = childrenRuleScores.map(_.rule.score).sum
 
         // All expressions have a base cost, plus the cost of the expression itself and its children
-        RuleScore(
-          "EXPRESSION",
-          cost.rules.getOrElse("EXPRESSION", 1) + currentRuleScore.score + childrenValue,
-          childrenRuleScores)
+        RuleScore(currentRuleScore.rule.withScore(currentRuleScore.rule.score + childrenValue), childrenRuleScores)
 
       case _ =>
         throw new IllegalArgumentException(s"Unsupported node type: ${node.getClass.getSimpleName}")
@@ -143,18 +132,15 @@ class EstimationAnalyzer extends LazyLogging {
     try {
       lp match {
         case ir.UnresolvedCommand(_) =>
-          RuleScore("UNSUPPORTED_COMMAND", cost.rules.getOrElse("UNSUPPORTED_COMMAND", 1), Seq.empty)
+          RuleScore(UnsupportedCommandRule(), Seq.empty)
 
+        // TODO: Add scores for other logical plans that add more complexity then a simple statement
         case _ =>
-          RuleScore(
-            "STATEMENT",
-            cost.rules.getOrElse("STATEMENT", 1),
-            Seq.empty
-          ) // Default case for other logical plans
+          RuleScore(StatementRule(), Seq.empty) // Default case for other logical plans
       }
 
     } catch {
-      case NonFatal(_) => RuleScore("IR_ERROR", cost.rules.getOrElse("IR_ERROR", 100), Seq.empty)
+      case NonFatal(_) => RuleScore(IrErrorRule(), Seq.empty)
     }
   }
 
@@ -164,23 +150,24 @@ class EstimationAnalyzer extends LazyLogging {
         case ir.ScalarSubquery(relation) =>
           // ScalarSubqueries are a bit more complex than a simple expression and their score
           // is calculated by an addition for the subquery being present, and the sub-query itself
-          val subqueryScore = evaluateTree(relation)
-          RuleScore("SUBQUERY", cost.rules.getOrElse("SUBQUERY", 5) + subqueryScore.score, Seq(subqueryScore))
+          val subqueryRelationScore = evaluateTree(relation)
+          val subqueryScore = SubqueryRule()
+          RuleScore(
+            subqueryScore.withScore(subqueryScore.score + subqueryRelationScore.rule.score),
+            Seq(subqueryRelationScore))
 
         case uf: ir.UnresolvedFunction =>
           // Unsupported functions are a bit more complex than a simple expression and their score
           // is calculated by an addition for the function being present, and the function itself
           assessFunction(uf)
 
+        // TODO: Add specific rules for things that are more complicated than simple expressions such as
+        //       UDFs or CASE statements
         case _ =>
-          RuleScore(
-            "EXPRESSION",
-            cost.rules.getOrElse("EXPRESSION", 1),
-            Seq.empty
-          ) // Default case for other expressions
+          RuleScore(ExpressionRule(), Seq.empty) // Default case for straightforward expressions
       }
     } catch {
-      case NonFatal(_) => RuleScore("IR_ERROR", cost.rules.getOrElse("IR_ERROR", 100), Seq.empty)
+      case NonFatal(_) => RuleScore(IrErrorRule(), Seq.empty)
     }
   }
 
@@ -196,22 +183,19 @@ class EstimationAnalyzer extends LazyLogging {
       // For instance XML functions are not supported in Databricks SQL and will require manual conversion,
       // which will be a significant amount of work.
       case ir.UnresolvedFunction(name, _, _, _, _) =>
-        RuleScore(
-          s"UNRESOLVED_FUNCTION:${name}",
-          cost.rules.getOrElse("UNRESOLVED_FUNCTION", 10) + cost.rules.getOrElse(name, 0),
-          Seq.empty)
+        RuleScore(UnsupportedFunctionRule(name = name).resolve(), Seq.empty)
     }
   }
 
   def summarizeComplexity(reportEntries: Seq[EstimationReportRecord]): EstimationStatistics = {
 
-    // We produce a list fo all scores and a list of all successful transpile scores, which allows to produce
+    // We produce a list of all scores and a list of all successful transpile scores, which allows to produce
     // statistics on ALL transpilation attempts and at the same time on only successful transpilations. Use case
     // will vary on who is consuming the final reports.
-    val scores = reportEntries.map(_.analysisReport.score.score).sorted
+    val scores = reportEntries.map(_.analysisReport.score.rule.score).sorted
     val successScores = reportEntries
-      .filter(_.transpilationReport.transpilation_error.isEmpty)
-      .map(_.analysisReport.score.score)
+      .filter(_.transpilationReport.transpiled_statements > 0)
+      .map(_.analysisReport.score.rule.score)
       .sorted
 
     val medianScore = median(scores)

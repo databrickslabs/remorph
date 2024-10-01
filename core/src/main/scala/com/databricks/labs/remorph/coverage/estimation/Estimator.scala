@@ -48,7 +48,7 @@ class Estimator(queryHistory: QueryHistoryProvider, planParser: PlanParser[_], a
             EstimationReportRecord(
               EstimationTranspilationReport(Some(query.source), statements = 1, parsing_error = Some(errorJson)),
               EstimationAnalysisReport(
-                score = RuleScore("PARSE_FAILURE", analyzer.cost.rules.getOrElse("UNEXPECTED_RESULT", 100), Seq.empty),
+                score = RuleScore(ParseFailureRule(), Seq.empty),
                 complexity = SqlComplexity.VERY_COMPLEX)))
 
         case Failure(PLAN, errorJson) =>
@@ -56,7 +56,7 @@ class Estimator(queryHistory: QueryHistoryProvider, planParser: PlanParser[_], a
             EstimationReportRecord(
               EstimationTranspilationReport(Some(query.source), statements = 1, transpilation_error = Some(errorJson)),
               EstimationAnalysisReport(
-                score = RuleScore("PLAN_FAILURE", analyzer.cost.rules.getOrElse("UNEXPECTED_RESULT", 100), Seq.empty),
+                score = RuleScore(PlanFailureRule(), Seq.empty),
                 complexity = SqlComplexity.VERY_COMPLEX)))
 
         case Success(plan) =>
@@ -79,8 +79,7 @@ class Estimator(queryHistory: QueryHistoryProvider, planParser: PlanParser[_], a
                 statements = 1,
                 parsing_error = Some("Unexpected result from parse phase")),
               EstimationAnalysisReport(
-                score =
-                  RuleScore("UNEXPECTED_RESULT", analyzer.cost.rules.getOrElse("UNEXPECTED_RESULT", 100), Seq.empty),
+                score = RuleScore(UnexpectedResultRule(), Seq.empty),
                 complexity = SqlComplexity.VERY_COMPLEX)))
       }
     } else {
@@ -106,17 +105,12 @@ class Estimator(queryHistory: QueryHistoryProvider, planParser: PlanParser[_], a
             transpilation_error = Some(errorJson)),
           EstimationAnalysisReport(
             fingerprint = Some(anonymizer(query, plan)),
-            score = RuleScore(
-              "TRANSPILE_FAILURE",
-              ruleScore.score + analyzer.cost.rules.getOrElse("TRANSPILE_FAILURE", 100),
-              Seq(ruleScore)),
-            complexity = SqlComplexity.fromScore(ruleScore.score)))
+            score = RuleScore(TranspileFailureRule(), Seq(ruleScore)),
+            complexity = SqlComplexity.fromScore(ruleScore.rule.score)))
 
       case Success(output: String) =>
-        // A successful transpilation means that we can reduce the ruleScore because the query seems
-        // to be successfully translated. However, that does not mean that it scores 0 because there
-        // will be some effort required to verify the translation.
-        val newScore = RuleScore("SUCCESS", math.max(ruleScore.score * 0.1, 5).toInt, Seq(ruleScore))
+        val newScore =
+          RuleScore(SuccessfulTranspileRule(), Seq(ruleScore))
         EstimationReportRecord(
           EstimationTranspilationReport(
             query = Some(query.source),
@@ -127,7 +121,7 @@ class Estimator(queryHistory: QueryHistoryProvider, planParser: PlanParser[_], a
             parsed = 1),
           EstimationAnalysisReport(
             fingerprint = Some(anonymizer(query, plan)),
-            SqlComplexity.fromScore(newScore.score),
+            SqlComplexity.fromScore(newScore.rule.score),
             newScore))
 
       case _ =>
@@ -139,10 +133,7 @@ class Estimator(queryHistory: QueryHistoryProvider, planParser: PlanParser[_], a
             transpilation_error = Some("Unexpected result from transpilation")),
           EstimationAnalysisReport(
             fingerprint = Some(anonymizer(query, plan)),
-            score = RuleScore(
-              "UNEXPECTED_RESULT",
-              ruleScore.score + analyzer.cost.rules.getOrElse("UNEXPECTED_RESULT", 100),
-              Seq(ruleScore)),
+            score = RuleScore(UnexpectedResultRule(), Seq(ruleScore)),
             complexity = SqlComplexity.VERY_COMPLEX))
     }
   }

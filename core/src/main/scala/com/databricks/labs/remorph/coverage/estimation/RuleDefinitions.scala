@@ -19,59 +19,131 @@ import upickle.default._
  *   are useful to assess the work required from the core Remorph team.
  * </p>
  */
-class RuleDefinitions {
-
-  // TODO: Maybe we should use a match like we do in FunctionBuilder?
-
-  val rules: Map[String, Int] = Map(
-    // We were unable to parse the query at all. This adds a significant amount of work to the conversion, but it is
-    // work for the core team, not the user, so are able to filter these out of calculations if desired.
-    "PARSE_FAILURE" -> 100,
-
-    // We were able to parse this query, but the logical plan was not generated. This is possibly significant work
-    // required from the core team, but it is not necessarily work for the user, so we can filter out these scores
-    // from the conversion complexity calculations if desired.
-    "PLAN_FAILURE" -> 100,
-
-    // Either the optimizer or the generator failed to produce a result. This is possibly a significant amount of
-    // work for the core team, but it is not necessarily work for the user, so we can filter out these scores.
-    "TRANSPILE_FAILURE" -> 100,
-
-    // In theory this cannot happen, but it means the toolchain returned some status that we do not understand
-    "UNEXPECTED_RESULT" -> 100,
-
-    // An IR error is only flagged when there is something wrong with the IR generation we received. This generally
-    // indicates that there is a missing visitor and that the results of visiting some node were null. This is actually
-    // a bug in the Remorph code and should be fixed by the core team. This is not work for the user, so we can filter.
-    "IR_ERROR" -> 100,
-
-    // Each individual statement in a query is a separate unit of work. This is a low level of work, but it is
-    // counted as it will need to be verified in some way.
-    "STATEMENT" -> 1,
-
-    // Any expression in the query is a unit of work. This is also low level of work, but it is counted as it will
-    // need to be verified in some way.
-    "EXPRESSSION" -> 1,
-
-    // Subqueries will tend to add more complexity in human analysis of any query, though there existence does not
-    // necessarily mean that it is complex to convert to Databricks SQL. The final score for a sub query is also
-    // a function of its component parts.
-    "SUBQUERY" -> 5,
-
-    // Unsupported statements and functions etc
-
-    // When we see a function that we do not already support, it either means that this is either a UDF, a function that
-    // have not yet been implemented in the transpiler, or a function that is not supported by Databricks SQL at all.
-    // This is potentially a significant amount of work to convert, but we will identify functions that we cannot
-    // support and provide a higher score for them.
-    "UNSUPPORTED_FUNCTION" -> 10,
-
-    // TSQL has functions and constructs that deal with XML that cannot be converted in kind of automated way. These
-    // will generally indicate a significant amount of work to convert.
-    "OPENXML" -> 25)
+sealed trait Rule {
+  def score: Int
+  override def toString: String = s"${this.getClass.getSimpleName.stripSuffix("$")}($score)"
+  def withScore(newScore: Int): Rule
 }
 
-case class RuleScore(rule: String, score: Int, from: Seq[RuleScore])
+object Rule {
+  implicit val rw: ReadWriter[Rule] = ReadWriter.merge(
+    macroRW[ParseFailureRule],
+    macroRW[PlanFailureRule],
+    macroRW[TranspileFailureRule],
+    macroRW[UnexpectedResultRule],
+    macroRW[IrErrorRule],
+    macroRW[StatementRule],
+    macroRW[ExpressionRule],
+    macroRW[SubqueryRule],
+    macroRW[UnsupportedFunctionRule],
+    macroRW[UnsupportedCommandRule],
+    macroRW[SuccessfulTranspileRule])
+}
+
+/**
+ * Transpilation was successful so we can reduce the score, but it is not zero because there will be some
+ * effort required to verify the translation.
+ */
+case class SuccessfulTranspileRule(override val score: Int = 5) extends Rule {
+  override def withScore(newScore: Int): SuccessfulTranspileRule = this.copy(score = newScore)
+}
+
+/**
+ * We were unable to parse the query at all. This adds a significant amount of work to the conversion, but it is
+ * work for the core team, not the user, so are able to filter these out of calculations if desired.
+ */
+case class ParseFailureRule(score: Int = 100) extends Rule {
+  override def withScore(newScore: Int): ParseFailureRule = this.copy(score = newScore)
+}
+
+/**
+ * We were able to parse this query, but the logical plan was not generated. This is possibly significant work
+ * required from the core team, but it is not necessarily work for the user, so we can filter out these scores
+ * from the conversion complexity calculations if desired.
+ */
+case class PlanFailureRule(score: Int = 100) extends Rule {
+  override def withScore(newScore: Int): PlanFailureRule = this.copy(score = newScore)
+}
+
+/**
+ * Either the optimizer or the generator failed to produce a result. This is possibly a significant amount of
+ * work for the core team, but it is not necessarily work for the user, so we can filter out these scores.
+ */
+case class TranspileFailureRule(override val score: Int = 100) extends Rule {
+  override def withScore(newScore: Int): TranspileFailureRule = this.copy(score = newScore)
+}
+
+/**
+ * In theory this cannot happen, but it means the toolchain returned some status that we do not understand
+ */
+case class UnexpectedResultRule(override val score: Int = 100) extends Rule {
+  override def withScore(newScore: Int): UnexpectedResultRule = this.copy(score = newScore)
+}
+
+/**
+ * An IR error is only flagged when there is something wrong with the IR generation we received. This generally
+ * indicates that there is a missing visitor and that the results of visiting some node were null. This is actually
+ * a bug in the Remorph code and should be fixed by the core team. This is not work for the user, so we can filter.
+ */
+case class IrErrorRule(override val score: Int = 100) extends Rule {
+  override def withScore(newScore: Int): IrErrorRule = this.copy(score = newScore)
+}
+
+/**
+ * Each individual statement in a query is a separate unit of work. This is a low level of work, but it is
+ * counted as it will need to be verified in some way.
+ */
+case class StatementRule(override val score: Int = 1) extends Rule {
+  override def withScore(newScore: Int): StatementRule = this.copy(score = newScore)
+}
+
+/**
+ * Any expression in the query is a unit of work. This is also a low level of work, but it is counted as it will
+ * need to be verified in some way.
+ */
+case class ExpressionRule(override val score: Int = 1) extends Rule {
+  override def withScore(newScore: Int): ExpressionRule = this.copy(score = newScore)
+}
+
+/**
+ * Subqueries will tend to add more complexity in human analysis of any query, though their existence does not
+ * necessarily mean that it is complex to convert to Databricks SQL. The final score for a sub query is also
+ * a function of its component parts.
+ */
+case class SubqueryRule(override val score: Int = 5) extends Rule {
+  override def withScore(newScore: Int): SubqueryRule = this.copy(score = newScore)
+}
+
+// Unsupported statements and functions etc
+
+/**
+ * When we see a function that we do not already support, it either means that this is either a UDF,
+ * a function that we have not yet been implemented in the transpiler, or a function that is not
+ * supported by Databricks SQL at all.
+ * This is potentially a significant amount of work to convert, but in some case we will identify the
+ * individual functions that we cannot support automatically at all and provide a higher score for them.
+ * For instance XML functions in TSQL.
+ */
+case class UnsupportedFunctionRule(override val score: Int = 10, name: String) extends Rule {
+  override def withScore(newScore: Int): UnsupportedFunctionRule = this.copy(score = newScore)
+  def resolve(): UnsupportedFunctionRule = this.copy(score = name match {
+
+    // TODO: Add scores for the various unresolved functions that we know will be extra complicated to convert
+    case "OPENXML" => 25
+    case _ => 10
+  })
+  override def toString: String = s"UnsupportedFunctionRule($name)"
+}
+
+/**
+ * When we see a command that we do not support, it either means that this is a command that we have not yet
+ * implemented or that we can never implement it and it is going to add a lot of complexity to the conversion.
+ */
+case class UnsupportedCommandRule(override val score: Int = 10) extends Rule {
+  override def withScore(newScore: Int): UnsupportedCommandRule = this.copy(score = newScore)
+}
+
+case class RuleScore(rule: Rule, from: Seq[RuleScore])
 object RuleScore {
   implicit val rw: ReadWriter[RuleScore] = macroRW
 }
