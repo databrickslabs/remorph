@@ -97,6 +97,7 @@ class Estimator(queryHistory: QueryHistoryProvider, planParser: PlanParser[_], a
       case Failure(_, errorJson) =>
         // Failure to transpile means that we need to increase the ruleScore as it will take some
         // time to manually investigate and fix the issue
+        val tfr = RuleScore(TranspileFailureRule().plusScore(ruleScore.rule.score), Seq(ruleScore))
         EstimationReportRecord(
           EstimationTranspilationReport(
             query = Some(query.source),
@@ -105,12 +106,12 @@ class Estimator(queryHistory: QueryHistoryProvider, planParser: PlanParser[_], a
             transpilation_error = Some(errorJson)),
           EstimationAnalysisReport(
             fingerprint = Some(anonymizer(query, plan)),
-            score = RuleScore(TranspileFailureRule(), Seq(ruleScore)),
-            complexity = SqlComplexity.fromScore(ruleScore.rule.score)))
+            score = tfr,
+            complexity = SqlComplexity.fromScore(tfr.rule.score)))
 
       case Success(output: String) =>
         val newScore =
-          RuleScore(SuccessfulTranspileRule(), Seq(ruleScore))
+          RuleScore(SuccessfulTranspileRule().plusScore(ruleScore.rule.score), Seq(ruleScore))
         EstimationReportRecord(
           EstimationTranspilationReport(
             query = Some(query.source),
@@ -121,8 +122,8 @@ class Estimator(queryHistory: QueryHistoryProvider, planParser: PlanParser[_], a
             parsed = 1),
           EstimationAnalysisReport(
             fingerprint = Some(anonymizer(query, plan)),
-            SqlComplexity.fromScore(newScore.rule.score),
-            newScore))
+            score = newScore,
+            complexity = SqlComplexity.fromScore(newScore.rule.score)))
 
       case _ =>
         EstimationReportRecord(
@@ -133,7 +134,7 @@ class Estimator(queryHistory: QueryHistoryProvider, planParser: PlanParser[_], a
             transpilation_error = Some("Unexpected result from transpilation")),
           EstimationAnalysisReport(
             fingerprint = Some(anonymizer(query, plan)),
-            score = RuleScore(UnexpectedResultRule(), Seq(ruleScore)),
+            score = RuleScore(UnexpectedResultRule().plusScore(ruleScore.rule.score), Seq(ruleScore)),
             complexity = SqlComplexity.VERY_COMPLEX))
     }
   }

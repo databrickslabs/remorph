@@ -85,7 +85,7 @@ class EstimationAnalyzer extends LazyLogging {
         val expressionsValue = expressionRuleScores.map(_.rule.score).sum
 
         RuleScore(
-          currentRuleScore.rule.withScore(currentRuleScore.rule.score + childrenValue + expressionsValue),
+          currentRuleScore.rule.plusScore(currentRuleScore.rule.score + childrenValue + expressionsValue),
           childrenRuleScores ++ expressionRuleScores)
 
       case expr: Expression =>
@@ -101,7 +101,7 @@ class EstimationAnalyzer extends LazyLogging {
         val childrenValue = childrenRuleScores.map(_.rule.score).sum
 
         // All expressions have a base cost, plus the cost of the expression itself and its children
-        RuleScore(currentRuleScore.rule.withScore(currentRuleScore.rule.score + childrenValue), childrenRuleScores)
+        RuleScore(currentRuleScore.rule.plusScore(currentRuleScore.rule.score + childrenValue), childrenRuleScores)
 
       case _ =>
         throw new IllegalArgumentException(s"Unsupported node type: ${node.getClass.getSimpleName}")
@@ -153,7 +153,7 @@ class EstimationAnalyzer extends LazyLogging {
           val subqueryRelationScore = evaluateTree(relation)
           val subqueryScore = SubqueryRule()
           RuleScore(
-            subqueryScore.withScore(subqueryScore.score + subqueryRelationScore.rule.score),
+            subqueryScore.plusScore(subqueryScore.score + subqueryRelationScore.rule.score),
             Seq(subqueryRelationScore))
 
         case uf: ir.UnresolvedFunction =>
@@ -183,7 +183,7 @@ class EstimationAnalyzer extends LazyLogging {
       // For instance XML functions are not supported in Databricks SQL and will require manual conversion,
       // which will be a significant amount of work.
       case ir.UnresolvedFunction(name, _, _, _, _) =>
-        RuleScore(UnsupportedFunctionRule(name = name).resolve(), Seq.empty)
+        RuleScore(UnsupportedFunctionRule(funcName = name).resolve(), Seq.empty)
     }
   }
 
