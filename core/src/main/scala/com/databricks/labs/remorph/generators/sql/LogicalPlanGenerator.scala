@@ -404,15 +404,17 @@ class LogicalPlanGenerator(
       case _ => s"(${generate(ctx, subQAlias.child)})"
     }
     val tableName = expr.generate(ctx, subQAlias.alias)
-
     val table =
       if (subQAlias.columnNames.isEmpty) {
         s"AS $tableName"
       } else {
         // Added this to handle the case for POS Explode
+        // We have added two columns index and value as an alias for pos explode default columns (pos, col)
+        // these column will be added to the databricks query
         subQAlias.columnNames match {
           case Seq(ir.Id("value", _), ir.Id("index", _)) =>
-            val columnNamesStr = subQAlias.columnNames.reverse.map(expr.generate(ctx, _)).mkString(",")
+            val columnNamesStr =
+              subQAlias.columnNames.sortBy(_.nodeName).reverse.map(expr.generate(ctx, _)).mkString(",")
             s"$tableName AS $columnNamesStr"
           case _ =>
             val columnNamesStr = tableName + subQAlias.columnNames.map(expr.generate(ctx, _)).mkString("(", ", ", ")")
