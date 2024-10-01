@@ -150,20 +150,17 @@ class TableGraph(parser: PlanParser[_]) extends DependencyGraph with LazyLogging
   }
 
   override def getUpstreamTables(table: TableDefinition): Set[TableDefinition] = {
-    val node = nodes.find(_.tableDefinition == table)
+    def getUpstreamTablesRec(node: Node, visited: Set[Node]): Set[TableDefinition] = {
+      if (visited.contains(node)) {
+        Set.empty
+      } else {
+        val parents = edges.filter(_.to.get.tableDefinition == node.tableDefinition).map(_.from).toSet
+        parents.flatMap(parent => getUpstreamTablesRec(parent, visited + node)) + node.tableDefinition
+      }
+    }
 
-    node match {
-      case Some(n) =>
-        edges
-          .filter(x => {
-            (x.to, n) match {
-              case (Some(x), y) => x == y
-              case _ => false
-            }
-          })
-          .flatMap(_.to)
-          .map(_.tableDefinition)
-          .toSet
+    nodes.find(_.tableDefinition == table) match {
+      case Some(n) => getUpstreamTablesRec(n, Set.empty) - table
       case None =>
         logger.warn(s"Table ${table.table} not found in the graph")
         Set.empty[TableDefinition]
@@ -179,7 +176,7 @@ class TableGraph(parser: PlanParser[_]) extends DependencyGraph with LazyLogging
         children.flatMap(child => getDownstreamTablesRec(child, visited + node)) + node.tableDefinition
       }
     }
-      nodes.find(_.tableDefinition == table) match {
+    nodes.find(_.tableDefinition == table) match {
       case Some(n) =>
         getDownstreamTablesRec(n, Set.empty) - table
       case None =>

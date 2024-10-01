@@ -125,7 +125,7 @@ class TableGraphTest extends AnyFlatSpec with Matchers {
         table = "table1",
         columns = Seq(StructField("col1", IntegerType, true), StructField("col2", StringType, false)),
         sizeGb = 10))
-    assert(upstreamTables.map(_.table) == Set("table2", "table3"))
+    assert(upstreamTables.map(_.table).toList.sorted == List("table2", "table3", "table5"))
   }
 
   "TableDependencyGraph" should "return correct downstream tables" in {
