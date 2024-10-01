@@ -170,17 +170,21 @@ class TableGraph(parser: PlanParser[_]) extends DependencyGraph with LazyLogging
     }
   }
 
-  // TODO implement recursive call to get all downstream tables.
   override def getDownstreamTables(table: TableDefinition): Set[TableDefinition] = {
-    val node = nodes.find(_.tableDefinition == table)
-
-    node match {
+    def getDownstreamTablesRec(node: Node, visited: Set[Node]): Set[TableDefinition] = {
+      if (visited.contains(node)) {
+        Set.empty
+      } else {
+        val children = edges.filter(_.from.tableDefinition == node.tableDefinition).flatMap(_.to).toSet
+        children.flatMap(child => getDownstreamTablesRec(child, visited + node)) + node.tableDefinition
+      }
+    }
+      nodes.find(_.tableDefinition == table) match {
       case Some(n) =>
-        edges.filter(_.from == n).flatMap(_.to).map(_.tableDefinition).toSet
+        getDownstreamTablesRec(n, Set.empty) - table
       case None =>
         logger.warn(s"Table ${table.table} not found in the graph")
         Set.empty[TableDefinition]
     }
-
   }
 }

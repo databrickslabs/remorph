@@ -136,7 +136,7 @@ class TableGraphTest extends AnyFlatSpec with Matchers {
         table = "table5",
         columns = Seq(StructField("col1", IntegerType, true), StructField("col2", StringType, false)),
         sizeGb = 50))
-    assert(downstreamTables.map(_.table) == Set("table2"))
+    assert(downstreamTables.map(_.table).toList.sorted == List("table1", "table2"))
   }
 
 }
