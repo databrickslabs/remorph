@@ -30,7 +30,7 @@ object SqlComplexity {
     macroRW[SqlComplexity.VERY_COMPLEX.type])
 }
 
-// TODO: case class ComplexityEstimate(complexity: SqlComplexity, statementCount: Int, charCount: Int, lineCount: Int)
+case class ComplexityEstimate(complexity: SqlComplexity, statementCount: Int, charCount: Int, lineCount: Int)
 case class SourceTextComplexity(lineCount: Int, textLength: Int)
 
 case class EstimationStatistics(allStats: EstimationStatisticsEntry, successStats: EstimationStatisticsEntry)

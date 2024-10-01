@@ -39,7 +39,7 @@ class Estimator(queryHistory: QueryHistoryProvider, planParser: PlanParser[_], a
 
     // Skip entries that have already been seen as text but for which we were unable to parse or
     // produce a plan for
-    val fingerprint = anonymizer.fingerprint(query.source)
+    val fingerprint = anonymizer(query.source)
     if (!parsedSet.contains(fingerprint)) {
       parsedSet += fingerprint
       planParser.parse(SourceCode(query.source, query.user + "_" + query.id)).flatMap(planParser.visit) match {

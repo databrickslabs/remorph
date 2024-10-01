@@ -68,6 +68,7 @@ class Anonymizer(parser: PlanParser[_]) extends LazyLogging {
   def apply(query: ExecutedQuery, plan: LogicalPlan): Fingerprint = fingerprint(query, plan)
   def apply(query: ExecutedQuery): Fingerprint = fingerprint(query)
   def apply(plan: LogicalPlan): String = fingerprint(plan)
+  def apply(query: String): String = fingerprint(query)
 
   private[discovery] def fingerprint(query: ExecutedQuery): Fingerprint = {
     parser.parse(SourceCode(query.source)).flatMap(parser.visit) match {
@@ -76,7 +77,7 @@ class Anonymizer(parser: PlanParser[_]) extends LazyLogging {
         Fingerprint(
           query.id,
           query.timestamp,
-          "unknown",
+          fingerprint(query.source),
           query.duration,
           query.user,
           WorkloadType.OTHER,
@@ -86,7 +87,7 @@ class Anonymizer(parser: PlanParser[_]) extends LazyLogging {
         Fingerprint(
           query.id,
           query.timestamp,
-          "unknown",
+          fingerprint(query.source),
           query.duration,
           query.user,
           WorkloadType.OTHER,
@@ -198,8 +199,12 @@ class Anonymizer(parser: PlanParser[_]) extends LazyLogging {
    * @param query The text of the query to parse
    * @return A fingerprint representing the query text
    */
-  def fingerprint(query: String): String = {
-    val masked = query.replaceAll("\\b\\d+\\b", "42").replaceAll("'[^']*'", "?")
+  private def fingerprint(query: String): String = {
+    val masked = query
+      .replaceAll("\\b\\d+\\b", "42")
+      .replaceAll("'[^']*'", "?")
+      .replaceAll("\"[^\"]*\"", "?")
+      .replaceAll("`[^`]*`", "?")
     val digest = MessageDigest.getInstance("SHA-1")
     digest.update(masked.getBytes)
     digest.digest().map("%02x".format(_)).mkString
