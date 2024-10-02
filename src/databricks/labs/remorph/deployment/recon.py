@@ -4,6 +4,7 @@ from importlib.resources import files
 from databricks.labs.blueprint.installation import Installation
 from databricks.labs.blueprint.installer import InstallState
 from databricks.labs.blueprint.wheels import ProductInfo
+from databricks.labs.blueprint.wheels import find_project_root
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.errors import InvalidParameterValue, NotFound
 
@@ -17,7 +18,6 @@ logger = logging.getLogger(__name__)
 
 _RECON_PREFIX = "Reconciliation"
 RECON_JOB_NAME = f"{_RECON_PREFIX} Runner"
-RECON_METRICS_DASHBOARD_NAME = f"{_RECON_PREFIX} Metrics"
 
 
 class ReconDeployment:
@@ -41,6 +41,7 @@ class ReconDeployment:
 
     def install(self, recon_config: ReconcileConfig | None, wheel_paths: list[str]):
         if not recon_config:
+            logger.warning("Recon Config is empty.")
             return
         logger.info("Installing reconcile components.")
         self._deploy_tables(recon_config)
@@ -87,50 +88,21 @@ class ReconDeployment:
 
     def _deploy_dashboards(self, recon_config: ReconcileConfig):
         logger.info("Deploying reconciliation dashboards.")
-        self._deploy_recon_metrics_dashboard(RECON_METRICS_DASHBOARD_NAME, recon_config)
-        for dashboard_name, dashboard_id in self._get_deprecated_dashboards():
-            try:
-                logger.info(f"Removing dashboard_id={dashboard_id}, as it is no longer needed.")
-                del self._install_state.dashboards[dashboard_name]
-                self._ws.lakeview.trash(dashboard_id)
-            except (InvalidParameterValue, NotFound):
-                logger.warning(f"Dashboard `{dashboard_name}` doesn't exist anymore for some reason.")
-                continue
-
-    def _deploy_recon_metrics_dashboard(self, name: str, recon_config: ReconcileConfig):
-        dashboard_params = {
-            "catalog": recon_config.metadata_config.catalog,
-            "schema": recon_config.metadata_config.schema,
-        }
-
-        reconcile_dashboard_path = "reconcile/dashboards/Remorph-Reconciliation.lvdash.json"
-        dashboard_file = files(databricks.labs.remorph.resources).joinpath(reconcile_dashboard_path)
-        logger.info(f"Creating Reconciliation Dashboard `{name}`")
-        self._dashboard_deployer.deploy(name, dashboard_file, parameters=dashboard_params)
+        dashboard_base_dir = find_project_root(__file__) / "src/databricks/labs/remorph/resources/reconcile/dashboards"
+        self._dashboard_deployer.deploy(dashboard_base_dir, recon_config)
 
     def _get_dashboards(self) -> list[tuple[str, str]]:
-        return [
-            (dashboard_name, dashboard_id)
-            for dashboard_name, dashboard_id in self._install_state.dashboards.items()
-            if dashboard_name.startswith(_RECON_PREFIX)
-        ]
-
-    def _get_deprecated_dashboards(self) -> list[tuple[str, str]]:
-        return [
-            (dashboard_name, dashboard_id)
-            for dashboard_name, dashboard_id in self._install_state.dashboards.items()
-            if dashboard_name.startswith(_RECON_PREFIX) and dashboard_name != RECON_METRICS_DASHBOARD_NAME
-        ]
+        return list(self._install_state.dashboards.items())
 
     def _remove_dashboards(self):
         logger.info("Removing reconciliation dashboards.")
-        for dashboard_name, dashboard_id in self._get_dashboards():
+        for dashboard_ref, dashboard_id in self._get_dashboards():
             try:
-                logger.info(f"Removing dashboard {dashboard_name} with dashboard_id={dashboard_id}.")
-                del self._install_state.dashboards[dashboard_name]
+                logger.info(f"Removing dashboard with id={dashboard_id}.")
+                del self._install_state.dashboards[dashboard_ref]
                 self._ws.lakeview.trash(dashboard_id)
             except (InvalidParameterValue, NotFound):
-                logger.warning(f"Dashboard `{dashboard_name}` doesn't exist anymore for some reason.")
+                logger.warning(f"Dashboard with id={dashboard_id} doesn't exist anymore for some reason.")
                 continue
 
     def _deploy_jobs(self, recon_config: ReconcileConfig, remorph_wheel_path: str):

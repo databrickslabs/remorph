@@ -2,16 +2,14 @@ import logging
 
 from databricks.labs.blueprint.installation import Installation
 from databricks.labs.blueprint.tui import Prompts
+from databricks.labs.blueprint.upgrades import Upgrades
+from databricks.labs.blueprint.wheels import WheelsV2
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.errors import NotFound
+from databricks.sdk.errors.platform import InvalidParameterValue
 
 from databricks.labs.remorph.config import RemorphConfigs
 from databricks.labs.remorph.deployment.recon import ReconDeployment
-from databricks.labs.blueprint.wheels import WheelsV2
-
-from databricks.sdk.errors.platform import InvalidParameterValue
-from databricks.labs.blueprint.upgrades import Upgrades
-
 
 logger = logging.getLogger("databricks.labs.remorph.install")
 
@@ -48,6 +46,7 @@ class WorkspaceInstallation:
     def install(self, config: RemorphConfigs):
         wheel_paths: list[str] = self._upload_wheel()
         if config.reconcile:
+            logger.info("Installing Remorph reconcile Metadata components.")
             self._recon_deployment.install(config.reconcile, wheel_paths)
         self._apply_upgrades()
 
