@@ -15,10 +15,9 @@ class Estimator(queryHistory: QueryHistoryProvider, planParser: PlanParser[_], a
   def run(): EstimationReport = {
     val history = queryHistory.history()
     val anonymizer = new Anonymizer(planParser)
+    // Hashews of either query strings or plans that we have seen before.
     val parsedSet = scala.collection.mutable.Set[String]()
-
     val reportEntries = history.queries.flatMap(processQuery(_, anonymizer, parsedSet))
-
     val (uniqueSuccesses, parseFailures, transpileFailures) = countReportEntries(reportEntries)
 
     EstimationReport(
@@ -37,55 +36,68 @@ class Estimator(queryHistory: QueryHistoryProvider, planParser: PlanParser[_], a
       query: ExecutedQuery,
       anonymizer: Anonymizer,
       parsedSet: scala.collection.mutable.Set[String]): Option[EstimationReportRecord] = {
-    planParser.parse(SourceCode(query.source, query.user + "_" + query.id)).flatMap(planParser.visit) match {
-      case Failure(PARSE, errorJson) =>
-        Some(
-          EstimationReportRecord(
-            EstimationTranspilationReport(Some(query.source), statements = 1, parsing_error = Some(errorJson)),
-            EstimationAnalysisReport(score = 1000, complexity = SqlComplexity.VERY_COMPLEX)))
 
-      case Failure(PLAN, errorJson) =>
-        Some(
-          EstimationReportRecord(
-            EstimationTranspilationReport(Some(query.source), statements = 1, transpilation_error = Some(errorJson)),
-            EstimationAnalysisReport(score = 1000, complexity = SqlComplexity.VERY_COMPLEX)))
+    // Skip entries that have already been seen as text but for which we were unable to parse or
+    // produce a plan for
+    val fingerprint = anonymizer(query.source)
+    if (!parsedSet.contains(fingerprint)) {
+      parsedSet += fingerprint
+      planParser.parse(SourceCode(query.source, query.user + "_" + query.id)).flatMap(planParser.visit) match {
+        case Failure(PARSE, errorJson) =>
+          Some(
+            EstimationReportRecord(
+              EstimationTranspilationReport(Some(query.source), statements = 1, parsing_error = Some(errorJson)),
+              EstimationAnalysisReport(
+                score = RuleScore(ParseFailureRule(), Seq.empty),
+                complexity = SqlComplexity.VERY_COMPLEX)))
 
-      case Success(plan) =>
-        val queryHash = anonymizer(plan)
-        // scalastyle:off println
-        println(s"Query: ${query.source}")
-        val sourceTextComplexity = analyzer.sourceTextComplexity(query.source)
-        val score = analyzer.evaluateTree(plan) + analyzer.countStatements(
-          plan) + sourceTextComplexity.textLength + sourceTextComplexity.lineCount
-        // scalastyle:on println
-        if (!parsedSet.contains(queryHash)) {
-          parsedSet += queryHash
-          Some(generateReportRecord(query, plan, score, anonymizer))
-        } else {
-          None
-        }
+        case Failure(PLAN, errorJson) =>
+          Some(
+            EstimationReportRecord(
+              EstimationTranspilationReport(Some(query.source), statements = 1, transpilation_error = Some(errorJson)),
+              EstimationAnalysisReport(
+                score = RuleScore(PlanFailureRule(), Seq.empty),
+                complexity = SqlComplexity.VERY_COMPLEX)))
 
-      case _ =>
-        Some(
-          EstimationReportRecord(
-            EstimationTranspilationReport(
-              query = Some(query.source),
-              statements = 1,
-              parsing_error = Some("Unexpected result from parse phase")),
-            EstimationAnalysisReport(score = 1000, complexity = SqlComplexity.VERY_COMPLEX)))
+        case Success(plan) =>
+          val queryHash = anonymizer(plan)
+          val score = analyzer.evaluateTree(plan)
+          // Note that the plan hash will generally be more accurate than the query hash, hence we check here
+          // as well as against the plain text
+          if (!parsedSet.contains(queryHash)) {
+            parsedSet += queryHash
+            Some(generateReportRecord(query, plan, score, anonymizer))
+          } else {
+            None
+          }
+
+        case _ =>
+          Some(
+            EstimationReportRecord(
+              EstimationTranspilationReport(
+                query = Some(query.source),
+                statements = 1,
+                parsing_error = Some("Unexpected result from parse phase")),
+              EstimationAnalysisReport(
+                score = RuleScore(UnexpectedResultRule(), Seq.empty),
+                complexity = SqlComplexity.VERY_COMPLEX)))
+      }
+    } else {
+      None
     }
   }
 
   private def generateReportRecord(
       query: ExecutedQuery,
       plan: LogicalPlan,
-      score: Int,
+      ruleScore: RuleScore,
       anonymizer: Anonymizer): EstimationReportRecord = {
     val generator = new SqlGenerator
     planParser.optimize(plan).flatMap(generator.generate) match {
       case Failure(_, errorJson) =>
-        // Failure to transpile means that we need to increase the score as it will take some
+        // Failure to transpile means that we need to increase the ruleScore as it will take some
         // time to manually investigate and fix the issue
+        val tfr = RuleScore(TranspileFailureRule().plusScore(ruleScore.rule.score), Seq(ruleScore))
         EstimationReportRecord(
           EstimationTranspilationReport(
             query = Some(query.source),
@@ -94,27 +106,24 @@ class Estimator(queryHistory: QueryHistoryProvider, planParser: PlanParser[_], a
             transpilation_error = Some(errorJson)),
           EstimationAnalysisReport(
             fingerprint = Some(anonymizer(query, plan)),
-            score = score + 100,
-            complexity = SqlComplexity.fromScore(score)))
+            score = tfr,
+            complexity = SqlComplexity.fromScore(tfr.rule.score)))
 
       case Success(output: String) =>
-        // A successful transpilation means that we can reduce the score because the query seems
-        // to be successfully translated. However, that does not mean that it scores 0 because there
-        // will be some effort required to verify the translation.
-        val newScore = math.max(score * 0.1, 5).toInt
-        val statCount = analyzer.countStatements(plan)
+        val newScore =
+          RuleScore(SuccessfulTranspileRule().plusScore(ruleScore.rule.score), Seq(ruleScore))
         EstimationReportRecord(
           EstimationTranspilationReport(
             query = Some(query.source),
             output = Some(output),
-            statements = statCount,
+            statements = 1,
             transpiled = 1,
-            transpiled_statements = statCount,
+            transpiled_statements = 1,
             parsed = 1),
           EstimationAnalysisReport(
             fingerprint = Some(anonymizer(query, plan)),
-            SqlComplexity.fromScore(newScore),
-            newScore))
+            score = newScore,
+            complexity = SqlComplexity.fromScore(newScore.rule.score)))
 
       case _ =>
         EstimationReportRecord(
@@ -125,12 +134,12 @@ class Estimator(queryHistory: QueryHistoryProvider, planParser: PlanParser[_], a
             transpilation_error = Some("Unexpected result from transpilation")),
           EstimationAnalysisReport(
             fingerprint = Some(anonymizer(query, plan)),
-            score = 1000,
+            score = RuleScore(UnexpectedResultRule().plusScore(ruleScore.rule.score), Seq(ruleScore)),
             complexity = SqlComplexity.VERY_COMPLEX))
     }
   }
 
-  def countReportEntries(reportEntries: Seq[EstimationReportRecord]): (Int, Int, Int) = {
+  private def countReportEntries(reportEntries: Seq[EstimationReportRecord]): (Int, Int, Int) = {
     reportEntries.foldLeft((0, 0, 0)) { case ((uniqueSuccesses, parseFailures, transpileFailures), entry) =>
       val newUniqueSuccesses =
         if (entry.transpilationReport.parsed == 1 && entry.transpilationReport.transpiled == 1) uniqueSuccesses + 1
