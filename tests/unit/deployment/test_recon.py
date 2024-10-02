@@ -116,9 +116,6 @@ def test_install(ws):
     assert "Reconciliation Deprecated Job 1" not in install_state.jobs
     assert "Reconciliation Deprecated Job 2" not in install_state.jobs
     assert "Some other Job" in install_state.jobs
-    assert "Reconciliation Deprecated Dashboard 1" not in install_state.dashboards
-    assert "Reconciliation Deprecated Dashboard 2" not in install_state.dashboards
-    assert "Some other Dashboard" in install_state.dashboards
 
 
 def test_uninstall_missing_config(ws):
@@ -211,5 +208,4 @@ def test_uninstall(ws):
 
     assert "Reconciliation Runner" not in install_state.jobs
     assert "Some other Job" in install_state.jobs
-    assert "Reconciliation Metrics" not in install_state.dashboards
-    assert "Some other Dashboard" in install_state.dashboards
+    assert len(install_state.dashboards.keys()) == 0
