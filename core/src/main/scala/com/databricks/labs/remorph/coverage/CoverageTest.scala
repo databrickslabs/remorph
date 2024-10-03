@@ -79,6 +79,5 @@ class CoverageTest {
     // scalastyle:on
     }
 
-
   }
 }

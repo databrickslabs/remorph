@@ -21,16 +21,13 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
     "translate a simple SELECT query with an aliased column" in {
       singleQueryExample(
         query = "SELECT a AS aa FROM b",
-        expectedAst =
-          Project(NamedTable("b", Map.empty, is_streaming = false), Seq(Alias(Id("a"), Id("aa")))))
+        expectedAst = Project(NamedTable("b", Map.empty, is_streaming = false), Seq(Alias(Id("a"), Id("aa")))))
     }
 
     "translate a simple SELECT query involving multiple columns" in {
       singleQueryExample(
         query = "SELECT a, b, c FROM table_x",
-        expectedAst = Project(
-          NamedTable("table_x", Map.empty, is_streaming = false),
-          Seq(Id("a"), Id("b"), Id("c"))))
+        expectedAst = Project(NamedTable("table_x", Map.empty, is_streaming = false), Seq(Id("a"), Id("b"), Id("c"))))
     }
 
     "translate a SELECT query involving multiple columns and aliases" in {
@@ -102,20 +99,17 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
       "SELECT a FROM table_x NATURAL JOIN table_y" in {
         singleQueryExample(
           query = "SELECT a FROM table_x NATURAL JOIN table_y",
-          expectedAst =
-            Project(simpleJoinAst.copy(join_type = NaturalJoin(UnspecifiedJoin)), Seq(Id("a"))))
+          expectedAst = Project(simpleJoinAst.copy(join_type = NaturalJoin(UnspecifiedJoin)), Seq(Id("a"))))
       }
       "SELECT a FROM table_x NATURAL LEFT JOIN table_y" in {
         singleQueryExample(
           query = "SELECT a FROM table_x NATURAL LEFT JOIN table_y",
-          expectedAst =
-            Project(simpleJoinAst.copy(join_type = NaturalJoin(LeftOuterJoin)), Seq(Id("a"))))
+          expectedAst = Project(simpleJoinAst.copy(join_type = NaturalJoin(LeftOuterJoin)), Seq(Id("a"))))
       }
       "SELECT a FROM table_x NATURAL RIGHT JOIN table_y" in {
         singleQueryExample(
           query = "SELECT a FROM table_x NATURAL RIGHT JOIN table_y",
-          expectedAst =
-            Project(simpleJoinAst.copy(join_type = NaturalJoin(RightOuterJoin)), Seq(Id("a"))))
+          expectedAst = Project(simpleJoinAst.copy(join_type = NaturalJoin(RightOuterJoin)), Seq(Id("a"))))
       }
     }
 
@@ -132,9 +126,8 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
       expectedOperatorTranslations.foreach { case (op, expectedPredicate) =>
         singleQueryExample(
           query = s"SELECT a, b FROM c WHERE a $op b",
-          expectedAst = Project(
-            Filter(NamedTable("c", Map.empty, is_streaming = false), expectedPredicate),
-            Seq(Id("a"), Id("b"))))
+          expectedAst =
+            Project(Filter(NamedTable("c", Map.empty, is_streaming = false), expectedPredicate), Seq(Id("a"), Id("b"))))
       }
     }
 
@@ -254,8 +247,7 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
       "SELECT a FROM b LIMIT 5" in {
         singleQueryExample(
           query = "SELECT a FROM b LIMIT 5",
-          expectedAst =
-            Project(Limit(NamedTable("b", Map.empty, is_streaming = false), Literal(5)), Seq(Id("a"))))
+          expectedAst = Project(Limit(NamedTable("b", Map.empty, is_streaming = false), Literal(5)), Seq(Id("a"))))
       }
       "SELECT a FROM b LIMIT 5 OFFSET 10" in {
         singleQueryExample(
@@ -267,8 +259,7 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
       "SELECT a FROM b OFFSET 10 FETCH FIRST 42" in {
         singleQueryExample(
           query = "SELECT a FROM b OFFSET 10 FETCH FIRST 42",
-          expectedAst =
-            Project(Offset(NamedTable("b", Map.empty, is_streaming = false), Literal(10)), Seq(Id("a"))))
+          expectedAst = Project(Offset(NamedTable("b", Map.empty, is_streaming = false), Literal(10)), Seq(Id("a"))))
       }
     }
 
@@ -319,10 +310,7 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
                 Project(namedTable("e"), Seq(Id("x"), Id("y"), Id("z"))),
                 Id("a"),
                 Seq(Id("b"), Id("c"), Id("d"))),
-              SubqueryAlias(
-                Project(namedTable("f"), Seq(Id("xx"), Id("yy"))),
-                Id("aa"),
-                Seq(Id("bb"), Id("cc")))),
+              SubqueryAlias(Project(namedTable("f"), Seq(Id("xx"), Id("yy"))), Id("aa"), Seq(Id("bb"), Id("cc")))),
             Project(namedTable("a"), Seq(Id("b"), Id("c"), Id("d")))))
       }
     }
@@ -345,9 +333,7 @@ class SnowflakeAstBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
                 pivot = None),
               GreaterThanOrEqual(CallFunction("AVG", Seq(Id("c1"))), Literal(5))),
             GreaterThan(CallFunction("MIN", Seq(Id("r"))), Literal(6))),
-          Seq(
-            Id("c2"),
-            Alias(Window(CallFunction("SUM", Seq(Id("c3"))), Seq(Id("c2")), Seq(), None), Id("r")))))
+          Seq(Id("c2"), Alias(Window(CallFunction("SUM", Seq(Id("c3"))), Seq(Id("c2")), Seq(), None), Id("r")))))
     }
 
     "translate a query with set operators" should {

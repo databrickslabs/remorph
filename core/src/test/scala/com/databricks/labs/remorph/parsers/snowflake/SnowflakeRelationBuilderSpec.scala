@@ -233,10 +233,7 @@ class SnowflakeRelationBuilderSpec
         example(
           "WITH a (b, c) AS (SELECT x, y FROM d)",
           _.withExpression(),
-          SubqueryAlias(
-            Project(namedTable("d"), Seq(Id("x"), Id("y"))),
-            Id("a"),
-            Seq(Id("b"), Id("c"))))
+          SubqueryAlias(Project(namedTable("d"), Seq(Id("x"), Id("y"))), Id("a"), Seq(Id("b"), Id("c"))))
       }
     }
 
@@ -278,11 +275,7 @@ class SnowflakeRelationBuilderSpec
           "SELECT DISTINCT TOP 42 a FROM t",
           _.selectStatement(),
           Limit(
-            Deduplicate(
-              namedTable("t"),
-              Seq(Id("a")),
-              all_columns_as_keys = false,
-              within_watermark = false),
+            Deduplicate(namedTable("t"), Seq(Id("a")), all_columns_as_keys = false, within_watermark = false),
             Literal(42)))
       }
     }
