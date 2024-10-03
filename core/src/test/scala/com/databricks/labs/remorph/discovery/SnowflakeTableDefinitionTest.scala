@@ -27,6 +27,7 @@ class SnowflakeTableDefinitionTest extends AnyWordSpec with Matchers {
       when(mockRs.getString("FILE_FORMAT_NAME")).thenReturn(null)
       when(mockRs.getString("VIEW_DEFINITION")).thenReturn(null)
       when(mockRs.getInt("BYTES")).thenReturn(1024 * 1024 * 1024)
+
       // Mock behavior for getAllCatalogs
       val mockCatalogResultSet = mock(classOf[ResultSet])
       when(mockStmt.executeQuery("SHOW DATABASES")).thenReturn(mockCatalogResultSet)
