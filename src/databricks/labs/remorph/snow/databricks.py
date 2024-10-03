@@ -60,7 +60,7 @@ def _lateral_bracket_sql(self, expression: local_expression.Bracket) -> str:
     # If expression contains space in between encode it in backticks(``):
     # e.g. ref."ID Number" -> ref.`ID Number`.
     expressions_sql = ", ".join(f"`{e}`" if " " in e else e for e in expressions)
-    return f"{self.sql(expression, 'this')}.{expressions_sql}"
+    return f"{self.sql(expression, 'this')}:{expressions_sql}"
 
 
 def _format_create_sql(self, expression: exp.Create) -> str:
@@ -94,6 +94,7 @@ def _lateral_view(self: org_databricks.Databricks.Generator, expression: exp.Lat
     alias_str = f" AS {alias.name}" if isinstance(alias, exp.TableAlias) else ""
     generator_function_str = self.sql(this)
     is_outer = False
+    select_contains_index = False
 
     if isinstance(this, exp.Explode):
         explode_expr = this
@@ -115,9 +116,16 @@ def _lateral_view(self: org_databricks.Databricks.Generator, expression: exp.Lat
             generator_function_str = f"POSEXPLODE({generator_expr})"
             alias_str = f"{' ' + alias.name if isinstance(alias, exp.TableAlias) else ''} AS index, value"
         else:
-            generator_function_str = f"EXPLODE({generator_expr})"
+            generator_function_str = f"VARIANT_EXPLODE({generator_expr})"
 
-    return self.sql(f"LATERAL VIEW {'OUTER ' if is_outer else ''}{generator_function_str}{alias_str}")
+    if is_outer:
+        generator_function_str = generator_function_str.replace("VARIANT_EXPLODE", "VARIANT_EXPLODE_OUTER")
+
+    if select_contains_index:
+        lateral_statement = self.sql(f"LATERAL VIEW OUTER {generator_function_str}{alias_str}")
+    else:
+        lateral_statement = self.sql(f", LATERAL {generator_function_str}{alias_str}")
+    return lateral_statement
 
 
 # [TODO] Add more datatype coverage https://docs.databricks.com/sql/language-manual/sql-ref-datatypes.html
@@ -247,22 +255,8 @@ def _to_command(self, expr: exp.Command):
     return f"{prefix} {expression}"
 
 
-def _parse_json(self, expr: exp.ParseJSON):
-    """
-    Converts `PARSE_JSON` function to `FROM_JSON` function.
-    Schema is a mandatory argument for Databricks `FROM_JSON` function
-    [FROM_JSON](https://docs.databricks.com/en/sql/language-manual/functions/from_json.html)
-    Need to explicitly specify the Schema {<COL_NAME>_SCHEMA} in the current execution environment
-    """
-    expr_this = self.sql(expr, "this")
-    # use column name as prefix or use JSON_COLUMN_SCHEMA when the expression is nested
-    column = expr_this.replace("'", "").upper() if isinstance(expr.this, exp.Column) else "JSON_COLUMN"
-    conv_expr = self.func("FROM_JSON", expr_this, f"{{{column}_SCHEMA}}")
-    warning_msg = (
-        f"***Warning***: you need to explicitly specify `SCHEMA` for `{column}` column in expression: `{conv_expr}`"
-    )
-    logger.warning(warning_msg)
-    return conv_expr
+def _parse_json(self, expression: exp.ParseJSON) -> str:
+    return self.func("PARSE_JSON", expression.this, expression.expression)
 
 
 def _to_number(self, expression: local_expression.ToNumber):
@@ -373,7 +367,7 @@ class Databricks(org_databricks.Databricks):  #
             exp.DataType.Type.BIGINT: "BIGINT",
             exp.DataType.Type.DATETIME: "TIMESTAMP",
             exp.DataType.Type.VARCHAR: "STRING",
-            exp.DataType.Type.VARIANT: "STRING",
+            exp.DataType.Type.VARIANT: "VARIANT",
             exp.DataType.Type.FLOAT: "DOUBLE",
             exp.DataType.Type.OBJECT: "STRING",
             exp.DataType.Type.GEOGRAPHY: "STRING",
