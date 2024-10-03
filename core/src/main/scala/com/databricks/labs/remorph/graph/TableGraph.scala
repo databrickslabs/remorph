@@ -111,7 +111,7 @@ class TableGraph(parser: PlanParser[_]) extends DependencyGraph with LazyLogging
         val plan = parser.parse(SourceCode(query.source)).flatMap(parser.visit)
         plan match {
           case Result.Failure(_, errorJson) =>
-            logger.warn(s"Failed to produce plan from query: ${query.source}")
+            logger.warn(s"Failed to produce plan from query: ${query.id}")
             logger.debug(s"Error: $errorJson")
           case Result.Success(p) =>
             buildNode(p, tableDefinition, query)
