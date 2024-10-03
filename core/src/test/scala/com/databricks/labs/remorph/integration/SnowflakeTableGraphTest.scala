@@ -7,7 +7,7 @@ import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import com.databricks.labs.remorph.graph.TableGraph
 
-class SnowflakeTableGraphTest  extends AnyWordSpec with Matchers {
+class SnowflakeTableGraphTest extends AnyWordSpec with Matchers {
   "TableGraph" should {
     "retrieve downstream tables correctly" ignore {
       val env = new EnvGetter
