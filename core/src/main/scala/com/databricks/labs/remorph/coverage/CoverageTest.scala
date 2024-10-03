@@ -6,6 +6,10 @@ import java.time.Instant
 
 case class DialectCoverageTest(dialectName: String, queryRunner: QueryRunner)
 
+case class IndividualError(description: String, nbOccurrences: Int, example: String)
+
+case class ErrorsSummary(parseErrors: Seq[IndividualError], transpileErrors: Seq[IndividualError])
+
 class CoverageTest {
 
   private val dialectCoverageTests = Seq(
@@ -70,9 +74,11 @@ class CoverageTest {
       val transpiled = reports.map(_.report.transpiled).sum
       // scalastyle:off
       println(
-        s"remorph -> $dialect: ${100 * parsed / total}% parsed ($parsed / $total)," +
-          s" ${100 * transpiled / total}% transpiled ($transpiled / $total)")
+        s"remorph -> $dialect: ${100d * parsed / total}% parsed ($parsed / $total)," +
+          s" ${100d * transpiled / total}% transpiled ($transpiled / $total)")
     // scalastyle:on
     }
+
+
   }
 }

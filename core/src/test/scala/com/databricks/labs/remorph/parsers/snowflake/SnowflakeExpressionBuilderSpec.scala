@@ -370,7 +370,7 @@ class SnowflakeExpressionBuilderSpec
       exampleExpr(
         query = "(SELECT col1 from table_expr)",
         rule = _.expr(),
-        expectedAst = ScalarSubquery(Project(namedTable("table_expr"), Seq(Column(None, Id("col1"))))))
+        expectedAst = ScalarSubquery(Project(namedTable("table_expr"), Seq(Id("col1")))))
     }
   }
 
@@ -477,8 +477,8 @@ class SnowflakeExpressionBuilderSpec
       val literal = mock[LiteralContext]
       astBuilder.visitLiteral(literal) shouldBe Literal.Null
       verify(literal).sign()
-      verify(literal).DATE_LIT()
-      verify(literal).TIMESTAMP_LIT()
+      verify(literal).DATE()
+      verify(literal).TIMESTAMP()
       verify(literal).string()
       verify(literal).DECIMAL()
       verify(literal).FLOAT()

@@ -49,7 +49,7 @@ class SnowflakeCommandBuilderSpec
             ScalarSubquery(
               Project(
                 NamedTable("some_table", Map(), is_streaming = false),
-                Seq(Column(None, Id("col1", caseSensitive = false)))))),
+                Seq(Id("col1", caseSensitive = false))))),
           replace = false))
     }
   }
@@ -89,7 +89,7 @@ class SnowflakeCommandBuilderSpec
           value = ScalarSubquery(
             Project(
               NamedTable("some_table", Map(), is_streaming = false),
-              Seq(Column(None, Id("col1", caseSensitive = false)))))))
+              Seq(Id("col1", caseSensitive = false))))))
     }
   }
 
