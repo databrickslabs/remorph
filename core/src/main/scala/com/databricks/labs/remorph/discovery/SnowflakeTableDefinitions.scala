@@ -52,6 +52,7 @@ class SnowflakeTableDefinitions(conn: Connection) {
        |  sft.TABLE_CATALOG,
        |  sft.TABLE_SCHEMA,
        |  sft.TABLE_NAME,
+       |  sft.comment,
        |  sfe.location,
        |  sfe.file_format_name,
        |  sfv.view_definition,
@@ -108,7 +109,8 @@ class SnowflakeTableDefinitions(conn: Connection) {
               Option(rs.getString("FILE_FORMAT_NAME")),
               Option(rs.getString("VIEW_DEFINITION")),
               columns,
-              rs.getInt("SIZE_GB")))
+              rs.getInt("SIZE_GB"),
+              Option(rs.getString("COMMENT"))))
         }
         tableDefinitionList
       } finally {
