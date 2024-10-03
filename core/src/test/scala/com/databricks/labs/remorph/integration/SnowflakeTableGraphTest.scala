@@ -20,7 +20,7 @@ class SnowflakeTableGraphTest  extends AnyWordSpec with Matchers {
 
       val tableGraph = new TableGraph(parser)
       tableGraph.buildDependency(history, tableDefinition.toSet)
-      // TODO Currently there is no enough example in query history for the integration test to work.
+      // TODO Currently there is not enough example in query history for the integration test to work.
       assert(tableGraph.getRootTables().isEmpty)
     }
   }
