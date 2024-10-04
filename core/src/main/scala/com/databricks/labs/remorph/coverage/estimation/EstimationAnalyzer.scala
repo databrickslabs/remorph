@@ -1,11 +1,11 @@
 package com.databricks.labs.remorph.coverage.estimation
 
 import com.databricks.labs.remorph.coverage.EstimationReportRecord
-import com.databricks.labs.remorph.discovery.ExecutedQuery
 import com.databricks.labs.remorph.parsers.intermediate.{Expression, LogicalPlan, TreeNode}
 import com.databricks.labs.remorph.parsers.{intermediate => ir}
 import com.typesafe.scalalogging.LazyLogging
 import upickle.default._
+
 import scala.util.control.NonFatal
 
 sealed trait SqlComplexity
@@ -16,10 +16,10 @@ object SqlComplexity {
   case object VERY_COMPLEX extends SqlComplexity
 
   // TODO: Define the scores for each complexity level
-  def fromScore(score: Int): SqlComplexity = score match {
+  def fromScore(score: Double): SqlComplexity = score match {
     case s if s < 10 => LOW
-    case s if s < 20 => MEDIUM
-    case s if s < 30 => COMPLEX
+    case s if s < 60 => MEDIUM
+    case s if s < 120 => COMPLEX
     case _ => VERY_COMPLEX
   }
 
@@ -30,10 +30,15 @@ object SqlComplexity {
     macroRW[SqlComplexity.VERY_COMPLEX.type])
 }
 
-case class ComplexityEstimate(complexity: SqlComplexity, statementCount: Int, charCount: Int, lineCount: Int)
 case class SourceTextComplexity(lineCount: Int, textLength: Int)
 
-case class EstimationStatistics(
+case class EstimationStatistics(allStats: EstimationStatisticsEntry, successStats: EstimationStatisticsEntry)
+
+object EstimationStatistics {
+  implicit val rw: ReadWriter[EstimationStatistics] = macroRW
+}
+
+case class EstimationStatisticsEntry(
     medianScore: Int,
     meanScore: Double,
     modeScore: Int,
@@ -44,41 +49,59 @@ case class EstimationStatistics(
     geometricMeanScore: Double,
     complexity: SqlComplexity)
 
-object EstimationStatistics {
-  implicit val rw: ReadWriter[EstimationStatistics] = macroRW
+object EstimationStatisticsEntry {
+  implicit val rw: ReadWriter[EstimationStatisticsEntry] = macroRW
 }
 
 class EstimationAnalyzer extends LazyLogging {
-  // TODO: We will do this and the rest of the analysis in the next PR
-  def countStatements(plan: ir.LogicalPlan): Int = 1
 
-  def estimateComplexity(query: ExecutedQuery, plan: ir.LogicalPlan): ComplexityEstimate = {
-    val s = sourceTextComplexity(query.source)
-    ComplexityEstimate(SqlComplexity.LOW, countStatements(plan), s.textLength, s.lineCount)
-  }
-
-  def evaluateTree(node: TreeNode[_]): Int = {
+  def evaluateTree(node: TreeNode[_]): RuleScore = {
     evaluateTree(node, logicalPlanEvaluator, expressionEvaluator)
   }
 
   def evaluateTree(
       node: TreeNode[_],
-      logicalPlanVisitor: PartialFunction[LogicalPlan, Int],
-      expressionVisitor: PartialFunction[Expression, Int]): Int = {
-    if (node == null) return 0 // Return 0 if the node is null (guards against bad IR for the moment - will change)
+      logicalPlanVisitor: PartialFunction[LogicalPlan, RuleScore],
+      expressionVisitor: PartialFunction[Expression, RuleScore]): RuleScore = {
+
+    // NOte, that this means there is a bug in the IR generator. When such bugs are fixed
+    // we can remove this and the check for null as child nodes in expressions.
+    if (node == null) {
+      logger.error("IR_ERROR: Node is null!")
+      return RuleScore(IrErrorRule(), Seq.empty) // Return default value if the node is null
+    }
 
     node match {
       case lp: LogicalPlan =>
-        val currentValue = logicalPlanVisitor.applyOrElse(lp, (_: LogicalPlan) => 0)
-        val childrenValue = lp.children.map(child => evaluateTree(child, logicalPlanVisitor, expressionVisitor)).sum
-        val expressionsValue = lp.expressions.map(expr => evaluateTree(expr, logicalPlanVisitor, expressionVisitor)).sum
-        currentValue + childrenValue + expressionsValue
+        val currentRuleScore =
+          logicalPlanVisitor.applyOrElse(lp, (_: LogicalPlan) => RuleScore(IrErrorRule(), Seq.empty))
+
+        val childrenRuleScores =
+          lp.children.map(child => evaluateTree(child, logicalPlanVisitor, expressionVisitor))
+        val expressionRuleScores =
+          lp.expressions.map(expr => evaluateTree(expr, logicalPlanVisitor, expressionVisitor))
+
+        val childrenValue = childrenRuleScores.map(_.rule.score).sum
+        val expressionsValue = expressionRuleScores.map(_.rule.score).sum
+
+        RuleScore(
+          currentRuleScore.rule.plusScore(childrenValue + expressionsValue),
+          childrenRuleScores ++ expressionRuleScores)
 
       case expr: Expression =>
-        if (expr.children == null) return 0
-        val currentValue = expressionVisitor.applyOrElse(expr, (_: Expression) => 0)
-        val childrenValue = expr.children.map(child => evaluateTree(child, logicalPlanVisitor, expressionVisitor)).sum
-        currentValue + childrenValue
+        // NOte that this may no longer be necessary even now, but the IR generator needs to be checked
+        if (expr.children == null) {
+          logger.error("IR_ERROR: Expression has null for children instead of empty list!")
+          return RuleScore(IrErrorRule(), Seq.empty)
+        }
+        val currentRuleScore =
+          expressionVisitor.applyOrElse(expr, (_: Expression) => RuleScore(IrErrorRule(), Seq.empty))
+        val childrenRuleScores =
+          expr.children.map(child => evaluateTree(child, logicalPlanVisitor, expressionVisitor))
+        val childrenValue = childrenRuleScores.map(_.rule.score).sum
+
+        // All expressions have a base cost, plus the cost of the expression itself and its children
+        RuleScore(currentRuleScore.rule.plusScore(childrenValue), childrenRuleScores)
 
       case _ =>
         throw new IllegalArgumentException(s"Unsupported node type: ${node.getClass.getSimpleName}")
@@ -105,60 +128,84 @@ class EstimationAnalyzer extends LazyLogging {
     SourceTextComplexity(query.split("\n").length, query.length)
   }
 
-  private def logicalPlanEvaluator: PartialFunction[LogicalPlan, Int] = { case lp: LogicalPlan =>
+  private def logicalPlanEvaluator: PartialFunction[LogicalPlan, RuleScore] = { case lp: LogicalPlan =>
     try {
-      1 // Placeholder
+      lp match {
+        case ir.UnresolvedCommand(_) =>
+          RuleScore(UnsupportedCommandRule(), Seq.empty)
+
+        // TODO: Add scores for other logical plans that add more complexity then a simple statement
+        case _ =>
+          RuleScore(StatementRule(), Seq.empty) // Default case for other logical plans
+      }
+
     } catch {
-      case NonFatal(_) => 5
+      case NonFatal(_) => RuleScore(IrErrorRule(), Seq.empty)
     }
   }
 
-  private def expressionEvaluator: PartialFunction[Expression, Int] = { case expr: Expression =>
+  private def expressionEvaluator: PartialFunction[Expression, RuleScore] = { case expr: Expression =>
     try {
-      1 // Placeholder
+      expr match {
+        case ir.ScalarSubquery(relation) =>
+          // ScalarSubqueries are a bit more complex than a simple expression and their score
+          // is calculated by an addition for the subquery being present, and the sub-query itself
+          val subqueryRelationScore = evaluateTree(relation)
+          RuleScore(SubqueryRule().plusScore(subqueryRelationScore.rule.score), Seq(subqueryRelationScore))
+
+        case uf: ir.UnresolvedFunction =>
+          // Unsupported functions are a bit more complex than a simple expression and their score
+          // is calculated by an addition for the function being present, and the function itself
+          assessFunction(uf)
+
+        // TODO: Add specific rules for things that are more complicated than simple expressions such as
+        //       UDFs or CASE statements
+        case _ =>
+          RuleScore(ExpressionRule(), Seq.empty) // Default case for straightforward expressions
+      }
     } catch {
-      case NonFatal(_) => 5
+      case NonFatal(_) => RuleScore(IrErrorRule(), Seq.empty)
     }
   }
 
-  // TODO: Verify these calculations and decide if they are all needed or not. May not harm to keep them around anyway
-  // TODO: calculate complexity using above stats not just the median score
+  /**
+   * Assess the complexity of an unsupported  function conversion based on our internal knowledge of how
+   * the function is used. Some functions indicate data processing that is not supported in Databricks SQL
+   * and some will indicate a well-known conversion pattern that is known to be successful.
+   * @param func the function definition to analyze
+   * @return the conversion complexity score for the function
+   */
+  private def assessFunction(func: ir.UnresolvedFunction): RuleScore = {
+    func match {
+      // For instance XML functions are not supported in Databricks SQL and will require manual conversion,
+      // which will be a significant amount of work.
+      case ir.UnresolvedFunction(name, _, _, _, _) =>
+        RuleScore(UnsupportedFunctionRule(funcName = name).resolve(), Seq.empty)
+    }
+  }
+
   def summarizeComplexity(reportEntries: Seq[EstimationReportRecord]): EstimationStatistics = {
-    val scores = reportEntries.map(_.analysisReport.score)
 
-    // Median
-    val sortedScores = scores.sorted
-    val medianScore = if (sortedScores.size % 2 == 1) {
-      sortedScores(sortedScores.size / 2)
-    } else {
-      val (up, down) = sortedScores.splitAt(sortedScores.size / 2)
-      (up.last + down.head) / 2
-    }
+    // We produce a list of all scores and a list of all successful transpile scores, which allows to produce
+    // statistics on ALL transpilation attempts and at the same time on only successful transpilations. Use case
+    // will vary on who is consuming the final reports.
+    val scores = reportEntries.map(_.analysisReport.score.rule.score).sorted
+    val successScores = reportEntries
+      .filter(_.transpilationReport.transpiled_statements > 0)
+      .map(_.analysisReport.score.rule.score)
+      .sorted
 
-    // Mean
+    val medianScore = median(scores)
     val meanScore = scores.sum.toDouble / scores.size
-
-    // Mode
     val modeScore = scores.groupBy(identity).maxBy(_._2.size)._1
-
-    // Standard Deviation
-    val mean = scores.sum.toDouble / scores.size
-    val variance = scores.map(score => math.pow(score - mean, 2)).sum / scores.size
+    val variance = scores.map(score => math.pow(score - meanScore, 2)).sum / scores.size
     val stdDeviation = math.sqrt(variance)
+    val percentile25 = percentile(scores, 0.25)
+    val percentile50 = percentile(scores, 0.50) // Same as median
+    val percentile75 = percentile(scores, 0.75)
+    val geometricMeanScore = geometricMean(scores)
 
-    // Percentiles
-    def percentile(p: Double): Double = {
-      val k = (p * (sortedScores.size - 1)).toInt
-      sortedScores(k)
-    }
-    val percentile25 = percentile(0.25)
-    val percentile50 = percentile(0.50) // Same as median
-    val percentile75 = percentile(0.75)
-
-    // Geometric Mean
-    val geometricMeanScore = math.pow(scores.map(_.toDouble).product, 1.0 / scores.size)
-
-    EstimationStatistics(
+    val allStats = EstimationStatisticsEntry(
       medianScore,
       meanScore,
       modeScore,
@@ -167,6 +214,72 @@ class EstimationAnalyzer extends LazyLogging {
       percentile50,
       percentile75,
       geometricMeanScore,
-      SqlComplexity.fromScore(medianScore))
+      SqlComplexity.fromScore(geometricMeanScore))
+
+    val successStats = if (successScores.isEmpty) {
+      EstimationStatisticsEntry(0, 0, 0, 0, 0, 0, 0, 0, SqlComplexity.LOW)
+    } else {
+      EstimationStatisticsEntry(
+        median(successScores),
+        successScores.sum.toDouble / successScores.size,
+        successScores.groupBy(identity).maxBy(_._2.size)._1,
+        math.sqrt(
+          successScores
+            .map(score => math.pow(score - (successScores.sum.toDouble / successScores.size), 2))
+            .sum / successScores.size),
+        percentile(successScores, 0.25),
+        percentile(successScores, 0.50), // Same as median
+        percentile(successScores, 0.75),
+        geometricMean(successScores),
+        SqlComplexity.fromScore(geometricMean(successScores)))
+    }
+
+    EstimationStatistics(allStats = allStats, successStats = successStats)
   }
+
+  private def percentile(scores: Seq[Int], p: Double): Double = {
+    if (scores.isEmpty) {
+      0
+    } else {
+      val k = (p * (scores.size - 1)).toInt
+      scores(k)
+    }
+  }
+
+  private def geometricMean(scores: Seq[Int]): Double = {
+    val nonZeroScores = scores.filter(_ != 0)
+    if (nonZeroScores.nonEmpty) {
+      val logSum = nonZeroScores.map(score => math.log(score.toDouble)).sum
+      math.exp(logSum / nonZeroScores.size)
+    } else {
+      0.0
+    }
+  }
+
+  def median(scores: Seq[Int]): Int = {
+    if (scores.isEmpty) {
+      0
+    } else if (scores.size % 2 == 1) {
+      scores(scores.size / 2)
+    } else {
+      val (up, down) = scores.splitAt(scores.size / 2)
+      (up.last + down.head) / 2
+    }
+  }
+
+  /**
+   * Assigns a conversion complexity score based on how much text is in the query, which is a basic
+   * indicator of how much work will be required to manually inspect a query.
+   * @param sourceTextComplexity the complexity of the source text
+   * @return the score for the complexity of the query
+   */
+  def assessText(sourceTextComplexity: SourceTextComplexity): Int =
+    // TODO: These values are arbitrary and need to be verified in some way
+    sourceTextComplexity.lineCount + sourceTextComplexity.textLength match {
+      case l if l < 100 => 1
+      case l if l < 500 => 5
+      case l if l < 1000 => 10
+      case l if l < 5000 => 25
+      case _ => 50
+    }
 }

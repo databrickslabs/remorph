@@ -1,4 +1,3 @@
-import copy
 import logging
 import re
 
@@ -418,7 +417,6 @@ class Snow(Snowflake):
 
         COLUMN_OPERATORS = {
             **Snowflake.Parser.COLUMN_OPERATORS,
-            TokenType.COLON: lambda self, this, path: self._json_column_op(this, path),
         }
 
         TIMESTAMPS: set[TokenType] = Snowflake.Parser.TIMESTAMPS.copy() - {TokenType.TIME}
@@ -461,72 +459,6 @@ class Snow(Snowflake):
                 suffix = self._parse_var() or self._parse_identifier() or self._parse_primary()
 
             return self.expression(local_expression.Parameter, this=this, wrapped=wrapped, suffix=suffix)
-
-        def _get_table_alias(self) -> exp.TableAlias | None:
-            """
-            :returns the `table alias` by looping through all the tokens until it finds the `From` token.
-            Example:
-            * SELECT .... FROM persons p => returns `p`
-            * SELECT
-                 ....
-              FROM
-                 dwh.vw_replacement_customer  d  => returns `d`
-            """
-            # Create a deep copy of Parser to avoid any modifications to original one
-            self_copy = copy.deepcopy(self)
-            table_alias = None
-
-            # iterate through all the tokens if tokens are available
-            while self_copy._index < len(self_copy._tokens):
-                self_copy._advance()
-                # get the table alias when FROM token is found
-                if self_copy._match(TokenType.FROM, advance=False):
-                    self_copy._advance()  # advance to next token
-                    # break the loop when subquery is found after `FROM` For ex: `FROM (select * from another_table)`
-                    # instead of table name, For ex: `FROM persons p`
-                    if self_copy._match(TokenType.L_PAREN, advance=False):
-                        break
-                    self_copy._parse_table_parts()  # parse the table parts
-                    table_alias = self_copy._parse_table_alias()  # get to table alias
-                    return table_alias
-
-            return table_alias
-
-        def _json_column_op(self, this, path):
-            """
-            Get the `table alias` using _get_table_alias() and it is used to check whether
-            to remove `.value` from `<COL>.value`. We need to remove `.value` only if it refers
-            to `Lateral View` alias.
-            :return: the expression based on the alias.
-            """
-            table_alias = str(self._get_table_alias()) if self._get_table_alias() else None
-            is_name_value = this.name.upper() == "VALUE"
-            is_path_value = path.alias_or_name.upper() == "VALUE"
-
-            if isinstance(this, exp.Column) and this.table:
-                col_table_alias = this.table.upper()
-            elif isinstance(this, local_expression.Bracket) and isinstance(this.this, exp.Column) and this.this.table:
-                col_table_alias = this.this.table.upper()
-            else:
-                col_table_alias = this.name.upper()
-            is_table_alias = col_table_alias == table_alias.upper() if table_alias is not None else False
-
-            if not isinstance(this, exp.Bracket) and is_name_value:
-                # If the column is referring to `lateral alias`, remove `.value` reference (not needed in Databricks)
-                if table_alias and this.table != table_alias:
-                    return self.expression(local_expression.Bracket, this=this.table, expressions=[path])
-
-                    # if it is referring to `table_alias`, we need to keep `.value`. See below example:
-                    # - SELECT f.first, p.c.value.first, p.value FROM persons_struct AS p
-                    #    LATERAL VIEW EXPLODE($p.$c.contact) AS f
-
-                return self.expression(local_expression.Bracket, this=this, expressions=[path])
-            if isinstance(this, local_expression.Bracket) and (is_name_value or is_table_alias):
-                return self.expression(local_expression.Bracket, this=this, expressions=[path])
-            if (isinstance(path, exp.Column)) and (path or is_path_value):
-                return self.expression(local_expression.Bracket, this=this, expressions=[path])
-
-            return self.expression(exp.Bracket, this=this, expressions=[path])
 
         def _parse_window(self, this: exp.Expression | None, alias: bool = False) -> exp.Expression | None:
             window = super()._parse_window(this=this, alias=alias)

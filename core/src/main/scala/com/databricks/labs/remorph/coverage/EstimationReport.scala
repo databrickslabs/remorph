@@ -1,6 +1,6 @@
 package com.databricks.labs.remorph.coverage
 
-import com.databricks.labs.remorph.coverage.estimation.{EstimationStatistics, SqlComplexity}
+import com.databricks.labs.remorph.coverage.estimation.{EstimationStatistics, RuleScore, SqlComplexity}
 import com.databricks.labs.remorph.discovery.Fingerprint
 import upickle.default.{ReadWriter, macroRW}
 
@@ -61,7 +61,7 @@ object EstimationTranspilationReport {
 case class EstimationAnalysisReport(
     fingerprint: Option[Fingerprint] = None,
     complexity: SqlComplexity = SqlComplexity.LOW,
-    score: Int = 10)
+    score: RuleScore)
 
 object EstimationAnalysisReport {
   implicit val rw: ReadWriter[EstimationAnalysisReport] = macroRW
