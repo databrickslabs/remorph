@@ -54,7 +54,7 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
       case ir.CallFunction("NULLIFZERO", args) => nullIfZero(args.head)
       case ir.CallFunction("OBJECT_KEYS", args) => ir.JsonObjectKeys(args.head)
       case ir.CallFunction("OBJECT_CONSTRUCT", args) => objectConstruct(args)
-      case ir.CallFunction("PARSE_JSON", args) => fromJson(args)
+      case ir.CallFunction("PARSE_JSON", args) => ir.ParseJson(args.head)
       case ir.CallFunction("POSITION", args) => ir.CallFunction("LOCATE", args)
       case ir.CallFunction("REGEXP_LIKE", args) => ir.RLike(args.head, args(1))
       case ir.CallFunction("REGEXP_SUBSTR", args) => regexpExtract(args)
@@ -77,7 +77,7 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
       case ir.CallFunction("TO_TIMESTAMP", args) => toTimestamp(args)
       case ir.CallFunction("TRY_BASE64_DECODE_STRING", args) => ir.UnBase64(args.head)
       case ir.CallFunction("TRY_BASE64_DECODE_BINARY", args) => ir.UnBase64(args.head)
-      case ir.CallFunction("TRY_PARSE_JSON", args) => fromJson(args)
+      case ir.CallFunction("TRY_PARSE_JSON", args) => ir.ParseJson(args.head)
       case ir.CallFunction("TRY_TO_BOOLEAN", args) => tryToBoolean(args)
       case ir.CallFunction("TRY_TO_DATE", args) => tryToDate(args)
       case ir.CallFunction("TRY_TO_NUMBER", args) => tryToNumber(args)
@@ -428,11 +428,4 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
     }
   }
 
-  private def fromJson(args: Seq[ir.Expression]): ir.Expression = {
-    val schema = args.lift(1) match {
-      case None => ir.SchemaReference(args.head)
-      case Some(e) => e
-    }
-    ir.JsonToStructs(args.head, schema, None)
-  }
 }
