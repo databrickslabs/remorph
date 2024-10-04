@@ -10,7 +10,6 @@ from databricks.labs.blueprint.installer import InstallState
 from databricks.labs.blueprint.tui import Prompts
 from databricks.labs.blueprint.wheels import ProductInfo
 
-
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.errors import NotFound, PermissionDenied
 from databricks.sdk.service.catalog import Privilege
@@ -308,6 +307,7 @@ if __name__ == "__main__":
         logging.getLogger("databricks").setLevel(logging.DEBUG)
 
     app_context = ApplicationContext(WorkspaceClient(product="remorph", product_version=__version__))
+
     installer = WorkspaceInstaller(
         app_context.workspace_client,
         app_context.prompts,
