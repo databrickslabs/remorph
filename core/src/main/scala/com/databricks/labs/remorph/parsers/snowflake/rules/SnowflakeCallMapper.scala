@@ -347,9 +347,8 @@ class SnowflakeCallMapper extends ir.CallMapper with ir.IRHelpers {
       Some(ir.Literal(false)))
   }
 
-  private def toArray(args: Seq[ir.Expression], useStringTypeWhenEmpty: Boolean = false): ir.Expression = {
-//    ir.If(ir.IsNull(args.head), ir.Literal.Null, ir.CreateArray(Seq(args.head)))
-    ir.CreateArray(Seq(args.head), useStringTypeWhenEmpty)
+  private def toArray(args: Seq[ir.Expression]): ir.Expression = {
+    ir.If(ir.IsNull(args.head), ir.Literal.Null, ir.CreateArray(Seq(args.head)))
   }
 
   private def toBoolean(args: Seq[ir.Expression]): ir.Expression = {
