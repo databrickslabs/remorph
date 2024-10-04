@@ -26,9 +26,9 @@ def _upgrade_reconcile_metadata_metrics_table(
         f"{reconcile_config.metadata_config.catalog}.{reconcile_config.metadata_config.schema}.{table_name}"
     )
     installed_columns = installed_table_columns(ws, table_identifier)
-    current_columns = current_table_columns(table_name)
+    current_columns = current_table_columns(table_name, table_identifier)
     sqls: list | None = [
-        f"ALTER TABLE {table_identifier} SET TBLPROPERTIES (delta.enableTypeWidening = true)",
+        f"ALTER TABLE {table_identifier} SET TBLPROPERTIES ('delta.enableTypeWidening' = 'true')",
         f"ALTER TABLE {table_identifier} ALTER COLUMN recon_metrics.row_comparison.missing_in_source TYPE BIGINT",
         f"ALTER TABLE {table_identifier} ALTER COLUMN recon_metrics.row_comparison.missing_in_target TYPE BIGINT",
         f"ALTER TABLE {table_identifier} ALTER COLUMN recon_metrics.column_comparison.absolute_mismatch TYPE BIGINT",

@@ -46,10 +46,10 @@ class WorkspaceInstallation:
             return wheel_paths
 
     def install(self, config: RemorphConfigs):
+        self._apply_upgrades()
         wheel_paths: list[str] = self._upload_wheel()
         if config.reconcile:
             self._recon_deployment.install(config.reconcile, wheel_paths)
-        self._apply_upgrades()
 
     def uninstall(self, config: RemorphConfigs):
         # This will remove all the Remorph modules

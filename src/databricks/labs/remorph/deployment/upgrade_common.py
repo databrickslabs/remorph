@@ -15,9 +15,9 @@ def replace_patterns(sql_text: str) -> str:
     """
     Replace the STRUCT and MAP datatypes in the SQL text with empty string
     """
-    parsed_sql_text = sql_text
-    for pattern in (r'STRUCT<.*?>', r'MAP<.*?>'):
-        parsed_sql_text = re.sub(pattern, "", parsed_sql_text, flags=re.DOTALL)
+    # Pattern to match nested STRUCT and MAP datatypes
+    pattern = r'(STRUCT<[^<>]*?(?:<[^<>]*?>[^<>]*?)*>|MAP<[^<>]*?(?:<[^<>]*?>[^<>]*?)*>)'
+    parsed_sql_text = re.sub(pattern, "", sql_text, flags=re.DOTALL)
     return parsed_sql_text
 
 
@@ -45,22 +45,26 @@ def extract_column_name(column_with_datatype: str) -> str:
     return column_with_datatype.strip("\n").strip().split(" ")[0]
 
 
-def table_original_query(table_name: str) -> str:
+def table_original_query(table_name: str, full_table_name: str) -> str:
     """
     Get the main table DDL from the main.sql file
     :return: str
     """
     resources = files(databricks.labs.remorph.resources)
     query_dir = resources.joinpath("reconcile/queries/installation")
-    return query_dir.joinpath(f"{table_name}.sql").read_text().replace("CREATE TABLE IF NOT EXISTS", "CREATE OR REPLACE TABLE")
+    return (
+        query_dir.joinpath(f"{table_name}.sql")
+        .read_text()
+        .replace(f"CREATE TABLE IF NOT EXISTS {table_name}", f"CREATE OR REPLACE TABLE {full_table_name}")
+    )
 
 
-def current_table_columns(table_name: str) -> list[str]:
+def current_table_columns(table_name: str, full_table_name: str) -> list[str]:
     """
     Extract the column names from the main table DDL
     :return: column_names: list[str]
     """
-    main_sql = replace_patterns(table_original_query(table_name))
+    main_sql = replace_patterns(table_original_query(table_name, full_table_name))
     main_table_columns = [
         extract_column_name(main_table_column) for main_table_column in extract_columns_with_datatype(main_sql)
     ]
@@ -109,7 +113,7 @@ def recreate_table_sql(
 
     if not set(current_table).issubset(installed_table):
         if prompts.confirm("The `main` table columns are not as expected. Do you want to recreate the `main` table?"):
-            sql = table_original_query(table_name)
+            sql = table_original_query(table_name, table_identifier)
         else:
             logger.error("The `main` table columns are not as expected. Please check and recreate the `main` table.")
             sql = None

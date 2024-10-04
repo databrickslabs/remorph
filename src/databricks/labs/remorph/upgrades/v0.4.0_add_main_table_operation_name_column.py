@@ -12,11 +12,21 @@ from databricks.labs.remorph.helpers import db_sql
 from databricks.labs.remorph.deployment.upgrade_common import (
     current_table_columns,
     installed_table_columns,
-    check_table_mismatch,
     recreate_table_sql,
 )
 
 logger = logging.getLogger(__name__)
+
+
+def _check_table_mismatch(
+    installed_table,
+    current_table,
+) -> bool:
+    current_table = [x for x in current_table if x != "operation_name"]
+    # Compare the current main table columns with the installed main table columns
+    if "operation_name" in installed_table and len(sorted(installed_table)) != len(sorted(current_table)):
+        return True
+    return False
 
 
 def _upgrade_reconcile_metadata_main_table(
@@ -41,9 +51,9 @@ def _upgrade_reconcile_metadata_main_table(
         f"{reconcile_config.metadata_config.catalog}.{reconcile_config.metadata_config.schema}.{table_name}"
     )
     installed_columns = installed_table_columns(ws, table_identifier)
-    current_columns = current_table_columns(table_name)
+    current_columns = current_table_columns(table_name, table_identifier)
     sql: str | None = f"ALTER TABLE {table_identifier} ADD COLUMN operation_name  STRING AFTER report_type"
-    if check_table_mismatch(installed_columns, current_columns):
+    if _check_table_mismatch(installed_columns, current_columns):
         logger.info("Recreating main table")
         sql = recreate_table_sql(table_identifier, installed_columns, current_columns, app_context.prompts)
     if sql:
@@ -64,4 +74,4 @@ def _upgrade_reconcile_workflow(app_context: ApplicationContext):
 def upgrade(installation: Installation, ws: WorkspaceClient):
     app_context = ApplicationContext(ws)
     _upgrade_reconcile_metadata_main_table(installation, ws, app_context)
-    _upgrade_reconcile_workflow(app_context)
+    # _upgrade_reconcile_workflow(app_context)
