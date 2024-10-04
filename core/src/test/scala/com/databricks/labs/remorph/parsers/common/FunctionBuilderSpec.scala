@@ -143,7 +143,7 @@ class FunctionBuilderSpec extends AnyFlatSpec with Matchers with TableDrivenProp
       ("TIMESTAMPADD", Some(FunctionDefinition.standard(3))),
       ("TIMESTAMPDIFF", Some(FunctionDefinition.standard(3).withConversionStrategy(SynonymOf("DATEDIFF")))),
       ("TIMESTAMP_FROM_PARTS", Some(FunctionDefinition.standard(2, 8))),
-      ("TO_ARRAY", Some(FunctionDefinition.standard(1))),
+      ("TO_ARRAY", Some(FunctionDefinition.standard(1, 2))),
       ("TO_BOOLEAN", Some(FunctionDefinition.standard(1))),
       ("TO_CHAR", Some(FunctionDefinition.standard(1, 2).withConversionStrategy(SynonymOf("TO_VARCHAR")))),
       ("TO_DATE", Some(FunctionDefinition.standard(1, 2))),
