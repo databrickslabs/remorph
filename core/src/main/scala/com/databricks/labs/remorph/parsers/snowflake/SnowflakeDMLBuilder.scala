@@ -44,4 +44,13 @@ class SnowflakeDMLBuilder
     val where = Option(ctx.predicate()).map(_.accept(expressionBuilder))
     ir.UpdateTable(target, sources, set, where, None, None)
   }
+
+  override def visitMergeStatement(ctx: MergeStatementContext): ir.Modification = {
+    val target = ctx.tableRef().accept(relationBuilder)
+    val relation = ctx.tableSource().accept(relationBuilder)
+    val predicate = ctx.predicate().accept(expressionBuilder)
+
+    ir.MergeIntoTable(target, relation, predicate, matchedActions = Seq(ir.DeleteAction(None)))
+  }
+
 }

@@ -84,18 +84,21 @@ valuesList: VALUES L_PAREN valueItem (COMMA valueItem)* R_PAREN
 valueItem: columnName | DEFAULT | NULL_
     ;
 
-mergeStatement: MERGE INTO tableRef USING tableSource ON predicate mergeMatches
+mergeStatement: MERGE INTO tableRef USING tableSource ON predicate mergeCond
     ;
 
-mergeMatches: mergeCond+
+mergeCond: (mergeCondMatch | mergeCondNotMatch)+
     ;
 
-mergeCond
-    : (WHEN MATCHED (AND predicate)? THEN mergeUpdateDelete)+
-    | WHEN NOT MATCHED (AND predicate)? THEN mergeInsert
+mergeCondMatch: (WHEN MATCHED (AND predicate)? THEN mergeUpdateDelete)+
     ;
 
-mergeUpdateDelete: UPDATE SET columnName EQ expr (COLON columnName EQ expr)* | DELETE
+mergeCondNotMatch: WHEN NOT MATCHED (AND predicate)? THEN mergeInsert
+    ;
+
+mergeUpdateDelete
+    : UPDATE SET setColumnValue (COMMA setColumnValue)* #mergeUpdate
+    | DELETE #mergeDelete
     ;
 
 mergeInsert: INSERT (L_PAREN columnList R_PAREN)? VALUES L_PAREN exprList R_PAREN
