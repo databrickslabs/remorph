@@ -121,6 +121,23 @@ class SnowflakeCallMapperSpec extends AnyWordSpec with Matchers {
         ir.Literal("$123.5"),
         ir.DecimalType(Some(26), Some(4)))
 
+      ir.CallFunction(
+        "MONTHS_BETWEEN",
+        Seq(ir.Cast(ir.Literal("2021-01-01"), ir.DateType), ir.Cast(ir.Literal("2021-02-01"), ir.DateType))) becomes ir
+        .MonthsBetween(
+          ir.Cast(ir.Literal("2021-01-01"), ir.DateType),
+          ir.Cast(ir.Literal("2021-02-01"), ir.DateType),
+          ir.Literal.True)
+
+      ir.CallFunction(
+        "MONTHS_BETWEEN",
+        Seq(
+          ir.Cast(ir.Literal("2020-05-01 10:00:00"), ir.TimestampType),
+          ir.Cast(ir.Literal("2020-04-15 08:00:00"), ir.TimestampType))) becomes ir.MonthsBetween(
+        ir.Cast(ir.Literal("2020-05-01 10:00:00"), ir.TimestampType),
+        ir.Cast(ir.Literal("2020-04-15 08:00:00"), ir.TimestampType),
+        ir.Literal.True)
+
     }
 
     "ARRAY_SLICE index shift" in {
