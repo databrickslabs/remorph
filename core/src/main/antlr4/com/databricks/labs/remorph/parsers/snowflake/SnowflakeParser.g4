@@ -3138,13 +3138,13 @@ expr
     | expr op = (PLUS | MINUS | PIPE_PIPE) expr # exprPrecedence1
     | expr comparisonOperator expr              # exprComparison
     | expr predicatePartial                     # exprPredicate
+    | expr COLON_COLON dataType                 # exprAscribe
     | op = NOT+ expr                            # exprNot
     | expr AND expr                             # exprAnd
     | expr OR expr                              # exprOr
     | expr withinGroup                          # exprWithinGroup
     | expr overClause                           # exprOver
     | castExpr                                  # exprCast
-    | expr COLON_COLON dataType                 # exprAscribe
     | functionCall                              # exprFuncCall
     | DISTINCT expr                             # exprDistinct
     | L_PAREN subquery R_PAREN                  # exprSubquery
@@ -3245,7 +3245,9 @@ functionCall: builtinFunction | standardFunction | rankingWindowedFunction | agg
 builtinFunction: EXTRACT L_PAREN (string | ID) FROM expr R_PAREN # builtinExtract
     ;
 
-standardFunction: functionName L_PAREN (exprList | paramAssocList)? R_PAREN
+standardFunction
+    : functionName L_PAREN (exprList | paramAssocList)? R_PAREN
+    | functionOptionalBrackets (L_PAREN exprList? R_PAREN)?
     ;
 
 functionName: id | nonReservedFunctionName
@@ -3254,6 +3256,14 @@ functionName: id | nonReservedFunctionName
 nonReservedFunctionName
     : LEFT
     | RIGHT // keywords that cannot be used as id, but can be used as function names
+    ;
+
+functionOptionalBrackets
+    : CURRENT_DATE      // https://docs.snowflake.com/en/sql-reference/functions/current_date
+    | CURRENT_TIMESTAMP // https://docs.snowflake.com/en/sql-reference/functions/current_timestamp
+    | CURRENT_TIME      // https://docs.snowflake.com/en/sql-reference/functions/current_time
+    | LOCALTIME         // https://docs.snowflake.com/en/sql-reference/functions/localtime
+    | LOCALTIMESTAMP    // https://docs.snowflake.com/en/sql-reference/functions/localtimestamp
     ;
 
 paramAssocList: paramAssoc (COMMA paramAssoc)*
@@ -3397,11 +3407,11 @@ objectRef
     : objectName atBefore? changes? matchRecognize? pivotUnpivot? tableAlias?        # objRefDefault
     | TABLE L_PAREN functionCall R_PAREN pivotUnpivot? tableAlias?                   # objRefTableFunc
     | LATERAL? (functionCall | (L_PAREN subquery R_PAREN)) pivotUnpivot? tableAlias? # objRefSubquery
-    | valuesTable                                                                    # objRefValues
+    | valuesTable tableAlias?                                                        # objRefValues
     | objectName START WITH predicate CONNECT BY priorList?                          # objRefStartWith
     ;
 
-tableAlias: AS? alias (L_PAREN id (COMMA id)*)?
+tableAlias: AS? alias (L_PAREN id (COMMA id)* R_PAREN)?
     ;
 
 priorList: priorItem (COMMA priorItem)*
@@ -3493,8 +3503,8 @@ exprListInParentheses: L_PAREN exprList R_PAREN
     ;
 
 valuesTable
-    : L_PAREN valuesTableBody R_PAREN (asAlias columnAliasListInBrackets?)?
-    | valuesTableBody (asAlias columnAliasListInBrackets?)?
+    : L_PAREN valuesTableBody R_PAREN
+    | valuesTableBody
     ;
 
 valuesTableBody: VALUES exprListInParentheses (COMMA exprListInParentheses)*

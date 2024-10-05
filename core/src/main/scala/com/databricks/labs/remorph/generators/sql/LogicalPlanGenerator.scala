@@ -1,7 +1,6 @@
 package com.databricks.labs.remorph.generators.sql
 
 import com.databricks.labs.remorph.generators.{Generator, GeneratorContext}
-import com.databricks.labs.remorph.parsers.intermediate.Batch
 import com.databricks.labs.remorph.parsers.{intermediate => ir}
 import com.databricks.labs.remorph.transpilers.TranspileException
 
@@ -40,13 +39,14 @@ class LogicalPlanGenerator(
     case t: ir.TableSample => tableSample(ctx, t)
     case a: ir.AlterTableCommand => alterTable(ctx, a)
     case l: ir.Lateral => lateral(ctx, l)
+    case c: ir.CreateTableParams => createTableParams(ctx, c)
     case ir.NoopNode => ""
     //  TODO We should always generate an unresolved node, our plan should never be null
     case null => "" // don't fail transpilation if the plan is null
     case x => throw unknown(x)
   }
 
-  private def batch(ctx: GeneratorContext, b: Batch): String = {
+  private def batch(ctx: GeneratorContext, b: ir.Batch): String = {
     val seqSql = b.children
       .map {
         case ir.UnresolvedCommand(text) =>
@@ -59,6 +59,64 @@ class LogicalPlanGenerator(
     } else {
       ""
     }
+  }
+
+  private def createTableParams(ctx: GeneratorContext, crp: ir.CreateTableParams): String = {
+
+    // We build the overall table creation statement differently depending on whether the primitive is
+    // a CREATE TABLE or a CREATE TABLE AS (SELECT ...)
+    crp.create match {
+      case ct: ir.CreateTable =>
+        // we build the columns using the raw column declarations, adding in any col constraints
+        // and any column options
+        val columns = ct.schema match {
+          case ir.StructType(fields) =>
+            fields
+              .map { col =>
+                val constraints = crp.colConstraints.getOrElse(col.name, Seq.empty)
+                val options = crp.colOptions.getOrElse(col.name, Seq.empty)
+                genColumnDecl(ctx, col, constraints, options)
+              }
+              .mkString(", ")
+        }
+
+        // We now generate any table level constraints
+        val tableConstraintStr = crp.constraints.map(constraint(ctx, _)).mkString(", ")
+        val tableConstraintStrWithComma = if (tableConstraintStr.nonEmpty) s", $tableConstraintStr" else ""
+
+        // record any table level options
+        val tableOptions = crp.options.map(_.map(optGen.generateOption(ctx, _)).mkString("\n   ")).getOrElse("")
+
+        val tableOptionsComment =
+          if (tableOptions.isEmpty) "" else s"   The following options are unsupported:\n\n   $tableOptions\n"
+        val indicesStr = crp.indices.map(constraint(ctx, _)).mkString("   \n")
+        val indicesComment =
+          if (indicesStr.isEmpty) "" else s"   The following index directives are unsupported:\n\n   $indicesStr*/\n"
+        val leadingComment = (tableOptionsComment, indicesComment) match {
+          case ("", "") => ""
+          case (a, "") => s"/*\n$a*/\n"
+          case ("", b) => s"/*\n$b*/\n"
+          case (a, b) => s"/*\n$a\n$b*/\n"
+        }
+
+        s"${leadingComment}CREATE TABLE ${ct.table_name} (${columns}${tableConstraintStrWithComma})"
+
+      case ctas: ir.CreateTableAsSelect => s"CREATE TABLE ${ctas.table_name} AS (${generate(ctx, ctas.query)})"
+    }
+  }
+
+  private def genColumnDecl(
+      ctx: GeneratorContext,
+      col: ir.StructField,
+      constraints: Seq[ir.Constraint],
+      options: Seq[ir.GenericOption]): String = {
+    val dataType = DataTypeGenerator.generateDataType(ctx, col.dataType)
+    val dataTypeStr = if (!col.nullable) s"$dataType NOT NULL" else dataType
+    val constraintsStr = constraints.map(constraint(ctx, _)).mkString(" ")
+    val constraintsGen = if (constraintsStr.isEmpty) "" else s" $constraintsStr"
+    val optionsStr = options.map(optGen.generateOption(ctx, _)).mkString(" ")
+    val optionsComment = if (optionsStr.isEmpty) "" else s" /* $optionsStr */"
+    s"${col.name} ${dataTypeStr}${constraintsGen}${optionsComment}"
   }
 
   private def alterTable(ctx: GeneratorContext, a: ir.AlterTableCommand): String = {
@@ -95,9 +153,10 @@ class LogicalPlanGenerator(
 
   // @see https://docs.databricks.com/en/sql/language-manual/sql-ref-syntax-qry-select-lateral-view.html
   private def lateral(ctx: GeneratorContext, lateral: ir.Lateral): String = lateral match {
-    case ir.Lateral(ir.TableFunction(fn), isOuter) =>
+    case ir.Lateral(ir.TableFunction(fn), isOuter, isView) =>
       val outer = if (isOuter) " OUTER" else ""
-      s"LATERAL VIEW$outer ${expr.generate(ctx, fn)}"
+      val view = if (isView) " VIEW" else ""
+      s"LATERAL$view$outer ${expr.generate(ctx, fn)}"
     case _ => throw unknown(lateral)
   }
 
@@ -159,11 +218,12 @@ class LogicalPlanGenerator(
 
   private def generateUniqueConstraint(ctx: GeneratorContext, unique: ir.Unique): String = {
     val columns = unique.columns.map(_.mkString("(", ", ", ")")).getOrElse("")
+    val columnStr = if (columns.isEmpty) "" else s" $columns"
     val commentOptions = optGen.generateOptionList(ctx, unique.options) match {
       case "" => ""
       case options => s" /* $options */"
     }
-    s"UNIQUE ${columns}${commentOptions}"
+    s"UNIQUE${columnStr}${commentOptions}"
   }
 
   private def project(ctx: GeneratorContext, proj: ir.Project): String = {
@@ -188,11 +248,18 @@ class LogicalPlanGenerator(
     s"${generate(ctx, sort.child)} ORDER BY $orderStr"
   }
 
+  private def isLateralView(lp: ir.LogicalPlan): Boolean = {
+    lp.find {
+      case ir.Lateral(_, _, isView) => isView
+      case _ => false
+    }.isDefined
+  }
+
   private def generateJoin(ctx: GeneratorContext, join: ir.Join): String = {
     val left = generate(ctx, join.left)
     val right = generate(ctx, join.right)
     if (join.join_condition.isEmpty && join.using_columns.isEmpty && join.join_type == ir.InnerJoin) {
-      if (join.right.find(_.isInstanceOf[ir.Lateral]).isDefined) {
+      if (isLateralView(join.right)) {
         s"$left $right"
       } else {
         s"$left, $right"
@@ -337,12 +404,24 @@ class LogicalPlanGenerator(
       case _ => s"(${generate(ctx, subQAlias.child)})"
     }
     val tableName = expr.generate(ctx, subQAlias.alias)
-    val table = if (subQAlias.columnNames.isEmpty) {
-      tableName
-    } else {
-      tableName + subQAlias.columnNames.map(expr.generate(ctx, _)).mkString("(", ", ", ")")
-    }
-    s"$subquery AS $table"
+    val table =
+      if (subQAlias.columnNames.isEmpty) {
+        s"AS $tableName"
+      } else {
+        // Added this to handle the case for POS Explode
+        // We have added two columns index and value as an alias for pos explode default columns (pos, col)
+        // these column will be added to the databricks query
+        subQAlias.columnNames match {
+          case Seq(ir.Id("value", _), ir.Id("index", _)) =>
+            val columnNamesStr =
+              subQAlias.columnNames.sortBy(_.nodeName).reverse.map(expr.generate(ctx, _)).mkString(",")
+            s"$tableName AS $columnNamesStr"
+          case _ =>
+            val columnNamesStr = tableName + subQAlias.columnNames.map(expr.generate(ctx, _)).mkString("(", ", ", ")")
+            s"AS $columnNamesStr"
+        }
+      }
+    s"$subquery $table"
   }
 
   private def tableAlias(ctx: GeneratorContext, alias: ir.TableAlias): String = {

@@ -2735,7 +2735,7 @@ expression
     | expression withinGroup                                  # exprWithinGroup
     | DOLLAR_ACTION                                           # exprDollar
     | <assoc = right> expression DOT expression               # exprDot
-    | LPAREN subquery RPAREN                                  # exprSubquery
+    | LPAREN selectStatement RPAREN                           # exprSubquery
     | ALL expression                                          # exprAll
     | DISTINCT expression                                     # exprDistinct
     | DOLLAR_ACTION                                           # exprDollar
@@ -2755,9 +2755,6 @@ primitiveExpression: op = (DEFAULT | NULL | LOCAL_ID) | constant
     ;
 
 caseExpression: CASE caseExpr = expression? switchSection+ ( ELSE elseExpr = expression)? END
-    ;
-
-subquery: selectStatement
     ;
 
 withExpression: WITH xmlNamespaces? commonTableExpression ( COMMA commonTableExpression)*
@@ -2790,15 +2787,15 @@ searchCondition
     ;
 
 predicate
-    : EXISTS LPAREN subquery RPAREN
-    | freetextPredicate
-    | expression comparisonOperator expression
-    | expression comparisonOperator (ALL | SOME | ANY) LPAREN subquery RPAREN
-    | expression NOT* BETWEEN expression AND expression
-    | expression NOT* IN LPAREN (subquery | expressionList) RPAREN
-    | expression NOT* LIKE expression (ESCAPE expression)?
-    | expression IS nullNotnull
-    | expression
+    : EXISTS LPAREN selectStatement RPAREN                                           # predExists
+    | freetextPredicate                                                              # predFreetext
+    | expression comparisonOperator expression                                       # predBinop
+    | expression comparisonOperator (ALL | SOME | ANY) LPAREN selectStatement RPAREN # predASA
+    | expression NOT? BETWEEN expression AND expression                              # predBetween
+    | expression NOT? IN LPAREN (selectStatement | expressionList) RPAREN            # predIn
+    | expression NOT? LIKE expression (ESCAPE expression)?                           # predLike
+    | expression IS NOT? NULL                                                        # predIsNull
+    | expression                                                                     # predExpression
     ;
 
 queryExpression
@@ -2982,7 +2979,7 @@ rowsetFunction
     | (OPENROWSET LPAREN BULK STRING COMMA ( id EQ STRING COMMA optionList? | id) RPAREN)
     ;
 
-derivedTable: subquery | tableValueConstructor | LPAREN tableValueConstructor RPAREN
+derivedTable: selectStatement | tableValueConstructor | LPAREN tableValueConstructor RPAREN
     ;
 
 functionCall
@@ -3052,7 +3049,7 @@ hierarchyidStaticMethod
     ;
 
 nodesMethod
-    : (locId = LOCAL_ID | valueId = fullColumnName | LPAREN subquery RPAREN) DOT NODES LPAREN xquery = STRING RPAREN
+    : (locId = LOCAL_ID | valueId = fullColumnName | LPAREN selectStatement RPAREN) DOT NODES LPAREN xquery = STRING RPAREN
     ;
 
 switchSection: WHEN searchCondition THEN expression

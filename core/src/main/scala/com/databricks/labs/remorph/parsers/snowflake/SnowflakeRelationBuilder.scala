@@ -177,6 +177,11 @@ class SnowflakeRelationBuilder
     ir.NamedTable(tableName, Map.empty, is_streaming = false)
   }
 
+  override def visitObjRefValues(ctx: ObjRefValuesContext): ir.LogicalPlan = {
+    val values = ctx.valuesTable().accept(this)
+    buildTableAlias(ctx.tableAlias(), values)
+  }
+
   private def buildTableAlias(ctx: TableAliasContext, relation: ir.LogicalPlan): ir.LogicalPlan = {
     Option(ctx)
       .map { c =>

@@ -492,7 +492,7 @@ class Reconciliation:
         src_hash_query = HashQueryBuilder(table_conf, src_schema, "source", self._source_engine).build_query(
             report_type=self._report_type
         )
-        tgt_hash_query = HashQueryBuilder(table_conf, tgt_schema, "target", self._target_engine).build_query(
+        tgt_hash_query = HashQueryBuilder(table_conf, tgt_schema, "target", self._source_engine).build_query(
             report_type=self._report_type
         )
         src_data = self._source.read_data(

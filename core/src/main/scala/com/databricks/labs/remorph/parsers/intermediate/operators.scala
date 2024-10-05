@@ -14,6 +14,9 @@ case class LessThan(left: Expression, right: Expression) extends Binary(left, ri
 case class LessThanOrEqual(left: Expression, right: Expression) extends Binary(left, right) with Predicate
 case class GreaterThan(left: Expression, right: Expression) extends Binary(left, right) with Predicate
 case class GreaterThanOrEqual(left: Expression, right: Expression) extends Binary(left, right) with Predicate
+case class Between(exp: Expression, lower: Expression, upper: Expression) extends Expression with Predicate {
+  override def children: Seq[Expression] = Seq(exp, lower, upper)
+}
 
 trait Bitwise
 
@@ -70,8 +73,10 @@ case class Subtract(left: Expression, right: Expression) extends Binary(left, ri
 /**
  * str like pattern[ ESCAPE escape] - Returns true if str matches `pattern` with `escape`, null if any arguments are
  * null, false otherwise.
+ *
+ * NB: escapeChar is a full expression that evaluates to a single char at runtime, not parse time
  */
-case class Like(left: Expression, right: Expression, escapeChar: Char = '\\') extends Binary(left, right) {
+case class Like(left: Expression, right: Expression, escapeChar: Option[Expression]) extends Binary(left, right) {
   override def dataType: DataType = BooleanType
 }
 
@@ -85,7 +90,8 @@ case class LikeAny(child: Expression, patterns: Seq[Expression]) extends Express
   override def dataType: DataType = BooleanType
 }
 
-case class ILike(left: Expression, right: Expression, escapeChar: Char = '\\') extends Binary(left, right) {
+// NB: escapeChar is a full expression that evaluates to a single char at runtime, not parse time
+case class ILike(left: Expression, right: Expression, escapeChar: Option[Expression]) extends Binary(left, right) {
   override def dataType: DataType = BooleanType
 }
 
@@ -103,4 +109,3 @@ case class ILikeAny(child: Expression, patterns: Seq[Expression]) extends Expres
 case class RLike(left: Expression, right: Expression) extends Binary(left, right) {
   override def dataType: DataType = BooleanType
 }
-

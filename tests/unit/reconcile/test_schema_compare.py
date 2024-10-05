@@ -57,7 +57,7 @@ def snowflake_databricks_schema():
         Schema("col_timestamp_ltz", "timestamp"),
         Schema("col_timestamp_ntz", "timestamp_ntz"),
         Schema("col_timestamp_tz", "timestamp"),
-        Schema("col_variant", "string"),
+        Schema("col_variant", "variant"),
         Schema("col_object", "string"),
         Schema("array_col", "array<string>"),
         Schema("col_geography", "string"),

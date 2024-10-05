@@ -1,25 +1,18 @@
 package com.databricks.labs.remorph.parsers.tsql
 
-import com.databricks.labs.remorph.parsers.intermediate.{Constraint, Expression, StructField}
-import com.databricks.labs.remorph.parsers.{GenericOption, OptionAuto, OptionExpression, OptionOff, OptionOn, OptionString, OptionUnresolved, ParserCommon, intermediate => ir}
-import com.databricks.labs.remorph.utils.ParsingUtils
+import com.databricks.labs.remorph.parsers.{ParserCommon, intermediate => ir}
 
 import scala.collection.JavaConverters.asScalaBufferConverter
 
-class TSqlDDLBuilder(
-    optionBuilder: OptionBuilder,
-    expressionBuilder: TSqlExpressionBuilder,
-    relationBuilder: TSqlRelationBuilder)
+class TSqlDDLBuilder(vc: TSqlVisitorCoordinator)
     extends TSqlParserBaseVisitor[ir.Catalog]
     with ParserCommon[ir.Catalog] {
-
-  private val dataTypeBuilder: DataTypeBuilder = new DataTypeBuilder
 
   override def visitCreateTable(ctx: TSqlParser.CreateTableContext): ir.Catalog =
     ctx match {
       case ci if ci.createInternal() != null => ci.createInternal().accept(this)
       case ct if ct.createExternal() != null => ct.createExternal().accept(this)
-      case _ => ir.UnresolvedCatalog(ctx.getText)
+      case _ => ir.UnresolvedCatalog(getTextFromParserRuleContext(ctx))
     }
 
   override def visitCreateInternal(ctx: TSqlParser.CreateInternalContext): ir.Catalog = {
@@ -62,8 +55,8 @@ class TSqlDDLBuilder(
     val createTable = ctx.createTableAs() match {
       case null => ir.CreateTable(tableName, None, None, None, schema)
       case ctas if ctas.selectStatementStandalone() != null =>
-        ir.CreateTableAsSelect(tableName, ctas.selectStatementStandalone().accept(relationBuilder), None, None, None)
-      case _ => ir.UnresolvedCatalog(ctx.getText)
+        ir.CreateTableAsSelect(tableName, ctas.selectStatementStandalone().accept(vc.relationBuilder), None, None, None)
+      case _ => ir.UnresolvedCatalog(getTextFromParserRuleContext(ctx))
     }
 
     // But because TSQL is so much more complicated than Databricks SQL, we need to build the table alterations
@@ -88,7 +81,7 @@ class TSqlDDLBuilder(
     val tableConstraints = constraints ++ (columns ++ virtualColumns).flatMap(_.tableConstraints)
 
     // We may have table level options as well as for each constraint and column
-    val options: Option[Seq[GenericOption]] = Option(ctx.tableOptions).map { tableOptions =>
+    val options: Option[Seq[ir.GenericOption]] = Option(ctx.tableOptions).map { tableOptions =>
       tableOptions.asScala.flatMap { el =>
         el.tableOption().asScala.map(buildOption)
       }
@@ -113,7 +106,7 @@ class TSqlDDLBuilder(
   }
 
   override def visitCreateExternal(ctx: TSqlParser.CreateExternalContext): ir.Catalog = {
-    ir.UnresolvedCatalog(ctx.getText)
+    ir.UnresolvedCatalog(getTextFromParserRuleContext(ctx))
   }
 
   /**
@@ -123,20 +116,20 @@ class TSqlDDLBuilder(
    * @param ctx the parse tree
    * @return the option we have parsed
    */
-  private def buildOption(ctx: TSqlParser.TableOptionContext): GenericOption = {
-    OptionUnresolved(ctx.getText)
+  private def buildOption(ctx: TSqlParser.TableOptionContext): ir.GenericOption = {
+    ir.OptionUnresolved(getTextFromParserRuleContext(ctx))
   }
 
   private case class TSqlColDef(
-      structField: StructField,
-      computedValue: Option[Expression],
-      constraints: Seq[Constraint],
-      tableConstraints: Seq[Constraint],
-      options: Seq[GenericOption])
+      structField: ir.StructField,
+      computedValue: Option[ir.Expression],
+      constraints: Seq[ir.Constraint],
+      tableConstraints: Seq[ir.Constraint],
+      options: Seq[ir.GenericOption])
 
   private def buildColumnDeclaration(ctx: TSqlParser.ColumnDefinitionContext): TSqlColDef = {
 
-    val options = Seq.newBuilder[GenericOption]
+    val options = Seq.newBuilder[ir.GenericOption]
     val constraints = Seq.newBuilder[ir.Constraint]
     val tableConstraints = Seq.newBuilder[ir.Constraint]
     var nullable: Option[Boolean] = None
@@ -145,14 +138,14 @@ class TSqlDDLBuilder(
       ctx.columnDefinitionElement().asScala.foreach {
         case rg if rg.ROWGUIDCOL() != null =>
           // ROWGUID is supported in Databricks SQL
-          options += OptionOn("ROWGUIDCOL")
+          options += ir.OptionOn("ROWGUIDCOL")
 
         case d if d.defaultValue() != null =>
           // Databricks SQL does not support the naming of the DEFAULT CONSTRAINT, so we will just use the default
           // expression we are given, but if there is a name, we will store it as a comment
-          constraints += ir.DefaultValueConstraint(d.defaultValue().expression().accept(expressionBuilder))
+          constraints += ir.DefaultValueConstraint(d.defaultValue().expression().accept(vc.expressionBuilder))
           if (d.defaultValue().id() != null) {
-            options += OptionUnresolved(
+            options += ir.OptionUnresolved(
               s"Databricks SQL cannot name the DEFAULT CONSTRAINT ${d.defaultValue().id().getText}")
           }
 
@@ -178,7 +171,16 @@ class TSqlDDLBuilder(
               Some(true)
             }
           } else {
-            constraints += buildColumnConstraint(c.columnConstraint())
+            val con = buildColumnConstraint(ctx.id().getText, c.columnConstraint())
+
+            // TSQL allows FOREIGN KEY and CHECK constraints to be declared as column constraints,
+            // but Databricks SQL does not so we need to gather them as table constraints
+
+            if (c.columnConstraint().FOREIGN() != null || c.columnConstraint().checkConstraint() != null) {
+              tableConstraints += con
+            } else {
+              constraints += con
+            }
           }
 
         case d if d.identityColumn() != null =>
@@ -188,17 +190,17 @@ class TSqlDDLBuilder(
         // Unsupported stuff
         case m if m.MASKED() != null =>
           // MASKED WITH FUNCTION = 'functionName' is not supported in Databricks SQL
-          options += OptionUnresolved(s"Unsupported Option: ${ParsingUtils.getTextFromParserRuleContext(m)}")
+          options += ir.OptionUnresolved(s"Unsupported Option: ${getTextFromParserRuleContext(m)}")
 
         case f if f.ENCRYPTED() != null =>
           // ENCRYPTED WITH ... is not supported in Databricks SQL
-          options += OptionUnresolved(s"Unsupported Option: ${ParsingUtils.getTextFromParserRuleContext(f)}")
+          options += ir.OptionUnresolved(s"Unsupported Option: ${getTextFromParserRuleContext(f)}")
 
         case o if o.genericOption() != null =>
-          options += OptionUnresolved(s"Unsupported Option: ${ParsingUtils.getTextFromParserRuleContext(o)}")
+          options += ir.OptionUnresolved(s"Unsupported Option: ${getTextFromParserRuleContext(o)}")
       }
     }
-    val dataType = dataTypeBuilder.build(ctx.dataType())
+    val dataType = vc.dataTypeBuilder.build(ctx.dataType())
     val sf = ir.StructField(ctx.id().getText, dataType, nullable.getOrElse(true))
 
     // TODO: index options
@@ -211,20 +213,20 @@ class TSqlDDLBuilder(
    */
   private def buildTableConstraint(ctx: TSqlParser.TableConstraintContext): ir.Constraint = {
 
-    val options = Seq.newBuilder[GenericOption]
+    val options = Seq.newBuilder[ir.GenericOption]
 
     val constraint = ctx match {
 
       case pu if pu.PRIMARY() != null || pu.UNIQUE() != null =>
         if (pu.clustered() != null) {
           if (pu.clustered().CLUSTERED() != null) {
-            options += OptionUnresolved(pu.clustered().getText)
+            options += ir.OptionUnresolved(getTextFromParserRuleContext(pu.clustered()))
           }
         }
         val colNames = ctx.columnNameListWithOrder().columnNameWithOrder().asScala.map { cnwo =>
           val colName = cnwo.id().getText
           if (cnwo.DESC() != null || cnwo.ASC() != null) {
-            options += OptionUnresolved(s"Cannot specify primary key order ASC/DESC on: $colName")
+            options += ir.OptionUnresolved(s"Cannot specify primary key order ASC/DESC on: $colName")
           }
           colName
         }
@@ -251,21 +253,21 @@ class TSqlDDLBuilder(
 
       case cc if cc.CONNECTION() != null =>
         // CONNECTION is not supported in Databricks SQL
-        ir.UnresolvedConstraint(ctx.getText)
+        ir.UnresolvedConstraint(getTextFromParserRuleContext(ctx))
 
       case defVal if defVal.DEFAULT() != null =>
         // DEFAULT is not supported in Databricks SQL at TABLE constraint level
-        ir.UnresolvedConstraint(ctx.getText)
+        ir.UnresolvedConstraint(getTextFromParserRuleContext(ctx))
 
       case cc if cc.checkConstraint() != null =>
         // Check constraint construction
-        val expr = cc.checkConstraint().searchCondition().accept(expressionBuilder)
+        val expr = cc.checkConstraint().searchCondition().accept(vc.expressionBuilder)
         if (cc.checkConstraint().NOT() != null) {
-          options += OptionUnresolved("NOT FOR REPLICATION")
+          options += ir.OptionUnresolved("NOT FOR REPLICATION")
         }
         ir.CheckConstraint(expr)
 
-      case _ => ir.UnresolvedConstraint(ctx.getText)
+      case _ => ir.UnresolvedConstraint(getTextFromParserRuleContext(ctx))
     }
 
     // Name the constraint if it is named and not unresolved
@@ -286,18 +288,21 @@ class TSqlDDLBuilder(
    * Note that TSQL is way more involved than Databricks SQL. We must record all the different options so that we can
    * at least generate a comment.
    *
+   * TSQL allows FOREIGN KEY and CHECK constraints to be declared as column constraints, but Databricks SQL does not
+   * So the caller needs to check for those circumstances and handle them accordingly.
+   *
    * @param ctx
    *   the parser context
    * @return
    *   a constraint definition
    */
-  private def buildColumnConstraint(ctx: TSqlParser.ColumnConstraintContext): ir.Constraint = {
-    val options = Seq.newBuilder[GenericOption]
+  private def buildColumnConstraint(colName: String, ctx: TSqlParser.ColumnConstraintContext): ir.Constraint = {
+    val options = Seq.newBuilder[ir.GenericOption]
     val constraint = ctx match {
       case pu if pu.PRIMARY() != null || pu.UNIQUE() != null =>
         // Primary or unique key construction.
         if (pu.clustered() != null) {
-          options += OptionUnresolved(pu.clustered().getText)
+          options += ir.OptionUnresolved(getTextFromParserRuleContext(pu.clustered()))
         }
 
         if (pu.primaryKeyOptions() != null) {
@@ -311,7 +316,7 @@ class TSqlDDLBuilder(
         }
 
       case fk if fk.FOREIGN() != null =>
-        // Foreign key construction
+        // Foreign key construction - note that this is a table level constraint in Databricks SQL
         val refObject = fk.foreignKeyOptions().tableName().getText
         val refCols = Option(fk.foreignKeyOptions())
           .map(_.columnNameList().id().asScala.map(_.getText).mkString(","))
@@ -322,17 +327,17 @@ class TSqlDDLBuilder(
         if (fk.foreignKeyOptions().onUpdate() != null) {
           options += buildFkOnUpdate(fk.foreignKeyOptions().onUpdate())
         }
-        ir.ForeignKey(refObject, "", refCols, options.result())
+        ir.ForeignKey(colName, refObject, refCols, options.result())
 
       case cc if cc.checkConstraint() != null =>
-        // Check constraint construction
-        val expr = cc.checkConstraint().searchCondition().accept(expressionBuilder)
+        // Check constraint construction (will be gathered as a table level constraint)
+        val expr = cc.checkConstraint().searchCondition().accept(vc.expressionBuilder)
         if (cc.checkConstraint().NOT() != null) {
-          options += OptionUnresolved("NOT FOR REPLICATION")
+          options += ir.OptionUnresolved("NOT FOR REPLICATION")
         }
         ir.CheckConstraint(expr)
 
-      case _ => ir.UnresolvedConstraint(ctx.getText)
+      case _ => ir.UnresolvedConstraint(getTextFromParserRuleContext(ctx))
     }
 
     // Name the constraint if it is named and not unresolved
@@ -346,28 +351,28 @@ class TSqlDDLBuilder(
     }
   }
 
-  private def buildFkOnDelete(ctx: TSqlParser.OnDeleteContext): GenericOption = {
+  private def buildFkOnDelete(ctx: TSqlParser.OnDeleteContext): ir.GenericOption = {
     ctx match {
-      case c if c.CASCADE() != null => OptionUnresolved("ON DELETE CASCADE")
-      case c if c.NULL() != null => OptionUnresolved("ON DELETE SET NULL")
-      case c if c.DEFAULT() != null => OptionUnresolved("ON DELETE SET DEFAULT")
-      case c if c.NO() != null => OptionString("ON DELETE", "ON DELETE NO ACTION")
+      case c if c.CASCADE() != null => ir.OptionUnresolved("ON DELETE CASCADE")
+      case c if c.NULL() != null => ir.OptionUnresolved("ON DELETE SET NULL")
+      case c if c.DEFAULT() != null => ir.OptionUnresolved("ON DELETE SET DEFAULT")
+      case c if c.NO() != null => ir.OptionString("ON DELETE", "NO ACTION")
     }
   }
 
-  private def buildFkOnUpdate(ctx: TSqlParser.OnUpdateContext): GenericOption = {
+  private def buildFkOnUpdate(ctx: TSqlParser.OnUpdateContext): ir.GenericOption = {
     ctx match {
-      case c if c.CASCADE() != null => OptionUnresolved("ON UPDATE CASCADE")
-      case c if c.NULL() != null => OptionUnresolved("ON UPDATE SET NULL")
-      case c if c.DEFAULT() != null => OptionUnresolved("ON UPDATE SET DEFAULT")
-      case c if c.NO() != null => OptionString("ON UPDATE", "NO ACTION")
+      case c if c.CASCADE() != null => ir.OptionUnresolved("ON UPDATE CASCADE")
+      case c if c.NULL() != null => ir.OptionUnresolved("ON UPDATE SET NULL")
+      case c if c.DEFAULT() != null => ir.OptionUnresolved("ON UPDATE SET DEFAULT")
+      case c if c.NO() != null => ir.OptionString("ON UPDATE", "NO ACTION")
     }
   }
 
-  private def buildPKOptions(ctx: TSqlParser.PrimaryKeyOptionsContext): Seq[GenericOption] = {
-    val options = Seq.newBuilder[GenericOption]
+  private def buildPKOptions(ctx: TSqlParser.PrimaryKeyOptionsContext): Seq[ir.GenericOption] = {
+    val options = Seq.newBuilder[ir.GenericOption]
     if (ctx.FILLFACTOR() != null) {
-      options += OptionUnresolved(s"WITH FILLFACTOR = ${ctx.getText}")
+      options += ir.OptionUnresolved(s"WITH FILLFACTOR = ${ctx.getText}")
     }
     // TODO: index options
     // TODO: partition options
@@ -387,7 +392,7 @@ class TSqlDDLBuilder(
    * @return An unresolved constraint representing the index syntax
    */
   private def buildIndex(ctx: TSqlParser.TableIndicesContext): ir.UnresolvedConstraint = {
-    ir.UnresolvedConstraint(ctx.getText)
+    ir.UnresolvedConstraint(getTextFromParserRuleContext(ctx))
   }
 
   /**
@@ -403,17 +408,17 @@ class TSqlDDLBuilder(
   override def visitBackupDatabase(ctx: TSqlParser.BackupDatabaseContext): ir.Catalog = {
     val database = ctx.id().getText
     val opts = ctx.optionList()
-    val options = opts.asScala.flatMap(_.genericOption().asScala).toList.map(optionBuilder.buildOption)
+    val options = opts.asScala.flatMap(_.genericOption().asScala).toList.map(vc.optionBuilder.buildOption)
     val (disks, boolFlags, autoFlags, values) = options.foldLeft(
       (List.empty[String], Map.empty[String, Boolean], List.empty[String], Map.empty[String, ir.Expression])) {
       case ((disks, boolFlags, autoFlags, values), option) =>
         option match {
-          case OptionString("DISK", value) =>
+          case ir.OptionString("DISK", value) =>
             (value.stripPrefix("'").stripSuffix("'") :: disks, boolFlags, autoFlags, values)
-          case OptionOn(id) => (disks, boolFlags + (id -> true), autoFlags, values)
-          case OptionOff(id) => (disks, boolFlags + (id -> false), autoFlags, values)
-          case OptionAuto(id) => (disks, boolFlags, id :: autoFlags, values)
-          case OptionExpression(id, expr, _) => (disks, boolFlags, autoFlags, values + (id -> expr))
+          case ir.OptionOn(id) => (disks, boolFlags + (id -> true), autoFlags, values)
+          case ir.OptionOff(id) => (disks, boolFlags + (id -> false), autoFlags, values)
+          case ir.OptionAuto(id) => (disks, boolFlags, id :: autoFlags, values)
+          case ir.OptionExpression(id, expr, _) => (disks, boolFlags, autoFlags, values + (id -> expr))
           case _ => (disks, boolFlags, autoFlags, values)
         }
     }

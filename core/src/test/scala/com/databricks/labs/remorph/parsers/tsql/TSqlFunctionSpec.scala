@@ -7,7 +7,7 @@ import org.scalatest.wordspec.AnyWordSpec
 
 class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matchers with IRHelpers {
 
-  override protected def astBuilder: TSqlParserBaseVisitor[_] = new TSqlExpressionBuilder
+  override protected def astBuilder: TSqlParserBaseVisitor[_] = vc.expressionBuilder
 
   "translate functions with no parameters" in {
     exampleExpr("APP_NAME()", _.expression(), ir.CallFunction("APP_NAME", List()))
@@ -174,13 +174,13 @@ class TSqlFunctionSpec extends AnyWordSpec with TSqlParserTestCommon with Matche
 
   "translate special keyword functions" in {
     exampleExpr(
-      // TODO: Returns UnresolvedFunction as it is not convertible - create UnsupportedFunction
+      // TODO: Returns UnresolvedFunction as it is not convertible - create UnsupportedFunctionRule
       "@@CURSOR_ROWS",
       _.expression(),
       ir.UnresolvedFunction("@@CURSOR_ROWS", List(), is_distinct = false, is_user_defined_function = false))
 
     exampleExpr(
-      // TODO: Returns UnresolvedFunction as it is not convertible - create UnsupportedFunction
+      // TODO: Returns UnresolvedFunction as it is not convertible - create UnsupportedFunctionRule
       "@@FETCH_STATUS",
       _.expression(),
       ir.UnresolvedFunction("@@FETCH_STATUS", List(), is_distinct = false, is_user_defined_function = false))
