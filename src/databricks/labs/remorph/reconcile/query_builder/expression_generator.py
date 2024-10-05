@@ -236,7 +236,7 @@ DataType_transform_mapping: dict[str, dict[str, list[partial[exp.Expression]]]] 
         exp.DataType.Type.NVARCHAR.value: [partial(anonymous, func="NVL(TRIM(TO_CHAR({})),'_null_recon_')")],
     },
     "tsql": {
-        "default": [partial(anonymous, func="COALESCE(LTRIM(RTRIM(CAST([{}] AS VARCHAR(64)))), '_null_recon_')")],
+        "default": [partial(anonymous, func="COALESCE(LTRIM(RTRIM(CAST([{}] AS VARCHAR(256)))), '_null_recon_')")],
         exp.DataType.Type.DATE.value: [partial(anonymous, func="COALESCE(CONVERT(DATE, {0}, 101), '1900-01-01')")],
         exp.DataType.Type.TIME.value: [partial(anonymous, func="COALESCE(CONVERT(TIME, {0}, 108), '00:00:00')")],
         exp.DataType.Type.DATETIME.value: [
