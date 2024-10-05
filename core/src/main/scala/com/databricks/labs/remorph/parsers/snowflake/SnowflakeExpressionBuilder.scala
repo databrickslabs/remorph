@@ -519,7 +519,7 @@ class SnowflakeExpressionBuilder()
       case c if c.BETWEEN() != null =>
         val lowerBound = c.expr(0).accept(this)
         val upperBound = c.expr(1).accept(this)
-        ir.And(ir.GreaterThanOrEqual(expression, lowerBound), ir.LessThanOrEqual(expression, upperBound))
+        ir.Between(expression, lowerBound, upperBound)
       case c if c.likeExpression() != null => buildLikeExpression(c.likeExpression(), expression)
       case c if c.IS() != null =>
         val isNull: ir.Expression = ir.IsNull(expression)

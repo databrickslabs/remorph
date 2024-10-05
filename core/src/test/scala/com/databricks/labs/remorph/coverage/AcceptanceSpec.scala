@@ -28,12 +28,6 @@ class SnowflakeAcceptanceSuite
           ignoredTestNames = Set(
             "aggregates/listagg/test_listagg_4.sql",
             "cast/test_typecasts.sql",
-            "ddl/lateral_struct/test_lateral_struct_2.sql",
-            "ddl/lateral_struct/test_lateral_struct_3.sql",
-            "ddl/lateral_struct/test_lateral_struct_5.sql",
-            "ddl/lateral_struct/test_lateral_struct_9.sql",
-            "ddl/lateral_struct/test_lateral_struct_10.sql",
-            "ddl/lateral_struct/test_lateral_struct_12.sql",
             "sqlglot-incorrect/test_uuid_string_2.sql",
             "test_command/test_command_2.sql",
             "test_command/test_command_3.sql",
