@@ -110,9 +110,9 @@ def main(*argv) -> None:
 
 
 def _trigger_recon(
-    w: WorkspaceClient,
-    table_recon: TableRecon,
-    reconcile_config: ReconcileConfig,
+        w: WorkspaceClient,
+        table_recon: TableRecon,
+        reconcile_config: ReconcileConfig,
 ):
     try:
         recon_output = recon(
@@ -129,9 +129,9 @@ def _trigger_recon(
 
 
 def _trigger_reconcile_aggregates(
-    ws: WorkspaceClient,
-    table_recon: TableRecon,
-    reconcile_config: ReconcileConfig,
+        ws: WorkspaceClient,
+        table_recon: TableRecon,
+        reconcile_config: ReconcileConfig,
 ):
     """
     Triggers the reconciliation process for aggregated data  between source and target tables.
@@ -165,11 +165,11 @@ def _trigger_reconcile_aggregates(
 
 
 def recon(
-    ws: WorkspaceClient,
-    spark: SparkSession,
-    table_recon: TableRecon,
-    reconcile_config: ReconcileConfig,
-    local_test_run: bool = False,
+        ws: WorkspaceClient,
+        spark: SparkSession,
+        table_recon: TableRecon,
+        reconcile_config: ReconcileConfig,
+        local_test_run: bool = False,
 ) -> ReconcileOutput:
     """[EXPERIMENTAL] Reconcile the data between the source and target tables."""
     # verify the workspace client and add proper product and version details
@@ -264,14 +264,14 @@ def recon(
 
 
 def _verify_successful_reconciliation(
-    reconcile_output: ReconcileOutput, operation_name: str = "reconcile"
+        reconcile_output: ReconcileOutput, operation_name: str = "reconcile"
 ) -> ReconcileOutput:
     for table_output in reconcile_output.results:
         if table_output.exception_message or (
-            table_output.status.column is False
-            or table_output.status.row is False
-            or table_output.status.schema is False
-            or table_output.status.aggregate is False
+                table_output.status.column is False
+                or table_output.status.row is False
+                or table_output.status.schema is False
+                or table_output.status.aggregate is False
         ):
             raise ReconciliationException(
                 f" Reconciliation failed for one or more tables. Please check the recon metrics for more details."
@@ -290,10 +290,10 @@ def generate_volume_path(table_conf: Table, metadata_config: ReconcileMetadataCo
 
 
 def initialise_data_source(
-    ws: WorkspaceClient,
-    spark: SparkSession,
-    engine: Dialect,
-    secret_scope: str,
+        ws: WorkspaceClient,
+        spark: SparkSession,
+        engine: Dialect,
+        secret_scope: str,
 ):
     source = create_adapter(engine=engine, spark=spark, ws=ws, secret_scope=secret_scope)
     target = create_adapter(engine=get_dialect("databricks"), spark=spark, ws=ws, secret_scope=secret_scope)
@@ -302,12 +302,12 @@ def initialise_data_source(
 
 
 def _get_missing_data(
-    reader: DataSource,
-    sampler: SamplingQueryBuilder,
-    missing_df: DataFrame,
-    catalog: str,
-    schema: str,
-    table_name: str,
+        reader: DataSource,
+        sampler: SamplingQueryBuilder,
+        missing_df: DataFrame,
+        catalog: str,
+        schema: str,
+        table_name: str,
 ) -> DataFrame:
     sample_query = sampler.build_query(missing_df)
     return reader.read_data(
@@ -320,11 +320,11 @@ def _get_missing_data(
 
 
 def reconcile_aggregates(
-    ws: WorkspaceClient,
-    spark: SparkSession,
-    table_recon: TableRecon,
-    reconcile_config: ReconcileConfig,
-    local_test_run: bool = False,
+        ws: WorkspaceClient,
+        spark: SparkSession,
+        table_recon: TableRecon,
+        reconcile_config: ReconcileConfig,
+        local_test_run: bool = False,
 ):
     """[EXPERIMENTAL] Reconcile the aggregated data between the source and target tables.
     for e.g., COUNT, SUM, AVG of columns between source and target with or without any specific key/group by columns
@@ -429,15 +429,15 @@ def reconcile_aggregates(
 class Reconciliation:
 
     def __init__(
-        self,
-        source: DataSource,
-        target: DataSource,
-        database_config: DatabaseConfig,
-        report_type: str,
-        schema_comparator: SchemaCompare,
-        source_engine: Dialect,
-        spark: SparkSession,
-        metadata_config: ReconcileMetadataConfig,
+            self,
+            source: DataSource,
+            target: DataSource,
+            database_config: DatabaseConfig,
+            report_type: str,
+            schema_comparator: SchemaCompare,
+            source_engine: Dialect,
+            spark: SparkSession,
+            metadata_config: ReconcileMetadataConfig,
     ):
         self._source = source
         self._target = target
@@ -450,10 +450,10 @@ class Reconciliation:
         self._metadata_config = metadata_config
 
     def reconcile_data(
-        self,
-        table_conf: Table,
-        src_schema: list[Schema],
-        tgt_schema: list[Schema],
+            self,
+            table_conf: Table,
+            src_schema: list[Schema],
+            tgt_schema: list[Schema],
     ) -> DataReconcileOutput:
         data_reconcile_output = self._get_reconcile_output(table_conf, src_schema, tgt_schema)
         reconcile_output = data_reconcile_output
@@ -468,26 +468,26 @@ class Reconciliation:
         return reconcile_output
 
     def reconcile_schema(
-        self,
-        src_schema: list[Schema],
-        tgt_schema: list[Schema],
-        table_conf: Table,
+            self,
+            src_schema: list[Schema],
+            tgt_schema: list[Schema],
+            table_conf: Table,
     ):
         return self._schema_comparator.compare(src_schema, tgt_schema, self._source_engine, table_conf)
 
     def reconcile_aggregates(
-        self,
-        table_conf: Table,
-        src_schema: list[Schema],
-        tgt_schema: list[Schema],
+            self,
+            table_conf: Table,
+            src_schema: list[Schema],
+            tgt_schema: list[Schema],
     ) -> list[AggregateQueryOutput]:
         return self._get_reconcile_aggregate_output(table_conf, src_schema, tgt_schema)
 
     def _get_reconcile_output(
-        self,
-        table_conf,
-        src_schema,
-        tgt_schema,
+            self,
+            table_conf,
+            src_schema,
+            tgt_schema,
     ):
         src_hash_query = HashQueryBuilder(table_conf, src_schema, "source", self._source_engine).build_query(
             report_type=self._report_type
@@ -521,10 +521,10 @@ class Reconciliation:
         )
 
     def _get_reconcile_aggregate_output(
-        self,
-        table_conf,
-        src_schema,
-        tgt_schema,
+            self,
+            table_conf,
+            src_schema,
+            tgt_schema,
     ):
         """
         Creates a single Query, for the aggregates having the same group by columns. (Ex: 1)
@@ -656,20 +656,20 @@ class Reconciliation:
         return table_agg_output
 
     def _get_sample_data(
-        self,
-        table_conf,
-        reconcile_output,
-        src_schema,
-        tgt_schema,
+            self,
+            table_conf,
+            reconcile_output,
+            src_schema,
+            tgt_schema,
     ):
         mismatch = None
         missing_in_src = None
         missing_in_tgt = None
 
         if (
-            reconcile_output.mismatch_count > 0
-            or reconcile_output.missing_in_src_count > 0
-            or reconcile_output.missing_in_tgt_count > 0
+                reconcile_output.mismatch_count > 0
+                or reconcile_output.missing_in_src_count > 0
+                or reconcile_output.missing_in_tgt_count > 0
         ):
             src_sampler = SamplingQueryBuilder(table_conf, src_schema, "source", self._source_engine)
             tgt_sampler = SamplingQueryBuilder(table_conf, tgt_schema, "target", self._target_engine)
@@ -713,13 +713,13 @@ class Reconciliation:
         )
 
     def _get_mismatch_data(
-        self,
-        src_sampler,
-        tgt_sampler,
-        mismatch,
-        key_columns,
-        src_table: str,
-        tgt_table: str,
+            self,
+            src_sampler,
+            tgt_sampler,
+            mismatch,
+            key_columns,
+            src_table: str,
+            tgt_table: str,
     ):
         df = mismatch.limit(_SAMPLE_ROWS).cache()
         src_mismatch_sample_query = src_sampler.build_query(df)
@@ -743,10 +743,10 @@ class Reconciliation:
         return capture_mismatch_data_and_columns(source=src_data, target=tgt_data, key_columns=key_columns)
 
     def _reconcile_threshold_data(
-        self,
-        table_conf: Table,
-        src_schema: list[Schema],
-        tgt_schema: list[Schema],
+            self,
+            table_conf: Table,
+            src_schema: list[Schema],
+            tgt_schema: list[Schema],
     ):
 
         src_data, tgt_data = self._get_threshold_data(table_conf, src_schema, tgt_schema)
@@ -760,10 +760,10 @@ class Reconciliation:
         return self._compute_threshold_comparison(table_conf, src_schema)
 
     def _get_threshold_data(
-        self,
-        table_conf: Table,
-        src_schema: list[Schema],
-        tgt_schema: list[Schema],
+            self,
+            table_conf: Table,
+            src_schema: list[Schema],
+            tgt_schema: list[Schema],
     ) -> tuple[DataFrame, DataFrame]:
         src_threshold_query = ThresholdQueryBuilder(
             table_conf, src_schema, "source", self._source_engine
@@ -835,10 +835,10 @@ class Reconciliation:
 
 
 def _get_schema(
-    source: DataSource,
-    target: DataSource,
-    table_conf: Table,
-    database_config: DatabaseConfig,
+        source: DataSource,
+        target: DataSource,
+        table_conf: Table,
+        database_config: DatabaseConfig,
 ) -> tuple[list[Schema], list[Schema]]:
     src_schema = source.get_schema(
         catalog=database_config.source_catalog,
@@ -855,10 +855,10 @@ def _get_schema(
 
 
 def _run_reconcile_data(
-    reconciler: Reconciliation,
-    table_conf: Table,
-    src_schema: list[Schema],
-    tgt_schema: list[Schema],
+        reconciler: Reconciliation,
+        table_conf: Table,
+        src_schema: list[Schema],
+        tgt_schema: list[Schema],
 ) -> DataReconcileOutput:
     try:
         return reconciler.reconcile_data(table_conf=table_conf, src_schema=src_schema, tgt_schema=tgt_schema)
@@ -867,10 +867,10 @@ def _run_reconcile_data(
 
 
 def _run_reconcile_schema(
-    reconciler: Reconciliation,
-    table_conf: Table,
-    src_schema: list[Schema],
-    tgt_schema: list[Schema],
+        reconciler: Reconciliation,
+        table_conf: Table,
+        src_schema: list[Schema],
+        tgt_schema: list[Schema],
 ):
     try:
         return reconciler.reconcile_schema(table_conf=table_conf, src_schema=src_schema, tgt_schema=tgt_schema)
@@ -879,10 +879,10 @@ def _run_reconcile_schema(
 
 
 def _run_reconcile_aggregates(
-    reconciler: Reconciliation,
-    table_conf: Table,
-    src_schema: list[Schema],
-    tgt_schema: list[Schema],
+        reconciler: Reconciliation,
+        table_conf: Table,
+        src_schema: list[Schema],
+        tgt_schema: list[Schema],
 ) -> list[AggregateQueryOutput]:
     try:
         return reconciler.reconcile_aggregates(table_conf, src_schema, tgt_schema)
