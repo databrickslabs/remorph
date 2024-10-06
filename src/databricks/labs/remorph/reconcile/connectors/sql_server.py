@@ -4,8 +4,8 @@ from datetime import datetime
 
 from pyspark.errors import PySparkException
 from pyspark.sql import DataFrame, DataFrameReader, SparkSession
-from sqlglot import Dialect
 from pyspark.sql.functions import col
+from sqlglot import Dialect
 
 from databricks.labs.remorph.reconcile.connectors.data_source import DataSource
 from databricks.labs.remorph.reconcile.connectors.jdbc_reader import JDBCReaderMixin

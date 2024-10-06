@@ -188,11 +188,10 @@ def test_read_data_with_options():
     )
     spark.read.format().option().option.assert_called_with("driver", "net.snowflake.client.jdbc.SnowflakeDriver")
     spark.read.format().option().option().option.assert_called_with("dbtable", "(select 1 from org.data.employee) tmp")
-    spark.read.format().option().option().option().option.assert_called_with("prepareQuery", "")
-    spark.read.format().option().option().option().option().options.assert_called_with(
+    spark.read.format().option().option().option().options.assert_called_with(
         numPartitions=100, partitionColumn='s_nationkey', lowerBound='0', upperBound='100', fetchsize=100
     )
-    spark.read.format().option().option().option().option().options().load.assert_called_once()
+    spark.read.format().option().option().option().options().load.assert_called_once()
 
 
 def test_get_schema():
