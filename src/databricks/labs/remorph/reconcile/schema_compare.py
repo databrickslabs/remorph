@@ -81,10 +81,8 @@ class SchemaCompare:
     @classmethod
     def _parse(cls, source: Dialect, column: str, data_type: str) -> str:
         query = f"create table dummy ({column} {data_type})"
-
         if source == "tsql":
             query = f"create table dummy ([{column}] {data_type})"
-
         return parse_one(query, read=source).sql(dialect=get_dialect("databricks")).replace(", ", ",")
 
     @classmethod

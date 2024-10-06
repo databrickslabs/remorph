@@ -7,6 +7,7 @@ from uuid import uuid4
 from pyspark.errors import PySparkException
 from pyspark.sql import DataFrame, SparkSession
 from sqlglot import Dialect
+
 from databricks.labs.remorph.config import (
     DatabaseConfig,
     TableRecon,
@@ -670,7 +671,6 @@ class Reconciliation:
             or reconcile_output.missing_in_src_count > 0
             or reconcile_output.missing_in_tgt_count > 0
         ):
-
             src_sampler = SamplingQueryBuilder(table_conf, src_schema, "source", self._source_engine)
             tgt_sampler = SamplingQueryBuilder(table_conf, tgt_schema, "target", self._target_engine)
             if reconcile_output.mismatch_count > 0:
