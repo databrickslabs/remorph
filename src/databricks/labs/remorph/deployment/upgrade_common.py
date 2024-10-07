@@ -112,9 +112,13 @@ def recreate_table_sql(
     )
 
     if not set(current_table).issubset(installed_table):
-        if prompts.confirm("The `main` table columns are not as expected. Do you want to recreate the `main` table?"):
+        if prompts.confirm(
+            f"The `{table_identifier}` table columns are not as expected. Do you want to recreate the `{table_identifier}` table?"
+        ):
             sql = table_original_query(table_name, table_identifier)
         else:
-            logger.error("The `main` table columns are not as expected. Please check and recreate the `main` table.")
+            logger.error(
+                f"The `{table_identifier}` table columns are not as expected. Please check and recreate the `{table_identifier}` table."
+            )
             sql = None
     return sql
