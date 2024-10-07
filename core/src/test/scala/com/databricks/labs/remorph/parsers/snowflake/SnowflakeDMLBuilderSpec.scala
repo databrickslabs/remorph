@@ -96,7 +96,7 @@ class SnowflakeDMLBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
         example(
           "UPDATE t1 SET c1 = 42",
           _.updateStatement(),
-          UpdateTable(namedTable("t1"), None, Seq(Assign(Id("c1"), Literal(42))), None, None, None))
+          UpdateTable(namedTable("t1"), None, Seq(Assign(Column(None, Id("c1")), Literal(42))), None, None, None))
       }
       "UPDATE t1 SET c1 = 42 WHERE c1 < 0" in {
         example(
@@ -105,7 +105,7 @@ class SnowflakeDMLBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
           UpdateTable(
             namedTable("t1"),
             None,
-            Seq(Assign(Id("c1"), Literal(42))),
+            Seq(Assign(Column(None, Id("c1")), Literal(42))),
             Some(LessThan(Id("c1"), Literal(0))),
             None,
             None))
@@ -118,7 +118,7 @@ class SnowflakeDMLBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
             TableAlias(namedTable("table1"), "t1", Seq()),
             Some(
               crossJoin(TableAlias(namedTable("table1"), "t1", Seq()), TableAlias(namedTable("table2"), "t2", Seq()))),
-            Seq(Assign(Id("c1"), Add(Id("c2"), Dot(Id("t2"), Id("c2"))))),
+            Seq(Assign(Column(None, Id("c1")), Add(Id("c2"), Dot(Id("t2"), Id("c2"))))),
             Some(Equals(Dot(Id("t1"), Id("c3")), Dot(Id("t2"), Id("c3")))),
             None,
             None))
@@ -134,7 +134,7 @@ class SnowflakeDMLBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
             namedTable("t1"),
             namedTable("t2"),
             Equals(Dot(Id("t1"), Id("c1")), Dot(Id("t2"), Id("c2"))),
-            matchedActions = Seq(UpdateAction(None, Seq(Assign(Id("c1"), Literal(42)))))))
+            matchedActions = Seq(UpdateAction(None, Seq(Assign(Column(None, Id("c1")), Literal(42)))))))
       }
 
       "MERGE INTO t1 USING t2 ON t1.c1 = t2.c2 WHEN MATCHED THEN DELETE" in {
@@ -179,10 +179,8 @@ class SnowflakeDMLBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
             namedTable("t1"),
             namedTable("t2"),
             Equals(Dot(Id("t1"), Id("c1")), Dot(Id("t2"), Id("c2"))),
-            matchedActions = Seq(
-              UpdateAction(
-                None,
-                Seq(Assign(Column(Some(ObjectReference(Id("t1", false))), Id("c1", false)), Literal(42)))))))
+            matchedActions =
+              Seq(UpdateAction(None, Seq(Assign(Column(Some(ObjectReference(Id("t1"))), Id("c1")), Literal(42)))))))
       }
 
     }
