@@ -573,6 +573,9 @@ class SnowflakeExpressionBuilder()
     case c if c.predicatePartial() != null =>
       val expr = c.expr().accept(this)
       buildPredicatePartial(c.predicatePartial(), expr)
+
+    // TODO: We should not call visit children directly but call accept on the other elements of the predicate
+    //       This makes me think that we have not implemented expr comparisonOperator ... yet
     case c => visitChildren(c)
   }
 
