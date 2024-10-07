@@ -13,9 +13,12 @@ object Main extends App with ApplicationContext {
       coverageTest.run(os.Path(args("src")), os.Path(args("dst")), args("extractor"))
     case Payload("debug-estimate", args) =>
       val report = estimator(args("source-dialect")).run()
-      jsonEstimationReporter(os.Path(args("dst")), args("preserve-queries").toBoolean, report).report()
+      jsonEstimationReporter(
+        os.Path(args("dst")) / s"${now.getEpochSecond}",
+        args("preserve-queries").toBoolean,
+        report).report()
       args("console-output") match {
-        case "true" => consoleEstimationReporter(report).report()
+        case "true" => consoleEstimationReporter(os.Path(args("dst")) / s"${now.getEpochSecond}", report).report()
       }
     case Payload(command, _) =>
       println(s"Unknown command: $command")

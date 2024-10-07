@@ -1,7 +1,7 @@
 package com.databricks.labs.remorph
 
 import com.databricks.labs.remorph.coverage.connections.SnowflakeConnectionFactory
-import com.databricks.labs.remorph.coverage.estimation.{ConsoleEstimationReporter, EstimationAnalyzer, Estimator, JsonEstimationReporter}
+import com.databricks.labs.remorph.coverage.estimation.{SummaryEstimationReporter, EstimationAnalyzer, Estimator, JsonEstimationReporter}
 import com.databricks.labs.remorph.coverage.runners.EnvGetter
 import com.databricks.labs.remorph.coverage.{CoverageTest, EstimationReport}
 import com.databricks.labs.remorph.discovery.SnowflakeQueryHistory
@@ -13,9 +13,12 @@ import com.databricks.labs.remorph.transpilers.{BaseTranspiler, SnowflakeToDatab
 import com.databricks.sdk.WorkspaceClient
 import com.databricks.sdk.core.DatabricksConfig
 
+import java.time.Instant
+
 trait ApplicationContext {
   private def snowflakePlanParser: SnowflakePlanParser = new SnowflakePlanParser
 
+  protected val now = Instant.now
   private def tsqlPlanParser: TSqlPlanParser = new TSqlPlanParser
 
   def planParser(dialect: String): PlanParser[_] = dialect match {
@@ -54,6 +57,6 @@ trait ApplicationContext {
       estimate: EstimationReport): JsonEstimationReporter =
     new JsonEstimationReporter(outputDir, preserveQueries, estimate)
 
-  def consoleEstimationReporter(estimate: EstimationReport): ConsoleEstimationReporter =
-    new ConsoleEstimationReporter(estimate)
+  def consoleEstimationReporter(outputDir: os.Path, estimate: EstimationReport): SummaryEstimationReporter =
+    new SummaryEstimationReporter(outputDir, estimate)
 }
