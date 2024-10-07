@@ -53,13 +53,13 @@ class SnowflakeDMLBuilder
       .mergeCond()
       .mergeCondMatch()
       .asScala
-      .map(buildMergeAction)
+      .map(buildMatchAction)
 
     val notMatchedActions = ctx
       .mergeCond()
       .mergeCondNotMatch()
       .asScala
-      .map(buildInsertAction)
+      .map(buildNotMatchAction)
 
     ir.MergeIntoTable(
       target,
@@ -69,7 +69,7 @@ class SnowflakeDMLBuilder
       notMatchedActions = notMatchedActions)
   }
 
-  private def buildMergeAction(ctx: MergeCondMatchContext): ir.MergeAction = {
+  private def buildMatchAction(ctx: MergeCondMatchContext): ir.MergeAction = {
     val condition = Option(ctx.predicate().accept(expressionBuilder))
 
     ctx match {
@@ -89,7 +89,7 @@ class SnowflakeDMLBuilder
 
   }
 
-  private def buildInsertAction(ctx: MergeCondNotMatchContext): ir.MergeAction = {
+  private def buildNotMatchAction(ctx: MergeCondNotMatchContext): ir.MergeAction = {
     val condition = Option(ctx.predicate().accept(expressionBuilder))
     val assignments = Option(
       ctx
