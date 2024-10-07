@@ -97,25 +97,28 @@ class SnowflakeDMLBuilder
       case c if c.predicate() != null => Some(c.predicate().accept(expressionBuilder))
       case _ => None
     }
+    ctx match {
+      case c if c.mergeInsert().columnList() != null =>
+        val assignment = (c
+          .mergeInsert()
+          .columnList()
+          .columnName()
+          .asScala
+          .map(_.accept(expressionBuilder))
+          .zip(
+            c
+              .mergeInsert()
+              .exprList()
+              .expr()
+              .asScala
+              .map(_.accept(expressionBuilder)))
+          .map { case (col, value) =>
+            ir.Assign(col, value)
+          })
 
-    val assignments = Option(
-      ctx
-        .mergeInsert()
-        .columnList()
-        .columnName()
-        .asScala
-        .map(_.accept(expressionBuilder))
-        .zip(
-          ctx
-            .mergeInsert()
-            .exprList()
-            .expr()
-            .asScala
-            .map(_.accept(expressionBuilder)))
-        .map { case (col, value) =>
-          ir.Assign(col, value)
-        }).getOrElse(Seq.empty[ir.Assign])
+        ir.InsertAction(condition, assignment)
 
-    ir.InsertAction(condition, assignments)
+      case _ => ir.InsertAction(condition, Seq.empty[ir.Assign])
+    }
   }
 }

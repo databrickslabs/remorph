@@ -159,6 +159,18 @@ class SnowflakeDMLBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
             matchedActions = Seq(DeleteAction(Some(Equals(Dot(Id("t2"), Id("date")), Literal("01/01/2024")))))))
       }
 
+      "MERGE INTO t1 USING t2 ON t1.c1 = t2.c2 WHEN MATCHED THEN DELETE WHEN NOT MATCHED THEN INSERT" in {
+        example(
+          "MERGE INTO t1 USING t2 ON t1.c1 = t2.c2 WHEN MATCHED THEN DELETE WHEN NOT MATCHED THEN INSERT",
+          _.mergeStatement(),
+          MergeIntoTable(
+            namedTable("t1"),
+            namedTable("t2"),
+            Equals(Dot(Id("t1"), Id("c1")), Dot(Id("t2"), Id("c2"))),
+            matchedActions = Seq(DeleteAction(None)),
+            notMatchedActions = Seq(InsertAction(None, Seq.empty[Assign]))))
+      }
+
     }
   }
 }

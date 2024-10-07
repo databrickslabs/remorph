@@ -101,7 +101,7 @@ mergeUpdateDelete
     | DELETE
     ;
 
-mergeInsert: INSERT (L_PAREN columnList R_PAREN)? VALUES L_PAREN exprList R_PAREN
+mergeInsert: INSERT ((L_PAREN columnList R_PAREN)? VALUES L_PAREN exprList R_PAREN)?
     ;
 
 updateStatement
