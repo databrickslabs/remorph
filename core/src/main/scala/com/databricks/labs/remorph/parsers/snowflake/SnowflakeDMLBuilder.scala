@@ -49,8 +49,32 @@ class SnowflakeDMLBuilder
     val target = ctx.tableRef().accept(relationBuilder)
     val relation = ctx.tableSource().accept(relationBuilder)
     val predicate = ctx.predicate().accept(expressionBuilder)
+    val matchedActions = ctx
+      .mergeCond()
+      .mergeCondMatch()
+      .asScala
+      .map(c => buildMergeAction(c.mergeUpdateDelete().asScala.toList))
 
-    ir.MergeIntoTable(target, relation, predicate, matchedActions = Seq(ir.DeleteAction(None)))
+    val notMatchedActions = ctx
+      .mergeCond()
+      .mergeCondNotMatch()
+      .asScala
+      .map(c => buildInsertAction(c.mergeInsert()))
+
+    ir.MergeIntoTable(
+      target,
+      relation,
+      predicate,
+      matchedActions = matchedActions,
+      notMatchedActions = notMatchedActions)
+  }
+
+  private def buildMergeAction(ctx: List[MergeUpdateDeleteContext]): ir.MergeAction = {
+    ir.DeleteAction(None)
+  }
+
+  private def buildInsertAction(ctx: MergeInsertContext): ir.MergeAction = {
+    ir.InsertAction(None, Seq.empty[ir.Assign])
   }
 
 }

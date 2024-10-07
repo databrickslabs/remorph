@@ -97,8 +97,8 @@ mergeCondNotMatch: WHEN NOT MATCHED (AND predicate)? THEN mergeInsert
     ;
 
 mergeUpdateDelete
-    : UPDATE SET setColumnValue (COMMA setColumnValue)* #mergeUpdate
-    | DELETE #mergeDelete
+    : UPDATE SET setColumnValue (COMMA setColumnValue)*
+    | DELETE
     ;
 
 mergeInsert: INSERT (L_PAREN columnList R_PAREN)? VALUES L_PAREN exprList R_PAREN
