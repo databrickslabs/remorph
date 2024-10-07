@@ -21,7 +21,7 @@ class TSqlTableDefinitionTest extends AnyFlatSpec with Matchers with MockitoSuga
     when(mockRs.getString("TABLE_CATALOG")).thenReturn("CATALOG")
     when(mockRs.getString("TABLE_SCHEMA")).thenReturn("SCHEMA")
     when(mockRs.getString("TABLE_NAME")).thenReturn("TABLE")
-    when(mockRs.getString("DERIVED_SCHEMA")).thenReturn("col1:int:true~col2:string:false")
+    when(mockRs.getString("DERIVED_SCHEMA")).thenReturn("col1§int§true§hi‡col2§string§false§hi")
     when(mockRs.getString("LOCATION")).thenReturn(null)
     when(mockRs.getString("FILE_FORMAT_NAME")).thenReturn(null)
     when(mockRs.getString("VIEW_DEFINITION")).thenReturn(null)
