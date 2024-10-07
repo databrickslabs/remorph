@@ -33,7 +33,7 @@ class TSqlTableDefinitions(conn: Connection) {
        |      TABLE_NAME,
        |      STRING_AGG(
        |              CONCAT(
-       |                      column_name, ':',
+       |                      column_name, '§',
        |                      CASE
        |                          WHEN numeric_precision IS NOT NULL AND numeric_scale IS NOT NULL
        |                              THEN CONCAT(data_type, '(', numeric_precision, ',', numeric_scale, ')')
@@ -41,13 +41,16 @@ class TSqlTableDefinitions(conn: Connection) {
        |                              THEN CONCAT('varchar', '(', CHARACTER_MAXIMUM_LENGTH, ')')
        |                          ELSE data_type
        |                          END,
-       |                      ':',
-       |                      CASE WHEN IS_NULLABLE = 'YES' THEN 'true' ELSE 'false' END
+       |                      '§',
+       |                      CASE WHEN IS_NULLABLE = 'YES' THEN 'true' ELSE 'false' END,
+       |                      '§',ISNULL(CONVERT(NVARCHAR(MAX), ep.value), ' ')
        |              ),
-       |              '~'
+       |              '‡'
        |      ) WITHIN GROUP (ORDER BY ordinal_position) AS DERIVED_SCHEMA
        |  FROM
-       |      ${catalogName}.INFORMATION_SCHEMA.COLUMNS
+       |      ${catalogName}.INFORMATION_SCHEMA.COLUMNS c
+       |      INNER JOIN ${catalogName}.sys.tables t on c.table_name = t.name
+       |      LEFT JOIN ${catalogName}.sys.extended_properties ep ON ep.major_id = t.object_id
        |  GROUP BY
        |      TABLE_CATALOG, TABLE_SCHEMA, TABLE_NAME
        |)
@@ -134,12 +137,14 @@ class TSqlTableDefinitions(conn: Connection) {
           val tableCatalog = rs.getString("TABLE_CATALOG")
           val columns = rs
             .getString("DERIVED_SCHEMA")
-            .split("~")
+            .split("‡")
             .map(x => {
-              val data = x.split(":")
+              val data = x.split("§")
               val name = data(0)
               val dataType = getDataType(data(1))
-              StructField(name, dataType, data(2).toBoolean)
+              val nullable = data(2).toBoolean
+              val comment = Option(data(3))
+              StructField(name, dataType, nullable, comment)
             })
           tableDefinitionList.append(
             TableDefinition(
