@@ -8,7 +8,7 @@ from databricks.labs.blueprint.upgrades import Upgrades
 from databricks.labs.blueprint.wheels import ProductInfo, Version
 from databricks.sdk import WorkspaceClient
 from databricks.sdk.errors import NotFound
-from databricks.sdk.errors.platform import InvalidParameterValue
+from databricks.sdk.errors.platform import InvalidParameterValue, ResourceDoesNotExist
 
 from databricks.labs.remorph.config import RemorphConfigs
 from databricks.labs.remorph.deployment.recon import ReconDeployment
@@ -45,7 +45,18 @@ class WorkspaceInstallation:
         local_installed_version = data["version"]
         local_installed_date = data["date"]
         logger.debug(f"Found local installation version: {local_installed_version} {local_installed_date}")
-        return Version(version=local_installed_version, date=local_installed_date, wheel="")
+        return Version(
+            version=local_installed_version,
+            date=local_installed_date,
+            wheel=f"databricks_labs_remorph-{local_installed_version}-py3-none-any.whl",
+        )
+
+    def _get_ws_version(self):
+        try:
+            return self._installation.load(Version)
+        except ResourceDoesNotExist as err:
+            logger.warning(f"Unable to get Workspace Version due to: {err}")
+            return None
 
     def _apply_upgrades(self):
         """
@@ -54,7 +65,7 @@ class WorkspaceInstallation:
         * If remote version or local_version exists, then only apply upgrades.
         * No need to apply upgrades for fresh installation.
         """
-        ws_version = self._installation.load(Version)
+        ws_version = self._get_ws_version()
         local_version_path = self._get_local_version_file_path()
         local_version = local_version_path.exists()
         if not ws_version and local_version:
@@ -63,6 +74,7 @@ class WorkspaceInstallation:
         if ws_version or local_version:
             try:
                 self._upgrades.apply(self._ws)
+                logger.debug("Upgrades applied successfully.")
             except (InvalidParameterValue, NotFound) as err:
                 logger.warning(f"Unable to apply Upgrades due to: {err}")
 
