@@ -2,15 +2,38 @@ package com.databricks.labs.remorph.parsers.tsql
 
 import com.databricks.labs.remorph.parsers.tsql.TSqlParser._
 import com.databricks.labs.remorph.parsers.tsql.rules.{InsertDefaultsAction, TopPercent}
-import com.databricks.labs.remorph.parsers.ParserCommon
-import com.databricks.labs.remorph.{intermediate => ir}
+import com.databricks.labs.remorph.parsers.{IncompleteParser, ParserCommon, intermediate => ir}
 import org.antlr.v4.runtime.ParserRuleContext
+import org.antlr.v4.runtime.tree.RuleNode
 
 import scala.collection.JavaConverters.asScalaBufferConverter
 
 class TSqlRelationBuilder(vc: TSqlVisitorCoordinator)
     extends TSqlParserBaseVisitor[ir.LogicalPlan]
+    with IncompleteParser[ir.LogicalPlan]
     with ParserCommon[ir.LogicalPlan] {
+
+  // This can be used in visitor methods when they detect that they are unable to handle some
+  // part of the input, or they are placeholders for a real implementation that has not yet been
+  // implemented
+  protected override def wrapUnresolvedInput(unparsedInput: RuleNode): ir.UnresolvedRelation =
+    ir.UnresolvedRelation(getTextFromParserRuleContext(unparsedInput.getRuleContext))
+
+  // The default result is returned when there is no visitor implemented, and we end up visiting terminals
+  // or even error nodes (though we should not call the visitor in this system if parsing errors occur).
+  protected override def defaultResult(): ir.LogicalPlan = {
+    ir.UnresolvedRelation("Unimplemented visitor returns defaultResult!")
+  }
+
+  // This gets called when a visitor is not implemented so the default visitChildren is called. As that sometimes
+  // returns more than one result because there is more than one child, we need to aggregate the results here. In
+  // fact, we should never rely on this. Here we just protect against returning null, but we should implement the
+  // visitor.
+  override protected def aggregateResult(aggregate: ir.LogicalPlan, nextResult: ir.LogicalPlan): ir.LogicalPlan =
+    // Note that here we are just returning one of the nodes, which avoids returning null so long as they are not BOTH
+    // null. This is not correct, but it is a placeholder until we implement the missing visitor,
+    // so that we get a warning.
+    Option(nextResult).getOrElse(aggregate)
 
   override def visitCommonTableExpression(ctx: CommonTableExpressionContext): ir.LogicalPlan = {
     val tableName = vc.expressionBuilder.visitId(ctx.id())
