@@ -350,6 +350,14 @@ class TSqlExpressionBuilder(vc: TSqlVisitorCoordinator)
     ctx.expression().accept(this)
   }
 
+  override def visitFunctionCall(ctx: FunctionCallContext): ir.Expression = ctx match {
+    case b if b.builtInFunctions() != null => b.builtInFunctions().accept(this)
+    case s if s.standardFunction() != null => s.standardFunction().accept(this)
+    case f if f.freetextFunction() != null => f.freetextFunction().accept(this)
+    case p if p.partitionFunction() != null => p.partitionFunction().accept(this)
+    case h if h.hierarchyidStaticMethod() != null => h.hierarchyidStaticMethod().accept(this)
+  }
+
   override def visitId(ctx: IdContext): ir.Id = ctx match {
     case c if c.ID() != null => ir.Id(ctx.getText)
     case c if c.TEMP_ID() != null => ir.Id(ctx.getText)
