@@ -21,6 +21,7 @@ class AnonymizerTest extends AnyWordSpec with Matchers {
 
       anonymizer.fingerprint(query) should equal(
         Fingerprint(
+          "id",
           new Timestamp(1725032011000L),
           "4e1ebb6993509ec6bb977224ecec02fc9bb6f118",
           Duration.ofMillis(300),
@@ -42,6 +43,7 @@ class AnonymizerTest extends AnyWordSpec with Matchers {
 
       anonymizer.fingerprint(query) should equal(
         Fingerprint(
+          "id",
           new Timestamp(1725032011000L),
           "828f7eb7d417310ab5c1673c96ec82c47f0231e4",
           Duration.ofMillis(300),
@@ -57,8 +59,9 @@ class AnonymizerTest extends AnyWordSpec with Matchers {
 
       anonymizer.fingerprint(query) should equal(
         Fingerprint(
+          "id",
           new Timestamp(1725032011000L),
-          "unknown",
+          "93f60d8795c8bffa2aafe174ae8a867b42235755",
           Duration.ofMillis(300),
           "foo",
           WorkloadType.OTHER,
