@@ -53,7 +53,7 @@ class SnowflakeDMLBuilder
       .mergeCond()
       .mergeCondMatch()
       .asScala
-      .map(c => buildMergeAction(c.mergeUpdateDelete().asScala.toList))
+      .map(buildMergeAction)
 
     val notMatchedActions = ctx
       .mergeCond()
@@ -69,8 +69,10 @@ class SnowflakeDMLBuilder
       notMatchedActions = notMatchedActions)
   }
 
-  private def buildMergeAction(ctx: List[MergeUpdateDeleteContext]): ir.MergeAction = {
-    ir.DeleteAction(None)
+  private def buildMergeAction(ctx: MergeCondMatchContext): ir.MergeAction = {
+    val condition = ctx.predicate().accept(expressionBuilder)
+    ir.DeleteAction(Some(condition))
+
   }
 
   private def buildInsertAction(ctx: MergeInsertContext): ir.MergeAction = {

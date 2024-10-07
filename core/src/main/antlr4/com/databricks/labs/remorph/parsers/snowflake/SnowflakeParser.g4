@@ -90,7 +90,7 @@ mergeStatement: MERGE INTO tableRef USING tableSource ON predicate mergeCond
 mergeCond: (mergeCondMatch | mergeCondNotMatch)+
     ;
 
-mergeCondMatch: (WHEN MATCHED (AND predicate)? THEN mergeUpdateDelete)+
+mergeCondMatch: (WHEN MATCHED (AND predicate)? THEN mergeUpdateDelete)
     ;
 
 mergeCondNotMatch: WHEN NOT MATCHED (AND predicate)? THEN mergeInsert
