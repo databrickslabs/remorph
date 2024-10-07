@@ -343,7 +343,10 @@ class SnowflakeRelationBuilderSpec
 
   "Unparsed input" should {
     "be reported as UnresolvedRelation" in {
-      example("MATCH_RECOGNIZE()", _.matchRecognize(), UnresolvedRelation("MATCH_RECOGNIZE()"))
+      example(
+        "MATCH_RECOGNIZE()",
+        _.matchRecognize(),
+        UnresolvedRelation("Unimplemented visitor returns defaultResult!"))
     }
   }
 

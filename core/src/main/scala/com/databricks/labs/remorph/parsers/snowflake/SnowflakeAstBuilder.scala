@@ -36,8 +36,25 @@ class SnowflakeAstBuilder extends SnowflakeParserBaseVisitor[ir.LogicalPlan] wit
     }
   }
 
-  override def visitBatch(ctx: BatchContext): ir.LogicalPlan = {
+  // Concrete visitors...
+
+  override def visitSnowflakeFile(ctx: SnowflakeFileContext): ir.LogicalPlan =
+    Option(ctx.batch()).map(_.accept(this)).getOrElse(ir.Batch(Seq.empty))
+
+  override def visitBatch(ctx: BatchContext): ir.LogicalPlan =
     ir.Batch(visitMany(ctx.sqlCommand()))
+
+  override def visitSqlCommand(ctx: SqlCommandContext): ir.LogicalPlan = {
+    ctx match {
+      case c if c.ddlCommand() != null => c.ddlCommand().accept(this)
+      case c if c.dmlCommand() != null => c.dmlCommand().accept(this)
+      case c if c.showCommand() != null => c.showCommand().accept(this)
+      case c if c.useCommand() != null => c.useCommand().accept(this)
+      case c if c.describeCommand() != null => c.describeCommand().accept(this)
+      case c if c.otherCommand() != null => c.otherCommand().accept(this)
+      case c if c.snowSqlCommand() != null => c.snowSqlCommand().accept(this)
+      case _ => ir.UnresolvedCommand(getTextFromParserRuleContext(ctx))
+    }
   }
 
   override def visitQueryStatement(ctx: QueryStatementContext): ir.LogicalPlan = {
