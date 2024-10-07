@@ -71,7 +71,20 @@ class SnowflakeDMLBuilder
 
   private def buildMergeAction(ctx: MergeCondMatchContext): ir.MergeAction = {
     val condition = ctx.predicate().accept(expressionBuilder)
-    ir.DeleteAction(Some(condition))
+    ctx match {
+      case d if ctx.mergeUpdateDelete().DELETE() != null =>
+        ir.DeleteAction(Some(condition))
+      case u if ctx.mergeUpdateDelete().UPDATE() != null =>
+        val assign = u
+          .mergeUpdateDelete()
+          .setColumnValue()
+          .asScala
+          .map(expressionBuilder.visitSetColumnValue)
+          .map { case a: ir.Assign =>
+            a
+          }
+        ir.UpdateAction(Some(condition), assign)
+    }
 
   }
 
