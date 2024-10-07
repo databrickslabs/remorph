@@ -171,6 +171,20 @@ class SnowflakeDMLBuilderSpec extends AnyWordSpec with SnowflakeParserTestCommon
             notMatchedActions = Seq(InsertAction(None, Seq.empty[Assign]))))
       }
 
+      "MERGE INTO t1 USING t2 ON t1.c1 = t2.c2 WHEN MATCHED THEN UPDATE SET t1.c1 = 42" in {
+        example(
+          "MERGE INTO t1 USING t2 ON t1.c1 = t2.c2 WHEN MATCHED THEN UPDATE SET t1.c1 = 42",
+          _.mergeStatement(),
+          MergeIntoTable(
+            namedTable("t1"),
+            namedTable("t2"),
+            Equals(Dot(Id("t1"), Id("c1")), Dot(Id("t2"), Id("c2"))),
+            matchedActions = Seq(
+              UpdateAction(
+                None,
+                Seq(Assign(Column(Some(ObjectReference(Id("t1", false))), Id("c1", false)), Literal(42)))))))
+      }
+
     }
   }
 }
