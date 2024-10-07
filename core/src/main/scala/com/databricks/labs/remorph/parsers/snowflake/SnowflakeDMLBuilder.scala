@@ -59,7 +59,7 @@ class SnowflakeDMLBuilder
       .mergeCond()
       .mergeCondNotMatch()
       .asScala
-      .map(c => buildInsertAction(c.mergeInsert()))
+      .map(buildInsertAction)
 
     ir.MergeIntoTable(
       target,
@@ -73,9 +73,9 @@ class SnowflakeDMLBuilder
     val condition = Option(ctx.predicate().accept(expressionBuilder))
 
     ctx match {
-      case d if ctx.mergeUpdateDelete().DELETE() != null =>
+      case d if d.mergeUpdateDelete().DELETE() != null =>
         ir.DeleteAction(condition)
-      case u if ctx.mergeUpdateDelete().UPDATE() != null =>
+      case u if u.mergeUpdateDelete().UPDATE() != null =>
         val assign = u
           .mergeUpdateDelete()
           .setColumnValue()
@@ -89,8 +89,27 @@ class SnowflakeDMLBuilder
 
   }
 
-  private def buildInsertAction(ctx: MergeInsertContext): ir.MergeAction = {
-    ir.InsertAction(None, Seq.empty[ir.Assign])
+  private def buildInsertAction(ctx: MergeCondNotMatchContext): ir.MergeAction = {
+    val condition = Option(ctx.predicate().accept(expressionBuilder))
+    val assignments = Option(
+      ctx
+        .mergeInsert()
+        .columnList()
+        .columnName()
+        .asScala
+        .map(_.accept(expressionBuilder))
+        .zip(
+          ctx
+            .mergeInsert()
+            .exprList()
+            .expr()
+            .asScala
+            .map(_.accept(expressionBuilder)))
+        .map { case (col, value) =>
+          ir.Assign(col, value)
+        }).getOrElse(Seq.empty[ir.Assign])
+
+    ir.InsertAction(condition, assignments)
   }
 
 }
